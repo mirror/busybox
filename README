@@ -1,0 +1,27 @@
+Please see the LICENSE file for copyright information.
+
+Busybox is a multicall binary used to provide a minimal subset of 
+POSIX style commands and specialized functions.
+
+It is geared toward 'mini-systems' like boot floppies. Specifically
+it is used in the Debian Rescue/Install system (which caused the 
+original busybox to be made), the Linux Router Project, and others.
+
+As of version 0.20 there is a version number. : )
+Also as of version 0.20, BB is modularized to allow an easy build of
+only the BB parts you need, to reduce binary size.
+
+Edit the file busybox.def.h and comment out the parts you do not need
+using C++ comments (//)
+
+After the build is complete a busybox.links file is generated to allow
+you to easily make the sym/hard links to the busybox binary.
+
+Note the modular system is Makefile based, and purposly very
+simplistic. It does no dependency checking. That is left for you
+to figure out by trial and error.
+
+Please feed patches back to:
+	Dave Cinege <dcinege@psychosis.com>
+and:
+	Enrique Zanardi <ezanardi@ull.es>

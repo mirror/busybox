@@ -1,0 +1,8 @@
+0.27
+	Mount now supports -a, and -t auto.
+	Mount now updates mtab correctly for 'ro'.
+	More checks screen rows size, outputs bytes percentage.
+	Printf added as module.
+0.26
+	Touch now creates files. -c option for no create.
+	

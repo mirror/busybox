@@ -1,0 +1,17 @@
+#!/bin/sh
+#Make busybox links list file
+
+DF="busybox.def.h"
+MF="main.c"
+
+LIST="$(sed -n '/^#define/{s/^#define //p;}' $DF)"
+
+	for def in ${LIST}; do
+			
+		set -- $(sed -n '/^#ifdef '$def'[ +|	+].*/,/^#endif/{s/.*\/\///p; /^{ /{ s/^{ "//; s/",.*$//p;}; }' $MF)
+		path=$1; shift
+		
+			for n in $@; do
+				echo "$path/$n"
+			done
+	done
