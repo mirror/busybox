@@ -132,7 +132,6 @@
 
 #define BZ_MAX_CODE_LEN    23
 #define OM_TEST          3
-#define SM_F2F 3
 
 typedef struct {
 	char *next_in;
@@ -342,24 +341,6 @@ static unsigned char myfeof(FILE *f)
 	ungetc(c, f);
 	return(FALSE);
 }
-
-static void cleanUpAndFail(int ec)
-{
-	int retVal;
-
-	if ((srcMode == SM_F2F) && (opMode != OM_TEST) && deleteOutputOnInterrupt) {
-		if (outputHandleJustInCase != NULL) {
-			fclose(outputHandleJustInCase);
-		}
-		retVal = remove(outName);
-		if (retVal != 0) {
-			error_msg("%s: WARNING: deletion of output file (apparently) failed.\n", applet_name);
-		}
-	}
-
-	exit(ec);
-}
-
 
 void BZ2_hbCreateDecodeTables(int *limit, int *base, int *perm, unsigned char *length, int minLen, int maxLen, int alphaSize )
 {
@@ -1783,15 +1764,15 @@ errhandler_io:
 			error_msg("\n%s: I/O or other error, bailing out.  "
 				"Possible reason follows.\n", applet_name);
 			perror(applet_name);
-			cleanUpAndFail(1);
+			exit(1);
 		case BZ_DATA_ERROR:
 			error_msg("\n%s: Data integrity error when decompressing.\n", applet_name);
-			cleanUpAndFail(2);
+			exit(2);
 		case BZ_UNEXPECTED_EOF:
 			error_msg("\n%s: Compressed file ends unexpectedly;\n\t"
 				"perhaps it is corrupted?  *Possible* reason follows.\n", applet_name);
 			perror(applet_name);
-			cleanUpAndFail(2);
+			exit(2);
 		case BZ_DATA_ERROR_MAGIC:
 			if (zStream != stdin) {
 				fclose(zStream);
