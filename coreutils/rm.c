@@ -37,7 +37,7 @@ static const char *srcName;
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (unlink(fileName) < 0) {
-		perror(fileName);
+		perrorMsg("%s", fileName);
 		return (FALSE);
 	}
 	return (TRUE);
@@ -47,11 +47,11 @@ static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (recursiveFlag == FALSE) {
 		errno = EISDIR;
-		perror(fileName);
+		perrorMsg("%s", fileName);
 		return (FALSE);
 	} 
 	if (rmdir(fileName) < 0) {
-		perror(fileName);
+		perrorMsg("%s", fileName);
 		return (FALSE);
 	}
 	return (TRUE);
@@ -59,6 +59,7 @@ static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
 
 extern int rm_main(int argc, char **argv)
 {
+	int status = EXIT_SUCCESS;
 	int stopIt=FALSE;
 	struct stat statbuf;
 
@@ -102,9 +103,9 @@ extern int rm_main(int argc, char **argv)
 		} else {
 			if (recursiveAction(srcName, recursiveFlag, FALSE,
 								TRUE, fileAction, dirAction, NULL) == FALSE) {
-				return EXIT_FAILURE;
+				status = EXIT_FAILURE;
 			}
 		}
 	}
-	return EXIT_SUCCESS;
+	return status;
 }

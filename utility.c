@@ -641,7 +641,7 @@ int recursiveAction(const char *fileName,
 				"status=%d followLinks=%d TRUE=%d\n",
 				status, followLinks, TRUE);
 #endif
-		perror(fileName);
+		perrorMsg("%s", fileName);
 		return FALSE;
 	}
 
@@ -666,13 +666,13 @@ int recursiveAction(const char *fileName,
 
 		dir = opendir(fileName);
 		if (!dir) {
-			perror(fileName);
+			perrorMsg("%s", fileName);
 			return FALSE;
 		}
 		if (dirAction != NULL && depthFirst == FALSE) {
 			status = dirAction(fileName, &statbuf, userData);
 			if (status == FALSE) {
-				perror(fileName);
+				perrorMsg("%s", fileName);
 				return FALSE;
 			}
 		}
@@ -699,13 +699,13 @@ int recursiveAction(const char *fileName,
 		}
 		status = closedir(dir);
 		if (status < 0) {
-			perror(fileName);
+			perrorMsg("%s", fileName);
 			return FALSE;
 		}
 		if (dirAction != NULL && depthFirst == TRUE) {
 			status = dirAction(fileName, &statbuf, userData);
 			if (status == FALSE) {
-				perror(fileName);
+				perrorMsg("%s", fileName);
 				return FALSE;
 			}
 		}
