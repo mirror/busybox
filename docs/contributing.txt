@@ -197,6 +197,11 @@ Janitorial Work
 
 These are dirty jobs, but somebody's gotta do 'em.
 
+ - Converting applets to use getopt() for option processing. Type 'grep -L
+   getopt *.c' to get a listing of the applets that currently don't use
+   getopt. If a .c file processes no options, it should have a line that
+   reads: /* no options, no getopt */ somewhere in the file.
+
  - Security audits:
    http://www.securityfocus.com/frames/?content=/forums/secprog/secure-programming.html
 

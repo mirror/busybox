@@ -26,7 +26,9 @@ Here is the order in which code should be laid out in a file:
  - commented author name and email address(es)
  - commented GPL boilerplate
  - commented longer description / notes for the program (if needed)
- - #includes and #defines
+ - #includes of .h files with angle brackets (<>) around them
+ - #includes of .h files with quotes ("") around them
+ - #defines (if any, note the section below titled "Avoid the Preprocessor")
  - const and global variables
  - function declarations (if necessary)
  - function implementations
@@ -607,3 +609,45 @@ illustrates emphasizing logical blocks:
 		/* clean up */
 		free(line);
 	}
+
+
+Processing Options with getopt
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If your applet needs to process  command-line switches, please use getopt() to
+do so. Numerous examples can be seen in many of the existing applets, but
+basically it boils down to two things: at the top of the .c file, have this
+line in the midst of your #includes:
+
+	#include <getopt.h>
+
+And a code block similar to the following near the top of your applet_main()
+routine:
+
+    while ((opt = getopt(argc, argv, "abc")) > 0) { 
+            switch (opt) {
+            case 'a':
+                do_a_opt = 1;
+                break;
+            case 'b':
+                do_b_opt = 1;
+                break;
+            case 'c':
+                do_c_opt = 1;
+                break;
+            default:
+                show_usage();    /* in utility.c */
+            }
+    }
+
+If your applet takes no options (such as 'init'), there should be a line
+somewhere in the file reads:
+
+	/* no options, no getopt */
+
+That way, when people go grepping to see which applets need to be converted to
+use getopt, they won't get false positives.
+
+Additional Note: Do not use the getopt_long library function and do not try to
+hand-roll your own long option parsing. Busybox applets should only support
+short options, plus explanations and examples in usage.h.
