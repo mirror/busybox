@@ -93,6 +93,11 @@ struct history {
 
 #define xwrite write
 
+/*
+ * TODO: Someday we want to implement 'horizontal scrolling' of the
+ * command-line when the user has typed more than the current width. This
+ * would allow the user to see a 'window' of what he has typed.
+ */
 void
 cmdedit_setwidth(int w)
 {
