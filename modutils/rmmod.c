@@ -106,13 +106,13 @@ extern int rmmod_main(int argc, char **argv)
 		bb_show_usage();
 
 	{
+		for (n = optind; n < argc; n++) {
 #ifdef CONFIG_FEATURE_2_6_MODULES
-		char module_name[strlen(argv[n]) + 1];
-		filename2modname(module_name, argv[n]);
+			char module_name[strlen(argv[n]) + 1];
+			filename2modname(module_name, argv[n]);
 #else
 #define module_name		argv[n]
 #endif
-		for (n = optind; n < argc; n++) {
 			if (syscall(__NR_delete_module, module_name, flags) < 0) {
 				bb_perror_msg("%s", argv[n]);
 				ret = EXIT_FAILURE;
