@@ -1454,17 +1454,28 @@ extern pid_t* findPidByName( char* pidName)
 #endif							/* BB_FEATURE_USE_DEVPS_PATCH */
 #endif							/* BB_KILLALL || ( BB_FEATURE_LINUXRC && ( BB_HALT || BB_REBOOT || BB_POWEROFF )) */
 
+#ifndef DMALLOC
 /* this should really be farmed out to libbusybox.a */
 extern void *xmalloc(size_t size)
 {
-	void *cp = malloc(size);
+	void *ptr = malloc(size);
 
-	if (cp == NULL)
+	if (!ptr)
 		fatalError(memory_exhausted);
-	return cp;
+	return ptr;
 }
 
+void *xrealloc(void *old, size_t size)
+{
+	void *ptr = realloc(old, size);
+	if (!ptr)
+		fatalError(memory_exhausted);
+	return ptr;
+}
+#endif
+
 #if defined BB_FEATURE_NFSMOUNT
+# ifndef DMALLOC
 extern char * xstrdup (const char *s) {
 	char *t;
 
@@ -1478,6 +1489,7 @@ extern char * xstrdup (const char *s) {
 
 	return t;
 }
+# endif
 
 extern char * xstrndup (const char *s, int n) {
 	char *t;

@@ -70,7 +70,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.18 2000/07/16 20:57:15 kraai Exp $"
+#ident "$Id: insmod.c,v 1.19 2000/07/19 17:35:54 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -276,7 +276,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.18 2000/07/16 20:57:15 kraai Exp $"
+#ident "$Id: insmod.c,v 1.19 2000/07/19 17:35:54 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -562,16 +562,6 @@ static char m_filename[BUFSIZ + 1] = "\0";
 static char m_fullName[BUFSIZ + 1] = "\0";
 
 /*======================================================================*/
-
-void *xrealloc(void *old, size_t size)
-{
-	void *ptr = realloc(old, size);
-	if (!ptr) {
-		perror("Out of memory");
-		exit(1);
-	}
-	return ptr;
-}
 
 
 static int findNamedModule(const char *fileName, struct stat *statbuf,

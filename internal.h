@@ -26,6 +26,10 @@
 
 #include "busybox.def.h"
 
+#ifdef DMALLOC
+#include "dmalloc.h"
+#endif
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -360,8 +364,11 @@ extern char process_escape_sequence(char **ptr);
 extern char *get_last_path_component(char *path);
 extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 
+#ifndef DMALLOC 
 extern void *xmalloc (size_t size);
+extern void *xrealloc(void *old, size_t size)
 extern char *xstrdup (const char *s);
+#endif
 extern char *xstrndup (const char *s, int n);
 
 
