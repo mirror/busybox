@@ -49,14 +49,15 @@ extern int dd_main(int argc, char **argv)
 	int inCc = 0;
 	int outCc;
 	int trunc=TRUE;
-	long blockSize = 512;
+	int sync=FALSE;
+	long blockSize = 512,ibs;
 	uintmax_t skipBlocks = 0;
 	uintmax_t seekBlocks = 0;
 	uintmax_t count = (uintmax_t) - 1;
 	uintmax_t inTotal = 0;
 	uintmax_t outTotal = 0;
 	uintmax_t totalSize;
-	uintmax_t readSize;
+
 	unsigned char buf[BUFSIZ];
 	char *keyword = NULL;
 
@@ -98,6 +99,8 @@ extern int dd_main(int argc, char **argv)
 			keyword = (strchr(*argv, '=') + 1);
                 	if (strcmp(keyword, "notrunc") == 0) 
 				trunc=FALSE;
+			if (strcmp(keyword, "sync") == 0) 
+				sync=TRUE;
 		} else {
 			goto usage;
 		}
@@ -137,13 +140,24 @@ extern int dd_main(int argc, char **argv)
 	lseek(inFd, (off_t) (skipBlocks * blockSize), SEEK_SET);
 	lseek(outFd, (off_t) (seekBlocks * blockSize), SEEK_SET);
 	totalSize=count*blockSize;
-	while ((readSize = totalSize - inTotal) > 0) {
-		if (readSize > BUFSIZ)
-			readSize=BUFSIZ;
-		inCc = fullRead(inFd, buf, readSize);
+
+	ibs=blockSize;
+	if (ibs > BUFSIZ)
+		ibs=BUFSIZ;
+			
+	while (totalSize > outTotal) {
+		inCc = fullRead(inFd, buf, ibs);
 		inTotal += inCc;
-		if ((outCc = fullWrite(outFd, buf, inCc)) < 1)
+		if ( (sync==TRUE) && (inCc>0) )
+			while (inCc<ibs)
+				buf[inCc++]='\0';
+
+		if ((outCc = fullWrite(outFd, buf, inCc)) < 1){
+			if (outCc < 0 ){
+				perror("Error during write");
+			}
 			break;
+		}
 		outTotal += outCc;
         }
 	if (trunc == TRUE) {

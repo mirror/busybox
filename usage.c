@@ -161,7 +161,7 @@ const char dc_usage[] =
 
 #if defined BB_DD
 const char dd_usage[] =
-	"dd [if=FILE] [of=FILE] [bs=N] [count=N] [skip=N] [seek=N]\n"
+	"dd [if=FILE] [of=FILE] [bs=N] [count=N] [skip=N] [seek=N] [conv=notrunc|sync]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nCopy a file, converting and formatting according to options\n\n"
 	"\tif=FILE\tread from FILE instead of stdin\n"
@@ -171,6 +171,7 @@ const char dd_usage[] =
 	"\tskip=N\tskip N input blocks\n"
 	"\tseek=N\tskip N output blocks\n"
 	"\tconv=notrunc\t dont truncate of at end of write\n"
+	"\tconv=sync\t pad the last block with zeros until blocksize\n"
 	"\n"
 	"Numbers may be suffixed by w (x2), k (x1024), b (x512), or M (x1024^2)\n"
 #endif
