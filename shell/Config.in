@@ -1,0 +1,208 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Bourne Shell"
+
+choice
+	prompt "Choose your default shell"
+	default "ash"
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SH_IS_ASH
+	bool "ash"
+
+config CONFIG_FEATURE_SH_IS_HUSH
+	bool "hush"
+
+config CONFIG_FEATURE_SH_IS_LASH
+	bool "lash"
+
+config CONFIG_FEATURE_SH_IS_MSH
+	bool "msh"
+
+endchoice
+
+if CONFIG_FEATURE_SH_IS_ASH
+	config CONFIG_ASH
+	default y
+
+	comment "ash (forced enabled as default shell)"
+endif
+	
+if !CONFIG_FEATURE_SH_IS_ASH
+config CONFIG_ASH
+	bool "ash"
+	default y
+	help
+	  Please submit a patch to add help text for this item.
+endif
+
+comment "Ash Shell Options"
+	depends on CONFIG_ASH
+
+config CONFIG_ASH_JOB_CONTROL
+	bool "  Enable Job control"
+	default y
+	depends on CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ASH_ALIAS
+	bool "  Enable alias support"
+	default y
+	depends on CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ASH_MATH_SUPPORT
+	bool "  Enable Posix math support"
+	default y
+	depends on CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ASH_GETOPTS
+	bool "  Enable getopt builtin to parse positional parameters"
+	default n
+	depends on CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ASH_CMDCMD
+	bool "  Enable cmdcmd to override shell builtins"
+	default n
+	depends on CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ASH_MAIL
+	bool "  Check for new mail on interactive shells"
+	default y
+	depends on CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ASH_OPTIMIZE_FOR_SIZE
+	bool "  Optimize for size instead of speed"
+	default y
+	depends on CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_COMMAND_SAVEHISTORY
+	bool "  history saving"
+	default n
+	depends on CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+if CONFIG_FEATURE_SH_IS_HUSH
+	config CONFIG_HUSH
+	default y
+
+	comment "hush (forced enabled as default shell)"
+endif
+	
+if !CONFIG_FEATURE_SH_IS_HUSH
+config CONFIG_HUSH
+	bool "hush"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+endif
+
+if CONFIG_FEATURE_SH_IS_LASH
+	config CONFIG_LASH
+	default y
+
+	comment "lash (forced enabled as default shell)"
+endif
+
+if !CONFIG_FEATURE_SH_IS_LASH
+config CONFIG_LASH
+	bool "lash"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+endif
+
+if CONFIG_FEATURE_SH_IS_MSH
+	config CONFIG_MSH
+	default y
+
+	comment "msh (forced enabled as default shell)"
+endif
+
+if !CONFIG_FEATURE_SH_IS_MSH
+config CONFIG_MSH
+	bool "msh"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+endif
+
+
+comment "Bourne Shell Options"
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+
+config CONFIG_FEATURE_COMMAND_EDITING
+	bool "command line editing"
+	default n
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_COMMAND_TAB_COMPLETION
+	bool "tab completion"
+	default n
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
+	bool "username completion"
+	default n
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_COMMAND_HISTORY
+	int "history size"
+	default 15
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SH_STANDALONE_SHELL
+	bool "Standalone shell"
+	default n
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
+	bool "Standalone shell -- applets always win"
+	default n
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SH_FANCY_PROMPT
+	bool "Fancy shell prompts"
+	default n
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SH_EXTRA_QUIET
+	bool "Hide message on interactive shell startup"
+	default n
+	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu
+

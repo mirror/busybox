@@ -17,68 +17,25 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
+#--------------------------------------------------------
 PROG      := busybox
 VERSION   := 0.61.pre
 BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
-HOSTCC    := gcc
-HOSTCFLAGS:= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
 
 
-# What OS are you compiling busybox for?  This allows you to include
-# OS specific things, syscall overrides, etc.
-TARGET_OS:=linux
-
+#--------------------------------------------------------
 # With a modern GNU make(1) (highly recommended, that's what all the
 # developers use), all of the following configuration values can be
 # overridden at the command line.  For example:
 #   make CROSS=powerpc-linux- BB_SRC_DIR=$HOME/busybox PREFIX=/mnt/app
+#--------------------------------------------------------
 
-# If you want to add some simple compiler switches (like -march=i686),
-# especially from the command line, use this instead of CFLAGS directly.
-# For optimization overrides, it's better still to set OPTIMIZATION.
-CFLAGS_EXTRA:=#-Werror
- 
-# If you want a static binary, turn this on.
-DOSTATIC:=false
-
-# Set the following to `true' to make a debuggable build.
-# Leave this set to `false' for production use.
-DODEBUG:=false
-
-# This enables compiling with dmalloc ( http://dmalloc.com/ )
-# which is an excellent public domain mem leak and malloc problem
-# detector.  To enable dmalloc, before running busybox you will
-# want to first set up your environment.
-# eg: `export DMALLOC_OPTIONS=debug=0x34f47d83,inter=100,log=logfile`
-# The debug= value is generated using the following command
-# dmalloc -p log-stats -p log-non-free -p log-bad-space -p log-elapsed-time \
-#      -p check-fence -p check-heap -p check-lists -p check-blank \
-#      -p check-funcs -p realloc-copy -p allow-free-null
-# Do not enable this for production builds...
-DODMALLOC:=false
-
-# Electric-fence is another very useful malloc debugging library.
-# Do not enable this for production builds...
-DOEFENCE:=false
-
-# If you want large file summit support, turn this on.
-# This has no effect if you don't have a kernel with lfs
-# support, and a system with libc-2.1.3 or later.
-# Some of the programs that can benefit from lfs support
-# are dd, gzip, mount, tar, and mkfs_minix.
-# LFS allows you to use the above programs for files
-# larger than 2GB!
-DOLFS:=false
-
-# If you have a "pristine" source directory, point BB_SRC_DIR to it.
-# Experimental and incomplete; tell the mailing list
-# <busybox@busybox.net> if you do or don't like it so far.
-BB_SRC_DIR:=
-
-# If you are running a cross compiler, you may want to set CROSS
-# to something more interesting, like "arm-linux-".
-CROSS:=
-CC             := $(CROSS)gcc
+# If you are running a cross compiler, you will want to set 'CROSS'
+# to something more interesting...  Target architecture is determined
+# by asking the CC compiler what arch it compiles things for, so unless
+# your compiler is broken, you should not need to specify TARGET_ARCH
+CROSS           =$(subst ",, $(strip $(CROSS_COMPILER_PREFIX)))
+CC             = $(CROSS)gcc
 AR             := $(CROSS)ar
 AS             := $(CROSS)as
 LD             := $(CROSS)ld
@@ -86,12 +43,24 @@ NM             := $(CROSS)nm
 STRIP          := $(CROSS)strip
 CPP            := $(CC) -E
 MAKEFILES      := $(TOPDIR).config
-export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
 
+# What OS are you compiling busybox for?  This allows you to include
+# OS specific things, syscall overrides, etc.
+TARGET_OS:=linux
 
-# To compile vs uClibc, just use the compiler wrapper built by uClibc...
-# Everything should compile and work as expected these days...
-#CC:=/usr/i386-linux-uclibc/bin/i386-uclibc-gcc
+# Select the compiler needed to build binaries for your development system
+HOSTCC    := gcc
+HOSTCFLAGS:= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
+
+# If you want to add some simple compiler switches (like -march=i686),
+# especially from the command line, use this instead of CFLAGS directly.
+# For optimization overrides, it's better still to set OPTIMIZATION.
+CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
+ 
+# If you have a "pristine" source directory, point BB_SRC_DIR to it.
+# Experimental and incomplete; tell the mailing list
+# <busybox@busybox.net> if you do or don't like it so far.
+BB_SRC_DIR:=
 
 # To compile vs some other alternative libc, you may need to use/adjust
 # the following lines to meet your needs...
@@ -115,7 +84,10 @@ WARNINGS:=-Wall -Wstrict-prototypes -Wshadow
 CFLAGS:=-I$(TOPDIR)include
 ARFLAGS:=-r
 
-TARGET_ARCH:=${shell $(CC) -dumpmachine | sed -e s'/-.*//' \
+#--------------------------------------------------------
+export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
+ifeq ($(strip $(TARGET_ARCH)),)
+TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/i.86/i386/' \
 		-e 's/sparc.*/sparc/' \
 		-e 's/arm.*/arm/g' \
@@ -123,8 +95,18 @@ TARGET_ARCH:=${shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/ppc/powerpc/g' \
 		-e 's/v850.*/v850/g' \
 		-e 's/sh[234]/sh/' \
-		-e 's/mips.*/mips/' \
-		}
+		-e 's/mips-.*/mips/' \
+		-e 's/mipsel-.*/mipsel/' \
+		-e 's/cris.*/cris/' \
+		)
+endif
+
+# Pull in the user's uClibc configuration
+ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
+include_config := 1
+-include $(TOPDIR).config
+endif
+
 # A nifty macro to make testing gcc features easier
 check_gcc=$(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; \
 	then echo "$(1)"; else echo "$(2)"; fi)
@@ -159,24 +141,20 @@ OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer
 # prone to casual user adjustment.
 # 
 
-ifeq ($(strip $(DOLFS)),true)
+ifeq ($(strip $(DOLFS)),y)
     # For large file summit support
     CFLAGS+=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 endif
-ifeq ($(strip $(DODMALLOC)),true)
+ifeq ($(strip $(DODMALLOC)),y)
     # For testing mem leaks with dmalloc
     CFLAGS+=-DDMALLOC
     LIBRARIES:=-ldmalloc
-    # Force debug=true, since this is useless when not debugging...
-    DODEBUG:=true
 else
-    ifeq ($(strip $(DOEFENCE)),true)
+    ifeq ($(strip $(DOEFENCE)),y)
 	LIBRARIES:=-lefence
-	# Force debug=true, since this is useless when not debugging...
-	DODEBUG:=true
     endif
 endif
-ifeq ($(strip $(DODEBUG)),true)
+ifeq ($(strip $(DODEBUG)),y)
     CFLAGS  +=$(WARNINGS) -g -D_GNU_SOURCE
     LDFLAGS +=-Wl,-warn-common
     STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
@@ -185,7 +163,7 @@ else
     LDFLAGS += -s -Wl,-warn-common
     STRIPCMD:=$(STRIP) --remove-section=.note --remove-section=.comment
 endif
-ifeq ($(strip $(DOSTATIC)),true)
+ifeq ($(strip $(DOSTATIC)),y)
     LDFLAGS += --static
 endif
 
@@ -203,8 +181,6 @@ ifneq ($(strip $(BB_SRC_DIR)),)
     VPATH:=$(BB_SRC_DIR)
 endif
 
-CFLAGS    += -DBB_VER='"$(VERSION)"'
-CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
 OBJECTS:=$(APPLET_SOURCES:.c=.o) busybox.o usage.o applets.o
 CFLAGS    += $(CROSS_CFLAGS)
 ifdef BB_INIT_SCRIPT

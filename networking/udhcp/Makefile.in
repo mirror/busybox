@@ -44,3 +44,9 @@ libraries-y+=$(UDHCP_DIR)$(UDHCP_AR)
 $(UDHCP_DIR)$(UDHCP_AR): $(patsubst %,$(UDHCP_DIR)%, $(UDHCP-y))
 	$(AR) -ro $@ $(patsubst %,$(UDHCP_DIR)%, $(UDHCP-y))
 
+$(UDHCP_DIR)dhcpc.o: $(UDHCP_DIR)dhcpc.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DCOMBINED_BINARY -c $< -o $@
+
+$(UDHCP_DIR)dhcpd.o: $(UDHCP_DIR)dhcpd.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DCOMBINED_BINARY -c $< -o $@
+

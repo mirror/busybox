@@ -1,0 +1,209 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+mainmenu "BusyBox Configuration"
+
+choice
+	prompt "Buffer allocation policy"
+	default "Allocate with Malloc"
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_BUFFERS_USE_MALLOC
+	bool "Allocate with Malloc"
+
+config CONFIG_FEATURE_BUFFERS_GO_ON_STACK
+	bool "Allocate on the Stack"
+
+config CONFIG_FEATURE_BUFFERS_GO_IN_BSS
+	bool "Allocate in the .bss section"
+
+endchoice
+
+config CONFIG_FEATURE_VERBOSE_USAGE
+	bool "Show verbose applet usage messages"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_INSTALLER
+	bool "Support --install [-s] to install applet links at runtime"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LOCALE_SUPPORT
+	bool "Enable locale support (system needs locale for this to work)"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_DEVFS
+	bool "Support for devfs"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_DEVPTS
+	bool "Use the devpts filesystem for Unix98 PTYs"
+	default y if CONFIG_FEATURE_DEVFS
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_CLEAN_UP
+	bool "Clean up all memory before exiting (usually not needed)"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SUID
+	bool "Support for SUID/SGID handling"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SUID_CONFIG
+	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
+	default y if CONFIG_FEATURE_SUID
+	depends on CONFIG_FEATURE_SUID
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SUID_CONFIG_QUIET
+	bool "Suppress warning message if /etc/busybox.conf is not readable"
+	default n
+	depends on CONFIG_FEATURE_SUID_CONFIG
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu
+
+menu 'Build Options'
+
+config DOSTATIC
+	bool "Build BusyBox as a static binary (no shared libs)"
+	default n
+	help
+	  If you want to build a static BusyBox binary, which does not 
+	  use or require any shared libraries, then enable this option.  
+
+config DOLFS
+	bool "Build with Large File Support (for accessing files > 2 GB)" 
+	default n
+	help
+	  If you want to build BusyBox with large file support, then enable
+	  this option.  This will have no effect if your kernel or your C
+	  library lacks large file support for large files.  Some of the
+	  programs that can benefit from large file support include dd, gzip,
+	  cp, mount, tar, and many others.  If you want to access files larger
+	  than 2 Gigabytes, enable this option.  Otherwise, leave it set to 'N'.
+
+config USING_CROSS_COMPILER
+	bool "Do you want to build BusyBox with a Cross Compiler?"
+	default n
+	help
+	  Do you want to build BusyBox with a Cross Compiler?  If so,
+	  then enable this option.  Otherwise leave it set to 'N'.
+
+config CROSS_COMPILER_PREFIX
+	string "Cross Compiler prefix"
+	default "/usr/i386-linux-uclibc/bin/i386-uclibc-"
+	depends on USING_CROSS_COMPILER
+	help
+	  If you want to build BusyBox with a cross compiler, then you 
+	  will need to set this to the cross-compiler prefix.  For example,
+	  if my cross-compiler is /usr/i386-linux-uclibc/bin/i386-uclibc-gcc
+	  then I would enter '/usr/i386-linux-uclibc/bin/i386-uclibc-' here,
+	  which will ensure the correct compiler is used.
+
+config EXTRA_CFLAGS_OPTIONS
+	string "Any extra CFLAGS options for the compiler?"
+	default ""
+	help
+	  Do you want to pass any extra CFLAGS options to the compiler as
+	  you build BusyBox? If so, this is the option for you...  For example,
+	  if you want to add some simple compiler switches (like -march=i686),
+	  or check for warnings using -Werror, just those options here.
+
+endmenu
+
+source archival/Config.in
+source console-tools/Config.in
+source debianutils/Config.in
+source editors/Config.in
+source fileutils/Config.in
+source findutils/Config.in
+source init/Config.in
+source loginutils/Config.in
+source miscutils/Config.in
+source modutils/Config.in
+source networking/Config.in
+source procps/Config.in
+source shell/Config.in
+source shellutils/Config.in
+source sysklogd/Config.in
+source textutils/Config.in
+source util-linux/Config.in
+
+menu 'Debugging Options'
+
+config DOSTATIC
+	bool "Build BusyBox as a static binary (no shared libs)"
+	default n
+	help
+	  If you want to build a static BusyBox binary, which does not 
+	  use or require any shared libraries, then enable this option.  
+	  This will make BusyBox be considerable larger, so you should
+	  leave this option false unless you have a good reason (i.e.
+	  your target platform does not support shared libraries, or
+	  you are building an initrd which doesn't need anything but
+	  BusyBox, etc).
+
+	  Most people will leave this set to 'N'.
+
+config DODEBUG
+	bool "Build BusyBox with Debugging symbols"
+	default n
+	help
+	  Say Y here if you wish to compile BusyBox with debugging symbols.
+	  This will allow you to use a debugger to examine BusyBox internals
+	  while applets are running.  This increases the size of the binary 
+	  considerably and should only be used when doing development.
+	  If you are doing development and want to debug BusyBox, answer Y.
+
+	  Otherwise, answer N.
+
+config DODMALLOC
+	bool "Build BusyBox with dmalloc support"
+	default n
+	depends on DODEBUG && !DOEFENCE
+	help
+	  This enables compiling with dmalloc ( http://dmalloc.com/ )
+	  which is an excellent public domain mem leak and malloc problem
+	  detector.  To enable dmalloc, before running busybox you will
+	  want to properly set your environment, for example:
+	    export DMALLOC_OPTIONS=debug=0x34f47d83,inter=100,log=logfile
+	  The 'debug=' value is generated using the following command
+	    dmalloc -p log-stats -p log-non-free -p log-bad-space -p log-elapsed-time \
+	       -p check-fence -p check-heap -p check-lists -p check-blank \
+	       -p check-funcs -p realloc-copy -p allow-free-null
+
+	  This will make BusyBox be considerable larger and run slower, so 
+	  you should leave this option disabled for production use.
+
+config DOEFENCE
+	bool "Build BusyBox with Electric-fence support"
+	default n
+	depends on DODEBUG && !DODMALLOC
+	help
+	  This enables compiling with Electric-fence support.  Electric
+	  fence is another very useful malloc debugging library which used
+	  your computers virtual memory hardware to detect illegal memory 
+	  accesses.  This support will make BusyBox be considerable larger 
+	  and run slower, so you should leave this option disabled unless 
+	  you are hunting a hard to find memory problem.
+
+endmenu
+

@@ -1,0 +1,158 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Archival Utilities"
+
+config CONFIG_AR
+	bool "ar"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_AR_LONG_FILENAMES
+	bool "  Enable support for long filenames (not need for debs)"
+	default n
+	depends on CONFIG_AR
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_BUNZIP2
+	bool "bunzip2"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CPIO
+	bool "cpio"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DPKG
+	bool "dpkg"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DPKG_DEB
+	bool "dpkg_deb"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
+	bool "  extract only (-x)"
+	default n
+	depends on CONFIG_DPKG_DEB
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_DEB_TAR_GZ
+	bool "  gzip debian packages (normal)"
+	default y if CONFIG_DPKG || CONFIG_DPKG_DEB
+	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_DEB_TAR_BZ2
+	bool "  bzip2 debian packages"
+	default n
+	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_GUNZIP
+	bool "gunzip"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_GUNZIP_UNCOMPRESS
+	bool "  Uncompress support"
+	default n
+	depends on CONFIG_GUNZIP
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_GZIP
+	bool "gzip"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_RPM2CPIO
+	bool "rpm2cpio"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_TAR
+	bool "tar"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TAR_CREATE
+	bool "  Enable archive creation"
+	default y
+	depends on CONFIG_TAR
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TAR_BZIP2
+	bool "  Enable -j option to handle .tar.bz2 files"
+	default n
+	depends on CONFIG_TAR
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TAR_EXCLUDE
+	bool "  Enable -X and --exclude options (exclude files)"
+	default n
+	depends on CONFIG_TAR
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TAR_GZIP
+	bool "  Enable -z option"
+	default y
+	depends on CONFIG_TAR
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TAR_OLD_FORMAT
+	bool "  Enable support for old tar header format"
+	default n
+	depends on CONFIG_TAR
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_GNUTAR_LONG_FILENAME
+	bool "  Enable support for GNU long filenames"
+	default y
+	depends on CONFIG_TAR
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_UNARCHIVE_TAPE
+	bool "  Enable tape drive support"
+	default n
+	depends on CONFIG_TAR || CONFIG_CPIO
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_UNCOMPRESS
+	bool "uncompress"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_UNZIP
+	bool "unzip"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu

@@ -1,0 +1,75 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Miscellaneous Utilities"
+
+config CONFIG_ADJTIMEX
+	bool "adjtimex"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CROND
+	bool "crond"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CRONTAB
+	bool "crontab"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DC
+	bool "dc"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DUTMP
+	bool "dutmp"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MAKEDEVS
+	bool "makedevs"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MT
+	bool "mt"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_STRINGS
+	bool "strings"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_TIME
+	bool "time"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_UPDATE
+	bool "update"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_WATCHDOG
+	bool "watchdog"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu
+

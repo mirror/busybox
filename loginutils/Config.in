@@ -1,0 +1,97 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Login/Password Management Utilities"
+
+config CONFIG_USE_BB_PWD_GRP
+	bool "Use internal password and group functions rather than system functions"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ADDGROUP
+	bool "addgroup"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DELGROUP
+	bool "delgroup"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ADDUSER
+	bool "adduser"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DELUSER
+	bool "deluser"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_GETTY
+	bool "getty"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LOGIN
+	bool "login"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SECURETTY
+	bool "  Support for /etc/securetty"
+	default y
+	depends on CONFIG_LOGIN
+	help
+	  Please submit a patch to add help text for this item.
+
+
+config CONFIG_PASSWD
+	bool "passwd"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_SU
+	bool "su"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SHADOWPASSWDS
+	bool "Support for shadow passwords"
+	default y
+	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_USE_BB_SHADOW
+	bool "  Use busybox shadow password functions"
+	default n
+	depends on CONFIG_USE_BB_PWD_GRP && CONFIG_FEATURE_SHADOWPASSWDS
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_SULOGIN
+	bool "sulogin"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_VLOCK
+	bool "vlock"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu
+

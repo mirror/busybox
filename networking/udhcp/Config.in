@@ -1,0 +1,42 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "udhcp Server/Client"
+
+config CONFIG_UDHCPD
+	bool "udhcp Server (udhcpd)"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_UDHCPC
+	bool "udhcp Client (udhcpc)"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DUMPLEASES
+	bool "Lease display utility (dumpleases)"
+	default n
+	depends on CONFIG_UDHCPD
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_UDHCP_SYSLOG
+	bool "  Log udhcp messages to syslog (instead of stdout)"
+	default n
+	depends on CONFIG_UDHCPD || CONFIG_UDHCPC
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_UDHCP_DEBUG
+	bool "  Compile udhcp with noisy debugging messages"
+	default n
+	depends on CONFIG_UDHCPD || CONFIG_UDHCPC
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu
+

@@ -1,0 +1,84 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Module Utilities"
+
+config CONFIG_INSMOD
+	bool "insmod"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_OLD_MODULE_INTERFACE
+	bool "  Support older (pre 2.1) Linux kernels"
+	default n
+	depends on CONFIG_INSMOD
+	help
+	  Please submit a patch to add help text for this item.
+
+if CONFIG_INSMOD && !CONFIG_FEATURE_OLD_MODULE_INTERFACE
+    config CONFIG_FEATURE_NEW_MODULE_INTERFACE
+	    default y
+    comment "  Support new (post 2.1) Linux kernels (Forced enabled)"
+endif
+
+if CONFIG_FEATURE_OLD_MODULE_INTERFACE
+config CONFIG_FEATURE_NEW_MODULE_INTERFACE
+	bool "  Support new (post 2.1) Linux kernels"
+	default y
+	depends on CONFIG_INSMOD
+	help
+	  Please submit a patch to add help text for this item.
+endif
+
+config CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+	bool "  Module version checking"
+	default n
+	depends on CONFIG_INSMOD
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_INSMOD_LOADINKMEM
+	bool "  In kernel memory optimization (uClinux only)"
+	default n
+	depends on CONFIG_INSMOD
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LSMOD
+	bool "lsmod"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_QUERY_MODULE_INTERFACE
+	bool "  Support lsmod query_module interface (add 638 bytes)"
+	default y
+	depends on CONFIG_LSMOD && CONFIG_FEATURE_NEW_MODULE_INTERFACE
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MODPROBE
+	bool "modprobe"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_RMMOD
+	bool "rmmod"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_CHECK_TAINTED_MODULE
+	bool "Support tainted module checking with new kernels"
+	default y
+	depends on CONFIG_INSMOD || CONFIG_LSMOD
+	help
+	  Please submit a patch to add help text for this item.
+
+
+endmenu
+

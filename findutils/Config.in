@@ -1,0 +1,70 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Finding Utilities"
+
+config CONFIG_FIND
+	bool "find"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FIND_MTIME
+	bool "  Enable modified time matching (-mtime) option"
+	default y
+	depends on CONFIG_FIND
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FIND_PERM
+	bool "  Enable permissions matching (-perm) option"
+	default y
+	depends on CONFIG_FIND
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FIND_TYPE
+	bool "  Enable filetype matching (-type) option"
+	default y
+	depends on CONFIG_FIND
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FIND_XDEV
+	bool "  Enable stay in filesystem (-xdev) option"
+	default y
+	depends on CONFIG_FIND
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_GREP
+	bool "grep"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_GREP_EGREP_ALIAS
+	bool "  Support extended regular expressions (egrep & grep -E)"
+	default y
+	depends on CONFIG_GREP
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_GREP_CONTEXT
+	bool "  Enable before and after context flags (-A, -B and -C)"
+	default y
+	depends on CONFIG_GREP
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_XARGS
+	bool "xargs"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+
+endmenu
+

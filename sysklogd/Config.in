@@ -1,0 +1,48 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "System Logging Utilities"
+
+config CONFIG_KLOGD
+	bool "klogd"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LOGGER
+	bool "logger"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_SYSLOGD
+	bool "syslogd"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_REMOTE_LOG
+	bool "  Remote Log support"
+	default n
+	depends on CONFIG_SYSLOGD
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IPC_SYSLOG
+	bool "  Circular Buffer support"
+	default n
+	depends on CONFIG_SYSLOGD
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LOGREAD
+	bool "  logread"
+	default y
+	depends on CONFIG_FEATURE_IPC_SYSLOG
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu
+

@@ -1,0 +1,104 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Editors"
+
+config CONFIG_AWK
+	bool "awk"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_AWK_MATH
+	bool "  Enable math functions (requires libm)"
+	default y
+	depends on CONFIG_AWK
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_SED
+	bool "sed"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_VI
+	bool "vi"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_COLON
+	bool "  Enable \":\" colon commands (no \"ex\" mode)"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_YANKMARK
+	bool "  Enable yank/put commands and mark cmds"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_SEARCH
+	bool "  Enable search and replace cmds"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_USE_SIGNALS
+	bool "  Catch signals"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_DOT_CMD
+	bool "  Remember previous cmd and \".\" cmd"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_READONLY
+	bool "  Enable -R option and \"view\" mode"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_SETOPTS
+	bool "  Enable set-able options, ai ic showmatch"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_SET
+	bool "  Support for :set"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_WIN_RESIZE
+	bool "  Handle window resize"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_VI_OPTIMIZE_CURSOR
+	bool "  Optimize cursor movement"
+	default y
+	depends on CONFIG_VI
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu
+

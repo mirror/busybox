@@ -1,0 +1,332 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Networking Utilities"
+
+config CONFIG_FEATURE_IPV6
+	bool "Enable IPv6 support"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_HOSTNAME
+	bool "hostname"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_IFCONFIG
+	bool "ifconfig"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IFCONFIG_STATUS
+	bool "  Enable status reporting output (+7k)"
+	default y
+	depends on CONFIG_IFCONFIG
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IFCONFIG_SLIP
+	bool "  Enable slip-specific options \"keepalive\" and \"outfill\""
+	default n
+	depends on CONFIG_IFCONFIG
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+	bool "  Enable options \"mem_start\", \"io_addr\", and \"irq\""
+	default n
+	depends on CONFIG_IFCONFIG
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IFCONFIG_HW
+	bool "  Enable option \"hw\" (ether only)"
+	default y
+	depends on CONFIG_IFCONFIG
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
+	bool "  Set the broadcast automatically"
+	default n
+	depends on CONFIG_IFCONFIG
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_IFUPDOWN
+	bool "ifupdown"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IFUPDOWN_IPV4
+	bool "  Enable support for IPv4"
+	default y
+	depends on CONFIG_IFUPDOWN
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IFUPDOWN_IPV6
+	bool "  Enable support for IPv6 (requires ip command)"
+	default n
+	depends on CONFIG_IFUPDOWN
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IFUPDOWN_IPX
+	bool "  Enable support for IPX (requires ipx_interface command)"
+	default n
+	depends on CONFIG_IFUPDOWN
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_IP
+	bool "ip"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+if CONFIG_IP && CONFIG_IPADDR
+	config CONFIG_FEATURE_IP_ADDRESS
+		default y
+	comment "  address (forced enabled for ipaddr)"
+endif
+if ! (CONFIG_IP && CONFIG_IPADDR)
+	config CONFIG_FEATURE_IP_ADDRESS
+		bool "  address"
+		default n
+		depends on CONFIG_IP
+		help
+		  Please submit a patch to add help text for this item.
+endif
+
+if CONFIG_IP && CONFIG_IPLINK
+	config CONFIG_FEATURE_IP_LINK
+		default y
+	comment "  link (forced enabled for iplink)"
+endif
+if !(CONFIG_IP && CONFIG_IPLINK)
+	config CONFIG_FEATURE_IP_LINK
+		bool "  link"
+		default y
+		depends on CONFIG_IP
+		help
+		  Please submit a patch to add help text for this item.
+endif
+
+if CONFIG_IP && CONFIG_IPROUTE
+	config CONFIG_FEATURE_IP_ROUTE
+		default y
+	comment "  route (forced enabled for iproute)"
+endif
+if !(CONFIG_IP && CONFIG_IPROUTE)
+	config CONFIG_FEATURE_IP_ROUTE
+		bool "  route"
+		default y
+		depends on CONFIG_IP
+		help
+		  Please submit a patch to add help text for this item.
+endif
+
+if CONFIG_IP && CONFIG_IPTUNNEL
+	config CONFIG_FEATURE_IP_TUNNEL
+		default y
+	comment "  tunnel (forced enabled for iptunnel)"
+endif
+if !(CONFIG_IP && CONFIG_IPTUNNEL)
+	config CONFIG_FEATURE_IP_TUNNEL
+		bool "  tunnel"
+		default y
+		depends on CONFIG_IP
+		help
+		  Please submit a patch to add help text for this item.
+endif
+
+config CONFIG_IPCALC
+	bool "ipcalc"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_IPCALC_FANCY
+	bool "  Fancy IPCALC, more options, adds 300 bytes"
+	default y
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_IPADDR
+	bool "ipaddr"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_IPLINK
+	bool "iplink"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_IPROUTE
+	bool "iproute"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_IPTUNNEL
+	bool "iptunnel"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_NC
+	bool "nc"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_NETSTAT
+	bool "netstat"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_NSLOOKUP
+	bool "nslookup"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_PING
+	bool "ping"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FANCY_PING
+	bool "  Enable fancy ping output"
+	default y
+	depends on CONFIG_PING
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_PING6
+	bool "ping6"
+	default n
+	depends on CONFIG_FEATURE_IPV6
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FANCY_PING6
+	bool "  Enable fancy ping6 output"
+	default y
+	depends on CONFIG_PING6
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_ROUTE
+	bool "route"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_TELNET
+	bool "telnet"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TELNET_TTYPE
+	bool "  Pass TERM type to remote host"
+	default y
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_TELNETD
+	bool "telnetd"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_TFTP
+	bool "tftp"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TFTP_GET
+	bool "  Enable \"get\" command"
+	default y
+	depends on CONFIG_TFTP
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TFTP_PUT
+	bool "  Enable \"put\" command"
+	default y
+	depends on CONFIG_TFTP
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TFTP_BLOCKSIZE
+	bool "  Enable \"blocksize\" command"
+	default n
+	depends on CONFIG_TFTP
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TFTP_DEBUG
+	bool "  Enable debug"
+	default y
+	depends on CONFIG_TFTP
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_TRACEROUTE
+	bool "traceroute"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TRACEROUTE_VERBOSE
+	bool "  Enable verbose output"
+	default y
+	depends on CONFIG_TRACEROUTE
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
+	bool "  Enable SO_DEBUG option"
+	default y
+	depends on CONFIG_TRACEROUTE
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_WGET
+	bool "wget"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_WGET_STATUSBAR
+	bool "  Enable a nifty process meter (+2k)"
+	default y
+	depends on CONFIG_WGET
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_WGET_AUTHENTICATION
+	bool "  Enable HTTP authentication"
+	default y
+	depends on CONFIG_WGET
+	help
+	  Please submit a patch to add help text for this item.
+
+source networking/udhcp/Config.in
+
+endmenu
+

@@ -1,0 +1,232 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Linux System Utilities"
+
+
+config CONFIG_DMESG
+	bool "dmesg"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FBSET
+	bool "fbset"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FBSET_FANCY
+	bool "  Turn on extra fbset options"
+	default n
+	depends on CONFIG_FBSET
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FBSET_READMODE
+	bool "  Turn on fbset readmode support"
+	default n
+	depends on CONFIG_FBSET
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FDFLUSH
+	bool "fdflush"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FDISK
+	bool "fdisk"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_AIX_LABEL
+	bool "  Support AIX disklabels"
+	default n
+	depends on CONFIG_FDISK
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SGI_LABEL
+	bool "  Support SGI disklabels"
+	default n
+	depends on CONFIG_FDISK
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_SUN_LABEL
+	bool "  Support SUN disklabels"
+	default n
+	depends on CONFIG_FDISK
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_OSF_LABEL
+	bool "  Support BSD disklabels"
+	default n
+	depends on CONFIG_FDISK
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_FDISK_ADVANCED
+	bool "  Support expert mode"
+	default n
+	depends on CONFIG_FDISK
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FREERAMDISK
+	bool "freeramdisk"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FSCK_MINIX
+	bool "fsck_minix"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MKFS_MINIX
+	bool "mkfs_minix"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+comment "Minix filesystem support"
+    depends on CONFIG_FSCK_MINIX || CONFIG_MKFS_MINIX
+
+config CONFIG_FEATURE_MINIX2
+	bool "  Support Minix fs v2 (fsck_minix/mkfs_minix)"
+	default y
+	depends on CONFIG_FSCK_MINIX || CONFIG_MKFS_MINIX
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_GETOPT
+	bool "getopt"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_HEXDUMP
+	bool "hexdump"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_HWCLOCK
+	bool "hwclock"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
+	bool "  Support long options (--hctosys,...)"
+	default n
+	depends on CONFIG_HWCLOCK
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LOSETUP
+	bool "losetup"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MKSWAP
+	bool "mkswap"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MORE
+	bool "more"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_USE_TERMIOS
+	bool "  Use termios to manipulate the screen"
+	default y
+	depends on CONFIG_MORE
+	help
+	  Please submit a patch to add help text for this item.
+
+comment "Common options for ls and more"
+	depends on CONFIG_LS || CONFIG_MORE
+
+config CONFIG_FEATURE_AUTOWIDTH
+	bool "  Calculate terminal & column widths"
+	default y
+	depends on CONFIG_LS || CONFIG_MORE
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_PIVOT_ROOT
+	bool "pivot_root"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_RDATE
+	bool "rdate"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_SWAPONOFF
+	bool "swaponoff"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_MOUNT
+	bool "mount"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_NFSMOUNT
+	bool "  Support mounting nfs file systems"
+	default n
+	depends on CONFIG_MOUNT
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_UMOUNT
+	bool "umount"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_MOUNT_FORCE
+	bool "  Support forced filesystem unmounting"
+	default n
+	depends on CONFIG_UMOUNT
+	help
+	  Please submit a patch to add help text for this item.
+
+comment "Common options for mount/umount"
+	depends on CONFIG_MOUNT || CONFIG_UMOUNT
+
+config CONFIG_FEATURE_MOUNT_LOOP
+	bool "  Support for loop devices"
+	default n
+	depends on CONFIG_MOUNT || CONFIG_UMOUNT
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_FEATURE_MTAB_SUPPORT
+	bool "  Support for a real /etc/mtab (instead of /proc/mounts)"
+	default n
+	depends on CONFIG_MOUNT || CONFIG_UMOUNT
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu
+

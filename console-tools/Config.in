@@ -1,0 +1,68 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Console Utilities"
+
+config CONFIG_CHVT
+	bool "chvt"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_CLEAR
+	bool "clear"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DEALLOCVT
+	bool "deallocvt"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_DUMPKMAP
+	bool "dumpkmap"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LOADACM
+	bool "loadacm"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LOADFONT
+	bool "loadfont"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_LOADKMAP
+	bool "loadkmap"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_OPENVT
+	bool "openvt"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_RESET
+	bool "reset"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+config CONFIG_SETKEYCODES
+	bool "setkeycodes"
+	default n
+	help
+	  Please submit a patch to add help text for this item.
+
+endmenu

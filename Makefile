@@ -17,34 +17,27 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR:= $(shell /bin/pwd)/
-include $(TOPDIR).config
-include $(TOPDIR)Rules.mak
-SUBDIRS:=applets archival archival/libunarchive console-tools debianutils \
+#--------------------------------------------------------------
+# You shouldn't need to mess with anything beyond this point...
+#--------------------------------------------------------------
+noconfig_targets := menuconfig config oldconfig randconfig \
+	defconfig allyesconfig allnoconfig clean distclean \
+	release tags
+TOPDIR=./
+include Rules.mak
+
+DIRS:=applets archival archival/libunarchive console-tools debianutils \
 	editors fileutils findutils init miscutils modutils networking \
 	networking/libiproute networking/udhcp procps loginutils shell \
 	shellutils sysklogd textutils util-linux libbb libpwdgrp
 
-all:    do-it-all
+ifdef include_config
 
-#
-# Make "config" the default target if there is no configuration file or
-# "depend" the target if there is no top-level dependency information.
-ifeq (.config,$(wildcard .config))
-include .config
-ifeq (.depend,$(wildcard .depend))
-include .depend 
-do-it-all:      busybox busybox.links #doc
-include $(patsubst %,%/Makefile.in, $(SUBDIRS))
-else
-CONFIGURATION = depend
-do-it-all:      depend
-endif
-else
-CONFIGURATION = menuconfig
-do-it-all:      menuconfig
-endif
+all: busybox busybox.links #doc
 
+# In this section, we need .config
+-include .config.cmd
+include $(patsubst %,%/Makefile.in, $(DIRS))
 
 busybox: depend $(libraries-y)
 	$(CC) $(LDFLAGS) -o $@ $(libraries-y) $(LIBRARIES)
@@ -124,92 +117,88 @@ docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 	- mkdir -p docs
 	(cd docs/busybox.net; sgmltools -b html ../busybox.sgml)
 
-
-
 # The nifty new buildsystem stuff
-$(TOPDIR)scripts/mkdep: scripts/mkdep.c
+scripts/mkdep: scripts/mkdep.c
 	$(HOSTCC) $(HOSTCFLAGS) -o scripts/mkdep scripts/mkdep.c
 
-$(TOPDIR)scripts/split-include: scripts/split-include.c
+scripts/split-include: scripts/split-include.c
 	$(HOSTCC) $(HOSTCFLAGS) -o scripts/split-include scripts/split-include.c
 
-$(TOPDIR).depend: $(TOPDIR)scripts/mkdep
+.depend: scripts/mkdep
 	rm -f .depend .hdepend;
-	mkdir -p $(TOPDIR)include/config;
+	mkdir -p include/config;
 	$(HOSTCC) $(HOSTCFLAGS) -o scripts/mkdep scripts/mkdep.c
-	scripts/mkdep -I $(TOPDIR)include -- \
-		`find $(TOPDIR) -name \*.c -print` >> .depend;
-	scripts/mkdep -I $(TOPDIR)include -- \
-		`find $(TOPDIR) -name \*.h -print` >> .hdepend;
-	$(MAKE) $(patsubst %,_sfdep_%,$(SUBDIRS)) _FASTDEP_ALL_SUB_DIRS="$(SUBDIRS)" ;
-	@ echo -e "\n\nNow run 'make' to build BusyBox\n\n"
+	scripts/mkdep -I include -- \
+		`find . -name \*.c -print` >> .depend;
+	scripts/mkdep -I include -- \
+		`find . -name \*.h -print` >> .hdepend;
+	$(MAKE) $(patsubst %,_sfdep_%,$(DIRS)) _FASTDEP_ALL_SUB_DIRS="$(DIRS)" ;
 
-depend dep: $(TOPDIR)include/config.h $(TOPDIR).depend
+depend dep: include/config.h .depend
 
-BB_SHELL := ${shell if [ -x "$$BASH" ]; then echo $$BASH; \
-	else if [ -x /bin/bash ]; then echo /bin/bash; \
-	else echo sh; fi ; fi}
-
-include/config/MARKER: depend $(TOPDIR)scripts/split-include
+include/config/MARKER: depend scripts/split-include
 	scripts/split-include include/config.h include/config
 	@ touch include/config/MARKER
 
-$(TOPDIR)include/config.h:
-	@if [ ! -f $(TOPDIR)include/config.h ] ; then \
-		make oldconfig; \
+include/config.h: .config
+	@if [ ! -x ./scripts/config/conf ] ; then \
+	    make -C scripts/config; \
 	fi;
-
-$(TOPDIR).config:
-	@if [ ! -f $(TOPDIR).config ] ; then \
-	    cp $(TOPDIR)sysdeps/$(TARGET_OS)/defconfig $(TOPDIR).config; \
-	fi;
-
-menuconfig: $(TOPDIR).config
-	mkdir -p $(TOPDIR)include/config
-	$(MAKE) -C scripts/lxdialog all
-	$(BB_SHELL) scripts/Menuconfig sysdeps/$(TARGET_OS)/config.in
-
-config: $(TOPDIR).config
-	mkdir -p $(TOPDIR)include/config
-	$(BB_SHELL) scripts/Configure sysdeps/$(TARGET_OS)/config.in
-
-oldconfig: $(TOPDIR).config
-	mkdir -p $(TOPDIR)include/config
-	$(BB_SHELL) scripts/Configure -d sysdeps/$(TARGET_OS)/config.in
-
-
-ifdef CONFIGURATION
-..$(CONFIGURATION):
-	@echo
-	@echo "You have a bad or nonexistent" .$(CONFIGURATION) ": running 'make" $(CONFIGURATION)"'"
-	@echo
-	$(MAKE) $(CONFIGURATION)
-	@echo
-	@echo "Successful. Try re-making (ignore the error that follows)"
-	@echo
-	exit 1
-
-dummy:
-
-else
-
-dummy:
-
-endif
-
+	@./scripts/config/conf -o sysdeps/$(TARGET_OS)/Config.in
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
+finished2:
+	@echo
+	@echo Finished installing...
+	@echo
 
-# Testing...
-test tests:
-	# old way of doing it
-	#cd tests && $(MAKE) all
-	# new way of doing it
+else # ifdef include_config
+
+all: menuconfig
+
+ifeq ($(filter-out $(noconfig_targets),$(MAKECMDGOALS)),)
+# Targets which don't need .config
+
+# configuration
+# ---------------------------------------------------------------------------
+
+scripts/config/conf scripts/config/mconf:
+	make -C scripts/config
+	-@if [ ! -f .config ] ; then \
+		cp sysdeps/$(TARGET_OS)/defconfig .config; \
+	fi
+
+menuconfig: scripts/config/mconf
+	@./scripts/config/mconf sysdeps/$(TARGET_OS)/Config.in
+
+config: scripts/config/conf
+	@./scripts/config/conf sysdeps/$(TARGET_OS)/Config.in
+
+oldconfig: scripts/config/conf
+	@./scripts/config/conf -o sysdeps/$(TARGET_OS)/Config.in
+
+randconfig: scripts/config/conf
+	@./scripts/config/conf -r sysdeps/$(TARGET_OS)/Config.in
+
+allyesconfig: scripts/config/conf
+	@./scripts/config/conf -y sysdeps/$(TARGET_OS)/Config.in
+
+allnoconfig: scripts/config/conf
+	@./scripts/config/conf -n sysdeps/$(TARGET_OS)/Config.in
+
+defconfig: scripts/config/conf
+	@./scripts/config/conf -d sysdeps/$(TARGET_OS)/Config.in
+
+test tests: busybox
+	# Note that 'tests' is depricated.  Use 'make check' instead
+	# To use the nice new testsuite....
 	cd tests && ./tester.sh
 
-# Cleanup
+check: busybox
+	cd testsuite && ./runtest
+
 clean:
 	- $(MAKE) -C tests clean
 	- $(MAKE) -C scripts/lxdialog clean
@@ -227,10 +216,9 @@ clean:
 	- find . -name \*.a -exec rm -f {} \;
 
 distclean: clean
-	- rm -f busybox 
-	- cd tests && $(MAKE) distclean
+	rm -f .config .config.old .config.cmd
 
-dist release: distclean doc
+release: distclean #doc
 	cd ..;					\
 	rm -rf busybox-$(VERSION);		\
 	cp -a busybox busybox-$(VERSION);	\
@@ -247,13 +235,14 @@ dist release: distclean doc
 						\
 	tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)/;
 
-
-
-.PHONY: tags check depend
-
 tags:
 	ctags -R .
 
-check: busybox
-	cd testsuite && ./runtest
+
+endif # ifeq ($(filter-out $(noconfig_targets),$(MAKECMDGOALS)),)
+endif # ifdef include_config
+
+.PHONY: dummy subdirs release distclean clean config oldconfig \
+	menuconfig tags check test tests depend
+
 
