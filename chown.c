@@ -36,9 +36,11 @@
 static long uid;
 static long gid;
 
+static int (*chown_func)() = chown;
+
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
-	if (lchown(fileName, uid, (gid == -1) ? statbuf->st_gid : gid) == 0) {
+	if (chown_func(fileName, uid, (gid == -1) ? statbuf->st_gid : gid) == 0) {
 		return (TRUE);
 	}
 	perror(fileName);
@@ -48,20 +50,26 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 int chown_main(int argc, char **argv)
 {
 	int opt;
-	int recursiveFlag = FALSE;
+	int recursiveFlag = FALSE,
+		noderefFlag = FALSE;
 	char *groupName=NULL;
 	char *p=NULL;
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "R")) > 0) {
+	while ((opt = getopt(argc, argv, "Rh")) > 0) {
 		switch (opt) {
 			case 'R':
 				recursiveFlag = TRUE;
+				break;
+			case 'h':
+				noderefFlag = TRUE;
 				break;
 			default:
 				show_usage();
 		}
 	}
+
+	if (noderefFlag) chown_func = lchown;
 
 	if (argc > optind && argc > 2 && argv[optind]) {
 		/* First, check if there is a group name here */
