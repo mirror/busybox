@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-set -x
 prefix=$1
 if [ "$prefix" = "" ]; then
     echo "No installation directory, aborting."
@@ -15,13 +13,13 @@ fi
 h=`sort busybox.links | uniq`
 
 
-rm -f $prefix/bin/busybox
-mkdir -p $prefix/bin
-install -m 755 busybox $prefix/bin/busybox
+rm -f $prefix/bin/busybox || exit 1
+mkdir -p $prefix/bin || exit 1
+install -m 755 busybox $prefix/bin/busybox || exit 1
 
 for i in $h ; do
 	appdir=`dirname $i`
-	mkdir -p $prefix/$appdir
+	mkdir -p $prefix/$appdir || exit 1
 	if [ "$2" = "--hardlinks" ]; then
 	    bb_path="$prefix/bin/busybox"
 	else
@@ -44,8 +42,8 @@ for i in $h ; do
 		;;
 	    esac
 	fi
-	echo "  $prefix$i -> /bin/busybox"
-	ln $linkopts $bb_path $prefix$i
+	echo "  $prefix$i -> $bb_path"
+	ln $linkopts $bb_path $prefix$i || exit 1
 done
 
 exit 0
