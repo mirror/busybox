@@ -57,6 +57,7 @@ struct mod_list_t {
 
 static struct dep_t *depend;
 static int autoclean, show_only, quiet, do_syslog, verbose;
+static int k_version;
 
 int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
 {
@@ -116,12 +117,16 @@ static struct dep_t *build_dep ( void )
 	char *filename = buffer;
 	int continuation_line = 0;
 	
+	k_version = 0;
 	if ( uname ( &un ))
 		return 0;
 		
 	// check for buffer overflow in following code
 	if ( bb_strlen ( un.release ) > ( sizeof( buffer ) - 64 )) {
 		return 0;
+	}
+	if (un.release[0] == '2') {
+		k_version = un.release[2] - '0';
 	}
 				
 	strcpy ( filename, "/lib/modules/" );
@@ -166,6 +171,12 @@ static struct dep_t *build_dep ( void )
 				else
 					mods++;
 					
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+				if ((k_version > 4) && ( *(col-3) == '.' ) &&
+					( *(col-2) == 'k' ) && ( *(col-1) == 'o' ))
+					ext = 3;
+				else
+#endif
 				if (( *(col-2) == '.' ) && ( *(col-1) == 'o' ))
 					ext = 2;
 				
@@ -215,6 +226,12 @@ static struct dep_t *build_dep ( void )
 			else
 				deps++;
 			
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+			if ((k_version > 4) && ( *(end-2) == '.' ) && *(end-1) == 'k'  &&
+				( *end == 'o' ))
+				ext = 3;
+			else
+#endif
 			if (( *(end-1) == '.' ) && ( *end == 'o' ))
 				ext = 2;
 
@@ -383,6 +400,13 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 
 	// remove .o extension
 	lm = bb_strlen ( mod );
+
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+	if ((k_version > 4) && ( mod [lm-3] == '.' ) &&
+		( mod [lm-2] == 'k' ) && ( mod [lm-1] == 'o' ))
+		mod [lm-3] = 0;
+	else
+#endif
 	if (( mod [lm-2] == '.' ) && ( mod [lm-1] == 'o' ))
 		mod [lm-2] = 0;
 

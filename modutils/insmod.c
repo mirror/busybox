@@ -282,7 +282,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.107 2003/12/11 01:42:13 andersen Exp $"
+#ident "$Id: insmod.c,v 1.108 2003/12/19 21:04:19 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -503,7 +503,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.107 2003/12/11 01:42:13 andersen Exp $"
+#ident "$Id: insmod.c,v 1.108 2003/12/19 21:04:19 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -4050,6 +4050,8 @@ extern int insmod_main( int argc, char **argv)
 #ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
 	int flag_print_load_map = 0;
 #endif
+	int k_version = 0;
+	struct utsname myuname;
 
 	/* Parse any options */
 #ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
@@ -4098,7 +4100,7 @@ extern int insmod_main( int argc, char **argv)
 				bb_show_usage();
 		}
 	}
-	
+
 	if (argv[optind] == NULL) {
 		bb_show_usage();
 	}
@@ -4108,12 +4110,33 @@ extern int insmod_main( int argc, char **argv)
 	tmp = basename(tmp1);
 	len = strlen(tmp);
 
+	if (uname(&myuname) == 0) {
+		if (myuname.release[0] == '2') {
+			k_version = myuname.release[2] - '0';
+		}
+	}
+
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+	if (k_version > 4 && len > 3 && tmp[len - 3] == '.' &&
+	    tmp[len - 2] == 'k' && tmp[len - 1] == 'o') {
+		len-=3;
+		tmp[len] = '\0';
+	}
+	else
+#endif
 	if (len > 2 && tmp[len - 2] == '.' && tmp[len - 1] == 'o') {
 		len-=2;
 		tmp[len] = '\0';
 	}
 
+
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+	if (k_version > 4)
+		bb_xasprintf(&m_fullName, "%s.ko", tmp);
+	else
+#else
 	bb_xasprintf(&m_fullName, "%s.o", tmp);
+#endif
 
 	if (!m_name) {
 		m_name = tmp;
@@ -4125,28 +4148,26 @@ extern int insmod_main( int argc, char **argv)
 	/* Get a filedesc for the module.  Check we we have a complete path */
 	if (stat(argv[optind], &st) < 0 || !S_ISREG(st.st_mode) ||
 			(fp = fopen(argv[optind], "r")) == NULL) {
-		struct utsname myuname;
-
 		/* Hmm.  Could not open it.  First search under /lib/modules/`uname -r`,
 		 * but do not error out yet if we fail to find it... */
-		if (uname(&myuname) == 0) {
-                       char *module_dir;
-                       char *tmdn;
+		if (k_version) {	/* uname succeedd */
+			char *module_dir;
+			char *tmdn;
 			char real_module_dir[FILENAME_MAX];
 
-                       tmdn = concat_path_file(_PATH_MODULES, myuname.release);
+			tmdn = concat_path_file(_PATH_MODULES, myuname.release);
 			/* Jump through hoops in case /lib/modules/`uname -r`
 			 * is a symlink.  We do not want recursive_action to
 			 * follow symlinks, but we do want to follow the
 			 * /lib/modules/`uname -r` dir, So resolve it ourselves
 			 * if it is a link... */
-                       if (realpath (tmdn, real_module_dir) == NULL)
-                               module_dir = tmdn;
-                       else
-                               module_dir = real_module_dir;
-                       recursive_action(module_dir, TRUE, FALSE, FALSE,
-					check_module_name_match, 0, m_fullName);
-                       free(tmdn);
+			if (realpath (tmdn, real_module_dir) == NULL)
+				module_dir = tmdn;
+			else
+				module_dir = real_module_dir;
+			recursive_action(module_dir, TRUE, FALSE, FALSE,
+			check_module_name_match, 0, m_fullName);
+			free(tmdn);
 		}
 
 		/* Check if we have found anything yet */
@@ -4154,17 +4175,17 @@ extern int insmod_main( int argc, char **argv)
 		{
 			char module_dir[FILENAME_MAX];
 
-                       free(m_filename);
-                       m_filename = 0;
+			free(m_filename);
+			m_filename = 0;
 			if (realpath (_PATH_MODULES, module_dir) == NULL)
 				strcpy(module_dir, _PATH_MODULES);
 			/* No module found under /lib/modules/`uname -r`, this
 			 * time cast the net a bit wider.  Search /lib/modules/ */
 			if (! recursive_action(module_dir, TRUE, FALSE, FALSE,
-						check_module_name_match, 0, m_fullName)) 
+						check_module_name_match, 0, m_fullName))
 			{
 				if (m_filename == 0
-						|| ((fp = fopen(m_filename, "r")) == NULL)) 
+						|| ((fp = fopen(m_filename, "r")) == NULL))
 				{
 					bb_error_msg("%s: no module by that name found", m_fullName);
 					goto out;
@@ -4172,17 +4193,18 @@ extern int insmod_main( int argc, char **argv)
 			} else
 				bb_error_msg_and_die("%s: no module by that name found", m_fullName);
 		}
-	} else 
+	} else
 		m_filename = bb_xstrdup(argv[optind]);
 
 	printf("Using %s\n", m_filename);
 
 #ifdef CONFIG_FEATURE_2_6_MODULES
-    if (create_module(NULL, 0) < 0 && errno == ENOSYS) {
+	if (k_version > 4)
+	{
 		optind--;
-		argv[optind] = m_filename;
+		argv[optind + 1] = m_filename;
 		return insmod_ng_main(argc - optind, argv + optind);
-    }
+	}
 #endif
 
 	if ((f = obj_load(fp, LOADBITS)) == NULL)
@@ -4264,9 +4286,9 @@ extern int insmod_main( int argc, char **argv)
 
 	/* Allocate common symbols, symbol tables, and string tables.  */
 
-	if (k_new_syscalls 
+	if (k_new_syscalls
 		? !new_create_this_module(f, m_name)
-		: !old_create_mod_use_count(f)) 
+		: !old_create_mod_use_count(f))
 	{
 		goto out;
 	}
@@ -4282,8 +4304,8 @@ extern int insmod_main( int argc, char **argv)
 
 	if (optind < argc) {
 		if (m_has_modinfo
-			? !new_process_module_arguments(f, argc - optind, argv + optind) 
-			: !old_process_module_arguments(f, argc - optind, argv + optind)) 
+			? !new_process_module_arguments(f, argc - optind, argv + optind)
+			: !old_process_module_arguments(f, argc - optind, argv + optind))
 		{
 			goto out;
 		}
@@ -4326,16 +4348,16 @@ extern int insmod_main( int argc, char **argv)
 		delete_module(m_name);
 		goto out;
 	}
-#endif	
+#endif
 
 	if (!obj_relocate(f, m_addr)) {
 		delete_module(m_name);
 		goto out;
 	}
 
-	if (k_new_syscalls 
+	if (k_new_syscalls
 		? !new_init_module(m_name, f, m_size)
-		: !old_init_module(m_name, f, m_size)) 
+		: !old_init_module(m_name, f, m_size))
 	{
 		delete_module(m_name);
 		goto out;
