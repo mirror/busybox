@@ -93,14 +93,13 @@ ifeq ($(DODMALLOC),true)
     # Force debug=true, since this is useless when not debugging...
     DODEBUG = true
 endif
-# -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
-    CFLAGS += $(WARNINGS) -g -D_GNU_SOURCE
-    LDFLAGS += 
-    STRIP   =
+    CFLAGS  += $(WARNINGS) -g -D_GNU_SOURCE
+    LDFLAGS += -Wl,-warn-common
+    STRIP    =
 else
     CFLAGS  += $(WARNINGS) $(OPTIMIZATION) -fomit-frame-pointer -D_GNU_SOURCE
-    LDFLAGS  += -s
+    LDFLAGS += -s -Wl,-warn-common
     STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment $(PROG)
 endif
 ifeq ($(DOSTATIC),true)
