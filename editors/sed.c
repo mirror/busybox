@@ -483,7 +483,7 @@ static char *parse_cmd_str(sed_cmd_t * sed_cmd, char *cmdstr)
 	/* if it wasnt a single-letter command that takes no arguments
 	 * then it must be an invalid command.
 	 */
-	else if (strchr("dghnNpPqx={}", sed_cmd->cmd) == 0) {
+	else if (strchr("dgGhHnNpPqx={}", sed_cmd->cmd) == 0) {
 		bb_error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
 
@@ -1034,10 +1034,30 @@ static void process_file(FILE * file)
 					free(pattern_space);
 					pattern_space = strdup(hold_space);
 					break;
+				case 'G': {	/* Append newline and hold space to pattern space */
+					int pattern_space_size = 0;
+					if (pattern_space) {
+						pattern_space_size = strlen(pattern_space);
+					}
+					pattern_space = xrealloc(pattern_space, pattern_space_size + strlen(hold_space) + 2);
+					strcat(pattern_space, "\n");
+					strcat(pattern_space, hold_space); 
+					break;
+				}
 				case 'h':	/* Replace hold space with pattern space */
 					free(hold_space);
 					hold_space = strdup(pattern_space);
 					break;
+				case 'H': {	/* Append newline and pattern space to hold space */
+					int hold_space_size = 0;
+					if (hold_space) {
+						hold_space_size = strlen(hold_space);
+					}
+					hold_space = xrealloc(hold_space, hold_space_size + strlen(pattern_space) + 2);
+					strcat(hold_space, "\n");
+					strcat(hold_space, pattern_space); 
+					break;
+				}
 				case 'x':{
 					/* Swap hold and pattern space */
 					char *tmp = pattern_space;
