@@ -153,6 +153,10 @@ static void destroy_cmd_strs(void)
 			free(sed_cmd->sub_match);
 		}
 		free(sed_cmd->replace);
+		free(sed_cmd->editline);
+		free(sed_cmd->filename);
+		free(sed_cmd->translate);
+		free(sed_cmd->label);
 		free(sed_cmd);
 		sed_cmd = sed_cmd_next;
 	}
@@ -803,7 +807,6 @@ static void process_file(FILE * file)
 
 		/* Read one line in advance so we can act on the last line, the '$' address */
 		next_line = bb_get_chomped_line_from_file(file);
-
 		linenum++;
 		altered = 0;
 		force_print = 0;
@@ -981,10 +984,12 @@ static void process_file(FILE * file)
 					next_line = NULL;
 					break;
 				case 'n':	/* Read next line from input */
-					free(pattern_space);
-					pattern_space = next_line;
-					next_line = bb_get_chomped_line_from_file(file);
-					linenum++;
+					if (next_line) {
+						free(pattern_space);
+						pattern_space = next_line;
+						next_line = bb_get_chomped_line_from_file(file);
+						linenum++;
+					}
 					break;
 				case 'N':	/* Append the next line to the current line */
 					if (next_line) {
@@ -1043,17 +1048,25 @@ static void process_file(FILE * file)
 					hold_space = strdup(pattern_space);
 					break;
 				case 'H': {	/* Append newline and pattern space to hold space */
-					int hold_space_size = 0;
+					int hold_space_size = 2;
+					int pattern_space_size = 0;
+
 					if (hold_space) {
-						hold_space_size = strlen(hold_space);
+						hold_space_size += strlen(hold_space);
 					}
-					hold_space = xrealloc(hold_space, hold_space_size + strlen(pattern_space) + 2);
-					if (hold_space_size) {
-						strcat(hold_space, "\n");
+					if (pattern_space) {
+						pattern_space_size = strlen(pattern_space);
+					}
+					hold_space = xrealloc(hold_space, hold_space_size + pattern_space_size);
+
+					if (hold_space_size == 2) {
+						strcpy(hold_space, "\n");
 					} else {
-						hold_space[0] = '\n';
+						strcat(hold_space, "\n");
 					}
-					strcat(hold_space, pattern_space); 
+					if (pattern_space) {
+						strcat(hold_space, pattern_space);
+					}
 					break;
 				}
 				case 'x':{
@@ -1116,10 +1129,12 @@ extern int sed_main(int argc, char **argv)
 {
 	int opt, status = EXIT_SUCCESS;
 
+#if 0 /* This doesnt seem to be working */
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
 	if (atexit(destroy_cmd_strs) == -1)
 		bb_perror_msg_and_die("atexit");
+#endif
 #endif
 
 	/* do normal option parsing */
@@ -1129,10 +1144,7 @@ extern int sed_main(int argc, char **argv)
 			be_quiet++;
 			break;
 		case 'e':{
-			char *str_cmd = strdup(optarg);
-
-			add_cmd_str(str_cmd);
-			free(str_cmd);
+			add_cmd_str(optarg);
 			break;
 		}
 		case 'f':
@@ -1149,7 +1161,7 @@ extern int sed_main(int argc, char **argv)
 		if (argv[optind] == NULL)
 			bb_show_usage();
 		else
-			add_cmd_str(strdup(argv[optind++]));
+			add_cmd_str(argv[optind++]);
 	}
 
 	/* argv[(optind)..(argc-1)] should be names of file to process. If no
@@ -1176,5 +1188,8 @@ extern int sed_main(int argc, char **argv)
 		}
 	}
 
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	destroy_cmd_strs();
+#endif	
 	return status;
 }
