@@ -189,11 +189,15 @@ Example:
 
 The purpose of this script is to automagically generate documentation
 for busybox using its usage.h as the original source for content.
-Currently, the same content has to be duplicated in 3 places in
+It used to be that same content has to be duplicated in 3 places in
 slightly different formats -- F<usage.h>, F<docs/busybox.pod>, and
-F<docs/busybox.sgml>.  This is tedious, so Perl has come to the rescue.
+F<docs/busybox.sgml>.  This was tedious and error-prone, so it was
+decided that F<usage.h> would contain all the text in a
+machine-readable form, and scripts could be used to transform this
+text into other forms if necessary.
 
-This script was based on a script by Erik Andersen <andersen@lineo.com>
+F<autodocifier.pl> is one such script.
+It was based on a script by Erik Andersen <andersen@lineo.com>
 which was in turn based on a script by Mark Whitley <markw@lineo.com>
 
 =head1 OPTIONS
@@ -258,13 +262,13 @@ is disabled.  I<REQUIRED>
 
 This is documentation that is intended to go in the POD or SGML, but
 not be printed when a B<-h> is given to a command.  To see an example
-of notes being used, see init_notes_usage.  I<OPTIONAL>
+of notes being used, see init_notes_usage in F<usage.h>.  I<OPTIONAL>
 
 =item B<example>
 
-This should be an example of how the command is acutally used.
+This should be an example of how the command is actually used.
 This will not be printed when a B<-h> is given to a command -- it
-is inteded only for the POD or SGML documentation.  I<OPTIONAL>
+will only be included in the POD or SGML documentation.  I<OPTIONAL>
 
 =back
 
@@ -280,8 +284,8 @@ terms as Perl itself.
 
 =head1 AUTHOR
 
-John BEPPU <beppu@lineo.com>
+John BEPPU <b@ax9.org>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.22 2001/10/24 04:59:20 andersen Exp $
+# $Id: autodocifier.pl,v 1.23 2001/10/31 04:29:18 beppu Exp $
