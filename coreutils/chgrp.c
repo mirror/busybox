@@ -47,7 +47,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 int chgrp_main(int argc, char **argv)
 {
 	long gid;
-	int recursiveFlag;;
+	int recursiveFlag;
 	int retval = EXIT_SUCCESS;
 	char *p;
 

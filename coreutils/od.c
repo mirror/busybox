@@ -167,10 +167,10 @@ static const signed char od_o2si[] = {
 int od_main(int argc, char **argv)
 {
 	int ch;
-	bb_dump_vflag = FIRST;
-	bb_dump_length = -1;
 	int first = 1;
 	signed char *p;
+	bb_dump_vflag = FIRST;
+	bb_dump_length = -1;
 
 	while ((ch = getopt(argc, argv, od_opts)) > 0) {
 		if (((p = strchr(od_opts, ch)) != NULL) && (*p >= 0)) {

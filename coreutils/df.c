@@ -59,7 +59,7 @@ extern int df_main(int argc, char **argv)
 	FILE *mount_table;
 	struct mntent *mount_entry;
 	struct statfs s;
-	static const char hdr_1k[] = "1k-blocks"; /* default display is kilobytes */;
+	static const char hdr_1k[] = "1k-blocks"; /* default display is kilobytes */
 	const char *disp_units_hdr = hdr_1k;
 
 	while ((opt = getopt(argc, argv, "k"
