@@ -25,9 +25,7 @@
  * This version of ash is adapted from the source in Debian's ash 0.3.8-5 
  * package.  
  *
- * Modified by Erik Andersen <andersee@debian.org> to be used in
- * busybox, based in part on prior work done by Vladimir Oleynik
- * <vodz@usa.net>
+ * Modified by Erik Andersen <andersee@debian.org> to be used in busybox.
  *
  * Original copyright notice is retained at the end of this file.
  */
@@ -13417,7 +13415,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.2 2001/06/28 07:46:40 andersen Exp $
+ * $Id: ash.c,v 1.3 2001/06/28 16:43:57 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
