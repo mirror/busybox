@@ -20,6 +20,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
+ * BUGS: -p doesnt accept user input
+ *
  */
 
 #include <stdio.h>
@@ -61,28 +63,29 @@ static void xargs_exec(char * const * args)
 	}
 }
 
+#define OPT_VERBOSE	0x2
+#define OPT_INTERACTIVE	0x4
+#define OPT_NO_EMPTY	0x8
+
 int xargs_main(int argc, char **argv)
 {
 	char *file_to_act_on;
 	char **args;
 	int  i, a;
-	char flg_vi;            /* verbose |& interactive */
-	char flg_no_empty;
+	unsigned long flg;
 
 	bb_opt_complementaly = "pt";
-	a = bb_getopt_ulflags(argc, argv, "tpr");
-	flg_vi = a & 3;
-	flg_no_empty = a & 4;
+	flg = bb_getopt_ulflags(argc, argv, "+tpr");
 
 	a = argc - optind;
 	argv += optind;
 	if(a==0) {
 		/* default behavior is to echo all the filenames */
-		*argv = "/bin/echo";
+		*argv = "echo";
 		a++;
 	}
 	/* allocating pointers for execvp: a*arg, arg from stdin, NULL */
-	args = xcalloc(a + 3, sizeof(char *));
+	args = xcalloc(a + 2, sizeof(char *));
 
 	/* Store the command to be executed (taken from the command line) */
 	for (i = 0; i < a; i++)
@@ -91,17 +94,18 @@ int xargs_main(int argc, char **argv)
 	/* Now, read in one line at a time from stdin, and store this 
 	 * line to be used later as an argument to the command */
 	while ((file_to_act_on = bb_get_chomped_line_from_file(stdin)) != NULL) {
-		if(file_to_act_on[0] != 0 || flg_no_empty == 0) {
+		if(file_to_act_on[0] != 0 || (flg & OPT_NO_EMPTY) == 0) {
 			args[a] = file_to_act_on[0] ? file_to_act_on : NULL;
-			if(flg_vi) {
+			if(flg & (OPT_VERBOSE | OPT_INTERACTIVE)) {
 				for(i=0; args[i]; i++) {
 					if(i)
 						fputc(' ', stderr);
 					fputs(args[i], stderr);
 				}
-				fputs(((flg_vi & 2) ? " ?..." : "\n"), stderr);
+				fputs(((flg & OPT_INTERACTIVE) ? " ?..." : "\n"), stderr);
 			}
-			if((flg_vi & 2) == 0 || bb_ask_confirmation() != 0 ) {
+
+			if((flg & OPT_INTERACTIVE) == 0 || bb_ask_confirmation() != 0 ) {
 				xargs_exec(args);
 			}
 		}
