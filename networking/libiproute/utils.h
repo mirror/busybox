@@ -52,8 +52,8 @@ struct dn_naddr
 #define IPX_NODE_LEN 6
 
 struct ipx_addr {
-	u_int32_t ipx_net;
-	u_int8_t  ipx_node[IPX_NODE_LEN];
+	uint32_t ipx_net;
+	uint8_t  ipx_node[IPX_NODE_LEN];
 };
 
 extern __u32 get_addr32(char *name);
