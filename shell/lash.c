@@ -45,14 +45,14 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <getopt.h>
-#ifdef BB_FEATURE_SH_COMMAND_EDITING
 #include "cmdedit.h"
-#endif
 
 #define MAX_LINE	256	/* size of input buffer for `read' builtin */
 #define MAX_READ	128	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 extern size_t NUM_APPLETS;
+
+
 
 
 enum redirectionType { REDIRECT_INPUT, REDIRECT_OVERWRITE,
@@ -167,7 +167,7 @@ static struct builtInCommand bltins_forking[] = {
 	{NULL, NULL, NULL}
 };
 
-static char *prompt = "# ";
+static char prompt[3];
 static char *cwd;
 static char *local_pending_command = NULL;
 static char *promptStr = NULL;
@@ -180,9 +180,20 @@ static int lastReturnCode=-1;
 static int showXtrace=FALSE;
 #endif
 	
+#ifdef DEBUG_SHELL
+static inline void debug_printf(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	vfprintf(stderr, s, p);
+	va_end(args);
+}
+#else
+static inline void debug_printf(const char *format, ...) { }
+#endif
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
-void win_changed(int junk)
+static inline void win_changed(int junk)
 {
 	struct winsize win = { 0, 0, 0, 0 };
 	ioctl(0, TIOCGWINSZ, &win);
@@ -190,6 +201,8 @@ void win_changed(int junk)
 		cmdedit_setwidth( win.ws_col - 1);
 	}
 }
+#else
+static inline void win_changed(int junk) {}
 #endif
 
 
@@ -402,22 +415,14 @@ static int builtin_if(struct job *cmd, struct jobSet *jobList)
 	local_pending_command = xmalloc(status+1);
 	strncpy(local_pending_command, charptr1, status); 
 	local_pending_command[status]='\0';
-#ifdef DEBUG_SHELL
-	fprintf(stderr, "'if' now testing '%s'\n", local_pending_command);
-#endif
+	debug_printf(stderr, "'if' now testing '%s'\n", local_pending_command);
 	status = busy_loop(NULL); /* Frees local_pending_command */
-#ifdef DEBUG_SHELL
-	fprintf(stderr, "if test returned ");
-#endif
+	debug_printf(stderr, "if test returned ");
 	if (status == 0) {
-#ifdef DEBUG_SHELL
-		fprintf(stderr, "TRUE\n");
-#endif
+		debug_printf(stderr, "TRUE\n");
 		cmd->jobContext |= IF_TRUE_CONTEXT;
 	} else {
-#ifdef DEBUG_SHELL
-		fprintf(stderr, "FALSE\n");
-#endif
+		debug_printf(stderr, "FALSE\n");
 		cmd->jobContext |= IF_FALSE_CONTEXT;
 	}
 
@@ -447,9 +452,7 @@ static int builtin_then(struct job *cmd, struct jobSet *junk)
 	local_pending_command = xmalloc(status+1);
 	strncpy(local_pending_command, charptr1, status); 
 	local_pending_command[status]='\0';
-#ifdef DEBUG_SHELL
-	fprintf(stderr, "'then' now running '%s'\n", charptr1);
-#endif
+	debug_printf(stderr, "'then' now running '%s'\n", charptr1);
 	return( busy_loop(NULL));
 }
 
@@ -476,9 +479,7 @@ static int builtin_else(struct job *cmd, struct jobSet *junk)
 	local_pending_command = xmalloc(status+1);
 	strncpy(local_pending_command, charptr1, status); 
 	local_pending_command[status]='\0';
-#ifdef DEBUG_SHELL
-	fprintf(stderr, "'else' now running '%s'\n", charptr1);
-#endif
+	debug_printf(stderr, "'else' now running '%s'\n", charptr1);
 	return( busy_loop(NULL));
 }
 
@@ -491,9 +492,7 @@ static int builtin_fi(struct job *cmd, struct jobSet *junk)
 	}
 	/* Clear out the if and then context bits */
 	cmd->jobContext &= ~(IF_TRUE_CONTEXT|IF_FALSE_CONTEXT|THEN_EXP_CONTEXT|ELSE_EXP_CONTEXT);
-#ifdef DEBUG_SHELL
-	fprintf(stderr, "Hit an fi   -- jobContext=%d\n", cmd->jobContext);
-#endif
+	debug_printf(stderr, "Hit an fi   -- jobContext=%d\n", cmd->jobContext);
 	return TRUE;
 }
 #endif
@@ -656,6 +655,8 @@ static int setupRedirections(struct childProgram *prog)
 
 static int getCommand(FILE * source, char *command)
 {
+	char *user,buf[255],*s;
+	
 	if (source == NULL) {
 		if (local_pending_command) {
 			/* a command specified (-c option): return it & mark it done */
@@ -667,6 +668,17 @@ static int getCommand(FILE * source, char *command)
 		return 1;
 	}
 
+	/* get User Name and setup prompt */
+	strcpy(prompt,( geteuid() != 0 ) ? "$ ":"# ");
+	user=xcalloc(sizeof(int), 9);
+	my_getpwuid(user, geteuid());
+	
+	/* get HostName */
+	gethostname(buf, 255);
+	s = strchr(buf, '.');
+	if (s)
+		*s = 0;
+	
 	if (source == stdin) {
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 		int len;
@@ -679,21 +691,33 @@ static int getCommand(FILE * source, char *command)
 		*/
 		cmdedit_init();
 		signal(SIGWINCH, win_changed);
-		len=fprintf(stdout, "%s %s", cwd, prompt);
+		len=fprintf(stdout, "[%s@%s %s]%s", user, buf, 
+				get_last_path_component(cwd), prompt);
 		fflush(stdout);
 		promptStr=(char*)xmalloc(sizeof(char)*(len+1));
-		sprintf(promptStr, "%s %s", cwd, prompt);
+		sprintf(promptStr, "[%s@%s %s]%s", user, buf, 
+				get_last_path_component(cwd), prompt);
 		cmdedit_read_input(promptStr, command);
 		free( promptStr);
 		cmdedit_terminate();
 		signal(SIGWINCH, SIG_DFL);
 		return 0;
 #else
-		fprintf(stdout, "%s %s", cwd, prompt);
+		i=strlen(cwd);
+		i--;
+		if (i>1){
+			while ((i>0) && (*(cwd+i)!='/') ) i--;
+			if (*(cwd+i)=='/') i++;
+		}
+		
+		fprintf(stdout, "[%s@%s %s]%s",user, buf, (cwd+i), prompt);
 		fflush(stdout);
 #endif
 	}
 
+	/* don't leak memory */
+	free(user);
+	
 	if (!fgets(command, BUFSIZ - 2, source)) {
 		if (source == stdin)
 			printf("\n");
@@ -707,10 +731,9 @@ static int getCommand(FILE * source, char *command)
 }
 
 #ifdef BB_FEATURE_SH_ENVIRONMENT
-#define __MAX_INT_CHARS 7
 static char* itoa(register int i)
 {
-	static char a[__MAX_INT_CHARS];
+	static char a[7]; /* Max 7 ints */
 	register char *b = a + sizeof(a) - 1;
 	int   sign = (i < 0);
 
@@ -1381,9 +1404,7 @@ static int busy_loop(FILE * input)
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 				lastReturnCode=WEXITSTATUS(status);
 #endif
-#if 0
-				printf("'%s' exited -- return code %d\n", jobList.fg->text, lastReturnCode);
-#endif
+				debug_printf("'%s' exited -- return code %d\n", jobList.fg->text, lastReturnCode);
 				if (!jobList.fg->runningProgs) {
 					/* child exited */
 
@@ -1449,9 +1470,17 @@ int shell_main(int argc_l, char **argv_l)
 	argv = argv_l;
 
 
-	//if (argv[0] && argv[0][0] == '-') {
-	//      builtin_source("/etc/profile");
-	//}
+	if (argv[0] && argv[0][0] == '-') {
+		  FILE *input;
+		  input = fopen("/etc/profile", "r");
+		  if (!input) {
+			  fprintf(stdout, "Couldn't open file '/etc/profile'\n");
+		  } else {
+			  /* Now run the file */
+			  busy_loop(input);
+			  fclose(input);
+		  }
+	}
 
 	while ((opt = getopt(argc_l, argv_l, "cx")) > 0) {
 		switch (opt) {
@@ -1500,9 +1529,6 @@ int shell_main(int argc_l, char **argv_l)
 	atexit(free_memory);
 #endif
 
-#ifdef BB_FEATURE_SH_COMMAND_EDITING
 	win_changed(0);
-#endif
-
 	return (busy_loop(input));
 }
