@@ -93,7 +93,7 @@
 #ifdef CONFIG_ASH_JOB_CONTROL
 #define JOBS 1
 #else
-#undif JOBS
+#undef JOBS
 #endif
 
 #if JOBS
