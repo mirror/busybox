@@ -40,15 +40,11 @@ config CONFIG_DC
 	  Dc is a reverse-polish desk calculator which supports unlimited
 	  precision arithmetic.
 
-config CONFIG_DUTMP
-	bool "dutmp"
+config CONFIG_LAST
+	bool "last"
 	default n
 	help
-	  'dutmp' is a utility used by the Linux Router Project (as far as I
-	  know nobody else uses it).  It dumps the contents of the utmp file to
-	  STDOUT with each field seperated by a colon.  IP addresses are are
-	  given in hex in native byte order.  It is intended that this format
-	  can then be parsed by shell scripts.
+	  'last' displays a list of the last users that logged into the system.
 
 config CONFIG_HDPARM
 	bool "hdparm"

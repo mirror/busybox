@@ -461,21 +461,6 @@
 	"\t-r,\t--remaining\tInterepret lease times as time remaing\n" \
 	"\t-a,\t--absolute\tInterepret lease times as expire time\n"
 
-#define dutmp_trivial_usage \
-	"[FILE]"
-#define dutmp_full_usage \
-	"Dump utmp file format (pipe delimited) from FILE\n" \
-	"or stdin to stdout.  (i.e., 'dutmp /var/run/utmp')"
-#define dutmp_example_usage \
-	"$ dutmp /var/run/utmp\n" \
-	"8|7||si|||0|0|0|955637625|760097|0\n" \
-	"2|0|~|~~|reboot||0|0|0|955637625|782235|0\n" \
-	"1|20020|~|~~|runlevel||0|0|0|955637625|800089|0\n" \
-	"8|125||l4|||0|0|0|955637629|998367|0\n" \
-	"6|245|tty1|1|LOGIN||0|0|0|955637630|998974|0\n" \
-	"6|246|tty2|2|LOGIN||0|0|0|955637630|999498|0\n" \
-	"7|336|pts/0|vt00|andersen|:0.0|0|0|0|955637763|0|0\n"
-
 #ifdef CONFIG_FEATURE_FANCY_ECHO
   #define USAGE_FANCY_ECHO(a) a
 #else
@@ -2068,7 +2053,7 @@
 	"[FILE]...\n" \
 	"or: sh -c command [args]..."
 #define lash_full_usage \
-	"lash: The BusyBox LAme SHell (command interpreter)"
+	"The BusyBox LAme SHell (command interpreter)"
 #define lash_notes_usage \
 "This command does not yet have proper documentation.\n" \
 "\n" \
@@ -2078,6 +2063,11 @@
 "Bourne Shell syntax.  If you need things like "if-then-else", "while", and such\n" \
 "use ash or bash.  If you just need a very simple and extremely small shell,\n" \
 "this will do the job."
+
+#define last_trivial_usage \
+	""
+#define last_full_usage \
+	"Shows listing of the last users that logged into the system"
 
 #define sha1sum_trivial_usage \
 	"[OPTION] [FILE]"
