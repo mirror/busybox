@@ -493,18 +493,6 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 	chksum = getOctal(rawHeader->chksum, sizeof(rawHeader->chksum));
 	header->type  = rawHeader->typeflag;
 	header->linkname  = rawHeader->linkname;
-	/* Check for and relativify any absolute paths */
-	if ( *(header->linkname) == '/' ) {
-		static int alreadyWarned=FALSE;
-
-		while (*(header->linkname) == '/')
-			++*(header->linkname);
-
-		if (alreadyWarned == FALSE) {
-			errorMsg("tar: Removing leading '/' from link names\n");
-			alreadyWarned = TRUE;
-		}
-	}
 	header->devmajor  = getOctal(rawHeader->devmajor, sizeof(rawHeader->devmajor));
 	header->devminor  = getOctal(rawHeader->devminor, sizeof(rawHeader->devminor));
 
@@ -826,7 +814,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 	if (! *header.uname)
 		strcpy(header.uname, "root");
 
-	// FIXME (or most likely not): I break Hard Links
+	/* WARNING/NOTICE: I break Hard Links */
 	if (S_ISLNK(statbuf->st_mode)) {
 		char buffer[BUFSIZ];
 		header.typeflag  = SYMTYPE;
@@ -834,17 +822,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 			errorMsg("Error reading symlink '%s': %s\n", header.name, strerror(errno));
 			return ( FALSE);
 		}
-		if (*buffer=='/') {
-			static int alreadyWarned=FALSE;
-			if (alreadyWarned==FALSE) {
-				errorMsg("tar: Removing leading '/' from link names\n");
-				alreadyWarned=TRUE;
-			}
-			strncpy(header.linkname, buffer+1, sizeof(header.linkname)); 
-		}
-		else {
-			strncpy(header.linkname, buffer, sizeof(header.linkname)); 
-		}
+		strncpy(header.linkname, buffer, sizeof(header.linkname)); 
 	} else if (S_ISDIR(statbuf->st_mode)) {
 		header.typeflag  = DIRTYPE;
 		strncat(header.name, "/", sizeof(header.name)); 

@@ -12,6 +12,7 @@ doc:
 	@rm pod2html-*
 	pod2man --center=BusyBox --release="version $(VERSION)" busybox.pod > ../BusyBox.1
 	pod2text busybox.pod > ../BusyBox.txt
+	@rm -f pod2html*
 
 clean::
 	@rm -f ../BusyBox.html ../BusyBox.1 ../BusyBox.txt pod2html*
