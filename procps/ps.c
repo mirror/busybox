@@ -53,7 +53,7 @@ typedef struct proc_s {
 	char
 	 cmd[16];					/* basename of executable file in call to exec(2) */
 	int
-	 ruid, rgid,				/* real only (sorry) */
+	 ruid,						/* real only (sorry) */
 	 pid,						/* process id */
 	 ppid;						/* pid of parent process */
 	char
@@ -101,11 +101,6 @@ static void parse_proc_status(char *S, proc_t * P)
 	else
 		error_msg("Internal error!");
 
-	tmp = strstr(S, "Gid:");
-	if (tmp)
-		sscanf(tmp, "Gid:\t%d", &P->rgid);
-	else
-		error_msg("Internal error!");
 
 }
 
@@ -117,7 +112,6 @@ extern int ps_main(int argc, char **argv)
 	struct dirent *entry;
 	char path[32], sbuf[512];
 	char uidName[9];
-	char groupName[9];
 	int len, i, c;
 #ifdef BB_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
@@ -138,7 +132,7 @@ extern int ps_main(int argc, char **argv)
 			terminal_width = win.ws_col - 1;
 #endif
 
-	printf("%5s  %-8s %-3s %5s %s\n", "PID", "Uid", "Gid", "State", "Command");
+	printf("%5s  %-8s %5s %s\n", "PID", "Uid", "State", "Command");
 	while ((entry = readdir(dir)) != NULL) {
 		if (!isdigit(*entry->d_name))
 			continue;
@@ -151,16 +145,13 @@ extern int ps_main(int argc, char **argv)
 		my_getpwuid(uidName, p.ruid);
 		if (*uidName == '\0')
 			sprintf(uidName, "%d", p.ruid);
-		my_getgrgid(groupName, p.rgid);
-		if (*groupName == '\0')
-			sprintf(groupName, "%d", p.rgid);
 
 		sprintf(path, "/proc/%s/cmdline", entry->d_name);
 		file = fopen(path, "r");
 		if (file == NULL)
 			continue;
 		i = 0;
-		len = printf("%5d %-8s %-8s %c ", p.pid, uidName, groupName, p.state);
+		len = printf("%5d %-8s %c ", p.pid, uidName, p.state);
 		while (((c = getc(file)) != EOF) && (i < (terminal_width-len))) {
 			i++;
 			if (c == '\0')
@@ -195,7 +186,6 @@ extern int ps_main(int argc, char **argv)
 	pid_t* pid_array = NULL;
 	struct pid_info info;
 	char uidName[9];
-	char groupName[9];
 #ifdef BB_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
 	int terminal_width = TERMINAL_WIDTH;
@@ -233,7 +223,7 @@ extern int ps_main(int argc, char **argv)
 #endif
 
 	/* Print up a ps listing */
-	printf("%5s  %-8s %-3s %5s %s\n", "PID", "Uid", "Gid", "State", "Command");
+	printf("%5s  %-8s %5s %s\n", "PID", "Uid", "State", "Command");
 
 	for (i=1; i<pid_array[0] ; i++) {
 	    info.pid = pid_array[i];
@@ -245,11 +235,8 @@ extern int ps_main(int argc, char **argv)
 		my_getpwuid(uidName, info.euid);
 		if (*uidName == '\0')
 			sprintf(uidName, "%ld", info.euid);
-		my_getgrgid(groupName, info.egid);
-		if (*groupName == '\0')
-			sprintf(groupName, "%ld", info.egid);
 
-		len = printf("%5d %-8s %-8s %c ", info.pid, uidName, groupName, info.state);
+		len = printf("%5d %-8s %c ", info.pid, uidName, info.state);
 
 		if (strlen(info.command_line) > 1) {
 			for( j=0; j<(sizeof(info.command_line)-1) && j < (terminal_width-len); j++) {
