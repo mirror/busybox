@@ -1,201 +1,671 @@
 ---------------------
-PatchSet 3914 
-Date: 2004/01/31 05:44:07
+PatchSet 3926 
+Date: 2004/02/09 10:01:01
 Author: andersen
 Branch: HEAD
 Tag: (none) 
 Log:
-Update docs for release
+Buffalo appears to have resolved their GPL problems
 
 Members: 
-	Changelog:1.286->1.287 
-	docs/busybox.net/news.html:1.5->1.6 
-	docs/busybox.net/shame.html:1.6->1.7 
+	docs/busybox.net/products.html:1.5->1.6 
+	docs/busybox.net/shame.html:1.7->1.8 
 
 ---------------------
-PatchSet 3915 
-Date: 2004/01/31 06:11:39
+PatchSet 3927 
+Date: 2004/02/09 10:57:04
 Author: andersen
 Branch: HEAD
 Tag: (none) 
 Log:
-Mention changes to the daily snapshots
+Update URL
 
 Members: 
-	docs/busybox.net/news.html:1.6->1.7 
+	docs/busybox.net/products.html:1.6->1.7 
 
 ---------------------
-PatchSet 3916 
-Date: 2004/01/31 08:08:57
+PatchSet 3928 
+Date: 2004/02/10 01:07:45
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Support disabling pipe and redirect support
+
+Members: 
+	shell/lash.c:1.151->1.152 
+
+---------------------
+PatchSet 3929 
+Date: 2004/02/10 01:28:36
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Initial effort at disabling job control as well
+
+Members: 
+	shell/lash.c:1.152->1.153 
+
+---------------------
+PatchSet 3930 
+Date: 2004/02/10 01:30:21
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+oops.  Leave the default feature set enbled for now...
+
+Members: 
+	shell/lash.c:1.153->1.154 
+
+---------------------
+PatchSet 3931 
+Date: 2004/02/13 08:09:43
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Accomodate the fact that newer libc versions may in fact not
+contain query_module and friends and more
+
+Members: 
+	libbb/module_syscalls.c:1.13->1.14 
+
+---------------------
+PatchSet 3932 
+Date: 2004/02/14 21:33:39
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Avoid naming conflict with symbol in newer glibc headers
+
+Members: 
+	miscutils/hdparm.c:1.9->1.10 
+
+---------------------
+PatchSet 3933 
+Date: 2004/02/17 07:51:31
 Author: bug1
 Branch: HEAD
-Tag: busybox_1_00_pre6 **FUNKY**
+Tag: (none) 
 Log:
-Fix http proxy use, bytes were swapped
+define option names to be clearer, simplify nested if statements, remove
+un-needed if statement, minor indenting change
 
 Members: 
-	networking/wget.c:1.67->1.68 
+	coreutils/date.c:1.41->1.42 
 
 ---------------------
-PatchSet 3917 
-Date: 2004/02/01 07:34:28
+PatchSet 3934 
+Date: 2004/02/17 07:58:04
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Woops, im getting ahead of myself, we dont have the -r (refernece)
+option yet
+
+Members: 
+	coreutils/date.c:1.42->1.43 
+
+---------------------
+PatchSet 3935 
+Date: 2004/02/17 10:16:21
 Author: mjn3
 Branch: HEAD
 Tag: (none) 
 Log:
-Use bb_xstrdup() instead of strdup().
+Patch from Florian Schirmer <jolt@tuxbox.org>.  When I rewrote the parser,
+I overlooked the case of someone wanting to use a valid but empty suid
+config file.
 
 Members: 
-	coreutils/expr.c:1.15->1.16 
+	applets/applets.c:1.21->1.22 
 
 ---------------------
-PatchSet 3918 
-Date: 2004/02/01 10:03:05
+PatchSet 3936 
+Date: 2004/02/17 11:55:06
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Dont strip trailing '/' until _after_ i test to set if its there !
+
+Members: 
+	archival/libunarchive/get_header_tar.c:1.30->1.31 
+
+---------------------
+PatchSet 3937 
+Date: 2004/02/17 12:04:13
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Remove debugging
+
+Members: 
+	archival/libunarchive/get_header_tar.c:1.31->1.32 
+
+---------------------
+PatchSet 3938 
+Date: 2004/02/17 12:22:21
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Add the -r option, patch from Rob with some help from myself.
+
+Members: 
+	coreutils/date.c:1.43->1.44 
+
+---------------------
+PatchSet 3939 
+Date: 2004/02/17 20:04:34
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Mark Lord writes:
+
+The config file processing for inetd in busybox-1.00-pre7 and newer
+is broken -- the saved command argv[] values overwrite each other.
+
+Patch to fix it is attached.
+
+Cheers
+--
+Mark Lord
+Real-Time Remedies Inc.
+
+Members: 
+	networking/inetd.c:1.14->1.15 
+
+---------------------
+PatchSet 3940 
+Date: 2004/02/17 20:08:11
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Remove the unused CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV option.
+
+Members: 
+	networking/Config.in:1.25->1.26 
+
+---------------------
+PatchSet 3941 
+Date: 2004/02/18 09:40:41
 Author: mjn3
 Branch: HEAD
 Tag: (none) 
 Log:
-Rewrite parse_config_file().  Among the old version's problems:
-  No checking for lines that were too long.
-  No checking that fgets returning NULL was actually due to EOF.
-  Various whitespace handling inconsistencies.
-  Bloat (switches and multiple identical function calls).
-  Failure to check for trailing characters in some cases.
-  Dynamicly allocated memory was not free()d on error.
-Given that this controls suid/sgid behavior, the sloppy coding was
-really inexcusable.  :-(
+Fix vstype[] to match VS* defines.  Patch from OpenWrt by mbm.
 
 Members: 
-	applets/applets.c:1.20->1.21 
+	shell/ash.c:1.89->1.90 
 
 ---------------------
-PatchSet 3919 
-Date: 2004/02/04 08:24:39
+PatchSet 3942 
+Date: 2004/02/18 09:54:15
+Author: landley
+Branch: HEAD
+Tag: (none) 
+Log:
+Add -i option to sed, to edit files in-place.
+
+Members: 
+	editors/sed.c:1.159->1.160 
+
+---------------------
+PatchSet 3943 
+Date: 2004/02/18 10:14:17
+Author: mjn3
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from OpenWrt.
+
+Members: 
+	modutils/insmod.c:1.111->1.112 
+
+---------------------
+PatchSet 3944 
+Date: 2004/02/18 12:58:00
 Author: bug1
 Branch: HEAD
 Tag: (none) 
 Log:
-Vodz last_patch_125_2, this patch have:
-- synced with dash 0.4.21
-- better handle trap "cmds..." SIGINT (strange, i make bad hack for ash 
-  and cmdedit, but this work only with this...)
-- may be haven`t problem with Ctrl-D
+remove debugging
 
 Members: 
-	shell/ash.c:1.87->1.88 
-	shell/cmdedit.c:1.87->1.88 
+	networking/inetd.c:1.15->1.16 
 
 ---------------------
-PatchSet 3920 
-Date: 2004/02/04 08:27:57
+PatchSet 3945 
+Date: 2004/02/18 13:12:53
 Author: bug1
 Branch: HEAD
 Tag: (none) 
 Log:
-Bug fix from Tito.
+Formatting
 
 Members: 
-	miscutils/devfsd.c:1.6->1.7 
+	networking/inetd.c:1.16->1.17 
 
 ---------------------
-PatchSet 3921 
-Date: 2004/02/04 10:48:37
+PatchSet 3946 
+Date: 2004/02/18 13:19:58
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Dont use same variable and struct name
+
+Members: 
+	networking/inetd.c:1.17->1.18 
+
+---------------------
+PatchSet 3947 
+Date: 2004/02/19 00:44:08
 Author: andersen
 Branch: HEAD
 Tag: (none) 
 Log:
-The variable 'complementaly' used to be allocated with calloc, which zeroed it
-out during the allocation process.  When vodz changed it to be allocated on the
-stack, he forgot to explicitly zero it, leaving its value filled with whatever
-used to be sitting on the stack.  It would garbage values, depending on the
-garbage that happened to be sitting on the stack when the function was called.
-The result was that applets using bb_getopt_ulflags() were showing
-unpredictable behavior (such as segfaults), which naturally broke many things.
+Chris Larson (kergoth) writes:
+
+I was adding -s/--symbolic-link support to busybox cp when I noticed a
+bug with -r/-a.  Test case:
+
+mkdir -p test/out
+cd test
+busybox cp -a * out/
+
+Will never return until we run out of open files or similar.
+Coreutils cp on the other hand will error with "cannot copy a directory,
+`out', into itself, `out'".  Patch attached.
 
 Members: 
-	libbb/getopt_ulflags.c:1.6->1.7 
+	libbb/copy_file.c:1.28->1.29 
 
 ---------------------
-PatchSet 3922 
-Date: 2004/02/04 10:57:46
+PatchSet 3948 
+Date: 2004/02/19 01:52:29
 Author: andersen
 Branch: HEAD
 Tag: (none) 
 Log:
-Rob Landley writes:
+Chris Larson (kergoth) writes:
 
-While building glibc with busybox as part of the development environment, I
-found a bug in glibc's regexec can throw sed into an endless loop.  This
-fixes it.  Should I put an #ifdef around it or something?  (Note, this patch
-also contains the "this is not gnu sed 4.0" hack I posted earlier, which is
-also needed to build glibc...)
+As Manuel points out, this is a flawed fix, and doesnt fix the
+following:
+
+mkdir -p cpa cpb cpc
+cp -a cpa cpa/cpb/cpc
+
+Attached what appears to be a more sane fix.  Apply on top of previous.
+Please confirm sanity.
 
 Members: 
-	editors/sed.c:1.158->1.159 
+	libbb/copy_file.c:1.29->1.30 
 
 ---------------------
-PatchSet 3923 
-Date: 2004/02/04 11:01:19
+PatchSet 3949 
+Date: 2004/02/19 08:48:30
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Add extra comments, freakout if a pax archive is encoutered.
+
+Members: 
+	archival/libunarchive/get_header_tar.c:1.32->1.33 
+
+---------------------
+PatchSet 3950 
+Date: 2004/02/20 02:25:18
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+A strict interpretation of the ustar format requires the type flag to be
+interpreted, we cannot depend on the file type being set in the mode
+field.
+
+Members: 
+	archival/libunarchive/get_header_tar.c:1.33->1.34 
+
+---------------------
+PatchSet 3951 
+Date: 2004/02/20 02:34:42
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix up hard links
+
+Members: 
+	archival/libunarchive/get_header_tar.c:1.34->1.35 
+
+---------------------
+PatchSet 3952 
+Date: 2004/02/20 09:55:37
 Author: andersen
 Branch: HEAD
 Tag: (none) 
 Log:
-Jean Wolter writes:
-
-Hello,
-
-when calling seq with
-
-    seq 1 1
-
-it generates an "endless" list of numbers until the counter wraps and
-reaches 1 again. The follwoing small patch should introduce the
-expected behavior (output of 1 and termination):
-
-regards,
-Jean
+Document missing cp options
 
 Members: 
-	coreutils/seq.c:1.1->1.2 
+	include/usage.h:1.187->1.188 
 
 ---------------------
-PatchSet 3924 
-Date: 2004/02/04 11:10:28
+PatchSet 3953 
+Date: 2004/02/21 07:49:54
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Use return instead of exit, use == instead of & ==, left justify labels,
+adjustment of whitespace.
+
+Members: 
+	coreutils/mv.c:1.19->1.20 
+
+---------------------
+PatchSet 3954 
+Date: 2004/02/21 09:20:56
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Sometimes i get carried away with the use of function pointers, im sure
+it seemed like a good idea at the time.
+
+Members: 
+	archival/libunarchive/seek_by_char.c:1.3->1.4 
+	include/libbb.h:1.126->1.127 
+	libbb/copyfd.c:1.9->1.10 
+
+---------------------
+PatchSet 3955 
+Date: 2004/02/22 00:27:34
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+No need to check proxy env variable twice, ignore proxy env variable if
+its set to 0
+
+Members: 
+	networking/wget.c:1.68->1.69 
+
+---------------------
+PatchSet 3956 
+Date: 2004/02/22 02:58:57
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Return 1 upon failure
+
+Members: 
+	coreutils/md5_sha1_sum.c:1.4->1.5 
+
+---------------------
+PatchSet 3957 
+Date: 2004/02/22 03:33:53
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Ptch by Hideki IWAMOTO, fix a bug preventing tftp from getting or
+putting more than 0xffff blocks.
+
+Members: 
+	networking/tftp.c:1.21->1.22 
+
+---------------------
+PatchSet 3958 
+Date: 2004/02/22 04:12:58
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Update usage for ftpget and ftpput
+
+Members: 
+	include/usage.h:1.188->1.189 
+
+---------------------
+PatchSet 3959 
+Date: 2004/02/22 04:17:26
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Thomas Geulig, remove duplicate header
+
+Members: 
+	init/init_shared.c:1.3->1.4 
+
+---------------------
+PatchSet 3960 
+Date: 2004/02/22 04:44:21
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Fixup braces (patch from Thomas Geulig), run through indent and manually
+adjust.
+
+Members: 
+	miscutils/crond.c:1.12->1.13 
+
+---------------------
+PatchSet 3961 
+Date: 2004/02/22 04:58:36
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+remove duplicate header declarations
+
+Members: 
+	networking/inetd.c:1.18->1.19 
+
+---------------------
+PatchSet 3962 
+Date: 2004/02/22 07:20:25
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from Hideki IWAMOTO, output debugging messages to stderr
+
+Members: 
+	networking/tftp.c:1.22->1.23 
+
+---------------------
+PatchSet 3963 
+Date: 2004/02/22 07:38:36
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from Florian Schirmer. compile fix for debug builds
+
+Members: 
+	miscutils/devfsd.c:1.7->1.8 
+
+---------------------
+PatchSet 3964 
+Date: 2004/02/22 08:33:37
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Use /var/lib/hwclock for adjtime, its really a state file rather than a
+config file, so it should be in /etc, FHS mentions it also.
+
+Members: 
+	util-linux/hwclock.c:1.6->1.7 
+
+---------------------
+PatchSet 3965 
+Date: 2004/02/22 09:11:33
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Use bb_getopt_ulflags, marginal saving, better argument checking.
+
+Members: 
+	util-linux/hwclock.c:1.7->1.8 
+
+---------------------
+PatchSet 3966 
+Date: 2004/02/22 09:45:57
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from James Zhu, telnetd window resizing support.
+
+Members: 
+	networking/telnetd.c:1.9->1.10 
+
+---------------------
+PatchSet 3967 
+Date: 2004/02/22 11:13:28
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Vodz. last_patch_128
+- declare applet_using as static from applets.c
+- small correction to cmdedit,
+   previous version cleared history after Ctrl-C
+- small spelling correction (by Friedrich Lobenstock)
+
+Members: 
+	applets/applets.c:1.22->1.23 
+	shell/cmdedit.c:1.88->1.89 
+
+---------------------
+PatchSet 3968 
+Date: 2004/02/22 11:25:13
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from Vodz, cleanup memory usage, send strdup error messages to
+syslog.
+
+Members: 
+	networking/inetd.c:1.19->1.20 
+
+---------------------
+PatchSet 3969 
+Date: 2004/02/22 11:35:13
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from Chris Larson (kergoth), to allow multiple directores to be
+unmounted at once.
+
+Members: 
+	docs/busybox.sgml:1.52->1.53 
+	util-linux/umount.c:1.62->1.63 
+
+---------------------
+PatchSet 3970 
+Date: 2004/02/22 11:46:49
 Author: andersen
 Branch: HEAD
 Tag: (none) 
 Log:
-Joe.C writes:
+For the time being, revert the changes for detecting copying
+a directory into itself.  It is harder to do this correctly
+than it appears.  Not trying at all seems a better compromise
+for the time being, untill we can implement this correctly.
+
+Members: 
+	libbb/copy_file.c:1.30->1.31 
+
+---------------------
+PatchSet 3971 
+Date: 2004/02/22 11:55:09
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Patch from Dmitry Zakharov, this line was missedfrom the last patch
+
+Members: 
+	editors/awk.c:1.5->1.6 
+
+---------------------
+PatchSet 3972 
+Date: 2004/02/22 12:17:33
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+Fix from Paul Kortekaas for syslog -C option, size should be in kB.
+
+Members: 
+	sysklogd/syslogd.c:1.106->1.107 
+
+---------------------
+PatchSet 3973 
+Date: 2004/02/22 12:25:47
+Author: andersen
+Branch: HEAD
+Tag: (none) 
+Log:
+Fernando Silveira writes:
 
 Hi,
 
-   When httpd connection is closed, bosybox httpd will
-not stop reading from CGI program. This patch fix this
-problem. It check the return value of bb_full_write and
-stop reading from CGI if the connection is closed.
-Please apply this patch.
+  Well, I made this patch a long time ago (08/2002) because it was a
+  need of a project, but had no time to send it to you. It adds support
+  to `autologin' option of the telnet protocol. It has been used since
+  made with busybox 0.60.3 at production and I had no problems with it.
+  I have ported it to the HEAD revision of the CVS server (20040211) and
+  I hope you enjoy and apply it to the official sources. :)
 
-Joe.C
+Thanks a lot!
 
 Members: 
-	networking/httpd.c:1.21->1.22 
+	include/usage.h:1.189->1.190 
+	networking/Config.in:1.26->1.27 
+	networking/telnet.c:1.41->1.42 
 
 ---------------------
-PatchSet 3925 
-Date: 2004/02/04 11:19:44
+PatchSet 3974 
+Date: 2004/02/22 12:27:04
 Author: andersen
 Branch: HEAD
 Tag: (none) 
 Log:
-Richard Kojedzinszky writes:
-
-Hi,
-
-I've noticed the bug also, and here is another patch for it. I hope it'll
-not introduce more bugs. Not too nice, but works for me.
-
-Here it is for busybox-1.00-pre6
+Bump up version in preparation for -pre8
 
 Members: 
-	editors/vi.c:1.31->1.32 
+	Rules.mak:1.27->1.28 
+
+---------------------
+PatchSet 3975 
+Date: 2004/02/23 08:11:07
+Author: bug1
+Branch: HEAD
+Tag: (none) 
+Log:
+bb_full_fd_action was incorrectly returning an error message causing
+major breaking.
+
+Members: 
+	libbb/copyfd.c:1.10->1.11 
 
