@@ -15,9 +15,11 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.3 2001/02/14 21:23:06 andersen Exp $
+ * $Id: route.c,v 1.4 2001/02/15 23:00:48 markw Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
+ * busybox style adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
+ * displayroute() format now matches net-tools-1.57/lib/inet_gr.c line 173.
  */
 
 #include "busybox.h"
@@ -65,9 +67,9 @@ INET_resolve(char *name, struct sockaddr *sa)
 	sin->sin_port = 0;
 
 	/* Default is special, meaning 0.0.0.0. */
-	if (!strcmp(name, "default")) {
+	if (strcmp(name, "default")==0) {
 		sin->sin_addr.s_addr = INADDR_ANY;
-		return (1);
+		return 1;
 	}
 	/* Look to see if it's a dotted quad. */
 	if (inet_aton(name, &sin->sin_addr)) {
@@ -107,10 +109,10 @@ INET_setroute(int action, int options, char **args)
 
 	xflag = 0;
 
-	if (!strcmp(*args, "-net")) {
+	if (strcmp(*args, "-net")==0) {
 		xflag = 1;
 		args++;
-	} else if (!strcmp(*args, "-host")) {
+	} else if (strcmp(*args, "-host")==0) {
 		xflag = 2;
 		args++;
 	}
@@ -124,8 +126,8 @@ INET_setroute(int action, int options, char **args)
 
 
 	if ((isnet = INET_resolve(target, &rt.rt_dst)) < 0) {
-		fprintf(stderr, "cant resolve %s\n", target);
-		return (1);
+		error_msg(_("can't resolve %s"), target);
+		return EXIT_FAILURE;   /* XXX change to E_something */
 	}
 
 	switch (xflag) {
@@ -147,7 +149,7 @@ INET_setroute(int action, int options, char **args)
 		rt.rt_flags &= ~RTF_HOST;
 
 	while (*args) {
-		if (!strcmp(*args, "metric")) {
+		if (strcmp(*args, "metric")==0) {
 			int metric;
 			
 			args++;
@@ -157,13 +159,13 @@ INET_setroute(int action, int options, char **args)
 #if HAVE_NEW_ADDRT
 			rt.rt_metric = metric + 1;
 #else
-			ENOSUPP("inet_setroute", "NEW_ADDRT (metric)");
+			ENOSUPP("inet_setroute", "NEW_ADDRT (metric)");  /* XXX Fixme */
 #endif
 			args++;
 			continue;
 		}
 
-		if (!strcmp(*args, "netmask")) {
+		if (strcmp(*args, "netmask")==0) {
 			struct sockaddr mask;
 			
 			args++;
@@ -171,15 +173,15 @@ INET_setroute(int action, int options, char **args)
 				show_usage();
 			safe_strncpy(netmask, *args, (sizeof netmask));
 			if ((isnet = INET_resolve(netmask, &mask)) < 0) {
-				fprintf(stderr, "cant resolve netmask %s\n", netmask);
-				return (E_LOOKUP);
+				error_msg(_("can't resolve netmask %s"), netmask);
+				return E_LOOKUP;
 			}
 			rt.rt_genmask = full_mask(mask);
 			args++;
 			continue;
 		}
 
-		if (!strcmp(*args, "gw") || !strcmp(*args, "gateway")) {
+		if (strcmp(*args, "gw")==0 || strcmp(*args, "gateway")==0) {
 			args++;
 			if (!*args)
 				show_usage();
@@ -187,21 +189,21 @@ INET_setroute(int action, int options, char **args)
 				show_usage();
 			safe_strncpy(gateway, *args, (sizeof gateway));
 			if ((isnet = INET_resolve(gateway, &rt.rt_gateway)) < 0) {
-				fprintf(stderr, "cant resolve gw %s\n", gateway);
-				return (E_LOOKUP);
+				error_msg(_("can't resolve gw %s"), gateway);
+				return E_LOOKUP;
 			}
 			if (isnet) {
-				fprintf(stderr,
-					_("route: %s: cannot use a NETWORK as gateway!\n"),
+				error_msg(
+					_("%s: cannot use a NETWORK as gateway!"),
 					gateway);
-				return (E_OPTERR);
+				return E_OPTERR;
 			}
 			rt.rt_flags |= RTF_GATEWAY;
 			args++;
 			continue;
 		}
 
-		if (!strcmp(*args, "mss")) {
+		if (strcmp(*args, "mss")==0) {
 			args++;
 			rt.rt_flags |= RTF_MSS;
 			if (!*args)
@@ -209,13 +211,13 @@ INET_setroute(int action, int options, char **args)
 			rt.rt_mss = atoi(*args);
 			args++;
 			if (rt.rt_mss < 64 || rt.rt_mss > 32768) {
-				fprintf(stderr, _("route: Invalid MSS.\n"));
-				return (E_OPTERR);
+				error_msg(_("Invalid MSS."));
+				return E_OPTERR;
 			}
 			continue;
 		}
 
-		if (!strcmp(*args, "window")) {
+		if (strcmp(*args, "window")==0) {
 			args++;
 			if (!*args)
 				show_usage();
@@ -223,13 +225,13 @@ INET_setroute(int action, int options, char **args)
 			rt.rt_window = atoi(*args);
 			args++;
 			if (rt.rt_window < 128) {
-				fprintf(stderr, _("route: Invalid window.\n"));
-				return (E_OPTERR);
+				error_msg(_("Invalid window."));
+				return E_OPTERR;
 			}
 			continue;
 		}
 
-		if (!strcmp(*args, "irtt")) {
+		if (strcmp(*args, "irtt")==0) {
 			args++;
 			if (!*args)
 				show_usage();
@@ -240,41 +242,41 @@ INET_setroute(int action, int options, char **args)
 			rt.rt_irtt *= (HZ / 100);	/* FIXME */
 #if 0				/* FIXME: do we need to check anything of this? */
 			if (rt.rt_irtt < 1 || rt.rt_irtt > (120 * HZ)) {
-				fprintf(stderr, _("route: Invalid initial rtt.\n"));
-				return (E_OPTERR);
+				error_msg(_("Invalid initial rtt."));
+				return E_OPTERR;
 			}
 #endif
 #else
-			ENOSUPP("inet_setroute", "RTF_IRTT");
+			ENOSUPP("inet_setroute", "RTF_IRTT"); /* XXX Fixme */
 #endif
 			continue;
 		}
 
-		if (!strcmp(*args, "reject")) {
+		if (strcmp(*args, "reject")==0) {
 			args++;
 #if HAVE_RTF_REJECT
 			rt.rt_flags |= RTF_REJECT;
 #else
-			ENOSUPP("inet_setroute", "RTF_REJECT");
+			ENOSUPP("inet_setroute", "RTF_REJECT"); /* XXX Fixme */
 #endif
 			continue;
 		}
-		if (!strcmp(*args, "mod")) {
+		if (strcmp(*args, "mod")==0) {
 			args++;
 			rt.rt_flags |= RTF_MODIFIED;
 			continue;
 		}
-		if (!strcmp(*args, "dyn")) {
+		if (strcmp(*args, "dyn")==0) {
 			args++;
 			rt.rt_flags |= RTF_DYNAMIC;
 			continue;
 		}
-		if (!strcmp(*args, "reinstate")) {
+		if (strcmp(*args, "reinstate")==0) {
 			args++;
 			rt.rt_flags |= RTF_REINSTATE;
 			continue;
 		}
-		if (!strcmp(*args, "device") || !strcmp(*args, "dev")) {
+		if (strcmp(*args, "device")==0 || strcmp(*args, "dev")==0) {
 			args++;
 			if (rt.rt_dev || *args == NULL)
 				show_usage();
@@ -286,8 +288,9 @@ INET_setroute(int action, int options, char **args)
 			rt.rt_dev = *args++;
 			if (*args)
 				show_usage();	/* must be last to catch typos */
-		} else
+		} else {
 			show_usage();
+		}
 	}
 
 #if HAVE_RTF_REJECT
@@ -300,19 +303,19 @@ INET_setroute(int action, int options, char **args)
 		unsigned long mask = mask_in_addr(rt);
 		mask = ~ntohl(mask);
 		if ((rt.rt_flags & RTF_HOST) && mask != 0xffffffff) {
-			fprintf(stderr,
-				_("route: netmask %.8x doesn't make sense with host route\n"),
+			error_msg(
+				_("netmask %.8x doesn't make sense with host route"),
 				(unsigned int)mask);
-			return (E_OPTERR);
+			return E_OPTERR;
 		}
 		if (mask & (mask + 1)) {
-			fprintf(stderr, _("route: bogus netmask %s\n"), netmask);
-			return (E_OPTERR);
+			error_msg(_("bogus netmask %s"), netmask);
+			return E_OPTERR;
 		}
 		mask = ((struct sockaddr_in *) &rt.rt_dst)->sin_addr.s_addr;
 		if (mask & ~mask_in_addr(rt)) {
-			fprintf(stderr, _("route: netmask doesn't match route address\n"));
-			return (E_OPTERR);
+			error_msg(_("netmask doesn't match route address"));
+			return E_OPTERR;
 		}
 	}
 	/* Fill out netmask if still unset */
@@ -322,26 +325,26 @@ INET_setroute(int action, int options, char **args)
 	/* Create a socket to the INET kernel. */
 	if ((skfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("socket");
-		return (E_SOCK);
+		return E_SOCK;
 	}
 	/* Tell the kernel to accept this route. */
 	if (action == RTACTION_DEL) {
 		if (ioctl(skfd, SIOCDELRT, &rt) < 0) {
 			perror("SIOCDELRT");
 			close(skfd);
-			return (E_SOCK);
+			return E_SOCK;
 		}
 	} else {
 		if (ioctl(skfd, SIOCADDRT, &rt) < 0) {
 			perror("SIOCADDRT");
 			close(skfd);
-			return (E_SOCK);
+			return E_SOCK;
 		}
 	}
 	
 	/* Close the socket. */
 	(void) close(skfd);
-	return (0);
+	return EXIT_SUCCESS;
 }
 
 void displayroutes(void)
@@ -392,7 +395,7 @@ Destination\tGateway\t\tGenmask\t\tFlags Metric Ref    Use Iface\n");
 					inet_ntoa(dest)));
 			strcpy(sgw,    (gw.s_addr==0   ? "*"       :
 					inet_ntoa(gw)));
-			printf("%-16s%-16s%-16s%-6s%-7d%-9d%-2d%s\n",
+			printf("%-15s %-15s %-15s %-5s %-6d %-2d %7d %s\n",
 				sdest, sgw,
 				inet_ntoa(mask),
 				flags, metric, ref, use, buff);
@@ -413,17 +416,15 @@ int route_main(int argc, char **argv)
 		exit(EXIT_SUCCESS);
 	} else {
 		/* check verb */
-		if (!strcmp(*argv, "add"))
+		if (strcmp(*argv, "add")==0)
 			what = RTACTION_ADD;
-		else if (!strcmp(*argv, "del") || !strcmp(*argv, "delete"))
+		else if (strcmp(*argv, "del")==0 || strcmp(*argv, "delete")==0)
 			what = RTACTION_DEL;
-		else if (!strcmp(*argv, "flush"))
+		else if (strcmp(*argv, "flush")==0)
 			what = RTACTION_FLUSH;
 		else
 			show_usage();
 	}
 
-	INET_setroute(what, 0, ++argv);
-
-	exit(EXIT_SUCCESS);
+	return INET_setroute(what, 0, ++argv);
 }
