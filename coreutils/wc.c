@@ -154,7 +154,7 @@ int wc_main(int argc, char **argv)
 		}
 		wc_file(file, *argv);
 	} else {
-		while (argc-- > 0 && *argv != '\0' && strlen(*argv)) {
+		while (argc-- > 0) {
 			file = fopen(*argv, "r");
 			if (file == NULL) {
 				perror(*argv);
