@@ -600,13 +600,11 @@ int list_single(struct dnode *dn)
 				break;
 			case LIST_ID_NAME:
 #ifdef BB_FEATURE_LS_USERNAME
-				memset(scratch, 0, sizeof(scratch));
 				my_getpwuid(scratch, dn->dstat.st_uid);
 				if (*scratch)
 					fprintf(stdout, "%-8.8s ", scratch);
 				else
 					fprintf(stdout, "%-8d ", dn->dstat.st_uid);
-				memset(scratch, 0, sizeof(scratch));
 				my_getgrgid(scratch, dn->dstat.st_gid);
 				if (*scratch)
 					fprintf(stdout, "%-8.8s", scratch);

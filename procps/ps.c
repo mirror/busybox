@@ -121,8 +121,8 @@ extern int ps_main(int argc, char **argv)
 	FILE *file;
 	struct dirent *entry;
 	char path[32], sbuf[512];
-	char uidName[10] = "";
-	char groupName[10] = "";
+	char uidName[9];
+	char groupName[9];
 	int len, i, c;
 #ifdef BB_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
@@ -146,9 +146,6 @@ extern int ps_main(int argc, char **argv)
 	fprintf(stdout, "%5s  %-8s %-3s %5s %s\n", "PID", "Uid", "Gid",
 			"State", "Command");
 	while ((entry = readdir(dir)) != NULL) {
-		uidName[0] = '\0';
-		groupName[0] = '\0';
-
 		if (!isdigit(*entry->d_name))
 			continue;
 		sprintf(path, "/proc/%s/status", entry->d_name);
@@ -204,8 +201,8 @@ extern int ps_main(int argc, char **argv)
 	pid_t num_pids;
 	pid_t* pid_array = NULL;
 	struct pid_info info;
-	char uidName[10] = "";
-	char groupName[10] = "";
+	char uidName[9];
+	char groupName[9];
 #ifdef BB_FEATURE_AUTOWIDTH
 	struct winsize win = { 0, 0, 0, 0 };
 	int terminal_width = TERMINAL_WIDTH;
@@ -247,8 +244,6 @@ extern int ps_main(int argc, char **argv)
 			"State", "Command");
 
 	for (i=1; i<pid_array[0] ; i++) {
-		uidName[0] = '\0';
-		groupName[0] = '\0';
 	    info.pid = pid_array[i];
 
 	    if (ioctl (fd, DEVPS_GET_PID_INFO, &info)<0)

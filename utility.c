@@ -957,12 +957,14 @@ long my_getgrnam(char *name)
 /* gets a username given a uid */
 void my_getpwuid(char *name, long uid)
 {
+	name[0] = '\0';
 	my_getid("/etc/passwd", name, uid, NULL);
 }
 
 /* gets a groupname given a gid */
 void my_getgrgid(char *group, long gid)
 {
+	group[0] = '\0';
 	my_getid("/etc/group", group, gid, NULL);
 }
 

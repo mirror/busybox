@@ -691,13 +691,11 @@ extern int readTarFile(int tarFd, int extractFlag, int listFlag,
 				struct tm *tm = localtime (&(header.mtime));
 
 				len=printf("%s ", mode_string(header.mode));
-				memset(buf, 0, 8*sizeof(char));
 				my_getpwuid(buf, header.uid);
 				if (! *buf)
 					len+=printf("%d", header.uid);
 				else
 					len+=printf("%s", buf);
-				memset(buf, 0, 8*sizeof(char));
 				my_getgrgid(buf, header.gid);
 				if (! *buf)
 					len+=printf("/%-d ", header.gid);

@@ -31,12 +31,11 @@
 extern int id_main(int argc, char **argv)
 {
 	int no_user = 0, no_group = 0, print_real = 0;
-	char *cp, *user, *group;
+	char user[9], group[9];
 	long gid;
 	long pwnam, grnam;
 	int opt;
 	
-	cp = user = group = NULL;
 	gid = 0;
 
 	while ((opt = getopt(argc, argv, "ugr")) > 0) {
@@ -57,11 +56,7 @@ extern int id_main(int argc, char **argv)
 
 	if (no_user && no_group) usage(id_usage);
 
-	user = argv[optind];
-
-	if (user == NULL) {
-		user = xcalloc(9, sizeof(char));
-		group = xcalloc(9, sizeof(char));
+	if (argv[optind] == NULL) {
 		if (print_real) {
 			my_getpwuid(user, getuid());
 			my_getgrgid(group, getgid());
@@ -70,7 +65,8 @@ extern int id_main(int argc, char **argv)
 			my_getgrgid(group, getegid());
 		}
 	} else {
-		group = xcalloc(9, sizeof(char));
+		strncpy(user, argv[optind], 8);
+		user[8] = '\0';
 	    gid = my_getpwnamegid(user);
 		my_getgrgid(group, gid);
 	}
