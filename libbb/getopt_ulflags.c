@@ -83,7 +83,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 {
 	unsigned long flags = 0;
   int c = 0;
-	const char *s;
+	const unsigned char *s;
   t_complementaly *complementaly;
   t_complementaly *on_off;
   va_list p;
