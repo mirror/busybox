@@ -442,36 +442,29 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 		error_msg_and_die("missing command");
 	sed_cmd->cmd = cmdstr[idx];
 
-	switch (sed_cmd->cmd) {
-		/* if it was a single-letter command that takes no arguments (such as 'p'
-		 * or 'd') all we need to do is increment the index past that command */
-		case 'p':
-		case 'd':
-		case '=':
-			idx++;
-			break;
-		/* handle (s)ubstitution command */
-		case 's':
-			idx += parse_subst_cmd(sed_cmd, &cmdstr[idx]);
-			break;
-		/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
-		case 'a':
-		case 'i':
-		case 'c':
-			if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c') {
-				error_msg_and_die("only a beginning address can be specified for edit commands");
-			}
-			idx += parse_edit_cmd(sed_cmd, &cmdstr[idx]);
-			break;
-		/* handle file cmds: (r)ead */
-		case 'r':
-			if (sed_cmd->end_line || sed_cmd->end_match) {
-				error_msg_and_die("Command only uses one address");
-			}
-			idx += parse_file_cmd(sed_cmd, &cmdstr[idx]);
-			break;
-		default:
-			error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
+	/* if it was a single-letter command that takes no arguments (such as 'p'
+	 * or 'd') all we need to do is increment the index past that command */
+	if (strchr("pd=", sed_cmd->cmd)) {
+		idx++;
+	}
+	/* handle (s)ubstitution command */
+	else if (sed_cmd->cmd == 's') {
+		idx += parse_subst_cmd(sed_cmd, &cmdstr[idx]);
+	}
+	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
+	else if (strchr("aic", sed_cmd->cmd)) {
+		if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c')
+			error_msg_and_die("only a beginning address can be specified for edit commands");
+		idx += parse_edit_cmd(sed_cmd, &cmdstr[idx]);
+	}
+	/* handle file cmds: (r)ead */
+	else if (sed_cmd->cmd == 'r') {
+		if (sed_cmd->end_line || sed_cmd->end_match)
+			error_msg_and_die("Command only uses one address");
+		idx += parse_file_cmd(sed_cmd, &cmdstr[idx]);
+	}
+	else {
+		error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
 
 	/* give back whatever's left over */
