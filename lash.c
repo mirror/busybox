@@ -319,8 +319,9 @@ static int builtin_fg_bg(struct child_prog *child)
 	if ( (i=kill(- job->pgrp, SIGCONT)) < 0) {
 		if (i == ESRCH) {
 			remove_job(&job_list, job);
+		} else {
+			perror_msg("kill (SIGCONT)");
 		}
-		perror_msg("kill (SIGCONT)");
 	}
 
 	return EXIT_SUCCESS;
