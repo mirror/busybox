@@ -73,8 +73,13 @@ umount_all(int useMtab)
             while ((m = getmntent (mountTable)) != 0) {
                 char *blockDevice = m->mnt_fsname;
 #if ! defined BB_MTAB
-                if (strcmp (blockDevice, "/dev/root") == 0)
-                    blockDevice = (getfsfile ("/"))->fs_spec;
+		if (strcmp (blockDevice, "/dev/root") == 0) {
+		    struct fstab* fstabItem;
+		    fstabItem = getfsfile ("/");
+		    if (fstabItem != NULL) {
+			blockDevice = fstabItem->fs_spec;
+		    }
+		}
 #endif
 		/* Don't umount /proc when doing umount -a */
                 if (strcmp (blockDevice, "proc") == 0)

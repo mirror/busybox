@@ -80,6 +80,9 @@ LIBRARIES=
 OBJECTS=$(shell ./busybox.sh)
 CFLAGS+= -DBB_VER='"$(VERSION)"'
 CFLAGS+= -DBB_BT='"$(BUILDTIME)"'
+ifdef BB_INIT_RC_EXIT_CMD
+    CFLAGS += -DBB_INIT_CMD_IF_RC_SCRIPT_EXITS=${BB_INIT_RC_EXIT_CMD}
+endif
 
 all: busybox busybox.links
 
@@ -89,7 +92,7 @@ busybox: $(OBJECTS)
 
 busybox.links:
 	- ./busybox.mkll | sort >$@
-	
+
 clean:
 	- rm -f $(PROG) busybox.links *~ *.o core 
 	- rm -rf busybox_install
@@ -97,19 +100,14 @@ clean:
 distclean: clean
 	- rm -f $(PROG)
 
-force:
-
 $(OBJECTS):  busybox.def.h internal.h Makefile
 
 install: busybox busybox.links
 	./install.sh $(PREFIX)
 
-whichversion:
-	@echo $(VERSION)
-
-
 dist: release
 
 release: distclean
 	(cd .. ; rm -rf busybox-$(VERSION) ; cp -a busybox busybox-$(VERSION); rm -rf busybox-$(VERSION)/CVS busybox-$(VERSION)/.cvsignore ; tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)) 
+
 
