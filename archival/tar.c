@@ -611,16 +611,16 @@ int tar_main(int argc, char **argv)
 	unsigned char tar_create = FALSE;
 #endif
 
+	if (argc < 2) {
+		show_usage();
+	}
+
 	/* Prepend '-' to the first argument if required */
 	if (argv[1][0] != '-') {
 		char *tmp = xmalloc(strlen(argv[1]) + 2);
 		tmp[0] = '-';
 		strcpy(tmp + 1, argv[1]);
 		argv[1] = tmp;
-	}
-
-	if (argc < 2) {
-		show_usage();
 	}
 
 	/* Initialise default values */
@@ -736,13 +736,13 @@ int tar_main(int argc, char **argv)
 	{
 		if ((tar_filename[0] == '-') && (tar_filename[1] == '\0')) {
 			tar_handle->src_fd = fileno(stdin);
+			tar_handle->seek = seek_by_char;
 		} else {
 			tar_handle->seek = seek_by_jump;
 			tar_handle->src_fd = xopen(tar_filename, O_RDONLY);
 		}
 #ifdef CONFIG_FEATURE_TAR_GZIP
 		if (get_header_ptr == get_header_tar_gz) {
-			tar_handle->seek = seek_by_char;
 			get_header_tar_gz(tar_handle);
 		} else
 #endif /* CONFIG_FEATURE_TAR_GZIP */
