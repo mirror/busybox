@@ -81,7 +81,7 @@ static struct swap_header_v1 {
 	unsigned int badpages[1];
 } *p;
 
-static void init_signature_page()
+static void init_signature_page(void)
 {
 	pagesize = getpagesize();
 

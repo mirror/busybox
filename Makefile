@@ -86,7 +86,7 @@ STRIPTOOL = $(CROSS)strip
 
 # To compile vs uClibc, just use the compiler wrapper built by uClibc...
 # Everything should compile and work as expected these days...
-#CC = ../uClibc/extra/gcc-uClibc/i386-uclibc-gcc
+#CC = /usr/i386-linux-uclibc/usr/bin/i386-uclibc-gcc
 
 # To compile vs some other alternative libc, you may need to use/adjust
 # the following lines to meet your needs...
@@ -110,8 +110,7 @@ STRIPTOOL = $(CROSS)strip
 OPTIMIZATION := $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
     then echo "-Os"; else echo "-O2" ; fi)
 
-WARNINGS = -Wall -Wshadow
-
+WARNINGS=-Wall -Wstrict-prototypes -Wshadow
 ARFLAGS = -r
 
 #

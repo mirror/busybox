@@ -115,13 +115,13 @@ static const unsigned short mask_bits[] = {
  * Signal and error handler.
  */
  
-static void abort_gzip()
+static void abort_gzip(void)
 {
 	error_msg("gzip aborted\n");
 	exit(ERROR);
 }
 
-static void make_crc_table()
+static void make_crc_table(void)
 {
 	unsigned long table_entry;      /* crc shift register */
 	unsigned long poly = 0;      /* polynomial exclusive-or pattern */
@@ -853,7 +853,7 @@ static int inflate_block(int *e)
  *
  * GLOBAL VARIABLES: outcnt, bk, bb, hufts, inptr
  */
-static int inflate()
+static int inflate(void)
 {
 	int e;				/* last block flag */
 	int r;				/* result code */

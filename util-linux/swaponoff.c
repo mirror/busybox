@@ -59,7 +59,7 @@ static void swap_enable_disable(char *device)
 		perror_msg_and_die(applet_name);
 }
 
-static void do_em_all()
+static void do_em_all(void)
 {
 	struct mntent *m;
 	FILE *f = setmntent("/etc/fstab", "r");

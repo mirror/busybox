@@ -354,7 +354,7 @@ static void clear_bufs(void)
 	bytes_in = 0L;
 }
 
-static void write_error_msg()
+static void write_error_msg(void)
 {
 	fprintf(stderr, "\n");
 	perror("");

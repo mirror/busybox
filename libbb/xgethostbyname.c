@@ -22,9 +22,8 @@
  */
 
 #include <netdb.h>
-extern int h_errno;
-
 #include "libbb.h"
+
 
 struct hostent *xgethostbyname(const char *name)
 {

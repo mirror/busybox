@@ -30,7 +30,6 @@
 
 
 extern int optind; /* in unistd.h */
-extern int errno;  /* for use with strerror() */
 extern void xregcomp(regex_t *preg, const char *regex, int cflags); /* in busybox.h */
 
 /* options */

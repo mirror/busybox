@@ -158,21 +158,21 @@ static struct t_op const *t_wp_op;
 static gid_t *group_array = NULL;
 static int ngroups;
 
-static enum token t_lex();
-static int oexpr();
-static int aexpr();
-static int nexpr();
-static int binop();
-static int primary();
-static int filstat();
-static int getn();
-static int newerf();
-static int olderf();
-static int equalf();
-static void syntax();
-static int test_eaccess();
-static int is_a_group_member();
-static void initialize_group_array();
+static enum token t_lex(char* s);
+static int oexpr(enum token n);
+static int aexpr(enum token n);
+static int nexpr(enum token n);
+static int binop(void);
+static int primary(enum token n);
+static int filstat(char *nm, enum token mode);
+static int getn(const char *s);
+static int newerf(const char *f1, const char *f2);
+static int olderf(const char *f1, const char *f2);
+static int equalf(const char *f1, const char *f2);
+static void syntax(const char *op, const char *msg);
+static int test_eaccess(char *path, int mode);
+static int is_a_group_member(gid_t gid);
+static void initialize_group_array(void);
 
 extern int
 test_main(int argc, char** argv)
@@ -226,8 +226,8 @@ test_main(int argc, char** argv)
 
 static void
 syntax(op, msg)
-	char	*op;
-	char	*msg;
+	const char	*op;
+	const char	*msg;
 {
 	if (op && *op)
 		error_msg_and_die("%s: %s", op, msg);
@@ -458,7 +458,7 @@ t_lex(s)
 /* atoi with error detection */
 static int
 getn(s)
-	char *s;
+	const char *s;
 {
 	char *p;
 	long r;
@@ -480,7 +480,7 @@ getn(s)
 
 static int
 newerf (f1, f2)
-char *f1, *f2;
+const char *f1, *f2;
 {
 	struct stat b1, b2;
 
@@ -491,7 +491,7 @@ char *f1, *f2;
 
 static int
 olderf (f1, f2)
-char *f1, *f2;
+const char *f1, *f2;
 {
 	struct stat b1, b2;
 
@@ -502,7 +502,7 @@ char *f1, *f2;
 
 static int
 equalf (f1, f2)
-char *f1, *f2;
+const char *f1, *f2;
 {
 	struct stat b1, b2;
 

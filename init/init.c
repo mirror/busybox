@@ -179,7 +179,7 @@ static char console[32]    = _PATH_CONSOLE;
 
 static void delete_initAction(initAction * action);
 
-static void loop_forever()
+static void loop_forever(void)
 {
 	while (1)
 		sleep (1);
@@ -289,7 +289,7 @@ static void set_term(int fd)
 
 /* How much memory does this machine have?
    Units are kBytes to avoid overflow on 4GB machines */
-static int check_free_memory()
+static int check_free_memory(void)
 {
 	struct sysinfo info;
 	unsigned int result, u, s=10;
@@ -310,7 +310,7 @@ static int check_free_memory()
 	return result;
 }
 
-static void console_init()
+static void console_init(void)
 {
 	int fd;
 	int tried_devcons = 0;
@@ -585,7 +585,7 @@ static int waitfor(char *command, char *terminal, int get_enter)
 
 /* Make sure there is enough memory to do something useful. *
  * Calls "swapon -a" if needed so be sure /etc/fstab is present... */
-static void check_memory()
+static void check_memory(void)
 {
 	struct stat statBuf;
 

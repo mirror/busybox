@@ -27,11 +27,10 @@
 
 #include <stdarg.h>
 #include <netdb.h>
-extern int h_errno;
-
 #include <stdio.h>
 
 #include "libbb.h"
+
 
 extern void vherror_msg(const char *s, va_list p)
 {

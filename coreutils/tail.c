@@ -51,7 +51,7 @@ static void tailbuf_append(char *buf, int len)
 	taillen += len;
 }
 
-static void tailbuf_trunc()
+static void tailbuf_trunc(void)
 {
 	char *s;
 	s = memchr(tailbuf, '\n', taillen);

@@ -2508,9 +2508,7 @@ out:
  * of all the rest.)
  */
 
-static inline void
-evalpipe(n)
-	union node *n;
+static inline void evalpipe(union node *n)
 {
 	struct job *jp;
 	struct nodelist *lp;
@@ -3453,8 +3451,8 @@ pgetc(void)
  * PEOF may be pushed back.
  */
 
-static void
-pungetc() {
+static void pungetc(void) 
+{
 	parsenleft++;
 	parsenextc--;
 }
@@ -3496,8 +3494,8 @@ popallfiles(void) {
  * after a fork is done.
  */
 
-static void
-closescript() {
+static void closescript(void) 
+{
 	popallfiles();
 	if (parsefile->fd > 0) {
 		close(parsefile->fd);
@@ -3511,9 +3509,7 @@ closescript() {
  * interrupts off.
  */
 
-static void
-setinputfd(fd, push)
-	int fd, push;
+static void setinputfd(int fd, int push)
 {
 	(void) fcntl(fd, F_SETFD, FD_CLOEXEC);
 	if (push) {
@@ -4471,10 +4467,7 @@ expandarg(arg, arglist, flag)
  * input string.
  */
 
-static inline char *
-evalvar(p, flag)
-	char *p;
-	int flag;
+static inline char * evalvar(char *p, int flag)
 {
 	int subtype;
 	int varflags;
@@ -6075,7 +6068,7 @@ static inline void putprompt(const char *s) {
 
 #ifdef ASH_ALIAS
 static int
-pgetc2()
+pgetc2(void)
 {
 	int c;
 	do {
@@ -6349,7 +6342,8 @@ static int fd0_redirected = 0;
 
 /* Return true if fd 0 has already been redirected at least once.  */
 static inline int
-fd0_redirected_p () {
+fd0_redirected_p (void) 
+{
 	return fd0_redirected != 0;
 }
 
@@ -7971,8 +7965,7 @@ readcmdfile(const char *name)
 
 
 static inline char *
-find_dot_file(mybasename)
-	char *mybasename;
+find_dot_file(char *mybasename)
 {
 	char *fullname;
 	const char *path = pathval();
@@ -12761,7 +12754,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.25 2001/09/11 01:14:02 mjn3 Exp $
+ * $Id: ash.c,v 1.26 2001/10/18 04:11:38 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
