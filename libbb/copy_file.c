@@ -196,19 +196,12 @@ int copy_file(const char *source, const char *dest, int flags)
 			return -1;
 		}
 	} else if (S_ISLNK(source_stat.st_mode)) {
-		int size;
-		char buf[BUFSIZ + 1];
-
-		if ((size = readlink(source, buf, BUFSIZ)) < 0) {
-			perror_msg("cannot read `%s'", source);
-			return -1;
-		}
-		buf[size] = '\0';
-
-		if (symlink(buf, dest) < 0) {
+		char *lpath = xreadlink(source);
+		if (symlink(lpath, dest) < 0) {
 			perror_msg("cannot create symlink `%s'", dest);
 			return -1;
 		}
+		free(lpath);
 
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 		if (flags & FILEUTILS_PRESERVE_STATUS)

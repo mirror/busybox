@@ -37,21 +37,10 @@ typedef int (*__link_f)(const char *, const char *);
  */
 static char *busybox_fullpath()
 {
-	pid_t pid;
-	char path[256];
 	char proc[256];
-	int len;
 
-	pid = getpid();
-	sprintf(proc, "/proc/%d/exe", pid);
-	len = readlink(proc, path, 256);
-	if (len != -1) {
-		path[len] = 0;
-	} else {
-		perror_msg("%s", proc);
-		return NULL;
-	}
-	return strdup(path);
+	sprintf(proc, "/proc/%d/exe", getpid());
+	return xreadlink(proc);
 }
 
 /* create (sym)links for each applet */

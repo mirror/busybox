@@ -577,7 +577,7 @@ static struct dnode **list_dir(char *path)
 /*----------------------------------------------------------------------*/
 static int list_single(struct dnode *dn)
 {
-	int i, len;
+	int i;
 	char scratch[BUFSIZ + 1];
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 	char *filetime;
@@ -688,16 +688,16 @@ static int list_single(struct dnode *dn)
 				break;
 			case LIST_SYMLINK:
 				if (S_ISLNK(dn->dstat.st_mode)) {
-					len= readlink(dn->fullname, scratch, (sizeof scratch)-1);
-					if (len > 0) {
-						scratch[len]= '\0';
-						printf(" -> %s", scratch);
+					char *lpath = xreadlink(dn->fullname);
+					if (lpath) {
+						printf(" -> %s", lpath);
 #ifdef BB_FEATURE_LS_FILETYPES
 						if (!stat(dn->fullname, &info)) {
 							append = append_char(info.st_mode);
 						}
 #endif
-						column += len+4;
+						column += strlen(lpath) + 4;
+						free(lpath);
 					}
 				}
 				break;

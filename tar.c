@@ -921,16 +921,10 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *header_name,
 		header.typeflag = LNKTYPE;
 		strncpy(header.linkname, tbInfo->hlInfo->name, sizeof(header.linkname));
 	} else if (S_ISLNK(statbuf->st_mode)) {
-		int link_size=0;
-		char buffer[BUFSIZ];
+		char *lpath = xreadlink(real_name);
 		header.typeflag  = SYMTYPE;
-		link_size = readlink(real_name, buffer, sizeof(buffer) - 1);
-		if ( link_size < 0) {
-			perror_msg("Error reading symlink '%s'", header.name);
-			return ( FALSE);
-		}
-		buffer[link_size] = '\0';
-		strncpy(header.linkname, buffer, sizeof(header.linkname)); 
+		strncpy(header.linkname, lpath, sizeof(header.linkname)); 
+		free(lpath);
 	} else if (S_ISDIR(statbuf->st_mode)) {
 		header.typeflag  = DIRTYPE;
 		strncat(header.name, "/", sizeof(header.name)); 

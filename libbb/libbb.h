@@ -217,6 +217,7 @@ int ask_confirmation(void);
 int klogctl(int type, char * b, int len);
 
 char *xgetcwd(char *cwd);
+char *xreadlink(const char *path);
 char *concat_path_file(const char *path, const char *filename);
 int last_char_is(const char *s, const int c);
 
