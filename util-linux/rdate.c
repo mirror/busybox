@@ -32,10 +32,16 @@
 #include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include "busybox.h"
 
 
 static const int RFC_868_BIAS = 2208988800UL;
+
+static void socket_timeout()
+{
+	bb_error_msg_and_die("timeout connecting to time server\n");
+}
 
 static time_t askremotedate(const char *host)
 {
@@ -45,6 +51,10 @@ static time_t askremotedate(const char *host)
 
 	if (getservbyname("time", "tcp") != NULL)
 		port="time";
+
+	/* Add a timeout for dead or non accessable servers */
+	alarm(10);
+	signal(SIGALRM, socket_timeout);
 
 	fd = xconnect(host, port);
 
