@@ -20,7 +20,7 @@ if [ "$CONFIG_FDISK" = "y" ]; then
     bool '  Support SGI disklabels'        CONFIG_FEATURE_SGI_LABEL
     bool '  Support SUN disklabels'        CONFIG_FEATURE_SUN_LABEL
     bool '  Support BSD disklabels'        CONFIG_FEATURE_OSF_LABEL
-    bool '  Support expext mode'           CONFIG_FEATURE_FDISK_ADVANCED
+    bool '  Support expert mode'           CONFIG_FEATURE_FDISK_ADVANCED
 fi
 bool 'freeramdisk'	    CONFIG_FREERAMDISK
 bool 'fsck_minix'	    CONFIG_FSCK_MINIX

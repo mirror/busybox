@@ -530,7 +530,7 @@
 	"-u  Give Start and End in sector (instead of cylinder) units\n" \
 	"-s PARTITION  Give partition size(s) in blocks\n" \
 	"-b 2048: (for certain MO disks) use 2048-byte sectors\n" \
-	"-v            Give fdisk version\n"
+	"-v  Give fdisk version"
 
 #ifdef CONFIG_FEATURE_FIND_TYPE
   #define USAGE_FIND_TYPE(a) a

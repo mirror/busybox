@@ -89,22 +89,17 @@
 #endif							/* advanced FEATURES */
 
 
-
-struct history {
-	char *s;
-	struct history *p;
-	struct history *n;
-};
-
 /* Maximum length of the linked list for the command line history */
-static const int MAX_HISTORY = 15;
-
-/* First element in command line list */
-static struct history *his_front = NULL;
-
-/* Last element in command line list */
-static struct history *his_end = NULL;
-
+#define MAX_HISTORY 15
+#if MAX_HISTORY < 1
+#warning cmdedit: You set MAX_HISTORY < 1. The history algorithm switched off.
+#else
+static char *history[MAX_HISTORY+1]; /* history + current */
+/* saved history lines */
+static int n_history;
+/* current pointer to history line */
+static int cur_history;
+#endif
 
 #include <termios.h>
 #define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
@@ -116,7 +111,6 @@ static struct termios initial_settings, new_settings;
 
 static
 volatile int cmdedit_termw = 80;	/* actual terminal width */
-static int history_counter = 0;	/* Number of commands in history list */
 static
 volatile int handlers_sets = 0;	/* Set next bites: */
 
@@ -148,7 +142,7 @@ static int my_euid;
 #endif
 
 #ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
-static char *hostname_buf = "";
+static char *hostname_buf;
 static int num_ok_lines = 1;
 #endif
 
@@ -207,19 +201,6 @@ static void cmdedit_reset_term(void)
 		handlers_sets &= ~SET_WCHG_HANDLERS;
 	}
 	fflush(stdout);
-#if 0
-//#ifdef CONFIG_FEATURE_CLEAN_UP
-	if (his_front) {
-		struct history *n;
-
-		while (his_front != his_end) {
-			n = his_front->n;
-			free(his_front->s);
-			free(his_front);
-			his_front = n;
-		}
-	}
-#endif
 }
 
 
@@ -368,7 +349,7 @@ static void parse_prompt(const char *prmt_ptr)
 #endif	
 			  case 'h':
 				pbuf = hostname_buf;
-				if (*pbuf == 0) {
+				if (pbuf == 0) {
 					pbuf = xcalloc(256, 1);
 					if (gethostname(pbuf, 255) < 0) {
 						strcpy(pbuf, "?");
@@ -1122,18 +1103,29 @@ static void input_tab(int *lastWasTab)
 }
 #endif	/* CONFIG_FEATURE_COMMAND_TAB_COMPLETION */
 
-static void get_previous_history(struct history **hp, struct history *p)
+#if MAX_HISTORY >= 1
+static void get_previous_history(void)
 {
-	if ((*hp)->s)
-		free((*hp)->s);
-	(*hp)->s = xstrdup(command_ps);
-	*hp = p;
+	if(command_ps[0] != 0 || history[cur_history] == 0) {
+		free(history[cur_history]);
+		history[cur_history] = xstrdup(command_ps);
+	}
+	cur_history--;
 }
 
-static inline void get_next_history(struct history **hp)
+static int get_next_history(void)
 {
-	get_previous_history(hp, (*hp)->n);
+	int ch = cur_history;
+
+	if (ch < n_history) {
+		get_previous_history(); /* save the current history line */
+		return (cur_history = ch+1);
+	} else {
+		beep();
+		return 0;
+	}
 }
+#endif
 
 enum {
 	ESC = 27,
@@ -1165,7 +1157,6 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	int break_out = 0;
 	int lastWasTab = FALSE;
 	unsigned char c = 0;
-	struct history *hp = his_end;
 
 	/* prepare before init handlers */
 	cmdedit_y = 0;	/* quasireal y, not true work if line > xt*yt */
@@ -1271,31 +1262,26 @@ prepare_to_die:
 			printf("\033[J");
 			break;
 		case 12: 
-			{
 				/* Control-l -- clear screen */
-				int old_cursor = cursor;
 				printf("\033[H");
-				redraw(0, len-old_cursor);
-			}
+			redraw(0, len-cursor);
 			break;
+#if MAX_HISTORY >= 1
 		case 14:
 			/* Control-n -- Get next command in history */
-			if (hp && hp->n && hp->n->s) {
-				get_next_history(&hp);
+			if (get_next_history())
 				goto rewrite_line;
-			} else {
-				beep();
-			}
 			break;
 		case 16:
 			/* Control-p -- Get previous command from history */
-			if (hp && hp->p) {
-				get_previous_history(&hp, hp->p);
+			if (cur_history > 0) {
+				get_previous_history();
 				goto rewrite_line;
 			} else {
 				beep();
 			}
 			break;
+#endif
 		case 21:
 			/* Control-U -- Clear line before cursor */
 			if (cursor) {
@@ -1319,10 +1305,11 @@ prepare_to_die:
 				input_tab(&lastWasTab);
 				break;
 #endif
+#if MAX_HISTORY >= 1
 			case 'A':
 				/* Up Arrow -- Get previous command from history */
-				if (hp && hp->p) {
-					get_previous_history(&hp, hp->p);
+				if (cur_history > 0) {
+					get_previous_history();
 					goto rewrite_line;
 				} else {
 					beep();
@@ -1330,21 +1317,16 @@ prepare_to_die:
 				break;
 			case 'B':
 				/* Down Arrow -- Get next command in history */
-				if (hp && hp->n && hp->n->s) {
-					get_next_history(&hp);
-					goto rewrite_line;
-				} else {
-					beep();
-				}
+				if (!get_next_history())
 				break;
-
 				/* Rewrite the line with the selected history item */
-			  rewrite_line:
+rewrite_line:
 				/* change command */
-				len = strlen(strcpy(command, hp->s));
+				len = strlen(strcpy(command, history[cur_history]));
 				/* redraw and go to end line */
 				redraw(cmdedit_y, 0);
 				break;
+#endif
 			case 'C':
 				/* Right Arrow -- Move forward one character */
 				input_forward();
@@ -1428,53 +1410,33 @@ prepare_to_die:
 	setTermSettings(0, (void *) &initial_settings);
 	handlers_sets &= ~SET_RESET_TERM;
 
+#if MAX_HISTORY >= 1
 	/* Handle command history log */
+	/* cleanup may be saved current command line */
+	free(history[MAX_HISTORY]);
+	history[MAX_HISTORY] = 0;
 	if (len) {					/* no put empty line */
-
-		struct history *h = his_end;
-		char *ss;
-
-		ss = xstrdup(command);	/* duplicate */
-
-		if (h == 0) {
-			/* No previous history -- this memory is never freed */
-			h = his_front = xmalloc(sizeof(struct history));
-			h->n = xmalloc(sizeof(struct history));
-
-			h->p = NULL;
-			h->s = ss;
-			h->n->p = h;
-			h->n->n = NULL;
-			h->n->s = NULL;
-			his_end = h->n;
-			history_counter++;
-		} else {
-			/* Add a new history command -- this memory is never freed */
-			h->n = xmalloc(sizeof(struct history));
-
-			h->n->p = h;
-			h->n->n = NULL;
-			h->n->s = NULL;
-			h->s = ss;
-			his_end = h->n;
-
+		int i = n_history;
 			/* After max history, remove the oldest command */
-			if (history_counter >= MAX_HISTORY) {
-
-				struct history *p = his_front->n;
-
-				p->p = NULL;
-				free(his_front->s);
-				free(his_front);
-				his_front = p;
-			} else {
-				history_counter++;
-			}
+		if (i >= MAX_HISTORY) {
+			free(history[0]);
+			for(i = 0; i < (MAX_HISTORY-1); i++)
+				history[i] = history[i+1];
 		}
+		history[i++] = xstrdup(command);
+		cur_history = i;
+		n_history = i;
 #if defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
 		num_ok_lines++;
 #endif
 	}
+#else  /* MAX_HISTORY < 1 */
+#if defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
+	if (len) {              /* no put empty line */
+		num_ok_lines++;
+	}
+#endif
+#endif  /* MAX_HISTORY >= 1 */
 	if(break_out>0) {
 	command[len++] = '\n';		/* set '\n' */
 	command[len] = 0;

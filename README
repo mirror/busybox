@@ -18,9 +18,8 @@ it also makes an excellent environment for any small or embedded system.
 
 As of version 0.20 there is now a version number. : ) Also as of version 0.20,
 BusyBox is now modularized to easily allow you to build only the components you
-need, thereby reducing binary size. To turn off unwanted BusyBox components,
-simply edit the file "Config.h" and comment out the components you do not need
-using C++ style (//) comments.
+need, thereby reducing binary size. Run 'make config' or 'make menuconfig'
+for select the functionality that you wish to enable.
 
 After the build is complete, a busybox.links file is generated.  This is
 used by 'make install' to create symlinks to the busybox binary for all
