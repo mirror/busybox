@@ -165,8 +165,8 @@ extern int grep_main(int argc, char **argv)
 	if ((argc-1) - (optind+1) > 0)
 		print_filename++;
 
-	/* If no files were specified, take input from stdin. Otherwise, we grep
-	 * through all the files specified. */
+	/* If no files were specified, or '-' was specified, take input from
+	 * stdin. Otherwise, we grep through all the files specified. */
 	if (argv[optind+1] == NULL || (strcmp(argv[optind+1], "-") == 0)) {
 		grep_file(stdin);
 	} else {
