@@ -78,7 +78,7 @@ int tee_main(int argc, char **argv)
 	*p = NULL;				/* Store the sentinal value. */
 
 #ifdef CONFIG_FEATURE_TEE_USE_BLOCK_IO
-	while ((c = read(0, buf, BUFSIZ)) != 0) {
+	while ((c = read(STDIN_FILENO, buf, BUFSIZ)) != 0) {
 		for (p=files ; *p ; p++) {
 			fwrite(buf, 1, c, *p);
 		}
