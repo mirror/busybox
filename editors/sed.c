@@ -176,8 +176,8 @@ static void parse_escapes(char *dest, const char *string, int len, char from, ch
 
 	while(i<len) {
 		if(string[i] == '\\') {
-			if(string[i+1] == from) {
-				*(dest++) = to;
+			if(!to || string[i+1] == from) {
+				*(dest++) = to ? to : string[i+1];
 				i+=2;
 				continue;
 			} else *(dest++)=string[i++];
@@ -403,6 +403,7 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 				("only a beginning address can be specified for edit commands");
 		while(isspace(*cmdstr)) cmdstr++;
 		sed_cmd->string = bb_xstrdup(cmdstr);
+		parse_escapes(sed_cmd->string,sed_cmd->string,strlen(cmdstr),0,0);
 		cmdstr += strlen(cmdstr);
 	/* handle file cmds: (r)ead */
 	} else if(strchr("rw", sed_cmd->cmd)) {
