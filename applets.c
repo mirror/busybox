@@ -74,7 +74,7 @@ static int applet_name_compare(const void *x, const void *y)
 	return strcmp(name, applet->name);
 }
 
-extern size_t NUM_APPLETS;
+extern const size_t NUM_APPLETS;
 
 struct BB_applet *find_applet_by_name(const char *name)
 {
