@@ -3,12 +3,8 @@
  * Mini rm implementation for busybox
  *
  *
- * Copyright (C) 1999,2000,2001 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Copyright (C) 2001 Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
- * INTERACTIVE feature Copyright (C) 2001 by Alcove
- *   written by Christophe Boyanique <Christophe.Boyanique@fr.alcove.com>
- *   for Ipanema Technologies
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,103 +32,45 @@
 #include <getopt.h>
 #include "busybox.h"
 
-static int recursiveFlag = FALSE;
-static int forceFlag = FALSE;
-#ifdef BB_FEATURE_RM_INTERACTIVE
-	static int interactiveFlag = FALSE;
-#endif
-static const char *srcName;
-
-
-static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
-{
-#ifdef BB_FEATURE_RM_INTERACTIVE
-	if (interactiveFlag == TRUE) {
-		printf("rm: remove `%s'? ", fileName);
-		if (ask_confirmation() == 0)
-			return (TRUE);
-	}
-#endif
-	if (unlink(fileName) < 0) {
-		perror_msg("%s", fileName);
-		return (FALSE);
-	}
-	return (TRUE);
-}
-
-static int dirAction(const char *fileName, struct stat *statbuf, void* junk)
-{
-	if (recursiveFlag == FALSE) {
-		errno = EISDIR;
-		perror_msg("%s", fileName);
-		return (FALSE);
-	} 
-#ifdef BB_FEATURE_RM_INTERACTIVE
-	if (interactiveFlag == TRUE) {
-		printf("rm: remove directory `%s'? ", fileName);
-		if (ask_confirmation() == 0)
-			return (TRUE);
-	}
-#endif
-	if (rmdir(fileName) < 0) {
-		perror_msg("%s", fileName);
-		return (FALSE);
-	}
-	return (TRUE);
-}
-
 extern int rm_main(int argc, char **argv)
 {
+	int status = 0;
 	int opt;
-	int status = EXIT_SUCCESS;
-	struct stat statbuf;
-	
-	
-	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "Rrf-"
-#ifdef BB_FEATURE_RM_INTERACTIVE
-"i"
-#endif
-)) > 0) {
+	int flags = 0;
+	int i;
+
+	while ((opt = getopt(argc, argv, "fiRr")) != -1) {
 		switch (opt) {
-			case 'R':
-			case 'r':
-				recursiveFlag = TRUE;
-				break;
-			case 'f':
-				forceFlag = TRUE;
-#ifdef BB_FEATURE_RM_INTERACTIVE
-
-				interactiveFlag = FALSE;
-#endif
-				break;
-#ifdef BB_FEATURE_RM_INTERACTIVE
-			case 'i':
-				interactiveFlag = TRUE;
-				forceFlag = FALSE;
-				break;
-#endif
-			default:
-				show_usage();
+		case 'f':
+			flags &= ~FILEUTILS_INTERACTIVE;
+			flags |= FILEUTILS_FORCE;
+			break;
+		case 'i':
+			flags &= ~FILEUTILS_FORCE;
+			flags |= FILEUTILS_INTERACTIVE;
+			break;
+		case 'R':
+		case 'r':
+			flags |= FILEUTILS_RECUR;
+			break;
 		}
 	}
-	
-	if (argc == optind && forceFlag == FALSE) {
+
+	if (!(flags & FILEUTILS_FORCE) && optind == argc)
 		show_usage();
+
+	for (i = optind; i < argc; i++) {
+		char *base = get_last_path_component(argv[i]);
+
+		if (strcmp(base, ".") == 0 || strcmp(base, "..") == 0) {
+			error_msg("cannot remove `.' or `..'");
+			status = 1;
+			continue;
+		}
+
+		if (remove_file(argv[i], flags) < 0)
+			status = 1;
 	}
 
-	while (optind < argc) {
-		srcName = argv[optind];
-		if (forceFlag == TRUE && lstat(srcName, &statbuf) != 0
-			&& errno == ENOENT) {
-			/* do not reports errors for non-existent files if -f, just skip them */
-		} else {
-			if (recursive_action(srcName, recursiveFlag, FALSE,
-								TRUE, fileAction, dirAction, NULL) == FALSE) {
-				status = EXIT_FAILURE;
-			}
-		}
-		optind++;
-	}
 	return status;
 }

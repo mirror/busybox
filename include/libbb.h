@@ -93,6 +93,7 @@ int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 
+int remove_file(const char *path, int flags);
 int copy_file(const char *source, const char *dest, int flags);
 int copy_file_chunk(FILE *src_file, FILE *dst_file, unsigned long long chunksize);
 char *buildName(const char *dirName, const char *fileName);

@@ -247,7 +247,8 @@ parse_mode.c parse_number.c perror_msg.c perror_msg_and_die.c print_file.c \
 process_escape_sequence.c read_package_field.c read_text_file_to_buffer.c \
 recursive_action.c safe_read.c safe_strncpy.c seek_ared_file.c syscalls.c \
 syslog_msg_with_name.c time_string.c trim.c untar.c unzip.c vdprintf.c \
-verror_msg.c vperror_msg.c wfopen.c xfuncs.c xgetcwd.c xregcomp.c interface.c
+verror_msg.c vperror_msg.c wfopen.c xfuncs.c xgetcwd.c xregcomp.c interface.c \
+remove_file.c
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
 LIBBB_CFLAGS = -I$(LIBBB)

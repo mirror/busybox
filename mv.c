@@ -32,20 +32,6 @@
 
 static int flags;
 
-static int remove_file(const char *path, struct stat *statbuf, void *junk)
-{
-	if (unlink(path) < 0)
-		return FALSE;
-	return TRUE;
-}
-
-static int remove_directory(const char *path, struct stat *statbuf, void *junk)
-{
-	if (rmdir(path) < 0)
-		return FALSE;
-	return TRUE;
-}
-
 static int manual_rename(const char *source, const char *dest)
 {
 	struct stat source_stat;
@@ -92,8 +78,7 @@ static int manual_rename(const char *source, const char *dest)
 			FILEUTILS_PRESERVE_SYMLINKS) < 0)
 		return -1;
 
-	if (!recursive_action(source, TRUE, FALSE, TRUE, remove_file,
-				remove_directory, NULL))
+	if (remove_file(source, FILEUTILS_RECUR | FILEUTILS_FORCE) < 0)
 		return -1;
 
 	return 0;
