@@ -32,9 +32,12 @@
 //Backtick support has some problems, use at your own risk!
 //#define BB_FEATURE_SH_BACKTICKS
 //
-//If, then, else, etc. support is really, really broken.  Don't even
-//bother to mess with this yet, since you will not be happy with it.
+//If, then, else, etc. support..  This should now behave basically
+//like any other Bourne shell...
 //#define BB_FEATURE_SH_IF_EXPRESSIONS
+//
+/* This is currently a little broken... */
+//#define HANDLE_CONTINUATION_CHARS
 //
 //For debugging/development on the shell only...
 //#define DEBUG_SHELL
@@ -55,98 +58,102 @@
 #include <getopt.h>
 #include "cmdedit.h"
 
-#define MAX_LINE	256	/* size of input buffer for `read' builtin */
+#define MAX_LINE	256	/* size of input buffer for cwd data */
 #define MAX_READ	128	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 extern size_t NUM_APPLETS;
 
 
-
-
-enum redirectionType { REDIRECT_INPUT, REDIRECT_OVERWRITE,
+enum redir_type { REDIRECT_INPUT, REDIRECT_OVERWRITE,
 	REDIRECT_APPEND
 };
 
-static const unsigned int REGULAR_JOB_CONTEXT=0x1;
+static const unsigned int DEFAULT_CONTEXT=0x1;
 static const unsigned int IF_TRUE_CONTEXT=0x2;
 static const unsigned int IF_FALSE_CONTEXT=0x4;
 static const unsigned int THEN_EXP_CONTEXT=0x8;
 static const unsigned int ELSE_EXP_CONTEXT=0x10;
+unsigned int shell_context = 0;
 
 
-struct jobSet {
+
+struct jobset {
 	struct job *head;			/* head of list of running jobs */
 	struct job *fg;				/* current foreground job */
 };
 
-struct redirectionSpecifier {
-	enum redirectionType type;	/* type of redirection */
+struct redir_struct {
+	enum redir_type type;	/* type of redirection */
 	int fd;						/* file descriptor being redirected */
 	char *filename;				/* file to redirect fd to */
 };
 
-struct childProgram {
+struct child_prog {
 	pid_t pid;					/* 0 if exited */
 	char **argv;				/* program name and arguments */
-	int numRedirections;		/* elements in redirection array */
-	struct redirectionSpecifier *redirections;	/* I/O redirections */
-	glob_t globResult;			/* result of parameter globbing */
-	int freeGlob;				/* should we globfree(&globResult)? */
-	int isStopped;				/* is the program currently running? */
+	int num_redirects;			/* elements in redirection array */
+	struct redir_struct *redirects;	/* I/O redirects */
+	glob_t glob_result;			/* result of parameter globbing */
+	int free_glob;				/* should we globfree(&glob_result)? */
+	int is_stopped;				/* is the program currently running? */
+	struct job *family;			/* pointer back to the child's parent job */
 };
 
 struct job {
-	int jobId;					/* job number */
-	int numProgs;				/* total number of programs in job */
-	int runningProgs;			/* number of programs running */
+	int jobid;					/* job number */
+	int num_progs;				/* total number of programs in job */
+	int running_progs;			/* number of programs running */
 	char *text;					/* name of job */
-	char *cmdBuf;				/* buffer various argv's point into */
+	char *cmdbuf;				/* buffer various argv's point into */
 	pid_t pgrp;					/* process group ID for the job */
-	struct childProgram *progs;	/* array of programs in job */
+	struct child_prog *progs;	/* array of programs in job */
 	struct job *next;			/* to track background commands */
-	int stoppedProgs;			/* number of programs alive, but stopped */
-	int jobContext;				/* bitmask defining current context */
+	int stopped_progs;			/* number of programs alive, but stopped */
+	unsigned int job_context;	/* bitmask defining current context */
+	struct jobset *job_list;
 };
 
-struct builtInCommand {
+struct built_in_command {
 	char *cmd;					/* name */
 	char *descr;				/* description */
-	int (*function) (struct job *, struct jobSet * jobList);	/* function ptr */
+	int (*function) (struct child_prog *);	/* function ptr */
 };
 
 /* function prototypes for builtins */
-static int builtin_cd(struct job *cmd, struct jobSet *junk);
-static int builtin_env(struct job *dummy, struct jobSet *junk);
-static int builtin_exec(struct job *cmd, struct jobSet *junk);
-static int builtin_exit(struct job *cmd, struct jobSet *junk);
-static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList);
-static int builtin_help(struct job *cmd, struct jobSet *junk);
-static int builtin_jobs(struct job *dummy, struct jobSet *jobList);
-static int builtin_pwd(struct job *dummy, struct jobSet *junk);
-static int builtin_export(struct job *cmd, struct jobSet *junk);
-static int builtin_source(struct job *cmd, struct jobSet *jobList);
-static int builtin_unset(struct job *cmd, struct jobSet *junk);
-static int builtin_read(struct job *cmd, struct jobSet *junk);
+static int builtin_cd(struct child_prog *cmd);
+static int builtin_env(struct child_prog *dummy);
+static int builtin_exec(struct child_prog *cmd);
+static int builtin_exit(struct child_prog *cmd);
+static int builtin_fg_bg(struct child_prog *cmd);
+static int builtin_help(struct child_prog *cmd);
+static int builtin_jobs(struct child_prog *dummy);
+static int builtin_pwd(struct child_prog *dummy);
+static int builtin_export(struct child_prog *cmd);
+static int builtin_source(struct child_prog *cmd);
+static int builtin_unset(struct child_prog *cmd);
+static int builtin_read(struct child_prog *cmd);
 #ifdef BB_FEATURE_SH_IF_EXPRESSIONS
-static int builtin_if(struct job *cmd, struct jobSet *junk);
-static int builtin_then(struct job *cmd, struct jobSet *junk);
-static int builtin_else(struct job *cmd, struct jobSet *junk);
-static int builtin_fi(struct job *cmd, struct jobSet *junk);
+static int builtin_if(struct child_prog *cmd);
+static int builtin_then(struct child_prog *cmd);
+static int builtin_else(struct child_prog *cmd);
+static int builtin_fi(struct child_prog *cmd);
 #endif
 
 
 /* function prototypes for shell stuff */
-static void checkJobs(struct jobSet *jobList);
-static int getCommand(FILE * source, char *command);
-static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobList, int *inBg);
-static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int outPipe[2]);
+static void checkjobs(struct jobset *job_list);
+static int get_command(FILE * source, char *command);
+static int parse_command(char **command_ptr, struct job *job, int *inbg);
+static int run_command(struct job *newjob, int inbg, int outpipe[2]);
+static int pseudo_exec(struct child_prog *cmd) __attribute__ ((noreturn));
+static int run_command_predicate(char *cmd);
 static int busy_loop(FILE * input);
 
 
 /* Table of built-in functions (these are non-forking builtins, meaning they
  * can change global variables in the parent shell process but they will not
  * work with pipes and redirects; 'unset foo | whatever' will not work) */
-static struct builtInCommand bltins[] = {
+static struct built_in_command bltins[] = {
 	{"bg", "Resume a job in the background", builtin_fg_bg},
 	{"cd", "Change working directory", builtin_cd},
 	{"exec", "Exec command, replacing this shell with the exec'd process", builtin_exec},
@@ -157,6 +164,7 @@ static struct builtInCommand bltins[] = {
 	{"unset", "Unset environment variable", builtin_unset},
 	{"read", "Input environment variable", builtin_read},
 	{".", "Source-in and run commands in a file", builtin_source},
+	/* to do: add ulimit */
 #ifdef BB_FEATURE_SH_IF_EXPRESSIONS
 	{"if", NULL, builtin_if},
 	{"then", NULL, builtin_then},
@@ -168,7 +176,7 @@ static struct builtInCommand bltins[] = {
 
 /* Table of forking built-in functions (things that fork cannot change global
  * variables in the parent process, such as the current working directory) */
-static struct builtInCommand bltins_forking[] = {
+static struct built_in_command bltins_forking[] = {
 	{"env", "Print all environment variables", builtin_env},
 	{"pwd", "Print current directory", builtin_pwd},
 	{"help", "List shell built-in commands", builtin_help},
@@ -178,22 +186,25 @@ static struct builtInCommand bltins_forking[] = {
 static char prompt[3];
 static char *cwd;
 static char *local_pending_command = NULL;
-static char *promptStr = NULL;
-static struct jobSet jobList = { NULL, NULL };
+static char *prompt_str = NULL;
+static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
 #ifdef BB_FEATURE_SH_ENVIRONMENT
-static int lastBgPid=-1;
-static int lastReturnCode=-1;
-static int showXtrace=FALSE;
+static int last_bg_pid=-1;
+static int last_return_code=-1;
+static int show_x_trace=FALSE;
 #endif
-	
+#ifdef BB_FEATURE_SH_IF_EXPRESSIONS
+static char syntax_err[]="syntax error near unexpected token";
+#endif
+
 #ifdef DEBUG_SHELL
 static inline void debug_printf(const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
-	vfprintf(stderr, s, p);
+	vfprintf(stderr, format, args);
 	va_end(args);
 }
 #else
@@ -213,16 +224,52 @@ static inline void win_changed(int junk)
 static inline void win_changed(int junk) {}
 #endif
 
+/*
+	Most builtins need access to the struct child_prog that has
+	their arguments, previously coded as cmd->progs[0].  That coding
+	can exhibit a bug, if the builtin is not the first command in
+	a pipeline: "echo foo | exec sort" will attempt to exec foo.
+
+builtin   previous use      notes
+------ -----------------  ---------
+cd      cmd->progs[0]
+env     0
+exec    cmd->progs[0]  squashed bug: didn't look for applets or forking builtins
+exit    cmd->progs[0]
+fg_bg   cmd->progs[0], job_list->head, job_list->fg
+help    0
+jobs    job_list->head
+pwd     0
+export  cmd->progs[0]  passes cmd, job_list to builtin_env(), which ignores them
+source  cmd->progs[0]
+unset   cmd->progs[0]
+read    cmd->progs[0]
+if      cmd->job_context,  cmd->text
+then    cmd->job_context,  cmd->text
+else    cmd->job_context,  cmd->text
+fi      cmd->job_context
+
+The use of cmd->text by if/then/else/fi is hopelessly hacky.
+Would it work to increment cmd->progs[0]->argv and recurse,
+somewhat like builtin_exec does?
+
+I added "struct job *family;" to struct child_prog,
+and switched API to builtin_foo(struct child_prog *child);
+So   cmd->text        becomes  child->family->text
+     cmd->job_context  becomes  child->family->job_context
+     cmd->progs[0]    becomes  *child
+     job_list          becomes  child->family->job_list
+ */
 
 /* built-in 'cd <path>' handler */
-static int builtin_cd(struct job *cmd, struct jobSet *junk)
+static int builtin_cd(struct child_prog *child)
 {
 	char *newdir;
 
-	if (!cmd->progs[0].argv[1] == 1)
+	if (child->argv[1] == NULL)
 		newdir = getenv("HOME");
 	else
-		newdir = cmd->progs[0].argv[1];
+		newdir = child->argv[1];
 	if (chdir(newdir)) {
 		printf("cd: %s: %s\n", newdir, strerror(errno));
 		return EXIT_FAILURE;
@@ -233,7 +280,7 @@ static int builtin_cd(struct job *cmd, struct jobSet *junk)
 }
 
 /* built-in 'env' handler */
-static int builtin_env(struct job *dummy, struct jobSet *junk)
+static int builtin_env(struct child_prog *dummy)
 {
 	char **e;
 
@@ -244,149 +291,143 @@ static int builtin_env(struct job *dummy, struct jobSet *junk)
 }
 
 /* built-in 'exec' handler */
-static int builtin_exec(struct job *cmd, struct jobSet *junk)
+static int builtin_exec(struct child_prog *child)
 {
-	if (cmd->progs[0].argv[1])
-	{
-		cmd->progs[0].argv++;
-		execvp(cmd->progs[0].argv[0], cmd->progs[0].argv);
-		error_msg_and_die("Exec to %s failed: %s\n", cmd->progs[0].argv[0],
-				strerror(errno));
-	}
-	return EXIT_SUCCESS;
+	if (child->argv[1] == NULL)
+		return EXIT_SUCCESS;   /* Really? */
+	child->argv++;
+	pseudo_exec(child);
+	/* never returns */
 }
 
 /* built-in 'exit' handler */
-static int builtin_exit(struct job *cmd, struct jobSet *junk)
+static int builtin_exit(struct child_prog *child)
 {
-	if (!cmd->progs[0].argv[1] == 1)
+	if (child->argv[1] == NULL)
 		exit(EXIT_SUCCESS);
 
-	exit (atoi(cmd->progs[0].argv[1]));
+	exit (atoi(child->argv[1]));
 }
 
 /* built-in 'fg' and 'bg' handler */
-static int builtin_fg_bg(struct job *cmd, struct jobSet *jobList)
+static int builtin_fg_bg(struct child_prog *child)
 {
 	int i, jobNum;
 	struct job *job=NULL;
+	
 
-	if (!jobList->head) {
-		if (!cmd->progs[0].argv[1] || cmd->progs[0].argv[2]) {
+		if (!child->argv[1] || child->argv[2]) {
 			error_msg("%s: exactly one argument is expected\n",
-					cmd->progs[0].argv[0]);
+					child->argv[0]);
 			return EXIT_FAILURE;
 		}
-		if (sscanf(cmd->progs[0].argv[1], "%%%d", &jobNum) != 1) {
+		if (sscanf(child->argv[1], "%%%d", &jobNum) != 1) {
 			error_msg("%s: bad argument '%s'\n",
-					cmd->progs[0].argv[0], cmd->progs[0].argv[1]);
+					child->argv[0], child->argv[1]);
 			return EXIT_FAILURE;
-			for (job = jobList->head; job; job = job->next) {
-				if (job->jobId == jobNum) {
-					break;
-				}
+		}
+		for (job = child->family->job_list->head; job; job = job->next) {
+			if (job->jobid == jobNum) {
+				break;
 			}
 		}
-	} else {
-		job = jobList->head;
-	}
 
 	if (!job) {
 		error_msg("%s: unknown job %d\n",
-				cmd->progs[0].argv[0], jobNum);
+				child->argv[0], jobNum);
 		return EXIT_FAILURE;
 	}
 
-	if (*cmd->progs[0].argv[0] == 'f') {
+	if (*child->argv[0] == 'f') {
 		/* Make this job the foreground job */
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
 		if (tcsetpgrp(0, job->pgrp) && errno != ENOTTY)
 			perror("tcsetpgrp"); 
-		jobList->fg = job;
+		child->family->job_list->fg = job;
 	}
 
 	/* Restart the processes in the job */
-	for (i = 0; i < job->numProgs; i++)
-		job->progs[i].isStopped = 0;
+	for (i = 0; i < job->num_progs; i++)
+		job->progs[i].is_stopped = 0;
 
 	kill(-job->pgrp, SIGCONT);
 
-	job->stoppedProgs = 0;
+	job->stopped_progs = 0;
 
 	return EXIT_SUCCESS;
 }
 
 /* built-in 'help' handler */
-static int builtin_help(struct job *dummy, struct jobSet *junk)
+static int builtin_help(struct child_prog *dummy)
 {
-	struct builtInCommand *x;
+	struct built_in_command *x;
 
-	fprintf(stdout, "\nBuilt-in commands:\n");
-	fprintf(stdout, "-------------------\n");
+	printf("\nBuilt-in commands:\n");
+	printf("-------------------\n");
 	for (x = bltins; x->cmd; x++) {
 		if (x->descr==NULL)
 			continue;
-		fprintf(stdout, "%s\t%s\n", x->cmd, x->descr);
+		printf("%s\t%s\n", x->cmd, x->descr);
 	}
 	for (x = bltins_forking; x->cmd; x++) {
 		if (x->descr==NULL)
 			continue;
-		fprintf(stdout, "%s\t%s\n", x->cmd, x->descr);
+		printf("%s\t%s\n", x->cmd, x->descr);
 	}
-	fprintf(stdout, "\n\n");
+	printf("\n\n");
 	return EXIT_SUCCESS;
 }
 
 /* built-in 'jobs' handler */
-static int builtin_jobs(struct job *dummy, struct jobSet *jobList)
+static int builtin_jobs(struct child_prog *child)
 {
 	struct job *job;
-	char *statusString;
+	char *status_string;
 
-	for (job = jobList->head; job; job = job->next) {
-		if (job->runningProgs == job->stoppedProgs)
-			statusString = "Stopped";
+	for (job = child->family->job_list->head; job; job = job->next) {
+		if (job->running_progs == job->stopped_progs)
+			status_string = "Stopped";
 		else
-			statusString = "Running";
+			status_string = "Running";
 
-		printf(JOB_STATUS_FORMAT, job->jobId, statusString, job->text);
+		printf(JOB_STATUS_FORMAT, job->jobid, status_string, job->text);
 	}
 	return EXIT_SUCCESS;
 }
 
 
 /* built-in 'pwd' handler */
-static int builtin_pwd(struct job *dummy, struct jobSet *junk)
+static int builtin_pwd(struct child_prog *dummy)
 {
-	getcwd(cwd, sizeof(char)*MAX_LINE);
+	getcwd(cwd, MAX_LINE);
 	fprintf(stdout, "%s\n", cwd);
 	return EXIT_SUCCESS;
 }
 
 /* built-in 'export VAR=value' handler */
-static int builtin_export(struct job *cmd, struct jobSet *junk)
+static int builtin_export(struct child_prog *child)
 {
 	int res;
 
-	if (!cmd->progs[0].argv[1] == 1) {
-		return (builtin_env(cmd, junk));
+	if (child->argv[1] == NULL) {
+		return (builtin_env(child));
 	}
-	res = putenv(cmd->progs[0].argv[1]);
+	res = putenv(child->argv[1]);
 	if (res)
-		fprintf(stdout, "export: %s\n", strerror(errno));
+		fprintf(stderr, "export: %s\n", strerror(errno));
 	return (res);
 }
 
 /* built-in 'read VAR' handler */
-static int builtin_read(struct job *cmd, struct jobSet *junk)
+static int builtin_read(struct child_prog *child)
 {
 	int res = 0, len, newlen;
 	char *s;
 	char string[MAX_READ];
 
-	if (cmd->progs[0].argv[1]) {
+	if (child->argv[1]) {
 		/* argument (VAR) given: put "VAR=" into buffer */
-		strcpy(string, cmd->progs[0].argv[1]);
+		strcpy(string, child->argv[1]);
 		len = strlen(string);
 		string[len++] = '=';
 		string[len]   = '\0';
@@ -403,7 +444,7 @@ static int builtin_read(struct job *cmd, struct jobSet *junk)
 		if((s = strdup(string)))
 			res = putenv(s);
 		if (res)
-			fprintf(stdout, "read: %s\n", strerror(errno));
+			fprintf(stderr, "read: %s\n", strerror(errno));
 	}
 	else
 		fgets(string, sizeof(string), stdin);
@@ -413,111 +454,112 @@ static int builtin_read(struct job *cmd, struct jobSet *junk)
 
 #ifdef BB_FEATURE_SH_IF_EXPRESSIONS
 /* Built-in handler for 'if' commands */
-static int builtin_if(struct job *cmd, struct jobSet *jobList)
+static int builtin_if(struct child_prog *child)
 {
+	struct job *cmd = child->family;
 	int status;
 	char* charptr1=cmd->text+3; /* skip over the leading 'if ' */
 
 	/* Now run the 'if' command */
-	status=strlen(charptr1);
-	local_pending_command = xmalloc(status+1);
-	strncpy(local_pending_command, charptr1, status); 
-	local_pending_command[status]='\0';
-	debug_printf(stderr, "'if' now testing '%s'\n", local_pending_command);
-	status = busy_loop(NULL); /* Frees local_pending_command */
-	debug_printf(stderr, "if test returned ");
+	debug_printf( "job=%p entering builtin_if ('%s')-- context=%d\n", cmd, charptr1, cmd->job_context);
+	status = run_command_predicate(charptr1);
+	debug_printf( "if test returned ");
 	if (status == 0) {
-		debug_printf(stderr, "TRUE\n");
-		cmd->jobContext |= IF_TRUE_CONTEXT;
+		debug_printf( "TRUE\n");
+		cmd->job_context |= IF_TRUE_CONTEXT;
 	} else {
-		debug_printf(stderr, "FALSE\n");
-		cmd->jobContext |= IF_FALSE_CONTEXT;
+		debug_printf( "FALSE\n");
+		cmd->job_context |= IF_FALSE_CONTEXT;
 	}
+	debug_printf("job=%p builtin_if set job context to %x\n", cmd, cmd->job_context);
+	shell_context++;
 
 	return status;
 }
 
 /* Built-in handler for 'then' (part of the 'if' command) */
-static int builtin_then(struct job *cmd, struct jobSet *junk)
+static int builtin_then(struct child_prog *child)
 {
-	int status;
+	struct job *cmd = child->family;
 	char* charptr1=cmd->text+5; /* skip over the leading 'then ' */
 
-	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
-		error_msg("unexpected token `then'\n");
+	debug_printf( "job=%p entering builtin_then ('%s')-- context=%d\n", cmd, charptr1, cmd->job_context);
+	if (! (cmd->job_context & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
+		shell_context = 0; /* Reset the shell's context on an error */
+		error_msg("%s `then'\n", syntax_err);
 		return EXIT_FAILURE;
 	}
+
+	cmd->job_context |= THEN_EXP_CONTEXT;
+	debug_printf("job=%p builtin_then set job context to %x\n", cmd, cmd->job_context);
+
 	/* If the if result was FALSE, skip the 'then' stuff */
-	if (cmd->jobContext & IF_FALSE_CONTEXT) {
+	if (cmd->job_context & IF_FALSE_CONTEXT) {
 		return EXIT_SUCCESS;
 	}
 
-	cmd->jobContext |= THEN_EXP_CONTEXT;
-	//printf("Hit an then -- jobContext=%d\n", cmd->jobContext);
+	/* Seems the if result was TRUE, so run the 'then' command */
+	debug_printf( "'then' now running '%s'\n", charptr1);
 
-	/* Now run the 'then' command */
-	status=strlen(charptr1);
-	local_pending_command = xmalloc(status+1);
-	strncpy(local_pending_command, charptr1, status); 
-	local_pending_command[status]='\0';
-	debug_printf(stderr, "'then' now running '%s'\n", charptr1);
-	return( busy_loop(NULL));
+	return(run_command_predicate(charptr1));
 }
 
 /* Built-in handler for 'else' (part of the 'if' command) */
-static int builtin_else(struct job *cmd, struct jobSet *junk)
+static int builtin_else(struct child_prog *child)
 {
-	int status;
+	struct job *cmd = child->family;
 	char* charptr1=cmd->text+5; /* skip over the leading 'else ' */
 
-	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
-		error_msg("unexpected token `else'\n");
+	debug_printf( "job=%p entering builtin_else ('%s')-- context=%d\n", cmd, charptr1, cmd->job_context);
+
+	if (! (cmd->job_context & THEN_EXP_CONTEXT)) {
+		shell_context = 0; /* Reset the shell's context on an error */
+		error_msg("%s `else'\n", syntax_err);
 		return EXIT_FAILURE;
 	}
 	/* If the if result was TRUE, skip the 'else' stuff */
-	if (cmd->jobContext & IF_TRUE_CONTEXT) {
+	if (cmd->job_context & IF_TRUE_CONTEXT) {
 		return EXIT_SUCCESS;
 	}
 
-	cmd->jobContext |= ELSE_EXP_CONTEXT;
-	//printf("Hit an else -- jobContext=%d\n", cmd->jobContext);
+	cmd->job_context |= ELSE_EXP_CONTEXT;
+	debug_printf("job=%p builtin_else set job context to %x\n", child->family, cmd->job_context);
 
 	/* Now run the 'else' command */
-	status=strlen(charptr1);
-	local_pending_command = xmalloc(status+1);
-	strncpy(local_pending_command, charptr1, status); 
-	local_pending_command[status]='\0';
-	debug_printf(stderr, "'else' now running '%s'\n", charptr1);
-	return( busy_loop(NULL));
+	debug_printf( "'else' now running '%s'\n", charptr1);
+	return(run_command_predicate(charptr1));
 }
 
 /* Built-in handler for 'fi' (part of the 'if' command) */
-static int builtin_fi(struct job *cmd, struct jobSet *junk)
+static int builtin_fi(struct child_prog *child)
 {
-	if (! (cmd->jobContext & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
-		error_msg("unexpected token `fi'\n");
+	struct job *cmd = child->family;
+	debug_printf( "job=%p entering builtin_fi ('%s')-- context=%d\n", cmd, "", cmd->job_context);
+	if (! (cmd->job_context & (IF_TRUE_CONTEXT|IF_FALSE_CONTEXT))) {
+		shell_context = 0; /* Reset the shell's context on an error */
+		error_msg("%s `fi'\n", syntax_err);
 		return EXIT_FAILURE;
 	}
 	/* Clear out the if and then context bits */
-	cmd->jobContext &= ~(IF_TRUE_CONTEXT|IF_FALSE_CONTEXT|THEN_EXP_CONTEXT|ELSE_EXP_CONTEXT);
-	debug_printf(stderr, "Hit an fi   -- jobContext=%d\n", cmd->jobContext);
+	cmd->job_context &= ~(IF_TRUE_CONTEXT|IF_FALSE_CONTEXT|THEN_EXP_CONTEXT|ELSE_EXP_CONTEXT);
+	debug_printf("job=%p builtin_fi set job context to %x\n", cmd, cmd->job_context);
+	shell_context--;
 	return EXIT_SUCCESS;
 }
 #endif
 
 /* Built-in '.' handler (read-in and execute commands from file) */
-static int builtin_source(struct job *cmd, struct jobSet *junk)
+static int builtin_source(struct child_prog *child)
 {
 	FILE *input;
 	int status;
 
-	if (!cmd->progs[0].argv[1] == 1)
+	if (child->argv[1] == NULL)
 		return EXIT_FAILURE;
 
-	input = fopen(cmd->progs[0].argv[1], "r");
+	input = fopen(child->argv[1], "r");
 	if (!input) {
-		fprintf(stdout, "Couldn't open file '%s'\n",
-				cmd->progs[0].argv[1]);
+		fprintf(stdout, "Couldn't open file '%s'\n", child->argv[1]);
 		return EXIT_FAILURE;
 	}
 
@@ -528,48 +570,65 @@ static int builtin_source(struct job *cmd, struct jobSet *junk)
 }
 
 /* built-in 'unset VAR' handler */
-static int builtin_unset(struct job *cmd, struct jobSet *junk)
+static int builtin_unset(struct child_prog *child)
 {
-	if (!cmd->progs[0].argv[1] == 1) {
+	if (child->argv[1] == NULL) {
 		fprintf(stdout, "unset: parameter required.\n");
 		return EXIT_FAILURE;
 	}
-	unsetenv(cmd->progs[0].argv[1]);
+	unsetenv(child->argv[1]);
 	return EXIT_SUCCESS;
 }
 
+/* currently used by if/then/else.
+ * Needlessly (?) forks and reparses the command line.
+ * But pseudo_exec on the pre-parsed args doesn't have the
+ * "fork, stick around until the child exits, and find it's return code"
+ * functionality.  The fork is not needed if the predicate is
+ * non-forking builtin, and maybe not even if it's a forking builtin.
+ * applets pretty clearly need the fork.
+ */
+static int run_command_predicate(char *cmd)
+{
+	int n=strlen(cmd);
+	local_pending_command = xmalloc(n+1);
+	strncpy(local_pending_command, cmd, n); 
+	local_pending_command[n]='\0';
+	return( busy_loop(NULL));
+}
+
 /* free up all memory from a job */
-static void freeJob(struct job *cmd)
+static void free_job(struct job *cmd)
 {
 	int i;
 
-	for (i = 0; i < cmd->numProgs; i++) {
+	for (i = 0; i < cmd->num_progs; i++) {
 		free(cmd->progs[i].argv);
-		if (cmd->progs[i].redirections)
-			free(cmd->progs[i].redirections);
-		if (cmd->progs[i].freeGlob)
-			globfree(&cmd->progs[i].globResult);
+		if (cmd->progs[i].redirects)
+			free(cmd->progs[i].redirects);
+		if (cmd->progs[i].free_glob)
+			globfree(&cmd->progs[i].glob_result);
 	}
 	free(cmd->progs);
 	if (cmd->text)
 		free(cmd->text);
-	free(cmd->cmdBuf);
+	free(cmd->cmdbuf);
 	memset(cmd, 0, sizeof(struct job));
 }
 
-/* remove a job from the jobList */
-static void removeJob(struct jobSet *jobList, struct job *job)
+/* remove a job from the job_list */
+static void remove_job(struct jobset *job_list, struct job *job)
 {
-	struct job *prevJob;
+	struct job *prevjob;
 
-	freeJob(job);
-	if (job == jobList->head) {
-		jobList->head = job->next;
+	free_job(job);
+	if (job == job_list->head) {
+		job_list->head = job->next;
 	} else {
-		prevJob = jobList->head;
-		while (prevJob->next != job)
-			prevJob = prevJob->next;
-		prevJob->next = job->next;
+		prevjob = job_list->head;
+		while (prevjob->next != job)
+			prevjob = prevjob->next;
+		prevjob->next = job->next;
 	}
 
 	free(job);
@@ -577,19 +636,19 @@ static void removeJob(struct jobSet *jobList, struct job *job)
 
 /* Checks to see if any background processes have exited -- if they 
    have, figure out why and see if a job has completed */
-static void checkJobs(struct jobSet *jobList)
+static void checkjobs(struct jobset *job_list)
 {
 	struct job *job;
 	pid_t childpid;
 	int status;
-	int progNum = 0;
+	int prognum = 0;
 
 	while ((childpid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
-		for (job = jobList->head; job; job = job->next) {
-			progNum = 0;
-			while (progNum < job->numProgs &&
-				   job->progs[progNum].pid != childpid) progNum++;
-			if (progNum < job->numProgs)
+		for (job = job_list->head; job; job = job->next) {
+			prognum = 0;
+			while (prognum < job->num_progs &&
+				   job->progs[prognum].pid != childpid) prognum++;
+			if (prognum < job->num_progs)
 				break;
 		}
 
@@ -599,20 +658,20 @@ static void checkJobs(struct jobSet *jobList)
 
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* child exited */
-			job->runningProgs--;
-			job->progs[progNum].pid = 0;
+			job->running_progs--;
+			job->progs[prognum].pid = 0;
 
-			if (!job->runningProgs) {
-				printf(JOB_STATUS_FORMAT, job->jobId, "Done", job->text);
-				removeJob(jobList, job);
+			if (!job->running_progs) {
+				printf(JOB_STATUS_FORMAT, job->jobid, "Done", job->text);
+				remove_job(job_list, job);
 			}
 		} else {
 			/* child stopped */
-			job->stoppedProgs++;
-			job->progs[progNum].isStopped = 1;
+			job->stopped_progs++;
+			job->progs[prognum].is_stopped = 1;
 
-			if (job->stoppedProgs == job->numProgs) {
-				printf(JOB_STATUS_FORMAT, job->jobId, "Stopped",
+			if (job->stopped_progs == job->num_progs) {
+				printf(JOB_STATUS_FORMAT, job->jobid, "Stopped",
 					   job->text);
 			}
 		}
@@ -622,14 +681,14 @@ static void checkJobs(struct jobSet *jobList)
 		perror("waitpid");
 }
 
-static int setupRedirections(struct childProgram *prog)
+static int setup_redirects(struct child_prog *prog)
 {
 	int i;
 	int openfd;
 	int mode = O_RDONLY;
-	struct redirectionSpecifier *redir = prog->redirections;
+	struct redir_struct *redir = prog->redirects;
 
-	for (i = 0; i < prog->numRedirections; i++, redir++) {
+	for (i = 0; i < prog->num_redirects; i++, redir++) {
 		switch (redir->type) {
 		case REDIRECT_INPUT:
 			mode = O_RDONLY;
@@ -661,7 +720,7 @@ static int setupRedirections(struct childProgram *prog)
 }
 
 
-static int getCommand(FILE * source, char *command)
+static int get_command(FILE * source, char *command)
 {
 	char user[9],buf[255],*s;
 	
@@ -676,15 +735,20 @@ static int getCommand(FILE * source, char *command)
 		return 1;
 	}
 
-	/* get User Name and setup prompt */
-	strcpy(prompt,( geteuid() != 0 ) ? "$ ":"# ");
-	my_getpwuid(user, geteuid());
-	
-	/* get HostName */
-	gethostname(buf, 255);
-	s = strchr(buf, '.');
-	if (s)
-		*s = 0;
+	if (shell_context == 0) {
+		/* get User Name and setup prompt */
+		strcpy(prompt,( geteuid() != 0 ) ? "$ ":"# ");
+		my_getpwuid(user, geteuid());
+		
+		/* get HostName */
+		gethostname(buf, 255);
+		s = strchr(buf, '.');
+		if (s) {
+			*s = 0;
+		}
+	} else {
+		strcpy(prompt,"> ");
+	}
 	
 	if (source == stdin) {
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
@@ -698,14 +762,24 @@ static int getCommand(FILE * source, char *command)
 		*/
 		cmdedit_init();
 		signal(SIGWINCH, win_changed);
-		len=fprintf(stdout, "[%s@%s %s]%s", user, buf, 
-				get_last_path_component(cwd), prompt);
+		debug_printf( "in get_command() -- job_context=%d\n", shell_context);
 		fflush(stdout);
-		promptStr=(char*)xmalloc(sizeof(char)*(len+1));
-		sprintf(promptStr, "[%s@%s %s]%s", user, buf, 
-				get_last_path_component(cwd), prompt);
-		cmdedit_read_input(promptStr, command);
-		free( promptStr);
+		if (shell_context == 0) {
+			len=fprintf(stdout, "[%s@%s %s]%s", user, buf, 
+					get_last_path_component(cwd), prompt);
+		} else {
+			len=fprintf(stdout, "%s", prompt);
+		}
+		fflush(stdout);
+		prompt_str=(char*)xmalloc(sizeof(char)*(len+1));
+		if (shell_context == 0) {
+			sprintf(prompt_str, "[%s@%s %s]%s", user, buf, 
+					get_last_path_component(cwd), prompt);
+		} else {
+			sprintf(prompt_str, "%s", prompt);
+		}
+		cmdedit_read_input(prompt_str, command);
+		free( prompt_str);
 		cmdedit_terminate();
 		signal(SIGWINCH, SIG_DFL);
 		return 0;
@@ -756,21 +830,21 @@ static char* itoa(register int i)
 }
 #endif
 
-static void globLastArgument(struct childProgram *prog, int *argcPtr,
-							 int *argcAllocedPtr)
+static void expand_argument(struct child_prog *prog, int *argcPtr,
+							 int *argv_alloced_ptr)
 {
 	int argc_l = *argcPtr;
-	int argcAlloced = *argcAllocedPtr;
+	int argv_alloced = *argv_alloced_ptr;
 	int rc;
 	int flags;
 	int i;
 	char *src, *dst, *var;
 
-	if (argc_l > 1) {				/* cmd->globResult is already initialized */
+	if (argc_l > 1) {				/* cmd->glob_result is already initialized */
 		flags = GLOB_APPEND;
-		i = prog->globResult.gl_pathc;
+		i = prog->glob_result.gl_pathc;
 	} else {
-		prog->freeGlob = 1;
+		prog->free_glob = 1;
 		flags = 0;
 		i = 0;
 	}
@@ -783,7 +857,7 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 		else {
 			switch(*(prog->argv[argc_l - 1] + 1)) {
 				case '?':
-					prog->argv[argc_l - 1] = itoa(lastReturnCode);
+					prog->argv[argc_l - 1] = itoa(last_return_code);
 					break;
 				case '$':
 					prog->argv[argc_l - 1] = itoa(getpid());
@@ -792,10 +866,10 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 					prog->argv[argc_l - 1] = itoa(argc-1);
 					break;
 				case '!':
-					if (lastBgPid==-1)
+					if (last_bg_pid==-1)
 						*(prog->argv[argc_l - 1])='\0';
 					else
-						prog->argv[argc_l - 1] = itoa(lastBgPid);
+						prog->argv[argc_l - 1] = itoa(last_bg_pid);
 					break;
 				case '0':case '1':case '2':case '3':case '4':
 				case '5':case '6':case '7':case '8':case '9':
@@ -814,14 +888,14 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 	}
 
 	if (strpbrk(prog->argv[argc_l - 1],"*[]?")!= NULL){
-		rc = glob(prog->argv[argc_l - 1], flags, NULL, &prog->globResult);
+		rc = glob(prog->argv[argc_l - 1], flags, NULL, &prog->glob_result);
 		if (rc == GLOB_NOSPACE) {
 			error_msg("out of space during glob operation\n");
 			return;
 		} else if (rc == GLOB_NOMATCH ||
-			   (!rc && (prog->globResult.gl_pathc - i) == 1 &&
+			   (!rc && (prog->glob_result.gl_pathc - i) == 1 &&
 				strcmp(prog->argv[argc_l - 1],
-						prog->globResult.gl_pathv[i]) == 0)) {
+						prog->glob_result.gl_pathv[i]) == 0)) {
 			/* we need to remove whatever \ quoting is still present */
 			src = dst = prog->argv[argc_l - 1];
 			while (*src) {
@@ -835,11 +909,11 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 			}
 			*dst = '\0';
 		} else if (!rc) {
-			argcAlloced += (prog->globResult.gl_pathc - i);
-			prog->argv = xrealloc(prog->argv, argcAlloced * sizeof(*prog->argv));
-			memcpy(prog->argv + (argc_l - 1), prog->globResult.gl_pathv + i,
-				   sizeof(*(prog->argv)) * (prog->globResult.gl_pathc - i));
-			argc_l += (prog->globResult.gl_pathc - i - 1);
+			argv_alloced += (prog->glob_result.gl_pathc - i);
+			prog->argv = xrealloc(prog->argv, argv_alloced * sizeof(*prog->argv));
+			memcpy(prog->argv + (argc_l - 1), prog->glob_result.gl_pathv + i,
+				   sizeof(*(prog->argv)) * (prog->glob_result.gl_pathc - i));
+			argc_l += (prog->glob_result.gl_pathc - i - 1);
 		}
 	}else{
 	 		src = dst = prog->argv[argc_l - 1];
@@ -854,68 +928,69 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
 			}
 			*dst = '\0';
 			
-			prog->globResult.gl_pathc=0;
+			prog->glob_result.gl_pathc=0;
 			if (flags==0)
-				prog->globResult.gl_pathv=NULL;
+				prog->glob_result.gl_pathv=NULL;
 	}
-	*argcAllocedPtr = argcAlloced;
+	*argv_alloced_ptr = argv_alloced;
 	*argcPtr = argc_l;
 }
 
-/* Return cmd->numProgs as 0 if no command is present (e.g. an empty
-   line). If a valid command is found, commandPtr is set to point to
+/* Return cmd->num_progs as 0 if no command is present (e.g. an empty
+   line). If a valid command is found, command_ptr is set to point to
    the beginning of the next command (if the original command had more 
    then one job associated with it) or NULL if no more commands are 
    present. */
-static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobList, int *inBg)
+static int parse_command(char **command_ptr, struct job *job, int *inbg)
 {
 	char *command;
-	char *returnCommand = NULL;
+	char *return_command = NULL;
 	char *src, *buf, *chptr;
 	int argc_l = 0;
 	int done = 0;
-	int argvAlloced;
+	int argv_alloced;
 	int i;
 	char quote = '\0';
 	int count;
-	struct childProgram *prog;
+	struct child_prog *prog;
 
 	/* skip leading white space */
-	while (**commandPtr && isspace(**commandPtr))
-		(*commandPtr)++;
+	while (**command_ptr && isspace(**command_ptr))
+		(*command_ptr)++;
 
 	/* this handles empty lines or leading '#' characters */
-	if (!**commandPtr || (**commandPtr == '#')) {
-		job->numProgs=0;
+	if (!**command_ptr || (**command_ptr == '#')) {
+		job->num_progs=0;
 		return 0;
 	}
 
-	*inBg = 0;
-	job->numProgs = 1;
+	*inbg = 0;
+	job->num_progs = 1;
 	job->progs = xmalloc(sizeof(*job->progs));
 
 	/* We set the argv elements to point inside of this string. The 
-	   memory is freed by freeJob(). Allocate twice the original
+	   memory is freed by free_job(). Allocate twice the original
 	   length in case we need to quote every single character.
 
 	   Getting clean memory relieves us of the task of NULL 
 	   terminating things and makes the rest of this look a bit 
 	   cleaner (though it is, admittedly, a tad less efficient) */
-	job->cmdBuf = command = xcalloc(2*strlen(*commandPtr) + 1, sizeof(char));
+	job->cmdbuf = command = xcalloc(2*strlen(*command_ptr) + 1, sizeof(char));
 	job->text = NULL;
 
 	prog = job->progs;
-	prog->numRedirections = 0;
-	prog->redirections = NULL;
-	prog->freeGlob = 0;
-	prog->isStopped = 0;
+	prog->num_redirects = 0;
+	prog->redirects = NULL;
+	prog->free_glob = 0;
+	prog->is_stopped = 0;
+	prog->family = job;
 
-	argvAlloced = 5;
-	prog->argv = xmalloc(sizeof(*prog->argv) * argvAlloced);
-	prog->argv[0] = job->cmdBuf;
+	argv_alloced = 5;
+	prog->argv = xmalloc(sizeof(*prog->argv) * argv_alloced);
+	prog->argv[0] = job->cmdbuf;
 
 	buf = command;
-	src = *commandPtr;
+	src = *command_ptr;
 	while (*src && !done) {
 		if (quote == *src) {
 			quote = '\0';
@@ -924,7 +999,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				src++;
 				if (!*src) {
 					error_msg("character expected after \\\n");
-					freeJob(job);
+					free_job(job);
 					return 1;
 				}
 
@@ -940,13 +1015,13 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 			if (*prog->argv[argc_l]) {
 				buf++, argc_l++;
 				/* +1 here leaves room for the NULL which ends argv */
-				if ((argc_l + 1) == argvAlloced) {
-					argvAlloced += 5;
+				if ((argc_l + 1) == argv_alloced) {
+					argv_alloced += 5;
 					prog->argv = xrealloc(prog->argv,
 										  sizeof(*prog->argv) *
-										  argvAlloced);
+										  argv_alloced);
 				}
-				globLastArgument(prog, &argc_l, &argvAlloced);
+				expand_argument(prog, &argc_l, &argv_alloced);
 				prog->argv[argc_l] = buf;
 			}
 		} else
@@ -963,42 +1038,42 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					done = 1;
 				break;
 
-			case '>':			/* redirections */
+			case '>':			/* redirects */
 			case '<':
-				i = prog->numRedirections++;
-				prog->redirections = xrealloc(prog->redirections,
-											  sizeof(*prog->redirections) *
+				i = prog->num_redirects++;
+				prog->redirects = xrealloc(prog->redirects,
+											  sizeof(*prog->redirects) *
 											  (i + 1));
 
-				prog->redirections[i].fd = -1;
+				prog->redirects[i].fd = -1;
 				if (buf != prog->argv[argc_l]) {
 					/* the stuff before this character may be the file number 
 					   being redirected */
-					prog->redirections[i].fd =
+					prog->redirects[i].fd =
 						strtol(prog->argv[argc_l], &chptr, 10);
 
 					if (*chptr && *prog->argv[argc_l]) {
 						buf++, argc_l++;
-						globLastArgument(prog, &argc_l, &argvAlloced);
+						expand_argument(prog, &argc_l, &argv_alloced);
 						prog->argv[argc_l] = buf;
 					}
 				}
 
-				if (prog->redirections[i].fd == -1) {
+				if (prog->redirects[i].fd == -1) {
 					if (*src == '>')
-						prog->redirections[i].fd = 1;
+						prog->redirects[i].fd = 1;
 					else
-						prog->redirections[i].fd = 0;
+						prog->redirects[i].fd = 0;
 				}
 
 				if (*src++ == '>') {
 					if (*src == '>')
-						prog->redirections[i].type =
+						prog->redirects[i].type =
 							REDIRECT_APPEND, src++;
 					else
-						prog->redirections[i].type = REDIRECT_OVERWRITE;
+						prog->redirects[i].type = REDIRECT_OVERWRITE;
 				} else {
-					prog->redirections[i].type = REDIRECT_INPUT;
+					prog->redirects[i].type = REDIRECT_INPUT;
 				}
 
 				/* This isn't POSIX sh compliant. Oh well. */
@@ -1008,12 +1083,12 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 
 				if (!*chptr) {
 					error_msg("file name expected after %c\n", *src);
-					freeJob(job);
-					job->numProgs=0;
+					free_job(job);
+					job->num_progs=0;
 					return 1;
 				}
 
-				prog->redirections[i].filename = buf;
+				prog->redirects[i].filename = buf;
 				while (*chptr && !isspace(*chptr))
 					*buf++ = *chptr++;
 
@@ -1027,25 +1102,26 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					argc_l++;
 				if (!argc_l) {
 					error_msg("empty command in pipe\n");
-					freeJob(job);
-					job->numProgs=0;
+					free_job(job);
+					job->num_progs=0;
 					return 1;
 				}
 				prog->argv[argc_l] = NULL;
 
 				/* and start the next */
-				job->numProgs++;
+				job->num_progs++;
 				job->progs = xrealloc(job->progs,
-									  sizeof(*job->progs) * job->numProgs);
-				prog = job->progs + (job->numProgs - 1);
-				prog->numRedirections = 0;
-				prog->redirections = NULL;
-				prog->freeGlob = 0;
-				prog->isStopped = 0;
+									  sizeof(*job->progs) * job->num_progs);
+				prog = job->progs + (job->num_progs - 1);
+				prog->num_redirects = 0;
+				prog->redirects = NULL;
+				prog->free_glob = 0;
+				prog->is_stopped = 0;
+				prog->family = job;
 				argc_l = 0;
 
-				argvAlloced = 5;
-				prog->argv = xmalloc(sizeof(*prog->argv) * argvAlloced);
+				argv_alloced = 5;
+				prog->argv = xmalloc(sizeof(*prog->argv) * argv_alloced);
 				prog->argv[0] = ++buf;
 
 				src++;
@@ -1054,8 +1130,8 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 
 				if (!*src) {
 					error_msg("empty command in pipe\n");
-					freeJob(job);
-					job->numProgs=0;
+					free_job(job);
+					job->num_progs=0;
 					return 1;
 				}
 				src--;			/* we'll ++ it at the end of the loop */
@@ -1063,10 +1139,10 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				break;
 
 			case '&':			/* background */
-				*inBg = 1;
+				*inbg = 1;
 			case ';':			/* multiple commands */
 				done = 1;
-				returnCommand = *commandPtr + (src - *commandPtr) + 1;
+				return_command = *command_ptr + (src - *command_ptr) + 1;
 				break;
 
 #ifdef BB_FEATURE_SH_BACKTICKS
@@ -1075,15 +1151,15 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				{
 					char* charptr1=NULL, *charptr2;
 					char* ptr=NULL;
-					struct job *newJob;
-					struct jobSet njobList = { NULL, NULL };
+					struct job *newjob;
+					struct jobset njob_list = { NULL, NULL };
 					int pipefd[2];
 					int size;
 
 					ptr=strchr(++src, '`');
 					if (ptr==NULL) {
 						fprintf(stderr, "Unmatched '`' in command\n");
-						freeJob(job);
+						free_job(job);
 						return 1;
 					}
 
@@ -1091,15 +1167,17 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					charptr1 = charptr2 = xmalloc(1+ptr-src);
 					memcpy(charptr1, src, ptr-src);
 					charptr1[ptr-src] = '\0';
-					newJob = xmalloc(sizeof(struct job));
+					newjob = xmalloc(sizeof(struct job));
+					newjob->job_list = &njob_list;
 					/* Now parse and run the backticked command */
-					if (!parseCommand(&charptr1, newJob, &njobList, inBg) 
-							&& newJob->numProgs) {
+					if (!parse_command(&charptr1, newjob, inbg) 
+							&& newjob->num_progs) {
 						pipe(pipefd);
-						runCommand(newJob, &njobList, 0, pipefd);
+						run_command(newjob, 0, pipefd);
 					}
-					checkJobs(jobList);
-					freeJob(newJob);
+					checkjobs(job->job_list);
+					free_job(newjob);  /* doesn't actually free newjob,
+					                     looks like a memory leak */
 					free(charptr2);
 					
 					/* Make a copy of any stuff left over in the command 
@@ -1113,10 +1191,9 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					--src;
 					charptr1 = xmalloc(BUFSIZ);
 					while ( (size=full_read(pipefd[0], charptr1, BUFSIZ-1)) >0) {
-						int newSize=src - *commandPtr + size + 1 + strlen(charptr2);
-						if (newSize > BUFSIZ) {
-							*commandPtr=xrealloc(*commandPtr, src - *commandPtr + 
-									size + 1 + strlen(charptr2));
+						int newsize=src - *command_ptr + size + 1 + strlen(charptr2);
+						if (newsize > BUFSIZ) {
+							*command_ptr=xrealloc(*command_ptr, newsize);
 						}
 						memcpy(src, charptr1, size); 
 						src+=size;
@@ -1126,16 +1203,20 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					if (*(src-1)=='\n')
 						--src;
 
-					/* Now paste into the *commandPtr all the stuff 
+					/* Now paste into the *command_ptr all the stuff 
 					 * leftover after the second backtick */
 					memcpy(src, charptr2, strlen(charptr2)+1);
 					free(charptr2);
 
-					/* Now recursively call parseCommand to deal with the new
+					/* Now recursively call parse_command to deal with the new
 					 * and improved version of the command line with the backtick
 					 * results expanded in place... */
-					freeJob(job);
-					return(parseCommand(commandPtr, job, jobList, inBg));
+					{
+						struct jobset *jl=job->job_list;
+						free_job(job);
+						job->job_list = jl;
+					}
+					return(parse_command(command_ptr, job, inbg));
 				}
 				break;
 #endif // BB_FEATURE_SH_BACKTICKS
@@ -1143,9 +1224,37 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 			case '\\':
 				src++;
 				if (!*src) {
+/* This is currently a little broken... */
+#ifdef HANDLE_CONTINUATION_CHARS
+					/* They fed us a continuation char, so continue reading stuff
+					 * on the next line, then tack that onto the end of the current
+					 * command */
+					char *command;
+					int newsize;
+					printf("erik: found a continue char at EOL...\n");
+					command = (char *) xcalloc(BUFSIZ, sizeof(char));
+					if (get_command(input, command)) {
+						error_msg("character expected after \\\n");
+						free(command);
+						free_job(job);
+						return 1;
+					}
+					newsize = strlen(*command_ptr) + strlen(command) + 2;
+					if (newsize > BUFSIZ) {
+						printf("erik: doing realloc\n");
+						*command_ptr=xrealloc(*command_ptr, newsize);
+					}
+					printf("erik: A: *command_ptr='%s'\n", *command_ptr);
+					memcpy(--src, command, strlen(command)); 
+					printf("erik: B: *command_ptr='%s'\n", *command_ptr);
+					free(command);
+					break;
+#else
 					error_msg("character expected after \\\n");
-					freeJob(job);
+					free(command);
+					free_job(job);
 					return 1;
+#endif
 				}
 				if (*src == '*' || *src == '[' || *src == ']'
 					|| *src == '?') *buf++ = '\\';
@@ -1159,76 +1268,187 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 
 	if (*prog->argv[argc_l]) {
 		argc_l++;
-		globLastArgument(prog, &argc_l, &argvAlloced);
+		expand_argument(prog, &argc_l, &argv_alloced);
 	}
 	if (!argc_l) {
-		freeJob(job);
+		free_job(job);
 		return 0;
 	}
 	prog->argv[argc_l] = NULL;
 
-	if (!returnCommand) {
-		job->text = xmalloc(strlen(*commandPtr) + 1);
-		strcpy(job->text, *commandPtr);
+	if (!return_command) {
+		job->text = xmalloc(strlen(*command_ptr) + 1);
+		strcpy(job->text, *command_ptr);
 	} else {
 		/* This leaves any trailing spaces, which is a bit sloppy */
-		count = returnCommand - *commandPtr;
+		count = return_command - *command_ptr;
 		job->text = xmalloc(count + 1);
-		strncpy(job->text, *commandPtr, count);
+		strncpy(job->text, *command_ptr, count);
 		job->text[count] = '\0';
 	}
 
-	*commandPtr = returnCommand;
+	*command_ptr = return_command;
 	
 	return 0;
 }
 
-static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int outPipe[2])
+/* Run the child_prog, no matter what kind of command it uses.
+ */
+static int pseudo_exec(struct child_prog *child)
 {
-	struct job *theJob;
-	int i;
-	int nextin, nextout;
-	int pipefds[2];				/* pipefd[0] is for reading */
-	struct builtInCommand *x;
+	struct built_in_command *x;
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
 	struct BB_applet search_applet, *applet;
 #endif
 
+	/* Check if the command matches any of the forking builtins.
+	 * XXX It would probably be wise to check for non-forking builtins
+	 * here as well, since in some context the non-forking path
+	 * is disabled or bypassed.  See comment in run_command.
+	 */
+	for (x = bltins_forking; x->cmd; x++) {
+		if (strcmp(child->argv[0], x->cmd) == 0) {
+			applet_name=x->cmd;
+			exit (x->function(child));
+		}
+	}
+#ifdef BB_FEATURE_SH_STANDALONE_SHELL
+	/* Check if the command matches any busybox internal
+	 * commands ("applets") here.  Following discussions from
+	 * November 2000 on busybox@opensource.lineo.com, don't use
+	 * get_last_path_component().  This way explicit (with
+	 * slashes) filenames will never be interpreted as an
+	 * applet, just like with builtins.  This way the user can
+	 * override an applet with an explicit filename reference.
+	 * The only downside to this change is that an explicit
+	 * /bin/foo invocation will fork and exec /bin/foo, even if
+	 * /bin/foo is a symlink to busybox.
+	 */
+	search_applet.name = child->argv[0];
+
+#ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
+	/* If you enable BB_FEATURE_SH_APPLETS_ALWAYS_WIN, then
+	 * if you run /bin/cat, it will use BusyBox cat even if 
+	 * /bin/cat exists on the filesystem and is _not_ busybox.
+	 * Some systems want this, others do not.  Choose wisely.  :-)
+	 */
+	search_applet.name = get_last_path_component(search_applet.name);
+#endif
+
+	/* Do a binary search to find the applet entry given the name. */
+	applet = bsearch(&search_applet, applets, NUM_APPLETS,
+			sizeof(struct BB_applet), applet_name_compare);
+	if (applet != NULL) {
+		int argc_l;
+		char** argv=child->argv;
+		for(argc_l=0;*argv!=NULL; argv++, argc_l++);
+		applet_name=applet->name;
+		optind = 1;
+		exit((*(applet->main)) (argc_l, child->argv));
+	}
+#endif
+
+	execvp(child->argv[0], child->argv);
+	error_msg_and_die("%s: %s\n", child->argv[0],
+			strerror(errno));
+}
+
+static void insert_job(struct job *newjob, int inbg)
+{
+	struct job *thejob;
+	struct jobset *job_list=newjob->job_list;
+
+	/* find the ID for thejob to use */
+	newjob->jobid = 1;
+	for (thejob = job_list->head; thejob; thejob = thejob->next)
+		if (thejob->jobid >= newjob->jobid)
+			newjob->jobid = thejob->jobid + 1;
+
+	/* add thejob to the list of running jobs */
+	if (!job_list->head) {
+		thejob = job_list->head = xmalloc(sizeof(*thejob));
+	} else {
+		for (thejob = job_list->head; thejob->next; thejob = thejob->next) /* nothing */;
+		thejob->next = xmalloc(sizeof(*thejob));
+		thejob = thejob->next;
+	}
+
+	*thejob = *newjob;   /* physically copy the struct job */
+	thejob->next = NULL;
+	thejob->running_progs = thejob->num_progs;
+	thejob->stopped_progs = 0;
+
+	if (inbg) {
+		/* we don't wait for background thejobs to return -- append it 
+		   to the list of backgrounded thejobs and leave it alone */
+		printf("[%d] %d\n", thejob->jobid,
+			   newjob->progs[newjob->num_progs - 1].pid);
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+		last_bg_pid=newjob->progs[newjob->num_progs - 1].pid;
+#endif
+	} else {
+		newjob->job_list->fg = thejob;
+
+		/* move the new process group into the foreground */
+		/* suppress messages when run from /linuxrc mag@sysgo.de */
+		if (tcsetpgrp(0, newjob->pgrp) && errno != ENOTTY)
+			perror("tcsetpgrp");
+	}
+}
+
+static int run_command(struct job *newjob, int inbg, int outpipe[2])
+{
+	/* struct job *thejob; */
+	int i;
+	int nextin, nextout;
+	int pipefds[2];				/* pipefd[0] is for reading */
+	struct built_in_command *x;
+	struct child_prog *child;
+
 	nextin = 0, nextout = 1;
-	for (i = 0; i < newJob->numProgs; i++) {
-		if ((i + 1) < newJob->numProgs) {
-			pipe(pipefds);
+	for (i = 0; i < newjob->num_progs; i++) {
+		child = & (newjob->progs[i]);
+
+		if ((i + 1) < newjob->num_progs) {
+			if (pipe(pipefds)<0) perror_msg_and_die("pipe");
 			nextout = pipefds[1];
 		} else {
-			if (outPipe[1]!=-1) {
-				nextout = outPipe[1];
+			if (outpipe[1]!=-1) {
+				nextout = outpipe[1];
 			} else {
 				nextout = 1;
 			}
 		}
 
 #ifdef BB_FEATURE_SH_ENVIRONMENT
-		if (showXtrace==TRUE) {
+		if (show_x_trace==TRUE) {
 			int j;
-			fprintf(stderr, "+ ");
-			for (j = 0; newJob->progs[i].argv[j]; j++)
-				fprintf(stderr, "%s ", newJob->progs[i].argv[j]);
-			fprintf(stderr, "\n");
+			fputc('+', stderr);
+			for (j = 0; child->argv[j]; j++) {
+				fputc(' ', stderr);
+				fputs(child->argv[j], stderr);
+			}
+			fputc('\n', stderr);
 		}
 #endif
 
-		/* Check if the command matches any non-forking builtins */
+		/* Check if the command matches any non-forking builtins.
+		 * XXX should probably skip this test, and fork anyway, if
+		 * there redirects of some kind demand forking to work right.
+		 * pseudo_exec would then need to handle the non-forking command
+		 * in a forked context.
+		 */
 		for (x = bltins; x->cmd; x++) {
-			if (strcmp(newJob->progs[i].argv[0], x->cmd) == 0 ) {
-				return(x->function(newJob, jobList));
+			if (strcmp(child->argv[0], x->cmd) == 0 ) {
+				return(x->function(child));
 			}
 		}
 
-		if (!(newJob->progs[i].pid = fork())) {
+		if (!(child->pid = fork())) {
 			signal(SIGTTOU, SIG_DFL);
 
-			if (outPipe[1]!=-1) {
-				close(outPipe[0]);
+			if (outpipe[1]!=-1) {
+				close(outpipe[0]);
 			}
 			if (nextin != 0) {
 				dup2(nextin, 0);
@@ -1237,68 +1457,23 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 
 			if (nextout != 1) {
 				dup2(nextout, 1);
-				dup2(nextout, 2);
+				dup2(nextout, 2);  /* Really? */
 				close(nextout);
 				close(pipefds[0]);
 			}
 
-			/* explicit redirections override pipes */
-			setupRedirections(newJob->progs + i);
+			/* explicit redirects override pipes */
+			setup_redirects(child);
 
-			/* Check if the command matches any of the other builtins */
-			for (x = bltins_forking; x->cmd; x++) {
-				if (strcmp(newJob->progs[i].argv[0], x->cmd) == 0) {
-					applet_name=x->cmd;
-					exit (x->function(newJob, jobList));
-				}
-			}
-#ifdef BB_FEATURE_SH_STANDALONE_SHELL
-			/* Check if the command matches any busybox internal
-			 * commands ("applets") here.  Following discussions from
-			 * November 2000 on busybox@opensource.lineo.com, don't use
-			 * get_last_path_component().  This way explicit (with
-			 * slashes) filenames will never be interpreted as an
-			 * applet, just like with builtins.  This way the user can
-			 * override an applet with an explicit filename reference.
-			 * The only downside to this change is that an explicit
-			 * /bin/foo invocation fill fork and exec /bin/foo, even if
-			 * /bin/foo is a symlink to busybox.
-			 */
-			search_applet.name = newJob->progs[i].argv[0];
-
-#ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
-			/* If you enable BB_FEATURE_SH_APPLETS_ALWAYS_WIN, then
-			 * if you run /bin/cat, it will use BusyBox cat even if 
-			 * /bin/cat exists on the filesystem and is _not_ busybox.
-			 * Some systems want this, others do not.  Choose wisely.  :-)
-			 */
-			search_applet.name = get_last_path_component(search_applet.name);
-#endif
-
-			/* Do a binary search to find the applet entry given the name. */
-			applet = bsearch(&search_applet, applets, NUM_APPLETS,
-					sizeof(struct BB_applet), applet_name_compare);
-			if (applet != NULL) {
-				int argc_l;
-				char** argv=newJob->progs[i].argv;
-				for(argc_l=0;*argv!=NULL; argv++, argc_l++);
-				applet_name=applet->name;
-				optind = 1;
-				exit((*(applet->main)) (argc_l, newJob->progs[i].argv));
-			}
-#endif
-
-			execvp(newJob->progs[i].argv[0], newJob->progs[i].argv);
-			error_msg_and_die("%s: %s\n", newJob->progs[i].argv[0],
-					strerror(errno));
+			pseudo_exec(child);
 		}
-		if (outPipe[1]!=-1) {
-			close(outPipe[1]);
+		if (outpipe[1]!=-1) {
+			close(outpipe[1]);
 		}
 
 		/* put our child in the process group whose leader is the
 		   first process in this pipe */
-		setpgid(newJob->progs[i].pid, newJob->progs[0].pid);
+		setpgid(child->pid, newjob->progs[0].pid);
 		if (nextin != 0)
 			close(nextin);
 		if (nextout != 1)
@@ -1309,44 +1484,9 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 		nextin = pipefds[0];
 	}
 
-	newJob->pgrp = newJob->progs[0].pid;
+	newjob->pgrp = newjob->progs[0].pid;
 
-	/* find the ID for the theJob to use */
-	newJob->jobId = 1;
-	for (theJob = jobList->head; theJob; theJob = theJob->next)
-		if (theJob->jobId >= newJob->jobId)
-			newJob->jobId = theJob->jobId + 1;
-
-	/* add the theJob to the list of running jobs */
-	if (!jobList->head) {
-		theJob = jobList->head = xmalloc(sizeof(*theJob));
-	} else {
-		for (theJob = jobList->head; theJob->next; theJob = theJob->next);
-		theJob->next = xmalloc(sizeof(*theJob));
-		theJob = theJob->next;
-	}
-
-	*theJob = *newJob;
-	theJob->next = NULL;
-	theJob->runningProgs = theJob->numProgs;
-	theJob->stoppedProgs = 0;
-
-	if (inBg) {
-		/* we don't wait for background theJobs to return -- append it 
-		   to the list of backgrounded theJobs and leave it alone */
-		printf("[%d] %d\n", theJob->jobId,
-			   newJob->progs[newJob->numProgs - 1].pid);
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-		lastBgPid=newJob->progs[newJob->numProgs - 1].pid;
-#endif
-	} else {
-		jobList->fg = theJob;
-
-		/* move the new process group into the foreground */
-		/* suppress messages when run from /linuxrc mag@sysgo.de */
-		if (tcsetpgrp(0, newJob->pgrp) && errno != ENOTTY)
-			perror("tcsetpgrp");
-	}
+	insert_job(newjob, inbg);
 
 	return 0;
 }
@@ -1354,13 +1494,14 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 static int busy_loop(FILE * input)
 {
 	char *command;
-	char *nextCommand = NULL;
-	struct job newJob;
+	char *next_command = NULL;
+	struct job newjob;
 	pid_t  parent_pgrp;
 	int i;
-	int inBg;
+	int inbg;
 	int status;
-	newJob.jobContext = REGULAR_JOB_CONTEXT;
+	newjob.job_list = &job_list;
+	newjob.job_context = DEFAULT_CONTEXT;
 
 	/* save current owner of TTY so we can restore it on exit */
 	parent_pgrp = tcgetpgrp(0);
@@ -1372,64 +1513,65 @@ static int busy_loop(FILE * input)
 	signal(SIGTTOU, SIG_IGN);
 
 	while (1) {
-		if (!jobList.fg) {
+		if (!job_list.fg) {
 			/* no job is in the foreground */
 
 			/* see if any background processes have exited */
-			checkJobs(&jobList);
+			checkjobs(&job_list);
 
-			if (!nextCommand) {
-				if (getCommand(input, command))
+			if (!next_command) {
+				if (get_command(input, command))
 					break;
-				nextCommand = command;
+				next_command = command;
 			}
 
-			if (!parseCommand(&nextCommand, &newJob, &jobList, &inBg) &&
-				newJob.numProgs) {
+			if (!parse_command(&next_command, &newjob, &inbg) &&
+				newjob.num_progs) {
 				int pipefds[2] = {-1,-1};
-				runCommand(&newJob, &jobList, inBg, pipefds);
+				debug_printf( "job=%p being fed to run_command by busy_loop()'\n", &newjob);
+				run_command(&newjob, inbg, pipefds);
 			}
 			else {
 				free(command);
 				command = (char *) xcalloc(BUFSIZ, sizeof(char));
-				nextCommand = NULL;
+				next_command = NULL;
 			}
 		} else {
 			/* a job is running in the foreground; wait for it */
 			i = 0;
-			while (!jobList.fg->progs[i].pid ||
-				   jobList.fg->progs[i].isStopped == 1) i++;
+			while (!job_list.fg->progs[i].pid ||
+				   job_list.fg->progs[i].is_stopped == 1) i++;
 
-			waitpid(jobList.fg->progs[i].pid, &status, WUNTRACED);
+			waitpid(job_list.fg->progs[i].pid, &status, WUNTRACED);
 
 			if (WIFEXITED(status) || WIFSIGNALED(status)) {
 				/* the child exited */
-				jobList.fg->runningProgs--;
-				jobList.fg->progs[i].pid = 0;
+				job_list.fg->running_progs--;
+				job_list.fg->progs[i].pid = 0;
 
 #ifdef BB_FEATURE_SH_ENVIRONMENT
-				lastReturnCode=WEXITSTATUS(status);
+				last_return_code=WEXITSTATUS(status);
 #endif
-				debug_printf("'%s' exited -- return code %d\n", jobList.fg->text, lastReturnCode);
-				if (!jobList.fg->runningProgs) {
+				debug_printf("'%s' exited -- return code %d\n",
+						job_list.fg->text, last_return_code);
+				if (!job_list.fg->running_progs) {
 					/* child exited */
-
-					removeJob(&jobList, jobList.fg);
-					jobList.fg = NULL;
+					remove_job(&job_list, job_list.fg);
+					job_list.fg = NULL;
 				}
 			} else {
 				/* the child was stopped */
-				jobList.fg->stoppedProgs++;
-				jobList.fg->progs[i].isStopped = 1;
+				job_list.fg->stopped_progs++;
+				job_list.fg->progs[i].is_stopped = 1;
 
-				if (jobList.fg->stoppedProgs == jobList.fg->runningProgs) {
-					printf("\n" JOB_STATUS_FORMAT, jobList.fg->jobId,
-						   "Stopped", jobList.fg->text);
-					jobList.fg = NULL;
+				if (job_list.fg->stopped_progs == job_list.fg->running_progs) {
+					printf("\n" JOB_STATUS_FORMAT, job_list.fg->jobid,
+						   "Stopped", job_list.fg->text);
+					job_list.fg = NULL;
 				}
 			}
 
-			if (!jobList.fg) {
+			if (!job_list.fg) {
 				/* move the shell to the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
 				if (tcsetpgrp(0, getpid()) && errno != ENOTTY)
@@ -1454,15 +1596,15 @@ static int busy_loop(FILE * input)
 #ifdef BB_FEATURE_CLEAN_UP
 void free_memory(void)
 {
-	if (promptStr)
-		free(promptStr);
+	if (prompt_str)
+		free(prompt_str);
 	if (cwd)
 		free(cwd);
 	if (local_pending_command)
 		free(local_pending_command);
 
-	if (jobList.fg && !jobList.fg->runningProgs) {
-		removeJob(&jobList, jobList.fg);
+	if (job_list.fg && !job_list.fg->running_progs) {
+		remove_job(&job_list, job_list.fg);
 	}
 }
 #endif
@@ -1500,7 +1642,7 @@ int shell_main(int argc_l, char **argv_l)
 				break;
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 			case 'x':
-				showXtrace = TRUE;
+				show_x_trace = TRUE;
 				break;
 #endif
 			case 'i':
@@ -1517,10 +1659,14 @@ int shell_main(int argc_l, char **argv_l)
 	 *    standard input is a terminal
 	 *    standard output is a terminal
 	 *    Refer to Posix.2, the description of the `sh' utility. */
-	if (interactive==TRUE || ( argv[optind]==NULL && input==stdin && isatty(fileno(stdin)) && isatty(fileno(stdout)))) {
+	if (argv[optind]==NULL && input==stdin &&
+			isatty(fileno(stdin)) && isatty(fileno(stdout))) {
+		interactive=TRUE;
+	}
+	if (interactive==TRUE) {
 		//fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		/* Looks like they want an interactive shell */
-		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
+		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell (lash)\n", BB_VER, BB_BT);
 		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
 	} else if (local_pending_command==NULL) {
 		//fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);

@@ -85,6 +85,12 @@ static int cmdedit_scroll = 27; /* width of EOL scrolling region */
 static int history_counter = 0;	/* Number of commands in history list */
 static int reset_term = 0;		/* Set to true if the terminal needs to be reset upon exit */
 static int exithandler_set = 0;	/* Set to true when atexit() has been called */
+	
+
+/* Link into lash to reset context to 0
+ * on ^C and such */
+extern unsigned int shell_context;
+
 
 struct history {
 	char *s;
@@ -466,20 +472,24 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 			input_backward(outputFd, &cursor);
 			break;
 		case 3:
-			/* Control-c -- leave the current line, 
-			 * and start over on the next line */ 
+			/* Control-c -- stop gathering input */
+			
+			/* Link into lash to reset context to 0 on ^C and such */
+			shell_context = 0;
 
 			/* Go to the next line */
 			xwrite(outputFd, "\n", 1);
 
+#if 0
 			/* Rewrite the prompt */
 			xwrite(outputFd, prompt, strlen(prompt));
 
 			/* Reset the command string */
 			memset(command, 0, BUFSIZ);
 			len = cursor = 0;
+#endif
+			return;
 
-			break;
 		case 4:
 			/* Control-d -- Delete one character, or exit 
 			 * if the len=0 and no chars to delete */
