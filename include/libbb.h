@@ -213,23 +213,9 @@ char *xreadlink(const char *path);
 char *concat_path_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
-typedef struct file_headers_s {
-	char *name;
-	char *link_name;
-	off_t size;
-	uid_t uid;
-	gid_t gid;
-	mode_t mode;
-	time_t mtime;
-	off_t offset;
-	dev_t device;
-	struct file_headers_s *next;
-} file_headers_t;
-file_headers_t *get_ar_headers(FILE *in_file);
-file_headers_t *get_tar_headers(FILE *tar_stream);
-file_headers_t *get_tar_gz_headers(FILE *compressed_stream);
-file_headers_t *append_archive_list(file_headers_t *head, file_headers_t *tail_entry);
-file_headers_t *add_from_archive_list(file_headers_t *master_list, file_headers_t *new_list, const char *name);
+void *get_header_ar(FILE *in_file);
+void *get_header_cpio(FILE *src_stream);
+void *get_header_tar(FILE *tar_stream);
 
 enum extract_functions_e {
 	extract_verbose_list = 1,
@@ -240,18 +226,20 @@ enum extract_functions_e {
 	extract_preserve_date = 32,
 	extract_data_tar_gz = 64,
 	extract_control_tar_gz = 128,
-	extract_unzip_only = 256
+	extract_unzip_only = 256,
+	extract_unconditional = 512,
+	extract_create_dirs = 1024
 };
-char *extract_archive(FILE *src_stream, FILE *out_stream, file_headers_t *extract_headers, int function, const char *prefix);
-char *deb_extract(const char *package_filename, FILE *out_stream, const int function,
+char *unarchive(FILE *src_stream, void *(*get_header)(FILE *),
+	const int extract_function, const char *prefix, char **extract_names);
+char *deb_extract(const char *package_filename, FILE *out_stream, const int extract_function,
 	const char *prefix, const char *filename);
 char *read_package_field(const char *package_buffer);
-int seek_sub_file(FILE *in_file, file_headers_t *headers, const char *tar_gz_file);
 char *fgets_str(FILE *file, const char *terminating_string);
 
 extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);
-extern int gz_open(FILE *compressed_file, int *pid);
+extern FILE *gz_open(FILE *compressed_file, int *pid);
 
 extern struct hostent *xgethostbyname(const char *name);
 

@@ -24,6 +24,7 @@
  */
 #include <fcntl.h>
 #include <stdlib.h>
+#include <string.h>
 #include <getopt.h>
 #include <unistd.h>
 #include "busybox.h"
@@ -31,9 +32,12 @@
 extern int ar_main(int argc, char **argv)
 {
 	FILE *src_stream = NULL;
-	int extract_function = 0, opt = 0;
-	file_headers_t *head;
-	file_headers_t *ar_extract_list = NULL;
+	char **extract_names = NULL;
+	char ar_magic[8];
+	int extract_function = 0;
+	int opt;
+	int num_of_entries = 0;
+	extern off_t archive_offset;
 
 	while ((opt = getopt(argc, argv, "ovtpx")) != -1) {
 		switch (opt) {
@@ -63,27 +67,23 @@ extern int ar_main(int argc, char **argv)
 	}
 
 	src_stream = xfopen(argv[optind++], "r");
-	head = get_ar_headers(src_stream);
 
-	/* find files to extract or display */
-	/* search through argv and build extract list */
-	ar_extract_list = (file_headers_t *) xcalloc(1, sizeof(file_headers_t));
-	if (optind < argc) {
-		while (optind < argc) {
-			ar_extract_list = add_from_archive_list(head, ar_extract_list, argv[optind]);
-			optind++;
-		}
-	} else {
-		ar_extract_list = head;
+	/* check ar magic */
+	fread(ar_magic, 1, 8, src_stream);
+	if (strncmp(ar_magic,"!<arch>",7) != 0) {
+		error_msg_and_die("invalid magic");
+	}
+	archive_offset = 8;
+
+	extract_names = malloc(sizeof(char *));
+	extract_names[0] = NULL;
+	while (optind < argc) {
+		num_of_entries++;
+		*extract_names = realloc(*extract_names, num_of_entries);
+		extract_names[num_of_entries - 1] = xstrdup(argv[optind]);
+		optind++;
 	}
 
-	/* If there isnt even one possible entry then abort */
-	if (ar_extract_list->name == NULL) {
-		error_msg_and_die("No files to extract");
-	}	
-
-	fseek(src_stream, 0, SEEK_SET);
-	extract_archive(src_stream, stdout, ar_extract_list, extract_function, "./");
-
+	unarchive(src_stream, &get_header_ar, extract_function, "./", extract_names);
 	return EXIT_SUCCESS;
 }

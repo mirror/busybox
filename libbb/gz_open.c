@@ -6,17 +6,17 @@
 #include <unistd.h>
 #include "libbb.h"
 
-extern int gz_open(FILE *compressed_file, int *pid)
+extern FILE *gz_open(FILE *compressed_file, int *pid)
 {
 	int unzip_pipe[2];
 
 	if (pipe(unzip_pipe)!=0) {
 		error_msg("pipe error");
-		return(EXIT_FAILURE);
+		return(NULL);
 	}
 	if ((*pid = fork()) == -1) {
 		error_msg("fork failured");
-		return(EXIT_FAILURE);
+		return(NULL);
 	}
 	if (*pid==0) {
 		/* child process */
@@ -27,7 +27,9 @@ extern int gz_open(FILE *compressed_file, int *pid)
 		close(unzip_pipe[1]);
 		exit(EXIT_SUCCESS);
 	}
-	
 	close(unzip_pipe[1]);
-	return(unzip_pipe[0]);
+	if (unzip_pipe[0] == -1) {
+		error_msg("Couldnt initialise gzip stream");
+	}
+	return(fdopen(unzip_pipe[0], "r"));
 }
