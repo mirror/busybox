@@ -35,13 +35,6 @@
 #include <setjmp.h>
 #include "busybox.h"
 
-#if __GNU_LIBRARY__ < 5
-#error Sorry.  Looks like you are using libc5.  
-#error libc5 shm support isnt good enough.
-#error Please disable CONFIG_FEATURE_IPC_SYSLOG 
-#endif	
-
-
 static const long KEY_ID = 0x414e4547; /*"GENA"*/
 
 static struct shbuf_ds {

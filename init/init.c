@@ -42,6 +42,7 @@
 #include <sys/mount.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/reboot.h>
 #include "busybox.h"
 
 #include "init_shared.h"
@@ -49,9 +50,6 @@
 
 #ifdef CONFIG_SYSLOGD
 # include <sys/syslog.h>
-#endif
-#if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__)
-#include <sys/reboot.h>
 #endif
 
 
@@ -665,11 +663,7 @@ static void init_reboot(unsigned long magic)
 	 * linux/kernel/sys.c, which can cause the machine to panic when 
 	 * the init process is killed.... */
 	if ((pid = fork()) == 0) {
-#if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__)
 		reboot(magic);
-#else
-		reboot(0xfee1dead, 672274793, magic);
-#endif
 		_exit(0);
 	}
 	waitpid (pid, NULL, 0);

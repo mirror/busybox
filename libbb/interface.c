@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.16 2003/07/14 21:20:55 andersen Exp $
+ * Version:     $Id: interface.c,v 1.17 2003/07/22 08:56:46 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -76,6 +76,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <net/if.h>
 #include <net/if_arp.h>
 #include "libbb.h"
@@ -87,10 +88,6 @@
 #define KRELEASE(maj,min,patch) ((maj) * 65536 + (min)*256 + (patch))
 
 static int procnetdev_vsn = 1;
-
-/* Ugh.  But libc5 doesn't provide POSIX types.  */
-#include <asm/types.h>
-
 
 #ifdef HAVE_HWSLIP
 #include <net/if_slip.h>

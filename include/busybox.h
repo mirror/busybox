@@ -31,6 +31,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#if __GNU_LIBRARY__ < 5
+#ifndef __dietlibc__
+#error "Sorry, libc5 is not supported"
+#endif
+#endif
+
 #define BB_BANNER "BusyBox v" BB_VER " (" BB_BT ")"
 
 #ifdef DMALLOC
@@ -92,17 +98,6 @@ extern const struct BB_applet applets[];
 #endif
 #endif
 
-
-/* Bit map related macros -- libc5 doens't provide these... sigh.  */
-#ifndef setbit
-#ifndef NBBY
-#define NBBY            CHAR_BIT
-#endif
-#define setbit(a,i)     ((a)[(i)/NBBY] |= 1<<((i)%NBBY))
-#define clrbit(a,i)     ((a)[(i)/NBBY] &= ~(1<<((i)%NBBY)))
-#define isset(a,i)      ((a)[(i)/NBBY] & (1<<((i)%NBBY)))
-#define isclr(a,i)      (((a)[(i)/NBBY] & (1<<((i)%NBBY))) == 0)
-#endif
 
 #ifndef RB_POWER_OFF
 /* Stop system and switch power off if possible.  */

@@ -86,12 +86,6 @@ static int local_logging = FALSE;
 
 /* circular buffer variables/structures */
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-#if __GNU_LIBRARY__ < 5
-#error Sorry.  Looks like you are using libc5.
-#error libc5 shm support isnt good enough.
-#error Please disable CONFIG_FEATURE_IPC_SYSLOG
-#endif
-
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/shm.h>

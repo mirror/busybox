@@ -32,12 +32,7 @@
 #include <sys/syslog.h>
 #include <unistd.h> /* for getopt() */
 #include <stdlib.h>
-
-#if __GNU_LIBRARY__ > 5
-	#include <sys/kdaemon.h>
-#else
-	extern int bdflush (int func, long int data);
-#endif
+#include <sys/kdaemon.h>
 
 #include "busybox.h"
 

@@ -29,7 +29,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
-/* Don't use lchown for libc5 or glibc older then 2.1.x */
+/* Don't use lchown glibc older then 2.1.x */
 #if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1)
 #define lchown	chown
 #endif

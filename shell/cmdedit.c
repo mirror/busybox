@@ -163,11 +163,6 @@ static int my_gid;
 
 #endif	/* CONFIG_FEATURE_COMMAND_TAB_COMPLETION */
 
-/* It seems that libc5 doesn't know what a sighandler_t is... */
-#if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1)
-typedef void (*sighandler_t) (int);
-#endif
-
 static void cmdedit_setwidth(int w, int redraw_flg);
 
 static void win_changed(int nsig)

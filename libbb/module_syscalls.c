@@ -27,15 +27,11 @@
    _syscall* defined.  */
 #define __LIBRARY__
 #include <sys/syscall.h>
-#if __GNU_LIBRARY__ < 5
-/* This is needed for libc5 */
-#include <asm/unistd.h>
-#endif
 #include "libbb.h"
 
 
-#if __GNU_LIBRARY__ < 5 || ((__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1))
-/* These syscalls are not included as part of libc5 */
+/* These syscalls are not included in very old glibc versions */
+#if ((__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1))
 int delete_module(const char *name)
 {
     return(syscall(__NR_delete_module, name));
@@ -79,7 +75,7 @@ unsigned long create_module(const char *name, size_t size)
     return ret;
 }
 
-#endif /* __GNU_LIBRARY__ < 5 */
+#endif
 
 
 /* END CODE */

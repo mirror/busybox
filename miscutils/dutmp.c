@@ -28,12 +28,8 @@
  * Do what we can while still keeping this reasonably small.
  * Note: We are assuming the ut_id[] size is fixed at 4. */
 
-#if __GNU_LIBRARY__ < 5
-#warning the format string needs to be changed
-#else
 #if (UT_LINESIZE != 32) || (UT_NAMESIZE != 32) || (UT_HOSTSIZE != 256)
 #error struct utmp member char[] size(s) have changed!
-#endif
 #endif
 
 extern int dutmp_main(int argc, char **argv)
@@ -57,18 +53,6 @@ extern int dutmp_main(int argc, char **argv)
 			bb_perror_msg_and_die("short read");
 		}
 
-		/* Kludge around the fact that the binary format for utmp has changed. */
-#if __GNU_LIBRARY__ < 5
-		/* Linux libc5 */
-
-		bb_printf("%d|%d|%s|%s|%s|%s|%s|%lx\n",
-				  ut.ut_type, ut.ut_pid, ut.ut_line,
-				  ut.ut_id, ut.ut_user, ut.ut_host,
-				  ctime(&(ut.ut_time)), 
-				  (long)ut.ut_addr);
-#else
-		/* Glibc, uClibc, etc. */
-
 		bb_printf("%d|%d|%.32s|%.4s|%.32s|%.256s|%d|%d|%ld|%ld|%ld|%x\n",
 				  ut.ut_type, ut.ut_pid, ut.ut_line,
 				  ut.ut_id, ut.ut_user,	ut.ut_host,
@@ -76,7 +60,6 @@ extern int dutmp_main(int argc, char **argv)
 				  ut.ut_session,
 				  ut.ut_tv.tv_sec, ut.ut_tv.tv_usec,
 				  ut.ut_addr);
-#endif
 	}
 
 	bb_fflush_stdout_and_exit(EXIT_SUCCESS);

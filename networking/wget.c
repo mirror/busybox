@@ -31,19 +31,6 @@
 
 #include "busybox.h"
 
-/* Stupid libc5 doesn't define this... */
-#ifndef timersub
-#define	timersub(a, b, result)						      \
-  do {									      \
-    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;			      \
-    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;			      \
-    if ((result)->tv_usec < 0) {					      \
-      --(result)->tv_sec;						      \
-      (result)->tv_usec += 1000000;					      \
-    }									      \
-  } while (0)
-#endif	
-
 struct host_info {
 	char *host;
 	int port;
@@ -824,7 +811,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.53 2003/03/19 09:12:39 mjn3 Exp $
+ *	$Id: wget.c,v 1.54 2003/07/22 08:56:51 andersen Exp $
  */
 
 

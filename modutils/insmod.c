@@ -247,7 +247,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.98 2003/07/14 21:21:00 andersen Exp $"
+#ident "$Id: insmod.c,v 1.99 2003/07/22 08:56:50 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -468,7 +468,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.98 2003/07/14 21:21:00 andersen Exp $"
+#ident "$Id: insmod.c,v 1.99 2003/07/22 08:56:50 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -492,7 +492,7 @@ static const int MODUTILS_OBJ_H = 1;
 # endif
 #endif
 
-/* For some reason this is missing from libc5.  */
+/* For some reason this is missing from some ancient C libraries....  */
 #ifndef ELF32_ST_INFO
 # define ELF32_ST_INFO(bind, type)       (((bind) << 4) + ((type) & 0xf))
 #endif

@@ -25,17 +25,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
-
+#include <sys/reboot.h>
 #include "busybox.h"
 #include "init_shared.h"
 
-
-#if (__GNU_LIBRARY__ > 5) || defined(__dietlibc__) 
-  #include <sys/reboot.h>
-  #define init_reboot(magic) reboot(magic)
-#else
-  #define init_reboot(magic) reboot(0xfee1dead, 672274793, magic)
-#endif
 
 #ifndef RB_ENABLE_CAD
 static const int RB_ENABLE_CAD = 0x89abcdef;
@@ -57,7 +50,7 @@ extern int reboot_main(int argc, char **argv)
         setpgrp();
 
 		/* Allow Ctrl-Alt-Del to reboot system. */
-		init_reboot(RB_ENABLE_CAD);
+		reboot(RB_ENABLE_CAD);
 
 		message(CONSOLE|LOG, "\n\rThe system is going down NOW !!\n");
 		sync();
@@ -74,7 +67,7 @@ extern int reboot_main(int argc, char **argv)
 
 		sync();
 
-		init_reboot(RB_AUTOBOOT);
+		reboot(RB_AUTOBOOT);
 		return 0; /* Shrug */
 #else
 	return kill_init(SIGTERM);

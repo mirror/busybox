@@ -27,12 +27,12 @@ LIBBB_SRC:= \
 	arith.c bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
 	compare_string_array.c concat_path_file.c copy_file.c \
 	copyfd.c correct_password.c create_icmp_socket.c \
-	create_icmp6_socket.c device_open.c dirname.c dump.c error_msg.c \
+	create_icmp6_socket.c device_open.c dump.c error_msg.c \
 	error_msg_and_die.c find_mount_point.c find_pid_by_name.c \
 	find_root_device.c fgets_str.c full_read.c full_write.c get_console.c \
 	get_last_path_component.c get_line_from_file.c herror_msg.c \
 	herror_msg_and_die.c human_readable.c inet_common.c inode_hash.c \
-	interface.c isdirectory.c kernel_version.c last_char_is.c libc5.c \
+	interface.c isdirectory.c kernel_version.c last_char_is.c \
 	llist_add_to.c login.c loop.c make_directory.c mode_string.c \
 	module_syscalls.c mtab.c mtab_file.c my_getgrgid.c my_getgrnam.c \
 	my_getpwnam.c my_getpwnamegid.c my_getpwuid.c obscure.c parse_mode.c \

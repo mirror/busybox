@@ -44,14 +44,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#if __GNU_LIBRARY__ < 5
 #include <sys/timex.h>
-extern int adjtimex(struct timex *buf);
-#else
-#include <sys/timex.h>
-#endif
-
 #include "busybox.h"
 
 static struct {int bit; char *name;} statlist[] = {

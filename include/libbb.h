@@ -57,18 +57,6 @@
 # define inline
 #endif
 
-#if (__GNU_LIBRARY__ < 5) && (!defined __dietlibc__)
-/* libc5 doesn't define socklen_t */
-#ifndef _SOCKLEN_T
-#define _SOCKLEN_T
-typedef unsigned int socklen_t;
-#endif
-/* libc5 doesn't implement BSD 4.4 daemon() */
-extern int daemon (int nochdir, int noclose);
-/* libc5 doesn't implement strtok_r */
-char *strtok_r(char *s, const char *delim, char **ptrptr);
-#endif	
-
 /* Convenience macros to test the version of gcc. */
 #if defined __GNUC__ && defined __GNUC_MINOR__
 # define __GNUC_PREREQ(maj, min) \

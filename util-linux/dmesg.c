@@ -22,14 +22,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <errno.h>
-
-#if __GNU_LIBRARY__ < 5
-# ifdef __alpha__
-#   define klogctl syslog
-# endif
-#else
-# include <sys/klog.h>
-#endif
+#include <sys/klog.h>
 
 #include "busybox.h"
 

@@ -30,12 +30,11 @@
    _syscall* defined.  */
 #define __LIBRARY__
 #include <sys/syscall.h>
-#if __GNU_LIBRARY__ < 5
-/* This is needed for libc5 */
-#include <asm/unistd.h>
-#endif
 #include "grp_.h"
 
-//#define __NR_setgroups        81
-_syscall2(int, setgroups, size_t, size, const gid_t *, list);
+int setgroups(size_t size, const gid_t * list)
+{
+	return(syscall(__NR_setgroups, size, list));
+}
+
 
