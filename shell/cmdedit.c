@@ -115,6 +115,18 @@ void cmdedit_reset_term(void)
 	if (reset_term)
 		/* sparc and other have broken termios support: use old termio handling. */
 		setTermSettings(fileno(stdin), (void*) &initial_settings);
+#ifdef BB_FEATURE_CLEAN_UP
+	if (his_front) {
+		struct history *n;
+		//while(his_front!=his_end) {
+		while(his_front!=his_end) {
+			n = his_front->n;
+			free(his_front->s);
+			free(his_front);
+			his_front=n;
+		}
+	}
+#endif
 }
 
 void clean_up_and_die(int sig)

@@ -142,7 +142,7 @@ char *mtab_next(void **iter)
 
 /* Don't bother to clean up, since exit() does that 
  * automagically, so we can save a few bytes */
-#if 0
+#ifdef BB_FEATURE_CLEAN_UP
 void mtab_free(void)
 {
 	struct _mtab_entry_t *this, *next;
@@ -235,6 +235,9 @@ extern int umount_main(int argc, char **argv)
 	if (argc < 2) {
 		usage(umount_usage);
 	}
+#ifdef BB_FEATURE_CLEAN_UP
+	atexit(mtab_free);
+#endif
 
 	/* Parse any options */
 	while (--argc > 0 && **(++argv) == '-') {

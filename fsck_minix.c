@@ -1319,7 +1319,7 @@ static void alloc_name_list(void)
 		name_list[i] = xmalloc(sizeof(char) * BUFSIZ + 1);
 }
 
-#if 0
+#ifdef BB_FEATURE_CLEAN_UP
 /* execute this atexit() to deallocate name_list[] */
 /* piptigger was here */
 static void free_name_list(void)
@@ -1344,9 +1344,11 @@ extern int fsck_minix_main(int argc, char **argv)
 	int retcode = 0;
 
 	alloc_name_list();
+#ifdef BB_FEATURE_CLEAN_UP
 	/* Don't bother to free memory.  Exit does
 	 * that automagically, so we can save a few bytes */
-	//atexit(free_name_list);
+	atexit(free_name_list);
+#endif
 
 	if (INODE_SIZE * MINIX_INODES_PER_BLOCK != BLOCK_SIZE)
 		die("bad inode size");

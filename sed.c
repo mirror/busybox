@@ -92,7 +92,7 @@ static int ncmds = 0; /* number of sed commands */
 
 /*static char *cur_file = NULL;*/ /* file currently being processed XXX: do I need this? */
 
-#if 0
+#ifdef BB_FEATURE_CLEAN_UP
 static void destroy_cmd_strs()
 {
 	if (sed_cmds == NULL)
@@ -663,7 +663,7 @@ extern int sed_main(int argc, char **argv)
 {
 	int opt;
 
-#if 0
+#ifdef BB_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
 	if (atexit(destroy_cmd_strs) == -1) {
 		perror("sed");

@@ -173,7 +173,7 @@ extern int dd_main(int argc, char **argv)
   cleanup:
 	/* Note that we are not freeing memory or closing
 	 * files here, to save a few bytes. */
-#if 0
+#ifdef BB_FEATURE_CLEAN_UP
 	close(inFd);
 	close(outFd);
 	free(buf);
