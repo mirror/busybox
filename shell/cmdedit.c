@@ -1088,14 +1088,13 @@ static void input_tab(int *lastWasTab)
 				if (l < 14)
 					l = 14;
 				printf("%-14s  ", matches[i]);
+				col+=l;
 				if ((l += 2) > 16)
 					while (l % 16) {
 						putchar(' ');
 						l++;
 					}
-				col += l;
-				col -= (col / cmdedit_termw) * cmdedit_termw;
-				if (col > 60 && matches[i + 1] != NULL) {
+				if (col > (cmdedit_termw-l-l) && matches[i + 1] != NULL) {
 					putchar('\n');
 					col = 0;
 				}
