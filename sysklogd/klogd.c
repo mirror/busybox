@@ -59,8 +59,8 @@ static void klogd_signal(int sig)
 	exit(TRUE);
 }
 
-static void doKlogd(void) __attribute__ ((noreturn));
-static void doKlogd(void)
+static void doKlogd(const char console_log_level) __attribute__ ((noreturn));
+static void doKlogd(const char console_log_level)
 {
 	int priority = LOG_INFO;
 	char log_buffer[4096];
@@ -75,6 +75,10 @@ static void doKlogd(void)
 
 	/* "Open the log. Currently a NOP." */
 	klogctl(1, NULL, 0);
+
+	/* Set level of kernel console messaging.. */
+	if (console_log_level)
+		klogctl(8, NULL, console_log_level);
 
 	syslog_msg(LOG_SYSLOG, LOG_NOTICE, "klogd started: " BB_BANNER);
 
@@ -125,10 +129,23 @@ extern int klogd_main(int argc, char **argv)
 	/* no options, no getopt */
 	int opt;
 	int doFork = TRUE;
+	unsigned char console_log_level = 7;
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "n")) > 0) {
+	while ((opt = getopt(argc, argv, "c:n")) > 0) {
 		switch (opt) {
+		case 'c':
+			if ((optarg == NULL) || (optarg[1] != '\0')) {
+				show_usage();
+			}
+			/* Valid levels are between 1 and 8 */
+			console_log_level = *optarg - '1';
+			if (console_log_level > 7) {
+				show_usage();
+			}
+			console_log_level++;
+			
+			break;
 		case 'n':
 			doFork = FALSE;
 			break;
@@ -145,7 +162,7 @@ extern int klogd_main(int argc, char **argv)
 		error_msg_and_die("daemon not supported");
 #endif
 	}
-	doKlogd();
+	doKlogd(console_log_level);
 
 	return EXIT_SUCCESS;
 }
