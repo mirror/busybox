@@ -157,8 +157,11 @@ password_check(const char *old, const char *newval, const struct passwd *pwdp)
 	else if (similiar(wrapped, newmono))
 		msg = "too similiar";
 
-	else if (strstr(strcat(wrapped, wrapped), newmono))
-		msg = "rotated";
+	else {
+		safe_strncpy(wrapped + lenwrap, wrapped, lenwrap + 1);
+		if (strstr(wrapped, newmono))
+			msg = "rotated";
+	}
 
 	bzero(newmono, strlen(newmono));
 	bzero(wrapped, lenwrap);
