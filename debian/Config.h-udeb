@@ -36,7 +36,7 @@
 //#define BB_FDFLUSH
 #define BB_FIND
 #define BB_FREE
-//#define BB_FREERAMDISK
+#define BB_FREERAMDISK
 //#define BB_FSCK_MINIX
 //#define BB_GETOPT
 #define BB_GREP
@@ -76,7 +76,7 @@
 //#define BB_MT
 //#define BB_NSLOOKUP
 //#define BB_PING
-//#define BB_PIVOT_ROOT
+#define BB_PIVOT_ROOT
 #define BB_POWEROFF
 //#define BB_PRINTF
 #define BB_PS
@@ -93,7 +93,7 @@
 //#define BB_RPMUNPACK
 #define BB_SED
 //#define BB_SETKEYCODES
-#define BB_SH
+//#define BB_SH
 #define BB_SLEEP
 #define BB_SORT
 //#define BB_STTY
