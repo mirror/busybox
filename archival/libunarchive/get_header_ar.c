@@ -47,7 +47,9 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 		return(EXIT_FAILURE);
 	}
 
-	/* Some ar entries have a trailing '\n' after the previous data entry */
+	/* ar header starts on an even byte (2 byte aligned)
+	 * '\n' is used for padding
+	 */
 	if (ar.raw[0] == '\n') {
 		/* fix up the header, we started reading 1 byte too early */
 		memmove(ar.raw, &ar.raw[1], 59);
