@@ -48,9 +48,10 @@
 	    then be loaded in by 'loadkmap' -- submitted by
 	    Arne Bernin <arne@matrix.loopback.org>
 	* Fixed NFS so it supports 2.4.x kernels and NFSv3.
-	* Brand, new versions of grep and sed which use libc regex routines. The
-		hand-tooled "regexp.[ch]" files have been removed. Much help from Matt
-		Kraai <kraai@alumni.carnegiemellon.edu> on these.
+	* Brand, new versions of grep and sed which use libc regex routines,
+	    thanks to Mark Whitley <markw@lineo.com>.  The hand-tooled 
+	    "regexp.[ch]" files have been removed. Much help on these from 
+	    Matt Kraai as well.
 
 
 	 -Erik Andersen
