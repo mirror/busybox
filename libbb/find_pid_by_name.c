@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include "libbb.h"
 
+#define READ_BUF_SIZE	50
+
 
 /* For Erik's nifty devps device driver */
 #ifdef BB_FEATURE_USE_DEVPS_PATCH
@@ -131,22 +133,27 @@ extern pid_t* find_pid_by_name( char* pidName)
 	
 	while ((next = readdir(dir)) != NULL) {
 		FILE *status;
-		char filename[256];
-		char buffer[256];
+		char filename[READ_BUF_SIZE];
+		char buffer[READ_BUF_SIZE];
+		char name[READ_BUF_SIZE];
 
 		/* If it isn't a number, we don't want it */
 		if (!isdigit(*next->d_name))
 			continue;
 
-		sprintf(filename, "/proc/%s/cmdline", next->d_name);
-		status = fopen(filename, "r");
-		if (!status) {
+		sprintf(filename, "/proc/%s/status", next->d_name);
+		if (! (status = fopen(filename, "r")) ) {
 			continue;
 		}
-		fgets(buffer, 256, status);
+		if (fgets(buffer, READ_BUF_SIZE-1, status) == NULL) {
+			fclose(status);
+			continue;
+		}
 		fclose(status);
 
-		if (strstr(get_last_path_component(buffer), pidName) != NULL) {
+		/* Buffer should contain a string like "Name:   binary_name" */
+		sscanf(buffer, "%*s %s", name);
+		if (strcmp(name, pidName) == 0) {
 			pidList=xrealloc( pidList, sizeof(pid_t) * (i+2));
 			pidList[i++]=strtol(next->d_name, NULL, 0);
 		}
