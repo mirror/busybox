@@ -85,6 +85,7 @@ static const int RB_ENABLE_CAD = 0x89abcdef;
 static const int RB_DISABLE_CAD = 0;
 #define RB_POWER_OFF    0x4321fedc
 static const int RB_AUTOBOOT = 0x01234567;
+#endif
 
 #if __GNU_LIBRARY__ > 5
   #include <sys/reboot.h>
