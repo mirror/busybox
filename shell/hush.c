@@ -1950,6 +1950,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			lookup_param(dest, ctx, &alt);
 			break;
 		case '(':
+			b_getch(input);
 			process_command_subs(dest, ctx, input, ')');
 			break;
 		case '*':
