@@ -386,6 +386,9 @@
 #ifdef BB_TR
 	APPLET(tr, tr_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_TRACEROUTE
+	APPLET(traceroute, traceroute_main, _BB_DIR_USR_BIN)
+#endif
 #ifdef BB_TRUE_FALSE
 	APPLET(true, true_main, _BB_DIR_BIN)
 #endif

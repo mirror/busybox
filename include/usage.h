@@ -1593,6 +1593,28 @@
 	"$ echo "gdkkn vnqkc" | tr [a-y] [b-z]\n" \
 	"hello world\n" 
 
+#define traceroute_trivial_usage \
+	"[-dnrv] [-m max_ttl] [-p port#] [-q nqueries]\n\
+	[-s src_addr] [-t tos] [-w wait] host [data size]"
+#define traceroute_full_usage \
+	"trace the route ip packets follow going to \"host\"\n" \
+	"Options:\n" \
+	"\t-d\tset SO_DEBUG options to socket\n" \
+	"\t-n\tPrint hop addresses numerically rather than symbolically\n" \
+	"\t-r\tBypass the normal routing tables and send directly to a host\n" \
+	"\t-v\tVerbose output\n" \
+	"\t-m max_ttl\tSet the max time-to-live (max number of hops)\n" \
+	"\t-p port#\tSet the base UDP port number used in probes\n" \
+	"\t\t(default is 33434)\n" \
+	"\t-q nqueries\tSet the number of probes per ``ttl'' to nqueries\n" \
+	"\t\t(default is 3)\n" \
+	"\t-s src_addr\tUse the following IP address as the source address\n" \
+	"\t-t tos\tSet the type-of-service in probe packets to the following value\n" \
+	"\t\t(default 0)\n" \
+	"\t-w wait\tSet the time (in seconds) to wait for a response to a probe\n" \
+	"\t\t(default 3 sec.)."
+
+
 #define true_trivial_usage \
 	""
 #define true_full_usage \

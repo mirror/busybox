@@ -114,6 +114,7 @@
 //#define BB_TFTP
 #define BB_TOUCH
 //#define BB_TR
+//#define BB_TRACEROUTE
 #define BB_TRUE_FALSE
 #define BB_TTY
 //#define BB_UNIX2DOS
