@@ -24,8 +24,9 @@ extern char *xreadlink(const char *path)
 		buf = xrealloc(buf, bufsize += GROWBY);
 		readsize = readlink(path, buf, bufsize); /* 1st try */
 		if (readsize == -1) {
-                   bb_perror_msg("%s", path);
-		    return NULL;
+			bb_perror_msg("%s", path);
+			free(buf);
+			return NULL;
 		}
 	}
 	while (bufsize < readsize + 1);
