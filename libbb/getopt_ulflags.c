@@ -88,6 +88,8 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
   t_complementaly *on_off;
   va_list p;
 
+  memset(&complementaly, 0, sizeof(complementaly));
+
   va_start (p, applet_opts);
 
   /* skip GNU extension */
