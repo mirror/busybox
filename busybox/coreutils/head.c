@@ -22,7 +22,6 @@
  *
  */
 
-#include <errno.h>
 #include <stdio.h>
 #include <getopt.h>
 #include <stdlib.h>
@@ -82,10 +81,9 @@ int head_main(int argc, char **argv)
 				printf("==> %s <==\n", argv[optind]);
 			}
 			head(len, fp);
-			if (errno) {
+			if (ferror(fp)) {
 				perror_msg("%s", argv[optind]);
 				status = EXIT_FAILURE;
-				errno = 0;
 			}
 			if (optind < argc - 1)
 				putchar('\n');

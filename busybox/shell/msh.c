@@ -1261,7 +1261,7 @@ static void
 ronly(vp)
 struct var *vp;
 {
-	if (isalpha(vp->name[0]))	/* not an internal symbol ($# etc) */
+	if (isalpha(vp->name[0]) || vp->name[0] == '_')	/* not an internal symbol */
 		vp->status |= RONLY;
 }
 
@@ -1269,10 +1269,10 @@ static int
 isassign(s)
 register char *s;
 {
-	if (!isalpha((int)*s))
+	if (!isalpha((int)*s) && *s != '_')
 		return(0);
 	for (; *s != '='; s++)
-		if (*s == 0 || !isalnum(*s))
+		if (*s == 0 || (!isalnum(*s) && *s != '_'))
 			return(0);
 	return(1);
 }
@@ -1285,10 +1285,10 @@ int cf;
 	register char *cp;
 	struct var *vp;
 
-	if (!isalpha(*s))
+	if (!isalpha(*s) && *s != '_')
 		return(0);
 	for (cp = s; *cp != '='; cp++)
-		if (*cp == 0 || !isalnum(*cp))
+		if (*cp == 0 || (!isalnum(*cp) && *cp != '_'))
 			return(0);
 	vp = lookup(s);
 	nameval(vp, ++cp, cf == COPYV? (char *)NULL: s);
@@ -1301,10 +1301,10 @@ static int
 checkname(cp)
 register char *cp;
 {
-	if (!isalpha(*cp++))
+	if (!isalpha(*cp++) && *(cp-1) != '_')
 		return(0);
 	while (*cp)
-		if (!isalnum(*cp++))
+		if (!isalnum(*cp++) && *(cp-1) != '_')
 			return(0);
 	return(1);
 }
@@ -1316,7 +1316,7 @@ register int f, out;
 	register struct var *vp;
 
 	for (vp = vlist; vp; vp = vp->next)
-		if (vp->status & f && isalpha(*vp->name)) {
+		if (vp->status & f && (isalpha(*vp->name) || *vp->name == '_')) {
 			if (vp->status & EXPORT)
 				write(out, "export ", 7);
 			if (vp->status & RONLY)
@@ -3406,7 +3406,7 @@ varput(s, out)
 register char *s;
 int out;
 {
-	if (isalnum(*s)) {
+	if (isalnum(*s) || *s == '_') {
 		write(out, s, strlen(s));
 		write(out, "\n", 1);
 	}
@@ -3613,7 +3613,7 @@ loop:
 		c = 0;
 	}
 	unget(c);
-	if (!isalpha(c))
+	if (!isalpha(c) && c != '_')
 		scanequals = 0;
 	for (;;) {
 		c = subgetc('"', foundequals);
@@ -3631,7 +3631,7 @@ loop:
 				foundequals = 1;
 				scanequals  = 0;
 			}
-			else if (!isalnum(c))
+			else if (!isalnum(c) && c != '_')
 				scanequals = 0;
 		}
 		*e.linep++ = c;
@@ -3684,8 +3684,8 @@ int quoted;
 	s = e.linep;
 	if (c != '{') {
 		*e.linep++ = c;
-		if (isalpha(c)) {
-			while ((c = readc())!=0 && isalnum(c))
+		if (isalpha(c) || c == '_') {
+			while ((c = readc())!=0 && (isalnum(c) || c == '_'))
 				if (e.linep < elinep)
 					*e.linep++ = c;
 			unget(c);

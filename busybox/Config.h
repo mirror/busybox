@@ -239,6 +239,9 @@
 // Enable support for mounting remote NFS volumes. 
 // You may need to mount with "-o nolock" if you are
 // not running a local portmapper daemon...
+//
+// If you are using uClibc, be sure that you've already compiled
+// uClibc with INCLUDE_RPC=true (contained in the Config file)
 //#define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
@@ -316,7 +319,7 @@
 // Support for Minix filesystem, version 2
 //#define BB_FEATURE_MINIX2
 //
-// Enable ifconfig status reporting output -- this feature adds 12k.
+// Enable ifconfig status reporting output -- this feature adds 7k.
 //#define BB_FEATURE_IFCONFIG_STATUS
 //
 // Enable ifconfig slip-specific options "keepalive" and "outfill"
@@ -327,6 +330,10 @@
 //
 // Enable ifconfig option "hw".  Currently works for only with "ether".
 //#define BB_FEATURE_IFCONFIG_HW
+//
+// Allows "broadcast +" to set broadcast automatically based on hostaddr
+// and netmask, at a cost of about 100 bytes of code (i386).
+//#define BB_FEATURE_IFCONFIG_BROADCAST_PLUS
 //
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 
@@ -462,15 +469,11 @@
 #endif
 //
 #if defined BB_ASH && defined BB_FEATURE_SH_IS_ASH
-# define BB_SH
 # define shell_main ash_main
 #elif defined BB_HUSH && defined BB_FEATURE_SH_IS_HUSH
-# define BB_SH
 # define shell_main hush_main
 #elif defined BB_LASH && defined BB_FEATURE_SH_IS_LASH
-# define BB_SH
 # define shell_main lash_main
 #elif defined BB_MSH && defined BB_FEATURE_SH_IS_MSH
-# define BB_SH
 # define shell_main msh_main
 #endif

@@ -459,15 +459,11 @@
 #endif
 //
 #if defined BB_ASH && defined BB_FEATURE_SH_IS_ASH
-# define BB_SH
 # define shell_main ash_main
 #elif defined BB_HUSH && defined BB_FEATURE_SH_IS_HUSH
-# define BB_SH
 # define shell_main hush_main
 #elif defined BB_LASH && defined BB_FEATURE_SH_IS_LASH
-# define BB_SH
 # define shell_main lash_main
 #elif defined BB_MSH && defined BB_FEATURE_SH_IS_MSH
-# define BB_SH
 # define shell_main msh_main
 #endif

@@ -264,6 +264,7 @@ char *dirname (const char *path);
 int make_directory (char *path, long mode, int flags);
 
 const char *u_signal_names(const char *str_sig, int *signo, int startnum);
+char *simplify_path(const char *path);
 
 #define CT_AUTO	0
 #define CT_UNIX2DOS	1

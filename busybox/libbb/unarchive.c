@@ -230,24 +230,35 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_headers
 	const int extract_function, const char *prefix, char **extract_names)
 {
 	file_header_t *file_entry;
-	int found;
+	int extract_flag;
 	int i;
 	char *buffer = NULL;
 
 	archive_offset = 0;
 	while ((file_entry = get_headers(src_stream)) != NULL) {
-		found = FALSE;
-		if (extract_names == NULL) {
-			found = TRUE;
-		} else {
+		extract_flag = TRUE;
+		if (extract_names != NULL) {
+			int found_flag = FALSE;
 			for(i = 0; extract_names[i] != 0; i++) {
 				if (strcmp(extract_names[i], file_entry->name) == 0) {
-					found = TRUE;
+					found_flag = TRUE;
+					break;
 				}
 			}
+			if (extract_function & extract_exclude_list) {
+				if (found_flag == TRUE) {
+					extract_flag = FALSE;
+				}
+			} else {
+				/* If its not found in the include list dont extract it */
+				if (found_flag == FALSE) {
+					extract_flag = FALSE;
+				}
+			}
+
 		}
 
-		if (found) {
+		if (extract_flag == TRUE) {
 			buffer = extract_archive(src_stream, out_stream, file_entry, extract_function, prefix);
 		} else {
 			/* seek past the data entry */

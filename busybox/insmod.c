@@ -133,7 +133,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.70 2001/07/31 22:51:49 andersen Exp $"
+#ident "$Id: insmod.c,v 1.70.2.1 2001/08/10 18:22:15 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -350,7 +350,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.70 2001/07/31 22:51:49 andersen Exp $"
+#ident "$Id: insmod.c,v 1.70.2.1 2001/08/10 18:22:15 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1304,22 +1304,6 @@ static unsigned long obj_elf_hash(const char *name)
 }
 
 #ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
-/* Get the kernel version in the canonical integer form.  */
-
-static int get_kernel_version(char str[STRVERSIONLEN])
-{
-	struct utsname uts_info;
-	int kv;
-
-	if (uname(&uts_info) < 0)
-		return -1;
-	strncpy(str, uts_info.release, STRVERSIONLEN);
-
-	kv = get_kernel_revision();
-	if(kv==0)
-		return -1;
-}
-
 /* String comparison for non-co-versioned kernel and module.  */
 
 static int ncv_strcmp(const char *a, const char *b)
@@ -3239,8 +3223,7 @@ extern int insmod_main( int argc, char **argv)
 	int exit_status = EXIT_FAILURE;
 	int m_has_modinfo;
 #ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
-	int k_version;
-	char k_strversion[STRVERSIONLEN];
+	struct utsname uts_info;
 	char m_strversion[STRVERSIONLEN];
 	int m_version;
 	int m_crcs;
@@ -3355,7 +3338,8 @@ extern int insmod_main( int argc, char **argv)
 #ifdef BB_FEATURE_INSMOD_VERSION_CHECKING
 	/* Version correspondence?  */
 
-	k_version = get_kernel_version(k_strversion);
+	if (uname(&uts_info) < 0)
+		uts_info.release[0] = '\0';
 	if (m_has_modinfo) {
 		m_version = new_get_module_version(f, m_strversion);
 	} else {
@@ -3367,17 +3351,17 @@ extern int insmod_main( int argc, char **argv)
 		}
 	}
 
-	if (strncmp(k_strversion, m_strversion, STRVERSIONLEN) != 0) {
+	if (strncmp(uts_info.release, m_strversion, STRVERSIONLEN) != 0) {
 		if (flag_force_load) {
 			error_msg("Warning: kernel-module version mismatch\n"
 					"\t%s was compiled for kernel version %s\n"
 					"\twhile this kernel is version %s",
-					m_filename, m_strversion, k_strversion);
+					m_filename, m_strversion, uts_info.release);
 		} else {
 			error_msg("kernel-module version mismatch\n"
 					"\t%s was compiled for kernel version %s\n"
 					"\twhile this kernel is version %s.",
-					m_filename, m_strversion, k_strversion);
+					m_filename, m_strversion, uts_info.release);
 			goto out;
 		}
 	}

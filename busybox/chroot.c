@@ -48,7 +48,7 @@ int chroot_main(int argc, char **argv)
 		prog = *argv;
 		execvp(*argv, argv);
 	} else {
-#if defined(BB_SH) && defined BB_FEATURE_SH_STANDALONE_SHELL
+#if defined shell_main && defined BB_FEATURE_SH_STANDALONE_SHELL
 		char shell[] = "/bin/sh";
 		char *shell_argv[2] = { shell, NULL };
 		applet_name = shell;
