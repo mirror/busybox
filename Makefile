@@ -26,31 +26,48 @@ export VERSION
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
 # eg: `make DODEBUG=true tests'
+# Do not enable this for production builds...
 DODEBUG = false
+
+# This enables compiling with dmalloc ( http://dmalloc.com/ )
+# which is an excellent public domain mem leak and malloc problem
+# detector.  To enable dmalloc, before running busybox you will
+# want to first set up your environment.
+# eg: `export DMALLOC_OPTIONS=debug=0x14f47d83,inter=100,log=logfile`
+# Do not enable this for production builds...
+DODMALLOC = false
 
 # If you want a static binary, turn this on.
 DOSTATIC = false
 
+# If you are running a cross compiler, you may want to set this
+# to something more interesting...
+CROSS =
+CC = $(CROSS)gcc
+STRIPTOOL = $(CROSS)strip
+
 # To compile vs an alternative libc, you may need to use/adjust
-# the following lines to meet your needs.  This is how I did it...
+# the following lines to meet your needs.  This is how I make
+# busybox compile with uC-Libc...
+#LIBCDIR=/home/andersen/CVS/uC-libc
 #GCCINCDIR = $(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
-#CFLAGS+=-nostdinc -fno-builtin -I/home/andersen/CVS/uC-libc/include -I$(GCCINCDIR)
+#CFLAGS+=-nostdinc -fno-builtin -I$(LIBCDIR)/include -I$(GCCINCDIR)
 #LDFLAGS+=-nostdlib
-#LIBRARIES = /home/andersen/CVS/uC-libc/libc.a
+#LIBRARIES = $(LIBCDIR)/libc.a
 
-
-CC = gcc
+#--------------------------------------------------------
 
 # use '-Os' optimization if available, else use -O2
 OPTIMIZATION = $(shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
     then echo "-Os"; else echo "-O2" ; fi)
 
-
-# Allow alternative stripping tools to be used...
-ifndef $(STRIPTOOL)
-    STRIPTOOL = strip
+ifeq ($(DODMALLOC),true)
+    # For testing mem leaks with dmalloc
+    CFLAGS+=-DDMALLOC
+    LIBRARIES = -ldmalloc
+    # Force debug=true, since this is useless when not debugging...
+    DODEBUG = true
 endif
-
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
     CFLAGS += -Wall -g -D_GNU_SOURCE
