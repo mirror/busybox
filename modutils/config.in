@@ -14,11 +14,11 @@ bool 'rmmod'	    CONFIG_RMMOD
 
 if [ "$CONFIG_INSMOD" = "y" ]; then
     comment 'Module support options'
+    bool 'Support for older (pre 2.1) Linux kernels'		CONFIG_FEATURE_OLD_MODULE_INTERFACE
     if [ "$CONFIG_FEATURE_OLD_MODULE_INTERFACE" = "n" ] ; then
 	    define_bool CONFIG_FEATURE_NEW_MODULE_INTERFACE	y
     fi
     bool 'Support for new (post 2.1) kernels'			CONFIG_FEATURE_NEW_MODULE_INTERFACE
-    bool 'Support for older (pre 2.1) Linux kernels'		CONFIG_FEATURE_OLD_MODULE_INTERFACE
     bool 'Support module version checking'			CONFIG_FEATURE_INSMOD_VERSION_CHECKING
     bool 'Support image in kernel memory optimization (uClinux only)'		CONFIG_FEATURE_INSMOD_LOADINKMEM
 fi

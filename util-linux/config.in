@@ -43,7 +43,9 @@ bool 'swaponoff'	    CONFIG_SWAPONOFF
 bool 'mount'		    CONFIG_MOUNT
 if [ "$CONFIG_MOUNT" = "y" ]; then
     bool '  Support mounting nfs file systems'		    	CONFIG_NFSMOUNT
-    bool '  Use devmtab instead of /proc (needs a patched kernel)'	CONFIG_FEATURE_USE_DEVPS_PATCH
+    if [ "$CONFIG_FEATURE_USE_DEVPS_PATCH" = "n" ]; then
+	bool '  Use devmtab instead of /proc (needs a patched kernel)'	CONFIG_FEATURE_USE_DEVPS_PATCH
+    fi
 fi
 bool 'umount'		    CONFIG_UMOUNT
 if [ "$CONFIG_UMOUNT" = "y" ]; then

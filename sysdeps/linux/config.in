@@ -28,7 +28,6 @@ endmenu
 source archival/config.in
 source console-tools/config.in
 source editors/config.in
-source fileutils/config.in
 source findutils/config.in
 source init/config.in
 source miscutils/config.in
@@ -41,4 +40,5 @@ source shellutils/config.in
 source sysklogd/config.in
 source textutils/config.in
 source util-linux/config.in
+source fileutils/config.in
 

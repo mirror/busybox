@@ -11,7 +11,8 @@ choice 'Choose your default shell' \
     hush                                    CONFIG_FEATURE_SH_IS_HUSH \
     lash                                    CONFIG_FEATURE_SH_IS_LASH \
     msh                                     CONFIG_FEATURE_SH_IS_MSH  \
-    none                                    CONFIG_FEATURE_SH_IS_NONE"
+    none                                    CONFIG_FEATURE_SH_IS_NONE" \
+    ash
 
 if [ "$CONFIG_FEATURE_SH_IS_ASH" = "y" ] ; then
 	define_bool CONFIG_ASH	y
