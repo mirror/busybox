@@ -6,8 +6,10 @@
 	* Fixed find -name so it properly uses shell wildcard patterns 
 	    (i.e. `*', `?', and `[]') instead of regular expressions, which
 	    was causing some confusing and unexpected behavior.
+	* Added klogd to syslogd, so now the log will contain both system and
+	    kernel messages.
 	    
-	-Erik Andrsen, Dec 2, 1999
+	-Erik Andrsen
 
 0.37
 	* Wrote a micro syslogd, and a logger util (to log things to the syslog
