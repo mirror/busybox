@@ -1018,7 +1018,8 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 				close(openfd);
 			} else {
 				dup2(openfd, redir->fd);
-				close(openfd);
+				if (redir->dup == -1)
+					close (openfd);
 			}
 		}
 	}
