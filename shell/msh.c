@@ -2836,9 +2836,6 @@ char *c, **v, **envp;
 
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	char *name = c;
-#ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
-	name = bb_get_last_path_component(name);
-#endif
 	optind = 1;
 	if (find_applet_by_name(name)) {
 		/* We have to exec here since we vforked.  Running

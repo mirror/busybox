@@ -1124,18 +1124,6 @@ static void pseudo_exec(struct child_prog *child)
 			char** argv_l=child->argv;
 			char *name = child->argv[0];
 
-#ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
-			/* Following discussions from November 2000 on the busybox mailing
-			 * list, the default configuration, (without
-			 * bb_get_last_path_component()) lets the user force use of an
-			 * external command by specifying the full (with slashes) filename.
-			 * If you enable CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN, then applets
-			 * _aways_ override external commands, so if you want to run
-			 * /bin/cat, it will use BusyBox cat even if /bin/cat exists on the
-			 * filesystem and is _not_ busybox.  Some systems may want this,
-			 * most do not.  */
-			name = bb_get_last_path_component(name);
-#endif
 			/* Count argc for use in a second... */
 			for(argc_l=0;*argv_l!=NULL; argv_l++, argc_l++);
 			optind = 1;

@@ -1275,15 +1275,6 @@ static int pseudo_exec(struct child_prog *child)
 	 */
 	name = child->argv[0];
 
-#ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
-	/* If you enable CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN, then
-	 * if you run /bin/cat, it will use BusyBox cat even if
-	 * /bin/cat exists on the filesystem and is _not_ busybox.
-	 * Some systems want this, others do not.  Choose wisely.  :-)
-	 */
-	name = bb_get_last_path_component(name);
-#endif
-
 	{
 	    char** argv_l=child->argv;
 	    int argc_l;

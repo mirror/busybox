@@ -3717,15 +3717,9 @@ tryexec(char *cmd, char **argv, char **envp)
 	int flg_bb = 0;
 	char *name = cmd;
 
-#ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
-	name = bb_get_last_path_component(name);
-	if(find_applet_by_name(name) != NULL)
-		flg_bb = 1;
-#else
 	if(strchr(name, '/') == NULL && find_applet_by_name(name) != NULL) {
 		flg_bb = 1;
 	}
-#endif
 	if(flg_bb) {
 		char **ap;
 		char **new;

@@ -160,16 +160,14 @@ config CONFIG_FEATURE_SH_STANDALONE_SHELL
 	default n
 	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
 	help
-	  Have all the busybox commands built into the shell, creating
-	  a standalone shell.
-
-config CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
-	bool "Standalone shell -- applets always win"
-	default n
-	depends on CONFIG_FEATURE_SH_STANDALONE_SHELL
-	help
-	  Use a command builtin to the shell over one with the same name,
-	  that may be on the system.
+	  This option causes the selected busybox shell to use busybox applets
+	  in preference to executables in the PATH whenever possible.  For
+	  example, entering the command 'ifconfig' into the shell would cause
+	  busybox to use the ifconfig busybox applet.  Specifying the fully
+	  qualified executable name, such as '/sbin/ifconfig' will still
+	  execute the /sbin/ifconfig executable on the filesystem.  This option
+	  is generally used when creating a staticly linked version of busybox
+	  for use as a rescue shell, in the event that you screw up your system.
 
 config CONFIG_FEATURE_COMMAND_EDITING
 	bool "command line editing"
