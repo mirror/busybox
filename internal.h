@@ -354,6 +354,8 @@ extern long getNum (const char *cp);
 extern pid_t* findPidByName( char* pidName);
 extern int find_real_root_device_name(char* name);
 extern char *get_line_from_file(FILE *file);
+extern void print_file(FILE *file);
+extern int print_file_by_name(char *filename);
 extern char process_escape_sequence(char **ptr);
 extern char *get_last_path_component(char *path);
 extern void xregcomp(regex_t *preg, const char *regex, int cflags);

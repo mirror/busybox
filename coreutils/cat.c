@@ -24,20 +24,8 @@
 #include "internal.h"
 #include <stdio.h>
 
-static void print_file(FILE * file)
-{
-	int c;
-
-	while ((c = getc(file)) != EOF)
-		putc(c, stdout);
-	fclose(file);
-	fflush(stdout);
-}
-
 extern int cat_main(int argc, char **argv)
 {
-	FILE *file;
-
 	if (argc == 1) {
 		print_file(stdin);
 		exit(TRUE);
@@ -47,12 +35,10 @@ extern int cat_main(int argc, char **argv)
 		usage(cat_usage);
 
 	while (--argc > 0) {
-		file = fopen(*++argv, "r");
-		if (file == NULL) {
+		if (print_file_by_name(*++argv) == FALSE) {
 			perror(*argv);
 			exit(FALSE);
 		}
-		print_file(file);
 	}
 	return(TRUE);
 }

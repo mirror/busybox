@@ -483,7 +483,7 @@ const char *timeString(time_t timeVal)
 
 	return buf;
 }
-#endif							/* BB_TAR */
+#endif /* BB_TAR || BB_AR */
 
 #if defined BB_TAR || defined BB_CP_MV || defined BB_AR
 /*
@@ -511,10 +511,10 @@ int fullWrite(int fd, const char *buf, int len)
 
 	return total;
 }
-#endif							/* BB_TAR || BB_CP_MV */
+#endif /* BB_TAR || BB_CP_MV || BB_AR */
 
 
-#if defined BB_TAR || defined BB_TAIL || defined BB_AR
+#if defined BB_TAR || defined BB_TAIL || defined BB_AR || defined BB_SH
 /*
  * Read all of the supplied buffer from a file.
  * This does multiple reads as necessary.
@@ -544,7 +544,7 @@ int fullRead(int fd, char *buf, int len)
 
 	return total;
 }
-#endif							/* BB_TAR || BB_TAIL */
+#endif /* BB_TAR || BB_TAIL || BB_AR || BB_SH */
 
 
 #if defined (BB_CHMOD_CHOWN_CHGRP) \
@@ -1666,6 +1666,29 @@ extern char *get_line_from_file(FILE *file)
 	linebuf[idx] = 0;
 	return linebuf;
 }
+
+#if defined BB_CAT || defined BB_LSMOD
+extern void print_file(FILE *file)
+{
+	int c;
+
+	while ((c = getc(file)) != EOF)
+		putc(c, stdout);
+	fclose(file);
+	fflush(stdout);
+}
+
+extern int print_file_by_name(char *filename)
+{
+	FILE *file;
+	file = fopen(filename, "r");
+	if (file == NULL) {
+		return FALSE;
+	}
+	print_file(file);
+	return TRUE;
+}
+#endif /* BB_CAT || BB_LSMOD */
 
 #if defined BB_ECHO || defined BB_TR
 char process_escape_sequence(char **ptr)

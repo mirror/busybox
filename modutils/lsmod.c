@@ -28,13 +28,13 @@
 extern int lsmod_main(int argc, char **argv)
 {
 #if defined BB_FEATURE_USE_DEVPS_PATCH
-	char *cmd[] = { "cat", "/dev/modules", "\0" };
+	char *filename = "/dev/modules";
 #else
 #if ! defined BB_FEATURE_USE_PROCFS
 #error Sorry, I depend on the /proc filesystem right now.
 #endif
-	char *cmd[] = { "cat", "/proc/modules", "\0" };
+	char *filename = "/proc/modules";
 #endif
 
-	return(cat_main(3, cmd));
+	return(print_file_by_name(filename));
 }
