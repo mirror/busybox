@@ -970,10 +970,10 @@ static int expand_arguments(char *command)
 	{
         
 		int flags = GLOB_NOCHECK|GLOB_BRACE|GLOB_TILDE;
-		char * tmpcmd;
+		char * tmpcmd, *cmd, *cmd_copy;
 		/* We need a clean copy, so strsep can mess up the copy while
 		 * we write stuff into the original (in a minute) */
-		char * cmd = strdup(command);
+		cmd = cmd_copy = strdup(command);
 		*command = '\0';
 		for (tmpcmd = cmd; (tmpcmd = strsep(&cmd, " \t")) != NULL;) {
 			if (*tmpcmd == '\0')
@@ -1006,7 +1006,7 @@ static int expand_arguments(char *command)
 				globfree (&expand_result);
 			}
 		}
-		free(cmd);
+		free(cmd_copy);
 		trim(command);
 	}
 	
