@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.16 2001/10/24 04:59:23 andersen Exp $";
+	"$Id: vi.c,v 1.17 2001/11/12 16:57:26 kraai Exp $";
 
 /*
  * To compile for standalone use:
@@ -385,7 +385,7 @@ extern int vi_main(int argc, char **argv)
 			editing = 1;	// 0=exit, 1=one file, 2+ =many files
 			if (cfn != 0)
 				free(cfn);
-			cfn = (Byte *) strdup(argv[optind]);
+			cfn = (Byte *) xstrdup(argv[optind]);
 			edit_file(cfn);
 		}
 	}
@@ -1085,7 +1085,7 @@ static void do_cmd(Byte c)
 		// Stuff the last_modifying_cmd back into stdin
 		// and let it be re-executed.
 		if (last_modifying_cmd != 0) {
-			ioq = ioq_start = (Byte *) strdup((char *) last_modifying_cmd);
+			ioq = ioq_start = (Byte *) xstrdup((char *) last_modifying_cmd);
 		}
 		break;
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
@@ -1102,7 +1102,7 @@ static void do_cmd(Byte c)
 			if (last_search_pattern != 0) {
 				free(last_search_pattern);
 			}
-			last_search_pattern = (Byte *) strdup((char *) q);
+			last_search_pattern = (Byte *) xstrdup((char *) q);
 			goto dc3;	// now find the pattern
 		}
 		// user changed mind and erased the "/"-  do nothing
@@ -1655,7 +1655,7 @@ static Byte *get_one_address(Byte * p, int *addr)	// get colon addr, if present
 			*q++ = *p;
 			*q = '\0';
 		}
-		pat = (Byte *) strdup((char *) buf);	// save copy of pattern
+		pat = (Byte *) xstrdup((char *) buf);	// save copy of pattern
 		if (*p == '/')
 			p++;
 		q = char_search(dot, pat, FORWARD, FULL);
@@ -1852,7 +1852,7 @@ static void colon(Byte * buf)
 
 		// There is a read-able regular file
 		// make this the current file
-		q = (Byte *) strdup((char *) fn);	// save the cfn
+		q = (Byte *) xstrdup((char *) fn);	// save the cfn
 		if (cfn != 0)
 			free(cfn);		// free the old name
 		cfn = q;			// remember new cfn
@@ -1905,7 +1905,7 @@ static void colon(Byte * buf)
 			// user wants a new filename
 			if (cfn != NULL)
 				free(cfn);
-			cfn = (Byte *) strdup((char *) args);
+			cfn = (Byte *) xstrdup((char *) args);
 		} else {
 			// user wants file status info
 			edit_status();
@@ -3465,7 +3465,7 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 	refresh(FALSE);
 	if (obufp != NULL)
 		free(obufp);
-	obufp = (Byte *) strdup((char *) buf);
+	obufp = (Byte *) xstrdup((char *) buf);
 	return (obufp);
 }
 

@@ -114,7 +114,7 @@ extern int gunzip_main(int argc, char **argv)
 	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
 		flags |= gunzip_to_stdout;
 	} else {
-		if_name = strdup(argv[optind]);
+		if_name = xstrdup(argv[optind]);
 		/* Open input file */
 		in_file = xfopen(if_name, "r");
 

@@ -2324,7 +2324,7 @@ int bunzip2_main(int argc, char **argv)
 		show_usage();
 	}
 	src_stream = xfopen(argv[1], "r");
-	save_name = strdup(argv[1]);
+	save_name = xstrdup(argv[1]);
 	save_name_ptr = strrchr(save_name, '.');
 	if (save_name_ptr == NULL) {
 		return(FALSE);

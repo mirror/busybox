@@ -173,7 +173,7 @@ static int index_of_next_unescaped_regexp_delim(const struct sed_cmd * const sed
  */
 static int get_address(struct sed_cmd *sed_cmd, const char *str, int *linenum, regex_t **regex)
 {
-	char *my_str = strdup(str);
+	char *my_str = xstrdup(str);
 	int idx = 0;
 	char olddelimiter;
 	olddelimiter = sed_cmd->delimiter;

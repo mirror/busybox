@@ -12090,7 +12090,7 @@ initvar() {
 			vpp = hashvar(ip->text);
 			vp->next = *vpp;
 			*vpp = vp;
-			vp->text = strdup(ip->text);
+			vp->text = xstrdup(ip->text);
 			vp->flags = ip->flags;
 			vp->func = ip->func;
 		}
@@ -12102,7 +12102,7 @@ initvar() {
 		vpp = hashvar("PS1=");
 		vps1.next = *vpp;
 		*vpp = &vps1;
-		vps1.text = strdup(geteuid() ? "PS1=$ " : "PS1=# ");
+		vps1.text = xstrdup(geteuid() ? "PS1=$ " : "PS1=# ");
 		vps1.flags = VSTRFIXED|VTEXTFIXED;
 	}
 }
@@ -12646,7 +12646,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.35 2001/11/12 16:44:55 kraai Exp $
+ * $Id: ash.c,v 1.36 2001/11/12 16:57:26 kraai Exp $
  */
 static int timescmd (int argc, char **argv)
 {

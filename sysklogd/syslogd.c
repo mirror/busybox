@@ -589,11 +589,11 @@ extern int syslogd_main(int argc, char **argv)
 				doFork = FALSE;
 				break;
 			case 'O':
-				logFilePath = strdup(optarg);
+				logFilePath = xstrdup(optarg);
 				break;
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 			case 'R':
-				RemoteHost = strdup(optarg);
+				RemoteHost = xstrdup(optarg);
 				if ( (p = strchr(RemoteHost, ':'))){
 					RemotePort = atoi(p+1);
 					*p = '\0';

@@ -820,7 +820,7 @@ static int expand_arguments(char *command)
 
 	/* We need a clean copy, so strsep can mess up the copy while
 	 * we write stuff into the original (in a minute) */
-	cmd = cmd_copy = strdup(command);
+	cmd = cmd_copy = xstrdup(command);
 	*command = '\0';
 	for (ix = 0, tmpcmd = cmd; 
 			(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix=0) {

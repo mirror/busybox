@@ -133,7 +133,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.74 2001/10/24 04:59:54 andersen Exp $"
+#ident "$Id: insmod.c,v 1.75 2001/11/12 16:57:26 kraai Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -350,7 +350,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.74 2001/10/24 04:59:54 andersen Exp $"
+#ident "$Id: insmod.c,v 1.75 2001/11/12 16:57:26 kraai Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -724,7 +724,7 @@ static int check_module_name_match(const char *filename, struct stat *statbuf,
 	if (fullname[0] == '\0')
 		return (FALSE);
 	else {
-		char *tmp, *tmp1 = strdup(filename);
+		char *tmp, *tmp1 = xstrdup(filename);
 		tmp = get_last_path_component(tmp1);
 		if (strcmp(tmp, fullname) == 0) {
 			free(tmp1);

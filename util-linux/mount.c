@@ -463,9 +463,9 @@ extern int mount_main(int argc, char **argv)
 			
 			strcpy(device, m->mnt_fsname);
 			strcpy(directory, m->mnt_dir);
-			filesystemType = strdup(m->mnt_type);
+			filesystemType = xstrdup(m->mnt_type);
 singlemount:			
-			string_flags = strdup(string_flags);
+			string_flags = xstrdup(string_flags);
 			rc = EXIT_SUCCESS;
 #ifdef CONFIG_NFSMOUNT
 			if (strchr(device, ':') != NULL)
