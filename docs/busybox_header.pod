@@ -48,25 +48,25 @@ will also cause BusyBox to behave as 'ls'.
 
 =head1 COMMON OPTIONS
 
-Most BusyBox commands support the B<--help> option to provide a
+Most BusyBox commands support the B<-h> option to provide a
 terse runtime description of their behavior. 
 
 =head1 COMMANDS
 
 Currently defined functions include:
 
-ar, basename, busybox, cat, chgrp, chmod, chown, chroot, chvt, clear, cmp, cp,
-cut, date, dc, dd, deallocvt, df, dirname, dmesg, dos2unix, dpkg, dpkg-deb, du,
-dumpkmap, dutmp, echo, expr, false, fbset, fdflush, find, free, freeramdisk,
-fsck.minix, getopt, grep, gunzip, gzip, halt, head, hostid, hostname, id,
-ifconfig, init, insmod, kill, killall, klogd, length, ln, loadacm, loadfont,
-loadkmap, logger, logname, ls, lsmod, makedevs, md5sum, mkdir, mkfifo,
-mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc, nslookup, ping,
-pivot_root, poweroff, printf, ps, pwd, rdate, readlink, reboot, renice, reset,
-rm, rmdir, rmmod, route, rpmunpack, sed, setkeycodes, sh, sleep, sort, stty,
-swapoff, swapon, sync, syslogd, tail, tar, tee, telnet, test, tftp, touch, tr,
-true, tty, umount, uname, uniq, unix2dos, update, uptime, usleep, uudecode,
-uuencode, watchdog, wc, wget, which, whoami, xargs, yes, zcat, [
+adjtimex, ar, basename, busybox, cat, chgrp, chmod, chown, chroot, chvt, clear,
+cmp, cp, cut, date, dc, dd, deallocvt, df, dirname, dmesg, dos2unix, dpkg,
+dpkg-deb, du, dumpkmap, dutmp, echo, expr, false, fbset, fdflush, find, free,
+freeramdisk, fsck.minix, getopt, grep, gunzip, gzip, halt, head, hostid,
+hostname, id, ifconfig, init, insmod, kill, killall, klogd, length, ln,
+loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, md5sum,
+mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
+nslookup, ping, pivot_root, poweroff, printf, ps, pwd, rdate, readlink, reboot,
+renice, reset, rm, rmdir, rmmod, route, rpmunpack, sed, setkeycodes, sh, sleep,
+sort, stty, swapoff, swapon, sync, syslogd, tail, tar, tee, telnet, test, tftp,
+touch, tr, true, tty, umount, uname, uniq, unix2dos, update, uptime, usleep,
+uudecode, uuencode, watchdog, wc, wget, which, whoami, xargs, yes, zcat, [
 
 =over 4
 

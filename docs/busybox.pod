@@ -48,25 +48,25 @@ will also cause BusyBox to behave as 'ls'.
 
 =head1 COMMON OPTIONS
 
-Most BusyBox commands support the B<--help> option to provide a
+Most BusyBox commands support the B<-h> option to provide a
 terse runtime description of their behavior. 
 
 =head1 COMMANDS
 
 Currently defined functions include:
 
-ar, basename, busybox, cat, chgrp, chmod, chown, chroot, chvt, clear, cmp, cp,
-cut, date, dc, dd, deallocvt, df, dirname, dmesg, dos2unix, dpkg, dpkg-deb, du,
-dumpkmap, dutmp, echo, expr, false, fbset, fdflush, find, free, freeramdisk,
-fsck.minix, getopt, grep, gunzip, gzip, halt, head, hostid, hostname, id,
-ifconfig, init, insmod, kill, killall, klogd, length, ln, loadacm, loadfont,
-loadkmap, logger, logname, ls, lsmod, makedevs, md5sum, mkdir, mkfifo,
-mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc, nslookup, ping,
-pivot_root, poweroff, printf, ps, pwd, rdate, readlink, reboot, renice, reset,
-rm, rmdir, rmmod, route, rpmunpack, sed, setkeycodes, sh, sleep, sort, stty,
-swapoff, swapon, sync, syslogd, tail, tar, tee, telnet, test, tftp, touch, tr,
-true, tty, umount, uname, uniq, unix2dos, update, uptime, usleep, uudecode,
-uuencode, watchdog, wc, wget, which, whoami, xargs, yes, zcat, [
+adjtimex, ar, basename, busybox, cat, chgrp, chmod, chown, chroot, chvt, clear,
+cmp, cp, cut, date, dc, dd, deallocvt, df, dirname, dmesg, dos2unix, dpkg,
+dpkg-deb, du, dumpkmap, dutmp, echo, expr, false, fbset, fdflush, find, free,
+freeramdisk, fsck.minix, getopt, grep, gunzip, gzip, halt, head, hostid,
+hostname, id, ifconfig, init, insmod, kill, killall, klogd, length, ln,
+loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, md5sum,
+mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
+nslookup, ping, pivot_root, poweroff, printf, ps, pwd, rdate, readlink, reboot,
+renice, reset, rm, rmdir, rmmod, route, rpmunpack, sed, setkeycodes, sh, sleep,
+sort, stty, swapoff, swapon, sync, syslogd, tail, tar, tee, telnet, test, tftp,
+touch, tr, true, tty, umount, uname, uniq, unix2dos, update, uptime, usleep,
+uudecode, uuencode, watchdog, wc, wget, which, whoami, xargs, yes, zcat, [
 
 =over 4
 
@@ -1127,7 +1127,7 @@ Prints out the length of the specified STRING.
 
 Example:
 
-	$ length "Hello"
+	$ length Hello
 	5
 
 -------------------------------
@@ -1834,9 +1834,15 @@ Example:
 
 =item B<sort>
 
-sort [B<-n>] [B<-r>] [FILE]...
+sort [B<-nru>] [FILE]...
 
 Sorts lines of text in the specified files
+
+Options:
+
+	-u	suppress duplicate lines
+	-r	sort in reverse order
+	-n	sort numerics
 
 Example:
 
@@ -2310,7 +2316,7 @@ Example:
 
 =item B<wget>
 
-wget [B<-c>] [B<-O> file] url
+wget [B<-c>] [B<-q>] [B<-O> file] url
 
 wget retrieves files via HTTP or FTP
 
@@ -2411,16 +2417,17 @@ Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
 
 =for html <br>
 
+John Beppu <beppu@lineo.com>
+
+    du, head, nslookup, sort, tee, uniq (so Kraai could rewrite them ;-),
+    documentation
+
+=for html <br>
+
 Edward Betts <edward@debian.org>
 
     expr, hostid, logname, tty, wc, whoami, yes
  
-=for html <br>
-
-John Beppu <beppu@lineo.com>
-
-    du, head, nslookup, sort, tee, uniq
-
 =for html <br>
 
 Brian Candler <B.Candler@pobox.com>
@@ -2442,9 +2449,21 @@ Dave Cinege <dcinege@psychosis.com>
 
 =for html <br>
 
+Larry Doolittle <ldoolitt@recycle.lbl.gov>
+
+    various fixes, shell rewrite
+
+=for html <br>
+
 Karl M. Hegbloom <karlheg@debian.org>
 
     cp_mv.c, the test suite, various fixes to utility.c, &c.
+
+=for html <br>
+
+Sterling Huxley <sterling@europa.com>
+
+    vi (!!!)
 
 =for html <br>
 
@@ -2527,4 +2546,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.101 2001/04/17 17:09:34 beppu Exp $
+# $Id: busybox.pod,v 1.102 2001/04/17 23:57:23 beppu Exp $
