@@ -96,7 +96,7 @@ static void rewrite(FS * fs)
 	enum { NOTOKAY, USEBCNT, USEPREC } sokay;
 	register PR *pr, **nextpr = NULL;
 	register FU *fu;
-	register char *p1, *p2;
+	register char *p1, *p2, *p3;
 	char savech, *fmtp;
 	const char *byte_count_str;
 	int nconv, prec = 0;
@@ -108,11 +108,13 @@ static void rewrite(FS * fs)
 		 */
 		for (nconv = 0, fmtp = fu->fmt; *fmtp; nextpr = &pr->nextpr) {
 			/* NOSTRICT */
-			pr = (PR *) xmalloc(sizeof(PR));
+			/* DBU:[dvae@cray.com] calloc so that forward ptrs start out NULL*/
+			pr = (PR *) xcalloc(1,sizeof(PR));
 			if (!fu->nextpr)
 				fu->nextpr = pr;
-			else
-				*nextpr = pr;
+			/* ignore nextpr -- its unused inside the loop and is
+			 * uninitialized 1st time thru.
+			 */
 
 			/* bb_dump_skip preceding text and up to the next % sign */
 			for (p1 = fmtp; *p1 && *p1 != '%'; ++p1);
@@ -244,6 +246,24 @@ static void rewrite(FS * fs)
 			pr->fmt = bb_xstrdup(fmtp);
 			*p2 = savech;
 			pr->cchar = pr->fmt + (p1 - fmtp);
+
+			/* DBU:[dave@cray.com] w/o this, trailing fmt text, space is lost.
+			 * Skip subsequent text and up to the next % sign and tack the 
+			 * additional text onto fmt: eg. if fmt is "%x is a HEX number", 
+			 * we lose the " is a HEX number" part of fmt.
+			 */
+			for (p3 = p2; *p3 && *p3 != '%'; p3++);
+			if (p3 > p2)
+			{
+				savech = *p3;
+				*p3 = '\0';
+				if (!(pr->fmt = realloc(pr->fmt, strlen(pr->fmt)+(p3-p2)+1)))
+					perror_msg_and_die("hexdump");
+				strcat(pr->fmt, p2);
+				*p3 = savech;
+				p2 = p3;
+			}
+
 			fmtp = p2;
 
 			/* only one conversion character if byte count */
@@ -346,12 +366,13 @@ static int next(char **argv)
 static u_char *get(void)
 {
 	static int ateof = 1;
-	static u_char *curp, *savp;
+	static u_char *curp=NULL, *savp; /*DBU:[dave@cray.com]initialize curp */
 	register int n;
 	int need, nread;
 	u_char *tmpp;
 
 	if (!curp) {
+		address = (off_t)0; /*DBU:[dave@cray.com] initialize,initialize..*/
 		curp = (u_char *) xmalloc(bb_dump_blocksize);
 		savp = (u_char *) xmalloc(bb_dump_blocksize);
 	} else {
@@ -673,7 +694,7 @@ void bb_dump_add(const char *fmt)
 
 	/* start new linked list of format units */
 	/* NOSTRICT */
-	tfs = (FS *) xmalloc(sizeof(FS));
+ 	tfs = (FS *) xcalloc(1,sizeof(FS)); /*DBU:[dave@cray.com] start out NULL */
 	if (!bb_dump_fshead) {
 		bb_dump_fshead = tfs;
 	} else {
@@ -692,7 +713,8 @@ void bb_dump_add(const char *fmt)
 
 		/* allocate a new format unit and link it in */
 		/* NOSTRICT */
-		tfu = (FU *) xmalloc(sizeof(FU));
+		/* DBU:[dave@cray.com] calloc so that forward pointers start out NULL */
+		tfu = (FU *) xcalloc(1,sizeof(FU));
 		*nextfu = tfu;
 		nextfu = &tfu->nextfu;
 		tfu->reps = 1;
