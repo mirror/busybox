@@ -79,6 +79,7 @@
 /* These are here to work with glibc -- Don't change these... */
 #undef FNMATCH_BROKEN
 #undef GLOB_BROKEN
+#define IFS_BROKEN
 
 #include <assert.h>
 #include <stddef.h>
@@ -12680,7 +12681,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.23 2001/09/06 17:35:20 andersen Exp $
+ * $Id: ash.c,v 1.24 2001/09/06 18:00:41 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
