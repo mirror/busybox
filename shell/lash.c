@@ -1383,7 +1383,7 @@ void free_memory(void)
 
 int shell_main(int argc_l, char **argv_l)
 {
-	int opt;
+	int opt, interactive=FALSE;
 	FILE *input = stdin;
 	argc = argc_l;
 	argv = argv_l;
@@ -1407,7 +1407,7 @@ int shell_main(int argc_l, char **argv_l)
 						local_pending_command = realloc(local_pending_command, 
 								strlen(local_pending_command) + strlen(argv[optind]));
 						if (local_pending_command==NULL) 
-							fatalError("sh: command too long\n");
+							fatalError("command too long\n");
 					}
 					strcat(local_pending_command, argv[optind]);
 					if ( (optind + 1) < argc)
@@ -1419,29 +1419,31 @@ int shell_main(int argc_l, char **argv_l)
 				showXtrace = TRUE;
 				break;
 #endif
+			case 'i':
+				interactive = TRUE;
+				break;
 			default:
 				usage(shell_usage);
 		}
 	}
-
-
-	if (optind<1 && input == stdin) {
+	/* A shell is interactive if the `-i' flag was given, or if all of
+	 * the following conditions are met:
+	 *	  no -c command
+	 *    no arguments remaining or the -s flag given
+	 *    standard input is a terminal
+	 *    standard output is a terminal
+	 *    Refer to Posix.2, the description of the `sh' utility. */
+	if (interactive==TRUE || ( argv[optind]==NULL && input==stdin && isatty(fileno(stdin)) && isatty(fileno(stdout)))) {
+		fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		/* Looks like they want an interactive shell */
 		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
 		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
-	} else if (1==(argc-optind)) {
+	} else if (local_pending_command==NULL) {
+		fprintf(stdout, "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		input = fopen(argv[optind], "r");
 		if (!input) {
 			fatalError("%s: %s\n", argv[optind], strerror(errno));
 		}
-	} else { 
-		char *oldpath, *newpath;
-		oldpath = getenv("PATH");
-		newpath=(char*)xmalloc(strlen(oldpath)+12);
-		snprintf(newpath, strlen(oldpath)+9, "PATH=./:%s", oldpath);
-		putenv(newpath);
-		execvp(argv[optind], argv+optind);
-		fatalError("%s: %s\n", argv[optind], strerror(errno));
 	}
 
 	/* initialize the cwd -- this is never freed...*/
