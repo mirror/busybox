@@ -563,24 +563,16 @@ void parse_url(char *url, struct host_info *h)
 
 FILE *open_socket(char *host, int port)
 {
-	struct sockaddr_in s_in;
-	struct hostent *hp;
 	int fd;
 	FILE *fp;
+	char port_str[10];
 
-	memset(&s_in, 0, sizeof(s_in));
-	s_in.sin_family = AF_INET;
-	hp = xgethostbyname(host);
-	memcpy(&s_in.sin_addr, hp->h_addr_list[0], hp->h_length);
-	s_in.sin_port = htons(port);
+	snprintf(port_str, sizeof(port_str), "%d", port);
+	fd=xconnect(host, port_str);
 
 	/*
 	 * Get the server onto a stdio stream.
 	 */
-	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		perror_msg_and_die("socket()");
-	if (connect(fd, (struct sockaddr *) &s_in, sizeof(s_in)) < 0)
-		perror_msg_and_die("connect(%s)", host);
 	if ((fp = fdopen(fd, "r+")) == NULL)
 		perror_msg_and_die("fdopen()");
 
@@ -826,7 +818,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.49 2002/05/14 23:36:45 sandman Exp $
+ *	$Id: wget.c,v 1.50 2002/07/03 11:51:44 andersen Exp $
  */
 
 

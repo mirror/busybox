@@ -39,26 +39,14 @@ static const int RFC_868_BIAS = 2208988800UL;
 
 static time_t askremotedate(const char *host)
 {
-	struct hostent *h;
-	struct sockaddr_in s_in;
-	struct servent *tserv;
 	unsigned long int nett, localt;
+	const char *port="37";
 	int fd;
 
-	h = xgethostbyname(host);         /* get the IP addr */
-	memcpy(&s_in.sin_addr, h->h_addr, sizeof(s_in.sin_addr));
+	if (getservbyname("time", "tcp") != NULL)
+		port="time";
 
-	s_in.sin_port = htons(37);		  /* find port # */
-	if ((tserv = getservbyname("time", "tcp")) != NULL)
-		s_in.sin_port = tserv->s_port;
-
-	s_in.sin_family = AF_INET;
-
-	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)    /* get net connection */
-		perror_msg_and_die("socket");
-
-	if (connect(fd, (struct sockaddr *)&s_in, sizeof(s_in)) < 0)      /* connect to time server */
-		perror_msg_and_die("%s", host);
+	fd = xconnect(host, port);
 
 	if (read(fd, (void *)&nett, 4) != 4)    /* read time from server */
 		error_msg_and_die("%s did not send the complete time", host);

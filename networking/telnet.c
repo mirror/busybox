@@ -36,13 +36,11 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <string.h>
 #include <signal.h>
 #include <arpa/telnet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h>
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
@@ -122,19 +120,12 @@ static inline void iacflush(void)
 }
 
 /* Function prototypes */
-static int getport(char * p);
-static struct in_addr getserver(char * p);
-static void setup_sockaddr_in(struct sockaddr_in * addr, int port);
-static int remote_connect(struct in_addr addr, int port);
 static void rawmode(void);
 static void cookmode(void);
 static void do_linemode(void);
 static void will_charmode(void);
 static void telopt(byte c);
 static int subneg(byte c);
-#if 0
-static int local_bind(int port);
-#endif
 
 /* Some globals */
 static int one = 1;
@@ -584,8 +575,8 @@ static void cookmode(void)
 
 extern int telnet_main(int argc, char** argv)
 {
-	struct in_addr host;
-	int port;
+	char *host;
+	char *port;
 	int len;
 #ifdef USE_POLL
 	struct pollfd ufds[2];
@@ -615,11 +606,13 @@ extern int telnet_main(int argc, char** argv)
 	cfmakeraw(&G.termios_raw);
 	
 	if (argc < 2)	show_usage();
-	port = (argc > 2)? getport(argv[2]): 23;
+	port = (argc > 2)? argv[2] : "23";
 	
-	host = getserver(argv[1]);
+	host = argv[1];
+	
+	G.netfd = xconnect(host, port);
 
-	G.netfd = remote_connect(host, port);
+	setsockopt(G.netfd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);
 
 	signal(SIGINT, fgotsig);
 
@@ -689,81 +682,6 @@ extern int telnet_main(int argc, char** argv)
 			}
 		}
 	}
-}
-
-static int getport(char * p)
-{
-	unsigned int port = atoi(p);
-
-	if ((unsigned)(port - 1 ) > 65534)
-	{
-		error_msg_and_die("%s: bad port number", p);
-	}
-	return port;
-}
-
-static struct in_addr getserver(char * host)
-{
-	struct in_addr addr;
-
-	struct hostent * he;
-	he = xgethostbyname(host);
-	memcpy(&addr, he->h_addr, sizeof addr);
-
-	TRACE(1, ("addr: %s\n", inet_ntoa(addr)));
-
-	return addr;
-}
-
-static int create_socket(void)
-{
-	return socket(AF_INET, SOCK_STREAM, 0);
-}
-
-static void setup_sockaddr_in(struct sockaddr_in * addr, int port)
-{
-	memset(addr, 0, sizeof(struct sockaddr_in));
-	addr->sin_family = AF_INET;
-	addr->sin_port = htons(port);
-}
-  
-#if 0
-static int local_bind(int port)
-{
-	struct sockaddr_in s_addr;
-	int s = create_socket();
-  
-	setup_sockaddr_in(&s_addr, port);
-  
-	setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
-  
-	if (bind(s, &s_addr, sizeof s_addr) < 0)
-	{
-		char * e = sys_errlist[errno];
-		syserrorexit("bind");
-		exit(1);
-	}
-	listen(s, 1);
-	
-	return s;
-}
-#endif
-
-static int remote_connect(struct in_addr addr, int port)
-{
-	struct sockaddr_in s_addr;
-	int s = create_socket();
-
-	setup_sockaddr_in(&s_addr, port);
-	s_addr.sin_addr = addr;
-
-	setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);
-
-	if (connect(s, (struct sockaddr *)&s_addr, sizeof s_addr) < 0)
-	{
-		perror_msg_and_die("Unable to connect to remote host");
-	}
-	return s;
 }
 
 /*
