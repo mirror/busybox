@@ -300,6 +300,7 @@ static int builtin_exec(struct child_prog *child)
 	if (child->argv[1] == NULL)
 		return EXIT_SUCCESS;   /* Really? */
 	child->argv++;
+	close_all();
 	pseudo_exec(child);
 	/* never returns */
 }
