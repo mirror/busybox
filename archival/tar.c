@@ -624,7 +624,7 @@ int tar_main(int argc, char **argv)
 
 	/* Initialise default values */
 	tar_handle = init_handle();
-	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS;
+	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE;
 
 	while ((opt = getopt(argc, argv, "cjtxT:X:C:f:Opvz")) != -1) {
 		switch (opt) {
@@ -669,7 +669,6 @@ int tar_main(int argc, char **argv)
 			tar_handle->action_data = data_extract_to_stdout;
 			break;
 		case 'p':
-			tar_handle->flags |= ARCHIVE_PRESERVE_DATE;
 			break;
 		case 'v':
 			if ((tar_handle->action_header == header_list) || 
