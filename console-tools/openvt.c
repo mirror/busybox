@@ -32,31 +32,22 @@
 
 #include "busybox.h"
 
-#define VTNAME "/dev/tty%d"
-
 int openvt_main(int argc, char **argv)
 {
-	int pid;
 	int fd;
-	int vtno;
-	char vtname[sizeof VTNAME + 2];
+	char vtname[sizeof VC_FORMAT + 2];
 
 
 	if (argc < 3)
         bb_show_usage();
 
-	if (!isdigit(argv[1][0]))
-	        bb_show_usage();
-
-	/* check for Illegal vt number */
-	vtno=bb_xgetlarg(argv[1], 10, 1, 12);
-
-	sprintf(vtname, VTNAME, vtno);
+	/* check for Illegal vt number: < 1 or > 12 */
+	sprintf(vtname, VC_FORMAT,(int)bb_xgetlarg(argv[1], 10, 1, 12));
 
 	argv+=2;
 	argc-=2;
 
-	if((pid = fork()) == 0) {
+	if(fork() == 0) {
 		/* leave current vt */
 
 #ifdef   ESIX_5_3_2_D
