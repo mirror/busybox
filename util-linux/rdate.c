@@ -103,8 +103,14 @@ int rdate_main(int argc, char **argv)
 	remote_time = askremotedate(argv[optind]);
 
 	if (setdate) {
-		if (stime(&remote_time) < 0)
-			bb_perror_msg_and_die("Could not set time of day");
+		time_t current_time;
+
+		time(&current_time);
+		if (current_time == remote_time)
+			bb_error_msg("Current time matches remote time.");
+		else
+			if (stime(&remote_time) < 0)
+				bb_perror_msg_and_die("Could not set time of day");
 	}
 
 	if (printdate)
