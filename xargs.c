@@ -1,9 +1,9 @@
-/* vi: set sw=4 ts=4: */
 /*
  * Mini xargs implementation for busybox
  *
  * Copyright (C) 2000 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
+ * Remixed by Mark Whitley <markw@lineo.com>, <markw@enol.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,138 +22,87 @@
  */
 
 #include "busybox.h"
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <getopt.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
 
 int xargs_main(int argc, char **argv)
 {
-	char *in_from_stdin = NULL;
-	char *args = NULL;
 	char *cmd_to_be_executed = NULL;
-	char traceflag = 0;
-	int len_args=0, len_cmd_to_be_executed, opt;
-	pid_t pid;
-	int wpid, status;
+	char *file_to_act_on = NULL;
 
-	/* Note that we do not use getopt here, since
-	 * we only want to interpret initial options,
-	 * not options passed to commands */
-	while (--argc && **(++argv) == '-') {
-		while (*++(*argv)) {
-			switch (**argv) {
-				case 't':
-					traceflag=1;
-					break;
-				default:
-					fatalError(xargs_usage);
-			}
-		}
-	}
+	/*
+	 * No options are supported in this version of xargs; no getopt.
+	 *
+	 * Re: The missing -t flag: Most programs that produce output also print
+	 * the filename, so xargs doesn't really need to do it again. Supporting
+	 * the -t flag =greatly= bloats up the size of this app and the memory it
+	 * uses because you have to buffer all the input file strings in memory. If
+	 * you really want to see the filenames that xargs will act on, just run it
+	 * once with no args and xargs will echo the filename. Simple.
+	 */
 
 	/* Store the command to be executed (taken from the command line) */
-	if (argc == 0) {
-		len_cmd_to_be_executed=6;
-		cmd_to_be_executed = xmalloc(len_cmd_to_be_executed);
-		strcat(cmd_to_be_executed, "echo");
+	if (argc == 1) {
+		/* default behavior is to echo all the filenames */
+		cmd_to_be_executed = strdup("/bin/echo ");
 	} else {
-		opt=strlen(*argv);
-		len_cmd_to_be_executed = (opt > 10)? opt : 10;
-		cmd_to_be_executed = xcalloc(len_cmd_to_be_executed, sizeof(char));
-		strcat(cmd_to_be_executed, *argv);
+		/* concatenate all the arguments passed to xargs together */
+		int i;
+		int len = 1; /* for the '\0' */
+		for (i = 1; i < argc; i++) {
+			len += strlen(argv[i]);
+			len += 1;  /* for the space between the args */
+			cmd_to_be_executed = xrealloc(cmd_to_be_executed, len);
+			strcat(cmd_to_be_executed, argv[i]);
+			strcat(cmd_to_be_executed, " ");
+		}
 	}
-
-	//args=xrealloc(args, len_args);
-//	strcpy(args, " ");
 
 	/* Now, read in one line at a time from stdin, and store this 
 	 * line to be used later as an argument to the command */
-	in_from_stdin = get_line_from_file(stdin);
-	for (;in_from_stdin!=NULL;) {
-		char *tmp;
-		opt = strlen(in_from_stdin);
-		len_args += opt + 3;
-		args=xrealloc(args, len_args);
+	while ((file_to_act_on = get_line_from_file(stdin)) !=NULL) {
 
-		/* Strip out the final \n */
-		in_from_stdin[opt-1]=' ';
+		FILE *cmd_output = NULL;
+		char *output_line = NULL;
+		char *execstr = NULL;
 
-		/* Replace any tabs with spaces */
-		while( (tmp = strchr(in_from_stdin, '\t')) != NULL )
-			*tmp=' ';
+		/* eat the newline off the filename. */
+		if (file_to_act_on[strlen(file_to_act_on)-1] == '\n')
+			file_to_act_on[strlen(file_to_act_on)-1] = '\0';
 
-		/* Strip out any extra intra-word spaces */
-		while( (tmp = strstr(in_from_stdin, "  ")) != NULL ) {
-			opt = strlen(in_from_stdin);
-			memmove(tmp, tmp+1, opt-(tmp-in_from_stdin));
+		/* eat blank lines */
+		if (strlen(file_to_act_on) == 0)
+			continue;
+
+		/* assemble the command and execute it */
+		execstr = xcalloc(strlen(cmd_to_be_executed) +
+				strlen(file_to_act_on) + 1, sizeof(char));
+		strcat(execstr, cmd_to_be_executed);
+		strcat(execstr, file_to_act_on);
+		cmd_output = popen(execstr, "r");
+		if (cmd_output == NULL) {
+			perror("popen");
+			exit(1);
 		}
 
-		/* trim trailing whitespace */
-		opt = strlen(in_from_stdin) - 1;
-		while (isspace(in_from_stdin[opt]))
-			opt--;
-		in_from_stdin[++opt] = 0;
+		/* harvest the output */
+		while ((output_line = get_line_from_file(cmd_output)) != NULL) {
+			fputs(output_line, stdout);
+			free(output_line);
+		}
 
-		/* Strip out any leading whitespace */
-		tmp=in_from_stdin;
-		while(isspace(*tmp))
-			tmp++;
-
-		strcat(args, tmp);
-		strcat(args, " ");
-
-		free(in_from_stdin);
-		in_from_stdin = get_line_from_file(stdin);
+		/* clean up */
+		pclose(cmd_output);
+		free(execstr);
+		free(file_to_act_on);
 	}
-
-	if ((pid = fork()) == 0) {
-		char *cmd[255];
-		int i=1;
-
-		if (traceflag==1) {
-			fprintf(stderr, "%s ", cmd_to_be_executed);
-		}
-		cmd[0] = cmd_to_be_executed;
-		while (--argc && ++argv && *argv ) {
-			if (traceflag==1) {
-				fprintf(stderr, "%s ", *argv);
-			}
-			cmd[i++]=*argv;
-		}
-		if (traceflag==1) {
-			fprintf(stderr, "%s\n", args);
-		}
-		cmd[i++] = args;
-		cmd[i] = NULL;
-		execvp(cmd_to_be_executed, cmd);
-
-		/* What?  Still here?  Exit with an error */
-		fatalError("%s: %s\n", cmd_to_be_executed, strerror(errno));
-	}
-	/* Wait for a child process to exit */
-	wpid = wait(&status);
-
 
 #ifdef BB_FEATURE_CLEAN_UP
-	free(args);
 	free(cmd_to_be_executed);
 #endif
 
-	if (wpid > 0)
-		return (WEXITSTATUS(status));
-	else 
-		return EXIT_FAILURE;
+	return 0;
 }
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
+
+/* vi: set sw=4 ts=4: */
