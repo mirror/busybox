@@ -1,5 +1,5 @@
 /*
- * $Id: hostname.c,v 1.2 1999/12/08 04:13:44 andersen Exp $
+ * $Id: hostname.c,v 1.3 1999/12/08 04:23:30 andersen Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -37,7 +37,7 @@ static const char* hostname_usage =
 "\t-s\t\tShort\n"
 "\t-i\t\tAddresses for the hostname\n"
 "\t-d\t\tDNS domain name\n"
-"\t-F file\tUse FILE to specify the hostname\n";
+"\t-F FILE\t\tUse the contents of FILE to specify the hostname\n";
 
 
 void do_sethostname(char *s, int isfile)
