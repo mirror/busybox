@@ -338,17 +338,25 @@
 #define deluser_full_usage \
 	 "Deletes user USER from the system"
 
+#ifdef CONFIG_DEVFSD_FG_NP
+  #define USAGE_DEVFSD_FG_NP(a) a
+#else
+  #define USAGE_DEVFSD_FG_NP(a)
+#endif
+
 #define devfsd_trivial_usage \
-	"mntpnt [-v] [-fg] [-np]"
+	"mntpnt [-v]"\
+	USAGE_DEVFSD_FG_NP("[-fg][-np]" )
 #define devfsd_full_usage \
 	"Optional daemon for managing devfs (the Linux Device Filesystem).\n" \
 	"\nOptions:\n" \
 	"\tmntpnt\tThe mount point where devfs is mounted.\n\n" \
 	"\t-v\tPrint the protocol version numbers for devfsd\n" \
-	"\t\tand the kernel-side protocol version and exits.\n" \
-	"\t-fg\tRun the daemon in the foreground.\n\n" \
-	"\t-np\tExit  after  parsing  the configuration file and processing syn-\n" \
-	"\t\tthetic REGISTER events. Do not poll for events." 
+	"\t\tand the kernel-side protocol version and exits." \
+	USAGE_DEVFSD_FG_NP( "\n\n\t-fg\tRun the daemon in the foreground.\n\n" \
+	"\t-np\tExit  after  parsing  the configuration file\n" \
+	"\t\tand processing synthetic REGISTER events.\n" \
+	"\t\tDo not poll for events.")
 
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
   #define USAGE_HUMAN_READABLE(a) a

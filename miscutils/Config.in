@@ -46,27 +46,34 @@ config CONFIG_DEVFSD
 	help
 	  Provides compatibility with old device names on a devfs systems.
 	  You should set it to true if you have devfs enabled.
+	  The following keywords in devsfd.conf are supported:
+	  "CLEAR_CONFIG", "INCLUDE", "OPTIONAL_INCLUDE", "RESTORE",
+	  "PERMISSIONS", "EXECUTE", "COPY", "IGNORE",
+	  "MKOLDCOMPAT", "MKNEWCOMPAT","RMOLDCOMPAT", "RMNEWCOMPAT".
+
+	   But only if they are written UPPERCASE!!!!!!!!
 
 config CONFIG_DEVFSD_MODLOAD
-	bool "Adds support for MODLOAD action"
+	bool "Adds support for MODLOAD keyword in devsfd.conf"
 	default n
 	depends on CONFIG_DEVFSD
 	help
 	  This actually doesn't work with busybox  modutils but needs the real modutils.
 
-config CONFIG_DEVFSD_VERBOSE
-	bool "Increases logging to stderr and syslog"
+config CONFIG_DEVFSD_FG_NP
+	bool "Enables the -fg and -np options"
 	default n
 	depends on CONFIG_DEVFSD
 	help
-	  Increases logging to stderr and syslog.
+		-fg	Run the daemon in the foreground.
+		-np	Exit  after  parsing  the configuration file. Do not poll for events.
 
-config CONFIG_DEVFSD_DEBUG
-	bool "Adds function names to program output"
+config CONFIG_DEVFSD_VERBOSE
+	bool "Increases logging (and size)"
 	default n
 	depends on CONFIG_DEVFSD
 	help
-	  Adds function names to program output.
+	  Increases logging to stderr or syslog.
 
 config CONFIG_LAST
 	bool "last"
