@@ -1246,7 +1246,7 @@ int gzip_main(int argc, char **argv)
 			show_usage();
 		}
 	}
-	if (optind == argc) {
+	if ((optind == argc) || (strcmp(argv[optind], "-") == 0)) {
 		fromstdin = 1;
 		tostdout = 1;
 	}
