@@ -12,8 +12,7 @@ ARCH = $(shell dpkg --print-architecture)
 ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
 	DODEBUG = true
 endif
-ifneq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
-	DODEBUG = true
+ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 endif
 
 build-arch: build-arch-stamp
@@ -122,8 +121,8 @@ binary-arch: build-arch install
 	dh_gencontrol -a
 	dh_md5sums -a -Nbusybox-cvs-udeb
 	dh_builddeb -a -Nbusybox-cvs-udeb
-	dpkg-distaddfile busybox-cvs-udeb-$(VERSION)_$(ARCH).udeb debian-installer optional
-	dh_builddeb -pbusybox-cvs-udeb --filename=busybox-cvs-udeb-$(VERSION)_$(ARCH).udeb
+	dpkg-distaddfile busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb debian-installer optional
+	dh_builddeb -pbusybox-cvs-udeb --filename=busybox-cvs-udeb_$(VERSION)_$(ARCH).udeb
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install
