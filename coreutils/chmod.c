@@ -29,13 +29,11 @@
 #include <getopt.h>
 #include "busybox.h"
 
-
-struct stat theMode;
-
-
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
-	if (chmod(fileName, theMode.st_mode) == 0)
+	if (!parse_mode((char *)junk, &(statbuf->st_mode)))
+		error_msg_and_die("internal error");
+	if (chmod(fileName, statbuf->st_mode) == 0)
 		return (TRUE);
 	perror(fileName);
 	return (FALSE);
@@ -43,6 +41,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 
 int chmod_main(int argc, char **argv)
 {
+	int i;
 	int opt;
 	int recursiveFlag = FALSE;
 
@@ -59,7 +58,8 @@ int chmod_main(int argc, char **argv)
 
 	if (argc > optind && argc > 2 && argv[optind]) {
 		/* Parse the specified mode */
-		if (parse_mode(argv[optind], &(theMode.st_mode)) == FALSE) {
+		mode_t mode;
+		if (parse_mode(argv[optind], &mode) == FALSE) {
 			error_msg_and_die( "unknown mode: %s", argv[optind]);
 		}
 	} else {
@@ -67,9 +67,9 @@ int chmod_main(int argc, char **argv)
 	}
 
 	/* Ok, ready to do the deed now */
-	while (++optind < argc) {
-		if (recursive_action (argv[optind], recursiveFlag, FALSE, FALSE, 
-					fileAction, fileAction, NULL) == FALSE) {
+	for (i = optind + 1; i < argc; i++) {
+		if (recursive_action (argv[i], recursiveFlag, FALSE, FALSE, fileAction,
+					fileAction, argv[optind]) == FALSE) {
 			return EXIT_FAILURE;
 		}
 	}
