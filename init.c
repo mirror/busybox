@@ -803,10 +803,16 @@ extern int init_main(int argc, char **argv)
 	int status;
 
 #ifndef DEBUG_INIT
-	/* Expect to be PID 1 if we are run as init (not linuxrc) */
-	if (getpid() != 1 && strstr(argv[0], "init") != NULL) {
-		usage("init\n\nInit is the parent of all processes.\n\n"
-			  "This version of init is designed to be run only by the kernel\n");
+	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
+	if (getpid() != 1
+#ifdef BB_FEATURE_LINUXRC
+			&& strstr(argv[0], "linuxrc") == NULL
+#endif
+	                  )
+	{
+			usage("init\n\nInit is the parent of all processes.\n\n"
+				  "This version of init is designed to be run only "
+				  "by the kernel.\n");
 	}
 	/* Set up sig handlers  -- be sure to
 	 * clear all of these in run() */
