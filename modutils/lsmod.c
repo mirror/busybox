@@ -66,7 +66,6 @@ static void check_tainted(void)
 	else {
 		printf("    Not tainted\n");
 	}
-	printf("\n");
 }
 #endif
 
