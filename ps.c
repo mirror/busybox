@@ -216,7 +216,7 @@ extern int ps_main(int argc, char **argv)
 	char uidName[10] = "";
 	char groupName[10] = "";
 #ifdef BB_FEATURE_AUTOWIDTH
-	struct winsize win = { 0, 0 };
+	struct winsize win = { 0, 0, 0, 0 };
 	int terminal_width = TERMINAL_WIDTH;
 #else
 #define terminal_width  TERMINAL_WIDTH

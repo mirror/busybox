@@ -78,7 +78,7 @@ extern int more_main(int argc, char **argv)
 	FILE *file;
 
 #if defined BB_FEATURE_AUTOWIDTH && defined BB_FEATURE_USE_TERMIOS
-	struct winsize win = { 0, 0 };
+	struct winsize win = { 0, 0, 0, 0 };
 #endif
 
 	argc--;
