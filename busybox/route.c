@@ -15,8 +15,6 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.10.2.1 2001/08/23 19:10:52 andersen Exp $
- *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
  */
@@ -117,9 +115,6 @@ INET_setroute(int action, int options, char **args)
 		xflag = 2;
 		args++;
 	}
-	if (*args == NULL)
-		show_usage();
-
 	safe_strncpy(target, *args++, (sizeof target));
 
 	/* Clean out the RTREQ structure. */
@@ -348,6 +343,23 @@ INET_setroute(int action, int options, char **args)
 	return EXIT_SUCCESS;
 }
 
+#ifndef RTF_UP
+/* Keep this in sync with /usr/src/linux/include/linux/route.h */
+#define RTF_UP          0x0001          /* route usable                 */
+#define RTF_GATEWAY     0x0002          /* destination is a gateway     */
+#define RTF_HOST        0x0004          /* host entry (net otherwise)   */
+#define RTF_REINSTATE   0x0008          /* reinstate route after tmout  */
+#define RTF_DYNAMIC     0x0010          /* created dyn. (by redirect)   */
+#define RTF_MODIFIED    0x0020          /* modified dyn. (by redirect)  */
+#define RTF_MTU         0x0040          /* specific MTU for this route  */
+#ifndef RTF_MSS
+#define RTF_MSS         RTF_MTU         /* Compatibility :-(            */
+#endif
+#define RTF_WINDOW      0x0080          /* per route window clamping    */
+#define RTF_IRTT        0x0100          /* Initial round trip time      */
+#define RTF_REJECT      0x0200          /* Reject route                 */
+#endif
+
 static void displayroutes(void)
 {
 	char buff[256];
@@ -374,21 +386,25 @@ static void displayroutes(void)
 			   &d, &g, &flgs, &ref, &use, &metric, &m)!=7) {
 				error_msg_and_die( "Unsuported kernel route format\n");
 			}
-			if(nl==1) {
-                printf("Kernel IP routing table\n"
-"Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
-			} else {
-			    nl++;
-			    continue;
-			}
+			if(nl==1)
+			    printf("Kernel IP routing table\n"
+				    "Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
 
 			ifl = 0;        /* parse flags */
-			if(flgs&1)
+			if(flgs&RTF_UP)
 				flags[ifl++]='U';
-			if(flgs&2)
+			if(flgs&RTF_GATEWAY)
 				flags[ifl++]='G';
-			if(flgs&4)
+			if(flgs&RTF_HOST)
 				flags[ifl++]='H';
+			if(flgs&RTF_REINSTATE)
+				flags[ifl++]='R';
+			if(flgs&RTF_DYNAMIC)
+				flags[ifl++]='D';
+			if(flgs&RTF_MODIFIED)
+				flags[ifl++]='H';
+			if(flgs&RTF_REJECT)
+				flags[ifl++]='!';
 			flags[ifl]=0;
 			dest.s_addr = d;
 			gw.s_addr   = g;
