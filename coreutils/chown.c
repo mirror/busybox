@@ -43,6 +43,7 @@ static int (*chown_func)(const char *, uid_t, gid_t) = chown;
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (chown_func(fileName, uid, (gid == -1) ? statbuf->st_gid : gid) == 0) {
+		chmod(fileName, statbuf->st_mode);
 		return (TRUE);
 	}
 	bb_perror_msg("%s", fileName);	/* Avoid multibyte problems. */
