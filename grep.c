@@ -39,6 +39,9 @@
 #include <signal.h>
 #include <time.h>
 #include <ctype.h>
+#define BB_DECLARE_EXTERN
+#define bb_need_too_few_args
+#include "messages.c"
 
 static const char grep_usage[] =
 	"grep [OPTIONS]... PATTERN [FILE]...\n"
@@ -92,7 +95,6 @@ static void do_grep(FILE * fp, char *needle, char *fileName, int tellName,
 extern int grep_main(int argc, char **argv)
 {
 	FILE *fp;
-	char *cp;
 	char *needle;
 	char *fileName;
 	int tellName     = TRUE;
@@ -100,18 +102,14 @@ extern int grep_main(int argc, char **argv)
 	int tellLine     = FALSE;
 	int invertSearch = FALSE;
 
-	argc--;
-	argv++;
 	if (argc < 1) {
 		usage(grep_usage);
 	}
+	argv++;
 
-	if (**argv == '-') {
-		argc--;
-		cp = *argv++;
-
-		while (*++cp)
-			switch (*cp) {
+	while (--argc >= 0 && *argv && (**argv == '-')) {
+		while (*++(*argv)) {
+			switch (**argv) {
 			case 'i':
 				ignoreCase = TRUE;
 				break;
@@ -135,6 +133,12 @@ extern int grep_main(int argc, char **argv)
 			default:
 				usage(grep_usage);
 			}
+		}
+		argv++;
+	}
+
+	if (argc == 0 || *argv == NULL) {
+		fatalError(too_few_args, "grep");
 	}
 
 	needle = *argv++;

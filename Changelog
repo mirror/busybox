@@ -78,6 +78,7 @@
 	    for helping track this one down.
 	* More doc updates
 	* Fixed grep "Line too long" problem -- John Beppu
+	* Fixed 'grep -q -i B some_file' so it works
 	* math takes input from stdin if no args are given.  -- John Beppu
 
 
