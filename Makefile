@@ -50,7 +50,11 @@ DODEBUG = false
 # which is an excellent public domain mem leak and malloc problem
 # detector.  To enable dmalloc, before running busybox you will
 # want to first set up your environment.
-# eg: `export DMALLOC_OPTIONS=debug=0x14f47d83,inter=100,log=logfile`
+# eg: `export DMALLOC_OPTIONS=debug=0x34f47d83,inter=100,log=logfile`
+# The debug= value is generated using the following command
+# dmalloc -p log-stats -p log-non-free -p log-bad-space -p log-elapsed-time \
+#      -p check-fence -p check-heap -p check-lists -p check-blank \
+#      -p check-funcs -p realloc-copy -p allow-free-null
 # Do not enable this for production builds...
 DODMALLOC = false
 
