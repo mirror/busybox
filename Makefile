@@ -210,7 +210,7 @@ busybox: $(OBJECTS)
 	$(STRIP)
 
 busybox.links: Config.h
-	-$(BB_SRC_DIR)/busybox.mkll $(BB_SRC_DIR)applets.h | sort >$@
+	-$(BB_SRC_DIR)/busybox.mkll $(BB_SRC_DIR)/applets.h | sort >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h Makefile
