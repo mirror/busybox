@@ -298,7 +298,8 @@ extern int ar_main(int argc, char **argv)
 	
        while(extractList->next != NULL) {	
 		if ( (funct & EXT_TO_FILE) == EXT_TO_FILE) {
-			dstFd = open(extractList->name, O_WRONLY | O_CREAT);
+			dstFd = open(extractList->name, O_WRONLY | O_CREAT, extractList->mode);
+			
 			extractAr(srcFd, dstFd, extractList);
 		}
 		if ( (funct & EXT_TO_STDOUT) == EXT_TO_STDOUT)	
