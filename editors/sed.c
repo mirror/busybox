@@ -1191,7 +1191,7 @@ extern int sed_main(int argc, char **argv)
 						nonstdout=bb_wfopen(outname,"w");
 						/* Set permissions of output file */
 						fstat(fileno(file),&statbuf);
-						fchmod(fileno(file),statbuf.st_mode);
+						fchmod(fileno(nonstdout),statbuf.st_mode);
 						atexit(cleanup_outname);
 					}
 					process_file(file);
