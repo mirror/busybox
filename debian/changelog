@@ -1,4 +1,4 @@
-busybox (0.44-1) frozen; urgency=low
+busybox (0.45-1) frozen; urgency=low
 
   * First attempt at packaging BusyBox as a .deb.  This has been in 
     in the Debian boot-floppies CVS tree forever.  Hopefully, having it as a

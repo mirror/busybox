@@ -91,8 +91,15 @@
 	    this will probably be remedied in the future.  -- John Beppu
 
 
-	 -Erik Andersen
+	 -Erik Andersen, June 21, 2000
 
+
+0.44
+	Previously, an erronous announcement of BusyBox 0.44 was made, so to 
+	avoid possible confusion, we are skipping straight to 0.45, and calling
+	it good.
+
+	 -Erik Andersen
 
 
 0.43
