@@ -106,9 +106,9 @@ static int builtin_read(struct job *cmd, struct jobSet *junk);
 /* function prototypes for shell stuff */
 static void checkJobs(struct jobSet *jobList);
 static int getCommand(FILE * source, char *command);
-static int parseCommand(char **commandPtr, struct job *job, int *isBg);
+static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobList, int *isBg);
 static int setupRedirections(struct childProgram *prog);
-static int runCommand(struct job newJob, struct jobSet *jobList, int inBg);
+static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg);
 static int busy_loop(FILE * input);
 
 
@@ -389,6 +389,7 @@ static void freeJob(struct job *cmd)
 	if (cmd->text)
 		free(cmd->text);
 	free(cmd->cmdBuf);
+	memset(cmd, 0, sizeof(struct job));
 }
 
 /* remove a job from the jobList */
@@ -471,7 +472,7 @@ static int getCommand(FILE * source, char *command)
 		char *promptStr;
 		len=fprintf(stdout, "%s %s", cwd, prompt);
 		fflush(stdout);
-		promptStr=(char*)malloc(sizeof(char)*(len+1));
+		promptStr=(char*)xmalloc(sizeof(char)*(len+1));
 		sprintf(promptStr, "%s %s", cwd, prompt);
 		cmdedit_read_input(promptStr, command);
 		free( promptStr);
@@ -550,7 +551,7 @@ static void globLastArgument(struct childProgram *prog, int *argcPtr,
    the beginning of the next command (if the original command had more 
    then one job associated with it) or NULL if no more commands are 
    present. */
-static int parseCommand(char **commandPtr, struct job *job, int *isBg)
+static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobList, int *isBg)
 {
 	char *command;
 	char *returnCommand = NULL;
@@ -569,14 +570,13 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 
 	/* this handles empty lines or leading '#' characters */
 	if (!**commandPtr || (**commandPtr == '#')) {
-		job->numProgs = 0;
-		*commandPtr = NULL;
+		job->numProgs=0;
 		return 0;
 	}
 
 	*isBg = 0;
 	job->numProgs = 1;
-	job->progs = malloc(sizeof(*job->progs));
+	job->progs = xmalloc(sizeof(*job->progs));
 
 	/* We set the argv elements to point inside of this string. The 
 	   memory is freed by freeJob(). Allocate twice the original
@@ -595,7 +595,7 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 	prog->isStopped = 0;
 
 	argvAlloced = 5;
-	prog->argv = malloc(sizeof(*prog->argv) * argvAlloced);
+	prog->argv = xmalloc(sizeof(*prog->argv) * argvAlloced);
 	prog->argv[0] = job->cmdBuf;
 
 	buf = command;
@@ -688,6 +688,7 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 				if (!*chptr) {
 					fprintf(stderr, "file name expected after %c\n", *src);
 					freeJob(job);
+					job->numProgs=0;
 					return 1;
 				}
 
@@ -704,8 +705,9 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 				if (*prog->argv[argc])
 					argc++;
 				if (!argc) {
-					fprintf(stderr, "empty command in pipe\n");
+					fprintf(stderr, "empty command in pipe1.\n");
 					freeJob(job);
+					job->numProgs=0;
 					return 1;
 				}
 				prog->argv[argc] = NULL;
@@ -721,7 +723,7 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 				argc = 0;
 
 				argvAlloced = 5;
-				prog->argv = malloc(sizeof(*prog->argv) * argvAlloced);
+				prog->argv = xmalloc(sizeof(*prog->argv) * argvAlloced);
 				prog->argv[0] = ++buf;
 
 				src++;
@@ -729,7 +731,9 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 					src++;
 
 				if (!*src) {
-					fprintf(stderr, "empty command in pipe\n");
+					fprintf(stderr, "empty command in pipe2\n");
+					freeJob(job);
+					job->numProgs=0;
 					return 1;
 				}
 				src--;			/* we'll ++ it at the end of the loop */
@@ -746,13 +750,40 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 			case '\\':
 				src++;
 				if (!*src) {
-					freeJob(job);
 					fprintf(stderr, "character expected after \\\n");
+					freeJob(job);
 					return 1;
 				}
 				if (*src == '*' || *src == '[' || *src == ']'
 					|| *src == '?') *buf++ = '\\';
 				/* fallthrough */
+			case '`':
+				/* Exec a backtick-ed command */
+				{
+					char* newcmd=NULL;
+					char* ptr=NULL;
+					struct job newJob;
+
+					ptr=strchr(++src, '`');
+					if (ptr==NULL) {
+						fprintf(stderr, "Unmatched '`' in command\n");
+						freeJob(job);
+						return 1;
+					}
+
+					newcmd = xmalloc(1+ptr-src);
+					snprintf(newcmd, 1+ptr-src, src);
+
+					if (!parseCommand(&newcmd, &newJob, jobList, isBg) &&
+							newJob.numProgs) {
+						runCommand(&newJob, jobList, *isBg);
+					}
+
+					/* Clip out the the backticked command from the string */
+					memmove(--src, ptr, strlen(ptr)+1);
+					free(newcmd);
+				}
+				break;
 			default:
 				*buf++ = *src;
 			}
@@ -771,12 +802,12 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 	prog->argv[argc] = NULL;
 
 	if (!returnCommand) {
-		job->text = malloc(strlen(*commandPtr) + 1);
+		job->text = xmalloc(strlen(*commandPtr) + 1);
 		strcpy(job->text, *commandPtr);
 	} else {
 		/* This leaves any trailing spaces, which is a bit sloppy */
 		count = returnCommand - *commandPtr;
-		job->text = malloc(count + 1);
+		job->text = xmalloc(count + 1);
 		strncpy(job->text, *commandPtr, count);
 		job->text[count] = '\0';
 	}
@@ -787,7 +818,7 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 }
 
 
-static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
+static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg)
 {
 	struct job *job;
 	int i;
@@ -800,8 +831,8 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 
 
 	nextin = 0, nextout = 1;
-	for (i = 0; i < newJob.numProgs; i++) {
-		if ((i + 1) < newJob.numProgs) {
+	for (i = 0; i < newJob->numProgs; i++) {
+		if ((i + 1) < newJob->numProgs) {
 			pipe(pipefds);
 			nextout = pipefds[1];
 		} else {
@@ -810,12 +841,12 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 
 		/* Check if the command matches any non-forking builtins */
 		for (x = bltins; x->cmd; x++) {
-			if (!strcmp(newJob.progs[i].argv[0], x->cmd)) {
-				return (x->function(&newJob, jobList));
+			if (!strcmp(newJob->progs[i].argv[0], x->cmd)) {
+				return (x->function(newJob, jobList));
 			}
 		}
 
-		if (!(newJob.progs[i].pid = fork())) {
+		if (!(newJob->progs[i].pid = fork())) {
 			signal(SIGTTOU, SIG_DFL);
 
 			if (nextin != 0) {
@@ -829,12 +860,12 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 			}
 
 			/* explicit redirections override pipes */
-			setupRedirections(newJob.progs + i);
+			setupRedirections(newJob->progs + i);
 
 			/* Check if the command matches any of the other builtins */
 			for (x = bltins_forking; x->cmd; x++) {
-				if (!strcmp(newJob.progs[i].argv[0], x->cmd)) {
-					exit (x->function(&newJob, jobList));
+				if (!strcmp(newJob->progs[i].argv[0], x->cmd)) {
+					exit (x->function(newJob, jobList));
 				}
 			}
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
@@ -842,24 +873,24 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 			/* TODO: Add matching when paths are appended (i.e. 'cat' currently
 			 * works, but '/bin/cat' doesn't ) */
 			while (a->name != 0) {
-				if (strcmp(newJob.progs[i].argv[0], a->name) == 0) {
+				if (strcmp(newJob->progs[i].argv[0], a->name) == 0) {
 					int argc;
-					char** argv=newJob.progs[i].argv;
+					char** argv=newJob->progs[i].argv;
 					for(argc=0;*argv!=NULL; argv++, argc++);
-					exit((*(a->main)) (argc, newJob.progs[i].argv));
+					exit((*(a->main)) (argc, newJob->progs[i].argv));
 				}
 				a++;
 			}
 #endif
 
-			execvp(newJob.progs[i].argv[0], newJob.progs[i].argv);
-			fatalError("%s: %s\n", newJob.progs[i].argv[0],
+			execvp(newJob->progs[i].argv[0], newJob->progs[i].argv);
+			fatalError("%s: %s\n", newJob->progs[i].argv[0],
 					   strerror(errno));
 		}
 
 		/* put our child in the process group whose leader is the
 		   first process in this pipe */
-		setpgid(newJob.progs[i].pid, newJob.progs[0].pid);
+		setpgid(newJob->progs[i].pid, newJob->progs[0].pid);
 
 		if (nextin != 0)
 			close(nextin);
@@ -871,24 +902,24 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 		nextin = pipefds[0];
 	}
 
-	newJob.pgrp = newJob.progs[0].pid;
+	newJob->pgrp = newJob->progs[0].pid;
 
 	/* find the ID for the job to use */
-	newJob.jobId = 1;
+	newJob->jobId = 1;
 	for (job = jobList->head; job; job = job->next)
-		if (job->jobId >= newJob.jobId)
-			newJob.jobId = job->jobId + 1;
+		if (job->jobId >= newJob->jobId)
+			newJob->jobId = job->jobId + 1;
 
 	/* add the job to the list of running jobs */
 	if (!jobList->head) {
-		job = jobList->head = malloc(sizeof(*job));
+		job = jobList->head = xmalloc(sizeof(*job));
 	} else {
 		for (job = jobList->head; job->next; job = job->next);
-		job->next = malloc(sizeof(*job));
+		job->next = xmalloc(sizeof(*job));
 		job = job->next;
 	}
 
-	*job = newJob;
+	*job = *newJob;
 	job->next = NULL;
 	job->runningProgs = job->numProgs;
 	job->stoppedProgs = 0;
@@ -897,13 +928,13 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 		/* we don't wait for background jobs to return -- append it 
 		   to the list of backgrounded jobs and leave it alone */
 		printf("[%d] %d\n", job->jobId,
-			   newJob.progs[newJob.numProgs - 1].pid);
+			   newJob->progs[newJob->numProgs - 1].pid);
 	} else {
 		jobList->fg = job;
 
 		/* move the new process group into the foreground */
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
-		if (tcsetpgrp(0, newJob.pgrp) && errno != ENOTTY)
+		if (tcsetpgrp(0, newJob->pgrp) && errno != ENOTTY)
 			perror("tcsetpgrp");
 	}
 
@@ -982,9 +1013,11 @@ static int busy_loop(FILE * input)
 				nextCommand = command;
 			}
 
-			if (!parseCommand(&nextCommand, &newJob, &inBg) &&
+			if (!parseCommand(&nextCommand, &newJob, &jobList, &inBg) &&
 				newJob.numProgs) {
-				runCommand(newJob, &jobList, inBg);
+				runCommand(&newJob, &jobList, inBg);
+			} else {
+				nextCommand=NULL;
 			}
 		} else {
 			/* a job is running in the foreground; wait for it */
