@@ -2340,7 +2340,7 @@
 	"\nArchive format selection:\n" \
 	USAGE_TAR_GZIP("\tz\t\tFilter the archive through gzip\n") \
 	USAGE_TAR_BZIP2("\tj\t\tFilter the archive through bzip2\n") \
-	USAGE_TAR_UNCOMPRESS("\tZ\t\tFilter the archive through compress\n") \
+	USAGE_TAR_COMPRESS("\tZ\t\tFilter the archive through compress\n") \
 	"\nFile selection:\n" \
 	"\tf\t\tname of TARFILE or \"-\" for stdin\n" \
 	"\tO\t\textract to stdout\n" \
