@@ -234,7 +234,7 @@ static void destroy_regexes(void)
 extern int grep_main(int argc, char **argv)
 {
 	int opt;
-#ifdef CONFIG_FEATURE_GREP_CONTEXT
+#if defined (CONFIG_FEATURE_GREP_CONTEXT) || defined (CONFIG_FEATURE_GREP_EGREP_ALIAS)
 	char *junk;
 #endif
 
