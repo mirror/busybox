@@ -997,6 +997,10 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 	struct redir_struct *redir;
 
 	for (redir=prog->redirects; redir; redir=redir->next) {
+		if (redir->dup == -1 && redir->word.gl_pathv == NULL) {
+			/* something went wrong in the parse.  Pretend it didn't happen */
+			continue;
+		}
 		if (redir->dup == -1) {
 			mode=redir_table[redir->type].mode;
 			openfd = open(redir->word.gl_pathv[0], mode, 0666);
@@ -1545,8 +1549,11 @@ static int free_pipe(struct pipe *pi, int indent)
 		for (r=child->redirects; r; r=rnext) {
 			final_printf("%s   redirect %d%s", ind, r->fd, redir_table[r->type].descrip);
 			if (r->dup == -1) {
-				final_printf(" %s\n", *r->word.gl_pathv);
-				globfree(&r->word);
+				/* guard against the case >$FOO, where foo is unset or blank */
+				if (r->word.gl_pathv) {
+					final_printf(" %s\n", *r->word.gl_pathv);
+					globfree(&r->word);
+				}
 			} else {
 				final_printf("&%d\n", r->dup);
 			}
@@ -1599,10 +1606,10 @@ static int run_list(struct pipe *pi)
  */
 static int globhack(const char *src, int flags, glob_t *pglob)
 {
-	int cnt, pathc;
+	int cnt=0, pathc;
 	const char *s;
 	char *dest;
-	for (cnt=1, s=src; *s; s++) {
+	for (cnt=1, s=src; s && *s; s++) {
 		if (*s == '\\') s++;
 		cnt++;
 	}
@@ -1619,7 +1626,7 @@ static int globhack(const char *src, int flags, glob_t *pglob)
 	if (pglob->gl_pathv == NULL) return GLOB_NOSPACE;
 	pglob->gl_pathv[pathc-1]=dest;
 	pglob->gl_pathv[pathc]=NULL;
-	for (s=src; *s; s++, dest++) {
+	for (s=src; s && *s; s++, dest++) {
 		if (*s == '\\') s++;
 		*dest = *s;
 	}
@@ -1829,6 +1836,7 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 	}
 	redir = xmalloc(sizeof(struct redir_struct));
 	redir->next=NULL;
+	redir->word.gl_pathv=NULL;
 	if (last_redir) {
 		last_redir->next=redir;
 	} else {
