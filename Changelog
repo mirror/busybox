@@ -48,6 +48,7 @@
 	* Fixed more and ps to have sensible terminal width defaults, thanks 
 	    to Pavel Roskin.
 	* Fixed all fatalError() calls lacking a "\n", thanks to Pavel Roskin.
+	* Fixed a segfault in yes when no args were given -- Pavel Roskin.
 	* More doc updates
 
 
