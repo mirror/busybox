@@ -349,16 +349,17 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 			struct dep_t *adt;
 		
 			for ( adt = depend; adt; adt = adt-> m_next ) {
-				if ( strcmp ( adt-> m_module, dt-> m_deparr [0] ) == 0 ) {
-					if ( !opt )
-						opt = adt-> m_options;
+				if ( strcmp ( adt-> m_module, dt-> m_deparr [0] ) == 0 )
 					break;
-				}
 			}
-			if ( !adt )
-				return;
+			if ( adt ) {
+				dt = adt;			
+				mod = dt-> m_module;
+				if ( !opt )
+					opt = dt-> m_options;
+			}
 			else
-				dt = adt;
+				return;
 		}
 		else
 			return;			
