@@ -131,6 +131,9 @@
 #if defined(BB_FEATURE_GREP_EGREP_ALIAS) && defined(BB_GREP)
 	APPLET_NOUSAGE("egrep", grep_main, _BB_DIR_BIN)
 #endif
+#ifdef BB_ENV
+	APPLET(env, env_main, _BB_DIR_USR_BIN)
+#endif
 #ifdef BB_EXPR
 	APPLET(expr, expr_main, _BB_DIR_USR_BIN)
 #endif

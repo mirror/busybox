@@ -343,6 +343,15 @@
 	"$ echo "Erik\nis\ncool"\n" \
 	"Erik\nis\ncool\n"
 
+#define env_trivial_usage \
+	"[-] [-iu] [name=value ...] [command]"
+#define env_full_usage \
+	"Prints the current environment or runs a program after setting\n" \
+	"up the specified environment.\n\n" \
+	"Options:\n" \
+	"\t-, -i\tstart with an empty environment\n" \
+	"\t-u\tremove variable from the environment\n"
+
 #define expr_trivial_usage \
 	"EXPRESSION"
 #define expr_full_usage \

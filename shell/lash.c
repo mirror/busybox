@@ -143,7 +143,6 @@ struct close_me {
 
 /* function prototypes for builtins */
 static int builtin_cd(struct child_prog *cmd);
-static int builtin_env(struct child_prog *dummy);
 static int builtin_exec(struct child_prog *cmd);
 static int builtin_exit(struct child_prog *cmd);
 static int builtin_fg_bg(struct child_prog *cmd);
@@ -203,7 +202,6 @@ static struct built_in_command bltins[] = {
 /* Table of forking built-in functions (things that fork cannot change global
  * variables in the parent process, such as the current working directory) */
 static struct built_in_command bltins_forking[] = {
-	{"env", "Print all environment variables", builtin_env},
 	{"pwd", "Print current directory", builtin_pwd},
 	{"help", "List shell built-in commands", builtin_help},
 	{NULL, NULL, NULL}
@@ -256,14 +254,13 @@ static inline void debug_printf(const char *format, ...) { }
 builtin   previous use      notes
 ------ -----------------  ---------
 cd      cmd->progs[0]
-env     0
 exec    cmd->progs[0]  squashed bug: didn't look for applets or forking builtins
 exit    cmd->progs[0]
 fg_bg   cmd->progs[0], job_list->head, job_list->fg
 help    0
 jobs    job_list->head
 pwd     0
-export  cmd->progs[0]  passes cmd, job_list to builtin_env(), which ignores them
+export  cmd->progs[0]
 source  cmd->progs[0]
 unset   cmd->progs[0]
 read    cmd->progs[0]
@@ -300,17 +297,6 @@ static int builtin_cd(struct child_prog *child)
 	getcwd(cwd, sizeof(char)*MAX_LINE);
 
 	return EXIT_SUCCESS;
-}
-
-/* built-in 'env' handler */
-static int builtin_env(struct child_prog *dummy)
-{
-	char **e;
-
-	for (e = environ; *e; e++) {
-		printf( "%s\n", *e);
-	}
-	return (0);
 }
 
 /* built-in 'exec' handler */
@@ -436,7 +422,10 @@ static int builtin_export(struct child_prog *child)
 	char *v = child->argv[1];
 
 	if (v == NULL) {
-		return (builtin_env(child));
+		char **e;
+		for (e = environ; *e; e++) {
+			printf( "%s\n", *e);
+		}
 	}
 	res = putenv(v);
 	if (res)

@@ -1,3 +1,12 @@
+0.51pre
+	* Erik Andersen -- added env applet
+	* Erik Andersen -- Split utility.c into libbb
+	* <fixme>
+
+
+	 -Erik Andersen, not yet released
+
+
 0.50
 	* Erik Andersen -- added ifconfig interface status reporting 
 	* Erik Andersen -- Debian packaging updates

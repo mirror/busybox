@@ -32,6 +32,7 @@
 #define BB_DU
 //#define BB_DUMPKMAP
 #define BB_ECHO
+#define BB_ENV
 //#define BB_EXPR
 //#define BB_FBSET
 //#define BB_FDFLUSH
