@@ -246,7 +246,7 @@ mtab_file.c my_getgrnam.c my_getgrgid.c my_getpwnam.c my_getpwnamegid.c \
 my_getpwuid.c parse_mode.c parse_number.c perror_msg.c perror_msg_and_die.c \
 print_file.c process_escape_sequence.c read_package_field.c recursive_action.c \
 safe_read.c safe_strncpy.c syscalls.c syslog_msg_with_name.c time_string.c \
-trim.c unarchive.c unzip.c vdprintf.c verror_msg.c vperror_msg.c wfopen.c xfuncs.c \
+trim.c unzip.c vdprintf.c verror_msg.c vperror_msg.c wfopen.c xfuncs.c \
 xgetcwd.c xreadlink.c xregcomp.c interface.c remove_file.c last_char_is.c \
 copyfd.c vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \
 dirname.c make_directory.c strdup_substr.c
@@ -261,6 +261,11 @@ LIBBB_MESSAGES= full_version name_too_long omitting_directory not_a_directory \
 memory_exhausted invalid_date invalid_option io_error dash_dash_help \
 write_error too_few_args name_longer_than_foo unknown
 LIBBB_MOBJ=$(patsubst %,$(LIBBB)/%.o, $(LIBBB_MESSAGES))
+
+LIBBB_ARCSRC=libbb/unarchive.c
+LIBBB_ARCOBJ= archive_offset seek_sub_file extract_archive unarchive \
+get_header_ar get_header_cpio get_header_tar deb_extract
+LIBBB_AROBJS=$(patsubst %,$(LIBBB)/%.o, $(LIBBB_ARCOBJ))
 
 
 # Put user-supplied flags at the end, where they
@@ -365,10 +370,14 @@ $(LIBBB_MOBJ): $(LIBBB_MSRC)
 	- mkdir -p $(LIBBB)
 	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
 
+$(LIBBB_AROBJS): $(LIBBB_ARCSRC)
+	- mkdir -p $(LIBBB)
+	$(CC) $(CFLAGS) $(LIBBB_CFLAGS) -DL_$(patsubst libbb/%,%,$*) -c $< -o $*.o
+
 libpwd.a: $(PWD_OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
-libbb.a:  $(LIBBB_MOBJ) $(LIBBB_OBJS)
+libbb.a:  $(LIBBB_MOBJ) $(LIBBB_AROBJS) $(LIBBB_OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
 usage.o: usage.h

@@ -38,8 +38,19 @@ typedef struct file_headers_s {
 	dev_t device;
 } file_header_t;
 
-off_t archive_offset;
 
+extern void seek_sub_file(FILE *src_stream, const int count);
+extern char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *file_entry,
+ const int function, const char *prefix);
+
+
+#ifdef L_archive_offset
+off_t archive_offset;
+#else
+extern off_t archive_offset;
+#endif	
+
+#ifdef L_seek_sub_file
 void seek_sub_file(FILE *src_stream, const int count)
 {
 	int i;
@@ -52,8 +63,11 @@ void seek_sub_file(FILE *src_stream, const int count)
 	}
 	return;
 }
+#endif	
 
 
+
+#ifdef L_extract_archive
 /* Extract the data postioned at src_stream to either filesystem, stdout or 
  * buffer depending on the value of 'function' which is defined in libbb.h 
  *
@@ -202,7 +216,9 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 
 	return(NULL); /* Maybe we should say if failed */
 }
+#endif
 
+#ifdef L_unarchive
 char *unarchive(FILE *src_stream, void *(*get_headers)(FILE *),
 	const int extract_function, const char *prefix, char **extract_names)
 {
@@ -233,8 +249,9 @@ char *unarchive(FILE *src_stream, void *(*get_headers)(FILE *),
 	}
 	return(buffer);
 }
+#endif
 
-#if defined BB_AR || defined BB_DPKG_DEB || defined BB_DPKG
+#ifdef L_get_header_ar
 void *get_header_ar(FILE *src_stream)
 {
 	file_header_t *typed;
@@ -317,7 +334,7 @@ void *get_header_ar(FILE *src_stream)
 }
 #endif
 
-#if defined BB_CPIO
+#ifdef L_get_header_cpio
 void *get_header_cpio(FILE *src_stream)
 {
 	file_header_t *cpio_entry = NULL;
@@ -378,7 +395,7 @@ void *get_header_cpio(FILE *src_stream)
 }
 #endif
 
-#if defined BB_UNTAR || defined BB_DPKG_DEB || defined BB_DPKG
+#ifdef L_get_header_tar
 void *get_header_tar(FILE *tar_stream)
 {
 	union {
@@ -455,7 +472,7 @@ void *get_header_tar(FILE *tar_stream)
 }
 #endif
 
-#if defined BB_DPKG || defined BB_DPKG_DEB
+#ifdef L_deb_extract
 char *deb_extract(const char *package_filename, FILE *out_stream, const int extract_function,
 	const char *prefix, const char *filename)
 {
