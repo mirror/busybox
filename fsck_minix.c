@@ -143,9 +143,10 @@ static struct termios termios;
 static int termios_set = 0;
 
 /* File-name data */
-#define MAX_DEPTH 50
+#define MAX_DEPTH 32
 static int name_depth = 0;
-static char name_list[MAX_DEPTH][PATH_MAX + 1];
+// static char name_list[MAX_DEPTH][PATH_MAX + 1];
+static char **name_list;
 
 static char *inode_buffer = NULL;
 
@@ -1240,11 +1241,31 @@ static void check2(void)
 }
 #endif
 
+/* Wed Feb  9 15:17:06 MST 2000 */
+/* dynamically allocate name_list (instead of making it static) */
+static void alloc_name_list(void)
+{
+	int i;
+
+	name_list = malloc(sizeof(char *) * MAX_DEPTH);
+	for (i = 0; i < MAX_DEPTH; i++) {
+		name_list[i] = malloc(sizeof(char) * PATH_MAX + 1);
+	}
+}
+
+static void free_name_list(void)
+{
+	if (name_list) free(name_list);
+}
+
 extern int fsck_minix_main(int argc, char **argv)
 {
 	struct termios tmp;
 	int count;
 	int retcode = 0;
+
+	alloc_name_list();
+	atexit(free_name_list);
 
 	if (argc && *argv)
 		program_name = *argv;
