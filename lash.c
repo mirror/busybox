@@ -936,7 +936,7 @@ char * strsep_space( char *string, int * index)
 		return NULL;
 	}
 
-	token = xmalloc(*index);
+	token = xmalloc(*index+1);
 	token[*index] = '\0';
 	strncpy(token, string,  *index); 
 
