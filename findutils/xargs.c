@@ -49,12 +49,11 @@ int xargs_main(int argc, char **argv)
 	} else {
 		/* concatenate all the arguments passed to xargs together */
 		int i;
-		int len = 1; /* for the '\0' */
-		cmd_to_be_executed = xmalloc(80);
+		int len = 0;
+		for (i = 1; i < argc; i++) 
+			len += ( strlen(argv[i]) + 1 );
+		cmd_to_be_executed = xstrndup ( "", len );	
 		for (i = 1; i < argc; i++) {
-			len += strlen(argv[i]);
-			len += 1;  /* for the space between the args */
-			cmd_to_be_executed = xrealloc(cmd_to_be_executed, len);
 			strcat(cmd_to_be_executed, argv[i]);
 			strcat(cmd_to_be_executed, " ");
 		}
@@ -76,10 +75,9 @@ int xargs_main(int argc, char **argv)
 			continue;
 
 		/* assemble the command and execute it */
-		execstr = xcalloc(strlen(cmd_to_be_executed) +
-				strlen(file_to_act_on) + 1, sizeof(char));
-		strcat(execstr, cmd_to_be_executed);
+		execstr = xstrndup ( cmd_to_be_executed, xstrlen(cmd_to_be_executed) + xstrlen(file_to_act_on));
 		strcat(execstr, file_to_act_on);
+		
 		cmd_output = popen(execstr, "r");
 		if (cmd_output == NULL)
 			perror_msg_and_die("popen");
