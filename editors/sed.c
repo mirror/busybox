@@ -857,7 +857,11 @@ static void process_file(FILE * file)
 
 					if (tmp) {
 						*tmp = '\0';
+						puts(pattern_space);
+						*tmp = '\n';
+						break;
 					}
+					/* Fall Through */
 				}
 				case 'p':	/* Write the current pattern space to output */
 					puts(pattern_space);

@@ -1,0 +1,10 @@
+busybox sed -n 'N;P;p'>output <<EOF
+a
+b
+c
+EOF
+cmp -s output - <<EOF
+a
+a
+b
+EOF
