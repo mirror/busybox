@@ -16,7 +16,7 @@ BusyBox combines tiny versions of many common UNIX utilities into a single
 small executable. It provides minimalist replacements for most of the utilities
 you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
 tar, etc.  BusyBox provides a fairly complete POSIX environment for any small
-or emdedded system.  The utilities in BusyBox generally have fewer options than
+or embedded system.  The utilities in BusyBox generally have fewer options than
 their full-featured GNU cousins; however, the options that are included provide
 the expected functionality and behave very much like their GNU counterparts.  
 
@@ -144,7 +144,7 @@ Usage: chmod [B<-R>] MODE[,MODE]... FILE...
 Changes file access permissions for the specified FILE(s) (or directories).
 Each MODE is defined by combining the letters for WHO has access to the file,
 an OPERATOR for selecting how the permissions should be changed, and a
-PERISSION for FILE(s) (or directories).
+PERMISSION for FILE(s) (or directories).
 
 WHO may be chosen from
 
@@ -165,7 +165,7 @@ PERMISSION may be chosen from
 	w	Write
 	x	Execute (or access for directories)
 	s	Set user (or group) ID bit
-	t	Stickey bit (for directories prevents removing files by non-owners)
+	t	Sticky bit (for directories prevents removing files by non-owners)
 
 Alternately, permissions can be set numerically where the first three
 numbers are calculated by adding the octal values, such as
@@ -178,7 +178,7 @@ An optional fourth digit can also be used to specify
 
 	4	Set user ID
 	2	Set group ID
-	1	Stickey bit
+	1	Sticky bit
 
 Options:
 
@@ -263,7 +263,7 @@ Options:
 
         -a      Same as -dpR
         -d      Preserves links
-        -p      Preserves file attributes if possable
+        -p      Preserves file attributes if possible
         -R      Copies directories recursively
 
 -------------------------------
@@ -593,7 +593,7 @@ OPTIONS:
 	-q      be quiet. Returns 0 if result was found, 1 otherwise
 	-v      select non-matching lines
 
-This version of grep matches full regular expresions.
+This version of grep matches full regular expressions.
 
 Example:
 
@@ -651,7 +651,7 @@ Example:
 
 Usage: halt
 
-This comand halts the system.
+This command halts the system.
 
 -------------------------------
 
@@ -775,7 +775,7 @@ If you choose to use an /etc/inittab file, the inittab entry format is as follow
 		console." and then waits for the user to press enter before starting
 		the specified process.
 
-		Unrecognised actions (like initdefault) will cause init to emit
+		Unrecognized actions (like initdefault) will cause init to emit
 		an error message, and then go along with its business.
 
 	<process>: 
@@ -1073,7 +1073,7 @@ Create the DIRECTORY(ies), if they do not already exist
 Options:
 
 	-m      set permission mode (as in chmod), not rwxrwxrwx - umask
-	-p      no error if dir exists, make parent directories as needed
+	-p      no error if directory exists, make parent directories as needed
 
 Example:
 
@@ -1431,7 +1431,7 @@ Options:
 	-e      add the script to the commands to be executed
 	-n      suppress automatic printing of pattern space
 
-This version of sed matches full regular expresions.
+This version of sed matches full regular expressions.
 
 Example:
 
@@ -1934,7 +1934,7 @@ Repeatedly outputs a line with all specified STRING(s), or `y'.
 =item zcat
 
 This is essentially an alias for invoking "gunzip B<-c>", where 
-it decompresses the file inquestion and send the output to stdout. 
+it decompresses the file in question and send the output to stdout. 
 
 -------------------------------
 
@@ -2021,4 +2021,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.41 2000/06/13 06:54:53 andersen Exp $
+# $Id: busybox.pod,v 1.42 2000/06/16 19:56:44 andersen Exp $
