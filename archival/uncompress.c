@@ -28,89 +28,72 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-int uncompress_main(int argc, char **argv)
+#define GUNZIP_TO_STDOUT	1
+#define GUNZIP_FORCE	2
+
+extern int uncompress_main(int argc, char **argv)
 {
-	const char gunzip_to_stdout = 1;
-	const char gunzip_force = 2;
-	char status = EXIT_SUCCESS;
-	char flags = 0;
-	int opt;
+	int status = EXIT_SUCCESS;
+	unsigned long flags;
 
-	while ((opt = getopt(argc, argv, "cfh")) != -1) {
-		switch (opt) {
-		case 'c':
-			flags |= gunzip_to_stdout;
-			break;
-		case 'f':
-			flags |= gunzip_force;
-			break;
-		default:
-			bb_show_usage();	/* exit's inside usage */
-		}
-	}
+	flags = bb_getopt_ulflags(argc, argv, "cf");
 
-	do {
-		struct stat stat_buf;
-		const char *old_path = argv[optind];
+	while (optind < argc) {
+		const char *compressed_file = argv[optind++];
 		const char *delete_path = NULL;
-		char *new_path = NULL;
+		char *uncompressed_file = NULL;
 		int src_fd;
 		int dst_fd;
 
-		optind++;
-
-		if (old_path == NULL || strcmp(old_path, "-") == 0) {
+		if (strcmp(compressed_file, "-") == 0) {
 			src_fd = fileno(stdin);
-			flags |= gunzip_to_stdout;
+			flags |= GUNZIP_TO_STDOUT;
 		} else {
-			src_fd = bb_xopen(old_path, O_RDONLY);
-
-			/* Get the time stamp on the input file. */
-			if (stat(old_path, &stat_buf) < 0) {
-				bb_error_msg_and_die("Couldn't stat file %s", old_path);
-			}
+			src_fd = bb_xopen(compressed_file, O_RDONLY);
 		}
 
 		/* Check that the input is sane.  */
-		if (isatty(src_fd) && ((flags & gunzip_force) == 0)) {
+		if (isatty(src_fd) && ((flags & GUNZIP_FORCE) == 0)) {
 			bb_error_msg_and_die
 				("compressed data not read from terminal.  Use -f to force it.");
 		}
 
 		/* Set output filename and number */
-		if (flags & gunzip_to_stdout) {
+		if (flags & GUNZIP_TO_STDOUT) {
 			dst_fd = fileno(stdout);
 		} else {
+			struct stat stat_buf;
 			char *extension;
 
-			new_path = bb_xstrdup(old_path);
+			uncompressed_file = bb_xstrdup(compressed_file);
 
-			extension = strrchr(new_path, '.');
+			extension = strrchr(uncompressed_file, '.');
 			if (!extension || (strcmp(extension, ".Z") != 0)) {
 				bb_error_msg_and_die("Invalid extension");
 			}
 			*extension = '\0';
 
 			/* Open output file */
-			dst_fd = bb_xopen(new_path, O_WRONLY | O_CREAT);
+			dst_fd = bb_xopen(uncompressed_file, O_WRONLY | O_CREAT);
 
 			/* Set permissions on the file */
-			chmod(new_path, stat_buf.st_mode);
+			stat(compressed_file, &stat_buf);
+			chmod(uncompressed_file, stat_buf.st_mode);
 
 			/* If unzip succeeds remove the old file */
-			delete_path = old_path;
+			delete_path = compressed_file;
 		}
 
 		/* do the decompression, and cleanup */
-		if ((bb_xread_char(src_fd) == 0x1f) && (bb_xread_char(src_fd) == 0x9d)) {
-			status = uncompress(src_fd, dst_fd);
-		} else {
+		if ((bb_xread_char(src_fd) != 0x1f) || (bb_xread_char(src_fd) != 0x9d)) {
 			bb_error_msg_and_die("Invalid magic");
 		}
 
-		if ((status != EXIT_SUCCESS) && (new_path)) {
-			/* Unzip failed, remove new path instead of old path */
-			delete_path = new_path;
+		status = uncompress(src_fd, dst_fd);
+
+		if ((status != EXIT_SUCCESS) && (uncompressed_file)) {
+			/* Unzip failed, remove the uncomressed file instead of compressed file */
+			delete_path = uncompressed_file;
 		}
 
 		if (dst_fd != fileno(stdout)) {
@@ -125,9 +108,8 @@ int uncompress_main(int argc, char **argv)
 			bb_error_msg_and_die("Couldn't remove %s", delete_path);
 		}
 
-		free(new_path);
-
-	} while (optind < argc);
+		free(uncompressed_file);
+	}
 
 	return status;
 }
