@@ -524,8 +524,10 @@ extern int ipaddr_list_or_flush(int argc, char **argv, int flush)
 				exit(1);
 			}
 			if (filter.flushed == 0) {
+#if 0
 				if (round == 0)
 					fprintf(stderr, "Nothing to flush.\n");
+#endif
 				fflush(stdout);
 				return 0;
 			}

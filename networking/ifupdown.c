@@ -107,6 +107,33 @@ static char no_act = 0;
 static char verbose = 0;
 static char **environ = NULL;
 
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+static int count_netmask_bits(char *dotted_quad)
+{
+	unsigned int a, b, c, d;
+	unsigned int res, result;
+	/* Found a netmask...  Check if it is dotted quad */
+	if (sscanf(dotted_quad, "%u.%u.%u.%u", &a, &b, &c, &d) != 4)
+		return -1;
+	res = (a & 0x55) + ((a >> 1) & 0x55);
+	res = (res & 0x33) + ((res >> 2) & 0x33);
+	result = (res & 0x0F) + ((res >> 4) & 0x0F);
+
+	res = (b & 0x55) + ((b >> 1) & 0x55);
+	res = (res & 0x33) + ((res >> 2) & 0x33);
+	result += (res & 0x0F) + ((res >> 4) & 0x0F);
+
+	res = (c & 0x55) + ((c >> 1) & 0x55);
+	res = (res & 0x33) + ((res >> 2) & 0x33);
+	result += (res & 0x0F) + ((res >> 4) & 0x0F);
+
+	res = (d & 0x55) + ((d >> 1) & 0x55);
+	res = (res & 0x33) + ((res >> 2) & 0x33);
+	result += (res & 0x0F) + ((res >> 4) & 0x0F);
+	return ((int)result);
+}
+#endif
+
 static void addstr(char **buf, size_t *len, size_t *pos, char *str, size_t str_length)
 {
 	if (*pos + str_length >= *len) {
@@ -219,6 +246,21 @@ static char *parse(char *command, interface_defn_t *ifd)
 			if (varvalue) {
 				addstr(&result, &len, &pos, varvalue, xstrlen(varvalue));
 			} else {
+#ifdef CONFIG_FEATURE_IFUPDOWN_IP
+				/* Sigh...  Add a special case for 'ip' to convert from
+				 * dotted quad to bit count style netmasks.  */
+				if (strncmp(command, "bnmask", 6)==0) {
+					int res;
+					varvalue = get_var("netmask", 7, ifd);
+					if (varvalue && (res=count_netmask_bits(varvalue)) > 0) {
+						char argument[255];
+						sprintf(argument, "%d", res);
+						addstr(&result, &len, &pos, argument, xstrlen(argument));
+						command = nextpercent + 1;
+						break;
+					}
+				}
+#endif
 				okay[opt_depth - 1] = 0;
 			}
 
@@ -428,7 +470,7 @@ static int loopback_up(interface_defn_t *ifd, execfn *exec)
 static int loopback_down(interface_defn_t *ifd, execfn *exec)
 {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
-	if (!execute("ip -f inet addr flush dev %iface%", ifd, exec))
+	if (!execute("ip addr flush dev %iface%", ifd, exec))
 		return(0);
 	if (!execute("ip link set %iface% down", ifd, exec))
 		return(0);
@@ -445,7 +487,7 @@ static int static_up(interface_defn_t *ifd, execfn *exec)
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 	if (!execute("ip link set %iface% up", ifd, exec))
 		return(0);
-	if (!execute("ip addr add %address%/%netmask% dev %iface%", ifd, exec))
+	if (!execute("ip addr add %address%/%bnmask% dev %iface%", ifd, exec))
 		return(0);
 	if (!execute("[[ ip route add default via %gateway% dev %iface% ]]", ifd, exec))
 		return(0);
@@ -464,9 +506,9 @@ static int static_up(interface_defn_t *ifd, execfn *exec)
 static int static_down(interface_defn_t *ifd, execfn *exec)
 {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
-	if (!execute("[[ ip route del default via %gateway% dev %iface% ]]", ifd, exec))
-		return(0);
-	if (!execute("ip -f inet addr flush dev %iface%", ifd, exec))
+	//if (!execute("[[ ip route del default via %gateway% dev %iface% ]]", ifd, exec))
+	//	return(0);
+	if (!execute("ip addr flush dev %iface%", ifd, exec))
 		return(0);
 	if (!execute("ip link set %iface% down", ifd, exec))
 		return(0);
@@ -897,11 +939,6 @@ static interfaces_file_t *read_interfaces(char *filename)
 	return defn;
 }
 
-static int check(char *str)
-{
-	return (str != NULL);
-}
-
 static char *setlocalenv(char *format, char *name, char *value)
 {
 	char *result;
@@ -1017,10 +1054,6 @@ static int execute_all(interface_defn_t *ifd, execfn *exec, const char *opt)
 
 static int iface_up(interface_defn_t *iface)
 {
-	if (!iface->method->up(iface, check)) {
-		return (-1);
-	}
-
 	set_environ(iface, "start");
 	if (!execute_all(iface, doit, "pre-up")) {
 		return (0);
@@ -1037,9 +1070,6 @@ static int iface_up(interface_defn_t *iface)
 
 static int iface_down(interface_defn_t *iface)
 {
-	if (!iface->method->down(iface, check)) {
-		return (-1);
-	}
 	set_environ(iface, "stop");
 	if (!execute_all(iface, doit, "down")) {
 		return (0);
@@ -1223,20 +1253,6 @@ extern int ifupdown_main(int argc, char **argv)
 
 	if (no_act) {
 		state_fp = fopen(statefile, "r");
-	} else {
-		state_fp = xfopen(statefile, "a+");
-	}
-
-	/* Read the previous state from the state file */
-	if (state_fp != NULL) {
-		char *start;
-		while ((start = get_line_from_file(state_fp)) != NULL) {
-			char *end_ptr;
-			/* We should only need to check for a single character */
-			end_ptr = start + strcspn(start, " \t\n");
-			*end_ptr = '\0';
-			state_list = llist_add_to(state_list, start);
-		}
 	}
 
 	/* Create a list of interfaces to work on */
@@ -1249,6 +1265,7 @@ extern int ifupdown_main(int argc, char **argv)
 				target_list = llist_add_to(target_list, strdup(list->data));
 				list = list->link;
 			}
+			target_list = defn->autointerfaces;
 		}
 	} else {
 		target_list = llist_add_to(target_list, argv[optind]);
@@ -1285,12 +1302,10 @@ extern int ifupdown_main(int argc, char **argv)
 				}
 			} else {
 				/* ifdown */
-				if (iface_state == NULL) {
+				if (iface_state) {
 					error_msg("interface %s not configured", iface);
 					continue;
 				}
-				pch = strchr(iface_state->data, '=');
-				liface = strdup(pch + 1);
 			}
 		}
 
@@ -1368,7 +1383,12 @@ extern int ifupdown_main(int argc, char **argv)
 	}
 
 	/* Actually write the new state */
-	if (state_fp != NULL && !no_act) {
+	if (!no_act) {
+
+		if (state_fp)
+			fclose(state_fp);
+		state_fp = xfopen(statefile, "a+");
+
 		if (ftruncate(fileno(state_fp), 0) < 0) {
 			error_msg_and_die("failed to truncate statefile %s: %s", statefile, strerror(errno));
 		}
