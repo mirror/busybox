@@ -685,7 +685,7 @@ static void out2fmt (const char *, ...)
     __attribute__((__format__(__printf__,1,2)));
 static int xwrite (int, const char *, int);
 
-#define outstr(p,file) fputs(p, file)
+static inline void outstr (const char *p, FILE *file) { fputs(p, file); }
 static void out1str(const char *p) { outstr(p, stdout); }
 static void out2str(const char *p) { outstr(p, stderr); }
 
@@ -7447,11 +7447,14 @@ cmdtxt(const union node *n)
 		do {
 			if (*p & CMDTXT_STRING) { /* output fixed string */
 				cmdputs(cmdtxt_strings[((int)(*p & CMDTXT_OFFSETMASK) >> 1)]);
-			} else if (*p & CMDTXT_CHARPTR) { /* output dynamic string */
-				cmdputs(((const char *) n) + ((int)(*p & CMDTXT_OFFSETMASK)));
-			} else {                        /* output field */
-				cmdtxt((const union node *)
-					   (((const char *) n) + ((int)(*p & CMDTXT_OFFSETMASK))));
+			} else {
+				const char *pf = ((const char *) n)
+								  + ((int)(*p & CMDTXT_OFFSETMASK));
+				if (*p & CMDTXT_CHARPTR) { /* output dynamic string */
+					cmdputs(*((const char **) pf));
+				} else {		/* output field */
+					cmdtxt(*((const union node **) pf));
+				}
 			}
 		} while (!(*p++ & CMDTXT_NOMORE));
 	} else if (n->type == NCMD) {
@@ -7630,7 +7633,7 @@ redir:
 		break;
 	}
 }
-#endif
+#endif /* CMDTXT_TABLE */
 
 static char *
 commandtext(const union node *n)
@@ -8832,8 +8835,9 @@ copynode(const union node *n)
       union node *new;
 	  const unsigned char *p;
 
-      if (n == NULL)
-	    return NULL;
+      if (n == NULL) {
+          return NULL;
+	  }
       new = funcblock;
       new->type = n->type;
       funcblock = (char *) funcblock + (int) nodesize[n->type];
@@ -8843,12 +8847,12 @@ copynode(const union node *n)
 		  const char *no = ((const char *) n) + ((int)(*p & NODE_OFFSETMASK));
 
 		  if (!(*p & NODE_MBRMASK)) { /* standard node */
-			  (union node *) nn = copynode((const union node *) no);
+			  *((union node **)nn) = copynode(*((const union node **) no));
 		  } else if ((*p & NODE_MBRMASK) == NODE_CHARPTR) { /* string */
-			  nn = nodesavestr(no);
+			  *((const char **)nn) = nodesavestr(*((const char **)no));
 		  } else if (*p & NODE_NODELIST) { /* nodelist */
-			  (struct nodelist *) nn
-				  = copynodelist((const struct nodelist *) no);
+			  *((struct nodelist **)nn)
+				  = copynodelist(*((const struct nodelist **) no));
 		  } else {                              /* integer */
 			  *((int *) nn) = *((int *) no);
 		  }
@@ -8862,7 +8866,7 @@ copynode(const union node *n)
       union node *new;
 
       if (n == NULL)
-	    return NULL;
+        return NULL;
       new = funcblock;
       funcblock = (char *) funcblock + nodesize[n->type];
       switch (n->type) {
@@ -8961,12 +8965,12 @@ calcsize(const union node *n)
 		  const char *no = ((const char *) n) + ((int)(*p & NODE_OFFSETMASK));
 
 		  if (!(*p & NODE_MBRMASK)) { /* standard node */
-			  calcsize((const union node *) no);
+			  calcsize(*((const union node **) no));
 		  } else if ((*p & NODE_MBRMASK) == NODE_CHARPTR) { /* string */
-			  funcstringsize += strlen(no) + 1;
+			  funcstringsize += strlen(*((const char **)no)) + 1;
 		  } else if (*p & NODE_NODELIST) { /* nodelist */
-			  sizenodelist((const struct nodelist *) no);
-		  }
+			  sizenodelist(*((const struct nodelist **) no));
+		  }	/* else integer -- ignore */
 	  } while (!(*p++ & NODE_NOMORE));
 }
 #else  /* CALCSIZE_TABLE */
@@ -12669,7 +12673,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.21 2001/08/10 21:11:56 andersen Exp $
+ * $Id: ash.c,v 1.22 2001/08/12 17:32:56 mjn3 Exp $
  */
 static int timescmd (int argc, char **argv)
 {
