@@ -393,10 +393,6 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 	 *            part1 part2  part3
 	 */
 
-	/* skip initial whitespace */
-	while (isspace(cmdstr[idx]))
-		idx++;
-
 	/* first part (if present) is an address: either a number or a /regex/ */
 	if (isdigit(cmdstr[idx]) || cmdstr[idx] == '/')
 		idx = get_address(sed_cmd, cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
