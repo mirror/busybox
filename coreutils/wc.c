@@ -68,7 +68,7 @@ static void wc_file(FILE * file, const char *name)
 	unsigned int length = 0;
 	unsigned int linepos = 0;
 	char in_word = 0;
-	char c;
+	int c;
 
 	while ((c = getc(file)) != EOF) {
 		chars++;
