@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include "grp.h"
+#include "grp_.h"
 
 /*
  * Define GR_SCALE_DYNAMIC if you want grp to dynamically scale its read buffer

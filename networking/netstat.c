@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include "inet_common.h"
 #include "busybox.h"
-#include "pwd.h"
+#include "pwd_.h"
 
 #ifdef CONFIG_ROUTE
 extern void displayroutes(int noresolve, int netstatfmt);

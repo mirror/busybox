@@ -69,7 +69,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "busybox.h"
-#include "pwd.h"
+#include "pwd_.h"
 
 
 #if !defined(FNMATCH_BROKEN)
@@ -12442,7 +12442,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.52 2002/06/06 12:07:28 andersen Exp $
+ * $Id: ash.c,v 1.53 2002/07/03 23:19:22 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {

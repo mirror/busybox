@@ -2,7 +2,7 @@
 #define	__CONFIG_PWD_H
 
 #if !defined CONFIG_USE_BB_PWD_GRP
-#include_next <pwd.h>
+#include <pwd.h>
 
 #else
 

@@ -39,8 +39,8 @@
 
 #include "config.h"
 
-#include "pwd.h"
-#include "grp.h"
+#include "pwd_.h"
+#include "grp_.h"
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 #include "shadow_.h"
 #endif

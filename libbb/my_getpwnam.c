@@ -22,8 +22,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "libbb.h"
-#include "pwd.h"
-#include "grp.h"
+#include "pwd_.h"
+#include "grp_.h"
 
 
 /* returns a uid given a username */

@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "pwd.h"
+#include "pwd_.h"
 
 struct passwd *getpwuid(uid_t uid)
 {

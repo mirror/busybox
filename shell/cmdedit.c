@@ -82,7 +82,7 @@
 
 #ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 #       ifndef TEST
-#               include "pwd.h"
+#               include "pwd_.h"
 #       else
 #               include <pwd.h>
 #       endif  /* TEST */

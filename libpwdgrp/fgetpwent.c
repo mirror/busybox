@@ -22,7 +22,7 @@
 
 #include <errno.h>
 #include <stdio.h>
-#include "pwd.h"
+#include "pwd_.h"
 
 struct passwd *fgetpwent(FILE * file)
 {

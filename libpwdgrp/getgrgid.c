@@ -23,7 +23,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "grp.h"
+#include "grp_.h"
 
 struct group *getgrgid(const gid_t gid)
 {

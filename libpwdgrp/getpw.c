@@ -23,7 +23,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
-#include "pwd.h"
+#include "pwd_.h"
 
 int getpw(uid_t uid, char *buf)
 {

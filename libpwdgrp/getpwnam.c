@@ -24,7 +24,7 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include "pwd.h"
+#include "pwd_.h"
 
 
 struct passwd *getpwnam(const char *name)

@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 #include "busybox.h"
-#include "pwd.h"
+#include "pwd_.h"
 
 static int start = 0;
 static int stop = 0;

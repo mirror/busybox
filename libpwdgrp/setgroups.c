@@ -35,7 +35,7 @@
 /* This is needed for libc5 */
 #include <asm/unistd.h>
 #endif
-#include "grp.h"
+#include "grp_.h"
 
 //#define __NR_setgroups        81
 _syscall2(int, setgroups, size_t, size, const gid_t *, list);

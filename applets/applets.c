@@ -50,8 +50,8 @@ static void check_suid ( struct BB_applet *app );
 
 #include <sys/stat.h>
 #include <ctype.h>
-#include "pwd.h"
-#include "grp.h"
+#include "pwd_.h"
+#include "grp_.h"
 
 static int parse_config_file ( void );
 

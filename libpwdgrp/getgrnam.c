@@ -24,7 +24,7 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include "grp.h"
+#include "grp_.h"
 
 struct group *getgrnam(const char *name)
 {

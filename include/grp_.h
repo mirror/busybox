@@ -2,7 +2,7 @@
 #define	__CONFIG_GRP_H
 
 #if !defined CONFIG_USE_BB_PWD_GRP
-#include_next <grp.h>
+#include <grp.h>
 
 #else
 

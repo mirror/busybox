@@ -32,8 +32,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "busybox.h"
-#include "pwd.h"
-#include "grp.h"
+#include "pwd_.h"
+#include "grp_.h"
 
 
 /* structs __________________________ */
@@ -162,4 +162,4 @@ int addgroup_main(int argc, char **argv)
 	return addgroup(group_file, group, gid);
 }
 
-/* $Id: addgroup.c,v 1.2 2002/06/23 04:24:24 andersen Exp $ */
+/* $Id: addgroup.c,v 1.3 2002/07/03 23:19:18 andersen Exp $ */

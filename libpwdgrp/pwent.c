@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "pwd.h"
+#include "pwd_.h"
 #include <fcntl.h>
 
 /*

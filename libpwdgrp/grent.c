@@ -28,7 +28,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-#include "grp.h"
+#include "grp_.h"
 
 static int grp_fd = -1;
 

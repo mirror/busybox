@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include <errno.h>
-#include "grp.h"
+#include "grp_.h"
 
 struct group *fgetgrent(FILE * file)
 {
