@@ -78,8 +78,7 @@ ssize_t getline(char **linebuf, size_t *n, FILE *file)
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.
  *
- * Modified for uClibc by Erik Andersen 
- *        <andersee@debian.org>, <andersen@lineo.com>
+ * Modified for uClibc by Erik Andersen <andersee@debian.org>
  *
  * The uClibc Library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public License as

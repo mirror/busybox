@@ -2,9 +2,7 @@
 /*
  * simplify_path implementation for busybox
  *
- *
  * Copyright (C) 2001  Manuel Novoa III  <mjn3@opensource.lineo.com>
- *
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

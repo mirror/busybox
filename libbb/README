@@ -5,11 +5,9 @@ libbb is BusyBox's utility library.  This all used to be in a single file
 not carefully fix up the copyright and licensing information.  I'll do that for
 the next release.
 
-For now, justtrust me that a bunch of people have worked on this stuff, 
+For now, just trust me that a bunch of people have worked on this stuff, 
 and it is all GPL'ed.
 
 	Erik Andersen 
-	<andersen@lineo.com>
-	<andersee@debian.org>
 	<andersee@codepoet.org>
 
