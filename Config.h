@@ -208,7 +208,7 @@
 #define BB_FEATURE_REMOTE_LOG
 //
 //Simple tail implementation (2.34k vs 3k for the full one).
-//Both provide 'tail -f' support (only one file at a time.)
+//Both provide 'tail -f', but this cuts out -c, -q, -s, and -v. 
 #define BB_FEATURE_SIMPLE_TAIL
 //
 // Enable support for loop devices in mount
@@ -238,12 +238,14 @@
 //// Enable reverse sort
 #define BB_FEATURE_SORT_REVERSE
 //
-// Enable command line editing in the shell
+// Enable command line editing in the shell.  
+// Only relevant if BB_SH is enabled.
 #define BB_FEATURE_SH_COMMAND_EDITING
 //
 //Allow the shell to invoke all the compiled in BusyBox applets as if they
 //were shell builtins.  Nice for staticly linking an emergency rescue shell,
 //among other things.
+// Only relevant if BB_SH is enabled.
 #define BB_FEATURE_SH_STANDALONE_SHELL
 //
 //When this is enabled, busybox shell applets can be called using full path
@@ -252,10 +254,12 @@
 //will use BusyBox cat even if /bin/cat exists on the filesystem and is _not_
 //busybox.  Some systems want this, others do not.  Choose wisely.  :-) This
 //only has meaning when BB_FEATURE_SH_STANDALONE_SHELL is enabled.
+// Only relevant if BB_SH is enabled.
 //BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 //
 // Enable tab completion in the shell (not yet 
 // working very well -- so don't turn this on)
+// Only relevant if BB_SH is enabled.
 //#define BB_FEATURE_SH_TAB_COMPLETION
 //
 //Turn on extra fbset options
