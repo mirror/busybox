@@ -12,6 +12,6 @@
  *
  */
 
-extern int cmdedit_read_input(int inputFd, int outputFd, char command[BUFSIZ]);
+extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd, char command[BUFSIZ]);
 extern void cmdedit_init(void);
 

@@ -39,10 +39,6 @@
 #include <unistd.h>
 
 
-#ifdef BB_FEATURE_SH_COMMAND_EDITING
-#include "cmdedit.h"
-#endif
-
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
 
@@ -123,8 +119,7 @@ static struct builtInCommand bltins[] = {
 	{"export", "Set environment variable", "export [VAR=value]", shell_export},
 	{"unset", "Unset environment variable", "unset VAR", shell_unset},
 	
-		{".", "Source-in and run commands in a file", ". filename",
-	 shell_source},
+	{".", "Source-in and run commands in a file", ". filename", shell_source},
 	{"help", "List shell built-in commands", "help", shell_help},
 	{NULL, NULL, NULL, NULL}
 };
@@ -396,11 +391,19 @@ static void checkJobs(struct jobSet *jobList)
 static int getCommand(FILE * source, char *command)
 {
 	if (source == stdin) {
-		fprintf(stdout, "BBSHELL %s %s", cwd, prompt);
-		fflush(stdout);
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
-		cmdedit_read_input(fileno(stdin), fileno(stdout), command);
+		int len;
+		char *promptStr;
+		len=fprintf(stdout, "BBSHELL %s %s", cwd, prompt);
+		fflush(stdout);
+		promptStr=(char*)malloc(sizeof(char)*(len+1));
+		sprintf(promptStr, "BBSHELL %s %s", cwd, prompt);
+		cmdedit_read_input(promptStr, fileno(stdin), fileno(stdout), command);
+		free( promptStr);
 		return 0;
+#else
+		fprintf(stdout, "%s %s", cwd, prompt);
+		fflush(stdout);
 #endif
 	}
 
