@@ -431,7 +431,7 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 
 	/* if it was a single-letter command that takes no arguments (such as 'p'
 	 * or 'd') all we need to do is increment the index past that command */
-	if (strchr("pd", sed_cmd->cmd)) {
+	if (strchr("pd=", sed_cmd->cmd)) {
 		idx++;
 	}
 	/* handle (s)ubstitution command */
@@ -451,7 +451,7 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 		idx += parse_file_cmd(sed_cmd, &cmdstr[idx]);
 	}
 	else {
-		error_msg_and_die("invalid command");
+		error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
 
 	/* give back whatever's left over */
@@ -685,7 +685,9 @@ static void process_file(FILE *file)
 				 * actual sedding
 				 */
 				switch (sed_cmd->cmd) {
-
+					case '=':
+						printf("%d\n", linenum);
+						break;
 					case 'p':
 						puts(line);
 						break;
