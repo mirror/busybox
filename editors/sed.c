@@ -73,7 +73,6 @@ typedef struct sed_cmd_s {
 
 	/* inversion flag */
 	int invert;			/* the '!' after the address */
-//	int block_cmd;	/* This command is part of a group that has a command address */
 
 	/* Runtime flag no not if the current command match's */
 	int still_in_range;
@@ -193,13 +192,16 @@ static int index_of_next_unescaped_regexp_delim(const char delimiter,
 	return -1;
 }
 
+/*
+ *  Returns the index of the third delimiter
+ */
 static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 {
 	const char *cmdstr_ptr = cmdstr;
 	char delimiter;
 	int idx = 0;
 
-	/* verify that the 's' is followed by something.  That something
+	/* verify that the 's' or 'y' is followed by something.  That something
 	 * (typically a 'slash') is now our regexp delimiter... */
 	if (*cmdstr == '\0')
 		bb_error_msg_and_die(bad_format_in_subst);
@@ -231,38 +233,35 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
  */
 static int get_address(char *my_str, int *linenum, regex_t ** regex)
 {
-	int idx = 0;
+	char *pos=my_str;
 
-	if (isdigit(my_str[idx])) {
-		char *endstr;
-
-		*linenum = strtol(my_str, &endstr, 10);
+	if (isdigit(*my_str)) {
+		*linenum = strtol(my_str, &pos, 10);
 		/* endstr shouldnt ever equal NULL */
-		idx = endstr - my_str;
-	} else if (my_str[idx] == '$') {
+	} else if (*my_str == '$') {
 		*linenum = -1;
-		idx++;
-	} else if (my_str[idx] == '/' || my_str[idx] == '\\') {
-		int idx_start = 1;
+		pos++;
+	} else if (*my_str == '/' || *my_str == '\\') {
+		int next, idx_start = 1;
 		char delimiter;
 
 		delimiter = '/';
-		if (my_str[idx] == '\\') {
+		if (*my_str == '\\') {
 			idx_start++;
-			delimiter = my_str[++idx];
+			delimiter = *(++pos);
 		}
-		idx++;
-		idx += index_of_next_unescaped_regexp_delim(delimiter, my_str + idx);
-		if (idx == -1) {
+		next = index_of_next_unescaped_regexp_delim(delimiter, ++pos);
+		if (next == -1) {
 			bb_error_msg_and_die("unterminated match expression");
 		}
-		my_str[idx] = '\0';
+		pos += next;
+		*pos = '\0';
 
 		*regex = (regex_t *) xmalloc(sizeof(regex_t));
 		xregcomp(*regex, my_str + idx_start, REG_NEWLINE);
-		idx++;			/* so it points to the next character after the last '/' */
+		pos++;			/* so it points to the next character after the last '/' */
 	}
-	return idx;
+	return pos - my_str;
 }
 
 static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
@@ -287,7 +286,6 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 	 * function to save processor time, at the expense of a little more memory
 	 * (4 bits) per sed_cmd */
 
-	/* sed_cmd->num_backrefs = 0; *//* XXX: not needed? --apparently not */
 	for (j = 0; match[j]; j++) {
 		/* GNU/POSIX sed does not save more than nine backrefs */
 		if (match[j] == '\\' && match[j + 1] == '('
@@ -333,17 +331,17 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, const char *substr)
 
 static void replace_slash_n(char *string)
 {
-	int i;
-	int remaining = strlen(string);
+	char *dest;
 
-	for (i = 0; string[i]; i++) {
-		if ((string[i] == '\\') && (string[i + 1] == 'n')) {
-			string[i] = '\n';
-			memmove(string + i + 1, string + i + 1, remaining - 1);
+	for (dest = string; *string; string++, dest++) {
+		if ((string[0] == '\\') && (string[1] == 'n')) {
+			*dest = '\n';
+			string++;
 		} else {
-			remaining--;
+			*dest = *string;
 		}
 	}
+	*dest=0;
 }
 
 static int parse_translate_cmd(sed_cmd_t * const sed_cmd, const char *cmdstr)
@@ -431,7 +429,7 @@ static int parse_file_cmd(sed_cmd_t * sed_cmd, const char *filecmdstr)
 	 *   re: the file to be read, the GNU manual says the following: "Note that
 	 *   if filename cannot be read, it is treated as if it were an empty file,
 	 *   without any error indication." Thus, all of the following commands are
-	 *   perfectly leagal:
+	 *   perfectly legal:
 	 *
 	 *   sed -e '1r noexist'
 	 *   sed -e '1r ;'
@@ -496,8 +494,10 @@ static char *parse_cmd_str(sed_cmd_t * sed_cmd, char *cmdstr)
 	return (cmdstr);
 }
 
-static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
+static char *add_cmd(char *cmdstr)
 {
+	sed_cmd_t *sed_cmd;
+
 	/* Skip over leading whitespace and semicolons */
 	cmdstr += strspn(cmdstr, semicolon_whitespace);
 
@@ -521,6 +521,8 @@ static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 	 *            |----||-----||-|
 	 *            part1 part2  part3
 	 */
+
+	sed_cmd = xcalloc(1, sizeof(sed_cmd_t));
 
 	/* first part (if present) is an address: either a '$', a number or a /regex/ */
 	cmdstr += get_address(cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
@@ -595,10 +597,7 @@ static void add_cmd_str(char *cmdstr)
 	}
 #endif
 	do {
-		sed_cmd_t *sed_cmd;
-
-		sed_cmd = xcalloc(1, sizeof(sed_cmd_t));
-		cmdstr = add_cmd(sed_cmd, cmdstr);
+		cmdstr = add_cmd(cmdstr);
 	} while (cmdstr && strlen(cmdstr));
 }
 
@@ -650,18 +649,6 @@ void pipe_putc(struct pipeline *const pipeline, char c)
 }
 
 #define pipeputc(c) 	pipe_putc(pipeline, c)
-
-#if 0
-{
-	if (pipeline[pipeline_idx] == PIPE_MAGIC) {
-		pipeline = xrealloc(pipeline, pipeline_len + PIPE_GROW);
-		memset(pipeline + pipeline_len, 0, PIPE_GROW);
-		pipeline_len += PIPE_GROW;
-		pipeline[pipeline_len - 1] = PIPE_MAGIC;
-	}
-	pipeline[pipeline_idx++] = (c);
-}
-#endif
 
 static void print_subst_w_backrefs(const char *line, const char *replace,
 	regmatch_t * regmatch, struct pipeline *const pipeline, int matches)
@@ -1157,31 +1144,31 @@ extern int sed_main(int argc, char **argv)
 	if (sed_cmd_head.next == NULL) {
 		if (argv[optind] == NULL)
 			bb_show_usage();
-		else {
-			char *str_cmd = strdup(argv[optind]);
-
-			add_cmd_str(str_cmd);
-			free(str_cmd);
-			optind++;
-		}
+		else
+			add_cmd_str(strdup(argv[optind++]));
 	}
 
 	/* argv[(optind)..(argc-1)] should be names of file to process. If no
 	 * files were specified or '-' was specified, take input from stdin.
 	 * Otherwise, we process all the files specified. */
-	if (argv[optind] == NULL || (strcmp(argv[optind], "-") == 0)) {
+	if (argv[optind] == NULL) {
 		process_file(stdin);
 	} else {
 		int i;
 		FILE *file;
 
 		for (i = optind; i < argc; i++) {
-			file = bb_wfopen(argv[i], "r");
-			if (file) {
-				process_file(file);
-				fclose(file);
-			} else
-				status = EXIT_FAILURE;
+			if(!strcmp(argv[i], "-")) {
+				process_file(stdin);
+			} else {
+				file = bb_wfopen(argv[i], "r");
+				if (file) {
+					process_file(file);
+					fclose(file);
+				} else {
+					status = EXIT_FAILURE;
+				}
+			}
 		}
 	}
 
