@@ -317,7 +317,7 @@ extern const char which_usage[];
 extern const char whoami_usage[];
 extern const char yes_usage[];
 
-extern char *applet_name;
+extern const char *applet_name;
 
 extern void usage(const char *usage) __attribute__ ((noreturn));
 extern void errorMsg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
@@ -380,6 +380,7 @@ extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 #ifndef DMALLOC 
 extern void *xmalloc (size_t size);
 extern void *xrealloc(void *old, size_t size);
+extern void *xcalloc(size_t nmemb, size_t size);
 extern char *xstrdup (const char *s);
 #endif
 extern char *xstrndup (const char *s, int n);

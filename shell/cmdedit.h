@@ -11,6 +11,7 @@
 typedef size_t (*cmdedit_strwidth_proc)(char *);
 
 void cmdedit_init(void);
+void cmdedit_terminate(void);
 void cmdedit_read_input(char* promptStr, char* command);		/* read a line of input */
 void cmdedit_setwidth(int);		/* specify width of screen */
 void cmdedit_histadd(char *);		/* adds entries to hist */

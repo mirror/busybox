@@ -337,7 +337,7 @@ const struct BB_applet applets[] = {
 	{0,NULL,0,NULL}
 };
 
-char *applet_name;
+const char *applet_name;
 
 #ifdef BB_FEATURE_INSTALLER
 /* 
@@ -416,7 +416,7 @@ static int install_links(const char *busybox, int use_symbolic_links)
 
 int main(int argc, char **argv)
 {
-	char				*s;
+	const char				*s;
 	const struct BB_applet	*a		= applets;
 	applet_name = "busybox";
 
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
 			applet_name = s;
 	}
 
-	*argv = applet_name;
+	*argv = (char*)applet_name;
 
 #ifdef BB_SH
 	/* Add in a special case hack -- whenever **argv == '-'

@@ -84,6 +84,7 @@ static int cmdedit_termw = 80;  /* actual terminal width */
 static int cmdedit_scroll = 27; /* width of EOL scrolling region */
 static int history_counter = 0;	/* Number of commands in history list */
 static int reset_term = 0;		/* Set to true if the terminal needs to be reset upon exit */
+static int exithandler_set = 0;	/* Set to true when atexit() has been called */
 
 struct history {
 	char *s;
@@ -709,10 +710,32 @@ extern void cmdedit_read_input(char* prompt, char command[BUFSIZ])
 
 extern void cmdedit_init(void)
 {
-	atexit(cmdedit_reset_term);
+	if(exithandler_set == 0) {
+		atexit(cmdedit_reset_term);	/* be sure to do this only once */
+		exithandler_set = 1;
+	}
 	signal(SIGKILL, clean_up_and_die);
 	signal(SIGINT, clean_up_and_die);
 	signal(SIGQUIT, clean_up_and_die);
 	signal(SIGTERM, clean_up_and_die);
 }
+
+/*
+** Undo the effects of cmdedit_init() as good as we can:
+** I am not aware of a way to revoke an atexit() handler,
+** but, fortunately, our particular handler can be made
+** a no-op by setting reset_term = 0.
+*/
+extern void cmdedit_terminate(void)
+{
+	cmdedit_reset_term();
+	reset_term = 0;
+	signal(SIGKILL, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
+	signal(SIGQUIT, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+}
+
+
+
 #endif							/* BB_FEATURE_SH_COMMAND_EDITING */

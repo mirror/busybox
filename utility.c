@@ -1465,9 +1465,17 @@ extern void *xmalloc(size_t size)
 	return ptr;
 }
 
-void *xrealloc(void *old, size_t size)
+extern void *xrealloc(void *old, size_t size)
 {
 	void *ptr = realloc(old, size);
+	if (!ptr)
+		fatalError(memory_exhausted);
+	return ptr;
+}
+
+extern void *xcalloc(size_t nmemb, size_t size)
+{
+	void *ptr = calloc(nmemb, size);
 	if (!ptr)
 		fatalError(memory_exhausted);
 	return ptr;

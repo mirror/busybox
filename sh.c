@@ -29,6 +29,7 @@
 //#define BB_FEATURE_SH_BACKTICKS
 //#define BB_FEATURE_SH_IF_EXPRESSIONS
 //#define BB_FEATURE_SH_ENVIRONMENT
+//#define DEBUG_SHELL
 
 
 #include "internal.h"
@@ -43,6 +44,7 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <getopt.h>
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 #include "cmdedit.h"
 #endif
@@ -172,8 +174,9 @@ static char **argv;
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 static int lastBgPid=-1;
 static int lastReturnCode=-1;
+static int showXtrace=FALSE;
 #endif
-
+	
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 void win_changed(int junk)
@@ -382,14 +385,23 @@ static int builtin_if(struct job *cmd, struct jobSet *jobList)
 	status=strlen(charptr1);
 	local_pending_command = xmalloc(status+1);
 	strncpy(local_pending_command, charptr1, status); 
-	printf("'if' now running '%s'\n", charptr1);
+	local_pending_command[status]='\0';
+#ifdef DEBUG_SHELL
+	fprintf(stderr, "'if' now testing '%s'\n", local_pending_command);
+#endif
 	status = busy_loop(NULL); /* Frees local_pending_command */
-	printf("if test returned ");
+#ifdef DEBUG_SHELL
+	fprintf(stderr, "if test returned ");
+#endif
 	if (status == 0) {
-		printf("TRUE\n");
+#ifdef DEBUG_SHELL
+		fprintf(stderr, "TRUE\n");
+#endif
 		cmd->jobContext |= IF_TRUE_CONTEXT;
 	} else {
-		printf("FALSE\n");
+#ifdef DEBUG_SHELL
+		fprintf(stderr, "FALSE\n");
+#endif
 		cmd->jobContext |= IF_FALSE_CONTEXT;
 	}
 
@@ -407,7 +419,7 @@ static int builtin_then(struct job *cmd, struct jobSet *junk)
 		return FALSE;
 	}
 	/* If the if result was FALSE, skip the 'then' stuff */
-	if (cmd->jobContext & IF_TRUE_CONTEXT) {
+	if (cmd->jobContext & IF_FALSE_CONTEXT) {
 		return TRUE;
 	}
 
@@ -418,7 +430,10 @@ static int builtin_then(struct job *cmd, struct jobSet *junk)
 	status=strlen(charptr1);
 	local_pending_command = xmalloc(status+1);
 	strncpy(local_pending_command, charptr1, status); 
-	printf("'then' now running '%s'\n", charptr1);
+	local_pending_command[status]='\0';
+#ifdef DEBUG_SHELL
+	fprintf(stderr, "'then' now running '%s'\n", charptr1);
+#endif
 	return( busy_loop(NULL));
 }
 
@@ -433,7 +448,7 @@ static int builtin_else(struct job *cmd, struct jobSet *junk)
 		return FALSE;
 	}
 	/* If the if result was TRUE, skip the 'else' stuff */
-	if (cmd->jobContext & IF_FALSE_CONTEXT) {
+	if (cmd->jobContext & IF_TRUE_CONTEXT) {
 		return TRUE;
 	}
 
@@ -444,7 +459,10 @@ static int builtin_else(struct job *cmd, struct jobSet *junk)
 	status=strlen(charptr1);
 	local_pending_command = xmalloc(status+1);
 	strncpy(local_pending_command, charptr1, status); 
-	printf("'else' now running '%s'\n", charptr1);
+	local_pending_command[status]='\0';
+#ifdef DEBUG_SHELL
+	fprintf(stderr, "'else' now running '%s'\n", charptr1);
+#endif
 	return( busy_loop(NULL));
 }
 
@@ -457,7 +475,9 @@ static int builtin_fi(struct job *cmd, struct jobSet *junk)
 	}
 	/* Clear out the if and then context bits */
 	cmd->jobContext &= ~(IF_TRUE_CONTEXT|IF_FALSE_CONTEXT|THEN_EXP_CONTEXT|ELSE_EXP_CONTEXT);
-	printf("Hit an fi   -- jobContext=%d\n", cmd->jobContext);
+#ifdef DEBUG_SHELL
+	fprintf(stderr, "Hit an fi   -- jobContext=%d\n", cmd->jobContext);
+#endif
 	return TRUE;
 }
 #endif
@@ -633,12 +653,23 @@ static int getCommand(FILE * source, char *command)
 	if (source == stdin) {
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 		int len;
+
+		/*
+		** enable command line editing only while a command line
+		** is actually being read; otherwise, we'll end up bequeathing
+		** atexit() handlers and other unwanted stuff to our
+		** child processes (rob@sysgo.de)
+		*/
+		cmdedit_init();
+		signal(SIGWINCH, win_changed);
 		len=fprintf(stdout, "%s %s", cwd, prompt);
 		fflush(stdout);
 		promptStr=(char*)xmalloc(sizeof(char)*(len+1));
 		sprintf(promptStr, "%s %s", cwd, prompt);
 		cmdedit_read_input(promptStr, command);
 		free( promptStr);
+		cmdedit_terminate();
+		signal(SIGWINCH, SIG_DFL);
 		return 0;
 #else
 		fprintf(stdout, "%s %s", cwd, prompt);
@@ -944,6 +975,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				prog->numRedirections = 0;
 				prog->redirections = NULL;
 				prog->freeGlob = 0;
+				prog->isStopped = 0;
 				argc_l = 0;
 
 				argvAlloced = 5;
@@ -1108,10 +1140,20 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 			}
 		}
 
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+		if (showXtrace==TRUE) {
+			int j;
+			fprintf(stderr, "+ ");
+			for (j = 0; newJob->progs[i].argv[j]; j++)
+				fprintf(stderr, "%s ", newJob->progs[i].argv[j]);
+			fprintf(stderr, "\n");
+		}
+#endif
+
 		/* Check if the command matches any non-forking builtins */
 		for (x = bltins; x->cmd; x++) {
 			if (strcmp(newJob->progs[i].argv[0], x->cmd) == 0 ) {
-				return (x->function(newJob, jobList));
+				return(x->function(newJob, jobList));
 			}
 		}
 
@@ -1130,6 +1172,7 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 				dup2(nextout, 1);
 				dup2(nextout, 2);
 				close(nextout);
+				close(pipefds[0]);
 			}
 
 			/* explicit redirections override pipes */
@@ -1138,18 +1181,18 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int 
 			/* Check if the command matches any of the other builtins */
 			for (x = bltins_forking; x->cmd; x++) {
 				if (strcmp(newJob->progs[i].argv[0], x->cmd) == 0) {
+					applet_name=x->cmd;
 					exit (x->function(newJob, jobList));
 				}
 			}
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
 			/* Check if the command matches any busybox internal commands here */
-			/* TODO: Add matching when paths are appended (i.e. 'cat' currently
-			 * works, but '/bin/cat' doesn't ) */
 			while (a->name != 0) {
-				if (strcmp(newJob->progs[i].argv[0], a->name) == 0) {
+				if (strcmp(get_last_path_component(newJob->progs[i].argv[0]), a->name) == 0) {
 					int argc_l;
 					char** argv=newJob->progs[i].argv;
 					for(argc_l=0;*argv!=NULL; argv++, argc_l++);
+					applet_name=a->name;
 					exit((*(a->main)) (argc_l, newJob->progs[i].argv));
 				}
 				a++;
@@ -1275,15 +1318,18 @@ static int busy_loop(FILE * input)
 				jobList.fg->runningProgs--;
 				jobList.fg->progs[i].pid = 0;
 
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+				lastReturnCode=WEXITSTATUS(status);
+#endif
+#if 0
+				printf("'%s' exited -- return code %d\n", jobList.fg->text, lastReturnCode);
+#endif
 				if (!jobList.fg->runningProgs) {
 					/* child exited */
 
 					removeJob(&jobList, jobList.fg);
 					jobList.fg = NULL;
 				}
-#ifdef BB_FEATURE_SH_ENVIRONMENT
-				lastReturnCode=WEXITSTATUS(status);
-#endif
 			} else {
 				/* the child was stopped */
 				jobList.fg->stoppedProgs++;
@@ -1337,9 +1383,64 @@ void free_memory(void)
 
 int shell_main(int argc_l, char **argv_l)
 {
+	int opt;
 	FILE *input = stdin;
 	argc = argc_l;
 	argv = argv_l;
+
+
+	//if (argv[0] && argv[0][0] == '-') {
+	//      builtin_source("/etc/profile");
+	//}
+
+	while ((opt = getopt(argc, argv, "cx")) > 0) {
+		switch (opt) {
+			case 'c':
+				input = NULL;
+				local_pending_command = (char *) calloc(BUFSIZ, sizeof(char));
+				if (local_pending_command == 0) {
+					fatalError("sh: out of memory\n");
+				}
+				for(; optind<argc; optind++)
+				{
+					if (strlen(local_pending_command) + strlen(argv[optind]) >= BUFSIZ) {
+						local_pending_command = realloc(local_pending_command, 
+								strlen(local_pending_command) + strlen(argv[optind]));
+						if (local_pending_command==NULL) 
+							fatalError("sh: command too long\n");
+					}
+					strcat(local_pending_command, argv[optind]);
+					if ( (optind + 1) < argc)
+						strcat(local_pending_command, " ");
+				}
+				break;
+			case 'x':
+				showXtrace = TRUE;
+				break;
+			default:
+				usage(shell_usage);
+		}
+	}
+
+
+	if (optind<1 && input == stdin) {
+		/* Looks like they want an interactive shell */
+		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
+		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
+	} else if (1==(argc-optind)) {
+		input = fopen(argv[optind], "r");
+		if (!input) {
+			fatalError("%s: %s\n", argv[optind], strerror(errno));
+		}
+	} else { 
+		char *oldpath, *newpath;
+		oldpath = getenv("PATH");
+		newpath=(char*)xmalloc(strlen(oldpath)+12);
+		snprintf(newpath, strlen(oldpath)+9, "PATH=./:%s", oldpath);
+		putenv(newpath);
+		execvp(argv[optind], argv+optind);
+		fatalError("%s: %s\n", argv[optind], strerror(errno));
+	}
 
 	/* initialize the cwd -- this is never freed...*/
 	cwd=(char*)xmalloc(sizeof(char)*MAX_LINE+1);
@@ -1350,52 +1451,8 @@ int shell_main(int argc_l, char **argv_l)
 #endif
 
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
-	cmdedit_init();
-	signal(SIGWINCH, win_changed);
 	win_changed(0);
 #endif
-
-	//if (argv[0] && argv[0][0] == '-') {
-	//      builtin_source("/etc/profile");
-	//}
-
-
-	if (argc < 2) {
-		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
-		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
-	} else {
-		if (argv[1][0]=='-' && argv[1][1]=='c') {
-			int i;
-			local_pending_command = (char *) calloc(BUFSIZ, sizeof(char));
-			if (local_pending_command == 0) {
-				fatalError("out of memory\n");
-			}
-			for(i=2; i<argc; i++)
-			{
-				if (strlen(local_pending_command) + strlen(argv[i]) >= BUFSIZ) {
-					local_pending_command = realloc(local_pending_command, 
-							strlen(local_pending_command) + strlen(argv[i]));
-					if (local_pending_command==NULL) 
-					  fatalError("commands for -c option too long\n");
-				}
-				strcat(local_pending_command, argv[i]);
-				if ( (i + 1) < argc)
-				  strcat(local_pending_command, " ");
-			}
-			input = NULL;
-			  
-		}
-		else if (argv[1][0]=='-') {
-			usage(shell_usage);
-		}
-		else {
-			input = fopen(argv[1], "r");
-			if (!input) {
-				fatalError("Couldn't open file '%s': %s\n", argv[1],
-						   strerror(errno));
-			}
-		}
-	}
 
 	return (busy_loop(input));
 }
