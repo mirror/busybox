@@ -720,5 +720,97 @@ extern int find_match(char *haystack, char *needle, int ignoreCase)
 }
 #endif
 
+
+
+#if (defined BB_CHVT) || (defined BB_DEALLOCVT)
+
+
+#include <linux/kd.h>
+#include <sys/ioctl.h>
+
+int is_a_console(int fd) 
+{
+  char arg;
+  
+  arg = 0;
+  return (ioctl(fd, KDGKBTYPE, &arg) == 0
+	  && ((arg == KB_101) || (arg == KB_84)));
+}
+
+static int open_a_console(char *fnam) 
+{
+  int fd;
+  
+  /* try read-only */
+  fd = open(fnam, O_RDWR);
+  
+  /* if failed, try read-only */
+  if (fd < 0 && errno == EACCES)
+      fd = open(fnam, O_RDONLY);
+  
+  /* if failed, try write-only */
+  if (fd < 0 && errno == EACCES)
+      fd = open(fnam, O_WRONLY);
+  
+  /* if failed, fail */
+  if (fd < 0)
+      return -1;
+  
+  /* if not a console, fail */
+  if (! is_a_console(fd))
+    {
+      close(fd);
+      return -1;
+    }
+  
+  /* success */
+  return fd;
+}
+
+/*
+ * Get an fd for use with kbd/console ioctls.
+ * We try several things because opening /dev/console will fail
+ * if someone else used X (which does a chown on /dev/console).
+ *
+ * if tty_name is non-NULL, try this one instead.
+ */
+
+int get_console_fd(char* tty_name) 
+{
+  int fd;
+
+  if (tty_name)
+    {
+      if (-1 == (fd = open_a_console(tty_name)))
+	return -1;
+      else
+	return fd;
+    }
+  
+  fd = open_a_console("/dev/tty");
+  if (fd >= 0)
+    return fd;
+  
+  fd = open_a_console("/dev/tty0");
+  if (fd >= 0)
+    return fd;
+  
+  fd = open_a_console("/dev/console");
+  if (fd >= 0)
+    return fd;
+  
+  for (fd = 0; fd < 3; fd++)
+    if (is_a_console(fd))
+      return fd;
+  
+  fprintf(stderr,
+	  "Couldnt get a file descriptor referring to the console\n");
+  return -1;		/* total failure */
+}
+
+
+#endif
+
+
 /* END CODE */
 

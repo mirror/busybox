@@ -82,6 +82,8 @@ extern int loadfont_main(int argc, char** argv);
 extern int loadkmap_main(int argc, char** argv);
 extern int losetup_main(int argc, char** argv);
 extern int ls_main(int argc, char** argv);
+extern int chvt_main(int argc, char** argv);
+extern int deallocvt_main(int argc, char** argv);
 extern int makedevs_main(int argc, char** argv);
 extern int math_main(int argc, char** argv);
 extern int mkdir_main(int argc, char** argv);
@@ -110,6 +112,7 @@ extern int true_main(int argc, char** argv);
 extern int tryopen_main(int argc, char** argv);
 extern int umount_main(int argc, char** argv);
 extern int update_main(int argc, char** argv);
+extern int uname_main(int argc, char** argv);
 extern int zcat_main(int argc, char** argv);
 extern int gzip_main(int argc, char** argv);
 
@@ -141,7 +144,7 @@ extern gid_t my_getgrnam(char *name);
 extern void my_getpwuid(char* name, uid_t uid);
 extern void my_getgrgid(char* group, gid_t gid);
 extern int get_kernel_revision();
-
+extern int get_console_fd(char* tty_name);
 
 
 #if defined (BB_FSCK_MINIX) || defined (BB_MKFS_MINIX)

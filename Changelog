@@ -4,6 +4,9 @@
 	* Fixed mkdir -m option so that it works.
 	* kill segfaulted w/o any arguments.  Now it doesn't do that.
 	* kill wasn't properly accepting signal names.  It does now.
+	* Added new apps chvt and deallocvt
+	* Major adjustment of init.c.  Code is now readable IMHO,
+	    and much more solid.
 
 	 -Erik Andersen
 

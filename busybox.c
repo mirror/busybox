@@ -51,6 +51,12 @@ static const struct Applet applets[] = {
 #ifdef BB_FIND			//usr/bin
     {"find", find_main},
 #endif
+#ifdef BB_CHVT			//usr/bin
+    {"chvt", chvt_main},
+#endif
+#ifdef BB_DEALLOCVT			//usr/bin
+    {"deallocvt", deallocvt_main},
+#endif
 #ifdef BB_FSCK_MINIX		//sbin
     {"fsck.minix", fsck_minix_main},
 #endif
@@ -155,6 +161,9 @@ static const struct Applet applets[] = {
 #ifdef BB_TRUE_FALSE		//bin
     {"true", true_main},
     {"false", false_main},
+#endif
+#ifdef BB_UNAME			//bin
+    {"uname",  uname_main},
 #endif
 #ifdef BB_UMOUNT		//bin
     {"umount",  umount_main},

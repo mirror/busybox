@@ -18,6 +18,8 @@
 #define BB_FIND
 //#define BB_FSCK_MINIX
 //#define BB_MKFS_MINIX
+#define BB_CHVT
+#define BB_DEALLOCVT
 #define BB_GREP
 //#define BB_HALT
 #define BB_INIT
@@ -53,6 +55,7 @@
 //#define BB_TRUE_FALSE  // Supplied by ash
 #define BB_UMOUNT
 #define BB_UPDATE
+#define BB_UNAME
 #define BB_ZCAT
 //#define BB_GZIP
 // Don't turn BB_UTILITY off.  It contains support code 

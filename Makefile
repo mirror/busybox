@@ -22,7 +22,7 @@ BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
 # Comment out the following to make a debuggable build
 # Leave this off for production use.
-DODEBUG=false
+DODEBUG=true
 # If you want a static binary, turn this on.  I can't think
 # of many situations where anybody would ever want it static, 
 # but...
