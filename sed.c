@@ -222,7 +222,7 @@ static int get_address(const char *str, int *line, regex_t **regex)
 			fatalError("unterminated match expression\n");
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
-		xregcomp(*regex, my_str+1, REG_NEWLINE);
+		xregcomp(*regex, my_str+1, 0);
 		idx++; /* so it points to the next character after the last '/' */
 	}
 	else {
