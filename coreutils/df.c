@@ -39,6 +39,9 @@ static int df(char *device, const char *mountPoint)
 	struct statfs s;
 	long blocks_used;
 	long blocks_percent_used;
+#ifdef BB_FEATURE_HUMAN_READABLE
+	long divisor, base;
+#endif	
 
 	if (statfs(mountPoint, &s) != 0) {
 		perror_msg("%s", mountPoint);
@@ -59,20 +62,38 @@ static int df(char *device, const char *mountPoint)
 			find_real_root_device_name( device);
 		}
 #ifdef BB_FEATURE_HUMAN_READABLE
-		printf("%-20s %9s %9s %9s %3ld%% %s\n",
-			   device,
-			   format((s.f_blocks * s.f_bsize), disp_hr),
-			   format((s.f_blocks - s.f_bfree) * s.f_bsize, disp_hr),
-			   format(s.f_bavail * s.f_bsize, disp_hr),
+		switch (disp_hr) {
+			case MEGABYTE:
+				fprintf(stderr, "got MEGABYTE\n");
+				divisor = KILOBYTE;
+				base = KILOBYTE;
+				break;
+			case KILOBYTE:
+				fprintf(stderr, "got KILOBYTE\n");
+				divisor = KILOBYTE;
+				base = 1;
+				break;
+			default:
+				fprintf(stderr, "got something else\n");
+				divisor = KILOBYTE;
+				base = 0;
+		}
+
+		printf("%-20s %9s ", device,
+			   format((s.f_blocks * (s.f_bsize / divisor)), base));
+		printf("%9s ",
+			   format(((s.f_blocks - s.f_bfree) * 
+					   (s.f_bsize / divisor)), base));
+		printf("%9s %3ld%% %s\n",
+			   format((s.f_bavail * (s.f_bsize / divisor)), base),
 			   blocks_percent_used, mountPoint);
 #else
 		printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
-			   device,
-			   (long) (s.f_blocks * s.f_bsize) / KILOBYTE,
-			   (long) ((s.f_blocks - s.f_bfree) * s.f_bsize) / KILOBYTE,
-			   (long) (s.f_bavail * s.f_bsize) / KILOBYTE,
-			   blocks_percent_used, mountPoint);
-
+				device,
+				(long) (s.f_blocks * (s.f_bsize / KILOBYTE)),
+				(long) ((s.f_blocks - s.f_bfree) * (s.f_bsize / KILOBYTE)),
+				(long) (s.f_bavail * (s.f_bsize / KILOBYTE)),
+				blocks_percent_used, mountPoint);
 #endif
 	}
 
