@@ -155,7 +155,7 @@ extern void perror_msg_and_die(const char *s, ...)
 	exit(EXIT_FAILURE);
 }
 
-#if defined BB_INIT || defined BB_MKSWAP || defined BB_MOUNT || defined BB_NFSMOUNT
+#if defined BB_INIT || defined BB_MKSWAP || defined BB_MOUNT || defined BB_NFSMOUNT || defined BB_FEATURE_IFCONFIG_STATUS
 /* Returns kernel version encoded as major*65536 + minor*256 + patch,
  * so, for example,  to check if the kernel is greater than 2.2.11:
  *     if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
