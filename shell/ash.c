@@ -3280,20 +3280,34 @@ static void tryexec(char *cmd, char **argv, char **envp)
 	int repeated = 0;
 
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
+	int flg_bb = 0;
 	char *name = cmd;
-	char **argv_l = argv;
-	int argc_l;
 
 #ifdef CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
 	name = get_last_path_component(name);
+	if(find_applet_by_name(name) != NULL)
+		flg_bb = 1;
+#else
+	if(strchr(name, '/') == NULL && find_applet_by_name(name) != NULL) {
+		flg_bb = 1;
+	}
 #endif
-	argv_l = envp;
-	for (argc_l = 0; *argv_l != NULL; argv_l++, argc_l++)
-		putenv(*argv_l);
-	argv_l = argv;
-	for (argc_l = 0; *argv_l != NULL; argv_l++, argc_l++)
-		optind = 1;
-	run_applet_by_name(name, argc_l, argv);
+	if(flg_bb) {
+		char **ap;
+		char **new;
+
+		*argv = name;
+		if(strcmp(name, "busybox")) {
+			for (ap = argv; *ap; ap++);
+			ap = new = xmalloc((ap - argv + 2) * sizeof(char *));
+			*ap++ = cmd = "/bin/busybox";
+			while ((*ap++ = *argv++));
+			argv = new;
+			repeated++;
+		} else {
+			cmd = "/bin/busybox";
+		}
+	}
 #endif
   repeat:
 	execve(cmd, argv, envp);
