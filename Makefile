@@ -78,7 +78,7 @@ force:
 $(OBJECTS):  busybox.def.h internal.h Makefile
 
 install: busybox
-	install.sh $(PREFIX)
+	./install.sh $(PREFIX)
 
 whichversion:
 	@echo $(VERSION)
