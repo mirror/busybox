@@ -31,11 +31,10 @@ extern int cat_main(int argc, char **argv)
 		exit(TRUE);
 	}
 
-	if (**(argv + 1) == '-')
-		usage(cat_usage);
-
 	while (--argc > 0) {
-		if (print_file_by_name(*++argv) == FALSE) {
+		if(!(strcmp(*++argv, "-"))) {
+			print_file(stdin);
+		} else if (print_file_by_name(*argv) == FALSE) {
 			perror(*argv);
 			exit(FALSE);
 		}
