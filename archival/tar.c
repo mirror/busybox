@@ -609,9 +609,9 @@ int tar_main(int argc, char **argv)
 	archive_handle_t *tar_handle;
 	int opt;
 	char *base_dir = NULL;
+	char *tar_filename = "-";
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
-	char *src_filename = NULL;
 	unsigned char tar_create = FALSE;
 #endif
 
@@ -629,7 +629,6 @@ int tar_main(int argc, char **argv)
 
 	/* Initialise default values */
 	tar_handle = init_handle();
-	tar_handle->src_fd = fileno(stdin);
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS;
 
 	while ((opt = getopt(argc, argv, "ctxT:X:C:f:Opvz")) != -1) {
@@ -667,10 +666,7 @@ int tar_main(int argc, char **argv)
 			base_dir = optarg;
 			break;
 		case 'f':		/* archive filename */
-#ifdef CONFIG_FEATURE_TAR_CREATE
-			src_filename = optarg;
-#endif
-			tar_handle->src_fd = xopen(optarg, O_RDONLY);
+			tar_filename = optarg;
 			break;
 		case 'O':		/* To stdout */
 			tar_handle->action_data = data_extract_to_stdout;
@@ -711,22 +707,26 @@ int tar_main(int argc, char **argv)
 	/* Setup an array of filenames to work with */
 	/* TODO: This is the same as in ar, seperate function ? */
 	while (optind < argc) {
+#if 0
 		char absolute_path[PATH_MAX];
-
 		realpath(argv[optind], absolute_path);
 		tar_handle->accept = add_to_list(tar_handle->accept, absolute_path);
+#endif
+		tar_handle->accept = add_to_list(tar_handle->accept, argv[optind]);
 		optind++;
+
 #ifdef CONFIG_FEATURE_TAR_EXCLUDE
 		if (tar_handle->reject) {
 			tar_handle->filter = filter_accept_reject_list;
 		} else
-#endif
+#endif	/* CONFIG_FEATURE_TAR_EXCLUDE */
+
 			tar_handle->filter = filter_accept_list;
-		}
+	}
 
 	if ((base_dir) && (chdir(base_dir))) {
 		perror_msg_and_die("Couldnt chdir");
-		}
+	}
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
 	/* create an archive */
@@ -738,26 +738,35 @@ int tar_main(int argc, char **argv)
 		if (get_header_ptr == get_header_tar_gz) {
 			gzipFlag = TRUE;
 		}
-# endif
+# endif /* CONFIG_FEATURE_TAR_GZIP */
+
 		if (tar_handle->action_header == header_verbose_list) {
 			verboseFlag = TRUE;
-	}
-		writeTarFile(src_filename, verboseFlag, tar_handle->accept,
+		}
+		writeTarFile(tar_filename, verboseFlag, tar_handle->accept,
 			tar_handle->reject, gzipFlag);
 	} else 
-#endif
+#endif /* CONFIG_FEATURE_TAR_CREATE */
+	{
+		if ((tar_filename[0] == '-') && (tar_filename[1] == '\0')) {
+			tar_handle->src_fd = fileno(stdin);
+		} else {
+			tar_handle->src_fd = xopen(tar_filename, O_RDONLY);
+		}
 #ifdef CONFIG_FEATURE_TAR_GZIP
 		if (get_header_ptr == get_header_tar_gz) {
 			get_header_tar_gz(tar_handle);
 		} else
-#endif
+#endif /* CONFIG_FEATURE_TAR_CREATE */
+
 			while (get_header_tar(tar_handle) == EXIT_SUCCESS);
+	}
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	if (tar_handle->src_fd != fileno(stdin)) {
 		close(tar_handle->src_fd);
 	}
-#endif
+#endif /* CONFIG_FEATURE_CLEAN_UP */
 
 	return(EXIT_SUCCESS);
 }
