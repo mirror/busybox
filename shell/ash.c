@@ -12583,7 +12583,7 @@ readcmd(int argc, char **argv)
 	char *prompt;
 	const char *ifs;
 	char *p;
-#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+#if defined(CONFIG_ASH_TIMEOUT)
 	fd_set set;
 	int timeout;
 	struct timeval timeout_struct;
@@ -12595,7 +12595,7 @@ readcmd(int argc, char **argv)
 
 	rflag = 0;
 	prompt = NULL;
-#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+#if defined(CONFIG_ASH_TIMEOUT)
 	timeout = 0;
 
 	while ((i = nextopt("p:rt:")) != '\0')
@@ -12607,7 +12607,7 @@ readcmd(int argc, char **argv)
 			prompt = optionarg;
 		else if (i == 'r')
 			rflag = 1;
-#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+#if defined(CONFIG_ASH_TIMEOUT)
 		else
 			timeout = atoi(optionarg);
 #endif
@@ -12619,7 +12619,7 @@ readcmd(int argc, char **argv)
 		error("arg count");
 	if ((ifs = bltinlookup("IFS")) == NULL)
 		ifs = defifs;
-#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+#if defined(CONFIG_ASH_TIMEOUT)
 	c = 0;
 #endif
 	status = 0;
@@ -12627,7 +12627,7 @@ readcmd(int argc, char **argv)
 	backslash = 0;
 
 	STARTSTACKSTR(p);
-#if defined(CONFIG_ASH_TIMEOUT) && JOBS
+#if defined(CONFIG_ASH_TIMEOUT)
 	if (timeout > 0) {
 		tcgetattr(0, &tty);
 		old_tty = tty;
@@ -12642,8 +12642,7 @@ readcmd(int argc, char **argv)
 		timeout_struct.tv_sec = timeout;
 		timeout_struct.tv_usec = 0;
 
-		i = select (FD_SETSIZE, &set, NULL, NULL, &timeout_struct);
-		if(i == 1)
+		if ((i = select (FD_SETSIZE, &set, NULL, NULL, &timeout_struct)) == 1)
 		{
 			read(0, &c, 1);
 			if(c == '\n' || c == 4) /* Handle newlines and EOF */
