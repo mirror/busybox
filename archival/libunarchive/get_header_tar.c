@@ -185,5 +185,8 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	}
 	archive_handle->offset += file_header->size;
 
+	free(file_header->name);
+	free(file_header->link_name);
+
 	return(EXIT_SUCCESS);
 }
