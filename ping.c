@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.23 2000/07/16 20:57:15 kraai Exp $
+ * $Id: ping.c,v 1.24 2000/09/20 04:33:30 kraai Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -279,6 +279,8 @@ static void unpack(char *, int, struct sockaddr_in *);
 
 static void pingstats(int junk)
 {
+	int status;
+
 	signal(SIGINT, SIG_IGN);
 
 	printf("\n--- %s ping statistics ---\n", hostname);
@@ -294,7 +296,11 @@ static void pingstats(int junk)
 			   tmin / 10, tmin % 10,
 			   (tsum / (nreceived + nrepeats)) / 10,
 			   (tsum / (nreceived + nrepeats)) % 10, tmax / 10, tmax % 10);
-	exit(0);
+	if (nreceived != 0)
+		status = EXIT_SUCCESS;
+	else
+		status = EXIT_FAILURE;
+	exit(status);
 }
 
 static void sendping(int junk)
