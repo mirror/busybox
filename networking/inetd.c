@@ -267,7 +267,6 @@ static int	maxsock;
 static int	timingout;
 static int	rlim_ofile_cur = OPEN_MAX;
 static const char *CONFIG = _PATH_INETDCONF;
-static FILE *fconfig;
 
 static void
 syslog_err_and_discard_dg(int se_socktype, const char *msg, ...)
@@ -284,20 +283,6 @@ syslog_err_and_discard_dg(int se_socktype, const char *msg, ...)
 	if (se_socktype != SOCK_STREAM)
 		recv(0, buf, sizeof (buf), 0);
 	_exit(1);
-}
-
-static FILE *setconfig(void)
-{
-	FILE *f = fconfig;
-
-	if (f != NULL) {
-		fseek(f, 0L, L_SET);
-	} else {
-		f = fconfig = fopen(CONFIG, "r");
-		if(f == NULL)
-			syslog(LOG_ERR, "%s: %m", CONFIG);
-	}
-	return f;
 }
 
 static char *skip(char **cpp)
@@ -473,62 +458,6 @@ static void setproctitle(char *a, int s)
 }
 #endif  /* INETD_FEATURE_ENABLED */
 
-static struct servtab *enter(struct servtab *cp)
-{
-	struct servtab *sep;
-	sigset_t oldmask;
-
-	sep = (struct servtab *)malloc(sizeof (*sep));
-	if (sep == NULL) {
-		syslog_err_and_discard_dg(SOCK_STREAM, bb_msg_memory_exhausted);
-	}
-	*sep = *cp;
-	sep->se_fd = -1;
-	sigprocmask(SIG_BLOCK, &blockmask, &oldmask);
-	sep->se_next = servtab;
-	servtab = sep;
-	sigprocmask(SIG_SETMASK, &oldmask, NULL);
-	return (sep);
-}
-
-static int bump_nofile(void)
-{
-#ifdef RLIMIT_NOFILE
-
-#define FD_CHUNK        32
-
-	struct rlimit rl;
-
-	if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
-		syslog(LOG_ERR, "getrlimit: %m");
-		return -1;
-	}
-	rl.rlim_cur = rl.rlim_max < (rl.rlim_cur + FD_CHUNK) ? rl.rlim_max : (rl.rlim_cur + FD_CHUNK);
-	if (rl.rlim_cur <= rlim_ofile_cur) {
-		syslog(LOG_ERR,
-#if _FILE_OFFSET_BITS == 64
-			"bump_nofile: cannot extend file limit, max = %lld",
-#else
-			"bump_nofile: cannot extend file limit, max = %ld",
-#endif
-			rl.rlim_cur);
-		return -1;
-	}
-
-	if (setrlimit(RLIMIT_NOFILE, &rl) < 0) {
-		syslog(LOG_ERR, "setrlimit: %m");
-		return -1;
-	}
-
-	rlim_ofile_cur = rl.rlim_cur;
-	return 0;
-
-#else
-	syslog(LOG_ERR, "bump_nofile: cannot extend file limit");
-	return -1;
-#endif
-}
-
 
 static void setup(struct servtab *sep)
 {
@@ -560,8 +489,39 @@ static void setup(struct servtab *sep)
 	nsock++;
 	if (sep->se_fd > maxsock) {
 		maxsock = sep->se_fd;
-		if (maxsock > rlim_ofile_cur - FD_MARGIN)
-			bump_nofile();
+		if (maxsock > rlim_ofile_cur - FD_MARGIN) {
+#ifdef RLIMIT_NOFILE
+# define FD_CHUNK        32
+			struct rlimit rl;
+
+			if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
+				syslog(LOG_ERR, "getrlimit: %m");
+				return;
+			}
+			rl.rlim_cur = rl.rlim_max < (rl.rlim_cur + FD_CHUNK) ? rl.rlim_max : (rl.rlim_cur + FD_CHUNK);
+			if (rl.rlim_cur <= rlim_ofile_cur) {
+				syslog(LOG_ERR,
+# if _FILE_OFFSET_BITS == 64
+					"bump_nofile: cannot extend file limit, max = %lld",
+# else
+					"bump_nofile: cannot extend file limit, max = %ld",
+# endif
+					rl.rlim_cur);
+				return;
+			}
+
+			if (setrlimit(RLIMIT_NOFILE, &rl) < 0) {
+				syslog(LOG_ERR, "setrlimit: %m");
+				return;
+			}
+
+			rlim_ofile_cur = rl.rlim_cur;
+			return;
+#else
+			syslog(LOG_ERR, "bump_nofile: cannot extend file limit");
+			return;
+#endif	/* RLIMIT_NOFILE */
+		}
 	}
 }
 
@@ -572,8 +532,16 @@ static void config(int signum)
 	unsigned n;
 
 	(void)signum;
-	if (setconfig() == NULL)
-		return;
+
+	if (fconfig != NULL) {
+		fseek(fconfig, 0L, L_SET);
+	} else {
+		fconfig = fopen(CONFIG, "r");
+		if (fconfig == NULL) {
+			syslog(LOG_ERR, "%s: %m", CONFIG);
+			return;
+		}
+	}
 
 	for (sep = servtab; sep; sep = sep->se_next)
 		sep->se_checked = 0;
@@ -614,7 +582,13 @@ static void config(int signum)
 			sigprocmask(SIG_SETMASK, &oldmask, NULL);
 			freeconfig(cp);
 		} else {
-			sep = enter(cp);
+			sep = (struct servtab *)xmalloc(sizeof (*sep));
+			*sep = *cp;
+			sep->se_fd = -1;
+			sigprocmask(SIG_BLOCK, &blockmask, &oldmask);
+			sep->se_next = servtab;
+			servtab = sep;
+			sigprocmask(SIG_SETMASK, &oldmask, NULL);
 		}
 		sep->se_checked = 1;
 
