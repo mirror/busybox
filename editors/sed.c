@@ -41,6 +41,8 @@
 	 - no pattern space hold space storing / swapping (x, etc.)
 	 - no labels / branching (: label, b, t, and friends)
 	 - and lots, lots more.
+
+	Reference http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
 */
 
 #include <stdio.h>
@@ -419,9 +421,20 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 		sed_cmd->invert = 1;
 		idx++;
 
+#ifdef SED_FEATURE_STRICT_CHECKING
+		/* According to the spec
+		 * It is unspecified whether <blank>s can follow a '!' character,
+		 * and conforming applications shall not follow a '!' character
+		 * with <blank>s.
+		 */
+		if (isblank(cmdstr[idx]) {
+			error_msg_and_die("blank follows '!'");
+		}
+#else 
 		/* skip whitespace before the command */
 		while (isspace(cmdstr[idx]))
 			idx++;
+#endif
 	}
 
 	/* last part (mandatory) will be a command */
@@ -429,29 +442,36 @@ static char *parse_cmd_str(struct sed_cmd * const sed_cmd, const char *const cmd
 		error_msg_and_die("missing command");
 	sed_cmd->cmd = cmdstr[idx];
 
-	/* if it was a single-letter command that takes no arguments (such as 'p'
-	 * or 'd') all we need to do is increment the index past that command */
-	if (strchr("pd=", sed_cmd->cmd)) {
-		idx++;
-	}
-	/* handle (s)ubstitution command */
-	else if (sed_cmd->cmd == 's') {
-		idx += parse_subst_cmd(sed_cmd, &cmdstr[idx]);
-	}
-	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
-	else if (strchr("aic", sed_cmd->cmd)) {
-		if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c')
-			error_msg_and_die("only a beginning address can be specified for edit commands");
-		idx += parse_edit_cmd(sed_cmd, &cmdstr[idx]);
-	}
-	/* handle file cmds: (r)ead */
-	else if (sed_cmd->cmd == 'r') {
-		if (sed_cmd->end_line || sed_cmd->end_match)
-			error_msg_and_die("Command only uses one address");
-		idx += parse_file_cmd(sed_cmd, &cmdstr[idx]);
-	}
-	else {
-		error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
+	switch (sed_cmd->cmd) {
+		/* if it was a single-letter command that takes no arguments (such as 'p'
+		 * or 'd') all we need to do is increment the index past that command */
+		case 'p':
+		case 'd':
+		case '=':
+			idx++;
+			break;
+		/* handle (s)ubstitution command */
+		case 's':
+			idx += parse_subst_cmd(sed_cmd, &cmdstr[idx]);
+			break;
+		/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
+		case 'a':
+		case 'i':
+		case 'c':
+			if ((sed_cmd->end_line || sed_cmd->end_match) && sed_cmd->cmd != 'c') {
+				error_msg_and_die("only a beginning address can be specified for edit commands");
+			}
+			idx += parse_edit_cmd(sed_cmd, &cmdstr[idx]);
+			break;
+		/* handle file cmds: (r)ead */
+		case 'r':
+			if (sed_cmd->end_line || sed_cmd->end_match) {
+				error_msg_and_die("Command only uses one address");
+			}
+			idx += parse_file_cmd(sed_cmd, &cmdstr[idx]);
+			break;
+		default:
+			error_msg_and_die("Unsupported command %c", sed_cmd->cmd);
 	}
 
 	/* give back whatever's left over */
