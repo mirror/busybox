@@ -34,7 +34,7 @@
  */
 
 /*
- * Modified by Vladimir Oleynik <andersen@codepoet.org> (C) 2003
+ * Modified by Vladimir Oleynik <dzo@simtreas.ru> (C) 2003
  * - correct "-" option usage
  * - multiple "-u unsetenv" support
  * - GNU long option support
