@@ -18,8 +18,8 @@ extern int modprobe_main(int argc, char** argv)
 {
 	int	ch, rc = 0;
 	int	loadall = 0, showconfig = 0, debug = 0, autoclean = 0, list = 0;
-	int	show_only = 0, quiet = 0, remove = 0, do_syslog = 0, verbose = 0;
-	char	*load_type = NULL, config = NULL;
+	int	show_only = 0, quiet = 0, remove_opt = 0, do_syslog = 0, verbose = 0;
+	char	*load_type = NULL, *config = NULL;
 
 	while ((ch = getopt(argc, argv, "acdklnqrst:vVC:")) != -1)
 		switch(ch) {
@@ -45,7 +45,7 @@ extern int modprobe_main(int argc, char** argv)
 			quiet++;
 			break;
 		case 'r':
-			remove++;
+			remove_opt++;
 			break;
 		case 's':
 			do_syslog++;
@@ -76,7 +76,7 @@ extern int modprobe_main(int argc, char** argv)
 	if (list)
 		exit(EXIT_SUCCESS);
 	
-	if (remove) {
+	if (remove_opt) {
 		do {
 			sprintf(cmd, "rmmod %s %s %s",
 					optind >= argc ? "-a" : "",
