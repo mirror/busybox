@@ -177,10 +177,13 @@
 	"Clear screen."
 
 #define cmp_trivial_usage \
-	"FILE1 [FILE2]"
+	"[OPTION]... FILE1 [FILE2]"
 #define cmp_full_usage \
-	"\t-s\tquiet mode - do not print\n" \
-	"Compare files."
+	"Compare files.\n\n" \
+	"Options:\n" \
+	"\t-l\tWrite the byte numbers (decimal) and values (octal)\n" \
+	"\t\t  for all differing bytes.\n" \
+	"\t-s\tquiet mode - do not print"
 
 #define cp_trivial_usage \
 	"[OPTION]... SOURCE DEST"
@@ -786,7 +789,7 @@
 #endif
 
 #define head_trivial_usage \
-	"[OPTION] [FILE]..."
+	"[OPTION]... [FILE]..."
 #define head_full_usage \
 	"Print first 10 lines of each FILE to standard output.\n" \
 	"With more than one FILE, precede each with a header giving the\n" \
