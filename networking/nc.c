@@ -40,17 +40,22 @@
 #include <sys/ioctl.h>
 #include "busybox.h"
 
+#define GAPING_SECURITY_HOLE
+
 int nc_main(int argc, char **argv)
 {
-	int do_listen = 0, lport = 0, tmpfd, opt, sfd;
+	int do_listen = 0, lport = 0, delay = 0, tmpfd, opt, sfd;
 	char buf[BUFSIZ];
+#ifdef GAPING_SECURITY_HOLE
+	char * pr00gie = NULL;                  
+#endif
 
 	struct sockaddr_in address;
 	struct hostent *hostinfo;
 
 	fd_set readfds, testfds;
 
-	while ((opt = getopt(argc, argv, "lp:")) > 0) {
+	while ((opt = getopt(argc, argv, "lp:i:e:")) > 0) {
 		switch (opt) {
 			case 'l':
 				do_listen++;
@@ -58,10 +63,26 @@ int nc_main(int argc, char **argv)
 			case 'p':
 				lport = atoi(optarg);
 				break;
+			case 'i':
+				delay = atoi(optarg);
+				break;
+#ifdef GAPING_SECURITY_HOLE
+			case 'e':
+				pr00gie = optarg;
+				break;
+#endif
 			default:
 				show_usage();
 		}
 	}
+
+#ifdef GAPING_SECURITY_HOLE
+	if (pr00gie) {
+		/* won't need stdin */
+		close (fileno(stdin));                          
+	}
+#endif /* GAPING_SECURITY_HOLE */
+
 
 	if ((do_listen && optind != argc) || (!do_listen && optind + 2 != argc))
 		show_usage();
@@ -100,6 +121,20 @@ int nc_main(int argc, char **argv)
 			perror_msg_and_die("connect");
 	}
 
+#ifdef GAPING_SECURITY_HOLE
+	/* -e given? */
+	if (pr00gie) {
+		dup2(sfd, 0);
+		close(sfd);
+		dup2 (0, 1);
+		dup2 (0, 2);
+		execl (pr00gie, pr00gie, NULL);
+		/* Don't print stuff or it will go over the wire.... */
+		_exit(-1);
+	}
+#endif /* GAPING_SECURITY_HOLE */
+
+
 	FD_ZERO(&readfds);
 	FD_SET(sfd, &readfds);
 	FD_SET(STDIN_FILENO, &readfds);
@@ -131,6 +166,9 @@ int nc_main(int argc, char **argv)
 
 				if (full_write(ofd, buf, nread) < 0)
 					perror_msg_and_die("write");
+				if (delay > 0) {
+					sleep(delay);
+				}
 			}
 		}
 	}

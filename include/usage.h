@@ -1267,6 +1267,7 @@
 	"Options:\n" \
 	"\t-l\t\tlisten mode, for inbound connects\n" \
 	"\t-p PORT\t\tlocal port number\n" \
+	"\t-i SECS\t\tdelay interval for lines sent\n" \
 	"\t-e PROG\t\tprogram to exec after connect (dangerous!)"
 #define nc_example_usage \
 	"$ nc foobar.somedomain.com 25\n" \
