@@ -2867,7 +2867,6 @@ char *c, **v, **envp;
 		for (i = 0; (*tp++ = c[i++]) != '\0';)
 			;
 
-		fprintf(stderr, "calling exec\n");
 		execve(e.linep, v, envp);
 		switch (errno) {
 		case ENOEXEC:
