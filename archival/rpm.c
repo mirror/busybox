@@ -82,10 +82,10 @@ enum rpm_functions_e {
 };
 
 typedef struct {
-	u_int32_t tag; /* 4 byte tag */
-	u_int32_t type; /* 4 byte type */
-	u_int32_t offset; /* 4 byte offset */
-	u_int32_t count; /* 4 byte count */
+	uint32_t tag; /* 4 byte tag */
+	uint32_t type; /* 4 byte type */
+	uint32_t offset; /* 4 byte offset */
+	uint32_t count; /* 4 byte count */
 } rpm_index;
 
 static void *map;
@@ -227,10 +227,10 @@ rpm_index **rpm_gettags(int fd, int *num_tags)
 	for (pass = 0; pass < 2; pass++) { /* 1st pass is the signature headers, 2nd is the main stuff */
 		struct {
 			char magic[3]; /* 3 byte magic: 0x8e 0xad 0xe8 */
-			u_int8_t version; /* 1 byte version number */
-			u_int32_t reserved; /* 4 bytes reserved */
-			u_int32_t entries; /* Number of entries in header (4 bytes) */
-			u_int32_t size; /* Size of store (4 bytes) */
+			uint8_t version; /* 1 byte version number */
+			uint32_t reserved; /* 4 bytes reserved */
+			uint32_t entries; /* Number of entries in header (4 bytes) */
+			uint32_t size; /* Size of store (4 bytes) */
 		} header;
 		rpm_index *tmpindex;
 		int storepos;

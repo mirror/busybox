@@ -954,7 +954,7 @@ static int xbsd_part_index;
 #endif
 
 #if defined (__alpha__)
-/* We access this through a u_int64_t * when checksumming */
+/* We access this through a uint64_t * when checksumming */
 static char disklabelbuffer[BSD_BBSIZE] __attribute__((aligned(8)));
 #else
 static char disklabelbuffer[BSD_BBSIZE];
@@ -1712,16 +1712,16 @@ xbsd_link_part (void)
 #if defined (__alpha__)
 
 #if !defined(__GLIBC__)
-typedef unsigned long long u_int64_t;
+typedef unsigned long long uint64_t;
 #endif
 
 static void
 alpha_bootblock_checksum (char *boot)
 {
-  u_int64_t *dp, sum;
+  uint64_t *dp, sum;
   int i;
 
-  dp = (u_int64_t *)boot;
+  dp = (uint64_t *)boot;
   sum = 0;
   for (i = 0; i < 63; i++)
     sum += dp[i];

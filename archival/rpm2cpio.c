@@ -31,21 +31,21 @@
 
 struct rpm_lead {
     unsigned char magic[4];
-    u_int8_t major, minor;
-    u_int16_t type;
-    u_int16_t archnum;
+    uint8_t major, minor;
+    uint16_t type;
+    uint16_t archnum;
     char name[66];
-    u_int16_t osnum;
-    u_int16_t signature_type;
+    uint16_t osnum;
+    uint16_t signature_type;
     char reserved[16];
 };
 
 struct rpm_header {
 	char magic[3]; /* 3 byte magic: 0x8e 0xad 0xe8 */
-	u_int8_t version; /* 1 byte version number */
-	u_int32_t reserved; /* 4 bytes reserved */
-	u_int32_t entries; /* Number of entries in header (4 bytes) */
-	u_int32_t size; /* Size of store (4 bytes) */
+	uint8_t version; /* 1 byte version number */
+	uint32_t reserved; /* 4 bytes reserved */
+	uint32_t entries; /* Number of entries in header (4 bytes) */
+	uint32_t size; /* Size of store (4 bytes) */
 };
 
 void skip_header(int rpm_fd)
