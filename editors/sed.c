@@ -75,6 +75,9 @@ typedef struct sed_cmd_s {
 	int invert;			/* the '!' after the address */
 //	int block_cmd;	/* This command is part of a group that has a command address */
 
+	/* Runtime flag no not if the current command match's */
+	int still_in_range;
+
 	/* SUBSTITUTION COMMAND SPECIFIC FIELDS */
 
 	/* sed -e 's/sub_match/replace/' */
@@ -491,7 +494,7 @@ static char *parse_cmd_str(sed_cmd_t * sed_cmd, char *cmdstr)
 	return (cmdstr);
 }
 
-static char *add_cmd(sed_cmd_t * sed_cmd, char *cmdstr)
+static char *add_cmd(sed_cmd_t *sed_cmd, char *cmdstr)
 {
 	/* Skip over leading whitespace and semicolons */
 	cmdstr += strspn(cmdstr, semicolon_whitespace);
@@ -793,7 +796,6 @@ static void process_file(FILE * file)
 	char *pattern_space;	/* Posix requires it be able to hold at least 8192 bytes */
 	char *hold_space = NULL;	/* Posix requires it be able to hold at least 8192 bytes */
 	static int linenum = 0;	/* GNU sed does not restart counting lines at EOF */
-	unsigned int still_in_range = 0;
 	int altered;
 	int force_print;
 
@@ -836,7 +838,7 @@ static void process_file(FILE * file)
 					&& (regexec(sed_cmd->beg_match, pattern_space, 0, NULL,
 							0) == 0)) ||
 				/* we are currently within the beginning & ending address range */
-				still_in_range || ((sed_cmd->beg_line == -1)
+				sed_cmd->still_in_range || ((sed_cmd->beg_line == -1)
 					&& (next_line == NULL))
 				);
 			if (sed_cmd->cmd == '{') {
@@ -1077,7 +1079,7 @@ static void process_file(FILE * file)
 					/* If only one address */
 					/* we were in the middle of our address range (this
 					 * isn't the first time through) and.. */
-					|| ((still_in_range == 1)
+					|| ((sed_cmd->still_in_range == 1)
 						/* this line number is the last address we're looking for or... */
 						&& ((sed_cmd->end_line > 0
 								&& (sed_cmd->end_line == linenum))
@@ -1086,10 +1088,10 @@ static void process_file(FILE * file)
 								&& (regexec(sed_cmd->end_match, pattern_space,
 										0, NULL, 0) == 0))))) {
 					/* we're out of our address range */
-					still_in_range = 0;
+					sed_cmd->still_in_range = 0;
 				} else {
 					/* didn't hit the exit? then we're still in the middle of an address range */
-					still_in_range = 1;
+					sed_cmd->still_in_range = 1;
 				}
 			}
 
