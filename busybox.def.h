@@ -39,7 +39,9 @@
 // Don't turn BB_INSMOD on.  It doesn't work.
 //#define BB_INSMOD
 #define BB_KILL
+#ifdef BB_KILL
 #define BB_KILLALL
+#endif
 #define BB_KLOGD
 //#define BB_LENGTH
 #define BB_LN
@@ -176,3 +178,4 @@
 //
 //Make sure nothing is printed to the console on boot
 #define BB_FEATURE_EXTRA_QUIET
+

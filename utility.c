@@ -1247,7 +1247,7 @@ extern int device_open(char *device, int mode)
 #endif							/* BB_INIT BB_SYSLOGD */
 
 
-#if defined BB_INIT || defined BB_HALT || defined BB_REBOOT
+#if defined BB_INIT || defined BB_HALT || defined BB_REBOOT || defined BB_KILLALL
 
 #ifdef BB_FEATURE_USE_DEVPS_N_DEVMTAB
 #include <linux/devps.h>
@@ -1353,7 +1353,7 @@ extern pid_t findPidByName( char* pidName)
 	return 0;
 }
 #endif							/* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
-#endif							/* BB_INIT || BB_HALT || BB_REBOOT */
+#endif							/* BB_INIT || BB_HALT || BB_REBOOT || KILLALL */
 
 #if defined BB_GUNZIP \
  || defined BB_GZIP   \
