@@ -42,7 +42,7 @@ freeramdisk_main(int argc, char **argv)
 	char  rname[256] = "/dev/ram";
 	int   f;
 
-	if (argc >= 2 || ( argv[1] && *argv[1] == '-')) {
+	if (argc > 2 || ( argv[1] && *argv[1] == '-')) {
 		usage(freeramdisk_usage);
 	}
 
