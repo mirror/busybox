@@ -403,7 +403,8 @@ static void doKlogd (void)
 {
 	int priority = LOG_INFO;
 	char log_buffer[4096];
-	char *logp;
+	int i, n, lastc;
+	char *start;
 
 	/* Set up sig handlers */
 	signal(SIGINT, klogd_signal);
@@ -420,12 +421,14 @@ static void doKlogd (void)
 	logMessage(0, "klogd started: "
 			   "BusyBox v" BB_VER " (" BB_BT ")");
 
+	/* "Open the log. Currently a NOP." */
 	klogctl(1, NULL, 0);
 
 	while (1) {
 		/* Use kernel syscalls */
 		memset(log_buffer, '\0', sizeof(log_buffer));
-		if (klogctl(2, log_buffer, sizeof(log_buffer)) < 0) {
+		n = klogctl(2, log_buffer, sizeof(log_buffer));
+		if (n < 0) {
 			char message[80];
 
 			if (errno == EINTR)
@@ -435,37 +438,29 @@ static void doKlogd (void)
 			logMessage(LOG_SYSLOG | LOG_ERR, message);
 			exit(1);
 		}
-		logp = log_buffer;
-		if (*log_buffer == '<') {
-			switch (*(log_buffer + 1)) {
-			case '0':
-				priority = LOG_EMERG;
-				break;
-			case '1':
-				priority = LOG_ALERT;
-				break;
-			case '2':
-				priority = LOG_CRIT;
-				break;
-			case '3':
-				priority = LOG_ERR;
-				break;
-			case '4':
-				priority = LOG_WARNING;
-				break;
-			case '5':
-				priority = LOG_NOTICE;
-				break;
-			case '6':
-				priority = LOG_INFO;
-				break;
-			case '7':
-			default:
-				priority = LOG_DEBUG;
+
+		/* klogctl buffer parsing modelled after code in dmesg.c */
+		start=&log_buffer[0];
+		lastc='\0';
+		for (i=0; i<n; i++) {
+			if (lastc == '\0' && log_buffer[i] == '<') {
+				priority = 0;
+				i++;
+				while (isdigit(log_buffer[i])) {
+					priority = priority*10+(log_buffer[i]-'0');
+					i++;
+				}
+				if (log_buffer[i] == '>') i++;
+				start = &log_buffer[i];
 			}
-			logp += 3;
+			if (log_buffer[i] == '\n') {
+				log_buffer[i] = '\0';  /* zero terminate this message */
+				logMessage(LOG_KERN | priority, start);
+				start = &log_buffer[i+1];
+				priority = LOG_INFO;
+			}
+			lastc = log_buffer[i];
 		}
-		logMessage(LOG_KERN | priority, logp);
 	}
 
 }
