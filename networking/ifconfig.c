@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.24 2003/05/26 14:06:01 bug1 Exp $
+ * $Id: ifconfig.c,v 1.25 2003/06/20 09:23:34 andersen Exp $
  *
  */
 
@@ -306,6 +306,8 @@ int ifconfig_main(int argc, char **argv)
 
 	goterr = 0;
 	did_flags = 0;
+	sai_hostname = 0;
+	sai_netmask = 0;
 
 	/* skip argv[0] */
 	++argv;
