@@ -49,7 +49,14 @@ int bb_make_directory (char *path, long mode, int flags)
 	struct stat st;
 
 	mask = umask(0);
-	umask(mask & ~0300);
+	if (mode == -1) {
+		umask(mask);
+		mode = (S_IXUSR | S_IXGRP | S_IXOTH |
+				S_IWUSR | S_IWGRP | S_IWOTH |
+				S_IRUSR | S_IRGRP | S_IROTH) & ~mask;
+	} else {
+		umask(mask & ~0300);
+	}
 
 	do {
 		c = 0;

@@ -1547,7 +1547,7 @@ static int make_dir_tree (const char *path)
 #ifdef CONFIG_DEBUG
 	msg_logger( NO_DIE, LOG_INFO, "make_dir_tree()\n");
 #endif
-	if (bb_make_directory( dirname((char *)path),  S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH ,FILEUTILS_RECUR )==-1)
+	if (bb_make_directory( dirname((char *)path), -1, FILEUTILS_RECUR )==-1)
 	{
 #ifdef CONFIG_DEBUG
 		msg_logger( NO_DIE, LOG_ERR, "make_dir_tree(): %s: %m\n", path);

@@ -35,7 +35,7 @@ extern void data_extract_all(archive_handle_t *archive_handle)
 
 	if (archive_handle->flags & ARCHIVE_CREATE_LEADING_DIRS) {
 		char *name = bb_xstrdup(file_header->name);
-		bb_make_directory (dirname(name), 0777, FILEUTILS_RECUR);
+		bb_make_directory (dirname(name), -1, FILEUTILS_RECUR);
 		free(name);
 	}
 
