@@ -26,6 +26,12 @@
 #include <ctype.h>
 #include <getopt.h>
 
+/* For some silly reason, this file uses backwards TRUE and FALSE conventions */
+#undef TRUE
+#undef FALSE
+#define FALSE   ((int) 1)
+#define TRUE    ((int) 0)
+
 //----------------------------------------------------------------------------
 //--------md5.c
 //----------------------------------------------------------------------------
@@ -699,7 +705,7 @@ static int md5_check(const char *checkfile_name)
     fgets(line, BUFSIZ-1, checkfile_stream);
     line_length = strlen(line);
 
-    if (line_length <= 0)
+    if (line_length <= 0 || line==NULL)
       break;
 
     /* Ignore comment lines, which begin with a '#' character.  */
@@ -756,9 +762,6 @@ static int md5_check(const char *checkfile_name)
   }
 
   while (!feof(checkfile_stream) && !ferror(checkfile_stream));
-
-  if (line)
-    free(line);
 
   if (ferror(checkfile_stream)) {
     error_msg("%s: read error\n", checkfile_name); /* */
@@ -852,31 +855,26 @@ int md5sum_main(int argc,
   }
 
   if (file_type_specified && do_check) {
-    error_msg("the -b and -t options are meaningless when verifying checksums\n");
-	return EXIT_FAILURE;
+    error_msg_and_die("the -b and -t options are meaningless when verifying checksums\n");
   }
 
   if (n_strings > 0 && do_check) {
-    error_msg("the -g and -c options are mutually exclusive\n");
-	return EXIT_FAILURE;
+    error_msg_and_die("the -g and -c options are mutually exclusive\n");
   }
 
   if (status_only && !do_check) {
-    error_msg("the -s option is meaningful only when verifying checksums\n");
-	return EXIT_FAILURE;
+    error_msg_and_die("the -s option is meaningful only when verifying checksums\n");
   }
 
   if (warn && !do_check) {
-    error_msg("the -w option is meaningful only when verifying checksums\n");
-	return EXIT_FAILURE;
+    error_msg_and_die("the -w option is meaningful only when verifying checksums\n");
   }
 
   if (n_strings > 0) {
     size_t i;
 
     if (optind < argc) {
-      error_msg("no files may be specified when using -g\n");
-	  return EXIT_FAILURE;
+      error_msg_and_die("no files may be specified when using -g\n");
     }
     for (i = 0; i < n_strings; ++i) {
       size_t cnt;
@@ -942,13 +940,11 @@ int md5sum_main(int argc,
   }
 
   if (fclose (stdout) == EOF) {
-    error_msg("write error\n");
-	return EXIT_FAILURE;
+    error_msg_and_die("write error\n");
   }
 
   if (have_read_stdin && fclose (stdin) == EOF) {
-    error_msg("standard input\n");
-	return EXIT_FAILURE;
+    error_msg_and_die("standard input\n");
   }
 
   if (err == 0)
