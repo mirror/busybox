@@ -249,9 +249,9 @@ static void load_regexes_from_file(llist_t *fopt)
 		fopt = cur->link;
 		free(cur);
 		f = bb_xfopen(ffile, "r");
-	while ((line = bb_get_chomped_line_from_file(f)) != NULL) {
-		pattern_head = llist_add_to(pattern_head, line);
-	}
+		while ((line = bb_get_chomped_line_from_file(f)) != NULL) {
+			pattern_head = llist_add_to(pattern_head, line);
+		}
 	}
 }
 
@@ -261,7 +261,7 @@ extern int grep_main(int argc, char **argv)
 	FILE *file;
 	int matched;
 	unsigned long opt;
-	llist_t *fopt;
+	llist_t *fopt = NULL;
 
 	/* do normal option parsing */
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
