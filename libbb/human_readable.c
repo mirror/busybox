@@ -13,10 +13,9 @@
  *      representations (say, powers of 1024) and manipulating coefficients.
  *      The base ten "bytes" output could be handled similarly.
  *
- *   2) The output of "ls -sh" can be misaligned because this routine always
- *      outputs a decimal point and a tenths digit when display_unit != 0.
- *      Hence, it isn't uncommon for the returned string to have a length
- *      of 5 or 6 instead of <= 4 (as assumed).
+ *   2) This routine always outputs a decimal point and a tenths digit when 
+ *      display_unit != 0.  Hence, it isn't uncommon for the returned string 
+ *      to have a length of 5 or 6.
  *
  *      It might be nice to add a flag to indicate no decimal digits in
  *      that case.  This could be either an additional parameter, or a
