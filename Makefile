@@ -18,7 +18,7 @@
 #
 
 PROG      := busybox
-VERSION   := 0.52pre
+VERSION   := 0.52
 BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 export VERSION
 
@@ -376,6 +376,8 @@ libbb.a:  $(LIBBB_MOBJ) $(LIBBB_AROBJS) $(LIBBB_OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
 usage.o: usage.h
+
+sh.o: sh.c lash.c hush.c msh.c ash.c
 
 libbb/loop.o: libbb/loop.h
 

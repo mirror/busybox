@@ -147,12 +147,12 @@
 // If you enabled BB_SH above, you may select one of the following shells.  
 // You can only select ONE of the following shells.  Sorry.
 //
-// lash is the very smallest shell (adds just 10k) and it is quite usable as a
-// command prompt, but it is not suitable for any but the most trivial scripting
-// (such as an initrd that calls insmod a few times) since it does not
-// understand Bourne shell grammer.  It does handle pipes, redirects, and job
-// control though.  Adding in command editing makes it very nice lightweight
-// command prompt.
+// lash is the very smallest shell (adds just 10k) and it is quite usable as 
+// a command prompt, but it is not suitable for any but the most trivial
+// scripting (such as an initrd that calls insmod a few times) since it does
+// not understand Bourne shell grammer.  It does handle pipes, redirects, and
+// job control though.  Adding in command editing makes it very nice
+// lightweight command prompt.
 //#define BB_FEATURE_LASH
 //
 // hush is also quite small (just 18k) and it has very complete Bourne shell
@@ -164,10 +164,10 @@
 // msh: The minix shell (adds just 30k) is quite complete and handles things
 // like for/do/done, case/esac and all the things you expect a Bourne shell to
 // do.  It is not always pedantically correct about Bourne shell grammer (try
-// running the shell testscript "tests/sh.testcases" on it and compare vs
-// bash) but for most things it works quite well.  It also uses only vfork, so
-// it can be used on uClinux systems.  This was only recently added, so there is 
-// still room to shrink  it further...
+// running the shell testscript "tests/sh.testcases" on it and compare vs bash)
+// but for most things it works quite well.  It also uses only vfork, so it can
+// be used on uClinux systems.  This was only recently added, so there is still
+// room to shrink it further...
 #define BB_FEATURE_MSH
 //
 // ash: This adds about 60k in the default configuration and is the most
@@ -354,7 +354,7 @@
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 
 // compiled into the binary.  (needs /proc filesystem)
-// #define BB_FEATURE_INSTALLER
+//#define BB_FEATURE_INSTALLER
 //
 // Enable a nifty progress meter in wget (adds just under 2k)
 #define BB_FEATURE_WGET_STATUSBAR

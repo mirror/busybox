@@ -10,13 +10,6 @@ around to it some time. If you have any good ideas, please let me know.
     netkit-tiny.  Per discussions on the mailing list, this isn't going
     to happen.  False alarm.  Sorry about the confusion.  
 
-* The default busybox shell, lash, is really too weak for serious use,
-    although it is possible to run many simple systems with it.  BusyBox
-    0.52 now contains a rewritten shell, hush, which understands most
-    Bourne grammar, with only about a 4 Kbyte binary size penalty.  You can
-    engage hush at pre-compile time by "ln -sf hush.c sh.c; touch hush.c".
-    Hush is young, and has plenty of bugs to shake out, so think twice before
-    using it for production systems.  We welcome bug reports and patches.
 
  -Erik
 
@@ -25,6 +18,7 @@ around to it some time. If you have any good ideas, please let me know.
 Possible apps to include some time:
 
 * hwclock
+* start-stop-daemon
 * group/commonize strings, remove dups (for i18n, l10n)
 
 -----------
