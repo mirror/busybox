@@ -1068,7 +1068,12 @@ extern long getNum (const char *cp)
 }
 #endif
 
-#if 1
+
+#if defined BB_INIT || defined BB_HALT || defined BB_REBOOT 
+
+#if ! defined BB_FEATURE_USE_PROCFS
+#error Sorry, I depend on the /proc filesystem right now.
+#endif
 /* findInitPid()
  *  
  *  This finds the pid of init (which is not always 1).
@@ -1095,7 +1100,7 @@ findInitPid()
 	fgets(buffer, 256, status);
 	fclose(status);
 
-	if ( (strcmp(&buffer[6], "init\n") == 0)) {
+	if ( (strstr(buffer, "init\n") != NULL )) {
 	    return init_pid;
 	}
     }

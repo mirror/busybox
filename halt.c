@@ -26,6 +26,7 @@
 extern int
 halt_main(int argc, char ** argv)
 {
-    exit( kill(1, SIGUSR1));
+    /* don't assume init's pid == 1 */
+    exit( kill(findInitPid(), SIGUSR1));
 }
 
