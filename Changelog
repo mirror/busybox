@@ -1,5 +1,9 @@
 0.37
+	* Fixed 'make install' so symlinks are installed in their proper locations.
+	* Changed the build system slightly so that features can now be enables
+	    or disabled from the busybox.defs.h header file, which is much more sane.
 	* Now 'rm -R' and 'rm -r' both work.
+	* dd now properly handles input beyond 1 block from stdin.
 
 	-Erik Andrsen
 
