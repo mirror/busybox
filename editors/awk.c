@@ -82,6 +82,7 @@ typedef struct func_s {
 typedef struct rstream_s {
 	FILE *F;
 	char *buffer;
+	int adv;
 	int size;
 	int pos;
 	unsigned short is_pipe;
@@ -426,6 +427,7 @@ static nvblock *cb = NULL;
 static char *pos;
 static char *buf;
 static int icase = FALSE;
+static int exiting = FALSE;
 
 static struct {
 	unsigned long tclass;
@@ -464,7 +466,7 @@ static const char EMSG_NO_MATH[] = "Math support is not compiled in";
 static void syntax_error(const char * const message)
 {
 	bb_error_msg("%s:%i: %s", programname, lineno, message);
-	awk_exit(1);
+	exit(1);
 }
 
 #define runtime_error(x) syntax_error(x)
@@ -1634,21 +1636,24 @@ static int awk_getline(rstream *rsm, var *v) {
 
 	char *b;
 	regmatch_t pmatch[2];
-	int p, pp=0, size;
+	int a, p, pp=0, size;
 	int fd, so, eo, r, rp;
-	char c, *s;
+	char c, *m, *s;
 
 	/* we're using our own buffer since we need access to accumulating
 	 * characters
 	 */
 	fd = fileno(rsm->F);
-	b = rsm->buffer;
+	m = rsm->buffer;
+	a = rsm->adv;
 	p = rsm->pos;
 	size = rsm->size;
 	c = (char) rsplitter.n.info;
 	rp = 0;
+
+	if (! m) qrealloc(&m, 256, &size);
 	do {
-		qrealloc(&b, p+128, &size);
+		b = m + a;
 		so = eo = p;
 		r = 1;
 		if (p > 0) {
@@ -1680,6 +1685,14 @@ static int awk_getline(rstream *rsm, var *v) {
 			}
 		}
 
+		if (a > 0) {
+			memmove(m, (const void *)(m+a), p+1);
+			b = m;
+			a = 0;
+		}
+
+		qrealloc(&m, a+p+128, &size);
+		b = m + a;
 		pp = p;
 		p += safe_read(fd, b+p, size-p-1);
 		if (p < pp) {
@@ -1703,11 +1716,9 @@ static int awk_getline(rstream *rsm, var *v) {
 		b[eo] = c;
 	}
 
-	p -= eo;
-	if (p) memmove(b, (const void *)(b+eo), p+1);
-
-	rsm->buffer = b;
-	rsm->pos = p;
+	rsm->buffer = m;
+	rsm->adv = a + eo;
+	rsm->pos = p - eo;
 	rsm->size = size;
 
 	return r;
@@ -2534,6 +2545,12 @@ static int awk_exit(int r) {
 
 	unsigned int i;
 	hash_item *hi;
+	static var tv;
+
+	if (! exiting) {
+		exiting = TRUE;
+		evaluate(endseq.first, &tv);
+	}
 
 	/* waiting for children */
 	for (i=0; i<fdhash->csize; i++) {
@@ -2581,7 +2598,7 @@ static rstream *next_input_file(void) {
 
 	if (rsm.F) fclose(rsm.F);
 	rsm.F = NULL;
-	rsm.pos = 0;
+	rsm.pos = rsm.adv = 0;
 
 	do {
 		if (getvar_i(V[ARGIND])+1 >= getvar_i(V[ARGC])) {
@@ -2733,7 +2750,6 @@ extern int awk_main(int argc, char **argv) {
 
 	}
 
-	evaluate(endseq.first, &tv);
 	awk_exit(EXIT_SUCCESS);
 
 	return 0;
