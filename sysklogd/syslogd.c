@@ -55,7 +55,7 @@
 #define __LOG_FILE "/var/log/messages"
 
 /* Path to the unix socket */
-static char lfile[BUFSIZ];
+static char lfile[MAXPATHLEN];
 
 static char *logFilePath = __LOG_FILE;
 
@@ -63,7 +63,7 @@ static char *logFilePath = __LOG_FILE;
 static int MarkInterval = 20 * 60;
 
 /* localhost's name */
-static char LocalHostName[32];
+static char LocalHostName[64];
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 #include <netinet/in.h>
@@ -78,9 +78,12 @@ static int doRemoteLog = FALSE;
 static int local_logging = FALSE;
 #endif
 
+
+#define MAXLINE         1024            /* maximum line length */
+
+
 /* circular buffer variables/structures */
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-
 #if __GNU_LIBRARY__ < 5
 #error Sorry.  Looks like you are using libc5.
 #error libc5 shm support isnt good enough.
@@ -96,19 +99,19 @@ static const long KEY_ID = 0x414e4547; /*"GENA"*/
 
 // Semaphore operation structures
 static struct shbuf_ds {
-	int size;		// size of data written
-	int head;		// start of message list
-	int tail;		// end of message list
-	char data[1];		// data/messages
-} *buf = NULL;			// shared memory pointer
+	int size;               // size of data written
+	int head;               // start of message list
+	int tail;               // end of message list
+	char data[1];           // data/messages
+} *buf = NULL;                  // shared memory pointer
 
 static struct sembuf SMwup[1] = {{1, -1, IPC_NOWAIT}}; // set SMwup
 static struct sembuf SMwdn[3] = {{0, 0}, {1, 0}, {1, +1}}; // set SMwdn
 
-static int 	shmid = -1;	// ipc shared memory id
-static int 	s_semid = -1;	// ipc semaphore id
-int	data_size = 16000; // data size
-int	shm_size = 16000 + sizeof(*buf); // our buffer size
+static int      shmid = -1;     // ipc shared memory id
+static int      s_semid = -1;   // ipc semaphore id
+int     data_size = 16000; // data size
+int     shm_size = 16000 + sizeof(*buf); // our buffer size
 static int circular_logging = FALSE;
 
 /*
@@ -129,6 +132,7 @@ static inline void sem_down(int semid)
 		perror_msg_and_die("semop[SMwdn]");
 }
 
+
 void ipcsyslog_cleanup(void){
 	printf("Exiting Syslogd!\n");
 	if (shmid != -1)
@@ -143,11 +147,11 @@ void ipcsyslog_cleanup(void){
 void ipcsyslog_init(void){
 	if (buf == NULL){
 	    if ((shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023)) == -1)
-		    	perror_msg_and_die("shmget");
+			perror_msg_and_die("shmget");
 
 
 	    if ((buf = shmat(shmid, NULL, 0)) == NULL)
-    			perror_msg_and_die("shmat");
+			perror_msg_and_die("shmat");
 
 
 	    buf->size=data_size;
@@ -155,11 +159,11 @@ void ipcsyslog_init(void){
 
 	    // we'll trust the OS to set initial semval to 0 (let's hope)
 	    if ((s_semid = semget(KEY_ID, 2, IPC_CREAT | IPC_EXCL | 1023)) == -1){
-	    	if (errno == EEXIST){
+		if (errno == EEXIST){
 		   if ((s_semid = semget(KEY_ID, 2, 0)) == -1)
 		    perror_msg_and_die("semget");
 		}else
-    			perror_msg_and_die("semget");
+			perror_msg_and_die("semget");
 	    }
 	}else{
 		printf("Buffer already allocated just grab the semaphore?");
@@ -184,16 +188,16 @@ void circ_message(const char *msg){
 	 * insert the new message. (Note: if the message being added is >1 message then
 	 * we will need to "remove" >1 old message from the buffer). The way this is done
 	 * is the following:
-	 *	When we reach the end of the buffer we set a mark and start from the beginning.
-	 *	Now what about the beginning and end of the buffer? Well we have the "head"
-	 *	index/pointer which is the starting point for the messages and we have "tail"
-	 *	index/pointer which is the ending point for the messages. When we "display" the
-	 *	messages we start from the beginning and continue until we reach "tail". If we
-	 *	reach end of buffer, then we just start from the beginning (offset 0). "head" and
-	 *	"tail" are actually offsets from the beginning of the buffer.
+	 *      When we reach the end of the buffer we set a mark and start from the beginning.
+	 *      Now what about the beginning and end of the buffer? Well we have the "head"
+	 *      index/pointer which is the starting point for the messages and we have "tail"
+	 *      index/pointer which is the ending point for the messages. When we "display" the
+	 *      messages we start from the beginning and continue until we reach "tail". If we
+	 *      reach end of buffer, then we just start from the beginning (offset 0). "head" and
+	 *      "tail" are actually offsets from the beginning of the buffer.
 	 *
 	 * Note: This algorithm uses Linux IPC mechanism w/ shared memory and semaphores to provide
-	 * 	 a threasafe way of handling shared memory operations.
+	 *       a threasafe way of handling shared memory operations.
 	 */
 	if ( (buf->tail + l) < buf->size ){
 		/* before we append the message we need to check the HEAD so that we won't
@@ -207,19 +211,19 @@ void circ_message(const char *msg){
 			   * to worry about overflows here!
 			   */
 			   int k= buf->tail + l - buf->head; /* we need to know how many bytes
-			   					we are overwriting to make
+								we are overwriting to make
 								enough room */
 			   char *c=memchr(buf->data+buf->head + k,'\0',buf->size - (buf->head + k));
 			   if (c != NULL) {/* do a sanity check just in case! */
-			   	buf->head = c - buf->data + 1; /* we need to convert pointer to
+				buf->head = c - buf->data + 1; /* we need to convert pointer to
 								  offset + skip the '\0' since
 								  we need to point to the beginning
 								  of the next message */
 				/* Note: HEAD is only used to "retrieve" messages, it's not used
 					when writing messages into our buffer */
 			   }else{ /* show an error message to know we messed up? */
-			   	printf("Weird! Can't find the terminator token??? \n");
-			   	buf->head=0;
+				printf("Weird! Can't find the terminator token??? \n");
+				buf->head=0;
 			   }
 			}
 		} /* in other cases no overflows have been done yet, so we don't care! */
@@ -231,22 +235,22 @@ void circ_message(const char *msg){
 		/* we need to break up the message and "circle" it around */
 		char *c;
 		int k=buf->tail + l - buf->size; /* count # of bytes we don't fit */
-		
+
 		/* We need to move HEAD! This is always the case since we are going
 		 * to "circle" the message.
 		 */
 		c=memchr(buf->data + k ,'\0', buf->size - k);
-		
+
 		if (c != NULL) /* if we don't have '\0'??? weird!!! */{
 			/* move head pointer*/
-			buf->head=c-buf->data+1; 
-			
-			/* now write the first part of the message */			
+			buf->head=c-buf->data+1;
+
+			/* now write the first part of the message */
 			strncpy(buf->data + buf->tail, msg, l - k - 1);
-			
+
 			/* ALWAYS terminate end of buffer w/ '\0' */
-			buf->data[buf->size-1]='\0'; 
-			
+			buf->data[buf->size-1]='\0';
+
 			/* now write out the rest of the string to the beginning of the buffer */
 			strcpy(buf->data, &msg[l-k-1]);
 
@@ -256,11 +260,12 @@ void circ_message(const char *msg){
 			printf("Weird! Can't find the terminator token from the beginning??? \n");
 			buf->head = buf->tail = 0; /* reset buffer, since it's probably corrupted */
 		}
-		
+
 	}
 	sem_up(s_semid);
 }
-#endif
+#endif  /* CONFIG_FEATURE_IPC_SYSLOG */
+
 /* Note: There is also a function called "message()" in init.c */
 /* Print a message to the log file. */
 static void message (char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
@@ -275,10 +280,10 @@ static void message (char *fmt, ...)
 	fl.l_len    = 1;
 
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-	if ((circular_logging) && (buf != NULL)){
+	if ((circular_logging == TRUE) && (buf != NULL)){
 			char b[1024];
 			va_start (arguments, fmt);
-			vsprintf (b, fmt, arguments);
+			vsnprintf (b, sizeof(b)-1, fmt, arguments);
 			va_end (arguments);
 			circ_message(b);
 
@@ -354,20 +359,19 @@ static const int IOV_COUNT = 2;
 		memset(&res, 0, sizeof(res));
 		snprintf(res, sizeof(res), "<%d>", pri);
 		v->iov_base = res ;
-		v->iov_len = strlen(res);          
+		v->iov_len = strlen(res);
 		v++;
 
 		v->iov_base = msg;
-		v->iov_len = strlen(msg);          
-
+		v->iov_len = strlen(msg);
 writev_retry:
 		if ( -1 == writev(remotefd,iov, IOV_COUNT)){
 			if (errno == EINTR) goto writev_retry;
-			error_msg_and_die("syslogd: cannot write to remote file handle on"
+			error_msg_and_die("cannot write to remote file handle on"
 					"%s:%d",RemoteHost,RemotePort);
 		}
 	}
-	if (local_logging)
+	if (local_logging == TRUE)
 #endif
 		/* now spew out the message to wherever it is supposed to go */
 		message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
@@ -396,7 +400,6 @@ static void domark(int sig)
 
 /* This must be a #define, since when DODEBUG and BUFFERS_GO_IN_BSS are
  * enabled, we otherwise get a "storage size isn't constant error. */
-#define BUFSIZE 1023
 static int serveConnection (char* tmpbuf, int n_read)
 {
 	char *p = tmpbuf;
@@ -404,16 +407,14 @@ static int serveConnection (char* tmpbuf, int n_read)
 	while (p < tmpbuf + n_read) {
 
 		int           pri = (LOG_USER | LOG_NOTICE);
-		char          line[ BUFSIZE + 1 ];
+		char          line[ MAXLINE + 1 ];
 		unsigned char c;
-		int           gotpri = 0;
 
 		char *q = line;
 
-		while (p && (c = *p) && q < &line[ sizeof (line) - 1 ]) {
-			if ((c == '<') && !gotpri && isdigit(p[1])) {
+		while ( (c = *p) && q < &line[ sizeof (line) - 1 ]) {
+			if (c == '<') {
 			/* Parse the magic priority number. */
-				gotpri = 1;
 				pri = 0;
 				while (isdigit (*(++p))) {
 					pri = 10 * pri + (*p - '0');
@@ -441,7 +442,8 @@ static int serveConnection (char* tmpbuf, int n_read)
 
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
-static void init_RemoteLog (void){
+static void init_RemoteLog (void)
+{
 
   struct sockaddr_in remoteaddr;
   struct hostent *hostinfo;
@@ -452,7 +454,7 @@ static void init_RemoteLog (void){
   remotefd = socket(AF_INET, SOCK_DGRAM, 0);
 
   if (remotefd < 0) {
-    error_msg_and_die("syslogd: cannot create socket");
+    error_msg_and_die("cannot create socket");
   }
 
   hostinfo = xgethostbyname(RemoteHost);
@@ -461,25 +463,22 @@ static void init_RemoteLog (void){
   remoteaddr.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
   remoteaddr.sin_port = htons(RemotePort);
 
-  /* 
-     Since we are using UDP sockets, connect just sets the default host and port 
+  /*
+     Since we are using UDP sockets, connect just sets the default host and port
      for future operations
   */
   if ( 0 != (connect(remotefd, (struct sockaddr *) &remoteaddr, len))){
-    error_msg_and_die("syslogd: cannot connect to remote host %s:%d", RemoteHost, RemotePort);
+    error_msg_and_die("cannot connect to remote host %s:%d", RemoteHost, RemotePort);
   }
 
 }
 #endif
-
-#define MAXLINE         1024            /* maximum line length */
 
 static void doSyslogd (void) __attribute__ ((noreturn));
 static void doSyslogd (void)
 {
 	struct sockaddr_un sunx;
 	socklen_t addrLength;
-
 
 	int sock_fd;
 	fd_set fds;
@@ -507,71 +506,61 @@ static void doSyslogd (void)
 		perror_msg_and_die ("Couldn't get file descriptor for socket " _PATH_LOG);
 
 	addrLength = sizeof (sunx.sun_family) + strlen (sunx.sun_path);
-	if (bind (sock_fd, (struct sockaddr *) &sunx, addrLength) < 0)
+	if (bind(sock_fd, (struct sockaddr *) &sunx, addrLength) < 0)
 		perror_msg_and_die ("Could not connect to socket " _PATH_LOG);
 
 	if (chmod (lfile, 0666) < 0)
 		perror_msg_and_die ("Could not set permission on " _PATH_LOG);
 
-	FD_ZERO (&fds);
-	FD_SET (sock_fd, &fds);
 
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-	if (circular_logging ){
+	if (circular_logging == TRUE ){
 	   ipcsyslog_init();
 	}
 #endif
 
-        #ifdef CONFIG_FEATURE_REMOTE_LOG
-        if (doRemoteLog){
-          init_RemoteLog();
-        }
-        #endif
+#ifdef CONFIG_FEATURE_REMOTE_LOG
+	if (doRemoteLog == TRUE){
+	  init_RemoteLog();
+	}
+#endif
 
-	logMessage (LOG_SYSLOG | LOG_INFO, "syslogd started: " BB_BANNER);
+	logMessage (LOG_SYSLOG | LOG_INFO, "syslogd started: " CONFIG_BANNER);
 
 	for (;;) {
 
-		fd_set readfds;
-		int    n_ready;
-		int    fd;
+		FD_ZERO (&fds);
+		FD_SET (sock_fd, &fds);
 
-		memcpy (&readfds, &fds, sizeof (fds));
-
-		if ((n_ready = select (FD_SETSIZE, &readfds, NULL, NULL, NULL)) < 0) {
-			if (errno == EINTR) continue; /* alarm may have happened. */
+		if (select (sock_fd+1, &fds, NULL, NULL, NULL) < 0) {
+			if (errno == EINTR) {
+				/* alarm may have happened. */
+				continue;
+			}
 			perror_msg_and_die ("select error");
 		}
 
-		for (fd = 0; (n_ready > 0) && (fd < FD_SETSIZE); fd++) {
-			if (FD_ISSET (fd, &readfds)) {
+		if (FD_ISSET (sock_fd, &fds)) {
+		       int   i;
+		       RESERVE_CONFIG_BUFFER(tmpbuf, BUFSIZ + 1);
 
-				--n_ready;
-
-				if (fd == sock_fd) {
-					int   i;
-					RESERVE_CONFIG_BUFFER(tmpbuf, BUFSIZE + 1);
-
-					memset(tmpbuf, '\0', BUFSIZE+1);
-					if ( (i = recv(fd, tmpbuf, MAXLINE - 2, 0)) > 0) {
-						if ( serveConnection(tmpbuf, i) <= 0 ) {
-							close (fd);
-							FD_CLR(fd, &fds);
-						}
-					} else {
-						perror_msg_and_die ("UNIX socket error");
-					}
-					RELEASE_CONFIG_BUFFER (tmpbuf);
-				} /* fd == sock_fd */
-			}/* FD_ISSET() */
-		}/* for */
+		       memset(tmpbuf, '\0', BUFSIZ+1);
+		       if ( (i = recv(sock_fd, tmpbuf, BUFSIZ, 0)) > 0) {
+			       serveConnection(tmpbuf, i);
+		       } else {
+			       perror_msg_and_die ("UNIX socket error");
+		       }
+		       RELEASE_CONFIG_BUFFER (tmpbuf);
+		}/* FD_ISSET() */
 	} /* for main loop */
 }
 
 extern int syslogd_main(int argc, char **argv)
 {
 	int opt;
+#if ! defined(__uClinux__)
 	int doFork = TRUE;
+#endif
 
 	char *p;
 
@@ -581,9 +570,11 @@ extern int syslogd_main(int argc, char **argv)
 			case 'm':
 				MarkInterval = atoi(optarg) * 60;
 				break;
+#if ! defined(__uClinux__)
 			case 'n':
 				doFork = FALSE;
 				break;
+#endif
 			case 'O':
 				logFilePath = xstrdup(optarg);
 				break;
@@ -612,7 +603,7 @@ extern int syslogd_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 	/* If they have not specified remote logging, then log locally */
-	if (! doRemoteLog)
+	if (doRemoteLog == FALSE)
 		local_logging = TRUE;
 #endif
 
@@ -625,14 +616,12 @@ extern int syslogd_main(int argc, char **argv)
 
 	umask(0);
 
-	if (doFork) {
-#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
+#if ! defined(__uClinux__)
+	if (doFork == TRUE) {
 		if (daemon(0, 1) < 0)
 			perror_msg_and_die("daemon");
-#else
-			error_msg_and_die("daemon not supported");
-#endif
 	}
+#endif
 	doSyslogd();
 
 	return EXIT_SUCCESS;
