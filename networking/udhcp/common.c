@@ -46,6 +46,7 @@ void udhcp_logging(int level, const char *fmt, ...)
 	if(!daemonized) {
 		vprintf(fmt, p);
 		putchar('\n');
+		fflush(stdout);
 		errno = e;
 	}
 	vsyslog(level, fmt, p2);
@@ -81,6 +82,7 @@ void udhcp_logging(int level, const char *fmt, ...)
 		errno = e;
 		vprintf(fmt, p);
 		putchar('\n');
+		fflush(stdout);
 	}
 	va_end(p);
 }
