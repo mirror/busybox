@@ -17,6 +17,7 @@
 	    -- Optimized gzip.c, shrinking it be ~1.5k
 	* Matt Kraai
 	    -- Fix sed s/[/]// handling (closes: #1208).
+	    -- Fix `-/bin/sh' invocation (closes: #1209).
 
 
 	 -Erik Andersen, --not yet released--
