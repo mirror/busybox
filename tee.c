@@ -21,8 +21,15 @@
  *
  */
 
+#include "internal.h"
 #include <stdio.h>
-#include <stdlib.h>
+
+static const char tee_usage[] =
+"Usage: tee [OPTION]... [FILE]...\n"
+"Copy standard input to each FILE, and also to standard output.\n\n"
+"  -a,    append to the given FILEs, do not overwrite\n"
+"  -i,    ignore interrupt signals\n"
+"  -h,    this help message\n";
 
 /* FileList _______________________________________________________________ */
 
@@ -80,22 +87,6 @@ tee_fclose(FILE *file, char c)
     fclose(file);
 }
 
-/* help message */
-static void
-tee_usage()
-{
-    fprintf (
-	stdout,
-	"%s\n%s\n%s\n%s\n%s\n",
-	"Usage: tee [OPTION]... [FILE]...",
-	"Copy standard input to each FILE, and also to standard output.\n",
-	"  -a,    append to the given FILEs, do not overwrite",
-	"  -i,    ignore interrupt signals",
-	"  -h,    this help message"
-    );
-    exit(1);
-}
-
 /* BusyBoxed tee(1) */
 int
 tee_main(int argc, char **argv)
@@ -117,11 +108,11 @@ tee_main(int argc, char **argv)
 		    fprintf(stderr, "ingore interrupt not implemented\n");
 		    break;
 		case 'h':
-		    tee_usage();
+		    usage(tee_usage);
 		    break;
 		default:
 		    fprintf(stderr, "tee: invalid option -- %c\n", opt);
-		    tee_usage();
+		    usage(tee_usage);
 	    }
 	} else {
 	    break;
@@ -144,4 +135,4 @@ tee_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: tee.c,v 1.2 1999/12/10 06:45:42 andersen Exp $ */
+/* $Id: tee.c,v 1.3 1999/12/10 07:41:03 beppu Exp $ */
