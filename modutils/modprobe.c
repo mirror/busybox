@@ -352,6 +352,7 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 	int rc = 1;
 
 	while ( list ) {
+		*lcmd = '\0';
 		if ( do_insert ) {
 			if (already_loaded (list->m_module) != 1)
 				snprintf ( lcmd, sizeof( lcmd ) - 1, "insmod %s %s %s %s %s", do_syslog ? "-s" : "", autoclean ? "-k" : "", quiet ? "-q" : "", list-> m_module, list-> m_options ? list-> m_options : "" );
@@ -362,7 +363,7 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 		
 		if ( verbose )
 			printf ( "%s\n", lcmd );
-		if ( !show_only ) {
+		if ( !show_only && *lcmd) {
 			int rc2 = system ( lcmd );
 			if (do_insert) rc = rc2; /* only last module matters */
 			else if (!rc2) rc = 0; /* success if remove any mod */
