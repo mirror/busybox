@@ -54,8 +54,8 @@ extern int daemon (int nochdir, int noclose);
 #define BUF_SIZE        8192
 #define EXPAND_ALLOC    1024
 
-static inline int is_decimal(ch) { return ((ch >= '0') && (ch <= '9')); }
-static inline int is_octal(ch)   { return ((ch >= '0') && (ch <= '7')); }
+static inline int is_decimal(int ch) { return ((ch >= '0') && (ch <= '9')); }
+static inline int is_octal(int ch)   { return ((ch >= '0') && (ch <= '7')); }
 
 /* Macros for min/max.  */
 #ifndef MIN
