@@ -61,6 +61,9 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#undef __GLIBC__
+#undef __UCLIBC__
+
 #if ( (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1) ) || defined (__UCLIBC__) 
 #include <wordexp.h>
 #define expand_t	wordexp_t
@@ -983,7 +986,7 @@ static int expand_arguments(char *command)
 				error_msg("out of space during expansion");
 				return FALSE;
 			}
-			if (retval == GLOB_ABORTED || retval == GLOB_NOSYS) {
+			if (retval != 0 && retval != GLOB_NOMATCH) {
 				/* Some other error.  */
 				error_msg("syntax error");
 				return FALSE;
@@ -1722,9 +1725,9 @@ static int busy_loop(FILE * input)
 
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 				last_return_code=WEXITSTATUS(status);
-#endif
 				debug_printf("'%s' exited -- return code %d\n",
 						job_list.fg->text, last_return_code);
+#endif
 				if (!job_list.fg->running_progs) {
 					/* child exited */
 					remove_job(&job_list, job_list.fg);
