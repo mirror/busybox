@@ -19,7 +19,9 @@
  * to instead really use 64 bit interfaces, at least for
  * glibc and uClibc... */
 #ifndef __USE_FILE_OFFSET64
-# define __USE_FILE_OFFSET64	1
+# ifdef FDISK_SUPPORT_LARGE_DISKS
+#   define __USE_FILE_OFFSET64    1
+# endif
 #endif
 
 #include <sys/types.h>
@@ -4206,7 +4208,7 @@ read_int(uint low, uint dflt, uint high, uint base, char *mesg)
 		       && *line_ptr != '-' && *line_ptr != '+')
 			continue;
 
-	        if (*line_ptr == '+' || *line_ptr == '-') {
+		if (*line_ptr == '+' || *line_ptr == '-') {
 		       int minus = (*line_ptr == '-');
 		       int absolute = 0;
 
@@ -4214,7 +4216,7 @@ read_int(uint low, uint dflt, uint high, uint base, char *mesg)
 
 		       while (isdigit(*++line_ptr))
 			       use_default = 0;
-	
+
 		       switch (*line_ptr) {
 			       case 'c':
 			       case 'C':
@@ -4244,14 +4246,14 @@ read_int(uint low, uint dflt, uint high, uint base, char *mesg)
 
 			       bytes = (unsigned long long) i * absolute;
 			       unit = sector_size * units_per_sector;
-			       bytes += unit/2;	/* round */
+			       bytes += unit/2; /* round */
 			       bytes /= unit;
 			       i = bytes;
 			}
 		       if (minus)
 			       i = -i;
 		       i += base;
-	        } else {
+		} else {
 			i = atoi(line_ptr);
 			while (isdigit(*line_ptr)) {
 				line_ptr++;
@@ -4613,7 +4615,7 @@ static void check_consistency(const struct partition *p, int partition) {
 
 /* Ending on cylinder boundary? */
 	if (peh != (heads - 1) || pes != sectors) {
-	        printf(_("Partition %i does not end on cylinder boundary.\n"),
+		printf(_("Partition %i does not end on cylinder boundary.\n"),
 			partition + 1);
 #if 0
 		printf(_("     phys=(%d, %d, %d) "), pec, peh, pes);
@@ -5186,8 +5188,8 @@ new_partition(void) {
 		free_primary += !ptes[i].part_table->sys_ind;
 
        if (!free_primary && partitions >= MAXIMUM_PARTS) {
-	        printf(_("The maximum number of partitions has been created\n"));
-	        return;
+		printf(_("The maximum number of partitions has been created\n"));
+		return;
        }
 
 	if (!free_primary) {
