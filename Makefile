@@ -67,10 +67,7 @@ install-hardlinks: applets/install.sh busybox busybox.links
 
 
 # Documentation Targets
-doc: olddoc
-
-# Old Docs...
-olddoc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
+doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
 docs/busybox.pod : docs/busybox_header.pod include/usage.h docs/busybox_footer.pod
 	- ( cat docs/busybox_header.pod; \
@@ -99,33 +96,6 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 	-  pod2html --noindex $< > \
 	    docs/busybox.net/BusyBox.html
 	-@ rm -f pod2htm*
-
-
-# New docs based on DOCBOOK SGML
-newdoc: docs/busybox.txt docs/busybox.pdf docs/busybox/busyboxdocumentation.html
-
-docs/busybox.txt: docs/busybox.sgml
-	@echo
-	@echo BusyBox Documentation
-	@echo
-	- mkdir -p docs
-	(cd docs; sgmltools -b txt busybox.sgml)
-
-docs/busybox.dvi: docs/busybox.sgml
-	- mkdir -p docs
-	(cd docs; sgmltools -b dvi busybox.sgml)
-
-docs/busybox.ps: docs/busybox.sgml
-	- mkdir -p docs
-	(cd docs; sgmltools -b ps busybox.sgml)
-
-docs/busybox.pdf: docs/busybox.ps
-	- mkdir -p docs
-	(cd docs; ps2pdf busybox.ps)
-
-docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
-	- mkdir -p docs
-	(cd docs/busybox.net; sgmltools -b html ../busybox.sgml)
 
 # The nifty new buildsystem stuff
 scripts/mkdep: scripts/mkdep.c
@@ -217,8 +187,8 @@ check: busybox
 
 clean:
 	- $(MAKE) -C tests clean
-	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
-	    docs/busybox.pdf docs/busybox.pod docs/busybox.net/busybox.html \
+	- rm -f docs/busybox.dvi docs/busybox.ps \
+	    docs/busybox.pod docs/busybox.net/busybox.html \
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html busybox.links libbb/loop.h \

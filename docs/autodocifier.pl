@@ -94,17 +94,6 @@ sub pod_for_usage {
 	;
 }
 
-# FIXME | generate SGML for an applet
-sub sgml_for_usage {
-	my $name  = shift;
-	my $usage = shift;
-	return
-		"<fixme>\n".
-		"  $name\n".
-		"</fixme>\n"
-	;
-}
-
 # the keys are applet names, and
 # the values will contain hashrefs of the form:
 #
@@ -124,7 +113,6 @@ my %opt;
 GetOptions(
 	\%opt,
 	"help|h",
-	"sgml|s",
 	"pod|p",
 	"verbose|v",
 );
@@ -133,7 +121,6 @@ if (defined $opt{help}) {
 	print
 		"$0 [OPTION]... [FILE]...\n",
 		"\t--help\n",
-		"\t--sgml\n",
 		"\t--pod\n",
 		"\t--verbose\n",
 	;
@@ -163,10 +150,6 @@ foreach (@ARGV) {
 # generate structured documentation
 
 my $generator = \&pod_for_usage;
-if (defined $opt{sgml}) {
-	$generator = \&sgml_for_usage;
-}
-
 foreach my $applet (sort keys %docs) {
 	print $generator->($applet, $docs{$applet});
 }
@@ -191,18 +174,18 @@ Example:
 
 =head1 DESCRIPTION
 
-The purpose of this script is to automagically generate documentation
-for busybox using its usage.h as the original source for content.
-It used to be that same content has to be duplicated in 3 places in
-slightly different formats -- F<usage.h>, F<docs/busybox.pod>, and
-F<docs/busybox.sgml>.  This was tedious and error-prone, so it was
+The purpose of this script is to automagically generate
+documentation for busybox using its usage.h as the original source
+for content.  It used to be that same content has to be duplicated
+in 3 places in slightly different formats -- F<usage.h>,
+F<docs/busybox.pod>.  This was tedious and error-prone, so it was
 decided that F<usage.h> would contain all the text in a
 machine-readable form, and scripts could be used to transform this
 text into other forms if necessary.
 
-F<autodocifier.pl> is one such script.
-It was based on a script by Erik Andersen <andersen@codepoet.org>
-which was in turn based on a script by Mark Whitley <markw@codepoet.org>
+F<autodocifier.pl> is one such script.  It is based on a script by
+Erik Andersen <andersen@codepoet.org> which was in turn based on a
+script by Mark Whitley <markw@codepoet.org>
 
 =head1 OPTIONS
 
@@ -215,10 +198,6 @@ This displays the help message.
 =item B<--pod>
 
 Generate POD (this is the default)
-
-=item B<--sgml>
-
-Generate SGML
 
 =item B<--verbose>
 
@@ -292,4 +271,4 @@ John BEPPU <b@ax9.org>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.25 2004/03/13 08:32:14 andersen Exp $
+# $Id: autodocifier.pl,v 1.26 2004/04/06 15:26:25 andersen Exp $
