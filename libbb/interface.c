@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.11 2002/11/26 09:02:04 bug1 Exp $
+ * Version:     $Id: interface.c,v 1.12 2002/11/28 10:20:45 bug1 Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -619,7 +619,7 @@ static int aftrans_opt(const char *arg)
 			if (strcmp(tmp1, paft->alias))
 				continue;
 			if (strlen(paft->name) + strlen(afname) + 1 >= sizeof(afname)) {
-				fprintf(stderr, _("Too much address family arguments.\n"));
+				error_msg(_("Too many address family arguments."));
 				return (0);
 			}
 			if (paft->flag)
@@ -630,7 +630,7 @@ static int aftrans_opt(const char *arg)
 			break;
 		}
 		if (!paft->alias) {
-			fprintf(stderr, _("Unknown address family `%s'.\n"), tmp1);
+			error_msg(_("Unknown address family `%s'."), tmp1);
 			return (1);
 		}
 		tmp1 = tmp2;
@@ -693,8 +693,7 @@ static struct aftype *get_aftype(const char *name)
 		afp++;
 	}
 	if (strchr(name, ','))
-		fprintf(stderr,
-				_("Please don't supply more than one address family.\n"));
+		error_msg(_("Please don't supply more than one address family."));
 	return (NULL);
 }
 #endif							/* KEEP_UNUSED */
@@ -888,8 +887,9 @@ static int sockets_open(int family)
 		if (af->fd >= 0)
 			sfd = af->fd;
 	}
-	if (sfd < 0)
-		fprintf(stderr, _("No usable address families found.\n"));
+	if (sfd < 0) {
+		error_msg(_("No usable address families found."));
+	}
 	return sfd;
 }
 
@@ -960,8 +960,7 @@ static int if_readconf(void)
 	   (as of 2.1.128) */
 	skfd2 = get_socket_for_af(AF_INET);
 	if (skfd2 < 0) {
-		fprintf(stderr, _("warning: no inet socket available: %s\n"),
-				strerror(errno));
+		perror_msg(("warning: no inet socket available: %s\n"));
 		/* Try to soldier on with whatever socket we can get hold of.  */
 		skfd2 = sockets_open(0);
 		if (skfd2 < 0)
@@ -1107,8 +1106,7 @@ static int if_readlist_proc(char *target)
 
 	fh = fopen(_PATH_PROCNET_DEV, "r");
 	if (!fh) {
-		fprintf(stderr, _("Warning: cannot open %s (%s). Limited output.\n"),
-				_PATH_PROCNET_DEV, strerror(errno));
+		perror_msg(_("Warning: cannot open %s (%s). Limited output.\n"), _PATH_PROCNET_DEV);
 		return if_readconf();
 	}
 	fgets(buf, sizeof buf, fh);	/* eat line */
@@ -1368,7 +1366,7 @@ static int do_if_fetch(struct interface *ife)
 		} else {
 			errmsg = strerror(errno);
 		}
-		fprintf(stderr, _("%s: error fetching interface information: %s\n"),
+		error_msg(_("%s: error fetching interface information: %s\n"),
 				ife->name, errmsg);
 		return -1;
 	}
@@ -1438,8 +1436,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 			val = c - 'A' + 10;
 		else {
 #ifdef DEBUG
-			fprintf(stderr, _("in_ether(%s): invalid ether address!\n"),
-					orig);
+			error_msg(_("in_ether(%s): invalid ether address!\n"), orig);
 #endif
 			errno = EINVAL;
 			return (-1);
@@ -1456,8 +1453,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 			val >>= 4;
 		else {
 #ifdef DEBUG
-			fprintf(stderr, _("in_ether(%s): invalid ether address!\n"),
-					orig);
+			error_msg(_("in_ether(%s): invalid ether address!"), orig);
 #endif
 			errno = EINVAL;
 			return (-1);
@@ -1469,27 +1465,23 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 
 		/* We might get a semicolon here - not required. */
 		if (*bufp == ':') {
-			if (i == ETH_ALEN) {
 #ifdef DEBUG
-				fprintf(stderr, _("in_ether(%s): trailing : ignored!\n"),
-						orig)
-#endif
-					;	/* nothing */
+			if (i == ETH_ALEN) {
+				error_msg(_("in_ether(%s): trailing : ignored!"), orig);
 			}
+#endif
 			bufp++;
 		}
 	}
 
+#ifdef DEBUG
 	/* That's it.  Any trailing junk? */
 	if ((i == ETH_ALEN) && (*bufp != '\0')) {
-#ifdef DEBUG
-		fprintf(stderr, _("in_ether(%s): trailing junk!\n"), orig);
+		error_msg(_("in_ether(%s): trailing junk!"), orig);
 		errno = EINVAL;
 		return (-1);
-#endif
 	}
-#ifdef DEBUG
-	fprintf(stderr, "in_ether(%s): %s\n", orig, pr_ether(sap->sa_data));
+	error_msg("in_ether(%s): %s", orig, pr_ether(sap->sa_data));
 #endif
 
 	return (0);
@@ -1514,7 +1506,7 @@ static struct hwtype ether_hwtype = {
 /* Start the PPP encapsulation on the file descriptor. */
 static int do_ppp(int fd)
 {
-	fprintf(stderr, _("You cannot start PPP with this program.\n"));
+	error_msg(_("You cannot start PPP with this program."));
 	return -1;
 }
 #endif							/* KEEP_UNUSED */
