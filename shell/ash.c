@@ -3060,7 +3060,12 @@ static void shellexec(char **argv, char **envp, const char *path, int idx)
 	char *cmdname;
 	int e;
 
-	if (strchr(argv[0], '/') != NULL) {
+	if (strchr(argv[0], '/') != NULL
+#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
+		|| find_applet_by_name(argv[0])
+#endif 
+	)
+	{
 		tryexec(argv[0], argv, envp);
 		e = errno;
 	} else {
@@ -3538,6 +3543,14 @@ find_command(const char *name, struct cmdentry *entry, int act,
 		entry->u.index = 0;
 		return;
 	}
+
+#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
+	if (find_applet_by_name(name)) {
+		entry->cmdtype = CMDNORMAL;
+		entry->u.index = -1;
+		return;
+	}
+#endif
 
 	updatetbl = 1;
 	if (act & DO_BRUTE) {
