@@ -24,7 +24,6 @@
 #include "internal.h"
 #include <stdio.h>
 
-
 static void print_file(FILE * file)
 {
 	int c;
@@ -35,6 +34,13 @@ static void print_file(FILE * file)
 	fflush(stdout);
 }
 
+static const char cat_usage[] =
+	"cat [FILE]...\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nConcatenates FILE(s) and prints them to stdout.\n"
+#endif
+	;
+
 extern int cat_main(int argc, char **argv)
 {
 	FILE *file;
@@ -44,17 +50,11 @@ extern int cat_main(int argc, char **argv)
 		exit(TRUE);
 	}
 
-	if (**(argv + 1) == '-') {
-		usage("cat [FILE ...]\n"
-#ifndef BB_FEATURE_TRIVIAL_HELP
-				"\nConcatenates FILE(s) and prints them to the standard output.\n"
-#endif
-				);
-	}
-	argc--;
+	if (**(argv + 1) == '-')
+		usage(cat_usage);
 
-	while (argc-- > 0 && *(argv++) != '\0' && strlen(*argv)) {
-		file = fopen(*argv, "r");
+	while (--argc > 0) {
+		file = fopen(*++argv, "r");
 		if (file == NULL) {
 			perror(*argv);
 			exit(FALSE);
