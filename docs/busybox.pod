@@ -1250,6 +1250,7 @@ Send ICMP ECHO_REQUEST packets to network hosts.
 Options:
 
 	-c COUNT        Send only COUNT pings.
+	-s SIZE		Send SIZE data bytes in packets (default=56).
 	-q              Quiet mode, only displays output at start
                         and when finished.
 Example:
@@ -1948,4 +1949,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.36 2000/06/07 17:28:53 andersen Exp $
+# $Id: busybox.pod,v 1.37 2000/06/07 20:38:15 proski Exp $

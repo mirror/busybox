@@ -63,6 +63,8 @@
 	* Fixed 'swapon -a' and 'swapoff -a', which were broken.
 	* Fixed 'mount -a' so it works as expected.
 	* Implemented 'ls -R' (enabled by enabling BB_FEATURE_LS_RECURSIVE)
+	* Implemented "ping -s", fixed error messages and argument parsing -
+	    Pavel Roskin
 	* More doc updates
 
 
