@@ -938,6 +938,7 @@ static const unsigned opt_flags[] = {
 #ifdef CONFIG_SELINUX
 	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME, /* K */
 #endif
+	(1U<<31)
 };
 
 
@@ -1000,8 +1001,7 @@ extern int ls_main(int argc, char **argv)
 #else
 	opt = bb_getopt_ulflags(argc, argv, ls_options);
 #endif
-	/* 16 = maximum options minus tabsize and screewn width */
-	for (i = 0; i < 16; i++) {
+	for (i = 0; opt_flags[i] != (1U<<31); i++) {
 		if (opt & (1 << i)) {
 			unsigned int flags = opt_flags[i];
 			if (flags & LIST_MASK_TRIGGER) {
