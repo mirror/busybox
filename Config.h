@@ -211,7 +211,8 @@
 //#define BB_FEATURE_MOUNT_MTAB_SUPPORT
 //
 // Enable support for mounting remote NFS volumes. 
-// You may no -o nolock if no local portmapper is running.
+// You may need to mount with "-o nolock" if you are
+// not running a local portmapper daemon...
 #define BB_FEATURE_NFSMOUNT
 //
 // Enable support forced filesystem unmounting 
