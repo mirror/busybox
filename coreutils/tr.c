@@ -2,8 +2,10 @@
 /*
  * Mini tr implementation for busybox
  *
- * This version of tr is adapted from Minix tr
- * Author: Michiel Huisjes
+ * Copyright (c) Michiel Huisjes
+ *
+ * This version of tr is adapted from Minix tr and was modified 
+ * by Erik Andersen <andersee@debian.org> to be used in busybox.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

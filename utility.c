@@ -1037,15 +1037,6 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle,
 	while (where != NULL) {
 		foundOne++;
 		strcpy(oldhayStack, haystack);
-#if 0
-		if (strlen(newNeedle) > strlen(needle)) {
-			haystack =
-				(char *) realloc(haystack,
-								 (unsigned) (strlen(haystack) -
-											 strlen(needle) +
-											 strlen(newNeedle)));
-		}
-#endif
 		for (slider = haystack, slider1 = oldhayStack; slider != where;
 			 slider++, slider1++);
 		*slider = 0;

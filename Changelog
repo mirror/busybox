@@ -16,7 +16,8 @@
 	    * tail can now accept -<num> commands (e.g. -10) for better 
 		compatibility with the standard tail command
 	    * added a simple id implementation; doesn't support supp. groups yet
-	* logname used getlogin(3), which uses utmp under the hood.  Now it behaves. 
+	* logname used getlogin(3) which uses utmp under the hood.  Now it behaves. 
+	* whoami used getpwuid(3) which uses libc NSS.  Now it behaves. 
 	* Due to the license change, I can now use minix code.  Minux tr replaces
 	    the BSD derived tr, saving 4k and eliminating bsearch(3) from the
 	    list of used Libc symbols.

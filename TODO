@@ -47,6 +47,39 @@ for GNU libc to be so big.  I'm sure it can be a lot better.
 
 (BTW, this is more informative if BB_FEATURE_NFSMOUNT is turned off...)
 
+Most wanted list:
+
+    [andersen@slag busybox]$ grep -l getgroups *.[ch]
+    test.c
+
+Policy violation.  getgroups uses libc nss, which is unlikely
+to be present in an embedded system.
+
+    [andersen@slag busybox]$ grep -l getopt *.[ch]
+    dmesg.c
+    gunzip.c
+    hostname.c
+    mkfs_minix.c
+    printf.c
+    sfdisk.c
+
+    This includes the symbols: 
+    getopt_long
+    optarg
+    opterr
+    optind
+
+To be replaced with a non-getopt parser.
+
+    [andersen@slag busybox]$ grep -l glob *.[ch]
+    gunzip.c
+    gzip.c
+    sh.c
+    tar.c
+    telnet.c
+
+Can check_wildcard_match() from utility.c do this job?
+
 
 -----------------------
 

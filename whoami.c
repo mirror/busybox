@@ -29,16 +29,15 @@ static const char whoami_usage[] = "whoami\n\n"
 
 extern int whoami_main(int argc, char **argv)
 {
-	struct passwd *pw;
-	uid_t uid;
+	char *user = xmalloc(9);
+	uid_t uid = geteuid();
 
 	if (argc > 1)
 		usage(whoami_usage);
 
-	uid = geteuid();
-	pw = getpwuid(uid);
-	if (pw) {
-		puts(pw->pw_name);
+	my_getpwuid(user, uid);
+	if (user) {
+		puts(user);
 		exit(TRUE);
 	}
 	fprintf(stderr, "%s: cannot find username for UID %u\n", argv[0],

@@ -63,7 +63,6 @@
 #define BB_MNC
 #define BB_MORE
 #define BB_MOUNT
-#define BB_NFSMOUNT
 #define BB_MT
 #define BB_NSLOOKUP
 #define BB_PING
@@ -185,6 +184,9 @@
 // Enable support for remounting filesystems
 #define BB_FEATURE_REMOUNT
 //
+// Enable support for mounting remote NFS volumes
+//#define BB_FEATURE_NFSMOUNT
+//
 // Enable support for creation of tar files.
 #define BB_FEATURE_TAR_CREATE
 //
@@ -251,5 +253,9 @@
 #ifndef BB_GUNZIP
 #define BB_GUNZIP
 #endif
+#endif
+//
+#if defined BB_MOUNT && defined BB_FEATURE_NFSMOUNT
+#define BB_NFSMOUNT
 #endif
 //

@@ -135,7 +135,7 @@ static struct hostent *hostent_fprint(struct hostent *host, FILE * dst)
 		fprintf(dst, "Name:       %s\n", host->h_name);
 		addr_list_fprint(host->h_addr_list, dst);
 	} else {
-		fprintf(dst, "*** %s\n", hstrerror(h_errno));
+		fprintf(dst, "*** Unknown host\n");
 	}
 	return host;
 }
@@ -173,4 +173,4 @@ int nslookup_main(int argc, char **argv)
 	exit( TRUE);
 }
 
-/* $Id: nslookup.c,v 1.7 2000/04/15 16:34:54 erik Exp $ */
+/* $Id: nslookup.c,v 1.8 2000/05/02 00:07:56 erik Exp $ */

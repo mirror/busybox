@@ -25,6 +25,7 @@
 #define utmp new_utmp
 #endif
 
+
 static const char dutmp_usage[] = "dutmp [FILE]\n\n"
 	"Dump utmp file format (pipe delimited) from FILE\n"
 	"or stdin to stdout.  (i.e. 'dutmp /var/run/utmp')\n";
