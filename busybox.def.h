@@ -28,6 +28,7 @@
 #define BB_HOSTNAME
 #define BB_INIT
 #define BB_KILL
+#define BB_KLOGD
 //#define BB_LENGTH
 #define BB_LN
 #define BB_LOADFONT
@@ -47,6 +48,7 @@
 //#define BB_MTAB
 #define BB_MV
 #define BB_PING
+#define BB_POWEROFF
 //#define BB_PRINTF
 #define BB_PS
 #define BB_PWD

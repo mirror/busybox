@@ -336,9 +336,9 @@ static pid_t run(const char * const* command,
 	}
 
 	/* Log the process name and args */
-	message(LOG, "Starting pid %d, console %s: '", getpid(), terminal);
-	while ( *cmd) message(LOG, "%s ", *cmd++);
-	message(LOG, "'\r\n");
+	message(LOG|CONSOLE, "Starting pid %d, console %s: '", getpid(), terminal);
+	while ( *cmd) message(LOG|CONSOLE, "%s ", *cmd++);
+	message(LOG|CONSOLE, "'\r\n");
 	
 	/* Now run it.  The new program will take over this PID, 
 	 * so nothing further in init.c should be run. */
@@ -418,8 +418,10 @@ static void halt_signal(int sig)
 	    "The system is halted. Press CTRL-ALT-DEL or turn off power\r\n");
     sync();
 #ifndef DEBUG_INIT
-    reboot(RB_HALT_SYSTEM);
-    //reboot(RB_POWER_OFF);
+    if (sig == SIGUSR2)
+	reboot(RB_POWER_OFF);
+    else
+	reboot(RB_HALT_SYSTEM);
 #endif
     exit(0);
 }
@@ -514,8 +516,11 @@ extern int init_main(int argc, char **argv)
     } else
 	message(CONSOLE|LOG, "Mounting /proc: failed!\n");
 
+fprintf(stderr, "got proc\n");
+
     /* Make sure there is enough memory to do something useful. */
     check_memory();
+fprintf(stderr, "got check_memory\n");
 
     /* Check if we are supposed to be in single user mode */
     if ( argc > 1 && (!strcmp(argv[1], "single") || 
@@ -524,6 +529,7 @@ extern int init_main(int argc, char **argv)
 	tty1_command = shell_command;
 	tty2_command = shell_command;
     }
+fprintf(stderr, "got single\n");
 
     /* Make sure an init script exists before trying to run it */
     if (single==FALSE && stat(INITSCRIPT, &statbuf)==0) {
@@ -535,6 +541,7 @@ extern int init_main(int argc, char **argv)
     /* Make sure /sbin/getty exists before trying to run it */
     if (stat(GETTY, &statbuf)==0) {
 	char* where;
+fprintf(stderr, "\n");
 	wait_for_enter_tty2 = FALSE;
 	where = strrchr( console, '/');
 	if ( where != NULL) {

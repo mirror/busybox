@@ -25,11 +25,15 @@
 #include <stdio.h>
 
 static const char tee_usage[] =
-"Usage: tee [OPTION]... [FILE]...\n"
-"Copy standard input to each FILE, and also to standard output.\n\n"
-"  -a,    append to the given FILEs, do not overwrite\n"
-"  -i,    ignore interrupt signals\n"
-"  -h,    this help message\n";
+    "tee [OPTION]... [FILE]...\n\n"
+    "Copy standard input to each FILE, and also to standard output.\n\n"
+    "Options:\n"
+    "\t-a\tappend to the given FILEs, do not overwrite\n"
+#if 0
+    "\t-i\tignore interrupt signals\n"
+#endif
+    ;
+
 
 /* FileList _______________________________________________________________ */
 
@@ -39,27 +43,6 @@ static int  FL_end;
 
 typedef void (FL_Function)(FILE *file, char c);
     
-/* initialize FileList */
-static void
-FL_init()
-{
-    FL_end = 0;
-    FileList[0] = stdout;
-}
-
-/* add a file to FileList */
-static int
-FL_add(const char *filename, char *opt_open)
-{
-    FILE    *file;
-
-    file = fopen(filename, opt_open);
-    if (!file) { return 0; };
-    if (FL_end < FL_MAX) {
-	FileList[++FL_end] = file;
-    }
-    return 1;
-}
 
 /* apply a function to everything in FileList */
 static void
@@ -70,8 +53,6 @@ FL_apply(FL_Function *f, char c)
 	f(FileList[i], c);
     }
 }
-
-/* ________________________________________________________________________ */
 
 /* FL_Function for writing to files*/
 static void
@@ -87,6 +68,8 @@ tee_fclose(FILE *file, char c)
     fclose(file);
 }
 
+/* ________________________________________________________________________ */
+
 /* BusyBoxed tee(1) */
 int
 tee_main(int argc, char **argv)
@@ -95,6 +78,7 @@ tee_main(int argc, char **argv)
     char    c;
     char    opt;
     char    opt_fopen[2] = "w";
+    FILE    *file;
 
     /* parse argv[] */
     for (i = 1; i < argc; i++) {
@@ -104,14 +88,12 @@ tee_main(int argc, char **argv)
 		case 'a':
 		    opt_fopen[0] = 'a';
 		    break;
+#if 0
 		case 'i':
-		    fprintf(stderr, "ingore interrupt not implemented\n");
+		    fprintf(stderr, "ignore interrupt not implemented\n");
 		    break;
-		case 'h':
-		    usage(tee_usage);
-		    break;
+#endif
 		default:
-		    fprintf(stderr, "tee: invalid option -- %c\n", opt);
 		    usage(tee_usage);
 	    }
 	} else {
@@ -120,9 +102,15 @@ tee_main(int argc, char **argv)
     }
 
     /* init FILE pointers */
-    FL_init();
+    FL_end = 0;
+    FileList[0] = stdout;
     for ( ; i < argc; i++) {
-	FL_add(argv[i], opt_fopen);
+	/* add a file to FileList */
+	file = fopen(argv[i], opt_fopen);
+	if (!file) { continue; }
+	if (FL_end < FL_MAX) {
+	    FileList[++FL_end] = file;
+	}
     }
 
     /* read and redirect */
@@ -135,4 +123,4 @@ tee_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: tee.c,v 1.3 1999/12/10 07:41:03 beppu Exp $ */
+/* $Id: tee.c,v 1.4 1999/12/10 08:25:07 andersen Exp $ */

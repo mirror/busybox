@@ -138,6 +138,9 @@ static const struct Applet applets[] = {
 #ifdef BB_PING                  //bin
     {"ping", ping_main},
 #endif
+#ifdef BB_POWEROFF              //sbin
+    {"poweroff", poweroff_main},
+#endif
 #ifdef BB_PRINTF		//usr/bin
     {"printf", printf_main},
 #endif

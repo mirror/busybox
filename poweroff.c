@@ -1,5 +1,5 @@
 /*
- * Mini reboot implementation for busybox
+ * Mini poweroff implementation for busybox
  *
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
@@ -24,8 +24,8 @@
 #include <signal.h>
 
 extern int
-reboot_main(int argc, char ** argv)
+poweroff_main(int argc, char ** argv)
 {
     /* don't assume init's pid == 1 */
-    exit( kill(findInitPid(), SIGINT));
+    exit( kill(findInitPid(), SIGUSR2));
 }

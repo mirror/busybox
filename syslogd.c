@@ -62,6 +62,9 @@ static const char syslogd_usage[] =
     "Options:\n"
     "\t-m\tChange the mark timestamp interval. default=20min. 0=off\n"
     "\t-n\tDo not fork into the background (for when run by init)\n"
+#ifdef BB_KLOGD
+    "\t-K\tDo not start up the klogd process (by default syslogd spawns klogd).\n"
+#endif
     "\t-O\tSpecify an alternate log file.  default=/var/log/messages\n";
 
 
@@ -251,6 +254,8 @@ static void doSyslogd(void)
     close(fd);
 }
 
+#ifdef BB_KLOGD
+
 static void klogd_signal(int sig)
 {
     ksyslog(7, NULL, 0);
@@ -258,7 +263,6 @@ static void klogd_signal(int sig)
     logMessage(LOG_SYSLOG|LOG_INFO, "Kernel log daemon exiting.");
     exit( TRUE);
 }
-
 
 static void doKlogd(void)
 {
@@ -325,11 +329,15 @@ static void doKlogd(void)
 
 }
 
+#endif
 
 extern int syslogd_main(int argc, char **argv)
 {
     int	pid, klogd_pid;
     int doFork = TRUE;
+#ifdef BB_KLOGD
+    int startKlogd = TRUE;
+#endif
     char *p;
     char **argv1=argv;
     
@@ -345,6 +353,11 @@ extern int syslogd_main(int argc, char **argv)
 	    case 'n':
 		doFork = FALSE;
 		break;
+#ifdef BB_KLOGD
+	    case 'K':
+		startKlogd = FALSE;
+		break;
+#endif
 	    case 'O':
 		if (--argc == 0) {
 		    usage(syslogd_usage);
@@ -375,12 +388,16 @@ extern int syslogd_main(int argc, char **argv)
 	doSyslogd();
     }
 
+#ifdef BB_KLOGD
     /* Start up the klogd process */
-    klogd_pid = fork();
-    if (klogd_pid == 0 ) {
-	    strncpy(argv[0], "klogd", strlen(argv[0]));
-	    doKlogd();
+    if (startKlogd == TRUE) {
+	klogd_pid = fork();
+	if (klogd_pid == 0 ) {
+		strncpy(argv[0], "klogd", strlen(argv[0]));
+		doKlogd();
+	}
     }
+#endif
 
     exit( TRUE);
 }
