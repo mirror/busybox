@@ -12,7 +12,7 @@
 	* Kent Robotti -- Renamed unrpm to original rpmunpack, so you can use 
 	    an included shell script called unrpm as a front end to it.  There's
 	    also a shell script called undeb included for debian packages.  
-	* Matt Kraai -- fix an infinate loop with ls -aR
+	* Matt Kraai -- fix an infinite loop with ls -aR
 	* Larry Doolittle -- Shaves off about 100 bytes and 200 bytes heap 
 	    from date.c.  Also document the "-d" option in the usage message.
 	* Gennady Feldman -- fixed dd to use blocksize when reading/writing, 
@@ -27,7 +27,8 @@
 	* Sebastien Huet, Arne Bernin, and Kent Robotti -- Add in tar -X and
 	    fixed a bug breaking tar --exclude.  
 	* Jonas Holmberg -- echo option handling made GNU-echo compatible
-	* Larry Doolittle -- date option handling made GNU-date compatible
+	* Aleksey Demidov <asd@ixcelerator.com> -- date option handling made 
+	    GNU-date compatible
 	* me -- Progress meter (optional) in wget
 	* Doolittle/me -- programs invoked by full path name take
 	    precedence over applets unless
