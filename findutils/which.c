@@ -28,7 +28,7 @@ extern int which_main(int argc, char **argv)
 {
 	char *path_list, *path_n;
 	struct stat filestat;
-	int i, count=0;
+	int i, count=1;
 
 	if (argc <= 1 || **(argv + 1) == '-')
 		usage(which_usage);
