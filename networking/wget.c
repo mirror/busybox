@@ -142,9 +142,29 @@ char *base64enc(char *p, char *buf, int len) {
 }
 #endif
 
+#define WGET_OPT_CONTINUE	1
+#define WGET_OPT_QUIET	2
+#define WGET_OPT_PASSIVE	4
+#define WGET_OPT_OUTNAME	8
+#define WGET_OPT_HEADER	16
+#define WGET_OPT_PREFIX	32
+#define WGET_OPT_PROXY	64
+
+static const struct option wget_long_options[] = {
+	{ "continue",        0, NULL, 'c' },
+	{ "quiet",           0, NULL, 'q' },
+	{ "passive-ftp",     0, NULL, 139 },
+	{ "output-document", 1, NULL, 'O' },
+	{ "header",	         1, NULL, 131 },
+	{ "directory-prefix",1, NULL, 'P' },
+	{ "proxy",           1, NULL, 'Y' },
+	{ 0,                 0, 0, 0 }
+};
+
 int wget_main(int argc, char **argv)
 {
 	int n, try=5, status;
+	unsigned long opt;
 	int port;
 	char *proxy = 0;
 	char *dir_prefix=NULL;
@@ -153,9 +173,9 @@ int wget_main(int argc, char **argv)
 	char extra_headers[1024];
 	char *extra_headers_ptr = extra_headers;
 	int extra_headers_left = sizeof(extra_headers);
-	int which_long_opt = 0, option_index = -1;
 	struct host_info server, target;
 	struct sockaddr_in s_in;
+	llist_t *headers_llist = NULL;
 
 	FILE *sfp = NULL;			/* socket to web/ftp server			*/
 	FILE *dfp = NULL;			/* socket to ftp server (data)		*/
@@ -166,68 +186,40 @@ int wget_main(int argc, char **argv)
 	FILE *output;				/* socket to web server				*/
 	int quiet_flag = FALSE;		/* Be verry, verry quiet...			*/
 	int noproxy = 0;            /* Use proxies if env vars are set  */
+	char *proxy_flag = "on";	/* Use proxies if env vars are set  */
 
-#define LONG_HEADER    1
-#define LONG_PASSIVE   2
-
-	struct option long_options[] = {
-		{ "continue",        0, NULL, 'c' },
-		{ "quiet",           0, NULL, 'q' },
-		{ "output-document", 1, NULL, 'O' },
-		{ "header",	         1, &which_long_opt, LONG_HEADER },
-		{ "proxy",           1, NULL, 'Y' },
-		{ "passive-ftp",     0, &which_long_opt, LONG_PASSIVE },
-		{ 0,                 0, 0, 0 }
-	};
 	/*
 	 * Crack command line.
 	 */
-	while ((n = getopt_long(argc, argv, "cqO:P:Y:", long_options, &option_index)) != EOF) {
-		switch (n) {
-		case 'c':
-			++do_continue;
-			break;
-		case 'P':
-			dir_prefix = optarg;
-			break;
-		case 'q':
-			quiet_flag = TRUE;
-			break;
-		case 'O':
-			/* can't set fname_out to NULL if outputting to stdout, because
-			 * this gets interpreted as the auto-gen output filename
-			 * case below  - tausq@debian.org
-			 */
-			fname_out = optarg;
-			break;
-		case 'Y':
-			if (strcmp(optarg, "off") == 0)
-				noproxy=1;	
-			break;
-		case 0:
-			switch (which_long_opt) {
-				case LONG_HEADER: {
-					int arglen = strlen(optarg);
-					if(extra_headers_left - arglen - 2 <= 0)
-						bb_error_msg_and_die("extra_headers buffer too small(need %i)", extra_headers_left - arglen);
-					strcpy(extra_headers_ptr, optarg);
-					extra_headers_ptr += arglen;
-					extra_headers_left -= ( arglen + 2 );
-					*extra_headers_ptr++ = '\r';
-					*extra_headers_ptr++ = '\n';
-					*(extra_headers_ptr + 1) = 0;
-					break;
-				}
-				case LONG_PASSIVE:
-					// ignore -- we always use passive mode
-					break;
-			}
-			break;
-		default:
-			bb_show_usage();
+	bb_opt_complementaly = "\203*";
+	bb_applet_long_options = wget_long_options;
+	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:", &fname_out, &headers_llist, &dir_prefix, &proxy_flag);
+	if (opt & WGET_OPT_CONTINUE) {
+		++do_continue;
+	}
+	if (opt & WGET_OPT_QUIET) {
+		quiet_flag = TRUE;
+	}
+	if (strcmp(proxy_flag, "on") == 0) {
+		/* Use the proxy if necessary. */
+		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
+		if (proxy)
+			parse_url(bb_xstrdup(proxy), &server);
+	}
+	if (opt & WGET_OPT_HEADER) {
+		while (headers_llist) {
+			int arglen = strlen(headers_llist->data);
+			if (extra_headers_left - arglen - 2 <= 0)
+				bb_error_msg_and_die("extra_headers buffer too small(need %i)", extra_headers_left - arglen);
+			strcpy(extra_headers_ptr, headers_llist->data);
+			extra_headers_ptr += arglen;
+			extra_headers_left -= ( arglen + 2 );
+			*extra_headers_ptr++ = '\r';
+			*extra_headers_ptr++ = '\n';
+			*(extra_headers_ptr + 1) = 0;
+			headers_llist = headers_llist->link;
 		}
 	}
-
 	if (argc - optind != 1)
 			bb_show_usage();
 
@@ -850,7 +842,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.61 2003/10/31 09:31:43 andersen Exp $
+ *	$Id: wget.c,v 1.62 2003/12/19 12:08:56 bug1 Exp $
  */
 
 
