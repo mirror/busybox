@@ -1184,7 +1184,7 @@ void remove_package(const unsigned int package_num)
 	printf("Removing %s ...\n", package_name);
 
 	/* run prerm script */
-	return_value = run_package_script(package_name, "prem");
+	return_value = run_package_script(package_name, "prerm");
 	if (return_value == -1) {
 		error_msg_and_die("script failed, prerm failure");
 	}
@@ -1410,11 +1410,15 @@ extern int dpkg_main(int argc, char **argv)
 			if ((dpkg_opt & dpkg_opt_unpack) || (dpkg_opt & dpkg_opt_install)) {
 				status_node = (status_node_t *) xmalloc(sizeof(status_node_t));
 				status_node->package = deb_file[deb_count]->package;
-				/* use reinstreq isnt changed to "ok" until the package control info
-				 * is written to the status file*/
-				status_node->status = search_name_hashtable("install reinstreq not-installed");
 
+				/* Try and find a currently installed version of this package */
 				status_num = search_status_hashtable(name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]);
+				if ((status_hashtable[status_num] == NULL) ||
+					(status_hashtable[status_num]->status == 0)) {
+					/* reinstreq isnt changed to "ok" until the package control info
+					 * is written to the status file*/
+					status_node->status = search_name_hashtable("install reinstreq not-installed");
+				}
 				status_hashtable[status_num] = status_node;
 			}
 		}
