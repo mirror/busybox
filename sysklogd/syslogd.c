@@ -478,25 +478,19 @@ static void daemon_init (char **argv, char *dz, void fn (void))
 
 extern int syslogd_main(int argc, char **argv)
 {
-	int pid, klogd_pid;
+	int opt, pid, klogd_pid;
 	int doFork = TRUE;
 
 #ifdef BB_FEATURE_KLOGD
 	int startKlogd = TRUE;
 #endif
-	int stopDoingThat = FALSE;
 	char *p;
-	char **argv1 = argv;
 
-	while (--argc > 0 && **(++argv1) == '-') {
-		stopDoingThat = FALSE;
-		while (stopDoingThat == FALSE && *(++(*argv1))) {
-			switch (**argv1) {
+	/* do normal option parsing */
+	while ((opt = getopt(argc, argv, "m:nKO:R:L")) > 0) {
+		switch (opt) {
 			case 'm':
-				if (--argc == 0) {
-					usage(syslogd_usage);
-				}
-				MarkInterval = atoi(*(++argv1)) * 60;
+				MarkInterval = atoi(optarg) * 60;
 				break;
 			case 'n':
 				doFork = FALSE;
@@ -507,37 +501,25 @@ extern int syslogd_main(int argc, char **argv)
 				break;
 #endif
 			case 'O':
-				if (--argc == 0) {
-					usage(syslogd_usage);
-				}
-				logFilePath = *(++argv1);
-				stopDoingThat = TRUE;
+				logFilePath = strdup(optarg);
 				break;
 #ifdef BB_FEATURE_REMOTE_LOG
 			case 'R':
-                          if (--argc == 0) {
-                            usage(syslogd_usage);
-                          }
-                          RemoteHost = *(++argv1);
-                          if ( (p = strchr(RemoteHost, ':'))){
-                            RemotePort = atoi(p+1);
-                            *p = '\0';
-                          }          
-                          doRemoteLog = TRUE;
-                          stopDoingThat = TRUE;
-                          break;
+				RemoteHost = strdup(optarg);
+				if ( (p = strchr(RemoteHost, ':'))){
+					RemotePort = atoi(p+1);
+					*p = '\0';
+				}          
+				doRemoteLog = TRUE;
+				break;
 			case 'L':
 				local_logging = TRUE;
 				break;
 #endif
 			default:
 				usage(syslogd_usage);
-			}
 		}
 	}
-
-	if (argc > 0)
-		usage(syslogd_usage);
 
 	/* Store away localhost's name before the fork */
 	gethostname(LocalHostName, sizeof(LocalHostName));
