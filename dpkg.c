@@ -583,7 +583,6 @@ static int dpkg_dounpack(package_t *pkg)
 	char *adminscripts[] = { "/prerm", "/postrm", "/preinst", "/postinst",
 			"/conffiles", "/md5sums", "/shlibs", "/templates" };
 	char buf[1024], buf2[1024];
-	FILE *myfile = stdout;
 
 	DPRINTF("Unpacking %s\n", pkg->package);
 
@@ -615,9 +614,7 @@ static int dpkg_dounpack(package_t *pkg)
 		strcpy(lst_file, infodir);
 		strcat(lst_file, pkg->package);
 		strcat(lst_file, ".list");
-		outfp = freopen(lst_file, "w", myfile);
 		deb_extract(dpkg_deb_list, NULL, pkg->file);
-		myfile = freopen(NULL, "w", outfp);
 
 		printf("done\n");
 		getchar();
