@@ -24,7 +24,7 @@ obj-y           :=
 obj-n           :=
 obj-            :=
 
-obj-$(CONFIG_APT_GET)		+= apt_get.o
+
 obj-$(CONFIG_HOSTNAME)		+= hostname.o
 obj-$(CONFIG_IFCONFIG)		+= ifconfig.o
 obj-$(CONFIG_NC)		+= nc.o
