@@ -184,21 +184,10 @@ int copy_file(const char *source, const char *dest, int flags)
 			return -1;
 		}
 	} else if (S_ISFIFO(source_stat.st_mode)) {
-		mode_t mode, saved_umask;
-		saved_umask = umask(0);
-
-		mode = source_stat.st_mode;
-		if (!(flags & FILEUTILS_PRESERVE_STATUS))
-			mode = source_stat.st_mode & ~saved_umask;
-		mode |= S_IRWXU;
-
-		if (mkfifo(dest, mode) < 0) {
-			umask(saved_umask);
+		if (mkfifo(dest, source_stat.st_mode) < 0) {
 			perror_msg("cannot create fifo `%s'", dest);
 			return -1;
 		}
-
-		umask(saved_umask);
 	} else if (S_ISLNK(source_stat.st_mode)) {
 		int size;
 		char buf[BUFSIZ + 1];
