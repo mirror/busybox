@@ -31,8 +31,11 @@
 
 /*
  * Copy chunksize bytes between two file descriptors
+ *
+ * unsigned long is used so that if -1 is passed as chunksize it will read as
+ * much as possible, and it will work with off_t or off64_t
  */
-extern int copy_file_chunk(FILE *src_file, FILE *dst_file, off_t chunksize)
+extern int copy_file_chunk(FILE *src_file, FILE *dst_file, unsigned long long chunksize)
 {
 	off_t size, amount_written;
 	char buffer[BUFSIZ]; /* BUFSIZ is declared in stdio.h */

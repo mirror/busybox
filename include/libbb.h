@@ -95,7 +95,7 @@ void reset_ino_dev_hashtable(void);
 
 int copy_file(const char *src_name, const char *dst_name,
 		 int set_modes, int follow_links, int force_flag, int quiet_flag);
-int copy_file_chunk(FILE *src_file, FILE *dst_file, off_t chunksize);
+int copy_file_chunk(FILE *src_file, FILE *dst_file, unsigned long long chunksize);
 char *buildName(const char *dirName, const char *fileName);
 int makeString(int argc, const char **argv, char *buf, int bufLen);
 char *getChunk(int size);
@@ -234,10 +234,11 @@ typedef enum extract_function_e {
 	extract_info = 4,
 	extract_extract = 8,
 	extract_verbose_extract = 16,
-	extract_list = 32
+	extract_list = 32,
+	extract_fsys_tarfile = 64
 } extract_function_t;
 extern int deb_extract(const char *package_filename, int function, char *target_dir);
-extern int untar(FILE *src_tar_file, int function, char *base_path);
+extern int untar(FILE *src_tar_file, int untar_function, char *base_path);
 
 extern int unzip(FILE *l_in_file, FILE *l_out_file);
 extern void gz_close(int gunzip_pid);
