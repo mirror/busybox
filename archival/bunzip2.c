@@ -58,6 +58,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <getopt.h>
+#include <unistd.h>
 #include <busybox.h>
 
 //#define TRUE 1
@@ -2319,22 +2320,25 @@ errhandler_io:
 int bunzip2_main(int argc, char **argv)
 {
 	const int bunzip_to_stdout = 1;
+	const int bunzip_force = 2;
 	int flags = 0;
 	int opt = 0;
 
 	FILE *src_stream;
 	FILE *dst_stream;
-	char *save_name;
-	char *save_name_ptr;
+	char *save_name = NULL;
 
 	/* if called as bzcat */
 	if (strcmp(applet_name, "bzcat") == 0)
 		flags |= bunzip_to_stdout;
 
-	while ((opt = getopt(argc, argv, "ch")) != -1) {
+	while ((opt = getopt(argc, argv, "cfh")) != -1) {
 		switch (opt) {
 		case 'c':
 			flags |= bunzip_to_stdout;
+			break;
+		case 'f':
+			flags |= bunzip_force;
 			break;
 		case 'h':
 		default:
@@ -2342,22 +2346,23 @@ int bunzip2_main(int argc, char **argv)
 		}
 	}
 
-	save_name = xstrdup(argv[optind]);
-		
-	if (save_name == NULL) {
-		show_usage();
+	/* Set input filename and number */
+	if (argv[optind] == NULL || strcmp(argv[optind], "-") == 0) {
+		flags |= bunzip_to_stdout;
+		src_stream = stdin;
+	} else {
+		/* Open input file */
+		src_stream = xfopen(argv[optind], "r");
+
+		save_name = xstrdup(argv[optind]);
+		if (strcmp(save_name + strlen(save_name) - 4, ".bz2") != 0)
+			error_msg_and_die("Invalid extension");
+		save_name[strlen(save_name) - 4] = '\0';
 	}
 
-	src_stream = xfopen(argv[optind], "r");
-
-	save_name_ptr = strrchr(save_name, '.');
-	if (save_name_ptr == NULL) {
-		return(FALSE);
-	}
-	if (strcmp(save_name_ptr, ".bz2") != 0) {
-		error_msg("Invalid extension, expected .bz2");
-	}
-	*save_name_ptr = '\0';	
+	/* Check that the input is sane.  */
+	if (isatty(fileno(src_stream)) && (flags & bunzip_force) == 0)
+		error_msg_and_die("compressed data not read from terminal.  Use -f to force it.");
 
 	if (flags & bunzip_to_stdout) {
 		dst_stream = stdout;
