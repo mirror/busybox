@@ -106,7 +106,7 @@ static int ncmds = 0; /* number of sed commands */
 const char * const semicolon_whitespace = "; \n\r\t\v\0";
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
-static void destroy_cmd_strs()
+static void destroy_cmd_strs(void)
 {
 	if (sed_cmds == NULL)
 		return;
