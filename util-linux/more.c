@@ -154,12 +154,10 @@ extern int more_main(int argc, char **argv)
 
 #ifdef BB_FEATURE_USE_TERMIOS
 				/* Erase the "More" message */
+				putc('\r', stdout);
 				while (--len >= 0)
-					putc('\b', stdout);
-				while (++len <= terminal_width)
 					putc(' ', stdout);
-				while (--len >= 0)
-					putc('\b', stdout);
+				putc('\r', stdout);
 				fflush(stdout);
 #endif
 				len=0;
