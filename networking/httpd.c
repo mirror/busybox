@@ -1172,7 +1172,6 @@ static int sendCgi(const char *url,
 	*script = '/';          /* is directory, find next '/' */
       }
       addEnv("PATH", "INFO", script);   /* set /PATH_INFO or NULL */
-      addEnv("PATH",           "",         getenv("PATH"));
       addEnv("REQUEST",        "METHOD",   request);
       if(urlArgs) {
 	char *uri = alloca(strlen(purl) + 2 + strlen(urlArgs));
@@ -1994,6 +1993,19 @@ int httpd_main(int argc, char *argv[])
 # ifdef CONFIG_FEATURE_HTTPD_CGI
   addEnvPort("SERVER");
 # endif
+#endif
+
+#ifdef CONFIG_FEATURE_HTTPD_CGI
+   {
+	char *p = getenv("PATH");
+
+	if(p)
+		p = bb_xstrdup(p);
+	clearenv();
+	if(p) {
+		setenv("PATH", p, 0);
+	}
+   }
 #endif
 
 #ifdef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
