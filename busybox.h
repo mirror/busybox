@@ -190,6 +190,13 @@ extern char *xstrdup (const char *s);
 #endif
 extern char *xstrndup (const char *s, int n);
 
+struct suffix_mult {
+	char *suffix;
+	int mult;
+};
+
+extern unsigned long parse_number(const char *numstr, struct suffix_mult *suffixes);
+
 
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which

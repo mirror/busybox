@@ -61,6 +61,13 @@ static char verbose = 0;
 
 static off_t units=0;
 
+static struct suffix_mult tail_suffixes[] = {
+	{ "b", 512 },
+	{ "k", 1024 },
+	{ "m", 1048576 },
+	{ NULL, 0 }
+};
+
 static int tail_stream(int fd)
 {
 	ssize_t startpoint;
@@ -170,32 +177,6 @@ int tail_main(int argc, char **argv)
 
 		switch (opt) {
 #ifndef BB_FEATURE_SIMPLE_TAIL
-		case 'c':
-			unit_type = BYTES;
-			test = atoi(optarg);
-			if(test==0)
-				usage(tail_usage);
-			if(optarg[strlen(optarg)-1]>'9') {
-				switch (optarg[strlen(optarg)-1]) {
-				case 'b':
-					test *= 512;
-					break;
-				case 'k':
-					test *= 1024;
-					break;
-				case 'm':
-					test *= (1024 * 1024);
-					break;
-				default:
-					fprintf(stderr,"Size must be b,k, or m.");
-					usage(tail_usage);
-				}
-			}
-			if(optarg[0]=='+')
-				units=test+1;
-			else
-				units=-(test+1);
-			break;
 		case 'q':
 			show_headers = 0;
 			break;
@@ -207,15 +188,12 @@ int tail_main(int argc, char **argv)
 		case 'v':
 			verbose = 1;
 			break;
+		case 'c':
+			unit_type = BYTES;
+			/* FALLS THROUGH */
 #endif
-		case 'f':
-			follow = 1;
-			break;
-		case 'h':
-			usage(tail_usage);
-			break;
 		case 'n':
-			test = atoi(optarg);
+			test = parse_number(optarg, tail_suffixes);
 			if (test) {
 				if (optarg[0] == '+')
 					units = test;
@@ -224,8 +202,10 @@ int tail_main(int argc, char **argv)
 			} else
 				usage(tail_usage);
 			break;
+		case 'f':
+			follow = 1;
+			break;
 		default:
-			error_msg("\nUnknown arg: %c.\n\n",optopt);
 			usage(tail_usage);
 		}
 	}

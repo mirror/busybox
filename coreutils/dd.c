@@ -2,15 +2,8 @@
 /*
  * Mini dd implementation for busybox
  *
- * Copyright (C) 1999, 2000 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
- * Based in part on code taken from sash. 
- *   Copyright (c) 1999 by David I. Bell
- *   Permission is granted to use, distribute, or modify this source,
- *   provided that this copyright notice remains intact.
- *
- * Permission to distribute this code under the GPL has been granted.
+ * Copyright (C) 2000 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,154 +21,128 @@
  *
  */
 
-
 #include "busybox.h"
-#include <features.h>
-#include <stdio.h>
+
+#include <sys/types.h>
 #include <fcntl.h>
-#include <errno.h>
-#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-#include <inttypes.h>
-#else
-typedef unsigned long long int uintmax_t;
-#endif
 
-extern int dd_main(int argc, char **argv)
+static struct suffix_mult dd_suffixes[] = {
+	{ "c", 1 },
+	{ "w", 2 },
+	{ "b", 512 },
+	{ "kD", 1000 },
+	{ "k", 1024 },
+	{ "MD", 1000000 },
+	{ "M", 1048576 },
+	{ "GD", 1000000000 },
+	{ "G", 1073741824 },
+	{ NULL, 0 }
+};
+
+int dd_main(int argc, char **argv)
 {
-	char *inFile = NULL;
-	char *outFile = NULL;
-	int inFd;
-	int outFd;
-	int inCc = 0;
-	int outCc;
-	int trunc=TRUE;
-	int sync=FALSE;
-	long blockSize = 512,ibs;
-	uintmax_t skipBlocks = 0;
-	uintmax_t seekBlocks = 0;
-	uintmax_t count = (uintmax_t) - 1;
-	uintmax_t inTotal = 0;
-	uintmax_t outTotal = 0;
-	uintmax_t totalSize;
+	int i, ifd, ofd, sync = FALSE, trunc = TRUE;
+	size_t in_full = 0, in_part = 0, out_full = 0, out_part = 0;
+	size_t bs = 512, count = -1;
+	ssize_t n;
+	off_t seek = 0, skip = 0;
+	FILE *statusfp;
+	char *infile = NULL, *outfile = NULL, *buf;
 
-	unsigned char buf[BUFSIZ];
-	char *keyword = NULL;
-
-	argc--;
-	argv++;
-
-	/* Parse any options */
-	while (argc) {
-		if (inFile == NULL && (strncmp(*argv, "if", 2) == 0))
-			inFile = ((strchr(*argv, '=')) + 1);
-		else if (outFile == NULL && (strncmp(*argv, "of", 2) == 0))
-			outFile = ((strchr(*argv, '=')) + 1);
-		else if (strncmp("count", *argv, 5) == 0) {
-			count = atoi_w_units((strchr(*argv, '=')) + 1);
-			if (count < 0) {
-				error_msg("Bad count value %s\n", *argv);
-				goto usage;
+	for (i = 1; i < argc; i++) {
+		if (strncmp("bs=", argv[i], 3) == 0)
+			bs = parse_number(argv[i]+3, dd_suffixes);
+		else if (strncmp("count=", argv[i], 6) == 0)
+			count = parse_number(argv[i]+6, dd_suffixes);
+		else if (strncmp("seek=", argv[i], 5) == 0)
+			seek = parse_number(argv[i]+5, dd_suffixes);
+		else if (strncmp("skip=", argv[i], 5) == 0)
+			skip = parse_number(argv[i]+5, dd_suffixes);
+		else if (strncmp("if=", argv[i], 3) == 0)
+			infile = argv[i]+3;
+		else if (strncmp("of=", argv[i], 3) == 0)
+			outfile = argv[i]+3;
+		else if (strncmp("conv=", argv[i], 5) == 0) {
+			buf = argv[i]+5;
+			while (1) {
+				if (strncmp("notrunc", buf, 7) == 0) {
+					trunc = FALSE;
+					buf += 7;
+				} else if (strncmp("sync", buf, 4) == 0) {
+					sync = TRUE;
+					buf += 4;
+				} else {
+					error_msg_and_die("invalid conversion `%s'\n", argv[i]+5);
+				}
+				if (buf[0] == '\0')
+					break;
+				if (buf[0] == ',')
+					buf++;
 			}
-		} else if (strncmp(*argv, "bs", 2) == 0) {
-			blockSize = atoi_w_units((strchr(*argv, '=')) + 1);
-			if (blockSize <= 0) {
-				error_msg("Bad block size value %s\n", *argv);
-				goto usage;
-			}
-		} else if (strncmp(*argv, "skip", 4) == 0) {
-			skipBlocks = atoi_w_units((strchr(*argv, '=')) + 1);
-			if (skipBlocks <= 0) {
-				error_msg("Bad skip value %s\n", *argv);
-				goto usage;
-			}
-
-		} else if (strncmp(*argv, "seek", 4) == 0) {
-			seekBlocks = atoi_w_units((strchr(*argv, '=')) + 1);
-			if (seekBlocks <= 0) {
-				error_msg("Bad seek value %s\n", *argv);
-				goto usage;
-			}
-		} else if (strncmp(*argv, "conv", 4) == 0) {
-			keyword = (strchr(*argv, '=') + 1);
-                	if (strcmp(keyword, "notrunc") == 0) 
-				trunc=FALSE;
-			if (strcmp(keyword, "sync") == 0) 
-				sync=TRUE;
-		} else {
-			goto usage;
-		}
-		argc--;
-		argv++;
+		} else
+			usage(dd_usage);
 	}
 
-	if (inFile == NULL)
-		inFd = fileno(stdin);
-	else
-		inFd = open(inFile, 0);
+	buf = xmalloc(bs);
 
-	if (inFd < 0) {
-		/* Note that we are not freeing buf or closing
-		 * files here to save a few bytes. This exits
-		 * here anyways... */
-
-		/* free(buf); */
-		perror_msg_and_die("%s", inFile);
+	if (infile != NULL) {
+		if ((ifd = open(infile, O_RDONLY)) < 0)
+			perror_msg_and_die("%s", infile);
+	} else {
+		ifd = STDIN_FILENO;
+		infile = "standard input";
 	}
 
-	if (outFile == NULL)
-		outFd = fileno(stdout);
-	else
-		outFd = open(outFile, O_WRONLY | O_CREAT, 0666);
-
-	if (outFd < 0) {
-		/* Note that we are not freeing buf or closing
-		 * files here to save a few bytes. This exits
-		 * here anyways... */
-
-		/* close(inFd);
-		   free(buf); */
-		perror_msg_and_die("%s", outFile);
+	if (outfile != NULL) {
+		if ((ofd = open(outfile, O_WRONLY | O_CREAT, 0666)) < 0)
+			perror_msg_and_die("%s", outfile);
+		statusfp = stdout;
+	} else {
+		ofd = STDOUT_FILENO;
+		outfile = "standard output";
+		statusfp = stderr;
 	}
 
-	lseek(inFd, (off_t) (skipBlocks * blockSize), SEEK_SET);
-	lseek(outFd, (off_t) (seekBlocks * blockSize), SEEK_SET);
-	totalSize=count*blockSize;
+	if (skip) {
+		if (lseek(ifd, skip * bs, SEEK_CUR) < 0)
+			perror_msg_and_die("%s", infile);
+	}
 
-	ibs=blockSize;
-	if (ibs > BUFSIZ)
-		ibs=BUFSIZ;
-			
-	while (totalSize > outTotal) {
-		inCc = full_read(inFd, buf, ibs);
-		inTotal += inCc;
-		if ( (sync==TRUE) && (inCc>0) )
-			while (inCc<ibs)
-				buf[inCc++]='\0';
+	if (seek) {
+		if (lseek(ofd, seek * bs, SEEK_CUR) < 0)
+			perror_msg_and_die("%s", outfile);
+	}
 
-		if ((outCc = full_write(outFd, buf, inCc)) < 1){
-			if (outCc < 0 ){
-				perror("Error during write");
-			}
+	if (trunc) {
+		if (ftruncate(ofd, seek * bs) < 0)
+			perror_msg_and_die("%s", outfile);
+	}
+
+	while (in_full + in_part != count) {
+		n = safe_read(ifd, buf, bs);
+		if (n < 0)
+			perror_msg_and_die("%s", infile);
+		if (n == 0)
 			break;
+		if (n == bs)
+			in_full++;
+		else
+			in_part++;
+		if (sync) {
+			memset(buf + n, '\0', bs - n);
+			n = bs;
 		}
-		outTotal += outCc;
-        }
-	if (trunc == TRUE) {
-		ftruncate(outFd, lseek(outFd, 0, SEEK_CUR));
+		n = full_write(ofd, buf, n);
+		if (n < 0)
+			perror_msg_and_die("%s", outfile);
+		if (n == bs)
+			out_full++;
+		else
+			out_part++;
 	}
-	/* Note that we are not freeing memory or closing
-	 * files here, to save a few bytes. */
-#ifdef BB_FEATURE_CLEAN_UP
-	close(inFd);
-	close(outFd);
-#endif
 
-	printf("%ld+%d records in\n", (long) (inTotal / blockSize),
-		   (inTotal % blockSize) != 0);
-	printf("%ld+%d records out\n", (long) (outTotal / blockSize),
-		   (outTotal % blockSize) != 0);
+	fprintf(statusfp, "%d+%d records in\n", in_full, in_part);
+	fprintf(statusfp, "%d+%d records out\n", out_full, out_part);
+
 	return EXIT_SUCCESS;
-  usage:
-
-	usage(dd_usage);
 }

@@ -170,10 +170,11 @@ const char dd_usage[] =
 	"\tcount=N\tcopy only N input blocks\n"
 	"\tskip=N\tskip N input blocks\n"
 	"\tseek=N\tskip N output blocks\n"
-	"\tconv=notrunc\t dont truncate of at end of write\n"
-	"\tconv=sync\t pad the last block with zeros until blocksize\n"
+	"\tconv=notrunc\tdon't truncate output file\n"
+	"\tconv=sync\tpad blocks with zeros\n"
 	"\n"
-	"Numbers may be suffixed by w (x2), k (x1024), b (x512), or M (x1024^2)\n"
+	"Numbers may be suffixed by c (x1), w (x2), b (x512), kD (x1000), k (x1024),\n"
+	"MD (x1000000), M (x1048576), GD (x1000000000) or G (x1073741824).\n"
 #endif
 	;
 #endif
@@ -1185,20 +1186,20 @@ const char syslogd_usage[] =
 
 #if defined BB_TAIL
 const char tail_usage[] =
-	"tail [OPTION] [FILE]...\n"
+	"tail [OPTION]... [FILE]...\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\nPrint last 10 lines of each FILE to standard output.\n"
 	"With more than one FILE, precede each with a header giving the\n"
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n"
 	"Options:\n"
 #ifndef BB_FEATURE_SIMPLE_TAIL
-	"\t-c=N[kbm]\toutput the last N bytes\n"
+	"\t-c N[kbm]\toutput the last N bytes\n"
 #endif
-	"\t-n NUM\t\tPrint last NUM lines instead of first 10\n"
-	"\t-f\t\tOutput data as the file grows.\n"
+	"\t-n N[kbm]\tprint last N lines instead of last 10\n"
+	"\t-f\t\toutput data as the file grows\n"
 #ifndef BB_FEATURE_SIMPLE_TAIL
 	"\t-q\t\tnever output headers giving file names\n"
-	"\t-s SEC\t\tWait SEC seconds between reads with -f\n"
+	"\t-s SEC\t\twait SEC seconds between reads with -f\n"
 	"\t-v\t\talways output headers giving file names\n\n"
 	"If the first character of N (bytes or lines) is a `+', output begins with \n"
 	"the Nth item from the start of each file, otherwise, print the last N items\n"

@@ -562,10 +562,9 @@ int full_write(int fd, const char *buf, int len)
 
 	return total;
 }
-#endif /* BB_TAR || BB_CP_MV || BB_AR */
+#endif
 
-
-#if defined BB_TAR || defined BB_TAIL || defined BB_AR || defined BB_SH || defined BB_CP_MV || defined BB_DD
+#if defined BB_AR || defined BB_CP_MV || defined BB_SH || defined BB_TAR
 /*
  * Read all of the supplied buffer from a file.
  * This does multiple reads as necessary.
@@ -1215,58 +1214,6 @@ extern struct mntent *find_mount_point(const char *name, const char *table)
 }
 #endif							/* BB_DF || BB_MTAB */
 
-
-
-#if defined BB_DD || defined BB_TAIL
-/*
- * Read a number with a possible multiplier.
- * Returns -1 if the number format is illegal.
- */
-extern long atoi_w_units(const char *cp)
-{
-	long value;
-
-	if (!is_decimal(*cp))
-		return -1;
-
-	value = 0;
-
-	while (is_decimal(*cp))
-		value = value * 10 + *cp++ - '0';
-
-	switch (*cp++) {
-	case 'M':
-	case 'm':					/* `tail' uses it traditionally */
-		value *= 1048576;
-		break;
-
-	case 'k':
-		value *= 1024;
-		break;
-
-	case 'b':
-		value *= 512;
-		break;
-
-	case 'w':
-		value *= 2;
-		break;
-
-	case '\0':
-		return value;
-
-	default:
-		return -1;
-	}
-
-	if (*cp)
-		return -1;
-
-	return value;
-}
-#endif							/* BB_DD || BB_TAIL */
-
-
 #if defined BB_INIT || defined BB_SYSLOGD 
 /* try to open up the specified device */
 extern int device_open(char *device, int mode)
@@ -1313,11 +1260,11 @@ extern pid_t* find_pid_by_name( char* pidName)
 	/* open device */ 
 	fd = open(device, O_RDONLY);
 	if (fd < 0)
-		perror_msg_and_die( "open failed for `%s'", device);
+		perror_msg_and_die("open failed for `%s'", device);
 
 	/* Find out how many processes there are */
 	if (ioctl (fd, DEVPS_GET_NUM_PIDS, &num_pids)<0) 
-		perror_msg_and_die( "\nDEVPS_GET_PID_LIST");
+		perror_msg_and_die("\nDEVPS_GET_PID_LIST");
 	
 	/* Allocate some memory -- grab a few extras just in case 
 	 * some new processes start up while we wait. The kernel will
@@ -1328,7 +1275,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	/* Now grab the pid list */
 	if (ioctl (fd, DEVPS_GET_PID_LIST, pid_array)<0) 
-		perror_msg_and_die( "\nDEVPS_GET_PID_LIST");
+		perror_msg_and_die("\nDEVPS_GET_PID_LIST");
 
 	/* Now search for a match */
 	for (i=1, j=0; i<pid_array[0] ; i++) {
@@ -1337,7 +1284,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	    info.pid = pid_array[i];
 	    if (ioctl (fd, DEVPS_GET_PID_INFO, &info)<0)
-			perror_msg_and_die( "\nDEVPS_GET_PID_INFO");
+			perror_msg_and_die("\nDEVPS_GET_PID_INFO");
 
 		/* Make sure we only match on the process name */
 		p=info.command_line+1;
@@ -1361,7 +1308,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	/* close device */
 	if (close (fd) != 0) 
-		perror_msg_and_die( "close failed for `%s'", device);
+		perror_msg_and_die("close failed for `%s'", device);
 
 	return pidList;
 }
@@ -1387,7 +1334,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	dir = opendir("/proc");
 	if (!dir)
-		perror_msg_and_die( "Cannot open /proc");
+		perror_msg_and_die("Cannot open /proc");
 	
 	while ((next = readdir(dir)) != NULL) {
 		FILE *status;
@@ -1791,7 +1738,34 @@ int applet_name_compare(const void *x, const void *y)
 	return strcmp(applet1->name, applet2->name);
 }
 
-#if defined BB_NC
+#if defined BB_DD || defined BB_TAIL
+unsigned long parse_number(const char *numstr, struct suffix_mult *suffixes)
+{
+	struct suffix_mult *sm;
+	unsigned long int ret;
+	int len;
+	char *end;
+	
+	ret = strtoul(numstr, &end, 10);
+	if (numstr == end)
+		error_msg_and_die("invalid number `%s'\n", numstr);
+	while (end[0] != '\0') {
+		for (sm = suffixes; sm->suffix != NULL; sm++) {
+			len = strlen(sm->suffix);
+			if (strncmp(sm->suffix, end, len) == 0) {
+				ret *= sm->mult;
+				end += len;
+				break;
+			}
+		}
+		if (sm->suffix == NULL)
+			error_msg_and_die("invalid number `%s'\n", numstr);
+	}
+	return ret;
+}
+#endif
+
+#if defined BB_DD || defined BB_NC
 ssize_t safe_read(int fd, void *buf, size_t count)
 {
 	ssize_t n;
