@@ -771,7 +771,7 @@ int get_console_fd(char* tty_name)
 #endif
 
 
-#if !defined BB_REGEXP && (defined BB_GREP || defined BB_FIND || defined BB_SED)  
+#if !defined BB_REGEXP && (defined BB_GREP || defined BB_SED)  
 
 /* Do a case insensitive strstr() */
 char* stristr(char *haystack, const char *needle)
@@ -851,6 +851,108 @@ extern int replace_match(char *haystack, char *needle, char *newNeedle, int igno
 #endif
 
 
+#if defined BB_FIND
+/*
+ * Routine to see if a text string is matched by a wildcard pattern.
+ * Returns TRUE if the text is matched, or FALSE if it is not matched
+ * or if the pattern is invalid.
+ *  *		matches zero or more characters
+ *  ?		matches a single character
+ *  [abc]	matches 'a', 'b' or 'c'
+ *  \c		quotes character c
+ * Adapted from code written by Ingo Wilken, and
+ * then taken from sash, Copyright (c) 1999 by David I. Bell
+ * Permission is granted to use, distribute, or modify this source,
+ * provided that this copyright notice remains intact.
+ * Permission to distribute this code under the GPL has been granted.
+ */
+extern int
+check_wildcard_match(const char* text, const char* pattern)
+{
+    const char*	retryPat;
+    const char*	retryText;
+    int		ch;
+    int		found;
+
+    retryPat = NULL;
+    retryText = NULL;
+
+    while (*text || *pattern)
+    {
+	ch = *pattern++;
+
+	switch (ch)
+	{
+	    case '*':  
+		retryPat = pattern;
+		retryText = text;
+		break;
+
+	    case '[':  
+		found = FALSE;
+
+		while ((ch = *pattern++) != ']')
+		{
+		    if (ch == '\\')
+			ch = *pattern++;
+
+		    if (ch == '\0')
+			return FALSE;
+
+		    if (*text == ch)
+			found = TRUE;
+		}
+
+		//if (!found)
+		if (found==TRUE)
+		{
+		    pattern = retryPat;
+		    text = ++retryText;
+		}
+
+		/* fall into next case */
+
+	    case '?':  
+		if (*text++ == '\0')
+		    return FALSE;
+
+		break;
+
+	    case '\\':  
+		ch = *pattern++;
+
+		if (ch == '\0')
+			return FALSE;
+
+		/* fall into next case */
+
+	    default:        
+		if (*text == ch)
+		{
+		    if (*text)
+			text++;
+		    break;
+		}
+
+		if (*text)
+		{
+		    pattern = retryPat;
+		    text = ++retryText;
+		    break;
+		}
+
+		return FALSE;
+	}
+
+	if (pattern == NULL)
+		return FALSE;
+    }
+
+    return TRUE;
+}
+#endif
+
+
 
 
 #if defined BB_DF | defined BB_MTAB
@@ -908,5 +1010,12 @@ extern void whine_if_fstab_is_missing()
 
 
 /* END CODE */
+
+
+
+
+
+
+
 
 

@@ -7,7 +7,7 @@
 #include <ctype.h>
 
 
-#if ( defined BB_GREP || defined BB_FIND  || defined BB_SED)
+#if ( defined BB_GREP || defined BB_SED)
 
 /* This also tries to find a needle in a haystack, but uses
  * real regular expressions....  The fake regular expression

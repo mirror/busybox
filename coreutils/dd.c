@@ -185,6 +185,10 @@ extern int dd_main (int argc, char **argv)
     }
 
     //lseek(inFd, skipBlocks*blockSize, SEEK_SET);
+    //
+    //TODO: Convert to using fullRead & fullWrite
+    // from utilitity.c
+    //  -Erik
     while (outTotal < count * blockSize) {
 	inCc = read (inFd, buf, blockSize);
 	if (inCc < 0) {

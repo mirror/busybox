@@ -51,8 +51,15 @@ static int fileAction(const char *fileName, struct stat* statbuf)
 {
     if (pattern==NULL)
 	fprintf(stdout, "%s\n", fileName);
-    else if (find_match((char*)fileName, pattern, TRUE) == TRUE)
-	fprintf(stdout, "%s\n", fileName);
+    else {
+	char* tmp = strrchr( fileName, '/');
+	if (tmp == NULL)
+	    tmp = (char*)fileName;
+	else
+	    tmp++;
+	if (check_wildcard_match(tmp, pattern) == TRUE)
+	    fprintf(stdout, "%s\n", fileName);
+    }
     return( TRUE);
 }
 

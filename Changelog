@@ -3,6 +3,11 @@
 	    file existed.
 	* df will not exit on error, but will try to stat all mounted filesystems.
 	* Fixed tar so uid/gid/permissions on extracted tarballs will be correct.
+	* Fixed find -name so it properly uses shell wildcard patterns 
+	    (i.e. `*', `?', and `[]') instead of regular expressions, which
+	    was causing some confusing and unexpected behavior.
+	    
+	-Erik Andrsen, Dec 2, 1999
 
 0.37
 	* Wrote a micro syslogd, and a logger util (to log things to the syslog

@@ -10,11 +10,10 @@ fi
 h=`sort busybox.links | uniq`
 
 for i in $h ; do
-	mypath=`echo $i | sed -e 's/\(^.*\/\)\(.*\)/\1/g' `;
-	myapp=`echo $i | sed -e 's/\(^.*\/\)\(.*\)/\2/g' `;
-	echo "  $1$mypath$myapp -> /bin/busybox"
-	mkdir -p $1$mypath
-	(cd $1$mypath && rm -f $1$mypath$myapp && ln -s /bin/busybox $1$mypath$myapp )
+	echo "  $1$i -> /bin/busybox"
+	mkdir -p $1/`echo $i | sed -e 's/\/[^\/]*$//' `
+	rm -f $1$i
+	ln -s /bin/busybox $1$i
 done
 rm -f $1/bin/busybox
 install -m 755 busybox $1/bin/busybox

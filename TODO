@@ -1,10 +1,31 @@
-TODO list for busybox in no particular order
+TODO list for busybox in no particular order. Just because something
+is listed here doesn't mean that it is going to be added to busybox,
+or that doing so is even a good idea. It just means that I _might_ get
+around to it some time. If you have any good ideas, please let me know.
 
-If you have any good ideas, please let me know.
+ -Erik
+
+-----------
 
 * Allow tar to create archives with sockets, devices, and other special files
-* Add in a mini modprobe, insmod, rmmod
-* poweroff
+* Add in a mini insmod, rmmod, lsmod
 * Change init so halt, reboot (and poweroff) work with an initrd
     when init is not PID 1
-*   
+* poweroff
+* du
+* mkfifo
+* hostname/dnsdomainname
+* ping/traceroute/nslookup/netstat
+* rdate
+* hwclock
+* login/getty
+* free
+* killall
+* tee
+* stty
+* head/tail
+* sort/uniq
+* wc
+* tr
+* expr (maybe)?
+

@@ -150,6 +150,7 @@ extern struct mntent *findMountPoint(const char *name, const char *table);
 extern void write_mtab(char* blockDevice, char* directory, 
 	char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
+extern int check_wildcard_match(const char* text, const char* pattern);
 
 
 #if defined BB_MTAB
