@@ -103,11 +103,11 @@
 #endif
 
 #if defined(__s390__)
-#define BB_USE_PLT_ENTRIES
-#define BB_PLT_ENTRY_SIZE 8
-#define BB_USE_GOT_ENTRIES
-#define BB_GOT_ENTRY_SIZE 8
-#define BB_USE_SINGLE
+#define CONFIG_USE_PLT_ENTRIES
+#define CONFIG_PLT_ENTRY_SIZE 8
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 8
+#define CONFIG_USE_SINGLE
 
 #define MATCH_MACHINE(x) (x == EM_S390)
 #define SHT_RELM	SHT_RELA
@@ -247,7 +247,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.95 2003/01/23 06:02:39 andersen Exp $"
+#ident "$Id: insmod.c,v 1.96 2003/03/13 18:57:08 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -468,7 +468,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.95 2003/01/23 06:02:39 andersen Exp $"
+#ident "$Id: insmod.c,v 1.96 2003/03/13 18:57:08 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
