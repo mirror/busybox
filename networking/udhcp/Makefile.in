@@ -50,3 +50,6 @@ $(UDHCP_DIR)dhcpc.o: $(UDHCP_DIR)dhcpc.c
 $(UDHCP_DIR)dhcpd.o: $(UDHCP_DIR)dhcpd.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DCOMBINED_BINARY -c $< -o $@
 
+$(UDHCP_DIR)dumpleases.o: $(UDHCP_DIR)dumpleases.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DCOMBINED_BINARY -c $< -o $@
+
