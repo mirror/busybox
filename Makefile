@@ -241,6 +241,7 @@ docs/BusyBox.1: docs/busybox.pod
 		$< > $@
 
 docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
+	- mkdir -p docs
 	-@ rm -f docs/BusyBox.html
 	-@ ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
 
@@ -292,14 +293,12 @@ nfsmount.o cmdedit.o: %.o: %.h
 $(OBJECTS): %.o: %.c Config.h busybox.h applets.h Makefile
 	$(CC) $(CFLAGS) -I- -I. $(patsubst %,-I%,$(subst :, ,$(BB_SRC_DIR))) -c $< -o $*.o
 
-$(PWD_OBJS): %.o: %.c pwd_lib_objdir Config.h busybox.h applets.h Makefile
+$(PWD_OBJS): %.o: %.c Config.h busybox.h applets.h Makefile
+	- mkdir -p $(PWD_GRP)
 	$(CC) $(CFLAGS) $(PWD_CFLAGS) -c $< -o $*.o
 
 $(PWD_LIB): $(PWD_OBJS)
 	$(AR) $(ARFLAGS) $(PWD_LIB) $^
-
-pwd_lib_objdir:
-	mkdir -p $(PWD_GRP)
 
 usage.o: usage.h
 
