@@ -80,7 +80,6 @@ ifndef $(PREFIX)
     PREFIX = `pwd`/_install
 endif
 
-
 OBJECTS   = $(shell ./busybox.sh) busybox.o messages.o utility.o
 CFLAGS    += -DBB_VER='"$(VERSION)"'
 CFLAGS    += -DBB_BT='"$(BUILDTIME)"'
@@ -125,10 +124,10 @@ docs/busybox.txt: docs/busybox.sgml
 docs/busybox.dvi: docs/busybox.sgml
 	(cd docs; sgmltools -b dvi busybox.sgml)
 
-docs/busybox.ps: docs/BusyBox.dvi
+docs/busybox.ps: docs/busybox.sgml
 	(cd docs; sgmltools -b ps busybox.sgml)
 
-docs/busybox.pdf: docs/BusyBox.ps
+docs/busybox.pdf: docs/busybox.ps
 	(cd docs; ps2pdf busybox.ps)
 
 docs/busybox/busybox.html: docs/busybox.sgml
