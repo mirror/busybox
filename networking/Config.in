@@ -376,6 +376,12 @@ config CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_VCONFIG
+	bool "vconfig"
+	default n
+	help
+	  Creates, removes, and configures VLAN interfaces
+
 config CONFIG_WGET
 	bool "wget"
 	default n

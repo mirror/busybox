@@ -2369,6 +2369,17 @@
 	"$ uudecode busybox busybox > busybox.uu\n" \
 	"$\n"
 
+#define vconfig_trivial_usage \
+	"COMMAND [OPTIONS] ..."
+
+#define vconfig_full_usage \
+"Usage: add             [interface-name] [vlan_id] \n" \
+"       rem             [vlan-name] \n" \
+"       set_flag        [interface-name] [flag-num]       [0 | 1] \n" \
+"       set_egress_map  [vlan-name]      [skb_priority]   [vlan_qos] \n" \
+"       set_ingress_map [vlan-name]      [skb_priority]   [vlan_qos] \n" \
+"       set_name_type   [name-type] \n" 
+
 #define vi_trivial_usage \
 	"[OPTION] [FILE]..."
 #define vi_full_usage \

@@ -598,6 +598,9 @@
 #ifdef CONFIG_UUENCODE
 	APPLET(uuencode, uuencode_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_VCONFIG
+	APPLET(vconfig, vconfig_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_VI
 	APPLET(vi, vi_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
