@@ -387,12 +387,11 @@ int tftp_main(int argc, char **argv)
 
 		serverfile = cp + 1;
 
-		if ((s = strdup(serverstr))) {
-			s[cp - serverstr] = '\0';
+		s = xstrdup(serverstr);
+		s[cp - serverstr] = '\0';
 
-			if ((host = gethostbyname(s))) {
-				bad = 0;
-			}
+		if ((host = gethostbyname(s))) {
+			bad = 0;
 		}
 
 		free(s);
