@@ -35,7 +35,7 @@ const char *basename_usage="basename FILE [SUFFIX]\n"
 extern int basename_main(int argc, char **argv)
 {
 	int m, n;
-	char *s, *s1;
+	char *s;
 
 	if ((argc < 2) || (**(argv + 1) == '-')) {
 		usage(basename_usage);
