@@ -1045,6 +1045,7 @@ static node *parse_expr(unsigned long iexp) {
 		if (glptr && (t.info == (OC_COMPARE|VV|P(39)|2))) {
 			/* input redirection (<) attached to glptr node */
 			cn = glptr->l.n = new_node(OC_CONCAT|SS|P(37));
+			cn->a.n = glptr;
 			xtc = TC_OPERAND | TC_UOPPRE;
 			glptr = NULL;
 
