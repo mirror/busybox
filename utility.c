@@ -1691,12 +1691,20 @@ FILE *xfopen(const char *path, const char *mode)
 }
 #endif
 
-int applet_name_compare(const void *x, const void *y)
+static int applet_name_compare(const void *x, const void *y)
 {
-	const struct BB_applet *applet1 = x;
-	const struct BB_applet *applet2 = y;
+	const char *name = x;
+	const struct BB_applet *applet = y;
 
-	return strcmp(applet1->name, applet2->name);
+	return strcmp(name, applet->name);
+}
+
+extern size_t NUM_APPLETS;
+
+struct BB_applet *find_applet_by_name(const char *name)
+{
+	return bsearch(name, applets, NUM_APPLETS, sizeof(struct BB_applet),
+			applet_name_compare);
 }
 
 #if defined BB_DD || defined BB_TAIL

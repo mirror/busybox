@@ -88,7 +88,6 @@ extern const struct BB_applet applets[];
 #undef PROTOTYPES
 
 extern const char *applet_name;
-extern int applet_name_compare(const void *x, const void *y);
 
 extern void usage(const char *usage) __attribute__ ((noreturn));
 extern void error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
@@ -153,6 +152,7 @@ extern char *get_last_path_component(char *path);
 extern FILE *wfopen(const char *path, const char *mode);
 extern FILE *xfopen(const char *path, const char *mode);
 extern void chomp(char *s);
+extern struct BB_applet *find_applet_by_name(const char *name);
 
 #ifndef DMALLOC
 extern void *xmalloc (size_t size);

@@ -87,8 +87,8 @@ static void install_links(const char *busybox, int use_symbolic_links)
 
 int main(int argc, char **argv)
 {
-	struct BB_applet search_applet, *applet;
-	const char				*s;
+	struct BB_applet *applet;
+	const char *s;
 
 	for (s = applet_name = argv[0]; *s != '\0';) {
 		if (*s++ == '/')
@@ -104,12 +104,9 @@ int main(int argc, char **argv)
 #endif
 
 	/* Do a binary search to find the applet entry given the name. */
-	search_applet.name = applet_name;
-	applet = bsearch(&search_applet, applets, NUM_APPLETS,
-			sizeof(struct BB_applet), applet_name_compare);
-	if (applet != NULL) {
+	if ((applet = find_applet_by_name(applet_name)) != NULL) {
 		if (applet->usage && argv[1] && strcmp(argv[1], "--help") == 0)
-			usage(applet->usage); 
+			usage(applet->usage);
 		exit((*(applet->main)) (argc, argv));
 	}
 

@@ -67,7 +67,6 @@
 static const int MAX_LINE = 256;	/* size of input buffer for cwd data */
 static const int MAX_READ = 128;	/* size of input buffer for `read' builtin */
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
-extern size_t NUM_APPLETS;
 
 
 enum redir_type { REDIRECT_INPUT, REDIRECT_OVERWRITE,
@@ -1371,7 +1370,8 @@ static int pseudo_exec(struct child_prog *child)
 {
 	struct built_in_command *x;
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
-	struct BB_applet search_applet, *applet;
+	struct BB_applet *applet;
+	const char *name;
 #endif
 
 	/* Check if the command matches any of the non-forking builtins.
@@ -1404,7 +1404,7 @@ static int pseudo_exec(struct child_prog *child)
 	 * /bin/foo invocation will fork and exec /bin/foo, even if
 	 * /bin/foo is a symlink to busybox.
 	 */
-	search_applet.name = child->argv[0];
+	name = child->argv[0];
 
 #ifdef BB_FEATURE_SH_APPLETS_ALWAYS_WIN
 	/* If you enable BB_FEATURE_SH_APPLETS_ALWAYS_WIN, then
@@ -1412,13 +1412,11 @@ static int pseudo_exec(struct child_prog *child)
 	 * /bin/cat exists on the filesystem and is _not_ busybox.
 	 * Some systems want this, others do not.  Choose wisely.  :-)
 	 */
-	search_applet.name = get_last_path_component(search_applet.name);
+	name = get_last_path_component(name);
 #endif
 
 	/* Do a binary search to find the applet entry given the name. */
-	applet = bsearch(&search_applet, applets, NUM_APPLETS,
-			sizeof(struct BB_applet), applet_name_compare);
-	if (applet != NULL) {
+	if ((applet = find_applet_by_name(name)) != NULL) {
 		int argc_l;
 		char** argv=child->argv;
 		for(argc_l=0;*argv!=NULL; argv++, argc_l++);
