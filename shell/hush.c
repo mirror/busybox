@@ -111,96 +111,11 @@
 #include "busybox.h"
 #include "cmdedit.h"
 #else
-/* in place of #include "busybox.h"; much of this is indeed
- * pasted in from the copy of busybox.h in busybox-0.49pre */
-
-#define xrealloc realloc
 #define applet_name "hush"
+#include "standalone.h"
 #define shell_main main
-
-extern void *xmalloc(size_t size)
-{
-	void *ptr = malloc(size);
-
-	if (!ptr) {
-		fprintf(stderr, "memory_exhausted\n");
-		exit (EXIT_FAILURE);
-	}
-	return ptr;
-}
-
-extern void usage(const char *usage)
-{
-	fprintf(stderr, "Usage: %s\n", usage);
-	exit(EXIT_FAILURE);
-}
-
-static void verror_msg(const char *s, va_list p)
-{
-	fflush(stdout);
-	fprintf(stderr, "%s: ", applet_name);
-	vfprintf(stderr, s, p);
-	fflush(stderr);
-}
-
-extern void error_msg(const char *s, ...)
-{
-	va_list p;
-
-	va_start(p, s);
-	verror_msg(s, p);
-	va_end(p);
-}
-
-extern void error_msg_and_die(const char *s, ...)
-{
-	va_list p;
-
-	va_start(p, s);
-	verror_msg(s, p);
-	va_end(p);
-	exit(EXIT_FAILURE);
-}
-
-static void vperror_msg(const char *s, va_list p)
-{
-	fflush(stdout);
-	fprintf(stderr, "%s: ", applet_name);
-	if (s && *s) {
-		vfprintf(stderr, s, p);
-		fputs(": ", stderr);
-	}
-	fprintf(stderr, "%s\n", strerror(errno));
-	fflush(stderr);
-}
-
-extern void perror_msg(const char *s, ...)
-{
-	va_list p;
-
-	va_start(p, s);
-	vperror_msg(s, p);
-	va_end(p);
-}
-
-extern void perror_msg_and_die(const char *s, ...)
-{
-	va_list p;
-
-	va_start(p, s);
-	vperror_msg(s, p);
-	va_end(p);
-	exit(EXIT_FAILURE);
-}
-
-FILE *xfopen(const char *path, const char *mode)
-{
-	FILE *fp;
-	if ((fp = fopen(path, mode)) == NULL)
-		perror_msg_and_die(path);
-	return fp;
-}
-#endif  /* of busybox.h replacement */
+#define BB_FEATURE_SH_SIMPLE_PROMPT
+#endif
 
 typedef enum {
 	REDIRECT_INPUT     = 1,
@@ -241,7 +156,8 @@ typedef enum {
 	RES_UNTIL = 8,
 	RES_DO    = 9,
 	RES_DONE  = 10,
-	RES_XXXX  = 11
+	RES_XXXX  = 11,
+	RES_SNTX  = 12
 } reserved_style;
 #define FLAG_END   (1<<RES_NONE)
 #define FLAG_IF    (1<<RES_IF)
@@ -331,7 +247,7 @@ static int fake_mode=0;
 static int interactive=0;
 static struct close_me *close_me_head = NULL;
 static char *cwd;
-static struct jobset job_list = { NULL, NULL };
+/* static struct jobset job_list = { NULL, NULL }; */
 static unsigned int last_bg_pid=0;
 static char *PS1;
 static char *PS2 = "> ";
@@ -843,6 +759,7 @@ static inline void cmdedit_set_initial_prompt(void)
 
 static inline void setup_prompt_string(int promptmode, char **prompt_str)
 {
+	debug_printf("setup_prompt_string %d ",promptmode);
 #ifdef BB_FEATURE_SH_SIMPLE_PROMPT
 	/* Set up the prompt */
 	if (promptmode == 1) {
@@ -856,7 +773,8 @@ static inline void setup_prompt_string(int promptmode, char **prompt_str)
 	}
 #else
 	*prompt_str = (promptmode==0)? PS1 : PS2;
-#endif	
+#endif
+	debug_printf("result %s\n",*prompt_str);
 }
 
 static void get_user_input(struct in_str *i)
@@ -1537,7 +1455,10 @@ int reserved_word(o_string *dest, struct p_context *ctx)
 				initialize_context(ctx);
 				ctx->stack=new;
 			} else if ( ctx->w == RES_NONE || ! (ctx->old_flag & (1<<r->code))) {
-				syntax();  /* XXX how do we get out? */
+				syntax();
+				ctx->w = RES_SNTX;
+				b_reset (dest);
+				return 1;
 			}
 			ctx->w=r->code;
 			ctx->old_flag = r->flag;
@@ -1579,7 +1500,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		}
 		if (!child->argv) {
 			debug_printf("checking %s for reserved-ness\n",dest->data);
-			if (reserved_word(dest,ctx)) return 0;
+			if (reserved_word(dest,ctx)) return ctx->w==RES_SNTX;
 		}
 		glob_target = &child->glob_result;
  		if (child->argv) flags |= GLOB_APPEND;
@@ -1921,11 +1842,16 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			ch,ch,m,dest->quote);
 		if (m==0 || ((m==1 || m==2) && dest->quote)) {
 			b_addqchr(dest, ch, dest->quote);
-		} else if (ch == end_trigger && !dest->quote) {
+		} else if (ch == end_trigger && !dest->quote && ctx->w==RES_NONE) {
 			debug_printf("leaving parse_stream\n");
 			return 0;
 		} else if (m==2 && !dest->quote) {  /* IFS */
 			done_word(dest, ctx);
+			if (ch=='\n') done_pipe(ctx,PIPE_SEQ);
+			if (ch == end_trigger && !dest->quote && ctx->w==RES_NONE) {
+				debug_printf("leaving parse_stream (stupid duplication)\n");
+				return 0;
+			}
 #if 0
 			if (ch=='\n') {
 				/* Yahoo!  Time to run with it! */
