@@ -1679,6 +1679,12 @@
 #else
   #define USAGE_REMOTE_LOG(a)
 #endif
+#ifdef CONFIG_FEATURE_IPC_SYSLOG
+  #define USAGE_IPC_LOG(a) a
+#else
+  #define USAGE_IPC_LOG(a)
+#endif
+
 #define syslogd_trivial_usage \
 	"[OPTION]..."
 #define syslogd_full_usage \
@@ -1690,7 +1696,9 @@
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)" \
 	USAGE_REMOTE_LOG( \
 	"\n\t-R HOST[:PORT]\tLog to IP or hostname on PORT (default PORT=514/UDP)\n" \
-	"\t-L\t\tLog locally and via network logging (default is network only)")
+	"\t-L\t\tLog locally and via network logging (default is network only)") \
+	USAGE_IPC_LOG( \
+	"\n\t-C\t\tLog to a circular buffer (read the buffer using logread)")
 #define syslogd_example_usage \
 	"$ syslogd -R masterlog:514\n" \
 	"$ syslogd -R 192.168.1.1:601\n"
