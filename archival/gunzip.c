@@ -125,13 +125,14 @@ unsigned short mask_bits[] = {
 //static int error_number = 0;
 /* ========================================================================
  * Signal and error handler.
- */
+ 
 static void abort_gzip()
 {
 	error_msg("gzip aborted\n");
 //	exit(ERROR);
 	return;
 }
+*/
 
 static void make_crc_table()
 {
@@ -432,7 +433,6 @@ static int inflate_codes(huft_t *tl, huft_t *td, int bl, int bd)
 		if (e == 16) {		/* then it's a literal */
 			window[w++] = (unsigned char) t->v.n;
 			if (w == WSIZE) {
-//				flush_output(w);
 				outcnt=(w),
 				flush_window();
 				w = 0;
