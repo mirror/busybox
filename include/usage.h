@@ -659,7 +659,7 @@
 ) USAGE_FIND_INUM( \
 	"\n\t-inum N\t\tFile has inode number N")
 #define find_example_usage \
-	"$ find / -name /etc/passwd\n" \
+	"$ find / -name passwd\n" \
 	"/etc/passwd\n"
 
 #define fold_trivial_usage \
