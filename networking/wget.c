@@ -320,7 +320,7 @@ int wget_main(int argc, char **argv)
 #endif
 				fprintf(sfp, format,
 					target.is_ftp ? "f" : "ht", target.host,
-					target.port, target.path);
+					ntohs(target.port), target.path);
 			} else {
 				fprintf(sfp, "GET /%s HTTP/1.1\r\n", target.path);
 			}
@@ -837,7 +837,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.67 2004/01/26 07:17:30 andersen Exp $
+ *	$Id: wget.c,v 1.68 2004/01/31 08:08:57 bug1 Exp $
  */
 
 
