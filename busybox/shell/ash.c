@@ -9706,7 +9706,6 @@ TRACE(("expecting DO got %s %s\n", tokname[got], got == TWORD ? wordtext : ""));
 		if (!redir)
 			synexpect(-1);
 	case TWORD:
-	case TREDIR:
 		tokpushback++;
 		n1 = simplecmd();
 		return n1;
@@ -9750,6 +9749,14 @@ simplecmd() {
 	vpp = &vars;
 	redir = NULL;
 	rpp = &redir;
+
+	/* Check for redirection which may precede command */
+	while (readtoken() == TREDIR) {
+		*rpp = n2 = redirnode;
+		rpp = &n2->nfile.next;
+		parsefname();
+	}
+	tokpushback++;
 
 	checkalias = 2;
 	for (;;) {
@@ -12785,7 +12792,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.17.2.1 2001/08/10 18:22:14 andersen Exp $
+ * $Id: ash.c,v 1.17.2.2 2001/09/06 17:39:23 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
