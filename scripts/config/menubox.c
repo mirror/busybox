@@ -93,7 +93,7 @@ print_item (WINDOW * win, const char *item, int choice, int selected, int hotkey
     }
     if (selected) {
 	wmove (win, choice, item_x+1);
-	wnoutrefresh (win);
+	wrefresh (win);
     }
 }
 
