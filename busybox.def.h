@@ -74,7 +74,7 @@
 //
 //Enable init being called as /linuxrc
 #define BB_FEATURE_LINUXRC
-// Use termios to manipulate the screen (more is much pretties with this on)
+// Use termios to manipulate the screen ('more' is prettier with this on)
 #define BB_FEATURE_USE_TERMIOS
 // calculate terminal & column widths
 #define BB_FEATURE_AUTOWIDTH
