@@ -1,7 +1,7 @@
 /* vi: set sw=4 ts=4: */
 
 // NOTE: This file only defines features usefull under the Hurd,
-// To compile for the Hurd raname this to busybox.def.h prior to make
+// To compile for the Hurd raname this to Config.h prior to make
 
 // This file defines the feature set to be compiled into busybox.
 // When you turn things off here, they won't be compiled in at all.

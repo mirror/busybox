@@ -24,7 +24,7 @@
 #ifndef	_BB_INTERNAL_H_
 #define	_BB_INTERNAL_H_    1
 
-#include "busybox.def.h"
+#include "Config.h"
 
 #ifdef DMALLOC
 #include "dmalloc.h"

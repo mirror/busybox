@@ -1,33 +1,39 @@
 0.47
 
-	* Tons of bugfixes.
 	* A bug in syslogd was fixed that allowed it to potentially fork-bomb
 	    your system.
-	* chroot can now call the builtin shell - Pavel Roskin <proski@gnu.org>
-	* added 'renice' command, thanks to Dave Cinege <dcinege@psychosis.com>
-	* 'make install' now creates relative symlinks, and added a new
-	    'make install-hardlinks' target to (tada) install hardlinks.
+	* Renamed busybox.defs.h to the more sensible "Config.h"
+	* Improved portability between different libcs.
+	* Many apps ported to use getopt()
+	* Common handling of '--help'
+	* All usage messages centralized.
+	* Added a bunch of new commands:
+	    * 'rdate' contributed by Sterling Huxley <sterling@europa.com>
+	    * 'wget' contributed by Chip Rosenthal <chip@unicom.com>, 
+		    <crosenth@covad.com> and Covad Communications
+	    * 'getopt' from "Alfred M. Szmidt" <ams@trillian.itslinux.org>
+	    * dos2unix, unix2dos, reset, and unrpm.c (and lots of help
+		debugging) thanks to robotti@metconnect.com.
+	    * 'renice' command, thanks to Dave Cinege <dcinege@psychosis.com>
+	    * 'xargs' (written by me)
+	    * 'expr' contributed by Edward Betts <edward@debian.org>, based
+		on GNY expr
+	* lsmod now uses the query_module syscall, rather then /proc (me)
 	* syslogd can now log messages to remote hosts -- patch thanks
 	    to Gyepi Sam <gyepi@praxis-sw.com>
+	* chroot can now call the builtin shell - Pavel Roskin <proski@gnu.org>
+	* 'make install' now creates relative symlinks, and added a new
+	    'make install-hardlinks' target to (tada) install hardlinks.
 	* Rewrite of 'tail' to make it simpler, smaller, and more robust.  
 	    It now weighs only 2.25k (3k when full featured).  The code is
 	    cleaner too, thanks to Allen Soard <esp-software@mail.hypermart.net>
 	* Add optional ls file sorting, thanks to a patch from 
 	    Sterling Huxley <sterling@europa.com>
-	* Added 'rdate' command from Sterling Huxley <sterling@europa.com>
-	* Added 'wget' command, contributed by Chip Rosenthal <chip@unicom.com>, 
-		<crosenth@covad.com> and Covad Communications
-	* Added 'getopt' from "Alfred M. Szmidt" <ams@trillian.itslinux.org>
-	* Added dos2unix, unix2dos, and unrpm.c thanks to robotti@metconnect.com.
-	* Added xargs (written by me)
-	* lsmod now uses the query_module syscall, rather then /proc (me)
 	* Fixed chmod option parsing so things like 'chmod -r /tmp/file'
-	    wouldn't work (since it thought -r was an option).  Doh!
+	    now work (previously it thought -r was an option).  Doh!
 	* Fixed tar handling of stdin and stdout
-	* Many apps ported to use getopt()
-	* All usage messages centralized.
-	* Common handling of '--help'
-	* Improved portability between different libcs.
+	* Preliminary support for GNU HURD.
+	* Tons of other bugfixes.
 
 
 	 -Erik Andersen

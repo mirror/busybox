@@ -19,7 +19,7 @@
 #
 
 PROG      := busybox
-VERSION   := 0.47pre
+VERSION   := 0.47
 BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 export VERSION
 
@@ -173,11 +173,11 @@ busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
 
-busybox.links: busybox.def.h
+busybox.links: Config.h
 	- ./busybox.mkll | sort >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
-$(OBJECTS): %.o: busybox.def.h internal.h  %.c Makefile
+$(OBJECTS): %.o: Config.h internal.h  %.c Makefile
 
 utility.o: loop.h
 

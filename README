@@ -20,7 +20,7 @@ it also makes an excellent environment for any small or embedded system.
 As of version 0.20 there is a version number. : ) Also as of version 0.20,
 BusyBox is now modularized to easily allow you to build only the components you
 need, thereby reducing binary size. To turn off unwanted Busybox components,
-simply edit the file busybox.def.h and comment out the components you do not
+simply edit the file "Config.h" and comment out the components you do not
 need using C++ style (//) comments.
 
 After the build is complete a busybox.links file is generated which is then
