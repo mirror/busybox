@@ -487,19 +487,17 @@ void add_split_dependencies(common_node_t *parent_node, const char *whole_line, 
 
 void free_package(common_node_t *node)
 {
-	int i;
-	if (node != NULL) {
+	unsigned short i;
+	if (node) {
 		for (i = 0; i < node->num_of_edges; i++) {
-			if (node->edge[i] != NULL) {
+			if (node->edge[i]) {
 				free(node->edge[i]);
 			}
 		}
-		if (node->edge != NULL) {
+		if (node->edge) {
 			free(node->edge);
 		}
-		if (node != NULL) {
-			free(node);
-		}
+		free(node);
 	}
 }
 
@@ -905,9 +903,8 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 	int state_status;
 	int state_flag;
 	int state_want;
-	unsigned int status_package_num;
 	int i = deb_start;
-	int j, k;
+	int j;
 
 	/* Check for conflicts
 	 * TODO: TEST if conflicts with other packages to be installed
@@ -948,38 +945,49 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 	}
 
 	/* Check conflicts */
-	for (i = 0; i < conflicts_num; i++) {
-		/* Check for conflicts */
-		for (j = 0; j < STATUS_HASH_PRIME; j++) {
-			if (status_hashtable[j] == NULL) {
-				continue;
-			}
-			state_flag = get_status(j, 2);
-			state_status = get_status(j, 3);
-			if ((state_status != search_name_hashtable("installed"))
-				&& (state_flag != search_name_hashtable("want-install"))) {
-				continue;
-			}
-			status_package_num = status_hashtable[j]->package;
-			for (k = 0; k < package_hashtable[status_package_num]->num_of_edges; k++) {
-				const edge_t *package_edge = package_hashtable[status_package_num]->edge[k];
-				if (package_edge->type != EDGE_CONFLICTS) {
-					continue;
+	i = 0;
+	while (deb_file[i] != NULL) {
+		const common_node_t *package_node = package_hashtable[deb_file[i]->package];
+		int status_num = 0;
+		status_num = search_status_hashtable(name_hashtable[package_node->name]);
+
+		if (get_status(status_num, 3) == search_name_hashtable("installed")) {
+			i++;
+			continue;
+		}
+
+		for (j = 0; j < package_node->num_of_edges; j++) {
+			const edge_t *package_edge = package_node->edge[j];
+			const unsigned int package_num = 
+			search_package_hashtable(package_edge->name,
+				package_edge->version, package_edge->operator);	
+
+			if (package_edge->type == EDGE_CONFLICTS) {
+				int result = 0;
+				if (package_hashtable[package_num] != NULL) {
+					status_num = search_status_hashtable(name_hashtable[package_hashtable[package_num]->name]);
+					state_status = get_status(status_num, 3);
+					state_flag = get_status(status_num, 1);
+
+					result = (state_status == search_name_hashtable("installed")) || 
+						(state_flag == search_name_hashtable("want-install"));
+
+					if (result) {
+						result = test_version(package_hashtable[deb_file[i]->package]->version,
+							package_edge->version, package_edge->operator);
+					}
 				}
-				if (package_edge->name != package_hashtable[conflicts[i]]->name) {
-					continue;
-				}
-				/* There is a conflict against the package name
-				 * check if version conflict as well */
-				if (test_version(package_hashtable[deb_file[i]->package]->version,
-						package_edge->version, package_edge->operator)) {
-					error_msg_and_die("Package %s conflict with %s",
-						name_hashtable[package_hashtable[deb_file[i]->package]->name],
-						name_hashtable[package_hashtable[status_package_num]->name]);
+
+				if (result) {
+					error_msg_and_die("Package %s conflicts with %s",
+						name_hashtable[package_node->name],
+						name_hashtable[package_edge->name]);
 				}
 			}
 		}
-	}
+		i++;
+	}	    
+
 
 	/* Check dependendcies */
 	i = 0;
@@ -987,40 +995,58 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 		const common_node_t *package_node = package_hashtable[deb_file[i]->package];
 		int status_num = 0;
 
+		status_num = search_status_hashtable(name_hashtable[package_node->name]);	  
+		state_status = get_status(status_num, 3);
+		state_want = get_status(status_num, 1);
+
+		if (state_status == search_name_hashtable("installed")) {
+			i++;
+			continue;
+		}
+
 		for (j = 0; j < package_hashtable[deb_file[i]->package]->num_of_edges; j++) {
 			const edge_t *package_edge = package_node->edge[j];
 			unsigned int package_num;
 
 			package_num = search_package_hashtable(package_edge->name, package_edge->version, package_edge->operator);
-			if (package_hashtable[package_num] == NULL) {
-				error_msg_and_die("Dependency checking failed for package %s\nNOTE: This may be due to busybox dpkg's inability to handle the Provides field, you may avoid dependency checking using the \"-F depends\" option ", name_hashtable[package_edge->name]);
-			}
-			status_num = search_status_hashtable(name_hashtable[package_hashtable[package_num]->name]);
 
-			state_status = get_status(status_num, 3);
-			state_want = get_status(status_num, 1);
 			switch (package_edge->type) {
 				case(EDGE_PRE_DEPENDS):
-				case(EDGE_OR_PRE_DEPENDS):
+				case(EDGE_OR_PRE_DEPENDS): {
+					int result=1;
 					/* It must be already installed */
 					/* NOTE: This is untested, nothing apropriate in my status file */
-					if ((package_hashtable[package_num] == NULL) || (state_status != search_name_hashtable("installed"))) {
+					if (package_hashtable[package_num] != NULL) {
+						status_num = search_status_hashtable(name_hashtable[package_hashtable[package_num]->name]);
+						state_status = get_status(status_num, 3);
+						state_want = get_status(status_num, 1);
+						result = (state_status != search_name_hashtable("installed"));
+					}
+
+					if (result) {
 						error_msg_and_die("Package %s pre-depends on %s, but it is not installed",
 							name_hashtable[package_node->name],
 							name_hashtable[package_edge->name]);
 					}
 					break;
+				}
 				case(EDGE_DEPENDS):
-				case(EDGE_OR_DEPENDS):
+				case(EDGE_OR_DEPENDS): {
+					int result=1;
+					if (package_hashtable[package_num] != NULL) {
+						status_num = search_status_hashtable(name_hashtable[package_hashtable[package_num]->name]);
+						state_status = get_status(status_num, 3);
+						state_want = get_status(status_num, 1);
+						result=(state_status != search_name_hashtable("installed")) && (state_want != search_name_hashtable("want-install"));
+					}
 					/* It must be already installed, or to be installed */
-					if ((package_hashtable[package_num] == NULL) ||
-						((state_status != search_name_hashtable("installed")) &&
-						(state_want != search_name_hashtable("want_install")))) {
+					if (result) {
 						error_msg_and_die("Package %s depends on %s, but it is not installed, or flaged to be installed",
 							name_hashtable[package_node->name],
 							name_hashtable[package_edge->name]);
 					}
 					break;
+				}
 			}
 		}
 		i++;
@@ -1032,7 +1058,7 @@ int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 char **create_list(const char *filename)
 {
 	FILE *list_stream;
-	char **file_list = xmalloc(sizeof(char *));
+	char **file_list = NULL;
 	char *line = NULL;
 	int length = 0;
 	int count = 0;
@@ -1040,12 +1066,11 @@ char **create_list(const char *filename)
 	/* dont use [xw]fopen here, handle error ourself */
 	list_stream = fopen(filename, "r");
 	if (list_stream == NULL) {
-		*file_list = NULL;
-		return(file_list);
+		return(NULL);
 	}
+
 	while (getline(&line, &length, list_stream) != -1) {
-		/* +2 as we need to include space for the terminating NULL pointer */
-		file_list = xrealloc(file_list, sizeof(char *) * (length + 2));
+		file_list = xrealloc(file_list, sizeof(char *) * (count + 2));
 		chomp(line);
 		file_list[count] = xstrdup(line);
 		count++;
@@ -1119,20 +1144,37 @@ int run_package_script(const char *package_name, const char *script_type)
 	return(result);
 }
 
-void all_control_list(char **remove_files, const char *package_name)
+char **all_control_list(const char *package_name)
 {
-	const char *all_extensions[11] = {"preinst", "postinst", "prerm", "postrm",
+	const char *extensions[11] = {"preinst", "postinst", "prerm", "postrm",
 		"list", "md5sums", "shlibs", "conffiles", "config", "templates", NULL };
-	int i;
+	unsigned short i = 0;
+	char **remove_files;
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
-	for(i = 0; i < 10; i++) {
-		remove_files[i] = xmalloc(strlen(package_name) + strlen(all_extensions[i]) + 21);
-		sprintf(remove_files[i], "/var/lib/dpkg/info/%s.%s", package_name, all_extensions[i]);
+	remove_files = malloc(sizeof(char *) * 11);
+	while (extensions[i]) {
+		remove_files[i] = xmalloc(strlen(package_name) + strlen(extensions[i]) + 21);
+		sprintf(remove_files[i], "/var/lib/dpkg/info/%s.%s", package_name, extensions[i]);
+		i++;
 	}
 	remove_files[10] = NULL;
+
+	return(remove_files);
 }
 
+void free_array(char **array)
+{
+	
+	if (array) {
+		unsigned short i = 0;
+		while (array[i]) {
+			free(array[i]);
+			i++;
+		}
+		free(array);
+	}
+}
 
 /* This function lists information on the installed packages. It loops through
  * the status_hashtable to retrieve the info. This results in smaller code than
@@ -1203,10 +1245,8 @@ void remove_package(const unsigned int package_num)
 
 	/* Some directories cant be removed straight away, so do multiple passes */
 	while (remove_file_array(remove_files, exclude_files));
-
-	/* Create a list of all /var/lib/dpkg/info/<package> files */
-	remove_files = xmalloc(sizeof(char *) * 11);
-	all_control_list(remove_files, package_name);
+	free_array(exclude_files);
+	free_array(remove_files);
 
 	/* Create a list of files in /var/lib/dpkg/info/<package>.* to keep  */
 	exclude_files = xmalloc(sizeof(char*) * 3);
@@ -1215,7 +1255,12 @@ void remove_package(const unsigned int package_num)
 	sprintf(exclude_files[1], "/var/lib/dpkg/info/%s.postrm", package_name);
 	exclude_files[2] = NULL;
 
+	/* Create a list of all /var/lib/dpkg/info/<package> files */
+	remove_files = all_control_list(package_name);
+
 	remove_file_array(remove_files, exclude_files);
+	free_array(remove_files);
+	free_array(exclude_files);
 
 	/* rename <package>.conffile to <package>.list */
 	rename(conffile_name, list_name);
@@ -1242,16 +1287,18 @@ void purge_package(const unsigned int package_num)
 	sprintf(list_name, "/var/lib/dpkg/info/%s.list", package_name);
 	remove_files = create_list(list_name);
 
-	exclude_files = xmalloc(1);
+	exclude_files = xmalloc(sizeof(char*));
 	exclude_files[0] = NULL;
 
 	/* Some directories cant be removed straight away, so do multiple passes */
 	while (remove_file_array(remove_files, exclude_files));
+	free_array(remove_files);
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
-	remove_files = xmalloc(sizeof(char *) * 11);
-	all_control_list(remove_files, package_name);
+	remove_files = all_control_list(package_name);
 	remove_file_array(remove_files, exclude_files);
+	free_array(remove_files);
+	free(exclude_files);
 
 	/* run postrm script */
 	if (run_package_script(package_name, "postrm") == -1) {
@@ -1284,7 +1331,7 @@ void unpack_package(deb_file_t *deb_file)
 	}
 
 	/* Extract control.tar.gz to /var/lib/dpkg/info/<package>.filename */
-	info_prefix = (char *) xmalloc(sizeof(package_name) + 20 + 4 + 2);
+	info_prefix = (char *) xmalloc(strlen(package_name) + 20 + 4 + 2);
 	sprintf(info_prefix, "/var/lib/dpkg/info/%s.", package_name);
 	deb_extract(deb_file->filename, stdout, (extract_quiet | extract_control_tar_gz | extract_all_to_fs | extract_unconditional), info_prefix, NULL);
 
@@ -1328,7 +1375,7 @@ void configure_package(deb_file_t *deb_file)
 	set_status(status_num, "installed", 3);
 }
 
-extern int dpkg_main(int argc, char **argv)
+int dpkg_main(int argc, char **argv)
 {
 	deb_file_t **deb_file = NULL;
 	status_node_t *status_node;
@@ -1388,8 +1435,9 @@ extern int dpkg_main(int argc, char **argv)
 	}
 	
 	/* Read arguments and store relevant info in structs */
-	deb_file = xmalloc(sizeof(deb_file_t));
 	while (optind < argc) {
+		/* deb_count = nb_elem - 1 and we need nb_elem + 1 to allocate terminal node [NULL pointer] */
+		deb_file = xrealloc(deb_file, sizeof(deb_file_t *) * (deb_count + 2));
 		deb_file[deb_count] = (deb_file_t *) xmalloc(sizeof(deb_file_t));
 		if (dpkg_opt & dpkg_opt_filename) {
 			deb_file[deb_count]->filename = xstrdup(argv[optind]);
@@ -1408,7 +1456,6 @@ extern int dpkg_main(int argc, char **argv)
 			if ((dpkg_opt & dpkg_opt_unpack) || (dpkg_opt & dpkg_opt_install)) {
 				status_node = (status_node_t *) xmalloc(sizeof(status_node_t));
 				status_node->package = deb_file[deb_count]->package;
-
 				/* Try and find a currently installed version of this package */
 				status_num = search_status_hashtable(name_hashtable[package_hashtable[deb_file[deb_count]->package]->name]);
 				/* If no previous entry was found initialise a new entry */
@@ -1416,10 +1463,10 @@ extern int dpkg_main(int argc, char **argv)
 					(status_hashtable[status_num]->status == 0)) {
 					/* reinstreq isnt changed to "ok" until the package control info
 					 * is written to the status file*/
-					status_node->status = search_name_hashtable("install reinstreq not-installed");
+					status_node->status = search_name_hashtable("want-install reinstreq not-installed");
 					status_hashtable[status_num] = status_node;
 				} else {
-					status_hashtable[status_num]->status = search_name_hashtable("install reinstreq installed");
+					status_hashtable[status_num]->status = search_name_hashtable("want-install reinstreq not-installed");
 				}
 			}
 		}
@@ -1488,6 +1535,7 @@ extern int dpkg_main(int argc, char **argv)
 		free(deb_file[i]->filename);
 		free(deb_file[i]);
 	}
+
 	free(deb_file);
 
 	for (i = 0; i < NAME_HASH_PRIME; i++) {
@@ -1497,7 +1545,9 @@ extern int dpkg_main(int argc, char **argv)
 	}
 
 	for (i = 0; i < PACKAGE_HASH_PRIME; i++) {
-		free_package(package_hashtable[i]);
+		if (package_hashtable[i] != NULL) {
+			free_package(package_hashtable[i]);
+		}
 	}
 
 	for (i = 0; i < STATUS_HASH_PRIME; i++) {

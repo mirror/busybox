@@ -192,7 +192,9 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 		fprintf(out_stream, "%s\n", full_name);
 	}
 
-	free(full_name);
+	if (prefix != NULL) {
+	  free(full_name);
+	}
 
 	return(NULL); /* Maybe we should say if failed */
 }
