@@ -462,11 +462,6 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 
 	tbInfo.hlInfoHead = NULL;
 
-	/* Make sure there is at least one file to tar up.  */
-	if (include == NULL) {
-		bb_error_msg_and_die("Cowardly refusing to create an empty archive");
-	}
-
 	fchmod(tar_fd, 0644);
 	tbInfo.tarFd = tar_fd;
 	tbInfo.verboseFlag = verboseFlag;
@@ -748,6 +743,10 @@ int tar_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
 		if (ctx_flag == CTX_CREATE) {
+			/* Make sure there is at least one file to tar up.  */
+			if (tar_handle->accept == NULL) {
+				bb_error_msg_and_die("Cowardly refusing to create an empty archive");
+			}
 			tar_stream = stdout;
 			flags = O_WRONLY | O_CREAT | O_EXCL;
 			unlink(tar_filename);
