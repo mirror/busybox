@@ -382,8 +382,8 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
     int uid;
     int gid;
     int checkSum;
-    int major;
-    int minor;
+    unsigned int major;
+    unsigned int minor;
     long size;
     time_t mtime;
     const char *name;
@@ -488,10 +488,13 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      */
     if (extractFlag==FALSE) {
 	if (verboseFlag==TRUE) {
-	    printf ("%s %3d/%-d %9ld %s %s", modeString (mode),
-		    uid, gid, size, timeString (mtime), name);
-	} else
-	    printf ("%s", name);
+	    printf ("%s %3d/%-d ", modeString (mode), uid, gid);
+	    if( S_ISCHR (mode) || S_ISBLK (mode) )
+		printf ("%4d,%4d %s ", major,minor, timeString (mtime));
+	    else
+		printf ("%9ld %s ", size, timeString (mtime));
+	}
+	printf ("%s", name);
 
 	if (hardLink)
 	    printf (" (link to \"%s\")", hp->linkName);
@@ -517,7 +520,8 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
     if (hardLink) {
 	if (link (hp->linkName, name) < 0)
 	    perror (name);
-
+	chmod(name, mode);
+	chown(name, uid, gid);
 	return;
     }
 
@@ -525,24 +529,32 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 #ifdef	S_ISLNK
 	if (symlink (hp->linkName, name) < 0)
 	    perror (name);
+	chmod(name, mode);
+	chown(name, uid, gid);
 #else
 	fprintf (stderr, "Cannot create symbolic links\n");
 #endif
 	return;
     }
 
+    /* Set the umask for this process so it doesn't 
+     * screw things up. */
+    umask(0);
+
     /* 
      * If the file is a directory, then just create the path.
      */
     if (S_ISDIR (mode)) {
 	createPath (name, mode);
+	chmod(name, mode);
+	chown(name, uid, gid);
 
 	return;
     }
 
     /* 
      * There is a file to write.
-     * First create the path to it if necessary with a default permission.
+     * First create the path to it if necessary with default permissions.
      */
     createPath (name, 0777);
 
@@ -571,6 +583,10 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 	perror (name);
 	skipFileFlag = TRUE;
 	return;
+    }
+    if (tostdoutFlag == FALSE) {
+	fchmod(outFd, mode);
+	fchown(outFd, uid, gid);
     }
 
     /* 
@@ -672,7 +688,7 @@ static void writeTarFile (int fileCount, char **fileTable)
 
     tarDev = statbuf.st_dev;
     tarInode = statbuf.st_ino;
-
+		
     /* 
      * Append each file name into the archive file.
      * Follow symbolic links for these top level file names.
