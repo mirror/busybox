@@ -407,6 +407,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		"SHELL=/bin/sh",
 		termType,
 		"USER=root",
+		"ENV=/etc/profile",
 		0
 	};
 
