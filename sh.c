@@ -1490,7 +1490,7 @@ int shell_main(int argc_l, char **argv_l)
 		  }
 	}
 
-	while ((opt = getopt(argc_l, argv_l, "cx")) > 0) {
+	while ((opt = getopt(argc_l, argv_l, "cxi")) > 0) {
 		switch (opt) {
 			case 'c':
 				input = NULL;
