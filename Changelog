@@ -1,14 +1,67 @@
-0.51pre
+0.51
+    Critical Bugfixes:
+	* Erik Andersen -- Fixed a bug that could crash the shell in 0.50
+	    when pressing <Enter> on an empty line.
+	* Gennady Feldman -- Fixed a bug that could crash the shell in 0.50
+	    when performing an 'export' in the shell.
+	* Gennady Feldman -- fixed a syslogd bug where syslogd could cause
+	    the init process to block (which can break systems badly).
+
+    New Applets:
 	* Sterling Huxley -- contributed a new vi applet!  This is a very
 	    functional vi implementation in Only 22k.
 	* Erik Andersen -- added env applet
-	* Erik Andersen -- Split utility.c into libbb
+	
+    Other changes:
+	* Erik Andersen -- Split utility.c into libbb, which provides a
+	    much cleaner was for us to include shared functionality.
+	* Erik Andersen -- Reorganized how and when busybox includes 
+	    syscalls, aiding portability and (in this case) making the
+	    busybox work on ia64 systems.
+	* Erik Andersen -- dpkg.c cleanup to use the updated gunzip interface.
+	* Erik Andersen -- Cleanups for libc5, glibc, and uClibc.
+	* Erik Andersen and Matt Kraai -- Cleanups for the human-readable
+	    output from ls, du, and df.
+	* John Beppu -- The busybox.pod documentation is now automagically
+	    generated from the source code.  This makes it _much_ simpler.  
+	    Now to update the docs, just update the usage message...
+	* Dirk Behme <dirk.behme@de.bosch.com> -- Adjusted MIPS insmod 
+	    support a bit for Mips RS3.
+	* Christophe Boyanique -- egrep invoked the "init" applet in 0.50!
+	* Larry Doolittle -- Added -Wshadow and fixed a number of shadowed
+	    variables
+	* David Douthitt -- fixed 'find -print' 
+	* Gennady Feldman -- fixes for the syslogd circular buffer code 
+	* Jeff Garzik -- a number of structural cleanups, fixes for -Wshadow 
+	    bugs, and similar problems.
+	* Matt Kraai -- Added a new 'shutdown' action to busybox init.  Now
+	    you can specify arbitrary behavior for 'ctrlaltdel' so now
+	    pressing CTL-ALT-DEL can do something else (or nothing).
 	* Andreas Neuhaus <andy@fasta.fh-dortmund.de> -- fix for merging
 	    kernel command line environment variables into child environment
 	    for init.c
-	* Matt Kraai -- Added a new 'shutdown' action to busybox init.  Now
-	    you can specify arbitrary behavior for 'ctrlaltdel' without that
-	    behavior needing to be a reboot.
+	* Glenn McGrath -- Fixed problems with dpkg and dpkg-deb applets
+	* Glenn McGrath -- Don't try to automount devfs 
+	* Vladimir N. Oleynik -- optimizations for more.c
+	* Vladimir N. Oleynik -- Added locale support to the shell.
+	* Vladimir N. Oleynik -- moved struct applet from busybox.c to applets.c
+	* Vladimir N. Oleynik -- A size optimization for rdate
+	* Vladimir N. Oleynik -- Fixed printf applets's locale handling
+	* Vladimir N. Oleynik -- More cmdedit updates
+	* Pierre Peiffer <pierre.peiffer@sxb.bsf.alcatel.fr> -- made
+		find_pid_by_name() cope with swapped out processes.
+	* Jari Ruusu <jari.ruusu@pp.inet.fi> -- updates so that setting
+	    D_FILE_OFFSET_BITS=64 now works as expected. 
+	* Anthony Towns <aj@azure.humbug.org.au> -- fixed a bug with 
+	    sed address range handling
+	* Dmitry Zakharov <dmit@crp.bank.gov.ua> -- a number of updates
+	    to wget: support for ftp downloads, basic HTTP basic auth, 
+	    handling of http redirects, protocol changed to 1.0 to stop 
+	    servers from requesting chunked encoding, when attempting to 
+	    continue an aborted download but server doesn't support restarts
+	    then reopen output file in write mode, bugfix: when content-length 
+	    not given, wget didn't download anything, if -c is not specified,
+	    it no longer default to restarting an aborted download. 
 
 
 	 -Erik Andersen, not yet released
