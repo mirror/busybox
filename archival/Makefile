@@ -31,7 +31,7 @@ obj-$(CONFIG_DPKG)		+= dpkg.o
 obj-$(CONFIG_DPKG_DEB)		+= dpkg_deb.o
 obj-$(CONFIG_GUNZIP)		+= gunzip.o
 obj-$(CONFIG_GZIP)		+= gzip.o
-obj-$(CONFIG_RPMUNPACK)		+= rpm2cpio.o
+obj-$(CONFIG_RPM2CPIO)		+= rpm2cpio.o
 obj-$(CONFIG_TAR)		+= tar.o
 
 
