@@ -45,6 +45,7 @@
 
 #include "../shell/cmdedit.h"
 
+
 #ifdef CONFIG_LOCALE_SUPPORT
 #define Isprint(c) isprint((c))
 #else
@@ -80,11 +81,7 @@
 #endif
 
 #ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
-#       ifndef TEST
-#               include "pwd_.h"
-#       else
-#               include <pwd.h>
-#       endif  /* TEST */
+#include "pwd_.h"
 #endif                                                  /* advanced FEATURES */
 
 
@@ -1377,6 +1374,14 @@ prepare_to_die:
 				if (safe_read(0, &c, 1) < 1)
 					goto prepare_to_die;
 			}
+			if (c >= '1' && c <= '9') {
+				unsigned char dummy;
+
+				if (safe_read(0, &dummy, 1) < 1)
+					goto prepare_to_die;
+				if(dummy != '~')
+					c = 0;
+			}
 			switch (c) {
 #ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 			case '\t':                      /* Alt-Tab */
@@ -1429,15 +1434,9 @@ rewrite_line:
 				input_end();
 				break;
 			default:
-				if (!(c >= '1' && c <= '9'))
-					c = 0;
+				c = 0;
 				beep();
 			}
-			if (c >= '1' && c <= '9')
-				do
-					if (safe_read(0, &c, 1) < 1)
-						goto prepare_to_die;
-				while (c != '~');
 			break;
 		}
 
