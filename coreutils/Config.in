@@ -23,7 +23,8 @@ config CONFIG_CAT
 	bool "cat"
 	default n
 	help
-	  Please submit a patch to add help text for this item.
+	  cat is used to concatenate files and print them to the standard
+	  output.  Enable this option if you wish to enable the 'cat' utility.
 
 config CONFIG_CHGRP
 	bool "chgrp"
