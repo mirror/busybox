@@ -46,7 +46,7 @@ Warning! You can check returned flag, pointer to "d:" argument seted
 to own optarg always.
 Example two: cut applet must only one type of list may be specified,
 and -b, -c and -f incongruously option, overwited option is error also.
-You must set bb_opt_complementaly = "b~bcf:c~bcf:f~bcf".
+You must set bb_opt_complementaly = "b~cf:c~bf:f~bc".
 If called have more one specified, return value have error flag -
 high bite set (0x80000000UL).
 Example three: grep applet can have one or more "-e pattern" arguments.
@@ -81,10 +81,10 @@ const struct option *bb_applet_long_options = bb_default_long_options;
 unsigned long
 bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 {
-	unsigned long flags = 0;
-  int c = 0;
-	const unsigned char *s;
-  t_complementaly *complementaly;
+  unsigned long flags = 0;
+  t_complementaly complementaly[sizeof(flags) * 8 + 1];
+  int c;
+  const unsigned char *s;
   t_complementaly *on_off;
   va_list p;
 
@@ -95,34 +95,27 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
   if(*s == '+' || *s == '-')
 	s++;
 
-  for (; *s; s++) {
-	c++;
-	while (s[1] == ':') {
-	    /* check GNU extension "o::" - optional arg */
-	    s++;
-	}
-  }
-  complementaly = xcalloc (c + 1, sizeof (t_complementaly));
   c = 0;
-  /* skip GNU extension */
-  s = applet_opts;
-  if(*s == '+' || *s == '-')
-	s++;
-
+  on_off = complementaly;
   for (; *s; s++) {
-	complementaly->opt = *s;
-	complementaly->switch_on |= (1 << c);
-	c++;
+	if(c >= (sizeof(flags)*8))
+		break;
+	on_off->opt = *s;
+	on_off->switch_on |= (1 << c);
+	on_off->list_flg = 0;
+	on_off->switch_off = 0;
+	on_off->incongruously = 0;
+	on_off->optarg = NULL;
 	if (s[1] == ':') {
-	  complementaly->optarg = va_arg (p, void **);
+	  on_off->optarg = va_arg (p, void **);
 	  do
 		s++;
 	  while (s[1] == ':');
-		}
-	complementaly++;
 	}
-  complementaly->opt = 0;
-  complementaly -= c;
+	on_off++;
+	c++;
+  }
+  on_off->opt = 0;
   c = 0;
   for (s = bb_opt_complementaly; s && *s; s++) {
     t_complementaly *pair;
@@ -174,6 +167,5 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	    *(char **)(on_off->optarg) = optarg;
 	}
   }
-  free(complementaly);
-	return flags;
+  return flags;
 }
