@@ -149,8 +149,8 @@ static long du(char *filename)
 	/* Don't add in stuff pointed to by symbolic links */
 	if (S_ISLNK(statbuf.st_mode)) {
 		sum = 0L;
-		if (du_depth == 1)
-			print(sum, filename);
+		if (du_depth == 1) {
+		}
 	}
 	if (S_ISDIR(statbuf.st_mode)) {
 		DIR *dir;
@@ -236,8 +236,7 @@ int du_main(int argc, char **argv)
 		long sum;
 
 		for (i=optind; i < argc; i++) {
-			if ((sum = du(argv[i])) == 0)
-				status = EXIT_FAILURE;
+			sum = du(argv[i]);
 			if(is_directory(argv[i], FALSE, NULL)==FALSE) {
 				print_normal(sum, argv[i]);
 			}
@@ -248,7 +247,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.49 2001/06/13 08:02:44 andersen Exp $ */
+/* $Id: du.c,v 1.50 2001/06/30 17:54:20 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
