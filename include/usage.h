@@ -1689,6 +1689,13 @@
 	"$ uudecode busybox busybox > busybox.uu\n" \
 	"$\n"
 
+#define vi_trivial_usage \
+	"[OPTION] [FILE]..."
+#define vi_full_usage \
+	"edit FILE.\n\n" \
+	"Options:\n" \
+	"\t-R\tRead-only- do not write to the file." 
+
 #define watchdog_trivial_usage \
 	"DEV"
 #define watchdog_full_usage \

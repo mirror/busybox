@@ -413,6 +413,9 @@
 #ifdef BB_UUENCODE
 	APPLET(uuencode, uuencode_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_VI
+	APPLET(vi, vi_main, _BB_DIR_BIN)
+#endif
 #ifdef BB_WATCHDOG
 	APPLET(watchdog, watchdog_main, _BB_DIR_SBIN)
 #endif

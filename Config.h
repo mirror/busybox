@@ -120,6 +120,7 @@
 //#define BB_UPDATE
 #define BB_UPTIME
 //#define BB_USLEEP
+//#define BB_VI
 //#define BB_WATCHDOG
 #define BB_WC
 //#define BB_WGET
@@ -333,6 +334,17 @@
 // Tell tftp what commands that should be supported.
 #define BB_FEATURE_TFTP_PUT
 #define BB_FEATURE_TFTP_GET
+//
+// features for vi
+#define BB_FEATURE_VI_COLON		// ":" colon commands, no "ex" mode
+#define BB_FEATURE_VI_YANKMARK		// Yank/Put commands and Mark cmds
+#define BB_FEATURE_VI_SEARCH		// search and replace cmds
+#define BB_FEATURE_VI_USE_SIGNALS	// catch signals
+#define BB_FEATURE_VI_DOT_CMD		// remember previous cmd and "." cmd
+#define BB_FEATURE_VI_READONLY		// vi -R and "view" mode
+#define BB_FEATURE_VI_SETOPTS		// set-able options,  ai ic showmatch
+#define BB_FEATURE_VI_SET		// :set
+#define BB_FEATURE_VI_WIN_RESIZE	// handle window resize
 //
 // End of Features List
 //

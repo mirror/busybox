@@ -1,4 +1,6 @@
 0.51pre
+	* Sterling Huxley -- contributed a new vi applet!  This is a very
+	    functional vi implementation in Only 22k.
 	* Erik Andersen -- added env applet
 	* Erik Andersen -- Split utility.c into libbb
 	* Andreas Neuhaus <andy@fasta.fh-dortmund.de> -- fix for merging
