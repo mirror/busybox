@@ -2,7 +2,6 @@
 /*
  * Mini reboot implementation for busybox
  *
- * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
  * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -30,11 +29,6 @@
 #include "init_shared.h"
 
 
-#ifndef RB_ENABLE_CAD
-static const int RB_ENABLE_CAD = 0x89abcdef;
-static const int RB_AUTOBOOT = 0x01234567;
-#endif
-
 extern int reboot_main(int argc, char **argv)
 {
 	char *delay; /* delay in seconds before rebooting */
@@ -43,34 +37,13 @@ extern int reboot_main(int argc, char **argv)
 		sleep(atoi(delay));
 	}
 
-#ifdef CONFIG_USER_INIT
-		/* Don't kill ourself */
-        signal(SIGTERM,SIG_IGN);
-        signal(SIGHUP,SIG_IGN);
-        setpgrp();
-
-		/* Allow Ctrl-Alt-Del to reboot system. */
-		reboot(RB_ENABLE_CAD);
-
-		message(CONSOLE|LOG, "\n\rThe system is going down NOW !!\n");
-		sync();
-
-		/* Send signals to every process _except_ pid 1 */
-		message(CONSOLE|LOG, "\rSending SIGTERM to all processes.\n");
-		kill(-1, SIGTERM);
-		sleep(1);
-		sync();
-
-		message(CONSOLE|LOG, "\rSending SIGKILL to all processes.\n");
-		kill(-1, SIGKILL);
-		sleep(1);
-
-		sync();
-
-		reboot(RB_AUTOBOOT);
-		return 0; /* Shrug */
+#ifndef CONFIG_INIT
+#ifndef RB_AUTOBOOT
+#define RB_AUTOBOOT				0x01234567
+#endif
+	return(bb_shutdown_system(RB_AUTOBOOT));
 #else
-	return kill_init(SIGTERM);
+	return kill_init(SIGUSR2);
 #endif
 }
 

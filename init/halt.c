@@ -2,7 +2,6 @@
 /*
  * Mini halt implementation for busybox
  *
- * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
  * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,12 +20,29 @@
  *
  */
 
-#include "busybox.h"
 #include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <sys/reboot.h>
+#include "busybox.h"
 #include "init_shared.h"
 
 
 extern int halt_main(int argc, char **argv)
 {
+	char *delay; /* delay in seconds before rebooting */
+
+	if(bb_getopt_ulflags(argc, argv, "d:", &delay)) {
+		sleep(atoi(delay));
+	}
+
+#ifndef CONFIG_INIT
+#ifndef RB_HALT_SYSTEM
+#define RB_HALT_SYSTEM		0xcdef0123
+#endif
+	return(bb_shutdown_system(RB_HALT_SYSTEM));
+#else
 	return kill_init(SIGUSR1);
+#endif
 }

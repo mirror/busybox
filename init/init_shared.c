@@ -1,8 +1,34 @@
+/* vi: set sw=4 ts=4: */
+/*
+ * Stuff shared between init, reboot, halt, and poweroff
+ *
+ * Copyright (C) 1999-2003 by Erik Andersen <andersen@codepoet.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ */
+
 #include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <sys/reboot.h>
+#include <sys/reboot.h>
+#include <sys/syslog.h>
 #include "busybox.h"
-
 #include "init_shared.h"
-
 
 extern int kill_init(int sig)
 {
@@ -19,3 +45,54 @@ extern int kill_init(int sig)
 	return(kill(1, sig));
 #endif
 }
+
+#ifndef CONFIG_INIT
+#define LOG				0x1
+#define CONSOLE			0x2
+extern int bb_shutdown_system(unsigned long magic)
+{
+	int pri = LOG_KERN|LOG_NOTICE|LOG_FACMASK;
+	char *message;
+
+    /* Don't kill ourself */
+    signal(SIGTERM,SIG_IGN);
+    signal(SIGHUP,SIG_IGN);
+    setpgrp();
+
+    /* Allow Ctrl-Alt-Del to reboot system. */
+#ifndef RB_ENABLE_CAD
+#define RB_ENABLE_CAD	0x89abcdef
+#endif
+    reboot(RB_ENABLE_CAD);
+
+	openlog("shutdown", 0, pri);
+
+	message = "\n\rThe system is going down NOW !!\n";
+	syslog(pri, "%s", message);
+	fprintf(stdout, "%s", message);
+
+    sync();
+
+    /* Send signals to every process _except_ pid 1 */
+	message = "\rSending SIGTERM to all processes.\n";
+	syslog(pri, "%s", message);
+	fprintf(stdout, "%s", message);
+
+    kill(-1, SIGTERM);
+    sleep(1);
+    sync();
+
+	message = "\rSending SIGKILL to all processes.\n";
+	syslog(pri, "%s", message);
+	fprintf(stdout, "%s", message);
+
+    kill(-1, SIGKILL);
+    sleep(1);
+
+    sync();
+
+    reboot(magic);
+    return 0; /* Shrug */
+}
+#endif
+

@@ -27,7 +27,7 @@ config CONFIG_FEATURE_INITRD
 
 config CONFIG_FEATURE_INIT_COREDUMPS
 	bool "  Support dumping core for child processes (debugging only)?"
-	default y
+	default n
 	depends on CONFIG_INIT
 	help
 	  If this option is enabled and the file /.init_enable_core
@@ -43,31 +43,28 @@ config CONFIG_FEATURE_EXTRA_QUIET
 	  Prevent init from logging some messages to the console
 	  during boot.
 
-# Some apps that are meaningless without BusyBox running as init
 config CONFIG_HALT
 	bool "halt"
 	default y
-	depends on CONFIG_INIT
 	help
-	  'halt' tells the kernel to stop all processes and halt the system.
+	  Stop all processes and halt the system.
 
 config CONFIG_POWEROFF
 	bool "poweroff"
 	default y
-	depends on CONFIG_INIT
 	help
 	  Stop all processes and (try to) power off the system.
 
 config CONFIG_REBOOT
 	bool "reboot"
 	default y
-	depends on CONFIG_INIT
 	help
 	  Stop all processes and reboot the system.
 
 config CONFIG_MINIT
 	bool "minit"
 	default n
+	depends on ! CONFIG_INIT
 	help
 	  Minimal init, based on minit v0.9.1.  This is a simple
 	  init replacement that handles starting/stopping services,
