@@ -1,3 +1,10 @@
+0.9.9 (pending)
++ Added sanity check for max_leases (udhcp bug #1285) (me)
++ Finally got rid of the trailing space in enviromental vars (me)
++ added an new enviromental variable: $mask. It contains the number
+  of subnet bits for tools like ip route that require it.
+  (Bastian Blank <waldi@debian.org>, me)
+
 0.9.8 (021031)
 + split up README files (me)
 + use /dev/urandom to seed xid's (instead of time(0)) (me)

@@ -214,8 +214,8 @@ void attach_option(struct option_set **opt_list, struct dhcp_option *option, cha
 		DEBUG(LOG_INFO, "Attaching option %s to list", option->name);
 		
 		/* make a new option */
-		new = malloc(sizeof(struct option_set));
-		new->data = malloc(length + 2);
+		new = xmalloc(sizeof(struct option_set));
+		new->data = xmalloc(length + 2);
 		new->data[OPT_CODE] = option->code;
 		new->data[OPT_LEN] = length;
 		memcpy(new->data + 2, buffer, length);

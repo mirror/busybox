@@ -95,6 +95,7 @@ int main(int argc, char *argv[])
 	int pid_fd;
 	int max_sock;
 	int sig;
+	unsigned long num_ips;
 	
 	OPEN_LOG("udhcpd");
 	LOG(LOG_INFO, "udhcp server (v%s) started", VERSION);
@@ -114,7 +115,15 @@ int main(int argc, char *argv[])
 	}
 	else server_config.lease = LEASE_TIME;
 	
-	leases = malloc(sizeof(struct dhcpOfferedAddr) * server_config.max_leases);
+	/* Sanity check */
+	num_ips = ntohl(server_config.end) - ntohl(server_config.start);
+	if (server_config.max_leases > num_ips) {
+		LOG(LOG_ERR, "max_leases value (%lu) not sane, setting to %lu instead",
+			server_config.max_leases, num_ips);
+		server_config.max_leases = num_ips;
+	}
+
+	leases = xmalloc(sizeof(struct dhcpOfferedAddr) * server_config.max_leases);
 	memset(leases, 0, sizeof(struct dhcpOfferedAddr) * server_config.max_leases);
 	read_leases(server_config.lease_file);
 
