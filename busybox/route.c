@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.10 2001/03/21 07:34:26 andersen Exp $
+ * $Id: route.c,v 1.10.2.1 2001/08/23 19:10:52 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -108,6 +108,8 @@ INET_setroute(int action, int options, char **args)
 
 	xflag = 0;
 
+	if (*args == NULL)
+	    show_usage();
 	if (strcmp(*args, "-net")==0) {
 		xflag = 1;
 		args++;
@@ -375,8 +377,10 @@ static void displayroutes(void)
 			if(nl==1) {
                 printf("Kernel IP routing table\n"
 "Destination     Gateway         Genmask         Flags Metric Ref    Use Iface\n");
+			} else {
+			    nl++;
+			    continue;
 			}
-
 
 			ifl = 0;        /* parse flags */
 			if(flgs&1)
