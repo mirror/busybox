@@ -3678,8 +3678,6 @@
 		<para>
 		<screen>
 			-t      Print the command just before it is run
-			-l LEN  Use LEN as maximum line length (default 490, max 1023)
-			-e ENDING       Append ENDING to the command before executing it.
 		</screen>
 		</para>
 

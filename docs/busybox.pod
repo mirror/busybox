@@ -2090,8 +2090,6 @@ Executes COMMAND on every item given by standard input.
 Options:
 
 		-t      Print the command just before it is run
-		-l LEN  Use LEN as maximum line length (default 490, max 1023)
-		-e ENDING       Append ENDING to the command before executing it.
  
 Example:
 
@@ -2202,4 +2200,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.71 2000/09/22 20:22:27 andersen Exp $
+# $Id: busybox.pod,v 1.72 2000/09/23 06:12:34 andersen Exp $
