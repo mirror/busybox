@@ -773,14 +773,14 @@ static sed_cmd_t *branch_to(const char *label)
 
 static void process_file(FILE *file)
 {
-	char *line;
+	char *pattern_space;	/* Posix requires it be able to hold at least 8192 bytes */
 	static int linenum = 0; /* GNU sed does not restart counting lines at EOF */
 	unsigned int still_in_range = 0;
 	int altered;
 	int force_print;
 
-	line = bb_get_chomped_line_from_file(file);
-	if (line == NULL) {
+	pattern_space = bb_get_chomped_line_from_file(file);
+	if (pattern_space == NULL) {
 		return;
 	}
 
@@ -812,7 +812,7 @@ static void process_file(FILE *file)
 					/* this line number is the first address we're looking for */
 					(sed_cmd->beg_line && (sed_cmd->beg_line == linenum)) ||
 					/* this line matches our first address regex */
-					(sed_cmd->beg_match && (regexec(sed_cmd->beg_match, line, 0, NULL, 0) == 0)) ||
+					(sed_cmd->beg_match && (regexec(sed_cmd->beg_match, pattern_space, 0, NULL, 0) == 0)) ||
 					/* we are currently within the beginning & ending address range */
 					still_in_range || ((sed_cmd->beg_line == -1) && (next_line == NULL))
 			   );
@@ -827,13 +827,13 @@ static void process_file(FILE *file)
 						printf("%d\n", linenum);
 						break;
 					case 'P': {	/* Write the current pattern space upto the first newline */
-							char *tmp = strchr(line, '\n');
+							char *tmp = strchr(pattern_space, '\n');
 							if (tmp) {
 								*tmp = '\0';
 							}
 						}
 					case 'p':	/* Write the current pattern space to output */
-						puts(line);
+						puts(pattern_space);
 						break;
 					case 'd':
 						altered++;
@@ -850,8 +850,8 @@ static void process_file(FILE *file)
 						 *    substitution
 						 *
 						 *    s///p ONLY = always print successful substitutions, even if
-						 *    the line is going to be printed anyway (line will be printed
-						 *    twice).
+						 *    the pattern_space is going to be printed anyway (pattern_space
+						 *    will be printed twice).
 						 *
 						 *    -n AND s///p = print ONLY a successful substitution ONE TIME;
 						 *    no other lines are printed - this is the reason why the 'p'
@@ -862,24 +862,24 @@ static void process_file(FILE *file)
 						/* HACK: escape newlines twice so regex can match them */
 						{
 							int offset = 0;
-							while(strchr(line + offset, '\n') != NULL) {
+							while(strchr(pattern_space + offset, '\n') != NULL) {
 								char *tmp;
-								line = xrealloc(line, strlen(line) + 2);
-								tmp = strchr(line + offset, '\n');
+								pattern_space = xrealloc(pattern_space, strlen(pattern_space) + 2);
+								tmp = strchr(pattern_space + offset, '\n');
 								memmove(tmp + 1, tmp, strlen(tmp) + 1);
 								tmp[0] = '\\';
 								tmp[1] = 'n';
-								offset = tmp - line + 2;
+								offset = tmp - pattern_space + 2;
 							}
 						}
 #endif
-						/* we print the line once, unless we were told to be quiet */
-						substituted = do_subst_command(sed_cmd, &line);
+						/* we print the pattern_space once, unless we were told to be quiet */
+						substituted = do_subst_command(sed_cmd, &pattern_space);
 
 #ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
 						/* undo HACK: escape newlines twice so regex can match them */
 						{
-							char *tmp = line;
+							char *tmp = pattern_space;
 
 							while((tmp = strstr(tmp, "\\n")) != NULL) {
 								memmove(tmp, tmp + 1, strlen(tmp + 1) + 1);
@@ -895,11 +895,11 @@ static void process_file(FILE *file)
 						/* we also print the line if we were given the 'p' flag
 						 * (this is quite possibly the second printing) */
 						if ((sed_cmd->sub_p) && altered) {
-							puts(line);
+							puts(pattern_space);
 						}
 						break;
 					case 'a':
-						puts(line);
+						puts(pattern_space);
 						fputs(sed_cmd->editline, stdout);
 						altered++;
 						break;
@@ -913,7 +913,7 @@ static void process_file(FILE *file)
 						if ((sed_cmd->end_match == NULL && sed_cmd->end_line == 0)
 						/* multi-address case */
 						/* - matching text */
-						|| (sed_cmd->end_match && (regexec(sed_cmd->end_match, line, 0, NULL, 0) == 0))
+						|| (sed_cmd->end_match && (regexec(sed_cmd->end_match, pattern_space, 0, NULL, 0) == 0))
 						/* - matching line numbers */
 						|| (sed_cmd->end_line > 0 && sed_cmd->end_line == linenum))
 						{
@@ -925,7 +925,7 @@ static void process_file(FILE *file)
 
 					case 'r': {
 							FILE *outfile;
-							puts(line);
+							puts(pattern_space);
 							outfile = fopen(sed_cmd->filename, "r");
 							if (outfile)
 								bb_xprint_and_close_file(outfile);
@@ -941,16 +941,16 @@ static void process_file(FILE *file)
 						next_line = NULL;
 						break;
 					case 'n':	/* Read next line from input */
-						free(line);
-						line = next_line;
+						free(pattern_space);
+						pattern_space = next_line;
 						next_line = bb_get_chomped_line_from_file(file);
 						linenum++;
 						break;
 					case 'N':	/* Append the next line to the current line */
 						if (next_line) {
-							line = realloc(line, strlen(line) + strlen(next_line) + 2);
-							strcat(line, "\n");
-							strcat(line, next_line);
+							pattern_space = realloc(pattern_space, strlen(pattern_space) + strlen(next_line) + 2);
+							strcat(pattern_space, "\n");
+							strcat(pattern_space, next_line);
 							next_line = bb_get_chomped_line_from_file(file);
 							linenum++;
 						}
@@ -965,18 +965,16 @@ static void process_file(FILE *file)
 						break;
 					case 'y': {
 							int i;
-							for (i = 0; line[i] != 0; i++) {
+							for (i = 0; pattern_space[i] != 0; i++) {
 								int j;
 								for (j = 0; sed_cmd->translate[j] ;j += 2) {
-									if (line[i] == sed_cmd->translate[j]) {
-										line[i] = sed_cmd->translate[j + 1];
+									if (pattern_space[i] == sed_cmd->translate[j]) {
+										pattern_space[i] = sed_cmd->translate[j + 1];
 									}
 								}
 							}
 						}
 						break;
-//					case ':':
-//						break;
 				}
 			}
 
@@ -993,7 +991,7 @@ static void process_file(FILE *file)
 							/* this line number is the last address we're looking for or... */
 							(sed_cmd->end_line && (sed_cmd->end_line == linenum)) ||
 							/* this line matches our last address regex */
-							(sed_cmd->end_match && (regexec(sed_cmd->end_match, line, 0, NULL, 0) == 0))
+							(sed_cmd->end_match && (regexec(sed_cmd->end_match, pattern_space, 0, NULL, 0) == 0))
 						)
 					)
 				) {
@@ -1015,11 +1013,11 @@ static void process_file(FILE *file)
 		 * line was altered (via a 'd'elete or 's'ubstitution), in which case
 		 * the altered line was already printed */
 		if ((!be_quiet && !altered) || force_print){
-			puts(line);
+			puts(pattern_space);
 		}
-		free(line);
-		line = next_line;
-	} while (line);
+		free(pattern_space);
+		pattern_space = next_line;
+	} while (pattern_space);
 }
 
 extern int sed_main(int argc, char **argv)
