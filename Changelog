@@ -16,7 +16,8 @@
 	    which blocked reboots.
 	* Added a prelinary du implementation.  Some parameter parsing
 	    stuff still needs to be added. -beppu  (John Beppu <beppu@lineo.com>)
-	* Implemented tee. -beppu
+	* Implemented tee.  -beppu
+	* Implemented head. -beppu
 
 	-Erik Andrsen
 
