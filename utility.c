@@ -1676,7 +1676,7 @@ extern int print_file_by_name(char *filename)
 }
 #endif /* BB_CAT */
 
-#if defined BB_ECHO || defined BB_TR
+#if defined BB_ECHO || defined BB_SH || defined BB_TR
 char process_escape_sequence(char **ptr)
 {
 	char c;
