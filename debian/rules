@@ -42,8 +42,8 @@ install: build
 	#(cd $(bbbd); $(MAKE) "CONFIG_SRC_DIR=../../" "PREFIX=../../$(bb)" install)
 	mkdir -p $(bb)/bin/
 	cp $(bbbd)/busybox $(bb)/bin/busybox
-	mkdir -p $(bb)/usr/share/doc/busybox/busybox.lineo.com
-	cp $(bbbd)/docs/busybox.lineo.com/BusyBox.html $(bb)/usr/share/doc/busybox/busybox.lineo.com/
+	mkdir -p $(bb)/usr/share/doc/busybox/busybox.net
+	cp $(bbbd)/docs/busybox.net/BusyBox.html $(bb)/usr/share/doc/busybox/busybox.net/
 	mkdir -p $(bb)/usr/share/man/man1
 	cp $(bbbd)/docs/BusyBox.1 $(bb)/usr/share/man/man1/busybox.1
 
@@ -67,8 +67,8 @@ install-static: build
 	#(cd $(bbsbd); $(MAKE) "CONFIG_SRC_DIR=../../" "PREFIX=../../$(bbs)" install)
 	mkdir -p $(bbs)/bin/
 	cp $(bbsbd)/busybox $(bbs)/bin/busybox
-	mkdir -p $(bbs)/usr/share/doc/busybox-static/busybox.lineo.com
-	cp $(bbsbd)/docs/busybox.lineo.com/BusyBox.html $(bbs)/usr/share/doc/busybox-static/busybox.lineo.com/
+	mkdir -p $(bbs)/usr/share/doc/busybox-static/busybox.net
+	cp $(bbsbd)/docs/busybox.net/BusyBox.html $(bbs)/usr/share/doc/busybox-static/busybox.net/
 	mkdir -p $(bbs)/usr/share/man/man1/
 	cp $(bbsbd)/docs/BusyBox.1 $(bbs)/usr/share/man/man1/busybox.1
 
@@ -130,7 +130,7 @@ busybox: install
 	dh_installdirs
 	dh_installdocs       -p$@  $(bbbd)/docs/BusyBox.txt \
 		$(bbbd)/docs/BusyBox.html docs/style-guide.txt \
-		docs/busybox.lineo.com AUTHORS README TODO
+		docs/busybox.net AUTHORS README TODO
 	rm -rf `find $(bb) -name CVS`
 	rm -f `find $(bb) -name .cvsignore`
 	dh_installchangelogs -p$@ Changelog
@@ -152,7 +152,7 @@ busybox-static: do_static
 	dh_installdirs
 	dh_installdocs       -p$@  $(bbsbd)/docs/BusyBox.txt \
 		$(bbsbd)/docs/BusyBox.html docs/style-guide.txt \
-		docs/busybox.lineo.com AUTHORS README TODO
+		docs/busybox.net AUTHORS README TODO
 	rm -rf `find $(bbs) -name CVS`
 	rm -f `find $(bbs) -name .cvsignore`
 	dh_installchangelogs -p$@ Changelog

@@ -132,7 +132,7 @@ The Grand Announcement
 
 Then create a diff -urN of the files you added (<applet>.c, usage.c,
 applets.h, Config.h) and send it to the mailing list:
-busybox@opensource.lineo.com. Sending patches as attachments is preferred, but
+busybox@busybox.net. Sending patches as attachments is preferred, but
 not required.
 
 

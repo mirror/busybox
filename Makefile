@@ -69,7 +69,7 @@ DOLFS = false
 
 # If you have a "pristine" source directory, point CONFIG_SRC_DIR to it.
 # Experimental and incomplete; tell the mailing list
-# <busybox@opensource.lineo.com> if you do or don't like it so far.
+# <busybox@busybox.net> if you do or don't like it so far.
 CONFIG_SRC_DIR =
 
 # If you are running a cross compiler, you may want to set CROSS
@@ -249,15 +249,15 @@ docs/BusyBox.1: docs/busybox.pod
 	- pod2man --center=BusyBox --release="version $(VERSION)" \
 		$< > $@
 
-docs/BusyBox.html: docs/busybox.lineo.com/BusyBox.html
+docs/BusyBox.html: docs/busybox.net/BusyBox.html
 	- mkdir -p docs
 	-@ rm -f docs/BusyBox.html
-	-@ ln -s busybox.lineo.com/BusyBox.html docs/BusyBox.html
+	-@ ln -s busybox.net/BusyBox.html docs/BusyBox.html
 
-docs/busybox.lineo.com/BusyBox.html: docs/busybox.pod
-	-@ mkdir -p docs/busybox.lineo.com
+docs/busybox.net/BusyBox.html: docs/busybox.pod
+	-@ mkdir -p docs/busybox.net
 	-  pod2html --noindex $< > \
-	    docs/busybox.lineo.com/BusyBox.html
+	    docs/busybox.net/BusyBox.html
 	-@ rm -f pod2htm*
 
 
@@ -285,7 +285,7 @@ docs/busybox.pdf: docs/busybox.ps
 
 docs/busybox/busyboxdocumentation.html: docs/busybox.sgml
 	- mkdir -p docs
-	(cd docs/busybox.lineo.com; sgmltools -b html ../busybox.sgml)
+	(cd docs/busybox.net; sgmltools -b html ../busybox.sgml)
 
 # The nifty new buildsystem stuff
 scripts/mkdep: scripts/mkdep.c
@@ -369,9 +369,9 @@ clean:
 	- $(MAKE) -C tests clean
 	- $(MAKE) -C scripts/lxdialog clean
 	- rm -f docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
-	    docs/busybox.lineo.com/BusyBox.html
+	    docs/busybox.net/BusyBox.html
 	- rm -f docs/busybox.txt docs/busybox.dvi docs/busybox.ps \
-	    docs/busybox.pdf docs/busybox.lineo.com/busybox.html \
+	    docs/busybox.pdf docs/busybox.net/busybox.html \
 	    docs/busybox _install pod2htm* *.gdb *.elf *~ core
 	- rm -f busybox.links libbb/loop.h .config.old .hdepend
 	- rm -f scripts/split-include scripts/mkdep .*config.log

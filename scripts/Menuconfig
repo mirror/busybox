@@ -704,7 +704,7 @@ EOM
 			cat <<EOM
 
 Please report this to the maintainer <mec@shout.net>.  You may also
-send a problem report to <busybox@oss.lineo.com>.
+send a problem report to <busybox@busybox.net>.
 
 Please indicate the BusyBox version you are trying to configure and
 which menu you were trying to enter when this error occurred.
@@ -767,7 +767,7 @@ the /usr/src/linux/scripts/lxdialog directory and issuing the
 
 If you have verified that your ncurses install is correct, you may email
 the maintainer <andersen@codepoet.org> or post a message to
-<busybox@oss.lineo.com> for additional assistance. 
+<busybox@busybox.net> for additional assistance. 
 
 EOM
 			cleanup

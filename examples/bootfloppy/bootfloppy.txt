@@ -6,7 +6,7 @@ components:
 
  - Linux Kernel (http://www.kernel.org)
  - uClibc: C library (http://cvs.uclinux.org/uClibc.html)
- - Busybox: Unix utilities (http://busybox.lineo.com)
+ - Busybox: Unix utilities (http://busybox.net/)
  - Syslinux: bootloader (http://syslinux.zytor.com)
 
 It is based heavily on a paper presented by Erik Andersen at the 2001 Embedded

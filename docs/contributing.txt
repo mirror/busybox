@@ -5,7 +5,7 @@ This document describes what you need to do to contribute to Busybox, where
 you can help, guidelines on testing, and how to submit a well-formed patch
 that is more likely to be accepted.
 
-The Busybox home page is at: http://busybox.lineo.com
+The Busybox home page is at: http://busybox.net/
 
 
 
@@ -28,8 +28,8 @@ Don't make your work obsolete before you start!
 For information on how to check out Busybox from CVS, please look at the
 following links:
 
-	http://oss.lineo.com/cvs_anon.html
-	http://oss.lineo.com/cvs_howto.html
+	http://busybox.net/cvs_anon.html
+	http://busybox.net/cvs_howto.html
 
 
 Read the Mailing List
@@ -43,7 +43,7 @@ know.
 
 Archives can be found here:
 
-	http://opensource.lineo.com/lists/busybox/
+	http://busybox.net/lists/busybox/
 
 If you have a serious interest in Busybox, i.e., you are using it day-to-day or
 as part of an embedded project, it would be a good idea to join the mailing
@@ -51,7 +51,7 @@ list.
 
 A web-based sign-up form can be found here:
 
-	http://opensource.lineo.com/mailman/listinfo/busybox
+	http://busybox.net/mailman/listinfo/busybox
 
 
 Coordinate with the Applet Maintainer
