@@ -101,6 +101,11 @@
        "\t-j\tUse julian dates.\n" \
        "\t-y\tDisplay the entire year."
 
+#define cart_trivial_usage \
+	"blah"
+#define cart_full_usage \
+	"blah blah"
+
 #define cat_trivial_usage \
 	"[-u] [FILE]..."
 #define cat_full_usage \
@@ -226,7 +231,7 @@
 	"\t-c dir\tworking dir"
 
 #define crontab_trivial_usage \
-	"crontab [-c dir] {file|-}|[-u|-l|-e|-d user]"
+	"[-c dir] {file|-}|[-u|-l|-e|-d user]"
 #define crontab_full_usage \
 	"\tfile <opts>  replace crontab from file\n" \
 	"\t-    <opts>  replace crontab from stdin\n" \
@@ -758,7 +763,7 @@
         "done\n"
 
 #define getty_trivial_usage \
-	"getty [OPTIONS]... baud_rate,... line [termtype]"
+	"[OPTIONS]... baud_rate,... line [termtype]"
 #define getty_full_usage \
 	"\nOpens a tty, prompts for a login name, then invokes /bin/login\n\n" \
 	"Options:\n" \
