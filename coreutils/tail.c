@@ -118,11 +118,10 @@ int tail_main(int argc, char **argv)
 	const char *fmt;
 
 	/* Allow legacy syntax of an initial numeric option without -n. */
-	if ((argv[1][0] == '+')
-		|| ((argv[1][0] == '-')
+	if (argc >=2 && ((argv[1][0] == '+') || ((argv[1][0] == '-')
 			/* && (isdigit)(argv[1][1]) */
-			&& (((unsigned int)(argv[1][1] - '0')) <= 9))
-		) {
+			&& (((unsigned int)(argv[1][1] - '0')) <= 9)))) 
+	{
 		optind = 2;
 		optarg = argv[1];
 		goto GET_COUNT;
