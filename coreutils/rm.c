@@ -102,8 +102,8 @@ extern int rm_main(int argc, char **argv)
 			case 'f':
 				forceFlag = TRUE;
 				break;
-			case 'i':
 #ifdef BB_FEATURE_RM_INTERACTIVE
+			case 'i':
 				interactiveFlag = TRUE;
 #endif
 				break;
