@@ -14,6 +14,8 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#include <stdlib.h>
+
 extern unsigned long get_ug_id(const char *s, long (*my_getxxnam)(const char *))
 {
 	unsigned long r;
