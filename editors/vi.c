@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.30 2003/12/23 20:45:14 andersen Exp $";
+	"$Id: vi.c,v 1.31 2004/01/21 10:59:45 bug1 Exp $";
 
 /*
  * To compile for standalone use:
@@ -1669,7 +1669,9 @@ static Byte find_range(Byte ** start, Byte ** stop, Byte c)
 		q = dot;
 	} else if (strchr("wW", c)) {
 		do_cmd(c);		// execute movement cmd
-		if (dot > text)
+		// if we are at the next word's first char
+		// step back one char
+		if (dot > text && isspace(dot[-1]))
 			dot--;		// move back off of next word
 		if (dot > text && *dot == '\n')
 			dot--;		// stay off NL
@@ -3195,7 +3197,7 @@ key_cmd_mode:
 		if (cmdcnt-- > 1) {
 			do_cmd(c);
 		}				// repeat cnt
-		dot = end_line(dot + 1);
+		dot = end_line(dot);
 		break;
 	case '%':			// %- find matching char of pair () [] {}
 		for (q = dot; q < end && *q != '\n'; q++) {
