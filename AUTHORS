@@ -125,5 +125,5 @@ Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
 Tito Ragusa <farmatito@tiscali.it>
-    devfsd and size optimizations in strings, openvt and deallocvt.
+    devfsd and size optimizations in strings, openvt, chvt, deallocvt, hdparm and fdformat.
 
