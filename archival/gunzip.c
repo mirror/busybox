@@ -75,7 +75,7 @@ static int gunzip_file (const char *path, int flags)
 {
     FILE *in_file, *out_file;
     struct stat stat_buf;
-    const char *delete_path;
+    const char *delete_path = NULL;
     char *out_path = NULL;
 
     if (path == NULL || strcmp (path, "-") == 0) {
@@ -142,8 +142,10 @@ static int gunzip_file (const char *path, int flags)
 	delete_path = out_path;
     }
 
-    fclose(out_file);
-    fclose(in_file);
+    if (out_file != stdout)
+	    fclose(out_file);
+    if (in_file != stdin)
+	    fclose(in_file);
 
     if (delete_path && !(flags & gunzip_test)) {
 	if (unlink(delete_path) < 0) {
@@ -194,10 +196,11 @@ extern int gunzip_main(int argc, char **argv)
 	if (optind == argc) {
 	    if (gunzip_file (NULL, flags) < 0)
 		status = EXIT_FAILURE;
-	} else
-	    for (i = optind; i < argc; i++)
+	} else {
+	    for (i = optind; i < argc; i++) {
 		if (gunzip_file (argv[i], flags) < 0)
 		    status = EXIT_FAILURE;
-
+	    }
+	}
 	return status;
 }
