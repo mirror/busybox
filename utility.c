@@ -743,6 +743,9 @@ extern int parse_mode(const char *s, mode_t * theMode)
 	char type;
 	char c;
 
+	if (s==NULL)
+		return (FALSE);
+
 	do {
 		for (;;) {
 			switch (c = *s++) {
