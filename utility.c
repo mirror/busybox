@@ -1721,7 +1721,7 @@ void xregcomp(regex_t *preg, const char *regex, int cflags)
 }
 #endif
 
-#if defined BB_CAT || defined BB_HEAD
+#if defined BB_CAT || defined BB_HEAD || defined BB_WC
 FILE *wfopen(const char *path, const char *mode)
 {
 	FILE *fp;

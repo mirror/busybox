@@ -105,7 +105,7 @@ int wc_main(int argc, char **argv)
 {
 	FILE *file;
 	unsigned int num_files_counted = 0;
-	int opt;
+	int opt, status = EXIT_SUCCESS;
 
 	total_lines = total_words = total_chars = max_length = 0;
 	print_lines = print_words = print_chars = print_length = 0;
@@ -137,8 +137,10 @@ int wc_main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	} else {
 		while (optind < argc) {
-			file = xfopen(argv[optind], "r");
-			wc_file(file, argv[optind]);
+			if ((file = wfopen(argv[optind], "r")) != NULL)
+				wc_file(file, argv[optind]);
+			else
+				status = EXIT_FAILURE;
 			num_files_counted++;
 			optind++;
 		}
@@ -148,5 +150,5 @@ int wc_main(int argc, char **argv)
 		print_counts(total_lines, total_words, total_chars,
 					 max_length, "total");
 
-	return EXIT_SUCCESS;
+	return status;
 }
