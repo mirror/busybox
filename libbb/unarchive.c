@@ -188,7 +188,7 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 		 * file pointed to, so dont try and change the date or mode, lchown does
 		 * does the right thing, but isnt available in older versions of libc */
 		if (S_ISLNK(file_entry->mode)) {
-#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
+#if (__GLIBC__ > 2) && (__GLIBC_MINOR__ > 1)
 			lchown(full_name, file_entry->uid, file_entry->gid);
 #endif
 		} else {
@@ -392,7 +392,8 @@ file_header_t *get_header_cpio(FILE *src_stream)
 			case '1': /* "newc" header format */
 				cpio_entry = (file_header_t *) xcalloc(1, sizeof(file_header_t));
 				sscanf(cpio_header, "%6c%8x%8x%8x%8x%8x%8lx%8lx%16c%8x%8x%8x%8c",
-					dummy, &inode, &cpio_entry->mode, &cpio_entry->uid, &cpio_entry->gid,
+					dummy, &inode, (unsigned int*)&cpio_entry->mode, 
+					(unsigned int*)&cpio_entry->uid, (unsigned int*)&cpio_entry->gid,
 					&nlink, &cpio_entry->mtime, &cpio_entry->size,
 					dummy, &major, &minor, &namesize, dummy);
 
