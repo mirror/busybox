@@ -173,7 +173,7 @@ extern int tar_main(int argc, char **argv)
 #if defined BB_FEATURE_TAR_EXCLUDE
 	int excludeListSize=0;
 #endif
-	const char *tarName=NULL;
+	const char *tarName="-";
 	int listFlag     = FALSE;
 	int extractFlag  = FALSE;
 	int createFlag   = FALSE;
@@ -187,13 +187,13 @@ extern int tar_main(int argc, char **argv)
 	/* Parse any options */
 	while (--argc > 0 && strspn(*(++argv), "-cxt") >0 ) {
 		stopIt=FALSE;
-		while (stopIt==FALSE && *(++(*argv))) {
+		while (stopIt==FALSE && *argv && **argv) {
 			switch (**argv) {
 				case 'f':
 					if (--argc == 0) {
 						fatalError( "Option requires an argument: No file specified\n");
 					}
-					if (tarName != NULL)
+					if (*tarName != '-')
 						fatalError( "Only one 'f' option allowed\n");
 					tarName = *(++argv);
 					if (tarName == NULL)
@@ -252,6 +252,7 @@ extern int tar_main(int argc, char **argv)
 					fatalError( "Unknown tar flag '%c'\n" 
 							"Try `tar --help' for more information\n", **argv);
 			}
+			++(*argv);
 		}
 	}
 

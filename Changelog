@@ -16,10 +16,8 @@
 	* Fixed ping warnings -- fix from Sascha Ziemann <szi@aibon.ping.de>
 	* Fixed update segfault
 	* Fixed mknod -- minor number was always 0
-	* Fixed tar option parsing.  In an attempt to accomodate the whiners
-	    that wanted "tar cf foo.tar foo" (i.e. no "-" before options)
-	    I broke creation of tarballs.  I reverted the change (so tar needs
-	    the "-" for all options).
+	* Fixed tar option parsing, so both "tar xvf foo.tar" and "tar -xvf foo.tar"
+	    now work (i.e. no "-" before options) (this was very broken in 0.43).
 	* Several contributions from Randolph Chung <tausq@debian.org>.
 	    * cp/mv now accepts the -f flag
 	    * tail can now accept -<num> commands (e.g. -10) for better 
