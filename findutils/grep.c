@@ -234,7 +234,7 @@ static void destroy_regexes(void)
 extern int grep_main(int argc, char **argv)
 {
 	int opt;
-#if defined (CONFIG_FEATURE_GREP_CONTEXT) || defined (CONFIG_FEATURE_GREP_EGREP_ALIAS)
+#if defined (CONFIG_FEATURE_GREP_CONTEXT)
 	char *junk;
 #endif
 
@@ -244,8 +244,7 @@ extern int grep_main(int argc, char **argv)
 #endif
 
 #ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
-	junk = get_last_path_component(argv[0]);
-	if (junk && strcmp(junk, "egrep") == 0)
+	if (strcmp(get_last_path_component(argv[0]), "egrep") == 0)
 		reflags |= REG_EXTENDED;
 #endif
 
