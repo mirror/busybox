@@ -16,6 +16,7 @@ right formatting rules to your file. Please _do_not_ run this on all the files
 in the directory, just your own.
 
 
+
 Declaration Order
 -----------------
 
@@ -31,15 +32,16 @@ Here is the order in which code should be laid out in a file:
  - function implementations
 
 
-Whitespace
-----------
+
+Whitespace and Formatting
+-------------------------
 
 This is everybody's favorite flame topic so let's get it out of the way right
 up front.
 
 
 Tabs vs. Spaces in Line Indentation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The preference in Busybox is to indent lines with tabs. Do not indent lines
 with spaces and do not indents lines using a mixture of tabs and spaces. (The
@@ -172,6 +174,7 @@ block. Example:
 	}
 
 
+
 Variable and Function Names
 ---------------------------
 
@@ -192,78 +195,195 @@ that can go through and convert files -- left as an exercise to the reader for
 now.
 
 
-Tip and Pointers
-----------------
 
-The following are simple coding guidelines that should be followed:
+Avoid The Preprocessor
+----------------------
 
- - When in doubt about the proper behavior of a Busybox program (output,
-   formatting, options, etc.), model it after the equivalent GNU program.
-   Doesn't matter how that program behaves on some other flavor of *NIX;
-   doesn't matter what the POSIX standard says or doesn't say, just model
-   Busybox programs after their GNU counterparts and nobody has to get hurt.
+At best, the preprocessor is a necessary evil, helping us account for platform
+and architecture differences. Using the preprocessor unnecessarily is just
+plain evil.
 
- - Don't use a '#define var 80' when you can use 'static const int var 80'
-   instead. This makes the compiler do type checking for you (rather than
-   relying on the more error-prone preprocessor) and it makes debugging
-   programs much easier since the value of the variable can be easily
-   displayed.
 
- - If a const variable is used in only one function, do not make it global to
-   the file. Instead, declare it inside the function body.
+The Folly of #define
+~~~~~~~~~~~~~~~~~~~~
 
- - Inside applet files, all functions should be declared static so as to keep
-   the global name space clean. The only exception to this rule is the
-   "applet_main" function which must be declared extern.
-
- - If you write a function that performs a task that could be useful outside
-   the immediate file, turn it into a general-purpose function with no ties to
-   any applet and put it in the utility.c file instead.
-
- - Put all help/usage messages in usage.c. Put other strings in messages.c.
-   Putting these strings into their own file is a calculated decision designed
-   to confine spelling errors to a single place and aid internationalization
-   efforts, if needed.  (Side Note: we might want to use a single file instead
-   of two, food for thought).
-
- - There's a right way and a wrong way to test for sting equivalence with
-   strcmp:
-
-	The wrong way:
-
-	if (!strcmp(string, "foo")) {
-		...
-
-	The right way:
-
-	if (strcmp(string, "foo") == 0){
-		...
-
-	The use of the "equals" (==) operator in the latter example makes it much
-	more obvious that you are testing for equivalence. The former example with
-	the "not" (!) operator makes it look like you are testing for an error. In
-	a more perfect world, we would have a streq() function in the string
-	library, but that ain't the world we're living in.
-
- - Do not use old-style function declarations that declare variable types
-   between the parameter list and opening bracket. Example:
+Use 'const <type> var' for declaring constants.
 
 	Don't do this:
 
-		int foo(parm1, parm2)
-			char parm1;
-			float parm2;
-		{
-			....
+		#define var 80
+
+	Do this instead, when the variable is in a header file and will be used in
+	several source files: 
+
+		const int var = 80; 
+
+	Or do this when the variable is used only in a single source file:
+
+		static const int var = 80; 
+
+Declaring variables as '[static] const' gives variables an actual type and
+makes the compiler do type checking for you; the preprocessor does _no_ type
+checking whatsoever, making it much more error prone. Declaring variables with
+'[static] const' also makes debugging programs much easier since the value of
+the variable can be easily queried and displayed.
+
+
+The Folly of Macros
+~~~~~~~~~~~~~~~~~~~
+
+Use 'static inline' instead of a macro.
+
+	Don't do this:
+
+		#define mini_func(param1, param2) (param1 << param2)
 
 	Do this instead:
 
-		int foo(char parm1, float parm2)
+		static inline int mini_func(int param1, param2)
 		{
-			....
+			return (param1 << param2);
+		}
 
- - Please use brackets on all if and else statements, even if it is only one
-   line. Example:
+Static inline functions are greatly preferred over macros. They provide type
+safety, have no length limitations, no formatting limitations, and under gcc
+they are as cheap as macros. Besides, really long macros with backslashes at
+the end of each line are ugly as sin.
+
+
+The Folly of #ifdef
+~~~~~~~~~~~~~~~~~~~
+
+Code cluttered with ifdefs is difficult to read and maintain. Don't do it.
+Instead, put your ifdefs in a header, and conditionally define 'static inline'
+functions, (or *maybe* macros), which are used in the code.  
+
+	Don't do this:
+
+		ret = my_func(bar, baz);
+		if (!ret)
+			return -1;
+		#ifdef BB_FEATURE_FUNKY
+			maybe_do_funky_stuff(bar, baz);
+		#endif
+
+	Do this instead:
+
+	(in .h header file)
+
+		#ifndef BB_FEATURE_FUNKY
+		static inline void maybe_do_funky_stuff (int bar, int baz) {}
+		#endif
+
+	(in the .c source file)
+
+		ret = my_func(bar, baz);
+		if (!ret)
+			return -1;
+		maybe_do_funky_stuff(bar, baz);
+
+The great thing about this approach is that the compiler will optimize away
+the "no-op" case when the feature is turned off.
+
+Note also the use of the word 'maybe' in the function name to indicate
+conditional execution.
+
+
+
+Notes on Strings
+----------------
+
+Strings in C can get a little thorny. Here's some guidelines for dealing with
+strings in Busybox. (There is surely more that could be added to this
+section.)
+
+
+String Files
+~~~~~~~~~~~~
+
+Put all help/usage messages in usage.c. Put other strings in messages.c.
+Putting these strings into their own file is a calculated decision designed to
+confine spelling errors to a single place and aid internationalization
+efforts, if needed. (Side Note: we might want to use a single file - maybe
+called 'strings.c' - instead of two, food for thought).
+
+
+Testing String Equivalence
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There's a right way and a wrong way to test for sting equivalence with
+strcmp():
+
+	The wrong way:
+
+		if (!strcmp(string, "foo")) {
+			...
+
+	The right way:
+
+		if (strcmp(string, "foo") == 0){
+			...
+
+The use of the "equals" (==) operator in the latter example makes it much more
+obvious that you are testing for equivalence. The former example with the
+"not" (!) operator makes it look like you are testing for an error. In a more
+perfect world, we would have a streq() function in the string library, but
+that ain't the world we're living in.
+
+
+
+Miscellaneous Coding Guidelines
+-------------------------------
+
+The following are important items that don't fit into any of the above
+sections.
+
+
+Model Busybox Applets After GNU Counterparts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When in doubt about the proper behavior of a Busybox program (output,
+formatting, options, etc.), model it after the equivalent GNU program.
+Doesn't matter how that program behaves on some other flavor of *NIX; doesn't
+matter what the POSIX standard says or doesn't say, just model Busybox
+programs after their GNU counterparts and nobody has to get hurt.
+
+The only time we deviate from emulating the GNU behavior is when:
+
+	- We are deliberately not supporting a feature (such as a command line
+	  switch)
+	- Emulating the GNU behavior is prohibitively expensive (lots more code
+	  would be required, lots more memory would be used, etc.)
+	- The differce is minor or cosmetic
+
+A note on the 'cosmetic' case: Output differences might be considered
+cosmetic, but if the output is significant enough to break other scripts that
+use the output, it should really be fixed.
+
+
+Scope
+~~~~~
+
+If a const variable is used only in a single source file, put it in the source
+file and not in a header file. Likewise, if a const variable is used in only
+one function, do not make it global to the file. Instead, declare it inside
+the function body. Bottom line: Make a concious effort to limit declarations
+to the smallest scope possible.
+
+Inside applet files, all functions should be declared static so as to keep the
+global name space clean. The only exception to this rule is the "applet_main"
+function which must be declared extern.
+
+If you write a function that performs a task that could be useful outside the
+immediate file, turn it into a general-purpose function with no ties to any
+applet and put it in the utility.c file instead.
+
+
+Brackets Are Your Friends
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Please use brackets on all if and else statements, even if it is only one
+line. Example:
 
 	Don't do this:
 
@@ -280,8 +400,8 @@ The following are simple coding guidelines that should be followed:
 			stmt;
 		}
 
-	The "bracketless" approach is error prone because someday you might add a
-	line like this:
+The "bracketless" approach is error prone because someday you might add a line
+like this:
 
 		if (foo)
 			stmt;
@@ -289,6 +409,32 @@ The following are simple coding guidelines that should be followed:
 		else
 			stmt;
 
-	And the resulting behavior of your program would totally bewilder you.
-	(Don't laugh, it happens to us all.) Remember folks, this is C, not
-	Python.
+And the resulting behavior of your program would totally bewilder you. (Don't
+laugh, it happens to us all.) Remember folks, this is C, not Python.
+
+
+Function Declarations
+~~~~~~~~~~~~~~~~~~~~~
+
+Do not use old-style function declarations that declare variable types between
+the parameter list and opening bracket. Example:
+
+	Don't do this:
+
+		int foo(parm1, parm2)
+			char parm1;
+			float parm2;
+		{
+			....
+
+	Do this instead:
+
+		int foo(char parm1, float parm2)
+		{
+			....
+
+The only time you would ever need to use the old declaration syntax is to
+support ancient, antedeluvian compilers. To our good fortune, we have access
+to more modern compilers and the old declaration syntax is neither necessary
+nor desired.
+
