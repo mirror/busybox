@@ -237,7 +237,7 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
  */
 static int get_address(char *my_str, int *linenum, regex_t ** regex)
 {
-	char *pos=my_str;
+	char *pos = my_str;
 
 	if (isdigit(*my_str)) {
 		*linenum = strtol(my_str, &pos, 10);
@@ -588,27 +588,33 @@ static char *add_cmd(char *cmdstr)
 	return (cmdstr);
 }
 
-static void add_cmd_str(char *cmdstr)
+static void add_cmd_str(const char *cmdstr)
 {
-#ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
-	char *cmdstr_ptr = cmdstr;
+	char *cmdstr_expanded = strdup(cmdstr);
+	char *cmdstr_ptr;
 
+#ifdef CONFIG_FEATURE_SED_EMBEDED_NEWLINE
+	cmdstr_ptr = cmdstr_expanded;
 	/* HACK: convert "\n" to match tranlated '\n' string */
 	while ((cmdstr_ptr = strstr(cmdstr_ptr, "\\n")) != NULL) {
-		cmdstr = xrealloc(cmdstr, strlen(cmdstr) + 2);
-		cmdstr_ptr = strstr(cmdstr, "\\n");
+		int length = strlen(cmdstr) + 2;
+		cmdstr_expanded = realloc(cmdstr_expanded, length);
+		cmdstr_ptr = strstr(cmdstr_expanded, "\\n");
 		memmove(cmdstr_ptr + 1, cmdstr_ptr, strlen(cmdstr_ptr) + 1);
 		cmdstr_ptr[0] = '\\';
 		cmdstr_ptr += 3;
 	}
 #endif
+	cmdstr_ptr = cmdstr_expanded;
 	do {
-		cmdstr = add_cmd(cmdstr);
-	} while (cmdstr && strlen(cmdstr));
+		cmdstr_ptr = add_cmd(cmdstr_ptr);
+	} while (cmdstr_ptr && strlen(cmdstr_ptr));
+
+	free(cmdstr_expanded);
 }
 
 
-static void load_cmd_file(char *filename)
+static void load_cmd_file(const char *filename)
 {
 	FILE *cmdfile;
 	char *line;
@@ -894,18 +900,15 @@ static void process_file(FILE * file)
 					/* HACK: escape newlines twice so regex can match them */
 				{
 					int offset = 0;
-
-					while (strchr(pattern_space + offset, '\n') != NULL) {
-						char *tmp;
-
-						pattern_space =
-							xrealloc(pattern_space,
-							strlen(pattern_space) + 2);
-						tmp = strchr(pattern_space + offset, '\n');
+					char *tmp = strchr(pattern_space + offset, '\n');
+					while ((tmp = strchr(pattern_space + offset, '\n')) != NULL) {
+						offset = tmp - pattern_space;
+						pattern_space =	xrealloc(pattern_space,	strlen(pattern_space) + 2);
+						tmp = pattern_space + offset;
 						memmove(tmp + 1, tmp, strlen(tmp) + 1);
 						tmp[0] = '\\';
 						tmp[1] = 'n';
-						offset = tmp - pattern_space + 2;
+						offset += 2;
 					}
 				}
 #endif
