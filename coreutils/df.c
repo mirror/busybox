@@ -47,33 +47,33 @@ static int df(char *device, const char *mountPoint)
 
 	if (s.f_blocks > 0) {
 		blocks_used = s.f_blocks - s.f_bfree;
-		if(0 == blocks_used)
+		if(blocks_used == 0)
 			blocks_percent_used = 0;
-		else
+		else {
 			blocks_percent_used = (long)
 			  (blocks_used * 100.0 / (blocks_used + s.f_bavail) + 0.5);
+		}
 		if (strcmp(device, "/dev/root") == 0) {
 			/* Adjusts device to be the real root device,
 			 * or leaves device alone if it can't find it */
 			find_real_root_device_name( device);
 		}
 #ifdef BB_FEATURE_HUMAN_READABLE
-		printf("%-20s %9s",
+		printf("%-20s %9s %9s %9s %3ld%% %s\n",
 			   device,
-			   format((s.f_blocks * s.f_bsize), disp_hr));
-		printf(" %9s", format((s.f_blocks - s.f_bfree) * s.f_bsize, disp_hr));
-		printf(" %9s %3ld%% %s\n",
+			   format((s.f_blocks * s.f_bsize), disp_hr),
+			   format((s.f_blocks - s.f_bfree) * s.f_bsize, disp_hr),
 			   format(s.f_bavail * s.f_bsize, disp_hr),
 			   blocks_percent_used, mountPoint);
 #else
 		printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
 			   device,
-			   (long) (s.f_blocks * (s.f_bsize / 1024.0)),
-			   (long) ((s.f_blocks - s.f_bfree) * (s.f_bsize / 1024.0)),
-			   (long) (s.f_bavail * (s.f_bsize / 1024.0)),
+			   (long) (s.f_blocks * s.f_bsize) / KILOBYTE,
+			   (long) ((s.f_blocks - s.f_bfree) * s.f_bsize) / KILOBYTE,
+			   (long) (s.f_bavail * s.f_bsize) / KILOBYTE,
 			   blocks_percent_used, mountPoint);
-#endif
 
+#endif
 	}
 
 	return TRUE;
@@ -96,10 +96,8 @@ extern int df_main(int argc, char **argv)
 #ifdef BB_FEATURE_HUMAN_READABLE
 			case 'h': disp_hr = 0;         break;
 			case 'm': disp_hr = MEGABYTE;  break;
-			case 'k': disp_hr = KILOBYTE;  break;
-#else
-			case 'k': break;
 #endif
+			case 'k': break;
 			default:
 					  show_usage();
 		}
