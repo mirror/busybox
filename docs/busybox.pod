@@ -16,9 +16,9 @@ BusyBox combines tiny versions of many common UNIX utilities into a single
 small executable. It provides minimalist replacements for most of the utilities
 you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
 tar, etc.  BusyBox provides a fairly complete POSIX environment for any small
-or emdedded system.  While the number of options for the utilities BusyBox
-provides have generally been reduced, the provided options behave very much
-like they do in their full featured GNU cousins.  
+or emdedded system.  The utilities in BusyBox generally have fewer options then
+their full featured GNU cousins; however, the options that are included provide
+the expected functionality and behave very much like their GNU counterparts.  
 
 BusyBox has been written with size-optimization and limited resources in mind.
 It is also extremely modular so you can easily include or exclude commands (or
@@ -1816,4 +1816,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.20 2000/04/21 01:23:36 erik Exp $
+# $Id: busybox.pod,v 1.21 2000/04/21 21:53:58 erik Exp $

@@ -20,12 +20,14 @@ cp_tests: cp_clean cp
 	@echo "Some tests might show timestamp differences that are Ok.";
 
 	@echo;
-	${BCP} || true;
+	@echo Verify that busybox cp exists;
+	@echo ------------------------------;
+	[ -x ${BCP} ] || exit 0
 
 	@echo;
 	mkdir cp_tests;
 
-	# Copy a file to a copy of the file
+	@echo Copy a file to a copy of the file;
 	@echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file > afile;			\
@@ -50,8 +52,8 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/*;
 
-	# Copy a file pointed to by a symlink
-	@echo; echo ------------------------------;
+	@echo; echo Copy a file pointed to by a symlink;
+	@echo ------------------------------;
 	cd cp_tests;				\
 	 mkdir here there;			\
 	 echo A file > afile;			\
@@ -82,21 +84,21 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/*
 
-	# Copy a symlink, useing the -a switch.
-	@echo; echo ------------------------------;
+	@echo; echo Copy a symlink, useing the -a switch.;
+	@echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file > afile;			\
 	 mkdir here there;			\
 	 cd here;				\
 	  ln -s ../afile .
 
-	cd cp_test;				\
+	cd cp_tests;				\
 	 ls -lR . > ../cp_a_symlink.gnu;	\
 	 ${GCP} -a here/afile there;		\
 	 ls -lR . >> ../cp_a_symlink.gnu;
 
 	@echo;
-	rm -f cp_tests/there/*;
+	rm -rf cp_tests/there/*;
 
 	sleep 1;
 
@@ -111,10 +113,10 @@ cp_tests: cp_clean cp
 	diff -u cp_a_symlink.gnu cp_a_symlink.bb;
 
 	@echo;
-	rm -f cp_tests/*;
+	rm -rf cp_tests/*;
 
-	# Copy a directory into another directory with the -a switch
-	@echo; echo ------------------------------;
+	@echo; echo Copy a directory into another directory with the -a switch;
+	@echo ------------------------------;
 	cd cp_tests;				\
 	 mkdir here there;			\
 	 echo A file > here/afile;		\
@@ -145,8 +147,9 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/*;
 
-	# Copy a set of files to a directory.
-	@echo; echo ------------------------------;
+	# Copy a set of files to a directory.
+	@echo; echo Copy a set of files to a directory.;
+	@echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file number one > afile1;	\
 	 echo A file number two, blah. > afile2; \
@@ -171,8 +174,9 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/*;
 
-	# Copy a set of files to a directory with the -d switch.
-	@echo; echo ------------------------------;
+	# Copy a set of files to a directory with the -d switch.
+	@echo; echo Copy a set of files to a directory with the -d switch.;
+	@echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file number one > afile1;	\
 	 echo A file number two, blah. > afile2; \
@@ -199,8 +203,9 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/{afile{1,2},symlink1,there1};
 
-	# Copy a set of files to a directory with the -p switch.
-	@echo; echo ------------------------------;
+	# Copy a set of files to a directory with the -p switch.
+	@echo; echo Copy a set of files to a directory with the -p switch.;
+	@echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file number one > afile1;	\
 	 echo A file number two, blah. > afile2; \
@@ -229,8 +234,8 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/{afile{1,2},symlink1,there1};
 
-	# Copy a set of files to a directory with -p and -d switches.
-	@echo; echo ------------------------------;
+	@echo; echo Copy a set of files to a directory with -p and -d switches.
+	@echo ------------------------------;
 	cd cp_tests;				\
 	 echo A file number one > afile1;	\
 	 echo A file number two, blah. > afile2; \
@@ -259,8 +264,8 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/{afile{1,2},symlink1,there1};
 
-	# Copy a directory into another directory with the -a switch.
-	@echo; echo ------------------------------;
+	@echo; echo Copy a directory into another directory with the -a switch.
+	@echo ------------------------------;
 	cd cp_tests;				\
 	 mkdir dir{a,b};			\
 	 echo A file > dira/afile;		\
@@ -293,8 +298,9 @@ cp_tests: cp_clean cp
 	@echo;
 	rm -rf cp_tests/dir{a,b};
 
-	# Copy a directory to another directory, without the -a switch.
-	@echo; echo ------------------------------;
+	# Copy a directory to another directory, without the -a switch.
+	@echo; echo Copy a directory to another directory, without the -a switch.
+	@echo ------------------------------;
 	@echo There should be an error message about cannot cp a dir to a subdir of itself.
 	cd cp_tests;				\
 	 touch a b c;				\
@@ -314,7 +320,8 @@ cp_tests: cp_clean cp
 
 	@echo;
 	diff -u cp_a_star_adir.gnu cp_a_star_adir.bb;
-
+
+	# Done
 	@echo;
 	rm -rf cp_tests;
 	@echo; echo Done.

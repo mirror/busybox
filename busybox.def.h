@@ -231,6 +231,12 @@
 #endif
 #endif
 //
+#ifdef BB_INIT
+#ifndef BB_FEATURE_REMOUNT
+#define BB_FEATURE_REMOUNT
+#endif
+#endif
+//
 #ifdef BB_FEATURE_LINUXRC
 #ifndef BB_INIT
 #define BB_INIT

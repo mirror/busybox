@@ -19,7 +19,7 @@
 #
 
 PROG      := busybox
-VERSION   := 0.43
+VERSION   := 0.44
 BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 export VERSION
 
@@ -31,8 +31,9 @@ DODEBUG = false
 # If you want a static binary, turn this on.
 DOSTATIC = false
 
-# This will choke on a non-debian system
-ARCH =`uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/'`
+# Figure out what arch we are on (not used at the moment)
+ARCH := $(shell uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/')
+
 
 CC = gcc
 
@@ -100,7 +101,7 @@ all: busybox busybox.links docs
 busybox: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBRARIES)
 	$(STRIP)
-	
+
 docs:
 	$(MAKE) -C docs
 

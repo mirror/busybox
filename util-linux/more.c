@@ -109,6 +109,8 @@ extern int more_main(int argc, char **argv)
 			cin = fopen("/dev/console", "r");
 		getTermSettings(fileno(cin), &initial_settings);
 		new_settings = initial_settings;
+		new_settings.c_cc[VMIN] = 1;
+		new_settings.c_cc[VTIME] = 0;
 		new_settings.c_lflag &= ~ICANON;
 		new_settings.c_lflag &= ~ECHO;
 		setTermSettings(fileno(cin), &new_settings);

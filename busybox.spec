@@ -1,5 +1,5 @@
 Name: busybox
-Version: 0.43
+Version: 0.44
 Release: 1
 Group: System/Utilities
 Summary: BusyBox is a tiny suite of Unix utilities in a multi-call binary.
@@ -10,12 +10,13 @@ Buildroot: /tmp/%{Name}-%{Version}
 Source: %{Name}-%{Version}.tar.gz
 
 %Description
-BusyBox is a suite of "tiny" Unix utilities in a multi-call binary. It
-provides a pretty complete POSIX environment in a very small package.
-Just add a kernel, "ash" (Keith Almquists tiny Bourne shell clone), and
-an editor such as "elvis-tiny" or "ae", and you have a full system. This
-is makes an excellent environment for a "rescue" disk or any small or
-embedded system.
+BusyBox combines tiny versions of many common UNIX utilities into a single
+small executable. It provides minimalist replacements for most of the utilities
+you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
+tar, etc.  BusyBox provides a fairly complete POSIX environment for any small
+or emdedded system.  The utilities in BusyBox generally have fewer options then
+their full featured GNU cousins; however, the options that are provided behave
+very much like their GNU counterparts.
 
 %Prep
 %setup -q -n %{Name}-%{Version}
