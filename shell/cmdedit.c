@@ -571,6 +571,7 @@ extern void cmdedit_init(void)
 		atexit(cmdedit_reset_term);	/* be sure to do this only once */
 	}
 
+#if 0
 	if ((handlers_sets & SET_TERM_HANDLERS) == 0) {
 		signal(SIGKILL, clean_up_and_die);
 		signal(SIGINT, clean_up_and_die);
@@ -578,6 +579,7 @@ extern void cmdedit_init(void)
 		signal(SIGTERM, clean_up_and_die);
 		handlers_sets |= SET_TERM_HANDLERS;
 	}
+#endif	
 
 }
 
@@ -1487,6 +1489,7 @@ prepare_to_die:
 extern void cmdedit_terminate(void)
 {
 	cmdedit_reset_term();
+#if 0
 	if ((handlers_sets & SET_TERM_HANDLERS) != 0) {
 		signal(SIGKILL, SIG_DFL);
 		signal(SIGINT, SIG_DFL);
@@ -1495,6 +1498,7 @@ extern void cmdedit_terminate(void)
 		signal(SIGWINCH, SIG_DFL);
 		handlers_sets &= ~SET_TERM_HANDLERS;
 	}
+#endif	
 }
 
 #endif	/* BB_FEATURE_COMMAND_EDITING */

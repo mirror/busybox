@@ -1160,6 +1160,7 @@ static void insert_bg_job(struct pipe *pi)
 	/* physically copy the struct job */
 	memcpy(thejob, pi, sizeof(struct pipe));
 	thejob->next = NULL;
+	//thejob->num_progs = 0;
 	thejob->running_progs = thejob->num_progs;
 	thejob->stopped_progs = 0;
 	thejob->text = xmalloc(MAX_LINE);
@@ -1184,7 +1185,6 @@ static void remove_bg_job(struct pipe *pi)
 {
 	struct pipe *prev_pipe;
 
-	free_pipe(pi);
 	if (pi == job_list->head) {
 		job_list->head = pi->next;
 	} else {
@@ -1194,6 +1194,7 @@ static void remove_bg_job(struct pipe *pi)
 		prev_pipe->next = pi->next;
 	}
 
+	free_pipe(pi);
 	free(pi);
 }
 
@@ -1393,13 +1394,11 @@ static int run_pipe_real(struct pipe *pi)
 			setup_redirects(child,NULL);
 			
 			if (pi->followup!=PIPE_BG) {
-				/* Put our child in the process group whose leader is the
-				 * first process in this pipe. */
+				/* If we (the child) win the race, put ourselves in the process
+				 * group whose leader is the first process in this pipe. */
 				if (pi->pgrp < 0) {
 					pi->pgrp = child->pid;
 				}
-				/* Don't check for errors.  The child may be dead already,
-				 * in which case setpgid returns error code EACCES. */
 				if (setpgid(0, pi->pgrp) == 0) {
 					signal(SIGTTOU, SIG_IGN);
 					tcsetpgrp(ctty, pi->pgrp);
@@ -1460,15 +1459,11 @@ static int run_list_real(struct pipe *pi)
 			if (interactive) {
 				/* move the new process group into the foreground */
 				/* suppress messages when run from /linuxrc mag@sysgo.de */
-				//signal(SIGTTIN, SIG_IGN);
-				//signal(SIGTTOU, SIG_IGN);
 				if (tcsetpgrp(0, pi->pgrp) && errno != ENOTTY)
 					perror_msg("tcsetpgrp");
 				rcode = pipe_wait(pi);
 				if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
 					perror_msg("tcsetpgrp");
-				//signal(SIGTTIN, SIG_DFL);
-				//signal(SIGTTOU, SIG_DFL);
 			} else {
 				rcode = pipe_wait(pi);
 			}
@@ -1479,7 +1474,6 @@ static int run_list_real(struct pipe *pi)
 		if ( (rcode==EXIT_SUCCESS && pi->followup==PIPE_OR) ||
 		     (rcode!=EXIT_SUCCESS && pi->followup==PIPE_AND) )
 			skip_more_in_this_rmode=rmode;
-			/* return rcode; */ /* XXX broken if list is part of if/then/else */
 	}
 	checkjobs();
 	return rcode;
@@ -2528,9 +2522,27 @@ int shell_main(int argc, char **argv)
 	global_argc = argc;
 	global_argv = argv;
 
+	/* If we get started under a job aware app (like bash 
+	 * for example), make sure we are now in charge so we 
+	 * don't fight over who gets the foreground */
+	do { 
+		pid_t initialpgrp;
+		initialpgrp = tcgetpgrp(fileno(stderr));
+		if (initialpgrp < 0) {
+			error_msg_and_die("sh: can't access tty; job control disabled\n");
+		}
+		if (initialpgrp == -1)
+			initialpgrp = getpgrp();
+		else if (initialpgrp != getpgrp()) {
+			killpg(initialpgrp, SIGTTIN);
+			continue;
+		}
+	} while (0);
 	/* don't pay any attention to this signal; it just confuses 
 	   things and isn't really meant for shells anyway */
 	signal(SIGTTOU, SIG_IGN);
+	setpgid(0, getpid());
+	tcsetpgrp(fileno(stderr), getpid());
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("\nsourcing /etc/profile\n");
