@@ -8,10 +8,13 @@ comment 'Process Utilities'
 
 bool 'free'	    CONFIG_FREE
 bool 'kill'	    CONFIG_KILL
+bool 'killall'      CONFIG_KILLALL
+if [ "$CONFIG_KILLALL" = "y" ] ; then
+	define_bool CONFIG_KILL	y
+fi
 bool 'pidof'	    CONFIG_PIDOF
 bool 'ps'	    CONFIG_PS
 bool 'renice'	    CONFIG_RENICE
 bool 'uptime'	    CONFIG_UPTIME
-
 endmenu
 
