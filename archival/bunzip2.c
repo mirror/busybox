@@ -83,16 +83,13 @@ int bunzip2_main(int argc, char **argv)
 		dst_fd = bb_xopen(save_name, O_WRONLY | O_CREAT);
 	}
 
-	if (uncompressStream(src_fd, dst_fd) == 0) {
-		if (!(flags & bunzip_to_stdout)) {
+	status = uncompressStream(src_fd, dst_fd);
+	if(!(flags & bunzip_to_stdout)) {
+		if (status) {
+			delete_name = save_name;
+		} else {
 			delete_name = argv[optind];
 		}
-		status = EXIT_SUCCESS;
-	} else {
-		if (!(flags & bunzip_to_stdout)) {
-			delete_name = save_name;
-		}
-		status = EXIT_FAILURE;
 	}
 
 	if ((delete_name) && (unlink(delete_name) < 0)) {

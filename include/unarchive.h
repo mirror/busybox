@@ -35,7 +35,7 @@ typedef struct archive_handle_s {
 	/* process the header component, e.g. tar -t */
 	void (*action_header)(const file_header_t *);
 
-	/* process the data componenet, e.g. extract to filesystem */
+	/* process the data component, e.g. extract to filesystem */
 	void (*action_data)(struct archive_handle_s *);
 	
 	/* How to process any sub archive, e.g. get_header_tar_gz */
@@ -56,7 +56,7 @@ typedef struct archive_handle_s {
 	/* Function that skips data: read_by_char or read_by_skip */
 	void (*seek)(const struct archive_handle_s *archive_handle, const unsigned int amount);
 
-	/* Temperary storage */
+	/* Temporary storage */
 	char *buffer;
 
 	/* Misc. stuff */
