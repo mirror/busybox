@@ -461,9 +461,9 @@ static const char EMSG_UNDEF_FUNC[] = "Call to undefined function";
 static const char EMSG_NO_MATH[] = "Math support is not compiled in";
 #endif
 
-static void syntax_error(const char * const message) {
-
-	fprintf(stderr, "awk: %s:%i: %s\n", programname, lineno, message);
+static void syntax_error(const char * const message)
+{
+	error_msg("%s:%i: %s", programname, lineno, message);
 	awk_exit(1);
 }
 
@@ -2681,7 +2681,7 @@ extern int awk_main(int argc, char **argv) {
 				free(s);
 				break;
 			case 'W':
-				fprintf(stderr, "Warning: unrecognized option '-W %s' ignored\n", optarg);
+				error_msg("Warning: unrecognized option '-W %s' ignored\n", optarg);
 				break;
 
 			default:
