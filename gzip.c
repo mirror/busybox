@@ -11,7 +11,12 @@
 #error you need zcat to have gzip support!
 #endif
 
-static const char gzip_usage[] = "gzip\nignores all command line arguments\ncompress stdin to stdout with -9 compression\n";
+static const char gzip_usage[] =
+    "gzip [OPTION]... [FILE]...\n\n"
+    "Compress FILEs with maximum compression.\n\n"
+    "Options:\n"
+    "\t-c\tWrite output on standard output\n";
+
 
 /* gzip.h -- common declarations for all gzip modules
  * Copyright (C) 1992-1993 Jean-loup Gailly.
@@ -210,7 +215,6 @@ extern int exit_code;      /* program exit code */
 extern int verbose;        /* be verbose (-v) */
 extern int quiet;          /* be quiet (-q) */
 extern int test;           /* check .z file integrity */
-extern int to_stdout;      /* output to stdout (-c) */
 extern int save_orig_name; /* set if original name must be saved */
 
 #define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf(0))
@@ -1726,8 +1730,8 @@ DECLARE(uch, window, 2L*WSIZE);
 		/* local variables */
 
 int ascii = 0;        /* convert end-of-lines to local OS conventions */
-int to_stdout = 0;    /* output to stdout (-c) */
 int decompress = 0;   /* decompress (-d) */
+int tostdout = 0;     /* uncompress to stdout (-c) */
 int no_name = -1;     /* don't save or restore the original file name */
 int no_time = -1;     /* don't save or restore the original file time */
 int foreground;       /* set if program run in foreground */
@@ -1767,8 +1771,22 @@ static int (*work) OF((int infile, int outfile)) = zip; /* function to call */
 // int main (argc, argv)
 //    int argc;
 //    char **argv;
-int gzip_main(int argc, char * * argv)
+int gzip_main(int argc, char ** argv)
 {
+
+    /* Parse any options */
+    while (--argc > 0 && **(++argv) == '-') {
+	while (*(++(*argv))) {
+	    switch (**argv) {
+	    case 'c':
+		tostdout = 1;
+		break;
+	    default:
+		usage(gzip_usage);
+	    }
+	}
+    }
+
     foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
     if (foreground) {
 	(void) signal (SIGINT, (sig_type)abort_gzip);
@@ -1787,8 +1805,6 @@ int gzip_main(int argc, char * * argv)
     strncpy(z_suffix, Z_SUFFIX, sizeof(z_suffix)-1);
     z_len = strlen(z_suffix);
 
-    to_stdout = 1;
-
     /* Allocate all global buffers (for DYN_ALLOC option) */
     ALLOC(uch, inbuf,  INBUFSIZ +INBUF_EXTRA);
     ALLOC(uch, outbuf, OUTBUFSIZ+OUTBUF_EXTRA);
@@ -1802,7 +1818,7 @@ int gzip_main(int argc, char * * argv)
 #endif
 
     /* And get to work */
-	treat_stdin();
+    treat_stdin();
     do_exit(exit_code);
     return exit_code; /* just to avoid lint warning */
 }
@@ -1812,7 +1828,7 @@ int gzip_main(int argc, char * * argv)
  */
 local void treat_stdin()
 {
-	SET_BINARY_MODE(fileno(stdout));
+    SET_BINARY_MODE(fileno(stdout));
     strcpy(ifname, "stdin");
     strcpy(ofname, "stdout");
 
@@ -1822,12 +1838,11 @@ local void treat_stdin()
     ifile_size = -1L; /* convention for unknown size */
 
     clear_bufs(); /* clear input and output buffers */
-    to_stdout = 1;
     part_nb = 0;
 
     /* Actually do the compression/decompression. Loop over zipped members.
      */
-	if ((*work)(fileno(stdin), fileno(stdout)) != OK) return;
+    if ((*work)(fileno(stdin), fileno(stdout)) != OK) return;
 }
 
 /* ========================================================================
@@ -2940,8 +2955,6 @@ local void set_file_type()
 #else
    extern int errno;
 #endif
-
-extern ulg crc_32_tab[];   /* crc table, defined below */
 
 /* ===========================================================================
  * Copy input to output unchanged: zcat == cat with --force.

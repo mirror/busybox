@@ -1025,7 +1025,7 @@ int unzip(in, out)
    extern int errno;
 #endif
 
-const ulg crc_32_tab[];   /* crc table, defined below */
+static const ulg crc_32_tab[];   /* crc table, defined below */
 
 /* ===========================================================================
  * Run a set of bytes through the crc shift register.  If s is a NULL
@@ -1239,7 +1239,7 @@ voidp xmalloc (size)
 /* ========================================================================
  * Table of CRC-32's of all single-byte values (made by makecrc.c)
  */
-const ulg crc_32_tab[] = {
+static const ulg crc_32_tab[] = {
   0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
   0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
   0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
