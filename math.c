@@ -92,15 +92,19 @@ struct op {
 };
 
 static const struct op operators[] = {
-	{"+", add},
-	{"-", sub},
-	{"*", mul},
-	{"/", divide},
+	{"+",   add},
+	{"add", add},
+	{"-",   sub},
+	{"sub", sub},
+	{"*",   mul},
+	{"mul", mul},
+	{"/",   divide},
+	{"div", divide},
 	{"and", and},
-	{"or", or},
+	{"or",  or},
 	{"not", not},
 	{"eor", eor},
-	{0, 0}
+	{0,     0}
 };
 
 static void stack_machine(const char *argument)
