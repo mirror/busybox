@@ -1089,11 +1089,21 @@ static void insert_bg_job(struct pipe *pi)
 	thejob->next = NULL;
 	thejob->running_progs = thejob->num_progs;
 	thejob->stopped_progs = 0;
+	thejob->text = xmalloc(MAX_LINE);
+
+	//if (pi->progs[0] && pi->progs[0].argv && pi->progs[0].argv[0])
+	{
+		char *bar=thejob->text;
+		char **foo=pi->progs[0].argv;
+		while(foo && *foo) {
+			bar += sprintf(bar, "%s ", *foo++);
+		}
+	}
 
 	/* we don't wait for background thejobs to return -- append it 
 	   to the list of backgrounded thejobs and leave it alone */
-	printf("[%d] %d\n", pi->jobid, pi->pgrp);
-	last_bg_pid = pi->pgrp;
+	printf("[%d] %d\n", thejob->jobid, thejob->progs[0].pid);
+	last_bg_pid = thejob->progs[0].pid;
 }
 
 /* remove a backgrounded job from a jobset */
@@ -1169,8 +1179,7 @@ static void checkjobs()
 			pi->progs[prognum].is_stopped = 1;
 
 			if (pi->stopped_progs == pi->num_progs) {
-				printf(JOB_STATUS_FORMAT, pi->jobid, "Stopped",
-						pi->text);
+				printf(JOB_STATUS_FORMAT, pi->jobid, "Stopped", pi->text);
 			}
 		}
 	}
