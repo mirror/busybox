@@ -38,7 +38,7 @@ int xargs_main(int argc, char **argv)
 	char *args = NULL;
 	char *cmd_to_be_executed = NULL;
 	char traceflag = 0;
-	int len_args=2, len_cmd_to_be_executed, opt;
+	int len_args=0, len_cmd_to_be_executed, opt;
 	pid_t pid;
 	int wpid, status;
 
@@ -69,8 +69,8 @@ int xargs_main(int argc, char **argv)
 		strcat(cmd_to_be_executed, *argv);
 	}
 
-	args=xrealloc(args, len_args);
-	strcpy(args, " ");
+	//args=xrealloc(args, len_args);
+//	strcpy(args, " ");
 
 	/* Now, read in one line at a time from stdin, and store this 
 	 * line to be used later as an argument to the command */
@@ -112,21 +112,23 @@ int xargs_main(int argc, char **argv)
 		in_from_stdin = get_line_from_file(stdin);
 	}
 
-	if (traceflag==1) {
-		fprintf(stderr, "%s%s\n", cmd_to_be_executed, args);
-	}
-
 	if ((pid = fork()) == 0) {
 		char *cmd[255];
 		int i=1;
 
-		//printf("argv[0]='%s'\n", cmd_to_be_executed);
+		if (traceflag==1) {
+			fprintf(stderr, "%s ", cmd_to_be_executed);
+		}
 		cmd[0] = cmd_to_be_executed;
 		while (--argc && ++argv && *argv ) {
-			//printf("argv[%d]='%s'\n", i, *argv);
+			if (traceflag==1) {
+				fprintf(stderr, "%s ", *argv);
+			}
 			cmd[i++]=*argv;
 		}
-		//printf("argv[%d]='%s'\n", i, args);
+		if (traceflag==1) {
+			fprintf(stderr, "%s\n", args);
+		}
 		cmd[i++] = args;
 		cmd[i] = NULL;
 		execvp(cmd_to_be_executed, cmd);
