@@ -33,6 +33,7 @@
 #include <sys/shm.h>
 #include <signal.h>
 #include <setjmp.h>
+#include <unistd.h>
 #include "busybox.h"
 
 static const long KEY_ID = 0x414e4547; /*"GENA"*/
@@ -77,10 +78,15 @@ static inline void sem_down(int semid)
 extern int logread_main(int argc, char **argv)
 {
 	int i;
+	int follow=0;
 	
-	/* no options, no getopt */
-	if (argc > 1)
-		bb_show_usage();
+	if (argc == 2 && strcmp(argv[1],"-f")==0) {
+		follow = 1;
+	} else {
+		/* no options, no getopt */
+		if (argc > 1)
+			bb_show_usage();
+	}
 	
 	// handle intrrupt signal
 	if (setjmp(jmp_env)) goto output_end;
@@ -98,22 +104,66 @@ extern int logread_main(int argc, char **argv)
 	if ( (log_semid = semget(KEY_ID, 0, 0)) == -1)
 	    	error_exit("Can't get access to semaphone(s) for circular buffer from syslogd");
 
-	sem_down(log_semid);	
-	// Read Memory 
-	i=buf->head;
+	// Suppose atomic memory move
+	i = follow ? buf->tail : buf->head;
 
-	//printf("head: %i tail: %i size: %i\n",buf->head,buf->tail,buf->size);
-	if (buf->head == buf->tail) {
-		printf("<empty syslog>\n");
-	}
+	do {
+#undef RC_LOGREAD
+#ifdef RC_LOGREAD
+		char *buf_data;
+		int log_len,j;
+#endif
+
+		sem_down(log_semid);	
+
+		//printf("head: %i tail: %i size: %i\n",buf->head,buf->tail,buf->size);
+		if (buf->head == buf->tail || i==buf->tail) {
+			if (follow) {
+				sem_up(log_semid);
+				sleep(1);	/* TODO: replace me with a sleep_on */
+				continue;
+			} else {
+				printf("<empty syslog>\n");
+			}
+		}
 	
-	while ( i != buf->tail) {
-		printf("%s", buf->data+i);
-		i+= strlen(buf->data+i) + 1;
-		if (i >= buf->size )
-			i=0;
-	}
-	sem_up(log_semid);
+		// Read Memory 
+#ifdef RC_LOGREAD
+		log_len = buf->tail - i;
+		if (log_len < 0)
+			log_len += buf->size;
+		buf_data = (char *)malloc(log_len);
+		if (!buf_data)
+			error_exit("malloc failed");
+
+		if (buf->tail < i) {
+			memcpy(buf_data, buf->data+i, buf->size-i);
+			memcpy(buf_data+buf->size-i, buf->data, buf->tail);
+		} else {
+			memcpy(buf_data, buf->data+i, buf->tail-i);
+		}
+		i = buf->tail;
+
+#else
+		while ( i != buf->tail) {
+			printf("%s", buf->data+i);
+			i+= strlen(buf->data+i) + 1;
+			if (i >= buf->size )
+				i=0;
+		}
+#endif
+		// release the lock on the log chain
+		sem_up(log_semid);
+
+#ifdef RC_LOGREAD
+		for (j=0; j < log_len; j+=strlen(buf_data+j)+1) {
+			printf("%s", buf_data+j);
+			if (follow)
+				fflush(stdout);
+		}
+		free(buf_data);
+#endif
+	} while (follow);
 
 output_end:
 	if (log_shmid != -1) 
