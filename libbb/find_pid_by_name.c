@@ -25,6 +25,10 @@
 #include <stdlib.h>
 #include "libbb.h"
 
+#define COMM_LEN 16 /* synchronize with size of comm in struct task_struct 
+					   in /usr/include/linux/sched.h */
+
+
 /* find_pid_by_name()
  *  
  *  Modified by Vladimir Oleynik for use with libbb/procps.c
@@ -46,7 +50,7 @@ extern long* find_pid_by_name( const char* pidName)
 #else
 	while ((p = procps_scan(0)) != 0) {
 #endif
-		if (strcmp(p->short_cmd, pidName) == 0) {
+		if (strncmp(p->short_cmd, pidName, COMM_LEN-1) == 0) {
 			pidList=xrealloc( pidList, sizeof(long) * (i+2));
 			pidList[i++]=p->pid;
 		}
