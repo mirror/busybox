@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/wait.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -12,12 +13,32 @@
 #include <time.h>
 
 #include "leases.h"
-#include "busybox.h"
+#include "libbb_udhcp.h"
 
 #define REMAINING 0
 #define ABSOLUTE 1
 
+
+#ifndef IN_BUSYBOX
+static void __attribute__ ((noreturn)) show_usage(void)
+{
+	printf(
+"Usage: dumpleases -f <file> -[r|a]\n\n"
+"  -f, --file=FILENAME             Leases file to load\n"
+"  -r, --remaining                 Interepret lease times as time remaing\n"
+"  -a, --absolute                  Interepret lease times as expire time\n");
+	exit(0);
+}
+#else
+#define show_usage bb_show_usage
+#endif
+
+
+#ifdef IN_BUSYBOX
 int dumpleases_main(int argc, char *argv[])
+#else
+int main(int argc, char *argv[])
+#endif
 {
 	FILE *fp;
 	int i, c, mode = REMAINING;
@@ -42,14 +63,14 @@ int dumpleases_main(int argc, char *argv[])
 		case 'a': mode = ABSOLUTE; break;
 		case 'r': mode = REMAINING; break;
 		case 'f':
-			file =  optarg;
+			file = optarg;
 			break;
 		default:
-			bb_show_usage();
+			show_usage();
 		}
 	}
 			
-	fp = bb_xfopen(file, "r");
+	fp = xfopen(file, "r");
 
 	printf("Mac Address       IP-Address      Expires %s\n", mode == REMAINING ? "in" : "at");  
 	/*     "00:00:00:00:00:00 255.255.255.255 Wed Jun 30 21:49:08 1993" */

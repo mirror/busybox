@@ -75,6 +75,35 @@ struct client_config_t client_config = {
 	arp: "\0\0\0\0\0\0",		/* appease gcc-3.0 */
 };
 
+#ifndef IN_BUSYBOX
+static void __attribute__ ((noreturn)) show_usage(void)
+{
+        printf(
+"Usage: udhcpc [OPTIONS]\n\n"
+"  -c, --clientid=CLIENTID         Client identifier\n"
+"  -H, --hostname=HOSTNAME         Client hostname\n"
+"  -h                              Alias for -H\n"
+"  -f, --foreground                Do not fork after getting lease\n"
+"  -b, --background                Fork to background if lease cannot be\n"
+"                                  immediately negotiated.\n"
+"  -i, --interface=INTERFACE       Interface to use (default: eth0)\n"
+"  -n, --now                       Exit with failure if lease cannot be\n"
+"                                  immediately negotiated.\n"
+"  -p, --pidfile=file              Store process ID of daemon in file\n"
+"  -q, --quit                      Quit after obtaining lease\n"
+"  -r, --request=IP                IP address to request (default: none)\n"
+"  -s, --script=file               Run file at dhcp events (default:\n"
+"                                  " DEFAULT_SCRIPT ")\n"
+"  -v, --version                   Display version\n"
+        );
+        exit(0);
+}
+#else
+#define show_usage bb_show_usage
+extern void show_usage(void) __attribute__ ((noreturn));
+#endif
+
+
 /* just a little helper */
 static void change_mode(int new_mode)
 {
@@ -233,7 +262,7 @@ int udhcpc_main(int argc, char *argv[])
 			return(0);
 			break;
 		default:
-			bb_show_usage();
+			show_usage();
 		}
 	}
 
