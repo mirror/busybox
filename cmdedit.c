@@ -319,6 +319,8 @@ extern int cmdedit_read_input(int inputFd, int outputFd,
 		    strcpy( matchBuf, parsenextc); 
 		    matchBuf[cursor+1] = '\0';
 
+		    fprintf(stderr, "matchBuf='%s'\n", matchBuf);
+
 		    /* skip leading white space */
 		    tmp = matchBuf;
 		    while (*tmp && isspace(*tmp)) {
