@@ -1701,6 +1701,13 @@
 	USAGE_TFTP_BS( \
 	"\t-b SIZE\tTransfer blocks of SIZE octets.\n" \
 	)	
+#define time_trivial_usage \
+	"[OPTION]... COMMAND [ARGS...]"
+#define time_full_usage \
+	"Runs the program COMMAND with arguments ARGS.  When COMMAND finishes,\n"
+	"COMMAND's resource usage information is displayed\n\n"
+	"Options:\n" \
+	"\t-v\tDisplays verbose resource usage information."
 
 #define touch_trivial_usage \
 	"[-c] FILE [FILE ...]"
