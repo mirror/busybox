@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
 #include "busybox.h"
 
 /* From gunzip.c */
@@ -120,8 +121,11 @@ extern int deb_extract(int optflags, const char *dir_name, const char *deb_filen
 	}
 	status = readTarFile(srcFd, extract_flag, list_flag, 
 		extract_to_stdout, verbose_flag, NULL, extract_list);
-	close(srcFd);
+
+	/* we are deliberately terminating the child so we can safely ignore this */
+	signal(SIGTERM, SIG_IGN);
 	gz_close(pid);
+	close(srcFd);
 	fclose(comp_file);
 
 	return status;
