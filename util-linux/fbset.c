@@ -384,6 +384,9 @@ extern int fbset_main(int argc, char **argv)
 				case CMD_YRES:
 					varset.yres = strtoul(argv[1], 0, 0);
 					break;
+			   case CMD_DEPTH:
+					varset.bits_per_pixel = strtoul(argv[1], 0, 0);
+					break;
 #endif
 				}
 				argc -= g_cmdoptions[i].param_count;
