@@ -24,14 +24,6 @@
  *
  */
 
-
-/* Turning this off makes things a bit smaller (and less pretty) */
-#define BB_FEATURE_USE_TERMIOS
-/* Turning this off makes things a bit smaller (and less pretty) */
-#define BB_FEATURE_AUTOWIDTH
-
-
-
 #include "internal.h"
 #include <stdio.h>
 #include <fcntl.h>

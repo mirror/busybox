@@ -72,6 +72,9 @@ static const struct Applet applets[] = {
 #ifdef BB_INIT			//sbin
     {"init", init_main},
 #endif
+#ifdef BB_FEATURE_LINUXRC	//
+    {"linuxrc", init_main},
+#endif
 #ifdef BB_KILL			//bin
     {"kill", kill_main},
 #endif

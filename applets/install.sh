@@ -6,17 +6,20 @@ if [ "$1" == "" ]; then
     echo "No installation directory, aborting."
     exit 1;
 fi
+rm -rf $1
 
-# can't just use cat, rmdir is not unique
-#h=`cat busybox.links`
 h=`sort busybox.links | uniq`
 
-mkdir -p $1/bin
 for i in $h ; do
-	[ ${verbose} ] && echo "  making link to $i"
-	mkdir -p $1/`echo $i | sed -e 's/\(^.*\/\)\(.*\)/\1/g' `
-	ln -s busybox $1/bin/`echo $i | sed -e 's/\(^.*\/\)\(.*\)/\2/g' `
+	echo "working on $i now"
+	mypath=`echo $i | sed -e 's/\(^.*\/\)\(.*\)/\1/g' `;
+	myapp=`echo $i | sed -e 's/\(^.*\/\)\(.*\)/\2/g' `;
+	echo "mkdir -p $1$mypath"
+	echo "(cd $1$mypath ; ln -s /bin/busybox $1$mypath$myapp )"
+	mkdir -p $1$mypath
+	(cd $1$mypath ; ln -s /bin/busybox $1$mypath$myapp )
 done
 rm -f $1/bin/busybox
 install -m 755 busybox $1/bin/busybox
+
 

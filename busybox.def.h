@@ -64,3 +64,14 @@
 // Don't turn BB_UTILITY off.  It contains support code 
 // that compiles to 0 if everything else if turned off.
 #define BB_UTILITY
+//
+//This is where feature definitions go.
+#define BB_FEATURE_LINUXRC
+/* Turning this off makes things a bit smaller (and less pretty) */
+#define BB_FEATURE_USE_TERMIOS
+/* Turning this off makes things a bit smaller (and less pretty) */
+#define BB_FEATURE_AUTOWIDTH
+
+
+
+
