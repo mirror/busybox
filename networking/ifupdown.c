@@ -27,6 +27,8 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+/* TODO: standardise execute() return codes to return 0 for success and 1 for failure */
+
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
@@ -347,6 +349,9 @@ static int execute(char *command, struct interface_defn_t *ifd, execfn *exec)
 	ret = (*exec) (out);
 
 	free(out);
+	if (ret != 1) {
+		return(0);
+	}
 	return(1);
 }
 
@@ -390,7 +395,7 @@ static int loopback_up6(struct interface_defn_t *ifd, execfn *exec)
 	int result;
 	result =execute("ip addr add ::1 dev %iface%", ifd, exec);
 	result += execute("ip link set %iface% up", ifd, exec);
-	return( result);
+	return ((result == 2) ? 2 : 0);
 #else
 	return( execute("ifconfig %iface% add ::1", ifd, exec));
 #endif
@@ -417,7 +422,7 @@ static int static_up6(struct interface_defn_t *ifd, execfn *exec)
 	result += execute("ifconfig %iface% add %address%/%netmask%", ifd, exec);
 	result += execute("[[ route -A inet6 add ::/0 gw %gateway% ]]", ifd, exec);
 #endif
-	return( result);
+	return ((result == 3) ? 3 : 0);
 }
 
 static int static_down6(struct interface_defn_t *ifd, execfn *exec)
@@ -438,7 +443,7 @@ static int v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
 	result += execute("ip link set %iface% up", ifd, exec);
 	result += execute("ip addr add %address%/%netmask% dev %iface%", ifd, exec);
 	result += execute("[[ ip route add ::/0 via %gateway% ]]", ifd, exec);
-	return( result);
+	return ((result == 4) ? 4 : 0);
 }
 
 static int v4tunnel_down(struct interface_defn_t * ifd, execfn * exec)
@@ -469,7 +474,7 @@ static int loopback_up(struct interface_defn_t *ifd, execfn *exec)
 	int result;
 	result = execute("ip addr add 127.0.0.1/8 dev %iface%", ifd, exec);
 	result += execute("ip link set %iface% up", ifd, exec);
-	return(result);
+	return ((result == 2) ? 2 : 0);
 #else
 	return( execute("ifconfig %iface% 127.0.0.1 up", ifd, exec));
 #endif
@@ -481,7 +486,7 @@ static int loopback_down(struct interface_defn_t *ifd, execfn *exec)
 	int result;
 	result = execute("ip addr flush dev %iface%", ifd, exec);
 	result += execute("ip link set %iface% down", ifd, exec);
-	return(result);
+	return ((result == 2) ? 2 : 0);
 #else
 	return( execute("ifconfig %iface% 127.0.0.1 down", ifd, exec));
 #endif
@@ -495,14 +500,15 @@ static int static_up(struct interface_defn_t *ifd, execfn *exec)
 			"dev %iface% [[peer %pointopoint%]] [[label %label%]]", ifd, exec);
 	result += execute("ip link set [[mtu %mtu%]] [[address %hwaddress%]] %iface% up", ifd, exec);
 	result += execute("[[ ip route add default via %gateway% dev %iface% ]]", ifd, exec);
+	return ((result == 3) ? 3 : 0);
 #else
 	result = execute("ifconfig %iface% %address% netmask %netmask% "
 				"[[broadcast %broadcast%]] 	[[pointopoint %pointopoint%]] "
 				"[[media %media%]] [[mtu %mtu%]] 	[[hw %hwaddress%]] up",
 				ifd, exec);
 	result += execute("[[ route add default gw %gateway% %iface% ]]", ifd, exec);
+	return ((result == 2) ? 2 : 0);
 #endif
-	return(result);
 }
 
 static int static_down(struct interface_defn_t *ifd, execfn *exec)
@@ -515,7 +521,7 @@ static int static_down(struct interface_defn_t *ifd, execfn *exec)
 	result = execute("[[ route del default gw %gateway% %iface% ]]", ifd, exec);
 	result += execute("ifconfig %iface% down", ifd, exec);
 #endif
-	return(result);
+	return ((result == 2) ? 2 : 0);
 }
 
 static int execable(char *program)
@@ -562,7 +568,7 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 	} else if (execable("/sbin/pump")) {
 		result = execute("pump -i %iface% -k", ifd, exec);
 	} else if (execable("/sbin/dhclient")) {
-		execute("kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null", ifd, exec);
+		result = execute("kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null", ifd, exec);
 	} else if (execable("/sbin/dhcpcd")) {
 		result = execute("dhcpcd -k %iface%", ifd, exec);
 	}
@@ -1033,9 +1039,10 @@ static int execute_all(struct interface_defn_t *ifd, execfn *exec, const char *o
 	}
 
 	bb_xasprintf(&buf, "run-parts /etc/network/if-%s.d", opt);
-	(*exec)(buf);
-
-	return (1);
+	if ((*exec)(buf) != 1) {
+		return 0;
+	}
+	return 1;
 }
 
 static int check(char *str) {
@@ -1116,7 +1123,7 @@ static int popen2(FILE **in, FILE **out, char *command, ...)
 	/* unreached */
 }
 
-static char * run_mapping(char *physical, struct mapping_defn_t * map)
+static char *run_mapping(char *physical, struct mapping_defn_t * map)
 {
 	FILE *in, *out;
 	int i, status;
@@ -1198,6 +1205,7 @@ extern int ifupdown_main(int argc, char **argv)
 #endif
 	int do_all = 0;
 	int force = 0;
+	int any_failures = 0;
 	int i;
 
 	if (bb_applet_name[2] == 'u') {
@@ -1312,6 +1320,7 @@ extern int ifupdown_main(int argc, char **argv)
 		char *liface;
 		char *pch;
 		int okay = 0;
+		int cmds_ret;
 
 		iface = strdup(target_list->data);
 		target_list = target_list->link;
@@ -1374,9 +1383,13 @@ extern int ifupdown_main(int argc, char **argv)
 				debug_noise("\nConfiguring interface %s (%s)\n", liface, currif->address_family->name);
 
 				/* Call the cmds function pointer, does either iface_up() or iface_down() */
-				if (cmds(currif) == -1) {
+				cmds_ret = cmds(currif);
+				if (cmds_ret == -1) {
 					bb_error_msg("Don't seem to have all the variables for %s/%s.",
 							liface, currif->address_family->name);
+					any_failures += 1;
+				} else if (cmds_ret == 0) {
+					any_failures += 1;
 				}
 
 				currif->iface = oldiface;
@@ -1389,6 +1402,7 @@ extern int ifupdown_main(int argc, char **argv)
 
 		if (!okay && !force) {
 			bb_error_msg("Ignoring unknown interface %s", liface);
+			any_failures += 1;
 		} else {
 			llist_t *iface_state = find_iface_state(state_list, iface);
 
@@ -1448,5 +1462,7 @@ extern int ifupdown_main(int argc, char **argv)
 		state_fp = NULL;
 	}
 
+	if (any_failures)
+		return 1;
 	return 0;
 }
