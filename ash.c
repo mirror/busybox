@@ -51,9 +51,8 @@
 #define ASH_ALIAS
 
 /* If you need ash to act as a full Posix shell, with full math
- * support, enable this.   This option needs some work, since it
- * doesn't compile right now... */
-#undef ASH_MATH_SUPPORT
+ * support, enable this.   This adds a bit over 2k an x86 system. */
+#define ASH_MATH_SUPPORT
 
 /* Getopts is used by shell procedures to parse positional parameters.
  * You probably want to leave this disabled, and use the busybox getopt
@@ -80,6 +79,7 @@
 #undef FNMATCH_BROKEN
 #undef GLOB_BROKEN
 #undef _GNU_SOURCE
+#undef __USE_GNU
 
 #include <assert.h>
 #include <ctype.h>
@@ -1562,8 +1562,10 @@ __lookupalias(const char *name) {
 #endif
 
 #ifdef ASH_MATH_SUPPORT
-/* The generated file arith.c has been snipped.  If you want this
- * stuff back in, feel free to add it to your own copy.  */
+/* The generated file arith.c has been replaced with a custom hand
+ * written implementation written by Aaron Lehmann <aaronl@vitelus.com>.  
+ * This is now part of libbb, so that it can be used by all the shells 
+ * in busybox. */
 #define ARITH_NUM 257
 #define ARITH_LPAREN 258
 #define ARITH_RPAREN 259
@@ -1592,11 +1594,8 @@ __lookupalias(const char *name) {
 
 static void expari (int);
 /* From arith.y */
-static int arith (const char *);
+static long ash_arith(const char *p);
 static int expcmd (int , char **);
-static void arith_lex_reset (void);
-static int yylex (void);
-
 #endif
 
 static char *trap[NSIG];                /* trap handler commands */
@@ -2173,52 +2172,22 @@ exverror(int cond, const char *msg, va_list ap)
 }
 
 
-#ifdef __STDC__
-static void
+static void 
 error(const char *msg, ...)
-#else
-static void
-error(va_alist)
-	va_dcl
-#endif
 {
-#ifndef __STDC__
-	const char *msg;
-#endif
 	va_list ap;
-#ifdef __STDC__
 	va_start(ap, msg);
-#else
-	va_start(ap);
-	msg = va_arg(ap, const char *);
-#endif
 	exverror(EXERROR, msg, ap);
 	/* NOTREACHED */
 	va_end(ap);
 }
 
 
-#ifdef __STDC__
 static void
 exerror(int cond, const char *msg, ...)
-#else
-static void
-exerror(va_alist)
-	va_dcl
-#endif
 {
-#ifndef __STDC__
-	int cond;
-	const char *msg;
-#endif
 	va_list ap;
-#ifdef __STDC__
 	va_start(ap, msg);
-#else
-	va_start(ap);
-	cond = va_arg(ap, int);
-	msg = va_arg(ap, const char *);
-#endif
 	exverror(cond, msg, ap);
 	/* NOTREACHED */
 	va_end(ap);
@@ -4914,7 +4883,7 @@ expari(int flag)
 	removerecordregions(begoff);
 	if (quotes)
 		rmescapes(p+2);
-	result = arith(p+2);
+	result = ash_arith(p+2);
 	snprintf(p, 12, "%d", result);
 
 	while (*p++)
@@ -11952,13 +11921,7 @@ static void
 trace(const char *fmt, ...)
 {
 	va_list va;
-#ifdef __STDC__
 	va_start(va, fmt);
-#else
-	char *fmt;
-	va_start(va);
-	fmt = va_arg(va, char *);
-#endif
 	if (tracefile != NULL) {
 		(void) vfprintf(tracefile, fmt, va);
 		if (strchr(fmt, '\n'))
@@ -12657,7 +12620,6 @@ found:;
 	return 0;
 }
 
-
 /*
  * The "local" command.
  */
@@ -12916,7 +12878,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.13 2001/07/26 05:58:40 russ Exp $
+ * $Id: ash.c,v 1.14 2001/07/30 21:41:37 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {
@@ -12935,6 +12897,51 @@ static int timescmd (int argc, char **argv)
 	       ((double) buf.tms_cstime) / clk_tck);
 	return 0;
 }
+
+
+#ifdef ASH_MATH_SUPPORT
+/* The exp(1) builtin.  */
+int expcmd(int argc, char **argv)
+{
+	const char *p;
+	char *concat;
+	char **ap;
+	long i;
+
+	if (argc > 1) {
+		p = argv[1];
+		if (argc > 2) {
+			/* concatenate arguments */
+			STARTSTACKSTR(concat);
+			ap = argv + 2;
+			for (;;) {
+				while (*p)
+					STPUTC(*p++, concat);
+				if ((p = *ap++) == NULL)
+					break;
+				STPUTC(' ', concat);
+			}
+			STPUTC('\0', concat);
+			p = grabstackstr(concat);
+		}
+	} else
+		p = "";
+
+	i = ash_arith(p);
+
+	printf("%ld\n", i);
+	return (! i);
+}
+	
+static long ash_arith(const char *p)
+{
+	long i = arith(p);
+	if (i <0)
+	    error("arith: syntax error: \"%s\"\n", p);
+	return i;
+}
+#endif
+
 
 
 /*-
