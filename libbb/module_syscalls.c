@@ -35,7 +35,7 @@
 #if __GNU_LIBRARY__ < 5
 /* These syscalls are not included as part of libc5 */
 _syscall1(int, delete_module, const char *, name);
-_syscall1(int, get_kernel_syms, struct old_kernel_sym *, ks);
+_syscall1(int, get_kernel_syms, __ptr_t, ks);
 
 /* This may have 5 arguments (for old 2.0 kernels) or 2 arguments
  * (for 2.2 and 2.4 kernels).  Use the greatest common denominator,
