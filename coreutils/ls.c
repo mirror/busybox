@@ -717,21 +717,21 @@ static int list_single(struct dnode *dn)
 			break;
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 		case LIST_FULLTIME:
+			printf("%24.24s ", filetime);
+			column += 25;
+			break;
 		case LIST_DATE_TIME:
-			if (all_fmt & LIST_FULLTIME) {
-				printf("%24.24s ", filetime);
-				column += 25;
-				break;
+			if ((all_fmt & LIST_FULLTIME) == 0) {
+				age = time(NULL) - ttime;
+				printf("%6.6s ", filetime + 4);
+				if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
+					/* hh:mm if less than 6 months old */
+					printf("%5.5s ", filetime + 11);
+				} else {
+					printf(" %4.4s ", filetime + 20);
+				}
+				column += 13;
 			}
-			age = time(NULL) - ttime;
-			printf("%6.6s ", filetime + 4);
-			if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
-				/* hh:mm if less than 6 months old */
-				printf("%5.5s ", filetime + 11);
-			} else {
-				printf(" %4.4s ", filetime + 20);
-			}
-			column += 13;
 			break;
 #endif
 #ifdef CONFIG_SELINUX
