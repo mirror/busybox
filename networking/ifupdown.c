@@ -467,7 +467,7 @@ static int loopback_up(struct interface_defn_t *ifd, execfn *exec)
 {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 	int result;
-	result += execute("ip link set %iface% up", ifd, exec);
+	result = execute("ip link set %iface% up", ifd, exec);
 	result += execute("ip addr add 127.0.0.1/8 dev %iface% label %label%", ifd, exec);
 	return(result);
 #else
@@ -547,15 +547,13 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
-	int result;
+	int result = 0;
 	if (execable("/sbin/udhcpc")) {
 		execute("kill -9 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
-		result = 0; 
 	} else if (execable("/sbin/pump")) {
 		result = execute("pump -i %iface% -k", ifd, exec);
 	} else if (execable("/sbin/dhclient")) {
 		execute("kill -9 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
-		result = 0; 
 	} else if (execable("/sbin/dhcpcd")) {
 		result = execute("dhcpcd -k %iface%", ifd, exec);
 	}
@@ -625,7 +623,15 @@ static char *next_word(char **buf)
 	}
 
 	/* Skip over leading whitespace */
-	word = *buf + strspn(*buf, " \t\n");
+	word = *buf;
+	while (isspace(*word)) {
+		++word;
+	}
+
+	/* Skip over comments */
+	if (*word == '#') {
+		return(NULL);
+	}
 
 	/* Find the length of this word */
 	length = strcspn(word, " \t\n");
@@ -711,13 +717,9 @@ static struct interfaces_file_t *read_interfaces(char *filename)
 	while ((buf = bb_get_chomped_line_from_file(f)) != NULL) {
 		char *buf_ptr = buf;
 
-		/* Ignore comments */
-		if (buf[0] == '#') {
-			continue;
-		}
-
 		firstword = next_word(&buf_ptr);
 		if (firstword == NULL) {
+			free(buf);
 			continue;	/* blank line */
 		}
 
@@ -777,6 +779,11 @@ static struct interfaces_file_t *read_interfaces(char *filename)
 				if (buf_ptr == NULL) {
 					bb_error_msg("too few parameters for line \"%s\"", buf);
 					return NULL;
+				}
+
+				/* ship any trailing whitespace */
+				while (isspace(*buf_ptr)) {
+					++buf_ptr;
 				}
 
 				if (buf_ptr[0] != '\0') {
@@ -1228,6 +1235,10 @@ extern int ifupdown_main(int argc, char **argv)
 	debug_noise("reading %s file:\n", interfaces);
 	defn = read_interfaces(interfaces);
 	debug_noise("\ndone reading %s\n\n", interfaces);
+
+	if (!defn) {
+		exit(EXIT_FAILURE);
+	}
 
 	if (no_act) {
 		state_fp = fopen(statefile, "r");
