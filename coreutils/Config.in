@@ -218,6 +218,12 @@ config CONFIG_ID
 	help
 	  id displays the current user and group ID names.
 
+config CONFIG_INSTALL
+	bool "install"
+	default n
+	help
+	  Copy files and set attributes.
+
 config CONFIG_LENGTH
 	bool "length"
 	default n

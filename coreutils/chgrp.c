@@ -59,10 +59,7 @@ int chgrp_main(int argc, char **argv)
 	argv += optind;
 
 	/* Find the selected group */
-	gid = strtoul(*argv, &p, 10);	/* maybe it's already numeric */
-	if (*p || (p == *argv)) {		/* trailing chars or nonnumeric */
-		gid = my_getgrnam(*argv);
-	}
+	gid = get_ug_id(*argv, my_getgrnam);
 	++argv;
 
 	/* Ok, ready to do the deed now */

@@ -1239,6 +1239,18 @@
 	USAGE_INSMOD_MAP("\t-m\tOutput load map to stdout") \
 	"\t-x\tdo not export externs\n"
 
+#define install_trivial_usage \
+	"[cgmops] [sources] <dest|directory>"
+#define install_full_usage \
+	"copy files and set attributes\n\n" \
+	"Options:\n" \
+	"\t-c\tcopy the file, default\n" \
+	"\t-g\tset group ownership\n" \
+	"\t-m\tset permission modes\n" \
+	"\t-o\tset ownership\n" \
+	"\t-p\tpreserve date\n" \
+	"\t-s\tstrip symbol tables\n"
+
 #define ip_trivial_usage \
 	"[ OPTIONS ] { address | link | route | tunnel } { COMMAND | help }"
 #define ip_full_usage \

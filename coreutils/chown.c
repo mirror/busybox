@@ -53,19 +53,6 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 #define FLAG_R 1
 #define FLAG_h 2
 
-static unsigned long get_ug_id(const char *s, long (*my_getxxnam)(const char *))
-{
-	unsigned long r;
-	char *p;
-
-	r = strtoul(s, &p, 10);
-	if (*p || (s == p)) {
-		r = my_getxxnam(s);
-	}
-
-	return r;
-}
-
 int chown_main(int argc, char **argv)
 {
 	int flags;
