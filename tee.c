@@ -47,7 +47,7 @@ tee_main(int argc, char **argv)
 	while (optind < argc) {
 		if ((files[nfiles++] = fopen(argv[optind++], mode)) == NULL) {
 			nfiles--;
-			error_msg("%s: %s\n", argv[optind-1], strerror(errno));
+			perror_msg("%s", argv[optind-1]);
 			status = 1;
 		}
 	}

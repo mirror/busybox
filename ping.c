@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.28 2000/12/07 19:56:48 markw Exp $
+ * $Id: ping.c,v 1.29 2000/12/18 03:57:16 kraai Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -325,7 +325,7 @@ static void sendping(int junk)
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in));
 
 	if (i < 0)
-		error_msg_and_die("sendto: %s\n", strerror(errno));
+		perror_msg_and_die("sendto");
 	else if ((size_t)i != sizeof(packet))
 		error_msg_and_die("ping wrote %d chars; %d expected\n", i,
 			   (int)sizeof(packet));

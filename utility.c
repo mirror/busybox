@@ -1313,11 +1313,11 @@ extern pid_t* find_pid_by_name( char* pidName)
 	/* open device */ 
 	fd = open(device, O_RDONLY);
 	if (fd < 0)
-		error_msg_and_die( "open failed for `%s': %s\n", device, strerror (errno));
+		perror_msg_and_die( "open failed for `%s'", device);
 
 	/* Find out how many processes there are */
 	if (ioctl (fd, DEVPS_GET_NUM_PIDS, &num_pids)<0) 
-		error_msg_and_die( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+		perror_msg_and_die( "\nDEVPS_GET_PID_LIST");
 	
 	/* Allocate some memory -- grab a few extras just in case 
 	 * some new processes start up while we wait. The kernel will
@@ -1328,7 +1328,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	/* Now grab the pid list */
 	if (ioctl (fd, DEVPS_GET_PID_LIST, pid_array)<0) 
-		error_msg_and_die( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+		perror_msg_and_die( "\nDEVPS_GET_PID_LIST");
 
 	/* Now search for a match */
 	for (i=1, j=0; i<pid_array[0] ; i++) {
@@ -1337,7 +1337,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	    info.pid = pid_array[i];
 	    if (ioctl (fd, DEVPS_GET_PID_INFO, &info)<0)
-			error_msg_and_die( "\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
+			perror_msg_and_die( "\nDEVPS_GET_PID_INFO");
 
 		/* Make sure we only match on the process name */
 		p=info.command_line+1;
@@ -1361,7 +1361,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	/* close device */
 	if (close (fd) != 0) 
-		error_msg_and_die( "close failed for `%s': %s\n",device, strerror (errno));
+		perror_msg_and_die( "close failed for `%s'", device);
 
 	return pidList;
 }
@@ -1387,7 +1387,7 @@ extern pid_t* find_pid_by_name( char* pidName)
 
 	dir = opendir("/proc");
 	if (!dir)
-		error_msg_and_die( "Cannot open /proc: %s\n", strerror (errno));
+		perror_msg_and_die( "Cannot open /proc");
 	
 	while ((next = readdir(dir)) != NULL) {
 		FILE *status;
@@ -1764,7 +1764,7 @@ FILE *wfopen(const char *path, const char *mode)
 {
 	FILE *fp;
 	if ((fp = fopen(path, mode)) == NULL) {
-		error_msg("%s: %s\n", path, strerror(errno));
+		perror_msg("%s", path);
 		errno = 0;
 	}
 	return fp;
@@ -1778,7 +1778,7 @@ FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp;
 	if ((fp = fopen(path, mode)) == NULL)
-		error_msg_and_die("%s: %s\n", path, strerror(errno));
+		perror_msg_and_die("%s", path);
 	return fp;
 }
 #endif

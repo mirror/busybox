@@ -650,7 +650,7 @@ static int remote_connect(struct in_addr addr, int port)
 
 	if (connect(s, (struct sockaddr *)&s_addr, sizeof s_addr) < 0)
 	{
-		error_msg_and_die("Unable to connect to remote host: %s\n", strerror(errno));
+		perror_msg_and_die("Unable to connect to remote host");
 	}
 	return s;
 }

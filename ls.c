@@ -181,7 +181,7 @@ static int my_stat(struct dnode *cur)
 #ifdef BB_FEATURE_LS_FOLLOWLINKS
 	if (follow_links == TRUE) {
 		if (stat(cur->fullname, &cur->dstat)) {
-			error_msg("%s: %s\n", cur->fullname, strerror(errno));
+			perror_msg("%s", cur->fullname);
 			status = EXIT_FAILURE;
 			free(cur->fullname);
 			free(cur);
@@ -190,7 +190,7 @@ static int my_stat(struct dnode *cur)
 	} else
 #endif
 	if (lstat(cur->fullname, &cur->dstat)) {
-		error_msg("%s: %s\n", cur->fullname, strerror(errno));
+		perror_msg("%s", cur->fullname);
 		status = EXIT_FAILURE;
 		free(cur->fullname);
 		free(cur);
@@ -511,7 +511,7 @@ struct dnode **list_dir(char *path)
 	nfiles= 0;
 	dir = opendir(path);
 	if (dir == NULL) {
-		error_msg("%s: %s\n", path, strerror(errno));
+		perror_msg("%s", path);
 		status = EXIT_FAILURE;
 		return(NULL);	/* could not open the dir */
 	}

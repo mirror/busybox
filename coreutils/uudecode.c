@@ -257,7 +257,7 @@ static int decode (const char *inname,
       && (freopen (outname, "w", stdout) == NULL
 	  || chmod (outname, mode & (S_IRWXU | S_IRWXG | S_IRWXO))
          )) {
-    error_msg("%s: %s %s\n", outname, inname, strerror(errno)); /* */
+    perror_msg("%s", outname); /* */
     return FALSE;
   }
 
@@ -302,7 +302,7 @@ int uudecode_main (int argc,
         if (decode (argv[optind], outname) != 0)
           exit_status = FALSE;
       } else {
-        error_msg("%s: %s\n", argv[optind], strerror(errno));
+        perror_msg("%s", argv[optind]);
         exit_status = EXIT_FAILURE;
       }
       optind++;

@@ -39,13 +39,11 @@ int loadacm_main(int argc, char **argv)
 
 	fd = open("/dev/tty", O_RDWR);
 	if (fd < 0) {
-		error_msg("Error opening /dev/tty1: %s\n", strerror(errno));
-		return EXIT_FAILURE;
+		perror_msg_and_die("Error opening /dev/tty1");
 	}
 
 	if (screen_map_load(fd, stdin)) {
-		error_msg("Error loading acm: %s\n", strerror(errno));
-		return EXIT_FAILURE;
+		perror_msg_and_die("Error loading acm");
 	}
 
 	write(fd, "\033(K", 3);

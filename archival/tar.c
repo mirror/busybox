@@ -317,7 +317,7 @@ extern int tar_main(int argc, char **argv)
 		else
 			tarFd = open(tarName, O_RDONLY);
 		if (tarFd < 0)
-			error_msg_and_die( "Error opening '%s': %s\n", tarName, strerror(errno));
+			perror_msg_and_die("Error opening '%s'", tarName);
 
 #ifdef BB_FEATURE_TAR_GZIP	
 		/* unzip tarFd in a seperate process */
@@ -425,8 +425,7 @@ tarExtractDirectory(TarInfo *header, int extractFlag, int tostdoutFlag)
 		return( TRUE);
 
 	if (create_path(header->name, header->mode) != TRUE) {
-		error_msg("%s: Cannot mkdir: %s\n", 
-				header->name, strerror(errno)); 
+		perror_msg("%s: Cannot mkdir", header->name); 
 		return( FALSE);
 	}
 	/* make the final component, just in case it was
@@ -445,8 +444,8 @@ tarExtractHardLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 		return( TRUE);
 
 	if (link(header->linkname, header->name) < 0) {
-		error_msg("%s: Cannot create hard link to '%s': %s\n", 
-				header->name, header->linkname, strerror(errno)); 
+		perror_msg("%s: Cannot create hard link to '%s'", header->name,
+				header->linkname); 
 		return( FALSE);
 	}
 
@@ -463,8 +462,8 @@ tarExtractSymLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 
 #ifdef	S_ISLNK
 	if (symlink(header->linkname, header->name) < 0) {
-		error_msg("%s: Cannot create symlink to '%s': %s\n", 
-				header->name, header->linkname, strerror(errno)); 
+		perror_msg("%s: Cannot create symlink to '%s'", header->name,
+				header->linkname); 
 		return( FALSE);
 	}
 	/* Try to change ownership of the symlink.
@@ -493,14 +492,12 @@ tarExtractSpecial(TarInfo *header, int extractFlag, int tostdoutFlag)
 
 	if (S_ISCHR(header->mode) || S_ISBLK(header->mode) || S_ISSOCK(header->mode)) {
 		if (mknod(header->name, header->mode, makedev(header->devmajor, header->devminor)) < 0) {
-			error_msg("%s: Cannot mknod: %s\n",
-				header->name, strerror(errno)); 
+			perror_msg("%s: Cannot mknod", header->name); 
 			return( FALSE);
 		}
 	} else if (S_ISFIFO(header->mode)) {
 		if (mkfifo(header->name, header->mode) < 0) {
-			error_msg("%s: Cannot mkfifo: %s\n",
-				header->name, strerror(errno)); 
+			perror_msg("%s: Cannot mkfifo", header->name); 
 			return( FALSE);
 		}
 	}
@@ -790,7 +787,7 @@ extern int readTarFile(int tarFd, int extractFlag, int listFlag,
 	close(tarFd);
 	if (status > 0) {
 		/* Bummer - we read a partial header */
-		error_msg( "Error reading tar file: %s\n", strerror(errno));
+		perror_msg("Error reading tar file");
 		return ( FALSE);
 	}
 	else if (errorFlag==TRUE) {
@@ -1007,7 +1004,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 		header.typeflag  = SYMTYPE;
 		link_size = readlink(fileName, buffer, sizeof(buffer) - 1);
 		if ( link_size < 0) {
-			error_msg("Error reading symlink '%s': %s\n", header.name, strerror(errno));
+			perror_msg("Error reading symlink '%s'", header.name);
 			return ( FALSE);
 		}
 		buffer[link_size] = '\0';
@@ -1165,7 +1162,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 	else
 		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (tbInfo.tarFd < 0) {
-		error_msg( "Error opening '%s': %s\n", tarName, strerror(errno));
+		perror_msg( "Error opening '%s'", tarName);
 		freeHardLinkInfo(&tbInfo.hlInfoHead);
 		return ( FALSE);
 	}

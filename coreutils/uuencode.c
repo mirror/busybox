@@ -160,13 +160,10 @@ int uuencode_main (int argc,
   trans_ptr = uu_std;      /* Standard encoding is old uu format */
 
   /* Parse any options */
-  while ((opt = getopt (argc, argv, "m")) != EOF) {
+  while ((opt = getopt (argc, argv, "m")) > 0) {
     switch (opt) {
      case 'm':
       trans_ptr = uu_base64;
-      break;
-
-     case 0:
       break;
 
      default:
@@ -178,7 +175,7 @@ int uuencode_main (int argc,
    case 2:
     /* Optional first argument is input file.  */
     if (!freopen (argv[optind], "r", stdin) || fstat (fileno (stdin), &sb)) {
-      error_msg("%s: %s\n", argv[optind], strerror(errno));
+      perror_msg("%s", argv[optind]);
       return EXIT_FAILURE;
     }
     mode = sb.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);

@@ -313,7 +313,7 @@ static void doSyslogd (void)
 	/* Create the syslog file so realpath() can work. */
 	close (open (_PATH_LOG, O_RDWR | O_CREAT, 0644));
 	if (realpath (_PATH_LOG, lfile) == NULL)
-		error_msg_and_die ("Could not resolve path to " _PATH_LOG ": %s\n", strerror (errno));
+		perror_msg_and_die ("Could not resolve path to " _PATH_LOG);
 
 	unlink (lfile);
 
@@ -321,14 +321,14 @@ static void doSyslogd (void)
 	sunx.sun_family = AF_UNIX;
 	strncpy (sunx.sun_path, lfile, sizeof (sunx.sun_path));
 	if ((sock_fd = socket (AF_UNIX, SOCK_STREAM, 0)) < 0)
-		error_msg_and_die ("Couldn't obtain descriptor for socket " _PATH_LOG ": %s\n", strerror (errno));
+		perror_msg_and_die ("Couldn't obtain descriptor for socket " _PATH_LOG);
 
 	addrLength = sizeof (sunx.sun_family) + strlen (sunx.sun_path);
 	if ((bind (sock_fd, (struct sockaddr *) &sunx, addrLength)) || (listen (sock_fd, 5)))
-		error_msg_and_die ("Could not connect to socket " _PATH_LOG ": %s\n", strerror (errno));
+		perror_msg_and_die ("Could not connect to socket " _PATH_LOG);
 
 	if (chmod (lfile, 0666) < 0)
-		error_msg_and_die ("Could not set permission on " _PATH_LOG ": %s\n", strerror (errno));
+		perror_msg_and_die ("Could not set permission on " _PATH_LOG);
 
 	FD_ZERO (&fds);
 	FD_SET (sock_fd, &fds);
@@ -351,7 +351,7 @@ static void doSyslogd (void)
 
 		if ((n_ready = select (FD_SETSIZE, &readfds, NULL, NULL, NULL)) < 0) {
 			if (errno == EINTR) continue; /* alarm may have happened. */
-			error_msg_and_die ("select error: %s\n", strerror (errno));
+			perror_msg_and_die ("select error");
 		}
 
 		for (fd = 0; (n_ready > 0) && (fd < FD_SETSIZE); fd++) {
@@ -365,7 +365,7 @@ static void doSyslogd (void)
 					pid_t pid;
 
 					if ((conn = accept (sock_fd, (struct sockaddr *) &sunx, &addrLength)) < 0) {
-						error_msg_and_die ("accept error: %s\n", strerror (errno));
+						perror_msg_and_die ("accept error");
 					}
 
 					pid = fork();

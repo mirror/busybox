@@ -78,7 +78,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.32 2000/12/13 16:41:29 andersen Exp $"
+#ident "$Id: insmod.c,v 1.33 2000/12/18 03:57:16 kraai Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -284,7 +284,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.32 2000/12/13 16:41:29 andersen Exp $"
+#ident "$Id: insmod.c,v 1.33 2000/12/18 03:57:16 kraai Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1562,7 +1562,7 @@ static int old_get_kernel_symbols(const char *m_name)
 
 	nks = get_kernel_syms(NULL);
 	if (nks < 0) {
-		error_msg("get_kernel_syms: %s: %s\n", m_name, strerror(errno));
+		perror_msg("get_kernel_syms: %s", m_name);
 		return 0;
 	}
 
@@ -1743,7 +1743,7 @@ old_init_module(const char *m_name, struct obj_file *f,
 							  m_size | (flag_autoclean ? OLD_MOD_AUTOCLEAN
 										: 0), &routines, symtab);
 	if (ret)
-		error_msg("init_module: %s: %s\n", m_name, strerror(errno));
+		perror_msg("init_module: %s", m_name);
 
 	free(image);
 	free(symtab);
@@ -2055,7 +2055,7 @@ static int new_get_kernel_symbols(void)
 			module_names = xrealloc(module_names, bufsize = ret);
 			goto retry_modules_load;
 		}
-		error_msg("QM_MODULES: %s\n", strerror(errno));
+		perror_msg("QM_MODULES");
 		return 0;
 	}
 
@@ -2074,7 +2074,7 @@ static int new_get_kernel_symbols(void)
 				/* The module was removed out from underneath us.  */
 				continue;
 			}
-			error_msg("query_module: QM_INFO: %s: %s\n", mn, strerror(errno));
+			perror_msg("query_module: QM_INFO: %s", mn);
 			return 0;
 		}
 
@@ -2089,7 +2089,7 @@ static int new_get_kernel_symbols(void)
 				/* The module was removed out from underneath us.  */
 				continue;
 			default:
-				error_msg("query_module: QM_SYMBOLS: %s: %s\n", mn, strerror(errno));
+				perror_msg("query_module: QM_SYMBOLS: %s", mn);
 				return 0;
 			}
 		}
@@ -2114,7 +2114,7 @@ static int new_get_kernel_symbols(void)
 			syms = xrealloc(syms, bufsize = ret);
 			goto retry_kern_sym_load;
 		}
-		error_msg("kernel: QM_SYMBOLS: %s\n", strerror(errno));
+		perror_msg("kernel: QM_SYMBOLS");
 		return 0;
 	}
 	nksyms = nsyms = ret;
@@ -2295,7 +2295,7 @@ new_init_module(const char *m_name, struct obj_file *f,
 
 	ret = new_sys_init_module(m_name, (struct new_module *) image);
 	if (ret)
-		error_msg("init_module: %s: %s\n", m_name, strerror(errno));
+		perror_msg("init_module: %s", m_name);
 
 	free(image);
 
@@ -2680,7 +2680,7 @@ struct obj_file *obj_load(FILE * fp)
 
 	fseek(fp, 0, SEEK_SET);
 	if (fread(&f->header, sizeof(f->header), 1, fp) != 1) {
-		error_msg("error reading ELF header: %s\n", strerror(errno));
+		perror_msg("error reading ELF header");
 		return NULL;
 	}
 
@@ -2719,7 +2719,7 @@ struct obj_file *obj_load(FILE * fp)
 	section_headers = alloca(sizeof(ElfW(Shdr)) * shnum);
 	fseek(fp, f->header.e_shoff, SEEK_SET);
 	if (fread(section_headers, sizeof(ElfW(Shdr)), shnum, fp) != shnum) {
-		error_msg("error reading ELF section headers: %s\n", strerror(errno));
+		perror_msg("error reading ELF section headers");
 		return NULL;
 	}
 
@@ -2749,7 +2749,7 @@ struct obj_file *obj_load(FILE * fp)
 				sec->contents = xmalloc(sec->header.sh_size);
 				fseek(fp, sec->header.sh_offset, SEEK_SET);
 				if (fread(sec->contents, sec->header.sh_size, 1, fp) != 1) {
-					error_msg("error reading ELF section data: %s\n", strerror(errno));
+					perror_msg("error reading ELF section data");
 					return NULL;
 				}
 			} else {
@@ -3075,7 +3075,7 @@ extern int insmod_main( int argc, char **argv)
 				m_size);
 		goto out;
 	default:
-		error_msg("create_module: %s: %s\n", m_name, strerror(errno));
+		perror_msg("create_module: %s", m_name);
 		goto out;
 	}
 

@@ -216,11 +216,11 @@ extern int ps_main(int argc, char **argv)
 	/* open device */ 
 	fd = open(device, O_RDONLY);
 	if (fd < 0) 
-		error_msg_and_die( "open failed for `%s': %s\n", device, strerror (errno));
+		perror_msg_and_die( "open failed for `%s'", device);
 
 	/* Find out how many processes there are */
 	if (ioctl (fd, DEVPS_GET_NUM_PIDS, &num_pids)<0) 
-		error_msg_and_die( "\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+		perror_msg_and_die( "\nDEVPS_GET_PID_LIST");
 	
 	/* Allocate some memory -- grab a few extras just in case 
 	 * some new processes start up while we wait. The kernel will
@@ -231,7 +231,7 @@ extern int ps_main(int argc, char **argv)
 
 	/* Now grab the pid list */
 	if (ioctl (fd, DEVPS_GET_PID_LIST, pid_array)<0) 
-		error_msg_and_die("\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
+		perror_msg_and_die("\nDEVPS_GET_PID_LIST");
 
 #ifdef BB_FEATURE_AUTOWIDTH
 		ioctl(fileno(stdout), TIOCGWINSZ, &win);
@@ -247,7 +247,7 @@ extern int ps_main(int argc, char **argv)
 	    info.pid = pid_array[i];
 
 	    if (ioctl (fd, DEVPS_GET_PID_INFO, &info)<0)
-			error_msg_and_die("\nDEVPS_GET_PID_INFO: %s\n", strerror (errno));
+			perror_msg_and_die("\nDEVPS_GET_PID_INFO");
 	    
 		/* Make some adjustments as needed */
 		my_getpwuid(uidName, info.euid);
@@ -277,7 +277,7 @@ extern int ps_main(int argc, char **argv)
 
 	/* close device */
 	if (close (fd) != 0) 
-		error_msg_and_die("close failed for `%s': %s\n", device, strerror (errno));
+		perror_msg_and_die("close failed for `%s'", device);
  
 	exit (0);
 }

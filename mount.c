@@ -271,18 +271,18 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 		/* open device */ 
 		fd = open(device, O_RDONLY);
 		if (fd < 0)
-			error_msg_and_die("open failed for `%s': %s\n", device, strerror (errno));
+			perror_msg_and_die("open failed for `%s'", device);
 
 		/* How many filesystems?  We need to know to allocate enough space */
 		numfilesystems = ioctl (fd, DEVMTAB_COUNT_FILESYSTEMS);
 		if (numfilesystems<0)
-			error_msg_and_die("\nDEVMTAB_COUNT_FILESYSTEMS: %s\n", strerror (errno));
+			perror_msg_and_die("\nDEVMTAB_COUNT_FILESYSTEMS");
 		fslist = (struct k_fstype *) xcalloc ( numfilesystems, sizeof(struct k_fstype));
 
 		/* Grab the list of available filesystems */
 		status = ioctl (fd, DEVMTAB_GET_FILESYSTEMS, fslist);
 		if (status<0)
-			error_msg_and_die("\nDEVMTAB_GET_FILESYSTEMS: %s\n", strerror (errno));
+			perror_msg_and_die("\nDEVMTAB_GET_FILESYSTEMS");
 
 		/* Walk the list trying to mount filesystems 
 		 * that do not claim to be nodev filesystems */
@@ -307,8 +307,7 @@ mount_one(char *blockDevice, char *directory, char *filesystemType,
 
 	if (status == FALSE) {
 		if (whineOnErrors == TRUE) {
-			error_msg("Mounting %s on %s failed: %s\n",
-					blockDevice, directory, strerror(errno));
+			perror_msg("Mounting %s on %s failed", blockDevice, directory);
 		}
 		return (FALSE);
 	}
@@ -340,18 +339,18 @@ extern int mount_main(int argc, char **argv)
 		/* open device */ 
 		fd = open(device, O_RDONLY);
 		if (fd < 0)
-			error_msg_and_die("open failed for `%s': %s\n", device, strerror (errno));
+			perror_msg_and_die("open failed for `%s'", device);
 
 		/* How many mounted filesystems?  We need to know to 
 		 * allocate enough space for later... */
 		numfilesystems = ioctl (fd, DEVMTAB_COUNT_MOUNTS);
 		if (numfilesystems<0)
-			error_msg_and_die( "\nDEVMTAB_COUNT_MOUNTS: %s\n", strerror (errno));
+			perror_msg_and_die( "\nDEVMTAB_COUNT_MOUNTS");
 		mntentlist = (struct k_mntent *) xcalloc ( numfilesystems, sizeof(struct k_mntent));
 		
 		/* Grab the list of mounted filesystems */
 		if (ioctl (fd, DEVMTAB_GET_MOUNTS, mntentlist)<0)
-			error_msg_and_die( "\nDEVMTAB_GET_MOUNTS: %s\n", strerror (errno));
+			perror_msg_and_die( "\nDEVMTAB_GET_MOUNTS");
 
 		for( i = 0 ; i < numfilesystems ; i++) {
 			fprintf( stdout, "%s %s %s %s %d %d\n", mntentlist[i].mnt_fsname,
@@ -453,7 +452,7 @@ extern int mount_main(int argc, char **argv)
 		fstabmount = TRUE;
 
 		if (f == NULL)
-			error_msg_and_die( "\nCannot read /etc/fstab: %s\n", strerror (errno));
+			perror_msg_and_die( "\nCannot read /etc/fstab");
 
 		while ((m = getmntent(f)) != NULL) {
 			if (all == FALSE && directory == NULL && (
@@ -487,7 +486,7 @@ singlemount:
 				rc = nfsmount (device, directory, &flags,
 					&extra_opts, &string_flags, 1);
 				if ( rc != 0) {
-					error_msg_and_die("nfsmount failed: %s\n", strerror(errno));	
+					perror_msg_and_die("nfsmount failed");	
 					rc = EXIT_FAILURE;
 				}
 			}

@@ -234,7 +234,7 @@ extern int cut_main(int argc, char **argv)
 		for (i = optind; i < argc; i++) {
 			file = fopen(argv[i], "r");
 			if (file == NULL) {
-				error_msg("%s: %s\n", argv[i], strerror(errno));
+				perror_msg("%s", argv[i]);
 			} else {
 				cut_file(file);
 				fclose(file);
