@@ -354,7 +354,7 @@ The only time we deviate from emulating the GNU behavior is when:
 	  switch)
 	- Emulating the GNU behavior is prohibitively expensive (lots more code
 	  would be required, lots more memory would be used, etc.)
-	- The differce is minor or cosmetic
+	- The difference is minor or cosmetic
 
 A note on the 'cosmetic' case: Output differences might be considered
 cosmetic, but if the output is significant enough to break other scripts that
@@ -367,7 +367,7 @@ Scope
 If a const variable is used only in a single source file, put it in the source
 file and not in a header file. Likewise, if a const variable is used in only
 one function, do not make it global to the file. Instead, declare it inside
-the function body. Bottom line: Make a concious effort to limit declarations
+the function body. Bottom line: Make a conscious effort to limit declarations
 to the smallest scope possible.
 
 Inside applet files, all functions should be declared static so as to keep the
@@ -434,7 +434,7 @@ the parameter list and opening bracket. Example:
 			....
 
 The only time you would ever need to use the old declaration syntax is to
-support ancient, antedeluvian compilers. To our good fortune, we have access
+support ancient, antediluvian compilers. To our good fortune, we have access
 to more modern compilers and the old declaration syntax is neither necessary
 nor desired.
 

@@ -4,7 +4,7 @@ BusyBox combines tiny versions of many common UNIX utilities into a single
 small executable. It provides minimalist replacements for most of the utilities
 you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
 tar, etc. BusyBox provides a fairly complete POSIX environment for any small or
-emdedded system. The utilities in BusyBox generally have fewer options then
+embedded system. The utilities in BusyBox generally have fewer options than
 their full featured GNU cousins; however, the options that are included provide
 the expected functionality and behave very much like their GNU counterparts.
 
@@ -14,20 +14,20 @@ features) at compile time. This makes it easy to customize your embedded
 systems. To create a working system, just add a kernel, a shell (such as ash),
 and an editor (such as elvis-tiny or ae).
 
-Busybox was originally written to support the Debian Rescue/Install disks, but
+BusyBox was originally written to support the Debian Rescue/Install disks, but
 it also makes an excellent environment for any small or embedded system.
 
 As of version 0.20 there is a version number. : ) Also as of version 0.20,
 BusyBox is now modularized to easily allow you to build only the components you
-need, thereby reducing binary size. To turn off unwanted Busybox components,
+need, thereby reducing binary size. To turn off unwanted BusyBox components,
 simply edit the file "Config.h" and comment out the components you do not
 need using C++ style (//) comments.
 
-After the build is complete a busybox.links file is generated which is then
+After the build is complete, a busybox.links file is generated.  This is
 used by 'make install' to create symlinks to the busybox binary for all
 compiled in functions.  By default, 'make install' will place the symlink
 forest into `pwd`/_install unless you have defined the PREFIX environment
-variable (i.e. make PREFIX="/tmp/foo" install)
+variable (i.e., make PREFIX="/tmp/foo" install)
 
 ----------------
 Getting help:
@@ -48,7 +48,7 @@ Source for the latest released version can always be downloaded from
 
 ----------------
 CVS:
-BusyBox now has its own publically browsable CVS tree at:
+BusyBox now has its own publicly browsable CVS tree at:
     http://opensource.lineo.com/cgi-bin/cvsweb/busybox/
 
 Anonymous CVS access is available.  For instructions, check out:
@@ -65,7 +65,7 @@ Please feed suggestions, bug reports, insults, and bribes back to:
 	<andersen@lineo.com>
 	<andersee@debian.org>
 
-<blatent plug>
+<blatant plug>
 Many thanks to go to Lineo for paying me to work on busybox. 
-</blatent plug>
+</blatant plug>
 
