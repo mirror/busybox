@@ -2076,6 +2076,18 @@
 	"Options:\n" \
 	"\t-a\tLock all VTs"
 
+#define watch_trivial_usage \
+	"[-n <seconds>] COMMAND..."
+#define watch_full_usage \
+	"Executes a program periodically.\n" \
+	"Options:\n" \
+	"\t-n\tLoop period in seconds - default is 2." 
+#define watch_example_usage \
+	"$ watch date\n" \
+	"Mon Dec 17 10:31:40 GMT 2000\n" \
+	"Mon Dec 17 10:31:42 GMT 2000\n" \
+	"Mon Dec 17 10:31:44 GMT 2000" 
+
 #define watchdog_trivial_usage \
 	"DEV"
 #define watchdog_full_usage \

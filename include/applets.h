@@ -532,6 +532,9 @@
 #ifdef CONFIG_VLOCK
 	APPLET(vlock, vlock_main, _BB_DIR_USR_BIN, _BB_SUID_ALWAYS)
 #endif
+#ifdef CONFIG_WATCH
+	APPLET(watch, watch_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_WATCHDOG
 	APPLET(watchdog, watchdog_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
