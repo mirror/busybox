@@ -144,7 +144,7 @@
 		loadacm, loadfont, loadkmap, logger, logname, ls, lsmod,
 		makedevs, mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp,
 		more, mount, mt, mv, nc, nslookup, ping, poweroff, printf, ps,
-		pwd, reboot, renice, reset, rm, rmdir, rmmod, sed, setkeycodes, sh, sleep,
+		pwd, reboot, renice, reset, rm, rmdir, rmmod, run-parts, sed, setkeycodes, sh, sleep,
 		sort, swapoff, swapon, sync, syslogd, tail, tar, tee, telnet,
 		test, touch, tr, true, tty, umount, uname, uniq, update,
 		uptime, usleep, uudecode, uuencode, wc, which, whoami, yes,
@@ -2799,6 +2799,33 @@
 		</para>
 	</sect1>
 
+    <sect1 id="run-parts">
+	<title>run-parts</title>
+	
+		<para>
+		Usage: run-parts [-t] [-a ARG] [-u MASK] DIRECTORY
+		</para>
+	
+		<para>
+		Run a bunch of scripts in a directory.
+		</para>
+	
+		<para>
+		Options:
+		</para>
+	
+		<para>
+		<screen>
+			-t       Test only. It only print the file to be executed,
+			without execute them.
+			-a ARG   Pass ARG as an a argument to the programs executed.
+			-u MASK  Set the umask to MASK before executing the programs.
+		</screen>
+		</para>
+	</sect1>
+	
+
+	
 	<sect1 id="sed">
 	    <title>sed</title>
 

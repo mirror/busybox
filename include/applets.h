@@ -365,6 +365,9 @@
 #ifdef CONFIG_RPM2CPIO
 	APPLET(rpm2cpio, rpm2cpio_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef CONFIG_RUN_PARTS
+	APPLET_ODDNAME("run-parts", run_parts_main, _BB_DIR_BIN, run_parts)
+#endif	
 #ifdef CONFIG_SED
 	APPLET(sed, sed_main, _BB_DIR_BIN)
 #endif

@@ -88,3 +88,6 @@ Charles P. Wright <cpwright@villagenet.com>
 Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
+Emanuele Aina <emanuele.aina@tiscali.it>
+	run-parts
+

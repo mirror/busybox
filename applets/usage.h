@@ -660,6 +660,7 @@
 	"\t-s\t\tShort\n" \
 	"\t-i\t\tAddresses for the hostname\n" \
 	"\t-d\t\tDNS domain name\n" \
+	"\t-f\t\tFully qualified domain name\n" \
 	"\t-F, --file FILE\tUse the contents of FILE to specify the hostname"
 #define hostname_example_usage \
 	"$ hostname\n" \
@@ -1381,6 +1382,15 @@
 	"package.rpm"
 #define rpm2cpio_full_usage \
 	"Outputs a cpio archive of the rpm file."
+
+#define run_parts_trivial_usage \
+	"[-t] [-a ARG] [-u MASK] DIRECTORY"
+#define run_parts_full_usage \
+	"Run a bunch of scripts in a directory.\n\n" \
+	"Options:\n" \
+	"\t-t\t\tTest only what file will be executed, without execute them.\n"	\
+	"\t-a ARG\tPass ARG as an argument for every program invoked.\n" \
+	"\t-u MASK\tSet the umask to MASK before executing every program."
 
 #define sed_trivial_usage \
 	"[-nef] pattern [files...]"

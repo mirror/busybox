@@ -29,6 +29,7 @@ obj-$(CONFIG_INIT)		+= init.o
 obj-$(CONFIG_POWEROFF)		+= poweroff.o
 obj-$(CONFIG_REBOOT)		+= reboot.o
 obj-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o
+obj-$(CONFIG_RUN_PARTS)		+= run_parts.o
 
 
 # Hand off to toplevel Rules.mak

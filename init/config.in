@@ -21,5 +21,7 @@ if [ "$CONFIG_INIT" = "y" ]; then
     bool 'start-stop-daemon'	    CONFIG_START_STOP_DAEMON
 fi
 
+bool 'run-parts'	    CONFIG_RUN_PARTS
+	
 endmenu
 

@@ -147,7 +147,7 @@ ifeq ($(strip $(DODEBUG)),true)
     LDFLAGS += -Wl,-warn-common
     STRIPCMD    =
 else
-    CFLAGS  += $(WARNINGS) $(OPTIMIZATION) -fomit-frame-pointer -D_GNU_SOURCE
+    CFLAGS  += $(WARNINGS) $(OPTIMIZATION) -fomit-frame-pointer -mpreferred-stack-boundary=2 -D_GNU_SOURCE
     LDFLAGS += -s -Wl,-warn-common
     STRIPCMD    = $(STRIP) --remove-section=.note --remove-section=.comment $(PROG)
 endif
