@@ -27,11 +27,12 @@
 #include <mntent.h>
 #include "libbb.h"
 
+#define MTAB_MAX_ENTRIES 40
 static const int MS_RDONLY = 1;	/* Mount read-only.  */
 
 void erase_mtab(const char *name)
 {
-	struct mntent entries[20];
+	struct mntent entries[MTAB_MAX_ENTRIES];
 	int count = 0;
 	FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 	struct mntent *m;
@@ -44,7 +45,8 @@ void erase_mtab(const char *name)
 		return;
 	}
 
-	while ((m = getmntent(mountTable)) != 0) {
+	while (((m = getmntent(mountTable)) != 0) && (count < MTAB_MAX_ENTRIES))
+	{
 		entries[count].mnt_fsname = strdup(m->mnt_fsname);
 		entries[count].mnt_dir = strdup(m->mnt_dir);
 		entries[count].mnt_type = strdup(m->mnt_type);
