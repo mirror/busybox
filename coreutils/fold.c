@@ -97,15 +97,7 @@ extern int fold_main(int argc, char **argv)
 				break_spaces = 1;
 				break;
 			case 'w': {	/* Line width. */
-				long int tmp_long;
-				char *end_ptr;
-
-				errno = 0;
-				tmp_long = strtol(optarg, &end_ptr, 10);
-				if (!end_ptr || errno || tmp_long < 1) {
-					bb_error_msg_and_die("invalid number of columns: `%s'", optarg);
-				}
-				width = (int) tmp_long;
+				width = bb_xgetlarg(optarg, 10, 1, 10000);
 				break;
 			}
 			default:
