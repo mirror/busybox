@@ -186,3 +186,7 @@ dist release: distclean doc
 		| xargs rm -f;			\
 						\
 	tar -cvzf busybox-$(VERSION).tar.gz busybox-$(VERSION)/;
+
+.PHONY: tags
+tags:
+	ctags -R .
