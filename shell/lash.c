@@ -73,7 +73,7 @@ static const unsigned int IF_TRUE_CONTEXT=0x2;
 static const unsigned int IF_FALSE_CONTEXT=0x4;
 static const unsigned int THEN_EXP_CONTEXT=0x8;
 static const unsigned int ELSE_EXP_CONTEXT=0x10;
-unsigned int shell_context = 0;
+unsigned int shell_context;
 
 
 
@@ -185,7 +185,7 @@ static struct built_in_command bltins_forking[] = {
 };
 
 static char *cwd;
-static char *local_pending_command = NULL;
+static char *local_pending_command;
 static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
@@ -1629,6 +1629,19 @@ int shell_main(int argc_l, char **argv_l)
 	argc = argc_l;
 	argv = argv_l;
 
+	shell_context = 0;
+	cwd=NULL;
+#ifdef BB_FEATURE_STANDALONE_SHELL
+	/* These variables need re-initializing when recursing */
+	local_pending_command = NULL;
+	job_list.head = NULL;
+	job_list.fg = NULL;
+#ifdef BB_FEATURE_SH_ENVIRONMENT
+	last_bg_pid=-1;
+	last_return_code=-1;
+	show_x_trace=FALSE;
+#endif
+#endif
 
 	if (argv[0] && argv[0][0] == '-') {
 		  FILE *input;
