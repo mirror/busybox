@@ -1473,11 +1473,9 @@ const char whoami_usage[] =
 #endif
 
 #if defined BB_XARGS
-const char xargs_usage[] = "xargs [OPTIONS] [COMMAND] [ARGS...]\n"
+const char xargs_usage[] = "xargs [COMMAND] [ARGS...]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nExecutes COMMAND on every item given by standard input.\n\n" 
-	"Options:\n"
-	"\t-t\tPrint the command just before it is run\n"
+	"\nExecutes COMMAND on every item given by standard input.\n" 
 #endif
 	;
 #endif
