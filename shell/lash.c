@@ -207,7 +207,7 @@ static char *local_pending_command = NULL;
 static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
-static struct close_me *close_me_head = NULL;
+static struct close_me *close_me_head;
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 static int last_bg_pid=-1;
 static int last_return_code=-1;
@@ -631,9 +631,12 @@ static void mark_closed(int fd)
 
 static void close_all()
 {
-	struct close_me *c;
-	for (c=close_me_head; c; c=c->next) {
-		mark_closed(c->fd);
+	int i=0;
+	struct close_me *c, *tmp;
+	for (c=close_me_head; c; c=tmp) {
+		close(c->fd);
+		tmp=c->next;
+		free(c);
 	}
 	close_me_head = NULL;
 }
@@ -1713,18 +1716,17 @@ int shell_main(int argc_l, char **argv_l)
 	argc = argc_l;
 	argv = argv_l;
 
+	/* These variables need re-initializing when recursing */
 	shell_context = 0;
 	cwd=NULL;
-#ifdef BB_FEATURE_SH_STANDALONE_SHELL
-	/* These variables need re-initializing when recursing */
 	local_pending_command = NULL;
+	close_me_head = NULL;
 	job_list.head = NULL;
 	job_list.fg = NULL;
 #ifdef BB_FEATURE_SH_ENVIRONMENT
 	last_bg_pid=-1;
 	last_return_code=-1;
 	show_x_trace=FALSE;
-#endif
 #endif
 
 	if (argv[0] && argv[0][0] == '-') {
