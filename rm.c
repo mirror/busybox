@@ -6,6 +6,10 @@
  * Copyright (C) 1999,2000,2001 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
+ * INTERACTIVE feature Copyright (C) 2001 by Alcove
+ *   written by Christophe Boyanique <Christophe.Boyanique@fr.alcove.com>
+ *   for Ipanema Technologies
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
