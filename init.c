@@ -396,11 +396,11 @@ static void console_init()
 
 static pid_t run(char *command, char *terminal, int get_enter)
 {
-	int i=0, j=0;
+	int i, j;
 	int fd;
 	pid_t pid;
-	char *tmpCmd;
-        char *cmd[255], *cmdpath;
+	char *tmpCmd, *s;
+	char *cmd[255], *cmdpath;
 	char buf[255];
 	static const char press_enter[] =
 
@@ -410,18 +410,25 @@ static pid_t run(char *command, char *terminal, int get_enter)
 
 		"\nPlease press Enter to activate this console. ";
 	char *environment[MAXENV+1] = {
+		termType,
 		"HOME=/",
 		"PATH=/usr/bin:/bin:/usr/sbin:/sbin",
 		"SHELL=/bin/sh",
-		termType,
-		"USER=root"
+		"USER=root",
+		NULL
 	};
 
-	while (environment[i]) i++;
-	while ((environ[j]) && (i < MAXENV)) {
-		if (strncmp(environ[j], "TERM=", 5))
-			environment[i++] = environ[j];
-		j++;
+	/* inherit environment to the child, merging our values -andy */
+	for (i=0; environ[i]; i++) {
+		for (j=0; environment[j]; j++) {
+			s = strchr(environment[j], '=');
+			if (!strncmp(environ[i], environment[j], s - environment[j]))
+				break;
+		}
+		if (!environment[j]) {
+			environment[j++] = environ[i];
+			environment[j] = NULL;
+		}
 	}
 
 	if ((pid = fork()) == 0) {
