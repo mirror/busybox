@@ -71,7 +71,7 @@ int pivot_root(const char * new_root,const char * put_old)
 
 
 
-#if __GNU_LIBRARY__ < 5
+#if __GNU_LIBRARY__ < 5 || ((__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1))
 /* These syscalls are not included as part of libc5 */
 _syscall2(int, bdflush, int, func, int, data);
 
