@@ -104,9 +104,9 @@ struct cmdoptions_t {
 	"-hsync", 1, CMD_HSYNC}, {
 	"-vsync", 1, CMD_VSYNC}, {
 	"-laced", 1, CMD_LACED}, {
-	"-double", 1, CMD_DOUBLE},
+	"-double", 1, CMD_DOUBLE}, {
+	"--help", 0, CMD_HELP}, {
 #ifdef BB_FEATURE_FBSET_FANCY
-	{
 	"--help", 0, CMD_HELP}, {
 	"-all", 0, CMD_ALL}, {
 	"-xres", 1, CMD_XRES}, {
@@ -130,9 +130,8 @@ struct cmdoptions_t {
 	"-bcast", 1, CMD_BCAST}, {
 	"-rgba", 1, CMD_RGBA}, {
 	"-step", 1, CMD_STEP}, {
-	"-move", 1, CMD_MOVE},
+	"-move", 1, CMD_MOVE}, {
 #endif
-	{
 	0, 0, 0}
 };
 
@@ -217,7 +216,7 @@ static void showmode(struct fb_var_screeninfo *v)
 	printf("\trgba %u/%u,%u/%u,%u/%u,%u/%u\n", v->red.length,
 		   v->red.offset, v->green.length, v->green.offset, v->blue.length,
 		   v->blue.offset, v->transp.length, v->transp.offset);
-	printf("endmode\n");
+	printf("endmode\n\n");
 }
 
 static void fbset_usage(void)

@@ -34,8 +34,10 @@ extern int basename_main(int argc, char **argv)
 	argv++;
 
 	s1=*argv+strlen(*argv)-1;
-	if (*s1 == '/')
+	while (s1 && *s1 == '/') {
 		*s1 = '\0';
+		s1=*argv+strlen(*argv)-1;
+	}
 	s = strrchr(*argv, '/');
 	printf("%s\n", (s)? s + 1 : *argv);
 	exit(TRUE);

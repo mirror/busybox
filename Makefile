@@ -25,7 +25,7 @@ BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
 # eg: `make DODEBUG=true tests'
-DODEBUG = false
+DODEBUG = true
 
 # If you want a static binary, turn this on.
 DOSTATIC = false
@@ -94,7 +94,7 @@ ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
 
-all: busybox busybox.links
+all: busybox busybox.links docs
 .PHONY: all
 
 busybox: $(OBJECTS)
@@ -103,6 +103,9 @@ busybox: $(OBJECTS)
 
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
+
+docs:	docs/busybox.pod
+	cd docs && $(MAKE) clean all 
 
 regexp.o nfsmount.o: %.o: %.h
 $(OBJECTS): %.o: busybox.def.h internal.h  %.c
@@ -128,6 +131,7 @@ install: busybox busybox.links
 
 .PHONY: dist release
 dist release: distclean
+	cd docs && $(MAKE) clean all 
 	cd ..;					\
 	rm -rf busybox-$(VERSION);		\
 	cp -a busybox busybox-$(VERSION);	\

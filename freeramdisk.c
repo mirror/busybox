@@ -34,7 +34,7 @@
 
 static const char freeramdisk_usage[] =
 	"freeramdisk DEVICE\n\n"
-	"Frees all memory used by the specified ramdisk.\n";
+	"Free all memory used by the specified ramdisk.\n";
 
 extern int
 freeramdisk_main(int argc, char **argv)
@@ -42,7 +42,7 @@ freeramdisk_main(int argc, char **argv)
 	char  rname[256] = "/dev/ram";
 	int   f;
 
-	if (argc > 2 || ( argv[1] && *argv[1] == '-')) {
+	if (argc < 2 || ( argv[1] && *argv[1] == '-')) {
 		usage(freeramdisk_usage);
 	}
 
@@ -50,10 +50,10 @@ freeramdisk_main(int argc, char **argv)
 		strcpy(rname, argv[1]);
 
 	if ((f = open(rname, O_RDWR)) == -1) {
-		fatalError( "freeramdisk: cannot open %s: %s", rname, strerror(errno));
+		fatalError( "freeramdisk: cannot open %s: %s\n", rname, strerror(errno));
 	}
 	if (ioctl(f, BLKFLSBUF) < 0) {
-		fatalError( "freeramdisk: failed ioctl on %s: %s", rname, strerror(errno));
+		fatalError( "freeramdisk: failed ioctl on %s: %s\n", rname, strerror(errno));
 	}
 	/* Don't bother closing.  Exit does
 	 * that, so we can save a few bytes */

@@ -70,7 +70,7 @@ int mknod_main(int argc, char **argv)
 
 	if (mknod(argv[1], mode, dev) != 0) {
 		perror(argv[1]);
-		return (FALSE);
+		exit (FALSE);
 	}
-	return (TRUE);
+	exit (TRUE);
 }

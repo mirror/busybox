@@ -19,10 +19,9 @@
 #define bb_need_io_error
 #include "messages.c"
 
-static const char dutmp_usage[] = "dutmp\n"
-	"\n"
-	"\tDump file or stdin utmp file format to stdout, pipe delimited.\n"
-	"\tdutmp /var/run/utmp\n";
+static const char dutmp_usage[] = "dutmp [FILE]\n\n"
+	"Dump utmp file format (pipe delimited) from FILE\n"
+	"or stdin to stdout.  (i.e. 'dutmp /var/run/utmp')\n";
 
 extern int dutmp_main(int argc, char **argv)
 {

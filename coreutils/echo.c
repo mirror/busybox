@@ -25,6 +25,14 @@
 #include "internal.h"
 #include <stdio.h>
 
+static const char uname_usage[] =
+	"echo [-neE] [ARG ...]\n\n"
+	"Prints the specified ARGs to stdout\n\n"
+	"Options:\n"
+	"\t-n\tsuppress trailing newline\n"
+	"\t-e\tinterpret backslash-escaped characters (i.e. \\t=tab etc)\n"
+	"\t-E\tdisable interpretation of backslash-escaped characters\n";
+
 extern int 
 echo_main(int argc, char** argv)
 {
@@ -45,6 +53,9 @@ echo_main(int argc, char** argv)
 		} else if (strcmp(p, "-E")==0) {
 			eflag = 0;
 		}
+		else if (strncmp(p, "--", 2)==0) {
+			usage( uname_usage);
+		} 
 		else break;
 		ap++;
 	}

@@ -88,7 +88,6 @@
 #define DISP_FULLTIME	32		/* show extended time display */
 #define DIR_NOLIST	64			/* show directory as itself, not contents */
 #define DISP_DIRNAME	128		/* show directory name (for internal use) */
-#define DIR_RECURSE	256			/* -R (not yet implemented) */
 
 #ifndef MAJOR
 #define MAJOR(dev) (((dev)>>8)&0xff)
@@ -450,10 +449,33 @@ static const char ls_usage[] = "ls [-1a"
 #ifdef BB_FEATURE_LS_FILETYPES
 	"F"
 #endif
-#ifdef FEATURE_RECURSIVE
-	"R"
+	"] [filenames...]\n\n"
+	"Options:\n"
+	"\t-a\tdo not hide entries starting with .\n"
+#ifdef BB_FEATURE_LS_TIMESTAMPS
+	"\t-c\twith -l: show ctime (the time of last\n"
+    "\t\tmodification of file status information)\n"
 #endif
-	"] [filenames...]\n";
+	"\t-d\tlist directory entries instead of contents\n"
+#ifdef BB_FEATURE_LS_TIMESTAMPS
+	"\t-e\tlist both full date and full time\n"
+#endif
+	"\t-l\tuse a long listing format\n"
+	"\t-n\tlist numeric UIDs and GIDs instead of names\n"
+#ifdef BB_FEATURE_LS_FILETYPES
+	"\t-p\tappend indicator (one of /=@|) to entries\n"
+#endif
+#ifdef BB_FEATURE_LS_TIMESTAMPS
+	"\t-u\twith -l: show access time (the time of last\n"
+	"\t\taccess of the file)\n"
+#endif
+	"\t-x\tlist entries by lines instead of by columns\n"
+	"\t-A\tdo not list implied . and ..\n"
+	"\t-C\tlist entries by columns\n"
+#ifdef BB_FEATURE_LS_FILETYPES
+	"\t-F\tappend indicator (one of */=@|) to entries\n"
+#endif
+	;
 
 extern int ls_main(int argc, char **argv)
 {
@@ -508,11 +530,6 @@ extern int ls_main(int argc, char **argv)
 			case 'd':
 				opts |= DIR_NOLIST;
 				break;
-#ifdef FEATURE_RECURSIVE
-			case 'R':
-				opts |= DIR_RECURSE;
-				break;
-#endif
 #ifdef BB_FEATURE_LS_TIMESTAMPS
 			case 'u':
 				time_fmt = TIME_ACCESS;

@@ -10,18 +10,18 @@
 	    provides.  To enable this, turn on BB_FEATURE_USE_DEVPS_PATCH and
 	    patch your kernel with the devps patch in the kernel-patches/
 	    directory. 
-	* Wrote basename, killall, and uptime.
+	* Wrote basename, dirname, killall, and uptime.
 	* tar has been completely rewritten by me.  Both tar creation and 
 	    extraction are now well behaved.  Costs 7.6k with all optional
 	    tar features enabled, and 5k for just tar extraction support. 
 	* Added freeramdisk, which will free up all memory associated
 	    with a ram disk.  Contributed by Emanuele Caratti <wiz@iol.it>
 	    and then adjusted a bit by me.
-	* Added tr and dirname from John Lombardo <john@deltanet.com> 
+	* Added tr from John Lombardo <john@deltanet.com> 
 	* Added echo and test (from me).
 	* Added usleep contributed by Nicolas Pitre <nico@cam.org>
 	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
-	    -  When `tail' fails to open a file it now exits.
+	    - When `tail' fails to open a file it now exits.
 	    - When `syslogd' is given the `-n' option it should still use 
 		fork() for running klogd.
 	* nslookup types are now changed to u_int32_t (instead of uint32_t)

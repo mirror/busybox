@@ -194,7 +194,7 @@
 //#define BB_FEATURE_SH_TAB_COMPLETION
 //
 //Turn on extra fbset options
-#define BB_FEATURE_FBSET_FANCY
+//#define BB_FEATURE_FBSET_FANCY
 //
 //
 // End of Features List

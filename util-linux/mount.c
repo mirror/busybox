@@ -83,8 +83,6 @@ static const char mount_usage[] = "\tmount [flags]\n"
 	"\tsuid / nosuid:\tAllow set-user-id-root programs / disallow them.\n"
 	"\tremount: Re-mount a currently-mounted filesystem, changing its flags.\n"
 	"\tro / rw: Mount for read-only / read-write.\n"
-	"\t"
-
 	"There are EVEN MORE flags that are specific to each filesystem.\n"
 	"You'll have to see the written documentation for those.\n";
 
