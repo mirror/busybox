@@ -14,6 +14,14 @@ if [ "$CONFIG_FBSET" = "y" ]; then
     bool '  Turn on fbset readmode support'	CONFIG_FEATURE_FBSET_READMODE
 fi
 bool 'fdflush'		    CONFIG_FDFLUSH
+bool 'fdisk'                CONFIG_FDISK
+if [ "$CONFIG_FDISK" = "y" ]; then
+    bool '  Support AIX disklabels'        CONFIG_FEATURE_AIX_LABEL
+    bool '  Support SGI disklabels'        CONFIG_FEATURE_SGI_LABEL
+    bool '  Support SUN disklabels'        CONFIG_FEATURE_SUN_LABEL
+    bool '  Support BSD disklabels'        CONFIG_FEATURE_OSF_LABEL
+    bool '  Support expext mode'           CONFIG_FEATURE_FDISK_ADVANCED
+fi
 bool 'freeramdisk'	    CONFIG_FREERAMDISK
 bool 'fsck_minix'	    CONFIG_FSCK_MINIX
 bool 'mkfs_minix'	    CONFIG_MKFS_MINIX

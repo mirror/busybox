@@ -113,7 +113,8 @@ Glenn McGrath <bug1@netconnect.com.au>
 
 Vladimir Oleynik <dzo@simtreas.ru>
 
-    cmdedit, xargs(current); ports: ash, crond, stty, traceroute, telnetd, top;
+    cmdedit, xargs(current);
+    ports: ash, crond, fdisk, stty, traceroute, telnetd, top;
     locale, various fixes
     and irreconcilable critic of everything not perfect.
 
@@ -167,4 +168,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox_footer.pod,v 1.8 2002/11/10 21:47:15 bug1 Exp $
+# $Id: busybox_footer.pod,v 1.9 2002/11/26 22:00:19 bug1 Exp $

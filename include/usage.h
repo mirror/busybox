@@ -521,6 +521,17 @@
 #define fdflush_full_usage \
 	"Forces floppy disk drive to detect disk change"
 
+#define fdisk_trivial_usage \
+	"[-l] [-v] [-b SSZ] [-u] DISK"
+#define fdisk_full_usage \
+	"Change partition table\n" \
+	"Options:\n" \
+	"-l  List partition table(s)\n" \
+	"-u  Give Start and End in sector (instead of cylinder) units\n" \
+	"-s PARTITION  Give partition size(s) in blocks\n" \
+	"-b 2048: (for certain MO disks) use 2048-byte sectors\n" \
+	"-v            Give fdisk version\n"
+
 #ifdef CONFIG_FEATURE_FIND_TYPE
   #define USAGE_FIND_TYPE(a) a
 #else

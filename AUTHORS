@@ -67,7 +67,8 @@ Glenn McGrath <bug1@optushome.com.au>
     ar, dpkg, dpkg-deb
 
 Vladimir Oleynik <dzo@simtreas.ru>
-    cmdedit; xargs(current); ports: ash, crond, stty, traceroute, telnetd, top;
+    cmdedit; xargs(current);
+    ports: ash, crond, fdisk, stty, traceroute, telnetd, top;
     locale, various fixes
     and irreconcilable critic of everything not perfect.
 
