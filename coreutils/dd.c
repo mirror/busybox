@@ -57,7 +57,6 @@ extern int dd_main(int argc, char **argv)
 	uintmax_t totalSize;
 	uintmax_t readSize;
 	unsigned char buf[BUFSIZ];
-	off_t jumped;
 
 	argc--;
 	argv++;
@@ -131,7 +130,7 @@ extern int dd_main(int argc, char **argv)
 	}
 
 	lseek(inFd, (off_t) (skipBlocks * blockSize), SEEK_SET);
-	jumped = lseek(outFd, (off_t) (seekBlocks * blockSize), SEEK_SET);
+	lseek(outFd, (off_t) (seekBlocks * blockSize), SEEK_SET);
 	totalSize=count*blockSize;
 	while ((readSize = totalSize - inTotal) > 0) {
 		if (readSize > BUFSIZ)
