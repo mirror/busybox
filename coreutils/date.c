@@ -187,7 +187,7 @@ int date_main(int argc, char **argv)
 					utc = 1;
 					if (putenv("TZ=UTC0") != 0) 
 						fatalError(memory_exhausted, "date");
-					/* Look ma, no break.  Don't fix it either. */
+					break;
 				case 'd':
 					use_arg = 1;
 					if (date_str != NULL)

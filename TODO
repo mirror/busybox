@@ -22,8 +22,6 @@ Bugs that need fixing before the 0.44 release goes out the door:
  - 'grep foo$ file' doesn't work
  - 'grep *foo file' segfaults
  - ps dirent race bug (need to stat the file before attempting chdir)
- - The following commands segfault or are broken:
-	date -u
   - I believe that swaponoff may also be also broken (check it).
   - It used to be that BusyBox tar would happily overwrite existing files on
       an extraction.  However, as of 0.42, BusyBox tar simply dies as soon as an 
