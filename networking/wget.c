@@ -660,8 +660,6 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 
 static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 {
-	char *p;
-
 	if (s1) {
 		if (!s2) s2="";
 		fprintf(fp, "%s%s\r\n", s1, s2);
@@ -669,9 +667,15 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 	}
 
 	do {
-		p = fgets(buf, 510, fp);
-		if (!p)
+		char *buf_ptr;
+
+		if (fgets(buf, 510, fp) == NULL) {
 			bb_perror_msg_and_die("fgets()");
+		}
+		buf_ptr = strstr(buf, "\r\n");
+		if (buf_ptr) {
+			*buf_ptr = '\0';
+		}
 	} while (! isdigit(buf[0]) || buf[3] != ' ');
 
 	return atoi(buf);
@@ -846,7 +850,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.72 2004/03/27 10:02:43 andersen Exp $
+ *	$Id: wget.c,v 1.73 2004/04/08 10:27:11 bug1 Exp $
  */
 
 
