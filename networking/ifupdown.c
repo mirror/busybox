@@ -457,7 +457,7 @@ static int loopback_up(interface_defn_t *ifd, execfn *exec)
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 	if (!execute("ip link set %iface% up", ifd, exec))
 		return(0);
-	if (!execute("ip addr add 127.0.0.1 dev %iface%", ifd, exec))
+	if (!execute("ip addr add 127.0.0.1/8 dev %iface%", ifd, exec))
 		return(0);
 #else
 	if (!execute("ifconfig %iface% 127.0.0.1 up", ifd, exec)) {
@@ -487,7 +487,7 @@ static int static_up(interface_defn_t *ifd, execfn *exec)
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 	if (!execute("ip link set %iface% up", ifd, exec))
 		return(0);
-	if (!execute("ip addr add %address%/%bnmask% dev %iface%", ifd, exec))
+	if (!execute("ip addr add %address%/%bnmask% [[broadcast %broadcast%]] dev %iface%", ifd, exec))
 		return(0);
 	if (!execute("[[ ip route add default via %gateway% dev %iface% ]]", ifd, exec))
 		return(0);
