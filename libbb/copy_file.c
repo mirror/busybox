@@ -47,7 +47,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		return -1;
 	}
 
-	if (stat(dest, &dest_stat) < 0) {
+	if (lstat(dest, &dest_stat) < 0) {
 		if (errno != ENOENT) {
 			perror_msg("unable to stat `%s'", dest);
 			return -1;
