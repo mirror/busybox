@@ -689,7 +689,6 @@ extern int ls_main(int argc, char **argv)
 #endif
 	nfiles=0;
 
-	applet_name= argv[0];
 	/* process options */
 	while ((opt = getopt(argc, argv, "1AaCdgilnsx"
 #ifdef BB_FEATURE_AUTOWIDTH
