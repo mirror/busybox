@@ -19,9 +19,9 @@
 
 MISCUTILS_AR:=miscutils.a
 ifndef $(MISCUTILS_DIR)
-MISCUTILS_DIR:=$(TOPDIR)miscutils/
+MISCUTILS_DIR:=$(top_builddir)/miscutils/
 endif
-
+srcdir=$(top_srcdir)/miscutils
 
 MISCUTILS-y:=
 MISCUTILS-$(CONFIG_ADJTIMEX)		+= adjtimex.o
@@ -49,4 +49,7 @@ endif
 
 $(MISCUTILS_DIR)$(MISCUTILS_AR): $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
 	$(AR) -ro $@ $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
+
+$(MISCUTILS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

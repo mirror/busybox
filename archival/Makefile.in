@@ -19,8 +19,9 @@
 
 ARCHIVAL_AR:=archival.a
 ifndef $(ARCHIVAL_DIR)
-ARCHIVAL_DIR:=$(TOPDIR)archival/
+ARCHIVAL_DIR:=$(top_builddir)/archival/
 endif
+srcdir=$(top_srcdir)/archival
 
 ARCHIVAL-y:=
 ARCHIVAL-$(CONFIG_APT_GET)	+=
@@ -41,4 +42,7 @@ libraries-y+=$(ARCHIVAL_DIR)$(ARCHIVAL_AR)
 
 $(ARCHIVAL_DIR)$(ARCHIVAL_AR): $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
 	$(AR) -ro $@ $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
+
+$(ARCHIVAL_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

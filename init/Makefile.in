@@ -19,8 +19,9 @@
 
 INIT_AR:=init.a
 ifndef $(INIT_DIR)
-INIT_DIR:=$(TOPDIR)init/
+INIT_DIR:=$(top_builddir)/init/
 endif
+srcdir=$(top_srcdir)/init
 
 INIT-y:=
 INIT-$(CONFIG_HALT)			+= halt.o
@@ -55,4 +56,7 @@ libraries-y+=$(INIT_DIR)$(INIT_AR)
 
 $(INIT_DIR)$(INIT_AR): $(patsubst %,$(INIT_DIR)%, $(INIT-y))
 	$(AR) -ro $@ $(patsubst %,$(INIT_DIR)%, $(INIT-y))
+
+$(INIT_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

@@ -19,9 +19,9 @@
 
 DEBIANUTILS_AR:=debianutils.a
 ifndef $(DEBIANUTILS_DIR)
-DEBIANUTILS_DIR:=$(TOPDIR)debianutils/
+DEBIANUTILS_DIR:=$(top_builddir)/debianutils/
 endif
-
+srcdir=$(top_srcdir)/debianutils
 
 DEBIANUTILS-y:=
 DEBIANUTILS-$(CONFIG_MKTEMP)		+= mktemp.o
@@ -35,4 +35,7 @@ libraries-y+=$(DEBIANUTILS_DIR)$(DEBIANUTILS_AR)
 
 $(DEBIANUTILS_DIR)$(DEBIANUTILS_AR): $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))
 	$(AR) -ro $@ $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))
+
+$(DEBIANUTILS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

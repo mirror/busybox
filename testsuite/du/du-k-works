@@ -1,3 +1,4 @@
-du -k .. > logfile.gnu
-busybox du -k .. > logfile.bb
+[ -n "$d" ] || d=..
+du -k "$d" > logfile.gnu
+busybox du -k "$d" > logfile.bb
 cmp logfile.gnu logfile.bb

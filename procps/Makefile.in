@@ -19,8 +19,9 @@
 
 PROCPS_AR:=procps.a
 ifndef $(PROCPS_DIR)
-PROCPS_DIR:=$(TOPDIR)procps/
+PROCPS_DIR:=$(top_builddir)/procps/
 endif
+srcdir=$(top_srcdir)/procps
 
 PROCPS-y:=
 PROCPS-$(CONFIG_FREE)		+= free.o
@@ -36,4 +37,7 @@ libraries-y+=$(PROCPS_DIR)$(PROCPS_AR)
 
 $(PROCPS_DIR)$(PROCPS_AR): $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
 	$(AR) -ro $@ $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
+
+$(PROCPS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

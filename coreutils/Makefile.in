@@ -19,8 +19,9 @@
 
 COREUTILS_AR:=coreutils.a
 ifndef $(COREUTILS_DIR)
-COREUTILS_DIR:=$(TOPDIR)coreutils/
+COREUTILS_DIR:=$(top_builddir)/coreutils/
 endif
+srcdir=$(top_srcdir)/coreutils
 
 COREUTILS-y:=
 COREUTILS-$(CONFIG_BASENAME)	+= basename.o
@@ -91,3 +92,7 @@ libraries-y+=$(COREUTILS_DIR)$(COREUTILS_AR)
 
 $(COREUTILS_DIR)$(COREUTILS_AR): $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
 	$(AR) -ro $@ $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
+
+$(COREUTILS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+

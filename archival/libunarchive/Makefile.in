@@ -19,8 +19,9 @@
 
 LIBUNARCHIVE_AR:=libunarchive.a
 ifndef $(LIBUNARCHIVE_DIR)
-LIBUNARCHIVE_DIR:=$(TOPDIR)archival/libunarchive/
+LIBUNARCHIVE_DIR:=$(top_builddir)/archival/libunarchive/
 endif
+srcdir=$(top_srcdir)/archvial/libunarchive
 
 LIBUNARCHIVE-y:= \
 \
@@ -77,4 +78,7 @@ libraries-y+=$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR)
 
 $(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR): $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
 	$(AR) -ro $@ $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
+
+$(LIBUNARCHIVA_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

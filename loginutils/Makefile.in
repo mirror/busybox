@@ -19,8 +19,9 @@
 
 LOGINUTILS_AR:=loginutils.a
 ifndef LOGINUTILS_DIR
-LOGINUTILS_DIR:=$(TOPDIR)loginutils/
+LOGINUTILS_DIR:=$(top_builddir)/loginutils/
 endif
+srcdir=$(top_srcdir)/loginutils
 
 LOGINUTILS-y:=
 LOGINUTILS-$(CONFIG_ADDGROUP)	+= addgroup.o
@@ -50,4 +51,7 @@ endif
 
 $(LOGINUTILS_DIR)$(LOGINUTILS_AR): $(patsubst %,$(LOGINUTILS_DIR)%, $(LOGINUTILS-y))
 	$(AR) -ro $@ $(patsubst %,$(LOGINUTILS_DIR)%, $(LOGINUTILS-y))
+
+$(LOGINUTILS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

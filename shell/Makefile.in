@@ -19,8 +19,9 @@
 
 SHELL_AR:=shell.a
 ifndef $(SHELL_DIR)
-SHELL_DIR:=$(TOPDIR)shell/
+SHELL_DIR:=$(top_builddir)/shell/
 endif
+srcdir=$(top_srcdir)/shell
 
 SHELLT-y:=
 SHELLT-$(CONFIG_ASH)				+= ash.o
@@ -33,4 +34,7 @@ libraries-y+=$(SHELL_DIR)$(SHELL_AR)
 
 $(SHELL_DIR)$(SHELL_AR): $(patsubst %,$(SHELL_DIR)%, $(SHELLT-y))
 	$(AR) -ro $@ $(patsubst %,$(SHELL_DIR)%, $(SHELLT-y))
+
+$(SHELL_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

@@ -22,37 +22,112 @@
 #--------------------------------------------------------------
 noconfig_targets := menuconfig config oldconfig randconfig \
 	defconfig allyesconfig allnoconfig clean distclean \
-	release tags
-TOPDIR=./
-include Rules.mak
+	release tags  
+
+ifndef TOPDIR
+TOPDIR=$(CURDIR)/
+endif
+ifndef top_srcdir
+top_srcdir=$(CURDIR)
+endif
+ifndef top_builddir
+top_builddir=$(CURDIR)
+endif
+
+srctree=$(top_srcdir)
+vpath %/Config.in $(srctree)
+
+include $(top_builddir)/Rules.mak
 
 DIRS:=applets archival archival/libunarchive coreutils console-tools \
 	debianutils editors findutils init miscutils modutils networking \
 	networking/libiproute networking/udhcp procps loginutils shell \
 	sysklogd util-linux libpwdgrp coreutils/libcoreutils libbb
 
+SRC_DIRS:=$(patsubst %,$(top_srcdir)/%,$(DIRS))
+
 ifeq ($(strip $(CONFIG_SELINUX)),y)
 CFLAGS += -I/usr/include/selinux
 LIBRARIES += -lsecure
 endif
 
-CONFIG_CONFIG_IN = sysdeps/$(TARGET_OS)/Config.in
-CONFIG_DEFCONFIG = sysdeps/$(TARGET_OS)/defconfig
+CONFIG_CONFIG_IN = $(top_srcdir)/sysdeps/$(TARGET_OS)/Config.in
+CONFIG_DEFCONFIG = $(top_srcdir)/sysdeps/$(TARGET_OS)/defconfig
+
+ALL_DIRS:= $(DIRS) scripts/config
+ALL_MAKEFILES:=$(patsubst %,%/Makefile,$(ALL_DIRS))
+
+ifeq ($(KBUILD_SRC),)
+
+ifdef O
+  ifeq ("$(origin O)", "command line")
+    KBUILD_OUTPUT := $(O)
+  endif
+endif
+
+# That's our default target when none is given on the command line
+.PHONY: _all
+_all:
+
+ifneq ($(KBUILD_OUTPUT),)
+# Invoke a second make in the output directory, passing relevant variables
+# check that the output directory actually exists
+saved-output := $(KBUILD_OUTPUT)
+KBUILD_OUTPUT := $(shell cd $(KBUILD_OUTPUT) && /bin/pwd)
+$(if $(wildcard $(KBUILD_OUTPUT)),, \
+     $(error output directory "$(saved-output)" does not exist))
+
+.PHONY: $(MAKECMDGOALS)
+
+$(filter-out _all,$(MAKECMDGOALS)) _all: $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUTPUT)/Makefile
+	$(MAKE) -C $(KBUILD_OUTPUT) \
+	top_srcdir=$(CURDIR) \
+	top_builddir=$(KBUILD_OUTPUT) \
+	TOPDIR=$(KBUILD_OUTPUT)	\
+	KBUILD_SRC=$(CURDIR) \
+	-f $(CURDIR)/Makefile $@
+
+$(KBUILD_OUTPUT)/Rules.mak:
+	@echo > $@
+	@echo top_srcdir=$(CURDIR) >> $@
+	@echo top_builddir=$(KBUILD_OUTPUT) >> $@
+	@echo include $(top_srcdir)/Rules.mak >> $@
+
+$(KBUILD_OUTPUT)/Makefile:
+	@echo > $@
+	@echo top_srcdir=$(CURDIR) >> $@
+	@echo top_builddir=$(KBUILD_OUTPUT) >> $@
+	@echo KBUILD_SRC='$$(top_srcdir)' >> $@
+	@echo include '$$(KBUILD_SRC)'/Makefile >> $@
+
+# Leave processing to above invocation of make
+skip-makefile := 1
+endif # ifneq ($(KBUILD_OUTPUT),)
+endif # ifeq ($(KBUILD_SRC),)
+
+ifeq ($(skip-makefile),)
+
+_all: all
 
 ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 all: busybox busybox.links doc
 
-# In this section, we need .config
--include .config.cmd
-include $(patsubst %,%/Makefile.in, $(DIRS))
--include $(TOPDIR).depend
+all_tree:	$(ALL_MAKEFILES)
 
-busybox: .depend include/config.h $(libraries-y)
+$(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
+	d=`dirname $@`; [ -d "$$d" ] || mkdir -p "$$d"; cp $< $@
+
+# In this section, we need .config
+-include $(top_builddir)/.config.cmd
+include $(patsubst %,%/Makefile.in, $(SRC_DIRS))
+-include $(top_builddir)/.depend
+
+busybox: $(ALL_MAKEFILES) .depend include/config.h $(libraries-y)
 	$(CC) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
 	$(STRIPCMD) $@
 
-busybox.links: applets/busybox.mkll include/config.h
+busybox.links: $(top_srcdir)/applets/busybox.mkll include/config.h $(top_srcdir)/include/applets.h
 	- $(SHELL) $^ >$@
 
 install: applets/install.sh busybox busybox.links
@@ -75,14 +150,18 @@ uninstall: busybox.links
 install-hardlinks: applets/install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX) --hardlinks
 
+check: busybox
+	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
+	$(top_srcdir)/testsuite/runtest
 
 # Documentation Targets
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
-docs/busybox.pod : docs/busybox_header.pod include/usage.h docs/busybox_footer.pod
-	- ( cat docs/busybox_header.pod; \
-	    docs/autodocifier.pl include/usage.h; \
-	    cat docs/busybox_footer.pod ) > docs/busybox.pod
+docs/busybox.pod : $(top_srcdir)/docs/busybox_header.pod $(top_srcdir)/include/usage.h $(top_srcdir)/docs/busybox_footer.pod
+	-mkdir -p docs
+	- ( cat $(top_srcdir)/docs/busybox_header.pod; \
+	    $(top_srcdir)/docs/autodocifier.pl $(top_srcdir)/include/usage.h; \
+	    cat $(top_srcdir)/docs/busybox_footer.pod ) > docs/busybox.pod
 
 docs/BusyBox.txt: docs/busybox.pod
 	@echo
@@ -99,7 +178,7 @@ docs/BusyBox.1: docs/busybox.pod
 docs/BusyBox.html: docs/busybox.net/BusyBox.html
 	- mkdir -p docs
 	-@ rm -f docs/BusyBox.html
-	-@ ln -s busybox.net/BusyBox.html docs/BusyBox.html
+	-@ cp docs/busybox.net/BusyBox.html docs/BusyBox.html
 
 docs/busybox.net/BusyBox.html: docs/busybox.pod
 	-@ mkdir -p docs/busybox.net
@@ -108,20 +187,19 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 	-@ rm -f pod2htm*
 
 # The nifty new buildsystem stuff
-scripts/mkdep: scripts/mkdep.c
-	$(HOSTCC) $(HOSTCFLAGS) -o scripts/mkdep scripts/mkdep.c
+scripts/mkdep: $(top_srcdir)/scripts/mkdep.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
-scripts/split-include: scripts/split-include.c
-	$(HOSTCC) $(HOSTCFLAGS) -o scripts/split-include scripts/split-include.c
+scripts/split-include: $(top_srcdir)/scripts/split-include.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
 .depend: scripts/mkdep
 	rm -f .depend .hdepend;
 	mkdir -p include/config;
-	$(HOSTCC) $(HOSTCFLAGS) -o scripts/mkdep scripts/mkdep.c
 	scripts/mkdep -I include -- \
-		`find -name \*.c -print | sed -e "s,^./,,"` >> .depend;
+	  `find $(top_srcdir) -name \*.c -print | sed -e "s,^./,,"` >> .depend;
 	scripts/mkdep -I include -- \
-		`find -name \*.h -print | sed -e "s,^./,,"` >> .hdepend;
+	  `find $(top_srcdir) -name \*.h -print | sed -e "s,^./,,"` >> .hdepend;
 
 depend dep: include/config.h .depend
 
@@ -130,13 +208,10 @@ include/config/MARKER: depend scripts/split-include
 	@ touch include/config/MARKER
 
 include/config.h: .config
-	@if [ ! -x ./scripts/config/conf ] ; then \
+	@if [ ! -x $(top_builddir)/scripts/config/conf ] ; then \
 	    $(MAKE) -C scripts/config conf; \
 	fi;
-	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
-
-%.o: %.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+	@$(top_builddir)/scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 finished2:
 	@echo
@@ -150,12 +225,16 @@ all: menuconfig
 # configuration
 # ---------------------------------------------------------------------------
 
-scripts/config/conf:
+$(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
+	d=`dirname $@`; [ -d "$$d" ] || mkdir -p "$$d"; cp $< $@
+
+scripts/config/conf: scripts/config/Makefile Rules.mak
 	$(MAKE) -C scripts/config conf
 	-@if [ ! -f .config ] ; then \
 		cp $(CONFIG_DEFCONFIG) .config; \
 	fi
-scripts/config/mconf:
+
+scripts/config/mconf: scripts/config/Makefile Rules.mak
 	$(MAKE) -C scripts/config ncurses conf mconf
 	-@if [ ! -f .config ] ; then \
 		cp $(CONFIG_DEFCONFIG) .config; \
@@ -186,9 +265,6 @@ allnoconfig: scripts/config/conf
 
 defconfig: scripts/config/conf
 	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
-
-check: busybox
-	cd testsuite && ./runtest
 
 clean:
 	- rm -f docs/busybox.dvi docs/busybox.ps \
@@ -232,7 +308,8 @@ tags:
 
 endif # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
-.PHONY: dummy subdirs release distclean clean config oldconfig \
-	menuconfig tags check test depend
+endif # ifeq ($(skip-makefile),)
 
+.PHONY: dummy subdirs release distclean clean config oldconfig \
+	menuconfig tags check test depend buildtree
 

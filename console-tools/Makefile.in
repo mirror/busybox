@@ -19,8 +19,9 @@
 
 CONSOLETOOLS_AR:=console-tools.a
 ifndef $(CONSOLETOOLS_DIR)
-CONSOLETOOLS_DIR:=$(TOPDIR)console-tools/
+CONSOLETOOLS_DIR:=$(top_builddir)/console-tools/
 endif
+srcdir=$(top_srcdir)/console-tools
 
 CONSOLETOOLS_DIR-y:=
 CONSOLETOOLS_DIR-$(CONFIG_CHVT)		+= chvt.o
@@ -37,4 +38,7 @@ libraries-y+=$(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR)
 
 $(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR): $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS_DIR-y))
 	$(AR) -ro $@ $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS_DIR-y))
+
+$(CONSOLETOOLS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

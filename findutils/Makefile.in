@@ -19,8 +19,9 @@
 
 FINDUTILS_AR:=findutils.a
 ifndef $(FINDUTILS_DIR)
-FINDUTILS_DIR:=$(TOPDIR)findutils/
+FINDUTILS_DIR:=$(top_builddir)/findutils/
 endif
+srcdir=$(top_srcdir)/findutils
 
 FINDUTILS-y:=
 FINDUTILS-$(CONFIG_FIND)	+= find.o
@@ -31,4 +32,7 @@ libraries-y+=$(FINDUTILS_DIR)$(FINDUTILS_AR)
 
 $(FINDUTILS_DIR)$(FINDUTILS_AR): $(patsubst %,$(FINDUTILS_DIR)%, $(FINDUTILS-y))
 	$(AR) -ro $@ $(patsubst %,$(FINDUTILS_DIR)%, $(FINDUTILS-y))
+
+$(FINDUTILS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

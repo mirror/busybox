@@ -42,7 +42,7 @@ LD             = $(CROSS)ld
 NM             = $(CROSS)nm
 STRIP          = $(CROSS)strip
 CPP            = $(CC) -E
-MAKEFILES      = $(TOPDIR).config
+# MAKEFILES      = $(top_builddir)/.config
 
 # What OS are you compiling busybox for?  This allows you to include
 # OS specific things, syscall overrides, etc.
@@ -80,7 +80,7 @@ BB_SRC_DIR=
 #GCCINCDIR:=$(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
-CFLAGS=-I$(TOPDIR)include
+CFLAGS=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
 ARFLAGS=-r
 
 #--------------------------------------------------------
@@ -102,7 +102,7 @@ endif
 
 # Pull in the user's busybox configuration
 ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
--include $(TOPDIR).config
+-include $(top_builddir)/.config
 endif
 
 # A nifty macro to make testing gcc features easier
@@ -189,11 +189,7 @@ endif
 # have a chance of winning.
 CFLAGS += $(CFLAGS_EXTRA)
 
-%.o: %.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
 .PHONY: dummy
-
 
 
 .EXPORT_ALL_VARIABLES:

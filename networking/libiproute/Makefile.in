@@ -19,8 +19,9 @@
 
 LIBIPROUTE_AR:=libiproute.a
 ifndef $(LIBIPROUTE_DIR)
-LIBIPROUTE_DIR:=$(TOPDIR)networking/libiproute/
+LIBIPROUTE_DIR:=$(top_builddir)/networking/libiproute/
 endif
+srcdir=$(top_srcdir)/networking/libiproute
 
 LIBIPROUTE-$(CONFIG_IP) += \
 	ip_parse_common_args.o \
@@ -77,4 +78,7 @@ libraries-y+=$(LIBIPROUTE_DIR)$(LIBIPROUTE_AR)
 
 $(LIBIPROUTE_DIR)$(LIBIPROUTE_AR): $(patsubst %,$(LIBIPROUTE_DIR)%, $(LIBIPROUTE-y))
 	$(AR) -ro $@ $(patsubst %,$(LIBIPROUTE_DIR)%, $(LIBIPROUTE-y))
+
+$(LIBIPROUTE_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

@@ -17,13 +17,15 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
-TOPDIR:= ../
+top_srcdir=..
+top_builddir=..
+srcdir=$(top_srcdir)/miscutils
 MISCUTILS_DIR:=./
-include $(TOPDIR).config
-include $(TOPDIR)Rules.mak
+include $(top_builddir)/Rules.mak
+include $(top_builddir)/.config
 include Makefile.in
 all: $(libraries-y)
--include $(TOPDIR).depend
+-include $(top_builddir)/.depend
 
 clean:
 	rm -f *.o *.a $(AR_TARGET)

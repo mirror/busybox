@@ -19,8 +19,9 @@
 
 UDHCP_AR:=udhcp.a
 ifndef $(UDHCP_DIR)
-UDHCP_DIR:=$(TOPDIR)networking/udhcp/
+UDHCP_DIR:=$(top_builddir)/networking/udhcp/
 endif
+srcdir=$(top_srcdir)/networking/udhcp
 
 #ok, so I forgot how to do an or, but this is a quick and dirty hack
 ifeq ($(CONFIG_UDHCPC), y)
@@ -48,6 +49,6 @@ libraries-y+=$(UDHCP_DIR)$(UDHCP_AR)
 $(UDHCP_DIR)$(UDHCP_AR): $(UDHCP_OBJS)
 	$(AR) -ro $@ $(UDHCP_OBJS)
 
-$(UDHCP_OBJS): %.o : %.c
+$(UDHCP_OBJS): $(UDHCP_DIR)%.o : $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DIN_BUSYBOX -c $< -o $@
 

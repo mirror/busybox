@@ -16,12 +16,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-
-
 LIBBB_AR:=libbb.a
 ifndef $(LIBBB_DIR)
-LIBBB_DIR:=$(TOPDIR)libbb/
+LIBBB_DIR:=$(top_builddir)/libbb/
 endif
+srcdir=$(top_srcdir)/libbb
 
 LIBBB_SRC:= \
 	bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
@@ -51,7 +50,7 @@ LIBBB_SRC:= \
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
 
-LIBBB_MSRC0:=$(LIBBB_DIR)messages.c
+LIBBB_MSRC0:=$(srcdir)/messages.c
 LIBBB_MOBJ0:=full_version.o \
 	memory_exhausted.o invalid_date.o io_error.o \
 	write_error.o name_longer_than_foo.o unknown.o \
@@ -60,19 +59,19 @@ LIBBB_MOBJ0:=full_version.o \
 	securetty_file.o motd_file.o \
 	msg_standard_input.o msg_standard_output.o shell_file.o
 
-LIBBB_MSRC1:=$(LIBBB_DIR)xfuncs.c
+LIBBB_MSRC1:=$(srcdir)/xfuncs.c
 LIBBB_MOBJ1:=xmalloc.o xrealloc.o xcalloc.o xstrdup.o xstrndup.o \
 	xfopen.o xopen.o xread.o xread_all.o xread_char.o \
 	xferror.o xferror_stdout.o xfflush_stdout.o strlen.o
 
-LIBBB_MSRC2:=$(LIBBB_DIR)printf.c
+LIBBB_MSRC2:=$(srcdir)/printf.c
 LIBBB_MOBJ2:=bb_vfprintf.o bb_vprintf.o bb_fprintf.o bb_printf.o
 
-LIBBB_MSRC3:=$(LIBBB_DIR)xgetularg.c
+LIBBB_MSRC3:=$(srcdir)/xgetularg.c
 LIBBB_MOBJ3:=xgetularg_bnd_sfx.o xgetlarg_bnd_sfx.o getlarg10_sfx.o \
 	xgetularg_bnd.o xgetularg10_bnd.o xgetularg10.o
 
-LIBBB_MSRC4:=$(LIBBB_DIR)/safe_strtol.c
+LIBBB_MSRC4:=$(srcdir)/safe_strtol.c
 LIBBB_MOBJ4:=safe_strtoi.o safe_strtod.o safe_strtol.o safe_strtoul.o
 
 LIBBB_MOBJS0=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ0))
@@ -87,6 +86,9 @@ $(LIBBB_DIR)$(LIBBB_AR): $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
 	$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4)
 	$(AR) -ro $@ $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
 		$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4)
+
+$(LIBBB_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
 $(LIBBB_MOBJS0): $(LIBBB_MSRC0)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@

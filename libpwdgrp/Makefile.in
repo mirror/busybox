@@ -19,11 +19,12 @@
 
 LIBPWDGRP_AR:=libpwdgrp.a
 ifndef $(LIBPWDGRP_DIR)
-LIBPWDGRP_DIR:=$(TOPDIR)libpwdgrp/
+LIBPWDGRP_DIR:=$(top_builddir)/libpwdgrp/
 endif
+srcdir=$(top_srcdir)/libpwdgrp
 
 
-LIBPWDGRP_MSRC0:=$(LIBPWDGRP_DIR)pwd_grp.c
+LIBPWDGRP_MSRC0:=$(srcdir)/pwd_grp.c
 LIBPWDGRP_MOBJ0-$(CONFIG_USE_BB_PWD_GRP):= fgetpwent_r.o fgetgrent_r.o \
 	fgetpwent.o fgetgrent.o getpwnam_r.o getgrnam_r.o getpwuid_r.o \
 	getgrgid_r.o getpwuid.o getgrgid.o getpwnam.o getgrnam.o getpw.o \
@@ -31,7 +32,7 @@ LIBPWDGRP_MOBJ0-$(CONFIG_USE_BB_PWD_GRP):= fgetpwent_r.o fgetgrent_r.o \
 	initgroups.o putpwent.o putgrent.o
 LIBPWDGRP_MOBJS0=$(patsubst %,$(LIBPWDGRP_DIR)%, $(LIBPWDGRP_MOBJ0-y))
 
-LIBPWDGRP_MSRC1:=$(LIBPWDGRP_DIR)pwd_grp.c
+LIBPWDGRP_MSRC1:=$(srcdir)/pwd_grp.c
 LIBPWDGRP_MOBJ1-$(CONFIG_USE_BB_PWD_GRP):= __parsepwent.o __parsegrent.o \
 	__pgsreader.o fgetspent_r.o fgetspent.o sgetspent_r.o getspnam_r.o \
 	getspnam.o getspent_r.o getspent.o sgetspent.o \

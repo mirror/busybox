@@ -19,8 +19,9 @@
 
 SYSKLOGD_AR:=sysklogd.a
 ifndef $(SYSKLOGD_DIR)
-SYSKLOGD_DIR:=$(TOPDIR)sysklogd/
+SYSKLOGD_DIR:=$(top_builddir)/sysklogd/
 endif
+srcdir=$(top_srcdir)/sysklogd
 
 SYSKLOGD-:=
 SYSKLOGD-$(CONFIG_KLOGD)		+= klogd.o
@@ -32,4 +33,7 @@ libraries-y+=$(SYSKLOGD_DIR)$(SYSKLOGD_AR)
 
 $(SYSKLOGD_DIR)$(SYSKLOGD_AR): $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
 	$(AR) -ro $@ $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
+
+$(SYSKLOGD_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

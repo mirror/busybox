@@ -1,6 +1,8 @@
 #!/bin/sh
 
-PATH=$(dirname $(pwd)):$PATH
+[ -n "$srcdir" ] || srcdir=$(pwd)
+[ -n "$bindir" ] || bindir=$(dirname $(pwd))
+PATH=$bindir:$PATH
 
 run_applet_testcase ()
 {
@@ -13,7 +15,7 @@ run_applet_testcase ()
 	local uc_applet=$(echo $applet | tr a-z A-Z)
 	local testname=$(basename $testcase)
 
-	if grep -q "^# CONFIG_${uc_applet} is not set$" ../.config; then
+	if grep -q "^# CONFIG_${uc_applet} is not set$" $bindir/.config; then
 		echo UNTESTED: $testname
 		return 0
 	fi
@@ -21,7 +23,7 @@ run_applet_testcase ()
 	if grep -q "^# FEATURE: " $testcase; then
 		local feature=`sed -ne 's/^# FEATURE: //p' $testcase`
 
-		if grep -q "^# ${feature} is not set$" ../.config; then
+		if grep -q "^# ${feature} is not set$" $bindir/.config; then
 			echo UNTESTED: $testname
 			return 0
 		fi
@@ -31,7 +33,7 @@ run_applet_testcase ()
 	mkdir -p tmp
 	pushd tmp >/dev/null
 
-	sh -x -e ../$testcase >.logfile.txt 2>&1
+	d=$srcdir sh -x -e $testcase >.logfile.txt 2>&1
 
 	if [ $? != 0 ] ; then
 		echo FAIL: $testname
@@ -58,8 +60,8 @@ run_applet_tests ()
 
 	local status=0
 
-	for testcase in $applet/*; do
-		if [ "$testcase" = "$applet/CVS" ]; then
+	for testcase in $srcdir/$applet/*; do
+		if [ "$testcase" = "$srcdir/$applet/CVS" ]; then
 			continue
 		fi
 
@@ -84,11 +86,11 @@ fi
 if [ $# -ne 0 ]; then
 	applets="$@"
 else
-	applets="*"
+	applets=$(ls $srcdir)
 fi
 
 for applet in $applets; do
-	if [ "$applet" != CVS -a -d "$applet" ]; then
+	if [ "$applet" != CVS -a -d "$srcdir/$applet" ]; then
 		if run_applet_tests $applet; then
 			:
 		else

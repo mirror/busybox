@@ -19,18 +19,19 @@
 
 APPLETS_AR:=applets.a
 ifndef $(APPLETS_DIR)
-APPLETS_DIR:=$(TOPDIR)applets/
+APPLETS_DIR:=$(top_builddir)/applets/
 endif
+srcdir=$(top_srcdir)/applets
 
 APPLET_SRC:=applets.c busybox.c
 APPLET_OBJ:= $(patsubst %.c,$(APPLETS_DIR)%.o, $(APPLET_SRC))
 
-
-
 libraries-y+=$(APPLETS_DIR)$(APPLETS_AR)
-
-$(APPLET_OBJ): $(TOPDIR).config
 
 $(APPLETS_DIR)$(APPLETS_AR): $(APPLET_OBJ)
 	$(AR) -ro $@ $(APPLET_OBJ)
+
+$(APPLET_OBJ): $(top_builddir)/.config
+$(APPLET_OBJ): $(APPLETS_DIR)%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
