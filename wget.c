@@ -141,7 +141,7 @@ int wget_main(int argc, char **argv)
 			 * this gets interpreted as the auto-gen output filename
 			 * case below  - tausq@debian.org
 			 */
-			fname_out = (strcmp(optarg, "-") == 0 ? (char *)1 : optarg);
+			fname_out = optarg;
 			break;
 		default:
 			show_usage();
@@ -188,10 +188,10 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Open the output file stream.
 	 */
-	if (fname_out != (char *)1) {
-		output = xfopen( fname_out, (do_continue ? "a" : "w") );
-	} else {
+	if (strcmp(fname_out, "-") == 0) {
 		output = stdout;
+	} else {
+		output = xfopen(fname_out, (do_continue ? "a" : "w"));
 	}
 
 	/*
@@ -732,7 +732,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.32 2001/04/10 18:17:05 andersen Exp $
+ *	$Id: wget.c,v 1.33 2001/04/11 20:03:01 kraai Exp $
  */
 
 
