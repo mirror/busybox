@@ -161,7 +161,8 @@ int rtnl_dump_filter(struct rtnl_handle *rth,
 		while (NLMSG_OK(h, status)) {
 			int err;
 
-			if (h->nlmsg_pid != rth->local.nl_pid ||
+			if (nladdr.nl_pid != 0 ||
+			    h->nlmsg_pid != rth->local.nl_pid ||
 			    h->nlmsg_seq != rth->dump) {
 				if (junk) {
 					err = junk(&nladdr, h, arg2);
@@ -270,7 +271,8 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 				bb_error_msg_and_die("!!!malformed message: len=%d", len);
 			}
 
-			if (h->nlmsg_pid != rtnl->local.nl_pid ||
+			if (nladdr.nl_pid != peer ||
+			    h->nlmsg_pid != rtnl->local.nl_pid ||
 			    h->nlmsg_seq != seq) {
 				if (junk) {
 					l_err = junk(&nladdr, h, jarg);
