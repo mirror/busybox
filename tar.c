@@ -604,6 +604,21 @@ int exclude_file(char **excluded_files, const char *file)
 	return 0;
 }
 
+int extract_file(char **extract_files, const char *file)
+{
+	int i;
+
+	if (extract_files == NULL)
+		return 1;
+
+	for (i = 0; extract_files[i] != NULL; i++) {
+		if (fnmatch(extract_files[i], file, FNM_LEADING_DIR) == 0)
+			return 1;
+	}
+
+	return 0;
+}
+
 /*
  * Read a tar file and extract or list the specified files within it.
  * If the list is empty than all files are extracted or listed.
@@ -617,7 +632,6 @@ extern int readTarFile(int tarFd, int extractFlag, int listFlag,
 	int skipNextHeaderFlag=FALSE;
 	TarHeader rawHeader;
 	TarInfo header;
-	char** tmpList;
 
 	/* Set the umask for this process so it doesn't 
 	 * screw up permission setting for us later. */
@@ -669,30 +683,16 @@ extern int readTarFile(int tarFd, int extractFlag, int listFlag,
 		}
 #endif
 
-		if (extractList != NULL) {
-			int skipFlag = TRUE;
-			for (tmpList = extractList; *tmpList != NULL; tmpList++) {
-				if (strncmp( *tmpList, header.name, strlen(*tmpList))==0 || (
-							header.name[strlen(header.name)-1]=='/'
-							&& strncmp( *tmpList, header.name, 
-								MIN(strlen(header.name)-1, strlen(*tmpList)))==0)) {
-					/* If it is a regular file, pretend to extract it with
-					 * the extractFlag set to FALSE, so the junk in the tarball
-					 * is properly skipped over */
-					skipFlag = FALSE;
-					memmove(extractList+1, extractList,
-								sizeof(*extractList)*(tmpList-extractList));
-					extractList++;
-					break;
-				}
-			}
+		if (!extract_file(extractList, header.name)) {
 			/* There are not the droids you're looking for, move along */
-			if (skipFlag == TRUE) {
-				if ( header.type==REGTYPE || header.type==REGTYPE0 )
-					if (tarExtractRegularFile(&header, FALSE, FALSE) == FALSE)
-						errorFlag = TRUE;
-				continue;
+			/* If it is a regular file, pretend to extract it with
+			 * the extractFlag set to FALSE, so the junk in the tarball
+			 * is properly skipped over */
+			if ( header.type==REGTYPE || header.type==REGTYPE0 ) {
+				if (tarExtractRegularFile(&header, FALSE, FALSE) == FALSE)
+					errorFlag = TRUE;
 			}
+			continue;
 		}
 
 		if (listFlag == TRUE) {
@@ -813,12 +813,6 @@ extern int readTarFile(int tarFd, int extractFlag, int listFlag,
 	/* Stuff to do when we are done */
 endgame:
 	close( tarFd);
-	if (extractList != NULL) {
-		for (; *extractList != NULL; extractList++) {
-			error_msg("%s: Not found in archive\n", *extractList);
-			errorFlag = TRUE;
-		}
-	}
 	if ( *(header.name) == '\0' ) {
 		if (errorFlag==TRUE)
 			error_msg( "Error exit delayed from previous errors\n");
