@@ -28,6 +28,9 @@ Dave Cinege <dcinege@psychosis.com>
     more(v2), makedevs, dutmp, modularization, auto links file, 
     various fixes, Linux Router Project maintenance
 
+Larry Doolittle <ldoolitt@recycle.lbl.gov>
+    pristine source directory compilation, lots of patches and fixes.
+
 Karl M. Hegbloom <karlheg@debian.org>
     cp_mv.c, the test suite, various fixes to utility.c, &c.
 
@@ -45,6 +48,9 @@ Glenn McGrath <bug1@netconnect.com.au>
 
 Bruce Perens <bruce@pixar.com>
     Original author of BusyBox. His code is still in many apps.
+
+Kent Robotti <robotti@metconnect.com>
+    reset, tons and tons of bug reports and patchs.
 
 Chip Rosenthal <chip@unicom.com>, <crosenth@covad.com>
     wget - Contributed by permission of Covad Communications
