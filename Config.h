@@ -287,6 +287,15 @@
 // Enable ifconfig status reporting output -- this feature adds 12k.
 //#define BB_FEATURE_IFCONFIG_STATUS
 //
+// Enable ifconfig slip-specific options "keepalive" and "outfill"
+//#define BB_FEATURE_IFCONFIG_SLIP
+//
+// Enable ifconfig options "mem_start", "io_addr", and "irq".
+//#define BB_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+//
+// Enable ifconfig option "hw".  Currently works for only with "ether".
+//#define BB_FEATURE_IFCONFIG_HW
+//
 // Enable busybox --install [-s]
 // to create links (or symlinks) for all the commands that are 
 // compiled into the binary.  (needs /proc filesystem)

@@ -15,19 +15,26 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.4 2001/03/06 00:48:59 andersen Exp $
- *
- * Majorly hacked up by Larry Doolittle <ldoolitt@recycle.lbl.gov> 
+ * $Id: ifconfig.c,v 1.5 2001/03/08 22:57:00 mjn3 Exp $
  *
  */
 
-#include "busybox.h"
-#include <sys/types.h>
+/*
+ * Heavily modified by Manuel Novoa III       Mar 6, 2001
+ *
+ * From initial port to busybox, removed most of the redundancy by
+ * converting to a table-driven approach.  Added several (optional)
+ * args missing from initial port.
+ *
+ * Still missing:  media.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>   // strcmp and friends
 #include <ctype.h>    // isdigit and friends
+#include <stddef.h>				/* offsetof */
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
@@ -35,397 +42,443 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <linux/if_ether.h>
+#include "busybox.h"
 
-static int sockfd;  /* socket fd we use to manipulate stuff with */
-
-#define TESTME 0
-#if TESTME
-#define ioctl test_ioctl
-char *saddr_to_a(struct sockaddr *s)
-{
-	if (s->sa_family == ARPHRD_ETHER) {
-		static char hw[18];
-		sprintf(hw, "%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x",
-			s->sa_data[0], s->sa_data[1], s->sa_data[2],
-			s->sa_data[3], s->sa_data[4], s->sa_data[5]);
-		return hw;
-	} else if (s->sa_family == AF_INET) {
-		struct sockaddr_in *ss = (struct sockaddr_in *) s;
-		return inet_ntoa(ss->sin_addr);
-	} else {
-		return NULL;
-	}
-}
-
-int test_ioctl(int __fd, unsigned long int __request, void *param)
-{
-	struct ifreq *i=(struct ifreq *)param;
-	printf("ioctl fd=%d, request=%ld\n", __fd, __request);
-	
-	switch(__request) {
-		case SIOCGIFFLAGS:   printf("  SIOCGIFFLAGS\n");       i->ifr_flags = 0;   break;
-		case SIOCSIFFLAGS:   printf("  SIOCSIFFLAGS, %x\n",    i->ifr_flags);     break;
-		case SIOCSIFMETRIC:  printf("  SIOCSIFMETRIC, %d\n",   i->ifr_metric);    break;
-		case SIOCSIFMTU:     printf("  SIOCSIFMTU, %d\n",      i->ifr_mtu);       break;
-		case SIOCSIFBRDADDR: printf("  SIOCSIFBRDADDR, %s\n",  saddr_to_a(&(i->ifr_broadaddr))); break;
-		case SIOCSIFDSTADDR: printf("  SIOCSIFDSTADDR, %s\n",  saddr_to_a(&(i->ifr_dstaddr  ))); break;
-		case SIOCSIFNETMASK: printf("  SIOCSIFNETMASK, %s\n",  saddr_to_a(&(i->ifr_netmask  ))); break;
-		case SIOCSIFADDR:    printf("  SIOCSIFADDR, %s\n",     saddr_to_a(&(i->ifr_addr     ))); break;
-		case SIOCSIFHWADDR:  printf("  SIOCSIFHWADDR, %s\n",   saddr_to_a(&(i->ifr_hwaddr   ))); break;  /* broken */
-		default:
-	}
-	return 0;
-}
+#ifdef BB_FEATURE_IFCONFIG_SLIP
+#include <linux/if_slip.h>
 #endif
 
-
-/* print usage and exit */
-
-#define _(x) x
-
-/* Set a certain interface flag. */
-static int
-set_flag(char *ifname, short flag)
-{
-	struct ifreq ifr;
-	
-	strcpy(ifr.ifr_name, ifname);
-	if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0) {
-		perror("SIOCGIFFLAGS"); 
-		return -1;
-	}
-	strcpy(ifr.ifr_name, ifname);
-	ifr.ifr_flags |= flag;
-	if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) < 0) {
-		perror("SIOCSIFFLAGS");
-		return -1;
-	}
-	return 0;
-}
+/* I don't know if this is needed for busybox or not.  Anyone? */
+#define QUESTIONABLE_ALIAS_CASE
 
 
-/* Clear a certain interface flag. */
-static int
-clr_flag(char *ifname, short flag)
-{
-	struct ifreq ifr;
-	
-	strcpy(ifr.ifr_name, ifname);
-	if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0) {
-		perror("SIOCGIFFLAGS");
-		return -1;
-	}
-	strcpy(ifr.ifr_name, ifname);
-	ifr.ifr_flags &= ~flag;
-	if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) < 0) {
-		perror("SIOCSIFFLAGS");
-		return -1;
-	}
-	return 0;
-}
+/* Defines for glibc2.0 users. */
+#ifndef SIOCSIFTXQLEN
+#define SIOCSIFTXQLEN      0x8943
+#define SIOCGIFTXQLEN      0x8942
+#endif
 
-/* which element in struct ifreq to frob */
-enum frob {
-	L_METRIC,
-	L_MTU,
-	L_DATA,
-	L_BROAD,
-	L_DEST,
-	L_MASK,
-	L_HWAD,
-};
+/* ifr_qlen is ifru_ivalue, but it isn't present in 2.0 kernel headers */
+#ifndef ifr_qlen
+#define ifr_qlen        ifr_ifru.ifru_mtu
+#endif
 
+#ifndef IFF_DYNAMIC
+#define IFF_DYNAMIC     0x8000  /* dialup device with changing addresses */
+#endif
 
-struct flag_map {
-	char *name;
-	enum frob frob;
-	int flag;
-	int sflag;
-	int action;
-};
-
-/* action:
- *  2   set
- *  4   clear
- *  6   set/clear
- *  8   clear/set
- *  10  numeric
- *  12  address
- *  14  address/clear
+/*
+ * Here are the bit masks for the "flags" member of struct options below.
+ * N_ signifies no arg prefix; M_ signifies arg prefixed by '-'.
+ * CLR clears the flag; SET sets the flag; ARG signifies (optional) arg.
  */
-const static struct flag_map flag_table[] = {
-	{"arp",         0,  IFF_NOARP,             0, 6},
-	{"trailers",    0,  IFF_NOTRAILERS,        0, 6},
-	{"promisc",     0,  IFF_PROMISC,           0, 8},
-	{"multicast",   0,  IFF_MULTICAST,         0, 8},
-	{"allmulti",    0,  IFF_ALLMULTI,          0, 8},
-	{"up",          0, (IFF_UP | IFF_RUNNING), 0, 2},
-	{"down",        0,  IFF_UP,                0, 4},
-	{"metric",      L_METRIC,              0, SIOCSIFMETRIC,  10},
-	{"mtu",         L_MTU,                 0, SIOCSIFMTU,     10},
+#define N_CLR            0x01
+#define M_CLR            0x02
+#define N_SET            0x04
+#define M_SET            0x08
+#define N_ARG            0x10
+#define M_ARG            0x20
+
+#define M_MASK           (M_CLR | M_SET | M_ARG)
+#define N_MASK           (N_CLR | N_SET | N_ARG)
+#define SET_MASK         (N_SET | M_SET)
+#define CLR_MASK         (N_CLR | M_CLR)
+#define SET_CLR_MASK     (SET_MASK | CLR_MASK)
+#define ARG_MASK         (M_ARG | N_ARG)
+
+/*
+ * Here are the bit masks for the "arg_flags" member of struct options below.
+ */
+
+/*
+ * cast type:
+ *   00 int
+ *   01 char *
+ *   02 HOST_COPY in_ether
+ *   03 HOST_COPY INET_resolve
+ */
+#define A_CAST_TYPE      0x03
+/*
+ * map type:
+ *   00 not a map type (mem_start, io_addr, irq)
+ *   04 memstart (unsigned long)
+ *   08 io_addr  (unsigned short)
+ *   0C irq      (unsigned char)
+ */
+#define A_MAP_TYPE       0x0C
+#define A_ARG_REQ        0x10	/* Set if an arg is required. */
+#define A_NETMASK        0x20	/* Set if netmask (check for multiple sets). */
+#define A_SET_AFTER      0x40	/* Set a flag at the end. */
+#define A_COLON_CHK      0x80	/* Is this needed?  See below. */
+
+/*
+ * These defines are for dealing with the A_CAST_TYPE field.
+ */
+#define A_CAST_CHAR_PTR  0x01
+#define A_CAST_RESOLVE   0x01
+#define A_CAST_HOST_COPY 0x02
+#define A_CAST_HOST_COPY_IN_ETHER    A_CAST_HOST_COPY
+#define A_CAST_HOST_COPY_RESOLVE     (A_CAST_HOST_COPY | A_CAST_RESOLVE)
+
+/*
+ * These defines are for dealing with the A_MAP_TYPE field.
+ */
+#define A_MAP_ULONG      0x04	/* memstart */
+#define A_MAP_USHORT     0x08	/* io_addr */
+#define A_MAP_UCHAR      0x0C	/* irq */
+
+/*
+ * Define the bit masks signifying which operations to perform for each arg.
+ */
+
+#define ARG_METRIC       (A_ARG_REQ /*| A_CAST_INT*/)
+#define ARG_MTU          (A_ARG_REQ /*| A_CAST_INT*/)
+#define ARG_TXQUEUELEN   (A_ARG_REQ /*| A_CAST_INT*/)
+#define ARG_MEM_START    (A_ARG_REQ | A_MAP_ULONG)
+#define ARG_IO_ADDR      (A_ARG_REQ | A_MAP_USHORT)
+#define ARG_IRQ          (A_ARG_REQ | A_MAP_UCHAR)
+#define ARG_DSTADDR      (A_ARG_REQ | A_CAST_HOST_COPY_RESOLVE)
+#define ARG_NETMASK      (A_ARG_REQ | A_CAST_HOST_COPY_RESOLVE | A_NETMASK)
+#define ARG_BROADCAST    (A_ARG_REQ | A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER)
+#define ARG_HW           (A_ARG_REQ | A_CAST_HOST_COPY_IN_ETHER)
+#define ARG_POINTOPOINT  (A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER)
+#define ARG_KEEPALIVE    (A_ARG_REQ | A_CAST_CHAR_PTR)
+#define ARG_OUTFILL      (A_ARG_REQ | A_CAST_CHAR_PTR)
+#define ARG_HOSTNAME     (A_CAST_HOST_COPY_RESOLVE | A_SET_AFTER | A_COLON_CHK)
+
+
+/*
+ * Set up the tables.  Warning!  They must have corresponding order!
+ */
+
+struct arg1opt {
+	const char *name;
+	unsigned short selector;
+	unsigned short ifr_offset;
+};
+
+struct options {
+	const char *name;
+	const unsigned char flags;
+	const unsigned char arg_flags;
+	const unsigned short selector;
+};
+
+#define ifreq_offsetof(x)  offsetof(struct ifreq, x)
+
+static const struct arg1opt Arg1Opt[] = {
+	{"SIOCSIFMETRIC",  SIOCSIFMETRIC,  ifreq_offsetof(ifr_metric)},
+	{"SIOCSIFMTU",     SIOCSIFMTU,     ifreq_offsetof(ifr_mtu)},
+	{"SIOCSIFTXQLEN",  SIOCSIFTXQLEN,  ifreq_offsetof(ifr_qlen)},
+	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
+	{"SIOCSIFNETMASK", SIOCSIFNETMASK, ifreq_offsetof(ifr_netmask)},
+	{"SIOCSIFBRDADDR", SIOCSIFBRDADDR, ifreq_offsetof(ifr_broadaddr)},
+#ifdef BB_FEATURE_IFCONFIG_HW
+	{"SIOCSIFHWADDR",  SIOCSIFHWADDR,  ifreq_offsetof(ifr_hwaddr)},
+#endif
+	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
 #ifdef SIOCSKEEPALIVE
-	{"keepalive",   L_DATA,                0, SIOCSKEEPALIVE, 10},
+	{"SIOCSKEEPALIVE", SIOCSKEEPALIVE, ifreq_offsetof(ifr_data)},
 #endif
 #ifdef SIOCSOUTFILL
-	{"outfill",     L_DATA,                0, SIOCSOUTFILL,   10},
+	{"SIOCSOUTFILL",   SIOCSOUTFILL,   ifreq_offsetof(ifr_data)},
 #endif
-	{"broadcast",   L_BROAD, IFF_BROADCAST,   SIOCSIFBRDADDR, 14},
-	{"dstaddr",     L_DEST,                0, SIOCSIFDSTADDR, 12},
-	{"netmask",     L_MASK,                0, SIOCSIFNETMASK, 12},
-	{"pointopoint", L_DEST,  IFF_POINTOPOINT, SIOCSIFDSTADDR, 14},
-	{"hw",          L_HWAD,                0, SIOCSIFHWADDR,  14},
+#ifdef BB_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.mem_start)},
+	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.base_addr)},
+	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.irq)},
+#endif
+	/* Last entry if for unmatched (possibly hostname) arg. */
+	{"SIOCSIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr)},
 };
 
+static const struct options OptArray[] = {
+	{"metric",       N_ARG,         ARG_METRIC,      0},
+    {"mtu",          N_ARG,         ARG_MTU,         0},
+	{"txqueuelen",   N_ARG,         ARG_TXQUEUELEN,  0},
+	{"dstaddr",      N_ARG,         ARG_DSTADDR,     0},
+	{"netmask",      N_ARG,         ARG_NETMASK,     0},
+	{"broadcast",    N_ARG | M_CLR, ARG_BROADCAST,   IFF_BROADCAST},
+#ifdef BB_FEATURE_IFCONFIG_HW
+	{"hw",           N_ARG,         ARG_HW,          0},
+#endif
+	{"pointopoint",  N_ARG | M_CLR, ARG_POINTOPOINT, IFF_POINTOPOINT},
+#ifdef SIOCSKEEPALIVE
+	{"keepalive",    N_ARG,         ARG_KEEPALIVE,   0},
+#endif
+#ifdef SIOCSOUTFILL
+	{"outfill",      N_ARG,         ARG_OUTFILL,     0},
+#endif
+#ifdef BB_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+	{"mem_start",    N_ARG,         ARG_MEM_START,   0},
+	{"io_addr",      N_ARG,         ARG_IO_ADDR,     0},
+	{"irq",          N_ARG,         ARG_IRQ,         0},
+#endif
+	{"arp",          N_CLR | M_SET, 0,               IFF_NOARP},
+	{"trailers",     N_CLR | M_SET, 0,               IFF_NOTRAILERS},
+	{"promisc",      N_SET | M_CLR, 0,               IFF_PROMISC},
+	{"multicast",    N_SET | M_CLR, 0,               IFF_MULTICAST},
+	{"allmulti",     N_SET | M_CLR, 0,               IFF_ALLMULTI},
+	{"dynamic",      N_SET | M_CLR, 0,               IFF_DYNAMIC},
+	{"up",           N_SET        , 0,               (IFF_UP | IFF_RUNNING)},
+	{"down",         N_CLR        , 0,               IFF_UP},
+	{ NULL,          0,             ARG_HOSTNAME,    (IFF_UP | IFF_RUNNING)}
+};
 
-/* resolve XXX.YYY.ZZZ.QQQ -> binary */
+/*
+ * A couple of prototypes.
+ */
 
-static int
-INET_resolve(char *name, struct sockaddr_in *sin)
+#ifdef BB_FEATURE_IFCONFIG_HW
+static int in_ether(char *bufp, struct sockaddr *sap);
+#endif
+
+#ifdef BB_FEATURE_IFCONFIG_STATUS
+extern int display_interfaces(void);
+#endif
+
+/*
+ * Our main function.
+ */
+
+int ifconfig_main(int argc, char **argv)
 {
-	sin->sin_family = AF_INET;
-	sin->sin_port = 0;
+	struct ifreq ifr;
+	struct sockaddr_in sai;
+#ifdef BB_FEATURE_IFCONFIG_HW
+	struct sockaddr sa;
+#endif
+	const struct arg1opt *a1op;
+	const struct options *op;
+	int sockfd;  /* socket fd we use to manipulate stuff with */
+	int goterr;
+	int selector;
+	char *p;
+	char host[128];
+	unsigned char mask;
+	unsigned char did_flags;
 
-	/* Default is special, meaning 0.0.0.0. */
-	if (strcmp(name, "default")==0) {
-		sin->sin_addr.s_addr = INADDR_ANY;
-		return 1;
+	goterr = 0;
+	did_flags = 0;
+
+	if(argc < 2) {
+#ifdef BB_FEATURE_IFCONFIG_STATUS
+		return(display_interfaces());
+#else
+		show_usage();
+#endif
 	}
-	/* Look to see if it's a dotted quad. */
-	if (inet_aton(name, &sin->sin_addr)) {
-		return 0;
+
+	/* Create a channel to the NET kernel. */
+	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		perror("socket");
+		exit(1);
 	}
-	/* guess not.. */
-	errno = EINVAL;
-	return -1;
+
+	/* skip argv[0] */
+	argc--;
+	argv++;
+
+	/* get interface name */
+	safe_strncpy(ifr.ifr_name, *argv, IFNAMSIZ);
+
+	/* Process the remaining arguments. */
+	while (*++argv != (char *) NULL) {
+		p = *argv;
+		mask = N_MASK;
+		if (*p == '-') {		/* If the arg starts with '-'... */
+			++p;				/*    advance past it and */
+			mask = M_MASK;		/*    set the appropriate mask. */
+		}
+		for (op = OptArray ; op->name ; op++) {	/* Find table entry. */
+			if (!strcmp(p,op->name)) { /* If name matches... */
+				if ((mask &= op->flags)) { /* set the mask and go. */
+				    goto FOUND_ARG;;
+				}
+				/* If we get here, there was a valid arg with an */
+				/* invalid '-' prefix. */
+				++goterr;
+				goto LOOP;
+			}
+		}
+		
+		/* We fell through, so treat as possible hostname. */
+		a1op = Arg1Opt + (sizeof(Arg1Opt) / sizeof(Arg1Opt[0])) - 1;
+		mask = op->arg_flags;
+		goto HOSTNAME;
+
+	FOUND_ARG:
+		if (mask & ARG_MASK) {
+			mask = op->arg_flags;
+			a1op = Arg1Opt + (op - OptArray);
+			if (mask & A_NETMASK & did_flags) {
+				show_usage();
+			}
+			if (*++argv == NULL) {
+				if (mask & A_ARG_REQ) {
+					show_usage();
+				} else {
+					--argv;
+					mask &= A_SET_AFTER; /* just for broadcast */
+				}
+			} else {			/* got an arg so process it */
+			HOSTNAME:
+				did_flags |= (mask & A_NETMASK);
+				if (mask & A_CAST_HOST_COPY) {
+#ifdef BB_FEATURE_IFCONFIG_HW
+					if (mask & A_CAST_RESOLVE) {
+#endif
+						safe_strncpy(host, *argv, (sizeof host));
+						sai.sin_family = AF_INET;
+						sai.sin_port = 0;
+						if (!strcmp(host, "default")) {
+							/* Default is special, meaning 0.0.0.0. */
+							sai.sin_addr.s_addr = INADDR_ANY;
+						} else if (inet_aton(host, &sai.sin_addr) == 0) {
+							/* It's not a dotted quad. */
+							++goterr;
+							continue;
+						}
+						p = (char *) &sai;
+#ifdef BB_FEATURE_IFCONFIG_HW
+					} else { /* A_CAST_HOST_COPY_IN_ETHER */
+						/* This is the "hw" arg case. */
+						if (strcmp("ether", *argv) || (*++argv == NULL)) {
+							show_usage();
+						}
+						safe_strncpy(host, *argv, (sizeof host));
+						if (in_ether(host, &sa)) {
+							fprintf(stderr, "invalid hw-addr %s\n", host);
+							++goterr;
+							continue;
+						}
+						p = (char *) &sa;
+					}
+#endif
+					memcpy((((char *)(&ifr)) + a1op->ifr_offset),
+						   p, sizeof(struct sockaddr));
+				} else {
+					unsigned int i = strtoul(*argv,NULL,0);
+					p = ((char *)(&ifr)) + a1op->ifr_offset;
+#ifdef BB_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+					if (mask & A_MAP_TYPE) {
+						if (ioctl(sockfd, SIOCGIFMAP, &ifr) < 0) {
+							++goterr;
+							continue;
+						}
+						if ((mask & A_MAP_UCHAR) == A_MAP_UCHAR) {
+							*((unsigned char *) p) = i;
+						} else if (mask & A_MAP_USHORT) {
+							*((unsigned short *) p) = i;
+						} else {
+							*((unsigned long *) p) = i;
+						}
+					} else
+#endif
+					if (mask & A_CAST_CHAR_PTR) {
+						*((caddr_t *) p) = (caddr_t) i;
+					} else { /* A_CAST_INT */
+						*((int *) p) = i;
+					}
+				}
+						
+				if (ioctl(sockfd, a1op->selector, &ifr) < 0) {
+					perror(a1op->name);
+					++goterr;
+					continue;
+				}
+
+#ifdef QUESTIONABLE_ALIAS_CASE
+				if (mask & A_COLON_CHK) {
+					/*
+					 * Don't do the set_flag() if the address is an alias with
+					 * a - at the end, since it's deleted already! - Roman
+					 *
+					 * Should really use regex.h here, not sure though how well
+					 * it'll go with the cross-platform support etc. 
+					 */
+					char *ptr;
+					short int found_colon = 0;
+					for (ptr = ifr.ifr_name; *ptr; ptr++ ) {
+						if (*ptr == ':') {
+							found_colon++;
+						}
+					}
+			
+					if (found_colon && *(ptr - 1) == '-') {
+						continue;
+					}
+				}
+#endif
+			}
+			if (!(mask & A_SET_AFTER)) {
+				continue;
+			}
+			mask = N_SET;
+		}
+
+		if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0) {
+			perror("SIOCGIFFLAGS"); 
+			++goterr;
+		} else {
+			selector = op->selector;
+			if (mask & SET_MASK) {
+				ifr.ifr_flags |= selector;
+			} else {
+				ifr.ifr_flags &= ~selector;
+			}
+			if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) < 0) {
+				perror("SIOCSIFFLAGS"); 
+				++goterr;
+			}
+		}
+	LOOP:
+	} /* end of while-loop */
+
+	return goterr;
 }
 
+#ifdef BB_FEATURE_IFCONFIG_HW
 /* Input an Ethernet address and convert to binary. */
 static int
 in_ether(char *bufp, struct sockaddr *sap)
 {
 	unsigned char *ptr;
-	char c, *orig;
-	int i;
-	unsigned val;
+	int i, j;
+	unsigned char val;
+	unsigned char c;
 	
 	sap->sa_family = ARPHRD_ETHER;
 	ptr = sap->sa_data;
 	
-	i = 0;
-	orig = bufp;
-	while ((*bufp != '\0') && (i < ETH_ALEN)) {
+	for (i = 0 ; i < ETH_ALEN ; i++) {
 		val = 0;
-		c = *bufp++;
-		if (isdigit(c))
-			val = c - '0';
-		else if (c >= 'a' && c <= 'f')
-			val = c - 'a' + 10;
-		else if (c >= 'A' && c <= 'F')
-			val = c - 'A' + 10;
-		else {
-#ifdef DEBUG
-			error_msg(
-				_("in_ether(%s): invalid ether address!"),
-				orig);
-#endif
-			errno = EINVAL;
-			return -1;
-		}
-		val <<= 4;
-		c = *bufp;
-		if (isdigit(c))
-			val |= c - '0';
-		else if (c >= 'a' && c <= 'f')
-			val |= c - 'a' + 10;
-		else if (c >= 'A' && c <= 'F')
-			val |= c - 'A' + 10;
-		else if (c == ':' || c == 0)
-			val >>= 4;
-		else {
-#ifdef DEBUG
-			error_msg(
-				_("in_ether(%s): invalid ether address!"),
-				orig);
-#endif
-			errno = EINVAL;
-			return -1;
-		}
-		if (c != 0)
+
+		/* We might get a semicolon here - not required. */
+		if (i && (*bufp == ':')) {
 			bufp++;
-		*ptr++ = (unsigned char) (val & 0377);
-		i++;
-		
-		/* optional colon already handled, don't swallow a second */
+		}
+
+		for (j=0 ; j<2 ; j++) {
+			c = *bufp;
+			if (c >= '0' && c <= '9') {
+				c -= '0';
+			} else if (c >= 'a' && c <= 'f') {
+				c -= ('a' + 10);
+			} else if (c >= 'A' && c <= 'F') {
+				c -= ('A' + 10);
+			} else if (j && (c == ':' || c == 0)) {
+				break;
+			} else {
+				return -1;
+			}
+			++bufp;
+			val <<= 4;
+			val += c;
+		}
+		*ptr++ = val;
 	}
 
-	if(i != ETH_ALEN) {
-		errno = EINVAL;
-		return -1;
-	}
-
-	return 0;
-}
-		
-#ifdef BB_FEATURE_IFCONFIG_STATUS
-extern int display_interfaces(void);
-#else
-int display_interfaces(void)
-{
-    show_usage();
+	return (int) (*bufp);		/* Error if we don't end at end of string. */
 }
 #endif
-
-int ifconfig_main(int argc, char **argv)
-{
-	struct ifreq ifr;
-	struct sockaddr_in sa;
-	char **spp, *cmd;
-	int goterr = 0;
-	int r;
-	/* int didnetmask = 0;   special case input error detection no longer implemented */
-	char host[128];
-	const struct flag_map *ft;
-	int i, sense;
-	int a, ecode;
-	struct sockaddr *d;
-
-	if(argc < 2) {
-		return(display_interfaces());
-	}
-
-	/* Create a channel to the NET kernel. */
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror_msg_and_die("socket");
-	}
-
-	/* skip argv[0] */
-
-	argc--;
-	argv++;
-
-	spp = argv;
-
-	/* get interface name */
-
-	safe_strncpy(ifr.ifr_name, *spp++, IFNAMSIZ);
-
-	/* Process the remaining arguments. */
-	while (*spp != (char *) NULL) {
-		cmd = *spp;
-		sense=0;
-		if (*cmd=='-') {
-			sense=1;
-			cmd++;
-		}
-		ft = NULL;
-		for (i=0; i<(sizeof(flag_table)/sizeof(struct flag_map)); i++) {
-			if (strcmp(cmd, flag_table[i].name)==0) {
-				ft=flag_table+i;
-				spp++;
-				break;
-			}
-		}
-		if (ft) {
-			switch (ft->action+sense) {
-			case 4:
-			case 7:
-			case 8:
-			case 15:
-				goterr |= clr_flag(ifr.ifr_name, ft->flag);
-				break;
-			case 2:
-			case 6:
-			case 9:
-				goterr |= set_flag(ifr.ifr_name, ft->flag);
-				break;
-			case 10:
-				if (*spp == NULL)
-					show_usage();
-				a = atoi(*spp++);
-				switch (ft->frob) {
-					case L_METRIC: ifr.ifr_metric = a; break;
-					case L_MTU:    ifr.ifr_mtu    = a; break;
-					case L_DATA:   ifr.ifr_data   = (caddr_t) a; break;
-					default: error_msg_and_die("bugaboo");
-				}
-
-				if (ioctl(sockfd, ft->sflag, &ifr) < 0) {
-					perror(ft->name);  /* imperfect */
-					goterr++;
-				}
-				break;
-			case 12:
-			case 14:
-				if (ft->action+sense==10 && *spp == NULL) {
-					show_usage();
-					break;
-				}
-				if (*spp != NULL) {
-					safe_strncpy(host, *spp, (sizeof host));
-					spp++;
-					if (ft->frob == L_HWAD) {
-						ecode = in_ether(host, &ifr.ifr_hwaddr);
-					} else {
-						switch (ft->frob) {
-							case L_BROAD: d = &ifr.ifr_broadaddr; break;
-							case L_DEST:  d = &ifr.ifr_dstaddr;   break;
-							case L_MASK:  d = &ifr.ifr_netmask;   break;
-							default: error_msg_and_die("bugaboo");
-						}
-						ecode = INET_resolve(host, (struct sockaddr_in *) d);
-					}
-					if (ecode < 0 || ioctl(sockfd, ft->sflag, &ifr) < 0) {
-						perror(ft->name);  /* imperfect */
-						goterr++;
-					}
-				}
-				if (ft->flag != 0) {
-					goterr |= set_flag(ifr.ifr_name, ft->flag);
-				}
-				break;
-			default:
-				show_usage();
-			} /* end of switch */
-			continue;
-		}
-		
-		/* If the next argument is a valid hostname, assume OK. */
-		safe_strncpy(host, *spp, (sizeof host));
-
-		if (INET_resolve(host, &sa) < 0) {
-			show_usage();
-		}
-		memcpy((char *) &ifr.ifr_addr,
-		       (char *) &sa, sizeof(struct sockaddr));
-
-		r = ioctl(sockfd, SIOCSIFADDR, &ifr);
-
-		if (r < 0) {
-			perror("SIOCSIFADDR");
-			goterr++;
-		}
-
-		/*
-		 * Don't do the set_flag() if the address is an alias with a - at the
-		 * end, since it's deleted already! - Roman
-		 *
-		 * Should really use regex.h here, not sure though how well it'll go
-		 * with the cross-platform support etc. 
-		 */
-		{
-			char *ptr;
-			short int found_colon = 0;
-			for (ptr = ifr.ifr_name; *ptr; ptr++ )
-				if (*ptr == ':') found_colon++;
-			
-			if (!(found_colon && *(ptr - 1) == '-'))
-				goterr |= set_flag(ifr.ifr_name, (IFF_UP | IFF_RUNNING));
-		}
-		
-		spp++;
-
-	} /* end of while-loop */
-
-        return goterr;
-}
-
