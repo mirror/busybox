@@ -140,7 +140,7 @@ extern int passwd_main(int argc, char **argv)
 	char *name;
 	char *myname;
 	int flag;
-	int algo = 0;				/* -a - password algorithm */
+	int algo = 1;				/* -a - password algorithm */
 	int lflg = 0;				/* -l - lock account */
 	int uflg = 0;				/* -u - unlock account */
 	int dflg = 0;				/* -d - delete password */
