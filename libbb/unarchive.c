@@ -162,13 +162,23 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 				}
 				break;
 		}
-		if (function & extract_preserve_date) {
-			t.actime = file_entry->mtime;
-			t.modtime = file_entry->mtime;
-			utime(full_name, &t);
+
+		/* Changing a symlink's properties normally changes the properties of the 
+		 * file pointed to, so dont try and change the date or mode, lchown does
+		 * does the right thing, but isnt available in older versions of libc */
+		if (S_ISLNK(file_entry->mode)) {
+#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
+			lchown(full_name, file_entry->uid, file_entry->gid);
+#endif
+		} else {
+			if (function & extract_preserve_date) {
+				t.actime = file_entry->mtime;
+				t.modtime = file_entry->mtime;
+				utime(full_name, &t);
+			}
+			chmod(full_name, file_entry->mode);
+			chown(full_name, file_entry->uid, file_entry->gid);
 		}
-		chmod(full_name, file_entry->mode);
-		lchown(full_name, file_entry->uid, file_entry->gid);
 	} else {
 		/* If we arent extracting data we have to skip it, 
 		 * if data size is 0 then then just do it anyway
