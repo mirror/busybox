@@ -15,7 +15,7 @@ Summary: BusyBox is a tiny suite of Unix utilities in a multi-call binary.
 URL:	 http://busybox.lineo.com/
 Source:	 ftp://oss.lineo.com/busybox/%{name}-%{version}.tar.gz
 Buildroot: /var/tmp/%{name}-%{version}
-Packager : Erik Andersen <andersen@lineo.com>
+Packager : Erik Andersen <andersen@codepoet.org>
 
 %Description
 BusyBox combines tiny versions of many common UNIX utilities into a single
