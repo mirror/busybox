@@ -25,6 +25,11 @@
  *
  */
 
+
+#define BB_FEATURE_SH_BACKTICKS
+
+
+
 #include "internal.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,7 +113,7 @@ static void checkJobs(struct jobSet *jobList);
 static int getCommand(FILE * source, char *command);
 static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobList, int *isBg);
 static int setupRedirections(struct childProgram *prog);
-static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg);
+static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int outPipe[2]);
 static int busy_loop(FILE * input);
 
 
@@ -420,6 +425,10 @@ static void checkJobs(struct jobSet *jobList)
 				break;
 		}
 
+		/* This happens on backticked commands */
+		if(job==NULL)
+			return;
+
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* child exited */
 			job->runningProgs--;
@@ -697,7 +706,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				if (*prog->argv[argc])
 					argc++;
 				if (!argc) {
-					errorMsg("empty command in pipe1\n");
+					errorMsg("empty command in pipe\n");
 					freeJob(job);
 					job->numProgs=0;
 					return 1;
@@ -723,7 +732,7 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 					src++;
 
 				if (!*src) {
-					errorMsg("empty command in pipe2\n");
+					errorMsg("empty command in pipe\n");
 					freeJob(job);
 					job->numProgs=0;
 					return 1;
@@ -749,12 +758,16 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 				if (*src == '*' || *src == '[' || *src == ']'
 					|| *src == '?') *buf++ = '\\';
 				/* fallthrough */
+#ifdef BB_FEATURE_SH_BACKTICKS
 			case '`':
 				/* Exec a backtick-ed command */
 				{
-					char* newcmd=NULL;
+					char* charptr1=NULL, *charptr2;
 					char* ptr=NULL;
-					struct job newJob;
+					struct job *newJob;
+					struct jobSet njobList = { NULL, NULL };
+					int pipefd[2];
+					int size;
 
 					ptr=strchr(++src, '`');
 					if (ptr==NULL) {
@@ -763,19 +776,56 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 						return 1;
 					}
 
-					newcmd = xmalloc(1+ptr-src);
-					snprintf(newcmd, 1+ptr-src, src);
+					/* Make a copy of any stuff left over in the command 
+					 * line after the second backtick */
+					charptr2 = xmalloc(strlen(ptr)+1);
+					memcpy(charptr2, ptr+1, strlen(ptr));
 
-					if (!parseCommand(&newcmd, &newJob, jobList, isBg) &&
-							newJob.numProgs) {
-						runCommand(&newJob, jobList, *isBg);
+					/* Make some space to hold just the backticked command */
+					charptr1 = xmalloc(1+ptr-src);
+					snprintf(charptr1, 1+ptr-src, src);
+					newJob = xmalloc(sizeof(struct job));
+					/* Now parse and run the backticked command */
+					if (!parseCommand(&charptr1, newJob, &njobList, isBg) 
+							&& newJob->numProgs) {
+						pipe(pipefd);
+						runCommand(newJob, &njobList, 0, pipefd);
 					}
+					checkJobs(jobList);
+					free(charptr1);
 
-					/* Clip out the the backticked command from the string */
-					memmove(--src, ptr, strlen(ptr)+1);
-					free(newcmd);
+					/* Copy the output from the backtick-ed command into the
+					 * command line, making extra room as needed  */
+					--src;
+					charptr1 = xmalloc(BUFSIZ);
+					while ( (size=fullRead(pipefd[0], charptr1, BUFSIZ-1)) >0) {
+						int newSize=src - *commandPtr + size + 1 + strlen(charptr2);
+						if (newSize > BUFSIZ) {
+							*commandPtr=realloc(*commandPtr, src - *commandPtr + 
+									size + 1 + strlen(charptr2));
+						}
+						memcpy(src, charptr1, size); 
+						src+=size;
+					}
+					free(charptr1);
+					close(pipefd[0]);
+					if (*(src-1)=='\n')
+						--src;
+
+					/* Now paste into the *commandPtr all the stuff 
+					 * leftover after the second backtick */
+					memcpy(src, charptr2, strlen(charptr2));
+					fprintf(stderr,"*commandPtr='%s'\n", *commandPtr);
+					free(charptr2);
+
+
+					/* Now recursively call parseCommand to deal with the new
+					 * and improved version of the command line with the backtick
+					 * results expanded in place... */
+					return(parseCommand(commandPtr, job, jobList, isBg));
 				}
 				break;
+#endif // BB_FEATURE_SH_BACKTICKS
 			default:
 				*buf++ = *src;
 			}
@@ -810,25 +860,23 @@ static int parseCommand(char **commandPtr, struct job *job, struct jobSet *jobLi
 }
 
 
-static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg)
+static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg, int outPipe[2])
 {
 	struct job *job;
+	int nextin=0, nextout, stdoutfd=fileno(stdout);
 	int i;
-	int nextin, nextout;
 	int pipefds[2];				/* pipefd[0] is for reading */
 	struct builtInCommand *x;
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
 	const struct BB_applet *a = applets;
 #endif
 
-
-	nextin = 0, nextout = 1;
 	for (i = 0; i < newJob->numProgs; i++) {
 		if ((i + 1) < newJob->numProgs) {
 			pipe(pipefds);
 			nextout = pipefds[1];
 		} else {
-			nextout = 1;
+			nextout = stdoutfd;
 		}
 
 		/* Check if the command matches any non-forking builtins */
@@ -841,16 +889,17 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg)
 		if (!(newJob->progs[i].pid = fork())) {
 			signal(SIGTTOU, SIG_DFL);
 
-			if (nextin != 0) {
-				dup2(nextin, 0);
-				close(nextin);
-			}
-
-			if (nextout != 1) {
+			if (outPipe[1]!=-1) {
+				close(outPipe[0]);
+				nextout = stdoutfd = outPipe[1];
 				dup2(nextout, 1);
+				dup2(nextout, 2);
 				close(nextout);
 			}
 
+			//dup2(nextin, 0);
+			//close(nextin);
+			
 			/* explicit redirections override pipes */
 			setupRedirections(newJob->progs + i);
 
@@ -862,8 +911,8 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg)
 			}
 #ifdef BB_FEATURE_SH_STANDALONE_SHELL
 			/* Check if the command matches any busybox internal commands here */
-			/* TODO: Add matching when paths are appended (i.e. 'cat' currently
-			 * works, but '/bin/cat' doesn't ) */
+			/* TODO: Add matching on commands with paths appended (i.e. 'cat' 
+			 * currently works, but '/bin/cat' doesn't ) */
 			while (a->name != 0) {
 				if (strcmp(newJob->progs[i].argv[0], a->name) == 0) {
 					int argc;
@@ -879,6 +928,9 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg)
 			fatalError("%s: %s\n", newJob->progs[i].argv[0],
 					   strerror(errno));
 		}
+		if (outPipe[1]!=-1) { 
+			close(outPipe[1]);
+		}
 
 		/* put our child in the process group whose leader is the
 		   first process in this pipe */
@@ -886,7 +938,7 @@ static int runCommand(struct job *newJob, struct jobSet *jobList, int inBg)
 
 		if (nextin != 0)
 			close(nextin);
-		if (nextout != 1)
+		if (nextout != stdoutfd)
 			close(nextout);
 
 		/* If there isn't another process, nextin is garbage 
@@ -1007,9 +1059,12 @@ static int busy_loop(FILE * input)
 
 			if (!parseCommand(&nextCommand, &newJob, &jobList, &inBg) &&
 				newJob.numProgs) {
-				runCommand(&newJob, &jobList, inBg);
+				int pipefds[2] = {-1,-1};
+				runCommand(&newJob, &jobList, inBg, pipefds);
 			} else {
 				nextCommand=NULL;
+				free(command);
+				command = (char *) calloc(BUFSIZ, sizeof(char));
 			}
 		} else {
 			/* a job is running in the foreground; wait for it */
