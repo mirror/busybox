@@ -38,7 +38,7 @@
 
 static const int RFC_868_BIAS = 2208988800UL;
 
-static void socket_timeout()
+static void socket_timeout(void)
 {
 	bb_error_msg_and_die("timeout connecting to time server");
 }
