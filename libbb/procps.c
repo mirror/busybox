@@ -8,8 +8,6 @@
  *
  */
 
-#include "libbb.h"
-
 #if ! defined CONFIG_FEATURE_USE_DEVPS_PATCH
 #include <dirent.h>
 #include <string.h>
@@ -17,6 +15,7 @@
 #include <unistd.h>
 #include <asm/page.h>
 
+#include "libbb.h"
 
 extern procps_status_t * procps_scan(int save_user_arg0)
 {
