@@ -78,7 +78,7 @@ useful functions in utility.c. Use these instead of reinventing the wheel.
 
 If you use functions from utility.c, you may need to add to the preprocessor
 conditionals in that file, to make sure the routines you need are included.
-So, since your mu implementation used safe_read(), append "|| define BB_MU" to
+So, since your mu implementation used safe_read(), append "|| defined BB_MU" to
 the #if instruction that precedes the safe_read() function in utility.c .
 
 Additionally, if you have any useful, general-purpose functions in your
@@ -103,7 +103,7 @@ the following:
 If your program supports flags, the flags should be mentioned on the first
 line (mu -[bcRovma]) and a detailed description of each flag should go in the
 BB_FEATURE_TRIVIAL_HELP section, one flag per line. (Numerous examples of this
-currently exist in utility.c.)
+currently exist in usage.c.)
 
 
 Header Files
