@@ -2,6 +2,7 @@
         * added the -v option (inverted search) to grep,
             updated docs/busybox.pod accordingly.  -beppu
 	* Added mktemp, contributed by Daniel Jacobowitz <dan@debian.org>
+	* Added setkeycodes, for those that have wierd keyboard buttons.
 	* Fix for ping warnings from Sascha Ziemann <szi@aibon.ping.de>
 	* Fixed update segfault
 	* Fixed mknod -- minor number was always 0
@@ -9,6 +10,12 @@
 	    that wanted "tar cf foo.tar foo" (i.e. no "-" before options)
 	    I broke creation of tarballs.  I reverted the change (so tar needs
 	    the "-" for all options).
+	* Several contributions from Randolph Chung <tausq@debian.org>.
+	    * cp/mv now accepts (and ignores) the -f flag, since it always
+		does force anyway
+	    * tail can now accept -<num> commands (e.g. -10) for better 
+		compatibility with the standard tail command
+	    * added a simple id implementation; doesn't support supp. groups yet
 	* More doc updates
 
 	 -Erik

@@ -36,6 +36,7 @@
 #define BB_HEAD
 #define BB_HOSTID
 #define BB_HOSTNAME
+#define BB_ID
 #define BB_INIT
 // Don't bother turning BB_INSMOD on.  It doesn't work yet.
 //#define BB_INSMOD

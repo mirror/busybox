@@ -56,6 +56,7 @@ static const char *cp_mv_usage[] =	/* .rodata */
 		"\t-a\tSame as -dpR\n"
 		"\t-d\tPreserves links\n"
 		"\t-p\tPreserves file attributes if possible\n"
+		"\t-f\tforce (implied; ignored) - always set\n"
 		"\t-R\tCopies directories recursively\n"
 #endif
 		,
@@ -217,6 +218,9 @@ extern int cp_mv_main(int argc, char **argv)
 					break;
 				case 'R':
 					recursiveFlag = TRUE;
+					break;
+				case 'f':
+				   /* for compatibility; busybox cp/mv always does force */
 					break;
 				default:
 					usage(cp_mv_usage[is_cp]);

@@ -129,6 +129,7 @@ extern int halt_main(int argc, char** argv);
 extern int head_main(int argc, char** argv);
 extern int hostid_main(int argc, char** argv);
 extern int hostname_main(int argc, char** argv);
+extern int id_main(int argc, char** argv);
 extern int init_main(int argc, char** argv);
 extern int insmod_main(int argc, char** argv);
 extern int kill_main(int argc, char** argv);
@@ -233,10 +234,7 @@ extern int createPath (const char *name, int mode);
 extern int parse_mode( const char* s, mode_t* theMode);
 
 extern int get_kernel_revision(void);
-extern uid_t my_getpwnam(char *name);
-extern gid_t my_getgrnam(char *name); 
-extern void my_getpwuid(char* name, uid_t uid);
-extern void my_getgrgid(char* group, gid_t gid);
+
 extern int get_console_fd(char* tty_name);
 extern struct mntent *findMountPoint(const char *name, const char *table);
 extern void write_mtab(char* blockDevice, char* directory, 
@@ -252,6 +250,15 @@ extern pid_t* findPidByName( char* pidName);
 extern void *xmalloc (size_t size);
 extern int find_real_root_device_name(char* name);
 extern char *cstring_lineFromFile(FILE *f);
+
+/* These parse entries in /etc/passwd and /etc/group.  This is desirable
+ * for BusyBox since we want to avoid using the glibc NSS stuff, which
+ * increases target size and is often not needed embedded systems.  */
+extern uid_t my_getpwnam(char *name);
+extern gid_t my_getgrnam(char *name);
+extern void my_getpwuid(char *name, uid_t uid);
+extern void my_getgrgid(char *group, gid_t gid);
+extern gid_t my_getpwnamegid(char *name);
 
 
 #if defined BB_INIT || defined BB_SYSLOGD

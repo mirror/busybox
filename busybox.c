@@ -134,6 +134,9 @@ static const struct Applet applets[] = {
 #ifdef BB_HOSTNAME
 	{"hostname", hostname_main, _BB_DIR_BIN},
 #endif
+#ifdef BB_ID
+	{"id", id_main, _BB_DIR_USR_BIN},
+#endif
 #ifdef BB_INIT
 	{"init", init_main, _BB_DIR_SBIN},
 #endif

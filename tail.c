@@ -368,8 +368,10 @@ extern int tail_main(int argc, char **argv)
 			case 'h':
 				usage(tail_usage);
 			default:
-				fprintf(stderr, "tail: invalid option -- %c\n", opt);
-				usage(tail_usage);
+				if ((n_units = atoi(&argv[i][1])) < 1) {
+					fprintf(stderr, "tail: invalid option -- %c\n", opt);
+					usage(tail_usage);
+				}
 			}
 		} else {
 			break;

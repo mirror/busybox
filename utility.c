@@ -783,18 +783,27 @@ extern int parse_mode(const char *s, mode_t * theMode)
 
 
 
+#if defined BB_CHMOD_CHOWN_CHGRP || defined BB_PS || defined BB_LS || defined BB_TAR || defined BB_ID 
 
-
-#if defined BB_CHMOD_CHOWN_CHGRP || defined BB_PS || defined BB_LS || defined BB_TAR 
-
-/* Use this to avoid needing the glibc NSS stuff 
- * This uses storage buf to hold things.
- * */
-uid_t my_getid(const char *filename, char *name, uid_t id)
+/* This parses entries in /etc/passwd and /etc/group.  This is desirable
+ * for BusyBox, since we want to avoid using the glibc NSS stuff, which
+ * increases target size and is often not needed or wanted for embedded
+ * systems.
+ *
+ * /etc/passwd entries look like this: 
+ *		root:x:0:0:root:/root:/bin/bash
+ * and /etc/group entries look like this: 
+ *		root:x:0:
+ *
+ * This uses buf as storage to hold things.
+ * 
+ */
+uid_t my_getid(const char *filename, char *name, uid_t id, gid_t *gid)
 {
 	FILE *file;
 	char *rname, *start, *end, buf[128];
-	uid_t rid;
+	id_t rid;
+	gid_t rgid = 0;
 
 	file = fopen(filename, "r");
 	if (file == NULL) {
@@ -806,6 +815,7 @@ uid_t my_getid(const char *filename, char *name, uid_t id)
 		if (buf[0] == '#')
 			continue;
 
+		/* username/group name */
 		start = buf;
 		end = strchr(start, ':');
 		if (end == NULL)
@@ -813,24 +823,32 @@ uid_t my_getid(const char *filename, char *name, uid_t id)
 		*end = '\0';
 		rname = start;
 
+		/* password */
 		start = end + 1;
 		end = strchr(start, ':');
 		if (end == NULL)
 			continue;
 
+		/* uid in passwd, gid in group */
 		start = end + 1;
 		rid = (uid_t) strtol(start, &end, 10);
 		if (end == start)
 			continue;
 
+		/* gid in passwd */
+		start = end + 1;
+		rgid = (gid_t) strtol(start, &end, 10);
+		
 		if (name) {
 			if (0 == strcmp(rname, name)) {
+			    if (gid) *gid = rgid;
 				fclose(file);
 				return (rid);
 			}
 		}
 		if (id != -1 && id == rid) {
 			strncpy(name, rname, 8);
+			if (gid) *gid = rgid;
 			fclose(file);
 			return (TRUE);
 		}
@@ -839,30 +857,39 @@ uid_t my_getid(const char *filename, char *name, uid_t id)
 	return (-1);
 }
 
+/* returns a uid given a username */
 uid_t my_getpwnam(char *name)
 {
-	return my_getid("/etc/passwd", name, -1);
+	return my_getid("/etc/passwd", name, -1, NULL);
 }
 
+/* returns a gid given a group name */
 gid_t my_getgrnam(char *name)
 {
-	return my_getid("/etc/group", name, -1);
+	return my_getid("/etc/group", name, -1, NULL);
 }
 
+/* gets a username given a uid */
 void my_getpwuid(char *name, uid_t uid)
 {
-	my_getid("/etc/passwd", name, uid);
+	my_getid("/etc/passwd", name, uid, NULL);
 }
 
+/* gets a groupname given a gid */
 void my_getgrgid(char *group, gid_t gid)
 {
-	my_getid("/etc/group", group, gid);
+	my_getid("/etc/group", group, gid, NULL);
 }
 
+/* gets a gid given a user name */
+gid_t my_getpwnamegid(char *name)
+{
+	gid_t gid;
+	my_getid("/etc/passwd", name, -1, &gid);
+	return gid;
+}
 
-#endif							/* BB_CHMOD_CHOWN_CHGRP || BB_PS || BB_LS || BB_TAR */
-
-
+#endif /* BB_CHMOD_CHOWN_CHGRP || BB_PS || BB_LS || BB_TAR || BB_ID */ 
 
 
 #if (defined BB_CHVT) || (defined BB_DEALLOCVT)

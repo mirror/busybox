@@ -1,6 +1,5 @@
-/* vi: set sw=4 ts=4: */
 /*
- * $Id: telnet.c,v 1.1 2000/02/22 17:17:45 erik Exp $
+ * $Id: telnet.c,v 1.2 2000/05/01 19:10:52 erik Exp $
  * Mini telnet implementation for busybox
  *
  * Copyright (C) 2000 by Randolph Chung <tausq@debian.org>
@@ -102,15 +101,15 @@ static inline void telnet_senddont(int s, int c) { SENDCOMMAND(DONT, c); }
 static void telnet_setoptions(int s)
 {
 	/*
-	telnet_senddo(s, TELOPT_SGA); TFLAG_SET(TELOPT_SGA, DO);
 	telnet_sendwill(s, TELOPT_NAWS); TFLAG_SET(TELOPT_NAWS, WILL);
 	telnet_sendwill(s, TELOPT_TSPEED); TFLAG_SET(TELOPT_TSPEED, WILL);
-	telnet_sendwill(s, TELOPT_LFLOW); TFLAG_SET(TELOPT_LFLOW, WILL);
-	telnet_sendwill(s, TELOPT_LINEMODE); TFLAG_SET(TELOPT_LINEMODE, WILL);
 	telnet_sendwill(s, TELOPT_NEW_ENVIRON); TFLAG_SET(TELOPT_NEW_ENVIRON, WILL);
 	telnet_senddo(s, TELOPT_STATUS); TFLAG_SET(TELOPT_STATUS, DO);
 	telnet_sendwill(s, TELOPT_TTYPE); TFLAG_SET(TELOPT_TTYPE, WILL);
 	*/
+	telnet_senddo(s, TELOPT_SGA); TFLAG_SET(TELOPT_SGA, DO);
+	telnet_sendwill(s, TELOPT_LFLOW); TFLAG_SET(TELOPT_LFLOW, WILL);
+	telnet_sendwill(s, TELOPT_LINEMODE); TFLAG_SET(TELOPT_LINEMODE, WILL);
 	telnet_senddo(s, TELOPT_BINARY); TFLAG_SET(TELOPT_BINARY, DO);
 	telnet_sendwill(s, TELOPT_BINARY); TFLAG_SET(TELOPT_BINARY, WILL);
 }
@@ -457,16 +456,16 @@ int main(int argc, char **argv)
 int telnet_main(int argc, char **argv)
 #endif
 {
-	int port = TELNETPORT;
+    int port = TELNETPORT;
 	
     argc--; argv++;
     if (argc < 1) usage(telnet_usage);
-	if (argc > 1) port = atoi(argv[1]);
-	telnet_init();
-	atexit(telnet_shutdown);
+    if (argc > 1) port = atoi(argv[1]);
+    telnet_init();
+    atexit(telnet_shutdown);
 
-	telnet_start(argv[0], port);
-	return 0;
+    telnet_start(argv[0], port);
+    return 0;
 }
 
 /*
