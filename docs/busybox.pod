@@ -1111,21 +1111,22 @@ Usage:  mount [flags]
 
 Flags:
 
-	-a:     Mount all file systems in fstab.
+	-a:             Mount all file systems in fstab.
 	-o option:      One of many filesystem options, listed below.
-	-r:     Mount the filesystem read-only.
-	-t filesystem-type:     Specify the filesystem type.
-	-w:     Mount for reading and writing (default).
+	-r:             Mount the filesystem read-only.
+	-t fs-type:     Specify the filesystem type.
+	-w:             Mount for reading and writing (default).
 
-Options for use with the "B<-o>" flag:
+Options for use with the "-o" flag:
 
-	async / sync:   Writes are asynchronous / synchronous.
-	dev / nodev:    Allow use of special device files / disallow them.
-	exec / noexec:  Allow use of executable files / disallow them.
-	loop: Mounts a file via loop device.
-	suid / nosuid:  Allow set-user-id-root programs / disallow them.
-	remount: Re-mount a currently-mounted filesystem, changing its flags.
-	ro / rw: Mount for read-only / read-write.
+	async/sync:     Writes are asynchronous / synchronous.
+	atime/noatime:  Enable / disable updates to inode access times.
+	dev/nodev:      Allow use of special device files / disallow them.
+	exec/noexec:    Allow use of executable files / disallow them.
+	loop:           Mounts a file via loop device.
+	suid/nosuid:    Allow set-user-id-root programs / disallow them.
+	remount:        Re-mount a currently-mounted filesystem, changing its flags.
+	ro/rw:          Mount for read-only / read-write.
 	There are EVEN MORE flags that are specific to each filesystem.
 	You'll have to see the written documentation for those.
 
@@ -1663,9 +1664,10 @@ Usage: umount [flags] filesystem|directory
 
 Flags:
 
-        -a:     Unmount all file systems
-        -r:     Try to remount devices as read-only if mount is busy
-        -f:     Do not free loop device (if a loop device has been used)
+		-a:     Unmount all file systems
+		-r:     Try to remount devices as read-only if mount is busy
+		-f:     Force filesystem umount (i.e. unreachable NFS server)
+		-l:     Do not free loop device (if a loop device has been used)
 
 Example:
 
@@ -1876,4 +1878,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.27 2000/05/02 06:40:02 erik Exp $
+# $Id: busybox.pod,v 1.28 2000/05/05 19:49:33 erik Exp $

@@ -181,6 +181,10 @@
 // Enable support for a real /etc/mtab file instead of /proc/mounts
 //#define BB_FEATURE_MOUNT_MTAB_SUPPORT
 //
+// Enable support forced filesystem unmounting 
+// (i.e. in case of an unreachable NFS system).
+#define BB_FEATURE_MOUNT_FORCE
+//
 // Enable support for mounting remote NFS volumes
 //#define BB_FEATURE_NFSMOUNT
 //

@@ -66,26 +66,28 @@ extern const char mtab_file[];	/* Defined in utility.c */
 
 static const char mount_usage[] = "\tmount [flags]\n"
 	"\tmount [flags] device directory [-o options,more-options]\n"
-	"\n" "Flags:\n" "\t-a:\tMount all file systems in fstab.\n"
+	"\n" "Flags:\n" 
+	"\t-a:\t\tMount all file systems in fstab.\n"
 #ifdef BB_MTAB
-	"\t-f:\t\"Fake\" mount. Add entry to mount table but don't mount it.\n"
-	"\t-n:\tDon't write a mount table entry.\n"
+	"\t-f:\t\t\"Fake\" mount. Add entry to mount table but don't mount it.\n"
+	"\t-n:\t\tDon't write a mount table entry.\n"
 #endif
 	"\t-o option:\tOne of many filesystem options, listed below.\n"
-	"\t-r:\tMount the filesystem read-only.\n"
-	"\t-t filesystem-type:\tSpecify the filesystem type.\n"
-	"\t-w:\tMount for reading and writing (default).\n"
+	"\t-r:\t\tMount the filesystem read-only.\n"
+	"\t-t fs-type:\tSpecify the filesystem type.\n"
+	"\t-w:\t\tMount for reading and writing (default).\n"
 	"\n"
 	"Options for use with the \"-o\" flag:\n"
-	"\tasync / sync:\tWrites are asynchronous / synchronous.\n"
-	"\tdev / nodev:\tAllow use of special device files / disallow them.\n"
-	"\texec / noexec:\tAllow use of executable files / disallow them.\n"
+	"\tasync/sync:\tWrites are asynchronous / synchronous.\n"
+	"\tatime/noatime:\tEnable / disable updates to inode access times.\n"
+	"\tdev/nodev:\tAllow use of special device files / disallow them.\n"
+	"\texec/noexec:\tAllow use of executable files / disallow them.\n"
 #if defined BB_FEATURE_MOUNT_LOOP
-	"\tloop: Mounts a file via loop device.\n"
+	"\tloop:\t\tMounts a file via loop device.\n"
 #endif
-	"\tsuid / nosuid:\tAllow set-user-id-root programs / disallow them.\n"
-	"\tremount: Re-mount a currently-mounted filesystem, changing its flags.\n"
-	"\tro / rw: Mount for read-only / read-write.\n"
+	"\tsuid/nosuid:\tAllow set-user-id-root programs / disallow them.\n"
+	"\tremount:\tRe-mount a currently-mounted filesystem, changing its flags.\n"
+	"\tro/rw:\t\tMount for read-only / read-write.\n"
 	"There are EVEN MORE flags that are specific to each filesystem.\n"
 	"You'll have to see the written documentation for those.\n";
 
@@ -98,10 +100,14 @@ struct mount_options {
 
 static const struct mount_options mount_options[] = {
 	{"async", ~MS_SYNCHRONOUS, 0},
+	{"atime", ~0, ~MS_NOATIME},
 	{"defaults", ~0, 0},
 	{"dev", ~MS_NODEV, 0},
+	{"diratime", ~0, ~MS_NODIRATIME},
 	{"exec", ~MS_NOEXEC, 0},
+	{"noatime", ~0, MS_NOATIME},
 	{"nodev", ~0, MS_NODEV},
+	{"nodiratime", ~0, MS_NODIRATIME},
 	{"noexec", ~0, MS_NOEXEC},
 	{"nosuid", ~0, MS_NOSUID},
 	{"remount", ~0, MS_REMOUNT},
