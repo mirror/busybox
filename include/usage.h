@@ -219,6 +219,7 @@
 	"\ti\t\textract\n" \
 	"\tm\t\tpreserve mtime\n" \
 	"\tt\t\tlist\n" \
+	"\tv\t\tverbose\n" \
 	"\tu\t\tunconditional overwrite\n" \
 	"\tF\t\tinput from file"
 
@@ -281,6 +282,7 @@
 	"\t\t\t`hours', `minutes', or `seconds' for date and,\n" \
 	"\t\t\ttime to the indicated precision.\n") \
 	"\t-s\t\tSets time described by STRING\n" \
+	"\t-r FILE\t\tDisplays the last modification time of FILE\n" \
 	"\t-u\t\tPrints or sets Coordinated Universal Time"
 #define date_example_usage \
 	"$ date\n" \
@@ -423,15 +425,17 @@
 	"\t-d\toutput will be in DOS format"
 
 #define dpkg_trivial_usage \
-	"[-iCPru] package_name"
+	"[-ilCPru] [-F option] package_name"
 #define dpkg_full_usage \
 	"dpkg is a utility to install, remove and manage Debian packages.\n\n" \
 	"Options:\n" \
-	"\t-i\tInstall the package\n" \
-	"\t-C\tConfigure an unpackaged package\n" \
-	"\t-P\tPurge all files of a package\n" \
-	"\t-r\tRemove all but the configuration files for a package\n" \
-	"\t-u\tUnpack a package, but don't configure it"
+	"\t-i\t\tInstall the package\n" \
+	"\t-l\t\tList of installed packages\n" \
+	"\t-C\t\tConfigure an unpackaged package\n" \
+	"\t-F depends\tIgnore depency problems\n" \
+	"\t-P\t\tPurge all files of a package\n" \
+	"\t-r\t\tRemove all but the configuration files for a package\n" \
+	"\t-u\t\tUnpack a package, but don't configure it"
 
 #define dpkg_deb_trivial_usage \
 	"[-cefxX] FILE [argument]"
@@ -606,7 +610,7 @@
 	"\t-n\tDon't verify after format"
 
 #define fdisk_trivial_usage \
-	"[-l] [-v] [-b SSZ] [-u] DISK"
+	"[-luv] [-C CYLINDERS] [-H HEADS] [-S SECTORS] [-b SSZ] DISK"
 #define fdisk_full_usage \
 	"Change partition table\n" \
 	"Options:\n" \
@@ -614,6 +618,9 @@
 	"\t-u  Give Start and End in sector (instead of cylinder) units\n" \
 	"\t-s PARTITION  Give partition size(s) in blocks\n" \
 	"\t-b 2048: (for certain MO disks) use 2048-byte sectors\n" \
+	"\t-C CYLINDERS  Set the number of cylinders\n" \
+	"\t-H HEADS  Set the number of heads\n" \
+	"\t-S SECTORS  Set the number of sectors\n" \
 	"\t-v  Give fdisk version"
 
 #ifdef CONFIG_FEATURE_FIND_TYPE
@@ -739,7 +746,7 @@
 	"\t-Q, --quiet-output		No normal output\n" \
 	"\t-s, --shell=shell		Set shell quoting conventions\n" \
 	"\t-T, --test			Test for getopt(1) version\n" \
-	"\t-u, --unqote			Do not quote the output"
+	"\t-u, --unquoted		Do not quote the output"
 #define getopt_example_usage \
         "$ cat getopt.test\n" \
         "#!/bin/sh\n" \
@@ -804,6 +811,7 @@
 	"Uncompress FILE (or standard input if FILE is '-').\n\n" \
 	"Options:\n" \
 	"\t-c\tWrite output to standard output\n" \
+	"\t-f\tForce read when source is a terminal\n" \
 	"\t-t\tTest compressed file integrity"
 #define gunzip_example_usage \
 	"$ ls -la /tmp/BusyBox*\n" \
@@ -819,7 +827,8 @@
 	"When FILE is '-' or unspecified, reads standard input.  Implies -c.\n\n" \
 	"Options:\n" \
 	"\t-c\tWrite output to standard output instead of FILE.gz\n" \
-	"\t-d\tdecompress"
+	"\t-d\tDecompress\n" \
+	"\t-f\tForce write when destination is a terminal"
 #define gzip_example_usage \
 	"$ ls -la /tmp/busybox*\n" \
 	"-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/busybox.tar\n" \
@@ -1271,6 +1280,7 @@
 	"\t-f\tForce module to load into the wrong kernel version.\n" \
 	"\t-k\tMake module autoclean-able.\n" \
 	"\t-v\tverbose output\n"  \
+	"\t-q\tquiet output\n" \
 	"\t-L\tLock to prevent simultaneous loads of a module\n" \
 	USAGE_INSMOD_MAP("\t-m\tOutput load map to stdout\n") \
 	"\t-o NAME\tSet internal module name to NAME\n" \
@@ -1282,6 +1292,7 @@
 	"Copies files and set attributes\n\n" \
 	"Options:\n" \
 	"\t-c\tcopy the file, default\n" \
+	"\t-d\tcreate directories\n" \
 	"\t-g\tset group ownership\n" \
 	"\t-m\tset permission modes\n" \
 	"\t-o\tset ownership\n" \
@@ -1652,10 +1663,13 @@
 	"\tblock-count\tNumber of block to use (default is entire partition)."
 
 #define mktemp_trivial_usage \
-	"[-q] TEMPLATE"
+	"[-dq] TEMPLATE"
 #define mktemp_full_usage \
 	"Creates a temporary file with its name based on TEMPLATE.\n" \
-	"TEMPLATE is any name with six `Xs' (i.e., /tmp/temp.XXXXXX)."
+	"TEMPLATE is any name with six `Xs' (i.e., /tmp/temp.XXXXXX).\n\n" \
+	"Options:\n" \
+	"\t-d\t\tMake a directory instead of a file\n" \
+	"\t-q\t\tFail silently if an error occurs"
 #define mktemp_example_usage \
 	"$ mktemp /tmp/temp.XXXXXX\n" \
 	"/tmp/temp.mWiLjM\n" \
@@ -1663,9 +1677,16 @@
 	"-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM\n"
 
 #define modprobe_trivial_usage \
-	"[FILE ...]"
+	"[-knqrsv] [MODULE ...]"
 #define modprobe_full_usage \
-	"Used for high level module loading and unloading."
+	"Used for high level module loading and unloading.\n\n" \
+	"Options:\n" \
+	"\t-k\tMake module autoclean-able.\n" \
+	"\t-n\tJust show what would be done.\n" \
+	"\t-q\tQuiet output.\n" \
+	"\t-r\tRemove module (stacks) or do autoclean.\n" \
+	"\t-s\tReport via syslog instead of stderr.\n" \
+	"\t-v\tVerbose output."
 #define modprobe_example_usage \
 	"$ modprobe cdrom\n"
 
@@ -1735,10 +1756,13 @@
 	"setpart tell unload unlock weof wset"
 
 #define mv_trivial_usage \
-	"SOURCE DEST\n" \
-	"or: mv SOURCE... DIRECTORY"
+	"[OPTION]... SOURCE DEST\n" \
+	"or: mv [OPTION]... SOURCE... DIRECTORY"
 #define mv_full_usage \
-	"Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY."
+	"Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.\n\n" \
+	"Options:\n" \
+	"\t-f\tdon't prompt before overwriting\n" \
+	"\t-i\tinteractive, prompt before overwrite"
 #define mv_example_usage \
 	"$ mv /tmp/foo /bin/bar\n"
 
@@ -1952,12 +1976,6 @@
 #define pwd_example_usage \
 	"$ pwd\n" \
 	"/root\n"
-
-#define raid_start_trivial_usage \
-	"MD_DEVICE DISK_DEVICE"
-#define raid_start_full_usage \
-	"Start MD_DEVICE, taking superblock from DISK_DEVICE.\n" \
-	"Example: raid_start /dev/md0 /dev/sdb"
 
 #define rdate_trivial_usage \
 	"[-sp] HOST"
@@ -2291,17 +2309,16 @@
 	"sysctl - configure kernel parameters at runtime\n\n" \
 	"Options:\n" \
 	"\t-n\tUse this option to disable printing of the key name when printing values.\n" \
-	"\t-e\tUse this option to ignore errors about unknown keys.\n" \
 	"\t-w\tUse this option when you want to change a sysctl setting.\n" \
 	"\t-p\tLoad in sysctl settings from the file specified or /etc/sysctl.conf if none given.\n" \
 	"\t-a\tDisplay all values currently available.\n" \
 	"\t-A\tDisplay all values currently available in table form."
 #define sysctl_example_usage
-	"sysctl [-n] [-e] variable ...\n" \
-	"sysctl [-n] [-e] -w variable=value ...\n" \
-	"sysctl [-n] [-e] -a\n" \
-	"sysctl [-n] [-e] -p <file>\t(default /etc/sysctl.conf)\n" \
-	"sysctl [-n] [-e] -A\n"
+	"sysctl [-n] variable ...\n" \
+	"sysctl [-n] -w variable=value ...\n" \
+	"sysctl [-n] -a\n" \
+	"sysctl [-n] -p <file>\t(default /etc/sysctl.conf)\n" \
+	"sysctl [-n] -A\n"
 #endif
 
 #define syslogd_trivial_usage \
@@ -2312,7 +2329,8 @@
 	"Options:\n" \
 	"\t-m MIN\t\tMinutes between MARK lines (default=20, 0=off)\n" \
 	"\t-n\t\tRun as a foreground process\n" \
-	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)" \
+	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)\n" \
+	"\t-S\t\tMake logging output smaller." \
 	USAGE_ROTATE_LOGFILE( \
 	"\n\t-s SIZE\t\tMax size (KB) before rotate (default=200KB, 0=off)\n" \
 	"\t-b NUM\t\tNumber of rotated logs to keep (default=1, max=99, 0=purge)") \
@@ -2443,7 +2461,8 @@
 #define telnetd_full_usage \
 	"Telnetd uses incoming TELNET connections via inetd.\n"\
 	"Options:\n" \
-	"\t-l LOGIN\texec LOGIN on connect (default /bin/sh)"
+	"\t-l LOGIN\texec LOGIN on connect (default /bin/sh)\n" \
+	"\t-f issue_file\tDisplay issue_file instead of /etc/issue."
 #else
 #define telnetd_trivial_usage \
 	"[OPTION]"
@@ -2451,7 +2470,8 @@
 	"Telnetd listens for incoming TELNET connections on PORT.\n"\
 	"Options:\n" \
 	"\t-p PORT\tlisten for connections on PORT (default 23)\n"\
-	"\t-l LOGIN\texec LOGIN on connect (default /bin/sh)"
+	"\t-l LOGIN\texec LOGIN on connect (default /bin/sh)\n"\
+	"\t-f issue_file\tDisplay issue_file instead of /etc/issue."
 #endif
 
 #define test_trivial_usage \
