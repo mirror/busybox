@@ -40,7 +40,7 @@ static int df(char *device, const char *mountPoint)
 	long blocks_used;
 	long blocks_percent_used;
 #ifdef BB_FEATURE_HUMAN_READABLE
-	long divisor, base;
+	long base;
 #endif	
 
 	if (statfs(mountPoint, &s) != 0) {
@@ -61,28 +61,23 @@ static int df(char *device, const char *mountPoint)
 			 * or leaves device alone if it can't find it */
 			find_real_root_device_name( device);
 		}
-#ifdef BB_FEATURE_HUMAN_READABLE
+		#ifdef BB_FEATURE_HUMAN_READABLE
 		switch (disp_hr) {
 			case MEGABYTE:
-				divisor = KILOBYTE;
 				base = KILOBYTE;
 				break;
 			case KILOBYTE:
-				divisor = KILOBYTE;
 				base = 1;
 				break;
 			default:
-				divisor = KILOBYTE;
 				base = 0;
 		}
-
 		printf("%-20s %9s ", device,
-			   format((s.f_blocks * (s.f_bsize / divisor)), base));
+			   format(s.f_blocks * (s.f_bsize/KILOBYTE), base));
 		printf("%9s ",
-			   format(((s.f_blocks - s.f_bfree) * 
-					   (s.f_bsize / divisor)), base));
+			   format((s.f_blocks - s.f_bfree) * (s.f_bsize/KILOBYTE), base));
 		printf("%9s %3ld%% %s\n",
-			   format((s.f_bavail * (s.f_bsize / divisor)), base),
+			   format(s.f_bavail * (s.f_bsize/KILOBYTE), base),
 			   blocks_percent_used, mountPoint);
 #else
 		printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
