@@ -914,6 +914,7 @@ Example:
 Usage: ln [OPTION] TARGET... LINK_NAME|DIRECTORY
 
 Create a link named LINK_NAME or DIRECTORY to the specified TARGET
+You may use '--' to indicate that all following arguments are non-options.
 
 Options:
 
@@ -2061,4 +2062,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.50 2000/06/21 21:43:24 proski Exp $
+# $Id: busybox.pod,v 1.51 2000/06/21 22:53:24 andersen Exp $
