@@ -643,7 +643,7 @@ void index_status_file(const char *filename)
 	status_node_t *status_node = NULL;
 	unsigned int status_num;
 
-	status_file = fopen(filename, "r");
+	status_file = xfopen(filename, "r");
 	while ((control_buffer = fgets_str(status_file, "\n\n")) != NULL) {
 		const unsigned int package_num = fill_package_struct(control_buffer);
 		if (package_num != -1) {
@@ -1036,7 +1036,7 @@ char **create_list(const char *filename)
 	int length = 0;
 	int count = 0;
 
-	list_stream = fopen(filename, "r");
+	list_stream = xfopen(filename, "r");
 	if (list_stream == NULL) {
 		return(NULL);
 	}
@@ -1246,7 +1246,7 @@ void unpack_package(deb_file_t *deb_file)
 	/* Create the list file */
 	strcat(info_prefix, "list");
 
-	out_stream = wfopen(info_prefix, "w");			
+	out_stream = xfopen(info_prefix, "w");			
 	deb_extract(deb_file->filename, out_stream, (extract_quiet | extract_data_tar_gz | extract_list), NULL, NULL);
 	fclose(out_stream);
 
