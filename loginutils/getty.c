@@ -1029,11 +1029,7 @@ static void termio_final(struct options *op, struct termio *tp, struct chardata 
 	tp->c_cc[VQUIT] = DEF_QUIT;	/* default quit */
 	tp->c_cc[VEOF] = DEF_EOF;	/* default EOF character */
 	tp->c_cc[VEOL] = DEF_EOL;
-#ifdef __linux__
 	tp->c_cc[VSWTC] = DEF_SWITCH;	/* default switch character */
-#else
-	tp->c_cc[VSWTCH] = DEF_SWITCH;	/* default switch character */
-#endif
 
 	/* Account for special characters seen in input. */
 
