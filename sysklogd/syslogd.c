@@ -5,6 +5,8 @@
  * Copyright (C) 1999,2000 by Lineo, inc.
  * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
  *
+ * Copyright (C) 2000 by Karl M. Hegbloom <karlheg@debian.org>
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -74,39 +76,38 @@ static const char syslogd_usage[] =
 
 /* Note: There is also a function called "message()" in init.c */
 /* Print a message to the log file. */
-static void message(char *fmt, ...)
-	__attribute__ ((format (printf, 1, 2)));
-static void message(char *fmt, ...)
+static void message (char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+static void message (char *fmt, ...)
 {
 	int fd;
 	va_list arguments;
 
-	if ( (fd = device_open(logFilePath,
-				 O_WRONLY | O_CREAT | O_NOCTTY | O_APPEND |
-				 O_NONBLOCK)) >= 0) {
-		va_start(arguments, fmt);
-		vdprintf(fd, fmt, arguments);
-		va_end(arguments);
-		close(fd);
+	if ((fd = device_open (logFilePath,
+						   O_WRONLY | O_CREAT | O_NOCTTY | O_APPEND |
+						   O_NONBLOCK)) >= 0) {
+		va_start (arguments, fmt);
+		vdprintf (fd, fmt, arguments);
+		va_end (arguments);
+		close (fd);
 	} else {
 		/* Always send console messages to /dev/console so people will see them. */
-		if ( (fd = device_open(_PATH_CONSOLE,
-					 O_WRONLY | O_NOCTTY | O_NONBLOCK)) >= 0) {
-			va_start(arguments, fmt);
-			vdprintf(fd, fmt, arguments);
-			va_end(arguments);
-			close(fd);
+		if ((fd = device_open (_PATH_CONSOLE,
+							   O_WRONLY | O_NOCTTY | O_NONBLOCK)) >= 0) {
+			va_start (arguments, fmt);
+			vdprintf (fd, fmt, arguments);
+			va_end (arguments);
+			close (fd);
 		} else {
-			fprintf(stderr, "Bummer, can't print: ");
-			va_start(arguments, fmt);
-			vfprintf(stderr, fmt, arguments);
-			fflush(stderr);
-			va_end(arguments);
+			fprintf (stderr, "Bummer, can't print: ");
+			va_start (arguments, fmt);
+			vfprintf (stderr, fmt, arguments);
+			fflush (stderr);
+			va_end (arguments);
 		}
 	}
 }
 
-static void logMessage(int pri, char *msg)
+static void logMessage (int pri, char *msg)
 {
 	time_t now;
 	char *timestamp;
@@ -161,11 +162,13 @@ static void doSyslogd (void)
 {
 	struct sockaddr_un sunx;
 	size_t addrLength;
+
 	int sock_fd;
-	fd_set readfds;
+	fd_set fds;
+
 	char lfile[PATH_MAX];
 
-	/* Set up sig handlers */
+	/* Set up signal handlers. */
 	signal (SIGINT,  quit_signal);
 	signal (SIGTERM, quit_signal);
 	signal (SIGQUIT, quit_signal);
@@ -173,86 +176,81 @@ static void doSyslogd (void)
 	signal (SIGALRM, domark);
 	alarm (MarkInterval);
 
-	/* create the syslog file so realpath() can work */ 
-	close(open(_PATH_LOG, O_RDWR | O_CREAT, 0644));
-	if (realpath(_PATH_LOG, lfile) == NULL) {
-		fatalError("Could not resolv path to " _PATH_LOG);
-	}
+	/* Create the syslog file so realpath() can work. */
+	close (open (_PATH_LOG, O_RDWR | O_CREAT, 0644));
+	if (realpath (_PATH_LOG, lfile) == NULL)
+		fatalError ("Could not resolv path to " _PATH_LOG ": %s", strerror (errno));
 
 	unlink (lfile);
 
-	memset (&sunx, 0, sizeof(sunx));
-
+	memset (&sunx, 0, sizeof (sunx));
 	sunx.sun_family = AF_UNIX;
-	strncpy (sunx.sun_path, lfile, sizeof(sunx.sun_path));
-	if ((sock_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-		fatalError ("Couldn't obtain descriptor for socket " _PATH_LOG);
-	}
+	strncpy (sunx.sun_path, lfile, sizeof (sunx.sun_path));
+	if ((sock_fd = socket (AF_UNIX, SOCK_STREAM, 0)) < 0)
+		fatalError ("Couldn't obtain descriptor for socket " _PATH_LOG ": %s", strerror (errno));
 
 	addrLength = sizeof (sunx.sun_family) + strlen (sunx.sun_path);
-	if ((bind (sock_fd, (struct sockaddr *) &sunx, addrLength)) ||
-		(listen (sock_fd, 5))) {
-		fatalError ("Could not connect to socket " _PATH_LOG);
-	}
+	if ((bind (sock_fd, (struct sockaddr *) &sunx, addrLength)) || (listen (sock_fd, 5)))
+		fatalError ("Could not connect to socket " _PATH_LOG ": %s", strerror (errno));
 
-	if (chmod (lfile, 0666) < 0) {
-		fatalError ("Could not set permission on " _PATH_LOG);
-	}
+	if (chmod (lfile, 0666) < 0)
+		fatalError ("Could not set permission on " _PATH_LOG ": %s", strerror (errno));
 
-	FD_ZERO (&readfds);
-	FD_SET (sock_fd, &readfds);
+	FD_ZERO (&fds);
+	FD_SET (sock_fd, &fds);
 
 	logMessage (0, "syslogd started: BusyBox v" BB_VER " (" BB_BT ")");
 
 	for (;;) {
-		int n_ready;
-		int fd;
+
+		fd_set readfds;
+		int    n_ready;
+		int    fd;
+
+		memcpy (&readfds, &fds, sizeof (fds));
 
 		if ((n_ready = select (FD_SETSIZE, &readfds, NULL, NULL, NULL)) < 0) {
 			if (errno == EINTR) continue; /* alarm may have happened. */
-			fatalError( "select error: %s\n", strerror(errno));
+			fatalError ("select error: %s\n", strerror (errno));
 		}
 
-		/* Skip stdin, stdout, stderr */
-		for (fd = 3; fd < FD_SETSIZE; fd++) {
+		for (fd = 0; (n_ready > 0) && (fd < FD_SETSIZE); fd++) {
 			if (FD_ISSET (fd, &readfds)) {
+				--n_ready;
 				if (fd == sock_fd) {
 					int conn;
-					if ((conn = accept(sock_fd, (struct sockaddr *) &sunx,
-									   &addrLength)) < 0) {
-						fatalError( "accept error: %s\n", strerror(errno));
+					if ((conn = accept (sock_fd, (struct sockaddr *) &sunx, &addrLength)) < 0) {
+						fatalError ("accept error: %s\n", strerror (errno));
 					}
-					FD_SET (conn, &readfds);
+					FD_SET (conn, &fds);
+					continue;
 				}
 				else {
-#define			  BUFSIZE 1024 + 1
-					char buf;
-					char *q, *p;
+#					define BUFSIZE 1023
+					char buf[ BUFSIZE + 1 ];
 					int n_read;
-					char line[BUFSIZE];
-					unsigned char c;
-					int pri;
 
-					/* Get set to read in a line */
-					memset (line, 0, sizeof(line));
-					pri = (LOG_USER | LOG_NOTICE);
+					while ((n_read = read (fd, buf, BUFSIZE )) > 0) {
 
-					/* Keep reading stuff till there is nothing else to read */
-					while( (n_read = read (fd, &buf, 1)) > 0) {
-						p = &buf;
-						q = line;
-						while (p && (c = *p) && q < &line[sizeof(line) - 1]) {
+						int pri = (LOG_USER | LOG_NOTICE);
+						char line[ BUFSIZE + 1 ];
+						unsigned char c;
+						char *p = buf, *q = line;
+
+						buf[ n_read - 1 ] = '\0';
+
+						while (p && (c = *p) && q < &line[ sizeof (line) - 1 ]) {
 							if (c == '<') {
-								/* Parse the magic priority number */
+								/* Parse the magic priority number. */
 								pri = 0;
-								while (isdigit(*(++p))) {
+								while (isdigit (*(++p))) {
 									pri = 10 * pri + (*p - '0');
 								}
 								if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
 									pri = (LOG_USER | LOG_NOTICE);
 							} else if (c == '\n') {
 								*q++ = ' ';
-							} else if (iscntrl(c) && (c < 0177)) {
+							} else if (iscntrl (c) && (c < 0177)) {
 								*q++ = '^';
 								*q++ = c ^ 0100;
 							} else {
@@ -261,13 +259,11 @@ static void doSyslogd (void)
 							p++;
 						}
 						*q = '\0';
-
 						/* Now log it */
-						logMessage(pri, line);
-						break;
+						logMessage (pri, line);
 					}
 					close (fd);
-					FD_CLR (fd, &readfds);
+					FD_CLR (fd, &fds);
 				}
 			}
 		}
@@ -351,7 +347,6 @@ static void doKlogd (void)
 
 #endif
 
-static void daemon_init (char **argv, char *dz, void fn (void)) __attribute__ ((noreturn));
 static void daemon_init (char **argv, char *dz, void fn (void))
 {
 	setsid();
