@@ -420,11 +420,12 @@ config CONFIG_TAIL
 	  from files.
 
 config CONFIG_FEATURE_FANCY_TAIL
-	bool "  Enable extra tail options (-c, -q, -s, and -v)"
+	bool "  Enable extra tail options (-q, -s, and -v)"
 	default y
 	depends on CONFIG_TAIL
 	help
-	  Enable tail options (-c, -q, -s, and -v).
+	  The options (-q, -s, and -v) are provided by GNU tail, but
+	  are not specific in the SUSv3 standard.
 
 config CONFIG_TEE
 	bool "tee"
