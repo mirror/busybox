@@ -26,14 +26,14 @@
  * listed in #defines below. Parens, order of operations, and error handling
  * are supported. This code is threadsafe. The exact expression format should
  * be that which POSIX specifies for shells. */
- 
+
 /* The code uses a simple two-stack algorithm. See
  * http://www.onthenet.com.au/~grahamis/int2008/week02/lect02.html
  * for a detailed explaination of the infix-to-postfix algorithm on which
  * this is based (this code differs in that it applies operators immediately
  * to the stack instead of adding them to a queue to end up with an
  * expression). */
- 
+
 /* To use the routine, call it with an expression string and error return
  * pointer */
 
@@ -140,7 +140,8 @@ typedef char operator;
 #define TOK_REM tok_decl(10,2)
 
 /* For now all unary operators have the same precedence, and that's used to
- * identify them as unary operators */
+ * identify them as unary operators
+ */
 #define UNARYPREC 14
 #define TOK_BNOT tok_decl(UNARYPREC,0)
 #define TOK_NOT tok_decl(UNARYPREC,1)
@@ -149,75 +150,89 @@ typedef char operator;
 
 #define TOK_NUM tok_decl(15,0)
 #define TOK_RPAREN tok_decl(15,1)
-#define TOK_ERROR  tok_decl(15,2) /* just a place-holder really */
+#define TOK_ERROR  tok_decl(15,2)	/* just a place-holder really */
 
 #define ARITH_APPLY(op) arith_apply(op, numstack, &numstackptr)
 #define NUMPTR (*numstackptr)
 
 /* "applying" a token means performing it on the top elements on the integer
  * stack. For a unary operator it will only change the top element, but a
- * binary operator will pop two arguments and push a result */
-static short arith_apply(operator op, long *numstack, long **numstackptr)
+ * binary operator will pop two arguments and push a result
+ */
+static short arith_apply(operator    op, long *numstack, long **numstackptr)
 {
 	long numptr_val;
 	long *NUMPTR_M1;
 
-	if (NUMPTR == numstack) goto err; /* There is no operator that can work
-										 without arguments */
+	/* There is no operator that can work without arguments */
+	if (NUMPTR == numstack) {
+		goto err;
+	}
+
 	NUMPTR_M1 = NUMPTR - 1;
-	if (op == TOK_UMINUS)
+	if (op == TOK_UMINUS) {
 		*NUMPTR_M1 *= -1;
-	else if (op == TOK_NOT)
+	} else if (op == TOK_NOT) {
 		*NUMPTR_M1 = !(*NUMPTR_M1);
-	else if (op == TOK_BNOT)
+	} else if (op == TOK_BNOT) {
 		*NUMPTR_M1 = ~(*NUMPTR_M1);
-	else if (op != TOK_UPLUS) {
-	/* Binary operators */
-	if (NUMPTR_M1 == numstack) goto err; /* ... and binary operators need two
-										   arguments */
-	numptr_val = *--NUMPTR;		/* ... and they pop one */
-	NUMPTR_M1 = NUMPTR - 1;
-	if (op == TOK_BOR)
-		*NUMPTR_M1 |= numptr_val;
-	else if (op == TOK_OR)
-		*NUMPTR_M1 = numptr_val || *NUMPTR_M1;
-	else if (op == TOK_BAND)
-		*NUMPTR_M1 &= numptr_val;
-	else if (op == TOK_AND)
-		*NUMPTR_M1 = *NUMPTR_M1 && numptr_val;
-	else if (op == TOK_EQ)
-		*NUMPTR_M1 = (*NUMPTR_M1 == numptr_val);
-	else if (op == TOK_NE)
-		*NUMPTR_M1 = (*NUMPTR_M1 != numptr_val);
-	else if (op == TOK_GE)
-		*NUMPTR_M1 = (*NUMPTR_M1 >= numptr_val);
-	else if (op == TOK_RSHIFT)
-		*NUMPTR_M1 >>= numptr_val;
-	else if (op == TOK_LSHIFT)
-		*NUMPTR_M1 <<= numptr_val;
-	else if (op == TOK_GT)
-		*NUMPTR_M1 = (*NUMPTR_M1 > numptr_val);
-	else if (op == TOK_LT)
-		*NUMPTR_M1 = (*NUMPTR_M1 < numptr_val);
-	else if (op == TOK_LE)
-		*NUMPTR_M1 = (*NUMPTR_M1 <= numptr_val);
-	else if (op == TOK_MUL)
-		*NUMPTR_M1 *= numptr_val;
-	else if (op == TOK_ADD)
-		*NUMPTR_M1 += numptr_val;
-	else if (op == TOK_SUB)
-		*NUMPTR_M1 -= numptr_val;
-	else if(numptr_val==0)		/* zero divisor check */
-		return -2;
-	else if (op == TOK_DIV)
-		*NUMPTR_M1 /= numptr_val;
-	else if (op == TOK_REM)
-		*NUMPTR_M1 %= numptr_val;
-	/* WARNING!!!  WARNING!!!  WARNING!!! */
-	/* Any new operators should be added BEFORE the zero divisor check! */
+	} else if (op != TOK_UPLUS) {
+		/* Binary operators */
+
+		/* ... and binary operators need two arguments */
+		if (NUMPTR_M1 == numstack) {
+			goto err;
+		}
+		/* ... and they pop one */
+		numptr_val = *--NUMPTR;
+
+		NUMPTR_M1 = NUMPTR - 1;
+
+		if (op == TOK_BOR) {
+			*NUMPTR_M1 |= numptr_val;
+		} else if (op == TOK_OR) {
+			*NUMPTR_M1 = numptr_val || *NUMPTR_M1;
+		} else if (op == TOK_BAND) {
+			*NUMPTR_M1 &= numptr_val;
+		} else if (op == TOK_AND) {
+			*NUMPTR_M1 = *NUMPTR_M1 && numptr_val;
+		} else if (op == TOK_EQ) {
+			*NUMPTR_M1 = (*NUMPTR_M1 == numptr_val);
+		} else if (op == TOK_NE) {
+			*NUMPTR_M1 = (*NUMPTR_M1 != numptr_val);
+		} else if (op == TOK_GE) {
+			*NUMPTR_M1 = (*NUMPTR_M1 >= numptr_val);
+		} else if (op == TOK_RSHIFT) {
+			*NUMPTR_M1 >>= numptr_val;
+		} else if (op == TOK_LSHIFT) {
+			*NUMPTR_M1 <<= numptr_val;
+		} else if (op == TOK_GT) {
+			*NUMPTR_M1 = (*NUMPTR_M1 > numptr_val);
+		} else if (op == TOK_LT) {
+			*NUMPTR_M1 = (*NUMPTR_M1 < numptr_val);
+		} else if (op == TOK_LE) {
+			*NUMPTR_M1 = (*NUMPTR_M1 <= numptr_val);
+		} else if (op == TOK_MUL) {
+			*NUMPTR_M1 *= numptr_val;
+		} else if (op == TOK_ADD) {
+			*NUMPTR_M1 += numptr_val;
+		} else if (op == TOK_SUB) {
+			*NUMPTR_M1 -= numptr_val;
+		}
+		/* zero divisor check */
+		else if (numptr_val == 0) {
+			return -2;
+		} else if (op == TOK_DIV) {
+			*NUMPTR_M1 /= numptr_val;
+		} else if (op == TOK_REM) {
+			*NUMPTR_M1 %= numptr_val;
+		}
+		/* WARNING!!!  WARNING!!!  WARNING!!! */
+		/* Any new operators should be added BEFORE the zero divisor check! */
 	}
 	return 0;
-err: return(-1);
+  err:
+	return (-1);
 }
 
 static const char endexpression[] = ")";
@@ -227,7 +242,7 @@ static const char op_char[] = "!<>=|&*/%~()+-";
 static const char op_token[] = {
 	/* paired with equal */
 	TOK_NE, TOK_LE, TOK_GE,
-	/* paired with self -- note: ! is special-cased below*/
+	/* paired with self -- note: ! is special-cased below */
 	TOK_ERROR, TOK_LSHIFT, TOK_RSHIFT, TOK_EQ, TOK_OR, TOK_AND,
 	/* singles */
 	TOK_NOT, TOK_LT, TOK_GT, TOK_ERROR, TOK_BOR, TOK_BAND,
@@ -238,31 +253,32 @@ static const char op_token[] = {
 #define NUM_PAIR_EQUAL  3
 #define NUM_PAIR_SAME   6
 
-extern long arith (const char *expr, int *errcode)
+extern long arith(const char *expr, int *errcode)
 {
-	register char arithval;		/* Current character under analysis */
-	operator lasttok, op;
+	register char arithval;	/* Current character under analysis */
+	operator    lasttok, op;
 	unsigned char prec;
-
 	const char *p = endexpression;
-
 	size_t datasizes = strlen(expr);
 
 	/* Stack of integers */
 	/* The proof that there can be no more than strlen(startbuf)/2+1 integers
 	 * in any given correct or incorrect expression is left as an excersize to
 	 * the reader. */
-	long *numstack = alloca((datasizes/2)*sizeof(long)),
-		*numstackptr = numstack;
+	long *numstack = alloca(((datasizes + 1) / 2) * sizeof(long));
+	long *numstackptr = numstack;
+
 	/* Stack of operator tokens */
-	operator *stack = alloca((datasizes+1) * sizeof(operator)),
-		*stackptr = stack;
+	operator * stack = alloca((datasizes + 1) * sizeof(operator));
+	operator * stackptr = stack;
 
-	*stackptr++ = lasttok = TOK_LPAREN;	/* start off with a left paren */
+	/* start off with a left paren */
+	*stackptr++ = lasttok = TOK_LPAREN;
 
- loop:
+  loop:
 	if ((arithval = *expr) == 0) {
-		if (p == endexpression) { /* Null expression. */
+		/* Null expression. */
+		if (p == endexpression) {
 			return (*errcode = 0);
 		}
 
@@ -271,23 +287,25 @@ extern long arith (const char *expr, int *errcode)
 		 * are to be applied in order. At the end, there should be a final
 		 * result on the integer stack */
 
-		if (expr != endexpression + 1) { /* If we haven't done so already, */
+		if (expr != endexpression + 1) {	/* If we haven't done so already, */
 			expr = endexpression;	/* append a closing right paren */
-			goto loop;				/* and let the loop process it. */
+			goto loop;	/* and let the loop process it. */
 		}
 		/* At this point, we're done with the expression. */
-		if (numstackptr != numstack+1) {/* ... but if there isn't, it's bad */
-		err: 
+		if (numstackptr != numstack + 1) {	/* ... but if there isn't, it's bad */
+		  err:
 			return (*errcode = -1);
 			/* NOTREACHED */
 		}
 		return *numstack;
 	} else {
 		/* Continue processing the expression.  */
+		/* Skip whitespace */
 		if (isspace(arithval)) {
-			goto prologue;		/* Skip whitespace */
+			goto prologue;
 		}
-		if ((unsigned)arithval-'0' <= 9) /* isdigit */ {
+		/* isdigit ? */
+		if ((unsigned) arithval - '0' <= 9) {
 			*numstackptr++ = strtol(expr, (char **) &expr, 10);
 			lasttok = TOK_NUM;
 			goto loop;
@@ -297,20 +315,21 @@ extern long arith (const char *expr, int *errcode)
 			goto err;
 		}
 #else
-	    for ( p=op_char ; *p != arithval ; p++ ) {
+		for (p = op_char; *p != arithval; p++) {
 			if (!*p) {
 				goto err;
 			}
 		}
 #endif
-		p = op_token + (int)(p - op_char);
+		p = op_token + (int) (p - op_char);
 		++expr;
 		if ((p >= op_token + NUM_PAIR_EQUAL) || (*expr != '=')) {
 			p += NUM_PAIR_EQUAL;
 			if ((p >= op_token + NUM_PAIR_SAME + NUM_PAIR_EQUAL)
 				|| (*expr != arithval) || (arithval == '!')) {
 				--expr;
-				if (arithval == '=') { /* single = */
+				/* single = */
+				if (arithval == '=') {
 					goto err;
 				}
 				p += NUM_PAIR_SAME;
@@ -319,9 +338,11 @@ extern long arith (const char *expr, int *errcode)
 				 * a number, since it evaluates to one). Think about it.
 				 * It makes sense. */
 				if ((lasttok != TOK_NUM)
-					&& (p >= op_token + NUM_PAIR_SAME + NUM_PAIR_EQUAL
-						+ sizeof(op_char) - 2)) {
-					p += 2;	/* Unary plus or minus */
+					&& (p >=
+						(op_token + NUM_PAIR_SAME + NUM_PAIR_EQUAL +
+						 sizeof(op_char) - 2))) {
+					/* Unary plus or minus */
+					p += 2;
 				}
 			}
 		}
@@ -337,8 +358,11 @@ extern long arith (const char *expr, int *errcode)
 		/* Left paren is given the lowest priority so it will never be
 		 * "applied" in this way */
 		prec = PREC(op);
-		if ((prec > 0) && (prec != UNARYPREC)) { /* not left paren or unary */
-			if (lasttok != TOK_NUM) { /* binary op must be preceded by a num */
+
+		/* not left paren or unary */
+		if ((prec > 0) && (prec != UNARYPREC)) {
+			/* binary op must be preceded by a num */
+			if (lasttok != TOK_NUM) {
 				goto err;
 			}
 			while (stackptr != stack) {
@@ -348,15 +372,20 @@ extern long arith (const char *expr, int *errcode)
 					 * tokens and apply them */
 					if (stackptr[-1] == TOK_LPAREN) {
 						--stackptr;
-						lasttok = TOK_NUM; /* Any operator directly after a */
-								/* close paren should consider itself binary */
+
+						/* Any operator directly after a */
+						lasttok = TOK_NUM;
+
+						/* close paren should consider itself binary */
 						goto prologue;
 					}
 				} else if (PREC(stackptr[-1]) < prec) {
 					break;
 				}
 				*errcode = ARITH_APPLY(*--stackptr);
-				if(*errcode) return *errcode;
+				if (*errcode) {
+					return *errcode;
+				}
 			}
 			if (op == TOK_RPAREN) {
 				goto err;
@@ -366,7 +395,7 @@ extern long arith (const char *expr, int *errcode)
 		/* Push this operator to the stack and remember it. */
 		*stackptr++ = lasttok = op;
 
-	prologue:
+	  prologue:
 		++expr;
 		goto loop;
 	}
