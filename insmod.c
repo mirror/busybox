@@ -119,7 +119,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.52 2001/03/19 19:28:24 andersen Exp $"
+#ident "$Id: insmod.c,v 1.53 2001/03/22 19:01:16 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -325,7 +325,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.52 2001/03/19 19:28:24 andersen Exp $"
+#ident "$Id: insmod.c,v 1.53 2001/03/22 19:01:16 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -372,6 +372,15 @@ static const int MODUTILS_OBJ_H = 1;
 #define ELFDATAM        ELFDATA2MSB
 
 #elif defined(__mips__)
+
+/* Account for ELF spec changes.  */
+#ifndef EM_MIPS_RS3_LE
+#ifdef EM_MIPS_RS4_BE
+#define EM_MIPS_RS3_LE	EM_MIPS_RS4_BE
+#else
+#define EM_MIPS_RS3_LE	10
+#endif
+#endif /* !EM_MIPS_RS3_LE */
 
 #define MATCH_MACHINE(x) (x == EM_MIPS || x == EM_MIPS_RS3_LE)
 #define SHT_RELM	SHT_REL
@@ -793,7 +802,9 @@ arch_apply_relocation(struct obj_file *f,
 				      ElfW(RelM) *rel, ElfW(Addr) v)
 {
 	struct arch_file *ifile = (struct arch_file *) f;
+#if !(defined(__mips__))
 	struct arch_symbol *isym = (struct arch_symbol *) sym;
+#endif
 
 	ElfW(Addr) *loc = (ElfW(Addr) *) (targsec->contents + rel->r_offset);
 	ElfW(Addr) dot = targsec->header.sh_addr + rel->r_offset;
