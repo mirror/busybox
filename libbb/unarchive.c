@@ -116,15 +116,19 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 					unlink(full_name); /* Directories might not be empty etc */
 				}
 			} else {
-				error_msg("%s not created: newer or same age file exists", file_entry->name);
-					seek_sub_file(src_stream, file_entry->size);
+				if ((function & extract_quiet) != extract_quiet) {
+					error_msg("%s not created: newer or same age file exists", file_entry->name);
+				}
+				seek_sub_file(src_stream, file_entry->size);
 				return (NULL);
 			}
 		}
 		if (function & extract_create_leading_dirs) { /* Create leading directories with default umask */
 			char *parent = dirname(full_name);
 			if (make_directory (parent, -1, FILEUTILS_RECUR) != 0) {
-				error_msg("couldn't create leading directories");
+				if ((function & extract_quiet) != extract_quiet) {
+					error_msg("couldn't create leading directories");
+				}
 			}
 			free (parent);
 		}
@@ -132,8 +136,10 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 			case S_IFREG:
 				if (file_entry->link_name) { /* Found a cpio hard link */
 					if (link(file_entry->link_name, full_name) != 0) {
-						perror_msg("Cannot link from %s to '%s'",
-							file_entry->name, file_entry->link_name);
+						if ((function & extract_quiet) != extract_quiet) {
+							perror_msg("Cannot link from %s to '%s'",
+								file_entry->name, file_entry->link_name);
+						}
 					}
 				} else {
 					if ((dst_stream = wfopen(full_name, "w")) == NULL) {
@@ -148,13 +154,17 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 			case S_IFDIR:
 				if (stat_res != 0) {
 					if (mkdir(full_name, file_entry->mode) < 0) {
-						perror_msg("extract_archive: ");
+						if ((function & extract_quiet) != extract_quiet) {
+							perror_msg("extract_archive: ");
+						}
 					}
 				}
 				break;
 			case S_IFLNK:
 				if (symlink(file_entry->link_name, full_name) < 0) {
-					perror_msg("Cannot create symlink from %s to '%s'", file_entry->name, file_entry->link_name); 
+					if ((function & extract_quiet) != extract_quiet) {
+						perror_msg("Cannot create symlink from %s to '%s'", file_entry->name, file_entry->link_name);
+					}
 					return NULL;
 				}
 				break;
@@ -163,7 +173,9 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 			case S_IFCHR:
 			case S_IFIFO:
 				if (mknod(full_name, file_entry->mode, file_entry->device) == -1) {
-					perror_msg("Cannot create node %s", file_entry->name);
+					if ((function & extract_quiet) != extract_quiet) {
+						perror_msg("Cannot create node %s", file_entry->name);
+					}
 					return NULL;
 				}
 				break;

@@ -237,7 +237,8 @@ enum extract_functions_e {
 	extract_control_tar_gz = 128,
 	extract_unzip_only = 256,
 	extract_unconditional = 512,
-	extract_create_leading_dirs = 1024
+	extract_create_leading_dirs = 1024,
+	extract_quiet = 2048
 };
 char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_header)(FILE *),
 	const int extract_function, const char *prefix, char **extract_names);
