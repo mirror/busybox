@@ -1243,8 +1243,10 @@ static void checkjobs()
 				break;
 		}
 
-		if(pi==NULL)
-			return;
+		if(pi==NULL) {
+			debug_printf("checkjobs: pid %d was not in our list!\n", childpid);
+			continue;
+		}
 
 		if (WIFEXITED(status) || WIFSIGNALED(status)) {
 			/* child exited */
@@ -1352,7 +1354,24 @@ static int run_pipe_real(struct pipe *pi)
 		if (i!=0 && child->argv[i]==NULL) {
 			/* assignments, but no command: set the local environment */
 			for (i=0; child->argv[i]!=NULL; i++) {
-				set_local_var(child->argv[i], 0);
+
+				/* Ok, this case is tricky.  We have to decide if this is a
+				 * local variable, or an already exported variable.  If it is
+				 * already exported, we have to export the new value.  If it is
+				 * not exported, we need only set this as a local variable. 
+				 * This junk is all to decide whether or not to export this
+				 * variable. */
+				int export_me=0;
+				char *name, *value;
+				name = strdup(child->argv[i]);
+				value = strchr(name, '=');
+				if (value)
+					*value=0;
+				if ( get_local_var(name)) {
+					export_me=1;
+				}
+				free(name);
+				set_local_var(child->argv[i], export_me);
 			}
 			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
 		}
@@ -1704,7 +1723,6 @@ static int set_local_var(const char *s, int flg_export)
 	char *name, *value;
 	int result=0;
 	struct variables *cur;
-	char *newval = 0;
 
 	name=strdup(s);
 
@@ -1712,55 +1730,52 @@ static int set_local_var(const char *s, int flg_export)
 	 * NAME=VALUE format.  So the first order of business is to
 	 * split 's' on the '=' into 'name' and 'value' */ 
 	value = strchr(name, '=');
-	if (value==0 || (newval = strdup(value+1))==0) {
-		result = -1;
-	} else {
-		*value++ = 0;
+	if (value==0 && ++value==0) {
+		free(name);
+		return -1;
+	}
+	*value++ = 0;
 
-		for(cur = top_vars; cur; cur = cur->next) {
-			if(strcmp(cur->name, name)==0)
-				break;
-		}
+	for(cur = top_vars; cur; cur = cur->next) {
+		if(strcmp(cur->name, name)==0)
+			break;
+	}
 
-		if(cur) {
-			if(strcmp(cur->value, value)==0) {
-				if(flg_export>0 && cur->flg_export==0)
-					cur->flg_export=flg_export;
-				else
-					result++;
-				free(newval);
-			} else {
-				if(cur->flg_read_only) {
-					error_msg("%s: readonly variable", name);
-					free(newval);
-					result = -1;
-				} else {
-					if(flg_export>0 || cur->flg_export>1)
-						cur->flg_export=1;
-					free(cur->value);
-					cur->value = newval;
-				}
-			}
+	if(cur) {
+		if(strcmp(cur->value, value)==0) {
+			if(flg_export>0 && cur->flg_export==0)
+				cur->flg_export=flg_export;
+			else
+				result++;
 		} else {
-			cur = malloc(sizeof(struct variables));
-			if(cur==0) {
-				free(newval);
+			if(cur->flg_read_only) {
+				error_msg("%s: readonly variable", name);
 				result = -1;
 			} else {
-				cur->name = strdup(name);
-				if(cur->name == 0) {
-					free(cur);
-					free(newval);
-					result = -1;
-				} else {
-					struct variables *bottom = top_vars;
-					cur->value = newval;
-					cur->next = 0;
-					cur->flg_export = flg_export;
-					cur->flg_read_only = 0;
-					while(bottom->next) bottom=bottom->next;
-					bottom->next = cur;
-				}
+				if(flg_export>0 || cur->flg_export>1)
+					cur->flg_export=1;
+				free(cur->value);
+
+				cur->value = strdup(value);
+			}
+		}
+	} else {
+		cur = malloc(sizeof(struct variables));
+		if(!cur) {
+			result = -1;
+		} else {
+			cur->name = strdup(name);
+			if(cur->name == 0) {
+				free(cur);
+				result = -1;
+			} else {
+				struct variables *bottom = top_vars;
+				cur->value = strdup(value);
+				cur->next = 0;
+				cur->flg_export = flg_export;
+				cur->flg_read_only = 0;
+				while(bottom->next) bottom=bottom->next;
+				bottom->next = cur;
 			}
 		}
 	}
