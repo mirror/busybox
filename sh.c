@@ -1414,9 +1414,11 @@ int shell_main(int argc_l, char **argv_l)
 						strcat(local_pending_command, " ");
 				}
 				break;
+#ifdef BB_FEATURE_SH_ENVIRONMENT
 			case 'x':
 				showXtrace = TRUE;
 				break;
+#endif
 			default:
 				usage(shell_usage);
 		}
