@@ -16,6 +16,7 @@
 
 #include "busybox.h"
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -520,7 +521,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.21 2001/01/24 20:28:35 andersen Exp $
+ *	$Id: wget.c,v 1.22 2001/01/26 02:04:49 andersen Exp $
  */
 
 
