@@ -587,11 +587,13 @@ comment "Common options for md5sum, sha1sum"
     depends on CONFIG_MD5SUM || CONFIG_SHA1SUM
 
 config CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
-	bool "  Enable -c and -w options"
+	bool "  Enable -c, -s and -w options"
 	default n
 	depends on CONFIG_MD5SUM || CONFIG_SHA1SUM
 	help
-	  Enabling the -c and -w options allows files to be checked
+	  Enabling the -c options allows files to be checked
 	  against pre-calculated hash values.
+
+	  -s and -w are useful options when verifying checksums.
 
 endmenu
