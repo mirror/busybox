@@ -516,14 +516,10 @@ void append_file_list_to_list(char *filename, char ***name_list, int *num_of_ent
 {
 	FILE *src_stream;
 	char *line;
-	char *line_ptr;
 	
 	src_stream = xfopen(filename, "r");
 	while ((line = get_line_from_file(src_stream)) != NULL) {
-		line_ptr = last_char_is(line, '\n');
-		if (line_ptr) {
-			*line_ptr = '\0';
-		}
+		chomp (line);
 		append_file_to_list(line, name_list, num_of_entries);
 		free(line);
 	}
