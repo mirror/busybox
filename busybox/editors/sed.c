@@ -589,8 +589,8 @@ static int do_subst_command(const struct sed_cmd *sed_cmd, char **line)
 
 	/* and now, as long as we've got a line to try matching and if we can match
 	 * the search string, we make substitutions */
-	while (*hackline && (regexec(sed_cmd->sub_match, hackline,
-					sed_cmd->num_backrefs+1, regmatch, 0) == 0) ) {
+	while ((*hackline || !altered) && (regexec(sed_cmd->sub_match, hackline,
+					sed_cmd->num_backrefs+1, regmatch, 0) != REG_NOMATCH) ) {
 		int i;
 
 		/* print everything before the match */
