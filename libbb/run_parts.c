@@ -80,7 +80,7 @@ extern int run_parts(char **args, const unsigned char test_mode, char **env)
 			bb_perror_msg_and_die("failed to stat component %s", filename);
 		}
 		if (S_ISREG(st.st_mode) && !access(filename, X_OK)) {
-			if (test_mode & 1) {
+			if (test_mode) {
 				puts(filename);
 			} else {
 				/* exec_errno is common vfork variable */
@@ -100,7 +100,8 @@ extern int run_parts(char **args, const unsigned char test_mode, char **env)
 				waitpid(pid, &result, 0);
 				if(exec_errno) {
 					errno = exec_errno;
-					bb_perror_msg_and_die("failed to exec %s", filename);
+					bb_perror_msg("failed to exec %s", filename);
+					exitstatus = 1;
 				}
 				if (WIFEXITED(result) && WEXITSTATUS(result)) {
 					bb_perror_msg("%s exited with return code %d", filename, WEXITSTATUS(result));
