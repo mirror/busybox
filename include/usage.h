@@ -1271,6 +1271,7 @@
 	"\t-v\tverbose output\n"  \
 	"\t-L\tLock to prevent simultaneous loads of a module\n" \
 	USAGE_INSMOD_MAP("\t-m\tOutput load map to stdout\n") \
+	"\t-o NAME\tSet internal module name to NAME\n" \
 	"\t-x\tdo not export externs"
 
 #define install_trivial_usage \
