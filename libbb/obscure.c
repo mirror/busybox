@@ -144,8 +144,8 @@ password_check(const char *old, const char *newval, const struct passwd *pwdp)
 
 	msg = NULL;
 	newmono = str_lower(bb_xstrdup(newval));
-	lenwrap = strlen(old) * 2 + 1;
-	wrapped = (char *) xmalloc(lenwrap);
+	lenwrap = strlen(old);
+	wrapped = (char *) xmalloc(lenwrap * 2 + 1);
 	str_lower(strcpy(wrapped, old));
 
 	if (palindrome(newmono))
@@ -164,7 +164,7 @@ password_check(const char *old, const char *newval, const struct passwd *pwdp)
 	}
 
 	bzero(newmono, strlen(newmono));
-	bzero(wrapped, lenwrap);
+	bzero(wrapped, lenwrap * 2);
 	free(newmono);
 	free(wrapped);
 
