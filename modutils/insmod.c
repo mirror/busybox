@@ -70,7 +70,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.22 2000/08/22 05:18:30 andersen Exp $"
+#ident "$Id: insmod.c,v 1.23 2000/09/22 00:38:07 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -276,7 +276,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.22 2000/08/22 05:18:30 andersen Exp $"
+#ident "$Id: insmod.c,v 1.23 2000/09/22 00:38:07 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1309,7 +1309,7 @@ old_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 
 /* Fetch all the symbols and divvy them up as appropriate for the modules.  */
 
-static int old_get_kernel_symbols(void)
+static int old_get_kernel_symbols(const char *m_name)
 {
 	struct old_kernel_sym *ks, *k;
 	struct new_module_symbol *s;
@@ -2758,7 +2758,7 @@ extern int insmod_main( int argc, char **argv)
 #endif
 	} else {
 #ifdef BB_FEATURE_INSMOD_OLD_KERNEL
-		if (!old_get_kernel_symbols())
+		if (!old_get_kernel_symbols(m_name))
 			goto out;
 		k_crcs = old_is_kernel_checksummed();
 #else
