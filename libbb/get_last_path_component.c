@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Utility routines.
+ * get_last_path_component implementation for busybox
  *
- * Copyright (C) 1999,2000,2001 by Erik Andersen <andersee@debian.org>
+ * Copyright (C) 2001  Manuel Novoa III  <mjn3@opensource.lineo.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,49 +17,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
  */
 
-#include <stdio.h>
-#include <string.h>
-#include "libbb.h"
-
+/* Set to 1 if you want basename() behavior for NULL or "". */
+/* WARNING!!! Doing so will break basename applet at least! */
+#define EMULATE_BASENAME	0
 
 char *get_last_path_component(char *path)
 {
-	char *s;
-	register char *ptr = path;
-	register char *prev = 0;
+#if EMULATE_BASENAME
+	static const char null_or_empty[] = ".";
+#endif
+	char *first = path;
+	char *last;
 
-	while (*ptr)
-		ptr++;
-	s = ptr - 1;
+#if EMULATE_BASENAME
+	if (!path || !*path) {
+		return (char *) null_or_empty;
+	}
+#endif
 
-	/* strip trailing slashes */
-	while (s != path && *s == '/') {
-		*s-- = '\0';
+	last = path - 1;
+
+	while (*path) {
+		if ((*path != '/') && (path > ++last)) {
+			last = first = path;
+		}
+		++path;
 	}
 
-	/* find last component */
-	ptr = path;
-	while (*ptr != '\0') {
-		if (*ptr == '/')
-			prev = ptr;
-		ptr++;
+	if (*first == '/') {
+		last = first;
 	}
-	s = prev;
+	last[1] = 0;
 
-	if (s == NULL || s[1] == '\0')
-		return path;
-	else
-		return s+1;
+	return first;
 }
-
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
