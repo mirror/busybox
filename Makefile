@@ -45,11 +45,12 @@ DODEBUG = false
 # password and group functions.  Assuming you use GNU libc, when this is
 # `true', you will need to install the /etc/nsswitch.conf configuration file
 # and the required libnss_* libraries. This generally makes your embedded
-# system quite a bit larger... If you leave this off, busybox will directly
-# use the /etc/password, /etc/group files (and your system will be smaller, and
-# I will get fewer emails asking about how glibc NSS works).  Enabling this adds
-# just 1.4k to the binary size (which is a _lot_ less then glibc NSS costs),
-# Most people will want to leave this set to false.
+# system quite a bit larger... If you leave this off, busybox will directly use
+# the /etc/password, /etc/group files (and your system will be smaller, and I
+# will get fewer emails asking about how glibc NSS works).  Enabling this adds
+# just 1.4k to the binary size (which is a _lot_ less then glibc NSS costs).
+# Note that if you want hostname resolution to work with glibc, you still need
+# the libnss_* libraries.  Most people will want to leave this set to false.
 USE_SYSTEM_PWD_GRP = true
 
 # This enables compiling with dmalloc ( http://dmalloc.com/ )
