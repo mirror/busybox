@@ -127,6 +127,12 @@ static const int RB_AUTOBOOT = 0x01234567;
 //static const int MAXENV = 16;	/* Number of env. vars */
 static const int LOG = 0x1;
 static const int CONSOLE = 0x2;
+#if defined BB_FEATURE_EXTRA_QUIET
+static const int MAYBE_CONSOLE = 0x0;
+#else
+#define MAYBE_CONSOLE  CONSOLE
+#endif
+
 
 /* Allowed init action types */
 typedef enum {
@@ -186,6 +192,11 @@ static void loop_forever(void)
 
 /* Print a message to the specified device.
  * Device may be bitwise-or'd from LOG | CONSOLE */
+#ifdef DEBUG_INIT
+static inline messageND(int device, char *fmt, ...) { }
+#else 
+#define messageND message
+#endif
 static void message(int device, char *fmt, ...)
 		   __attribute__ ((format (printf, 2, 3)));
 static void message(int device, char *fmt, ...)
@@ -539,19 +550,15 @@ static pid_t run(char *command, char *terminal, int get_enter)
 			 * be allowed to start a shell or whatever an init script 
 			 * specifies.
 			 */
-#ifdef DEBUG_INIT
-			message(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\n",
+			messageND(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\n",
 					cmd[0], getpid(), terminal);
-#endif
 			write(fileno(stdout), press_enter, sizeof(press_enter) - 1);
 			getc(stdin);
 		}
 
-#ifdef DEBUG_INIT
 		/* Log the process name and args */
-		message(LOG, "Starting pid %d, console %s: '%s'\n",
+		messageND(LOG, "Starting pid %d, console %s: '%s'\n",
 				getpid(), terminal, command);
-#endif
 
 #if defined CONFIG_FEATURE_INIT_COREDUMPS
 		if (stat (CORE_ENABLE_FLAG_FILE, &sb) == 0) {
@@ -937,22 +944,7 @@ extern int init_main(int argc, char **argv)
 	putenv("PATH="_PATH_STDPATH);
 
 	/* Hello world */
-#ifndef DEBUG_INIT
-	message(
-#if ! defined CONFIG_FEATURE_EXTRA_QUIET
-			CONSOLE|
-#endif
-			LOG,
-			"init started:  %s\n", full_version);
-#else
-	message(
-#if ! defined CONFIG_FEATURE_EXTRA_QUIET
-			CONSOLE|
-#endif
-			LOG,
-			"init(%d) started:  %s\n", getpid(), full_version);
-#endif
-
+	message(MAYBE_CONSOLE|LOG, "init started:  %s\n", full_version);
 
 	/* Make sure there is enough memory to do something useful. */
 	check_memory();
@@ -1032,8 +1024,7 @@ extern int init_main(int argc, char **argv)
 			for (a = initActionList; a; a = a->nextPtr) {
 				if (a->pid == wpid) {
 					a->pid = 0;
-					message(LOG,
-							"Process '%s' (pid %d) exited.  Scheduling it for restart.\n",
+					message(LOG, "Process '%s' (pid %d) exited.  Scheduling it for restart.\n",
 							a->process, wpid);
 				}
 			}
