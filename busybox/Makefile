@@ -48,7 +48,7 @@ DODEBUG = false
 # will get fewer emails asking about how glibc NSS works).  Enabling this adds
 # just 1.4k to the binary size (which is a _lot_ less then glibc NSS costs).
 # Note that if you want hostname resolution to work with glibc, you still need
-# the libnss_* libraries.  Most people will want to leave this set to false.
+# the libnss_* libraries.  
 USE_SYSTEM_PWD_GRP = true
 
 # This enables compiling with dmalloc ( http://dmalloc.com/ )
@@ -85,8 +85,7 @@ AR = $(CROSS)ar
 STRIPTOOL = $(CROSS)strip
 
 # To compile vs uClibc, just use the compiler wrapper built by uClibc...
-# This make things very easy?  Everything should compile and work as
-# expected these days...
+# Everything should compile and work as expected these days...
 #CC = ../uClibc/extra/gcc-uClibc/i386-uclibc-gcc
 
 # To compile vs some other alternative libc, you may need to use/adjust
