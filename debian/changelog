@@ -1,10 +1,22 @@
 busybox (0.51-1) unstable; urgency=low
 
+  * Fixes several critical bugs (see the busybox changelog
+    for complete details)
   * Force USE_SYSTEM_PWD_GRP=false, so busybox bypasses
     the glibc NSS libraries. (closes: #93362)
+  * Fixed a bug in sed's address range handling (closes: #91758) 
   * Removed irrelevant cruft from the bottem of debian/changelog
 
- -- Erik Andersen <andersee@debian.org>  Mon,  9 Apr 2001 12:59:23 -0600
+ -- Erik Andersen <andersee@debian.org>  Mon,  9 Apr 2001 16:10:06 -0600
+
+busybox (0.50-2) unstable; urgency=low
+  
+  * Enabled freeramdisk and pivot_root in the udeb (closes: #91336)
+  * Disabled lash (the busybox shell) in the udeb (closes: #91337)
+  * fixed a bug in syslog, a problem with rebooting when booted as
+    an initrd, and a few other minor problems.
+
+ -- Erik Andersen <andersee@debian.org>  Sun, 25 Mar 2001 20:59:44 -0700
 
 busybox (0.50-1) unstable; urgency=low
 
