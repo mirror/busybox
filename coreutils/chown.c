@@ -31,10 +31,10 @@ static int chownApp;
 static char* invocationName=NULL;
 
 
-const char chgrp_usage[] = "[OPTION]... GROUP FILE...\n"
+static const char chgrp_usage[] = "[OPTION]... GROUP FILE...\n"
     "Change the group membership of each FILE to GROUP.\n"
     "\n\tOptions:\n" "\t-R\tchange files and directories recursively\n";
-const char chown_usage[] = "[OPTION]...  OWNER[.[GROUP] FILE...\n"
+static const char chown_usage[] = "[OPTION]...  OWNER[.[GROUP] FILE...\n"
     "Change the owner and/or group of each FILE to OWNER and/or GROUP.\n"
     "\n\tOptions:\n" "\t-R\tchange files and directories recursively\n";
 

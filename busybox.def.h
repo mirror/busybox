@@ -11,7 +11,7 @@
 #define BB_CHROOT
 #define BB_CLEAR
 //#define BB_CP
-//#define BB_DATE
+#define BB_DATE
 //#define BB_DD
 //#define BB_DESCEND
 //#define BB_DF
@@ -39,7 +39,7 @@
 ////#define BB_MKSWAP
 //#define BB_MNC
 //#define BB_MONADIC
-//#define BB_MORE
+#define BB_MORE
 //#define BB_MOUNT
 ////#define BB_MT
 //#define BB_MV

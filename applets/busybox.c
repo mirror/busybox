@@ -102,7 +102,7 @@ static const struct Applet applets[] = {
     {"mnc", mnc_main},
 #endif
 #ifdef BB_MORE			//bin
-    {"more", cat_more_main},
+    {"more", more_main},
 #endif
 #ifdef BB_MOUNT			//bin
     {"mount", mount_main},

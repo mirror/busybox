@@ -1,110 +1,85 @@
+/*
+ * Mini more implementation for busybox
+ *
+ * Copyright (C) 1998 by Erik Andersen <andersee@debian.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ */
+
 #include "internal.h"
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
+#include <signal.h>
 
-#define BB_MORE_TERM
+const char more_usage[] = "[file ...]";
 
-#ifdef BB_MORE_TERM
-	#include <termios.h>
-	#include <signal.h>
 
-	FILE *cin;
-	struct termios initial_settings, new_settings;
 
-	void gotsig(int sig) { 
-		tcsetattr(fileno(cin), TCSANOW, &initial_settings);
-		exit(0);
-	}
-#endif
-
-const char	more_usage[] = "more [file]\n"
-"\n"
-"\tDisplays a file, one page at a time.\n"
-"\tIf there are no arguments, the standard input is displayed.\n";
-
-extern int
-more_fn(const struct FileInfo * i)
+extern int more_main(int argc, char **argv)
 {
-	FILE *	f = stdin;
-	int	c;
-	int	lines = 0, tlines = 0;
-	int	next_page = 0;
-	int	rows = 24, cols = 79;
-#ifdef BB_MORE_TERM
-	long sizeb = 0;
-	struct stat st;	
-	struct winsize win;
-#endif
-	
-	if ( i ) {
-		if (! (f = fopen(i->source, "r") )) {
-			name_and_error(i->source);
-			return 1;
-		}
-		fstat(fileno(f), &st);
-		sizeb = st.st_size / 100;
+    int c, lines=0;
+    int next_page=0, rows = 24, cols=79;
+    struct stat st;	
+    FILE *file = stdin;
+
+    if ( strcmp(*argv,"--help")==0 || strcmp(*argv,"-h")==0 ) {
+	fprintf(stderr, "Usage: %s %s", *argv, more_usage);
+	return(FALSE);
+    }
+    argc--;
+    argv++;
+
+    while (argc-- > 0) {
+	file = fopen(*argv, "r");
+	if (file == NULL) {
+	    perror(*argv);
+	    return(FALSE);
 	}
-		
-#ifdef BB_MORE_TERM
-	cin = fopen("/dev/tty", "r");
-	tcgetattr(fileno(cin),&initial_settings);
-	new_settings = initial_settings;
-	new_settings.c_lflag &= ~ICANON;
-	new_settings.c_lflag &= ~ECHO;
-	tcsetattr(fileno(cin), TCSANOW, &new_settings);
-	
-	(void) signal(SIGINT, gotsig);
+	fstat(fileno(file), &st);
 
-	ioctl(STDOUT_FILENO, TIOCGWINSZ, &win);
-	if (win.ws_row > 4)	rows = win.ws_row - 2;
-	if (win.ws_col > 0)	cols = win.ws_col - 1;
-
-
+	while ((c = getc(file)) != EOF) {
+	    if ( next_page ) {
+		int len=0;
+		next_page = 0;
+		lines=0;
+		len = fprintf(stdout, "--More-- (%d%% of %ld bytes)\n", 
+			(int) (100*( (double) ftell(file) / (double) st.st_size )),
+			st.st_size);
+		fflush(stdout);
+		getc( stdin);
+#if 0
+		while(len-- > 0)
+		    putc('\b', stdout);
+		while(len++ < cols)
+		    putc('8', stdout);
+		while(len-- > 0)
+		    putc('\b', stdout);
+		fflush(stdout);
 #endif
-
-	while ( (c = getc(f)) != EOF ) {
-		if ( next_page ) {
-			char	garbage;
-			int	len;
-			tlines += lines;
-			lines = 0;
-			next_page = 0;		//Percentage is based on bytes, not lines.
-			if ( i && i->source )	//It is not very acurate, but still useful.
-				len = printf("%s - %%%2ld - line: %d", i->source, (ftell(f) - sizeb - sizeb) / sizeb, tlines);
-			else
-				len = printf("line: %d", tlines);
-				
-			fflush(stdout);
-#ifndef BB_MORE_TERM		
-			read(2, &garbage, 1);
-#else				
-			do {
-				fread(&garbage, 1, 1, cin);	
-			} while ((garbage != ' ') && (garbage != '\n'));
-			
-			if (garbage == '\n') {
-				lines = rows;
-				tlines -= rows;
-			}					
-			garbage = 0;				
-			//clear line, since tabs don't overwrite.
-			while(len-- > 0)	putchar('\b');
-			while(len++ < cols)	putchar(' ');
-			while(len-- > 0)	putchar('\b');
-			fflush(stdout);
-#endif								
-		}
-		putchar(c);
-		if ( c == '\n' && ++lines == (rows + 1) )
-			next_page = 1;
+	    }
+	    if ( c == '\n' && ++lines == (rows + 1) )
+		next_page = 1;
+	    putc(c, stdout);
 	}
-	if ( f != stdin )
-		fclose(f);
-#ifdef BB_MORE_TERM
-	gotsig(0);
-#endif	
-	return 0;
+	fclose(file);
+	fflush(stdout);
+
+	argc--;
+	argv++;
+    }
+    return(TRUE);
 }
+
+

@@ -14,7 +14,13 @@
    an RFC 822 complient date output for shell scripting
    mail commands */
 
-const char	date_usage[] = "date [-uR] [+FORMAT|+%f] [ [-s|-d] MMDDhhmm[[CC]YY]\n                | [[[[CCYY.]MM.DD-]hh:mm[:ss]]]] ]";
+const char	date_usage[] = "date [-uR] [+FORMAT|+%f] [ [-s|-d] MMDDhhmm[[CC]YY]\n"
+"| [[[[CCYY.]MM.DD-]hh:mm[:ss]]]] ]";
+
+//static const char date_usage[] = "Usage: date [OPTION]... [+FORMAT]\n"
+//"or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]\n"
+//"Display the current time in the given FORMAT, or set the system date.\n";
+
 
 static struct option const long_options[] =
 {
@@ -153,7 +159,7 @@ date_err(void) {
 }
 
 int
-date_main(struct FileInfo * i, int argc, char * * argv)
+date_main(int argc, char * * argv)
 {
   char *date_str = NULL;
   char *date_fmt = NULL;
@@ -203,7 +209,7 @@ date_main(struct FileInfo * i, int argc, char * * argv)
       break;
 
     default:
-      usage(date_usage);
+      fprintf(stderr, "Usage: %s", date_usage);
       break;
     }
   }

@@ -96,6 +96,7 @@ extern void usage(const char*);
 extern int busybox_main(int argc, char** argv);
 extern int block_device_main(int argc, char** argv);
 extern int cat_more_main(int argc, char** argv);
+extern int more_main(int argc, char** argv);
 extern int chgrp_main(int argc, char** argv);
 extern int chmod_main(int argc, char** argv);
 extern int chown_main(int argc, char** argv);
