@@ -83,19 +83,21 @@ static void uuencode (const char *s, const char *store, const int length, const 
 	*p = '\0';
 }
 
+#define SRC_BUF_SIZE	45  // This *MUST* be a multiple of 3
+#define DST_BUF_SIZE    4 * ((SRC_BUF_SIZE + 2) / 3)
 int uuencode_main(int argc, char **argv)
 {
-	const int src_buf_size = 45;// This *MUST* be a multiple of 3
-	const int dst_buf_size = 4 * ((src_buf_size + 2) / 3);
+	const int src_buf_size = SRC_BUF_SIZE;
+	const int dst_buf_size = DST_BUF_SIZE;
 	int write_size = dst_buf_size;
-	RESERVE_CONFIG_BUFFER(src_buf, src_buf_size + 1);
-	RESERVE_CONFIG_BUFFER(dst_buf, dst_buf_size + 1);
 	struct stat stat_buf;
 	FILE *src_stream = stdin;
 	char *tbl = tbl_std;
 	size_t size;
 	mode_t mode;
 	int opt;
+	RESERVE_CONFIG_BUFFER(src_buf, SRC_BUF_SIZE + 1);
+	RESERVE_CONFIG_BUFFER(dst_buf, DST_BUF_SIZE + 1);
 
 	while ((opt = getopt(argc, argv, "m")) != -1) {
 		switch (opt) {
