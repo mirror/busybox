@@ -256,10 +256,8 @@ static const char *cwd;
 static struct jobset *job_list;
 static unsigned int last_bg_pid;
 static char *PS1;
-static char PS2[] = "> ";
-
+static char *PS2;
 struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
-
 struct variables *top_vars = &shell_ver;
 
 #define B_CHUNK (100)
@@ -505,29 +503,29 @@ static int builtin_export(struct child_prog *child)
 	name = strdup(name);
 
 	if(name) {
-	    char *value = strchr(name, '=');
+		char *value = strchr(name, '=');
 
-	if (!value) {
-		char *tmp;
-		/* They are exporting something without an =VALUE */
+		if (!value) {
+			char *tmp;
+			/* They are exporting something without an =VALUE */
 
-		value = get_local_var(name);
-		if (value) {
-			size_t ln = strlen(name);
+			value = get_local_var(name);
+			if (value) {
+				size_t ln = strlen(name);
 
-			tmp = realloc(name, ln+strlen(value)+2);
-			if(tmp==NULL)
-				res = -1;
-			else {
-				sprintf(tmp+ln, "=%s", value);
-				name = tmp;
+				tmp = realloc(name, ln+strlen(value)+2);
+				if(tmp==NULL)
+					res = -1;
+				else {
+					sprintf(tmp+ln, "=%s", value);
+					name = tmp;
+				}
+			} else {
+				/* bash does not return an error when trying to export
+				 * an undefined variable.  Do likewise. */
+				res = 1;
 			}
-		} else {
-			/* bash not put error and set error code
-			   if exporting not defined variable */
-			res = 1;
 		}
-	    }
 	}
 	if (res<0)
 		perror_msg("export");
@@ -641,7 +639,7 @@ static int builtin_read(struct child_prog *child)
 		char string[BUFSIZ];
 		char *var = 0;
 
-		string[0] = 0;  /* for correct work if stdin have "only EOF" */
+		string[0] = 0;  /* In case stdin has only EOF */
 		/* read string */
 		fgets(string, sizeof(string), stdin);
 		chomp(string);
@@ -650,10 +648,10 @@ static int builtin_read(struct child_prog *child)
 			sprintf(var, "%s=%s", child->argv[1], string);
 			res = set_local_var(var, 0);
 		} else
-		res = -1;
+			res = -1;
 		if (res)
 			fprintf(stderr, "read: %m\n");
-		free(var);      /* not move up - saved errno */
+		free(var);      /* So not move up to avoid breaking errno */
 		return res;
 	} else {
 		do res=getchar(); while(res!='\n' && res!=EOF);
@@ -1061,6 +1059,9 @@ static int pipe_wait(struct pipe *pi)
 }
 
 /* never returns */
+/* XXX no exit() here.  If you don't exec, use _exit instead.
+ * The at_exit handlers apparently confuse the calling process,
+ * in particular stdin handling.  Not sure why? */
 static void pseudo_exec(struct child_prog *child)
 {
 	int i, rcode;
@@ -1076,7 +1077,9 @@ static void pseudo_exec(struct child_prog *child)
 		/* If a variable is assigned in a forest, and nobody listens,
 		 * was it ever really set?
 		 */
-		if (child->argv[0] == NULL) exit(EXIT_SUCCESS);
+		if (child->argv[0] == NULL) {
+			_exit(EXIT_SUCCESS);
+		}
 
 		/*
 		 * Check if the command matches any of the builtins.
@@ -1087,7 +1090,7 @@ static void pseudo_exec(struct child_prog *child)
 		for (x = bltins; x->cmd; x++) {
 			if (strcmp(child->argv[0], x->cmd) == 0 ) {
 				debug_printf("builtin exec %s\n", child->argv[0]);
-				exit(x->function(child));
+				_exit(x->function(child));
 			}
 		}
 
@@ -1128,18 +1131,18 @@ static void pseudo_exec(struct child_prog *child)
 		debug_printf("exec of %s\n",child->argv[0]);
 		execvp(child->argv[0],child->argv);
 		perror_msg("couldn't exec: %s",child->argv[0]);
-		exit(1);
+		_exit(1);
 	} else if (child->group) {
 		debug_printf("runtime nesting to group\n");
 		interactive=0;    /* crucial!!!! */
 		rcode = run_list_real(child->group);
 		/* OK to leak memory by not calling run_list_test,
 		 * since this process is about to exit */
-		exit(rcode);
+		_exit(rcode);
 	} else {
 		/* Can happen.  See what bash does with ">foo" by itself. */
 		debug_printf("trying to pseudo_exec null command\n");
-		exit(EXIT_SUCCESS);
+		_exit(EXIT_SUCCESS);
 	}
 }
 
@@ -1713,23 +1716,29 @@ static int set_local_var(const char *s, int flg_export)
 	} else {
 		*value++ = 0;
 
-		for(cur = top_vars; cur; cur = cur->next)
+		for(cur = top_vars; cur; cur = cur->next) {
 			if(strcmp(cur->name, name)==0)
-			break;
+				break;
+		}
 
 		if(cur) {
 			if(strcmp(cur->value, value)==0) {
-				result = cur->flg_export == flg_export;
+				if(flg_export>0 && cur->flg_export==0)
+					cur->flg_export=flg_export;
+				else
+					result++;
 			} else {
 				if(cur->flg_read_only) {
-			result = -1;
+					result = -1;
 					error_msg("%s: readonly variable", name);
 				} else {
+					if(flg_export>0 || cur->flg_export>1)
+						cur->flg_export=1;
 					free(cur->value);
 					cur->value = newval;
 					newval = 0; /* protect free */
-		}
-	}
+				}
+			}
 		} else {
 			cur = malloc(sizeof(struct variables));
 			if(cur==0) {
@@ -1738,10 +1747,9 @@ static int set_local_var(const char *s, int flg_export)
 				cur->name = strdup(name);
 				if(cur->name == 0) {
 					free(cur);
-				result = -1;
+					result = -1;
 				} else {
 					struct variables *bottom = top_vars;
-
 					cur->value = newval;
 					newval = 0;     /* protect free */
 					cur->next = 0;
@@ -1749,16 +1757,16 @@ static int set_local_var(const char *s, int flg_export)
 					cur->flg_read_only = 0;
 					while(bottom->next) bottom=bottom->next;
 					bottom->next = cur;
+				}
 			}
 		}
 	}
-	}
 
-	if((result==0 && flg_export==1) || (result>0 && cur->flg_export>0)) {
+	if(result==0 && cur->flg_export==1) {
 		*(value-1) = '=';
 		result = putenv(name);
 	} else {
-	free(name);
+		free(name);
 		if(result>0)            /* equivalent to previous set */
 			result = 0;
 	}
@@ -1771,14 +1779,16 @@ static void unset_local_var(const char *name)
 	struct variables *cur;
 
 	if (name) {
-		for (cur = top_vars; cur; cur=cur->next)
+		for (cur = top_vars; cur; cur=cur->next) {
 			if(strcmp(cur->name, name)==0)
 				break;
+		}
 		if(cur!=0) {
 			struct variables *next = top_vars;
-			if(cur==next)
-		return;
-			else {
+			if(cur->flg_read_only) {
+				error_msg("%s: readonly variable", name);
+				return;
+			} else {
 				if(cur->flg_export)
 					unsetenv(cur->name);
 				free(cur->name);
@@ -2103,9 +2113,9 @@ FILE *generate_stream_from_list(struct pipe *head)
 #if 0
 #define SURROGATE "surrogate response"
 		write(1,SURROGATE,sizeof(SURROGATE));
-		exit(run_list(head));
+		_exit(run_list(head));
 #else
-		exit(run_list_real(head));   /* leaks memory */
+		_exit(run_list_real(head));   /* leaks memory */
 #endif
 	}
 	debug_printf("forked child %d\n",pid);
@@ -2531,18 +2541,43 @@ int shell_main(int argc, char **argv)
 	struct jobset joblist_end = { NULL, NULL };
 	char **e = environ;
 
-	/* initialize globals */
-	if (e) {
-		for (; *e; e++)
-			set_local_var(*e, 2);   /* without call putenv() */
-	}
-	job_list = &joblist_end;
+	/* FIXME */
+	fprintf(stderr, "sizeof(map)=%d\n", sizeof(map));
 
-	last_return_code=EXIT_SUCCESS;
 
 	/* XXX what should these be while sourcing /etc/profile? */
 	global_argc = argc;
 	global_argv = argv;
+	
+	/* (re?) initialize globals.  Sometimes shell_main() ends up calling
+	 * shell_main(), therefore we cannot rely on the BSS to zero out this 
+	 * stuff.  Reset these to 0 every time. */
+	ifs = NULL;
+	memset(map,0,sizeof(map));
+	fake_mode = 0;
+	interactive = 0;
+	close_me_head = NULL;
+	last_bg_pid = 0;
+
+	/* Initialize some more globals to non-zero values */
+	set_cwd();
+	job_list = &joblist_end;
+#ifdef BB_FEATURE_COMMAND_EDITING
+	cmdedit_set_initial_prompt();
+#else
+	PS1 = NULL;
+#endif
+	PS2 = "> ";
+
+	/* initialize our shell local variables with the values 
+	 * currently living in the environment */
+	if (e) {
+		for (; *e; e++)
+			set_local_var(*e, 2);   /* without call putenv() */
+	}
+
+	last_return_code=EXIT_SUCCESS;
+
 
 	/* If we get started under a job aware app (like bash 
 	 * for example), make sure we are now in charge so we 
@@ -2562,16 +2597,6 @@ int shell_main(int argc, char **argv)
 		fclose(input);
 	}
 	input=stdin;
-	
-	/* initialize the cwd -- this is never freed...*/
-	cwd = xgetcwd(0);
-	if (!cwd)
-		cwd = unknown;
-#ifdef BB_FEATURE_COMMAND_EDITING
-	cmdedit_set_initial_prompt();
-#else
-	PS1 = NULL;
-#endif
 	
 	while ((opt = getopt(argc, argv, "c:xif")) > 0) {
 		switch (opt) {
