@@ -110,7 +110,7 @@ extern int lsmod_main(int argc, char **argv)
 			printf("(uninitialized)");
 		else {
 			if (info.flags & NEW_MOD_AUTOCLEAN)
-				printf("(autoclean)");
+				printf("(autoclean) ");
 			if (!(info.flags & NEW_MOD_USED_ONCE))
 				printf("(unused)");
 		}
