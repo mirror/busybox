@@ -395,18 +395,15 @@ extern int mount_main(int argc, char **argv)
 	if (optind < argc) {
 		/* if device is a filename get its real path */
 		if (stat(argv[optind], &statbuf) == 0) {
-			realpath(argv[optind], device);
+			device = simplify_path(argv[optind]);
 		} else {
 			safe_strncpy(device, argv[optind], PATH_MAX);
 		}
 	}
 
-	if (optind + 1 < argc) {
-		if (realpath(argv[optind + 1], directory) == NULL) {
-			perror_msg_and_die("%s", directory);
-		}
-	}
-	
+	if (optind + 1 < argc)
+		directory = simplify_path(argv[optind + 1]);
+
 	if (all == TRUE || optind + 1 == argc) {
 		struct mntent *m = NULL;
 		FILE *f = setmntent("/etc/fstab", "r");

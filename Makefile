@@ -250,7 +250,8 @@ safe_read.c safe_strncpy.c syscalls.c syslog_msg_with_name.c time_string.c \
 trim.c unzip.c vdprintf.c verror_msg.c vperror_msg.c wfopen.c xfuncs.c \
 xgetcwd.c xreadlink.c xregcomp.c interface.c remove_file.c last_char_is.c \
 copyfd.c vherror_msg.c herror_msg.c herror_msg_and_die.c xgethostbyname.c \
-dirname.c make_directory.c create_icmp_socket.c u_signal_names.c arith.c
+dirname.c make_directory.c create_icmp_socket.c u_signal_names.c arith.c \
+simplify_path.c
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB)/%.o, $(LIBBB_CSRC))
 ifeq ($(strip $(BB_SRC_DIR)),)
     LIBBB_CFLAGS += -I$(LIBBB)
