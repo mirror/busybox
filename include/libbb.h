@@ -109,6 +109,7 @@ extern int is_directory(const char *name, int followLinks, struct stat *statBuf)
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
 extern ssize_t safe_read(int fd, void *buf, size_t count);
+extern ssize_t safe_write(int fd, void *buf, size_t count);
 extern ssize_t bb_full_write(int fd, const void *buf, size_t len);
 extern ssize_t bb_full_read(int fd, void *buf, size_t len);
 extern int recursive_action(const char *fileName, int recurse,
