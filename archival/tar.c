@@ -675,7 +675,8 @@ int tar_main(int argc, char **argv)
 	}
 	if(opt & TAR_OPT_VERBOSE) {
 			if ((tar_handle->action_header == header_list) || 
-				(tar_handle->action_header == header_verbose_list)) {
+				(tar_handle->action_header == header_verbose_list)) 
+			{
 				tar_handle->action_header = header_verbose_list;
 			} else {
 				tar_handle->action_header = header_list;
@@ -724,8 +725,14 @@ int tar_main(int argc, char **argv)
 			gzipFlag = TRUE;
 		}
 # endif /* CONFIG_FEATURE_TAR_GZIP */
+# ifdef CONFIG_FEATURE_TAR_BZIP2
+		if (get_header_ptr == get_header_tar_bz2) {
+			bb_error_msg_and_die("Creating bzip2 compressed archives is not currently supported.");
+		}
+# endif /* CONFIG_FEATURE_TAR_BZIP2 */
 
-		if (tar_handle->action_header == header_verbose_list) {
+		if ((tar_handle->action_header == header_list) || 
+				(tar_handle->action_header == header_verbose_list)) {
 			verboseFlag = TRUE;
 		}
 		writeTarFile(tar_filename, verboseFlag, tar_handle->accept,
