@@ -37,40 +37,39 @@
 #include <sys/reboot.h>
 #include <sys/kdaemon.h>
 #include <sys/sysmacros.h>
-#include <linux/serial.h>      /* for serial_struct */
-#include <sys/vt.h>            /* for vt_stat */
+#include <linux/serial.h>	/* for serial_struct */
+#include <sys/vt.h>		/* for vt_stat */
 #include <sys/ioctl.h>
 
 #define DEBUG_INIT
 
-#define CONSOLE         "/dev/console"          /* Logical system console */
-#define VT_PRIMARY      "/dev/tty0"             /* Virtual console master */
-#define VT_SECONDARY    "/dev/tty1"             /* Virtual console master */
-#define VT_LOG          "/dev/tty2"             /* Virtual console master */
-#define SHELL           "/bin/sh"               /* Default shell */
-#define INITSCRIPT      "/etc/init.d/rcS"       /* Initscript. */
+#define CONSOLE         "/dev/console"	/* Logical system console */
+#define VT_PRIMARY      "/dev/tty0"	/* Virtual console master */
+#define VT_SECONDARY    "/dev/tty1"	/* Virtual console master */
+#define VT_LOG          "/dev/tty2"	/* Virtual console master */
+#define SHELL           "/bin/sh"	/* Default shell */
+#define INITSCRIPT      "/etc/init.d/rcS"	/* Initscript. */
 #define PATH_DEFAULT    "PATH=/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin"
 
-static int maxproclen=0;
-static char* argv0;
-
-static char* console = CONSOLE;
-static char* second_terminal = "/dev/tty2";
-static char* log = "/dev/tty3";
+static char *console = CONSOLE;
+static char *second_terminal = "/dev/tty2";
+static char *log = "/dev/tty3";
 
 
 
 /* try to open up the specified device */
-int device_open(char* device, int mode)
+int device_open(char *device, int mode)
 {
     int m, f, fd = -1;
-    
+
     mode = m | O_NONBLOCK;
-    
+
     /* Retry up to 5 times */
-    for(f = 0; f < 5; f++)
-	if ((fd = open(device, m)) >= 0) break;
-    if (fd < 0) return fd;
+    for (f = 0; f < 5; f++)
+	if ((fd = open(device, m)) >= 0)
+	    break;
+    if (fd < 0)
+	return fd;
     /* Set original flags. */
     if (m != mode)
 	fcntl(fd, F_SETFL, mode);
@@ -78,16 +77,18 @@ int device_open(char* device, int mode)
 }
 
 /* print a message to the specified device */
-void message(char* device, char *fmt, ...)
+void message(char *device, char *fmt, ...)
 {
     int fd;
     va_list arguments;
-    if ((fd = device_open(device, O_WRONLY|O_NOCTTY|O_NDELAY)) >= 0) {
+
+    if ((fd = device_open(device, O_WRONLY | O_NOCTTY | O_NDELAY)) >= 0) {
 	va_start(arguments, fmt);
 	vdprintf(fd, fmt, arguments);
 	va_end(arguments);
-    }
-    close( fd);
+	close(fd);
+    } else
+	vprintf(fmt, arguments);
 }
 
 /* Set terminal settings to reasonable defaults */
@@ -96,74 +97,71 @@ void set_term()
     int fd;
     struct termios tty;
 
-    if ((fd = device_open(console, O_RDWR|O_NOCTTY)) < 0) {
-	message(log, "can't open %s", console);
+    if ((fd = device_open(console, O_RDWR | O_NOCTTY)) < 0) {
+	message(log, "can't open %s\n", console);
 	return;
     }
     ioctl(fd, TCGETS, &tty);
-    tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
-    tty.c_cflag |= HUPCL|CLOCAL;
+    tty.c_cflag &= CBAUD | CBAUDEX | CSIZE | CSTOPB | PARENB | PARODD;
+    tty.c_cflag |= HUPCL | CLOCAL;
 
-    tty.c_cc[VINTR]  = 3;
-    tty.c_cc[VQUIT]  = 28;
+    tty.c_cc[VINTR] = 3;
+    tty.c_cc[VQUIT] = 28;
     tty.c_cc[VERASE] = 127;
-    tty.c_cc[VKILL]  = 24;
-    tty.c_cc[VEOF]   = 4;
-    tty.c_cc[VTIME]  = 0;
-    tty.c_cc[VMIN]   = 1;
+    tty.c_cc[VKILL] = 24;
+    tty.c_cc[VEOF] = 4;
+    tty.c_cc[VTIME] = 0;
+    tty.c_cc[VMIN] = 1;
     tty.c_cc[VSTART] = 17;
-    tty.c_cc[VSTOP]  = 19;
-    tty.c_cc[VSUSP]  = 26;
+    tty.c_cc[VSTOP] = 19;
+    tty.c_cc[VSUSP] = 26;
 
     /* Set pre and post processing */
-    tty.c_iflag = IGNPAR|ICRNL|IXON|IXANY;
-    tty.c_oflag = OPOST|ONLCR;
-    tty.c_lflag = ISIG|ICANON|ECHO|ECHOCTL|ECHOPRT|ECHOKE;
+    tty.c_iflag = IGNPAR | ICRNL | IXON | IXANY;
+    tty.c_oflag = OPOST | ONLCR;
+    tty.c_lflag = ISIG | ICANON | ECHO | ECHOCTL | ECHOPRT | ECHOKE;
 
     /* Now set the terminal line. */
     ioctl(fd, TCSETS, &tty);
-    close( fd);
+    close(fd);
 }
 
-static int
-mem_total()
+static int mem_total()
 {
     char s[80];
     char *p;
     FILE *f;
-    const char pattern[]="MemTotal:";
+    const char pattern[] = "MemTotal:";
 
-    f=fopen("/proc/meminfo","r");
-    while (NULL != fgets(s,79,f)) {
-	p=strstr(s, pattern);
+    f = fopen("/proc/meminfo", "r");
+    while (NULL != fgets(s, 79, f)) {
+	p = strstr(s, pattern);
 	if (NULL != p) {
 	    fclose(f);
-	    return(atoi(p+strlen(pattern)));
+	    return (atoi(p + strlen(pattern)));
 	}
     }
     return -1;
 }
 
-static void
-set_free_pages()
+static void set_free_pages()
 {
     char s[80];
     FILE *f;
 
-    f=fopen("/proc/sys/vm/freepages","r");
-    fgets(s,79,f);
+    f = fopen("/proc/sys/vm/freepages", "r");
+    fgets(s, 79, f);
     if (atoi(s) < 32) {
 	fclose(f);
-	f=fopen("/proc/sys/vm/freepages","w");
-	fprintf(f,"30\t40\t50\n");
+	f = fopen("/proc/sys/vm/freepages", "w");
+	fprintf(f, "30\t40\t50\n");
 	printf("\nIncreased /proc/sys/vm/freepages values to 30/40/50\n");
     }
     fclose(f);
 }
 
 
-static void
-console_init()
+static void console_init()
 {
     int fd;
     int tried_devcons = 0;
@@ -176,7 +174,7 @@ console_init()
 	console = CONSOLE;
 	tried_devcons++;
     }
-    while ((fd = open(console, O_RDONLY|O_NONBLOCK)) < 0) {
+    while ((fd = open(console, O_RDONLY | O_NONBLOCK)) < 0) {
 	if (!tried_devcons) {
 	    tried_devcons++;
 	    console = CONSOLE;
@@ -195,41 +193,41 @@ console_init()
 	close(fd);
 }
 
-static int
-waitfor(int pid)
+static int waitfor(int pid)
 {
     int status, wpid;
 
     message(log, "Waiting for process %d.\n", pid);
-    while ( (wpid = wait(&status)) != pid ) {
-	if ( wpid > 0 )
-	    message(log,"pid %d exited, status=%x.\n", wpid, status);
+    while ((wpid = wait(&status)) != pid) {
+	if (wpid > 0)
+	    message(log, "pid %d exited, status=%x.\n", wpid, status);
     }
     return wpid;
 }
 
-static int
-run(const char* command, char* terminal, int get_enter)
+static int run(const char *command, char *terminal, int get_enter)
 {
-    int	f, pid;
+    int f, pid;
     char *args[16];
     char buf[256];
-    char* ptr;
-    static const char press_enter[] = 
+    char *ptr;
+    static const char press_enter[] =
 	"\nPlease press Enter to activate this console. ";
 
-	
-    /* Make a proper command from the command string */ 
+
+    /* Make a proper command from the command string */
     strcpy(buf, command);
     ptr = buf;
-    for(f = 1; f < 15; f++) {
+    for (f = 1; f < 15; f++) {
 	/* Skip white space */
-	while(*ptr == ' ' || *ptr == '\t') ptr++;
+	while (*ptr == ' ' || *ptr == '\t')
+	    ptr++;
 	args[f] = ptr;
 	/* May be trailing space.. */
-	if (*ptr == 0) break;
+	if (*ptr == 0)
+	    break;
 	/* Skip this `word' */
-	while(*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != '#')
+	while (*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != '#')
 	    ptr++;
 	/* If end-of-line, break */
 	if (*ptr == '#' || *ptr == 0) {
@@ -241,7 +239,7 @@ run(const char* command, char* terminal, int get_enter)
 	args[f] = NULL;
     }
     args[0] = args[1];
-	
+
 
     if ((pid = fork()) == 0) {
 	/* Clean up */
@@ -250,8 +248,8 @@ run(const char* command, char* terminal, int get_enter)
 	close(2);
 	setsid();
 
-	if ((f = device_open(terminal, O_RDWR|O_NOCTTY)) < 0) {
-	    message( log, "open(%s) failed: %s", terminal, strerror(errno));
+	if ((f = device_open(terminal, O_RDWR | O_NOCTTY)) < 0) {
+	    message(log, "open(%s) failed: %s\n", terminal, strerror(errno));
 	    return -1;
 	}
 	dup(f);
@@ -259,7 +257,7 @@ run(const char* command, char* terminal, int get_enter)
 	tcsetpgrp(0, getpgrp());
 	set_term();
 
-	if ( get_enter ) {
+	if (get_enter) {
 	    /*
 	     * Save memory by not exec-ing anything large (like a shell)
 	     * before the user wants it. This is critical if swap is not
@@ -268,18 +266,21 @@ run(const char* command, char* terminal, int get_enter)
 	     * be allowed to start a shell or whatever an init script 
 	     * specifies.
 	     */
-	    char	c;
+	    char c;
 	    write(1, press_enter, sizeof(press_enter) - 1);
 	    read(0, &c, 1);
+	    message(console, "Got an enter\r\n");
 	}
 
 	/* Log the process name and args */
-	message(log, "Executing '%s'\n", command);
+	message(console, "Executing ");
+	message(console, "'%s'\r\n", command);
 
 	/* Now run it.  This should take over the PID, so nothing 
 	 * further in init.c should be run by this PID. */
 	execvp(args[1], args + 1);
 
+	message(console, "Hmm.  Trying as a script.\r\n");
 	/* If shell scripts are not executed, force the issue */
 	if (errno == ENOEXEC) {
 	    char buf[256];
@@ -291,18 +292,17 @@ run(const char* command, char* terminal, int get_enter)
 	    args[4] = NULL;
 	    execvp(args[1], args + 1);
 	}
-	message(log, "Could not execute '%s'\n", command, strerror(errno));
+	message(console, "Could not execute '%s'\n", command);
 	exit(-1);
     }
     return pid;
 }
 
 #ifndef DEBUG_INIT
-static void
-shutdown_system(void)
+static void shutdown_system(void)
 {
 
-    message(console, "The system is going down NOW !!");
+    message(console, "The system is going down NOW !!\r\n");
     sync();
     /* Allow Ctrl-Alt-Del to reboot system. */
     reboot(RB_ENABLE_CAD);
@@ -318,169 +318,151 @@ shutdown_system(void)
     waitfor(run("/bin/swapoff -a", console, 0));
     waitfor(run("/bin/umount -a -n", console, 0));
     sync();
-    if (get_kernel_revision() <= 2*65536+2*256+11) {
+    if (get_kernel_revision() <= 2 * 65536 + 2 * 256 + 11) {
 	/* Removed  bdflush call, kupdate in kernels >2.2.11 */
 	bdflush(1, 0);
 	sync();
     }
 }
 
-static void
-halt_signal(int sig)
+static void halt_signal(int sig)
 {
     shutdown_system();
-    message(console, "The system is halted. Press CTRL-ALT-DEL or turn off power\r\n");
-    reboot( RB_POWER_OFF);
+    message(console,
+	    "The system is halted. Press CTRL-ALT-DEL or turn off power\r\n");
+    reboot(RB_POWER_OFF);
     exit(0);
 }
 
-static void
-reboot_signal(int sig)
+static void reboot_signal(int sig)
 {
     shutdown_system();
     message(console, "Please stand by while rebooting the system.\r\n");
-    reboot( RB_AUTOBOOT);
+    reboot(RB_AUTOBOOT);
     exit(0);
 }
+
 #endif
 
-int setproctitle(char *fmt, ...)
+extern int init_main(int argc, char **argv)
 {
-    va_list ap;
-    int len;
-    char buf[256];
-
-    buf[0] = 0;
-    va_start(ap, fmt);
-    len = vsprintf(buf, fmt, ap);
-    va_end(ap);
-    memset(argv0, 0, maxproclen + 1);
-    strncpy(argv0, buf, maxproclen);
-    return len;
-}
-
-extern int
-init_main(int argc, char * * argv)
-{
-	int run_rc = TRUE;
-	int pid1 = 0;
-	int pid2 = 0;
-	struct stat statbuf;
-	const char* init_commands = SHELL "-c exec " INITSCRIPT;
-	const char* shell_commands = SHELL;
-	const char* tty0_commands = init_commands;
-	const char* tty1_commands = shell_commands;
-	const char* no_memory = 
-	    "Sorry, your computer does not have enough memory.\n";
-
-	/* For later use */
-	argv0 = argv[0];
-	maxproclen = strlen(argv[0]);
-	setproctitle("init [boot]");
+    int run_rc = TRUE;
+    int pid1 = 0;
+    int pid2 = 0;
+    struct stat statbuf;
+    const char *init_commands = SHELL "-c exec " INITSCRIPT;
+    const char *shell_commands = SHELL;
+    const char *tty0_commands = init_commands;
+    const char *tty1_commands = shell_commands;
+    char *hello_msg_format =
+	"init started:  BusyBox v%s (%s) multi-call binary\r\n";
+    const char *no_memory =
+	"Sorry, your computer does not have enough memory.\r\n";
 
 
 #ifndef DEBUG_INIT
-	/* Set up sig handlers */
-	signal(SIGUSR1, halt_signal);
-	signal(SIGSEGV, halt_signal);
-	signal(SIGPWR,  halt_signal);
-	signal(SIGALRM, halt_signal);
-	signal(SIGHUP,  halt_signal);
-	signal(SIGUSR2, reboot_signal);
-	signal(SIGINT,  reboot_signal);
-	signal(SIGTERM, reboot_signal);
+    /* Set up sig handlers */
+    signal(SIGUSR1, halt_signal);
+    signal(SIGSEGV, halt_signal);
+    signal(SIGPWR, halt_signal);
+    signal(SIGALRM, halt_signal);
+    signal(SIGHUP, halt_signal);
+    signal(SIGUSR2, reboot_signal);
+    signal(SIGINT, reboot_signal);
+    signal(SIGTERM, reboot_signal);
 #endif
-	/* Figure out where the default console should be */
-	console_init();
+    /* Figure out where the default console should be */
+    console_init();
 
-	/* Turn off rebooting via CTL-ALT-DEL -- we get a 
-	 * SIGINT on CAD so we can shut things down gracefully... */
+    /* Turn off rebooting via CTL-ALT-DEL -- we get a 
+     * SIGINT on CAD so we can shut things down gracefully... */
 #ifndef DEBUG_INIT
-	reboot(RB_DISABLE_CAD);
+    reboot(RB_DISABLE_CAD);
 #endif
 
-	/* Close whatever files are open, and reset the console. */
-	close(0);
-	close(1);
-	close(2);
-	set_term();
-	setsid();
+    /* Close whatever files are open, and reset the console. */
+    close(0);
+    close(1);
+    close(2);
+    set_term();
+    setsid();
 
-	/* Make sure PATH is set to something sane */
-	if (getenv("PATH") == NULL) 
-	    putenv(PATH_DEFAULT);
+    /* Make sure PATH is set to something sane */
+    if (getenv("PATH") == NULL)
+	putenv(PATH_DEFAULT);
 
-	/* Hello world */
-	message(console, "%s started:  BusyBox v%s (%s) multi-call binary", 
-		argv[0], BB_VER, BB_BT);
-	message(log, "%s started:  BusyBox v%s (%s) multi-call binary", 
-		argv[0], BB_VER, BB_BT);
+    /* Hello world */
+    message(log, hello_msg_format, BB_VER, BB_BT);
+    message(console, hello_msg_format, BB_VER, BB_BT);
 
+    /* Mount /proc */
+    if (mount("/proc", "/proc", "proc", 0, 0)) {
+	message(log, "Mounting /proc: failed!\n");
+	message(console, "Mounting /proc: failed!\r\n");
+    } else {
+	message(console, "Mounting /proc: done.\r\n");
+    }
 
-	/* Mount /proc */
-	message(console, "Mounting /proc: \n");
-	if (mount("/proc","/proc","proc",0,0)) {
-	    message(log, "%s: could not mount /proc!\n", argv[0]);
-	    message(console, "failed!\n");
-	}
-	message(console, "done.\n");
-
-
-	/* Make sure there is enough memory to do something useful*/
-	set_free_pages();
-	if (mem_total() < 2000) { 
-	    int retval;
-	    retval= stat("/etc/fstab",&statbuf);
-	    if (retval) {
+    /* Make sure there is enough memory to do something useful */
+    set_free_pages();
+    if (mem_total() < 2000) {
+	int retval;
+	retval = stat("/etc/fstab", &statbuf);
+	if (retval) {
+	    message(console, "%s", no_memory);
+	    while (1) {
+		sleep(1);
+	    }
+	} else {
+	    /* Try to turn on swap */
+	    waitfor(run("/bin/swapon -a", console, 0));
+	    if (mem_total() < 2000) {
 		message(console, "%s", no_memory);
-		while (1) { sleep(1);}
-	    } else { 
-	      /* Try to turn on swap */
-		waitfor(run("/bin/swapon -a", console, 0));
-		if (mem_total() < 2000) { 
-		    message(console, "%s", no_memory);
-		    while (1) { sleep(1);}
+		while (1) {
+		    sleep(1);
 		}
 	    }
 	}
+    }
 
-	/* Check if we are supposed to be in single user mode */
-	if (!strcmp(argv[1], "single") || !strcmp(argv[1], "-s") || !strcmp(argv[1], "1")) {
-		run_rc = FALSE;
-		tty0_commands = shell_commands;
-		tty1_commands = 0;
-		setproctitle("init [S]");
-	} else { 
-	    setproctitle("init [1]");
+    /* Check if we are supposed to be in single user mode */
+    if ( argc > 1 && (!strcmp(argv[1], "single") || 
+		!strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
+	run_rc = FALSE;
+	tty0_commands = shell_commands;
+	tty1_commands = 0;
+    }
+
+    /* Make sure an init script exists before trying to run it */
+    if (run_rc == TRUE && stat(INITSCRIPT, &statbuf)) {
+	tty0_commands = shell_commands;
+	tty1_commands = shell_commands;
+    }
+
+    /* Ok, now launch the rc script and/or prepare to 
+     * start up some VTs if somebody hits enter... 
+     */
+    for (;;) {
+	int wpid;
+	int status;
+
+	if (pid1 == 0 && tty0_commands) {
+	    pid1 = run(tty0_commands, console, 1);
 	}
-
-	/* Make sure an init script exists before trying to run it */
-	if ( run_rc == TRUE && stat( INITSCRIPT, &statbuf)) {
-	    tty0_commands = shell_commands;
-	    tty1_commands = shell_commands;
-	} 
-
-	/* Ok, now launch the rc script and/or prepare to 
-	 * start up some VTs if somebody hits enter... 
-	 */
-	for ( ; ; ) {
-		int	wpid;
-		int	status;
-
-		if ( pid1 == 0  && *tty0_commands ) {
-		    pid1 = run(tty0_commands, console, 1);
-		}
-		if ( pid2 == 0 && *tty1_commands ) {
-		    pid2 = run(tty1_commands, second_terminal, 1);
-		}
-		wpid = wait(&status);
-		if ( wpid > 0  && wpid != pid1) {
-			message(log, "pid %d exited, status=%x.\n", wpid, status);
-		}
-		if ( wpid == pid2 ) {
-			pid2 = 0;
-		}
-		sleep(1);
+	if (pid2 == 0 && tty1_commands) {
+	    pid2 = run(tty1_commands, second_terminal, 1);
 	}
+	wpid = wait(&status);
+	if (wpid > 0 && wpid != pid1) {
+	    message(log, "pid %d exited, status=%x.\n", wpid, status);
+	}
+	/* Don't respawn an init script if it exits */
+	if (run_rc == FALSE && wpid == pid1) {
+	    pid1 = 0;
+	}
+	if (wpid == pid2) {
+	    pid2 = 0;
+	}
+	sleep(1);
+    }
 }
-
