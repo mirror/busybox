@@ -1444,8 +1444,6 @@ const char xargs_usage[] = "xargs [OPTIONS] [COMMAND] [ARGS...]\n"
 	"\nExecutes COMMAND on every item given by standard input.\n\n" 
 	"Options:\n"
 	"\t-t\tPrint the command just before it is run\n"
-	"\t-l LEN\tUse LEN as maximum line length (default 490, max 1023)\n"
-	"\t-e ENDING\tAppend ENDING to the command before executing it.\n"
 #endif
 	;
 #endif
