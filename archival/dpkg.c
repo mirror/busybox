@@ -517,9 +517,18 @@ unsigned int fill_package_struct(char *control_buffer)
 		field_start += (field_length + 1);
 
 		seperator_offset = strcspn(field, ":");
+		if (seperator_offset == 0) {
+			free(field);
+			continue;
+		}
 		field_name = xstrndup(field, seperator_offset);
 		field_value = field + seperator_offset + 1;
 		field_value += strspn(field_value, " \n\t");
+
+		/* Should be able to replace this strlen with pointer arithmatic */
+		if (strlen(field_value) == 0) {
+			goto fill_package_struct_cleanup; // Oh no, the dreaded goto statement !!
+		}
 
 		if (strcmp(field_name, "Package") == 0) {
 			new_node->name = search_name_hashtable(field_value);
@@ -551,6 +560,7 @@ unsigned int fill_package_struct(char *control_buffer)
 		else if (strcmp(field_name, "Enhances") == 0) {
 			add_split_dependencies(new_node, field_value, EDGE_ENHANCES);
 		}
+fill_package_struct_cleanup:
 		free(field_name);
 		free(field);
 	}
