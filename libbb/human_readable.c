@@ -28,26 +28,35 @@
 #include <stdio.h>
 #include "libbb.h"
 
-static char buffer[10];
-static const char *suffixes[] = { "", "k", "M", "G", "T" };
 
-const char *make_human_readable_str(unsigned long val, unsigned long not_hr)
+
+const char *make_human_readable_str(unsigned long val, unsigned long hr)
 {
-	int suffix, base;
+	int i=0;
+	static char str[10] = "\0";
+	static const char strings[] = { 'k', 'M', 'G', 'T', 0 };
+	unsigned long divisor = 1;
 
-	if (not_hr)
-		sprintf(buffer, "%lu", val);
-	else
-		for (suffix = 0, base = 1; suffix < 5; suffix++, base <<= 10) {
-			if (val < (base << 10)) {
-				if (suffix && val < 10 * base)
-					sprintf(buffer, "%lu.%lu%s", val / base,
-							(val % base) * 10 / base, suffixes[suffix]);
-				else
-					sprintf(buffer, "%lu%s", val / base, suffixes[suffix]);
-				break;
-			}
-		}
-
-	return buffer;
+	if(val == 0)
+		return("0");
+	if(hr)
+		snprintf(str, 9, "%ld", val/hr);
+	else {
+		while(val >= divisor && i <= 4) {
+			divisor=divisor<<10, i++;
+		} 
+		divisor=divisor>>10, i--;
+		snprintf(str, 9, "%.1Lf%c", (long double)(val)/divisor, strings[i]);
+	}
+	return(str);
 }
+
+
+/* END CODE */
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/
