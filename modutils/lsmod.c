@@ -25,9 +25,9 @@
 #include <stdio.h>
 
 
-#if ! defined BB_FEATURE_USE_PROCFS
-#error Sorry, I depend on the /proc filesystem right now.
-#endif
+//#if ! defined BB_FEATURE_USE_PROCFS
+//#error Sorry, I depend on the /proc filesystem right now.
+//#endif
 
 extern int lsmod_main(int argc, char **argv)
 {

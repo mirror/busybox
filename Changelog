@@ -1,4 +1,9 @@
 0.43
+	* Busybox can now work perfectly when /proc is disabled, thereby 
+	    saving a bunch of memory (kernel /proc support is not thin).
+	    This is done by making use of some nice kernel patches I 
+	    wrote up to support the features that busybox requires and
+	    that /proc usually provides.
 	* Wrote basename, killall, and uptime.
 	* Added freeramdisk, which will free up all memory associated
 	    with a ram disk.  Contributed by Emanuele Caratti <wiz@iol.it>
@@ -36,7 +41,8 @@
 	* An initial telnet implementation was added by 
 	    Randolph Chung <tausq@debian.org>.
 	* Fixed a bug where "sed 's/foo/bar/g'" (i.e. a script w/o a "-e")
-	    would go into an infinite loop.
+	* ps now supports BB_FEATURE_AUTOWIDTH, and can adjust its width
+	    to match the terminal (defaults to width=79 when this is off).
 
 
 	-Erik Andersen

@@ -1247,7 +1247,7 @@ extern int device_open(char *device, int mode)
 #endif							/* BB_INIT BB_SYSLOGD */
 
 
-#if defined BB_INIT || defined BB_HALT || defined BB_REBOOT || defined BB_KILLALL
+#if defined BB_KILLALL || defined BB_FEATURE_LINUXRC && ( defined BB_HALT || defined BB_REBOOT || defined BB_POWEROFF )
 
 #ifdef BB_FEATURE_USE_DEVPS_N_DEVMTAB
 #include <linux/devps.h>
@@ -1318,6 +1318,7 @@ extern pid_t findPidByName( char* pidName)
 #if ! defined BB_FEATURE_USE_PROCFS
 #error Sorry, I depend on the /proc filesystem right now.
 #endif
+
 /* findPidByName()
  *  
  *  This finds the pid of the specified process.
@@ -1330,15 +1331,24 @@ extern pid_t findPidByName( char* pidName)
  */
 extern pid_t findPidByName( char* pidName)
 {
-	pid_t thePid;
-	char filename[256];
-	char buffer[256];
+	DIR *dir;
+	struct dirent *next;
 
-	/* no need to opendir ;) */
-	for (thePid = 1; thePid < 65536; thePid++) {
+	dir = opendir("/proc");
+	if (!dir)
+		fatalError( "Cannot open /proc: %s\n", strerror (errno));
+	
+	while ((next = readdir(dir)) != NULL) {
 		FILE *status;
+		char filename[256];
+		char buffer[256];
 
-		sprintf(filename, "/proc/%d/cmdline", thePid);
+		/* If it isn't a number, we don't want it */
+		if (!isdigit(*next->d_name))
+			continue;
+
+		/* Now open the command line file */
+		sprintf(filename, "/proc/%s/status", next->d_name);
 		status = fopen(filename, "r");
 		if (!status) {
 			continue;
@@ -1347,13 +1357,13 @@ extern pid_t findPidByName( char* pidName)
 		fclose(status);
 
 		if ((strstr(buffer, pidName) != NULL)) {
-			return thePid;
+			return strtol(next->d_name, NULL, 0);
 		}
 	}
 	return 0;
 }
 #endif							/* BB_FEATURE_USE_DEVPS_N_DEVMTAB */
-#endif							/* BB_INIT || BB_HALT || BB_REBOOT || KILLALL */
+#endif							/* BB_INIT || BB_HALT || BB_REBOOT || BB_KILLALL || BB_POWEROFF */
 
 #if defined BB_GUNZIP \
  || defined BB_GZIP   \

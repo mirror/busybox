@@ -35,6 +35,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <sys/ioctl.h>
+
 
 #if ! defined BB_FEATURE_USE_DEVPS_N_DEVMTAB
 
@@ -116,7 +118,15 @@ extern int ps_main(int argc, char **argv)
 	char path[32], sbuf[512];
 	char uidName[10] = "";
 	char groupName[10] = "";
-	int i, c;
+	int len, i, c;
+#ifdef BB_FEATURE_AUTOWIDTH
+	struct winsize win = { 0, 0 };
+	int terminal_width = 0;
+#else
+#define terminal_width  79
+#endif
+
+
 
 	if (argc > 1 && **(argv + 1) == '-')
 		usage ("ps\n\nReport process status\n\nThis version of ps accepts no options.\n");
@@ -124,6 +134,12 @@ extern int ps_main(int argc, char **argv)
 	dir = opendir("/proc");
 	if (!dir)
 		fatalError("Can't open /proc");
+
+#ifdef BB_FEATURE_AUTOWIDTH
+		ioctl(fileno(stdout), TIOCGWINSZ, &win);
+		if (win.ws_col > 0)
+			terminal_width = win.ws_col - 1;
+#endif
 
 	fprintf(stdout, "%5s  %-8s %-3s %5s %s\n", "PID", "Uid", "Gid",
 			"State", "Command");
@@ -146,21 +162,21 @@ extern int ps_main(int argc, char **argv)
 		if (*groupName == '\0')
 			sprintf(groupName, "%d", p.rgid);
 
-		fprintf(stdout, "%5d %-8s %-8s %c ", p.pid, uidName, groupName,
+		len = fprintf(stdout, "%5d %-8s %-8s %c ", p.pid, uidName, groupName,
 				p.state);
 		sprintf(path, "/proc/%s/cmdline", entry->d_name);
 		file = fopen(path, "r");
 		if (file == NULL)
 			fatalError("Can't open %s: %s\n", path, strerror(errno));
 		i = 0;
-		while (((c = getc(file)) != EOF) && (i < 53)) {
+		while (((c = getc(file)) != EOF) && (i < (terminal_width-len))) {
 			i++;
 			if (c == '\0')
 				c = ' ';
 			putc(c, stdout);
 		}
 		if (i == 0)
-			fprintf(stdout, "%s", p.cmd);
+			fprintf(stdout, "[%s]", p.cmd);
 		fprintf(stdout, "\n");
 	}
 	closedir(dir);
@@ -175,19 +191,24 @@ extern int ps_main(int argc, char **argv)
  * this one uses the nifty new devps kernel device.
  */
 
-#include <sys/ioctl.h>
 #include <linux/devps.h>
 
 
 extern int ps_main(int argc, char **argv)
 {
 	char device[] = "/dev/ps";
-	int i, fd;
+	int i, j, len, fd;
 	pid_t num_pids;
 	pid_t* pid_array = NULL;
 	struct pid_info info;
 	char uidName[10] = "";
 	char groupName[10] = "";
+#ifdef BB_FEATURE_AUTOWIDTH
+	struct winsize win = { 0, 0 };
+	int terminal_width = 0;
+#else
+#define terminal_width  79
+#endif
 
 	if (argc > 1 && **(argv + 1) == '-') 
 		usage("ps-devps\n\nReport process status\n\nThis version of ps accepts no options.\n\n");
@@ -212,6 +233,12 @@ extern int ps_main(int argc, char **argv)
 	if (ioctl (fd, DEVPS_GET_PID_LIST, pid_array)<0) 
 		fatalError("\nDEVPS_GET_PID_LIST: %s\n", strerror (errno));
 
+#ifdef BB_FEATURE_AUTOWIDTH
+		ioctl(fileno(stdout), TIOCGWINSZ, &win);
+		if (win.ws_col > 0)
+			terminal_width = win.ws_col - 1;
+#endif
+
 	/* Print up a ps listing */
 	fprintf(stdout, "%5s  %-8s %-3s %5s %s\n", "PID", "Uid", "Gid",
 			"State", "Command");
@@ -232,13 +259,19 @@ extern int ps_main(int argc, char **argv)
 		if (*groupName == '\0')
 			sprintf(groupName, "%ld", info.egid);
 
-		fprintf(stdout, "%5d %-8s %-8s %c ", info.pid, uidName, groupName, info.state);
+		len = fprintf(stdout, "%5d %-8s %-8s %c ", info.pid, uidName, groupName, info.state);
 
-		if (strlen(info.command_line) > 1)
+		if (strlen(info.command_line) > 1) {
+			for( j=0; j<(sizeof(info.command_line)-1) && j < (terminal_width-len); j++) {
+				if (*(info.command_line+j) == '\0' && *(info.command_line+j+1) != '\0') {
+					*(info.command_line+j) = ' ';
+				}
+			}
+			*(info.command_line+j) = '\0';
 			fprintf(stdout, "%s\n", info.command_line);
-		else
+		} else {
 			fprintf(stdout, "[%s]\n", info.name);
-
+		}
 	}
 
 	/* Free memory */

@@ -336,10 +336,6 @@ static pid_t run(char *command, char *terminal, int get_enter)
 
 
 	if ((pid = fork()) == 0) {
-#ifdef DEBUG_INIT
-		pid_t shell_pgid = getpid();
-#endif
-
 		/* Clean up */
 		close(0);
 		close(1);
@@ -373,8 +369,8 @@ static pid_t run(char *command, char *terminal, int get_enter)
 			 * specifies.
 			 */
 			char c;
-
 #ifdef DEBUG_INIT
+			pid_t shell_pgid = getpid();
 			message(LOG, "Waiting for enter to start '%s' (pid %d, console %s)\r\n",
 					command, shell_pgid, terminal);
 #endif

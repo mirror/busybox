@@ -26,6 +26,10 @@
 
 extern int poweroff_main(int argc, char **argv)
 {
+#ifdef BB_FEATURE_LINUXRC
 	/* don't assume init's pid == 1 */
 	exit(kill(findPidByName("init"), SIGUSR2));
+#else
+	exit(kill(1, SIGUSR2));
+#endif
 }
