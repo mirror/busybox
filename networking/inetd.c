@@ -610,19 +610,13 @@ static void config(int signum)
 			sep->se_ctrladdr_in.sin_family = AF_INET;
 			sep->se_ctrladdr_size = sizeof sep->se_ctrladdr_in;
 			{
-				u_short port = htons(atoi(sep->se_service));
+				u_short port = bb_lookup_port(sep->se_service, sep->se_proto, 0);
 
-				if (!port) {
-					struct servent *sp;
-					sp = getservbyname(sep->se_service,
-								sep->se_proto);
-					if (sp == 0) {
-						syslog(LOG_ERR,
-						    "%s/%s: unknown service",
-						    sep->se_service, sep->se_proto);
-						continue;
-					}
-					port = sp->s_port;
+				if (port == 0) {
+					syslog(LOG_ERR,
+					    "%s/%s: unknown service",
+					    sep->se_service, sep->se_proto);
+					continue;
 				}
 				if (port != sep->se_ctrladdr_in.sin_port) {
 					sep->se_ctrladdr_in.sin_port = port;

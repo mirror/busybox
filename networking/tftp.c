@@ -138,7 +138,7 @@ static char *tftp_option_get(char *buf, int len, char *option)
 #endif
 
 static inline int tftp(const int cmd, const struct hostent *host,
-	const char *remotefile, int localfd, const int port, int tftp_bufsize)
+	const char *remotefile, int localfd, const unsigned short port, int tftp_bufsize)
 {
 	const int cmd_get = cmd & tftp_cmd_get;
 	const int cmd_put = cmd & tftp_cmd_put;
@@ -179,7 +179,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 	bind(socketfd, (struct sockaddr *)&sa, len);
 
 	sa.sin_family = host->h_addrtype;
-	sa.sin_port = htons(port);
+	sa.sin_port = port;
 	memcpy(&sa.sin_addr, (struct in_addr *) host->h_addr,
 		   sizeof(sa.sin_addr));
 
@@ -332,7 +332,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 
 				timeout = 0;
 
-				if (sa.sin_port == htons(port)) {
+				if (sa.sin_port == port) {
 					sa.sin_port = from.sin_port;
 				}
 				if (sa.sin_port == from.sin_port) {
@@ -487,7 +487,7 @@ int tftp_main(int argc, char **argv)
 	struct hostent *host = NULL;
 	char *localfile = NULL;
 	char *remotefile = NULL;
-	int port = 69;
+	int port;
 	int cmd = 0;
 	int fd = -1;
 	int flags = 0;
@@ -564,10 +564,7 @@ int tftp_main(int argc, char **argv)
 	}
 
 	host = xgethostbyname(argv[optind]);
-
-	if (optind + 2 == argc) {
-		port = atoi(argv[optind + 1]);
-	}
+	port = bb_lookup_port(argv[optind + 1], "udp", 69);
 
 #ifdef CONFIG_FEATURE_TFTP_DEBUG
 	printf("using server \"%s\", remotefile \"%s\", "

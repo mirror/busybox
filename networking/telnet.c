@@ -599,7 +599,7 @@ extern int telnet_main(int argc, char** argv)
 		bb_show_usage();
 	
 	bb_lookup_host(&s_in, argv[1]);
-	s_in.sin_port = bb_lookup_port((argc == 3) ? argv[2] : "telnet", 23);
+	s_in.sin_port = bb_lookup_port((argc == 3) ? argv[2] : "telnet", "tcp", 23);
 	
 	G.netfd = xconnect(&s_in);
 

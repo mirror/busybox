@@ -61,7 +61,7 @@ int nc_main(int argc, char **argv)
 				do_listen++;
 				break;
 			case 'p':
-				lport = atoi(optarg);
+				lport = bb_lookup_port(optarg, "tcp", 0);
 				break;
 			case 'i':
 				delay = atoi(optarg);
@@ -96,7 +96,7 @@ int nc_main(int argc, char **argv)
 
 	if (lport != 0) {
 		memset(&address.sin_addr, 0, sizeof(address.sin_addr));
-		address.sin_port = htons(lport);
+		address.sin_port = lport;
 
 		if (bind(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
 			bb_perror_msg_and_die("bind");
@@ -117,7 +117,7 @@ int nc_main(int argc, char **argv)
 		hostinfo = xgethostbyname(argv[optind]);
 
 		address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
-		address.sin_port = htons(atoi(argv[optind+1]));
+		address.sin_port = bb_lookup_port(argv[optind+1], "tcp", 0);
 
 		if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
 			bb_perror_msg_and_die("connect");

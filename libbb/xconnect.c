@@ -23,7 +23,7 @@
  * If "port" is a name it is looked up in /etc/services, if it isnt found return
  * default_port
  */
-unsigned short bb_lookup_port(const char *port, unsigned short default_port)
+unsigned short bb_lookup_port(const char *port, const char *protocol, unsigned short default_port)
 {
 	unsigned short port_nr = htons(default_port);
 	if (port) {
@@ -37,7 +37,7 @@ unsigned short bb_lookup_port(const char *port, unsigned short default_port)
 		errno = 0;
 		port_long = strtol(port, &endptr, 10);
 		if (errno != 0 || *endptr!='\0' || endptr==port || port_long < 0 || port_long > 65535) {
-			struct servent *tserv = getservbyname(port, "tcp");
+			struct servent *tserv = getservbyname(port, protocol);
 			if (tserv) {
 				port_nr = tserv->s_port;
 			}

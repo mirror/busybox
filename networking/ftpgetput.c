@@ -349,7 +349,7 @@ int ftpgetput_main(int argc, char **argv)
 	 * and we want to connect to only one IP... */
 	server->s_in = &s_in;
 	bb_lookup_host(&s_in, argv[optind]);
-	s_in.sin_port = bb_lookup_port(port, 21);
+	s_in.sin_port = bb_lookup_port(port, "tcp", 21);
 	if (verbose_flag) {
 		printf("Connecting to %s[%s]:%d\n",
 				argv[optind], inet_ntoa(s_in.sin_addr), ntohs(s_in.sin_port));
