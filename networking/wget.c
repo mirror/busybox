@@ -481,7 +481,8 @@ read_response:		if (fgets(buf, sizeof(buf), sfp) == NULL)
 #endif
 	do {
 		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, chunked ? (filesize > sizeof(buf) ? sizeof(buf) : filesize) : sizeof(buf), dfp)) > 0) {
-		safe_fwrite(buf, 1, n, output);
+			if (safe_fwrite(buf, 1, n, output) != n)
+				perror_msg_and_die("write error");
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 		statbytes+=n;
 #endif
@@ -817,7 +818,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.47 2002/03/19 15:22:40 kraai Exp $
+ *	$Id: wget.c,v 1.48 2002/04/17 15:33:24 kraai Exp $
  */
 
 
