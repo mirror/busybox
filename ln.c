@@ -81,6 +81,7 @@ static int fs_link(const char *link_DestName, const char *link_SrcName, const in
 
 extern int ln_main(int argc, char **argv)
 {
+	int status = EXIT_SUCCESS;
 	int flag = 0;
 	int opt;
 	
@@ -102,10 +103,10 @@ extern int ln_main(int argc, char **argv)
 	}
 	while(optind<(argc-1)) {
 		if (fs_link(argv[optind], argv[argc-1], flag)==FALSE)
-			return(FALSE);
+			status = EXIT_FAILURE;
 		optind++;
 	}
-	return(TRUE);
+	return(status);
 }
 
 /*
