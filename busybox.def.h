@@ -140,7 +140,7 @@
 //#define BB_FEATURE_TRIVIAL_HELP
 //
 // Use termios to manipulate the screen ('more' is prettier with this on)
-//#define BB_FEATURE_USE_TERMIOS
+#define BB_FEATURE_USE_TERMIOS
 //
 // calculate terminal & column widths (for more and ls)
 #define BB_FEATURE_AUTOWIDTH

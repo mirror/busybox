@@ -26,7 +26,7 @@ export VERSION
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
 # eg: `make DODEBUG=true tests'
-DODEBUG = true
+DODEBUG = false
 
 # If you want a static binary, turn this on.
 DOSTATIC = false
