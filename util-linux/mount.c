@@ -273,8 +273,7 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 					filesystemType = buf;
 
 					if (bb_strlen(filesystemType)) {
-						status =
-							do_mount(blockDevice, directory, filesystemType,
+						status = do_mount(blockDevice, directory, filesystemType,
 									 flags | MS_MGC_VAL, string_flags,
 									 useMtab, fakeIt, mtab_opts, mount_all);
 						if (status) {
@@ -287,7 +286,8 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 			fclose(f);
 		}
 
-		if ((!f || read_proc) && !status) {
+		if (read_proc && !status) {
+			
 			f = bb_xfopen("/proc/filesystems", "r");
 
 			while (fgets(buf, sizeof(buf), f) != NULL) {
@@ -303,8 +303,7 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 					filesystemType = buf;
 					filesystemType++;	/* hop past tab */
 
-					status =
-						do_mount(blockDevice, directory, filesystemType,
+					status = do_mount(blockDevice, directory, filesystemType,
 								 flags | MS_MGC_VAL, string_flags, useMtab,
 								 fakeIt, mtab_opts, mount_all);
 					if (status) {
@@ -312,8 +311,8 @@ static int mount_one(char *blockDevice, char *directory, char *filesystemType,
 					}
 				}
 			}
+			fclose(f);
 		}
-		fclose(f);
 	} else {
 		status =
 			do_mount(blockDevice, directory, filesystemType,
