@@ -281,7 +281,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.113 2004/03/15 08:28:47 andersen Exp $"
+#ident "$Id: insmod.c,v 1.114 2004/03/19 12:16:18 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -502,7 +502,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.113 2004/03/15 08:28:47 andersen Exp $"
+#ident "$Id: insmod.c,v 1.114 2004/03/19 12:16:18 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1083,10 +1083,12 @@ arch_apply_relocation(struct obj_file *f,
 		case R_68K_GOT32:
 			goto bb_use_got;
 
+#ifdef R_68K_GOTOFF
 		case R_68K_GOTOFF:
 			assert(got != 0);
 			*loc += v - got;
 			break;
+#endif
 
 #elif defined(__mips__)
 
@@ -1568,9 +1570,11 @@ static void arch_create_got(struct obj_file *f)
 					got_allocate = 1;
 					break;
 
+#ifdef R_68K_GOTOFF
 				case R_68K_GOTOFF:
 					got_needed = 1;
 					continue;
+#endif
 
 #elif defined(__sh__)
 				case R_SH_GOT32:
