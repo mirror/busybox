@@ -424,7 +424,7 @@ progressmeter(int flag)
 		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
 			 "%02d:%02d ETA", i / 60, i % 60);
 	}
-	write(fileno(stdout), buf, strlen(buf));
+	write(fileno(stderr), buf, strlen(buf));
 
 	if (flag == -1) {
 		struct sigaction sa;
@@ -475,7 +475,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.8 2000/12/07 03:53:47 tausq Exp $
+ *	$Id: wget.c,v 1.9 2000/12/07 03:55:35 tausq Exp $
  */
 
 
