@@ -1982,7 +1982,7 @@
 	"\tUsage: udhcpc [OPTIONS]\n" \
 	"\t-c,\t--clientid=CLIENTID\tClient identifier\n" \
 	"\t-H,\t--hostname=HOSTNAME\tClient hostname\n" \
-	"\t-h,\t                   \tAlias for -h\n" \
+	"\t-h,\t                   \tAlias for -H\n" \
 	"\t-f,\t--foreground\tDo not fork after getting lease\n" \
 	"\t-b,\t--background\tFork to background if lease cannot be immediately negotiated.\n" \
 	"\t-i,\t--interface=INTERFACE\tInterface to use (default: eth0)\n" \
