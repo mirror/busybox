@@ -31,5 +31,5 @@ struct group *fgetgrent(FILE * file)
 		return NULL;
 	}
 
-	return __getgrent(fileno(file));
+	return bb_getgrent(fileno(file));
 }

@@ -33,7 +33,7 @@ struct group *getgrgid(const gid_t gid)
 	if ((grp_fd = open(bb_path_group_file, O_RDONLY)) < 0)
 		return NULL;
 
-	while ((group = __getgrent(grp_fd)) != NULL)
+	while ((group = bb_getgrent(grp_fd)) != NULL)
 		if (group->gr_gid == gid) {
 			close(grp_fd);
 			return group;

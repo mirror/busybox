@@ -89,9 +89,9 @@ int initgroups(__const char *user, gid_t gid)
 	group_list[num_groups] = gid;
 #ifndef GR_DYNAMIC_GROUP_LIST
 	while (num_groups < GR_MAX_GROUPS &&
-		   (group = __getgrent(grp_fd)) != NULL)
+		   (group = bb_getgrent(grp_fd)) != NULL)
 #else
-	while ((group = __getgrent(grp_fd)) != NULL)
+	while ((group = bb_getgrent(grp_fd)) != NULL)
 #endif
 	{
 		if (group->gr_gid != gid)

@@ -71,7 +71,7 @@
  * getgrent() except that it is passed a file descriptor.  getgrent()
  * is just a wrapper for this function.
  */
-struct group *__getgrent(int grp_fd)
+struct group *bb_getgrent(int grp_fd)
 {
 #ifndef GR_SCALE_DYNAMIC
 	static char line_buff[GR_MAX_LINE_LEN];

@@ -50,5 +50,5 @@ struct group *getgrent(void)
 {
 	if (grp_fd == -1)
 		return NULL;
-	return __getgrent(grp_fd);
+	return bb_getgrent(grp_fd);
 }

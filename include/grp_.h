@@ -32,7 +32,7 @@ extern struct group * fgetgrent __P ((FILE * file));
 extern int setgroups __P ((size_t n, __const gid_t * groups));
 extern int initgroups __P ((__const char * user, gid_t gid));
 
-extern struct group * __getgrent __P ((int grp_fd));
+extern struct group * bb_getgrent __P ((int grp_fd));
 
 #endif /* USE_SYSTEM_PWD_GRP */
 #endif /* __CONFIG_GRP_H */
