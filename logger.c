@@ -156,7 +156,8 @@ extern int logger_main(int argc, char **argv)
 
 	if (fromStdinFlag == TRUE) {
 		/* read from stdin */
-		int c, i = 0;
+		int c;
+		unsigned int i = 0;
 
 		while ((c = getc(stdin)) != EOF && i < sizeof(buf)) {
 			buf[i++] = c;

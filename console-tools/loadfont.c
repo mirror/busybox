@@ -161,7 +161,7 @@ static void loadnewfont(int fd)
 {
 	int unit;
 	char inbuf[32768];			/* primitive */
-	int inputlth, offset;
+	unsigned int inputlth, offset;
 
 	/*
 	 * We used to look at the length of the input file
@@ -187,7 +187,7 @@ static void loadnewfont(int fd)
 		struct psf_header psfhdr;
 		int fontsize;
 		int hastable;
-		int head0, head;
+		unsigned int head0, head;
 
 		if (inputlth < sizeof(struct psf_header))
 			goto no_psf;
