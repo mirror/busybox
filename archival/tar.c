@@ -584,22 +584,42 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 #endif							/* tar_create */
 
 #ifdef CONFIG_FEATURE_TAR_EXCLUDE
-static llist_t *append_file_list_to_list(const char *filename, llist_t *list)
+static llist_t *append_file_list_to_list(llist_t *list)
 {
-	FILE *src_stream = bb_xfopen(filename, "r");
+	FILE *src_stream;
+	llist_t *cur = list;
+	llist_t *tmp;
 	char *line;
+	llist_t *newlist = NULL;
+
+	while(cur) {
+		src_stream = bb_xfopen(cur->data, "r");
+		tmp = cur;
+		cur = cur->link;
+		free(tmp);
 	while((line = bb_get_chomped_line_from_file(src_stream)) != NULL) {
-		list = llist_add_to(list, line);
+			newlist = llist_add_to(newlist, line);
 	}
 	fclose(src_stream);
-
-	return (list);
+	}
+	return newlist;
 }
 #endif
 
+
+static const char tar_options[]="ctxjT:X:C:f:Opvz";
 #define CTX_CREATE	1
 #define CTX_TEST	2
 #define CTX_EXTRACT	4
+#define TAR_OPT_BZIP2    8
+#define TAR_OPT_INCLUDE  16
+#define TAR_OPT_EXCLUDE  32
+#define TAR_OPT_BASEDIR  64
+#define TAR_OPT_ARNAME   128
+#define TAR_OPT_2STDOUT  256
+#define TAR_OPT_P        512
+#define TAR_OPT_VERBOSE  1024
+#define TAR_OPT_GZIP     2048
 
 int tar_main(int argc, char **argv)
 {
@@ -616,9 +636,9 @@ int tar_main(int argc, char **argv)
 
 	/* Prepend '-' to the first argument if required */
 	if (argv[1][0] != '-') {
-		char *tmp = xmalloc(strlen(argv[1]) + 2);
-		tmp[0] = '-';
-		strcpy(tmp + 1, argv[1]);
+		char *tmp;
+
+		bb_xasprintf(&tmp, "-%s", argv[1]);
 		argv[1] = tmp;
 	}
 
@@ -626,80 +646,56 @@ int tar_main(int argc, char **argv)
 	tar_handle = init_handle();
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE;
 
-	while ((opt = getopt(argc, argv, "cjtxT:X:C:f:Opvz")) != -1) {
-		switch (opt) {
-			/* One and only one of these is required */
-#ifdef CONFIG_FEATURE_TAR_CREATE
-		case 'c':
-			ctx_flag |= CTX_CREATE;
-			break;
-#endif
-		case 't':
-			ctx_flag |= CTX_TEST;
+	bb_opt_complementaly = "c~tx:t~cx:x~ct:X*";
+	opt = bb_getopt_ulflags(argc, argv, tar_options,
+				NULL,   /* T: arg is ignored by default
+					    a list is an include list */
+				&(tar_handle->reject),
+				&base_dir,      /* Change to dir <optarg> */
+				&tar_filename); /* archive filename */
+	/* Check one and only one context option was given */
+	if(opt & 0x80000000UL)
+		bb_show_usage();
+	ctx_flag = opt & (CTX_CREATE | CTX_TEST | CTX_EXTRACT);
+	if(ctx_flag & CTX_TEST) {
 			if ((tar_handle->action_header == header_list) || 
 				(tar_handle->action_header == header_verbose_list)) {
 				tar_handle->action_header = header_verbose_list;
 			} else {
 				tar_handle->action_header = header_list;
 			}
-			break;
-		case 'x':
-			ctx_flag |= CTX_EXTRACT;
-			if (tar_handle->action_data != data_extract_to_stdout) {
+	}
+	if(ctx_flag & CTX_EXTRACT) {
+		if (tar_handle->action_data != data_extract_to_stdout)
 				tar_handle->action_data = data_extract_all;
 			}
-			break;
-
-			/* These are optional */
-			/* Exclude or Include files listed in <filename> */
-#ifdef CONFIG_FEATURE_TAR_EXCLUDE
-		case 'X':
-			tar_handle->reject =
-				append_file_list_to_list(optarg, tar_handle->reject);
-			break;
-#endif
-		case 'T':
-			/* by default a list is an include list */
-			break;
-		case 'C':		/* Change to dir <optarg> */
-			base_dir = optarg;
-			break;
-		case 'f':		/* archive filename */
-			tar_filename = optarg;
-			break;
-		case 'O':		/* To stdout */
+	if(opt & TAR_OPT_2STDOUT) {
+		/* To stdout */
 			tar_handle->action_data = data_extract_to_stdout;
-			break;
-		case 'p':
-			break;
-		case 'v':
+	}
+	if(opt & TAR_OPT_VERBOSE) {
 			if ((tar_handle->action_header == header_list) || 
 				(tar_handle->action_header == header_verbose_list)) {
 				tar_handle->action_header = header_verbose_list;
 			} else {
 				tar_handle->action_header = header_list;
 			}
-			break;
+	}
 #ifdef CONFIG_FEATURE_TAR_GZIP
-		case 'z':
+	if(opt & TAR_OPT_GZIP) {
 			get_header_ptr = get_header_tar_gz;
-			break;
+	}
 #endif
 #ifdef CONFIG_FEATURE_TAR_BZIP2
-		case 'j':
+	if(opt & TAR_OPT_GZIP) {
 			get_header_ptr = get_header_tar_bz2;
-			break;
+	}
 #endif
-		default:
-			bb_show_usage();
-		}
+#ifdef CONFIG_FEATURE_TAR_EXCLUDE
+	if(opt & TAR_OPT_EXCLUDE) {
+		tar_handle->reject = append_file_list_to_list(tar_handle->reject);
 	}
-
-	/* Check one and only one context option was given */
-	if ((ctx_flag != CTX_CREATE) && (ctx_flag != CTX_TEST) && (ctx_flag != CTX_EXTRACT)) {
-		bb_show_usage();
-	}
-
+#endif
 	/* Check if we are reading from stdin */
 	if ((argv[optind]) && (*argv[optind] == '-')) {
 		/* Default is to read from stdin, so just skip to next arg */
