@@ -33,8 +33,7 @@ extern int logname_main(int argc, char **argv)
 	my_getpwuid(user, geteuid());
 	if (user) {
 		puts(user);
-		exit(TRUE);
+		return EXIT_SUCCESS;
 	}
-	errorMsg("no login name\n");
-	return(FALSE);
+	fatalError("no login name\n");
 }
