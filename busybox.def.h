@@ -114,12 +114,18 @@
 // pretty/useful).
 //
 //
-// Turn this on to use Erik's very cool devps, devmtab, 
-// etc kernel drivers, thereby eliminating the need for 
-// the /proc filesystem and thereby saving lots and lots 
-// memory for more important things.
-// You can't use this and USE_PROCFS at the same time...
-// (BTW, I emailed Linus and this patch will not be going into the stock kernel)
+//
+// Turn this on to use Erik's very cool devps, devmtab, etc kernel drivers,
+// thereby eliminating the need for the /proc filesystem and thereby saving
+// lots and lots memory for more important things.  You can not use this and
+// USE_PROCFS at the same time...  NOTE:  If you enable this feature, you
+// _must_ have patched the kernel to include the devps patch that is included
+// in the busybox/kernel-patches directory.  You will also need to create some
+// device special files /dev on your embedded system:
+//        mknod /dev/modules c 10 23
+//        mknod /dev/mtab c 10 22
+//        mknod /dev/ps c 10 21
+// I emailed Linus and this patch will not be going into the stock kernel.
 //#define BB_FEATURE_USE_DEVPS_PATCH
 //
 // enable features that use the /proc filesystem (apps that 
