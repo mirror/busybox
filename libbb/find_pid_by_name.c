@@ -25,8 +25,6 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-#define READ_BUF_SIZE	50
-
 /* find_pid_by_name()
  *  
  *  Modified by Vladimir Oleynik for use with libbb/procps.c
