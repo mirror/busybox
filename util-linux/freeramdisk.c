@@ -26,7 +26,6 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <errno.h>
 #include <stdlib.h>
 #include "busybox.h"
 
@@ -38,17 +37,17 @@ extern int
 freeramdisk_main(int argc, char **argv)
 {
 	int result;
-	FILE *f;
+	int fd;
 
 	if (argc != 2) {
 		bb_show_usage();
 	}
 
-	f = bb_xfopen(argv[1], "r+");
+	fd = bb_xopen(argv[1], O_RDWR);
 	
-	result = ioctl(fileno(f), BLKFLSBUF);
+	result = ioctl(fd, BLKFLSBUF);
 #ifdef CONFIG_FEATURE_CLEAN_UP
-	fclose(f);
+	close(fd);
 #endif
 	if (result < 0) {
 		bb_perror_msg_and_die("failed ioctl on %s", argv[1]);
