@@ -30,14 +30,19 @@
 #include <string.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <fcntl.h>
 #include <sys/time.h>
 #include "busybox.h"
 
-/* Teach older glibc and libc5 what a uint64_t is */
-#if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 3)
-typedef unsigned long int       uint64_t;
-#endif
+
+/* We are making a lame pseudo-random string generator here.  in
+ * convert(), each pass through the while loop will add more and more
+ * stuff into value, which is _supposed_ to wrap.  We don't care about
+ * it being accurate.  We care about it being messy, since we then mod
+ * it by the sizeof(letters) and then use that as an index into letters
+ * to pick a random letter to add to out temporary file. */
+typedef unsigned long int bb_uint64_t;
 
 static const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -47,7 +52,7 @@ static int convert(char *fn, int ConvType)
 	int c, fd;
 	struct timeval tv;
 	char tempFn[BUFSIZ];
-	static uint64_t value=0;
+	static bb_uint64_t value=0;
 	FILE *in = stdin, *out = stdout;
 
 	if (fn != NULL) {
@@ -64,7 +69,7 @@ static int convert(char *fn, int ConvType)
 		     * random filename based (and in the same dir as)
 		     * the input file... */
 		    gettimeofday (&tv, NULL);
-		    value += ((uint64_t) tv.tv_usec << 16) ^ tv.tv_sec ^ getpid ();
+		    value += ((bb_uint64_t) tv.tv_usec << 16) ^ tv.tv_sec ^ getpid ();
 		    tempFn[++c] = letters[value % 62];
 		    tempFn[c+1] = '\0';
 		    value /= 62;
@@ -138,7 +143,9 @@ static int convert(char *fn, int ConvType)
 		return -2;
 	    }
 
-	    /* Assume they are both on the same filesystem */
+	    /* Assume they are both on the same filesystem (which
+	     * should be true since we put them into the same directory
+	     * so we _should_ be ok, but you never know... */
 	    if (rename(tempFn, fn) < 0) {
 		perror_msg("unable to rename '%s' as '%s'", tempFn, fn);
 		return -1;
