@@ -1,5 +1,10 @@
 busybox (0.50pre-1) unstable; urgency=low
 
+  * Fix malformed Build-Depends (closes: #86930)
+  * grep has worked for some time now (closes: #81084)
+  * init compiles with DEBUG_INIT enabled (closes: #85794)
+  * md5sum no longer displays filename when reading stdin (closes: #81283)
+  * lsmod, rmmod, and insmod are no longer enabled (closes: #85642)
   * Not yet released.
   * See changelog for details.
 
