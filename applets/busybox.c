@@ -45,6 +45,9 @@ static const struct Applet applets[] = {
 #ifdef BB_DMESG			//bin
     {"dmesg", dmesg_main},
 #endif
+#ifdef BB_DU			//bin
+    {"du", du_main},
+#endif
 #ifdef BB_DUTMP			//usr/sbin
     {"dutmp", dutmp_main},
 #endif

@@ -14,6 +14,7 @@
 #define BB_DF
 #define BB_DMESG
 //#define BB_DUTMP
+#define BB_DU
 //#define BB_FDFLUSH
 #define BB_FIND
 #define BB_FREE

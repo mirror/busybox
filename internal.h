@@ -63,6 +63,7 @@ extern int date_main(int argc, char** argv);
 extern int dd_main(int argc, char** argv);
 extern int df_main(int argc, char** argv);
 extern int dmesg_main(int argc, char** argv);
+extern int du_main(int argc, char** argv);
 extern int dutmp_main(int argc, char** argv);
 extern int false_main(int argc, char** argv);
 extern int fdisk_main(int argc, char** argv);
