@@ -114,12 +114,8 @@ void write_rtc ( time_t t, int utc )
 			bb_perror_msg_and_die ( "Could not access RTC" );
 	}
  	
- 	printf ( "1\n" );
- 	
 	tm = *( utc ? gmtime ( &t ) : localtime ( &t ));
 	tm. tm_isdst = 0;
- 	
- 	printf ( "2\n") ;
  	
 	if ( ioctl ( rtc, RTC_SET_TIME, &tm ) < 0 )
 		bb_perror_msg_and_die ( "Could not set the RTC time" );
