@@ -44,38 +44,46 @@ config CONFIG_FDISK
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_FEATURE_FDISK_WRITABLE
+	bool "  Write support" 
+	default y
+	depends on CONFIG_FDISK
+	help
+	  Allow changes to be written to disk, without this you
+	  will only be able to view the partition table. 
+
 config CONFIG_FEATURE_AIX_LABEL
 	bool "  Support AIX disklabels"
 	default n
-	depends on CONFIG_FDISK
+	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE  
 	help
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_FEATURE_SGI_LABEL
 	bool "  Support SGI disklabels"
 	default n
-	depends on CONFIG_FDISK
+	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_FEATURE_SUN_LABEL
 	bool "  Support SUN disklabels"
 	default n
-	depends on CONFIG_FDISK
+ 	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE	
 	help
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_FEATURE_OSF_LABEL
 	bool "  Support BSD disklabels"
 	default n
-	depends on CONFIG_FDISK
+	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_FEATURE_FDISK_ADVANCED
 	bool "  Support expert mode"
 	default n
-	depends on CONFIG_FDISK
+	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
 	  Please submit a patch to add help text for this item.
 
