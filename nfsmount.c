@@ -93,7 +93,9 @@ static const int MS_NODIRATIME = 2048;    /* Do not update directory access time
  * so it is easiest to ignore the kernel altogether (at compile time).
  */
 
-static const int NFS_MOUNT_VERSION = 4;
+/* NOTE: Do not make this into a 'static const int' because the pre-processor
+ * needs to test this value in some #if statements. */
+#define NFS_MOUNT_VERSION 4
 
 struct nfs2_fh {
         char                    data[32];
