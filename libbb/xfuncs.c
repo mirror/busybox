@@ -136,6 +136,7 @@ extern void bb_xread_all(int fd, void *buf, size_t count)
 			bb_error_msg_and_die("Short read");
 		}
 		count -= size;
+		buf = ((char *) buf) + size;
 	}
 	return;
 }
