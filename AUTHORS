@@ -31,6 +31,9 @@ Karl M. Hegbloom <karlheg@debian.org>
 Daniel Jacobowitz <dan@debian.org>
     mktemp.c
 
+Matt Kraai <kraai@alumni.carnegiemellon.edu>
+    documentation, bugfixes
+
 John Lombardo <john@deltanet.com>	
     dirname, tr
 
@@ -51,5 +54,4 @@ Charles P. Wright <cpwright@villagenet.com>
 
 Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
-
 
