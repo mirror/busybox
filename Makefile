@@ -25,7 +25,7 @@ BUILDTIME := $(shell TZ=GMT date "+%Y%m%d-%H%M")
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
 # eg: `make DODEBUG=true tests'
-DODEBUG = false
+DODEBUG = true
 
 # If you want a static binary, turn this on.  I can't think
 # of many situations where anybody would ever want it static, 

@@ -80,6 +80,7 @@ extern int fdflush_main(int argc, char **argv);
 extern int fsck_minix_main(int argc, char **argv);
 extern int find_main(int argc, char** argv);
 extern int free_main(int argc, char** argv);
+extern int freeramdisk_main(int argc, char** argv);
 extern int grep_main(int argc, char** argv);
 extern int gunzip_main (int argc, char** argv);
 extern int gzip_main(int argc, char** argv);

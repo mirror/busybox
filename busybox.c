@@ -97,6 +97,9 @@ static const struct Applet applets[] = {
 #ifdef BB_FREE					//usr/bin
 	{"free", free_main},
 #endif
+#ifdef BB_FREERAMDISK			//sbin
+	{"freeramdisk", freeramdisk_main},
+#endif
 #ifdef BB_DEALLOCVT				//usr/bin
 	{"deallocvt", deallocvt_main},
 #endif

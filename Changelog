@@ -1,5 +1,8 @@
 0.43
 	* Wrote basename.
+	* Added freeramdisk, which will free up all memory associated
+	    with a ram disk.  Contributed by Emanuele Caratti <wiz@iol.it>
+	    and then adjusted a bit by me.
 	* tar wouldn't create directory entries that don't end in '/',
 	    now it does (thanks to Avery Pennarun <apenwarr@worldvisions.ca>)
 	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
