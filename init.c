@@ -174,7 +174,7 @@ struct initActionTag {
 	initAction *nextPtr;
 	initActionEnum action;
 };
-initAction *initActionList = NULL;
+static initAction *initActionList = NULL;
 
 
 static char *secondConsole = VT_SECONDARY;
@@ -255,7 +255,7 @@ static void message(int device, char *fmt, ...)
 }
 
 /* Set terminal settings to reasonable defaults */
-void set_term(int fd)
+static void set_term(int fd)
 {
 	struct termios tty;
 
@@ -670,7 +670,7 @@ static void reboot_signal(int sig)
 
 #endif							/* ! DEBUG_INIT */
 
-void new_initAction(initActionEnum action, char *process, char *cons)
+static void new_initAction(initActionEnum action, char *process, char *cons)
 {
 	initAction *newAction;
 
@@ -725,7 +725,7 @@ static void delete_initAction(initAction * action)
  * _is_ defined, but /etc/inittab is missing, this 
  * results in the same set of default behaviors.
  * */
-void parse_inittab(void)
+static void parse_inittab(void)
 {
 #ifdef BB_FEATURE_USE_INITTAB
 	FILE *file;

@@ -44,14 +44,14 @@ static char *tailbuf;
 static int taillen;
 static int newline;
 
-void tailbuf_append(char *buf, int len)
+static void tailbuf_append(char *buf, int len)
 {
 	tailbuf = xrealloc(tailbuf, taillen + len);
 	memcpy(tailbuf + taillen, buf, len);
 	taillen += len;
 }
 
-void tailbuf_trunc()
+static void tailbuf_trunc()
 {
 	char *s;
 	s = memchr(tailbuf, '\n', taillen);

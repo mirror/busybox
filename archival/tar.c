@@ -150,7 +150,7 @@ static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
 
 #ifdef BB_FEATURE_TAR_GZIP
 /* Signal handler for when child gzip process dies...  */
-void child_died()
+static void child_died()
 {
 	fflush(stdout);
 	fflush(stderr);
@@ -186,7 +186,7 @@ extern int tar_unzip_init(int tarFd)
 #endif
 
 #if defined BB_FEATURE_TAR_EXCLUDE
-struct option longopts[] = {
+static struct option longopts[] = {
 	{ "exclude", 1, NULL, 'e' },
 	{ NULL, 0, NULL, 0 }
 };
@@ -574,7 +574,7 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 	return( FALSE);
 }
 
-int exclude_file(char **excluded_files, const char *file)
+static int exclude_file(char **excluded_files, const char *file)
 {
 	int i;
 
@@ -601,7 +601,7 @@ int exclude_file(char **excluded_files, const char *file)
 	return 0;
 }
 
-int extract_file(char **extract_files, const char *file)
+static int extract_file(char **extract_files, const char *file)
 {
 	int i;
 

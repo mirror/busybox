@@ -609,7 +609,7 @@ static void setup_tables(void)
  * Perform a test of a block; return the number of
  * blocks readable/writeable.
  */
-long do_check(char *buffer, int try, unsigned int current_block)
+static long do_check(char *buffer, int try, unsigned int current_block)
 {
 	long got;
 

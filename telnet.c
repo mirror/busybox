@@ -325,7 +325,7 @@ static void putiac1(byte c)
 
 /* ******************************* */
 
-char const escapecharis[] = "\r\nEscape character is ";
+static char const escapecharis[] = "\r\nEscape character is ";
 
 static void setConMode()
 {

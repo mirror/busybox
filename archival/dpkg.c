@@ -79,9 +79,9 @@ static const char *statuswords[][10] = {
 		"post-inst-failed", "removal-failed", 0 }
 };
 
-const int color_white	= 0;
-const int color_grey	= 1;
-const int color_black	= 2;
+static const int color_white	= 0;
+static const int color_grey	= 1;
+static const int color_black	= 2;
 
 /* data structures */
 typedef struct package_s {

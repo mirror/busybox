@@ -231,7 +231,7 @@ parse_mount_options(char *options, int *flags, char *strflags)
 	}
 }
 
-int
+static int
 mount_one(char *blockDevice, char *directory, char *filesystemType,
 		  unsigned long flags, char *string_flags, int useMtab, int fakeIt,
 		  char *mtab_opts, int whineOnErrors)

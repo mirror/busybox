@@ -886,7 +886,7 @@ static char *nfs_strerror(int stat)
 	return buf;
 }
 
-bool_t
+static bool_t
 xdr_fhandle (XDR *xdrs, fhandle objp)
 {
 	//register int32_t *buf;

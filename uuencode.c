@@ -34,11 +34,11 @@
 static void encode __P ((void));
 
 /* Pointer to the translation table we currently use.  */
-const char *trans_ptr;
+static const char *trans_ptr;
 
 /* The two currently defined translation tables.  The first is the
    standard uuencoding, the second is base64 encoding.  */
-const char uu_std[64] = {
+static const char uu_std[64] = {
   '`', '!', '"', '#', '$', '%', '&', '\'',
   '(', ')', '*', '+', ',', '-', '.', '/',
   '0', '1', '2', '3', '4', '5', '6', '7',
@@ -49,7 +49,7 @@ const char uu_std[64] = {
   'X', 'Y', 'Z', '[', '\\', ']', '^', '_'
 };
 
-const char uu_base64[64] = {
+static const char uu_base64[64] = {
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
   'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',

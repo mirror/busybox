@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: route.c,v 1.8 2001/03/07 06:33:01 andersen Exp $
+ * $Id: route.c,v 1.9 2001/03/09 21:24:12 andersen Exp $
  *
  * displayroute() code added by Vladimir N. Oleynik <dzo@simtreas.ru>
  * adjustments by Larry Doolittle  <LRDoolittle@lbl.gov>
@@ -346,7 +346,7 @@ INET_setroute(int action, int options, char **args)
 	return EXIT_SUCCESS;
 }
 
-void displayroutes(void)
+static void displayroutes(void)
 {
 	char buff[256];
 	int  nl = 0 ;

@@ -72,7 +72,7 @@ static int version = -1;
 static int pagesize;
 static int *signature_page;
 
-struct swap_header_v1 {
+static struct swap_header_v1 {
 	char bootbits[1024];		/* Space for disklabel etc. */
 	unsigned int version;
 	unsigned int last_page;

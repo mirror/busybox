@@ -39,7 +39,7 @@ struct signal_name {
 	int number;
 };
 
-const struct signal_name signames[] = {
+static const struct signal_name signames[] = {
 	/* POSIX signals */
 	{ "HUP",	SIGHUP },	/* 1 */
 	{ "INT",	SIGINT }, 	/* 2 */

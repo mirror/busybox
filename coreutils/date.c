@@ -46,7 +46,7 @@
 
 /* Default input handling to save suprising some people */
 
-struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
+static struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 {
 	int nr;
 
@@ -73,7 +73,7 @@ struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 
 /* The new stuff for LRP */
 
-struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
+static struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 {
 	struct tm t;
 

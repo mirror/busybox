@@ -62,20 +62,19 @@ typedef enum {BASH,TCSH} shell_t;
 
 
 /* Some global variables that tells us how to parse. */
-shell_t shell=BASH; /* The shell we generate output for. */
-int quiet_errors=0; /* 0 is not quiet. */
-int quiet_output=0; /* 0 is not quiet. */
-int quote=1; /* 1 is do quote. */
-int alternative=0; /* 0 is getopt_long, 1 is getopt_long_only */
+static shell_t shell=BASH; /* The shell we generate output for. */
+static int quiet_errors=0; /* 0 is not quiet. */
+static int quiet_output=0; /* 0 is not quiet. */
+static int quote=1; /* 1 is do quote. */
+static int alternative=0; /* 0 is getopt_long, 1 is getopt_long_only */
 
 /* Function prototypes */
-const char *normalize(const char *arg);
-int generate_output(char * argv[],int argc,const char *optstr,
+static const char *normalize(const char *arg);
+static int generate_output(char * argv[],int argc,const char *optstr,
                     const struct option *longopts);
-void add_long_options(char *options);
-void add_longopt(const char *name,int has_arg);
-void set_shell(const char *new_shell);
-void set_initial_shell(void);
+static void add_long_options(char *options);
+static void add_longopt(const char *name,int has_arg);
+static void set_shell(const char *new_shell);
 
 
 /*

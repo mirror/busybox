@@ -132,7 +132,7 @@ struct fb_var_screeninfo {
 };
 
 
-struct cmdoptions_t {
+static struct cmdoptions_t {
 	char *name;
 	unsigned char param_count;
 	unsigned char code;

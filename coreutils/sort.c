@@ -26,12 +26,12 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-int compare_ascii(const void *x, const void *y)
+static int compare_ascii(const void *x, const void *y)
 {
 	return strcmp(*(char **)x, *(char **)y);
 }
 
-int compare_numeric(const void *x, const void *y)
+static int compare_numeric(const void *x, const void *y)
 {
 	return atoi(*(char **)x) - atoi(*(char **)y);
 }

@@ -33,8 +33,8 @@
 #include <linux/unistd.h>
 #include "busybox.h"
 
-_syscall2(int, swapon, const char *, path, int, flags);
-_syscall1(int, swapoff, const char *, path);
+static _syscall2(int, swapon, const char *, path, int, flags);
+static _syscall1(int, swapoff, const char *, path);
 
 
 static int whichApp;

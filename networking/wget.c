@@ -47,22 +47,22 @@
   } while (0)
 #endif	
 
-void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path);
-FILE *open_socket(char *host, int port);
-char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
-void progressmeter(int flag);
+static void parse_url(char *url, char **uri_host, int *uri_port, char **uri_path);
+static FILE *open_socket(char *host, int port);
+static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
+static void progressmeter(int flag);
 
 /* Globals (can be accessed from signal handlers */
 static off_t filesize = 0;		/* content-length of the file */
 #ifdef BB_FEATURE_WGET_STATUSBAR
 static char *curfile;			/* Name of current file being transferred. */
 static struct timeval start;	/* Time a transfer started. */
-volatile unsigned long statbytes; /* Number of bytes transferred so far. */
+static volatile unsigned long statbytes; /* Number of bytes transferred so far. */
 /* For progressmeter() -- number of seconds before xfer considered "stalled" */
 static const int STALLTIME = 5;
 #endif
 		
-void close_and_delete_outfile(FILE* output, char *fname_out, int do_continue)
+static void close_and_delete_outfile(FILE* output, char *fname_out, int do_continue)
 {
 	if (output != stdout && do_continue==0) {
 		fclose(output);
@@ -371,7 +371,7 @@ char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
  */ 
 
 
-int
+static int
 getttywidth(void)
 {
 	struct winsize winsize;
@@ -382,7 +382,7 @@ getttywidth(void)
 		return (80);
 }
 
-void
+static void
 updateprogressmeter(int ignore)
 {
 	int save_errno = errno;
@@ -391,7 +391,7 @@ updateprogressmeter(int ignore)
 	errno = save_errno;
 }
 
-void
+static void
 alarmtimer(int wait)
 {
 	struct itimerval itv;
@@ -403,7 +403,7 @@ alarmtimer(int wait)
 }
 
 
-void
+static void
 progressmeter(int flag)
 {
 	static const char prefixes[] = " KMGTP";
@@ -534,7 +534,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.28 2001/02/20 06:14:08 andersen Exp $
+ *	$Id: wget.c,v 1.29 2001/03/09 21:24:12 andersen Exp $
  */
 
 

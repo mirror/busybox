@@ -29,7 +29,7 @@
 #include <string.h>
 #include "busybox.h"
 
-int head(int len, FILE *fp)
+static int head(int len, FILE *fp)
 {
 	int i;
 	char *input;

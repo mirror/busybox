@@ -156,9 +156,9 @@ struct dnode {				/* the basic node */
 };
 typedef struct dnode dnode_t;
 
-struct dnode **list_dir(char *);
-struct dnode **dnalloc(int);
-int list_single(struct dnode *);
+static struct dnode **list_dir(char *);
+static struct dnode **dnalloc(int);
+static int list_single(struct dnode *);
 
 static unsigned int disp_opts;
 static unsigned int style_fmt;
@@ -186,7 +186,7 @@ static unsigned short column_width = COLUMN_WIDTH;
 static int status = EXIT_SUCCESS;
 
 #ifdef BB_FEATURE_HUMAN_READABLE
-unsigned long ls_disp_hr = 0;
+static unsigned long ls_disp_hr = 0;
 #endif
 
 static int my_stat(struct dnode *cur)
@@ -256,7 +256,7 @@ static int is_subdir(struct dnode *dn)
 			strcmp(dn->name, "..") != 0);
 }
 
-int countdirs(struct dnode **dn, int nfiles)
+static int countdirs(struct dnode **dn, int nfiles)
 {
 	int i, dirs;
 
@@ -268,7 +268,7 @@ int countdirs(struct dnode **dn, int nfiles)
 	return(dirs);
 }
 
-int countsubdirs(struct dnode **dn, int nfiles)
+static int countsubdirs(struct dnode **dn, int nfiles)
 {
 	int i, subdirs;
 
@@ -280,7 +280,7 @@ int countsubdirs(struct dnode **dn, int nfiles)
 	return subdirs;
 }
 
-int countfiles(struct dnode **dnp)
+static int countfiles(struct dnode **dnp)
 {
 	int nfiles;
 	struct dnode *cur;
@@ -293,7 +293,7 @@ int countfiles(struct dnode **dnp)
 }
 
 /* get memory to hold an array of pointers */
-struct dnode **dnalloc(int num)
+static struct dnode **dnalloc(int num)
 {
 	struct dnode **p;
 
@@ -303,7 +303,7 @@ struct dnode **dnalloc(int num)
 	return(p);
 }
 
-void dfree(struct dnode **dnp)
+static void dfree(struct dnode **dnp)
 {
 	struct dnode *cur, *next;
 
@@ -319,7 +319,7 @@ void dfree(struct dnode **dnp)
 	free(dnp);	/* free the array holding the dnode pointers */
 }
 
-struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
+static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
 {
 	int dncnt, i, d;
 	struct dnode **dnp;
@@ -359,7 +359,7 @@ struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
 
 /*----------------------------------------------------------------------*/
 #ifdef BB_FEATURE_LS_SORTFILES
-int sortcmp(struct dnode *d1, struct dnode *d2)
+static int sortcmp(struct dnode *d1, struct dnode *d2)
 {
 	int cmp, dif;
 
@@ -396,7 +396,7 @@ int sortcmp(struct dnode *d1, struct dnode *d2)
 }
 
 /*----------------------------------------------------------------------*/
-void shellsort(struct dnode **dn, int size)
+static void shellsort(struct dnode **dn, int size)
 {
 	struct dnode *temp;
 	int gap, i, j;
@@ -420,7 +420,7 @@ void shellsort(struct dnode **dn, int size)
 #endif
 
 /*----------------------------------------------------------------------*/
-void showfiles(struct dnode **dn, int nfiles)
+static void showfiles(struct dnode **dn, int nfiles)
 {
 	int i, ncols, nrows, row, nc;
 #ifdef BB_FEATURE_AUTOWIDTH
@@ -481,7 +481,7 @@ void showfiles(struct dnode **dn, int nfiles)
 }
 
 /*----------------------------------------------------------------------*/
-void showdirs(struct dnode **dn, int ndirs)
+static void showdirs(struct dnode **dn, int ndirs)
 {
 	int i, nfiles;
 	struct dnode **subdnp;
@@ -524,7 +524,7 @@ void showdirs(struct dnode **dn, int ndirs)
 }
 
 /*----------------------------------------------------------------------*/
-struct dnode **list_dir(char *path)
+static struct dnode **list_dir(char *path)
 {
 	struct dnode *dn, *cur, **dnp;
 	struct dirent *entry;
@@ -575,7 +575,7 @@ struct dnode **list_dir(char *path)
 }
 
 /*----------------------------------------------------------------------*/
-int list_single(struct dnode *dn)
+static int list_single(struct dnode *dn)
 {
 	int i, len;
 	char scratch[BUFSIZ + 1];

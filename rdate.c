@@ -39,10 +39,10 @@
 
 static const int RFC_868_BIAS = 2208988800UL;
 
-int setdate= 0;
-int printdate= 0;
+static int setdate= 0;
+static int printdate= 0;
 
-time_t askremotedate(char *host)
+static time_t askremotedate(char *host)
 {
 	struct hostent *h;
 	struct sockaddr_in sin;

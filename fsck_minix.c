@@ -701,7 +701,7 @@ static void read_tables(void)
 	}
 }
 
-struct minix_inode *get_inode(unsigned int nr)
+static struct minix_inode *get_inode(unsigned int nr)
 {
 	struct minix_inode *inode;
 
@@ -749,7 +749,7 @@ struct minix_inode *get_inode(unsigned int nr)
 }
 
 #ifdef BB_FEATURE_MINIX2
-struct minix2_inode *get_inode2(unsigned int nr)
+static struct minix2_inode *get_inode2(unsigned int nr)
 {
 	struct minix2_inode *inode;
 
