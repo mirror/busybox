@@ -47,6 +47,14 @@ volatile unsigned long statbytes; /* Number of bytes transferred so far. */
 /* For progressmeter() -- number of seconds before xfer considered "stalled" */
 static const int STALLTIME = 5;
 #endif
+		
+void close_and_delete_outfile(FILE* output, char *fname_out, int do_continue)
+{
+	if (output != stdout && do_continue==0) {
+		fclose(output);
+		unlink(fname_out);
+	}
+}
 
 int wget_main(int argc, char **argv)
 {
@@ -91,9 +99,6 @@ int wget_main(int argc, char **argv)
 	if (argc - optind != 1)
 			usage(wget_usage);
 
-	if (do_continue && !fname_out)
-		error_msg_and_die("cannot specify continue (-c) without a filename (-O)\n");
-
 	/*
 	 * Use the proxy if necessary.
 	 */
@@ -129,6 +134,8 @@ int wget_main(int argc, char **argv)
 		curfile=argv[optind];
 #endif
 	}
+	if (do_continue && !fname_out)
+		error_msg_and_die("cannot specify continue (-c) without a filename (-O)\n");
 
 
 	/*
@@ -147,8 +154,7 @@ int wget_main(int argc, char **argv)
 	 * Open the output file stream.
 	 */
 	if (fname_out != (char *)1) {
-		if ( (output=fopen(fname_out, (do_continue ? "a" : "w"))) 
-				== NULL)
+		if ( (output=fopen(fname_out, (do_continue ? "a" : "w"))) == NULL)
 			perror_msg_and_die("fopen(%s)", fname_out);
 	} else {
 		output = stdout;
@@ -172,6 +178,7 @@ int wget_main(int argc, char **argv)
 	fprintf(sfp, "GET http://%s:%d/%s HTTP/1.1\r\n", 
 			uri_host, uri_port, uri_path);
 	fprintf(sfp, "Host: %s\r\nUser-Agent: Wget\r\n", uri_host);
+
 	if (do_continue)
 		fprintf(sfp, "Range: bytes=%ld-\r\n", beg_range);
 	fprintf(sfp,"Connection: close\r\n\r\n");
@@ -180,6 +187,7 @@ int wget_main(int argc, char **argv)
 	 * Retrieve HTTP response line and check for "200" status code.
 	 */
 	if (fgets(buf, sizeof(buf), sfp) == NULL) {
+		close_and_delete_outfile(output, fname_out, do_continue);
 		error_msg_and_die("no response from server\n");
 	}
 	for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
@@ -187,28 +195,29 @@ int wget_main(int argc, char **argv)
 	for ( ; isspace(*s) ; ++s)
 		;
 	switch (atoi(s)) {
+		case 0:
 		case 200:
-			if (!do_continue)
-				break;
-			error_msg_and_die("server does not support ranges\n");
+			break;
 		case 206:
 			if (do_continue)
 				break;
 			/*FALLTHRU*/
 		default:
-			error_msg_and_die("server returned error: %s", buf);
+			close_and_delete_outfile(output, fname_out, do_continue);
+			error_msg_and_die("server returned error %d: %s", atoi(s), buf);
 	}
 
 	/*
 	 * Retrieve HTTP headers.
 	 */
 	while ((s = gethdr(buf, sizeof(buf), sfp, &n)) != NULL) {
-		if (strcmp(buf, "content-length") == 0) {
+		if (strcasecmp(buf, "content-length") == 0) {
 			filesize = atol(s);
 			got_clen = 1;
 			continue;
 		}
-		if (strcmp(buf, "transfer-encoding") == 0) {
+		if (strcasecmp(buf, "transfer-encoding") == 0) {
+			close_and_delete_outfile(output, fname_out, do_continue);
 			error_msg_and_die("server wants to do %s transfer encoding\n", s);
 			continue;
 		}
@@ -511,7 +520,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.20 2001/01/24 18:44:54 andersen Exp $
+ *	$Id: wget.c,v 1.21 2001/01/24 20:28:35 andersen Exp $
  */
 
 
