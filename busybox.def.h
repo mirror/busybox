@@ -86,6 +86,7 @@
 #define BB_TOUCH
 #define BB_TRUE_FALSE
 #define BB_TTY
+#define BB_UPTIME
 #define BB_WC
 #define BB_WHOAMI
 #define BB_UMOUNT

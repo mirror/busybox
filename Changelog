@@ -1,5 +1,5 @@
 0.43
-	* Wrote basename.
+	* Wrote basename, and uptime.
 	* Added freeramdisk, which will free up all memory associated
 	    with a ram disk.  Contributed by Emanuele Caratti <wiz@iol.it>
 	    and then adjusted a bit by me.

@@ -268,11 +268,14 @@ static const struct Applet applets[] = {
 #ifdef BB_TTY					//usr/bin
 	{"tty", tty_main},
 #endif
+#ifdef BB_UMOUNT				//bin
+	{"umount", umount_main},
+#endif
 #ifdef BB_UNAME					//bin
 	{"uname", uname_main},
 #endif
-#ifdef BB_UMOUNT				//bin
-	{"umount", umount_main},
+#ifdef BB_UPTIME				//usr/bin
+	{"uptime", uptime_main},
 #endif
 #ifdef BB_UNIQ					//bin
 	{"uniq", uniq_main},
