@@ -54,6 +54,13 @@ int query_module(const char *name, int which, void *buf, size_t bufsize,
 #define QM_SYMBOLS	4
 #define QM_INFO		5
 
+/* Bits of module.flags.  */
+#define NEW_MOD_RUNNING		1
+#define NEW_MOD_DELETED		2
+#define NEW_MOD_AUTOCLEAN	4
+#define NEW_MOD_VISITED		8
+#define NEW_MOD_USED_ONCE	16
+#define NEW_MOD_INITIALIZING	64
 
 
 extern int lsmod_main(int argc, char **argv)
@@ -95,6 +102,19 @@ extern int lsmod_main(int argc, char **argv)
 		}
 		if (count) printf("]");
 		printf("\n");
+
+		if (info.flags & NEW_MOD_DELETED)
+			printf(" (deleted)");
+		else if (info.flags & NEW_MOD_INITIALIZING)
+			printf(" (initializing)");
+		else if (!(info.flags & NEW_MOD_RUNNING))
+			printf(" (uninitialized)");
+		else {
+			if (info.flags & NEW_MOD_AUTOCLEAN)
+				printf(" (autoclean)");
+			if (!(info.flags & NEW_MOD_USED_ONCE))
+				printf(" (unused)");
+		}
 	}
 
 
