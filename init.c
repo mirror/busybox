@@ -440,6 +440,12 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		signal(SIGHUP, SIG_DFL);
 
 		if ((fd = device_open(terminal, O_RDWR)) < 0) {
+			struct stat statBuf;
+			if (stat(terminal, &statBuf) != 0) {
+				message(LOG | CONSOLE, "device '%s' does not exist.\n",
+						terminal);
+				exit(1);
+			}
 			message(LOG | CONSOLE, "Bummer, can't open %s\r\n", terminal);
 			exit(1);
 		}
@@ -813,16 +819,8 @@ static void parse_inittab(void)
 		while (a->name != 0) {
 			if (strcmp(a->name, action) == 0) {
 				if (*id != '\0') {
-					struct stat statBuf;
-
 					strcpy(tmpConsole, "/dev/");
 					strncat(tmpConsole, id, 200);
-					if (stat(tmpConsole, &statBuf) != 0) {
-						message(LOG | CONSOLE,
-								"device '%s' does not exist.  Did you read the directions?\n",
-								tmpConsole);
-						break;
-					}
 					id = tmpConsole;
 				}
 				new_initAction(a->action, process, id);
