@@ -2,9 +2,8 @@
 /*
  * Mini tee implementation for busybox
  *
- *
  * Copyright (C) 1999,2000 by Lineo, inc.
- * Written by John Beppu <beppu@lineo.com>
+ * Written by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,102 +22,47 @@
  */
 
 #include "internal.h"
-#include <errno.h>
+#include <getopt.h>
 #include <stdio.h>
 
-/* FileList _______________________________________________________________ */
-
-#define FL_MAX	1024
-static FILE **FileList;
-static int FL_end;
-
-typedef void (FL_Function) (FILE * file, char c);
-
-
-/* apply a function to everything in FileList */
-static void FL_apply(FL_Function * f, char c)
+int
+tee_main(int argc, char **argv)
 {
-	int i;
+	char *mode = "w";
+	int c, i, status = 0, nfiles = 0;
+	FILE **files;
 
-	for (i = 0; i <= FL_end; i++) {
-		f(FileList[i], c);
-	}
-}
-
-/* FL_Function for writing to files*/
-static void tee_fwrite(FILE * file, char c)
-{
-	fputc(c, file);
-}
-
-/* FL_Function for closing files */
-static void tee_fclose(FILE * file, char c)
-{
-	fclose(file);
-}
-
-/* ________________________________________________________________________ */
-
-/* BusyBoxed tee(1) */
-int tee_main(int argc, char **argv)
-{
-	int i;
-	char c;
-	char opt;
-	char opt_fopen[2] = "w";
-	FILE *file;
-
-	/* parse argv[] */
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == '-') {
-			opt = argv[i][1];
-			switch (opt) {
-			case 'a':
-				opt_fopen[0] = 'a';
-				break;
-#if 0
-			case 'i':
-				fprintf(stderr, "ignore interrupt not implemented\n");
-				break;
-#endif
-			default:
-				usage(tee_usage);
-			}
-		} else {
+	while ((c = getopt(argc, argv, "a")) != EOF) {
+		switch (c) {
+		case 'a': 
+			mode = "a";
 			break;
+		default:
+			usage(tee_usage);
 		}
 	}
 
-	/* init FILE pointers */
-	FileList = calloc(FL_MAX, sizeof(FILE*));
-	if (!FileList) {
-		errorMsg("%s\n", strerror(errno));
-		exit(1);
-	}
-	FL_end = 0;
-	FileList[0] = stdout;
-	for (; i < argc; i++) {
-		/* add a file to FileList */
-		file = fopen(argv[i], opt_fopen);
-		if (!file) {
-			continue;
-		}
-		if (FL_end < FL_MAX) {
-			FileList[++FL_end] = file;
+	files = (FILE **)xmalloc(sizeof(FILE *) * (argc - optind + 1));
+	files[nfiles++] = stdout;
+	while (optind < argc) {
+		if ((files[nfiles++] = fopen(argv[optind++], mode)) == NULL) {
+			nfiles--;
+			errorMsg("%s: %s\n", argv[optind-1], strerror(errno));
+			status = 1;
 		}
 	}
 
-	/* read and redirect */
-	while ((c = (char) getchar()) && (!feof(stdin))) {
-		FL_apply(tee_fwrite, c);
-	}
+	while ((c = getchar()) != EOF)
+		for (i = 0; i < nfiles; i++)
+			putc(c, files[i]);
 
-	/* clean up */
-	FL_apply(tee_fclose, 0);
-	/* Don't bother to close files  Exit does that 
-	 * automagically, so we can save a few bytes */
-	/* free(FileList); */
-	return(0);
+	return status;
 }
 
-/* $Id: tee.c,v 1.13 2000/07/16 20:57:15 kraai Exp $ */
+/*
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/
