@@ -29,7 +29,6 @@
 #include <signal.h>
 #include <paths.h>
 #include <sys/socket.h>
-#include <sys/sysinfo.h>
 #include <stdarg.h>
 
 #include "common.h"
@@ -42,7 +41,7 @@ long uptime(void)
 {
 	struct sysinfo info;
 	sysinfo(&info);
-	printf("uptime %d\n", info.uptime);
+	printf("uptime %ld\n", (long)info.uptime);
 	return info.uptime;
 }
 
