@@ -299,7 +299,7 @@ static int rlookup(char *n);
 static struct wdblock *glob(char *cp, struct wdblock *wb);
 static int my_getc(int ec);
 static int subgetc(int ec, int quoted);
-static char **makenv(int all);
+static char **makenv(int all, struct wdblock *wb);
 static char **eval(char **ap, int f);
 static int setstatus(int s);
 static int waitfor(int lastpid, int canintr);
@@ -3032,7 +3032,7 @@ forkexec(REGISTER struct op *t, int *pin, int *pout, int act, char **wp)
 	if (wp[0] == NULL)
 		_exit(0);
 
-	cp = rexecve(wp[0], wp, makenv(0));
+	cp = rexecve(wp[0], wp, makenv(0, NULL));
 	prs(wp[0]);
 	prs(": ");
 	err(cp);
@@ -3486,7 +3486,7 @@ struct op *t;
 		signal(SIGINT, SIG_DFL);
 		signal(SIGQUIT, SIG_DFL);
 	}
-	cp = rexecve(t->words[0], t->words, makenv(0));
+	cp = rexecve(t->words[0], t->words, makenv(0, NULL));
 	prs(t->words[0]);
 	prs(": ");
 	err(cp);
@@ -3954,14 +3954,12 @@ static char **eval(char **ap, int f)
  * names in the dictionary. Keyword assignments
  * will already have been done.
  */
-static char **makenv(int all)
+static char **makenv(int all, struct wdblock *wb)
 {
-	REGISTER struct wdblock *wb;
 	REGISTER struct var *vp;
 
 	DBGPRINTF5(("MAKENV: enter, all=%d\n", all));
 
-	wb = NULL;
 	for (vp = vlist; vp; vp = vp->next)
 		if (all || vp->status & EXPORT)
 			wb = addword(vp->name, wb);
@@ -4251,6 +4249,7 @@ int quoted;
 	int ignore;
 	int ignore_once;
 	char *argument_list[4];
+	struct wdblock *wb = NULL;
 
 #if __GNUC__
 	/* Avoid longjmp clobbering */
@@ -4323,22 +4322,47 @@ int quoted;
 				src++;
 			}
 
-			vp = lookup(var_name);
-			if (vp->value != null)
-				value = (operator == '+') ? alt_value : vp->value;
-			else if (operator == '?') {
-				err(alt_value);
-				return (0);
-			} else if (alt_index && (operator != '+')) {
-				value = alt_value;
-				if (operator == '=')
-					setval(vp, value);
-			} else
-				continue;
+			if (isalpha(*var_name)) {
+				/* let subshell handle it instead */
 
-			while (*value && (count < LINELIM)) {
-				*dest++ = *value++;
-				count++;
+				char *namep = var_name;
+
+				*dest++ = '$';
+				if (braces)
+					*dest++ = '{';
+				while (*namep)
+					*dest++ = *namep++;
+				if (operator) {
+					char *altp = alt_value;
+					*dest++ = operator;
+					while (*altp)
+						*dest++ = *altp++;
+				}
+				if (braces)
+					*dest++ = '}';
+
+				wb = addword(lookup(var_name)->name, wb);
+			} else {
+				/* expand */
+
+				vp = lookup(var_name);
+				if (vp->value != null)
+					value = (operator == '+') ?
+						alt_value : vp->value;
+				else if (operator == '?') {
+					err(alt_value);
+					return (0);
+				} else if (alt_index && (operator != '+')) {
+					value = alt_value;
+					if (operator == '=')
+						setval(vp, value);
+				} else
+					continue;
+
+				while (*value && (count < LINELIM)) {
+					*dest++ = *value++;
+					count++;
+				}
 			}
 		} else {
 			*dest++ = *src++;
@@ -4383,7 +4407,7 @@ int quoted;
 	argument_list[2] = child_cmd;
 	argument_list[3] = 0;
 
-	cp = rexecve(argument_list[0], argument_list, makenv(1));
+	cp = rexecve(argument_list[0], argument_list, makenv(1, wb));
 	prs(argument_list[0]);
 	prs(": ");
 	err(cp);
