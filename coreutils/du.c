@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <string.h>
 #include <errno.h>
 #include "busybox.h"
 #define BB_DECLARE_EXTERN
@@ -196,7 +197,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.42 2001/03/07 17:42:07 markw Exp $ */
+/* $Id: du.c,v 1.43 2001/03/09 14:36:42 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

@@ -198,8 +198,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 	char buf[256];
 	char *p = buf;
 
-	if ((f = fopen(fn, "r")) == NULL)
-		perror_msg_and_die("readmode(fopen)");
+	f = xfopen(fn, "r");
 	while (!feof(f)) {
 		fgets(buf, sizeof(buf), f);
 		if ((p = strstr(buf, "mode ")) || (p = strstr(buf, "mode\t"))) {

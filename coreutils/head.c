@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <string.h>
 #include "busybox.h"
 
 int head(int len, FILE *fp)

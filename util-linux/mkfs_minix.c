@@ -683,10 +683,7 @@ char *filename;
 	FILE *listfile;
 	unsigned long blockno;
 
-	listfile = fopen(filename, "r");
-	if (listfile == (FILE *) NULL) {
-		error_msg_and_die("can't open file of bad blocks");
-	}
+	listfile = xfopen(filename, "r");
 	while (!feof(listfile)) {
 		fscanf(listfile, "%ld\n", &blockno);
 		mark_zone(blockno);

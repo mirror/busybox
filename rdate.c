@@ -28,6 +28,8 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <getopt.h>
+#include <string.h>
+#include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "busybox.h"

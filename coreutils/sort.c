@@ -22,6 +22,7 @@
  */
 
 #include <getopt.h>
+#include <string.h>
 #include <stdlib.h>
 #include "busybox.h"
 

@@ -26,6 +26,7 @@
 #include <mntent.h>
 #include <dirent.h>
 #include <errno.h>
+#include <string.h>
 #include <stdlib.h>
 #include <sys/mount.h>
 #include <sys/syscall.h>

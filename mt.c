@@ -1,6 +1,7 @@
 /* vi: set sw=4 ts=4: */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/mtio.h>
 #include <sys/fcntl.h>
 #include "busybox.h"
