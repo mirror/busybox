@@ -27,6 +27,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/types.h>
+#include <ctype.h>
+
 #include "busybox.h"
 
 #define VTNAME "/dev/tty%d"
