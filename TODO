@@ -1,0 +1,11 @@
+Busybox TODO
+
+Stuff that needs to be done
+
+----
+tr - missing SuS3 features in busybox 1.0pre10 
+
+tr doesnt support [:blank:], [:digit:] or other predefined classes, [=equiv=]
+support is also missing.
+----
+ 
