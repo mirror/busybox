@@ -176,6 +176,8 @@ int chmod_chown_chgrp_main(int argc, char **argv)
     struct passwd *pwd;
     int recursiveFlag=FALSE;
     char *groupName;
+    mode_t andWithMode = S_ISVTX|S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
+    mode_t orWithMode = 0;
 
 
     whichApp = (strcmp(*argv, "chown")==0)? CHOWN_APP : (strcmp(*argv, "chmod")==0)? CHMOD_APP : CHGRP_APP; 
