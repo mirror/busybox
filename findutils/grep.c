@@ -42,7 +42,7 @@ static int suppress_err_msgs = 0;
 
 /* globals */
 static regex_t regex; /* storage space for compiled regular expression */
-static int nmatches = 0; /* keeps track of the number of matches */
+static int matched; /* keeps track of whether we ever matched */
 static char *cur_file = NULL; /* the current file we are reading */
 
 
@@ -64,6 +64,7 @@ static void grep_file(FILE *file)
 	char *line = NULL;
 	int ret;
 	int linenum = 0;
+	int nmatches = 0;
 
 	while ((line = get_line_from_file(file)) != NULL) {
 		linenum++;
@@ -96,8 +97,9 @@ static void grep_file(FILE *file)
 		printf("%i\n", nmatches);
 	}
 
-	/* reset number of matches found to zero */
-	nmatches = 0;
+	/* record if we matched */
+	if (nmatches != 0)
+		matched = 1;
 }
 
 extern int grep_main(int argc, char **argv)
@@ -176,7 +178,7 @@ extern int grep_main(int argc, char **argv)
 
 	regfree(&regex);
 
-	if (nmatches == 0)
+	if (!matched)
 		return 1;
 
 	return 0;
