@@ -3,6 +3,7 @@
  * Modprobe written from scratch for BusyBox
  *
  * Copyright (c) 2002 by Robert Griebl, griebl@gmx.de
+ * Copyright (c) 2003 by Andrew Dennison, andrew.dennison@motec.com.au
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -317,10 +318,7 @@ static struct dep_t *build_dep ( void )
 static int mod_process ( struct mod_list_t *list, int do_insert )
 {
 	char lcmd [256];
-	int rc = 0;
-
-	if ( !list )
-		return 1;
+	int rc = 1;
 
 	while ( list ) {
 		if ( do_insert )
@@ -330,12 +328,15 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 		
 		if ( verbose )
 			printf ( "%s\n", lcmd );
-		if ( !show_only )
-			rc |= system ( lcmd );
+		if ( !show_only ) {
+			int rc2 = system ( lcmd );
+			if (do_insert) rc = rc2; /* only last module matters */
+			else if (!rc2) rc = 0; /* success if remove any mod */
+		}
 			
 		list = do_insert ? list-> m_prev : list-> m_next;
 	}
-	return rc;
+	return (show_only) ? 0 : rc;
 }
 
 static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t **tail )
@@ -429,7 +430,7 @@ static int mod_insert ( char *mod, int argc, char **argv )
 {
 	struct mod_list_t *tail = 0;
 	struct mod_list_t *head = 0; 	
-	int rc = 0;
+	int rc;
 	
 	// get dep list for module mod
 	check_dep ( mod, &head, &tail );
@@ -453,7 +454,7 @@ static int mod_insert ( char *mod, int argc, char **argv )
 		}
 		
 		// process tail ---> head
-		rc |= mod_process ( tail, 1 );
+		rc = mod_process ( tail, 1 );
 	}
 	else
 		rc = 1;
@@ -461,8 +462,9 @@ static int mod_insert ( char *mod, int argc, char **argv )
 	return rc;
 }
 
-static void mod_remove ( char *mod )
+static int mod_remove ( char *mod )
 {
+	int rc;
 	static struct mod_list_t rm_a_dummy = { "-a", 0, 0 }; 
 	
 	struct mod_list_t *head = 0;
@@ -474,7 +476,11 @@ static void mod_remove ( char *mod )
 		head = tail = &rm_a_dummy;
 	
 	if ( head && tail )
-		mod_process ( head, 0 );  // process head ---> tail
+		rc = mod_process ( head, 0 );  // process head ---> tail
+	else
+		rc = 1;
+	return rc;
+	
 }
 
 
@@ -530,11 +536,17 @@ extern int modprobe_main(int argc, char** argv)
 		bb_error_msg_and_die ( "could not parse modules.dep\n" );
 	
 	if (remove_opt) {
+		int rc = EXIT_SUCCESS;
 		do {
-			mod_remove ( optind < argc ? bb_xstrdup ( argv [optind] ) : NULL );
+			if (mod_remove ( optind < argc ?
+					 bb_xstrdup (argv [optind]) : NULL )) {
+				bb_error_msg ("failed to remove module %s",
+					argv [optind] );
+				rc = EXIT_FAILURE;
+			}
 		} while ( ++optind < argc );
 		
-		return EXIT_SUCCESS;
+		return rc;
 	}
 
 	if (optind >= argc) 
