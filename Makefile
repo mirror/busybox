@@ -268,10 +268,12 @@ CFLAGS += $(CFLAGS_EXTRA)
 
 .EXPORT_ALL_VARIABLES:
 
-all: applet_source_list busybox busybox.links doc
+all: sh_link applet_source_list busybox busybox.links doc
+
+sh_link:
+	@if [ ! -L sh.c ] ; then ln -s lash.c sh.c ; fi
 
 applet_source_list: busybox.sh Config.h
-	if [ ! -L sh.c ] ; then ln -s lash.c sh.c ; fi
 	(echo -n "APPLET_SOURCES := "; $(SHELL) $^ $(BB_SRC_DIR)) > $@
 
 doc: olddoc
