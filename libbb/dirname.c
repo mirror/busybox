@@ -22,7 +22,8 @@
 #include <string.h>
 #include "libbb.h"
 
-/* Return a string on the heap containing the directory component of PATH.  */
+/* Return a string containing the path name of the parent
+ * directory of PATH.  */
 
 char *dirname(const char *path)
 {
@@ -43,7 +44,8 @@ char *dirname(const char *path)
 		s--;
 
 	if (s < path)
-		return xstrdup (".");
-	else
-		return xstrndup (path, s - path + 1);
+		return ".";
+
+	s[1] = '\0';
+	return path;
 }

@@ -50,13 +50,17 @@ int make_directory (char *path, long mode, int flags)
 
 		if (stat (path, &st) < 0 && errno == ENOENT) {
 			int status;
-			char *parent = dirname (path);
-			mode_t mask = umask (0);
+			char *buf, *parent;
+			mode_t mask;
+
+			mask = umask (0);
 			umask (mask);
 
+			buf = xstrdup (path);
+			parent = dirname (buf);
 			status = make_directory (parent, (0777 & ~mask) | 0300,
 					FILEUTILS_RECUR);
-			free (parent);
+			free (buf);
 
 			if (status < 0 || make_directory (path, mode, 0) < 0)
 				return -1;

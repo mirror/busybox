@@ -127,13 +127,15 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 			}
 		}
 		if (function & extract_create_leading_dirs) { /* Create leading directories with default umask */
-			char *parent = dirname(full_name);
+			char *buf, *parent;
+			buf = xstrdup(full_name);
+			parent = dirname(full_name);
 			if (make_directory (parent, -1, FILEUTILS_RECUR) != 0) {
 				if ((function & extract_quiet) != extract_quiet) {
 					error_msg("couldn't create leading directories");
 				}
 			}
-			free (parent);
+			free (buf);
 		}
 		switch(file_entry->mode & S_IFMT) {
 			case S_IFREG:

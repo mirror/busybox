@@ -342,9 +342,11 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 	if (extractFlag==TRUE && tostdoutFlag==FALSE) {
 		/* Create the path to the file, just in case it isn't there...
 		 * This should not screw up path permissions or anything. */
-		char *dir = dirname (header->name);
+		char *buf, *dir;
+		buf = xstrdup (header->name);
+		dir = dirname (buf);
 		make_directory (dir, -1, FILEUTILS_RECUR);
-		free (dir);
+		free (buf);
 		if ((outFd=open(header->name, O_CREAT|O_TRUNC|O_WRONLY, 
 						header->mode & ~S_IFMT)) < 0) {
 			error_msg(io_error, header->name, strerror(errno)); 
