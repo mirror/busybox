@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <limits.h>
 
 /* Constants for huffman coding */
 #define MAX_GROUPS			6
@@ -37,13 +38,14 @@
 /* Other housekeeping constants */
 #define IOBUF_SIZE			4096
 
-char *bunzip_errors[]={NULL,"Bad file checksum","Not bzip data",
+static char * const bunzip_errors[]={NULL,"Bad file checksum","Not bzip data",
 		"Unexpected input EOF","Unexpected output EOF","Data error",
 		 "Out of memory","Obsolete (pre 0.9.5) bzip format not supported."};
 
 /* This is what we know about each huffman coding group */
 struct group_data {
-	int limit[MAX_HUFCODE_BITS],base[MAX_HUFCODE_BITS],permute[MAX_SYMBOLS];
+	/* We have an extra slot at the end of limit[] for a sentinal value. */
+	int limit[MAX_HUFCODE_BITS+1],base[MAX_HUFCODE_BITS],permute[MAX_SYMBOLS];
 	char minLen, maxLen;
 };
 
@@ -82,7 +84,7 @@ static unsigned int get_bits(bunzip_data *bd, char bits_wanted)
 	while (bd->inbufBitCount<bits_wanted) {
 		/* If we need to read more data from file into byte buffer, do so */
 		if(bd->inbufPos==bd->inbufCount) {
-			if(!(bd->inbufCount = read(bd->in_fd, bd->inbuf, IOBUF_SIZE)))
+			if((bd->inbufCount = read(bd->in_fd, bd->inbuf, IOBUF_SIZE)) <= 0)
 				longjmp(bd->jmpbuf,RETVAL_UNEXPECTED_INPUT_EOF);
 			bd->inbufPos=0;
 		}
@@ -103,6 +105,14 @@ static unsigned int get_bits(bunzip_data *bd, char bits_wanted)
 
 	return bits;
 }
+
+/* At certain times, it pays to have an optimized inline version of
+ * get_bits() which gets a single bit. */
+#define GET_A_BIT(bd) \
+   ((bd->inbufBitCount > 0) \
+	? ((unsigned int)(((bd)->inbufBits >> --(bd)->inbufBitCount) & 1)) \
+	: get_bits((bd), 1))
+
 
 /* Decompress a block of text to into intermediate buffer */
 
@@ -140,7 +150,10 @@ extern int read_bunzip_data(bunzip_data *bd)
 	   values were present.  We make a translation table to convert the symbols
 	   back to the corresponding bytes. */
 	t=get_bits(bd, 16);
+#if 0
+	/* I don't believe this is necessary.  Rob? */
 	memset(symToByte,0,256);
+#endif
 	symTotal=0;
 	for (i=0;i<16;i++) {
 		if(t&(1<<(15-i))) {
@@ -162,7 +175,13 @@ extern int read_bunzip_data(bunzip_data *bd)
 		for(j=0;get_bits(bd,1);j++) if (j>=groupCount) return RETVAL_DATA_ERROR;
 		/* Decode MTF to get the next selector */
 		uc = mtfSymbol[j];
-		memmove(mtfSymbol+1,mtfSymbol,j);
+		/* A very small amount of data to move, so memmove is overkill
+		 * and bigger at least in my tests. */
+		k = j;
+		while (k) {
+			mtfSymbol[k] = mtfSymbol[k-1];
+			--k;
+		}
 		mtfSymbol[0]=selectors[i]=uc;
 	}
 	/* Read the huffman coding tables for each group, which code for symTotal
@@ -172,15 +191,15 @@ extern int read_bunzip_data(bunzip_data *bd)
 		unsigned char length[MAX_SYMBOLS],temp[MAX_HUFCODE_BITS+1];
 		int	minLen,	maxLen, pp;
 		/* Read lengths */
-		t=get_bits(bd, 5);
+		t=get_bits(bd, 5) - 1;	/* This lets us avoid a test in the loop. */
 		for (i = 0; i < symCount; i++) {
 			for(;;) {
-				if (t < 1 || t > MAX_HUFCODE_BITS) return RETVAL_DATA_ERROR;
+				if (((unsigned)t) > (MAX_HUFCODE_BITS-1)) return RETVAL_DATA_ERROR;
 					if(!get_bits(bd, 1)) break;
-					if(!get_bits(bd, 1)) t++;
-					else t--;
+					/* We can avoid an if/else with a little arithmetic. */
+					t += (1 - 2*get_bits(bd, 1)); /* 0 -> t++ ; 1 -> t-- */
 			}
-			length[i] = t;
+			length[i] = t + 1;	/* Correct for the initial -1 adjustment. */
 		}
 		/* Find largest and smallest lengths in this group */
 		minLen=maxLen=length[0];
@@ -228,6 +247,7 @@ extern int read_bunzip_data(bunzip_data *bd)
 			pp<<=1;
 			base[i+1]=pp-(t+=temp[i]);
 		}
+		limit[maxLen+1] = INT_MAX; /* Sentinal value for reading next sym. */
 		limit[maxLen]=pp+temp[maxLen]-1;
 		base[minLen]=0;
 	}
@@ -252,19 +272,15 @@ extern int read_bunzip_data(bunzip_data *bd)
 		/* Read next huffman-coded symbol */
 		i = hufGroup->minLen;
 		j=get_bits(bd, i);
-		for(;;) {
-			if (i > hufGroup->maxLen) return RETVAL_DATA_ERROR;
-			if (j <= limit[i]) break;
-			i++;
-
-			j = (j << 1) | get_bits(bd,1);
+		while (j > limit[i]) { /* The sentinal allows us to avoid testing i. */
+			j = (j << 1) | GET_A_BIT(bd);
+			++i;
 		}
 		/* Huffman decode nextSym (with bounds checking) */
-		j-=base[i];
-		if (j < 0 || j >= MAX_SYMBOLS) return RETVAL_DATA_ERROR;
+		if ((i > hufGroup->maxLen) || (((unsigned)(j-=base[i])) >= MAX_SYMBOLS)) return RETVAL_DATA_ERROR;
 		nextSym = hufGroup->permute[j];
 		/* If this is a repeated run, loop collecting data */
-		if (nextSym == SYMBOL_RUNA || nextSym == SYMBOL_RUNB) {
+		if (((unsigned)nextSym) <= SYMBOL_RUNB) { /* RUNA or RUNB */
 			/* If this is the start of a new run, zero out counter */
 			if(!runPos) {
 				runPos = 1;
@@ -277,8 +293,7 @@ extern int read_bunzip_data(bunzip_data *bd)
 			   the basic or 0/1 method (except all bits 0, which would use no
 			   symbols, but a run of length 0 doesn't mean anything in this
 			   context).  Thus space is saved. */
-			if (nextSym == SYMBOL_RUNA) t += runPos;
-			else t += 2*runPos;
+			t += (runPos << nextSym); /* +runPos if RUNA; +2*runPos if RUNB */
 			runPos <<= 1;
 			continue;
 		}
@@ -305,7 +320,13 @@ extern int read_bunzip_data(bunzip_data *bd)
 		if(dbufCount>=dbufSize) return RETVAL_DATA_ERROR;
 		i = nextSym - 1;
 		uc = mtfSymbol[i];
-		memmove(mtfSymbol+1,mtfSymbol,i);
+		/* Since we typically expect to move only a small number of symbols,
+		 * and are bound by 256 in any case, using memmove here would
+		 * typically be slower due to function call overhead and other
+		 * assorted setup costs. */
+		do {
+			mtfSymbol[i] = mtfSymbol[i-1];
+		} while (--i);
 		mtfSymbol[0] = uc;
 		uc=symToByte[uc];
 		/* We have our literal byte.  Save it into dbuf. */
@@ -319,7 +340,7 @@ extern int read_bunzip_data(bunzip_data *bd)
 	 */
 
 	/* Now we know what dbufCount is, do a better sanity check on origPtr.  */
-	if (origPtr<0 || origPtr>=dbufCount) return RETVAL_DATA_ERROR;
+	if (((unsigned)origPtr)>=dbufCount) return RETVAL_DATA_ERROR;
 	/* Turn byteCount into cumulative occurrence counts of 0 to n-1. */
 	j=0;
 	for(i=0;i<256;i++) {
