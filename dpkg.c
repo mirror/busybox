@@ -1127,6 +1127,48 @@ void all_control_list(char **remove_files, const char *package_name)
 	remove_files[10] = NULL;
 }
 
+
+/* This function lists information on the installed packages. It loops through
+ * the status_hashtable to retrieve the info. This results in smaller code than
+ * scanning the status file. The resulting list, however, is unsorted. 
+ */
+void list_packages(void)
+{
+        int i;
+
+	printf("    Name           Version\n");
+	printf("+++-==============-==============\n");
+	
+	/* go through status hash, dereference package hash and finally strings */
+	for (i=0; i<STATUS_HASH_PRIME+1; i++) {
+
+	        if (status_hashtable[i]) {
+		        const char *stat_str;  /* status string */
+			const char *name_str;  /* package name */
+			const char *vers_str;  /* version */
+			char  s1, s2;          /* status abbreviations */
+			int   spccnt;          /* space count */      
+			int   j;
+			
+			stat_str = name_hashtable[status_hashtable[i]->status];
+			name_str = name_hashtable[package_hashtable[status_hashtable[i]->package]->name];
+			vers_str = name_hashtable[package_hashtable[status_hashtable[i]->package]->version];
+			
+			/* get abbreviation for status field 1 */
+			s1 = stat_str[0] == 'i' ? 'i' : 'r';
+			
+			/* get abbreviation for status field 2 */
+			for (j=0, spccnt=0; stat_str[j] && spccnt<2; j++) {
+			        if (stat_str[j] == ' ') spccnt++;
+			}
+			s2 = stat_str[j];
+			
+			/* print out the line formatted like Debian dpkg */
+			printf("%c%c  %-14s %s\n", s1, s2, name_str, vers_str);
+		}
+    }
+}
+
 void remove_package(const unsigned int package_num)
 {
 	const char *package_name = name_hashtable[package_hashtable[package_num]->name];
@@ -1304,6 +1346,7 @@ extern int dpkg_main(int argc, char **argv)
 				break;
 			case 'l':
 				dpkg_opt |= dpkg_opt_list_installed;
+				break;
 			case 'P':
 				dpkg_opt |= dpkg_opt_purge;
 				dpkg_opt |= dpkg_opt_package_name;
@@ -1320,14 +1363,20 @@ extern int dpkg_main(int argc, char **argv)
 				show_usage();
 		}
 	}
-
-	if ((argc == optind) || (dpkg_opt == 0)) {
+	/* check for non-otion argument if expected  */
+	if ((dpkg_opt == 0) || ((argc == optind) && !(dpkg_opt && dpkg_opt_list_installed))) {
 		show_usage();
-	} 
+	}
 
-	puts("(Reading database ... xxxxx files and directories installed.)");
+/*	puts("(Reading database ... xxxxx files and directories installed.)"); */
 	index_status_file("/var/lib/dpkg/status");
 
+	/* if the list action was given print the installed packages and exit */
+	if (dpkg_opt & dpkg_opt_list_installed) {
+		list_packages();
+		return(EXIT_SUCCESS);
+	}
+	
 	/* Read arguments and store relevant info in structs */
 	deb_file = xmalloc(sizeof(deb_file_t));
 	while (optind < argc) {
