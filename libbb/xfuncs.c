@@ -85,6 +85,12 @@ FILE *xfopen(const char *path, const char *mode)
 	return fp;
 }
 
+/* Stupid gcc always includes its own builtin strlen()... */
+size_t xstrlen(const char *string)
+{
+	    return(strlen(string));
+}
+
 /* END CODE */
 /*
 Local Variables:

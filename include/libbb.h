@@ -293,4 +293,8 @@ int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 
+/* Stupid gcc always includes its own builtin strlen()... */
+extern size_t xstrlen(const char *string);
+#define strlen(x)   xstrlen(x)
+
 #endif /* __LIBCONFIG_H__ */
