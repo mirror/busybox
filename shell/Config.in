@@ -182,7 +182,7 @@ config CONFIG_FEATURE_SH_STANDALONE_SHELL
 config CONFIG_FEATURE_SH_APPLETS_ALWAYS_WIN
 	bool "Standalone shell -- applets always win"
 	default n
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	depends on CONFIG_FEATURE_SH_STANDALONE_SHELL
 	help
 	  Use a command builtin to the shell over one with the same name,
 	  that may be on the system.
