@@ -19,6 +19,7 @@
 #define BB_CLEAR
 //#define BB_CMP
 #define BB_CP
+//#define BB_CPIO
 #define BB_CUT
 #define BB_DATE
 //#define BB_DC

@@ -119,10 +119,11 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 		}
 	}
 	else if (function & extract_all_to_fs) {
-#if 0
 		struct stat oldfile;
-		if ( (S_ISLNK(file_entry->mode) ? lstat (full_name, &oldfile) : stat (full_name, &oldfile)) == 0) { /* The file already exists */
-			if (function & extract_unconditional || oldfile.st_mtime < file_entry->mtime) {
+		int stat_res;
+		stat_res = lstat (full_name, &oldfile);
+		if (stat_res == 0) { /* The file already exists */
+			if ((function & extract_unconditional) || (oldfile.st_mtime < file_entry->mtime)) {
 				if (!S_ISDIR(oldfile.st_mode)) {
 					unlink(full_name); /* Directories might not be empty etc */
 				}
@@ -134,7 +135,6 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 				return (NULL);
 			}
 		}
-#endif
 		switch(file_entry->mode & S_IFMT) {
 			case S_IFREG:
 				if (file_entry->link_name) { /* Found a cpio hard link */
@@ -153,10 +153,11 @@ char *extract_archive(FILE *src_stream, FILE *out_stream, const file_header_t *f
 				}
 				break;
 			case S_IFDIR:
-				/* Use make_directory instead of mkdir in case prefix path hasn't been created */
-				if (function & extract_create_dirs) {
-					if (make_directory(full_name, file_entry->mode, FILEUTILS_RECUR) < 0) {
-						return NULL;
+				if ((function & extract_create_dirs) && (stat_res != 0)) {
+					/* Make sure the prefix component of full_name was create
+					 * in applet before getting here*/
+					if (mkdir(full_name, file_entry->mode) < 0) {
+						perror_msg("extract_archive: ");
 					}
 				}
 				break;
@@ -335,14 +336,38 @@ void *get_header_ar(FILE *src_stream)
 #endif
 
 #ifdef L_get_header_cpio
+struct hardlinks {
+	file_header_t *entry;
+	int inode;
+	struct hardlinks *next;
+};
+
 void *get_header_cpio(FILE *src_stream)
 {
 	file_header_t *cpio_entry = NULL;
 	char cpio_header[110];
-	char dummy[14];
 	int namesize;
-	int major, minor, nlink;
+ 	char dummy[16];
+ 	int major, minor, nlink, inode;
+ 	static struct hardlinks *saved_hardlinks = NULL;
+ 	static int pending_hardlinks = 0;
 
+	if (pending_hardlinks) { /* Deal with any pending hardlinks */
+		struct hardlinks *tmp = saved_hardlinks, *oldtmp = NULL;
+		while (tmp) {
+			if (tmp->entry->link_name) { /* Found a hardlink ready to be extracted */
+				cpio_entry = tmp->entry;
+				if (oldtmp) oldtmp->next = tmp->next; /* Remove item from linked list */
+				else saved_hardlinks = tmp->next;
+				free(tmp);
+				return (cpio_entry);
+			}
+			oldtmp = tmp;
+			tmp = tmp->next;
+		}
+		pending_hardlinks = 0; /* No more pending hardlinks, read next file entry */
+	}
+  
 	/* There can be padding before archive header */
 	seek_sub_file(src_stream, (4 - (archive_offset % 4)) % 4);
 	if (fread(cpio_header, 1, 110, src_stream) == 110) {
@@ -356,8 +381,8 @@ void *get_header_cpio(FILE *src_stream)
 				/* Doesnt do the crc check yet */
 			case '1': /* "newc" header format */
 				cpio_entry = (file_header_t *) xcalloc(1, sizeof(file_header_t));
-				sscanf(cpio_header, "%14c%8x%8x%8x%8x%8lx%8lx%16c%8x%8x%8x%8c",
-					dummy, &cpio_entry->mode, &cpio_entry->uid, &cpio_entry->gid,
+				sscanf(cpio_header, "%6c%8x%8x%8x%8x%8x%8lx%8lx%16c%8x%8x%8x%8c",
+					dummy, &inode, &cpio_entry->mode, &cpio_entry->uid, &cpio_entry->gid,
 					&nlink, &cpio_entry->mtime, &cpio_entry->size,
 					dummy, &major, &minor, &namesize, dummy);
 
@@ -368,6 +393,19 @@ void *get_header_cpio(FILE *src_stream)
 				seek_sub_file(src_stream, (4 - (archive_offset % 4)) % 4);
 				if (strcmp(cpio_entry->name, "TRAILER!!!") == 0) {
 					printf("%d blocks\n", (int) (archive_offset % 512 ? (archive_offset / 512) + 1 : archive_offset / 512)); /* Always round up */
+					if (saved_hardlinks) { /* Bummer - we still have unresolved hardlinks */
+						struct hardlinks *tmp = saved_hardlinks, *oldtmp = NULL;
+						while (tmp) {
+							error_msg("%s not created: cannot resolve hardlink", tmp->entry->name);
+							oldtmp = tmp;
+							tmp = tmp->next;
+							free (oldtmp->entry->name);
+							free (oldtmp->entry);
+							free (oldtmp);
+						}
+						saved_hardlinks = NULL;
+						pending_hardlinks = 0;
+					}
 					return(NULL);
 				}
 
@@ -376,9 +414,26 @@ void *get_header_cpio(FILE *src_stream)
 					fread(cpio_entry->link_name, 1, cpio_entry->size, src_stream);
 					archive_offset += cpio_entry->size;
 				}
-				if (nlink > 1 && !S_ISDIR(cpio_entry->mode) && cpio_entry->size == 0) {
-					error_msg("%s not extracted: Cannot handle hard links yet", cpio_entry->name);
+				if (nlink > 1 && !S_ISDIR(cpio_entry->mode)) {
+					if (cpio_entry->size == 0) { /* Put file on a linked list for later */
+						struct hardlinks *new = xmalloc(sizeof(struct hardlinks));
+						new->next = saved_hardlinks;
+						new->inode = inode;
+						new->entry = cpio_entry;
+						saved_hardlinks = new;
 					return(get_header_cpio(src_stream)); /* Recurse to next file */
+					} else { /* Found the file with data in */
+						struct hardlinks *tmp = saved_hardlinks;
+						pending_hardlinks = 1;
+						while (tmp) {
+							if (tmp->inode == inode) {
+								tmp->entry->link_name = xstrdup(cpio_entry->name);
+								nlink--;
+							}
+							tmp = tmp->next;
+						}
+						if (nlink > 1) error_msg("error resolving hardlink: did you create the archive with GNU cpio 2.0-2.2?");
+					}
 				}
 				cpio_entry->device = (major << 8) | minor;
 				break;

@@ -34,7 +34,7 @@ extern int ar_main(int argc, char **argv)
 	FILE *src_stream = NULL;
 	char **extract_names = NULL;
 	char ar_magic[8];
-	int extract_function = 0;
+	int extract_function =  extract_unconditional;
 	int opt;
 	int num_of_entries = 0;
 	extern off_t archive_offset;

@@ -129,6 +129,18 @@
 	"\t-f\tforce (implied; ignored) - always set\n" \
 	"\t-R\tCopies directories recursively"
 
+#define cpio_trivial_usage \
+	"-[dimtuv][F cpiofile]"
+#define cpio_full_usage \
+	"Extract or list files from a cpio archive\n" \
+	"Main operation mode:\n" \
+	"\td\t\tmake directories (assumed)\n" \
+	"\ti\t\textract\n" \
+	"\tm\t\tpreserve time\n" \
+	"\tt\t\tlist\n" \
+	"\tu\t\tunconditional (assumed)\t" \
+	"\tF\t\tinput from file\t"
+	
 #define cut_trivial_usage \
 	"[OPTION]... [FILE]..."
 #define cut_full_usage \

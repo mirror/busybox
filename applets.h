@@ -83,6 +83,9 @@
 #ifdef BB_CP
 	APPLET(cp, cp_main, _BB_DIR_BIN)
 #endif
+#ifdef BB_CPIO
+	APPLET(cpio, cpio_main, _BB_DIR_BIN)
+#endif
 #ifdef BB_CUT
 	APPLET(cut, cut_main, _BB_DIR_USR_BIN)
 #endif

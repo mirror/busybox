@@ -26,7 +26,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 	char *output_buffer = NULL;
 	int opt = 0;
 	int arg_type = 0;
-	int deb_extract_funct = extract_create_dirs;	
+	int deb_extract_funct = extract_create_dirs | extract_unconditional;	
 	
 	const int arg_type_prefix = 1;
 	const int arg_type_field = 2;
@@ -92,6 +92,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 				strcat(prefix, "/");
 			}
 		}
+		mkdir(prefix, 0777);
 	}
 
 	if (arg_type == arg_type_filename) {
