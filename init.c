@@ -123,13 +123,6 @@ void message(int device, char *fmt, ...)
 void set_term( int fd)
 {
     struct termios tty;
-#if 0
-    static const char control_characters[] = {
-	'\003', '\034', '\177', '\025', '\004', '\0',
-	'\1', '\0', '\021', '\023', '\032', '\0', '\022',
-	'\017', '\027', '\026', '\0'
-	};
-#endif
     static const char control_characters[] = {
 	'\003', '\034', '\177', '\030', '\004', '\0',
 	'\1', '\0', '\021', '\023', '\032', '\0', '\022',
@@ -158,44 +151,6 @@ void set_term( int fd)
     memcpy(tty.c_cc, control_characters, sizeof(control_characters));
 
     tcsetattr(fd, TCSANOW, &tty);
-}
-
-/* Set terminal settings to reasonable defaults */
-void set_term_old( int fd)
-{
-    struct termios tty;
-
-    ioctl(fd, TCGETA, &tty);
-
-    tty.c_cflag &= CBAUD|CBAUDEX|CSIZE|CSTOPB|PARENB|PARODD;
-    tty.c_cflag |= HUPCL|CLOCAL;
-
-    tty.c_cc[VINTR]    = 3;
-    tty.c_cc[VQUIT]    = 28;
-    tty.c_cc[VERASE]   = 127;
-    //tty.c_cc[VKILL]    = 21;
-    tty.c_cc[VKILL]    = 24;
-    tty.c_cc[VEOF]     = 4;
-    tty.c_cc[VTIME]    = 0;
-    tty.c_cc[VMIN]     = 1;
-    tty.c_cc[VSWTC]    = 0;
-    tty.c_cc[VSTART]   = 17;
-    tty.c_cc[VSTOP]    = 19;
-    tty.c_cc[VSUSP]    = 26;
-    tty.c_cc[VEOL]     = 0;
-    tty.c_cc[VREPRINT] = 18;
-    tty.c_cc[VDISCARD] = 15;
-    tty.c_cc[VWERASE]  = 23;
-    tty.c_cc[VLNEXT]   = 22;
-    tty.c_cc[VEOL2]    = 0;
-    
-
-    tty.c_line  = 0;
-    tty.c_iflag = IGNPAR|ICRNL|IXON|IXOFF|IXANY;
-    tty.c_oflag = OPOST|ONLCR;
-    tty.c_lflag = ISIG|ICANON|ECHO|ECHOE|ECHOK|ECHOCTL|ECHOPRT|ECHOKE|IEXTEN;
-
-    ioctl(fd, TCSETA, &tty);
 }
 
 /* How much memory does this machine have? */
@@ -395,7 +350,12 @@ static void shutdown_system(void)
     waitfor(run( swap_off_cmd, console, FALSE));
     waitfor(run( umount_cmd, console, FALSE));
     sync();
-    bdflush(1, 0);
+    message(CONSOLE, "Skipping bdflush\r\n");
+    if (get_kernel_revision() <= 2 * 65536 + 2 * 256 + 11) {
+	/* bdflush, kupdate not needed for kernels >2.2.11 */
+	bdflush(1, 0);
+	sync();
+    }
 }
 
 static void halt_signal(int sig)
@@ -518,15 +478,19 @@ extern int init_main(int argc, char **argv)
 	if (wpid > 0 ) {
 	    message(LOG, "pid %d exited, status=%x.\n", wpid, status);
 	}
+	/* Don't respawn init script if it exits */
 	if (wpid == pid1) {
-	    pid1 = 0;
-	    if (run_rc == TRUE) {
-		/* Don't respawn init script if it exits,
-		 * Start a shell instead. */
+	    if (run_rc == FALSE) {
+		pid1 = 0;
+	    } 
+#if 0
+/* Turn this on to start a shell on the console if the init script exits.... */
+	    else {
 		run_rc=FALSE;
 		wait_for_enter=TRUE;
 		tty0_commands=shell_commands;
 	    }
+#endif
 	}
 	if (wpid == pid2) {
 	    pid2 = 0;

@@ -9,10 +9,18 @@
 	* Wrote sed -- weighs only 1.8k (5.8k with full regular expressions!).
 	* Fixed a stupid seg-fault in sync
 	* Fixed mount -- mount -a failed to parse and apply mount options
+	* Fixed umount -n (patch thanks to Matthew Grant <grantma@anathoth.gen.nz>)
+	* umount -a no longer umounts /proc
 	* Added BB_MTAB, allowing (at the cost of ~1.5k and the need for a rw /etc)
 	    folks to use a real /etc/mtab file instead of a symlink to /proc/mounts.
 	    mount, and umount will add/remove entries and df will now use /etc/mtab 
 	    if BB_MTAB is defined. 
+	* Fixed a nice bug in recursiveAction() which caused it to infinitely
+	    hunt through /proc/../fd/* creating new file descriptors if it
+	    followed the /dev/fd link over to /proc.  recursiveAction() now 
+	    lstat's the file when followLinks==FALSE so it won't follow links 
+	    as the name suggests.  Fix thanks to Matt Porter <porter@debian.org>.
+
 
 	 -Erik Andersen
 

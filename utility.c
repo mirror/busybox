@@ -393,7 +393,8 @@ int fullRead(int fd, char *buf, int len)
  *
  * Unfortunatly, while nftw(3) could replace this and reduce 
  * code size a bit, nftw() wasn't supported before GNU libc 2.1, 
- * and so isn't sufficiently portable to take over...
+ * and so isn't sufficiently portable to take over since glibc2.1
+ * is so stinking huge.
  */
 int
 recursiveAction(const char *fileName, int recurse, int followLinks, int depthFirst,
@@ -404,7 +405,7 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
     struct stat statbuf;
     struct dirent *next;
 
-    if (followLinks == FALSE)
+    if (followLinks == TRUE)
 	status = stat(fileName, &statbuf);
     else
 	status = lstat(fileName, &statbuf);
@@ -413,6 +414,9 @@ recursiveAction(const char *fileName, int recurse, int followLinks, int depthFir
 	perror(fileName);
 	return (FALSE);
     }
+
+    if ( (followLinks == FALSE) && (S_ISLNK(statbuf.st_mode)) )
+	return (TRUE);
 
     if (recurse == FALSE) {
 	if (S_ISDIR(statbuf.st_mode)) {

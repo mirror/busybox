@@ -76,6 +76,10 @@ umount_all(int useMtab)
                 if (strcmp (blockDevice, "/dev/root") == 0)
                     blockDevice = (getfsfile ("/"))->fs_spec;
 #endif
+		/* Don't umount /proc when doing umount -a */
+                if (strcmp (blockDevice, "proc") == 0)
+		    continue;
+
 		status=do_umount (m->mnt_dir, useMtab);
 		if (status!=0) {
 		    /* Don't bother retrying the umount on busy devices */
@@ -83,9 +87,6 @@ umount_all(int useMtab)
 			perror(m->mnt_dir); 
 			continue;
 		    }
-		    printf ("Trying to umount %s failed: %s\n", 
-			    m->mnt_dir, strerror(errno)); 
-		    printf ("Instead trying to umount %s\n", blockDevice); 
 		    status=do_umount (blockDevice, useMtab);
 		    if (status!=0) {
 			printf ("Couldn't umount %s on %s (type %s): %s\n", 
@@ -107,7 +108,7 @@ umount_main(int argc, char** argv)
     }
 
     /* Parse any options */
-    while (argc-- > 0 && **(++argv) == '-') {
+    while (argc-- > 0 && **(argv++) == '-') {
 	while (*++(*argv)) switch (**argv) {
 	    case 'a':
 		umountAll = TRUE;
