@@ -212,24 +212,24 @@ static volatile sig_atomic_t pendingsigs;
  * more fun than worrying about efficiency and portability. :-))
  */
 
-#define barrier() ({ __asm__ __volatile__ ("": : :"memory"); })
+#define xbarrier() ({ __asm__ __volatile__ ("": : :"memory"); })
 #define INTOFF \
 	({ \
 		suppressint++; \
-		barrier(); \
+		xbarrier(); \
 		0; \
 	})
 #define SAVEINT(v) ((v) = suppressint)
 #define RESTOREINT(v) \
 	({ \
-		barrier(); \
+		xbarrier(); \
 		if ((suppressint = (v)) == 0 && intpending) onint(); \
 		0; \
 	})
 #define EXSIGON() \
 	({ \
 		exsig++; \
-		barrier(); \
+		xbarrier(); \
 		if (pendingsigs) \
 			exraise(EXSIG); \
 		0; \
@@ -263,13 +263,13 @@ static void forceinton(void)
 #else
 #define INTON \
 	({ \
-		barrier(); \
+		xbarrier(); \
 		if (--suppressint == 0 && intpending) onint(); \
 		0; \
 	})
 #define FORCEINTON \
 	({ \
-		barrier(); \
+		xbarrier(); \
 		suppressint = 0; \
 		if (intpending) onint(); \
 		0; \
@@ -624,7 +624,7 @@ static const char homestr[] = "HOME";
 #define __builtin_expect(x, expected_value) (x)
 #endif
 
-#define likely(x)       __builtin_expect((x),1)
+#define xlikely(x)       __builtin_expect((x),1)
 
 
 #define TEOF 0
@@ -7084,7 +7084,7 @@ growjobtab(void)
 			jq--;
 #define joff(p) ((struct job *)((char *)(p) + l))
 #define jmove(p) (p) = (void *)((char *)(p) + offset)
-			if (likely(joff(jp)->ps == &jq->ps0))
+			if (xlikely(joff(jp)->ps == &jq->ps0))
 				jmove(joff(jp)->ps);
 			if (joff(jp)->prev_job)
 				jmove(joff(jp)->prev_job);
@@ -11813,7 +11813,7 @@ dotrap(void)
 
 	savestatus = exitstatus;
 	q = gotsig;
-	while (pendingsigs = 0, barrier(), (p = memchr(q, 1, NSIG - 1))) {
+	while (pendingsigs = 0, xbarrier(), (p = memchr(q, 1, NSIG - 1))) {
 		*p = 0;
 		p = trap[p - q + 1];
 		if (!p)
