@@ -344,6 +344,9 @@
 	"\t-v\tselect non-matching lines\n" \
 	"\t-s\tsuppress file open/read error messages"
 
+#define egrep_trivial_usage grep_trivial_usage
+#define egrep_full_usage grep_full_usage
+
 #define gunzip_trivial_usage \
 	"[OPTION]... FILE"
 #define gunzip_full_usage \

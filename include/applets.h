@@ -125,6 +125,9 @@
 #ifdef BB_ECHO
 	APPLET(echo, echo_main, _BB_DIR_BIN)
 #endif
+#if defined(BB_FEATURE_GREP_EGREP_ALIAS) && defined(BB_GREP)
+	APPLET(egrep, grep_main, _BB_DIR_BIN)
+#endif
 #ifdef BB_EXPR
 	APPLET(expr, expr_main, _BB_DIR_USR_BIN)
 #endif

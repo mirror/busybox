@@ -329,6 +329,9 @@
 // Support for the -A -B and -C context flags in grep
 //#define BB_FEATURE_GREP_CONTEXT
 //
+// Support for the EGREP applet (alias to the grep applet)
+//#define BB_FEATURE_GREP_EGREP_ALIAS
+//
 // Tell tftp what commands that should be supported.
 #define BB_FEATURE_TFTP_PUT
 #define BB_FEATURE_TFTP_GET
