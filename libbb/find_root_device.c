@@ -48,13 +48,13 @@ extern char *find_real_root_device_name(const char* name)
 			bb_perror_msg("could not open '/dev'");
 		else {
 			while((entry = readdir(dir)) != NULL) {
-				const char *name = entry->d_name;
+				const char *myname = entry->d_name;
 				/* Must skip ".." since that is "/", and so we
 				 * would get a false positive on ".."  */
-				if (name[0] == '.' && name[1] == '.' && !name[2])
+				if (myname[0] == '.' && myname[1] == '.' && !myname[2])
 					continue;
 
-				fileName = concat_path_file("/dev", name);
+				fileName = concat_path_file("/dev", myname);
 
 				/* Some char devices have the same dev_t as block
 				 * devices, so make sure this is a block device */
