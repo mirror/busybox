@@ -113,8 +113,8 @@ Glenn McGrath <bug1@netconnect.com.au>
 
 Vladimir Oleynik <dzo@simtreas.ru>
 
-    cmdedit, xargs(current);
-    ports: ash, crond, fdisk, stty, traceroute, telnetd, top;
+    cmdedit, xargs(current), httpd(current);
+    ports: ash, crond, fdisk, inetd, stty, traceroute, telnetd, top;
     locale, various fixes
     and irreconcilable critic of everything not perfect.
 
@@ -166,6 +166,12 @@ Enrique Zanardi <ezanardi@ull.es>
 
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
+=for html <br>
+
+Glenn Engel <glenne@engel.org>
+
+    httpd
+
 =cut
 
-# $Id: busybox_footer.pod,v 1.9 2002/11/26 22:00:19 bug1 Exp $
+# $Id: busybox_footer.pod,v 1.10 2003/02/09 06:51:12 bug1 Exp $

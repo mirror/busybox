@@ -265,6 +265,9 @@
 #ifdef CONFIG_IFUPDOWN
 	APPLET(ifup, ifupdown_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_INETD
+	APPLET(inetd, inetd_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_INIT
 	APPLET(init, init_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif

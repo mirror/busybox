@@ -915,6 +915,14 @@
 	"\t-m\tdon't run any mappings\n" \
 	"\t-f\tforce de/configuration\n"
 	
+#define inetd_trivial_usage \
+	"[-q len] [conf]"
+#define inetd_full_usage \
+	"Usage: [-q len] [conf]\n\n" \
+	"Option:\n" \
+	"\t-q\tSets the size of the socket listen queue to\n" \
+	"the specified value. Default is 128."
+
 #define init_trivial_usage \
 	""
 #define init_full_usage \

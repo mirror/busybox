@@ -1,8 +1,10 @@
 /*
  * httpd implementation for busybox
  *
- * Copyright (C) 2002 Glenn Engel <glenne@engel.org>
+ * Copyright (C) 2002,2003 Glenn Engel <glenne@engel.org>
+ * Copyright (C) 2003 Vladimir Oleynik <dzo@simtreas.ru>
  *
+ * simplify patch stolen from libbb without using strdup
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,100 +22,252 @@
  *
  *****************************************************************************
  *
- * Typical usage:  
- *   cd /var/www
- *   httpd 
- * This is equivalent to
- *    cd /var/www
- *    httpd -p 80 -c /etc/httpd.conf -r "Web Server Authentication"
+ * Typical usage:
+ *   for non root user
+ * httpd -p 8080 -h $HOME/public_html
+ *   or for daemon start from rc script with uid=0:
+ * httpd -u www
+ * This is equivalent if www user have uid=80 to
+ * httpd -p 80 -u 80 -h /www -c /etc/httpd.conf -r "Web Server Authentication"
+ *
  *
  * When a url contains "cgi-bin" it is assumed to be a cgi script.  The
  * server changes directory to the location of the script and executes it
  * after setting QUERY_STRING and other environment variables.  If url args
  * are included in the url or as a post, the args are placed into decoded
  * environment variables.  e.g. /cgi-bin/setup?foo=Hello%20World  will set
- * the $CGI_foo environment variable to "Hello World".
+ * the $CGI_foo environment variable to "Hello World" while
+ * CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV enabled.
  *
  * The server can also be invoked as a url arg decoder and html text encoder
  * as follows:
- *  foo=`httpd -d $foo`           # decode "Hello%20World" as "Hello World"
- *  bar=`httpd -e "<Hello World>"`  # encode as "&#60Hello&#32World&#62"
+ *  foo=`httpd -d $foo`             # decode "Hello%20World" as "Hello World"
+ *  bar=`httpd -e "<Hello World>"`  # encode as "%3CHello%20World%3E"
  *
  * httpd.conf has the following format:
- 
-ip:10.10.         # Allow any address that begins with 10.10.
-ip:172.20.        # Allow 172.20.x.x
-ip:127.0.0.1      # Allow local loopback connections
-/cgi-bin:foo:bar  # Require user foo, pwd bar on urls starting with /cgi-bin
-/:admin:setup     # Require user admin, pwd setup on urls starting with /
 
- *
- * To open up the server: 
- * ip:*              # Allow any IP address
- * /:*               # no password required for urls starting with / (all)
- *
- * Processing of the file stops on the first sucessful match.  If the file
- * is not found, the server is assumed to be wide open.
- *
- *****************************************************************************
- *
- * Desired enhancements:
- *   cache httpd.conf
- *   support tinylogin
- *
+A:172.20.         # Allow any address that begins with 172.20
+A:10.10.          # Allow any address that begins with 10.10.
+A:10.10           # Allow any address that previous set and 10.100-109.X.X
+A:127.0.0.1       # Allow local loopback connections
+D:*               # Deny from other IP connections
+/cgi-bin:foo:bar  # Require user foo, pwd bar on urls starting with /cgi-bin/
+/adm:admin:setup  # Require user admin, pwd setup on urls starting with /adm/
+/adm:toor:PaSsWd  # or user toor, pwd PaSsWd on urls starting with /adm/
+.au:audio/basic   # additional mime type for audio.au files
+
+A shortes path and D:from[^*] automaticaly sorting to top.
+All longest path can`t reset user:password if shorted protect setted.
+
+A/D may be as a/d or allow/deny - first char case unsensitive parsed only.
+
+Each subdir can have config file.
+For protect as user:pass current subdir and subpathes set from subdir config:
+/:user:pass
+if not, other subpathes for give effect must have path from httpd root
+/current_subdir_path_from_httpd_root/subpath:user:pass
+
+The Deny/Allow IP logic:
+
+	1. Allow all:
+The config don`t set D: lines
+
+	2. Allow from setted only:
+see the begin format example
+
+	3. Set deny, allow from other:
+D:1.2.3.        # deny from 1.2.3.0 - 1.2.3.255
+D:2.3.4.        # deny from 2.3.4.0 - 2.3.4.255
+A:*             # allow from other, this line not strongly require
+
+  A global and subdirs config merging logic:
+allow rules reducing, deny lines strongled.
+  The algorithm combinations:
+
+	4. If current config have
+A:from
+D:*
+  subdir config A: lines skiping, D:from - moving top
+
+	5. If current config have
+D:from
+A:*
+  result config:
+D:from current
+D:from subdir
+A:from subdir
+ and seting D:* if subdir config have this
+
+ If -c don`t setted, used httpd root config, else httpd root config skiped.
+ Exited with fault if can`t open start config.
+ For set wide open server, use -c /dev/null ;=)
  */
+
 #include <stdio.h>
 #include <ctype.h>         /* for isspace           */
-#include <stdarg.h>        /* for varargs           */
-#include <string.h>        /* for strerror          */
+#include <string.h>
 #include <stdlib.h>        /* for malloc            */
 #include <time.h>
-#include <errno.h>
 #include <unistd.h>        /* for close             */
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>    /* for connect and socket*/
 #include <netinet/in.h>    /* for sockaddr_in       */
-#include <sys/types.h>
+#include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <fcntl.h>
+#include <fcntl.h>         /* for open modes        */
+#include "busybox.h"
 
-static const char httpdVersion[] = "busybox httpd/1.13 3-Jan-2003";
 
-// #define DEBUG 1 
-#ifndef HTTPD_STANDALONE
-#include <config.h>
-#include <busybox.h>
+static const char httpdVersion[] = "busybox httpd/1.20 31-Jan-2003";
+static const char default_patch_httpd_conf[] = "/etc";
+static const char httpd_conf[] = "httpd.conf";
+static const char home[] = "/www";
+
 // Note: xfuncs are not used because we want the server to keep running
 //       if something bad happens due to a malformed user request.
-//       As a result, all memory allocation is checked rigorously
-#else
-/* standalone */
+//       As a result, all memory allocation after daemonize
+//       is checked rigorously
+
+//#define DEBUG 1
+
+/* Configure options, disabled by default as nonstandart httpd feature */
+//#define CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
+//#define CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
+//#define CONFIG_FEATURE_HTTPD_DECODE_URL_STR
+
+/* disabled as not necessary feature */
+//#define CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
+//#define CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+//#define CONFIG_FEATURE_HTTPD_SETUID
+//#define CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
+
+/* If seted this you can use this server from internet superserver only */
+//#define CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+
+/* You can use this server as standalone, require libbb.a for linking */
+//#define HTTPD_STANDALONE
+
+/* Config options, disable this for do very small module */
+//#define CONFIG_FEATURE_HTTPD_CGI
+//#define CONFIG_FEATURE_HTTPD_BASIC_AUTH
+
+#ifdef HTTPD_STANDALONE
+/* standalone, enable all features */
+#undef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+/* unset config option for remove warning as redefined */
+#undef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+#undef CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
+#undef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
+#undef CONFIG_FEATURE_HTTPD_DECODE_URL_STR
+#undef CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
+#undef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+#undef CONFIG_FEATURE_HTTPD_CGI
+#undef CONFIG_FEATURE_HTTPD_SETUID
+#undef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
+/* enable all features now */
 #define CONFIG_FEATURE_HTTPD_BASIC_AUTH
-void show_usage()
+#define CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
+#define CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
+#define CONFIG_FEATURE_HTTPD_DECODE_URL_STR
+#define CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
+#define CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+#define CONFIG_FEATURE_HTTPD_CGI
+#define CONFIG_FEATURE_HTTPD_SETUID
+#define CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
+
+/* require from libbb.a for linking */
+const char *applet_name = "httpd";
+
+void show_usage(void)
 {
-  fprintf(stderr,"Usage: httpd [-p <port>] [-c configFile] [-d/-e <string>] [-r realm]\n");
+  fprintf(stderr, "Usage: %s [-p <port>] [-c configFile] [-d/-e <string>] "
+		  "[-r realm] [-u user]\n", applet_name);
+  exit(1);
 }
 #endif
 
-/* minimal global vars for busybox */
-#ifndef ENVSIZE
-#define ENVSIZE 50
+#ifdef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#undef CONFIG_FEATURE_HTTPD_SETUID  /* use inetd user.group config settings */
+#undef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP    /* so is not daemon */
+/* inetd set stderr to accepted socket and we can`t true see debug messages */
+#undef DEBUG
 #endif
-int debugHttpd;
-static char **envp;
-static int envCount;
-static char *realm = "Web Server Authentication";
-static char *configFile;
+
+/* CGI environ size */
+#ifdef CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
+#define ENVSIZE 50    /* set max 35 CGI_variable */
+#else
+#define ENVSIZE 15    /* minimal requires */
+#endif
+
+#define MAX_POST_SIZE (64*1024) /* 64k. Its Small? May be ;) */
+
+#define MAX_MEMORY_BUFF 8192    /* IO buffer */
+
+typedef struct HT_ACCESS {
+	char *after_colon;
+	struct HT_ACCESS *next;
+	char before_colon[1];         /* really bigger, must last */
+} Htaccess;
+
+typedef struct
+{
+#ifdef CONFIG_FEATURE_HTTPD_CGI
+  char *envp[ENVSIZE+1];
+  int envCount;
+#endif
+  char buf[MAX_MEMORY_BUFF];
+
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+  const char *realm;
+#endif
+  const char *configFile;
+
+  char rmt_ip[16];         /* for set env REMOTE_ADDR */
+  unsigned port;           /* server initial port and for
+			      set env REMOTE_PORT */
+
+  const char *found_mime_type;
+  off_t ContentLength;          /* -1 - unknown */
+  time_t last_mod;
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+  int accepted_socket;
+#define a_c_r config->accepted_socket
+#define a_c_w config->accepted_socket
+  int debugHttpd;          /* if seted, don`t stay daemon */
+#else
+#define a_c_r 0
+#define a_c_w 1
+#endif
+  Htaccess *Httpd_conf_parsed;
+} HttpdConfig;
+
+static HttpdConfig *config;
+
+static const char request_GET[] = "GET";    /* size algorithic optimize */
 
 static const char* const suffixTable [] = {
+/* Warning: shorted equalent suffix in one line must be first */
   ".htm.html", "text/html",
   ".jpg.jpeg", "image/jpeg",
   ".gif", "image/gif",
   ".png", "image/png",
   ".txt.h.c.cc.cpp", "text/plain",
-  0,0
+  ".css", "text/css",
+  ".wav", "audio/wav",
+  ".avi", "video/x-msvideo",
+  ".qt.mov", "video/quicktime",
+  ".mpe.mpeg", "video/mpeg",
+  ".mid.midi", "audio/midi",
+  ".mp3", "audio/mpeg",
+#if 0                        /* unpopular */
+  ".au", "audio/basic",
+  ".pac", "application/x-ns-proxy-autoconfig",
+  ".vrml.wrl", "model/vrml",
+#endif
+  0, "application/octet-stream" /* default */
   };
 
 typedef enum
@@ -121,9 +275,10 @@ typedef enum
   HTTP_OK = 200,
   HTTP_UNAUTHORIZED = 401, /* authentication needed, respond with auth hdr */
   HTTP_NOT_FOUND = 404,
+  HTTP_NOT_IMPLEMENTED = 501,   /* used for unrecognized requests */
+  HTTP_BAD_REQUEST = 400,       /* malformed syntax */
+  HTTP_FORBIDDEN = 403,
   HTTP_INTERNAL_SERVER_ERROR = 500,
-  HTTP_NOT_IMPLEMENTED = 501,  /* used for unrecognized requests */
-  HTTP_BAD_REQUEST = 400,  /* malformed syntax */
 #if 0 /* future use */
   HTTP_CONTINUE = 100,
   HTTP_SWITCHING_PROTOCOLS = 101,
@@ -136,7 +291,6 @@ typedef enum
   HTTP_MOVED_TEMPORARILY = 302,
   HTTP_NOT_MODIFIED = 304,
   HTTP_PAYMENT_REQUIRED = 402,
-  HTTP_FORBIDDEN = 403,
   HTTP_BAD_GATEWAY = 502,
   HTTP_SERVICE_UNAVAILABLE = 503, /* overload, maintenance */
   HTTP_RESPONSE_SETSIZE=0xffffffff
@@ -152,15 +306,16 @@ typedef struct
 
 static const HttpEnumString httpResponseNames[] = {
   { HTTP_OK, "OK" },
-  { HTTP_NOT_IMPLEMENTED, "Not Implemented", 
+  { HTTP_NOT_IMPLEMENTED, "Not Implemented",
     "The requested method is not recognized by this server." },
   { HTTP_UNAUTHORIZED, "Unauthorized", "" },
   { HTTP_NOT_FOUND, "Not Found",
     "The requested URL was not found on this server." },
+  { HTTP_BAD_REQUEST, "Bad Request" ,
+    "Unsupported method." },
+  { HTTP_FORBIDDEN, "Forbidden", "" },
   { HTTP_INTERNAL_SERVER_ERROR, "Internal Server Error"
     "Internal Server Error" },
-  { HTTP_BAD_REQUEST, "Bad Request" ,
-    "Unsupported method.\n" },
 #if 0
   { HTTP_CREATED, "Created" },
   { HTTP_ACCEPTED, "Accepted" },
@@ -169,12 +324,247 @@ static const HttpEnumString httpResponseNames[] = {
   { HTTP_MOVED_PERMANENTLY, "Moved Permanently" },
   { HTTP_MOVED_TEMPORARILY, "Moved Temporarily" },
   { HTTP_NOT_MODIFIED, "Not Modified" },
-  { HTTP_FORBIDDEN, "Forbidden", "" },
   { HTTP_BAD_GATEWAY, "Bad Gateway", "" },
   { HTTP_SERVICE_UNAVAILABLE, "Service Unavailable", "" },
 #endif
 };
 
+
+static const char RFC1123FMT[] = "%a, %d %b %Y %H:%M:%S GMT";
+static const char Content_length[] = "Content-length:";
+
+
+/*
+ * sotring to:
+ * .ext:mime/type
+ * /path:user:pass
+ * /path/subdir:user:pass
+ * D:from
+ * A:from
+ * D:*
+ */
+static int conf_sort(const void *p1, const void *p2)
+{
+    const Htaccess *cl1 = *(const Htaccess **)p1;
+    const Htaccess *cl2 = *(const Htaccess **)p2;
+    char c1 = cl1->before_colon[0];
+    char c2 = cl2->before_colon[0];
+    int test;
+
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+    /* .ext line up before other lines for simlify algorithm */
+    test = c2 == '.';
+    if(c1 == '.')
+	return -(!test);
+    if(test)
+	return test;
+#endif
+
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+    test = c1 == '/';
+    /* /path line up before A/D lines for simlify algorithm */
+    if(test) {
+	if(c2 != '/')
+	    return -test;
+	/* a shortes path with user:pass must be first */
+	return strlen(cl1->before_colon) - strlen(cl2->before_colon);
+    } else if(c2 == '/')
+	    return !test;
+#endif
+
+    /* D:from must move top */
+    test = c2 == 'D' && cl2->after_colon[0] != 0;
+    if(c1 == 'D' && cl1->after_colon[0] != 0) {
+	return -(!test);
+    }
+    if(test)
+	return test;
+
+    /* next lines -  A:from */
+    test = c2 == 'A' && cl2->after_colon[0] != 0;
+    if(c1 == 'A' && cl1->after_colon[0] != 0) {
+	return -(!test);
+    }
+    if(test)
+	return test;
+
+    /* end lines - D:* */
+    test = c2 == 'D' && cl2->after_colon[0] == 0;
+    if(c1 == 'D' && cl1->after_colon[0] == 0) {
+	return -(!test);
+    }
+#ifdef DEBUG
+    if(!test)
+	error_msg_and_die("sort: can`t found compares!");
+#endif
+    return test;
+}
+
+
+/* flag */
+#define FIRST_PARSE    0
+#define SUBDIR_PARSE   1
+#define SIGNALED_PARSE 2
+
+static void parse_conf(const char *path, int flag)
+{
+#define bc cur->before_colon[0]
+#define ac cur->after_colon[0]
+    FILE *f;
+    Htaccess *prev;
+    Htaccess *cur;
+    const char *cf = config->configFile;
+    char buf[80];
+    char *p0 = NULL;
+    int deny_all = 0;   /* default A:* */
+    int n = 0;          /* count config lines */
+
+    if(flag == SUBDIR_PARSE || cf == NULL) {
+	cf = p0 = alloca(strlen(path) + sizeof(httpd_conf) + 2);
+	if(p0 == NULL) {
+	    if(flag == FIRST_PARSE)
+		error_msg_and_die(memory_exhausted);
+	    return;
+	}
+	sprintf(p0, "%s/%s", path, httpd_conf);
+    }
+
+    while((f = fopen(cf, "r")) == NULL) {
+	if(flag != FIRST_PARSE)
+	    return;                 /* subdir config not found */
+	if(p0 == NULL)              /* if -c option gived */
+		perror_msg_and_die("%s", cf);
+	p0 = NULL;
+	cf = httpd_conf;            /* set -c ./httpd_conf */
+    }
+
+    prev = config->Httpd_conf_parsed;
+    if(flag != SUBDIR_PARSE) {
+	/* free previous setuped */
+	while( prev ) {
+		cur = prev;
+		prev = cur->next;
+		free(cur);
+	}
+	config->Httpd_conf_parsed = prev; /* eq NULL */
+    } else {
+	/* parse previous IP logic for merge */
+	for(cur = prev; cur; cur = cur->next) {
+	    if(bc == 'D' && ac == 0)
+		deny_all++;
+	    n++;
+	    /* find last for set prev->next of merging */
+	    if(cur != prev)
+		prev = prev->next;
+	}
+    }
+
+	/* This could stand some work */
+    while ( (p0 = fgets(buf, 80, f)) != NULL) {
+	char *p;
+	char *colon;
+
+	for(p = colon = p0; *p; p++) {
+		if(*p == '#') {
+			*p = 0;
+			break;
+		}
+		if(isspace(*p)) {
+			if(p != p0) {
+				*p = 0;
+				break;
+			}
+			p0++;
+		}
+		else if(*p == ':' && colon <= p0)
+			colon = p;
+	}
+
+	/* test for empty or strange line */
+	if (colon <= p0 || colon[1] == 0)
+	    continue;
+	if(colon[1] == '*')
+	    colon[1] = 0;   /* Allow all */
+	if(*p0 == 'a')
+	    *p0 = 'A';
+	if(*p0 == 'd')
+	    *p0 = 'D';
+	if(*p0 != 'A' && *p0 != 'D'
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+				    && *p0 != '/'
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+					&& *p0 != '.'
+#endif
+						       )
+	       continue;
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+	if(*p0 == '/' && colon[1] == 0) {
+	    /* skip /path:* */
+	    continue;
+	}
+#endif
+
+	if(*p0 == 'A' || *p0 == 'D') {
+	    if(colon[1] == 0) {
+		if(*p0 == 'A' || deny_all != 0)
+		    continue;   /* skip default A:* or double D:* */
+	    }
+	    if(deny_all != 0 && *p0 == 'A')
+		continue;   // if previous setted rule D:* skip all subdir A:
+	}
+
+	/* storing current config line */
+	cur = calloc(1, sizeof(Htaccess) + (p-p0));
+	if(cur) {
+	    if(*(colon-1) == '/' && (colon-1) != p0)
+		colon[-1] = 0;      // remove last / from /path/
+	    cur->after_colon = strcpy(cur->before_colon, p0);
+	    cur->after_colon += (colon-p0);
+	    *cur->after_colon++ = 0;
+
+	    if(prev == NULL) {
+		/* first line */
+		config->Httpd_conf_parsed = prev = cur;
+	    } else {
+		prev->next = cur;
+		prev = cur;
+	    }
+	    n++;
+	}
+   }
+   fclose(f);
+
+   if(n > 1) {
+	/* sorting conf lines */
+	Htaccess ** pcur;     /* array for qsort */
+
+	prev = config->Httpd_conf_parsed;
+	pcur = alloca((n + 1) * sizeof(Htaccess *));
+	if(pcur == NULL) {
+	    if(flag == FIRST_PARSE)
+		error_msg_and_die(memory_exhausted);
+	    return;
+	}
+	n = 0;
+	for(cur = prev; cur; cur = cur->next)
+		pcur[n++] = cur;
+	pcur[n] = NULL;
+
+	qsort(pcur, n, sizeof(Htaccess *), conf_sort);
+
+	/* storing sorted config */
+	config->Httpd_conf_parsed = *pcur;
+	for(cur = *pcur; cur; cur = cur->next) {
+#ifdef DEBUG
+	    error_msg("%s: %s:%s", cf, cur->before_colon, cur->after_colon);
+#endif
+	    cur->next = *++pcur;
+	}
+    }
+}
+
+#ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
 /****************************************************************************
  *
  > $Function: encodeString()
@@ -197,20 +587,22 @@ static char *encodeString(const char *string)
   /* take the simple route and encode everything */
   /* could possibly scan once to get length.     */
   int len = strlen(string);
-  char *out = (char*)malloc(len*5 +1); 
+  char *out = malloc(len*5 +1);
   char *p=out;
   char ch;
+
   if (!out) return "";
-  while ((ch = *string++))
-  {
+  while ((ch = *string++)) {
     // very simple check for what to encode
     if (isalnum(ch)) *p++ = ch;
-    else p += sprintf(p,"&#%d", (unsigned char) ch);
+    else p += sprintf(p, "&#%d", (unsigned char) ch);
   }
   *p=0;
   return out;
 }
+#endif          /* CONFIG_FEATURE_HTTPD_ENCODE_URL_STR */
 
+#ifdef CONFIG_FEATURE_HTTPD_DECODE_URL_STR
 /****************************************************************************
  *
  > $Function: decodeString()
@@ -236,12 +628,11 @@ static char *decodeString(char *string)
   char *ptr = string;
   while (*ptr)
   {
-    if (*ptr == '+') { *string++ = ' '; ptr++; }
+    if (*ptr == '+')    { *string++ = ' '; ptr++; }
     else if (*ptr != '%') *string++ = *ptr++;
-    else
-    {
+    else  {
       unsigned int value;
-      sscanf(ptr+1,"%2X",&value);
+      sscanf(ptr+1, "%2X", &value);
       *string++ = value;
       ptr += 3;
     }
@@ -249,8 +640,10 @@ static char *decodeString(char *string)
   *string = '\0';
   return orig;
 }
+#endif          /* CONFIG_FEATURE_HTTPD_DECODE_URL_STR */
 
 
+#ifdef CONFIG_FEATURE_HTTPD_CGI
 /****************************************************************************
  *
  > $Function: addEnv()
@@ -260,28 +653,47 @@ static char *decodeString(char *string)
  *    environment settings passed to the cgi execution script.
  *
  * $Parameters:
- *      (char *) name . . . The environment variable name.
- *      (char *) value  . . The value to which the env variable is set.
+ *  (char *) name_before_underline - The first part environment variable name.
+ *  (char *) name_after_underline  - The second part environment variable name.
+ *  (char *) value  . . The value to which the env variable is set.
  *
- * $Return: (void)  
+ * $Return: (void)
  *
  * $Errors: Silently returns if the env runs out of space to hold the new item
  *
  ****************************************************************************/
-static void addEnv(const char *name, const char *value)
+static void addEnv(const char *name_before_underline,
+			const char *name_after_underline, const char *value)
 {
   char *s;
-  if (envCount >= ENVSIZE) return;
-  if (!value) value = "";
-  s=(char*)malloc(strlen(name)+strlen(value)+2);
-  if (s)
-  {
-    sprintf(s,"%s=%s",name, value);
-    envp[envCount++]=s;
-    envp[envCount]=0;
+
+  if (config->envCount >= ENVSIZE)
+	return;
+  if (!value)
+	value = "";
+  s = malloc(strlen(name_before_underline) + strlen(name_after_underline) +
+			strlen(value) + 3);
+  if (s) {
+    const char *underline = *name_after_underline ? "_" : "";
+
+    sprintf(s,"%s%s%s=%s", name_before_underline, underline,
+					name_after_underline, value);
+    config->envp[config->envCount++] = s;
+    config->envp[config->envCount] = 0;
   }
 }
 
+/* set environs SERVER_PORT and REMOTE_PORT */
+static void addEnvPort(const char *port_name)
+{
+      char buf[16];
+
+      sprintf(buf, "%u", config->port);
+      addEnv(port_name, "PORT", buf);
+}
+#endif          /* CONFIG_FEATURE_HTTPD_CGI */
+
+#ifdef CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
 /****************************************************************************
  *
  > $Function: addEnvCgi
@@ -289,7 +701,8 @@ static void addEnv(const char *name, const char *value)
  * $Description: Create environment variables given a URL encoded arg list.
  *   For each variable setting the URL encoded arg list, create a corresponding
  *   environment variable.  URL encoded arguments have the form
- *      name1=value1&name2=value2&name3=value3
+ *      name1=value1&name2=value2&name3=&ignores
+ *       from this example, name3 set empty value, tail without '=' skiping
  *
  * $Parameters:
  *      (char *) pargs . . . . A pointer to the URL encoded arguments.
@@ -302,65 +715,29 @@ static void addEnv(const char *name, const char *value)
 static void addEnvCgi(const char *pargs)
 {
   char *args;
+  char *memargs;
   if (pargs==0) return;
-  
+
   /* args are a list of name=value&name2=value2 sequences */
-  args = strdup(pargs);
-  while (args && *args)
-  {
-    char *sep;
-    char *name=args;
-    char *value=strchr(args,'=');
-    char *cginame;
-    if (!value) break;
-    *value++=0;
-    sep=strchr(value,'&');
-    if (sep)
-    {
-      *sep=0;
-      args=sep+1;
-    }
-    else
-    {
-      sep = value + strlen(value);
-      args = 0; /* no more */
-    }
-    cginame=(char*)malloc(strlen(decodeString(name))+5);
-    if (!cginame) break;
-    sprintf(cginame,"CGI_%s",name);
-    addEnv(cginame,decodeString(value));
-    free(cginame);
+  memargs = args = strdup(pargs);
+  while (args && *args) {
+    const char *name = args;
+    char *value = strchr(args, '=');
+
+    if (!value)         /* &XXX without '=' */
+	break;
+    *value++ = 0;
+    args = strchr(value, '&');
+    if (args)
+	*args++ = 0;
+    addEnv("CGI", name, decodeString(value));
   }
+  free(memargs);
 }
+#endif /* CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV */
+
 
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-static const unsigned char base64ToBin[] = {
-    255 /* ' ' */,  255 /* '!' */,   255 /* '"' */,   255 /* '#' */,
-     1 /* '$' */,  255 /* '%' */,    255 /* '&' */,   255 /* ''' */,
-    255 /* '(' */,  255 /* ')' */,   255 /* '*' */,    62 /* '+' */,
-    255 /* ',' */,  255 /* '-' */,   255 /* '.' */,    63 /* '/' */,
-    52 /* '0' */,    53 /* '1' */,    54 /* '2' */,    55 /* '3' */,
-    56 /* '4' */,    57 /* '5' */,    58 /* '6' */,    59 /* '7' */,
-    60 /* '8' */,    61 /* '9' */,   255 /* ':' */,   255 /* ';' */,
-    255 /* '<' */,   00 /* '=' */,   255 /* '>' */,   255 /* '?' */,
-    255 /* '@' */,   00 /* 'A' */,    01 /* 'B' */,    02 /* 'C' */,
-    03 /* 'D' */,    04 /* 'E' */,    05 /* 'F' */,    06 /* 'G' */,
-     7 /* 'H' */,     8 /* 'I' */,     9 /* 'J' */,    10 /* 'K' */,
-    11 /* 'L' */,    12 /* 'M' */,    13 /* 'N' */,    14 /* 'O' */,
-    15 /* 'P' */,    16 /* 'Q' */,    17 /* 'R' */,    18 /* 'S' */,
-    19 /* 'T' */,    20 /* 'U' */,    21 /* 'V' */,    22 /* 'W' */,
-    23 /* 'X' */,    24 /* 'Y' */,    25 /* 'Z' */,   255 /* '[' */,
-    255 /* '\' */,  255 /* ']' */,   255 /* '^' */,   255 /* '_' */,
-    255 /* '`' */,   26 /* 'a' */,    27 /* 'b' */,    28 /* 'c' */,
-    29 /* 'd' */,    30 /* 'e' */,    31 /* 'f' */,    32 /* 'g' */,
-    33 /* 'h' */,    34 /* 'i' */,    35 /* 'j' */,    36 /* 'k' */,
-    37 /* 'l' */,    38 /* 'm' */,    39 /* 'n' */,    40 /* 'o' */,
-    41 /* 'p' */,    42 /* 'q' */,    43 /* 'r' */,    44 /* 's' */,
-    45 /* 't' */,    46 /* 'u' */,    47 /* 'v' */,    48 /* 'w' */,
-    49 /* 'x' */,    50 /* 'y' */,    51 /* 'z' */,   255 /* '{' */,
-    255 /* '|' */,  255 /* '}' */,   255 /* '~' */,   255 /* '' */
-};
-
 /****************************************************************************
  *
  > $Function: decodeBase64()
@@ -370,186 +747,96 @@ static const unsigned char base64ToBin[] = {
  *    Since the decode always results in a shorter size than the input, it is
  *    OK to pass the input arg as an output arg.
  *
- * $Parameters:
- *      (void *) outData. . . Where to place the decoded data.
- *      (size_t) outDataLen . The length of the output data string.
- *      (void *) inData . . . A pointer to a base64 encoded string.
- *      (size_t) inDataLen  . The length of the input data string.
+ * $Parameter:
+ *      (char *) Data . . . . A pointer to a base64 encoded string.
+ *                            Where to place the decoded data.
  *
- * $Return: (char *)  . . . . A pointer to the decoded string (same as input).
+ * $Return: void
  *
  * $Errors: None
  *
  ****************************************************************************/
-static size_t decodeBase64(void *outData, size_t outDataLen,
-			   void *inData, size_t inDataLen)
+static void decodeBase64(char *Data)
 {
   int i = 0;
-  unsigned char *in = inData;
-  unsigned char *out = outData;
+  static const char base64ToBin[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+  const unsigned char *in = Data;
+  // The decoded size will be at most 3/4 the size of the encoded
   unsigned long ch = 0;
-  while (inDataLen && outDataLen)
-  {
+
+  while (*in) {
     unsigned char conv = 0;
-    unsigned char newch;
-    
-    while (inDataLen)
-    {
-      inDataLen--;
-      newch = *in++;
-      if ((newch < '0') || (newch > 'z')) continue;
-      conv = base64ToBin[newch - 32];
-      if (conv == 255) continue;
+
+    while (*in) {
+      const char *p64;
+
+      p64 = strchr(base64ToBin, *in++);
+      if(p64 == NULL)
+	continue;
+      conv = (p64 - base64ToBin);
       break;
     }
     ch = (ch << 6) | conv;
     i++;
-    if (i== 4)
-    {
-      if (outDataLen >= 3)
-      {
-	*(out++) = (unsigned char) (ch >> 16);
-	*(out++) = (unsigned char) (ch >> 8);
-	*(out++) = (unsigned char) ch;
-	outDataLen-=3;
-      }
-      
+    if (i== 4) {
+      *Data++ = (char) (ch >> 16);
+      *Data++ = (char) (ch >> 8);
+      *Data++ = (char) ch;
       i = 0;
     }
-    
-    if ((inDataLen == 0) && (i != 0))
-    {
-      /* error - non multiple of 4 chars on input */
-      break;
-    }
-
   }
-
-  /* return the actual number of chars in output array */
-  return out-(unsigned char*) outData;
+  *Data = 0;
 }
 #endif
 
-/****************************************************************************
- *
- > $Function: perror_and_exit()
- *
- > $Description: A helper function to print an error and exit.
- *
- * $Parameters:
- *      (const char *) msg . . . A 'context' message to include.
- *
- * $Return: None
- *
- * $Errors: None
- *
- ****************************************************************************/
-static void perror_exit(const char *msg)
-{
-  perror(msg);
-  exit(1);
-}
 
-
-/****************************************************************************
- *
- > $Function: strncmpi()
- *
- * $Description: compare two strings without regard to case.
- *
- * $Parameters:
- *      (char *) a . . . . . The first string.
- *      (char *) b . . . . . The second string.
- *      (int) n  . . . . . . The number of chars to compare.
- *
- * $Return: (int) . . . . . . 0 if strings equal. 1 if a>b, -1 if b < a.
- *
- * $Errors: None
- *
- ****************************************************************************/
-#define __toupper(c)   ((('a' <= (c))&&((c) <= 'z')) ? ((c) - 'a' + 'A') : (c))
-#define __tolower(c)   ((('A' <= (c))&&((c) <= 'Z')) ? ((c) - 'A' + 'a') : (c))
-static int strncmpi(const char *a, const char *b,int n)
-{
-  char a1,b1;
-  a1 = b1 = 0;
-
-  while(n-- && ((a1 = *a++) != '\0') && ((b1 = *b++) != '\0'))
-  {
-    if(a1 == b1) continue;       /* No need to convert */
-    a1 = __tolower(a1);
-    b1 = __tolower(b1);
-    if(a1 != b1) break;          /* No match, abort */
-  }
-  if (n>=0) 
-  {
-    if(a1 > b1) return 1;
-    if(a1 < b1) return -1;
-  }
-  return 0;
-}
-
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 /****************************************************************************
  *
  > $Function: openServer()
  *
  * $Description: create a listen server socket on the designated port.
  *
- * $Parameters:
- *      (int) port . . . The port to listen on for connections.
- *
  * $Return: (int)  . . . A connection socket. -1 for errors.
  *
  * $Errors: None
  *
  ****************************************************************************/
-static int openServer(int port)
+static int openServer(void)
 {
   struct sockaddr_in lsocket;
   int fd;
-  
+
   /* create the socket right now */
   /* inet_addr() returns a value that is already in network order */
   memset(&lsocket, 0, sizeof(lsocket));
   lsocket.sin_family = AF_INET;
   lsocket.sin_addr.s_addr = INADDR_ANY;
-  lsocket.sin_port = htons(port) ;
+  lsocket.sin_port = htons(config->port) ;
   fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (fd >= 0)
-  {
+  if (fd >= 0) {
     /* tell the OS it's OK to reuse a previous address even though */
     /* it may still be in a close down state.  Allows bind to succeed. */
-    int one = 1;
+    int on = 1;
 #ifdef SO_REUSEPORT
-    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (char*)&one, sizeof(one)) ;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (void *)&on, sizeof(on)) ;
 #else
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&one, sizeof(one)) ;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) ;
 #endif
-    if (bind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket)) == 0)
-    {
+    if (bind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket)) == 0) {
       listen(fd, 9);
       signal(SIGCHLD, SIG_IGN);   /* prevent zombie (defunct) processes */
+    } else {
+	perror_msg_and_die("bind");
     }
-    else
-    {
-      perror("failure to bind to server port");
-      shutdown(fd,0);
-      close(fd);
-      fd = -1;
-      }
-    }
-    else
-    {
-      fprintf(stderr,"httpd: unable to create socket \n");
-    }
+  } else {
+	perror_msg_and_die("create socket");
+  }
   return fd;
 }
-
-static int sendBuf(int s, char *buf, int len)
-{
-  if (len == -1) len = strlen(buf);
-  return send(s, buf, len, 0);
-}
+#endif  /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
 
 /****************************************************************************
  *
@@ -558,84 +845,65 @@ static int sendBuf(int s, char *buf, int len)
  * $Description: Create and send HTTP response headers.
  *   The arguments are combined and sent as one write operation.  Note that
  *   IE will puke big-time if the headers are not sent in one packet and the
- *   second packet is delayed for any reason.  If contentType is null the
- *   content type is assumed to be text/html
+ *   second packet is delayed for any reason.
  *
- * $Parameters:
- *      (int) s . . . The http socket.
+ * $Parameter:
  *      (HttpResponseNum) responseNum . . . The result code to send.
- *      (const char *) contentType  . . . . A string indicating the type.
- *      (int) contentLength . . . . . . . . Content length.  -1 if unknown.
- *      (time_t) expire . . . . . . . . . . Expiration time (secs since 1970)
  *
- * $Return: (int)  . . . . Always 0
- *
- * $Errors: None
+ * $Return: (int)  . . . . writing errors
  *
  ****************************************************************************/
-static int sendHeaders(int s, HttpResponseNum responseNum ,
-		       const char *contentType,
-		       int contentLength, time_t expire)
+static int sendHeaders(HttpResponseNum responseNum)
 {
-  char buf[1200];
+  char *buf = config->buf;
   const char *responseString = "";
   const char *infoString = 0;
   unsigned int i;
   time_t timer = time(0);
   char timeStr[80];
-  for (i=0;
-       i < (sizeof(httpResponseNames)/sizeof(httpResponseNames[0])); i++)
-  {
-    if (httpResponseNames[i].type != responseNum) continue;
-    responseString = httpResponseNames[i].name;
-    infoString = httpResponseNames[i].info;
-    break;
+  int len;
+
+  for (i = 0;
+	i < (sizeof(httpResponseNames)/sizeof(httpResponseNames[0])); i++) {
+		if (httpResponseNames[i].type == responseNum) {
+			responseString = httpResponseNames[i].name;
+			infoString = httpResponseNames[i].info;
+			break;
+		}
   }
-  if (infoString || !contentType)
-  {
-    contentType = "text/html";
+  if (responseNum != HTTP_OK) {
+	config->found_mime_type = "text/html";  // error message is HTML
   }
-  
-  sprintf(buf, "HTTP/1.0 %d %s\nContent-type: %s\r\n",
-	  responseNum, responseString, contentType);
 
   /* emit the current date */
-  strftime(timeStr, sizeof(timeStr),
-           "%a, %d %b %Y %H:%M:%S GMT",gmtime(&timer));
-  sprintf(buf+strlen(buf), "Date: %s\r\n", timeStr);
-  sprintf(buf+strlen(buf), "Connection: close\r\n");
-  if (expire)
-  {
-    strftime(timeStr, sizeof(timeStr),
-             "%a, %d %b %Y %H:%M:%S GMT",gmtime(&expire));
-    sprintf(buf+strlen(buf), "Expire: %s\r\n", timeStr);
-  }
+  strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&timer));
+  len = sprintf(buf,
+	"HTTP/1.0 %d %s\nContent-type: %s\r\n"
+	"Date: %s\r\nConnection: close\r\n",
+	  responseNum, responseString, config->found_mime_type, timeStr);
 
-  if (responseNum == HTTP_UNAUTHORIZED)
-  {
-    sprintf(buf+strlen(buf),
-	    "WWW-Authenticate: Basic realm=\"%s\"\r\n", realm);
+  if (responseNum == HTTP_UNAUTHORIZED) {
+    len += sprintf(buf+len, "WWW-Authenticate: Basic realm=\"%s\"\r\n",
+							    config->realm);
   }
-  if (contentLength != -1)
-  {
-    int len = strlen(buf);
-    sprintf(buf+len,"Content-length: %d\r\n", contentLength);
+  if (config->ContentLength != -1) {    /* file */
+    strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&config->last_mod));
+    len += sprintf(buf+len, "Last-Modified: %s\r\n%s %ld\r\n",
+			      timeStr, Content_length, config->ContentLength);
   }
-  strcat(buf,"\r\n");
-  if (infoString)
-  {
-    sprintf(buf+strlen(buf),
+  strcat(buf, "\r\n");
+  len += 2;
+  if (infoString) {
+    len += sprintf(buf+len,
 	    "<HEAD><TITLE>%d %s</TITLE></HEAD>\n"
 	    "<BODY><H1>%d %s</H1>\n%s\n</BODY>\n",
 	    responseNum, responseString,
-	    responseNum, responseString,
-	    infoString);
+	    responseNum, responseString, infoString);
   }
 #ifdef DEBUG
-  if (debugHttpd) fprintf(stderr,"Headers:'%s'", buf);
+  if (config->debugHttpd) fprintf(stderr, "Headers: '%s'", buf);
 #endif
-  sendBuf(s, buf,-1);
-  return 0;
+  return full_write(a_c_w, buf, len);
 }
 
 /****************************************************************************
@@ -647,30 +915,29 @@ static int sendHeaders(int s, HttpResponseNum responseNum ,
  *   Characters are read one at a time until an eol sequence is found.
  *
  * $Parameters:
- *      (int) s . . . . . The socket fildes.
  *      (char *) buf  . . Where to place the read result.
- *      (int) maxBuf  . . Maximum number of chars to fit in buf.
  *
  * $Return: (int) . . . . number of characters read.  -1 if error.
  *
  ****************************************************************************/
-static int getLine(int s, char *buf, int maxBuf)
+static int getLine(char *buf)
 {
   int  count = 0;
-  while (recv(s, buf+count, 1, 0) == 1)
-  {
+
+  while (read(a_c_r, buf + count, 1) == 1) {
     if (buf[count] == '\r') continue;
-    if (buf[count] == '\n')
-    {
+    if (buf[count] == '\n') {
       buf[count] = 0;
       return count;
     }
-    count++;
+    if(count < (MAX_MEMORY_BUFF-1))      /* check owerflow */
+	count++;
   }
   if (count) return count;
   else return -1;
 }
 
+#ifdef CONFIG_FEATURE_HTTPD_CGI
 /****************************************************************************
  *
  > $Function: sendCgi()
@@ -682,193 +949,215 @@ static int getLine(int s, char *buf, int maxBuf)
  *   data in addition to setting the QUERY_STRING variable (for GETs or POSTs).
  *
  * $Parameters:
- *      (int ) s . . . . . . . . The session socket.
  *      (const char *) url . . . The requested URL (with leading /).
  *      (const char *urlArgs). . Any URL arguments.
  *      (const char *body) . . . POST body contents.
  *      (int bodyLen)  . . . . . Length of the post body.
- 
+ *      (const char *cookie) . . For set HTTP_COOKIE.
+
  *
  * $Return: (char *)  . . . . A pointer to the decoded string (same as input).
  *
  * $Errors: None
  *
  ****************************************************************************/
-static int sendCgi(int s, const char *url, 
-                   const char *request, const char *urlArgs,
-		   const char *body, int bodyLen)
+static int sendCgi(const char *url,
+		   const char *request, const char *urlArgs,
+		   const char *body, int bodyLen, const char *cookie)
 {
   int fromCgi[2];  /* pipe for reading data from CGI */
   int toCgi[2];    /* pipe for sending data to CGI */
-  
-  char *argp[] = { 0, 0 };
-  int pid=0;
-  int inFd=inFd;
-  int outFd;
-  int firstLine=1;
 
-  do
-  {
-    if (pipe(fromCgi) != 0)
-    {
+  static char * argp[] = { 0, 0 };
+  int pid = 0;
+  int inFd;
+  int outFd;
+  int firstLine = 1;
+
+  do {
+    if (pipe(fromCgi) != 0) {
       break;
     }
-    if (pipe(toCgi) != 0)
-    {
+    if (pipe(toCgi) != 0) {
       break;
     }
 
     pid = fork();
-    if (pid < 0)
-    {
+    if (pid < 0) {
 	pid = 0;
-	break;;
+	break;
     }
-    
-    if (!pid)   
-    {
+
+    if (!pid) {
       /* child process */
       char *script;
-      char *directory;
-      inFd=toCgi[0];
-      outFd=fromCgi[1];
+      char *purl = strdup( url );
+      char realpath_buff[MAXPATHLEN];
+
+      if(purl == NULL)
+	_exit(242);
+
+      inFd  = toCgi[0];
+      outFd = fromCgi[1];
 
       dup2(inFd, 0);  // replace stdin with the pipe
       dup2(outFd, 1);  // replace stdout with the pipe
-      if (!debugHttpd) dup2(outFd, 2);  // replace stderr with the pipe
+
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+      if (!config->debugHttpd)
+#endif
+	dup2(outFd, 2);  // replace stderr with the pipe
+
       close(toCgi[0]);
       close(toCgi[1]);
       close(fromCgi[0]);
       close(fromCgi[1]);
 
-#if 0
-      fcntl(0,F_SETFD, 1);
-      fcntl(1,F_SETFD, 1);
-      fcntl(2,F_SETFD, 1);
-#endif
-      
-      script = (char*) malloc(strlen(url)+2);
-      if (!script) _exit(242);
-      sprintf(script,".%s",url);
-	
-      envCount=0;
-      addEnv("SCRIPT_NAME",script);
-      addEnv("REQUEST_METHOD",request);
-      addEnv("QUERY_STRING",urlArgs);
-      addEnv("SERVER_SOFTWARE",httpdVersion);
-      if (strncmpi(request,"POST",4)==0) addEnvCgi(body);
-      else addEnvCgi(urlArgs);
-      
       /*
-       * Most HTTP servers chdir to the cgi directory.
+       * Find PATH_INFO.
        */
-      while (*url == '/') url++;  // skip leading slash(s)
-      directory = strdup( url );  
-      if ( directory == (char*) 0 )
-	script = (char*) (url);	/* ignore errors */
-      else
-      {
-	script = strrchr( directory, '/' );
-	if ( script == (char*) 0 )
-	  script = directory;
-	else
-	{
-	  *script++ = '\0';
-	  (void) chdir( directory );	/* ignore errors */
+      script = purl;
+      while((script = strchr( script + 1, '/' )) != NULL) {
+	/* have script.cgi/PATH_INFO or dirs/script.cgi[/PATH_INFO] */
+	struct stat sb;
+
+	*script = '\0';
+	if(is_directory(purl + 1, 1, &sb) == 0) {
+		/* not directory, found script.cgi/PATH_INFO */
+		*script = '/';
+		break;
 	}
+	*script = '/';          /* is directory, find next '/' */
       }
+      addEnv("PATH", "INFO", script);   /* set /PATH_INFO or NULL */
+      addEnv("PATH",           "",         getenv("PATH"));
+      addEnv("REQUEST",        "METHOD",   request);
+      if(urlArgs) {
+	char *uri = alloca(strlen(purl) + 2 + strlen(urlArgs));
+	if(uri)
+	    sprintf(uri, "%s?%s", purl, urlArgs);
+	addEnv("REQUEST",        "URI",   uri);
+      } else {
+	addEnv("REQUEST",        "URI",   purl);
+      }
+      if(script != NULL)
+	*script = '\0';         /* reduce /PATH_INFO */
+      /* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
+      addEnv("SCRIPT_NAME",    "",         purl);
+      addEnv("QUERY_STRING",   "",         urlArgs);
+      addEnv("SERVER",         "SOFTWARE", httpdVersion);
+      addEnv("SERVER",         "PROTOCOL", "HTTP/1.0");
+      addEnv("GATEWAY_INTERFACE", "",      "CGI/1.1");
+#ifdef CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
+      addEnv("REMOTE",         "ADDR",     config->rmt_ip);
+      addEnvPort("REMOTE");
+#else
+      addEnv("REMOTE_ADDR",     "",        config->rmt_ip);
+#endif
+      if(bodyLen) {
+	char sbl[32];
+
+	sprintf(sbl, "%d", bodyLen);
+	addEnv("CONTENT_LENGTH", "", sbl);
+      }
+      if(cookie)
+	addEnv("HTTP_COOKIE", "", cookie);
+
+#ifdef CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
+      if (request != request_GET) {
+	addEnvCgi(body);
+      } else {
+	addEnvCgi(urlArgs);
+      }
+#endif
+
+	/* set execve argp[0] without path */
+      argp[0] = strrchr( purl, '/' ) + 1;
+	/* but script argp[0] must have absolute path and chdiring to this */
+      if(realpath(purl + 1, realpath_buff) != NULL) {
+	    script = strrchr(realpath_buff, '/');
+	    if(script) {
+		*script = '\0';
+		if(chdir(realpath_buff) == 0) {
+		    *script = '/';
       // now run the program.  If it fails, use _exit() so no destructors
       // get called and make a mess.
-      execve(script, argp, envp);
-      
-#ifdef DEBUG
-      fprintf(stderr, "exec failed\n");
+		    execve(realpath_buff, argp, config->envp);
+		}
+	    }
+      }
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+      config->accepted_socket = 1;      /* send to stdout */
 #endif
-      close(2);
-      close(1);
-      close(0);
+      sendHeaders(HTTP_NOT_FOUND);
       _exit(242);
     } /* end child */
 
-    /* parent process */
-    inFd=fromCgi[0];
-    outFd=toCgi[1];
-    close(fromCgi[1]);
-    close(toCgi[0]);
-    if (body) write(outFd, body, bodyLen);
-    close(outFd);
-
   } while (0);
 
-  if (pid)
-  {
+  if (pid) {
+    /* parent process */
     int status;
-    pid_t dead_pid;
-    
-    while (1)
-    {
+
+    inFd  = fromCgi[0];
+    outFd = toCgi[1];
+    close(fromCgi[1]);
+    close(toCgi[0]);
+    if (body) full_write(outFd, body, bodyLen);
+    close(outFd);
+
+    while (1) {
       struct timeval timeout;
       fd_set readSet;
       char buf[160];
       int nfound;
       int count;
-  
+
       FD_ZERO(&readSet);
       FD_SET(inFd, &readSet);
-  
+
       /* Now wait on the set of sockets! */
       timeout.tv_sec = 0;
       timeout.tv_usec = 10000;
-      nfound = select(inFd+1, &readSet, 0, 0, &timeout);
+      nfound = select(inFd + 1, &readSet, 0, 0, &timeout);
 
-      if (nfound <= 0)
-      {
-	dead_pid = waitpid(pid, &status, WNOHANG);
-	if (dead_pid != 0)
-	{
-	  close(fromCgi[0]);
-	  close(fromCgi[1]);
-	  close(toCgi[0]);
-	  close(toCgi[1]);
+      if (nfound <= 0) {
+	if (waitpid(pid, &status, WNOHANG) > 0) {
+	  close(inFd);
 #ifdef DEBUG
-	  if (debugHttpd)
-	  {
+	  if (config->debugHttpd) {
 	    if (WIFEXITED(status))
-	      fprintf(stderr,"piped has exited with status=%d\n", WEXITSTATUS(status));
+	      error_msg("piped has exited with status=%d", WEXITSTATUS(status));
 	    if (WIFSIGNALED(status))
-	      fprintf(stderr,"piped has exited with signal=%d\n", WTERMSIG(status));
+	      error_msg("piped has exited with signal=%d", WTERMSIG(status));
 	  }
-#endif  
+#endif
 	  pid = -1;
 	  break;
 	}
-      }
-      else
-      {
+      } else {
+	int s = a_c_w;
+
 	// There is something to read
-	count = read(inFd,buf,sizeof(buf)-1);
+	count = full_read(inFd, buf, sizeof(buf)-1);
 	// If a read returns 0 at this point then some type of error has
 	// occurred.  Bail now.
 	if (count == 0) break;
-	if (count > 0)
-	{
-	  if (firstLine)
-	  {
+	if (count > 0) {
+	  if (firstLine) {
 	    /* check to see if the user script added headers */
-	    if (strcmp(buf,"HTTP")!= 0)
-	    {
-	      write(s,"HTTP/1.0 200 OK\n", 16);
+	    if (strncmp(buf, "HTTP/1.0 200 OK\n", 4) != 0) {
+	      full_write(s, "HTTP/1.0 200 OK\n", 16);
 	    }
-	    if (strstr(buf,"ontent-") == 0)
-	    {
-	      write(s,"Content-type: text/plain\n\n", 26);
+	    if (strstr(buf, "ontent-") == 0) {
+	      full_write(s, "Content-type: text/plain\n\n", 26);
 	    }
-	    
 	    firstLine=0;
 	  }
-	  write(s,buf,count);
+	  full_write(s, buf, count);
 #ifdef DEBUG
-	  if (debugHttpd) fprintf(stderr,"cgi read %d bytes\n", count);
+	  if (config->debugHttpd)
+		fprintf(stderr, "cgi read %d bytes\n", count);
 #endif
 	}
       }
@@ -876,6 +1165,7 @@ static int sendCgi(int s, const char *url,
   }
   return 0;
 }
+#endif          /* CONFIG_FEATURE_HTTPD_CGI */
 
 /****************************************************************************
  *
@@ -883,55 +1173,66 @@ static int sendCgi(int s, const char *url,
  *
  * $Description: Send a file response to an HTTP request
  *
- * $Parameters:
- *      (int) s  . . . . . . . The http session socket.
+ * $Parameter:
  *      (const char *) url . . The URL requested.
+ *      (char *) buf . . . . . The stack buffer.
  *
  * $Return: (int)  . . . . . . Always 0.
  *
  ****************************************************************************/
-static int sendFile(int s, const char *url)
+static int sendFile(const char *url, char *buf)
 {
-  char *suffix = strrchr(url,'.');
-  const char *content = "application/octet-stream";
+  char * suffix;
   int  f;
+  const char * const * table;
+  const char * try_suffix;
 
-  if (suffix)
-  {
-    const char ** table;
-    for (table = (const char **) &suffixTable[0]; 
-         *table && (strstr(*table, suffix) == 0); table+=2);
-    if (table) content = *(table+1);
-  }
-  
-  if (*url == '/') url++;
-  suffix = strchr(url,'?');
-  if (suffix) *suffix = 0;
+  suffix = strrchr(url, '.');
 
-#ifdef DEBUG
-    fprintf(stderr,"Sending file '%s'\n", url);
-#endif
-  
-  f = open(url,O_RDONLY, 0444);
-  if (f >= 0)
-  {
-    char buf[1450];
-    int count;
-    sendHeaders(s, HTTP_OK, content, -1, 0 );
-    while ((count = read(f, buf, sizeof(buf))))
-    {
-      sendBuf(s, buf, count);
+  for (table = suffixTable; *table; table += 2)
+	if(suffix != NULL && (try_suffix = strstr(*table, suffix)) != 0) {
+		try_suffix += strlen(suffix);
+		if(*try_suffix == 0 || *try_suffix == '.')
+			break;
+	}
+  /* also, if not found, set default as "application/octet-stream";  */
+  config->found_mime_type = *(table+1);
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+  if (suffix) {
+    Htaccess * cur;
+
+    for (cur = config->Httpd_conf_parsed; cur; cur = cur->next) {
+	if(strcmp(cur->before_colon, suffix) == 0) {
+		config->found_mime_type = cur->after_colon;
+		break;
+	}
     }
-    close(f);
   }
-  else
-  {
+#endif  /* CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES */
+
 #ifdef DEBUG
-    fprintf(stderr,"Unable to open '%s'\n", url);
+    if (config->debugHttpd)
+	fprintf(stderr, "Sending file '%s' Content-type: %s\n",
+					url, config->found_mime_type);
 #endif
-    sendHeaders(s, HTTP_NOT_FOUND, "text/html", -1, 0);
+
+  f = open(url, O_RDONLY);
+  if (f >= 0) {
+	int count;
+
+	sendHeaders(HTTP_OK);
+	while ((count = full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
+		full_write(a_c_w, buf, count);
+	}
+	close(f);
+  } else {
+#ifdef DEBUG
+	if (config->debugHttpd)
+		perror_msg("Unable to open '%s'", url);
+#endif
+	sendHeaders(HTTP_NOT_FOUND);
   }
-  
+
   return 0;
 }
 
@@ -941,93 +1242,85 @@ static int sendFile(int s, const char *url)
  *
  * $Description: Check the permission file for access.
  *
- *   Both IP addresses as well as url pathnames can be specified.  If an IP
- *   address check is desired, the 'path' should be specified as "ip" and the
- *   dotted decimal IP address placed in request.
- *
- *   For url pathnames, place the url (with leading /) in 'path' and any
- *   authentication information in request.  e.g. "user:pass"
- *
- *******
- *
- *   Keep the algorithm simple.
  *   If config file isn't present, everything is allowed.
- *   Run down /etc/httpd.hosts a line at a time.
- *   Stop if match is found.
- *   Entries are of the form:
- *   ip:10.10    # any address that begins with 10.10
- *   dir:user:pass  # dir security for dirs that start with 'dir'
- *
- * httpd.conf has the following format:
- *   ip:10.10.         # Allow any address that begins with 10.10.
- *   ip:172.20.        # Allow 172.20.x.x
- *   /cgi-bin:foo:bar  # Require user foo, pwd bar on urls starting with /cgi-bin
- *   /:foo:bar         # Require user foo, pwd bar on urls starting with /
- *
- * To open up the server: 
- *   ip:*              # Allow any IP address
- *   /:*               # no password required for urls starting with / (all)
+ *   Entries are of the form you can see example from header source
  *
  * $Parameters:
- *      (const char *) path  . . . . The file path or "ip" for ip addresses.
+ *      (const char *) path  . . . . The file path or NULL for ip addresses.
  *      (const char *) request . . . User information to validate.
  *
  * $Return: (int)  . . . . . . . . . 1 if request OK, 0 otherwise.
  *
  ****************************************************************************/
+
+
 static int checkPerm(const char *path, const char *request)
 {
-    FILE *f=NULL;
-    int rval;
-    char buf[80];
-    char *p;
-    int ipaddr=0;
+    Htaccess * cur;
+    const char *p;
 
-    /* If httpd.conf not there assume anyone can get in */
-    if (configFile) f = fopen(configFile,"r");
-    if(f == NULL) f = fopen("/etc/httpd.conf","r");
-    if(f == NULL) f = fopen("httpd.conf","r");
-    if(f == NULL) {
-        return(1);
-    }
-    if (strcmp("ip",path) == 0) ipaddr=1;
-
-    rval=0;
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+    int ipaddr = path == NULL;
+    const char *prev = NULL;
+#else
+#   define ipaddr 1
+#endif
 
     /* This could stand some work */
-    while ( fgets(buf, 80, f) != NULL)
-    {
-        if(buf[0] == '#') continue;
-        if(buf[0] == '\0') continue;
-        for(p = buf + (strlen(buf) - 1); p >= buf; p--)
-	{
-            if(isspace(*p)) *p = 0;
-        }
-	
-        p = strchr(buf,':');
-	if (!p) continue;
-	*p++=0;
-#ifdef DEBUG
-        fprintf(stderr,"checkPerm: '%s' ? '%s'\n",buf,path);
-#endif
-	if((ipaddr ? strcmp(buf,path) : strncmp(buf, path, strlen(buf))) == 0)
-	{
-	  /* match found.  Check request */
-	  if ((strcmp("*",p) == 0) ||
-	      (strcmp(p, request) == 0) ||
-	      (ipaddr && (strncmp(p, request, strlen(p)) == 0)))
-	  {
-	    rval = 1;
-	    break;
-	  }
+    for (cur = config->Httpd_conf_parsed; cur; cur = cur->next) {
+	const char *p0 = cur->before_colon;
 
-	  /* reject on first failure for non ipaddresses */
-	  if (!ipaddr) break;
+	if(*p0 == 'A' || *p0 == 'D') {
+		if(!ipaddr)
+			continue;
+	} else {
+		if(ipaddr)
+			continue;
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+		if(*p0 == '.')
+			continue;
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+		if(prev != NULL && strcmp(prev, p0) != 0)
+			continue;       /* find next identical */
+#endif
 	}
-    };
-    fclose(f);
-    return(rval);
-};
+
+	p = cur->after_colon;
+#ifdef DEBUG
+	if (config->debugHttpd)
+		fprintf(stderr,"checkPerm: '%s' ? '%s'\n",
+				(ipaddr ? p : p0), request);
+#endif
+	if(ipaddr) {
+		if(strncmp(p, request, strlen(p)) != 0)
+			continue;
+		return *p0 == 'A';   /* Allow/Deny */
+
+	}
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+	  else {
+		int l = strlen(p0);
+
+		if(strncmp(p0, path, l) == 0 &&
+				(l == 1 || path[l] == '/' || path[l] == 0)) {
+			/* path match found.  Check request */
+			if (strcmp(p, request) == 0)
+				return 1;   /* Ok */
+			/* unauthorized, but check next /path:user:password */
+			prev = p0;
+		}
+	  }
+#endif
+    }   /* for */
+
+#ifndef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+	/* if uncofigured, return 1 - access from all */
+    return 1;
+#else
+    return prev == NULL;
+#endif
+}
 
 
 /****************************************************************************
@@ -1036,156 +1329,242 @@ static int checkPerm(const char *path, const char *request)
  *
  * $Description: Handle an incoming http request.
  *
- * $Parameters:
- *      (s) s . . . . . The http request socket.
- *
- * $Return: (int) . . . Always 0.
- *
  ****************************************************************************/
-static int handleIncoming(int s)
+static void handleIncoming(void)
 {
-  char buf[8192];
-  char url[8192];  /* hold args too initially */
-  char credentials[80];
-  char request[20];
-  long length=0;
-  int  major;
-  int  minor;
+  char *buf = config->buf;
+  char *url;
+  char *purl;
+  int  blank = -1;
   char *urlArgs;
-  char *body=0;
-
-  credentials[0] = 0;
-  do
-  {
-    int  count = getLine(s, buf, sizeof(buf));
-    int blank;
-    if (count <= 0)  break;
-    count = sscanf(buf, "%9s %1000s HTTP/%d.%d", request,
-		   url, &major, &minor);
-    
-    if (count < 2) 
-    {
-      /* Garbled request/URL */
-#if 0
-      genHttpHeader(&requestInfo,
-		    HTTP_BAD_REQUEST, requestInfo.dataType,
-		    HTTP_LENGTH_UNKNOWN);
+#ifdef CONFIG_FEATURE_HTTPD_CGI
+  const char *prequest = request_GET;
+  char *body = 0;
+  long length=0;
+  char *cookie = 0;
 #endif
+  char *test;
+  struct stat sb;
+
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+  int credentials = -1;  /* if not requred this is Ok */
+#endif
+
+  do {
+    int  count;
+
+    if (getLine(buf) <= 0)
+	break;  /* closed */
+
+    purl = strpbrk(buf, " \t");
+    if(purl == NULL) {
+BAD_REQUEST:
+      sendHeaders(HTTP_BAD_REQUEST);
       break;
     }
-    
-    /* If no version info, assume 0.9 */
-    if (count != 4)
-    {
-      major = 0;
-      minor = 9;
+    *purl = 0;
+#ifdef CONFIG_FEATURE_HTTPD_CGI
+    if(strcasecmp(buf, prequest) != 0) {
+	prequest = "POST";
+	if(strcasecmp(buf, prequest) != 0) {
+	    sendHeaders(HTTP_NOT_IMPLEMENTED);
+	    break;
+	}
     }
+#else
+    if(strcasecmp(buf, request_GET) != 0) {
+	sendHeaders(HTTP_NOT_IMPLEMENTED);
+	break;
+    }
+#endif
+    *purl = ' ';
+    count = sscanf(purl, " %[^ ] HTTP/%d.%*d", buf, &blank);
 
+    if (count < 1 || buf[0] != '/') {
+      /* Garbled request/URL */
+      goto BAD_REQUEST;
+    }
+    url = alloca(strlen(buf) + 12);      /* + sizeof("/index.html\0") */
+    if(url == NULL) {
+	sendHeaders(HTTP_INTERNAL_SERVER_ERROR);
+	break;
+    }
+    strcpy(url, buf);
     /* extract url args if present */
-    urlArgs = strchr(url,'?');
-    if (urlArgs)
-    {
-      *urlArgs=0;
-      urlArgs++;
+    urlArgs = strchr(url, '?');
+    if (urlArgs) {
+      *urlArgs++ = 0;   /* next code can set '/' to this pointer,
+			   but CGI script can`t be a directory */
     }
-    
-#ifdef DEBUG
-    if (debugHttpd) fprintf(stderr,"url='%s', args=%s\n", url, urlArgs);
-#endif  
 
-    // read until blank line(s)
-    blank = 0;
-    while ((count = getLine(s, buf, sizeof(buf))) >= 0)
-    {
-      if (count == 0)
-      {
-	if (major > 0) break;
-	blank++;
-	if (blank == 2) break;
-      }
-#ifdef DEBUG
-      if (debugHttpd) fprintf(stderr,"Header: '%s'\n", buf);
-#endif  
+    /* algorithm stolen from libbb simplify_path(),
+       but don`t strdup and reducing trailing slash */
+    purl = test = url;
 
+    do {
+	if (*purl == '/') {
+	    if (*test == '/') {        /* skip duplicate (or initial) slash */
+		continue;
+	    } else if (*test == '.') {
+		if (test[1] == '/' || test[1] == 0) { /* skip extra '.' */
+		    continue;
+		} else if ((test[1] == '.') && (test[2] == '/' || test[2] == 0)) {
+		    ++test;
+		    if (purl == url) {
+			/* protect out root */
+			goto BAD_REQUEST;
+		    }
+		    while (*--purl != '/');    /* omit previous dir */
+		    continue;
+		}
+	    }
+	}
+	*++purl = *test;
+    } while (*++test);
+
+    *++purl = 0;        /* so keep last character */
+    test = purl;        /* end ptr */
+
+    /* If URL is directory, adding '/' */
+    if(test[-1] != '/') {
+	    if ( is_directory(url + 1, 1, &sb) ) {
+		    *test++ = '/';
+		    *test = 0;
+		    purl = test;    /* end ptr */
+	    }
+    }
+#ifdef DEBUG
+    if (config->debugHttpd)
+	fprintf(stderr, "url='%s', args=%s\n", url, urlArgs);
+#endif
+
+    test = url;
+    while((test = strchr( test + 1, '/' )) != NULL) {
+	/* have path1/path2 */
+	*test = '\0';
+	if( is_directory(url + 1, 1, &sb) ) {
+		/* may be having subdir config */
+		parse_conf(url + 1, SUBDIR_PARSE);
+	}
+	*test = '/';
+    }
+
+    // read until blank line for HTTP version specified, else parse immediate
+    while (blank >= 0 && (count = getLine(buf)) > 0) {
+
+#ifdef DEBUG
+      if (config->debugHttpd) fprintf(stderr, "Header: '%s'\n", buf);
+#endif
+
+#ifdef CONFIG_FEATURE_HTTPD_CGI
       /* try and do our best to parse more lines */
-      if ((strncmpi(buf, "Content-length:", 15) == 0))
-      {
-	sscanf(buf, "%*s %ld", &length);
-      }    
+      if ((strncasecmp(buf, Content_length, 15) == 0)) {
+	if(prequest != request_GET)
+		length = strtol(buf + 15, 0, 0); // extra read only for POST
+      } else if ((strncasecmp(buf, "Cookie:", 7) == 0)) {
+		for(test = buf + 7; isspace(*test); test++)
+			;
+		cookie = strdup(test);
+      }
+#endif
+
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-      else if (strncmpi(buf, "Authorization:", 14) == 0)
-      {
+      if (strncasecmp(buf, "Authorization:", 14) == 0) {
 	/* We only allow Basic credentials.
 	 * It shows up as "Authorization: Basic <userid:password>" where
 	 * the userid:password is base64 encoded.
 	 */
-	char *ptr = buf+14;
-	while (*ptr == ' ') ptr++;
-	if (strncmpi(ptr, "Basic", 5) != 0) break;
-	ptr += 5;
-	while (*ptr == ' ') ptr++;
-	memset(credentials, 0, sizeof(credentials));
-	decodeBase64(credentials,
-		     sizeof(credentials)-1,
-		     ptr,
-		     strlen(ptr) );
-    
+	for(test = buf + 14; isspace(*test); test++)
+		;
+	if (strncasecmp(test, "Basic", 5) != 0)
+		continue;
+
+	test += 5;  /* decodeBase64() skiping space self */
+	decodeBase64(test);
+	credentials = checkPerm(url, test);
+      }
+#endif          /* CONFIG_FEATURE_HTTPD_BASIC_AUTH */
+
+    }   /* while extra header reading */
+
+
+    if (strcmp(strrchr(url, '/') + 1, httpd_conf) == 0 ||
+			checkPerm(NULL, config->rmt_ip) == 0) {
+		/* protect listing [/path]/httpd_conf or IP deny */
+#ifdef CONFIG_FEATURE_HTTPD_CGI
+FORBIDDEN:      /* protect listing /cgi-bin */
+#endif
+		sendHeaders(HTTP_FORBIDDEN);
+		break;
+    }
+
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+    if (credentials <= 0 && checkPerm(url, ":") == 0) {
+      sendHeaders(HTTP_UNAUTHORIZED);
+      break;
+    }
+#endif
+
+    test = url + 1;      /* skip first '/' */
+
+#ifdef CONFIG_FEATURE_HTTPD_CGI
+    /* if strange Content-Length */
+    if (length < 0 || length > MAX_POST_SIZE)
+	break;
+
+    if (length > 0) {
+      body = malloc(length + 1);
+      if (body) {
+	length = full_read(a_c_r, body, length);
+	if(length < 0)          // closed
+		length = 0;
+	body[length] = 0;       // always null terminate for safety
+	urlArgs = body;
       }
     }
-    if (!checkPerm(url, credentials))
-    {
-      sendHeaders(s, HTTP_UNAUTHORIZED, 0, -1, 0);
-      length=-1;
-      break; /* no more processing */
-    }
-#else
-    }
-#endif /* CONFIG_FEATURE_HTTPD_BASIC_AUTH */
 
-    /* we are done if an error occurred */
-    if (length == -1) break;
+    if (strncmp(test, "cgi-bin", 7) == 0) {
+		if(test[7] == 0 || (test[7] == '/' && test[8] == 0))
+			goto FORBIDDEN;     // protect listing cgi-bin
+		sendCgi(url, prequest, urlArgs, body, length, cookie);
+    } else {
+	if (prequest != request_GET)
+		sendHeaders(HTTP_NOT_IMPLEMENTED);
+	else {
+#endif  /* CONFIG_FEATURE_HTTPD_CGI */
+		if(purl[-1] == '/')
+			strcpy(purl, "index.html");
+		if ( stat(test, &sb ) == 0 ) {
+			config->ContentLength = sb.st_size;
+			config->last_mod = sb.st_mtime;
+		}
+		sendFile(test, buf);
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+		/* unset if non inetd looped */
+		config->ContentLength = -1;
+#endif
 
-    if (strcmp(url,"/") == 0) strcpy(url,"/index.html");
+#ifdef CONFIG_FEATURE_HTTPD_CGI
+	}
+    }
+#endif
 
-    if (length>0)
-    {
-      body=(char*) malloc(length+1);
-      if (body)
-      {
-	length = read(s,body,length);
-	body[length]=0; // always null terminate for safety
-	urlArgs=body;
-      }
-    }
-    
-    if (strstr(url,"..") || strstr(url, "httpd.conf")) 
-    {
-      /* protect from .. path creep */
-      sendHeaders(s, HTTP_NOT_FOUND, "text/html", -1, 0);
-    }
-    else if (strstr(url,"cgi-bin")) 
-    { 
-      sendCgi(s, url, request, urlArgs, body, length);
-    }
-    else if (strncmpi(request,"GET",3) == 0)
-    {
-      sendFile(s, url);
-    }
-    else
-    {
-      sendHeaders(s, HTTP_NOT_IMPLEMENTED, 0, -1, 0);
-    }
   } while (0);
 
-#ifdef DEBUG
-  if (debugHttpd) fprintf(stderr,"closing socket\n");
-#endif  
-  if (body) free(body);
-  shutdown(s,SHUT_WR);
-  shutdown(s,SHUT_RD);
-  close(s);
-  
-  return 0;
+
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+/* from inetd don`t looping: freeing, closing automatic from exit always */
+# ifdef DEBUG
+  if (config->debugHttpd) fprintf(stderr, "closing socket\n");
+# endif
+# ifdef CONFIG_FEATURE_HTTPD_CGI
+  free(body);
+  free(cookie);
+# endif
+  shutdown(a_c_w, SHUT_WR);
+  shutdown(a_c_r, SHUT_RD);
+  close(config->accepted_socket);
+#endif  /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
 }
 
 /****************************************************************************
@@ -1203,24 +1582,23 @@ static int handleIncoming(int s)
  * $Return: (int) . . . . Always 0.
  *
  ****************************************************************************/
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 static int miniHttpd(int server)
 {
   fd_set readfd, portfd;
   int nfound;
-  
+
   FD_ZERO(&portfd);
   FD_SET(server, &portfd);
-  
+
   /* copy the ports we are watching to the readfd set */
-  while (1) 
-  {
-    readfd = portfd ;
-    
+  while (1) {
+    readfd = portfd;
+
     /* Now wait INDEFINATELY on the set of sockets! */
-    nfound = select(server+1, &readfd, 0, 0, 0);
-    
-    switch (nfound)
-    {
+    nfound = select(server + 1, &readfd, 0, 0, 0);
+
+    switch (nfound) {
     case 0:
       /* select timeout error! */
       break ;
@@ -1228,48 +1606,41 @@ static int miniHttpd(int server)
       /* select error */
       break;
     default:
-      if (FD_ISSET(server, &readfd))
-      {
-	char on;
+      if (FD_ISSET(server, &readfd)) {
+	int on;
 	struct sockaddr_in fromAddr;
-	char rmt_ip[20];
-	int addr;
+
+	unsigned int addr;
 	socklen_t fromAddrLen = sizeof(fromAddr);
 	int s = accept(server,
-		       (struct sockaddr *)&fromAddr, &fromAddrLen) ;
-	if (s < 0) 
-	{
+		       (struct sockaddr *)&fromAddr, &fromAddrLen);
+
+	if (s < 0) {
 	  continue;
 	}
+	config->accepted_socket = s;
 	addr = ntohl(fromAddr.sin_addr.s_addr);
-	sprintf(rmt_ip,"%u.%u.%u.%u",
-                (unsigned char)(addr >> 24),
-                (unsigned char)(addr >> 16),
-                (unsigned char)(addr >> 8),
-                (unsigned char)(addr >> 0));
+	sprintf(config->rmt_ip, "%u.%u.%u.%u",
+		(unsigned char)(addr >> 24),
+		(unsigned char)(addr >> 16),
+		(unsigned char)(addr >> 8),
+				addr & 0xff);
+	config->port = ntohs(fromAddr.sin_port);
 #ifdef DEBUG
-	if (debugHttpd)
-	{
-	  fprintf(stderr,"httpMini.cpp: connection from IP=%s, port %d\n",
-		 rmt_ip, ntohs(fromAddr.sin_port));
+	if (config->debugHttpd) {
+		error_msg("connection from IP=%s, port %u\n",
+					config->rmt_ip, config->port);
 	}
-#endif  
-	if(checkPerm("ip", rmt_ip) == 0)
-	{
-	  close(s);
-	  continue;
-	}
-	
+#endif
 	/*  set the KEEPALIVE option to cull dead connections */
 	on = 1;
-	setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (char *) &on,
-		   sizeof (on));
+	setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&on, sizeof (on));
 
-	if (fork() == 0) 
-	{
+	if (config->debugHttpd || fork() == 0) {
 	  /* This is the spawned thread */
-	  handleIncoming(s);
-	  exit(0);
+	  handleIncoming();
+	  if(!config->debugHttpd)
+		exit(0);
 	}
 	close(s);
       }
@@ -1278,72 +1649,169 @@ static int miniHttpd(int server)
   return 0;
 }
 
-int httpd_main(int argc, char *argv[])
+#else
+    /* from inetd */
+
+static int miniHttpd(void)
 {
+  struct sockaddr_in fromAddrLen;
+  socklen_t sinlen = sizeof (struct sockaddr_in);
+  unsigned int addr;
+
+  getpeername (0, (struct sockaddr *)&fromAddrLen, &sinlen);
+  addr = ntohl(fromAddrLen.sin_addr.s_addr);
+  sprintf(config->rmt_ip, "%u.%u.%u.%u",
+		(unsigned char)(addr >> 24),
+		(unsigned char)(addr >> 16),
+		(unsigned char)(addr >> 8),
+				addr & 0xff);
+  config->port = ntohs(fromAddrLen.sin_port);
+  handleIncoming();
+  return 0;
+}
+#endif  /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
+
+#ifdef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
+static void sighup_handler(int sig)
+{
+	/* set and reset */
+	struct sigaction sa;
+
+	sa.sa_handler = sighup_handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART;
+	sigaction(SIGHUP, &sa, NULL);
+	parse_conf(default_patch_httpd_conf,
+		    sig == SIGHUP ? SIGNALED_PARSE : FIRST_PARSE);
+}
+#endif
+
+#ifdef HTTPD_STANDALONE
+int main(int argc, char *argv[])
+#else
+int httpd_main(int argc, char *argv[])
+#endif
+{
+  const char *home_httpd = home;
+
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
   int server;
-  int port = 80;
-  int c;
-  
+#endif
+
+#ifdef CONFIG_FEATURE_HTTPD_SETUID
+  long uid = -1;
+#endif
+
+  config = xcalloc(1, sizeof(*config));
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+  config->realm = "Web Server Authentication";
+#endif
+
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+  config->port = 80;
+#endif
+
+  config->ContentLength = -1;
+
   /* check if user supplied a port number */
   for (;;) {
-    c = getopt( argc, argv, "p:ve:d:"
+    int c = getopt( argc, argv, "c:h:"
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+				"p:v"
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
+		"e:"
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_DECODE_URL_STR
+		"d:"
+#endif
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-    "r:c:"
+		"r:"
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_SETUID
+		"u:"
 #endif
     );
     if (c == EOF) break;
     switch (c) {
+    case 'c':
+      config->configFile = optarg;
+      break;
+    case 'h':
+      home_httpd = optarg;
+      break;
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
     case 'v':
-      debugHttpd=1;
+      config->debugHttpd = 1;
       break;
     case 'p':
-      port = atoi(optarg);
+      config->port = atoi(optarg);
+      if(config->port <= 0 || config->port > 0xffff)
+	error_msg_and_die("invalid %s for -p", optarg);
       break;
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_DECODE_URL_STR
     case 'd':
-      printf("%s",decodeString(optarg));
+      printf("%s", decodeString(optarg));
       return 0;
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
     case 'e':
-      printf("%s",encodeString(optarg));
+      printf("%s", encodeString(optarg));
       return 0;
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
     case 'r':
-      realm = optarg;
+      config->realm = optarg;
       break;
-    case 'c':
-      configFile = optarg;
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_SETUID
+    case 'u':
+      {
+	char *e;
+
+	uid = strtol(optarg, &e, 0);
+	if(*e != '\0') {
+		/* not integer */
+		uid = my_getpwnam(optarg);
+	}
+      }
       break;
+#endif
     default:
-      fprintf(stderr,"%s\n", httpdVersion);
+      error_msg("%s", httpdVersion);
       show_usage();
-      exit(1);
     }
   }
 
-  envp = (char**) malloc((ENVSIZE+1)*sizeof(char*));
-  if (envp == 0) perror_exit("envp alloc");
-
-  server = openServer(port);
-  if (server < 0) exit(1);
-
-  if (!debugHttpd)
-  {
-    /* remember our current pwd, daemonize, chdir back */
-    char *dir = (char *) malloc(256);
-    if (dir == 0) perror_exit("out of memory for getpwd");
-    if (getcwd(dir, 256) == 0) perror_exit("getcwd failed");
-    if (daemon(0, 1) < 0) perror_exit("daemon");
-    chdir(dir);
-    free(dir);
+  if(chdir(home_httpd)) {
+    perror_msg_and_die("can`t chdir to %s", home_httpd);
   }
-
-  miniHttpd(server);
-  
-  return 0;
-}
-
-#ifdef HTTPD_STANDALONE
-int main(int argc, char *argv[])
-{ 
-  return httpd_main(argc, argv);
-}
-
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+  server = openServer();
+# ifdef CONFIG_FEATURE_HTTPD_SETUID
+  /* drop privilegies */
+  if(uid > 0)
+	setuid(uid);
+# endif
+# ifdef CONFIG_FEATURE_HTTPD_CGI
+  addEnvPort("SERVER");
+# endif
 #endif
+
+#ifdef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
+  sighup_handler(0);
+#else
+  parse_conf(default_patch_httpd_conf, FIRST_PARSE);
+#endif
+
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+  if (!config->debugHttpd) {
+    if (daemon(1, 0) < 0)     /* don`t change curent directory */
+	perror_msg_and_die("daemon");
+  }
+  return miniHttpd(server);
+#else
+  return miniHttpd();
+#endif
+}

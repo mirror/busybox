@@ -60,15 +60,16 @@ chmod, chown, chroot, chvt, clear, cmp,  cp,  cpio,  crond,  crontab,  cut,
 date, dc, dd, deallocvt,  deluser,  df,  dirname,  dmesg,  dos2unix,  dpkg,
 dpkg-deb, du, dumpkmap, dutmp, echo, expr, false,  fbset,  fdflush,  fdisk,
 find, free, freeramdisk, fsck.minix, getopt,  getty,  grep,  gunzip,  gzip,
-halt, head, hostid, hostname, id, ifconfig, init,  insmod,  kill,  killall,
-klogd, length, ln, loadacm, loadfont, loadkmap, logger, logname, ls, lsmod,
-makedevs, md5sum, mkdir, mkfifo, mkfs.minix, mknod, mkswap,  mktemp,  more,
-mount, mt, mv, nc, netstat, nslookup, ping, pivot_root,  poweroff,  printf,
-ps, pwd, rdate, readlink, reboot, renice, reset, rm, rmdir,  rmmod,  route,
-rpm2cpio, sed, setkeycodes, sh, sleep, sort, stty, swapoff,  swapon,  sync,
-syslogd, tail, tar, tee, telnet, telnetd, test, tftp, time, top, touch, tr,
-true, tty, umount, uname, uniq, unix2dos, update, uptime, usleep, uudecode,
-uuencode, watchdog, wc, wget, which, whoami, xargs, yes, zcat, [
+halt, head, hostid, hostname, httpd, id,  ifconfig,  inetd,  init,  insmod,
+kill, killall, klogd, length,  ln,  loadacm,  loadfont,  loadkmap,  logger,
+logname, ls, lsmod, makedevs, md5sum,  mkdir,  mkfifo,  mkfs.minix,  mknod,
+mkswap,  mktemp,  more,  mount,  mt,  mv,  nc,  netstat,  nslookup,   ping,
+pivot_root, poweroff, printf, ps, pwd,  rdate,  readlink,  reboot,  renice,
+reset, rm, rmdir, rmmod, route,  rpm2cpio,  sed,  setkeycodes,  sh,  sleep,
+sort, stty,  swapoff,  swapon,  sync,  syslogd,  tail,  tar,  tee,  telnet,
+telnetd, test, tftp, time, top, touch, tr, true, tty, umount, uname,  uniq,
+unix2dos, update, uptime, usleep, uudecode, uuencode, watchdog,  wc,  wget,
+which, whoami, xargs, yes, zcat, [
 
 =over 4
 

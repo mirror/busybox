@@ -41,6 +41,15 @@ config CONFIG_HTTPD
 	help
 	  Serve web pages via an HTTP server.
 
+config CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+	bool "  Support call from inetd only"
+	default n
+	depends on CONFIG_HTTPD
+	help
+	  This option disabling uid and port options for httpd applet
+	  and more others reducing size moments, but require
+	  internet superserver daemon for usaging.
+
 config CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	bool "  Enable Basic Authentication and IP address checking"
 	default n
@@ -48,6 +57,66 @@ config CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	help
 	  Utilizes /etc/httpd.conf for security settings allowing 
           ip address filtering and basic authentication on a per url basis.
+
+config CONFIG_FEATURE_HTTPD_CGI
+	bool "  Enable support Common Gateway Interface"
+	default n
+	depends on CONFIG_HTTPD
+	help
+	  Disable this for do very small module
+
+config CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
+	bool "  Enable support reload global config file after hup signaled"
+	default n
+	depends on CONFIG_HTTPD
+	help
+	  Disable this for do very small module
+
+config CONFIG_FEATURE_HTTPD_SETUID
+	bool "  Enable support -u user option"
+	default n
+	depends on CONFIG_HTTPD
+	help
+	  Require for drop privilegies after bind() to privilegies port
+
+config CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+	bool "  Enable support load from config file mime types"
+	default n
+	depends on CONFIG_HTTPD
+	help
+	  After set this you can adding or change mime types from file
+	  suffixes in config files
+
+config CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
+	bool "  Enable support set eviroment REMOTE_PORT"
+	default n
+	depends on CONFIG_FEATURE_HTTPD_CGI
+	help
+	  After set this your CGI script can know own remote port connecting
+
+config CONFIG_FEATURE_HTTPD_SET_CGI_VARS_TO_ENV
+	bool "  Enable support nonstandart httpd feature set CGI_var=value"
+	default n
+	depends on CONFIG_FEATURE_HTTPD_CGI
+	help
+	  After set this your CGI script can have trivial parse getted vars
+
+config CONFIG_FEATURE_HTTPD_DECODE_URL_STR
+	bool "  Support nonstandart httpd feature decode URL to stdout"
+	default n
+	depends on CONFIG_HTTPD
+	help
+	  After set this your can decode URL from -d argument to stdout,
+	  example -d "Hello%20World" as "Hello World"
+
+config CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
+	bool "  Support nonstandart httpd feature encode argument to URL"
+	default n
+	depends on CONFIG_HTTPD
+	help
+	  After set this your can encode from -d argument to stdout as URL,
+	  example -e "<Hello World>" as "%3CHello%20World%3E"
+
 
 config CONFIG_IFCONFIG
 	bool "ifconfig"
@@ -131,6 +200,48 @@ config CONFIG_FEATURE_IFUPDOWN_MAPPING
 	help
 	  This enables support for the "mapping" stanza, unless you have
 	  a weird network setup you dont need it.
+
+config CONFIG_INETD
+	bool "inetd"
+	default n
+	help
+	  Internet superserver daemon
+
+config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
+	bool "  Support echo service"
+	default y
+	depends on CONFIG_INETD
+	help
+	  Echo received data internal inetd service
+
+config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
+	bool "  Support discard service"
+	default y
+	depends on CONFIG_INETD
+	help
+	  Internet /dev/null internal inetd service
+
+config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
+	bool "  Support time service"
+	default y
+	depends on CONFIG_INETD
+	help
+	  Return 32 bit time since 1900 internal inetd service
+
+config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
+	bool "  Support daytime service"
+	default y
+	depends on CONFIG_INETD
+	help
+	  Return human-readable time internal inetd service
+
+config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+	bool "  Support chargen service"
+	default y
+	depends on CONFIG_INETD
+	help
+	  Familiar character generator internal inetd service
+
 
 config CONFIG_IP
 	bool "ip"
@@ -316,7 +427,7 @@ config CONFIG_TELNETD
 	  Please submit a patch to add help text for this item.
 
 config CONFIG_FEATURE_TELNETD_INETD
-	bool "  Use inetd"
+	bool "  Support call from inetd only"
 	default n
 	depends on CONFIG_TELNETD
 	help
