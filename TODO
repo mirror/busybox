@@ -16,7 +16,7 @@ around to it some time. If you have any good ideas, please let me know.
 
 -----------
 
-Bugs that need fixing:
+Bugs that need fixing before the 0.44 release goes out the door:
 
  - mkfs.minix rev 1.7 completely broke the parser.  Fix it.
  - 'grep foo$ file' doesn't work
@@ -43,6 +43,9 @@ Bugs that need fixing:
   - implement 'ls -R'.
   - "cp -a sourcedir/*" (note: no dest) - produces an odd error message about
     the last file in the dir, rather than saying "missing destination file".
+  - "math" should also take input from stdin
+  - "more" doesn't accept " " to scroll by one page when BB_FEATURE_USE_TERMIOS
+    is not on.
 
 
 -----------
@@ -136,6 +139,10 @@ I'll add this to the TODO list,
 
 
 ------------------------------------------------------------------
+
+An interesting email listing some apps that use /proc.  BusyBox
+tries to avoid /proc as mush as is possible, so this stuff is
+interesting (to me at least):
 
 
 Date: 	Fri, 25 Feb 2000 08:23:12 +0000 (GMT)
