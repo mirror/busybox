@@ -36,7 +36,7 @@ TARGET_OS:=linux
 # If you want to add some simple compiler switches (like -march=i686),
 # especially from the command line, use this instead of CFLAGS directly.
 # For optimization overrides, it's better still to set OPTIMIZATION.
-CFLAGS_EXTRA:=
+CFLAGS_EXTRA:=#-Werror
  
 # If you want a static binary, turn this on.
 DOSTATIC:=false
@@ -132,8 +132,8 @@ TARGET_ARCH:=${shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 # for OPTIMIZATION...
 
 # use '-Os' optimization if available, else use -O2
-OPTIMIZATION := ${shell if $(CC) -Os -S -o /dev/null -xc /dev/null >/dev/null 2>&1; \
-	then echo "-Os"; else echo "-O2" ; fi}
+OPTIMIZATION := ${shell if $(CC) -Os -S -o /dev/null -xc /dev/null \
+	>/dev/null 2>&1; then echo "-Os"; else echo "-O2" ; fi}
 
 # Some nice architecture specific optimizations
 ifeq ($(strip $(TARGET_ARCH)),arm)
