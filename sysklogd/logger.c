@@ -186,7 +186,7 @@ extern int logger_main(int argc, char **argv)
     if (toStdErrFlag==TRUE)
 	fprintf(stderr, "%s\n", buf);
 
-    write( fd, buf, sizeof(buf));
+    write( fd, buf, strlen(buf)+1);
 
     close(fd);
     exit( TRUE);

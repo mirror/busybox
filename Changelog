@@ -2,6 +2,9 @@
 	* Fixed a bug in both cp and mv preventing 'cp foo/README bar'
 	    type commands (file in a directory to another directory) 
 	    from working.
+	* Fixed a logger bug that caused garbage to be written to the syslog 
+	    (unless you used busybox syslog, which hid the bug).  Thanks
+	    to Alex Holden <alex@linuxhacker.org> for the fix.
 
 	-Erik Andersen, 
 
