@@ -27,6 +27,7 @@
 	 - address matching: num|/matchstr/[,num|/matchstr/|$]command
 	 - commands: (p)rint, (d)elete, (s)ubstitue (with g & I flags)
 	 - edit commands: (a)ppend, (i)nsert, (c)hange
+	 - file commands: (r)ead
 	 - backreferences in substitution expressions (\1, \2...\9)
 	 
 	 (Note: Specifying an address (range) to match is *optional*; commands
@@ -90,6 +91,11 @@ struct sed_cmd {
 	/* EDIT COMMAND (a,i,c) SPEICIFIC FIELDS */
 
 	char *editline;
+
+
+	/* FILE COMMAND (r) SPEICIFIC FIELDS */
+
+	char *filename;
 };
 
 /* globals */
@@ -351,6 +357,45 @@ out:
 	return idx;
 }
 
+
+static int parse_file_cmd(struct sed_cmd *sed_cmd, const char *filecmdstr)
+{
+	int idx = 0;
+	int filenamelen = 0;
+
+	/*
+	 * the string that gets passed to this function should look like this:
+	 *    '[ ]filename'
+	 *      |  |
+	 *      |  a filename
+	 *      |
+	 *     optional whitespace
+
+	 *   re: the file to be read, the GNU manual says the following: "Note that
+	 *   if filename cannot be read, it is treated as if it were an empty file,
+	 *   without any error indication." Thus, all of the following commands are
+	 *   perfectly leagal:
+	 *
+	 *   sed -e '1r noexist'
+	 *   sed -e '1r ;'
+	 *   sed -e '1r'
+	 */
+
+	/* the file command may be followed by whitespace; move past it. */
+	while (isspace(filecmdstr[++idx]))
+		{ ; }
+		
+	/* the first non-whitespace we get is a filename. the filename ends when we
+	 * hit a normal sed command terminator or end of string */
+	filenamelen = strcspn(&filecmdstr[idx], "; \n\r\t\v\0");
+	sed_cmd->filename = xmalloc(sizeof(char) * filenamelen + 1);
+	strncpy(sed_cmd->filename, &filecmdstr[idx], filenamelen);
+	sed_cmd->filename[filenamelen] = 0;
+
+	return idx + filenamelen;
+}
+
+
 static char *parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 {
 	int idx = 0;
@@ -360,7 +405,6 @@ static char *parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 	 *            |----||-----||-|
 	 *            part1 part2  part3
 	 */
-
 
 	/* first part (if present) is an address: either a number or a /regex/ */
 	if (isdigit(cmdstr[idx]) || cmdstr[idx] == '/')
@@ -373,24 +417,32 @@ static char *parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 	/* last part (mandatory) will be a command */
 	if (cmdstr[idx] == '\0')
 		error_msg_and_die("missing command");
-	if (!strchr("pdsaic", cmdstr[idx])) /* <-- XXX add new commands here */
-		error_msg_and_die("invalid command");
 	sed_cmd->cmd = cmdstr[idx];
 
-	/* special-case handling for (s)ubstitution */
-	if (sed_cmd->cmd == 's') {
+	/* if it was a single-letter command that takes no arguments (such as 'p'
+	 * or 'd') all we need to do is increment the index past that command */
+	if (strchr("pd", cmdstr[idx])) {
+		idx++;
+	}
+	/*  handle (s)ubstitution */
+	else if (sed_cmd->cmd == 's') {
 		idx += parse_subst_cmd(sed_cmd, &cmdstr[idx]);
 	}
-	/* special-case handling for (a)ppend, (i)nsert, and (c)hange */
+	/* handle edit cmds: (a)ppend, (i)nsert, and (c)hange */
 	else if (strchr("aic", cmdstr[idx])) {
 		if (sed_cmd->end_line || sed_cmd->end_match)
 			error_msg_and_die("only a beginning address can be specified for edit commands");
 		idx += parse_edit_cmd(sed_cmd, &cmdstr[idx]);
 	}
-	/* if it was a single-letter command (such as 'p' or 'd') we need to
-	 * increment the index past that command */
-	else
-		idx++;
+	/* handle file cmds: (r)ead */
+	else if (sed_cmd->cmd == 'r') {
+		if (sed_cmd->end_line || sed_cmd->end_match)
+			error_msg_and_die("Command only uses one address");
+		idx += parse_file_cmd(sed_cmd, &cmdstr[idx]);
+	}
+	else {
+		error_msg_and_die("invalid command");
+	}
 
 	/* give back whatever's left over */
 	return (char *)&cmdstr[idx];
@@ -597,6 +649,17 @@ static int do_sed_command(const struct sed_cmd *sed_cmd, const char *line)
 		case 'c':
 			fputs(sed_cmd->editline, stdout);
 			altered++;
+			break;
+
+		case 'r': {
+			FILE *file;
+			fputs(line, stdout);
+			file = fopen(sed_cmd->filename, "r");
+			if (file)
+				print_file(file);
+			/* else if we couldn't open the file, no biggie, just don't print anything */
+			altered++;
+			}
 			break;
 	}
 
