@@ -85,49 +85,33 @@ have additions to this FAQ document, we would love to add them,
 <h2><a name="bugs">I think I found a bug in BusyBox!  What should I do?</h2>
 <p>
 
-    If you find a problem with BusyBox, please submit a detailed bug report to
-    the BusyBox mailing list at <a href="mailto:busybox@mail.busybox.net">
-    busybox@mail.busybox.net</a>.  Please do not send private email to Erik
-    (the maintainer of BusyBox) asking for private help unless you are planning
-    on paying for consulting services.  When we answer questions on the BusyBox
-    mailing list, it helps everyone, while private answers help only you...
+
+<p>
+
+    If you simply need help with using or configuring BusyBox, please submit a
+    detailed description of your problem to the BusyBox mailing list at <a
+    href="mailto:busybox@mail.busybox.net"> busybox@mail.busybox.net</a>.
+    Please do not send private email to Erik (the maintainer of BusyBox) asking
+    for private help unless you are planning on paying for consulting services.
+    When we answer questions on the BusyBox mailing list, it helps everyone,
+    while private answers help only you...
 
     <p>
 
-    If you find bugs, please submit a detailed bug report to the BusyBox mailing
-    list at busybox@mail.busybox.net.  A well-written bug report should include a
-    transcript of a shell session that demonstrates the bad behavior and enables
-    anyone else to duplicate the bug on their own machine. The following is such
-    an example:
+    The developers of BusyBox are busy people, and have only so much they can
+    keep in their brains at a time.  As a result, bug reports sometimes get
+    lost when posted to the mailing list.  To prevent your bug report from
+    getting lost, if you find a bug in BusyBox, please use the <a
+    href="http://bugs.busybox.net/">BusyBox Bug and Patch Tracking System</a>
+    to submit a detailed bug report.
 
-<pre>
-	To: busybox@mail.busybox.net
-	From: diligent@testing.linux.org
-	Subject: /bin/date doesn't work
+    <p>
 
-	Package: BusyBox
-	Version: 1.00
+    The same also applies to patches... Regardless of whether your patch is a
+    bug fix or adds shiney new features, please post your patch to the <a
+    href="http://bugs.busybox.net/">BusyBox Bug and Patch Tracking System</a>
+    to make certain it is properly considered.
 
-	When I execute BusyBox 'date' it produces unexpected results.
-	With GNU date I get the following output:
-
-		$ date
-		Fri Oct  8 14:19:41 MDT 2004
-
-	But when I use BusyBox date I get this instead:
-
-		$ date
-		illegal instruction
-
-	I am using Debian unstable, kernel version 2.4.27 on a x86 system,
-	and the latest uClibc from CVS.  Thanks for the wonderful program!
-
-	  -Diligent
-</pre>
-
-    Note the careful description and use of examples showing not only what BusyBox
-    does, but also a counter example showing what an equivalent GNU app does.  Bug
-    reports lacking proper detail may never be fixed...  Thanks for understanding.
 
 <hr />
 <p>
