@@ -81,7 +81,6 @@ typedef struct huft_s {
 } huft_t;
 
 static int gunzip_src_fd;
-static int gunzip_dst_fd;
 unsigned int gunzip_bytes_out;	/* number of output bytes */
 static unsigned int gunzip_outbuf_count;	/* bytes in output buffer */
 
@@ -93,10 +92,14 @@ unsigned char *gunzip_in_buffer;
 /* gunzip_window size--must be a power of two, and
  *  at least 32K for zip's deflate method */
 static const int gunzip_wsize = 0x8000;
+static int output_buffer_size = 0x8000; // gunzip_wsize initially
 
 static unsigned char *gunzip_window;
 static unsigned int *gunzip_crc_table;
 unsigned int gunzip_crc;
+
+static unsigned char *output_buffer;
+static unsigned int output_buffer_len;
 
 /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
 #define BMAX 16	/* maximum bit length of any code (16 for explode) */
@@ -410,9 +413,20 @@ static void flush_gunzip_window(void)
 		gunzip_crc = gunzip_crc_table[((int) gunzip_crc ^ (gunzip_window[n])) & 0xff] ^ (gunzip_crc >> 8);
 	}
 
-	if (write(gunzip_dst_fd, gunzip_window, gunzip_outbuf_count) != gunzip_outbuf_count) {
-		error_msg_and_die("Couldnt write");
+	if (output_buffer_len == 0) { // Our buffer is empty -> straight memcpy
+		memcpy(output_buffer, gunzip_window, gunzip_outbuf_count);
+		output_buffer_len = gunzip_outbuf_count;
+	} else { // Bit more complicated, append to end of output_buffer, realloc as necessary
+		int newlen = output_buffer_len + gunzip_outbuf_count;
+		if (newlen > output_buffer_size) {
+			output_buffer = xrealloc(output_buffer, newlen); // Could free later, but as we now have the memory...
+			//printf("Using %d byte output buffer\n", newlen);
+			output_buffer_size = newlen;
+		}
+		memcpy(output_buffer + output_buffer_len, gunzip_window, gunzip_outbuf_count);
+		output_buffer_len += gunzip_outbuf_count;
 	}
+	
 	gunzip_bytes_out += gunzip_outbuf_count;
 	gunzip_outbuf_count = 0;
 }
@@ -835,20 +849,49 @@ static int inflate_block(int *e)
  *
  * GLOBAL VARIABLES: gunzip_outbuf_count, bk, gunzip_bb, hufts, inptr
  */
-extern int inflate(int in, int out)
+
+extern ssize_t read_gz(int fd, void *buf, size_t count)
 {
-	typedef void (*sig_type) (int);
-	int e;				/* last block flag */
+	static int e = 0;				/* last block flag */
 	int r;				/* result code */
 	unsigned h = 0;		/* maximum struct huft's malloc'ed */
+	ssize_t written = count;
+	static char *output_buffer_ptr = 0;
+
+	while (output_buffer_len == 0) { // We need more data
+		if (e) return 0; // No more data here!
+		gunzip_hufts = 0;
+		r = inflate_block(&e);
+		if (r != 0) {
+			error_msg_and_die("inflate error %d", r);
+			return -1;
+		}
+		if (gunzip_hufts > h) {
+			h = gunzip_hufts;
+		}
+		if (e) { // Ok finished uncompressing, get any buffered uncompressed data
+			flush_gunzip_window();
+		}
+		output_buffer_ptr = output_buffer;
+	}
+	if (count > output_buffer_len) written = output_buffer_len; // We're only giving them as much as we have!
+	memcpy(buf, output_buffer_ptr, written);
+	output_buffer_ptr += written;
+	output_buffer_len -= written;
+
+	return written;
+}
+
+extern void GZ_gzReadOpen(int fd, void *unused, int nUnused)
+{
+	typedef void (*sig_type) (int);
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
-	gunzip_window = xmalloc(0x8000);
+	gunzip_window = xmalloc(gunzip_wsize);
+	output_buffer = xmalloc(gunzip_wsize);
 	gunzip_outbuf_count = 0;
 	gunzip_bytes_out = 0;
-
-	gunzip_src_fd = in;
-	gunzip_dst_fd = out;
+	gunzip_src_fd = fd;
 
 	gunzip_in_buffer = malloc(8);
 
@@ -867,25 +910,13 @@ extern int inflate(int in, int out)
 
 	/* Create the crc table */
 	make_gunzip_crc_table();
+}
 
-	/* decompress until the last block */
-	do {
-		gunzip_hufts = 0;
-		r = inflate_block(&e);
-		if (r != 0) {
-			error_msg_and_die("inflate error %d", r);
-			return r;
-	}
-		if (gunzip_hufts > h) {
-			h = gunzip_hufts;
-	}
-	} while (!e);
-
-	/* write any buffered uncompressed data */
-	flush_gunzip_window();
-	free(gunzip_window);
-
+extern void GZ_gzReadClose(void)
+{
 	/* Cleanup */
+	free(gunzip_window);
+	free(output_buffer);
 	free(gunzip_crc_table);
 
 	/* Store unused bytes in a global buffer so calling applets can access it */
@@ -898,7 +929,29 @@ extern int inflate(int in, int out)
 		gunzip_bb >>= 8;
 		gunzip_bk -= 8;
 	}
+}
 
-	/* return success */
+extern int inflate(int in, int out)
+{
+	char buf[8192];
+	ssize_t nread, nwrote;
+	ssize_t total = 0;
+
+	GZ_gzReadOpen(in, 0, 0);
+	while(1) { // Robbed from copyfd.c
+		nread = read_gz(in, buf, sizeof(buf));
+		if (nread == 0) break; // no data to write
+		else if (nread == -1) {
+			perror_msg("read");
+			return -1;
+		}
+		nwrote = full_write(out, buf, nread);
+		if (nwrote == -1) {
+			perror_msg("write");
+			return -1;
+		}
+		total += nwrote;
+	}
+	GZ_gzReadClose();
 	return 0;
 }
