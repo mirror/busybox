@@ -217,7 +217,7 @@ int uuencode_main (int argc,
    case 2:
     /* Optional first argument is input file.  */
     if (!freopen (argv[optind], "r", stdin) || fstat (fileno (stdin), &sb)) {
-      errorMsg("uuencode: %s: %s\n", argv[optind], strerror(errno));
+      errorMsg("%s: %s\n", argv[optind], strerror(errno));
       exit FALSE;
     }
     mode = sb.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);

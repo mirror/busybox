@@ -201,7 +201,7 @@ static int do_umount(const char *name, int useMtab)
 	if (status != 0 && doForce == TRUE) {
 		status = umount2(blockDevice, MNT_FORCE);
 		if (status != 0) {
-			fatalError("umount: forced umount of %s failed!\n", blockDevice);
+			fatalError("forced umount of %s failed!\n", blockDevice);
 		}
 	}
 #endif

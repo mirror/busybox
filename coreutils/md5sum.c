@@ -708,13 +708,13 @@ static int md5_file(const char *filename,
   } else {
     fp = fopen(filename, OPENOPTS(binary));
     if (fp == NULL) {
-      errorMsg("md5sum: %s: %s\n", filename, strerror(errno));
+      errorMsg("%s: %s\n", filename, strerror(errno));
       return FALSE;
     }
   }
 
   if (md5_stream(fp, md5_result)) {
-    errorMsg("md5sum: %s: %s\n", filename, strerror(errno));
+    errorMsg("%s: %s\n", filename, strerror(errno));
 
     if (fp != stdin)
       fclose(fp);
@@ -722,7 +722,7 @@ static int md5_file(const char *filename,
   }
 
   if (fp != stdin && fclose(fp) == EOF) {
-    errorMsg("md5sum: %s: %s\n", filename, strerror(errno));
+    errorMsg("%s: %s\n", filename, strerror(errno));
     return FALSE;
   }
 
@@ -746,7 +746,7 @@ static int md5_check(const char *checkfile_name)
   } else {
     checkfile_stream = fopen(checkfile_name, "r");
     if (checkfile_stream == NULL) {
-      errorMsg("md5sum: %s: %s\n", checkfile_name, strerror(errno));
+      errorMsg("%s: %s\n", checkfile_name, strerror(errno));
       return FALSE;
     }
   }

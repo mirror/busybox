@@ -196,7 +196,7 @@ static int get_address(const char *str, int *line, regex_t **regex)
 	else if (my_str[idx] == '/') {
 		idx = index_of_next_unescaped_slash(idx, my_str);
 		if (idx == -1)
-			fatalError("sed: unterminated match expression\n");
+			fatalError("unterminated match expression\n");
 		my_str[idx] = '\0';
 		*regex = (regex_t *)xmalloc(sizeof(regex_t));
 		if (bb_regcomp(*regex, my_str+1, REG_NEWLINE) != 0) {
@@ -243,9 +243,9 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 
 	/* last part (mandatory) will be a command */
 	if (cmdstr[idx] == '\0')
-		fatalError("sed: missing command\n");
+		fatalError("missing command\n");
 	if (!strchr("pds", cmdstr[idx])) /* <-- XXX add new commands here */
-		fatalError("sed: invalid command\n");
+		fatalError("invalid command\n");
 	sed_cmd->cmd = cmdstr[idx];
 	/* special-case handling for 's' */
 	if (sed_cmd->cmd == 's') {
@@ -259,20 +259,20 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 
 		/* verify that we have an 's' followed by a 'slash' */
 		if (cmdstr[++idx] != '/')
-			fatalError("sed: bad format in substitution expression\n");
+			fatalError("bad format in substitution expression\n");
 
 		/* save the match string */
 		oldidx = idx+1;
 		idx = index_of_next_unescaped_slash(idx, cmdstr);
 		if (idx == -1)
-			fatalError("sed: bad format in substitution expression\n");
+			fatalError("bad format in substitution expression\n");
 		match = strdup_substr(cmdstr, oldidx, idx);
 
 		/* save the replacement string */
 		oldidx = idx+1;
 		idx = index_of_next_unescaped_slash(idx, cmdstr);
 		if (idx == -1)
-			fatalError("sed: bad format in substitution expression\n");
+			fatalError("bad format in substitution expression\n");
 		sed_cmd->replace = strdup_substr(cmdstr, oldidx, idx);
 
 		/* process the flags */
@@ -285,7 +285,7 @@ static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
 				cflags |= REG_ICASE;
 				break;
 			default:
-				fatalError("sed: bad option in substitution expression\n");
+				fatalError("bad option in substitution expression\n");
 			}
 		}
 			

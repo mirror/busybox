@@ -66,7 +66,7 @@ struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 				&(tm_time->tm_min), &(tm_time->tm_year));
 
 	if (nr < 4 || nr > 5) {
-		fatalError(invalid_date, "date", t_string); 
+		fatalError(invalid_date, t_string); 
 	}
 
 	/* correct for century  - minor Y2K problem here? */
@@ -150,7 +150,7 @@ struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 
 	}
 
-	fatalError(invalid_date, "date", t_string); 
+	fatalError(invalid_date, t_string); 
 }
 
 
@@ -186,7 +186,7 @@ int date_main(int argc, char **argv)
 				case 'u':
 					utc = 1;
 					if (putenv("TZ=UTC0") != 0) 
-						fatalError(memory_exhausted, "date");
+						fatalError(memory_exhausted);
 					break;
 				case 'd':
 					use_arg = 1;
@@ -236,12 +236,12 @@ int date_main(int argc, char **argv)
 		/* Correct any day of week and day of year etc fields */
 		tm = mktime(&tm_time);
 		if (tm < 0)
-			fatalError(invalid_date, "date", date_str); 
+			fatalError(invalid_date, date_str); 
 
 		/* if setting time, set it */
 		if (set_time) {
 			if (stime(&tm) < 0) {
-				fatalError("date: can't set date.\n");
+				fatalError("can't set date.\n");
 			}
 		}
 	}

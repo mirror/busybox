@@ -87,7 +87,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 	case CHMOD_APP:
 		/* Parse the specified modes */
 		if (parse_mode(theMode, &(statbuf->st_mode)) == FALSE) {
-			fatalError( "%s: unknown mode: %s\n", applet_name, theMode);
+			fatalError( "unknown mode: %s\n", theMode);
 		}
 		if (chmod(fileName, statbuf->st_mode) == 0)
 			return (TRUE);
@@ -169,15 +169,14 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 			if (*argv == p)
 				uid = my_getpwnam(*argv);
 			if (uid == -1) {
-				fatalError( "%s: unknown user name: %s\n", 
-						applet_name, *argv);
+				fatalError( "unknown user name: %s\n", *argv);
 			}
 		}
 	}
 
 	/* Ok, ready to do the deed now */
 	if (argc <= 1) {
-		fatalError( "%s: too few arguments\n", applet_name);
+		fatalError( "too few arguments\n");
 	}
 	while (argc-- > 1) {
 		if (recursiveAction (*(++argv), recursiveFlag, FALSE, FALSE, 
@@ -187,7 +186,7 @@ int chmod_chown_chgrp_main(int argc, char **argv)
 	exit(TRUE);
 
   bad_group:
-	fatalError( "%s: unknown group name: %s\n", applet_name, groupName);
+	fatalError( "unknown group name: %s\n", groupName);
 }
 
 /*

@@ -212,7 +212,7 @@ extern int method;				/* compression method */
 #  define DECLARE(type, array, size)  type * array
 #  define ALLOC(type, array, size) { \
       array = (type*)calloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
-      if (array == NULL) errorMsg(memory_exhausted, "gunzip"); \
+      if (array == NULL) errorMsg(memory_exhausted); \
    }
 #  define FREE(array) {if (array != NULL) free(array), array=NULL;}
 #else
@@ -930,7 +930,7 @@ int in, out;					/* input and output file descriptors */
 		int res = inflate();
 
 		if (res == 3) {
-			errorMsg(memory_exhausted, "gunzip");
+			errorMsg(memory_exhausted);
 		} else if (res != 0) {
 			errorMsg("invalid compressed data--format violated");
 		}

@@ -850,7 +850,7 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 #endif
 
 			execvp(newJob.progs[i].argv[0], newJob.progs[i].argv);
-			fatalError("sh: %s: %s\n", newJob.progs[i].argv[0],
+			fatalError("%s: %s\n", newJob.progs[i].argv[0],
 					   strerror(errno));
 		}
 
@@ -1043,7 +1043,7 @@ int shell_main(int argc, char **argv)
 	/* initialize the cwd */
 	cwd = (char *) calloc(BUFSIZ, sizeof(char));
 	if (cwd == 0) {
-		fatalError("sh: out of memory\n");
+		fatalError("out of memory\n");
 	}
 	getcwd(cwd, sizeof(char)*BUFSIZ);
 
@@ -1065,7 +1065,7 @@ int shell_main(int argc, char **argv)
 			int i;
 			local_pending_command = (char *) calloc(BUFSIZ, sizeof(char));
 			if (local_pending_command == 0) {
-				fatalError("sh: out of memory\n");
+				fatalError("out of memory\n");
 			}
 			for(i=2; i<argc; i++)
 			{
@@ -1073,7 +1073,7 @@ int shell_main(int argc, char **argv)
 					local_pending_command = realloc(local_pending_command, 
 							strlen(local_pending_command) + strlen(argv[i]));
 					if (local_pending_command==NULL) 
-					  fatalError("sh: commands for -c option too long\n");
+					  fatalError("commands for -c option too long\n");
 				}
 				strcat(local_pending_command, argv[i]);
 				if ( (i + 1) < argc)
@@ -1088,7 +1088,7 @@ int shell_main(int argc, char **argv)
 		else {
 			input = fopen(argv[1], "r");
 			if (!input) {
-				fatalError("sh: Couldn't open file '%s': %s\n", argv[1],
+				fatalError("Couldn't open file '%s': %s\n", argv[1],
 						   strerror(errno));
 			}
 		}

@@ -70,12 +70,12 @@ extern int touch_main(int argc, char **argv)
 			if (create == FALSE && errno == ENOENT)
 				exit(TRUE);
 			else {
-				fatalError("touch: %s", strerror(errno));
+				fatalError("%s", strerror(errno));
 			}
 		}
 		close(fd);
 		if (utime(*argv, NULL)) {
-			fatalError("touch: %s", strerror(errno));
+			fatalError("%s", strerror(errno));
 		}
 		argc--;
 		argv++;

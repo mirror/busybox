@@ -193,7 +193,7 @@ do_mount(char *specialfile, char *dir, char *filesystemtype,
 #endif
 
 	if (errno == EPERM) {
-		fatalError("mount: permission denied. Are you root?\n");
+		fatalError("permission denied. Are you root?\n");
 	}
 
 	return (FALSE);

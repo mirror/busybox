@@ -330,7 +330,7 @@ tarExtractRegularFile(TarInfo *header, int extractFlag, int tostdoutFlag)
 		}
 		if ( (readSize = fullRead(header->tarFd, buffer, readSize)) <= 0 ) {
 			/* Tarball seems to have a problem */
-			errorMsg("tar: Unexpected EOF in archive\n"); 
+			errorMsg("Unexpected EOF in archive\n"); 
 			return( FALSE);
 		}
 		if ( readSize < writeSize )
@@ -368,7 +368,7 @@ tarExtractDirectory(TarInfo *header, int extractFlag, int tostdoutFlag)
 		return( TRUE);
 
 	if (createPath(header->name, header->mode) != TRUE) {
-		errorMsg("tar: %s: Cannot mkdir: %s\n", 
+		errorMsg("%s: Cannot mkdir: %s\n", 
 				header->name, strerror(errno)); 
 		return( FALSE);
 	}
@@ -388,7 +388,7 @@ tarExtractHardLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 		return( TRUE);
 
 	if (link(header->linkname, header->name) < 0) {
-		errorMsg("tar: %s: Cannot create hard link to '%s': %s\n", 
+		errorMsg("%s: Cannot create hard link to '%s': %s\n", 
 				header->name, header->linkname, strerror(errno)); 
 		return( FALSE);
 	}
@@ -406,7 +406,7 @@ tarExtractSymLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 
 #ifdef	S_ISLNK
 	if (symlink(header->linkname, header->name) < 0) {
-		errorMsg("tar: %s: Cannot create symlink to '%s': %s\n", 
+		errorMsg("%s: Cannot create symlink to '%s': %s\n", 
 				header->name, header->linkname, strerror(errno)); 
 		return( FALSE);
 	}
@@ -421,7 +421,7 @@ tarExtractSymLink(TarInfo *header, int extractFlag, int tostdoutFlag)
 	/* Do not change permissions or date on symlink,
 	 * since it changes the pointed to file instead.  duh. */
 #else
-	errorMsg("tar: %s: Cannot create symlink to '%s': %s\n", 
+	errorMsg("%s: Cannot create symlink to '%s': %s\n", 
 			header->name, header->linkname, 
 			"symlinks not supported"); 
 #endif
@@ -436,13 +436,13 @@ tarExtractSpecial(TarInfo *header, int extractFlag, int tostdoutFlag)
 
 	if (S_ISCHR(header->mode) || S_ISBLK(header->mode) || S_ISSOCK(header->mode)) {
 		if (mknod(header->name, header->mode, makedev(header->devmajor, header->devminor)) < 0) {
-			errorMsg("tar: %s: Cannot mknod: %s\n",
+			errorMsg("%s: Cannot mknod: %s\n",
 				header->name, strerror(errno)); 
 			return( FALSE);
 		}
 	} else if (S_ISFIFO(header->mode)) {
 		if (mkfifo(header->name, header->mode) < 0) {
-			errorMsg("tar: %s: Cannot mkfifo: %s\n",
+			errorMsg("%s: Cannot mkfifo: %s\n",
 				header->name, strerror(errno)); 
 			return( FALSE);
 		}
@@ -490,7 +490,7 @@ readTarHeader(struct TarHeader *rawHeader, struct TarInfo *header)
 			++*(header->name);
 
 		if (alreadyWarned == FALSE) {
-			errorMsg("tar: Removing leading '/' from member names\n");
+			errorMsg("Removing leading '/' from member names\n");
 			alreadyWarned = TRUE;
 		}
 	}
@@ -695,7 +695,7 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 		return ( FALSE);
 	}
 	else if (errorFlag==TRUE) {
-		errorMsg( "tar: Error exit delayed from previous errors\n");
+		errorMsg( "Error exit delayed from previous errors\n");
 		return( FALSE);
 	} else 
 		return( status);
@@ -705,7 +705,7 @@ endgame:
 	close( tarFd);
 	if ( *(header.name) == '\0' ) {
 		if (errorFlag==TRUE)
-			errorMsg( "tar: Error exit delayed from previous errors\n");
+			errorMsg( "Error exit delayed from previous errors\n");
 		else
 			return( TRUE);
 	} 
@@ -782,7 +782,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 	if (*fileName=='/') {
 		static int alreadyWarned=FALSE;
 		if (alreadyWarned==FALSE) {
-			errorMsg("tar: Removing leading '/' from member names\n");
+			errorMsg("Removing leading '/' from member names\n");
 			alreadyWarned=TRUE;
 		}
 		strncpy(header.name, fileName+1, sizeof(header.name)); 
@@ -854,7 +854,7 @@ writeTarHeader(struct TarBallInfo *tbInfo, const char *fileName, struct stat *st
 		header.typeflag  = REGTYPE;
 		putOctal(header.size, sizeof(header.size), statbuf->st_size);
 	} else {
-		errorMsg("tar: %s: Unknown file type\n", fileName);
+		errorMsg("%s: Unknown file type\n", fileName);
 		return ( FALSE);
 	}
 
@@ -892,7 +892,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 
 	/* It is against the rules to archive a socket */
 	if (S_ISSOCK(statbuf->st_mode)) {
-		errorMsg("tar: %s: socket ignored\n", fileName);
+		errorMsg("%s: socket ignored\n", fileName);
 		return( TRUE);
 	}
 
@@ -901,7 +901,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	 * the new tarball */
 	if (tbInfo->statBuf.st_dev == statbuf->st_dev &&
 			tbInfo->statBuf.st_ino == statbuf->st_ino) {
-		errorMsg("tar: %s: file is the archive; skipping\n", fileName);
+		errorMsg("%s: file is the archive; skipping\n", fileName);
 		return( TRUE);
 	}
 
@@ -917,7 +917,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 
 		/* open the file we want to archive, and make sure all is well */
 		if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
-			errorMsg("tar: %s: Cannot open: %s\n", fileName, strerror(errno));
+			errorMsg("%s: Cannot open: %s\n", fileName, strerror(errno));
 			return( FALSE);
 		}
 		
@@ -955,7 +955,7 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 
 	/* Make sure there is at least one file to tar up.  */
 	if (argc <= 0)
-		fatalError("tar: Cowardly refusing to create an empty archive\n");
+		fatalError("Cowardly refusing to create an empty archive\n");
 
 	/* Open the tar file for writing.  */
 	if (tostdoutFlag == TRUE)
@@ -963,7 +963,7 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 	else
 		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (tbInfo.tarFd < 0) {
-		errorMsg( "tar: Error opening '%s': %s\n", tarName, strerror(errno));
+		errorMsg( "Error opening '%s': %s\n", tarName, strerror(errno));
 		return ( FALSE);
 	}
 	tbInfo.excludeList=excludeList;
@@ -997,7 +997,7 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 	/* Hang up the tools, close up shop, head home */
 	close(tarFd);
 	if (errorFlag == TRUE) {
-		errorMsg("tar: Error exit delayed from previous errors\n");
+		errorMsg("Error exit delayed from previous errors\n");
 		return(FALSE);
 	}
 	return( TRUE);

@@ -57,10 +57,10 @@
 	BB_DEF_MESSAGE(not_a_directory, "%s: %s: not a directory\n")
 #endif
 #if defined bb_need_memory_exhausted || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(memory_exhausted, "%s: memory exhausted\n")
+	BB_DEF_MESSAGE(memory_exhausted, "memory exhausted\n")
 #endif
 #if defined bb_need_invalid_date || ! defined BB_DECLARE_EXTERN
-	BB_DEF_MESSAGE(invalid_date, "%s: invalid date `%s'\n")
+	BB_DEF_MESSAGE(invalid_date, "invalid date `%s'\n")
 #endif
 #if defined bb_need_invalid_option || ! defined BB_DECLARE_EXTERN
 	BB_DEF_MESSAGE(invalid_option, "%s: invalid option -- %c\n")

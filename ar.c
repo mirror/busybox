@@ -158,12 +158,12 @@ static int copySubFile(int srcFd, int dstFd, int copySize)
 			readSize = copySize;
 		writeSize = fullRead(srcFd, buffer, readSize);
 		if (writeSize <= 0) {
-			errorMsg(io_error, "copySubFile :", strerror(errno));
+			errorMsg(io_error, "copySubFile", strerror(errno));
 			return (FALSE);
 		}
 		doneSize = fullWrite(dstFd, buffer, writeSize);
 		if (doneSize <= 0) {
-			errorMsg(io_error, "copySubFile :", strerror(errno));
+			errorMsg(io_error, "copySubFile", strerror(errno));
 			return (FALSE);
 		}
 		copySize -= doneSize;
@@ -220,7 +220,7 @@ static int getArFd(char *filename)
 		return (FALSE);
 	}
         if (fullRead(arFd, arVersion, 8) <= 0) {
-                errorMsg( "ar: Unexpected EOF in archive\n");
+                errorMsg( "Unexpected EOF in archive\n");
                 return (FALSE);
         }
         if (strncmp(arVersion,"!<arch>",7) != 0) {

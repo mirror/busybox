@@ -52,10 +52,10 @@ freeramdisk_main(int argc, char **argv)
 	}
 
 	if ((f = open(argv[1], O_RDWR)) == -1) {
-		fatalError( "freeramdisk: cannot open %s: %s\n", argv[1], strerror(errno));
+		fatalError( "cannot open %s: %s\n", argv[1], strerror(errno));
 	}
 	if (ioctl(f, BLKFLSBUF) < 0) {
-		fatalError( "freeramdisk: failed ioctl on %s: %s\n", argv[1], strerror(errno));
+		fatalError( "failed ioctl on %s: %s\n", argv[1], strerror(errno));
 	}
 	/* Don't bother closing.  Exit does
 	 * that, so we can save a few bytes */

@@ -94,6 +94,7 @@ extern void errorMsg(const char *s, ...)
 
 	va_start(p, s);
 	fflush(stdout);
+	fprintf(stderr, "%s: ", applet_name);
 	vfprintf(stderr, s, p);
 	va_end(p);
 	fflush(stderr);
@@ -105,6 +106,7 @@ extern void fatalError(const char *s, ...)
 
 	va_start(p, s);
 	fflush(stdout);
+	fprintf(stderr, "%s: ", applet_name);
 	vfprintf(stderr, s, p);
 	va_end(p);
 	fflush(stderr);
@@ -1360,7 +1362,7 @@ extern pid_t* findPidByName( char* pidName)
 				&& (strlen(pidName) == strlen(info.command_line))) {
 			pidList=realloc( pidList, sizeof(pid_t) * (j+2));
 			if (pidList==NULL)
-				fatalError(memory_exhausted, "");
+				fatalError(memory_exhausted);
 			pidList[j++]=info.pid;
 		}
 	}
@@ -1433,7 +1435,7 @@ extern pid_t* findPidByName( char* pidName)
 				&& (strlen(pidName) == strlen(p))) {
 			pidList=realloc( pidList, sizeof(pid_t) * (i+2));
 			if (pidList==NULL)
-				fatalError(memory_exhausted, "");
+				fatalError(memory_exhausted);
 			pidList[i++]=strtol(next->d_name, NULL, 0);
 		}
 	}
@@ -1450,7 +1452,7 @@ extern void *xmalloc(size_t size)
 	void *cp = malloc(size);
 
 	if (cp == NULL)
-		fatalError(memory_exhausted, "");
+		fatalError(memory_exhausted);
 	return cp;
 }
 
@@ -1464,7 +1466,7 @@ extern char * xstrdup (const char *s) {
 	t = strdup (s);
 
 	if (t == NULL)
-		fatalError(memory_exhausted, "");
+		fatalError(memory_exhausted);
 
 	return t;
 }

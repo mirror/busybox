@@ -189,7 +189,7 @@ extern int tr_main(int argc, char **argv)
 			complement(input);
 		if (argv[index] != NULL) {
 			if (*argv[index] == '\0')
-				fatalError("tr: STRING2 cannot be empty\n");
+				fatalError("STRING2 cannot be empty\n");
 			expand(argv[index], output);
 			map(input, output);
 		}

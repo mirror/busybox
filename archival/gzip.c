@@ -127,7 +127,7 @@ extern int method;				/* compression method */
 #  define DECLARE(type, array, size)  type * array
 #  define ALLOC(type, array, size) { \
       array = (type*)calloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
-      if (array == NULL) errorMsg(memory_exhausted, "gzip"); \
+      if (array == NULL) errorMsg(memory_exhausted); \
    }
 #  define FREE(array) {if (array != NULL) free(array), array=NULL;}
 #else
@@ -3251,7 +3251,7 @@ char *env;						/* name of environment variable */
 	nargv = (char **) calloc(*argcp + 1, sizeof(char *));
 
 	if (nargv == NULL)
-		errorMsg(memory_exhausted, "gzip");
+		errorMsg(memory_exhausted);
 	oargv = *argvp;
 	*argvp = nargv;
 
