@@ -220,8 +220,7 @@ extern int cut_main(int argc, char **argv)
 		for (i = optind; i < argc; i++) {
 			file = fopen(argv[i], "r");
 			if (file == NULL) {
-				/* errorMsg("%s: %s\n", argv[i], strerror(errno)); */
-				fprintf(stderr, "%s: %s\n", argv[i], strerror(errno));
+				errorMsg("%s: %s\n", argv[i], strerror(errno));
 			} else {
 				cut_file(file);
 				fclose(file);
