@@ -53,7 +53,7 @@
 #endif
 
 
-#if defined(__UCLIBC__) && !defined(__UCLIBC_HAS_MMU__)
+#if defined(__UCLIBC__) && !defined(__ARCH_HAS_MMU__)
 #define fork	vfork
 #endif
 
@@ -913,7 +913,7 @@ static void check_memory(void)
 	if (check_free_memory() > 1000)
 		return;
 
-#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
+#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
 	if (stat("/etc/fstab", &statBuf) == 0) {
 		/* swapon -a requires /proc typically */
 		new_init_action(SYSINIT, "/bin/mount -t proc proc /proc", "");
@@ -957,7 +957,7 @@ static void parse_inittab(void)
 		new_init_action(CTRLALTDEL, "/sbin/reboot", "");
 		/* Umount all filesystems on halt/reboot */
 		new_init_action(SHUTDOWN, "/bin/umount -a -r", "");
-#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
+#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
 		/* Swapoff on halt/reboot */
 		new_init_action(SHUTDOWN, "/sbin/swapoff -a", "");
 #endif

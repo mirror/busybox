@@ -1439,7 +1439,7 @@ static int run_pipe_real(struct pipe *pi)
 		}
 
 		/* XXX test for failed fork()? */
-#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
+#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
 		if (!(child->pid = fork()))
 #else
 		if (!(child->pid = vfork()))
@@ -2258,7 +2258,7 @@ FILE *generate_stream_from_list(struct pipe *head)
 #if 1
 	int pid, channel[2];
 	if (pipe(channel)<0) bb_perror_msg_and_die("pipe");
-#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
+#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
 	pid=fork();
 #else
 	pid=vfork();

@@ -1380,7 +1380,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			}
 		}
 
-#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
+#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
 		if (!(child->pid = fork()))
 #else
 		if (!(child->pid = vfork()))
