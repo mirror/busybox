@@ -57,7 +57,6 @@
 #define BB_KILL
 #define BB_KILLALL
 #define BB_KLOGD
-//#define BB_LASH
 //#define BB_LENGTH
 #define BB_LN
 //#define BB_LOADACM
