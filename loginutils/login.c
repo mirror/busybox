@@ -324,10 +324,8 @@ static int check_tty ( const char *tty )
 		fclose(fp);
 		return 0;
 	}
-	else {
-		syslog ( LOG_WARNING, "cannot open securetty file.\n" );
-		return 1;
-	}
+	/* A missing securetty file is not an error. */
+	return 0;
 }
 
 #endif
