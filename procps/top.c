@@ -1,7 +1,7 @@
 /*
  * A tiny 'top' utility.
  *
- * This is written specifically for the linux 2.4 /proc/<PID>/status
+ * This is written specifically for the linux /proc/<PID>/status
  * file format, but it checks that the file actually conforms to the
  * format that this utility expects.
  
@@ -151,19 +151,21 @@ static void display_status(int count, const status_t *s)
 /* checks if given 'buf' for process starts with 'id' + ':' + TAB
  * and stores rest of the buf to 'store' with max size 'size'
  */
-static void process_status(const char *buf, const char *id, char *store, size_t size)
+static int process_status(const char *buf, const char *id, char *store, size_t size)
 {
 	int len, i;
 	
-	if (!store) {
-		/* ignoring this field */
-		return;
-	}
-
 	/* check status field name */
 	len = strlen(id);
 	if (strncmp(buf, id, len) != 0) {
-		error_msg_and_die("ERROR status: line doesn't start with '%s' in:\n%s\n", id, buf);
+		if(store)
+			error_msg_and_die("ERROR status: line doesn't start with '%s' in:\n%s\n", id, buf);
+		else
+			return 0;
+	}
+	if (!store) {
+		/* ignoring this field */
+		return 1;
 	}
 	buf += len;
 	
@@ -193,8 +195,8 @@ static void process_status(const char *buf, const char *id, char *store, size_t 
 		*store++ = *buf++;
 	}
 	*store = '\0';
+	return 1;
 }
-
 
 /* read process statuses */
 static void read_status(int num, status_t *s)
@@ -219,20 +221,20 @@ static void read_status(int num, status_t *s)
 		fgets(buf, sizeof(buf), fp);
 		process_status(buf, "State", s->state, sizeof(s->state));
 		fgets(buf, sizeof(buf), fp);
-		process_status(buf, "Tgid", NULL, 0);
-		fgets(buf, sizeof(buf), fp);
+		if(process_status(buf, "Tgid", NULL, 0))
+			fgets(buf, sizeof(buf), fp);
 		process_status(buf, "Pid", NULL, 0);
 		fgets(buf, sizeof(buf), fp);
 		process_status(buf, "PPid", s->ppid, sizeof(s->ppid));
 		fgets(buf, sizeof(buf), fp);
-		process_status(buf, "TracePid", NULL, 0);
-		fgets(buf, sizeof(buf), fp);
+		if(process_status(buf, "TracerPid", NULL, 0))
+			fgets(buf, sizeof(buf), fp);
 		process_status(buf, "Uid", s->uid, sizeof(s->uid));
 		fgets(buf, sizeof(buf), fp);
 		process_status(buf, "Gid", NULL, 0);
 		fgets(buf, sizeof(buf), fp);
-		process_status(buf, "FDSize", NULL, 0);
-		fgets(buf, sizeof(buf), fp);
+		if(process_status(buf, "FDSize", NULL, 0))
+			fgets(buf, sizeof(buf), fp);
 		process_status(buf, "Groups", NULL, 0);
 		fgets(buf, sizeof(buf), fp);
 		/* only user space processes have command line
@@ -342,7 +344,6 @@ static int num_sort(const void *a, const void *b)
 	}
 }
 
-
 int top_main(int argc, char **argv)
 {
 	status_t *statuslist;
@@ -353,8 +354,8 @@ int top_main(int argc, char **argv)
 #endif
 	/* Default update rate is 5 seconds */
 	interval = 5;
-	/* Default to 25 lines */
-	lines = 25;
+	/* Default to 25 lines - 5 lines for status */
+	lines = 25 - 5;
 
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "d:")) > 0) {
@@ -370,7 +371,7 @@ int top_main(int argc, char **argv)
 #if defined CONFIG_FEATURE_AUTOWIDTH && defined CONFIG_FEATURE_USE_TERMIOS
 	ioctl(fileno(stdout), TIOCGWINSZ, &win);
 	if (win.ws_row > 4)
-	    lines = win.ws_row - 6;
+	    lines = win.ws_row - 5;
 #endif
 	
 	/* change to proc */
