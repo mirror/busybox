@@ -217,7 +217,7 @@
 #define dc_example_usage \
 	"$ dc 2 2 +\n" \
 	"4\n" \
-	"$ dc 8 8 \* 2 2 + /\n" \
+	"$ dc 8 8 * 2 2 + /\n" \
 	"16\n" \
 	"$ dc 0 1 and\n" \
 	"0\n" \
@@ -570,11 +570,11 @@
         "while true ; do\n" \
         " case $1 in\n" \
         "   -a|--a-long) echo \"Option a\" ; shift ;;\n" \
-        "   -b|--b-long) echo \"Option b, argument \`$2'\" ; shift 2 ;;\n" \
+        "   -b|--b-long) echo \"Option b, argument `$2'\" ; shift 2 ;;\n" \
         "   -c|--c-long)\n" \
         "     case "$2" in\n" \
         "       \"\") echo \"Option c, no argument\"; shift 2 ;;\n" \
-        "       *)  echo \"Option c, argument \`$2'\" ; shift 2 ;;\n" \
+        "       *)  echo \"Option c, argument `$2'\" ; shift 2 ;;\n" \
         "     esac ;;\n" \
         "   --) shift ; break ;;\n" \
         "   *) echo \"Internal error!\" ; exit 1 ;;\n" \
@@ -1906,7 +1906,7 @@
 	"/dev/tty2\n"
 
 #define udhcpc_trivial_usage \
-	"[-fqv] [-c CLIENTID] [-H HOSTNAME] [-i INTERFACE]\n\[-p file] [-r IP] [-s script]"
+	"[-fqv] [-c CLIENTID] [-H HOSTNAME] [-i INTERFACE]\n[-p file] [-r IP] [-s script]"
 #define udhcpc_full_usage \
 	"\t-c,\t--clientid=CLIENTID\tClient identifier\n" \
 	"\t-H,\t--hostname=HOSTNAME\tClient hostname\n" \
