@@ -51,6 +51,12 @@
 	"$ basename /foo/bar.txt .txt\n" \
 	"bar"
 
+#define bunzip2_trivial_usage \
+	"FILE"
+#define bunzip2_full_usage \
+	"Uncompress FILE to current directory, stripping its .bz2 extension.\n"\
+	" -k is assumed" 
+
 #define cat_trivial_usage \
 	"[FILE]..."
 #define cat_full_usage \

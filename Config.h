@@ -13,6 +13,7 @@
 //#define BB_AR
 //#define BB_ASH
 #define BB_BASENAME
+//#define BB_BUNZIP2
 #define BB_CAT
 #define BB_CHGRP
 #define BB_CHMOD

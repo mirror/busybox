@@ -64,6 +64,9 @@
 #ifdef BB_BASENAME
 	APPLET(basename, basename_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_BUNZIP2
+	APPLET(bunzip2, bunzip2_main, _BB_DIR_USR_BIN)
+#endif
 	APPLET_NOUSAGE("busybox", busybox_main, _BB_DIR_BIN)
 #ifdef BB_CAT
 	APPLET(cat, cat_main, _BB_DIR_BIN)
