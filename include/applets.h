@@ -236,6 +236,9 @@
 #ifdef CONFIG_HOSTNAME
 	APPLET(hostname, hostname_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_HTTPD
+	APPLET(httpd, httpd_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_HUSH
 	APPLET_NOUSAGE("hush", hush_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

@@ -29,6 +29,20 @@ config CONFIG_HOSTNAME
 	help
 	  Please submit a patch to add help text for this item.
 
+config CONFIG_HTTPD
+	bool "httpd"
+	default n
+	help
+	  Serve web pages via an HTTP server.
+
+config CONFIG_FEATURE_HTTPD_BASIC_AUTH
+	bool "  Enable Basic Authentication and IP address checking"
+	default n
+	depends on CONFIG_HTTPD
+	help
+	  Utilizes /etc/httpd.conf for security settings allowing 
+          ip address filtering and basic authentication on a per url basis.
+
 config CONFIG_IFCONFIG
 	bool "ifconfig"
 	default n

@@ -775,7 +775,20 @@
 #define hostname_example_usage \
 	"$ hostname\n" \
 	"sage \n"
-
+#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
+  #define USAGE_HTTPD_BASIC_AUTH(a) a
+#else
+  #define USAGE_HTTPD_BASIC_AUTH(a)
+#endif
+#define httpd_trivial_usage \
+	"[-p <port>] [-d/-e <string>]" USAGE_HTTPD_BASIC_AUTH(" [-c <conf file>] [-r <realm>]")
+#define httpd_full_usage \
+       "Listens for incoming http server requests.\n"\
+       "Options:\n" \
+       "\t-p PORT\tServer port (default 80).\n" \
+       USAGE_HTTPD_BASIC_AUTH("\t-c FILE\tSpecifies configuration file.  (default httpd.conf)\n\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
+       "\t-e STRING\tHtml encode STRING\n" \
+       "\t-d STRING\tURL decode STRING\n" 
 #define hwclock_trivial_usage \
 	"[-r|--show] [-s|--hctosys] [-w|--systohc] [-l|--localtime] [-u|--utc]"
 #define hwclock_full_usage \
