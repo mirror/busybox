@@ -304,11 +304,9 @@ more:
 	if ((cp == NULL) || (*cp == '#')) {
 		goto more;
 	}
-	printf("line is %s\n", cp);
 
 	cp_ptr = strtok_r(cp, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
-		printf("error\n");
 		/* Error */
 		goto more;
 	}
@@ -316,7 +314,6 @@ more:
 
 	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
-		printf("error\n");
 		/* Error */
 		goto more;
 	}
@@ -335,7 +332,6 @@ more:
 
 	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
-		printf("error\n");
 		/* error */
 		goto more;
 	}
@@ -353,7 +349,6 @@ more:
 
 	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
-		printf("error\n");
 		/* error */
 		goto more;
 	}
@@ -369,7 +364,6 @@ more:
 
 	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
-		printf("error\n");
 		/* error */
 		goto more;
 	}
@@ -384,7 +378,6 @@ more:
 
 	cp_ptr = strtok_r(NULL, " \t", &cp_ptr_ptr);
 	if (cp_ptr == NULL) {
-		printf("error\n");
 		/* error */
 		goto more;
 	}
