@@ -871,6 +871,7 @@ Options:
 
         -g      prints only the group ID
         -u      prints only the user ID
+		-n      print a name instead of a number (with for -ug)
         -r      prints the real user ID instead of the effective ID (with -ug)
 
 Example:
@@ -2321,4 +2322,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.87 2001/01/24 19:15:07 andersen Exp $
+# $Id: busybox.pod,v 1.88 2001/01/25 05:12:02 andersen Exp $

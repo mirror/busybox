@@ -1474,6 +1474,7 @@
 		<screen>
 			-g	Print only the group ID
 			-u	Print only the user ID
+			-n      print a name instead of a number (with for -ug)
 			-r	Print the real user ID instead of the effective ID (with -ug)
 		</screen>
 		</para>

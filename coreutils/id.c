@@ -31,6 +31,7 @@
 extern int id_main(int argc, char **argv)
 {
 	int no_user = 0, no_group = 0, print_real = 0;
+	int name_not_number = 0;
 	char user[9], group[9];
 	long gid;
 	long pwnam, grnam;
@@ -38,7 +39,7 @@ extern int id_main(int argc, char **argv)
 	
 	gid = 0;
 
-	while ((opt = getopt(argc, argv, "ugr")) > 0) {
+	while ((opt = getopt(argc, argv, "ugrn")) > 0) {
 		switch (opt) {
 			case 'u':
 				no_group++;
@@ -48,6 +49,9 @@ extern int id_main(int argc, char **argv)
 				break;
 			case 'r':
 				print_real++;
+				break;
+			case 'n':
+				name_not_number++;
 				break;
 			default:
 				usage(id_usage);
@@ -76,12 +80,20 @@ extern int id_main(int argc, char **argv)
 	if (gid == -1 || pwnam==-1 || grnam==-1) {
 		error_msg_and_die("%s: No such user\n", user);
 	}
-	if (no_group)
-		printf("%ld\n", pwnam);
-	else if (no_user)
-		printf("%ld\n", grnam);
-	else
+
+	if (no_group) {
+		if(name_not_number && user)
+			printf("%s\n",user);
+		else
+			printf("%ld\n", pwnam);
+	} else if (no_user) {
+		if(name_not_number && group)
+			printf("%s\n", group);
+		else
+			printf("%ld\n", grnam);
+	} else {
 		printf("uid=%ld(%s) gid=%ld(%s)\n", pwnam, user, grnam, group);
+	}
 	return(0);
 }
 

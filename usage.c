@@ -532,6 +532,7 @@ const char id_usage[] =
 	"Options:\n"
 	"\t-g\tprints only the group ID\n"
 	"\t-u\tprints only the user ID\n"
+	"\t-n\tprint a name instead of a number (with for -ug)\n"
 	"\t-r\tprints the real user ID instead of the effective ID (with -ug)"
 #endif
 	;
