@@ -152,6 +152,7 @@ extern char process_escape_sequence(char **ptr);
 extern char *get_last_path_component(char *path);
 extern FILE *wfopen(const char *path, const char *mode);
 extern FILE *xfopen(const char *path, const char *mode);
+extern void chomp(char *s);
 
 #ifndef DMALLOC
 extern void *xmalloc (size_t size);

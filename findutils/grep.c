@@ -69,8 +69,7 @@ static void grep_file(FILE *file)
 	int nmatches = 0;
 
 	while ((line = get_line_from_file(file)) != NULL) {
-		if (line[strlen(line)-1] == '\n')
-			line[strlen(line)-1] = '\0';
+		chomp(line);
 		linenum++;
 		ret = regexec(&regex, line, 0, NULL, 0);
 		if (ret == 0 && !invert_search) { /* match */

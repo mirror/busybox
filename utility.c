@@ -1760,6 +1760,19 @@ char *format(unsigned long val, unsigned long hr)
 }
 #endif
 
+#if defined(BB_GREP) || defined(BB_HOSTNAME) || defined(BB_SED) || defined(BB_TAR) || defined(BB_WGET) || defined(BB_XARGS)
+void chomp(char *s)
+{
+	size_t len = strlen(s);
+
+	if (len == 0)
+		return;
+
+	if (s[len-1] == '\n')
+		s[len-1] = '\0';
+}
+#endif
+
 /* END CODE */
 /*
 Local Variables:

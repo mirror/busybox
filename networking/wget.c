@@ -216,6 +216,7 @@ int wget_main(int argc, char **argv)
 			/*FALLTHRU*/
 		default:
 			close_and_delete_outfile(output, fname_out, do_continue);
+			chomp(buf);
 			error_msg_and_die("server returned error %d: %s", atoi(s), buf);
 	}
 
@@ -532,7 +533,7 @@ progressmeter(int flag)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Id: wget.c,v 1.25 2001/01/31 19:00:21 kraai Exp $
+ *	$Id: wget.c,v 1.26 2001/02/01 16:49:30 kraai Exp $
  */
 
 

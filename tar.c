@@ -274,8 +274,7 @@ extern int tar_main(int argc, char **argv)
 				while (fgets(file, sizeof(file), fileList) != NULL) {
 					excludeList = xrealloc(excludeList,
 							sizeof(char *) * (excludeListSize+2));
-					if (file[strlen(file)-1] == '\n')
-						file[strlen(file)-1] = '\0';
+					chomp(file);
 					excludeList[excludeListSize] = xstrdup(file);
 					/* Tack a NULL onto the end of the list */
 					excludeList[++excludeListSize] = NULL;

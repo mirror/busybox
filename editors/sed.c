@@ -436,8 +436,7 @@ static void load_cmd_file(char *filename)
 		}
 		/* eat trailing newline (if any) --if I don't do this, edit commands
 		 * (aic) will print an extra newline */
-		if (line[strlen(line)-1] == '\n')
-			line[strlen(line)-1] = 0;
+		chomp(line);
 		add_cmd_str(line);
 		free(line);
 	}
