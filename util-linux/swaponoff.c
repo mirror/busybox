@@ -25,11 +25,13 @@
 #include "internal.h"
 #include <stdio.h>
 #include <sys/mount.h>
-#include <sys/swap.h>
 #include <mntent.h>
 #include <dirent.h>
-#include <fstab.h>
 #include <errno.h>
+#include <linux/unistd.h>
+
+_syscall2(int, swapon, const char *, path, int, flags);
+_syscall1(int, swapoff, const char *, path);
 
 
 static int whichApp;
