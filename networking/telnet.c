@@ -64,8 +64,8 @@ static const int DOTRACE = 1;
 #include <sys/time.h>
 #endif
 
-static const int DATABUFSIZE = 128;
-static const int IACBUFSIZE = 128;
+#define DATABUFSIZE  128
+#define IACBUFSIZE   128
 
 static const int CHM_TRY = 0;
 static const int CHM_ON = 1;
@@ -90,15 +90,14 @@ typedef unsigned char byte;
 static struct Globalvars {
 	int		netfd; /* console fd:s are 0 and 1 (and 2) */
     /* same buffer used both for network and console read/write */
-	char *	buf; /* allocating so static size is smaller */
-	short	len;
+	char    buf[DATABUFSIZE]; /* allocating so static size is smaller */
 	byte	telstate; /* telnet negotiation state from network input */
 	byte	telwish;  /* DO, DONT, WILL, WONT */
 	byte    charmode;
 	byte    telflags;
 	byte	gotsig;
 	/* buffer to handle telnet negotiations */
-	char *	iacbuf;
+	char    iacbuf[IACBUFSIZE];
 	short	iaclen; /* could even use byte */
 	struct termios termios_def;	
 	struct termios termios_raw;	
@@ -198,7 +197,7 @@ static void conescape()
 	G.gotsig = 0;
 	
 }
-static void handlenetoutput()
+static void handlenetoutput(int len)
 {
 	/*	here we could do smart tricks how to handle 0xFF:s in output
 	 *	stream  like writing twice every sequence of FF:s (thus doing
@@ -209,7 +208,7 @@ static void handlenetoutput()
 	int i;
 	byte * p = G.buf;
 
-	for (i = G.len; i > 0; i--, p++)
+	for (i = len; i > 0; i--, p++)
 	{
 		if (*p == 0x1d)
 		{
@@ -219,16 +218,16 @@ static void handlenetoutput()
 		if (*p == 0xff)
 			*p = 0x7f;
 	}
-	write(G.netfd, G.buf, G.len);
+	write(G.netfd, G.buf, len);
 }
 
 
-static void handlenetinput()
+static void handlenetinput(int len)
 {
 	int i;
 	int cstart = 0;
 
-	for (i = 0; i < G.len; i++)
+	for (i = 0; i < len; i++)
 	{
 		byte c = G.buf[i];
 
@@ -290,11 +289,11 @@ static void handlenetinput()
 		if (G.iaclen)			iacflush();
 		if (G.telstate == TS_0)	G.telstate = 0;
 
-		G.len = cstart;
+		len = cstart;
 	}
 
-	if (G.len)
-		write(1, G.buf, G.len);
+	if (len)
+		write(1, G.buf, len);
 }
 
 
@@ -530,6 +529,7 @@ extern int telnet_main(int argc, char** argv)
 {
 	struct in_addr host;
 	int port;
+	int len;
 #ifdef USE_POLL
 	struct pollfd ufds[2];
 #else	
@@ -547,14 +547,10 @@ extern int telnet_main(int argc, char** argv)
 		exit(1);
 	
 	G.termios_raw = G.termios_def;
-
 	cfmakeraw(&G.termios_raw);
 	
 	if (argc < 2)	show_usage();
 	port = (argc > 2)? getport(argv[2]): 23;
-	
-	G.buf = xmalloc(DATABUFSIZE);
-	G.iacbuf = xmalloc(IACBUFSIZE);
 	
 	host = getserver(argv[1]);
 
@@ -599,14 +595,14 @@ extern int telnet_main(int argc, char** argv)
 			if (FD_ISSET(0, &rfds))
 #endif				
 			{
-				G.len = read(0, G.buf, DATABUFSIZE);
+				len = read(0, G.buf, DATABUFSIZE);
 
-				if (G.len <= 0)
+				if (len <= 0)
 					doexit(0);
 
-				TRACE(0, ("Read con: %d\n", G.len));
+				TRACE(0, ("Read con: %d\n", len));
 				
-				handlenetoutput();
+				handlenetoutput(len);
 			}
 
 #ifdef USE_POLL
@@ -615,16 +611,16 @@ extern int telnet_main(int argc, char** argv)
 			if (FD_ISSET(G.netfd, &rfds))
 #endif				
 			{
-				G.len = read(G.netfd, G.buf, DATABUFSIZE);
+				len = read(G.netfd, G.buf, DATABUFSIZE);
 
-				if (G.len <= 0)
+				if (len <= 0)
 				{
 					WriteCS(1, "Connection closed by foreign host.\r\n");
 					doexit(1);
 				}
-				TRACE(0, ("Read netfd (%d): %d\n", G.netfd, G.len));
+				TRACE(0, ("Read netfd (%d): %d\n", G.netfd, len));
 
-				handlenetinput();
+				handlenetinput(len);
 			}
 		}
 	}

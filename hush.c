@@ -861,7 +861,7 @@ static inline void setup_prompt_string(int promptmode, char **prompt_str)
 		*prompt_str = PS2;
 	}
 #else
-	*prompt_str = (promptmode==0)? PS1 : PS2;
+	*prompt_str = (promptmode==1)? PS1 : PS2;
 #endif
 	debug_printf("result %s\n",*prompt_str);
 }

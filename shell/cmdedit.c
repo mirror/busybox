@@ -81,11 +81,11 @@
 #endif
 
 #ifdef BB_FEATURE_GETUSERNAME_AND_HOMEDIR
-#ifndef TEST
-#include "pwd_grp/pwd.h"
-#else
-#include <pwd.h>
-#endif							/* TEST */
+#       ifndef TEST
+#               include "pwd_grp/pwd.h"
+#       else
+#               include <pwd.h>
+#       endif  /* TEST */
 #endif							/* advanced FEATURES */
 
 
@@ -106,26 +106,12 @@ static struct history *his_front = NULL;
 static struct history *his_end = NULL;
 
 
-/* ED: sparc termios is broken: revert back to old termio handling. */
-
-#if #cpu(sparc)
-#      include <termio.h>
-#      define termios termio
-#      define setTermSettings(fd,argp) ioctl(fd,TCSETAF,argp)
-#      define getTermSettings(fd,argp) ioctl(fd,TCGETA,argp)
-#else
-#      include <termios.h>
-#      define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
-#      define getTermSettings(fd,argp) tcgetattr(fd, argp);
-#endif
+#include <termios.h>
+#define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
+#define getTermSettings(fd,argp) tcgetattr(fd, argp);
 
 /* Current termio and the previous termio before starting sh */
 static struct termios initial_settings, new_settings;
-
-
-#ifndef _POSIX_VDISABLE
-#define _POSIX_VDISABLE '\0'
-#endif
 
 
 static
@@ -356,7 +342,7 @@ static void parse_prompt(const char *prmt_ptr)
 	char *pbuf;
 
 	if (!pwd_buf) {
-		pwd_buf=unknown;
+		pwd_buf=(char *)unknown;
 	}
 
 	while (*prmt_ptr) {
@@ -1041,9 +1027,30 @@ static void input_tab(int *lastWasTab)
 		 * in the current working directory that matches.  */
 		if (!matches)
 			matches =
-				exe_n_cwd_tab_completion(matchBuf, &num_matches,
-										 find_type);
-
+				exe_n_cwd_tab_completion(matchBuf,
+					&num_matches, find_type);
+		/* Remove duplicate found */
+		if(matches) {
+			int i, j;
+			/* bubble */
+			for(i=0; i<(num_matches-1); i++)
+				for(j=i+1; j<num_matches; j++)
+					if(matches[i]!=0 && matches[j]!=0 &&
+						strcmp(matches[i], matches[j])==0) {
+							free(matches[j]);
+							matches[j]=0;
+					}
+			j=num_matches;
+			num_matches = 0;
+			for(i=0; i<j; i++)
+				if(matches[i]) {
+					if(!strcmp(matches[i], "./"))
+						matches[i][1]=0;
+					else if(!strcmp(matches[i], "../"))
+						matches[i][2]=0;
+					matches[num_matches++]=matches[i];
+				}
+		}
 		/* Did we find exactly one match? */
 		if (!matches || num_matches > 1) {
 			char *tmp1;
@@ -1169,8 +1176,6 @@ enum {
 extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 {
 
-	int inputFd = fileno(stdin);
-
 	int break_out = 0;
 	int lastWasTab = FALSE;
 	unsigned char c = 0;
@@ -1181,23 +1186,28 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	len = 0;
 	command_ps = command;
 
-	if (new_settings.c_cc[VMIN] == 0) {	/* first call */
+	if (new_settings.c_cc[VERASE] == 0) {     /* first call */
 
-		getTermSettings(inputFd, (void *) &initial_settings);
+		getTermSettings(0, (void *) &initial_settings);
 		memcpy(&new_settings, &initial_settings, sizeof(struct termios));
-
+		new_settings.c_lflag &= ~ICANON;        /* unbuffered input */
+		/* Turn off echoing and CTRL-C, so we can trap it */
+		new_settings.c_lflag &= ~(ECHO | ECHONL | ISIG);
+#ifndef linux
+		/* Hmm, in linux c_cc[] not parsed if set ~ICANON */
 		new_settings.c_cc[VMIN] = 1;
 		new_settings.c_cc[VTIME] = 0;
 		/* Turn off CTRL-C, so we can trap it */
+#       ifndef _POSIX_VDISABLE
+#               define _POSIX_VDISABLE '\0'
+#       endif
 		new_settings.c_cc[VINTR] = _POSIX_VDISABLE;	
-		new_settings.c_lflag &= ~ICANON;	/* unbuffered input */
-		/* Turn off echoing */
-		new_settings.c_lflag &= ~(ECHO | ECHOCTL | ECHONL);	
+#endif
 	}
 
 	command[0] = 0;
 
-	setTermSettings(inputFd, (void *) &new_settings);
+	setTermSettings(0, (void *) &new_settings);
 	handlers_sets |= SET_RESET_TERM;
 
 	/* Now initialize things */
@@ -1209,7 +1219,7 @@ extern void cmdedit_read_input(char *prompt, char command[BUFSIZ])
 
 		fflush(stdout);			/* buffered out to fast */
 
-		if (read(inputFd, &c, 1) < 1)
+		if (read(0, &c, 1) < 1)
 			/* if we can't read input then exit */
 			goto prepare_to_die;
 
@@ -1296,11 +1306,11 @@ prepare_to_die:
 
 		case ESC:{
 			/* escape sequence follows */
-			if (read(inputFd, &c, 1) < 1)
+			if (read(0, &c, 1) < 1)
 				return;
 			/* different vt100 emulations */
 			if (c == '[' || c == 'O') {
-				if (read(inputFd, &c, 1) < 1)
+				if (read(0, &c, 1) < 1)
 					return;
 			}
 			switch (c) {
@@ -1365,7 +1375,7 @@ prepare_to_die:
 			}
 			if (c >= '1' && c <= '9')
 				do
-					if (read(inputFd, &c, 1) < 1)
+					if (read(0, &c, 1) < 1)
 						return;
 				while (c != '~');
 			break;
@@ -1375,7 +1385,7 @@ prepare_to_die:
 #ifdef BB_FEATURE_NONPRINTABLE_INVERSE_PUT
 			/* Control-V -- Add non-printable symbol */
 			if (c == 22) {
-				if (read(inputFd, &c, 1) < 1)
+				if (read(0, &c, 1) < 1)
 					return;
 				if (c == 0) {
 					beep();
@@ -1416,7 +1426,7 @@ prepare_to_die:
 			lastWasTab = FALSE;
 	}
 
-	setTermSettings(inputFd, (void *) &initial_settings);
+	setTermSettings(0, (void *) &initial_settings);
 	handlers_sets &= ~SET_RESET_TERM;
 
 	/* Handle command history log */

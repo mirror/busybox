@@ -19,7 +19,7 @@
  */
 
 char *vi_Version =
-	"$Id: vi.c,v 1.9 2001/06/23 13:49:14 andersen Exp $";
+	"$Id: vi.c,v 1.10 2001/06/26 02:06:08 bug1 Exp $";
 
 /*
  * To compile for standalone use:
@@ -3152,8 +3152,10 @@ static void rawmode(void)
 	term_vi.c_lflag &= (~ICANON & ~ECHO);	// leave ISIG ON- allow intr's
 	term_vi.c_iflag &= (~IXON & ~ICRNL);
 	term_vi.c_oflag &= (~ONLCR);
+#ifndef linux
 	term_vi.c_cc[VMIN] = 1;
 	term_vi.c_cc[VTIME] = 0;
+#endif
 	erase_char = term_vi.c_cc[VERASE];
 	tcsetattr(0, TCSANOW, &term_vi);
 }
