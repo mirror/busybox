@@ -15,7 +15,7 @@
  *              that either displays or sets the characteristics of
  *              one or more of the system's networking interfaces.
  *
- * Version:     $Id: interface.c,v 1.23 2004/07/23 01:49:46 bug1 Exp $
+ * Version:     $Id: interface.c,v 1.24 2004/08/12 16:52:00 andersen Exp $
  *
  * Author:      Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              and others.  Copyright 1993 MicroWalt Corporation
@@ -986,31 +986,36 @@ static int if_readconf(void)
 	return err;
 }
 
-static char *get_name(char *name, char *p)
+char *get_name(char *name, char *p)
 {
-	while (isspace(*p))
-		p++;
-	while (*p) {
-		if (isspace(*p))
-			break;
-		if (*p == ':') {	/* could be an alias */
-			char *dot = p, *dotname = name;
-
-			*name++ = *p++;
-			while (isdigit(*p))
-				*name++ = *p++;
-			if (*p != ':') {	/* it wasn't, backup */
-				p = dot;
-				name = dotname;
-			}
-			if (*p == '\0')
-				return NULL;
-			p++;
-			break;
+	/* Extract <name>[:<alias>] from nul-terminated p where p matches
+	   <name>[:<alias>]: after leading whitespace.
+	   If match is not made, set name empty and return unchanged p */
+	int namestart=0, nameend=0, aliasend;
+	while (isspace(p[namestart]))
+		namestart++;
+	nameend=namestart;
+	while (p[nameend] && p[nameend]!=':' && !isspace(p[nameend]))
+		nameend++;
+	if (p[nameend]==':') {
+		aliasend=nameend+1;
+		while (p[aliasend] && isdigit(p[aliasend]))
+			aliasend++;
+		if (p[aliasend]==':') {
+			nameend=aliasend;
 		}
-		*name++ = *p++;
+		if ((nameend-namestart)<IFNAMSIZ) {
+			memcpy(name,&p[namestart],nameend-namestart);
+			name[nameend-namestart]='\0';
+			p=&p[nameend];
+		} else {
+			/* Interface name too large */
+			name[0]='\0';
+		}
+	} else {
+		/* first ':' not found - return empty */
+		name[0]='\0';
 	}
-	*name++ = '\0';
 	return p;
 }
 
