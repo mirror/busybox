@@ -81,7 +81,7 @@ extern void usage(const char *usage)
 {
 	fprintf(stderr, "%s\n\n", full_version);
 	fprintf(stderr, "Usage: %s\n", usage);
-	exit FALSE;
+	exit(EXIT_FAILURE);
 }
 
 extern void errorMsg(const char *s, ...)
@@ -106,7 +106,7 @@ extern void fatalError(const char *s, ...)
 	vfprintf(stderr, s, p);
 	va_end(p);
 	fflush(stderr);
-	exit( FALSE);
+	exit(EXIT_FAILURE);
 }
 
 #if defined BB_INIT
@@ -401,17 +401,17 @@ copyFile(const char *srcName, const char *destName,
 		/* This is fine, since symlinks never get here */
 		if (chown(destName, srcStatBuf.st_uid, srcStatBuf.st_gid) < 0) {
 			perror(destName);
-			exit FALSE;
+			exit(EXIT_FAILURE);
 		}
 		if (chmod(destName, srcStatBuf.st_mode) < 0) {
 			perror(destName);
-			exit FALSE;
+			exit(EXIT_FAILURE);
 		}
 		times.actime = srcStatBuf.st_atime;
 		times.modtime = srcStatBuf.st_mtime;
 		if (utime(destName, &times) < 0) {
 			perror(destName);
-			exit FALSE;
+			exit(EXIT_FAILURE);
 		}
 	}
 
@@ -1713,8 +1713,18 @@ void xregcomp(regex_t *preg, const char *regex, int cflags)
 		int errmsgsz = regerror(ret, preg, NULL, 0);
 		char *errmsg = xmalloc(errmsgsz);
 		regerror(ret, preg, errmsg, errmsgsz);
-		fatalError("bb_regcomp: %s\n", errmsg);
+		fatalError("xregcomp: %s\n", errmsg);
 	}
+}
+#endif
+
+#if defined BB_UNIQ
+FILE *xfopen(const char *path, const char *mode)
+{
+	FILE *fp;
+	if ((fp = fopen(path, mode)) == NULL)
+		fatalError("%s: %s\n", path, strerror(errno));
+	return fp;
 }
 #endif
 

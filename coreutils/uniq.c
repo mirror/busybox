@@ -5,6 +5,7 @@
  *
  * Copyright (C) 1999,2000 by Lineo, inc.
  * Written by John Beppu <beppu@lineo.com>
+ * Rewritten by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,156 +28,29 @@
 #include <string.h>
 #include <errno.h>
 
-/* max chars in line */
-#define UNIQ_MAX 4096
-
-typedef void (Print) (FILE *, const char *);
-
-typedef int (Decide) (const char *, const char *);
-
-/* container for two lines to be compared */
-typedef struct {
-	char *a;
-	char *b;
-	int recurrence;
-	FILE *in;
-	FILE *out;
-	void *func;
-} Subject;
-
-/* set up all the variables of a uniq operation */
-static Subject *subject_init(Subject * self, FILE * in, FILE * out,
-							 void *func)
-{
-	self->a = NULL;
-	self->b = NULL;
-	self->in = in;
-	self->out = out;
-	self->func = func;
-	self->recurrence = 0;
-	return self;
-}
-
-/* point a and b to the appropriate lines;
- * count the recurrences (if any) of a string;
- */
-static Subject *subject_next(Subject * self)
-{
-	/* tmp line holders */
-	static char line[2][UNIQ_MAX];
-	static int alternator = 0;
-
-	if (fgets(line[alternator], UNIQ_MAX, self->in)) {
-		self->a = self->b;
-		self->b = line[alternator];
-		alternator ^= 1;
-		return self;
-	}
-
-	return NULL;
-}
-
-static Subject *subject_last(Subject * self)
-{
-	self->a = self->b;
-	self->b = NULL;
-	return self;
-}
-
-static Subject *subject_study(Subject * self)
-{
-	if (self->a == NULL) {
-		return self;
-	}
-	if (self->b == NULL) {
-		fprintf(self->out, "%s", self->a);
-		return self;
-	}
-	if (strcmp(self->a, self->b) == 0) {
-		self->recurrence++;
-	} else {
-		fprintf(self->out, "%s", self->a);
-		self->recurrence = 0;
-	}
-	return self;
-}
-
-static int
-set_file_pointers(int schema, FILE ** in, FILE ** out, char **argv)
-{
-	switch (schema) {
-	case 0:
-		*in = stdin;
-		*out = stdout;
-		break;
-	case 1:
-		*in = fopen(argv[0], "r");
-		*out = stdout;
-		break;
-	case 2:
-		*in = fopen(argv[0], "r");
-		*out = fopen(argv[1], "w");
-		break;
-	}
-	if (*in == NULL) {
-		errorMsg("%s: %s\n", argv[0], strerror(errno));
-		return errno;
-	}
-	if (*out == NULL) {
-		errorMsg("%s: %s\n", argv[1], strerror(errno));
-		return errno;
-	}
-	return 0;
-}
-
-
-/* one variable is the decision algo */
-/* another variable is the printing algo */
-
-/* I don't think I have to have more than a 1 line memory 
-   this is the one constant */
-
-/* it seems like GNU/uniq only takes one or two files as an option */
-
-/* ________________________________________________________________________ */
 int uniq_main(int argc, char **argv)
 {
-	int i;
-	char opt;
-	FILE *in, *out;
-	Subject s;
+	FILE *in = stdin, *out = stdout;
+	char *lastline = NULL, *input;
 
 	/* parse argv[] */
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == '-') {
-			opt = argv[i][1];
-			switch (opt) {
-			case '-':
-			case 'h':
-				usage(uniq_usage);
-			default:
-				usage(uniq_usage);
-			}
-		} else {
-			break;
+	if ((argc > 1 && **(argv + 1) == '-') || argc > 3)
+		usage(uniq_usage);
+
+	if (argv[1] != NULL) {
+		in = xfopen(argv[1], "r");
+		if (argv[2] != NULL)
+			out = xfopen(argv[2], "w");
+	}
+
+	while ((input = get_line_from_file(in)) != NULL) {
+		if (lastline == NULL || strcmp(input, lastline) != 0) {
+			fputs(input, out);
+			free(lastline);
+			lastline = input;
 		}
 	}
+	free(lastline);
 
-	/* 0 src: stdin; dst: stdout */
-	/* 1 src: file;  dst: stdout */
-	/* 2 src: file;  dst: file   */
-	if (set_file_pointers((argc - 1), &in, &out, &argv[i])) {
-		exit(1);
-	}
-
-	subject_init(&s, in, out, NULL);
-	while (subject_next(&s)) {
-		subject_study(&s);
-	}
-	subject_last(&s);
-	subject_study(&s);
-
-	return(0);
+	return EXIT_SUCCESS;
 }
-
-/* $Id: uniq.c,v 1.14 2000/09/25 21:45:58 andersen Exp $ */
