@@ -75,7 +75,7 @@ static void decompose_list(const char *list)
 	/* handle multi-value cases */
 	else if (nminus == 1) {
 		/* handle 'N-' case */
-		if (list[strlen(list) - 1] == '-') {
+		if (last_char_is(list,'-')) {
 			startpos = strtol(list, &ptr, 10);
 		}
 		/* handle '-M' case */

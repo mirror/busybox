@@ -706,7 +706,7 @@ static int readTarFile(int tarFd, int extractFlag, int listFlag,
 			case REGTYPE0:
 				/* If the name ends in a '/' then assume it is
 				 * supposed to be a directory, and fall through */
-				if (header.name[strlen(header.name)-1] != '/') {
+				if (last_char_is(header.name,'/')) {
 					if (tarExtractRegularFile(&header, extractFlag, tostdoutFlag)==FALSE)
 						errorFlag=TRUE;
 					break;

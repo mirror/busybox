@@ -583,7 +583,7 @@ static int status_merge(void *status, package_t *pkgs)
 	 */
 	if ((fin = fopen(statusfile, "r")) != NULL) {
 		while (((line = get_line_from_file(fin)) != NULL) && !feof(fin)) { 
-			line[strlen(line) - 1] = '\0'; /* trim newline */
+			chomp(line); /* trim newline */
 			/* If we see a package header, find out if it's a package
 			 * that we have processed. if so, we skip that block for
 			 * now (write it at the end).

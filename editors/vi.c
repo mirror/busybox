@@ -19,7 +19,7 @@
  */
 
 char *vi_Version =
-	"$Id: vi.c,v 1.4 2001/04/16 15:46:44 andersen Exp $";
+	"$Id: vi.c,v 1.5 2001/04/26 15:56:47 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -1745,7 +1745,7 @@ static void colon(Byte * buf)
 	while (isblnk(*buf))
 		buf++;
 	strcpy((char *) args, (char *) buf);
-	if (cmd[strlen((char *) cmd) - 1] == '!') {
+	if (last_char_is((char *)cmd,'!')) {
 		useforce = TRUE;
 		cmd[strlen((char *) cmd) - 1] = '\0';	// get rid of !
 	}
