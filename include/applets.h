@@ -448,6 +448,9 @@
 #ifdef CONFIG_PING6
 	APPLET(ping6, ping6_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_PIPE_PROGRESS
+	APPLET_NOUSAGE("pipe_progress", pipe_progress_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_PIVOT_ROOT
  	APPLET(pivot_root, pivot_root_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif

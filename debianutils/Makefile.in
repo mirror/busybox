@@ -25,6 +25,7 @@ endif
 
 DEBIANUTILS-y:=
 DEBIANUTILS-$(CONFIG_MKTEMP)		+= mktemp.o
+DEBIANUTILS-$(CONFIG_PIPE_PROGRESS)	+= pipe_progress.o
 DEBIANUTILS-$(CONFIG_READLINK)		+= readlink.o
 DEBIANUTILS-$(CONFIG_RUN_PARTS)		+= run_parts.o
 DEBIANUTILS-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o

@@ -11,6 +11,12 @@ config CONFIG_MKTEMP
 	help
 	  mktemp is used to create unique temporary files
 
+config CONFIG_PIPE_PROGRESS
+	bool "pipe_progress"
+	default n
+	help
+	  Display a dot to indicate pipe activity.
+
 config CONFIG_READLINK
 	bool "readlink"
 	default n
