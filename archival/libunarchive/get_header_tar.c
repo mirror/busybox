@@ -97,8 +97,19 @@ file_header_t *get_header_tar(FILE * tar_stream)
 	}
 
 	tar_entry->mode = strtol(tar.formated.mode, NULL, 8);
-#ifdef CONFIG_FEATURE_TAR_OLD_FORMAT
+	tar_entry->uid = strtol(tar.formated.uid, NULL, 8);
+	tar_entry->gid = strtol(tar.formated.gid, NULL, 8);
+	tar_entry->size = strtol(tar.formated.size, NULL, 8);
+	tar_entry->mtime = strtol(tar.formated.mtime, NULL, 8);
+	tar_entry->link_name =
+		strlen(tar.formated.linkname) ? xstrdup(tar.formated.linkname) : NULL;
+	tar_entry->device =
+		(dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
+				 strtol(tar.formated.devminor, NULL, 8));
+
+#if defined CONFIG_FEATURE_TAR_OLD_FORMAT || defined CONFIG_FEATURE_GNUTAR_LONG_FILENAME
 	switch (tar.formated.typeflag) {
+# ifdef CONFIG_FEATURE_TAR_OLD_FORMAT
 	case 0:
 		tar_entry->mode |= S_IFREG;
 		break;
@@ -120,17 +131,35 @@ file_header_t *get_header_tar(FILE * tar_stream)
 	case 6:
 		tar_entry->mode |= S_IFIFO;
 		break;
+# endif
+# ifdef CONFIG_FEATURE_GNUTAR_LONG_FILENAME
+	case 'L': {
+			char *longname;
+
+			longname = xmalloc(tar_entry->size + 1);
+			fread(longname, 1, tar_entry->size, tar_stream);
+			archive_offset += tar_entry->size;
+			longname[tar_entry->size] = '\0';
+
+			tar_entry = get_header_tar(tar_stream);
+			tar_entry->name = longname;
+			break;
+		}
+	case 'K': {
+			char *longname;
+
+			longname = xmalloc(tar_entry->size + 1);
+			fread(longname, 1, tar_entry->size, tar_stream);
+			archive_offset += tar_entry->size;
+			longname[tar_entry->size] = '\0';
+
+			tar_entry = get_header_tar(tar_stream);
+			tar_entry->link_name = longname;
+			break;
+		}
+# endif
 	}
 #endif
-	tar_entry->uid = strtol(tar.formated.uid, NULL, 8);
-	tar_entry->gid = strtol(tar.formated.gid, NULL, 8);
-	tar_entry->size = strtol(tar.formated.size, NULL, 8);
-	tar_entry->mtime = strtol(tar.formated.mtime, NULL, 8);
-	tar_entry->link_name =
-		strlen(tar.formated.linkname) ? xstrdup(tar.formated.linkname) : NULL;
-	tar_entry->device =
-		(dev_t) ((strtol(tar.formated.devmajor, NULL, 8) << 8) +
-				 strtol(tar.formated.devminor, NULL, 8));
 
 	return (tar_entry);
 }

@@ -20,6 +20,7 @@ if [ "$CONFIG_TAR" = "y" ] ; then
     bool '  Enable -X and --exclude options (exclude files)'	CONFIG_FEATURE_TAR_EXCLUDE
     bool '  Enable -z option'	CONFIG_FEATURE_TAR_GZIP
     bool '  Enable support for old tar header format'	CONFIG_FEATURE_TAR_OLD_FORMAT
+    bool '  Enable support for GNU long filenames' CONFIG_FEATURE_GNUTAR_LONG_FILENAME
 fi
 if [ "$CONFIG_CPIO" = "y" -o "$CONFIG_TAR" = "y" ] ; then
     bool '  Enable tape drive support' CONFIG_FEATURE_UNARCHIVE_TAPE
