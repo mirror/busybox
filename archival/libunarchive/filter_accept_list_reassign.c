@@ -47,9 +47,8 @@ extern char filter_accept_list_reassign(archive_handle_t *archive_handle)
 #endif
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
 		if (strcmp(name_ptr, ".bz2") == 0) {
-			archive_handle->sub_archive->read = read_bz2;
-			BZ2_bzReadOpen(archive_handle->src_fd, NULL, 0);
-			archive_handle->action_data_subarchive = get_header_tar;
+			archive_handle->sub_archive->read = read;
+			archive_handle->action_data_subarchive = get_header_tar_bz2;
 			return(EXIT_SUCCESS);
 		}
 #endif
