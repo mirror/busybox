@@ -442,7 +442,8 @@ static void parse_prompt(const char *prmt_ptr)
 		if (flg_not_length == ']')
 			sub_len++;
 	}
-	free(pwd_buf);
+	if(pwd_buf!=(char *)unknown)
+		free(pwd_buf);
 	cmdedit_prompt = prmt_mem_ptr;
 	cmdedit_prmt_len = prmt_len - sub_len;
 	put_prompt();
