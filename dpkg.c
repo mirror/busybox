@@ -192,7 +192,7 @@ static void depends_sort_visit(package_t **ordered, package_t *pkgs,
 
 #if 0
 	/* add it to the list */
-	newnode = (struct package_t *)malloc(sizeof(struct package_t));
+	newnode = (struct package_t *)xmalloc(sizeof(struct package_t));
 	/* make a shallow copy */
 	*newnode = *pkg;
 	newnode->next = *ordered;
@@ -609,7 +609,7 @@ static int dpkg_dounpack(package_t *pkg)
 		}
 
 		/* create the list file */
-		lst_file = (char *) malloc(strlen(infodir) + strlen(pkg->package) + 6);
+		lst_file = (char *) xmalloc(strlen(infodir) + strlen(pkg->package) + 6);
 		strcpy(lst_file, infodir);
 		strcat(lst_file, pkg->package);
 		strcat(lst_file, ".list");
