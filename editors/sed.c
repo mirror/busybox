@@ -677,6 +677,7 @@ static void process_file(FILE *file)
 	/* go through every line in the file */
 	while ((line = get_line_from_file(file)) != NULL) {
 
+		chomp(line);
 		linenum++;
 		line_altered = 0;
 
