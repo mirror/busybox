@@ -21,6 +21,7 @@
 PROG      := busybox
 VERSION   := 0.43
 BUILDTIME := $(shell TZ=UTC date --utc "+%Y.%m.%d-%H:%M%z")
+export VERSION
 
 # Set the following to `true' to make a debuggable build.
 # Leave this set to `false' for production use.
@@ -131,7 +132,7 @@ install: busybox busybox.links
 
 .PHONY: dist release
 dist release: distclean
-	cd docs && $(MAKE) clean all 
+	$(MAKE) -C docs clean all 
 	cd ..;					\
 	rm -rf busybox-$(VERSION);		\
 	cp -a busybox busybox-$(VERSION);	\
