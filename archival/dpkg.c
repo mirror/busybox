@@ -112,23 +112,19 @@ static char **depends_split(const char *dependsstr)
 
 	dependsvec[0] = 0;
 
-	if (dependsstr != 0)
-	{
+	if (dependsstr != 0) {
 		p = strdup(dependsstr);
-		while (*p != 0 && *p != '\n')
-		{
-			if (*p != ' ')
-			{
-				if (*p == ',')
-				{
+		while (*p != 0 && *p != '\n') {
+			if (*p != ' ') {
+				if (*p == ',') {
 					*p = 0;
 					dependsvec[++i] = 0;
-				}
-				else if (dependsvec[i] == 0)
-					dependsvec[i] = p;
-			}
-			else
+				} else
+					if (dependsvec[i] == 0)
+						dependsvec[i] = p;
+			} else {
 				*p = 0; /* eat the space... */
+			}
 			p++;
 		}
 		*p = 0;
@@ -213,12 +209,10 @@ static package_t *depends_resolve(package_t *pkgs, void *status)
 	int i;
 	void *found;
 
-	for (pkg = pkgs; pkg != 0; pkg = pkg->next)
-	{
+	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
 		dependsvec = depends_split(pkg->depends);
 		i = 0;
-		while (dependsvec[i] != 0)
-		{
+		while (dependsvec[i] != 0) {
 			/* Check for dependencies; first look for installed packages */
 			dependpkg.package = dependsvec[i];
 			if ((found = tfind(&dependpkg, &status, package_compare)) == 0 ||
@@ -228,25 +222,22 @@ static package_t *depends_resolve(package_t *pkgs, void *status)
 			{
 				/* if it fails, we look through the list of packages we are going to 
 				 * install */
-				for (chk = pkgs; chk != 0; chk = chk->next)
-				{
+				for (chk = pkgs; chk != 0; chk = chk->next) {
 					if (strcmp(chk->package, dependsvec[i]) == 0 ||
 					    (chk->provides && 
-					     strncmp(chk->provides, dependsvec[i], strlen(dependsvec[i])) == 0))
-					{
-						if (chk->requiredcount >= DEPENDSMAX)
-						{
+					     strncmp(chk->provides, dependsvec[i], strlen(dependsvec[i])) == 0)) {
+						if (chk->requiredcount >= DEPENDSMAX) {
 							fprintf(stderr, "Too many dependencies for %s\n", 
 								chk->package);
 							return 0;
 						}
-						if (chk != pkg)
+						if (chk != pkg) {
 							chk->requiredfor[chk->requiredcount++] = pkg;
+						}
 						break;
 					}
 				}
-				if (chk == 0)
-				{
+				if (chk == 0) {
 					fprintf(stderr, "%s depends on %s, but it is not going to be installed\n", pkg->package, dependsvec[i]);
 					return 0;
 				}
@@ -284,16 +275,17 @@ static unsigned long status_parse(const char *line)
 		p = strchr(line, ' ');
 		if (p) *p = 0; 
 		j = 1;
-		while (statuswords[i][j] != 0) 
-		{
-			if (strcmp(line, statuswords[i][j]) == 0) 
-			{
+		while (statuswords[i][j] != 0) {
+			if (strcmp(line, statuswords[i][j]) == 0) {
 				l |= (1 << ((int)statuswords[i][0] + j - 1));
 				break;
 			}
 			j++;
 		}
-		if (statuswords[i][j] == 0) return 0; /* parse error */
+		/* parse error */
+		if (statuswords[i][j] == 0) {
+			return 0;
+		}
 		line = p+1;
 	}
 	return l;
@@ -306,21 +298,17 @@ static const char *status_print(unsigned long flags)
 	int i, j;
 
 	buf[0] = 0;
-	for (i = 0; i < 3; i++)
-	{
+	for (i = 0; i < 3; i++) {
 		j = 1;
-		while (statuswords[i][j] != 0)
-		{
-			if ((flags & (1 << ((int)statuswords[i][0] + j - 1))) != 0)
-			{
+		while (statuswords[i][j] != 0) {
+			if ((flags & (1 << ((int)statuswords[i][0] + j - 1))) != 0)	{
 				strcat(buf, statuswords[i][j]);
 				if (i < 2) strcat(buf, " ");
 				break;
 			}
 			j++;
 		}
-		if (statuswords[i][j] == 0)
-		{
+		if (statuswords[i][j] == 0) {
 			fprintf(stderr, "corrupted status flag!!\n");
 			return NULL;
 		}
@@ -332,41 +320,37 @@ static const char *status_print(unsigned long flags)
  * Read a control file (or a stanza of a status file) and parse it,
  * filling parsed fields into the package structure
  */
-static void control_read(FILE *f, package_t *p)
+static void control_read(FILE *file, package_t *p)
 {
-	char buf[BUFSIZE];
-	while (fgets(buf, BUFSIZE, f) && !feof(f))
-	{
-		buf[strlen(buf)-1] = 0;
-		if (*buf == 0)
-			return;
-		else if (strstr(buf, "Package: ") == buf)
-		{
-			p->package = strdup(buf+9);
-		}
-		else if (strstr(buf, "Status: ") == buf)
-		{
-			p->status = status_parse(buf+8);
-		}
-		else if (strstr(buf, "Depends: ") == buf)
-		{
-			p->depends = strdup(buf+9);
-		}
-		else if (strstr(buf, "Provides: ") == buf)
-		{
-			p->provides = strdup(buf+10);
-		}
+	char *line;
+
+	while ((line = get_line_from_file(file)) != NULL) {
+		line[strlen(line)] = 0;
+		if (strlen(line) == 0) {
+			break;
+		} else
+			if (strstr(line, "Package: ") == line) {
+				p->package = strdup(line + 9);
+		} else
+			if (strstr(line, "Status: ") == line) {
+				p->status = status_parse(line + 8);
+		} else
+			if (strstr(line, "Depends: ") == line) {
+				p->depends = strdup(line + 9);
+		} else
+			if (strstr(line, "Provides: ") == line) {
+				p->provides = strdup(line + 10);
+		} else
+			if (strstr(line, "Description: ") == line) {
+				p->description = strdup(line + 13);
 		/* This is specific to the Debian Installer. Ifdef? */
-		else if (strstr(buf, "installer-menu-item: ") == buf) 
-		{
-			p->installer_menu_item = atoi(buf+21);
-		}
-		else if (strstr(buf, "Description: ") == buf)
-		{
-			p->description = strdup(buf+13);
+		} else
+			if (strstr(line, "installer-menu-item: ") == line) {
+				p->installer_menu_item = atoi(line + 21);
 		}
 		/* TODO: localized descriptions */
 	}
+	free(line);
 }
 
 static void *status_read(void)
@@ -375,20 +359,18 @@ static void *status_read(void)
 	void *status = 0;
 	package_t *m = 0, *p = 0, *t = 0;
 
-	if ((f = fopen(STATUSFILE, "r")) == NULL)
-	{
+	if ((f = fopen(STATUSFILE, "r")) == NULL) {
 		perror(STATUSFILE);
 		return 0;
 	}
-	if (getenv(udpkg_quiet) == NULL)
+	if (getenv(udpkg_quiet) == NULL) {
 		printf("(Reading database...)\n");
-	while (!feof(f))
-	{
-		m = (package_t *)malloc(sizeof(package_t));
+	}
+	while (!feof(f)) {
+		m = (package_t *)xmalloc(sizeof(package_t));
 		memset(m, 0, sizeof(package_t));
 		control_read(f, m);
-		if (m->package)
-		{
+		if (m->package) {
 			/*
 			 * If there is an item in the tree by this name,
 			 * it must be a virtual package; insert real
@@ -396,20 +378,18 @@ static void *status_read(void)
 			 */
 			tdelete(m, &status, package_compare);
 			tsearch(m, &status, package_compare);
-			if (m->provides)
-			{
+			if (m->provides) {
 				/* 
 				 * A "Provides" triggers the insertion
 				 * of a pseudo package into the status
 				 * binary-tree.
 				 */
-				p = (package_t *)malloc(sizeof(package_t));
+				p = (package_t *)xmalloc(sizeof(package_t));
 				memset(p, 0, sizeof(package_t));
 				p->package = strdup(m->provides);
 
 				t = *(package_t **)tsearch(p, &status, package_compare);
-				if (!(t == p))
-				{
+				if (!(t == p)) {
 					free(p->package);
 					free(p);
 				}
@@ -426,8 +406,7 @@ static void *status_read(void)
 				}
 			}
 		}
-		else
-		{
+		else {
 			free(m);
 		}
 	}
@@ -438,26 +417,24 @@ static void *status_read(void)
 static int status_merge(void *status, package_t *pkgs)
 {
 	FILE *fin, *fout;
-	char buf[BUFSIZE];
+	char *line;
 	package_t *pkg = 0, *statpkg = 0;
 	package_t locpkg;
 	int r = 0;
 
-	if ((fin = fopen(STATUSFILE, "r")) == NULL)
-	{
+	if ((fin = fopen(STATUSFILE, "r")) == NULL) {
 		perror(STATUSFILE);
 		return 0;
 	}
-	if ((fout = fopen(STATUSFILE ".new", "w")) == NULL)
-	{
+	if ((fout = fopen(STATUSFILE ".new", "w")) == NULL) {
 		perror(STATUSFILE ".new");
 		return 0;
 	}
-	if (getenv(udpkg_quiet) == NULL)
+	if (getenv(udpkg_quiet) == NULL) {
 		printf("(Updating database...)\n");
-	while (fgets(buf, BUFSIZE, fin) && !feof(fin))
-	{
-		buf[strlen(buf)-1] = 0; /* trim newline */
+	}
+	while (((line = get_line_from_file(fin)) != NULL) && (feof(fin) != 0)) { 
+		line[strlen(line)] = 0; /* trim newline */
 		/* If we see a package header, find out if it's a package
 		 * that we have processed. if so, we skip that block for
 		 * now (write it at the end).
@@ -465,31 +442,33 @@ static int status_merge(void *status, package_t *pkgs)
 		 * we also look at packages in the status cache and update
 		 * their status fields
 		 */
-		if (strstr(buf, "Package: ") == buf)
-		{
-			for (pkg = pkgs; pkg != 0 && strncmp(buf + 9,
-					pkg->package, strlen(buf) - 9)!=0;
+		if (strstr(line, "Package: ") == line) {
+			for (pkg = pkgs; pkg != 0 && strncmp(line + 9,
+					pkg->package, strlen(line) - 9) != 0;
 			     pkg = pkg->next) ;
 
-			locpkg.package = buf+9;
+			locpkg.package = line + 9;
 			statpkg = tfind(&locpkg, &status, package_compare);
 			
 			/* note: statpkg should be non-zero, unless the status
 			 * file was changed while we are processing (no locking
 			 * is currently done...
 			 */
-			if (statpkg != 0) statpkg = *(package_t **)statpkg;
+			if (statpkg != 0) {
+				statpkg = *(package_t **)statpkg;
+			}
 		}
-		if (pkg != 0) continue;
-
-		if (strstr(buf, "Status: ") == buf && statpkg != 0)
-		{
-			  snprintf(buf, sizeof(buf), "Status: %s",
-				 status_print(statpkg->status));
+		if (pkg != 0) {
+			continue;
 		}
-		fputs(buf, fout);
+		if (strstr(line, "Status: ") == line && statpkg != 0) {
+			snprintf(line, sizeof(line), "Status: %s",
+				status_print(statpkg->status));
+		}
+		fputs(line, fout);
 		fputc('\n', fout);
 	}
+	free(line);
 
 	// Print out packages we processed.
 	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
@@ -510,7 +489,9 @@ static int status_merge(void *status, package_t *pkgs)
 	fclose(fout);
 
 	r = rename(STATUSFILE, STATUSFILE ".bak");
-	if (r == 0) r = rename(STATUSFILE ".new", STATUSFILE);
+	if (r == 0) {
+		r = rename(STATUSFILE ".new", STATUSFILE);
+	}
 	return 0;
 }
 
@@ -532,7 +513,9 @@ static int is_file(const char *fn)
 {
 	struct stat statbuf;
 
-	if (stat(fn, &statbuf) < 0) return 0;
+	if (stat(fn, &statbuf) < 0) {
+		return 0;
+	}
 	return S_ISREG(statbuf.st_mode);
 }
 
@@ -544,11 +527,9 @@ static int dpkg_doconfigure(package_t *pkg)
 	DPRINTF("Configuring %s\n", pkg->package);
 	pkg->status &= status_statusmask;
 	snprintf(postinst, sizeof(postinst), "%s%s.postinst", infodir, pkg->package);
-	if (is_file(postinst))
-	{
+	if (is_file(postinst)) {
 		snprintf(buf, sizeof(buf), "%s configure", postinst);
-		if ((r = do_system(buf)) != 0)
-		{
+		if ((r = do_system(buf)) != 0) {
 			fprintf(stderr, "postinst exited with status %d\n", r);
 			pkg->status |= status_statushalfconfigured;
 			return 1;
@@ -576,25 +557,19 @@ static int dpkg_dounpack(package_t *pkg)
 	cwd = getcwd(0, 0);
 	chdir("/");
 	snprintf(buf, sizeof(buf), "ar -p %s data.tar.gz|zcat|tar -xf -", pkg->file);
-	if (SYSTEM(buf) == 0)
-	{
+	if (SYSTEM(buf) == 0) {
 		/* Installs the package scripts into the info directory */
-		for (i = 0; i < sizeof(adminscripts) / sizeof(adminscripts[0]);
-		     i++)
-		{
+		for (i = 0; i < sizeof(adminscripts) / sizeof(adminscripts[0]); i++) {
 			snprintf(buf, sizeof(buf), "%s%s/%s",
 				DPKGCIDIR, pkg->package, adminscripts[i]);
 			snprintf(buf2, sizeof(buf), "%s%s.%s", 
 				infodir, pkg->package, adminscripts[i]);
-			if (copy_file(buf, buf2, TRUE, FALSE, FALSE) < 0)
-			{
+			if (copy_file(buf, buf2, TRUE, FALSE, FALSE) < 0) {
 				fprintf(stderr, "Cannot copy %s to %s: %s\n", 
 					buf, buf2, strerror(errno));
 				r = 1;
 				break;
-			}
-			else
-			{
+			} else {
 				/* ugly hack to create the list file; should
 				 * probably do something more elegant
 				 *
@@ -607,26 +582,22 @@ static int dpkg_dounpack(package_t *pkg)
 				snprintf(buf2, sizeof(buf2),
 					"%s%s.list", infodir, pkg->package);
 				if ((infp = popen(buf, "r")) == NULL ||
-				    (outfp = fopen(buf2, "w")) == NULL)
-				{
+				    (outfp = fopen(buf2, "w")) == NULL) {
 					fprintf(stderr, "Cannot create %s\n",
 						buf2);
 					r = 1;
 					break;
 				}
 				while (fgets(buf, sizeof(buf), infp) &&
-				       !feof(infp))
-				{
+				       !feof(infp)) {
 					p = buf;
 					if (*p == '.') p++;
-					if (*p == '/' && *(p+1) == '\n')
-					{
+					if (*p == '/' && *(p+1) == '\n') {
 						*(p+1) = '.';
 						*(p+2) = '\n';
 						*(p+3) = 0;
 					}
-					if (p[strlen(p)-2] == '/')
-					{
+					if (p[strlen(p)-2] == '/') {
 						p[strlen(p)-2] = '\n';
 						p[strlen(p)-1] = 0;
 					}
@@ -673,12 +644,10 @@ static int dpkg_unpackcontrol(package_t *pkg)
 	cwd = getcwd(0, 0);
 	snprintf(buf, sizeof(buf), "%s%s", DPKGCIDIR, pkg->package);
 	DPRINTF("dir = %s\n", buf);
-	if (mkdir(buf, S_IRWXU) == 0 && chdir(buf) == 0)
-	{
+	if (mkdir(buf, S_IRWXU) == 0 && chdir(buf) == 0) {
 		snprintf(buf, sizeof(buf), "ar -p %s control.tar.gz|zcat|tar -xf -",
 			pkg->file);
-		if (SYSTEM(buf) == 0)
-		{
+		if (SYSTEM(buf) == 0) {
 			if ((f = fopen("control", "r")) != NULL) {
 				control_read(f, pkg);
 				r = 0;
@@ -698,14 +667,12 @@ static int dpkg_unpack(package_t *pkgs)
 	void *status = status_read();
 
 	if (SYSTEM("rm -rf -- " DPKGCIDIR) != 0 ||
-	    mkdir(DPKGCIDIR, S_IRWXU) != 0)
-	{
+	    mkdir(DPKGCIDIR, S_IRWXU) != 0) {
 		perror("mkdir");
 		return 1;
 	}
 	
-	for (pkg = pkgs; pkg != 0; pkg = pkg->next)
-	{
+	for (pkg = pkgs; pkg != 0; pkg = pkg->next) {
 		dpkg_unpackcontrol(pkg);
 		r = dpkg_dounpack(pkg);
 		if (r != 0) break;
@@ -721,16 +688,12 @@ static int dpkg_configure(package_t *pkgs)
 	void *found;
 	package_t *pkg;
 	void *status = status_read();
-	for (pkg = pkgs; pkg != 0 && r == 0; pkg = pkg->next)
-	{
+	for (pkg = pkgs; pkg != 0 && r == 0; pkg = pkg->next) {
 		found = tfind(pkg, &status, package_compare);
-		if (found == 0)
-		{
+		if (found == 0) {
 			fprintf(stderr, "Trying to configure %s, but it is not installed\n", pkg->package);
 			r = 1;
-		}
-		else
-		{
+		} else {
 			/* configure the package listed in the status file;
 			 * not pkg, as we have info only for the latter */
 			r = dpkg_doconfigure(*(package_t **)found);
@@ -745,16 +708,14 @@ static int dpkg_install(package_t *pkgs)
 	package_t *p, *ordered = 0;
 	void *status = status_read();
 	if (SYSTEM("rm -rf -- " DPKGCIDIR) != 0 ||
-	    mkdir(DPKGCIDIR, S_IRWXU) != 0)
-	{
+	    mkdir(DPKGCIDIR, S_IRWXU) != 0) {
 		perror("mkdir");
 		return 1;
 	}
 	
 	/* Stage 1: parse all the control information */
 	for (p = pkgs; p != 0; p = p->next)
-		if (dpkg_unpackcontrol(p) != 0)
-		{
+		if (dpkg_unpackcontrol(p) != 0) {
 			perror(p->file);
 			/* force loop break, and prevents further ops */
 			pkgs = 0;
@@ -768,8 +729,7 @@ static int dpkg_install(package_t *pkgs)
 #endif
 	
 	/* Stage 3: install */
-	for (p = ordered; p != 0; p = p->next)
-	{
+	for (p = ordered; p != 0; p = p->next) {
 		p->status &= status_wantmask;
 		p->status |= status_wantinstall;
 
@@ -779,14 +739,14 @@ static int dpkg_install(package_t *pkgs)
 		p->status &= status_flagmask;
 		p->status |= status_flagok;
 
-		if (dpkg_doinstall(p) != 0)
-		{
+		if (dpkg_doinstall(p) != 0) {
 			perror(p->file);
 		}
 	}
 	
-	if (ordered != 0)
+	if (ordered != 0) {
 		status_merge(status, pkgs);
+	}
 	SYSTEM("rm -rf -- " DPKGCIDIR);
 	return 0;
 }
@@ -808,27 +768,23 @@ extern int dpkg_main(int argc, char **argv)
 	char *s;
 	package_t *p, *packages = NULL;
 	char *cwd = getcwd(0, 0);
-	while (*++argv)
-	{
+	while (*++argv) {
 		if (**argv == '-') {
 			/* Nasty little hack to "parse" long options. */
 			s = *argv;
 			while (*s == '-')
 				s++;
 			opt=s[0];
-		}
-		else
-		{
-			p = (package_t *)malloc(sizeof(package_t));
+		} else {
+			p = (package_t *)xmalloc(sizeof(package_t));
 			memset(p, 0, sizeof(package_t));
-			if (**argv == '/')
+			if (**argv == '/') {
 				p->file = *argv;
-			else if (opt != 'c')
-			{
-				p->file = malloc(strlen(cwd) + strlen(*argv) + 2);
-				sprintf(p->file, "%s/%s", cwd, *argv);
-			}
-			else {
+			} else
+				if (opt != 'c') {
+					p->file = xmalloc(strlen(cwd) + strlen(*argv) + 2);
+					sprintf(p->file, "%s/%s", cwd, *argv);
+			} else {
 				p->package = strdup(*argv);
 			}
 			p->next = packages;
@@ -836,12 +792,15 @@ extern int dpkg_main(int argc, char **argv)
 		}
 			
 	}
-	switch (opt)
-	{
-		case 'i': return dpkg_install(packages); break;
-		case 'r': return dpkg_remove(packages); break;
-		case 'u': return dpkg_unpack(packages); break;
-		case 'c': return dpkg_configure(packages); break;
+	switch (opt) {
+		case 'i':
+			return dpkg_install(packages);
+		case 'r':
+			return dpkg_remove(packages);
+		case 'u':
+			return dpkg_unpack(packages);
+		case 'c':
+			return dpkg_configure(packages);
 	}
 
 	/* if it falls through to here, some of the command line options were
