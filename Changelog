@@ -1,3 +1,14 @@
+0.47
+
+	* 'make install' now creates relative symlinks, and added a new
+	    'make install-hardlinks' target to (tada) install hardlinks.
+	* syslogd can now log messages to a remote host -- patch thanks
+	    to Gyepi Sam <gyepi@praxis-sw.com>
+
+
+	 -Erik Andersen
+
+
 0.46
 
 	* Better portability.  Now should compile cleanly with libc5, 

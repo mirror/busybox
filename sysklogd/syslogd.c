@@ -61,6 +61,7 @@ static inline _syscall3(int, klogctl, int, type, char *, b, int, len);
 /* SYSLOG_NAMES defined to pull some extra junk from syslog.h */
 #define SYSLOG_NAMES
 #include <sys/syslog.h>
+#include <sys/uio.h>
 
 /* Path for the file where all log messages are written */
 #define __LOG_FILE "/var/log/messages"
@@ -75,6 +76,18 @@ static int MarkInterval = 20 * 60;
 
 /* localhost's name */
 static char LocalHostName[32];
+
+#ifdef BB_FEATURE_REMOTE_LOG
+#include <netinet/in.h>
+/* udp socket for logging to remote host */
+static int  remotefd = -1;
+/* where do we log? */
+static char *RemoteHost;
+/* what port to log to? */
+static int  RemotePort = 514;
+/* To remote log or not to remote log, that is the question. */
+static int  doRemoteLog = FALSE;
+#endif
 
 /* Note: There is also a function called "message()" in init.c */
 /* Print a message to the log file. */
@@ -151,6 +164,30 @@ static void logMessage (int pri, char *msg)
 
 	/* now spew out the message to wherever it is supposed to go */
 	message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
+
+#ifdef BB_FEATURE_REMOTE_LOG
+	/* send message to remote logger */
+        if ( -1 != remotefd){
+#define IOV_COUNT 2
+          struct iovec iov[IOV_COUNT];
+          struct iovec *v = iov;
+
+          bzero(&res, sizeof(res));
+          snprintf(res, sizeof(res), "<%d>", pri);
+          v->iov_base = res ;
+          v->iov_len = strlen(res);          
+          v++;
+		
+          v->iov_base = msg;
+          v->iov_len = strlen(msg);          
+
+          if ( -1 == writev(remotefd,iov, IOV_COUNT)){
+            fatalError("syslogd: cannot write to remote file handle on" 
+                       "%s:%d\n",RemoteHost,RemotePort);
+          }
+        }
+#endif
+
 }
 
 static void quit_signal(int sig)
@@ -191,8 +228,9 @@ static int serveConnection (int conn)
 				while (isdigit (*(++p))) {
 					pri = 10 * pri + (*p - '0');
 				}
-				if (pri & ~(LOG_FACMASK | LOG_PRIMASK))
+				if (pri & ~(LOG_FACMASK | LOG_PRIMASK)){
 					pri = (LOG_USER | LOG_NOTICE);
+				}
 			} else if (c == '\n') {
 				*q++ = ' ';
 			} else if (iscntrl (c) && (c < 0177)) {
@@ -209,6 +247,43 @@ static int serveConnection (int conn)
 	}
 	return (0);
 }
+
+
+#ifdef BB_FEATURE_REMOTE_LOG
+static void init_RemoteLog (void){
+
+  struct sockaddr_in remoteaddr;
+  struct hostent *hostinfo;
+  int len = sizeof(remoteaddr);
+
+  bzero(&remoteaddr, len);
+  
+  remotefd = socket(AF_INET, SOCK_DGRAM, 0);
+
+  if (remotefd < 0) {
+    fatalError("syslogd: cannot create socket\n");
+  }
+
+  hostinfo = (struct hostent *) gethostbyname(RemoteHost);
+
+  if (!hostinfo) {
+    fatalError("syslogd: cannot resolve remote host name [%s]\n", RemoteHost);
+  }
+
+  remoteaddr.sin_family = AF_INET;
+  remoteaddr.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
+  remoteaddr.sin_port = htons(RemotePort);
+
+  /* 
+     Since we are using UDP sockets, connect just sets the default host and port 
+     for future operations
+  */
+  if ( 0 != (connect(remotefd, (struct sockaddr *) &remoteaddr, len))){
+    fatalError("syslogd: cannot connect to remote host %s:%d\n", RemoteHost, RemotePort);
+  }
+
+}
+#endif
 
 static void doSyslogd (void) __attribute__ ((noreturn));
 static void doSyslogd (void)
@@ -253,6 +328,12 @@ static void doSyslogd (void)
 
 	FD_ZERO (&fds);
 	FD_SET (sock_fd, &fds);
+
+        #ifdef BB_FEATURE_REMOTE_LOG
+        if (doRemoteLog == TRUE){
+          init_RemoteLog();
+        }
+        #endif
 
 	logMessage (0, "syslogd started: BusyBox v" BB_VER " (" BB_BT ")");
 
@@ -322,6 +403,13 @@ static void doKlogd (void)
 	signal(SIGKILL, klogd_signal);
 	signal(SIGTERM, klogd_signal);
 	signal(SIGHUP, SIG_IGN);
+
+#ifdef BB_FEATURE_REMOTE_LOG
+        if (doRemoteLog == TRUE){
+          init_RemoteLog();
+        }
+#endif
+
 	logMessage(0, "klogd started: "
 			   "BusyBox v" BB_VER " (" BB_BT ")");
 
@@ -423,6 +511,20 @@ extern int syslogd_main(int argc, char **argv)
 				logFilePath = *(++argv1);
 				stopDoingThat = TRUE;
 				break;
+#ifdef BB_FEATURE_REMOTE_LOG
+			case 'R':
+                          if (--argc == 0) {
+                            usage(syslogd_usage);
+                          }
+                          RemoteHost = *(++argv1);
+                          if ( (p = strchr(RemoteHost, ':'))){
+                            RemotePort = atoi(p+1);
+                            *p = '\0';
+                          }          
+                          doRemoteLog = TRUE;
+                          stopDoingThat = TRUE;
+                          break;
+#endif
 			default:
 				usage(syslogd_usage);
 			}

@@ -2804,6 +2804,7 @@
 			-n	Run as a foreground process
 			-K	Do not start up the klogd process
 			-O FILE	Use an alternate log file (default=/var/log/messages)
+			-R HOST[:PORT] Log messages to HOST on PORT (default=514) over UDP.
 		</screen>
 		</para>
 
@@ -2813,6 +2814,8 @@
 
 		<para>
 		<screen>
+		$ syslogd -R masterlog:514
+		$ syslogd -R 192.168.1.1:601
 		</screen>
 		</para>
 	</sect1>

@@ -46,6 +46,9 @@ Bruce Perens <bruce@pixar.com>
 Pavel Roskin <proski@gnu.org>
     Lots of bugs fixes and patches.
 
+Gyepi Sam <gyepi@praxis-sw.com>
+    Remote logging feature for syslogd
+
 Linus Torvalds <torvalds@transmeta.com>
     mkswap, fsck.minix, mkfs.minix
 

@@ -186,6 +186,9 @@
 //Should syslogd also provide klogd support?
 #define BB_FEATURE_KLOGD
 //
+// enable syslogd -R remotehost
+#define BB_FEATURE_REMOTE_LOG
+//
 //Simple tail implementation (2k vs 6k for the full one).  Still
 //provides 'tail -f' support -- but for only one file at a time.
 #define BB_FEATURE_SIMPLE_TAIL

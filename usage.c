@@ -998,6 +998,9 @@ const char syslogd_usage[] =
 	"\t-K\t\tDo not start up the klogd process\n"
 #endif
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)\n"
+#ifdef BB_FEATURE_REMOTE_LOG
+	"\t-R HOST[:PORT]\t\tLog remotely to IP or hostname on PORT (default PORT=514/UDP)\n"
+#endif
 #endif
 	;
 #endif

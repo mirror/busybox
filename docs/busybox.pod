@@ -1577,6 +1577,12 @@ Options:
 	-n		Run as a foreground process
 	-K		Do not start up the klogd process
 	-O FILE		Use an alternate log file (default=/var/log/messages)
+	-R HOST[:PORT]  Log messages to HOST on PORT (default=514) over UDP.
+
+Example:
+
+	$ syslogd -R masterlog:514
+	$ syslogd -R 192.168.1.1:601
 
 -------------------------------
 
@@ -2028,4 +2034,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.56 2000/07/11 17:29:36 andersen Exp $
+# $Id: busybox.pod,v 1.57 2000/07/20 23:41:24 andersen Exp $
