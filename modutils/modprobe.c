@@ -197,7 +197,6 @@ static struct dep_t *build_dep ( void )
 				current-> m_next    = 0;
 
 				//printf ( "%s:\n", mod );
-
 				p = col + 1;		
 			}
 			else
@@ -206,14 +205,29 @@ static struct dep_t *build_dep ( void )
 		else
 			p = buffer;
 
+		while ( p && *p && isblank(*p))
+			p++;
+
 		if ( p && *p ) {
 			char *end = &buffer [l-1];
-			char *deps = strrchr ( end, '/' );
+			char *deps;
 			char *dep;
+			char *next;
 			int ext = 0;
 
 			while ( isblank ( *end ) || ( *end == '\\' ))
 				end--;
+
+			do
+			{
+				next = strchr (p, ' ' );
+				if (next)
+				{
+					*next = 0;
+					next--;
+				}
+				else
+					next = end;
 
 			deps = strrchr ( p, '/' );
 
@@ -227,25 +241,25 @@ static struct dep_t *build_dep ( void )
 				deps++;
 
 #if defined(CONFIG_FEATURE_2_6_MODULES)
-			if ((k_version > 4) && ( *(end-2) == '.' ) && *(end-1) == 'k'  &&
-					( *end == 'o' ))
+				if ((k_version > 4) && ( *(next-2) == '.' ) && *(next-1) == 'k'  &&
+						( *next == 'o' ))
 				ext = 3;
 			else
 #endif
-				if (( *(end-1) == '.' ) && ( *end == 'o' ))
+					if (( *(next-1) == '.' ) && ( *next == 'o' ))
 					ext = 2;
 
 			/* Cope with blank lines */
-			if ((end-deps-ext+1) <= 0)
+				if ((next-deps-ext+1) <= 0)
 				continue;
-
-			dep = bb_xstrndup ( deps, end - deps - ext + 1 );
+				dep = bb_xstrndup ( deps, next - deps - ext + 1 );
 
 			current-> m_depcnt++;
 			current-> m_deparr = (char **) xrealloc ( current-> m_deparr, sizeof ( char *) * current-> m_depcnt );
 			current-> m_deparr [current-> m_depcnt - 1] = dep;		
 
 			//printf ( "    %d) %s\n", current-> m_depcnt, current-> m_deparr [current-> m_depcnt -1] );
+			} while (next < end);
 		}
 
 		if ( buffer [l-1] == '\\' )
