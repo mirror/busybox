@@ -1674,8 +1674,8 @@
 	"Options:\n" \
 	"-S\t\t\tstart\n"\
 	"-K\t\t\tstop\n"\
+	"-b\t\t\tforce process into background (daemonize)\n"\
 	"-x <executable>\t\tprogram to start/check if it is running\n"\
-	"-p <pid-file>\t\tpid file to check\n"\
 	"-u <username>|<uid>\tstop this user's processes\n"\
 	"-n <process-name>\tstop processes with this name\n"\
 	"-s <signal>\t\tsignal to send (default 15)\n"\
