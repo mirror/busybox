@@ -5628,7 +5628,7 @@ expmeta(char *enddir, char *name)
 	char *start;
 	char *endname;
 	int metaflag;
-	struct stat64 statb;
+	struct stat statb;
 	DIR *dirp;
 	struct dirent *dp;
 	int atend;
@@ -5671,7 +5671,7 @@ out:
 				p++;
 			*enddir++ = *p;
 		} while (*p++);
-		if (metaflag == 0 || lstat64(expdir, &statb) >= 0)
+		if (metaflag == 0 || lstat(expdir, &statb) >= 0)
 			addfname(expdir);
 		return;
 	}
