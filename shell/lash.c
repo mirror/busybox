@@ -1347,7 +1347,12 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			}
 		}
 
-		if (!(child->pid = fork())) {
+#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
+		if (!(child->pid = fork())) 
+#else
+		if (!(child->pid = vfork())) 
+#endif
+		{
 			/* Set the handling for job control signals back to the default.  */
 			signal(SIGINT, SIG_DFL);
 			signal(SIGQUIT, SIG_DFL);

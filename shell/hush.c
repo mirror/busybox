@@ -1403,7 +1403,12 @@ static int run_pipe_real(struct pipe *pi)
 		}
 
 		/* XXX test for failed fork()? */
-		if (!(child->pid = fork())) {
+#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
+		if (!(child->pid = fork()))
+#else
+		if (!(child->pid = vfork())) 
+#endif
+		{
 			/* Set the handling for job control signals back to the default.  */
 			signal(SIGINT, SIG_DFL);
 			signal(SIGQUIT, SIG_DFL);
@@ -2118,7 +2123,11 @@ FILE *generate_stream_from_list(struct pipe *head)
 #if 1
 	int pid, channel[2];
 	if (pipe(channel)<0) perror_msg_and_die("pipe");
+#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 	pid=fork();
+#else
+	pid=vfork();
+#endif
 	if (pid<0) {
 		perror_msg_and_die("fork");
 	} else if (pid==0) {

@@ -6756,7 +6756,11 @@ forkshell(struct job *jp, const union node *n, int mode)
 	TRACE(("forkshell(%%%d, 0x%lx, %d) called\n", jp - jobtab, (long)n,
 	    mode));
 	INTOFF;
+#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 	pid = fork();
+#else
+	pid = vfork();
+#endif
 	if (pid == -1) {
 		TRACE(("Fork failed, errno=%d\n", errno));
 		INTON;
@@ -12627,7 +12631,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.31 2001/10/24 17:19:35 andersen Exp $
+ * $Id: ash.c,v 1.32 2001/10/28 05:12:18 andersen Exp $
  */
 static int timescmd (int argc, char **argv)
 {

@@ -15,7 +15,7 @@
  * Foundation;  either  version 2 of the License, or  (at
  * your option) any later version.
  *
- * $Id: ifconfig.c,v 1.13 2001/10/24 04:59:56 andersen Exp $
+ * $Id: ifconfig.c,v 1.14 2001/10/28 05:12:18 andersen Exp $
  *
  */
 
@@ -135,7 +135,7 @@
 #define ARG_MTU          (A_ARG_REQ /*| A_CAST_INT*/)
 #define ARG_TXQUEUELEN   (A_ARG_REQ /*| A_CAST_INT*/)
 #define ARG_MEM_START    (A_ARG_REQ | A_MAP_ULONG)
-#define ARG_IO_ADDR      (A_ARG_REQ | A_MAP_USHORT)
+#define ARG_IO_ADDR      (A_ARG_REQ | A_MAP_ULONG)
 #define ARG_IRQ          (A_ARG_REQ | A_MAP_UCHAR)
 #define ARG_DSTADDR      (A_ARG_REQ | A_CAST_HOST_COPY_RESOLVE)
 #define ARG_NETMASK      (A_ARG_REQ | A_CAST_HOST_COPY_RESOLVE | A_NETMASK)

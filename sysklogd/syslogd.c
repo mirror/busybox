@@ -630,8 +630,12 @@ extern int syslogd_main(int argc, char **argv)
 	umask(0);
 
 	if (doFork == TRUE) {
+#if !defined(__UCLIBC__) || defined(__UCLIBC_HAS_MMU__)
 		if (daemon(0, 1) < 0)
 			perror_msg_and_die("daemon");
+#else
+			error_msg_and_die("daemon not supported");
+#endif
 	}
 	doSyslogd();
 
