@@ -1841,765 +1841,518 @@
 		</para>
 	</sect1>
 
+	<sect1 id="md5sum">
+	    <title>md5sum</title>
+
+		<para>
+		Usage: md5sum [OPTION]... FILE...
+		</para>
+
+		<para>
+		Print or check MD5 checksums.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-b	Read files in binary mode
+			-c	Check MD5 sums against given list
+			-t	Read files in text mode (default)
+			-g	Read a string
+		</screen>
+		</para>
+
+		<para>
+		The following two options are useful only when verifying
+		checksums:
+		</para>
+
+		<para>
+		<screen>
+			-s	Don't output anything, status code shows success
+			-w	Warn about improperly formated MD5 checksum lines
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ md5sum busybox
+			6fd11e98b98a58f64ff3398d7b324003  busybox
+			$ md5sum -c
+			6fd11e98b98a58f64ff3398d7b324003  busybox
+			6fd11e98b98a58f64ff3398d7b324002  busybox
+			md5sum: MD5 check failed for 'busybox'
+			^D
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mkdir">
+	    <title>mkdir</title>
+
+		<para>
+		Usage: mkdir [OPTION]... DIRECTORY...
+		</para>
+
+		<para>
+		Create the DIRECTORY(s), if they do not already exist.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m	Set permission mode (as in chmod), not rwxrwxrwx - umask
+			-p	No error if directory exists, make parent directories as needed
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mkdir /tmp/foo
+			$ mkdir /tmp/foo
+			/tmp/foo: File exists
+			$ mkdir /tmp/foo/bar/baz
+			/tmp/foo/bar/baz: No such file or directory
+			$ mkdir -p /tmp/foo/bar/baz
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mkfifo">
+	    <title>mkfifo</title>
+
+		<para>
+		Usage: mkfifo [OPTION] NAME
+		</para>
+
+		<para>
+		Create a named pipe (identical to 'mknod NAME p').
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m MODE	Create the pipe using the specified mode (default a=rw)
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mkfs.minix">
+	    <title>mkfs.minix</title>
+
+		<para>
+		Usage: mkfs.minix [OPTION]... NAME [BLOCKS]
+		</para>
+
+		<para>
+		Make a MINIX filesystem.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c		Check the device for bad blocks
+			-n [14|30]	Specify the maximum length of filenames
+			-i		Specify the number of inodes for the filesystem
+			-l FILENAME	Read the bad blocks list from FILENAME
+			-v		Make a Minix version 2 filesystem
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mknod">
+	    <title>mknod</title>
+
+		<para>
+		Usage: mknod [OPTION]... NAME TYPE MAJOR MINOR
+		</para>
+
+		<para>
+		Create a special file (block, character, or pipe).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m	Create the special file using the specified mode (default a=rw)
+		</screen>
+		</para>
+
+		<para>
+		TYPE may be:
+		</para>
+
+		<para>
+		<screen>
+			b	Make a block (buffered) device
+			c or u	Make a character (un-buffered) device
+			p	Make a named pipe. MAJOR and MINOR are ignored for named pipes
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mknod /dev/fd0 b 2 0 
+			$ mknod -m 644 /tmp/pipe p
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mkswap">
+	    <title>mkswap</title>
+
+		<para>
+		Usage: mkswap [OPTION]... DEVICE [BLOCKS]
+		</para>
+
+		<para>
+		Prepare a disk partition to be used as a swap partition.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Check for read-ability.
+			-v0	Make version 0 swap [max 128 Megs].
+			-v1	Make version 1 swap [big!] (default for kernels &gt; 2.1.117).
+			BLOCKS	Number of block to use (default is entire partition).
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mktemp">
+	    <title>mktemp</title>
+
+		<para>
+		Usage: mktemp TEMPLATE
+		</para>
+
+		<para>
+		Creates a temporary file with its name based on
+		TEMPLATE.  TEMPLATE is any name with six `Xs' (i.e.
+		/tmp/temp.XXXXXX).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mktemp /tmp/temp.XXXXXX
+			/tmp/temp.mWiLjM
+			$ ls -la /tmp/temp.mWiLjM
+			-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="more">
+	    <title>more</title>
+
+		<para>
+		Usage: more [FILE]...
+		</para>
+
+		<para>
+		Page through text one screenful at a time.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dmesg | more
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mount">
+	    <title>mount</title>
+
+		<para>
+		Usage: mount [OPTION]...
+		</para>
+
+		<para>
+		<screen>
+		   or: mount [OPTION]... DEVICE DIRECTORY
+		</screen>
+		</para>
+
+		<para>
+		Mount filesystems.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Mount all filesystems in /etc/fstab
+			-o	One of the many filesystem options listed below
+			-r	Mount the filesystem read-only
+			-t TYPE	Specify the filesystem type
+			-w	Mount the filesystem read-write
+		</screen>
+		</para>
+
+		<para>
+		Options for use with the -o flag:
+		</para>
+
+		<para>
+		<screen>
+			async/sync	Writes are asynchronous / synchronous
+			atime/noatime	Enable / disable updates to inode access times
+			dev/nodev	Allow / disallow use of special device files
+			exec/noexec	Allow / disallow use of executable files
+			loop		Mount a file via loop device
+			suid/nosuid	Allow / disallow set-user-id-root programs
+			remount		Remount a currently mounted filesystem
+			ro/rw		Mount filesystem read-only / read-write
+		</screen>
+		</para>
+
+		<para>
+		There are even more flags that are filesystem specific.
+		You'll have to see the written documentation for those.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mount
+			/dev/hda3 on / type minix (rw)
+			proc on /proc type proc (rw)
+			devpts on /dev/pts type devpts (rw)
+			$ mount /dev/fd0 /mnt -t msdos -o ro
+			$ mount /tmp/diskimage /opt -t ext2 -o loop
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mt">
+	    <title>mt</title>
+
+		<para>
+		Usage: mt [OPTION] OPCODE VALUE
+		</para>
+
+		<para>
+		Control magnetic tape drive operation.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-f DEVICE	Control DEVICE
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mv">
+	    <title>mv</title>
+
+		<para>
+		Usage: mv SOURCE DEST
+		</para>
+
+		<para>
+		<screen>
+		   or: mv SOURCE... DIRECTORY
+		</screen>
+		</para>
+
+		<para>
+		Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mv /tmp/foo /bin/bar
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="nc">
+	    <title>nc</title>
+
+		<para>
+		Usage: nc HOST PORT
+		</para>
+
+		<para>
+		Open a pipe to HOST:PORT.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ nc foobar.somedomain.com 25
+			220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600
+			help
+			214-Commands supported:
+			214-    HELO EHLO MAIL RCPT DATA AUTH
+			214     NOOP QUIT RSET HELP
+			quit
+			221 foobar closing connection
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="nslookup">
+	    <title>nslookup</title>
+
+		<para>
+		Usage: nslookup [HOST]
+		</para>
+
+		<para>
+		Query the nameserver for the IP address of the given
+		HOST.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ nslookup localhost
+			Server:     default
+			Address:    default
+
+			Name:       debian
+			Address:    127.0.0.1
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="ping">
+	    <title>ping</title>
+
+		<para>
+		Usage: ping [OPTION]... HOST
+		</para>
+
+		<para>
+		Send ICMP ECHO_REQUEST packets to HOST.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c COUNT	Send only COUNT pings
+			-s SIZE		Send SIZE data bytes in packets (default=56)
+			-q		Quiet mode, only displays output at start and when finished
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ping localhost
+			PING slag (127.0.0.1): 56 data bytes
+			64 bytes from 127.0.0.1: icmp_seq=0 ttl=255 time=20.1 ms
+
+			--- debian ping statistics ---
+			1 packets transmitted, 1 packets received, 0% packet loss
+			round-trip min/avg/max = 20.1/20.1/20.1 ms
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="poweroff">
+	    <title>poweroff</title>
+
+		<para>
+		Usage: poweroff
+		</para>
+
+		<para>
+		Shut down the system, and request that the kernel turn
+		off power upon halting.
+		</para>
+	</sect1>
+
+	<sect1 id="printf">
+	    <title>printf</title>
+
+		<para>
+		Usage: printf FORMAT [ARGUMENT]...
+		</para>
+
+		<para>
+		Format and print the given data in a manner similar to
+		the C printf command.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ printf "Val=%d\n" 5
+			Val=5
+		</screen>
+		</para>
+	</sect1>
+
 <!-- This is where I have stopped formatting stuff -->
-<varlistentry><term><emphasis>md5sum
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: md5sum [OPTION] [file ...]
-
-
-</para>
-
-<para>
-Print or check MD5 checksums.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -b       read files in binary mode
-        -c       check MD5 sums against given list
-        -t       read files in text mode (default)
-        -g       read a string
-</screen>
-
-
-</para>
-
-<para>
-The following two options are useful only when verifying checksums:
-
-
-</para>
-
-<para>
-<screen>
-        -s       don't output anything, status code shows success
-        -w       warn about improperly formated MD5 checksum lines
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ md5sum busybox
-        6fd11e98b98a58f64ff3398d7b324003  busybox
-        $ md5sum -c -
-        6fd11e98b98a58f64ff3398d7b324003  busybox
-        busybox: OK
-        ^D
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>mkdir
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: mkdir [OPTION] DIRECTORY...
-
-
-</para>
-
-<para>
-Create the <literal>DIRECTORY(ies),</literal> if they do not already exist
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -m      set permission mode (as in chmod), not rwxrwxrwx - umask
-        -p      no error if directory exists, make parent directories as needed
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ mkdir /tmp/foo
-        $ mkdir /tmp/foo
-        /tmp/foo: File exists
-        $ mkdir /tmp/foo/bar/baz
-        /tmp/foo/bar/baz: No such file or directory
-        $ mkdir -p /tmp/foo/bar/baz
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>mkfifo
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: mkfifo [OPTIONS] name
-
-
-</para>
-
-<para>
-Creates a named pipe (identical to 'mknod name p')
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -m      create the pipe using the specified mode (default a=rw)
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>mkfs.minix
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: mkfs.minix [<emphasis>-c</emphasis> | <emphasis>-l</emphasis> filename] [<emphasis>-nXX</emphasis>] [<emphasis>-iXX</emphasis>] /dev/name [blocks]
-
-
-</para>
-
-<para>
-Make a MINIX filesystem.
-
-
-</para>
-
-<para>
-OPTIONS:
-
-
-</para>
-
-<para>
-<screen>
-        -c              Check the device for bad blocks
-        -n [14|30]      Specify the maximum length of filenames
-        -i              Specify the number of inodes for the filesystem
-        -l FILENAME     Read the bad blocks list from FILENAME
-        -v              Make a Minix version 2 filesystem
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>mknod
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: mknod [OPTIONS] NAME TYPE MAJOR MINOR
-
-
-</para>
-
-<para>
-Create a special file (block, character, or pipe).
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -m      create the special file using the specified mode (default a=rw)
-</screen>
-
-
-</para>
-
-<para>
-TYPEs include: b: Make a block (buffered) device. c or u: Make a character
-(un-buffered) device. p: Make a named pipe. MAJOR and MINOR are ignored for
-named pipes.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ mknod /dev/fd0 b 2 0 
-        $ mknod -m 644 /tmp/pipe p
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>mkswap
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: mkswap [<emphasis>-c</emphasis>] [<emphasis>-v0</emphasis>|<emphasis>-v1</emphasis>] device [block-count]
-
-
-</para>
-
-<para>
-Prepare a disk partition to be used as a swap partition.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -c              Check for read-ability.
-        -v0             Make version 0 swap [max 128 Megs].
-        -v1             Make version 1 swap [big!] (default for kernels &gt; 2.1.117).
-        block-count     Number of block to use (default is entire partition).
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>mktemp
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: mktemp [<emphasis>-q</emphasis>] TEMPLATE
-
-
-</para>
-
-<para>
-Creates a temporary file with its name based on TEMPLATE. TEMPLATE is any
-name with six `Xs' (i.e. /tmp/temp.XXXXXX).
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ mktemp /tmp/temp.XXXXXX
-        /tmp/temp.mWiLjM
-        $ ls -la /tmp/temp.mWiLjM
-        -rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>more
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: more [file ...]
-
-
-</para>
-
-<para>
-More is a filter for paging through text one screenful at a time.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ dmesg | more
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>mount
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: mount [flags] mount [flags] device directory [<emphasis>-o</emphasis> options,more-options]
-
-
-</para>
-
-<para>
-Flags:
-
-
-</para>
-
-<para>
-<screen>
-        -a:             Mount all file systems in fstab.
-        -o option:      One of many filesystem options, listed below.
-        -r:             Mount the filesystem read-only.
-        -t fs-type:     Specify the filesystem type.
-        -w:             Mount for reading and writing (default).
-</screen>
-
-
-</para>
-
-<para>
-Options for use with the ``<emphasis>-o</emphasis>'' flag:
-
-
-</para>
-
-<para>
-<screen>
-        async/sync:     Writes are asynchronous / synchronous.
-        atime/noatime:  Enable / disable updates to inode access times.
-        dev/nodev:      Allow use of special device files / disallow them.
-        exec/noexec:    Allow use of executable files / disallow them.
-        loop:           Mounts a file via loop device.
-        suid/nosuid:    Allow set-user-id-root programs / disallow them.
-        remount:        Re-mount a currently-mounted filesystem, changing its flags.
-        ro/rw:          Mount for read-only / read-write.
-        There are EVEN MORE flags that are specific to each filesystem.
-        You'll have to see the written documentation for those.
-</screen>
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ mount
-        /dev/hda3 on / type minix (rw)
-        proc on /proc type proc (rw)
-        devpts on /dev/pts type devpts (rw)
-        $ mount /dev/fd0 /mnt -t msdos -o ro
-        $ mount /tmp/diskimage /opt -t ext2 -o loop
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>mt
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: mt [<emphasis>-f</emphasis> device] opcode value
-
-
-</para>
-
-<para>
-Control magnetic tape drive operation
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>mv
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: mv SOURCE DEST
-
-
-</para>
-
-<para>
-<screen>
-   or: mv SOURCE... DIRECTORY
-</screen>
-
-
-</para>
-
-<para>
-Rename SOURCE to DEST, or move <literal>SOURCE(s)</literal> to DIRECTORY.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ mv /tmp/foo /bin/bar
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>nc
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: nc [IP] [port]
-
-
-</para>
-
-<para>
-Netcat opens a pipe to IP:port
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ nc foobar.somedomain.com 25
-        220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600
-        help
-        214-Commands supported:
-        214-    HELO EHLO MAIL RCPT DATA AUTH
-        214     NOOP QUIT RSET HELP
-        quit
-        221 foobar closing connection
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>nslookup
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: nslookup [HOST]
-
-
-</para>
-
-<para>
-Queries the nameserver for the IP address of the given HOST
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ nslookup localhost
-        Server:     default
-        Address:    default
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        Name:       debian
-        Address:    127.0.0.1
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>ping
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: ping [OPTION]... host
-
-
-</para>
-
-<para>
-Send ICMP ECHO_REQUEST packets to network hosts.
-
-
-</para>
-
-<para>
-Options:
-
-
-</para>
-
-<para>
-<screen>
-        -c COUNT        Send only COUNT pings.
-        -s SIZE         Send SIZE data bytes in packets (default=56).
-        -q              Quiet mode, only displays output at start
-                        and when finished.
-Example:
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        $ ping localhost
-        PING slag (127.0.0.1): 56 data bytes
-        64 bytes from 127.0.0.1: icmp_seq=0 ttl=255 time=20.1 ms
-</screen>
-
-
-</para>
-
-<para>
-<screen>
-        --- debian ping statistics ---
-        1 packets transmitted, 1 packets received, 0% packet loss
-        round-trip min/avg/max = 20.1/20.1/20.1 ms
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>poweroff
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Shuts down the system, and requests that the kernel turn off power upon
-halting.
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
-<varlistentry><term><emphasis>printf
-
-</emphasis></term>
-<listitem><para></para>
-
-<para>
-Usage: printf format [argument...]
-
-
-</para>
-
-<para>
-Formats and prints the given data in a manner similar to the C printf
-command.
-
-
-</para>
-
-<para>
-Example:
-
-
-</para>
-
-<para>
-<screen>
-        $ printf "Val=%d\n" 5
-        Val=5
-</screen>
-
-
-</para>
-
-<para>
--------------------------------
-
-
-</para>
-
-</listitem></varlistentry>
 <varlistentry><term><emphasis>ps
 
 </emphasis></term>
@@ -4386,9 +4139,9 @@ stdout.
 GNU Libc uses the Name Service Switch (NSS) to configure the behavior of
 the C library for the local environment, and to configure how it reads
 system data, such as passwords and group information. BusyBox has made it
-Policy that it will never use NSS, and will never use and libc calls that
+Policy that it will never use NSS, and will never use libc calls that
 make use of NSS. This allows you to run an embedded system without the need
-for installing an /etc/nsswitch.conf file and without and /lib/libnss_*
+for installing an /etc/nsswitch.conf file and without /lib/libnss_*
 libraries installed.
 
 
