@@ -595,7 +595,9 @@ int tar_main(int argc, char **argv)
 	unsigned short untar_funct_required = 0;
 	unsigned short extract_function = 0;
 	int include_list_count = 0;
+#ifdef CONFIG_FEATURE_TAR_EXCLUDE
 	int exclude_list_count = 0;
+#endif
 #ifdef CONFIG_FEATURE_TAR_GZIP
 	int gunzip_pid;
 	int gz_fd = 0;

@@ -851,7 +851,8 @@ extern int sed_main(int argc, char **argv)
 		int i;
 		FILE *file;
 		for (i = optind; i < argc; i++) {
-			if (file = wfopen(argv[i], "r")) {
+			file = wfopen(argv[i], "r");
+			if (file) {
 				process_file(file);
 				fclose(file);
 			} else
