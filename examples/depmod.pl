@@ -3,6 +3,7 @@
 # Copyright (c) 2001 David Schleef <ds@schleef.org>
 # Copyright (c) 2001 Erik Andersen <andersen@lineo.com>
 # Copyright (c) 2001 Stuart Hughes <stuarth@lineo.com>
+# Copyright (c) 2002 Steven J. Hill <shill@broadcom.com>
 # This program is free software; you can redistribute it and/or modify it 
 # under the same terms as Perl itself.
 
@@ -18,7 +19,7 @@ use File::Find;
 my $basedir="";
 my $kernel;
 my $kernelsyms;
-my $stdout=1;
+my $stdout=0;
 my $verbose=0;
 
 
@@ -38,13 +39,13 @@ GetOptions(
 
 if (defined $opt{help}) {
 	print
-		"$0 [OPTION]... [basedir]\n",
-		"\t-h --help\t\tShow this help screen\n",
-		"\t-b --basedir\t\tModules base directory (defaults to /lib/modules)\n",
-		"\t-k --kernel\t\tKernel binary for the target\n",
-		"\t-F --kernelsyms\t\tKernel symbol file\n",
-		"\t-n --stdout\t\tWrite to stdout instead of modules.dep\n",
-		"\t-v --verbose\t\tPrint out lots of debugging stuff\n",
+	"  $0 [OPTION]... [basedir]\n",
+	"     -h --help\t\tShow this help screen\n",
+	"     -b --basedir\tModules base directory (defaults to /lib/modules)\n",
+	"     -k --kernel\tKernel binary for the target\n",
+	"     -F --kernelsyms\tKernel symbol file\n",
+	"     -n --stdout\tWrite to stdout instead of <basedir>/modules.dep\n",
+	"     -v --verbose\tPrint out lots of debugging stuff\n",
 	;
 	exit 1;
 }
@@ -55,6 +56,7 @@ if($basedir !~ m-/lib/modules-) {
 
 # Find the list of .o files living under $basedir 
 #if ($verbose) { printf "Locating all modules\n"; }
+my($ofile) = "";
 my($file) = "";
 my(@liblist) = ();
 find sub { 
@@ -127,15 +129,23 @@ foreach $module (keys %$dep) {
 }
 
 # resolve the dependancies for each module
-foreach $module ( keys %$mod )  {
-    print "$module:\t";
-    @sorted = sort bydep keys %{$mod->{$module}};
-    print join(" \\\n\t",@sorted);
-#    foreach $m (@sorted ) {
-#        print "\t$m\n";
-#    }
-    print "\n\n";
+if ($stdout == 1) {
+	foreach $module ( keys %$mod ) {
+		print "$module:\t";
+		@sorted = sort bydep keys %{$mod->{$module}};
+		print join(" \\\n\t",@sorted);
+		print "\n\n";
+	}
+} else {
+	open(OFILE, ">$basedir/modules.dep");
+	foreach $module ( keys %$mod ) {
+		print OFILE "$module:\t";
+		@sorted = sort bydep keys %{$mod->{$module}};
+		print OFILE join(" \\\n\t",@sorted);
+		print OFILE "\n\n";
+	}
 }
+
 
 sub bydep
 {
@@ -158,7 +168,7 @@ depmod.pl - a cross platform script to generate kernel module dependency
 
 =head1 SYNOPSIS
 
-depmod.pl [OPTION]... [FILE]...
+depmod.pl [OPTION]... [basedir]...
 
 Example:
 
@@ -223,5 +233,5 @@ David Schleef <ds@schleef.org>
 
 =cut
 
-# $Id: depmod.pl,v 1.1 2001/07/30 19:32:03 andersen Exp $
+# $Id: depmod.pl,v 1.2 2002/10/08 21:33:51 sjhill Exp $
 
