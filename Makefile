@@ -209,16 +209,17 @@ clean:
 	    docs/busybox.pdf docs/busybox.pod docs/busybox.net/busybox.html \
 	    docs/busybox _install pod2htm* *.gdb *.elf *~ core
 	- rm -f busybox busybox.links libbb/loop.h .config.old .hdepend
-	- rm -f scripts/split-include scripts/mkdep .*config.log
-	- rm -rf include/config include/config.h
+	- rm -f .*config.log
 	- find . -name .\*.flags -exec rm -f {} \;   
-	- find . -name .depend -exec rm -f {} \;
 	- find . -name \*.o -exec rm -f {} \;
 	- find . -name \*.a -exec rm -f {} \;
-	- $(MAKE) -C scripts/config clean
 
 distclean: clean
+	- rm -f scripts/split-include scripts/mkdep
+	- rm -rf include/config include/config.h
+	- find . -name .depend -exec rm -f {} \;
 	rm -f .config .config.old .config.cmd
+	- $(MAKE) -C scripts/config clean
 
 release: distclean #doc
 	cd ..;					\
