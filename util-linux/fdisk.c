@@ -2011,8 +2011,7 @@ sgi_write_table(void) {
 	 */
 	 sgiinfo *info = fill_sgiinfo();
 	 int infostartblock = SGI_SSWAP32(sgilabel->directory[0].vol_file_start);
-	 if (lseek(fd, (long long)infostartblock*
-				SECTOR_SIZE, SEEK_SET) < 0)
+	 if (lseek(fd, infostartblock*SECTOR_SIZE, SEEK_SET) < 0)
 	    fdisk_fatal(unable_to_seek);
 	 if (write(fd, info, SECTOR_SIZE) != SECTOR_SIZE)
 	    fdisk_fatal(unable_to_write);
