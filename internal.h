@@ -138,5 +138,30 @@ extern int parse_mode( const char* s, mode_t* theMode);
 extern volatile void usage(const char *usage);
 
 
+
+#if defined (BB_FSCK_MINIX) || defined (BB_MKFS_MINIX)
+
+static inline int bit(char * addr,unsigned int nr) 
+{
+  return (addr[nr >> 3] & (1<<(nr & 7))) != 0;
+}
+
+static inline int setbit(char * addr,unsigned int nr)
+{
+  int __res = bit(addr, nr);
+  addr[nr >> 3] |= (1<<(nr & 7));
+  return __res != 0; \
+}
+
+static inline int clrbit(char * addr,unsigned int nr)
+{
+  int __res = bit(addr, nr);
+  addr[nr >> 3] &= ~(1<<(nr & 7));
+  return __res != 0;
+}
+
+#endif
+
+
 #endif
 

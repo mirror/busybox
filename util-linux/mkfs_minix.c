@@ -58,6 +58,7 @@
  * enforced (but it's not much fun on a character device :-). 
  */
 
+#include "internal.h"
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
@@ -74,9 +75,6 @@
 
 #include <linux/fs.h>
 #include <linux/minix_fs.h>
-
-#include "nls.h"
-#include "../version.h"
 
 #ifdef MINIX2_SUPER_MAGIC2
 #define HAVE_MINIX2 1
@@ -152,8 +150,6 @@ static unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
 static int used_good_blocks = 0;
 static unsigned long req_nr_inodes = 0;
 
-#include "bitops.h"
-
 #define inode_in_use(x) (bit(inode_map,(x)))
 #define zone_in_use(x) (bit(zone_map,(x)-FIRSTZONE+1))
 
@@ -168,22 +164,16 @@ static unsigned long req_nr_inodes = 0;
  * to compile this under minix, volatile gives a warning, as
  * exit() isn't defined as volatile under minix.
  */
-volatile void fatal_error(const char * fmt_string,int status)
-{
-	fprintf(stderr,fmt_string,program_name,device_name);
-	exit(status);
-}
-
-volatile void die(char *str) {
+static volatile void die(char *str) {
 	fprintf(stderr, "%s: %s\n", program_name, str);
 	exit(8);
 }
 
-volatile void usage()
+static volatile void show_usage()
 {
-	fprintf(stderr, "%s (%s)\n", program_name, util_linux_version);
+	fprintf(stderr, "%s\n", program_name);
 	fprintf(stderr,
-		_("Usage: %s [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]\n"),
+		"Usage: %s [-c | -l filename] [-nXX] [-iXX] /dev/name [blocks]\n",
 		  program_name);
 	exit(16);
 }
@@ -207,7 +197,7 @@ static void check_mount(void)
 	if (!mnt)
 		return;
 
-	die(_("%s is mounted; will not make a filesystem here!"));
+	die("%s is mounted; will not make a filesystem here!");
 }
 
 static long valid_offset (int fd, int offset)
@@ -261,43 +251,43 @@ static int get_size(const char  *file)
 	return size;
 }
 
-void write_tables(void)
+static void write_tables(void)
 {
 	/* Mark the super block valid. */
 	Super.s_state |= MINIX_VALID_FS;
 	Super.s_state &= ~MINIX_ERROR_FS;
 
 	if (lseek(DEV, 0, SEEK_SET))
-		die(_("seek to boot block failed in write_tables"));
+		die("seek to boot block failed in write_tables");
 	if (512 != write(DEV, boot_block_buffer, 512))
-		die(_("unable to clear boot sector"));
+		die("unable to clear boot sector");
 	if (BLOCK_SIZE != lseek(DEV, BLOCK_SIZE, SEEK_SET))
-		die(_("seek failed in write_tables"));
+		die("seek failed in write_tables");
 	if (BLOCK_SIZE != write(DEV, super_block_buffer, BLOCK_SIZE))
-		die(_("unable to write super-block"));
+		die("unable to write super-block");
 	if (IMAPS*BLOCK_SIZE != write(DEV,inode_map,IMAPS*BLOCK_SIZE))
-		die(_("unable to write inode map"));
+		die("unable to write inode map");
 	if (ZMAPS*BLOCK_SIZE != write(DEV,zone_map,ZMAPS*BLOCK_SIZE))
-		die(_("unable to write zone map"));
+		die("unable to write zone map");
 	if (INODE_BUFFER_SIZE != write(DEV,inode_buffer,INODE_BUFFER_SIZE))
-		die(_("unable to write inodes"));
+		die("unable to write inodes");
 	
 }
 
-void write_block(int blk, char * buffer)
+static void write_block(int blk, char * buffer)
 {
 	if (blk*BLOCK_SIZE != lseek(DEV, blk*BLOCK_SIZE, SEEK_SET))
-		die(_("seek failed in write_block"));
+		die("seek failed in write_block");
 	if (BLOCK_SIZE != write(DEV, buffer, BLOCK_SIZE))
-		die(_("write failed in write_block"));
+		die("write failed in write_block");
 }
 
-int get_free_block(void)
+static int get_free_block(void)
 {
 	int blk;
 
 	if (used_good_blocks+1 >= MAX_GOOD_BLOCKS)
-		die(_("too many bad blocks"));
+		die("too many bad blocks");
 	if (used_good_blocks)
 		blk = good_blocks_table[used_good_blocks-1]+1;
 	else
@@ -305,13 +295,13 @@ int get_free_block(void)
 	while (blk < ZONES && zone_in_use(blk))
 		blk++;
 	if (blk >= ZONES)
-		die(_("not enough good blocks"));
+		die("not enough good blocks");
 	good_blocks_table[used_good_blocks] = blk;
 	used_good_blocks++;
 	return blk;
 }
 
-void mark_good_blocks(void)
+static void mark_good_blocks(void)
 {
 	int blk;
 
@@ -329,7 +319,7 @@ inline int next(int zone)
 	return 0;
 }
 
-void make_bad_inode(void)
+static void make_bad_inode(void)
 {
 	struct minix_inode * inode = &Inode[MINIX_BAD_INO];
 	int i,j,zone;
@@ -371,7 +361,7 @@ void make_bad_inode(void)
 				goto end_bad;
 		}
 	}
-	die(_("too many bad blocks"));
+	die("too many bad blocks");
 end_bad:
 	if (ind)
 		write_block(ind, (char *) ind_block);
@@ -380,7 +370,7 @@ end_bad:
 }
 
 #ifdef HAVE_MINIX2
-void
+static void
 make_bad_inode2 (void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_BAD_INO];
@@ -422,7 +412,7 @@ make_bad_inode2 (void)
 		}
 	}
 	/* Could make triple indirect block here */
-	die (_("too many bad blocks"));
+	die ("too many bad blocks");
  end_bad:
 	if (ind)
 		write_block (ind, (char *) ind_block);
@@ -431,7 +421,7 @@ make_bad_inode2 (void)
 }
 #endif
 
-void make_root_inode(void)
+static void make_root_inode(void)
 {
 	struct minix_inode * inode = &Inode[MINIX_ROOT_INO];
 
@@ -454,7 +444,7 @@ void make_root_inode(void)
 }
 
 #ifdef HAVE_MINIX2
-void
+static void
 make_root_inode2 (void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_ROOT_INO];
@@ -478,7 +468,7 @@ make_root_inode2 (void)
 }
 #endif
 
-void setup_tables(void)
+static void setup_tables(void)
 {
 	int i;
 	unsigned long inodes;
@@ -526,7 +516,7 @@ void setup_tables(void)
 	inode_map = malloc(IMAPS * BLOCK_SIZE);
 	zone_map = malloc(ZMAPS * BLOCK_SIZE);
 	if (!inode_map || !zone_map)
-		die(_("unable to allocate buffers for maps"));
+		die("unable to allocate buffers for maps");
 	memset(inode_map,0xff,IMAPS * BLOCK_SIZE);
 	memset(zone_map,0xff,ZMAPS * BLOCK_SIZE);
 	for (i = FIRSTZONE ; i<ZONES ; i++)
@@ -535,13 +525,13 @@ void setup_tables(void)
 		unmark_inode(i);
 	inode_buffer = malloc(INODE_BUFFER_SIZE);
 	if (!inode_buffer)
-		die(_("unable to allocate buffer for inodes"));
+		die("unable to allocate buffer for inodes");
 	memset(inode_buffer,0,INODE_BUFFER_SIZE);
-	printf(_("%ld inodes\n"),INODES);
-	printf(_("%ld blocks\n"),ZONES);
-	printf(_("Firstdatazone=%ld (%ld)\n"),FIRSTZONE,NORM_FIRSTZONE);
-	printf(_("Zonesize=%d\n"),BLOCK_SIZE<<ZONESIZE);
-	printf(_("Maxsize=%ld\n\n"),MAXSIZE);
+	printf("%ld inodes\n",INODES);
+	printf("%ld blocks\n",ZONES);
+	printf("Firstdatazone=%ld (%ld)\n",FIRSTZONE,NORM_FIRSTZONE);
+	printf("Zonesize=%d\n",BLOCK_SIZE<<ZONESIZE);
+	printf("Maxsize=%ld\n\n",MAXSIZE);
 }
 
 /*
@@ -555,7 +545,7 @@ long do_check(char * buffer, int try, unsigned int current_block)
 	/* Seek to the correct loc. */
 	if (lseek(DEV, current_block * BLOCK_SIZE, SEEK_SET) !=
                        current_block * BLOCK_SIZE ) {
-                 die(_("seek failed during testing of blocks"));
+                 die("seek failed during testing of blocks");
 	}
 
 
@@ -563,7 +553,7 @@ long do_check(char * buffer, int try, unsigned int current_block)
 	got = read(DEV, buffer, try * BLOCK_SIZE);
 	if (got < 0) got = 0;	
 	if (got & (BLOCK_SIZE - 1 )) {
-		printf(_("Weird values in do_check: probably bugs\n"));
+		printf("Weird values in do_check: probably bugs\n");
 	}
 	got /= BLOCK_SIZE;
 	return got;
@@ -571,7 +561,7 @@ long do_check(char * buffer, int try, unsigned int current_block)
 
 static unsigned int currently_testing = 0;
 
-void alarm_intr(int alnum)
+static void alarm_intr(int alnum)
 {
 	if (currently_testing >= ZONES)
 		return;
@@ -583,7 +573,7 @@ void alarm_intr(int alnum)
 	fflush(stdout);
 }
 
-void check_blocks(void)
+static void check_blocks(void)
 {
 	int try,got;
 	static char buffer[BLOCK_SIZE * TEST_BUFFER_BLOCKS];
@@ -594,7 +584,7 @@ void check_blocks(void)
 	while (currently_testing < ZONES) {
 		if (lseek(DEV,currently_testing*BLOCK_SIZE,SEEK_SET) !=
 		currently_testing*BLOCK_SIZE)
-			die(_("seek failed in check_blocks"));
+			die("seek failed in check_blocks");
 		try = TEST_BUFFER_BLOCKS;
 		if (currently_testing + try > ZONES)
 			try = ZONES-currently_testing;
@@ -603,18 +593,18 @@ void check_blocks(void)
 		if (got == try)
 			continue;
 		if (currently_testing < FIRSTZONE)
-			die(_("bad blocks before data-area: cannot make fs"));
+			die("bad blocks before data-area: cannot make fs");
 		mark_zone(currently_testing);
 		badblocks++;
 		currently_testing++;
 	}
 	if (badblocks > 1)
-		printf(_("%d bad blocks\n"), badblocks);
+		printf("%d bad blocks\n", badblocks);
 	else if (badblocks == 1)
-		printf(_("one bad block\n"));
+		printf("one bad block\n");
 }
 
-void get_list_blocks(filename)
+static void get_list_blocks(filename)
 char *filename;
 
 {
@@ -623,7 +613,7 @@ char *filename;
 
   listfile=fopen(filename,"r");
   if(listfile == (FILE *)NULL) {
-    die(_("can't open file of bad blocks"));
+    die("can't open file of bad blocks");
   }
   while(!feof(listfile)) {
     fscanf(listfile,"%ld\n", &blockno);
@@ -631,9 +621,9 @@ char *filename;
     badblocks++;
   }
   if(badblocks > 1)
-    printf(_("%d bad blocks\n"), badblocks);
+    printf("%d bad blocks\n", badblocks);
   else if (badblocks == 1)
-    printf(_("one bad block\n"));
+    printf("one bad block\n");
 }
 
 extern int 
@@ -647,10 +637,10 @@ mkfs_minix_main(int argc, char ** argv)
   if (argc && *argv)
     program_name = *argv;
   if (INODE_SIZE * MINIX_INODES_PER_BLOCK != BLOCK_SIZE)
-    die(_("bad inode size"));
+    die("bad inode size");
 #ifdef HAVE_MINIX2
   if (INODE_SIZE2 * MINIX2_INODES_PER_BLOCK != BLOCK_SIZE)
-    die(_("bad inode size"));
+    die("bad inode size");
 #endif
   opterr = 0;
   while ((i = getopt(argc, argv, "ci:l:n:v")) != EOF)
@@ -665,13 +655,13 @@ mkfs_minix_main(int argc, char ** argv)
       case 'n':
 	i = strtoul(optarg,&tmp,0);
 	if (*tmp)
-	  usage();
+	  show_usage();
 	if (i == 14)
 	  magic = MINIX_SUPER_MAGIC;
 	else if (i == 30)
 	  magic = MINIX_SUPER_MAGIC2;
 	else
-	  usage();
+	  show_usage();
 	namelen = i;
 	dirsize = i+2;
 	break;
@@ -679,11 +669,12 @@ mkfs_minix_main(int argc, char ** argv)
 #ifdef HAVE_MINIX2
 	version2 = 1;
 #else
-	fatal_error(_("%s: not compiled with minix v2 support\n"),-1);
+	fprintf(stderr,"%s: not compiled with minix v2 support\n",program_name,device_name);
+	exit(-1);
 #endif
 	break;
       default:
-	usage();
+	show_usage();
     }
   argc -= optind;
   argv += optind;
@@ -695,15 +686,15 @@ mkfs_minix_main(int argc, char ** argv)
   if (argc > 0) {
      BLOCKS = strtol(argv[0],&tmp,0);
      if (*tmp) {
-       printf(_("strtol error: number of blocks not specified"));
-       usage();
+       printf("strtol error: number of blocks not specified");
+       show_usage();
      }
   }
 
   if (device_name && !BLOCKS)
     BLOCKS = get_size (device_name) / 1024;
   if (!device_name || BLOCKS<10) {
-    usage();
+    show_usage();
   }
 #ifdef HAVE_MINIX2
   if (version2) {
@@ -727,13 +718,13 @@ mkfs_minix_main(int argc, char ** argv)
   strcpy(tmp+2,".badblocks");
   DEV = open(device_name,O_RDWR );
   if (DEV<0)
-    die(_("unable to open %s"));
+    die("unable to open %s");
   if (fstat(DEV,&statbuf)<0)
-    die(_("unable to stat %s"));
+    die("unable to stat %s");
   if (!S_ISBLK(statbuf.st_mode))
     check=0;
   else if (statbuf.st_rdev == 0x0300 || statbuf.st_rdev == 0x0340)
-    die(_("will not try to make filesystem on '%s'"));
+    die("will not try to make filesystem on '%s'");
   setup_tables();
   if (check)
     check_blocks();
