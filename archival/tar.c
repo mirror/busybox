@@ -167,7 +167,7 @@ extern int tar_main(int argc, char **argv)
 					tarName = *(++argv);
 					if (tarName == NULL)
 						fatalError( "Option requires an argument: No file specified\n");
-					if (!strcmp(tarName, "-"))
+					if (!strcmp(tarName, "-") && createFlag == TRUE)
 						tostdoutFlag = TRUE;
 					stopIt=TRUE;
 					break;
