@@ -14,6 +14,12 @@
  * very minor changes required to also work with StrongArm and presumably
  * all ARM based systems.
  *
+ * Magnus Damm <damm@opensource.se> added PowerPC support 20-Feb-2001.
+ *   PowerPC specific code stolen from modutils-2.3.16, 
+ *   written by Paul Mackerras, Copyright 1996, 1997 Linux International.
+ *   I've only tested the code on mpc8xx platforms in big-endian mode.
+ *   Did some cleanup and added BB_USE_xxx_ENTRIES...
+ *
  * Based almost entirely on the Linux modutils-2.3.11 implementation.
  *   Copyright 1996, 1997 Linux International.
  *   New implementation contributed by Richard Henderson <rth@tamu.edu>
@@ -52,6 +58,28 @@
 #include <linux/unistd.h>
 #include "busybox.h"
 
+#if defined(__powerpc__)
+#define BB_USE_PLT_ENTRIES
+#define BB_PLT_ENTRY_SIZE 16
+#endif
+
+#if defined(__arm__)
+#define BB_USE_PLT_ENTRIES
+#define BB_PLT_ENTRY_SIZE 8
+#define BB_USE_GOT_ENTRIES
+#define BB_GOT_ENTRY_SIZE 8
+#endif
+
+#if defined(__sh__)
+#define BB_USE_GOT_ENTRIES
+#define BB_GOT_ENTRY_SIZE 4
+#endif
+
+#if defined(__i386__)
+#define BB_USE_GOT_ENTRIES
+#define BB_GOT_ENTRY_SIZE 4
+#endif
+
 //----------------------------------------------------------------------------
 //--------modutils module.h, lines 45-242
 //----------------------------------------------------------------------------
@@ -81,7 +109,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.48 2001/02/20 06:14:07 andersen Exp $"
+#ident "$Id: insmod.c,v 1.49 2001/02/20 20:47:08 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -287,7 +315,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.48 2001/02/20 06:14:07 andersen Exp $"
+#ident "$Id: insmod.c,v 1.49 2001/02/20 20:47:08 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -311,21 +339,27 @@ static const int MODUTILS_OBJ_H = 1;
 #endif
 
 #define ELFCLASSM	ELFCLASS32
-#define ELFDATAM	ELFDATA2LSB
-
-
 
 #if defined(__sh__)
 
 #define MATCH_MACHINE(x) (x == EM_SH)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
+#define ELFDATAM	ELFDATA2LSB
 
 #elif defined(__arm__)
 
 #define MATCH_MACHINE(x) (x == EM_ARM)
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
+#define ELFDATAM	ELFDATA2LSB
+
+#elif defined(__powerpc__)
+
+#define MATCH_MACHINE(x) (x == EM_PPC)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFDATAM        ELFDATA2MSB
 
 #elif defined(__i386__)
 
@@ -340,6 +374,7 @@ static const int MODUTILS_OBJ_H = 1;
 
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
+#define ELFDATAM	ELFDATA2LSB
 
 #else
 #error Sorry, but insmod.c does not yet support this architecture...
@@ -540,8 +575,10 @@ int flag_export = 1;
 
 /* Done ;-) */
 
-#if defined(__arm__)
-struct arm_plt_entry
+
+
+#if defined(BB_USE_PLT_ENTRIES)
+struct arch_plt_entry
 {
   int offset;
   int allocated:1;
@@ -549,26 +586,32 @@ struct arm_plt_entry
 };
 #endif
 
+#if defined(BB_USE_GOT_ENTRIES)
 struct arch_got_entry {
 	int offset;
 	unsigned offset_done:1;
 	unsigned reloc_done:1;
 };
+#endif
 
 struct arch_file {
 	struct obj_file root;
-#if defined(__arm__)
-    struct obj_section *plt;
+#if defined(BB_USE_PLT_ENTRIES)
+	struct obj_section *plt;
 #endif
+#if defined(BB_USE_GOT_ENTRIES)
 	struct obj_section *got;
+#endif
 };
 
 struct arch_symbol {
 	struct obj_symbol root;
-#if defined(__arm__)
-    struct arm_plt_entry pltent;
+#if defined(BB_USE_PLT_ENTRIES)
+	struct arch_plt_entry pltent;
 #endif
+#if defined(BB_USE_GOT_ENTRIES)
 	struct arch_got_entry gotent;
+#endif
 };
 
 
@@ -618,7 +661,8 @@ extern int delete_module(const char *);
 _syscall1(int, get_kernel_syms, struct old_kernel_sym *, ks)
 #endif
 
-#if defined(__i386__) || defined(__m68k__) || defined(__arm__)
+#if defined(__i386__) || defined(__m68k__) || defined(__arm__) \
+ || defined(__powerpc__)
 /* Jump through hoops to fixup error return codes */
 #define __NR__create_module  __NR_create_module
 static inline _syscall2(long, _create_module, const char *, name, size_t,
@@ -673,7 +717,14 @@ struct obj_file *arch_new_file(void)
 {
 	struct arch_file *f;
 	f = xmalloc(sizeof(*f));
+
+#if defined(BB_USE_PLT_ENTRIES)
+	f->plt = NULL;
+#endif
+#if defined(BB_USE_GOT_ENTRIES)
 	f->got = NULL;
+#endif
+
 	return &f->root;
 }
 
@@ -686,7 +737,14 @@ struct obj_symbol *arch_new_symbol(void)
 {
 	struct arch_symbol *sym;
 	sym = xmalloc(sizeof(*sym));
+
+#if defined(BB_USE_PLT_ENTRIES)
+	memset(&sym->pltent, 0, sizeof(sym->pltent));
+#endif
+#if defined(BB_USE_GOT_ENTRIES)
 	memset(&sym->gotent, 0, sizeof(sym->gotent));
+#endif
+
 	return &sym->root;
 }
 
@@ -702,14 +760,14 @@ arch_apply_relocation(struct obj_file *f,
 
 	ElfW(Addr) *loc = (ElfW(Addr) *) (targsec->contents + rel->r_offset);
 	ElfW(Addr) dot = targsec->header.sh_addr + rel->r_offset;
+#if defined(BB_USE_GOT_ENTRIES)
 	ElfW(Addr) got = ifile->got ? ifile->got->header.sh_addr : 0;
-#if defined(__arm__)
+#endif
+#if defined(BB_USE_PLT_ENTRIES)
 	ElfW(Addr) plt = ifile->plt ? ifile->plt->header.sh_addr : 0;
-
-	struct arm_plt_entry *pe;
+	struct arch_plt_entry *pe;
 	unsigned long *ip;
 #endif
-
 	enum obj_reloc ret = obj_reloc_ok;
 
 	switch (ELF32_R_TYPE(rel->r_info)) {
@@ -723,6 +781,8 @@ arch_apply_relocation(struct obj_file *f,
 	case R_ARM_NONE:
 #elif defined(__i386__)
 	case R_386_NONE:
+#elif defined(__powerpc__)
+	case R_PPC_NONE:
 #endif
 		break;
 
@@ -731,10 +791,26 @@ arch_apply_relocation(struct obj_file *f,
 #elif defined(__arm__)
 	case R_ARM_ABS32:
 #elif defined(__i386__)
-	case R_386_32:
+	case R_386_32:	
+#elif defined(__powerpc__)
+	case R_PPC_ADDR32:
 #endif
 		*loc += v;
 		break;
+
+#if defined(__powerpc__)
+	case R_PPC_ADDR16_HA:
+		*(unsigned short *)loc = (v + 0x8000) >> 16;
+		break;
+
+	case R_PPC_ADDR16_HI:
+		*(unsigned short *)loc = v >> 16;
+		break;
+
+	case R_PPC_ADDR16_LO:
+		*(unsigned short *)loc = v;
+		break;
+#endif
 
 #if defined(__arm__)
 #elif defined(__sh__)
@@ -746,22 +822,48 @@ arch_apply_relocation(struct obj_file *f,
 	case R_386_PC32:
 		*loc += v - dot;
 		break;
+#elif defined(__powerpc__)
+	case R_PPC_REL32:
+		*loc = v - dot;
+		break;
 #endif
 
 #if defined(__sh__)
         case R_SH_PLT32:
                 *loc = v - dot;
                 break;
-#elif defined(__arm__)
+#elif defined(__i386__)
+#endif
+
+#if defined(BB_USE_PLT_ENTRIES)
+
+#if defined(__arm__)
     case R_ARM_PC24:
     case R_ARM_PLT32:
+#endif
+#if defined(__powerpc__)
+	case R_PPC_REL24:
+#endif
       /* find the plt entry and initialize it if necessary */
       assert(isym != NULL);
-      pe = (struct arm_plt_entry*) &isym->pltent;
+
+      pe = (struct arch_plt_entry*) &isym->pltent;
+
       if (! pe->inited) {
 	  	ip = (unsigned long *) (ifile->plt->contents + pe->offset);
+
+		/* generate some machine code */
+
+#if defined(__arm__)
 	  	ip[0] = 0xe51ff004;			/* ldr pc,[pc,#-4] */
 	  	ip[1] = v;				/* sym@ */
+#endif
+#if defined(__powerpc__)
+	  ip[0] = 0x3d600000 + ((v + 0x8000) >> 16);  /* lis r11,sym@ha */
+	  ip[1] = 0x396b0000 + (v & 0xffff);	      /* addi r11,r11,sym@l */
+	  ip[2] = 0x7d6903a6;			      /* mtctr r11 */
+	  ip[3] = 0x4e800420;			      /* bctr */
+#endif
 	  	pe->inited = 1;
 	  }
 
@@ -775,15 +877,18 @@ arch_apply_relocation(struct obj_file *f,
       if (v & 3)
 	    ret = obj_reloc_dangerous;
 
+      /* merge the offset into the instruction. */
+#if defined(__arm__)
       /* Convert to words. */
       v >>= 2;
 
-      /* merge the offset into the instruction. */
       *loc = (*loc & ~0x00ffffff) | ((v + *loc) & 0x00ffffff);
-      break;
-#elif defined(__i386__)
 #endif
-
+#if defined(__powerpc__)
+      *loc = (*loc & ~0x03fffffc) | (v & 0x03fffffc);
+#endif
+      break;
+#endif /* BB_USE_PLT_ENTRIES */
 
 #if defined(__arm__)
 #elif defined(__sh__)
@@ -809,6 +914,8 @@ arch_apply_relocation(struct obj_file *f,
 		break;
 #endif
 
+#if defined(BB_USE_GOT_ENTRIES)
+
 #if defined(__sh__)
         case R_SH_GOTPC:
 #elif defined(__arm__)
@@ -827,7 +934,7 @@ arch_apply_relocation(struct obj_file *f,
 #if defined(__sh__)
 	case R_SH_GOT32:
 #elif defined(__arm__)
-    case R_ARM_GOT32:
+	case R_ARM_GOT32:
 #elif defined(__i386__)
 	case R_386_GOT32:
 #endif
@@ -849,13 +956,15 @@ arch_apply_relocation(struct obj_file *f,
 #if defined(__sh__)
 	case R_SH_GOTOFF:
 #elif defined(__arm__)
-    case R_ARM_GOTOFF:
+	case R_ARM_GOTOFF:
 #elif defined(__i386__)
 	case R_386_GOTOFF:
 #endif
 		assert(got != 0);
 		*loc += v - got;
 		break;
+
+#endif /* BB_USE_GOT_ENTRIES */
 
 	default:
         printf("Warning: unhandled reloc %d\n",(int)ELF32_R_TYPE(rel->r_info));
@@ -869,8 +978,11 @@ arch_apply_relocation(struct obj_file *f,
 int arch_create_got(struct obj_file *f)
 {
 	struct arch_file *ifile = (struct arch_file *) f;
-	int i, got_offset = 0, gotneeded = 0;
-#if defined(__arm__)
+	int i;
+#if defined(BB_USE_GOT_ENTRIES)
+	int got_offset = 0, gotneeded = 0;
+#endif
+#if defined(BB_USE_PLT_ENTRIES)
 	int plt_offset = 0, pltneeded = 0;
 #endif
     struct obj_section *relsec, *symsec, *strsec;
@@ -898,12 +1010,20 @@ int arch_create_got(struct obj_file *f)
 			switch (ELF32_R_TYPE(rel->r_info)) {
 #if defined(__arm__)
 			case R_ARM_GOT32:
+				break;
 #elif defined(__sh__)
 			case R_SH_GOT32:
+				break;
 #elif defined(__i386__)
 			case R_386_GOT32:
-#endif
 				break;
+#endif
+
+#if defined(__powerpc__)
+			case R_PPC_REL24:
+				pltneeded = 1;
+				break;
+#endif
 
 #if defined(__arm__)
 			case R_ARM_PC24:
@@ -936,17 +1056,18 @@ int arch_create_got(struct obj_file *f)
 				name = f->sections[extsym->st_shndx]->name;
 			}
 			intsym = (struct arch_symbol *) obj_find_symbol(f, name);
-
+#if defined(BB_USE_GOT_ENTRIES)
 			if (!intsym->gotent.offset_done) {
 				intsym->gotent.offset_done = 1;
 				intsym->gotent.offset = got_offset;
-				got_offset += 4;
+				got_offset += BB_GOT_ENTRY_SIZE;
 			}
-#if defined(__arm__)
+#endif
+#if defined(BB_USE_PLT_ENTRIES)
 			if (pltneeded && intsym->pltent.allocated == 0) {
 				intsym->pltent.allocated = 1;
 				intsym->pltent.offset = plt_offset;
-				plt_offset += 8;
+				plt_offset += BB_PLT_ENTRY_SIZE;
 				intsym->pltent.inited = 0;
 				pltneeded = 0;
 			}
@@ -954,27 +1075,29 @@ int arch_create_got(struct obj_file *f)
 			}
 		}
 
-#if defined(__arm__)
+#if defined(BB_USE_GOT_ENTRIES)
 	if (got_offset) {
 		struct obj_section* relsec = obj_find_section(f, ".got");
 
 		if (relsec) {
 			obj_extend_section(relsec, got_offset);
 		} else {
-			relsec = obj_create_alloced_section(f, ".got", 8, got_offset);
+			relsec = obj_create_alloced_section(f, ".got", 
+							    BB_GOT_ENTRY_SIZE,
+							    got_offset);
 			assert(relsec);
 		}
 
 		ifile->got = relsec;
 	}
-
-	if (plt_offset)
-		ifile->plt = obj_create_alloced_section(f, ".plt", 8, plt_offset);
-#else
-	if (got_offset > 0 || gotneeded)
-		ifile->got = obj_create_alloced_section(f, ".got", 4, got_offset);
 #endif
 
+#if defined(BB_USE_PLT_ENTRIES)
+	if (plt_offset)
+		ifile->plt = obj_create_alloced_section(f, ".plt", 
+							BB_PLT_ENTRY_SIZE, 
+							plt_offset);
+#endif
 	return 1;
 }
 
