@@ -1,8 +1,12 @@
+/* vi: set sw=4 ts=4: */
 /*
- * $Id: telnet.c,v 1.3 2000/05/12 19:41:47 erik Exp $
- * Mini telnet implementation for busybox
+ * telnet implementation for busybox
  *
- * Copyright (C) 2000 by Randolph Chung <tausq@debian.org>
+ * Author: Tomi Ollila <too@iki.fi>
+ * Copyright (C) 1994-2000 by Tomi Ollila
+ *
+ * Created: Thu Apr  7 13:29:41 1994 too
+ * Last modified: Fri Jun  9 14:34:24 2000 too
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,490 +22,652 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
- * This version of telnet is adapted (but very heavily modified) from the 
- * telnet in netkit-telnet 0.16, which is:
+ * HISTORY
+ * Revision 3.1  1994/04/17  11:31:54  too
+ * initial revision
+ * Modified 2000/06/13 for inclusion into BusyBox by Erik Andersen
+ * <andersen@lineo.com> 
  *
- * Copyright (c) 1989 The Regents of the University of California.
- * All rights reserved.
- *
- * Original copyright notice is retained at the end of this file.
  */
 
+
 #include "internal.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <signal.h>
-#include <errno.h>
-#include <netdb.h>
 #include <termios.h>
-#include <netinet/in.h>
+#include <unistd.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <signal.h>
+#include <arpa/telnet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/ioctl.h>
-#define TELOPTS
-#include <arpa/telnet.h>
-#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netdb.h>
 
-static int STDIN = 0;
-static int STDOUT = 1;
-static const char *telnet_usage = "telnet host [port]\n"
+#if 0
+#define DOTRACE 1
+#endif
+
+#if DOTRACE
+#include <arpa/inet.h> /* for inet_ntoa()... */
+#define TRACE(x, y) do { if (x) printf y; } while (0)
+#else
+#define TRACE(x, y) 
+#endif
+
+#if 0
+#define USE_POLL
+#include <sys/poll.h>
+#else
+#include <sys/time.h>
+#endif
+
+#define DATABUFSIZE 128
+#define IACBUFSIZE 128
+
+#define CHM_TRY 0
+#define CHM_ON	1
+#define CHM_OFF	2
+
+#define UF_ECHO	0x01
+#define UF_SGA	0x02
+
+#define TS_0	1
+#define TS_IAC	2
+#define TS_OPT	3
+#define TS_SUB1 4
+#define TS_SUB2	5
+
+#define WriteCS(fd, str) write(fd, str, sizeof str -1)
+
+typedef unsigned char byte;
+
+/* use globals to reduce size ??? */ /* test this hypothesis later */
+struct Globalvars {
+	int		netfd; /* console fd:s are 0 and 1 (and 2) */
+    /* same buffer used both for network and console read/write */
+	char *	buf; /* allocating so static size is smaller */
+	short	len;
+	byte	telstate; /* telnet negotiation state from network input */
+	byte	telwish;  /* DO, DONT, WILL, WONT */
+	byte    charmode;
+	byte    telflags;
+	byte	gotsig;
+	/* buffer to handle telnet negotiations */
+	char *	iacbuf;
+	short	iaclen; /* could even use byte */
+	struct termios termios_def;	
+	struct termios termios_raw;	
+} G;
+
+#define xUSE_GLOBALVAR_PTR /* xUSE... -> don't use :D (makes smaller code) */
+
+#ifdef USE_GLOBALVAR_PTR
+struct Globalvars * Gptr;
+#define G (*Gptr)
+#else
+struct Globalvars G;
+#endif
+
+static inline void iacflush()
+{
+	write(G.netfd, G.iacbuf, G.iaclen);
+	G.iaclen = 0;
+}
+
+/* Function prototypes */
+static int getport(char * p);
+static struct in_addr getserver(char * p);
+static int create_socket();
+static void setup_sockaddr_in(struct sockaddr_in * addr, int port);
+static int remote_connect(struct in_addr addr, int port);
+static void rawmode();
+static void cookmode();
+static void do_linemode();
+static void will_charmode();
+static void telopt(byte c);
+static int subneg(byte c);
+#if 0
+static int local_bind(int port);
+#endif
+
+/* Some globals */
+static int one = 1;
+static const char telnet_usage[] =
+	"telnet host [port]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nProvides interactive communication with another\n"
-	"networked host using the TELNET protocol\n"
+	"\nTelnet is used to establish interactive communication with another\n"
+	"computer over a network using the TELNET protocol.\n"
 #endif
 	;
-static struct termios saved_tc;
-static unsigned char options[NTELOPTS];
-static char tr_state = 0; /* telnet send and receive state */
-static unsigned char subbuffer[256];
-static unsigned char *subpointer, *subend;
-#define	SB_CLEAR()	subpointer = subbuffer;
-#define	SB_TERM()	{ subend = subpointer; SB_CLEAR(); }
-#define	SB_ACCUM(c)	if (subpointer < (subbuffer+sizeof subbuffer)) { *subpointer++ = (c); }
-#define	SB_GET()	(*subpointer++)
-#define	SB_PEEK()	(*subpointer)
-#define	SB_EOF()	(subpointer >= subend)
-#define	SB_LEN()	(subend - subpointer)
 
-#define TELNETPORT		23
-#define MASK_WILL		0x01
-#define MASK_WONT		0x04
-#define MASK_DO			0x10
-#define MASK_DONT		0x40
 
-#define TFLAG_ISSET(opt, flag) (options[opt] & MASK_##flag)
-#define TFLAG_SET(opt, flag) (options[opt] |= MASK_##flag)
-#define TFLAG_CLR(opt, flag) (options[opt] &= ~MASK_##flag)
-
-#define PERROR(ctx) do { fprintf(stderr, "%s: %s\n", ctx, strerror(errno)); \
-                         return; } while (0)
-						 
-#define	TS_DATA		0
-#define	TS_IAC		1
-#define	TS_WILL		2
-#define	TS_WONT		3
-#define	TS_DO		4
-#define	TS_DONT		5
-#define	TS_CR		6
-#define	TS_SB		7		/* sub-option collection */
-#define	TS_SE		8		/* looking for sub-option end */
-
-/* prototypes */
-static void telnet_init(void);
-static void telnet_start(char *host, int port);
-static void telnet_shutdown(void);
-/* ******************************************************************* */
-#define SENDCOMMAND(c,o) \
-	char buf[3]; \
-	buf[0] = IAC; buf[1] = c; buf[2] = o; \
-	write(s, buf, sizeof(buf)); 
-
-static inline void telnet_sendwill(int s, int c) { SENDCOMMAND(WILL, c); }
-static inline void telnet_sendwont(int s, int c) { SENDCOMMAND(WONT, c); }
-static inline void telnet_senddo(int s, int c) { SENDCOMMAND(DO, c); }
-static inline void telnet_senddont(int s, int c) { SENDCOMMAND(DONT, c); }
-
-static void telnet_setoptions(int s)
+static void doexit(int ev)
 {
-	/*
-	telnet_sendwill(s, TELOPT_NAWS); TFLAG_SET(TELOPT_NAWS, WILL);
-	telnet_sendwill(s, TELOPT_TSPEED); TFLAG_SET(TELOPT_TSPEED, WILL);
-	telnet_sendwill(s, TELOPT_NEW_ENVIRON); TFLAG_SET(TELOPT_NEW_ENVIRON, WILL);
-	telnet_senddo(s, TELOPT_STATUS); TFLAG_SET(TELOPT_STATUS, DO);
-	telnet_sendwill(s, TELOPT_TTYPE); TFLAG_SET(TELOPT_TTYPE, WILL);
-	*/
-	telnet_senddo(s, TELOPT_SGA); TFLAG_SET(TELOPT_SGA, DO);
-	telnet_sendwill(s, TELOPT_LFLOW); TFLAG_SET(TELOPT_LFLOW, WILL);
-	telnet_sendwill(s, TELOPT_LINEMODE); TFLAG_SET(TELOPT_LINEMODE, WILL);
-	telnet_senddo(s, TELOPT_BINARY); TFLAG_SET(TELOPT_BINARY, DO);
-	telnet_sendwill(s, TELOPT_BINARY); TFLAG_SET(TELOPT_BINARY, WILL);
-}
+	cookmode();
+	exit(ev);
+}	
 
-static void telnet_suboptions(int net)
+static void conescape()
 {
-	char buf[256];
-	switch (SB_GET()) {
-		case TELOPT_TTYPE:
-			if (TFLAG_ISSET(TELOPT_TTYPE, WONT)) return;
-			if (SB_EOF() || SB_GET() != TELQUAL_SEND) {
-      			return;
-    		} else {
-      			const char *name = getenv("TERM");
-				if (name) {
-					snprintf(buf, sizeof(buf), "%c%c%c%c%s%c%c", IAC, SB,
-						TELOPT_TTYPE, TELQUAL_IS, name, IAC, SE);
-					write(net, buf, strlen(name)+6);
-				}
-			}
-    		break;
-  		case TELOPT_TSPEED:
-			if (TFLAG_ISSET(TELOPT_TSPEED, WONT)) return;
-    		if (SB_EOF()) return;
-    		if (SB_GET() == TELQUAL_SEND) {
-				/*
-      			long oospeed, iispeed;
-      			netoring.printf("%c%c%c%c%ld,%ld%c%c", IAC, SB, TELOPT_TSPEED,
-		      TELQUAL_IS, oospeed, iispeed, IAC, SE);
-    		    */
-			}
-    		break;
-		/*
-		case TELOPT_LFLOW:
-			if (TFLAG_ISSET(TELOPT_LFLOW, WONT)) return;
-			if (SB_EOF()) return;
-    		switch(SB_GET()) {
-    			case 1: localflow = 1; break;
-				case 0: localflow = 0; break;
-				default: return;
-			}
-    		break;
-  		case TELOPT_LINEMODE:
-			if (TFLAG_ISSET(TELOPT_LINEMODE, WONT)) return;
-			if (SB_EOF()) return;
-			switch (SB_GET()) {
-    			case WILL: lm_will(subpointer, SB_LEN()); break;
-				case WONT: lm_wont(subpointer, SB_LEN()); break;
-				case DO: lm_do(subpointer, SB_LEN()); break;
-				case DONT: lm_dont(subpointer, SB_LEN()); break;
-				case LM_SLC: slc(subpointer, SB_LEN()); break;
-				case LM_MODE: lm_mode(subpointer, SB_LEN(), 0); break;
-				default: break;
-			}
-    		break;
-		case TELOPT_ENVIRON:
-			if (SB_EOF()) return;
-			switch(SB_PEEK()) {
-				case TELQUAL_IS:
-				case TELQUAL_INFO:
-					if (TFLAG_ISSET(TELOPT_ENVIRON, DONT)) return;
-					break;
-				case TELQUAL_SEND:
-					if (TFLAG_ISSET(TELOPT_ENVIRON, WONT)) return;
-					break;
-				default:
-					return;
-			}
-			env_opt(subpointer, SB_LEN());
-			break;
-		*/
-		case TELOPT_XDISPLOC:
-			if (TFLAG_ISSET(TELOPT_XDISPLOC, WONT)) return;
-    		if (SB_EOF()) return;
-			if (SB_GET() == TELQUAL_SEND) {
-				const char *dp = getenv("DISPLAY");
-				if (dp) {
-					snprintf(buf, sizeof(buf), "%c%c%c%c%s%c%c", IAC, SB,
-						TELOPT_XDISPLOC, TELQUAL_IS, dp, IAC, SE);
-					write(net, buf, strlen(dp)+6);
-				}
-			}
-    		break;
-    	default:
-			break;
-	}
-}
+	char b;
 
-static void sighandler(int sig)
-{
-	telnet_shutdown();
-	exit(0);
-}
+	if (G.gotsig)	/* came from line  mode... go raw */
+		rawmode();
 
-static int telnet_send(int tty, int net)
-{
-	int ret;
-	unsigned char ch;
+	WriteCS(1, "\r\nConsole escape. Commands are:\r\n\n"
+			" l	go to line mode\r\n"
+			" c	go to character mode\r\n"
+			" z	suspend telnet\r\n"
+			" e	exit telnet\r\n");
 
-	while ((ret = read(tty, &ch, 1)) > 0) {
-		if (ch == 29) { /* 29 -- ctrl-] */
-			/* do something here? */
-			exit(0);
-		} else {
-			ret = write(net, &ch, 1);
-			break;
+	if (read(0, &b, 1) <= 0)
+		doexit(1);
+
+	switch (b)
+	{
+	case 'l':
+		if (!G.gotsig)
+		{
+			do_linemode();
+			goto rrturn;
 		}
-	}
-	if (ret == -1 && errno == EWOULDBLOCK) return 1;
-	return ret;
-}
-
-static int telnet_recv(int net, int tty)
-{
-	/* globals: tr_state - telnet receive state */
-	int ret, c = 0;
-	unsigned char ch;
-
-	while ((ret = read(net, &ch, 1)) > 0) {
-		c = ch;
-		/* printf("%02X ", c); fflush(stdout); */
-		switch (tr_state) {
-			case TS_DATA:
-				if (c == IAC) {
-					tr_state = TS_IAC;
-					break;
-				} else {
-					write(tty, &c, 1);
-				}
-				break;
-			case TS_IAC:
-				switch (c) {
-					case WILL:
-						tr_state = TS_WILL; break;
-					case WONT:
-						tr_state = TS_WONT; break;
-					case DO:
-						tr_state = TS_DO; break;
-					case DONT:
-						tr_state = TS_DONT; break;
-					case SB:
-						SB_CLEAR();
-						tr_state = TS_SB; break;
-					case IAC:
-						write(tty, &c, 1); /* fallthrough */
-					default:
-						tr_state = TS_DATA;
-				}
-			
-			/* subnegotiation -- ignored for now */
-			case TS_SB:
-				if (c == IAC) tr_state = TS_SE;
-				else SB_ACCUM(c);
-				break;
-			case TS_SE:
-				if (c == IAC) {
-					SB_ACCUM(IAC);
-					tr_state = TS_SB;
-				} else if (c == SE) {
-					SB_ACCUM(IAC);
-					SB_ACCUM(SE);
-					subpointer -= 2;
-					SB_TERM();
-					telnet_suboptions(net);
-					tr_state = TS_DATA;
-				}
-			    /* otherwise this is an error, but we ignore it for now */
-				break;
-			/* handle incoming requests */
-			case TS_WILL: 
-				printf("WILL %s\n", telopts[c]);
-				if (!TFLAG_ISSET(c, DO)) {
-					if (c == TELOPT_BINARY) {
-						TFLAG_SET(c, DO);
-						TFLAG_CLR(c, DONT);
-						telnet_senddo(net, c);
-					} else {
-						TFLAG_SET(c, DONT);
-						telnet_senddont(net, c);
-					}
-				}
-				telnet_senddont(net, c);
-				tr_state = TS_DATA;
-				break;
-			case TS_WONT:
-				printf("WONT %s\n", telopts[c]);
-				if (!TFLAG_ISSET(c, DONT)) {
-					TFLAG_SET(c, DONT);
-					TFLAG_CLR(c, DO);
-					telnet_senddont(net, c);
-				}
-				tr_state = TS_DATA;
-				break;
-			case TS_DO:
-				printf("DO %s\n", telopts[c]);
-				if (!TFLAG_ISSET(c, WILL)) {
-					if (c == TELOPT_BINARY) {
-						TFLAG_SET(c, WILL);
-						TFLAG_CLR(c, WONT);
-						telnet_sendwill(net, c);
-					} else {
-						TFLAG_SET(c, WONT);
-						telnet_sendwont(net, c);
-					}
-				}
-				tr_state = TS_DATA;
-				break;
-			case TS_DONT:
-				printf("DONT %s\n", telopts[c]);
-				if (!TFLAG_ISSET(c, WONT)) {
-					TFLAG_SET(c, WONT);
-					TFLAG_CLR(c, WILL);
-					telnet_sendwont(net, c);
-				}
-				tr_state = TS_DATA;
-				break;
+		break;
+	case 'c':
+		if (G.gotsig)
+		{
+			will_charmode();
+			goto rrturn;
 		}
-					
+		break;
+	case 'z':
+		cookmode();
+		kill(0, SIGTSTP);
+		rawmode();
+		break;
+	case 'e':
+		doexit(0);
 	}
-	if (ret == -1 && errno == EWOULDBLOCK) return 1;
-	return ret;
+
+	WriteCS(1, "continuing...\r\n");
+
+	if (G.gotsig)
+		cookmode();
+	
+ rrturn:
+	G.gotsig = 0;
+	
+}
+static void handlenetoutput()
+{
+	/*	here we could do smart tricks how to handle 0xFF:s in output
+	 *	stream  like writing twice every sequence of FF:s (thus doing
+	 *	many write()s. But I think interactive telnet application does
+	 *	not need to be 100% 8-bit clean, so changing every 0xff:s to
+	 *	0x7f:s */
+
+	int i;
+	byte * p = G.buf;
+
+	for (i = G.len; i > 0; i--, p++)
+	{
+		if (*p == 0x1d)
+		{
+			conescape();
+			return;
+		}
+		if (*p == 0xff)
+			*p = 0x7f;
+	}
+	write(G.netfd, G.buf, G.len);
 }
 
-/* ******************************************************************* */
-static void telnet_init(void)
+
+static void handlenetinput()
 {
-	struct termios tmp_tc;
-	cc_t esc = (']' & 0x1f); /* ctrl-] */
-	
-	memset(options, 0, sizeof(options));
-	SB_CLEAR();
+	int i;
+	int cstart = 0;
 
-	tcgetattr(STDIN, &saved_tc);
+	for (i = 0; i < G.len; i++)
+	{
+		byte c = G.buf[i];
 
-	tmp_tc = saved_tc;
-    tmp_tc.c_lflag &= ~ECHO; /* echo */
-	tmp_tc.c_oflag |= ONLCR; /* NL->CRLF translation */
-	tmp_tc.c_iflag |= ICRNL; 
-	tmp_tc.c_iflag &= ~(IXANY|IXOFF|IXON); /* no flow control */
-	tmp_tc.c_lflag |= ISIG; /* trap signals */
-	tmp_tc.c_lflag &= ~ICANON; /* edit mode  */
-   
-	/* misc settings, compat with default telnet stuff */
-	tmp_tc.c_oflag &= ~TABDLY;
-	
-	/* 8-bit clean */
-	tmp_tc.c_iflag &= ~ISTRIP;
-	tmp_tc.c_cflag &= ~(CSIZE|PARENB);
-	tmp_tc.c_cflag |= saved_tc.c_cflag & (CSIZE|PARENB);
-	tmp_tc.c_oflag |= OPOST;
-
-	/* set escape character */
-	tmp_tc.c_cc[VEOL] = esc;
-	tcsetattr(STDIN, TCSADRAIN, &tmp_tc);
-}
-
-static void telnet_start(char *hostname, int port)
-{
-    struct hostent *host = 0;
-	struct sockaddr_in addr;
-    int s, c;
-	fd_set rfds, wfds;
-	
-	memset(&addr, 0, sizeof(addr));
-	host = gethostbyname(hostname);
-	if (!host) {
-		fprintf(stderr, "Unknown host: %s\n", hostname);
-		return;
-	}
-	addr.sin_family = host->h_addrtype;
-	memcpy(&addr.sin_addr, host->h_addr, sizeof(addr.sin_addr));
-	addr.sin_port = htons(port);
-
-	printf("Trying %s...\n", inet_ntoa(addr.sin_addr));
-	
-	if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0) PERROR("socket");
-	if (connect(s, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-	    PERROR("connect");
-	printf("Connected to %s\n", hostname);
-	printf("Escape character is ^]\n");
-
-	signal(SIGINT, sighandler);
-	signal(SIGQUIT, sighandler);
-	signal(SIGPIPE, sighandler);
-	signal(SIGWINCH, sighandler);
-
-	/* make inputs nonblocking */
-	c = 1;
- 	ioctl(s, FIONBIO, &c);
-	ioctl(STDIN, FIONBIO, &c);
-	
-	if (port == TELNETPORT) telnet_setoptions(s);
-	
-	/* shuttle data back and forth between tty and socket */
-	while (1) {
-		FD_ZERO(&rfds);
-		FD_ZERO(&wfds);
-	
-		FD_SET(s, &rfds);
-		/* FD_SET(s, &wfds); */
-		FD_SET(STDIN, &rfds);
-		/* FD_SET(STDOUT, &wfds); */
-	
-		if ((c = select(s+1, &rfds, &wfds, 0, 0))) {
-			if (c == -1) {
-			    /* handle errors */
-				PERROR("select");
-			}
-			if (FD_ISSET(s, &rfds)) {
-				/* input from network */
-				FD_CLR(s, &rfds);
-				c = telnet_recv(s, STDOUT);
-				if (c == 0) break;
-				if (c < 0) PERROR("telnet_recv");
-			}
-			if (FD_ISSET(STDIN, &rfds)) {
-				/* input from tty */
-				FD_CLR(STDIN, &rfds);
-				c = telnet_send(STDIN, s);
-				if (c == 0) break;
-				if (c < 0) PERROR("telnet_send");
+		if (G.telstate == 0) /* most of the time state == 0 */
+		{
+			if (c == IAC)
+			{
+				cstart = i;
+				G.telstate = TS_IAC;
 			}
 		}
+		else
+			switch (G.telstate)
+			 {
+			 case TS_0:
+				 if (c == IAC)
+					 G.telstate = TS_IAC;
+				 else
+					 G.buf[cstart++] = c;
+				 break;
+
+			 case TS_IAC:
+				 if (c == IAC) /* IAC IAC -> 0xFF */
+				 {
+					 G.buf[cstart++] = c;
+					 G.telstate = TS_0;
+					 break;
+				 }
+				 /* else */
+				 switch (c)
+				 {
+				 case SB:
+					 G.telstate = TS_SUB1;
+					 break;
+				 case DO:
+				 case DONT:
+				 case WILL:
+				 case WONT:
+					 G.telwish =  c;
+					 G.telstate = TS_OPT;
+					 break;
+				 default:
+					 G.telstate = TS_0;	/* DATA MARK must be added later */
+				 }
+				 break;
+			 case TS_OPT: /* WILL, WONT, DO, DONT */
+				 telopt(c);
+				 G.telstate = TS_0;
+				 break;
+			 case TS_SUB1: /* Subnegotiation */
+			 case TS_SUB2: /* Subnegotiation */
+				 if (subneg(c) == TRUE)
+					 G.telstate = TS_0;
+				 break;
+			 }
 	}
-	
-    return;
+	if (G.telstate)
+	{
+		if (G.iaclen)			iacflush();
+		if (G.telstate == TS_0)	G.telstate = 0;
+
+		G.len = cstart;
+	}
+
+	if (G.len)
+		write(1, G.buf, G.len);
 }
 
-static void telnet_shutdown(void)
+
+/* ******************************* */
+
+static inline void putiac(int c)
 {
-	printf("\n");
-	tcsetattr(STDIN, TCSANOW, &saved_tc);
+	G.iacbuf[G.iaclen++] = c;
 }
 
-#ifdef STANDALONE_TELNET
-void usage(const char *msg)
+
+static void putiac2(byte wwdd, byte c)
 {
-	printf("%s", msg);
-	exit(0);
+	if (G.iaclen + 3 > IACBUFSIZE)
+		iacflush();
+
+	putiac(IAC);
+	putiac(wwdd);
+	putiac(c);
 }
 
-int main(int argc, char **argv)
-#else
-int telnet_main(int argc, char **argv)
+#if 0
+static void putiac1(byte c)
+{
+	if (G.iaclen + 2 > IACBUFSIZE)
+		iacflush();
+
+	putiac(IAC);
+	putiac(c);
+}
 #endif
-{
-    int port = TELNETPORT;
-	
-    argc--; argv++;
-    if (argc < 1) usage(telnet_usage);
-    if (argc > 1) port = atoi(argv[1]);
-    telnet_init();
-    atexit(telnet_shutdown);
 
-    telnet_start(argv[0], port);
-    return 0;
+/* void putiacstring (subneg strings) */
+
+/* ******************************* */
+
+char const escapecharis[] = "\r\nEscape character is ";
+
+static void setConMode()
+{
+	if (G.telflags & UF_ECHO)
+	{
+		if (G.charmode == CHM_TRY) {
+			G.charmode = CHM_ON;
+			fprintf(stdout, "\r\nEntering character mode%s'^]'.\r\n", escapecharis);
+			rawmode();
+		}
+	}
+	else
+	{
+		if (G.charmode != CHM_OFF) {
+			G.charmode = CHM_OFF;
+			fprintf(stdout, "\r\nEntering line mode%s'^C'.\r\n", escapecharis);
+			cookmode();
+		}
+	}
+}
+
+/* ******************************* */
+
+static void will_charmode()
+{
+	G.charmode = CHM_TRY;
+	G.telflags |= (UF_ECHO | UF_SGA);
+	setConMode();
+  
+	putiac2(DO, TELOPT_ECHO);
+	putiac2(DO, TELOPT_SGA);
+	iacflush();
+}
+
+static void do_linemode()
+{
+	G.charmode = CHM_TRY;
+	G.telflags &= ~(UF_ECHO | UF_SGA);
+	setConMode();
+
+	putiac2(DONT, TELOPT_ECHO);
+	putiac2(DONT, TELOPT_SGA);
+	iacflush();
+}
+
+/* ******************************* */
+
+static inline void to_notsup(char c)
+{
+	if      (G.telwish == WILL)	putiac2(DONT, c);
+	else if (G.telwish == DO)	putiac2(WONT, c);
+}
+
+static inline void to_echo()
+{
+	/* if server requests ECHO, don't agree */
+	if      (G.telwish == DO) {	putiac2(WONT, TELOPT_ECHO);	return; }
+	else if (G.telwish == DONT)	return;
+  
+	if (G.telflags & UF_ECHO)
+	{
+		if (G.telwish == WILL)
+			return;
+	}
+	else
+		if (G.telwish == WONT)
+			return;
+
+	if (G.charmode != CHM_OFF)
+		G.telflags ^= UF_ECHO;
+
+	if (G.telflags & UF_ECHO)
+		putiac2(DO, TELOPT_ECHO);
+	else
+		putiac2(DONT, TELOPT_ECHO);
+
+	setConMode();
+	WriteCS(1, "\r\n");  /* sudden modec */
+}
+
+static inline void to_sga()
+{
+	/* daemon always sends will/wont, client do/dont */
+
+	if (G.telflags & UF_SGA)
+	{
+		if (G.telwish == WILL)
+			return;
+	}
+	else
+		if (G.telwish == WONT)
+			return;
+  
+	if ((G.telflags ^= UF_SGA) & UF_SGA) /* toggle */
+		putiac2(DO, TELOPT_SGA);
+	else
+		putiac2(DONT, TELOPT_SGA);
+
+	return;
+}
+
+static void telopt(byte c)
+{
+	switch (c)
+	{
+	case TELOPT_ECHO:		to_echo(c);		break;
+	case TELOPT_SGA:		to_sga(c);		break;
+	default:				to_notsup(c);	break;
+	}
+}
+
+
+/* ******************************* */
+
+/* subnegotiation -- ignore all */
+
+static int subneg(byte c)
+{
+	switch (G.telstate)
+	{
+	case TS_SUB1:
+		if (c == IAC)
+			G.telstate = TS_SUB2;
+		break;
+	case TS_SUB2:
+		if (c == SE)
+			return TRUE;
+		G.telstate = TS_SUB1;
+		/* break; */
+	}
+	return FALSE;
+}
+
+/* ******************************* */
+
+static void fgotsig(int sig)
+{
+	G.gotsig = sig;
+}
+
+
+static void rawmode()
+{
+	tcsetattr(0, TCSADRAIN, &G.termios_raw);
+}	
+
+static void cookmode()
+{
+	tcsetattr(0, TCSADRAIN, &G.termios_def);
+}
+
+extern int telnet_main(int argc, char** argv)
+{
+	struct in_addr host;
+	int port;
+#ifdef USE_POLL
+	struct pollfd ufds[2];
+#else	
+	fd_set readfds;
+	int maxfd;
+#endif	
+
+
+	memset(&G, 0, sizeof G);
+
+	if (tcgetattr(0, &G.termios_def) < 0)
+		exit(1);
+	
+	G.termios_raw = G.termios_def;
+
+	cfmakeraw(&G.termios_raw);
+	
+	if (argc < 2)	usage(telnet_usage);
+	port = (argc > 2)? getport(argv[2]): 23;
+	
+	G.buf = xmalloc(DATABUFSIZE);
+	G.iacbuf = xmalloc(IACBUFSIZE);
+	
+	host = getserver(argv[1]);
+
+	G.netfd = remote_connect(host, port);
+
+	signal(SIGINT, fgotsig);
+
+#ifdef USE_POLL
+	ufds[0].fd = 0; ufds[1].fd = G.netfd;
+	ufds[0].events = ufds[1].events = POLLIN;
+#else	
+	FD_ZERO(&readfds);
+	FD_SET(0, &readfds);
+	FD_SET(G.netfd, &readfds);
+	maxfd = G.netfd + 1;
+#endif
+	
+	while (1)
+	{
+#ifndef USE_POLL
+		fd_set rfds = readfds;
+		
+		switch (select(maxfd, &rfds, NULL, NULL, NULL))
+#else
+		switch (poll(ufds, 2, -1))
+#endif			
+		{
+		case 0:
+			/* timeout */
+		case -1:
+			/* error, ignore and/or log something, bay go to loop */
+			if (G.gotsig)
+				conescape();
+			else
+				sleep(1);
+			break;
+		default:
+
+#ifdef USE_POLL
+			if (ufds[0].revents) /* well, should check POLLIN, but ... */
+#else				
+			if (FD_ISSET(0, &rfds))
+#endif				
+			{
+				G.len = read(0, G.buf, DATABUFSIZE);
+
+				if (G.len <= 0)
+					doexit(0);
+
+				TRACE(0, ("Read con: %d\n", G.len));
+				
+				handlenetoutput();
+			}
+
+#ifdef USE_POLL
+			if (ufds[1].revents) /* well, should check POLLIN, but ... */
+#else				
+			if (FD_ISSET(G.netfd, &rfds))
+#endif				
+			{
+				G.len = read(G.netfd, G.buf, DATABUFSIZE);
+
+				if (G.len <= 0)
+				{
+					WriteCS(1, "Connection closed by foreign host.\r\n");
+					doexit(1);
+				}
+				TRACE(0, ("Read netfd (%d): %d\n", G.netfd, G.len));
+
+				handlenetinput();
+			}
+		}
+	}
+}
+
+static int getport(char * p)
+{
+	unsigned int port = atoi(p);
+
+	if ((unsigned)(port - 1 ) > 65534)
+	{
+		fatalError("%s: bad port number\n", p);
+	}
+	return port;
+}
+
+static struct in_addr getserver(char * host)
+{
+	struct in_addr addr;
+	
+	struct hostent * he;
+	if ((he = gethostbyname(host)) == NULL)
+	{
+		fatalError("%s: Unkonwn host\n", host);
+	}
+	memcpy(&addr, he->h_addr, sizeof addr);
+
+	TRACE(1, ("addr: %s\n", inet_ntoa(addr)));
+	
+	return addr;
+}	
+
+static int create_socket()
+{
+	return socket(AF_INET, SOCK_STREAM, 0);
+}
+
+static void setup_sockaddr_in(struct sockaddr_in * addr, int port)
+{
+	memset(addr, 0, sizeof addr);
+	addr->sin_family = AF_INET;
+	addr->sin_port = htons(port);
+}
+  
+#if 0
+static int local_bind(int port)
+{
+	struct sockaddr_in s_addr;
+	int s = create_socket();
+  
+	setup_sockaddr_in(&s_addr, port);
+  
+	setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+  
+	if (bind(s, &s_addr, sizeof s_addr) < 0)
+	{
+		char * e = sys_errlist[errno];
+		syserrorexit("bind");
+		exit(1);
+	}
+	listen(s, 1);
+	
+	return s;
+}
+#endif
+
+static int remote_connect(struct in_addr addr, int port)
+{
+	struct sockaddr_in s_addr;
+	int s = create_socket();
+
+	setup_sockaddr_in(&s_addr, port);
+	s_addr.sin_addr = addr;
+
+	setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);
+
+	if (connect(s, (struct sockaddr *)&s_addr, sizeof s_addr) < 0)
+	{
+		fatalError("Unable to connect to remote host: %s\n", strerror(errno));
+	}
+	return s;
 }
 
 /*
- * Copyright (c) 1988, 1990 Regents of the University of California.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
- * 4. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- */
+Local Variables:
+c-file-style: "linux"
+c-basic-offset: 4
+tab-width: 4
+End:
+*/
+

@@ -17,6 +17,8 @@
         * Added 'grep -v' option (inverted search) and updated 
 	    docs accordingly.  -beppu
 	* Wrote which
+	* Replaced the telnet implementation with one written by Tomi Ollila <too@iki.fi>
+	    It works great and costs 3k.
 	* BusyBox sh (lash) now supports being used as a standalone shell.  When
 	    BB_FEATURE_STANDALONE_SHELL is defined, all the busybox commands may
 	    be invoked as shell internals.  Best used when compiling staticly 

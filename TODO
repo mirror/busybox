@@ -18,7 +18,6 @@ around to it some time. If you have any good ideas, please let me know.
 
 Bugs that need fixing before the 0.44 release goes out the door:
 
- - merge telnet client from Tomi Ollila
  - "more" doesn't accept " " to scroll by one page when BB_FEATURE_USE_TERMIOS
     is not on.
  - doc / website updates to tell what the real mailing list is for busybox.

@@ -89,7 +89,6 @@
 #define BB_TAR
 #define BB_TEE
 #define BB_TEST
-// Don't bother turning BB_TELNET on.  It doesn't work properly yet.
 //#define BB_TELNET
 #define BB_TOUCH
 #define BB_TR
