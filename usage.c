@@ -592,6 +592,9 @@ const char ls_usage[] =
 #ifdef BB_FEATURE_LS_FILETYPES
 	"p"
 #endif
+#ifdef BB_FEATURE_LS_FOLLOWLINKS
+    "L"
+#endif
 #ifdef BB_FEATURE_LS_RECURSIVE
 	"R"
 #endif
@@ -639,6 +642,9 @@ const char ls_usage[] =
 	"\t-n\tlist numeric UIDs and GIDs instead of names\n"
 #ifdef BB_FEATURE_LS_FILETYPES
 	"\t-p\tappend indicator (one of /=@|) to entries\n"
+#endif
+#ifdef BB_FEATURE_LS_FOLLOWLINKS
+    "\t-L\tlist entries pointed to by symbolic links\n"
 #endif
 #ifdef BB_FEATURE_LS_RECURSIVE
 	"\t-R\tlist subdirectories recursively\n"
@@ -1433,14 +1439,15 @@ const char whoami_usage[] =
 #endif
 
 #if defined BB_XARGS
-const char xargs_usage[] =
-       "xargs [-0prtx] [-e[eof-str]] [-i[replace-str]] [-l[max-lines]]\n"
-       "[-n max-args] [-s max-chars] [-P max-procs] [--null] [--eof[=eof-str]]\n"
-       "[--replace[=replace-str]] [--max-lines[=max-lines]] [--interactive]\n"
-       "[--max-chars=max-chars] [--verbose] [--exit] [--max-procs=max-procs]\n"
-       "[--max-args=max-args] [--no-run-if-empty] [--help]\n"
-       "[command [initial-arguments]]\n"
-       "\nBuild and execute command on lines from standard input.\n"; 
+const char xargs_usage[] = "xargs [OPTIONS] [COMMAND] [ARGS...]\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nExecutes COMMAND on every item given by standard input.\n\n" 
+	"Options:\n"
+	"\t-t\tPrint the command just before it is run\n"
+	"\t-l LEN\tUse LEN as maximum line length (default 490, max 1023)\n"
+	"\t-e ENDING\tAppend ENDING to the command before executing it.\n"
+#endif
+	;
 #endif
 
 #if defined BB_YES

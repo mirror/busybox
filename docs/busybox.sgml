@@ -1922,6 +1922,7 @@
 			-A	Do not list implied . and ..
 			-C	List entries by columns
 			-F	Append indicator (one of */=@|) to entries
+			-L	list entries pointed to by symbolic links
 			-R	List subdirectories recursively
 		</screen>
 		</para>
@@ -3655,6 +3656,42 @@
 		<screen>
 			$ whoami
 			andersen
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="xargs">
+	    <title>xargs</title>
+
+		<para>
+		Usage: xargs [OPTIONS] [COMMAND] [ARGS...]
+		</para>
+
+		<para>
+		Executes COMMAND on every item given by standard input.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-t      Print the command just before it is run
+			-l LEN  Use LEN as maximum line length (default 490, max 1023)
+			-e ENDING       Append ENDING to the command before executing it.
+		</screen>
+		</para>
+
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls | xargs gzip
+			$ find . -name '*.c' -print | xargs rm
 		</screen>
 		</para>
 	</sect1>
