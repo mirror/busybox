@@ -1,10 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Utility routines.
+ * make_human_readable_str
  *
- * Copyright (C) tons of folks.  Tracking down who wrote what
- * isn't something I'm going to worry about...  If you wrote something
- * here, please feel free to acknowledge your work.
+ * Copyright (C) 1999-2001 Erik Andersen <andersee@debian.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,10 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
- * Based in part on code from sash, Copyright (c) 1999 by David I. Bell 
- * Permission has been granted to redistribute this code under the GPL.
- *
  */
 
 #include <stdio.h>
@@ -30,27 +24,37 @@
 
 
 
-const char *make_human_readable_str(unsigned long val, unsigned long hr)
+const char *make_human_readable_str(unsigned long size, 
+		unsigned long block_size, unsigned long display_unit)
 {
-	int i=0;
 	static char str[10] = "\0";
-	static const char strings[] = { 'k', 'M', 'G', 'T', 0 };
-	unsigned long divisor = 1;
+	static const char strings[] = { 0, 'k', 'M', 'G', 'T', 0 };
 
-	if(val == 0)
+	if(size == 0 || block_size == 0)
 		return("0");
-	if(hr)
-		snprintf(str, 9, "%ld", val/hr);
-	else {
-		while(val >= divisor && i <= 4) {
-			divisor=divisor<<10, i++;
-		} 
-		divisor=divisor>>10, i--;
-		snprintf(str, 9, "%.1Lf%c", (long double)(val)/divisor, strings[i]);
+	
+	if(display_unit) {
+		snprintf(str, 9, "%ld", (size/display_unit)*block_size);
+	} else {
+		/* Ok, looks like they want us to autoscale */
+		int i=0;
+		unsigned long divisor = 1;
+		long double result = size*block_size;
+		for(i=0; i <= 4; i++) {
+			divisor<<=10;
+			if (result <= divisor) {
+				divisor>>=10;
+				break;
+			}
+		}
+		result/=divisor;
+		if (result > 10)
+			snprintf(str, 9, "%.0Lf%c", result, strings[i]);
+		else
+			snprintf(str, 9, "%.1Lf%c", result, strings[i]);
 	}
 	return(str);
 }
-
 
 /* END CODE */
 /*

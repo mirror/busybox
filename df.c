@@ -32,7 +32,7 @@
 
 extern const char mtab_file[];	/* Defined in utility.c */
 #ifdef BB_FEATURE_HUMAN_READABLE
-static unsigned long df_disp_hr = KILOBYTE; 
+static unsigned long df_disp_hr = 1; 
 #endif
 
 static int do_df(char *device, const char *mount_point)
@@ -40,9 +40,6 @@ static int do_df(char *device, const char *mount_point)
 	struct statfs s;
 	long blocks_used;
 	long blocks_percent_used;
-#ifdef BB_FEATURE_HUMAN_READABLE
-	long base;
-#endif	
 
 	if (statfs(mount_point, &s) != 0) {
 		perror_msg("%s", mount_point);
@@ -65,27 +62,15 @@ static int do_df(char *device, const char *mount_point)
 				return FALSE;
 		}
 #ifdef BB_FEATURE_HUMAN_READABLE
-		switch (df_disp_hr) {
-			case MEGABYTE:
-				base = KILOBYTE;
-				break;
-			case KILOBYTE:
-				base = 1;
-				break;
-			default:
-				base = 0;
-		}
 		printf("%-20s %9s ", device,
-			   make_human_readable_str((unsigned long)(s.f_blocks * 
-					   (s.f_bsize/(double)KILOBYTE)), base));
+				make_human_readable_str(s.f_blocks, s.f_bsize/KILOBYTE, df_disp_hr));
+
 		printf("%9s ",
-			   make_human_readable_str((unsigned long)(
-					   (s.f_blocks - s.f_bfree) * 
-					   (s.f_bsize/(double)KILOBYTE)), base));
+				make_human_readable_str( (s.f_blocks - s.f_bfree), s.f_bsize/KILOBYTE, df_disp_hr));
+
 		printf("%9s %3ld%% %s\n",
-			   make_human_readable_str((unsigned long)(s.f_bavail * 
-					   (s.f_bsize/(double)KILOBYTE)), base),
-			   blocks_percent_used, mount_point);
+				make_human_readable_str(s.f_bavail, s.f_bsize/KILOBYTE, df_disp_hr),
+				blocks_percent_used, mount_point);
 #else
 		printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
 				device,
@@ -119,7 +104,7 @@ extern int df_main(int argc, char **argv)
 				strcpy(disp_units_hdr, "     Size");
 				break;
 			case 'm':
-				df_disp_hr = MEGABYTE;
+				df_disp_hr = KILOBYTE;
 				strcpy(disp_units_hdr, "1M-blocks");
 				break;
 #endif

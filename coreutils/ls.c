@@ -610,8 +610,8 @@ static int list_single(struct dnode *dn)
 				break;
 			case LIST_BLOCKS:
 #ifdef BB_FEATURE_HUMAN_READABLE
-				fprintf(stdout, "%5s ", make_human_readable_str(dn->dstat.st_blocks>>1,
-							(ls_disp_hr==TRUE)? 0: 1));
+				fprintf(stdout, "%4s ", make_human_readable_str(dn->dstat.st_blocks>>1, 
+							KILOBYTE, (ls_disp_hr==TRUE)? 0: 1));
 #else
 #if _FILE_OFFSET_BITS == 64
 				printf("%4lld ", dn->dstat.st_blocks>>1);
@@ -622,7 +622,7 @@ static int list_single(struct dnode *dn)
 				column += 5;
 				break;
 			case LIST_MODEBITS:
-				printf("%10s", (char *)mode_string(dn->dstat.st_mode));
+				printf("%-10s ", (char *)mode_string(dn->dstat.st_mode));
 				column += 10;
 				break;
 			case LIST_NLINKS:
@@ -634,7 +634,7 @@ static int list_single(struct dnode *dn)
 				my_getpwuid(scratch, dn->dstat.st_uid);
 				printf("%-8.8s ", scratch);
 				my_getgrgid(scratch, dn->dstat.st_gid);
-				printf("%-8.8s", scratch);
+				printf("%-8.8s ", scratch);
 				column += 17;
 				break;
 #endif
@@ -649,8 +649,7 @@ static int list_single(struct dnode *dn)
 				} else {
 #ifdef BB_FEATURE_HUMAN_READABLE
 					if (ls_disp_hr==TRUE) {
-						fprintf(stdout, "%9s ", make_human_readable_str(
-									dn->dstat.st_size>>10, 0));
+						fprintf(stdout, "%8s ", make_human_readable_str(dn->dstat.st_size, 1, 0));
 					} else 
 #endif	
 					{

@@ -198,12 +198,12 @@ struct sysinfo {
 };
 extern int sysinfo (struct sysinfo* info);
 
-const char *make_human_readable_str(unsigned long val, unsigned long not_hr);
 enum {
 	KILOBYTE = 1024,
 	MEGABYTE = (KILOBYTE*1024),
 	GIGABYTE = (MEGABYTE*1024)
 };
+const char *make_human_readable_str(unsigned long size, unsigned long block_size, unsigned long display_unit);
 
 int ask_confirmation(void);
 int klogctl(int type, char * b, int len);

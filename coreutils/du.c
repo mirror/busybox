@@ -46,19 +46,8 @@ static Display *print;
 
 static void print_normal(long size, char *filename)
 {
-	unsigned long base;
 #ifdef BB_FEATURE_HUMAN_READABLE
-	switch (disp_hr) {
-		case MEGABYTE:
-			base = KILOBYTE;
-			break;
-		case KILOBYTE:
-			base = 1;
-			break;
-		default:
-			base = 0;
-	}
-	printf("%s\t%s\n", make_human_readable_str(size, base), filename);
+	printf("%s\t%s\n", make_human_readable_str(size<<10, 1, disp_hr), filename);
 #else
 	printf("%ld\t%s\n", size, filename);
 #endif
@@ -259,7 +248,7 @@ int du_main(int argc, char **argv)
 	return status;
 }
 
-/* $Id: du.c,v 1.48 2001/06/01 21:47:15 andersen Exp $ */
+/* $Id: du.c,v 1.49 2001/06/13 08:02:44 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"
