@@ -14,10 +14,16 @@
 #include "internal.h"
 #include <stdio.h>
 #include <errno.h>
-#include <utmp.h>
 #define BB_DECLARE_EXTERN
 #define bb_need_io_error
 #include "messages.c"
+
+#if defined(__GLIBC__)
+#include <utmp.h>
+#else
+#include <utmp-wrap.h>
+#define utmp new_utmp
+#endif
 
 static const char dutmp_usage[] = "dutmp [FILE]\n\n"
 	"Dump utmp file format (pipe delimited) from FILE\n"
@@ -45,8 +51,8 @@ extern int dutmp_main(int argc, char **argv)
 			   ut.ut_type, ut.ut_pid, ut.ut_line,
 			   ut.ut_id, ut.ut_user, ut.ut_host,
 			   ut.ut_exit.e_termination, ut.ut_exit.e_exit,
-			   ut.ut_session,
-			   ut.ut_tv.tv_sec, ut.ut_tv.tv_usec, ut.ut_addr);
+			   ut.ut_session, ut.ut_tv.tv_sec, ut.ut_tv.tv_usec, 
+			   ut.ut_addr_v6[0]);
 	}
 
 	exit(TRUE);

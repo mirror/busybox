@@ -32,7 +32,6 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <errno.h>
-#include <sys/param.h>			/* for PATH_MAX */
 
 typedef void (Display) (long, char *);
 
@@ -97,7 +96,7 @@ static long du(char *filename)
 			filename[--len] = '\0';
 
 		while ((entry = readdir(dir))) {
-			char newfile[PATH_MAX + 1];
+			char newfile[BUFSIZ + 1];
 			char *name = entry->d_name;
 
 			if ((strcmp(name, "..") == 0)
@@ -105,7 +104,7 @@ static long du(char *filename)
 				continue;
 			}
 
-			if (len + strlen(name) + 1 > PATH_MAX) {
+			if (len + strlen(name) + 1 > BUFSIZ) {
 				fprintf(stderr, name_too_long, "du");
 				du_depth--;
 				return 0;
@@ -182,7 +181,7 @@ int du_main(int argc, char **argv)
 	exit(0);
 }
 
-/* $Id: du.c,v 1.17 2000/04/13 01:18:56 erik Exp $ */
+/* $Id: du.c,v 1.18 2000/04/28 00:18:56 erik Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

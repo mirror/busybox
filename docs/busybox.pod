@@ -61,9 +61,9 @@ freeramdisk, deallocvt, fsck.minix, grep, gunzip, gzip, halt, head, hostid,
 hostname, init, kill, killall, length, ln, loadacm, loadfont, loadkmap, logger,
 logname, ls, lsmod, makedevs, math, mkdir, mkfifo, mkfs.minix, mknod, mkswap,
 mktemp, mnc, more, mount, mt, mv, nslookup, ping, poweroff, printf, ps, pwd,
-reboot, rm, rmdir, rmmod, sed, sh, sfdisk, sleep, sort, sync, syslogd, swapon,
-swapoff, tail, tar, test, tee, touch, tr, true, tty, umount, uname, uniq,
-update, uptime, usleep, wc, whoami, yes, zcat, [
+reboot, rm, rmdir, rmmod, sed, setkeycodes, sh, sfdisk, sleep, sort, sync,
+syslogd, swapon, swapoff, tail, tar, test, tee, touch, tr, true, tty, umount,
+uname, uniq, update, uptime, usleep, wc, whoami, yes, zcat, [
 
 =over 4
 
@@ -1336,6 +1336,22 @@ Example:
 
 -------------------------------
 
+=item setkeycodes
+
+Usage: setkeycodes SCANCODE KEYCODE ...
+
+Set entries into the kernel's scancode-to-keycode map,
+allowing unusual keyboards to generate usable keycodes.
+
+SCANCODE may be either xx or e0xx (hexadecimal),
+and KEYCODE is given in decimal
+
+Example:
+
+	# setkeycodes e030 127
+
+-------------------------------
+
 =item sh
 
 Usage: sh
@@ -1833,4 +1849,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.23 2000/04/25 23:24:55 erik Exp $
+# $Id: busybox.pod,v 1.24 2000/04/28 00:18:56 erik Exp $

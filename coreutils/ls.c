@@ -183,7 +183,7 @@ static char append_char(mode_t mode)
 static void list_single(const char *name, struct stat *info,
 						const char *fullname)
 {
-	char scratch[PATH_MAX + 1];
+	char scratch[BUFSIZ + 1];
 	short len = strlen(name);
 
 #ifdef BB_FEATURE_LS_FILETYPES

@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <errno.h>
-#include <sys/param.h>			/* for PATH_MAX */
 
 static const char ln_usage[] =
 	"ln [OPTION] TARGET... LINK_NAME|DIRECTORY\n\n"
@@ -78,7 +77,7 @@ extern int ln_main(int argc, char **argv)
 
 	linkName = argv[argc - 1];
 
-	if (strlen(linkName) > PATH_MAX) {
+	if (strlen(linkName) > BUFSIZ) {
 		fprintf(stderr, name_too_long, "ln");
 		exit FALSE;
 	}
@@ -91,10 +90,10 @@ extern int ln_main(int argc, char **argv)
 	}
 
 	while (argc-- >= 2) {
-		char srcName[PATH_MAX + 1];
+		char srcName[BUFSIZ + 1];
 		int nChars, status;
 
-		if (strlen(*argv) > PATH_MAX) {
+		if (strlen(*argv) > BUFSIZ) {
 			fprintf(stderr, name_too_long, "ln");
 			exit FALSE;
 		}
@@ -102,9 +101,9 @@ extern int ln_main(int argc, char **argv)
 		if (followLinks == FALSE) {
 			strcpy(srcName, *argv);
 		} else {
-			/* Warning!  This can silently truncate if > PATH_MAX, but
-			   I don't think that there can be one > PATH_MAX anyway. */
-			nChars = readlink(*argv, srcName, PATH_MAX);
+			/* Warning!  This can silently truncate if > BUFSIZ, but
+			   I don't think that there can be one > BUFSIZ anyway. */
+			nChars = readlink(*argv, srcName, BUFSIZ);
 			srcName[nChars] = '\0';
 		}
 

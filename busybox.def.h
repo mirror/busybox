@@ -75,6 +75,7 @@
 #define BB_RMDIR
 #define BB_RMMOD
 #define BB_SED
+#define BB_SETKEYCODES
 #define BB_SFDISK
 #define BB_SH
 #define BB_SLEEP
@@ -136,7 +137,7 @@
 //#define BB_FEATURE_TRIVIAL_HELP
 //
 // Use termios to manipulate the screen ('more' is prettier with this on)
-#define BB_FEATURE_USE_TERMIOS
+//#define BB_FEATURE_USE_TERMIOS
 //
 // calculate terminal & column widths (for more and ls)
 #define BB_FEATURE_AUTOWIDTH
@@ -193,7 +194,7 @@
 #define BB_FEATURE_SORT_REVERSE
 //
 // Enable command line editing in the shell
-#define BB_FEATURE_SH_COMMAND_EDITING
+//#define BB_FEATURE_SH_COMMAND_EDITING
 //
 // Enable tab completion in the shell (not yet 
 // working very well -- so don't turn this on)

@@ -12,8 +12,6 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
-extern int getfd(void);
-
 int chvt_main(int argc, char **argv)
 {
 	int fd, num;

@@ -2272,7 +2272,6 @@ local void set_file_type (void);
  * used.
  */
 
-#define MAX(a,b) (a >= b ? a : b)
 /* the arguments must not have side effects */
 
 /* ===========================================================================

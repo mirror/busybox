@@ -31,7 +31,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
-//#include <sys/param.h>
+#include <sys/param.h>
 #include <mntent.h>
 
 
@@ -51,6 +51,36 @@
 #define isDecimal(ch)   (((ch) >= '0') && ((ch) <= '9'))
 #define isOctal(ch)     (((ch) >= '0') && ((ch) <= '7'))
 #define isWildCard(ch)  (((ch) == '*') || ((ch) == '?') || ((ch) == '['))
+
+/* Macros for min/max.  */
+#ifndef MIN
+#define	MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+
+#ifndef MAX
+#define	MAX(a,b) (((a)>(b))?(a):(b))
+#endif
+
+
+/* I don't like nested includes, but the string and io functions are used
+ * too often
+ */
+#include <stdio.h>
+#if !defined(NO_STRING_H) || defined(STDC_HEADERS)
+#  include <string.h>
+#  if !defined(STDC_HEADERS) && !defined(NO_MEMORY_H) && !defined(__GNUC__)
+#    include <memory.h>
+#  endif
+#  define memzero(s, n)     memset ((void *)(s), 0, (n))
+#else
+#  include <strings.h>
+#  define strchr            index
+#  define strrchr           rindex
+#  define memcpy(d, s, n)   bcopy((s), (d), (n))
+#  define memcmp(s1, s2, n) bcmp((s1), (s2), (n))
+#  define memzero(s, n)     bzero((s), (n))
+#endif
+
 
 enum Location {
 	_BB_DIR_ROOT = 0,
@@ -136,6 +166,7 @@ extern int rmdir_main(int argc, char **argv);
 extern int rmmod_main(int argc, char** argv);
 extern int sed_main(int argc, char** argv);
 extern int sfdisk_main(int argc, char** argv);
+extern int setkeycodes_main(int argc, char** argv);
 extern int shell_main(int argc, char** argv);
 extern int sleep_main(int argc, char** argv);
 extern int sort_main(int argc, char** argv);
@@ -243,27 +274,15 @@ int nfsmount(const char *spec, const char *node, unsigned long *flags,
 #endif
 
 #if defined (BB_FSCK_MINIX) || defined (BB_MKFS_MINIX)
-
-static inline int bit(char * addr,unsigned int nr) 
-{
-  return (addr[nr >> 3] & (1<<(nr & 7))) != 0;
-}
-
-static inline int setbit(char * addr,unsigned int nr)
-{
-  int __res = bit(addr, nr);
-  addr[nr >> 3] |= (1<<(nr & 7));
-  return __res != 0;
-}
-
-static inline int clrbit(char * addr,unsigned int nr)
-{
-  int __res = bit(addr, nr);
-  addr[nr >> 3] &= ~(1<<(nr & 7));
-  return __res != 0;
-}
-
-#endif /* inline bitops junk */
+/* Bit map related macros.  */
+#ifndef setbit
+#define CHAR_BITS      8 /* Number of bits in a `char'.  */
+#define setbit(a,i)     ((a)[(i)/CHAR_BITS] |= 1<<((i)%CHAR_BITS))
+#define clrbit(a,i)     ((a)[(i)/CHAR_BITS] &= ~(1<<((i)%CHAR_BITS)))
+#define isset(a,i)      ((a)[(i)/CHAR_BITS] & (1<<((i)%CHAR_BITS)))
+#define isclr(a,i)      (((a)[(i)/CHAR_BITS] & (1<<((i)%CHAR_BITS))) == 0)
+#endif
+#endif
 
 
 #ifndef RB_POWER_OFF

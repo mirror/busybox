@@ -49,7 +49,6 @@
 #include <utime.h>
 #include <sys/types.h>
 #include <sys/sysmacros.h>
-#include <sys/param.h>			/* for PATH_MAX */
 
 
 static const char tar_usage[] =

@@ -28,31 +28,50 @@
 */
 
 #include "internal.h"
-#include <asm/types.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
-#include <linux/serial.h>		/* for serial_struct */
-#include <linux/version.h>
 #include <paths.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <termios.h>
+#include <unistd.h>
+#include <asm/types.h>
+#include <linux/serial.h>		/* for serial_struct */
+#include <linux/version.h>
+#include <linux/reboot.h>
+#include <linux/unistd.h>
+#include <sys/sysinfo.h>		/* For check_free_memory() */
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/kdaemon.h>
 #include <sys/mount.h>
-#include <sys/reboot.h>
-#include <sys/sysinfo.h>		/* For check_free_memory() */
-#ifdef BB_SYSLOGD
-# include <sys/syslog.h>
-#endif
 #include <sys/sysmacros.h>
 #include <sys/types.h>
 #include <sys/vt.h>				/* for vt_stat */
 #include <sys/wait.h>
-#include <termios.h>
-#include <unistd.h>
+#ifdef BB_SYSLOGD
+# include <sys/syslog.h>
+#endif
+
+
+#ifndef RB_HALT_SYSTEM
+#define RB_HALT_SYSTEM  0xcdef0123
+#define RB_ENABLE_CAD   0x89abcdef
+#define RB_DISABLE_CAD  0
+#define RB_POWER_OFF    0x4321fedc
+#define RB_AUTOBOOT     0x01234567
+#if defined(__GLIBC__)
+#include <sys/reboot.h>
+  #define init_reboot(magic) reboot(magic)
+#else
+  #define init_reboot(magic) reboot(0xfee1dead, 672274793, magic)
+#endif
+#endif
+
+#ifndef _PATH_STDPATH
+#define _PATH_STDPATH	"/usr/bin:/bin:/usr/sbin:/sbin"
+#endif
 
 
 #if defined BB_FEATURE_INIT_COREDUMPS
@@ -70,6 +89,12 @@
 #ifndef KERNEL_VERSION
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 #endif
+
+#if defined(__GLIBC__)
+#include <sys/kdaemon.h>
+#else
+_syscall2(int, bdflush, int, func, int, data);
+#endif							/* __GLIBC__ */
 
 
 #define VT_PRIMARY   "/dev/tty1"     /* Primary virtual console */
@@ -510,7 +535,7 @@ static void shutdown_system(void)
 	signal(SIGHUP, SIG_DFL);
 
 	/* Allow Ctrl-Alt-Del to reboot system. */
-	reboot(RB_ENABLE_CAD);
+	init_reboot(RB_ENABLE_CAD);
 
 	message(CONSOLE|LOG, "\r\nThe system is going down NOW !!\r\n");
 	sync();
@@ -550,10 +575,10 @@ static void halt_signal(int sig)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
 	if (sig == SIGUSR2)
-		reboot(RB_POWER_OFF);
+		init_reboot(RB_POWER_OFF);
 	else
 #endif
-		reboot(RB_HALT_SYSTEM);
+		init_reboot(RB_HALT_SYSTEM);
 	exit(0);
 }
 
@@ -566,7 +591,7 @@ static void reboot_signal(int sig)
 	/* allow time for last message to reach serial console */
 	sleep(2);
 
-	reboot(RB_AUTOBOOT);
+	init_reboot(RB_AUTOBOOT);
 	exit(0);
 }
 
@@ -852,7 +877,7 @@ extern int init_main(int argc, char **argv)
 
 	/* Turn off rebooting via CTL-ALT-DEL -- we get a 
 	 * SIGINT on CAD so we can shut things down gracefully... */
-	reboot(RB_DISABLE_CAD);
+	init_reboot(RB_DISABLE_CAD);
 #endif
 
 	/* Figure out what kernel this is running */

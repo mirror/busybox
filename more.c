@@ -48,6 +48,7 @@ static const char more_usage[] = "more [file ...]\n";
 #endif
 
 FILE *cin;
+
 struct termios initial_settings, new_settings;
 
 void gotsig(int sig)
@@ -65,7 +66,10 @@ void gotsig(int sig)
 
 
 #if defined BB_FEATURE_AUTOWIDTH
-static int terminal_width = 0, terminal_height = 0;
+#ifdef BB_FEATURE_USE_TERMIOS
+static int terminal_width = 0;
+#endif
+static int terminal_height = 0;
 #else
 #define terminal_width	TERMINAL_WIDTH
 #define terminal_height	TERMINAL_HEIGHT
@@ -80,7 +84,7 @@ extern int more_main(int argc, char **argv)
 	struct stat st;
 	FILE *file;
 
-#ifdef BB_FEATURE_AUTOWIDTH
+#if defined BB_FEATURE_AUTOWIDTH && defined BB_FEATURE_USE_TERMIOS
 	struct winsize win = { 0, 0 };
 #endif
 
@@ -151,7 +155,11 @@ extern int more_main(int argc, char **argv)
 					);
 
 				fflush(stdout);
+#ifdef BB_FEATURE_USE_TERMIOS
 				input = getc(cin);
+#else
+				input = getc(stdin);
+#endif
 
 #ifdef BB_FEATURE_USE_TERMIOS
 				/* Erase the "More" message */

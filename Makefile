@@ -37,8 +37,8 @@ ARCH := $(shell uname -m | sed -e 's/i.86/i386/' | sed -e 's/sparc.*/sparc/')
 
 CC = gcc
 
-GCCMAJVERSION = $(shell $(CC) --version | sed -n "s/^[^0-9]*\([0-9]\)\.\([0-9].*\)[\.].*/\1/p")
-GCCMINVERSION = $(shell $(CC) --version | sed -n "s/^[^0-9]*\([0-9]\)\.\([0-9].*\)[\.].*/\2/p")
+GCCMAJVERSION = $(shell $(CC) --version | cut -f1 -d'.')
+GCCMINVERSION = $(shell $(CC) --version | cut -f2 -d'.')
 
 
 GCCSUPPORTSOPTSIZE = $(shell			\
@@ -68,6 +68,7 @@ ifndef $(STRIPTOOL)
     STRIPTOOL = strip
 endif
 
+#also to try -- use --prefix=/usr/my-libc2.0.7-stuff
 
 # -D_GNU_SOURCE is needed because environ is used in init.c
 ifeq ($(DODEBUG),true)
@@ -77,6 +78,8 @@ ifeq ($(DODEBUG),true)
 else
     CFLAGS  += -Wall $(OPTIMIZATION) -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
     LDFLAGS  = -s
+    #CFLAGS  += -nostdinc -I/home/andersen/apps/newlib/src/newlib/libc/include -Wall $(OPTIMIZATION) -fomit-frame-pointer -fno-builtin -D_GNU_SOURCE
+    #LDFLAGS  = -nostdlib -s -L/home/andersen/apps/newlib/src/newlib/libc.a
     STRIP    = $(STRIPTOOL) --remove-section=.note --remove-section=.comment $(PROG)
     #Only staticly link when _not_ debugging 
     ifeq ($(DOSTATIC),true)

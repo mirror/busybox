@@ -11,7 +11,6 @@
 #include <linux/vt.h>
 #include <stdio.h>
 
-extern int getfd(void);
 char *progname;
 
 int deallocvt_main(int argc, char *argv[])

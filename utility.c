@@ -47,7 +47,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
-#include <sys/param.h>			/* for PATH_MAX */
 #include <sys/utsname.h>		/* for uname(2) */
 
 #if defined BB_FEATURE_MOUNT_LOOP
@@ -289,12 +288,12 @@ copyFile(const char *srcName, const char *destName,
 			return FALSE;
 		}
 	} else if (S_ISLNK(srcStatBuf.st_mode)) {
-		char link_val[PATH_MAX + 1];
+		char link_val[BUFSIZ + 1];
 		int link_size;
 
 		//fprintf(stderr, "copying link %s to %s\n", srcName, destName);
-		/* Warning: This could possibly truncate silently, to PATH_MAX chars */
-		link_size = readlink(srcName, &link_val[0], PATH_MAX);
+		/* Warning: This could possibly truncate silently, to BUFSIZ chars */
+		link_size = readlink(srcName, &link_val[0], BUFSIZ);
 		if (link_size < 0) {
 			perror(srcName);
 			return FALSE;
@@ -602,13 +601,13 @@ int recursiveAction(const char *fileName,
 			}
 		}
 		while ((next = readdir(dir)) != NULL) {
-			char nextFile[PATH_MAX + 1];
+			char nextFile[BUFSIZ + 1];
 
 			if ((strcmp(next->d_name, "..") == 0)
 				|| (strcmp(next->d_name, ".") == 0)) {
 				continue;
 			}
-			if (strlen(fileName) + strlen(next->d_name) + 1 > PATH_MAX) {
+			if (strlen(fileName) + strlen(next->d_name) + 1 > BUFSIZ) {
 				fprintf(stderr, name_too_long, "ftw");
 				return FALSE;
 			}
@@ -658,7 +657,7 @@ extern int createPath(const char *name, int mode)
 {
 	char *cp;
 	char *cpOld;
-	char buf[PATH_MAX + 1];
+	char buf[BUFSIZ + 1];
 	int retVal = 0;
 
 	strcpy(buf, name);

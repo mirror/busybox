@@ -53,7 +53,7 @@ extern int ksyslog(int type, char *buf, int len);
 #define __LOG_FILE "/var/log/messages"
 
 /* Path to the unix socket */
-char lfile[PATH_MAX] = "";
+char lfile[BUFSIZ] = "";
 
 static char *logFilePath = __LOG_FILE;
 
@@ -177,7 +177,7 @@ static void doSyslogd (void)
 	int sock_fd;
 	fd_set fds;
 
-	char lfile[PATH_MAX];
+	char lfile[BUFSIZ];
 
 	/* Set up signal handlers. */
 	signal (SIGINT,  quit_signal);

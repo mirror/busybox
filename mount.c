@@ -48,6 +48,9 @@
 #if defined BB_FEATURE_USE_DEVPS_PATCH
 #include <linux/devmtab.h>
 #endif
+#ifndef MS_RDONLY
+#include <linux/fs.h>
+#endif
 
 
 #if defined BB_FEATURE_MOUNT_LOOP

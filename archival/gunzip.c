@@ -102,7 +102,6 @@ static char *license_msg[] = {
 #include <signal.h>
 #include <sys/stat.h>
 #include <errno.h>
-#include <sys/param.h>			/* for PATH_MAX */
 
 /* #include "tailor.h" */
 
@@ -641,8 +640,8 @@ typedef RETSIGTYPE(*sig_type) (int);
 #define RW_USER (S_IRUSR | S_IWUSR)	/* creation mode for open() */
 
 #ifndef MAX_PATH_LEN			/* max pathname length */
-#  ifdef PATH_MAX
-#    define MAX_PATH_LEN   PATH_MAX
+#  ifdef BUFSIZ
+#    define MAX_PATH_LEN   BUFSIZ
 #  else
 #    define MAX_PATH_LEN   1024
 #  endif

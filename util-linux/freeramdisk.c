@@ -23,13 +23,14 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <sys/mount.h>
+#include <linux/fs.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <errno.h>
 #include "internal.h"
+
 
 
 static const char freeramdisk_usage[] =

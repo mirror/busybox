@@ -74,7 +74,7 @@ static const char *baseSrcName;
 static int		   srcDirFlag;
 static struct stat srcStatBuf;
 
-static char		   baseDestName[PATH_MAX + 1];
+static char		   baseDestName[BUFSIZ + 1];
 static size_t	   baseDestLen;
 static int		   destDirFlag;
 static struct stat destStatBuf;
@@ -97,12 +97,12 @@ fill_baseDest_buf(char *_buf, size_t * _buflen) {
 	if ((srcBasename = strrchr(baseSrcName, '/')) == NULL) {
 		srcBasename = baseSrcName;
 		if (_buf[*_buflen - 1] != '/') {
-			if (++(*_buflen) > PATH_MAX)
+			if (++(*_buflen) > BUFSIZ)
 				name_too_long__exit();
 			strcat(_buf, "/");
 		}
 	}
-	if (*_buflen + strlen(srcBasename) > PATH_MAX)
+	if (*_buflen + strlen(srcBasename) > BUFSIZ)
 		name_too_long__exit();
 	strcat(_buf, srcBasename);
 	return;
@@ -112,7 +112,7 @@ fill_baseDest_buf(char *_buf, size_t * _buflen) {
 static int
 cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 {
-	char		destName[PATH_MAX + 1];
+	char		destName[BUFSIZ + 1];
 	size_t		destLen;
 	const char *srcBasename;
 	char	   *name;
@@ -128,7 +128,7 @@ cp_mv_Action(const char *fileName, struct stat *statbuf, void* junk)
 		srcBasename = (strstr(fileName, baseSrcName)
 					   + strlen(baseSrcName));
 
-		if (destLen + strlen(srcBasename) > PATH_MAX) {
+		if (destLen + strlen(srcBasename) > BUFSIZ) {
 			fprintf(stderr, name_too_long, dz);
 			return FALSE;
 		}
@@ -230,7 +230,7 @@ extern int cp_mv_main(int argc, char **argv)
 		followLinks = FALSE;
 	}
 
-	if (strlen(argv[argc - 1]) > PATH_MAX) {
+	if (strlen(argv[argc - 1]) > BUFSIZ) {
 		fprintf(stderr, name_too_long, "cp");
 		goto exit_false;
 	}
@@ -252,7 +252,7 @@ extern int cp_mv_main(int argc, char **argv)
 
 		baseSrcName = *(argv++);
 
-		if ((srcLen = strlen(baseSrcName)) > PATH_MAX)
+		if ((srcLen = strlen(baseSrcName)) > BUFSIZ)
 			name_too_long__exit();
 
 		if (srcLen == 0) continue; /* "" */
@@ -266,7 +266,7 @@ extern int cp_mv_main(int argc, char **argv)
 			int			state = 0;
 			char		*pushd, *d, *p;
 
-			if ((pushd = getcwd(NULL, PATH_MAX + 1)) == NULL) {
+			if ((pushd = getcwd(NULL, BUFSIZ + 1)) == NULL) {
 				fprintf(stderr, "%s: getcwd(): %s\n", dz, strerror(errno));
 				continue;
 			}
@@ -274,7 +274,7 @@ extern int cp_mv_main(int argc, char **argv)
 				fprintf(stderr, "%s: chdir(%s): %s\n", dz, baseSrcName, strerror(errno));
 				continue;
 			}
-			if ((d = getcwd(NULL, PATH_MAX + 1)) == NULL) {
+			if ((d = getcwd(NULL, BUFSIZ + 1)) == NULL) {
 				fprintf(stderr, "%s: getcwd(): %s\n", dz, strerror(errno));
 				continue;
 			}

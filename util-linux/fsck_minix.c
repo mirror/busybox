@@ -97,7 +97,6 @@
 #include <termios.h>
 #include <mntent.h>
 #include <sys/stat.h>
-#include <sys/param.h>			/* for PATH_MAX */
 
 #include <linux/fs.h>
 #include <linux/minix_fs.h>
@@ -145,7 +144,7 @@ static int termios_set = 0;
 /* File-name data */
 #define MAX_DEPTH 32
 static int name_depth = 0;
-// static char name_list[MAX_DEPTH][PATH_MAX + 1];
+// static char name_list[MAX_DEPTH][BUFSIZ + 1];
 static char **name_list = NULL;
 
 static char *inode_buffer = NULL;
@@ -178,8 +177,8 @@ static unsigned char *zone_count = NULL;
 static void recursive_check(unsigned int ino);
 static void recursive_check2(unsigned int ino);
 
-#define inode_in_use(x) (bit(inode_map,(x)))
-#define zone_in_use(x) (bit(zone_map,(x)-FIRSTZONE+1))
+#define inode_in_use(x) (isset(inode_map,(x)))
+#define zone_in_use(x) (isset(zone_map,(x)-FIRSTZONE+1))
 
 #define mark_inode(x) (setbit(inode_map,(x)),changed=1)
 #define unmark_inode(x) (clrbit(inode_map,(x)),changed=1)
@@ -1239,7 +1238,7 @@ static void alloc_name_list(void)
 
 	name_list = xmalloc(sizeof(char *) * MAX_DEPTH);
 	for (i = 0; i < MAX_DEPTH; i++)
-		name_list[i] = xmalloc(sizeof(char) * PATH_MAX + 1);
+		name_list[i] = xmalloc(sizeof(char) * BUFSIZ + 1);
 }
 
 #if 0
