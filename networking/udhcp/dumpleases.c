@@ -12,6 +12,7 @@
 #include <getopt.h>
 #include <time.h>
 
+#include "dhcpd.h"
 #include "leases.h"
 #include "libbb_udhcp.h"
 
