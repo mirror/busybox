@@ -1,3 +1,9 @@
+0.38
+	* Fixed a segfault in 'umount -a' when a badly formed /etc/fstab
+	    file existed.
+	* df will not exit on error, but will try to stat all mounted filesystems.
+	* Fixed tar so uid/gud/permissions on extracted tarballs will be correct.
+
 0.37
 	* Wrote a micro syslogd, and a logger util (to log things to the syslog
 	    from the command line or scripts)  With both compiled in, costs 4k.
@@ -18,7 +24,7 @@
 	* Also added a TODO.
 
 
-	-Erik Andrsen
+	-Erik Andrsen, Nov 25, 1999
 
 0.36
 	* fixed dd so it properly defaults to stdin and stdout when no 
