@@ -499,34 +499,17 @@ unsigned int fill_package_struct(char *control_buffer)
 {
 	common_node_t *new_node = (common_node_t *) xcalloc(1, sizeof(common_node_t));
 
-	char *field;
-	char *field_name;
-	char *field_value;
+	char *field_name = xmalloc(sizeof(char *));
+	char *field_value = xmalloc(sizeof(char *));
 	int field_start = 0;
-	int field_length;
-	int seperator_offset;
 	int num = -1;
 	int buffer_length = strlen(control_buffer);
 
 	new_node->version = search_name_hashtable("unknown");
 	while (field_start < buffer_length) {
-		field = read_package_field(&control_buffer[field_start]);
+		field_start += read_package_field(&control_buffer[field_start], &field_name, &field_value);
 
-		/* Setup start point for next field */
-		field_length = strlen(field);
-		field_start += (field_length + 1);
-
-		seperator_offset = strcspn(field, ":");
-		if (seperator_offset == 0) {
-			free(field);
-			continue;
-		}
-		field_name = xstrndup(field, seperator_offset);
-		field_value = field + seperator_offset + 1;
-		field_value += strspn(field_value, " \n\t");
-
-		/* Should be able to replace this strlen with pointer arithmatic */
-		if (strlen(field_value) == 0) {
+		if (field_name == NULL) {
 			goto fill_package_struct_cleanup; // Oh no, the dreaded goto statement !!
 		}
 
@@ -562,7 +545,7 @@ unsigned int fill_package_struct(char *control_buffer)
 		}
 fill_package_struct_cleanup:
 		free(field_name);
-		free(field);
+		free(field_value);
 	}
 	if (new_node->version == search_name_hashtable("unknown")) {
 		free_package(new_node);
@@ -739,6 +722,23 @@ char *get_depends_field(common_node_t *package, const int depends_type)
 	return(depends);
 }
 
+void write_buffer_no_status(FILE *new_status_file, const char *control_buffer)
+{
+	char *name;
+	char *value;
+	int start = 0;
+	while (1) {
+		start += read_package_field(&control_buffer[start], &name, &value);
+		if (name == NULL) {
+			break;
+		}
+		if (strcmp(name, "Status") != 0) {
+			fprintf(new_status_file, "%s: %s\n", name, value);
+		}
+	}
+	return;
+}
+
 /* This could do with a cleanup */
 void write_status_file(deb_file_t **deb_file)
 {
@@ -748,11 +748,8 @@ void write_status_file(deb_file_t **deb_file)
 	char *status_from_file;
 	char *control_buffer = NULL;
 	char *tmp_string;
-	char *field;
 	int status_num;
-	int field_length;
 	int field_start = 0;
-	int buffer_length;
 	int write_flag;
 	int i = 0;
 
@@ -762,7 +759,6 @@ void write_status_file(deb_file_t **deb_file)
  		tmp_string += strspn(tmp_string, " \n\t");
 		package_name = xstrndup(tmp_string, strcspn(tmp_string, "\n\0"));
 		write_flag = FALSE;
-
 		tmp_string = strstr(control_buffer, "Status:");
 		if (tmp_string != NULL) {
 			/* Seperate the status value from the control buffer */
@@ -786,20 +782,11 @@ void write_status_file(deb_file_t **deb_file)
 					i = 0;
 					while(deb_file[i] != NULL) {
 						if (strcmp(package_name, name_hashtable[package_hashtable[deb_file[i]->package]->name]) == 0) {
-							char *last_char;
 							/* Write a status file entry with a modified status */
 							/* remove trailing \n's */
-							while(1) {
-								last_char = last_char_is(deb_file[i]->control_file, '\n');
-								if (last_char) {
-									*last_char = '\0';
-								} else {
-									break;
-								}
-							}
-							fputs(deb_file[i]->control_file, new_status_file);
+							write_buffer_no_status(new_status_file, deb_file[i]->control_file);
 							set_status(status_num, "ok", 2);
-							fprintf(new_status_file, "\nStatus: %s\n\n", name_hashtable[status_hashtable[status_num]->status]);
+							fprintf(new_status_file, "Status: %s\n\n", name_hashtable[status_hashtable[status_num]->status]);
 							write_flag = TRUE;
 							break;
 						}
@@ -814,16 +801,17 @@ void write_status_file(deb_file_t **deb_file)
 					/* Only write the Package, Status, Priority and Section lines */
 					fprintf(new_status_file, "Package: %s\n", package_name);
 					fprintf(new_status_file, "Status: %s\n", status_from_hashtable);
-					buffer_length = strlen(control_buffer);
-					while (field_start < buffer_length) {
-						field = read_package_field(&control_buffer[field_start]);
-						field_length = strlen(field);
-						field_start += (field_length + 1);
-						if (strncmp(field, "Priority:", 9) == 0) {
-							fprintf(new_status_file, "Priority:%s\n", field + 9);
+
+					while (1) {
+						char *field_name;
+						char *field_value;
+						field_start += read_package_field(&control_buffer[field_start], &field_name, &field_value);
+						if (field_name == NULL) {
+							break;
 						}
-						if (strncmp(field, "Section:", 8) == 0) {
-							fprintf(new_status_file, "Section:%s\n", field + 8);
+						if ((strcmp(field_name, "Priority") == 0) ||
+							(strcmp(field_name, "Section") == 0)) {
+							fprintf(new_status_file, "%s: %s\n", field_name, field_value);
 						}
 					}
 					write_flag = TRUE;
@@ -831,25 +819,26 @@ void write_status_file(deb_file_t **deb_file)
 				}
 				else if	(strcmp("config-files", name_hashtable[state_status]) == 0) {
 					/* only change the status line */
-					buffer_length = strlen(control_buffer);
-					while (field_start < buffer_length) {
-						field = read_package_field(&control_buffer[field_start]);
+//					buffer_length = strlen(control_buffer);
+					while (1) {
+						char *field_name;
+						char *field_value;
+						field_start += read_package_field(&control_buffer[field_start], &field_name, &field_value);
+						if (field_name == NULL) {
+							break;
+						}
 						/* Setup start point for next field */
-						field_length = strlen(field);
-						field_start += (field_length + 1);
-						if (strncmp(field, "Status:", 7) == 0) {
+						if (strcmp(field_name, "Status") == 0) {
 							fprintf(new_status_file, "Status: %s\n", status_from_hashtable);
 						} else {
-							fprintf(new_status_file, "%s\n", field);
+							fprintf(new_status_file, "%s: %s\n", field_name, field_value);
 						}
-						free(field);
 					}
 					write_flag = TRUE;
 					fputs("\n", new_status_file);
 				}
 			}
 		}
-
 		/* If the package from the status file wasnt handle above, do it now*/
 		if (write_flag == FALSE) {
 			fprintf(new_status_file, "%s\n\n", control_buffer);
@@ -866,20 +855,9 @@ void write_status_file(deb_file_t **deb_file)
 	for(i = 0; deb_file[i] != NULL; i++) {
 		status_num = search_status_hashtable(name_hashtable[package_hashtable[deb_file[i]->package]->name]);
 		if (strcmp("reinstreq", name_hashtable[get_status(status_num, 2)]) == 0) {
-			char *last_char;
-			/* remove trailing \n's */
-			while(1) {
-				last_char = last_char_is(deb_file[i]->control_file, '\n');
-				if (last_char) {
-					*last_char = '\0';
-				} else {
-					break;
-				}
-			}
-				
-			fputs(deb_file[i]->control_file, new_status_file);
+			write_buffer_no_status(new_status_file, deb_file[i]->control_file);
 			set_status(status_num, "ok", 2);
-			fprintf(new_status_file, "\nStatus: %s\n\n", name_hashtable[status_hashtable[status_num]->status]);
+			fprintf(new_status_file, "Status: %s\n\n", name_hashtable[status_hashtable[status_num]->status]);
 		}
 	}
 	fclose(old_status_file);
@@ -1037,9 +1015,11 @@ char **create_list(const char *filename)
 	int length = 0;
 	int count = 0;
 
-	list_stream = xfopen(filename, "r");
+	/* dont use [xw]fopen here, handle error ourself */
+	list_stream = fopen(filename, "r");
 	if (list_stream == NULL) {
-		return(NULL);
+		*file_list = NULL;
+		return(file_list);
 	}
 	while (getline(&line, &length, list_stream) != -1) {
 		file_list = xrealloc(file_list, sizeof(char *) * (length + 1));
@@ -1053,6 +1033,7 @@ char **create_list(const char *filename)
 		length = 0;
 	}
 	fclose(list_stream);
+
 	if (count == 0) {
 		return(NULL);
 	} else {
@@ -1212,6 +1193,7 @@ void purge_package(const unsigned int package_num)
 	if (run_package_script(package_name, "postrm") == -1) {
 		error_msg_and_die("postrm fialure.. set status to what?");
 	}
+
 	/* Change package status */
 	set_status(status_num, "purge", 1);
 	set_status(status_num, "not-installed", 3);
@@ -1219,7 +1201,6 @@ void purge_package(const unsigned int package_num)
 
 void unpack_package(deb_file_t *deb_file)
 {
-//	const unsigned int package_name_num = package_hashtable[deb_file->package]->name;
 	const char *package_name = name_hashtable[package_hashtable[deb_file->package]->name];
 	const unsigned int status_num = search_status_hashtable(package_name);
 	const unsigned int status_package_num = status_hashtable[status_num]->status;
@@ -1248,7 +1229,6 @@ void unpack_package(deb_file_t *deb_file)
 
 	/* Create the list file */
 	strcat(info_prefix, "list");
-
 	out_stream = xfopen(info_prefix, "w");			
 	deb_extract(deb_file->filename, out_stream, (extract_quiet | extract_data_tar_gz | extract_list), NULL, NULL);
 	fclose(out_stream);
@@ -1393,7 +1373,7 @@ extern int dpkg_main(int argc, char **argv)
 	/* TODO: check dependencies before removing */
 	if ((dpkg_opt & dpkg_opt_force_ignore_depends) != dpkg_opt_force_ignore_depends) {
 		if (!check_deps(deb_file, 0, deb_count)) {
-			error_msg_and_die("Dependency check fialed");
+			error_msg_and_die("Dependency check failed");
 		}
 	}
 
@@ -1416,6 +1396,7 @@ extern int dpkg_main(int argc, char **argv)
 			configure_package(deb_file[i]);
 		}
 	}
+
 	write_status_file(deb_file);
 
 	for (i = 0; i < NAME_HASH_PRIME; i++) {

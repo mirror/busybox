@@ -245,7 +245,7 @@ char *unarchive(FILE *src_stream, FILE *out_stream, file_header_t *(*get_header)
 	const int extract_function, const char *prefix, char **extract_names);
 char *deb_extract(const char *package_filename, FILE *out_stream, const int extract_function,
 	const char *prefix, const char *filename);
-char *read_package_field(const char *package_buffer);
+int read_package_field(const char *package_buffer, char **field_name, char **field_value);
 char *fgets_str(FILE *file, const char *terminating_string);
 
 extern int unzip(FILE *l_in_file, FILE *l_out_file);

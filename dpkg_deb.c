@@ -110,12 +110,17 @@ extern int dpkg_deb_main(int argc, char **argv)
 	}
 	else if (arg_type == arg_type_field) {
 		char *field = NULL;
+		char *name;
+		char *value;
 		int field_start = 0;
 
-		while ((field = read_package_field(&output_buffer[field_start])) != NULL) {
-			field_start += (strlen(field) + 1);
-			if (strstr(field, argv[optind + 1]) == field) {
-				puts(field + strlen(argv[optind + 1]) + 2);
+		while (1) {
+			field_start += read_package_field(&output_buffer[field_start], &name, &value);
+			if (name == NULL) {
+				break;
+			}
+			if (strcmp(name, argv[optind + 1]) == 0) {
+				puts(value);
 			}
 			free(field);
 		}
