@@ -1290,9 +1290,9 @@ extern int dpkg_main(int argc, char **argv)
 	int status_num;
 	int i;
 
-	while ((opt = getopt(argc, argv, "cF:ilPru")) != -1) {
+	while ((opt = getopt(argc, argv, "CF:ilPru")) != -1) {
 		switch (opt) {
-			case 'c':
+			case 'C': // equivalent to --configure in official dpkg
 				dpkg_opt |= dpkg_opt_configure;
 				dpkg_opt |= dpkg_opt_package_name;
 				break;
