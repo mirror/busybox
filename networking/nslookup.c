@@ -5,6 +5,9 @@
  * Copyright (C) 1999,2000 by Lineo, inc. and John Beppu
  * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
  *
+ * Correct default name server display and explicit name server option 
+ * added by Ben Zeckel <bzeckel@hmc.edu> June 2001
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -38,9 +41,6 @@
 /*
  |  I'm only implementing non-interactive mode;
  |  I totally forgot nslookup even had an interactive mode.
- |
- |  [ TODO ]
- |  + find out how to use non-default name servers
  */
 
 /* only works for IPv4 */
@@ -138,6 +138,19 @@ static inline void server_print(void)
 	printf("\n");
 }
 
+/* alter the global _res nameserver structure to use
+   an explicit dns server instead of what is in /etc/resolv.h */
+static inline void set_default_dns(char *server)
+{
+	struct in_addr server_in_addr;
+
+	if(inet_aton(server,&server_in_addr))      
+	{
+		_res.nscount = 1;
+		_res.nsaddr_list[0].sin_addr = server_in_addr;
+	}
+}    
+
 /* naive function to check whether char *s is an ip address */
 static int is_ip_address(const char *s)
 {
@@ -156,11 +169,26 @@ int nslookup_main(int argc, char **argv)
 {
 	struct hostent *host;
 
-	if (argc < 2 || *argv[1]=='-') {
-		show_usage();
-	}
-
+	/*
+	* initialize DNS structure _res used in printing the default
+	* name server and in the explicit name server option feature.
+	*/
+	
 	res_init();
+
+	/*
+	* We allow 1 or 2 arguments. 
+	* The first is the name to be looked up and the second is an 
+	* optional DNS server with which to do the lookup. 
+	* More than 3 arguments is an error to follow the pattern of the
+	* standard nslookup
+	*/
+
+	if (argc < 2 || *argv[1]=='-' || argc > 3) 
+		show_usage();
+	else if(argc == 3) 
+		set_default_dns(argv[2]);
+
 	server_print();
 	if (is_ip_address(argv[1])) {
 		host = gethostbyaddr_wrapper(argv[1]);
@@ -171,4 +199,4 @@ int nslookup_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-/* $Id: nslookup.c,v 1.28 2002/04/27 04:06:55 andersen Exp $ */
+/* $Id: nslookup.c,v 1.29 2002/07/24 00:56:56 sandman Exp $ */
