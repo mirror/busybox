@@ -1,15 +1,8 @@
-/* vi: set sw=4 ts=4: */
 /*
- * Mini sed implementation for busybox
- *
+ * sed.c - very minimalist version of sed
  *
  * Copyright (C) 1999,2000 by Lineo, inc.
- * Written by Erik Andersen <andersen@lineo.com>, <andersee@debian.org>
- *
- * Modifications for addresses and append command have been
- * written by Marco Pantaleoni <panta@prosa.it>, <panta@elasticworld.org>
- * and are:
- * Copyright (C) 1999 Marco Pantaleoni.
+ * Written by Mark Whitley <markw@lineo.com>, <markw@enol.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,333 +20,543 @@
  *
  */
 
-#include "internal.h"
-#include "regexp.h"
+/*
+	Supported features and commands in this version of sed:
+
+	 - comments ('#')
+	 - Address matching: num|/matchstr/[,num|/matchstr/|$]command
+	 - Commands: p, d, s/match/replace/[g]
+	 
+	 (Note: Specifying an address (range) to match is *optional*; commands
+	 default to the whole pattern space if no specific address match was
+	 requested.)
+
+	Unsupported features:
+
+	 - transliteration (y/source-chars/dest-chars/) (use 'tr')
+	 - no support for characters other than the '/' character for regex matches
+	 - no pattern space hold space storing / swapping (x, etc.)
+	 - no labels / branching (: label, b, t, and friends)
+	 - and lots, lots more.
+
+*/
+
 #include <stdio.h>
-#include <dirent.h>
+#include <stdlib.h> /* for realloc() */
+#include <unistd.h> /* for getopt() */
+#include <regex.h>
+#include <string.h> /* for strdup() */
 #include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <time.h>
-#include <ctype.h>
+#include <ctype.h> /* for isspace() */
+#include "internal.h"
+
+
+/* externs */
+extern int optind; /* in unistd.h */
+extern char *optarg; /* ditto */
+
+/* options */
+static int be_quiet = 0;
+
+struct sed_cmd {
+
+	/* address storage */
+	int beg_line; /* 'sed 1p'   0 == no begining line, apply commands to all lines */
+	int end_line; /* 'sed 1,3p' 0 == no end line, use only beginning. -1 == $ */
+	regex_t *beg_match; /* sed -e '/match/cmd' */
+	regex_t *end_match; /* sed -e '/match/,/end_match/cmd' */
+
+	/* the command */
+	char cmd; /* p,d,s (add more at your leisure :-) */
+
+	/* substitution command specific fields */
+	regex_t *sub_match; /* sed -e 's/sub_match/replace/' */
+	char *replace; /* sed -e 's/sub_match/replace/' XXX: who will hold the \1 \2 \3s? */
+	unsigned int sub_g:1; /* sed -e 's/foo/bar/g' (global) */
+};
+
+/* globals */
+static struct sed_cmd *sed_cmds = NULL; /* growable arrary holding a sequence of sed cmds */
+static int ncmds = 0; /* number of sed commands */
+
+/*static char *cur_file = NULL;*/ /* file currently being processed XXX: do I need this? */
 
 static const char sed_usage[] =
-	"sed [-n] -e script [file...]\n"
+	"sed [-Vhnef] pattern [files...]\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
-	"\nAllowed sed scripts come in the following form:\n"
-	"\t'ADDR [!] COMMAND'\n\n"
-	"\twhere address ADDR can be:\n"
-	"\t  NUMBER    Match specified line number\n"
-	"\t  $         Match last line\n"
-	"\t  /REGEXP/  Match specified regexp\n"
-	"\t  (! inverts the meaning of the match)\n\n"
-	"\tand COMMAND can be:\n"
-	"\t  s/regexp/replacement/[igp]\n"
-	"\t     which attempt to match regexp against the pattern space\n"
-	"\t     and if successful replaces the matched portion with replacement.\n\n"
-	"\t  aTEXT\n"
-	"\t     which appends TEXT after the pattern space\n"
-	"Options:\n"
-	"-e\tadd the script to the commands to be executed\n"
-	"-n\tsuppress automatic printing of pattern space\n\n"
-#if defined BB_REGEXP
-	"This version of sed matches full regular expressions.\n";
-#else
-	"This version of sed matches strings (not full regular expressions).\n"
-#endif
+	"\n"
+	"-n\tsuppress automatic printing of pattern space\n"
+	"-e script\tadd the script to the commands to be executed\n"
+	"-f scriptfile\tadd the contents of script-file to the commands to be executed\n"
+	"-h\tdisplay this help message\n"
+	"-V\toutput version information and exit\n"
+	"\n"
+	"If no -e or -f is given, the first non-option argument is taken as the\n"
+	"sed script to interpret. All remaining arguments are names of input\n"
+	"files; if no input files are specified, then the standard input is read.\n"
 #endif
 	;
 
-/* Flags & variables */
+#if 0
+/* Nuke from here { */
 
-typedef enum { f_none, f_replace, f_append } sed_function;
 
-#define NO_LINE		-2
-#define LAST_LINE	-1
-static int addr_line = NO_LINE;
-static char *addr_pattern = NULL;
-static int negated = 0;
-
-#define SKIPSPACES(p)		do { while (isspace(*(p))) (p)++; } while (0)
-
-#define BUFSIZE		1024
-
-static inline int at_last(FILE * fp)
+/* get_line_from_file() - This function reads an entire line from a text file
+ *  * up to a newline. It returns a malloc'ed char * which must be stored and
+ *   * free'ed  by the caller. */
+extern char *get_line_from_file(FILE *file)
 {
-	int res = 0;
+	static const int GROWBY = 80; /* how large we will grow strings by */
 
-	if (feof(fp))
-		return 1;
-	else {
-		int ch;
+	int ch; 
+	int idx = 0;
+	char *linebuf = NULL;
+	int linebufsz = 0;
 
-		if ((ch = fgetc(fp)) == EOF)
-			res++;
-		ungetc(ch, fp);
+	while (1) {
+		ch = fgetc(file);
+		if (ch == EOF)
+			break;
+		/* grow the line buffer as necessary */
+		if (idx > linebufsz-2)
+			linebuf = realloc(linebuf, linebufsz += GROWBY);
+		linebuf[idx++] = (char)ch;
+		if ((char)ch == '\n')
+			break;
 	}
-	return res;
+
+	if (idx == 0)
+		return NULL;
+
+	linebuf[idx] = 0;
+	return linebuf;
 }
 
-static void do_sed_repl(FILE * fp, char *needle, char *newNeedle,
-						int ignoreCase, int printFlag, int quietFlag)
+static void usage(const char *string)
 {
-	int foundOne = FALSE;
-	char haystack[BUFSIZE];
-	int line = 1, doit;
+	printf("usage: %s\n", string);
+	exit(0);
+}
 
-	while (fgets(haystack, BUFSIZE - 1, fp)) {
-		doit = 0;
-		if (addr_pattern) {
-			doit = !find_match(haystack, addr_pattern, FALSE);
-		} else if (addr_line == NO_LINE)
-			doit = 1;
-		else if (addr_line == LAST_LINE) {
-			if (at_last(fp))
-				doit = 1;
-		} else {
-			if (line == addr_line)
-				doit = 1;
+/* } to here when we integrate this into busybox */
+#endif
+
+static void destroy_cmd_strs()
+{
+	if (sed_cmds == NULL)
+		return;
+
+	/* destroy all the elements in the array */
+	while (--ncmds >= 0) {
+
+		if (sed_cmds[ncmds].beg_match) {
+			regfree(sed_cmds[ncmds].beg_match);
+			free(sed_cmds[ncmds].beg_match);
 		}
-		if (negated)
-			doit = 1 - doit;
-		if (doit) {
-			foundOne =
-				replace_match(haystack, needle, newNeedle, ignoreCase);
+		if (sed_cmds[ncmds].end_match) {
+			regfree(sed_cmds[ncmds].end_match);
+			free(sed_cmds[ncmds].end_match);
+		}
+		if (sed_cmds[ncmds].sub_match) {
+			regfree(sed_cmds[ncmds].sub_match);
+			free(sed_cmds[ncmds].sub_match);
+		}
+		if (sed_cmds[ncmds].replace)
+			free(sed_cmds[ncmds].replace);
+	}
 
-			if (foundOne == TRUE && printFlag == TRUE) {
-				fprintf(stdout, haystack);
+	/* destroy the array */
+	free(sed_cmds);
+	sed_cmds = NULL;
+}
+
+static void exit_sed(int retcode, const char *message)
+{
+	destroy_cmd_strs();
+	if (message)
+		fputs(message, stderr);
+	exit(retcode);
+}
+
+/*
+ * trim_str - trims leading and trailing space from a string
+ * 
+ * Note: This returns a malloc'ed string so you must store and free it
+ * XXX: This should be in the utility.c file.
+ */
+static char *trim_str(const char *str)
+{
+	int i;
+	char *retstr = strdup(str);
+
+	/* trim leading whitespace */
+	memmove(retstr, &retstr[strspn(retstr, " \n\t\v")], strlen(retstr));
+
+	/* trim trailing whitespace */
+	i = strlen(retstr) - 1;
+	while (isspace(retstr[i]))
+		i--;
+	retstr[++i] = 0;
+
+	/* Aside: 
+	 *
+	 * you know, a strrspn() would really be nice cuz then we could say:
+	 * 
+	 * retstr[strlen(retstr) - strrspn(retstr, " \n\t\v") + 1] = 0;
+	 */
+	
+	return retstr;
+}
+
+/*
+ * index_of_unescaped_slash - walks left to right through a string beginning
+ * at a specified index and returns the index of the next unescaped slash.
+ */
+static int index_of_next_unescaped_slash(int idx, const char *str)
+{
+	do {
+		idx++;
+		/* test if we've hit the end */
+		if (str[idx] == 0)
+			return -1;
+	} while (str[idx] != '/' && str[idx - 1] != '\\');
+
+	return idx;
+}
+
+/*
+ * returns the index in the string just past where the address ends.
+ */
+static int get_address(const char *str, int *line, regex_t **regex)
+{
+	char *my_str = strdup(str);
+	int idx = 0;
+
+	if (isdigit(my_str[idx])) {
+		do {
+			idx++;
+		} while (isdigit(my_str[idx]));
+		my_str[idx] = 0;
+		*line = atoi(my_str);
+		*regex = NULL;
+	}
+	else if (my_str[idx] == '$') {
+		*line = -1;
+		*regex = NULL;
+		idx++;
+	}
+	else if (my_str[idx] == '/') {
+		int ret;
+		idx = index_of_next_unescaped_slash(idx, my_str);
+		if (idx == -1) {
+			free(my_str);
+			exit_sed(1, "sed: unterminated match expression\n");
+		}
+		my_str[idx] = 0; /* shave off the trailing '/' */
+		my_str++; /* shave off the leading '/' */
+		*regex = (regex_t *)malloc(sizeof(regex_t));
+		if ((ret = regcomp(*regex, my_str, 0)) != 0) {
+			/* error handling if regular expression couldn't be compiled */
+			int errmsgsz = regerror(ret, *regex, NULL, 0);
+			char *errmsg = malloc(errmsgsz);
+			if (errmsg == NULL) {
+				exit_sed(1, "sed: memory error\n");
 			}
+			regerror(ret, *regex, errmsg, errmsgsz);
+			fprintf(stderr, "sed: %s\n", errmsg);
+			free(errmsg);
+			exit_sed(1, NULL);
 		}
+		my_str--; /* move my_str back so free() (below) won't barf */
+		idx++; /* advance idx one past the end of the /match/ */
+	}
+	else {
+		fprintf(stderr, "sed.c:get_address: no address found in string\n");
+		fprintf(stderr, "\t(you probably didn't check the string you passed me)\n");
+		idx = -1;
+	}
 
-		if (quietFlag == FALSE) {
-			fprintf(stdout, haystack);
-		}
+	free(my_str);
+	return idx;
+}
 
-		line++;
+static void parse_cmd_str(struct sed_cmd *sed_cmd, const char *cmdstr)
+{
+	int idx = 0;
+
+	/* parse the command
+	 * format is: [addr][,addr]cmd
+	 *            |----||-----||-|
+	 *            part1 part2  part3
+	 */
+
+	/* first part (if present) is an address: either a number or a /regex/ */
+	if (isdigit(cmdstr[idx]) || cmdstr[idx] == '/')
+		idx = get_address(cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);
+
+	/* second part (if present) will begin with a comma */
+	if (cmdstr[idx] == ',')
+		idx += get_address(&cmdstr[++idx], &sed_cmd->end_line, &sed_cmd->end_match);
+
+	/* last part (mandatory) will be a command */
+	if (cmdstr[idx] == '\0')
+		exit_sed(1, "sed: missing command\n");
+	if (!strchr("pds", cmdstr[idx])) /* <-- XXX add new commands here */
+		exit_sed(1, "sed: invalid command\n");
+	sed_cmd->cmd = cmdstr[idx];
+	/* special-case handling for 's' */
+	if (sed_cmd->cmd == 's') {
+		int oldidx;
+		/* format for substitution is:
+		 *    s/match/replace/g
+		 *    |               |
+		 *    mandatory       optional
+		 */
+
+		/* verify that we have an 's' followed by a 'slash' */
+		if (cmdstr[++idx] != '/')
+			exit_sed(1, "sed: bad format in substitution expression\n");
+
+		/* get the substitution part */
+		idx += get_address(&cmdstr[idx], NULL, &sed_cmd->sub_match);
+
+		/* get the replacement part */
+		oldidx = idx;
+		idx = index_of_next_unescaped_slash(idx, cmdstr);
+		sed_cmd->replace = (char *)malloc(idx - oldidx + 1);
+		strncpy(sed_cmd->replace, &cmdstr[oldidx], idx - oldidx);
+		sed_cmd->replace[idx - oldidx] = 0;
+
+		/* store the 'g' if present */
+		if (cmdstr[++idx] == 'g')
+			sed_cmd->sub_g = 1;
 	}
 }
 
-static void do_sed_append(FILE * fp, char *appendline, int quietFlag)
+static void add_cmd_str(const char *cmdstr)
 {
-	char buffer[BUFSIZE];
-	int line = 1, doit;
+	char *my_cmdstr = trim_str(cmdstr);
 
-	while (fgets(buffer, BUFSIZE - 1, fp)) {
-		doit = 0;
-		if (addr_pattern) {
-			doit = !find_match(buffer, addr_pattern, FALSE);
-		} else if (addr_line == NO_LINE)
-			doit = 1;
-		else if (addr_line == LAST_LINE) {
-			if (at_last(fp))
-				doit = 1;
-		} else {
-			if (line == addr_line)
-				doit = 1;
-		}
-		if (negated)
-			doit = 1 - doit;
-		if (quietFlag == FALSE) {
-			fprintf(stdout, buffer);
-		}
-		if (doit) {
-			fputs(appendline, stdout);
-			fputc('\n', stdout);
+	/* if this is a comment, don't even bother */
+	if (my_cmdstr[0] == '#') {
+		free(my_cmdstr);
+		return;
+	}
+
+	/* grow the array */
+	sed_cmds = realloc(sed_cmds, sizeof(struct sed_cmd) * (++ncmds));
+	/* zero new element */
+	memset(&sed_cmds[ncmds-1], 0, sizeof(struct sed_cmd));
+	/* load command string into new array element */
+	parse_cmd_str(&sed_cmds[ncmds-1], my_cmdstr);
+}
+
+
+static void load_cmd_file(char *filename)
+{
+	FILE *cmdfile;
+	char *line;
+
+	cmdfile = fopen(filename, "r");
+	if (cmdfile == NULL)
+		exit_sed(1, strerror(errno));
+
+	while ((line = get_line_from_file(cmdfile)) != NULL) {
+		line[strlen(line)-1] = 0; /* eat newline */
+		add_cmd_str(line);
+		free(line);
+	}
+}
+
+
+static int do_sed_command(const struct sed_cmd *sed_cmd, const char *line) 
+{
+	int altered = 0;
+
+	switch (sed_cmd->cmd) {
+
+		case 'p':
+			fputs(line, stdout);
+			break;
+
+		case 'd':
+			altered++;
+			break;
+
+		case 's': /* oo, a fun one :-) */
+
+			/* we only substitute if the substitution 'search' expression matches */
+			if (regexec(sed_cmd->sub_match, line, 0, NULL, 0) == 0) {
+				regmatch_t regmatch;
+				int i;
+				char *ptr = (char *)line;
+
+				while (*ptr) {
+					/* if we can match the search string... */
+					if (regexec(sed_cmd->sub_match, ptr, 1, &regmatch, 0) == 0) {
+						/* print everything before the match, */
+						for (i = 0; i < regmatch.rm_so; i++)
+							fputc(ptr[i], stdout);
+						/* then print the substitution in its place */
+						fputs(sed_cmd->replace, stdout);
+						/* then advance past the match */
+						ptr += regmatch.rm_eo;
+						/* and let the calling function know that something
+						 * has been changed */
+						altered++;
+
+						/* if we're not doing this globally... */
+						if (!sed_cmd->sub_g)
+							break;
+					}
+					/* if we COULD NOT match the search string (meaning we've gone past
+					 * all previous instances), get out */
+					else
+						break;
+				}
+
+				/* is there anything left to print? */
+				if (*ptr) 
+					fputs(ptr, stdout);
+			}
+
+			break;
+	}
+
+	return altered;
+}
+
+static void process_file(FILE *file)
+{
+	char *line = NULL;
+	static int linenum = 0; /* GNU sed does not restart counting lines at EOF */
+	unsigned int still_in_range = 0;
+	int line_altered;
+	int i;
+
+	/* go through every line in the file */
+	while ((line = get_line_from_file(file)) != NULL) {
+
+		linenum++;
+		line_altered = 0;
+
+		/* for every line, go through all the commands */
+		for (i = 0; i < ncmds; i++) {
+
+			/* are we acting on a range of matched lines? */
+			if (sed_cmds[i].beg_match && sed_cmds[i].end_match) {
+				if (still_in_range || regexec(sed_cmds[i].beg_match, line, 0, NULL, 0) == 0) {
+					line_altered += do_sed_command(&sed_cmds[i], line);
+					still_in_range = 1; 
+					if (regexec(sed_cmds[i].end_match, line, 0, NULL, 0) == 0)
+						still_in_range = 0;
+				}
+			}
+
+			/* are we trying to match a single line? */
+			else if (sed_cmds[i].beg_match) {
+				if (regexec(sed_cmds[i].beg_match, line, 0, NULL, 0) == 0)
+					line_altered += do_sed_command(&sed_cmds[i], line);
+			}
+
+			/* are we acting on a range of line numbers? */
+			else if (sed_cmds[i].beg_line > 0 && sed_cmds[i].end_line > 0) {
+				if (linenum >= sed_cmds[i].beg_line && linenum <= sed_cmds[i].end_line)
+					line_altered += do_sed_command(&sed_cmds[i], line);
+			}
+
+			/* are we acting on a specified line number */
+			else if (sed_cmds[i].beg_line > 0) {
+				if (linenum == sed_cmds[i].beg_line)
+					line_altered += do_sed_command(&sed_cmds[i], line);
+			}
+
+			/* not acting on matches or line numbers. act on every line */
+			else 
+				line_altered += do_sed_command(&sed_cmds[i], line);
+
 		}
 
-		line++;
+		/* we will print the line unless we were told to be quiet or if the
+		 * line was altered (via a 'd'elete or 's'ubstitution) */
+		if (!be_quiet && !line_altered)
+			fputs(line, stdout);
+
+		free(line);
 	}
 }
 
 extern int sed_main(int argc, char **argv)
 {
-	FILE *fp;
-	char *needle = NULL, *newNeedle = NULL;
-	char *name;
-	char *cp;
-	int ignoreCase = FALSE;
-	int printFlag = FALSE;
-	int quietFlag = FALSE;
-	int stopNow;
-	char *line_s = NULL, saved;
-	char *appendline = NULL;
-	char *pos;
-	sed_function sed_f = f_none;
+	int opt;
 
-	argc--;
-	argv++;
-	if (argc < 1) {
+    /* do special-case option parsing */
+	if (argv[1] && (strcmp(argv[1], "--help") == 0))
 		usage(sed_usage);
-	}
 
-	while (argc > 1) {
-		if (**argv != '-')
-			usage(sed_usage);
-		argc--;
-		cp = *argv++;
-		stopNow = FALSE;
-
-		while (*++cp && stopNow == FALSE) {
-			switch (*cp) {
+	/* do normal option parsing */
+	while ((opt = getopt(argc, argv, "Vhne:f:")) > 0) {
+		switch (opt) {
+			case 'V':
+				printf("Print Busybox version here\n");
+				exit(0);
+				break;
+			case 'h':
+				usage(sed_usage);
+				break;
 			case 'n':
-				quietFlag = TRUE;
+				be_quiet++;
 				break;
 			case 'e':
-				if (*(cp + 1) == 0 && --argc < 0) {
-					usage(sed_usage);
-				}
-				if (*++cp != 's')
-					cp = *argv++;
-
-				/* Read address if present */
-				SKIPSPACES(cp);
-				if (*cp == '$') {
-					addr_line = LAST_LINE;
-					cp++;
-				} else {
-					if (isdigit(*cp)) {	/* LINE ADDRESS   */
-						line_s = cp;
-						while (isdigit(*cp))
-							cp++;
-						if (cp > line_s) {
-							/* numeric line */
-							saved = *cp;
-							*cp = '\0';
-							addr_line = atoi(line_s);
-							*cp = saved;
-						}
-					} else if (*cp == '/') {	/* PATTERN ADDRESS */
-						pos = addr_pattern = cp + 1;
-						pos = strchr(pos, '/');
-						if (!pos)
-							usage(sed_usage);
-						*pos = '\0';
-						cp = pos + 1;
-					}
-				}
-
-				SKIPSPACES(cp);
-				if (*cp == '!') {
-					negated++;
-					cp++;
-				}
-
-				/* Read command */
-
-				SKIPSPACES(cp);
-				switch (*cp) {
-				case 's':		/* REPLACE */
-					if (strlen(cp) <= 3 || *(cp + 1) != '/')
-						break;
-					sed_f = f_replace;
-
-					pos = needle = cp + 2;
-
-					for (;;) {
-						pos = strchr(pos, '/');
-						if (pos == NULL) {
-							usage(sed_usage);
-						}
-						if (*(pos - 1) == '\\') {
-							pos++;
-							continue;
-						}
-						break;
-					}
-					*pos = 0;
-					newNeedle = ++pos;
-					for (;;) {
-						pos = strchr(pos, '/');
-						if (pos == NULL) {
-							usage(sed_usage);
-						}
-						if (*(pos - 1) == '\\') {
-							pos++;
-							continue;
-						}
-						break;
-					}
-					*pos = 0;
-					if (pos + 2 != 0) {
-						while (*++pos) {
-							switch (*pos) {
-							case 'i':
-								ignoreCase = TRUE;
-								break;
-							case 'p':
-								printFlag = TRUE;
-								break;
-							case 'g':
-								break;
-							default:
-								usage(sed_usage);
-							}
-						}
-					}
-					cp = pos;
-					/* fprintf(stderr, "replace '%s' with '%s'\n", needle, newNeedle); */
-					break;
-
-				case 'a':		/* APPEND */
-					if (strlen(cp) < 2)
-						break;
-					sed_f = f_append;
-					appendline = ++cp;
-					/* fprintf(stderr, "append '%s'\n", appendline); */
-					break;
-				}
-
-				stopNow = TRUE;
+				add_cmd_str(optarg);
 				break;
-
-			default:
-				usage(sed_usage);
-			}
-		}
-    }
-
-	if (argc == 0) {
-		switch (sed_f) {
-		case f_none:
-			break;
-		case f_replace:
-			do_sed_repl(stdin, needle, newNeedle, ignoreCase, printFlag,
-						quietFlag);
-			break;
-		case f_append:
-			do_sed_append(stdin, appendline, quietFlag);
-			break;
-		}
-	} else {
-		while (argc-- > 0) {
-			name = *argv++;
-
-			fp = fopen(name, "r");
-			if (fp == NULL) {
-				perror(name);
-				continue;
-			}
-
-			switch (sed_f) {
-			case f_none:
+			case 'f': 
+				load_cmd_file(optarg);
 				break;
-			case f_replace:
-				do_sed_repl(fp, needle, newNeedle, ignoreCase, printFlag,
-							quietFlag);
-				break;
-			case f_append:
-				do_sed_append(fp, appendline, quietFlag);
-				break;
-			}
-
-			if (ferror(fp))
-				perror(name);
-
-			fclose(fp);
 		}
 	}
-	return(TRUE);
+
+	/* if we didn't get a pattern from a -e and no command file was specified,
+	 * argv[optind] should be the pattern. no pattern, no worky */
+	if (ncmds == 0) {
+		if (argv[optind] == NULL)
+			usage(sed_usage);
+		else {
+			add_cmd_str(argv[optind]);
+			optind++;
+		}
+	}
+
+
+	/* argv[(optind)..(argc-1)] should be names of file to process. If no
+	 * files were specified or '-' was specified, take input from stdin.
+	 * Otherwise, we process all the files specified. */
+	if (argv[optind] == NULL || (strcmp(argv[optind], "-") == 0)) {
+		process_file(stdin);
+	}
+	else {
+		int i;
+		FILE *file;
+		for (i = optind; i < argc; i++) {
+			file = fopen(argv[i], "r");
+			if (file == NULL) {
+				fprintf(stderr, "sed: %s: %s\n", argv[i], strerror(errno));
+			} else {
+				process_file(file);
+				fclose(file);
+			}
+		}
+	}
+	
+	exit_sed(0, NULL);
+
+	/* not reached */
+	return 0;
 }
 
-
-/* END CODE */
+#ifdef TEST_SED
+int main(int argc, char **argv)
+{
+	return sed_main(argc, argv);
+}
+#endif
