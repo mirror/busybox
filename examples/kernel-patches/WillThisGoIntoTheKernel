@@ -1,3 +1,14 @@
+I have been asked several times whether the devps patch will go into the
+mainline Linux kernel.  The following emails from Alan Cox and Linux Torvalds
+make it clear that it is not going to happen.  This does not mean this patch
+had no value -- it does.  It just means that those that like it get to apply it
+themselves...
+
+ -Erik
+
+
+-------------------------------
+
 From alan@lxorguk.ukuu.org.uk  Thu Apr 13 08:07:22 2000
 Return-Path: <alan@lxorguk.ukuu.org.uk>
 Delivered-To: andersen@dillweed.dsl.xmission.com
