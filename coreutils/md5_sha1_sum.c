@@ -47,49 +47,15 @@ static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
 	return (hex_value);
 }
 
-static uint8_t *hash_file(const char *filename, uint8_t hash_algo)
-{
-	uint8_t *hash_value_bin;
-	uint8_t *hash_value = NULL;
-	uint8_t hash_length;
-	int src_fd;
-
-	if (strcmp(filename, "-") == 0) {
-		src_fd = fileno(stdin);
-	} else {
-		src_fd = open(filename, O_RDONLY);
-	}
-
-	if (hash_algo == HASH_MD5) {
-		hash_length = 16;
-	} else {
-		hash_length = 20;
-	}
-
-	hash_value_bin = xmalloc(hash_length);
-
-	if ((src_fd != -1) && (hash_fd(src_fd, -1, hash_algo, hash_value_bin) != -2)) {
-		hash_value = hash_bin_to_hex(hash_value_bin, hash_length);
-	} else {
-		bb_perror_msg("%s", filename);
-	}
-
-	close(src_fd);
-
-	return(hash_value);
-}
-
 /* This could become a common function for md5 as well, by using md5_stream */
 extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
 {
-	uint8_t *hash_value;
-	unsigned int flags;
 	int return_value = EXIT_SUCCESS;
 
 #ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
+	unsigned int flags;
+
 	flags = bb_getopt_ulflags(argc, argv, "scw");
-#else
-	flags = bb_getopt_ulflags(argc, argv, "s");
 #endif
 
 #ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
@@ -162,21 +128,47 @@ extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
 		}
 	} else
 #endif
-		while (optind < argc) {
-			unsigned char *file_ptr = argv[optind];
+	{
+		uint8_t *hash_value_bin;
+		uint8_t hash_length;
 
-			optind++;
-			
-			hash_value = hash_file(file_ptr, hash_algo);
+		if (hash_algo == HASH_MD5) {
+			hash_length = 16;
+		} else {
+			hash_length = 20;
+		}
+		hash_value_bin = xmalloc(hash_length);
+
+		while (optind < argc) {
+			unsigned char *file_ptr = argv[optind++];
+			uint8_t *hash_value;
+			int src_fd;
+
+			if ((file_ptr[0] == '-') && (file_ptr[1] == '\0')) {
+				src_fd = fileno(stdin);
+			} else {
+				src_fd = open(file_ptr, O_RDONLY);
+			}
+
+			if ((src_fd != -1) && (hash_fd(src_fd, -1, hash_algo, hash_value_bin) != -2)) {
+				hash_value = hash_bin_to_hex(hash_value_bin, hash_length);
+			} else {
+				bb_perror_msg("%s", file_ptr);
+				continue;
+			}
+			close(src_fd);
+
 			if (hash_value == NULL) {
 				return_value++;
-			}
-			else if (!flags & FLAG_SILENT) {
-				printf("%s  %s\n", hash_value, file_ptr);
+			} else {
+#ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
+				if (!flags & FLAG_SILENT)
+#endif
+					printf("%s  %s\n", hash_value, file_ptr);
 				free(hash_value);
 			}
 		}
-
+	}
 	return (return_value);
 }
 
