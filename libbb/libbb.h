@@ -190,6 +190,7 @@ struct sysinfo {
 	unsigned long totalswap;	/* Total swap space size */
 	unsigned long freeswap;		/* swap space still available */
 	unsigned short procs;		/* Number of current processes */
+	unsigned short pad;			/* Padding needed for m68k */
 	unsigned long totalhigh;	/* Total high memory size */
 	unsigned long freehigh;		/* Available high memory size */
 	unsigned int mem_unit;		/* Memory unit size in bytes */
