@@ -93,7 +93,6 @@ ln -s /proc/mounts $TARGET_DIR/etc/mtab
 # other miscellaneous setup
 mkdir $TARGET_DIR/initrd
 mkdir $TARGET_DIR/proc
-$UCLIBC_DIR/ld.so-1/util/ldconfig -r $TARGET_DIR
 
 
 # Done. Maybe do cleanup.
