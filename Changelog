@@ -42,6 +42,7 @@
 		the same, and prints an error (instead of endlessly looping).
 	    - mv now attempts to do a rename, and will fall back to doing
 		a copy only if the rename fails.
+	    - Syslogd now supports multiple concurrent connections
 	* Several fixes from Pavel Roskin <pavel_roskin@geocities.com>:
 	    - Fixes to sort.  Removed "-g", fixed and added "-r"
 	    - Fixes to the makefile for handling "strip"
@@ -56,6 +57,7 @@
 	    the common error handling saves a few bytes.  Thanks to 
 	    Bob Tinsley <bob@earthrise.demon.co.uk> for the patch.
 	* Fix "+" parsing bug in date, from "Merle F. McClelland" <mfm@cts.com>.
+	    
 
 
 	-Erik Andersen

@@ -122,6 +122,12 @@
 // at the same time...
 #define BB_FEATURE_USE_PROCFS
 //
+// Enable full regular expressions.  This adds about 
+// 4k.  When this is off, things that would normally
+// use regualr expressions (like grep) will just use
+// normal strings.
+#define BB_FEATURE_FULL_REGULAR_EXPRESSIONS
+//
 // Use termios to manipulate the screen ('more' is prettier with this on)
 #define BB_FEATURE_USE_TERMIOS
 //
@@ -146,6 +152,17 @@
 //Enable init being called as /linuxrc
 //#define BB_FEATURE_LINUXRC
 //
+//Have init enable core dumping for child processed (for debugging only) 
+//#define BB_FEATURE_INIT_COREDUMPS
+//
+// Allow init to permenently chroot, and umount the old root fs
+// just like an initrd does.  Requires a kernel patch by Werner Almesberger. 
+// ftp://icaftp.epfl.ch/pub/people/almesber/misc/umount-root-*.tar.gz
+//#define BB_FEATURE_INIT_CHROOT
+//
+//Make sure nothing is printed to the console on boot
+#define BB_FEATURE_EXTRA_QUIET
+//
 //Simple tail implementation (2k vs 6k for the full one).  Still
 //provides 'tail -f' support -- but for only one file at a time.
 #define BB_FEATURE_SIMPLE_TAIL
@@ -156,7 +173,6 @@
 // Enable support for a real /etc/mtab file instead of /proc/mounts
 //#define BB_FEATURE_MOUNT_MTAB_SUPPORT
 //
-//
 // Enable support for remounting filesystems
 #define BB_FEATURE_REMOUNT
 //
@@ -166,24 +182,8 @@
 //// Enable reverse sort
 //#define BB_FEATURE_SORT_REVERSE
 //
-// Allow init to permenently chroot, and umount the old root fs
-// just like an initrd does.  Requires a kernel patch by Werner Almesberger. 
-// ftp://icaftp.epfl.ch/pub/people/almesber/misc/umount-root-*.tar.gz
-//#define BB_FEATURE_INIT_CHROOT
-//
-//Make sure nothing is printed to the console on boot
-#define BB_FEATURE_EXTRA_QUIET
-//
-// Enable full regular expressions.  This adds about 
-// 4k.  When this is off, things that would normally
-// use regualr expressions (like grep) will just use
-// normal strings.
-#define BB_FEATURE_FULL_REGULAR_EXPRESSIONS
-//
-//
 // Enable command line editing in the shell
 #define BB_FEATURE_SH_COMMAND_EDITING
-//
 //
 //Turn on extra fbset options
 //#define BB_FEATURE_FBSET_FANCY

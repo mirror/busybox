@@ -55,13 +55,17 @@
 #include <unistd.h>
 
 
+#if defined BB_FEATURE_INIT_COREDUMPS
 /*
- * When CORE_ENABLE_FLAG_FILE exists, setrlimit is called before
- * process is spawned to set corelimit to unlimited.
+ * When a file named CORE_ENABLE_FLAG_FILE exists, setrlimit is called 
+ * before processes are spawned to set core file size as unlimited.
+ * This is for debugging only.  Don't use this is production, unless
+ * you want core dumps lying about....
  */
 #define CORE_ENABLE_FLAG_FILE "/.init_enable_core"
 #include <sys/resource.h>
 #include <sys/time.h>
+#endif
 
 #ifndef KERNEL_VERSION
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
@@ -415,6 +419,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 			cmd[i] = NULL;
 		}
 
+#if defined BB_FEATURE_INIT_COREDUMPS
 		{
 			struct stat sb;
 			if (stat (CORE_ENABLE_FLAG_FILE, &sb) == 0) {
@@ -424,6 +429,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 				setrlimit(RLIMIT_CORE, &limit);
 			}
 		}
+#endif
 
 		/* Now run it.  The new program will take over this PID, 
 		 * so nothing further in init.c should be run. */
