@@ -124,7 +124,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.59 2001/04/25 17:22:32 andersen Exp $"
+#ident "$Id: insmod.c,v 1.60 2001/04/26 19:29:58 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -330,7 +330,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.59 2001/04/25 17:22:32 andersen Exp $"
+#ident "$Id: insmod.c,v 1.60 2001/04/26 19:29:58 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -1536,7 +1536,9 @@ struct obj_section *obj_create_alloced_section_first(struct obj_file *f,
 void *obj_extend_section(struct obj_section *sec, unsigned long more)
 {
 	unsigned long oldsize = sec->header.sh_size;
-	sec->contents = xrealloc(sec->contents, sec->header.sh_size += more);
+	if (more) { 
+		sec->contents = xrealloc(sec->contents, sec->header.sh_size += more);
+	}
 	return sec->contents + oldsize;
 }
 
@@ -2474,6 +2476,9 @@ new_init_module(const char *m_name, struct obj_file *f,
 	tgt_long m_addr;
 
 	sec = obj_find_section(f, ".this");
+	if (!sec || !sec->contents) { 
+		perror_msg_and_die("corrupt module %s?",m_name);
+	}
 	module = (struct new_module *) sec->contents;
 	m_addr = sec->header.sh_addr;
 
