@@ -332,6 +332,8 @@
 #ifndef BB_GUNZIP
 #define BB_GUNZIP
 #endif
+#endif
+#endif
 //
 #if defined BB_MOUNT && defined BB_FEATURE_NFSMOUNT
 #define BB_NFSMOUNT
