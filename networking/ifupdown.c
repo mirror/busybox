@@ -35,8 +35,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "busybox.h"
-#include "config.h"
+#include "libbb.h"
+//#include "busybox.h"
+//#include "config.h"
 
 #define IFUPDOWN_VERSION "0.6.4"
 
@@ -1020,7 +1021,7 @@ static int doit(char *str)
 static int execute_all(interface_defn *ifd, execfn *exec, const char *opt)
 {
 	int i;
-//	char buf[100];
+	char *buf;
 
 	for (i = 0; i < ifd->n_options; i++) {
 		if (strcmp(ifd->option[i].name, opt) == 0) {
@@ -1030,10 +1031,10 @@ static int execute_all(interface_defn *ifd, execfn *exec, const char *opt)
 		}
 	}
 
-	runparts("/etc/network/if-"opt".d");
-//	sprintf(buf, "run-parts /etc/network/if-%s.d", opt);
-//	(*exec) (buf);
-
+	buf = xmalloc(xstrlen(opt) + 19);
+	sprintf(buf, "/etc/network/if-%s.d", opt);
+	run_parts(&buf, 0);
+	free(buf);
 	return (1);
 }
 
