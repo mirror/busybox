@@ -25,9 +25,10 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <resolv.h>
-#include "./linux/pkt_sched.h"
 
+#include "./linux/pkt_sched.h"
 #include "utils.h"
+#include "libbb.h"
 
 int get_integer(int *val, char *arg, int base)
 {
@@ -216,16 +217,10 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 int get_addr(inet_prefix * dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
-		fprintf(stderr,
-				"Error: \"%s\" may be inet address, but it is not allowed in this context.\n",
-				arg);
-		exit(1);
+		error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context.", arg);
 	}
 	if (get_addr_1(dst, arg, family)) {
-		fprintf(stderr,
-				"Error: an inet address is expected rather than \"%s\".\n",
-				arg);
-		exit(1);
+		error_msg_and_die("an inet address is expected rather than \"%s\".", arg);
 	}
 	return 0;
 }
@@ -233,16 +228,10 @@ int get_addr(inet_prefix * dst, char *arg, int family)
 int get_prefix(inet_prefix * dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
-		fprintf(stderr,
-				"Error: \"%s\" may be inet prefix, but it is not allowed in this context.\n",
-				arg);
-		exit(1);
+		error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context.", arg);
 	}
 	if (get_prefix_1(dst, arg, family)) {
-		fprintf(stderr,
-				"Error: an inet prefix is expected rather than \"%s\".\n",
-				arg);
-		exit(1);
+		error_msg_and_die("an inet address is expected rather than \"%s\".", arg);
 	}
 	return 0;
 }
@@ -252,38 +241,32 @@ __u32 get_addr32(char *name)
 	inet_prefix addr;
 
 	if (get_addr_1(&addr, name, AF_INET)) {
-		fprintf(stderr,
-				"Error: an IP address is expected rather than \"%s\"\n",
-				name);
-		exit(1);
+		error_msg_and_die("an IP address is expected rather than \"%s\"", name);
 	}
 	return addr.data[0];
 }
 
 void incomplete_command()
 {
-	fprintf(stderr, "Command line is not complete. Try option \"help\"\n");
+	error_msg("Command line is not complete. Try option \"help\"");
 	exit(-1);
 }
 
 void invarg(char *msg, char *arg)
 {
-	fprintf(stderr, "Error: argument \"%s\" is wrong: %s\n", arg, msg);
+	error_msg("argument \"%s\" is wrong: %s", arg, msg);
 	exit(-1);
 }
 
 void duparg(char *key, char *arg)
 {
-	fprintf(stderr, "Error: duplicate \"%s\": \"%s\" is the second value.\n",
-			key, arg);
+	error_msg("duplicate \"%s\": \"%s\" is the second value.", key, arg);
 	exit(-1);
 }
 
 void duparg2(char *key, char *arg)
 {
-	fprintf(stderr,
-			"Error: either \"%s\" is duplicate, or \"%s\" is a garbage.\n",
-			key, arg);
+	error_msg("either \"%s\" is duplicate, or \"%s\" is a garbage.", key, arg);
 	exit(-1);
 }
 
@@ -291,8 +274,9 @@ int matches(char *cmd, char *pattern)
 {
 	int len = strlen(cmd);
 
-	if (len > strlen(pattern))
+	if (len > strlen(pattern)) {
 		return -1;
+	}
 	return memcmp(pattern, cmd, len);
 }
 
