@@ -176,14 +176,31 @@ config CONFIG_IFUPDOWN
 	bool "ifupdown"
 	default n
 	help
-	  Activate or deactivate the specified interface.
+	  Activate or deactivate the specified interfaces.  This applet makes
+	  use of either "ifconfig" and "route" or the "ip" command to actually
+	  configure network interfaces.  Therefore, you will probably also want
+	  to enable either CONFIG_IFCONFIG and CONFIG_ROUTE, or enable
+	  CONFIG_FEATURE_IFUPDOWN_IP and the various CONFIG_IP options.  Of
+	  course you could use non-busybox versions of these programs, so
+	  against my better judgement (since this will surely result in plenty
+	  of support questions on the mailing list), I do not force you to
+	  enable these additional options.  It is up to you to supply either
+	  "ifconfig" and "route" or the "ip" command, either via busybox or via
+	  standalone utilities.
 
+# I really should force these to be enabled
+#    && CONFIG_IP && CONFIG_FEATURE_IP_ADDRESS && CONFIG_FEATURE_IP_LINK && CONFIG_FEATURE_IP_ROUTE
+# but then people could not use the full-blown iproute2 program...
 config CONFIG_FEATURE_IFUPDOWN_IP
 	bool "  Use ip applet"
 	default n
-	depends on CONFIG_IFUPDOWN && CONFIG_IP && CONFIG_FEATURE_IP_ADDRESS && CONFIG_FEATURE_IP_LINK && CONFIG_FEATURE_IP_ROUTE
+	depends on CONFIG_IFUPDOWN 
 	help
-	  Use "ip" in "ifupdown".
+	  Use the iproute "ip" command to implement "ifupdown".  You will
+	  probably want to also enable CONFIG_IP, CONFIG_FEATURE_IP_ADDRESS,
+	  CONFIG_FEATURE_IP_LINK, and CONFIG_FEATURE_IP_ROUTE.  Of course
+	  if you wanted to use the full-blown iproute2 program you could
+	  leave the the busybox CONFIG_IP* options disabled.
 
 config CONFIG_FEATURE_IFUPDOWN_IPV4
 	bool "  Enable support for IPv4"
