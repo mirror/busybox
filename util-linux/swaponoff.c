@@ -39,13 +39,13 @@ extern int swapoff (__const char *__path);
 
 #include "busybox.h"
 
-static int whichApp;
+static int whichApp;    /* default SWAPON_APP */
 
-static const int SWAPON_APP = 1;
-static const int SWAPOFF_APP = 2;
+static const int SWAPON_APP = 0;
+static const int SWAPOFF_APP = 1;
 
 
-static void swap_enable_disable(char *device)
+static int swap_enable_disable(const char *device)
 {
 	int status;
 
@@ -54,32 +54,35 @@ static void swap_enable_disable(char *device)
 	else
 		status = swapoff(device);
 
-	if (status != 0)
-		perror_msg_and_die(applet_name);
+	if (status != 0) {
+		perror_msg("%s", device);
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
 }
 
-static void do_em_all(void)
+static int do_em_all(void)
 {
 	struct mntent *m;
 	FILE *f = setmntent("/etc/fstab", "r");
+	int err = 0;
 
 	if (f == NULL)
 		perror_msg_and_die("/etc/fstab");
 	while ((m = getmntent(f)) != NULL) {
 		if (strcmp(m->mnt_type, MNTTYPE_SWAP)==0) {
-			swap_enable_disable(m->mnt_fsname);
+			if(swap_enable_disable(m->mnt_fsname) == EXIT_FAILURE)
+				err++;
 		}
 	}
 	endmntent(f);
-	exit(EXIT_SUCCESS);
+	return err;
 }
 
 
 extern int swap_on_off_main(int argc, char **argv)
 {
-	if (strcmp(applet_name, "swapon") == 0) {
-		whichApp = SWAPON_APP;
-	} else {
+	if (applet_name[5] == 'f') { /* "swapoff" */
 		whichApp = SWAPOFF_APP;
 	}
 
@@ -100,14 +103,13 @@ extern int swap_on_off_main(int argc, char **argv)
 					if (stat("/etc/fstab", &statBuf) < 0)
 						error_msg_and_die("/etc/fstab file missing");
 				}
-				do_em_all();
+				return do_em_all();
 				break;
 			default:
 				goto usage_and_exit;
 			}
 	}
-	swap_enable_disable(*argv);
-	return EXIT_SUCCESS;
+	return swap_enable_disable(*argv);
 
   usage_and_exit:
 	show_usage();
