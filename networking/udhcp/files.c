@@ -71,83 +71,84 @@ static int read_yn(const char *line, void *arg)
 /* read a dhcp option and add it to opt_list */
 static int read_opt(const char *const_line, void *arg)
 {
-    char line[READ_CONFIG_BUF_SIZE];
+	char line[READ_CONFIG_BUF_SIZE];
 	struct option_set **opt_list = arg;
 	char *opt, *val, *endptr;
-    struct dhcp_option *option;
-    int retval = 0, length;
-    char buffer[256];                       /* max opt length */
+	struct dhcp_option *option;
+	int retval = 0, length;
+	char buffer[256];                       /* max opt length */
 	u_int16_t result_u16;
 	u_int32_t result_u32;
-    void *valptr;
+	void *valptr;
 	
-    if ((opt = strtok(strcpy(line, const_line), " \t="))) {
+	if (!(opt = strtok(strcpy(line, const_line), " \t="))) return 0;
 		
 	for (option = dhcp_options; option->code; option++)
 		if (!strcasecmp(option->name, opt))
 			break;
 	
-	if (option->code) do {
+	if (!option->code) return 0;
+
+	do {
 		val = strtok(NULL, ", \t");
 		if(!val)
 			break;
-			length = option_lengths[option->flags & TYPE_MASK];
+		length = option_lengths[option->flags & TYPE_MASK];
 		valptr = NULL;
-			switch (option->flags & TYPE_MASK) {
-			case OPTION_IP:
-				retval = read_ip(val, buffer);
-				break;
-			case OPTION_IP_PAIR:
-				retval = read_ip(val, buffer);
-				if (!(val = strtok(NULL, ", \t/-"))) retval = 0;
-				if (retval) retval = read_ip(val, buffer + 4);
-				break;
-			case OPTION_STRING:
-				length = strlen(val);
-				if (length > 0) {
-					if (length > 254) length = 254;
+		switch (option->flags & TYPE_MASK) {
+		case OPTION_IP:
+			retval = read_ip(val, buffer);
+			break;
+		case OPTION_IP_PAIR:
+			retval = read_ip(val, buffer);
+			if (!(val = strtok(NULL, ", \t/-"))) retval = 0;
+			if (retval) retval = read_ip(val, buffer + 4);
+			break;
+		case OPTION_STRING:
+			length = strlen(val);
+			if (length > 0) {
+				if (length > 254) length = 254;
 				endptr = buffer + length;
 				endptr[0] = 0;
 				valptr = val;
-				}
-				break;
-			case OPTION_BOOLEAN:
-				retval = read_yn(val, buffer);
-				break;
-			case OPTION_U8:
-				buffer[0] = strtoul(val, &endptr, 0);
-			valptr = buffer;
-				break;
-			case OPTION_U16:
-				result_u16 = htons(strtoul(val, &endptr, 0));
-			valptr = &result_u16;
-				break;
-			case OPTION_S16:
-				result_u16 = htons(strtol(val, &endptr, 0));
-			valptr = &result_u16;
-				break;
-			case OPTION_U32:
-				result_u32 = htonl(strtoul(val, &endptr, 0));
-			valptr = &result_u32;
-				break;
-			case OPTION_S32:
-				result_u32 = htonl(strtol(val, &endptr, 0));	
-			valptr = &result_u32;
-				break;
-			default:
-			retval = 0;
-				break;
 			}
-		if(valptr) {
+			break;
+		case OPTION_BOOLEAN:
+			retval = read_yn(val, buffer);
+			break;
+		case OPTION_U8:
+			buffer[0] = strtoul(val, &endptr, 0);
+			valptr = buffer;
+			break;
+		case OPTION_U16:
+			result_u16 = htons(strtoul(val, &endptr, 0));
+			valptr = &result_u16;
+			break;
+		case OPTION_S16:
+			result_u16 = htons(strtol(val, &endptr, 0));
+			valptr = &result_u16;
+			break;
+		case OPTION_U32:
+			result_u32 = htonl(strtoul(val, &endptr, 0));
+			valptr = &result_u32;
+			break;
+		case OPTION_S32:
+			result_u32 = htonl(strtol(val, &endptr, 0));	
+			valptr = &result_u32;
+			break;
+		default:
+			retval = 0;
+			break;
+		}
+		if (valptr) {
 			memcpy(buffer, valptr, length);
 			retval = (endptr[0] == '\0');
 		}
-			if (retval) 
-				attach_option(opt_list, option, buffer, length);
+		if (retval) 
+			attach_option(opt_list, option, buffer, length);
 		else
 			break;
 	} while (option->flags & OPTION_LIST);
-    }
 	return retval;
 }
 
