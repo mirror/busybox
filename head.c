@@ -22,7 +22,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <errno.h>
 #include <stdio.h>
 
@@ -100,4 +100,4 @@ int head_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: head.c,v 1.13 2000/07/16 20:57:15 kraai Exp $ */
+/* $Id: head.c,v 1.14 2000/09/25 21:45:57 andersen Exp $ */

@@ -21,7 +21,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -170,4 +170,4 @@ int nslookup_main(int argc, char **argv)
 	return( TRUE);
 }
 
-/* $Id: nslookup.c,v 1.11 2000/07/16 20:57:15 kraai Exp $ */
+/* $Id: nslookup.c,v 1.12 2000/09/25 21:45:58 andersen Exp $ */

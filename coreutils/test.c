@@ -31,7 +31,7 @@
  * 	"This program is in the Public Domain."
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <sys/types.h>
 #include <unistd.h>
 #include <ctype.h>

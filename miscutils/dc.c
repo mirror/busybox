@@ -1,5 +1,5 @@
 /* vi: set sw=4 ts=4: */
-#include "internal.h"
+#include "busybox.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

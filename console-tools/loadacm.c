@@ -7,7 +7,7 @@
  * Peter Novodvorsky <petya@logic.ru>
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>

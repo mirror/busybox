@@ -26,7 +26,7 @@
 #include <regex.h>
 #include <string.h> /* for strerror() */
 #include <errno.h>
-#include "internal.h"
+#include "busybox.h"
 
 extern int optind; /* in unistd.h */
 extern int errno;  /* for use with strerror() */

@@ -32,6 +32,7 @@
 	* Fixed chmod option parsing so things like 'chmod -r /tmp/file'
 	    now work (previously it thought -r was an option).  Doh!
 	* Fixed tar handling of stdin and stdout
+	* Renamed "internal.h" to the more sensible "busybox.h"
 	* Preliminary support for GNU HURD.
 	* Tons of other bugfixes.
 

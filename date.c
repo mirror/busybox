@@ -20,7 +20,7 @@
  *
 */
 
-#include "internal.h"
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_invalid_date
 #define bb_need_memory_exhausted

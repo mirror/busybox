@@ -177,7 +177,7 @@ busybox.links: Config.h
 	- ./busybox.mkll | sort >$@
 
 nfsmount.o cmdedit.o: %.o: %.h
-$(OBJECTS): %.o: Config.h internal.h  %.c Makefile
+$(OBJECTS): %.o: Config.h busybox.h  %.c Makefile
 
 utility.o: loop.h
 

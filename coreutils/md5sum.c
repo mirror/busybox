@@ -20,7 +20,7 @@
 /* Written by Ulrich Drepper <drepper@gnu.ai.mit.edu> */
 /* Hacked to work with BusyBox by Alfred M. Szmidt <ams@trillian.itslinux.org> */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
@@ -66,7 +66,7 @@ extern _IO_ssize_t getline __P ((char **, size_t *, FILE *));
 #include <string.h>
 #include <endian.h>
 
-#include "internal.h"
+#include "busybox.h"
 //----------------------------------------------------------------------------
 //--------md5.h
 //----------------------------------------------------------------------------

@@ -43,7 +43,7 @@
  *	
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>

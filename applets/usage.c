@@ -1,4 +1,4 @@
-#include "internal.h"
+#include "busybox.h"
 
 #if defined BB_AR
 const char ar_usage[] =

@@ -51,7 +51,7 @@
 
 /* Reworked to GNU style by Ian Lance Taylor, ian@airs.com, August 93.  */
 
-#include "internal.h"
+#include "busybox.h"
 
 #include <stdio.h>
 #include <errno.h>

@@ -22,7 +22,7 @@
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 
 int unix2dos_main( int argc, char **argv ) {

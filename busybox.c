@@ -1,5 +1,5 @@
 /* vi: set sw=4 ts=4: */
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -369,7 +369,7 @@ const char *applet_name;
 #ifdef BB_FEATURE_INSTALLER
 /* 
  * directory table
- *		this should be consistent w/ the enum, internal.h::Location,
+ *		this should be consistent w/ the enum, busybox.h::Location,
  *		or else...
  */
 static char* install_dir[] = {

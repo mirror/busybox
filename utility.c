@@ -25,7 +25,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #if defined (BB_CHMOD_CHOWN_CHGRP) \
  || defined (BB_CP_MV)		   \
  || defined (BB_FIND)		   \

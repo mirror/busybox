@@ -35,7 +35,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <malloc.h>
-#include "internal.h"
+#include "busybox.h"
 
 #define BLOCK_SIZE 60
 #define PRESERVE_DATE 1	/* preserve original dates */

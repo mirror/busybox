@@ -29,7 +29,7 @@
  */
 
 
-#include "internal.h"
+#include "busybox.h"
 #include <features.h>
 #include <stdio.h>
 #include <fcntl.h>

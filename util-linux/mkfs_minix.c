@@ -62,7 +62,7 @@
  *	removed getopt based parser and added a hand rolled one.
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>

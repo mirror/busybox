@@ -25,7 +25,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_name_too_long
 #define bb_need_omitting_directory

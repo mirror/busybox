@@ -21,7 +21,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <signal.h>
 
 extern int reboot_main(int argc, char **argv)

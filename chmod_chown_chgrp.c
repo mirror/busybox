@@ -22,7 +22,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_invalid_option
 #define bb_need_too_few_args

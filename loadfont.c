@@ -7,7 +7,7 @@
  * Loads the console font, and possibly the corresponding screen map(s).
  * (Adapted for busybox by Matej Vela.)
  */
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>

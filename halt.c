@@ -21,7 +21,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <signal.h>
 
 extern int halt_main(int argc, char **argv)

@@ -21,7 +21,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

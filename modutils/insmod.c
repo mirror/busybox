@@ -36,7 +36,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -77,7 +77,7 @@
 #ifndef MODUTILS_MODULE_H
 #define MODUTILS_MODULE_H 1
 
-#ident "$Id: insmod.c,v 1.24 2000/09/24 03:44:29 andersen Exp $"
+#ident "$Id: insmod.c,v 1.25 2000/09/25 21:45:58 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -283,7 +283,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 #define MODUTILS_OBJ_H 1
 
-#ident "$Id: insmod.c,v 1.24 2000/09/24 03:44:29 andersen Exp $"
+#ident "$Id: insmod.c,v 1.25 2000/09/25 21:45:58 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 

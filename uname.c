@@ -31,7 +31,7 @@
 
 /* Busyboxed by Erik Andersen */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/utsname.h>

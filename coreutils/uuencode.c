@@ -52,7 +52,7 @@
 /* Reworked to GNU style by Ian Lance Taylor, ian@airs.com, August 93.  */
 /* Hacked to work with BusyBox by Alfred M. Szmidt */
 
-#include "internal.h"
+#include "busybox.h"
 
 #include <stdio.h>
 #include <errno.h>

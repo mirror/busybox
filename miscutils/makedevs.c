@@ -7,7 +7,7 @@
  * known bugs: can't deal with alpha ranges
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

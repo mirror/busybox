@@ -28,7 +28,7 @@
  * earlier) kernel. 2.2.x and higher flush filesystem buffers automatically.
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <sys/param.h>
 #include <sys/syslog.h>
 #include <unistd.h> /* for getopt() */

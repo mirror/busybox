@@ -22,7 +22,7 @@
  * Original copyright notice is retained at the end of this file.
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 
 extern int 

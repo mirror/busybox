@@ -86,7 +86,7 @@
  * enforced (but it's not much fun on a character device :-). 
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>

@@ -36,7 +36,7 @@
 //Then just use the string memory_exhausted when it is needed.
 //
 
-#include "internal.h"
+#include "busybox.h"
 #ifndef _BB_MESSAGES_C
 #define _BB_MESSAGES_C
 

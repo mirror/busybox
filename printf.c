@@ -47,7 +47,7 @@
 
 //   19990508 Busy Boxed! Dave Cinege
 
-#include "internal.h"
+#include "busybox.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>

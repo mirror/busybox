@@ -24,7 +24,7 @@
  * Original copyright notice is retained at the end of this file.
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

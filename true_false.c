@@ -22,7 +22,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 
 
 extern int true_main(int argc, char **argv)

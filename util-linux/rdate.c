@@ -21,7 +21,7 @@
  *
 */
 
-#include "internal.h"
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #include "messages.c"
 #include <sys/time.h>

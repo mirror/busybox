@@ -22,7 +22,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -179,4 +179,4 @@ int uniq_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: uniq.c,v 1.13 2000/07/16 20:57:15 kraai Exp $ */
+/* $Id: uniq.c,v 1.14 2000/09/25 21:45:58 andersen Exp $ */

@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.24 2000/09/20 04:33:30 kraai Exp $
+ * $Id: ping.c,v 1.25 2000/09/25 21:45:58 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -31,7 +31,7 @@
  * Original copyright notice is retained at the end of this file.
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/file.h>

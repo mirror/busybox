@@ -24,7 +24,7 @@
  *     Geert Uytterhoeven (Geert.Uytterhoeven@cs.kuleuven.ac.be)
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

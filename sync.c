@@ -21,7 +21,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 
 extern int sync_main(int argc, char **argv)

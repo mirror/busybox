@@ -20,7 +20,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>

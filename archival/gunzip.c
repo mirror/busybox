@@ -27,7 +27,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <getopt.h>
 
 /* These defines are very important for BusyBox.  Without these,

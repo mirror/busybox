@@ -21,7 +21,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 
 extern int cat_main(int argc, char **argv)

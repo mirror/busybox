@@ -22,7 +22,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_name_too_long
 #include "messages.c"
@@ -163,7 +163,7 @@ int du_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: du.c,v 1.24 2000/07/17 16:17:19 proski Exp $ */
+/* $Id: du.c,v 1.25 2000/09/25 21:45:57 andersen Exp $ */
 /*
 Local Variables:
 c-file-style: "linux"

@@ -21,7 +21,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>

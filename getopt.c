@@ -49,7 +49,7 @@
 #include <ctype.h>
 #include <getopt.h>
 
-#include "internal.h"
+#include "busybox.h"
 
 /* NON_OPT is the code that is returned when a non-option is found in '+'
    mode */

@@ -22,7 +22,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <sys/types.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -288,4 +288,4 @@ int sort_main(int argc, char **argv)
 	return(0);
 }
 
-/* $Id: sort.c,v 1.21 2000/09/13 02:46:13 kraai Exp $ */
+/* $Id: sort.c,v 1.22 2000/09/25 21:45:58 andersen Exp $ */

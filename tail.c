@@ -38,7 +38,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <getopt.h>
-#include "internal.h"
+#include "busybox.h"
 
 #define STDIN "standard input"
 #define LINES 0

@@ -36,7 +36,7 @@
  */
 
 
-#include "internal.h"
+#include "busybox.h"
 #define BB_DECLARE_EXTERN
 #define bb_need_io_error
 #define bb_need_name_longer_then_foo

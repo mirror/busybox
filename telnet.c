@@ -31,7 +31,7 @@
  */
 
 
-#include "internal.h"
+#include "busybox.h"
 #include <termios.h>
 #include <unistd.h>
 #include <errno.h>

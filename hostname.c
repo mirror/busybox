@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: hostname.c,v 1.12 2000/07/16 20:57:15 kraai Exp $
+ * $Id: hostname.c,v 1.13 2000/09/25 21:45:57 andersen Exp $
  * Mini hostname implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -23,7 +23,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netdb.h>

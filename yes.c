@@ -20,7 +20,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 
 extern int yes_main(int argc, char **argv)

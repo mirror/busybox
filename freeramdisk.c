@@ -27,7 +27,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <errno.h>
-#include "internal.h"
+#include "busybox.h"
 
 
 /* From linux/fs.h */

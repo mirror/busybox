@@ -49,7 +49,7 @@
 #include <string.h> /* for strdup() */
 #include <errno.h>
 #include <ctype.h> /* for isspace() */
-#include "internal.h"
+#include "busybox.h"
 
 #define bb_need_full_version
 #define BB_DECLARE_EXTERN

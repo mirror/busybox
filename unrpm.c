@@ -13,7 +13,7 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
  
-#include "internal.h" 
+#include "busybox.h" 
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>

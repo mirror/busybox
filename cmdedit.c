@@ -31,7 +31,7 @@
    terminal width. (more then one line.) However, history will.
  */
 
-#include "internal.h"
+#include "busybox.h"
 #ifdef BB_FEATURE_SH_COMMAND_EDITING
 
 #include <stdio.h>

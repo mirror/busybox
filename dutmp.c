@@ -12,7 +12,7 @@
  * Erik Andersen <andersen@lineo.com>
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <sys/types.h>
 #include <fcntl.h>
 

@@ -28,7 +28,7 @@
  */
 
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <time.h>
 #include <errno.h>

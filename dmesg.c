@@ -15,7 +15,7 @@
  * Support, replaced getopt, added some gotos for redundant stuff.
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 

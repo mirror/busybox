@@ -23,7 +23,7 @@
  *
  */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 
 extern int reset_main(int argc, char **argv)

@@ -26,7 +26,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
-#include "internal.h"
+#include "busybox.h"
 
 
 /* globals from other files */

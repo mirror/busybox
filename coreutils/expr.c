@@ -33,7 +33,7 @@
  * One function can handle multiple operators all of equal precedence,
  * provided they all associate ((x op x) op x). */
 
-#include "internal.h"
+#include "busybox.h"
 #include <stdio.h>
 #include <sys/types.h>
 
