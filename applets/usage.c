@@ -243,7 +243,8 @@ const char dos2unix_usage[] =
 
 #if defined BB_DPKG
 const char dpkg_usage[] =
-	"udpkg <-i|-r|--unpack|--configure> my.deb"
+	"udpkg <-i|-r|--unpack|--configure> my.deb\n"
+	"WORK IN PROGRESS, only usefull for debian-installer\n"
 #ifndef BB_FEATURE_TRIVIAL_HELP
 #endif
 	;
@@ -255,7 +256,8 @@ const char dpkg_deb_usage[] =
 #ifndef BB_FEATURE_TRIVIAL_HELP
 	"\n\nPerform actions on debian packages (.debs)\n\n"
 	"Options:\n"
-	"\t-c\tList contents of filesystem tree\n"
+	"\t-c\tList contents of filesystem tree (verbose)\n"
+	"\t-l\tList contents of filesystem tree (.list format)\n"
 	"\t-e\tExtract control files to directory\n"	
 	"\t-x\tExctract packages filesystem tree to directory\n"
 	"\t-X\tVerbose extract"
