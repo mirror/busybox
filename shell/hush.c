@@ -217,11 +217,6 @@ struct pipe {
 	reserved_style r_mode;		/* supports if, for, while, until */
 };
 
-struct jobset {
-	struct pipe *head;			/* head of list of running jobs */
-	struct pipe *fg;			/* current foreground job */
-};
-
 struct close_me {
 	int fd;
 	struct close_me *next;
@@ -253,8 +248,10 @@ static int fake_mode;
 static int interactive;
 static struct close_me *close_me_head;
 static const char *cwd;
-static struct jobset *job_list;
+static struct pipe *job_list;
 static unsigned int last_bg_pid;
+static unsigned int last_jobid;
+static unsigned int ctty;
 static char *PS1;
 static char *PS2;
 struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
@@ -361,10 +358,8 @@ static int free_pipe_list(struct pipe *head, int indent);
 static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
 static int setup_redirects(struct child_prog *prog, int squirrel[]);
-static int pipe_wait(struct pipe *pi);
 static int run_list_real(struct pipe *pi);
 static void pseudo_exec(struct child_prog *child) __attribute__ ((noreturn));
-int controlling_tty(int check_pgrp);
 static int run_pipe_real(struct pipe *pi);
 /*   extended glob support: */
 static int globhack(const char *src, int flags, glob_t *pglob);
@@ -392,7 +387,7 @@ static int parse_stream_outer(struct in_str *inp);
 static int parse_string_outer(const char *s);
 static int parse_file_outer(FILE *f);
 /*   job management: */
-static void checkjobs();
+static int checkjobs(struct pipe* fg_pipe);
 static void insert_bg_job(struct pipe *pi);
 static void remove_bg_job(struct pipe *pi);
 /*     local variable support */
@@ -543,10 +538,12 @@ static int builtin_fg_bg(struct child_prog *child)
 	int i, jobnum;
 	struct pipe *pi=NULL;
 
+	if (!interactive)
+		return EXIT_FAILURE;
 	/* If they gave us no args, assume they want the last backgrounded task */
 	if (!child->argv[1]) {
-		for (pi = job_list->head; pi; pi = pi->next) {
-			if (pi->progs && pi->progs->pid == last_bg_pid) {
+		for (pi = job_list; pi; pi = pi->next) {
+			if (pi->jobid == last_jobid) {
 				break;
 			}
 		}
@@ -560,7 +557,7 @@ static int builtin_fg_bg(struct child_prog *child)
 			return EXIT_FAILURE;
 		}
 
-		for (pi = job_list->head; pi; pi = pi->next) {
+		for (pi = job_list; pi; pi = pi->next) {
 			if (pi->jobid == jobnum) {
 				break;
 			}
@@ -574,10 +571,9 @@ static int builtin_fg_bg(struct child_prog *child)
 		/* Make this job the foreground job */
 		signal(SIGTTOU, SIG_IGN);
 		/* suppress messages when run from /linuxrc mag@sysgo.de */
-		if (tcsetpgrp(0, pi->pgrp) && errno != ENOTTY)
+		if (tcsetpgrp(ctty, pi->pgrp) && errno != ENOTTY)
 			perror_msg("tcsetpgrp-1"); 
 		signal(SIGTTOU, SIG_DFL);
-		job_list->fg = pi;
 	}
 
 	/* Restart the processes in the job */
@@ -612,7 +608,7 @@ static int builtin_jobs(struct child_prog *child)
 	struct pipe *job;
 	char *status_string;
 
-	for (job = job_list->head; job; job = job->next) {
+	for (job = job_list; job; job = job->next) {
 		if (job->running_progs == job->stopped_progs)
 			status_string = "Stopped";
 		else
@@ -1044,27 +1040,6 @@ static void restore_redirects(int squirrel[])
 	}
 }
 
-/* XXX this definitely needs some more thought, work, and
- * cribbing from other shells */
-static int pipe_wait(struct pipe *pi)
-{
-	int rcode=0, i, pid, running, status;
-	running = pi->num_progs;
-	while (running) {
-		pid=waitpid(-1, &status, 0);
-		if (pid < 0) perror_msg_and_die("waitpid");
-		for (i=0; i < pi->num_progs; i++) {
-			if (pi->progs[i].pid == pid) {
-				if (i==pi->num_progs-1) rcode=WEXITSTATUS(status);
-				pi->progs[i].pid = 0;
-				running--;
-				break;
-			}
-		}
-	}
-	return rcode;
-}
-
 /* never returns */
 /* XXX no exit() here.  If you don't exec, use _exit instead.
  * The at_exit handlers apparently confuse the calling process,
@@ -1161,15 +1136,15 @@ static void insert_bg_job(struct pipe *pi)
 
 	/* Linear search for the ID of the job to use */
 	pi->jobid = 1;
-	for (thejob = job_list->head; thejob; thejob = thejob->next)
+	for (thejob = job_list; thejob; thejob = thejob->next)
 		if (thejob->jobid >= pi->jobid)
 			pi->jobid = thejob->jobid + 1;
 
 	/* add thejob to the list of running jobs */
-	if (!job_list->head) {
-		thejob = job_list->head = xmalloc(sizeof(*thejob));
+	if (!job_list) {
+		thejob = job_list= xmalloc(sizeof(*thejob));
 	} else {
-		for (thejob = job_list->head; thejob->next; thejob = thejob->next) /* nothing */;
+		for (thejob = job_list; thejob->next; thejob = thejob->next) /* nothing */;
 		thejob->next = xmalloc(sizeof(*thejob));
 		thejob = thejob->next;
 	}
@@ -1194,17 +1169,18 @@ static void insert_bg_job(struct pipe *pi)
 	   to the list of backgrounded thejobs and leave it alone */
 	printf("[%d] %d\n", thejob->jobid, thejob->progs[0].pid);
 	last_bg_pid = thejob->progs[0].pid;
+	last_jobid = thejob->jobid;
 }
 
-/* remove a backgrounded job from a jobset */
+/* remove a backgrounded job */
 static void remove_bg_job(struct pipe *pi)
 {
 	struct pipe *prev_pipe;
 
-	if (pi == job_list->head) {
-		job_list->head = pi->next;
+	if (pi == job_list) {
+		job_list= pi->next;
 	} else {
-		prev_pipe = job_list->head;
+		prev_pipe = job_list;
 		while (prev_pipe->next != pi)
 			prev_pipe = prev_pipe->next;
 		prev_pipe->next = pi->next;
@@ -1214,17 +1190,35 @@ static void remove_bg_job(struct pipe *pi)
 	free(pi);
 }
 
-/* Checks to see if any background processes have exited -- if they 
+/* Checks to see if any processes have exited -- if they 
    have, figure out why and see if a job has completed */
-static void checkjobs()
+static int checkjobs(struct pipe* fg_pipe)
 {
-	int status, ctty;
+	int attributes;
+	int status;
 	int prognum = 0;
 	struct pipe *pi;
 	pid_t childpid;
 
-	while ((childpid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
-		for (pi = job_list->head; pi; pi = pi->next) {
+	attributes = WUNTRACED;
+	if (fg_pipe==NULL) {
+		attributes |= WNOHANG;
+	}
+
+	while ((childpid = waitpid(-1, &status, attributes)) > 0) {
+		if (fg_pipe) {
+			int i, rcode = 0;
+			for (i=0; i < fg_pipe->num_progs; i++) {
+				if (fg_pipe->progs[i].pid == childpid) {
+					if (i==fg_pipe->num_progs-1)
+						rcode=WEXITSTATUS(status);
+					(fg_pipe->num_progs)--;
+					return(rcode);
+				}
+			}
+		}
+
+		for (pi = job_list; pi; pi = pi->next) {
 			prognum = 0;
 			while (prognum < pi->num_progs &&
 				   pi->progs[prognum].pid != childpid) prognum++;
@@ -1261,10 +1255,9 @@ static void checkjobs()
 		perror_msg("waitpid");
 
 	/* move the shell to the foreground */
-	if (interactive && (ctty=controlling_tty(0))!=-1) {
-		if (tcsetpgrp(ctty, getpgrp()))
-			perror_msg("tcsetpgrp-2");
-	}
+	if (interactive && tcsetpgrp(ctty, getpgid(0)))
+		perror_msg("tcsetpgrp-2");
+	return -1;
 }
 
 /* Figure out our controlling tty, checking in order stderr,
@@ -1272,24 +1265,27 @@ static void checkjobs()
  * we belong to the foreground process group associated with
  * that tty.  The value of ctty is needed in order to call
  * tcsetpgrp(ctty, ...); */
-int controlling_tty(int check_pgrp)
+void controlling_tty(int check_pgrp)
 {
 	pid_t curpgrp;
-	int ctty;
 
 	if ((curpgrp = tcgetpgrp(ctty = 2)) < 0
-		&& (curpgrp = tcgetpgrp(ctty = 0)) < 0
-		&& (curpgrp = tcgetpgrp(ctty = 1)) < 0)
-		return errno = ENOTTY, -1;
+			&& (curpgrp = tcgetpgrp(ctty = 0)) < 0
+			&& (curpgrp = tcgetpgrp(ctty = 1)) < 0)
+		goto ctty_error;
 
-	if (check_pgrp && curpgrp != getpgrp())
-		return errno = EPERM, -1;
+	if (check_pgrp && curpgrp != getpgid(0))
+		goto ctty_error;
 
-	return ctty;
+	return;
+
+ctty_error:
+		ctty = -1;
+		return;
 }
 
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
- * to finish.  See pipe_wait().
+ * to finish.  See checkjobs().
  *
  * return code is normally -1, when the caller has to wait for children
  * to finish to determine the exit status of the pipe.  If the pipe
@@ -1307,20 +1303,13 @@ int controlling_tty(int check_pgrp)
 static int run_pipe_real(struct pipe *pi)
 {
 	int i;
-	int ctty;
 	int nextin, nextout;
 	int pipefds[2];				/* pipefds[0] is for reading */
 	struct child_prog *child;
 	struct built_in_command *x;
 
-	ctty = -1;
 	nextin = 0;
 	pi->pgrp = -1;
-
-	/* Check if we are supposed to run in the foreground */
-	if (interactive && pi->followup!=PIPE_BG) {
-		if ((ctty = controlling_tty(pi->pgrp<0)) < 0) return -1;
-	}
 
 	/* Check if this is a simple builtin (not part of a pipe).
 	 * Builtins within pipes have to fork anyway, and are handled in
@@ -1492,15 +1481,13 @@ static int run_list_real(struct pipe *pi)
 
 			if (interactive) {
 				/* move the new process group into the foreground */
-				/* suppress messages when run from /linuxrc mag@sysgo.de */
-				/* XXX probably this "0" should come from controlling_tty() */
-				if (tcsetpgrp(0, pi->pgrp) && errno != ENOTTY)
+				if (tcsetpgrp(ctty, pi->pgrp) && errno != ENOTTY)
 					perror_msg("tcsetpgrp-3");
-				rcode = pipe_wait(pi);
-				if (tcsetpgrp(0, getpgrp()) && errno != ENOTTY)
+				rcode = checkjobs(pi);
+				if (tcsetpgrp(ctty, getpgid(0)) && errno != ENOTTY)
 					perror_msg("tcsetpgrp-4");
 			} else {
-				rcode = pipe_wait(pi);
+				rcode = checkjobs(pi);
 			}
 			debug_printf("pipe_wait returned %d\n",rcode);
 		}
@@ -1511,7 +1498,7 @@ static int run_list_real(struct pipe *pi)
 		     (rcode!=EXIT_SUCCESS && pi->followup==PIPE_AND) )
 			skip_more_in_this_rmode=rmode;
 	}
-	checkjobs();
+	checkjobs(NULL);
 	return rcode;
 }
 
@@ -2530,29 +2517,10 @@ static int parse_file_outer(FILE *f)
 }
 
 
-/* I think Erik wrote this.  It looks imperfect at best */
-void grab_tty_control(void)
-{
-	pid_t initialpgrp;
-	do {
-		initialpgrp = tcgetpgrp(fileno(stderr));
-		if (initialpgrp < 0) {
-			error_msg("sh: can't access tty; job control disabled\n");
-		}
-		if (initialpgrp == -1)
-			initialpgrp = getpgrp();
-		else if (initialpgrp != getpgrp()) {
-			killpg(initialpgrp, SIGTTIN);
-			continue;
-		}
-	} while (0);
-}
-
 int shell_main(int argc, char **argv)
 {
 	int opt;
 	FILE *input;
-	struct jobset joblist_end = { NULL, NULL };
 	char **e = environ;
 
 	/* XXX what should these be while sourcing /etc/profile? */
@@ -2568,10 +2536,11 @@ int shell_main(int argc, char **argv)
 	interactive = 0;
 	close_me_head = NULL;
 	last_bg_pid = 0;
+	last_jobid = 0;
 
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
-	job_list = &joblist_end;
+	job_list = NULL;
 #ifdef BB_FEATURE_COMMAND_EDITING
 	cmdedit_set_initial_prompt();
 #else
@@ -2594,9 +2563,10 @@ int shell_main(int argc, char **argv)
 	 * don't fight over who gets the foreground */
 	/* don't pay any attention to this signal; it just confuses 
 	   things and isn't really meant for shells anyway */
+	controlling_tty(0);
 	signal(SIGTTOU, SIG_IGN);
 	setpgid(0, getpid());
-	tcsetpgrp(fileno(stderr), getpid());
+	tcsetpgrp(ctty, getpid());
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("\nsourcing /etc/profile\n");
@@ -2650,7 +2620,6 @@ int shell_main(int argc, char **argv)
 	if (interactive) {
 		/* Looks like they want an interactive shell */
 		fprintf(stdout, "\nhush -- the humble shell v0.01 (testing)\n\n");
-		grab_tty_control();
 	}
 	if (argv[optind]==NULL) {
 		opt=parse_file_outer(stdin);
