@@ -1014,6 +1014,8 @@ static void process_file(FILE * file)
 						} else {
 							sed_cmd = branch_to(sed_cmd->label);
 						}
+						/* Reset the substitution flag */
+						substituted = 0;
 					}
 					break;
 				case 'y':{
