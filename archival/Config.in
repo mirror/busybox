@@ -193,6 +193,14 @@ config CONFIG_FEATURE_TAR_GZIP
 	  If you enable this option tar will be able to call gzip,
 	  when creating or extracting tar gziped archives.
 
+config CONFIG_FEATURE_TAR_COMPRESS
+	bool "  Enable -Z option"
+	default n
+	depends on CONFIG_TAR
+	help
+	  If you enable this option tar will be able to call uncompress,
+	  when extracting .tar.Z archives.
+
 config CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
 	bool "  Enable support for old tar header format"
 	default N

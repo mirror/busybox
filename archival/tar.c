@@ -594,8 +594,27 @@ static llist_t *append_file_list_to_list(llist_t *list)
 }
 #endif
 
+#ifdef CONFIG_FEATURE_TAR_COMPRESS
+static char get_header_tar_Z(archive_handle_t *archive_handle)
+{
+	/* Cant lseek over pipe's */
+	archive_handle->seek = seek_by_char;
 
-static const char tar_options[]="ctxjT:X:C:f:Opvzk";
+	/* do the decompression, and cleanup */
+	if ((bb_xread_char(archive_handle->src_fd) != 0x1f) || (bb_xread_char(archive_handle->src_fd) != 0x9d)) {
+		bb_error_msg_and_die("Invalid magic");
+	}
+
+	archive_handle->src_fd = open_transformer(archive_handle->src_fd, uncompress);
+	archive_handle->offset = 0;
+	while (get_header_tar(archive_handle) == EXIT_SUCCESS);
+
+	/* Can only do one file at a time */
+	return(EXIT_FAILURE);
+}
+#endif
+
+static const char tar_options[]="ctxjT:X:C:f:OpvzkZ";
 
 #define CTX_CREATE	1
 #define CTX_TEST	2
@@ -610,6 +629,7 @@ static const char tar_options[]="ctxjT:X:C:f:Opvzk";
 #define TAR_OPT_VERBOSE  1024
 #define TAR_OPT_GZIP     2048
 #define TAR_OPT_KEEP_OLD	4096
+#define TAR_OPT_UNCOMPRESS	8192
 
 int tar_main(int argc, char **argv)
 {
@@ -686,6 +706,13 @@ int tar_main(int argc, char **argv)
 	if(opt & TAR_OPT_BZIP2) {
 #ifdef CONFIG_FEATURE_TAR_BZIP2
 		get_header_ptr = get_header_tar_bz2;
+#else
+		bb_show_usage();
+#endif
+	}
+	if(opt & TAR_OPT_UNCOMPRESS) {
+#ifdef CONFIG_FEATURE_TAR_COMPRESS
+		get_header_ptr = get_header_tar_Z;
 #else
 		bb_show_usage();
 #endif

@@ -1,8 +1,6 @@
 #include "config.h"
 #include "libbb.h"
 
-#if defined CONFIG_UNCOMPRESS || defined CONFIG_FEATURE_GUNZIP_UNCOMPRESS
-
 /* uncompress for busybox -- (c) 2002 Robert Griebl
  *
  * based on the original compress42.c source 
@@ -293,6 +291,3 @@ extern int uncompress(int fd_in, int fd_out)
 
 	return 0;
 }
-
-
-#endif
