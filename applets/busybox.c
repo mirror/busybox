@@ -225,6 +225,9 @@ static const struct Applet applets[] = {
 #ifdef BB_UMOUNT		//bin
     {"umount",  umount_main},
 #endif
+#ifdef BB_UNIQ			//bin
+    {"uniq", uniq_main},
+#endif
 #ifdef BB_UPDATE		//sbin
     {"update", update_main},
 #endif

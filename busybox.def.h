@@ -75,6 +75,7 @@
 #define BB_TOUCH
 #define BB_TRUE_FALSE
 #define BB_UMOUNT
+#define BB_UNIQ
 #define BB_UPDATE
 #define BB_UNAME
 #define BB_GZIP
