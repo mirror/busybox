@@ -105,6 +105,7 @@ static void perform_renew(void)
 		state = INIT_SELECTING;
 		break;
 	case INIT_SELECTING:
+		break;
 	}
 
 	/* start things over */
