@@ -632,7 +632,7 @@ static void close_all()
 {
 	struct close_me *c;
 	for (c=close_me_head; c; c=c->next) {
-		close(c->fd);
+		mark_closed(c->fd);
 	}
 	close_me_head = NULL;
 }
