@@ -30,7 +30,7 @@ Depends: ${shlibs:Depends}
 Conflicts: busybox
 Replaces: busybox
 Section: shells
-Description: Provides a stand alone rescue shell with tons of builtin utilities. 
+Description: Standalone rescue shell with tons of builtin utilities. 
  BusyBox combines tiny versions of many common UNIX utilities into a single
  small executable. It provides minimalist replacements for the most common
  utilities you would usually find on your desktop system (i.e., ls, cp, mv,
