@@ -162,7 +162,7 @@ OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer
 
 ifeq ($(strip $(DOLFS)),true)
     # For large file summit support
-    CFLAGS+=-D_FILE_OFFSET_BITS=64 -D__USE_FILE_OFFSET64
+    CFLAGS+=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 endif
 ifeq ($(strip $(DODMALLOC)),true)
     # For testing mem leaks with dmalloc
