@@ -217,7 +217,7 @@ int version_compare_part(const char *version1, const char *version2)
 	if (version1 == NULL) {
 		version1 = xstrdup("");
 	}
-	if (version2 != NULL) {
+	if (version2 == NULL) {
 		version2 = xstrdup("");
 	}
 	upstream_len1 = strlen(version1);
