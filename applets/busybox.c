@@ -10,30 +10,6 @@
 
 static int been_there_done_that = 0;
 
-/* It has been alledged that doing such things can
- * help reduce binary size when staticly linking,
- * of course with glibc, this is unlikely as long
- * as we use things like printf -- perhaps a printf
- * replacement may be in order 
- */
-#if 0
-void exit(int status) __attribute__ ((noreturn));
-void exit(int status)
-{
-	_exit(status);
-};
-void abort(void) __attribute__ ((__noreturn__));
-void abort(void)
-{
-	_exit(0);
-};
-int atexit(void (*__func) (void))
-{
-	_exit(0);
-};
-void *__libc_stack_end;
-#endif
-
 const struct BB_applet applets[] = {
 
 #ifdef BB_AR
@@ -435,9 +411,6 @@ static int install_links(const char *busybox, int use_symbolic_links)
 	return rc;
 }
 
-#if 0
-int uninstall_links() ?
-#endif
 #endif /* BB_FEATURE_INSTALLER */
 
 
