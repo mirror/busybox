@@ -17,7 +17,7 @@
 
 
 PROG=busybox
-VERSION=0.30
+VERSION=0.31
 BUILDTIME=$(shell date "+%Y%m%d-%H%M")
 
 # Comment out the following to make a debuggable build

@@ -5,8 +5,8 @@
 	* Fixed a segfault in ps when /etc/passwd or /etc/group 
 	    are absent.  Now will warn you and carry on.
 	* Added in optional _real_ regular expression support (to be
-	    the basis for a future sed utility).  When compiled in, 
-	    adds 3.9k.
+	    the basis for a future sed utility).  When compiled in
+	    it adds 3.9k, but makes grep much more capable.
 	* Checked out using nftw(3) for recursive stuff, but unfortunatly
 	    it wasn't supported before GNU libc 2.1, and some folks use
 	    glibc 2.0.7 since it is much smaller than that latest and greatest.
