@@ -30,6 +30,11 @@
 #include <stdlib.h>
 #include "busybox.h"
 
+/* Teach libc5 about realpath -- it includes it but the 
+ * prototype is missing... */
+#if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1)
+extern char *realpath(const char *path, char *resolved_path);
+#endif
 
 static const int MNT_FORCE = 1;
 static const int MS_MGC_VAL = 0xc0ed0000; /* Magic number indicatng "new" flags */
