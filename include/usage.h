@@ -1,22 +1,25 @@
+#ifndef __BB_USAGE_H__
+#define __BB_USAGE_H__
+
 #define addgroup_trivial_usage \
-	"[OPTIONS] group_name [user_name]"
+	"[-g GID] group_name [user_name]"
 #define addgroup_full_usage \
 	"Adds a group to the system" \
 	"Options:\n" \
-	    "\t-g\t\tspecify gid\n"
+	"\t-g GID\t\tspecify gid"
 
 #define adduser_trivial_usage \
 	"[OPTIONS] user_name"
 #define adduser_full_usage \
 	"Adds a user to the system" \
 	"Options:\n" \
-	    "\t-h DIR\t\tAssign home directory DIR\n" \
-	    "\t-g GECOS\t\tAssign gecos field GECOS\n" \
-	    "\t-s SHELL\t\tAssign login shell SHELL\n" \
-	    "\t-G\t\tAdd the user to existing group GROUP\n" \
-	    "\t-S\t\tcreate a system user (ignored)\n" \
-	    "\t-D\t\tDo not assign a password (logins still possible via ssh)\n" \
-	    "\t-H\t\tDo not create the home directory\n"
+	"\t-h DIR\t\tAssign home directory DIR\n" \
+	"\t-g GECOS\tAssign gecos field GECOS\n" \
+	"\t-s SHELL\tAssign login shell SHELL\n" \
+	"\t-G\t\tAdd the user to existing group GROUP\n" \
+	"\t-S\t\tcreate a system user (ignored)\n" \
+	"\t-D\t\tDo not assign a password (logins still possible via ssh)\n" \
+	"\t-H\t\tDo not create the home directory"
 
 #define adjtimex_trivial_usage \
 	"[-q] [-o offset] [-f frequency] [-p timeconstant] [-t tick]"
@@ -29,10 +32,10 @@
 	"\t-f frequency\tfrequency adjust, integer kernel units (65536 is 1ppm)\n" \
 	"\t\t\t(positive values make the system clock run fast)\n" \
 	"\t-t tick\t\tmicroseconds per tick, usually 10000\n" \
-	"\t-p timeconstant\n"
+	"\t-p timeconstant"
 
 #define ar_trivial_usage \
-	"-[ov][ptx] ARCHIVE FILES"
+	"[-o] [-v] [-p] [-t] [-x] ARCHIVE FILES"
 #define ar_full_usage \
 	"Extract or list FILES from an ar archive.\n\n" \
 	"Options:\n" \
@@ -40,7 +43,7 @@
 	"\t-p\t\textract to stdout\n" \
 	"\t-t\t\tlist\n" \
 	"\t-x\t\textract\n" \
-	"\t-v\t\tverbosely list files processed\n"
+	"\t-v\t\tverbosely list files processed"
 
 #define arping_trivial_usage \
 	"[-fqbDUA] [-c count] [-w timeout] [-I device] [-s sender] target\n"
@@ -57,7 +60,7 @@
 	"\t-w timeout\tTime to wait for ARP reply, in seconds\n" \
 	"\t-I device\tOutgoing interface name, default is eth0\n" \
 	"\t-s sender\tSet specific sender IP address\n" \
-	"\ttarget\t\tTarget IP address of ARP request\n"
+	"\ttarget\t\tTarget IP address of ARP request"
 
 #define ash_trivial_usage \
 	"[FILE]...\n" \
@@ -71,7 +74,7 @@
 	"Options:\n" \
 	"\t-v var=val\t\tassign value 'val' to variable 'var'\n" \
 	"\t-F sep\t\tuse 'sep' as field separator\n" \
-	"\t-f progname\t\tread program source from file 'progname'\n"
+	"\t-f progname\t\tread program source from file 'progname'"
 
 #define basename_trivial_usage \
 	"FILE [SUFFIX]"
@@ -171,9 +174,9 @@
 #define chroot_example_usage \
 	"$ ls -l /bin/ls\n" \
 	"lrwxrwxrwx    1 root     root          12 Apr 13 00:46 /bin/ls -> /BusyBox\n" \
-	"$ mount /dev/hdc1 /mnt -t minix\n" \
-	"$ chroot /mnt\n" \
-	"$ ls -l /bin/ls\n" \
+	"# mount /dev/hdc1 /mnt -t minix\n" \
+	"# chroot /mnt\n" \
+	"# ls -l /bin/ls\n" \
 	"-rwxr-xr-x    1 root     root        40816 Feb  5 07:45 /bin/ls*\n"
 
 #define chvt_trivial_usage \
@@ -187,9 +190,9 @@
 	"Clear screen."
 
 #define cmp_trivial_usage \
-	"[OPTION]... FILE1 [FILE2]"
+	"[-l] [-s] FILE1 [FILE2]"
 #define cmp_full_usage \
-	"Compare files.\n\n" \
+	"Compare files.  Compares FILE1 vs stdin if FILE2 is not specified.\n\n" \
 	"Options:\n" \
 	"\t-l\tWrite the byte numbers (decimal) and values (octal)\n" \
 	"\t\t  for all differing bytes.\n" \
@@ -294,8 +297,7 @@
 	"p - Prints the value on the top of the stack, without altering the stack.\n" \
 	"f - Prints the entire contents of the stack without altering anything.\n" \
 	"o - Pops the value off the top of the stack and uses it to set the output radix.\n" \
-	"    Only 10 and 16 are supported.\n"
-
+	"    Only 10 and 16 are supported."
 #define dc_example_usage \
 	"$ dc 2 2 +\n" \
 	"4\n" \
@@ -355,7 +357,7 @@
 	"mntpnt [-v]"\
 	USAGE_DEVFSD_FG_NP("[-fg][-np]" )
 #define devfsd_full_usage \
-	"Optional daemon for managing devfs (the Linux Device Filesystem).\n" \
+	"Optional daemon for managing devfs permissions and old device name symlinks.\n" \
 	"\nOptions:\n" \
 	"\tmntpnt\tThe mount point where devfs is mounted.\n\n" \
 	"\t-v\tPrint the protocol version numbers for devfsd\n" \
@@ -392,7 +394,7 @@
 	"/dev/sda3              8690864   8553540    137324  98% /\n"
 
 #define dirname_trivial_usage \
-	"[FILENAME ...]"
+	"FILENAME"
 #define dirname_full_usage \
 	"Strips non-directory suffix from FILENAME"
 #define dirname_example_usage \
@@ -421,19 +423,20 @@
 	"\t-d\toutput will be in DOS format"
 
 #define dpkg_trivial_usage \
-	"-i package_file\n" \
-	"[-CPru] package_name"
+	"[-iCPru] package_name"
 #define dpkg_full_usage \
+	"dpkg is a utility to install, remove and manage Debian packages.\n\n" \
+	"Options:\n" \
 	"\t-i\tInstall the package\n" \
 	"\t-C\tConfigure an unpackaged package\n" \
 	"\t-P\tPurge all files of a package\n" \
 	"\t-r\tRemove all but the configuration files for a package\n" \
-	"\t-u\tUnpack a package, but dont configure it\n"
+	"\t-u\tUnpack a package, but dont configure it"
 
 #define dpkg_deb_trivial_usage \
 	"[-cefItxX] FILE [argument]"
 #define dpkg_deb_full_usage \
-	"Perform actions on debian packages (.debs)\n\n" \
+	"Perform actions on Debian packages (.debs)\n\n" \
 	"Options:\n" \
 	"\t-c\tList contents of filesystem tree\n" \
 	"\t-e\tExtract control files to [argument] directory\n" \
@@ -496,9 +499,11 @@
 #define dumpleases_trivial_usage \
 	"[-r|-a] [-f LEASEFILE]"
 #define dumpleases_full_usage \
+	"Displays the DHCP leases granted by udhcpd.\n\n" \
+	"Options:\n" \
 	"\t-f,\t--file=FILENAME\tLeases file to load\n" \
 	"\t-r,\t--remaining\tInterepret lease times as time remaing\n" \
-	"\t-a,\t--absolute\tInterepret lease times as expire time\n"
+	"\t-a,\t--absolute\tInterepret lease times as expire time"
 
 #ifdef CONFIG_FEATURE_FANCY_ECHO
   #define USAGE_FANCY_ECHO(a) a
@@ -531,7 +536,7 @@
 	"up the specified environment.\n\n" \
 	"Options:\n" \
 	"\t-, -i\tstart with an empty environment\n" \
-	"\t-u\tremove variable from the environment\n"
+	"\t-u\tremove variable from the environment"
 
 #define expr_trivial_usage \
 	"EXPRESSION"
@@ -670,7 +675,7 @@
 	"Options:\n" \
 	"\t-b\tcount bytes rather than columns\n" \
 	"\t-s\tbreak at spaces\n" \
-	"\t-w\tuse WIDTH columns instead of 80\n"
+	"\t-w\tuse WIDTH columns instead of 80"
 
 #define free_trivial_usage \
 	""
@@ -712,7 +717,7 @@
 	"\t-v, --verbose          Verbose\n" \
 	"\t-u, --username         Username to be used\n" \
 	"\t-p, --password         Password to be used\n" \
-	"\t-P, --port             Port number to be used\n"
+	"\t-P, --port             Port number to be used"
 
 #define ftpput_trivial_usage \
 	"[options] remote-host remote-file local-file"
@@ -722,7 +727,7 @@
 	"\t-v, --verbose          Verbose\n" \
 	"\t-u, --username         Username to be used\n" \
 	"\t-p, --password         Password to be used\n" \
-	"\t-P, --port             Port number to be used\n"
+	"\t-P, --port             Port number to be used"
 
 #define getopt_trivial_usage \
 	"[OPTIONS]..."
@@ -908,7 +913,7 @@
 	" -y   put IDE drive in standby mode\n" \
 	" -Y   put IDE drive to sleep\n" \
 	" -Z   disable Seagate auto-powersaving mode\n" \
-	" -z   re-read partition table\n"
+	" -z   re-read partition table"
 
 #ifdef CONFIG_FEATURE_FANCY_HEAD
 #define USAGE_FANCY_HEAD(a) a
@@ -948,7 +953,7 @@
 	"\t-o\t\tTwo-byte octal display\n" \
 	"\t-s OFFSET\tSkip offset byte\n" \
 	"\t-v\t\tdisplay all input data\n" \
-	"\t-x\t\tTwo-byte hexadecimal display\n"
+	"\t-x\t\tTwo-byte hexadecimal display"
 
 #define hostid_trivial_usage \
 	""
@@ -1096,7 +1101,7 @@
 	"\t\t\t(note that this option doesn't disable mappings)\n" \
 	"\t-v\tprint out what would happen before doing it\n" \
 	"\t-m\tdon't run any mappings\n" \
-	"\t-f\tforce de/configuration\n"
+	"\t-f\tforce de/configuration"
 
 #define ifdown_trivial_usage \
 	"<-ahinv> <ifaces...>"
@@ -1110,7 +1115,7 @@
 	"\t\t(note that this option doesn't disable mappings)\n" \
 	"\t-v\tprint out what would happen before doing it\n" \
 	"\t-m\tdon't run any mappings\n" \
-	"\t-f\tforce de/configuration\n"
+	"\t-f\tforce de/configuration"
 
 #define inetd_trivial_usage \
 	"[-q len] [conf]"
@@ -1266,7 +1271,7 @@
 	"\t-v\tverbose output\n"  \
 	"\t-L\tLock to prevent simultaneous loads of a module\n" \
 	USAGE_INSMOD_MAP("\t-m\tOutput load map to stdout") \
-	"\t-x\tdo not export externs\n"
+	"\t-x\tdo not export externs"
 
 #define install_trivial_usage \
 	"[cgmops] [sources] <dest|directory>"
@@ -1278,14 +1283,14 @@
 	"\t-m\tset permission modes\n" \
 	"\t-o\tset ownership\n" \
 	"\t-p\tpreserve date\n" \
-	"\t-s\tstrip symbol tables\n"
+	"\t-s\tstrip symbol tables"
 
 #define ip_trivial_usage \
 	"[ OPTIONS ] { address | link | route | tunnel } { COMMAND | help }"
 #define ip_full_usage \
 	"ip [ OPTIONS ] OBJECT { COMMAND | help }\n" \
 	"where  OBJECT := { link | addr | route | tunnel }\n" \
-	"OPTIONS := { -f[amily] { inet | inet6 | link } | -o[neline] }\n"
+	"OPTIONS := { -f[amily] { inet | inet6 | link } | -o[neline] }"
 
 #define ipaddr_trivial_usage \
 	"{ {add|del} IFADDR dev STRING | {show|flush} [ dev STRING ] [ to PREFIX ] }"
@@ -1296,7 +1301,7 @@
 	"IFADDR := PREFIX | ADDR peer PREFIX\n" \
 	"          [ broadcast ADDR ] [ anycast ADDR ]\n" \
 	"          [ label STRING ] [ scope SCOPE-ID ]\n" \
-	"SCOPE-ID := [ host | link | global | NUMBER ]\n"
+	"SCOPE-ID := [ host | link | global | NUMBER ]"
 
 #ifndef CONFIG_FEATURE_IPCALC_FANCY
 #define ipcalc_trivial_usage \
@@ -1322,19 +1327,13 @@
 	"\t-s\t--silent\tDon't ever display error messages."
 #endif
 
-#define ipcalc_notes_usage \
-	"ipcalc provides a simple way to calculate IP information for\n" \
-	"a host. The various options specify what information ipcalc\n" \
-	"should display on standard out. Multiple options may be\n" \
-	"specified.\n"
-
 #define iplink_trivial_usage \
 	"{ set DEVICE { up | down | arp { on | off } | show [ DEVICE ] }"
 #define iplink_full_usage \
 	"iplink set DEVICE { up | down | arp { on | off } |\n" \
 	"                     dynamic { on | off } |\n" \
 	"                     mtu MTU }\n" \
-	"iplink show [ DEVICE ]\n"
+	"iplink show [ DEVICE ]"
 
 #define iproute_trivial_usage \
 	"{ list | flush | { add | del | change | append | replace | monitor } ROUTE }"
@@ -1344,15 +1343,16 @@
 	"                     [ oif STRING ]  [ tos TOS ]\n" \
 	"iproute { add | del | change | append | replace | monitor } ROUTE\n" \
 	"SELECTOR := [ root PREFIX ] [ match PREFIX ] [ proto RTPROTO ]\n" \
-	"ROUTE := [ TYPE ] PREFIX [ tos TOS ] [ proto RTPROTO ]\n"
+	"ROUTE := [ TYPE ] PREFIX [ tos TOS ] [ proto RTPROTO ]"
 
 #define iptunnel_trivial_usage \
-	"{ add | change | del | show } [ NAME ] [ mode { ipip | gre | sit } ] [ remote ADDR ] [ local ADDR ] [ ttl TTL ]"
+	"{ add | change | del | show } [ NAME ] [ mode { ipip | gre | sit } ]\n" \
+	"\t[ remote ADDR ] [ local ADDR ] [ ttl TTL ]"
 #define iptunnel_full_usage \
 	"iptunnel { add | change | del | show } [ NAME ]\n" \
 	"          [ mode { ipip | gre | sit } ] [ remote ADDR ] [ local ADDR ]\n" \
 	"          [ [i|o]seq ] [ [i|o]key KEY ] [ [i|o]csum ]\n" \
-	"          [ ttl TTL ] [ tos TOS ] [ [no]pmtudisc ] [ dev PHYS_DEV ]\n"
+	"          [ ttl TTL ] [ tos TOS ] [ [no]pmtudisc ] [ dev PHYS_DEV ]"
 
 #define kill_trivial_usage \
 	"[-signal] process-id [process-id ...]"
@@ -1429,8 +1429,8 @@
 	"Write MESSAGE to the system log.  If MESSAGE is omitted, log stdin.\n\n" \
 	"Options:\n" \
 	"\t-s\tLog to stderr as well as the system log.\n" \
-	"\t-t\tLog using the specified tag (defaults to user name).\n" \
-	"\t-p\tEnter the message with the specified priority.\n" \
+	"\t-t TAG\tLog using the specified tag (defaults to user name).\n" \
+	"\t-p PRIORITY\tEnter the message with the specified priority.\n" \
 	"\t\tThis may be numerical or a ``facility.level'' pair."
 #define logger_example_usage \
 	"$ logger "hello"\n"
@@ -1454,7 +1454,6 @@
 
 #define logread_trivial_usage \
 	"[OPTION]..."
-
 #define logread_full_usage \
         "Shows the messages from syslogd (using circular buffer).\n\n"
 	"Options:\n" \
@@ -1467,7 +1466,7 @@
 	"Associate LOOPDEVICE with FILE.\n\n" \
 	"Options:\n" \
 	"\t-d\t\tDisassociate LOOPDEVICE.\n" \
-	"\t-o OFFSET\tStart OFFSET bytes into FILE.\n"
+	"\t-o OFFSET\tStart OFFSET bytes into FILE."
 
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
   #define USAGE_LS_TIMESTAMPS(a) a
@@ -1744,7 +1743,7 @@
 	"\t-i\tInterrupt.  Send the service an INT signal.\n" \
 	"\t-t\tTerminate.  Send the service a TERM signal.\n" \
 	"\t-k\tKill.  Send the service a KILL signal.\n" \
-	"\t-x\tExit.  supervise will quit as soon as the service is down.\n"
+	"\t-x\tExit.  supervise will quit as soon as the service is down."
 
 #define mt_trivial_usage \
 	"[-f device] opcode value"
@@ -1767,15 +1766,15 @@
 #define nameif_trivial_usage \
 	"[-s] [-c FILE] [{IFNAME MACADDR}]"
 #define nameif_full_usage \
-		"Nameif renaming network interface while it in the down state.\n\n" \
-		"Options:\n" \
-		"\t-c FILE\t\tUse configuration file (default is /etc/mactab)\n" \
-		"\t-s\t\tUse syslog (LOCAL0 facility).\n" \
-		"\tIFNAME MACADDR\tnew_interface_name interface_mac_address\n"
+	"Nameif renaming network interface while it in the down state.\n\n" \
+	"Options:\n" \
+	"\t-c FILE\t\tUse configuration file (default is /etc/mactab)\n" \
+	"\t-s\t\tUse syslog (LOCAL0 facility).\n" \
+	"\tIFNAME MACADDR\tnew_interface_name interface_mac_address"
 #define nameif_example_usage \
-		"$ nameif -s dmz0 00:A0:C9:8C:F6:3F\n" \
-		" or\n" \
-		"$ nameif -c /etc/my_mactab_file\n" \
+	"$ nameif -s dmz0 00:A0:C9:8C:F6:3F\n" \
+	" or\n" \
+	"$ nameif -c /etc/my_mactab_file\n" \
 
 #define nc_trivial_usage \
 	"[OPTIONS] [IP] [port]"
@@ -1807,7 +1806,7 @@
 	"-t tcp sockets\n" \
 	"-u udp sockets\n" \
 	"-w raw sockets\n" \
-	"-x unix sockets\n"
+	"-x unix sockets"
 
 #define nslookup_trivial_usage \
 	"[HOST] [SERVER]"
@@ -1868,7 +1867,8 @@
 #define pidof_trivial_usage \
 	"process-name [process-name ...]"
 #define pidof_full_usage \
-	"Lists the PIDs of all processes with names that match the names on the command line"
+	"Lists the PIDs of all processes with names that match the\n" \
+	"names on the command line"
 #define pidof_example_usage \
 	"$ pidof init\n" \
 	"1\n"
@@ -1943,7 +1943,8 @@
 	""
 #define ps_full_usage \
 	"Report process status\n" \
-	USAGE_SELINUX("\nOptions:\n\t-c\tshow SE Linux context", "\nThis version of ps accepts no options.")
+	USAGE_SELINUX("\nOptions:\n\t-c\tshow SE Linux context", \
+		"\nThis version of ps accepts no options.")
 
 #define ps_example_usage \
 	"$ ps\n" \
@@ -1988,7 +1989,7 @@
 #define realpath_trivial_usage \
 	"pathname  ..."
 #define realpath_full_usage \
-	"return the canonicalized absolute pathnames of given arguments\n\n"
+	"Returns the absolute pathnames of given argument."
 
 #define reboot_trivial_usage \
 	""
@@ -2108,7 +2109,7 @@
 	"Arguments:\n" \
 	"\tLAST\n" \
 	"\tFIRST\tLAST\n" \
-	"\tFIRST\tINCREMENT\tLAST\n"
+	"\tFIRST\tINCREMENT\tLAST"
 
 #define setkeycodes_trivial_usage \
 	"SCANCODE KEYCODE ..."
@@ -2126,14 +2127,13 @@
 #define lash_full_usage \
 	"The BusyBox LAme SHell (command interpreter)"
 #define lash_notes_usage \
-"This command does not yet have proper documentation.\n" \
-"\n" \
-"Use lash just as you would use any other shell.  It properly handles pipes,\n" \
-"redirects, job control, can be used as the shell for scripts, and has a\n" \
-"sufficient set of builtins to do what is needed.  It does not (yet) support\n" \
-"Bourne Shell syntax.  If you need things like "if-then-else", "while", and such\n" \
-"use ash or bash.  If you just need a very simple and extremely small shell,\n" \
-"this will do the job."
+	"This command does not yet have proper documentation.\n\n" \
+	"Use lash just as you would use any other shell.  It properly handles pipes,\n" \
+	"redirects, job control, can be used as the shell for scripts, and has a\n" \
+	"sufficient set of builtins to do what is needed.  It does not (yet) support\n" \
+	"Bourne Shell syntax.  If you need things like "if-then-else", "while", and such\n" \
+	"use ash or bash.  If you just need a very simple and extremely small shell,\n" \
+	"this will do the job."
 
 #define last_trivial_usage \
 	""
@@ -2166,8 +2166,8 @@
 #define sleep_full_usage \
 	USAGE_NOT_FANCY_SLEEP("Pause for N seconds.") \
 	USAGE_FANCY_SLEEP( \
-"Pause for a time equal to the total of the args given, where each arg can\n" \
-"have an optional suffix of (s)econds, (m)inutes, (h)ours, or (d)ays.")
+	"Pause for a time equal to the total of the args given, where each arg can\n" \
+	"have an optional suffix of (s)econds, (m)inutes, (h)ours, or (d)ays.")
 #define sleep_example_usage \
 	"$ sleep 2\n" \
 	"[2 second delay results]\n" \
@@ -2215,16 +2215,16 @@
 	"\n\t-n|--name <process-name>\tstop processes with this name"\
 	"\n\t-p|--pidfile <pid-file>\t\tsave or load pid using a pid-file"\
 	"\n\t-q|--quiet\t\t\tbe quiet" \
-	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)\n"
+	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)"
 
 #define strings_trivial_usage \
-    "[-afo] [-n length] [file ... ]"
+	"[-afo] [-n length] [file ... ]"
 #define strings_full_usage \
-    "Display printable strings in a binary file." \
-    "\n\nOptions:" \
-    "\n\t-f\tPrecede each string with the name of the file where it was found." \
-    "\n\t-n N\tSpecifies that at least N characters forms a sequence (default 4)" \
-    "\n\t-o\tEach string is preceded by its decimal offset in the file."
+	"Display printable strings in a binary file." \
+	"\n\nOptions:" \
+	"\n\t-f\tPrecede each string with the name of the file where it was found." \
+	"\n\t-n N\tSpecifies that at least N characters forms a sequence (default 4)" \
+	"\n\t-o\tEach string is preceded by its decimal offset in the file."
 
 #define stty_trivial_usage \
 	"[-a|g] [-F DEVICE] [SETTING]..."
@@ -2301,7 +2301,6 @@
 	"\t-p\tLoad in sysctl settings from the file specified or /etc/sysctl.conf if none given.\n" \
 	"\t-a\tDisplay all values currently available.\n" \
 	"\t-A\tDisplay all values currently available in table form."
-
 #define sysctl_example_usage
 	"sysctl [-n] [-e] variable ...\n" \
 	"sysctl [-n] [-e] -w variable=value ...\n" \
@@ -2316,12 +2315,12 @@
 	"Linux system and kernel logging utility.\n" \
 	"Note that this version of syslogd ignores /etc/syslog.conf.\n\n" \
 	"Options:\n" \
-	"\t-m NUM\t\tInterval between MARK lines (default=20min, 0=off)\n" \
+	"\t-m MIN\t\tMinutes between MARK lines (default=20, 0=off)\n" \
 	"\t-n\t\tRun as a foreground process\n" \
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)" \
 	USAGE_ROTATE_LOGFILE( \
-	"\n\t-s SIZE\t\tMax size (KB) bevor rotate (default=200KB, 0=off)\n" \
-	"\t-b NUM\t\tNumber of rotated log files (default=1, 0=purge log)") \
+	"\n\t-s SIZE\t\tMax size (KB) before rotate (default=200KB, 0=off)\n" \
+	"\t-b NUM\t\tNumber of rotated logs to keep (default=1, max=99, 0=purge)") \
 	USAGE_REMOTE_LOG( \
 	"\n\t-R HOST[:PORT]\tLog to IP or hostname on PORT (default PORT=514/UDP)\n" \
 	"\t-L\t\tLog locally and via network logging (default is network only)") \
@@ -2434,7 +2433,7 @@
 	"\tHOST\t\tThe official name, alias or the IP address of the\n" \
 	"\t\t\tremote host.\n" \
 	"\tPORT\t\tThe remote port number to connect to. If it is not\n" \
-	"\t\t\tspecified, the default telnet (23) port is used.\n"
+	"\t\t\tspecified, the default telnet (23) port is used."
 #else
 #define telnet_trivial_usage \
 	"HOST [PORT]"
@@ -2501,15 +2500,15 @@
 	"Transfers a file from/to a tftp server using \"octet\" mode.\n\n" \
 	"Options:\n" \
 	"\t-l FILE\tLocal FILE.\n" \
-	"\t-r FILE\tRemote FILE.\n" \
+	"\t-r FILE\tRemote FILE." \
         USAGE_TFTP_GET(	\
-        "\t-g\tGet file.\n" \
+        "\n\t-g\tGet file." \
         ) \
         USAGE_TFTP_PUT(	\
-	"\t-p\tPut file.\n" \
+	"\n\t-p\tPut file." \
 	) \
 	USAGE_TFTP_BS( \
-	"\t-b SIZE\tTransfer blocks of SIZE octets.\n" \
+	"\n\t-b SIZE\tTransfer blocks of SIZE octets." \
 	)
 #define time_trivial_usage \
 	"[OPTION]... COMMAND [ARGS...]"
@@ -2656,7 +2655,7 @@
 	"Uncompress .Z file[s]\n" \
 	"Options:\n" \
 	"\t-c\textract to stdout\n" \
-	"\t-f\tforce overwrite an existing file\n"
+	"\t-f\tforce overwrite an existing file"
 
 #define uniq_trivial_usage \
 	"[OPTION]... [INPUT [OUTPUT]]"
@@ -2740,14 +2739,15 @@
 
 #define vconfig_trivial_usage \
 	"COMMAND [OPTIONS] ..."
-
 #define vconfig_full_usage \
-"Usage: add             [interface-name] [vlan_id]\n" \
-"       rem             [vlan-name]\n" \
-"       set_flag        [interface-name] [flag-num]       [0 | 1]\n" \
-"       set_egress_map  [vlan-name]      [skb_priority]   [vlan_qos]\n" \
-"       set_ingress_map [vlan-name]      [skb_priority]   [vlan_qos]\n" \
-"       set_name_type   [name-type]\n"
+	"vconfig lets you create and remove virtual ethernet devices.\n\n" \
+	"Options:\n" \
+	"\tadd             [interface-name] [vlan_id]\n" \
+	"\trem             [vlan-name]\n" \
+	"\tset_flag        [interface-name] [flag-num]       [0 | 1]\n" \
+	"\tset_egress_map  [vlan-name]      [skb_priority]   [vlan_qos]\n" \
+	"\tset_ingress_map [vlan-name]      [skb_priority]   [vlan_qos]\n" \
+	"\tset_name_type   [name-type]"
 
 #define vi_trivial_usage \
 	"[OPTION] [FILE]..."
@@ -2797,7 +2797,8 @@
 	"     31      46    1365 /etc/passwd\n"
 
 #define wget_trivial_usage \
-	"[-c|--continue] [-q|--quiet] [-O|--output-document file]\n\t[--header 'header: value'] [-Y|--proxy on/off] [-P DIR] url"
+	"[-c|--continue] [-q|--quiet] [-O|--output-document file]\n" \
+	"\t[--header 'header: value'] [-Y|--proxy on/off] [-P DIR] url"
 #define wget_full_usage \
 	"wget retrieves files via HTTP or FTP\n\n" \
 	"Options:\n" \
@@ -2865,3 +2866,5 @@
 	"FILE"
 #define zcat_full_usage \
 	"Uncompress to stdout."
+
+#endif /* __BB_USAGE_H__ */
