@@ -4,7 +4,7 @@
  * (for busybox) */
 
 #ifdef CONFIG_INSTALL_NO_USR
-#undef DEFUALT_SCRIPT
+#undef DEFAULT_SCRIPT
 #define DEFAULT_SCRIPT  "/share/udhcpc/default.script"
 #endif
 
