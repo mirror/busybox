@@ -27,8 +27,8 @@ debian/build-stamp-busybox:
 	dh_testdir
 	mkdir -p $(bbbd)
 	cp Makefile $(bbbd)
-	-(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../" applet_source_list)
 	cp debian/Config.h-deb $(bbbd)/Config.h
+	-(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../" applet_source_list)
 	(cd $(bbbd); $(MAKE) "BB_SRC_DIR=../../")
 	touch debian/build-stamp-busybox
 
