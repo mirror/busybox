@@ -131,6 +131,14 @@ config CONFIG_SELINUX
 	  Enable support for SE Linux in applets ls, ps, and id.  Also provide
 	  the option of compiling in SE Linux applets.
 
+	  If you do not have a complete SE Linux Full Userland installed, this
+	  stuff will not compile.  Go visit
+		http://www.nsa.gov/selinux/index.html
+	  to download the necessary stuff to allow busybox to compile with this
+	  option enabled.
+
+	  Most people will leave this set to 'N'.
+
 endmenu
 
 menu 'Build Options'
