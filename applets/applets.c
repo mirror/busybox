@@ -53,8 +53,9 @@ static void check_suid ( struct BB_applet *app );
 #include "pwd.h"
 #include "grp.h"
 
-static void parse_error ( int line, const char *err );
-static void parse_config_file ( void );
+static int parse_config_file ( void );
+
+static int config_ok;
 
 #define CONFIG_FILE "/etc/busybox.conf"
 
@@ -119,7 +120,7 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_SUID_CONFIG
 	if ( recurse_level == 0 )
-		parse_config_file ( );
+		config_ok = parse_config_file ( );
 #endif
 
 	recurse_level++;
@@ -183,42 +184,53 @@ void check_suid ( struct BB_applet *applet )
 	uid_t rgid = getgid ( );
 			
 #ifdef CONFIG_FEATURE_SUID_CONFIG
-	struct BB_suid_config *sct;
-	
-	for ( sct = suid_config; sct; sct = sct-> m_next ) {
-		if ( sct-> m_applet == applet )
-			break;
-	}		
-	if ( sct ) {
-		mode_t m = sct-> m_mode;
+	if ( config_ok ) {
+		struct BB_suid_config *sct;
 		
-		if ( sct-> m_uid == ruid ) // same uid
-			m >>= 6;
-		else if (( sct-> m_gid == rgid ) || ingroup ( ruid, sct-> m_gid )) // same group / in group
-			m >>= 3;
-
-		if (!( m & S_IXOTH ))   // is x bit not set ?
-			error_msg_and_die ( "You have no permission to run this applet!" );
-	
-		if (( sct-> m_mode & ( S_ISGID | S_IXGRP )) == ( S_ISGID | S_IXGRP )) { // *both* have to be set for sgid
-			if ( setegid ( sct-> m_gid ))
-				error_msg_and_die ( "BusyBox binary has insufficient rights to set proper GID for applet!" );
-		}
-		else
-			setgid ( rgid ); // no sgid -> drop
+		for ( sct = suid_config; sct; sct = sct-> m_next ) {
+			if ( sct-> m_applet == applet )
+				break;
+		}		
+		if ( sct ) {
+			mode_t m = sct-> m_mode;
 			
-		if ( sct-> m_mode & S_ISUID ) {
-			if ( seteuid ( sct-> m_uid ))
-				error_msg_and_die ( "BusyBox binary has insufficient rights to set proper UID for applet!" );
-		}	
-		else
-			setuid ( ruid ); // no suid -> drop
+			if ( sct-> m_uid == ruid ) // same uid
+				m >>= 6;
+			else if (( sct-> m_gid == rgid ) || ingroup ( ruid, sct-> m_gid )) // same group / in group
+				m >>= 3;
+
+			if (!( m & S_IXOTH ))   // is x bit not set ?
+				error_msg_and_die ( "You have no permission to run this applet!" );
+		
+			if (( sct-> m_mode & ( S_ISGID | S_IXGRP )) == ( S_ISGID | S_IXGRP )) { // *both* have to be set for sgid
+				if ( setegid ( sct-> m_gid ))
+					error_msg_and_die ( "BusyBox binary has insufficient rights to set proper GID for applet!" );
+			}
+			else
+				setgid ( rgid ); // no sgid -> drop
+				
+			if ( sct-> m_mode & S_ISUID ) {
+				if ( seteuid ( sct-> m_uid ))
+					error_msg_and_die ( "BusyBox binary has insufficient rights to set proper UID for applet!" );
+			}	
+			else
+				setuid ( ruid ); // no suid -> drop
+		}
+		else { // default: drop all priviledges
+			setgid ( rgid );
+			setuid ( ruid );
+		}
+		return;
 	}
-	else { // default: drop all priviledges
-		setgid ( rgid );
-		setuid ( ruid );
+	else {
+		static int onetime = 0;
+		
+		if ( !onetime ) {
+			onetime = 1;
+			fprintf ( stderr, "Using fallback suid method\n" );
+		}
 	}
-#else
+#endif
 
 	if ( applet-> need_suid == _BB_SUID_ALWAYS ) {
 		if ( geteuid ( ) != 0 ) 
@@ -228,23 +240,20 @@ void check_suid ( struct BB_applet *applet )
 		setgid ( rgid ); // drop all priviledges
 		setuid ( ruid );
 	}	
-#endif	
 }
 
 #ifdef CONFIG_FEATURE_SUID_CONFIG
 
-void parse_error ( int line, const char *err )
-{
-	char msg [512];
-	snprintf ( msg, sizeof( msg ) - 1, "Parse error in %s, line %d: %s", CONFIG_FILE, line, err );
 
-	error_msg_and_die ( msg );
-}
+#define parse_error(x)	{ err=x; goto pe_label; }
 
 
-void parse_config_file ( void )
+int parse_config_file ( void )
 {
 	struct stat st;
+	char *err = 0;
+	FILE *f = 0;
+	int lc = 0;
 
 	suid_config = 0;
 	
@@ -253,12 +262,11 @@ void parse_config_file ( void )
 		// is it owned by root with no write perm. for group and others ?
 		if ( S_ISREG( st. st_mode ) && ( st. st_uid == 0 )	&& (!( st. st_mode & ( S_IWGRP | S_IWOTH )))) {
 			// that's ok .. then try to open it
-			FILE *f = fopen ( CONFIG_FILE, "r" );
+			f = fopen ( CONFIG_FILE, "r" );
 
 			if ( f ) {
-				char buffer [4096];
+				char buffer [256];
 				int section = 0;
-				int lc = 0;
 				
 				while ( fgets ( buffer, sizeof( buffer ) - 1, f )) {
 					char c = buffer [0];
@@ -280,7 +288,7 @@ void parse_config_file ( void )
 						p = strchr ( buffer, ']' );
 						
 						if ( !p || ( p == ( buffer + 1 )))  // no matching ] or empty []
-							parse_error ( lc, "malformed section header" );
+							parse_error ( "malformed section header" );
 
 						*p = 0;
 						
@@ -298,7 +306,7 @@ void parse_config_file ( void )
 								p = strchr ( buffer, '=' ); // <key>[::space::]*=[::space::]*<value>
 								
 								if ( !p || ( p == ( buffer + 1 ))) // no = or key is empty
-									parse_error ( lc, "malformed keyword" );
+									parse_error ( "malformed keyword" );
 								
 								l = p - buffer;
 								while ( isspace ( buffer [--l] )) { } // skip whitespace
@@ -321,7 +329,7 @@ void parse_config_file ( void )
 										case 's': sct-> m_mode |= S_ISUID; // no break
 										case 'x': sct-> m_mode |= S_IXUSR; break;
 										case '-': break;
-										default : parse_error ( lc, "invalid user mode" );
+										default : parse_error ( "invalid user mode" );
 									}
 										
 									switch ( *p++ ) {
@@ -329,7 +337,7 @@ void parse_config_file ( void )
 										case 'x': sct-> m_mode |= S_IXGRP; break;
 										case 'S': break;
 										case '-': break;
-										default : parse_error ( lc, "invalid group mode" );
+										default : parse_error ( "invalid group mode" );
 									}
 										
 									switch ( *p ) {
@@ -337,7 +345,7 @@ void parse_config_file ( void )
 										case 'x': sct-> m_mode |= S_IXOTH; break;
 										case 'T':
 										case '-': break;
-										default : parse_error ( lc, "invalid other mode" );
+										default : parse_error ( "invalid other mode" );
 									}
 										
 									while ( isspace ( *++p )) { } // skip whitespace
@@ -345,20 +353,20 @@ void parse_config_file ( void )
 									if ( isdigit ( *p )) {
 										sct-> m_uid = strtol ( p, &p, 10 );
 										if ( *p++ != '.' )
-											parse_error ( lc, "parsing <uid>.<gid>" );										
+											parse_error ( "parsing <uid>.<gid>" );										
 									}
 									else {
 										struct passwd *pwd;
 										char *p2 = strchr ( p, '.' );
 										
 										if ( !p2 ) 
-											parse_error ( lc, "parsing <uid>.<gid>" );										
+											parse_error ( "parsing <uid>.<gid>" );										
 	
 										*p2 = 0;
 										pwd = getpwnam ( p );
 						
 										if ( !pwd ) 
-											parse_error ( lc, "invalid user name" );
+											parse_error ( "invalid user name" );
 										
 										sct-> m_uid = pwd-> pw_uid;
 										p = p2 + 1;
@@ -369,7 +377,7 @@ void parse_config_file ( void )
 										struct group *grp = getgrnam ( p );
 						
 										if ( !grp ) 
-											parse_error ( lc, "invalid group name" );
+											parse_error ( "invalid group name" );
 										
 										sct-> m_gid = grp-> gr_gid;
 									}																		
@@ -381,12 +389,20 @@ void parse_config_file ( void )
 						}					
 					}
 					else
-						parse_error ( lc, "keyword not within section" );
+						parse_error ( "keyword not within section" );
 				}				
 				fclose ( f );
 			}
 		}
 	}
+	return 1;
+	
+pe_label:	
+	fprintf ( stderr, "Parse error in %s, line %d: %s\n", CONFIG_FILE, lc, err );
+
+	if ( f )
+		fclose ( f );
+	return 0;
 }
 
 #endif
