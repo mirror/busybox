@@ -211,7 +211,7 @@ $(patsubst %, _dir_%, $(SUBDIRS)) : dummy include/config/MARKER
 	$(MAKE) CFLAGS="$(CFLAGS)" -C $(patsubst _dir_%, %, $@)
 
 busybox: config.h depend bbsubdirs
-	$(CC) $(LDFLAGS) -o $@ $(shell find $(SUBDIRS) -name \*.a) $(LIBCONFIG_LIB) $(LIBRARIES)
+	$(CC) $(LDFLAGS) -o $@ applets/busybox.o $(shell find $(SUBDIRS) -name \*.a) $(LIBCONFIG_LIB) $(LIBRARIES)
 	$(STRIPCMD)
 
 busybox.links: applets/busybox.mkll
