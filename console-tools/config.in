@@ -12,6 +12,7 @@ bool 'dumpkmap'	    CONFIG_DUMPKMAP
 bool 'loadacm'	    CONFIG_LOADACM
 bool 'loadfont'	    CONFIG_LOADFONT
 bool 'loadkmap'	    CONFIG_LOADKMAP
+bool 'openvt'	    CONFIG_OPENVT
 bool 'reset'	    CONFIG_RESET
 bool 'setkeycodes'  CONFIG_SETKEYCODES
 

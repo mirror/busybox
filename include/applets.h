@@ -341,6 +341,9 @@
 #ifdef CONFIG_OD
 	APPLET(od, od_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_OPENVT
+	APPLET(openvt, openvt_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_PASSWD
 	APPLET(passwd, passwd_main, _BB_DIR_USR_BIN, _BB_SUID_ALWAYS)
 #endif

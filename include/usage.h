@@ -1347,6 +1347,13 @@
 	"Write an unambiguous representation, octal bytes by default, of FILE\n"\
 	"to standard output.  With no FILE, or when FILE is -, read standard input."
 
+#define openvt_trivial_usage \
+	"<vtnum> <COMMAND> [ARGS...]"
+#define openvt_full_usage \
+	"Start a command on a new virtual terminal"
+#define openvt_example_usage \
+	"openvt 2 /bin/ash\n"
+
 #ifdef CONFIG_FEATURE_SHA1_PASSWORDS
   #define PASSWORD_ALG_TYPES(a) a
 #else   
