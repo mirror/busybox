@@ -498,19 +498,6 @@ void free_package(common_node_t *node)
 	}
 }
 
-/* returns the array number of the string */
-static unsigned short compare_string_array(const char *string_array[], const char *key)
-{
-	unsigned short i;
-
-	for (i = 0; string_array[i] != 0; i++) {
-		if (strcmp(string_array[i], key) == 0) {
-			break;
-		}
-	}
-	return(i);
-}
-
 unsigned int fill_package_struct(char *control_buffer)
 {
 	common_node_t *new_node = (common_node_t *) xcalloc(1, sizeof(common_node_t));
