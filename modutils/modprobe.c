@@ -9,13 +9,13 @@
  */
 
 #include <sys/utsname.h>
-#include <stdio.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <syslog.h>
 #include <string.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include "busybox.h"
 
 
@@ -46,11 +46,11 @@ static int autoclean, show_only, quiet, do_syslog, verbose;
 
 static struct dep_t *build_dep ( void )
 {
+	int fd, n;
 	struct utsname un;
-	FILE *f;
 	struct dep_t *first = 0;
 	struct dep_t *current = 0;
-	char buffer [4096];
+	char buffer[256];
 	char *filename = buffer;
 	int continuation_line = 0;
 	
@@ -58,21 +58,35 @@ static struct dep_t *build_dep ( void )
 		return 0;
 		
 	// check for buffer overflow in following code
-	if ( xstrlen ( un. release ) > ( sizeof( buffer ) - 64 ))
+	if ( xstrlen ( un.release ) > ( sizeof( buffer ) - 64 )) {
 		return 0;
+	}
 				
 	strcpy ( filename, "/lib/modules/" );
-	strcat ( filename, un. release );
+	strcat ( filename, un.release );
 	strcat ( filename, "/modules.dep" );
 
-	f = fopen ( filename, "r" );
-	if ( !f )
+	if ((fd = open ( filename, O_RDONLY )) < 0)
 		return 0;
-	
-	while ( fgets ( buffer, sizeof( buffer), f )) {
-		int l = xstrlen ( buffer );
+
+	while ( (n = read(fd, buffer, 255)) > 0) {
+		int l;
 		char *p = 0;
-		
+
+		/* Jump through hoops to simulate how fgets() grabs just one line at a
+		 * time... Don't use any stdio since modprobe gets called from a kernel
+		 * thread and stdio junk can overflow the limited stack... */
+		p = strchr ( buffer, '\n' );
+		if (p) {
+			off_t offset;
+			/* Get the current file descriptor offset */
+			offset = lseek(fd, 0L, SEEK_CUR);
+			/* Set the file descriptor offset to right after the \n */
+			lseek(fd, offset-n+p-buffer+1, SEEK_SET);
+			*(p+1)='\0';
+		}
+
+		l = xstrlen ( buffer );
 		while ( isspace ( buffer [l-1] )) {
 			buffer [l-1] = 0;
 			l--;
@@ -105,10 +119,10 @@ static struct dep_t *build_dep ( void )
 				mod = xstrndup ( mods, col - mods - ext );
 					
 				if ( !current ) {
-					first = current = (struct dep_t *) malloc ( sizeof ( struct dep_t ));
+					first = current = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
 				}
 				else {
-					current-> m_next = (struct dep_t *) malloc ( sizeof ( struct dep_t ));
+					current-> m_next = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
 					current = current-> m_next;
 				}
 				current-> m_module  = mod;
@@ -164,79 +178,90 @@ static struct dep_t *build_dep ( void )
 		else
 			continuation_line = 0;
 	}
-	fclose ( f );
+	close ( fd );
 
 	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias) !
 
-	f = fopen ( "/etc/modules.conf", "r" );
-	if ( !f )
-		f = fopen ( "/etc/conf.modules", "r" );
-	if ( f ) {
-		continuation_line = 0;
+	if ((fd = open ( "/etc/modules.conf", O_RDONLY )) < 0)
+		if ((fd = open ( "/etc/conf.modules", O_RDONLY )) < 0)
+			return first;
 	
-		while ( fgets ( buffer, sizeof( buffer), f )) {
-			int l;
-			char *p;
-			
-			p = strchr ( buffer, '#' );
-			if ( p )
-				*p = 0;
-				
-			l = xstrlen ( buffer );
+	continuation_line = 0;
+	while ( read(fd, buffer, 255) > 0) {
+		int l;
+		char *p;
 		
-			while ( l && isspace ( buffer [l-1] )) {
-				buffer [l-1] = 0;
-				l--;
-			}
-			
-			if ( l == 0 ) {
-				continuation_line = 0;
-				continue;
-			}
-			
-			if ( !continuation_line ) {		
-				if (( strncmp ( buffer, "alias", 5 ) == 0 ) && isspace ( buffer [5] )) {
-					char *alias, *mod;
-
-					alias = buffer + 6;
-					
-					while ( isspace ( *alias ))
-						alias++;			
-					mod = alias;					
-					while ( !isspace ( *mod ))
-						mod++;
-					*mod = 0;
-					mod++;
-					while ( isspace ( *mod ))
-						mod++;
-											
-//					fprintf ( stderr, "ALIAS: '%s' -> '%s'\n", alias, mod );
-					
-					if ( !current ) {
-						first = current = (struct dep_t *) malloc ( sizeof ( struct dep_t ));
-					}
-					else {
-						current-> m_next = (struct dep_t *) malloc ( sizeof ( struct dep_t ));
-						current = current-> m_next;
-					}
-					current-> m_module  = xstrdup ( alias );
-					current-> m_isalias = 1;
-					
-					if (( strcmp ( alias, "off" ) == 0 ) || ( strcmp ( alias, "null" ) == 0 )) {
-						current-> m_depcnt = 0;
-						current-> m_deparr = 0;
-					}
-					else {
-						current-> m_depcnt  = 1;
-						current-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
-						current-> m_deparr[0] = xstrdup ( mod );
-					}
-					current-> m_next    = 0;					
-				}				
-			}
+		/* Jump through hoops to simulate how fgets() grabs just one line at a
+		 * time... Don't use any stdio since modprobe gets called from a kernel
+		 * thread and stdio junk can overflow the limited stack... */
+		p = strchr ( buffer, '\n' );
+		if (p) {
+			off_t offset;
+			/* Get the current file descriptor offset */
+			offset = lseek(fd, 0L, SEEK_CUR);
+			/* Set the file descriptor offset to right after the \n */
+			lseek(fd, offset-n+p-buffer+1, SEEK_SET);
+			*(p+1)='\0';
 		}
-		fclose ( f );
+
+		p = strchr ( buffer, '#' );
+		if ( p )
+			*p = 0;
+			
+		l = xstrlen ( buffer );
+	
+		while ( l && isspace ( buffer [l-1] )) {
+			buffer [l-1] = 0;
+			l--;
+		}
+		
+		if ( l == 0 ) {
+			continuation_line = 0;
+			continue;
+		}
+		
+		if ( !continuation_line ) {		
+			if (( strncmp ( buffer, "alias", 5 ) == 0 ) && isspace ( buffer [5] )) {
+				char *alias, *mod;
+
+				alias = buffer + 6;
+				
+				while ( isspace ( *alias ))
+					alias++;			
+				mod = alias;					
+				while ( !isspace ( *mod ))
+					mod++;
+				*mod = 0;
+				mod++;
+				while ( isspace ( *mod ))
+					mod++;
+										
+//					fprintf ( stderr, "ALIAS: '%s' -> '%s'\n", alias, mod );
+				
+				if ( !current ) {
+					first = current = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
+				}
+				else {
+					current-> m_next = (struct dep_t *) xmalloc ( sizeof ( struct dep_t ));
+					current = current-> m_next;
+				}
+				current-> m_module  = xstrdup ( alias );
+				current-> m_isalias = 1;
+				
+				if (( strcmp ( alias, "off" ) == 0 ) || ( strcmp ( alias, "null" ) == 0 )) {
+					current-> m_depcnt = 0;
+					current-> m_deparr = 0;
+				}
+				else {
+					current-> m_depcnt  = 1;
+					current-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
+					current-> m_deparr[0] = xstrdup ( mod );
+				}
+				current-> m_next    = 0;					
+			}				
+		}
 	}
+	close ( fd );
 	
 	return first;
 }
