@@ -520,8 +520,8 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
     if (hardLink) {
 	if (link (hp->linkName, name) < 0)
 	    perror (name);
-	chmod(name, mode);
 	chown(name, uid, gid);
+	chmod(name, mode);
 	return;
     }
 
@@ -529,8 +529,8 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 #ifdef	S_ISLNK
 	if (symlink (hp->linkName, name) < 0)
 	    perror (name);
-	chmod(name, mode);
 	chown(name, uid, gid);
+	chmod(name, mode);
 #else
 	fprintf (stderr, "Cannot create symbolic links\n");
 #endif
@@ -546,8 +546,8 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
      */
     if (S_ISDIR (mode)) {
 	createPath (name, mode);
-	chmod(name, mode);
 	chown(name, uid, gid);
+	chmod(name, mode);
 
 	return;
     }
@@ -585,8 +585,8 @@ readHeader (const TarHeader * hp, int fileCount, char **fileTable)
 	return;
     }
     if (tostdoutFlag == FALSE) {
-	fchmod(outFd, mode);
 	fchown(outFd, uid, gid);
+	fchmod(outFd, mode);
     }
 
     /* 
