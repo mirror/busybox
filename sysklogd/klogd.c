@@ -47,8 +47,8 @@ static void klogd_signal(int sig)
 	klogctl(7, NULL, 0);
 	klogctl(0, 0, 0);
 	/* logMessage(0, "Kernel log daemon exiting."); */
-	syslog_msg(LOG_SYSLOG, LOG_NOTICE, "Kernel log daemon exiting.");
-	exit(TRUE);
+	syslog(LOG_NOTICE, "Kernel log daemon exiting.");
+	exit(EXIT_SUCCESS);
 }
 
 static void doKlogd(const char console_log_level) __attribute__ ((noreturn));
@@ -58,6 +58,8 @@ static void doKlogd(const char console_log_level)
 	char log_buffer[4096];
 	int i, n, lastc;
 	char *start;
+
+	openlog("kernel", 0, LOG_KERN);
 
 	/* Set up sig handlers */
 	signal(SIGINT, klogd_signal);
@@ -72,22 +74,17 @@ static void doKlogd(const char console_log_level)
 	if (console_log_level)
 		klogctl(8, NULL, console_log_level);
 
-	syslog_msg(LOG_SYSLOG, LOG_NOTICE, "klogd started: " BB_BANNER);
+	syslog(LOG_NOTICE, "klogd started: " BB_BANNER);
 
 	while (1) {
 		/* Use kernel syscalls */
 		memset(log_buffer, '\0', sizeof(log_buffer));
 		n = klogctl(2, log_buffer, sizeof(log_buffer));
 		if (n < 0) {
-			char message[80];
-
 			if (errno == EINTR)
 				continue;
-			snprintf(message, 79,
-					 "klogd: Error return from sys_sycall: %d - %s.\n", errno,
-					 strerror(errno));
-			syslog_msg(LOG_SYSLOG, LOG_ERR, message);
-			exit(1);
+			syslog(LOG_ERR, "klogd: Error return from sys_sycall: %d - %s.\n", errno, strerror(errno));
+			exit(EXIT_FAILURE);
 		}
 
 		/* klogctl buffer parsing modelled after code in dmesg.c */
@@ -107,7 +104,7 @@ static void doKlogd(const char console_log_level)
 			}
 			if (log_buffer[i] == '\n') {
 				log_buffer[i] = '\0';	/* zero terminate this message */
-				syslog_msg(LOG_KERN, priority, start);
+				syslog(priority, start);
 				start = &log_buffer[i + 1];
 				priority = LOG_INFO;
 			}

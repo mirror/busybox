@@ -1,4 +1,4 @@
-/* $Id: telnetd.c,v 1.11 2004/03/15 08:28:53 andersen Exp $
+/* $Id: telnetd.c,v 1.12 2004/06/22 10:07:17 andersen Exp $
  *
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -269,7 +269,7 @@ make_new_session(int sockfd)
 	pty = getpty(tty_name);
 
 	if (pty < 0) {
-		syslog_msg(LOG_USER, LOG_ERR, "All network ports in use!");
+		syslog(LOG_ERR, "All network ports in use!");
 		return 0;
 	}
 
@@ -292,7 +292,7 @@ make_new_session(int sockfd)
 
 
 	if ((pid = fork()) < 0) {
-		syslog_msg(LOG_USER, LOG_ERR, "Can`t forking");
+		syslog(LOG_ERR, "Can`t forking");
 	}
 	if (pid == 0) {
 		/* In child, open the child's side of the tty.  */
@@ -304,7 +304,7 @@ make_new_session(int sockfd)
 		setsid();
 
 		if (open(tty_name, O_RDWR /*| O_NOCTTY*/) < 0) {
-			syslog_msg(LOG_USER, LOG_ERR, "Could not open tty");
+			syslog(LOG_ERR, "Could not open tty");
 			exit(1);
 			}
 		dup(0);
@@ -330,7 +330,7 @@ make_new_session(int sockfd)
 		execv(loginpath, (char *const *)argv_init);
 
 		/* NOT REACHED */
-		syslog_msg(LOG_USER, LOG_ERR, "execv error");
+		syslog(LOG_ERR, "execv error");
 		exit(1);
 	}
 
@@ -421,6 +421,8 @@ telnetd_main(int argc, char **argv)
 	}
 
 	argv_init[0] = loginpath;
+
+	openlog(bb_applet_name, 0, LOG_USER);
 
 #ifdef CONFIG_FEATURE_TELNETD_INETD
 	maxfd = 1;

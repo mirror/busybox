@@ -998,7 +998,9 @@ static void error(const char *fmt, ...)
 	va_end(va_alist);
 
 #ifdef	USE_SYSLOG
-	syslog_msg(LOG_AUTH, LOG_ERR, buf);
+	openlog(bb_applet_name, 0, LOG_AUTH);
+	syslog(LOG_ERR, "%s", buf);
+	closelog();
 #else
 	strncat(bp, "\r\n", 256 - strlen(buf));
 	buf[255] = 0;

@@ -41,7 +41,7 @@ LIBBB_SRC:= \
 	read_package_field.c recursive_action.c remove_file.c \
 	restricted_shell.c run_parts.c run_shell.c safe_read.c safe_write.c \
 	safe_strncpy.c setup_environment.c simplify_path.c syscalls.c \
-	syslog_msg_with_name.c trim.c u_signal_names.c vdprintf.c verror_msg.c \
+	trim.c u_signal_names.c vdprintf.c verror_msg.c \
 	vherror_msg.c vperror_msg.c wfopen.c xconnect.c xgetcwd.c \
 	xgethostbyname.c xgethostbyname2.c xreadlink.c xregcomp.c xgetlarg.c \
 	get_terminal_width_height.c fclose_nonstdin.c fflush_stdout_and_exit.c \

@@ -249,9 +249,6 @@ extern int vdprintf(int d, const char *format, va_list ap);
 int nfsmount(const char *spec, const char *node, int *flags,
 	     char **extra_opts, char **mount_opts, int running_bg);
 
-void syslog_msg_with_name(const char *name, int facility, int pri, const char *msg);
-void syslog_msg(int facility, int pri, const char *msg);
-
 /* Include our own copy of struct sysinfo to avoid binary compatability
  * problems with Linux 2.4, which changed things.  Grumble, grumble. */
 struct sysinfo {
