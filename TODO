@@ -11,7 +11,7 @@ around to it some time. If you have any good ideas, please let me know.
 -----------
 
 * Allow tar to create archives with sockets, devices, and other special files
-* Add in a mini insmod, rmmod, lsmod
+* Make insmod actually work
 * init clearly needs to support some type of minimalist /etc/inittab. I
     currently have _way_ too much policy hardcoded in the source.  Adding
     support for getty has made me realize how much that sucks.

@@ -66,7 +66,6 @@ head_main(int argc, char **argv)
 	    opt = argv[i][1];
 	    switch (opt) {
 		case '-':
-		    break;
 		case 'h':
 		    usage(head_usage);
 		default:
@@ -104,4 +103,4 @@ head_main(int argc, char **argv)
     exit(0);
 }
 
-/* $Id: head.c,v 1.3 1999/12/15 19:29:09 beppu Exp $ */
+/* $Id: head.c,v 1.4 1999/12/17 18:52:06 erik Exp $ */
