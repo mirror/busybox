@@ -790,7 +790,17 @@ extern int ls_main(int argc, char **argv)
 	for (oi=0 ; oi < ac; oi++) {
 		cur= (struct dnode *)xmalloc(sizeof(struct dnode));
 		cur->fullname= xstrdup(av[oi]);
-		cur->name= cur->fullname ;
+		cur->name= cur->fullname;
+#ifdef BB_FEATURE_LS_FOLLOWLINKS
+		if (follow_links == TRUE) {
+			if (stat(av[oi], &cur->dstat)) {
+				errorMsg("%s: %s\n", av[oi], strerror(errno));
+				free(cur->fullname);
+				free(cur);
+				continue;
+			}
+		} else
+#endif
 		if (lstat(av[oi], &cur->dstat)) {  /* get file info into node */
 			errorMsg("%s: %s\n", av[oi], strerror(errno));
 			free(cur->fullname);
