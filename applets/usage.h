@@ -1,3 +1,19 @@
+#define addgroup_trivial_usage \
+	"[OPTIONS] <group_name>"
+#define addgroup_full_usage \
+	"Adds a group to the system" \
+	"Options:\n" \
+	    "\t-g\t\tspecify gid\n"
+
+#define adduser_trivial_usage \
+	"[OPTIONS] <user_name>"
+#define adduser_full_usage \
+	"Adds a user to the system" \
+	"Options:\n" \
+	    "\t-h\t\thome directory\n" \
+	    "\t-s\t\tshell\n" \
+	    "\t-g\t\tGECOS string\n"
+
 #define adjtimex_trivial_usage \
 	"[-q] [-o offset] [-f frequency] [-p timeconstant] [-t tick]"
 #define adjtimex_full_usage \
@@ -215,6 +231,15 @@
 #define deallocvt_full_usage \
 	 "Deallocate unused virtual terminal /dev/ttyN"
 
+#define delgroup_trivial_usage \
+	"GROUP"
+#define delgroup_full_usage \
+	 "Deletes group GROUP from the system"
+
+#define deluser_trivial_usage \
+	"USER"
+#define deluser_full_usage \
+	 "Deletes user USER from the system"
 
 #ifdef BB_FEATURE_HUMAN_READABLE
   #define USAGE_HUMAN_READABLE(a) a
@@ -532,6 +557,22 @@
         "   *) echo \"Internal error!\" ; exit 1 ;;\n" \
         " esac\n" \
         "done\n"
+
+#define getty_trivial_usage \
+	"getty [OPTIONS]... baud_rate,... line [termtype]"
+#define getty_full_usage \
+	"\nOpens a tty, prompts for a login name, then invokes /bin/login\n\n" \
+	"Options:\n" \
+	"\t-h\t\tEnable hardware (RTS/CTS) flow control.\n" \
+	"\t-i\t\tDo not display /etc/issue before running login.\n" \
+	"\t-L\t\tLocal line, so do not do carrier detect.\n" \
+	"\t-m\t\tGet baud rate from modem's CONNECT status message.\n" \
+	"\t-w\t\tWait for a CR or LF before sending /etc/issue.\n" \
+	"\t-l login_app\tInvoke login_app instead of /bin/login.\n" \
+	"\t-t timeout\tTerminate after timeout if no username is read.\n" \
+	"\t-I initstring\tSets the init string to send before anything else.\n" \
+	"\t-H login_host\tLog login_host into the utmp file as the hostname."
+
 
 #define grep_trivial_usage \
 	"[-ihHnqvs] PATTERN [FILEs...]"

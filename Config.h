@@ -7,6 +7,8 @@
 //
 //
 // BusyBox Applications
+#define BB_ADDGROUP
+#define BB_ADDUSER
 //#define BB_ADJTIMEX
 //#define BB_AR
 //#define BB_ASH
@@ -26,6 +28,8 @@
 //#define BB_DC
 #define BB_DD
 //#define BB_DEALLOCVT
+#define BB_DELGROUP
+#define BB_DELUSER
 #define BB_DF
 #define BB_DIRNAME
 #define BB_DMESG
@@ -45,6 +49,7 @@
 //#define BB_FREERAMDISK
 //#define BB_FSCK_MINIX
 //#define BB_GETOPT
+#define BB_GETTY
 #define BB_GREP
 #define BB_GUNZIP
 #define BB_GZIP

@@ -46,6 +46,12 @@
 #ifdef BB_TEST
 	APPLET_NOUSAGE("[", test_main, _BB_DIR_USR_BIN)
 #endif
+#ifdef BB_ADDGROUP
+	APPLET(addgroup, addgroup_main, _BB_DIR_BIN)
+#endif
+#ifdef BB_ADDUSER
+	APPLET(adduser, adduser_main, _BB_DIR_BIN)
+#endif
 #ifdef BB_ADJTIMEX
 	APPLET(adjtimex, adjtimex_main, _BB_DIR_SBIN)
 #endif
@@ -103,6 +109,12 @@
 #endif
 #ifdef BB_DEALLOCVT
 	APPLET(deallocvt, deallocvt_main, _BB_DIR_USR_BIN)
+#endif
+#ifdef BB_DELGROUP
+	APPLET(delgroup, delgroup_main, _BB_DIR_BIN)
+#endif
+#ifdef BB_DELUSER
+	APPLET(deluser, deluser_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_DF
 	APPLET(df, df_main, _BB_DIR_BIN)
@@ -166,6 +178,9 @@
 #endif
 #ifdef BB_GETOPT
 	APPLET(getopt, getopt_main, _BB_DIR_BIN)
+#endif
+#ifdef BB_GETTY
+	APPLET(getty, getty_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_GREP
 	APPLET(grep, grep_main, _BB_DIR_BIN)
@@ -479,3 +494,4 @@
 };
 
 #endif
+
