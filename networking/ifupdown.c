@@ -318,7 +318,7 @@ static int loopback_up6(interface_defn *ifd, execfn *exec)
 
 static int loopback_down6(interface_defn *ifd, execfn *exec)
 {
-	if (!execute("ifconfig %iface% del ::1", ifd, exec))
+	if (!execute("ifconfig %iface% del ::1", ifd, exec)) {
 		return(0);
 	}
 	return(1);
