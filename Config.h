@@ -193,7 +193,7 @@
 //#define BB_FEATURE_INIT_CHROOT
 //
 //Make sure nothing is printed to the console on boot
-#define BB_FEATURE_EXTRA_QUIET
+//#define BB_FEATURE_EXTRA_QUIET
 //
 //Should syslogd also provide klogd support?
 #define BB_FEATURE_KLOGD
@@ -283,7 +283,7 @@
 // #define BB_FEATURE_INSTALLER
 //
 // Enable a nifty progress meter in wget (adds just under 2k)
-//#define BB_FEATURE_STATUSBAR
+#define BB_FEATURE_STATUSBAR
 //
 // Clean up all memory before exiting -- usually not needed
 // as the OS can clean up...  Don't enable this unless you
