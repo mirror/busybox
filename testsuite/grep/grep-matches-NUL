@@ -1,3 +1,2 @@
 # XFAIL
-echo -e '\0' >foo
-busybox grep . foo
+echo -e '\0' | busybox grep .
