@@ -439,8 +439,8 @@ extern int mount_main(int argc, char **argv)
 
 			if (all && (	/* If we're mounting 'all' */
 						   (strstr(m->mnt_opts, "noauto")) ||	/* and the file system isn't noauto, */
-						   (strstr(m->mnt_type, "swap")) ||	/* and isn't swap or nfs, then mount it */
-						   (strstr(m->mnt_type, "nfs")))) {
+						   (strstr(m->mnt_type, "swap")))) /* and isn't swap, then mount it */
+			{
 				continue;
 			}
 
