@@ -228,7 +228,7 @@
 
 #define dd_trivial_usage \
 	"[if=FILE] [of=FILE] [bs=N] [count=N] [skip=N]\n" \
-	"\t  [seek=N] [conv=notrunc|sync]"
+	"\t  [seek=N] [conv=notrunc|noerror|sync]"
 #define dd_full_usage \
 	"Copy a file, converting and formatting according to options\n\n" \
 	"\tif=FILE\t\tread from FILE instead of stdin\n" \
@@ -238,6 +238,7 @@
 	"\tskip=N\t\tskip N input blocks\n" \
 	"\tseek=N\t\tskip N output blocks\n" \
 	"\tconv=notrunc\tdon't truncate output file\n" \
+	"\tconv=noerror\tcontinue after read errors\n" \
 	"\tconv=sync\tpad blocks with zeros\n" \
 	"\n" \
 	"Numbers may be suffixed by c (x1), w (x2), b (x512), kD (x1000), k (x1024),\n" \
