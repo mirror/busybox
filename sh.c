@@ -37,6 +37,9 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#ifdef BB_FEATURE_SH_COMMAND_EDITING
+#include "cmdedit.h"
+#endif
 
 
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
@@ -132,6 +135,16 @@ static const char shell_usage[] =
 static char cwd[1024];
 static char *prompt = "# ";
 
+#ifdef BB_FEATURE_SH_COMMAND_EDITING
+void win_changed(int sig)
+{
+	struct winsize win = { 0, 0 };
+	ioctl(0, TIOCGWINSZ, &win);
+	if (win.ws_col > 0) {
+		cmdedit_setwidth( win.ws_col - 1);
+	}
+}
+#endif
 
 
 /* built-in 'cd <path>' handler */
@@ -398,7 +411,7 @@ static int getCommand(FILE * source, char *command)
 		fflush(stdout);
 		promptStr=(char*)malloc(sizeof(char)*(len+1));
 		sprintf(promptStr, "%s %s", cwd, prompt);
-		cmdedit_read_input(promptStr, fileno(stdin), fileno(stdout), command);
+		cmdedit_read_input(promptStr, command);
 		free( promptStr);
 		return 0;
 #else
@@ -696,7 +709,6 @@ static int parseCommand(char **commandPtr, struct job *job, int *isBg)
 		strcpy(job->text, *commandPtr);
 	} else {
 		/* This leaves any trailing spaces, which is a bit sloppy */
-
 		count = returnCommand - *commandPtr;
 		job->text = malloc(count + 1);
 		strncpy(job->text, *commandPtr, count);
@@ -793,14 +805,12 @@ static int runCommand(struct job newJob, struct jobSet *jobList, int inBg)
 	if (inBg) {
 		/* we don't wait for background jobs to return -- append it 
 		   to the list of backgrounded jobs and leave it alone */
-
 		printf("[%d] %d\n", job->jobId,
 			   newJob.progs[newJob.numProgs - 1].pid);
 	} else {
 		jobList->fg = job;
 
 		/* move the new process group into the foreground */
-
 		if (tcsetpgrp(0, newJob.pgrp))
 			perror("tcsetpgrp");
 	}
@@ -938,29 +948,24 @@ int shell_main(int argc, char **argv)
 	/* initialize the cwd */
 	getcwd(cwd, sizeof(cwd));
 
+#ifdef BB_FEATURE_SH_COMMAND_EDITING
+	signal(SIGWINCH, win_changed);
+	win_changed(0);
+#endif
 
 	//if (argv[0] && argv[0][0] == '-') {
 	//      shell_source("/etc/profile");
 	//}
 
 	if (argc < 2) {
-		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER,
-				BB_BT);
-		fprintf(stdout,
-				"Enter 'help' for a list of built-in commands.\n\n");
+		fprintf(stdout, "\n\nBusyBox v%s (%s) Built-in shell\n", BB_VER, BB_BT);
+		fprintf(stdout, "Enter 'help' for a list of built-in commands.\n\n");
 	} else {
 		input = fopen(argv[1], "r");
-		if (!input)
+		if (!input) {
 			fatalError("A: Couldn't open file '%s': %s\n", argv[1],
 					   strerror(errno));
-//              else
-//                      fatalError("Got it.\n");
-		//exit(shell_source(argv[1]));
-
-		/* Set terminal IO to canonical mode, and save old term settings. */
-#ifdef BB_FEATURE_SH_COMMAND_EDITING
-		cmdedit_init();
-#endif
+		}
 	}
 
 	return (busy_loop(input));

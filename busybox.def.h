@@ -187,7 +187,7 @@
 //#define BB_FEATURE_SORT_REVERSE
 //
 // Enable command line editing in the shell
-#define BB_FEATURE_SH_COMMAND_EDITING
+//#define BB_FEATURE_SH_COMMAND_EDITING
 //
 // Enable tab completion in the shell (not yet working very well)
 //#define BB_FEATURE_SH_TAB_COMPLETION

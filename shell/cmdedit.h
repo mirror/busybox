@@ -1,17 +1,35 @@
-/*
- * Termios command line History and Editting for NetBSD sh (ash)
- * Copyright (c) 1999
- *      Main code:            Adam Rogoyski <rogoyski@cs.utexas.edu> 
- *      Etc:                  Dave Cinege <dcinege@psychosis.com>
- *      Adjusted for busybox: Erik Andersen <andersee@debian.org>
- *
- * You may use this code as you wish, so long as the original author(s)
- * are attributed in any redistributions of the source code.
- * This code is 'as is' with no warranty.
- * This code may safely be consumed by a BSD or GPL license.
- *
+#ifndef GETLINE_H
+#define GETLINE_H
+
+/* unix systems can #define POSIX to use termios, otherwise 
+ * the bsd or sysv interface will be used 
  */
 
-extern int cmdedit_read_input(char* prompt, int inputFd, int outputFd, char command[BUFSIZ]);
-extern void cmdedit_init(void);
+#ifdef __STDC__ 
+#include <stddef.h>
 
+typedef size_t (*cmdedit_strwidth_proc)(char *);
+
+void cmdedit_read_input(char* promptStr, char* command);		/* read a line of input */
+void cmdedit_setwidth(int);		/* specify width of screen */
+void cmdedit_histadd(char *);		/* adds entries to hist */
+void cmdedit_strwidth(cmdedit_strwidth_proc);	/* to bind cmdedit_strlen */
+
+extern int 	(*cmdedit_in_hook)(char *);
+extern int 	(*cmdedit_out_hook)(char *);
+extern int	(*cmdedit_tab_hook)(char *, int, int *);
+
+#else	/* not __STDC__ */
+
+void cmdedit_read_input(char* promptStr, char* command);
+void cmdedit_setwidth();
+void cmdedit_histadd();
+void cmdedit_strwidth();
+
+extern int 	(*cmdedit_in_hook)();
+extern int 	(*cmdedit_out_hook)();
+extern int	(*cmdedit_tab_hook)();
+
+#endif /* __STDC__ */
+
+#endif /* GETLINE_H */
