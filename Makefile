@@ -105,7 +105,6 @@ busybox: $(OBJECTS)
 busybox.links: busybox.def.h
 	- ./busybox.mkll | sort >$@
 
-.PHONY: docs
 docs:	docs/busybox.pod
 	$(MAKE) -C docs clean all 
 
