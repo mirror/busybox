@@ -137,8 +137,8 @@ static int readTarFile(const char* tarName, int extractFlag, int listFlag,
 
 #ifdef BB_FEATURE_TAR_CREATE
 /* Local procedures to save files into a tar file.  */
-static int writeTarFile(const char* tarName, int tostdoutFlag, 
-		int verboseFlag, int argc, char **argv, char** excludeList);
+static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
+		char** excludeList);
 #endif
 
 extern int tar_main(int argc, char **argv)
@@ -160,13 +160,11 @@ extern int tar_main(int argc, char **argv)
 	if (argc <= 1)
 		usage(tar_usage);
 
-	/* do normal option parsing */
-	while (--argc > 0 && ((*argv && **(++argv) == '-') || 
-				(firstOpt==TRUE && strspn(*argv, "-cxt") ))) {
+	while (*(++argv) && (**argv == '-' || firstOpt == TRUE)) {
 		firstOpt=FALSE;
 		stopIt=FALSE;
-		while (stopIt==FALSE && *argv && **argv) {
-			switch (**argv) {
+		while (stopIt==FALSE && **argv) {
+			switch (*((*argv)++)) {
 				case 'c':
 					if (extractFlag == TRUE || listFlag == TRUE)
 						goto flagError;
@@ -187,29 +185,22 @@ extern int tar_main(int argc, char **argv)
 					break;
 				case 'O':
 					tostdoutFlag = TRUE;
-					tarName = "-";
 					break;					
 				case 'f':
-					if (--argc == 0) {
-						fatalError( "Option requires an argument: No file specified\n");
-					}
 					if (*tarName != '-')
 						fatalError( "Only one 'f' option allowed\n");
 					tarName = *(++argv);
 					if (tarName == NULL)
 						fatalError( "Option requires an argument: No file specified\n");
-					if (!strcmp(tarName, "-") && createFlag == TRUE)
-						tostdoutFlag = TRUE;
 					stopIt=TRUE;
 					break;
 #if defined BB_FEATURE_TAR_EXCLUDE
 				case 'e':
 					if (strcmp(*argv, "exclude")==0) {
-						if (--argc == 0) {
-							fatalError( "Option requires an argument: No file specified\n");
-						}
 						excludeList=xrealloc( excludeList, sizeof(char**) * (excludeListSize+2));
 						excludeList[excludeListSize] = *(++argv);
+						if (excludeList[excludeListSize] == NULL)
+							fatalError( "Option requires an argument: No file specified\n");
 						/* Remove leading "/"s */
 						if (*excludeList[excludeListSize] =='/')
 							excludeList[excludeListSize] = (excludeList[excludeListSize])+1;
@@ -224,7 +215,6 @@ extern int tar_main(int argc, char **argv)
 				default:
 					usage(tar_usage);
 			}
-			++(*argv);
 		}
 	}
 
@@ -236,11 +226,12 @@ extern int tar_main(int argc, char **argv)
 #ifndef BB_FEATURE_TAR_CREATE
 		fatalError( "This version of tar was not compiled with tar creation support.\n");
 #else
-		exit(writeTarFile(tarName, tostdoutFlag, verboseFlag, argc, argv, excludeList));
+		exit(writeTarFile(tarName, verboseFlag, argv, excludeList));
 #endif
 	}
 	if (listFlag == TRUE || extractFlag == TRUE) {
-		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag, verboseFlag, &argv[optind], excludeList));
+		exit(readTarFile(tarName, extractFlag, listFlag, tostdoutFlag,
+					verboseFlag, argv, excludeList));
 	}
 
   flagError:
@@ -967,8 +958,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf, void* 
 	return( TRUE);
 }
 
-static int writeTarFile(const char* tarName, int tostdoutFlag, 
-		int verboseFlag, int argc, char **argv, char** excludeList)
+static int writeTarFile(const char* tarName, int verboseFlag, char **argv,
+		char** excludeList)
 {
 	int tarFd=-1;
 	int errorFlag=FALSE;
@@ -977,11 +968,11 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 	tbInfo.verboseFlag = verboseFlag;
 
 	/* Make sure there is at least one file to tar up.  */
-	if (argc <= 0)
+	if (*argv == NULL)
 		fatalError("Cowardly refusing to create an empty archive\n");
 
 	/* Open the tar file for writing.  */
-	if (tostdoutFlag == TRUE)
+	if (!strcmp(tarName, "-"))
 		tbInfo.tarFd = fileno(stdout);
 	else
 		tbInfo.tarFd = open (tarName, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -1000,7 +991,7 @@ static int writeTarFile(const char* tarName, int tostdoutFlag,
 	umask(0);
 
 	/* Read the directory/files and iterate over them one at a time */
-	while (argc-- > 0) {
+	while (*argv != NULL) {
 		if (recursiveAction(*argv++, TRUE, FALSE, FALSE,
 					writeFileToTarball, writeFileToTarball, 
 					(void*) &tbInfo) == FALSE) {
