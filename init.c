@@ -411,6 +411,7 @@ static pid_t run(char *command, char *terminal, int get_enter)
 		dup2(fd, 0);
 		dup2(fd, 1);
 		dup2(fd, 2);
+		ioctl(0, TIOCSCTTY, 0);
 		tcsetpgrp(0, getpgrp());
 		set_term(0);
 
