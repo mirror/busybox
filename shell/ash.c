@@ -1994,7 +1994,7 @@ exerror(int cond, const char *msg, ...)
 
 struct errname {
 	short errcode;          /* error number */
-	char  action;           /* operation which encountered the error */
+	short  action;           /* operation which encountered the error */
 };
 
 /*
@@ -12470,7 +12470,7 @@ findvar(struct var **vpp, const char *name)
 /*
  * Copyright (c) 1999 Herbert Xu <herbert@debian.org>
  * This file contains code for the times builtin.
- * $Id: ash.c,v 1.44 2001/12/31 06:13:38 aaronl Exp $
+ * $Id: ash.c,v 1.45 2001/12/31 06:16:54 aaronl Exp $
  */
 static int timescmd (int argc, char **argv)
 {
