@@ -876,6 +876,16 @@ const char renice_usage[] =
 	;
 #endif
 
+
+#if defined BB_RESET
+const char reset_usage[] =
+	"reset\n"
+#ifndef BB_FEATURE_TRIVIAL_HELP
+	"\nResets the screen.\n"
+#endif
+	;
+#endif
+
 #if defined BB_RM
 const char rm_usage[] =
 	"rm [OPTION]... FILE...\n"

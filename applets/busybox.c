@@ -229,6 +229,9 @@ const struct BB_applet applets[] = {
 #ifdef BB_RENICE
 	{"renice", renice_main, _BB_DIR_USR_BIN},
 #endif
+#ifdef BB_RESET
+	{"reset", reset_main, _BB_DIR_USR_BIN, reset_usage},
+#endif
 #ifdef BB_RM
 	{"rm", rm_main, _BB_DIR_BIN, rm_usage},
 #endif

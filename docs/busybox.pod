@@ -61,7 +61,7 @@ fdflush, find, free, freeramdisk, fsck.minix, grep, gunzip, gzip, halt,
 head, hostid, hostname, id, init, insmod, kill, killall, length, ln,
 loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, mkdir,
 mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
-nslookup, ping, poweroff, printf, ps, pwd, reboot, renice, rm, rmdir, rmmod, sed,
+nslookup, ping, poweroff, printf, ps, pwd, reboot, renice, reset, rm, rmdir, rmmod, sed,
 setkeycodes, sh, sleep, sort, swapoff, swapon, sync, syslogd, tail,
 tar, tee, telnet, test, touch, tr, true, tty, umount, uname, uniq, update,
 uptime, usleep, uudecode, uuencode, wc, which, whoami, yes, zcat, [
@@ -1396,6 +1396,14 @@ from 20 (the process runs only when nothing else is running) to 0
 
 -------------------------------
 
+=item reset
+
+Usage: reset
+
+Resets the screen.
+
+-------------------------------
+
 =item rm
 
 Usage: rm [OPTION]... FILE...
@@ -2044,4 +2052,4 @@ Enrique Zanardi <ezanardi@ull.es>
 
 =cut
 
-# $Id: busybox.pod,v 1.60 2000/08/02 18:48:25 andersen Exp $
+# $Id: busybox.pod,v 1.61 2000/08/21 21:18:52 andersen Exp $

@@ -140,7 +140,7 @@
 		loadacm, loadfont, loadkmap, logger, logname, ls, lsmod,
 		makedevs, mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp,
 		more, mount, mt, mv, nc, nslookup, ping, poweroff, printf, ps,
-		pwd, reboot, renice, rm, rmdir, rmmod, sed, setkeycodes, sh, sleep,
+		pwd, reboot, renice, reset, rm, rmdir, rmmod, sed, setkeycodes, sh, sleep,
 		sort, swapoff, swapon, sync, syslogd, tail, tar, tee, telnet,
 		test, touch, tr, true, tty, umount, uname, uniq, update,
 		uptime, usleep, uudecode, uuencode, wc, which, whoami, yes,
@@ -2456,6 +2456,18 @@
 		Changes priority of running processes. Allowed priorities range
 		from 20 (the process runs only when nothing else is running) to 0
 		(default priority) to -20 (almost nothing else ever gets to run).
+		</para>
+	</sect1>
+
+	<sect1 id="reset">
+	    <title>reset</title>
+
+		<para>
+		Usage: reset
+		</para>
+
+		<para>
+		Resets the screen.
 		</para>
 	</sect1>
 
