@@ -923,10 +923,12 @@ extern int ls_main(int argc, char **argv)
 		| SORT_NAME | SORT_ORDER_FORWARD
 #endif
 		;
+#ifdef CONFIG_FEATURE_AUTOWIDTH
 	/* Obtain the terminal width.  */
 	get_terminal_width_height(0, &terminal_width, NULL);
 	/* Go one less... */
 	terminal_width--;
+#endif
 	nfiles = 0;
 
 #ifdef CONFIG_FEATURE_LS_COLOR
