@@ -4,7 +4,7 @@
  *  shasum fixed with reference to coreutils and the nist fip180-1 document
  *  which is incorrect, in section 5
  *  - ft(B,C,D) = (B AND C) OR ((NOT B) AND D) ( 0 <= t <= 19)
- *  + ft(B,C,D) = (D XOR (B AND (C XOR S))) ( 0 <= t <= 19)
+ *  + ft(B,C,D) = (D XOR (B AND (C XOR D))) ( 0 <= t <= 19)
  *
  *  Copyright (C) 1999 Scott G. Miller
  *  Copyright (C) 2003 Glenn L. McGrath
@@ -112,7 +112,7 @@ static void sha_hash(unsigned int *data, int *hash)
 	hash[4] += e;
 }
 
-static void sha1sum_stream(FILE * fd, unsigned int *hashval)
+static void sha1sum_stream(FILE *fd, unsigned int *hashval)
 {
 	RESERVE_CONFIG_BUFFER(buffer, 64);
 	int length = 0;
@@ -128,11 +128,6 @@ static void sha1sum_stream(FILE * fd, unsigned int *hashval)
 		length += c;
 		if (feof(fd) || ferror(fd)) {
 			int i;
-			/* If reading from stdin we need to get rid of a tailing character */
-			if (fd == stdin) {
-				c--;
-				length--;
-			}
 			for (i = c; i < 61; i++) {
 				if (i == c) {
 					buffer[i] = 0x80;
@@ -153,34 +148,37 @@ static void sha1sum_stream(FILE * fd, unsigned int *hashval)
 	return;
 }
 
-static void print_hash(unsigned short hash_length, unsigned int *hash_val, char *filename)
+static void print_hash(unsigned int *hash_value, unsigned char hash_length, unsigned char *filename)
 {
-	int x;
+	unsigned char x;
 
 	for (x = 0; x < hash_length; x++) {
-		printf("%08x", hash_val[x]);
+		printf("%08x", hash_value[x]);
 	}
-	if (filename != NULL) {
-		putchar(' ');
-		putchar(' ');
-		puts(filename);
-	}
-	putchar('\n');
+	putchar(' ');
+	putchar(' ');
+	puts(filename);
 }
+
+#define FLAG_SILENT	1
+#define FLAG_CHECK	2
+#define FLAG_WARN	3
 
 /* This should become a common function used by sha1sum and md5sum,
  * it needs extra functionality first
  */
-extern int authenticate(const int argc, char **argv, void (*hash_ptr)(FILE *stream, unsigned int *hashval), const unsigned short hash_length)
+extern int authenticate(int argc, char **argv, void (*hash_ptr)(FILE *stream, unsigned int *hashval), const unsigned char hash_length)
 {
+	unsigned int hash_value[hash_length];
+	unsigned char flags = 0;
 	int opt;
-	unsigned int *hashval;
 
 	while ((opt = getopt(argc, argv, "sc:w")) != -1) {
 		switch (opt) {
-#if 0
 		case 's':	/* Dont output anything, status code shows success */
+			flags |= FLAG_SILENT;
 			break;
+#if 0
 		case 'c':	/* Check a list of checksums against stored values  */
 			break;
 		case 'w':	/* Warn of bad formatting when checking files */
@@ -191,34 +189,38 @@ extern int authenticate(const int argc, char **argv, void (*hash_ptr)(FILE *stre
 		}
 	}
 
-	hashval = xmalloc(hash_length * sizeof(unsigned int));
-
 	if (argc == optind) {
-		hash_ptr(stdin, hashval);
-		print_hash(hash_length, hashval, NULL);
-	} else {
-		int i;
-
-		for (i = optind; i < argc; i++) {
-			if (!strcmp(argv[i], "-")) {
-				hash_ptr(stdin, hashval);
-				print_hash(hash_length, hashval, NULL);
-			} else {
-				FILE *stream = bb_xfopen(argv[i], "r");
-				hash_ptr(stream, hashval);
-				fclose(stream);
-				print_hash(hash_length, hashval, argv[i]);
-			}
-		}
+		argv[argc] = "-";
 	}
 
-	free(hashval);
+	while (optind < argc) {
+		FILE *stream;
+		unsigned char *file_ptr = argv[optind];
 
-	return 0;
+		if ((file_ptr[0] == '-') && (file_ptr[1] == '\0')) {
+			stream = stdin;
+		} else {
+			stream = bb_wfopen(file_ptr, "r");
+			if (stream == NULL) {
+				return(EXIT_FAILURE);
+			}
+		}
+		hash_ptr(stream, hash_value);
+		if (!flags & FLAG_SILENT) {
+			print_hash(hash_value, hash_length, file_ptr);
+		}
+
+		if (fclose(stream) == EOF) {
+			bb_perror_msg_and_die("Couldnt close file %s", file_ptr);
+		}
+
+		optind++;
+	}
+
+	return(EXIT_SUCCESS);
 }
 
 extern int sha1sum_main(int argc, char **argv)
 {
-	/* sha1 length is 5 nibbles */
 	return (authenticate(argc, argv, sha1sum_stream, 5));
 }
