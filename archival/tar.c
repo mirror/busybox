@@ -526,7 +526,7 @@ static inline int writeTarFile(const char *tarName, const int verboseFlag,
 			while (1) {
 				char buf;
 
-				int n = read(gzipStatusPipe[0], &buf, 1);
+				int n = bb_full_read(gzipStatusPipe[0], &buf, 1);
 
 				if (n == 0 && vfork_exec_errno != 0) {
 					errno = vfork_exec_errno;
