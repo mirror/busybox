@@ -80,8 +80,24 @@
 #include <sys/utsname.h>
 #include "busybox.h"
 
-#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
-# undef CONFIG_FEATURE_OLD_MODULE_INTERFACE
+#if !defined(CONFIG_FEATURE_2_4_MODULES) && \
+	!defined(CONFIG_FEATURE_2_2_MODULES) && \
+	!defined(CONFIG_FEATURE_2_6_MODULES)
+#define CONFIG_FEATURE_2_4_MODULES
+#endif
+
+#if !defined(CONFIG_FEATURE_2_4_MODULES) && !defined(CONFIG_FEATURE_2_2_MODULES)
+#define insmod_ng_main insmod_main
+#endif
+
+#if defined(CONFIG_FEATURE_2_4_MODULES) || defined(CONFIG_FEATURE_2_2_MODULES)
+
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+extern int insmod_ng_main( int argc, char **argv);
+#endif
+
+#ifdef CONFIG_FEATURE_2_4_MODULES
+# undef CONFIG_FEATURE_2_2_MODULES
 # define new_sys_init_module	init_module
 #else
 # define old_sys_init_module	init_module
@@ -266,7 +282,7 @@
 #ifndef MODUTILS_MODULE_H
 static const int MODUTILS_MODULE_H = 1;
 
-#ident "$Id: insmod.c,v 1.106 2003/12/04 15:02:57 mjn3 Exp $"
+#ident "$Id: insmod.c,v 1.107 2003/12/11 01:42:13 andersen Exp $"
 
 /* This file contains the structures used by the 2.0 and 2.1 kernels.
    We do not use the kernel headers directly because we do not wish
@@ -399,7 +415,7 @@ struct new_module
   unsigned tgt_long persist_end;
   unsigned tgt_long can_unload;
   unsigned tgt_long runsize;
-#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_4_MODULES
   const char *kallsyms_start;     /* All symbols for kernel debugging */
   const char *kallsyms_end;
   const char *archdata_start;     /* arch specific data for module */
@@ -487,7 +503,7 @@ int delete_module(const char *);
 #ifndef MODUTILS_OBJ_H
 static const int MODUTILS_OBJ_H = 1;
 
-#ident "$Id: insmod.c,v 1.106 2003/12/04 15:02:57 mjn3 Exp $"
+#ident "$Id: insmod.c,v 1.107 2003/12/11 01:42:13 andersen Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
@@ -630,7 +646,7 @@ static void *obj_extend_section (struct obj_section *sec, unsigned long more);
 static int obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 		     const char *string);
 
-#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_4_MODULES
 static int obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 		     struct obj_symbol *sym);
 #endif
@@ -665,7 +681,7 @@ static void arch_create_got (struct obj_file *f);
 
 static int obj_gpl_license(struct obj_file *f, const char **license);
 	
-#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_4_MODULES
 static int arch_init_module (struct obj_file *f, struct new_module *);
 #endif
 
@@ -1626,7 +1642,7 @@ static void arch_create_got(struct obj_file *f)
 #endif /* defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES) */
 }
 
-#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_4_MODULES
 static int arch_init_module(struct obj_file *f, struct new_module *mod)
 {
 	return 1;
@@ -2224,7 +2240,7 @@ old_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 
 #endif   /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 
-#ifdef CONFIG_FEATURE_OLD_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_2_MODULES
 
 /* Fetch all the symbols and divvy them up as appropriate for the modules.  */
 
@@ -2434,7 +2450,7 @@ old_init_module(const char *m_name, struct obj_file *f,
 #define old_create_mod_use_count(x) TRUE
 #define old_init_module(x, y, z) TRUE
 
-#endif							/* CONFIG_FEATURE_OLD_MODULE_INTERFACE */
+#endif							/* CONFIG_FEATURE_2_2_MODULES */
 
 
 
@@ -2720,7 +2736,7 @@ new_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 #endif   /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
 
 
-#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_4_MODULES
 
 /* Fetch the loaded modules, and all currently exported symbols.  */
 
@@ -3041,7 +3057,7 @@ new_init_module(const char *m_name, struct obj_file *f,
 #define new_create_module_ksymtab(x)
 #define query_module(v, w, x, y, z) -1
 
-#endif							/* CONFIG_FEATURE_NEW_MODULE_INTERFACE */
+#endif							/* CONFIG_FEATURE_2_4_MODULES */
 
 
 /*======================================================================*/
@@ -3075,7 +3091,7 @@ obj_string_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 	return 1;
 }
 
-#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_4_MODULES
 static int
 obj_symbol_patch(struct obj_file *f, int secidx, ElfW(Addr) offset,
 				 struct obj_symbol *sym)
@@ -4161,7 +4177,7 @@ extern int insmod_main( int argc, char **argv)
 
 	printf("Using %s\n", m_filename);
 
-#ifdef CONFIG_FEATURE_REALLY_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_6_MODULES
     if (create_module(NULL, 0) < 0 && errno == ENOSYS) {
 		optind--;
 		argv[optind] = m_filename;
@@ -4214,7 +4230,7 @@ extern int insmod_main( int argc, char **argv)
 	k_new_syscalls = !query_module(NULL, 0, NULL, 0, NULL);
 
 	if (k_new_syscalls) {
-#ifdef CONFIG_FEATURE_NEW_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_4_MODULES
 		if (!new_get_kernel_symbols())
 			goto out;
 		k_crcs = new_is_kernel_checksummed();
@@ -4223,7 +4239,7 @@ extern int insmod_main( int argc, char **argv)
 		goto out;
 #endif
 	} else {
-#ifdef CONFIG_FEATURE_OLD_MODULE_INTERFACE
+#ifdef CONFIG_FEATURE_2_2_MODULES
 		if (!old_get_kernel_symbols(m_name))
 			goto out;
 		k_crcs = old_is_kernel_checksummed();
@@ -4345,3 +4361,82 @@ out:
 #endif
 	return(exit_status);
 }
+
+
+#endif
+
+
+#ifdef CONFIG_FEATURE_2_6_MODULES
+
+#include <sys/mman.h>
+#include <asm/unistd.h>
+#include <sys/syscall.h>
+
+/* We use error numbers in a loose translation... */
+static const char *moderror(int err)
+{
+	switch (err) {
+	case ENOEXEC:
+		return "Invalid module format";
+	case ENOENT:
+		return "Unknown symbol in module";
+	case ESRCH:
+		return "Module has wrong symbol version";
+	case EINVAL:
+		return "Invalid parameters";
+	default:
+		return strerror(err);
+	}
+}
+
+extern int insmod_ng_main( int argc, char **argv)
+{
+	int i;
+	int fd;
+	long int ret;
+	struct stat st;
+	unsigned long len;
+	void *map;
+	char *filename, *options = bb_xstrdup("");
+	
+	filename = argv[1];
+	if (!filename) {
+		bb_show_usage();
+		return -1;
+	}
+
+	/* Rest is options */
+	for (i = 2; i < argc; i++) {
+		options = xrealloc(options, strlen(options) + 2 + strlen(argv[i]) + 2);
+		/* Spaces handled by "" pairs, but no way of escaping quotes */
+		if (strchr(argv[i], ' ')) {
+			strcat(options, "\"");
+			strcat(options, argv[i]);
+			strcat(options, "\"");
+		} else {
+			strcat(options, argv[i]);
+		}
+		strcat(options, " ");
+	}
+
+	if ((fd = open(filename, O_RDONLY, 0)) < 0) {
+		bb_perror_msg_and_die("cannot open module `%s'", filename);
+	}
+
+	fstat(fd, &st);
+	len = st.st_size;
+	map = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
+	if (map == MAP_FAILED) {
+		bb_perror_msg_and_die("cannot mmap `%s'", filename);
+	}
+
+	ret = syscall(__NR_init_module, map, len, options);
+	if (ret != 0) {
+		bb_perror_msg_and_die("cannot insert `%s': %s (%li)",
+						   filename, moderror(errno), ret);
+	}
+	
+	return 0;
+}
+
+#endif

@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <fcntl.h>
+#include <sys/syscall.h>
 #include "busybox.h"
 
 extern int delete_module(const char * name);
@@ -37,10 +39,17 @@ extern int rmmod_main(int argc, char **argv)
 	size_t pnmod = -1; /* previous number of modules */
 	void *buf; /* hold the module names which we ignore but must get */
 	size_t bufsize = 0;
+	unsigned int flags = O_NONBLOCK|O_EXCL;
 
 	/* Parse command line. */
 	while ((n = getopt(argc, argv, "a")) != EOF) {
 		switch (n) {
+			case 'w':       // --wait
+				flags &= ~O_NONBLOCK;
+				break;  
+			case 'f':       // --force
+				flags |= O_TRUNC;
+				break;  
 			case 'a':
 				/* Unload _all_ unused modules via NULL delete_module() call */
 				/* until the number of modules does not change */
@@ -67,7 +76,7 @@ extern int rmmod_main(int argc, char **argv)
 			bb_show_usage();
 
 	for (n = optind; n < argc; n++) {
-		if (delete_module(argv[n]) < 0) {
+		if (syscall(__NR_delete_module, argv[n], flags) < 0) {
 			bb_perror_msg("%s", argv[n]);
 			ret = EXIT_FAILURE;
 		}

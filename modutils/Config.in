@@ -11,32 +11,31 @@ config CONFIG_INSMOD
 	help
 	  insmod is used to load specified modules in the running kernel.
 
-config CONFIG_FEATURE_OLD_MODULE_INTERFACE
+config CONFIG_FEATURE_2_2_MODULES
 	bool "  Support older (pre 2.1) Linux kernels"
 	default n
 	depends on CONFIG_INSMOD
 	help
 	  Provide insmod support for older (pre 2.1) Linux kernels.
 
-if CONFIG_INSMOD && !CONFIG_FEATURE_OLD_MODULE_INTERFACE
-    config CONFIG_FEATURE_NEW_MODULE_INTERFACE
-	    default y
-    comment "  Support new (post 2.1) Linux kernels (Forced enabled)"
-endif
-
-if CONFIG_FEATURE_OLD_MODULE_INTERFACE
-config CONFIG_FEATURE_NEW_MODULE_INTERFACE
-	bool "  Support new (post 2.1) Linux kernels"
+config CONFIG_FEATURE_2_4_MODULES
+	bool "  Support version 2.1.x to 2.4.x Linux kernels"
 	default y
 	depends on CONFIG_INSMOD
 	help
 	  Support module loading for newer (post 2.1) Linux kernels.
-endif
+
+config CONFIG_FEATURE_2_6_MODULES
+	bool "  Support version 2.6.x Linux kernels"
+	default n
+	depends on CONFIG_INSMOD
+	help
+	  Support module loading for newer (post 2.1) Linux kernels.
 
 config CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 	bool "  Module version checking"
 	default n
-	depends on CONFIG_INSMOD
+	depends on CONFIG_INSMOD && ( CONFIG_FEATURE_2_2_MODULES || CONFIG_FEATURE_2_4_MODULES )
 	help
 	  Support checking of versions for modules.  This is used to
 	  ensure that the kernel and module are made for each other.
@@ -44,7 +43,7 @@ config CONFIG_FEATURE_INSMOD_VERSION_CHECKING
 config CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 	bool "  Add module symbols to kernel symbol table"
 	default n
-	depends on CONFIG_INSMOD
+	depends on CONFIG_INSMOD && ( CONFIG_FEATURE_2_2_MODULES || CONFIG_FEATURE_2_4_MODULES )
 	help
 	  By adding module symbols to the kernel symbol table, Oops messages 
 	  occuring within kernel modules can be properly debugged.  By enabling
@@ -55,7 +54,7 @@ config CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 config CONFIG_FEATURE_INSMOD_LOADINKMEM
 	bool "  In kernel memory optimization (uClinux only)"
 	default n
-	depends on CONFIG_INSMOD
+	depends on CONFIG_INSMOD && ( CONFIG_FEATURE_2_2_MODULES || CONFIG_FEATURE_2_4_MODULES )
 	help
 	  This is a special uClinux only memory optimization that lets insmod
 	  load the specified kernel module directly into kernel space, reducing
@@ -65,7 +64,7 @@ config CONFIG_FEATURE_INSMOD_LOADINKMEM
 config CONFIG_FEATURE_INSMOD_LOAD_MAP
 	bool "  Enable load map (-m) option" 
 	default n
-	depends on CONFIG_INSMOD
+	depends on CONFIG_INSMOD && ( CONFIG_FEATURE_2_2_MODULES || CONFIG_FEATURE_2_4_MODULES )
 	help
 	  Enabling this, one would be able to get a load map
 	  output on stdout. This makes kernel module debugging
@@ -79,9 +78,8 @@ config CONFIG_FEATURE_INSMOD_LOAD_MAP_FULL
 	depends on CONFIG_FEATURE_INSMOD_LOAD_MAP
 	help
 	  Without this option, -m will only output section
-	  load map.
-	  With this option, -m will also output symbols
-	  load map.
+	  load map.  With this option, -m will also output 
+	  symbols load map.
 
 config CONFIG_LSMOD
 	bool "lsmod"
@@ -92,7 +90,7 @@ config CONFIG_LSMOD
 config CONFIG_FEATURE_QUERY_MODULE_INTERFACE
 	bool "  Support lsmod query_module interface (add 638 bytes)"
 	default y
-	depends on CONFIG_LSMOD && CONFIG_FEATURE_NEW_MODULE_INTERFACE
+	depends on CONFIG_LSMOD && ( CONFIG_FEATURE_2_4_MODULES || CONFIG_FEATURE_2_6_MODULES )
 	help
 	  This will provide some extra information about each module when
 	  running lsmod.  The fields provided are address, size, flags and
