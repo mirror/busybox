@@ -180,6 +180,15 @@ struct cmdoptions_t {
 	0, 0, 0}
 };
 
+#ifdef BB_FEATURE_FBSET_READMODE
+/* taken from linux/fb.h */
+#define FB_VMODE_INTERLACED	1	/* interlaced	*/
+#define FB_VMODE_DOUBLE		2	/* double scan */
+#define FB_SYNC_HOR_HIGH_ACT	1	/* horizontal sync high active	*/
+#define FB_SYNC_VERT_HIGH_ACT	2	/* vertical sync high active	*/
+#define FB_SYNC_EXT		4	/* external sync		*/
+#define FB_SYNC_COMP_HIGH_ACT	8	/* composite sync high active   */
+#endif
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)
 {
