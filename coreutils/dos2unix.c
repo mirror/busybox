@@ -58,7 +58,7 @@ static int convert(char *fn, int ConvType)
 		if ((in = wfopen(fn, "rw")) == NULL) {
 			return -1;
 		}
-		strcpy(tempFn, fn);
+		safe_strncpy(tempFn, fn, sizeof(tempFn));
 		c = strlen(tempFn);
 		tempFn[c] = '.';
 		while(1) {
