@@ -72,7 +72,6 @@ struct BB_applet {
 	const	char*	name;
 	int	(*main)(int argc, char** argv);
 	enum	Location	location;
-	int	usage_index;
 };
 /* From busybox.c */
 extern const struct BB_applet applets[];
@@ -86,12 +85,6 @@ extern const struct BB_applet applets[];
 #define PROTOTYPES
 #include "applets.h"
 #undef PROTOTYPES
-
-#define APPLET_ENUM
-enum APPLET_INDEX_NUMBERS {
-#include "applets.h"
-};
-#undef APPLET_ENUM
 
 extern const char *applet_name;
 

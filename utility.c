@@ -54,7 +54,6 @@
 #define bb_need_full_version
 #define BB_DECLARE_EXTERN
 #include "messages.c"
-#include "usage.h"
 
 #include "pwd_grp/pwd.h"
 #include "pwd_grp/grp.h"
@@ -81,21 +80,20 @@ static struct BB_applet *applet_using;
 
 extern void show_usage(void)
 {
-	static const char no_help[] = "No help available.\n";
-
-	const char *usage_string = no_help;
+	const char *format_string;
+	const char *usage_string = usage_messages;
 	int i;
 
-	if (applet_using->usage_index >= 0) {
-		usage_string = usage_messages;
-		for (i=applet_using->usage_index ; i>0 ; ) {
-			if (!*usage_string++) {
-				--i;
-			}
+	for (i = applet_using - applets; i > 0; ) {
+		if (!*usage_string++) {
+			--i;
 		}
 	}
-	fprintf(stderr, "%s\n\nUsage: %s %s\n\n", full_version,
-			applet_using->name, usage_string);
+	format_string = "%s\n\nUsage: %s %s\n\n";
+	if(*usage_string == 0)
+		format_string = "%s\n\nNo help available.\n\n";
+	fprintf(stderr, format_string,
+			full_version, applet_using->name, usage_string);
 	exit(EXIT_FAILURE);
 }
 

@@ -14,33 +14,33 @@
 #undef APPLET_ODDNAME
 #undef APPLET_NOUSAGE
 
+
 #if defined(PROTOTYPES)
-#define APPLET(a,b,c) \
-	extern int b(int argc, char **argv);
-#define APPLET_ODDNAME(a,b,c,d,e) APPLET(a,b,c)
-#define APPLET_NOUSAGE(a,b,c) \
-	extern int b(int argc, char **argv);
-#elif defined(MAKE_LINKS)
-#define APPLET(a,b,c) LINK c #a
-#define APPLET_ODDNAME(a,b,c,d,e) LINK c a
-#define APPLET_NOUSAGE(a,b,c) LINK c #a
-#elif defined(APPLET_ENUM)
-#define APPLET(a,b,c) a##_applet_number,
-#define APPLET_ODDNAME(a,b,c,d,e) e##_applet_number,
-#define APPLET_NOUSAGE(a,b,c) a##applet_number,
+  #define APPLET(a,b,c) extern int b(int argc, char **argv);
+  #define APPLET_NOUSAGE(a,b,c) extern int b(int argc, char **argv);
+  #define APPLET_ODDNAME(a,b,c,d) extern int b(int argc, char **argv);
+  extern const char usage_messages[];
+#elif defined(MAKE_USAGE)
+  #ifdef BB_FEATURE_TRIVIAL_HELP
+    #define APPLET(a,b,c) a##_trivial_usage "\0"
+    #define APPLET_NOUSAGE(a,b,c) "\0"
+    #define APPLET_ODDNAME(a,b,c,d) d##_trivial_usage "\0"
+  #else
+    #define APPLET(a,b,c) a##_trivial_usage "\n\n" a##_full_usage "\0"
+    #define APPLET_NOUSAGE(a,b,c) "\0"
+    #define APPLET_ODDNAME(a,b,c,d) d##_trivial_usage "\n\n" d##_full_usage "\0"
+  #endif
 #else
-#define USAGE_ENUM
-#include "usage.h"
-const struct BB_applet applets[] = {
-#define APPLET(a,b,c) {#a,b,c,a##_usage_index},
-#define APPLET_ODDNAME(a,b,c,d,e) {a,b,c,d},
-#define APPLET_NOUSAGE(a,b,c) {#a,b,c,-1},
-#define zcat_usage_index gunzip_usage_index
-#define sh_usage_index shell_usage_index
+  const struct BB_applet applets[] = {
+  #define APPLET(a,b,c) {#a,b,c},
+  #define APPLET_NOUSAGE(a,b,c) {a,b,c},
+  #define APPLET_ODDNAME(a,b,c,d) {a,b,c},
 #endif
 
+
+
 #ifdef BB_TEST
-	APPLET_ODDNAME("[", test_main, _BB_DIR_USR_BIN, test_usage_index, open_bracket)
+	APPLET_NOUSAGE("[", test_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_AR
 	APPLET(ar, ar_main, _BB_DIR_USR_BIN)
@@ -48,7 +48,7 @@ const struct BB_applet applets[] = {
 #ifdef BB_BASENAME
 	APPLET(basename, basename_main, _BB_DIR_USR_BIN)
 #endif
-	APPLET_NOUSAGE(busybox, busybox_main, _BB_DIR_BIN)
+	APPLET_NOUSAGE("busybox", busybox_main, _BB_DIR_BIN)
 #ifdef BB_CAT
 	APPLET(cat, cat_main, _BB_DIR_BIN)
 #endif
@@ -107,7 +107,7 @@ const struct BB_applet applets[] = {
 	APPLET(dpkg, dpkg_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_DPKG_DEB
-	APPLET_ODDNAME("dpkg-deb", dpkg_deb_main, _BB_DIR_USR_BIN, dpkg_deb_usage_index, dpkg_deb)
+	APPLET_ODDNAME("dpkg-deb", dpkg_deb_main, _BB_DIR_USR_BIN, dpkg_deb)
 #endif
 #ifdef BB_DU
 	APPLET(du, du_main, _BB_DIR_USR_BIN)
@@ -128,7 +128,7 @@ const struct BB_applet applets[] = {
 	APPLET(false, false_main, _BB_DIR_BIN)
 #endif
 #ifdef BB_FBSET
-	APPLET_NOUSAGE(fbset, fbset_main, _BB_DIR_USR_SBIN)
+	APPLET_NOUSAGE("fbset", fbset_main, _BB_DIR_USR_SBIN)
 #endif
 #ifdef BB_FDFLUSH
 	APPLET(fdflush, fdflush_main, _BB_DIR_BIN)
@@ -143,7 +143,7 @@ const struct BB_applet applets[] = {
 	APPLET(freeramdisk, freeramdisk_main, _BB_DIR_SBIN)
 #endif
 #ifdef BB_FSCK_MINIX
-	APPLET_ODDNAME("fsck.minix", fsck_minix_main, _BB_DIR_SBIN, fsck_minix_usage_index, fsck_minix)
+	APPLET_ODDNAME("fsck.minix", fsck_minix_main, _BB_DIR_SBIN, fsck_minix)
 #endif
 #ifdef BB_GETOPT
 	APPLET(getopt, getopt_main, _BB_DIR_BIN)
@@ -191,7 +191,7 @@ const struct BB_applet applets[] = {
 	APPLET(length, length_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_LINUXRC
-	APPLET_NOUSAGE(linuxrc, init_main, _BB_DIR_ROOT)
+	APPLET_NOUSAGE("linuxrc", init_main, _BB_DIR_ROOT)
 #endif
 #ifdef BB_LN
 	APPLET(ln, ln_main, _BB_DIR_BIN)
@@ -230,7 +230,7 @@ const struct BB_applet applets[] = {
 	APPLET(mkfifo, mkfifo_main, _BB_DIR_USR_BIN)
 #endif
 #ifdef BB_MKFS_MINIX
-	APPLET_ODDNAME("mkfs.minix", mkfs_minix_main, _BB_DIR_SBIN, mkfs_minix_usage_index, mkfs_minix)
+	APPLET_ODDNAME("mkfs.minix", mkfs_minix_main, _BB_DIR_SBIN, mkfs_minix)
 #endif
 #ifdef BB_MKNOD
 	APPLET(mknod, mknod_main, _BB_DIR_BIN)
@@ -416,8 +416,8 @@ const struct BB_applet applets[] = {
 	APPLET(zcat, gunzip_main, _BB_DIR_BIN)
 #endif
 
-#if !defined(PROTOTYPES) && !defined(MAKE_LINKS) && !defined(APPLET_ENUM)
-	{ 0,NULL,0,-1}
+#if !defined(PROTOTYPES) && !defined(MAKE_USAGE)
+	{ 0,NULL,0 }
 };
 
 /* The -1 arises because of the {0,NULL,0,-1} entry above. */
