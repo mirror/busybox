@@ -302,7 +302,6 @@ syslog_err_and_discard_dg(int se_socktype, const char *msg, ...)
 }
 
 static FILE *fconfig;
-static char line[256];
 
 static FILE *
 setconfig(void)
@@ -317,20 +316,6 @@ setconfig(void)
 			syslog(LOG_ERR, "%s: %m", CONFIG);
 	}
 	return f;
-}
-
-static char *
-nextline(void)
-{
-	char *cp;
-	FILE *fd = fconfig;
-
-	if (fgets(line, sizeof (line), fd) == NULL)
-		return ((char *)0);
-	cp = strchr(line, '\n');
-	if (cp)
-		*cp = '\0';
-	return (line);
 }
 
 static char *
@@ -351,7 +336,8 @@ again:
 		c = getc(fconfig);
 		(void) ungetc(c, fconfig);
 		if (c == ' ' || c == '\t')
-			if ((cp = nextline()) != NULL)
+			cp = bb_get_chomped_line_from_file(fconfig);
+			if (cp != NULL)
 				goto again;
 		*cpp = NULL;
 		return NULL;
@@ -385,8 +371,7 @@ getconfigent(void)
 	char *cp, *arg;
 
 more:
-	while ((cp = nextline()) && *cp == '#')
-		;
+	while ((cp = bb_get_chomped_line_from_file(fconfig)) && *cp == '#');
 	if (cp == NULL)
 		return ((struct servtab *)0);
 	memset((char *)sep, 0, sizeof *sep);
