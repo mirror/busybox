@@ -191,9 +191,11 @@ CONFIG_REBOOT=y
 # Networking Utilities
 #
 # CONFIG_FEATURE_IPV6 is not set
+# CONFIG_ARPING is not set
 # CONFIG_FTPGET is not set
 # CONFIG_FTPPUT is not set
 # CONFIG_HOSTNAME is not set
+# CONFIG_HTTPD is not set
 # CONFIG_IFCONFIG is not set
 # CONFIG_IFUPDOWN is not set
 CONFIG_IP=y

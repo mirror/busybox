@@ -46,7 +46,7 @@ clean:
 	rm -f build-arch-stamp build-indep-stamp debian/files~
 
 	$(MAKE) distclean
-	-rm -f busybox-deb busybox-static .config busybox.1
+	-rm -f busybox-deb busybox-static busybox.1
 
 	dh_clean
 

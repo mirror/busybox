@@ -1,3 +1,9 @@
+busybox-cvs (0.60.99.cvs20030114-1) unstable; urgency=low
+
+  * new cvs version
+
+ -- Bastian Blank <waldi@debian.org>  Tue, 14 Jan 2003 17:06:43 +0000
+
 busybox-cvs (0.60.99.cvs20030105-1) unstable; urgency=low
 
   * Fix ip command build failure on ia64 (Closes: #172580
