@@ -19,7 +19,7 @@
  */
 
 static const char vi_Version[] =
-	"$Id: vi.c,v 1.14 2001/07/31 15:01:12 kraai Exp $";
+	"$Id: vi.c,v 1.15 2001/08/02 05:26:41 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -2640,12 +2640,12 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 		cmdcnt = 0;
 		end_cmd_q();	// stop adding to q
 		strcpy((char *) status_buffer, " ");	// clear the status buffer
-		if (p[-1] != '\n') {
+		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
 		}
 	} else if (c == erase_char) {	// Is this a BS
 		//     123456789
-		if (p[-1] != '\n') {
+		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
 			p = text_hole_delete(p, p);	// shrink buffer 1 char
 #ifdef BB_FEATURE_VI_DOT_CMD
