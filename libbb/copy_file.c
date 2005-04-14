@@ -54,10 +54,11 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 	} else {
 		if (source_stat.st_dev == dest_stat.st_dev &&
-			source_stat.st_ino == dest_stat.st_ino) {
-		bb_error_msg("`%s' and `%s' are the same file", source, dest);
-		return -1;
-	}
+			source_stat.st_ino == dest_stat.st_ino)
+		{
+			bb_error_msg("`%s' and `%s' are the same file", source, dest);
+			return -1;
+		}
 		dest_exists = 1;
 	}
 

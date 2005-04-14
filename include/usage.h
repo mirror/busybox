@@ -205,6 +205,7 @@
 	"\n" \
 	"\t-a\tSame as -dpR\n" \
 	"\t-d,-P\tPreserves links\n" \
+	"\t-H,-L\tDereference all symlinks (implied by default)\n" \
 	"\t-p\tPreserves file attributes if possible\n" \
 	"\t-f\tforce (implied; ignored) - always set\n" \
 	"\t-i\tinteractive, prompt before overwrite\n" \

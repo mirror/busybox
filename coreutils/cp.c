@@ -42,7 +42,7 @@
 #include "libcoreutils/coreutils.h"
 
 /* WARNING!! ORDER IS IMPORTANT!! */
-static const char cp_opts[] = "pdRfiarP";
+static const char cp_opts[] = "pdRfiarPHL";
 
 extern int cp_main(int argc, char **argv)
 {
@@ -70,7 +70,7 @@ extern int cp_main(int argc, char **argv)
 	if (flags & 64) {
 		/* Make -r a synonym for -R,
 		 * -r was marked as obsolete in SUSv3, but is included for compatability
- 		 */
+		 */
 		flags |= FILEUTILS_RECUR;
 	}
 	if (flags & 128) {
@@ -79,6 +79,14 @@ extern int cp_main(int argc, char **argv)
 		 */
 		flags |= FILEUTILS_DEREFERENCE;
 	}
+	/* Default behavior of cp is to dereference, so we don't have to do
+	 * anything special when we are given -L.
+	 * The behavior of -H is *almost* like -L, but not quite, so let's
+	 * just ignore it too for fun.
+	if (flags & 256 || flags & 512) {
+		;
+	}
+	*/
 
 	flags ^= FILEUTILS_DEREFERENCE;		/* The sense of this flag was reversed. */
 
@@ -92,7 +100,7 @@ extern int cp_main(int argc, char **argv)
 	/* If there are only two arguments and...  */
 	if (optind + 2 == argc) {
 		s_flags = cp_mv_stat2(*argv, &source_stat,
-								 (flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
+		                      (flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
 		if ((s_flags < 0) || ((d_flags = cp_mv_stat(last, &dest_stat)) < 0)) {
 			exit(EXIT_FAILURE);
 		}
@@ -104,8 +112,8 @@ extern int cp_main(int argc, char **argv)
 			((((flags & FILEUTILS_RECUR) >> 1) & s_flags) && !d_flags)
 		) {
 			/* ...do a simple copy.  */
-				dest = last;
-				goto DO_COPY; /* Note: optind+2==argc implies argv[1]==last below. */
+			dest = last;
+			goto DO_COPY; /* Note: optind+2==argc implies argv[1]==last below. */
 		}
 	}
 
