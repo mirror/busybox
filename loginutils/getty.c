@@ -85,7 +85,7 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 #define DEF_QUIT	CTL('\\')	/* default quit char */
 #define DEF_KILL	CTL('U')	/* default kill char */
 #define DEF_EOF		CTL('D')	/* default EOF char */
-#define DEF_EOL		0
+#define DEF_EOL		'\n'
 #define DEF_SWITCH	0			/* default switch char */
 
  /*
