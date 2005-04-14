@@ -50,6 +50,7 @@
 
 #ifdef CONFIG_TEST
 	APPLET_NOUSAGE("[", test_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+	APPLET_NOUSAGE("[[", test_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_ADDGROUP
 	APPLET(addgroup, addgroup_main, _BB_DIR_BIN, _BB_SUID_NEVER)
