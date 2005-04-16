@@ -98,7 +98,7 @@ static void print_line(const char *line, int linenum, char decoration)
 	}
 	last_line_printed = linenum;
 #endif
-	if (print_filename)
+	if (print_filename > 0)
 		printf("%s%c", cur_file, decoration);
 	if (print_line_num)
 		printf("%i%c", linenum, decoration);
@@ -219,7 +219,7 @@ static int grep_file(FILE *file)
 
 	/* grep -c: print [filename:]count, even if count is zero */
 	if (print_match_counts) {
-		if (print_filename)
+		if (print_filename > 0)
 			printf("%s:", cur_file);
 		    printf("%d\n", nmatches);
 	}
