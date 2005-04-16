@@ -453,6 +453,7 @@ static pid_t run(const struct init_action *a)
 		signal(SIGINT, SIG_DFL);
 		signal(SIGTERM, SIG_DFL);
 		signal(SIGHUP, SIG_DFL);
+		signal(SIGQUIT, SIG_DFL);
 		signal(SIGCONT, SIG_DFL);
 		signal(SIGSTOP, SIG_DFL);
 		signal(SIGTSTP, SIG_DFL);
@@ -693,6 +694,7 @@ static void shutdown_system(void)
 	/* first disable all our signals */
 	sigemptyset(&block_signals);
 	sigaddset(&block_signals, SIGHUP);
+	sigaddset(&block_signals, SIGQUIT);
 	sigaddset(&block_signals, SIGCHLD);
 	sigaddset(&block_signals, SIGUSR1);
 	sigaddset(&block_signals, SIGUSR2);
@@ -737,6 +739,7 @@ static void exec_signal(int sig)
 			/* unblock all signals, blocked in shutdown_system() */
 			sigemptyset(&unblock_signals);
 			sigaddset(&unblock_signals, SIGHUP);
+			sigaddset(&unblock_signals, SIGQUIT);
 			sigaddset(&unblock_signals, SIGCHLD);
 			sigaddset(&unblock_signals, SIGUSR1);
 			sigaddset(&unblock_signals, SIGUSR2);
@@ -1097,6 +1100,7 @@ extern int init_main(int argc, char **argv)
 	/* Set up sig handlers  -- be sure to
 	 * clear all of these in run() */
 	signal(SIGHUP, exec_signal);
+	signal(SIGQUIT, exec_signal);
 	signal(SIGUSR1, halt_signal);
 	signal(SIGUSR2, halt_signal);
 	signal(SIGINT, ctrlaltdel_signal);
