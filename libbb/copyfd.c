@@ -2,7 +2,7 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2005 by Erik Andersen <andersen@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #include "busybox.h"
+#include "libbb.h"
 
 
 #if BUFSIZ < 4096
@@ -33,46 +34,54 @@
 #endif
 
 
-/* If size is 0 copy until EOF */
-static size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size)
+static size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size2)
 {
-	size_t read_total = 0;
-	RESERVE_CONFIG_BUFFER(buffer,BUFSIZ);
+	int status;
+	size_t xread, wrote, total, size = size2;
 
-	while ((size == 0) || (read_total < size)) {
-		size_t read_try;
-		ssize_t read_actual;
+	if ((dst_fd < 0) || (src_fd < 0)) {
+		return -1;
+	}
 
- 		if ((size == 0) || (size - read_total > BUFSIZ)) {
-			read_try = BUFSIZ;
-		} else {
-			read_try = size - read_total;
-		}
+	if (size == 0) {
+		/* If size is 0 copy until EOF */
+		size = ULONG_MAX;
+	}
 
-		read_actual = safe_read(src_fd, buffer, read_try);
-		if (read_actual > 0) {
-			if ((dst_fd >= 0) && (bb_full_write(dst_fd, buffer, (size_t) read_actual) != read_actual)) {
-				bb_perror_msg(bb_msg_write_error);	/* match Read error below */
+	{
+		RESERVE_CONFIG_BUFFER(buffer,BUFSIZ);
+		total = 0;
+		wrote = 0;
+		status = -1;
+		while (total < size)
+		{
+			xread = BUFSIZ;
+			if (size < (wrote + BUFSIZ))
+				xread = size - wrote;
+			xread = bb_full_read(src_fd, buffer, xread);
+			if (xread > 0) {
+				wrote = bb_full_write(dst_fd, buffer, xread);
+				if (wrote < xread) {
+					bb_perror_msg(bb_msg_write_error);
+					break;
+				}
+				total += wrote;
+			} else if (xread < 0) {
+				bb_perror_msg(bb_msg_read_error);
+				break;
+			} else if (xread == 0) {
+				/* All done. */
+				status = 0;
 				break;
 			}
 		}
-		else if (read_actual == 0) {
-			if (size) {
-				bb_error_msg("Unable to read all data");
-			}
-			break;
-		} else {
-			/* read_actual < 0 */
-			bb_perror_msg("Read error");
-			break;
-		}
-
-		read_total += read_actual;
+		RELEASE_CONFIG_BUFFER(buffer);
 	}
 
-	RELEASE_CONFIG_BUFFER(buffer);
-
-	return(read_total);
+	if (status == 0 || wrote)
+		return wrote;
+	/* Some sortof error occured */
+	return -1;
 }
 
 
