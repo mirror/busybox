@@ -560,7 +560,7 @@ static void config(int signum)
 		if (sep != 0) {
 			int i;
 
-#define SWAP(type, a, b) {type c=(type)a; (type)a=(type)b; (type)b=(type)c;}
+#define SWAP(type, a, b) {type c=(type)(a); (a)=(type)(b); (b)=(type)c;}
 
 			sigprocmask(SIG_BLOCK, &emptymask, &oldmask);
 			/*
