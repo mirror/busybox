@@ -150,7 +150,9 @@ struct interfaces_file_t
 
 static char no_act = 0;
 static char verbose = 0;
+#ifndef __USE_GNU
 static char **environ = NULL;
+#endif
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 
