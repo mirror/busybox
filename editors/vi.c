@@ -2340,7 +2340,7 @@ static Byte readit(void)	// read (maybe cursor) key from stdin
 }
 
 //----- IO Routines --------------------------------------------
-static Byte get_one_char()
+static Byte get_one_char(void)
 {
 	static Byte c;
 
@@ -2600,25 +2600,25 @@ static void place_cursor(int row, int col, int opti)
 }
 
 //----- Erase from cursor to end of line -----------------------
-static void clear_to_eol()
+static void clear_to_eol(void)
 {
 	write1(Ceol);   // Erase from cursor to end of line
 }
 
 //----- Erase from cursor to end of screen -----------------------
-static void clear_to_eos()
+static void clear_to_eos(void)
 {
 	write1(Ceos);   // Erase from cursor to end of screen
 }
 
 //----- Start standout mode ------------------------------------
-static void standout_start() // send "start reverse video" sequence
+static void standout_start(void) // send "start reverse video" sequence
 {
 	write1(SOs);     // Start reverse video mode
 }
 
 //----- End standout mode --------------------------------------
-static void standout_end() // send "end reverse video" sequence
+static void standout_end(void) // send "end reverse video" sequence
 {
 	write1(SOn);     // End reverse video mode
 }
@@ -2648,7 +2648,7 @@ static void Indicate_Error(void)
 
 //----- Screen[] Routines --------------------------------------
 //----- Erase the Screen[] memory ------------------------------
-static void screen_erase()
+static void screen_erase(void)
 {
 	memset(screen, ' ', screensize);	// clear new screen
 }

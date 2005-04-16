@@ -1327,7 +1327,7 @@ void free_array(char **array)
  * the status_hashtable to retrieve the info. This results in smaller code than
  * scanning the status file. The resulting list, however, is unsorted.
  */
-void list_packages(void)
+static void list_packages(void)
 {
         int i;
 

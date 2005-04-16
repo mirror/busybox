@@ -238,7 +238,7 @@ __u32 get_addr32(char *name)
 	return addr.data[0];
 }
 
-void incomplete_command()
+void incomplete_command(void)
 {
 	bb_error_msg("Command line is not complete. Try option \"help\"");
 	exit(-1);

@@ -387,7 +387,7 @@ static int is_my_tty ( const char *tty )
 }
 
 
-static void motd ( )
+static void motd (void)
 {
 	FILE *fp;
 	register int c;
