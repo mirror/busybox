@@ -324,6 +324,7 @@ extern const char * const bb_msg_full_version;
 extern const char * const bb_msg_memory_exhausted;
 extern const char * const bb_msg_invalid_date;
 extern const char * const bb_msg_io_error;
+extern const char * const bb_msg_read_error;
 extern const char * const bb_msg_write_error;
 extern const char * const bb_msg_name_longer_than_foo;
 extern const char * const bb_msg_unknown;

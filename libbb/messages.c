@@ -36,6 +36,9 @@
 #ifdef L_write_error
 	const char * const bb_msg_write_error = "Write Error";
 #endif
+#ifdef L_read_error
+	const char * const bb_msg_read_error = "Read Error";
+#endif
 #ifdef L_name_longer_than_foo
 	const char * const bb_msg_name_longer_than_foo = "Names longer than %d chars not supported.";
 #endif
