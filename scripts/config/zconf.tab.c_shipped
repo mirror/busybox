@@ -227,7 +227,7 @@ typedef union YYSTYPE {
 #  define YYSTACK_ALLOC alloca
 # else
 #  ifndef YYSTACK_USE_ALLOCA
-#   if defined (alloca) || defined (_ALLOCA_H)
+#   if defined (alloca) || (defined (_ALLOCA_H) && defined (__GNUC__))
 #    define YYSTACK_ALLOC alloca
 #   else
 #    ifdef __GNUC__
