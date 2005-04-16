@@ -523,13 +523,13 @@
 	"\t-e\tinterpret backslash-escaped characters (i.e., \\t=tab)\n" \
 	"\t-E\tdisable interpretation of backslash-escaped characters")
 #define echo_example_usage \
-	"$ echo "Erik is cool"\n" \
+	"$ echo \"Erik is cool\"\n" \
 	"Erik is cool\n" \
-	USAGE_FANCY_ECHO("$  echo -e "Erik\\nis\\ncool"\n" \
+	USAGE_FANCY_ECHO("$  echo -e \"Erik\\nis\\ncool\"\n" \
 	"Erik\n" \
 	"is\n" \
 	"cool\n" \
-	"$ echo "Erik\\nis\\ncool"\n" \
+	"$ echo \"Erik\\nis\\ncool\"\n" \
 	"Erik\\nis\\ncool\n")
 
 #define env_trivial_usage \
@@ -752,7 +752,7 @@
         "$ cat getopt.test\n" \
         "#!/bin/sh\n" \
         "GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \\\n" \
-        "       -n 'example.busybox' -- "$@"`\n" \
+        "       -n 'example.busybox' -- \"$@\"`\n" \
         "if [ $? != 0 ] ; then  exit 1 ; fi\n" \
         "eval set -- "$GETOPT"\n" \
         "while true ; do\n" \
@@ -1948,7 +1948,7 @@
 	"Formats and prints ARGUMENT(s) according to FORMAT,\n" \
 	"Where FORMAT controls the output exactly as in C printf."
 #define printf_example_usage \
-	"$ printf "Val=%d\\n" 5\n" \
+	"$ printf \"Val=%d\\n\" 5\n" \
 	"Val=5\n"
 
 #ifdef CONFIG_SELINUX
