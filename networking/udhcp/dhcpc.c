@@ -58,18 +58,18 @@ static int listen_mode;
 
 struct client_config_t client_config = {
 	/* Default options. */
-	abort_if_no_lease: 0,
-	foreground: 0,
-	quit_after_lease: 0,
-	background_if_no_lease: 0,
-	interface: "eth0",
-	pidfile: NULL,
-	script: DEFAULT_SCRIPT,
-	clientid: NULL,
-	hostname: NULL,
-	fqdn: NULL,
-	ifindex: 0,
-	arp: "\0\0\0\0\0\0",		/* appease gcc-3.0 */
+	.abort_if_no_lease = 0,
+	.foreground = 0,
+	.quit_after_lease = 0,
+	.background_if_no_lease = 0,
+	.interface = "eth0",
+	.pidfile = NULL,
+	.script = DEFAULT_SCRIPT,
+	.clientid = NULL,
+	.hostname = NULL,
+	.fqdn = NULL,
+	.ifindex = 0,
+	.arp = "\0\0\0\0\0\0",		/* appease gcc-3.0 */
 };
 
 #ifndef IN_BUSYBOX
