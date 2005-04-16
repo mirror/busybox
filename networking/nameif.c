@@ -86,7 +86,7 @@ static void serror(const char *s, ...)
 }
 
 /* Check ascii str_macaddr, convert and copy to *mac */
-struct ether_addr *cc_macaddr(char *str_macaddr)
+static struct ether_addr *cc_macaddr(char *str_macaddr)
 {
 	struct ether_addr *lmac, *mac;
 

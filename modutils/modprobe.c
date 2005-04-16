@@ -61,7 +61,7 @@ static struct dep_t *depend;
 static int autoclean, show_only, quiet, do_syslog, verbose;
 static int k_version;
 
-int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
+static int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
 {
 	char *tag, *value;
 

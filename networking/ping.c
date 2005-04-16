@@ -178,7 +178,10 @@ static int myid, options;
 static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
-struct hostent *hostent;
+#ifndef CONFIG_FEATURE_FANCY_PING6
+static
+#endif
+	struct hostent *hostent;
 
 static void sendping(int);
 static void pingstats(int);

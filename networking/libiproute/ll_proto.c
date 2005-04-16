@@ -90,7 +90,7 @@ __PF(ECONET,econet)
 #undef __PF
 
 
-char * ll_proto_n2a(unsigned short id, char *buf, int len)
+const char * ll_proto_n2a(unsigned short id, char *buf, int len)
 {
         int i;
 

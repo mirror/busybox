@@ -467,8 +467,8 @@ static const char *secu_str[] = {
 
 /* Busybox messages and functions */
 
-const char * const bb_msg_shared_mem	="could not %s sharedmem buf";
-const char * const bb_msg_op_not_supp	=" operation not supported on %s disks";
+static const char * const bb_msg_shared_mem	="could not %s sharedmem buf";
+static const char * const bb_msg_op_not_supp	=" operation not supported on %s disks";
 
 static void bb_ioctl(int fd, int request, void *argp, const char *string)
 {

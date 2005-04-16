@@ -117,9 +117,9 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 /*
  *  Base64-encode character string
  *  oops... isn't something similar in uuencode.c?
- *  It would be better to use already existing code
+ *  XXX: It would be better to use already existing code
  */
-char *base64enc(unsigned char *p, char *buf, int len) {
+static char *base64enc(unsigned char *p, char *buf, int len) {
 
         char al[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
                     "0123456789+/";

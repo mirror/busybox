@@ -48,7 +48,7 @@ struct rpm_header {
 	uint32_t size; /* Size of store (4 bytes) */
 };
 
-void skip_header(int rpm_fd)
+static void skip_header(int rpm_fd)
 {
 	struct rpm_header header;
 

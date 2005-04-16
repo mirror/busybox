@@ -116,18 +116,18 @@ typedef struct sed_cmd_s {
 /* globals */
 /* options */
 static int be_quiet, in_place, regex_type;
-FILE *nonstdout;
-char *outname,*hold_space;
+static FILE *nonstdout;
+static char *outname,*hold_space;
 
 /* List of input files */
-int input_file_count,current_input_file;
-FILE **input_file_list;
+static int input_file_count,current_input_file;
+static FILE **input_file_list;
 
 static const char bad_format_in_subst[] =
 	"bad format in substitution expression";
-const char *const semicolon_whitespace = "; \n\r\t\v";
+static const char *const semicolon_whitespace = "; \n\r\t\v";
 
-regmatch_t regmatch[10];
+static regmatch_t regmatch[10];
 static regex_t *previous_regex_ptr;
 
 /* linked list of sed commands */
@@ -135,11 +135,11 @@ static sed_cmd_t sed_cmd_head;
 static sed_cmd_t *sed_cmd_tail = &sed_cmd_head;
 
 /* Linked list of append lines */
-struct append_list {
+static struct append_list {
 	char *string;
 	struct append_list *next;
 };
-struct append_list *append_head=NULL, *append_tail=NULL;
+static struct append_list *append_head=NULL, *append_tail=NULL;
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 static void free_and_close_stuff(void)
@@ -482,7 +482,7 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 
 /* Parse address+command sets, skipping comment lines. */
 
-void add_cmd(char *cmdstr)
+static void add_cmd(char *cmdstr)
 {
 	static char *add_cmd_line=NULL;
 	sed_cmd_t *sed_cmd;
@@ -576,7 +576,7 @@ void add_cmd(char *cmdstr)
 
 /* Append to a string, reallocating memory as necessary. */
 
-struct pipeline {
+static struct pipeline {
 	char *buf;	/* Space to hold string */
 	int idx;	/* Space used */
 	int len;	/* Space allocated */
@@ -584,7 +584,7 @@ struct pipeline {
 
 #define PIPE_GROW 64
 
-void pipe_putc(char c)
+static void pipe_putc(char c)
 {
 	if(pipeline.idx==pipeline.len) {
 		pipeline.buf = xrealloc(pipeline.buf, pipeline.len + PIPE_GROW);
@@ -729,7 +729,7 @@ static void flush_append(void)
 	append_head=append_tail=NULL;
 }
 
-void add_input_file(FILE *file)
+static void add_input_file(FILE *file)
 {
 	input_file_list=xrealloc(input_file_list,(input_file_count+1)*sizeof(FILE *));
 	input_file_list[input_file_count++]=file;

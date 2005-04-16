@@ -71,8 +71,8 @@ static const char *tftp_bb_error_msg[] = {
 	"No such user"
 };
 
-const int tftp_cmd_get = 1;
-const int tftp_cmd_put = 2;
+static const int tftp_cmd_get = 1;
+static const int tftp_cmd_put = 2;
 
 #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 

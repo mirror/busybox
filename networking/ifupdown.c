@@ -462,7 +462,7 @@ static struct method_t methods6[] = {
 	{ "loopback", loopback_up6, loopback_down6, },
 };
 
-struct address_family_t addr_inet6 = {
+static struct address_family_t addr_inet6 = {
 	"inet6",
 	sizeof(methods6) / sizeof(struct method_t),
 	methods6
@@ -611,7 +611,7 @@ static struct method_t methods[] =
 	{ "loopback", loopback_up, loopback_down, },
 };
 
-struct address_family_t addr_inet =
+static struct address_family_t addr_inet =
 {
 	"inet",
 	sizeof(methods) / sizeof(struct method_t),

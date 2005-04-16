@@ -986,7 +986,7 @@ static int if_readconf(void)
 	return err;
 }
 
-char *get_name(char *name, char *p)
+static char *get_name(char *name, char *p)
 {
 	/* Extract <name>[:<alias>] from nul-terminated p where p matches
 	   <name>[:<alias>]: after leading whitespace.

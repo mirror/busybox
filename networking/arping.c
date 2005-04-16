@@ -106,7 +106,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	return err;
 }
 
-void finish(void)
+static void finish(void)
 {
 	if (!quiet) {
 		printf("Sent %d probes (%d broadcast(s))\n", sent, brd_sent);
@@ -129,7 +129,7 @@ void finish(void)
 	exit(!received);
 }
 
-void catcher(void)
+static void catcher(void)
 {
 	struct timeval tv;
 	static struct timeval start;
@@ -151,7 +151,7 @@ void catcher(void)
 	alarm(1);
 }
 
-int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
+static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 {
 	struct timeval tv;
 	struct arphdr *ah = (struct arphdr *) buf;

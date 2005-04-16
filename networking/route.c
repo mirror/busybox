@@ -485,6 +485,7 @@ void set_flags(char *flagstr, int flags)
 	}
 }
 
+/* also used in netstat */
 void displayroutes(int noresolve, int netstatfmt)
 {
 	char devname[64], flags[16], sdest[16], sgw[16];

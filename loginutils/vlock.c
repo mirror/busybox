@@ -51,7 +51,7 @@ static int o_lock_all = 0;
 static struct spwd *spw;
 
 /* getspuid - get a shadow entry by uid */
-struct spwd *getspuid(uid_t uid)
+static struct spwd *getspuid(uid_t uid)
 {
 	struct spwd *sp;
 	struct passwd *mypw;

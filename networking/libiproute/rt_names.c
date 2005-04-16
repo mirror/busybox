@@ -76,7 +76,7 @@ static void rtnl_rtprot_initialize(void)
 			    rtnl_rtprot_tab, 256);
 }
 
-char * rtnl_rtprot_n2a(int id, char *buf, int len)
+const char * rtnl_rtprot_n2a(int id, char *buf, int len)
 {
 	if (id<0 || id>=256) {
 		snprintf(buf, len, "%d", id);
@@ -143,7 +143,7 @@ static void rtnl_rtscope_initialize(void)
 			    rtnl_rtscope_tab, 256);
 }
 
-char * rtnl_rtscope_n2a(int id, char *buf, int len)
+const char * rtnl_rtscope_n2a(int id, char *buf, int len)
 {
 	if (id<0 || id>=256) {
 		snprintf(buf, len, "%d", id);
@@ -206,7 +206,7 @@ static void rtnl_rtrealm_initialize(void)
 			    rtnl_rtrealm_tab, 256);
 }
 
-char * rtnl_rtrealm_n2a(int id, char *buf, int len)
+const char * rtnl_rtrealm_n2a(int id, char *buf, int len)
 {
 	if (id<0 || id>=256) {
 		snprintf(buf, len, "%d", id);
@@ -272,7 +272,7 @@ static void rtnl_rttable_initialize(void)
 			    rtnl_rttable_tab, 256);
 }
 
-char * rtnl_rttable_n2a(int id, char *buf, int len)
+const char * rtnl_rttable_n2a(int id, char *buf, int len)
 {
 	if (id<0 || id>=256) {
 		snprintf(buf, len, "%d", id);
@@ -334,7 +334,7 @@ static void rtnl_rtdsfield_initialize(void)
 			    rtnl_rtdsfield_tab, 256);
 }
 
-char * rtnl_dsfield_n2a(int id, char *buf, int len)
+const char * rtnl_dsfield_n2a(int id, char *buf, int len)
 {
 	if (id<0 || id>=256) {
 		snprintf(buf, len, "%d", id);

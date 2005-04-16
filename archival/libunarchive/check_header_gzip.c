@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "libbb.h"
+#include "unarchive.h" /* for external decl of check_header_gzip */
 
 extern void check_header_gzip(int src_fd)
 {

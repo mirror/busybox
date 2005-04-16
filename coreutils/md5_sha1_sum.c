@@ -80,7 +80,7 @@ static uint8_t *hash_file(const char *filename, uint8_t hash_algo)
 }
 
 /* This could become a common function for md5 as well, by using md5_stream */
-extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
+static int hash_files(int argc, char **argv, const uint8_t hash_algo)
 {
 	int return_value = EXIT_SUCCESS;
 	uint8_t *hash_value;

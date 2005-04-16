@@ -28,7 +28,7 @@
 static void checkutmp(int picky);
 static void setutmp(const char *name, const char *line);
 /* Stuff global to this file */
-struct utmp utent;
+static struct utmp utent;
 #endif
 
 // login defines

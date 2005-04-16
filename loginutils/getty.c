@@ -151,7 +151,7 @@ struct options {
 
 /* Storage for things detected while the login name was read. */
 
-struct chardata {
+static struct chardata {
 	int erase;					/* erase character */
 	int kill;					/* kill character */
 	int eol;					/* end-of-line character */
@@ -161,7 +161,7 @@ struct chardata {
 
 /* Initial values for the above. */
 
-struct chardata init_chardata = {
+static struct chardata init_chardata = {
 	DEF_ERASE,					/* default erase character */
 	DEF_KILL,					/* default kill character */
 	13,							/* default eol char */

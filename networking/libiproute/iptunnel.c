@@ -361,7 +361,7 @@ static int do_add(int cmd, int argc, char **argv)
 	return -1;
 }
 
-int do_del(int argc, char **argv)
+static int do_del(int argc, char **argv)
 {
 	struct ip_tunnel_parm p;
 
@@ -381,7 +381,7 @@ int do_del(int argc, char **argv)
 	return -1;
 }
 
-void print_tunnel(struct ip_tunnel_parm *p)
+static void print_tunnel(struct ip_tunnel_parm *p)
 {
 	char s1[256];
 	char s2[256];

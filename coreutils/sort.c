@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
-int global_flags;
+static int global_flags;
 
 /*
 	sort [-m][-o output][-bdfinru][-t char][-k keydef]... [file...]
@@ -57,9 +57,9 @@ int global_flags;
 
 
 #ifdef CONFIG_SORT_BIG
-char key_separator;
+static char key_separator;
 
-struct sort_key
+static struct sort_key
 {
 	struct sort_key *next_key;	/* linked list */
 	unsigned short range[4];	/* start word, start char, end word, end char */

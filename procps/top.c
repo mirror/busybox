@@ -78,7 +78,7 @@ static int time_sort (procps_status_t *P, procps_status_t *Q)
     return (int)((Q->stime + Q->utime) - (P->stime + P->utime));
 }
 
-int mult_lvl_cmp(void* a, void* b) {
+static int mult_lvl_cmp(void* a, void* b) {
     int i, cmp_val;
 
     for(i = 0; i < sort_depth; i++) {

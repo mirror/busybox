@@ -13,7 +13,7 @@
 
 #include <linux/if_arp.h>
 
-char * ll_type_n2a(int type, char *buf, int len)
+const char * ll_type_n2a(int type, char *buf, int len)
 {
 #define __PF(f,n) { ARPHRD_##f, #n },
 static struct {

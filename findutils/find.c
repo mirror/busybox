@@ -59,7 +59,7 @@ static int xdev_count = 0;
 #endif
 
 #ifdef CONFIG_FEATURE_FIND_NEWER
-time_t newer_mtime;
+static time_t newer_mtime;
 #endif
 
 #ifdef CONFIG_FEATURE_FIND_INUM
