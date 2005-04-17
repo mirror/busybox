@@ -24,6 +24,7 @@ endif
 srcdir=$(top_srcdir)/networking
 NETWORKING-y:=
 NETWORKING-$(CONFIG_ARPING)	+= arping.o
+NETWORKING-$(CONFIG_FAKEIDENTD)	+= fakeidentd.o
 NETWORKING-$(CONFIG_FTPGET)	+= ftpgetput.o
 NETWORKING-$(CONFIG_FTPPUT)	+= ftpgetput.o
 NETWORKING-$(CONFIG_HOSTNAME)	+= hostname.o

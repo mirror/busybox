@@ -185,6 +185,9 @@
 #ifdef CONFIG_EXPR
 	APPLET(expr, expr_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_FAKEIDENTD
+	APPLET(fakeidentd, fakeidentd_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_FALSE
 	APPLET(false, false_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

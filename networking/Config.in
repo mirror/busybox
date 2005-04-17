@@ -18,6 +18,13 @@ config CONFIG_ARPING
 	help
 	  Ping hosts by ARP packets
 
+config CONFIG_FAKEIDENTD
+	bool "fakeidentd"
+	default n
+	help
+	  fakeidentd listens to the ident port and returns a set fake 
+	  value whatever it gets.
+
 config CONFIG_FTPGET
 	bool "ftpget"
 	default n

@@ -575,6 +575,13 @@
 	"\\( and \\) or null; if \\( and \\) are not used, they return the number \n" \
 	"of characters matched or 0."
 
+#define fakeidentd_trivial_usage \
+	"[-b ip] [STRING]"
+#define fakeidentd_full_usage \
+	"Returns a set string to auth requests\n\n"\
+	"\t-b\tBind to ip address\n"\
+	"\tSTRING\tThe ident answer string (default is nobody)"
+
 #define false_trivial_usage \
 	""
 #define false_full_usage \
