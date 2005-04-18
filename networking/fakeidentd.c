@@ -74,14 +74,14 @@ static const int ident_substr_len = sizeof(ident_substr) - 1;
  * FD of the connection is always the index of the connection structure
  * in `conns' array + FCS
  */
-struct {
+static struct {
 	char buf[20];
 	int len;
 	time_t lasttime;
 } conns[MAXCONNS];
 
 /* When using global variables, bind those at least to a structure. */
-struct {
+static struct {
 	const char *identuser;
 	fd_set readfds;
 	int conncnt;
@@ -274,15 +274,7 @@ int fakeidentd_main(int argc, char **argv)
 	FD_SET(0, &G.readfds);
 
 	/* handle -b <ip> parameter */
-	while ((flag = getopt(argc, argv, "b:")) != EOF) {
-		switch (flag) {
-		case 'b':
-			bind_ip_address = optarg;
-			break;
-		default:
-			bb_show_usage();
-		}
-	}
+	bb_getopt_ulflags(argc, argv, "b:", &bind_ip_address);
 	/* handle optional REPLY STRING */
 	if (optind < argc)
 		G.identuser = argv[optind];
@@ -293,6 +285,7 @@ int fakeidentd_main(int argc, char **argv)
 	if (godaemon() == 0)
 		return 0;
 
+	/* main loop where we process all events and never exit */
 	while (1) {
 	fd_set rfds = G.readfds;
 	struct timeval tv = { 15, 0 };
