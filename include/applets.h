@@ -16,34 +16,34 @@
 
 
 #if defined(PROTOTYPES)
-  #define APPLET(a,b,c,d) extern int b(int argc, char **argv);
-  #define APPLET_NOUSAGE(a,b,c,d) extern int b(int argc, char **argv);
-  #define APPLET_ODDNAME(a,b,c,d,e) extern int b(int argc, char **argv);
+# define APPLET(a,b,c,d) extern int b(int argc, char **argv);
+# define APPLET_NOUSAGE(a,b,c,d) extern int b(int argc, char **argv);
+# define APPLET_ODDNAME(a,b,c,d,e) extern int b(int argc, char **argv);
   extern const char usage_messages[];
 #elif defined(MAKE_USAGE)
-  #ifdef CONFIG_FEATURE_VERBOSE_USAGE
-    #define APPLET(a,b,c,d) a##_trivial_usage "\n\n" a##_full_usage "\0"
-    #define APPLET_NOUSAGE(a,b,c,d) "\b\0"
-    #define APPLET_ODDNAME(a,b,c,d,e) e##_trivial_usage "\n\n" e##_full_usage "\0"
-  #else
-    #define APPLET(a,b,c,d) a##_trivial_usage "\0"
-    #define APPLET_NOUSAGE(a,b,c,d) "\b\0"
-    #define APPLET_ODDNAME(a,b,c,d,e) e##_trivial_usage "\0"
-  #endif
+# ifdef CONFIG_FEATURE_VERBOSE_USAGE
+#  define APPLET(a,b,c,d) a##_trivial_usage "\n\n" a##_full_usage "\0"
+#  define APPLET_NOUSAGE(a,b,c,d) "\b\0"
+#  define APPLET_ODDNAME(a,b,c,d,e) e##_trivial_usage "\n\n" e##_full_usage "\0"
+# else
+#  define APPLET(a,b,c,d) a##_trivial_usage "\0"
+#  define APPLET_NOUSAGE(a,b,c,d) "\b\0"
+#  define APPLET_ODDNAME(a,b,c,d,e) e##_trivial_usage "\0"
+# endif
 #elif defined(MAKE_LINKS)
-#  define APPLET(a,b,c,d) LINK c a
-#  define APPLET_NOUSAGE(a,b,c,d) LINK c a
-#  define APPLET_ODDNAME(a,b,c,d,e) LINK c a
+# define APPLET(a,b,c,d) LINK c a
+# define APPLET_NOUSAGE(a,b,c,d) LINK c a
+# define APPLET_ODDNAME(a,b,c,d,e) LINK c a
 #else
   const struct BB_applet applets[] = {
-  #define APPLET(a,b,c,d) {#a,b,c,d},
-  #define APPLET_NOUSAGE(a,b,c,d) {a,b,c,d},
-  #define APPLET_ODDNAME(a,b,c,d,e) {a,b,c,d},
+# define APPLET(a,b,c,d) {#a,b,c,d},
+# define APPLET_NOUSAGE(a,b,c,d) {a,b,c,d},
+# define APPLET_ODDNAME(a,b,c,d,e) {a,b,c,d},
 #endif
 
 #ifdef CONFIG_INSTALL_NO_USR
-#define _BB_DIR_USR_BIN _BB_DIR_BIN
-#define _BB_DIR_USR_SBIN _BB_DIR_SBIN
+# define _BB_DIR_USR_BIN _BB_DIR_BIN
+# define _BB_DIR_USR_SBIN _BB_DIR_SBIN
 #endif
 
 
@@ -171,7 +171,7 @@
 	APPLET(dumpkmap, dumpkmap_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_DUMPLEASES
-        APPLET(dumpleases, dumpleases_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+	APPLET(dumpleases, dumpleases_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_ECHO
 	APPLET(echo, echo_main, _BB_DIR_BIN, _BB_SUID_NEVER)
@@ -531,7 +531,7 @@
 	APPLET(sort, sort_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_START_STOP_DAEMON
-    APPLET_ODDNAME("start-stop-daemon", start_stop_daemon_main, _BB_DIR_SBIN, _BB_SUID_NEVER, start_stop_daemon)
+	APPLET_ODDNAME("start-stop-daemon", start_stop_daemon_main, _BB_DIR_SBIN, _BB_SUID_NEVER, start_stop_daemon)
 #endif
 #ifdef CONFIG_STRINGS
 	APPLET(strings, strings_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
@@ -606,7 +606,7 @@
 	APPLET(udhcpc, udhcpc_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_UDHCPD
-        APPLET(udhcpd, udhcpd_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
+	APPLET(udhcpd, udhcpd_main, _BB_DIR_USR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_UMOUNT
 	APPLET(umount, umount_main, _BB_DIR_BIN, _BB_SUID_NEVER)
