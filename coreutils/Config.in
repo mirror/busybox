@@ -428,6 +428,12 @@ config CONFIG_STTY
 	help
 	  stty is used to change and print terminal line settings.
 
+config CONFIG_SUM
+	bool "sum"
+	default n
+	help
+	  checksum and count the blocks in a file
+
 config CONFIG_SYNC
 	bool "sync"
 	default n

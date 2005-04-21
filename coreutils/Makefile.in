@@ -71,6 +71,7 @@ COREUTILS-$(CONFIG_SHA1SUM) 	+= md5_sha1_sum.o
 COREUTILS-$(CONFIG_SLEEP)   	+= sleep.o
 COREUTILS-$(CONFIG_SORT)    	+= sort.o
 COREUTILS-$(CONFIG_STTY)    	+= stty.o
+COREUTILS-$(CONFIG_SUM)     	+= sum.o
 COREUTILS-$(CONFIG_SYNC)    	+= sync.o
 COREUTILS-$(CONFIG_TAIL)    	+= tail.o
 COREUTILS-$(CONFIG_TEE)     	+= tee.o
