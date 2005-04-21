@@ -452,6 +452,9 @@
 #ifdef CONFIG_POWEROFF
 	APPLET(poweroff, poweroff_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_PRINTENV
+	APPLET(printenv, printenv_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_PRINTF
 	APPLET(printf, printf_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
@@ -544,6 +547,9 @@
 #endif
 #ifdef CONFIG_SULOGIN
 	APPLET(sulogin, sulogin_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_SUM
+	APPLET(sum, sum_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_SWAPONOFF
 	APPLET(swapoff, swap_on_off_main, _BB_DIR_SBIN, _BB_SUID_NEVER)

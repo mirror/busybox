@@ -1949,6 +1949,12 @@
 	"Options:\n" \
 	"\t-d\t\tdelay interval for shutting off."
 
+#define printenv_trivial_usage \
+	"[VARIABLES...]"
+#define printenv_full_usage \
+	"print all or part of environment\n\n" \
+	"If no environment VARIABLE specified, print them all."
+
 #define printf_trivial_usage \
 	"FORMAT [ARGUMENT...]"
 #define printf_full_usage \
@@ -2315,6 +2321,14 @@
 	"\t-f\tDo not authenticate (user already authenticated)\n" \
 	"\t-h\tName of the remote host for this login.\n" \
 	"\t-p\tPreserve environment."
+
+#define sum_trivial_usage \
+	"[rs] [files...]"
+#define sum_full_usage \
+	"checksum and count the blocks in a file\n\n" \
+	"Options:\n" \
+	"\t-r\tuse BSD sum algorithm (1K blocks)\n" \
+	"\t-s\tuse System V sum algorithm (512byte blocks)\n"
 
 #define swapoff_trivial_usage \
 	"[OPTION] [DEVICE]"
