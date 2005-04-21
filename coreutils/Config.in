@@ -164,6 +164,12 @@ config CONFIG_ENV
 	  a command; without options it displays the current
 	  environment.
 
+config CONFIG_PRINTENV
+	bool "printenv"
+	default n
+	help
+	  printenv is used to print all or part of environment.
+
 config CONFIG_EXPR
 	bool "expr"
 	default n
