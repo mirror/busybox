@@ -144,25 +144,25 @@ int busybox_main(int argc, char **argv)
 		output_width -= 20;
 #endif
 
-		fprintf(stderr, "%s\n\n"
-				"Usage: busybox [function] [arguments]...\n"
-				"   or: [function] [arguments]...\n\n"
-				"\tBusyBox is a multi-call binary that combines many common Unix\n"
-				"\tutilities into a single executable.  Most people will create a\n"
-				"\tlink to busybox for each function they wish to use, and BusyBox\n"
-				"\twill act like whatever it was invoked as.\n"
-				"\nCurrently defined functions:\n", bb_msg_full_version);
+		printf("%s\n\n"
+		       "Usage: busybox [function] [arguments]...\n"
+		       "   or: [function] [arguments]...\n\n"
+		       "\tBusyBox is a multi-call binary that combines many common Unix\n"
+		       "\tutilities into a single executable.  Most people will create a\n"
+		       "\tlink to busybox for each function they wish to use and BusyBox\n"
+		       "\twill act like whatever it was invoked as!\n"
+		       "\nCurrently defined functions:\n", bb_msg_full_version);
 
 		while (a->name != 0) {
 			col +=
-				fprintf(stderr, "%s%s", ((col == 0) ? "\t" : ", "),
-						(a++)->name);
+				printf("%s%s", ((col == 0) ? "\t" : ", "),
+				       (a++)->name);
 			if (col > output_width && a->name != 0) {
-				fprintf(stderr, ",\n");
+				printf(",\n");
 				col = 0;
 			}
 		}
-		fprintf(stderr, "\n\n");
+		printf("\n\n");
 		exit(0);
 	}
 
