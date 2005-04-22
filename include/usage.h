@@ -120,6 +120,30 @@
 	"$ cat /proc/uptime\n" \
 	"110716.72 17.67"
 
+#define chattr_trivial_usage \
+	"[-R] [-+=AacDdijsStTu] [-v version] files..."
+#define chattr_full_usage \
+	"change file attributes on an ext2 fs\n\n" \
+	"Modifiers:\n" \
+	"\t-\tremove attributes\n" \
+	"\t+\tadd attributes\n" \
+	"\t=\tset attributes\n" \
+	"Attributes:\n" \
+	"\tA\tdon't track atime\n" \
+	"\ta\tappend mode only\n" \
+	"\tc\tenable compress\n" \
+	"\tD\twrite dir contents synchronously\n" \
+	"\td\tdo not backup with dump\n" \
+	"\ti\tcannot be modified (immutable)\n" \
+	"\tj\twrite all data to journal first\n" \
+	"\ts\tzero disk storage when deleted\n" \
+	"\tS\twrite file contents synchronously\n" \
+	"\tt\tdisable tail-merging of partial blocks with other files\n" \
+	"\tu\tallow file to be undeleted\n" \
+	"Options:\n" \
+	"\t-R\trecursively list subdirectories\n" \
+	"\t-v\tset the file's version/generation number\n"
+
 #define chgrp_trivial_usage \
 	"[OPTION]... GROUP FILE..."
 #define chgrp_full_usage \
@@ -1552,6 +1576,17 @@
 	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n") \
 	USAGE_SELINUX("\t-k\tprint security context\n") \
 	USAGE_SELINUX("\t-K\tprint security context in long format\n")
+
+#define lsattr_trivial_usage \
+	"[-Radlv] [files...]"
+#define lsattr_full_usage \
+	"list file attributes on an ext2 fs\n\n" \
+	"Options:\n" \
+	"\t-R\trecursively list subdirectories\n" \
+	"\t-a\tdo not hide entries starting with .\n" \
+	"\t-d\tlist directory entries instead of contents\n" \
+	"\t-l\tprint long flag names\n" \
+	"\t-v\tlist the file's version/generation number\n"
 
 #define lsmod_trivial_usage \
 	""

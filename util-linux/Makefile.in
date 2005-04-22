@@ -24,6 +24,7 @@ endif
 srcdir=$(top_srcdir)/util-linux
 
 UTILLINUX-:=
+UTILLINUX-$(CONFIG_CHATTR)		+=chattr.o e2p.o
 UTILLINUX-$(CONFIG_DMESG)		+=dmesg.o
 UTILLINUX-$(CONFIG_FBSET)		+=fbset.o
 UTILLINUX-$(CONFIG_FDFLUSH)		+=fdflush.o
@@ -35,6 +36,7 @@ UTILLINUX-$(CONFIG_GETOPT)		+=getopt.o
 UTILLINUX-$(CONFIG_HEXDUMP)		+=hexdump.o
 UTILLINUX-$(CONFIG_HWCLOCK)		+=hwclock.o
 UTILLINUX-$(CONFIG_LOSETUP)		+=losetup.o
+UTILLINUX-$(CONFIG_LSATTR)		+=lsattr.o e2p.o
 UTILLINUX-$(CONFIG_MKFS_MINIX)		+=mkfs_minix.o
 UTILLINUX-$(CONFIG_MKSWAP)		+=mkswap.o
 UTILLINUX-$(CONFIG_MORE)		+=more.o
@@ -53,6 +55,15 @@ $(UTILLINUX_DIR)$(UTILLINUX_AR): $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
 $(UTILLINUX_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
+E2P_SRC_LIST := \
+	fgetflags.c fsetflags.c \
+	fgetversion.c fsetversion.c \
+	pf.c iod.c
+E2P_SRC := $(patsubst %, $(UTILLINUX_DIR)/e2p/%, $(E2P_SRC_LIST))
+$(UTILLINUX_DIR)e2p.o: $(E2P_SRC)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ -c $(E2P_SRC) \
+		-DHAVE_ERRNO_H=1 -DHAVE_UNISTD_H=1 -DHAVE_EXT2_IOCTLS=1 -DHAVE_EXT2_IOCTLS=1
+
 ifneq ($(strip $(CONFIG_LFS)),y)
 ifeq ($(strip $(FDISK_SUPPORT_LARGE_DISKS)),y)
 
@@ -63,4 +74,3 @@ $(UTILLINUX_DIR)fdisk.o: $(srcdir)/fdisk.c
 
 endif
 endif
-

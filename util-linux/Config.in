@@ -5,6 +5,17 @@
 
 menu "Linux System Utilities"
 
+config CONFIG_CHATTR
+	bool "chattr"
+	default n
+	help
+	  chattr changes the file attributes on a second extended file system.
+
+config CONFIG_LSATTR
+	bool "lsattr"
+	default n
+	help
+	  lsattr lists the file attributes on a second extended file system.
 
 config CONFIG_DMESG
 	bool "dmesg"
@@ -26,7 +37,6 @@ config CONFIG_FBSET
 	  device.  The frame buffer device provides a simple and unique
 	  interface to access a graphics display.  Enable this option
 	  if you wish to enable the 'fbset' utility.
-
 
 config CONFIG_FEATURE_FBSET_FANCY
 	bool "  Turn on extra fbset options"

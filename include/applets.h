@@ -89,6 +89,9 @@
 #ifdef CONFIG_CAT
 	APPLET(cat, cat_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_CHATTR
+	APPLET(chattr, chattr_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_CHGRP
 	APPLET(chgrp, chgrp_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
@@ -358,6 +361,9 @@
 #endif
 #ifdef CONFIG_LS
 	APPLET(ls, ls_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_LSATTR
+	APPLET(lsattr, lsattr_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_LSMOD
 	APPLET(lsmod, lsmod_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
