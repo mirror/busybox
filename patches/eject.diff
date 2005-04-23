@@ -47,7 +47,7 @@ diff -u -r1.8 Makefile.in
  COREUTILS-$(CONFIG_DU)      	+= du.o
  COREUTILS-$(CONFIG_ECHO)    	+= echo.o
  COREUTILS-$(CONFIG_ENV)     	+= env.o
-+COREUTILS-$(CONFIG_EJECT)    	+= eject.o
++COREUTILS-$(CONFIG_EJECT)   	+= eject.o
  COREUTILS-$(CONFIG_EXPR)    	+= expr.o
  COREUTILS-$(CONFIG_FALSE)   	+= false.o
  COREUTILS-$(CONFIG_FOLD)    	+= fold.o
@@ -157,7 +157,7 @@ diff -u -r1.191 usage.h
 +#define eject_full_usage \
 +	"Ejects the specified FILE or /dev/cdrom if FILE is unspecified.\n\n" \
 +	"Options:\n" \
-+	"\t-t, --trayclose \tclose tray\n"
++	"\t-t, --trayclose\tclose tray\n"
 +
  #define expr_trivial_usage \
  	"EXPRESSION"
