@@ -153,7 +153,7 @@ static void handlexitsigs(int signum)
 }
 
 /* May succeed. If not, won't care. */
-static void writepid(uid_t nobody, uid_t nogrp)
+static inline void writepid(uid_t nobody, uid_t nogrp)
 {
 	char buf[24];
 	int fd = open(PIDFILE, O_WRONLY|O_CREAT|O_TRUNC, 0664);
@@ -266,8 +266,6 @@ static int checkInput(char *buf, int len, int l)
 
 int fakeidentd_main(int argc, char **argv)
 {
-	int flag;
-
 	memset(conns, 0, sizeof(conns));
 	memset(&G, 0, sizeof(G));
 	FD_ZERO(&G.readfds);
