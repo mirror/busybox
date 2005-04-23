@@ -453,7 +453,7 @@
 	APPLET_NOUSAGE("pipe_progress", pipe_progress_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_PIVOT_ROOT
- 	APPLET(pivot_root, pivot_root_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+	APPLET(pivot_root, pivot_root_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_POWEROFF
 	APPLET(poweroff, poweroff_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
@@ -498,7 +498,7 @@
 	APPLET(rmmod, rmmod_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_ROUTE
- 	APPLET(route, route_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+	APPLET(route, route_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_RPM
 	APPLET(rpm, rpm_main, _BB_DIR_BIN, _BB_SUID_NEVER)
