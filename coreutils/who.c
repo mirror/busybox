@@ -74,7 +74,7 @@ extern int who_main(int argc, char **argv)
             } else
                 printf("%-8s  ", "?");
 
-            printf("%-12.12s   %s\n", ctime(&(ut->ut_tv.tv_sec)) + 4, ut->ut_host);
+            printf("%-12.12s   %s\n", ctime((time_t*)&(ut->ut_tv.tv_sec)) + 4, ut->ut_host);
         }
     }
     endutent();
