@@ -422,6 +422,21 @@ config CONFIG_SORT_BIG
 	  The SuSv3 sort standard is available at:
 	  http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
 
+config CONFIG_STAT
+	bool "stat"
+	default n
+	help
+	  display file or filesystem status.
+
+config CONFIG_FEATURE_STAT_FORMAT
+	bool "  Enable custom formats (-c)"
+	default n
+	depends on CONFIG_STAT
+	help
+	  Without this, stat will not support the '-c format' option where 
+	  users can pass a custom format string for output.  This adds about 
+	  7k to a nonstatic build on amd64.
+
 config CONFIG_STTY
 	bool "stty"
 	default n

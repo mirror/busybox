@@ -2320,6 +2320,63 @@
 	"\n\t-q|--quiet\t\t\tbe quiet" \
 	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)"
 
+#ifdef CONFIG_FEATURE_STAT_FORMAT
+# define USAGE_STAT_FORMAT(a) a
+#else
+# define USAGE_STAT_FORMAT(a)
+#endif
+#define stat_trivial_usage \
+	"[OPTION] FILE..."
+#define stat_full_usage \
+	"display file (default) or filesystem status.\n\n" \
+	"Options:\n" \
+	USAGE_STAT_FORMAT("\t-c fmt\tuse the specified format\n") \
+	"\t-f\tdisplay filesystem status\n" \
+	"\t-L,-l\tdereference links\n" \
+	"\t-t\tdisplay info in terse form\n" \
+	USAGE_STAT_FORMAT( \
+	"\nValid format sequences for files:\n" \
+	"  %a   Access rights in octal\n" \
+	"  %A   Access rights in human readable form\n" \
+	"  %b   Number of blocks allocated (see %B)\n" \
+	"  %B   The size in bytes of each block reported by %b\n" \
+	"  %d   Device number in decimal\n" \
+	"  %D   Device number in hex\n" \
+	"  %f   Raw mode in hex\n" \
+	"  %F   File type\n" \
+	"  %g   Group ID of owner\n" \
+	"  %G   Group name of owner\n" \
+	"  %h   Number of hard links\n" \
+	"  %i   Inode number\n" \
+	"  %n   File name\n" \
+	"  %N   Quoted file name with dereference if symbolic link\n" \
+	"  %o   I/O block size\n" \
+	"  %s   Total size, in bytes\n" \
+	"  %t   Major device type in hex\n" \
+	"  %T   Minor device type in hex\n" \
+	"  %u   User ID of owner\n" \
+	"  %U   User name of owner\n" \
+	"  %x   Time of last access\n" \
+	"  %X   Time of last access as seconds since Epoch\n" \
+	"  %y   Time of last modification\n" \
+	"  %Y   Time of last modification as seconds since Epoch\n" \
+	"  %z   Time of last change\n" \
+	"  %Z   Time of last change as seconds since Epoch\n" \
+	"\nValid format sequences for file systems:\n" \
+	"  %a   Free blocks available to non-superuser\n" \
+	"  %b   Total data blocks in file system\n" \
+	"  %c   Total file nodes in file system\n" \
+	"  %d   Free file nodes in file system\n" \
+	"  %f   Free blocks in file system\n" \
+	"  %i   File System ID in hex\n" \
+	"  %l   Maximum length of filenames\n" \
+	"  %n   File name\n" \
+	"  %s   Block size (for faster transfers)\n" \
+	"  %S   Fundamental block size (for block counts)\n" \
+	"  %t   Type in hex\n" \
+	"  %T   Type in human readable form\n" \
+	)
+
 #define strings_trivial_usage \
 	"[-afo] [-n length] [file ... ]"
 #define strings_full_usage \

@@ -542,6 +542,9 @@
 #ifdef CONFIG_START_STOP_DAEMON
 	APPLET_ODDNAME("start-stop-daemon", start_stop_daemon_main, _BB_DIR_SBIN, _BB_SUID_NEVER, start_stop_daemon)
 #endif
+#ifdef CONFIG_STAT
+	APPLET(stat, stat_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_STRINGS
 	APPLET(strings, strings_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
