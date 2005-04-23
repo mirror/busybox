@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "busybox.h"
 
 int printenv_main(int argc, char **argv)
 {
@@ -48,5 +49,5 @@ int printenv_main(int argc, char **argv)
 			}
 	}
 
-	exit(EXIT_SUCCESS);
+	bb_fflush_stdout_and_exit();
 }
