@@ -103,12 +103,12 @@
 	"Uncompress to stdout."
 
 #define cal_trivial_usage \
-       "[-jy] [[month] year]"
+	"[-jy] [[month] year]"
 #define cal_full_usage \
-       "Display a calendar.\n" \
-       "\nOptions:\n" \
-       "\t-j\tUse julian dates.\n" \
-       "\t-y\tDisplay the entire year."
+	"Display a calendar.\n" \
+	"\nOptions:\n" \
+	"\t-j\tUse julian dates\n" \
+	"\t-y\tDisplay the entire year"
 
 #define cat_trivial_usage \
 	"[-u] [FILE]..."
@@ -375,9 +375,9 @@
 	 "Deletes user USER from the system"
 
 #ifdef CONFIG_DEVFSD_FG_NP
-  #define USAGE_DEVFSD_FG_NP(a) a
+#  define USAGE_DEVFSD_FG_NP(a) a
 #else
-  #define USAGE_DEVFSD_FG_NP(a)
+#  define USAGE_DEVFSD_FG_NP(a)
 #endif
 
 #define devfsd_trivial_usage \
@@ -395,11 +395,11 @@
 	"\t\tDo not poll for events.")
 
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-  #define USAGE_HUMAN_READABLE(a) a
-  #define USAGE_NOT_HUMAN_READABLE(a)
+#  define USAGE_HUMAN_READABLE(a) a
+#  define USAGE_NOT_HUMAN_READABLE(a)
 #else
-  #define USAGE_HUMAN_READABLE(a)
-  #define USAGE_NOT_HUMAN_READABLE(a) a
+#  define USAGE_HUMAN_READABLE(a)
+#  define USAGE_NOT_HUMAN_READABLE(a) a
 #endif
 #define df_trivial_usage \
 	"[-" USAGE_HUMAN_READABLE("hm") USAGE_NOT_HUMAN_READABLE("") "k] [FILESYSTEM ...]"
@@ -533,9 +533,9 @@
 	"\t-a,\t--absolute\tInterpret lease times as expire time"
 
 #ifdef CONFIG_FEATURE_FANCY_ECHO
-  #define USAGE_FANCY_ECHO(a) a
+#  define USAGE_FANCY_ECHO(a) a
 #else
-  #define USAGE_FANCY_ECHO(a)
+#  define USAGE_FANCY_ECHO(a)
 #endif
 
 #define echo_trivial_usage \
@@ -656,29 +656,29 @@
 	"\t-v  Give fdisk version"
 
 #ifdef CONFIG_FEATURE_FIND_TYPE
-  #define USAGE_FIND_TYPE(a) a
+#  define USAGE_FIND_TYPE(a) a
 #else
-  #define USAGE_FIND_TYPE(a)
+#  define USAGE_FIND_TYPE(a)
 #endif
 #ifdef CONFIG_FEATURE_FIND_PERM
-  #define USAGE_FIND_PERM(a) a
+#  define USAGE_FIND_PERM(a) a
 #else
-  #define USAGE_FIND_PERM(a)
+#  define USAGE_FIND_PERM(a)
 #endif
 #ifdef CONFIG_FEATURE_FIND_MTIME
-  #define USAGE_FIND_MTIME(a) a
+#  define USAGE_FIND_MTIME(a) a
 #else
-  #define USAGE_FIND_MTIME(a)
+#  define USAGE_FIND_MTIME(a)
 #endif
 #ifdef CONFIG_FEATURE_FIND_NEWER
-  #define USAGE_FIND_NEWER(a) a
+#  define USAGE_FIND_NEWER(a) a
 #else
-  #define USAGE_FIND_NEWER(a)
+#  define USAGE_FIND_NEWER(a)
 #endif
 #ifdef CONFIG_FEATURE_FIND_INUM
-  #define USAGE_FIND_INUM(a) a
+#  define USAGE_FIND_INUM(a) a
 #else
-  #define USAGE_FIND_INUM(a)
+#  define USAGE_FIND_INUM(a)
 #endif
 
 #define find_trivial_usage \
@@ -780,25 +780,25 @@
 	"\t-T, --test			Test for getopt(1) version\n" \
 	"\t-u, --unquoted		Do not quote the output"
 #define getopt_example_usage \
-        "$ cat getopt.test\n" \
-        "#!/bin/sh\n" \
-        "GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \\\n" \
-        "       -n 'example.busybox' -- \"$@\"`\n" \
-        "if [ $? != 0 ] ; then  exit 1 ; fi\n" \
-        "eval set -- "$GETOPT"\n" \
-        "while true ; do\n" \
-        " case $1 in\n" \
-        "   -a|--a-long) echo \"Option a\" ; shift ;;\n" \
-        "   -b|--b-long) echo \"Option b, argument `$2'\" ; shift 2 ;;\n" \
-        "   -c|--c-long)\n" \
-        "     case "$2" in\n" \
-        "       \"\") echo \"Option c, no argument\"; shift 2 ;;\n" \
-        "       *)  echo \"Option c, argument `$2'\" ; shift 2 ;;\n" \
-        "     esac ;;\n" \
-        "   --) shift ; break ;;\n" \
-        "   *) echo \"Internal error!\" ; exit 1 ;;\n" \
-        " esac\n" \
-        "done\n"
+	"$ cat getopt.test\n" \
+	"#!/bin/sh\n" \
+	"GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \\\n" \
+	"       -n 'example.busybox' -- \"$@\"`\n" \
+	"if [ $? != 0 ] ; then  exit 1 ; fi\n" \
+	"eval set -- "$GETOPT"\n" \
+	"while true ; do\n" \
+	" case $1 in\n" \
+	"   -a|--a-long) echo \"Option a\" ; shift ;;\n" \
+	"   -b|--b-long) echo \"Option b, argument `$2'\" ; shift 2 ;;\n" \
+	"   -c|--c-long)\n" \
+	"     case "$2" in\n" \
+	"       \"\") echo \"Option c, no argument\"; shift 2 ;;\n" \
+	"       *)  echo \"Option c, argument `$2'\" ; shift 2 ;;\n" \
+	"     esac ;;\n" \
+	"   --) shift ; break ;;\n" \
+	"   *) echo \"Internal error!\" ; exit 1 ;;\n" \
+	" esac\n" \
+	"done\n"
 
 #define getty_trivial_usage \
 	"[OPTIONS]... baud_rate,... line [termtype]"
@@ -1017,26 +1017,26 @@
 	"sage\n"
 
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-  #define USAGE_HTTPD_BASIC_AUTH(a) a
-  #ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
-    #define USAGE_HTTPD_AUTH_MD5(a) a
-  #else
-    #define USAGE_HTTPD_AUTH_MD5(a)
-  #endif
+#  define USAGE_HTTPD_BASIC_AUTH(a) a
+#  ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
+#    define USAGE_HTTPD_AUTH_MD5(a) a
+#  else
+#    define USAGE_HTTPD_AUTH_MD5(a)
+#  endif
 #else
-  #define USAGE_HTTPD_BASIC_AUTH(a)
-  #define USAGE_HTTPD_AUTH_MD5(a)
+#  define USAGE_HTTPD_BASIC_AUTH(a)
+#  define USAGE_HTTPD_AUTH_MD5(a)
 #endif
 #ifdef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-  #define USAGE_HTTPD_STANDALONE(a)
-  #define USAGE_HTTPD_SETUID(a)
+#  define USAGE_HTTPD_STANDALONE(a)
+#  define USAGE_HTTPD_SETUID(a)
 #else
-  #define USAGE_HTTPD_STANDALONE(a) a
-  #ifdef CONFIG_FEATURE_HTTPD_SETUID
-    #define USAGE_HTTPD_SETUID(a) a
-  #else
-    #define USAGE_HTTPD_SETUID(a)
-  #endif
+#  define USAGE_HTTPD_STANDALONE(a) a
+#  ifdef CONFIG_FEATURE_HTTPD_SETUID
+#    define USAGE_HTTPD_SETUID(a) a
+#  else
+#    define USAGE_HTTPD_SETUID(a)
+#  endif
 #endif
 #define httpd_trivial_usage \
 	"[-c <conf file>]" \
@@ -1047,16 +1047,16 @@
 	" [-h home]" \
 	" [-d/-e <string>]"
 #define httpd_full_usage \
-       "Listens for incoming http server requests.\n\n"\
-       "Options:\n" \
-       "\t-c FILE\t\tSpecifies configuration file. (default httpd.conf)\n" \
-       USAGE_HTTPD_STANDALONE("\t-p PORT\tServer port (default 80)\n") \
-       USAGE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privileges port\n") \
-       USAGE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
-       USAGE_HTTPD_AUTH_MD5("\t-m PASS\t\tCrypt PASS with md5 algorithm\n") \
-       "\t-h HOME  \tSpecifies http HOME directory (default ./)\n" \
-       "\t-e STRING\tHtml encode STRING\n" \
-       "\t-d STRING\tURL decode STRING"
+	"Listens for incoming http server requests.\n\n"\
+	"Options:\n" \
+	"\t-c FILE\t\tSpecifies configuration file. (default httpd.conf)\n" \
+	USAGE_HTTPD_STANDALONE("\t-p PORT\tServer port (default 80)\n") \
+	USAGE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privileges port\n") \
+	USAGE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
+	USAGE_HTTPD_AUTH_MD5("\t-m PASS\t\tCrypt PASS with md5 algorithm\n") \
+	"\t-h HOME  \tSpecifies http HOME directory (default ./)\n" \
+	"\t-e STRING\tHtml encode STRING\n" \
+	"\t-d STRING\tURL decode STRING"
 
 #define hwclock_trivial_usage \
 	"[-r|--show] [-s|--hctosys] [-w|--systohc] [-l|--localtime] [-u|--utc]"
@@ -1070,9 +1070,9 @@
 	"\t-l\tthe hardware clock is kept in local time"
 
 #ifdef CONFIG_SELINUX
-  #define USAGE_SELINUX(a) a
+#  define USAGE_SELINUX(a) a
 #else
-  #define USAGE_SELINUX(a)
+#  define USAGE_SELINUX(a)
 #endif
 
 #define id_trivial_usage \
@@ -1090,29 +1090,29 @@
 	"uid=1000(andersen) gid=1000(andersen)\n"
 
 #ifdef CONFIG_FEATURE_IFCONFIG_SLIP
-  #define USAGE_SIOCSKEEPALIVE(a) a
+#  define USAGE_SIOCSKEEPALIVE(a) a
 #else
-  #define USAGE_SIOCSKEEPALIVE(a)
+#  define USAGE_SIOCSKEEPALIVE(a)
 #endif
 #ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
-  #define USAGE_IFCONFIG_MII(a) a
+#  define USAGE_IFCONFIG_MII(a) a
 #else
-  #define USAGE_IFCONFIG_MII(a)
+#  define USAGE_IFCONFIG_MII(a)
 #endif
 #ifdef CONFIG_FEATURE_IFCONFIG_HW
-  #define USAGE_IFCONFIG_HW(a) a
+#  define USAGE_IFCONFIG_HW(a) a
 #else
-  #define USAGE_IFCONFIG_HW(a)
+#  define USAGE_IFCONFIG_HW(a)
 #endif
 #ifdef CONFIG_FEATURE_IFCONFIG_STATUS
-  #define USAGE_IFCONFIG_OPT_A(a) a
+#  define USAGE_IFCONFIG_OPT_A(a) a
 #else
-  #define USAGE_IFCONFIG_OPT_A(a)
+#  define USAGE_IFCONFIG_OPT_A(a)
 #endif
 #ifdef CONFIG_FEATURE_IPV6
-  #define USAGE_IPV6(a) a
+#  define USAGE_IPV6(a) a
 #else
-  #define USAGE_IPV6(a)
+#  define USAGE_IPV6(a)
 #endif
 
 #define ifconfig_trivial_usage \
@@ -1126,7 +1126,7 @@
 	"\t[netmask <address>]  [dstaddr <address>]\n" \
 	USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
 	"\t" USAGE_IFCONFIG_HW("[hw ether <address>]  ") \
-    "[metric <NN>]  [mtu <NN>]\n" \
+	"[metric <NN>]  [mtu <NN>]\n" \
 	"\t[[-]trailers]  [[-]arp]  [[-]allmulti]\n" \
 	"\t[multicast]  [[-]promisc]  [txqueuelen <NN>]  [[-]dynamic]\n" \
 	USAGE_IFCONFIG_MII("\t[mem_start <NN>]  [io_addr <NN>]  [irq <NN>]\n") \
@@ -1300,9 +1300,9 @@
 "	::shutdown:/sbin/swapoff -a\n"
 
 #ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
-  #define USAGE_INSMOD_MAP(a) a
+#  define USAGE_INSMOD_MAP(a) a
 #else
-  #define USAGE_INSMOD_MAP(a)
+#  define USAGE_INSMOD_MAP(a)
 #endif
 #define insmod_trivial_usage \
 	"[OPTION]... MODULE [symbol=value]..."
@@ -1351,9 +1351,9 @@
 	"\t\t\tSCOPE-ID := [ host | link | global | NUMBER ]"
 
 #ifdef CONFIG_FEATURE_IPCALC_FANCY
-  #define XUSAGE_IPCALC_FANCY(a) a
+#  define XUSAGE_IPCALC_FANCY(a) a
 #else
-  #define XUSAGE_IPCALC_FANCY(a)
+#  define XUSAGE_IPCALC_FANCY(a)
 #endif
 #define ipcalc_trivial_usage \
 	"[OPTION]... <ADDRESS>[[/]<NETMASK>] [NETMASK]"
@@ -1499,7 +1499,7 @@
 #define logread_trivial_usage \
 	"[OPTION]..."
 #define logread_full_usage \
-        "Shows the messages from syslogd (using circular buffer).\n\n" \
+	"Shows the messages from syslogd (using circular buffer).\n\n" \
 	"Options:\n" \
 	"\t-f\t\toutput data as the log grows"
 
@@ -1513,34 +1513,34 @@
 	"\t-o OFFSET\tStart OFFSET bytes into FILE."
 
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
-  #define USAGE_LS_TIMESTAMPS(a) a
+#  define USAGE_LS_TIMESTAMPS(a) a
 #else
-  #define USAGE_LS_TIMESTAMPS(a)
+#  define USAGE_LS_TIMESTAMPS(a)
 #endif
 #ifdef CONFIG_FEATURE_LS_FILETYPES
-  #define USAGE_LS_FILETYPES(a) a
+#  define USAGE_LS_FILETYPES(a) a
 #else
-  #define USAGE_LS_FILETYPES(a)
+#  define USAGE_LS_FILETYPES(a)
 #endif
 #ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
-  #define USAGE_LS_FOLLOWLINKS(a) a
+#  define USAGE_LS_FOLLOWLINKS(a) a
 #else
-  #define USAGE_LS_FOLLOWLINKS(a)
+#  define USAGE_LS_FOLLOWLINKS(a)
 #endif
 #ifdef CONFIG_FEATURE_LS_RECURSIVE
-  #define USAGE_LS_RECURSIVE(a) a
+#  define USAGE_LS_RECURSIVE(a) a
 #else
-  #define USAGE_LS_RECURSIVE(a)
+#  define USAGE_LS_RECURSIVE(a)
 #endif
 #ifdef CONFIG_FEATURE_LS_SORTFILES
-  #define USAGE_LS_SORTFILES(a) a
+#  define USAGE_LS_SORTFILES(a) a
 #else
-  #define USAGE_LS_SORTFILES(a)
+#  define USAGE_LS_SORTFILES(a)
 #endif
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-  #define USAGE_AUTOWIDTH(a) a
+#  define USAGE_AUTOWIDTH(a) a
 #else
-  #define USAGE_AUTOWIDTH(a)
+#  define USAGE_AUTOWIDTH(a)
 #endif
 
 #define ls_trivial_usage \
@@ -1741,14 +1741,14 @@
 	"$ dmesg | more\n"
 
 #ifdef CONFIG_FEATURE_MOUNT_LOOP
-  #define USAGE_MOUNT_LOOP(a) a
+#  define USAGE_MOUNT_LOOP(a) a
 #else
-  #define USAGE_MOUNT_LOOP(a)
+#  define USAGE_MOUNT_LOOP(a)
 #endif
 #ifdef CONFIG_FEATURE_MTAB_SUPPORT
-  #define USAGE_MTAB(a) a
+#  define USAGE_MTAB(a) a
 #else
-  #define USAGE_MTAB(a)
+#  define USAGE_MTAB(a)
 #endif
 #define mount_trivial_usage \
 	"[flags] DEVICE NODE [-o options,more-options]"
@@ -1890,9 +1890,9 @@
 	"openvt 2 /bin/ash\n"
 
 #ifdef CONFIG_FEATURE_SHA1_PASSWORDS
-  #define PASSWORD_ALG_TYPES(a) a
+#  define PASSWORD_ALG_TYPES(a) a
 #else
-  #define PASSWORD_ALG_TYPES(a)
+#  define PASSWORD_ALG_TYPES(a)
 #endif
 #define passwd_trivial_usage \
 	"[OPTION] [name]"
@@ -2110,9 +2110,9 @@
 	"$ rmmod tulip\n"
 
 #ifdef CONFIG_FEATURE_IPV6
-  #define USAGE_ROUTE_IPV6(a) a
+#  define USAGE_ROUTE_IPV6(a) a
 #else
-  #define USAGE_ROUTE_IPV6(a) "\t"
+#  define USAGE_ROUTE_IPV6(a) "\t"
 #endif
 
 
@@ -2232,11 +2232,11 @@
 	"\t-w\twarn about improperly formated SHA1 checksum lines")
 
 #ifdef CONFIG_FEATURE_FANCY_SLEEP
-  #define USAGE_FANCY_SLEEP(a) a
-  #define USAGE_NOT_FANCY_SLEEP(a)
+#  define USAGE_FANCY_SLEEP(a) a
+#  define USAGE_NOT_FANCY_SLEEP(a)
 #else
-  #define USAGE_FANCY_SLEEP(a)
-  #define USAGE_NOT_FANCY_SLEEP(a) a
+#  define USAGE_FANCY_SLEEP(a)
+#  define USAGE_NOT_FANCY_SLEEP(a) a
 #endif
 
 #define sleep_trivial_usage \
@@ -2253,9 +2253,9 @@
 	"[98528 second delay results]\n")
 
 #ifdef CONFIG_SORT_BIG
-  #define USAGE_SORT_BIG(a) a
+#  define USAGE_SORT_BIG(a) a
 #else
-  #define USAGE_SORT_BIG(a)
+#  define USAGE_SORT_BIG(a)
 #endif
 
 
@@ -2321,9 +2321,9 @@
 	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)"
 
 #ifdef CONFIG_FEATURE_STAT_FORMAT
-# define USAGE_STAT_FORMAT(a) a
+#  define USAGE_STAT_FORMAT(a) a
 #else
-# define USAGE_STAT_FORMAT(a)
+#  define USAGE_STAT_FORMAT(a)
 #endif
 #define stat_trivial_usage \
 	"[OPTION] FILE..."
@@ -2443,19 +2443,19 @@
 
 
 #ifdef CONFIG_FEATURE_ROTATE_LOGFILE
-	#define USAGE_ROTATE_LOGFILE(a) a
+#  define USAGE_ROTATE_LOGFILE(a) a
 #else
-	#define USAGE_ROTATE_LOGFILE(a)
+#  define USAGE_ROTATE_LOGFILE(a)
 #endif
 #ifdef CONFIG_FEATURE_REMOTE_LOG
-  #define USAGE_REMOTE_LOG(a) a
+#  define USAGE_REMOTE_LOG(a) a
 #else
-  #define USAGE_REMOTE_LOG(a)
+#  define USAGE_REMOTE_LOG(a)
 #endif
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-  #define USAGE_IPC_LOG(a) a
+#  define USAGE_IPC_LOG(a) a
 #else
-  #define USAGE_IPC_LOG(a)
+#  define USAGE_IPC_LOG(a)
 #endif
 
 #ifdef CONFIG_SYSCTL
@@ -2501,9 +2501,9 @@
 
 
 #ifndef CONFIG_FEATURE_FANCY_TAIL
-  #define USAGE_UNSIMPLE_TAIL(a)
+#  define USAGE_UNSIMPLE_TAIL(a)
 #else
-  #define USAGE_UNSIMPLE_TAIL(a) a
+#  define USAGE_UNSIMPLE_TAIL(a) a
 #endif
 #define tail_trivial_usage \
 	"[OPTION]... [FILE]..."
@@ -2526,29 +2526,29 @@
 	"nameserver 10.0.0.1\n"
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
-  #define USAGE_TAR_CREATE(a) a
+#  define USAGE_TAR_CREATE(a) a
 #else
-  #define USAGE_TAR_CREATE(a)
+#  define USAGE_TAR_CREATE(a)
 #endif
 #ifdef CONFIG_FEATURE_TAR_EXCLUDE
-  #define USAGE_TAR_EXCLUDE(a) a
+#  define USAGE_TAR_EXCLUDE(a) a
 #else
-  #define USAGE_TAR_EXCLUDE(a)
+#  define USAGE_TAR_EXCLUDE(a)
 #endif
 #ifdef CONFIG_FEATURE_TAR_GZIP
-  #define USAGE_TAR_GZIP(a) a
+#  define USAGE_TAR_GZIP(a) a
 #else
-  #define USAGE_TAR_GZIP(a)
+#  define USAGE_TAR_GZIP(a)
 #endif
 #ifdef CONFIG_FEATURE_TAR_BZIP2
-  #define USAGE_TAR_BZIP2(a) a
+#  define USAGE_TAR_BZIP2(a) a
 #else
-  #define USAGE_TAR_BZIP2(a)
+#  define USAGE_TAR_BZIP2(a)
 #endif
 #ifdef CONFIG_FEATURE_TAR_COMPRESS
-  #define USAGE_TAR_COMPRESS(a) a
+#  define USAGE_TAR_COMPRESS(a) a
 #else
-  #define USAGE_TAR_COMPRESS(a)
+#  define USAGE_TAR_COMPRESS(a)
 #endif
 
 #define tar_trivial_usage \
@@ -2650,19 +2650,19 @@
 	"1\n"
 
 #ifdef CONFIG_FEATURE_TFTP_GET
-  #define USAGE_TFTP_GET(a) a
+#  define USAGE_TFTP_GET(a) a
 #else
-  #define USAGE_TFTP_GET(a)
+#  define USAGE_TFTP_GET(a)
 #endif
 #ifdef CONFIG_FEATURE_TFTP_PUT
-  #define USAGE_TFTP_PUT(a) a
+#  define USAGE_TFTP_PUT(a) a
 #else
-  #define USAGE_TFTP_PUT(a)
+#  define USAGE_TFTP_PUT(a)
 #endif
 #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
-  #define USAGE_TFTP_BS(a) a
+#  define USAGE_TFTP_BS(a) a
 #else
-  #define USAGE_TFTP_BS(a)
+#  define USAGE_TFTP_BS(a)
 #endif
 
 #define tftp_trivial_usage \
@@ -2672,10 +2672,10 @@
 	"Options:\n" \
 	"\t-l FILE\tLocal FILE.\n" \
 	"\t-r FILE\tRemote FILE." \
-        USAGE_TFTP_GET(	\
-        "\n\t-g\tGet file." \
-        ) \
-        USAGE_TFTP_PUT(	\
+	USAGE_TFTP_GET(	\
+	"\n\t-g\tGet file." \
+	) \
+	USAGE_TFTP_PUT(	\
 	"\n\t-p\tPut file." \
 	) \
 	USAGE_TFTP_BS( \
@@ -2788,9 +2788,9 @@
 	""
 
 #ifdef CONFIG_FEATURE_MOUNT_FORCE
-  #define USAGE_MOUNT_FORCE(a) a
+#  define USAGE_MOUNT_FORCE(a) a
 #else
-  #define USAGE_MOUNT_FORCE(a)
+#  define USAGE_MOUNT_FORCE(a)
 #endif
 #define umount_trivial_usage \
 	"[flags] FILESYSTEM|DIRECTORY"
@@ -2988,9 +2988,9 @@
 	"/bin/login\n"
 
 #define who_trivial_usage \
-        " "
+	" "
 #define who_full_usage \
-        "Prints the current user names and related information"
+	"Prints the current user names and related information"
 
 #define whoami_trivial_usage \
 	""
