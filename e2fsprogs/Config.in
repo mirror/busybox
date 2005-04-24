@@ -1,0 +1,20 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Linux Ext2 FS Progs"
+
+config CONFIG_CHATTR
+	bool "chattr"
+	default n
+	help
+	  chattr changes the file attributes on a second extended file system.
+
+config CONFIG_LSATTR
+	bool "lsattr"
+	default n
+	help
+	  lsattr lists the file attributes on a second extended file system.
+
+endmenu
