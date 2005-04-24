@@ -36,8 +36,9 @@
 #include "busybox.h"
 
 /* vars to control behavior */
-static int follow_links = 0;
-static int terse = 0;
+#define OPT_TERSE 2
+#define OPT_DEREFERNCE 4
+static long flags;
 
 static char const *file_type(struct stat const *st)
 {
@@ -425,7 +426,7 @@ static int do_statfs(char const *filename, char const *format)
 
 #ifdef CONFIG_FEATURE_STAT_FORMAT
 	if (format == NULL)
-		format = (terse
+		format = (flags & OPT_TERSE
 			? "%n %i %l %t %s %S %b %f %a %c %d\n"
 			: "  File: \"%n\"\n"
 			  "    ID: %-8i Namelen: %-7l Type: %T\n"
@@ -435,7 +436,7 @@ static int do_statfs(char const *filename, char const *format)
 	print_it(format, filename, print_statfs, &statfsbuf);
 #else
 
-	format = (terse
+	format = (flags & OPT_TERSE
 		? "%s %Lx %lu "
 		: "  File: \"%s\"\n"
 		  "    ID: %-8Lx Namelen: %-7lu ");
@@ -444,12 +445,12 @@ static int do_statfs(char const *filename, char const *format)
 	       statfsbuf.f_fsid,
 	       statfsbuf.f_namelen);
 
-	if (terse)
+	if (flags & OPT_TERSE)
 		printf("%lx ", (unsigned long int) (statfsbuf.f_type));
 	else
 		printf("Type: %s\n", human_fstype(statfsbuf.f_type));
 
-	format = (terse
+	format = (flags & OPT_TERSE
 		? "%lu %lu %ld %ld %ld %ld %ld\n"
 		: "Block size: %-10lu Fundamental block size: %lu\n"
 		  "Blocks: Total: %-10ld Free: %-10ld Available: %ld\n"
@@ -472,14 +473,14 @@ static int do_stat(char const *filename, char const *format)
 {
 	struct stat statbuf;
 
-	if ((follow_links ? stat : lstat) (filename, &statbuf) != 0) {
+	if ((flags & OPT_DEREFERNCE ? stat : lstat) (filename, &statbuf) != 0) {
 		bb_perror_msg("cannot stat '%s'", filename);
 		return 0;
 	}
 
 #ifdef CONFIG_FEATURE_STAT_FORMAT
 	if (format == NULL) {
-		if (terse) {
+		if (flags & OPT_TERSE) {
 			format = "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o\n";
 		} else {
 			if (S_ISBLK(statbuf.st_mode) || S_ISCHR(statbuf.st_mode)) {
@@ -502,7 +503,7 @@ static int do_stat(char const *filename, char const *format)
 	}
 	print_it(format, filename, print_stat, &statbuf);
 #else
-	if (terse) {
+	if (flags & OPT_TERSE) {
 		printf("%s %lu %lu %lx %lu %lu %lx %lu %lu %lx %lx %lu %lu %lu %lu\n",
 		       filename,
 		       (uintmax_t) (statbuf.st_size),
@@ -574,10 +575,9 @@ int stat_main(int argc, char **argv)
 	int i;
 	char *format = NULL;
 	int ok = 1;
-	long flags;
 	int (*statfunc)(char const *, char const *) = do_stat;
 
-	flags = bb_getopt_ulflags(argc, argv, "fLlt"
+	flags = bb_getopt_ulflags(argc, argv, "ftL"
 #ifdef CONFIG_FEATURE_STAT_FORMAT
 	"c:", &format
 #endif
@@ -585,10 +585,6 @@ int stat_main(int argc, char **argv)
 
 	if (flags & 1)                /* -f */
 		statfunc = do_statfs;
-	if (flags & 2 || flags & 4)   /* -L, -l */
-		follow_links = 1;
-	if (flags & 8)                /* -t */
-		terse = 1;
 	if (argc == optind)           /* files */
 		bb_show_usage();
 
