@@ -78,84 +78,53 @@ static char const *human_time(time_t t)
  */
 static char const *human_fstype(long f_type)
 {
-#define S_MAGIC_AFFS 0xADFF
-#define S_MAGIC_DEVPTS 0x1CD1
-#define S_MAGIC_EXT 0x137D
-#define S_MAGIC_EXT2_OLD 0xEF51
-#define S_MAGIC_EXT2 0xEF53
-#define S_MAGIC_JFS 0x3153464a
-#define S_MAGIC_XFS 0x58465342
-#define S_MAGIC_HPFS 0xF995E849
-#define S_MAGIC_ISOFS 0x9660
-#define S_MAGIC_ISOFS_WIN 0x4000
-#define S_MAGIC_ISOFS_R_WIN 0x4004
-#define S_MAGIC_MINIX 0x137F
-#define S_MAGIC_MINIX_30 0x138F
-#define S_MAGIC_MINIX_V2 0x2468
-#define S_MAGIC_MINIX_V2_30 0x2478
-#define S_MAGIC_MSDOS 0x4d44
-#define S_MAGIC_FAT 0x4006
-#define S_MAGIC_NCP 0x564c
-#define S_MAGIC_NFS 0x6969
-#define S_MAGIC_PROC 0x9fa0
-#define S_MAGIC_SMB 0x517B
-#define S_MAGIC_XENIX 0x012FF7B4
-#define S_MAGIC_SYSV4 0x012FF7B5
-#define S_MAGIC_SYSV2 0x012FF7B6
-#define S_MAGIC_COH 0x012FF7B7
-#define S_MAGIC_UFS 0x00011954
-#define S_MAGIC_XIAFS 0x012FD16D
-#define S_MAGIC_NTFS 0x5346544e
-#define S_MAGIC_TMPFS 0x1021994
-#define S_MAGIC_REISERFS 0x52654973
-#define S_MAGIC_CRAMFS 0x28cd3d45
-#define S_MAGIC_ROMFS 0x7275
-#define S_MAGIC_RAMFS 0x858458f6
-#define S_MAGIC_SQUASHFS 0x73717368
-#define S_MAGIC_SYSFS 0x62656572
-	switch (f_type) {
-		case S_MAGIC_AFFS:        return "affs";
-		case S_MAGIC_DEVPTS:      return "devpts";
-		case S_MAGIC_EXT:         return "ext";
-		case S_MAGIC_EXT2_OLD:    return "ext2";
-		case S_MAGIC_EXT2:        return "ext2/ext3";
-		case S_MAGIC_JFS:         return "jfs";
-		case S_MAGIC_XFS:         return "xfs";
-		case S_MAGIC_HPFS:        return "hpfs";
-		case S_MAGIC_ISOFS:       return "isofs";
-		case S_MAGIC_ISOFS_WIN:   return "isofs";
-		case S_MAGIC_ISOFS_R_WIN: return "isofs";
-		case S_MAGIC_MINIX:       return "minix";
-		case S_MAGIC_MINIX_30:    return "minix (30 char.)";
-		case S_MAGIC_MINIX_V2:    return "minix v2";
-		case S_MAGIC_MINIX_V2_30: return "minix v2 (30 char.)";
-		case S_MAGIC_MSDOS:       return "msdos";
-		case S_MAGIC_FAT:         return "fat";
-		case S_MAGIC_NCP:         return "novell";
-		case S_MAGIC_NFS:         return "nfs";
-		case S_MAGIC_PROC:        return "proc";
-		case S_MAGIC_SMB:         return "smb";
-		case S_MAGIC_XENIX:       return "xenix";
-		case S_MAGIC_SYSV4:       return "sysv4";
-		case S_MAGIC_SYSV2:       return "sysv2";
-		case S_MAGIC_COH:         return "coh";
-		case S_MAGIC_UFS:         return "ufs";
-		case S_MAGIC_XIAFS:       return "xia";
-		case S_MAGIC_NTFS:        return "ntfs";
-		case S_MAGIC_TMPFS:       return "tmpfs";
-		case S_MAGIC_REISERFS:    return "reiserfs";
-		case S_MAGIC_CRAMFS:      return "cramfs";
-		case S_MAGIC_ROMFS:       return "romfs";
-		case S_MAGIC_RAMFS:       return "ramfs";
-		case S_MAGIC_SQUASHFS:    return "squashfs";
-		case S_MAGIC_SYSFS:       return "sysfs";
-		default: {
-			static char buf[sizeof("UNKNOWN (0x%lx)") - 3
-			                + (sizeof(f_type) * CHAR_BIT + 3) / 4];
-			sprintf(buf, "UNKNOWN (0x%lx)", f_type);
-			return buf;
-		}
-	}
+	int i;
+	static struct types {
+		long type;
+		char *fs;
+	} humantypes[] = {
+		{ 0xADFF,     "affs" },
+		{ 0x1Cd1,     "devpts" },
+		{ 0x137D,     "ext" },
+		{ 0xEF51,     "ext2" },
+		{ 0xEF53,     "ext2/ext3" },
+		{ 0x3153464a, "jfs" },
+		{ 0x58465342, "xfs" },
+		{ 0xF995E849, "hpfs" },
+		{ 0x9660,     "isofs" },
+		{ 0x4000,     "isofs" },
+		{ 0x4004,     "isofs" },
+		{ 0x137F,     "minix" },
+		{ 0x138F,     "minix (30 char.)" },
+		{ 0x2468,     "minix v2" },
+		{ 0x2478,     "minix v2 (30 char.)" },
+		{ 0x4d44,     "msdos" },
+		{ 0x4006,     "fat" },
+		{ 0x564c,     "novell" },
+		{ 0x6969,     "nfs" },
+		{ 0x9fa0,     "proc" },
+		{ 0x517B,     "smb" },
+		{ 0x012FF7B4, "xenix" },
+		{ 0x012FF7B5, "sysv4" },
+		{ 0x012FF7B6, "sysv2" },
+		{ 0x012FF7B7, "coh" },
+		{ 0x00011954, "ufs" },
+		{ 0x012FD16D, "xia" },
+		{ 0x5346544e, "ntfs" },
+		{ 0x1021994,  "tmpfs" },
+		{ 0x52654973, "reiserfs" },
+		{ 0x28cd3d45, "cramfs" },
+		{ 0x7275,     "romfs" },
+		{ 0x858458f6, "romfs" },
+		{ 0x73717368, "squashfs" },
+		{ 0x62656572, "sysfs" },
+		{ 0, "UNKNOWN" },
+		{ 0, NULL }
+	};
+	for (i=0; humantypes[i].type; ++i)
+		if (humantypes[i].type == f_type)
+			return humantypes[i].fs;
+	return humantypes[i].fs;
 }
 
 #ifdef CONFIG_FEATURE_STAT_FORMAT
