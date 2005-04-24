@@ -60,8 +60,8 @@ Index: include/applets.h
  	APPLET_NOUSAGE("egrep", grep_main, _BB_DIR_BIN, _BB_SUID_NEVER)
  #endif
 --- /dev/null	2005-04-24 01:00:01.350003056 -0400
-+++ editors/ed.c	2005-04-24 01:15:09.000000000 -0400
-@@ -0,0 +1,1447 @@
++++ ed.c	2005-04-24 01:38:51.000000000 -0400
+@@ -0,0 +1,1425 @@
 +/*
 + * Copyright (c) 2002 by David I. Bell
 + * Permission is granted to use, distribute, or modify this source,
@@ -80,49 +80,36 @@ Index: include/applets.h
 +#include <ctype.h>
 +#include <sys/param.h>
 +#include <malloc.h>
-+//#include "sash.h"
++#include "busybox.h"
 +
 +#define	USERSIZE	1024	/* max line length typed in by user */
 +#define	INITBUF_SIZE	1024	/* initial buffer size */
 +
 +typedef	int	BOOL;
-+
-+#define	FALSE	((BOOL) 0)
-+#define	TRUE	((BOOL) 1)
-+
-+#define	isBlank(ch)	(((ch) == ' ') || ((ch) == '\t'))
-+#define	isDecimal(ch)	(((ch) >= '0') && ((ch) <= '9'))
-+
-+#define	STDOUT		1
-+
 +typedef	int	NUM;
 +typedef	int	LEN;
 +
-+typedef	struct	LINE	LINE;
-+
-+struct	LINE
-+{
-+	LINE *	next;
-+	LINE *	prev;
++typedef struct LINE LINE;
++struct LINE {
++	LINE *next;
++	LINE *prev;
 +	LEN	len;
-+	char	data[1];
++	char data[1];
 +};
 +
++static LINE lines;
++static LINE *curLine;
++static NUM curNum;
++static NUM lastNum;
++static NUM marks[26];
++static BOOL dirty;
++static char *fileName;
++static char searchString[USERSIZE];
 +
-+static	LINE	lines;
-+static	LINE *	curLine;
-+static	NUM	curNum;
-+static	NUM	lastNum;
-+static	NUM	marks[26];
-+static	BOOL	dirty;
-+static	char *	fileName;
-+static	char	searchString[USERSIZE];
-+
-+static	char *	bufBase;
-+static	char *	bufPtr;
-+static	LEN	bufUsed;
-+static	LEN	bufSize;
-+
++static char *bufBase;
++static char *bufPtr;
++static LEN bufUsed;
++static LEN bufSize;
 +
 +static	void	doCommands(void);
 +static	void	subCommand(const char * cmd, NUM num1, NUM num2);
@@ -139,33 +126,25 @@ Index: include/applets.h
 +static	NUM	searchLines(const char * str, NUM num1, NUM num2);
 +static	LINE *	findLine(NUM num);
 +
-+static	LEN	findString
-+	(const LINE * lp, const char * str, LEN len, LEN offset);
++static LEN findString(const LINE * lp, const char * str, LEN len, LEN offset);
 +
-+
-+void
-+ed_main(int argc, const char ** argv)
++int ed_main(int argc, char **argv)
 +{
 +	if (!initEdit())
-+		return;
++		return EXIT_FAILURE;
 +
-+	if (argc > 1)
-+	{
++	if (argc > 1) {
 +		fileName = strdup(argv[1]);
 +
-+		if (fileName == NULL)
-+		{
-+			fprintf(stderr, "No memory\n");
++		if (fileName == NULL) {
++			bb_error_msg("No memory");
 +			termEdit();
-+
-+			return;
++			return EXIT_SUCCESS;
 +		}
 +
-+		if (!readLines(fileName, 1))
-+		{
++		if (!readLines(fileName, 1)) {
 +			termEdit();
-+
-+			return;
++			return EXIT_SUCCESS;
 +		}
 +
 +		if (lastNum)
@@ -177,14 +156,13 @@ Index: include/applets.h
 +	doCommands();
 +
 +	termEdit();
++	return EXIT_SUCCESS;
 +}
-+
 +
 +/*
 + * Read commands until we are told to stop.
 + */
-+static void
-+doCommands(void)
++static void doCommands(void)
 +{
 +	const char *	cp;
 +	char *		endbuf;
@@ -213,7 +191,7 @@ Index: include/applets.h
 +
 +		if (*endbuf != '\n')
 +		{
-+			fprintf(stderr, "Command line too long\n");
++			bb_error_msg("Command line too long");
 +
 +			do
 +			{
@@ -224,14 +202,14 @@ Index: include/applets.h
 +			continue;
 +		}
 +
-+		while ((endbuf > buf) && isBlank(endbuf[-1]))
++		while ((endbuf > buf) && isblank(endbuf[-1]))
 +			endbuf--;
 +
 +		*endbuf = '\0';
 +
 +		cp = buf;
 +
-+		while (isBlank(*cp))
++		while (isblank(*cp))
 +			cp++;
 +
 +		have1 = FALSE;
@@ -246,7 +224,7 @@ Index: include/applets.h
 +		if (!getNum(&cp, &have1, &num1))
 +			continue;
 +
-+		while (isBlank(*cp))
++		while (isblank(*cp))
 +			cp++;
 +
 +		if (*cp == ',')
@@ -288,13 +266,13 @@ Index: include/applets.h
 +				break;
 +
 +			case 'f':
-+				if (*cp && !isBlank(*cp))
++				if (*cp && !isblank(*cp))
 +				{
-+					fprintf(stderr, "Bad file command\n");
++					bb_error_msg("Bad file command");
 +					break;
 +				}
 +
-+				while (isBlank(*cp))
++				while (isblank(*cp))
 +					cp++;
 +
 +				if (*cp == '\0')
@@ -311,7 +289,7 @@ Index: include/applets.h
 +
 +				if (newname == NULL)
 +				{
-+					fprintf(stderr, "No memory for file name\n");
++					bb_error_msg("No memory for file name");
 +					break;
 +				}
 +
@@ -326,12 +304,12 @@ Index: include/applets.h
 +				break;
 +
 +			case 'k':
-+				while (isBlank(*cp))
++				while (isblank(*cp))
 +					cp++;
 +
 +				if ((*cp < 'a') || (*cp > 'a') || cp[1])
 +				{
-+					fprintf(stderr, "Bad mark name\n");
++					bb_error_msg("Bad mark name");
 +					break;
 +				}
 +
@@ -347,12 +325,12 @@ Index: include/applets.h
 +				break;
 +
 +			case 'q':
-+				while (isBlank(*cp))
++				while (isblank(*cp))
 +					cp++;
 +
 +				if (have1 || *cp)
 +				{
-+					fprintf(stderr, "Bad quit command\n");
++					bb_error_msg("Bad quit command");
 +					break;
 +				}
 +
@@ -366,7 +344,7 @@ Index: include/applets.h
 +				fgets(buf, sizeof(buf), stdin);
 +				cp = buf;
 +
-+				while (isBlank(*cp))
++				while (isblank(*cp))
 +					cp++;
 +
 +				if ((*cp == 'y') || (*cp == 'Y'))
@@ -375,18 +353,18 @@ Index: include/applets.h
 +				break;
 +
 +			case 'r':
-+				if (*cp && !isBlank(*cp))
++				if (*cp && !isblank(*cp))
 +				{
-+					fprintf(stderr, "Bad read command\n");
++					bb_error_msg("Bad read command");
 +					break;
 +				}
 +
-+				while (isBlank(*cp))
++				while (isblank(*cp))
 +					cp++;
 +
 +				if (*cp == '\0')
 +				{
-+					fprintf(stderr, "No file name\n");
++					bb_error_msg("No file name");
 +					break;
 +				}
 +
@@ -406,13 +384,13 @@ Index: include/applets.h
 +				break;
 +
 +			case 'w':
-+				if (*cp && !isBlank(*cp))
++				if (*cp && !isblank(*cp))
 +				{
-+					fprintf(stderr, "Bad write command\n");
++					bb_error_msg("Bad write command");
 +					break;
 +				}
 +
-+				while (isBlank(*cp))
++				while (isblank(*cp))
 +					cp++;
 +
 +				if (!have1) {
@@ -425,7 +403,7 @@ Index: include/applets.h
 +
 +				if (cp == NULL)
 +				{
-+					fprintf(stderr, "No file name specified\n");
++					bb_error_msg("No file name specified");
 +					break;
 +				}
 +	
@@ -450,7 +428,7 @@ Index: include/applets.h
 +			case '.':
 +				if (have1)
 +				{
-+					fprintf(stderr, "No arguments allowed\n");
++					bb_error_msg("No arguments allowed");
 +					break;
 +				}
 +
@@ -480,7 +458,7 @@ Index: include/applets.h
 +				break;
 +
 +			default:
-+				fprintf(stderr, "Unimplemented command\n");
++				bb_error_msg("Unimplemented command");
 +				break;
 +		}
 +	}
@@ -512,7 +490,7 @@ Index: include/applets.h
 +
 +	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 +	{
-+		fprintf(stderr, "Bad line range for substitute\n");
++		bb_error_msg("Bad line range for substitute");
 +
 +		return;
 +	}
@@ -528,9 +506,9 @@ Index: include/applets.h
 +	strcpy(buf, cmd);
 +	cp = buf;
 +
-+	if (isBlank(*cp) || (*cp == '\0'))
++	if (isblank(*cp) || (*cp == '\0'))
 +	{
-+		fprintf(stderr, "Bad delimiter for substitute\n");
++		bb_error_msg("Bad delimiter for substitute");
 +
 +		return;
 +	}
@@ -542,7 +520,7 @@ Index: include/applets.h
 +
 +	if (cp == NULL)
 +	{
-+		fprintf(stderr, "Missing 2nd delimiter for substitute\n");
++		bb_error_msg("Missing 2nd delimiter for substitute");
 +
 +		return;
 +	}
@@ -568,7 +546,7 @@ Index: include/applets.h
 +			break;
 +
 +		default:
-+			fprintf(stderr, "Unknown option for substitute\n");
++			bb_error_msg("Unknown option for substitute");
 +
 +			return;
 +	}
@@ -577,7 +555,7 @@ Index: include/applets.h
 +	{
 +		if (searchString[0] == '\0')
 +		{
-+			fprintf(stderr, "No previous search string\n");
++			bb_error_msg("No previous search string");
 +
 +			return;
 +		}
@@ -665,7 +643,7 @@ Index: include/applets.h
 +
 +		if (nlp == NULL)
 +		{
-+			fprintf(stderr, "Cannot get memory for line\n");
++			bb_error_msg("Cannot get memory for line");
 +
 +			return;
 +		}
@@ -707,7 +685,7 @@ Index: include/applets.h
 +	}
 +
 +	if (!didSub)
-+		fprintf(stderr, "No substitutions found for \"%s\"\n", oldStr);
++		bb_error_msg("No substitutions found for \"%s\"", oldStr);
 +}
 +
 +
@@ -774,7 +752,7 @@ Index: include/applets.h
 +
 +		if (buf[len - 1] != '\n')
 +		{
-+			fprintf(stderr, "Line too long\n");
++			bb_error_msg("Line too long");
 +
 +			do
 +			{
@@ -817,7 +795,7 @@ Index: include/applets.h
 +
 +	while (TRUE)
 +	{
-+		while (isBlank(*cp))
++		while (isblank(*cp))
 +			cp++;
 +
 +		switch (*cp)
@@ -839,7 +817,7 @@ Index: include/applets.h
 +
 +				if ((*cp < 'a') || (*cp > 'z'))
 +				{
-+					fprintf(stderr, "Bad mark name\n");
++					bb_error_msg("Bad mark name");
 +
 +					return FALSE;
 +				}
@@ -869,7 +847,7 @@ Index: include/applets.h
 +				break;
 +
 +			default:
-+				if (!isDecimal(*cp))
++				if (!isdigit(*cp))
 +				{
 +					*retcp = cp;
 +					*retHaveNum = haveNum;
@@ -880,7 +858,7 @@ Index: include/applets.h
 +
 +				num = 0;
 +
-+				while (isDecimal(*cp))
++				while (isdigit(*cp))
 +					num = num * 10 + *cp++ - '0';
 +
 +				haveNum = TRUE;
@@ -889,7 +867,7 @@ Index: include/applets.h
 +
 +		value += num * sign;
 +
-+		while (isBlank(*cp))
++		while (isblank(*cp))
 +			cp++;
 +
 +		switch (*cp)
@@ -928,7 +906,7 @@ Index: include/applets.h
 +
 +	if (bufBase == NULL)
 +	{
-+		fprintf(stderr, "No memory for buffer\n");
++		bb_error_msg("No memory for buffer");
 +
 +		return FALSE;
 +	}
@@ -999,7 +977,7 @@ Index: include/applets.h
 +
 +	if ((num < 1) || (num > lastNum + 1))
 +	{
-+		fprintf(stderr, "Bad line for read\n");
++		bb_error_msg("Bad line for read");
 +
 +		return FALSE;
 +	}
@@ -1059,7 +1037,7 @@ Index: include/applets.h
 +
 +			if (cp == NULL)
 +			{
-+				fprintf(stderr, "No memory for buffer\n");
++				bb_error_msg("No memory for buffer");
 +				close(fd);
 +
 +				return FALSE;
@@ -1121,7 +1099,7 @@ Index: include/applets.h
 +
 +	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 +	{
-+		fprintf(stderr, "Bad line range for write\n");
++		bb_error_msg("Bad line range for write");
 +
 +		return FALSE;
 +	}
@@ -1193,7 +1171,7 @@ Index: include/applets.h
 +
 +	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 +	{
-+		fprintf(stderr, "Bad line range for print\n");
++		bb_error_msg("Bad line range for print");
 +
 +		return FALSE;
 +	}
@@ -1207,7 +1185,7 @@ Index: include/applets.h
 +	{
 +		if (!expandFlag)
 +		{
-+			write(STDOUT, lp->data, lp->len);
++			write(1, lp->data, lp->len);
 +			setCurNum(num1++);
 +			lp = lp->next;
 +
@@ -1274,7 +1252,7 @@ Index: include/applets.h
 +
 +	if ((num < 1) || (num > lastNum + 1))
 +	{
-+		fprintf(stderr, "Inserting at bad line number\n");
++		bb_error_msg("Inserting at bad line number");
 +
 +		return FALSE;
 +	}
@@ -1283,7 +1261,7 @@ Index: include/applets.h
 +
 +	if (newLp == NULL) 
 +	{
-+		fprintf(stderr, "Failed to allocate memory for line\n");
++		bb_error_msg("Failed to allocate memory for line");
 +
 +		return FALSE;
 +	}
@@ -1330,7 +1308,7 @@ Index: include/applets.h
 +
 +	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 +	{
-+		fprintf(stderr, "Bad line numbers for delete\n");
++		bb_error_msg("Bad line numbers for delete");
 +
 +		return FALSE;
 +	}
@@ -1391,7 +1369,7 @@ Index: include/applets.h
 +
 +	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 +	{
-+		fprintf(stderr, "Bad line numbers for search\n");
++		bb_error_msg("Bad line numbers for search");
 +
 +		return 0;
 +	}
@@ -1400,7 +1378,7 @@ Index: include/applets.h
 +	{
 +		if (searchString[0] == '\0')
 +		{
-+			fprintf(stderr, "No previous search string\n");
++			bb_error_msg("No previous search string");
 +
 +			return 0;
 +		}
@@ -1427,7 +1405,7 @@ Index: include/applets.h
 +		lp = lp->next;
 +	}
 +
-+	fprintf(stderr, "Cannot find string \"%s\"\n", str);
++	bb_error_msg("Cannot find string \"%s\"", str);
 +
 +	return 0;
 +}
@@ -1444,7 +1422,7 @@ Index: include/applets.h
 +
 +	if ((num < 1) || (num > lastNum))
 +	{
-+		fprintf(stderr, "Line number %d does not exist\n", num);
++		bb_error_msg("Line number %d does not exist", num);
 +
 +		return NULL;
 +	}
