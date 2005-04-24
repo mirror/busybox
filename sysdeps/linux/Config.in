@@ -221,6 +221,7 @@ source archival/Config.in
 source coreutils/Config.in
 source console-tools/Config.in
 source debianutils/Config.in
+source e2fsprogs/Config.in
 source editors/Config.in
 source findutils/Config.in
 source init/Config.in
@@ -291,4 +292,3 @@ endchoice
 
 
 endmenu
-

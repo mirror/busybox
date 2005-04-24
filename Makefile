@@ -42,7 +42,7 @@ include $(top_builddir)/Rules.mak
 DIRS:=applets archival archival/libunarchive coreutils console-tools \
 	debianutils editors findutils init miscutils modutils networking \
 	networking/libiproute networking/udhcp procps loginutils shell \
-	sysklogd util-linux libpwdgrp coreutils/libcoreutils libbb
+	sysklogd util-linux e2fsprogs libpwdgrp coreutils/libcoreutils libbb
 
 SRC_DIRS:=$(patsubst %,$(top_srcdir)/%,$(DIRS))
 

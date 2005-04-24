@@ -1,0 +1,4 @@
+Simply copy the 'e2p' dir from e2fsprogs/lib/ and then delete the extra 
+files we don't need (Makefile.in, e2p.pc.in, etc...).  Remove all of the 
+_LARGEFILE* define's from the few source files that use it since we'll be 
+appending it ourselves to CFLAGS when we compile.  All done ! :)
