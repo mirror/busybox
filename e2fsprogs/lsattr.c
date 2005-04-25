@@ -101,29 +101,31 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 {
 	STRUCT_STAT	st;
 	char *path;
-	int dir_len = strlen(dir_name);
+	int i = strlen(dir_name);
 
-	path = malloc(dir_len + strlen(de->d_name) + 2);
-
-	if (dir_len && dir_name[dir_len-1] == '/')
-		sprintf(path, "%s%s", dir_name, de->d_name);
+	if (i && dir_name[i-1] == '/')
+		i = asprintf(&path, "%s%s", dir_name, de->d_name);
 	else
-		sprintf(path, "%s/%s", dir_name, de->d_name);
+		i = asprintf(&path, "%s/%s", dir_name, de->d_name);
+	if (i == -1)
+		bb_perror_msg_and_die("asprintf failed");
+
 	if (LSTAT(path, &st) == -1)
 		bb_perror_msg(path);
 	else {
 		if (de->d_name[0] != '.' || (flags & OPT_ALL)) {
 			list_attributes(path);
 			if (S_ISDIR(st.st_mode) && (flags & OPT_RECUR) &&
-			    strcmp(de->d_name, ".") &&
-			    strcmp(de->d_name, "..")) {
+			    strcmp(de->d_name, ".") && strcmp(de->d_name, "..")) {
 				printf("\n%s:\n", path);
 				iterate_on_dir(path, lsattr_dir_proc, NULL);
 				printf("\n");
 			}
 		}
 	}
+
 	free(path);
+
 	return 0;
 }
 

@@ -167,11 +167,9 @@ static int chattr_dir_proc(const char *dir_name, struct dirent *de,
 	/*if (strcmp(de->d_name, ".") && strcmp(de->d_name, "..")) {*/
 	if (de->d_name[0] == '.' && (de->d_name[1] == '\0' || \
 	   (de->d_name[1] == '.' && de->d_name[2] == '\0'))) {
-
-		char *path = malloc(strlen(dir_name) + 1 + strlen(de->d_name) + 1);
-		if (!path)
-			bb_error_msg_and_die("Couldn't allocate path variable in chattr_dir_proc");
-		sprintf(path, "%s/%s", dir_name, de->d_name);
+		char *path;
+		if (asprintf(&path, "%s/%s", dir_name, de->d_name) == -1)
+			bb_error_msg_and_die("asprintf failed");
 		change_attributes(path);
 		free(path);
 	}
