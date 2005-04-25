@@ -169,7 +169,7 @@ static int chattr_dir_proc(const char *dir_name, struct dirent *de,
 	   (de->d_name[1] == '.' && de->d_name[2] == '\0'))) {
 		char *path;
 		if (asprintf(&path, "%s/%s", dir_name, de->d_name) == -1)
-			bb_error_msg_and_die("asprintf failed");
+			bb_error_msg_and_die(bb_msg_memory_exhausted);
 		change_attributes(path);
 		free(path);
 	}

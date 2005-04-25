@@ -108,7 +108,7 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 	else
 		i = asprintf(&path, "%s/%s", dir_name, de->d_name);
 	if (i == -1)
-		bb_perror_msg_and_die("asprintf failed");
+		bb_error_msg_and_die(bb_msg_memory_exhausted);
 
 	if (LSTAT(path, &st) == -1)
 		bb_perror_msg(path);
