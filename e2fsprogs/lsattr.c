@@ -39,99 +39,87 @@
 #define EXT2FS_ATTR(x)
 #endif
 
-static int all;
-static int dirs_opt;
-static unsigned pf_options;
-static int recursive;
-static int verbose;
-static int generation_opt;
+#define OPT_RECUR 1
+#define OPT_ALL 2
+#define OPT_DIRS_OPT 4
+#define OPT_PF_LONG 8
+#define OPT_GENERATION 16
+static int flags;
 
-#ifdef _LFS64_LARGEFILE
-#define LSTAT		lstat64
-#define STRUCT_STAT	struct stat64
+#ifdef CONFIG_LFS
+# define LSTAT lstat64
+# define STRUCT_STAT struct stat64
 #else
-#define LSTAT		lstat
-#define STRUCT_STAT	struct stat
+# define LSTAT lstat
+# define STRUCT_STAT struct stat
 #endif
 
-#if 0
-static void usage(void)
+static void list_attributes(const char *name)
 {
-	fprintf(stderr, _("Usage: %s [-RVadlv] [files...]\n"), program_name);
-	exit(1);
-}
-#endif
-
-static void list_attributes (const char * name)
-{
-	unsigned long flags;
+	unsigned long fsflags;
 	unsigned long generation;
 
-	if (fgetflags (name, &flags) == -1) {
-		com_err (program_name, errno, _("While reading flags on %s"),
-			 name);
+	if (fgetflags(name, &fsflags) == -1) {
+		bb_perror_msg("While reading flags on %s", name);
 		return;
 	}
-	if (generation_opt) {
-		if (fgetversion (name, &generation) == -1) {
-			com_err (program_name, errno,
-				 _("While reading version on %s"),
-				 name);
+	if (flags & OPT_GENERATION) {
+		if (fgetversion(name, &generation) == -1) {
+			bb_perror_msg("While reading version on %s", name);
 			return;
 		}
-		printf ("%5lu ", generation);
+		printf("%5lu ", generation);
 	}
-	if (pf_options & PFOPT_LONG) {
+	if (flags & OPT_PF_LONG) {
 		printf("%-28s ", name);
-		print_flags(stdout, flags, pf_options);
+		print_flags(stdout, fsflags, PFOPT_LONG);
 		fputc('\n', stdout);
 	} else {
-		print_flags(stdout, flags, pf_options);
+		print_flags(stdout, fsflags, 0);
 		printf(" %s\n", name);
 	}
 }
 
-static int lsattr_dir_proc (const char *, struct dirent *, void *);
+static int lsattr_dir_proc(const char *, struct dirent *, void *);
 
-static void lsattr_args (const char * name)
+static void lsattr_args(const char *name)
 {
 	STRUCT_STAT	st;
 
-	if (LSTAT (name, &st) == -1)
-		com_err (program_name, errno, _("while trying to stat %s"),
-			 name);
+	if (LSTAT(name, &st) == -1)
+		bb_perror_msg("while trying to stat %s", name);
 	else {
-		if (S_ISDIR(st.st_mode) && !dirs_opt)
-			iterate_on_dir (name, lsattr_dir_proc, NULL);
+		if (S_ISDIR(st.st_mode) && !(flags & OPT_DIRS_OPT))
+			iterate_on_dir(name, lsattr_dir_proc, NULL);
 		else
-			list_attributes (name);
+			list_attributes(name);
 	}
 }
 
-static int lsattr_dir_proc (const char * dir_name, struct dirent * de, 
-			    void * private EXT2FS_ATTR((unused)))
+static int lsattr_dir_proc(const char *dir_name, struct dirent *de, 
+                           void *private EXT2FS_ATTR((unused)))
 {
 	STRUCT_STAT	st;
 	char *path;
 	int dir_len = strlen(dir_name);
 
-	path = malloc(dir_len + strlen (de->d_name) + 2);
+	path = malloc(dir_len + strlen(de->d_name) + 2);
 
 	if (dir_len && dir_name[dir_len-1] == '/')
-		sprintf (path, "%s%s", dir_name, de->d_name);
+		sprintf(path, "%s%s", dir_name, de->d_name);
 	else
-		sprintf (path, "%s/%s", dir_name, de->d_name);
-	if (LSTAT (path, &st) == -1)
-		perror (path);
+		sprintf(path, "%s/%s", dir_name, de->d_name);
+	if (LSTAT(path, &st) == -1)
+		bb_perror_msg(path);
 	else {
-		if (de->d_name[0] != '.' || all) {
-			list_attributes (path);
-			if (S_ISDIR(st.st_mode) && recursive &&
+		if (de->d_name[0] != '.' || (flags & OPT_ALL)) {
+			list_attributes(path);
+			if (S_ISDIR(st.st_mode) && (flags & OPT_RECUR) &&
 			    strcmp(de->d_name, ".") &&
 			    strcmp(de->d_name, "..")) {
-				printf ("\n%s:\n", path);
-				iterate_on_dir (path, lsattr_dir_proc, NULL);
-				printf ("\n");
+				printf("\n%s:\n", path);
+				iterate_on_dir(path, lsattr_dir_proc, NULL);
+				printf("\n");
 			}
 		}
 	}
@@ -139,55 +127,17 @@ static int lsattr_dir_proc (const char * dir_name, struct dirent * de,
 	return 0;
 }
 
-int lsattr_main (int argc, char ** argv)
+int lsattr_main(int argc, char **argv)
 {
-	int c;
 	int i;
 
-#ifdef ENABLE_NLS
-	setlocale(LC_MESSAGES, "");
-	setlocale(LC_CTYPE, "");
-	bindtextdomain(NLS_CAT_NAME, LOCALEDIR);
-	textdomain(NLS_CAT_NAME);
-#endif
-#if 0
-	if (argc && *argv)
-		program_name = *argv;
-#endif
-	while ((c = getopt (argc, argv, "Radlv")) != EOF)
-		switch (c)
-		{
-			case 'R':
-				recursive = 1;
-				break;
-			case 'V':
-				verbose = 1;
-				break;
-			case 'a':
-				all = 1;
-				break;
-			case 'd':
-				dirs_opt = 1;
-				break;
-			case 'l':
-				pf_options = PFOPT_LONG;
-				break;
-			case 'v':
-				generation_opt = 1;
-				break;
-			default:
-				usage();
-		}
+	flags = bb_getopt_ulflags(argc, argv, "Radlv");
 
-#if 0
-	if (verbose)
-		fprintf (stderr, "lsattr %s (%s)\n",
-			 E2FSPROGS_VERSION, E2FSPROGS_DATE);
-#endif
 	if (optind > argc - 1)
-		lsattr_args (".");
+		lsattr_args(".");
 	else
 		for (i = optind; i < argc; i++)
-			lsattr_args (argv[i]);
-	exit(0);
+			lsattr_args(argv[i]);
+
+	return EXIT_SUCCESS;
 }
