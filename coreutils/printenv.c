@@ -49,5 +49,5 @@ int printenv_main(int argc, char **argv)
 			}
 	}
 
-	bb_fflush_stdout_and_exit();
+	bb_fflush_stdout_and_exit(0);
 }
