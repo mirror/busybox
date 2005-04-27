@@ -39,7 +39,7 @@ static size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size2)
 	int status;
 	size_t xread, wrote, total, size = size2;
 
-	if ((dst_fd < 0) || (src_fd < 0)) {
+	if (src_fd < 0) {
 		return -1;
 	}
 
@@ -56,11 +56,16 @@ static size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size2)
 		while (total < size)
 		{
 			xread = BUFSIZ;
-			if (size < (wrote + BUFSIZ))
-				xread = size - wrote;
+			if (size < (total + BUFSIZ))
+				xread = size - total;
 			xread = bb_full_read(src_fd, buffer, xread);
 			if (xread > 0) {
-				wrote = bb_full_write(dst_fd, buffer, xread);
+				if (dst_fd < 0) {
+					/* A -1 dst_fd means we need to fake it... */
+					wrote = xread;
+				} else {
+					wrote = bb_full_write(dst_fd, buffer, xread);
+				}
 				if (wrote < xread) {
 					bb_perror_msg(bb_msg_write_error);
 					break;
@@ -78,8 +83,8 @@ static size_t bb_full_fd_action(int src_fd, int dst_fd, const size_t size2)
 		RELEASE_CONFIG_BUFFER(buffer);
 	}
 
-	if (status == 0 || wrote)
-		return wrote;
+	if (status == 0 || total)
+		return total;
 	/* Some sortof error occured */
 	return -1;
 }
