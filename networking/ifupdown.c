@@ -150,9 +150,7 @@ struct interfaces_file_t
 
 static char no_act = 0;
 static char verbose = 0;
-#ifndef __USE_GNU
-static char **environ = NULL;
-#endif
+static char **__myenviron = NULL;
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 
@@ -963,16 +961,16 @@ static void set_environ(struct interface_defn_t *iface, char *mode)
 	const int n_env_entries = iface->n_options + 5;
 	char **ppch;
 
-	if (environ != NULL) {
-		for (ppch = environ; *ppch; ppch++) {
+	if (__myenviron != NULL) {
+		for (ppch = __myenviron; *ppch; ppch++) {
 			free(*ppch);
 			*ppch = NULL;
 		}
-		free(environ);
-		environ = NULL;
+		free(__myenviron);
+		__myenviron = NULL;
 	}
-	environ = xmalloc(sizeof(char *) * (n_env_entries + 1 /* for final NULL */ ));
-	environend = environ;
+	__myenviron = xmalloc(sizeof(char *) * (n_env_entries + 1 /* for final NULL */ ));
+	environend = __myenviron;
 	*environend = NULL;
 
 	for (i = 0; i < iface->n_options; i++) {
@@ -1012,7 +1010,7 @@ static int doit(char *str)
 			case -1:		/* failure */
 				return 0;
 			case 0:		/* child */
-				execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, environ);
+				execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, __myenviron);
 				exit(127);
 		}
 		waitpid(child, &status, 0);
