@@ -113,6 +113,13 @@ config CONFIG_FEATURE_SUID_CONFIG
 
 	  cp = --- # disable applet cp for everyone
 
+	  The file has to be owned by user root, group root and has to be
+	  writeable only by root:
+	  	(chown 0.0 /etc/busybox.conf; chmod 600 /etc/busybox.conf)
+	  The busybox executable has to be owned by user root, group
+	  root and has to be setuid root for this to work:
+	  	(chown 0.0 /bin/busybox; chmod 4755 /bin/busybox)
+
 	  Robert 'sandman' Griebl has more information here:
 	  <url: http://www.softforge.de/bb/suid.html >.
 
