@@ -1447,7 +1447,9 @@
 	"Options:\n" \
 	"\t-s\tmake symbolic links instead of hard links\n" \
 	"\t-f\tremove existing destination files\n" \
-	"\t-n\tno dereference symlinks - treat like normal file"
+	"\t-n\tno dereference symlinks - treat like normal file\n" \
+	"\t-b\tmake a backup of the target (if exists) before link operation\n" \
+	"\t-S suffix\tuse suffix instead of ~ when making backup files"
 #define ln_example_usage \
 	"$ ln -s BusyBox /tmp/ls\n" \
 	"$ ls -l /tmp/ls\n" \
