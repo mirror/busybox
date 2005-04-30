@@ -692,6 +692,9 @@
 #ifdef CONFIG_GUNZIP
 	APPLET(zcat, gunzip_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_ZCIP
+	APPLET(zcip, zcip_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 
 #if !defined(PROTOTYPES) && !defined(MAKE_USAGE)
 	{ 0,NULL,0 }

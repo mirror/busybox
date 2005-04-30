@@ -3038,4 +3038,14 @@
 #define zcat_full_usage \
 	"Uncompress to stdout."
 
+#define zcip_trivial_usage \
+	"[OPTIONS] ifname script"
+#define zcip_full_usage \
+	"zcip manages a ZeroConf IPv4 link-local address.\n" \
+	"Options:\n" \
+	"\t-f              foreground mode\n" \
+	"\t-q              quit after address (no daemon)\n" \
+	"\t-r 169.254.x.x  request this address first\n" \
+	"\t-v              verbose; show version\n"
+
 #endif /* __BB_USAGE_H__ */

@@ -637,5 +637,16 @@ config CONFIG_FEATURE_WGET_IP6_LITERAL
 
 source networking/udhcp/Config.in
 
+config CONFIG_ZCIP
+	bool "zcip"
+	default n
+	help
+	  ZCIP provides ZeroConf IPv4 address selection, according to RFC 3927.
+	  It's a daemon that allocates and defends a dynamically assigned
+	  address on the 169.254/16 network, requiring no system administrator.
+
+	  See http://www.zeroconf.org for further details, and "zcip.script"
+	  in the busybox examples.
+
 endmenu
 
