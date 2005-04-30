@@ -49,34 +49,21 @@ static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
 
 static uint8_t *hash_file(const char *filename, uint8_t hash_algo)
 {
-	uint8_t *hash_value_bin;
-	uint8_t *hash_value = NULL;
-	uint8_t hash_length;
-	int src_fd;
-
-	if (strcmp(filename, "-") == 0) {
-		src_fd = STDIN_FILENO;
-	} else {
-		src_fd = open(filename, O_RDONLY);
-	}
-
-	if (hash_algo == HASH_MD5) {
-		hash_length = 16;
-	} else {
-		hash_length = 20;
-	}
-
-	hash_value_bin = xmalloc(hash_length);
-
-	if ((src_fd != -1) && (hash_fd(src_fd, -1, hash_algo, hash_value_bin) != -2)) {
-		hash_value = hash_bin_to_hex(hash_value_bin, hash_length);
-	} else {
+	int src_fd = strcmp(filename, "-") == 0 ? STDIN_FILENO :
+		open(filename, O_RDONLY);
+	if (src_fd == -1) {
 		bb_perror_msg("%s", filename);
+		return NULL;
+	} else {
+		uint8_t *hash_value;
+		RESERVE_CONFIG_UBUFFER(hash_value_bin, 20);
+		hash_value = hash_fd(src_fd, -1, hash_algo, hash_value_bin) != -2 ?
+			hash_bin_to_hex(hash_value_bin, hash_algo == HASH_MD5 ? 16 : 20) :
+			NULL;
+		RELEASE_CONFIG_BUFFER(hash_value_bin);
+		close(src_fd);
+		return hash_value;
 	}
-
-	close(src_fd);
-
-	return(hash_value);
 }
 
 /* This could become a common function for md5 as well, by using md5_stream */
