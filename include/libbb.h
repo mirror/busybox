@@ -43,7 +43,7 @@
 
 #include "config.h"
 #ifdef CONFIG_SELINUX
-#include <proc_secure.h>
+#include <selinux/selinux.h>  
 #endif
 
 #include "pwd_.h"
@@ -425,12 +425,11 @@ extern void change_identity ( const struct passwd *pw );
 extern const char *change_identity_e2str ( const struct passwd *pw );
 extern void run_shell ( const char *shell, int loginshell, const char *command, const char **additional_args
 #ifdef CONFIG_SELINUX
-	, security_id_t sid
+	, security_context_t sid
 #endif
 );
 extern int run_parts(char **args, const unsigned char test_mode, char **env);
 extern int restricted_shell ( const char *shell );
-extern void xsetenv ( const char *key, const char *value );
 extern void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw );
 extern int correct_password ( const struct passwd *pw );
 extern char *pw_encrypt(const char *clear, const char *salt);
@@ -461,7 +460,7 @@ typedef struct {
 
 extern procps_status_t * procps_scan(int save_user_arg0
 #ifdef CONFIG_SELINUX
-	, int use_selinux, security_id_t *sid
+	, int use_selinux, security_context_t *sid
 #endif
 );
 extern unsigned short compare_string_array(const char *string_array[], const char *key);

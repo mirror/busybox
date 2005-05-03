@@ -42,7 +42,7 @@
 #define DEFAULT_LOGIN_PATH      "/bin:/usr/bin"
 #define DEFAULT_ROOT_LOGIN_PATH "/usr/sbin:/bin:/usr/bin:/sbin"
 
-void xsetenv ( const char *key, const char *value )
+static void xsetenv ( const char *key, const char *value )
 {
 	    if ( setenv ( key, value, 1 ))
 				bb_error_msg_and_die (bb_msg_memory_exhausted);
