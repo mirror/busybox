@@ -29,5 +29,7 @@ extern int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirs
 extern int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 			 int numeric, unsigned int netmask);
 
+#ifdef CONFIG_FEATURE_IPV6
 extern int INET6_resolve(const char *name, struct sockaddr_in6 *sin6);
 extern int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6, int numeric);
+#endif
