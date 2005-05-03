@@ -888,6 +888,20 @@ static int sockets_open(int family)
 	return sfd;
 }
 
+#ifdef CONFIG_FEATURE_CLEAN_UP
+static void sockets_close(void)
+{
+	struct aftype **aft;
+	for (aft = aftypes; *aft != NULL; aft++) {
+		struct aftype *af = *aft;
+		if( af->fd != -1 ) {
+			close(af->fd);
+			af->fd = -1;
+		}
+	}
+}
+#endif
+
 /* like strcmp(), but knows about numbers */
 static int nstrcmp(const char *a, const char *b)
 {
@@ -1223,17 +1237,13 @@ static int if_fetch(struct interface *ife)
 	}
 #endif
 
+#ifdef SIOCGIFMAP
 	strcpy(ifr.ifr_name, ifname);
-	if (ioctl(skfd, SIOCGIFMAP, &ifr) < 0)
-		memset(&ife->map, 0, sizeof(struct ifmap));
-	else
-		memcpy(&ife->map, &ifr.ifr_map, sizeof(struct ifmap));
-
-	strcpy(ifr.ifr_name, ifname);
-	if (ioctl(skfd, SIOCGIFMAP, &ifr) < 0)
-		memset(&ife->map, 0, sizeof(struct ifmap));
-	else
+	if (ioctl(skfd, SIOCGIFMAP, &ifr) == 0)
 		ife->map = ifr.ifr_map;
+	else
+#endif
+		memset(&ife->map, 0, sizeof(struct ifmap));
 
 #ifdef HAVE_TXQUEUELEN
 	strcpy(ifr.ifr_name, ifname);
@@ -2078,6 +2088,8 @@ int display_interfaces(char *ifname)
 
 	/* Do we have to show the current setup? */
 	status = if_print(ifname);
-	close(skfd);
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	sockets_close();
+#endif
 	exit(status < 0);
 }
