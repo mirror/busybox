@@ -64,9 +64,7 @@ enum {
 #include <sys/sysmacros.h>     /* major() and minor() */
 #include "busybox.h"
 #ifdef CONFIG_SELINUX
-#include <fs_secure.h>
-#include <flask_util.h>
-#include <ss.h>
+#include <selinux/selinux.h>   /* for is_selinux_enabled() */
 #endif
 
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
@@ -182,7 +180,7 @@ struct dnode {			/* the basic node */
 	char *fullname;		/* the dir entry name */
 	struct stat dstat;	/* the file stat info */
 #ifdef CONFIG_SELINUX
-	security_id_t sid;
+	security_context_t sid;
 #endif
 	struct dnode *next;	/* point at the next node */
 };
@@ -195,7 +193,7 @@ static int list_single(struct dnode *);
 static unsigned int all_fmt;
 
 #ifdef CONFIG_SELINUX
-static int is_flask_enabled_flag;
+static int selinux_enabled= 0;
 #endif
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
@@ -213,18 +211,19 @@ static struct dnode *my_stat(char *fullname, char *name)
 	struct stat dstat;
 	struct dnode *cur;
 #ifdef CONFIG_SELINUX
-	security_id_t sid;
+	security_context_t sid=NULL;
 #endif
 	int rc;
 
 #ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
 	if (all_fmt & FOLLOW_LINKS) {
 #ifdef CONFIG_SELINUX
-		if(is_flask_enabled_flag)
-			rc = stat_secure(fullname, &dstat, &sid);
-		else
+	        if (is_selinux_enabled())  {
+		  rc=0; /*  Set the number which means success before hand.  */
+		  rc = getfilecon(fullname,&sid);
+		}
 #endif
-			rc = stat(fullname, &dstat);
+		  rc = stat(fullname, &dstat);
 		if(rc)
 		{
 			bb_perror_msg("%s", fullname);
@@ -235,11 +234,12 @@ static struct dnode *my_stat(char *fullname, char *name)
 #endif
 	{
 #ifdef CONFIG_SELINUX
-		if(is_flask_enabled_flag)
-			rc = lstat_secure(fullname, &dstat, &sid);
-		else
+	        if  (is_selinux_enabled())  {
+		  rc=0; /*  Set the number which means success before hand.  */
+		  rc = lgetfilecon(fullname,&sid);
+		}
 #endif
-			rc = lstat(fullname, &dstat);
+		rc = lstat(fullname, &dstat);
 		if(rc)
 		{
 			bb_perror_msg("%s", fullname);
@@ -736,12 +736,16 @@ static int list_single(struct dnode *dn)
 #ifdef CONFIG_SELINUX
 		case LIST_CONTEXT:
 			{
-				char context[64];
-				int len = sizeof(context);
-				if(security_sid_to_context(dn->sid, context, &len))
-				{
-					strcpy(context, "unknown");
-					len = 7;
+				char context[80];
+				int len;
+			
+				if (dn->sid) {
+				  /*  I assume sid initilized with NULL  */
+				  len = strlen(dn->sid)+1;
+				  safe_strncpy(context, dn->sid, len);
+				  freecon(dn->sid);
+				}else {
+				  safe_strncpy(context, "unknown",8);
 				}
 				printf("%-32s ", context);
 				column += MAX(33, len);
@@ -961,10 +965,6 @@ extern int ls_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 	char *tabstops_str = NULL;
 	char *terminal_width_str = NULL;
-#endif
-
-#ifdef CONFIG_SELINUX
-	is_flask_enabled_flag = is_flask_enabled();
 #endif
 
 	all_fmt = LIST_SHORT | DISP_NORMAL | STYLE_AUTO

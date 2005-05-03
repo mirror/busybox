@@ -510,11 +510,7 @@ int top_main(int argc, char **argv)
 		/* read process IDs & status for all the processes */
 		procps_status_t * p;
 
-#ifdef CONFIG_SELINUX
-		while ((p = procps_scan(0, 0, NULL) ) != 0) {
-#else
 		while ((p = procps_scan(0)) != 0) {
-#endif
 			int n = ntop;
 
 			top = xrealloc(top, (++ntop)*sizeof(procps_status_t));

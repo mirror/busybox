@@ -47,8 +47,7 @@ DIRS:=applets archival archival/libunarchive coreutils console-tools \
 SRC_DIRS:=$(patsubst %,$(top_srcdir)/%,$(DIRS))
 
 ifeq ($(strip $(CONFIG_SELINUX)),y)
-CFLAGS += -I/usr/include/selinux
-LIBRARIES += -lsecure
+LIBRARIES += -lselinux
 endif
 
 CONFIG_CONFIG_IN = $(top_srcdir)/sysdeps/$(TARGET_OS)/Config.in

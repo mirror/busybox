@@ -17,10 +17,10 @@
 
 #include "busybox.h"
 #ifdef CONFIG_SELINUX
-#include <flask_util.h>
-#include <get_sid_list.h>
-#include <proc_secure.h>
-#include <fs_secure.h>
+#include <selinux/selinux.h>  /* for is_selinux_enabled()  */
+#include <selinux/get_context_list.h> /* for get_default_context() */
+#include <selinux/flask.h> /* for security class definitions  */
+#include <errno.h>
 #endif
 
 #ifdef CONFIG_FEATURE_U_W_TMP
@@ -79,8 +79,7 @@ extern int login_main(int argc, char **argv)
 	char *opt_host = 0;
 	int alarmstarted = 0;
 #ifdef CONFIG_SELINUX
-	int flask_enabled = is_flask_enabled();
-	security_id_t sid = 0, old_tty_sid, new_tty_sid;
+	security_context_t stat_sid = NULL, sid = NULL, old_tty_sid=NULL, new_tty_sid=NULL;
 #endif
 
 	username[0]=0;
@@ -225,41 +224,45 @@ auth_ok:
 #ifdef CONFIG_FEATURE_U_W_TMP
 	setutmp ( username, tty );
 #endif
-#ifdef CONFIG_SELINUX
-	if (flask_enabled)
-	{
-		struct stat st;
-
-		if (get_default_sid(username, 0, &sid))
-		{
-			fprintf(stderr, "Unable to get SID for %s\n", username);
-			exit(1);
-		}
-		if (stat_secure(tty, &st, &old_tty_sid))
-		{
-			fprintf(stderr, "stat_secure(%.100s) failed: %.100s\n", tty, strerror(errno));
-			return EXIT_FAILURE;
-		}
-		if (security_change_sid (sid, old_tty_sid, SECCLASS_CHR_FILE, &new_tty_sid) != 0)
-		{
-			fprintf(stderr, "security_change_sid(%.100s) failed: %.100s\n", tty, strerror(errno));
-			return EXIT_FAILURE;
-		}
-		if(chsid(tty, new_tty_sid) != 0)
-		{
-			fprintf(stderr, "chsid(%.100s, %d) failed: %.100s\n", tty, new_tty_sid, strerror(errno));
-			return EXIT_FAILURE;
-		}
-	}
-	else
-		sid = 0;
-#endif
 
 	if ( *tty != '/' )
 		snprintf ( full_tty, sizeof( full_tty ) - 1, "/dev/%s", tty);
 	else
 		safe_strncpy ( full_tty, tty, sizeof( full_tty ) - 1 );
 
+#ifdef CONFIG_SELINUX
+	if (is_selinux_enabled())
+	{
+		struct stat st;
+		int rc;
+
+		if (get_default_context(username, NULL, &sid))
+		{
+			fprintf(stderr, "Unable to get SID for %s\n", username);
+			exit(1);
+		}
+		rc = getfilecon(full_tty,&stat_sid);
+		freecon(stat_sid);
+		if ((rc<0) || (stat(full_tty, &st)<0))
+		{
+			fprintf(stderr, "stat_secure(%.100s) failed: %.100s\n", full_tty, strerror(errno));
+			return EXIT_FAILURE;
+		}
+		if (security_compute_relabel (sid, old_tty_sid, SECCLASS_CHR_FILE, &new_tty_sid) != 0)
+		{
+			fprintf(stderr, "security_change_sid(%.100s) failed: %.100s\n", full_tty, strerror(errno));
+			return EXIT_FAILURE;
+		}
+		if(setfilecon(full_tty, new_tty_sid) != 0)
+		{
+			fprintf(stderr, "chsid(%.100s, %s) failed: %.100s\n", full_tty, new_tty_sid, strerror(errno));
+			return EXIT_FAILURE;
+		}
+		freecon(sid);
+		freecon(old_tty_sid);
+		freecon(new_tty_sid);
+	}
+#endif
 	if ( !is_my_tty ( full_tty ))
 		syslog ( LOG_ERR, "unable to determine TTY name, got %s\n", full_tty );
 
@@ -279,11 +282,10 @@ auth_ok:
 
 	if ( pw-> pw_uid == 0 )
 		syslog ( LOG_INFO, "root login %s\n", fromhost );
-	run_shell ( tmp, 1, 0, 0
 #ifdef CONFIG_SELINUX
-	, sid
+	set_current_security_context(sid);
 #endif
-	 );	/* exec the shell finally. */
+	run_shell ( tmp, 1, 0, 0);	/* exec the shell finally. */
 
 	return EXIT_FAILURE;
 }

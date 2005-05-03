@@ -16,11 +16,7 @@
 
 #include "libbb.h"
 
-extern procps_status_t * procps_scan(int save_user_arg0
-#ifdef CONFIG_SELINUX
-	, int use_selinux , security_id_t *sid
-#endif
-	)
+extern procps_status_t * procps_scan(int save_user_arg0)
 {
 	static DIR *dir;
 	struct dirent *entry;
@@ -60,16 +56,9 @@ extern procps_status_t * procps_scan(int save_user_arg0
 		my_getpwuid(curstatus.user, sb.st_uid, sizeof(curstatus.user));
 
 		sprintf(status, "/proc/%d/stat", pid);
+
 		if((fp = fopen(status, "r")) == NULL)
 			continue;
-#ifdef CONFIG_SELINUX
-		if(use_selinux)
-		{
-			if(fstat_secure(fileno(fp), &sb, sid))
-				continue;
-		}
-		else
-#endif
 		name = fgets(buf, sizeof(buf), fp);
 		fclose(fp);
 		if(name == NULL)

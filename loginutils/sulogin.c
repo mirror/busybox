@@ -153,6 +153,12 @@ extern int sulogin_main(int argc, char **argv)
 	puts("Entering System Maintenance Mode\n");
 	fflush(stdout);
 	syslog(LOG_INFO, "System Maintenance Mode\n");
+
+#ifdef CONFIG_SELINUX
+	renew_current_security_context();
+#endif
+
 	run_shell(pwent.pw_shell, 1, 0, 0);
+
 	return (0);
 }

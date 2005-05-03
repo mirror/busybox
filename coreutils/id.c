@@ -32,8 +32,7 @@
 #include <sys/types.h>
 
 #ifdef CONFIG_SELINUX
-#include <proc_secure.h>
-#include <flask_util.h>
+#include <selinux/selinux.h>          /* for is_selinux_enabled() */
 #endif
 
 #define PRINT_REAL        1
@@ -61,9 +60,6 @@ extern int id_main(int argc, char **argv)
 	gid_t gid;
 	unsigned long flags;
 	short status;
-#ifdef CONFIG_SELINUX
-	int is_flask_enabled_flag = is_flask_enabled();
-#endif
 
 	bb_opt_complementaly = "u~g:g~u";
 	flags = bb_getopt_ulflags(argc, argv, "rnug");
@@ -109,17 +105,26 @@ extern int id_main(int argc, char **argv)
 	putchar(' ');
 	/* my_getgrgid doesn't exit on failure here */
 	status|=printf_full(gid, my_getgrgid(NULL, gid, 0), 'g');
+
 #ifdef CONFIG_SELINUX
-	if(is_flask_enabled_flag) {
-		security_id_t mysid = getsecsid();
-		char context[80];
-		int len = sizeof(context);
-		context[0] = '\0';
-		if(security_sid_to_context(mysid, context, &len))
-			strcpy(context, "unknown");
+	if ( is_selinux_enabled() ) {
+			security_context_t mysid;
+			char context[80];
+			int len = sizeof(context);
+
+			getcon(&mysid);
+			context[0] = '\0';
+			if (mysid) {
+					len = strlen(mysid)+1;
+					safe_strncpy(context, mysid, len);
+					freecon(mysid);
+			}else{
+					safe_strncpy(context, "unknown",8);
+			}
 		bb_printf(" context=%s", context);
 	}
 #endif
+
 	putchar('\n');
 	bb_fflush_stdout_and_exit(status);
 }
