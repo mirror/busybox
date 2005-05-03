@@ -164,10 +164,51 @@ extern int lsmod_main(int argc, char **argv)
 {
 	printf("Module                  Size  Used by");
 	check_tainted();
+#if defined(CONFIG_FEATURE_2_6_MODULES)
+	{
+	  FILE *file;
+	  char line[4096];
 
+	  file = fopen("/proc/modules", "r");
+
+	  if (!file) 
+	    bb_error_msg_and_die("Opening /proc/modules");
+
+	  while (fgets(line, sizeof(line), file)) {
+	    char *tok;
+	    
+	    tok = strtok(line, " \t");
+	    printf("%-19s", tok);
+	    tok = strtok(NULL, " \t\n");
+	    printf(" %8s", tok);
+	    tok = strtok(NULL, " \t\n");
+	    /* Null if no module unloading support. */
+	    if (tok) {
+	      printf("  %s", tok);
+	      tok = strtok(NULL, "\n");
+	      if (!tok)
+		tok = "";
+	      /* New-style has commas, or -.  If so,
+		 truncate (other fields might follow). */
+	      else if (strchr(tok, ',')) {
+		tok = strtok(tok, "\t ");
+		/* Strip trailing comma. */
+		if (tok[strlen(tok)-1] == ',')
+		  tok[strlen(tok)-1] = '\0';
+	      } else if (tok[0] == '-'
+			 && (tok[1] == '\0' || isspace(tok[1])))
+		tok = "";
+	      printf(" %s", tok);
+	    }
+	    printf("\n");
+	  }
+	  fclose(file);
+	}
+#else
 	if (bb_xprint_file_by_name("/proc/modules") < 0) {
 		return 0;
 	}
+#endif  /*  CONFIG_FEATURE_2_6_MODULES  */
 	return 1;
 }
 
