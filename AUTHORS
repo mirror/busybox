@@ -29,6 +29,9 @@ Edward Betts <edward@debian.org>
 John Beppu <beppu@codepoet.org>
     du, nslookup, sort
 
+David Brownell <dbrownell@users.sourceforge.net>
+    zcip
+
 Brian Candler <B.Candler@pobox.com>
     tiny-ls(ls)
 
