@@ -37,6 +37,14 @@
 
 static int daemonized;
 
+long uptime(void)
+{
+	struct sysinfo info;
+	sysinfo(&info);
+	return info.uptime;
+}
+
+
 /*
  * This function makes sure our first socket calls
  * aren't going to fd 1 (printf badness...) and are
