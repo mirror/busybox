@@ -164,7 +164,7 @@ extern int lsmod_main(int argc, char **argv)
 {
 	printf("Module                  Size  Used by");
 	check_tainted();
-#if defined(CONFIG_FEATURE_2_6_MODULES)
+#if defined(CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT)
 	{
 	  FILE *file;
 	  char line[4096];
@@ -204,6 +204,7 @@ extern int lsmod_main(int argc, char **argv)
 	  }
 	  fclose(file);
 	}
+	return 0;  /* Success  */
 #else
 	if (bb_xprint_file_by_name("/proc/modules") < 0) {
 		return 0;
