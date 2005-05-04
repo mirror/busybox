@@ -39,7 +39,6 @@ enum syslog_levels {
 #include <syslog.h>
 #endif
 
-long uptime(void);
 void background(const char *pidfile);
 void start_log_and_pid(const char *client_server, const char *pidfile);
 void background(const char *pidfile);

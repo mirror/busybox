@@ -79,7 +79,7 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 
 	/* wait arp reply, and check it */
 	tm.tv_usec = 0;
-	prevTime = uptime();
+	prevTime = time(NULL);
 	while (timeout > 0) {
 		FD_ZERO(&fdset);
 		FD_SET(s, &fdset);
@@ -97,8 +97,8 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 				break;
 			}
 		}
-		timeout -= uptime() - prevTime;
-		prevTime = uptime();
+		timeout -= time(NULL) - prevTime;
+		prevTime = time(NULL);
 	}
 	close(s);
 	DEBUG(LOG_INFO, "%salid arp replies for this address", rv ? "No v" : "V");	
