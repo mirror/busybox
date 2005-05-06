@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -42,9 +43,14 @@
 
 #define GAPING_SECURITY_HOLE
 
+static void timeout(int signum)
+{
+	bb_error_msg_and_die("Timed out");
+}
+
 int nc_main(int argc, char **argv)
 {
-	int do_listen = 0, lport = 0, delay = 0, tmpfd, opt, sfd, x;
+	int do_listen = 0, lport = 0, delay = 0, wsecs = 0, tmpfd, opt, sfd, x;
 	char buf[BUFSIZ];
 #ifdef GAPING_SECURITY_HOLE
 	char * pr00gie = NULL;
@@ -55,7 +61,7 @@ int nc_main(int argc, char **argv)
 
 	fd_set readfds, testfds;
 
-	while ((opt = getopt(argc, argv, "lp:i:e:")) > 0) {
+	while ((opt = getopt(argc, argv, "lp:i:e:w:")) > 0) {
 		switch (opt) {
 			case 'l':
 				do_listen++;
@@ -71,6 +77,9 @@ int nc_main(int argc, char **argv)
 				pr00gie = optarg;
 				break;
 #endif
+			case 'w':
+				wsecs = atoi(optarg);
+				break;
 			default:
 				bb_show_usage();
 		}
@@ -93,6 +102,11 @@ int nc_main(int argc, char **argv)
 	if (setsockopt (sfd, SOL_SOCKET, SO_REUSEADDR, &x, sizeof (x)) == -1)
 		bb_perror_msg_and_die ("reuseaddr failed");
 	address.sin_family = AF_INET;
+
+	if (wsecs) {
+		signal(SIGALRM, timeout);
+		alarm(wsecs);
+	}
 
 	if (lport != 0) {
 		memset(&address.sin_addr, 0, sizeof(address.sin_addr));
@@ -121,6 +135,11 @@ int nc_main(int argc, char **argv)
 
 		if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
 			bb_perror_msg_and_die("connect");
+	}
+
+	if (wsecs) {
+		alarm(0);
+		signal(SIGALRM, SIG_DFL);
 	}
 
 #ifdef GAPING_SECURITY_HOLE
