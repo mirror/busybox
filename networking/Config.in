@@ -422,6 +422,14 @@ config CONFIG_NC
 	  A simple Unix utility which reads and writes data across network
 	  connections.
 
+config CONFIG_NC_GAPING_SECURITY_HOLE
+	bool "gaping security hole"
+	default n
+	depends on CONFIG_NC
+	help
+	  Add support for executing a program after making or receiving a
+	  successful connection (-e option).
+
 config CONFIG_NETSTAT
 	bool "netstat"
 	default n

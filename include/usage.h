@@ -1824,6 +1824,11 @@
 	" or\n" \
 	"$ nameif -c /etc/my_mactab_file\n" \
 
+#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
+#  define USAGE_NC_EXEC(a) a
+#else
+#  define USAGE_NC_EXEC(a)
+#endif
 #define nc_trivial_usage \
 	"[OPTIONS] [IP] [port]"
 #define nc_full_usage \
@@ -1832,8 +1837,10 @@
 	"\t-l\t\tlisten mode, for inbound connects\n" \
 	"\t-p PORT\t\tlocal port number\n" \
 	"\t-i SECS\t\tdelay interval for lines sent\n" \
-	"\t-w SECS\t\ttimeout for connects and final net reads\n" \
-	"\t-e PROG\t\tprogram to exec after connect (dangerous!)"
+	USAGE_NC_EXEC( \
+	"\t-e PROG\t\tprogram to exec after connect (dangerous!)\n" \
+	) \
+	"\t-w SECS\t\ttimeout for connects and final net reads"
 #define nc_example_usage \
 	"$ nc foobar.somedomain.com 25\n" \
 	"220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600\n" \

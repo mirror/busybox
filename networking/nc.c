@@ -4,7 +4,7 @@
 
     0.0.1   6K      It works.
     0.0.2   5K      Smaller and you can also check the exit condition if you wish.
-    0.0.3	    Uses select()
+    0.0.3           Uses select()
 
     19980918 Busy Boxed! Dave Cinege
     19990512 Uses Select. Charles P. Wright
@@ -23,7 +23,6 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-
 */
 
 #include <stdio.h>
@@ -41,8 +40,6 @@
 #include <sys/ioctl.h>
 #include "busybox.h"
 
-#define GAPING_SECURITY_HOLE
-
 static void timeout(int signum)
 {
 	bb_error_msg_and_die("Timed out");
@@ -52,8 +49,8 @@ int nc_main(int argc, char **argv)
 {
 	int do_listen = 0, lport = 0, delay = 0, wsecs = 0, tmpfd, opt, sfd, x;
 	char buf[BUFSIZ];
-#ifdef GAPING_SECURITY_HOLE
-	char * pr00gie = NULL;
+#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
+	char *pr00gie = NULL;
 #endif
 
 	struct sockaddr_in address;
@@ -72,7 +69,7 @@ int nc_main(int argc, char **argv)
 			case 'i':
 				delay = atoi(optarg);
 				break;
-#ifdef GAPING_SECURITY_HOLE
+#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
 			case 'e':
 				pr00gie = optarg;
 				break;
@@ -85,13 +82,12 @@ int nc_main(int argc, char **argv)
 		}
 	}
 
-#ifdef GAPING_SECURITY_HOLE
+#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
 	if (pr00gie) {
 		/* won't need stdin */
 		close (STDIN_FILENO);      
 	}
-#endif /* GAPING_SECURITY_HOLE */
-
+#endif /* CONFIG_NC_GAPING_SECURITY_HOLE */
 
 	if ((do_listen && optind != argc) || (!do_listen && optind + 2 != argc))
 		bb_show_usage();
@@ -142,19 +138,18 @@ int nc_main(int argc, char **argv)
 		signal(SIGALRM, SIG_DFL);
 	}
 
-#ifdef GAPING_SECURITY_HOLE
+#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
 	/* -e given? */
 	if (pr00gie) {
 		dup2(sfd, 0);
 		close(sfd);
-		dup2 (0, 1);
-		dup2 (0, 2);
-		execl (pr00gie, pr00gie, NULL);
+		dup2(0, 1);
+		dup2(0, 2);
+		execl(pr00gie, pr00gie, NULL);
 		/* Don't print stuff or it will go over the wire.... */
 		_exit(-1);
 	}
-#endif /* GAPING_SECURITY_HOLE */
-
+#endif /* CONFIG_NC_GAPING_SECURITY_HOLE */
 
 	FD_ZERO(&readfds);
 	FD_SET(sfd, &readfds);
