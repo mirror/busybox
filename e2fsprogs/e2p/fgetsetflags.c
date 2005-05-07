@@ -1,5 +1,6 @@
 /*
- * fgetversion.c	- Get a file version on an ext2 file system
+ * fgetflags.c		- Get a file flags on an ext2 file system
+ * fsetflags.c		- Set a file flags on an ext2 file system
  *
  * Copyright (C) 1993, 1994  Remy Card <card@masi.ibp.fr>
  *                           Laboratoire MASI, Institut Blaise Pascal
@@ -20,8 +21,12 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <sys/types.h>
+#include <sys/stat.h>
+#if HAVE_EXT2_IOCTLS
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#endif
 
 #include "e2p.h"
 
@@ -31,32 +36,34 @@
 #define OPEN_FLAGS (O_RDONLY|O_NONBLOCK)
 #endif
 
-int fgetversion (const char * name, unsigned long * version)
+int fgetsetflags (const char * name, unsigned long * get_flags, unsigned long set_flags)
 {
 #if HAVE_EXT2_IOCTLS
-#if !APPLE_DARWIN
-	int fd, r, ver, save_errno = 0;
+	struct stat buf;
+	int fd, r, f, save_errno = 0;
 
+	if (!stat(name, &buf) &&
+	    !S_ISREG(buf.st_mode) && !S_ISDIR(buf.st_mode)) {
+		goto notsupp;
+	}
 	fd = open (name, OPEN_FLAGS);
 	if (fd == -1)
 		return -1;
-	r = ioctl (fd, EXT2_IOC_GETVERSION, &ver);
+	if (!get_flags) {
+		f = (int) set_flags;
+		r = ioctl (fd, EXT2_IOC_SETFLAGS, &f);
+	} else {
+		r = ioctl (fd, EXT2_IOC_GETFLAGS, &f);
+		*get_flags = f;
+	}
 	if (r == -1)
 		save_errno = errno;
-	*version = ver;
 	close (fd);
 	if (save_errno)
 		errno = save_errno;
 	return r;
-#else
-   int ver=-1, err;
-   err = syscall(SYS_fsctl, name, EXT2_IOC_GETVERSION, &ver, 0);
-   *version = ver;
-   return(err);
-#endif
-#else /* ! HAVE_EXT2_IOCTLS */
-	extern int errno;
+#endif /* HAVE_EXT2_IOCTLS */
+notsupp:
 	errno = EOPNOTSUPP;
 	return -1;
-#endif /* ! HAVE_EXT2_IOCTLS */
 }

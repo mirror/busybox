@@ -13,11 +13,18 @@
 
 #define PFOPT_LONG  1 /* Must be 1 for compatibility with `int long_format'. */
 
+/*int fgetversion (const char * name, unsigned long * version);*/
+/*int fsetversion (const char * name, unsigned long version);*/
+int fgetsetversion(const char * name, unsigned long * get_version, unsigned long set_version);
+#define fgetversion(name, version) fgetsetversion(name, version, 0)
+#define fsetversion(name, version) fgetsetversion(name, NULL, version)
 
-int fgetflags (const char * name, unsigned long * flags);
-int fgetversion (const char * name, unsigned long * version);
-int fsetflags (const char * name, unsigned long flags);
-int fsetversion (const char * name, unsigned long version);
+/*int fgetflags (const char * name, unsigned long * flags);*/
+/*int fsetflags (const char * name, unsigned long flags);*/
+int fgetsetflags(const char * name, unsigned long * get_flags, unsigned long set_flags);
+#define fgetflags(name, flags) fgetsetflags(name, flags, 0)
+#define fsetflags(name, flags) fgetsetflags(name, NULL, flags)
+
 int getflags (int fd, unsigned long * flags);
 int getversion (int fd, unsigned long * version);
 int iterate_on_dir (const char * dir_name,
