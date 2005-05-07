@@ -36,8 +36,7 @@ $(E2FSPROGS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
 E2P_SRC_LIST := \
-	fgetflags.c fsetflags.c \
-	fgetversion.c fsetversion.c \
+	fgetsetflags.c fgetsetversion.c \
 	pf.c iod.c
 E2P_SRC := $(patsubst %, $(E2FSPROGS_DIR)/e2p/%, $(E2P_SRC_LIST))
 $(E2FSPROGS_DIR)e2p.o: $(E2P_SRC)
