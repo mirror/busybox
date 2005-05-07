@@ -34,9 +34,9 @@
 #include "e2p/e2p.h"
 
 #ifdef __GNUC__
-#define EXT2FS_ATTR(x) __attribute__(x)
+# define EXT2FS_ATTR(x) __attribute__(x)
 #else
-#define EXT2FS_ATTR(x)
+# define EXT2FS_ATTR(x)
 #endif
 
 #define OPT_RECUR 1
@@ -59,25 +59,26 @@ static void list_attributes(const char *name)
 	unsigned long fsflags;
 	unsigned long generation;
 
-	if (fgetflags(name, &fsflags) == -1) {
-		bb_perror_msg("While reading flags on %s", name);
-		return;
-	}
+	if (fgetflags(name, &fsflags) == -1)
+		goto read_err;
 	if (flags & OPT_GENERATION) {
-		if (fgetversion(name, &generation) == -1) {
-			bb_perror_msg("While reading version on %s", name);
-			return;
-		}
+		if (fgetversion(name, &generation) == -1)
+			goto read_err;
 		printf("%5lu ", generation);
 	}
+
 	if (flags & OPT_PF_LONG) {
 		printf("%-28s ", name);
 		print_flags(stdout, fsflags, PFOPT_LONG);
-		fputc('\n', stdout);
+		printf("\n");
 	} else {
 		print_flags(stdout, fsflags, 0);
 		printf(" %s\n", name);
 	}
+
+	return;
+read_err:
+	bb_perror_msg("reading %s", name);
 }
 
 static int lsattr_dir_proc(const char *, struct dirent *, void *);
@@ -86,9 +87,9 @@ static void lsattr_args(const char *name)
 {
 	STRUCT_STAT	st;
 
-	if (LSTAT(name, &st) == -1)
-		bb_perror_msg("while trying to stat %s", name);
-	else {
+	if (LSTAT(name, &st) == -1) {
+		bb_perror_msg("stating %s", name);
+	} else {
 		if (S_ISDIR(st.st_mode) && !(flags & OPT_DIRS_OPT))
 			iterate_on_dir(name, lsattr_dir_proc, NULL);
 		else
@@ -101,14 +102,8 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 {
 	STRUCT_STAT	st;
 	char *path;
-	int i = strlen(dir_name);
 
-	if (i && dir_name[i-1] == '/')
-		i = asprintf(&path, "%s%s", dir_name, de->d_name);
-	else
-		i = asprintf(&path, "%s/%s", dir_name, de->d_name);
-	if (i == -1)
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
+	path = concat_path_file(dir_name, de->d_name);
 
 	if (LSTAT(path, &st) == -1)
 		bb_perror_msg(path);
@@ -116,7 +111,8 @@ static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 		if (de->d_name[0] != '.' || (flags & OPT_ALL)) {
 			list_attributes(path);
 			if (S_ISDIR(st.st_mode) && (flags & OPT_RECUR) &&
-			    strcmp(de->d_name, ".") && strcmp(de->d_name, "..")) {
+			   (de->d_name[0] != '.' && (de->d_name[1] != '\0' ||
+			   (de->d_name[1] != '.' && de->d_name[2] != '\0')))) {
 				printf("\n%s:\n", path);
 				iterate_on_dir(path, lsattr_dir_proc, NULL);
 				printf("\n");
