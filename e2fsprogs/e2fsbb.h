@@ -25,12 +25,13 @@
 typedef long errcode_t;
 #define ERRCODE_RANGE 8
 #define error_message(code) strerror((int) (code & ((1<<ERRCODE_RANGE)-1)))
+#define initialize_ext2_error_table(x)
 
 /* NLS crap */
 #define _(x) x
+#define N_(x) x
 
 /* misc crap */
-#define fputs(msg, fd) bb_error_msg(msg)
 #define fatal_error(msg, err) bb_error_msg_and_die(msg)
 #define usage() bb_show_usage()
 #define perror(msg) bb_perror_msg(msg)
