@@ -62,8 +62,7 @@ static int status
 static void tail_xprint_header(const char *fmt, const char *filename)
 {
 	/* If we get an output error, there is really no sense in continuing. */
-	if (printf(fmt, filename) < 0 ||
-			fflush(stdout) < 0) {
+	if (dprintf(STDOUT_FILENO, fmt, filename) < 0) {
 		bb_perror_nomsg_and_die();
 	}
 }
