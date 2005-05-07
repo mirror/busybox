@@ -3722,27 +3722,13 @@ tryexec(char *cmd, char **argv, char **envp)
 {
 	int repeated = 0;
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
-	int flg_bb = 0;
-	char *name = cmd;
-
-	if(strchr(name, '/') == NULL && find_applet_by_name(name) != NULL) {
-		flg_bb = 1;
-	}
-	if(flg_bb) {
-		char **ap;
-		char **new;
-
-		*argv = name;
-		if(strcmp(name, "busybox")) {
-			for (ap = argv; *ap; ap++);
-			ap = new = xmalloc((ap - argv + 2) * sizeof(char *));
-			*ap++ = cmd = "/bin/busybox";
-			while ((*ap++ = *argv++));
-			argv = new;
-			repeated++;
-		} else {
-			cmd = "/bin/busybox";
-		}
+	if(find_applet_by_name(cmd) != NULL) {
+		/* re-exec ourselves with the new arguments */
+		execve("/proc/self/exe",argv,envp);
+		/* If proc isn't mounted, try hardcoded path to busybox binary*/
+		execve("/bin/busybox",argv,envp);
+		/* If they called chroot or otherwise made the binary no longer
+		 * executable, fall through */
 	}
 #endif
 
