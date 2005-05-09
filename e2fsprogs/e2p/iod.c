@@ -15,9 +15,7 @@
  */
 
 #include "e2p.h"
-#if HAVE_UNISTD_H
 #include <unistd.h>
-#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,27 +25,10 @@ int iterate_on_dir (const char * dir_name,
 {
 	DIR * dir;
 	struct dirent *de, *dep;
-	int	max_len = -1, len;
+	int	max_len, len;
 
-#if HAVE_PATHCONF && defined(_PC_NAME_MAX) 
-	max_len = pathconf(dir_name, _PC_NAME_MAX);
-#endif
-	if (max_len == -1) {
-#ifdef _POSIX_NAME_MAX
-		max_len = _POSIX_NAME_MAX;
-#else
-#ifdef NAME_MAX
-		max_len = NAME_MAX;
-#else
-		max_len = 256;
-#endif /* NAME_MAX */
-#endif /* _POSIX_NAME_MAX */
-	}
-	max_len += sizeof(struct dirent);
-
-	de = malloc(max_len+1);
-	if (!de)
-		return -1;
+	max_len = PATH_MAX + sizeof(struct dirent);
+	de = (struct dirent *)xmalloc(max_len+1);
 	memset(de, 0, max_len+1);
 
 	dir = opendir (dir_name);
@@ -57,12 +38,10 @@ int iterate_on_dir (const char * dir_name,
 	}
 	while ((dep = readdir (dir))) {
 		len = sizeof(struct dirent);
-#ifdef HAVE_RECLEN_DIRENT
 		if (len < dep->d_reclen)
 			len = dep->d_reclen;
 		if (len > max_len)
 			len = max_len;
-#endif
 		memcpy(de, dep, len);
 		(*func) (dir_name, de, private);
 	}
