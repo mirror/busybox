@@ -56,19 +56,21 @@ static void header_verbose_list_ar(const file_header_t *file_header)
 #define AR_OPT_PRESERVE_DATE	0x08
 #define AR_OPT_VERBOSE			0x10
 #define AR_OPT_CREATE			0x20
+#define AR_OPT_INSERT			0x40
 
 extern int ar_main(int argc, char **argv)
 {
 	archive_handle_t *archive_handle;
 	unsigned long opt;
+	char *msg_unsupported_err = "Archive %s not supported.  Install binutils 'ar'.";
 	char magic[8];
 
 	archive_handle = init_handle();
 
 	bb_opt_complementaly = "p~tx:t~px:x~pt";
-	opt = bb_getopt_ulflags(argc, argv, "ptxovc");
+	opt = bb_getopt_ulflags(argc, argv, "ptxovcr");
 
-	if ((opt & 0x80000000UL) || (optind == argc)) {
+	if ((opt & 0x80000000UL) || (opt == 0) || (optind == argc)) {
 		bb_show_usage();
 	}
 
@@ -88,7 +90,10 @@ extern int ar_main(int argc, char **argv)
 		archive_handle->action_header = header_verbose_list_ar;
 	}
 	if (opt & AR_OPT_CREATE) {
-		bb_error_msg_and_die("Archive creation not supported.  Install binutils 'ar'.");
+		bb_error_msg_and_die(msg_unsupported_err, "creation");
+	}
+	if (opt & AR_OPT_INSERT) {
+		bb_error_msg_and_die(msg_unsupported_err, "insertion");
 	}
 
 	archive_handle->src_fd = bb_xopen(argv[optind++], O_RDONLY);
