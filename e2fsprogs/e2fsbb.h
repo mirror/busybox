@@ -30,6 +30,7 @@ typedef long errcode_t;
 /* NLS crap */
 #define _(x) x
 #define N_(x) x
+#define P_(singular, plural, n) ((n) == 1 ? (singular) : (plural))
 
 /* misc crap */
 #define fatal_error(msg, err) bb_error_msg_and_die(msg)
