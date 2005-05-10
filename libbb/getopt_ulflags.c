@@ -28,6 +28,7 @@
 
 /*                  Documentation !
 
+unsigned long
 bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 
           The command line options must be declared in const char
@@ -35,24 +36,25 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 
           flags = bb_getopt_ulflags(argc, argv, "rnug");
 
-          If one of the given options is found a flag value is added to
-          the unsigned long returned by bb_getopt_ulflags.
+          If one of the given options is found, a flag value is added to
+          the return value (an unsigned long).
 
-          The value of this flag is given by the position of the char in
-          const char *applet_opts so for example in this case:
+          The flag value is determined by the position of the char in
+          applet_opts string.  For example, in the above case:
 
           flags = bb_getopt_ulflags(argc, argv, "rnug");
 
-          "r" will add 1
-          "n" will add 2
-          "u  will add 4
-          "g" will add 8
+          "r" will add 1    (bit 1 : 0x01)
+          "n" will add 2    (bit 2 : 0x02)
+          "u  will add 4    (bit 3 : 0x03)
+          "g" will add 8    (bit 4 : 0x04)
 
-           and so on.
+           and so on.  You can also look at the return value as a bit 
+           field and each option sets one of bits.
 
-           If an argument is required by one of the options add a ":"
-           after the char in const char *applet_opts and provide a pointer
-           where the arg could be stored if it is found, for example:
+   ":"     If one of the options requires an argument, then add a ":"
+           after the char in applet_opts and provide a pointer to store
+           the argument.  For example:
 
            char *pointer_to_arg_for_a;
            char *pointer_to_arg_for_b;
@@ -63,20 +65,43 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
                             &pointer_to_arg_for_a, &pointer_to_arg_for_b,
                             &pointer_to_arg_for_c, &pointer_to_arg_for_d);
 
-           The type of the pointer (char* or llist_t *) can be influenced
-           by the "*" special character that can be set in const char
-           *bb_opt_complementaly (see below).
+           The type of the pointer (char* or llist_t *) may be controlled
+           by the "*" special character that is set in the external string
+           bb_opt_complementaly (see below for more info).
+
+static const struct option bb_default_long_options[]
+
+           This struct allows you to define long options.  The syntax for
+           declaring the array is just like that of getopt's longopts.
+
+           static const struct option applet_long_options[] = {
+                   { "verbose", 0, 0, "v" },
+                   { 0, 0, 0, 0 }
+           };
+           bb_applet_long_options = applet_long_options;
+
+           The first parameter is the long option that you would pass to
+           the applet (--verbose) in place of the short option (-v).  The
+           second field determines whether the option has an argument.
+           You can set this to 0, 1, or 2, or you can use the long named
+           defines of no_argument, required_argument, and optional_argument.
+           Just set the third argument to '0' or 'NULL'.  The last argument
+           is simply the short option without the dash of course.
+
+           Note: a good applet will make long options configurable via the
+           config process and not a required feature.  The current standard
+           is to name the config option CONFIG_FEATURE_<applet>_LONG_OPTIONS.
 
 const char *bb_opt_complementaly
 
-   ":"     The colon (":") is used in bb_opt_complementaly as separator
-           between groups of two or more chars and/or groups of chars and
-           special characters (stating some conditions to be checked).
+   ":"     The colon (":") is used to separate groups of two or more chars
+           and/or groups of chars and special characters (stating some
+           conditions to be checked).
 
-   "abc"   If groups of two or more chars are specified the first char
-           is the main option and the other chars are secondary options
-           whose flags will be turned on if the main option is found even
-           if they are not specifed on the command line, for example:
+   "abc"   If groups of two or more chars are specified, the first char
+           is the main option and the other chars are secondary options.
+           Their flags will be turned on if the main option is found even
+           if they are not specifed on the command line.  For example:
 
            bb_opt_complementaly = "abc";
 
@@ -92,30 +117,28 @@ Special characters:
            to be unset (and ignored) if it is given on the command line.
 
            For example:
-           The du applet can have the options "-s" and "-d depth", if
-           bb_getopt_ulflags finds -s then -d is unset or if it finds -d
+           The du applet has the options "-s" and "-d depth".  If
+           bb_getopt_ulflags finds -s, then -d is unset or if it finds -d
            then -s is unset.  (Note:  busybox implements the GNU
-           "--max-depth" option as "-d".)  In this case bb_getopt_ulflags's
-           return value has no error flag set (0x80000000UL).  To achieve
-           this result you must set bb_opt_complementaly = "s-d:d-s".
-           Only one flag value is added to bb_getopt_ulflags's return
-           value depending on the position of the options on the command
-           line.  If one of the two options requires an argument pointer
-           (":" in const char *applet_opts as in "d:") optarg is set
-           accordingly.
+           "--max-depth" option as "-d".)  To obtain this behavior, you 
+           set bb_opt_complementaly = "s-d:d-s".  Only one flag value is 
+           added to bb_getopt_ulflags's return value depending on the 
+           position of the options on the command line.  If one of the 
+           two options requires an argument pointer (":" in applet_opts 
+           as in "d:") optarg is set accordingly.
 
            char *smax_print_depth;
 
            bb_opt_complementaly = "s-d:d-s";
-           opt = bb_getopt_ulflags(argc, argv, "sd:" , &smax_print_depth);
+           opt = bb_getopt_ulflags(argc, argv, "sd:", &smax_print_depth);
 
            if (opt & 2) {
                     max_print_depth = bb_xgetularg10_bnd(smax_print_depth,
                                 0, INT_MAX);
            }
 
-   "~"     A tilde between two options or between an option and a group
-           of options means that they are mutually exclusive.  Unlike
+   "~"     A tilde between two options, or between an option and a group
+           of options, means that they are mutually exclusive.  Unlike
            the "-" case above, an error will be forced if the options
            are used together.
 
@@ -128,7 +151,7 @@ Special characters:
            return value will have the error flag set (0x80000000UL) so
            that we can check for it:
 
-           if ((flags & 0x80000000UL)
+           if (flags & 0x80000000UL)
                    bb_show_usage();
 
    "*"     A star after a char in bb_opt_complementaly means that the
@@ -138,15 +161,15 @@ Special characters:
            The grep applet can have one or more "-e pattern" arguments.
            In this case you should use bb_getopt_ulflags() as follows:
 
-           llist_t *patterns=NULL;
+           llist_t *patterns = NULL;
 
            (this pointer must be initializated to NULL if the list is empty
            as required by *llist_add_to(llist_t *old_head, char *new_item).)
 
            bb_opt_complementaly = "e*";
 
-           bb_getopt_ulflags (argc, argv, "e:", &patterns);
-           grep -e user -e root /etc/passwd
+           bb_getopt_ulflags(argc, argv, "e:", &patterns);
+           $ grep -e user -e root /etc/passwd
            root:x:0:0:root:/root:/bin/bash
            user:x:500:500::/home/user:/bin/bash
 
