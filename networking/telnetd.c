@@ -49,6 +49,15 @@
 
 #define BUFSIZE 4000
 
+#ifdef CONFIG_FEATURE_IPV6
+#define SOCKET_TYPE	AF_INET6
+typedef struct sockaddr_in6 sockaddr_type;
+#else
+#define SOCKET_TYPE	AF_INET
+typedef struct sockaddr_in sockaddr_type;
+#endif
+
+
 #ifdef CONFIG_LOGIN
 static const char *loginpath = "/bin/login";
 #else
@@ -373,7 +382,7 @@ int
 telnetd_main(int argc, char **argv)
 {
 #ifndef CONFIG_FEATURE_TELNETD_INETD
-	struct sockaddr_in sa;
+        sockaddr_type sa;
 	int master_fd;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
 	fd_set rdfdset, wrfdset;
@@ -431,7 +440,7 @@ telnetd_main(int argc, char **argv)
 
 	/* Grab a TCP socket.  */
 
-	master_fd = socket(AF_INET, SOCK_STREAM, 0);
+        master_fd = socket(SOCKET_TYPE, SOCK_STREAM, 0);
 	if (master_fd < 0) {
 		bb_perror_msg_and_die("socket");
 	}
@@ -440,8 +449,13 @@ telnetd_main(int argc, char **argv)
 	/* Set it to listen to specified port.  */
 
 	memset((void *)&sa, 0, sizeof(sa));
+#ifdef CONFIG_FEATURE_IPV6
+	sa.sin6_family = AF_INET6;
+	sa.sin6_port = htons(portnbr);
+#else
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons(portnbr);
+#endif
 
 	if (bind(master_fd, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
 		bb_perror_msg_and_die("bind");
