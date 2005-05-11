@@ -182,6 +182,9 @@
 #if defined(CONFIG_FEATURE_GREP_EGREP_ALIAS)
 	APPLET_NOUSAGE("egrep", grep_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_EJECT
+	APPLET(eject, eject_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_ENV
 	APPLET(env, env_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

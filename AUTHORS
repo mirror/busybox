@@ -8,6 +8,9 @@ incorrect, _please_ let me know.
 
 -----------
 
+Peter Willis <psyphreak@phreaker.net>
+    eject
+
 Emanuele Aina <emanuele.aina@tiscali.it>
     run-parts
 
@@ -139,5 +142,6 @@ Enrique Zanardi <ezanardi@ull.es>
     tarcat (since removed), loadkmap, various fixes, Debian maintenance
 
 Tito Ragusa <farmatito@tiscali.it>
-    devfsd and size optimizations in strings, openvt, chvt, deallocvt, hdparm and fdformat.
+    devfsd and size optimizations in strings, openvt, chvt, deallocvt, hdparm,
+    fdformat, lsattr, chattr, id and eject.
 

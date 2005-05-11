@@ -83,6 +83,19 @@ config CONFIG_DEVFSD_VERBOSE
 	help
 	  Increases logging to stderr or syslog.
 
+config CONFIG_EJECT
+	bool "eject"
+	default n
+	help
+	  Used to eject cdroms.  (defaults to /dev/cdrom)
+
+config CONFIG_FEATURE_EJECT_LONG_OPTIONS
+	bool "  Enable support for --trayclose long option (-t)"
+	default n
+	depends on CONFIG_EJECT
+	help
+	  Enable use of long options (like --trayclose for -t).
+
 config CONFIG_LAST
 	bool "last"
 	default n
