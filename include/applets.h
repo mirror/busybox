@@ -188,6 +188,9 @@
 #ifdef CONFIG_ENV
 	APPLET(env, env_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_ETHER_WAKE
+	APPLET_ODDNAME("ether-wake", etherwake_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER, ether_wake)
+#endif
 #ifdef CONFIG_EXPR
 	APPLET(expr, expr_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif

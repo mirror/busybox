@@ -18,6 +18,12 @@ config CONFIG_ARPING
 	help
 	  Ping hosts by ARP packets
 
+config CONFIG_ETHER_WAKE
+	bool "ether-wake"
+	default n
+	help
+	  Send a magic packet to wake up sleeping machines.
+
 config CONFIG_FAKEIDENTD
 	bool "fakeidentd"
 	default n

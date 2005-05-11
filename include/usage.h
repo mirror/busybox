@@ -567,7 +567,7 @@
 #define eject_full_usage \
 	"Eject specified DEVICE (or default /dev/cdrom).\n\n" \
 	"Options:\n" \
-	"\tt" USAGE_EJECT_TRAYCLOSE "\tclose tray"
+	"\t-t" USAGE_EJECT_TRAYCLOSE "\tclose tray"
 
 #define env_trivial_usage \
 	"[-iu] [-] [name=value]... [command]"
@@ -577,6 +577,17 @@
 	"Options:\n" \
 	"\t-, -i\tstart with an empty environment\n" \
 	"\t-u\tremove variable from the environment"
+
+#define ether_wake_trivial_usage \
+	"[-b] [-i iface] [-p aa:bb:cc:dd[:ee:ff]] MAC"
+#define ether_wake_full_usage \
+	"Send a magic packet to wake up sleeping machines.\n" \
+	"MAC must be a station address (00:11:22:33:44:55) or\n" \
+	"    a hostname with a known 'ethers' entry.\n\n" \
+	"Options:\n" \
+	"\t-b\t\tSend wake-up packet to the broadcast address\n" \
+	"\t-i iface\tUse interface ifname instead of the default \"eth0\"\n" \
+	"\t-p pass\tAppend the four or six byte password PW to the packet\n"
 
 #define expr_trivial_usage \
 	"EXPRESSION"

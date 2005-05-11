@@ -23,35 +23,36 @@ NETWORKING_DIR:=$(top_builddir)/networking/
 endif
 srcdir=$(top_srcdir)/networking
 NETWORKING-y:=
-NETWORKING-$(CONFIG_ARPING)	+= arping.o
-NETWORKING-$(CONFIG_FAKEIDENTD)	+= fakeidentd.o
-NETWORKING-$(CONFIG_FTPGET)	+= ftpgetput.o
-NETWORKING-$(CONFIG_FTPPUT)	+= ftpgetput.o
-NETWORKING-$(CONFIG_HOSTNAME)	+= hostname.o
-NETWORKING-$(CONFIG_HTTPD)	+= httpd.o
-NETWORKING-$(CONFIG_IFCONFIG)	+= ifconfig.o
-NETWORKING-$(CONFIG_IFUPDOWN)	+= ifupdown.o
-NETWORKING-$(CONFIG_INETD)      += inetd.o
-NETWORKING-$(CONFIG_IP)		+= ip.o
-NETWORKING-$(CONFIG_IPCALC)	+= ipcalc.o
-NETWORKING-$(CONFIG_IPADDR)	+= ipaddr.o
-NETWORKING-$(CONFIG_IPLINK)	+= iplink.o
-NETWORKING-$(CONFIG_IPROUTE)	+= iproute.o
-NETWORKING-$(CONFIG_IPTUNNEL)	+= iptunnel.o
-NETWORKING-$(CONFIG_NAMEIF)	+= nameif.o
-NETWORKING-$(CONFIG_NC)		+= nc.o
-NETWORKING-$(CONFIG_NETSTAT)	+= netstat.o
-NETWORKING-$(CONFIG_NSLOOKUP)	+= nslookup.o
-NETWORKING-$(CONFIG_PING)	+= ping.o
-NETWORKING-$(CONFIG_PING6)	+= ping6.o
-NETWORKING-$(CONFIG_ROUTE)	+= route.o
-NETWORKING-$(CONFIG_TELNET)	+= telnet.o
-NETWORKING-$(CONFIG_TELNETD)	+= telnetd.o
-NETWORKING-$(CONFIG_TFTP)	+= tftp.o
-NETWORKING-$(CONFIG_TRACEROUTE)	+= traceroute.o
-NETWORKING-$(CONFIG_VCONFIG)	+= vconfig.o
-NETWORKING-$(CONFIG_WGET)	+= wget.o
-NETWORKING-$(CONFIG_ZCIP)	+= zcip.o
+NETWORKING-$(CONFIG_ARPING)       += arping.o
+NETWORKING-$(CONFIG_ETHER_WAKE)   += ether-wake.o
+NETWORKING-$(CONFIG_FAKEIDENTD)   += fakeidentd.o
+NETWORKING-$(CONFIG_FTPGET)       += ftpgetput.o
+NETWORKING-$(CONFIG_FTPPUT)       += ftpgetput.o
+NETWORKING-$(CONFIG_HOSTNAME)     += hostname.o
+NETWORKING-$(CONFIG_HTTPD)        += httpd.o
+NETWORKING-$(CONFIG_IFCONFIG)     += ifconfig.o
+NETWORKING-$(CONFIG_IFUPDOWN)     += ifupdown.o
+NETWORKING-$(CONFIG_INETD)        += inetd.o
+NETWORKING-$(CONFIG_IP)           += ip.o
+NETWORKING-$(CONFIG_IPCALC)       += ipcalc.o
+NETWORKING-$(CONFIG_IPADDR)       += ipaddr.o
+NETWORKING-$(CONFIG_IPLINK)       += iplink.o
+NETWORKING-$(CONFIG_IPROUTE)      += iproute.o
+NETWORKING-$(CONFIG_IPTUNNEL)     += iptunnel.o
+NETWORKING-$(CONFIG_NAMEIF)       += nameif.o
+NETWORKING-$(CONFIG_NC)           += nc.o
+NETWORKING-$(CONFIG_NETSTAT)      += netstat.o
+NETWORKING-$(CONFIG_NSLOOKUP)     += nslookup.o
+NETWORKING-$(CONFIG_PING)         += ping.o
+NETWORKING-$(CONFIG_PING6)        += ping6.o
+NETWORKING-$(CONFIG_ROUTE)        += route.o
+NETWORKING-$(CONFIG_TELNET)       += telnet.o
+NETWORKING-$(CONFIG_TELNETD)      += telnetd.o
+NETWORKING-$(CONFIG_TFTP)         += tftp.o
+NETWORKING-$(CONFIG_TRACEROUTE)   += traceroute.o
+NETWORKING-$(CONFIG_VCONFIG)      += vconfig.o
+NETWORKING-$(CONFIG_WGET)         += wget.o
+NETWORKING-$(CONFIG_ZCIP)         += zcip.o
 
 libraries-y+=$(NETWORKING_DIR)$(NETWORKING_AR)
 
@@ -59,7 +60,7 @@ needcrypt-y:=
 needcrypt-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) := y
 
 ifeq ($(needcrypt-y),y)
-  LIBRARIES += -lcrypt
+	LIBRARIES += -lcrypt
 endif
 
 $(NETWORKING_DIR)$(NETWORKING_AR): $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
@@ -67,4 +68,3 @@ $(NETWORKING_DIR)$(NETWORKING_AR): $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING
 
 $(NETWORKING_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
