@@ -155,10 +155,10 @@ Special characters:
            if specified together.  In this case you must set
            bb_opt_complementaly = "b~cf:c~bf:f~bc".  If two of the
            mutually exclusive options are found, bb_getopt_ulflags's
-           return value will have the error flag set (0x80000000UL) so
+           return value will have the error flag set (BB_GETOPT_ERROR) so
            that we can check for it:
 
-           if (flags & 0x80000000UL)
+           if (flags & BB_GETOPT_ERROR)
                    bb_show_usage();
 
    "*"     A star after a char in bb_opt_complementaly means that the
@@ -280,7 +280,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 				bb_show_usage ();
 		}
 		if(flags & on_off->incongruously)
-			flags |= 0x80000000UL;
+			flags |= BB_GETOPT_ERROR;
 		flags &= ~on_off->switch_off;
 		flags |= on_off->switch_on;
 		if(on_off->list_flg) {

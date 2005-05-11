@@ -69,7 +69,7 @@ extern int install_main(int argc, char **argv)
 	flags = bb_getopt_ulflags(argc, argv, "cdpsg:m:o:", &gid_str, &mode_str, &uid_str);	/* 'a' must be 2nd */
 
 	/* Check valid options were given */
-	if(flags & 0x80000000UL) {
+	if(flags & BB_GETOPT_ERROR) {
 		bb_show_usage();
 	}
 

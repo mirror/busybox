@@ -70,7 +70,7 @@ extern int ar_main(int argc, char **argv)
 	bb_opt_complementaly = "p~tx:t~px:x~pt";
 	opt = bb_getopt_ulflags(argc, argv, "ptxovcr");
 
-	if ((opt & 0x80000000UL) || (opt == 0) || (optind == argc)) {
+	if ((opt & BB_GETOPT_ERROR) || (opt == 0) || (optind == argc)) {
 		bb_show_usage();
 	}
 

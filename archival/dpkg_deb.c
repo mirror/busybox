@@ -88,7 +88,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 		argcount = 2;
 	}
 
-	if ((optind + argcount != argc) || (opt & 0x80000000UL)) {
+	if ((optind + argcount != argc) || (opt & BB_GETOPT_ERROR)) {
 		bb_show_usage();
 	}
 

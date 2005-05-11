@@ -166,7 +166,7 @@ int date_main(int argc, char **argv)
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
 	}
 	use_arg = opt & DATE_OPT_DATE;
-	if(opt & 0x80000000UL)
+	if(opt & BB_GETOPT_ERROR)
 		bb_show_usage();
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
 	if(opt & DATE_OPT_TIMESPEC) {

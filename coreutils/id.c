@@ -64,7 +64,7 @@ extern int id_main(int argc, char **argv)
 	bb_opt_complementaly = "u~g:g~u";
 	flags = bb_getopt_ulflags(argc, argv, "rnug");
 
-	if ((flags & 0x80000000UL)
+	if ((flags & BB_GETOPT_ERROR)
 	/* Don't allow -n -r -nr */
 	|| (flags <= 3 && flags > 0) 
 	/* Don't allow more than one username */
