@@ -59,6 +59,13 @@ config CONFIG_CMP
 	  cmp is used to compare two files and returns the result
 	  to standard output.
 
+config CONFIG_COMM
+	bool "comm"
+	default n
+	help
+	  comm is used to compare two files line by line and return
+	  a three-column output.
+
 config CONFIG_CP
 	bool "cp"
 	default n

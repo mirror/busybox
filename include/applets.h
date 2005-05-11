@@ -113,6 +113,9 @@
 #ifdef CONFIG_CMP
 	APPLET(cmp, cmp_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_COMM
+	APPLET(comm, comm_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_CP
 	APPLET(cp, cp_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

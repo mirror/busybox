@@ -222,6 +222,15 @@
 	"\t\t  for all differing bytes\n" \
 	"\t-s\tquiet mode - do not print"
 
+#define comm_trivial_usage \
+	"[-123] FILE1 FILE2"
+#define comm_full_usage \
+	"Compare files. Compares FILE1 to FILE2, or to stdin if - is specified.\n\n" \
+	"Options:\n" \
+	"\t-1\tSuppress lines unique to FILE1\n" \
+	"\t-2\tSuppress lines unique to FILE2\n" \
+	"\t-3\tSuppress lines common to both files"
+
 #define cp_trivial_usage \
 	"[OPTION]... SOURCE DEST"
 #define cp_full_usage \
