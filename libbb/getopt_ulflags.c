@@ -80,13 +80,20 @@ static const struct option bb_default_long_options[]
            };
            bb_applet_long_options = applet_long_options;
 
-           The first parameter is the long option that you would pass to
-           the applet (--verbose) in place of the short option (-v).  The
-           second field determines whether the option has an argument.
+           The first parameter is the long option name that you would pass
+           to the applet (without the dashes).
+
+           The second field determines whether the option has an argument.
            You can set this to 0, 1, or 2, or you can use the long named
            defines of no_argument, required_argument, and optional_argument.
-           Just set the third argument to '0' or 'NULL'.  The last argument
-           is simply the short option without the dash of course.
+
+           The third argument is used only when the long option does not 
+           have a corresponding short option.  In that case, it should be 
+           an integer pointer.  Otherwise (and normally), it should just
+           bet set to NULL.
+
+           The last argument is the corresponding short option (if there
+           is one of course).
 
            Note: a good applet will make long options configurable via the
            config process and not a required feature.  The current standard
