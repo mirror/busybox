@@ -23,22 +23,22 @@ E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs/
 endif
 srcdir=$(top_srcdir)/e2fsprogs
 
+
+E2P_SRC:=fgetsetflags.c fgetsetversion.c pf.c iod.c
+E2P_SRCS:=$(patsubst %,e2p/%, $(E2P_SRC))
+E2P_OBJS=$(patsubst %.c,%.o, $(E2P_SRCS))
+
 E2FSPROGS-:=
-E2FSPROGS-$(CONFIG_CHATTR)      += chattr.o e2p.o
-E2FSPROGS-$(CONFIG_LSATTR)      += lsattr.o e2p.o
+E2FSPROGS-$(CONFIG_CHATTR)      += chattr.o $(E2P_OBJS)
+E2FSPROGS-$(CONFIG_LSATTR)      += lsattr.o $(E2P_OBJS)
 
 libraries-y+=$(E2FSPROGS_DIR)$(E2FSPROGS_AR)
+
 
 $(E2FSPROGS_DIR)$(E2FSPROGS_AR): $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
 	$(AR) -ro $@ $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
 
 $(E2FSPROGS_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DHAVE_ERRNO_H=1 -DHAVE_UNISTD_H=1 \
+		-DHAVE_EXT2_IOCTLS=1 -DHAVE_EXT2_IOCTLS=1 -c -o $@ $<
 
-E2P_SRC_LIST := \
-	fgetsetflags.c fgetsetversion.c \
-	pf.c iod.c
-E2P_SRC := $(patsubst %, $(E2FSPROGS_DIR)/e2p/%, $(E2P_SRC_LIST))
-$(E2FSPROGS_DIR)e2p.o: $(E2P_SRC)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ -c $(E2P_SRC) \
-		-DHAVE_ERRNO_H=1 -DHAVE_UNISTD_H=1 -DHAVE_EXT2_IOCTLS=1 -DHAVE_EXT2_IOCTLS=1
