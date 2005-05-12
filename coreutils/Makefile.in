@@ -32,6 +32,7 @@ COREUTILS-$(CONFIG_CHMOD)     += chmod.o
 COREUTILS-$(CONFIG_CHOWN)     += chown.o
 COREUTILS-$(CONFIG_CHROOT)    += chroot.o
 COREUTILS-$(CONFIG_CMP)       += cmp.o
+COREUTILS-$(CONFIG_COMM)      += comm.o
 COREUTILS-$(CONFIG_CP)        += cp.o
 COREUTILS-$(CONFIG_CUT)       += cut.o
 COREUTILS-$(CONFIG_DATE)      += date.o
