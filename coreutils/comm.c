@@ -142,7 +142,7 @@ int comm_main (int argc, char **argv)
 
 	opt = bb_getopt_ulflags(argc, argv, "123");
 
-	if ((opt & 0x80000000UL) || (optind == argc))
+	if (optind != argc + 2)
 		bb_show_usage();
 
 	if (opt & COMM_OPT_1)
