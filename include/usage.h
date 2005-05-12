@@ -216,7 +216,7 @@
 #define cmp_trivial_usage \
 	"[-l] [-s] FILE1 [FILE2]"
 #define cmp_full_usage \
-	"Compare files.  Compares FILE1 vs stdin if FILE2 is not specified.\n\n" \
+	"Compares FILE1 vs stdin if FILE2 is not specified.\n\n" \
 	"Options:\n" \
 	"\t-l\tWrite the byte numbers (decimal) and values (octal)\n" \
 	"\t\t  for all differing bytes\n" \
@@ -225,7 +225,7 @@
 #define comm_trivial_usage \
 	"[-123] FILE1 FILE2"
 #define comm_full_usage \
-	"Compare files. Compares FILE1 to FILE2, or to stdin if - is specified.\n\n" \
+	"Compares FILE1 to FILE2, or to stdin if = is specified.\n\n" \
 	"Options:\n" \
 	"\t-1\tSuppress lines unique to FILE1\n" \
 	"\t-2\tSuppress lines unique to FILE2\n" \
