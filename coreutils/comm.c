@@ -38,17 +38,21 @@ static int only_file_2;
 static int both;
 
 /* writeline outputs the input given, appropriately aligned according to class */
-static void writeline (char *line, int class) {
+static void writeline (char *line, int class)
+{
 	switch (class) {
-		case 1: if (!only_file_1)
+		case 1:
+			if (!only_file_1)
 				return;
 			break;
-		case 2: if (!only_file_2)
+		case 2:
+			if (!only_file_2)
 				return;
 			if (only_file_1)
 				putchar('\t');
 			break;
-		case 3: if (!both)
+		case 3:
+			if (!both)
 				return;
 			if (only_file_1)
 				putchar('\t');
@@ -56,50 +60,49 @@ static void writeline (char *line, int class) {
 				putchar('\t');
 			break;
 	}
-	fputs(line, stdout);	
+	fputs(line, stdout);
 }
 
 /* This is the real core of the program - lines are compared here */
-static int cmp_files(char **infiles) {
-
+static int cmp_files(char **infiles)
+{
 	char thisline[2][100];
 	FILE *streams[2];
 	int i = 0;
-	
+
 	for (i = 0; i < 2; i++) {
 		streams[i] = (strcmp(infiles[i], "=") == 0 ? stdin : fopen(infiles[i], "r"));
 		fgets(thisline[i], 100, streams[i]);
 	}
 
 	while (thisline[0] || thisline[1]) {
-		
 		int order = 0;
 		int tl0_len = strlen(thisline[0]);
 		int tl1_len = strlen(thisline[1]);
+
 		if (!thisline[0])
 			order = 1;
-		else if (!thisline[1]) 
+		else if (!thisline[1])
 			order = -1;
 		else {
 			order = memcmp(thisline[0], thisline[1], tl0_len < tl1_len ? tl0_len : tl1_len);
 			if (!order)
 				order = tl0_len < tl1_len ? -1 : tl0_len != tl1_len;
 		}
-		
+
 		if ((order == 0) && (!feof(streams[0])) && (!feof(streams[1])))
 			writeline(thisline[1], 3);
 		else if ((order > 0) && (!feof(streams[1])))
 			writeline(thisline[1], 2);
 		else if ((order < 0) && (!feof(streams[0])))
 			writeline(thisline[0], 1);
-		
+
 		if (feof(streams[0]) && feof(streams[1])) {
 			fclose(streams[0]);
 			fclose(streams[1]);
 			break;
-		}
-		else if (feof(streams[0])) {
-		
+
+		} else if (feof(streams[0])) {
 			while (!feof(streams[1])) {
 				if (order < 0)
 					writeline(thisline[1], 2);
@@ -108,9 +111,8 @@ static int cmp_files(char **infiles) {
 			fclose(streams[0]);
 			fclose(streams[1]);
 			break;
-		}
-		else if (feof(streams[1])) {
 
+		} else if (feof(streams[1])) {
 			while (!feof(streams[0])) {
 				if (order > 0)
 					writeline(thisline[0], 1);
@@ -119,8 +121,8 @@ static int cmp_files(char **infiles) {
 			fclose(streams[0]);
 			fclose(streams[1]);
 			break;
-		}
-		else {
+
+		} else {
 			if (order >= 0)
 				fgets(thisline[1], 100, streams[1]);
 			if (order <= 0)
@@ -131,19 +133,18 @@ static int cmp_files(char **infiles) {
 	return 0;
 }
 
-int comm_main (int argc, char **argv) {
-	
+int comm_main (int argc, char **argv)
+{
 	unsigned long opt;
 	only_file_1 = 1;
 	only_file_2 = 1;
 	both = 1;
-	
+
 	opt = bb_getopt_ulflags(argc, argv, "123");
-	
-        if ((opt & 0x80000000UL) || (optind == argc)) {
-                bb_show_usage();
-        }
-	
+
+	if ((opt & 0x80000000UL) || (optind == argc))
+		bb_show_usage();
+
 	if (opt & COMM_OPT_1)
 		only_file_1 = 0;
 	if (opt & COMM_OPT_2)
