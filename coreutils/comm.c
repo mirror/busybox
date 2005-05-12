@@ -38,7 +38,7 @@ static int only_file_2;
 static int both;
 
 /* writeline outputs the input given, appropriately aligned according to class */
-static void writeline (char *line, int class)
+static void writeline(char *line, int class)
 {
 	switch (class) {
 		case 1:
@@ -133,24 +133,18 @@ static int cmp_files(char **infiles)
 	return 0;
 }
 
-int comm_main (int argc, char **argv)
+int comm_main(int argc, char **argv)
 {
-	unsigned long opt;
-	only_file_1 = 1;
-	only_file_2 = 1;
-	both = 1;
+	unsigned long flags;
 
-	opt = bb_getopt_ulflags(argc, argv, "123");
+	flags = bb_getopt_ulflags(argc, argv, "123");
 
-	if (optind != argc + 2)
+	if (optind + 2 != argc)
 		bb_show_usage();
 
-	if (opt & COMM_OPT_1)
-		only_file_1 = 0;
-	if (opt & COMM_OPT_2)
-		only_file_2 = 0;
-	if (opt & COMM_OPT_3)
-		both = 0;
+	only_file_1 = !(flags & COMM_OPT_1);
+	only_file_2 = !(flags & COMM_OPT_2);
+	both = !(flags & COMM_OPT_3);
 
 	exit(cmp_files(argv + optind) == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
