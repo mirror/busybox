@@ -40,25 +40,21 @@ static int both;
 /* writeline outputs the input given, appropriately aligned according to class */
 static void writeline(char *line, int class)
 {
-	switch (class) {
-		case 1:
-			if (!only_file_1)
-				return;
-			break;
-		case 2:
-			if (!only_file_2)
-				return;
-			if (only_file_1)
-				putchar('\t');
-			break;
-		case 3:
-			if (!both)
-				return;
-			if (only_file_1)
-				putchar('\t');
-			if (only_file_2)
-				putchar('\t');
-			break;
+	if (class == 1 && !only_file_1)
+		return;
+	else if (class == 2) {
+		if (!only_file_2)
+			return;
+		if (only_file_1)
+			putchar('\t');
+	}
+	else if (class == 3) {
+		if (!both)
+			return;
+		if (only_file_1)
+			putchar('\t');
+		if (only_file_2)
+			putchar('\t');
 	}
 	fputs(line, stdout);
 }
@@ -71,7 +67,7 @@ static int cmp_files(char **infiles)
 	int i = 0;
 
 	for (i = 0; i < 2; i++) {
-		streams[i] = (strcmp(infiles[i], "=") == 0 ? stdin : fopen(infiles[i], "r"));
+		streams[i] = (strcmp(infiles[i], "=") == 0 ? stdin : bb_xfopen(infiles[i], "r"));
 		fgets(thisline[i], 100, streams[i]);
 	}
 
