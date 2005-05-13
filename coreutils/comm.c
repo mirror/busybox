@@ -42,7 +42,7 @@ static void writeline(char *line, int class)
 {
 	if (class == 0) {
 		if (!only_file_1)
-		return;
+			return;
 	} else if (class == 1) {
 		if (!only_file_2)
 			return;
