@@ -71,7 +71,7 @@ static void cmp_files(char **infiles)
 	int i;
 
 	for (i = 0; i < 2; ++i) {
-		streams[i] = ((infiles[i][0] == '=' && infiles[1][1]) ? stdin : bb_xfopen(infiles[i], "r"));
+		streams[i] = ((infiles[i][0] == '=' && infiles[i][1]) ? stdin : bb_xfopen(infiles[i], "r"));
 		fgets(thisline[i], LINE_LEN, streams[i]);
 	}
 
