@@ -565,18 +565,12 @@
 	"$ echo \"Erik\\nis\\ncool\"\n" \
 	"Erik\\nis\\ncool\n")
 
-#ifdef CONFIG_FEATURE_EJECT_LONG_OPTIONS
-# define USAGE_EJECT_TRAYCLOSE ",trayclose"
-#else
-# define USAGE_EJECT_TRAYCLOSE ""
-#endif
-
 #define eject_trivial_usage \
 	"[-t] [DEVICE]"
 #define eject_full_usage \
 	"Eject specified DEVICE (or default /dev/cdrom).\n\n" \
 	"Options:\n" \
-	"\t-t" USAGE_EJECT_TRAYCLOSE "\tclose tray"
+	"\t-t\tclose tray"
 
 #define env_trivial_usage \
 	"[-iu] [-] [name=value]... [command]"

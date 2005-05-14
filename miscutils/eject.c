@@ -24,41 +24,44 @@
  * Most of the dirty work blatantly ripped off from cat.c =)
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <getopt.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "busybox.h"
 
 /* various defines swiped from linux/cdrom.h */
 #define CDROMCLOSETRAY            0x5319  /* pendant of CDROMEJECT  */
 #define CDROMEJECT                0x5309  /* Ejects the cdrom media */
 #define DEFAULT_CDROM             "/dev/cdrom"
-/*#define CLOSE_TRAY              1*/
+
+#ifdef CONFIG_FEATURE_MTAB_SUPPORT
+#define MTAB  CONFIG_FEATURE_MTAB_FILENAME
+#else
+#define MTAB  "/proc/mounts"
+#endif
 
 extern int eject_main(int argc, char **argv)
 {
 	unsigned long flags;
+	char * command; 
+	char *device=argv[optind] ? : DEFAULT_CDROM;
 	
-#ifdef CONFIG_FEATURE_EJECT_LONG_OPTIONS
-	static const struct option eject_long_options[] = {
-		{ "trayclose", 0, 0, 't' },
-		{ 0,           0, 0, 0 }
-	};
-	bb_applet_long_options = eject_long_options;
-#endif
-
 	flags = bb_getopt_ulflags(argc, argv, "t");
-
-	if (ioctl(bb_xopen((argv[optind] ? argv[optind] : DEFAULT_CDROM), 
+	bb_xasprintf(&command, "umount '%s'", device);
+	
+	/* validate input before calling system */
+	if(find_mount_point(device, MTAB))
+		system(command);
+	
+	if (ioctl(bb_xopen( device, 
 	                   (O_RDONLY | O_NONBLOCK)), 
-	          ( flags /*& CLOSE_TRAY*/ ? CDROMCLOSETRAY : CDROMEJECT)))
+	          ( flags ? CDROMCLOSETRAY : CDROMEJECT)))
 	{
-		bb_perror_msg_and_die(bb_msg_unknown);
+		bb_perror_msg_and_die(device);
 	}
-
-	return EXIT_SUCCESS;
+#ifdef CONFIG_FEATURE_CLEAN_UP 
+	free(command);
+#endif
+	return(EXIT_SUCCESS);
 }
