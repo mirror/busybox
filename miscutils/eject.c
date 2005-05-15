@@ -26,8 +26,9 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <stdlib.h>
 #include <unistd.h>
+#include <sys/mount.h>
+#include <mntent.h> 
 #include "busybox.h"
 
 /* various defines swiped from linux/cdrom.h */
@@ -35,33 +36,28 @@
 #define CDROMEJECT                0x5309  /* Ejects the cdrom media */
 #define DEFAULT_CDROM             "/dev/cdrom"
 
-#ifdef CONFIG_FEATURE_MTAB_SUPPORT
-#define MTAB  CONFIG_FEATURE_MTAB_FILENAME
-#else
-#define MTAB  "/proc/mounts"
-#endif
-
 extern int eject_main(int argc, char **argv)
 {
 	unsigned long flags;
-	char * command; 
-	char *device=argv[optind] ? : DEFAULT_CDROM;
+	char *device;
+	struct mntent *m;
 	
 	flags = bb_getopt_ulflags(argc, argv, "t");
-	bb_xasprintf(&command, "umount '%s'", device);
+	device=argv[optind] ? : DEFAULT_CDROM;
 	
-	/* validate input before calling system */
-	if(find_mount_point(device, MTAB))
-		system(command);
-	
+	if((m = find_mount_point(device, bb_path_mtab_file))) {
+		if(umount(m->mnt_dir))
+			bb_error_msg_and_die("Can't umount");
+#ifdef CONFIG_FEATURE_MTAB_SUPPORT
+		else
+			erase_mtab(m->mnt_fsname);	
+#endif
+	}
 	if (ioctl(bb_xopen( device, 
 	                   (O_RDONLY | O_NONBLOCK)), 
 	          ( flags ? CDROMCLOSETRAY : CDROMEJECT)))
 	{
 		bb_perror_msg_and_die(device);
 	}
-#ifdef CONFIG_FEATURE_CLEAN_UP 
-	free(command);
-#endif
 	return(EXIT_SUCCESS);
 }
