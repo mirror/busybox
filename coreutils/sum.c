@@ -56,11 +56,9 @@ static int bsd_sum_file(const char *file, int print_name)
 		fp = stdin;
 		have_read_stdin = 1;
 	} else {
-		fp = fopen(file, "r");
-		if (fp == NULL) {
-			bb_perror_msg("%s", file);
+		fp = bb_wfopen(file, "r");
+		if (fp == NULL)
 			return 0;
-		}
 	}
 
 	while ((ch = getc(fp)) != EOF) {
@@ -71,22 +69,22 @@ static int bsd_sum_file(const char *file, int print_name)
 	}
 
 	if (ferror(fp)) {
-		bb_perror_msg("%s", file);
-		if (!IS_STDIN(file))
-			fclose(fp);
+		bb_perror_msg(file);
+		bb_fclose_nonstdin(fp);
 		return 0;
 	}
 
-	if (!IS_STDIN(file) && fclose(fp) == EOF) {
-		bb_perror_msg("%s", file);
+	if (bb_fclose_nonstdin(fp) == EOF) {
+		bb_perror_msg(file);
 		return 0;
 	}
 
-	printf("%05d %5s", checksum,
+	printf("%05d %5s ", checksum,
 	       make_human_readable_str(total_bytes, 1, 1024));
 	if (print_name > 1)
-		printf(" %s", file);
-	putchar('\n');
+		puts(file);
+	else
+		printf("\n");
 
 	return 1;
 }
@@ -112,7 +110,7 @@ static int sysv_sum_file(const char *file, int print_name)
 	} else {
 		fd = open(file, O_RDONLY);
 		if (fd == -1) {
-			bb_perror_msg("%s", file);
+			bb_perror_msg(file);
 			return 0;
 		}
 	}
@@ -125,7 +123,7 @@ static int sysv_sum_file(const char *file, int print_name)
 			break;
 
 		if (bytes_read == -1) {
-			bb_perror_msg("%s", file);
+			bb_perror_msg(file);
 			if (!IS_STDIN(file))
 				close(fd);
 			return 0;
@@ -137,18 +135,19 @@ static int sysv_sum_file(const char *file, int print_name)
 	}
 
 	if (!IS_STDIN(file) && close(fd) == -1) {
-		bb_perror_msg("%s", file);
+		bb_perror_msg(file);
 		return 0;
 	}
 
 	r = (s & 0xffff) + ((s & 0xffffffff) >> 16);
 	checksum = (r & 0xffff) + (r >> 16);
 
-	printf("%d %s", checksum,
+	printf("%d %s ", checksum,
 	       make_human_readable_str(total_bytes, 1, 512));
 	if (print_name)
-		printf(" %s", file);
-	putchar('\n');
+		puts(file);
+	else
+		printf("\n");
 
 	return 1;
 }
