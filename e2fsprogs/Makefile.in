@@ -23,6 +23,7 @@ E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs/
 endif
 srcdir=$(top_srcdir)/e2fsprogs
 
+CFLAGS += -I$(E2FSPROGS_DIR)
 
 E2P_SRC:=fgetsetflags.c fgetsetversion.c pf.c iod.c
 E2P_SRCS:=$(patsubst %,e2p/%, $(E2P_SRC))
@@ -41,4 +42,3 @@ $(E2FSPROGS_DIR)$(E2FSPROGS_AR): $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
 $(E2FSPROGS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DHAVE_ERRNO_H=1 -DHAVE_UNISTD_H=1 \
 		-DHAVE_EXT2_IOCTLS=1 -DHAVE_EXT2_IOCTLS=1 -c -o $@ $<
-
