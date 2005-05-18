@@ -135,7 +135,7 @@ static sed_cmd_t sed_cmd_head;
 static sed_cmd_t *sed_cmd_tail = &sed_cmd_head;
 
 /* Linked list of append lines */
-static struct append_list {
+struct append_list {
 	char *string;
 	struct append_list *next;
 };
@@ -1187,10 +1187,7 @@ extern int sed_main(int argc, char **argv)
 	 * files were specified or '-' was specified, take input from stdin.
 	 * Otherwise, we process all the files specified. */
 	if (argv[optind] == NULL) {
-		if(in_place) {
-			fprintf(stderr,"sed: Filename required for -i\n");
-			exit(1);
-		}
+		if(in_place) bb_error_msg_and_die("Filename required for -i");
 		add_input_file(stdin);
 		process_files();
 	} else {
@@ -1206,14 +1203,16 @@ extern int sed_main(int argc, char **argv)
 				if (file) {
 					if(in_place) {
 						struct stat statbuf;
+						int nonstdoutfd;
+						
 						outname=bb_xstrndup(argv[i],strlen(argv[i])+6);
 						strcat(outname,"XXXXXX");
-						mkstemp(outname);
-						nonstdout=bb_wfopen(outname,"w");
+						if(-1==(nonstdoutfd=mkstemp(outname)))
+							bb_error_msg_and_die("no temp file");
+						nonstdout=fdopen(nonstdoutfd,"w");
 						/* Set permissions of output file */
 						fstat(fileno(file),&statbuf);
-						fchmod(fileno(nonstdout),statbuf.st_mode);
-						atexit(cleanup_outname);
+						fchmod(nonstdoutfd,statbuf.st_mode);
 						add_input_file(file);
 						process_files();
 						fclose(nonstdout);
