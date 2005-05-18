@@ -57,7 +57,7 @@
 	 - grouped commands: {cmd1;cmd2}
 	 - transliteration (y/source-chars/dest-chars/)
 	 - pattern space hold space storing / swapping (g, h, x)
-	 - labels / branching (: label, b, t)
+	 - labels / branching (: label, b, t, T)
 
 	 (Note: Specifying an address (range) to match is *optional*; commands
 	 default to the whole pattern space if no specific address match was
@@ -65,7 +65,7 @@
 
 	Unsupported features:
 
-	 - GNU extensions
+	 - most GNU extensions
 	 - and more.
 
 	Todo:
@@ -440,7 +440,7 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 		if(sed_cmd->cmd=='w')
 			sed_cmd->file=bb_xfopen(sed_cmd->string,"w");
 	/* handle branch commands */
-	} else if (strchr(":bt", sed_cmd->cmd)) {
+	} else if (strchr(":btT", sed_cmd->cmd)) {
 		int length;
 
 		while(isspace(*cmdstr)) cmdstr++;
@@ -1000,11 +1000,15 @@ restart:
 						break;
 					}
 
-					/* Test if substition worked, branch if so. */
+					/* Test/branch if substitution occurred */
 					case 't':
-						if (!substituted) break;
+						if(!substituted) break;
 						substituted=0;
-							/* Fall through */
+						/* Fall through */
+					/* Test/branch if substitution didn't occur */
+					case 'T':
+						if (substituted) break;
+						/* Fall through */
 					/* Branch to label */
 					case 'b':
 						if (!sed_cmd->string) goto discard_commands;
