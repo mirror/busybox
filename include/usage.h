@@ -2091,6 +2091,21 @@
 	USAGE_READLINK_FOLLOW("\n\nOptions:\n" \
 	"\t-f\tcanonicalize by following all symlinks")
 
+#define readprofile_trivial_usage \
+	"[OPTIONS]..."
+#define readprofile_full_usage \
+	"Options:\n" \
+	"\t -m <mapfile>  (default: /boot/System.map)\n" \
+	"\t -p <profile>  (default: /proc/profile)\n" \
+	"\t -M <mult>     set the profiling multiplier to <mult>\n" \
+	"\t -i            print only info about the sampling step\n" \
+	"\t -v            print verbose data\n" \
+	"\t -a            print all symbols, even if count is 0\n" \
+	"\t -b            print individual histogram-bin counts\n" \
+	"\t -s            print individual counters within functions\n" \
+	"\t -r            reset all the counters (root only)\n" \
+	"\t -n            disable byte order auto-detection"
+
 #define realpath_trivial_usage \
 	"pathname  ..."
 #define realpath_full_usage \

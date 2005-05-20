@@ -44,6 +44,7 @@ UTILLINUX-$(CONFIG_PIVOT_ROOT)		+=pivot_root.o
 UTILLINUX-$(CONFIG_RDATE)		+=rdate.o
 UTILLINUX-$(CONFIG_SWAPONOFF)		+=swaponoff.o
 UTILLINUX-$(CONFIG_UMOUNT)		+=umount.o
+UTILLINUX-$(CONFIG_READPROFILE)		+=readprofile.o
 
 libraries-y+=$(UTILLINUX_DIR)$(UTILLINUX_AR)
 

@@ -351,5 +351,11 @@ config CONFIG_FEATURE_MTAB_FILENAME
 	  value is /etc/mtab, which is where this file is located on most desktop
 	  Linux systems.
 
+config CONFIG_READPROFILE
+	bool "readprofile"
+	default n
+	help
+	  This allows you to parse /proc/profile for basic profiling.
+
 endmenu
 
