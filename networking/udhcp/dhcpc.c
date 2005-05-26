@@ -439,6 +439,9 @@ int main(int argc, char *argv[])
 					(unsigned long) packet.xid, xid);
 				continue;
 			}
+			/* Ignore packets that aren't for us */
+			if (memcmp(client_config.arp,packet.chaddr,6))
+				continue;
 
 			if ((message = get_option(&packet, DHCP_MESSAGE_TYPE)) == NULL) {
 				DEBUG(LOG_ERR, "couldnt get option from packet -- ignoring");
