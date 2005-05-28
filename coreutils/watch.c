@@ -100,11 +100,10 @@ extern int watch_main(int argc, char **argv)
 			//child
 			close(1);
 			dup(old_stdout);
-			if (execvp(*watched_argv, watched_argv)) {
-				bb_error_msg_and_die("Couldn't run command\n");
-			}
+			execvp(*watched_argv, watched_argv);
+			bb_perror_msg_and_die(*watched_argv);
 		} else {
-			bb_error_msg_and_die("Couldn't vfork\n");
+			bb_perror_msg_and_die("vfork");
 		}
 	}
 }
