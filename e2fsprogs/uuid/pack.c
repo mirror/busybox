@@ -37,8 +37,8 @@
 
 void uuid_pack(const struct uuid *uu, uuid_t ptr)
 {
-	uint32_t	tmp;
-	unsigned char	*out = ptr;
+	uint32_t tmp;
+	unsigned char *out = ptr;
 
 	tmp = uu->time_low;
 	out[3] = (unsigned char) tmp;
@@ -48,7 +48,7 @@ void uuid_pack(const struct uuid *uu, uuid_t ptr)
 	out[1] = (unsigned char) tmp;
 	tmp >>= 8;
 	out[0] = (unsigned char) tmp;
-	
+
 	tmp = uu->time_mid;
 	out[5] = (unsigned char) tmp;
 	tmp >>= 8;
@@ -66,4 +66,3 @@ void uuid_pack(const struct uuid *uu, uuid_t ptr)
 
 	memcpy(out+10, uu->node, 6);
 }
-
