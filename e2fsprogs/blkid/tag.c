@@ -246,12 +246,10 @@ extern blkid_tag_iterate blkid_tag_iterate_begin(blkid_dev dev)
 {
 	blkid_tag_iterate	iter;
 
-	iter = malloc(sizeof(struct blkid_struct_tag_iterate));
-	if (iter) {
-		iter->magic = TAG_ITERATE_MAGIC;
-		iter->dev = dev;
-		iter->p	= dev->bid_tags.next;
-	}
+	iter = xmalloc(sizeof(struct blkid_struct_tag_iterate));
+	iter->magic = TAG_ITERATE_MAGIC;
+	iter->dev = dev;
+	iter->p	= dev->bid_tags.next;
 	return (iter);
 }
 

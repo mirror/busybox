@@ -48,11 +48,9 @@ char *blkid_strndup(const char *s, int length)
 	if (!length)
 		length = strlen(s);
 
-	ret = malloc(length + 1);
-	if (ret) {
-		strncpy(ret, s, length);
-		ret[length] = '\0';
-	}
+	ret = xmalloc(length + 1);
+	strncpy(ret, s, length);
+	ret[length] = '\0';
 	return ret;
 }
 
@@ -68,14 +66,8 @@ static void add_to_dirlist(const char *name, struct dir_list **list)
 {
 	struct dir_list *dp;
 
-	dp = malloc(sizeof(struct dir_list));
-	if (!dp)
-		return;
+	dp = xmalloc(sizeof(struct dir_list));
 	dp->name = blkid_strdup(name);
-	if (!dp->name) {
-		free(dp);
-		return;
-	}
 	dp->next = *list;
 	*list = dp;
 }

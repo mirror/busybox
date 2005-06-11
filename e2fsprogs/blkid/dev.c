@@ -84,12 +84,10 @@ extern blkid_dev_iterate blkid_dev_iterate_begin(blkid_cache cache)
 {
 	blkid_dev_iterate	iter;
 
-	iter = malloc(sizeof(struct blkid_struct_dev_iterate));
-	if (iter) {
-		iter->magic = DEV_ITERATE_MAGIC;
-		iter->cache = cache;
-		iter->p	= cache->bic_devs.next;
-	}
+	iter = xmalloc(sizeof(struct blkid_struct_dev_iterate));
+	iter->magic = DEV_ITERATE_MAGIC;
+	iter->cache = cache;
+	iter->p	= cache->bic_devs.next;
 	return (iter);
 }
 

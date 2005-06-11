@@ -192,9 +192,7 @@ static void lvm_probe_all(blkid_cache cache)
 		vg_name = vg_iter->d_name;
 		if (!strcmp(vg_name, ".") || !strcmp(vg_name, ".."))
 			continue;
-		vdirname = malloc(vg_len + strlen(vg_name) + 8);
-		if (!vdirname)
-			goto exit;
+		vdirname = xmalloc(vg_len + strlen(vg_name) + 8);
 		sprintf(vdirname, "%s/%s/LVs", VG_DIR, vg_name);
 
 		lv_list = opendir(vdirname);
@@ -209,12 +207,8 @@ static void lvm_probe_all(blkid_cache cache)
 			if (!strcmp(lv_name, ".") || !strcmp(lv_name, ".."))
 				continue;
 
-			lvm_device = malloc(vg_len + strlen(vg_name) +
+			lvm_device = xmalloc(vg_len + strlen(vg_name) +
 					    strlen(lv_name) + 8);
-			if (!lvm_device) {
-				closedir(lv_list);
-				goto exit;
-			}
 			sprintf(lvm_device, "%s/%s/LVs/%s", VG_DIR, vg_name,
 				lv_name);
 			dev = lvm_get_devno(lvm_device);
@@ -227,7 +221,6 @@ static void lvm_probe_all(blkid_cache cache)
 		}
 		closedir(lv_list);
 	}
-exit:
 	closedir(vg_list);
 }
 #endif

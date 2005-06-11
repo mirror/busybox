@@ -331,7 +331,7 @@ static int probe_swap1(int fd,
 	 * pagesize).
 	 */
 	if (lseek(fd, 1024, SEEK_SET) < 0) return 1;
-	if (!(sws = (struct swap_id_block *)malloc(1024))) return 1;
+	sws = (struct swap_id_block *)xmalloc(1024);
 	if (read(fd, sws, 1024) != 1024) {
 		free(sws);
 		return 1;
@@ -602,9 +602,8 @@ try_again:
 			if (lseek(fd, idx << 10, SEEK_SET) < 0)
 				continue;
 
-			if (!(buf = (unsigned char *)malloc(1024)))
-				continue;
-			
+			buf = (unsigned char *)xmalloc(1024);
+
 			if (read(fd, buf, 1024) != 1024) {
 				free(buf);
 				continue;

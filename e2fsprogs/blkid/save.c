@@ -90,16 +90,14 @@ int blkid_flush_cache(blkid_cache cache)
 	 * a temporary file then we open it directly.
 	 */
 	if (ret == 0 && S_ISREG(st.st_mode)) {
-		tmp = malloc(strlen(filename) + 8);
-		if (tmp) {
-			sprintf(tmp, "%s-XXXXXX", filename);
-			fd = mkstemp(tmp);
-			if (fd >= 0) {
-				file = fdopen(fd, "w");
-				opened = tmp;
-			}
-			fchmod(fd, 0644);
+		tmp = xmalloc(strlen(filename) + 8);
+		sprintf(tmp, "%s-XXXXXX", filename);
+		fd = mkstemp(tmp);
+		if (fd >= 0) {
+			file = fdopen(fd, "w");
+			opened = tmp;
 		}
+		fchmod(fd, 0644);
 	}
 
 	if (!file) {
@@ -138,13 +136,11 @@ int blkid_flush_cache(blkid_cache cache)
 		} else {
 			char *backup;
 
-			backup = malloc(strlen(filename) + 5);
-			if (backup) {
-				sprintf(backup, "%s.old", filename);
-				unlink(backup);
-				link(filename, backup);
-				free(backup);
-			}
+			backup = xmalloc(strlen(filename) + 5);
+			sprintf(backup, "%s.old", filename);
+			unlink(backup);
+			link(filename, backup);
+			free(backup);
 			rename(opened, filename);
 			DBG(DEBUG_SAVE,
 			    printf("moved temp cache %s\n", opened));
