@@ -547,12 +547,7 @@ static void zap_sector(ext2_filsys fs, int sect, int nsect)
 	int retval;
 	unsigned int *magic;
 
-	buf = malloc(512*nsect);
-	if (!buf) {
-		printf(_("Out of memory erasing sectors %d-%d\n"),
-		       sect, sect + nsect - 1);
-		exit(1);
-	}
+	buf = xmalloc(512*nsect);
 
 	if (sect == 0) {
 		/* Check for a BSD disklabel, and don't erase it if so */
@@ -838,7 +833,7 @@ static void PRS(int argc, char *argv[])
 	if (oldpath) {
 		char *newpath;
 		
-		newpath = malloc(sizeof (PATH_SET) + 1 + strlen (oldpath));
+		newpath = xmalloc(sizeof (PATH_SET) + 1 + strlen (oldpath));
 		strcpy (newpath, PATH_SET);
 		strcat (newpath, ":");
 		strcat (newpath, oldpath);
@@ -872,8 +867,7 @@ static void PRS(int argc, char *argv[])
 
 #ifdef __linux__
 	if (uname(&ut)) {
-		perror("uname");
-		exit(1);
+		bb_perror_msg_and_die("uname");
 	}
 	linux_version_code = parse_version_number(ut.release);
 	if (linux_version_code && linux_version_code < (2*65536 + 2*256)) {
