@@ -28,4 +28,4 @@ all: $(libraries-y)
 -include $(top_builddir)/.depend
 
 clean:
-	rm -f *.o *.a $(AR_TARGET)
+	rm -f *.o *.a */*.o $(AR_TARGET)
