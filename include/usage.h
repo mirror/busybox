@@ -2828,6 +2828,16 @@
 	"$ tty\n" \
 	"/dev/tty2\n"
 
+#define tune2fs_trivial_usage \
+	"[-c max-mounts-count] [-e errors-behavior] [-g group] " \
+	"[-i interval[d|m|w]] [-j] [-J journal-options] [-l] [-s sparse-flag] " \
+	"[-m reserved-blocks-percent] [-o [^]mount-options[,...]] " \
+	"[-r reserved-blocks-count] [-u user] [-C mount-count] " \
+	"[-L volume-label] [-M last-mounted-dir] [-O [^]feature[,...]] " \
+	"[-T last-check-time] [-U UUID] device"
+#define tune2fs_full_usage \
+	"Adjust filesystem options on ext[23] filesystems.\n\n"
+
 #define udhcpc_trivial_usage \
 	"[-fbnqv] [-c CLIENTID] [-H HOSTNAME] [-i INTERFACE]\n[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \

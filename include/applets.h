@@ -179,6 +179,9 @@
 #ifdef CONFIG_DUMPLEASES
 	APPLET(dumpleases, dumpleases_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_TUNE2FS
+	APPLET_NOUSAGE("e2label", tune2fs_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_ECHO
 	APPLET(echo, echo_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
@@ -220,6 +223,9 @@
 #endif
 #ifdef CONFIG_FIND
 	APPLET(find, find_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_TUNE2FS
+	APPLET_NOUSAGE("findfs", tune2fs_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_FOLD
 	APPLET(fold, fold_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
@@ -628,6 +634,9 @@
 #endif
 #ifdef CONFIG_TTY
 	APPLET(tty, tty_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_TUNE2FS
+	APPLET(tune2fs, tune2fs_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_UDHCPC
 	APPLET(udhcpc, udhcpc_main, _BB_DIR_SBIN, _BB_SUID_NEVER)

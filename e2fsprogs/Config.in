@@ -17,4 +17,17 @@ config CONFIG_LSATTR
 	help
 	  lsattr lists the file attributes on a second extended file system.
 
+config CONFIG_TUNE2FS
+	bool "tune2fs (and e2label/findfs)"
+	default n
+	help
+	  tune2fs allows the system administrator to adjust various tunable 
+	  filesystem parameters on Linux ext2/ext3 filesystems.
+
+	  e2label will display or change the filesystem label on the ext2 
+	  filesystem located on device.
+
+	  findfs will search the disks in the system looking for a filesystem 
+	  which has a label matching label or a UUID equal to uuid.
+
 endmenu
