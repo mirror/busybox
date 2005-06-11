@@ -154,9 +154,7 @@ int e2p_edit_feature(const char *str, __u32 *compat_array, __u32 *ok_array)
 	unsigned int	mask;
 	int		compat_type;
 
-	buf = malloc(strlen(str)+1);
-	if (!buf)
-		return 1;
+	buf = xmalloc(strlen(str)+1);
 	strcpy(buf, str);
 	cp = buf;
 	while (cp && *cp) {

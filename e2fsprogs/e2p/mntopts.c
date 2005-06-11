@@ -99,9 +99,7 @@ int e2p_edit_mntopts(const char *str, __u32 *mntopts, __u32 ok)
 	int	neg;
 	unsigned int	mask;
 
-	buf = malloc(strlen(str)+1);
-	if (!buf)
-		return 1;
+	buf = xmalloc(strlen(str)+1);
 	strcpy(buf, str);
 	cp = buf;
 	while (cp && *cp) {
