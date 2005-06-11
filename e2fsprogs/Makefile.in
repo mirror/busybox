@@ -26,19 +26,23 @@ srcdir=$(top_srcdir)/e2fsprogs
 E2FSPROGS_CFLAGS := -I$(E2FSPROGS_DIR) -include $(E2FSPROGS_DIR)e2fsbb.h
 
 BLKID_SRC   := cache.c dev.c devname.c devno.c getsize.c llseek.c probe.c \
-               read.c resolve.c save.c tag.c
+               read.c resolve.c save.c tag.c resolve.c
 BLKID_SRCS  := $(patsubst %,blkid/%, $(BLKID_SRC))
 BLKID_OBJS  := $(patsubst %.c,%.o, $(BLKID_SRCS))
 
 E2P_SRC     := fgetsetflags.c fgetsetversion.c pf.c iod.c mntopts.c \
-               feature.c ls.c uuid.c pe.c ostype.c ps.c hashstr.c
+               feature.c ls.c uuid.c pe.c ostype.c ps.c hashstr.c \
+               parse_num.c
 E2P_SRCS    := $(patsubst %,e2p/%, $(E2P_SRC))
 E2P_OBJS    := $(patsubst %.c,%.o, $(E2P_SRCS))
 
 EXT2FS_SRC  := gen_bitmap.c bitops.c ismounted.c mkjournal.c unix_io.c \
                llseek.c rw_bitmaps.c initialize.c bitmaps.c block.c \
                ind_block.c inode.c freefs.c alloc_stats.c closefs.c \
-               openfs.c io_manager.c finddev.c read_bb.c alloc.c badblocks.c
+               openfs.c io_manager.c finddev.c read_bb.c alloc.c badblocks.c \
+               getsize.c getsectsize.c alloc_tables.c read_bb_file.c mkdir.c \
+               bb_inode.c newdir.c alloc_sb.c lookup.c dirblock.c expanddir.c \
+               dir_iterate.c link.c res_gdt.c
 EXT2FS_SRCS := $(patsubst %,ext2fs/%, $(EXT2FS_SRC))
 EXT2FS_OBJS := $(patsubst %.c,%.o, $(EXT2FS_SRCS))
 
@@ -50,6 +54,7 @@ UUID_OBJS   := $(patsubst %.c,%.o, $(UUID_SRCS))
 E2FSPROGS-:=
 E2FSPROGS-$(CONFIG_CHATTR)     += chattr.o $(E2P_OBJS)
 E2FSPROGS-$(CONFIG_LSATTR)     += lsattr.o $(E2P_OBJS)
+E2FSPROGS-$(CONFIG_MKE2FS)     += mke2fs.o util.o $(E2P_OBJS) $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)
 E2FSPROGS-$(CONFIG_TUNE2FS)    += tune2fs.o util.o $(E2P_OBJS) $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)
 
 libraries-y+=$(E2FSPROGS_DIR)$(E2FSPROGS_AR)

@@ -17,6 +17,13 @@ config CONFIG_LSATTR
 	help
 	  lsattr lists the file attributes on a second extended file system.
 
+config CONFIG_MKE2FS
+	bool "mke2fs"
+	default n
+	help
+	  mke2fs is used to create an ext2/ext3 filesystem.  The normal compat 
+	  symlinks 'mkfs.ext2' and 'mkfs.ext3' are also provided.
+
 config CONFIG_TUNE2FS
 	bool "tune2fs (and e2label/findfs)"
 	default n

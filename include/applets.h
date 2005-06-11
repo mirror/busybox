@@ -395,8 +395,15 @@
 #ifdef CONFIG_MKDIR
 	APPLET(mkdir, mkdir_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_MKE2FS
+	APPLET(mke2fs, mke2fs_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_MKFIFO
 	APPLET(mkfifo, mkfifo_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_MKE2FS
+	APPLET_NOUSAGE("mkfs.ext2", mke2fs_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+	APPLET_NOUSAGE("mkfs.ext3", mke2fs_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_MKFS_MINIX
 	APPLET_ODDNAME("mkfs.minix", mkfs_minix_main, _BB_DIR_SBIN, _BB_SUID_NEVER, mkfs_minix)

@@ -1705,6 +1705,37 @@
 	"/tmp/foo/bar/baz: No such file or directory\n" \
 	"$ mkdir -p /tmp/foo/bar/baz\n"
 
+#define mke2fs_trivial_usage \
+	"[-c|-l filename] [-b block-size] [-f fragment-size] [-g blocks-per-group] " \
+	"[-i bytes-per-inode] [-j] [-J journal-options] [-N number-of-inodes] [-n] " \
+	"[-m reserved-blocks-percentage] [-o creator-os] [-O feature[,...]] [-q] " \
+	"[r fs-revision-level] [-E extended-options] [-v] [-F] [-L volume-label] " \
+	"[-M last-mounted-directory] [-S] [-T filesystem-type] " \
+	"device [blocks-count]"
+#define mke2fs_full_usage \
+	"\t-b size\tblock size in bytes\n" \
+	"\t-c\tcheck for bad blocks before creating\n" \
+	"\t-E opts\tset extended options\n" \
+	"\t-f size\tfragment size in bytes\n" \
+	"\t-F\tforce (ignore sanity checks)\n" \
+	"\t-g num\tnumber of blocks in a block group\n" \
+	"\t-i ratio\tthe bytes/inode ratio\n" \
+	"\t-j\tcreate a journal (ext3)\n" \
+	"\t-J opts\tset journal options (size/device)\n" \
+	"\t-l file\tread bad blocks list from file\n" \
+	"\t-L lbl\tset the volume label\n" \
+	"\t-m percent\tpercent of fs blocks to reserve for admin\n" \
+	"\t-M dir\tset last mounted directory\n" \
+	"\t-n\tdo not actually create anything\n" \
+	"\t-N num\tnumber of inodes to create\n" \
+	"\t-o os\tset the 'creator os' field\n" \
+	"\t-O features\tdir_index/filetype/has_journal/journal_dev/sparse_super\n" \
+	"\t-q\tquiet execution\n" \
+	"\t-r rev\tset filesystem revision\n" \
+	"\t-S\twrite superblock and group descriptors only\n" \
+	"\t-T fs-type\tset usage type (news/largefile/largefile4)\n" \
+	"\t-v\tverbose execution"
+
 #define mkfifo_trivial_usage \
 	"[OPTIONS] name"
 #define mkfifo_full_usage \
