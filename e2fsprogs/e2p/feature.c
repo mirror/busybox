@@ -56,10 +56,10 @@ static struct feature feature_list[] = {
 
 const char *e2p_feature2string(int compat, unsigned int mask)
 {
-	struct feature  *f;
+	struct feature *f;
 	static char buf[20];
-	char	fchar;
-	int	fnum;
+	char fchar;
+	int fnum;
 
 	for (f = feature_list; f->string; f++) {
 		if ((compat == f->compat) &&
@@ -67,7 +67,7 @@ const char *e2p_feature2string(int compat, unsigned int mask)
 			return f->string;
 	}
 	switch (compat) {
-	case  E2P_FEATURE_COMPAT:
+	case E2P_FEATURE_COMPAT:
 		fchar = 'C';
 		break;
 	case E2P_FEATURE_INCOMPAT:
@@ -81,15 +81,15 @@ const char *e2p_feature2string(int compat, unsigned int mask)
 		break;
 	}
 	for (fnum = 0; mask >>= 1; fnum++);
-	sprintf(buf, "FEATURE_%c%d", fchar, fnum);
+		sprintf(buf, "FEATURE_%c%d", fchar, fnum);
 	return buf;
 }
 
 int e2p_string2feature(char *string, int *compat_type, unsigned int *mask)
 {
-	struct feature  *f;
-	char		*eptr;
-	int		num;
+	struct feature *f;
+	char *eptr;
+	int num;
 
 	for (f = feature_list; f->string; f++) {
 		if (!strcasecmp(string, f->string)) {
@@ -128,14 +128,14 @@ int e2p_string2feature(char *string, int *compat_type, unsigned int *mask)
 	return 0;
 }
 
-static char *skip_over_blanks(char *cp)
+static inline char *skip_over_blanks(char *cp)
 {
 	while (*cp && isspace(*cp))
 		cp++;
 	return cp;
 }
 
-static char *skip_over_word(char *cp)
+static inline char *skip_over_word(char *cp)
 {
 	while (*cp && !isspace(*cp) && *cp != ',')
 		cp++;
@@ -187,4 +187,3 @@ int e2p_edit_feature(const char *str, __u32 *compat_array, __u32 *ok_array)
 	}
 	return 0;
 }
-

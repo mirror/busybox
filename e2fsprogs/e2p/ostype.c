@@ -23,17 +23,17 @@ const char *os_tab[] =
  */
 char *e2p_os2string(int os_type)
 {
-        const char	*os;
-	char 		*ret;
+	const char *os;
+	char *ret;
 
 	if (os_type <= EXT2_OS_LITES)
 		os = os_tab[os_type];
 	else
 		os = "(unknown os)";
 
-        ret = malloc(strlen(os)+1);
-        strcpy(ret, os);
-        return ret;
+	ret = xmalloc(strlen(os)+1);
+	strcpy(ret, os);
+	return ret;
 }
 
 /*
@@ -41,8 +41,8 @@ char *e2p_os2string(int os_type)
  */
 int e2p_string2os(char *str)
 {
-	const char	**cpp;
-	int		i = 0;
+	const char **cpp;
+	int i = 0;
 
 	for (cpp = os_tab; *cpp; cpp++, i++) {
 		if (!strcasecmp(str, *cpp))

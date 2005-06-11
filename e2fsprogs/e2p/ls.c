@@ -20,28 +20,18 @@
 
 #include "e2p.h"
 
-static void print_user (unsigned short uid, FILE *f)
+static void print_user(unsigned short uid, FILE *f)
 {
-	struct passwd *pw;
-
-	fprintf(f, "%u ", uid);
-	pw = getpwuid (uid);
-	if (pw == NULL)
-		fprintf(f, "(user unknown)\n");
-	else
-		fprintf(f, "(user %s)\n", pw->pw_name);
+	struct passwd *pw = getpwuid(uid);
+	fprintf(f, "%u (user %s)\n", uid,
+	        (pw == NULL ? "unknown" : pw->pw_name));
 }
 
-static void print_group (unsigned short gid, FILE *f)
+static void print_group(unsigned short gid, FILE *f)
 {
-	struct group *gr;
-
-	fprintf(f, "%u ", gid);
-	gr = getgrgid (gid);
-	if (gr == NULL)
-		fprintf(f, "(group unknown)\n");
-	else
-		fprintf(f, "(group %s)\n", gr->gr_name);
+	struct group *gr = getgrgid(gid);
+	fprintf(f, "%u (group %s)\n", gid,
+	        (gr == NULL ? "unknown" : gr->gr_name));
 }
 
 #define MONTH_INT (86400 * 30)
@@ -167,10 +157,12 @@ void list_super2(struct ext2_super_block * sb, FILE *f)
 		strncpy(buf, sb->s_last_mounted, sizeof(sb->s_last_mounted));
 	} else
 		strcpy(buf, "<not available>");
-	fprintf(f, "Last mounted on:          %s\n", buf);
-	fprintf(f, "Filesystem UUID:          %s\n", e2p_uuid2str(sb->s_uuid));
-	fprintf(f, "Filesystem magic number:  0x%04X\n", sb->s_magic);
-	fprintf(f, "Filesystem revision #:    %d", sb->s_rev_level);
+	fprintf(f,
+		"Last mounted on:          %s\n"
+		"Filesystem UUID:          %s\n"
+		"Filesystem magic number:  0x%04X\n"
+		"Filesystem revision #:    %d",
+		buf, e2p_uuid2str(sb->s_uuid), sb->s_magic, sb->s_rev_level);
 	if (sb->s_rev_level == EXT2_GOOD_OLD_REV) {
 		fprintf(f, " (original)\n");
 #ifdef EXT2_DYNAMIC_REV
@@ -183,28 +175,34 @@ void list_super2(struct ext2_super_block * sb, FILE *f)
 	print_mntopts(sb, f);
 	fprintf(f, "Filesystem state:        ");
 	print_fs_state (f, sb->s_state);
-	fprintf(f, "\n");
-	fprintf(f, "Errors behavior:          ");
+	fprintf(f, "\nErrors behavior:          ");
 	print_fs_errors(f, sb->s_errors);
-	fprintf(f, "\n");
 	str = e2p_os2string(sb->s_creator_os);
-	fprintf(f, "Filesystem OS type:       %s\n", str);
+	fprintf(f,
+		"\n"
+		"Filesystem OS type:       %s\n"
+		"Inode count:              %u\n"
+		"Block count:              %u\n"
+		"Reserved block count:     %u\n"
+		"Free blocks:              %u\n"
+		"Free inodes:              %u\n"
+		"First block:              %u\n"
+		"Block size:               %u\n"
+		"Fragment size:            %u\n",
+		str, sb->s_inodes_count, sb->s_blocks_count, sb->s_r_blocks_count,
+		sb->s_free_blocks_count, sb->s_free_inodes_count, 
+		sb->s_first_data_block, EXT2_BLOCK_SIZE(sb), EXT2_FRAG_SIZE(sb));
 	free(str);
-	fprintf(f, "Inode count:              %u\n", sb->s_inodes_count);
-	fprintf(f, "Block count:              %u\n", sb->s_blocks_count);
-	fprintf(f, "Reserved block count:     %u\n", sb->s_r_blocks_count);
-	fprintf(f, "Free blocks:              %u\n", sb->s_free_blocks_count);
-	fprintf(f, "Free inodes:              %u\n", sb->s_free_inodes_count);
-	fprintf(f, "First block:              %u\n", sb->s_first_data_block);
-	fprintf(f, "Block size:               %u\n", EXT2_BLOCK_SIZE(sb));
-	fprintf(f, "Fragment size:            %u\n", EXT2_FRAG_SIZE(sb));
 	if (sb->s_reserved_gdt_blocks)
 		fprintf(f, "Reserved GDT blocks:      %u\n", 
 			sb->s_reserved_gdt_blocks);
-	fprintf(f, "Blocks per group:         %u\n", sb->s_blocks_per_group);
-	fprintf(f, "Fragments per group:      %u\n", sb->s_frags_per_group);
-	fprintf(f, "Inodes per group:         %u\n", sb->s_inodes_per_group);
-	fprintf(f, "Inode blocks per group:   %u\n", inode_blocks_per_group);
+	fprintf(f,
+		"Blocks per group:         %u\n"
+		"Fragments per group:      %u\n"
+		"Inodes per group:         %u\n"
+		"Inode blocks per group:   %u\n",
+		sb->s_blocks_per_group, sb->s_frags_per_group,
+		sb->s_inodes_per_group, inode_blocks_per_group);
 	if (sb->s_first_meta_bg)
 		fprintf(f, "First meta block group:   %u\n",
 			sb->s_first_meta_bg);
@@ -216,13 +214,17 @@ void list_super2(struct ext2_super_block * sb, FILE *f)
 	fprintf(f, "Last mount time:          %s",
 		sb->s_mtime ? ctime(&tm) : "n/a\n");
 	tm = sb->s_wtime;
-	fprintf(f, "Last write time:          %s", ctime(&tm));
-	fprintf(f, "Mount count:              %u\n", sb->s_mnt_count);
-	fprintf(f, "Maximum mount count:      %d\n", sb->s_max_mnt_count);
+	fprintf(f,
+		"Last write time:          %s"
+		"Mount count:              %u\n"
+		"Maximum mount count:      %d\n",
+		ctime(&tm), sb->s_mnt_count, sb->s_max_mnt_count);
 	tm = sb->s_lastcheck;
-	fprintf(f, "Last checked:             %s", ctime(&tm));
-	fprintf(f, "Check interval:           %u (%s)\n", sb->s_checkinterval,
-	       interval_string(sb->s_checkinterval));
+	fprintf(f,
+		"Last checked:             %s"
+		"Check interval:           %u (%s)\n",
+		ctime(&tm),
+		sb->s_checkinterval, interval_string(sb->s_checkinterval));
 	if (sb->s_checkinterval)
 	{
 		time_t next;
@@ -235,8 +237,10 @@ void list_super2(struct ext2_super_block * sb, FILE *f)
 	fprintf(f, "Reserved blocks gid:      ");
 	print_group(sb->s_def_resgid, f);
 	if (sb->s_rev_level >= EXT2_DYNAMIC_REV) {
-		fprintf(f, "First inode:              %d\n", sb->s_first_ino);
-		fprintf(f, "Inode size:		  %d\n", sb->s_inode_size);
+		fprintf(f,
+			"First inode:              %d\n"
+			"Inode size:		  %d\n",
+			sb->s_first_ino, sb->s_inode_size);
 	}
 	if (!e2p_is_null_uuid(sb->s_journal_uuid))
 		fprintf(f, "Journal UUID:             %s\n",
@@ -259,18 +263,9 @@ void list_super2(struct ext2_super_block * sb, FILE *f)
 			e2p_uuid2str(sb->s_hash_seed));
 	if (sb->s_jnl_backup_type) {
 		fprintf(f, "Journal backup:           ");
-		switch (sb->s_jnl_backup_type) {
-		case 1:
+		if (sb->s_jnl_backup_type == 1)
 			fprintf(f, "inode blocks\n");
-			break;
-		default:
+		else
 			fprintf(f, "type %u\n", sb->s_jnl_backup_type);
-		}
 	}
 }
-
-void list_super (struct ext2_super_block * s)
-{
-	list_super2(s, stdout);
-}
-

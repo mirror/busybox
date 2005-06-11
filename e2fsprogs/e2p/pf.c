@@ -71,4 +71,3 @@ void print_flags (FILE * f, unsigned long flags, unsigned options)
 	if (long_opt && first)
 		fputs("---", f);
 }
-
