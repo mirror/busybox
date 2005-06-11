@@ -86,10 +86,13 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 	ext2_filsys	fs;
 	errcode_t	retval;
 	unsigned long	i;
-	int		j, groups_per_block, blocks_per_group;
+	int		groups_per_block, blocks_per_group;
 	blk_t		group_block, blk;
 	char		*dest, *cp;
+#ifdef EXT2FS_ENABLE_SWAPFS
+	int j;
 	struct ext2_group_desc *gdp;
+#endif
 	
 	EXT2_CHECK_MAGIC(manager, EXT2_ET_MAGIC_IO_MANAGER);
 

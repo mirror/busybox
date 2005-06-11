@@ -205,15 +205,18 @@ static errcode_t write_backup_super(ext2_filsys fs, dgrp_t group,
 
 errcode_t ext2fs_flush(ext2_filsys fs)
 {
-	dgrp_t		i,j;
+	dgrp_t		i;
 	blk_t		group_block;
 	errcode_t	retval;
 	unsigned long	fs_state;
 	struct ext2_super_block *super_shadow = 0;
 	struct ext2_group_desc *group_shadow = 0;
-	struct ext2_group_desc *s, *t;
 	char	*group_ptr;
 	int	old_desc_blocks;
+#ifdef EXT2FS_ENABLE_SWAPFS
+	dgrp_t		j;
+	struct ext2_group_desc *s, *t;
+#endif
 	
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
 
