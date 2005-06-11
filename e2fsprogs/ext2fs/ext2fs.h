@@ -77,11 +77,9 @@ typedef __s64		e2_blkcnt_t;
 typedef __u32		ext2_dirhash_t;
 
 #if EXT2_FLAT_INCLUDES
-#include "com_err.h"
 #include "ext2_io.h"
 #include "ext2_err.h"
 #else
-#include <et/com_err.h>
 #include <ext2fs/ext2_io.h>
 #include <ext2fs/ext2_err.h>
 #endif
