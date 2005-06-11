@@ -192,7 +192,7 @@ scripts/mkdep: $(top_srcdir)/scripts/mkdep.c
 scripts/split-include: $(top_srcdir)/scripts/split-include.c
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
-.depend: scripts/mkdep
+.depend: scripts/mkdep include/config.h
 	rm -f .depend .hdepend;
 	mkdir -p include/config;
 	scripts/mkdep -I include -- \
@@ -200,7 +200,7 @@ scripts/split-include: $(top_srcdir)/scripts/split-include.c
 	scripts/mkdep -I include -- \
 	  `find $(top_srcdir) -name \*.h -print | sed -e "s,^./,,"` >> .hdepend;
 
-depend dep: include/config.h .depend
+depend dep: .depend
 
 include/config/MARKER: depend scripts/split-include
 	scripts/split-include include/config.h include/config
