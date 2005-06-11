@@ -65,13 +65,15 @@ extern "C" {
 #endif
 
 /* clear.c */
-void uuid_clear(uuid_t uu);
+/*void uuid_clear(uuid_t uu);*/
+#define uuid_clear(uu) memset(uu, 0, 16)
 
 /* compare.c */
 int uuid_compare(const uuid_t uu1, const uuid_t uu2);
 
 /* copy.c */
-void uuid_copy(uuid_t dst, const uuid_t src);
+/*void uuid_copy(uuid_t dst, const uuid_t src);*/
+#define uuid_copy(dst,src) memcpy(dst,src,16)
 
 /* gen_uuid.c */
 void uuid_generate(uuid_t out);
