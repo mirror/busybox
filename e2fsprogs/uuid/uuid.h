@@ -66,14 +66,14 @@ extern "C" {
 
 /* clear.c */
 /*void uuid_clear(uuid_t uu);*/
-#define uuid_clear(uu) memset(uu, 0, 16)
+#define uuid_clear(uu) memset(uu, 0, sizeof(uu))
 
 /* compare.c */
 int uuid_compare(const uuid_t uu1, const uuid_t uu2);
 
 /* copy.c */
 /*void uuid_copy(uuid_t dst, const uuid_t src);*/
-#define uuid_copy(dst,src) memcpy(dst,src,16)
+#define uuid_copy(dst,src) memcpy(dst, src, sizeof(dst))
 
 /* gen_uuid.c */
 void uuid_generate(uuid_t out);
@@ -81,7 +81,8 @@ void uuid_generate_random(uuid_t out);
 void uuid_generate_time(uuid_t out);
 
 /* isnull.c */
-int uuid_is_null(const uuid_t uu);
+/*int uuid_is_null(const uuid_t uu);*/
+#define uuid_is_null(uu) (!memcmp(uu, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", sizeof(uu)))
 
 /* parse.c */
 int uuid_parse(const char *in, uuid_t uu);
