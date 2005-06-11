@@ -105,3 +105,15 @@ buildroot - Make a "dogfood" option
   util-linux, and vim.  Anything that's wrong with the resulting system, we
   can fix.  (It would be nice to be able to upgrade busybox to be able to
   replace bash, diffutils, gzip, less, and patch as well.)
+---
+Memory Allocation
+  We have a CONFIG_BUFFER mechanism that lets us select whether to do memory
+  allocation on the stack or the heap.  Unfortunately, we're not using it much.
+  We need to audit our memory allocations and turn a lot of malloc/free calls
+  into RESERVE_CONFIG_BUFFER/RELEASE_CONFIG_BUFFER.
+  
+  And while we're at it, many of the CONFIG_FEATURE_CLEAN_UP #ifdefs will be
+  optimized out by the compiler in the stack allocation case (since there's no
+  free for an alloca()), and this means that various cleanup loops that just
+  call free might also be optimized out by the compiler if written right, so
+  we can yank those #ifdefs too, and generally clean up the code.
