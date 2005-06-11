@@ -52,4 +52,3 @@ int uuid_compare(const uuid_t uu1, const uuid_t uu2)
 	UUCMP(uuid1.clock_seq, uuid2.clock_seq);
 	return memcmp(uuid1.node, uuid2.node, 6);
 }
-
