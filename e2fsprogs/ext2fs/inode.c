@@ -641,9 +641,7 @@ errcode_t ext2fs_write_inode_full(ext2_filsys fs, ext2_ino_t ino,
 		length = EXT2_INODE_SIZE(fs->super);
 
 	if (length > (int) sizeof(struct ext2_inode_large)) {
-		w_inode = malloc(length);
-		if (!w_inode)
-			return ENOMEM;
+		w_inode = xmalloc(length);
 	} else
 		w_inode = &temp_inode;
 	memset(w_inode, 0, length);
@@ -731,9 +729,7 @@ errcode_t ext2fs_write_new_inode(ext2_filsys fs, ext2_ino_t ino,
 		return ext2fs_write_inode_full(fs, ino, inode,
 					       sizeof(struct ext2_inode));
 
-	buf = malloc(size);
-	if (!buf)
-		return ENOMEM;
+	buf = xmalloc(size);
 
 	memset(buf, 0, size);
 	*buf = *inode;

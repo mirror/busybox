@@ -46,14 +46,8 @@ static void add_to_dirlist(const char *name, struct dir_list **list)
 {
 	struct dir_list *dp;
 
-	dp = malloc(sizeof(struct dir_list));
-	if (!dp)
-		return;
-	dp->name = malloc(strlen(name)+1);
-	if (!dp->name) {
-		free(dp);
-		return;
-	}
+	dp = xmalloc(sizeof(struct dir_list));
+	dp->name = xmalloc(strlen(name)+1);
 	strcpy(dp->name, name);
 	dp->next = *list;
 	*list = dp;
@@ -100,11 +94,7 @@ static int scan_dir(char *dir_name, dev_t device, struct dir_list **list,
 		if (S_ISDIR(st.st_mode))
 			add_to_dirlist(path, list);
 		if (S_ISBLK(st.st_mode) && st.st_rdev == device) {
-			cp = malloc(strlen(path)+1);
-			if (!cp) {
-				closedir(dir);
-				return ENOMEM;
-			}
+			cp = xmalloc(strlen(path)+1);
 			strcpy(cp, path);
 			*ret_path = cp;
 			goto success;

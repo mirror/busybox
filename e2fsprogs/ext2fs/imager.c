@@ -66,9 +66,7 @@ errcode_t ext2fs_image_inode_write(ext2_filsys fs, int fd, int flags)
 	ssize_t		actual;
 	errcode_t	retval;
 
-	buf = malloc(fs->blocksize * BUF_BLOCKS);
-	if (!buf)
-		return ENOMEM;
+	buf = xmalloc(fs->blocksize * BUF_BLOCKS);
 	
 	for (group = 0; group < fs->group_desc_count; group++) {
 		blk = fs->group_desc[(unsigned)group].bg_inode_table;
@@ -138,9 +136,7 @@ errcode_t ext2fs_image_inode_read(ext2_filsys fs, int fd,
 	ssize_t		actual;
 	errcode_t	retval;
 
-	buf = malloc(fs->blocksize * BUF_BLOCKS);
-	if (!buf)
-		return ENOMEM;
+	buf = xmalloc(fs->blocksize * BUF_BLOCKS);
 	
 	for (group = 0; group < fs->group_desc_count; group++) {
 		blk = fs->group_desc[(unsigned)group].bg_inode_table;
@@ -187,9 +183,7 @@ errcode_t ext2fs_image_super_write(ext2_filsys fs, int fd,
 	ssize_t		actual;
 	errcode_t	retval;
 
-	buf = malloc(fs->blocksize);
-	if (!buf)
-		return ENOMEM;
+	buf = xmalloc(fs->blocksize);
 
 	/*
 	 * Write out the superblock
@@ -238,9 +232,7 @@ errcode_t ext2fs_image_super_read(ext2_filsys fs, int fd,
 	errcode_t	retval;
 
 	size = fs->blocksize * (fs->group_desc_count + 1);
-	buf = malloc(size);
-	if (!buf)
-		return ENOMEM;
+	buf = xmalloc(size);
 
 	/*
 	 * Read it all in.
@@ -364,9 +356,7 @@ errcode_t ext2fs_image_bitmap_read(ext2_filsys fs, int fd, int flags)
 	}
 	size = size * fs->group_desc_count;
 
-	buf = malloc(size);
-	if (!buf)
-		return ENOMEM;
+	buf = xmalloc(size);
 
 	actual = read(fd, buf, size);
 	if (actual == -1) {
