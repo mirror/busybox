@@ -46,7 +46,6 @@ static const char * device_name /* = NULL */;
 
 /* Command line options */
 static int	cflag;
-static int	verbose;
 static int	quiet;
 static int	super_only;
 static int	force;
@@ -223,7 +222,7 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 	sprintf(buf, "badblocks -b %d %s%s%s %d", fs->blocksize,
 		quiet ? "" : "-s ", (cflag > 1) ? "-w " : "",
 		fs->device_name, fs->super->s_blocks_count);
-	if (verbose)
+	if (!quiet)
 		printf(_("Running command: %s\n"), buf);
 	f = popen(buf, "r");
 	if (!f) {
@@ -981,7 +980,7 @@ static void PRS(int argc, char *argv[])
 			num_inodes = atoi(optarg);
 			break;
 		case 'v':
-			verbose = 1;
+			quiet = 0;
 			break;
 		case 'q':
 			quiet = 1;
