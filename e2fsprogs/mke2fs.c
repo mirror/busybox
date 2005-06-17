@@ -21,9 +21,6 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <time.h>
-#ifdef __linux__
-#include <sys/utsname.h>
-#endif
 #include <getopt.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -45,7 +42,6 @@
 #define ZAP_BOOTBLOCK
 #endif
 
-static const char * program_name = "mke2fs";
 static const char * device_name /* = NULL */;
 
 /* Command line options */
@@ -824,9 +820,6 @@ static void PRS(int argc, char *argv[])
 	char *		extended_opts = 0;
 	const char *	fs_type = 0;
 	blk_t		dev_size;
-#ifdef __linux__
-	struct 		utsname ut;
-#endif
 	long		sysval;
 
 	/* Update our PATH to include /sbin  */
@@ -866,10 +859,7 @@ static void PRS(int argc, char *argv[])
 #endif
 
 #ifdef __linux__
-	if (uname(&ut)) {
-		bb_perror_msg_and_die("uname");
-	}
-	linux_version_code = parse_version_number(ut.release);
+	linux_version_code = get_kernel_revision();
 	if (linux_version_code && linux_version_code < (2*65536 + 2*256)) {
 		param.s_rev_level = 0;
 		param.s_feature_incompat = 0;
@@ -879,8 +869,6 @@ static void PRS(int argc, char *argv[])
 #endif
 
 	if (argc && *argv) {
-		program_name = basename(*argv);
-
 		/* If called as mkfs.ext3, create a journal inode */
 		if (!strcmp(*argv + strlen(*argv) - 9, "mkfs.ext3"))
 			journal_size = -1;
