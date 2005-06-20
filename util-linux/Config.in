@@ -216,6 +216,21 @@ config CONFIG_LOSETUP
 	  file or block device, and to query the status of a loop device.  This
 	  version does not currently support enabling data encryption.
 
+config CONFIG_IPCRM
+	bool "ipcrm"
+	default n
+	help
+	  The ipcrm utility allows the removal of System V interprocess
+	  communication (IPC) objects and the associated data structures
+	  from the system.
+
+config CONFIG_IPCS
+	bool "ipcs"
+	default n
+	help
+	  The ipcs utility is used to provide information on the currently
+	  allocated System V interprocess (IPC) objects in the system.
+
 config CONFIG_MKSWAP
 	bool "mkswap"
 	default n
@@ -322,14 +337,18 @@ config CONFIG_FEATURE_MOUNT_LOOP
 	default n
 	depends on CONFIG_MOUNT || CONFIG_UMOUNT
 	help
-	  Enabling this feature allows mount to use the '-o' loop options,
-	  which lets you loop mount files.  Mount will automagically setup and
-	  free the necessary loop devices so you do not need to mess with the
-	  'losetup' utility unless you really want to.  This is really
-	  only useful if you plan to loop mount files.
+	  Enabling this feature allows automatic loopback mounts, meaning you can mount
+	  filesystems contained in normal files as well as in block devices.  The mount
+	  and umount commands will detect you are trying to mount a file instead of a
+	  block device, and transparently associate it with a loopback device (and free
+	  the loopback device on unmount) for you.
+	  
+	  You can still use the 'losetup' utility and mount the loopback device yourself
+	  if you need to do something advanced, such as specify an offset or cryptographic
+	  options to the loopback device.
 
 config CONFIG_FEATURE_MTAB_SUPPORT
-	bool "  Support for a real /etc/mtab (instead of /proc/mounts)"
+	bool "  Support for a /etc/mtab file (instead of symlink to /proc/mounts)"
 	default n
 	depends on CONFIG_MOUNT || CONFIG_UMOUNT
 	help
@@ -339,17 +358,9 @@ config CONFIG_FEATURE_MTAB_SUPPORT
 	  BusyBox have a read-only root filesystem, so they will leave this
 	  option disabled and BusyBox will use the /proc/mounts file.
 
-config CONFIG_FEATURE_MTAB_FILENAME
-	string "  mtab file location"
-	default "/etc/mtab"
-	depends on CONFIG_FEATURE_MTAB_SUPPORT
-	help
-	  Some people have a read only root filesystem, but they also wish to
-	  have the 'mount' utility create an mtab file listing the filesystems
-	  which have been mounted.  This option allows you to specify an alternative
-	  location for the mtab file, such as /var/mtab, or /tmp/mtab.  The default
-	  value is /etc/mtab, which is where this file is located on most desktop
-	  Linux systems.
+	  Note that even non-embedded developers probably want to have /etc/mtab
+	  be a symlink to /proc/mounts, since otherwise mtab can get out of sync
+	  with the real kernel mount state in numerous ways.
 
 config CONFIG_READPROFILE
 	bool "readprofile"

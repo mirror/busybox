@@ -397,6 +397,8 @@ CONFIG_DMESG=y
 # CONFIG_GETOPT is not set
 CONFIG_HEXDUMP=y
 # CONFIG_HWCLOCK is not set
+# CONFIG_IPCRM is not set
+# CONFIG_IPCS is not set
 # CONFIG_LOSETUP is not set
 # CONFIG_MKSWAP is not set
 CONFIG_MORE=y

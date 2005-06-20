@@ -320,6 +320,12 @@
 #ifdef CONFIG_IPCALC
 	APPLET(ipcalc, ipcalc_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_IPCRM
+	APPLET(ipcrm, ipcrm_main, _BB_DIR_USR_BIN, _BB_SUID_ALWAYS)
+#endif
+#ifdef CONFIG_IPCS
+	APPLET(ipcs, ipcs_main, _BB_DIR_USR_BIN, _BB_SUID_ALWAYS)
+#endif
 #ifdef CONFIG_IPLINK
 	APPLET(iplink, iplink_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

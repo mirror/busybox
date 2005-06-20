@@ -1395,6 +1395,32 @@
 	"\t-h\t--hostname\tDisplay first resolved host name\n" \
 	"\t-s\t--silent\tDon't ever display error messages.")
 
+#define ipcrm_trivial_usage \
+	"[-[MQS] key] [-[mqs] id]"
+#define ipcrm_full_usage \
+	"The upper-case options MQS are used to remove a shared memory\n" \
+	"segment by an shmkey value. The lower-case options mqs are used\n" \
+	"to remove a segment by shmid value.\n" \
+	"\t-m | -M\tRemove the memory segment after the last detatch\n" \
+	"\t-q | -Q\tRemove the message queue\n" \
+	"\t-s | -S\tRemove the semaphore\n"
+
+#define ipcs_trivial_usage \
+	"[[-smq] -i shmid] | [[-asmq] [-tclup]]"
+#define ipcs_full_usage \
+	"\t-i\tspecify a specific resource id\n" \
+	"Resource specification:\n" \
+	"\t-m\tshared memory segments\n" \
+	"\t-q\tmessage queues\n" \
+	"\t-s\tsempahore arrays\n" \
+	"\t-a\tall (default)\n" \
+	"Output format:\n" \
+	"\t-t\ttime\n" \
+	"\t-p\tpid\n" \
+	"\t-s\tcreator\n" \
+	"\t-a\tlimits\n" \
+	"\t-i\tsummary\n"
+
 #define iplink_trivial_usage \
 	"{ set DEVICE { up | down | arp { on | off } | show [ DEVICE ] }"
 #define iplink_full_usage \
@@ -2080,18 +2106,30 @@
 	"$ printf \"Val=%d\\n\" 5\n" \
 	"Val=5\n"
 
+#if !defined(CONFIG_SELINUX) && !defined(CONFIG_PS_FEATURE_WIDE)
+#define USAGE_PS "\n\tThis version of ps accepts no options."
+#else
+#define USAGE_PS "\nOptions:"
+#endif
 #ifdef CONFIG_SELINUX
 #define USAGE_NONSELINUX(a)
 #else
 #define USAGE_NONSELINUX(a) a
+#endif
+#ifdef CONFIG_PS_FEATURE_WIDE
+#define USAGE_PS_WIDE(a) a
+#else
+#define USAGE_PS_WIDE(a)
 #endif
 
 #define ps_trivial_usage \
 	""
 #define ps_full_usage \
 	"Report process status\n" \
-	USAGE_NONSELINUX("\n\tThis version of ps accepts no options.") \
-	USAGE_SELINUX("\nOptions:\n\t-c\tshow SE Linux context")
+	USAGE_PS \
+	USAGE_SELINUX("\n\t-c\tshow SE Linux context") \
+	USAGE_PS_WIDE("\n\tw\twide output")
+
 
 #define ps_example_usage \
 	"$ ps\n" \

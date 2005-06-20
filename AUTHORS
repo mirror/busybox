@@ -113,6 +113,9 @@ Bruce Perens <bruce@pixar.com>
     Original author of BusyBox in 1995, 1996. Some of his code can
     still be found hiding here and there...
 
+Rodney Radford <rradford@mindspring.com>
+    ipcs, ipcrm
+
 Tim Riker <Tim@Rikers.org>
     bug fixes, member of fan club
 
