@@ -37,6 +37,7 @@ config CONFIG_FEATURE_CROND_CALL_SENDMAIL
 config CONFIG_CRONTAB
 	bool "crontab"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  Crontab manipulates the crontab for a particular user.  Only
 	  the superuser may specify a different user and/or crontab directory.

@@ -219,6 +219,7 @@ config CONFIG_LOSETUP
 config CONFIG_IPCRM
 	bool "ipcrm"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  The ipcrm utility allows the removal of System V interprocess
 	  communication (IPC) objects and the associated data structures
@@ -227,6 +228,7 @@ config CONFIG_IPCRM
 config CONFIG_IPCS
 	bool "ipcs"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  The ipcs utility is used to provide information on the currently
 	  allocated System V interprocess (IPC) objects in the system.
