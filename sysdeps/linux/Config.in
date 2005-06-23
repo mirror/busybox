@@ -94,14 +94,14 @@ config CONFIG_FEATURE_SUID
 
 config CONFIG_FEATURE_SUID_CONFIG
 	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
-	default y if CONFIG_FEATURE_SUID
+	default n if CONFIG_FEATURE_SUID
 	depends on CONFIG_FEATURE_SUID
 	help
 	  Allow the SUID / SGID state of an applet to be determined runtime by
 	  checking /etc/busybox.conf.  The format of this file is as follows:
 
 	  <applet> = [Ssx-][Ssx-][x-] (<username>|<uid>).(<groupname>|<gid>)
-	
+
 	  An example might help:
 
 	  [SUID]
