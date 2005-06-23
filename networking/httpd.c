@@ -734,7 +734,7 @@ static char *encodeString(const char *string)
   while ((ch = *string++)) {
     // very simple check for what to encode
     if (isalnum(ch)) *p++ = ch;
-    else p += sprintf(p, "&#%d", (unsigned char) ch);
+    else p += sprintf(p, "&#%d;", (unsigned char) ch);
   }
   *p=0;
   return out;
