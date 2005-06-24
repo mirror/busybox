@@ -136,19 +136,10 @@ static void inetbind(void)
 	movefd(s, 0);
 }
 
-static void delpidfile(void)
-{
-	/*
-	 * Usually nobody has no write/delete access to directory /var/run/
-	 * therefore if file cannot be deleted, it is truncated
-	 */
-	if (unlink(PIDFILE) < 0)
-		close(open(PIDFILE, O_WRONLY|O_CREAT|O_TRUNC, 0644));
-}
-
 static void handlexitsigs(int signum)
 {
-	delpidfile();
+	if (unlink(PIDFILE) < 0)
+		close(open(PIDFILE, O_WRONLY|O_CREAT|O_TRUNC, 0644));
 	exit(0);
 }
 
