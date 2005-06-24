@@ -42,7 +42,7 @@ static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
 	max = (hash_length * 2) + 2;
 	hex_value = xmalloc(max);
 	for (x = len = 0; x < hash_length; x++) {
-		len += snprintf(hex_value + len, max - len, "%02x", hash_value[x]);
+		len += snprintf((char*)(hex_value + len), max - len, "%02x", hash_value[x]);
 	}
 	return (hex_value);
 }
@@ -98,7 +98,7 @@ static int hash_files(int argc, char **argv, const uint8_t hash_algo)
 		FILE *pre_computed_stream;
 		int count_total = 0;
 		int count_failed = 0;
-		unsigned char *file_ptr = argv[optind];
+		char *file_ptr = argv[optind];
 		char *line;
 
 		if (optind + 1 != argc) {
@@ -129,7 +129,7 @@ static int hash_files(int argc, char **argv, const uint8_t hash_algo)
 
 			hash_value = hash_file(filename_ptr, hash_algo);
 
-			if (hash_value && (strcmp(hash_value, line) == 0)) {
+			if (hash_value && (strcmp((char*)hash_value, line) == 0)) {
 				if (!(flags & FLAG_SILENT))
 					printf("%s: OK\n", filename_ptr);
 			} else {
@@ -162,7 +162,7 @@ static int hash_files(int argc, char **argv, const uint8_t hash_algo)
 		hash_value = xmalloc(hash_length);
 
 		while (optind < argc) {
-			unsigned char *file_ptr = argv[optind++];
+			char *file_ptr = argv[optind++];
 
 			hash_value = hash_file(file_ptr, hash_algo);
 			if (hash_value == NULL) {
