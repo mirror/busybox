@@ -32,8 +32,14 @@
 #include <time.h>
 #include <getopt.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
+#include <sys/statvfs.h>
 #include <string.h>
 #include "busybox.h"
+
+#ifdef __linux__
+# include <linux/version.h>
+#endif
 
 /* vars to control behavior */
 #define OPT_TERSE 2
@@ -172,9 +178,14 @@ static void print_statfs(char *pformat, size_t buf_len, char m,
 		printf(pformat, (unsigned long int) (statfsbuf->f_bsize));
 		break;
 	case 'S': {
-		unsigned long int frsize = statfsbuf->f_frsize;
+		unsigned long int frsize;
+#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
+		frsize = statfsbuf->f_frsize;
 		if (!frsize)
 			frsize = statfsbuf->f_bsize;
+#else
+		frsize = statfsbuf->f_bsize;
+#endif
 		strncat(pformat, "lu", buf_len);
 		printf(pformat, frsize);
 		break;
