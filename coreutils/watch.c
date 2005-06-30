@@ -82,7 +82,7 @@ extern int watch_main(int argc, char **argv)
 	header[len] = 0;
 
 	/* thanks to lye, who showed me how to redirect stdin/stdout */
-	old_stdout = dup(1);
+	old_stdout = dup(STDOUT_FILENO);
 
 	while (1) {
 		time(&t);
@@ -98,8 +98,7 @@ extern int watch_main(int argc, char **argv)
 			sleep(period);
 		} else if (0 == pid) {
 			//child
-			close(1);
-			dup(old_stdout);
+			dup2(old_stdout, STDOUT_FILENO);
 			execvp(*watched_argv, watched_argv);
 			bb_perror_msg_and_die(*watched_argv);
 		} else {
