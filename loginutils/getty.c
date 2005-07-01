@@ -47,7 +47,7 @@
 
 #ifdef LOGIN_PROCESS			/* defined in System V utmp.h */
 #define	SYSV_STYLE				/* select System V style getty */
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_WTMP
 extern void updwtmp(const char *filename, const struct utmp *ut);
 #endif
 #endif  /* LOGIN_PROCESS */
@@ -231,7 +231,7 @@ static int caps_lock(const char *s);
 static int bcode(char *s);
 static void error(const char *fmt, ...) __attribute__ ((noreturn));
 
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 static void update_utmp(char *line);
 #endif
 
@@ -289,7 +289,7 @@ int getty_main(int argc, char **argv)
 
 
 #ifdef	SYSV_STYLE
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 	update_utmp(options.tty);
 #endif
 #endif
@@ -482,7 +482,7 @@ static void parse_speeds(struct options *op, char *arg)
 }
 
 #ifdef	SYSV_STYLE
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 
 /* update_utmp - update our utmp entry */
 static void update_utmp(char *line)
@@ -533,15 +533,14 @@ static void update_utmp(char *line)
 	pututline(&ut);
 	endutent();
 
-	{
-		if (access(_PATH_WTMP, R_OK|W_OK) == -1) {
-			close(creat(_PATH_WTMP, 0664));
-		}
-		updwtmp(_PATH_WTMP, &ut);
-	}
+#ifdef CONFIG_FEATURE_WTMP
+	if (access(_PATH_WTMP, R_OK|W_OK) == -1) 
+		close(creat(_PATH_WTMP, 0664));
+	updwtmp(_PATH_WTMP, &ut);
+#endif
 }
 
-#endif /* CONFIG_FEATURE_U_W_TMP */
+#endif /* CONFIG_FEATURE_UTMP */
 #endif /* SYSV_STYLE */
 
 /* open_tty - set up tty as standard { input, output, error } */

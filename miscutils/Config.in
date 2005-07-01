@@ -93,7 +93,7 @@ config CONFIG_EJECT
 config CONFIG_LAST
 	bool "last"
 	default n
-	select CONFIG_FEATURE_U_W_TMP
+	select CONFIG_FEATURE_WTMP
 	help
 	  'last' displays a list of the last users that logged into the system.
 

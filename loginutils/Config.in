@@ -57,14 +57,21 @@ config CONFIG_GETTY
 	help
 	  getty lets you log in on a tty, it is normally invoked by init.
 
-config CONFIG_FEATURE_U_W_TMP
-	bool "  Support utmp and wtmp files"
-	depends on CONFIG_GETTY || CONFIG_LOGIN || CONFIG_SU || CONFIG_WHO || CONFIG_LAST
+config CONFIG_FEATURE_UTMP
+	bool "  Support utmp file"
+	depends on CONFIG_GETTY || CONFIG_LOGIN || CONFIG_SU || CONFIG_WHO 
 	default n
 	help
-	  The files /var/run/utmp and /var/run/wtmp can be used to track when
-	  user's have logged into and logged out of the system, allowing programs
-	  such as 'who' and 'last' to list who is currently logged in.
+	  The file /var/run/utmp is used to track who is currently logged in.
+
+config CONFIG_FEATURE_WTMP
+	bool "  Support wtmp file"
+	depends on CONFIG_GETTY || CONFIG_LOGIN || CONFIG_SU || CONFIG_LAST
+	default n
+	select CONFIG_FEATURE_UTMP
+	help
+	  The file /var/run/wtmp is used to track when user's have logged into 
+	  and logged out of the system.
 
 config CONFIG_LOGIN
 	bool "login"
