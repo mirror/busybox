@@ -25,7 +25,9 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <ctype.h>
+#ifdef CONFIG_FEATURE_UTMP
 #include <utmp.h>
+#endif
 #include <getopt.h>
 #include <termios.h>
 #include "busybox.h"
@@ -260,7 +262,11 @@ int getty_main(int argc, char **argv)
 		_PATH_LOGIN,			/* default login program */
 		"tty1",					/* default tty line */
 		"",						/* modem init string */
+#ifdef ISSUE
 		ISSUE,					/* default issue file */
+#else
+		NULL,
+#endif
 		0,						/* no baud rates known yet */
 	};
 
