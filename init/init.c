@@ -156,7 +156,7 @@ static struct init_action *init_action_list = NULL;
 static char console[CONSOLE_BUFF_SIZE] = _PATH_CONSOLE;
 
 #ifndef CONFIG_SYSLOGD
-static char *log = VC_5;
+static char *log_console = VC_5;
 #endif
 static sig_atomic_t got_cont = 0;
 static const int LOG = 0x1;
@@ -239,9 +239,9 @@ static void message(int device, const char *fmt, ...)
 	/* Take full control of the log tty, and never close it.
 	 * It's mine, all mine!  Muhahahaha! */
 	if (log_fd < 0) {
-		if ((log_fd = device_open(log, O_RDWR | O_NDELAY | O_NOCTTY)) < 0) {
+		if ((log_fd = device_open(log_console, O_RDWR | O_NDELAY | O_NOCTTY)) < 0) {
 			log_fd = -2;
-			bb_error_msg("Bummer, can't write to log on %s!", log);
+			bb_error_msg("Bummer, can't write to log on %s!", log_console);
 			device = CONSOLE;
 		} else {
 			fcntl(log_fd, F_SETFD, FD_CLOEXEC);
@@ -381,7 +381,7 @@ static void console_init(void)
 	if (fd < 0) {
 		/* Perhaps we should panic here? */
 #ifndef CONFIG_SYSLOGD
-		log =
+		log_console =
 #endif
 		safe_strncpy(console, "/dev/null", sizeof(console));
 	} else {
@@ -393,7 +393,7 @@ static void console_init(void)
 			if (s == NULL || strcmp(s, "linux") == 0)
 				putenv("TERM=vt102");
 #ifndef CONFIG_SYSLOGD
-			log = console;
+			log_console = console;
 #endif
 		} else {
 			if (s == NULL)
