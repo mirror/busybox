@@ -424,9 +424,8 @@ static void fixup_argv(int argc, char **argv, char *new_argv0)
 
 static pid_t run(const struct init_action *a)
 {
-	struct stat sb;
 	int i, junk;
-	pid_t pid, pgrp, tmp_pid;
+	pid_t pid;
 	char *s, *tmpCmd, *cmd[INIT_BUFFS_SIZE], *cmdpath;
 	char buf[INIT_BUFFS_SIZE + 6];	/* INIT_BUFFS_SIZE+strlen("exec ")+1 */
 	sigset_t nmask, omask;
@@ -442,6 +441,8 @@ static pid_t run(const struct init_action *a)
 	sigprocmask(SIG_BLOCK, &nmask, &omask);
 
 	if ((pid = fork()) == 0) {
+		struct stat sb;
+
 		/* Clean up */
 		close(0);
 		close(1);
@@ -466,11 +467,10 @@ static pid_t run(const struct init_action *a)
 		/* Open the new terminal device */
 		if ((device_open(a->terminal, O_RDWR)) < 0) {
 			if (stat(a->terminal, &sb) != 0) {
-				message(LOG | CONSOLE, "device '%s' does not exist.",
-						a->terminal);
-				_exit(1);
+				message(LOG | CONSOLE, "device '%s' does not exist.", a->terminal);
+			} else {
+				message(LOG | CONSOLE, "Bummer, can't open %s", a->terminal);
 			}
-			message(LOG | CONSOLE, "Bummer, can't open %s", a->terminal);
 			_exit(1);
 		}
 
@@ -484,6 +484,7 @@ static pid_t run(const struct init_action *a)
 		/* If the init Action requires us to wait, then force the
 		 * supplied terminal to be the controlling tty. */
 		if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
+			pid_t pgrp, tmp_pid;
 
 			/* Now fork off another process to just hang around */
 			if ((pid = fork()) < 0) {
@@ -733,8 +734,6 @@ static void exec_signal(int sig)
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
 		if (a->action & RESTART) {
-			struct stat sb;
-
 			shutdown_system();
 
 			/* unblock all signals, blocked in shutdown_system() */
@@ -758,6 +757,7 @@ static void exec_signal(int sig)
 
 			/* Open the new terminal device */
 			if ((device_open(a->terminal, O_RDWR)) < 0) {
+				struct stat sb;
 				if (stat(a->terminal, &sb) != 0) {
 					message(LOG | CONSOLE, "device '%s' does not exist.", a->terminal);
 				} else {
