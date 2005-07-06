@@ -35,6 +35,14 @@ config CONFIG_FEATURE_INIT_COREDUMPS
 	  core file sizes.  If this option is disabled, processes
 	  will not generate any core files.
 
+config CONFIG_FEATURE_INIT_SWAPON
+	bool "  Should init run swapon if short on memory?"
+	default y
+	depends on CONFIG_INIT
+	help
+	  If the system has less than one megabyte of total memory, init
+	  will run '/sbin/swapon -a' to add swap memory.
+
 config CONFIG_FEATURE_EXTRA_QUIET
 	bool "  Should init be _extra_ quiet on boot?"
 	default y

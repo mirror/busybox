@@ -309,6 +309,7 @@ static void set_term(int fd)
 	tcsetattr(fd, TCSANOW, &tty);
 }
 
+#ifdef CONFIG_FEATURE_INIT_SWAPON
 /* How much memory does this machine have?
    Units are kBytes to avoid overflow on 4GB machines */
 static unsigned int check_free_memory(void)
@@ -337,6 +338,7 @@ static unsigned int check_free_memory(void)
 		return(result * u);
 	}
 }
+#endif /* CONFIG_FEATURE_INIT_SWAPON */
 
 static void console_init(void)
 {
@@ -910,6 +912,7 @@ static void delete_init_action(struct init_action *action)
 	}
 }
 
+#ifdef CONFIG_FEATURE_INIT_SWAPON
 /* Make sure there is enough memory to do something useful. *
  * Calls "swapon -a" if needed so be sure /etc/fstab is present... */
 static void check_memory(void)
@@ -937,6 +940,9 @@ static void check_memory(void)
 	message(CONSOLE, "Sorry, your computer does not have enough memory.");
 	loop_forever();
 }
+#else
+# define check_memory()
+#endif /* CONFIG_FEATURE_INIT_SWAPON */
 
 /* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
  * then parse_inittab() simply adds in some default
