@@ -39,7 +39,6 @@
 #include <limits.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/mount.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/reboot.h>
@@ -239,7 +238,7 @@ static void message(int device, const char *fmt, ...)
 	/* Take full control of the log tty, and never close it.
 	 * It's mine, all mine!  Muhahahaha! */
 	if (log_fd < 0) {
-		if ((log_fd = device_open(log_console, O_RDWR | O_NDELAY | O_NOCTTY)) < 0) {
+		if ((log_fd = device_open(log_console, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
 			log_fd = -2;
 			bb_error_msg("Bummer, can't write to log on %s!", log_console);
 			device = CONSOLE;
@@ -254,7 +253,7 @@ static void message(int device, const char *fmt, ...)
 
 	if (device & CONSOLE) {
 		int fd = device_open(_PATH_CONSOLE,
-					O_WRONLY | O_NOCTTY | O_NDELAY);
+					O_WRONLY | O_NOCTTY | O_NONBLOCK);
 		/* Always send console messages to /dev/console so people will see them. */
 		if (fd >= 0) {
 			bb_full_write(fd, msg, l);
