@@ -111,7 +111,7 @@ Memory Allocation
   allocation on the stack or the heap.  Unfortunately, we're not using it much.
   We need to audit our memory allocations and turn a lot of malloc/free calls
   into RESERVE_CONFIG_BUFFER/RELEASE_CONFIG_BUFFER.
-  
+
   And while we're at it, many of the CONFIG_FEATURE_CLEAN_UP #ifdefs will be
   optimized out by the compiler in the stack allocation case (since there's no
   free for an alloca()), and this means that various cleanup loops that just
