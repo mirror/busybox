@@ -1,0 +1,138 @@
+2002-10-27  Erik Andersen  <andersen@dillweed>
+
+	* Makefile: Increment version number
+
+	* debian/control, debian/changelog: Update packaging info
+
+2002-10-26  Erik Andersen  <andersen@dillweed>
+
+	* debian/Config.h-udeb:
+	Don't support init being run as /linux in the debian installer
+	 -Erik
+
+	* swaponoff.c: last_patch64 from vodz:
+
+	    The following usage from original user:
+	    $ ./busybox swapon -a
+	    Have typo problem:
+	    swapon: swapon: Operation not permitted
+
+	    But regular version:
+	    swapon: /dev/hda5: Operation not permitted
+
+	    Patch attached, reduced 9 bytes and advanced
+	    exit code also.
+
+	* vi.c:
+	A patch from Jouni Malinen to avoid some buffer overflows in vi,
+	closing bug #1270
+
+	* Makefile: Ivan Popov noticed that handling of PREFIX was bad.
+	 -Erik
+
+2002-10-25  Erik Andersen  <andersen@dillweed>
+
+	* tftp.c: This patch from Magnus Damm fixed a long standing problem
+	with freeing memory.
+
+2002-10-23  Erik Andersen  <andersen@dillweed>
+
+	* top.c: Backport vodz' reworked top applet from unstable
+
+2002-10-22  Erik Andersen  <andersen@dillweed>
+
+	* ash.c, ifconfig.c: Fix warnings
+
+	* md5sum.c: Fix undefined operation (temp = temp = <stuff>) and remove
+	double definition.
+	 -Erik
+
+	* init.c: I committed the fflush in the wrong spot.  I should go to bed
+	earlier so I don't screw up such easy stuff.
+	 -Erik
+
+	* ash.c: Apply last_patch51_3 from vodz
+
+	* init.c: Be absurdly careful about flushing stdout.
+
+2002-10-18  Erik Andersen  <andersen@dillweed>
+
+	* tests/sh.testcases: Missed a spot
+
+	* tests/sh.testcases: disambiguate a test
+
+	* lsmod.c: Fixup some needless formatting differences vs modutils
+
+	* hostname.c:
+	Fixup slight difference in 'hostname -d' behavior vs GNU hostname
+
+2002-10-12  Erik Andersen  <andersen@dillweed>
+
+	* init.c:
+	After thinking about it, I think this patch from Matt Kraai is probably the
+	best way to go.  Sysvinit does not provide a controlling tty since it doesn't
+	even try to open ttys for apps.  We do.  We we should _try_ to provide a
+	controlling tty if possible, but we needn't freak out if it doesn't work.  So
+	we won't need to use openvt or similar, we'll just have init do the Right
+	Thing(tm).
+
+2002-10-08  Erik Andersen  <andersen@dillweed>
+
+	* docs/.cvsignore: oops
+
+	* docs/.cvsignore, Makefile: Remove docs/busybox.pod on 'make clean'
+
+	* init.c:
+	Patch from Ben Gamsa <ben@somanetworks.com> to handle it when orphaned
+	processes are created faster than busybox init reaps them.
+
+	* lsmod.c: Fix missing \n noticed by Robert Schwebel
+
+	* debian/Config.h-udeb: Enable pidof
+
+	* libbb/copy_file.c:
+	Doh!  It turns out I broke 'cp -a' symlink handling.  Oops.  This fix, from
+	Tollef Fog Heen <tollef@add.no> fixes my stupid thinko so that 'cp -a' once
+	again copies symlinks properly.
+
+2002-09-30  Erik Andersen  <andersen@dillweed>
+
+	* usage.h: Fix docs
+
+	* lash.c:
+	Use %m, not strerror (changing since strerror(err) was broken anyways)
+
+	* init.c: Set the close-on-exec flag, just to be safe
+
+	* time.c: Doh.  We divide microseconds by 60?
+
+2002-09-27  Erik Andersen  <andersen@dillweed>
+
+	* time.c: Bug fix from Nitin Gupta <gupta@equator.com>
+
+2002-09-26  Erik Andersen  <andersen@dillweed>
+
+	* lash.c: Avoid calling exit() from within fork/vfork'ed processes.
+	 -Erik
+
+2002-09-25  Erik Andersen  <andersen@dillweed>
+
+	* init.c:
+	Ignoring SIGCHLD causes a race leading to the occasional hang of init
+	when init will wait() on itself in waitfor() when the child exits before
+	init is scheduled to run.  Letting init hang is very seriously bad.
+	 -Erik
+
+2002-09-22  Erik Andersen  <andersen@dillweed>
+
+	* Makefile: Fixup largefile settings.
+	 -Erik
+
+2002-09-20  Erik Andersen  <andersen@dillweed>
+
+	* gunzip.c: Doh!  As noted by K.-P. Kirchdörfer" <kapeka@epost.de>,
+	gunzip -c deletes the source source file!  This fixes it.
+	 -Erik
+
+	* top.c: Don't leak FILEs
+

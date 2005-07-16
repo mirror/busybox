@@ -1,0 +1,169 @@
+=back
+
+=head1 LIBC NSS
+
+GNU Libc uses the Name Service Switch (NSS) to configure the behavior of the C
+library for the local environment, and to configure how it reads system data,
+such as passwords and group information.  BusyBox has made it Policy that it
+will never use NSS, and will never use and libc calls that make use of NSS.
+This allows you to run an embedded system without the need for installing an
+/etc/nsswitch.conf file and without and /lib/libnss_* libraries installed.
+
+If you are using a system that is using a remote LDAP server for authentication
+via GNU libc NSS, and you want to use BusyBox, then you will need to adjust the
+BusyBox source.  Chances are though, that if you have enough space to install
+of that stuff on your system, then you probably want the full GNU utilities.
+
+=head1 SEE ALSO
+
+textutils(1), shellutils(1), etc...
+
+=head1 MAINTAINER
+
+Erik Andersen <andersee@debian.org> <andersen@codepoet.org>
+
+=head1 AUTHORS
+
+The following people have contributed code to BusyBox whether
+they know it or not.
+
+
+=for html <br>
+
+Erik Andersen <andersee@debian.org> <andersen@codepoet.org>
+
+    Tons of new stuff, major rewrite of most of the
+    core apps, tons of new apps as noted in header files.
+
+=for html <br>
+
+John Beppu <beppu@codepoet.org>
+
+    du, head, nslookup, sort, tee, uniq (so Kraai could rewrite them ;-),
+    documentation
+
+=for html <br>
+
+Edward Betts <edward@debian.org>
+
+    expr, hostid, logname, tty, wc, whoami, yes
+ 
+=for html <br>
+
+Brian Candler <B.Candler@pobox.com>
+
+    tiny-ls(ls)
+
+=for html <br>
+
+Randolph Chung <tausq@debian.org>
+
+    fbset, ping, hostname, and mkfifo
+
+=for html <br>
+
+Dave Cinege <dcinege@psychosis.com>	
+
+    more(v2), makedevs, dutmp, modularization, auto links file, 
+    various fixes, Linux Router Project maintenance
+
+=for html <br>
+
+Larry Doolittle <ldoolitt@recycle.lbl.gov>
+
+    various fixes, shell rewrite
+
+=for html <br>
+
+Karl M. Hegbloom <karlheg@debian.org>
+
+    cp_mv.c, the test suite, various fixes to utility.c, &c.
+
+=for html <br>
+
+Sterling Huxley <sterling@europa.com>
+
+    vi (!!!)
+
+=for html <br>
+
+Daniel Jacobowitz <dan@debian.org>
+
+    mktemp.c
+
+=for html <br>
+
+Matt Kraai <kraai@alumni.carnegiemellon.edu>
+
+    documentation, bugfixes
+
+=for html <br>
+
+John Lombardo <john@deltanet.com>	
+
+    dirname, tr
+
+=for html <br>
+
+Glenn McGrath <bug1@netconnect.com.au>
+
+    ar.c
+
+=for html <br>
+
+Vladimir Oleynik <dzo@simtreas.ru>
+
+    cmdedit, stty-port, locale, various fixes 
+    and irreconcilable critic of everything not perfect.
+
+=for html <br>
+
+Bruce Perens <bruce@pixar.com>
+
+    Original author of BusyBox. His code is still in many apps.
+
+=for html <br>
+
+Chip Rosenthal <chip@unicom.com>, <crosenth@covad.com>
+
+    wget - Contributed by permission of Covad Communications
+
+=for html <br>
+
+Pavel Roskin <proski@gnu.org>
+
+    Lots of bugs fixes and patches.
+
+=for html <br>
+
+Gyepi Sam <gyepi@praxis-sw.com>
+
+    Remote logging feature for syslogd
+
+=for html <br>
+
+Linus Torvalds <torvalds@transmeta.com>
+
+    mkswap, fsck.minix, mkfs.minix
+
+=for html <br>
+
+Mark Whitley <markw@codepoet.org>
+
+    sed remix, bug fixes, style-guide, etc.
+
+=for html <br>
+
+Charles P. Wright <cpwright@villagenet.com>
+
+    gzip, mini-netcat(nc)
+
+=for html <br>
+
+Enrique Zanardi <ezanardi@ull.es>
+
+    tarcat (since removed), loadkmap, various fixes, Debian maintenance
+
+=cut
+
+# $Id: busybox_footer.pod,v 1.5 2001/11/19 23:57:54 andersen Exp $

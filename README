@@ -1,0 +1,148 @@
+Please see the LICENSE file for copyright information.
+    
+BusyBox combines tiny versions of many common UNIX utilities into a single
+small executable. It provides minimalist replacements for most of the utilities
+you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
+tar, etc. BusyBox provides a fairly complete POSIX environment for any small or
+embedded system. The utilities in BusyBox generally have fewer options than
+their full featured GNU cousins; however, the options that are included provide
+the expected functionality and behave very much like their GNU counterparts.
+
+BusyBox has been written with size-optimization and limited resources in mind.
+It is also extremely modular so you can easily include or exclude commands (or
+features) at compile time. This makes it easy to customize your embedded
+systems. To create a working system, just add /dev, /etc, and a kernel.
+
+BusyBox was originally written to support the Debian Rescue/Install disks, but
+it also makes an excellent environment for any small or embedded system.
+
+As of version 0.20 there is now a version number. : ) Also as of version 0.20,
+BusyBox is now modularized to easily allow you to build only the components you
+need, thereby reducing binary size. To turn off unwanted BusyBox components,
+simply edit the file "Config.h" and comment out the components you do not need
+using C++ style (//) comments.
+
+After the build is complete, a busybox.links file is generated.  This is
+used by 'make install' to create symlinks to the busybox binary for all
+compiled in functions.  By default, 'make install' will place the symlink
+forest into `pwd`/_install unless you have defined the PREFIX environment
+variable (i.e., 'make PREFIX=/tmp/foo install')
+
+----------------
+    
+Supported architectures:
+
+   Busybox in general will build on any architecture supported by gcc.  It has
+   a few specialized features added for __sparc__ and __alpha__.  insmod
+   functionality is currently limited to x86, ARM, SH3/4, powerpc, m68k, 
+   and MIPS.
+
+Supported libcs:
+
+   glibc-2.0.x, glibc-2.1.x, glibc-2.2.x, Linux-libc5, uClibc.  People
+   are looking at newlib and diet-libc, but consider them unsupported,
+   untested, or worse.
+
+Supported kernels:
+
+   Full functionality requires Linux 2.0.x, 2.2.x, or 2.4.x.  A large fraction
+   of the code should run on just about anything.
+
+----------------
+
+Shells:
+
+lash is the very smallest shell (adds just 10k) and it is quite usable as 
+a command prompt, but it is not suitable for any but the most trivial
+scripting (such as an initrd that calls insmod a few times) since it does
+not understand Bourne shell grammer.  It does handle pipes, redirects, and
+job control though.  Adding in command editing makes it a very nice
+lightweight command prompt.
+
+hush is also quite small (just 18k) and it has very complete Bourne shell
+grammer.  It handles if/then/else/fi just fine, but doesn't handle loops
+like for/do/done or case/esac and such.  It also currently has a problem
+with job control.  Using hush is not yet recommended.
+
+msh: The minix shell (adds just 30k) is quite complete and handles things
+like for/do/done, case/esac and all the things you expect a Bourne shell to
+do.  It is not always pedantically correct about Bourne shell grammer (try
+running the shell testscript "tests/sh.testcases" on it and compare vs bash)
+but for most things it works quite well.  It also uses only vfork, so it can
+be used on uClinux systems.  This was only recently added, so there is still
+room to shrink it further...
+
+ash: This adds about 60k in the default configuration and is the most
+complete and most pedantically correct shell included with busybox.  This
+shell was also recently added, and several people (mainly Vladimir and Erik)
+have been working on it.  There are a number of configurable things at the
+top of ash.c as well, so check those out if you want to tweak things.
+
+----------------
+
+Getting help:
+
+When you find you need help, you can check out the BusyBox mailing list
+archives at http://busybox.net/lists/busybox/ or even join
+the mailing list if you are interested.
+
+----------------
+
+Bugs:
+
+If you find bugs, please submit a bug report.  Full instructions on how to
+report a bug are found at http://bugs.busybox.net/Reporting.html.
+
+For the impatient: To submit a bug, simply send an email describing the problem
+to submit@bugs.busybox.net.  Bug reports should look something like this:
+
+    To: submit@bugs.busybox.net
+    From: diligent@testing.linux.org
+    Subject: /bin/true doesn't work
+
+    Package: busybox
+    Version: 0.51
+
+    When I invoke '/bin/true' it doesn't work.  I expected it to return 
+    a "0" but it returned a "1" instead.  Here is the transcript:
+	$ /bin/true ; echo $?
+	1
+    With GNU /bin/true, I get the following output:
+	$ /bin/true ; echo $?
+	0
+    I am using Debian 2.2r2, kernel version 2.2.18, and the latest
+    uClibc from CVS.  Thanks for the wonderful program!
+	-Diligent
+
+Note the careful description and use of examples showing not only what BusyBox
+does, but also a counter example showing what an equivalent GNU app does.  Bug
+reports lacking such detail may take a _long_ time to be fixed...  Thanks for
+understanding.
+
+----------------
+
+FTP:
+
+Source for the latest released version can always be downloaded from 
+    http://busybox.net/downloads/
+
+----------------
+
+CVS:
+
+BusyBox now has its own publicly browsable CVS tree at:
+    http://busybox.net/cgi-bin/cvsweb/busybox/
+
+Anonymous CVS access is available.  For instructions, check out:
+    http://busybox.net/cvs_anon.html
+
+For those that are actively contributing there is even CVS write access:
+    http://busybox.net/cvs_write.html
+
+----------------
+
+Please feed suggestions, bug reports, insults, and bribes back to:
+	Erik Andersen 
+	<andersen@codepoet.org>
+	<andersee@debian.org>
+

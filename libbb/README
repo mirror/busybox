@@ -1,0 +1,14 @@
+Please see the LICENSE file for copyright information.
+    
+libbb is BusyBox's utility library.  This all used to be in a single file
+(utility.c to be specific).  When I split utility.c up to create libbb, I did
+not carefully fix up the copyright and licensing information.  I'll do that for
+the next release.
+
+For now, just trust me that a bunch of people have worked on this stuff, 
+and it is all GPL'ed.
+
+	Erik Andersen 
+	<andersee@debian.org>
+	<andersen@codepoet.org>
+

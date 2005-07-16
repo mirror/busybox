@@ -1,0 +1,52 @@
+TODO list for busybox in no particular order. Just because something
+is listed here doesn't mean that it is going to be added to busybox,
+or that doing so is even a good idea. It just means that I _might_ get
+around to it some time. If you have any good ideas, please let me know.
+
+* login/sulogin/passwd/getty/etc are part of tinylogin, and so are not
+    needed or wanted in busybox (or else I'd have to link to libcrypt).
+
+* We _were_ going to split networking apps into a new package called 
+    netkit-tiny.  Per discussions on the mailing list, this isn't going
+    to happen.  False alarm.  Sorry about the confusion.  
+
+
+ -Erik
+
+-----------
+
+Possible apps to include some time:
+
+* hwclock
+* group/commonize strings, remove dups (for i18n, l10n)
+
+-----------
+
+With sysvinit, reboot, poweroff and halt all used a named pipe, 
+/dev/initctl, to communicate with the init process.  Busybox
+currently uses signals to communicate with init.  This makes
+busybox incompatible with sysvinit.  We should probably use
+a named pipe as well so we can be compatible.
+
+-----------------------
+
+Run the following:
+
+    rm -f busybox && make LDFLAGS+=-nostdlib 2>&1 | \
+	sed -ne 's/.*undefined reference to `\(.*\)..*/\1/gp' | sort | uniq
+
+reveals the list of all external (i.e., libc) things that BusyBox depends on.
+It would be a very nice thing to reduce this list to an absolute minimum, to
+reduce the footprint of busybox, especially when staticly linking with
+libraries such as uClibc.
+
+-----------------------
+
+Compile with debugging on, run 'nm --size-sort ./busybox'
+and then start with the biggest things and make them smaller...
+
+-----------------------
+
+xargs could use a -l option
+
+------------------------------------------------------------------

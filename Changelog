@@ -1,0 +1,1452 @@
+0.60.5
+
+    Stable Release
+
+    Bugfixes:
+	* Fixed a race that could cause init to hang
+	* Fixed init orphan process reaping 
+	* Fixed init to always attempt to provide a controlling tty.
+	    This should fix most cases where ash would print
+	    "job control disabled" -- the other cases are user error.
+	* Fixed 'gunzip -c' to not delete the source source file
+	* Fixed a silly math problem in the time applet
+	* Fixed 'cp -a' so it will once again copy symlinks properly 
+	* Fixed a long standing problem in tftp with freeing memory
+	* Fixed Makefile largefile settings
+	* Fixed a buffer overflow in vi
+	* Cosmetic cleanups in lsmod, lash, init, swapon/off, and hostname 
+	* Set the close-on-exec flag on files opened by init
+	* The updated top applet was backported from unstable
+	* Several ash bugfixes were backported from unstable
+	* Several warnings in ash, md5sum, and ifconfig
+
+	 -Erik Andersen, 26 October 2002
+
+
+
+0.60.4
+
+    Stable Release
+
+    New Applets & New Features:
+	* Added new a 'top' applet (by special request)
+	* Lots of small uClinux adjustments
+
+    Bugfixes:
+	* This release has _lots_ of bugfixes.  See Changelog.full 
+	    for the complete list of what was changed.
+
+	 -Erik Andersen, 18 September 2002
+
+
+
+0.60.3
+
+    Stable Release
+
+    New Applets & New Features:
+	* Added new a 'time' applet (by special request)
+	* Added new a 'losetup' applet
+	* The tftp has been fixed to work
+	* Default shell is now ash.
+	* msh shell should work properly on mmu-less systems again
+	* ls can now do color
+
+    Bugfixes:
+	* Erik Andersen
+	    -- Hacked together a new time applet
+	    -- Fixed dangling comma in init.c (s390 arch only)
+	    -- Fixed more so when it is run on files in the procfs that 
+		claim 0 length, it will not do weird things i.e. more /proc/pci
+	    -- Copyright message cleanups.  Fixed sash attributions.
+	    -- Backporting of fixes and general maintenance.
+	    -- Fixed several cases where reboot, halt, and poweroff would fail
+		to function properly when Linux is booted into an initrd.
+	    -- Fixed a silly compile bug in cpio
+	    -- nslookup now works properly with uClibc, remove old workaround
+	    -- Added conv=noerror support to dd
+	    -- Fixed ash and msh cmdedit to properly account for the current 
+		PATH setting
+	    -- Document netcat options and add -e support
+	    -- Fixed insanely broken insmod endianness handling
+	    -- Update init.c for better syle conformance, properly detach from 
+		terminal when necessary, better code reuse, FIFO inittab file 
+		reading/executing, allow init to be halted and restarted, etc.
+	    -- Allow gunzip to work on multiple archives, add -v option
+	    -- Updated x86 optimizations to save over 10k.
+	* Edward Betts
+	    -- added -x switch to du.c
+	* Cliff L. Biffle
+	    -- Added memory usage to the ps listings
+	* Przemyslaw Czerpak
+	    -- Made telnet 8-bit clean, handle screen size, and is now RFC
+		compliant.  Works nicely now. 
+	* Wolfgang Denk
+	    -- hush now supports shell loops (for, while, until) and control 
+		operators (||, &&)
+	* Russ Dill
+	    -- Added an 'restart' inittab action, allowing init to re-exec
+		itself (or call a script which calls pivot_root then exec...) 
+	* Larry Doolittle
+	    -- Made syslogd not give up when errno is EINTR
+	* Geoffrey Espin
+	    -- support find -newer <file>
+	* Robert Griebl
+	    -- Reworked modprobe so it now reads and uses modules.dep
+	* Karl M. Hegbloom
+	    -- Fixed a silly bug where CONTEXT and EGREP_ALIAS were coupled.
+	* Kevin Hilman
+	    -- Fixed memory corruption from long pathnames in /etc/fstab
+	* J.W.Janssen
+	    -- color ls support!
+	* Matt Kraai
+	    -- Fixed get_line_from_file() so that NULL is treated as end of 
+		line, thereby fixing cut, grep, sed, etc. when working on binary
+		files or anything that might contain a NULL.
+	    -- Fixed wget to do DNS initial DNS lookups, and do that only once
+		to avoid skipping to a different server when round-robin DNS is
+		in use (bug found by Mike Coleman <mkc@mathdogs.com>)
+	    -- Several sed fixes
+	    -- Added new losetup applet
+	* Ben Low
+	    -- allow tftp to work with stdin as well as stdout.
+	* Frank P. MacLachlan <fpm-plutus@tgs.indyme.com> avoid a potential 
+		NULL pointer problem in mount.
+	* Glenn McGrath
+	    -- gunzip was incorrectly reporting a failed crc and length
+		(Discovered by Change, Shu-Hao).  The problem was the bitbuffer
+		needs to be unwound after decompression as it was eating into the
+		crc/size field.
+	    -- Reworked wc.c to fix severe efficiency problems and make it 
+		smaller.  When just counting file chars, simply stat the file 
+		instead of reading the whole thing.  (Fixes Debian bug #103302)
+	    -- Updated dmalloc options
+	* Manuel Novoa III
+	    -- rewrote get_last_path_component() so it would not be so
+		horrible, and would behave correctly in several important corner
+		cases.
+	* Vladimir Oleynik
+	    -- Fixed ash problem where ^C could be blocked
+	    -- Several command line editing updates (cmdedit now supports
+		CTRL-K and CTRL-L,  fixed a segfault, etc)
+	    -- Fixed ash problem where ^C could be blocked
+	    -- Several size optimizations for various applets
+	* Tim Riker
+	    -- make ash prompt the same as other shells if cmdedit and
+		fancyprompt are enabled.
+	* Jeff Studer
+	    -- tftp now generates default values for localfilename and
+		remotefilename based on provided file names when possible.
+	* Stefan Soucek and Miles Bader
+	    -- Re-add mmu-less support to msh
+	* Jim Treadway
+	    -- Fixed a buffer overflow in the local group handling code.
+	    -- Fixed a missing "\" in usage.h
+	    -- Made pidof not add trailing spaces
+	    -- Fixed msh bugs so things like "A = 1; B = `eval $A`; echo $B"
+		can now work.
+	* Mike Voytovich
+	    -- insmod big endian ARM support
+
+
+	 -Erik Andersen, 27 April 2002
+
+
+
+
+
+0.60.2
+
+    Stable Release
+
+	* Please support busybox and help us buy busybox.net.  See the
+	    (current) busybox webpage for details.
+
+    New Applets & New Features:
+	* msh was reworked by Vladimir Oleynik's so it can handle things like
+		for i in `ls *.c` ; do echo $i ; done
+	    unfortunately, this also means that msh is no-longer uClinux safe,
+	    and will require some surgery to make it use vfork() again.
+	* Charles Steinkuehler <charles@steinkuehler.net> -- reworked hostname
+		so it behaves as expected (backport from busybox unstable)
+
+    Known Problems
+	none.  :)
+
+    Bugfixes:
+	* Erik Andersen
+	    -- Fixed grep -E and egrep so they actually behave as expected
+	    -- init cleanups and (theoretical) uClinux support
+	    -- Fixed large file (>2Gig) support (enable in the Makefile)
+	    -- Always enable test when a shell is enabled (least surprise)
+	    -- Made 'mount -a' use proc to avoid a static noauto list
+	    -- lots of source tree cleanups
+	* Laurence Anderson
+	    -- Removed some traces of no-longer existant rpmunpack (which
+		has been obsoleted by the rpm2cpio applet).
+	    -- Fixed unarchive.c to use the correct buffer when calling 
+		dirname, improve an error message, and plug some memory leaks.
+	    -- Fixed rpm2cpio.c mkfs_minix.c fsck_minix.c fbset.c to use
+		standard types (s/u16/u_int16_t/g  s/u32/u_int32_t/g  etc)
+	* ASA <llb@udm.net.ru> -- fixed ash handling of command line args 
+	    when sourcing ('.') commands.
+	* Ethan Benson <erbenson@alaska.net>
+	    -- Fix mount's noauto option to not automount as "usbdevfs"
+	* David Kimdon <dwhedon@instant802.com> -- fixed md5sum binary sums
+	* Matt Kraai
+	    -- Fix sed s/[/]// handling (noted by Dumas Patrice).
+	    -- Fix dirname(3) improper consts, allow libc version to override.
+	    -- Fixed invoking applets when their names contain a leading dash 
+		and a full pathname.
+	    -- Fix ash exec
+	    -- Fixed basename to be SUSv2 compliant (which specifies that the
+		extension should stay if it is identical to the basename.
+	    -- Fixed rmdir, since SuS2 says rmdir must provide -p
+	    -- Fixed sed empty line substitutions (noted by Joshua Hudson).
+	* Steve Merrifield <steve@labyrinth.net.au> -- make vi use xmalloc
+	* Glenn McGrath
+	    -- dpkg cleanups, various bugfixes
+	* Vladimir Oleynik
+	    -- Add support for `busybox --help APPLET'
+	    -- Fixed route so it properly displays all route entries
+	    -- Fix for ash leading redirections (i.e. '2>/dev/null ls rubbish')
+	* Andrew Tipton <andrew@cadre5.com> -- enable vi cursor keys when in
+		edit mode as vim does.
+	 
+	 
+	 -Erik Andersen, 20 November 2001
+
+
+
+
+
+0.60.1
+
+    Stable Release
+
+
+    New Applets & New Features:
+	none.  :)
+
+    Known Problems (to be fixed in 0.60.2)
+	* msh can segfault on constructs such as
+		for i in `ls *.c` ; do echo $i ; done
+	  due to a memory allocation problem.  This only seems to cause
+	  problems when the backtick expands to be several k in size.
+
+
+    Bugfixes:
+	* Matt Kraai
+	    -- Fixed msh to support underscores in variable names.
+	    -- Fixed a sed problem with unsatisfied backrefs (the problem was
+		noted by Martin Bene).
+	    -- Removed BB_SH define entirely.  Now one simply picks the shell
+		or shells they want as BB_<foo> in Config.h
+	    -- Fixed head to use ferror(3) to check for errors, not errno.
+	* Shu-Hao Chang <shuhao_chang@trend.com.tw>
+	    -- Fixed sed handling of multiple -e commands
+	* Magick <magick@linux-fan.com>
+	    -- Fixed an init bug with AskFirst and /dev/null
+	* Jaspreet Singh <jsingh@somanetworks.com>
+	    -- Fixed both a segfault and cosmetic bug in route
+	* Erik Andersen
+	    -- Made the insmod options BB_FEATURE_NEW_MODULE_INTERFACE and 
+		BB_FEATURE_OLD_MODULE_INTERFACE mutually exclusive
+	    -- xgetcwd.c now includes sys/param.h to ensure PATH_MAX is defined
+	    -- Fixed a potential segfault with lash + BB_FEATURE_CLEAN_UP
+	    -- Removed uint64_t from dos2unix, avoiding C lib compat. problems.
+	* Glenn McGrath
+	    -- Rewrite of tftp (commands match atftp, accepts -b, can use 
+		non-standard ports, and is smaller).
+	    -- Fixed unarchive exclude list handling
+	* Manuel Novoa III
+	    -- rewrite of simplify_path so it behaves itself (fixing some
+		problems with mount and other applets).
+	    -- Fixed ifconfig 'broadcast +' handling and disabled it by default
+	* Matthias ? <matthias@corelatus.com>
+	    -- Fixed syslogd to log all messages from a single connection, not
+		just the first.
+	 
+	 
+	 -Erik Andersen, 23 August 2001
+
+
+
+
+0.60.0
+
+    Note: 
+
+	For this release I have bumped the version number to 0.60.0.  This
+	reflects the fact that this release is intended to form a new stable
+	BusyBox release series.  If you need to rely on a stable version of
+	BusyBox, you should plan on using the stable 0.60.x series.  If bugs
+	show up then I will release 0.60.1, then 0.60.2, etc...  This is also
+	intended to deal with the fact that the BusyBox build system will be
+	getting a major overhaul for the next release and I don't want that to
+	break products that people are shipping.  To avoid that, the new build
+	system will be released as part of a new BusyBox development series
+	that will have some not-yet-decided-on odd version number.  Once things
+	stabablize and the new build system is working for everyone, then I
+	will release that as a new stable release series. 
+
+    Critical Bugfixes:
+	* Matt Kraai 
+	    -- Fixed wget output file opening (wget failed in 0.52).
+	    -- Fixed a memory leak in syslogd (found by Adam Slattery).
+	* Vladimir Oleynik, Matt Kraai, Erik Andersen
+	    -- several nasty bugs in ash and msh.  msh could not assign
+		any variables and had debug code still enabled.  ash
+		had several compile errors (depending on selected options)
+		and variable assignment problems as well.
+
+    New Applets:
+	* David McCullough <davidm@lineo.com> -- modprobe
+	* Vladimir Oleynik -- traceroute
+	* Erik Andersen -- pidof
+
+    New Scripts:
+	* David Schleef, Erik Andersen, Stuart Hughes -- depmod.pl
+	    This is a replacement for the depmod program from the modutils 
+	    package, but is fully cross platform and is designed to run on 
+	    your host system (not on the target).
+
+    Other Changes:
+	* Erik Andersen 
+	    -- fixed busybox.spec so it should now work on redhat systems
+	    -- fixed dos2unix and unix2dos so they should work once again
+	    -- Adjustments to make busybox more uClinux friendly.  Busybox
+		should now work on uClinux systems without needing and source
+		code changes (applets that won't work on uClinux systems are 
+		now automagicaly disabled).
+	    -- various things (cleanups, libc compatibility work, etc, etc)
+	* Jim Gleason <jimg@lineo.com>
+	    -- Fixed for sed, where it failed to preserve whether or not the 
+		line was previously altered when running a subst command.
+	* Matt Kraai 
+	    -- Made tar read 20 512byte blocks at a time (like GNU tar)
+	    -- Allow msh.c assignments with the export and readonly commands.
+	    -- Added BB_FEATURE_DEVFS to enable devfs device names.
+	    -- Better devfs support
+	    -- Don't save/restore vi readonly flag if vi is compiled read-only.
+	    -- Reworked rdate option handling (is now smaller).
+	    -- Size reduction in ping
+	    -- Always write dd counts to stderr
+	    -- Allow multiple shells to be enabled
+	* Aaron Lehmann 
+	    -- slimmed down md5sum 
+	    -- contributed a nice new (hand written, not lex/yacc) Posix math 
+		support for ash, which is once again a full posix shell.
+	* Felix von Leitner <leitner@convergence.de> -- patches to make busybox 
+	    work with dietlibc.
+	* David McCullough
+	    -- Adjustments to make busybox more uClinux friendly
+	* Glenn McGrath 
+	    -- Fixed gzip so when a filename is '-' it will use stdin/stdout
+	    -- dpkg rewrite.  Should now be compatable with the real dpkg, 
+		but needs more testing.
+	    -- Updates to archiving tools (gunzip/gzip/cpio/ar/etc) 
+	    -- Rewrote uuencode, will allow base64 encoding to be used by wget
+	* Vladimir Oleynik 
+	    -- Fixed tr to support 'tr a-z A-Z' syntax,
+	    -- Many ash corrections, optimizations, and cleanups.
+	    -- optimizations for traceroute, md5sum, chown, ping
+	    -- cmdedit updates and API change
+	    -- Namespace cleanup (i.e. adding 'static' private function calls)
+	    -- added "stopped jobs" warning to ash on exit
+	* Adam Slattery
+	    -- Fixed ping compile problem
+	* Robert J. Osborne <rj@resourceinternational.com>
+	    -- fixed a vi bug with delete and escape sequences on empty files.
+
+
+	 -Erik Andersen, 31 July 2001
+
+
+
+0.52
+	
+    Critical Bugfixes:
+	* Glenn McGrath -- Fixed gunzip, zcat when reading from stdin
+	* Marc Karasek and Kanoj (kernel serial.c maintainer) -- fixed init
+	    problem on serial consoles with 2.4.3+ kernels.
+	
+    New Applets:
+	* Laurence Anderson -- rpm2cpio applet, this obsoletes rpmunpack 
+	    which has now been removed from BusyBox 
+	* Laurence Anderson and Glenn McGrath -- cpio applet, currently 
+	    only supports unpacking the ascii cpio format.
+	* Vladimir Oleynik and Erik Andersen -- added ash, the most correct
+	    busybox shell.
+	* Larry Doolittle -- hush, small shell designed specifically
+	    for busybox.  Quite usable but still a work in progress.
+	* Erik Andersen -- msh, minix shell.  A very small but capable shell
+	    that only uses vfork, so it can be used on uClinux systems.
+
+    Other Changes:
+    	* Sterling Huxley -- Several bugfixes for the vi applet.
+	* Glenn McGrath -- Restructure unarchiving code to make more code
+	    common to the ar, cpio, dpkg, dpkg-deb applets.
+	    tar applet has not yet been assimilated...
+	* Matt Kraai -- Rewrote cp, dirname, mkdir, mv, and rm.
+	* Paul J.Y. Lahaie <pjlahaie@linuxcare.com> -- Fixed an endian-ness
+	    bug in md5sum (in 0.51, md5sum on big endian machines was broken)
+	* Mark Whitley -- rewrote cut, major updates to grep and sed. 
+	* Erik Andersen -- bunches of insmod fixes.  It should now always 
+	    work (no more segfault or missing symbols problems).
+	* Bernhard Kuhn <kuhn@lpr.e-technik.tu-muenchen.de> and Jinux Kim
+	    added uClinux/m68k insmod support.
+	* Manuel Novoa III -- rewrote make_human_readable so ls, du, and df
+	    should work as expected.  Eliminated use of floats.
+	* Aaron Lehmann <aaronl@vitelus.com> -- Scrubbed gzip.c
+	* Alan Modra <amodra@bigpond.net.au> -- fixed an hard to spot
+	    bug breaking gunzip checksum checking.
+	* Gennady Feldman -- Fixed 'syslog -C' 
+	* Gernot Poerner <gp@it-netservice.de> -- Added mount bind support.
+	* Adam Heath <doogie@debian.org>  -- wget arbitrary header support
+	* John Beppu -- updated the automagical doc generator
+	* Zillions of other bugfixes, optimizations, and cleanups.
+
+
+
+	 -Erik Andersen, 7 July 2001
+
+
+0.51
+    Critical Bugfixes:
+	* Erik Andersen -- Fixed a bug that could crash the shell in 0.50
+	    when pressing <Enter> on an empty line.
+	* Gennady Feldman -- Fixed a bug that could crash the shell in 0.50
+	    when performing an 'export' in the shell.
+	* Gennady Feldman -- fixed a syslogd bug where syslogd could cause
+	    the init process to block (which can break systems badly).
+
+    New Applets:
+	* Sterling Huxley -- contributed a new vi applet!  This is a very
+	    functional vi implementation in Only 22k.
+	* Erik Andersen -- added env applet
+	
+    Other changes:
+	* Erik Andersen -- Split utility.c into libbb, which provides a
+	    much cleaner was for us to include shared functionality.
+	* Erik Andersen -- Reorganized how and when busybox includes 
+	    syscalls, aiding portability and (in this case) making the
+	    busybox work on ia64 systems.
+	* Erik Andersen -- dpkg.c cleanup to use the updated gunzip interface.
+	* Erik Andersen -- Cleanups for libc5, glibc, and uClibc.
+	* Erik Andersen and Matt Kraai -- Cleanups for the human-readable
+	    output from ls, du, and df.
+	* Laurence Anderson <laurence@zxmail.com> -- Fixed wget HTTP 1.1
+	    support and added chunked encoding so it is now RFC compliant.
+	* John Beppu -- The busybox.pod documentation is now automagically
+	    generated from the source code.  This makes it _much_ simpler.  
+	    Now to update the docs, just update the usage message...
+	* Dirk Behme <dirk.behme@de.bosch.com> -- Adjusted MIPS insmod 
+	    support a bit for Mips RS3.
+	* Christophe Boyanique -- egrep invoked the "init" applet in 0.50!
+	* Larry Doolittle -- Added -Wshadow and fixed a number of shadowed
+	    variables
+	* David Douthitt -- fixed 'find -print' 
+	* Gennady Feldman -- fixes for the syslogd circular buffer code 
+	* Jeff Garzik -- a number of structural cleanups, fixes for -Wshadow 
+	    bugs, and similar problems.
+	* Matt Kraai -- Added a new 'shutdown' action to busybox init.  Now
+	    you can specify arbitrary behavior for 'ctrlaltdel' so now
+	    pressing CTL-ALT-DEL can do something else (or nothing).
+	* Andreas Neuhaus <andy@fasta.fh-dortmund.de> -- fix for merging
+	    kernel command line environment variables into child environment
+	    for init.c
+	* Glenn McGrath -- Fixed problems with dpkg and dpkg-deb applets
+	* Glenn McGrath -- Don't try to automount devfs 
+	* Vladimir Oleynik -- optimizations for more.c
+	* Vladimir Oleynik -- Added locale support to the shell, and fixed
+	    locale support in several other places
+	* Vladimir Oleynik -- moved struct applet from busybox.c to applets.c
+	* Vladimir Oleynik -- A size optimization for rdate
+	* Vladimir Oleynik -- Fixed printf applets's locale handling
+	* Vladimir Oleynik -- More cmdedit updates
+	* Vladimir Oleynik -- Fixed `du' applet so it continues running 
+	    after permission errors.
+	* Vladimir Oleynik -- Reduced stack usage in recursive_action()
+	* Pierre Peiffer <pierre.peiffer@sxb.bsf.alcatel.fr> -- made
+		find_pid_by_name() cope with swapped out processes.
+	* Jari Ruusu <jari.ruusu@pp.inet.fi> -- updates so that setting
+	    D_FILE_OFFSET_BITS=64 now works as expected. 
+	* Anthony Towns <aj@azure.humbug.org.au> -- fixed a bug with 
+	    sed address range handling
+	* Dmitry Zakharov <dmit@crp.bank.gov.ua> -- a number of updates
+	    to wget: support for ftp downloads, basic HTTP basic auth, handling
+	    of http redirects, when attempting to continue an aborted download
+	    but server doesn't support restarts then reopen output file in
+	    write mode, bugfix: when content-length not given, wget didn't
+	    download anything, if -c is not specified, it no longer default to
+	    restarting an aborted download. 
+
+
+	 -Erik Andersen, 10 April 2001
+
+
+0.50
+	* Erik Andersen -- added ifconfig interface status reporting 
+	* Erik Andersen -- Debian packaging updates
+	* Erik Andersen -- lash environment variable expansion rewritten,
+	    with lots of help/fixes/testing from Larry Doolittle.
+	* Erik Andersen -- Fix use of busybox with dmalloc debugging lib
+	* Erik Andersen -- fixed ls behavior for broken or very narrow terminals
+	* Erik Andersen -- stub umount2 and pivot_root if they are not available
+	* Erik Andersen -- libc5 fixes
+	* Erik Andersen -- make init work with devfsd
+	* Erik Andersen -- fixed df for nfs and dos where blksize = 512
+	* Erik Andersen -- Make sure libpwd.a is linked _last_ so it 
+	    overrides the system pwd/grp 
+	* Christophe Boyanique -- added an optional egrep alias for grep.
+	* Christophe Boyanique -- added optional 'rm -i' support.
+	* Kenneth Chalmers and Erik Andersen -- fixed ln so it
+	    behaves when given no arguments (prints usage) and when
+	    given just one arg (tries to make a link in the cwd).
+	* Magnus Damm -- added a tftp applet  
+	* Magnus Damm -- powerpc support for busybox insmod.
+	* David Douthitt -- fixed a build error in df.c when 
+	    BB_FEATURE_HUMAN_READABLE was disabled
+	* John Beppu -- wrote autodocifier.pl, which will be used to auto-
+	    generate the documentation from the source code, making life
+	    much simpler for all.
+	* Magnus Damm <damm@opensource.se> -- Fixed an 'inner scope var
+	    masking outer scope var with same name' bug that prevented 
+	    the loopback device from being unmounted if mount() failed.
+	* Larry Doolittle -- rewrote ifconfig to make it smaller 
+	* Larry Doolittle and Erik Andersen -- cleanups to pristine source
+	* Larry Doolittle -- many bugfixes resulting from regression testing
+	* Gennady Feldman -- split syslogd.c into syslogd and klogd
+	* Gennady Feldman -- make syslogd single threaded -- no more forking
+	* Jeff Garzik -- getopt-ified rmmod.
+	* Jeff Garzik -- glibc 2.2 warning cleanups
+	* Jeff Garzik -- namespace pollution cleanup (staticified variables).
+	* Erik Gustavsson <cyrano@algonet.se> -- allow env variables set on the
+	    kernel command line to be inherited into init and its children.
+	* Erik Habbinga -- fixed an uninitialized substitution delimiter in sed.
+	* Chris Jaeger -- Makefile cleanup to make option setting less error-prone
+	* Chris Jaeger <cjaeger@ensim.com> -- Carefully check NFS_MOUNT_VERSION
+	    depending on what kernel is being used.
+	* Quinn Jensen <jensenq@lineo.com> -- MIPS support for busybox insmod.
+	* Evin Robertson -- new pivot_root applet 
+	* Kent Robotti -- usage message cleanups
+	* Kent Robotti -- reworked dos2unix/unix2dos
+	* Evin Robertson and Manuel Novoa III -- reworked how usage messages 
+	    are stored to save several k of space.
+	* Matt Kraai -- Keep trying if an NFS mount fails 
+	* Matt Kraai -- fixed insmod so it won't try to insmod directories.
+	* Matt Kraai -- added nc listening support
+	* Matt Kraai and David Douthitt -- reworked fine to support -type, 
+	    -perm, -mtime, and other improvements.
+	* Matt Kraai -- added find_applet_by_name and saved some memory thereby
+	* Matt Kraai -- added chomp to reduce redundant code elsewhere
+	* Matt Kraai -- Removed trailing \n chars from error_msg{,_and_die} messages. 
+	* John Lombardo -- fixed OOM in insmod.
+	* Glenn McGrath -- bypass /proc in mount, now uses sysfs. 
+	* Glenn McGrath -- several updates to dpkg and dpkg-deb. 
+	* Manuel Novoa III -- several size optimizations: parse_mode, 
+	    process_escape_sequence, format, and get_kernel_revision. 
+	* Manuel Novoa III -- rewrote ifconfig again to make it smaller still 
+	* Manuel Novoa III -- added ifconfig -a, updated interface reporting
+	* Vladimir N. Oleynik -- Fixed a bug where init set PATH incorrectly 
+	* Vladimir N. Oleynik -- cleanups to route, cmdedit, mkdir, 
+	    mkfs_minix, mkswap, chmod_chown_chgrp and utility.c
+	* Vladimir N. Oleynik -- many fixes to cmdedit. so tab completion
+	    is now working and general editing is much improved, and to
+	    improve complex prompt handling.
+	* Vladimir N. Oleynik -- added route status reporting.
+	* Vladimir N. Oleynik -- fixed wget to use xfopen
+	* Vladimir N. Oleynik -- new stty applet 
+	* Vladimir N. Oleynik -- fixed find, it used to stop on perm errors.
+	* Vladimir N. Oleynik -- locale forced to posix for scripts 
+	* Vladimir N. Oleynik -- saved 128 bytes by moving error checking 
+	    for several my_* functions into utility.c
+	* Bjorn Wesen -- new ifconfig and route applet (taken from 
+	    work done by Axis Communications).
+	* Mark Whitley -- Added a 'How to contribute to Busybox' doc
+	    and updated the style guide.
+	* Mark Whitley -- implemented grep -A, -B, and -C
+	* Mark Whitley -- overhauled the test suite.
+
+
+	 -Erik Andersen, 15 March 2001
+	
+0.49
+
+	* Matt Kraai -- new sort.c
+	* Matt Kraai -- new tail.c
+	* Glenn McGrath -- new 'dpkg-deb' applet
+	* Glenn McGrath -- new ar code
+	* spoon -- new watchdog applet
+	* Vladimir N. Oleynik <dzo@simtreas.ru> -- fixed cmdedit.c so now 
+	    scrolling and tab completion in lash work properly.  Also several
+	    byte saving optimizations.
+	* Erik Andersen -- disabled many less commonly used applets by default
+	* Mark Whitley -- more thrashing about to get clean perror_msg usage
+	* Matt Kraai -- new command line munging
+	* Larry Doolittle -- keep some locales from messing up busybox.sh
+	* Matt Kraai -- cleaned up dd and tail with new parse_number routine
+	* Mark Whitley -- remove debugging messages from deallocvt
+	* Matt Kraai and Mark Whitley -- new document "How to Add a New Applet 
+	    to BusyBox"
+	* David Douthitt -- fixed "grep -qv" bug
+	* Larry Doolittle -- fixed insmod bug with old kernels
+	* Matt Kraai -- logger remixed to use getopt, selection of stdin made 
+	    util-linux compatible
+	* Erik Andersen -- many more internal symbols classified static to 
+	    avoid namespace pollution
+	* Matt Kraai -- nc listening support
+	* Erik Andersen -- made sed understand arbitrary regexp delimiters
+	* Matt Kraai et al. -- more tar improvements and bug fixes, now 
+	    handles regexp file exclusion
+	* Larry Doolittle -- new script (multibuild.pl) to automate build rule
+	    checking
+	* Matt Kraai -- update/cleanup of the docs on how to use init
+	* Erik Andersen -- renamed all sh.c symbols per the style guide, 
+	    better if-then-else-fi handling
+	* Erik Andersen -- cleaner division of labor between cmdedit.c and sh.c
+	* Larry Doolittle -- shell data structure cleanup, fixed buglets
+	    in read, exec, and piped builtins
+	* Erik Andersen -- md5sum was broken in 0.48.  Now fixed (and doesn't 
+	    use getline, shrinking static compiles (since nothing else used it).
+	* ?? -- squashed memory leak in shell prompt handling
+	* Mark Whitley -- Updates to style guide
+	* Mark Whitley -- Big cleanup in utility.c: style guide compliance,
+	    de-macro-ifying some variables and functions
+	* Erik Andersen -- ls now honors BB_FEATURE_AUTOWIDTH so it can find
+	    the width and height of the console.
+	* Erik Andersen -- insmod now ignores -L and accepts the -o option.
+	* Erik Andersen -- updates so you can now select from the Makefile
+	    whether or not to use the system's passwd and group functions.
+	    Since most systems use GNU libc, this can save you from having to
+	    install the /etc/nsswitch.conf configuration file and the required
+	    libnss_* libraries.  Adds 1.5k.  You can now, also, disable this, 
+	    causing busybox to use the system's pwd.h and grp.h functions.
+
+
+	 -Erik Andersen, 27 January 2001
+
+0.48
+
+	* Glenn McGrath -- tar now supports uncompressing tar files,
+	    define BB_FEATURE_TAR_GZIP to use the -z option.
+	* Matt Kraai -- fix all usage of TRUE and FALSE so all apps now
+	    return EXIT_SUCCESS or EXIT_FAILURE to the system.
+	    Now TRUE and FALSE are set to the C standard where TRUE=1.
+	* me -- Fixed uname problem causing the kernel version to be
+	    mis-detected (causing problems with poweroff, init,
+	    and other things).  
+	* Alcove, Julien Gaulmin <julien.gaulmin@alcove.fr> and 
+	    Nicolas Ferre <nicolas.ferre@alcove.fr> -- insmod support on ARM 
+	    and StrongArm, and suport for lsmod on older 2.0.x kernels.
+	* Kent Robotti -- Renamed unrpm to original rpmunpack, so you can use 
+	    an included shell script called unrpm as a front end to it.  There's
+	    also a shell script called undeb included for debian packages.  
+	* Matt Kraai -- fix an infinite loop with ls -aR
+	* Larry Doolittle -- Shaved off about 100 bytes and 200 bytes heap 
+	    from date.c.  Also document the "-d" option in the usage message.
+	* Gennady Feldman -- fixed dd to use blocksize when reading/writing, 
+	    (it was reading the whole thing and then writing it out).  Also 
+	    updated usage information (was missing conv=notrunc) and added 
+	    conv=sync feature.
+	* Larry Doolittle (in collaboration with Matt Kraai) -- allow for a 
+	    pristine source directory -- where all the .o files and such are 
+	    not placed into the source tree.  Thanks Larry!
+	* Larry Doolittle -- use the applet definitions in applets.h 
+	    to autogenerate the applet function and usage prototypes.
+	* Sebastien Huet, Arne Bernin, and Kent Robotti -- Add in tar -X and
+	    fixed a bug breaking tar --exclude.  
+	* Jonas Holmberg -- echo option handling made GNU-echo compatible
+	* Aleksey Demidov <asd@ixcelerator.com> -- date option handling made 
+	    GNU-date compatible
+	* me -- Progress meter (optional) in wget
+	* Doolittle/me -- programs invoked by full path name take
+	    precedence over applets unless BB_FEATURE_SH_BUILTINS_ALWAYS_WIN
+	* Gaute B Strokkenes <gs234@cam.ac.uk> -- applets found using a
+	    binary search instead of linear search.  Much faster!
+	* new applets: cmp readlink
+	* Mark Whitley -- Removed advertising clause of Berkeley license
+	    according to decision by the Regents of the University of
+	    California; included reference
+	* tail's confusing special treatment of single digit options removed;
+	    people should use -n instead
+	* Larry Doolittle -- \r handled now in echo and tr
+	* Matt Kraai -- rewrite of uniq
+	* Mark Whitley -- remix of xargs
+	* Jim Gleason <jimg@lineo.com> -- fixed tar so it no longer breaks 
+	    hard links.
+	* Matt Kraai -- logger now logs all arguments, not just the first
+	* Gennady Feldman -- syslogd no longer logs to localhost if compiled
+	    for remote logging...
+	* Richard June <rjune@ims1.imagestream-is.com> -- support for 'gzip -d'
+	* various artists -- Other good stuff that I forgot to document.
+
+
+	 -Erik Andersen, 13 December 2000
+
+0.47
+
+	* A bug in syslogd was fixed that allowed it to potentially fork-bomb
+	    your system.  Anyone using 0.46 syslogd should upgrade.
+	* Renamed busybox.defs.h to the more sensible "Config.h"
+	* Improved portability between different libcs.
+	* Many apps ported to use getopt()
+	* Common handling of '--help'
+	* All usage messages centralized.
+	* Added a bunch of new commands:
+	    * 'rdate' contributed by Sterling Huxley <sterling@europa.com>
+	    * 'wget' contributed by Chip Rosenthal <chip@unicom.com>, 
+		    <crosenth@covad.com> and Covad Communications
+	    * 'getopt' from "Alfred M. Szmidt" <ams@trillian.itslinux.org>
+	    * dos2unix, unix2dos, reset, and unrpm.c (and lots of help
+		debugging) thanks to Kent Robotti <robotti@metconnect.com>.
+	    * 'renice' command, thanks to Dave Cinege <dcinege@psychosis.com>
+	    * 'xargs' (written by me)
+	    * 'expr' contributed by Edward Betts <edward@debian.org>, based
+		on GNY expr
+	* lsmod now uses the query_module syscall, rather then /proc (me)
+	* syslogd can now log messages to remote hosts -- patch thanks
+	    to Gyepi Sam <gyepi@praxis-sw.com>
+	* chroot can now call the builtin shell - Pavel Roskin <proski@gnu.org>
+	* 'make install' now creates relative symlinks, and added a new
+	    'make install-hardlinks' target to (tada) install hardlinks.
+	* Rewrite of 'tail' to make it simpler, smaller, and more robust.  
+	    It now weighs only 2.25k (3k when full featured).  The code is
+	    cleaner too, thanks to Allen Soard <esp-software@mail.hypermart.net>
+	* Add optional ls file sorting, thanks to a patch from 
+	    Sterling Huxley <sterling@europa.com>
+	* Fixed chmod option parsing so things like 'chmod -r /tmp/file'
+	    now work (previously it thought -r was an option).  Doh!
+	* Fixed tar handling of stdin and stdout
+	* Renamed "internal.h" to the more sensible "busybox.h"
+	* Preliminary support for GNU HURD.
+	* Updated my devps and devmtab kernel patches for the latest 2.2.x
+	    kernel, for those wanting to go proc-less.
+	* Tons of other bugfixes.
+
+
+	 -Erik Andersen, 25 September 2000
+
+
+0.46
+
+	* Better portability.  Now should compile cleanly with libc5, 
+	    GNU libc 2.0 and 2.1, and various Linux kernels including 
+	    2.0.x, 2.2.x, and to 2.4.0-test*. (patch for 2.4.x kernels
+	    to make /proc/mounts behave included in the kernel-patches dir). 
+	* Fixed a _horrible_ bug where 'tar -tvf' could unlink
+	    local files that matched tarball contents!!!  Fix thanks 
+	    to Marius Groeger <mgroeger@sysgo.de>
+	* Fixed a nasty bug in tar when could mess up saved symlinks.
+	* Fixed tar creation support when reading from stdin ('tar -cf - . ') 
+	    thanks to Daniel Quinlan <quinlan@transmeta.com>
+	* Updates to handle Linux 2.4.0 kernels (kludged around the
+	    "none" entries in /proc/mounts, added a hack to make sysinfo
+	    work with both old and new kernels).
+	* Fixed insmod module option parsing for options lacking an '='.
+	    Fix thanks to Marc Nijdam <marc_nijdam@hp.com>
+	* Fixed segfault with 'cut -f 1 -d:' and added 'cut -s' suport.
+	    Fix thanks to Arne Bernin <arne@matrix.loopback.org>
+	* Several fixes from Marius Groeger <mag@sysgo.de>
+	    - Added support for "sh -c command args..."
+	    - Fixed globbing, i.e. 'echo * *' and 'echo "******"' now work.
+	    - Added shell environment variable substitution 
+	    - Added the "read" shell builtin.
+	* Fixed cursor editing in cmdedit.c. The following keyboard sequence 
+	    used to create an infinite loop: ls, cursor up, left, down.
+	* Added support for being a login shell, so things like
+	    '-su' or '-sh' (stuff where argv[0][0]=='-') will now always 
+	    invoke the shell.  Now you can use BusyBox as a login shell.
+	* ls.c now ignores '-g', since some ftp clients like that sort 
+	    of thing.  Patch thanks to David Vrabel <dvrabel@arcom.co.uk>
+	* Fix to init.c from Stuart Menefy <Stuart.Menefy@st.com> so that
+	    it always sets the controlling terminal before running any programs
+	* Several fixes from Matt Kraai <kraai@alumni.carnegiemellon.edu>
+	    - Fixed tr so it recognizes standard escape sequences.  
+		Merged common escape seq. code from tr and echo into utility.c.
+	    - Major work in updating/cleaning up the docs, and getting the
+		new SGML based docs into shape.
+	    - cleanup of ar.c
+	    - BusyBox should now poweroff when asked to do so.
+	    - Fixed 'ln -n' and 'ln -s' so they both work properly.
+	* Reorganized signal names in kill.c for better architecture support 
+	    -- patch thanks to simon wood <simon@mungewell.uklinux.net>
+	* In 0.43, backspace and delete worked properly, but with 0.45, 
+	    it just echoed a ^? for backspace, and ^H for control-h.  This
+	    was due to a broken macro in init.c, that is now fixed.
+	* Removed sfdisk from BusyBox.  It was buggy, fat, and we really
+	    couldn't maintain it very well, so including it was not really
+	    very appropriate.  Those wanting an fdisk are invited to
+	    grab a copy from util-linux.
+	* Added 'dumpkmap' to allow people to dump a binary keymap, which can 
+	    then be loaded in by 'loadkmap' -- submitted by
+	    Arne Bernin <arne@matrix.loopback.org>
+	* Fixed NFS so it supports 2.4.x kernels and NFSv3.
+	* Brand, new versions of grep and sed which use libc regex routines,
+	    thanks to Mark Whitley <markw@codepoet.org>.  The hand-tooled 
+	    "regexp.[ch]" files have been removed. Much help on these from 
+	    Matt Kraai as well.
+
+
+	 -Erik Andersen, 11 July 2000
+
+
+0.45
+	* Now compiles vs libc5 (which can save lots of space for 
+	    embedded systems).
+	* Added BB_FEATURE_TRIVIAL_HELP which compiles out most all of the
+	    help messages (i.e --help).  Saves 17k over a full compile.
+	* Added cut and tr from minix, since due to the license change, 
+	    we can now use minix code.  Minix tr saves 4k. 
+	* insmod now works.  It costs 29k, but imagine an initrd with a 
+	    staticly linked busybox containing only insmod and sh, a few /dev 
+	    entries, and a kernel module or two...  It doesn't get smaller
+	    then this folks (I pity the fool that writes insmod in asm ;-).
+	    Many kudos go to Ron Alder <alder@lineo.com> for finishing this off!
+	* Added a mini ar archive utility, especially written for BusyBox by 
+	    Glenn McGrath <bug1@netconnect.com.au>
+	* Added mktemp, contributed by Daniel Jacobowitz <dan@debian.org>
+	* Added setkeycodes, for those that have weird keyboard buttons.
+	* Added md5sum, uuencode and uudecode -- thanks to Alfred M. Szmidt 
+	    <ams@trillian.itslinux.org> for contributing these.
+        * Added 'grep -v' option (inverted search) and updated 
+	    docs accordingly.  -beppu
+	* Wrote which
+	* Replaced the telnet implementation with one written by 
+	    Tomi Ollila <too@iki.fi> It works great and costs 3k.
+	* BusyBox sh (lash) now supports being used as a standalone shell.  When
+	    BB_FEATURE_SH_STANDALONE_SHELL is defined, all the busybox commands may
+	    be invoked as shell internals.  Best used when compiling staticly 
+	    (i.e. DOSTATIC=true)
+	* BusyBox sh (lash) internals now behave as expected wrt pipes 
+	    and redirects. 
+	* Fixed ping warnings -- fix from Sascha Ziemann <szi@aibon.ping.de>
+	* Fixed update segfault
+	* Fixed mknod -- minor number was always 0
+	* Fixed tar option parsing, so both "tar xvf foo.tar" and 
+	    "tar -xvf foo.tar" now work (i.e. no "-" before options) 
+	    (this was very broken in 0.43).
+	* Several contributions from Randolph Chung <tausq@debian.org>.
+	    * cp/mv now accepts the -f flag
+	    * tail can now accept -<num> commands (e.g. -10) for better 
+		compatibility with the standard tail command
+	    * added a simple id implementation; doesn't support sup. groups yet
+	* logname used getlogin(3) which uses utmp.  Now it doesn't. 
+	* whoami used getpwuid(3) which uses libc NSS.  Now it behaves. 
+	* Add support for "noatime" and "nodiratime" mount flags to mount.
+	* Changed 'umount -f' to mean force, and actually use umount2.
+	* Changed 'umount -l' to mean "Do not free loop device".
+	* Fixed basename to support stripping of suffixes.  Patch thanks
+	    to xiong jianxin <jxiong@uiuc.edu>
+	* cp -fa now works as expected for symlinks (it didn't before)
+	* zcat now works (wasn't working since option parsing was broken)
+	* Renamed "mnc" to the more correct "nc" (for netcat).
+	* Makefile intelligence updates
+	* Changed the way init parses /etc/inittab entries to avoid problems
+	    with commands that contain colons in them.  Fix thanks to 
+	    Pavel Roskin <proski@gnu.org>
+	* Fixed a warning in utility.c due to char being unsigned on Linux/PPC, 
+	    Fix thanks to Pavel Roskin <proski@gnu.org>
+	* Made "killall" complain (not error and exit) about processes that it 
+	    cannot find by name -- Pavel Roskin <proski@gnu.org> 
+	* Fixed more and ps to have sensible terminal width defaults, thanks 
+	    to Pavel Roskin.
+	* Fixed all fatalError() calls lacking a "\n", thanks to Pavel Roskin.
+	* Fixed a segfault in yes when no args were given -- Pavel Roskin.
+	* Simplified freeramdisk and added argument checking -- Pavel Roskin. 
+	* Fixed segfault caused by "touch -c"
+	* Fixed segfault caused by "rm -f"
+	* Fixed segfault caused by "ln -s -s" and similar abuses. Further fixes
+	    and "--" support from Pavel Roskin.
+	* Fixed segfault caused by "cp -a -a" and similar abuses.
+	* Implemented "rm -- <foo>". Implementation fixed by Pavel Roskin.
+	* "which" rewritten to use stat(). Fixes to improve its compatability
+	    with traditional implementations -- Pavel Roskin.
+	* "mount" now reports errors from nfsmount() and assumes NFS mount
+	    if ':' is present in the device name - Pavel Roskin
+	* Fixed exit status for killall - Pavel Roskin
+	* Fixed 'swapon -a' and 'swapoff -a', which were broken.
+	* Fixed 'mount -a' so it works as expected.
+	* Implemented 'ls -R' (enabled by enabling BB_FEATURE_LS_RECURSIVE)
+	* Implemented "ping -s", fixed error messages and argument parsing -
+	    Pavel Roskin
+	* Syslogd will not go to background if "-n" is given. Better help
+	    and argument checking -- Pavel Roskin
+	* Fixed a small bug that could cause tar to emit warning messages
+	    and not extract the first file in a directory in some cases
+	    of nested directories.  Thanks to Kevin Traas <kevin@netmaster.com>
+	    for helping track this one down.
+	* More doc updates
+	* Fixed grep "Line too long" problem -- John Beppu
+	* Fixed 'grep -q -i B some_file' so it works
+	* math takes input from stdin if no args are given.  -- John Beppu
+	* math was renamed to dc.  Although it deviates from dc's behaviour,
+	    this will probably be remedied in the future.  -- John Beppu
+
+
+	 -Erik Andersen, June 21, 2000
+
+
+0.44
+	Previously, an erronous announcement of BusyBox 0.44 was made, so to 
+	avoid possible confusion, we are skipping straight to 0.45, and calling
+	it good.
+
+	 -Erik Andersen
+
+
+0.43
+	* Major update to the provided documentation.
+	* Busybox now includes a shell!  It currently costs 7.5 k (plus an
+	    additional 2.5 k if you compile in command line editing).  Handles
+	    job control, has the usual set of builtins, and does everything
+	    except for handling programming statements (if, while, etc...)
+	* Busybox can now work perfectly when /proc is disabled, thereby 
+	    saving a bunch of memory (kernel /proc support is not thin).  This
+	    is done by making use of some nice kernel patches I wrote up to
+	    support the features that busybox requires and that /proc usually
+	    provides.  To enable this, turn on BB_FEATURE_USE_DEVPS_PATCH and
+	    patch your kernel with the devps patch in the kernel-patches/
+	    directory. 
+	* Wrote basename, dirname, killall, and uptime.
+	* tar has been completely rewritten by me.  Both tar creation and 
+	    extraction are now well behaved.  Costs 7.6k with all optional
+	    tar features enabled, and 5k for just tar extraction support. 
+	* Added freeramdisk, which will free up all memory associated
+	    with a ram disk.  Contributed by Emanuele Caratti <wiz@iol.it>
+	    and then adjusted a bit by me.
+	* Added tr from John Lombardo <john@deltanet.com> 
+	* Added echo and test (from me).
+	* Added usleep contributed by Nicolas Pitre <nico@cam.org>
+	* BusyBox's bss size has been majorly reduced (was 384668, is now 28740).
+	* Several fixes from Pavel Roskin <proski@gnu.org>:
+	    - When `tail' fails to open a file it now exits.
+	    - When `syslogd' is given the `-n' option it should still use 
+		fork() for running klogd.
+	* nslookup types are now changed to u_int32_t (instead of uint32_t)
+	    changed per a patch from Pascal Bellard <pascal.bellard@ascend.com>
+	* Fixed "du" so it gives the same answers as GNU "du" (busybox du used 
+	    to count hard-linked files more then once).  Many thanks to 
+	    Friedrich Vedder <fwv@myrtle.lahn.de> for the fix.
+	* Removed /proc dependancies for init and free (while maintaining 
+	    exactly the same functionality).  /proc takes up 90k of kernel 
+	    space, so it is nice to avoid using it at all costs.
+	* init no longer tries to mount /proc (unless there is less the 1 meg 
+	    free).  Use of /proc (or not) is policy that should be set up in 
+	    /etc/fstab (or in hardcoded scripts), not in init.
+	* Fixed rebooting when init runs as an initrd.
+	* Fixes and updates from Karl M. Hegbloom  <karlheg@debian.org>
+	    - update.c rewritten to look more like update-2.11
+	    - moveed the inode hash out of du.c and into utility.c to make 
+		it a common resource that can be used by other apps.
+	    - cp_mv.c now checks inodes to see if a source and dest are
+		the same, and prints an error (instead of endlessly looping).
+	    - mv now attempts to do a rename, and will fall back to doing
+		a copy only if the rename fails.
+	    - Syslogd now supports multiple concurrent connections
+	* Several fixes from Pavel Roskin <proski@gnu.org>:
+	    - Fixes to sort.  Removed "-g", fixed and added "-r"
+	    - Fixes to the makefile for handling "strip"
+	* An initial telnet implementation was added by 
+	    Randolph Chung <tausq@debian.org>.
+	* Fixed a bug where "sed 's/foo/bar/g'" (i.e. a script w/o a "-e")
+	* ps now supports BB_FEATURE_AUTOWIDTH, and can adjust its width
+	    to match the terminal (defaults to width=79 when this is off).
+	* ps now accepts (and ignores) all options except for "--help" (which
+		as would be expected displays help).
+	* Fixed mount'ing loop devices when the filesystem type was not 
+	    specified.  It used to revert to non-loop after the first try.
+	* all mallocs now use xmalloc (and so are OOM error safe), and
+	    the common error handling saves a few bytes.  Thanks to 
+	    Bob Tinsley <bob@earthrise.demon.co.uk> for the patch.
+	* Fix "+" parsing bug in date, from "Merle F. McClelland" <mfm@cts.com>.
+	* Fix symlink following bug in chmod -R and friends.  
+	* Now allows SYSV style 'chown foo:bar' in addition to 'chown foo.bar'
+	* Fixed a bug in the busybox globbing routine such that 'find /dir -name [i]' 
+	    no longer segfaults.
+
+
+	-Erik Andersen
+
+
+0.42
+
+        * Fairly massive restructuring of umount.c to deal with remounting 
+	  busy devices read-only. Adds a -r option to control that; it is 
+	  optionally compiled in with BB_FEATURE_REMOUNT
+	* Added a bunch of functions to mtab.c to interact with the
+	  {get,set,end}mntent interface; as it turns out, those functions do
+	  not appear to be re-entrant, and that causes a lot of problems with
+	  the way umount was originally written.
+	* Makes init send TERM and KILL (instead of HUP and KILL) on reboot
+	  to be more consistent with sysvinit
+	* Changes to init.c to use the new -r option to umount. Also increased
+	  the sleep time between the time the TERM and KILL signals are sent
+
+        - Randolph Chung
+
+
+	* cp.c, mv.c: removed, replaced by cp_mv.c which has been
+	    extensively rewritten from the original cp.c.
+	* Fixed cp and mv so if the source and destination are a the
+	    same directory it will print an error and continue.
+	* Also added a warning message to the `mv' usage string saying that
+	    this is not GNU mv, and it will break hard links. cp also breaks
+	    hard links.
+	* ln.c: implemented `-n' switch, no-deref symlinks.
+	* include<sys/param.h>: and use PATH_MAX everywhere.  busybox: File
+	* name buffer overrun guards to prevent future crashes.
+	    - Always check exit status.
+	    - Purge all use of `creat()', replace with `open()'.
+	* utility.c 
+	    - recursiveAction was overriding the value of followLinks thus
+	      ignoring it.
+	    - isDirectory now takes a followLinks boolean, updated all callers
+	    - copyFile had the followLinks logic reversed.
+	* messages.c: New file. Put common error message strings all in
+	    one place in an attempt to shrink the binary a little.
+
+	-Karl M. Hegbloom
+
+
+	* changed fsck_minix.c to reduce its .bss size significantly
+	  -beppu -piptigger
+	* Made tar creation support in busybox tar optional.  You no longer
+	* _have_ to put a "-" in front of tar options.  Tar could inadvertently
+	* change permissions and ownership on
+	    certain directories pointed to by symlinks.
+	* Made grep and grep -h do the right thing wrt printing
+	    the file name (it failed to print files names in many cases).
+	* Fix a namespace aliasing problem wereby if du was built in, the 
+	    symlink for both du and dutmp would be installed, or then rm was
+	    built in, the symlinks for both rm and rmmod would be installed.
+	* Added a closelog() to init.c after loging -- fix thanks to 
+	    Taketoshi Sano <kgh12351@nifty.ne.jp>
+	* Rewrote and simplified logger.  Added the "-t" option, and made it
+	    behave itself a bit better.
+	* Optional support contributed by Ben Collins <bcollins@debian.org> 
+	    for the kernel init chroot patch by Werner Almesberger, which
+	    allows init to chroot to a new device, and umount the old one.
+	* Fixed bug that wouldn't let one chown a symlink -- it would
+	    always dereference before.  -beppu
+	* Fixed a bug where init could have reference already freed memory.
+	    Found and fixed by Taketoshi Sano <kgh12351@nifty.ne.jp>
+	* Several contributions from Friedrich Vedder <fwv@myrtle.lahn.de>
+	* Added (and documented) "-n" option for head
+	* Cleanup for a number of usage messages -- also 
+	    contributed Friedrich Vedder <fwv@myrtle.lahn.de>
+	* Cosmetic fix to busybox.c (Don't print a comma at the
+	    end of line if there are no more application names).
+	* Fixed a stupid bug in "head" option handling ("head -n" 
+	    would segfault).
+	* Moved commonly used functions "xmalloc()" and "exit()"
+	    to utility.c (with proper #ifdef's).
+	* Created a tiny tail implementation, removing -c, -q, -v, and making
+	    tail -f work only with a single file.  This reduced tail from 6k to
+	    2.4k.  The bigger/more featured tail can still be had by disabling
+	    BB_FEATURE_SIMPLE_TAIL in busybox.defs.h
+	* Ping now falls back to doing the right thing if /etc/protocols
+	    turns up missing.
+	* Fixed mount and umount.  Previously they could leak loop device 
+	    allocations, causing the system to quickly run out.  Fix for umount
+	    by Ben Collins <bcollins@debian.org>, and mount was fixed by me.
+	* ls formatting on eight charactor user names fixed by 
+	    Randolph Chung <tausq@debian.org>.
+	* cp could, when copying symlinks, change permissions of the
+	    files pointed to by the symlinks.
+	* Several fixes from Pavel Roskin <proski@gnu.org>:
+	    - `chown' with 1 argument displayed the error incorrectly
+	    - `fdflush', `length' and `printf' crashed if run without arguments
+	    - `fdflush' tried to flush itself using *argv
+	    - added "skip" and "seek" to dd.
+	    - ls no longer messus up output when combining files and
+	      directories on the command line 
+	* swapoff -a was not working.  Now it is.  
+	* init did not cleanly unmount filesystems on reboot.  Now it does.  
+	* "sed -ne s/foo/bar/" worked but "sed -n -e s/foo/bar/" didn't.
+	    Now both work.
+	* Some architectures (PowerPc) assume chars are unsigned, so they could
+	    not distinguish between EOF and '\0xFF' in sed.  Sed now uses ints.
+	* Began converting error handling to use some common routines
+	    in utility.c
+	* syslogd now has better message handling and ignores SIGHUP.
+	* install.sh had a bug preventing installation to the specified
+	    target directory.  Fix from Gilbert Coville <gilbert@mvista.com>
+	* You can now spefify alternative strip commands -- change 
+	    also from Gilbert Coville.
+
+
+	-Erik Andersen
+
+0.41
+	* New Apps: wc, hostid, logname, tty, whoami, yes -- all contributed 
+	    by Edward Betts <edward@debian.org>
+	* Fixed a bug in both cp and mv preventing 'cp foo/README bar'
+	    type commands (file in a directory to another directory) from
+	    working.
+	* Fixed a logger bug that caused garbage to be written to the syslog 
+	    (unless you used busybox syslog, which hid the bug).  Thanks to
+	    Alex Holden <alex@linuxhacker.org> for the fix.
+	* /bin/true and /bin/false were echoing a blank line when run.  
+	    Now fixed.
+	* mkdir -p would print an error when asked to mkdir an existing dir
+	    with no interveining subdirectories.
+	* Fixed "syslogd -O" so that it works.  Added -o loop option for mount,
+	* and support in umount for loop
+	  devices. Support is toggled by MOUNT_LOOP feature -- Ben Collins
+	  <bcollins@debian.org>
+	* Several fixes from Marco Pantaleoni <panta@prosa.it> compile in
+	* fullWrite() not only if BB_TAR is defined, but also
+		if BB_CP or BB_MV are (fullWrite() is referenced by copyFile())
+	    * add some compiler optimizations to further reduce executable size
+		(as a side note, on my machines the largest code is generated
+		by gcc 2.95.2 with -Os ! The smallest by plain gcc 2.7.2.3 with
+		-O2 -m386 ...)
+	    * Compile now won't fail if busybox.def.h defines 
+		BB_FEATURE_LINUXRC but not BB_INIT.  (init_main used to be
+		referenced, but not compiled)
+	* Fixed a bug in setting TERM for serial console support.  TERM now
+	    defaults to "ansi" for serial consoles.
+	* Fixed a bug in handling the CONSOLE env. variable for serial
+	* consoles.
+
+	-Erik Andersen, Jan 15, 2000
+
+0.40
+	* New Apps: sort, uniq. -beppu New Apps: lsmod, rmmod -erik New Apps:
+	* fbset contributed by Randolph Chung <tausq@debian.org>.  New App::
+	* loadacm contributed by Peter Novodvorsky <petya@logic.ru>
+	    for loading application character maps for Unicode fonts.
+	* Major init re-work.  init now supports inittab (slightly different
+	    but similar to sysvinit), allowing me to get all the policy out of
+	    init and into the conf file.  It works just fine without inittab
+	    being present, but if you dont like the default behavior you can
+	    now do something about it.  Init is much cleaner as a result.
+	* Fixed an bug in syslogd causing it to stop after 20 minutes. -erik
+	* Fixed an embarrasing segfault in head	-beppu Fixed the embarrasing
+	* failure of 'logger -p'. -erik Added the -s option to du -beppu
+	* Re-worked the source tree a bit so it will compile under glibc 2.0.7 
+	    with the 2.0.x Linux kernel.
+	* Added 'grep -q' thanks to a patch from "Konstantin Boldyshev" 
+	    <konst@voshod.com>.
+	* Grep -i previously failed on UPPER CASE patterns due to a silly 
+	    regexp implementation bug that is now fixed.
+	* Fixed a bug where tar would set, and then clear SGID and SUID bits.
+	* Fixed a bug where tar would not set the user and group on device
+	    special files.
+	* Fixed a bug where tar would not restore the time to files.  Fixed a
+	* major security problem with tar -- it changed ownership 
+	    of any file pointed to by a symlink to 777 (like say libc....)
+	    Ouch!!!
+	* cp and mv were very broken when moving directories.  I have rewritten 
+	    them so they should now work as expected. 
+	* sed now supports addresses (numeric or regexp, with negation) and 
+	    has an append command, thanks to Marco Pantaleoni <panta@prosa.it>
+	* Fixed dmesg.  It wasn't parsing its options (-n or -s) properly.
+	* Some cosmetic fixes to ls output formatting to make it behave more
+	    like GNU ls.
+	* Fixed a stupid segfault in kill.  Several fixes from Friedrich Vedder
+	* <fwv@myrtle.lahn.de>:
+	    - Added gunzip -t, removed gunzip.c dead code,
+	    - fixed several typos
+	    - Glibc 2.0.7 and libc5 compile fixes
+	* Fixed a bug where 'mknod --help' would segfault.
+	    
+
+	-Erik Andersen, Jan 07, 2000
+
+0.39 
+	* New Apps: ping, hostname, and mkfifo contributed by Randolph Chung
+	    <tausq@debian.org>.  3 items off the TODO list!
+	* I wrote free (just calls "cat /proc/meminfo").  Added tail, based on
+	* tail from GNU textutils-1.19, but adjusted
+	    to suit my evil purposes.  Costs 6k.  I'll make it smaller
+	    sometime.
+	* on reboot, init called 'umount -a -n', which caused errors
+	    when BB_MTAB was not enabled.  Changed to 'umount -a', which does
+	    the right thing.
+	* init will now try to run /sbin/getty if it is present (for easy
+	    integration with the about-to-be-released tinylogin.)
+	* kill now behaves itself properly, added 'kill -l' to list signals 'ls
+	* -l' was failing on long directories, since my_getid was leaking 
+	    one file descriptor per file.  Oops.
+	* Fixed rebooting from init.  I'd accidently left some debugging code
+	* in
+	    which blocked reboots.
+	* Fixed reboot, halt (and added poweroff) such that they handle it when
+	    init is not at PID 1 (like when running in an initrd).
+	* Added a prelinary du implementation.  Some parameter parsing
+	    stuff still needs to be added. -beppu (John Beppu
+	    <beppu@codepoet.org>)
+	* Implemented tee.  -beppu Implemented head. -beppu
+
+	-Erik Andersen, Dec 10, 1999
+
+0.38
+	* Fixed a segfault in 'umount -a' when a badly formed /etc/fstab
+	    file existed.
+	* df will not exit on error, but will stat all mounted filesystems.
+	* Fixed tar so uid/gid/permissions on extracted tarballs will be 
+	    correct.
+	* Fixed find -name so it properly uses shell wildcard patterns 
+	    (i.e. `*', `?', and `[]') instead of regular expressions, which
+	    was causing some confusing and unexpected behavior.
+	* Added klogd to syslogd, so now the log will contain both system and
+	    kernel messages.
+	* syslogd now creates the /dev/log socket to make sure it is there, and
+	    is actually a socket with the right permissions.
+	* I've taken a first step to making busybox not need the /proc 
+	    filesystem.  Most apps don't need it.  Those that _require_ it, 
+	    will complain if you enable them when you disable 
+	    BB_FEATURE_USE_PROCFS.
+	   
+	-Erik Andersen, Dec 5, 1999
+
+0.37
+	* Wrote a micro syslogd, and a logger util (to log things to the syslog
+	    from the command line or scripts)  With both compiled in, costs 4k.
+	* Fixed 'make install' so symlinks are installed in their proper
+	* locations.  Changed the build system slightly so that features can
+	* now be enabled
+	    or disabled from the busybox.defs.h header file, without trying to
+	    compile in a source file named after that featue (unless that file
+	    exists).
+	* Several options are now moved into busybox.defs.h Now 'rm -R' and 'rm
+	* -r' both work.  dd now properly handles input beyond 1 block from
+	* stdin.  Fixed a bug where tar unpacked everything a directories.
+	* Moved some code 
+	    from createPath into mkdir where it belonged, thereby making tar
+	    work properly.
+	* Fixed an off-by-one bug in cat.  Given a list of file it wouldn't cat
+	* out the
+	    last file in the list.
+	* Fixed 'ls -ln' so numeric group/uid are presented properly, and fixed
+	* 'ls -l' 
+	    so when uid/gid is not in /etc/{passwd,group} the numeric group/uid
+	    are presented properly.  
+	* Also added a TODO.
+
+
+	-Erik Andersen, Nov 25, 1999
+
+0.36
+	* fixed dd so it properly defaults to stdin and stdout when no 
+	    if= and of= are set (fix thanks to Eric Delaunay).
+	* Don't try to close the file descriptor of a pipein tar. (fix also
+	* from
+	    Eric Delaunay).
+	* Made createPath be quiet (again thanks to Eric Delaunay).  If
+	* BB_CONSOLE_CMD_IF_RC_SCRIPT_EXITS is defined, then whatever
+	    command you define it as will be run if the init script exits.
+	* Updated install.sh to make it more robust (thanks to Adam Di Carlo)
+	* NFS support added to mount by Eric Delaunay.  It costs 10k when
+	* compiled
+	    in, but that is still a big win for those that use NFS.
+	* Made 'rm -f' be silent for non-existant files (thanks to Eric
+	* Delaunay).  changed zcat.c to gunzip.c.  It now obeys the principle
+	* of least surprise 
+	    and acts as god intended gunzip and zcat to act.  They answer
+	    --help and obey the '-c' flag.
+	* Fixed a bug in mv which caused it to not move files when the
+	* destination
+	    was a directory.
+	* Fixed a decimal-instead-of-octal bug causing mkdir to make
+	* directories
+	    with very wrong permissions.
+	* chmod would overwrite file permissions instead of modifying them.
+	    Now it properly modifies permissions.
+	* Init now sends warnings destined for the console to /dev/console to
+	* ensure
+	    they show up on whatever the active console it.  Otherwise
+	    important messages (for example that the system is rebooting) were
+	    not seen when switched to a different VT.
+
+	-Erik Andersen, Nov 17, 1999
+	
+0.35
+	* gzip now obeys the principle of least surprise and acts like god
+	* intended 
+	    (i.e. it accepts a file name, answers --help, and obeys the '-c'
+	    flag and only then outputs to stdout).
+	* Fixed more.c to compile autowidth on sparc and set initial winsize 
+	    to 0,0 in case the TIOCGWINSZ ioctl fails.  Fix thanks to Eric
+	    Delaunay.
+	* Fixed tar so it now works as expected (it had TRUE/FALSE backwards)
+	* tar now accepts --help chmod, chown, and chgrp usage now works
+	* General usage (i.e. --help) cleanups for most apps umount now parses
+	* options correctly tar can now unpack tarballs containing device
+	* special files, 
+	    sockets, and fifos (though it can't pack them up) thanks to Matt
+	    Porter.  Creating archives containing these is still left to the
+	    interested student.
+	* fixed up the license in more.c to properly point to Bruce Perens.
+
+	-Erik Andersen, Nov  11, 1999
+
+0.34
+	* ls -l now displays link names outside the current directory,
+	    Patch thanks to Eric Delaunay
+	* init now properly handles sparc serial consoles and does a
+	    better job of finding the real console device rather than using
+	    /dev/console which doesn't support job control. Patch also thanks
+	    to Eric Delaunay.
+	* more started to read from stdin after the last file was finished, and 
+	    options were not parsed correctly (fix thanks to Eric Delaunay).
+	* more will now use the terminal size if BB_FEATURE_AUTOWIDTH is on.
+	* rm wouldn't remove a symlink unless the symlink was valid.  This was
+	    a side effect of the busybox 0.32 recursiveAction() fix.  Things
+	    should now work correctly.
+	* grep wouldn't grep stdin.  Now it does.  sed wouldn't sed stdin.  Now
+	* it does.  sed was appending a \n to the end of lines with
+	* replacements.
+	    Now it doesn't do that.
+	* ls -l now bypasses libc6 nss when displaying user/group names.
+	    Now uses my_getpwuid and my_getgrgid.
+
+	 -Erik Andersen, Nov  8, 1999
+
+0.33
+	* Fixed a bug where init could hang instead of rebooting.
+	* Removed some debugging noise from init.c
+	* Fixed ln so it works now (it was very broken).
+	* Fixed df so it won't segfault when there is no /etc/fstab,
+	* If BB_MTAB is not defined, df and mount will whine if /etc/fstab
+	    is not installed (since they cannot fixup "/dev/root" to 
+	    state the real root device name)
+	* merged some redundant code from mtab.c/df.c into utility.c
+
+	 -Erik Andersen, Nov  5, 1999
+
+0.32
+	* More changes -- many thanks to Lineo for paying me to work on
+	    busybox.  If you have any problems please let me know ASAP at
+	    andersee@debian.org
+	* usage() now prints the BusyBox version.  This will help folks
+	    realize that they are not in Kansas anymore.
+	* Fixed mkdir -m option so that it works.  kill segfaulted w/o any
+	* arguments.  Now it doesn't do that.  kill wasn't properly accepting
+	* signal names.  It does now.  Added new apps chvt and deallocvt (I
+	* should probably add open) Major rewrite of init.c.  Code is now
+	* readable by mere mortals IMHO.  Wrote sed -- weighs only 1.8k (5.8k
+	* with full regular expressions!).  Fixed a stupid seg-fault in sync
+	* Fixed mount -- mount -a failed to parse and apply mount options Fixed
+	* umount -n (patch thanks to Matthew Grant <grantma@anathoth.gen.nz>)
+	* umount -a no longer umounts /proc Added BB_MTAB, allowing (at the
+	* cost of ~1.5k and the need for a rw /etc)
+	    folks to use a real /etc/mtab file instead of a symlink to
+	    /proc/mounts.  mount, and umount will add/remove entries and df
+	    will now use /etc/mtab if BB_MTAB is defined. 
+	* Fixed a nice bug in recursiveAction() which caused it to infinitely
+	    hunt through /proc/../fd/* creating new file descriptors if it
+	    followed the /dev/fd link over to /proc.  recursiveAction() now
+	    lstat's the file when followLinks==FALSE so it won't follow links
+	    as the name suggests.  Fix thanks to Matt Porter
+	    <porter@debian.org>.
+
+
+	 -Erik Andersen, Nov  4, 1999
+
+0.31
+	* I added a changelog for version 0.30.  adjusted find internals to
+	* make it smaller, and removed 
+	    some redundancy.
+	* Fixed a segfault in ps when /etc/passwd or /etc/group 
+	    are absent.  Now will warn you and carry on.
+	* Added in optional _real_ regular expression support (to be
+	    the basis for a future sed utility).  When compiled in it adds
+	    3.9k, but makes grep much more capable.
+	* Checked out using nftw(3) for recursive stuff, but unfortunatly
+	    it wasn't supported before GNU libc 2.1, and some folks use glibc
+	    2.0.7 since it is much smaller than that latest and greatest.
+
+	 -Erik Andersen, Oct 21, 1999
+
+0.30
+	Major changes -- lots of stuff rewritten. Many thanks to Lineo for
+	paying me to make these updates. If you have any problems with busybox, 
+	or notice any bugs -- please let me know so I can fix it.  These 
+	changes include:
+
+	Core Changes:
+	    * busybox can now invoke apps in two ways: via symlinks to the
+		busybox binary, and as 'busybox [function] [arguments]...'
+	    * When invoked as busybox, the list of currently compiled in 
+		functions is printed out (no this is not bloat -- the list has
+		to be there anyway to map invocation name to function).
+	    * busybox no longer parses command lines for apps or displays their
+		usage info.  Each app gets to handle (or not handle) this for
+		itself.
+	    * Eliminated monadic, dyadic, descend, block_device, and 
+		postprocess.  It was cumbersome to have so many programs
+		cobbled together in this way.  Without them, the app is much
+		more granular.
+	    * All shared code now lives in utility.c, and is properly
+		ifdef'ed to be only included for those apps requiring it.
+	    * Eliminated struct FileInfo (the basis of monadic, dyadic, etc)
+		so now each app has the function prototype of (da-dum): extern
+		int foo_main(int argc, char** argv); which speeds integration
+		of new apps.
+	    * Adjusted the Makefile to make it easier to 
+		{en|dis}able debugging.
+	    * Changed default compiler optimization to -Os 
+		(optimize for smaller binaries).
+
+	App Changes:
+	    * To cope with the new app function prototype and the removal of
+		monadic, dyadic, etc, the following apps were re-written:
+		    * cat - Works same as always.  chgrp, chmod, chown -
+		    * rewrite.  Combined into a single 
+			source file.  Absorbed patches from Enrique Zanardi
+			<ezanard@debian.org> that removes the dependency on
+			libc6 libnss* libraries.
+		    * cp - Can now do 'cp -a' can can copy devices,
+			pipes, symlinks, as well as recursive or non-recursive
+			dir copies.
+		    * fdflush - adjusted to remove dependancy on struct
+		    * FileInfo.  find - Now includes some basic regexp matching 
+			which will be the basic of a future mini-sed.
+		    * ln - Same functionality.  mkdir - Added -p flag to
+		    * feature set.  mv - rewrite.  rm - Added -f flag to
+		    * feature set.  rmdir - Same functionality.  swapon,
+		    * swapoff - Combined into a single binary. No longer
+			uses /etc/swaps.  swap{on|off} -a uses /etc/fstab
+			instead.
+		    * touch - Same functionality.  date - adjusted with a patch
+		    * from Matthew Grant <grantma@anathoth.gen.nz>
+		to accomodate glibc timezone support.  I then ripped out GNU
+		getopt.
+	    * mkswap -- new version merged from util-linux.  Can now make 
+			>128Meg swaps.  
+		* Replaced the old and star, unstar, and tarcat with the tar 
+			implementation from sash.   Now tar behaves as god intended it
+			to (i.e. tar -xvf <file> and tar -cf <file> <dir> work).
+	    * dd -- rewritten.  Can with with files, stdin, stdout.  Added the
+	    * following new apps: loadfont -- added from debian boot floppies
+	    * chroot -- added based on a patch from Paolo Molaro
+	    * <lupus@lettere.unipd.it> grep -- I just wrote it.  Only matches
+	    * simple strings ps -- I just wrote it.  Has _no_ options at all,
+	    * but works.  fsck_minix, mkfs_minix -- added from util-linux, but
+	    * I ripped out
+			internationalization and such to make them smaller.
+		    * sfdisk -- Added from util-linux (minus
+		    * internationalization and such).  Probably some other
+		    * changes that I forgot to document...
+
+	 -Erik Andersen, Oct 20, 1999
+
+0.29	
+	This version was a messy pre-alpha.  stay away or it will bite you.
+	 -Erik Andersen, Sep 24, 1999
+	
+0.28	
+	mini-netcat (mnc) rewritten.
+	
+0.27
+	Mount now supports -a, and -t auto.
+	Mount now updates mtab correctly for 'ro'.
+	More checks screen rows size, outputs bytes percentage.
+	Printf added as module.
+0.26
+	Touch now creates files. -c option for no create.
+	

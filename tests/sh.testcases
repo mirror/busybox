@@ -1,0 +1,89 @@
+# try running this with bash, ksh, ash, and hush.
+
+# simple quoting rules.
+echo a  b
+echo "a  b"
+echo a "" b
+echo a '' b
+echo hello?
+echo "hello?"
+echo t* hello
+echo t\* hello
+
+# quick and painless exit for lash
+if false; then true; exit; fi
+
+# fairly simple command substitution
+echo `echo -e foo\\\necho bar`
+
+echo THIS IS A TEST >foo
+cat $(echo FOO | tr 'A-Z' 'a-z')
+cat foo | tr 'A-Z' 'a-z'
+cat $(echo FOO | tr 'A-Z' 'a-z') | tr 'A-Z' 'a-z'
+
+cat foo | if true;  then tr 'A-Z' 'a-z'; else echo bar1; fi
+cat foo | if false; then tr 'A-Z' 'a-z'; else echo bar2; fi
+if true;  then tr 'A-Z' 'a-z'; else echo bar3; fi <foo
+if false; then tr 'A-Z' 'a-z'; else echo bar4; fi <foo
+if true || false; then echo foo; else echo bar5; fi
+if true && false; then echo bar6; else echo foo; fi
+
+# basic distinction between local and env variables
+unset FOO
+FOO=bar env | grep FOO
+echo "but not here: $FOO"
+FOO=bar
+env | grep FOO
+echo "yes, here: $FOO"
+FOO=
+echo a $FOO b
+echo "a $FOO b"
+
+# not quite so basic variables.  Credit to Matt Kraai.
+unset FOO
+FOO=bar
+export FOO
+env | grep FOO
+unset FOO
+export FOO=bar
+FOO=baz
+env | grep FOO
+
+# interaction between environment variables and if/then and subshells
+FOO=default
+if true; then FOO=new; fi
+echo $FOO
+FOO=default
+(FOO=bogus)
+echo $FOO
+
+# make sure we can duplicate file descriptors properly
+echo replacement >foo 2>&1
+cat foo
+cat doesnt_exist >foo 2>&1
+tr 'a-z' 'A-Z' <foo
+
+# fairly simple example of hush expanding variables too early
+unset TMP
+rm -f fish
+TMP=fish && >$TMP
+ls fish
+
+# ash, lash, and hush do not create wish; bash and ksh do.
+# Thanks to Tapani Tarvainen <tt@mit.jyu.fi> for this stress test.
+unset TMP
+rm -f wish
+TMP=wish >$TMP
+ls wish
+
+# The following example shows that hush's parser is
+# not _really_ Bourne compatible
+echo "echo Hello World" >"a=b"
+unset a
+chmod a+x "a=b"
+PATH=$PATH:.
+"a=b"
+echo $a
+
+# assuming the shell wasn't too buggy, clean up the mess
+rm -f a=b wish fish foo

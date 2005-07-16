@@ -1,0 +1,104 @@
+I have been asked several times whether the devps patch will go into the
+mainline Linux kernel.  The following emails from Alan Cox and Linus Torvalds
+make it clear that it is not going to happen.  This does not mean this patch
+had no value -- it does.  It just means that those that like it get to apply it
+themselves...
+
+ -Erik
+
+
+-------------------------------
+
+From alan@lxorguk.ukuu.org.uk  Thu Apr 13 08:07:22 2000
+Return-Path: <alan@lxorguk.ukuu.org.uk>
+Delivered-To: andersen@dillweed.dsl.xmission.com
+Received: from localhost (dillweed.dsl.xmission.com [10.0.0.1])
+	by dillweed.dsl.xmission.com (Postfix) with ESMTP id 1D57A11A4F5
+	for <andersen@dillweed.dsl.xmission.com>; Thu, 13 Apr 2000 08:07:22 -0600 (MDT)
+Envelope-to: andersen@xmission.com
+Received: from mail.xmission.com
+	by localhost with IMAP (fetchmail-5.3.3)
+	for andersen@dillweed.dsl.xmission.com (single-drop); Thu, 13 Apr 2000 08:07:22 -0600 (MDT)
+Received: from [194.168.151.1] (helo=the-village.bc.nu)
+	by mail.xmission.com with esmtp (Exim 3.03 #3)
+	id 12fhQk-0002OZ-00
+	for andersen@xmission.com; Thu, 13 Apr 2000 05:05:03 -0600
+Received: from alan by the-village.bc.nu with local (Exim 2.12 #1)
+	id 12fhQ9-0002nD-00
+	for andersen@xmission.com; Thu, 13 Apr 2000 12:04:25 +0100
+Subject: Re: kernel ps drivers [Was: vm locking question]
+To: andersen@xmission.com
+Date: Thu, 13 Apr 2000 12:04:23 +0100 (BST)
+In-Reply-To: <20000412224130.A2748@xmission.com> from "Erik Andersen" at Apr 12, 2000 10:41:30 PM
+X-Mailer: ELM [version 2.5 PL1]
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-Id: <E12fhQ9-0002nD-00@the-village.bc.nu>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Status: RO
+X-Status: A
+Content-Length: 242
+Lines: 6
+
+> On the subject of ps, would you be willing to accept my /dev/ps 
+> patch into the kernel?  If no, any suggestions on what should
+> be done differently (if anything) to make it worthy of inclusion?
+
+For 2.2.x no, for 2.3.x ask Linus not me
+
+
+From torvalds@transmeta.com  Thu Apr 13 09:18:16 2000
+Return-Path: <torvalds@transmeta.com>
+Delivered-To: andersen@dillweed.dsl.xmission.com
+Received: from localhost (dillweed.dsl.xmission.com [10.0.0.1])
+	by dillweed.dsl.xmission.com (Postfix) with ESMTP id 3776411A3DF
+	for <andersen@dillweed.dsl.xmission.com>; Thu, 13 Apr 2000 09:18:16 -0600 (MDT)
+Envelope-to: andersen@xmission.com
+Received: from mail.xmission.com
+	by localhost with IMAP (fetchmail-5.3.3)
+	for andersen@dillweed.dsl.xmission.com (single-drop); Thu, 13 Apr 2000 09:18:16 -0600 (MDT)
+Received: from [209.10.217.66] (helo=neon-gw.transmeta.com)
+	by mail.xmission.com with esmtp (Exim 3.03 #3)
+	id 12flK2-0004dd-00
+	for andersen@xmission.com; Thu, 13 Apr 2000 09:14:22 -0600
+Received: (from root@localhost)
+	by neon-gw.transmeta.com (8.9.3/8.9.3) id IAA18635;
+	Thu, 13 Apr 2000 08:10:51 -0700
+Received: from mailhost.transmeta.com(10.1.1.15) by neon-gw.transmeta.com via smap (V2.1)
+	id xma018629; Thu, 13 Apr 00 08:10:25 -0700
+Received: from penguin.transmeta.com (root@penguin.transmeta.com [10.1.2.202])
+	by deepthought.transmeta.com (8.9.3/8.9.3) with ESMTP id IAA12264;
+	Thu, 13 Apr 2000 08:13:53 -0700 (PDT)
+Received: from localhost (torvalds@localhost) by penguin.transmeta.com (8.9.3/8.7.3) with ESMTP id IAA02051; Thu, 13 Apr 2000 08:13:53 -0700
+X-Authentication-Warning: penguin.transmeta.com: torvalds owned process doing -bs
+Date: Thu, 13 Apr 2000 08:13:53 -0700 (PDT)
+From: Linus Torvalds <torvalds@transmeta.com>
+To: Erik Andersen <andersen@xmission.com>
+Cc: Alan Cox <alan@redhat.com>
+Subject: Re: kernel ps drivers [Was: vm locking question]
+In-Reply-To: <20000413083127.A976@xmission.com>
+Message-ID: <Pine.LNX.4.10.10004130812170.2000-100000@penguin.transmeta.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Status: RO
+Content-Length: 659
+Lines: 16
+
+
+
+On Thu, 13 Apr 2000, Erik Andersen wrote:
+> 
+> For 2.3.x would you be willing to accept my /dev/ps driver into the kernel?
+> (Assuming I remove the /dev/modules driver (since it was pointed out that there
+> is a perfectly good syscall providing that interface).  If no, is there anything
+> that could be done differently (if anything) to make it worthy of inclusion?
+
+I do dislike /dev/ps mightily. If the problem is that /proc is too large,
+then the right solution is to just clean up /proc. Which is getting done.
+And yes, /proc will be larger than /dev/ps, but I still find that
+preferable to having two incompatible ways to do the same thing.
+
+		Linus
+
+

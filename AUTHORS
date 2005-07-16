@@ -1,0 +1,93 @@
+List of the authors of code contained in BusyBox.
+
+If you have code in BusyBox, you should be listed here.  If you should be
+listed, or the description of what you have done needs more detail, or is
+incorect, _please_ let me know.
+
+ -Erik
+
+-----------
+
+Erik Andersen <andersen@codepoet.org>, <andersee@debian.org>
+    Tons of new stuff, major rewrite of most of the
+    core apps, tons of new apps as noted in header files.
+
+Edward Betts <edward@debian.org>
+    expr, hostid, logname, tty, wc, whoami, yes
+ 
+John Beppu <beppu@codepoet.org>
+    du, head, nslookup, sort, tee, uniq
+
+Brian Candler <B.Candler@pobox.com>
+    tiny-ls(ls)
+
+Randolph Chung <tausq@debian.org>
+    fbset, ping, hostname, and mkfifo
+
+Dave Cinege <dcinege@psychosis.com>	
+    more(v2), makedevs, dutmp, modularization, auto links file, 
+    various fixes, Linux Router Project maintenance
+
+Magnus Damm <damm@opensource.se>
+    tftp client
+    insmod powerpc support
+
+Larry Doolittle <ldoolitt@recycle.lbl.gov>
+    pristine source directory compilation, lots of patches and fixes.
+
+Gennady Feldman <gfeldman@cachier.com>
+    Sysklogd (single threaded syslogd, IPC Circular buffer support,
+    logread), various fixes.
+
+Karl M. Hegbloom <karlheg@debian.org>
+    cp_mv.c, the test suite, various fixes to utility.c, &c.
+
+Daniel Jacobowitz <dan@debian.org>
+    mktemp.c
+
+Matt Kraai <kraai@alumni.carnegiemellon.edu>
+    documentation, bugfixes, test suite
+
+John Lombardo <john@deltanet.com>	
+    dirname, tr
+
+Glenn McGrath <bug1@optushome.com.au>
+    ar, dpkg, dpkg-deb
+
+Vladimir Oleynik <dzo@simtreas.ru>
+    cmdedit; ports: ash, stty, traceroute; locale, various fixes
+    and irreconcilable critic of everything not perfect.
+
+Bruce Perens <bruce@pixar.com>
+    Original author of BusyBox. His code is still in many apps.
+
+Tim Riker <Tim@Rikers.org>
+    bug fixes, member of fan club
+
+Kent Robotti <robotti@metconnect.com>
+    reset, tons and tons of bug reports and patchs.
+
+Chip Rosenthal <chip@unicom.com>, <crosenth@covad.com>
+    wget - Contributed by permission of Covad Communications
+
+Pavel Roskin <proski@gnu.org>
+    Lots of bugs fixes and patches.
+
+Gyepi Sam <gyepi@praxis-sw.com>
+    Remote logging feature for syslogd
+
+Linus Torvalds <torvalds@transmeta.com>
+    mkswap, fsck.minix, mkfs.minix
+
+Mark Whitley <markw@codepoet.org>
+    grep, sed, cut, xargs, style-guide, new-applet-HOWTO, bug fixes, etc.
+
+Charles P. Wright <cpwright@villagenet.com>
+    gzip, mini-netcat(nc)
+
+Enrique Zanardi <ezanardi@ull.es>
+    tarcat (since removed), loadkmap, various fixes, Debian maintenance
+
+Emanuele Aina <emanuele.aina@tiscali.it>
+	run-parts
+

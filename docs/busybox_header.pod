@@ -1,0 +1,74 @@
+# vi: set sw=4 ts=4:
+
+=head1 NAME
+
+BusyBox - The Swiss Army Knife of Embedded Linux
+
+=head1 SYNTAX
+
+ BusyBox <function> [arguments...]  # or
+
+ <function> [arguments...]	    # if symlinked
+
+=head1 DESCRIPTION
+
+BusyBox combines tiny versions of many common UNIX utilities into a single
+small executable. It provides minimalist replacements for most of the utilities
+you usually find in fileutils, shellutils, findutils, textutils, grep, gzip,
+tar, etc.  BusyBox provides a fairly complete POSIX environment for any small
+or embedded system.  The utilities in BusyBox generally have fewer options than
+their full-featured GNU cousins; however, the options that are included provide
+the expected functionality and behave very much like their GNU counterparts. 
+
+BusyBox has been written with size-optimization and limited resources in mind.
+It is also extremely modular so you can easily include or exclude commands (or
+features) at compile time.  This makes it easy to customize your embedded
+systems.  To create a working system, just add a kernel, a shell (such as ash),
+and an editor (such as elvis-tiny or ae).
+
+=head1 USAGE
+
+When you create a link to BusyBox for the function you wish to use, when BusyBox
+is called using that link it will behave as if the command itself has been invoked.
+
+For example, entering
+
+	ln -s ./BusyBox ls
+	./ls
+
+will cause BusyBox to behave as 'ls' (if the 'ls' command has been compiled
+into BusyBox). 
+
+You can also invoke BusyBox by issuing the command as an argument on the
+command line.  For example, entering
+
+	./BusyBox ls
+
+will also cause BusyBox to behave as 'ls'. 
+
+=head1 COMMON OPTIONS
+
+Most BusyBox commands support the B<-h> option to provide a
+terse runtime description of their behavior. 
+
+=head1 COMMANDS
+
+Currently defined functions include:
+
+adjtimex, ar, basename, busybox, cat, chgrp, chmod, chown, chroot, chvt, clear,
+cmp, cp, cpio, cut, date, dc, dd, deallocvt, df, dirname, dmesg, dos2unix, dpkg,
+dpkg-deb, du, dumpkmap, dutmp, echo, expr, false, fbset, fdflush, find, free,
+freeramdisk, fsck.minix, getopt, grep, gunzip, gzip, halt, head, hostid,
+hostname, id, ifconfig, init, insmod, kill, killall, klogd, length, ln,
+loadacm, loadfont, loadkmap, logger, logname, ls, lsmod, makedevs, md5sum,
+mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp, more, mount, mt, mv, nc,
+nslookup, ping, pivot_root, poweroff, printf, ps, pwd, rdate, readlink, reboot,
+renice, reset, rm, rmdir, rmmod, route, rpm2cpio, sed, setkeycodes,
+sh, sleep, sort, stty, swapoff, swapon, sync, syslogd, tail, tar, tee, telnet,
+test, tftp, touch, tr, true, tty, umount, uname, uniq, unix2dos, update, uptime,
+usleep, uudecode, uuencode, watchdog, wc, wget, which, whoami, xargs, yes, zcat,
+[
+
+=over 4
+
+

@@ -1,0 +1,10 @@
+BusyBox for Debian
+----------------------
+
+BusyBox is being developed and maintained by Erik Andersen
+<andersee@debian.org>.
+
+If you have a problem with BusyBox, send email to the Debian bug tracking
+system that lives at <submit@bugs.busybox.net> 
+
+Erik Andersen <andersee@debian.org>, Sun, 18 Jun 2000 21:52:00 -0600

@@ -1,0 +1,3974 @@
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V3.1//EN" [ ]>
+<book id="BusyBoxDocumentation">
+ <bookinfo>
+  <title>BusyBox - The Swiss Army Knife of Embedded Linux</title>
+  
+  <legalnotice>
+   <para>
+     This documentation is free software; you can redistribute
+     it and/or modify it under the terms of the GNU General Public
+     License as published by the Free Software Foundation; either
+     version 2 of the License, or (at your option) any later
+     version.
+   </para>
+      
+   <para>
+     This program is distributed in the hope that it will be
+     useful, but WITHOUT ANY WARRANTY; without even the implied
+     warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+     See the GNU General Public License for more details.
+   </para>
+      
+   <para>
+     You should have received a copy of the GNU General Public
+     License along with this program; if not, write to the Free
+     Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+     MA 02111-1307 USA
+   </para>
+      
+   <para>
+     For more details see the file COPYING in the source
+     distribution of Linux.
+   </para>
+  </legalnotice>
+ </bookinfo>
+
+<toc></toc>
+  <chapter id="Introduction">
+     <title>Introduction</title>
+
+	<para>
+	BusyBox combines tiny versions of many common UNIX utilities into a single
+	small executable. It provides minimalist replacements for most of the
+	utilities you usually find in fileutils, shellutils, findutils, textutils,
+	grep, gzip, tar, etc. BusyBox provides a fairly complete POSIX environment
+	for any small or embedded system. The utilities in BusyBox generally have
+	fewer options than their full-featured GNU cousins; however, the options
+	that are included provide the expected functionality and behave very much
+	like their GNU counterparts. 
+	</para>
+
+	<para>
+	BusyBox has been written with size-optimization and limited resources in
+	mind. It is also extremely modular so you can easily include or exclude
+	commands (or features) at compile time. This makes it easy to customize
+	your embedded systems. To create a working system, just add a kernel, a
+	shell (such as ash), and an editor (such as elvis-tiny or ae).
+	</para>
+  </chapter>
+
+  <chapter id="Syntax">
+     <title>How to use BusyBox</title>
+	<sect1 id="How-to-use-BusyBox">
+	    <title>Syntax</title>
+
+	    <para>
+	    <screen>
+	     BusyBox &lt;function&gt; [arguments...]  # or
+	    </screen>
+	    </para>
+
+	    <para>
+	    <screen>
+	     &lt;function&gt; [arguments...]          # if symlinked
+	    </screen>
+	    </para>
+	</sect1>
+
+	<sect1 id="Invoking-BusyBox">
+	    <title>Invoking BusyBox</title>
+
+	    <para>
+	    When you create a link to BusyBox for the function you wish to use, when
+	    BusyBox is called using that link it will behave as if the command itself
+	    has been invoked.
+	    </para>
+
+	    <para>
+	    For example, entering
+	    </para>
+
+	    <para>
+	    <screen>
+		    ln -s ./BusyBox ls
+		    ./ls
+	    </screen>
+	    </para>
+
+	    <para>
+	    will cause BusyBox to behave as 'ls' (if the 'ls' command has been compiled
+	    into BusyBox). 
+	    </para>
+
+	    <para>
+	    You can also invoke BusyBox by issuing the command as an argument on the
+	    command line. For example, entering
+	    </para>
+
+	    <para>
+	    <screen>
+		    ./BusyBox ls
+	    </screen>
+	    </para>
+
+	    <para>
+	    will also cause BusyBox to behave as 'ls'. 
+	    </para>
+
+	</sect1>
+
+	<sect1 id="Common-options">
+	    <title>Common options</title>
+
+	    <para>
+	    Most BusyBox commands support the <emphasis>--help</emphasis> option to provide 
+	    a terse runtime description of their behavior. 
+	    </para>
+	</sect1>
+  </chapter>
+
+  <chapter id="Commands">
+     <title>BusyBox Commands</title>
+	<sect1 id="Available-BusyBox-Commands">
+	    <title>Available BusyBox Commands</title>
+		<para>
+		Currently defined functions include:
+		</para>
+
+		<para>
+		ar, basename, cat, chgrp, chmod, chown, chroot, chvt, clear,
+		cp, cut, date, dc, dd, deallocvt, df, dirname, dmesg, dpkg-deb,
+		du, dumpkmap, dutmp, echo, false, fbset, fdflush, find, free,
+		freeramdisk, fsck.minix, grep, gunzip, gzip, halt, head,
+		hostid, hostname, id, init, insmod, kill, killall, length, ln,
+		loadacm, loadfont, loadkmap, logger, logname, ls, lsmod,
+		makedevs, mkdir, mkfifo, mkfs.minix, mknod, mkswap, mktemp,
+		more, mount, mt, mv, nc, nslookup, ping, poweroff, printf, ps,
+		pwd, reboot, renice, reset, rm, rmdir, rmmod, sed, setkeycodes, sh, sleep,
+		sort, swapoff, swapon, sync, syslogd, tail, tar, tee, telnet,
+		test, touch, tr, true, tty, umount, uname, uniq, update,
+		uptime, usleep, uudecode, uuencode, wc, which, whoami, yes,
+		zcat, [
+		</para>
+	</sect1>
+
+	<sect1 id="ar">
+	    <title>ar</title>
+
+		<para>
+		Usage: ar [OPTION] archive [FILENAME]...
+		</para>
+
+		<para>
+		Extract or list files from an ar archive.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			o	Preserve original dates
+			p	Extract to stdout
+			t	List
+			x	Extract
+			v	Verbosely list files processed
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="basename">
+	    <title>basename</title>
+		<para>
+		Usage: basename FILE [SUFFIX]
+		</para>
+
+		<para>
+		Strip directory path and suffixes from FILE. If specified, also removes
+		any trailing SUFFIX.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ basename /usr/local/bin/foo
+			foo
+			$ basename /usr/local/bin/
+			bin
+			$ basename /foo/bar.txt .txt
+			bar
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="cat">
+	    <title>cat</title>
+
+		<para>
+		Usage: cat [FILE]...
+		</para>
+
+		<para>
+		Concatenate <literal>FILE(s)</literal> and prints them to the standard
+		output.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ cat /proc/uptime
+			110716.72 17.67
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="chgrp">
+	    <title>chgrp</title>
+
+		<para>
+		Usage: chgrp [OPTION]... GROUP FILE...
+		</para>
+
+		<para>
+		Change the group membership of each FILE to GROUP.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-R      Change files and directories recursively
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /tmp/foo
+			-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo
+			$ chgrp root /tmp/foo
+			$ ls -l /tmp/foo
+			-r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="chmod">
+	    <title>chmod</title>
+
+		<para>
+		Usage: chmod [<emphasis>-R</emphasis>] MODE[,MODE]... FILE...
+		</para>
+
+		<para>
+		Change file access permissions for the specified
+		<literal>FILE(s)</literal> (or directories). Each MODE is defined by
+		combining the letters for WHO has access to the file, an OPERATOR for
+		selecting how the permissions should be changed, and a PERMISSION for
+		<literal>FILE(s)</literal> (or directories).
+		</para>
+
+		<para>
+		WHO may be chosen from
+		</para>
+
+		<para>
+		<screen>
+			u       User who owns the file
+			g       Users in the file's Group
+			o       Other users not in the file's group
+			a       All users
+		</screen>
+		</para>
+
+		<para>
+		OPERATOR may be chosen from
+		</para>
+
+		<para>
+		<screen>
+			+       Add a permission
+			-       Remove a permission
+			=       Assign a permission
+		</screen>
+		</para>
+
+		<para>
+		PERMISSION may be chosen from
+		</para>
+
+		<para>
+		<screen>
+			r       Read
+			w       Write
+			x       Execute (or access for directories)
+			s       Set user (or group) ID bit
+			t       Sticky bit (for directories prevents removing files by non-owners)
+		</screen>
+		</para>
+
+		<para>
+		Alternately, permissions can be set numerically where the first three
+		numbers are calculated by adding the octal values, such as
+		</para>
+
+		<para>
+		<screen>
+			4       Read
+			2       Write
+			1       Execute
+		</screen>
+		</para>
+
+		<para>
+		An optional fourth digit can also be used to specify
+		</para>
+
+		<para>
+		<screen>
+			4       Set user ID
+			2       Set group ID
+			1       Sticky bit
+		</screen>
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-R      Change files and directories recursively.
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /tmp/foo
+			-rw-rw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo
+			$ chmod u+x /tmp/foo
+			$ ls -l /tmp/foo
+			-rwxrw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo*
+			$ chmod 444 /tmp/foo
+			$ ls -l /tmp/foo
+			-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+	
+	<sect1 id="chown">
+	    <title>chown</title>
+		<para>
+		Usage: chown [OPTION]... OWNER[&lt;.|:&gt;[GROUP] FILE...
+		</para>
+
+		<para>
+		Change the owner and/or group of each FILE to OWNER and/or GROUP.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-R      Change files and directories recursively
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /tmp/foo
+			-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo
+			$ chown root /tmp/foo
+			$ ls -l /tmp/foo
+			-r--r--r--    1 root     andersen        0 Apr 12 18:25 /tmp/foo
+			$ chown root.root /tmp/foo
+			ls -l /tmp/foo
+			-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="chroot">
+	    <title>chroot</title>
+		<para>
+		Usage: chroot NEWROOT [COMMAND...]
+		</para>
+
+		<para>
+		Run COMMAND with root directory set to NEWROOT.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /bin/ls
+			lrwxrwxrwx    1 root     root          12 Apr 13 00:46 /bin/ls -&gt; /BusyBox
+			$ mount /dev/hdc1 /mnt -t minix
+			$ chroot /mnt
+			$ ls -l /bin/ls
+			-rwxr-xr-x    1 root     root        40816 Feb  5 07:45 /bin/ls*
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="chvt">
+	    <title>chvt</title>
+		<para>
+		Usage: chvt N
+		</para>
+
+		<para>
+		Change the foreground virtual terminal to /dev/ttyN
+		</para>
+	</sect1>
+
+	<sect1 id="clear">
+	    <title>clear</title>
+
+		<para>
+		Usage: clear
+		</para>
+
+		<para>
+		Clear the screen.
+		</para>
+	</sect1>
+
+	<sect1 id="cp">
+	    <title>cp</title>
+
+		<para>
+		Usage: cp [OPTION]... SOURCE DEST
+		</para>
+
+		<para>
+		<screen>
+		   or: cp [OPTION]... SOURCE... DIRECTORY
+		</screen>
+		</para>
+
+		<para>
+		Copy SOURCE to DEST, or multiple <literal>SOURCE(s)</literal> to
+		DIRECTORY.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a      Same as -dpR
+			-d      Preserve links
+			-p      Preserve file attributes if possible
+			-R      Copy directories recursively
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="cut">
+	    <title>cut</title>
+
+		<para>
+		Usage: cut [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Print selected fields from each input FILE to standard output.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+				-b LIST Output only bytes from LIST
+				-c LIST Output only characters from LIST
+				-d CHAR Use CHAR instead of tab as the field delimiter
+				-s      Output only the lines containing delimiter
+				-f N    Print only these fields
+				-n      Ignored
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "Hello world" | cut -f 1 -d ' '
+			Hello
+			$ echo "Hello world" | cut -f 2 -d ' '
+			world
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="date">
+	    <title>date</title>
+
+		<para>
+		Usage: date [OPTION]... [+FORMAT]
+		</para>
+
+		<para>
+		<screen>
+		  or:  date [OPTION] [MMDDhhmm[[CC]YY][.ss]]
+		</screen>
+		</para>
+
+		<para>
+		Display the current time in the given FORMAT, or set the system date.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-R      Output RFC-822 compliant date string
+			-s      Set time described by STRING
+			-u      Print or set Coordinated Universal Time
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ date
+			Wed Apr 12 18:52:41 MDT 2000
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dc">
+	    <title>dc</title>
+
+		<para>
+		Usage: dc [EXPRESSION]
+		</para>
+
+		<para>
+		This is a Tiny RPN calculator that understands the
+		following operations: +, -, /, *, and, or, not, eor. If
+		no arguments are given, dc will process input from
+		stdin.
+		</para>
+
+		<para>
+		The behaviour of BusyBox/dc deviates (just a little ;-)
+		from GNU/dc, but this will be remedied in the future.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dc 2 2 +
+			4
+			$ dc 8 8 \* 2 2 + /
+			16
+			$ dc 0 1 and
+			0
+			$ dc 0 1 or
+			1
+			$ echo 72 9 div 8 mul | dc
+			64
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dd">
+	    <title>dd</title>
+
+		<para>
+		Usage: dd [OPTION]...
+		</para>
+
+		<para>
+		Copy a file, converting and formatting according to
+		options.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			if=FILE Read from FILE instead of stdin
+			of=FILE Write to FILE instead of stdout
+			bs=N    Read and write N bytes at a time
+			count=N Copy only N input blocks
+			skip=N  Skip N input blocks
+			seek=N  Skip N output blocks
+		</screen>
+		</para>
+
+		<para>
+		Numbers may be suffixed by w (x2), k (x1024), b (x512),
+		or M (x1024^2).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dd if=/dev/zero of=/dev/ram1 bs=1M count=4
+			4+0 records in
+			4+0 records out
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="deallocvt">
+	    <title>deallocvt</title>
+
+		<para>
+		Usage: deallocvt N
+		</para>
+
+		<para>
+		Deallocate unused virtual terminal /dev/ttyN.
+		</para>
+	</sect1>
+
+	<sect1 id="df">
+	    <title>df</title>
+
+		<para>
+		Usage: df [FILE]...
+		</para>
+
+		<para>
+		Print the filesystem space used and space available.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ df
+			Filesystem           1k-blocks      Used Available Use% Mounted on
+			/dev/sda3              8690864   8553540    137324  98% /
+			/dev/sda1                64216     36364     27852  57% /boot
+			$ df /dev/sda3
+			Filesystem           1k-blocks      Used Available Use% Mounted on
+			/dev/sda3              8690864   8553540    137324  98% /
+		</screen>
+		</para>
+	</sect1>
+	
+	<sect1 id="dirname">
+	    <title>dirname</title>
+
+		<para>
+		Usage: dirname NAME
+		</para>
+
+		<para>
+		Strip non-directory suffix from NAME.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dirname /tmp/foo
+			/tmp
+			$ dirname /tmp/foo/
+			/tmp
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dmesg">
+	    <title>dmesg</title>
+
+		<para>
+		Usage: dmesg [OPTION]...
+		</para>
+
+		<para>
+		Print or control the kernel ring buffer.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c		Clear the ring buffer after printing
+			-n LEVEL	Set the console logging level to LEVEL
+			-s BUFSIZE	Query ring buffer using a buffer of BUFSIZE
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dos2unix">
+	    <title>dos2unix</title>
+
+		<para>
+		Usage: dos2unix < dosfile > unixfile
+		</para>
+
+		<para>
+		Converts a text file from dos format to unix format.
+		</para>
+
+	</sect1>
+
+	<sect1 id="dpkg-deb">
+	    <title>dpkg-deb</title>
+
+		<para>
+		Usage: dpkg-deb [OPTION] archive [directory] 
+		</para>
+
+		<para>
+		Debian package archive (.deb) manipulation tool	
+		</para>
+
+		<para>
+		Options:
+		</para>
+		
+		<para>
+		<screen>
+			-c	List the contents of the filesystem tree archive portion of the package 
+			-e	Extracts the control information files from a package archive into the specified directory.
+				If  no  directory  is specified then a subdirectory DEBIAN in the current directory is used.
+			-x	Silently extracts the filesystem tree from a package archive into the specified directory.
+			-X	Extracts the filesystem tree from a package archive into the specified directory, listing the files as it goes.	
+			If required the specified directory (but not its parents) will be created.
+		</screen>
+		<para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			dpkg-deb -e ./busybox_0.48-1_i386.deb
+			dpkg-deb -x ./busybox_0.48-1_i386.deb ./unpack_dir
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="du">
+	    <title>du</title>
+
+		<para>
+		Usage: du [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Summarize the disk space used for each FILE or current
+		directory.  Disk space printed in units of 1k (i.e.,
+		1024 bytes).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-l	Count sizes many times if hard linked
+			-s	Display only a total for each argument
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ du
+			16	./CVS
+			12	./kernel-patches/CVS
+			80	./kernel-patches
+			12	./tests/CVS
+			36	./tests
+			12	./scripts/CVS
+			16	./scripts
+			12	./docs/CVS
+			104	./docs
+			2417	.
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dumpkmap">
+	    <title>dumpkmap</title>
+
+		<para>
+		Usage: dumpkmap
+		</para>
+
+		<para>
+		Prints out a binary keyboard translation table to standard output.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dumpkmap &lt; keymap
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="dutmp">
+	    <title>dutmp</title>
+
+		<para>
+		Usage: dutmp [FILE]
+		</para>
+
+		<para>
+		Dump utmp file format (pipe delimited) from FILE or
+		stdin to stdout.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dutmp /var/run/utmp
+			8|7||si|||0|0|0|955637625|760097|0
+			2|0|~|~~|reboot||0|0|0|955637625|782235|0
+			1|20020|~|~~|runlevel||0|0|0|955637625|800089|0
+			8|125||l4|||0|0|0|955637629|998367|0
+			6|245|tty1|1|LOGIN||0|0|0|955637630|998974|0
+			6|246|tty2|2|LOGIN||0|0|0|955637630|999498|0
+			7|336|pts/0|vt00andersen|andersen|:0.0|0|0|0|955637763|0|0
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="echo">
+	    <title>echo</title>
+
+		<para>
+		Usage: echo [OPTION]... [ARG]...
+		</para>
+
+		<para>
+		Print ARGs to stdout.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-n	Suppress trailing newline
+			-e	Enable interpretation of escaped characters
+			-E	Disable interpretation of escaped characters
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "Erik is cool"
+			Erik is cool
+			$ echo -e "Erik\nis\ncool"
+			Erik
+			is
+			cool
+			$ echo "Erik\nis\ncool"
+			Erik\nis\ncool
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="expr">
+	    <title>expr</title>
+
+		<para>
+		Usage: expr EXPRESSION
+		</para>
+
+		<para>
+		Prints the value of EXPRESSION to standard output.
+		</para>
+
+		<para>
+		EXPRESSION may be:
+		</para>
+
+		<para>
+		<screen>
+			ARG1 |  ARG2    ARG1 if it is neither null nor 0, otherwise ARG2
+			ARG1 &  ARG2    ARG1 if neither argument is null or 0, otherwise 0
+			ARG1 &lt  ARG2    ARG1 is less than ARG2
+			ARG1 &lt= ARG2    ARG1 is less than or equal to ARG2
+			ARG1 =  ARG2    ARG1 is equal to ARG2
+			ARG1 != ARG2    ARG1 is unequal to ARG2
+			ARG1 &gt= ARG2    ARG1 is greater than or equal to ARG2
+			ARG1 &gt  ARG2    ARG1 is greater than ARG2
+			ARG1 +  ARG2    arithmetic sum of ARG1 and ARG2
+			ARG1 -  ARG2    arithmetic difference of ARG1 and ARG2
+			ARG1 *  ARG2    arithmetic product of ARG1 and ARG2
+			ARG1 /  ARG2    arithmetic quotient of ARG1 divided by ARG2
+			ARG1 %  ARG2    arithmetic remainder of ARG1 divided by ARG2
+			STRING : REGEXP             anchored pattern match of REGEXP in STRING
+			match STRING REGEXP         same as STRING : REGEXP
+			substr STRING POS LENGTH    substring of STRING, POS counted from 1
+			index STRING CHARS          index in STRING where any CHARS is found, or 0
+			length STRING               length of STRING
+			quote TOKEN                 interpret TOKEN as a string, even if it is a
+							keyword like `match' or an operator like `/'
+			( EXPRESSION )              value of EXPRESSION
+		</screen>
+		</para>
+
+		<para>
+		Beware that many operators need to be escaped or quoted for shells.
+		Comparisons are arithmetic if both ARGs are numbers, else
+		lexicographical.  Pattern matches return the string matched between
+		\( and \) or null; if \( and \) are not used, they return the number
+		of characters matched or 0.
+		</para>
+
+	</sect1>
+
+
+	<sect1 id="false">
+	    <title>false</title>
+
+		<para>
+		Usage: false
+		</para>
+
+		<para>
+		Return an exit code of FALSE (1).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ false
+			$ echo $?
+			1
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="fbset">
+	    <title>fbset</title>
+
+		<para>
+		Usage: fbset [OPTION]... [MODE]
+		</para>
+
+		<para>
+		Show and modify frame buffer device settings.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-h						Display option summary
+			-fb DEVICE					Operate on DEVICE
+			-db FILE					Use FILE for mode database
+			-g XRES YRES VXRES VYRES DEPTH			Set all geometry parameters
+			-t PIXCLOCK LEFT RIGHT UPPER LOWER HSLEN VSLEN	Set all timing parameters
+			-xres RES					Set visible horizontal resolution
+			-yres RES					Set visible vertical resolution
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ fbset
+			mode "1024x768-76"
+					# D: 78.653 MHz, H: 59.949 kHz, V: 75.694 Hz
+					geometry 1024 768 1024 768 16
+					timings 12714 128 32 16 4 128 4
+					accel false
+					rgba 5/11,6/5,5/0,0/0
+			endmode
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="fdflush">
+	    <title>fdflush</title>
+
+		<para>
+		Usage: fdflush DEVICE
+		</para>
+
+		<para>
+		Force floppy disk drive to detect disk change on DEVICE.
+		</para>
+	</sect1>
+
+	<sect1 id="find">
+	    <title>find</title>
+
+		<para>
+		Usage: find [PATH]... [EXPRESSION]
+		</para>
+
+		<para>
+		Search for files in a directory hierarchy. The default
+		PATH is the current directory; default EXPRESSION is
+		'-print'.
+		</para>
+
+		<para>
+		EXPRESSION may consist of:
+		</para>
+
+		<para>
+		<screen>
+			-follow		Dereference symbolic links
+			-name PATTERN	File name (leading directories removed) matches PATTERN
+			-type X		Filetype matches X (where X is one of: f,d,l,b,c,...)
+			-perm PERMS	Permissions match any of (+NNN); all of (-NNN); or exactly (NNN)
+			-mtime TIME	Modified time is greater than (+N); less than (-N); or exactly (N) days
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ find / -name /etc/passwd
+			/etc/passwd
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="free">
+	    <title>free</title>
+
+		<para>
+		Usage: free
+		</para>
+
+		<para>
+		Displays the amount of free and used system memory.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ free
+			total         used         free       shared      buffers
+			  Mem:       257628       248724         8904        59644        93124
+			 Swap:       128516         8404       120112
+			Total:       386144       257128       129016
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="freeramdisk">
+	    <title>freeramdisk</title>
+
+		<para>
+		Usage: freeramdisk DEVICE
+		</para>
+
+		<para>
+		Free all memory used by the ramdisk DEVICE.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ freeramdisk /dev/ram2
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="fsck.minix">
+	    <title>fsck.minix</title>
+
+		<para>
+		Usage: fsck.minix [OPTION]... DEVICE
+		</para>
+
+		<para>
+		Perform a consistency check on the MINIX filesystem on
+		DEVICE.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-l	List all filenames
+			-r	Perform interactive repairs
+			-a	Perform automatic repairs
+			-v	Verbose
+			-s	Output super-block information
+			-m	Activate MINIX-like "mode not cleared" warnings
+			-f	Force file system check.
+		</screen>
+		</para>
+	</sect1>
+	
+	<sect1 id="getopt">
+	    <title>getopt</title>
+
+		<para>
+		Usage: getopt [OPTIONS]...
+		</para>
+
+		<para>
+		Parse command options
+		</para>
+
+		<para>
+		<screen>
+		   -a, --alternative            Allow long options starting with single -\n"
+		   -l, --longoptions=longopts   Long options to be recognized\n"
+		   -n, --name=progname          The name under which errors are reported\n"
+		   -o, --options=optstring      Short options to be recognized\n"
+		   -q, --quiet                  Disable error reporting by getopt(3)\n"
+		   -Q, --quiet-output           No normal output\n"
+		   -s, --shell=shell            Set shell quoting conventions\n"
+		   -T, --test                   Test for getopt(1) version\n"
+		   -u, --unqote                 Do not quote the output\n"
+		</screen>
+		</para>
+
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ cat getopt.test
+			#!/bin/sh
+			GETOPT=`getopt -o ab:c:: --long a-long,b-long:,c-long:: \
+				-n 'example.busybox' -- "$@"`
+			if [ $? != 0 ] ; then  exit 1 ; fi
+			eval set -- "$GETOPT"
+			while true ; do
+			  case $1 in
+			    -a|--a-long) echo "Option a" ; shift ;;
+			    -b|--b-long) echo "Option b, argument \`$2'" ; shift 2 ;;
+			    -c|--c-long)
+			      case "$2" in
+				"") echo "Option c, no argument"; shift 2 ;;
+				*)  echo "Option c, argument \`$2'" ; shift 2 ;;
+			      esac ;;
+			    --) shift ; break ;;
+			    *) echo "Internal error!" ; exit 1 ;;
+			  esac
+			done
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="grep">
+	    <title>grep</title>
+
+		<para>
+		Usage: grep [OPTIONS]... PATTERN [FILE]...
+		</para>
+
+		<para>
+		Search for PATTERN in each FILE or stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-h	Suppress the prefixing filename on output
+			-i	Ignore case distinctions
+			-n	Print line number with output lines
+			-q	Be quiet. Returns 0 if result was found, 1 otherwise
+			-v	Select non-matching lines
+		</screen>
+		</para>
+
+		<para>
+		This version of grep matches full regular expressions.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ grep root /etc/passwd
+			root:x:0:0:root:/root:/bin/bash
+			$ grep ^[rR]oo. /etc/passwd
+			root:x:0:0:root:/root:/bin/bash
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="gunzip">
+	    <title>gunzip</title>
+
+		<para>
+		Usage: gunzip [OPTION]... FILE
+		</para>
+
+		<para>
+		Uncompress FILE (or stdin if FILE is '-').
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Write output to standard output
+			-t	Test compressed file integrity
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -la /tmp/BusyBox*
+			-rw-rw-r--    1 andersen andersen   557009 Apr 11 10:55 /tmp/BusyBox-0.43.tar.gz
+			$ gunzip /tmp/BusyBox-0.43.tar.gz
+			$ ls -la /tmp/BusyBox*
+			-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="gzip">
+	    <title>gzip</title>
+
+		<para>
+		Usage: gzip [OPTION]... FILE
+		</para>
+
+		<para>
+		Compress FILE (or stdin if FILE is '-') with maximum
+		compression to FILE.gz (or stdout if FILE is '-').
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Write output to standard output
+			-d      decompress
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -la /tmp/BusyBox*
+			-rw-rw-r--    1 andersen andersen  1761280 Apr 14 17:47 /tmp/BusyBox-0.43.tar
+			$ gzip /tmp/BusyBox-0.43.tar
+			$ ls -la /tmp/BusyBox*
+			-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/BusyBox-0.43.tar.gz
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="halt">
+	    <title>halt</title>
+
+		<para>
+		Usage: halt
+		</para>
+
+		<para>
+		Halt the system.
+		</para>
+	</sect1>
+
+	<sect1 id="head">
+	    <title>head</title>
+
+		<para>
+		Usage: head [OPTION] FILE...
+		</para>
+
+		<para>
+		Print first 10 lines of each FILE to standard output.
+		With more than one FILE, precede each with a header
+		giving the file name. With no FILE, or when FILE is -,
+		read standard input.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-n NUM	Print first NUM lines instead of first 10
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ head -n 2 /etc/passwd
+			root:x:0:0:root:/root:/bin/bash
+			daemon:x:1:1:daemon:/usr/sbin:/bin/sh
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="hostid">
+	    <title>hostid</title>
+
+		<para>
+		Usage: hostid
+		</para>
+
+		<para>
+		Prints out a unique 32-bit identifier for the current
+		machine. The 32-bit identifier is intended to be unique
+		among all UNIX systems in existence. 
+		</para>
+	</sect1>
+
+	<sect1 id="hostname">
+	    <title>hostname</title>
+
+		<para>
+		Usage: hostname [OPTION]... [HOSTNAME|-F FILE]
+		</para>
+
+		<para>
+		Get or set the hostname or DNS domain name. If a
+		hostname is given (or a file with the -F parameter), the
+		host name will be set.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s		Short
+			-i		Addresses for the hostname
+			-d		DNS domain name
+			-F, --file FILE Use the contents of FILE to specify the hostname
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ hostname
+			slag
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="id">
+	    <title>id</title>
+
+		<para>
+		Usage: id [OPTION]... [USERNAME]
+		</para>
+
+		<para>
+		Print information for USERNAME or the current user.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-g	Print only the group ID
+			-u	Print only the user ID
+			-n      print a name instead of a number (with for -ug)
+			-r	Print the real user ID instead of the effective ID (with -ug)
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ id
+			uid=1000(andersen) gid=1000(andersen)
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="init">
+	    <title>init</title>
+
+		<para>
+		Usage: init
+		</para>
+
+		<para>
+		Init is the parent of all processes.
+		</para>
+
+		<para>
+		This version of init is designed to be run only by the
+		kernel.
+		</para>
+
+		<para>
+		BusyBox init doesn't support multiple runlevels. The
+		runlevels field of the /etc/inittab file is completely
+		ignored by BusyBox init. If you want runlevels, use
+		sysvinit.
+		</para>
+
+		<para>
+		BusyBox init works just fine without an inittab. If no
+		inittab is found, it has the following default behavior:
+		</para>
+
+		<para>
+		<screen>
+			::sysinit:/etc/init.d/rcS
+			::askfirst:/bin/sh
+		</screen>
+		</para>
+
+		<para>
+		If it detects that /dev/console is _not_ a serial
+		console, it will also run:
+		</para>
+
+		<para>
+		<screen>
+			tty2::askfirst:/bin/sh
+		</screen>
+		</para>
+
+		<para>
+		If you choose to use an /etc/inittab file, the inittab
+		entry format is as follows:
+		</para>
+
+		<para>
+		<screen>
+			&lt;id&gt;:&lt;runlevels&gt;:&lt;action&gt;:&lt;process&gt;
+		</screen>
+		</para>
+
+		<sect2>
+		    <title>id</title>
+			<para>
+
+			WARNING: This field has a non-traditional meaning for BusyBox init!
+			The id field is used by BusyBox init to specify the controlling tty
+			for the specified process to run on.  The contents of this field
+			are appended to "/dev/" and used as-is.  There is no need for this
+			field to be unique, although if it isn't you may have strange
+			results.  If this field is left blank, the controlling tty is set
+			to the console.  Also note that if BusyBox detects that a serial
+			console is in use, then only entries whose controlling tty is
+			either the serial console or /dev/null will be run.  BusyBox init
+			does nothing with utmp.  We don't need no stinkin' utmp.
+
+			</para>
+		</sect2>
+
+		<sect2>
+		    <title>runlevels</title>
+
+			<para>
+                	The runlevels field is completely ignored.
+			</para>
+		</sect2>
+
+		<sect2>
+		    <title>action</title>
+
+
+			<para>
+			Valid actions include: sysinit, respawn, askfirst, wait, 
+			once, and ctrlaltdel.
+			</para>
+
+
+			<para>
+			The available actions can be classified into two groups: actions
+			that are run only once, and actions that are re-run when the specified
+			process exits.
+			</para>
+
+			<para>
+			Run only-once actions:
+			</para>
+
+			<para>
+			'sysinit' is the first item run on boot.  init waits until all
+			sysinit actions are completed before continuing.  Following the
+			completion of all sysinit actions, all 'wait' actions are run.
+			'wait' actions, like  'sysinit' actions, cause init to wait until
+			the specified task completes.  'once' actions are asyncronous,
+			therefore, init does not wait for them to complete.  'ctrlaltdel'
+			actions are run immediately before init causes the system to reboot
+			(unmounting filesystems with a 'ctrlaltdel' action is a very good
+			 idea).
+			</para>
+
+			<para>
+			Run repeatedly actions:
+			</para>
+
+			<para>
+			'respawn' actions are run after the 'once' actions.  When a process
+			started with a 'respawn' action exits, init automatically restarts
+			it.  Unlike sysvinit, BusyBox init does not stop processes from
+			respawning out of control.  The 'askfirst' actions acts just like
+			respawn, except that before running the specified process it
+			displays the line "Please press Enter to activate this console."
+			and then waits for the user to press enter before starting the
+			specified process.  
+			</para>
+
+			<para>
+			Unrecognized actions (like initdefault) will cause init to emit an
+			error message, and then go along with its business.  All actions are
+			run in the reverse order from how they appear in /etc/inittab.
+			</para>
+
+		</sect2>
+
+		<sect2>
+		    <title>process</title>
+
+			<para>
+                	Specifies the process to be executed and its
+			command line.
+			</para>
+		</sect2>
+
+		<sect2>
+		    <title>Example /etc/inittab file</title>
+
+		    <para>
+		    <screen>
+			    # This is run first except when booting in single-user mode.
+			    #
+			    ::sysinit:/etc/init.d/rcS
+
+			    # /bin/sh invocations on selected ttys
+			    #
+			    # Start an "askfirst" shell on the console (whatever that may be)
+			    ::askfirst:-/bin/sh
+			    # Start an "askfirst" shell on /dev/tty2-4
+			    tty2::askfirst:-/bin/sh
+			    tty2::askfirst:-/bin/sh
+			    tty2::askfirst:-/bin/sh
+
+			    # /sbin/getty invocations for selected ttys
+			    #
+			    tty4::respawn:/sbin/getty 38400 tty5
+			    tty5::respawn:/sbin/getty 38400 tty6
+
+			    # Example of how to put a getty on a serial line (for a terminal)
+			    #
+			    #::respawn:/sbin/getty -L ttyS0 9600 vt100
+			    #::respawn:/sbin/getty -L ttyS1 9600 vt100
+			    #
+			    # Example how to put a getty on a modem line.
+			    #::respawn:/sbin/getty 57600 ttyS2
+
+			    # Stuff to do before rebooting
+			    ::ctrlaltdel:/bin/umount -a -r
+			    ::ctrlaltdel:/sbin/swapoff
+		    </screen>
+		    </para>
+		</sect2>
+	</sect1>
+
+	<sect1 id="insmod">
+	    <title>insmod</title>
+
+		<para>
+		Usage: insmod [OPTION]... MODULE [symbol=value]...
+		</para>
+
+		<para>
+		Load MODULE into the kernel.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-f	Force module to load into the wrong kernel version.
+			-k	Make module autoclean-able.
+			-v	Verbose output
+			-x	Do not export externs
+			-L	Prevent simultaneous loads of the same module
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="kill">
+	    <title>kill</title>
+
+		<para>
+		Usage: kill [OPTION] PID...
+		</para>
+
+		<para>
+		Send a signal (default is SIGTERM) to the specified
+		PID(s).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-l	List all signal names and numbers
+			-SIG	Send signal SIG
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ps | grep apache
+			252 root     root     S [apache]
+			263 www-data www-data S [apache]
+			264 www-data www-data S [apache]
+			265 www-data www-data S [apache]
+			266 www-data www-data S [apache]
+			267 www-data www-data S [apache]
+			$ kill 252
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="killall">
+	    <title>killall</title>
+
+		<para>
+		Usage: killall [OPTION] NAME...
+		</para>
+
+		<para>
+		Send a signal (default is SIGTERM) to the specified
+		NAME(s).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-l	List all signal names and numbers
+			-SIG	Send signal SIG
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ killall apache
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="length">
+	    <title>length</title>
+
+		<para>
+		Usage: length STRING
+		</para>
+
+		<para>
+		Print the length of STRING.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ length "Hello"
+			5
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="ln">
+	    <title>ln</title>
+
+		<para>
+		Usage: ln [OPTION]... TARGET FILE|DIRECTORY
+		</para>
+
+		<para>
+		Create a link named FILE or DIRECTORY to the specified
+		TARGET.  You may use '--' to indicate that all following
+		arguments are non-options.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s	Make symbolic link instead of hard link
+			-f	Remove existing destination file
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ln -s BusyBox /tmp/ls
+			$ ls -l /tmp/ls
+			lrwxrwxrwx    1 root     root            7 Apr 12 18:39 ls -&gt; BusyBox*
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="loadacm">
+	    <title>loadacm</title>
+
+		<para>
+		Usage: loadacm
+		</para>
+
+		<para>
+		Load an acm from stdin.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ loadacm &lt; /etc/i18n/acmname
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="loadfont">
+	    <title>loadfont</title>
+
+		<para>
+		Usage: loadfont
+		</para>
+
+		<para>
+		Load a console font from stdin.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ loadfont &lt; /etc/i18n/fontname
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="loadkmap">
+	    <title>loadkmap</title>
+
+		<para>
+		Usage: loadkmap
+		</para>
+
+		<para>
+		Load a binary keyboard translation table from stdin.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ loadkmap &lt; /etc/i18n/lang-keymap
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="logger">
+	    <title>logger</title>
+
+		<para>
+		Usage: logger [OPTION]... [MESSAGE]
+		</para>
+
+		<para>
+		Write MESSAGE to the system log.  If MESSAGE is omitted, log
+		stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s	Log to stderr as well as the system log
+			-t	Log using the specified tag (defaults to user name)
+			-p	Enter the message with the specified priority
+				This may be numerical or a ``facility.level'' pair
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ logger "hello"
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="logname">
+	    <title>logname</title>
+
+		<para>
+		Usage: logname
+		</para>
+
+		<para>
+		Print the name of the current user.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ logname
+			root
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="ls">
+	    <title>ls</title>
+
+		<para>
+		Usage: ls [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Do not hide entries starting with .
+			-c	With  -l:  show ctime (the time of last
+				modification of file status information)
+			-d	List directory entries instead of contents
+			-e	List both full date and full time
+			-l	Use a long listing format
+			-n	List numeric UIDs and GIDs instead of names
+			-p	Append indicator (one of /=@|) to entries
+			-u	With -l: show access time (the time of last
+				access of the file)
+			-x	List entries by lines instead of by columns
+			-A	Do not list implied . and ..
+			-C	List entries by columns
+			-F	Append indicator (one of */=@|) to entries
+			-L	list entries pointed to by symbolic links
+			-R	List subdirectories recursively
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="lsmod">
+	    <title>lsmod</title>
+
+		<para>
+		Usage: lsmod
+		</para>
+
+		<para>
+		List currently loaded kernel modules.
+		</para>
+	</sect1>
+
+	<sect1 id="makedevs">
+	    <title>makedevs</title>
+
+		<para>
+		Usage: makedevsf NAME TYPE MAJOR MINOR FIRST LAST [s]
+		</para>
+
+		<para>
+		Create a range of block or character special files.
+		</para>
+
+		<para>
+		TYPE may be:
+		</para>
+
+		<para>
+		<screen>
+			b	Make a block (buffered) device
+			c or u	Make a character (un-buffered) device
+			p	Make a named pipe. MAJOR and MINOR are ignored for named pipes
+		</screen>
+		</para>
+
+		<para>
+		FIRST specifies the number appended to NAME to create
+		the first device.  LAST specifies the number of the last
+		item that should be created. If 's' is the last
+		argument, the base device is created as well.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ makedevs /dev/ttyS c 4 66 2 63
+			[creates ttyS2-ttyS63]
+			$ makedevs /dev/hda b 3 0 0 8 s
+			[creates hda,hda1-hda8]
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="md5sum">
+	    <title>md5sum</title>
+
+		<para>
+		Usage: md5sum [OPTION]... FILE...
+		</para>
+
+		<para>
+		Print or check MD5 checksums.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-b	Read files in binary mode
+			-c	Check MD5 sums against given list
+			-t	Read files in text mode (default)
+			-g	Read a string
+		</screen>
+		</para>
+
+		<para>
+		The following two options are useful only when verifying
+		checksums:
+		</para>
+
+		<para>
+		<screen>
+			-s	Don't output anything, status code shows success
+			-w	Warn about improperly formated MD5 checksum lines
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ md5sum busybox
+			6fd11e98b98a58f64ff3398d7b324003  busybox
+			$ md5sum -c
+			6fd11e98b98a58f64ff3398d7b324003  busybox
+			6fd11e98b98a58f64ff3398d7b324002  busybox
+			md5sum: MD5 check failed for 'busybox'
+			^D
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mkdir">
+	    <title>mkdir</title>
+
+		<para>
+		Usage: mkdir [OPTION]... DIRECTORY...
+		</para>
+
+		<para>
+		Create the DIRECTORY(s), if they do not already exist.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m	Set permission mode (as in chmod), not rwxrwxrwx - umask
+			-p	No error if directory exists, make parent directories as needed
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mkdir /tmp/foo
+			$ mkdir /tmp/foo
+			/tmp/foo: File exists
+			$ mkdir /tmp/foo/bar/baz
+			/tmp/foo/bar/baz: No such file or directory
+			$ mkdir -p /tmp/foo/bar/baz
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mkfifo">
+	    <title>mkfifo</title>
+
+		<para>
+		Usage: mkfifo [OPTION] NAME
+		</para>
+
+		<para>
+		Create a named pipe (identical to 'mknod NAME p').
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m MODE	Create the pipe using the specified mode (default a=rw)
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mkfs.minix">
+	    <title>mkfs.minix</title>
+
+		<para>
+		Usage: mkfs.minix [OPTION]... NAME [BLOCKS]
+		</para>
+
+		<para>
+		Make a MINIX filesystem.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c		Check the device for bad blocks
+			-n [14|30]	Specify the maximum length of filenames
+			-i		Specify the number of inodes for the filesystem
+			-l FILENAME	Read the bad blocks list from FILENAME
+			-v		Make a Minix version 2 filesystem
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mknod">
+	    <title>mknod</title>
+
+		<para>
+		Usage: mknod [OPTION]... NAME TYPE MAJOR MINOR
+		</para>
+
+		<para>
+		Create a special file (block, character, or pipe).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m	Create the special file using the specified mode (default a=rw)
+		</screen>
+		</para>
+
+		<para>
+		TYPE may be:
+		</para>
+
+		<para>
+		<screen>
+			b	Make a block (buffered) device
+			c or u	Make a character (un-buffered) device
+			p	Make a named pipe. MAJOR and MINOR are ignored for named pipes
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mknod /dev/fd0 b 2 0 
+			$ mknod -m 644 /tmp/pipe p
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mkswap">
+	    <title>mkswap</title>
+
+		<para>
+		Usage: mkswap [OPTION]... DEVICE [BLOCKS]
+		</para>
+
+		<para>
+		Prepare a disk partition to be used as a swap partition.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Check for read-ability.
+			-v0	Make version 0 swap [max 128 Megs].
+			-v1	Make version 1 swap [big!] (default for kernels &gt; 2.1.117).
+			BLOCKS	Number of block to use (default is entire partition).
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mktemp">
+	    <title>mktemp</title>
+
+		<para>
+		Usage: mktemp TEMPLATE
+		</para>
+
+		<para>
+		Creates a temporary file with its name based on
+		TEMPLATE.  TEMPLATE is any name with six `Xs' (i.e.,
+		/tmp/temp.XXXXXX).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mktemp /tmp/temp.XXXXXX
+			/tmp/temp.mWiLjM
+			$ ls -la /tmp/temp.mWiLjM
+			-rw-------    1 andersen andersen        0 Apr 25 17:10 /tmp/temp.mWiLjM
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="more">
+	    <title>more</title>
+
+		<para>
+		Usage: more [FILE]...
+		</para>
+
+		<para>
+		Page through text one screenful at a time.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ dmesg | more
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mount">
+	    <title>mount</title>
+
+		<para>
+		Usage: mount [OPTION]...
+		</para>
+
+		<para>
+		<screen>
+		   or: mount [OPTION]... DEVICE DIRECTORY
+		</screen>
+		</para>
+
+		<para>
+		Mount filesystems.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Mount all filesystems in /etc/fstab
+			-o	One of the many filesystem options listed below
+			-r	Mount the filesystem read-only
+			-t TYPE	Specify the filesystem type
+			-w	Mount the filesystem read-write
+		</screen>
+		</para>
+
+		<para>
+		Options for use with the -o flag:
+		</para>
+
+		<para>
+		<screen>
+			async/sync	Writes are asynchronous / synchronous
+			atime/noatime	Enable / disable updates to inode access times
+			dev/nodev	Allow / disallow use of special device files
+			exec/noexec	Allow / disallow use of executable files
+			loop		Mount a file via loop device
+			suid/nosuid	Allow / disallow set-user-id-root programs
+			remount		Remount a currently mounted filesystem
+			ro/rw		Mount filesystem read-only / read-write
+		</screen>
+		</para>
+
+		<para>
+		There are even more flags that are filesystem specific.
+		You'll have to see the written documentation for those.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mount
+			/dev/hda3 on / type minix (rw)
+			proc on /proc type proc (rw)
+			devpts on /dev/pts type devpts (rw)
+			$ mount /dev/fd0 /mnt -t msdos -o ro
+			$ mount /tmp/diskimage /opt -t ext2 -o loop
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mt">
+	    <title>mt</title>
+
+		<para>
+		Usage: mt [OPTION] OPCODE VALUE
+		</para>
+
+		<para>
+		Control magnetic tape drive operation.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-f DEVICE	Control DEVICE
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="mv">
+	    <title>mv</title>
+
+		<para>
+		Usage: mv SOURCE DEST
+		</para>
+
+		<para>
+		<screen>
+		   or: mv SOURCE... DIRECTORY
+		</screen>
+		</para>
+
+		<para>
+		Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ mv /tmp/foo /bin/bar
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="nc">
+	    <title>nc</title>
+
+		<para>
+		Usage: nc HOST PORT
+		</para>
+
+		<para>
+		   or: nc -p PORT -l
+		</para>
+
+
+		<para>
+		Open a pipe to HOST:PORT or listen for a connection on PORT.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ nc foobar.somedomain.com 25
+			220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600
+			help
+			214-Commands supported:
+			214-    HELO EHLO MAIL RCPT DATA AUTH
+			214     NOOP QUIT RSET HELP
+			quit
+			221 foobar closing connection
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="nslookup">
+	    <title>nslookup</title>
+
+		<para>
+		Usage: nslookup [HOST]
+		</para>
+
+		<para>
+		Query the nameserver for the IP address of the given
+		HOST.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ nslookup localhost
+			Server:     default
+			Address:    default
+
+			Name:       debian
+			Address:    127.0.0.1
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="ping">
+	    <title>ping</title>
+
+		<para>
+		Usage: ping [OPTION]... HOST
+		</para>
+
+		<para>
+		Send ICMP ECHO_REQUEST packets to HOST.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c COUNT	Send only COUNT pings
+			-s SIZE		Send SIZE data bytes in packets (default=56)
+			-q		Quiet mode, only displays output at start and when finished
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ping localhost
+			PING slag (127.0.0.1): 56 data bytes
+			64 bytes from 127.0.0.1: icmp_seq=0 ttl=255 time=20.1 ms
+
+			--- debian ping statistics ---
+			1 packets transmitted, 1 packets received, 0% packet loss
+			round-trip min/avg/max = 20.1/20.1/20.1 ms
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="poweroff">
+	    <title>poweroff</title>
+
+		<para>
+		Usage: poweroff
+		</para>
+
+		<para>
+		Shut down the system, and request that the kernel turn
+		off power upon halting.
+		</para>
+	</sect1>
+
+	<sect1 id="printf">
+	    <title>printf</title>
+
+		<para>
+		Usage: printf FORMAT [ARGUMENT]...
+		</para>
+
+		<para>
+		Format and print the given data in a manner similar to
+		the C printf command.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ printf "Val=%d\n" 5
+			Val=5
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="ps">
+	    <title>ps</title>
+
+		<para>
+		Usage: ps
+		</para>
+
+		<para>
+		Report process status.  This version of ps accepts no
+		options.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ps
+			  PID  Uid      Gid State Command
+			    1 root     root     S init
+			    2 root     root     S [kflushd]
+			    3 root     root     S [kupdate]
+			    4 root     root     S [kpiod]
+			    5 root     root     S [kswapd]
+			  742 andersen andersen S [bash]
+			  743 andersen andersen S -bash
+			  745 root     root     S [getty]
+			 2990 andersen andersen R ps
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="pwd">
+	    <title>pwd</title>
+
+		<para>
+		Usage: pwd
+		</para>
+
+		<para>
+		Print the full filename of the current working
+		directory.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ pwd
+			/root
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="rdate">
+	    <title>rdate</title>
+
+		<para>
+		Usage: rdate [OPTION] HOST
+		</para>
+
+		<para>
+		Get and possibly set the system date and time from a remote HOST.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s      Set the system date and time (default).
+			-p      Print the date and time.
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="reboot">
+	    <title>reboot</title>
+
+		<para>
+		Usage: reboot
+		</para>
+
+		<para>
+		Reboot the system.
+		</para>
+	</sect1>
+
+	<sect1 id="renice">
+	    <title>renice</title>
+
+		<para>
+		Usage: renice priority pid [pid ...]
+		</para>
+
+		<para>
+		Changes priority of running processes. Allowed priorities range
+		from 20 (the process runs only when nothing else is running) to 0
+		(default priority) to -20 (almost nothing else ever gets to run).
+		</para>
+	</sect1>
+
+	<sect1 id="reset">
+	    <title>reset</title>
+
+		<para>
+		Usage: reset
+		</para>
+
+		<para>
+		Resets the screen.
+		</para>
+	</sect1>
+
+	<sect1 id="rm">
+	    <title>rm</title>
+
+		<para>
+		Usage: rm [OPTION]... FILE...
+		</para>
+
+		<para>
+		Remove (unlink) the FILE(s).  You may use '--' to
+		indicate that all following arguments are non-options.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-i		Always prompt before removing each destinations
+			-f		Remove existing destinations, never prompt
+			-r or -R	Remove the contents of directories recursively
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ rm -rf /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="rmdir">
+	    <title>rmdir</title>
+
+		<para>
+		Usage: rmdir DIRECTORY...
+		</para>
+
+		<para>
+		Remove DIRECTORY(s) if they are empty.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ rmdir /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="rmmod">
+	    <title>rmmod</title>
+
+		<para>
+		Usage: rmmod [OPTION]... [MODULE]...
+		</para>
+
+		<para>
+		Unload MODULE(s) from the kernel.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Try to remove all unused kernel modules
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ rmmod tulip
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="sed">
+	    <title>sed</title>
+
+		<para>
+		Usage: sed [OPTION]... SCRIPT [FILE]...
+		</para>
+
+		<para>
+		Allowed sed scripts come in the following form:
+		</para>
+
+		<para>
+		<screen>
+		ADDR [!] COMMAND
+		</screen>
+		</para>
+
+		<para>
+		ADDR can be:
+		</para>
+
+		<para>
+		<screen>
+			NUMBER    Match specified line number
+			$         Match last line
+			/REGEXP/  Match specified regexp
+		</screen>
+		</para>
+
+		<para>
+		! inverts the meaning of the match
+		</para>
+
+		<para>
+		COMMAND can be:
+		</para>
+
+		<para>
+		<screen>
+			s/regexp/replacement/[igp]
+				which attempt to match regexp against the pattern space
+				and if successful replaces the matched portion with replacement.
+			aTEXT
+				which appends TEXT after the pattern space
+		</screen>
+		</para>
+
+		<para>
+		This version of sed matches full regular expressions.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-e	Add the script to the commands to be executed
+			-n	Suppress automatic printing of pattern space
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "foo" | sed -e 's/f[a-zA-Z]o/bar/g'
+			bar
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="setkeycodes">
+	    <title>setkeycodes</title>
+
+		<para>
+		Usage: setkeycodes SCANCODE KEYCODE ...
+		</para>
+
+		<para>
+		Set entries into the kernel's scancode-to-keycode map,
+		allowing unusual keyboards to generate usable keycodes.
+		</para>
+
+		<para>
+		SCANCODE may be either xx or e0xx (hexadecimal), and
+		KEYCODE is given in decimal.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ setkeycodes e030 127
+		</screen>
+		</para>
+	</sect1>
+
+
+	<sect1 id="sh">
+	    <title>sh</title>
+
+		<para>
+		Usage: sh
+		</para>
+
+		<para>
+		lash -- the BusyBox LAme SHell (command interpreter)
+		</para>
+
+		<para>
+		This command does not yet have proper documentation.  
+		</para>
+
+		<para>
+		Use lash just as you would use any other shell. It
+		properly handles pipes, redirects, job control, can be
+		used as the shell for scripts (#!/bin/sh), and has a
+		sufficient set of builtins to do what is needed. It does
+		not (yet) support Bourne Shell syntax. If you need
+		things like ``if-then-else'', ``while'', and such, use
+		ash or bash. If you just need a very simple and
+		extremely small shell, this will do the job.
+		</para>
+	</sect1>
+
+	<sect1 id="sleep">
+	    <title>sleep</title>
+
+		<para>
+		Usage: sleep N
+		</para>
+
+		<para>
+		Pause for N seconds.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ sleep 2
+			[2 second delay results]
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="sort">
+	    <title>sort</title>
+
+		<para>
+		Usage: sort [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Sort lines of text in FILE(s).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-n	Compare numerically
+			-r	Reverse after sorting
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo -e "e\nf\nb\nd\nc\na" | sort
+			a
+			b
+			c
+			d
+			e
+			f
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="swapoff">
+	    <title>swapoff</title>
+
+		<para>
+		Usage: swapoff [OPTION] [DEVICE]
+		</para>
+
+		<para>
+		Stop swapping virtual memory pages on DEVICE.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Stop swapping on all swap devices
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="swapon">
+	    <title>swapon</title>
+
+		<para>
+		Usage: swapon [OPTION] [DEVICE]
+		</para>
+
+		<para>
+		Start swapping virtual memory pages on the given device.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Start swapping on all swap devices
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="sync">
+	    <title>sync</title>
+
+		<para>
+		Usage: sync
+		</para>
+
+		<para>
+		Write all buffered filesystem blocks to disk.
+		</para>
+	</sect1>
+
+	<sect1 id="syslogd">
+	    <title>syslogd</title>
+
+		<para>
+		Usage: syslogd [OPTION]...
+		</para>
+
+		<para>
+		Linux system and kernel (provides klogd) logging
+		utility. Note that this version of syslogd/klogd ignores
+		/etc/syslog.conf.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m NUM	Interval between MARK lines (default=20min, 0=off)
+			-n	Run as a foreground process
+			-K	Do not start up the klogd process
+			-O FILE	Use an alternate log file (default=/var/log/messages)
+			-R HOST[:PORT] Log remotely to IP or hostname on PORT (default PORT=514/UDP)
+			-L      Log locally as well as network logging (default is network only)
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+		$ syslogd -R masterlog:514
+		$ syslogd -R 192.168.1.1:601
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tail">
+	    <title>tail</title>
+
+		<para>
+		Usage: tail [OPTION] [FILE]...
+		</para>
+
+		<para>
+		Print last 10 lines of each FILE to standard output.
+		With more than one FILE, precede each with a header
+		giving the file name. With no FILE, or when FILE is -,
+		read stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-n NUM	Print last NUM lines instead of last 10
+			-f	Output data as the file grows.  This version
+				of 'tail -f' supports only one file at a time.
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ tail -n 1 /etc/resolv.conf
+			nameserver 10.0.0.1
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tar">
+	    <title>tar</title>
+
+		<para>
+		Usage: tar [MODE] [OPTION] [FILE]...
+		</para>
+
+		<para>
+		
+		</para>
+
+		<para>
+		MODE may be chosen from
+		</para>
+
+		<para>
+		<screen>
+			c	Create
+			x	Extract
+			t	List
+		</screen>
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			f FILE			Use FILE for tarfile (or stdin if '-')
+			O				Extract to stdout
+			exclude FILE	File to exclude
+			v				List files processed
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ zcat /tmp/tarball.tar.gz | tar -xf -
+			$ tar -cf /tmp/tarball.tar /usr/local
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tee">
+	    <title>tee</title>
+
+		<para>
+		Usage: tee [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Copy stdin to FILE(s), and also to stdout.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Append to the given FILEs, do not overwrite
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "Hello" | tee /tmp/foo
+			Hello
+			$ cat /tmp/foo
+			Hello
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="telnet">
+	    <title>telnet</title>
+
+		<para>
+		Usage: telnet HOST [PORT]
+		</para>
+
+		<para>
+		Establish interactive communication with another
+		computer over a network using the TELNET protocol.
+		</para>
+	</sect1>
+
+	<sect1 id="test">
+	    <title>test, [</title>
+
+		<para>
+		Usage: test EXPRESSION
+		</para>
+
+		<para>
+		   or: [ EXPRESSION ]
+		</para>
+
+		<para>
+		Check file types and compare values returning an exit
+		code determined by the value of EXPRESSION.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ test 1 -eq 2
+			$ echo $?
+			1
+			$ test 1 -eq 1
+			$ echo $?
+			0
+			$ [ -d /etc ]
+			$ echo $?
+			0
+			$ [ -d /junk ]
+			$ echo $?
+			1
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="touch">
+	    <title>touch</title>
+
+		<para>
+		Usage: touch [OPTION]... FILE...
+		</para>
+
+		<para>
+		Update the last-modified date on (or create) FILE(s).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Do not create files
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls -l /tmp/foo
+			/bin/ls: /tmp/foo: No such file or directory
+			$ touch /tmp/foo
+			$ ls -l /tmp/foo
+			-rw-rw-r--    1 andersen andersen        0 Apr 15 01:11 /tmp/foo
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tr">
+	    <title>tr</title>
+
+		<para>
+		Usage: tr [OPTION]... STRING1 [STRING2]
+		</para>
+
+		<para>
+		Translate, squeeze, and/or delete characters from stdin,
+		writing to stdout.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Take complement of STRING1
+			-d	Delete input characters coded STRING1
+			-s	Squeeze multiple output characters of STRING2 into one character
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo "gdkkn vnqkc" | tr [a-y] [b-z]
+			hello world
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="true">
+	    <title>true</title>
+
+		<para>
+		Usage: true
+		</para>
+
+		<para>
+		Return an exit code of TRUE (1).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ true
+			$ echo $?
+			0
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="tty">
+	    <title>tty</title>
+
+		<para>
+		Usage: tty
+		</para>
+
+		<para>
+		Print the file name of the terminal connected to stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-s	Print nothing, only return an exit status
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ tty
+			/dev/tty2
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="umount">
+	    <title>umount</title>
+
+		<para>
+		Usage: umount [OPTION]... DEVICE|DIRECTORY
+		</para>
+
+		<para>
+		
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Unmount all file systems
+			-r	Try to remount devices as read-only if mount is busy
+			-f	Force filesystem umount (i.e., unreachable NFS server)
+			-l	Do not free loop device (if a loop device has been used)
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ umount /dev/hdc1 
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uname">
+	    <title>uname</title>
+
+		<para>
+		Usage: uname [OPTION]...
+		</para>
+
+		<para>
+		Print certain system information. With no OPTION, same
+		as -s.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-a	Print all information
+			-m	Print the machine (hardware) type
+			-n	Print the machine's network node hostname
+			-r	Print the operating system release
+			-s	Print the operating system name
+			-p	Print the host processor type
+			-v	Print the operating system version
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ uname -a
+			Linux debian 2.2.15pre13 #5 Tue Mar 14 16:03:50 MST 2000 i686 unknown
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uniq">
+	    <title>uniq</title>
+
+		<para>
+		Usage: uniq [INPUT [OUTPUT]]
+		</para>
+
+		<para>
+		Discard all but one of successive identical lines from
+		INPUT (or stdin), writing to OUTPUT (or stdout).
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+		-c		prefix lines by the number of occurrences
+		-d		only print duplicate lines
+		-u		only print unique lines
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ echo -e "a\na\nb\nc\nc\na" | sort | uniq
+			a
+			b
+			c
+		</screen>
+		</para>
+	</sect1>
+	
+	<sect1 id="unix2dos">
+	    <title>unix2dos</title>
+
+		<para>
+		Usage: unix2dos < unixfile > dosfile
+		</para>
+
+		<para>
+		Converts a text file from unix format to dos format.
+		</para>
+
+	</sect1>
+
+	<sect1 id="unrpm">
+	    <title>unrpm</title>
+
+		<para>
+		Usage: unrpm < package.rpm | gzip -d | cpio -idmuv
+		</para>
+
+		<para>
+		Extracts an rpm archive.
+		</para>
+
+	</sect1>
+
+	<sect1 id="update">
+	    <title>update</title>
+
+		<para>
+		Usage: update [OPTION]...
+		</para>
+
+		<para>
+		Periodically flush filesystem buffers.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-S	Force use of sync(2) instead of flushing
+			-s SECS	Call sync this often (default 30)
+			-f SECS	Flush some buffers this often (default 5)
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uptime">
+	    <title>uptime</title>
+
+		<para>
+		Usage: uptime
+		</para>
+
+		<para>
+		Display how long the system has been running since boot.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ uptime
+			  1:55pm  up  2:30, load average: 0.09, 0.04, 0.00
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="usleep">
+	    <title>usleep</title>
+
+		<para>
+		Usage: usleep N
+		</para>
+
+		<para>
+		Pause for N microseconds.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ usleep 1000000
+			[pauses for 1 second]
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uudecode">
+	    <title>uudecode</title>
+
+		<para>
+		Usage: uudecode [OPTION] [FILE]
+		</para>
+
+		<para>
+		Uudecode a uuencoded file.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-o FILE	Direct output to FILE
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ uudecode -o busybox busybox.uu
+			$ ls -l busybox
+			-rwxr-xr-x   1 ams      ams        245264 Jun  7 21:35 busybox
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="uuencode">
+	    <title>uuencode</title>
+
+		<para>
+		Usage: uuencode [OPTION] [INFILE] OUTFILE
+		</para>
+
+		<para>
+		Uuencode a file.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-m	Use base64 encoding as of RFC1521
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ uuencode busybox busybox
+			begin 755 busybox
+			M?T5,1@$!`0````````````(``P`!````L+@$"#0```!0N@,``````#0`(``&amp;
+			.....
+			$ uudecode busybox busybox &gt; busybox.uu
+			$
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="watchdog">
+	    <title>watchdog</title>
+
+		<para>
+		Usage: watchdog device
+		</para>
+
+		<para>
+		Periodically writes to watchdog device B<device>.
+		</para>
+	</sect1>
+
+	<sect1 id="wc">
+	    <title>wc</title>
+
+		<para>
+		Usage: wc [OPTION]... [FILE]...
+		</para>
+
+		<para>
+		Print line, word, and byte counts for each FILE, and a
+		total line if more than one FILE is specified. With no
+		FILE, read stdin.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-c	Print the byte counts
+			-l	Print the newline counts
+			-L	Print the length of the longest line
+			-w	Print the word counts
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ wc /etc/passwd
+			     31      46    1365 /etc/passwd
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="which">
+	    <title>which</title>
+
+		<para>
+		Usage: which [COMMAND]...
+		</para>
+
+		<para>
+		Locate COMMAND(s).
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ which login
+			/bin/login
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="whoami">
+	    <title>whoami</title>
+
+		<para>
+		Usage: whoami
+		</para>
+
+		<para>
+		Print the user name associated with the current
+		effective user id.
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ whoami
+			andersen
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="xargs">
+	    <title>xargs</title>
+
+		<para>
+		Usage: xargs [OPTIONS] [COMMAND] [ARGS...]
+		</para>
+
+		<para>
+		Executes COMMAND on every item given by standard input.
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-t      Print the command just before it is run
+		</screen>
+		</para>
+
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+			$ ls | xargs gzip
+			$ find . -name '*.c' -print | xargs rm
+		</screen>
+		</para>
+	</sect1>
+
+	<sect1 id="yes">
+	    <title>yes</title>
+
+		<para>
+		Usage: yes [STRING]...
+		</para>
+
+		<para>
+		Repeatedly output a line with all specified STRING(s),
+		or `y'.
+		</para>
+	</sect1>
+
+	<sect1 id="zcat">
+	    <title>zcat</title>
+
+		<para>
+		Usage: zcat [OPTION]... FILE
+		</para>
+
+		<para>
+		Uncompress FILE (or stdin if FILE is '-') to stdout.  
+		</para>
+
+		<para>
+		Options:
+		</para>
+
+		<para>
+		<screen>
+			-t	Test compressed file integrity
+		</screen>
+		</para>
+
+		<para>
+		Example:
+		</para>
+
+		<para>
+		<screen>
+		</screen>
+		</para>
+	</sect1>
+  </chapter>
+
+  <chapter id="LIBC-NSS">
+    <title>LIBC NSS</title>
+
+	<para>
+	GNU Libc uses the Name Service Switch (NSS) to configure the
+	behavior of the C library for the local environment, and to
+	configure how it reads system data, such as passwords and group
+	information. BusyBox has made it Policy that it will never use
+	NSS, and will never use libc calls that make use of NSS. This
+	allows you to run an embedded system without the need for
+	installing an /etc/nsswitch.conf file and without /lib/libnss_*
+	libraries installed.
+	</para>
+
+	<para>
+	If you are using a system that is using a remote LDAP server for
+	authentication via GNU libc NSS, and you want to use BusyBox,
+	then you will need to adjust the BusyBox source. Chances are
+	though, that if you have enough space to install of that stuff
+	on your system, then you probably want the full GNU utilities.
+	</para>
+  </chapter>
+
+  <chapter id="SEE-ALSO">
+    <title>SEE ALSO</title>
+
+	<para>
+	<literal>textutils(1),</literal>
+	<literal>shellutils(1),</literal>
+	etc...
+	</para>
+  </chapter>
+
+  <chapter id="MAINTAINER">
+    <title>MAINTAINER</title>
+
+	<para>
+	Erik Andersen &lt;andersee@debian.org&gt; &lt;andersen@codepoet.org&gt;
+	</para>
+  </chapter>
+
+  <chapter id="AUTHORS">
+    <title>AUTHORS</title>
+
+	<para>
+	The following people have made significant contributions to 
+	BusyBox -- whether they know it or not.
+	</para>
+
+	<para>
+	Erik Andersen &lt;andersee@debian.org&gt;
+	</para>
+
+	<para>
+	Edward Betts &lt;edward@debian.org&gt;
+	</para>
+
+	<para>
+	John Beppu &lt;beppu@codepoet.org&gt;
+	</para>
+
+	<para>
+	Brian Candler &lt;B.Candler@pobox.com&gt;
+	</para>
+
+	<para>
+	Randolph Chung &lt;tausq@debian.org&gt;
+	</para>
+
+	<para>
+	Dave Cinege &lt;dcinege@psychosis.com&gt;	
+	</para>
+
+	<para>
+	Karl M. Hegbloom &lt;karlheg@debian.org&gt;
+	</para>
+
+	<para>
+	Daniel Jacobowitz &lt;dan@debian.org&gt;
+	</para>
+
+	<para>
+	Matt Kraai &lt;kraai@alumni.carnegiemellon.edu&gt;
+	</para>
+
+	<para>
+	John Lombardo &lt;john@deltanet.com&gt;	
+	</para>
+
+	<para>
+	Glenn McGrath &lt;bug1@netconnect.com.au&gt;
+	</para>
+
+	<para>
+	Bruce Perens &lt;bruce@perens.com&gt;
+	</para>
+
+	<para>
+	Chip Rosenthal &lt;chip@unicom.com&gt;, &lt;crosenth@covad.com&gt;
+	</para>
+
+	<para>
+	Pavel Roskin &lt;proski@gnu.org&gt;
+	</para>
+
+	<para>
+	Gyepi Sam &lt;gyepi@praxis-sw.com&gt;
+	</para>
+
+	<para>
+	Linus Torvalds &lt;torvalds@transmeta.com&gt;
+	</para>
+
+        <para>
+        Mark Whitley &lt;markw@codepoet.org&gt;
+        </para>
+
+	<para>
+	Charles P. Wright &lt;cpwright@villagenet.com&gt;
+	</para>
+
+	<para>
+	Enrique Zanardi &lt;ezanardi@ull.es&gt;
+	</para>
+
+
+  </chapter>
+</book>    <!-- End of the book -->
