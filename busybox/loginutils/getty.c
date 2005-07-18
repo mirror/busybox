@@ -25,10 +25,13 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <utmp.h>
 #include <getopt.h>
 #include <termios.h>
 #include "busybox.h"
+
+#ifdef CONFIG_FEATURE_UTMP
+#include <utmp.h>
+#endif
 
 #define _PATH_LOGIN     "/bin/login"
 
@@ -47,7 +50,7 @@
 
 #ifdef LOGIN_PROCESS			/* defined in System V utmp.h */
 #define	SYSV_STYLE				/* select System V style getty */
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_WTMP
 extern void updwtmp(const char *filename, const struct utmp *ut);
 #endif
 #endif  /* LOGIN_PROCESS */
@@ -85,7 +88,7 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 #define DEF_QUIT	CTL('\\')	/* default quit char */
 #define DEF_KILL	CTL('U')	/* default kill char */
 #define DEF_EOF		CTL('D')	/* default EOF char */
-#define DEF_EOL		0
+#define DEF_EOL		'\n'
 #define DEF_SWITCH	0			/* default switch char */
 
  /*
@@ -231,8 +234,10 @@ static int caps_lock(const char *s);
 static int bcode(char *s);
 static void error(const char *fmt, ...) __attribute__ ((noreturn));
 
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef	SYSV_STYLE
+#ifdef CONFIG_FEATURE_UTMP
 static void update_utmp(char *line);
+#endif
 #endif
 
 /* The following is used for understandable diagnostics. */
@@ -260,7 +265,11 @@ int getty_main(int argc, char **argv)
 		_PATH_LOGIN,			/* default login program */
 		"tty1",					/* default tty line */
 		"",						/* modem init string */
+#ifdef ISSUE
 		ISSUE,					/* default issue file */
+#else
+		NULL,
+#endif
 		0,						/* no baud rates known yet */
 	};
 
@@ -289,7 +298,7 @@ int getty_main(int argc, char **argv)
 
 
 #ifdef	SYSV_STYLE
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 	update_utmp(options.tty);
 #endif
 #endif
@@ -482,7 +491,7 @@ static void parse_speeds(struct options *op, char *arg)
 }
 
 #ifdef	SYSV_STYLE
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 
 /* update_utmp - update our utmp entry */
 static void update_utmp(char *line)
@@ -533,30 +542,24 @@ static void update_utmp(char *line)
 	pututline(&ut);
 	endutent();
 
-	{
-		if (access(_PATH_WTMP, R_OK|W_OK) == -1) {
-			close(creat(_PATH_WTMP, 0664));
-		}
-		updwtmp(_PATH_WTMP, &ut);
-	}
+#ifdef CONFIG_FEATURE_WTMP
+	if (access(_PATH_WTMP, R_OK|W_OK) == -1) 
+		close(creat(_PATH_WTMP, 0664));
+	updwtmp(_PATH_WTMP, &ut);
+#endif
 }
 
-#endif /* CONFIG_FEATURE_U_W_TMP */
+#endif /* CONFIG_FEATURE_UTMP */
 #endif /* SYSV_STYLE */
 
 /* open_tty - set up tty as standard { input, output, error } */
 static void open_tty(char *tty, struct termio *tp, int local)
 {
-	/* Get rid of the present standard { output, error} if any. */
-
-	(void) close(1);
-	(void) close(2);
-	errno = 0;					/* ignore above errors */
-
 	/* Set up new standard input, unless we are given an already opened port. */
 
 	if (strcmp(tty, "-")) {
 		struct stat st;
+		int fd;
 
 		/* Sanity checks... */
 
@@ -569,12 +572,11 @@ static void open_tty(char *tty, struct termio *tp, int local)
 
 		/* Open the tty as standard input. */
 
-		(void) close(0);
-		errno = 0;				/* ignore close(2) errors */
-
 		debug("open(2)\n");
-		if (open(tty, O_RDWR | O_NONBLOCK, 0) != 0)
+		fd = open(tty, O_RDWR | O_NONBLOCK, 0);
+		if (dup2(fd, STDIN_FILENO) == -1)
 			error("/dev/%s: cannot open as standard input: %m", tty);
+		close(fd);
 
 	} else {
 
@@ -587,9 +589,10 @@ static void open_tty(char *tty, struct termio *tp, int local)
 			error("%s: not open for read/write", tty);
 	}
 
-	/* Set up standard output and standard error file descriptors. */
+	/* Replace current standard output/error fd's with new ones */
 	debug("duping\n");
-	if (dup(0) != 1 || dup(0) != 2)	/* set up stdout and stderr */
+	if (dup2(STDIN_FILENO, STDOUT_FILENO) == -1 ||
+	    dup2(STDIN_FILENO, STDERR_FILENO) == -1)
 		error("%s: dup problem: %m", tty);	/* we have a problem */
 
 	/*

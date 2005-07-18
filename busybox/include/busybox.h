@@ -32,10 +32,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if __GNU_LIBRARY__ < 5
-#ifndef __dietlibc__
-#error "Sorry, libc5 is not supported"
-#endif
+#if __GNU_LIBRARY__ < 5 && \
+    !defined(__dietlibc__) && \
+    !defined(_NEWLIB_VERSION)
+#error "Sorry, this libc version is not supported :("
 #endif
 
 #ifndef BB_EXTRA_VERSION

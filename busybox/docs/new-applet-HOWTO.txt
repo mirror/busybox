@@ -52,10 +52,10 @@ int mu_main(int argc, char **argv)
 	char mu;
 
 	if ((fd = open("/dev/random", O_RDONLY)) < 0)
-		perror_msg_and_die("/dev/random");
+		bb_perror_msg_and_die("/dev/random");
 
 	if ((n = safe_read(fd, &mu, 1)) < 1)
-		perror_msg_and_die("/dev/random");
+		bb_perror_msg_and_die("/dev/random");
 
 	return mu;
 }
@@ -135,11 +135,6 @@ algorithm in busybox.c and the Gods of BusyBox smite you. Yea, verily:
 		APPLET("mu", mu_main, _BB_DIR_USR_BIN, mu_usage)
 	#endif
 	/* all programs below here are alphabetically "greater than" 'mu' */
-
-
-Finally, add a define for your applet to include/config.h
-
-	#undef CONFIG_MU
 
 
 Documentation

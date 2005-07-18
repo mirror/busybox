@@ -175,6 +175,8 @@ static bool zconf_endtoken(int token, int starttoken, int endtoken);
 
 struct symbol *symbol_hash[257];
 
+static struct menu *current_menu, *current_entry;
+
 #define YYERROR_VERBOSE
 
 
@@ -2119,6 +2121,7 @@ void zconfdump(FILE *out)
 }
 
 #include "lex.zconf.c"
+#include "util.c"
 #include "confdata.c"
 #include "expr.c"
 #include "symbol.c"

@@ -37,6 +37,7 @@ config CONFIG_FEATURE_CROND_CALL_SENDMAIL
 config CONFIG_CRONTAB
 	bool "crontab"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  Crontab manipulates the crontab for a particular user.  Only
 	  the superuser may specify a different user and/or crontab directory.
@@ -86,7 +87,7 @@ config CONFIG_DEVFSD_VERBOSE
 config CONFIG_LAST
 	bool "last"
 	default n
-	select CONFIG_FEATURE_U_W_TMP
+	select CONFIG_FEATURE_WTMP
 	help
 	  'last' displays a list of the last users that logged into the system.
 

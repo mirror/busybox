@@ -10,7 +10,6 @@
 #include "lkc.h"
 
 struct menu rootmenu;
-struct menu *current_menu, *current_entry;
 static struct menu **last_entry_ptr;
 
 struct file *file_list;
@@ -387,45 +386,5 @@ struct menu *menu_get_parent_menu(struct menu *menu)
 			break;
 	}
 	return menu;
-}
-
-struct file *file_lookup(const char *name)
-{
-	struct file *file;
-
-	for (file = file_list; file; file = file->next) {
-		if (!strcmp(name, file->name))
-			return file;
-	}
-
-	file = malloc(sizeof(*file));
-	memset(file, 0, sizeof(*file));
-	file->name = strdup(name);
-	file->next = file_list;
-	file_list = file;
-	return file;
-}
-
-int file_write_dep(const char *name)
-{
-	struct file *file;
-	FILE *out;
-
-	if (!name)
-		name = ".config.cmd";
-	out = fopen(".config.tmp", "w");
-	if (!out)
-		return 1;
-	fprintf(out, "deps_config := \\\n");
-	for (file = file_list; file; file = file->next) {
-		if (file->next)
-			fprintf(out, "\t%s \\\n", file->name);
-		else
-			fprintf(out, "\t%s\n", file->name);
-	}
-	fprintf(out, "\n.config include/config.h: $(deps_config)\n\n$(deps_config):\n");
-	fclose(out);
-	rename(".config.tmp", name);
-	return 0;
 }
 

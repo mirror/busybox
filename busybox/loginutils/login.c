@@ -23,7 +23,7 @@
 #include <fs_secure.h>
 #endif
 
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 // import from utmp.c
 static void checkutmp(int picky);
 static void setutmp(const char *name, const char *line);
@@ -122,7 +122,7 @@ extern int login_main(int argc, char **argv)
 	if ( !isatty ( 0 ) || !isatty ( 1 ) || !isatty ( 2 ))
 		return EXIT_FAILURE;		/* Must be a terminal */
 
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 	checkutmp ( !amroot );
 #endif
 
@@ -134,13 +134,13 @@ extern int login_main(int argc, char **argv)
 	else
 		safe_strncpy ( tty, "UNKNOWN", sizeof( tty ));
 
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 	if ( amroot )
 		memset ( utent.ut_host, 0, sizeof utent.ut_host );
 #endif
 
 	if ( opt_host ) {
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 		safe_strncpy ( utent.ut_host, opt_host, sizeof( utent. ut_host ));
 #endif
 		snprintf ( fromhost, sizeof( fromhost ) - 1, " on `%.100s' from `%.200s'", tty, opt_host );
@@ -222,7 +222,7 @@ auth_ok:
 	if ( check_nologin ( pw-> pw_uid == 0 ))
 		return EXIT_FAILURE;
 
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 	setutmp ( username, tty );
 #endif
 #ifdef CONFIG_SELINUX
@@ -387,7 +387,7 @@ static int is_my_tty ( const char *tty )
 }
 
 
-static void motd ( )
+static void motd (void)
 {
 	FILE *fp;
 	register int c;
@@ -400,7 +400,7 @@ static void motd ( )
 }
 
 
-#ifdef CONFIG_FEATURE_U_W_TMP
+#ifdef CONFIG_FEATURE_UTMP
 // vv  Taken from tinylogin utmp.c  vv
 
 #define	NO_UTENT \
@@ -478,9 +478,11 @@ static void setutmp(const char *name, const char *line)
 	setutent();
 	pututline(&utent);
 	endutent();
+#ifdef CONFIG_FEATURE_WTMP
 	if (access(_PATH_WTMP, R_OK|W_OK) == -1) {
 		close(creat(_PATH_WTMP, 0664));
 	}
 	updwtmp(_PATH_WTMP, &utent);
+#endif
 }
-#endif /* CONFIG_FEATURE_U_W_TMP */
+#endif /* CONFIG_FEATURE_UTMP */

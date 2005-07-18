@@ -1277,11 +1277,17 @@ static int pseudo_exec(struct child_prog *child)
 	name = child->argv[0];
 
 	{
-	    char** argv_l=child->argv;
-	    int argc_l;
-	    for(argc_l=0;*argv_l!=NULL; argv_l++, argc_l++);
-	    optind = 1;
-	    run_applet_by_name(name, argc_l, child->argv);
+		char** argv_l=child->argv;
+		int argc_l;
+#ifdef _NEWLIB_VERSION
+		/* newlib uses __getopt_initialized for getopt() in 
+		 * addition to optind, see newlib/libc/sys/linux/getopt.c
+		 */
+		extern int __getopt_initialized = 0;
+#endif
+		for(argc_l=0;*argv_l!=NULL; argv_l++, argc_l++);
+		optind = 1;
+		run_applet_by_name(name, argc_l, child->argv);
 	}
 #endif
 

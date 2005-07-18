@@ -458,6 +458,12 @@ static inline int tftp(const int cmd, const struct hostent *host,
 				opcode = TFTP_ACK;
 				continue;
 			}
+			/* in case the last ack disappeared into the ether */
+			if ( tmp == (block_nr - 1) ) {
+				--block_nr;
+				opcode = TFTP_ACK;
+				continue;
+			}
 		}
 
 		if (cmd_put && (opcode == TFTP_ACK)) {

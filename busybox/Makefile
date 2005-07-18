@@ -22,7 +22,7 @@
 #--------------------------------------------------------------
 noconfig_targets := menuconfig config oldconfig randconfig \
 	defconfig allyesconfig allnoconfig clean distclean \
-	release tags  
+	release tags
 
 ifndef TOPDIR
 TOPDIR=$(CURDIR)/
@@ -147,7 +147,7 @@ uninstall: busybox.links
 	rm -f $(PREFIX)/bin/busybox
 	for i in `cat busybox.links` ; do rm -f $(PREFIX)$$i; done
 
-install-hardlinks: applets/install.sh busybox busybox.links
+install-hardlinks: $(top_srcdir)/applets/install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX) --hardlinks
 
 check: busybox
@@ -193,7 +193,7 @@ scripts/mkdep: $(top_srcdir)/scripts/mkdep.c
 scripts/split-include: $(top_srcdir)/scripts/split-include.c
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
-.depend: scripts/mkdep
+.depend: scripts/mkdep include/config.h
 	rm -f .depend .hdepend;
 	mkdir -p include/config;
 	scripts/mkdep -I include -- \
@@ -201,7 +201,7 @@ scripts/split-include: $(top_srcdir)/scripts/split-include.c
 	scripts/mkdep -I include -- \
 	  `find $(top_srcdir) -name \*.h -print | sed -e "s,^./,,"` >> .hdepend;
 
-depend dep: include/config.h .depend
+depend dep: .depend
 
 include/config/MARKER: depend scripts/split-include
 	scripts/split-include include/config.h include/config

@@ -51,12 +51,6 @@
 #include <time.h>
 #include "busybox.h"
 
-#define memzero(s, n)     memset ((void *)(s), 0, (n))
-
-#ifndef RETSIGTYPE
-#  define RETSIGTYPE void
-#endif
-
 typedef unsigned char uch;
 typedef unsigned short ush;
 typedef unsigned long ulg;
@@ -214,9 +208,6 @@ typedef int file_t;		/* Do not use stdio */
 static int zip(int in, int out);
 static int file_read(char *buf, unsigned size);
 
-	/* from gzip.c */
-static RETSIGTYPE abort_gzip(void);
-
 		/* from deflate.c */
 static void lm_init(ush * flags);
 static ulg deflate(void);
@@ -335,7 +326,7 @@ static void put_short(ush w)
 /* ========================================================================
  * Signal and error handler.
  */
-static void abort_gzip()
+static void abort_gzip(int ignored)
 {
 	exit(ERROR);
 }
@@ -350,13 +341,6 @@ static void clear_bufs(void)
 	bytes_in = 0L;
 }
 
-static void write_bb_error_msg(void)
-{
-	fputc('\n', stderr);
-	bb_perror_nomsg();
-	abort_gzip();
-}
-
 /* ===========================================================================
  * Does the same as write(), but also handles partial pipe writes and checks
  * for error return.
@@ -366,9 +350,7 @@ static void write_buf(int fd, void *buf, unsigned cnt)
 	unsigned n;
 
 	while ((n = write(fd, buf, cnt)) != cnt) {
-		if (n == (unsigned) (-1)) {
-			write_bb_error_msg();
-		}
+		if (n == (unsigned) (-1)) bb_error_msg_and_die("can't write");
 		cnt -= n;
 		buf = (void *) ((char *) buf + n);
 	}
@@ -559,7 +541,7 @@ static unsigned bi_reverse(unsigned code, int len)
 /* ===========================================================================
  * Write out any remaining bits in an incomplete byte.
  */
-static void bi_windup()
+static void bi_windup(void)
 {
 	if (bi_valid > 8) {
 		put_short(bi_buf);
@@ -846,7 +828,7 @@ static void lm_init(ush * flags)
 	register unsigned j;
 
 	/* Initialize the hash table. */
-	memzero((char *) head, HASH_SIZE * sizeof(*head));
+	memset(head, 0, HASH_SIZE * sizeof(*head));
 	/* prev will be initialized on the fly */
 
 	*flags |= SLOW;
@@ -996,7 +978,7 @@ static void check_match(IPos start, IPos match, int length)
  *    file reads are performed for at least two bytes (required for the
  *    translate_eol option).
  */
-static void fill_window()
+static void fill_window(void)
 {
 	register unsigned n, m;
 	unsigned more =
@@ -1060,7 +1042,7 @@ static void fill_window()
  * evaluation for matches: a match is finally adopted only if there is
  * no better match at the next window position.
  */
-static ulg deflate()
+static ulg deflate(void)
 {
 	IPos hash_head;		/* head of hash chain */
 	IPos prev_match;	/* previous match */
@@ -1188,8 +1170,6 @@ static ulg deflate()
 
 typedef struct dirent dir_type;
 
-typedef RETSIGTYPE(*sig_type) (int);
-
 /* ======================================================================== */
 int gzip_main(int argc, char **argv)
 {
@@ -1235,16 +1215,16 @@ int gzip_main(int argc, char **argv)
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {
-		(void) signal(SIGINT, (sig_type) abort_gzip);
+		(void) signal(SIGINT, abort_gzip);
 	}
 #ifdef SIGTERM
 	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGTERM, (sig_type) abort_gzip);
+		(void) signal(SIGTERM, abort_gzip);
 	}
 #endif
 #ifdef SIGHUP
 	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGHUP, (sig_type) abort_gzip);
+		(void) signal(SIGHUP, abort_gzip);
 	}
 #endif
 
@@ -1271,6 +1251,7 @@ int gzip_main(int argc, char **argv)
 		for (i = optind; i < argc; i++) {
 			char *path = NULL;
 
+			clear_bufs();
 			if (strcmp(argv[i], "-") == 0) {
 				time_stamp = 0;
 				ifile_size = -1L;
@@ -1749,7 +1730,7 @@ static void ct_init(ush * attr, int *methodp)
 /* ===========================================================================
  * Initialize a new block.
  */
-static void init_block()
+static void init_block(void)
 {
 	int n;				/* iterates over tree elements */
 
@@ -2162,7 +2143,7 @@ static void send_tree(ct_data * tree, int max_code)
  * Construct the Huffman tree for the bit lengths and return the index in
  * bl_order of the last bit length code to send.
  */
-static const int build_bl_tree()
+static int build_bl_tree(void)
 {
 	int max_blindex;	/* index of last bit length code of non zero freq */
 
@@ -2425,7 +2406,7 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
  * IN assertion: the fields freq of dyn_ltree are set and the total of all
  * frequencies does not exceed 64K (to fit in an int on 16 bit machines).
  */
-static void set_file_type()
+static void set_file_type(void)
 {
 	int n = 0;
 	unsigned ascii_freq = 0;
@@ -2538,7 +2519,7 @@ static int file_read(char *buf, unsigned size)
  * Write the output buffer outbuf[0..outcnt-1] and update bytes_out.
  * (used for the compressed data only)
  */
-static void flush_outbuf()
+static void flush_outbuf(void)
 {
 	if (outcnt == 0)
 		return;

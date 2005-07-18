@@ -134,8 +134,6 @@ static unsigned int get_bits(bunzip_data *bd, char bits_wanted)
 
 static int get_next_block(bunzip_data *bd)
 {
-	/* Note: Ignore the warning about hufGroup, base and limit being used uninitialized.
-	 * They will be initialized on the fist pass of the loop. */
 	struct group_data *hufGroup;
 	int dbufCount,nextSym,dbufSize,groupCount,*base,*limit,selector,
 		i,j,k,t,runPos,symCount,symTotal,nSelectors,byteCount[256];
@@ -286,16 +284,15 @@ static int get_next_block(bunzip_data *bd)
 		mtfSymbol[i]=(unsigned char)i;
 	}
 	/* Loop through compressed symbols. */
-	runPos=dbufCount=symCount=selector=0;
+	runPos=dbufCount=selector=0;
 	for(;;) {
-		/* Determine which Huffman coding group to use. */
-		if(!(symCount--)) {
-			symCount=GROUP_SIZE-1;
-			if(selector>=nSelectors) return RETVAL_DATA_ERROR;
-			hufGroup=bd->groups+selectors[selector++];
-			base=hufGroup->base-1;
-			limit=hufGroup->limit-1;
-		}
+		/* fetch next Huffman coding group from list. */
+		symCount=GROUP_SIZE-1;
+		if(selector>=nSelectors) return RETVAL_DATA_ERROR;
+		hufGroup=bd->groups+selectors[selector++];
+		base=hufGroup->base-1;
+		limit=hufGroup->limit-1;
+continue_this_group:
 		/* Read next Huffman-coded symbol. */
 		/* Note: It is far cheaper to read maxLen bits and back up than it is
 		   to read minLen bits and then an additional bit at a time, testing
@@ -346,7 +343,7 @@ got_huff_bits:
 			   context).  Thus space is saved. */
 			t += (runPos << nextSym); /* +runPos if RUNA; +2*runPos if RUNB */
 			runPos <<= 1;
-			continue;
+			goto end_of_huffman_loop;
 		}
 		/* When we hit the first non-run symbol after a run, we now know
 		   how many times to repeat the last literal, so append that many
@@ -384,6 +381,10 @@ got_huff_bits:
 		/* We have our literal byte.  Save it into dbuf. */
 		byteCount[uc]++;
 		dbuf[dbufCount++] = (unsigned int)uc;
+		/* Skip group initialization if we're not done with this group.  Done this
+		 * way to avoid compiler warning. */
+end_of_huffman_loop:
+		if(symCount--) goto continue_this_group;
 	}
 	/* At this point, we've read all the Huffman-coded symbols (and repeated
        runs) for this block from the input stream, and decoded them into the

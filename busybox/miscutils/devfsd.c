@@ -566,40 +566,36 @@ static void read_config_file (char *path, int optional, unsigned long *event_mas
 #ifdef CONFIG_DEBUG
 	msg_logger( NO_DIE, LOG_INFO, "read_config_file(): %s\n", path);
 #endif
-	if (stat (path, &statbuf) != 0 || statbuf.st_size == 0 )
-		goto read_config_file_err;
-
-	if ( S_ISDIR (statbuf.st_mode) )
+	if (stat (path, &statbuf) == 0 )
 	{
-		/* strip last / from dirname so we don't need to check for it later */
-		while( path  && path[1]!='\0' && path[strlen(path)-1] == '/')
-			path[strlen(path) -1] = '\0';
-
-		dir_operation(READ_CONFIG, path, 0, event_mask);
-		return;
-	}
-
-	if ( ( fp = fopen (path, "r") ) != NULL )
-	{
-		while (fgets (buf, STRING_LENGTH, fp) != NULL)
+		/* Don't read 0 length files: ignored */
+		/*if( statbuf.st_size == 0 )
+				return;*/
+		if ( S_ISDIR (statbuf.st_mode) )
 		{
-			/*  GETS(3)       Linux Programmer's Manual
-			fgets() reads in at most one less than size characters from stream  and
-			stores  them  into  the buffer pointed to by s.  Reading stops after an
-			EOF or a newline.  If a newline is read, it is stored into the  buffer.
-			A '\0' is stored after the last character in the buffer.
-			*/
-			/*buf[strlen (buf) - 1] = '\0';*/
-			/*  Skip whitespace  */
-			for (line = buf; isspace (*line); ++line)
-				/*VOID*/;
-			if (line[0] == '\0' || line[0] == '#' )
-				continue;
-			process_config_line (line, event_mask);
+			/* strip last / from dirname so we don't need to check for it later */
+			while( path  && path[1]!='\0' && path[strlen(path)-1] == '/')
+				path[strlen(path) -1] = '\0';
+	
+			dir_operation(READ_CONFIG, path, 0, event_mask);
+			return;
 		}
-		fclose (fp);
-		errno=0;
-	}
+		if ( ( fp = fopen (path, "r") ) != NULL )
+		{
+			while (fgets (buf, STRING_LENGTH, fp) != NULL)
+			{
+				/*  Skip whitespace  */
+				for (line = buf; isspace (*line); ++line)
+					/*VOID*/;
+				if (line[0] == '\0' || line[0] == '#' )
+					continue;
+				process_config_line (line, event_mask);
+			}
+			fclose (fp);
+		} else {
+			goto read_config_file_err;
+		}
+	} else {
 read_config_file_err:
 #ifdef CONFIG_DEVFSD_VERBOSE
 	msg_logger(((optional ==  0 ) && (errno == ENOENT))? DIE : NO_DIE, LOG_ERR, "read config file: %s: %m\n", path);
@@ -607,6 +603,7 @@ read_config_file_err:
 	if(optional ==  0  && errno == ENOENT)
 		exit(EXIT_FAILURE);
 #endif
+	}
 	return;
 }   /*  End Function read_config_file   */
 

@@ -300,7 +300,7 @@ extern int cut_main(int argc, char **argv)
 	part = opt & (OPT_BYTE_FLGS|OPT_CHAR_FLGS|OPT_FIELDS_FLGS);
 	if(part == 0)
 		bb_error_msg_and_die("you must specify a list of bytes, characters, or fields");
-	if(opt & 0x80000000UL)
+	if(opt & BB_GETOPT_ERROR)
 		bb_error_msg_and_die("only one type of list may be specified");
 	parse_lists(sopt);
 	if((opt & (OPT_DELIM_FLGS))) {

@@ -238,7 +238,7 @@ start_stop_daemon_main(int argc, char **argv)
 			&startas, &cmdname, &signame, &userspec, &execname, &pidfile);
 
 	/* Check one and only one context option was given */
-	if ((opt & 0x80000000UL) || (opt & (SSD_CTX_STOP | SSD_CTX_START)) == 0) {
+	if ((opt & BB_GETOPT_ERROR) || (opt & (SSD_CTX_STOP | SSD_CTX_START)) == 0) {
 		bb_show_usage();
 	}
 

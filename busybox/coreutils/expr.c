@@ -245,10 +245,9 @@ static int arithmetic_common (VALUE *l, VALUE *r, int op)
 static VALUE *docolon (VALUE *sv, VALUE *pv)
 {
 	VALUE *v;
-	const char *errmsg;
-	struct re_pattern_buffer re_buffer;
-	struct re_registers re_regs;
-	int len;
+	regex_t re_buffer;
+	const int NMATCH = 2;
+	regmatch_t re_regs[NMATCH];
 
 	tostring (sv);
 	tostring (pv);
@@ -260,27 +259,22 @@ of a basic regular expression is not portable; it is being ignored",
 		pv->u.s);
 	}
 
-	len = strlen (pv->u.s);
 	memset (&re_buffer, 0, sizeof (re_buffer));
-	memset (&re_regs, 0, sizeof (re_regs));
-	re_buffer.allocated = 2 * len;
-	re_buffer.buffer = (unsigned char *) xmalloc (re_buffer.allocated);
-	re_buffer.translate = 0;
-	re_syntax_options = RE_SYNTAX_POSIX_BASIC;
-	errmsg = re_compile_pattern (pv->u.s, len, &re_buffer);
-	if (errmsg) {
-		bb_error_msg_and_die("%s", errmsg);
-	}
+	memset (re_regs, 0, sizeof (*re_regs));
+	if( regcomp (&re_buffer, pv->u.s, 0) != 0 )
+		bb_error_msg_and_die("Invalid regular expression");
 
-	len = re_match (&re_buffer, sv->u.s, strlen (sv->u.s), 0, &re_regs);
-	if (len >= 0) {
+	/* expr uses an anchored pattern match, so check that there was a
+	 * match and that the match starts at offset 0. */
+	if (regexec (&re_buffer, sv->u.s, NMATCH, re_regs, 0) != REG_NOMATCH &&
+			re_regs[0].rm_so == 0) {
 		/* Were \(...\) used? */
-		if (re_buffer.re_nsub > 0) { /* was (re_regs.start[1] >= 0) */
-			sv->u.s[re_regs.end[1]] = '\0';
-			v = str_value (sv->u.s + re_regs.start[1]);
+		if (re_buffer.re_nsub > 0) {
+			sv->u.s[re_regs[1].rm_eo] = '\0';
+			v = str_value (sv->u.s + re_regs[1].rm_so);
 		}
 		else
-			v = int_value (len);
+			v = int_value (re_regs[0].rm_eo);
 	}
 	else {
 		/* Match failed -- return the right kind of null.  */
@@ -289,7 +283,6 @@ of a basic regular expression is not portable; it is being ignored",
 		else
 			v = int_value (0);
 	}
-	free (re_buffer.buffer);
 	return v;
 }
 

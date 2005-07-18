@@ -221,6 +221,7 @@ config CONFIG_LOSETUP
 config CONFIG_MKSWAP
 	bool "mkswap"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  The mkswap utility is used to configure a file or disk partition as
 	  Linux swap space.  This allows Linux to use the entire file or
@@ -234,6 +235,7 @@ config CONFIG_MKSWAP
 config CONFIG_MORE
 	bool "more"
 	default n
+	select CONFIG_FEATURE_SUID
 	help
 	  more is a simple utility which allows you to read text one screen
 	  sized page at a time.  If you want to read text that is larger than

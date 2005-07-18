@@ -39,7 +39,6 @@
 #include <limits.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/mount.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/reboot.h>
@@ -156,7 +155,7 @@ static struct init_action *init_action_list = NULL;
 static char console[CONSOLE_BUFF_SIZE] = _PATH_CONSOLE;
 
 #ifndef CONFIG_SYSLOGD
-static char *log = VC_5;
+static char *log_console = VC_5;
 #endif
 static sig_atomic_t got_cont = 0;
 static const int LOG = 0x1;
@@ -239,9 +238,9 @@ static void message(int device, const char *fmt, ...)
 	/* Take full control of the log tty, and never close it.
 	 * It's mine, all mine!  Muhahahaha! */
 	if (log_fd < 0) {
-		if ((log_fd = device_open(log, O_RDWR | O_NDELAY | O_NOCTTY)) < 0) {
+		if ((log_fd = device_open(log_console, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
 			log_fd = -2;
-			bb_error_msg("Bummer, can't write to log on %s!", log);
+			bb_error_msg("Bummer, can't write to log on %s!", log_console);
 			device = CONSOLE;
 		} else {
 			fcntl(log_fd, F_SETFD, FD_CLOEXEC);
@@ -254,7 +253,7 @@ static void message(int device, const char *fmt, ...)
 
 	if (device & CONSOLE) {
 		int fd = device_open(_PATH_CONSOLE,
-					O_WRONLY | O_NOCTTY | O_NDELAY);
+					O_WRONLY | O_NOCTTY | O_NONBLOCK);
 		/* Always send console messages to /dev/console so people will see them. */
 		if (fd >= 0) {
 			bb_full_write(fd, msg, l);
@@ -309,6 +308,7 @@ static void set_term(int fd)
 	tcsetattr(fd, TCSANOW, &tty);
 }
 
+#ifdef CONFIG_FEATURE_INIT_SWAPON
 /* How much memory does this machine have?
    Units are kBytes to avoid overflow on 4GB machines */
 static unsigned int check_free_memory(void)
@@ -337,6 +337,7 @@ static unsigned int check_free_memory(void)
 		return(result * u);
 	}
 }
+#endif /* CONFIG_FEATURE_INIT_SWAPON */
 
 static void console_init(void)
 {
@@ -381,7 +382,7 @@ static void console_init(void)
 	if (fd < 0) {
 		/* Perhaps we should panic here? */
 #ifndef CONFIG_SYSLOGD
-		log =
+		log_console =
 #endif
 		safe_strncpy(console, "/dev/null", sizeof(console));
 	} else {
@@ -393,7 +394,7 @@ static void console_init(void)
 			if (s == NULL || strcmp(s, "linux") == 0)
 				putenv("TERM=vt102");
 #ifndef CONFIG_SYSLOGD
-			log = console;
+			log_console = console;
 #endif
 		} else {
 			if (s == NULL)
@@ -423,9 +424,8 @@ static void fixup_argv(int argc, char **argv, char *new_argv0)
 
 static pid_t run(const struct init_action *a)
 {
-	struct stat sb;
 	int i, junk;
-	pid_t pid, pgrp, tmp_pid;
+	pid_t pid;
 	char *s, *tmpCmd, *cmd[INIT_BUFFS_SIZE], *cmdpath;
 	char buf[INIT_BUFFS_SIZE + 6];	/* INIT_BUFFS_SIZE+strlen("exec ")+1 */
 	sigset_t nmask, omask;
@@ -441,6 +441,8 @@ static pid_t run(const struct init_action *a)
 	sigprocmask(SIG_BLOCK, &nmask, &omask);
 
 	if ((pid = fork()) == 0) {
+		struct stat sb;
+
 		/* Clean up */
 		close(0);
 		close(1);
@@ -453,6 +455,7 @@ static pid_t run(const struct init_action *a)
 		signal(SIGINT, SIG_DFL);
 		signal(SIGTERM, SIG_DFL);
 		signal(SIGHUP, SIG_DFL);
+		signal(SIGQUIT, SIG_DFL);
 		signal(SIGCONT, SIG_DFL);
 		signal(SIGSTOP, SIG_DFL);
 		signal(SIGTSTP, SIG_DFL);
@@ -464,11 +467,10 @@ static pid_t run(const struct init_action *a)
 		/* Open the new terminal device */
 		if ((device_open(a->terminal, O_RDWR)) < 0) {
 			if (stat(a->terminal, &sb) != 0) {
-				message(LOG | CONSOLE, "device '%s' does not exist.",
-						a->terminal);
-				_exit(1);
+				message(LOG | CONSOLE, "device '%s' does not exist.", a->terminal);
+			} else {
+				message(LOG | CONSOLE, "Bummer, can't open %s", a->terminal);
 			}
-			message(LOG | CONSOLE, "Bummer, can't open %s", a->terminal);
 			_exit(1);
 		}
 
@@ -482,6 +484,7 @@ static pid_t run(const struct init_action *a)
 		/* If the init Action requires us to wait, then force the
 		 * supplied terminal to be the controlling tty. */
 		if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
+			pid_t pgrp, tmp_pid;
 
 			/* Now fork off another process to just hang around */
 			if ((pid = fork()) < 0) {
@@ -693,6 +696,7 @@ static void shutdown_system(void)
 	/* first disable all our signals */
 	sigemptyset(&block_signals);
 	sigaddset(&block_signals, SIGHUP);
+	sigaddset(&block_signals, SIGQUIT);
 	sigaddset(&block_signals, SIGCHLD);
 	sigaddset(&block_signals, SIGUSR1);
 	sigaddset(&block_signals, SIGUSR2);
@@ -730,13 +734,12 @@ static void exec_signal(int sig)
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
 		if (a->action & RESTART) {
-			struct stat sb;
-
 			shutdown_system();
 
 			/* unblock all signals, blocked in shutdown_system() */
 			sigemptyset(&unblock_signals);
 			sigaddset(&unblock_signals, SIGHUP);
+			sigaddset(&unblock_signals, SIGQUIT);
 			sigaddset(&unblock_signals, SIGCHLD);
 			sigaddset(&unblock_signals, SIGUSR1);
 			sigaddset(&unblock_signals, SIGUSR2);
@@ -754,6 +757,7 @@ static void exec_signal(int sig)
 
 			/* Open the new terminal device */
 			if ((device_open(a->terminal, O_RDWR)) < 0) {
+				struct stat sb;
 				if (stat(a->terminal, &sb) != 0) {
 					message(LOG | CONSOLE, "device '%s' does not exist.", a->terminal);
 				} else {
@@ -907,6 +911,7 @@ static void delete_init_action(struct init_action *action)
 	}
 }
 
+#ifdef CONFIG_FEATURE_INIT_SWAPON
 /* Make sure there is enough memory to do something useful. *
  * Calls "swapon -a" if needed so be sure /etc/fstab is present... */
 static void check_memory(void)
@@ -934,6 +939,9 @@ static void check_memory(void)
 	message(CONSOLE, "Sorry, your computer does not have enough memory.");
 	loop_forever();
 }
+#else
+# define check_memory()
+#endif /* CONFIG_FEATURE_INIT_SWAPON */
 
 /* NOTE that if CONFIG_FEATURE_USE_INITTAB is NOT defined,
  * then parse_inittab() simply adds in some default
@@ -1097,6 +1105,7 @@ extern int init_main(int argc, char **argv)
 	/* Set up sig handlers  -- be sure to
 	 * clear all of these in run() */
 	signal(SIGHUP, exec_signal);
+	signal(SIGQUIT, exec_signal);
 	signal(SIGUSR1, halt_signal);
 	signal(SIGUSR2, halt_signal);
 	signal(SIGINT, ctrlaltdel_signal);

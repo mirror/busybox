@@ -2,7 +2,7 @@ List of the authors of code contained in BusyBox.
 
 If you have code in BusyBox, you should be listed here.  If you should be
 listed, or the description of what you have done needs more detail, or is
-incorect, _please_ let me know.
+incorrect, _please_ let me know.
 
  -Erik
 
@@ -69,6 +69,11 @@ Daniel Jacobowitz <dan@debian.org>
 Matt Kraai <kraai@alumni.cmu.edu>
     documentation, bugfixes, test suite
 
+Rob Landley <rob@landley.net>
+    sed (major rewrite in 2003, and I now maintain the thing).
+    bunzip2 (complete from-scratch rewrite, then mjn3 optimized the result.)
+    I've patched lots of other applets, but don't maintain 'em.
+
 Stephan Linz <linz@li-pro.net>
     ipcalc, Red Hat equivalence
 
@@ -76,9 +81,9 @@ John Lombardo <john@deltanet.com>
     tr
 
 Glenn McGrath <bug1@iinet.net.au>
-    Common unarchving code and unarchiving applets, ifupdown, ftpgetput,
-    nameif, sed, patch, fold, install, uudecode. 
-    Various bugfixes, review and apply numerous patches. 
+    Common unarchiving code and unarchiving applets, ifupdown, ftpgetput,
+    nameif, sed, patch, fold, install, uudecode.
+    Various bugfixes, review and apply numerous patches.
 
 Manuel Novoa III <mjn3@codepoet.org>
     cat, head, mkfifo, mknod, rmdir, sleep, tee, tty, uniq, usleep, wc, yes,

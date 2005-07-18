@@ -79,7 +79,7 @@ int nc_main(int argc, char **argv)
 #ifdef GAPING_SECURITY_HOLE
 	if (pr00gie) {
 		/* won't need stdin */
-		close (STDIN_FILENO);      
+		close(STDIN_FILENO);      
 	}
 #endif /* GAPING_SECURITY_HOLE */
 
@@ -90,8 +90,8 @@ int nc_main(int argc, char **argv)
 	if ((sfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		bb_perror_msg_and_die("socket");
 	x = 1;
-	if (setsockopt (sfd, SOL_SOCKET, SO_REUSEADDR, &x, sizeof (x)) == -1)
-		bb_perror_msg_and_die ("reuseaddr failed");
+	if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &x, sizeof (x)) == -1)
+		bb_perror_msg_and_die("reuseaddr");
 	address.sin_family = AF_INET;
 
 	if (lport != 0) {
@@ -154,7 +154,7 @@ int nc_main(int argc, char **argv)
 		for (fd = 0; fd < FD_SETSIZE; fd++) {
 			if (FD_ISSET(fd, &testfds)) {
 				if ((nread = safe_read(fd, buf, sizeof(buf))) < 0)
-					bb_perror_msg_and_die("read");
+					bb_perror_msg_and_die(bb_msg_read_error);
 
 				if (fd == sfd) {
 					if (nread == 0)
@@ -167,7 +167,7 @@ int nc_main(int argc, char **argv)
 				}
 
 				if (bb_full_write(ofd, buf, nread) < 0)
-					bb_perror_msg_and_die("write");
+					bb_perror_msg_and_die(bb_msg_write_error);
 				if (delay > 0) {
 					sleep(delay);
 				}

@@ -46,7 +46,7 @@ struct linux_rtc_time {
 	int tm_yday;
 	int tm_isdst;
 };
-                
+
 #define RTC_SET_TIME   _IOW('p', 0x0a, struct linux_rtc_time) /* Set RTC time    */
 #define RTC_RD_TIME    _IOR('p', 0x09, struct linux_rtc_time) /* Read RTC time   */
 
@@ -182,11 +182,11 @@ static int check_utc(void)
 	return utc;
 }
 
-#define HWCLOCK_OPT_LOCALTIME	1
-#define HWCLOCK_OPT_UTC      	2
-#define HWCLOCK_OPT_SHOW     	4
-#define HWCLOCK_OPT_HCTOSYS  	8
-#define HWCLOCK_OPT_SYSTOHC  	16
+#define HWCLOCK_OPT_LOCALTIME	0x01
+#define HWCLOCK_OPT_UTC      	0x02
+#define HWCLOCK_OPT_SHOW     	0x04
+#define HWCLOCK_OPT_HCTOSYS  	0x08
+#define HWCLOCK_OPT_SYSTOHC  	0x10
 
 extern int hwclock_main ( int argc, char **argv )
 {
@@ -208,16 +208,16 @@ static const struct option hwclock_long_options[] = {
 	bb_opt_complementaly = "r~ws:w~rs:s~wr:l~u:u~l";
 	opt = bb_getopt_ulflags(argc, argv, "lursw");
 	/* Check only one mode was given */
-	if(opt & 0x80000000UL) {
+	if(opt & BB_GETOPT_ERROR) {
 		bb_show_usage();
 	}
 
 	/* If -u or -l wasn't given check if we are using utc */
-	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME)) 
+	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME))
 		utc = opt & HWCLOCK_OPT_UTC;
 	else
 		utc = check_utc();
-	
+
 	if (opt & HWCLOCK_OPT_HCTOSYS) {
 		return to_sys_clock ( utc );
 	}

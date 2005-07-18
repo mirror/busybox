@@ -42,41 +42,28 @@ static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
 	max = (hash_length * 2) + 2;
 	hex_value = xmalloc(max);
 	for (x = len = 0; x < hash_length; x++) {
-		len += snprintf(hex_value + len, max - len, "%02x", hash_value[x]);
+		len += snprintf((char*)(hex_value + len), max - len, "%02x", hash_value[x]);
 	}
 	return (hex_value);
 }
 
 static uint8_t *hash_file(const char *filename, uint8_t hash_algo)
 {
-	uint8_t *hash_value_bin;
-	uint8_t *hash_value = NULL;
-	uint8_t hash_length;
-	int src_fd;
-
-	if (strcmp(filename, "-") == 0) {
-		src_fd = STDIN_FILENO;
-	} else {
-		src_fd = open(filename, O_RDONLY);
-	}
-
-	if (hash_algo == HASH_MD5) {
-		hash_length = 16;
-	} else {
-		hash_length = 20;
-	}
-
-	hash_value_bin = xmalloc(hash_length);
-
-	if ((src_fd != -1) && (hash_fd(src_fd, -1, hash_algo, hash_value_bin) != -2)) {
-		hash_value = hash_bin_to_hex(hash_value_bin, hash_length);
-	} else {
+	int src_fd = strcmp(filename, "-") == 0 ? STDIN_FILENO :
+		open(filename, O_RDONLY);
+	if (src_fd == -1) {
 		bb_perror_msg("%s", filename);
+		return NULL;
+	} else {
+		uint8_t *hash_value;
+		RESERVE_CONFIG_UBUFFER(hash_value_bin, 20);
+		hash_value = hash_fd(src_fd, -1, hash_algo, hash_value_bin) != -2 ?
+			hash_bin_to_hex(hash_value_bin, hash_algo == HASH_MD5 ? 16 : 20) :
+			NULL;
+		RELEASE_CONFIG_BUFFER(hash_value_bin);
+		close(src_fd);
+		return hash_value;
 	}
-
-	close(src_fd);
-
-	return(hash_value);
 }
 
 /* This could become a common function for md5 as well, by using md5_stream */
@@ -111,7 +98,7 @@ extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
 		FILE *pre_computed_stream;
 		int count_total = 0;
 		int count_failed = 0;
-		unsigned char *file_ptr = argv[optind];
+		char *file_ptr = argv[optind];
 		char *line;
 
 		if (optind + 1 != argc) {
@@ -142,7 +129,7 @@ extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
 
 			hash_value = hash_file(filename_ptr, hash_algo);
 
-			if (hash_value && (strcmp(hash_value, line) == 0)) {
+			if (hash_value && (strcmp((char*)hash_value, line) == 0)) {
 				if (!(flags & FLAG_SILENT))
 					printf("%s: OK\n", filename_ptr);
 			} else {
@@ -175,7 +162,7 @@ extern int hash_files(int argc, char **argv, const uint8_t hash_algo)
 		hash_value = xmalloc(hash_length);
 
 		while (optind < argc) {
-			unsigned char *file_ptr = argv[optind++];
+			char *file_ptr = argv[optind++];
 
 			hash_value = hash_file(file_ptr, hash_algo);
 			if (hash_value == NULL) {

@@ -136,7 +136,6 @@ int date_main(int argc, char **argv)
 {
 	char *date_str = NULL;
 	char *date_fmt = NULL;
-	char *t_buff;
 	int set_time;
 	int utc;
 	int use_arg = 0;
@@ -166,7 +165,7 @@ int date_main(int argc, char **argv)
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
 	}
 	use_arg = opt & DATE_OPT_DATE;
-	if(opt & 0x80000000UL)
+	if(opt & BB_GETOPT_ERROR)
 		bb_show_usage();
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
 	if(opt & DATE_OPT_TIMESPEC) {
@@ -283,10 +282,13 @@ int date_main(int argc, char **argv)
 		date_fmt = "%Y.%m.%d-%H:%M:%S";
 	}
 
-	/* Print OUTPUT (after ALL that!) */
-	t_buff = xmalloc(201);
-	strftime(t_buff, 200, date_fmt, &tm_time);
-	puts(t_buff);
+	{
+		/* Print OUTPUT (after ALL that!) */
+		RESERVE_CONFIG_BUFFER(t_buff, 201);
+		strftime(t_buff, 200, date_fmt, &tm_time);
+		puts(t_buff);
+		RELEASE_CONFIG_BUFFER(t_buff);
+	}
 
 	return EXIT_SUCCESS;
 }

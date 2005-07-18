@@ -99,10 +99,10 @@ DO_MOVE:
 			struct stat source_stat;
 			int source_exists;
 
-			if (errno != EXDEV) {
+			if (errno != EXDEV ||
+				(source_exists = cp_mv_stat(*argv, &source_stat)) < 1) {
 				bb_perror_msg("unable to rename `%s'", *argv);
-			}
-			else if ((source_exists = cp_mv_stat(*argv, &source_stat)) >= 0) {
+			} else {
 				if (dest_exists) {
 					if (dest_exists == 3) {
 						if (source_exists != 3) {
