@@ -1612,7 +1612,7 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
 		}
-	} else if (c == erase_char) {	// Is this a BS
+	} else if (c == erase_char || c == 8 || c == 127) { // Is this a BS
 		//     123456789
 		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
@@ -3083,8 +3083,8 @@ key_cmd_mode:
 		break;
 	case 'h':			// h- move left
 	case VI_K_LEFT:	// cursor key Left
-	case 8:			// ctrl-H- move left    (This may be ERASE char)
-	case 127:			// DEL- move left   (This may be ERASE char)
+	case 8:		// ctrl-H- move left    (This may be ERASE char)
+	case 127:	// DEL- move left   (This may be ERASE char)
 		if (cmdcnt-- > 1) {
 			do_cmd(c);
 		}				// repeat cnt
@@ -3249,7 +3249,7 @@ key_cmd_mode:
 		//
 		// dont separate these two commands. 'f' depends on ';'
 		//
-		//**** fall thru to ... 'i'
+		//**** fall thru to ... ';'
 	case ';':			// ;- look at rest of line for last forward char
 		if (cmdcnt-- > 1) {
 			do_cmd(';');
