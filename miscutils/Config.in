@@ -176,7 +176,8 @@ config CONFIG_MAKEDEVS
 
 choice
 	prompt "Choose makedevs behaviour"
-	default CONFIG_FEATURE_MAKDEVS_TABLE
+	depends CONFIG_MAKEDEVS
+	default CONFIG_FEATURE_MAKEDEVS_TABLE
 
 config CONFIG_FEATURE_MAKEDEVS_LEAF
         bool "leaf"
