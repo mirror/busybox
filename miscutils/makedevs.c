@@ -91,34 +91,41 @@ int makedevs_main(int argc, char **argv)
  *
  */
 
-static const struct option makedevs_long_options[] = {
-	{"root", 1, NULL, 'r'},
-	{0, 0, 0, 0}
-};
-
 extern int makedevs_main(int argc, char **argv)
 {
-	FILE *table;
 	int opt;
-	char *rootdir = "./";
-	char *line;
+	FILE *table = stdin;
+	char *rootdir = NULL;
+	char *line = NULL;
+	int linenum = 0;
 	int ret = EXIT_SUCCESS;
 
-	bb_opt_complementaly = "d~r";
-	bb_applet_long_options = makedevs_long_options;
-	opt = bb_getopt_ulflags(argc, argv, "d:r:", &rootdir, &rootdir);
-
-	if (optind + 1 == argc) {
-		table = bb_xfopen(argv[optind], "r");
-	} else {
-		table = stdin;
+	while ((opt = getopt(argc, argv, "d:")) != -1) {
+		switch(opt) {
+			case 'd':
+				table = bb_xfopen((line=optarg), "r");
+				break;
+			default:
+				bb_show_usage();
+		}
 	}
 
-	if (chdir(rootdir) == -1) {
-		bb_perror_msg_and_die("Couldnt chdor to %s", rootdir);
+	if (optind >= argc || (rootdir=argv[optind])==NULL) {
+		bb_error_msg_and_die("root directory not speficied");
+	}
+
+	if (chdir(rootdir) != 0) {
+		bb_perror_msg_and_die("Couldnt chdir to %s", rootdir);
 	}
 
 	umask(0);
+
+	printf("rootdir=%s\n", rootdir);
+	if (line) {
+		printf("table='%s'\n", line);
+	} else {
+		printf("table=<stdin>\n");
+	}
 
 	while ((line = bb_get_chomped_line_from_file(table))) {
 		char type;
@@ -135,11 +142,16 @@ extern int makedevs_main(int argc, char **argv)
 		uid_t uid;
 		gid_t gid;
 
+		linenum++;
+
 		if ((2 > sscanf(line, "%40s %c %o %40s %40s %u %u %u %u %u", name,
-			&type, &mode, user, group, &major,
-			&minor, &start, &increment, &count)) ||
-			((major | minor | start | count | increment) > 255)) {
-			bb_error_msg("Ignoring invalid line\n%s\n", line);
+						&type, &mode, user, group, &major,
+						&minor, &start, &increment, &count)) ||
+				((major | minor | start | count | increment) > 255))
+		{
+			if (*line=='\0' || *line=='#' || isspace(*line))
+				continue;
+			bb_error_msg("line %d invalid: '%s'\n", linenum, line);
 			ret = EXIT_FAILURE;
 			continue;
 		}
@@ -159,9 +171,9 @@ extern int makedevs_main(int argc, char **argv)
 		full_name = concat_path_file(rootdir, name);
 
 		if (type == 'd') {
-			bb_make_directory(full_name, mode | S_IFDIR, 0);
+			bb_make_directory(full_name, mode | S_IFDIR, FILEUTILS_RECUR);
 			if (chown(full_name, uid, gid) == -1) {
-				bb_perror_msg("chown failed for %s", full_name);
+				bb_perror_msg("line %d: chown failed for %s", linenum, full_name);
 				ret = EXIT_FAILURE;
 				goto loop;
 			}
@@ -177,7 +189,7 @@ extern int makedevs_main(int argc, char **argv)
 			else if (type == 'b') {
 				mode |= S_IFBLK;
 			} else {
-				bb_error_msg("Unsupported file type %c", type);
+				bb_error_msg("line %d: Unsupported file type %c", linenum, type);
 				ret = EXIT_FAILURE;
 				goto loop;
 			}
@@ -191,11 +203,11 @@ extern int makedevs_main(int argc, char **argv)
 					sprintf(full_name_inc, "%s%d", full_name, i);
 					rdev = (major << 8) + minor + (i * increment - start);
 					if (mknod(full_name_inc, mode, rdev) == -1) {
-						bb_perror_msg("Couldnt create node %s", full_name_inc);
+						bb_perror_msg("line %d: Couldnt create node %s", linenum, full_name_inc);
 						ret = EXIT_FAILURE;
 					}
 					else if (chown(full_name_inc, uid, gid) == -1) {
-						bb_perror_msg("chown failed for %s", full_name_inc);
+						bb_perror_msg("line %d: chown failed for %s", linenum, full_name_inc);
 						ret = EXIT_FAILURE;
 					}
 				}
@@ -203,11 +215,11 @@ extern int makedevs_main(int argc, char **argv)
 			} else {
 				rdev = (major << 8) + minor;
 				if (mknod(full_name, mode, rdev) == -1) {
-					bb_perror_msg("Couldnt create node %s", full_name);
+					bb_perror_msg("line %d: Couldnt create node %s", linenum, full_name);
 					ret = EXIT_FAILURE;
 				}
 				else if (chown(full_name, uid, gid) == -1) {
-					bb_perror_msg("chown failed for %s", full_name);
+					bb_perror_msg("line %d: chown failed for %s", linenum, full_name);
 					ret = EXIT_FAILURE;
 				}
 			}
@@ -220,6 +232,7 @@ loop:
 
 	return 0;
 }
+
 #else
 # error makdedevs configuration error, either leaf or table must be selected
 #endif

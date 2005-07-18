@@ -1672,13 +1672,37 @@
 
 #ifdef CONFIG_FEATURE_MAKEDEVS_TABLE
 #define makedevs_trivial_usage \
-	"[-r rootdir] [device_table]"
+	"[-d device_table] rootdir"
 #define makedevs_full_usage \
-	"Creates a batch of special files as specified in a device table\n" \
-	"The device table has one line per device group, each group is of\n" \
-	"the format\n" \
-	"\ttype mode user group major minor start increment count\n" \
-	"a '-' may be used for blank entries\n"
+	"Creates a range of special files as specified in a device table.\n" \
+	"Device table entries take the form of:\n" \
+	"type mode user group major minor start increment count\n\n" \
+	"<type> <mode> <uid> <gid> <major> <minor> <start> <inc> <count>\n" \
+	"Where name is the file name,  type can be one of:\n" \
+	"      f       A regular file\n" \
+	"      d       Directory\n" \
+	"      c       Character special device file\n" \
+	"      b       Block special device file\n" \
+	"      p       Fifo (named pipe)\n" \
+	"uid is the user id for the target file, gid is the group id for the\n" \
+	"target file.  The rest of the entries (major, minor, etc) apply to\n" \
+	"to device special files.  A '-' may be used for blank entries.\n\n" \
+#define makedevs_example_usage \
+	"For example:\n" \
+	"<name>    <type> <mode><uid><gid><major><minor><start><inc><count>\n" \
+	"/dev         d   755    0    0    -      -      -      -    -\n" \
+	"/dev/console c   666    0    0    5      1      -      -    -\n" \
+	"/dev/null    c   666    0    0    1      3      0      0    -\n" \
+	"/dev/zero    c   666    0    0    1      5      0      0    -\n" \
+	"/dev/hda     b   640    0    0    3      0      0      0    -\n" \
+	"/dev/hda     b   640    0    0    3      1      1      1    15\n\n" \
+	"Will Produce:\n" \
+	"/dev\n" \
+	"/dev/console\n" \
+	"/dev/null\n" \
+	"/dev/zero\n" \
+	"/dev/hda\n" \
+	"/dev/hda[0-15]"
 #endif
 
 #ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
