@@ -112,11 +112,11 @@ extern int makedevs_main(int argc, char **argv)
 	}
 
 	if (optind >= argc || (rootdir=argv[optind])==NULL) {
-		bb_error_msg_and_die("root directory not speficied");
+		bb_error_msg_and_die("root directory not specified");
 	}
 
 	if (chdir(rootdir) != 0) {
-		bb_perror_msg_and_die("Couldnt chdir to %s", rootdir);
+		bb_perror_msg_and_die("could not chdir to %s", rootdir);
 	}
 
 	umask(0);
@@ -190,7 +190,7 @@ extern int makedevs_main(int argc, char **argv)
 			else if (type == 'b') {
 				mode |= S_IFBLK;
 			} else {
-				bb_error_msg("line %d: Unsupported file type %c", linenum, type);
+				bb_error_msg("line %d: unsupported file type %c", linenum, type);
 				ret = EXIT_FAILURE;
 				goto loop;
 			}
@@ -204,7 +204,7 @@ extern int makedevs_main(int argc, char **argv)
 					sprintf(full_name_inc, "%s%d", full_name, i);
 					rdev = (major << 8) + minor + (i * increment - start);
 					if (mknod(full_name_inc, mode, rdev) == -1) {
-						bb_perror_msg("line %d: Couldnt create node %s", linenum, full_name_inc);
+						bb_perror_msg("line %d: could not create node %s", linenum, full_name_inc);
 						ret = EXIT_FAILURE;
 					}
 					else if (chown(full_name_inc, uid, gid) == -1) {
@@ -216,7 +216,7 @@ extern int makedevs_main(int argc, char **argv)
 			} else {
 				rdev = (major << 8) + minor;
 				if (mknod(full_name, mode, rdev) == -1) {
-					bb_perror_msg("line %d: Couldnt create node %s", linenum, full_name);
+					bb_perror_msg("line %d: could not create node %s", linenum, full_name);
 					ret = EXIT_FAILURE;
 				}
 				else if (chown(full_name, uid, gid) == -1) {

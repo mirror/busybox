@@ -1676,7 +1676,6 @@
 #define makedevs_full_usage \
 	"Creates a range of special files as specified in a device table.\n" \
 	"Device table entries take the form of:\n" \
-	"type mode user group major minor start increment count\n\n" \
 	"<type> <mode> <uid> <gid> <major> <minor> <start> <inc> <count>\n" \
 	"Where name is the file name,  type can be one of:\n" \
 	"      f       A regular file\n" \
