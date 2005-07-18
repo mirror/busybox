@@ -178,7 +178,30 @@ extern int makedevs_main(int argc, char **argv)
 				ret = EXIT_FAILURE;
 				goto loop;
 			}
-		} else {
+			if ((mode != -1) && (chmod(full_name, mode) < 0)){
+				bb_perror_msg("line %d: chmod failed for %s", linenum, full_name);
+				ret = EXIT_FAILURE;
+				goto loop;
+			}
+		} else if (type == 'f') {
+			struct stat st;
+			if ((stat(full_name, &st) < 0 || !S_ISREG(st.st_mode))) {
+				bb_perror_msg("line %d: regular file '%s' does not exist", linenum, full_name);
+				ret = EXIT_FAILURE;
+				goto loop;
+			}
+			if (chown(full_name, uid, gid) == -1) {
+				bb_perror_msg("line %d: chown failed for %s", linenum, full_name);
+				ret = EXIT_FAILURE;
+				goto loop;
+			}
+			if ((mode != -1) && (chmod(full_name, mode) < 0)){
+				bb_perror_msg("line %d: chmod failed for %s", linenum, full_name);
+				ret = EXIT_FAILURE;
+				goto loop;
+			}
+		} else
+		{
 			dev_t rdev;
 
 			if (type == 'p') {
@@ -211,6 +234,10 @@ extern int makedevs_main(int argc, char **argv)
 						bb_perror_msg("line %d: chown failed for %s", linenum, full_name_inc);
 						ret = EXIT_FAILURE;
 					}
+					if ((mode != -1) && (chmod(full_name_inc, mode) < 0)){
+						bb_perror_msg("line %d: chmod failed for %s", linenum, full_name_inc);
+						ret = EXIT_FAILURE;
+					}
 				}
 				free(full_name_inc);
 			} else {
@@ -221,6 +248,10 @@ extern int makedevs_main(int argc, char **argv)
 				}
 				else if (chown(full_name, uid, gid) == -1) {
 					bb_perror_msg("line %d: chown failed for %s", linenum, full_name);
+					ret = EXIT_FAILURE;
+				}
+				if ((mode != -1) && (chmod(full_name, mode) < 0)){
+					bb_perror_msg("line %d: chmod failed for %s", linenum, full_name);
 					ret = EXIT_FAILURE;
 				}
 			}
