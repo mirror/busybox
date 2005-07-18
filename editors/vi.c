@@ -344,6 +344,7 @@ extern int vi_main(int argc, char **argv)
 #endif							/* CONFIG_FEATURE_VI_CRASHME */
 
 	status_buffer = STATUS_BUFFER;
+	*status_buffer = '\0';	// clear status buffer
 
 #ifdef CONFIG_FEATURE_VI_READONLY
 	vi_readonly = readonly = FALSE;
@@ -462,7 +463,6 @@ static void edit_file(Byte * fn)
 	last_forward_char = last_input_char = '\0';
 	crow = 0;
 	ccol = 0;
-	edit_status();
 
 #ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 	catch_sig(0);
@@ -506,6 +506,7 @@ static void edit_file(Byte * fn)
 	adding2q = 0;
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 	redraw(FALSE);			// dont force every col re-draw
+	edit_status();
 	show_status_line();
 
 	//------This is the main Vi cmd handling loop -----------------------
@@ -871,6 +872,7 @@ static void colon(Byte * buf)
 		} else {
 			// user wants file status info
 			edit_status();
+			show_status_line();
 		}
 	} else if (strncasecmp((char *) cmd, "features", i) == 0) {	// what features are available
 		// print out values of all features
@@ -1333,22 +1335,30 @@ static void dot_left(void)
 {
 	if (dot > text && dot[-1] != '\n')
 		dot--;
+	edit_status();			// show current file status
+	show_status_line();
 }
 
 static void dot_right(void)
 {
 	if (dot < end - 1 && *dot != '\n')
 		dot++;
+	edit_status();			// show current file status
+	show_status_line();
 }
 
 static void dot_begin(void)
 {
 	dot = begin_line(dot);	// return pointer to first char cur line
+	edit_status();			// show current file status
+	show_status_line();
 }
 
 static void dot_end(void)
 {
 	dot = end_line(dot);	// return pointer to last char cur line
+	edit_status();			// show current file status
+	show_status_line();
 }
 
 static Byte *move_to_col(Byte * p, int l)
@@ -1373,11 +1383,15 @@ static Byte *move_to_col(Byte * p, int l)
 static void dot_next(void)
 {
 	dot = next_line(dot);
+	edit_status();			// show current file status
+	show_status_line();
 }
 
 static void dot_prev(void)
 {
 	dot = prev_line(dot);
+	edit_status();			// show current file status
+	show_status_line();
 }
 
 static void dot_scroll(int cnt, int dir)
@@ -1402,6 +1416,8 @@ static void dot_scroll(int cnt, int dir)
 	if (dot > q)
 		dot = begin_line(q);	// is dot is below bottom line?
 	dot_skip_over_ws();
+	edit_status();			// show current file status
+	show_status_line();
 }
 
 static void dot_skip_over_ws(void)
@@ -1592,7 +1608,7 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 		cmd_mode = 0;
 		cmdcnt = 0;
 		end_cmd_q();	// stop adding to q
-		strcpy((char *) status_buffer, " ");	// clear the status buffer
+		*status_buffer = '\0';  // clear the status buffer
 		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
 		}
@@ -2659,7 +2675,7 @@ static void show_status_line(void)
 	static int last_cksum;
 	int l, cnt, cksum;
 
-	edit_status();
+	//edit_status();
 	cnt = strlen((char *) status_buffer);
 	for (cksum= l= 0; l < cnt; l++) { cksum += (int)(status_buffer[l]); }
 	// don't write the status line unless it changes
@@ -2681,10 +2697,10 @@ static void psbs(const char *format, ...)
 
 	va_start(args, format);
 	strcpy((char *) status_buffer, SOs);	// Terminal standout mode on
-	vsprintf((char *) status_buffer + strlen((char *) status_buffer), format,
-			 args);
+	vsprintf((char *) status_buffer + strlen((char *) status_buffer), format, args);
 	strcat((char *) status_buffer, SOn);	// Terminal standout mode off
 	va_end(args);
+	show_status_line();
 
 	return;
 }
@@ -2697,6 +2713,7 @@ static void psb(const char *format, ...)
 	va_start(args, format);
 	vsprintf((char *) status_buffer, format, args);
 	va_end(args);
+	show_status_line();
 	return;
 }
 
@@ -2723,17 +2740,19 @@ static void edit_status(void)	// show file status on status line
 		cur = tot = 0;
 		percent = 100;
 	}
-	psb("\"%s\""
+
+	sprintf((char *) status_buffer,
+			"\"%s\""
 #ifdef CONFIG_FEATURE_VI_READONLY
-		"%s"
+			"%s"
 #endif							/* CONFIG_FEATURE_VI_READONLY */
-		"%s line %d of %d --%d%%--",
-		(cfn != 0 ? (char *) cfn : "No file"),
+			"%s line %d of %d --%d%%--",
+			(cfn != 0 ? (char *) cfn : "No file"),
 #ifdef CONFIG_FEATURE_VI_READONLY
-		((vi_readonly || readonly) ? " [Read only]" : ""),
+			((vi_readonly || readonly) ? " [Read only]" : ""),
 #endif							/* CONFIG_FEATURE_VI_READONLY */
-		(file_modified ? " [modified]" : ""),
-		cur, tot, percent);
+			(file_modified ? " [modified]" : ""),
+			cur, tot, percent);
 }
 
 //----- Force refresh of all Lines -----------------------------
@@ -2879,6 +2898,8 @@ static void refresh(int full_screen)
 #endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
 			}
 
+			edit_status();			// show current file status
+			show_status_line();
 			// write line out to terminal
 			{
 				int nic = ce-cs+1;
@@ -3058,6 +3079,7 @@ key_cmd_mode:
 		break;
 	case 7:			// ctrl-G  show current status
 		edit_status();
+		show_status_line();
 		break;
 	case 'h':			// h- move left
 	case VI_K_LEFT:	// cursor key Left
@@ -3067,6 +3089,8 @@ key_cmd_mode:
 			do_cmd(c);
 		}				// repeat cnt
 		dot_left();
+		edit_status();			// show current file status
+		show_status_line();
 		break;
 	case 10:			// Newline ^J
 	case 'j':			// j- goto next line, same col
@@ -3383,6 +3407,7 @@ key_cmd_mode:
 			}
 		} else if (strncasecmp((char *) p, "file", cnt) == 0 ) {
 			edit_status();			// show current file status
+			show_status_line();
 		} else if (sscanf((char *) p, "%d", &j) > 0) {
 			dot = find_line(j);		// go to line # j
 			dot_skip_over_ws();
