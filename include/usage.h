@@ -1686,7 +1686,7 @@
 	"      p       Fifo (named pipe)\n" \
 	"uid is the user id for the target file, gid is the group id for the\n" \
 	"target file.  The rest of the entries (major, minor, etc) apply to\n" \
-	"to device special files.  A '-' may be used for blank entries.\n\n" \
+	"to device special files.  A '-' may be used for blank entries."
 #define makedevs_example_usage \
 	"For example:\n" \
 	"<name>    <type> <mode><uid><gid><major><minor><start><inc><count>\n" \
@@ -1702,7 +1702,7 @@
 	"/dev/null\n" \
 	"/dev/zero\n" \
 	"/dev/hda\n" \
-	"/dev/hda[0-15]"
+	"/dev/hda[0-15]\n"
 #endif
 
 #ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK

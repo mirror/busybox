@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <getopt.h>
 #include <time.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/sysmacros.h>     /* major() and minor() */
