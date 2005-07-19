@@ -1092,10 +1092,10 @@ static void chargen_stream(int s, servtab_t *sep)
 	text[LINESIZ + 1] = '\n';
 	for (rs = ring;;) {
 		if ((len = endring - rs) >= LINESIZ)
-			memcpy(rs, text, LINESIZ);
+			memcpy(text, rs,  LINESIZ);
 		else {
-			memcpy(rs, text, len);
-			memcpy(ring, text + len, LINESIZ - len);
+			memcpy(text, rs, len);
+			memcpy(text + len, ring, LINESIZ - len);
 		}
 		if (++rs == endring)
 			rs = ring;
@@ -1125,10 +1125,10 @@ static void chargen_dg(int s, servtab_t *sep)
 		return;
 
 	if ((len = endring - rs) >= LINESIZ)
-		memcpy(rs, text, LINESIZ);
+		memcpy(text, rs, LINESIZ);
 	else {
-		memcpy(rs, text, len);
-		memcpy(ring, text + len, LINESIZ - len);
+		memcpy(text, rs, len);
+		memcpy(text + len, ring, LINESIZ - len);
 	}
 	if (++rs == endring)
 		rs = ring;
