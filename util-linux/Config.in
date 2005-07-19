@@ -349,6 +349,14 @@ config CONFIG_FEATURE_MOUNT_LOOP
 	  if you need to do something advanced, such as specify an offset or cryptographic
 	  options to the loopback device.
 
+config CONFIG_FEATURE_MOUNT_LOOP_MAX
+	int "    max number of loop devices"
+	default 7
+	depends on CONFIG_FEATURE_MOUNT_LOOP
+	help
+	  This option sets the highest numbered loop device to be used
+	  automatically by the '-o loop' feature of mount.
+
 config CONFIG_FEATURE_MTAB_SUPPORT
 	bool "  Support for a /etc/mtab file (instead of symlink to /proc/mounts)"
 	default n

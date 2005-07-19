@@ -132,7 +132,7 @@ extern char *find_unused_loop_device(void)
 	struct stat statbuf;
 	struct loop_info loopinfo;
 
-	for (i = 0; i <= 7; i++) {
+	for (i = 0; i <= CONFIG_FEATURE_MOUNT_LOOP_MAX; i++) {
 		sprintf(dev, LOOP_FORMAT, i);
 		if (stat(dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
 			if ((fd = open(dev, O_RDONLY)) >= 0) {
