@@ -77,6 +77,7 @@
 
 
 #define MAXPACKET       65535   /* max ip packet size */
+#define MAXPACKET_ICMP  512
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN  64
 #endif
@@ -101,7 +102,6 @@ struct opacket {
 
 #include "busybox.h"
 
-static u_char  packet[512];            /* last inbound (icmp) packet */
 static struct opacket  *outpacket;     /* last output (udp) packet */
 
 static int s;                          /* receive (icmp) socket file descriptor */
@@ -185,7 +185,7 @@ deltaT(struct timeval *t1p, struct timeval *t2p)
 }
 
 static inline int
-wait_for_reply(int sock, struct sockaddr_in *from, int reset_timer)
+wait_for_reply(int sock, struct sockaddr_in *from, int reset_timer, u_char *packet, int size)
 {
 	fd_set fds;
 	static struct timeval wait;
@@ -212,7 +212,7 @@ wait_for_reply(int sock, struct sockaddr_in *from, int reset_timer)
 	}
 
 	if (select(sock+1, &fds, (fd_set *)0, (fd_set *)0, &wait) > 0)
-		cc=recvfrom(s, (char *)packet, sizeof(packet), 0,
+		cc=recvfrom(s, (char *)packet, size, 0,
 			    (struct sockaddr *)from, &fromlen);
 
 	return(cc);
@@ -339,10 +339,12 @@ traceroute_main(int argc, char *argv[])
 	struct hostent *hp;
 	struct sockaddr_in from, *to;
 	int ch, i, on, probe, seq, tos, ttl;
+	u_char *packet;
 
 	int options = 0;                /* socket options */
 	char *source = 0;
 	int nprobes = 3;
+	packet = xmalloc (MAXPACKET_ICMP);
 
 	on = 1;
 	seq = tos = 0;
@@ -494,7 +496,7 @@ traceroute_main(int argc, char *argv[])
 			(void) gettimeofday(&t1, &tz);
 			send_probe(++seq, ttl);
 			reset_timer = 1;
-			while ((cc = wait_for_reply(s, &from, reset_timer)) != 0) {
+			while ((cc = wait_for_reply(s, &from, reset_timer, packet, MAXPACKET_ICMP)) != 0) {
 				(void) gettimeofday(&t2, &tz);
 				if ((i = packet_ok(packet, cc, &from, seq))) {
 					reset_timer = 1;
