@@ -98,6 +98,7 @@ extern const llist_t *find_list_entry(const llist_t *list, const char *filename)
 
 extern int uncompressStream(int src_fd, int dst_fd);
 extern void inflate_init(unsigned int bufsize);
+extern void inflate_cleanup(void);
 extern int inflate_unzip(int in, int out);
 extern int inflate_gunzip(int in, int out);
 
