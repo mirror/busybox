@@ -239,7 +239,8 @@ int sort_main(int argc, char **argv)
 {
 	FILE *fp,*outfile=NULL;
 	int linecount=0,i,flag;
-	char *line,**lines=NULL,c,*optlist="ngMucszbrdfimS:T:o:k:t:";
+	char *line,**lines=NULL,*optlist="ngMucszbrdfimS:T:o:k:t:";
+	int c;
 
 	bb_default_error_retval = 2;
 	/* Parse command line options */
