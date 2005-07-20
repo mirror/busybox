@@ -441,7 +441,7 @@ static void logMessage(int pri, char *msg)
 		/* if we have a valid socket, send the message */
 		if (-1 != remotefd) {
 			now = 1;
-			snprintf(line, sizeof(line), "<%d> %s", pri, msg);
+			snprintf(line, sizeof(line), "<%d>%s", pri, msg);
 
 		retry:
 			/* send message to remote logger */
