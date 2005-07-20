@@ -443,6 +443,11 @@ int main(int argc, char *argv[])
 			if (memcmp(client_config.arp,packet.chaddr,6))
 				continue;
 
+			if (memcmp(packet.chaddr, client_config.arp, 6)) {
+				DEBUG(LOG_INFO, "packet does not have our chaddr -- ignoring");
+				continue;
+			}
+
 			if ((message = get_option(&packet, DHCP_MESSAGE_TYPE)) == NULL) {
 				DEBUG(LOG_ERR, "couldnt get option from packet -- ignoring");
 				continue;
