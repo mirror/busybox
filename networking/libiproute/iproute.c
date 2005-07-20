@@ -537,6 +537,15 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 			} else if (matches(*argv, "match") == 0) {
 				NEXT_ARG();
 				get_prefix(&filter.mdst, *argv, do_ipv6);
+			} else if (matches(*argv, "table") == 0) {
+				NEXT_ARG();
+				if (matches(*argv, "cache") == 0) {
+					filter.tb = -1;
+				} else if (matches(*argv, "main") != 0) {
+					invarg("invalid \"table\"", *argv);
+				}
+			} else if (matches(*argv, "cache") == 0) {
+				filter.tb = -1;
 			} else {
 				if (matches(*argv, "exact") == 0) {
 					NEXT_ARG();
