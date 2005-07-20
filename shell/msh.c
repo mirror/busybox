@@ -4290,7 +4290,7 @@ int quoted;
 			}
 
 			var_name[var_index++] = *src++;
-			while (isalnum(*src))
+			while (isalnum(*src) || *src=='_')
 				var_name[var_index++] = *src++;
 			var_name[var_index] = 0;
 
