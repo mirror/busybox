@@ -1353,6 +1353,7 @@ struct builtincmd {
 
 #define IS_BUILTIN_SPECIAL(builtincmd) ((builtincmd)->name[0] & 1)
 #define IS_BUILTIN_REGULAR(builtincmd) ((builtincmd)->name[0] & 2)
+#define IS_BUILTIN_ASSIGN(builtincmd) ((builtincmd)->name[0] & 4)
 
 static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_SPEC_REG      ".", dotcmd },
@@ -3208,7 +3209,14 @@ parse_command_args(char **argv, const char **path)
 }
 #endif
 
-
+static inline int
+isassignment(const char *p)
+{
+	const char *q = endofname(p);
+	if (p == q)
+		return 0;
+	return *q == '=';
+}
 
 /*
  * Execute a simple command.
@@ -3232,6 +3240,8 @@ evalcommand(union node *cmd, int flags)
 	int cmd_is_exec;
 	int status;
 	char **nargv;
+	struct builtincmd *bcmd;
+	int pseudovarflag = 0;
 
 	/* First expand the arguments. */
 	TRACE(("evalcommand(0x%lx, %d) called\n", (long)cmd, flags));
@@ -3246,11 +3256,21 @@ evalcommand(union node *cmd, int flags)
 	*arglist.lastp = NULL;
 
 	argc = 0;
+	if (cmd->ncmd.args)
+	{
+		bcmd = find_builtin(cmd->ncmd.args->narg.text);
+		pseudovarflag = bcmd && IS_BUILTIN_ASSIGN(bcmd);
+	}
+
 	for (argp = cmd->ncmd.args; argp; argp = argp->narg.next) {
 		struct strlist **spp;
 
 		spp = arglist.lastp;
-		expandarg(argp, &arglist, EXP_FULL | EXP_TILDE);
+		if (pseudovarflag && isassignment(argp->narg.text)) 
+			expandarg(argp, &arglist, EXP_VARTILDE);
+		else
+			expandarg(argp, &arglist, EXP_FULL | EXP_TILDE);
+
 		for (sp = *spp; sp; sp = sp->next)
 			argc++;
 	}
@@ -9355,15 +9375,6 @@ static void synerror(const char *) __attribute__((__noreturn__));
 static void setprompt(int);
 
 
-
-static inline int
-isassignment(const char *p)
-{
-	const char *q = endofname(p);
-	if (p == q)
-		return 0;
-	return *q == '=';
-}
 
 
 /*
