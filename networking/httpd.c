@@ -1259,6 +1259,8 @@ static int sendCgi(const char *url,
 			post_readed_idx += count;
 			if(post_readed_size == 0)
 				post_readed_idx = 0;
+		} else {
+			post_readed_size = post_readed_idx = bodyLen = 0; /* broken pipe to CGI */
 		}
       } else if(bodyLen > 0 && post_readed_size == 0 && FD_ISSET(a_c_r, &readSet)) {
 		count = bodyLen > sizeof(wbuf) ? sizeof(wbuf) : bodyLen;
@@ -1266,7 +1268,7 @@ static int sendCgi(const char *url,
 		if(count > 0) {
 			post_readed_size += count;
 			bodyLen -= count;
-      } else {
+		} else {
 			bodyLen = 0;    /* closed */
 		}
       }
