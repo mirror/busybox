@@ -82,13 +82,6 @@ int nc_main(int argc, char **argv)
 		}
 	}
 
-#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
-	if (pr00gie) {
-		/* won't need stdin */
-		close(STDIN_FILENO);      
-	}
-#endif /* CONFIG_NC_GAPING_SECURITY_HOLE */
-
 	if ((do_listen && optind != argc) || (!do_listen && optind + 2 != argc))
 		bb_show_usage();
 
