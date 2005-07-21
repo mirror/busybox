@@ -12001,8 +12001,9 @@ setvar(const char *name, const char *val, int flags)
 	}
 	INTOFF;
 	p = mempcpy(nameeq = ckmalloc(namelen + vallen + 2), name, namelen);
-	*p++ = '=';
-	if (vallen) {
+	*p++ = '\0';
+	if (val) {
+		p[-1] = '=';
 		p = mempcpy(p, val, vallen);
 	}
 	*p = '\0';
