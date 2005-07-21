@@ -440,9 +440,6 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			/* Ignore packets that aren't for us */
-			if (memcmp(client_config.arp,packet.chaddr,6))
-				continue;
-
 			if (memcmp(packet.chaddr, client_config.arp, 6)) {
 				DEBUG(LOG_INFO, "packet does not have our chaddr -- ignoring");
 				continue;
