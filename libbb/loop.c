@@ -19,6 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#ifdef CONFIG_FEATURE_MOUNT_LOOP
 #include <features.h>
 #if defined (__GLIBC__) && !defined(__UCLIBC__)
 #include <linux/posix_types.h>
@@ -148,6 +149,7 @@ extern char *find_unused_loop_device(void)
 	}
 	return NULL;
 }
+#endif
 
 
 /* END CODE */
