@@ -1520,6 +1520,7 @@ static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, lli
 {
 	ar_handle->sub_archive->action_data = data_extract_to_buffer;
 	ar_handle->sub_archive->accept = myaccept;
+	ar_handle->sub_archive->filter = filter_accept_list;
 
 	unpack_ar_archive(ar_handle);
 	close(ar_handle->src_fd);
@@ -1714,6 +1715,7 @@ int dpkg_main(int argc, char **argv)
 
 			if (package_num == -1) {
 				bb_error_msg("Invalid control file in %s", argv[optind]);
+                                optind++;
 				continue;
 			}
 			deb_file[deb_count]->package = (unsigned int) package_num;
