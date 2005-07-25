@@ -34,6 +34,7 @@
 #include <stdint.h>
 
 #include <netdb.h>
+#include <netinet/in.h>
 
 #ifdef DMALLOC
 #include <dmalloc.h>
