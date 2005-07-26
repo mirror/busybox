@@ -136,7 +136,7 @@ static void ping(const char *host)
 	/* listen for replies */
 	while (1) {
 		struct sockaddr_in from;
-		size_t fromlen = sizeof(from);
+		socklen_t fromlen = sizeof(from);
 
 		if ((c = recvfrom(pingsock, packet, sizeof(packet), 0,
 						  (struct sockaddr *) &from, &fromlen)) < 0) {
