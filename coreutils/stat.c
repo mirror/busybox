@@ -37,10 +37,6 @@
 #include <string.h>
 #include "busybox.h"
 
-#ifdef __linux__
-# include <linux/version.h>
-#endif
-
 /* vars to control behavior */
 #define OPT_TERSE 2
 #define OPT_DEREFERNCE 4
@@ -173,23 +169,11 @@ static void print_statfs(char *pformat, size_t buf_len, char m,
 		strncat(pformat, "ld", buf_len);
 		printf(pformat, (intmax_t) (statfsbuf->f_bavail));
 		break;
+	case 'S':
 	case 's':
 		strncat(pformat, "lu", buf_len);
 		printf(pformat, (unsigned long int) (statfsbuf->f_bsize));
 		break;
-	case 'S': {
-		unsigned long int frsize;
-#if defined(__linux__) && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-		frsize = statfsbuf->f_frsize;
-		if (!frsize)
-			frsize = statfsbuf->f_bsize;
-#else
-		frsize = statfsbuf->f_bsize;
-#endif
-		strncat(pformat, "lu", buf_len);
-		printf(pformat, frsize);
-		break;
-	}
 	case 'c':
 		strncat(pformat, "ld", buf_len);
 		printf(pformat, (intmax_t) (statfsbuf->f_files));
@@ -407,10 +391,10 @@ static int do_statfs(char const *filename, char const *format)
 #ifdef CONFIG_FEATURE_STAT_FORMAT
 	if (format == NULL)
 		format = (flags & OPT_TERSE
-			? "%n %i %l %t %s %S %b %f %a %c %d\n"
+			? "%n %i %l %t %s %b %f %a %c %d\n"
 			: "  File: \"%n\"\n"
 			  "    ID: %-8i Namelen: %-7l Type: %T\n"
-			  "Block size: %-10s Fundamental block size: %S\n"
+			  "Block size: %-10s\n"
 			  "Blocks: Total: %-10b Free: %-10f Available: %a\n"
 			  "Inodes: Total: %-10c Free: %d\n");
 	print_it(format, filename, print_statfs, &statfsbuf);
@@ -431,13 +415,12 @@ static int do_statfs(char const *filename, char const *format)
 		printf("Type: %s\n", human_fstype(statfsbuf.f_type));
 
 	format = (flags & OPT_TERSE
-		? "%lu %lu %ld %ld %ld %ld %ld\n"
-		: "Block size: %-10lu Fundamental block size: %lu\n"
+		? "%lu %ld %ld %ld %ld %ld\n"
+		: "Block size: %-10lu\n"
 		  "Blocks: Total: %-10ld Free: %-10ld Available: %ld\n"
 		  "Inodes: Total: %-10ld Free: %ld\n");
 	printf(format,
 	       (unsigned long int) (statfsbuf.f_bsize),
-	       statfsbuf.f_frsize ? statfsbuf.f_frsize : statfsbuf.f_bsize,
 	       (intmax_t) (statfsbuf.f_blocks),
 	       (intmax_t) (statfsbuf.f_bfree),
 	       (intmax_t) (statfsbuf.f_bavail),
