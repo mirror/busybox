@@ -58,20 +58,21 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
  /*
   * Things you may want to modify.
   *
-  * If ISSUE is not defined, agetty will never display the contents of the
-  * /etc/issue file. You will not want to spit out large "issue" files at the
-  * wrong baud rate. Relevant for System V only.
-  *
   * You may disagree with the default line-editing etc. characters defined
   * below. Note, however, that DEL cannot be used for interrupt generation
   * and for line editing at the same time.
   */
 
 #ifdef	SYSV_STYLE
-#define	ISSUE "/etc/issue"		/* displayed before the login prompt */
 #include <sys/utsname.h>
 #include <time.h>
 #endif
+
+ /* If ISSUE is not defined, agetty will never display the contents of the
+  * /etc/issue file. You will not want to spit out large "issue" files at the
+  * wrong baud rate.
+  */
+#define	ISSUE "/etc/issue"		/* displayed before the login prompt */
 
 /* Some shorthands for control characters. */
 
