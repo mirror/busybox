@@ -19,7 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifdef CONFIG_FEATURE_MOUNT_LOOP
 #include <features.h>
 #if defined (__GLIBC__) && !defined(__UCLIBC__)
 #include <linux/posix_types.h>
@@ -31,6 +30,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include "libbb.h"
+#ifdef CONFIG_FEATURE_MOUNT_LOOP
 
 /* Grumble...  The 2.6.x kernel breaks asm/posix_types.h
  * so we get to try and cope as best we can... */
