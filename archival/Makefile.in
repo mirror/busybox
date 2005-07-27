@@ -41,7 +41,7 @@ ARCHIVAL-$(CONFIG_UNZIP)	+= unzip.o
 libraries-y+=$(ARCHIVAL_DIR)$(ARCHIVAL_AR)
 
 $(ARCHIVAL_DIR)$(ARCHIVAL_AR): $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
-	$(AR) -ro $@ $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
 
 $(ARCHIVAL_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

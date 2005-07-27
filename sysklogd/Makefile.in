@@ -32,7 +32,7 @@ SYSKLOGD-$(CONFIG_SYSLOGD)		+= syslogd.o
 libraries-y+=$(SYSKLOGD_DIR)$(SYSKLOGD_AR)
 
 $(SYSKLOGD_DIR)$(SYSKLOGD_AR): $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
-	$(AR) -ro $@ $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
 
 $(SYSKLOGD_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

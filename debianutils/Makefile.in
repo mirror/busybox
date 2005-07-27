@@ -34,7 +34,7 @@ DEBIANUTILS-$(CONFIG_WHICH)		+= which.o
 libraries-y+=$(DEBIANUTILS_DIR)$(DEBIANUTILS_AR)
 
 $(DEBIANUTILS_DIR)$(DEBIANUTILS_AR): $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))
-	$(AR) -ro $@ $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))
 
 $(DEBIANUTILS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

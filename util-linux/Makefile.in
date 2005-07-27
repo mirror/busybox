@@ -51,7 +51,7 @@ UTILLINUX-$(CONFIG_READPROFILE)		+=readprofile.o
 libraries-y+=$(UTILLINUX_DIR)$(UTILLINUX_AR)
 
 $(UTILLINUX_DIR)$(UTILLINUX_AR): $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
-	$(AR) -ro $@ $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
 
 $(UTILLINUX_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

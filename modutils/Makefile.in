@@ -32,7 +32,7 @@ MODUTILS-$(CONFIG_RMMOD)		+= rmmod.o
 libraries-y+=$(MODUTILS_DIR)$(MODUTILS_AR)
 
 $(MODUTILS_DIR)$(MODUTILS_AR): $(patsubst %,$(MODUTILS_DIR)%, $(MODUTILS-y))
-	$(AR) -ro $@ $(patsubst %,$(MODUTILS_DIR)%, $(MODUTILS-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(MODUTILS_DIR)%, $(MODUTILS-y))
 
 $(MODUTILS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

@@ -81,7 +81,7 @@ BB_SRC_DIR=
 
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
 CFLAGS=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
-ARFLAGS=-r
+ARFLAGS=cru
 
 #--------------------------------------------------------
 export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP

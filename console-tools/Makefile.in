@@ -37,7 +37,7 @@ CONSOLETOOLS_DIR-$(CONFIG_SETKEYCODES)	+= setkeycodes.o
 libraries-y+=$(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR)
 
 $(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR): $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS_DIR-y))
-	$(AR) -ro $@ $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS_DIR-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS_DIR-y))
 
 $(CONSOLETOOLS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

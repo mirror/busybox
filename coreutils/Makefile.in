@@ -96,7 +96,7 @@ COREUTILS-$(CONFIG_YES)       += yes.o
 libraries-y+=$(COREUTILS_DIR)$(COREUTILS_AR)
 
 $(COREUTILS_DIR)$(COREUTILS_AR): $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
-	$(AR) -ro $@ $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
 
 $(COREUTILS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

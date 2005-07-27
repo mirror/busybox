@@ -61,7 +61,7 @@ libraries-y+=$(E2FSPROGS_DIR)$(E2FSPROGS_AR)
 
 
 $(E2FSPROGS_DIR)$(E2FSPROGS_AR): $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
-	$(AR) -ro $@ $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
 
 $(E2FSPROGS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(E2FSPROGS_CFLAGS) -c -o $@ $<

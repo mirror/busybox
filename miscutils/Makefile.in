@@ -49,7 +49,7 @@ ifeq ($(needlibm-y),y)
 endif
 
 $(MISCUTILS_DIR)$(MISCUTILS_AR): $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
-	$(AR) -ro $@ $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
 
 $(MISCUTILS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

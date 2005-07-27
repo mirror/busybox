@@ -55,7 +55,7 @@ endif
 libraries-y+=$(INIT_DIR)$(INIT_AR)
 
 $(INIT_DIR)$(INIT_AR): $(patsubst %,$(INIT_DIR)%, $(INIT-y))
-	$(AR) -ro $@ $(patsubst %,$(INIT_DIR)%, $(INIT-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(INIT_DIR)%, $(INIT-y))
 
 $(INIT_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

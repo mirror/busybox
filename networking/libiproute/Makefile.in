@@ -77,7 +77,7 @@ LIBIPROUTE-$(CONFIG_IPTUNNEL) += \
 libraries-y+=$(LIBIPROUTE_DIR)$(LIBIPROUTE_AR)
 
 $(LIBIPROUTE_DIR)$(LIBIPROUTE_AR): $(patsubst %,$(LIBIPROUTE_DIR)%, $(LIBIPROUTE-y))
-	$(AR) -ro $@ $(patsubst %,$(LIBIPROUTE_DIR)%, $(LIBIPROUTE-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(LIBIPROUTE_DIR)%, $(LIBIPROUTE-y))
 
 $(LIBIPROUTE_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

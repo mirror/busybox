@@ -33,7 +33,7 @@ SHELLT-$(CONFIG_FEATURE_COMMAND_EDITING)	+= cmdedit.o
 libraries-y+=$(SHELL_DIR)$(SHELL_AR)
 
 $(SHELL_DIR)$(SHELL_AR): $(patsubst %,$(SHELL_DIR)%, $(SHELLT-y))
-	$(AR) -ro $@ $(patsubst %,$(SHELL_DIR)%, $(SHELLT-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(SHELL_DIR)%, $(SHELLT-y))
 
 $(SHELL_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

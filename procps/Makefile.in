@@ -36,7 +36,7 @@ PROCPS-$(CONFIG_UPTIME)		+= uptime.o
 libraries-y+=$(PROCPS_DIR)$(PROCPS_AR)
 
 $(PROCPS_DIR)$(PROCPS_AR): $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
-	$(AR) -ro $@ $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
 
 $(PROCPS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
