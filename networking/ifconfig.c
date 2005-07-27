@@ -37,6 +37,7 @@
 #include <string.h>		/* strcmp and friends */
 #include <ctype.h>		/* isdigit and friends */
 #include <stddef.h>		/* offsetof */
+#include <unistd.h>
 #include <netdb.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -558,6 +559,7 @@ int ifconfig_main(int argc, char **argv)
 		continue;
 	}					/* end of while-loop */
 
+	if (CONFIG_FEATURE_CLEAN_UP) close(sockfd);
 	return goterr;
 }
 

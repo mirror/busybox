@@ -24,7 +24,7 @@
 #ifndef	_BB_INTERNAL_H_
 #define	_BB_INTERNAL_H_    1
 
-#include "config.h"
+#include "bb_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>

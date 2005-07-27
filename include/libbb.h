@@ -41,7 +41,7 @@
 
 #include <features.h>
 
-#include "config.h"
+#include "bb_config.h"
 #ifdef CONFIG_SELINUX
 #include <selinux/selinux.h>  
 #endif

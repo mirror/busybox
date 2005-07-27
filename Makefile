@@ -122,7 +122,7 @@ $(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
 include $(patsubst %,%/Makefile.in, $(SRC_DIRS))
 -include $(top_builddir)/.depend
 
-busybox: $(ALL_MAKEFILES) .depend include/config.h $(libraries-y)
+busybox: $(ALL_MAKEFILES) .depend include/bb_config.h $(libraries-y)
 	$(CC) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
 	$(STRIPCMD) $@
 
@@ -212,6 +212,11 @@ include/config.h: .config
 	fi;
 	@$(top_builddir)/scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
+include/bb_config.h: include/config.h
+	echo "#ifndef AUTOCONF_INCLUDED" > $@
+	sed -e 's/#undef \(.*\)/static const int \1 = 0;/' < $< >> $@
+	echo "#endif" >> $@
+
 finished2:
 	@echo
 	@echo Finished installing...
@@ -279,7 +284,7 @@ clean:
 
 distclean: clean
 	- rm -f scripts/split-include scripts/mkdep
-	- rm -rf include/config include/config.h
+	- rm -rf include/config include/config.h include/bb_config.h
 	- find . -name .depend -exec rm -f {} \;
 	rm -f .config .config.old .config.cmd
 	- $(MAKE) -C scripts/config clean
