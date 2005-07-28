@@ -109,6 +109,15 @@ endif
 check_gcc=$(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; \
 	then echo "$(1)"; else echo "$(2)"; fi)
 
+# Setup some shortcuts so that silent mode is silent like it should be
+ifeq ($(subst s,,$(MAKEFLAGS)),$(MAKEFLAGS))
+export MAKE_IS_SILENT=n
+SECHO=@echo
+else
+export MAKE_IS_SILENT=y
+SECHO=-@false
+endif
+
 #--------------------------------------------------------
 # Arch specific compiler optimization stuff should go here.
 # Unless you want to override the defaults, do not set anything

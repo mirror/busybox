@@ -163,9 +163,9 @@ docs/busybox.pod : $(top_srcdir)/docs/busybox_header.pod $(top_srcdir)/include/u
 	    cat $(top_srcdir)/docs/busybox_footer.pod ) > docs/busybox.pod
 
 docs/BusyBox.txt: docs/busybox.pod
-	@echo
-	@echo BusyBox Documentation
-	@echo
+	$(SECHO)
+	$(SECHO) BusyBox Documentation
+	$(SECHO)
 	-mkdir -p docs
 	-pod2text $< > $@
 
@@ -220,9 +220,9 @@ include/bb_config.h: include/config.h
 	echo "#endif" >> $@
 
 finished2:
-	@echo
-	@echo Finished installing...
-	@echo
+	$(SECHO)
+	$(SECHO) Finished installing...
+	$(SECHO)
 
 else # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
