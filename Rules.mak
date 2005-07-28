@@ -106,8 +106,11 @@ ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
 endif
 
 # A nifty macro to make testing gcc features easier
-check_gcc=$(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; \
-	then echo "$(1)"; else echo "$(2)"; fi)
+check_gcc=$(shell \
+	if [ "$(1)" != "" ]; then \
+		if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; \
+		then echo "$(1)"; else echo "$(2)"; fi \
+	fi)
 
 # Setup some shortcuts so that silent mode is silent like it should be
 ifeq ($(subst s,,$(MAKEFLAGS)),$(MAKEFLAGS))
@@ -124,7 +127,7 @@ endif
 # for OPTIMIZATION...
 
 # use '-Os' optimization if available, else use -O2
-OPTIMIZATION:=${call check_gcc,-Os,-O2}
+OPTIMIZATION:=$(call check_gcc,-Os,-O2)
 
 # Some nice architecture specific optimizations
 ifeq ($(strip $(TARGET_ARCH)),arm)
@@ -136,7 +139,7 @@ ifeq ($(strip $(TARGET_ARCH)),i386)
 	OPTIMIZATION+=$(call check_gcc,-falign-functions=0 -falign-jumps=0 -falign-loops=0,\
 		-malign-functions=0 -malign-jumps=0 -malign-loops=0)
 endif
-OPTIMIZATIONS=$(OPTIMIZATION) -fomit-frame-pointer
+OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer
 
 #
 #--------------------------------------------------------
