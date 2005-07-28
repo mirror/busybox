@@ -86,7 +86,7 @@ ARFLAGS=cru
 #--------------------------------------------------------
 export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
 ifeq ($(strip $(TARGET_ARCH)),)
-TARGET_ARCH=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
+TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/i.86/i386/' \
 		-e 's/sparc.*/sparc/' \
 		-e 's/arm.*/arm/g' \
@@ -115,8 +115,7 @@ check_gcc=$(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; 
 # for OPTIMIZATION...
 
 # use '-Os' optimization if available, else use -O2
-OPTIMIZATION=
-OPTIMIZATION=${call check_gcc,-Os,-O2}
+OPTIMIZATION:=${call check_gcc,-Os,-O2}
 
 # Some nice architecture specific optimizations
 ifeq ($(strip $(TARGET_ARCH)),arm)
