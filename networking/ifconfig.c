@@ -559,7 +559,7 @@ int ifconfig_main(int argc, char **argv)
 		continue;
 	}					/* end of while-loop */
 
-	if (CONFIG_FEATURE_CLEAN_UP) close(sockfd);
+	if (ENABLE_FEATURE_CLEAN_UP) close(sockfd);
 	return goterr;
 }
 

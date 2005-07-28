@@ -214,7 +214,9 @@ include/config.h: .config
 
 include/bb_config.h: include/config.h
 	echo "#ifndef AUTOCONF_INCLUDED" > $@
-	sed -e 's/#undef \(.*\)/static const int \1 = 0;/' < $< >> $@
+	sed -e 's/#undef CONFIG_\(.*\)/#define ENABLE_\1 0/' \
+	    -e 's/#define CONFIG_\(.*\)/#define CONFIG_\1\n#define ENABLE_\1/' \
+		< $< >> $@
 	echo "#endif" >> $@
 
 finished2:
