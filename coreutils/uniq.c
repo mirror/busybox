@@ -38,6 +38,7 @@ int uniq_main(int argc, char **argv)
 	FILE *in, *out;
 	/* Note: Ignore the warning about dups and e0 being used uninitialized.
 	 * They will be initialized on the fist pass of the loop (since s0 is NULL). */
+#warning The dups and e0 warnings are OK, ignore them
 	unsigned long dups, skip_fields, skip_chars, i;
 	const char *s0, *e0, *s1, *e1, *input_filename;
 	int opt;
