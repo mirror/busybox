@@ -25,8 +25,10 @@ errcode_t ext2fs_read_dir_block2(ext2_filsys fs, blk_t block,
 	errcode_t	retval;
 	char		*p, *end;
 	struct ext2_dir_entry *dirent;
-	unsigned int	name_len, rec_len, do_swap;
-	
+	unsigned int	name_len, rec_len;
+#ifdef EXT2FS_ENABLE_SWAPFS
+	unsigned int do_swap;
+#endif	
 
  	retval = io_channel_read_blk(fs->io, block, 1, buf);
 	if (retval)
