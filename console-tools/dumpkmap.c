@@ -77,10 +77,10 @@ int dumpkmap_main(int argc, char **argv)
 				ke.kb_index = j;
 				ke.kb_table = i;
 				if (ioctl(fd, KDGKBENT, &ke) < 0) {
-					bb_error_msg("ioctl returned: %m, %s, %s, %xqq",
+					bb_perror_msg("ioctl failed with %s, %s, %p",
 						(char *)&ke.kb_index,
 						(char *)&ke.kb_table,
-						(int)&ke.kb_value);
+						&ke.kb_value);
 				} else {
 					write(1, (void*)&ke.kb_value, 2);
 				}
