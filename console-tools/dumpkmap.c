@@ -47,28 +47,29 @@ int dumpkmap_main(int argc, char **argv)
 	int i, j, fd;
 	char flags[MAX_NR_KEYMAPS], magic[] = "bkeymap";
 
-	if (argc>=2 && *argv[1]=='-') {
+	if (argc >= 2 && *argv[1] == '-')
 		bb_show_usage();
-	}
 
-	fd=bb_xopen(CURRENT_VC, O_RDWR);
+	fd = bb_xopen(CURRENT_VC, O_RDWR);
 
 	write(1, magic, 7);
 
-	for (i=0; i < MAX_NR_KEYMAPS; i++) flags[i]=0;
-	flags[0]=1;
-	flags[1]=1;
-	flags[2]=1;
-	flags[4]=1;
-	flags[5]=1;
-	flags[6]=1;
-	flags[8]=1;
-	flags[9]=1;
-	flags[10]=1;
-	flags[12]=1;
+	for (i=0; i < MAX_NR_KEYMAPS; i++)
+		flags[i] = 0;
+	flags[0] = 1;
+	flags[1] = 1;
+	flags[2] = 1;
+	flags[4] = 1;
+	flags[5] = 1;
+	flags[6] = 1;
+	flags[8] = 1;
+	flags[9] = 1;
+	flags[10] = 1;
+	flags[12] = 1;
 
 	/* dump flags */
-	for (i=0; i < MAX_NR_KEYMAPS; i++) write(1,&flags[i],1);
+	for (i = 0; i < MAX_NR_KEYMAPS; i++)
+		write(1, &flags[i], 1);
 
 	for (i = 0; i < MAX_NR_KEYMAPS; i++) {
 		if (flags[i] == 1) {
@@ -76,13 +77,13 @@ int dumpkmap_main(int argc, char **argv)
 				ke.kb_index = j;
 				ke.kb_table = i;
 				if (ioctl(fd, KDGKBENT, &ke) < 0) {
-
-					bb_error_msg("ioctl returned: %m, %s, %s, %xqq", (char *)&ke.kb_index,(char *)&ke.kb_table,(int)&ke.kb_value);
-					}
-				else {
-					write(1,(void*)&ke.kb_value,2);
-					}
-
+					bb_error_msg("ioctl returned: %m, %s, %s, %xqq",
+						(char *)&ke.kb_index,
+						(char *)&ke.kb_table,
+						(int)&ke.kb_value);
+				} else {
+					write(1, (void*)&ke.kb_value, 2);
+				}
 			}
 		}
 	}
