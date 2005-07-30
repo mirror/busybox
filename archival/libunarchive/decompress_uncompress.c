@@ -70,9 +70,6 @@ static int block_mode = BLOCK_MODE;
 /* user settable max # bits/code */
 static int maxbits = BITS;
 
-/* Exitcode of compress (-1 no file compressed) */
-static int exit_code = -1;
-
 /* Input buffer */
 static unsigned char inbuf[IBUFSIZ + 64];
 
