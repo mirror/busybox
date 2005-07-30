@@ -148,8 +148,8 @@ extern int unzip_main(int argc, char **argv)
 	unsigned int total_entries = 0;
 	int src_fd = -1, dst_fd = -1;
 	char *src_fn = NULL, *dst_fn = NULL;
-	llist_t *accept = NULL;
-	llist_t *reject = NULL;
+	llist_t *zaccept = NULL;
+	llist_t *zreject = NULL;
 	char *base_dir = NULL;
 	int i, opt, opt_range = 0, list_header_done = 0;
 	char key_buf[512];
@@ -191,7 +191,7 @@ extern int unzip_main(int argc, char **argv)
 
 		case 1: /* Include files */
 			if (opt == 1) {
-				accept = llist_add_to(accept, optarg);
+				zaccept = llist_add_to(zaccept, optarg);
 
 			} else if (opt == 'd') {
 				base_dir = optarg;
@@ -207,7 +207,7 @@ extern int unzip_main(int argc, char **argv)
 
 		case 2 : /* Exclude files */
 			if (opt == 1) {
-				reject = llist_add_to(reject, optarg);
+				zreject = llist_add_to(zreject, optarg);
 
 			} else if (opt == 'd') { /* Extract to base directory */
 				base_dir = optarg;
@@ -299,8 +299,8 @@ extern int unzip_main(int argc, char **argv)
 		}
 
 		/* Filter zip entries */
-		if (find_list_entry(reject, dst_fn) ||
-			(accept && !find_list_entry(accept, dst_fn))) { /* Skip entry */
+		if (find_list_entry(zreject, dst_fn) ||
+			(zaccept && !find_list_entry(zaccept, dst_fn))) { /* Skip entry */
 			i = 'n';
 
 		} else { /* Extract entry */
