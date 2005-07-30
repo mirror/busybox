@@ -86,30 +86,6 @@ static int int_log10(unsigned int arg)
 	return l;
 }
 
-static int parse_version_number(const char *s)
-{
-	int	major, minor, rev;
-	char	*endptr;
-	const char *cp = s;
-
-	if (!s)
-		return 0;
-	major = strtol(cp, &endptr, 10);
-	if (cp == endptr || *endptr != '.')
-		return 0;
-	cp = endptr + 1;
-	minor = strtol(cp, &endptr, 10);
-	if (cp == endptr || *endptr != '.')
-		return 0;
-	cp = endptr + 1;
-	rev = strtol(cp, &endptr, 10);
-	if (cp == endptr)
-		return 0;
-	return ((((major * 256) + minor) * 256) + rev);
-}
-
-
-
 /*
  * This function sets the default parameters for a filesystem
  *
