@@ -35,6 +35,7 @@ int bunzip2_main(int argc, char **argv)
 	char *compressed_name;
 	/* Note: Ignore the warning about save_name being used uninitialized.
 	 * That is not the case, but gcc has trouble working that out... */
+#warning The save_name warning is OK, ignore it
 	char *save_name;
 	unsigned long opt;
 	int status;
