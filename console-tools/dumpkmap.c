@@ -54,17 +54,11 @@ int dumpkmap_main(int argc, char **argv)
 
 	write(1, magic, 7);
 
+	/* Here we want to set everything to 0 except for indexes:
+	 * [0-2] [4-6] [8-10] [12] */
 	memset(flags, 0x00, MAX_NR_KEYMAPS);
-	flags[0] = 1;
-	flags[1] = 1;
-	flags[2] = 1;
-	flags[4] = 1;
-	flags[5] = 1;
-	flags[6] = 1;
-	flags[8] = 1;
-	flags[9] = 1;
-	flags[10] = 1;
-	flags[12] = 1;
+	memset(flags, 0x01, 13);
+	flags[3] = flags[7] = flags[11] = 0;
 
 	/* dump flags */
 	write(1, flags, MAX_NR_KEYMAPS);
