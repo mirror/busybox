@@ -54,8 +54,7 @@ int dumpkmap_main(int argc, char **argv)
 
 	write(1, magic, 7);
 
-	for (i=0; i < MAX_NR_KEYMAPS; i++)
-		flags[i] = 0;
+	memset(flags, 0x00, MAX_NR_KEYMAPS);
 	flags[0] = 1;
 	flags[1] = 1;
 	flags[2] = 1;
@@ -68,8 +67,7 @@ int dumpkmap_main(int argc, char **argv)
 	flags[12] = 1;
 
 	/* dump flags */
-	for (i = 0; i < MAX_NR_KEYMAPS; i++)
-		write(1, &flags[i], 1);
+	write(1, flags, MAX_NR_KEYMAPS);
 
 	for (i = 0; i < MAX_NR_KEYMAPS; i++) {
 		if (flags[i] == 1) {
