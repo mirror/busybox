@@ -326,6 +326,11 @@ extern int grep_main(int argc, char **argv)
 	if(opt & GREP_OPT_f)
 		load_regexes_from_file(fopt);
 
+#ifdef CONFIG_FEATURE_GREP_FGREP_ALIAS
+	if(bb_applet_name[0] == 'f')
+		fgrep_flag = 1;
+#endif
+
 #ifdef CONFIG_FEATURE_GREP_EGREP_ALIAS
 	if(bb_applet_name[0] == 'e' || (opt & GREP_OPT_E))
 		reflags = REG_EXTENDED | REG_NOSUB;
