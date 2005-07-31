@@ -932,9 +932,9 @@ static void action_modload (const struct devfsd_notify_struct *info,
 	argv[5] = NULL;
 
 	snprintf (device, sizeof (device), "/dev/%s", info->devname);
-	#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG
 	msg_logger( NO_DIE, LOG_INFO, "action_modload():%s %s %s %s %s\n",argv[0],argv[1],argv[2],argv[3],argv[4]);
-	#endif
+#endif
 	fork_and_execute(DIE, argv[0], argv);
 }  /*  End Function action_modload  */
 #endif
