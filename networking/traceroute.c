@@ -418,7 +418,7 @@ traceroute_main(int argc, char *argv[])
 		datalen = atoi(*argv);
 	if (datalen < 0 || datalen >= MAXPACKET - sizeof(struct opacket))
 		bb_error_msg_and_die("packet size must be 0 <= s < %d.",
-		    MAXPACKET - sizeof(struct opacket));
+		    (int)(MAXPACKET - sizeof(struct opacket)));
 	datalen += sizeof(struct opacket);
 	outpacket = (struct opacket *)xmalloc((unsigned)datalen);
 	memset(outpacket, 0, datalen);
