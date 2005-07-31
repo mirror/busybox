@@ -246,68 +246,33 @@ have additions to this FAQ document, we would love to add them,
     trust PayPal...
 
 <hr />
+<p>
+<h2><a name="optimize">I want to make busybox even smaller, how do I go about it?</a></h2>
+<p>
+	To conserve bytes it's good to know where they're being used, and the
+	size of the final executable isn't always a reliable indicator of
+	the size of the components (since various structures are rounded up,
+	so a small change may not even be visible by itself, but many small
+	savings add up).
+</p>
+<p>
+	To examine a busybox binary with an eye to saving bytes, build an
+	optimized debug version and run the "nm" command against it, like so:
+</p>
+<p>
+	make clean && make STRIPCMD=/bin/true && nm --size-sort busybox
+</p>
+<p>
+	This gives a list of symbols and the amount of space allocated for
+	each one, sorted by size.  (Note: do not enable CONFIG_DEBUG for this,
+	as that disables compiler optimization which is great for running gdb
+	but misleading when trying to figure out how much space each component
+	is really using under normal circumstances.)
+</p>
+<hr />
 
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
+
+
 <br>
 <br>
 <br>
