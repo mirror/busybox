@@ -201,7 +201,3 @@ endif
 CFLAGS += $(CFLAGS_EXTRA)
 
 .PHONY: dummy
-
-
-.EXPORT_ALL_VARIABLES:
-

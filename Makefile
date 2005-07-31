@@ -34,7 +34,7 @@ ifndef top_builddir
 top_builddir=$(CURDIR)
 endif
 
-srctree=$(top_srcdir)
+export srctree=$(top_srcdir)
 vpath %/Config.in $(srctree)
 
 include $(top_builddir)/Rules.mak
