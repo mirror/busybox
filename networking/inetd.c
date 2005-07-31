@@ -447,7 +447,7 @@ static char *LastArg;
 
 static void setproctitle(char *a, int s)
 {
-	size_t size;
+	socklen_t size;
 	char *cp;
 	struct sockaddr_in sn;
 	char buf[80];
@@ -1021,7 +1021,7 @@ static void echo_dg(int s, servtab_t *sep)
 {
 	char buffer[BUFSIZE];
 	int i;
-	size_t size;
+	socklen_t size;
 	struct sockaddr sa;
 
 	(void)sep;
@@ -1110,7 +1110,8 @@ static void chargen_dg(int s, servtab_t *sep)
 {
 	struct sockaddr sa;
 	static char *rs;
-	size_t len, size;
+	size_t len;
+	socklen_t size;
 	char text[LINESIZ+2];
 
 	(void)sep;
@@ -1172,7 +1173,7 @@ static void machtime_dg(int s, servtab_t *sep)
 {
 	long result;
 	struct sockaddr sa;
-	size_t size;
+	socklen_t size;
 	(void)sep;
 
 	size = sizeof(sa);
@@ -1208,7 +1209,7 @@ static void daytime_dg(int s, servtab_t *sep)
 {
 	char buffer[256];
 	struct sockaddr sa;
-	size_t size;
+	socklen_t size;
 
 	(void)sep;
 
