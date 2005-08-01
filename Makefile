@@ -221,7 +221,6 @@ include/bb_config.h: include/config.h
 
 include/bbconfigopts.h: .config
 	scripts/config/mkconfigs >include/bbconfigopts.h
-       
 
 finished2:
 	$(SECHO)
@@ -296,20 +295,20 @@ distclean: clean
 	- $(MAKE) -C scripts/config clean
 
 release: distclean #doc
-	cd ..;					\
-	rm -rf $(PROG)-$(VERSION);		\
-	cp -a busybox $(PROG)-$(VERSION);	\
-						\
-	find $(PROG)-$(VERSION)/ -type d	\
-				 -name CVS	\
-				 -print		\
-		-exec rm -rf {} \; ;            \
-						\
-	find $(PROG)-$(VERSION)/ -type f	\
-				 -name .\#*	\
-				 -print		\
-		-exec rm -f {} \;  ;            \
-						\
+	cd ..; \
+	rm -rf $(PROG)-$(VERSION); \
+	cp -a busybox $(PROG)-$(VERSION); \
+	\
+	find $(PROG)-$(VERSION)/ -type d \
+		-name CVS \
+		-print \
+		-exec rm -rf {} \; ; \
+	\
+	find $(PROG)-$(VERSION)/ -type f \
+		-name .\#* \
+		-print \
+		-exec rm -f {} \; ; \
+	\
 	tar -cvzf $(PROG)-$(VERSION).tar.gz $(PROG)-$(VERSION)/;
 
 tags:
@@ -322,4 +321,3 @@ endif # ifeq ($(skip-makefile),)
 
 .PHONY: dummy subdirs release distclean clean config oldconfig \
 	menuconfig tags check test depend buildtree
-
