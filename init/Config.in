@@ -43,6 +43,17 @@ config CONFIG_FEATURE_INIT_SWAPON
 	  If the system has less than one megabyte of total memory, init
 	  will run '/sbin/swapon -a' to add swap memory.
 
+config CONFIG_FEATURE_INIT_SCTTY
+	bool "  Support running commands with a controlling-tty?"
+	default n
+	depends on CONFIG_INIT
+	help
+	  If this option is enabled a command starting with hyphen (-)
+	  is run in its own session (setsid(2)) and possibly with a
+	  controlling tty (TIOCSCTTY).  This is not the traditional init
+	  behavour, but is often what you want in an embedded system where
+	  the console is only accessed during development or for maintenance.
+
 config CONFIG_FEATURE_EXTRA_QUIET
 	bool "  Should init be _extra_ quiet on boot?"
 	default y

@@ -577,6 +577,13 @@ static pid_t run(const struct init_action *a)
 				cmd[0][0] = '-';
 				strcpy(cmd[0] + 1, s);
 			}
+#ifdef CONFIG_FEATURE_INIT_SCTTY
+			/* Establish this process as session leader and
+			 * (attempt) to make the tty (if any) a controlling tty.
+			 */
+			(void) setsid();
+			(void) ioctl(0, TIOCSCTTY, 0/*don't steal it*/);
+#endif
 		}
 
 #if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
