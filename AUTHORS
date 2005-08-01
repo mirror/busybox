@@ -26,6 +26,9 @@ Laurence Anderson <l.d.anderson@warwick.ac.uk>
 Jeff Angielski <jeff@theptrgroup.com>
     ftpput, ftpget
 
+Enrik Berkhan <Enrik.Berkhan@inka.de>
+    setconsole
+
 Edward Betts <edward@debian.org>
     expr, hostid, logname, whoami
 

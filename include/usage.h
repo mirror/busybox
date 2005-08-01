@@ -2351,6 +2351,13 @@
 	"\tFIRST\tLAST\n" \
 	"\tFIRST\tINCREMENT\tLAST"
 
+#define setconsole_trivial_usage \
+	"[-r|--reset] [DEVICE]"
+#define setconsole_full_usage \
+	"Redirects system console output to DEVICE (default: /dev/tty).\n\n" \
+	"Options:\n" \
+	"\t-r\tReset output to /dev/console."
+
 #define setkeycodes_trivial_usage \
 	"SCANCODE KEYCODE ..."
 #define setkeycodes_full_usage \

@@ -31,6 +31,13 @@ config CONFIG_DUMPKMAP
 	  This program dumps the kernel's keyboard translation table to
 	  stdout, in binary format. You can then use loadkmap to load it.
 
+config CONFIG_SETCONSOLE
+	bool "setconsole"
+	default n
+	help
+	  This program redirects the system console to another device,
+	  like the current tty while logged in via telnet.
+
 config CONFIG_LOADFONT
 	bool "loadfont"
 	default n

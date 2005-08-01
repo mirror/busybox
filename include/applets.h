@@ -552,6 +552,9 @@
 #ifdef CONFIG_SEQ
 	APPLET(seq, seq_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_SETCONSOLE
+	APPLET(setconsole, setconsole_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_SETKEYCODES
 	APPLET(setkeycodes, setkeycodes_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
