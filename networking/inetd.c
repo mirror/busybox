@@ -758,17 +758,14 @@ extern int inetd_main(int argc, char *argv[])
 	LastArg = environ[-1] + strlen(environ[-1]);
 #endif
 
-#if defined(__uClinux__)
 	opt = bb_getopt_ulflags(argc, argv, "q:f", &sq);
 	if (!(opt & 2)) {
 	    daemon(0, 0);
+#if defined(__uClinux__)
 	    /* reexec for vfork() do continue parent */
 	    vfork_daemon_rexec(argc, argv, "-f");
-	}
-#else
-	opt = bb_getopt_ulflags(argc, argv, "q:", &sq);
-	daemon(0, 0);
 #endif /* uClinux */
+	}
 
 	if(opt & 1) {
 			global_queuelen = atoi(sq);

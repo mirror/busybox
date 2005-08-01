@@ -1193,10 +1193,11 @@
 	"\t-f\tforce de/configuration"
 
 #define inetd_trivial_usage \
-	"[-q len] [conf]"
+	"[-f] [-q len] [conf]"
 #define inetd_full_usage \
 	"Listens for network connections and launches programs\n\n" \
 	"Option:\n" \
+	"\t-f\tRun as a foreground progress\n" \
 	"\t-q\tSets the size of the socket listen queue to\n" \
 	"\t\tthe specified value. Default is 128"
 
