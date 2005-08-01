@@ -200,7 +200,7 @@ scripts/split-include: $(top_srcdir)/scripts/split-include.c
 	scripts/mkdep -I include -- \
 	  `find $(top_srcdir) -name \*.h -print | sed -e "s,^./,,"` >> .hdepend;
 
-depend dep: .depend
+depend dep: .depend include/bbconfigopts.h
 
 include/config/MARKER: depend scripts/split-include
 	scripts/split-include include/config.h include/config
@@ -218,6 +218,10 @@ include/bb_config.h: include/config.h
 	    -e 's/#define CONFIG_\(.*\)/#define CONFIG_\1\n#define ENABLE_\1/' \
 		< $< >> $@
 	echo "#endif" >> $@
+
+include/bbconfigopts.h: .config
+	scripts/config/mkconfigs >include/bbconfigopts.h
+       
 
 finished2:
 	$(SECHO)

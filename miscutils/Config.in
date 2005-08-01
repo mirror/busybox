@@ -34,6 +34,13 @@ config CONFIG_FEATURE_CROND_CALL_SENDMAIL
 	help
 	  Support calling /usr/sbin/sendmail for send cmd outputs.
 
+config CONFIG_BBCONFIG
+	bool "bbconfig"
+	default n
+	help
+	  The bbconfig applet will print the config file with which
+	  busybox was built.
+
 config CONFIG_CRONTAB
 	bool "crontab"
 	default n

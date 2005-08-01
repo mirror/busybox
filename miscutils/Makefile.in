@@ -27,6 +27,7 @@ MISCUTILS-y:=
 MISCUTILS-$(CONFIG_ADJTIMEX)    += adjtimex.o
 MISCUTILS-$(CONFIG_CROND)       += crond.o
 MISCUTILS-$(CONFIG_CRONTAB)     += crontab.o
+MISCUTILS-$(CONFIG_BBCONFIG)    += bbconfig.o
 MISCUTILS-$(CONFIG_DC)          += dc.o
 MISCUTILS-$(CONFIG_DEVFSD)      += devfsd.o
 MISCUTILS-$(CONFIG_EJECT)       += eject.o

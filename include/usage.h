@@ -231,6 +231,11 @@
 	"\t-2\tSuppress lines unique to FILE2\n" \
 	"\t-3\tSuppress lines common to both files"
 
+#define bbconfig_trivial_usage \
+	""
+#define bbconfig_full_usage \
+	"Print the config file which built busybox\n"
+       
 #define cp_trivial_usage \
 	"[OPTION]... SOURCE DEST"
 #define cp_full_usage \

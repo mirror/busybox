@@ -76,6 +76,9 @@
 #ifdef CONFIG_BASENAME
 	APPLET(basename, basename_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_BBCONFIG
+	APPLET(bbconfig, bbconfig_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_BUNZIP2
 	APPLET(bunzip2, bunzip2_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
