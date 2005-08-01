@@ -304,11 +304,23 @@ config CONFIG_FEATURE_LS_USERNAME
 	  Allow ls to display username/groupname for files.
 
 config CONFIG_FEATURE_LS_COLOR
-	bool "  Use color to identify file types"
+	bool "  Allow use of color to identify file types"
 	default y
 	depends on CONFIG_LS
 	help
-	  Allow ls to use color when displaying files.
+	  This enables the --color option to ls.
+
+if CONFIG_FEATURE_LS_COLOR
+    config CONFIG_FEATURE_LS_COLOR_IS_DEFAULT
+	    bool "  Produce colored ls output by default"
+	    default n
+	    help
+	      Saying yes here will turn coloring on by default,
+	      even if no "--color" option is given to the ls command.
+	      This is not recommended, since the colors are not
+	      configurable, and the output may not be legible on
+	      many output screens.
+endif
 
 config CONFIG_MD5SUM
 	bool "md5sum"

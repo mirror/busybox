@@ -1602,6 +1602,11 @@
 #else
 #  define USAGE_AUTOWIDTH(a)
 #endif
+#ifdef CONFIG_FEATURE_LS_COLOR
+  #define USAGE_LS_COLOR(a) a
+#else
+  #define USAGE_LS_COLOR(a)
+#endif
 
 #define ls_trivial_usage \
 	"[-1Aa" USAGE_LS_TIMESTAMPS("c") "Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") "s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" USAGE_LS_SORTFILES("X") USAGE_HUMAN_READABLE("h") USAGE_NOT_HUMAN_READABLE("") "k" USAGE_SELINUX("K") "] [filenames...]"
@@ -1613,6 +1618,7 @@
 	"\t-a\tdo not hide entries starting with .\n" \
 	"\t-C\tlist entries by columns\n" \
 	USAGE_LS_TIMESTAMPS("\t-c\twith -l: show ctime\n") \
+	USAGE_LS_COLOR("\t--color[={always,never,auto}]\tto control coloring\n") \
 	"\t-d\tlist directory entries instead of contents\n" \
 	USAGE_LS_TIMESTAMPS("\t-e\tlist both full date and full time\n") \
 	USAGE_LS_FILETYPES("\t-F\tappend indicator (one of */=@|) to entries\n") \

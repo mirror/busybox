@@ -60,6 +60,7 @@ enum {
 #include <fcntl.h>
 #include <signal.h>
 #include <termios.h>
+#include <getopt.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>     /* major() and minor() */
 #include "busybox.h"
@@ -164,7 +165,17 @@ enum {
 
 /* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
 #ifdef CONFIG_FEATURE_LS_COLOR
+
 static int show_color = 0;
+
+/* long option entry used only for --color, which has no short option
+ * equivalent.  */
+static int got_color_opt;
+static struct option ls_color_opt[] =
+{
+        {"color", optional_argument, &got_color_opt, 1},
+        {NULL, 0, NULL, 0}
+};
 
 #define COLOR(mode)	("\000\043\043\043\042\000\043\043"\
 					"\000\000\044\000\043\000\000\040" [TYPEINDEX(mode)])
@@ -984,8 +995,7 @@ extern int ls_main(int argc, char **argv)
 #endif
 
 #ifdef CONFIG_FEATURE_LS_COLOR
-	if (isatty(STDOUT_FILENO))
-		show_color = 1;
+	bb_applet_long_options = ls_color_opt;
 #endif
 
 	/* process options */
@@ -1033,6 +1043,55 @@ extern int ls_main(int argc, char **argv)
 			all_fmt |= flags;
 		}
 	}
+
+#ifdef CONFIG_FEATURE_LS_COLOR
+	if (got_color_opt) {
+		/* there is no way for bb_getopt_ulflags() to
+		 * return us the argument string for long options
+		 * which don't have a short option equivalent.
+		 * all we can find out is that the option was
+		 * present, and we have to rescan to find the
+		 * argument string.
+		 */
+		got_color_opt=0;
+		optind = 1;
+		while ((i = getopt_long (argc, argv, ls_options,
+			    ls_color_opt, NULL)) >= 0) {
+			if (i != 0) continue;
+			if (got_color_opt) {
+				if (!optarg || strcmp("always", optarg) == 0)
+					show_color = 1;
+				else if (strcmp("never", optarg) == 0)
+					show_color = 0;
+				else if (strcmp("auto", optarg) == 0 &&
+						isatty(STDOUT_FILENO))
+					show_color = 1;
+
+				/* don't break; want to a) pick up repeated
+				 * --color options, and b) leave optind
+				 * set correctly when we're done.
+				 */
+				got_color_opt = 0;
+			}
+		}
+#if CONFIG_FEATURE_LS_COLOR_IS_DEFAULT
+	} else {
+		/* if no option set by user, then this config option
+		 * forces "auto", which is what busybox 1.00 and previous
+		 * did.  however, provide one more "out" for users that
+		 * don't want color:  if LS_COLOR is set, and is null or
+		 * "none" -- then default coloring to "off".
+		 */
+		char *p;
+		if ((p = getenv ("LS_COLORS")) != NULL && 
+			(*p == '\0' || (strcmp(p, "none") == 0))) {
+		    	show_color = 0;
+		} else if (isatty(STDOUT_FILENO)) {
+		    	show_color = 1;
+		}
+#endif
+	}
+#endif
 
 	/* sort out which command line options take precedence */
 #ifdef CONFIG_FEATURE_LS_RECURSIVE
