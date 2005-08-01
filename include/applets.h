@@ -558,6 +558,9 @@
 #ifdef CONFIG_SETKEYCODES
 	APPLET(setkeycodes, setkeycodes_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_SETSID
+	APPLET(setsid, setsid_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #if defined(CONFIG_FEATURE_SH_IS_ASH) && defined(CONFIG_ASH)
 	APPLET_NOUSAGE("sh", ash_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #elif defined(CONFIG_FEATURE_SH_IS_HUSH) && defined(CONFIG_HUSH)

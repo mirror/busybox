@@ -215,6 +215,12 @@ config CONFIG_STRINGS
 	  strings prints the printable character sequences for each file
 	  specified.
 
+config CONFIG_SETSID
+	bool "setsid"
+	default n
+	help
+	  setsid runs a program in a new session
+
 config CONFIG_TIME
 	bool "time"
 	default n

@@ -2375,6 +2375,12 @@
 #define setkeycodes_example_usage \
 	"$ setkeycodes e030 127\n"
 
+#define setsid_trivial_usage \
+	"program [arg ...]"
+#define setsid_full_usage \
+	"Runs any program in a new session by calling setsid() before\n" \
+	"exec'ing the rest of its arguments.  See setsid(2) for details."
+
 #define lash_trivial_usage \
 	"[FILE]...\n" \
 	"or: sh -c command [args]..."
