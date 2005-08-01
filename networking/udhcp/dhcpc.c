@@ -77,7 +77,8 @@ static void __attribute__ ((noreturn)) show_usage(void)
 {
 	printf(
 "Usage: udhcpc [OPTIONS]\n\n"
-"  -c, --clientid=CLIENTID         Client identifier\n"
+"  -c, --clientid=CLIENTID         Set client identifier\n"
+"  -C, --clientid-none             Suppress default client identifier\n"
 "  -H, --hostname=HOSTNAME         Client hostname\n"
 "  -h                              Alias for -H\n"
 "  -F, --fqdn=FQDN                 Client fully qualified domain name\n"
@@ -193,9 +194,11 @@ int main(int argc, char *argv[])
 	long now;
 	int max_fd;
 	int sig;
+	int no_clientid = 0;
 
 	static const struct option arg_options[] = {
 		{"clientid",	required_argument,	0, 'c'},
+		{"clientid-none", no_argument,		0, 'C'},
 		{"foreground",	no_argument,		0, 'f'},
 		{"background",	no_argument,		0, 'b'},
 		{"hostname",	required_argument,	0, 'H'},
@@ -214,11 +217,12 @@ int main(int argc, char *argv[])
 	/* get options */
 	while (1) {
 		int option_index = 0;
-		c = getopt_long(argc, argv, "c:fbH:h:F:i:np:qr:s:v", arg_options, &option_index);
+		c = getopt_long(argc, argv, "c:CfbH:h:F:i:np:qr:s:v", arg_options, &option_index);
 		if (c == -1) break;
 
 		switch (c) {
 		case 'c':
+			if (no_clientid) show_usage();
 			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
 			if (client_config.clientid) free(client_config.clientid);
 			client_config.clientid = xmalloc(len + 2);
@@ -226,6 +230,10 @@ int main(int argc, char *argv[])
 			client_config.clientid[OPT_LEN] = len;
 			client_config.clientid[OPT_DATA] = '\0';
 			strncpy(client_config.clientid + OPT_DATA, optarg, len);
+			break;
+		case 'C':
+			if (client_config.clientid) show_usage();
+			no_clientid = 1;
 			break;
 		case 'f':
 			client_config.foreground = 1;
@@ -293,7 +301,8 @@ int main(int argc, char *argv[])
 			   NULL, client_config.arp) < 0)
 		return 1;
 
-	if (!client_config.clientid) {
+	/* if not set, and not suppressed, setup the default client ID */
+	if (!client_config.clientid && !no_clientid) {
 		client_config.clientid = xmalloc(6 + 3);
 		client_config.clientid[OPT_CODE] = DHCP_CLIENT_ID;
 		client_config.clientid[OPT_LEN] = 7;
