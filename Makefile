@@ -212,7 +212,7 @@ include/config.h: .config
 	@$(top_builddir)/scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 include/bb_config.h: include/config.h
-	echo "#ifndef AUTOCONF_INCLUDED" > $@
+	echo -e "#ifndef BB_CONFIG_H\n#define BB_CONFIG_H" > $@
 	sed -e 's/#undef CONFIG_\(.*\)/#define ENABLE_\1 0/' \
 	    -e 's/#define CONFIG_\(.*\)/#define CONFIG_\1\n#define ENABLE_\1/' \
 		< $< >> $@
