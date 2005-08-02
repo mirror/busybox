@@ -304,7 +304,6 @@ int conf_write(const char *name)
 		fprintf(out_h, "/*\n"
 			     " * Automatically generated header file: don't edit\n"
 			     " */\n\n"
-			     "#define AUTOCONF_INCLUDED\n\n"
 			     "/* Version Number */\n"
 			     "#define BB_VER \"%s\"\n"
 			     "#define BB_BT \"%s\"\n",
