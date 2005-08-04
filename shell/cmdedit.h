@@ -12,4 +12,8 @@ void    load_history ( const char *fromfile );
 void    save_history ( const char *tofile );
 #endif
 
+#if CONFIG_FEATURE_COMMAND_EDITING_VI
+void	setvimode ( int viflag );
+#endif
+
 #endif /* CMDEDIT_H */

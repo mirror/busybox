@@ -441,27 +441,61 @@ static void redraw(int y, int back_cursor)
 	input_backward(back_cursor);
 }
 
-/* Delete the char in front of the cursor */
-static void input_delete(void)
+#ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
+static char delbuf[BUFSIZ];  /* a place to store deleted characters */
+static char *delp = delbuf;
+static int newdelflag;	    /* whether delbuf should be reused yet */
+#endif
+
+/* Delete the char in front of the cursor, optionally saving it
+ * for later putback */
+static void input_delete(int save)
 {
 	int j = cursor;
 
 	if (j == len)
 		return;
 
+#ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
+	if (save) {
+		if (newdelflag) {
+			delp = delbuf;
+			newdelflag = 0;
+		}
+		if (delp - delbuf < BUFSIZ)
+			*delp++ = command_ps[j];
+	}
+#endif
+
 	strcpy(command_ps + j, command_ps + j + 1);
 	len--;
-	input_end();                    /* rewtite new line */
+	input_end();                    /* rewrite new line */
 	cmdedit_set_out_char(0);        /* destroy end char */
 	input_backward(cursor - j);     /* back to old pos cursor */
 }
+
+#ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
+static void put(void)
+{
+	int ocursor, j = delp - delbuf;
+	if (j == 0)
+		return;
+	ocursor = cursor;
+	/* open hole and then fill it */
+	memmove(command_ps + cursor + j, command_ps + cursor, len - cursor + 1);
+	strncpy(command_ps + cursor, delbuf, j);
+	len += j;
+	input_end();                    /* rewrite new line */
+	input_backward(cursor-ocursor-j+1); /* at end of new text */
+}
+#endif
 
 /* Delete the char in back of the cursor */
 static void input_backspace(void)
 {
 	if (cursor > 0) {
 		input_backward(1);
-		input_delete();
+		input_delete(0);
 	}
 }
 
@@ -472,7 +506,6 @@ static void input_forward(void)
 	if (cursor < len)
 		cmdedit_set_out_char(command_ps[cursor + 1]);
 }
-
 
 static void cmdedit_setwidth(int w, int redraw_flg)
 {
@@ -1217,9 +1250,135 @@ enum {
  * ESC-h -- Delete forward one word
  * CTL-t -- Transpose two characters
  *
- * Furthermore, the "vi" command editing keys are not implemented.
+ * Minimalist vi-style command line editing available if configured.
+ *  vi mode implemented 2005 by Paul Fox <pgf@foxharp.boston.ma.us>
  *
  */
+
+#ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
+static int vi_mode;
+
+void setvimode ( int viflag )
+{
+	vi_mode = viflag;
+}
+
+void
+vi_Word_motion(char *command, int eat)
+{
+	while (cursor < len && !isspace(command[cursor]))
+		input_forward();
+	if (eat) while (cursor < len && isspace(command[cursor]))
+		input_forward();
+}
+
+void
+vi_word_motion(char *command, int eat)
+{
+	if (isalnum(command[cursor]) || command[cursor] == '_') {
+		while (cursor < len &&
+		    (isalnum(command[cursor+1]) ||
+				command[cursor+1] == '_'))
+			input_forward();
+	} else if (ispunct(command[cursor])) {
+		while (cursor < len &&
+		    (ispunct(command[cursor+1])))
+			input_forward();
+	}
+
+	if (cursor < len)
+		input_forward();
+
+	if (eat && cursor < len && isspace(command[cursor]))
+		while (cursor < len && isspace(command[cursor]))
+			input_forward();
+}
+
+void
+vi_End_motion(char *command)
+{
+	input_forward();
+	while (cursor < len && isspace(command[cursor]))
+		input_forward();
+	while (cursor < len-1 && !isspace(command[cursor+1]))
+		input_forward();
+}
+
+void
+vi_end_motion(char *command)
+{
+	if (cursor >= len-1)
+		return;
+	input_forward();
+	while (cursor < len-1 && isspace(command[cursor]))
+		input_forward();
+	if (cursor >= len-1)
+		return;
+	if (isalnum(command[cursor]) || command[cursor] == '_') {
+		while (cursor < len-1 &&
+		    (isalnum(command[cursor+1]) ||
+				command[cursor+1] == '_'))
+			input_forward();
+	} else if (ispunct(command[cursor])) {
+		while (cursor < len-1 &&
+		    (ispunct(command[cursor+1])))
+			input_forward();
+	}
+}
+
+void
+vi_Back_motion(char *command)
+{
+	while (cursor > 0 && isspace(command[cursor-1]))
+		input_backward(1);
+	while (cursor > 0 && !isspace(command[cursor-1]))
+		input_backward(1);
+}
+
+void
+vi_back_motion(char *command)
+{
+	if (cursor <= 0)
+		return;
+	input_backward(1);
+	while (cursor > 0 && isspace(command[cursor]))
+		input_backward(1);
+	if (cursor <= 0)
+		return;
+	if (isalnum(command[cursor]) || command[cursor] == '_') {
+		while (cursor > 0 &&
+		    (isalnum(command[cursor-1]) ||
+				command[cursor-1] == '_'))
+			input_backward(1);
+	} else if (ispunct(command[cursor])) {
+		while (cursor > 0 &&
+		    (ispunct(command[cursor-1])))
+			input_backward(1);
+	}
+}
+#endif
+
+/* 
+ * the normal emacs mode and vi's insert mode are the same.
+ * commands entered when in vi command mode ("escape mode") get
+ * an extra bit added to distinguish them.  this lets them share
+ * much of the code in the big switch and while loop.  i
+ * experimented with an ugly macro to make the case labels for
+ * these cases go away entirely when vi mode isn't configured, in
+ * hopes of letting the jump tables get smaller:
+ *  #define vcase(caselabel) caselabel
+ * and then
+ *	case CNTRL('A'):
+ *	case vcase(VICMD('0'):)
+ * but it didn't seem to make any difference in code size,
+ * and the macro-ized code was too ugly.
+ */
+
+#define VI_cmdbit 0x100
+#define VICMD(somecmd) ((somecmd)|VI_cmdbit)
+
+/* convert uppercase ascii to equivalent control char, for readability */
+#define CNTRL(uc_char) ((uc_char) - 0x40)
 
 
 int cmdedit_read_input(char *prompt, char command[BUFSIZ])
@@ -1227,8 +1386,11 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 
 	int break_out = 0;
 	int lastWasTab = FALSE;
-	unsigned char c = 0;
-
+	unsigned char c;
+#ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
+	unsigned int ic, prevc;
+	int vi_cmdmode = 0;
+#endif
 	/* prepare before init handlers */
 	cmdedit_y = 0;  /* quasireal y, not true work if line > xt*yt */
 	len = 0;
@@ -1265,22 +1427,38 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			/* if we can't read input then exit */
 			goto prepare_to_die;
 
-		switch (c) {
+#ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
+		newdelflag = 1;
+		ic = c;
+		if (vi_cmdmode)
+		    	ic |= VI_cmdbit;
+		switch (ic)
+#else
+		switch (c)
+#endif
+		{
 		case '\n':
 		case '\r':
+		case VICMD('\n'):
+		case VICMD('\r'):
 			/* Enter */
 			goto_new_line();
 			break_out = 1;
 			break;
-		case 1:
+		case CNTRL('A'):
+		case VICMD('0'):
 			/* Control-a -- Beginning of line */
 			input_backward(cursor);
 			break;
-		case 2:
+		case CNTRL('B'):
+		case VICMD('h'):
+		case VICMD('\b'):
+		case VICMD(DEL):
 			/* Control-b -- Move back one character */
 			input_backward(1);
 			break;
-		case 3:
+		case CNTRL('C'):
+		case VICMD(CNTRL('C')):
 			/* Control-c -- stop gathering input */
 			goto_new_line();
 #ifndef CONFIG_ASH
@@ -1293,7 +1471,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			break_out = -1; /* to control traps */
 #endif
 			break;
-		case 4:
+		case CNTRL('D'):
 			/* Control-d -- Delete one character, or exit
 			 * if the len=0 and no chars to delete */
 			if (len == 0) {
@@ -1310,14 +1488,17 @@ prepare_to_die:
 				break;
 #endif
 			} else {
-				input_delete();
+				input_delete(0);
 			}
 			break;
-		case 5:
+		case CNTRL('E'):
+		case VICMD('$'):
 			/* Control-e -- End of line */
 			input_end();
 			break;
-		case 6:
+		case CNTRL('F'):
+		case VICMD('l'):
+		case VICMD(' '):
 			/* Control-f -- Move forward one character */
 			input_forward();
 			break;
@@ -1331,24 +1512,29 @@ prepare_to_die:
 			input_tab(&lastWasTab);
 #endif
 			break;
-		case 11:
+		case CNTRL('K'):
 			/* Control-k -- clear to end of line */
 			*(command + cursor) = 0;
 			len = cursor;
 			printf("\033[J");
 			break;
-		case 12:
+		case CNTRL('L'):
+		case VICMD(CNTRL('L')):
 			/* Control-l -- clear screen */
 			printf("\033[H");
 			redraw(0, len-cursor);
 			break;
 #if MAX_HISTORY >= 1
-		case 14:
+		case CNTRL('N'):
+		case VICMD(CNTRL('N')):
+		case VICMD('j'):
 			/* Control-n -- Get next command in history */
 			if (get_next_history())
 				goto rewrite_line;
 			break;
-		case 16:
+		case CNTRL('P'):
+		case VICMD(CNTRL('P')):
+		case VICMD('k'):
 			/* Control-p -- Get previous command from history */
 			if (cur_history > 0) {
 				get_previous_history();
@@ -1358,26 +1544,167 @@ prepare_to_die:
 			}
 			break;
 #endif
-		case 21:
+		case CNTRL('U'):
+		case VICMD(CNTRL('U')):
 			/* Control-U -- Clear line before cursor */
 			if (cursor) {
 				strcpy(command, command + cursor);
 				redraw(cmdedit_y, len -= cursor);
 			}
 			break;
-		case 23:
+		case CNTRL('W'):
+		case VICMD(CNTRL('W')):
 			/* Control-W -- Remove the last word */
 			while (cursor > 0 && isspace(command[cursor-1]))
 				input_backspace();
 			while (cursor > 0 &&!isspace(command[cursor-1]))
 				input_backspace();
 			break;
+#if CONFIG_FEATURE_COMMAND_EDITING_VI
+		case VICMD('i'):
+			vi_cmdmode = 0;
+			break;
+		case VICMD('I'):
+			input_backward(cursor);
+			vi_cmdmode = 0;
+			break;
+		case VICMD('a'):
+			input_forward();
+			vi_cmdmode = 0;
+			break;
+		case VICMD('A'):
+			input_end();
+			vi_cmdmode = 0;
+			break;
+		case VICMD('x'):
+			input_delete(1);
+			break;
+		case VICMD('X'):
+			if (cursor > 0) {
+				input_backward(1);
+				input_delete(1);
+			}
+			break;
+		case VICMD('W'):
+			vi_Word_motion(command, 1);
+			break;
+		case VICMD('w'):
+			vi_word_motion(command, 1);
+			break;
+		case VICMD('E'):
+			vi_End_motion(command);
+			break;
+		case VICMD('e'):
+			vi_end_motion(command);
+			break;
+		case VICMD('B'):
+			vi_Back_motion(command);
+			break;
+		case VICMD('b'):
+			vi_back_motion(command);
+			break;
+		case VICMD('C'):
+			vi_cmdmode = 0;
+			/* fall through */
+		case VICMD('D'):
+			goto clear_to_eol;
+
+		case VICMD('c'):
+			vi_cmdmode = 0;
+			/* fall through */
+		case VICMD('d'):
+			{ 
+			int nc, sc;
+			sc = cursor;
+			prevc = ic;
+			if (safe_read(0, &c, 1) < 1)
+				goto prepare_to_die;
+			if (c == (prevc & 0xff)) {
+			    /* "cc", "dd" */
+			    input_backward(cursor);
+			    goto clear_to_eol;
+			    break;
+			}
+			switch(c) {
+			case 'w':
+			case 'W':
+			case 'e':
+			case 'E':
+			    switch (c) {
+			    case 'w':   /* "dw", "cw" */
+			    	    vi_word_motion(command, vi_cmdmode);
+				    break;
+			    case 'W':   /* 'dW', 'cW' */
+				    vi_Word_motion(command, vi_cmdmode);
+				    break;
+			    case 'e':   /* 'de', 'ce' */
+				    vi_end_motion(command);
+				    input_forward();
+				    break;
+			    case 'E':   /* 'dE', 'cE' */
+				    vi_End_motion(command);
+				    input_forward();
+				    break;
+			    }
+			    nc = cursor;
+			    input_backward(cursor - sc);
+			    while (nc-- > cursor)
+				    input_delete(1);
+			    break;
+			case 'b':  /* "db", "cb" */
+			case 'B':  /* implemented as B */
+			    if (c == 'b')
+				    vi_back_motion(command);
+			    else
+				    vi_Back_motion(command);
+			    while (sc-- > cursor)
+				    input_delete(1);
+			    break;
+			case ' ':  /* "d ", "c " */
+			    input_delete(1);
+			    break;
+			case '$':  /* "d$", "c$" */
+			clear_to_eol:
+			    while (cursor < len)
+				    input_delete(1);
+			    break;
+			}
+			}
+			break;
+		case VICMD('p'):
+			input_forward();
+			/* fallthrough */
+		case VICMD('P'):
+			put();
+			break;
+		case VICMD('r'):
+			if (safe_read(0, &c, 1) < 1)
+				goto prepare_to_die;
+			if (c == 0)
+				beep();
+			else {
+				*(command + cursor) = c;
+				putchar(c);
+				putchar('\b');
+			}
+			break;
+#endif /* CONFIG_FEATURE_COMMAND_EDITING_VI */
 		case ESC:{
+#if CONFIG_FEATURE_COMMAND_EDITING_VI
+			if (vi_mode) {
+				/* ESC: insert mode --> command mode */
+				vi_cmdmode = 1;
+				input_backward(1);
+				break;
+			}
+#endif
 			/* escape sequence follows */
 			if (safe_read(0, &c, 1) < 1)
 				goto prepare_to_die;
 			/* different vt100 emulations */
 			if (c == '[' || c == 'O') {
+		case VICMD('['):
+		case VICMD('O'):
 				if (safe_read(0, &c, 1) < 1)
 					goto prepare_to_die;
 			}
@@ -1409,13 +1736,17 @@ prepare_to_die:
 			case 'B':
 				/* Down Arrow -- Get next command in history */
 				if (!get_next_history())
-				break;
+					break;
 				/* Rewrite the line with the selected history item */
 rewrite_line:
 				/* change command */
 				len = strlen(strcpy(command, history[cur_history]));
-				/* redraw and go to end line */
+				/* redraw and go to eol (bol, in vi */
+#if CONFIG_FEATURE_COMMAND_EDITING_VI
+				redraw(cmdedit_y, vi_mode ? 9999:0);
+#else
 				redraw(cmdedit_y, 0);
+#endif
 				break;
 #endif
 			case 'C':
@@ -1428,7 +1759,7 @@ rewrite_line:
 				break;
 			case '3':
 				/* Delete */
-				input_delete();
+				input_delete(0);
 				break;
 			case '1':
 			case 'H':
@@ -1450,7 +1781,7 @@ rewrite_line:
 		default:        /* If it's regular input, do the normal thing */
 #ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 			/* Control-V -- Add non-printable symbol */
-			if (c == 22) {
+			if (c == CNTRL('V')) {
 				if (safe_read(0, &c, 1) < 1)
 					goto prepare_to_die;
 				if (c == 0) {
@@ -1459,8 +1790,14 @@ rewrite_line:
 				}
 			} else
 #endif
-			if (!Isprint(c))        /* Skip non-printable characters */
-				break;
+			{
+#if CONFIG_FEATURE_COMMAND_EDITING_VI
+				if (vi_cmdmode)  /* don't self-insert */
+					break;
+#endif
+				if (!Isprint(c)) /* Skip non-printable characters */
+					break;
+			}
 
 			if (len >= (BUFSIZ - 2))        /* Need to leave space for enter */
 				break;

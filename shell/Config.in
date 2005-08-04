@@ -201,6 +201,14 @@ config CONFIG_FEATURE_COMMAND_EDITING
 	help
 	  Enable command editing in shell.
 
+config CONFIG_FEATURE_COMMAND_EDITING_VI
+	bool "vi-style line editing commands"
+	default n
+	depends on CONFIG_FEATURE_COMMAND_EDITING
+	help
+	  Enable vi-style line editing in the shell.  This mode can be
+	  turned on and off with "set -o vi" and "set +o vi".
+
 config CONFIG_FEATURE_COMMAND_HISTORY
 	int "history size"
 	default 15

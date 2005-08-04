@@ -1949,19 +1949,21 @@ struct shparam {
 #define bflag optlist[11]
 #define uflag optlist[12]
 #define qflag optlist[13]
+#define viflag optlist[14]
 
 #ifdef DEBUG
-#define nolog optlist[14]
-#define debug optlist[15]
-#define NOPTS   16
-#else
-#define NOPTS   14
+#define nolog optlist[15]
+#define debug optlist[16]
+#endif
+
+#ifndef CONFIG_FEATURE_COMMAND_EDITING_VI
+#define setvimode(on) viflag = 0   /* forcibly keep the option off */
 #endif
 
 /*      $NetBSD: options.c,v 1.33 2003/01/22 20:36:04 dsl Exp $ */
 
 
-static const char *const optletters_optnames[NOPTS] = {
+static const char *const optletters_optnames[] = {
 	"e"   "errexit",
 	"f"   "noglob",
 	"I"   "ignoreeof",
@@ -1976,6 +1978,7 @@ static const char *const optletters_optnames[NOPTS] = {
 	"b"   "notify",
 	"u"   "nounset",
 	"q"   "quietprofile",
+	"\0"  "vi",
 #ifdef DEBUG
 	"\0"  "nolog",
 	"\0"  "debug",
@@ -1985,6 +1988,7 @@ static const char *const optletters_optnames[NOPTS] = {
 #define optletters(n) optletters_optnames[(n)][0]
 #define optnames(n) (&optletters_optnames[(n)][1])
 
+#define NOPTS (sizeof(optletters_optnames)/sizeof(optletters_optnames[0]))
 
 static char optlist[NOPTS];
 
@@ -8862,6 +8866,7 @@ optschanged(void)
 #endif
 	setinteractive(iflag);
 	setjobctl(mflag);
+	setvimode(viflag);
 }
 
 static inline void

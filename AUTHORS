@@ -157,3 +157,5 @@ Tito Ragusa <farmatito@tiscali.it>
     devfsd and size optimizations in strings, openvt, chvt, deallocvt, hdparm,
     fdformat, lsattr, chattr, id and eject.
 
+Paul Fox <pgf@foxharp.boston.ma.us>
+    vi editing mode for ash, various other patches/fixes
