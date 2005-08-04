@@ -29,6 +29,9 @@ Jeff Angielski <jeff@theptrgroup.com>
 Enrik Berkhan <Enrik.Berkhan@inka.de>
     setconsole
 
+Jim Bauer <jfbauer@nfr.com>
+    modprobe shell dependency
+
 Edward Betts <edward@debian.org>
     expr, hostid, logname, whoami
 
