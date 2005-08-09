@@ -1249,6 +1249,9 @@ static int commandcmd(int, char **);
 #endif
 static int dotcmd(int, char **);
 static int evalcmd(int, char **);
+#ifdef CONFIG_ASH_BUILTIN_ECHO
+static int echocmd(int, char **);
+#endif
 static int execcmd(int, char **);
 static int exitcmd(int, char **);
 static int exportcmd(int, char **);
@@ -1308,39 +1311,12 @@ struct builtincmd {
 	/* unsigned flags; */
 };
 
-#ifdef CONFIG_ASH_CMDCMD
-# ifdef JOBS
-#  ifdef CONFIG_ASH_ALIAS
-#    define COMMANDCMD (builtincmd + 7)
-#    define EXECCMD (builtincmd + 10)
-#  else
-#    define COMMANDCMD (builtincmd + 6)
-#    define EXECCMD (builtincmd + 9)
-#  endif
-# else /* ! JOBS */
-#  ifdef CONFIG_ASH_ALIAS
-#    define COMMANDCMD (builtincmd + 6)
-#    define EXECCMD (builtincmd + 9)
-#  else
-#    define COMMANDCMD (builtincmd + 5)
-#    define EXECCMD (builtincmd + 8)
-#  endif
-# endif /* JOBS */
-#else   /* ! CONFIG_ASH_CMDCMD */
-# ifdef JOBS
-#  ifdef CONFIG_ASH_ALIAS
-#    define EXECCMD (builtincmd + 9)
-#  else
-#    define EXECCMD (builtincmd + 8)
-#  endif
-# else /* ! JOBS */
-#  ifdef CONFIG_ASH_ALIAS
-#    define EXECCMD (builtincmd + 8)
-#  else
-#    define EXECCMD (builtincmd + 7)
-#  endif
-# endif /* JOBS */
-#endif /* CONFIG_ASH_CMDCMD */
+
+#define COMMANDCMD (builtincmd + 5 + \
+	ENABLE_ASH_ALIAS + ENABLE_ASH_JOB_CONTROL)
+#define EXECCMD (builtincmd + 7 + \
+	ENABLE_ASH_CMDCMD + ENABLE_ASH_ALIAS + \
+	ENABLE_ASH_BUILTIN_ECHO + ENABLE_ASH_JOB_CONTROL)
 
 #define BUILTIN_NOSPEC  "0"
 #define BUILTIN_SPECIAL "1"
@@ -1371,6 +1347,9 @@ static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_REGULAR       "command", commandcmd },
 #endif
 	{ BUILTIN_SPEC_REG      "continue", breakcmd },
+#ifdef CONFIG_ASH_BUILTIN_ECHO
+	{ BUILTIN_REGULAR       "echo", echocmd },
+#endif
 	{ BUILTIN_SPEC_REG      "eval", evalcmd },
 	{ BUILTIN_SPEC_REG      "exec", execcmd },
 	{ BUILTIN_SPEC_REG      "exit", exitcmd },
@@ -8200,6 +8179,13 @@ exitcmd(int argc, char **argv)
 	/* NOTREACHED */
 }
 
+#ifdef CONFIG_ASH_BUILTIN_ECHO
+static int
+echocmd(int argc, char **argv)
+{
+	return bb_echo(argc, argv);
+}
+#endif
 /*      $NetBSD: memalloc.c,v 1.27 2003/01/22 20:36:04 dsl Exp $        */
 
 /*

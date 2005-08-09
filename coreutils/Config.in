@@ -156,6 +156,7 @@ config CONFIG_ECHO
 	help
 	  echo is used to print a specified string to stdout.
 
+# this entry also appears in shell/Config.in, next to the echo builtin
 config CONFIG_FEATURE_FANCY_ECHO
 	bool "  Enable echo options (-n and -e)"
 	default y

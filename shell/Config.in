@@ -103,6 +103,21 @@ config CONFIG_ASH_CMDCMD
 	  you to run the specified command with the specified arguments,
 	  even when there is an ash builtin command with the same name.
 
+config CONFIG_ASH_BUILTIN_ECHO
+	bool "  Enable builtin version of 'echo'"
+	default n
+	depends on CONFIG_ASH
+	help
+	  Enable support for echo, built in to ash.
+
+# this entry also appears in coreutils/Config.in, next to the echo applet
+config CONFIG_FEATURE_FANCY_ECHO
+	bool "  Enable echo options (-n and -e)"
+	default y
+	depends on CONFIG_ASH_BUILTIN_ECHO
+	help
+	  This adds options (-n and -e) to echo.
+
 config CONFIG_ASH_MAIL
 	bool "  Check for new mail on interactive shells"
 	default y
