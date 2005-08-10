@@ -48,7 +48,7 @@ extern struct mntent *find_mount_point(const char *name, const char *table)
 		mountDevice = s.st_dev;
 
 
-	if ((mountTable = setmntent(table, "r")) == 0)
+	if ((mountTable = setmntent(table ? : bb_path_mtab_file, "r")) == 0)
 		return 0;
 
 	while ((mountEntry = getmntent(mountTable)) != 0) {

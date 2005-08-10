@@ -303,7 +303,7 @@ return &p;
 }
 
 int nfsmount(const char *spec, const char *node, int *flags,
-	     char **extra_opts, char **mount_opts, int running_bg)
+	     char **mount_opts, int running_bg)
 {
 	static char *prev_bg_host;
 	char hostdir[1024];
@@ -399,7 +399,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	/* add IP address to mtab options for use when unmounting */
 
 	s = inet_ntoa(server_addr.sin_addr);
-	old_opts = *extra_opts;
+	old_opts = *mount_opts;
 	if (!old_opts)
 		old_opts = "";
 	if (strlen(old_opts) + strlen(s) + 10 >= sizeof(new_opts)) {
@@ -408,7 +408,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	}
 	sprintf(new_opts, "%s%saddr=%s",
 		old_opts, *old_opts ? "," : "", s);
-	*extra_opts = bb_xstrdup(new_opts);
+	*mount_opts = bb_xstrdup(new_opts);
 
 	/* Set default options.
 	 * rsize/wsize (and bsize, for ver >= 3) are left 0 in order to

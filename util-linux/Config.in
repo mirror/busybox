@@ -323,54 +323,43 @@ config CONFIG_UMOUNT
 	  the tool to use.  If you enabled the 'mount' utility, you almost certainly
 	  also want to enable 'umount'.
 
-config CONFIG_FEATURE_MOUNT_FORCE
-	bool "  Support forced filesystem unmounting"
-	default n
-	depends on CONFIG_UMOUNT
-	help
-	  This allows you to _force_ a filesystem to be umounted.  This is generally
-	  only useful when you want to get rid of an unreachable NFS system.
-
 comment "Common options for mount/umount"
 	depends on CONFIG_MOUNT || CONFIG_UMOUNT
 
 config CONFIG_FEATURE_MOUNT_LOOP
-	bool "  Support for loop devices"
+	bool "  Support loopback mounts"
 	default n
 	depends on CONFIG_MOUNT || CONFIG_UMOUNT
 	help
-	  Enabling this feature allows automatic loopback mounts, meaning you can mount
-	  filesystems contained in normal files as well as in block devices.  The mount
-	  and umount commands will detect you are trying to mount a file instead of a
-	  block device, and transparently associate it with a loopback device (and free
-	  the loopback device on unmount) for you.
+	  Enabling this feature allows automatic mounting of files (containing
+	  filesystem images) via the linux kernel's loopback devices.  The mount
+	  command will detect you are trying to mount a file instead of a block
+	  device, and transparently associate the file with a loopback device.
+	  The umount command will also free that loopback device.
 	  
-	  You can still use the 'losetup' utility and mount the loopback device yourself
-	  if you need to do something advanced, such as specify an offset or cryptographic
-	  options to the loopback device.
-
-config CONFIG_FEATURE_MOUNT_LOOP_MAX
-	int "    max number of loop devices"
-	default 7
-	depends on CONFIG_FEATURE_MOUNT_LOOP
-	help
-	  This option sets the highest numbered loop device to be used
-	  automatically by the '-o loop' feature of mount.
+	  You can still use the 'losetup' utility (to manually associate files
+          with loop devices) if you need to do something advanced, such as
+	  specify an offset or cryptographic options to the loopback device.
+	  (If you don't want umount to free the loop device, use "umount -D".)
 
 config CONFIG_FEATURE_MTAB_SUPPORT
-	bool "  Support for a /etc/mtab file (instead of symlink to /proc/mounts)"
+	bool "  Support for the old /etc/mtab file"
 	default n
 	depends on CONFIG_MOUNT || CONFIG_UMOUNT
 	help
-	  If your root filesystem is writable and you wish to have the 'mount'
-	  utility create an mtab file listing the filesystems which have been
-	  mounted then you should enable this option.  Most people that use
-	  BusyBox have a read-only root filesystem, so they will leave this
-	  option disabled and BusyBox will use the /proc/mounts file.
+	  Historically, Unix systems kept track of the currently mounted
+	  partitions in the file "/etc/mtab".  These days, the kernel exports
+	  the list of currently mounted partitions in "/proc/mounts", rendering
+	  the old mtab file obsolete.  (In modern systems, /etc/mtab should be
+	  a symlink to /proc/mounts.)
 
-	  Note that even non-embedded developers probably want to have /etc/mtab
-	  be a symlink to /proc/mounts, since otherwise mtab can get out of sync
-	  with the real kernel mount state in numerous ways.
+	  The only reason to have mount maintain an /etc/mtab file itself is if
+	  your stripped-down embedded system does not have a /proc directory.
+	  If you must use this, keep in mind it's inherently brittle (for
+	  example a mount under chroot won't update it), can't handle modern
+	  features like separate per-process filesystem namespaces, requires
+	  that your /etc directory be writeable, tends to get easily confused
+	  by --bind or --move mounts, and so on.  (In brief: avoid.)
 
 config CONFIG_READPROFILE
 	bool "readprofile"

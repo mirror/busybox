@@ -19,10 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+
 #include <features.h>
-#if defined (__GLIBC__) && !defined(__UCLIBC__)
-#include <linux/posix_types.h>
-#endif
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -30,127 +28,108 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include "libbb.h"
-#ifdef CONFIG_FEATURE_MOUNT_LOOP
 
-/* Grumble...  The 2.6.x kernel breaks asm/posix_types.h
- * so we get to try and cope as best we can... */
+/* For 2.6, use the cleaned up header to get the 64 bit API. */
 #include <linux/version.h>
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,0)
-#define __bb_kernel_dev_t   __kernel_old_dev_t
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
-#define __bb_kernel_dev_t   __kernel_dev_t
-#else
-#define __bb_kernel_dev_t   unsigned short
-#endif
+#include <linux/loop.h>
+typedef struct loop_info64 bb_loop_info;
+#define BB_LOOP_SET_STATUS LOOP_SET_STATUS64
+#define BB_LOOP_GET_STATUS LOOP_GET_STATUS64
 
-/* Stuff stolen from linux/loop.h */
+/* For 2.4 and earlier, use the 32 bit API (and don't trust the headers) */
+#else
+/* Stuff stolen from linux/loop.h for 2.4 and earlier kernels*/
+#include <linux/posix_types.h>
 #define LO_NAME_SIZE        64
 #define LO_KEY_SIZE         32
 #define LOOP_SET_FD         0x4C00
 #define LOOP_CLR_FD         0x4C01
-#define LOOP_SET_STATUS     0x4C02
-#define LOOP_GET_STATUS     0x4C03
-struct loop_info {
+#define BB_LOOP_SET_STATUS  0x4C02
+#define BB_LOOP_GET_STATUS  0x4C03
+typedef struct {
 	int                lo_number;
-	__bb_kernel_dev_t  lo_device;
+	__kernel_dev_t     lo_device;
 	unsigned long      lo_inode;
-	__bb_kernel_dev_t  lo_rdevice;
+	__kernel_dev_t     lo_rdevice;
 	int                lo_offset;
 	int                lo_encrypt_type;
 	int                lo_encrypt_key_size;
 	int                lo_flags;
-	char               lo_name[LO_NAME_SIZE];
+	char               lo_file_name[LO_NAME_SIZE];
 	unsigned char      lo_encrypt_key[LO_KEY_SIZE];
 	unsigned long      lo_init[2];
 	char               reserved[4];
-};
+} bb_loop_info;
+#endif
 
 extern int del_loop(const char *device)
 {
-	int fd;
+	int fd,rc=0;
 
-	if ((fd = open(device, O_RDONLY)) < 0) {
-		bb_perror_msg("%s", device);
-		return (FALSE);
-	}
-	if (ioctl(fd, LOOP_CLR_FD, 0) < 0) {
+	if ((fd = open(device, O_RDONLY)) < 0) rc=1;
+	else {
+		if (ioctl(fd, LOOP_CLR_FD, 0) < 0) rc=1;
 		close(fd);
-		bb_perror_msg("ioctl: LOOP_CLR_FD");
-		return (FALSE);
 	}
-	close(fd);
-	return (TRUE);
+	return rc;
 }
 
-extern int set_loop(const char *device, const char *file, int offset,
-					int *loopro)
-{
-	struct loop_info loopinfo;
-	int fd, ffd, mode;
-
-	mode = *loopro ? O_RDONLY : O_RDWR;
-	if ((ffd = open(file, mode)) < 0 && !*loopro
-		&& (errno != EROFS || (ffd = open(file, mode = O_RDONLY)) < 0)) {
-		bb_perror_msg("%s", file);
-		return 1;
-	}
-	if ((fd = open(device, mode)) < 0) {
-		close(ffd);
-		bb_perror_msg("%s", device);
-		return 1;
-	}
-	*loopro = (mode == O_RDONLY);
-
-	memset(&loopinfo, 0, sizeof(loopinfo));
-	safe_strncpy(loopinfo.lo_name, file, LO_NAME_SIZE);
-
-	loopinfo.lo_offset = offset;
-
-	loopinfo.lo_encrypt_key_size = 0;
-	if (ioctl(fd, LOOP_SET_FD, ffd) < 0) {
-		bb_perror_msg("ioctl: LOOP_SET_FD");
-		close(fd);
-		close(ffd);
-		return 1;
-	}
-	if (ioctl(fd, LOOP_SET_STATUS, &loopinfo) < 0) {
-		(void) ioctl(fd, LOOP_CLR_FD, 0);
-		bb_perror_msg("ioctl: LOOP_SET_STATUS");
-		close(fd);
-		close(ffd);
-		return 1;
-	}
-	close(fd);
-	close(ffd);
-	return 0;
-}
-
-extern char *find_unused_loop_device(void)
+// Returns 0 if mounted RW, 1 if mounted read-only, <0 for error.
+// *device is loop device to use, or if *device==NULL finds a loop device to
+// mount it on and sets *device to a strdup of that loop device name.  This
+// search will re-use an existing loop device already bound to that
+// file/offset if it finds one.
+extern int set_loop(char **device, const char *file, int offset)
 {
 	char dev[20];
-	int i, fd;
+	bb_loop_info loopinfo;
 	struct stat statbuf;
-	struct loop_info loopinfo;
+	int i, dfd, ffd, mode, rc=1;
 
-	for (i = 0; i <= CONFIG_FEATURE_MOUNT_LOOP_MAX; i++) {
-		sprintf(dev, LOOP_FORMAT, i);
-		if (stat(dev, &statbuf) == 0 && S_ISBLK(statbuf.st_mode)) {
-			if ((fd = open(dev, O_RDONLY)) >= 0) {
-				if (ioctl(fd, LOOP_GET_STATUS, &loopinfo) != 0) {
-					if (errno == ENXIO) {	/* probably free */
-						close(fd);
-						return strdup(dev);
-					}
-				}
-				close(fd);
-			}
+	// Open the file.  Barf if this doesn't work.
+	if((ffd = open(file, mode=O_RDWR))<0)
+		if(errno!=EROFS || (ffd=open(file,mode=O_RDONLY))<0)
+			return errno;
+
+	// Find a loop device
+	for(i=0;rc;i++) {
+		sprintf(dev, LOOP_FORMAT, i++);
+		// Ran out of block devices, return failure.
+		if(stat(*device ? : dev, &statbuf) || !S_ISBLK(statbuf.st_mode)) {
+			rc=ENOENT;
+			break;
 		}
-	}
-	return NULL;
-}
-#endif
+		// Open the sucker and check its loopiness.
+		if((dfd=open(dev, mode))<0 && errno==EROFS)
+			dfd=open(dev,mode=O_RDONLY);
+		if(dfd<0) continue;
 
+		rc=ioctl(dfd, BB_LOOP_GET_STATUS, &loopinfo);
+		// If device free, claim it.
+		if(rc && errno==ENXIO) {
+			memset(&loopinfo, 0, sizeof(loopinfo));
+			safe_strncpy(loopinfo.lo_file_name, file, LO_NAME_SIZE);
+			loopinfo.lo_offset = offset;
+			// Associate free loop device with file
+			if(!ioctl(dfd, LOOP_SET_FD, ffd) &&
+			   !ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo)) rc=0;
+			else ioctl(dfd, LOOP_CLR_FD, 0);
+		// If this block device already set up right, re-use it.
+		// (Yes this is racy, but associating two loop devices with the same
+		// file isn't pretty either.  In general, mounting the same file twice
+		// without using losetup manually is problematic.)
+		} else if(strcmp(file,loopinfo.lo_file_name)
+					|| offset!=loopinfo.lo_offset) rc=1;
+		close(dfd);
+		if(*device) break;
+	}
+	close(ffd);
+	if(!rc) {
+		if(!*device) *device=strdup(dev);
+		return mode==O_RDONLY ? 1 : 0;
+	} else return rc;
+}
 
 /* END CODE */
 /*

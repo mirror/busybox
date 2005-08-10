@@ -132,11 +132,9 @@ extern int get_kernel_revision(void);
 
 extern int get_console_fd(void);
 extern struct mntent *find_mount_point(const char *name, const char *table);
-extern void write_mtab(char* blockDevice, char* directory,
-					   char* filesystemType, long flags, char* string_flags);
 extern void erase_mtab(const char * name);
 extern long *find_pid_by_name( const char* pidName);
-extern char *find_real_root_device_name(void);
+extern char *find_block_device(char *path);
 extern char *bb_get_line_from_file(FILE *file);
 extern char *bb_get_chomped_line_from_file(FILE *file);
 extern char *bb_get_chunk_from_file(FILE *file);
@@ -242,16 +240,14 @@ extern char *bb_askpass(int timeout, const char * prompt);
 extern int device_open(const char *device, int mode);
 
 extern int del_loop(const char *device);
-extern int set_loop(const char *device, const char *file, int offset, int *loopro);
-extern char *find_unused_loop_device (void);
-
+extern int set_loop(char **device, const char *file, int offset);
 
 #if (__GLIBC__ < 2)
 extern int vdprintf(int d, const char *format, va_list ap);
 #endif
 
 int nfsmount(const char *spec, const char *node, int *flags,
-	     char **extra_opts, char **mount_opts, int running_bg);
+	     char **mount_opts, int running_bg);
 
 /* Include our own copy of struct sysinfo to avoid binary compatability
  * problems with Linux 2.4, which changed things.  Grumble, grumble. */
@@ -452,6 +448,7 @@ typedef struct {
 	int ppid;
 #ifdef FEATURE_CPU_USAGE_PERCENTAGE
 	unsigned pcpu;
+	unsigned pscpu;
 	unsigned long stime, utime;
 #endif
 	char *cmd;

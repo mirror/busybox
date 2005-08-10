@@ -28,8 +28,8 @@
 #include "libbb.h"
 
 #define MTAB_MAX_ENTRIES 40
-static const int MS_RDONLY = 1;	/* Mount read-only.  */
 
+#ifdef CONFIG_FEATURE_MTAB_SUPPORT
 void erase_mtab(const char *name)
 {
 	struct mntent entries[MTAB_MAX_ENTRIES];
@@ -72,45 +72,4 @@ void erase_mtab(const char *name)
 	} else if (errno != EROFS)
 		bb_perror_msg(bb_path_mtab_file);
 }
-
-void write_mtab(char *blockDevice, char *directory,
-				char *filesystemType, long flags, char *string_flags)
-{
-	FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
-	struct mntent m;
-
-	if (mountTable == 0) {
-		bb_perror_msg(bb_path_mtab_file);
-		return;
-	}
-	if (mountTable) {
-		int length = strlen(directory);
-
-		if (length > 1 && directory[length - 1] == '/')
-			directory[length - 1] = '\0';
-
-		if (filesystemType == 0) {
-			struct mntent *p = find_mount_point(blockDevice, "/proc/mounts");
-
-			if (p && p->mnt_type)
-				filesystemType = p->mnt_type;
-		}
-		m.mnt_fsname = blockDevice;
-		m.mnt_dir = directory;
-		m.mnt_type = filesystemType ? filesystemType : "default";
-
-		if (*string_flags) {
-			m.mnt_opts = string_flags;
-		} else {
-			if ((flags | MS_RDONLY) == flags)
-				m.mnt_opts = "ro";
-			else
-				m.mnt_opts = "rw";
-		}
-
-		m.mnt_freq = 0;
-		m.mnt_passno = 0;
-		addmntent(mountTable, &m);
-		endmntent(mountTable);
-	}
-}
+#endif

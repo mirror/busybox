@@ -48,13 +48,9 @@ extern int eject_main(int argc, char **argv)
 	if((m = find_mount_point(device, bb_path_mtab_file))) {
 		if(umount(m->mnt_dir))
 			bb_error_msg_and_die("Can't umount");
-#ifdef CONFIG_FEATURE_MTAB_SUPPORT
-		else
-			erase_mtab(m->mnt_fsname);	
-#endif
+		else if(ENABLE_FEATURE_MTAB_SUPPORT) erase_mtab(m->mnt_fsname);	
 	}
-	if (ioctl(bb_xopen( device, 
-	                   (O_RDONLY | O_NONBLOCK)), 
+	if (ioctl(bb_xopen( device, (O_RDONLY | O_NONBLOCK)), 
 	          ( flags ? CDROMCLOSETRAY : CDROMEJECT)))
 	{
 		bb_perror_msg_and_die(device);

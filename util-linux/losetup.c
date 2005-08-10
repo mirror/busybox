@@ -27,33 +27,27 @@
 int
 losetup_main (int argc, char **argv)
 {
-  int delete = 0;
   int offset = 0;
-  int opt;
 
-  while ((opt = getopt (argc, argv, "do:")) != -1)
-    switch (opt)
-      {
-      case 'd':
-	delete = 1;
-	break;
+  /* This will need a "while(getopt()!=-1)" loop when we can have more than
+     one option, but for now we can't. */
+  switch(getopt(argc,argv, "do:")) {
+    case 'd':
+      /* detach takes exactly one argument */
+      if(optind+1==argc)
+        return del_loop(argv[optind]) ? EXIT_SUCCESS : EXIT_FAILURE;
+      break;
 
-      case 'o':
-	offset = bb_xparse_number (optarg, NULL);
-	break;
-
-      default:
-	bb_show_usage();
-      }
-
-  if ((delete && (offset || optind + 1 != argc))
-      || (!delete && optind + 2 != argc))
-    bb_show_usage();
-
-  opt = 0;
-  if (delete)
-    return del_loop (argv[optind]) ? EXIT_SUCCESS : EXIT_FAILURE;
-  else
-    return set_loop (argv[optind], argv[optind + 1], offset, &opt)
-      ? EXIT_FAILURE : EXIT_SUCCESS;
+    case 'o':
+      offset = bb_xparse_number (optarg, NULL);
+      /* Fall through to do the losetup */
+    case -1:
+      /* losetup takes two argument:, loop_device and file */
+      if(optind+2==argc)
+        return set_loop(&argv[optind], argv[optind + 1], offset)<0
+	    ? EXIT_FAILURE : EXIT_SUCCESS;
+      break;
+  }
+  bb_show_usage();
+  return EXIT_FAILURE;
 }

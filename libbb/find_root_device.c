@@ -25,65 +25,25 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-
-
-extern char *find_real_root_device_name(void)
+extern char *find_block_device(char *path)
 {
 	DIR *dir;
 	struct dirent *entry;
-	struct stat statBuf, rootStat;
-	char *fileName = NULL;
+	struct stat st;
 	dev_t dev;
+	char *retpath=NULL;
 
-	if (stat("/", &rootStat) != 0)
-		bb_perror_msg("could not stat '/'");
-	else {
-		/* This check is here in case they pass in /dev name */
-		if ((rootStat.st_mode & S_IFMT) == S_IFBLK)
-			dev = rootStat.st_rdev;
-		else
-			dev = rootStat.st_dev;
-
-		dir = opendir("/dev");
-		if (!dir)
-			bb_perror_msg("could not open '/dev'");
-		else {
-			while((entry = readdir(dir)) != NULL) {
-				const char *myname = entry->d_name;
-				/* Must skip ".." since that is "/", and so we
-				 * would get a false positive on ".."  */
-				if (myname[0] == '.' && myname[1] == '.' && !myname[2])
-					continue;
-#ifdef CONFIG_FEATURE_DEVFS
-				/* if there is a link named /dev/root skip that too */
-				if (strcmp(myname, "root")==0)
-					continue;
-#endif
-				fileName = concat_path_file("/dev", myname);
-
-				/* Some char devices have the same dev_t as block
-				 * devices, so make sure this is a block device */
-				if (stat(fileName, &statBuf) == 0 &&
-						S_ISBLK(statBuf.st_mode)!=0 &&
-						statBuf.st_rdev == dev)
-					break;
-				free(fileName);
-				fileName=NULL;
-			}
-			closedir(dir);
+	if(stat(path, &st) || !(dir = opendir("/dev"))) return NULL;
+	dev = (st.st_mode & S_IFMT) == S_IFBLK ? st.st_rdev : st.st_dev;
+	while((entry = readdir(dir)) != NULL) {
+		char devpath[PATH_MAX];
+		sprintf(devpath,"/dev/%s", entry->d_name);
+		if(!stat(devpath, &st) && S_ISBLK(st.st_mode) && st.st_rdev == dev) {
+			retpath = bb_xstrdup(devpath);
+			break;
 		}
 	}
-	if(fileName==NULL)
-		fileName = bb_xstrdup("/dev/root");
-	return fileName;
+	closedir(dir);
+
+	return retpath;
 }
-
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
