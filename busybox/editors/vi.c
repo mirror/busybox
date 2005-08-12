@@ -3517,6 +3517,7 @@ key_cmd_mode:
 		dot_end();		// move to NL
 		if (dot < end - 1) {	// make sure not last char in text[]
 			*dot++ = ' ';	// replace NL with space
+			file_modified = TRUE;
 			while (isblnk(*dot)) {	// delete leading WS
 				dot_delete();
 			}
