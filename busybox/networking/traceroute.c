@@ -101,7 +101,8 @@ struct opacket {
 
 #include "busybox.h"
 
-static u_char  packet[512];            /* last inbound (icmp) packet */
+                                       /* last inbound (icmp) packet */
+static u_char  packet[512] __attribute__ ((aligned));
 static struct opacket  *outpacket;     /* last output (udp) packet */
 
 static int s;                          /* receive (icmp) socket file descriptor */
