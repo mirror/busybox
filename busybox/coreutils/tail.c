@@ -79,7 +79,13 @@ static void tail_xbb_full_write(const char *buf, size_t len)
 static ssize_t tail_read(int fd, char *buf, size_t count)
 {
 	ssize_t r;
+	off_t current,end;
+	struct stat sbuf;
 
+	end = current = lseek(fd, 0, SEEK_CUR);
+	if (!fstat(fd, &sbuf))
+		end = sbuf.st_size;
+	lseek(fd, end < current ? 0 : current, SEEK_SET);
 	if ((r = safe_read(fd, buf, count)) < 0) {
 		bb_perror_msg("read");
 		status = EXIT_FAILURE;

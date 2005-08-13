@@ -320,7 +320,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			FD_ZERO(&rfds);
 			FD_SET(socketfd, &rfds);
 
-			switch (select(FD_SETSIZE, &rfds, NULL, NULL, &tv)) {
+			switch (select(socketfd + 1, &rfds, NULL, NULL, &tv)) {
 			case 1:
 				len = recvfrom(socketfd, buf, tftp_bufsize, 0,
 						(struct sockaddr *) &from, &fromlen);
@@ -461,6 +461,11 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			/* in case the last ack disappeared into the ether */
 			if ( tmp == (block_nr - 1) ) {
 				--block_nr;
+				opcode = TFTP_ACK;
+				continue;
+			} else if (tmp + 1 == block_nr) {
+				/* Server lost our TFTP_ACK.  Resend it */
+				block_nr = tmp;
 				opcode = TFTP_ACK;
 				continue;
 			}
