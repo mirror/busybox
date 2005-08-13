@@ -71,27 +71,7 @@
 #define SET_FERROR_UNLOCKED(S)    ((S)->mode |= __MODE_ERR)
 
 # else
-#error unknown uClibc stdio implemenation!
-# endif
-
-#elif defined(__GLIBC__)
-
-# if defined(_STDIO_USES_IOSTREAM)
-/* Apparently using the newer libio implementation, with associated defines:
- * #define _IO_feof_unlocked(__fp) (((__fp)->_flags & _IO_EOF_SEEN) != 0)
- * #define _IO_ferror_unlocked(__fp) (((__fp)->_flags & _IO_ERR_SEEN) != 0)
- */
-#define SET_FERROR_UNLOCKED(S)    ((S)->_flags |= _IO_ERR_SEEN)
-
-# else
-/* Assume the older version of glibc which used a bitfield entry
- * as a stream error flag.  The associated defines were:
- * #define __clearerr(stream)      ((stream)->__error = (stream)->__eof = 0)
- * #define feof_unlocked(stream)         ((stream)->__eof != 0)
- * #define ferror_unlocked(stream)       ((stream)->__error != 0)
- */
-#define SET_FERROR_UNLOCKED(S)    ((S)->__error = 1)
-
+#  error unknown uClibc stdio implemenation!
 # endif
 
 #elif defined(__NEWLIB_H__)
@@ -101,7 +81,27 @@
  * #define __sferror(p)    (((p)->_flags & __SERR) != 0)
  * #define __sclearerr(p)  ((void)((p)->_flags &= ~(__SERR|__SEOF)))
  */
-#define SET_FERROR_UNLOCKED(S)    ((S)->_flags |= __SERR)
+# define SET_FERROR_UNLOCKED(S)    ((S)->_flags |= __SERR)
+
+#elif defined(__GLIBC__)
+
+# if defined(_STDIO_USES_IOSTREAM)
+/* Apparently using the newer libio implementation, with associated defines:
+ * #define _IO_feof_unlocked(__fp) (((__fp)->_flags & _IO_EOF_SEEN) != 0)
+ * #define _IO_ferror_unlocked(__fp) (((__fp)->_flags & _IO_ERR_SEEN) != 0)
+ */
+#  define SET_FERROR_UNLOCKED(S)    ((S)->_flags |= _IO_ERR_SEEN)
+
+# else
+/* Assume the older version of glibc which used a bitfield entry
+ * as a stream error flag.  The associated defines were:
+ * #define __clearerr(stream)      ((stream)->__error = (stream)->__eof = 0)
+ * #define feof_unlocked(stream)         ((stream)->__eof != 0)
+ * #define ferror_unlocked(stream)       ((stream)->__error != 0)
+ */
+#  define SET_FERROR_UNLOCKED(S)    ((S)->__error = 1)
+
+# endif
 
 #elif defined(__dietlibc__)
 /*
@@ -120,13 +120,13 @@
  * you can extract the information you need from dietstdio.h.  See the
  * other library implementations for examples.
  */
-#error dietlibc is currently not supported.  Please see the commented source.
+# error dietlibc is currently not supported.  Please see the commented source.
 
 #else /* some other lib */
 /* Please see the comments for the above supported libraries for examples
  * of what is required to support your stdio implementation.
  */
-#error Your stdio library is currently not supported.  Please see the commented source.
+# error Your stdio library is currently not supported.  Please see the commented source.
 #endif
 
 #ifdef L_bb_vfprintf
