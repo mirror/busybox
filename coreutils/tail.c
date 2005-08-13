@@ -85,10 +85,7 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 	end = current = lseek(fd, 0, SEEK_CUR);
 	if (!fstat(fd, &sbuf))
 		end = sbuf.st_size;
-	if (end < current)
-		lseek(fd, 0, SEEK_SET);
-	else
-		lseek(fd, current, SEEK_SET);
+	lseek(fd, end < current ? 0 : current, SEEK_SET);
 	if ((r = safe_read(fd, buf, count)) < 0) {
 		bb_perror_msg("read");
 		status = EXIT_FAILURE;
