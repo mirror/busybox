@@ -47,7 +47,7 @@ UDHCP_OBJS=$(patsubst %.c,$(UDHCP_DIR)%.o, $(UDHCP-y))
 libraries-y+=$(UDHCP_DIR)$(UDHCP_AR)
 
 $(UDHCP_DIR)$(UDHCP_AR): $(UDHCP_OBJS)
-	$(AR) -ro $@ $(UDHCP_OBJS)
+	$(AR) $(ARFLAGS) $@ $(UDHCP_OBJS)
 
 $(UDHCP_OBJS): $(UDHCP_DIR)%.o : $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DIN_BUSYBOX -c $< -o $@

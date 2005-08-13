@@ -34,7 +34,7 @@ ifndef top_builddir
 top_builddir=$(CURDIR)
 endif
 
-srctree=$(top_srcdir)
+export srctree=$(top_srcdir)
 vpath %/Config.in $(srctree)
 
 include $(top_builddir)/Rules.mak
@@ -164,9 +164,9 @@ docs/busybox.pod : $(top_srcdir)/docs/busybox_header.pod $(top_srcdir)/include/u
 	    cat $(top_srcdir)/docs/busybox_footer.pod ) > docs/busybox.pod
 
 docs/BusyBox.txt: docs/busybox.pod
-	@echo
-	@echo BusyBox Documentation
-	@echo
+	$(SECHO)
+	$(SECHO) BusyBox Documentation
+	$(SECHO)
 	-mkdir -p docs
 	-pod2text $< > $@
 
@@ -214,9 +214,9 @@ include/config.h: .config
 	@$(top_builddir)/scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 finished2:
-	@echo
-	@echo Finished installing...
-	@echo
+	$(SECHO)
+	$(SECHO) Finished installing...
+	$(SECHO)
 
 else # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 

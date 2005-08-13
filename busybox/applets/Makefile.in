@@ -29,7 +29,7 @@ APPLET_OBJ:= $(patsubst %.c,$(APPLETS_DIR)%.o, $(APPLET_SRC))
 libraries-y+=$(APPLETS_DIR)$(APPLETS_AR)
 
 $(APPLETS_DIR)$(APPLETS_AR): $(APPLET_OBJ)
-	$(AR) -ro $@ $(APPLET_OBJ)
+	$(AR) $(ARFLAGS) $@ $(APPLET_OBJ)
 
 $(APPLET_OBJ): $(top_builddir)/.config
 $(APPLET_OBJ): $(APPLETS_DIR)%.o: $(srcdir)/%.c
