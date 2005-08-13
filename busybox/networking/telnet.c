@@ -96,6 +96,7 @@ static struct Globalvars {
 	byte    charmode;
 	byte    telflags;
 	byte	gotsig;
+	byte	do_termios;
 	/* buffer to handle telnet negotiations */
 	char    iacbuf[IACBUFSIZE];
 	short	iaclen; /* could even use byte */
@@ -616,12 +617,12 @@ static void fgotsig(int sig)
 
 static void rawmode(void)
 {
-	tcsetattr(0, TCSADRAIN, &G.termios_raw);
+	if (G.do_termios) tcsetattr(0, TCSADRAIN, &G.termios_raw);
 }
 
 static void cookmode(void)
 {
-	tcsetattr(0, TCSADRAIN, &G.termios_def);
+	if (G.do_termios) tcsetattr(0, TCSADRAIN, &G.termios_def);
 }
 
 extern int telnet_main(int argc, char** argv)
@@ -649,11 +650,12 @@ extern int telnet_main(int argc, char** argv)
 
 	memset(&G, 0, sizeof G);
 
-	if (tcgetattr(0, &G.termios_def) < 0)
-		exit(1);
+	if (tcgetattr(0, &G.termios_def) >= 0) {
+		G.do_termios = 1;
 
-	G.termios_raw = G.termios_def;
-	cfmakeraw(&G.termios_raw);
+		G.termios_raw = G.termios_def;
+		cfmakeraw(&G.termios_raw);
+	}
 
 	if (argc < 2)
 		bb_show_usage();

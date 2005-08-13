@@ -65,9 +65,9 @@ static int ftpcmd(const char *s1, const char *s2, FILE *stream, char *buf)
 
 	if (s1) {
 		if (s2) {
-			fprintf(stream, "%s%s\n", s1, s2);
+			fprintf(stream, "%s%s\r\n", s1, s2);
 		} else {
-			fprintf(stream, "%s\n", s1);
+			fprintf(stream, "%s\r\n", s1);
 		}
 	}
 	do {
