@@ -242,6 +242,9 @@ start_stop_daemon_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
+	if (opt & SSD_OPT_QUIET)
+		quiet = 1;
+
 	if (signame) {
 		signal_nr = bb_xgetlarg(signame, 10, 0, NSIG);
 	}
