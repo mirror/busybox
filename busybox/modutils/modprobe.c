@@ -4,6 +4,7 @@
  *
  * Copyright (c) 2002 by Robert Griebl, griebl@gmx.de
  * Copyright (c) 2003 by Andrew Dennison, andrew.dennison@motec.com.au
+ * Copyright (c) 2005 by Jim Bauer, jfbauer@nfr.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +23,8 @@
 */
 
 #include <sys/utsname.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -393,30 +396,65 @@ static int already_loaded (const char *name)
 
 static int mod_process ( struct mod_list_t *list, int do_insert )
 {
-	char lcmd [4096];
 	int rc = 0;
+	char *argv[10];
+	int argc;
 
 	while ( list ) {
-		*lcmd = '\0';
+		argc = 0;
 		if ( do_insert ) {
-			if (already_loaded (list->m_name) != 1)
-				snprintf ( lcmd, sizeof( lcmd ) - 1, "insmod %s %s %s %s %s",
-						do_syslog ? "-s" : "", autoclean ? "-k" : "",
-						quiet ? "-q" : "", list-> m_path, list-> m_options ?
-						list-> m_options : "" );
+		    if (already_loaded (list->m_name) != 1) {
+				argv[argc++] = "insmod";
+				if (do_syslog)
+					argv[argc++] = "-s";
+				if (autoclean)
+					argv[argc++] = "-k";
+				if (quiet)
+					argv[argc++] = "-q";
+				argv[argc++] = list-> m_path;
+				if (list-> m_options)
+					argv[argc++] = list-> m_options;
+			}
 		} else {
 			/* modutils uses short name for removal */
-			if (already_loaded (list->m_name) != 0)
-				snprintf ( lcmd, sizeof( lcmd ) - 1, "rmmod %s %s",
-						do_syslog ? "-s" : "", list-> m_name );
+		    if (already_loaded (list->m_name) != 0) {
+				argv[argc++] = "rmmod";
+				if (do_syslog)
+					argv[argc++] = "-s";
+				argv[argc++] = list->m_name;
+			}
 		}
+		argv[argc] = NULL;
 
-		if (*lcmd) {
+		if (argc) {
 			if (verbose) {
-				printf("%s\n", lcmd);
+				int i;
+				for (i=0; i<argc; i++)
+				  printf("%s ", argv[i]);
+				printf("\n");
 			}
 			if (!show_only) {
-				int rc2 = system(lcmd);
+				int rc2 = 0;
+				int status;
+				switch (fork()) {
+				case -1:
+					rc2 = 1;
+					break;
+				case 0: //child
+					execvp(argv[0], argv);
+					bb_perror_msg_and_die("exec of %s", argv[0]);
+					/* NOTREACHED */
+				default:
+					if (wait(&status) == -1) {
+						rc2 = 1;
+						break;
+					}
+					if (WIFEXITED(status))
+						rc2 = WEXITSTATUS(status);
+					if (WIFSIGNALED(status))
+						rc2 = WTERMSIG(status);
+					break;
+				}
 				if (do_insert) {
 					rc = rc2; /* only last module matters */
 				}

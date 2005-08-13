@@ -23,6 +23,9 @@ Laurence Anderson <l.d.anderson@warwick.ac.uk>
 Jeff Angielski <jeff@theptrgroup.com>
     ftpput, ftpget
 
+Jim Bauer <jfbauer@nfr.com>
+    modprobe shell dependency
+
 Edward Betts <edward@debian.org>
     expr, hostid, logname, whoami
 
