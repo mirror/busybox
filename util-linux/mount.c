@@ -123,7 +123,7 @@ extern int mount_main(int argc, char **argv)
 		 *loopFile = 0, *buf = 0,
 		 *files[] = {"/etc/filesystems", "/proc/filesystems", 0};
 	int i, opt, all = FALSE, fakeIt = FALSE, allowWrite = FALSE,
-	   	rc = EXIT_FAILURE, useMtab = ENABLE_FEATURE_MTAB_SUPPORT;
+	   	rc = 1, useMtab = ENABLE_FEATURE_MTAB_SUPPORT;
 	int flags=0xc0ed0000;	// Needed for linux 2.2, ignored by 2.4 and 2.6.
 	FILE *file = 0,*f = 0;
 	char path[PATH_MAX*2];
@@ -284,7 +284,7 @@ singlemount:
 			if(nfsmount(blockDevice, directory, &flags, &string_flags, 1))
 				bb_perror_msg("nfsmount failed");
 			else {
-				rc=EXIT_SUCCESS;
+				rc = 0;
 				fsType="nfs";
 			}
 		} else {
@@ -380,7 +380,7 @@ mount_it_now:
 				if(ENABLE_FEATURE_CLEAN_UP) free(loopFile);
 			}
 			// Don't whine about already mounted fs when mounting all.
-			if(rc<0 && errno == EBUSY && all) rc=0;
+			if(rc<0 && errno == EBUSY && all) rc = 0;
 			else if (errno == EPERM)
 				bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 		}
@@ -396,5 +396,5 @@ mount_it_now:
 	if(file) endmntent(file);
 	if(rc) bb_perror_msg("Mounting %s on %s failed", blockDevice, directory);
 
-	return rc ? : EXIT_FAILURE;
+	return rc;
 }
