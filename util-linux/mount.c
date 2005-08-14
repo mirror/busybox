@@ -342,7 +342,7 @@ mount_it_now:
 						flags|=MS_RDONLY;
 					}
 				}
-				if(!rc) break;
+				if(!rc || !f) break;
 			}
 			if(f) fclose(f);
 			if(!f || !rc) break;
