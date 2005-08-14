@@ -6606,7 +6606,7 @@ usage:
 		} else
 			pid = number(*argv);
 		if (kill(pid, signo) != 0) {
-			sh_warnx("%m\n");
+			sh_warnx("kill %d: %s", pid, errmsg(errno, NULL));
 			i = 1;
 		}
 	} while (*++argv);
