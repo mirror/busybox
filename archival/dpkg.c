@@ -1299,7 +1299,7 @@ static char **all_control_list(const char *package_name)
 	char **remove_files;
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
-	remove_files = malloc(sizeof(all_control_files));
+	remove_files = xmalloc(sizeof(all_control_files));
 	while (all_control_files[i]) {
 		remove_files[i] = xmalloc(strlen(package_name) + strlen(all_control_files[i]) + 21);
 		sprintf(remove_files[i], "/var/lib/dpkg/info/%s.%s", package_name, all_control_files[i]);

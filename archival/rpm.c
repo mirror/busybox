@@ -243,7 +243,7 @@ rpm_index **rpm_gettags(int fd, int *num_tags)
 		storepos = lseek(fd,0,SEEK_CUR) + header.entries * 16;
 
 		while (header.entries--) {
-			tmpindex = tags[tagindex++] = malloc(sizeof(rpm_index));
+			tmpindex = tags[tagindex++] = xmalloc(sizeof(rpm_index));
 			read(fd, tmpindex, sizeof(rpm_index));
 			tmpindex->tag = ntohl(tmpindex->tag); tmpindex->type = ntohl(tmpindex->type); tmpindex->count = ntohl(tmpindex->count);
 			tmpindex->offset = storepos + ntohl(tmpindex->offset);

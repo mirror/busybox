@@ -176,7 +176,7 @@ static void make_gunzip_crc_table(void)
 
 	/* initial shift register value */
 	gunzip_crc = 0xffffffffL;
-	gunzip_crc_table = (unsigned int *) malloc(256 * sizeof(unsigned int));
+	gunzip_crc_table = (unsigned int *) xmalloc(256 * sizeof(unsigned int));
 
 	/* Compute and print table of CRC's, five per line */
 	for (i = 0; i < 256; i++) {
