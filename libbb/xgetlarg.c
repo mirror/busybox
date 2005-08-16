@@ -22,7 +22,7 @@ extern long bb_xgetlarg(const char *arg, int base, long lower, long upper)
 	assert(arg!=NULL);
 
 	/* Don't allow leading whitespace. */
-	if ((isspace)(*arg)) {	/* Use an actual funciton call for minimal size. */
+	if (isspace(*arg)) {	/* Use an actual function call for minimal size. */
 		bb_show_usage();
 	}
 
