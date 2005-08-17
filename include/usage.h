@@ -395,10 +395,10 @@
 #endif
 
 #define devfsd_trivial_usage \
-	"devfsd [-v]" \
+	"mntpnt [-v]" \
 	USAGE_DEVFSD_FG_NP("[-fg][-np]" )
 #define devfsd_full_usage \
-	"Obsolete daemon for managing devfs permissions and old device name symlinks.\n" \
+	"Optional daemon for managing devfs permissions and old device name symlinks.\n" \
 	"\nOptions:\n" \
 	"\tmntpnt\tThe mount point where devfs is mounted.\n\n" \
 	"\t-v\tPrint the protocol version numbers for devfsd\n" \
