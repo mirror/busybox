@@ -299,7 +299,7 @@ release: distclean #doc
 	cp -a busybox $(PROG)-$(VERSION); \
 	\
 	find $(PROG)-$(VERSION)/ -type d \
-		-name CVS \
+		-name .svn \
 		-print \
 		-exec rm -rf {} \; ; \
 	\
