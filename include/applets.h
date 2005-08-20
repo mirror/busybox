@@ -435,6 +435,9 @@
 #ifdef CONFIG_MOUNT
 	APPLET(mount, mount_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_MOUNTPOINT
+	APPLET(mountpoint, mountpoint_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_MSH
 	APPLET_NOUSAGE("msh", msh_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

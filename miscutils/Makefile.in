@@ -34,6 +34,7 @@ MISCUTILS-$(CONFIG_EJECT)       += eject.o
 MISCUTILS-$(CONFIG_HDPARM)      += hdparm.o
 MISCUTILS-$(CONFIG_LAST)        += last.o
 MISCUTILS-$(CONFIG_MAKEDEVS)    += makedevs.o
+MISCUTILS-$(CONFIG_MOUNTPOINT)	+= mountpoint.o
 MISCUTILS-$(CONFIG_MT)          += mt.o
 MISCUTILS-$(CONFIG_RX)          += rx.o
 MISCUTILS-$(CONFIG_SETSID)      += setsid.o

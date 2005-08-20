@@ -1922,6 +1922,20 @@
 	"$ mount /dev/fd0 /mnt -t msdos -o ro\n" \
 	"$ mount /tmp/diskimage /opt -t ext2 -o loop\n"
 
+#define mountpoint_trivial_usage \
+	"[-q] <[-d] DIR | -x DEVICE>"
+#define mountpoint_full_usage \
+	"mountpoint checks if the directory is a mountpoint\n\n" \
+	"Options:\n"  \
+	"\t-q:\t\tBe more quiet\n" \
+	"\t-d:\t\tPrint major/minor device number of the filesystem\n" \
+	"\t-x:\t\tPrint major/minor device number of the blockdevice"
+#define mountpoint_example_usage \
+	"$ mountpoint /proc\n" \
+	"/proc is not a mountpoint\n" \
+	"$ mountpoint /sys\n" \
+	"/sys is a mountpoint\n"
+
 #define mt_trivial_usage \
 	"[-f device] opcode value"
 #define mt_full_usage \

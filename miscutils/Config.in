@@ -194,6 +194,12 @@ config CONFIG_FEATURE_MAKEDEVS_TABLE
 
 endchoice
 
+config CONFIG_MOUNTPOINT
+	bool "mountpoint"
+	default n
+	help
+	  mountpoint checks if the directory is a mountpoint.
+
 config CONFIG_MT
 	bool "mt"
 	default n
