@@ -329,8 +329,7 @@ static void INET_setroute(int action, char **args)
 		bb_perror_msg_and_die("SIOC[ADD|DEL]RT");
 	}
 
-	/* Don't bother closing, as we're exiting after we return anyway. */
-	/* close(skfd); */
+	if (ENABLE_FEATURE_CLEAN_UP) close(skfd);
 }
 
 #ifdef CONFIG_FEATURE_IPV6
@@ -440,8 +439,7 @@ static void INET6_setroute(int action, char **args)
 		bb_perror_msg_and_die("SIOC[ADD|DEL]RT");
 	}
 
-	/* Don't bother closing, as we're exiting after we return anyway. */
-	/* close(skfd); */
+	if (ENABLE_FEATURE_CLEAN_UP) close(skfd);
 }
 #endif
 

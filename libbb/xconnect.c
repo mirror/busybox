@@ -64,6 +64,7 @@ int xconnect(struct sockaddr_in *s_addr)
 	int s = socket(AF_INET, SOCK_STREAM, 0);
 	if (connect(s, (struct sockaddr_in *)s_addr, sizeof(struct sockaddr_in)) < 0)
 	{
+		if (ENABLE_FEATURE_CLEAN_UP) close(s);
 		bb_perror_msg_and_die("Unable to connect to remote host (%s)",
 				inet_ntoa(s_addr->sin_addr));
 	}
