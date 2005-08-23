@@ -116,7 +116,9 @@ extern int umount_main(int argc, char **argv)
 			del_loop(m->device);
 
 		if(curstat) {
-			if(useMtab && m) erase_mtab(m->dir);
+			/* Yes, the ENABLE is redundant here, but the optimizer for ARM
+			 * can't do simple constant propogation in local variables... */
+			if(ENABLE_FEATURE_MTAB_SUPPORT && useMtab && m) erase_mtab(m->dir);
 			status = EXIT_FAILURE;
 			bb_perror_msg("Couldn't umount %s\n", path);
 		}
