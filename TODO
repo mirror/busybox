@@ -12,9 +12,6 @@ find
   world.  The "make uninstall" of lots of things (including busybox itself)
   breaks because of this, and sometimes even "make install" (like udev).
 ----
-comm
-  Perl needs "comm" to build.  It's small and simple, but we haven't got it.
----
 sh
   The command shell situation is a big mess.  We have three or four different
   shells that don't really share any code, and the "standalone shell" doesn't
@@ -22,6 +19,8 @@ sh
   being reentrant.  Unifying the various shells and figuring out a configurable
   way of adding the minimal set of bash features a given script uses is a big
   job, but it be a big improvement.
+
+  Note: Rob Landley (rob@landley.net) is working on this one, but very slowly...
 ---
 gzip
   Can't handle compressing multiple files at once.  (I don't mean making a
@@ -35,6 +34,9 @@ gunzip
 diff
   We should have a diff -u command.  We have patch, we should have diff
   (we only need to support unified diffs though).
+---
+fuser
+  Would be nice.  The basic susv3 options, plus fuser -k.
 ---
 patch
   should have -i support, and simple fuzz factor support to apply patches
