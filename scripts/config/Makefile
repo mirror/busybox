@@ -5,7 +5,7 @@
 top_srcdir=../..
 top_builddir=../..
 srcdir=$(top_srcdir)/scripts/config
-include $(top_builddir)/Rules.mak
+include $(top_srcdir)/Rules.mak
 
 all: ncurses conf mconf
 
@@ -41,6 +41,7 @@ MCONF_SRC    = mconf.c
 LXD_SRC      = lxdialog/checklist.c lxdialog/menubox.c lxdialog/textbox.c \
                lxdialog/yesno.c lxdialog/inputbox.c lxdialog/util.c \
                lxdialog/msgbox.c
+
 SHARED_SRC   = zconf.tab.c
 SHARED_DEPS := $(srcdir)/lkc.h $(srcdir)/lkc_proto.h \
                lkc_defs.h $(srcdir)/expr.h zconf.tab.h
@@ -58,6 +59,7 @@ $(CONF_OBJS): %.o : $(srcdir)/%.c $(SHARED_DEPS)
 	$(HOSTCC) $(HOSTCFLAGS) -I. -c $< -o $@
 
 $(MCONF_OBJS): %.o : $(srcdir)/%.c $(SHARED_DEPS)
+	@[ -d $(@D) ] || mkdir -v $(@D)
 	$(HOSTCC) $(HOSTCFLAGS) $(HOSTNCURSES) -I. -c $< -o $@
 
 lkc_defs.h: $(srcdir)/lkc_proto.h

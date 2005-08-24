@@ -18,12 +18,12 @@
 #
 
 E2FSPROGS_AR:=e2fsprogs.a
-ifndef $(E2FSPROGS_DIR)
+
 E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs/
-endif
+
 srcdir=$(top_srcdir)/e2fsprogs
 
-E2FSPROGS_CFLAGS := -I$(E2FSPROGS_DIR) -include $(E2FSPROGS_DIR)e2fsbb.h
+E2FSPROGS_CFLAGS := -I$(srcdir) -include $(srcdir)/e2fsbb.h
 
 BLKID_SRC   := cache.c dev.c devname.c devno.c getsize.c llseek.c probe.c \
                read.c resolve.c save.c tag.c resolve.c
@@ -63,5 +63,7 @@ libraries-y+=$(E2FSPROGS_DIR)$(E2FSPROGS_AR)
 $(E2FSPROGS_DIR)$(E2FSPROGS_AR): $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
 
+# for e2p/*: check if the dir exists, dude
 $(E2FSPROGS_DIR)%.o: $(srcdir)/%.c
+	@[ -d $(@D) ] || mkdir -v $(@D)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(E2FSPROGS_CFLAGS) -c -o $@ $<

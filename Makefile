@@ -37,7 +37,7 @@ endif
 export srctree=$(top_srcdir)
 vpath %/Config.in $(srctree)
 
-include $(top_builddir)/Rules.mak
+include $(top_srcdir)/Rules.mak
 
 DIRS:=applets archival archival/libunarchive coreutils console-tools \
 	debianutils editors findutils init miscutils modutils networking \
@@ -115,7 +115,7 @@ all: busybox busybox.links doc
 all_tree:	$(ALL_MAKEFILES)
 
 $(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
-	d=`dirname $@`; [ -d "$$d" ] || mkdir -p "$$d"; cp $< $@
+	[ -d $(@D) ] || mkdir -p $(@D); cp $< $@
 
 # In this section, we need .config
 -include $(top_builddir)/.config.cmd
@@ -219,7 +219,8 @@ include/bb_config.h: include/config.h
 	echo "#endif" >> $@
 
 include/bbconfigopts.h: .config
-	scripts/config/mkconfigs >include/bbconfigopts.h
+	@[ -d $(@D) ] || mkdir -v $(@D)
+	$(top_srcdir)/scripts/config/mkconfigs >include/bbconfigopts.h
 
 finished2:
 	$(SECHO)
@@ -233,16 +234,13 @@ all: menuconfig
 # configuration
 # ---------------------------------------------------------------------------
 
-$(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
-	d=`dirname $@`; [ -d "$$d" ] || mkdir -p "$$d"; cp $< $@
-
-scripts/config/conf: scripts/config/Makefile Rules.mak
+scripts/config/conf: scripts/config/Makefile $(top_srcdir)/Rules.mak
 	$(MAKE) -C scripts/config conf
 	-@if [ ! -f .config ] ; then \
 		cp $(CONFIG_DEFCONFIG) .config; \
 	fi
 
-scripts/config/mconf: scripts/config/Makefile Rules.mak
+scripts/config/mconf: scripts/config/Makefile $(top_srcdir)/Rules.mak
 	$(MAKE) -C scripts/config ncurses conf mconf
 	-@if [ ! -f .config ] ; then \
 		cp $(CONFIG_DEFCONFIG) .config; \
