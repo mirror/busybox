@@ -33,8 +33,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/ioctl.h>
-/* get page info */
-#include <asm/page.h>
 #include "busybox.h"
 
 //#define FEATURE_CPU_USAGE_PERCENTAGE  /* + 2k */
