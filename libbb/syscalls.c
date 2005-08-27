@@ -31,7 +31,16 @@
 
 int sysfs(int option, unsigned int fs_index, char * buf)
 {
+#ifndef __NR_pivot_root
+#warning This kernel does not support the sysfs syscall
+#warning -> The sysfs system call is being stubbed out...
+	bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
+	             "BusyBox with a kernel supporting the pivot_root system call.\n");
+	errno = ENOSYS;
+	return -1;
+#else
 	return(syscall(__NR_sysfs, option, fs_index, buf));
+#endif
 }
 
 int pivot_root(const char * new_root,const char * put_old)
