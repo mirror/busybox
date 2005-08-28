@@ -153,6 +153,10 @@ check: busybox
 	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
 	$(top_srcdir)/testsuite/runtest
 
+sizes:
+	rm -f busybox
+	make STRIPCMD=/bin/true
+	nm --size-sort busybox
 # Documentation Targets
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
