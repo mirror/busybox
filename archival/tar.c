@@ -431,12 +431,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 	const unsigned long dereferenceFlag, const llist_t *include,
 	const llist_t *exclude, const int gzip)
 {
-#ifdef CONFIG_FEATURE_TAR_GZIP
-	int gzipDataPipe[2] = { -1, -1 };
-	int gzipStatusPipe[2] = { -1, -1 };
 	pid_t gzipPid = 0;
-	volatile int vfork_exec_errno = 0;
-#endif
 
 	int errorFlag = FALSE;
 	ssize_t size;
@@ -453,10 +448,15 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
 		bb_perror_msg_and_die("Couldnt stat tar file");
 
-#ifdef CONFIG_FEATURE_TAR_GZIP
-	if (gzip) {
+	if ((ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2) && gzip) {
+		int gzipDataPipe[2] = { -1, -1 };
+		int gzipStatusPipe[2] = { -1, -1 };
+		volatile int vfork_exec_errno = 0;
+		char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
+
+
 		if (pipe(gzipDataPipe) < 0 || pipe(gzipStatusPipe) < 0) {
-			bb_perror_msg_and_die("Failed to create gzip pipe");
+			bb_perror_msg_and_die("Failed to create pipe");
 		}
 
 		signal(SIGPIPE, SIG_IGN);	/* we only want EPIPE on errors */
@@ -479,7 +479,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 			close(gzipStatusPipe[0]);
 			fcntl(gzipStatusPipe[1], F_SETFD, FD_CLOEXEC);	/* close on exec shows sucess */
 
-			execl("/bin/gzip", "gzip", "-f", 0);
+			execlp(zip_exec, zip_exec, "-f", 0);
 			vfork_exec_errno = errno;
 
 			close(gzipStatusPipe[1]);
@@ -495,7 +495,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 
 				if (n == 0 && vfork_exec_errno != 0) {
 					errno = vfork_exec_errno;
-					bb_perror_msg_and_die("Could not exec gzip process");
+					bb_perror_msg_and_die("Could not exec %s",zip_exec);
 				} else if ((n < 0) && (errno == EAGAIN || errno == EINTR))
 					continue;	/* try it again */
 				break;
@@ -507,7 +507,6 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 			bb_perror_msg_and_die("Failed to vfork gzip process");
 		}
 	}
-#endif
 
 	tbInfo.excludeList = exclude;
 
@@ -537,12 +536,10 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 
 	freeHardLinkInfo(&tbInfo.hlInfoHead);
 
-#ifdef CONFIG_FEATURE_TAR_GZIP
-	if (gzip && gzipPid) {
+	if (gzipPid) {
 		if (waitpid(gzipPid, NULL, 0) == -1)
 			printf("Couldnt wait ?");
 	}
-#endif
 
 	return !errorFlag;
 }
@@ -846,16 +843,16 @@ int tar_main(int argc, char **argv)
 	/* create an archive */
 	if (opt & CTX_CREATE) {
 		int verboseFlag = FALSE;
-		int gzipFlag = FALSE;
+		int zipMode = 0;
 
 # ifdef CONFIG_FEATURE_TAR_GZIP
 		if (get_header_ptr == get_header_tar_gz) {
-			gzipFlag = TRUE;
+			zipMode = 1;
 		}
 # endif /* CONFIG_FEATURE_TAR_GZIP */
 # ifdef CONFIG_FEATURE_TAR_BZIP2
 		if (get_header_ptr == get_header_tar_bz2) {
-			bb_error_msg_and_die("Creating bzip2 compressed archives is not currently supported.");
+			zipMode = 2;
 		}
 # endif /* CONFIG_FEATURE_TAR_BZIP2 */
 
@@ -864,7 +861,7 @@ int tar_main(int argc, char **argv)
 			verboseFlag = TRUE;
 		}
 		writeTarFile(tar_handle->src_fd, verboseFlag, opt & TAR_OPT_DEREFERNCE, tar_handle->accept,
-			tar_handle->reject, gzipFlag);
+			tar_handle->reject, zipMode);
 	} else
 #endif /* CONFIG_FEATURE_TAR_CREATE */
 	{
