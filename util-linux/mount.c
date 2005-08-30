@@ -99,12 +99,12 @@ static void parse_mount_options(char *options, int *flags, char **strflags)
 			}
 		}
 		// Unrecognized mount option?
-		if(i == sizeof(mount_options)) {
+		if(i == (sizeof(mount_options) / sizeof(*mount_options))) {
 			// Add it to strflags, to pass on to kernel
 			i = *strflags ? strlen(*strflags) : 0;
 			*strflags = xrealloc(*strflags, i+strlen(options)+2);
 			// Comma separated if it's not the first one
-			if(i) (*strflags)[i] = ',';
+			if(i) (*strflags)[i++] = ',';
 			strcpy((*strflags)+i, options);
 		}
 		// Advance to next option, or finish
@@ -286,6 +286,8 @@ singlemount:
 			else {
 				rc = 0;
 				fsType="nfs";
+				// Strangely enough, nfsmount() doesn't actually mount()
+				goto mount_it_now;
 			}
 		} else {
 			
