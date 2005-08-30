@@ -975,10 +975,8 @@ static void parse_inittab(void)
 		new_init_action(CTRLALTDEL, "/sbin/reboot", "");
 		/* Umount all filesystems on halt/reboot */
 		new_init_action(SHUTDOWN, "/bin/umount -a -r", "");
-#if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
 		/* Swapoff on halt/reboot */
-		new_init_action(SHUTDOWN, "/sbin/swapoff -a", "");
-#endif
+		if(ENABLE_SWAPONOFF) new_init_action(SHUTDOWN, "/sbin/swapoff -a", "");
 		/* Prepare to restart init when a HUP is received */
 		new_init_action(RESTART, "/sbin/init", "");
 		/* Askfirst shell on tty1-4 */
