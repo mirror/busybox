@@ -956,7 +956,7 @@ extern int inflate_unzip(int in, int out)
 extern int inflate_gunzip(int in, int out)
 {
 	unsigned int stored_crc = 0;
-	unsigned char count;
+	unsigned int count;
 
 	inflate_unzip(in, out);
 
