@@ -154,8 +154,9 @@ check: busybox
 	$(top_srcdir)/testsuite/runtest
 
 sizes:
-	rm -f busybox
-	make STRIPCMD=/bin/true
+	-rm -f busybox
+	$(MAKE) top_srcdir=$(top_srcdir) top_builddir=$(top_builddir) \
+		-f $(top_srcdir)/Makefile STRIPCMD=/bin/true
 	nm --size-sort busybox
 # Documentation Targets
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
