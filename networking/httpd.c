@@ -1146,6 +1146,11 @@ static int sendCgi(const char *url,
       }
       if(script != NULL)
 	*script = '\0';         /* reduce /PATH_INFO */
+       /* SCRIPT_FILENAME required by PHP in CGI mode */
+       if(realpath(purl + 1, realpath_buff))
+         addEnv("SCRIPT", "FILENAME", realpath_buff);
+       else
+         *realpath_buff = 0;
       /* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
       addEnv("SCRIPT_NAME",    "",         purl);
       addEnv("QUERY_STRING",   "",         config->query);
@@ -1178,7 +1183,7 @@ static int sendCgi(const char *url,
 	/* set execve argp[0] without path */
       argp[0] = strrchr( purl, '/' ) + 1;
 	/* but script argp[0] must have absolute path and chdiring to this */
-      if(realpath(purl + 1, realpath_buff) != NULL) {
+      if(*realpath_buff) {
 	    script = strrchr(realpath_buff, '/');
 	    if(script) {
 		*script = '\0';
