@@ -29,30 +29,15 @@
 #include "busybox.h"
 
 /* It is perfectly ok to pass in a NULL for either width or for
- * height, in which case that value will not be set.  It is also
- * perfectly ok to have CONFIG_FEATURE_AUTOWIDTH disabled, in
- * which case you will always get 80x24 */
-void get_terminal_width_height(int fd, int *width, int *height)
+ * height, in which case that value will not be set.  */
+int get_terminal_width_height(int fd, int *width, int *height)
 {
 	struct winsize win = { 0, 0, 0, 0 };
-#ifdef CONFIG_FEATURE_AUTOWIDTH
-	if (ioctl(fd, TIOCGWINSZ, &win) != 0) {
-		win.ws_row = 24;
-		win.ws_col = 80;
-	}
-#endif
-	if (win.ws_row <= 1) {
-		win.ws_row = 24;
-	}
-	if (win.ws_col <= 1) {
-		win.ws_col = 80;
-	}
-	if (height) {
-		*height = (int) win.ws_row;
-	}
-	if (width) {
-		*width = (int) win.ws_col;
-	}
+	int ret = ioctl(fd, TIOCGWINSZ, &win);
+	if (win.ws_row <= 1) win.ws_row = 24;
+	if (win.ws_col <= 1) win.ws_col = 80;
+	if (height) *height = (int) win.ws_row;
+	if (width) *width = (int) win.ws_col;
 }
 
 /* END CODE */

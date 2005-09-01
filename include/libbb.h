@@ -474,7 +474,7 @@ extern void print_login_prompt(void);
 
 extern void vfork_daemon_rexec(int nochdir, int noclose,
 		int argc, char **argv, char *foreground_opt);
-extern void get_terminal_width_height(int fd, int *width, int *height);
+extern int get_terminal_width_height(int fd, int *width, int *height);
 extern unsigned long get_ug_id(const char *s, long (*my_getxxnam)(const char *));
 extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 
