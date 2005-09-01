@@ -795,7 +795,7 @@ int tar_main(int argc, char **argv)
 	/* TODO: This is the same as in ar, separate function ? */
 	while (optind < argc) {
 		char *filename_ptr = last_char_is(argv[optind], '/');
-		if (filename_ptr) {
+		if (filename_ptr > argv[optind]) {
 			*filename_ptr = '\0';
 		}
 		tar_handle->accept = llist_add_to(tar_handle->accept, argv[optind]);
