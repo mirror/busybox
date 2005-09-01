@@ -163,10 +163,6 @@ run_applet_by_name (const char *name, int argc, char **argv)
 
 	exit ((*(applet_using->main)) (argc, argv));
   }
-  /* Just in case they have renamed busybox - Check argv[1] */
-  if (recurse_level == 1) {
-	run_applet_by_name ("busybox", argc, argv);
-  }
   recurse_level--;
 }
 
