@@ -39,8 +39,8 @@ fuser
   Would be nice.  The basic susv3 options, plus fuser -k.
 ---
 patch
-  should have -i support, and simple fuzz factor support to apply patches
-  at an offset shouldn't take up too much space.
+  should have simple fuzz factor support to apply patches at an offset which
+  shouldn't take up too much space.
 ---
 man
   It would be nice to have a man command.  Not one that handles troff or

@@ -2064,11 +2064,13 @@
 	"\t-u\tUnlocks (re-enables) the specified user account"
 
 #define patch_trivial_usage \
-	"[-p<num>]"
+	"[-p<num>] [-i<patch.diff>]"
 #define patch_full_usage \
-	"[-p<num>]"
+	"[-p<num>]\n" \
+	"[-i<diff>]"
 #define patch_example_usage \
-	"$ patch -p1 <example.diff"
+	"$ patch -p1 <example.diff\n" \
+	"$ patch -p0 -i example.diff"
 
 #define pidof_trivial_usage \
 	"process-name [OPTION] [process-name ...]"
