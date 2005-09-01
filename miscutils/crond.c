@@ -589,10 +589,8 @@ static void SynchronizeFile(const char *fileName)
 					CronLine line;
 					char *ptr;
 
-					if (buf[0]) {
-						buf[strlen(buf) - 1] = 0;
-					}
-					if (buf[0] == 0 || buf[0] == '#' || buf[0] == ' ' || buf[0] == '\t') {
+					trim(buf);
+					if (buf[0] == 0 || buf[0] == '#') {
 						continue;
 					}
 					if (--maxEntries == 0) {
