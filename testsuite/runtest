@@ -97,6 +97,16 @@ for applet in $applets; do
 			status=1
 		fi
 	fi
+
+	if [ -f "$applet".tests ]
+	then
+		rm -f links/"$applet"
+		ln -s ../../busybox links/"$applet"
+		PATH=links:$PATH ./"$applet".tests
+		if [ $? -ne 0 ]; then status=1; fi
+	fi
+
+
 done
 
 exit $status

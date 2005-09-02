@@ -1,0 +1,69 @@
+#!/bin/sh
+
+# SUSv3 compliant sort tests.
+# Copyright 2005 by Rob Landley <rob@landley.net>
+# Licensed under GPL v2, see file LICENSE for details.
+
+if [ ${#COMMAND} -eq 0 ]; then COMMAND=sort; fi
+. testing.sh
+
+# The basic tests.  These should work even with the small busybox.
+
+testing "sort" "input" "a\nb\nc\n" "c\na\nb\n" ""
+testing "sort #2" "input" "010\n1\n3\n" "3\n1\n010\n" ""
+testing "sort stdin" "" "a\nb\nc\n" "" "b\na\nc\n"
+testing "sort numeric" "-n input" "1\n3\n010\n" "3\n1\n010\n" ""
+testing "sort reverse" "-r input" "wook\nwalrus\npoint\npabst\naargh\n" \
+	"point\nwook\npabst\naargh\nwalrus\n" ""
+
+# These tests require the full option set.
+
+# Longish chunk of data re-used by the next few tests
+
+data="42	1	3	woot
+42	1	010	zoology
+egg	1	2	papyrus
+7	3	42	soup
+999	3	0	algebra
+"
+
+# Sorting with keys
+
+testing "sort one key" "-k4,4 input" \
+"999	3	0	algebra
+egg	1	2	papyrus
+7	3	42	soup
+42	1	3	woot
+42	1	010	zoology
+" "$data" ""
+
+testing "sort key range with numeric option" "-k2,3n input" \
+"42	1	010	zoology
+42	1	3	woot
+egg	1	2	papyrus
+7	3	42	soup
+999	3	0	algebra
+" "$data" ""
+
+# Busybox is definitely doing this one wrong just now...
+
+testing "sort key range with numeric option and global reverse" \
+"-k2,3n -r input" \
+"egg	1	2	papyrus
+42	1	3	woot
+42	1	010	zoology
+999	3	0	algebra
+7	3	42	soup
+" "$data" ""
+
+# 
+
+testing "sort key range with multiple options" "-k2,3rn input" \
+"7	3	42	soup
+999	3	0	algebra
+42	1	010	zoology
+42	1	3	woot
+egg	1	2	papyrus
+" "$data" ""
+
+exit $FAILCOUNT

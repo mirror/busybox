@@ -158,6 +158,7 @@ sizes:
 	$(MAKE) top_srcdir=$(top_srcdir) top_builddir=$(top_builddir) \
 		-f $(top_srcdir)/Makefile STRIPCMD=/bin/true
 	nm --size-sort busybox
+
 # Documentation Targets
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
@@ -283,7 +284,7 @@ clean:
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html busybox.links libbb/loop.h \
-	    .config.old .hdepend busybox
+	    .config.old .hdepend busybox testsuite/links/*
 	- rm -rf _install
 	- find . -name .\*.flags -exec rm -f {} \;
 	- find . -name \*.o -exec rm -f {} \;
