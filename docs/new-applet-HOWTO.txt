@@ -11,10 +11,11 @@ Thomas Lundquist - Added stuff for the new directory layout.
 Initial Write
 -------------
 
-First, write your applet.  Be sure to include copyright information at the
-top, such as who you stole the code from and so forth. Also include the
-mini-GPL boilerplate. Be sure to name the main function <applet>_main instead
-of main.  And be sure to put it in <applet>.c. Usage do not have to be taken care of by your applet.
+First, write your applet.  Be sure to include copyright information at the top,
+such as who you stole the code from and so forth. Also include the mini-GPL
+boilerplate. Be sure to name the main function <applet>_main instead of main.
+And be sure to put it in <applet>.c. Usage does not have to be taken care of by
+your applet.
 
 For a new applet mu, here is the code that would go in mu.c:
 
@@ -78,8 +79,7 @@ As you are writing your applet, please be aware of the body of pre-existing
 useful functions in libbb. Use these instead of reinventing the wheel.
 
 Additionally, if you have any useful, general-purpose functions in your
-program that could be useful in another program, consider putting them in
-libbb.
+applet that could be useful in other applets, consider putting them in libbb.
 
 
 Placement / Directory
@@ -90,11 +90,11 @@ Find the appropriate directory for your new applet.
 Make sure you find the appropriate places in the files, the applets are
 sorted alphabetically.
 
-Add the applet to Makefile.in in the chosen applet directory:
+Add the applet to Makefile.in in the chosen directory:
 
 obj-$(CONFIG_MU)               += mu.o
 
-Add the applet to Config.in in the chosen applet directory:
+Add the applet to Config.in in the chosen directory:
 
 config CONFIG_MU
 	bool "MU"
@@ -116,6 +116,7 @@ This should look like the following:
 		"Options:\n" \
 		"\t-a\t\tfirst function\n" \
 		"\t-b\t\tsecond function\n" \
+		...
 
 If your program supports flags, the flags should be mentioned on the first
 line (-[abcde]) and a detailed description of each flag should go in the
@@ -149,10 +150,14 @@ Adding some text to docs/Configure.help is a nice start.
 The Grand Announcement
 ----------------------
 
-Then create a diff -urN of the files you added (<appletdir/><applet>.c,
-include/usage.c, include/applets.h, include/config.h, <appletdir>/Makefile.in, <appletdir>/config.in)
+Then create a diff -urN of the files you added and/or modified. Typically:
+	<appletdir>/<applet>.c
+	include/usage.c
+	include/applets.h
+	<appletdir>/Makefile.in
+	<appletdir>/config.in
 and send it to the mailing list:
-busybox@busybox.net.
+	busybox@busybox.net
+	http://busybox.net/mailman/listinfo/busybox
 
 Sending patches as attachments is preferred, but not required.
-
