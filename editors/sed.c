@@ -1025,6 +1025,7 @@ restart:
 							for (j = 0; sed_cmd->string[j]; j += 2) {
 								if (pattern_space[i] == sed_cmd->string[j]) {
 									pattern_space[i] = sed_cmd->string[j + 1];
+									break;
 								}
 							}
 						}
