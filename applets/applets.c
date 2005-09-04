@@ -90,8 +90,7 @@ static int suid_cfg_readable;
 
 
 
-extern void
-bb_show_usage (void)
+extern void bb_show_usage (void)
 {
   const char *format_string;
   const char *usage_string = usage_messages;
@@ -112,8 +111,7 @@ bb_show_usage (void)
   exit (EXIT_FAILURE);
 }
 
-static int
-applet_name_compare (const void *x, const void *y)
+static int applet_name_compare (const void *x, const void *y)
 {
   const char *name = x;
   const struct BB_applet *applet = y;
@@ -123,47 +121,25 @@ applet_name_compare (const void *x, const void *y)
 
 extern const size_t NUM_APPLETS;
 
-struct BB_applet *
-find_applet_by_name (const char *name)
+struct BB_applet *find_applet_by_name (const char *name)
 {
   return bsearch (name, applets, NUM_APPLETS, sizeof (struct BB_applet),
 				  applet_name_compare);
 }
 
-void
-run_applet_by_name (const char *name, int argc, char **argv)
+void run_applet_by_name (const char *name, int argc, char **argv)
 {
-  static int recurse_level = 0;
-  extern int been_there_done_that;      /* From busybox.c */
+	if(ENABLE_FEATURE_SUID_CONFIG) parse_config_file ();
 
-#ifdef CONFIG_FEATURE_SUID_CONFIG
-  if (recurse_level == 0)
-	parse_config_file ();
-#endif
-
-  recurse_level++;
-  /* Do a binary search to find the applet entry given the name. */
-  if ((applet_using = find_applet_by_name (name)) != NULL) {
-	bb_applet_name = applet_using->name;
-	if (argv[1] && strcmp (argv[1], "--help") == 0) {
-	  if (strcmp (applet_using->name, "busybox") == 0) {
-		if (argv[2])
-		  applet_using = find_applet_by_name (argv[2]);
-		else
-		  applet_using = NULL;
-	  }
-	  if (applet_using)
-		bb_show_usage ();
-	  been_there_done_that = 1;
-	  busybox_main (0, NULL);
+	if(!strncmp(name, "busybox", 7)) busybox_main(argc, argv);
+	/* Do a binary search to find the applet entry given the name. */
+	applet_using = find_applet_by_name(name);
+	if(applet_using) {
+		bb_applet_name = applet_using->name;
+		if(argc==2 && !strcmp(argv[1], "--help")) bb_show_usage ();
+		if(ENABLE_FEATURE_SUID) check_suid (applet_using);
+		exit ((*(applet_using->main)) (argc, argv));
 	}
-#ifdef CONFIG_FEATURE_SUID
-	check_suid (applet_using);
-#endif
-
-	exit ((*(applet_using->main)) (argc, argv));
-  }
-  recurse_level--;
 }
 
 

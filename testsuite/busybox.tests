@@ -1,0 +1,123 @@
+#!/bin/sh
+
+# Tests for busybox applet itself.
+# Copyright 2005 by Rob Landley <rob@landley.net>
+# Licensed under GPL v2, see file LICENSE for details.
+
+if [ ${#COMMAND} -eq 0 ]; then COMMAND=busybox; fi
+. testing.sh
+
+# We'll assume "cat" is built in, because we need some other command to test.
+
+HELPDUMP=`$COMMAND`
+
+# The gratuitous "\n"s are due to a shell idiosyncrasy: environment variables
+# seem to strip trailing whitespace, which makes cmp and diff unhappy.
+
+ln -s `which "$COMMAND"` busybox-suffix
+ln -s `which "$COMMAND"` unknown
+
+for i in busybox busybox-suffix
+do
+	# The gratuitous "\n"s are due to a shell idiosyncrasy:
+	# environment variables seem to strip trailing whitespace.
+
+	testing "$i" "" "$HELPDUMP\n\n" "" ""
+
+	testing "$i cat" "cat" "moo" "" "moo"
+
+	testing "$i unknown" "unknown 2>&1" \
+		"unknown: applet not found\n" "" ""
+
+	testing "$i --help" "--help 2>&1" "$HELPDUMP\n\n" "" ""
+
+	testing "$i --help cat" "--help cat 2>&1 | grep prints" \
+		"Concatenates FILE(s) and prints them to stdout.\n" "" ""
+
+	testing "$i --help unknown" "--help unknown 2>&1" \
+		"unknown: applet not found\n" "" ""
+
+	COMMAND=./busybox-suffix
+done
+
+COMMAND="./unknown"
+testing "busybox as unknown name" "2>&1" "unknown: applet not found\n" "" ""
+
+rm -f busybox-suffix unknown
+
+exit
+
+General cleanup of command line parsing to allow "busybox" to work as a prefix.
+(I.E. any argv[0] that starts with "busybox" winds up in busybox_main().)
+
+Tests:
+./busybox
+./busybox-walrus
+./busybox ls
+./busybox-walrus ls
+./busybox --help
+./busybox-walrus --help
+./busybox --help ls
+./busybox-walrus --help ls
+./busybox --help walrus
+./busybox-walrus --help walrus
+
+
+
+
+
+
+
+
+
+# These tests require the full option set.
+
+# Longish chunk of data re-used by the next few tests
+
+data="42	1	3	woot
+42	1	010	zoology
+egg	1	2	papyrus
+7	3	42	soup
+999	3	0	algebra
+"
+
+# Sorting with keys
+
+testing "sort one key" "-k4,4 input" \
+"999	3	0	algebra
+egg	1	2	papyrus
+7	3	42	soup
+42	1	3	woot
+42	1	010	zoology
+" "$data" ""
+
+testing "sort key range with numeric option" "-k2,3n input" \
+"42	1	010	zoology
+42	1	3	woot
+egg	1	2	papyrus
+7	3	42	soup
+999	3	0	algebra
+" "$data" ""
+
+# Busybox is definitely doing this one wrong just now...
+
+testing "sort key range with numeric option and global reverse" \
+"-k2,3n -r input" \
+"egg	1	2	papyrus
+42	1	3	woot
+42	1	010	zoology
+999	3	0	algebra
+7	3	42	soup
+" "$data" ""
+
+# 
+
+testing "sort key range with multiple options" "-k2,3rn input" \
+"7	3	42	soup
+999	3	0	algebra
+42	1	010	zoology
+42	1	3	woot
+egg	1	2	papyrus
+" "$data" ""
+
+exit $FAILCOUNT

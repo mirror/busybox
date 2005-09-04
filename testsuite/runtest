@@ -97,8 +97,8 @@ for applet in $applets; do
 			status=1
 		fi
 	fi
-
-	if [ -f "$applet".tests ]
+	applet=`echo "$applet" | sed -n 's/\.tests$//p'`
+	if [ ${#applet} != 0 ]
 	then
 		rm -f links/"$applet"
 		ln -s ../../busybox links/"$applet"

@@ -48,13 +48,13 @@ function testing()
   if [ $? -ne 0 ]
   then
 	FAILCOUNT=$[$FAILCOUNT+1]
-	echo FAIL:"$1"
+	echo "FAIL: $1"
 	if [ $verbose ]
 	then
 		diff -u expected actual
 	fi
   else
-	echo PASS:"$1"
+	echo "PASS: $1"
   fi
   rm -f input expected actual
 
