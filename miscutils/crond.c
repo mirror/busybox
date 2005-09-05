@@ -132,7 +132,7 @@ static void crondlog(const char *ctl, ...)
 		if (LogFile == 0) {
 			vsyslog(type, fmt, va);
 		} else {
-			int logfd = open(LogFile, O_WRONLY | O_CREAT | O_APPEND, 600);
+			int logfd = open(LogFile, O_WRONLY | O_CREAT | O_APPEND, 0600);
 			if (logfd >= 0) {
 				vdprintf(logfd, fmt, va);
 				close(logfd);
@@ -348,7 +348,7 @@ static void startlogger(void)
 	else {				/* test logfile */
 		int logfd;
 
-		if ((logfd = open(LogFile, O_WRONLY | O_CREAT | O_APPEND, 600)) >= 0) {
+		if ((logfd = open(LogFile, O_WRONLY | O_CREAT | O_APPEND, 0600)) >= 0) {
 			close(logfd);
 		} else {
 			bb_perror_msg("Failed to open log file '%s' reason", LogFile);
