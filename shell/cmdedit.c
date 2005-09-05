@@ -310,7 +310,7 @@ static void parse_prompt(const char *prmt_ptr)
 static void parse_prompt(const char *prmt_ptr)
 {
 	int prmt_len = 0;
-	int sub_len = 0;
+	size_t cur_prmt_len = 0;
 	char  flg_not_length = '[';
 	char *prmt_mem_ptr = xcalloc(1, 1);
 	char *pwd_buf = xgetcwd(0);
@@ -415,15 +415,15 @@ static void parse_prompt(const char *prmt_ptr)
 		}
 		if(pbuf == buf)
 			*pbuf = c;
-		prmt_len += strlen(pbuf);
+		cur_prmt_len = strlen(pbuf);
+		prmt_len += cur_prmt_len;
+		if (flg_not_length != ']')
+			cmdedit_prmt_len += cur_prmt_len;
 		prmt_mem_ptr = strcat(xrealloc(prmt_mem_ptr, prmt_len+1), pbuf);
-		if (flg_not_length == ']')
-			sub_len++;
 	}
 	if(pwd_buf!=(char *)bb_msg_unknown)
 		free(pwd_buf);
 	cmdedit_prompt = prmt_mem_ptr;
-	cmdedit_prmt_len = prmt_len - sub_len;
 	put_prompt();
 }
 #endif
