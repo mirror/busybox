@@ -271,7 +271,7 @@ extern int grep_main(int argc, char **argv)
 	char *slines_before;
 	char *Copt;
 
-	bb_opt_complementaly = "H-h:e*:f*:C-AB";
+	bb_opt_complementally = "H-h:e*:f*:C-AB";
 	opt = bb_getopt_ulflags(argc, argv,
 		GREP_OPTS GREP_OPT_CONTEXT OPT_EGREP,
 		&pattern_head, &fopt,
@@ -306,7 +306,7 @@ extern int grep_main(int argc, char **argv)
 	}
 #else
 	/* with auto sanity checks */
-	bb_opt_complementaly = "H-h:e*:f*:c-n:q-n:l-n";
+	bb_opt_complementally = "H-h:e*:f*:c-n:q-n:l-n";
 	opt = bb_getopt_ulflags(argc, argv, GREP_OPTS OPT_EGREP,
 		&pattern_head, &fopt);
 

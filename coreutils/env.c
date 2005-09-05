@@ -65,7 +65,7 @@ extern int env_main(int argc, char** argv)
 	llist_t *unset_env = NULL;
 	extern char **environ;
 
-	bb_opt_complementaly = "u*";
+	bb_opt_complementally = "u*";
 	bb_applet_long_options = env_long_options;
 
 	opt = bb_getopt_ulflags(argc, argv, "+iu:", &unset_env);

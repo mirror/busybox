@@ -62,7 +62,7 @@ extern int df_main(int argc, char **argv)
 	const char *disp_units_hdr = hdr_1k;
 
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-	bb_opt_complementaly = "h-km:k-hm:m-hk";
+	bb_opt_complementally = "h-km:k-hm:m-hk";
 	opt = bb_getopt_ulflags(argc, argv, "hmk");
 	if(opt & 1) {
 				df_disp_hr = 0;

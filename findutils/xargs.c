@@ -438,7 +438,7 @@ int xargs_main(int argc, char **argv)
 #endif
 
 #ifdef CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION
-	bb_opt_complementaly = "pt";
+	bb_opt_complementally = "pt";
 #endif
 
 	opt = bb_getopt_ulflags(argc, argv, "+trn:s:e::"

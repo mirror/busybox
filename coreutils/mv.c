@@ -56,7 +56,7 @@ extern int mv_main(int argc, char **argv)
 	int status = 0;
 
 	bb_applet_long_options = mv_long_options;
-	bb_opt_complementaly = "f-i:i-f";
+	bb_opt_complementally = "f-i:i-f";
 	flags = bb_getopt_ulflags(argc, argv, "fi");
 	if (optind + 2 > argc) {
 		bb_show_usage();

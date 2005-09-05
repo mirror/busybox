@@ -67,10 +67,10 @@ extern int ar_main(int argc, char **argv)
 
 	archive_handle = init_handle();
 
-	bb_opt_complementaly = "p~tx:t~px:x~pt";
+	bb_opt_complementally = "!p~tx:t~px:x~pt";
 	opt = bb_getopt_ulflags(argc, argv, "ptxovcr");
 
-	if ((opt & BB_GETOPT_ERROR) || (opt == 0) || (optind == argc)) {
+	if ((opt == 0) || (optind == argc)) {
 		bb_show_usage();
 	}
 

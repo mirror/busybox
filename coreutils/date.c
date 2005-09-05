@@ -152,7 +152,7 @@ int date_main(int argc, char **argv)
 #else
 # define GETOPT_ISOFMT
 #endif
-	bb_opt_complementaly = "d~ds:s~ds";
+	bb_opt_complementally = "!d~ds:s~ds";
 	opt = bb_getopt_ulflags(argc, argv, "Rs:ud:r:" GETOPT_ISOFMT,
 					&date_str, &date_str, &filename
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
@@ -165,8 +165,6 @@ int date_main(int argc, char **argv)
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
 	}
 	use_arg = opt & DATE_OPT_DATE;
-	if(opt & BB_GETOPT_ERROR)
-		bb_show_usage();
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
 	if(opt & DATE_OPT_TIMESPEC) {
 		if (!isofmt_arg) {

@@ -61,12 +61,11 @@ extern int id_main(int argc, char **argv)
 	unsigned long flags;
 	short status;
 
-	bb_opt_complementaly = "u~g:g~u";
+	bb_opt_complementally = "!u~g:g~u";
 	flags = bb_getopt_ulflags(argc, argv, "rnug");
 
-	if ((flags & BB_GETOPT_ERROR)
 	/* Don't allow -n -r -nr */
-	|| (flags <= 3 && flags > 0) 
+	if ((flags <= 3 && flags > 0) 
 	/* Don't allow more than one username */
 	|| (argc > optind + 1))
 		bb_show_usage();

@@ -205,12 +205,8 @@ static const struct option hwclock_long_options[] = {
 	bb_applet_long_options = hwclock_long_options;
 #endif
 
-	bb_opt_complementaly = "r~ws:w~rs:s~wr:l~u:u~l";
+	bb_opt_complementally = "!r~ws:w~rs:s~wr:l~u:u~l";
 	opt = bb_getopt_ulflags(argc, argv, "lursw");
-	/* Check only one mode was given */
-	if(opt & BB_GETOPT_ERROR) {
-		bb_show_usage();
-	}
 
 	/* If -u or -l wasn't given check if we are using utc */
 	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME))

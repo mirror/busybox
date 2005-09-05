@@ -233,12 +233,12 @@ start_stop_daemon_main(int argc, char **argv)
 
 	bb_applet_long_options = ssd_long_options;
 
-	bb_opt_complementaly = "K~S:S~K";
+	bb_opt_complementally = "!K~S:S~K";
 	opt = bb_getopt_ulflags(argc, argv, "KSbqma:n:s:u:x:p:",
 			&startas, &cmdname, &signame, &userspec, &execname, &pidfile);
 
-	/* Check one and only one context option was given */
-	if ((opt & BB_GETOPT_ERROR) || (opt & (SSD_CTX_STOP | SSD_CTX_START)) == 0) {
+	/* Check required one context option was given */
+	if ((opt & (SSD_CTX_STOP | SSD_CTX_START)) == 0) {
 		bb_show_usage();
 	}
 

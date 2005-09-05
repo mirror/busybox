@@ -191,7 +191,7 @@ int du_main(int argc, char **argv)
 	 * ignore -a.  This is consistent with -s being equivalent to -d 0.
 	 */
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-	bb_opt_complementaly = "h-km:k-hm:m-hk:H-L:L-H:s-d:d-s";
+	bb_opt_complementally = "h-km:k-hm:m-hk:H-L:L-H:s-d:d-s";
 	opt = bb_getopt_ulflags(argc, argv, "aHkLsx" "d:" "lc" "hm", &smax_print_depth);
 	if((opt & (1 << 9))) {
 		/* -h opt */
@@ -206,7 +206,7 @@ int du_main(int argc, char **argv)
 			disp_hr = KILOBYTE;
 	}
 #else
-	bb_opt_complementaly = "H-L:L-H:s-d:d-s";
+	bb_opt_complementally = "H-L:L-H:s-d:d-s";
 	opt = bb_getopt_ulflags(argc, argv, "aHkLsx" "d:" "lc", &smax_print_depth);
 #if !defined CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
 	if((opt & (1 << 2))) {

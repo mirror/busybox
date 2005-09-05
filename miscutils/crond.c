@@ -157,9 +157,9 @@ int crond_main(int ac, char **av)
 #ifdef FEATURE_DEBUG_OPT
 	char *dopt;
 
-	bb_opt_complementaly = "f-b:b-f:S-L:L-S:d-l";
+	bb_opt_complementally = "f-b:b-f:S-L:L-S:d-l";
 #else
-	bb_opt_complementaly = "f-b:b-f:S-L:L-S";
+	bb_opt_complementally = "f-b:b-f:S-L:L-S";
 #endif
 
 	opterr = 0;			/* disable getopt 'errors' message. */

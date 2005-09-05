@@ -152,7 +152,7 @@ extern int   bb_fclose_nonstdin(FILE *f);
 extern void  bb_fflush_stdout_and_exit(int retval) __attribute__ ((noreturn));
 
 #define BB_GETOPT_ERROR 0x80000000UL
-extern const char *bb_opt_complementaly;
+extern const char *bb_opt_complementally;
 extern const struct option *bb_applet_long_options;
 extern unsigned long bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...);
 

@@ -38,7 +38,7 @@ extern int rm_main(int argc, char **argv)
 	int flags = 0;
 	unsigned long opt;
 
-	bb_opt_complementaly = "f-i:i-f";
+	bb_opt_complementally = "f-i:i-f";
 	opt = bb_getopt_ulflags(argc, argv, "fiRr");
 	if(opt & 1)
 				flags |= FILEUTILS_FORCE;

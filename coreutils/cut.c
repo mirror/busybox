@@ -295,7 +295,7 @@ extern int cut_main(int argc, char **argv)
 	unsigned long opt;
 	char *sopt, *sdopt;
 
-	bb_opt_complementaly = "b~bcf:c~bcf:f~bcf";
+	bb_opt_complementally = "b~bcf:c~bcf:f~bcf";
 	opt = bb_getopt_ulflags(argc, argv, optstring, &sopt, &sopt, &sopt, &sdopt);
 	part = opt & (OPT_BYTE_FLGS|OPT_CHAR_FLGS|OPT_FIELDS_FLGS);
 	if(part == 0)

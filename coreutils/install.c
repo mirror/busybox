@@ -64,14 +64,9 @@ extern int install_main(int argc, char **argv)
 	int i;
 
 	bb_applet_long_options = install_long_options;
-	bb_opt_complementaly = "s~d:d~s";
+	bb_opt_complementally = "!s~d:d~s";
 	/* -c exists for backwards compatability, its needed */
 	flags = bb_getopt_ulflags(argc, argv, "cdpsg:m:o:", &gid_str, &mode_str, &uid_str);	/* 'a' must be 2nd */
-
-	/* Check valid options were given */
-	if(flags & BB_GETOPT_ERROR) {
-		bb_show_usage();
-	}
 
 	/* preserve access and modification time, this is GNU behaviour, BSD only preserves modification time */
 	if (flags & INSTALL_OPT_PRESERVE_TIME) {

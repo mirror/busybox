@@ -191,7 +191,7 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Crack command line.
 	 */
-	bb_opt_complementaly = "\203*";
+	bb_opt_complementally = "\203*";
 	bb_applet_long_options = wget_long_options;
 	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:", &fname_out, &headers_llist, &dir_prefix, &proxy_flag);
 	if (opt & WGET_OPT_CONTINUE) {
