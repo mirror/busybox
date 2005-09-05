@@ -17,6 +17,8 @@ HELPDUMP=`$COMMAND`
 ln -s `which "$COMMAND"` busybox-suffix
 ln -s `which "$COMMAND"` unknown
 
+testing "busybox --help busybox" "--help busybox" "$HELPDUMP\n\n" "" ""
+
 for i in busybox busybox-suffix
 do
 	# The gratuitous "\n"s are due to a shell idiosyncrasy:
