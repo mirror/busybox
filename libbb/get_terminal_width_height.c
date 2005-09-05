@@ -38,6 +38,8 @@ int get_terminal_width_height(int fd, int *width, int *height)
 	if (win.ws_col <= 1) win.ws_col = 80;
 	if (height) *height = (int) win.ws_row;
 	if (width) *width = (int) win.ws_col;
+
+	return ret;
 }
 
 /* END CODE */
