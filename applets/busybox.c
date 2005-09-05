@@ -110,8 +110,9 @@ int busybox_main(int argc, char **argv)
 	/* Deal with --help.  (Also print help when called with no arguments) */
 	
 	if (argc==1 || !strcmp(argv[1],"--help") ) {
-		if (argc>2) run_applet_by_name(bb_applet_name=argv[2], argc, argv);
-		else {
+		if (argc>2) {
+			run_applet_by_name(bb_applet_name=argv[2], 2, argv);
+		} else {
 			const struct BB_applet *a;
 			int col, output_width;
 
