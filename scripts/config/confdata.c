@@ -396,21 +396,20 @@ int conf_write(const char *name)
 			case S_HEX:
 				str = sym_get_string_value(sym);
 				if (str[0] != '0' || (str[1] != 'x' && str[1] != 'X')) {
-					fprintf(out, "%s=%s\n", sym->name, str);
+					fprintf(out, "%s=%s\n", sym->name, *str ? str : "0");
 					if (out_h)
 						fprintf(out_h, "#define %s 0x%s\n", sym->name, str);
 					break;
 				}
 			case S_INT:
 				str = sym_get_string_value(sym);
-				fprintf(out, "%s=%s\n", sym->name, str);
+				fprintf(out, "%s=%s\n", sym->name, *str ? str : "0");
 				if (out_h)
 					fprintf(out_h, "#define %s %s\n", sym->name, str);
 				break;
 			}
 		}
 
-	next:
 		if (menu->list) {
 			menu = menu->list;
 			continue;
