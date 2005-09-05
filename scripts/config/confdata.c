@@ -322,8 +322,8 @@ int conf_write(const char *name)
 	while (menu) {
 		sym = menu->sym;
 		if (!sym) {
-			if (!menu_is_visible(menu))
-				goto next;
+			//if (!menu_is_visible(menu))
+			//	goto next;
 			str = menu_get_prompt(menu);
 			fprintf(out, "\n"
 				     "#\n"
@@ -336,8 +336,8 @@ int conf_write(const char *name)
 					       " */\n", str);
 		} else if (!(sym->flags & SYMBOL_CHOICE)) {
 			sym_calc_value(sym);
-			if (!(sym->flags & SYMBOL_WRITE))
-				goto next;
+			//if (!(sym->flags & SYMBOL_WRITE))
+			//	goto next;
 			sym->flags &= ~SYMBOL_WRITE;
 			type = sym->type;
 			if (type == S_TRISTATE) {

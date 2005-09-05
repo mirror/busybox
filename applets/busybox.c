@@ -5,8 +5,10 @@
 #include <errno.h>
 #include <stdlib.h>
 #include "busybox.h"
-#ifdef CONFIG_LOCALE_SUPPORT
+#if ENABLE_LOCALE_SUPPORT
 #include <locale.h>
+#else
+#define setlocale(x,y)
 #endif
 
 const char *bb_applet_name;
@@ -54,6 +56,8 @@ static void install_links(const char *busybox, int use_symbolic_links)
 	}
 }
 
+#else
+#define install_links(x,y)
 #endif /* CONFIG_FEATURE_INSTALLER */
 
 int main(int argc, char **argv)
