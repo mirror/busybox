@@ -409,7 +409,6 @@ CONFIG_SWAPONOFF=y
 CONFIG_MOUNT=y
 # CONFIG_NFSMOUNT is not set
 CONFIG_UMOUNT=y
-# CONFIG_FEATURE_MOUNT_FORCE is not set
 
 #
 # Common options for mount/umount
