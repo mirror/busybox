@@ -258,18 +258,10 @@ have additions to this FAQ document, we would love to add them,
 	savings add up).
 </p>
 <p>
-	To examine a busybox binary with an eye to saving bytes, build an
-	optimized debug version and run the "nm" command against it, like so:
-</p>
-<p>
-	make clean && make STRIPCMD=/bin/true && nm --size-sort busybox
-</p>
-<p>
-	This gives a list of symbols and the amount of space allocated for
-	each one, sorted by size.  (Note: do not enable CONFIG_DEBUG for this,
-	as that disables compiler optimization which is great for running gdb
-	but misleading when trying to figure out how much space each component
-	is really using under normal circumstances.)
+	The busybox Makefile can generate a report of how much space is actually
+	being used by each function and variable.  Run "<b>make sizes</b>" (preferably
+	with CONFIG_DEBUG off) to get a list of symbols and the amount of
+	space allocated for each one, sorted by size.
 </p>
 <hr />
 
