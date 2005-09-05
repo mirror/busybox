@@ -276,16 +276,6 @@ static void forceinton(void)
 	})
 #endif /* CONFIG_ASH_OPTIMIZE_FOR_SIZE */
 
-/*
- * BSD setjmp saves the signal mask, which violates ANSI C and takes time,
- * so we use _setjmp instead.
- */
-
-#if defined(BSD) && !defined(__SVR4) && !defined(__GLIBC__)
-#define setjmp(jmploc)  _setjmp(jmploc)
-#define longjmp(jmploc, val)    _longjmp(jmploc, val)
-#endif
-
 /*      $NetBSD: expand.h,v 1.13 2002/11/24 22:35:40 christos Exp $     */
 
 struct strlist {
@@ -1700,9 +1690,11 @@ init(void)
       {
 	      char **envp;
 	      char ppid[32];
+	      const char *p;
+	      struct stat st1, st2;
 
 	      initvar();
-	      for (envp = environ ; *envp ; envp++) {
+	      for (envp = environ ; envp && *envp ; envp++) {
 		      if (strchr(*envp, '=')) {
 			      setvareq(*envp, VEXPORT|VTEXTFIXED);
 		      }
@@ -1710,7 +1702,13 @@ init(void)
 
 	      snprintf(ppid, sizeof(ppid), "%d", (int) getppid());
 	      setvar("PPID", ppid, 0);
-	      setpwd(0, 0);
+
+	      p = lookupvar("PWD");
+	      if (p)
+	      if (*p != '/' || stat(p, &st1) || stat(".", &st2) ||
+		  st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino)
+		      p = 0;
+	      setpwd(p, 0);
       }
 }
 
@@ -2300,9 +2298,7 @@ cdcmd(int argc, char **argv)
 		dest = bltinlookup(homestr);
 	else if (dest[0] == '-' && dest[1] == '\0') {
 		dest = bltinlookup("OLDPWD");
-		if ( !dest ) goto out;
 		flags |= CD_PRINT;
-		goto step7;
 	}
 	if (!dest)
 		dest = nullstr;
@@ -2563,20 +2559,17 @@ onint(void) {
 static void
 exvwarning(const char *msg, va_list ap)
 {
-	FILE *errs;
-	const char *name;
-	const char *fmt;
+	 FILE *errs;
 
-	errs = stderr;
-	name = arg0;
-	fmt = "%s: ";
-	if (commandname) {
-		name = commandname;
-		fmt = "%s: %d: ";
-	}
-	fprintf(errs, fmt, name, startlinno);
-	vfprintf(errs, msg, ap);
-	outcslow('\n', errs);
+	 errs = stderr;
+	 fprintf(errs, "%s: ", arg0);
+	 if (commandname) {
+		 const char *fmt = (!iflag || parsefile->fd) ?
+					"%s: %d: " : "%s: ";
+		 fprintf(errs, fmt, commandname, startlinno);
+	 }
+	 vfprintf(errs, msg, ap);
+	 outcslow('\n', errs);
 }
 
 /*
@@ -3201,6 +3194,12 @@ isassignment(const char *p)
 	return *q == '=';
 }
 
+#ifdef CONFIG_ASH_EXPAND_PRMT
+static const char *expandstr(const char *ps);
+#else
+#define expandstr(s) s
+#endif
+
 /*
  * Execute a simple command.
  */
@@ -3249,7 +3248,7 @@ evalcommand(union node *cmd, int flags)
 		struct strlist **spp;
 
 		spp = arglist.lastp;
-		if (pseudovarflag && isassignment(argp->narg.text)) 
+		if (pseudovarflag && isassignment(argp->narg.text))
 			expandarg(argp, &arglist, EXP_VARTILDE);
 		else
 			expandarg(argp, &arglist, EXP_FULL | EXP_TILDE);
@@ -3296,7 +3295,7 @@ evalcommand(union node *cmd, int flags)
 		const char *p = " %s";
 
 		p++;
-		dprintf(preverrout_fd, p, ps4val());
+		dprintf(preverrout_fd, p, expandstr(ps4val()));
 
 		sp = varlist.list;
 		for(n = 0; n < 2; n++) {
@@ -4595,11 +4594,12 @@ expandarg(union node *arg, struct arglist *arglist, int flag)
 	ifsfirst.next = NULL;
 	ifslastp = NULL;
 	argstr(arg->narg.text, flag);
+	p = _STPUTC('\0', expdest);
+	expdest = p - 1;
 	if (arglist == NULL) {
 		return;                 /* here document expanded */
 	}
-	STPUTC('\0', expdest);
-	p = grabstackstr(expdest);
+	p = grabstackstr(p);
 	exparg.lastp = &exparg.list;
 	/*
 	 * TODO - EXP_REDIR
@@ -5355,9 +5355,12 @@ param:
 			size_t partlen;
 
 			partlen = strlen(p);
-
 			len += partlen;
-			if (len > partlen && sep) {
+
+			if (!(subtype == VSPLUS || subtype == VSLENGTH))
+				memtodest(p, partlen, syntax, quotes);
+
+			if (*ap && sep) {
 				char *q;
 
 				len++;
@@ -5370,9 +5373,6 @@ param:
 				STPUTC(sep, q);
 				expdest = q;
 			}
-
-			if (!(subtype == VSPLUS || subtype == VSLENGTH))
-				memtodest(p, partlen, syntax, quotes);
 		}
 		return len;
 	case '0':
@@ -6603,10 +6603,12 @@ usage:
 		if (**argv == '%') {
 			jp = getjob(*argv, 0);
 			pid = -jp->ps[0].pid;
-		} else
-			pid = number(*argv);
+		} else {
+			pid = **argv == '-' ?
+				-number(*argv + 1) : number(*argv);
+		}
 		if (kill(pid, signo) != 0) {
-			sh_warnx("kill %d: %s", pid, errmsg(errno, NULL));
+			sh_warnx("(%d) - %m", pid);
 			i = 1;
 		}
 	} while (*++argv);
@@ -7621,11 +7623,10 @@ cmdputs(const char *s)
 	char *nextc;
 	int subtype = 0;
 	int quoted = 0;
-	static const char *const vstype[16] = {
-		nullstr, "}", "-", "+", "?", "=",
-		"%", "%%", "#", "##", nullstr
+	static const char vstype[VSTYPE + 1][4] = {
+		"", "}", "-", "+", "?", "=",
+		"%", "%%", "#", "##"
 	};
-
 	nextc = makestrspace((strlen(s) + 1) * 8, cmdnextc);
 	p = s;
 	while ((c = *p++) != 0) {
@@ -7647,14 +7648,10 @@ cmdputs(const char *s)
 				goto dostr;
 			break;
 		case CTLENDVAR:
+			str = "\"}" + !(quoted & 1);
 			quoted >>= 1;
 			subtype = 0;
-			if (quoted & 1) {
-				str = "\"}";
-				goto dostr;
-			}
-			c = '}';
-			break;
+			goto dostr;
 		case CTLBACKQ:
 			str = "$(...)";
 			goto dostr;
@@ -7676,13 +7673,13 @@ cmdputs(const char *s)
 		case '=':
 			if (subtype == 0)
 				break;
+			if ((subtype & VSTYPE) != VSNORMAL)
+				quoted <<= 1;
 			str = vstype[subtype & VSTYPE];
 			if (subtype & VSNUL)
 				c = ':';
 			else
-				c = *str++;
-			if (c != '}')
-				quoted <<= 1;
+				goto checkstr;
 			break;
 		case '\'':
 		case '\\':
@@ -7697,6 +7694,7 @@ cmdputs(const char *s)
 			break;
 		}
 		USTPUTC(c, nextc);
+checkstr:
 		if (!str)
 			continue;
 dostr:
@@ -8138,7 +8136,7 @@ static int dotcmd(int argc, char **argv)
 	for (sp = cmdenviron; sp; sp = sp->next)
 		setvareq(bb_xstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
 
-	if (argc >= 2) {	/* That's what SVR2 does */
+	if (argc >= 2) {        /* That's what SVR2 does */
 		char *fullname;
 		struct stackmark smark;
 
@@ -9892,7 +9890,6 @@ parseheredoc(void)
 	while (here) {
 		if (needprompt) {
 			setprompt(2);
-			needprompt = 0;
 		}
 		readtoken1(pgetc(), here->here->type == NHERE? SQSYNTAX : DQSYNTAX,
 				here->eofmark, here->striptabs);
@@ -10025,7 +10022,6 @@ static int xxreadtoken()
 	}
 	if (needprompt) {
 		setprompt(2);
-		needprompt = 0;
 	}
 	startlinno = plinno;
 	for (;;) {                      /* until token or start of word found */
@@ -10093,7 +10089,6 @@ xxreadtoken(void)
 	}
 	if (needprompt) {
 		setprompt(2);
-		needprompt = 0;
 	}
 	startlinno = plinno;
 	for (;;) {      /* until token or start of word found */
@@ -10649,7 +10644,6 @@ parsebackq: {
 		for (;;) {
 			if (needprompt) {
 				setprompt(2);
-				needprompt = 0;
 			}
 			switch (pc = pgetc()) {
 			case '`':
@@ -10859,9 +10853,35 @@ synerror(const char *msg)
  *    should be added here.
  */
 
+#ifdef CONFIG_ASH_EXPAND_PRMT
+static const char *
+expandstr(const char *ps)
+{
+	union node n;
+
+	/* XXX Fix (char *) cast. */
+	setinputstring((char *)ps);
+	readtoken1(pgetc(), DQSYNTAX, nullstr, 0);
+	popfile();
+
+	n.narg.type = NARG;
+	n.narg.next = NULL;
+	n.narg.text = wordtext;
+	n.narg.backquote = backquotelist;
+
+	expandarg(&n, NULL, 0);
+	return stackblock();
+}
+#endif
+
 static void setprompt(int whichprompt)
 {
 	const char *prompt;
+#ifdef CONFIG_ASH_EXPAND_PRMT
+	struct stackmark smark;
+#endif
+
+	needprompt = 0;
 
 	switch (whichprompt) {
 	case 1:
@@ -10873,7 +10893,14 @@ static void setprompt(int whichprompt)
 	default:                        /* 0 */
 		prompt = nullstr;
 	}
-	putprompt(prompt);
+#ifdef CONFIG_ASH_EXPAND_PRMT
+	setstackmark(&smark);
+	stalloc(stackblocksize());
+#endif
+	putprompt(expandstr(prompt));
+#ifdef CONFIG_ASH_EXPAND_PRMT
+	popstackmark(&smark);
+#endif
 }
 
 
@@ -13341,7 +13368,11 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 			goto err;
 		}
 		/* save to shell variable */
-		snprintf(buf, sizeof(buf), "%lld", (long long) rez);
+#ifdef CONFIG_ASH_MATH_SUPPORT_64
+		snprintf(buf, sizeof(buf), "%lld", rez);
+#else
+		snprintf(buf, sizeof(buf), "%ld", rez);
+#endif
 		setvar(numptr_m1->var, buf, 0);
 		/* after saving, make previous value for v++ or v-- */
 		if(op == TOK_POST_INC)
@@ -13479,7 +13510,11 @@ static arith_t arith (const char *expr, int *perrcode)
 			continue;
 		} else if (is_digit(arithval)) {
 			numstackptr->var = NULL;
+#ifdef CONFIG_ASH_MATH_SUPPORT_64
 			numstackptr->val = strtoll(expr, (char **) &expr, 0);
+#else
+			numstackptr->val = strtol(expr, (char **) &expr, 0);
+#endif
 			goto num;
 		}
 		for(p = op_tokens; ; p++) {

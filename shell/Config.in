@@ -143,6 +143,15 @@ config CONFIG_ASH_RANDOM_SUPPORT
 	  After "unset RANDOM" then generator will switch off and this
 	  variable will no longer have special treatment.
 
+config CONFIG_ASH_EXPAND_PRMT
+	bool "  Support expand PS#"
+	default n
+	depends on CONFIG_ASH
+	help
+	  "PS#" may be have commands. It option enable expand string
+	  from prompt before each show.
+
+
 config CONFIG_HUSH
 	bool "hush"
 	default n
