@@ -31,11 +31,11 @@
 
 int sysfs(int option, unsigned int fs_index, char * buf)
 {
-#ifndef __NR_pivot_root
-#warning This kernel does not support the sysfs syscall
-#warning -> The sysfs system call is being stubbed out...
+#ifndef __NR_sysfs
+#warning "This kernel does not support the sysfs syscall"
+#warning "-> The sysfs system call is being stubbed out..."
 	bb_error_msg("\n\nTo make this application work, you will need to recompile\n"
-	             "BusyBox with a kernel supporting the pivot_root system call.\n");
+	             "BusyBox with a kernel supporting the sysfs system call.\n");
 	errno = ENOSYS;
 	return -1;
 #else
@@ -84,8 +84,8 @@ int klogctl(int type, char *b, int len)
 int umount2(const char * special_file, int flags)
 {
 #ifndef __NR_umount2
-#warning This kernel does not support the umount2 syscall
-#warning -> The umount2 system call is being stubbed out...
+#warning "This kernel does not support the umount2 syscall"
+#warning "-> The umount2 system call is being stubbed out..."
 	/* BusyBox was compiled against a kernel that did not support
 	 *  the umount2 system call.  To make this application work,
 	 *  you will need to recompile with a kernel supporting the
@@ -97,7 +97,7 @@ int umount2(const char * special_file, int flags)
 	return -1;
 #else
 	return(syscall(__NR_umount2, special_file, flags));
-#endif /* __NR_pivot_root */
+#endif /* __NR_umount2 */
 }
 
 #endif /* old glibc check */
