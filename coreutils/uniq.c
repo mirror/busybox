@@ -36,74 +36,59 @@ static const char uniq_opts[] = "f:s:cdu\0\7\3\5\1\2\4";
 int uniq_main(int argc, char **argv)
 {
 	FILE *in, *out;
-	/* Note: Ignore the warning about dups and e0 being used uninitialized.
-	 * They will be initialized on the fist pass of the loop (since s0 is NULL). */
-#warning The dups and e0 warnings are OK, ignore them
 	unsigned long dups, skip_fields, skip_chars, i;
-	const char *s0, *e0, *s1, *e1, *input_filename;
+	const char *oldline, *oldskipped, *line, *skipped, *input_filename;
 	int opt;
 	int uniq_flags = 6;		/* -u */
 
 	skip_fields = skip_chars = 0;
 
 	while ((opt = getopt(argc, argv, uniq_opts)) > 0) {
-		if (opt == 'f') {
-			skip_fields = bb_xgetularg10(optarg);
-		} else if (opt == 's') {
-			skip_chars = bb_xgetularg10(optarg);
-		} else if ((s0 = strchr(uniq_opts, opt)) != NULL) {
-			uniq_flags &= s0[4];
-			uniq_flags |= s0[7];
-		} else {
-			bb_show_usage();
-		}
+		if (opt == 'f') skip_fields = bb_xgetularg10(optarg);
+		else if (opt == 's') skip_chars = bb_xgetularg10(optarg);
+		else if ((line = strchr(uniq_opts, opt)) != NULL) {
+			uniq_flags &= line[4];
+			uniq_flags |= line[7];
+		} else bb_show_usage();
 	}
 
 	input_filename = *(argv += optind);
 
 	in = xgetoptfile_sort_uniq(argv, "r");
-	if (*argv) {
-		++argv;
-	}
+	if (*argv) ++argv;
 	out = xgetoptfile_sort_uniq(argv, "w");
-	if (*argv && argv[1]) {
-		bb_show_usage();
-	}
+	if (*argv && argv[1]) bb_show_usage();
 
-	s0 = NULL;
+	oldline = NULL;
 
 	/* gnu uniq ignores newlines */
-	while ((s1 = bb_get_chomped_line_from_file(in)) != NULL) {
-		e1 = s1;
+	while ((line = bb_get_chomped_line_from_file(in)) != NULL) {
+		skipped = line;
 		for (i=skip_fields ; i ; i--) {
-			e1 = bb_skip_whitespace(e1);
-			while (*e1 && !isspace(*e1)) {
-				++e1;
-			}
+			skipped = bb_skip_whitespace(skipped);
+			while (*skipped && !isspace(*skipped)) ++skipped;
 		}
-		for (i = skip_chars ; *e1 && i ; i--) {
-			++e1;
-		}
-		if (s0) {
-			if (strcmp(e0, e1) == 0) {
+		for (i = skip_chars ; *skipped && i ; i--) ++skipped;
+		if (oldline) {
+			if (strcmp(oldskipped, skipped) == 0) {
 				++dups;		/* Note: Testing for overflow seems excessive. */
 				continue;
 			}
-		DO_LAST:
+DO_LAST:
 			if ((dups && (uniq_flags & 2)) || (!dups && (uniq_flags & 4))) {
 				bb_fprintf(out, "\0%7d\t" + (uniq_flags & 1), dups + 1);
-				bb_fprintf(out, "%s\n", s0);
+				bb_fprintf(out, "%s\n", oldline);
 			}
-			free((void *)s0);
+			free((void *)oldline);
 		}
 
-		s0 = s1;
-		e0 = e1;
+		oldline = line;
+		oldskipped = skipped;
 		dups = 0;
 	}
 
-	if (s0) {
-		e1 = NULL;
+	if (oldline) {
+		skipped = NULL;
 		goto DO_LAST;
 	}
 
