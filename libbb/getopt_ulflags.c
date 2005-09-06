@@ -113,7 +113,8 @@ const char *bb_opt_complementally
 Special characters:
 
  "-"    A dash between two options causes the second of the two
-	to be unset (and ignored) if it is given on the command line.
+	to be unset (and ignored or triggered) if it is given on
+	the command line.
 
 	For example:
 	The du applet has the options "-s" and "-d depth".  If
@@ -128,13 +129,15 @@ Special characters:
 
 	char *smax_print_depth;
 
-	bb_opt_complementally = "s-d:d-s";
-	opt = bb_getopt_ulflags(argc, argv, "sd:", &smax_print_depth);
+	bb_opt_complementally = "s-d:d-s:x-x";
+	opt = bb_getopt_ulflags(argc, argv, "sd:x", &smax_print_depth);
 
 	if (opt & 2) {
 		 max_print_depth = bb_xgetularg10_bnd(smax_print_depth,
 			     0, INT_MAX);
 	}
+	if(opt & 4)
+		printf("Detected odd -x usaging\n");
 
  "~"    A tilde between two options, or between an option and a group
 	of options, means that they are mutually exclusive.  Unlike
@@ -297,6 +300,8 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 
 	while ((c = getopt_long (argc, argv, applet_opts,
 				 bb_applet_long_options, NULL)) > 0) {
+		unsigned long trigger;
+
 		for (on_off = complementally; on_off->opt != c; on_off++) {
 			if(!on_off->opt)
 				bb_show_usage ();
@@ -306,8 +311,10 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 				bb_show_usage ();
 			flags |= BB_GETOPT_ERROR;
 		}
-		flags &= ~on_off->switch_off;
-		flags |= on_off->switch_on;
+		trigger = on_off->switch_on & on_off->switch_off;
+		flags &= ~(on_off->switch_off ^ trigger);
+		flags |= on_off->switch_on ^ trigger;
+		flags ^= trigger;
 		if(on_off->list_flg) {
 			*(llist_t **)(on_off->optarg) =
 				llist_add_to(*(llist_t **)(on_off->optarg), optarg);

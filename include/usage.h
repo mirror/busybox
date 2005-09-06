@@ -2921,12 +2921,16 @@
 	"hello world\n"
 
 #define traceroute_trivial_usage \
-	"[-dnrv] [-m max_ttl] [-p port#] [-q nqueries]\n" \
-	"\t[-s src_addr] [-t tos] [-w wait] host [data size]"
+	"[-FIldnrv] [-f 1st_ttl] [-m max_ttl] [-p port#] [-q nqueries]\n" \
+	"\t[-s src_addr] [-t tos] [-w wait] [-g gateway] [-i iface]\n" \
+	"\t[-z pausemsecs] host [data size]"
 #define traceroute_full_usage \
 	"trace the route ip packets follow going to \"host\"\n" \
 	"Options:\n" \
-	"\t-d\tset SO_DEBUG options to socket\n" \
+	"\t-F\tSet the don't fragment bit\n" \
+	"\t-I\tUse ICMP ECHO instead of UDP datagrams\n" \
+	"\t-l\tDisplay the ttl value of the returned packet\n" \
+	"\t-d\tSet SO_DEBUG options to socket\n" \
 	"\t-n\tPrint hop addresses numerically rather than symbolically\n" \
 	"\t-r\tBypass the normal routing tables and send directly to a host\n" \
 	"\t-v\tVerbose output\n" \
@@ -2939,7 +2943,8 @@
 	"\t-t tos\tSet the type-of-service in probe packets to the following value\n" \
 	"\t\t(default 0)\n" \
 	"\t-w wait\tSet the time (in seconds) to wait for a response to a probe\n" \
-	"\t\t(default 3 sec.)"
+	"\t\t(default 3 sec.)\n" \
+	"\t-g\tSpecify a loose source route gateway (8 maximum)" 
 
 
 #define true_trivial_usage \

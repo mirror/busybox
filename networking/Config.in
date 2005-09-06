@@ -28,7 +28,7 @@ config CONFIG_FAKEIDENTD
 	bool "fakeidentd"
 	default n
 	help
-	  fakeidentd listens to the ident port and returns a set fake 
+	  fakeidentd listens to the ident port and returns a set fake
 	  value whatever it gets.
 
 config CONFIG_FTPGET
@@ -114,7 +114,7 @@ config CONFIG_FEATURE_HTTPD_CGI
 	depends on CONFIG_HTTPD
 	help
 	  This option allows scripts and executables to be invoked
-  	  when specific urls are requested.
+	  when specific urls are requested.
 
 config CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 	bool "  Support the REMOTE_PORT environment variable for CGI"
@@ -419,7 +419,7 @@ config CONFIG_NAMEIF
 	  File fields are separated by space or tab.
 	  File format:
 	  # Comment
-	  new_interface_name	XX:XX:XX:XX:XX:XX
+	  new_interface_name    XX:XX:XX:XX:XX:XX
 
 config CONFIG_NC
 	bool "nc"
@@ -614,6 +614,22 @@ config CONFIG_FEATURE_TRACEROUTE_VERBOSE
 	help
 	  Add some verbosity to traceroute.  This includes amongst other things
 	  hostnames and ICMP response types.
+
+config CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+	bool "  Enable loose source route"
+	default n
+	depends on CONFIG_TRACEROUTE
+	help
+	  Add feature for can specify a loose source route gateway
+	  (8 maximum).
+
+config CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+	bool "  Use ICMP instead of UDP"
+	default n
+	depends on CONFIG_TRACEROUTE
+	help
+	  Add feature for can use ICMP ECHO instead of UDP datagrams.
+
 
 config CONFIG_VCONFIG
 	bool "vconfig"
