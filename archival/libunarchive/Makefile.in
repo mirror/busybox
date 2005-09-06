@@ -79,6 +79,6 @@ libraries-y+=$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR)
 $(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR): $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
 
-$(LIBUNARCHIVA_DIR)%.o: $(srcdir)/%.c
+$(LIBUNARCHIVE_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
