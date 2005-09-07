@@ -3041,7 +3041,7 @@
 	"\t-f\tforce overwrite an existing file"
 
 #define uniq_trivial_usage \
-	"[OPTION]... [INPUT [OUTPUT]]"
+	"[-fscdu]... [INPUT [OUTPUT]]"
 #define uniq_full_usage \
 	"Discard all but one of successive identical lines from INPUT\n" \
 	"(or standard input), writing to OUTPUT (or standard output).\n\n" \

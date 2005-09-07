@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# SUSv3 compliant uniq tests.
+# Copyright 2005 by Rob Landley <rob@landley.net>
+# Licensed under GPL v2, see file LICENSE for details.
+
+# AUDIT: Not full coverage of the spec yet.
+
+if [ ${#COMMAND} -eq 0 ]; then COMMAND=uniq; fi
+. testing.sh
+
+# The basic tests.  These should work even with the small busybox.
+#-f skip fields
+#-s skip chars
+#-c occurrences
+#-d dups only
+#-u 
+testing "uniq (default to stdin)" "" "one\ntwo\nthree\n" "" \
+	"one\ntwo\ntwo\nthree\nthree\nthree\n"
+testing "uniq - (specify stdin)" "-" "one\ntwo\nthree\n" "" \
+	"one\ntwo\ntwo\nthree\nthree\nthree\n"
+testing "uniq input (specify file)" "input" "one\ntwo\nthree\n" \
+	"one\ntwo\ntwo\nthree\nthree\nthree\n" ""
+testing "uniq input outfile (two files)" "input actual > /dev/null" \
+	"one\ntwo\nthree\n" "one\ntwo\ntwo\nthree\nthree\nthree\n" ""
+#testing "uniq - outfile" "- outfile" "one\ntwo\nthree\n" \
+#	"one\ntwo\ntwo\nthree\nthree\nthree\n" ""
+
+testing "uniq -d" "-d" "two\nthree\n" "" \
+	"one\ntwo\ntwo\nthree\nthree\nthree\n"
+testing "uniq -c" "-c" "      1 one\n      2 two\n      3 three\n" "" \
+	"one\ntwo\ntwo\nthree\nthree\nthree\n"
+# testing "uniq -c -d"
+# testing "uniq infile"
+
+exit $FAILCOUNT

@@ -23,7 +23,7 @@ LIBCOREUTILS_DIR:=$(top_builddir)/coreutils/libcoreutils/
 endif
 srcdir=$(top_srcdir)/coreutils/libcoreutils
 
-LIBCOREUTILS_SRC:= cp_mv_stat.c getopt_mk_fifo_nod.c xgetoptfile_sort_uniq.c
+LIBCOREUTILS_SRC:= cp_mv_stat.c getopt_mk_fifo_nod.c
 
 LIBCOREUTILS_OBJS=$(patsubst %.c,$(LIBCOREUTILS_DIR)%.o, $(LIBCOREUTILS_SRC))
 
