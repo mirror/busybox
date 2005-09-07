@@ -105,7 +105,7 @@
 #undef JOBS
 #endif
 
-#if JOBS
+#if JOBS || defined(CONFIG_ASH_READ_NCHARS)
 #include <termios.h>
 #endif
 
@@ -12598,34 +12598,80 @@ readcmd(int argc, char **argv)
 	char *prompt;
 	const char *ifs;
 	char *p;
-#if defined(CONFIG_ASH_TIMEOUT)
-	fd_set set;
-	int timeout;
-	struct timeval timeout_struct;
-	struct termios tty, old_tty;
-#endif
 	int startword;
 	int status;
 	int i;
+#if defined(CONFIG_ASH_READ_NCHARS)
+	int nch_flag = 0;
+	int nchars = 0;
+	int silent = 0;
+	struct termios tty, old_tty;
+#endif
+#if defined(CONFIG_ASH_READ_TIMEOUT)
+	fd_set set;
+	struct timeval ts;
+
+	ts.tv_sec = ts.tv_usec = 0;
+#endif
 
 	rflag = 0;
 	prompt = NULL;
-#if defined(CONFIG_ASH_TIMEOUT)
-	timeout = 0;
-
+#if defined(CONFIG_ASH_READ_NCHARS) && defined(CONFIG_ASH_READ_TIMEOUT)
+	while ((i = nextopt("p:rt:n:s")) != '\0')
+#elif defined(CONFIG_ASH_READ_NCHARS)
+	while ((i = nextopt("p:rn:s")) != '\0')
+#elif defined(CONFIG_ASH_READ_TIMEOUT)
 	while ((i = nextopt("p:rt:")) != '\0')
 #else
 	while ((i = nextopt("p:r")) != '\0')
 #endif
 	{
-		if (i == 'p')
+	    	switch(i) {
+		case 'p':
 			prompt = optionarg;
-		else if (i == 'r')
-			rflag = 1;
-#if defined(CONFIG_ASH_TIMEOUT)
-		else
-			timeout = atoi(optionarg);
+			break;
+#if defined(CONFIG_ASH_READ_NCHARS)
+		case 'n':
+			nchars = strtol(optionarg, &p, 10);
+			if (*p)
+				error("invalid count");
+			nch_flag = (nchars > 0);
+			break;
+		case 's':
+			silent = 1;
+			break;
 #endif
+#if defined(CONFIG_ASH_READ_TIMEOUT)
+		case 't':
+              		ts.tv_sec = strtol(optionarg, &p, 10);
+			ts.tv_usec = 0;
+			if (*p == '.') {
+				char *p2;
+				if (*++p) {
+					int scale;
+              				ts.tv_usec = strtol(p, &p2, 10);
+					if (*p2)
+						error("invalid timeout");
+					scale = p2 - p;
+					/* normalize to usec */
+					if (scale > 6)
+						error("invalid timeout");
+					while (scale++ < 6)
+						ts.tv_usec *= 10;
+				}
+			} else if (*p) {
+				error("invalid timeout");
+			}
+			if ( ! ts.tv_sec && ! ts.tv_usec)
+				error("invalid timeout");
+			break;
+#endif
+		case 'r':
+			rflag = 1;
+			break;
+		default:
+			break;
+		}
 	}
 	if (prompt && isatty(0)) {
 		out2str(prompt);
@@ -12634,49 +12680,42 @@ readcmd(int argc, char **argv)
 		error("arg count");
 	if ((ifs = bltinlookup("IFS")) == NULL)
 		ifs = defifs;
-#if defined(CONFIG_ASH_TIMEOUT)
-	c = 0;
+#if defined(CONFIG_ASH_READ_NCHARS)
+	if (nch_flag || silent) {
+		tcgetattr(0, &tty);
+		old_tty = tty;
+		if (nch_flag) {
+		    tty.c_lflag &= ~ICANON;
+		    tty.c_cc[VMIN] = nchars;
+		}
+		if (silent) {
+		    tty.c_lflag &= ~(ECHO|ECHOK|ECHONL);
+
+		}
+		tcsetattr(0, TCSANOW, &tty);
+	}
+#endif
+#if defined(CONFIG_ASH_READ_TIMEOUT)
+	if (ts.tv_sec || ts.tv_usec) {
+		FD_ZERO (&set);
+		FD_SET (0, &set);
+
+		i = select (FD_SETSIZE, &set, NULL, NULL, &ts);
+		if (!i) {
+#if defined(CONFIG_ASH_READ_NCHARS)
+			if (nch_flag)
+				tcsetattr(0, TCSANOW, &old_tty);
+#endif
+			return 1;
+		}
+	}
 #endif
 	status = 0;
 	startword = 1;
 	backslash = 0;
-
 	STARTSTACKSTR(p);
-#if defined(CONFIG_ASH_TIMEOUT)
-	if (timeout > 0) {
-		tcgetattr(0, &tty);
-		old_tty = tty;
-
-		/* cfmakeraw(...) disables too much; we just do this instead. */
-		tty.c_lflag &= ~(ECHO|ECHONL|ICANON|IEXTEN);
-		tcsetattr(0, TCSANOW, &tty);
-
-		FD_ZERO (&set);
-		FD_SET (0, &set);
-
-		timeout_struct.tv_sec = timeout;
-		timeout_struct.tv_usec = 0;
-
-		if ((i = select (FD_SETSIZE, &set, NULL, NULL, &timeout_struct)) == 1)
-		{
-			read(0, &c, 1);
-			if(c == '\n' || c == 4) /* Handle newlines and EOF */
-				i = 0; /* Don't read further... */
-			else
-				STPUTC(c, p); /* Keep reading... */
-		}
-		tcsetattr(0, TCSANOW, &old_tty);
-
-		/* Echo the character so the user knows it was read...
-		   Yes, this can be done by setting the ECHO flag, but that
-		   echoes ^D and other control characters at this state */
-		if(c != 0)
-			write(1, &c, 1);
-
-	} else
-		i = 1;
-
-	for (;i == 1;)
+#if defined(CONFIG_ASH_READ_NCHARS)
+	while (!nch_flag || nchars--)
 #else
 	for (;;)
 #endif
@@ -12714,6 +12753,11 @@ put:
 			STPUTC(c, p);
 		}
 	}
+#if defined(CONFIG_ASH_READ_NCHARS)
+	if (nch_flag || silent)
+		tcsetattr(0, TCSANOW, &old_tty);
+#endif
+
 	STACKSTRNUL(p);
 	/* Remove trailing blanks */
 	while ((char *)stackblock() <= --p && strchr(ifs, *p) != NULL)
