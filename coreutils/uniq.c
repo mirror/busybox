@@ -4,7 +4,19 @@
  *
  * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
- * Licensed under GPL v2, see file LICENSE in this tarball for details.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
 
@@ -19,83 +31,93 @@
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 
-/* The extra data is flags to make -d and -u switch each other off */
-static const char uniq_opts[] = "cudf:s:\0\7\3\5\1\2\4";
+static const char uniq_opts[] = "f:s:cdu\0\7\3\5\1\2\4";
 
-#define SHOW_COUNT		1
-#define SHOW_UNIQUE		2
-#define SHOW_DUPLICATE	4
-
-static FILE *open_arg(char **argv, char *mode)
+static FILE *xgetoptfile_sort_uniq_s(char **argv, const char *mode)
 {
-	char *n=*argv;
+	const char *n;
 
-	return (n && *n != '-' && n[1]) ? bb_xfopen(n, mode) :
-		*mode=='r' ? stdin : stdout;
+	if ((n = *argv) != NULL) {
+		if ((*n != '-') || n[1]) {
+			return bb_xfopen(n, mode);
+		}
+	}
+	return (*mode == 'r') ? stdin : stdout;
 }
-
 
 int uniq_main(int argc, char **argv)
 {
 	FILE *in, *out;
+	/* Note: Ignore the warning about dups and e0 being used uninitialized.
+	 * They will be initialized on the fist pass of the loop (since s0 is NULL). */
+#warning The dups and e0 warnings are OK, ignore them
 	unsigned long dups, skip_fields, skip_chars, i;
-	const char *oldline, *oldskipped, *line, *skipped, *input_filename;
+	const char *s0, *e0, *s1, *e1, *input_filename;
 	int opt;
-	int uniq_flags = SHOW_UNIQUE | SHOW_DUPLICATE;
+	int uniq_flags = 6;		/* -u */
 
 	skip_fields = skip_chars = 0;
 
 	while ((opt = getopt(argc, argv, uniq_opts)) > 0) {
-		if (opt == 'f') skip_fields = bb_xgetularg10(optarg);
-		else if (opt == 's') skip_chars = bb_xgetularg10(optarg);
-
-		/* This bit uses the extra data at the end of uniq_opts to make
-		 * -d and -u switch each other off in a very small amount of space */
-		
-		else if ((line = strchr(uniq_opts, opt)) != NULL) {
-			uniq_flags &= line[8];
-			uniq_flags |= line[11];
-		} else bb_show_usage();
+		if (opt == 'f') {
+			skip_fields = bb_xgetularg10(optarg);
+		} else if (opt == 's') {
+			skip_chars = bb_xgetularg10(optarg);
+		} else if ((s0 = strchr(uniq_opts, opt)) != NULL) {
+			uniq_flags &= s0[4];
+			uniq_flags |= s0[7];
+		} else {
+			bb_show_usage();
+		}
 	}
 
 	input_filename = *(argv += optind);
 
-	in = open_arg(argv, "r");
-	if (*argv) ++argv;
-	out = open_arg(argv, "w");
-	if (*argv && argv[1]) bb_show_usage();
+	in = xgetoptfile_sort_uniq_s(argv, "r");
+	if (*argv) {
+		++argv;
+	}
+	out = xgetoptfile_sort_uniq_s(argv, "w");
+	if (*argv && argv[1]) {
+		bb_show_usage();
+	}
 
-	line = skipped = NULL;
+	s0 = NULL;
 
-NOT_DUPLICATE:
-	oldline = line;
-	oldskipped = skipped;
-	dups = 0;
-	
 	/* gnu uniq ignores newlines */
-	while ((line = bb_get_chomped_line_from_file(in)) != NULL) {
-		skipped = line;
+	while ((s1 = bb_get_chomped_line_from_file(in)) != NULL) {
+		e1 = s1;
 		for (i=skip_fields ; i ; i--) {
-			skipped = bb_skip_whitespace(skipped);
-			while (*skipped && !isspace(*skipped)) ++skipped;
+			e1 = bb_skip_whitespace(e1);
+			while (*e1 && !isspace(*e1)) {
+				++e1;
+			}
 		}
-		for (i = skip_chars ; *skipped && i ; i--) ++skipped;
-		if (oldline) {
-			if (!strcmp(oldskipped, skipped)) {
+		for (i = skip_chars ; *e1 && i ; i--) {
+			++e1;
+		}
+		if (s0) {
+			if (strcmp(e0, e1) == 0) {
 				++dups;		/* Note: Testing for overflow seems excessive. */
 				continue;
 			}
-DO_LAST:
-			if (uniq_flags & (dups ? SHOW_DUPLICATE : SHOW_UNIQUE)) {
-				bb_fprintf(out, "\0%7d " + (uniq_flags & SHOW_COUNT), dups + 1);
-				bb_fprintf(out, "%s\n", oldline);
+		DO_LAST:
+			if ((dups && (uniq_flags & 2)) || (!dups && (uniq_flags & 4))) {
+				bb_fprintf(out, "\0%7d\t" + (uniq_flags & 1), dups + 1);
+				bb_fprintf(out, "%s\n", s0);
 			}
-			free((void *)oldline);
+			free((void *)s0);
 		}
-		goto NOT_DUPLICATE;
+
+		s0 = s1;
+		e0 = e1;
+		dups = 0;
 	}
 
-	if (oldline) goto DO_LAST;
+	if (s0) {
+		e1 = NULL;
+		goto DO_LAST;
+	}
 
 	bb_xferror(in, input_filename);
 
