@@ -149,37 +149,26 @@ int add_option_string(uint8_t *optionptr, uint8_t *string)
 /* add a one to four byte option to a packet */
 int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 {
-	char length = 0;
-	int i;
-	uint8_t option[2 + 4];
-	uint8_t *u8;
-	uint16_t *u16;
-	uint32_t *u32;
-	uint32_t aligned;
-	u8 = (uint8_t *) &aligned;
-	u16 = (uint16_t *) &aligned;
-	u32 = &aligned;
+	struct dhcp_option *dh;
 
-	for (i = 0; dhcp_options[i].code; i++)
-		if (dhcp_options[i].code == code) {
-			length = option_lengths[dhcp_options[i].flags & TYPE_MASK];
+	for (dh=dhcp_options; dh->code; dh++) {
+		if (dh->code == code) {
+			uint8_t option[6], len;
+			
+			option[OPT_CODE] = code;
+			len = option_lengths[dh->flags & TYPE_MASK];
+			option[OPT_LEN] = len;
+			if (__BYTE_ORDER == __BIG_ENDIAN) 
+				data <<= 8 * (4 - len);
+			/* This memcpy is for broken processors which can't
+			 * handle a simple unaligned 32-bit assignment */
+			memcpy(&option[OPT_DATA], &data, 4);
+			return add_option_string(optionptr, option);
 		}
-
-	if (!length) {
-		DEBUG(LOG_ERR, "Could not add option 0x%02x", code);
-		return 0;
 	}
 
-	option[OPT_CODE] = code;
-	option[OPT_LEN] = length;
-
-	switch (length) {
-		case 1: *u8 =  data; break;
-		case 2: *u16 = data; break;
-		case 4: *u32 = data; break;
-	}
-	memcpy(option + 2, &aligned, length);
-	return add_option_string(optionptr, option);
+	DEBUG(LOG_ERR, "Could not add option 0x%02x", code);
+	return 0;
 }
 
 
