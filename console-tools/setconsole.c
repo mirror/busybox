@@ -37,9 +37,8 @@ static const struct option setconsole_long_options[] = {
 
 int setconsole_main(int argc, char **argv)
 {
-	int con;
 	unsigned long flags;
-	const char *device = "/dev/tty";
+	const char *device = CURRENT_TTY;
 
 	bb_applet_long_options = setconsole_long_options;
 	flags = bb_getopt_ulflags(argc, argv, "r");
@@ -53,14 +52,11 @@ int setconsole_main(int argc, char **argv)
 		device = argv[optind];
 	} else {
 		if (flags & OPT_SETCONS_RESET)
-			device = "/dev/console";
+			device = CONSOLE_DEV;
 	}
 
-	if (-1 == (con = open(device, O_RDONLY))) {
-		bb_perror_msg_and_die("open %s", device);
-	}
-	if (-1 == ioctl(con, TIOCCONS)) {
-		bb_perror_msg_and_die("ioctl TIOCCONS");
+	if (-1 == ioctl(bb_xopen(device, O_RDONLY), TIOCCONS)) {
+		bb_perror_msg_and_die("TIOCCONS");
 	}
 	return EXIT_SUCCESS;
 }

@@ -42,14 +42,14 @@ int deallocvt_main(int argc, char *argv[])
 		case 2:
 			if((num = bb_xgetlarg(argv[1], 10, 0, INT_MAX)) == 0)
 				bb_error_msg_and_die("0: illegal VT number");
-		/* Falltrough */
+		/* Fallthrough */
 		case 1:
 			break;
 		default:
 			bb_show_usage();
 	}
 
-	if (ioctl( get_console_fd(), VT_DISALLOCATE, num )) {
+	if (-1 == ioctl( get_console_fd(), VT_DISALLOCATE, num )) {
 		bb_perror_msg_and_die("VT_DISALLOCATE");
 	}
 	return EXIT_SUCCESS;

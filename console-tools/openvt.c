@@ -64,10 +64,8 @@ int openvt_main(int argc, char **argv)
 		fd = bb_xopen(vtname, O_RDWR);
 
 		/* Reassign stdout and sterr */
-		close(1);
-		close(2);
-		dup(fd);
-		dup(fd);
+		dup2(fd, STDOUT_FILENO);
+		dup2(fd, STDERR_FILENO);
 
 		execvp(argv[0], argv);
 		_exit(1);
