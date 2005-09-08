@@ -99,9 +99,9 @@ PIPE:
 			status=EXIT_FAILURE;
 		}
 	} while ( --argc > 0 );
-#ifdef CONFIG_FEATURE_CLEAN_UP	
-	free(string);
-#endif
+
+	if (ENABLE_FEATURE_CLEAN_UP) free(string);
+
 	bb_fflush_stdout_and_exit(status);
 }
 

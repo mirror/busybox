@@ -35,15 +35,15 @@ extern int fdflush_main(int argc, char **argv)
 {
 	int fd, result;
 
-	if (argc <= 1)
+	if (argc != 2)
 		bb_show_usage();
 
 	fd = bb_xopen(argv[1], 0);
 
 	result = ioctl(fd, FDFLUSH, 0);
-#ifdef CONFIG_FEATURE_CLEAN_UP
-	close(fd);
-#endif
+
+	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
+
 	if (result) {
 		bb_perror_nomsg_and_die();
 	}

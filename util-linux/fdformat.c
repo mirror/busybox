@@ -147,14 +147,14 @@ int fdformat_main(int argc,char **argv)
 		/* There is no point in freeing blocks at the end of a program, because
 		all of the program's space is given back to the system when the process
 		terminates.*/
-#ifdef CONFIG_FEATURE_CLEAN_UP
-		free(data);
-#endif
+		
+		if (ENABLE_FEATURE_CLEAN_UP) free(data);
+		
 		print_and_flush("done\n", NULL);
 	}
-#ifdef CONFIG_FEATURE_CLEAN_UP
-	close(fd);
-#endif
+
+	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
+	
 	/* Don't bother closing.  Exit does
 	 * that, so we can save a few bytes */
 	return EXIT_SUCCESS;

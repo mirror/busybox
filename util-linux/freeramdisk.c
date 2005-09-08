@@ -47,9 +47,9 @@ freeramdisk_main(int argc, char **argv)
 	fd = bb_xopen(argv[1], O_RDWR);
 
 	result = ioctl(fd, BLKFLSBUF);
-#ifdef CONFIG_FEATURE_CLEAN_UP
-	close(fd);
-#endif
+
+	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
+
 	if (result < 0) {
 		bb_perror_msg_and_die("failed ioctl on %s", argv[1]);
 	}
