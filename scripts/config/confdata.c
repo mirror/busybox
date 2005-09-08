@@ -322,18 +322,18 @@ int conf_write(const char *name)
 	while (menu) {
 		sym = menu->sym;
 		if (!sym) {
-			//if (!menu_is_visible(menu))
-			//	goto next;
-			str = menu_get_prompt(menu);
-			fprintf(out, "\n"
-				     "#\n"
-				     "# %s\n"
-				     "#\n", str);
-			if (out_h)
-				fprintf(out_h, "\n"
-					       "/*\n"
-					       " * %s\n"
-					       " */\n", str);
+			if (menu_is_visible(menu)) {
+				str = menu_get_prompt(menu);
+				fprintf(out, "\n"
+					     "#\n"
+					     "# %s\n"
+					     "#\n", str);
+				if (out_h)
+					fprintf(out_h, "\n"
+						       "/*\n"
+						       " * %s\n"
+						       " */\n", str);
+			}
 		} else if (!(sym->flags & SYMBOL_CHOICE)) {
 			sym_calc_value(sym);
 			//if (!(sym->flags & SYMBOL_WRITE))
