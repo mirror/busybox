@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * sum -- checksum and count the blocks in a file
  *     Like BSD sum or SysV sum -r, except like SysV sum if -s option is given.
@@ -9,20 +10,7 @@
  * Written by Kayvan Aghaiepour and David MacKenzie
  * Taken from coreutils and turned into a busybox applet by Mike Frysinger
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
 
 #include <stdio.h>
@@ -32,7 +20,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#include "libbb.h"
+#include "busybox.h"
 
 /* 1 if any of the files read were the standard input */
 static int have_read_stdin;
@@ -95,10 +83,10 @@ static int bsd_sum_file(const char *file, int print_name)
    Return 1 if successful.  */
 static int sysv_sum_file(const char *file, int print_name)
 {
+#define MY_BUF_SIZE 8192
 	int fd;
-	unsigned char buf[8192];
+	unsigned char buf[MY_BUF_SIZE];
 	uintmax_t total_bytes = 0;
-	int r;
 	int checksum;
 
 	/* The sum of all the input bytes, modulo (UINT_MAX + 1).  */
@@ -117,7 +105,7 @@ static int sysv_sum_file(const char *file, int print_name)
 
 	while (1) {
 		size_t i;
-		size_t bytes_read = safe_read(fd, buf, sizeof(buf));
+		size_t bytes_read = safe_read(fd, buf, MY_BUF_SIZE);
 
 		if (bytes_read == 0)
 			break;
@@ -139,15 +127,14 @@ static int sysv_sum_file(const char *file, int print_name)
 		return 0;
 	}
 
-	r = (s & 0xffff) + ((s & 0xffffffff) >> 16);
-	checksum = (r & 0xffff) + (r >> 16);
+	{
+		int r = (s & 0xffff) + ((s & 0xffffffff) >> 16);
+		checksum = (r & 0xffff) + (r >> 16);
+	}
 
 	printf("%d %s ", checksum,
 	       make_human_readable_str(total_bytes, 1, 512));
-	if (print_name)
-		puts(file);
-	else
-		printf("\n");
+	puts(print_name ? file : "");
 
 	return 1;
 }
