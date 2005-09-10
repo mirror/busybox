@@ -81,13 +81,12 @@ static int bsd_sum_file(const char *file, int print_name)
    of file FILE, or of the standard input if FILE is "-".
    If PRINT_NAME is >0, print FILE next to the checksum and size.
    Return 1 if successful.  */
+#define MY_BUF_SIZE 8192
 static int sysv_sum_file(const char *file, int print_name)
 {
-#define MY_BUF_SIZE 8192
+	RESERVE_CONFIG_UBUFFER(buf, MY_BUF_SIZE);
 	int fd;
-	unsigned char buf[MY_BUF_SIZE];
 	uintmax_t total_bytes = 0;
-	int checksum;
 
 	/* The sum of all the input bytes, modulo (UINT_MAX + 1).  */
 	unsigned int s = 0;
@@ -97,43 +96,42 @@ static int sysv_sum_file(const char *file, int print_name)
 		have_read_stdin = 1;
 	} else {
 		fd = open(file, O_RDONLY);
-		if (fd == -1) {
-			bb_perror_msg(file);
-			return 0;
-		}
+		if (fd == -1)
+			goto release_and_ret;
 	}
 
 	while (1) {
-		size_t i;
 		size_t bytes_read = safe_read(fd, buf, MY_BUF_SIZE);
 
 		if (bytes_read == 0)
 			break;
 
 		if (bytes_read == -1) {
+release_and_ret:
 			bb_perror_msg(file);
+			RELEASE_CONFIG_BUFFER(buf);
 			if (!IS_STDIN(file))
 				close(fd);
 			return 0;
 		}
 
-		for (i = 0; i < bytes_read; i++)
-			s += buf[i];
 		total_bytes += bytes_read;
+		while (bytes_read--)
+			s += buf[bytes_read];
 	}
 
-	if (!IS_STDIN(file) && close(fd) == -1) {
-		bb_perror_msg(file);
-		return 0;
-	}
+	if (!IS_STDIN(file) && close(fd) == -1)
+		goto release_and_ret;
+	else
+		RELEASE_CONFIG_BUFFER(buf);
 
 	{
 		int r = (s & 0xffff) + ((s & 0xffffffff) >> 16);
-		checksum = (r & 0xffff) + (r >> 16);
-	}
+		s = (r & 0xffff) + (r >> 16);
 
-	printf("%d %s ", checksum,
-	       make_human_readable_str(total_bytes, 1, 512));
+		printf("%d %s ", s,
+		       make_human_readable_str(total_bytes, 1, 512));
+	}
 	puts(print_name ? file : "");
 
 	return 1;
@@ -143,7 +141,6 @@ int sum_main(int argc, char **argv)
 {
 	int flags;
 	int ok;
-	int files_given;
 	int (*sum_func)(const char *, int) = bsd_sum_file;
 
 	/* give the bsd func priority over sysv func */
@@ -154,12 +151,11 @@ int sum_main(int argc, char **argv)
 		sum_func = bsd_sum_file;
 
 	have_read_stdin = 0;
-	files_given = argc - optind;
-	if (files_given <= 0)
-		ok = sum_func("-", files_given);
+	if ((argc - optind) == 0)
+		ok = sum_func("-", 0);
 	else
 		for (ok = 1; optind < argc; optind++)
-			ok &= sum_func(argv[optind], files_given);
+			ok &= sum_func(argv[optind], 1);
 
 	if (have_read_stdin && fclose(stdin) == EOF)
 		bb_perror_msg_and_die("-");
