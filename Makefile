@@ -2,19 +2,7 @@
 #
 # Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
 #
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+# Licensed under GPLv2, see the file LICENSE in this tarball for details.
 #
 
 #--------------------------------------------------------------
@@ -266,10 +254,7 @@ randconfig: scripts/config/conf
 
 allyesconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -e "s/^CONFIG_DEBUG.*/# CONFIG_DEBUG is not set/" .config
-	sed -i -e "s/^USING_CROSS_COMPILER.*/# USING_CROSS_COMPILER is not set/" .config
-	sed -i -e "s/^CONFIG_STATIC.*/# CONFIG_STATIC is not set/" .config
-	sed -i -e "s/^CONFIG_SELINUX.*/# CONFIG_SELINUX is not set/" .config
+	sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX).*/# \1 is not set/" .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 allnoconfig: scripts/config/conf
@@ -279,6 +264,7 @@ defconfig: scripts/config/conf
 	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
 
 clean:
+	- $(MAKE) -C scripts/config $@
 	- rm -f docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pod docs/busybox.net/busybox.html \
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
@@ -295,7 +281,6 @@ distclean: clean
 	- rm -rf include/config include/config.h include/bb_config.h include/bbconfigopts.h
 	- find . -name .depend -exec rm -f {} \;
 	rm -f .config .config.old .config.cmd
-	- $(MAKE) -C scripts/config clean
 
 release: distclean #doc
 	cd ..; \
