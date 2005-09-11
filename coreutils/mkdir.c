@@ -31,7 +31,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <getopt.h> /* struct option */
 #include "busybox.h"
 
 static const struct option mkdir_long_options[] = {

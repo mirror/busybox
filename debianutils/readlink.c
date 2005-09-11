@@ -43,8 +43,6 @@ int readlink_main(int argc, char **argv)
 	RESERVE_CONFIG_BUFFER(resolved_path, PATH_MAX);
 #endif
 
-	/* no options, no getopt */
-
 	if (optind + 1 != argc)
 		bb_show_usage();
 
@@ -58,9 +56,8 @@ int readlink_main(int argc, char **argv)
 	if (!buf)
 		return EXIT_FAILURE;
 	puts(buf);
-#ifdef CONFIG_FEATURE_CLEAN_UP
-	free(buf);
-#endif
+
+	if (ENABLE_FEATURE_CLEAN_UP) free(buf);
 
 	return EXIT_SUCCESS;
 }

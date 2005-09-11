@@ -31,7 +31,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <getopt.h>
+#include <getopt.h> /* struct option */
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 

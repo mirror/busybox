@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 #include <errno.h>
-#include <getopt.h>
+#include <getopt.h> /* optind */
 #include <string.h>
 #include <stdlib.h>
 

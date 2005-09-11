@@ -60,7 +60,7 @@ enum {
 #include <fcntl.h>
 #include <signal.h>
 #include <termios.h>
-#include <getopt.h>
+#include <getopt.h> /* struct option */
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>     /* major() and minor() */
 #include "busybox.h"

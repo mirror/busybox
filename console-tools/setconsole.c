@@ -24,7 +24,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <getopt.h>
+#include <getopt.h> /* struct option */
 
 #include "busybox.h"
 

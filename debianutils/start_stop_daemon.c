@@ -16,7 +16,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <getopt.h> /* struct option */
 
 #include "busybox.h"
 #include "pwd_.h"

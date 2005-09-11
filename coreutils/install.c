@@ -23,10 +23,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
-#include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h> /* struct option */
 
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"

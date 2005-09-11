@@ -47,7 +47,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <getopt.h> /* struct option */
 #include "busybox.h"
 
 

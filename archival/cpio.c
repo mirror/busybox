@@ -24,20 +24,19 @@
  *
  */
 #include <fcntl.h>
-#include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "unarchive.h"
 #include "busybox.h"
 
-#define CPIO_OPT_EXTRACT           	0x01
-#define CPIO_OPT_TEST              	0x02
-#define CPIO_OPT_UNCONDITIONAL     	0x04
-#define CPIO_OPT_VERBOSE           	0x08
-#define CPIO_OPT_FILE              	0x10
+#define CPIO_OPT_EXTRACT			0x01
+#define CPIO_OPT_TEST				0x02
+#define CPIO_OPT_UNCONDITIONAL		0x04
+#define CPIO_OPT_VERBOSE			0x08
+#define CPIO_OPT_FILE				0x10
 #define CPIO_OPT_CREATE_LEADING_DIR	0x20
-#define CPIO_OPT_PRESERVE_MTIME    	0x40
+#define CPIO_OPT_PRESERVE_MTIME		0x40
 
 extern int cpio_main(int argc, char **argv)
 {
@@ -59,7 +58,7 @@ extern int cpio_main(int argc, char **argv)
 	}
 
 	if (opt & CPIO_OPT_TEST) {
-		/* if both extract and test option are given, ignore extract option */
+		/* if both extract and test options are given, ignore extract option */
 		if (opt & CPIO_OPT_EXTRACT) {
 			opt &= ~CPIO_OPT_EXTRACT;
 		}
@@ -79,7 +78,7 @@ extern int cpio_main(int argc, char **argv)
 			archive_handle->action_header = header_list;
 		}
 	}
-	if (cpio_filename) {	/* CPIO_OPT_FILE */
+	if (cpio_filename) { /* CPIO_OPT_FILE */
 		archive_handle->src_fd = bb_xopen(cpio_filename, O_RDONLY);
 		archive_handle->seek = seek_by_jump;
 	}

@@ -16,7 +16,6 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-#include <getopt.h>
 #include "unarchive.h"
 #include "busybox.h"
 

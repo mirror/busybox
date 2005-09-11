@@ -30,7 +30,7 @@
 #include <grp.h>
 #include <sys/vfs.h>
 #include <time.h>
-#include <getopt.h>
+#include <getopt.h> /* optind */
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/statvfs.h>

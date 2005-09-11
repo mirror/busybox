@@ -6,7 +6,6 @@
  */
 
 #include <fcntl.h>
-#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +34,7 @@ int bunzip2_main(int argc, char **argv)
 		src_fd = STDIN_FILENO;
 		filename = 0;
 	}
-	
+
 	/* if called as bzcat force the stdout flag */
 	if ((opt & BUNZIP2_OPT_STDOUT) || bb_applet_name[2] == 'c')
 		filename = 0;
