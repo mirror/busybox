@@ -612,7 +612,7 @@
 #ifdef CONFIG_SYNC
 	APPLET(sync, sync_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_SYSCTL
+#ifdef CONFIG_BB_SYSCTL
 	APPLET(sysctl, sysctl_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_SYSLOGD

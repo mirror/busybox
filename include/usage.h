@@ -2654,24 +2654,22 @@
 #  define USAGE_IPC_LOG(a)
 #endif
 
-#ifdef CONFIG_SYSCTL
 #define sysctl_trivial_usage \
 	"[OPTIONS]... [VALUE]..."
-#define sysctl_full_usage
-	"sysctl - configure kernel parameters at runtime\n\n" \
+#define sysctl_full_usage \
+	"configure kernel parameters at runtime\n\n" \
 	"Options:\n" \
 	"\t-n\tUse this option to disable printing of the key name when printing values\n" \
 	"\t-w\tUse this option when you want to change a sysctl setting\n" \
 	"\t-p\tLoad in sysctl settings from the file specified or /etc/sysctl.conf if none given\n" \
 	"\t-a\tDisplay all values currently available\n" \
 	"\t-A\tDisplay all values currently available in table form"
-#define sysctl_example_usage
+#define sysctl_example_usage \
 	"sysctl [-n] variable ...\n" \
 	"sysctl [-n] -w variable=value ...\n" \
 	"sysctl [-n] -a\n" \
 	"sysctl [-n] -p <file>\t(default /etc/sysctl.conf)\n" \
 	"sysctl [-n] -A\n"
-#endif
 
 #define syslogd_trivial_usage \
 	"[OPTION]..."
