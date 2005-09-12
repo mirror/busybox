@@ -333,7 +333,7 @@ static void message(char *fmt, ...)
 				&& (lseek(fd,0,SEEK_END) > logFileSize) ) {
 				if(logFileRotate > 0) {
 					int i;
-					char oldFile[(strlen(logFilePath)+3)], newFile[(strlen(logFilePath)+3)];
+					char oldFile[(strlen(logFilePath)+4)], newFile[(strlen(logFilePath)+4)];
 					for(i=logFileRotate-1;i>0;i--) {
 						sprintf(oldFile, "%s.%d", logFilePath, i-1);
 						sprintf(newFile, "%s.%d", logFilePath, i);
