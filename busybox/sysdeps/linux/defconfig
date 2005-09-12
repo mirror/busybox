@@ -333,7 +333,7 @@ CONFIG_PS=y
 # CONFIG_RENICE is not set
 # CONFIG_TOP is not set
 CONFIG_UPTIME=y
-# CONFIG_SYSCTL is not set
+# CONFIG_BB_SYSCTL is not set
 
 #
 # Another Bourne-like Shell
