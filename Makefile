@@ -110,7 +110,7 @@ $(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
 include $(patsubst %,%/Makefile.in, $(SRC_DIRS))
 -include $(top_builddir)/.depend
 
-busybox: $(ALL_MAKEFILES) .depend include/bb_config.h $(libraries-y)
+busybox: $(ALL_MAKEFILES) .depend $(libraries-y)
 	$(CC) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
 	$(STRIPCMD) $@
 
@@ -180,24 +180,14 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 	-@ rm -f pod2htm*
 
 # The nifty new buildsystem stuff
-scripts/mkdep: $(top_srcdir)/scripts/mkdep.c
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
-
-scripts/split-include: $(top_srcdir)/scripts/split-include.c
+scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
 depend dep: .depend
-.depend: scripts/mkdep include/config.h include/bbconfigopts.h
-	rm -f .depend .hdepend;
-	mkdir -p include/config;
-	scripts/mkdep -I include -- \
-	  `find $(top_srcdir) -name \*.c -print | sed -e "s,^./,,"` >> .depend;
-	scripts/mkdep -I include -- \
-	  `find $(top_srcdir) -name \*.h -print | sed -e "s,^./,,"` >> .hdepend;
-
-include/config/MARKER: depend scripts/split-include
-	scripts/split-include include/config.h include/config
-	@ touch include/config/MARKER
+.depend: scripts/bb_mkdep include/config.h include/bb_config.h
+	@rm -f .depend
+	@mkdir -p include/config
+	scripts/bb_mkdep -c include/config.h -c include/bb_config.h > $@
 
 include/config.h: .config
 	@if [ ! -x $(top_builddir)/scripts/config/conf ] ; then \
@@ -206,11 +196,11 @@ include/config.h: .config
 	@$(top_builddir)/scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 include/bb_config.h: include/config.h
-	echo -e "#ifndef BB_CONFIG_H\n#define BB_CONFIG_H" > $@
-	sed -e 's/#undef CONFIG_\(.*\)/#define ENABLE_\1 0/' \
+	@echo -e "#ifndef BB_CONFIG_H\n#define BB_CONFIG_H" > $@
+	@sed -e 's/#undef CONFIG_\(.*\)/#define ENABLE_\1 0/' \
 	    -e 's/#define CONFIG_\(.*\)/#define CONFIG_\1\n#define ENABLE_\1/' \
 		< $< >> $@
-	echo "#endif" >> $@
+	@echo "#endif" >> $@
 
 include/bbconfigopts.h: .config
 	@[ -d $(@D) ] || mkdir -v $(@D)
@@ -270,14 +260,14 @@ clean:
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html busybox.links libbb/loop.h \
-	    .config.old .hdepend busybox testsuite/links/*
+	    .config.old busybox testsuite/links/*
 	- rm -rf _install
 	- find . -name .\*.flags -exec rm -f {} \;
 	- find . -name \*.o -exec rm -f {} \;
 	- find . -name \*.a -exec rm -f {} \;
 
 distclean: clean
-	- rm -f scripts/split-include scripts/mkdep
+	- rm -f scripts/bb_mkdep
 	- rm -rf include/config include/config.h include/bb_config.h include/bbconfigopts.h
 	- find . -name .depend -exec rm -f {} \;
 	rm -f .config .config.old .config.cmd

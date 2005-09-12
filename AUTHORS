@@ -110,7 +110,7 @@ Manuel Novoa III <mjn3@codepoet.org>
     interface, dutmp, ifconfig, route
 
 Vladimir Oleynik <dzo@simtreas.ru>
-    cmdedit; xargs(current), httpd(current);
+    cmdedit; bb_mkdep, xargs(current), httpd(current);
     ports: ash, crond, fdisk, inetd, stty, traceroute, top;
     locale, various fixes
     and irreconcilable critic of everything not perfect.
