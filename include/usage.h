@@ -2619,14 +2619,14 @@
 	"\t-s\tuse System V sum algorithm (512byte blocks)"
 
 #define swapoff_trivial_usage \
-	"[OPTION] [DEVICE]"
+	"[-a] [DEVICE]"
 #define swapoff_full_usage \
 	"Stop swapping virtual memory pages on DEVICE.\n\n" \
 	"Options:\n" \
 	"\t-a\tStop swapping on all swap devices"
 
 #define swapon_trivial_usage \
-	"[OPTION] [DEVICE]"
+	"[-a] [DEVICE]"
 #define swapon_full_usage \
 	"Start swapping virtual memory pages on DEVICE.\n\n" \
 	"Options:\n" \
