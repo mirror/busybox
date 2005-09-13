@@ -31,12 +31,6 @@
 
 #include "busybox.h"
 
-static int whichApp;    /* default SWAPON_APP */
-
-static const int SWAPON_APP = 0;
-static const int SWAPOFF_APP = 1;
-
-
 static int swap_enable_disable(const char *device)
 {
 	int status;
@@ -53,7 +47,7 @@ static int swap_enable_disable(const char *device)
 		}
 	}
 
-	if (whichApp == SWAPON_APP)
+	if (bb_applet_name[5] == 'n')
 		status = swapon(device, 0);
 	else
 		status = swapoff(device);
@@ -62,6 +56,7 @@ static int swap_enable_disable(const char *device)
 		bb_perror_msg("%s", device);
 		return EXIT_FAILURE;
 	}
+	/*printf("%s: %s\n", bb_applet_name, device);*/
 	return EXIT_SUCCESS;
 }
 
@@ -83,38 +78,18 @@ static int do_em_all(void)
 	return err;
 }
 
+#define DO_ALL      1
 
 extern int swap_on_off_main(int argc, char **argv)
 {
-	if (bb_applet_name[5] == 'f') { /* "swapoff" */
-		whichApp = SWAPOFF_APP;
-	}
-
+	unsigned long opt = bb_getopt_ulflags (argc, argv, "a");
+	
 	if (argc != 2) {
-		goto usage_and_exit;
+		bb_show_usage();
 	}
-	argc--;
-	argv++;
-
-	/* Parse any options */
-	while (**argv == '-') {
-		while (*++(*argv))
-			switch (**argv) {
-			case 'a':
-				{
-					struct stat statBuf;
-
-					if (stat("/etc/fstab", &statBuf) < 0)
-						bb_error_msg_and_die("/etc/fstab file missing");
-				}
-				return do_em_all();
-				break;
-			default:
-				goto usage_and_exit;
-			}
-	}
-	return swap_enable_disable(*argv);
-
-  usage_and_exit:
-	bb_show_usage();
+	
+	if (opt & DO_ALL)
+		return do_em_all();
+	
+	return swap_enable_disable(argv[1]);
 }
