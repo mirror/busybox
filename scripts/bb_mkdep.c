@@ -1,5 +1,5 @@
 /*
- * Another dependences for Makefile mashine generator
+ * Another dependences for Makefile fast mashine generator
  *
  * Copyright (C) 2005 by Vladimir Oleynik <dzo@simtreas.ru>
  *
@@ -19,6 +19,7 @@
  * -w                     (show warning if include files not found)
  * -k include/config      (default: INCLUDE_CONFIG_PATH)
  * -c include/config.h    (configs, default: INCLUDE_CONFIG_KEYS_PATH)
+ * dirs_for_scan          (default ".")
 */
 
 #define LOCAL_INCLUDE_PATH          "include"
@@ -47,9 +48,13 @@ typedef struct BB_KEYS {
 	struct BB_KEYS *next;
 } bb_key_t;
 
+typedef struct FILE_LIST {
+	char *name;
+	char *ext;      /* *.c or *.h, point to last char */
+	long size;
+} file_list_t;
 
 /* partial and simplify libbb routine */
-
 static void bb_error_d(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 static char * bb_asprint(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
@@ -66,15 +71,20 @@ static char *bb_simplify_path(const char *path);
 
 /* for lexical analyzier */
 static bb_key_t *key_top;
+static llist_t *configs;
 
 static void parse_inc(const char *include, const char *fname);
 static void parse_conf_opt(char *opt, const char *val, size_t rsz);
 
-static char first_char_conf_opts[256];  /* for speed */
+/* for speed triks */
+static char first_chars[257];  /* + L_EOF */
 
-#define CHECK_ONLY  0
-#define MAKE_NEW    1
-static bb_key_t *find_already(bb_key_t *k, const char *nk, int flg_save_new);
+static int pagesizem1;
+static size_t mema_id = 128;   /* first allocated for id */
+static char *id_s;
+
+static bb_key_t *check_key(bb_key_t *k, const char *nk);
+static bb_key_t *make_new_key(bb_key_t *k, const char *nk);
 
 #define yy_error_d(s) bb_error_d("%s:%d hmm, %s", fname, line, s)
 
@@ -82,40 +92,41 @@ static bb_key_t *find_already(bb_key_t *k, const char *nk, int flg_save_new);
 #define S      0        /* start state */
 #define STR    '"'      /* string */
 #define CHR    '\''     /* char */
-#define REM    '*'      /* block comment */
+#define REM    '/'      /* block comment */
+#define BS     '\\'     /* back slash */
 #define POUND  '#'      /* # */
 #define I      'i'      /* #include preprocessor`s directive */
 #define D      'd'      /* #define preprocessor`s directive */
 #define U      'u'      /* #undef preprocessor`s directive */
 #define LI     'I'      /* #include "... */
 #define DK     'K'      /* #define KEY... (config mode) */
-#define DV     'V'      /* #define KEY "... or #define KEY '... */
-#define NLC    'n'      /* \+\n */
-#define ANY    '?'      /* skip unparsed . */
+#define DV     'V'      /* #define KEY "VALUE or #define KEY 'VALUE */
+#define NLC    'n'      /* \ and \n */
+#define ANY    '*'      /* any unparsed chars */
 
+#define L_EOF  256
 /* [A-Z_a-z] */
 #define ID(c) ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_')
 /* [A-Z_a-z0-9] */
 #define ISALNUM(c)  (ID(c) || (c >= '0' && c <= '9'))
 
-#define getc1()     do { c = (optr >= oend) ? EOF : *optr++; } while(0)
+#define getc1()     do { c = (optr >= oend) ? L_EOF : *optr++; } while(0)
 #define ungetc1()   optr--
 
-#define put_id(c)   do {    if(id_len == mema_id)                 \
-				id = xrealloc(id, mema_id += 16); \
+#define put_id(c)   do {    if(id_len == local_mema_id)                 \
+				id = xrealloc(id, local_mema_id += 16); \
 			    id[id_len++] = c; } while(0)
 
 /* stupid C lexical analizator */
-static void c_lex(const char *fname, int flg_config_include)
+static void c_lex(const char *fname, long fsize)
 {
-  int c = EOF;                      /* stupid initialize */
-  int prev_state = EOF;
+  int c = L_EOF;                     /* stupid initialize */
+  int prev_state = L_EOF;
   int called;
   int state;
   int line;
-  static size_t mema_id;
-  static char *id_s;
-  char *id;
+  char *id = id_s;
+  size_t local_mema_id = mema_id;
   size_t id_len = 0;                /* stupid initialize */
   char *val = NULL;
   unsigned char *optr, *oend;
@@ -124,35 +135,20 @@ static void c_lex(const char *fname, int flg_config_include)
   int fd;
   char *map;
   int mapsize;
-  {
-    /* stolen from mkdep by Linus Torvalds */
-    int pagesizem1 = getpagesize() - 1;
-    struct stat st;
 
-    fd = open(fname, O_RDONLY);
-    if(fd < 0) {
+  fd = open(fname, O_RDONLY);
+  if(fd < 0) {
 	perror(fname);
 	return;
-    }
-    fstat(fd, &st);
-    if (st.st_size == 0)
-	bb_error_d("%s is empty", fname);
-    mapsize = st.st_size;
-    mapsize = (mapsize+pagesizem1) & ~pagesizem1;
-    map = mmap(NULL, mapsize, PROT_READ, MAP_PRIVATE, fd, 0);
-    if ((long) map == -1)
+  }
+  mapsize = (fsize+pagesizem1) & ~pagesizem1;
+  map = mmap(NULL, mapsize, PROT_READ, MAP_PRIVATE, fd, 0);
+  if ((long) map == -1)
 	bb_error_d("%s: mmap: %m", fname);
 
-    /* hereinafter is my */
-    optr = (unsigned char *)map;
-    oend = optr + st.st_size;
-  }
+  optr = (unsigned char *)map;
+  oend = optr + fsize;
 
-  if(id_s == NULL) {
-    /* fist allocate */
-    id_s = xmalloc(mema_id=128);
-  }
-  id = id_s;
   line = 1;
   called = state = S;
 
@@ -163,10 +159,7 @@ static void c_lex(const char *fname, int flg_config_include)
 	    if(state == LI) {
 		parse_inc(id, fname);
 	    } else {
-		/*
-		if(val[0] == '\0')
-		    yy_error_d("expected value");
-		*/
+		/* #define KEY "[VAL]" */
 		parse_conf_opt(id, val, (optr - start));
 	    }
 	    state = S;
@@ -180,7 +173,7 @@ static void c_lex(const char *fname, int flg_config_include)
 	while(c == ' ' || c == '\t')
 	    getc1();
 
-	if(c == '\\') {
+	if(c == BS) {
 		getc1();
 		if(c == '\n') {
 			/* \\\n eat continued */
@@ -189,49 +182,50 @@ static void c_lex(const char *fname, int flg_config_include)
 			continue;
 		}
 		ungetc1();
-		c = '\\';
+		c = BS;
 	}
 
 	if(state == S) {
-		while(c <= ' ' && c != EOF) {
-		    /* <S>[\000- ]+ */
+		while(first_chars[c] == ANY) {
+		    /* <S>unparsed */
 		    if(c == '\n')
 			line++;
 		    getc1();
 		}
-		if(c == EOF) {
+		if(c == L_EOF) {
 			/* <S><<EOF>> */
+			id_s = id;
+			mema_id = local_mema_id;
 			munmap(map, mapsize);
 			close(fd);
 			return;
 		}
-		if(c == '/') {
+		if(c == REM) {
 			/* <S>/ */
-			getc1();
-			if(c == '/') {
+			getc1();    /* eat <S>/ */
+			if(c == REM) {
 				/* <S>"//"[^\n]* */
-				do getc1(); while(c != '\n' && c != EOF);
+				do getc1(); while(c != '\n' && c != L_EOF);
 			} else if(c == '*') {
 				/* <S>[/][*] */
 				called = S;
 				state = REM;
 			}
-			/* eat <S>/ */
-		} else if(c == '#') {
-			/* <S>\"|\'|# */
+		} else if(c == POUND) {
+			/* <S># */
 			start = optr - 1;
 			state = c;
 		} else if(c == STR || c == CHR) {
-			/* <S>\"|\'|# */
+			/* <S>\"|\' */
 			val = NULL;
 			called = S;
 			state = c;
-		} else if(ISALNUM(c)) {
+		} else if(c != BS) {
 			/* <S>[A-Z_a-z0-9] */
 
 			/* trick for fast drop id
 			   if key with this first char undefined */
-			if(first_char_conf_opts[c] == 0) {
+			if(first_chars[c] == 0) {
 			    /* skip <S>[A-Z_a-z0-9]+ */
 			    do getc1(); while(ISALNUM(c));
 			} else {
@@ -242,11 +236,11 @@ static void c_lex(const char *fname, int flg_config_include)
 				getc1();
 			    } while(ISALNUM(c));
 			    put_id(0);
-			    find_already(key_top, id, CHECK_ONLY);
+			    check_key(key_top, id);
 			}
 		} else {
-		    /* <S>. */
-		    prev_state = ANY;
+		    /* <S>\\ */
+		    prev_state = c;
 		}
 		continue;
 	}
@@ -259,13 +253,13 @@ static void c_lex(const char *fname, int flg_config_include)
 				if(called != S)
 				    yy_error_d("unexpected newline");
 				line++;
-			} else if(c == EOF)
+			} else if(c == L_EOF)
 				yy_error_d("unexpected EOF");
 			getc1();
 		}
 		/* <REM>[*] */
 		getc1();
-		if(c == '/') {
+		if(c == REM) {
 			/* <REM>[*][/] */
 			state = called;
 			break;
@@ -276,14 +270,14 @@ static void c_lex(const char *fname, int flg_config_include)
 	if(state == STR || state == CHR) {
 	    for(;;) {
 		/* <STR,CHR>\n|<<EOF>> */
-		if(c == '\n' || c == EOF)
+		if(c == '\n' || c == L_EOF)
 			yy_error_d("unterminating");
-		if(c == '\\') {
+		if(c == BS) {
 			/* <STR,CHR>\\ */
 			getc1();
-			if(c != '\\' && c != '\n' && c != state) {
+			if(c != BS && c != '\n' && c != state) {
 			    /* another usage \ in str or char */
-			    if(c == EOF)
+			    if(c == L_EOF)
 				yy_error_d("unexpected EOF");
 			    if(val)
 				put_id(c);
@@ -298,7 +292,7 @@ static void c_lex(const char *fname, int flg_config_include)
 		} else if(c == state) {
 			/* <STR>\" or <CHR>\' */
 			if(called == DV)
-			    put_id(c);
+			    put_id(c);  /* #define KEY "VALUE"<- */
 			state = called;
 			break;
 		} else if(val)
@@ -310,12 +304,12 @@ static void c_lex(const char *fname, int flg_config_include)
 	}
 
 	/* begin preprocessor states */
-	if(c == EOF)
+	if(c == L_EOF)
 	    yy_error_d("unexpected EOF");
-	if(c == '/') {
+	if(c == REM) {
 		/* <#.*>/ */
 		getc1();
-		if(c == '/')
+		if(c == REM)
 			yy_error_d("detect // in preprocessor line");
 		if(c == '*') {
 			/* <#.*>[/][*] */
@@ -326,51 +320,55 @@ static void c_lex(const char *fname, int flg_config_include)
 		/* hmm, #.*[/] */
 		yy_error_d("strange preprocessor line");
 	}
-	if(state == '#') {
+	if(state == POUND) {
+	    if(c != 'd' && c != 'u' && c != 'i') {
+		while(ISALNUM(c))
+		    getc1();
+		state = S;
+	    } else {
 		static const char * const preproc[] = {
 		    "define", "undef", "include", ""
 		};
 		const char * const *str_type;
 
 		id_len = 0;
-		while(ISALNUM(c)) {
-		    put_id(c);
-		    getc1();
-		}
+		do { put_id(c); getc1(); } while(ISALNUM(c));
 		put_id(0);
 		for(str_type = preproc; (state = **str_type); str_type++) {
 		    if(*id == state && strcmp(id, *str_type) == 0)
 			break;
 		}
 		/* to S if another #directive */
-		ungetc1();
 		id_len = 0; /* common for save */
-		continue;
+	    }
+	    ungetc1();
+	    continue;
 	}
 	if(state == I) {
 		if(c == STR) {
 			/* <I>\" */
 			val = id;
-			state = STR;
 			called = LI;
-			continue;
+			state = STR;
+		} else {
+		    /* another (may be wrong) #include ... */
+		    ungetc1();
+		    state = S;
 		}
-		/* another (may be wrong) #include ... */
-		ungetc1();
-		state = S;
 		continue;
 	}
 	if(state == D || state == U) {
-	    while(ISALNUM(c)) {
-		if(flg_config_include) {
-		    /* save KEY from #"define"|"undef" ... */
-		    put_id(c);
-		}
-		getc1();
-	    }
-	    if(!flg_config_include) {
+	    if(configs == NULL) {
+		/* ignore depend with #define or #undef KEY */
+		while(ISALNUM(c))
+		    getc1();
 		state = S;
 	    } else {
+		/* save KEY from #"define"|"undef" ... */
+		while(ISALNUM(c)) {
+		    put_id(c);
+		    getc1();
+		}
 		if(!id_len)
 		    yy_error_d("expected identificator");
 		put_id(0);
@@ -386,7 +384,7 @@ static void c_lex(const char *fname, int flg_config_include)
 	    continue;
 	}
 	if(state == DK) {
-	    /* #define (config mode) */
+	    /* #define KEY[ ] (config mode) */
 	    val = id + id_len;
 	    if(c == STR || c == CHR) {
 		/* define KEY "... or define KEY '... */
@@ -396,6 +394,7 @@ static void c_lex(const char *fname, int flg_config_include)
 		continue;
 	    }
 	    while(ISALNUM(c)) {
+		/* VALUE */
 		put_id(c);
 		getc1();
 	    }
@@ -410,43 +409,51 @@ static void c_lex(const char *fname, int flg_config_include)
 static void show_usage(void) __attribute__ ((noreturn));
 static void show_usage(void)
 {
-	bb_error_d("Usage: [-I local_include_path] [-dw] "
-			"[-k path_for_store_keys] [-s skip_file]");
+	bb_error_d("Usage: [-I local_include_paths] [-dw] "
+		   "[-k path_for_store_keys] [-s skip_file] [dirs]");
 }
 
 static const char *kp;
+static size_t kp_len;
 static llist_t *Iop;
 static bb_key_t *Ifound;
 static int noiwarning;
-static llist_t *configs;
 
-static bb_key_t *find_already(bb_key_t *k, const char *nk, int flg_save_new)
+static bb_key_t *check_key(bb_key_t *k, const char *nk)
+{
+    bb_key_t *cur;
+
+    for(cur = k; cur; cur = cur->next) {
+	if(strcmp(cur->keyname, nk) == 0) {
+	    cur->checked = 1;
+	    return cur;
+	}
+    }
+    return NULL;
+}
+
+static bb_key_t *make_new_key(bb_key_t *k, const char *nk)
 {
 	bb_key_t *cur;
+	size_t nk_size;
 
-	for(cur = k; cur; cur = cur->next) {
-	    if(strcmp(cur->keyname, nk) == 0) {
-		cur->checked = 1;
-		return NULL;
-	    }
-	}
-	if(flg_save_new == CHECK_ONLY)
-	    return NULL;
-	cur = xmalloc(sizeof(bb_key_t));
-	cur->keyname = bb_xstrdup(nk);
+	nk_size = strlen(nk) + 1;
+	cur = xmalloc(sizeof(bb_key_t) + nk_size);
+	cur->keyname = memcpy(cur + 1, nk, nk_size);
 	cur->checked = 1;
 	cur->next = k;
 	return cur;
 }
 
-static int store_include_fullpath(char *p_i, bb_key_t *li)
+static inline char *store_include_fullpath(char *p_i, bb_key_t *li)
 {
     struct stat st;
-    int ok = 0;
+    char *ok;
 
     if(stat(p_i, &st) == 0) {
-	li->stored_path = bb_simplify_path(p_i);
-	ok = 1;
+	ok = li->stored_path = bb_simplify_path(p_i);
+    } else {
+	ok = NULL;
     }
     free(p_i);
     return ok;
@@ -458,9 +465,11 @@ static void parse_inc(const char *include, const char *fname)
 	char *p_i;
 	llist_t *lo;
 
-	if((li = find_already(Ifound, include, MAKE_NEW)) == NULL)
+	li = check_key(Ifound, include);
+	if(li)
 	    return;
-	Ifound = li;
+	Ifound = li = make_new_key(Ifound, include);
+
 	if(include[0] != '/') {
 	    /* relative */
 	    int w;
@@ -490,9 +499,10 @@ static void parse_inc(const char *include, const char *fname)
 
 static void parse_conf_opt(char *opt, const char *val, size_t recordsz)
 {
-	bb_key_t *cur = find_already(key_top, opt, MAKE_NEW);
+	bb_key_t *cur;
 
-	if(cur != NULL) {
+	cur = check_key(key_top, opt);
+	if(cur == NULL) {
 	    /* new key, check old key if present after previous usage */
 	    char *s, *p;
 	    struct stat st;
@@ -501,6 +511,9 @@ static void parse_conf_opt(char *opt, const char *val, size_t recordsz)
 	    static char *record_buf;
 	    static char *r_cmp;
 	    static size_t r_sz;
+	    ssize_t rw_ret;
+
+	    cur = make_new_key(key_top, opt);
 
 	    recordsz += 2;  /* \n\0 */
 	    if(recordsz > r_sz) {
@@ -509,12 +522,24 @@ static void parse_conf_opt(char *opt, const char *val, size_t recordsz)
 	    }
 	    s = record_buf;
 	    /* may be short count " " */
-	    if(val)
-		recordsz = sprintf(s, "#define %s%s%s\n", opt, (*val ? " " : ""), val);
-	    else
+	    if(val) {
+		if(*val == '\0') {
+		    cur->value = "";
+		    recordsz = sprintf(s, "#define %s\n", opt);
+		} else {
+		    cur->value = bb_xstrdup(val);
+		    recordsz = sprintf(s, "#define %s %s\n", opt, val);
+		}
+	    } else {
+		cur->value = NULL;
 		recordsz = sprintf(s, "#undef %s\n", opt);
-	    first_char_conf_opts[((int)((unsigned char)(*opt)))] = *opt;
-	    /* key converting [A-Z] -> [a-z] */
+	    }
+	    /* size_t -> ssize_t :( */
+	    rw_ret = (ssize_t)recordsz;
+	    /* trick, save first char KEY for do fast identify id */
+	    first_chars[(int)*opt] = *opt;
+
+	    /* key converting [A-Z_] -> [a-z/] */
 	    for(p = opt; *p; p++) {
 		if(*p >= 'A' && *p <= 'Z')
 			*p = *p - 'A' + 'a';
@@ -524,6 +549,7 @@ static void parse_conf_opt(char *opt, const char *val, size_t recordsz)
 	    p = bb_asprint("%s/%s.h", kp, opt);
 	    cur->stored_path = opt = p;
 	    if(stat(opt, &st)) {
+		p += kp_len;
 		while(*++p) {
 		    /* Auto-create directories. */
 		    if (*p == '/') {
@@ -535,9 +561,9 @@ static void parse_conf_opt(char *opt, const char *val, size_t recordsz)
 		}
 	    } else {
 		    /* found */
-		    if(st.st_size == recordsz) {
+		    if(st.st_size == (off_t)recordsz) {
 			fd = open(opt, O_RDONLY);
-			if(fd < 0 || read(fd, r_cmp, recordsz) != recordsz)
+			if(fd < 0 || read(fd, r_cmp, recordsz) < rw_ret)
 			    bb_error_d("%s: %m", opt);
 			close(fd);
 			cmp_ok = memcmp(s, r_cmp, recordsz) == 0;
@@ -545,57 +571,30 @@ static void parse_conf_opt(char *opt, const char *val, size_t recordsz)
 	    }
 	    if(!cmp_ok) {
 		fd = open(opt, O_WRONLY|O_CREAT|O_TRUNC, 0644);
-		if(fd < 0 || write(fd, s, recordsz) != recordsz)
+		if(fd < 0 || write(fd, s, recordsz) < rw_ret)
 		    bb_error_d("%s: %m", opt);
 		close(fd);
-	    }
-	    /* store only */
-	    cur->checked = 0;
-	    if(val) {
-		if(*val == '\0') {
-		    cur->value = "";
-		} else {
-		    cur->value = bb_xstrdup(val);
-		}
-	    } else {
-		cur->value = NULL;
 	    }
 	    key_top = cur;
 	} else {
 	    /* present already */
-	    for(cur = key_top; cur; cur = cur->next) {
-		if(strcmp(cur->keyname, opt) == 0) {
-		    cur->checked = 0;
-		    if(cur->value == NULL && val == NULL)
-			return;
-		    if((cur->value == NULL && val != NULL) ||
-			    (cur->value != NULL && val == NULL) ||
-			    strcmp(cur->value, val))
-			fprintf(stderr, "Warning: redefined %s\n", opt);
-		    return;
-		}
-	    }
+	    if((cur->value == NULL && val != NULL) ||
+	       (cur->value != NULL && val == NULL) ||
+	       (cur->value != NULL && val != NULL && strcmp(cur->value, val)))
+		    fprintf(stderr, "Warning: redefined %s\n", opt);
 	}
+	/* store only */
+	cur->checked = 0;
 }
 
-static int show_dep(int first, bb_key_t *k, const char *a)
+static int show_dep(int first, bb_key_t *k, const char *name)
 {
     bb_key_t *cur;
 
     for(cur = k; cur; cur = cur->next) {
 	if(cur->checked && cur->stored_path) {
 	    if(first) {
-		const char *ext;
-
-		if(*a == '.' && a[1] == '/')
-		    a += 2;
-		ext = strrchr(a, '.');
-		if(ext && ext[1] == 'c' && ext[2] == '\0') {
-		    /* *.c -> *.o */
-		    printf("\n%.*s.o:", (ext - a), a);
-		} else {
-		    printf("\n%s:", a);
-		}
+		printf("\n%s:", name);
 		first = 0;
 	    } else {
 		printf(" \\\n  ");
@@ -608,50 +607,56 @@ static int show_dep(int first, bb_key_t *k, const char *a)
 }
 
 static llist_t *files;
+static struct stat st_kp;
 
-static llist_t *filter_chd(const char *fe, const char *p, llist_t *pdirs)
+static char *dir_and_entry;
+
+static char *
+filter_chd(const char *fe, const char *p, size_t dirlen)
 {
     struct stat st;
     char *fp;
     char *afp;
     llist_t *cfl;
-    static struct stat st_kp;
+    file_list_t *f;
+    size_t df_sz;
+    static size_t dir_and_entry_sz;
 
     if (*fe == '.')
 	return NULL;
-    fp = bb_asprint("%s/%s", p, fe);
+
+    df_sz = dirlen + strlen(fe) + 2;     /* dir/file\0 */
+    if(df_sz > dir_and_entry_sz)
+	dir_and_entry = xrealloc(dir_and_entry, dir_and_entry_sz = df_sz);
+    fp = dir_and_entry;
+    sprintf(fp, "%s/%s", p, fe);
+
     if(stat(fp, &st)) {
 	fprintf(stderr, "Warning: stat(%s): %m", fp);
-	free(fp);
 	return NULL;
     }
     if(S_ISREG(st.st_mode)) {
-	const char *e = strrchr(fe, '.');
-
-	if(e == NULL || !((e[1]=='c' || e[1]=='h') && e[2]=='\0')) {
+	afp = fp + df_sz - 3;
+	if(*afp++ != '.' || (*afp != 'c' && *afp != 'h')) {
 	    /* direntry is regular file, but is not *.[ch] */
-	    free(fp);
+	    return NULL;
+	}
+	if (st.st_size == 0) {
+	    fprintf(stderr, "Warning: %s is empty\n", fp);
 	    return NULL;
 	}
     } else {
-	if(st_kp.st_ino == 0) {
-	    /* first call */
-	    if(stat(kp, &st_kp))
-		bb_error_d("stat(%s): %m", kp);
-	    if(!S_ISDIR(st_kp.st_mode))
-		bb_error_d("%s is not directory", kp);
-	}
 	if(S_ISDIR(st.st_mode)) {
 	    if (st.st_dev == st_kp.st_dev && st.st_ino == st_kp.st_ino) {
-		/* is autogenerated to kp/key* by previous usage */
-		free(fp);
 		/* drop scan kp/ directory */
 		return NULL;
 	    }
-	    return llist_add_to(pdirs, fp);
+	    /* buff is returned, begin of zero allocate */
+	    dir_and_entry = NULL;
+	    dir_and_entry_sz = 0;
+	    return fp;
 	}
 	/* hmm, is device! */
-	free(fp);
 	return NULL;
     }
     afp = bb_simplify_path(fp);
@@ -659,16 +664,18 @@ static llist_t *filter_chd(const char *fe, const char *p, llist_t *pdirs)
 	if(cfl->data && strcmp(cfl->data, afp) == 0) {
 		/* parse configs.h */
 		free(afp);
-		c_lex(fp, 1);
-		free(fp);
+		c_lex(fp, st.st_size);
 		free(cfl->data);
 		cfl->data = NULL;
 		return NULL;
 	}
     }
-    free(fp);
     /* direntry is *.[ch] regular file */
-    files = llist_add_to(files, afp);
+    f = xmalloc(sizeof(file_list_t));
+    f->name = afp;
+    f->ext = strrchr(afp, '.') + 1;
+    f->size = st.st_size;
+    files = llist_add_to(files, (char *)f);
     return NULL;
 }
 
@@ -679,6 +686,7 @@ static void scan_dir_find_ch_files(char *p)
     llist_t *d;
     struct dirent *de;
     DIR *dir;
+    size_t dirlen;
 
     dirs = llist_add_to(NULL, p);
     /* emulate recursive */
@@ -688,10 +696,12 @@ static void scan_dir_find_ch_files(char *p)
 	    dir = opendir(dirs->data);
 	    if (dir == NULL)
 		fprintf(stderr, "Warning: opendir(%s): %m", dirs->data);
+	    dirlen = strlen(dirs->data);
 	    while ((de = readdir(dir)) != NULL) {
-		d = filter_chd(de->d_name, dirs->data, d_add);
-		if(d)
-		    d_add = d;
+		char *found_dir = filter_chd(de->d_name, dirs->data, dirlen);
+
+		if(found_dir)
+		    d_add = llist_add_to(d_add, found_dir);
 	    }
 	    closedir(dir);
 	    if(dirs->data != p)
@@ -702,14 +712,9 @@ static void scan_dir_find_ch_files(char *p)
 	}
 	dirs = d_add;
     }
-    for(d = configs; d; d = d->link) {
-	if(d->data) {
-	    /* configs.h placed outsize of "." */
-	    c_lex(d->data, 1);
-	    free(d->data);
-	}
-    }
 }
+
+static char *pwd;
 
 int main(int argc, char **argv)
 {
@@ -717,6 +722,22 @@ int main(int argc, char **argv)
 	char *s;
 	int i;
 	llist_t *fl;
+
+	{
+	    /* for bb_simplify_path */
+	    /* libbb xgetcwd(), this program have not chdir() */
+	    unsigned path_max = 512;
+
+	    s = xmalloc (path_max);
+#define PATH_INCR 32
+	    while (getcwd (s, path_max) == NULL) {
+		if(errno != ERANGE)
+		    bb_error_d("getcwd: %m");
+		path_max += PATH_INCR;
+		s = xrealloc (s, path_max);
+		}
+	    pwd = s;
+	}
 
 	while ((i = getopt(argc, argv, "I:c:dk:w")) > 0) {
 		switch(i) {
@@ -742,9 +763,6 @@ int main(int argc, char **argv)
 			    show_usage();
 		}
 	}
-	if(argc > optind)
-	    show_usage();
-
 	/* defaults */
 	if(kp == NULL)
 	    kp = bb_simplify_path(INCLUDE_CONFIG_PATH);
@@ -754,13 +772,57 @@ int main(int argc, char **argv)
 	    s = bb_simplify_path(INCLUDE_CONFIG_KEYS_PATH);
 	    configs = llist_add_to(configs, s);
 	}
+	/* globals initialize */
+	/* for c_lex */
+	pagesizem1 = getpagesize() - 1;
+	id_s = xmalloc(mema_id);
+	for(i = 0; i < 256; i++) {
+	    /* set unparsed chars for speed up of parser */
+	    if(!ISALNUM(i) && i != CHR && i != STR &&
+			      i != POUND && i != REM && i != BS)
+		first_chars[i] = ANY;
+	}
+	first_chars[i] = '-';   /* L_EOF */
 
-	scan_dir_find_ch_files(".");
+	kp_len = strlen(kp);
+	if(stat(kp, &st_kp))
+	    bb_error_d("stat(%s): %m", kp);
+	if(!S_ISDIR(st_kp.st_mode))
+	    bb_error_d("%s is not directory", kp);
+
+	/* main loops */
+	argv += optind;
+	if(*argv) {
+	    while(*argv)
+		scan_dir_find_ch_files(*argv++);
+	} else {
+		scan_dir_find_ch_files(".");
+	}
+
+	for(fl = configs; fl; fl = fl->link) {
+	    if(fl->data) {
+		/* configs.h placed outsize of scanned dirs or not "*.ch" */
+		struct stat st;
+
+		if(stat(fl->data, &st))
+		    bb_error_d("stat(%s): %m", fl->data);
+		c_lex(fl->data, st.st_size);
+		free(fl->data);
+	    }
+	}
+	free(configs);
+	configs = NULL;     /* flag read config --> parse sourses mode */
+
 	for(fl = files; fl; fl = fl->link) {
-		c_lex(fl->data, 0);
+		file_list_t *t = (file_list_t *)(fl->data);
+		c_lex(t->name, t->size);
 		if(generate_dep) {
-			i = show_dep(1, Ifound, fl->data);
-			i = show_dep(i, key_top, fl->data);
+			if(t->ext[0] == 'c') {
+			    /* *.c -> *.o */
+			    t->ext[0] = 'o';
+			}
+			i = show_dep(1, Ifound, t->name);
+			i = show_dep(i, key_top, t->name);
 			if(i == 0)
 				putchar('\n');
 		}
@@ -768,6 +830,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+/* partial and simplify libbb routine */
 static void bb_error_d(const char *s, ...)
 {
 	va_list p;
@@ -836,24 +899,10 @@ static char *bb_simplify_path(const char *path)
 	char *s, *start, *p;
 
 	if (path[0] == '/')
-	      start = bb_xstrdup(path);
+		start = bb_xstrdup(path);
 	else {
-	      static char *pwd;
-
-	      if(pwd == NULL) {
-		    /* is not libbb, but this program have not chdir() */
-		    unsigned path_max = 512;
-		    char *cwd = xmalloc (path_max);
-#define PATH_INCR 32
-		    while (getcwd (cwd, path_max) == NULL) {
-			if(errno != ERANGE)
-			    bb_error_d("getcwd: %m");
-			path_max += PATH_INCR;
-			cwd = xrealloc (cwd, path_max);
-		    }
-		    pwd = cwd;
-	    }
-	    start = bb_asprint("%s/%s", pwd, path);
+		/* is not libbb, but this program have not chdir() */
+		start = bb_asprint("%s/%s", pwd, path);
 	}
 	p = s = start;
 
