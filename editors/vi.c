@@ -2416,7 +2416,8 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 		c = get_one_char();	// read user input
 		if (c == '\n' || c == '\r' || c == 27)
 			break;		// is this end of input
-		if (c == erase_char) {	// user wants to erase prev char
+		if (c == erase_char || c == 8 || c == 127) {
+		    	// user wants to erase prev char
 			i--;		// backup to prev char
 			buf[i] = '\0';	// erase the char
 			buf[i + 1] = '\0';	// null terminate buffer
