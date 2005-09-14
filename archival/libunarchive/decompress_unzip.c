@@ -74,8 +74,7 @@ static char *license_msg[] = {
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "config.h"
-#include "busybox.h"
+#include "libbb.h"
 #include "unarchive.h"
 
 typedef struct huft_s {

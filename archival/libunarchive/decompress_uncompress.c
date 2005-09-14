@@ -1,4 +1,3 @@
-#include "config.h"
 #include "libbb.h"
 
 /* uncompress for busybox -- (c) 2002 Robert Griebl
