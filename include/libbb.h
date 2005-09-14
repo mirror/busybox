@@ -446,7 +446,7 @@ typedef struct {
 	char state[4];
 	unsigned long rss;
 	int ppid;
-#ifdef FEATURE_CPU_USAGE_PERCENTAGE
+#ifdef ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	unsigned pcpu;
 	unsigned pscpu;
 	unsigned long stime, utime;
