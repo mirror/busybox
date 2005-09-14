@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 #include "libbb.h"
-#include <regex.h>
+#include "xregex.h"
 
 
 

@@ -49,8 +49,8 @@
       Richard Gooch, c/o ATNF, P. O. Box 76, Epping, N.S.W., 2121, Australia.
 */
 
-#include "libbb.h"
 #include "busybox.h"
+#include "xregex.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,7 +68,6 @@
 #include <fcntl.h>
 #include <syslog.h>
 #include <signal.h>
-#include <regex.h>
 #include <errno.h>
 #include <sys/sysmacros.h>
 

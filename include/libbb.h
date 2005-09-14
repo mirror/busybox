@@ -29,7 +29,6 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <regex.h>
 #include <termios.h>
 #include <stdint.h>
 
@@ -476,7 +475,6 @@ extern void vfork_daemon_rexec(int nochdir, int noclose,
 		int argc, char **argv, char *foreground_opt);
 extern int get_terminal_width_height(int fd, int *width, int *height);
 extern unsigned long get_ug_id(const char *s, long (*my_getxxnam)(const char *));
-extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 
 #define HASH_SHA1	1
 #define HASH_MD5	2

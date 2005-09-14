@@ -79,12 +79,12 @@
 
 #include <stdio.h>
 #include <unistd.h>		/* for getopt() */
-#include <regex.h>
 #include <string.h>		/* for strdup() */
 #include <errno.h>
 #include <ctype.h>		/* for isspace() */
 #include <stdlib.h>
 #include "busybox.h"
+#include "xregex.h"
 
 typedef struct sed_cmd_s {
     /* Ordered by alignment requirements: currently 36 bytes on x86 */

@@ -27,10 +27,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <regex.h>
 #include <string.h>
 #include <errno.h>
 #include "busybox.h"
+#include "xregex.h"
 
 
 /* options */

@@ -29,8 +29,8 @@
 #include <math.h>
 #include <ctype.h>
 #include <getopt.h>
-#include <regex.h>
 
+#include "xregex.h"
 #include "busybox.h"
 
 
