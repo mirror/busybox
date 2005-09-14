@@ -113,37 +113,24 @@ static void doKlogd(const int console_log_level)
 	}
 }
 
+#define OPT_LEVEL        1
+#define OPT_FOREGROUND   2
+
 extern int klogd_main(int argc, char **argv)
 {
-	/* no options, no getopt */
-	int opt;
-	int doFork = TRUE;
-	unsigned char console_log_level = -1;
+	unsigned long opt;
+	char *c_arg;
+	int console_log_level = -1;
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "c:n")) > 0) {
-		switch (opt) {
-		case 'c':
-			if ((optarg == NULL) || (optarg[1] != '\0')) {
-				bb_show_usage();
-			}
-			/* Valid levels are between 1 and 8 */
-			console_log_level = *optarg - '1';
-			if (console_log_level > 7) {
-				bb_show_usage();
-			}
-			console_log_level++;
+	opt = bb_getopt_ulflags (argc, argv, "c:n", &c_arg);
 
-			break;
-		case 'n':
-			doFork = FALSE;
-			break;
-		default:
-			bb_show_usage();
-		}
+	if (opt & OPT_LEVEL) {
+		/* Valid levels are between 1 and 8 */
+		console_log_level = bb_xgetlarg(c_arg, 10, 1, 8);
 	}
 
-	if (doFork) {
+	if (!(opt & OPT_FOREGROUND)) {
 #if defined(__uClinux__)
 		vfork_daemon_rexec(0, 1, argc, argv, "-n");
 #else /* __uClinux__ */
