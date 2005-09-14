@@ -439,7 +439,6 @@ static struct {
 } t;
 
 /* function prototypes */
-extern void xregcomp(regex_t *preg, const char *regex, int cflags);
 static void handle_special(var *);
 static node *parse_expr(unsigned long);
 static void chain_group(void);

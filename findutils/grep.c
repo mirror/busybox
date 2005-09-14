@@ -105,8 +105,6 @@ static void print_line(const char *line, int linenum, char decoration)
 	puts(line);
 }
 
-extern void xregcomp(regex_t *preg, const char *regex, int cflags);
-
 
 static int grep_file(FILE *file)
 {

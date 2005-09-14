@@ -294,8 +294,6 @@ static struct event_type
 
 /* busybox functions and messages */
 
-extern void xregcomp(regex_t * preg, const char *regex, int cflags);
-
 const char * const bb_msg_proto_rev			= "protocol revision";
 #ifdef CONFIG_DEVFSD_VERBOSE
 const char * const bb_msg_bad_config   		= "bad %s config file: %s\n";
