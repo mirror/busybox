@@ -4,33 +4,68 @@
 # Copyright 2005 by Rob Landley <rob@landley.net>
 # Licensed under GPL v2, see file LICENSE for details.
 
-# AUDIT: Not full coverage of the spec yet.
+# AUDIT: Full SUSv3 coverage (except internationalization).
 
 if [ ${#COMMAND} -eq 0 ]; then COMMAND=uniq; fi
 . testing.sh
 
-# The basic tests.  These should work even with the small busybox.
-#-f skip fields
-#-s skip chars
-#-c occurrences
-#-d dups only
-#-u 
+# testing "test name" "options" "expected result" "file input" "stdin"
+#   file input will be file called "input"
+#   test can create a file "actual" instead of writing to stdout
+
+# Test exit status
+
+testing "uniq (exit with error)" "nonexistent 2> /dev/null || echo yes" \
+	"yes\n" "" ""
+testing "uniq (exit success)" "/dev/null && echo yes" "yes\n" "" ""
+
+# Test various data sources and destinations
+
 testing "uniq (default to stdin)" "" "one\ntwo\nthree\n" "" \
 	"one\ntwo\ntwo\nthree\nthree\nthree\n"
 testing "uniq - (specify stdin)" "-" "one\ntwo\nthree\n" "" \
 	"one\ntwo\ntwo\nthree\nthree\nthree\n"
 testing "uniq input (specify file)" "input" "one\ntwo\nthree\n" \
 	"one\ntwo\ntwo\nthree\nthree\nthree\n" ""
+
 testing "uniq input outfile (two files)" "input actual > /dev/null" \
 	"one\ntwo\nthree\n" "one\ntwo\ntwo\nthree\nthree\nthree\n" ""
-#testing "uniq - outfile" "- outfile" "one\ntwo\nthree\n" \
-#	"one\ntwo\ntwo\nthree\nthree\nthree\n" ""
+testing "uniq (stdin) outfile" "- actual" \
+	"one\ntwo\nthree\n" "" "one\ntwo\ntwo\nthree\nthree\nthree\n"
+# Note: SUSv3 doesn't seem to require support for "-" output, but we do anyway.
+testing "uniq input - (specify stdout)" "input -" \
+	"one\ntwo\nthree\n" "one\ntwo\ntwo\nthree\nthree\nthree\n" ""
 
-testing "uniq -d" "-d" "two\nthree\n" "" \
+
+#-f skip fields
+#-s skip chars
+#-c occurrences
+#-d dups only
+#-u 
+
+# Test various command line options
+
+# Leading whitespace is a minor technical violation of the spec,
+# but since gnu does it...
+testing "uniq -c (occurrence count)" "-c | sed 's/^[ \t]*//'" \
+	"1 one\n2 two\n3 three\n" "" \
 	"one\ntwo\ntwo\nthree\nthree\nthree\n"
-testing "uniq -c" "-c" "      1 one\n      2 two\n      3 three\n" "" \
+testing "uniq -d (dups only) " "-d" "two\nthree\n" "" \
 	"one\ntwo\ntwo\nthree\nthree\nthree\n"
-# testing "uniq -c -d"
-# testing "uniq infile"
+
+testing "uniq -f -s (skip fields and chars)" "-f2 -s 3" \
+"cc	dd	ee8
+aa	bb	cc9
+" "" \
+"cc	dd	ee8
+bb	cc	dd8
+aa	bb	cc9
+"
+
+# -d is "Suppress the writing fo lines that are not repeated in the input."
+# -u is "Suppress the writing of lines that are repeated in the input."
+# Therefore, together this means they should produce no output.
+testing "uniq -u and -d produce no output" "-d -u" "" "" \
+	"one\ntwo\ntwo\nthree\nthree\nthree\n"
 
 exit $FAILCOUNT
