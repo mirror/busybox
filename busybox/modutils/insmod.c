@@ -109,6 +109,14 @@ extern int insmod_ng_main( int argc, char **argv);
 #endif
 
 
+/* Alpha */
+#if defined(__alpha__)   
+#define MATCH_MACHINE(x) (x == EM_ALPHA)
+#define SHT_RELM       SHT_RELA
+#define Elf64_RelM     Elf64_Rela
+#define ELFCLASSM      ELFCLASS64
+#endif
+
 /* ARM support */
 #if defined(__arm__)
 #define MATCH_MACHINE(x) (x == EM_ARM)
@@ -132,6 +140,19 @@ extern int insmod_ng_main( int argc, char **argv);
 #define EM_CRIS 76
 #define R_CRIS_NONE 0
 #define R_CRIS_32   3
+#endif
+#endif
+
+/* PA-RISC / HP-PA */
+#if defined(__hppa__)
+#define MATCH_MACHINE(x) (x == EM_PARISC)
+#define SHT_RELM       SHT_RELA
+#if defined(__LP64__)
+#define Elf64_RelM     Elf64_Rela
+#define ELFCLASSM      ELFCLASS64
+#else
+#define Elf32_RelM     Elf32_Rela
+#define ELFCLASSM      ELFCLASS32
 #endif
 #endif
 
