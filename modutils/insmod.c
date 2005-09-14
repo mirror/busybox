@@ -218,7 +218,12 @@ extern int insmod_ng_main( int argc, char **argv);
 #endif
 
 /* PowerPC */
-#if defined(__powerpc__)
+#if defined(__powerpc64__)
+#define MATCH_MACHINE(x) (x == EM_PPC64)
+#define SHT_RELM	SHT_RELA
+#define Elf64_RelM	Elf64_Rela
+#define ELFCLASSM	ELFCLASS64
+#elif defined(__powerpc__)
 #define MATCH_MACHINE(x) (x == EM_PPC)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
