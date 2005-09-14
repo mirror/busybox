@@ -255,6 +255,21 @@ int conf_read(const char *name)
 	return 0;
 }
 
+struct menu *next_menu(struct menu *menu)
+{
+	if (menu->list) return menu->list;
+	do {
+		if (menu->next) {
+			menu = menu->next;
+			break;
+		}
+	} while ((menu = menu->parent));
+	
+	return menu;
+}
+
+#define SYMBOL_FORCEWRITE (1<<31)
+
 int conf_write(const char *name)
 {
 	FILE *out, *out_h;
@@ -318,27 +333,34 @@ int conf_write(const char *name)
 	if (!sym_change_count)
 		sym_clear_all_valid();
 
+	/* Force write of all non-duplicate symbols. */
+
+	/* Write out everything by default. */
+	for(menu = rootmenu.list; menu; menu = next_menu(menu))
+		if (menu->sym) menu->sym->flags |= SYMBOL_FORCEWRITE;
+
 	menu = rootmenu.list;
 	while (menu) {
 		sym = menu->sym;
 		if (!sym) {
-			if (menu_is_visible(menu)) {
-				str = menu_get_prompt(menu);
-				fprintf(out, "\n"
-					     "#\n"
-					     "# %s\n"
-					     "#\n", str);
-				if (out_h)
-					fprintf(out_h, "\n"
-						       "/*\n"
-						       " * %s\n"
-						       " */\n", str);
-			}
+			if (!menu_is_visible(menu))
+				goto next;
+			str = menu_get_prompt(menu);
+			fprintf(out, "\n"
+				     "#\n"
+				     "# %s\n"
+				     "#\n", str);
+			if (out_h)
+				fprintf(out_h, "\n"
+					       "/*\n"
+					       " * %s\n"
+					       " */\n", str);
 		} else if (!(sym->flags & SYMBOL_CHOICE)) {
 			sym_calc_value(sym);
-			//if (!(sym->flags & SYMBOL_WRITE))
-			//	goto next;
-			sym->flags &= ~SYMBOL_WRITE;
+			if (!(sym->flags & SYMBOL_FORCEWRITE))
+				goto next;
+
+			sym->flags &= ~SYMBOL_FORCEWRITE;
 			type = sym->type;
 			if (type == S_TRISTATE) {
 				sym_calc_value(modules_sym);
@@ -409,19 +431,8 @@ int conf_write(const char *name)
 				break;
 			}
 		}
-
-		if (menu->list) {
-			menu = menu->list;
-			continue;
-		}
-		if (menu->next)
-			menu = menu->next;
-		else while ((menu = menu->parent)) {
-			if (menu->next) {
-				menu = menu->next;
-				break;
-			}
-		}
+next:
+		menu = next_menu(menu);
 	}
 	fclose(out);
 	if (out_h) {
