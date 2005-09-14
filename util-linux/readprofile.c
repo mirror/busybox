@@ -138,8 +138,6 @@ int readprofile_main(int argc, char **argv)
 		}
 
 		fd = bb_xopen(defaultpro,O_WRONLY);
-		if (fd < 0)
-			bb_perror_msg_and_die(defaultpro);
 
 		if (write(fd, &multiplier, to_write) != to_write)
 			bb_perror_msg_and_die("error writing %s", defaultpro);
@@ -151,13 +149,14 @@ int readprofile_main(int argc, char **argv)
 	/*
 	 * Use an fd for the profiling buffer, to skip stdio overhead
 	 */
-	if (((proFd = bb_xopen(proFile,O_RDONLY)) < 0)
-	    || ((int)(len=lseek(proFd,0,SEEK_END)) < 0)
+	 
+	proFd = bb_xopen(proFile,O_RDONLY);
+	
+	if (((int)(len=lseek(proFd,0,SEEK_END)) < 0)
 	    || (lseek(proFd,0,SEEK_SET) < 0))
 		bb_perror_msg_and_die(proFile);
 
-	if (!(buf = xmalloc(len)))
-		bb_perror_nomsg_and_die();
+	buf = xmalloc(len);
 
 	if (read(proFd,buf,len) != len)
 		bb_perror_msg_and_die(proFile);
@@ -176,8 +175,8 @@ int readprofile_main(int argc, char **argv)
 				small++;
 		}
 		if (big > small) {
-			fprintf(stderr,"Assuming reversed byte order. "
-				"Use -n to force native byte order.\n");
+			bb_error_msg("Assuming reversed byte order. "
+				"Use -n to force native byte order.");
 			for (p = buf; p < buf+entries; p++)
 				for (i = 0; i < sizeof(*buf)/2; i++) {
 					unsigned char *b = (unsigned char *) p;
@@ -199,8 +198,6 @@ int readprofile_main(int argc, char **argv)
 	total = 0;
 
 	map = bb_xfopen(mapFile, "r");
-	if (map == NULL)
-		bb_perror_msg_and_die(mapFile);
 
 	while (fgets(mapline,S_LEN,map)) {
 		if (sscanf(mapline,"%llx %s %s",&fn_add,mode,fn_name) != 3)
@@ -215,7 +212,7 @@ int readprofile_main(int argc, char **argv)
 	}
 
 	if (!add0)
-		bb_error_msg_and_die("can't find \"_stext\" in %s\n", mapFile);
+		bb_error_msg_and_die("can't find \"_stext\" in %s", mapFile);
 
 	/*
 	 * Main loop.
@@ -224,7 +221,7 @@ int readprofile_main(int argc, char **argv)
 		unsigned int this = 0;
 
 		if (sscanf(mapline,"%llx %s %s",&next_add,mode,next_name) != 3)
-			bb_error_msg_and_die("%s(%i): wrong map line\n",
+			bb_error_msg_and_die("%s(%i): wrong map line",
 					     mapFile, maplineno);
 
 		header_printed = 0;
