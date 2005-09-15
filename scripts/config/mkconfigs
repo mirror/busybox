@@ -36,7 +36,8 @@ echo "#ifndef _BBCONFIG_H"
 echo "#define _BBCONFIG_H"
 echo \
 "/*
- * 
+ * busybox configuration options.
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or (at
@@ -53,13 +54,14 @@ echo \
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
- * 
- * This file is generated automatically by scripts/config/mkconfigs. Do not edit.
+ *
+ * This file is generated automatically by scripts/config/mkconfigs.
+ * Do not edit.
  *
  */"
 
-echo "static char const bbconfig_config[] = "
+echo "static char const bbconfig_config[] ="
 echo "\"CONFIG_BEGIN=n\\n\\"
-echo "`cat $config | sed 's/\"/\\\\\"/g' | grep "^#\? \?CONFIG_" | awk '{ print $0 "\\\\n\\\\" }' `"
+echo "`sed 's/\"/\\\\\"/g' $config | grep "^#\? \?CONFIG_" | awk '{ print $0 "\\\\n\\\\" }' `"
 echo "CONFIG_END=n\\n\";"
 echo "#endif /* _BBCONFIG_H */"
