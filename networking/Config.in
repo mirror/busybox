@@ -513,7 +513,6 @@ config CONFIG_FEATURE_TELNET_AUTOLOGIN
 config CONFIG_TELNETD
 	bool "telnetd"
 	default n
-	select CONFIG_LOGIN
 	help
 	  A daemon for the TELNET protocol, allowing you to log onto the host
 	  running the daemon.  Please keep in mind that the TELNET protocol
