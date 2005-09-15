@@ -359,6 +359,9 @@
 #ifdef CONFIG_FEATURE_INITRD
 	APPLET_NOUSAGE("linuxrc", init_main, _BB_DIR_ROOT, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_LESS
+	APPLET(less, less_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_LN
 	APPLET(ln, ln_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

@@ -1498,6 +1498,22 @@
 	"$ length Hello\n" \
 	"5\n"
 
+#define less_trivial_usage \
+	"[-EMNmh~?] FILE1 FILE2..."
+#define less_full_usage \
+	"View a file or list of files. The position within files can be\n" \
+	"changed, and files can be manipulated in various ways with the\n" \
+	"following options:\n\n" \
+	"\t-E\tQuit once the end of a file is reached\n" \
+	"\t-M\tDisplay a status line containing the current line numbers\n" \
+	"\t\tand the percentage through the file\n" \
+	"\t-N\tPrefix line numbers to each line\n" \
+	"\t-m\tDisplay a status line containing the percentage through the\n" \
+	"\t\tfile\n" \
+	"\t-~\tSuppress ~s displayed when input past the end of the file is\n" \
+	"\t\treached.\n" \
+	"\t-h, -?\tDisplay this help message\n"
+
 #define ln_trivial_usage \
 	"[OPTION] TARGET... LINK_NAME|DIRECTORY"
 #define ln_full_usage \

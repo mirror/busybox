@@ -104,6 +104,53 @@ config CONFIG_LAST
 	help
 	  'last' displays a list of the last users that logged into the system.
 
+config CONFIG_LESS
+	bool "less"
+	default n
+	help
+	  'less' is a pager, meaning that it displays text files. It possesses
+	  a wide array of features, and is an improvement over 'more'.
+
+config CONFIG_FEATURE_LESS_BRACKETS
+	bool "  Enable bracket searching"
+	default y
+	depends on CONFIG_LESS
+	help
+	  This option adds the capability to search for matching left and right
+	  brackets, facilitating programming.
+
+config CONFIG_FEATURE_LESS_FLAGS
+	bool "  Enable extra flags"
+	default y
+	depends on CONFIG_LESS
+	help
+	  The extra flags provided do the following:
+
+	  The -M flag enables a more sophisticated status line.
+	  The -m flag enables a simpler status line with a percentage.
+
+config CONFIG_FEATURE_LESS_FLAGCS
+	bool "  Enable flag changes"
+	default n
+	depends on CONFIG_LESS
+	help
+	  This enables the ability to change command-line flags within
+	  less itself.
+
+config CONFIG_FEATURE_LESS_MARKS
+	bool "  Enable marks"
+	default n
+	depends on CONFIG_LESS
+	help
+	  Marks enable positions in a file to be stored for easy reference.
+
+config CONFIG_FEATURE_LESS_REGEXP
+	bool "  Enable regular expressions"
+	default n
+	depends on CONFIG_LESS
+	help
+	  Enable regular expressions, allowing complex file searches.
+
 config CONFIG_HDPARM
 	bool "hdparm"
 	default n
