@@ -226,9 +226,9 @@ static void sendping(int junk)
 	pkt->icmp_type = ICMP_ECHO;
 	pkt->icmp_code = 0;
 	pkt->icmp_cksum = 0;
-	pkt->icmp_seq = ntransmitted++;
+	pkt->icmp_seq = htons(ntransmitted++);
 	pkt->icmp_id = myid;
-	CLR(pkt->icmp_seq % MAX_DUP_CHK);
+	CLR(ntohs(pkt->icmp_seq) % MAX_DUP_CHK);
 
 	gettimeofday((struct timeval *) &packet[8], NULL);
 	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, sizeof(packet));
@@ -296,6 +296,7 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 	    return;				/* not our ping */
 
 	if (icmppkt->icmp_type == ICMP_ECHOREPLY) {
+		u_int16_t recv_seq = ntohs(icmppkt->icmp_seq);
 	    ++nreceived;
 		tp = (struct timeval *) icmppkt->icmp_data;
 
@@ -312,12 +313,12 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 		if (triptime > tmax)
 			tmax = triptime;
 
-		if (TST(icmppkt->icmp_seq % MAX_DUP_CHK)) {
+		if (TST(recv_seq % MAX_DUP_CHK)) {
 			++nrepeats;
 			--nreceived;
 			dupflag = 1;
 		} else {
-			SET(icmppkt->icmp_seq % MAX_DUP_CHK);
+			SET(recv_seq % MAX_DUP_CHK);
 			dupflag = 0;
 		}
 
@@ -326,7 +327,7 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 
 		printf("%d bytes from %s: icmp_seq=%u", sz,
 			   inet_ntoa(*(struct in_addr *) &from->sin_addr.s_addr),
-			   icmppkt->icmp_seq);
+			   recv_seq);
 		printf(" ttl=%d", iphdr->ttl);
 		printf(" time=%lu.%lu ms", triptime / 10, triptime % 10);
 		if (dupflag)
