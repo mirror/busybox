@@ -2,7 +2,7 @@
 /*
  * uniq implementation for busybox
  *
- * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
+ * Copyright (C) 2005  Manuel Novoa III  <mjn3@codepoet.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,41 +31,39 @@
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 
-static const char uniq_opts[] = "f:s:cdu\0\7\3\5\1\2\4";
+static const char uniq_opts[] = "f:s:" "cdu\0\1\2\4";
 
-static FILE *xgetoptfile_sort_uniq_s(char **argv, const char *mode)
+static FILE *xgetoptfile_uniq_s(char **argv, int read0write2)
 {
 	const char *n;
 
 	if ((n = *argv) != NULL) {
 		if ((*n != '-') || n[1]) {
-			return bb_xfopen(n, mode);
+			return bb_xfopen(n, "r\0w" + read0write2);
 		}
 	}
-	return (*mode == 'r') ? stdin : stdout;
+	return (read0write2) ? stdout : stdin;
 }
 
 int uniq_main(int argc, char **argv)
 {
 	FILE *in, *out;
-	/* Note: Ignore the warning about dups and e0 being used uninitialized.
-	 * They will be initialized on the fist pass of the loop (since s0 is NULL). */
-#warning The dups and e0 warnings are OK, ignore them
-	unsigned long dups, skip_fields, skip_chars, i;
+	unsigned long dups, skip_fields, skip_chars, i, uniq_flags;
 	const char *s0, *e0, *s1, *e1, *input_filename;
 	int opt;
-	int uniq_flags = 6;		/* -u */
 
-	skip_fields = skip_chars = 0;
+	uniq_flags = skip_fields = skip_chars = 0;
 
 	while ((opt = getopt(argc, argv, uniq_opts)) > 0) {
-		if (opt == 'f') {
-			skip_fields = bb_xgetularg10(optarg);
-		} else if (opt == 's') {
-			skip_chars = bb_xgetularg10(optarg);
+		if ((opt == 'f') || (opt == 's')) {
+			int t = bb_xgetularg10(optarg);
+			if (opt == 'f') {
+				skip_fields = t;
+			} else {
+				skip_chars = t;
+			}
 		} else if ((s0 = strchr(uniq_opts, opt)) != NULL) {
-			uniq_flags &= s0[4];
-			uniq_flags |= s0[7];
+			uniq_flags |= s0[4];
 		} else {
 			bb_show_usage();
 		}
@@ -73,51 +71,50 @@ int uniq_main(int argc, char **argv)
 
 	input_filename = *(argv += optind);
 
-	in = xgetoptfile_sort_uniq_s(argv, "r");
+	in = xgetoptfile_uniq_s(argv, 0);
 	if (*argv) {
 		++argv;
 	}
-	out = xgetoptfile_sort_uniq_s(argv, "w");
+	out = xgetoptfile_uniq_s(argv, 2);
 	if (*argv && argv[1]) {
 		bb_show_usage();
 	}
 
-	s0 = NULL;
+	s1 = e1 = NULL;				/* prime the pump */
 
-	/* gnu uniq ignores newlines */
-	while ((s1 = bb_get_chomped_line_from_file(in)) != NULL) {
-		e1 = s1;
-		for (i=skip_fields ; i ; i--) {
-			e1 = bb_skip_whitespace(e1);
-			while (*e1 && !isspace(*e1)) {
+	do {
+		s0 = s1;
+		e0 = e1;
+		dups = 0;
+
+		/* gnu uniq ignores newlines */
+		while ((s1 = bb_get_chomped_line_from_file(in)) != NULL) {
+			e1 = s1;
+			for (i=skip_fields ; i ; i--) {
+				e1 = bb_skip_whitespace(e1);
+				while (*e1 && !isspace(*e1)) {
+					++e1;
+				}
+			}
+			for (i = skip_chars ; *e1 && i ; i--) {
 				++e1;
 			}
-		}
-		for (i = skip_chars ; *e1 && i ; i--) {
-			++e1;
-		}
-		if (s0) {
-			if (strcmp(e0, e1) == 0) {
-				++dups;		/* Note: Testing for overflow seems excessive. */
-				continue;
+
+			if (!s0 || strcmp(e0, e1)) {
+				break;
 			}
-		DO_LAST:
-			if ((dups && (uniq_flags & 2)) || (!dups && (uniq_flags & 4))) {
-				bb_fprintf(out, "\0%7d\t" + (uniq_flags & 1), dups + 1);
+
+			++dups;		 /* Note: Testing for overflow seems excessive. */
+		}
+
+		if (s0) {
+			if (!(uniq_flags & (2 << !!dups))) {
+				bb_fprintf(out, "\0%d " + (uniq_flags & 1), dups + 1);
 				bb_fprintf(out, "%s\n", s0);
 			}
 			free((void *)s0);
 		}
-
-		s0 = s1;
-		e0 = e1;
-		dups = 0;
-	}
-
-	if (s0) {
-		e1 = NULL;
-		goto DO_LAST;
-	}
+	} while (s1);
 
 	bb_xferror(in, input_filename);
 
