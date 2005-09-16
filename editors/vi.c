@@ -166,8 +166,9 @@ static int vi_setops;
 
 
 static int editing;		// >0 while we are editing a file
-static int cmd_mode;		// 0=command  1=insert
+static int cmd_mode;		// 0=command  1=insert 2=replace
 static int file_modified;	// buffer contents changed
+static int last_file_modified = -1;
 static int fn_start;		// index of first cmd line file name
 static int save_argc;		// how many file names on cmd line
 static int cmdcnt;		// repetition count
@@ -176,6 +177,9 @@ static struct timeval tv;	// use select() for small sleeps
 static int rows, columns;	// the terminal screen is this size
 static int crow, ccol, offset;	// cursor is on Crow x Ccol with Horz Ofset
 static Byte *status_buffer;	// mesages to the user
+#define STATUS_BUFFER_LEN  200
+static int have_status_msg;     // is default edit status needed?
+static int last_status_cksum;   // hash of current status line
 static Byte *cfn;		// previous, current, and next file name
 static Byte *text, *end, *textend;	// pointers to the user data in memory
 static Byte *screen;		// pointer to the virtual screen buffer
@@ -272,7 +276,7 @@ static void show_status_line(void);	// put a message on the bottom line
 static void psb(const char *, ...);     // Print Status Buf
 static void psbs(const char *, ...);    // Print Status Buf in standout mode
 static void ni(Byte *);		// display messages
-static void edit_status(void);	// show file status on status line
+static int format_edit_status(void);	// format file status on status line
 static void redraw(int);	// force a full screen refresh
 static void format_line(Byte*, Byte*, int);
 static void refresh(int);	// update the terminal from screen[]
@@ -331,7 +335,7 @@ static void write1(const char *out)
 extern int vi_main(int argc, char **argv)
 {
 	int c;
-	RESERVE_CONFIG_BUFFER(STATUS_BUFFER, 200);
+	RESERVE_CONFIG_BUFFER(STATUS_BUFFER, STATUS_BUFFER_LEN);
 
 #ifdef CONFIG_FEATURE_VI_YANKMARK
 	int i;
@@ -344,7 +348,7 @@ extern int vi_main(int argc, char **argv)
 #endif							/* CONFIG_FEATURE_VI_CRASHME */
 
 	status_buffer = STATUS_BUFFER;
-	*status_buffer = '\0';	// clear status buffer
+	last_status_cksum = 0;
 
 #ifdef CONFIG_FEATURE_VI_READONLY
 	vi_readonly = readonly = FALSE;
@@ -450,7 +454,8 @@ static void edit_file(Byte * fn)
 	if (ch < 1) {
 		(void) char_insert(text, '\n');	// start empty buf with dummy line
 	}
-	file_modified = FALSE;
+	file_modified = 0;
+	last_file_modified = -1;
 #ifdef CONFIG_FEATURE_VI_YANKMARK
 	YDreg = 26;			// default Yank/Delete reg
 	Ureg = 27;			// hold orig line for "U" cmd
@@ -506,7 +511,6 @@ static void edit_file(Byte * fn)
 	adding2q = 0;
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 	redraw(FALSE);			// dont force every col re-draw
-	edit_status();
 	show_status_line();
 
 	//------This is the main Vi cmd handling loop -----------------------
@@ -834,7 +838,8 @@ static void colon(Byte * buf)
 			(void) char_insert(text, '\n');
 			ch= 1;
 		}
-		file_modified = FALSE;
+		file_modified = 0;
+		last_file_modified = -1;
 #ifdef CONFIG_FEATURE_VI_YANKMARK
 		if (Ureg >= 0 && Ureg < 28 && reg[Ureg] != 0) {
 			free(reg[Ureg]);	//   free orig line reg- for 'U'
@@ -871,8 +876,7 @@ static void colon(Byte * buf)
 			cfn = (Byte *) bb_xstrdup((char *) args);
 		} else {
 			// user wants file status info
-			edit_status();
-			show_status_line();
+			last_status_cksum = 0;	// force status update
 		}
 	} else if (strncasecmp((char *) cmd, "features", i) == 0) {	// what features are available
 		// print out values of all features
@@ -978,7 +982,7 @@ static void colon(Byte * buf)
 			// if the insert is before "dot" then we need to update
 			if (q <= dot)
 				dot += ch;
-			file_modified = TRUE;
+			file_modified++;
 		}
 	} else if (strncasecmp((char *) cmd, "rewind", i) == 0) {	// rewind cmd line args
 		if (file_modified && ! useforce) {
@@ -1109,8 +1113,10 @@ static void colon(Byte * buf)
 			forced = FALSE;
 		}
 		psb("\"%s\" %dL, %dC", fn, li, l);
-		if (q == text && r == end - 1 && l == ch)
-			file_modified = FALSE;
+		if (q == text && r == end - 1 && l == ch) {
+			file_modified = 0;
+			last_file_modified = -1;
+		}
 		if ((cmd[0] == 'x' || cmd[1] == 'q') && l == ch) {
 			editing = 0;
 		}
@@ -1335,30 +1341,22 @@ static void dot_left(void)
 {
 	if (dot > text && dot[-1] != '\n')
 		dot--;
-	edit_status();			// show current file status
-	show_status_line();
 }
 
 static void dot_right(void)
 {
 	if (dot < end - 1 && *dot != '\n')
 		dot++;
-	edit_status();			// show current file status
-	show_status_line();
 }
 
 static void dot_begin(void)
 {
 	dot = begin_line(dot);	// return pointer to first char cur line
-	edit_status();			// show current file status
-	show_status_line();
 }
 
 static void dot_end(void)
 {
 	dot = end_line(dot);	// return pointer to last char cur line
-	edit_status();			// show current file status
-	show_status_line();
 }
 
 static Byte *move_to_col(Byte * p, int l)
@@ -1383,15 +1381,11 @@ static Byte *move_to_col(Byte * p, int l)
 static void dot_next(void)
 {
 	dot = next_line(dot);
-	edit_status();			// show current file status
-	show_status_line();
 }
 
 static void dot_prev(void)
 {
 	dot = prev_line(dot);
-	edit_status();			// show current file status
-	show_status_line();
 }
 
 static void dot_scroll(int cnt, int dir)
@@ -1416,8 +1410,6 @@ static void dot_scroll(int cnt, int dir)
 	if (dot > q)
 		dot = begin_line(q);	// is dot is below bottom line?
 	dot_skip_over_ws();
-	edit_status();			// show current file status
-	show_status_line();
 }
 
 static void dot_skip_over_ws(void)
@@ -1603,12 +1595,12 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 		c = get_one_char();
 		*p = c;
 		p++;
-		file_modified = TRUE;	// has the file been modified
+		file_modified++;	// has the file been modified
 	} else if (c == 27) {	// Is this an ESC?
 		cmd_mode = 0;
 		cmdcnt = 0;
 		end_cmd_q();	// stop adding to q
-		*status_buffer = '\0';  // clear the status buffer
+		last_status_cksum = 0;	// force status update
 		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
 		}
@@ -1658,7 +1650,7 @@ static Byte *stupid_insert(Byte * p, Byte c) // stupidly insert the char c at 'p
 	p = text_hole_make(p, 1);
 	if (p != 0) {
 		*p = c;
-		file_modified = TRUE;	// has the file been modified
+		file_modified++;	// has the file been modified
 		p++;
 	}
 	return (p);
@@ -1856,7 +1848,7 @@ static Byte *text_hole_make(Byte * p, int size)	// at "p", make a 'size' byte ho
 	}
 	memset(p, ' ', size);	// clear new hole
 	end = end + size;	// adjust the new END
-	file_modified = TRUE;	// has the file been modified
+	file_modified++;	// has the file been modified
   thm0:
 	return (p);
 }
@@ -1892,7 +1884,7 @@ static Byte *text_hole_delete(Byte * p, Byte * q) // delete "p" thru "q", inclus
 		dest = end - 1;	// make sure dest in below end-1
 	if (end <= text)
 		dest = end = text;	// keep pointers valid
-	file_modified = TRUE;	// has the file been modified
+	file_modified++;	// has the file been modified
   thd0:
 	return (dest);
 }
@@ -2162,7 +2154,7 @@ static void winch_sig(int sig)
 static void cont_sig(int sig)
 {
 	rawmode();			// terminal to "raw"
-	*status_buffer = '\0';	// clear the status buffer
+	last_status_cksum = 0;	// force status update
 	redraw(TRUE);		// re-draw the screen
 
 	signal(SIGTSTP, suspend_sig);
@@ -2407,7 +2399,7 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 	static Byte *obufp = NULL;
 
 	strcpy((char *) buf, (char *) prompt);
-	*status_buffer = '\0';	// clear the status buffer
+	last_status_cksum = 0;	// force status update
 	place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
 	clear_to_eol();		// clear the line
 	write1(prompt);      // write out the :, /, or ? prompt
@@ -2512,7 +2504,7 @@ static int file_insert(Byte * fn, Byte * p, int size)
 		psbs("could not read all of file \"%s\"", fn);
 	}
 	if (cnt >= size)
-		file_modified = TRUE;
+		file_modified++;
   fi0:
 	return (cnt);
 }
@@ -2670,28 +2662,46 @@ static void screen_erase(void)
 	memset(screen, ' ', screensize);	// clear new screen
 }
 
+static int bufsum(char *buf, int count)
+{
+	int sum = 0;
+	char *e = buf + count;
+	while (buf < e)
+		sum += *buf++;
+	return sum;
+}
+
 //----- Draw the status line at bottom of the screen -------------
 static void show_status_line(void)
 {
-	static int last_cksum;
-	int l, cnt, cksum;
+	int cnt, cksum;
 
-	//edit_status();
-	cnt = strlen((char *) status_buffer);
-	for (cksum= l= 0; l < cnt; l++) { cksum += (int)(status_buffer[l]); }
-	// don't write the status line unless it changes
-	if (cnt > 0 && last_cksum != cksum) {
-		last_cksum= cksum;		// remember if we have seen this line
+	// either we already have an error or status message, or we
+	// create one.
+	if (!have_status_msg) {
+		cnt = format_edit_status();
+		cksum = bufsum(status_buffer, cnt);
+	}
+	if (have_status_msg || ((cnt > 0 && last_status_cksum != cksum))) {
+		last_status_cksum= cksum;		// remember if we have seen this line
 		place_cursor(rows - 1, 0, FALSE);	// put cursor on status line
 		write1(status_buffer);
 		clear_to_eol();
+		if (have_status_msg) {
+			if ((strlen(status_buffer) - (have_status_msg - 1)) >
+					(columns - 1) ) {
+				have_status_msg = 0;
+				Hit_Return();
+			}
+			have_status_msg = 0;
+		}
 		place_cursor(crow, ccol, FALSE);	// put cursor back in correct place
 	}
 	fflush(stdout);
 }
 
 //----- format the status buffer, the bottom line of screen ------
-// print status buffer, with STANDOUT mode
+// format status buffer, with STANDOUT mode
 static void psbs(const char *format, ...)
 {
 	va_list args;
@@ -2701,12 +2711,13 @@ static void psbs(const char *format, ...)
 	vsprintf((char *) status_buffer + strlen((char *) status_buffer), format, args);
 	strcat((char *) status_buffer, SOn);	// Terminal standout mode off
 	va_end(args);
-	show_status_line();
+
+	have_status_msg = 1 + sizeof(SOs) + sizeof(SOn) - 2;
 
 	return;
 }
 
-// print status buffer
+// format status buffer
 static void psb(const char *format, ...)
 {
 	va_list args;
@@ -2714,7 +2725,9 @@ static void psb(const char *format, ...)
 	va_start(args, format);
 	vsprintf((char *) status_buffer, format, args);
 	va_end(args);
-	show_status_line();
+
+	have_status_msg = 1;
+
 	return;
 }
 
@@ -2726,12 +2739,28 @@ static void ni(Byte * s) // display messages
 	psbs("\'%s\' is not implemented", buf);
 }
 
-static void edit_status(void)	// show file status on status line
+static int format_edit_status(void)	// show file status on status line
 {
-	int cur, tot, percent;
+	int cur, percent, ret, trunc_at;
+	static int tot;
 
+	// file_modified is now a counter rather than a flag.  this
+	// helps reduce the amount of line counting we need to do.
+	// (this will cause a mis-reporting of modified status
+	// once every MAXINT editing operations.)
+
+	// it would be nice to do a similar optimization here -- if
+	// we haven't done a motion that could have changed which line
+	// we're on, then we shouldn't have to do this count_lines()
 	cur = count_lines(text, dot);
-	tot = count_lines(text, end - 1);
+
+	// reduce counting -- the total lines can't have
+	// changed if we haven't done any edits.
+	if (file_modified != last_file_modified) {
+		tot = cur + count_lines(dot, end - 1) - 1;
+		last_file_modified = file_modified;
+	}
+
 	//    current line         percent
 	//   -------------    ~~ ----------
 	//    total lines            100
@@ -2742,18 +2771,27 @@ static void edit_status(void)	// show file status on status line
 		percent = 100;
 	}
 
-	sprintf((char *) status_buffer,
-			"\"%s\""
+	trunc_at = columns < STATUS_BUFFER_LEN-1 ?
+		columns : STATUS_BUFFER_LEN-1;
+
+	ret = snprintf((char *) status_buffer, trunc_at+1,
 #ifdef CONFIG_FEATURE_VI_READONLY
-			"%s"
-#endif							/* CONFIG_FEATURE_VI_READONLY */
-			"%s line %d of %d --%d%%--",
-			(cfn != 0 ? (char *) cfn : "No file"),
+		"%c %s%s%s %d/%d %d%%",
+#else
+		"%c %s%s %d/%d %d%%",
+#endif
+		(cmd_mode ? (cmd_mode == 2 ? 'R':'I'):'-'),
+		(cfn != 0 ? (char *) cfn : "No file"),
 #ifdef CONFIG_FEATURE_VI_READONLY
-			((vi_readonly || readonly) ? " [Read only]" : ""),
-#endif							/* CONFIG_FEATURE_VI_READONLY */
-			(file_modified ? " [modified]" : ""),
-			cur, tot, percent);
+		((vi_readonly || readonly) ? " [Read-only]" : ""),
+#endif
+		(file_modified ? " [modified]" : ""),
+		cur, tot, percent);
+
+	if (ret >= 0 && ret < trunc_at)
+		return ret;  /* it all fit */
+
+	return trunc_at;  /* had to truncate */
 }
 
 //----- Force refresh of all Lines -----------------------------
@@ -2762,7 +2800,9 @@ static void redraw(int full_screen)
 	place_cursor(0, 0, FALSE);	// put cursor in correct place
 	clear_to_eos();		// tel terminal to erase display
 	screen_erase();		// erase the internal screen buffer
+	last_status_cksum = 0;	// force status update
 	refresh(full_screen);	// this will redraw the entire display
+	show_status_line();
 }
 
 //----- Format a text[] line into a buffer ---------------------
@@ -2899,8 +2939,6 @@ static void refresh(int full_screen)
 #endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
 			}
 
-			edit_status();			// show current file status
-			show_status_line();
 			// write line out to terminal
 			{
 				int nic = ce-cs+1;
@@ -2959,6 +2997,8 @@ static void do_cmd(Byte c)
 	cnt = yf = dir = 0;	// quiet the compiler
 	p = q = save_dot = msg = buf;	// quiet the compiler
 	memset(buf, '\0', 9);	// clear buf
+
+	show_status_line();
 
 	/* if this is a cursor key, skip these checks */
 	switch (c) {
@@ -3079,8 +3119,7 @@ key_cmd_mode:
 		dot_scroll(rows - 2, 1);
 		break;
 	case 7:			// ctrl-G  show current status
-		edit_status();
-		show_status_line();
+		last_status_cksum = 0;	// force status update
 		break;
 	case 'h':			// h- move left
 	case VI_K_LEFT:	// cursor key Left
@@ -3090,8 +3129,6 @@ key_cmd_mode:
 			do_cmd(c);
 		}				// repeat cnt
 		dot_left();
-		edit_status();			// show current file status
-		show_status_line();
 		break;
 	case 10:			// Newline ^J
 	case 'j':			// j- goto next line, same col
@@ -3108,6 +3145,7 @@ key_cmd_mode:
 		clear_to_eos();	// tel terminal to erase display
 		(void) mysleep(10);
 		screen_erase();	// erase the internal screen buffer
+		last_status_cksum = 0;	// force status update
 		refresh(TRUE);	// this will redraw the entire display
 		break;
 	case 13:			// Carriage Return ^M
@@ -3129,7 +3167,7 @@ key_cmd_mode:
 			indicate_error(c);
 		cmd_mode = 0;	// stop insrting
 		end_cmd_q();
-		*status_buffer = '\0';	// clear status buffer
+		last_status_cksum = 0;	// force status update
 		break;
 	case ' ':			// move right
 	case 'l':			// move right
@@ -3349,7 +3387,7 @@ key_cmd_mode:
 			msg = (Byte *) "Pattern not found";
 		}
 	  dc2:
-		psbs("%s", msg);
+		if (*msg) psbs("%s", msg);
 		break;
 	case '{':			// {- move backward paragraph
 		q = char_search(dot, (Byte *) "\n\n", BACK, FULL);
@@ -3401,14 +3439,14 @@ key_cmd_mode:
 				   strncasecmp((char *) p, "wq", cnt) == 0 ||
 				   strncasecmp((char *) p, "x", cnt) == 0) {
 			cnt = file_write(cfn, text, end - 1);
-			file_modified = FALSE;
+			file_modified = 0;
+			last_file_modified = -1;
 			psb("\"%s\" %dL, %dC", cfn, count_lines(text, end - 1), cnt);
 			if (p[0] == 'x' || p[1] == 'q') {
 				editing = 0;
 			}
 		} else if (strncasecmp((char *) p, "file", cnt) == 0 ) {
-			edit_status();			// show current file status
-			show_status_line();
+			last_status_cksum = 0;	// force status update
 		} else if (sscanf((char *) p, "%d", &j) > 0) {
 			dot = find_line(j);		// go to line # j
 			dot_skip_over_ws();
@@ -3509,7 +3547,6 @@ key_cmd_mode:
 	case VI_K_INSERT:	// Cursor Key Insert
 	  dc_i:
 		cmd_mode = 1;	// start insrting
-		psb("-- Insert --");
 		break;
 	case 'J':			// J- join current and next lines together
 		if (cmdcnt-- > 2) {
@@ -3518,7 +3555,7 @@ key_cmd_mode:
 		dot_end();		// move to NL
 		if (dot < end - 1) {	// make sure not last char in text[]
 			*dot++ = ' ';	// replace NL with space
-			file_modified = TRUE;
+			file_modified++;
 			while (isblnk(*dot)) {	// delete leading WS
 				dot_delete();
 			}
@@ -3559,7 +3596,6 @@ key_cmd_mode:
 	case 'R':			// R- continuous Replace char
 	  dc5:
 		cmd_mode = 2;
-		psb("-- Replace --");
 		break;
 	case 'X':			// X- delete char before dot
 	case 'x':			// x- delete the current char
@@ -3709,7 +3745,7 @@ key_cmd_mode:
 		c1 = get_one_char();	// get the replacement char
 		if (*dot != '\n') {
 			*dot = c1;
-			file_modified = TRUE;	// has the file been modified
+			file_modified++;	// has the file been modified
 		}
 		end_cmd_q();	// stop adding to q
 		break;
@@ -3754,10 +3790,10 @@ key_cmd_mode:
 		}				// repeat cnt
 		if (islower(*dot)) {
 			*dot = toupper(*dot);
-			file_modified = TRUE;	// has the file been modified
+			file_modified++;	// has the file been modified
 		} else if (isupper(*dot)) {
 			*dot = tolower(*dot);
-			file_modified = TRUE;	// has the file been modified
+			file_modified++;	// has the file been modified
 		}
 		dot_right();
 		end_cmd_q();	// stop adding to q
