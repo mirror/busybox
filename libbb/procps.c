@@ -72,7 +72,7 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 		"%c %d "
 		"%*s %*s %*s %*s "     /* pgrp, session, tty, tpgid */
 		"%*s %*s %*s %*s %*s " /* flags, min_flt, cmin_flt, maj_flt, cmaj_flt */
-#ifdef ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+#ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		"%lu %lu "
 #else
 		"%*s %*s "
@@ -83,12 +83,12 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 		"%*s "                 /* vsize */
 		"%ld",
 		curstatus.state, &curstatus.ppid,
-#ifdef ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+#ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		&curstatus.utime, &curstatus.stime,
 #endif
 		&tasknice,
 		&curstatus.rss);
-#ifdef ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+#ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		if(n != 6)
 #else
 		if(n != 4)

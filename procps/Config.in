@@ -57,7 +57,7 @@ config CONFIG_TOP
 	  The top program provides a dynamic real-time view of a running
 	  system.
 
-config ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+config CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	bool "  Support showing CPU usage percentage (add 2k bytes)"
 	default y
 	depends on CONFIG_TOP
