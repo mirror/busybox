@@ -2674,7 +2674,7 @@ static int bufsum(char *buf, int count)
 //----- Draw the status line at bottom of the screen -------------
 static void show_status_line(void)
 {
-	int cnt, cksum;
+	int cnt = 0, cksum = 0;
 
 	// either we already have an error or status message, or we
 	// create one.
