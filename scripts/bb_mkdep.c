@@ -1,7 +1,13 @@
 /*
- * Another fast dependencies generator for Makefiles, Version 2.0
+ * Another fast dependencies generator for Makefiles, Version 2.1
  *
  * Copyright (C) 2005 by Vladimir Oleynik <dzo@simtreas.ru>
+ * mmaping file may be originally by Linus Torvalds.
+ *
+ * (c) 2005 Bernhard Fischer:
+ *  - commentary typos,
+ *  - move "memory exhausted" into msg_enomem,
+ *  - more verbose --help output.
  *
  * This program does:
  * 1) find #define KEY VALUE or #undef KEY from include/config.h
@@ -11,7 +17,7 @@
  * 5) generate dependencies to stdout
  *    path/file.o: include/config/key*.h found_include_*.h
  *    path/inc.h: include/config/key*.h found_included_include_*.h
- * This programm does not generate dependencies for #include <...>
+ * This program does not generate dependencies for #include <...>
  */
 
 #define LOCAL_INCLUDE_PATH          "include"
@@ -87,6 +93,7 @@ static void parse_conf_opt(char *opt, const char *val, size_t rsz);
 
 /* for speed tricks */
 static char first_chars[257];  /* + L_EOF */
+static char isalnums[257];     /* + L_EOF */
 /* trick for fast find "define", "include", "undef" */
 static char first_chars_diu[256];
 
@@ -171,11 +178,13 @@ static void c_lex(const char *fname, long fsize)
   for(;;) {
 	if(state == LI || state == DV) {
 	    /* store "include.h" or config mode #define KEY "|'..."|'  */
-	    put_id(0);
 	    if(state == LI) {
+		put_id(0);
 		parse_inc(id, fname);
 	    } else {
 		/* #define KEY "[VAL]" */
+		put_id(c);  /* #define KEY "VALUE"<- */
+		put_id(0);
 		parse_conf_opt(id, val, (optr - start));
 	    }
 	    state = S;
@@ -243,14 +252,14 @@ static void c_lex(const char *fname, long fsize)
 			   if key with this first char undefined */
 			if(first_chars[c] == 0) {
 			    /* skip <S>[A-Z_a-z0-9]+ */
-			    do getc1(); while(ISALNUM(c));
+			    do getc1(); while(isalnums[c]);
 			} else {
 			    id_len = 0;
 			    do {
 				/* <S>[A-Z_a-z0-9]+ */
 				put_id(c);
 				getc1();
-			    } while(ISALNUM(c));
+			    } while(isalnums[c]);
 			    put_id(0);
 			    check_key(key_top, id);
 			}
@@ -307,8 +316,6 @@ static void c_lex(const char *fname, long fsize)
 			    put_id(c);
 		} else if(c == state) {
 			/* <STR>\" or <CHR>\' */
-			if(called == DV)
-			    put_id(c);  /* #define KEY "VALUE"<- */
 			state = called;
 			break;
 		} else if(val)
@@ -337,7 +344,6 @@ static void c_lex(const char *fname, long fsize)
 		yy_error_d("strange preprocessor line");
 	}
 	if(state == POUND) {
-	    const unsigned char *p = optr - 1;
 	    /* tricks */
 	    static const char * const preproc[] = {
 		    /* 0-4 */
@@ -345,15 +351,12 @@ static void c_lex(const char *fname, long fsize)
 		    /* 5 */   /* 6 */   /* 7 */
 		    "undef", "define", "include",
 	    };
-	    size_t readed = 0;
 	    size_t diu = first_chars_diu[c];   /* strlen and preproc ptr */
+	    const unsigned char *p = optr - 1;
 
-	    while(ISALNUM(c)) {
-		readed++;
-		getc1();
-	    }
+	    while(isalnums[c]) getc1();
 	    /* have str begined with c, readed == strlen key and compared */
-	    if(diu != S && diu == readed && !memcmp(p, preproc[diu], diu)) {
+	    if(diu != S && diu == (optr-p-1) && !memcmp(p, preproc[diu], diu)) {
 		state = *p;
 		id_len = 0; /* common for save */
 	    } else {
@@ -378,12 +381,12 @@ static void c_lex(const char *fname, long fsize)
 	if(state == D || state == U) {
 	    if(mode == SOURCES_MODE) {
 		/* ignore depend with #define or #undef KEY */
-		while(ISALNUM(c))
+		while(isalnums[c])
 		    getc1();
 		state = S;
 	    } else {
 		/* save KEY from #"define"|"undef" ... */
-		while(ISALNUM(c)) {
+		while(isalnums[c]) {
 		    put_id(c);
 		    getc1();
 		}
@@ -411,7 +414,7 @@ static void c_lex(const char *fname, long fsize)
 		state = c;
 		continue;
 	    }
-	    while(ISALNUM(c)) {
+	    while(isalnums[c]) {
 		/* VALUE */
 		put_id(c);
 		getc1();
@@ -542,10 +545,10 @@ static void parse_conf_opt(char *opt, const char *val, size_t recordsz)
 	    if(cur->value != NULL && val != NULL && strcmp(cur->value, val) == 0)
 		return;
 	    fprintf(stderr, "Warning: redefined %s\n", opt);
+	} else {
+	    key_top = cur = make_new_key(key_top, opt);
 	}
-	/* new or redefined key, check old key if present after previous usage */
-	key_top = cur = make_new_key(key_top, opt);
-
+	/* do generate record */
 	recordsz += 2;  /* \n\0 */
 	if(recordsz > r_sz) {
 	    record_buf = xrealloc(record_buf, r_sz=recordsz);
@@ -574,13 +577,13 @@ static void parse_conf_opt(char *opt, const char *val, size_t recordsz)
 	for(p = opt; *p; p++) {
 	    if(*p >= 'A' && *p <= 'Z')
 		    *p = *p - 'A' + 'a';
-	    else if(*p == '_')
+	    else if(*p == '_' && p[1] > '9')    /* do not change A_1 to A/1 */
 		    *p = '/';
 	}
-	p = bb_asprint("%s/%s.h", kp, opt);
-	cur->stored_path = opt = p;
+	/* check kp/key.h if present after previous usage */
+	cur->stored_path = opt = bb_asprint("%s/%s.h", kp, opt);
 	if(stat(opt, &st)) {
-	    p += kp_len;
+	    p = opt + kp_len;
 	    while(*++p) {
 		/* Auto-create directories. */
 		if (*p == '/') {
@@ -812,9 +815,10 @@ int main(int argc, char **argv)
 	pagesizem1 = getpagesize() - 1;
 	id_s = xmalloc(mema_id);
 	for(i = 0; i < 256; i++) {
+	    if(ISALNUM(i))
+		isalnums[i] = i;
 	    /* set unparsed chars for speed up of parser */
-	    if(!ISALNUM(i) && i != CHR && i != STR &&
-			      i != POUND && i != REM && i != BS)
+	    else if(i != CHR && i != STR && i != POUND && i != REM && i != BS)
 		first_chars[i] = ANY;
 	}
 	first_chars[i] = '-';   /* L_EOF */
