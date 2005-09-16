@@ -109,9 +109,74 @@ Memory Allocation
   allocation on the stack or the heap.  Unfortunately, we're not using it much.
   We need to audit our memory allocations and turn a lot of malloc/free calls
   into RESERVE_CONFIG_BUFFER/RELEASE_CONFIG_BUFFER.
-  
+
   And while we're at it, many of the CONFIG_FEATURE_CLEAN_UP #ifdefs will be
   optimized out by the compiler in the stack allocation case (since there's no
   free for an alloca()), and this means that various cleanup loops that just
   call free might also be optimized out by the compiler if written right, so
   we can yank those #ifdefs too, and generally clean up the code.
+---
+Switch CONFIG_SYMBOLS to ENABLE_SYMBOLS
+
+  In busybox 1.0 and earlier, configuration was done by CONFIG_SYMBOLS
+  that were either defined or undefined to indicate whether the symbol was
+  selected in the .config file.  They were used with #ifdefs, ala:
+
+    #ifdef CONFIG_SYMBOL
+      if (other_test) {
+        do_code();
+      }
+    #endif
+
+  In 1.1, we have new ENABLE_SYMBOLS which are always defined (as 0 or 1),
+  meaning you can still use them for preprocessor tests by replacing
+  "#ifdef CONFIG_SYMBOL" with "#if ENABLE_SYMBOL".  But more importantly, we
+  can use them as a true or false test in normal C code:
+
+    if (ENABLE_SYMBOL && other_test) {
+      do_code();
+    }
+
+  (Optimizing away if() statements that resolve to a constant value
+  is known as "dead code elimination", an optimization so old and simple that
+  Turbo Pascal for DOS did it twenty years ago.  Even modern mini-compilers
+  like the Tiny C Compiler (tcc) and the Small Device C Compiler (SDCC)
+  perform dead code elimination.)
+
+  Right now, busybox.h is #including both "config.h" (defining the
+  CONFIG_SYMBOLS) and "bb_config.h" (defining the ENABLE_SYMBOLS).  At some
+  point in the future, it would be nice to wean ourselves off of the
+  CONFIG versions.  (Among other things, some defective build environments
+  leak the Linux kernel's CONFIG_SYMBOLS into the system's standard #include
+  files.  We've experienced collisions before.)
+---
+FEATURE_CLEAN_UP
+  This is more an unresolved issue than a to-do item.  More thought is needed.
+
+  Normally we rely on exit() to free memory, close files, and unmap segments
+  for us.  This makes most calls to free(), close(), and unmap() optional in
+  busybox applets that don't intend to run for very long, and optional stuff
+  can be omitted to save size.
+
+  The idea was raised that we could simulate fork/exit with setjmp/longjmp
+  for _really_ brainless embedded systems, or speed up the standalone shell
+  by not forking.  Doing so would require a reliable FEATURE_CLEAN_UP.
+  Unfortunately, this isn't as easy as it sounds.
+
+  The problem is, lots of things exit(), sometimes unexpectedly (xmalloc())
+  and sometimes reliably (bb_perror_msg_and_die() or show_usage()).  This
+  jumps out of the normal flow control and bypasses any cleanup code we
+  put at the end of our applets.
+
+  It's possible to add hooks to libbb functions like xmalloc() and bb_xopen()
+  to add their entries to a linked list, which could be traversed and
+  freed/closed automatically.  (This would need to be able to free just the
+  entries after a checkpoint to be usable for a forkless standalone shell.
+  You don't want to free the shell's own resources.)
+
+  Right now, FEATURE_CLEAN_UP is more or less a debugging aid, to make things
+  like valgrind happy.  It's also documentation of _what_ we're trusting
+  exit() to clean up for us.  But new infrastructure to auto-free stuff would
+  render the existing FEATURE_CLEAN_UP code redundant.
+
+  For right now, exit() handles it just fine.
