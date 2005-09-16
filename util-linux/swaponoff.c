@@ -38,10 +38,10 @@ static int swap_enable_disable(const char *device)
 
 	if (status != 0) {
 		bb_perror_msg("%s", device);
-		return EXIT_FAILURE;
+		return 1;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int do_em_all(void)
@@ -57,8 +57,7 @@ static int do_em_all(void)
 	err = 0;
 	while ((m = getmntent(f)) != NULL)
 		if (strcmp(m->mnt_type, MNTTYPE_SWAP) == 0)
-			if (swap_enable_disable(m->mnt_fsname) == EXIT_FAILURE)
-				++err;
+			err += swap_enable_disable(m->mnt_fsname);
 
 	endmntent(f);
 
@@ -69,13 +68,17 @@ static int do_em_all(void)
 
 extern int swap_on_off_main(int argc, char **argv)
 {
-	unsigned long opt = bb_getopt_ulflags(argc, argv, "a");
+	int ret;
 
-	if (argc != 2)
+	if (argc == 1)
 		bb_show_usage();
 
-	if (opt & DO_ALL)
+	ret = bb_getopt_ulflags(argc, argv, "a");
+	if (ret & DO_ALL)
 		return do_em_all();
 
-	return swap_enable_disable(argv[1]);
+	ret = 0;
+	while (*++argv)
+		ret += swap_enable_disable(*argv);
+	return ret;
 }
