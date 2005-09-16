@@ -48,10 +48,6 @@ man
   compressed.  This could probably be a script in the extras directory that
   calls cat/zcatbzcat | more
 ---
-less
-  More sucks if you're used to less.  A tiny less implementation would be
-  very nice.
----
 bzip2
   Compression-side support.
 
