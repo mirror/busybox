@@ -670,9 +670,10 @@ static char *process_regex_on_line(char *line, regex_t *pattern) {
 	char *line2 = (char *) malloc((sizeof(char) * (strlen(line) + 1)) + 64);
 	char sub_line[256];
 	int prev_eo = 0;
+	regmatch_t match_structs;
+	
 	memset(sub_line, 0, 256);
 	strcpy(line2, line);
-	regmatch_t match_structs;
 
 	match_found = 0;
 	match_status = regexec(pattern, line2, 1, &match_structs, 0);
