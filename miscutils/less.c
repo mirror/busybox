@@ -23,7 +23,7 @@
  *	This program needs a lot of development, so consider it in a beta stage
  *	at best.
  *
- *	TODO: 
+ *	TODO:
  *	- Add more regular expression support - search modifiers, certain matches, etc.
  *	- Add more complex bracket searching - currently, nested brackets are
  *	not considered.
@@ -47,9 +47,14 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
-#include <regex.h>
 #include <ctype.h>
+
 #include "busybox.h"
+
+#ifdef CONFIG_FEATURE_LESS_REGEXP
+#include "xregex.h"
+#endif
+
 
 /* These are the escape sequences corresponding to special keys */
 #define REAL_KEY_UP 'A'
@@ -78,63 +83,7 @@
 #define MAXLINES 10000
 
 /* Get height and width of terminal */
-#define tty_width_height()		get_terminal_width_height(0, &width, &height)
-
-/* Function prototypes */
-static void set_tty_cooked(void);
-static void set_tty_raw(void);
-static void tless_exit(int code);
-static int tless_getch(void);
-static void move_cursor(int x, int y);
-static void clear_line(void);
-static void data_readlines(void);
-static void free_flines(void);
-#ifdef CONFIG_FEATURE_LESS_FLAGS
-static int calc_percent(void);
-#endif
-static int reverse_percent(int percentage);
-#ifdef CONFIG_FEATURE_LESS_FLAGS
-static void m_status_print(void);
-static void medium_status_print(void);
-#endif
-static void status_print(void);
-static void buffer_print(void);
-static void buffer_init(void);
-static void buffer_down(int nlines);
-static void buffer_up(int nlines);
-static void buffer_line(int linenum);
-static void keypress_process(int keypress);
-static void colon_process(void);
-static void number_process(int first_digit);
-#ifdef CONFIG_FEATURE_LESS_FLAGCS
-static void flag_change(void);
-static void show_flag_status(void);
-#endif
-static void examine_file(void);
-static void next_file(void);
-static void previous_file(void);
-static void first_file(void);
-static void remove_current_file(void);
-static void full_repaint(void);
-static void add_linenumbers(void);
-static void save_input_to_file(void);
-#ifdef CONFIG_FEATURE_LESS_MARKS
-static void	add_mark(void);
-static void goto_mark(void);
-#endif
-#ifdef CONFIG_FEATURE_LESS_REGEXP
-static void regex_process(void);
-char *process_regex_on_line(char *line, regex_t *pattern);
-char *insert_highlights(char *line, int start, int end);
-static void goto_match (int match);
-static void search_backwards(void);
-#endif
-#ifdef CONFIG_FEATURE_LESS_BRACKETS
-static char opp_bracket (char bracket);
-static void match_right_bracket (char bracket);
-static void match_left_bracket (char bracket);
-#endif
-int less_main(int argc, char *argv[]);
+#define tty_width_height()              get_terminal_width_height(0, &width, &height)
 
 static int height;
 static int width;
@@ -143,38 +92,38 @@ static char filename[256];
 static char buffer[100][256];
 static char *flines[MAXLINES];
 static int current_file = 1;
-static int line_pos = 0;
+static int line_pos;
 static int num_flines;
 static int num_files = 1;
-static int past_eof = 0;
+static int past_eof;
 
 /* Command line options */
-static int E_FLAG = 0;
-static int M_FLAG = 0;
-static int N_FLAG = 0;
-static int m_FLAG = 0;
-static int TILDE_FLAG = 0;
+static int E_FLAG;
+static int M_FLAG;
+static int N_FLAG;
+static int m_FLAG;
+static int TILDE_FLAG;
 
 /* This is needed so that program behaviour changes when input comes from
    stdin */
-static int inp_stdin = 0;
+static int inp_stdin;
 /* This is required so that when a file is requested to be examined after
-   input has come from stdin (e.g. dmesg | less), the input stream from 
+   input has come from stdin (e.g. dmesg | less), the input stream from
    the keyboard still stays the same. If it switched back to stdin, keyboard
    input wouldn't work. */
-static int ea_inp_stdin = 0;
+static int ea_inp_stdin;
 
 #ifdef CONFIG_FEATURE_LESS_MARKS
 static int mark_lines[15][2];
-static int num_marks = 0;
+static int num_marks;
 #endif
 
 #ifdef CONFIG_FEATURE_LESS_REGEXP
-static int match_found = 0;
+static int match_found;
 static int match_lines[100];
-static int match_pos = 0;
-static int num_matches = 0;
-static int match_backwards = 0;
+static int match_pos;
+static int num_matches;
+static int match_backwards;
 static int num_back_match = 1;
 #endif
 
@@ -185,47 +134,47 @@ static struct termios term_orig, term_vi;
 static FILE *inp;
 
 /* Reset terminal input to normal */
-static void set_tty_cooked() {
-        fflush(stdout);
-        tcsetattr(0, TCSANOW, &term_orig);
+static void set_tty_cooked(void) {
+	fflush(stdout);
+	tcsetattr(0, TCSANOW, &term_orig);
 }
 
 /* Set terminal input to raw mode */
-static void set_tty_raw() {
+static void set_tty_raw(void) {
        tcgetattr(0, &term_orig);
-        term_vi = term_orig;
-        term_vi.c_lflag &= (~ICANON & ~ECHO); 
-        term_vi.c_iflag &= (~IXON & ~ICRNL);
-        term_vi.c_oflag &= (~ONLCR);
-        term_vi.c_cc[VMIN] = 1;
-        term_vi.c_cc[VTIME] = 0;
-        tcsetattr(0, TCSANOW, &term_vi);
+	term_vi = term_orig;
+	term_vi.c_lflag &= (~ICANON & ~ECHO);
+	term_vi.c_iflag &= (~IXON & ~ICRNL);
+	term_vi.c_oflag &= (~ONLCR);
+	term_vi.c_cc[VMIN] = 1;
+	term_vi.c_cc[VTIME] = 0;
+	tcsetattr(0, TCSANOW, &term_vi);
 }
 
 /* Exit the program gracefully */
 static void tless_exit(int code) {
-	
+
 	/* TODO: We really should save the terminal state when we start,
-	 	 and restore it when we exit. Less does this with the
+		 and restore it when we exit. Less does this with the
 		 "ti" and "te" termcap commands; can this be done with
 		 only termios.h? */
-	
+
 	putchar('\n');
 	exit(code);
 }
 
 /* Grab a character from input without requiring the return key. If the
    character is ASCII \033, get more characters and assign certain sequences
-   special return codes. Note that this function works best with raw input. */ 
-int tless_getch() {
-	
+   special return codes. Note that this function works best with raw input. */
+static int tless_getch(void) {
+
 	set_tty_raw();
 	char input_key[3];
-	
+
 	input_key[0] = getc(inp);
 	/* Detect escape sequences (i.e. arrow keys) and handle
 	   them accordingly */
-	
+
 	if (input_key[0] == '\033') {
 		input_key[1] = getc(inp);
 		input_key[2] = getc(inp);
@@ -253,25 +202,38 @@ int tless_getch() {
 	return 0;
 }
 
-/* Move the cursor to a position (x,y), where (0,0) is the 
+/* Move the cursor to a position (x,y), where (0,0) is the
    top-left corner of the console */
 static void move_cursor(int x, int y) {
 	printf("\033[%i;%iH", x, y);
 }
 
-static void clear_line() {
+static void clear_line(void) {
 	move_cursor(height, 0);
 	printf("\033[K");
 }
 
-static void data_readlines() {
-	
+/* This adds line numbers to every line, as the -N flag necessitates */
+static void add_linenumbers(void) {
+
+	char current_line[256];
+	int i;
+
+	for (i = 0; i <= num_flines; i++) {
+		safe_strncpy(current_line, flines[i], 256);
+		flines[i] = xrealloc(flines[i], strlen(current_line) + 7 );
+		sprintf(flines[i],"%5d %s", i+1, current_line);
+	}
+}
+
+static void data_readlines(void) {
+
 	int i;
 	char current_line[256];
 	FILE *fp;
-	
+
 	fp = (inp_stdin) ? stdin : bb_xfopen(filename, "rt");
-	
+
 	for (i = 0; (!feof(fp)) && (i <= MAXLINES); i++) {
 		strcpy(current_line, "");
 		fgets(current_line, 256, fp);
@@ -281,10 +243,10 @@ static void data_readlines() {
 	num_flines = i - 2;
 
 /* Reset variables for a new file */
-	
+
 	line_pos = 0;
 	past_eof = 0;
-	
+
 	fclose(fp);
 
 	if (inp_stdin)
@@ -296,29 +258,29 @@ static void data_readlines() {
 		fclose(inp);
 		inp = fopen(CURRENT_TTY, "r");
 	}
-	
+
 	if (N_FLAG)
 		add_linenumbers();
 }
 
 /* Free the file data */
-static void free_flines() {
-	
+static void free_flines(void) {
+
 	int i;
-	
+
 	for (i = 0; i <= num_flines; i++)
 		free(flines[i]);
 }
 
 #ifdef CONFIG_FEATURE_LESS_FLAGS
 /* Calculate the percentage the current line position is through the file */
-int calc_percent() {
+static int calc_percent(void) {
 	return ((100 * (line_pos + height - 2) / num_flines) + 1);
 }
 #endif
 
 /* Turn a percentage into a line number */
-int reverse_percent(int percentage) {
+static int reverse_percent(int percentage) {
 	double linenum = percentage;
 	linenum = ((linenum / 100) * num_flines) - 1;
 	return(linenum);
@@ -326,10 +288,10 @@ int reverse_percent(int percentage) {
 
 #ifdef CONFIG_FEATURE_LESS_FLAGS
 /* Print a status line if -M was specified */
-static void m_status_print() {
+static void m_status_print(void) {
 
 	int percentage;
-	
+
 	if (!past_eof) {
 		if (!line_pos) {
 			if (num_files > 1)
@@ -341,7 +303,7 @@ static void m_status_print() {
 		else {
 			printf("%s %s lines %i-%i/%i ", HIGHLIGHT, filename, line_pos + 1, line_pos + height - 1, num_flines + 1);
 		}
-	
+
 		if (line_pos == num_flines - height + 2) {
 			printf("(END) %s", NORMAL);
 			if ((num_files > 1) && (current_file != num_files))
@@ -361,11 +323,11 @@ static void m_status_print() {
 }
 
 /* Print a status line if -m was specified */
-static void medium_status_print() {
+static void medium_status_print(void) {
 
 	int percentage;
 	percentage = calc_percent();
-	
+
 	if (!line_pos)
 		printf("%s%s %i%s%s", HIGHLIGHT, filename, percentage, "%", NORMAL);
 	else if (line_pos == num_flines - height + 2)
@@ -376,11 +338,11 @@ static void medium_status_print() {
 #endif
 
 /* Print the status line */
-static void status_print() {
-	
+static void status_print(void) {
+
 	/* Change the status if flags have been set */
-#ifdef CONFIG_FEATURE_LESS_FLAGS	
-	if (M_FLAG)	
+#ifdef CONFIG_FEATURE_LESS_FLAGS
+	if (M_FLAG)
 		m_status_print();
 	else if (m_FLAG)
 		medium_status_print();
@@ -406,10 +368,10 @@ static void status_print() {
 }
 
 /* Print the buffer */
-static void buffer_print() {
-	
+static void buffer_print(void) {
+
 	int i;
-	
+
 	if (num_flines >= height - 2) {
 		printf("%s", CLEAR);
 		move_cursor(0,0);
@@ -429,19 +391,19 @@ static void buffer_print() {
 }
 
 /* Initialise the buffer */
-static void buffer_init() {
-	
+static void buffer_init(void) {
+
 	int i;
-	
+
 	for (i = 0; i < (height - 1); i++)
 		memset(buffer[i], '\0', 256);
-	
-	/* Fill the buffer until the end of the file or the 
+
+	/* Fill the buffer until the end of the file or the
 	   end of the buffer is reached */
 	for (i = 0; (i < (height - 1)) && (i <= num_flines); i++) {
 		strcpy(buffer[i], flines[i]);
 	}
-	
+
 	/* If the buffer still isn't full, fill it with blank lines */
 	for (; i < (height - 1); i++) {
 		strcpy(buffer[i], "");
@@ -450,9 +412,9 @@ static void buffer_init() {
 
 /* Move the buffer up and down in the file in order to scroll */
 static void buffer_down(int nlines) {
-	
+
 	int i;
-	
+
 	if (!past_eof) {
 		if (line_pos + (height - 3) + nlines < num_flines) {
 			line_pos += nlines;
@@ -461,8 +423,8 @@ static void buffer_down(int nlines) {
 		}
 		else {
 			/* As the number of lines requested was too large, we just move
-		   	to the end of the file */
-			while (line_pos + (height - 3) + 1 < num_flines) {	
+			to the end of the file */
+			while (line_pos + (height - 3) + 1 < num_flines) {
 				line_pos += 1;
 				for (i = 0; i < (height - 1); i++)
 					strcpy(buffer[i], flines[line_pos + i]);
@@ -476,10 +438,10 @@ static void buffer_down(int nlines) {
 }
 
 static void buffer_up(int nlines) {
-	
+
 	int i;
 	int tilde_line;
-	
+
 	if (!past_eof) {
 		if (line_pos - nlines >= 0) {
 			line_pos -= nlines;
@@ -499,7 +461,7 @@ static void buffer_up(int nlines) {
 	else {
 		/* Work out where the tildes start */
 		tilde_line = num_flines - line_pos + 3;
-		
+
 		line_pos -= nlines;
 		/* Going backwards nlines lines has taken us to a point where
 		   nothing is past the EOF, so we revert to normal. */
@@ -509,7 +471,7 @@ static void buffer_up(int nlines) {
 		}
 		else {
 			/* We only move part of the buffer, as the rest
-		   	is past the EOF */
+			is past the EOF */
 			for (i = 0; i < (height - 1); i++) {
 				if (i < tilde_line - nlines + 1)
 					strcpy(buffer[i], flines[line_pos + i]);
@@ -518,12 +480,12 @@ static void buffer_up(int nlines) {
 						strcpy(buffer[i], "~\n");
 				}
 			}
-		}		
+		}
 	}
 }
 
 static void buffer_line(int linenum) {
-	
+
 	int i;
 
 	past_eof = 0;
@@ -549,6 +511,560 @@ static void buffer_line(int linenum) {
 		past_eof = 1;
 	}
 }
+
+static void examine_file(void) {
+
+	int newline_offset;
+
+	clear_line();
+	printf("Examine: ");
+	fgets(filename, 256, inp);
+
+	/* As fgets adds a newline to the end of an input string, we
+	   need to remove it */
+	newline_offset = strlen(filename) - 1;
+	filename[newline_offset] = '\0';
+
+	files[num_files] = bb_xstrndup(filename, (strlen(filename) + 1) * sizeof(char));
+	current_file = num_files + 1;
+	num_files++;
+
+	inp_stdin = 0;
+	ea_inp_stdin = 1;
+	free_flines();
+	data_readlines();
+	buffer_init();
+	buffer_print();
+}
+
+
+static void next_file(void) {
+	if (current_file != num_files) {
+		current_file++;
+		strcpy(filename, files[current_file - 1]);
+		free_flines();
+		data_readlines();
+		buffer_init();
+		buffer_print();
+	}
+	else {
+		clear_line();
+		printf("%s%s%s", HIGHLIGHT, "No next file", NORMAL);
+	}
+}
+
+static void previous_file(void) {
+	if (current_file != 1) {
+		current_file--;
+		strcpy(filename, files[current_file - 1]);
+
+		free_flines();
+		data_readlines();
+		buffer_init();
+		buffer_print();
+	}
+	else {
+		clear_line();
+		printf("%s%s%s", HIGHLIGHT, "No previous file", NORMAL);
+	}
+}
+
+static void first_file(void) {
+	if (current_file != 1) {
+		current_file = 1;
+		strcpy(filename, files[current_file - 1]);
+		free_flines();
+		data_readlines();
+		buffer_init();
+		buffer_print();
+	}
+}
+
+static void remove_current_file(void) {
+
+	int i;
+
+	if (current_file != 1) {
+		previous_file();
+		for (i = 3; i <= num_files; i++)
+			files[i - 2] = files[i - 1];
+		num_files--;
+		buffer_print();
+	}
+	else {
+		next_file();
+		for (i = 2; i <= num_files; i++)
+			files[i - 2] = files[i - 1];
+		num_files--;
+		current_file--;
+		buffer_print();
+	}
+}
+
+static void colon_process(void) {
+
+	int keypress;
+
+	/* Clear the current line and print a prompt */
+	clear_line();
+	printf(" :");
+
+	keypress = tless_getch();
+	switch (keypress) {
+		case 'd':
+			remove_current_file();
+			break;
+		case 'e':
+			examine_file();
+			break;
+#ifdef CONFIG_FEATURE_LESS_FLAGS
+		case 'f':
+			clear_line();
+			m_status_print();
+			break;
+#endif
+		case 'n':
+			next_file();
+			break;
+		case 'p':
+			previous_file();
+			break;
+		case 'q':
+			tless_exit(0);
+			break;
+		case 'x':
+			first_file();
+			break;
+		default:
+			break;
+	}
+}
+
+#ifdef CONFIG_FEATURE_LESS_REGEXP
+/* The below two regular expression handler functions NEED development. */
+
+/* Get a regular expression from the user, and then go through the current
+   file line by line, running a processing regex function on each one. */
+
+static char *insert_highlights (char *line, int start, int end) {
+
+	char *new_line = (char *) malloc((sizeof(char) * (strlen(line) + 1)) + 10);
+
+	memset(new_line, 0, ((sizeof(char) * (strlen(line) + 1)) + 10));
+	strncat(new_line, line, start);
+	strcat(new_line, HIGHLIGHT);
+	strncat(new_line, line + start, end - start);
+	strcat(new_line, NORMAL);
+	strncat(new_line, line + end, strlen(line) - end);
+
+	return new_line;
+}
+
+static char *process_regex_on_line(char *line, regex_t *pattern) {
+	/* This function takes the regex and applies it to the line.
+	   Each part of the line that matches has the HIGHLIGHT
+	   and NORMAL escape sequences placed around it by
+	   insert_highlights, and then the line is returned. */
+
+	int match_status;
+	char *line2 = (char *) malloc((sizeof(char) * (strlen(line) + 1)) + 64);
+	char sub_line[256];
+	int prev_eo = 0;
+	memset(sub_line, 0, 256);
+	strcpy(line2, line);
+	regmatch_t match_structs;
+
+	match_found = 0;
+	match_status = regexec(pattern, line2, 1, &match_structs, 0);
+
+	while (match_status == 0) {
+
+		memset(sub_line, 0, 256);
+
+		if (match_found == 0)
+			match_found = 1;
+
+		line2 = insert_highlights(line2, match_structs.rm_so + prev_eo, match_structs.rm_eo + prev_eo);
+		if (match_structs.rm_eo + 11 + prev_eo < strlen(line2))
+			strcat(sub_line, line2 + match_structs.rm_eo + 11 + prev_eo);
+
+		prev_eo += match_structs.rm_eo + 11;
+		match_status = regexec(pattern, sub_line, 1, &match_structs, REG_NOTBOL);
+	}
+
+	return line2;
+}
+
+static void regex_process(void) {
+
+	char uncomp_regex[100];
+	char current_line[256];
+	int i;
+	int j = 0;
+	regex_t *pattern;
+
+	/* Reset variables */
+	match_lines[0] = -1;
+	match_pos = 0;
+	num_matches = 0;
+	match_found = 0;
+
+	pattern = (regex_t *) malloc(sizeof(regex_t));
+	memset(pattern, 0, sizeof(regex_t));
+
+	/* Get the uncompiled regular expression from the user */
+	clear_line();
+	if (match_backwards)
+		printf("?");
+	else
+		printf("/");
+	scanf("%s", uncomp_regex);
+
+	/* Compile the regex and check for errors */
+	xregcomp(pattern, uncomp_regex, 0);
+
+	/* Run the regex on each line of the current file here */
+	for (i = 0; i <= num_flines; i++) {
+		strcpy(current_line, process_regex_on_line(flines[i], pattern));
+		flines[i] = (char *) bb_xstrndup(current_line, sizeof(char) * (strlen(current_line)+1));
+
+		if (match_found) {
+			match_lines[j] = i;
+			j++;
+		}
+	}
+
+	num_matches = j;
+
+	if ((match_lines[0] != -1) && (num_flines > height - 2))
+		buffer_line(match_lines[0]);
+	else
+		buffer_init();
+}
+
+static void goto_match(int match) {
+
+	/* This goes to a specific match - all line positions of matches are
+	   stored within the match_lines[] array. */
+	if ((match < num_matches) && (match >= 0)) {
+		buffer_line(match_lines[match]);
+		match_pos = match;
+	}
+}
+
+static void search_backwards(void) {
+
+	int current_linepos = line_pos;
+	int i;
+
+	match_backwards = 1;
+	regex_process();
+
+	for (i = 0; i < num_matches; i++) {
+		if (match_lines[i] > current_linepos) {
+			buffer_line(match_lines[i - num_back_match]);
+			break;
+		}
+	}
+
+	/* Reset variables */
+	match_backwards = 0;
+	num_back_match = 1;
+
+}
+#endif
+
+static void number_process(int first_digit) {
+
+	int i = 1;
+	int num;
+	char num_input[80];
+	char keypress;
+	num_input[0] = first_digit;
+
+	/* Clear the current line, print a prompt, and then print the digit */
+	clear_line();
+	printf(":%c", first_digit);
+
+	/* Receive input until a letter is given */
+	while((num_input[i] = tless_getch()) && isdigit(num_input[i])) {
+		printf("%c",num_input[i]);
+		i++;
+	}
+
+	/* Take the final letter out of the digits string */
+	keypress = num_input[i];
+	num_input[i] = '\0';
+	i--;
+	num = atoi(num_input);
+
+	/* We now know the number and the letter entered, so we process them */
+	switch (keypress) {
+		case KEY_DOWN: case 'z': case 'd': case 'e': case ' ': case '\015':
+			buffer_down(num);
+			buffer_print();
+			break;
+		case KEY_UP: case 'b': case 'w': case 'y': case 'u':
+			buffer_up(num);
+			buffer_print();
+			break;
+		case 'g': case '<': case 'G': case '>':
+			if (num_flines >= height - 2)
+				buffer_line(num - 1);
+			buffer_print();
+			break;
+		case 'p': case '%':
+			buffer_line(reverse_percent(num));
+			buffer_print();
+			break;
+#ifdef CONFIG_FEATURE_LESS_REGEXP
+		case 'n':
+			goto_match(match_pos + num - 1);
+			buffer_print();
+			break;
+		case '/':
+			regex_process();
+			goto_match(num - 1);
+			buffer_print();
+			break;
+		case '?':
+			num_back_match = num;
+			search_backwards();
+			buffer_print();
+			break;
+#endif
+		default:
+			break;
+	}
+}
+
+#ifdef CONFIG_FEATURE_LESS_FLAGCS
+static void flag_change(void) {
+
+	int keypress;
+
+	clear_line();
+	printf("-");
+	keypress = tless_getch();
+
+	switch (keypress) {
+		case 'M':
+			M_FLAG = !M_FLAG;
+			break;
+		case 'm':
+			m_FLAG = !m_FLAG;
+			break;
+		case 'E':
+			E_FLAG = !E_FLAG;
+			break;
+		case '~':
+			TILDE_FLAG = !TILDE_FLAG;
+			break;
+		default:
+			break;
+	}
+}
+
+static void show_flag_status(void) {
+
+	int keypress;
+	int flag_val;
+
+	clear_line();
+	printf("_");
+	keypress = tless_getch();
+
+	switch (keypress) {
+		case 'M':
+			flag_val = M_FLAG;
+			break;
+		case 'm':
+			flag_val = m_FLAG;
+			break;
+		case '~':
+			flag_val = TILDE_FLAG;
+			break;
+		case 'N':
+			flag_val = N_FLAG;
+			break;
+		case 'E':
+			flag_val = E_FLAG;
+			break;
+		default:
+			flag_val = 0;
+			break;
+	}
+
+	clear_line();
+	printf("%s%s%i%s", HIGHLIGHT, "The status of the flag is: ", flag_val != 0, NORMAL);
+}
+#endif
+
+static void full_repaint(void) {
+
+	int temp_line_pos = line_pos;
+	data_readlines();
+	buffer_init();
+	buffer_line(temp_line_pos);
+	buffer_print();
+}
+
+
+static void save_input_to_file(void) {
+
+	char current_line[256];
+	int i;
+	FILE *fp;
+
+	clear_line();
+	printf("Log file: ");
+	fgets(current_line, 256, inp);
+	current_line[strlen(current_line) - 1] = '\0';
+	if (strlen(current_line)) {
+		fp = bb_xfopen(current_line, "w");
+		for (i = 0; i < num_flines; i++)
+			fprintf(fp, "%s", flines[i]);
+		fclose(fp);
+		buffer_print();
+	}
+	else
+		printf("%sNo log file%s", HIGHLIGHT, NORMAL);
+}
+
+#ifdef CONFIG_FEATURE_LESS_MARKS
+static void add_mark(void) {
+
+	int letter;
+	int mark_line;
+
+	clear_line();
+	printf("Mark: ");
+	letter = tless_getch();
+
+	if (isalpha(letter)) {
+		mark_line = line_pos;
+
+		/* If we exceed 15 marks, start overwriting previous ones */
+		if (num_marks == 14)
+			num_marks = 0;
+
+		mark_lines[num_marks][0] = letter;
+		mark_lines[num_marks][1] = line_pos;
+		num_marks++;
+	}
+	else {
+		clear_line();
+		printf("%s%s%s", HIGHLIGHT, "Invalid mark letter", NORMAL);
+	}
+}
+
+static void goto_mark(void) {
+
+	int letter;
+	int i;
+
+	clear_line();
+	printf("Go to mark: ");
+	letter = tless_getch();
+	if (isalpha(letter)) {
+		for (i = 0; i <= num_marks; i++)
+			if (letter == mark_lines[i][0]) {
+				buffer_line(mark_lines[i][1]);
+				break;
+			}
+		if ((num_marks == 14) && (letter != mark_lines[14][0])) {
+			clear_line();
+			printf("%s%s%s", HIGHLIGHT, "Mark not set", NORMAL);
+		}
+	}
+	else {
+		clear_line();
+		printf("%s%s%s", HIGHLIGHT, "Invalid mark letter", NORMAL);
+	}
+}
+#endif
+
+
+#ifdef CONFIG_FEATURE_LESS_BRACKETS
+
+static char opp_bracket (char bracket) {
+
+	switch (bracket) {
+		case '{': case '[':
+			return bracket + 2;
+			break;
+		case '(':
+			return ')';
+			break;
+		case '}': case ']':
+			return bracket - 2;
+			break;
+		case ')':
+			return '(';
+			break;
+		default:
+			return 0;
+			break;
+	}
+}
+
+static void match_right_bracket(char bracket) {
+
+	int bracket_line = -1;
+	int i;
+
+	if (strchr(flines[line_pos], bracket) == NULL) {
+		clear_line();
+		printf("%s%s%s", HIGHLIGHT, "No bracket in top line", NORMAL);
+	}
+	else {
+		for (i = line_pos + 1; i < num_flines; i++) {
+			if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
+				bracket_line = i;
+				break;
+			}
+		}
+
+		if (bracket_line == -1) {
+			clear_line();
+			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
+		}
+
+		buffer_line(bracket_line - height + 2);
+		buffer_print();
+	}
+}
+
+static void match_left_bracket (char bracket) {
+
+	int bracket_line = -1;
+	int i;
+
+	if (strchr(flines[line_pos + height - 2], bracket) == NULL) {
+		clear_line();
+		printf("%s%s%s", HIGHLIGHT, "No bracket in bottom line", NORMAL);
+		printf("%s", flines[line_pos + height]);
+		sleep(4);
+	}
+	else {
+		for (i = line_pos + height - 2; i >= 0; i--) {
+			if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
+				bracket_line = i;
+				break;
+			}
+		}
+
+		if (bracket_line == -1) {
+			clear_line();
+			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
+		}
+
+		buffer_line(bracket_line);
+		buffer_print();
+	}
+}
+
+#endif  /* CONFIG_FEATURE_LESS_BRACKETS */
 
 static void keypress_process(int keypress) {
 	switch (keypress) {
@@ -650,8 +1166,8 @@ static void keypress_process(int keypress) {
 		case '}': case ')': case ']':
 			match_left_bracket(keypress);
 			break;
-#endif			
-		case ':': 
+#endif
+		case ':':
 			colon_process();
 			break;
 		default:
@@ -661,573 +1177,11 @@ static void keypress_process(int keypress) {
 		number_process(keypress);
 }
 
-static void colon_process() {
-	
-	int keypress;
-	
-	/* Clear the current line and print a prompt */
-	clear_line();
-	printf(" :");
-	
-	keypress = tless_getch();
-	switch (keypress) {
-		case 'd':
-			remove_current_file();
-			break;
-		case 'e':
-			examine_file();
-			break;
-#ifdef CONFIG_FEATURE_LESS_FLAGS
-		case 'f':
-			clear_line();
-			m_status_print();
-			break;
-#endif
-		case 'n':
-			next_file();
-			break;
-		case 'p':
-			previous_file();
-			break;
-		case 'q':
-			tless_exit(0);
-			break;
-		case 'x':
-			first_file();
-			break;
-		default:
-			break;
-	}
-}
-
-static void number_process(int first_digit) {
-	
-	int i = 1;
-	int num;
-	char num_input[80];
-	char keypress;
-	num_input[0] = first_digit;
-	
-	/* Clear the current line, print a prompt, and then print the digit */
-	clear_line();
-	printf(":%c", first_digit);
-	
-	/* Receive input until a letter is given */
-	while((num_input[i] = tless_getch()) && isdigit(num_input[i])) {
-		printf("%c",num_input[i]);
-		i++;
-	}
-	
-	/* Take the final letter out of the digits string */
-	keypress = num_input[i];
-	num_input[i] = '\0';
-	i--;
-	num = atoi(num_input);
-
-	/* We now know the number and the letter entered, so we process them */
-	switch (keypress) {
-		case KEY_DOWN: case 'z': case 'd': case 'e': case ' ': case '\015':
-			buffer_down(num);
-			buffer_print();
-			break;
-		case KEY_UP: case 'b': case 'w': case 'y': case 'u':
-			buffer_up(num);
-			buffer_print();
-			break;
-		case 'g': case '<': case 'G': case '>':
-			if (num_flines >= height - 2)
-				buffer_line(num - 1);
-			buffer_print();
-			break;
-		case 'p': case '%':
-			buffer_line(reverse_percent(num));
-			buffer_print();
-			break;
-#ifdef CONFIG_FEATURE_LESS_REGEXP
-		case 'n':
-			goto_match(match_pos + num - 1);
-			buffer_print();
-			break;
-		case '/':
-			regex_process();
-			goto_match(num - 1);
-			buffer_print();
-			break;
-		case '?':
-			num_back_match = num;
-			search_backwards();
-			buffer_print();
-			break;
-#endif
-		default:
-			break;
-	}
-}
-
-#ifdef CONFIG_FEATURE_LESS_FLAGCS
-static void flag_change() {
-	
-	int keypress;
-	
-	clear_line();
-	printf("-");
-	keypress = tless_getch();
-	
-	switch (keypress) {
-		case 'M':
-			M_FLAG = !M_FLAG;
-			break;
-		case 'm':
-			m_FLAG = !m_FLAG;
-			break;
-		case 'E':
-			E_FLAG = !E_FLAG;
-			break;
-		case '~':
-			TILDE_FLAG = !TILDE_FLAG;
-			break;
-		default:
-			break;
-	}
-}
-
-static void show_flag_status() {
-	
-	int keypress;
-	int flag_val;
-	
-	clear_line();
-	printf("_");
-	keypress = tless_getch();
-
-	switch (keypress) {
-		case 'M':
-			flag_val = M_FLAG;
-			break;
-		case 'm':
-			flag_val = m_FLAG;
-			break;
-		case '~':
-			flag_val = TILDE_FLAG;
-			break;
-		case 'N':
-			flag_val = N_FLAG;
-			break;
-		case 'E':
-			flag_val = E_FLAG;
-			break;
-		default:
-			flag_val = 0;
-			break;
-	}
-	
-	clear_line();
-	printf("%s%s%i%s", HIGHLIGHT, "The status of the flag is: ", flag_val, NORMAL);
-}
-#endif
-
-static void examine_file() {
-
-	int newline_offset;
-	
-	clear_line();
-	printf("Examine: ");
-	fgets(filename, 256, inp);
-	
-	/* As fgets adds a newline to the end of an input string, we
-	   need to remove it */
-	newline_offset = strlen(filename) - 1;
-	filename[newline_offset] = '\0';
-	
-	files[num_files] = bb_xstrndup(filename, (strlen(filename) + 1) * sizeof(char));
-	current_file = num_files + 1;
-	num_files++;	
-
-	inp_stdin = 0;
-	ea_inp_stdin = 1;
-	free_flines();
-	data_readlines();
-	buffer_init();
-	buffer_print();
-}
-
-static void next_file() {
-	if (current_file != num_files) {
-		current_file++;
-		strcpy(filename, files[current_file - 1]);
-		free_flines();
-		data_readlines();
-		buffer_init();
-		buffer_print();
-	}
-	else {
-		clear_line();
-		printf("%s%s%s", HIGHLIGHT, "No next file", NORMAL);
-	}
-}
-
-static void previous_file() {
-	if (current_file != 1) {
-		current_file--;
-		strcpy(filename, files[current_file - 1]);
-		
-		free_flines();
-		data_readlines();
-		buffer_init();
-		buffer_print();
-	}
-	else {
-		clear_line();
-		printf("%s%s%s", HIGHLIGHT, "No previous file", NORMAL);
-	}
-}
-
-static void first_file() {
-	if (current_file != 1) {
-		current_file = 1;
-		strcpy(filename, files[current_file - 1]);
-		free_flines();
-		data_readlines();
-		buffer_init();
-		buffer_print();
-	}
-}
-
-static void remove_current_file() {
-	
-	int i;
-	
-	if (current_file != 1) {
-		previous_file();
-		for (i = 3; i <= num_files; i++)
-			files[i - 2] = files[i - 1];
-		num_files--;
-		buffer_print();
-	}
-	else {
-		next_file();
-		for (i = 2; i <= num_files; i++)
-			files[i - 2] = files[i - 1];
-		num_files--;
-		current_file--;
-		buffer_print();
-	}
-}
-
-static void full_repaint() {
-
-	int temp_line_pos = line_pos;
-	data_readlines();
-	buffer_init();
-	buffer_line(temp_line_pos);
-	buffer_print();
-}
-
-/* This adds line numbers to every line, as the -N flag necessitates */
-static void add_linenumbers() {
-
-	char current_line[256];
-	int i;
-	
-	for (i = 0; i <= num_flines; i++) {
-		safe_strncpy(current_line, flines[i], 256);
-		flines[i] = xrealloc(flines[i], strlen(current_line) + 7 );
-		sprintf(flines[i],"%5d %s", i+1, current_line);
-	}
-}
-
-static void save_input_to_file() {
-	
-	char current_line[256];
-	int i;
-	FILE *fp;
-	
-	clear_line();
-	printf("Log file: ");
-	fgets(current_line, 256, inp);
-	current_line[strlen(current_line) - 1] = '\0';
-	if (strlen(current_line)) {
-		fp = bb_xfopen(current_line, "w");
-		for (i = 0; i < num_flines; i++)
-			fprintf(fp, "%s", flines[i]);
-		fclose(fp);
-		buffer_print();
-	}
-	else
-		printf("%sNo log file%s", HIGHLIGHT, NORMAL);
-}
-
-#ifdef CONFIG_FEATURE_LESS_MARKS
-static void add_mark() {
-
-	int letter;
-	int mark_line;
-	
-	clear_line();
-	printf("Mark: ");
-	letter = tless_getch();
-	
-	if (isalpha(letter)) {
-		mark_line = line_pos;
-	
-		/* If we exceed 15 marks, start overwriting previous ones */
-		if (num_marks == 14)
-			num_marks = 0;
-
-		mark_lines[num_marks][0] = letter;
-		mark_lines[num_marks][1] = line_pos;
-		num_marks++;
-	}
-	else {
-		clear_line();
-		printf("%s%s%s", HIGHLIGHT, "Invalid mark letter", NORMAL);
-	}
-}
-
-static void goto_mark() {
-
-	int letter;
-	int i;
-	
-	clear_line();
-	printf("Go to mark: ");
-	letter = tless_getch();
-	if (isalpha(letter)) {
-		for (i = 0; i <= num_marks; i++)
-			if (letter == mark_lines[i][0]) {
-				buffer_line(mark_lines[i][1]);
-				break;
-			}
-		if ((num_marks == 14) && (letter != mark_lines[14][0])) {
-			clear_line();
-			printf("%s%s%s", HIGHLIGHT, "Mark not set", NORMAL);
-		}		
-	}
-	else {
-		clear_line();
-		printf("%s%s%s", HIGHLIGHT, "Invalid mark letter", NORMAL);
-	}
-}
-#endif
-
-#ifdef CONFIG_FEATURE_LESS_REGEXP
-/* The below two regular expression handler functions NEED development. */
-
-/* Get a regular expression from the user, and then go through the current
-   file line by line, running a processing regex function on each one. */
-static void regex_process() {
-	
-	char uncomp_regex[100];
-	char current_line[256];
-	int i;
-	int j = 0;
-	regex_t *pattern;
-
-	/* Reset variables */
-	match_lines[0] = -1;
-	match_pos = 0;
-	num_matches = 0;
-	match_found = 0;
-	
-	pattern = (regex_t *) malloc(sizeof(regex_t));
-	memset(pattern, 0, sizeof(regex_t));
-	
-	/* Get the uncompiled regular expression from the user */
-	clear_line();
-	if (match_backwards)
-		printf("?");
-	else
-		printf("/");
-	scanf("%s", uncomp_regex);
-
-	/* Compile the regex and check for errors */
-	xregcomp(pattern, uncomp_regex, 0);
-	
-	/* Run the regex on each line of the current file here */
-	for (i = 0; i <= num_flines; i++) {
-		strcpy(current_line, process_regex_on_line(flines[i], pattern));
-		flines[i] = (char *) bb_xstrndup(current_line, sizeof(char) * (strlen(current_line)+1));
-		
-		if (match_found) {
-			match_lines[j] = i;
-			j++;
-		}
-	}
-
-	num_matches = j;
-	
-	if ((match_lines[0] != -1) && (num_flines > height - 2))
-		buffer_line(match_lines[0]);
-	else
-		buffer_init();
-}
-
-char *process_regex_on_line(char *line, regex_t *pattern) {
-	/* This function takes the regex and applies it to the line.
-	   Each part of the line that matches has the HIGHLIGHT
-	   and NORMAL escape sequences placed around it by 
-	   insert_highlights, and then the line is returned. */
-	
-	int match_status;
-	char *line2 = (char *) malloc((sizeof(char) * (strlen(line) + 1)) + 64);
-	char sub_line[256];
-	int prev_eo = 0;
-	memset(sub_line, 0, 256);
-	strcpy(line2, line);
-	regmatch_t match_structs;
-	
-	match_found = 0;
-	match_status = regexec(pattern, line2, 1, &match_structs, 0);
-	
-	while (match_status == 0) {
-		
-		memset(sub_line, 0, 256);
-		
-		if (match_found == 0)	
-			match_found = 1;
-		
-		line2 = insert_highlights(line2, match_structs.rm_so + prev_eo, match_structs.rm_eo + prev_eo);
-		if (match_structs.rm_eo + 11 + prev_eo < strlen(line2))
-			strcat(sub_line, line2 + match_structs.rm_eo + 11 + prev_eo);
-
-		prev_eo	+= match_structs.rm_eo + 11;
-		match_status = regexec(pattern, sub_line, 1, &match_structs, REG_NOTBOL);
-	}
-	
-	return line2;
-}
-
-char *insert_highlights (char *line, int start, int end) {
-	
-	char *new_line = (char *) malloc((sizeof(char) * (strlen(line) + 1)) + 10);
-	memset(new_line, 0, ((sizeof(char) * (strlen(line) + 1)) + 10));
-	strncat(new_line, line, start);
-	strcat(new_line, HIGHLIGHT);
-	strncat(new_line, line + start, end - start);
-	strcat(new_line, NORMAL);
-	strncat(new_line, line + end, strlen(line) - end);
-	
-	return new_line;
-}
-
-static void goto_match(int match) {
-	
-	/* This goes to a specific match - all line positions of matches are
-	   stored within the match_lines[] array. */
-	if ((match < num_matches) && (match >= 0)) {
-		buffer_line(match_lines[match]);
-		match_pos = match;
-	}
-}
-
-static void search_backwards() {
-	
-	int current_linepos = line_pos; 
-	int i;
-	
-	match_backwards = 1;
-	regex_process();
-		
-	for (i = 0; i < num_matches; i++) {
-		if (match_lines[i] > current_linepos) {
-			buffer_line(match_lines[i - num_back_match]);
-			break;
-		}
-	}
-	
-	/* Reset variables */
-	match_backwards = 0;
-	num_back_match = 1;
-	
-}
-#endif
-
-#ifdef CONFIG_FEATURE_LESS_BRACKETS
-
-static char opp_bracket (char bracket) {
-
-	switch (bracket) {
-		case '{': case '[':
-			return bracket + 2;
-			break;
-		case '(':
-			return ')';
-			break;
-		case '}': case ']':
-			return bracket - 2;
-			break;
-		case ')':
-			return '(';
-			break;
-		default:
-			return 0;
-			break;
-	}
-}
-
-static void match_right_bracket(char bracket) {
-	
-	int bracket_line = -1;
-	int i;
-	
-	if (strchr(flines[line_pos], bracket) == NULL) {
-		clear_line();
-		printf("%s%s%s", HIGHLIGHT, "No bracket in top line", NORMAL);
-	}
-	else {
-		for (i = line_pos + 1; i < num_flines; i++) {
-			if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
-				bracket_line = i;
-				break;
-			}
-		}
-
-		if (bracket_line == -1) {
-			clear_line();
-			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
-		}
-
-		buffer_line(bracket_line - height + 2);
-		buffer_print();
-	}
-}
-
-static void match_left_bracket (char bracket) {
-	
-	int bracket_line = -1;
-	int i;
-
-	if (strchr(flines[line_pos + height - 2], bracket) == NULL) {
-		clear_line();
-		printf("%s%s%s", HIGHLIGHT, "No bracket in bottom line", NORMAL);
-		printf("%s", flines[line_pos + height]);
-		sleep(4);
-	}
-	else {
-		for (i = line_pos + height - 2; i >= 0; i--) {
-			if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
-				bracket_line = i;
-				break;
-			}
-		}
-
-		if (bracket_line == -1) {
-			clear_line();
-			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
-		}
-	
-		buffer_line(bracket_line);
-		buffer_print();
-	}
-}
-
-#endif
-
 int less_main(int argc, char **argv) {
-	
+
 	unsigned long flags;
 	int keypress;
-	
+
 	flags =  bb_getopt_ulflags(argc, argv, "EMNm~");
 	E_FLAG = (flags & 1);
 	M_FLAG = (flags & 2);
@@ -1239,7 +1193,7 @@ int less_main(int argc, char **argv) {
 	argv += optind;
 	files = argv;
 	num_files = argc;
-	
+
 	if (!num_files) {
 		if (ttyname(STDIN_FILENO) == NULL)
 			inp_stdin = 1;
@@ -1248,13 +1202,13 @@ int less_main(int argc, char **argv) {
 			bb_show_usage();
 		}
 	}
-	
+
 	strcpy(filename, (inp_stdin) ? "stdin" : files[0]);
 	tty_width_height();
 	data_readlines();
 	buffer_init();
 	buffer_print();
-	
+
 	while (1) {
 		keypress = tless_getch();
 		keypress_process(keypress);
