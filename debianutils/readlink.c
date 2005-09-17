@@ -18,16 +18,16 @@
 int readlink_main(int argc, char **argv)
 {
 	char *buf;
-	unsigned long opt = bb_getopt_ulflags(argc, argv,
-							ENABLE_FEATURE_READLINK_FOLLOW ? "f" : "");
+	unsigned long opt = ENABLE_FEATURE_READLINK_FOLLOW ?
+							bb_getopt_ulflags(argc, argv, "f") : 0;
 
-	if (optind + 1 != argc)
-		bb_show_usage();
+	if (argc != (ENABLE_FEATURE_READLINK_FOLLOW ? optind + 1 : 2))
+			bb_show_usage();
 
-	if (ENABLE_FEATURE_READLINK_FOLLOW && (opt & READLINK_FLAG_f))
+	if (opt & READLINK_FLAG_f)
 		buf = realpath(argv[optind], NULL);
 	else
-		buf = xreadlink(argv[optind]);
+		buf = xreadlink(argv[ENABLE_FEATURE_READLINK_FOLLOW ? optind : 1]);
 
 	if (!buf)
 		return EXIT_FAILURE;
