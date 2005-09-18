@@ -89,8 +89,8 @@ static int height;
 static int width;
 static char **files;
 static char filename[256];
-static char buffer[100][256];
-static char *flines[MAXLINES];
+static char **buffer;
+static char **flines;
 static int current_file = 1;
 static int line_pos;
 static int num_flines;
@@ -98,11 +98,12 @@ static int num_files = 1;
 static int past_eof;
 
 /* Command line options */
-static int E_FLAG;
-static int M_FLAG;
-static int N_FLAG;
-static int m_FLAG;
-static int TILDE_FLAG;
+static unsigned long flags;
+#define FLAG_E 1
+#define FLAG_M (1<<1)
+#define FLAG_m (1<<2)
+#define FLAG_N (1<<3)
+#define FLAG_TILDE (1<<4)
 
 /* This is needed so that program behaviour changes when input comes from
    stdin */
@@ -139,7 +140,7 @@ static void set_tty_cooked(void) {
 	tcsetattr(0, TCSANOW, &term_orig);
 }
 
-/* Set terminal input to raw mode */
+/* Set terminal input to raw mode  (taken from vi.c) */
 static void set_tty_raw(void) {
        tcgetattr(0, &term_orig);
 	term_vi = term_orig;
@@ -221,8 +222,8 @@ static void add_linenumbers(void) {
 
 	for (i = 0; i <= num_flines; i++) {
 		safe_strncpy(current_line, flines[i], 256);
-		flines[i] = xrealloc(flines[i], strlen(current_line) + 7 );
-		sprintf(flines[i],"%5d %s", i+1, current_line);
+		flines[i] = xrealloc(flines[i], strlen(current_line) + 7);
+		sprintf(flines[i],"%5d %s", i + 1, current_line);
 	}
 }
 
@@ -234,6 +235,13 @@ static void data_readlines(void) {
 
 	fp = (inp_stdin) ? stdin : bb_xfopen(filename, "rt");
 
+	/* First of all, we need to know the number of lines so that flines can be initialised. */
+	for (i = 0; (!feof(fp)) && (i <= MAXLINES); i++)
+		fgets(current_line, 256, fp);
+	rewind(fp);
+	/* Initialise fp */
+	flines = malloc(i * sizeof(char *));
+		
 	for (i = 0; (!feof(fp)) && (i <= MAXLINES); i++) {
 		strcpy(current_line, "");
 		fgets(current_line, 256, fp);
@@ -249,35 +257,16 @@ static void data_readlines(void) {
 
 	fclose(fp);
 
-	if (inp_stdin)
-		inp = fopen(CURRENT_TTY, "r");
-	else
-		inp = stdin;
-
+	inp = (inp_stdin) ? fopen(CURRENT_TTY, "r") : stdin;
+	
 	if (ea_inp_stdin) {
 		fclose(inp);
 		inp = fopen(CURRENT_TTY, "r");
 	}
 
-	if (N_FLAG)
+	if (flags & FLAG_N)
 		add_linenumbers();
 }
-
-/* Free the file data */
-static void free_flines(void) {
-
-	int i;
-
-	for (i = 0; i <= num_flines; i++)
-		free(flines[i]);
-}
-
-#ifdef CONFIG_FEATURE_LESS_FLAGS
-/* Calculate the percentage the current line position is through the file */
-static int calc_percent(void) {
-	return ((100 * (line_pos + height - 2) / num_flines) + 1);
-}
-#endif
 
 /* Turn a percentage into a line number */
 static int reverse_percent(int percentage) {
@@ -287,6 +276,13 @@ static int reverse_percent(int percentage) {
 }
 
 #ifdef CONFIG_FEATURE_LESS_FLAGS
+
+/* Interestingly, writing calc_percent as a function and not a prototype saves around 32 bytes
+ * on my build. */
+static int calc_percent(void) {
+	return ((100 * (line_pos + height - 2) / num_flines) + 1);
+}
+
 /* Print a status line if -M was specified */
 static void m_status_print(void) {
 
@@ -342,9 +338,9 @@ static void status_print(void) {
 
 	/* Change the status if flags have been set */
 #ifdef CONFIG_FEATURE_LESS_FLAGS
-	if (M_FLAG)
+	if (flags & FLAG_M)
 		m_status_print();
-	else if (m_FLAG)
+	else if (flags & FLAG_m)
 		medium_status_print();
 	/* No flags set */
 	else {
@@ -377,7 +373,6 @@ static void buffer_print(void) {
 		move_cursor(0,0);
 		for (i = 0; i < height - 1; i++)
 			printf("%s", buffer[i]);
-		status_print();
 	}
 	else {
 		printf("%s", CLEAR);
@@ -386,8 +381,9 @@ static void buffer_print(void) {
 			putchar('\n');
 		for (i = 0; i < height - 1; i++)
 			printf("%s", buffer[i]);
-		status_print();
 	}
+
+	status_print();
 }
 
 /* Initialise the buffer */
@@ -395,18 +391,18 @@ static void buffer_init(void) {
 
 	int i;
 
-	for (i = 0; i < (height - 1); i++)
-		memset(buffer[i], '\0', 256);
-
+	/* malloc the number of lines needed for the buffer */
+	buffer = xrealloc(buffer, height * sizeof(char *));
+	
 	/* Fill the buffer until the end of the file or the
 	   end of the buffer is reached */
 	for (i = 0; (i < (height - 1)) && (i <= num_flines); i++) {
-		strcpy(buffer[i], flines[i]);
+		buffer[i] = (char *) bb_xstrdup(flines[i]);
 	}
 
 	/* If the buffer still isn't full, fill it with blank lines */
 	for (; i < (height - 1); i++) {
-		strcpy(buffer[i], "");
+		buffer[i] = "";
 	}
 }
 
@@ -419,7 +415,7 @@ static void buffer_down(int nlines) {
 		if (line_pos + (height - 3) + nlines < num_flines) {
 			line_pos += nlines;
 			for (i = 0; i < (height - 1); i++)
-				strcpy(buffer[i], flines[line_pos + i]);
+				buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
 		}
 		else {
 			/* As the number of lines requested was too large, we just move
@@ -427,12 +423,12 @@ static void buffer_down(int nlines) {
 			while (line_pos + (height - 3) + 1 < num_flines) {
 				line_pos += 1;
 				for (i = 0; i < (height - 1); i++)
-					strcpy(buffer[i], flines[line_pos + i]);
+					buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
 			}
 		}
 
 		/* We exit if the -E flag has been set */
-		if (E_FLAG && (line_pos + (height - 2) == num_flines))
+		if ((flags & FLAG_E) && (line_pos + (height - 2) == num_flines))
 			tless_exit(0);
 	}
 }
@@ -446,7 +442,7 @@ static void buffer_up(int nlines) {
 		if (line_pos - nlines >= 0) {
 			line_pos -= nlines;
 			for (i = 0; i < (height - 1); i++)
-				strcpy(buffer[i], flines[line_pos + i]);
+				buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
 		}
 		else {
 		/* As the requested number of lines to move was too large, we
@@ -454,7 +450,7 @@ static void buffer_up(int nlines) {
 			while (line_pos != 0) {
 				line_pos -= 1;
 				for (i = 0; i < (height - 1); i++)
-					strcpy(buffer[i], flines[line_pos + i]);
+					buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
 			}
 		}
 	}
@@ -474,10 +470,10 @@ static void buffer_up(int nlines) {
 			is past the EOF */
 			for (i = 0; i < (height - 1); i++) {
 				if (i < tilde_line - nlines + 1)
-					strcpy(buffer[i], flines[line_pos + i]);
+					buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
 				else {
 					if (line_pos >= num_flines - height + 2)
-						strcpy(buffer[i], "~\n");
+						buffer[i] = "~\n";
 				}
 			}
 		}
@@ -496,20 +492,34 @@ static void buffer_line(int linenum) {
 	}
 	else if (linenum < (num_flines - height - 2)) {
 		for (i = 0; i < (height - 1); i++)
-			strcpy(buffer[i], flines[linenum + i]);
+			buffer[i] = (char *) bb_xstrdup(flines[linenum + i]);
 		line_pos = linenum;
 	}
 	else {
 		for (i = 0; i < (height - 1); i++) {
 			if (linenum + i < num_flines + 2)
-				strcpy(buffer[i], flines[linenum + i]);
+				buffer[i] = (char *) bb_xstrdup(flines[linenum + i]);
 			else
-				strcpy(buffer[i], (TILDE_FLAG) ? "\n" : "~\n");
+				buffer[i] = (char *) bb_xstrdup((flags & FLAG_TILDE) ? "\n" : "~\n");
 		}
 		line_pos = linenum;
 		/* Set past_eof so buffer_down and buffer_up act differently */
 		past_eof = 1;
 	}
+}
+
+/* Reinitialise everything for a new file - free the memory and start over */
+static void reinitialise(void) {
+
+	int i;
+
+	for (i = 0; i <= num_flines; i++)
+		free(flines[i]);
+	free(flines);
+	
+	data_readlines();
+	buffer_init();
+	buffer_print();
 }
 
 static void examine_file(void) {
@@ -531,52 +541,23 @@ static void examine_file(void) {
 
 	inp_stdin = 0;
 	ea_inp_stdin = 1;
-	free_flines();
-	data_readlines();
-	buffer_init();
-	buffer_print();
+	reinitialise();
 }
 
-
-static void next_file(void) {
-	if (current_file != num_files) {
-		current_file++;
+/* This function changes the file currently being paged. direction can be one of the following:
+ * -1: go back one file
+ *  0: go to the first file
+ *  1: go forward one file
+*/
+static void change_file (int direction) {
+	if (current_file != ((direction > 0) ? num_files : 1)) {
+		current_file = direction ? current_file + direction : 1;
 		strcpy(filename, files[current_file - 1]);
-		free_flines();
-		data_readlines();
-		buffer_init();
-		buffer_print();
+		reinitialise();
 	}
 	else {
 		clear_line();
-		printf("%s%s%s", HIGHLIGHT, "No next file", NORMAL);
-	}
-}
-
-static void previous_file(void) {
-	if (current_file != 1) {
-		current_file--;
-		strcpy(filename, files[current_file - 1]);
-
-		free_flines();
-		data_readlines();
-		buffer_init();
-		buffer_print();
-	}
-	else {
-		clear_line();
-		printf("%s%s%s", HIGHLIGHT, "No previous file", NORMAL);
-	}
-}
-
-static void first_file(void) {
-	if (current_file != 1) {
-		current_file = 1;
-		strcpy(filename, files[current_file - 1]);
-		free_flines();
-		data_readlines();
-		buffer_init();
-		buffer_print();
+		printf("%s%s%s", HIGHLIGHT, (direction > 0) ? "No next file" : "No previous file", NORMAL);
 	}
 }
 
@@ -585,14 +566,14 @@ static void remove_current_file(void) {
 	int i;
 
 	if (current_file != 1) {
-		previous_file();
+		change_file(-1);
 		for (i = 3; i <= num_files; i++)
 			files[i - 2] = files[i - 1];
 		num_files--;
 		buffer_print();
 	}
 	else {
-		next_file();
+		change_file(1);
 		for (i = 2; i <= num_files; i++)
 			files[i - 2] = files[i - 1];
 		num_files--;
@@ -624,16 +605,16 @@ static void colon_process(void) {
 			break;
 #endif
 		case 'n':
-			next_file();
+			change_file(1);
 			break;
 		case 'p':
-			previous_file();
+			change_file(-1);
 			break;
 		case 'q':
 			tless_exit(0);
 			break;
 		case 'x':
-			first_file();
+			change_file(0);
 			break;
 		default:
 			break;
@@ -715,10 +696,7 @@ static void regex_process(void) {
 
 	/* Get the uncompiled regular expression from the user */
 	clear_line();
-	if (match_backwards)
-		printf("?");
-	else
-		printf("/");
+	putchar((match_backwards) ? '?' : '/');
 	scanf("%s", uncomp_regex);
 
 	/* Compile the regex and check for errors */
@@ -728,7 +706,6 @@ static void regex_process(void) {
 	for (i = 0; i <= num_flines; i++) {
 		strcpy(current_line, process_regex_on_line(flines[i], pattern));
 		flines[i] = (char *) bb_xstrndup(current_line, sizeof(char) * (strlen(current_line)+1));
-
 		if (match_found) {
 			match_lines[j] = i;
 			j++;
@@ -789,7 +766,7 @@ static void number_process(int first_digit) {
 
 	/* Receive input until a letter is given */
 	while((num_input[i] = tless_getch()) && isdigit(num_input[i])) {
-		printf("%c",num_input[i]);
+		printf("%c", num_input[i]);
 		i++;
 	}
 
@@ -803,40 +780,35 @@ static void number_process(int first_digit) {
 	switch (keypress) {
 		case KEY_DOWN: case 'z': case 'd': case 'e': case ' ': case '\015':
 			buffer_down(num);
-			buffer_print();
 			break;
 		case KEY_UP: case 'b': case 'w': case 'y': case 'u':
 			buffer_up(num);
-			buffer_print();
 			break;
 		case 'g': case '<': case 'G': case '>':
 			if (num_flines >= height - 2)
 				buffer_line(num - 1);
-			buffer_print();
 			break;
 		case 'p': case '%':
 			buffer_line(reverse_percent(num));
-			buffer_print();
 			break;
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 		case 'n':
 			goto_match(match_pos + num - 1);
-			buffer_print();
 			break;
 		case '/':
 			regex_process();
 			goto_match(num - 1);
-			buffer_print();
 			break;
 		case '?':
 			num_back_match = num;
 			search_backwards();
-			buffer_print();
 			break;
 #endif
 		default:
 			break;
 	}
+
+	buffer_print();
 }
 
 #ifdef CONFIG_FEATURE_LESS_FLAGCS
@@ -845,21 +817,21 @@ static void flag_change(void) {
 	int keypress;
 
 	clear_line();
-	printf("-");
+	putchar('-');
 	keypress = tless_getch();
 
 	switch (keypress) {
 		case 'M':
-			M_FLAG = !M_FLAG;
+			flags &= ~FLAG_M;
 			break;
 		case 'm':
-			m_FLAG = !m_FLAG;
+			flags &= ~FLAG_m;
 			break;
 		case 'E':
-			E_FLAG = !E_FLAG;
+			flags &= ~FLAG_E;
 			break;
 		case '~':
-			TILDE_FLAG = !TILDE_FLAG;
+			flags &= ~FLAG_TILDE;
 			break;
 		default:
 			break;
@@ -872,24 +844,24 @@ static void show_flag_status(void) {
 	int flag_val;
 
 	clear_line();
-	printf("_");
+	putchar('_');
 	keypress = tless_getch();
 
 	switch (keypress) {
 		case 'M':
-			flag_val = M_FLAG;
+			flag_val = flags & FLAG_M;
 			break;
 		case 'm':
-			flag_val = m_FLAG;
+			flag_val = flags & FLAG_m;
 			break;
 		case '~':
-			flag_val = TILDE_FLAG;
+			flag_val = flags & FLAG_TILDE;
 			break;
 		case 'N':
-			flag_val = N_FLAG;
+			flag_val = flags & FLAG_N;
 			break;
 		case 'E':
-			flag_val = E_FLAG;
+			flag_val = flags & FLAG_E;
 			break;
 		default:
 			flag_val = 0;
@@ -897,7 +869,7 @@ static void show_flag_status(void) {
 	}
 
 	clear_line();
-	printf("%s%s%i%s", HIGHLIGHT, "The status of the flag is: ", flag_val != 0, NORMAL);
+	printf("%s%s%i%s", HIGHLIGHT, "The status of the flag is: ", flag_val, NORMAL);
 }
 #endif
 
@@ -967,21 +939,19 @@ static void goto_mark(void) {
 	clear_line();
 	printf("Go to mark: ");
 	letter = tless_getch();
+	clear_line();
+	
 	if (isalpha(letter)) {
 		for (i = 0; i <= num_marks; i++)
 			if (letter == mark_lines[i][0]) {
 				buffer_line(mark_lines[i][1]);
 				break;
 			}
-		if ((num_marks == 14) && (letter != mark_lines[14][0])) {
-			clear_line();
+		if ((num_marks == 14) && (letter != mark_lines[14][0]))
 			printf("%s%s%s", HIGHLIGHT, "Mark not set", NORMAL);
-		}
 	}
-	else {
-		clear_line();
+	else
 		printf("%s%s%s", HIGHLIGHT, "Invalid mark letter", NORMAL);
-	}
 }
 #endif
 
@@ -1014,10 +984,10 @@ static void match_right_bracket(char bracket) {
 	int bracket_line = -1;
 	int i;
 
-	if (strchr(flines[line_pos], bracket) == NULL) {
-		clear_line();
+	clear_line();
+	
+	if (strchr(flines[line_pos], bracket) == NULL)
 		printf("%s%s%s", HIGHLIGHT, "No bracket in top line", NORMAL);
-	}
 	else {
 		for (i = line_pos + 1; i < num_flines; i++) {
 			if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
@@ -1026,10 +996,8 @@ static void match_right_bracket(char bracket) {
 			}
 		}
 
-		if (bracket_line == -1) {
-			clear_line();
+		if (bracket_line == -1)
 			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
-		}
 
 		buffer_line(bracket_line - height + 2);
 		buffer_print();
@@ -1041,8 +1009,9 @@ static void match_left_bracket (char bracket) {
 	int bracket_line = -1;
 	int i;
 
+	clear_line();
+	
 	if (strchr(flines[line_pos + height - 2], bracket) == NULL) {
-		clear_line();
 		printf("%s%s%s", HIGHLIGHT, "No bracket in bottom line", NORMAL);
 		printf("%s", flines[line_pos + height]);
 		sleep(4);
@@ -1055,10 +1024,8 @@ static void match_left_bracket (char bracket) {
 			}
 		}
 
-		if (bracket_line == -1) {
-			clear_line();
+		if (bracket_line == -1)
 			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
-		}
 
 		buffer_line(bracket_line);
 		buffer_print();
@@ -1174,21 +1141,16 @@ static void keypress_process(int keypress) {
 		default:
 			break;
 	}
+
 	if (isdigit(keypress))
 		number_process(keypress);
 }
 
 int less_main(int argc, char **argv) {
 
-	unsigned long flags;
 	int keypress;
 
-	flags =  bb_getopt_ulflags(argc, argv, "EMNm~");
-	E_FLAG = (flags & 1);
-	M_FLAG = (flags & 2);
-	N_FLAG = (flags & 4);
-	m_FLAG = (flags & 8);
-	TILDE_FLAG = (flags & 16);
+	flags = bb_getopt_ulflags(argc, argv, "EMmN~");
 
 	argc -= optind;
 	argv += optind;
