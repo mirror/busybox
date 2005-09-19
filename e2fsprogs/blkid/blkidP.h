@@ -93,7 +93,7 @@ struct blkid_struct_cache
 	struct list_head	bic_devs;	/* List head of all devices */
 	struct list_head	bic_tags;	/* List head of all tag types */
 	time_t			bic_time;	/* Last probe time */
-	time_t			bic_ftime; 	/* Mod time of the cachefile */
+	time_t			bic_ftime;	/* Mod time of the cachefile */
 	unsigned int		bic_flags;	/* Status flags of the cache */
 	char			*bic_filename;	/* filename of cache */
 };
@@ -141,7 +141,7 @@ extern const char *blkid_devdirs[];
 
 #ifdef CONFIG_BLKID_DEBUG
 #include <stdio.h>
-extern int	blkid_debug_mask;
+extern int      blkid_debug_mask;
 #define DBG(m,x)	if ((m) & blkid_debug_mask) x;
 #else
 #define DBG(m,x)
@@ -152,7 +152,7 @@ static inline void DEB_DUMP_TAG(int mask, blkid_tag tag)
 {
 	if (!(mask & blkid_debug_mask))
 		return;
-	
+
 	if (!tag) {
 		printf("    tag: NULL\n");
 		return;
@@ -167,7 +167,7 @@ static inline void DEB_DUMP_DEV(int mask, blkid_dev dev)
 
 	if (!(mask & blkid_debug_mask))
 		return;
-	
+
 	if (!dev) {
 		printf("  dev: NULL\n");
 		return;
@@ -210,7 +210,12 @@ static inline void DEB_DUMP_CACHE(int mask, blkid_cache cache)
 #endif
 
 /* lseek.c */
-extern blkid_loff_t blkid_llseek(int fd, blkid_loff_t offset, int whence);
+/* extern blkid_loff_t blkid_llseek(int fd, blkid_loff_t offset, int whence); */
+#ifdef CONFIG_LFS
+# define blkid_llseek lseek64
+#else
+# define blkid_llseek lseek
+#endif
 
 /* read.c */
 extern void blkid_read_cache(blkid_cache cache);

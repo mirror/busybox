@@ -1,6 +1,6 @@
 /*
  * io.h --- the I/O manager abstraction
- * 
+ *
  * Copyright (C) 1993, 1994, 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -22,7 +22,12 @@ typedef long		ext2_loff_t;
 #endif
 
 /* llseek.c */
-ext2_loff_t ext2fs_llseek (int, ext2_loff_t, int);
+/* ext2_loff_t ext2fs_llseek (int, ext2_loff_t, int); */
+#ifdef CONFIG_LFS
+# define ext2fs_llseek lseek64
+#else
+# define ext2fs_llseek lseek
+#endif
 
 typedef struct struct_io_manager *io_manager;
 typedef struct struct_io_channel *io_channel;
@@ -40,8 +45,8 @@ struct struct_io_channel {
 				      void *data,
 				      size_t size,
 				      int actual_bytes_read,
-				      errcode_t	error);
-	errcode_t	(*write_error)(io_channel channel,
+				      errcode_t error);
+	errcode_t       (*write_error)(io_channel channel,
 				       unsigned long block,
 				       int count,
 				       const void *data,
@@ -68,9 +73,9 @@ struct struct_io_manager {
 	errcode_t (*flush)(io_channel channel);
 	errcode_t (*write_byte)(io_channel channel, unsigned long offset,
 				int count, const void *data);
-	errcode_t (*set_option)(io_channel channel, const char *option, 
+	errcode_t (*set_option)(io_channel channel, const char *option,
 				const char *arg);
-	int		reserved[14];
+	int             reserved[14];
 };
 
 #define IO_FLAG_RW	1
@@ -78,17 +83,17 @@ struct struct_io_manager {
 /*
  * Convenience functions....
  */
-#define io_channel_close(c) 		((c)->manager->close((c)))
+#define io_channel_close(c)		((c)->manager->close((c)))
 #define io_channel_set_blksize(c,s)	((c)->manager->set_blksize((c),s))
 #define io_channel_read_blk(c,b,n,d)	((c)->manager->read_blk((c),b,n,d))
 #define io_channel_write_blk(c,b,n,d)	((c)->manager->write_blk((c),b,n,d))
-#define io_channel_flush(c) 		((c)->manager->flush((c)))
+#define io_channel_flush(c)		((c)->manager->flush((c)))
 #define io_channel_bumpcount(c)		((c)->refcount++)
-	
+
 /* io_manager.c */
-extern errcode_t io_channel_set_options(io_channel channel, 
+extern errcode_t io_channel_set_options(io_channel channel,
 					const char *options);
-extern errcode_t io_channel_write_byte(io_channel channel, 
+extern errcode_t io_channel_write_byte(io_channel channel,
 				       unsigned long offset,
 				       int count, const void *data);
 
@@ -105,4 +110,4 @@ extern void (*test_io_cb_set_blksize)
 	(int blksize, errcode_t err);
 
 #endif /* _EXT2FS_EXT2_IO_H */
-	
+
