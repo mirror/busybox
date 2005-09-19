@@ -108,11 +108,6 @@ static unsigned long flags;
 /* This is needed so that program behaviour changes when input comes from
    stdin */
 static int inp_stdin;
-/* This is required so that when a file is requested to be examined after
-   input has come from stdin (e.g. dmesg | less), the input stream from
-   the keyboard still stays the same. If it switched back to stdin, keyboard
-   input wouldn't work. */
-static int ea_inp_stdin;
 
 #ifdef CONFIG_FEATURE_LESS_MARKS
 static int mark_lines[15][2];
@@ -137,12 +132,12 @@ static FILE *inp;
 /* Reset terminal input to normal */
 static void set_tty_cooked(void) {
 	fflush(stdout);
-	tcsetattr(0, TCSANOW, &term_orig);
+	tcsetattr(fileno(inp), TCSANOW, &term_orig);
 }
 
 /* Set terminal input to raw mode  (taken from vi.c) */
 static void set_tty_raw(void) {
-	tcsetattr(0, TCSANOW, &term_vi);
+	tcsetattr(fileno(inp), TCSANOW, &term_vi);
 }
 
 /* Exit the program gracefully */
@@ -224,35 +219,26 @@ static void data_readlines(void) {
 	FILE *fp;
 
 	fp = (inp_stdin) ? stdin : bb_xfopen(filename, "rt");
-
-	/* First of all, we need to know the number of lines so that flines can be initialised. */
-	for (i = 0; (!feof(fp)) && (i <= MAXLINES); i++)
-		fgets(current_line, 256, fp);
-	rewind(fp);
-	/* Initialise fp */
-	flines = malloc(i * sizeof(char *));
-
-	for (i = 0; (!feof(fp)) && (i <= MAXLINES); i++) {
+	flines = NULL;
+	for (i = 0; (feof(fp)==0) && (i <= MAXLINES); i++) {
 		strcpy(current_line, "");
 		fgets(current_line, 256, fp);
-		bb_xferror(fp, filename);
+		if(fp != stdin)
+			bb_xferror(fp, filename);
+		flines = xrealloc(flines, (i+1) * sizeof(char *));
 		flines[i] = bb_xstrdup(current_line);
 	}
 	num_flines = i - 2;
 
-/* Reset variables for a new file */
+	/* Reset variables for a new file */
 
 	line_pos = 0;
 	past_eof = 0;
 
 	fclose(fp);
 
-	inp = (inp_stdin) ? fopen(CURRENT_TTY, "r") : stdin;
-
-	if (ea_inp_stdin) {
-		fclose(inp);
-		inp = fopen(CURRENT_TTY, "r");
-	}
+	if(inp == NULL)
+		inp = (inp_stdin) ? fopen(CURRENT_TTY, "r") : stdin;
 
 	if (flags & FLAG_N)
 		add_linenumbers();
@@ -544,7 +530,6 @@ static void examine_file(void) {
 	num_files++;
 
 	inp_stdin = 0;
-	ea_inp_stdin = 1;
 	reinitialise();
 }
 
@@ -757,14 +742,16 @@ static void number_process(int first_digit) {
 	int num;
 	char num_input[80];
 	char keypress;
+	char *endptr;
+
 	num_input[0] = first_digit;
 
 	/* Clear the current line, print a prompt, and then print the digit */
 	clear_line();
 	printf(":%c", first_digit);
 
-	/* Receive input until a letter is given */
-	while((num_input[i] = tless_getch()) && isdigit(num_input[i])) {
+	/* Receive input until a letter is given (max 80 chars)*/
+	while((i < 80) && (num_input[i] = tless_getch()) && isdigit(num_input[i])) {
 		printf("%c", num_input[i]);
 		i++;
 	}
@@ -772,8 +759,9 @@ static void number_process(int first_digit) {
 	/* Take the final letter out of the digits string */
 	keypress = num_input[i];
 	num_input[i] = '\0';
-	i--;
-	num = atoi(num_input);
+	num = strtol(num_input, &endptr, 10);
+	if (endptr==num_input || *endptr!='\0' || num < 1 || num > MAXLINES)
+		goto END;
 
 	/* We now know the number and the letter entered, so we process them */
 	switch (keypress) {
@@ -806,7 +794,7 @@ static void number_process(int first_digit) {
 		default:
 			break;
 	}
-
+END:
 	buffer_print();
 }
 
@@ -1165,17 +1153,16 @@ int less_main(int argc, char **argv) {
 		}
 	}
 
-	strcpy(filename, (inp_stdin) ? "stdin" : files[0]);
+	strcpy(filename, (inp_stdin) ? bb_msg_standard_input : files[0]);
 	tty_width_height();
-	tcgetattr(0, &term_orig);
+	data_readlines();
+	tcgetattr(fileno(inp), &term_orig);
 	term_vi = term_orig;
 	term_vi.c_lflag &= (~ICANON & ~ECHO);
 	term_vi.c_iflag &= (~IXON & ~ICRNL);
 	term_vi.c_oflag &= (~ONLCR);
 	term_vi.c_cc[VMIN] = 1;
 	term_vi.c_cc[VTIME] = 0;
-
-	data_readlines();
 	buffer_init();
 	buffer_print();
 
