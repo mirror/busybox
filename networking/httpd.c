@@ -1148,9 +1148,9 @@ static int sendCgi(const char *url,
 	*script = '\0';         /* reduce /PATH_INFO */
        /* SCRIPT_FILENAME required by PHP in CGI mode */
        if(realpath(purl + 1, realpath_buff))
-         addEnv("SCRIPT", "FILENAME", realpath_buff);
+	 addEnv("SCRIPT", "FILENAME", realpath_buff);
        else
-         *realpath_buff = 0;
+	 *realpath_buff = 0;
       /* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
       addEnv("SCRIPT_NAME",    "",         purl);
       addEnv("QUERY_STRING",   "",         config->query);
@@ -1877,6 +1877,9 @@ static int miniHttpd(int server)
 	    handleIncoming();
 	    if(!config->debugHttpd)
 		exit(0);
+	} else {
+	    if(!config->debugHttpd)
+		wait(NULL);
 	}
 	close(s);
       }
