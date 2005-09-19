@@ -1,5 +1,5 @@
 /*
- * Another fast dependencies generator for Makefiles, Version 2.1
+ * Another fast dependencies generator for Makefiles, Version 2.2
  *
  * Copyright (C) 2005 by Vladimir Oleynik <dzo@simtreas.ru>
  * mmaping file may be originally by Linus Torvalds.
@@ -419,6 +419,7 @@ static void c_lex(const char *fname, long fsize)
 		put_id(c);
 		getc1();
 	    }
+	    c = 0;
 	    ungetc1();
 	    state = DV;
 	    continue;
