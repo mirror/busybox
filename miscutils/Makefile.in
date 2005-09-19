@@ -58,8 +58,6 @@ $(MISCUTILS_DIR)$(MISCUTILS_AR): $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
 $(top_builddir)/include/bbconfigopts.h: $(top_builddir)/.config
 	$(top_builddir)/scripts/config/mkconfigs > $(top_builddir)/include/bbconfigopts.h
 
-$(MISCUTILS_DIR)bbconfig.o: $(top_builddir)/include/bbconfigopts.h
-
 $(MISCUTILS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
