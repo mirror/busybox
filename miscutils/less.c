@@ -20,26 +20,26 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307 USA
  *
- *	This program needs a lot of development, so consider it in a beta stage
- *	at best.
+ *      This program needs a lot of development, so consider it in a beta stage
+ *      at best.
  *
- *	TODO:
- *	- Add more regular expression support - search modifiers, certain matches, etc.
- *	- Add more complex bracket searching - currently, nested brackets are
- *	not considered.
- *	- Add support for "F" as an input. This causes less to act in
- *	a similar way to tail -f.
- *	- Check for binary files, and prompt the user if a binary file
- *	is detected.
- *	- Allow horizontal scrolling. Currently, lines simply continue onto
- *	the next line, per the terminal's discretion
+ *      TODO:
+ *      - Add more regular expression support - search modifiers, certain matches, etc.
+ *      - Add more complex bracket searching - currently, nested brackets are
+ *      not considered.
+ *      - Add support for "F" as an input. This causes less to act in
+ *      a similar way to tail -f.
+ *      - Check for binary files, and prompt the user if a binary file
+ *      is detected.
+ *      - Allow horizontal scrolling. Currently, lines simply continue onto
+ *      the next line, per the terminal's discretion
  *
- *	Notes:
- *	- filename is an array and not a pointer because that avoids all sorts
- *	of complications involving the fact that something that is pointed to
- *	will be changed if the pointer is changed.
- *	- the inp file pointer is used so that keyboard input works after
- *	redirected input has been read from stdin
+ *      Notes:
+ *      - filename is an array and not a pointer because that avoids all sorts
+ *      of complications involving the fact that something that is pointed to
+ *      will be changed if the pointer is changed.
+ *      - the inp file pointer is used so that keyboard input works after
+ *      redirected input has been read from stdin
 */
 
 #include <stdio.h>
@@ -77,7 +77,7 @@
 #define NORMAL "\033[0m"
 
 /* The escape code to clear the screen */
-#define CLEAR "\033[2J"
+#define CLEAR "\033[H\033[J"
 
 /* Maximum number of lines in a file */
 #define MAXLINES 10000
@@ -142,13 +142,6 @@ static void set_tty_cooked(void) {
 
 /* Set terminal input to raw mode  (taken from vi.c) */
 static void set_tty_raw(void) {
-       tcgetattr(0, &term_orig);
-	term_vi = term_orig;
-	term_vi.c_lflag &= (~ICANON & ~ECHO);
-	term_vi.c_iflag &= (~IXON & ~ICRNL);
-	term_vi.c_oflag &= (~ONLCR);
-	term_vi.c_cc[VMIN] = 1;
-	term_vi.c_cc[VTIME] = 0;
 	tcsetattr(0, TCSANOW, &term_vi);
 }
 
@@ -169,36 +162,34 @@ static void tless_exit(int code) {
    special return codes. Note that this function works best with raw input. */
 static int tless_getch(void) {
 
-	set_tty_raw();
-	char input_key[3];
+	int input;
 
-	input_key[0] = getc(inp);
+	set_tty_raw();
+
+	input = getc(inp);
 	/* Detect escape sequences (i.e. arrow keys) and handle
 	   them accordingly */
 
-	if (input_key[0] == '\033') {
-		input_key[1] = getc(inp);
-		input_key[2] = getc(inp);
+	if (input == '\033' && getc(inp) == '[') {
+		input = getc(inp);
 		set_tty_cooked();
-		if (input_key[1] == '[') {
-			if (input_key[2] == REAL_KEY_UP)
-				return KEY_UP;
-			else if (input_key[2] == REAL_KEY_DOWN)
-				return KEY_DOWN;
-			else if (input_key[2] == REAL_KEY_RIGHT)
-				return KEY_RIGHT;
-			else if (input_key[2] == REAL_KEY_LEFT)
-				return KEY_LEFT;
-			else if (input_key[2] == REAL_PAGE_UP)
-				return PAGE_UP;
-			else if (input_key[2] == REAL_PAGE_DOWN)
-				return PAGE_DOWN;
-		}
+		if (input == REAL_KEY_UP)
+			return KEY_UP;
+		else if (input == REAL_KEY_DOWN)
+			return KEY_DOWN;
+		else if (input == REAL_KEY_RIGHT)
+			return KEY_RIGHT;
+		else if (input == REAL_KEY_LEFT)
+			return KEY_LEFT;
+		else if (input == REAL_PAGE_UP)
+			return PAGE_UP;
+		else if (input == REAL_PAGE_DOWN)
+			return PAGE_DOWN;
 	}
 	/* The input is a normal ASCII value */
 	else {
 		set_tty_cooked();
-		return input_key[0];
+		return input;
 	}
 	return 0;
 }
@@ -222,8 +213,7 @@ static void add_linenumbers(void) {
 
 	for (i = 0; i <= num_flines; i++) {
 		safe_strncpy(current_line, flines[i], 256);
-		flines[i] = xrealloc(flines[i], strlen(current_line) + 7);
-		sprintf(flines[i],"%5d %s", i + 1, current_line);
+		bb_xasprintf(&flines[i],"%5d %s", i + 1, current_line);
 	}
 }
 
@@ -241,12 +231,12 @@ static void data_readlines(void) {
 	rewind(fp);
 	/* Initialise fp */
 	flines = malloc(i * sizeof(char *));
-		
+
 	for (i = 0; (!feof(fp)) && (i <= MAXLINES); i++) {
 		strcpy(current_line, "");
 		fgets(current_line, 256, fp);
 		bb_xferror(fp, filename);
-		flines[i] = (char *) bb_xstrndup(current_line, (strlen(current_line) + 1) * sizeof(char));
+		flines[i] = bb_xstrdup(current_line);
 	}
 	num_flines = i - 2;
 
@@ -258,7 +248,7 @@ static void data_readlines(void) {
 	fclose(fp);
 
 	inp = (inp_stdin) ? fopen(CURRENT_TTY, "r") : stdin;
-	
+
 	if (ea_inp_stdin) {
 		fclose(inp);
 		inp = fopen(CURRENT_TTY, "r");
@@ -307,7 +297,7 @@ static void m_status_print(void) {
 		}
 		else {
 			percentage = calc_percent();
-			printf("%i%s %s", percentage, "%", NORMAL);
+			printf("%i%% %s", percentage, NORMAL);
 		}
 	}
 	else {
@@ -325,11 +315,11 @@ static void medium_status_print(void) {
 	percentage = calc_percent();
 
 	if (!line_pos)
-		printf("%s%s %i%s%s", HIGHLIGHT, filename, percentage, "%", NORMAL);
+		printf("%s%s %i%%%s", HIGHLIGHT, filename, percentage, NORMAL);
 	else if (line_pos == num_flines - height + 2)
 		printf("%s(END)%s", HIGHLIGHT, NORMAL);
 	else
-		printf("%s%i%s%s", HIGHLIGHT, percentage, "%", NORMAL);
+		printf("%s%i%%%s", HIGHLIGHT, percentage, NORMAL);
 }
 #endif
 
@@ -368,15 +358,12 @@ static void buffer_print(void) {
 
 	int i;
 
+	printf("%s", CLEAR);
 	if (num_flines >= height - 2) {
-		printf("%s", CLEAR);
-		move_cursor(0,0);
 		for (i = 0; i < height - 1; i++)
 			printf("%s", buffer[i]);
 	}
 	else {
-		printf("%s", CLEAR);
-		move_cursor(0,0);
 		for (i = 1; i < (height - 1 - num_flines); i++)
 			putchar('\n');
 		for (i = 0; i < height - 1; i++)
@@ -391,9 +378,14 @@ static void buffer_init(void) {
 
 	int i;
 
-	/* malloc the number of lines needed for the buffer */
-	buffer = xrealloc(buffer, height * sizeof(char *));
-	
+	if(buffer == NULL) {
+		/* malloc the number of lines needed for the buffer */
+		buffer = xrealloc(buffer, height * sizeof(char *));
+	} else {
+		for (i = 0; i < (height - 1); i++)
+			free(buffer[i]);
+	}
+
 	/* Fill the buffer until the end of the file or the
 	   end of the buffer is reached */
 	for (i = 0; (i < (height - 1)) && (i <= num_flines); i++) {
@@ -402,7 +394,7 @@ static void buffer_init(void) {
 
 	/* If the buffer still isn't full, fill it with blank lines */
 	for (; i < (height - 1); i++) {
-		buffer[i] = "";
+		buffer[i] = bb_xstrdup("");
 	}
 }
 
@@ -414,16 +406,20 @@ static void buffer_down(int nlines) {
 	if (!past_eof) {
 		if (line_pos + (height - 3) + nlines < num_flines) {
 			line_pos += nlines;
-			for (i = 0; i < (height - 1); i++)
+			for (i = 0; i < (height - 1); i++) {
+				free(buffer[i]);
 				buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
+			}
 		}
 		else {
 			/* As the number of lines requested was too large, we just move
 			to the end of the file */
 			while (line_pos + (height - 3) + 1 < num_flines) {
 				line_pos += 1;
-				for (i = 0; i < (height - 1); i++)
+				for (i = 0; i < (height - 1); i++) {
+					free(buffer[i]);
 					buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
+				}
 			}
 		}
 
@@ -441,16 +437,20 @@ static void buffer_up(int nlines) {
 	if (!past_eof) {
 		if (line_pos - nlines >= 0) {
 			line_pos -= nlines;
-			for (i = 0; i < (height - 1); i++)
+			for (i = 0; i < (height - 1); i++) {
+				free(buffer[i]);
 				buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
+			}
 		}
 		else {
 		/* As the requested number of lines to move was too large, we
 		   move one line up at a time until we can't. */
 			while (line_pos != 0) {
 				line_pos -= 1;
-				for (i = 0; i < (height - 1); i++)
+				for (i = 0; i < (height - 1); i++) {
+					free(buffer[i]);
 					buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
+				}
 			}
 		}
 	}
@@ -469,11 +469,12 @@ static void buffer_up(int nlines) {
 			/* We only move part of the buffer, as the rest
 			is past the EOF */
 			for (i = 0; i < (height - 1); i++) {
+				free(buffer[i]);
 				if (i < tilde_line - nlines + 1)
 					buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
 				else {
 					if (line_pos >= num_flines - height + 2)
-						buffer[i] = "~\n";
+						buffer[i] = bb_xstrdup("~\n");
 				}
 			}
 		}
@@ -491,12 +492,15 @@ static void buffer_line(int linenum) {
 		printf("%s%s%i%s", HIGHLIGHT, "Cannot seek to line number ", linenum, NORMAL);
 	}
 	else if (linenum < (num_flines - height - 2)) {
-		for (i = 0; i < (height - 1); i++)
+		for (i = 0; i < (height - 1); i++) {
+			free(buffer[i]);
 			buffer[i] = (char *) bb_xstrdup(flines[linenum + i]);
+		}
 		line_pos = linenum;
 	}
 	else {
 		for (i = 0; i < (height - 1); i++) {
+			free(buffer[i]);
 			if (linenum + i < num_flines + 2)
 				buffer[i] = (char *) bb_xstrdup(flines[linenum + i]);
 			else
@@ -516,7 +520,7 @@ static void reinitialise(void) {
 	for (i = 0; i <= num_flines; i++)
 		free(flines[i]);
 	free(flines);
-	
+
 	data_readlines();
 	buffer_init();
 	buffer_print();
@@ -629,15 +633,10 @@ static void colon_process(void) {
 
 static char *insert_highlights (char *line, int start, int end) {
 
-	char *new_line = (char *) malloc((sizeof(char) * (strlen(line) + 1)) + 10);
+	char *new_line;
 
-	memset(new_line, 0, ((sizeof(char) * (strlen(line) + 1)) + 10));
-	strncat(new_line, line, start);
-	strcat(new_line, HIGHLIGHT);
-	strncat(new_line, line + start, end - start);
-	strcat(new_line, NORMAL);
-	strncat(new_line, line + end, strlen(line) - end);
-
+	bb_xasprintf(&new_line, "%.*s%s%.*s%s%s", start, line, HIGHLIGHT,
+			end - start, line + start, NORMAL, line + end);
 	return new_line;
 }
 
@@ -652,7 +651,7 @@ static char *process_regex_on_line(char *line, regex_t *pattern) {
 	char sub_line[256];
 	int prev_eo = 0;
 	regmatch_t match_structs;
-	
+
 	memset(sub_line, 0, 256);
 	strcpy(line2, line);
 
@@ -869,7 +868,7 @@ static void show_flag_status(void) {
 	}
 
 	clear_line();
-	printf("%s%s%i%s", HIGHLIGHT, "The status of the flag is: ", flag_val, NORMAL);
+	printf("%s%s%i%s", HIGHLIGHT, "The status of the flag is: ", flag_val != 0, NORMAL);
 }
 #endif
 
@@ -940,7 +939,7 @@ static void goto_mark(void) {
 	printf("Go to mark: ");
 	letter = tless_getch();
 	clear_line();
-	
+
 	if (isalpha(letter)) {
 		for (i = 0; i <= num_marks; i++)
 			if (letter == mark_lines[i][0]) {
@@ -985,7 +984,7 @@ static void match_right_bracket(char bracket) {
 	int i;
 
 	clear_line();
-	
+
 	if (strchr(flines[line_pos], bracket) == NULL)
 		printf("%s%s%s", HIGHLIGHT, "No bracket in top line", NORMAL);
 	else {
@@ -1010,7 +1009,7 @@ static void match_left_bracket (char bracket) {
 	int i;
 
 	clear_line();
-	
+
 	if (strchr(flines[line_pos + height - 2], bracket) == NULL) {
 		printf("%s%s%s", HIGHLIGHT, "No bracket in bottom line", NORMAL);
 		printf("%s", flines[line_pos + height]);
@@ -1168,6 +1167,14 @@ int less_main(int argc, char **argv) {
 
 	strcpy(filename, (inp_stdin) ? "stdin" : files[0]);
 	tty_width_height();
+	tcgetattr(0, &term_orig);
+	term_vi = term_orig;
+	term_vi.c_lflag &= (~ICANON & ~ECHO);
+	term_vi.c_iflag &= (~IXON & ~ICRNL);
+	term_vi.c_oflag &= (~ONLCR);
+	term_vi.c_cc[VMIN] = 1;
+	term_vi.c_cc[VTIME] = 0;
+
 	data_readlines();
 	buffer_init();
 	buffer_print();
