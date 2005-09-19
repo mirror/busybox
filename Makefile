@@ -70,7 +70,7 @@ $(filter-out _all,$(MAKECMDGOALS)) _all: $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUT
 	$(MAKE) -C $(KBUILD_OUTPUT) \
 	top_srcdir=$(CURDIR) \
 	top_builddir=$(KBUILD_OUTPUT) \
-	TOPDIR=$(KBUILD_OUTPUT)	\
+	TOPDIR=$(KBUILD_OUTPUT) \
 	KBUILD_SRC=$(CURDIR) \
 	-f $(CURDIR)/Makefile $@
 
@@ -100,7 +100,7 @@ ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 all: busybox busybox.links doc
 
-all_tree:	$(ALL_MAKEFILES)
+all_tree:       $(ALL_MAKEFILES)
 
 $(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
 	[ -d $(@D) ] || mkdir -p $(@D); cp $< $@
@@ -201,10 +201,6 @@ include/bb_config.h: include/config.h
 	    -e 's/#define CONFIG_\(.*\)/#define CONFIG_\1\n#define ENABLE_\1/' \
 		< $< >> $@
 	@echo "#endif" >> $@
-
-include/bbconfigopts.h: .config
-	@[ -d $(@D) ] || mkdir -v $(@D)
-	$(top_srcdir)/scripts/config/mkconfigs >include/bbconfigopts.h
 
 finished2:
 	$(SECHO)
