@@ -221,16 +221,14 @@ extern unsigned long bb_xparse_number(const char *numstr,
 		const struct suffix_mult *suffixes);
 
 
-//#warning change names?
-
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which
- * increases target size and is often not needed embedded systems.  */
-extern long my_getpwnam(const char *name);
-extern long my_getgrnam(const char *name);
-extern char * my_getug(char *buffer, char *idname, long id, int bufsize, char prefix);
-extern char * my_getpwuid(char *name, long uid, int bufsize);
-extern char * my_getgrgid(char *group, long gid, int bufsize);
+ * increases target size and is often not needed on embedded systems.  */
+extern long bb_xgetpwnam(const char *name);
+extern long bb_xgetgrnam(const char *name);
+extern char * bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);
+extern char * bb_getpwuid(char *name, long uid, int bufsize);
+extern char * bb_getgrgid(char *group, long gid, int bufsize);
 extern char *bb_askpass(int timeout, const char * prompt);
 
 extern int device_open(const char *device, int mode);
@@ -471,7 +469,7 @@ extern void print_login_prompt(void);
 extern void vfork_daemon_rexec(int nochdir, int noclose,
 		int argc, char **argv, char *foreground_opt);
 extern int get_terminal_width_height(int fd, int *width, int *height);
-extern unsigned long get_ug_id(const char *s, long (*my_getxxnam)(const char *));
+extern unsigned long get_ug_id(const char *s, long (*__bb_getxxnam)(const char *));
 
 #define HASH_SHA1	1
 #define HASH_MD5	2

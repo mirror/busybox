@@ -2050,7 +2050,7 @@ int httpd_main(int argc, char *argv[])
 	uid = strtol(s_uid, &e, 0);
 	if(*e != '\0') {
 		/* not integer */
-		uid = my_getpwnam(s_uid);
+		uid = bb_xgetpwnam(s_uid);
 	}
       }
 #endif

@@ -58,7 +58,7 @@ int chgrp_main(int argc, char **argv)
 	argv += optind;
 
 	/* Find the selected group */
-	gid = get_ug_id(*argv, my_getgrnam);
+	gid = get_ug_id(*argv, bb_xgetgrnam);
 	++argv;
 
 	/* Ok, ready to do the deed now */

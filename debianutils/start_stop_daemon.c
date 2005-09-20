@@ -265,7 +265,7 @@ start_stop_daemon_main(int argc, char **argv)
 	argv += optind;
 
 	if (userspec && sscanf(userspec, "%d", &user_id) != 1)
-		user_id = my_getpwnam(userspec);
+		user_id = bb_xgetpwnam(userspec);
 
 	if (opt & SSD_CTX_STOP) {
 		do_stop();

@@ -160,12 +160,12 @@ extern int makedevs_main(int argc, char **argv)
 			continue;
 		}
 		if (group) {
-			gid = get_ug_id(group, my_getgrnam);
+			gid = get_ug_id(group, bb_xgetgrnam);
 		} else {
 			gid = getgid();
 		}
 		if (user) {
-			uid = get_ug_id(user, my_getpwnam);
+			uid = get_ug_id(user, bb_xgetpwnam);
 		} else {
 			uid = getuid();
 		}

@@ -73,8 +73,8 @@ extern int install_main(int argc, char **argv)
 		copy_flags |= FILEUTILS_PRESERVE_STATUS;
 	}
 	bb_parse_mode(mode_str, &mode);
-	gid = get_ug_id(gid_str, my_getgrnam);
-	uid = get_ug_id(uid_str, my_getpwnam);
+	gid = get_ug_id(gid_str, bb_xgetgrnam);
+	uid = get_ug_id(uid_str, bb_xgetpwnam);
 	umask(0);
 
 	/* Create directories

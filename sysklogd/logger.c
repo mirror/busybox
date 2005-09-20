@@ -108,7 +108,7 @@ extern int logger_main(int argc, char **argv)
 	char buf[1024], name[128];
 
 	/* Fill out the name string early (may be overwritten later) */
-	my_getpwuid(name, geteuid(), sizeof(name));
+	bb_getpwuid(name, geteuid(), sizeof(name));
 
 	/* Parse any options */
 	while ((opt = getopt(argc, argv, "p:st:")) > 0) {

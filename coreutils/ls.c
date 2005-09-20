@@ -692,9 +692,9 @@ static int list_single(struct dnode *dn)
 			break;
 		case LIST_ID_NAME:
 #ifdef CONFIG_FEATURE_LS_USERNAME
-			my_getpwuid(scratch, dn->dstat.st_uid, sizeof(scratch));
+			bb_getpwuid(scratch, dn->dstat.st_uid, sizeof(scratch));
 			printf("%-8.8s ", scratch);
-			my_getgrgid(scratch, dn->dstat.st_gid, sizeof(scratch));
+			bb_getgrgid(scratch, dn->dstat.st_gid, sizeof(scratch));
 			printf("%-8.8s", scratch);
 			column += 17;
 			break;

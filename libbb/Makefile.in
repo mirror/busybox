@@ -28,13 +28,12 @@ LIBBB_SRC:= \
 	correct_password.c create_icmp_socket.c create_icmp6_socket.c \
 	device_open.c dump.c error_msg.c error_msg_and_die.c find_mount_point.c \
 	find_pid_by_name.c find_root_device.c fgets_str.c full_read.c \
-	full_write.c get_last_path_component.c get_line_from_file.c get_ug_id.c \
+	full_write.c get_last_path_component.c get_line_from_file.c \
 	hash_fd.c herror_msg.c herror_msg_and_die.c \
 	human_readable.c inet_common.c inode_hash.c interface.c isdirectory.c \
 	kernel_version.c last_char_is.c llist_add_to.c login.c loop.c \
 	make_directory.c mode_string.c mtab.c mtab_file.c \
-	my_getgrgid.c my_getgrnam.c my_getpwnam.c my_getug.c\
-	my_getpwuid.c obscure.c parse_mode.c parse_number.c perror_msg.c \
+	obscure.c parse_mode.c parse_number.c perror_msg.c \
 	perror_msg_and_die.c print_file.c get_console.c \
 	process_escape_sequence.c procps.c pwd2spwd.c pw_encrypt.c qmodule.c \
 	read_package_field.c recursive_action.c remove_file.c \
@@ -75,18 +74,22 @@ LIBBB_MOBJ3:=xgetularg_bnd_sfx.o xgetlarg_bnd_sfx.o getlarg10_sfx.o \
 LIBBB_MSRC4:=$(srcdir)/safe_strtol.c
 LIBBB_MOBJ4:=safe_strtoi.o safe_strtod.o safe_strtol.o safe_strtoul.o
 
+LIBBB_MSRC5:=$(srcdir)/bb_pwd.c
+LIBBB_MOBJ5:=bb_xgetpwnam.o bb_xgetgrnam.o bb_getgrgid.o bb_getpwuid.o \
+	bb_getug.o get_ug_id.o
+
 LIBBB_MOBJS0=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ0))
 LIBBB_MOBJS1=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ1))
 LIBBB_MOBJS2=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ2))
 LIBBB_MOBJS3=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ3))
 LIBBB_MOBJS4=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ4))
+LIBBB_MOBJS5=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ5))
 
 libraries-y+=$(LIBBB_DIR)$(LIBBB_AR)
 
 $(LIBBB_DIR)$(LIBBB_AR): $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
-	$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4)
-	$(AR) $(ARFLAGS) $@ $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
-		$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4)
+	$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4) $(LIBBB_MOBJS5)
+	$(AR) $(ARFLAGS) $(@) $(LIBBB_OBJS) $(^)
 
 $(LIBBB_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
@@ -104,5 +107,8 @@ $(LIBBB_MOBJS3): $(LIBBB_MSRC3)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
 
 $(LIBBB_MOBJS4): $(LIBBB_MSRC4)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+
+$(LIBBB_MOBJS5): $(LIBBB_MSRC5)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
 

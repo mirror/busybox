@@ -331,8 +331,8 @@ void fileaction_dobackup(char *filename, int fileref)
 void fileaction_setowngrp(char *filename, int fileref)
 {
 	int uid, gid;
-	uid = my_getpwnam(rpm_getstring(RPMTAG_FILEUSERNAME, fileref));
-	gid = my_getgrnam(rpm_getstring(RPMTAG_FILEGROUPNAME, fileref));
+	uid = bb_xgetpwnam(rpm_getstring(RPMTAG_FILEUSERNAME, fileref));
+	gid = bb_xgetgrnam(rpm_getstring(RPMTAG_FILEGROUPNAME, fileref));
 	chown (filename, uid, gid);
 }
 

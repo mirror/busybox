@@ -80,8 +80,8 @@ extern int id_main(int argc, char **argv)
 	
 	if(argv[optind]) {
 		p=getpwnam(argv[optind]);
-		/* my_getpwnam is needed because it exits on failure */
-		uid = my_getpwnam(argv[optind]);
+		/* bb_xgetpwnam is needed because it exits on failure */
+		uid = bb_xgetpwnam(argv[optind]);
 		gid = p->pw_gid;
 		/* in this case PRINT_REAL is the same */ 
 	}
@@ -89,8 +89,8 @@ extern int id_main(int argc, char **argv)
 	if(flags & (JUST_GROUP | JUST_USER)) {
 		/* JUST_GROUP and JUST_USER are mutually exclusive */
 		if(flags & NAME_NOT_NUMBER) {
-			/* my_getpwuid and my_getgrgid exit on failure so puts cannot segfault */
-			puts((flags & JUST_USER) ? my_getpwuid(NULL, uid, -1 ) : my_getgrgid(NULL, gid, -1 ));
+			/* bb_getpwuid and bb_getgrgid exit on failure so puts cannot segfault */
+			puts((flags & JUST_USER) ? bb_getpwuid(NULL, uid, -1 ) : bb_getgrgid(NULL, gid, -1 ));
 		} else {
 			bb_printf("%u\n",(flags & JUST_USER) ? uid : gid);
 		}
@@ -99,11 +99,11 @@ extern int id_main(int argc, char **argv)
 	}
 
 	/* Print full info like GNU id */
-	/* my_getpwuid doesn't exit on failure here */
-	status=printf_full(uid, my_getpwuid(NULL, uid, 0), 'u');
+	/* bb_getpwuid doesn't exit on failure here */
+	status=printf_full(uid, bb_getpwuid(NULL, uid, 0), 'u');
 	putchar(' ');
-	/* my_getgrgid doesn't exit on failure here */
-	status|=printf_full(gid, my_getgrgid(NULL, gid, 0), 'g');
+	/* bb_getgrgid doesn't exit on failure here */
+	status|=printf_full(gid, bb_getgrgid(NULL, gid, 0), 'g');
 
 #ifdef CONFIG_SELINUX
 	if ( is_selinux_enabled() ) {

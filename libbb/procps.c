@@ -53,7 +53,7 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 		sprintf(status, "/proc/%d", pid);
 		if(stat(status, &sb))
 			continue;
-		my_getpwuid(curstatus.user, sb.st_uid, sizeof(curstatus.user));
+		bb_getpwuid(curstatus.user, sb.st_uid, sizeof(curstatus.user));
 
 		sprintf(status, "/proc/%d/stat", pid);
 

@@ -168,7 +168,7 @@ extern int passwd_main(int argc, char **argv)
 			bb_show_usage();
 		}
 	}
-	myname = (char *) bb_xstrdup(my_getpwuid(NULL, getuid(), -1));
+	myname = (char *) bb_xstrdup(bb_getpwuid(NULL, getuid(), -1));
 	/* exits on error */
 	if (optind < argc) {
 		name = argv[optind];

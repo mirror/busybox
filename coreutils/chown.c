@@ -77,11 +77,11 @@ int chown_main(int argc, char **argv)
 	gid = -1;
 	if (groupName) {
 		*groupName++ = '\0';
-		gid = get_ug_id(groupName, my_getgrnam);
+		gid = get_ug_id(groupName, bb_xgetgrnam);
 	}
 
 	/* Now check for the username */
-	uid = get_ug_id(*argv, my_getpwnam);
+	uid = get_ug_id(*argv, bb_xgetpwnam);
 
 	++argv;
 
