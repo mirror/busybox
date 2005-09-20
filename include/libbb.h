@@ -144,9 +144,9 @@ extern int   bb_xprint_file_by_name(const char *filename);
 extern char  bb_process_escape_sequence(const char **ptr);
 extern char *bb_get_last_path_component(char *path);
 extern FILE *bb_wfopen(const char *path, const char *mode);
+extern FILE *bb_wfopen_input(const char *filename);
 extern FILE *bb_xfopen(const char *path, const char *mode);
 
-//#warning rename?
 extern int   bb_fclose_nonstdin(FILE *f);
 extern void  bb_fflush_stdout_and_exit(int retval) __attribute__ ((noreturn));
 
@@ -154,9 +154,6 @@ extern void  bb_fflush_stdout_and_exit(int retval) __attribute__ ((noreturn));
 extern const char *bb_opt_complementally;
 extern const struct option *bb_applet_long_options;
 extern unsigned long bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...);
-
-//#warning rename?
-extern FILE *bb_wfopen_input(const char *filename);
 
 extern int bb_vfprintf(FILE * __restrict stream, const char * __restrict format,
 					   va_list arg) __attribute__ ((format (printf, 2, 0)));
