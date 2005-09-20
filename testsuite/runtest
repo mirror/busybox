@@ -100,6 +100,7 @@ for applet in $applets; do
 	applet=`echo "$applet" | sed -n 's/\.tests$//p'`
 	if [ ${#applet} != 0 ]
 	then
+		mkdir links 2>/dev/null
 		rm -f links/"$applet"
 		ln -s ../../busybox links/"$applet"
 		PATH=links:$PATH ./"$applet".tests

@@ -256,8 +256,8 @@ clean:
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html busybox.links libbb/loop.h \
-	    .config.old busybox testsuite/links/*
-	- rm -rf _install
+	    .config.old busybox
+	- rm -rf _install testsuite/links
 	- find . -name .\*.flags -exec rm -f {} \;
 	- find . -name \*.o -exec rm -f {} \;
 	- find . -name \*.a -exec rm -f {} \;
