@@ -44,10 +44,6 @@
 #define BB_BANNER "BusyBox v" BB_VER " (" BB_EXTRA_VERSION ")"
 #endif
 
-#ifdef DMALLOC
-#include <dmalloc.h>
-#endif
-
 #include <features.h>
 
 /* Pull in the utility routines from libbb */
@@ -116,6 +112,10 @@ extern const struct BB_applet applets[];
 #include <sys/param.h>
 #ifndef PATH_MAX
 #define  PATH_MAX         256
+#endif
+
+#ifdef DMALLOC
+#include <dmalloc.h>
 #endif
 
 #endif							/* _BB_INTERNAL_H_ */

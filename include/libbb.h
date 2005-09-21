@@ -34,15 +34,11 @@
 
 #include <netdb.h>
 
-#ifdef DMALLOC
-#include <dmalloc.h>
-#endif
-
 #include <features.h>
 
 #include "bb_config.h"
 #ifdef CONFIG_SELINUX
-#include <selinux/selinux.h>  
+#include <selinux/selinux.h>
 #endif
 
 #include "pwd_.h"
@@ -178,12 +174,12 @@ extern const char *bb_skip_whitespace(const char *);
 extern struct BB_applet *find_applet_by_name(const char *name);
 void run_applet_by_name(const char *name, int argc, char **argv);
 
-//#warning is this needed anymore?
-#ifndef DMALLOC
-extern void *xmalloc (size_t size);
+/* dmalloc will redefine these to it's own implementation. It is safe
+ * to have the prototypes here unconditionally.  */
+extern void *xmalloc(size_t size);
 extern void *xrealloc(void *old, size_t size);
 extern void *xcalloc(size_t nmemb, size_t size);
-#endif
+
 extern char *bb_xstrdup (const char *s);
 extern char *bb_xstrndup (const char *s, int n);
 extern char *safe_strncpy(char *dst, const char *src, size_t size);
@@ -420,7 +416,7 @@ extern void run_shell ( const char *shell, int loginshell, const char *command, 
 #ifdef CONFIG_SELINUX
 extern void renew_current_security_context(void);
 extern void set_current_security_context(security_context_t sid);
-#endif 
+#endif
 extern int run_parts(char **args, const unsigned char test_mode, char **env);
 extern int restricted_shell ( const char *shell );
 extern void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw );
@@ -474,5 +470,10 @@ extern unsigned long get_ug_id(const char *s, long (*__bb_getxxnam)(const char *
 #define HASH_SHA1	1
 #define HASH_MD5	2
 extern int hash_fd(int fd, const size_t size, const uint8_t hash_algo, uint8_t *hashval);
+
+/* busybox.h will include dmalloc later for us, else include it here.  */
+#if !defined _BB_INTERNAL_H_ && defined DMALLOC
+#include <dmalloc.h>
+#endif
 
 #endif /* __LIBCONFIG_H__ */
