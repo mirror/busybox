@@ -2035,6 +2035,13 @@
 	"Options:\n" \
 	"\t-n ADJUST\tAdjust the scheduling priority by ADJUST"
 
+#define nohup_trivial_usage \
+	"COMMAND [ARGS]"
+#define nohup_full_usage \
+	"run a command immune to hangups, with output to a non-tty"
+#define nohup_example_usage \
+	"$ nohup make &"
+
 #define nslookup_trivial_usage \
 	"[HOST] [SERVER]"
 #define nslookup_full_usage \

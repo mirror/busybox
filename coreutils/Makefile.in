@@ -60,6 +60,7 @@ COREUTILS-$(CONFIG_MKFIFO)    += mkfifo.o
 COREUTILS-$(CONFIG_MKNOD)     += mknod.o
 COREUTILS-$(CONFIG_MV)        += mv.o
 COREUTILS-$(CONFIG_NICE)      += nice.o
+COREUTILS-$(CONFIG_NOHUP)     += nohup.o
 COREUTILS-$(CONFIG_OD)        += od.o
 COREUTILS-$(CONFIG_PRINTENV)  += printenv.o
 COREUTILS-$(CONFIG_PRINTF)    += printf.o

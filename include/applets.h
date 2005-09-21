@@ -462,6 +462,9 @@
 #ifdef CONFIG_NICE
 	APPLET(nice, nice_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_NOHUP
+	APPLET(nohup, nohup_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_NSLOOKUP
 	APPLET(nslookup, nslookup_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
