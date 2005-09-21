@@ -184,7 +184,16 @@ scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
 depend dep: .depend
-.depend: scripts/bb_mkdep include/config.h include/bb_config.h
+
+DEP_INCLUDES=include/config.h include/bb_config.h
+ifeq ($(strip $(CONFIG_BBCONFIG)),y)
+DEP_INCLUDES += include/bbconfigopts.h
+
+include/bbconfigopts.h: .config
+	scripts/config/mkconfigs > $@
+endif
+
+.depend: scripts/bb_mkdep $(DEP_INCLUDES)
 	@rm -f .depend
 	@mkdir -p include/config
 	scripts/bb_mkdep -c include/config.h -c include/bb_config.h > $@
