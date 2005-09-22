@@ -332,7 +332,7 @@ static void status_print(void) {
 				printf("%s%s%s%s", HIGHLIGHT, "- Next: ", files[current_file], NORMAL);
 		}
 		else {
-			printf("%c", ':');
+			putchar(':');
 		}
 #ifdef CONFIG_FEATURE_LESS_FLAGS
 	}
@@ -375,7 +375,7 @@ static void buffer_init(void) {
 	/* Fill the buffer until the end of the file or the
 	   end of the buffer is reached */
 	for (i = 0; (i < (height - 1)) && (i <= num_flines); i++) {
-		buffer[i] = (char *) bb_xstrdup(flines[i]);
+		buffer[i] = bb_xstrdup(flines[i]);
 	}
 
 	/* If the buffer still isn't full, fill it with blank lines */
@@ -394,7 +394,7 @@ static void buffer_down(int nlines) {
 			line_pos += nlines;
 			for (i = 0; i < (height - 1); i++) {
 				free(buffer[i]);
-				buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
+				buffer[i] = bb_xstrdup(flines[line_pos + i]);
 			}
 		}
 		else {
@@ -404,7 +404,7 @@ static void buffer_down(int nlines) {
 				line_pos += 1;
 				for (i = 0; i < (height - 1); i++) {
 					free(buffer[i]);
-					buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
+					buffer[i] = bb_xstrdup(flines[line_pos + i]);
 				}
 			}
 		}
@@ -425,7 +425,7 @@ static void buffer_up(int nlines) {
 			line_pos -= nlines;
 			for (i = 0; i < (height - 1); i++) {
 				free(buffer[i]);
-				buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
+				buffer[i] = bb_xstrdup(flines[line_pos + i]);
 			}
 		}
 		else {
@@ -435,7 +435,7 @@ static void buffer_up(int nlines) {
 				line_pos -= 1;
 				for (i = 0; i < (height - 1); i++) {
 					free(buffer[i]);
-					buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
+					buffer[i] = bb_xstrdup(flines[line_pos + i]);
 				}
 			}
 		}
@@ -457,7 +457,7 @@ static void buffer_up(int nlines) {
 			for (i = 0; i < (height - 1); i++) {
 				free(buffer[i]);
 				if (i < tilde_line - nlines + 1)
-					buffer[i] = (char *) bb_xstrdup(flines[line_pos + i]);
+					buffer[i] = bb_xstrdup(flines[line_pos + i]);
 				else {
 					if (line_pos >= num_flines - height + 2)
 						buffer[i] = bb_xstrdup("~\n");
@@ -480,7 +480,7 @@ static void buffer_line(int linenum) {
 	else if (linenum < (num_flines - height - 2)) {
 		for (i = 0; i < (height - 1); i++) {
 			free(buffer[i]);
-			buffer[i] = (char *) bb_xstrdup(flines[linenum + i]);
+			buffer[i] = bb_xstrdup(flines[linenum + i]);
 		}
 		line_pos = linenum;
 	}
@@ -488,9 +488,9 @@ static void buffer_line(int linenum) {
 		for (i = 0; i < (height - 1); i++) {
 			free(buffer[i]);
 			if (linenum + i < num_flines + 2)
-				buffer[i] = (char *) bb_xstrdup(flines[linenum + i]);
+				buffer[i] = bb_xstrdup(flines[linenum + i]);
 			else
-				buffer[i] = (char *) bb_xstrdup((flags & FLAG_TILDE) ? "\n" : "~\n");
+				buffer[i] = bb_xstrdup((flags & FLAG_TILDE) ? "\n" : "~\n");
 		}
 		line_pos = linenum;
 		/* Set past_eof so buffer_down and buffer_up act differently */
@@ -525,7 +525,7 @@ static void examine_file(void) {
 	newline_offset = strlen(filename) - 1;
 	filename[newline_offset] = '\0';
 
-	files[num_files] = bb_xstrndup(filename, (strlen(filename) + 1) * sizeof(char));
+	files[num_files] = bb_xstrdup(filename);
 	current_file = num_files + 1;
 	num_files++;
 
@@ -681,7 +681,15 @@ static void regex_process(void) {
 	/* Get the uncompiled regular expression from the user */
 	clear_line();
 	putchar((match_backwards) ? '?' : '/');
-	scanf("%s", uncomp_regex);
+	uncomp_regex[0] = 0;
+	fgets(uncomp_regex, sizeof(uncomp_regex), stdin);
+	i = strlen(uncomp_regex);
+	if(i > 0) {
+		if(uncomp_regex[i-1] == '\n')
+			uncomp_regex[i-1] = '\0';
+		else
+			while((i = getchar()) != '\n' && i != EOF);
+	}
 
 	/* Compile the regex and check for errors */
 	xregcomp(pattern, uncomp_regex, 0);
@@ -689,7 +697,7 @@ static void regex_process(void) {
 	/* Run the regex on each line of the current file here */
 	for (i = 0; i <= num_flines; i++) {
 		strcpy(current_line, process_regex_on_line(flines[i], pattern));
-		flines[i] = (char *) bb_xstrndup(current_line, sizeof(char) * (strlen(current_line)+1));
+		flines[i] = bb_xstrdup(current_line);
 		if (match_found) {
 			match_lines[j] = i;
 			j++;
@@ -697,7 +705,6 @@ static void regex_process(void) {
 	}
 
 	num_matches = j;
-
 	if ((match_lines[0] != -1) && (num_flines > height - 2))
 		buffer_line(match_lines[0]);
 	else
@@ -752,7 +759,7 @@ static void number_process(int first_digit) {
 
 	/* Receive input until a letter is given (max 80 chars)*/
 	while((i < 80) && (num_input[i] = tless_getch()) && isdigit(num_input[i])) {
-		printf("%c", num_input[i]);
+		putchar(num_input[i]);
 		i++;
 	}
 
@@ -809,16 +816,16 @@ static void flag_change(void) {
 
 	switch (keypress) {
 		case 'M':
-			flags &= ~FLAG_M;
+			flags ^= FLAG_M;
 			break;
 		case 'm':
-			flags &= ~FLAG_m;
+			flags ^= FLAG_m;
 			break;
 		case 'E':
-			flags &= ~FLAG_E;
+			flags ^= FLAG_E;
 			break;
 		case '~':
-			flags &= ~FLAG_TILDE;
+			flags ^= FLAG_TILDE;
 			break;
 		default:
 			break;
