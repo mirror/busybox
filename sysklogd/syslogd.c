@@ -150,7 +150,7 @@ static inline void sem_down(int semid)
 }
 
 
-void ipcsyslog_cleanup(void)
+static void ipcsyslog_cleanup(void)
 {
 	printf("Exiting Syslogd!\n");
 	if (shmid != -1) {
@@ -165,7 +165,7 @@ void ipcsyslog_cleanup(void)
 	}
 }
 
-void ipcsyslog_init(void)
+static void ipcsyslog_init(void)
 {
 	if (buf == NULL) {
 		if ((shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023)) == -1) {
@@ -195,7 +195,7 @@ void ipcsyslog_init(void)
 }
 
 /* write message to buffer */
-void circ_message(const char *msg)
+static void circ_message(const char *msg)
 {
 	int l = strlen(msg) + 1;	/* count the whole message w/ '\0' included */
 

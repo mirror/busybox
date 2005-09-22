@@ -381,7 +381,7 @@ static struct method_t methods_ipx[] = {
 	{ "static", static_up_ipx, static_down_ipx, },
 };
 
-struct address_family_t addr_ipx = {
+static struct address_family_t addr_ipx = {
 	"ipx",
 	sizeof(methods_ipx) / sizeof(struct method_t),
 	methods_ipx

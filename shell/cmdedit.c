@@ -1263,7 +1263,7 @@ void setvimode ( int viflag )
 	vi_mode = viflag;
 }
 
-void
+static void
 vi_Word_motion(char *command, int eat)
 {
 	while (cursor < len && !isspace(command[cursor]))
@@ -1272,7 +1272,7 @@ vi_Word_motion(char *command, int eat)
 		input_forward();
 }
 
-void
+static void
 vi_word_motion(char *command, int eat)
 {
 	if (isalnum(command[cursor]) || command[cursor] == '_') {
@@ -1294,7 +1294,7 @@ vi_word_motion(char *command, int eat)
 			input_forward();
 }
 
-void
+static void
 vi_End_motion(char *command)
 {
 	input_forward();
@@ -1304,7 +1304,7 @@ vi_End_motion(char *command)
 		input_forward();
 }
 
-void
+static void
 vi_end_motion(char *command)
 {
 	if (cursor >= len-1)
@@ -1326,7 +1326,7 @@ vi_end_motion(char *command)
 	}
 }
 
-void
+static void
 vi_Back_motion(char *command)
 {
 	while (cursor > 0 && isspace(command[cursor-1]))
@@ -1335,7 +1335,7 @@ vi_Back_motion(char *command)
 		input_backward(1);
 }
 
-void
+static void
 vi_back_motion(char *command)
 {
 	if (cursor <= 0)
