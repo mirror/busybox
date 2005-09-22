@@ -10,7 +10,9 @@ command line options
 
 The command line options for the udhcp client are:
 
--c, --clientid=CLIENTID         Client identifier
+-c, --clientid=CLIENTID         Set client identifier.  Type is first char.
+-C, --clientid-none             Suppress default client identifier
+-V, --vendorclass=CLASSID       Set vendor class identifier
 -H, --hostname=HOSTNAME         Client hostname
 -h,                             Alias for -H
 -F, --fqdn=FQDN                 Client fully qualified domain name

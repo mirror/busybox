@@ -2998,10 +2998,11 @@
 	"Adjust filesystem options on ext[23] filesystems.\n\n"
 
 #define udhcpc_trivial_usage \
-	"[-Cfbnqv] [-c CLIENTID] [-H HOSTNAME] [-i INTERFACE]\n[-p pidfile] [-r IP] [-s script]"
+	"[-Cfbnqv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \
 	"\t-c,\t--clientid=CLIENTID\tSet client identifier\n" \
 	"\t-C,\t--clientid-none\tSuppress default client identifier\n" \
+	"\t-V,\t--vendorclass=CLASSID\tSet vendor class identifier\n" \
 	"\t-H,\t--hostname=HOSTNAME\tClient hostname\n" \
 	"\t-h,\t                   \tAlias for -H\n" \
 	"\t-f,\t--foreground\tDo not fork after getting lease\n" \

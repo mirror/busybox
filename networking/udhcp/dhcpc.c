@@ -66,6 +66,7 @@ struct client_config_t client_config = {
 	.pidfile = NULL,
 	.script = DEFAULT_SCRIPT,
 	.clientid = NULL,
+	.vendorclass = NULL,
 	.hostname = NULL,
 	.fqdn = NULL,
 	.ifindex = 0,
@@ -77,8 +78,9 @@ static void __attribute__ ((noreturn)) show_usage(void)
 {
 	printf(
 "Usage: udhcpc [OPTIONS]\n\n"
-"  -c, --clientid=CLIENTID         Set client identifier\n"
+"  -c, --clientid=CLIENTID         Set client identifier - type is first char\n"
 "  -C, --clientid-none             Suppress default client identifier\n"
+"  -V, --vendorclass=CLASSID       Set vendor class identifier\n"
 "  -H, --hostname=HOSTNAME         Client hostname\n"
 "  -h                              Alias for -H\n"
 "  -F, --fqdn=FQDN                 Client fully qualified domain name\n"
@@ -199,6 +201,7 @@ int main(int argc, char *argv[])
 	static const struct option arg_options[] = {
 		{"clientid",	required_argument,	0, 'c'},
 		{"clientid-none", no_argument,		0, 'C'},
+		{"vendorclass",	required_argument,	0, 'V'},
 		{"foreground",	no_argument,		0, 'f'},
 		{"background",	no_argument,		0, 'b'},
 		{"hostname",	required_argument,	0, 'H'},
@@ -217,7 +220,7 @@ int main(int argc, char *argv[])
 	/* get options */
 	while (1) {
 		int option_index = 0;
-		c = getopt_long(argc, argv, "c:CfbH:h:F:i:np:qr:s:v", arg_options, &option_index);
+		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qr:s:v", arg_options, &option_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -234,6 +237,14 @@ int main(int argc, char *argv[])
 		case 'C':
 			if (client_config.clientid) show_usage();
 			no_clientid = 1;
+			break;
+		case 'V':
+			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
+			if (client_config.vendorclass) free(client_config.vendorclass);
+			client_config.vendorclass = xmalloc(len + 2);
+			client_config.vendorclass[OPT_CODE] = DHCP_VENDOR;
+			client_config.vendorclass[OPT_LEN] = len;
+			strncpy(client_config.vendorclass + OPT_DATA, optarg, len);
 			break;
 		case 'f':
 			client_config.foreground = 1;
@@ -309,6 +320,16 @@ int main(int argc, char *argv[])
 		client_config.clientid[OPT_DATA] = 1;
 		memcpy(client_config.clientid + 3, client_config.arp, 6);
 	}
+
+	if (!client_config.vendorclass) {
+		client_config.vendorclass = xmalloc(sizeof("udhcp "VERSION) + 2);
+		client_config.vendorclass[OPT_CODE] = DHCP_VENDOR;
+		client_config.vendorclass[OPT_LEN] = sizeof("udhcp "VERSION) - 1;
+		client_config.vendorclass[OPT_DATA] = 1;
+		memcpy(&client_config.vendorclass[OPT_DATA], 
+			"udhcp "VERSION, sizeof("udhcp "VERSION) - 1);
+	}
+
 
 	/* setup the signal pipe */
 	udhcp_sp_setup();

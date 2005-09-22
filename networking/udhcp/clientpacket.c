@@ -69,18 +69,13 @@ unsigned long random_xid(void)
 /* initialize a packet with the proper defaults */
 static void init_packet(struct dhcpMessage *packet, char type)
 {
-	struct vendor  {
-		char vendor, length;
-		char str[sizeof("udhcp "VERSION)];
-	} vendor_id = { DHCP_VENDOR,  sizeof("udhcp "VERSION) - 1, "udhcp "VERSION};
-
 	init_header(packet, type);
 	memcpy(packet->chaddr, client_config.arp, 6);
 	if (client_config.clientid)
 	    add_option_string(packet->options, client_config.clientid);
 	if (client_config.hostname) add_option_string(packet->options, client_config.hostname);
 	if (client_config.fqdn) add_option_string(packet->options, client_config.fqdn);
-	add_option_string(packet->options, (uint8_t *) &vendor_id);
+	add_option_string(packet->options, client_config.vendorclass);
 }
 
 

@@ -26,6 +26,7 @@ struct client_config_t {
 	char *pidfile;			/* Optionally store the process ID */
 	char *script;			/* User script to run at dhcp events */
 	uint8_t *clientid;		/* Optional client id to use */
+	uint8_t *vendorclass;		/* Optional vendor class-id to use */
 	uint8_t *hostname;		/* Optional hostname to use */
 	uint8_t *fqdn;			/* Optional fully qualified domain name to use */
 	int ifindex;			/* Index number of the interface to use */
