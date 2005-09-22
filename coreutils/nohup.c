@@ -40,12 +40,12 @@ static inline int set_cloexec_flag (int desc)
 #define set_cloexec_flag(desc) (0)
 #endif
 
-static int fd_reopen (int desired_fd, char const *file, int flags, mode_t mode)
+static int fd_reopen (int desired_fd, char const *file, int flags)
 {
 	int fd;
 
 	close (desired_fd);
-	fd = open (file, flags, mode);
+	fd = open (file, flags | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (fd == desired_fd || fd < 0)
 		return fd;
 	else {
@@ -115,27 +115,25 @@ int nohup_main (int argc, char **argv)
 	 Note that it is deliberately opened for *writing*,
 	 to ensure any read evokes an error.  */
 	if (isatty (STDIN_FILENO))
-		fd_reopen (STDIN_FILENO, "/dev/null", O_WRONLY, 0);
+		fd_reopen (STDIN_FILENO, "/dev/null", 0);
 
 	/* If standard output is a tty, redirect it (appending) to a file.
 	 First try nohup.out, then $HOME/nohup.out.  */
 	if (isatty (STDOUT_FILENO)) {
 		char *in_home = NULL;
 		char const *file = "nohup.out";
-		int fd = fd_reopen (STDOUT_FILENO, file,
-				O_CREAT | O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
+		int fd = fd_reopen (STDOUT_FILENO, file, O_CREAT | O_APPEND);
 
 		if (fd < 0) {
 			if ((in_home = getenv ("HOME")) != NULL) {
 				in_home = concat_path_file(in_home, file);
-				fd = fd_reopen (STDOUT_FILENO, in_home,
-						O_CREAT | O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
+				fd = fd_reopen (STDOUT_FILENO, in_home, O_CREAT | O_APPEND);
 			}
 			if (fd < 0) {
 				bb_perror_msg("failed to open '%s'", file);
 				if (in_home)
 					bb_perror_msg("failed to open '%s'",in_home);
-				exit (NOHUP_FAILURE);
+				return (NOHUP_FAILURE);
 			}
 			file = in_home;
 		}
@@ -185,4 +183,3 @@ int nohup_main (int argc, char **argv)
 	return (errno == ENOENT ? EXIT_ENOENT : EXIT_CANNOT_INVOKE);
 	}
 }
-
