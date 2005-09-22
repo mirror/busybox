@@ -34,8 +34,8 @@
 #include "busybox.h"
 
 //XXX just found out about libbb/messages.c . maybe move stuff there ? - ghoz
-const char msg_req_arg[] = "option `%s' requires an argument";
-const char msg_invalid_arg[] = "invalid argument `%s' to `%s'";
+static const char msg_req_arg[] = "option `%s' requires an argument";
+static const char msg_invalid_arg[] = "invalid argument `%s' to `%s'";
 
 static char *pattern;
 

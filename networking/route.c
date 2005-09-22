@@ -347,7 +347,7 @@ static void INET6_setroute(int action, char **args)
 		/* We know args isn't NULL from the check in route_main. */
 		const char *target = *args++;
 
-		if (strcmp(target, "default") == 0) {
+		if (strcmp(target, bb_INET_default) == 0) {
 			prefix_len = 0;
 			memset(&sa6, 0, sizeof(sa6));
 		} else {
