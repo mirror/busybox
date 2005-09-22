@@ -133,7 +133,7 @@ typedef enum {
 
 /* The descrip member of this structure is only used to make debugging
  * output pretty */
-struct {int mode; int default_fd; char *descrip;} redir_table[] = {
+static struct {int mode; int default_fd; char *descrip;} redir_table[] = {
 	{ 0,                         0, "()" },
 	{ O_RDONLY,                  0, "<"  },
 	{ O_CREAT|O_TRUNC|O_WRONLY,  1, ">"  },
@@ -244,9 +244,9 @@ struct variables {
 
 /* globals, connect us to the outside world
  * the first three support $?, $#, and $1 */
-char **global_argv;
-unsigned int global_argc;
-unsigned int last_return_code;
+static char **global_argv;
+static unsigned int global_argc;
+static unsigned int last_return_code;
 extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 
 /* "globals" within this file */
@@ -262,8 +262,8 @@ static unsigned int last_jobid;
 static unsigned int shell_terminal;
 static char *PS1;
 static char *PS2;
-struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
-struct variables *top_vars = &shell_ver;
+static struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
+static struct variables *top_vars = &shell_ver;
 
 
 #define B_CHUNK (100)
@@ -831,7 +831,7 @@ static int b_addqchr(o_string *o, int ch, int quote)
 }
 
 /* belongs in utility.c */
-char *simple_itoa(unsigned int i)
+static char *simple_itoa(unsigned int i)
 {
 	/* 21 digits plus null terminator, good for 64-bit or smaller ints */
 	static char local[22];
@@ -1295,7 +1295,8 @@ static int checkjobs(struct pipe* fg_pipe)
  * we belong to the foreground process group associated with
  * that tty.  The value of shell_terminal is needed in order to call
  * tcsetpgrp(shell_terminal, ...); */
-void controlling_tty(int check_pgrp)
+#if 0
+static void controlling_tty(int check_pgrp)
 {
 	pid_t curpgrp;
 
@@ -1313,6 +1314,7 @@ shell_terminal_error:
 		shell_terminal = -1;
 		return;
 }
+#endif
 
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
  * to finish.  See checkjobs().
@@ -1998,7 +2000,7 @@ static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 	return 0;
 }
 
-struct pipe *new_pipe(void) {
+static struct pipe *new_pipe(void) {
 	struct pipe *pi;
 	pi = xmalloc(sizeof(struct pipe));
 	pi->num_progs = 0;
@@ -2026,7 +2028,7 @@ static void initialize_context(struct p_context *ctx)
  * should handle if, then, elif, else, fi, for, while, until, do, done.
  * case, function, and select are obnoxious, save those for later.
  */
-int reserved_word(o_string *dest, struct p_context *ctx)
+static int reserved_word(o_string *dest, struct p_context *ctx)
 {
 	struct reserved_combo {
 		char *literal;
@@ -2252,7 +2254,7 @@ static int redirect_opt_num(o_string *o)
 	return num;
 }
 
-FILE *generate_stream_from_list(struct pipe *head)
+static FILE *generate_stream_from_list(struct pipe *head)
 {
 	FILE *pf;
 #if 1
@@ -2623,13 +2625,13 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 	return 0;
 }
 
-void mapset(const unsigned char *set, int code)
+static void mapset(const unsigned char *set, int code)
 {
 	const unsigned char *s;
 	for (s=set; *s; s++) map[*s] = code;
 }
 
-void update_ifs_map(void)
+static void update_ifs_map(void)
 {
 	/* char *ifs and char map[256] are both globals. */
 	ifs = getenv("IFS");
