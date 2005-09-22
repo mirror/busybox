@@ -162,7 +162,8 @@ struct op {
 #define	TDOT	17
 
 /* Strings for names to make debug easier */
-char *T_CMD_NAMES[] = {
+#ifdef MSHDEBUG
+static char *T_CMD_NAMES[] = {
 	"PLACEHOLDER",
 	"TCOM",
 	"TPAREN",
@@ -182,7 +183,7 @@ char *T_CMD_NAMES[] = {
 	"TASYNC",
 	"TDOT",
 };
-
+#endif
 
 /*
  * actions determining the environment of a process
@@ -698,7 +699,7 @@ static const struct builtincmd builtincmds[] = {
 	{0, 0}
 };
 
-struct op *scantree(struct op *);
+static struct op *scantree(struct op *);
 static struct op *dowholefile(int, int);
 
 /* Globals */
@@ -4638,8 +4639,8 @@ REGISTER struct wdblock *wb;
 	return (wd);
 }
 
-int (*func) (char *, char *);
-int globv;
+static int (*func) (char *, char *);
+static int globv;
 
 static void glob0(a0, a1, a2, a3)
 char *a0;
