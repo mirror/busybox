@@ -778,7 +778,7 @@ static char* itoa(register int i)
 	return b;
 }
 
-char * strsep_space( char *string, int * ix)
+static char * strsep_space( char *string, int * ix)
 {
 	char *token, *begin;
 
@@ -1560,7 +1560,7 @@ static int busy_loop(FILE * input)
 }
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
-void free_memory(void)
+static void free_memory(void)
 {
 	if (cwd && cwd!=bb_msg_unknown) {
 		free((char*)cwd);
