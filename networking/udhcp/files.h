@@ -14,4 +14,7 @@ int read_config(const char *file);
 void write_leases(void);
 void read_leases(const char *file);
 
+struct option_set *find_option(struct option_set *opt_list, char code);
+void attach_option(struct option_set **opt_list, struct dhcp_option *option, char *buffer, int length);
+
 #endif
