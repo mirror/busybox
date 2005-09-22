@@ -128,12 +128,12 @@ union semun {
 #define TIME 4
 #define PID 5
 
-void do_shm (char format);
-void do_sem (char format);
-void do_msg (char format);
-void print_shm (int id);
-void print_msg (int id);
-void print_sem (int id);
+static void do_shm (char format);
+static void do_sem (char format);
+static void do_msg (char format);
+static void print_shm (int id);
+static void print_msg (int id);
+static void print_sem (int id);
 
 int ipcs_main (int argc, char **argv) {
 	int opt, msg = 0, sem = 0, shm = 0, id=0, print=0; 
