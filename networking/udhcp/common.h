@@ -39,10 +39,12 @@ enum syslog_levels {
 #include <syslog.h>
 #endif
 
+#define background udhcp_background
+#define start_log_and_pid udhcp_start_log_and_pid
+
 long uptime(void);
 void background(const char *pidfile);
 void start_log_and_pid(const char *client_server, const char *pidfile);
-void background(const char *pidfile);
 void udhcp_logging(int level, const char *fmt, ...);
                                                             
 #define LOG(level, str, args...) udhcp_logging(level, str, ## args)
