@@ -101,15 +101,18 @@ for applet in $applets; do
 	applet=$(echo "$applet" | sed -n 's/\.tests$//p')
 	if [ ${#applet} -ne 0 ]
 	then
-		mkdir links 2>/dev/null
-		rm -f links/"$applet"
+		if [ -d links ]; then
+			rm -f links/"$applet" 
+		else
+			mkdir links 2> /dev/null
+		fi
 		ln -s ${bindir:-../..}/busybox links/"$applet"
 		PATH="$srcdir:$PATH" COMMAND="links/$applet" \
 			"${srcdir:-.}/$applet".tests
 		if [ $? -ne 0 ]; then status=1; fi
 	fi
 
-
 done
-
+rm -f links/*
+rmdir links
 exit $status
