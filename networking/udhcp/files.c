@@ -105,7 +105,7 @@ struct option_set *find_option(struct option_set *opt_list, char code)
 
 
 /* add an option to the opt_list */
-void attach_option(struct option_set **opt_list, struct dhcp_option *option, char *buffer, int length)
+static void attach_option(struct option_set **opt_list, struct dhcp_option *option, char *buffer, int length)
 {
 	struct option_set *existing, *new, **curr;
 
