@@ -184,6 +184,7 @@ config CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
 config CONFIG_IFUPDOWN
 	bool "ifupdown"
 	default n
+	select CONFIG_RUN_PARTS
 	help
 	  Activate or deactivate the specified interfaces.  This applet makes
 	  use of either "ifconfig" and "route" or the "ip" command to actually
