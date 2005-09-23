@@ -90,21 +90,22 @@ else
 fi
 
 for applet in $applets; do
-	if [ "$applet" == links ]; then continue; fi
-	if [ "$applet" != CVS -a -d "$srcdir/$applet" ]; then
+	if [ "$applet" = "links" ]; then continue; fi
+	if [ "$applet" != "CVS" -a -d "$srcdir/$applet" ]; then
 		if run_applet_tests $applet; then
 			:
 		else
 			status=1
 		fi
 	fi
-	applet=`echo "$applet" | sed -n 's/\.tests$//p'`
-	if [ ${#applet} != 0 ]
+	applet=$(echo "$applet" | sed -n 's/\.tests$//p')
+	if [ ${#applet} -ne 0 ]
 	then
 		mkdir links 2>/dev/null
 		rm -f links/"$applet"
 		ln -s ${bindir:-../..}/busybox links/"$applet"
-		PATH="$srcdir:$PATH" COMMAND="links/$applet" "${srcdir:-.}/$applet".tests
+		PATH="$srcdir:$PATH" COMMAND="links/$applet" \
+			"${srcdir:-.}/$applet".tests
 		if [ $? -ne 0 ]; then status=1; fi
 	fi
 

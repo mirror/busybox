@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# egrep tests.
+# Copyright 2005 by Rob Landley <rob@landley.net>
+# Licensed under GPL v2, see file LICENSE for details.
+
+# AUDIT: 
+
+[ ${#COMMAND} -eq 0 ] && COMMAND=egrep
+. testing.sh
+
+# Depends on FEATURE_GREP_EGREP_ALIAS
+_BB_CONFIG_DEP=FEATURE_GREP_EGREP_ALIAS
+
+testing "grep is also egrep" "foo" "foo\n" "" "foo\nbar\n"
+testing "egrep is not case insensitive" "foo ; [ \$? -ne 0 ] && echo yes" \
+	"yes\n" "" "FOO\n"
+
+
+exit $FAILCOUNT

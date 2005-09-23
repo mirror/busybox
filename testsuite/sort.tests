@@ -7,6 +7,9 @@
 if [ ${#COMMAND} -eq 0 ]; then COMMAND=sort; fi
 . testing.sh
 
+# Depends on sort
+_BB_CONFIG_DEP=sort
+
 # The basic tests.  These should work even with the small busybox.
 
 testing "sort" "input" "a\nb\nc\n" "c\na\nb\n" ""

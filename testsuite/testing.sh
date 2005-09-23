@@ -28,14 +28,33 @@ fi
 
 export FAILCOUNT=0
 
+# Helper functions
+
+config_is_set ()
+{
+  local uc_what=$(echo ${1?} | tr a-z A-Z)
+  grep -q "^[ 	]*CONFIG_${uc_what}" ${bindir:-..}/.config || \
+    grep -q "^[ 	]*BB_CONFIG_${uc_what}" ${bindir:-..}/.config
+  return $?
+}
+
 # The testing function
 
-function testing()
+testing()
 {
   if [ $# -ne 5 ]
   then
     echo "Test $1 has the wrong number of arguments" >&2
     exit
+  fi
+
+  if [ ${force_tests:-0} -ne 1 -a -n "$_BB_CONFIG_DEP" ]
+  then
+    if ! config_is_set "$_BB_CONFIG_DEP"
+    then
+      echo "UNTESTED: $1"
+      return 0
+    fi
   fi
 
   f=$FAILCOUNT

@@ -7,6 +7,9 @@
 if [ ${#COMMAND} -eq 0 ]; then COMMAND=busybox; fi
 . testing.sh
 
+# Depends on nothing
+_BB_CONFIG_DEP=""
+
 # We'll assume "cat" is built in, because we need some other command to test.
 
 HELPDUMP=`$COMMAND`

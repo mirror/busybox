@@ -1,1 +1,0 @@
-echo foo | busybox grep -e foo -e bar
