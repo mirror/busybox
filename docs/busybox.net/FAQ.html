@@ -8,6 +8,8 @@ about BusyBox.  Some of the questions even have answers. If you
 have additions to this FAQ document, we would love to add them,
 
 <ol>
+<li><a href="#getting_started">How can I get started using BusyBox?</a>
+<li><a href="#build_system">How do I build a BusyBox-based system?</a>
 <li><a href="#kernel">Which Linux kernel versions are supported?</a>
 <li><a href="#arch">Which architectures does BusyBox run on?</a>
 <li><a href="#libc">Which C libraries are supported?</a>
@@ -15,7 +17,6 @@ have additions to this FAQ document, we would love to add them,
 <li><a href="#bugs">I think I found a bug in BusyBox!  What should I do?!</a>
 <li><a href="#job_control">Why do I keep getting "sh: can't access tty; job control
 	turned off" errors?  Why doesn't Control-C work within my shell?</a>
-<li><a href="#getting_started">How can I get started using BusyBox?</a>
 <li><a href="#demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come
 	you don't answer all my questions on the mailing list instantly?  I demand
 	that you help me with all of my problems <em>Right Now</em>!</a>
@@ -31,46 +32,132 @@ have additions to this FAQ document, we would love to add them,
 
 </ol>
 
+<hr />
+<p>
+<h2><a name="getting_started">How can I get started using BusyBox?</a></h2>
+<p> If you just want to try out busybox without installing it, download the
+    tarball, extract it, run "make allyesconfig", and then run "make".
+</p>
+<p>
+    This will create a busybox binary with all features enabled.  To try
+    out a busybox applet, type "./busybox [appletname] [options]", for
+    example "./busybox ls -l" or "./busybox cat LICENSE".  Type "./busybox"
+    to see a command list, and "busybox appletname --help" to see a brief
+    usage message for a given applet.
+</p>
+<p>
+    BusyBox uses the name it was invoked under to determine which applet is
+    being invoked.  (Try "mv busybox ls" and then "./ls -l".)  Installing
+    busybox consists of creating symlinks (or hardlinks) to the busybox
+    binary for each applet in busybox, and making sure these symlinks are in
+    the shell's command $PATH.  ("make install" creates these symlinks, and
+    "make install-hardlinks" creates hardlinks instead.)  The special applet
+    name "busybox" (or with any optional suffix, such as "busybox-static")
+    uses the first argument to determine which applet to run, as shown above.
+</p>
+<p>
+    BusyBox also has a feature called the "standalone shell", where the busybox
+    shell runs any built-in applets before checking the command path.  This
+    feature is also enabled by "make allyesconfig", and to try it out run
+    the command line "PATH= ./busybox ash".  This will blank your command path
+    and run busybox as your command shell, so the only commands it can find
+    (without an explicit path such as /bin/ls) are the built-in busybox ones.
+    This is another good way to see what's built into busybox.  (Note that the
+    standalone shell is dependent on the existence of /proc/self/exe, so before
+    using it in a chroot environment you must mount /proc.)
+</p>
+<p>
+    To build a smaller busybox binary, run "make menuconfig" and disable the
+    features you don't need.  (Or run "make allnoconfig" and then use
+    menuconfig to add just the features you need.  Don't forget to recompile
+    with "make" once you've finished configuring.)
+</p>
+<hr/>
+<p/>
+<h2><a name="build_system">How do I build a BusyBox-based system?</a></h2>
+<p>
+    BusyBox is a package that replaces a dozen standard packages, but it is
+    not by itself a complete bootable system.  Building an entire Linux
+    distribution from source is a bit beyond the scope of this FAQ, but it
+    understandably keeps cropping up on the mailing list, so here are some
+    pointers.
+</p>
+<p>
+    Start by learning how to strip a working system down to the bare essentials
+    needed to run one or two commands, so you know what it is you actually
+    need.  An excellent practical place to do
+    this is the <a href="http://www.tldp.org/HOWTO/Bootdisk-HOWTO/">Linux
+    BootDisk Howto</a>, or for a more theoretical approach try
+    <a href="http://www.tldp.org/HOWTO/From-PowerUp-To-Bash-Prompt-HOWTO.html">From
+    PowerUp to Bash Prompt</a>.
+</p>
+<p>
+    To learn how to build a working Linux system entirely from source code,
+    the place to go is the <a href="http://www.linuxfromscratch.org">Linux
+    From Scratch</a> project.  They have an entire book of step-by-step
+    instructions you can
+    <a href="http://www.linuxfromscratch.org/lfs/view/stable/">read online</a>
+    or
+    <a href="http://www.linuxfromscratch.org/lfs/downloads/stable/">download</a>.
+    Be sure to check out the other sections of their main page, including
+    Beyond Linux From Scratch, Hardened Linux From Scratch, their Hints
+    directory, and their LiveCD project.  (They also have mailing lists which
+    are better sources of answers to Linux-system building questions than
+    the busybox list.)
+</p>
+<p>
+    If you want an automated yet customizable system builder which produces
+    a BusyBox and uClibc based system, try
+    <a href="http://buildroot.uclibc.org">buildroot</a>, which is
+    another project by the maintainer of the uClibc and BusyBox projects
+    (Erik Andersen).  Download the tarball, extract it, unset CC, make.
+    For more instructions, see the website.
+</p>
+
 
 <hr />
 <p>
 <h2><a name="kernel">Which Linux kernel versions are supported?</a></h2>
 <p>
-
-
-    Full functionality requires Linux 2.2.x or better.  A large fraction of the
+    Full functionality requires Linux 2.4.x or better.  (Earlier versions may
+    still work, but are no longer regularly tested.)  A large fraction of the
     code should run on just about anything.  While the current code is fairly
     Linux specific, it should be fairly easy to port the majority of the code
     to support, say, FreeBSD or Solaris, or Mac OS X, or even Windows (if you
     are into that sort of thing).
-
-
+</p>
 <hr />
 <p>
 <h2><a name="arch">Which architectures does BusyBox run on?</a></h2>
 <p>
-
-
     BusyBox in general will build on any architecture supported by gcc.
-    Kernel module loading for 2.2 and 2.4 Linux kernels is currently
+    Kernel module loading for 2.4 Linux kernels is currently
     limited to ARM, CRIS, H8/300, x86, ia64, x86_64, m68k, MIPS, PowerPC,
     S390, SH3/4/5, Sparc, v850e, and x86_64 for 2.4.x kernels.
-
+</p>
+<p>
     With 2.6.x kernels, module loading support should work on all architectures.
-
-
+</p>
 <hr />
 <p>
 <h2><a name="libc">Which C libraries are supported?</a></h2>
 <p>
-
-
-    uClibc and glibc are supported.  People have been looking at newlib and
-    dietlibc, but they are currently considered unsupported, untested, or
-    worse.  Linux-libc5 is no longer supported.  If you require a small C
-    library, you should probably use uClibc.
-
-
+    On Linux, BusyBox releases are tested against uClibc (0.9.27 or later) and
+    glibc (2.2 or later).  Both should provide full functionality with busybox,
+    and if you find a bug we want to hear about it.
+</p>
+</p>
+    Linux-libc5 is no longer maintained (and has no known advantages over
+    uClibc), dietlibc is known to have numerous unfixed bugs, and klibc is
+    missing too many features to build BusyBox.  If you require a small C
+    library for Linux, the busybox developers recommend uClibc.
+</p>
+<p>
+    Some BusyBox applets have been built and run under a combination
+    of newlib and libgloss (see
+    <a href="http://www.busybox.net/lists/busybox/2005-March/013759.html">this thread</a>).
+    This is still experimental, but may be supported in a future release.
+</p>
 <hr />
 <p>
 <h2><a name="commercial">Can I include BusyBox as part of the software on my device?</a></h2>
@@ -131,27 +218,6 @@ have additions to this FAQ document, we would love to add them,
     sortof thing) by changing drivers/char/tty_io.c to change the lines where
     it sets "noctty = 1;" to instead set it to "0".  I recommend you instead
     run your shell on a real console...
-
-
-<hr />
-<p>
-<h2><a name="getting_started">How can I get started using BusyBox?</a></h2>
-<p>
-
-    An easy method to build your own basic BusyBox based system, is to
-    follow these simple steps:
-    <ul>
-	<li> Point your web browser <a href="http://buildroot.uclibc.org/">here</a>
-	<li> Download a copy of buildroot
-	<li> Unpack the tarball on your Linux system somewhere
-	<li> run 'make' and configure things to taste.
-	<li> run 'unset CC'.   Some Linux systems (i.e. Gentoo) set 'CC'
-	    in the system environment which messes up cross compiles.
-	<li> run 'make'
-	<li> go have lunch, drink a pop, call a friend, play a video game, etc
-		till it finishes downloading software and compiling things.
-	<li> You should now have a shiny new BusyBox based system.
-    </ul>
 
 
 <hr />
