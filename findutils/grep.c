@@ -260,6 +260,7 @@ extern int grep_main(int argc, char **argv)
 	int matched;
 	unsigned long opt;
 	llist_t *fopt = NULL;
+	int error_open_count = 0;
 
 	/* do normal option parsing */
 #ifdef CONFIG_FEATURE_GREP_CONTEXT
@@ -375,6 +376,7 @@ extern int grep_main(int argc, char **argv)
 			if (file == NULL) {
 				if (!suppress_err_msgs)
 					bb_perror_msg("%s", cur_file);
+			error_open_count++;
 		} else {
 			matched += grep_file(file);
 			if(matched < 0) {
@@ -382,9 +384,9 @@ extern int grep_main(int argc, char **argv)
 				* return success */
 				break;
 			}
-				fclose(file);
-			}
+			fclose(file);
 		}
+	}
 
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy all the elments in the pattern list */
@@ -396,5 +398,7 @@ extern int grep_main(int argc, char **argv)
 	}
 #endif
 
+	if(error_open_count)
+		return 2;
 	return !matched; /* invert return value 0 = success, 1 = failed */
 }
