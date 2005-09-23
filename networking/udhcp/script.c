@@ -29,10 +29,10 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include "common.h"
 #include "options.h"
 #include "dhcpd.h"
 #include "dhcpc.h"
-#include "common.h"
 #include "script.h"
 
 /* get a rough idea of how long an option will be (rounding up...) */

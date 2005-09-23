@@ -6,10 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common.h"
 #include "dhcpd.h"
 #include "options.h"
 #include "files.h"
-#include "common.h"
 
 
 /* supported options are easily added here */

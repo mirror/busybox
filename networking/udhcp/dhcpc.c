@@ -34,6 +34,7 @@
 #include <net/if.h>
 #include <errno.h>
 
+#include "common.h"
 #include "dhcpd.h"
 #include "dhcpc.h"
 #include "options.h"
@@ -41,7 +42,6 @@
 #include "clientsocket.h"
 #include "script.h"
 #include "socket.h"
-#include "common.h"
 #include "signalpipe.h"
 
 static int state;

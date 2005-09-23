@@ -25,10 +25,10 @@
 #include <string.h>
 #include <time.h>
 
+#include "common.h"
 #include "serverpacket.h"
 #include "dhcpd.h"
 #include "options.h"
-#include "common.h"
 #include "static_leases.h"
 
 /* send a packet to giaddr using the kernel ip stack */

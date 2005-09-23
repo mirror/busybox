@@ -20,9 +20,6 @@
  */
 
 
-#define pidfile_acquire udhcp_pidfile_acquire
-#define pidfile_write_release udhcp_pidfile_write_release
-
 int pidfile_acquire(const char *pidfile);
 void pidfile_write_release(int pid_fd);
 
