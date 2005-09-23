@@ -376,7 +376,7 @@ extern int grep_main(int argc, char **argv)
 			if (file == NULL) {
 				if (!suppress_err_msgs)
 					bb_perror_msg("%s", cur_file);
-			error_open_count++;
+				error_open_count++;
 		} else {
 			matched += grep_file(file);
 			if(matched < 0) {
@@ -398,7 +398,7 @@ extern int grep_main(int argc, char **argv)
 	}
 #endif
 
-	if(error_open_count)
-		return 2;
+	if(be_quiet)
+		return error_open_count ? 2 : 0;
 	return !matched; /* invert return value 0 = success, 1 = failed */
 }
