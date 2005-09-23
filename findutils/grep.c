@@ -398,7 +398,9 @@ extern int grep_main(int argc, char **argv)
 	}
 #endif
 
-	if(be_quiet)
-		return error_open_count ? 2 : 0;
+	if(be_quiet && matched)
+		return 0;
+	if(error_open_count)
+		return 2;
 	return !matched; /* invert return value 0 = success, 1 = failed */
 }
