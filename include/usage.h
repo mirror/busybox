@@ -849,9 +849,21 @@
 	"\t-I initstring\tSets the init string to send before anything else\n" \
 	"\t-H login_host\tLog login_host into the utmp file as the hostname"
 
-
+#if ENABLE_FEATURE_GREP_EGREP_ALIAS
+#define USAGE_GREP_E(a) a
+#else
+#define USAGE_GREP_E(a)
+#endif
+#if ENABLE_FEATURE_GREP_CONTEXT
+#define USAGE_GREP_CTX(a) a
+#else
+#define USAGE_GREP_CTX(a)
+#endif
 #define grep_trivial_usage \
-	"[-ihHnqvs] PATTERN [FILEs...]"
+	"[-ihHnqvs" \
+	USAGE_GREP_E("E") \
+	USAGE_GREP_CTX("ABC") \
+	"] PATTERN [FILEs...]"
 #define grep_full_usage \
 	"Search for PATTERN in each FILE or standard input.\n\n" \
 	"Options:\n" \
@@ -859,10 +871,20 @@
 	"\t-h\tsuppress the prefixing filename on output\n" \
 	"\t-i\tignore case distinctions\n" \
 	"\t-l\tlist names of files that match\n" \
+	"\t-L\tlist names of files that do not match\n" \
 	"\t-n\tprint line number with output lines\n" \
-	"\t-q\tbe quiet. Returns 0 if result was found, 1 otherwise\n" \
+	"\t-q\tbe quiet. Returns 0 if PATTERN was found, 1 otherwise\n" \
 	"\t-v\tselect non-matching lines\n" \
-	"\t-s\tsuppress file open/read error messages"
+	"\t-s\tsuppress file open/read error messages\n" \
+	"\t-c\tonly print count of matching lines\n" \
+	"\t-f\tread PATTERN from file\n" \
+	"\t-e\tPATTERN is a regular expression\n" \
+	"\t-F\tPATTERN is a set of newline-separated strings" \
+	USAGE_GREP_E("\n\t-E\tPATTERN is an extended regular expression") \
+	USAGE_GREP_CTX("\n\t-A\tprint NUM lines of trailing context") \
+	USAGE_GREP_CTX("\n\t-B\tprint NUM lines of leading context") \
+	USAGE_GREP_CTX("\n\t-C\tprint NUM lines of output context")
+
 #define grep_example_usage \
 	"$ grep root /etc/passwd\n" \
 	"root:x:0:0:root:/root:/bin/bash\n" \
