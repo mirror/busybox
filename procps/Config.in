@@ -50,6 +50,12 @@ config CONFIG_RENICE
 	  Renice alters the scheduling priority of one or more running
 	  processes.
 
+config CONFIG_BB_SYSCTL
+	bool "sysctl"
+	default n
+	help
+	  Configure kernel parameters at runtime.
+
 config CONFIG_TOP
 	bool "top"
 	default n
@@ -71,12 +77,6 @@ config CONFIG_UPTIME
 	  uptime gives a one line display of the current time, how long
 	  the system has been running, how many users are currently logged
 	  on, and the system load averages for the past 1, 5, and 15 minutes.
-
-config CONFIG_BB_SYSCTL
-	bool "sysctl"
-	default n
-	help
-	  sysctl - configure kernel parameters at runtime
 
 endmenu
 
