@@ -60,6 +60,13 @@ config CONFIG_HALT
 	help
 	  Stop all processes and halt the system.
 
+config CONFIG_MESG
+	bool "mesg"
+	default y
+	help
+	  Mesg controls access to your terminal by others.  It is typically
+	  used to allow or disallow other users to write to your terminal
+
 config CONFIG_POWEROFF
 	bool "poweroff"
 	default y
@@ -71,13 +78,6 @@ config CONFIG_REBOOT
 	default y
 	help
 	  Stop all processes and reboot the system.
-
-config CONFIG_MESG
-	bool "mesg"
-	default y
-	help
-	  Mesg controls access to your terminal by others.  It is typically
-	  used to allow or disallow other users to write to your terminal
 
 endmenu
 
