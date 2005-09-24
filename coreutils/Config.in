@@ -151,7 +151,7 @@ config CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
 	  Use a blocksize of (1K) instead of the default 512b.
 
 config CONFIG_ECHO
-	bool "echo (basic SUSv3 version taking no options)"
+	bool "echo (basic SuSv3 version taking no options)"
 	default n
 	help
 	  echo is used to print a specified string to stdout.
@@ -171,12 +171,6 @@ config CONFIG_ENV
 	  env is used to set an environment variable and run
 	  a command; without options it displays the current
 	  environment.
-
-config CONFIG_PRINTENV
-	bool "printenv"
-	default n
-	help
-	  printenv is used to print all or part of environment.
 
 config CONFIG_EXPR
 	bool "expr"
@@ -372,6 +366,12 @@ config CONFIG_OD
 	default n
 	help
 	  od is used to dump binary files in octal and other formats.
+
+config CONFIG_PRINTENV
+	bool "printenv"
+	default n
+	help
+	  printenv is used to print all or part of environment.
 
 config CONFIG_PRINTF
 	bool "printf"
