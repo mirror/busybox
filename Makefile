@@ -137,7 +137,7 @@ uninstall: busybox.links
 install-hardlinks: $(top_srcdir)/applets/install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX) --hardlinks
 
-check: busybox
+check test: busybox
 	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
 	$(top_srcdir)/testsuite/runtest
 
