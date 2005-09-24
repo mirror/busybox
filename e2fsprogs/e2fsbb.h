@@ -32,29 +32,33 @@ typedef long errcode_t;
 #define P_(singular, plural, n) ((n) == 1 ? (singular) : (plural))
 
 /* misc crap */
-#define fatal_error(msg, err) bb_error_msg_and_die(msg)
+#define fatal_error(err, msg) bb_error_msg_and_die(msg)
 #define usage() bb_show_usage()
 #define perror(msg) bb_perror_msg(msg)
 
 /* header defines */
+#define ENABLE_HTREE 1
+#define HAVE_DIRENT_H 1
 #define HAVE_ERRNO_H 1
-#define HAVE_UNISTD_H 1
 #define HAVE_EXT2_IOCTLS 1
+#define HAVE_GETOPT_H 1
+#define HAVE_INTTYPES_H 1
+#define HAVE_LINUX_FD_H 1
+#define HAVE_MALLOC_H 1
+#define HAVE_MNTENT_H 1
+#define HAVE_NETINET_IN_H 1
+#define HAVE_NET_IF_H 1
+#define HAVE_SETJMP_H 1
+#define HAVE_SIGNAL_H 1
 #define HAVE_STDLIB_H 1
+#define HAVE_SYS_IOCTL_H 1
+#define HAVE_SYS_MOUNT_H 1
+#define HAVE_SYS_QUEUE_H 1
+#define HAVE_SYS_RESOURCE_H 1
+#define HAVE_SYS_SOCKET_H 1
 #define HAVE_SYS_STAT_H 1
+#define HAVE_SYS_TIME_H 1
 #define HAVE_SYS_TYPES_H 1
 #define HAVE_UNISTD_H 1
-#define HAVE_SYS_IOCTL_H 1
-#define HAVE_SYS_QUEUE_H 1
-#define HAVE_SYS_SOCKET_H 1
-#define HAVE_NETINET_IN_H 1
-#define HAVE_INTTYPES_H 1
-#define HAVE_NET_IF_H 1
-#define HAVE_GETOPT_H 1
-#define HAVE_SYS_RESOURCE_H 1
-#define HAVE_SYS_MOUNT_H 1
-#define HAVE_SYS_TIME_H 1
-#define HAVE_LINUX_FD_H 1
-#define HAVE_MNTENT_H 1
 
 #endif /* __E2FSBB_H__ */

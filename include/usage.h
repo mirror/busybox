@@ -546,6 +546,26 @@
 	"\t-r,\t--remaining\tInterpret lease times as time remaing\n" \
 	"\t-a,\t--absolute\tInterpret lease times as expire time"
 
+#define e2fsck_trivial_usage \
+	"[-panyrcdfvstDFSV] [-b superblock] [-B blocksize] " \
+	"[-I inode_buffer_blocks] [-P process_inode_size] " \
+	"[-l|-L bad_blocks_file] [-C fd] [-j ext-journal] " \
+	"[-E extended-options] device"
+#define e2fsck_full_usage \
+	"Check a Linux ext2/ext3 file system.\n\n" \
+	"Options:\n" \
+	"\t-p\tAutomatic repair (no questions)\n" \
+	"\t-n\tMake no changes to the filesystem\n" \
+	"\t-y\tAssume 'yes' to all questions\n" \
+	"\t-c\tCheck for bad blocks and add them to the badblock list\n" \
+	"\t-f\tForce checking even if filesystem is marked clean\n" \
+	"\t-v\tBe verbose\n" \
+	"\t-b superblock\tUse alternative superblock\n" \
+	"\t-B blocksize\tForce blocksize when looking for superblock\n" \
+	"\t-j journal\tSet location of the external journal\n" \
+	"\t-l file\tAdd to badblocks list\n" \
+	"\t-L file\tSet badblocks list"
+
 #ifdef CONFIG_FEATURE_FANCY_ECHO
 #  define USAGE_FANCY_ECHO(a) a
 #else
@@ -763,6 +783,20 @@
 	"Frees all memory used by the specified ramdisk."
 #define freeramdisk_example_usage \
 	"$ freeramdisk /dev/ram2\n"
+
+#define fsck_trivial_usage \
+	"[-ANPRTV] [ -C [ fd ] ] [-t fstype] [fs-options] [filesys ...]"
+#define fsck_full_usage \
+	"Check and repair filesystems.\n\n" \
+	"Options:\n" \
+	"\t-A\tWalk /etc/fstab and check all filesystems\n" \
+	"\t-N\tDon't execute, just show what would be done\n" \
+	"\t-P\tWhen using -A, check filesystems in parallel\n" \
+	"\t-R\tWhen using -A, skip the root filesystem\n" \
+	"\t-T\tDon't show title on startup\n" \
+	"\t-V\tVerbose mode\n" \
+	"\t-C\tWrite status information to specified filedescriptor\n" \
+	"\t-t\tList of filesystem types to check"
 
 #define fsck_minix_trivial_usage \
 	"[-larvsmf] /dev/name"

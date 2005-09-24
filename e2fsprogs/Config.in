@@ -11,6 +11,23 @@ config CONFIG_CHATTR
 	help
 	  chattr changes the file attributes on a second extended file system.
 
+config CONFIG_E2FSCK
+	bool "e2fsck"
+	default n
+	help
+	  e2fsck is used to check Linux second extended file systems (ext2fs).
+	  e2fsck also supports ext2 filesystems countaining a journal (ext3).
+	  The normal compat symlinks 'fsck.ext2' and 'fsck.ext3' are also 
+	  provided.
+
+config CONFIG_FSCK
+	bool "fsck"
+	default n
+	help
+	  fsck is used to check and optionally repair one or more filesystems.
+	  In actuality, fsck is simply a front-end for the various file system 
+	  checkers (fsck.fstype) available under Linux.
+
 config CONFIG_LSATTR
 	bool "lsattr"
 	default n

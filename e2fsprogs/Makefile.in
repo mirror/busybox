@@ -6,16 +6,21 @@
 
 E2FSPROGS_AR:=e2fsprogs.a
 
-E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs/
+E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs
 
-srcdir=$(top_srcdir)/e2fsprogs
-
-E2FSPROGS_CFLAGS := -I$(srcdir) -include $(srcdir)/e2fsbb.h
+E2FSPROGS_CFLAGS := -I$(E2FSPROGS_DIR) -include $(E2FSPROGS_DIR)/e2fsbb.h
 
 BLKID_SRC   := cache.c dev.c devname.c devno.c blkid_getsize.c \
                probe.c read.c resolve.c save.c tag.c resolve.c
 BLKID_SRCS  := $(patsubst %,blkid/%, $(BLKID_SRC))
 BLKID_OBJS  := $(patsubst %.c,%.o, $(BLKID_SRCS))
+
+E2FSCK_SRC  := badblocks.c dict.c dirinfo.c dx_dirinfo.c e2fsck.c \
+               ea_refcount.c ehandler.c journal.c message.c pass1.c pass1b.c \
+               pass2.c pass3.c pass4.c pass5.c problem.c recovery.c region.c \
+               rehash.c revoke.c super.c swapfs.c util.c
+E2FSCK_SRCS := $(patsubst %,e2fsck/%, $(E2FSCK_SRC))
+E2FSCK_OBJS := $(patsubst %.c,%.o, $(E2FSCK_SRCS))
 
 E2P_SRC     := fgetsetflags.c fgetsetversion.c pf.c iod.c mntopts.c \
                feature.c ls.c uuid.c pe.c ostype.c ps.c hashstr.c \
@@ -29,7 +34,9 @@ EXT2FS_SRC  := gen_bitmap.c bitops.c ismounted.c mkjournal.c unix_io.c \
                openfs.c io_manager.c finddev.c read_bb.c alloc.c badblocks.c \
                getsize.c getsectsize.c alloc_tables.c read_bb_file.c mkdir.c \
                bb_inode.c newdir.c alloc_sb.c lookup.c dirblock.c expanddir.c \
-               dir_iterate.c link.c res_gdt.c
+               dir_iterate.c link.c res_gdt.c icount.c get_pathname.c dblist.c \
+               dirhash.c version.c flushb.c unlink.c check_desc.c valid_blk.c \
+               ext_attr.c bmap.c dblist_dir.c
 EXT2FS_SRCS := $(patsubst %,ext2fs/%, $(EXT2FS_SRC))
 EXT2FS_OBJS := $(patsubst %.c,%.o, $(EXT2FS_SRCS))
 
@@ -40,15 +47,17 @@ UUID_OBJS   := $(patsubst %.c,%.o, $(UUID_SRCS))
 
 E2FSPROGS-:=
 E2FSPROGS-$(CONFIG_CHATTR)     += chattr.o $(E2P_OBJS)
+E2FSPROGS-$(CONFIG_E2FSCK)     += e2fsck.o $(BLKID_OBJS) $(E2FSCK_OBJS)
+E2FSPROGS-$(CONFIG_FSCK)       += fsck.o base_device.o
 E2FSPROGS-$(CONFIG_LSATTR)     += lsattr.o $(E2P_OBJS)
 E2FSPROGS-$(CONFIG_MKE2FS)     += mke2fs.o util.o $(E2P_OBJS) $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)
 E2FSPROGS-$(CONFIG_TUNE2FS)    += tune2fs.o util.o $(E2P_OBJS) $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)
 
-libraries-y+=$(E2FSPROGS_DIR)$(E2FSPROGS_AR)
+libraries-y+=$(E2FSPROGS_DIR)/$(E2FSPROGS_AR)
 
 
-$(E2FSPROGS_DIR)$(E2FSPROGS_AR): $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(E2FSPROGS_DIR)%, $(E2FSPROGS-y))
+$(E2FSPROGS_DIR)/$(E2FSPROGS_AR): $(patsubst %,$(E2FSPROGS_DIR)/%, $(E2FSPROGS-y))
+	$(AR) $(ARFLAGS) $@ $(patsubst %,$(E2FSPROGS_DIR)/%, $(E2FSPROGS-y))
 
-$(E2FSPROGS_DIR)%.o: $(srcdir)/%.c
+$(E2FSPROGS_DIR)/%.o: $(E2FSPROGS_DIR)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(E2FSPROGS_CFLAGS) -c -o $@ $<

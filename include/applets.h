@@ -182,6 +182,9 @@
 #ifdef CONFIG_DUMPLEASES
 	APPLET(dumpleases, dumpleases_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_E2FSCK
+	APPLET(e2fsck, e2fsck_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_E2LABEL
 	APPLET_NOUSAGE("e2label", tune2fs_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
@@ -238,6 +241,13 @@
 #endif
 #ifdef CONFIG_FREERAMDISK
 	APPLET(freeramdisk, freeramdisk_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_FSCK
+	APPLET(fsck, fsck_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_E2FSCK
+	APPLET_NOUSAGE("fsck.ext2", e2fsck_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+	APPLET_NOUSAGE("fsck.ext3", e2fsck_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_FSCK_MINIX
 	APPLET_ODDNAME("fsck.minix", fsck_minix_main, _BB_DIR_SBIN, _BB_SUID_NEVER, fsck_minix)
