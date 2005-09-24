@@ -18,8 +18,8 @@
 #include <sys/time.h>
 #endif
 
-#include "ext2_fs.h"
-#include "ext2fsP.h"
+#include "ext2fs/ext2_fs.h"
+#include "ext2fs/ext2fsP.h"
 
 struct process_block_struct {
 	ext2_ino_t		ino;
