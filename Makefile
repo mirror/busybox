@@ -110,6 +110,7 @@ $(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
 include $(patsubst %,%/Makefile.in, $(SRC_DIRS))
 -include $(top_builddir)/.depend
 
+%.o: .depend
 busybox: $(ALL_MAKEFILES) .depend $(libraries-y)
 	$(CC) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
 	$(STRIPCMD) $@
@@ -196,7 +197,8 @@ endif
 .depend: scripts/bb_mkdep $(DEP_INCLUDES)
 	@rm -f .depend
 	@mkdir -p include/config
-	scripts/bb_mkdep -c include/config.h -c include/bb_config.h > $@
+	scripts/bb_mkdep -c include/config.h -c include/bb_config.h > $@.tmp
+	mv $@.tmp $@
 
 include/config.h: .config
 	@if [ ! -x $(top_builddir)/scripts/config/conf ] ; then \
