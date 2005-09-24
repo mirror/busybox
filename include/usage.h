@@ -3089,8 +3089,9 @@
 	"\nFlags:\n" "\t-a\tUnmount all file systems" \
 	USAGE_MTAB(" in /etc/mtab\n\t-n\tDon't erase /etc/mtab entries") \
 	"\n\t-r\tTry to remount devices as read-only if mount is busy" \
-	USAGE_MOUNT_FORCE("\n\t-f\tForce umount (i.e., unreachable NFS server)") \
-	USAGE_MOUNT_LOOP("\n\t-l\tDo not free loop device (if a loop device has been used)")
+	"\n\t-l\tLazy umount (detach filesystem)" \
+	"\n\t-f\tForce umount (i.e., unreachable NFS server)" \
+	USAGE_MOUNT_LOOP("\n\t-D\tDo not free loop device (if a loop device has been used)")
 #define umount_example_usage \
 	"$ umount /dev/hdc1 \n"
 

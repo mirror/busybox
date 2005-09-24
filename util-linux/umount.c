@@ -18,19 +18,27 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/mount.h>
+#include <getopt.h>
 #include "busybox.h"
+
+#define OPTION_STRING		"flaDnrv"
+#define OPT_FORCE			1
+#define OPT_LAZY			2
+#define OPT_ALL				4
+#define OPT_DONTFREELOOP	8
+#define OPT_NO_MTAB			16
+#define OPT_REMOUNT			32
+/* -v is ignored */
+	
 
 extern int umount_main(int argc, char **argv)
 {
-	int doForce = 0;
-	int freeLoop = ENABLE_FEATURE_MOUNT_LOOP;
-	int useMtab = ENABLE_FEATURE_MTAB_SUPPORT;
-	int umountAll = FALSE;
-	int doRemount = FALSE;
+	int doForce;
 	char path[2*PATH_MAX];
 	struct mntent me;
 	FILE *fp;
 	int status=EXIT_SUCCESS;
+	unsigned long opt;
 	struct mtab_list {
 		char *dir;
 		char *device;
@@ -40,19 +48,14 @@ extern int umount_main(int argc, char **argv)
 	if(argc < 2) bb_show_usage();
 	
 	/* Parse any options */
-	while (--argc > 0 && **(++argv) == '-') {
-		while (*++(*argv)) {
-			if(**argv=='a') umountAll = TRUE;
-			else if(ENABLE_FEATURE_MOUNT_LOOP && **argv=='D') freeLoop = FALSE;
-			else if(ENABLE_FEATURE_MTAB_SUPPORT && **argv=='n') useMtab = FALSE;
-			else if(**argv=='f') doForce = 1;   // MNT_FORCE
-			else if(**argv=='l') doForce = 2;   // MNT_DETACH
-			else if(**argv=='r') doRemount = TRUE;
-			else if(**argv=='v');
-			else bb_show_usage();
-		}
-	}
+	
+	opt = bb_getopt_ulflags (argc, argv, "flaDnrv");
+	
+	argc -= optind;
+	argv += optind;
 
+	doForce = MAX((opt & OPT_FORCE), (opt & OPT_LAZY));
+	
 	/* Get a list of mount points from mtab.  We read them all in now mostly
 	 * for umount -a (so we don't have to worry about the list changing while
 	 * we iterate over it, or about getting stuck in a loop on the same failing
@@ -73,16 +76,16 @@ extern int umount_main(int argc, char **argv)
 
 	/* If we're umounting all, then m points to the start of the list and
 	 * the argument list should be empty (which will match all). */
-	if(!umountAll) m=0;
+	if(!(opt & OPT_ALL)) m=0;
 
 	// Loop through everything we're supposed to umount, and do so.
 	for(;;) {
 		int curstat;
 		
-		// Do we alrady know what to umount this time through the loop?
+		// Do we already know what to umount this time through the loop?
 		if(m) safe_strncpy(path,m->dir,PATH_MAX);
-		// For umountAll, end of mtab means time to exit.
-		else if(umountAll) break;
+		// For umount -a, end of mtab means time to exit.
+		else if(opt & OPT_ALL) break;
 		// Get next command line argument (and look it up in mtab list)
 		else if(!argc--) break;
 		else {
@@ -104,27 +107,28 @@ extern int umount_main(int argc, char **argv)
 		}
 
 		// If still can't umount, maybe remount read-only?	
-		if (curstat && doRemount && errno == EBUSY && m) {
+		if (curstat && (opt & OPT_REMOUNT) && errno == EBUSY && m) {
 			curstat = mount(m->device, path, NULL, MS_REMOUNT|MS_RDONLY, NULL);
 			bb_error_msg(curstat ? "Cannot remount %s read-only" :
 						 "%s busy - remounted read-only", m->device);
 		}
 
-		/* De-allcate the loop device.  This ioctl should be ignored on any
+		/* De-allocate the loop device.  This ioctl should be ignored on any
 		 * non-loop block devices. */
-		if(ENABLE_FEATURE_MOUNT_LOOP && freeLoop && m)
+		if(ENABLE_FEATURE_MOUNT_LOOP && !(opt & OPT_DONTFREELOOP) && m)
 			del_loop(m->device);
 
 		if(curstat) {
 			/* Yes, the ENABLE is redundant here, but the optimizer for ARM
-			 * can't do simple constant propogation in local variables... */
-			if(ENABLE_FEATURE_MTAB_SUPPORT && useMtab && m) erase_mtab(m->dir);
+			 * can't do simple constant propagation in local variables... */
+			if(ENABLE_FEATURE_MTAB_SUPPORT && !(opt & OPT_NO_MTAB) && m)
+				erase_mtab(m->dir);
 			status = EXIT_FAILURE;
 			bb_perror_msg("Couldn't umount %s\n", path);
 		}
 		// Find next matching mtab entry for -a or umount /dev
 		while(m && (m = m->next)) 
-			if(umountAll || !strcmp(path,m->device))
+			if((opt & OPT_ALL) || !strcmp(path,m->device))
 			   	break;
 	}
 
