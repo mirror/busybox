@@ -375,7 +375,7 @@ err:
 	exit(1);
 }
 
-
+#ifdef CONFIG_E2LABEL
 static void parse_e2label_options(int argc, char ** argv)
 {
 	if ((argc < 2) || (argc > 3))
@@ -393,6 +393,7 @@ static void parse_e2label_options(int argc, char ** argv)
 	} else 
 		print_label++;
 }
+#endif
 
 static time_t parse_time(char *str)
 {
@@ -613,6 +614,7 @@ static void parse_tune2fs_options(int argc, char **argv)
 		bb_error_msg_and_die("Unable to resolve '%s'", argv[optind]);
 }
 
+#ifdef CONFIG_FINDFS
 static void do_findfs(int argc, char **argv)
 {
 	char *dev;
@@ -624,8 +626,9 @@ static void do_findfs(int argc, char **argv)
 	if (!dev)
 		bb_error_msg_and_die("Unable to resolve '%s'", argv[1]);
 	puts(dev);
-	exit(0);
+	return 0;
 }
+#endif
 
 int tune2fs_main(int argc, char **argv)
 {
@@ -633,13 +636,20 @@ int tune2fs_main(int argc, char **argv)
 	ext2_filsys fs;
 	struct ext2_super_block *sb;
 	io_manager io_ptr;
+#if defined(CONFIG_FINDFS) || defined(CONFIG_E2LABEL)
 	char *program_name = basename(argv[0]);
+#endif
 
+#ifdef CONFIG_FINDFS
 	if (strcmp(program_name, "findfs") == 0)
-		do_findfs(argc, argv);
+		return do_findfs(argc, argv);
+#endif
+
+#ifdef CONFIG_E2LABEL
 	if (strcmp(program_name, "e2label") == 0)
 		parse_e2label_options(argc, argv);
 	else
+#endif
 		parse_tune2fs_options(argc, argv);
 
 	io_ptr = unix_io_manager;
