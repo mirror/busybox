@@ -100,18 +100,19 @@ int ipcalc_main(int argc, char **argv)
 			"mbn"
 #endif
 			);
+
+	argc -= optind;
+	argv += optind;
 	if (mode & (BROADCAST | NETWORK | NETPREFIX)) {
-		if (argc - optind > 2) {
+		if (argc > 2 || argc <= 0)
 			bb_show_usage();
-		}
 	} else {
-		if (argc - optind != 1) {
+		if (argc != 1)
 			bb_show_usage();
-		}
 	}
 
 #ifdef CONFIG_FEATURE_IPCALC_FANCY
-	prefixstr = ipstr = argv[optind];
+	prefixstr = ipstr = argv[0];
 
 	while(*prefixstr) {
 		if (*prefixstr == '/') {
@@ -142,16 +143,16 @@ int ipcalc_main(int argc, char **argv)
 	}
 	ipaddr = inet_aton(ipstr, &a);
 #else
-	ipaddr = inet_aton(argv[optind], &a);
+	ipaddr = inet_aton(argv[0], &a);
 #endif
 
 	if (ipaddr == 0) {
-		IPCALC_MSG(bb_error_msg_and_die("bad IP address: %s", argv[optind]),
+		IPCALC_MSG(bb_error_msg_and_die("bad IP address: %s", argv[0]),
 				exit(EXIT_FAILURE));
 	}
 	ipaddr = a.s_addr;
 
-	if (argc - optind == 2) {
+	if (argc == 2) {
 #ifdef CONFIG_FEATURE_IPCALC_FANCY
 		if (have_netmask) {
 			IPCALC_MSG(bb_error_msg_and_die("Both prefix and netmask were specified, use one or the other.\n"),
@@ -159,9 +160,9 @@ int ipcalc_main(int argc, char **argv)
 		}
 
 #endif
-		netmask = inet_aton(argv[optind + 1], &a);
+		netmask = inet_aton(argv[1], &a);
 		if (netmask == 0) {
-			IPCALC_MSG(bb_error_msg_and_die("bad netmask: %s", argv[optind + 1]),
+			IPCALC_MSG(bb_error_msg_and_die("bad netmask: %s", argv[1]),
 					exit(EXIT_FAILURE));
 		}
 		netmask = a.s_addr;
@@ -200,7 +201,7 @@ int ipcalc_main(int argc, char **argv)
 		hostinfo = gethostbyaddr((char *) &ipaddr, sizeof(ipaddr), AF_INET);
 		if (!hostinfo) {
 			IPCALC_MSG(bb_herror_msg_and_die(
-						"cannot find hostname for %s", argv[optind]),);
+						"cannot find hostname for %s", argv[0]),);
 			exit(EXIT_FAILURE);
 		}
 		for (x = 0; hostinfo->h_name[x]; x++) {
