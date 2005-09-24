@@ -615,7 +615,7 @@ static void parse_tune2fs_options(int argc, char **argv)
 }
 
 #ifdef CONFIG_FINDFS
-static void do_findfs(int argc, char **argv)
+static attribute_noreturn void do_findfs(int argc, char **argv)
 {
 	char *dev;
 
@@ -626,7 +626,7 @@ static void do_findfs(int argc, char **argv)
 	if (!dev)
 		bb_error_msg_and_die("Unable to resolve '%s'", argv[1]);
 	puts(dev);
-	return 0;
+	exit(0);
 }
 #endif
 
@@ -642,7 +642,7 @@ int tune2fs_main(int argc, char **argv)
 
 #ifdef CONFIG_FINDFS
 	if (strcmp(program_name, "findfs") == 0)
-		return do_findfs(argc, argv);
+		do_findfs(argc, argv);
 #endif
 
 #ifdef CONFIG_E2LABEL
