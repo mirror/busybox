@@ -208,14 +208,6 @@ config CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 	  are overly fond of its long options, such as --hctosys, --utc, etc)
 	  then enable this option.
 
-config CONFIG_LOSETUP
-	bool "losetup"
-	default n
-	help
-	  losetup is used to associate or detach a loop device with a regular
-	  file or block device, and to query the status of a loop device.  This
-	  version does not currently support enabling data encryption.
-
 config CONFIG_IPCRM
 	bool "ipcrm"
 	default n
@@ -232,6 +224,14 @@ config CONFIG_IPCS
 	help
 	  The ipcs utility is used to provide information on the currently
 	  allocated System V interprocess (IPC) objects in the system.
+
+config CONFIG_LOSETUP
+	bool "losetup"
+	default n
+	help
+	  losetup is used to associate or detach a loop device with a regular
+	  file or block device, and to query the status of a loop device.  This
+	  version does not currently support enabling data encryption.
 
 config CONFIG_MKSWAP
 	bool "mkswap"
@@ -284,6 +284,12 @@ config CONFIG_RDATE
 	  system clock with the date and time of a remote networked system using
 	  the RFC868 protocol, which is built into the inetd daemon on most
 	  systems.
+
+config CONFIG_READPROFILE
+	bool "readprofile"
+	default n
+	help
+	  This allows you to parse /proc/profile for basic profiling.
 
 config CONFIG_SWAPONOFF
 	bool "swaponoff"
@@ -360,12 +366,6 @@ config CONFIG_FEATURE_MTAB_SUPPORT
 	  features like separate per-process filesystem namespaces, requires
 	  that your /etc directory be writeable, tends to get easily confused
 	  by --bind or --move mounts, and so on.  (In brief: avoid.)
-
-config CONFIG_READPROFILE
-	bool "readprofile"
-	default n
-	help
-	  This allows you to parse /proc/profile for basic profiling.
 
 endmenu
 
