@@ -235,7 +235,7 @@
 	""
 #define bbconfig_full_usage \
 	"Print the config file which built busybox\n"
-       
+
 #define cp_trivial_usage \
 	"[OPTION]... SOURCE DEST"
 #define cp_full_usage \
@@ -1451,11 +1451,11 @@
 	"Options:\n" \
 	"\t-b\t--broadcast\tDisplay calculated broadcast address\n" \
 	"\t-n\t--network\tDisplay calculated network address\n" \
-	"\t-m\t--netmask\tDisplay default netmask for IP." \
+	"\t-m\t--netmask\tDisplay default netmask for IP" \
 	XUSAGE_IPCALC_FANCY( \
-	"\n\t-p\t--prefix\tDisplay the prefix for IP/NETMASK." \
+	"\n\t-p\t--prefix\tDisplay the prefix for IP/NETMASK\n" \
 	"\t-h\t--hostname\tDisplay first resolved host name\n" \
-	"\t-s\t--silent\tDon't ever display error messages.")
+	"\t-s\t--silent\tDon't ever display error messages")
 
 #define ipcrm_trivial_usage \
 	"[-[MQS] key] [-[mqs] id]"
@@ -3020,8 +3020,8 @@
 	"\t-t tos\tSet the type-of-service in probe packets to the following value\n" \
 	"\t\t(default 0)\n" \
 	"\t-w wait\tSet the time (in seconds) to wait for a response to a probe\n" \
-	"\t\t(default 3 sec.)\n" \
-	"\t-g\tSpecify a loose source route gateway (8 maximum)" 
+	"\t\t(default 3 sec)\n" \
+	"\t-g\tSpecify a loose source route gateway (8 maximum)"
 
 
 #define true_trivial_usage \
