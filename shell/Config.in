@@ -3,7 +3,7 @@
 # see scripts/kbuild/config-language.txt.
 #
 
-menu "Another Bourne-like Shell"
+menu "Shells"
 
 choice
 	prompt "Choose your default shell"
@@ -54,18 +54,18 @@ config CONFIG_ASH_JOB_CONTROL
 	  Enable job control in the ash shell.
 
 config CONFIG_ASH_READ_NCHARS
-        bool "  Enable 'read -n N' and 'read -s' support"
-        default n
-        depends on CONFIG_ASH
-        help
+	bool "  Enable 'read -n N' and 'read -s' support"
+	default n
+	depends on CONFIG_ASH
+	help
 	  'read -n N' will return a value after N characters have been read.
 	  'read -s' will read without echoing the user's input.
 
 config CONFIG_ASH_READ_TIMEOUT
-        bool "  Enable 'read -t S' support."
-        default n
-        depends on CONFIG_ASH
-        help
+	bool "  Enable 'read -t S' support."
+	default n
+	depends on CONFIG_ASH
+	help
 	  'read -t S' will return a value after S seconds have passed.
 	  This implementation will allow fractional seconds, expressed
 	  as a decimal fraction, e.g. 'read -t 2.5 foo'.
