@@ -567,7 +567,7 @@ int ifconfig_main(int argc, char **argv)
 /* Input an Ethernet address and convert to binary. */
 static int in_ether(char *bufp, struct sockaddr *sap)
 {
-	unsigned char *ptr;
+	char *ptr;
 	int i, j;
 	unsigned char val;
 	unsigned char c;
