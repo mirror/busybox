@@ -30,9 +30,7 @@
 #define DICT_IMPLEMENTATION
 #include "dict.h"
 
-#ifdef KAZLIB_RCSID
-static const char rcsid[] = "$Id: dict.c,v 1.40.2.7 2000/11/13 01:36:44 kaz Exp $";
-#endif
+#define NDEBUG
 
 /*
  * These macros provide short convenient names for structure members,
