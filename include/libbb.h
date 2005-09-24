@@ -63,6 +63,8 @@
 # define __restrict     /* Ignore */
 #endif
 
+#define attribute_noreturn __attribute__ ((__noreturn__))
+
 /* Some useful definitions */
 #define FALSE   ((int) 0)
 #define TRUE    ((int) 1)
