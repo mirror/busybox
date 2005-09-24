@@ -19,11 +19,25 @@
 # The environment variable "FAILCOUNT" contains a cumulative total of the
 # 
 
-# The command line parsing is ugly and should be improved.
+verbose=0
+debug=0
+force=0
+for x in "$@" ; do
+	case "$x" in
+	-v|--verbose)  verbose=1; shift;;
+	-d|--debug)    debug=1; shift;;
+	-f|--force)    force=1; shift;;
+	--)            break;;
+	-*)            echo "Unknown option '$x'"; exit 1;;
+	*)             break;;
+	esac
+done
 
-if [ "$1" == "-v" ]
-then
-  verbose=1
+if [ -n "$VERBOSE" ] ; then
+	verbose=1
+fi
+if [ -n "$DEBUG" ] ; then
+	debug=1
 fi
 
 export FAILCOUNT=0
@@ -48,16 +62,19 @@ testing()
     exit
   fi
 
-  if [ ${force_tests:-0} -ne 1 -a -n "$_BB_CONFIG_DEP" ]
+  if [ "$debug" = "1" ] ; then
+    set -x
+  fi
+
+  if [ -n "$_BB_CONFIG_DEP" ] && [ "${force}" = "0" ]
   then
     if ! config_is_set "$_BB_CONFIG_DEP"
     then
-      echo "UNTESTED: $1"
+      echo "SKIPPED: $1"
       return 0
     fi
   fi
 
-  f=$FAILCOUNT
   echo -ne "$3" > expected
   echo -ne "$4" > input
   echo -n -e "$5" | eval "$COMMAND $2" > actual
@@ -66,9 +83,9 @@ testing()
   cmp expected actual > /dev/null
   if [ $? -ne 0 ]
   then
-	FAILCOUNT=$[$FAILCOUNT+1]
+	((FAILCOUNT++))
 	echo "FAIL: $1"
-	if [ $verbose ]
+	if [ "$verbose" = "1" ]
 	then
 		diff -u expected actual
 	fi
@@ -76,6 +93,10 @@ testing()
 	echo "PASS: $1"
   fi
   rm -f input expected actual
+
+  if [ "$debug" = "1" ] ; then
+    set +x
+  fi
 
   return $RETVAL
 }
