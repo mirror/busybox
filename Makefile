@@ -110,7 +110,6 @@ $(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
 include $(patsubst %,%/Makefile.in, $(SRC_DIRS))
 -include $(top_builddir)/.depend
 
-%.o: .depend
 busybox: $(ALL_MAKEFILES) .depend $(libraries-y)
 	$(CC) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
 	$(STRIPCMD) $@
@@ -184,9 +183,8 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
-depend dep: .depend
+DEP_INCLUDES := include/config.h include/bb_config.h
 
-DEP_INCLUDES=include/config.h include/bb_config.h
 ifeq ($(strip $(CONFIG_BBCONFIG)),y)
 DEP_INCLUDES += include/bbconfigopts.h
 
@@ -194,6 +192,7 @@ include/bbconfigopts.h: .config
 	scripts/config/mkconfigs > $@
 endif
 
+depend dep $(top_builddir)/.depend: .depend
 .depend: scripts/bb_mkdep $(DEP_INCLUDES)
 	@rm -f .depend
 	@mkdir -p include/config
