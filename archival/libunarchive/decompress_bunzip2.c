@@ -514,7 +514,8 @@ decode_next_byte:
 /* Allocate the structure, read file header.  If in_fd==-1, inbuf must contain
    a complete bunzip file (len bytes long).  If in_fd!=-1, inbuf and len are
    ignored, and data is read from file handle into temporary buffer. */
-static int start_bunzip(bunzip_data **bdp, int in_fd, char *inbuf, int len)
+static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
+						int len)
 {
 	bunzip_data *bd;
 	unsigned int i,j,c;
