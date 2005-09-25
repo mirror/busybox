@@ -10,7 +10,7 @@ LIBBB_DIR:=$(top_builddir)/libbb/
 endif
 srcdir=$(top_srcdir)/libbb
 
-LIBBB_SRC:= \
+LIBBB_SRC-y:= \
 	bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
 	compare_string_array.c concat_path_file.c copy_file.c copyfd.c \
 	correct_password.c create_icmp_socket.c create_icmp6_socket.c \
@@ -23,7 +23,7 @@ LIBBB_SRC:= \
 	make_directory.c mode_string.c mtab.c mtab_file.c \
 	obscure.c parse_mode.c parse_number.c perror_msg.c \
 	perror_msg_and_die.c print_file.c get_console.c \
-	process_escape_sequence.c procps.c pwd2spwd.c pw_encrypt.c qmodule.c \
+	process_escape_sequence.c procps.c pw_encrypt.c qmodule.c \
 	read_package_field.c recursive_action.c remove_file.c \
 	restricted_shell.c run_parts.c run_shell.c safe_read.c safe_write.c \
 	safe_strncpy.c setup_environment.c simplify_path.c \
@@ -36,7 +36,9 @@ LIBBB_SRC:= \
 	warn_ignoring_args.c concat_subpath_file.c vfork_daemon_rexec.c \
 	bb_echo.c
 
-LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC))
+LIBB_SRC-$(CONFIG_FEATURE_SHADOWPASSWDS)+= pwd2spwd.c
+
+LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC-y))
 
 LIBBB_MSRC0:=$(srcdir)/messages.c
 LIBBB_MOBJ0:=full_version.o \
