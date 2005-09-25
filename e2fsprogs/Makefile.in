@@ -36,7 +36,7 @@ EXT2FS_SRC  := gen_bitmap.c bitops.c ismounted.c mkjournal.c unix_io.c \
                bb_inode.c newdir.c alloc_sb.c lookup.c dirblock.c expanddir.c \
                dir_iterate.c link.c res_gdt.c icount.c get_pathname.c dblist.c \
                dirhash.c version.c flushb.c unlink.c check_desc.c valid_blk.c \
-               ext_attr.c bmap.c dblist_dir.c
+               ext_attr.c bmap.c dblist_dir.c ext2fs_inline.c
 EXT2FS_SRCS := $(patsubst %,ext2fs/%, $(EXT2FS_SRC))
 EXT2FS_OBJS := $(patsubst %.c,%.o, $(EXT2FS_SRCS))
 
@@ -47,7 +47,7 @@ UUID_OBJS   := $(patsubst %.c,%.o, $(UUID_SRCS))
 
 E2FSPROGS-:=
 E2FSPROGS-$(CONFIG_CHATTR)     += chattr.o $(E2P_OBJS)
-E2FSPROGS-$(CONFIG_E2FSCK)     += e2fsck.o $(BLKID_OBJS) $(E2FSCK_OBJS)
+E2FSPROGS-$(CONFIG_E2FSCK)     += e2fsck.o util.o $(BLKID_OBJS) $(E2FSCK_OBJS)
 E2FSPROGS-$(CONFIG_FSCK)       += fsck.o base_device.o
 E2FSPROGS-$(CONFIG_LSATTR)     += lsattr.o $(E2P_OBJS)
 E2FSPROGS-$(CONFIG_MKE2FS)     += mke2fs.o util.o $(E2P_OBJS) $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)

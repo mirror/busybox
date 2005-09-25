@@ -562,9 +562,11 @@ void dict_insert(dict_t *dict, dnode_t *node, const void *key)
 
     node->key = key;
 
+#ifndef NDEBUG
     assert (!dict_isfull(dict));
     assert (!dict_contains(dict, node));
     assert (!dnode_is_in_a_dict(node));
+#endif
 
     /* basic binary tree insert */
 
@@ -642,7 +644,9 @@ void dict_insert(dict_t *dict, dnode_t *node, const void *key)
 
     dict_root(dict)->color = dnode_black;
 
+#ifdef E2FSCK_NOTUSED
     assert (dict_verify(dict));
+#endif
 }
 
 #ifdef E2FSCK_NOTUSED
@@ -816,7 +820,9 @@ dnode_t *dict_delete(dict_t *dict, dnode_t *delete)
 	dict_root(dict)->color = dnode_black;
     }
 
+#ifdef E2FSCK_NOTUSED
     assert (dict_verify(dict));
+#endif
 
     return delete;
 }
@@ -998,7 +1004,9 @@ dnode_t *dnode_init(dnode_t *dnode, void *data)
 
 void dnode_destroy(dnode_t *dnode)
 {
+#ifndef NDEBUG
     assert (!dnode_is_in_a_dict(dnode));
+#endif
     free(dnode);
 }
 
@@ -1055,10 +1063,10 @@ void dict_load_next(dict_load_t *load, dnode_t *newnode, const void *key)
     dict_t *dict = load->dictptr;
     dnode_t *nil = &load->nilnode;
    
+#ifndef NDEBUG
     assert (!dnode_is_in_a_dict(newnode));
     assert (dict->nodecount < dict->maxcount);
 
-#ifndef NDEBUG
     if (dict->nodecount > 0) {
 	if (dict->dupes)
 	    assert (dict->compare(nil->left->key, key) <= 0);
@@ -1152,7 +1160,9 @@ void dict_load_end(dict_load_t *load)
     complete->color = dnode_black;
     dict_root(dict) = complete;
 
+#ifdef E2FSCK_NOTUSED
     assert (dict_verify(dict));
+#endif
 }
 
 void dict_merge(dict_t *dest, dict_t *source)
