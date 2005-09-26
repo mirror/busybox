@@ -1877,9 +1877,6 @@ static int miniHttpd(int server)
 	    handleIncoming();
 	    if(!config->debugHttpd)
 		exit(0);
-	} else {
-	    if(!config->debugHttpd)
-		wait(NULL);
 	}
 	close(s);
       }
