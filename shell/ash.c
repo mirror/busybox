@@ -6016,10 +6016,19 @@ pfgets(char *line, int len)
 
 
 #ifdef CONFIG_FEATURE_COMMAND_EDITING
+#ifdef CONFIG_ASH_EXPAND_PRMT
+static char *cmdedit_prompt;
+#else
 static const char *cmdedit_prompt;
+#endif
 static inline void putprompt(const char *s)
 {
+#ifdef CONFIG_ASH_EXPAND_PRMT
+	free(cmdedit_prompt);
+	cmdedit_prompt = bb_xstrdup(s);
+#else
 	cmdedit_prompt = s;
+#endif
 }
 #else
 static inline void putprompt(const char *s)
@@ -12626,7 +12635,7 @@ readcmd(int argc, char **argv)
 	while ((i = nextopt("p:r")) != '\0')
 #endif
 	{
-	    	switch(i) {
+		switch(i) {
 		case 'p':
 			prompt = optionarg;
 			break;
@@ -12643,13 +12652,13 @@ readcmd(int argc, char **argv)
 #endif
 #if defined(CONFIG_ASH_READ_TIMEOUT)
 		case 't':
-              		ts.tv_sec = strtol(optionarg, &p, 10);
+			ts.tv_sec = strtol(optionarg, &p, 10);
 			ts.tv_usec = 0;
 			if (*p == '.') {
 				char *p2;
 				if (*++p) {
 					int scale;
-              				ts.tv_usec = strtol(p, &p2, 10);
+					ts.tv_usec = strtol(p, &p2, 10);
 					if (*p2)
 						error("invalid timeout");
 					scale = p2 - p;
