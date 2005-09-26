@@ -96,6 +96,36 @@ ifeq ($(skip-makefile),)
 
 _all: all
 
+help:
+	@echo 'Cleaning:'
+	@echo '  clean			- delete temporary files created by build'
+	@echo '  distclean		- delete all non-source files (including .config)'
+	@echo
+	@echo 'Build:'
+	@echo '  all			- Executable and documentation'
+	@echo '  busybox		- the swiss-army executable'
+	@echo '  doc			- docs/BusyBox.{txt,html,1}'
+	@echo
+	@echo 'Configuration:'
+	@echo '  allnoconfig		- disable all symbols in .config'
+	@echo '  allyesconfig		- enable (almost) all symbols in .config'
+	@echo '  config		- text based configurator (of last resort).'
+	@echo '  defconfig		- set .config to defaults'
+	@echo '  menuconfig		- interactive curses-based configurator'
+	@echo '  oldconfig		- resolve any unresolved symbols in .config'
+	@echo
+	@echo 'Installation:'
+	@echo '  install		- install busybox and symlinks into $prefix'
+	@echo '  install-hardlinks	- install busybox and hardlinks into $prefix'
+	@echo '  uninstall'
+	@echo
+	@echo 'Development:'
+	@echo '  check			- run the test suite for all applets'
+	@echo '  randconfig		- generate a random configuration'
+	@echo '  release		- create a distribution tarball'
+	@echo '  sizes			- show size of all enabled busybox symbols'
+	@echo
+
 ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 all: busybox busybox.links doc
