@@ -84,7 +84,7 @@ CFLAGS=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
 ARFLAGS=cru
 
 #--------------------------------------------------------
-export VERSION BUILDTIME TOPDIR HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
+export VERSION BUILDTIME HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
 ifeq ($(strip $(TARGET_ARCH)),)
 TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/i.86/i386/' \

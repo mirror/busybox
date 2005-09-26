@@ -12,12 +12,11 @@ noconfig_targets := menuconfig config oldconfig randconfig \
 	defconfig allyesconfig allnoconfig clean distclean \
 	release tags
 
-ifndef TOPDIR
-TOPDIR=$(CURDIR)/
-endif
+# the toplevel sourcedir
 ifndef top_srcdir
 top_srcdir=$(CURDIR)
 endif
+# toplevel directory of the object-tree
 ifndef top_builddir
 top_builddir=$(CURDIR)
 endif
@@ -70,7 +69,6 @@ $(filter-out _all,$(MAKECMDGOALS)) _all: $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUT
 	$(MAKE) -C $(KBUILD_OUTPUT) \
 	top_srcdir=$(CURDIR) \
 	top_builddir=$(KBUILD_OUTPUT) \
-	TOPDIR=$(KBUILD_OUTPUT) \
 	KBUILD_SRC=$(CURDIR) \
 	-f $(CURDIR)/Makefile $@
 
