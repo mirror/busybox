@@ -36,7 +36,7 @@ LIBBB_SRC-y:= \
 	warn_ignoring_args.c concat_subpath_file.c vfork_daemon_rexec.c \
 	bb_echo.c
 
-LIBB_SRC-$(CONFIG_FEATURE_SHADOWPASSWDS)+= pwd2spwd.c
+LIBBB_SRC-$(CONFIG_FEATURE_SHADOWPASSWDS)+= pwd2spwd.c
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC-y))
 
