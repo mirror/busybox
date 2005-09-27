@@ -590,7 +590,7 @@ static void skip_spaces(char **s)
 
 	while(*p == ' ' || *p == '\t' ||
 					(*p == '\\' && *(p+1) == '\n' && (++p, ++t.lineno))) {
-	 	p++;
+		p++;
 	}
 	*s = p;
 }
@@ -1079,7 +1079,7 @@ static node *parse_expr(unsigned long iexp)
 			/* for operands and prefix-unary operators, attach them
 			 * to last node */
 			vn = cn;
-		  	cn = vn->r.n = new_node(t.info);
+			cn = vn->r.n = new_node(t.info);
 			cn->a.n = vn;
 			xtc = TC_OPERAND | TC_UOPPRE | TC_REGEXP;
 			if (tc & (TC_OPERAND | TC_REGEXP)) {
@@ -1090,18 +1090,18 @@ static node *parse_expr(unsigned long iexp)
 				  case TC_VARIABLE:
 				  case TC_ARRAY:
 					cn->info = OC_VAR;
-				  	if ((v = hash_search(ahash, t.string)) != NULL) {
+					if ((v = hash_search(ahash, t.string)) != NULL) {
 						cn->info = OC_FNARG;
 						cn->l.i = v->x.aidx;
 					} else {
-				  		cn->l.v = newvar(t.string);
+						cn->l.v = newvar(t.string);
 					}
 					if (tc & TC_ARRAY) {
 						cn->info |= xS;
 						cn->r.n = parse_expr(TC_ARRTERM);
 					}
 					break;
-				
+
 				  case TC_NUMBER:
 				  case TC_STRING:
 					cn->info = OC_VAR;
@@ -1118,7 +1118,7 @@ static node *parse_expr(unsigned long iexp)
 					break;
 
 				  case TC_FUNCTION:
-				  	cn->info = OC_FUNC;
+					cn->info = OC_FUNC;
 					cn->r.f = newfunc(t.string);
 					cn->l.n = condition();
 					break;
@@ -1209,7 +1209,7 @@ static void chain_group(void)
 
 	if (c & TC_GRPSTART) {
 		while(next_token(TC_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
-			if (t.tclass & TC_NEWLINE) continue;	
+			if (t.tclass & TC_NEWLINE) continue;
 			rollback_token();
 			chain_group();
 		}
@@ -2032,7 +2032,7 @@ lo_cont:
 
 static var *evaluate(node *op, var *res)
 {
- 	/* This procedure is recursive so we should count every byte */
+	/* This procedure is recursive so we should count every byte */
 	static var *fnargs = NULL;
 	static unsigned int seed = 1;
 	static regex_t sreg;
@@ -2066,7 +2066,7 @@ static var *evaluate(node *op, var *res)
 		opn = (short)(opinfo & OPNMASK);
 		lineno = op->lineno;
 
- 		/* execute inevitable things */
+		/* execute inevitable things */
 		op1 = op->l.n;
 		if (opinfo & OF_RES1) X.v = L.v = evaluate(op1, v1);
 		if (opinfo & OF_RES2) R.v = evaluate(op->r.n, v1+1);
@@ -2098,16 +2098,16 @@ static var *evaluate(node *op, var *res)
 
 		  /* just evaluate an expression, also used as unconditional jump */
 		  case XC( OC_EXEC ):
-		  	break;
+			break;
 
 		  /* branch, used in if-else and various loops */
 		  case XC( OC_BR ):
-		  	op = istrue(L.v) ? op->a.n : op->r.n;
+			op = istrue(L.v) ? op->a.n : op->r.n;
 			break;
 
 		  /* initialize for-in loop */
 		  case XC( OC_WALKINIT ):
-		  	hashwalk_init(L.v, iamarray(R.v));
+			hashwalk_init(L.v, iamarray(R.v));
 			break;
 
 		  /* get next array item */
@@ -2118,7 +2118,7 @@ static var *evaluate(node *op, var *res)
 		  case XC( OC_PRINT ):
 		  case XC( OC_PRINTF ):
 			X.F = stdout;
-		  	if (op->r.n) {
+			if (op->r.n) {
 				X.rsm = newfile(R.s);
 				if (! X.rsm->F) {
 					if (opn == '|') {
@@ -2133,7 +2133,7 @@ static var *evaluate(node *op, var *res)
 			}
 
 			if ((opinfo & OPCLSMASK) == OC_PRINT) {
-		  		if (! op1) {
+				if (! op1) {
 					fputs(getvar_s(V[F0]), X.F);
 				} else {
 					while (op1) {
@@ -2160,8 +2160,8 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		  case XC( OC_DELETE ):
-		  	X.info = op1->info & OPCLSMASK;
-		  	if (X.info == OC_VAR) {
+			X.info = op1->info & OPCLSMASK;
+			if (X.info == OC_VAR) {
 				R.v = op1->l.v;
 			} else if (X.info == OC_FNARG) {
 				R.v = &fnargs[op1->l.i];
@@ -2169,7 +2169,7 @@ static var *evaluate(node *op, var *res)
 				runtime_error(EMSG_NOT_ARRAY);
 			}
 
-		  	if (op1->r.n) {
+			if (op1->r.n) {
 				clrvar(L.v);
 				L.s = getvar_s(evaluate(op1->r.n, v1));
 				hash_remove(iamarray(R.v), L.s);
@@ -2179,7 +2179,7 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		  case XC( OC_NEWSOURCE ):
-		  	programname = op->l.s;
+			programname = op->l.s;
 			break;
 
 		  case XC( OC_RETURN ):
@@ -2187,29 +2187,29 @@ static var *evaluate(node *op, var *res)
 			break;
 
 		  case XC( OC_NEXTFILE ):
-		  	nextfile = TRUE;
+			nextfile = TRUE;
 		  case XC( OC_NEXT ):
-		  	nextrec = TRUE;
+			nextrec = TRUE;
 		  case XC( OC_DONE ):
 			clrvar(res);
 			break;
 
 		  case XC( OC_EXIT ):
-		  	awk_exit(L.d);
+			awk_exit(L.d);
 
 		  /* -- recursive node type -- */
 
 		  case XC( OC_VAR ):
-		  	L.v = op->l.v;
+			L.v = op->l.v;
 			if (L.v == V[NF])
 				split_f0();
 			goto v_cont;
 
 		  case XC( OC_FNARG ):
-		  	L.v = &fnargs[op->l.i];
+			L.v = &fnargs[op->l.i];
 
 v_cont:
-		 	res = (op->r.n) ? findvar(iamarray(L.v), R.s) : L.v;
+			res = (op->r.n) ? findvar(iamarray(L.v), R.s) : L.v;
 			break;
 
 		  case XC( OC_IN ):
@@ -2217,12 +2217,12 @@ v_cont:
 			break;
 
 		  case XC( OC_REGEXP ):
-		  	op1 = op;
+			op1 = op;
 			L.s = getvar_s(V[F0]);
 			goto re_cont;
 
 		  case XC( OC_MATCH ):
-		  	op1 = op->r.n;
+			op1 = op->r.n;
 re_cont:
 			X.re = as_regex(op1, &sreg);
 			R.i = regexec(X.re, L.s, 0, NULL, 0);
@@ -2231,23 +2231,23 @@ re_cont:
 			break;
 
 		  case XC( OC_MOVE ):
-		  	/* if source is a temporary string, jusk relink it to dest */
+			/* if source is a temporary string, jusk relink it to dest */
 			if (R.v == v1+1 && R.v->string) {
 				res = setvar_p(L.v, R.v->string);
 				R.v->string = NULL;
 			} else {
-		  		res = copyvar(L.v, R.v);
+				res = copyvar(L.v, R.v);
 			}
 			break;
 
 		  case XC( OC_TERNARY ):
-		  	if ((op->r.n->info & OPCLSMASK) != OC_COLON)
+			if ((op->r.n->info & OPCLSMASK) != OC_COLON)
 				runtime_error(EMSG_POSSIBLE_ERROR);
 			res = evaluate(istrue(L.v) ? op->r.n->l.n : op->r.n->r.n, res);
 			break;
 
 		  case XC( OC_FUNC ):
-		  	if (! op->r.f->body.first)
+			if (! op->r.f->body.first)
 				runtime_error(EMSG_UNDEF_FUNC);
 
 			X.v = R.v = nvalloc(op->r.f->nargs+1);
@@ -2273,7 +2273,7 @@ re_cont:
 
 		  case XC( OC_GETLINE ):
 		  case XC( OC_PGETLINE ):
-		  	if (op1) {
+			if (op1) {
 				X.rsm = newfile(L.s);
 				if (! X.rsm->F) {
 					if ((opinfo & OPCLSMASK) == OC_PGETLINE) {
@@ -2307,37 +2307,37 @@ re_cont:
 			setvar_i(res, L.i);
 			break;
 
-   		  /* simple builtins */
+		  /* simple builtins */
 		  case XC( OC_FBLTIN ):
-		  	switch (opn) {
+			switch (opn) {
 
 			  case F_in:
-			  	R.d = (int)L.d;
+				R.d = (int)L.d;
 				break;
 
 			  case F_rn:
-			  	R.d =  (double)rand() / (double)RAND_MAX;
+				R.d =  (double)rand() / (double)RAND_MAX;
 				break;
 
 #ifdef CONFIG_FEATURE_AWK_MATH
 			  case F_co:
-			  	R.d = cos(L.d);
+				R.d = cos(L.d);
 				break;
 
 			  case F_ex:
-			  	R.d = exp(L.d);
+				R.d = exp(L.d);
 				break;
 
 			  case F_lg:
-			  	R.d = log(L.d);
+				R.d = log(L.d);
 				break;
 
 			  case F_si:
-			  	R.d = sin(L.d);
+				R.d = sin(L.d);
 				break;
 
 			  case F_sq:
-			  	R.d = sqrt(L.d);
+				R.d = sqrt(L.d);
 				break;
 #else
 			  case F_co:
@@ -2360,7 +2360,7 @@ re_cont:
 				break;
 
 			  case F_le:
-			  	if (! op1)
+				if (! op1)
 					L.s = getvar_s(V[F0]);
 				R.d = bb_strlen(L.s);
 				break;
@@ -2403,30 +2403,30 @@ re_cont:
 			break;
 
 		  case XC( OC_SPRINTF ):
-		  	setvar_p(res, awk_printf(op1));
+			setvar_p(res, awk_printf(op1));
 			break;
 
 		  case XC( OC_UNARY ):
-		  	X.v = R.v;
-		  	L.d = R.d = getvar_i(R.v);
-		  	switch (opn) {
+			X.v = R.v;
+			L.d = R.d = getvar_i(R.v);
+			switch (opn) {
 			  case 'P':
-			  	L.d = ++R.d;
+				L.d = ++R.d;
 				goto r_op_change;
 			  case 'p':
-			  	R.d++;
+				R.d++;
 				goto r_op_change;
 			  case 'M':
-			  	L.d = --R.d;
+				L.d = --R.d;
 				goto r_op_change;
 			  case 'm':
-			  	R.d--;
+				R.d--;
 				goto r_op_change;
 			  case '!':
 			    L.d = istrue(X.v) ? 0 : 1;
 				break;
 			  case '-':
-			  	L.d = -R.d;
+				L.d = -R.d;
 				break;
 			r_op_change:
 				setvar_i(X.v, R.d);
@@ -2435,8 +2435,8 @@ re_cont:
 			break;
 
 		  case XC( OC_FIELD ):
-		  	R.i = (int)getvar_i(R.v);
-		  	if (R.i == 0) {
+			R.i = (int)getvar_i(R.v);
+			if (R.i == 0) {
 				res = V[F0];
 			} else {
 				split_f0();
@@ -2451,7 +2451,7 @@ re_cont:
 		  case XC( OC_CONCAT ):
 		  case XC( OC_COMMA ):
 			opn = bb_strlen(L.s) + bb_strlen(R.s) + 2;
-		  	X.s = (char *)xmalloc(opn);
+			X.s = (char *)xmalloc(opn);
 			strcpy(X.s, L.s);
 			if ((opinfo & OPCLSMASK) == OC_COMMA) {
 				L.s = getvar_s(V[SUBSEP]);
@@ -2472,31 +2472,31 @@ re_cont:
 
 		  case XC( OC_BINARY ):
 		  case XC( OC_REPLACE ):
-		  	R.d = getvar_i(R.v);
+			R.d = getvar_i(R.v);
 			switch (opn) {
 			  case '+':
-			  	L.d += R.d;
+				L.d += R.d;
 				break;
 			  case '-':
-			  	L.d -= R.d;
+				L.d -= R.d;
 				break;
 			  case '*':
-			  	L.d *= R.d;
+				L.d *= R.d;
 				break;
 			  case '/':
-			  	if (R.d == 0) runtime_error(EMSG_DIV_BY_ZERO);
-			  	L.d /= R.d;
+				if (R.d == 0) runtime_error(EMSG_DIV_BY_ZERO);
+				L.d /= R.d;
 				break;
 			  case '&':
 #ifdef CONFIG_FEATURE_AWK_MATH
-			  	L.d = pow(L.d, R.d);
+				L.d = pow(L.d, R.d);
 #else
 				runtime_error(EMSG_NO_MATH);
 #endif
 				break;
 			  case '%':
-			  	if (R.d == 0) runtime_error(EMSG_DIV_BY_ZERO);
-			  	L.d -= (int)(L.d / R.d) * R.d;
+				if (R.d == 0) runtime_error(EMSG_DIV_BY_ZERO);
+				L.d -= (int)(L.d / R.d) * R.d;
 				break;
 			}
 			res = setvar_i(((opinfo&OPCLSMASK) == OC_BINARY) ? res : X.v, L.d);
@@ -2512,20 +2512,20 @@ re_cont:
 			}
 			switch (opn & 0xfe) {
 			  case 0:
-			  	R.i = (L.d > 0);
+				R.i = (L.d > 0);
 				break;
 			  case 2:
-			  	R.i = (L.d >= 0);
+				R.i = (L.d >= 0);
 				break;
 			  case 4:
-			  	R.i = (L.d == 0);
+				R.i = (L.d == 0);
 				break;
 			}
 			setvar_i(res, (opn & 0x1 ? R.i : !R.i) ? 1 : 0);
 			break;
 
 		  default:
-		  	runtime_error(EMSG_POSSIBLE_ERROR);
+			runtime_error(EMSG_POSSIBLE_ERROR);
 		}
 		if ((opinfo & OPCLSMASK) <= SHIFT_TIL_THIS)
 			op = op->a.n;
