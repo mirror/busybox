@@ -139,7 +139,7 @@ include $(patsubst %,%/Makefile.in, $(SRC_DIRS))
 -include $(top_builddir)/.depend
 
 busybox: $(ALL_MAKEFILES) .depend $(libraries-y)
-	$(CC) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
+	$(CC) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
 	$(STRIPCMD) $@
 
 busybox.links: $(top_srcdir)/applets/busybox.mkll include/config.h $(top_srcdir)/include/applets.h
