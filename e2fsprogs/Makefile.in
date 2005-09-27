@@ -11,37 +11,33 @@ E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs
 E2FSPROGS_CFLAGS := -I$(E2FSPROGS_DIR) -include $(E2FSPROGS_DIR)/e2fsbb.h
 
 BLKID_SRC   := cache.c dev.c devname.c devno.c blkid_getsize.c \
-               probe.c read.c resolve.c save.c tag.c resolve.c
+	       probe.c read.c resolve.c save.c tag.c resolve.c
 BLKID_SRCS  := $(patsubst %,blkid/%, $(BLKID_SRC))
 BLKID_OBJS  := $(patsubst %.c,%.o, $(BLKID_SRCS))
 
-E2FSCK_SRC  := badblocks.c dict.c dirinfo.c dx_dirinfo.c e2fsck.c \
-               ea_refcount.c ehandler.c journal.c message.c pass1.c pass1b.c \
-               pass2.c pass3.c pass4.c pass5.c problem.c recovery.c region.c \
-               rehash.c revoke.c super.c swapfs.c util.c
-E2FSCK_SRCS := $(patsubst %,e2fsck/%, $(E2FSCK_SRC))
+E2FSCK_SRCS := e2fsck.c
 E2FSCK_OBJS := $(patsubst %.c,%.o, $(E2FSCK_SRCS))
 
 E2P_SRC     := fgetsetflags.c fgetsetversion.c pf.c iod.c mntopts.c \
-               feature.c ls.c uuid.c pe.c ostype.c ps.c hashstr.c \
-               parse_num.c
+	       feature.c ls.c uuid.c pe.c ostype.c ps.c hashstr.c \
+	       parse_num.c
 E2P_SRCS    := $(patsubst %,e2p/%, $(E2P_SRC))
 E2P_OBJS    := $(patsubst %.c,%.o, $(E2P_SRCS))
 
 EXT2FS_SRC  := gen_bitmap.c bitops.c ismounted.c mkjournal.c unix_io.c \
-               rw_bitmaps.c initialize.c bitmaps.c block.c \
-               ind_block.c inode.c freefs.c alloc_stats.c closefs.c \
-               openfs.c io_manager.c finddev.c read_bb.c alloc.c badblocks.c \
-               getsize.c getsectsize.c alloc_tables.c read_bb_file.c mkdir.c \
-               bb_inode.c newdir.c alloc_sb.c lookup.c dirblock.c expanddir.c \
-               dir_iterate.c link.c res_gdt.c icount.c get_pathname.c dblist.c \
-               dirhash.c version.c flushb.c unlink.c check_desc.c valid_blk.c \
-               ext_attr.c bmap.c dblist_dir.c ext2fs_inline.c
+	       rw_bitmaps.c initialize.c bitmaps.c block.c \
+	       ind_block.c inode.c freefs.c alloc_stats.c closefs.c \
+	       openfs.c io_manager.c finddev.c read_bb.c alloc.c badblocks.c \
+	       getsize.c getsectsize.c alloc_tables.c read_bb_file.c mkdir.c \
+	       bb_inode.c newdir.c alloc_sb.c lookup.c dirblock.c expanddir.c \
+	       dir_iterate.c link.c res_gdt.c icount.c get_pathname.c dblist.c \
+	       dirhash.c version.c flushb.c unlink.c check_desc.c valid_blk.c \
+	       ext_attr.c bmap.c dblist_dir.c ext2fs_inline.c
 EXT2FS_SRCS := $(patsubst %,ext2fs/%, $(EXT2FS_SRC))
 EXT2FS_OBJS := $(patsubst %.c,%.o, $(EXT2FS_SRCS))
 
 UUID_SRC    := compare.c gen_uuid.c pack.c parse.c unpack.c unparse.c \
-               uuid_time.c
+	       uuid_time.c
 UUID_SRCS   := $(patsubst %,uuid/%, $(UUID_SRC))
 UUID_OBJS   := $(patsubst %.c,%.o, $(UUID_SRCS))
 
