@@ -45,10 +45,8 @@ extern int optind;
 #endif
 
 #include "e2fsbb.h"
-#include "et/com_err.h"
 #include "e2fsck/e2fsck.h"
 #include "e2fsck/problem.h"
-//#include "../version.h"
 
 /* Command line options */
 static int swapfs;

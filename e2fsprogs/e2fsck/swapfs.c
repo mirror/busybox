@@ -13,7 +13,6 @@
 #ifdef HAVE_ERRNO_H
 #include <errno.h>
 #endif
-#include <et/com_err.h>
 #include "e2fsck.h"
 
 #ifdef ENABLE_SWAPFS

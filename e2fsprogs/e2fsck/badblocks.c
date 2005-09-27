@@ -10,7 +10,6 @@
 #include <errno.h>
 #endif
 
-#include <et/com_err.h>
 #include "e2fsck.h"
 
 static int check_bb_inode_blocks(ext2_filsys fs, blk_t *block_nr, int blockcnt,

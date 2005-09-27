@@ -30,7 +30,9 @@
 #define DICT_IMPLEMENTATION
 #include "dict.h"
 
-#define NDEBUG
+#ifndef NDEBUG
+# define NDEBUG
+#endif
 
 /*
  * These macros provide short convenient names for structure members,
