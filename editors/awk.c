@@ -108,7 +108,7 @@ typedef struct xhash_s {
 
 /* Tree node */
 typedef struct node_s {
-	unsigned long info;
+	uint32_t info;
 	unsigned short lineno;
 	union {
 		struct node_s *n;
@@ -324,7 +324,7 @@ static char * const tokenlist =
 	"\3END"		"\0"
 	;
 
-static unsigned long tokeninfo[] = {
+static uint32_t tokeninfo[] = {
 
 	0,
 	0,
@@ -430,8 +430,8 @@ static int icase = FALSE;
 static int exiting = FALSE;
 
 static struct {
-	unsigned long tclass;
-	unsigned long info;
+	uint32_t tclass;
+	uint32_t info;
 	char *string;
 	double number;
 	short lineno;
@@ -440,7 +440,7 @@ static struct {
 
 /* function prototypes */
 static void handle_special(var *);
-static node *parse_expr(unsigned long);
+static node *parse_expr(uint32_t);
 static void chain_group(void);
 static var *evaluate(node *, var *);
 static rstream *next_input_file(void);
@@ -848,15 +848,15 @@ static void nvfree(var *v)
 /* Parse next token pointed by global pos, place results into global t.
  * If token isn't expected, give away. Return token class
  */
-static unsigned long next_token(unsigned long expected)
+static uint32_t next_token(uint32_t expected)
 {
 	char *p, *pp, *s;
 	char *tl;
-	unsigned long tc, *ti;
+	uint32_t tc, *ti;
 	int l;
 	static int concat_inserted = FALSE;
-	static unsigned long save_tclass, save_info;
-	static unsigned long ltclass = TC_OPTERM;
+	static uint32_t save_tclass, save_info;
+	static uint32_t ltclass = TC_OPTERM;
 
 	if (t.rollback) {
 
@@ -999,7 +999,7 @@ static unsigned long next_token(unsigned long expected)
 
 static void rollback_token(void) { t.rollback = TRUE; }
 
-static node *new_node(unsigned long info)
+static node *new_node(uint32_t info)
 {
 	register node *n;
 
@@ -1028,12 +1028,12 @@ static node *condition(void)
 
 /* parse expression terminated by given argument, return ptr
  * to built subtree. Terminator is eaten by parse_expr */
-static node *parse_expr(unsigned long iexp)
+static node *parse_expr(uint32_t iexp)
 {
 	node sn;
 	node *cn = &sn;
 	node *vn, *glptr;
-	unsigned long tc, xtc;
+	uint32_t tc, xtc;
 	var *v;
 
 	sn.info = PRIMASK;
@@ -1144,7 +1144,7 @@ static node *parse_expr(unsigned long iexp)
 }
 
 /* add node to chain. Return ptr to alloc'd node */
-static node *chain_node(unsigned long info)
+static node *chain_node(uint32_t info)
 {
 	register node *n;
 
@@ -1164,7 +1164,7 @@ static node *chain_node(unsigned long info)
 	return n;
 }
 
-static void chain_expr(unsigned long info)
+static void chain_expr(uint32_t info)
 {
 	node *n;
 
@@ -1200,7 +1200,7 @@ static node *chain_loop(node *nn)
 /* parse group and attach it to chain */
 static void chain_group(void)
 {
-	unsigned long c;
+	uint32_t c;
 	node *n, *n2, *n3;
 
 	do {
@@ -1302,7 +1302,7 @@ static void chain_group(void)
 
 static void parse_program(char *p)
 {
-	unsigned long tclass;
+	uint32_t tclass;
 	node *cn;
 	func *f;
 	var *v;
@@ -1378,7 +1378,7 @@ static node *mk_splitter(char *s, tsplitter *spl)
 	if (bb_strlen(s) > 1) {
 		mk_re_node(s, n, re);
 	} else {
-		n->info = (unsigned long) *s;
+		n->info = (uint32_t) *s;
 	}
 
 	return n;
@@ -1881,7 +1881,7 @@ static var *exec_builtin(node *op, var *res)
 	regex_t sreg, *re;
 	static tsplitter tspl;
 	node *spl;
-	unsigned long isr, info;
+	uint32_t isr, info;
 	int nargs;
 	time_t tt;
 	char *s, *s1;
@@ -2044,7 +2044,7 @@ static var *evaluate(node *op, var *res)
 		double d;
 		int i;
 	} L, R;
-	unsigned long opinfo;
+	uint32_t opinfo;
 	short opn;
 	union {
 		char *s;
@@ -2052,7 +2052,7 @@ static var *evaluate(node *op, var *res)
 		FILE *F;
 		var *v;
 		regex_t *re;
-		unsigned long info;
+		uint32_t info;
 	} X;
 
 	if (! op)
