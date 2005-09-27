@@ -473,8 +473,8 @@ static void syntax_error(const char * const message)
 
 /* ---- hash stuff ---- */
 
-static unsigned int hashidx(char *name) {
-
+static unsigned int hashidx(char *name)
+{
 	register unsigned int idx=0;
 
 	while (*name)  idx = *name++ + (idx << 6) - idx;
@@ -482,8 +482,8 @@ static unsigned int hashidx(char *name) {
 }
 
 /* create new hash */
-static xhash *hash_init(void) {
-
+static xhash *hash_init(void)
+{
 	xhash *newhash;
 
 	newhash = (xhash *)xcalloc(1, sizeof(xhash));
@@ -494,8 +494,8 @@ static xhash *hash_init(void) {
 }
 
 /* find item in hash, return ptr to data, NULL if not found */
-static void *hash_search(xhash *hash, char *name) {
-
+static void *hash_search(xhash *hash, char *name)
+{
 	hash_item *hi;
 
 	hi = hash->items [ hashidx(name) % hash->csize ];
@@ -508,8 +508,8 @@ static void *hash_search(xhash *hash, char *name) {
 }
 
 /* grow hash if it becomes too big */
-static void hash_rebuild(xhash *hash) {
-
+static void hash_rebuild(xhash *hash)
+{
 	unsigned int newsize, i, idx;
 	hash_item **newitems, *hi, *thi;
 
@@ -536,8 +536,8 @@ static void hash_rebuild(xhash *hash) {
 }
 
 /* find item in hash, add it if necessary. Return ptr to data */
-static void *hash_find(xhash *hash, char *name) {
-
+static void *hash_find(xhash *hash, char *name)
+{
 	hash_item *hi;
 	unsigned int idx;
 	int l;
@@ -564,8 +564,8 @@ static void *hash_find(xhash *hash, char *name) {
 #define newfile(name) (rstream *) hash_find ( fdhash , (name) )
 #define newfunc(name) (func *) hash_find ( fnhash , (name) )
 
-static void hash_remove(xhash *hash, char *name) {
-
+static void hash_remove(xhash *hash, char *name)
+{
 	hash_item *hi, **phi;
 
 	phi = &(hash->items[ hashidx(name) % hash->csize ]);
@@ -584,8 +584,8 @@ static void hash_remove(xhash *hash, char *name) {
 
 /* ------ some useful functions ------ */
 
-static void skip_spaces(char **s) {
-
+static void skip_spaces(char **s)
+{
 	register char *p = *s;
 
 	while(*p == ' ' || *p == '\t' ||
@@ -595,8 +595,8 @@ static void skip_spaces(char **s) {
 	*s = p;
 }
 
-static char *nextword(char **s) {
-
+static char *nextword(char **s)
+{
 	register char *p = *s;
 
 	while (*(*s)++) ;
@@ -604,8 +604,8 @@ static char *nextword(char **s) {
 	return p;
 }
 
-static char nextchar(char **s) {
-
+static char nextchar(char **s)
+{
 	register char c, *pps;
 
 	c = *((*s)++);
@@ -615,20 +615,20 @@ static char nextchar(char **s) {
 	return c;
 }
 
-static inline int isalnum_(int c) {
-
+static inline int isalnum_(int c)
+{
 	return (isalnum(c) || c == '_');
 }
 
-static FILE *afopen(const char *path, const char *mode) {
-
+static FILE *afopen(const char *path, const char *mode)
+{
 	return (*path == '-' && *(path+1) == '\0') ? stdin : bb_xfopen(path, mode);
 }
 
 /* -------- working with variables (set/get/copy/etc) -------- */
 
-static xhash *iamarray(var *v) {
-
+static xhash *iamarray(var *v)
+{
 	var *a = v;
 
 	while (a->type & VF_CHILD)
@@ -641,8 +641,8 @@ static xhash *iamarray(var *v) {
 	return a->x.array;
 }
 
-static void clear_array(xhash *array) {
-
+static void clear_array(xhash *array)
+{
 	unsigned int i;
 	hash_item *hi, *thi;
 
@@ -660,8 +660,8 @@ static void clear_array(xhash *array) {
 }
 
 /* clear a variable */
-static var *clrvar(var *v) {
-
+static var *clrvar(var *v)
+{
 	if (!(v->type & VF_FSTR))
 		free(v->string);
 
@@ -672,8 +672,8 @@ static var *clrvar(var *v) {
 }
 
 /* assign string value to variable */
-static var *setvar_p(var *v, char *value) {
-
+static var *setvar_p(var *v, char *value)
+{
 	clrvar(v);
 	v->string = value;
 	handle_special(v);
@@ -682,22 +682,22 @@ static var *setvar_p(var *v, char *value) {
 }
 
 /* same as setvar_p but make a copy of string */
-static var *setvar_s(var *v, char *value) {
-
+static var *setvar_s(var *v, char *value)
+{
 	return setvar_p(v, (value && *value) ? bb_xstrdup(value) : NULL);
 }
 
 /* same as setvar_s but set USER flag */
-static var *setvar_u(var *v, char *value) {
-
+static var *setvar_u(var *v, char *value)
+{
 	setvar_s(v, value);
 	v->type |= VF_USER;
 	return v;
 }
 
 /* set array element to user string */
-static void setari_u(var *a, int idx, char *s) {
-
+static void setari_u(var *a, int idx, char *s)
+{
 	register var *v;
 	static char sidx[12];
 
@@ -707,8 +707,8 @@ static void setari_u(var *a, int idx, char *s) {
 }
 
 /* assign numeric value to variable */
-static var *setvar_i(var *v, double value) {
-
+static var *setvar_i(var *v, double value)
+{
 	clrvar(v);
 	v->type |= VF_NUMBER;
 	v->number = value;
@@ -716,8 +716,8 @@ static var *setvar_i(var *v, double value) {
 	return v;
 }
 
-static char *getvar_s(var *v) {
-
+static char *getvar_s(var *v)
+{
 	/* if v is numeric and has no cached string, convert it to string */
 	if ((v->type & (VF_NUMBER | VF_CACHED)) == VF_NUMBER) {
 		fmt_num(buf, MAXVARFMT, getvar_s(V[CONVFMT]), v->number, TRUE);
@@ -727,8 +727,8 @@ static char *getvar_s(var *v) {
 	return (v->string == NULL) ? "" : v->string;
 }
 
-static double getvar_i(var *v) {
-
+static double getvar_i(var *v)
+{
 	char *s;
 
 	if ((v->type & (VF_NUMBER | VF_CACHED)) == 0) {
@@ -749,8 +749,8 @@ static double getvar_i(var *v) {
 	return v->number;
 }
 
-static var *copyvar(var *dest, var *src) {
-
+static var *copyvar(var *dest, var *src)
+{
 	if (dest != src) {
 		clrvar(dest);
 		dest->type |= (src->type & ~VF_DONTTOUCH);
@@ -762,21 +762,21 @@ static var *copyvar(var *dest, var *src) {
 	return dest;
 }
 
-static var *incvar(var *v) {
-
+static var *incvar(var *v)
+{
 	return setvar_i(v, getvar_i(v)+1.);
 }
 
 /* return true if v is number or numeric string */
-static int is_numeric(var *v) {
-
+static int is_numeric(var *v)
+{
 	getvar_i(v);
 	return ((v->type ^ VF_DIRTY) & (VF_NUMBER | VF_USER | VF_DIRTY));
 }
 
 /* return 1 when value of v corresponds to true, 0 otherwise */
-static int istrue(var *v) {
-
+static int istrue(var *v)
+{
 	if (is_numeric(v))
 		return (v->number == 0) ? 0 : 1;
 	else
@@ -784,8 +784,8 @@ static int istrue(var *v) {
 }
 
 /* temporary variables allocator. Last allocated should be first freed */
-static var *nvalloc(int n) {
-
+static var *nvalloc(int n)
+{
 	nvblock *pb = NULL;
 	var *v, *r;
 	int size;
@@ -818,8 +818,8 @@ static var *nvalloc(int n) {
 	return r;
 }
 
-static void nvfree(var *v) {
-
+static void nvfree(var *v)
+{
 	var *p;
 
 	if (v < cb->nv || v >= cb->pos)
@@ -848,8 +848,8 @@ static void nvfree(var *v) {
 /* Parse next token pointed by global pos, place results into global t.
  * If token isn't expected, give away. Return token class
  */
-static unsigned long next_token(unsigned long expected) {
-
+static unsigned long next_token(unsigned long expected)
+{
 	char *p, *pp, *s;
 	char *tl;
 	unsigned long tc, *ti;
@@ -999,8 +999,8 @@ static unsigned long next_token(unsigned long expected) {
 
 static void rollback_token(void) { t.rollback = TRUE; }
 
-static node *new_node(unsigned long info) {
-
+static node *new_node(unsigned long info)
+{
 	register node *n;
 
 	n = (node *)xcalloc(sizeof(node), 1);
@@ -1009,8 +1009,8 @@ static node *new_node(unsigned long info) {
 	return n;
 }
 
-static node *mk_re_node(char *s, node *n, regex_t *re) {
-
+static node *mk_re_node(char *s, node *n, regex_t *re)
+{
 	n->info = OC_REGEXP;
 	n->l.re = re;
 	n->r.ire = re + 1;
@@ -1020,16 +1020,16 @@ static node *mk_re_node(char *s, node *n, regex_t *re) {
 	return n;
 }
 
-static node *condition(void) {
-
+static node *condition(void)
+{
 	next_token(TC_SEQSTART);
 	return parse_expr(TC_SEQTERM);
 }
 
 /* parse expression terminated by given argument, return ptr
  * to built subtree. Terminator is eaten by parse_expr */
-static node *parse_expr(unsigned long iexp) {
-
+static node *parse_expr(unsigned long iexp)
+{
 	node sn;
 	node *cn = &sn;
 	node *vn, *glptr;
@@ -1144,8 +1144,8 @@ static node *parse_expr(unsigned long iexp) {
 }
 
 /* add node to chain. Return ptr to alloc'd node */
-static node *chain_node(unsigned long info) {
-
+static node *chain_node(unsigned long info)
+{
 	register node *n;
 
 	if (! seq->first)
@@ -1164,8 +1164,8 @@ static node *chain_node(unsigned long info) {
 	return n;
 }
 
-static void chain_expr(unsigned long info) {
-
+static void chain_expr(unsigned long info)
+{
 	node *n;
 
 	n = chain_node(info);
@@ -1174,8 +1174,8 @@ static void chain_expr(unsigned long info) {
 		rollback_token();
 }
 
-static node *chain_loop(node *nn) {
-
+static node *chain_loop(node *nn)
+{
 	node *n, *n2, *save_brk, *save_cont;
 
 	save_brk = break_ptr;
@@ -1198,8 +1198,8 @@ static node *chain_loop(node *nn) {
 }
 
 /* parse group and attach it to chain */
-static void chain_group(void) {
-
+static void chain_group(void)
+{
 	unsigned long c;
 	node *n, *n2, *n3;
 
@@ -1300,8 +1300,8 @@ static void chain_group(void) {
 	}
 }
 
-static void parse_program(char *p) {
-
+static void parse_program(char *p)
+{
 	unsigned long tclass;
 	node *cn;
 	func *f;
@@ -1363,8 +1363,8 @@ static void parse_program(char *p) {
 
 /* -------- program execution part -------- */
 
-static node *mk_splitter(char *s, tsplitter *spl) {
-
+static node *mk_splitter(char *s, tsplitter *spl)
+{
 	register regex_t *re, *ire;
 	node *n;
 
@@ -1388,8 +1388,8 @@ static node *mk_splitter(char *s, tsplitter *spl) {
  * storage space. Return ptr to regex (if result points to preg, it should
  * be later regfree'd manually
  */
-static regex_t *as_regex(node *op, regex_t *preg) {
-
+static regex_t *as_regex(node *op, regex_t *preg)
+{
 	var *v;
 	char *s;
 
@@ -1405,15 +1405,15 @@ static regex_t *as_regex(node *op, regex_t *preg) {
 }
 
 /* gradually increasing buffer */
-static void qrealloc(char **b, int n, int *size) {
-
+static void qrealloc(char **b, int n, int *size)
+{
 	if (! *b || n >= *size)
 		*b = xrealloc(*b, *size = n + (n>>1) + 80);
 }
 
 /* resize field storage space */
-static void fsrealloc(int size) {
-
+static void fsrealloc(int size)
+{
 	static int maxfields = 0;
 	int i;
 
@@ -1435,8 +1435,8 @@ static void fsrealloc(int size) {
 	nfields = size;
 }
 
-static int awk_split(char *s, node *spl, char **slist) {
-
+static int awk_split(char *s, node *spl, char **slist)
+{
 	int l, n=0;
 	char c[4];
 	char *s1;
@@ -1496,8 +1496,8 @@ static int awk_split(char *s, node *spl, char **slist) {
 	return n;
 }
 
-static void split_f0(void) {
-
+static void split_f0(void)
+{
 	static char *fstrings = NULL;
 	int i, n;
 	char *s;
@@ -1523,8 +1523,8 @@ static void split_f0(void) {
 }
 
 /* perform additional actions when some internal variables changed */
-static void handle_special(var *v) {
-
+static void handle_special(var *v)
+{
 	int n;
 	char *b, *sep, *s;
 	int sl, l, len, i, bsize;
@@ -1576,8 +1576,8 @@ static void handle_special(var *v) {
 }
 
 /* step through func/builtin/etc arguments */
-static node *nextarg(node **pn) {
-
+static node *nextarg(node **pn)
+{
 	node *n;
 
 	n = *pn;
@@ -1590,8 +1590,8 @@ static node *nextarg(node **pn) {
 	return n;
 }
 
-static void hashwalk_init(var *v, xhash *array) {
-
+static void hashwalk_init(var *v, xhash *array)
+{
 	char **w;
 	hash_item *hi;
 	int i;
@@ -1612,8 +1612,8 @@ static void hashwalk_init(var *v, xhash *array) {
 	}
 }
 
-static int hashwalk_next(var *v) {
-
+static int hashwalk_next(var *v)
+{
 	char **w;
 
 	w = v->x.walker;
@@ -1625,15 +1625,15 @@ static int hashwalk_next(var *v) {
 }
 
 /* evaluate node, return 1 when result is true, 0 otherwise */
-static int ptest(node *pattern) {
+static int ptest(node *pattern)
+{
 	static var v;
-
 	return istrue(evaluate(pattern, &v));
 }
 
 /* read next record from stream rsm into a variable v */
-static int awk_getline(rstream *rsm, var *v) {
-
+static int awk_getline(rstream *rsm, var *v)
+{
 	char *b;
 	regmatch_t pmatch[2];
 	int a, p, pp=0, size;
@@ -1724,8 +1724,8 @@ static int awk_getline(rstream *rsm, var *v) {
 	return r;
 }
 
-static int fmt_num(char *b, int size, char *format, double n, int int_as_int) {
-
+static int fmt_num(char *b, int size, char *format, double n, int int_as_int)
+{
 	int r=0;
 	char c, *s=format;
 
@@ -1746,8 +1746,8 @@ static int fmt_num(char *b, int size, char *format, double n, int int_as_int) {
 
 
 /* formatted output into an allocated buffer, return ptr to buffer */
-static char *awk_printf(node *n) {
-
+static char *awk_printf(node *n)
+{
 	char *b = NULL;
 	char *fmt, *s, *s1, *f;
 	int i, j, incr, bsize;
@@ -1804,8 +1804,8 @@ static char *awk_printf(node *n) {
  * all matches. If src or dst is NULL, use $0. If ex=TRUE, enable
  * subexpression matching (\1-\9)
  */
-static int awk_sub(node *rn, char *repl, int nm, var *src, var *dest, int ex) {
-
+static int awk_sub(node *rn, char *repl, int nm, var *src, var *dest, int ex)
+{
 	char *ds = NULL;
 	char *sp, *s;
 	int c, i, j, di, rl, so, eo, nbs, n, dssize;
@@ -1870,8 +1870,8 @@ static int awk_sub(node *rn, char *repl, int nm, var *src, var *dest, int ex) {
 	return i;
 }
 
-static var *exec_builtin(node *op, var *res) {
-
+static var *exec_builtin(node *op, var *res)
+{
 	int (*to_xxx)(int);
 	var *tv;
 	node *an[4];
@@ -2030,8 +2030,8 @@ lo_cont:
  */
 #define XC(n) ((n) >> 8)
 
-static var *evaluate(node *op, var *res) {
-
+static var *evaluate(node *op, var *res)
+{
  	/* This procedure is recursive so we should count every byte */
 	static var *fnargs = NULL;
 	static unsigned int seed = 1;
@@ -2541,8 +2541,8 @@ re_cont:
 
 /* -------- main & co. -------- */
 
-static int awk_exit(int r) {
-
+static int awk_exit(int r)
+{
 	unsigned int i;
 	hash_item *hi;
 	static var tv;
@@ -2568,8 +2568,8 @@ static int awk_exit(int r) {
 
 /* if expr looks like "var=value", perform assignment and return 1,
  * otherwise return 0 */
-static int is_assignment(char *expr) {
-
+static int is_assignment(char *expr)
+{
 	char *exprc, *s, *s0, *s1;
 
 	exprc = bb_xstrdup(expr);
@@ -2590,8 +2590,8 @@ static int is_assignment(char *expr) {
 }
 
 /* switch to next input file */
-static rstream *next_input_file(void) {
-
+static rstream *next_input_file(void)
+{
 	static rstream rsm;
 	FILE *F = NULL;
 	char *fname, *ind;
@@ -2621,8 +2621,8 @@ static rstream *next_input_file(void) {
 	return &rsm;
 }
 
-extern int awk_main(int argc, char **argv) {
-
+extern int awk_main(int argc, char **argv)
+{
 	char *s, *s1;
 	int i, j, c;
 	var *v;
