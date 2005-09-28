@@ -1,9 +1,35 @@
 /*
  * e2fsck
  *
- * Copyright (C) 1993, 1994 Theodore Ts'o.  This file may be
+ * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
+ * This file may be
  * redistributed under the terms of the GNU Public License.
  *
+ *
+ * Dictionary Abstract Data Type
+ * Copyright (C) 1997 Kaz Kylheku <kaz@ashi.footprints.net>
+ * Free Software License:
+ * All rights are reserved by the author, with the following exceptions:
+ * Permission is granted to freely reproduce and distribute this software,
+ * possibly in exchange for a fee, provided that this copyright notice appears
+ * intact. Permission is also granted to adapt this software to produce
+ * derivative works, as long as the modified versions carry this copyright
+ * notice and additional notices stating that the work has been modified.
+ * This source code may be translated into executable form and incorporated
+ * into proprietary software; there is no requirement for such software to
+ * contain a copyright notice related to this source.
+ *
+ * linux/fs/recovery  and linux/fs/revoke
+ * Written by Stephen C. Tweedie <sct@redhat.com>, 1999
+ *
+ * Copyright 1999-2000 Red Hat Software --- All Rights Reserved
+ *
+ * This file is part of the Linux kernel and is made available under
+ * the terms of the GNU General Public License, version 2, or at your
+ * option, any later version, incorporated herein by reference.
+ *
+ * Journal recovery routines for the generic filesystem journaling code;
+ * part of the ext2fs journaling system.
  */
 
 #ifndef _GNU_SOURCE
@@ -172,15 +198,16 @@ struct resource_track {
 #define E2F_PASS_5      5
 #define E2F_PASS_1B     6
 
-/*
- * Define the extended attribute refcount structure
- */
-typedef struct ea_refcount *ext2_refcount_t;
 
 /*
  * This is the global e2fsck structure.
  */
 typedef struct e2fsck_struct *e2fsck_t;
+
+/*
+ * Define the extended attribute refcount structure
+ */
+typedef struct ea_refcount *ext2_refcount_t;
 
 struct e2fsck_struct {
 	ext2_filsys fs;
@@ -335,64 +362,10 @@ typedef struct region_struct *region_t;
  * Procedure declarations
  */
 
-static void e2fsck_pass1(e2fsck_t ctx);
 static void e2fsck_pass1_dupblocks(e2fsck_t ctx, char *block_buf);
-static void e2fsck_pass2(e2fsck_t ctx);
-static void e2fsck_pass3(e2fsck_t ctx);
-static void e2fsck_pass4(e2fsck_t ctx);
-static void e2fsck_pass5(e2fsck_t ctx);
-
-/* e2fsck.c */
-static errcode_t e2fsck_allocate_context(e2fsck_t *ret);
-static errcode_t e2fsck_reset_context(e2fsck_t ctx);
-static void e2fsck_free_context(e2fsck_t ctx);
-static int e2fsck_run(e2fsck_t ctx);
-
-
-/* badblock.c */
-static void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
-				 int replace_bad_blocks);
-
-/* dirinfo.c */
-static void e2fsck_add_dir_info(e2fsck_t ctx, ext2_ino_t ino, ext2_ino_t parent);
-static struct dir_info *e2fsck_get_dir_info(e2fsck_t ctx, ext2_ino_t ino);
-static void e2fsck_free_dir_info(e2fsck_t ctx);
-static int e2fsck_get_num_dirinfo(e2fsck_t ctx);
-static struct dir_info *e2fsck_dir_info_iter(e2fsck_t ctx, int *control);
-
-/* dx_dirinfo.c */
-static void e2fsck_add_dx_dir(e2fsck_t ctx, ext2_ino_t ino, int num_blocks);
-static struct dx_dir_info *e2fsck_get_dx_dir_info(e2fsck_t ctx, ext2_ino_t ino);
-static void e2fsck_free_dx_dir_info(e2fsck_t ctx);
-static struct dx_dir_info *e2fsck_dx_dir_info_iter(e2fsck_t ctx, int *control);
-
-/* ea_refcount.c */
-static errcode_t ea_refcount_create(int size, ext2_refcount_t *ret);
-static void ea_refcount_free(ext2_refcount_t refcount);
-static errcode_t ea_refcount_increment(ext2_refcount_t refcount,
-				       blk_t blk, int *ret);
-static errcode_t ea_refcount_decrement(ext2_refcount_t refcount,
-				       blk_t blk, int *ret);
-static errcode_t ea_refcount_store(ext2_refcount_t refcount,
-				   blk_t blk, int count);
-static void ea_refcount_intr_begin(ext2_refcount_t refcount);
-static blk_t ea_refcount_intr_next(ext2_refcount_t refcount, int *ret);
-
-/* ehandler.c */
-static const char *ehandler_operation(const char *op);
-static void ehandler_init(io_channel channel);
-
-/* journal.c */
-static int e2fsck_check_ext3_journal(e2fsck_t ctx);
-static int e2fsck_run_ext3_journal(e2fsck_t ctx);
-static void e2fsck_move_ext3_journal(e2fsck_t ctx);
 
 /* pass1.c */
 static void e2fsck_use_inode_shortcuts(e2fsck_t ctx, int bool);
-static int e2fsck_pass1_check_device_inode(ext2_filsys fs,
-					   struct ext2_inode *inode);
-static int e2fsck_pass1_check_symlink(ext2_filsys fs,
-				      struct ext2_inode *inode, char *buf);
 
 /* pass2.c */
 static int e2fsck_process_bad_inode(e2fsck_t ctx, ext2_ino_t dir,
@@ -406,34 +379,15 @@ static ext2_ino_t e2fsck_get_lost_and_found(e2fsck_t ctx, int fix);
 static errcode_t e2fsck_adjust_inode_count(e2fsck_t ctx, ext2_ino_t ino,
 					   int adj);
 
-
-/* region.c */
-static region_t region_create(region_addr_t min, region_addr_t max);
-static void region_free(region_t region);
-static int region_allocate(region_t region, region_addr_t start, int n);
-
 /* rehash.c */
-static errcode_t e2fsck_rehash_dir(e2fsck_t ctx, ext2_ino_t ino);
 static void e2fsck_rehash_directories(e2fsck_t ctx);
-
-/* super.c */
-static void check_super_block(e2fsck_t ctx);
-static errcode_t e2fsck_get_device_size(e2fsck_t ctx);
-
-#ifdef ENABLE_SWAPFS
-/* swapfs.c */
-static void swap_filesys(e2fsck_t ctx);
-#endif
 
 /* util.c */
 static void *e2fsck_allocate_memory(e2fsck_t ctx, unsigned int size,
 				    const char *description);
 static int ask(e2fsck_t ctx, const char * string, int def);
-static int ask_yn(const char * string, int def);
 static void e2fsck_read_bitmaps(e2fsck_t ctx);
-static void e2fsck_write_bitmaps(e2fsck_t ctx);
 static void preenhalt(e2fsck_t ctx);
-static char *string_copy(e2fsck_t ctx, const char *str, int len);
 #ifdef RESOURCE_TRACK
 static void print_resource_track(const char *desc,
 				 struct resource_track *track);
@@ -448,7 +402,6 @@ static void mtrace_print(char *mesg);
 #endif
 static blk_t get_backup_sb(e2fsck_t ctx, ext2_filsys fs,
 			   const char *name, io_manager manager);
-static int ext2_file_type(unsigned int mode);
 
 /* unix.c */
 static void e2fsck_clear_progbar(e2fsck_t ctx);
@@ -477,15 +430,15 @@ struct problem_context {
  * handled as a set.  The user answers once for a particular latch
  * group.
  */
-#define PR_LATCH_MASK   0x0ff0  /* Latch mask */
-#define PR_LATCH_BLOCK  0x0010  /* Latch for illegal blocks (pass 1) */
-#define PR_LATCH_BBLOCK 0x0020  /* Latch for bad block inode blocks (pass 1) */
-#define PR_LATCH_IBITMAP 0x0030 /* Latch for pass 5 inode bitmap proc. */
-#define PR_LATCH_BBITMAP 0x0040 /* Latch for pass 5 inode bitmap proc. */
-#define PR_LATCH_RELOC  0x0050  /* Latch for superblock relocate hint */
-#define PR_LATCH_DBLOCK 0x0060  /* Latch for pass 1b dup block headers */
-#define PR_LATCH_LOW_DTIME 0x0070 /* Latch for pass1 orphaned list refugees */
-#define PR_LATCH_TOOBIG 0x0080  /* Latch for file to big errors */
+#define PR_LATCH_MASK         0x0ff0 /* Latch mask */
+#define PR_LATCH_BLOCK        0x0010 /* Latch for illegal blocks (pass 1) */
+#define PR_LATCH_BBLOCK       0x0020 /* Latch for bad block inode blocks (pass 1) */
+#define PR_LATCH_IBITMAP      0x0030 /* Latch for pass 5 inode bitmap proc. */
+#define PR_LATCH_BBITMAP      0x0040 /* Latch for pass 5 inode bitmap proc. */
+#define PR_LATCH_RELOC        0x0050 /* Latch for superblock relocate hint */
+#define PR_LATCH_DBLOCK       0x0060 /* Latch for pass 1b dup block headers */
+#define PR_LATCH_LOW_DTIME    0x0070 /* Latch for pass1 orphaned list refugees */
+#define PR_LATCH_TOOBIG       0x0080 /* Latch for file to big errors */
 #define PR_LATCH_OPTIMIZE_DIR 0x0090 /* Latch for optimize directories */
 
 #define PR_LATCH(x)     ((((x) & PR_LATCH_MASK) >> 4) - 1)
@@ -1339,28 +1292,12 @@ static int end_problem_latch(e2fsck_t ctx, int mask);
 static int set_latch_flags(int mask, int setflags, int clearflags);
 static void clear_problem_context(struct problem_context *ctx);
 
-/* message.c */
-static void print_e2fsck_message(e2fsck_t ctx, const char *msg,
-			  struct problem_context *pctx, int first);
-
 /*
  * Dictionary Abstract Data Type
  * Copyright (C) 1997 Kaz Kylheku <kaz@ashi.footprints.net>
  *
- * Free Software License:
- *
- * All rights are reserved by the author, with the following exceptions:
- * Permission is granted to freely reproduce and distribute this software,
- * possibly in exchange for a fee, provided that this copyright notice appears
- * intact. Permission is also granted to adapt this software to produce
- * derivative works, as long as the modified versions carry this copyright
- * notice and additional notices stating that the work has been modified.
- * This source code may be translated into executable form and incorporated
- * into proprietary software; there is no requirement for such software to
- * contain a copyright notice related to this source.
- *
- * $Id: dict.h,v 1.22.2.6 2000/11/13 01:36:44 kaz Exp $
- * $Name: kazlib_1_20 $
+ * dict.h v 1.22.2.6 2000/11/13 01:36:44 kaz
+ * kazlib_1_20
  */
 
 #ifndef DICT_H
@@ -1389,17 +1326,14 @@ typedef struct dnode_t {
 } dnode_t;
 
 typedef int (*dict_comp_t)(const void *, const void *);
-typedef dnode_t *(*dnode_alloc_t)(void *);
-typedef void (*dnode_free_t)(dnode_t *, void *);
+typedef void (*dnode_free_t)(dnode_t *);
 
 typedef struct dict_t {
     dnode_t dict_nilnode;
     dictcount_t dict_nodecount;
     dictcount_t dict_maxcount;
     dict_comp_t dict_compare;
-    dnode_alloc_t dict_allocnode;
     dnode_free_t dict_freenode;
-    void *dict_context;
     int dict_dupes;
 } dict_t;
 
@@ -1409,19 +1343,6 @@ typedef struct dict_load_t {
     dict_t *dict_dictptr;
     dnode_t dict_nilnode;
 } dict_load_t;
-
-static void dict_set_allocator(dict_t *, dnode_alloc_t, dnode_free_t, void *);
-static void dict_free_nodes(dict_t *);
-static dict_t *dict_init(dict_t *, dictcount_t, dict_comp_t);
-static dnode_t *dict_lookup(dict_t *, const void *);
-static void dict_insert(dict_t *, dnode_t *, const void *);
-static int dict_alloc_insert(dict_t *, const void *, void *);
-static dnode_t *dict_first(dict_t *);
-static dnode_t *dict_next(dict_t *, dnode_t *);
-static dictcount_t dict_count(dict_t *);
-static dnode_t *dnode_init(dnode_t *, void *);
-static void *dnode_get(dnode_t *);
-static const void *dnode_getkey(dnode_t *);
 
 #define dict_count(D) ((D)->dict_nodecount)
 #define dnode_get(N) ((N)->dict_data)
@@ -1480,11 +1401,6 @@ typedef struct {
 } kmem_cache_t;
 
 #define kmem_cache_alloc(cache,flags) malloc((cache)->object_length)
-#define kmem_cache_free(cache,obj) free(obj)
-#define kmem_cache_create(name,len,a,b,c,d) do_cache_create(len)
-#define kmem_cache_destroy(cache) do_cache_destroy(cache)
-#define kmalloc(len,flags) malloc(len)
-#define kfree(p) free(p)
 
 /*
  * We use the standard libext2fs portability tricks for inline
@@ -1494,6 +1410,7 @@ typedef struct {
 static _INLINE_ kmem_cache_t * do_cache_create(int len)
 {
 	kmem_cache_t *new_cache;
+
 	new_cache = malloc(sizeof(*new_cache));
 	if (new_cache)
 		new_cache->object_length = len;
@@ -1511,29 +1428,7 @@ static _INLINE_ void do_cache_destroy(kmem_cache_t *cache)
 #include "ext2fs/kernel-jbd.h"
 
 /*
- * Kernel compatibility functions are defined in journal.c
- */
-static int journal_bmap(journal_t *journal, blk_t block, unsigned long *phys);
-static struct buffer_head *getblk(kdev_t ctx, blk_t blocknr, int blocksize);
-static void sync_blockdev(kdev_t kdev);
-static void ll_rw_block(int rw, int dummy, struct buffer_head *bh[]);
-static void mark_buffer_dirty(struct buffer_head *bh);
-static void mark_buffer_uptodate(struct buffer_head *bh, int val);
-static void brelse(struct buffer_head *bh);
-static int buffer_uptodate(struct buffer_head *bh);
-static void wait_on_buffer(struct buffer_head *bh);
-
-/*
- * Define newer 2.5 interfaces
- */
-#define __getblk(dev, blocknr, blocksize) getblk(dev, blocknr, blocksize)
-#define set_buffer_uptodate(bh) mark_buffer_uptodate(bh, 1)
-
-/*
  * badblocks.c --- replace/append bad blocks to the bad block inode
- *
- * Copyright (C) 1993, 1994 Theodore Ts'o.  This file may be
- * redistributed under the terms of the GNU Public License.
  */
 
 static int check_bb_inode_blocks(ext2_filsys fs, blk_t *block_nr, int blockcnt,
@@ -1546,7 +1441,7 @@ static void invalid_block(ext2_filsys fs EXT2FS_ATTR((unused)), blk_t blk)
 	return;
 }
 
-void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
+static void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
 			  int replace_bad_blocks)
 {
 	ext2_filsys fs = ctx->fs;
@@ -1659,22 +1554,6 @@ static int check_bb_inode_blocks(ext2_filsys fs,
 
 /*
  * Dictionary Abstract Data Type
- * Copyright (C) 1997 Kaz Kylheku <kaz@ashi.footprints.net>
- *
- * Free Software License:
- *
- * All rights are reserved by the author, with the following exceptions:
- * Permission is granted to freely reproduce and distribute this software,
- * possibly in exchange for a fee, provided that this copyright notice appears
- * intact. Permission is also granted to adapt this software to produce
- * derivative works, as long as the modified versions carry this copyright
- * notice and additional notices stating that the work has been modified.
- * This source code may be translated into executable form and incorporated
- * into proprietary software; there is no requirement for such software to
- * contain a copyright notice related to this source.
- *
- * $Id: dict.c,v 1.40.2.7 2000/11/13 01:36:44 kaz Exp $
- * $Name: kazlib_1_20 $
  */
 
 
@@ -1698,22 +1577,15 @@ static int check_bb_inode_blocks(ext2_filsys fs,
 #define data dict_data
 
 #define nilnode dict_nilnode
-#define nodecount dict_nodecount
 #define maxcount dict_maxcount
 #define compare dict_compare
-#define allocnode dict_allocnode
-#define freenode dict_freenode
-#define context dict_context
 #define dupes dict_dupes
-
-#define dictptr dict_dictptr
 
 #define dict_root(D) ((D)->nilnode.left)
 #define dict_nil(D) (&(D)->nilnode)
 #define DICT_DEPTH_MAX 64
 
-static dnode_t *dnode_alloc(void *context);
-static void dnode_free(dnode_t *node, void *context);
+static void dnode_free(dnode_t *node);
 
 /*
  * Perform a ``left rotation'' adjustment on the tree.  The given node P and
@@ -1783,7 +1655,7 @@ static void free_nodes(dict_t *dict, dnode_t *node, dnode_t *nil)
 	return;
     free_nodes(dict, node->left, nil);
     free_nodes(dict, node->right, nil);
-    dict->freenode(node, dict->context);
+    dict->dict_freenode(node);
 }
 
 /*
@@ -1808,15 +1680,10 @@ static int verify_dict_has_node(dnode_t *nil, dnode_t *root, dnode_t *node)
  * Select a different set of node allocator routines.
  */
 
-void dict_set_allocator(dict_t *dict, dnode_alloc_t al,
-	dnode_free_t fr, void *context)
+static void dict_set_allocator(dict_t *dict, dnode_free_t fr)
 {
     assert (dict_count(dict) == 0);
-    assert ((al == NULL && fr == NULL) || (al != NULL && fr != NULL));
-
-    dict->allocnode = al ? al : dnode_alloc;
-    dict->freenode = fr ? fr : dnode_free;
-    dict->context = context;
+    dict->dict_freenode = fr;
 }
 
 /*
@@ -1824,11 +1691,11 @@ void dict_set_allocator(dict_t *dict, dnode_alloc_t al,
  * installed free routine. The dictionary is emptied.
  */
 
-void dict_free_nodes(dict_t *dict)
+static void dict_free_nodes(dict_t *dict)
 {
     dnode_t *nil = dict_nil(dict), *root = dict_root(dict);
     free_nodes(dict, root, nil);
-    dict->nodecount = 0;
+    dict->dict_nodecount = 0;
     dict->nilnode.left = &dict->nilnode;
     dict->nilnode.right = &dict->nilnode;
 }
@@ -1837,13 +1704,11 @@ void dict_free_nodes(dict_t *dict)
  * Initialize a user-supplied dictionary object.
  */
 
-dict_t *dict_init(dict_t *dict, dictcount_t maxcount, dict_comp_t comp)
+static dict_t *dict_init(dict_t *dict, dictcount_t maxcount, dict_comp_t comp)
 {
     dict->compare = comp;
-    dict->allocnode = dnode_alloc;
-    dict->freenode = dnode_free;
-    dict->context = NULL;
-    dict->nodecount = 0;
+    dict->dict_freenode = dnode_free;
+    dict->dict_nodecount = 0;
     dict->maxcount = maxcount;
     dict->nilnode.left = &dict->nilnode;
     dict->nilnode.right = &dict->nilnode;
@@ -1860,7 +1725,7 @@ dict_t *dict_init(dict_t *dict, dictcount_t maxcount, dict_comp_t comp)
  * located node is returned.
  */
 
-dnode_t *dict_lookup(dict_t *dict, const void *key)
+static dnode_t *dict_lookup(dict_t *dict, const void *key)
 {
     dnode_t *root = dict_root(dict);
     dnode_t *nil = dict_nil(dict);
@@ -1901,7 +1766,7 @@ dnode_t *dict_lookup(dict_t *dict, const void *key)
  * function returns true).
  */
 
-void dict_insert(dict_t *dict, dnode_t *node, const void *key)
+static void dict_insert(dict_t *dict, dnode_t *node, const void *key)
 {
     dnode_t *where = dict_root(dict), *nil = dict_nil(dict);
     dnode_t *parent = nil, *uncle, *grandpa;
@@ -1933,7 +1798,7 @@ void dict_insert(dict_t *dict, dnode_t *node, const void *key)
     node->left = nil;
     node->right = nil;
 
-    dict->nodecount++;
+    dict->dict_nodecount++;
 
     /* red black adjustments */
 
@@ -1992,9 +1857,18 @@ void dict_insert(dict_t *dict, dnode_t *node, const void *key)
  * the data item.
  */
 
-int dict_alloc_insert(dict_t *dict, const void *key, void *data)
+static dnode_t *dnode_init(dnode_t *dnode, void *data)
 {
-    dnode_t *node = dict->allocnode(dict->context);
+    dnode->data = data;
+    dnode->parent = NULL;
+    dnode->left = NULL;
+    dnode->right = NULL;
+    return dnode;
+}
+
+static int dict_alloc_insert(dict_t *dict, const void *key, void *data)
+{
+    dnode_t *node = malloc(sizeof(dnode_t));
 
     if (node) {
 	dnode_init(node, data);
@@ -2009,7 +1883,7 @@ int dict_alloc_insert(dict_t *dict, const void *key, void *data)
  * (that is, dict_isempty(dict) returns 1) a null pointer is returned.
  */
 
-dnode_t *dict_first(dict_t *dict)
+static dnode_t *dict_first(dict_t *dict)
 {
     dnode_t *nil = dict_nil(dict), *root = dict_root(dict), *left;
 
@@ -2027,7 +1901,7 @@ dnode_t *dict_first(dict_t *dict)
  * the nil node.
  */
 
-dnode_t *dict_next(dict_t *dict, dnode_t *curr)
+static dnode_t *dict_next(dict_t *dict, dnode_t *curr)
 {
     dnode_t *nil = dict_nil(dict), *parent, *left;
 
@@ -2048,43 +1922,12 @@ dnode_t *dict_next(dict_t *dict, dnode_t *curr)
     return (parent == nil) ? NULL : parent;
 }
 
-#undef dict_count
-#undef dnode_get
-#undef dnode_getkey
 
-dictcount_t dict_count(dict_t *dict)
-{
-    return dict->nodecount;
-}
-
-static dnode_t *dnode_alloc(void *context EXT2FS_ATTR((unused)))
-{
-    return malloc(sizeof *dnode_alloc(NULL));
-}
-
-static void dnode_free(dnode_t *node, void *context EXT2FS_ATTR((unused)))
+static void dnode_free(dnode_t *node)
 {
     free(node);
 }
 
-dnode_t *dnode_init(dnode_t *dnode, void *data)
-{
-    dnode->data = data;
-    dnode->parent = NULL;
-    dnode->left = NULL;
-    dnode->right = NULL;
-    return dnode;
-}
-
-void *dnode_get(dnode_t *dnode)
-{
-    return dnode->data;
-}
-
-const void *dnode_getkey(dnode_t *dnode)
-{
-    return dnode->key;
-}
 
 #undef left
 #undef right
@@ -2094,22 +1937,13 @@ const void *dnode_getkey(dnode_t *dnode)
 #undef data
 
 #undef nilnode
-#undef nodecount
 #undef maxcount
 #undef compare
-#undef allocnode
-#undef freenode
-#undef context
 #undef dupes
-
-#undef dictptr
 
 
 /*
  * dirinfo.c --- maintains the directory information table for e2fsck.
- *
- * Copyright (C) 1993 Theodore Ts'o.  This file may be redistributed
- * under the terms of the GNU Public License.
  */
 
 /*
@@ -2117,7 +1951,7 @@ const void *dnode_getkey(dnode_t *dnode)
  * entry.  During pass1, the passed-in parent is 0; it will get filled
  * in during pass2.
  */
-void e2fsck_add_dir_info(e2fsck_t ctx, ext2_ino_t ino, ext2_ino_t parent)
+static void e2fsck_add_dir_info(e2fsck_t ctx, ext2_ino_t ino, ext2_ino_t parent)
 {
 	struct dir_info *dir;
 	int             i, j;
@@ -2182,7 +2016,7 @@ void e2fsck_add_dir_info(e2fsck_t ctx, ext2_ino_t ino, ext2_ino_t parent)
  * get_dir_info() --- given an inode number, try to find the directory
  * information entry for it.
  */
-struct dir_info *e2fsck_get_dir_info(e2fsck_t ctx, ext2_ino_t ino)
+static struct dir_info *e2fsck_get_dir_info(e2fsck_t ctx, ext2_ino_t ino)
 {
 	int     low, high, mid;
 
@@ -2212,7 +2046,7 @@ struct dir_info *e2fsck_get_dir_info(e2fsck_t ctx, ext2_ino_t ino)
 /*
  * Free the dir_info structure when it isn't needed any more.
  */
-void e2fsck_free_dir_info(e2fsck_t ctx)
+static void e2fsck_free_dir_info(e2fsck_t ctx)
 {
 	if (ctx->dir_info) {
 		ext2fs_free_mem(&ctx->dir_info);
@@ -2225,7 +2059,7 @@ void e2fsck_free_dir_info(e2fsck_t ctx)
 /*
  * Return the count of number of directories in the dir_info structure
  */
-int e2fsck_get_num_dirinfo(e2fsck_t ctx)
+static inline int e2fsck_get_num_dirinfo(e2fsck_t ctx)
 {
 	return ctx->dir_info_count;
 }
@@ -2233,18 +2067,17 @@ int e2fsck_get_num_dirinfo(e2fsck_t ctx)
 /*
  * A simple interator function
  */
-struct dir_info *e2fsck_dir_info_iter(e2fsck_t ctx, int *control)
+static struct dir_info *e2fsck_dir_info_iter(e2fsck_t ctx, int *control)
 {
 	if (*control >= ctx->dir_info_count)
 		return 0;
 
 	return(ctx->dir_info + (*control)++);
 }
+
 /*
  * dirinfo.c --- maintains the directory information table for e2fsck.
  *
- * Copyright (C) 1993 Theodore Ts'o.  This file may be redistributed
- * under the terms of the GNU Public License.
  */
 
 #ifdef ENABLE_HTREE
@@ -2254,7 +2087,7 @@ struct dir_info *e2fsck_dir_info_iter(e2fsck_t ctx, int *control)
  * entry.  During pass1, the passed-in parent is 0; it will get filled
  * in during pass2.
  */
-void e2fsck_add_dx_dir(e2fsck_t ctx, ext2_ino_t ino, int num_blocks)
+static void e2fsck_add_dx_dir(e2fsck_t ctx, ext2_ino_t ino, int num_blocks)
 {
 	struct dx_dir_info *dir;
 	int             i, j;
@@ -2319,7 +2152,7 @@ void e2fsck_add_dx_dir(e2fsck_t ctx, ext2_ino_t ino, int num_blocks)
  * get_dx_dir_info() --- given an inode number, try to find the directory
  * information entry for it.
  */
-struct dx_dir_info *e2fsck_get_dx_dir_info(e2fsck_t ctx, ext2_ino_t ino)
+static struct dx_dir_info *e2fsck_get_dx_dir_info(e2fsck_t ctx, ext2_ino_t ino)
 {
 	int     low, high, mid;
 
@@ -2349,7 +2182,7 @@ struct dx_dir_info *e2fsck_get_dx_dir_info(e2fsck_t ctx, ext2_ino_t ino)
 /*
  * Free the dx_dir_info structure when it isn't needed any more.
  */
-void e2fsck_free_dx_dir_info(e2fsck_t ctx)
+static void e2fsck_free_dx_dir_info(e2fsck_t ctx)
 {
 	int     i;
 	struct dx_dir_info *dir;
@@ -2372,7 +2205,7 @@ void e2fsck_free_dx_dir_info(e2fsck_t ctx)
 /*
  * A simple interator function
  */
-struct dx_dir_info *e2fsck_dx_dir_info_iter(e2fsck_t ctx, int *control)
+static struct dx_dir_info *e2fsck_dx_dir_info_iter(e2fsck_t ctx, int *control)
 {
 	if (*control >= ctx->dx_dir_info_count)
 		return 0;
@@ -2384,18 +2217,12 @@ struct dx_dir_info *e2fsck_dx_dir_info_iter(e2fsck_t ctx, int *control)
 /*
  * e2fsck.c - a consistency checker for the new extended file system.
  *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
  */
 
 /*
  * This function allocates an e2fsck context
  */
-errcode_t e2fsck_allocate_context(e2fsck_t *ret)
+static errcode_t e2fsck_allocate_context(e2fsck_t *ret)
 {
 	e2fsck_t        context;
 	errcode_t       retval;
@@ -2413,11 +2240,33 @@ errcode_t e2fsck_allocate_context(e2fsck_t *ret)
 	return 0;
 }
 
+struct ea_refcount_el {
+	blk_t   ea_blk;
+	int     ea_count;
+};
+
+struct ea_refcount {
+	blk_t           count;
+	blk_t           size;
+	blk_t           cursor;
+	struct ea_refcount_el   *list;
+};
+
+static void ea_refcount_free(ext2_refcount_t refcount)
+{
+	if (!refcount)
+		return;
+
+	if (refcount->list)
+		ext2fs_free_mem(&refcount->list);
+	ext2fs_free_mem(&refcount);
+}
+
 /*
  * This function resets an e2fsck context; it is called when e2fsck
  * needs to be restarted.
  */
-errcode_t e2fsck_reset_context(e2fsck_t ctx)
+static errcode_t e2fsck_reset_context(e2fsck_t ctx)
 {
 	ctx->flags = 0;
 	ctx->lost_and_found = 0;
@@ -2528,7 +2377,7 @@ errcode_t e2fsck_reset_context(e2fsck_t ctx)
 	return 0;
 }
 
-void e2fsck_free_context(e2fsck_t ctx)
+static void e2fsck_free_context(e2fsck_t ctx)
 {
 	if (!ctx)
 		return;
@@ -2541,46 +2390,7 @@ void e2fsck_free_context(e2fsck_t ctx)
 }
 
 /*
- * This function runs through the e2fsck passes and calls them all,
- * returning restart, abort, or cancel as necessary...
- */
-typedef void (*pass_t)(e2fsck_t ctx);
-
-static pass_t e2fsck_passes[] = {
-	e2fsck_pass1, e2fsck_pass2, e2fsck_pass3, e2fsck_pass4,
-	e2fsck_pass5, 0 };
-
-#define E2F_FLAG_RUN_RETURN     (E2F_FLAG_SIGNAL_MASK|E2F_FLAG_RESTART)
-
-int e2fsck_run(e2fsck_t ctx)
-{
-	int     i;
-	pass_t  e2fsck_pass;
-
-	if (setjmp(ctx->abort_loc)) {
-		ctx->flags &= ~E2F_FLAG_SETJMP_OK;
-		return (ctx->flags & E2F_FLAG_RUN_RETURN);
-	}
-	ctx->flags |= E2F_FLAG_SETJMP_OK;
-
-	for (i=0; (e2fsck_pass = e2fsck_passes[i]); i++) {
-		if (ctx->flags & E2F_FLAG_RUN_RETURN)
-			break;
-		e2fsck_pass(ctx);
-		if (ctx->progress)
-			(void) (ctx->progress)(ctx, 0, 0, 0);
-	}
-	ctx->flags &= ~E2F_FLAG_SETJMP_OK;
-
-	if (ctx->flags & E2F_FLAG_RUN_RETURN)
-		return (ctx->flags & E2F_FLAG_RUN_RETURN);
-	return 0;
-}
-/*
  * ea_refcount.c
- *
- * Copyright (C) 2001 Theodore Ts'o.  This file may be
- * redistributed under the terms of the GNU Public License.
  */
 
 /*
@@ -2590,29 +2400,9 @@ int e2fsck_run(e2fsck_t ctx)
  * removed from the array to save memory space.  Once the EA block is
  * checked, its bit is set in the block_ea_map bitmap.
  */
-struct ea_refcount_el {
-	blk_t   ea_blk;
-	int     ea_count;
-};
 
-struct ea_refcount {
-	blk_t           count;
-	blk_t           size;
-	blk_t           cursor;
-	struct ea_refcount_el   *list;
-};
 
-void ea_refcount_free(ext2_refcount_t refcount)
-{
-	if (!refcount)
-		return;
-
-	if (refcount->list)
-		ext2fs_free_mem(&refcount->list);
-	ext2fs_free_mem(&refcount);
-}
-
-errcode_t ea_refcount_create(int size, ext2_refcount_t *ret)
+static errcode_t ea_refcount_create(int size, ext2_refcount_t *ret)
 {
 	ext2_refcount_t refcount;
 	errcode_t       retval;
@@ -2793,7 +2583,8 @@ retry:
 	return 0;
 }
 
-errcode_t ea_refcount_increment(ext2_refcount_t refcount, blk_t blk, int *ret)
+static errcode_t
+ea_refcount_increment(ext2_refcount_t refcount, blk_t blk, int *ret)
 {
 	struct ea_refcount_el   *el;
 
@@ -2807,7 +2598,8 @@ errcode_t ea_refcount_increment(ext2_refcount_t refcount, blk_t blk, int *ret)
 	return 0;
 }
 
-errcode_t ea_refcount_decrement(ext2_refcount_t refcount, blk_t blk, int *ret)
+static errcode_t
+ea_refcount_decrement(ext2_refcount_t refcount, blk_t blk, int *ret)
 {
 	struct ea_refcount_el   *el;
 
@@ -2822,7 +2614,8 @@ errcode_t ea_refcount_decrement(ext2_refcount_t refcount, blk_t blk, int *ret)
 	return 0;
 }
 
-errcode_t ea_refcount_store(ext2_refcount_t refcount, blk_t blk, int count)
+static errcode_t
+ea_refcount_store(ext2_refcount_t refcount, blk_t blk, int count)
 {
 	struct ea_refcount_el   *el;
 
@@ -2836,14 +2629,13 @@ errcode_t ea_refcount_store(ext2_refcount_t refcount, blk_t blk, int count)
 	return 0;
 }
 
-void ea_refcount_intr_begin(ext2_refcount_t refcount)
+static inline void ea_refcount_intr_begin(ext2_refcount_t refcount)
 {
 	refcount->cursor = 0;
 }
 
 
-blk_t ea_refcount_intr_next(ext2_refcount_t refcount,
-				int *ret)
+static blk_t ea_refcount_intr_next(ext2_refcount_t refcount, int *ret)
 {
 	struct ea_refcount_el   *list;
 
@@ -2864,21 +2656,15 @@ blk_t ea_refcount_intr_next(ext2_refcount_t refcount,
 /*
  * ehandler.c --- handle bad block errors which come up during the
  *      course of an e2fsck session.
- *
- * Copyright (C) 1994 Theodore Ts'o.  This file may be redistributed
- * under the terms of the GNU Public License.
  */
 
 
 static const char *operation;
 
-static errcode_t e2fsck_handle_read_error(io_channel channel,
-					  unsigned long block,
-					  int count,
-					  void *data,
-					  size_t size EXT2FS_ATTR((unused)),
-					  int actual EXT2FS_ATTR((unused)),
-					  errcode_t error)
+static errcode_t
+e2fsck_handle_read_error(io_channel channel, unsigned long block, int count,
+			 void *data, size_t size EXT2FS_ATTR((unused)),
+			 int actual EXT2FS_ATTR((unused)), errcode_t error)
 {
 	int     i;
 	char    *p;
@@ -2918,13 +2704,10 @@ static errcode_t e2fsck_handle_read_error(io_channel channel,
 	return error;
 }
 
-static errcode_t e2fsck_handle_write_error(io_channel channel,
-					    unsigned long block,
-					    int count,
-					    const void *data,
-					    size_t size EXT2FS_ATTR((unused)),
-					    int actual EXT2FS_ATTR((unused)),
-					    errcode_t error)
+static errcode_t
+e2fsck_handle_write_error(io_channel channel, unsigned long block, int count,
+			const void *data, size_t size EXT2FS_ATTR((unused)),
+			int actual EXT2FS_ATTR((unused)), errcode_t error)
 {
 	int             i;
 	const char      *p;
@@ -2962,7 +2745,7 @@ static errcode_t e2fsck_handle_write_error(io_channel channel,
 	return error;
 }
 
-const char *ehandler_operation(const char *op)
+static inline const char *ehandler_operation(const char *op)
 {
 	const char *ret = operation;
 
@@ -2970,11 +2753,12 @@ const char *ehandler_operation(const char *op)
 	return ret;
 }
 
-void ehandler_init(io_channel channel)
+static void ehandler_init(io_channel channel)
 {
 	channel->read_error = e2fsck_handle_read_error;
 	channel->write_error = e2fsck_handle_write_error;
 }
+
 /*
  * journal.c --- code for handling the "ext3" journal
  *
@@ -3009,7 +2793,7 @@ static int bh_count = 0;
  * to use the recovery.c file virtually unchanged from the kernel, so we
  * don't have to do much to keep kernel and user recovery in sync.
  */
-int journal_bmap(journal_t *journal, blk_t block, unsigned long *phys)
+static int journal_bmap(journal_t *journal, blk_t block, unsigned long *phys)
 {
 #ifdef USE_INODE_IO
 	*phys = block;
@@ -3031,7 +2815,7 @@ int journal_bmap(journal_t *journal, blk_t block, unsigned long *phys)
 #endif
 }
 
-struct buffer_head *getblk(kdev_t kdev, blk_t blocknr, int blocksize)
+static struct buffer_head *getblk(kdev_t kdev, blk_t blocknr, int blocksize)
 {
 	struct buffer_head *bh;
 
@@ -3053,7 +2837,7 @@ struct buffer_head *getblk(kdev_t kdev, blk_t blocknr, int blocksize)
 	return bh;
 }
 
-void sync_blockdev(kdev_t kdev)
+static void sync_blockdev(kdev_t kdev)
 {
 	io_channel      io;
 
@@ -3065,7 +2849,7 @@ void sync_blockdev(kdev_t kdev)
 	io_channel_flush(io);
 }
 
-void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
+static void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 {
 	int retval;
 	struct buffer_head *bh;
@@ -3109,17 +2893,17 @@ void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 	}
 }
 
-void mark_buffer_dirty(struct buffer_head *bh)
+static inline void mark_buffer_dirty(struct buffer_head *bh)
 {
 	bh->b_dirty = 1;
 }
 
-static void mark_buffer_clean(struct buffer_head * bh)
+static inline void mark_buffer_clean(struct buffer_head * bh)
 {
 	bh->b_dirty = 0;
 }
 
-void brelse(struct buffer_head *bh)
+static void brelse(struct buffer_head *bh)
 {
 	if (bh->b_dirty)
 		ll_rw_block(WRITE, 1, &bh);
@@ -3128,17 +2912,17 @@ void brelse(struct buffer_head *bh)
 	ext2fs_free_mem(&bh);
 }
 
-int buffer_uptodate(struct buffer_head *bh)
+static inline int buffer_uptodate(struct buffer_head *bh)
 {
 	return bh->b_uptodate;
 }
 
-void mark_buffer_uptodate(struct buffer_head *bh, int val)
+static inline void mark_buffer_uptodate(struct buffer_head *bh, int val)
 {
 	bh->b_uptodate = val;
 }
 
-void wait_on_buffer(struct buffer_head *bh)
+static void wait_on_buffer(struct buffer_head *bh)
 {
 	if (!bh->b_uptodate)
 		ll_rw_block(READ, 1, &bh);
@@ -3608,7 +3392,7 @@ static void e2fsck_journal_release(e2fsck_t ctx, journal_t *journal,
  * This function makes sure that the superblock fields regarding the
  * journal are consistent.
  */
-int e2fsck_check_ext3_journal(e2fsck_t ctx)
+static int e2fsck_check_ext3_journal(e2fsck_t ctx)
 {
 	struct ext2_super_block *sb = ctx->fs->super;
 	journal_t *journal;
@@ -3759,7 +3543,7 @@ errout:
 	return retval;
 }
 
-int e2fsck_run_ext3_journal(e2fsck_t ctx)
+static int e2fsck_run_ext3_journal(e2fsck_t ctx)
 {
 	io_manager io_ptr = ctx->fs->io->manager;
 	int blocksize = ctx->fs->blocksize;
@@ -3806,7 +3590,7 @@ int e2fsck_run_ext3_journal(e2fsck_t ctx)
 static const char * const journal_names[] = {
 	".journal", "journal", ".journal.dat", "journal.dat", 0 };
 
-void e2fsck_move_ext3_journal(e2fsck_t ctx)
+static void e2fsck_move_ext3_journal(e2fsck_t ctx)
 {
 	struct ext2_super_block *sb = ctx->fs->super;
 	struct problem_context  pctx;
@@ -3927,13 +3711,6 @@ err_out:
 /*
  * message.c --- print e2fsck messages (with compression)
  *
- * Copyright 1996, 1997 by Theodore Ts'o
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
- *
  * print_e2fsck_message() prints a message to the user, using
  * compression techniques and expansions of abbreviations.
  *
@@ -4013,7 +3790,7 @@ err_out:
  * abbreviation of the form '@<i>' is expanded by looking up the index
  * letter <i> in the table below.
  */
-static const char *abbrevs[] = {
+static const char * const abbrevs[] = {
 	N_("aextended attribute"),
 	N_("Aerror allocating"),
 	N_("bblock"),
@@ -4049,7 +3826,7 @@ static const char *abbrevs[] = {
  * Give more user friendly names to the "special" inodes.
  */
 #define num_special_inodes      11
-static const char *special_inode_name[] =
+static const char * const special_inode_name[] =
 {
 	N_("<The NULL inode>"),                 /* 0 */
 	N_("<The bad blocks inode>"),           /* 1 */
@@ -4113,16 +3890,19 @@ static void print_pathname(ext2_filsys fs, ext2_ino_t dir, ext2_ino_t ino)
 	}
 }
 
+static void print_e2fsck_message(e2fsck_t ctx, const char *msg,
+			  struct problem_context *pctx, int first);
 /*
  * This function handles the '@' expansion.  We allow recursive
  * expansion; an @ expression can contain further '@' and '%'
  * expressions.
  */
-static _INLINE_ void expand_at_expression(e2fsck_t ctx, char ch,
+static void expand_at_expression(e2fsck_t ctx, char ch,
 					  struct problem_context *pctx,
 					  int *first)
 {
-	const char **cpp, *str;
+	const char * const *cpp;
+	const char *str;
 
 	/* Search for the abbreviation */
 	for (cpp = abbrevs; *cpp; cpp++) {
@@ -4143,7 +3923,7 @@ static _INLINE_ void expand_at_expression(e2fsck_t ctx, char ch,
 /*
  * This function expands '%IX' expressions
  */
-static _INLINE_ void expand_inode_expression(char ch,
+static void expand_inode_expression(char ch,
 					     struct problem_context *ctx)
 {
 	struct ext2_inode       *inode;
@@ -4344,7 +4124,8 @@ static _INLINE_ void expand_percent_expression(ext2_filsys fs, char ch,
 	}
 }
 
-void print_e2fsck_message(e2fsck_t ctx, const char *msg,
+
+static void print_e2fsck_message(e2fsck_t ctx, const char *msg,
 			  struct problem_context *pctx, int first)
 {
 	ext2_filsys fs = ctx->fs;
@@ -4375,15 +4156,111 @@ void print_e2fsck_message(e2fsck_t ctx, const char *msg,
 		first = 0;
 	}
 }
+
+
+/*
+ * region.c --- code which manages allocations within a region.
+ */
+
+struct region_el {
+	region_addr_t   start;
+	region_addr_t   end;
+	struct region_el *next;
+};
+
+struct region_struct {
+	region_addr_t   min;
+	region_addr_t   max;
+	struct region_el *allocated;
+};
+
+static region_t region_create(region_addr_t min, region_addr_t max)
+{
+	region_t        region;
+
+	region = malloc(sizeof(struct region_struct));
+	if (!region)
+		return NULL;
+	memset(region, 0, sizeof(struct region_struct));
+	region->min = min;
+	region->max = max;
+	return region;
+}
+
+static void region_free(region_t region)
+{
+	struct region_el        *r, *next;
+
+	for (r = region->allocated; r; r = next) {
+		next = r->next;
+		free(r);
+	}
+	memset(region, 0, sizeof(struct region_struct));
+	free(region);
+}
+
+static int region_allocate(region_t region, region_addr_t start, int n)
+{
+	struct region_el        *r, *new_region, *prev, *next;
+	region_addr_t end;
+
+	end = start+n;
+	if ((start < region->min) || (end > region->max))
+		return -1;
+	if (n == 0)
+		return 1;
+
+	/*
+	 * Search through the linked list.  If we find that it
+	 * conflicts witih something that's already allocated, return
+	 * 1; if we can find an existing region which we can grow, do
+	 * so.  Otherwise, stop when we find the appropriate place
+	 * insert a new region element into the linked list.
+	 */
+	for (r = region->allocated, prev=NULL; r; prev = r, r = r->next) {
+		if (((start >= r->start) && (start < r->end)) ||
+		    ((end > r->start) && (end <= r->end)) ||
+		    ((start <= r->start) && (end >= r->end)))
+			return 1;
+		if (end == r->start) {
+			r->start = start;
+			return 0;
+		}
+		if (start == r->end) {
+			if ((next = r->next)) {
+				if (end > next->start)
+					return 1;
+				if (end == next->start) {
+					r->end = next->end;
+					r->next = next->next;
+					free(next);
+					return 0;
+				}
+			}
+			r->end = end;
+			return 0;
+		}
+		if (start < r->start)
+			break;
+	}
+	/*
+	 * Insert a new region element structure into the linked list
+	 */
+	new_region = malloc(sizeof(struct region_el));
+	if (!new_region)
+		return -1;
+	new_region->start = start;
+	new_region->end = start + n;
+	new_region->next = r;
+	if (prev)
+		prev->next = new_region;
+	else
+		region->allocated = new_region;
+	return 0;
+}
+
 /*
  * pass1.c -- pass #1 of e2fsck: sequential scan of the inode table
- *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
  *
  * Pass 1 of e2fsck iterates over all the inodes in the filesystems,
  * and applies the following tests to each inode:
@@ -4478,7 +4355,7 @@ static __u64 ext2_max_sizes[EXT2_MAX_BLOCK_LOG_SIZE -
  * Free all memory allocated by pass1 in preparation for restarting
  * things.
  */
-static void unwind_pass1(ext2_filsys fs EXT2FS_ATTR((unused)))
+static void unwind_pass1(void)
 {
 	ext2fs_free_mem(&inodes_to_process);
 	inodes_to_process = 0;
@@ -4492,7 +4369,8 @@ static void unwind_pass1(ext2_filsys fs EXT2FS_ATTR((unused)))
  * since they have the same requirement; the i_block fields should be
  * zero.
  */
-int e2fsck_pass1_check_device_inode(ext2_filsys fs, struct ext2_inode *inode)
+static int
+e2fsck_pass1_check_device_inode(ext2_filsys fs, struct ext2_inode *inode)
 {
 	int     i;
 
@@ -4527,8 +4405,8 @@ int e2fsck_pass1_check_device_inode(ext2_filsys fs, struct ext2_inode *inode)
  * Check to make sure a symlink inode is real.  Returns 1 if the symlink
  * checks out, 0 if not.
  */
-int e2fsck_pass1_check_symlink(ext2_filsys fs, struct ext2_inode *inode,
-			       char *buf)
+static int
+e2fsck_pass1_check_symlink(ext2_filsys fs, struct ext2_inode *inode, char *buf)
 {
 	unsigned int len;
 	int i;
@@ -4737,7 +4615,7 @@ static void check_inode_extra_space(e2fsck_t ctx, struct problem_context *pctx)
 	}
 }
 
-void e2fsck_pass1(e2fsck_t ctx)
+static void e2fsck_pass1(e2fsck_t ctx)
 {
 	int     i;
 	__u64   max_sizes;
@@ -5250,7 +5128,7 @@ void e2fsck_pass1(e2fsck_t ctx)
 		 * master superblock.
 		 */
 		ctx->use_superblock = 0;
-		unwind_pass1(fs);
+		unwind_pass1();
 		goto endit;
 	}
 
@@ -6480,6 +6358,7 @@ void e2fsck_use_inode_shortcuts(e2fsck_t ctx, int bool)
 		fs->write_inode = 0;
 	}
 }
+
 /*
  * pass1b.c --- Pass #1b of e2fsck
  *
@@ -6499,13 +6378,6 @@ void e2fsck_use_inode_shortcuts(e2fsck_t ctx, int bool)
  * blocks, the user is prompted if s/he would like to clone the file
  * (so that the file gets a fresh copy of the duplicated blocks) or
  * simply to delete the file.
- *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
  *
  */
 
@@ -6627,8 +6499,7 @@ static void add_dupe(e2fsck_t ctx, ext2_ino_t ino, blk_t blk,
 /*
  * Free a duplicate inode record
  */
-static void inode_dnode_free(dnode_t *node,
-			     void *context EXT2FS_ATTR((unused)))
+static void inode_dnode_free(dnode_t *node)
 {
 	struct dup_inode        *di;
 	struct block_el         *p, *next;
@@ -6644,8 +6515,7 @@ static void inode_dnode_free(dnode_t *node,
 /*
  * Free a duplicate block record
  */
-static void block_dnode_free(dnode_t *node,
-			     void *context EXT2FS_ATTR((unused)))
+static void block_dnode_free(dnode_t *node)
 {
 	struct dup_block        *db;
 	struct inode_el         *p, *next;
@@ -6679,8 +6549,8 @@ void e2fsck_pass1_dupblocks(e2fsck_t ctx, char *block_buf)
 
 	dict_init(&ino_dict, DICTCOUNT_T_MAX, dict_int_cmp);
 	dict_init(&blk_dict, DICTCOUNT_T_MAX, dict_int_cmp);
-	dict_set_allocator(&ino_dict, NULL, inode_dnode_free, NULL);
-	dict_set_allocator(&blk_dict, NULL, block_dnode_free, NULL);
+	dict_set_allocator(&ino_dict, inode_dnode_free);
+	dict_set_allocator(&blk_dict, block_dnode_free);
 
 	pass1b(ctx, block_buf);
 	pass1c(ctx, block_buf);
@@ -7275,13 +7145,6 @@ static int check_if_fs_block(e2fsck_t ctx, blk_t test_block)
 /*
  * pass2.c --- check directory structure
  *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
- *
  * Pass 2 of e2fsck iterates through all active directory inodes, and
  * applies to following tests to each directory entry in the directory
  * blocks in the inodes:
@@ -7324,9 +7187,8 @@ static void deallocate_inode(e2fsck_t ctx, ext2_ino_t ino, char* block_buf);
 static int check_dir_block(ext2_filsys fs,
 			   struct ext2_db_entry *dir_blocks_info,
 			   void *priv_data);
-static int allocate_dir_block(e2fsck_t ctx,
-			      struct ext2_db_entry *dir_blocks_info,
-			      char *buf, struct problem_context *pctx);
+static int allocate_dir_block(e2fsck_t ctx, struct ext2_db_entry *dir_blocks_info,
+			      struct problem_context *pctx);
 static int update_dir_block(ext2_filsys fs,
 			    blk_t       *block_nr,
 			    e2_blkcnt_t blockcnt,
@@ -7345,7 +7207,7 @@ struct check_dir_struct {
 	e2fsck_t ctx;
 };
 
-void e2fsck_pass2(e2fsck_t ctx)
+static void e2fsck_pass2(e2fsck_t ctx)
 {
 	struct ext2_super_block *sb = ctx->fs->super;
 	struct problem_context  pctx;
@@ -7714,7 +7576,6 @@ static int check_dotdot(e2fsck_t ctx,
  */
 static int check_name(e2fsck_t ctx,
 		      struct ext2_dir_entry *dirent,
-		      ext2_ino_t dir_ino EXT2FS_ATTR((unused)),
 		      struct problem_context *pctx)
 {
 	int     i;
@@ -7738,9 +7599,38 @@ static int check_name(e2fsck_t ctx,
 /*
  * Check the directory filetype (if present)
  */
+
+/*
+ * Given a mode, return the ext2 file type
+ */
+static int ext2_file_type(unsigned int mode)
+{
+	if (LINUX_S_ISREG(mode))
+		return EXT2_FT_REG_FILE;
+
+	if (LINUX_S_ISDIR(mode))
+		return EXT2_FT_DIR;
+
+	if (LINUX_S_ISCHR(mode))
+		return EXT2_FT_CHRDEV;
+
+	if (LINUX_S_ISBLK(mode))
+		return EXT2_FT_BLKDEV;
+
+	if (LINUX_S_ISLNK(mode))
+		return EXT2_FT_SYMLINK;
+
+	if (LINUX_S_ISFIFO(mode))
+		return EXT2_FT_FIFO;
+
+	if (LINUX_S_ISSOCK(mode))
+		return EXT2_FT_SOCK;
+
+	return 0;
+}
+
 static _INLINE_ int check_filetype(e2fsck_t ctx,
 				   struct ext2_dir_entry *dirent,
-				   ext2_ino_t dir_ino EXT2FS_ATTR((unused)),
 				   struct problem_context *pctx)
 {
 	int     filetype = dirent->name_len >> 8;
@@ -8006,7 +7896,7 @@ static int check_dir_block(ext2_filsys fs,
 	cd->pctx.num = 0;
 
 	if (db->blk == 0) {
-		if (allocate_dir_block(ctx, db, buf, &cd->pctx))
+		if (allocate_dir_block(ctx, db, &cd->pctx))
 			return 0;
 		block_nr = db->blk;
 	}
@@ -8210,10 +8100,10 @@ static int check_dir_block(ext2_filsys fs,
 				return DIRENT_ABORT;
 		}
 
-		if (check_name(ctx, dirent, ino, &cd->pctx))
+		if (check_name(ctx, dirent, &cd->pctx))
 			dir_modified++;
 
-		if (check_filetype(ctx, dirent, ino, &cd->pctx))
+		if (check_filetype(ctx, dirent, &cd->pctx))
 			dir_modified++;
 
 #ifdef ENABLE_HTREE
@@ -8326,8 +8216,7 @@ abort_free_dict:
  * This function is called to deallocate a block, and is an interator
  * functioned called by deallocate inode via ext2fs_iterate_block().
  */
-static int deallocate_inode_block(ext2_filsys fs,
-				  blk_t *block_nr,
+static int deallocate_inode_block(ext2_filsys fs, blk_t *block_nr,
 				  e2_blkcnt_t blockcnt EXT2FS_ATTR((unused)),
 				  blk_t ref_block EXT2FS_ATTR((unused)),
 				  int ref_offset EXT2FS_ATTR((unused)),
@@ -8575,9 +8464,7 @@ static int e2fsck_process_bad_inode(e2fsck_t ctx, ext2_ino_t dir,
  *      a "hole" in it, or if a directory has a illegal block number
  *      that was zeroed out and now needs to be replaced.
  */
-static int allocate_dir_block(e2fsck_t ctx,
-			      struct ext2_db_entry *db,
-			      char *buf EXT2FS_ATTR((unused)),
+static int allocate_dir_block(e2fsck_t ctx, struct ext2_db_entry *db,
 			      struct problem_context *pctx)
 {
 	ext2_filsys fs = ctx->fs;
@@ -8673,15 +8560,9 @@ static int update_dir_block(ext2_filsys fs EXT2FS_ATTR((unused)),
 	}
 	return 0;
 }
+
 /*
  * pass3.c -- pass #3 of e2fsck: Check for directory connectivity
- *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
  *
  * Pass #3 assures that all directories are connected to the
  * filesystem tree, using the following algorithm:
@@ -8714,10 +8595,10 @@ static int check_directory(e2fsck_t ctx, struct dir_info *dir,
 			   struct problem_context *pctx);
 static void fix_dotdot(e2fsck_t ctx, struct dir_info *dir, ext2_ino_t parent);
 
-static ext2fs_inode_bitmap inode_loop_detect = 0;
-static ext2fs_inode_bitmap inode_done_map = 0;
+static ext2fs_inode_bitmap inode_loop_detect;
+static ext2fs_inode_bitmap inode_done_map;
 
-void e2fsck_pass3(e2fsck_t ctx)
+static void e2fsck_pass3(e2fsck_t ctx)
 {
 	ext2_filsys fs = ctx->fs;
 	int             i;
@@ -9473,13 +9354,6 @@ errcode_t e2fsck_expand_directory(e2fsck_t ctx, ext2_ino_t dir,
 /*
  * pass4.c -- pass #4 of e2fsck: Check reference counts
  *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
- *
  * Pass 4 frees the following data structures:
  *      - A bitmap of which inodes are in bad blocks.   (inode_bb_map)
  *      - A bitmap of which inodes are imagic inodes.   (inode_imagic_map)
@@ -9548,7 +9422,7 @@ static int disconnect_inode(e2fsck_t ctx, ext2_ino_t i)
 }
 
 
-void e2fsck_pass4(e2fsck_t ctx)
+static void e2fsck_pass4(e2fsck_t ctx)
 {
 	ext2_filsys fs = ctx->fs;
 	ext2_ino_t      i;
@@ -9647,74 +9521,7 @@ void e2fsck_pass4(e2fsck_t ctx)
 
 /*
  * pass5.c --- check block and inode bitmaps against on-disk bitmaps
- *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
- *
  */
-
-static void check_block_bitmaps(e2fsck_t ctx);
-static void check_inode_bitmaps(e2fsck_t ctx);
-static void check_inode_end(e2fsck_t ctx);
-static void check_block_end(e2fsck_t ctx);
-
-void e2fsck_pass5(e2fsck_t ctx)
-{
-#ifdef RESOURCE_TRACK
-	struct resource_track   rtrack;
-#endif
-	struct problem_context  pctx;
-
-#ifdef MTRACE
-	mtrace_print("Pass 5");
-#endif
-
-#ifdef RESOURCE_TRACK
-	init_resource_track(&rtrack);
-#endif
-
-	clear_problem_context(&pctx);
-
-	if (!(ctx->options & E2F_OPT_PREEN))
-		fix_problem(ctx, PR_5_PASS_HEADER, &pctx);
-
-	if (ctx->progress)
-		if ((ctx->progress)(ctx, 5, 0, ctx->fs->group_desc_count*2))
-			return;
-
-	e2fsck_read_bitmaps(ctx);
-
-	check_block_bitmaps(ctx);
-	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-		return;
-	check_inode_bitmaps(ctx);
-	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-		return;
-	check_inode_end(ctx);
-	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-		return;
-	check_block_end(ctx);
-	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-		return;
-
-	ext2fs_free_inode_bitmap(ctx->inode_used_map);
-	ctx->inode_used_map = 0;
-	ext2fs_free_inode_bitmap(ctx->inode_dir_map);
-	ctx->inode_dir_map = 0;
-	ext2fs_free_block_bitmap(ctx->block_found_map);
-	ctx->block_found_map = 0;
-
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME2) {
-		e2fsck_clear_progbar(ctx);
-		print_resource_track(_("Pass 5"), &rtrack);
-	}
-#endif
-}
 
 #define NO_BLK ((blk_t) -1)
 
@@ -10187,17 +9994,62 @@ static void check_block_end(e2fsck_t ctx)
 	}
 }
 
+static void e2fsck_pass5(e2fsck_t ctx)
+{
+#ifdef RESOURCE_TRACK
+	struct resource_track   rtrack;
+#endif
+	struct problem_context  pctx;
 
+#ifdef MTRACE
+	mtrace_print("Pass 5");
+#endif
+
+#ifdef RESOURCE_TRACK
+	init_resource_track(&rtrack);
+#endif
+
+	clear_problem_context(&pctx);
+
+	if (!(ctx->options & E2F_OPT_PREEN))
+		fix_problem(ctx, PR_5_PASS_HEADER, &pctx);
+
+	if (ctx->progress)
+		if ((ctx->progress)(ctx, 5, 0, ctx->fs->group_desc_count*2))
+			return;
+
+	e2fsck_read_bitmaps(ctx);
+
+	check_block_bitmaps(ctx);
+	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
+		return;
+	check_inode_bitmaps(ctx);
+	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
+		return;
+	check_inode_end(ctx);
+	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
+		return;
+	check_block_end(ctx);
+	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
+		return;
+
+	ext2fs_free_inode_bitmap(ctx->inode_used_map);
+	ctx->inode_used_map = 0;
+	ext2fs_free_inode_bitmap(ctx->inode_dir_map);
+	ctx->inode_dir_map = 0;
+	ext2fs_free_block_bitmap(ctx->block_found_map);
+	ctx->block_found_map = 0;
+
+#ifdef RESOURCE_TRACK
+	if (ctx->options & E2F_OPT_TIME2) {
+		e2fsck_clear_progbar(ctx);
+		print_resource_track(_("Pass 5"), &rtrack);
+	}
+#endif
+}
 
 /*
  * problem.c --- report filesystem problems to the user
- *
- * Copyright 1996, 1997 by Theodore Ts'o
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
  */
 
 #define PR_PREEN_OK     0x000001 /* Don't need to do preenhalt */
@@ -10258,7 +10110,7 @@ struct latch_descr {
  * These are the prompts which are used to ask the user if they want
  * to fix a problem.
  */
-static const char *prompt[] = {
+static const char * const prompt[] = {
 	N_("(no prompt)"),      /* 0 */
 	N_("Fix"),              /* 1 */
 	N_("Clear"),            /* 2 */
@@ -10286,7 +10138,7 @@ static const char *prompt[] = {
  * These messages are printed when we are preen mode and we will be
  * automatically fixing the problem.
  */
-static const char *preen_msg[] = {
+static const char * const preen_msg[] = {
 	N_("(NONE)"),           /* 0 */
 	N_("FIXED"),            /* 1 */
 	N_("CLEARED"),          /* 2 */
@@ -11854,19 +11706,11 @@ int fix_problem(e2fsck_t ctx, problem_t code, struct problem_context *pctx)
 
 	return answer;
 }
+
 /*
  * linux/fs/recovery.c
  *
  * Written by Stephen C. Tweedie <sct@redhat.com>, 1999
- *
- * Copyright 1999-2000 Red Hat Software --- All Rights Reserved
- *
- * This file is part of the Linux kernel and is made available under
- * the terms of the GNU General Public License, version 2, or at your
- * option, any later version, incorporated herein by reference.
- *
- * Journal recovery routines for the generic filesystem journaling code;
- * part of the ext2fs journaling system.
  */
 
 /*
@@ -11888,87 +11732,6 @@ static int do_one_pass(journal_t *journal,
 				struct recovery_info *info, enum passtype pass);
 static int scan_revoke_records(journal_t *, struct buffer_head *,
 				tid_t, struct recovery_info *);
-
-#ifdef __KERNEL__
-
-/* Release readahead buffers after use */
-void journal_brelse_array(struct buffer_head *b[], int n)
-{
-	while (--n >= 0)
-		brelse (b[n]);
-}
-
-
-/*
- * When reading from the journal, we are going through the block device
- * layer directly and so there is no readahead being done for us.  We
- * need to implement any readahead ourselves if we want it to happen at
- * all.  Recovery is basically one long sequential read, so make sure we
- * do the IO in reasonably large chunks.
- *
- * This is not so critical that we need to be enormously clever about
- * the readahead size, though.  128K is a purely arbitrary, good-enough
- * fixed value.
- */
-
-#define MAXBUF 8
-static int do_readahead(journal_t *journal, unsigned int start)
-{
-	int err;
-	unsigned int max, nbufs, next;
-	unsigned long blocknr;
-	struct buffer_head *bh;
-
-	struct buffer_head * bufs[MAXBUF];
-
-	/* Do up to 128K of readahead */
-	max = start + (128 * 1024 / journal->j_blocksize);
-	if (max > journal->j_maxlen)
-		max = journal->j_maxlen;
-
-	/* Do the readahead itself.  We'll submit MAXBUF buffer_heads at
-	 * a time to the block device IO layer. */
-
-	nbufs = 0;
-
-	for (next = start; next < max; next++) {
-		err = journal_bmap(journal, next, &blocknr);
-
-		if (err) {
-			printk (KERN_ERR "JBD: bad block at offset %u\n",
-				next);
-			goto failed;
-		}
-
-		bh = __getblk(journal->j_dev, blocknr, journal->j_blocksize);
-		if (!bh) {
-			err = -ENOMEM;
-			goto failed;
-		}
-
-		if (!buffer_uptodate(bh) && !buffer_locked(bh)) {
-			bufs[nbufs++] = bh;
-			if (nbufs == MAXBUF) {
-				ll_rw_block(READ, nbufs, bufs);
-				journal_brelse_array(bufs, nbufs);
-				nbufs = 0;
-			}
-		} else
-			brelse(bh);
-	}
-
-	if (nbufs)
-		ll_rw_block(READ, nbufs, bufs);
-	err = 0;
-
-failed:
-	if (nbufs)
-		journal_brelse_array(bufs, nbufs);
-	return err;
-}
-
-#endif /* __KERNEL__ */
-
 
 /*
  * Read a block from the journal
@@ -11993,7 +11756,7 @@ static int jread(struct buffer_head **bhp, journal_t *journal,
 		return err;
 	}
 
-	bh = __getblk(journal->j_dev, blocknr, journal->j_blocksize);
+	bh = getblk(journal->j_dev, blocknr, journal->j_blocksize);
 	if (!bh)
 		return -ENOMEM;
 
@@ -12260,7 +12023,7 @@ static int do_one_pass(journal_t *journal,
 
 					/* Find a buffer for the new
 					 * data being restored */
-					nbh = __getblk(journal->j_fs_dev,
+					nbh = getblk(journal->j_fs_dev,
 						       blocknr,
 						     journal->j_blocksize);
 					if (nbh == NULL) {
@@ -12282,7 +12045,7 @@ static int do_one_pass(journal_t *journal,
 					}
 
 					BUFFER_TRACE(nbh, "marking dirty");
-					set_buffer_uptodate(nbh);
+					mark_buffer_uptodate(nbh, 1);
 					mark_buffer_dirty(nbh);
 					BUFFER_TRACE(nbh, "marking uptodate");
 					++info->nr_replays;
@@ -12388,123 +12151,10 @@ static int scan_revoke_records(journal_t *journal, struct buffer_head *bh,
 	}
 	return 0;
 }
-/*
- * region.c --- code which manages allocations within a region.
- *
- * Copyright (C) 2001 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
- */
 
-struct region_el {
-	region_addr_t   start;
-	region_addr_t   end;
-	struct region_el *next;
-};
-
-struct region_struct {
-	region_addr_t   min;
-	region_addr_t   max;
-	struct region_el *allocated;
-};
-
-region_t region_create(region_addr_t min, region_addr_t max)
-{
-	region_t        region;
-
-	region = malloc(sizeof(struct region_struct));
-	if (!region)
-		return NULL;
-	memset(region, 0, sizeof(struct region_struct));
-	region->min = min;
-	region->max = max;
-	return region;
-}
-
-void region_free(region_t region)
-{
-	struct region_el        *r, *next;
-
-	for (r = region->allocated; r; r = next) {
-		next = r->next;
-		free(r);
-	}
-	memset(region, 0, sizeof(struct region_struct));
-	free(region);
-}
-
-int region_allocate(region_t region, region_addr_t start, int n)
-{
-	struct region_el        *r, *new_region, *prev, *next;
-	region_addr_t end;
-
-	end = start+n;
-	if ((start < region->min) || (end > region->max))
-		return -1;
-	if (n == 0)
-		return 1;
-
-	/*
-	 * Search through the linked list.  If we find that it
-	 * conflicts witih something that's already allocated, return
-	 * 1; if we can find an existing region which we can grow, do
-	 * so.  Otherwise, stop when we find the appropriate place
-	 * insert a new region element into the linked list.
-	 */
-	for (r = region->allocated, prev=NULL; r; prev = r, r = r->next) {
-		if (((start >= r->start) && (start < r->end)) ||
-		    ((end > r->start) && (end <= r->end)) ||
-		    ((start <= r->start) && (end >= r->end)))
-			return 1;
-		if (end == r->start) {
-			r->start = start;
-			return 0;
-		}
-		if (start == r->end) {
-			if ((next = r->next)) {
-				if (end > next->start)
-					return 1;
-				if (end == next->start) {
-					r->end = next->end;
-					r->next = next->next;
-					free(next);
-					return 0;
-				}
-			}
-			r->end = end;
-			return 0;
-		}
-		if (start < r->start)
-			break;
-	}
-	/*
-	 * Insert a new region element structure into the linked list
-	 */
-	new_region = malloc(sizeof(struct region_el));
-	if (!new_region)
-		return -1;
-	new_region->start = start;
-	new_region->end = start + n;
-	new_region->next = r;
-	if (prev)
-		prev->next = new_region;
-	else
-		region->allocated = new_region;
-	return 0;
-}
 
 /*
  * rehash.c --- rebuild hash tree directories
- *
- * Copyright (C) 2002 Theodore Ts'o
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
  *
  * This algorithm is designed for simplicity of implementation and to
  * pack the directory as much as possible.  It however requires twice
@@ -13146,7 +12796,7 @@ static errcode_t write_directory(e2fsck_t ctx, ext2_filsys fs,
 	return 0;
 }
 
-errcode_t e2fsck_rehash_dir(e2fsck_t ctx, ext2_ino_t ino)
+static errcode_t e2fsck_rehash_dir(e2fsck_t ctx, ext2_ino_t ino)
 {
 	ext2_filsys             fs = ctx->fs;
 	errcode_t               retval;
@@ -13330,16 +12980,9 @@ void e2fsck_rehash_directories(e2fsck_t ctx)
 	}
 #endif
 }
+
 /*
  * linux/fs/revoke.c
- *
- * Written by Stephen C. Tweedie <sct@redhat.com>, 2000
- *
- * Copyright 2000 Red Hat corp --- All Rights Reserved
- *
- * This file is part of the Linux kernel and is made available under
- * the terms of the GNU General Public License, version 2, or at your
- * option, any later version, incorporated herein by reference.
  *
  * Journal revoke routines for the generic filesystem journaling code;
  * part of the ext2fs journaling system.
@@ -13415,13 +13058,6 @@ struct jbd_revoke_table_s
 };
 
 
-#ifdef __KERNEL__
-static void write_one_revoke_record(journal_t *, transaction_t *,
-				    struct journal_head **, int *,
-				    struct jbd_revoke_record_s *);
-static void flush_descriptor(journal_t *, struct journal_head *, int);
-#endif
-
 /* Utility functions to maintain the revoke table */
 
 /* Borrowed from buffer.c: this is a tried and tested block hash function */
@@ -13441,9 +13077,6 @@ static int insert_revoke_hash(journal_t *journal, unsigned long blocknr,
 	struct list_head *hash_list;
 	struct jbd_revoke_record_s *record;
 
-#ifdef __KERNEL__
-repeat:
-#endif
 	record = kmem_cache_alloc(revoke_record_cache, GFP_NOFS);
 	if (!record)
 		goto oom;
@@ -13455,16 +13088,7 @@ repeat:
 	return 0;
 
 oom:
-#ifdef __KERNEL__
-	if (!journal_oom_retry)
-		return -ENOMEM;
-	jbd_debug(1, "ENOMEM in " __FUNCTION__ ", retrying.\n");
-	current->policy |= SCHED_YIELD;
-	schedule();
-	goto repeat;
-#else
 	return -ENOMEM;
-#endif
 }
 
 /* Find a revoke record in the journal's hash table. */
@@ -13488,17 +13112,13 @@ static struct jbd_revoke_record_s *find_revoke_record(journal_t *journal,
 
 int journal_init_revoke_caches(void)
 {
-	revoke_record_cache = kmem_cache_create("revoke_record",
-					   sizeof(struct jbd_revoke_record_s),
-					   0, SLAB_HWCACHE_ALIGN, NULL, NULL);
+	revoke_record_cache = do_cache_create(sizeof(struct jbd_revoke_record_s));
 	if (revoke_record_cache == 0)
 		return -ENOMEM;
 
-	revoke_table_cache = kmem_cache_create("revoke_table",
-					   sizeof(struct jbd_revoke_table_s),
-					   0, 0, NULL, NULL);
+	revoke_table_cache = do_cache_create(sizeof(struct jbd_revoke_table_s));
 	if (revoke_table_cache == 0) {
-		kmem_cache_destroy(revoke_record_cache);
+		do_cache_destroy(revoke_record_cache);
 		revoke_record_cache = NULL;
 		return -ENOMEM;
 	}
@@ -13507,9 +13127,9 @@ int journal_init_revoke_caches(void)
 
 void journal_destroy_revoke_caches(void)
 {
-	kmem_cache_destroy(revoke_record_cache);
+	do_cache_destroy(revoke_record_cache);
 	revoke_record_cache = 0;
-	kmem_cache_destroy(revoke_table_cache);
+	do_cache_destroy(revoke_table_cache);
 	revoke_table_cache = 0;
 }
 
@@ -13536,10 +13156,9 @@ int journal_init_revoke(journal_t *journal, int hash_size)
 		shift++;
 	journal->j_revoke->hash_shift = shift;
 
-	journal->j_revoke->hash_table =
-		kmalloc(hash_size * sizeof(struct list_head), GFP_KERNEL);
+	journal->j_revoke->hash_table = malloc(hash_size * sizeof(struct list_head));
 	if (!journal->j_revoke->hash_table) {
-		kmem_cache_free(revoke_table_cache, journal->j_revoke);
+		free(journal->j_revoke);
 		journal->j_revoke = NULL;
 		return -ENOMEM;
 	}
@@ -13567,310 +13186,10 @@ void journal_destroy_revoke(journal_t *journal)
 		J_ASSERT (list_empty(hash_list));
 	}
 
-	kfree(table->hash_table);
-	kmem_cache_free(revoke_table_cache, table);
+	free(table->hash_table);
+	free(table);
 	journal->j_revoke = NULL;
 }
-
-
-#ifdef __KERNEL__
-
-/*
- * journal_revoke: revoke a given buffer_head from the journal.  This
- * prevents the block from being replayed during recovery if we take a
- * crash after this current transaction commits.  Any subsequent
- * metadata writes of the buffer in this transaction cancel the
- * revoke.
- *
- * Note that this call may block --- it is up to the caller to make
- * sure that there are no further calls to journal_write_metadata
- * before the revoke is complete.  In ext3, this implies calling the
- * revoke before clearing the block bitmap when we are deleting
- * metadata.
- *
- * Revoke performs a journal_forget on any buffer_head passed in as a
- * parameter, but does _not_ forget the buffer_head if the bh was only
- * found implicitly.
- *
- * bh_in may not be a journalled buffer - it may have come off
- * the hash tables without an attached journal_head.
- *
- * If bh_in is non-zero, journal_revoke() will decrement its b_count
- * by one.
- */
-
-int journal_revoke(handle_t *handle, unsigned long blocknr,
-		   struct buffer_head *bh_in)
-{
-	struct buffer_head *bh = NULL;
-	journal_t *journal;
-	kdev_t dev;
-	int err;
-
-	if (bh_in)
-		BUFFER_TRACE(bh_in, "enter");
-
-	journal = handle->h_transaction->t_journal;
-	if (!journal_set_features(journal, 0, 0, JFS_FEATURE_INCOMPAT_REVOKE)){
-		J_ASSERT (!"Cannot set revoke feature!");
-		return -EINVAL;
-	}
-
-	dev = journal->j_fs_dev;
-	bh = bh_in;
-
-	if (!bh) {
-		bh = get_hash_table(dev, blocknr, journal->j_blocksize);
-		if (bh)
-			BUFFER_TRACE(bh, "found on hash");
-	}
-#ifdef JBD_EXPENSIVE_CHECKING
-	else {
-		struct buffer_head *bh2;
-
-		/* If there is a different buffer_head lying around in
-		 * memory anywhere... */
-		bh2 = get_hash_table(dev, blocknr, journal->j_blocksize);
-		if (bh2) {
-			/* ... and it has RevokeValid status... */
-			if ((bh2 != bh) &&
-			    test_bit(BH_RevokeValid, &bh2->b_state))
-				/* ...then it better be revoked too,
-				 * since it's illegal to create a revoke
-				 * record against a buffer_head which is
-				 * not marked revoked --- that would
-				 * risk missing a subsequent revoke
-				 * cancel. */
-				J_ASSERT_BH(bh2, test_bit(BH_Revoked, &
-							  bh2->b_state));
-			__brelse(bh2);
-		}
-	}
-#endif
-
-	/* We really ought not ever to revoke twice in a row without
-	   first having the revoke cancelled: it's illegal to free a
-	   block twice without allocating it in between! */
-	if (bh) {
-		J_ASSERT_BH(bh, !test_bit(BH_Revoked, &bh->b_state));
-		set_bit(BH_Revoked, &bh->b_state);
-		set_bit(BH_RevokeValid, &bh->b_state);
-		if (bh_in) {
-			BUFFER_TRACE(bh_in, "call journal_forget");
-			journal_forget(handle, bh_in);
-		} else {
-			BUFFER_TRACE(bh, "call brelse");
-			__brelse(bh);
-		}
-	}
-
-	lock_journal(journal);
-	jbd_debug(2, "insert revoke for block %lu, bh_in=%p\n", blocknr, bh_in);
-	err = insert_revoke_hash(journal, blocknr,
-				handle->h_transaction->t_tid);
-	unlock_journal(journal);
-	BUFFER_TRACE(bh_in, "exit");
-	return err;
-}
-
-/*
- * Cancel an outstanding revoke.  For use only internally by the
- * journaling code (called from journal_get_write_access).
- *
- * We trust the BH_Revoked bit on the buffer if the buffer is already
- * being journaled: if there is no revoke pending on the buffer, then we
- * don't do anything here.
- *
- * This would break if it were possible for a buffer to be revoked and
- * discarded, and then reallocated within the same transaction.  In such
- * a case we would have lost the revoked bit, but when we arrived here
- * the second time we would still have a pending revoke to cancel.  So,
- * do not trust the Revoked bit on buffers unless RevokeValid is also
- * set.
- *
- * The caller must have the journal locked.
- */
-int journal_cancel_revoke(handle_t *handle, struct journal_head *jh)
-{
-	struct jbd_revoke_record_s *record;
-	journal_t *journal = handle->h_transaction->t_journal;
-	int need_cancel;
-	int did_revoke = 0;     /* akpm: debug */
-	struct buffer_head *bh = jh2bh(jh);
-
-	jbd_debug(4, "journal_head %p, cancelling revoke\n", jh);
-
-	/* Is the existing Revoke bit valid?  If so, we trust it, and
-	 * only perform the full cancel if the revoke bit is set.  If
-	 * not, we can't trust the revoke bit, and we need to do the
-	 * full search for a revoke record. */
-	if (test_and_set_bit(BH_RevokeValid, &bh->b_state))
-		need_cancel = (test_and_clear_bit(BH_Revoked, &bh->b_state));
-	else {
-		need_cancel = 1;
-		clear_bit(BH_Revoked, &bh->b_state);
-	}
-
-	if (need_cancel) {
-		record = find_revoke_record(journal, bh->b_blocknr);
-		if (record) {
-			jbd_debug(4, "cancelled existing revoke on "
-				  "blocknr %lu\n", bh->b_blocknr);
-			list_del(&record->hash);
-			kmem_cache_free(revoke_record_cache, record);
-			did_revoke = 1;
-		}
-	}
-
-#ifdef JBD_EXPENSIVE_CHECKING
-	/* There better not be one left behind by now! */
-	record = find_revoke_record(journal, bh->b_blocknr);
-	J_ASSERT_JH(jh, record == NULL);
-#endif
-
-	/* Finally, have we just cleared revoke on an unhashed
-	 * buffer_head?  If so, we'd better make sure we clear the
-	 * revoked status on any hashed alias too, otherwise the revoke
-	 * state machine will get very upset later on. */
-	if (need_cancel && !bh->b_pprev) {
-		struct buffer_head *bh2;
-		bh2 = get_hash_table(bh->b_dev, bh->b_blocknr, bh->b_size);
-		if (bh2) {
-			clear_bit(BH_Revoked, &bh2->b_state);
-			__brelse(bh2);
-		}
-	}
-
-	return did_revoke;
-}
-
-
-/*
- * Write revoke records to the journal for all entries in the current
- * revoke hash, deleting the entries as we go.
- *
- * Called with the journal lock held.
- */
-
-void journal_write_revoke_records(journal_t *journal,
-				  transaction_t *transaction)
-{
-	struct journal_head *descriptor;
-	struct jbd_revoke_record_s *record;
-	struct jbd_revoke_table_s *revoke;
-	struct list_head *hash_list;
-	int i, offset, count;
-
-	descriptor = NULL;
-	offset = 0;
-	count = 0;
-	revoke = journal->j_revoke;
-
-	for (i = 0; i < revoke->hash_size; i++) {
-		hash_list = &revoke->hash_table[i];
-
-		while (!list_empty(hash_list)) {
-			record = (struct jbd_revoke_record_s *)
-				hash_list->next;
-			write_one_revoke_record(journal, transaction,
-						&descriptor, &offset,
-						record);
-			count++;
-			list_del(&record->hash);
-			kmem_cache_free(revoke_record_cache, record);
-		}
-	}
-	if (descriptor)
-		flush_descriptor(journal, descriptor, offset);
-	jbd_debug(1, "Wrote %d revoke records\n", count);
-}
-
-/*
- * Write out one revoke record.  We need to create a new descriptor
- * block if the old one is full or if we have not already created one.
- */
-
-static void write_one_revoke_record(journal_t *journal,
-				    transaction_t *transaction,
-				    struct journal_head **descriptorp,
-				    int *offsetp,
-				    struct jbd_revoke_record_s *record)
-{
-	struct journal_head *descriptor;
-	int offset;
-	journal_header_t *header;
-
-	/* If we are already aborting, this all becomes a noop.  We
-	   still need to go round the loop in
-	   journal_write_revoke_records in order to free all of the
-	   revoke records: only the IO to the journal is omitted. */
-	if (is_journal_aborted(journal))
-		return;
-
-	descriptor = *descriptorp;
-	offset = *offsetp;
-
-	/* Make sure we have a descriptor with space left for the record */
-	if (descriptor) {
-		if (offset == journal->j_blocksize) {
-			flush_descriptor(journal, descriptor, offset);
-			descriptor = NULL;
-		}
-	}
-
-	if (!descriptor) {
-		descriptor = journal_get_descriptor_buffer(journal);
-		if (!descriptor)
-			return;
-		header = (journal_header_t *) &jh2bh(descriptor)->b_data[0];
-		header->h_magic     = htonl(JFS_MAGIC_NUMBER);
-		header->h_blocktype = htonl(JFS_REVOKE_BLOCK);
-		header->h_sequence  = htonl(transaction->t_tid);
-
-		/* Record it so that we can wait for IO completion later */
-		JBUFFER_TRACE(descriptor, "file as BJ_LogCtl");
-		journal_file_buffer(descriptor, transaction, BJ_LogCtl);
-
-		offset = sizeof(journal_revoke_header_t);
-		*descriptorp = descriptor;
-	}
-
-	* ((unsigned int *)(&jh2bh(descriptor)->b_data[offset])) =
-		htonl(record->blocknr);
-	offset += 4;
-	*offsetp = offset;
-}
-
-/*
- * Flush a revoke descriptor out to the journal.  If we are aborting,
- * this is a noop; otherwise we are generating a buffer which needs to
- * be waited for during commit, so it has to go onto the appropriate
- * journal buffer list.
- */
-
-static void flush_descriptor(journal_t *journal,
-			     struct journal_head *descriptor,
-			     int offset)
-{
-	journal_revoke_header_t *header;
-
-	if (is_journal_aborted(journal)) {
-		JBUFFER_TRACE(descriptor, "brelse");
-		__brelse(jh2bh(descriptor));
-		return;
-	}
-
-	header = (journal_revoke_header_t *) jh2bh(descriptor)->b_data;
-	header->r_count = htonl(offset);
-	set_bit(BH_JWrite, &jh2bh(descriptor)->b_state);
-	{
-		struct buffer_head *bh = jh2bh(descriptor);
-		BUFFER_TRACE(bh, "write");
-		ll_rw_block (WRITE, 1, &bh);
-	}
-}
-
-#endif
 
 /*
  * Revoke support for recovery.
@@ -13894,8 +13213,7 @@ static void flush_descriptor(journal_t *journal,
  * single block.
  */
 
-int journal_set_revoke(journal_t *journal,
-		       unsigned long blocknr,
+int journal_set_revoke(journal_t *journal, unsigned long blocknr,
 		       tid_t sequence)
 {
 	struct jbd_revoke_record_s *record;
@@ -13918,8 +13236,7 @@ int journal_set_revoke(journal_t *journal,
  * ones, but later transactions still need replayed.
  */
 
-int journal_test_revoke(journal_t *journal,
-			unsigned long blocknr,
+int journal_test_revoke(journal_t *journal, unsigned long blocknr,
 			tid_t sequence)
 {
 	struct jbd_revoke_record_s *record;
@@ -13951,20 +13268,13 @@ void journal_clear_revoke(journal_t *journal)
 		while (!list_empty(hash_list)) {
 			record = (struct jbd_revoke_record_s*) hash_list->next;
 			list_del(&record->hash);
-			kmem_cache_free(revoke_record_cache, record);
+			free(record);
 		}
 	}
 }
 
 /*
  * e2fsck.c - superblock checks
- *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
  */
 
 #define MIN_CHECK 1
@@ -13991,7 +13301,7 @@ static void check_super_value(e2fsck_t ctx, const char *descr,
  * e2fsck code..
  */
 #ifndef EXT2_SPECIAL_DEVICE_SIZE
-errcode_t e2fsck_get_device_size(e2fsck_t ctx)
+static errcode_t e2fsck_get_device_size(e2fsck_t ctx)
 {
 	return (ext2fs_get_device_size(ctx->filesystem_name,
 				       EXT2_BLOCK_SIZE(ctx->fs->super),
@@ -14014,8 +13324,7 @@ struct process_block_struct {
 	errcode_t       errcode;
 };
 
-static int release_inode_block(ext2_filsys fs,
-			       blk_t    *block_nr,
+static int release_inode_block(ext2_filsys fs, blk_t *block_nr,
 			       e2_blkcnt_t blockcnt,
 			       blk_t    ref_blk EXT2FS_ATTR((unused)),
 			       int      ref_offset EXT2FS_ATTR((unused)),
@@ -14384,7 +13693,7 @@ cleanup:
 
  }
 
-void check_super_block(e2fsck_t ctx)
+static void check_super_block(e2fsck_t ctx)
 {
 	ext2_filsys fs = ctx->fs;
 	blk_t   first_block, last_block;
@@ -14659,16 +13968,9 @@ void check_super_block(e2fsck_t ctx)
 	e2fsck_move_ext3_journal(ctx);
 	return;
 }
+
 /*
  * swapfs.c --- byte-swap an ext2 filesystem
- *
- * Copyright 1996, 1997 by Theodore Ts'o
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
- *
  */
 
 #ifdef ENABLE_SWAPFS
@@ -14866,7 +14168,7 @@ static void ext2fs_swap_bitmap(ext2fs_generic_bitmap bmap)
 
 
 #ifdef ENABLE_SWAPFS
-void swap_filesys(e2fsck_t ctx)
+static void swap_filesys(e2fsck_t ctx)
 {
 	ext2_filsys fs = ctx->fs;
 #ifdef RESOURCE_TRACK
@@ -14924,15 +14226,9 @@ void swap_filesys(e2fsck_t ctx)
 #endif  /* ENABLE_SWAPFS */
 
 #endif
+
 /*
  * util.c --- miscellaneous utilities
- *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
  */
 
 #ifdef HAVE_CONIO_H
@@ -14981,8 +14277,7 @@ void *e2fsck_allocate_memory(e2fsck_t ctx, unsigned int size,
 	return ret;
 }
 
-char *string_copy(e2fsck_t ctx EXT2FS_ATTR((unused)),
-		  const char *str, int len)
+static char *string_copy(const char *str, int len)
 {
 	char    *ret;
 
@@ -15020,12 +14315,12 @@ static int read_a_char(void)
 }
 #endif
 
-int ask_yn(const char * string, int def)
+static int ask_yn(const char * string, int def)
 {
 	int             c;
 	const char      *defstr;
-	const char      *short_yes = _("yY");
-	const char      *short_no = _("nN");
+	static const char short_yes[] = "yY";
+	static const char short_no[] = "nN";
 
 #ifdef HAVE_TERMIOS_H
 	struct termios  termios, tmp;
@@ -15039,11 +14334,11 @@ int ask_yn(const char * string, int def)
 #endif
 
 	if (def == 1)
-		defstr = _(_("<y>"));
+		defstr = "<y>";
 	else if (def == 0)
-		defstr = _(_("<n>"));
+		defstr = "<n>";
 	else
-		defstr = _(" (y/n)");
+		defstr = " (y/n)";
 	printf("%s%s? ", string, defstr);
 	while (1) {
 		fflush (stdout);
@@ -15073,9 +14368,9 @@ int ask_yn(const char * string, int def)
 			break;
 	}
 	if (def)
-		puts(_("yes\n"));
+		puts("yes\n");
 	else
-		puts (_("no\n"));
+		puts ("no\n");
 #ifdef HAVE_TERMIOS_H
 	tcsetattr (0, TCSANOW, &termios);
 #endif
@@ -15122,7 +14417,7 @@ void e2fsck_read_bitmaps(e2fsck_t ctx)
 	}
 }
 
-void e2fsck_write_bitmaps(e2fsck_t ctx)
+static void e2fsck_write_bitmaps(e2fsck_t ctx)
 {
 	ext2_filsys fs = ctx->fs;
 	errcode_t       retval;
@@ -15361,45 +14656,48 @@ cleanup:
 	return (ret_sb);
 }
 
+
 /*
- * Given a mode, return the ext2 file type
+ * This function runs through the e2fsck passes and calls them all,
+ * returning restart, abort, or cancel as necessary...
  */
-int ext2_file_type(unsigned int mode)
+typedef void (*pass_t)(e2fsck_t ctx);
+
+static const pass_t e2fsck_passes[] = {
+	e2fsck_pass1, e2fsck_pass2, e2fsck_pass3, e2fsck_pass4,
+	e2fsck_pass5, 0 };
+
+#define E2F_FLAG_RUN_RETURN     (E2F_FLAG_SIGNAL_MASK|E2F_FLAG_RESTART)
+
+static int e2fsck_run(e2fsck_t ctx)
 {
-	if (LINUX_S_ISREG(mode))
-		return EXT2_FT_REG_FILE;
+	int     i;
+	pass_t  e2fsck_pass;
 
-	if (LINUX_S_ISDIR(mode))
-		return EXT2_FT_DIR;
+	if (setjmp(ctx->abort_loc)) {
+		ctx->flags &= ~E2F_FLAG_SETJMP_OK;
+		return (ctx->flags & E2F_FLAG_RUN_RETURN);
+	}
+	ctx->flags |= E2F_FLAG_SETJMP_OK;
 
-	if (LINUX_S_ISCHR(mode))
-		return EXT2_FT_CHRDEV;
+	for (i=0; (e2fsck_pass = e2fsck_passes[i]); i++) {
+		if (ctx->flags & E2F_FLAG_RUN_RETURN)
+			break;
+		e2fsck_pass(ctx);
+		if (ctx->progress)
+			(void) (ctx->progress)(ctx, 0, 0, 0);
+	}
+	ctx->flags &= ~E2F_FLAG_SETJMP_OK;
 
-	if (LINUX_S_ISBLK(mode))
-		return EXT2_FT_BLKDEV;
-
-	if (LINUX_S_ISLNK(mode))
-		return EXT2_FT_SYMLINK;
-
-	if (LINUX_S_ISFIFO(mode))
-		return EXT2_FT_FIFO;
-
-	if (LINUX_S_ISSOCK(mode))
-		return EXT2_FT_SOCK;
-
+	if (ctx->flags & E2F_FLAG_RUN_RETURN)
+		return (ctx->flags & E2F_FLAG_RUN_RETURN);
 	return 0;
 }
+
+
 /*
  * unix.c - The unix-specific code for e2fsck
- *
- * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
- *
- * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
- * %End-Header%
  */
-
 
 
 /* Command line options */
@@ -15448,6 +14746,8 @@ static void usage(e2fsck_t ctx)
 }
 #endif
 
+#define P_E2(singular, plural, n)       n, ((n) == 1 ? singular : plural)
+
 static void show_stats(e2fsck_t ctx)
 {
 	ext2_filsys fs = ctx->fs;
@@ -15476,45 +14776,27 @@ static void show_stats(e2fsck_t ctx)
 		       blocks_used, blocks);
 		return;
 	}
-	printf (P_("\n%8d inode used (%d%%)\n", "\n%8d inodes used (%d%%)\n",
-		   inodes_used), inodes_used, 100 * inodes_used / inodes);
-	printf (P_("%8d non-contiguous inode (%0d.%d%%)\n",
-		   "%8d non-contiguous inodes (%0d.%d%%)\n",
-		   ctx->fs_fragmented),
-		ctx->fs_fragmented, frag_percent / 10, frag_percent % 10);
+	printf ("\n%8d inode%s used (%d%%)\n", P_E2("", "s", inodes_used),
+		100 * inodes_used / inodes);
+	printf ("%8d non-contiguous inode%s (%0d.%d%%)\n",
+		P_E2("", "s", ctx->fs_fragmented),
+		frag_percent / 10, frag_percent % 10);
 	printf (_("         # of inodes with ind/dind/tind blocks: %d/%d/%d\n"),
 		ctx->fs_ind_count, ctx->fs_dind_count, ctx->fs_tind_count);
-	printf (P_("%8d block used (%d%%)\n", "%8d blocks used (%d%%)\n",
-		   blocks_used),
-		blocks_used, (int) ((long long) 100 * blocks_used / blocks));
-	printf (P_("%8d bad block\n", "%8d bad blocks\n",
-		   ctx->fs_badblocks_count), ctx->fs_badblocks_count);
-	printf (P_("%8d large file\n", "%8d large files\n",
-		   ctx->large_files), ctx->large_files);
-	printf (P_("\n%8d regular file\n", "\n%8d regular files\n",
-		   ctx->fs_regular_count), ctx->fs_regular_count);
-	printf (P_("%8d directory\n", "%8d directories\n",
-		   ctx->fs_directory_count), ctx->fs_directory_count);
-	printf (P_("%8d character device file\n",
-		   "%8d character device files\n", ctx->fs_chardev_count),
-		ctx->fs_chardev_count);
-	printf (P_("%8d block device file\n", "%8d block device files\n",
-		   ctx->fs_blockdev_count), ctx->fs_blockdev_count);
-	printf (P_("%8d fifo\n", "%8d fifos\n", ctx->fs_fifo_count),
-		ctx->fs_fifo_count);
-	printf (P_("%8d link\n", "%8d links\n",
-		   ctx->fs_links_count - dir_links),
-		ctx->fs_links_count - dir_links);
-	printf (P_("%8d symbolic link", "%8d symbolic links",
-		   ctx->fs_symlinks_count), ctx->fs_symlinks_count);
-	printf (P_(" (%d fast symbolic link)\n", " (%d fast symbolic links)\n",
-		   ctx->fs_fast_symlinks_count), ctx->fs_fast_symlinks_count);
-	printf (P_("%8d socket\n", "%8d sockets\n", ctx->fs_sockets_count),
-		ctx->fs_sockets_count);
-	printf ("--------\n");
-	printf (P_("%8d file\n", "%8d files\n",
-		   ctx->fs_total_count - dir_links),
-		ctx->fs_total_count - dir_links);
+	printf ("%8d block%s used (%d%%)\n", P_E2("", "s", blocks_used),
+		(int) ((long long) 100 * blocks_used / blocks));
+	printf ("%8d bad block%s\n", P_E2("", "s", ctx->fs_badblocks_count));
+	printf ("%8d large file%s\n", P_E2("", "s", ctx->large_files));
+	printf ("\n%8d regular file%s\n", P_E2("", "s", ctx->fs_regular_count));
+	printf ("%8d director%s\n", P_E2("y", "ies", ctx->fs_directory_count));
+	printf ("%8d character device file%s\n", P_E2("", "s", ctx->fs_chardev_count));
+	printf ("%8d block device file%s\n", P_E2("", "s", ctx->fs_blockdev_count));
+	printf ("%8d fifo%s\n", P_E2("", "s", ctx->fs_fifo_count));
+	printf ("%8d link%s\n", P_E2("", "s", ctx->fs_links_count - dir_links));
+	printf ("%8d symbolic link%s", P_E2("", "s", ctx->fs_symlinks_count));
+	printf (" (%d fast symbolic link%s)\n", P_E2("", "s", ctx->fs_fast_symlinks_count));
+	printf ("%8d socket%s--------\n\n", P_E2("", "s", ctx->fs_sockets_count));
+	printf ("%8d file%s\n", P_E2("", "s", ctx->fs_total_count - dir_links));
 }
 
 static void check_mount(e2fsck_t ctx)
@@ -15677,12 +14959,13 @@ struct percent_tbl {
 	int     max_pass;
 	int     table[32];
 };
-static struct percent_tbl e2fsck_tbl = {
+static const struct percent_tbl e2fsck_tbl = {
 	5, { 0, 70, 90, 92,  95, 100 }
 };
+
 static char bar[128], spaces[128];
 
-static float calc_percent(struct percent_tbl *tbl, int pass, int curr,
+static float calc_percent(const struct percent_tbl *tbl, int pass, int curr,
 			  int max)
 {
 	float   percent;
@@ -15854,7 +15137,7 @@ static void parse_extended_opts(e2fsck_t ctx, const char *opts)
 	int     ea_ver;
 	int     extended_usage = 0;
 
-	buf = string_copy(ctx, opts, 0);
+	buf = string_copy(opts, 0);
 	for (token = buf; token && *token; token = next) {
 		p = strchr(token, ',');
 		next = 0;
@@ -15885,12 +15168,12 @@ static void parse_extended_opts(e2fsck_t ctx, const char *opts)
 			extended_usage++;
 	}
 	if (extended_usage) {
-		fprintf(stderr, _("Extended options are separated by commas, "
+		bb_error_msg_and_die(
+			"Extended options are separated by commas, "
 			"and may take an argument which\n"
 			"is set off by an equals ('=') sign.  "
 			"Valid raid options are:\n"
-			"\tea_ver=<ea_version (1 or 2)\n\n"));
-		exit(1);
+			"\tea_ver=<ea_version (1 or 2)\n\n");
 	}
 }
 
@@ -16003,7 +15286,7 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 			ctx->inode_buffer_blocks = atoi(optarg);
 			break;
 		case 'j':
-			ctx->journal_name = string_copy(ctx, optarg, 0);
+			ctx->journal_name = string_copy(optarg, 0);
 			break;
 		case 'P':
 			ctx->process_inode_size = atoi(optarg);
@@ -16011,7 +15294,7 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 		case 'L':
 			replace_bad_blocks++;
 		case 'l':
-			bad_blocks_file = string_copy(ctx, optarg, 0);
+			bad_blocks_file = string_copy(optarg, 0);
 			break;
 		case 'd':
 			ctx->options |= E2F_OPT_DEBUG;
@@ -16145,12 +15428,12 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 	return 0;
 }
 
-static const char *my_ver_string = E2FSPROGS_VERSION;
-static const char *my_ver_date = E2FSPROGS_DATE;
+static const char my_ver_string[] = E2FSPROGS_VERSION;
+static const char my_ver_date[] = E2FSPROGS_DATE;
 
 int e2fsck_main (int argc, char *argv[])
 {
-	errcode_t       retval = 0;
+	errcode_t       retval;
 	int             exit_value = FSCK_OK;
 	ext2_filsys     fs = 0;
 	io_manager      io_ptr;
@@ -16302,7 +15585,7 @@ restart:
 	 */
 	if (ctx->device_name == 0 &&
 	    (sb->s_volume_name[0] != 0)) {
-		ctx->device_name = string_copy(ctx, sb->s_volume_name,
+		ctx->device_name = string_copy(sb->s_volume_name,
 					       sizeof(sb->s_volume_name));
 	}
 	if (ctx->device_name == 0)

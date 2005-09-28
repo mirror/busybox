@@ -29,7 +29,6 @@ typedef long errcode_t;
 /* NLS crap */
 #define _(x) x
 #define N_(x) x
-#define P_(singular, plural, n) ((n) == 1 ? (singular) : (plural))
 
 /* misc crap */
 #define fatal_error(err, msg) bb_error_msg_and_die(msg)
@@ -38,7 +37,6 @@ typedef long errcode_t;
 
 /* header defines */
 #define ENABLE_HTREE 1
-#define HAVE_DIRENT_H 1
 #define HAVE_ERRNO_H 1
 #define HAVE_EXT2_IOCTLS 1
 #define HAVE_GETOPT_H 1
