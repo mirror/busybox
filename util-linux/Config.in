@@ -208,6 +208,18 @@ config CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 	  are overly fond of its long options, such as --hctosys, --utc, etc)
 	  then enable this option.
 
+config CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS
+	bool "  Use FHS /var/lib/hwclock/adjtime"
+	default y
+	depends on CONFIG_HWCLOCK
+	help
+	  Starting with FHS 2.3, the adjtime state file is supposed to exist
+	  at /var/lib/hwclock/adjtime instead of /etc/adjtime.  If you wish 
+	  to use the FHS behavior, answer Y here, otherwise answer N for the
+	  classic /etc/adjtime path.
+
+	  http://www.pathname.com/fhs/pub/fhs-2.3.html#VARLIBHWCLOCKSTATEDIRECTORYFORHWCLO
+
 config CONFIG_IPCRM
 	bool "ipcrm"
 	default n

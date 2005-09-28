@@ -155,11 +155,15 @@ static int from_sys_clock(int utc)
 	return 0;
 }
 
-
+#ifdef CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS
+# define ADJTIME_PATH "/var/lib/hwclock/adjtime"
+#else
+# define ADJTIME_PATH "/etc/adjtime"
+#endif
 static int check_utc(void)
 {
 	int utc = 0;
-	FILE *f = fopen ( "/var/lib/hwclock/adjtime", "r" );
+	FILE *f = fopen ( ADJTIME_PATH, "r" );
 
 	if ( f ) {
 		char buffer [128];
