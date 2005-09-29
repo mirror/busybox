@@ -209,7 +209,7 @@ int sysctl_write_setting(const char *setting, int output)
 		return -2;
 	}
 
-	bb_xasprintf(&tmpname, "%s%.*s", PROC_PATH, (equals - name), name);
+	tmpname = bb_xasprintf("%s%.*s", PROC_PATH, (equals - name), name);
 	outname = bb_xstrdup(tmpname + strlen(PROC_PATH));
 
 	while ((cptr = strchr(tmpname, '.')) != NULL)

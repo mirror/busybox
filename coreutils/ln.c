@@ -74,17 +74,17 @@ extern int ln_main(int argc, char **argv)
 			src_name = src;
 		}
 		if (!(flag & LN_SYMLINK) && stat(*argv, &statbuf)) {
-			bb_perror_msg(*argv);
+			bb_perror_msg("%s", *argv);
 			status = EXIT_FAILURE;
 			free(src_name);
 			continue;
 		}
 
 		if (flag & LN_BACKUP) {
-				char *backup = NULL;
-				bb_xasprintf(&backup, "%s%s", src, suffix);
+				char *backup;
+				backup = bb_xasprintf("%s%s", src, suffix);
 				if (rename(src, backup) < 0 && errno != ENOENT) {
-						bb_perror_msg(src);
+						bb_perror_msg("%s", src);
 						status = EXIT_FAILURE;
 						free(backup);
 						continue;

@@ -147,7 +147,7 @@ static int null (VALUE *v)
 static void tostring (VALUE *v)
 {
 	if (v->type == integer) {
-               bb_xasprintf (&(v->u.s), "%d", v->u.i);
+		v->u.s = bb_xasprintf ("%d", v->u.i);
 		v->type = string;
 	}
 }

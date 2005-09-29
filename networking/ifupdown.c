@@ -1010,7 +1010,7 @@ static int execute_all(struct interface_defn_t *ifd, execfn *exec, const char *o
 		}
 	}
 
-	bb_xasprintf(&buf, "run-parts /etc/network/if-%s.d", opt);
+	buf = bb_xasprintf("run-parts /etc/network/if-%s.d", opt);
 	if ((*exec)(buf) != 1) {
 		return 0;
 	}

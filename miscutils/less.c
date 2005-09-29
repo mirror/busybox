@@ -208,7 +208,7 @@ static void add_linenumbers(void) {
 
 	for (i = 0; i <= num_flines; i++) {
 		safe_strncpy(current_line, flines[i], 256);
-		bb_xasprintf(&flines[i],"%5d %s", i + 1, current_line);
+		flines[i] = bb_xasprintf("%5d %s", i + 1, current_line);
 	}
 }
 
@@ -618,11 +618,8 @@ static void colon_process(void) {
 
 static char *insert_highlights (char *line, int start, int end) {
 
-	char *new_line;
-
-	bb_xasprintf(&new_line, "%.*s%s%.*s%s%s", start, line, HIGHLIGHT,
+	return bb_xasprintf("%.*s%s%.*s%s%s", start, line, HIGHLIGHT,
 			end - start, line + start, NORMAL, line + end);
-	return new_line;
 }
 
 static char *process_regex_on_line(char *line, regex_t *pattern) {

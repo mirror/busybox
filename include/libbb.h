@@ -408,8 +408,7 @@ void reset_ino_dev_hashtable(void);
 extern size_t bb_strlen(const char *string);
 #define strlen(x)   bb_strlen(x)
 
-void bb_xasprintf(char **string_ptr, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
-
+char *bb_xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
 #define FAIL_DELAY    3
 extern void change_identity ( const struct passwd *pw );

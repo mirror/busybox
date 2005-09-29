@@ -794,10 +794,7 @@ static int PRS(int argc, char *argv[])
 
 	/* Update our PATH to include /sbin  */
 	if (oldpath) {
-		char *newpath;
-
-		bb_xasprintf(&newpath, "%s:%s", PATH_SET, oldpath);
-		putenv(newpath);
+		putenv (bb_xasprintf("%s:%s", PATH_SET, oldpath));
 	} else
 		putenv (PATH_SET);
 

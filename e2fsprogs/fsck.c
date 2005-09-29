@@ -363,7 +363,6 @@ static char *find_fsck(char *type)
 {
   char *s;
   const char *tpl;
-  char *prog;
   char *p = string_copy(fsck_path);
   struct stat st;
 
@@ -371,12 +370,12 @@ static char *find_fsck(char *type)
   tpl = (strncmp(type, "fsck.", 5) ? "%s/fsck.%s" : "%s/%s");
 
   for(s = strtok(p, ":"); s; s = strtok(NULL, ":")) {
-	bb_xasprintf(&prog, tpl, s, type);
-	if (stat(prog, &st) == 0) break;
-	free(prog);
+	s = bb_xasprintf(tpl, s, type);
+	if (stat(s, &st) == 0) break;
+	free(s);
   }
   free(p);
-  return(s ? prog : NULL);
+  return(s);
 }
 
 static int progress_active(void)
@@ -410,7 +409,7 @@ static int execute(const char *type, const char *device, const char *mntpt,
 		return ENOMEM;
 	memset(inst, 0, sizeof(struct fsck_instance));
 
-	bb_xasprintf(&prog, "fsck.%s", type);
+	prog = bb_xasprintf("fsck.%s", type);
 	argv[0] = prog;
 	argc = 1;
 
@@ -1189,7 +1188,7 @@ int fsck_main(int argc, char *argv[])
 
 	/* Update our search path to include uncommon directories. */
 	if (oldpath) {
-		bb_xasprintf(&fsck_path, "%s:%s", fsck_prefix_path, oldpath);
+		fsck_path = bb_xasprintf("%s:%s", fsck_prefix_path, oldpath);
 	} else {
 		fsck_path = string_copy(fsck_prefix_path);
 	}

@@ -3756,10 +3756,10 @@ extern int insmod_main( int argc, char **argv)
 
 #if defined(CONFIG_FEATURE_2_6_MODULES)
 	if (k_version > 4)
-		bb_xasprintf(&m_fullName, "%s.ko", tmp);
+		m_fullName = bb_xasprintf("%s.ko", tmp);
 	else
 #endif
-		bb_xasprintf(&m_fullName, "%s.o", tmp);
+		m_fullName = bb_xasprintf("%s.o", tmp);
 
 	if (!m_name) {
 		m_name = tmp;

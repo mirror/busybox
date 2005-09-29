@@ -695,12 +695,8 @@ int tar_main(int argc, char **argv)
 	}
 
 	/* Prepend '-' to the first argument if required */
-	if (argv[1][0] != '-') {
-		char *tmp;
-
-		bb_xasprintf(&tmp, "-%s", argv[1]);
-		argv[1] = tmp;
-	}
+	if (argv[1][0] != '-') 
+		argv[1] = bb_xasprintf("-%s", argv[1]);
 
 	/* Initialise default values */
 	tar_handle = init_handle();

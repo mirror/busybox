@@ -621,7 +621,7 @@ static char **username_tab_completion(char *ud, int *num_matches)
 			/* Null usernames should result in all users as possible completions. */
 			if ( /*!userlen || */ !strncmp(ud, entry->pw_name, userlen)) {
 
-			       bb_xasprintf(&temp, "~%s/", entry->pw_name);
+				temp = bb_xasprintf("~%s/", entry->pw_name);
 				matches = xrealloc(matches, (nm + 1) * sizeof(char *));
 
 				matches[nm++] = temp;
