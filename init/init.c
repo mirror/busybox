@@ -225,7 +225,7 @@ static void message(int device, const char *fmt, ...)
 	if (device & LOG) {
 		/* don`t out "\r\n" */
 		openlog(bb_applet_name, 0, LOG_DAEMON);
-		syslog(LOG_INFO, "%s", msg);
+		syslog(LOG_INFO, "%s", msg + 1);
 		closelog();
 	}
 
