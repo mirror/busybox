@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 		if (*(s++) == '/') bb_applet_name = s;
 
 	/* Set locale for everybody except `init' */
-	if(ENABLE_LOCALE_SUPPORT && (!ENABLE_INIT || getpid()==1))
+	if(ENABLE_LOCALE_SUPPORT && getpid() != 1)
 		setlocale(LC_ALL, "");
 
 	run_applet_by_name(bb_applet_name, argc, argv);
