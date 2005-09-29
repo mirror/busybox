@@ -4,10 +4,8 @@
  * Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
  *	2003, 2004, 2005 by Theodore Ts'o.
  *
- * %Begin-Header%
  * This file may be redistributed under the terms of the GNU Public
  * License.
- * %End-Header%
  */
 
 /* Usage: mke2fs [options] device
@@ -799,6 +797,7 @@ static int PRS(int argc, char *argv[])
 		char *newpath;
 
 		bb_xasprintf(&newpath, "%s:%s", PATH_SET, oldpath);
+		putenv(newpath);
 	} else
 		putenv (PATH_SET);
 
