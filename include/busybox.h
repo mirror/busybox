@@ -29,8 +29,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #if __GNU_LIBRARY__ < 5 && \
     !defined(__dietlibc__) && \
