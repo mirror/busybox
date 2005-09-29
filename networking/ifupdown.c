@@ -67,29 +67,6 @@ struct interface_defn_t;
 typedef int (execfn)(char *command);
 typedef int (command_set)(struct interface_defn_t *ifd, execfn *e);
 
-extern llist_t *llist_add_to_end(llist_t *list_head, char *data)
-{
-	llist_t *new_item, *tmp, *prev;
-
-	new_item = xmalloc(sizeof(llist_t));
-	new_item->data = data;
-	new_item->link = NULL;
-
-	prev = NULL;
-	tmp = list_head;
-	while(tmp) {
-		prev = tmp;
-		tmp = tmp->link;
-	}
-	if (prev) {
-		prev->link = new_item;
-	} else {
-		list_head = new_item;
-	}
-
-	return(list_head);
-}
-
 struct method_t
 {
 	char *name;
