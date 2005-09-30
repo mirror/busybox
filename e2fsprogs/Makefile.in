@@ -7,11 +7,12 @@
 E2FSPROGS_AR:=e2fsprogs.a
 
 E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs
+E2FSPROGS_INC:=$(top_sourcedir)/e2fsprogs
 
-E2FSPROGS_CFLAGS := -I$(E2FSPROGS_DIR) -include $(E2FSPROGS_DIR)/e2fsbb.h
+E2FSPROGS_CFLAGS := -I$(E2FSPROGS_INC) -include $(E2FSPROGS_INC)/e2fsbb.h
 
 BLKID_SRC   := cache.c dev.c devname.c devno.c blkid_getsize.c \
-	       probe.c read.c resolve.c save.c tag.c resolve.c
+	       probe.c read.c resolve.c save.c tag.c
 BLKID_SRCS  := $(patsubst %,blkid/%, $(BLKID_SRC))
 BLKID_OBJS  := $(patsubst %.c,%.o, $(BLKID_SRCS))
 
