@@ -7,7 +7,7 @@
 E2FSPROGS_AR:=e2fsprogs.a
 
 E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs
-E2FSPROGS_INC:=$(top_sourcedir)/e2fsprogs
+E2FSPROGS_INC:=$(top_srcdir)/e2fsprogs
 
 E2FSPROGS_CFLAGS := -I$(E2FSPROGS_INC) -include $(E2FSPROGS_INC)/e2fsbb.h
 
