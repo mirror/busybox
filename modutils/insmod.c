@@ -528,6 +528,12 @@ static const int MODUTILS_OBJ_H = 1;
 # define ELF64_ST_INFO(bind, type)       (((bind) << 4) + ((type) & 0xf))
 #endif
 
+#define ELF_ST_BIND(info) ELFW(ST_BIND)(info)
+#define ELF_ST_TYPE(info) ELFW(ST_TYPE)(info)
+#define ELF_ST_INFO(bind, type) ELFW(ST_INFO)(bind, type)
+#define ELF_R_TYPE(val) ELFW(R_TYPE)(val)
+#define ELF_R_SYM(val) ELFW(R_SYM)(val)
+
 struct obj_string_patch;
 struct obj_symbol_patch;
 
@@ -726,8 +732,8 @@ struct arch_single_entry
 struct mips_hi16
 {
 	struct mips_hi16 *next;
-	Elf32_Addr *addr;
-	Elf32_Addr value;
+	ElfW(Addr) *addr;
+	ElfW(Addr) value;
 };
 #endif
 
@@ -859,7 +865,7 @@ arch_apply_relocation(struct obj_file *f,
 #endif
 #endif
 
-	switch (ELF32_R_TYPE(rel->r_info)) {
+	switch (ELF_R_TYPE(rel->r_info)) {
 
 #if defined(__arm__)
 		case R_ARM_NONE:
@@ -921,7 +927,7 @@ arch_apply_relocation(struct obj_file *f,
 				ip = (unsigned long *)(ifile->plt->contents + pe->offset);
 				ip[0] = 0x0d105810; /* basr 1,0; lg 1,10(1); br 1 */
 				ip[1] = 0x100607f1;
-				if (ELF32_R_TYPE(rel->r_info) == R_390_PLT16DBL)
+				if (ELF_R_TYPE(rel->r_info) == R_390_PLT16DBL)
 					ip[2] = v - 2;
 				else
 					ip[2] = v;
@@ -930,9 +936,9 @@ arch_apply_relocation(struct obj_file *f,
 
 			/* Insert relative distance to target.  */
 			v = plt + pe->offset - dot;
-			if (ELF32_R_TYPE(rel->r_info) == R_390_PLT32)
+			if (ELF_R_TYPE(rel->r_info) == R_390_PLT32)
 				*(unsigned int *) loc = (unsigned int) v;
-			else if (ELF32_R_TYPE(rel->r_info) == R_390_PLT16DBL)
+			else if (ELF_R_TYPE(rel->r_info) == R_390_PLT16DBL)
 				*(unsigned short *) loc = (unsigned short) ((v + 2) >> 1);
 			break;
 
@@ -958,13 +964,13 @@ arch_apply_relocation(struct obj_file *f,
 			if (!isym->gotent.inited)
 			{
 				isym->gotent.inited = 1;
-				*(Elf32_Addr *)(ifile->got->contents + isym->gotent.offset) = v;
+				*(ElfW(Addr) *)(ifile->got->contents + isym->gotent.offset) = v;
 			}
-			if (ELF32_R_TYPE(rel->r_info) == R_390_GOT12)
+			if (ELF_R_TYPE(rel->r_info) == R_390_GOT12)
 				*(unsigned short *) loc |= (*(unsigned short *) loc + isym->gotent.offset) & 0xfff;
-			else if (ELF32_R_TYPE(rel->r_info) == R_390_GOT16)
+			else if (ELF_R_TYPE(rel->r_info) == R_390_GOT16)
 				*(unsigned short *) loc += isym->gotent.offset;
-			else if (ELF32_R_TYPE(rel->r_info) == R_390_GOT32)
+			else if (ELF_R_TYPE(rel->r_info) == R_390_GOT32)
 				*(unsigned int *) loc += isym->gotent.offset;
 			break;
 
@@ -1106,8 +1112,8 @@ arch_apply_relocation(struct obj_file *f,
 
 		case R_68K_PC8:
 			v -= dot;
-			if ((Elf32_Sword)v > 0x7f ||
-					(Elf32_Sword)v < -(Elf32_Sword)0x80) {
+			if ((ElfW(Sword))v > 0x7f ||
+					(ElfW(Sword))v < -(ElfW(Sword))0x80) {
 				ret = obj_reloc_overflow;
 			}
 			*(char *)loc = v;
@@ -1115,8 +1121,8 @@ arch_apply_relocation(struct obj_file *f,
 
 		case R_68K_PC16:
 			v -= dot;
-			if ((Elf32_Sword)v > 0x7fff ||
-					(Elf32_Sword)v < -(Elf32_Sword)0x8000) {
+			if ((ElfW(Sword))v > 0x7fff ||
+					(ElfW(Sword))v < -(ElfW(Sword))0x8000) {
 				ret = obj_reloc_overflow;
 			}
 			*(short *)loc = v;
@@ -1182,7 +1188,7 @@ arch_apply_relocation(struct obj_file *f,
 		case R_MIPS_LO16:
 			{
 				unsigned long insnlo = *loc;
-				Elf32_Addr val, vallo;
+				ElfW(Addr) val, vallo;
 
 				/* Sign extend the addend we extract from the lo insn.  */
 				vallo = ((insnlo & 0xffff) ^ 0x8000) - 0x8000;
@@ -1300,9 +1306,9 @@ arch_apply_relocation(struct obj_file *f,
 		case R_SH_IMM_MEDLOW16:
 		case R_SH_IMM_LOW16:
 			{
-				Elf32_Addr word;
+				ElfW(Addr) word;
 
-				if (ELF32_R_TYPE(rel->r_info) == R_SH_IMM_MEDLOW16)
+				if (ELF_R_TYPE(rel->r_info) == R_SH_IMM_MEDLOW16)
 					v >>= 16;
 
 				/*
@@ -1324,13 +1330,13 @@ arch_apply_relocation(struct obj_file *f,
 		case R_SH_IMM_MEDLOW16_PCREL:
 		case R_SH_IMM_LOW16_PCREL:
 			{
-				Elf32_Addr word;
+				ElfW(Addr) word;
 
 				word = *loc & ~0x3fffc00;
 
 				v -= dot;
 
-				if (ELF32_R_TYPE(rel->r_info) == R_SH_IMM_MEDLOW16_PCREL)
+				if (ELF_R_TYPE(rel->r_info) == R_SH_IMM_MEDLOW16_PCREL)
 					v >>= 16;
 
 				word |= (v & 0xffff) << 10;
@@ -1343,7 +1349,7 @@ arch_apply_relocation(struct obj_file *f,
 #endif /* __sh__ */
 
 		default:
-			printf("Warning: unhandled reloc %d\n",(int)ELF32_R_TYPE(rel->r_info));
+			printf("Warning: unhandled reloc %d\n",(int)ELF_R_TYPE(rel->r_info));
 			ret = obj_reloc_unhandled;
 			break;
 
@@ -1391,16 +1397,16 @@ arch_apply_relocation(struct obj_file *f,
 			break;
 	        case R_H8_PCREL16:
 			v -= dot + 2;
-			if ((Elf32_Sword)v > 0x7fff || 
-			    (Elf32_Sword)v < -(Elf32_Sword)0x8000)
+			if ((ElfW(Sword))v > 0x7fff || 
+			    (ElfW(Sword))v < -(ElfW(Sword))0x8000)
 				ret = obj_reloc_overflow;
 			else 
 				*(unsigned short *)loc = v;
 			break;
 	        case R_H8_PCREL8:
 			v -= dot + 1;
-			if ((Elf32_Sword)v > 0x7f || 
-			    (Elf32_Sword)v < -(Elf32_Sword)0x80)
+			if ((ElfW(Sword))v > 0x7f || 
+			    (ElfW(Sword))v < -(ElfW(Sword))0x80)
 				ret = obj_reloc_overflow;
 			else 
 				*(unsigned char *)loc = v;
@@ -1453,7 +1459,7 @@ bb_use_plt:
 #if defined (__arm__) || defined (__powerpc__)
 			if ((int)v < -0x02000000 || (int)v >= 0x02000000)
 #elif defined (__v850e__)
-				if ((Elf32_Sword)v > 0x1fffff || (Elf32_Sword)v < (Elf32_Sword)-0x200000)
+				if ((ElfW(Sword))v > 0x1fffff || (ElfW(Sword))v < (ElfW(Sword))-0x200000)
 #endif
 					/* go via the plt */
 					v = plt + pe->offset - dot;
@@ -1610,7 +1616,7 @@ static void arch_create_got(struct obj_file *f)
 		strtab = (const char *) strsec->contents;
 
 		for (; rel < relend; ++rel) {
-			extsym = &symtab[ELF32_R_SYM(rel->r_info)];
+			extsym = &symtab[ELF_R_SYM(rel->r_info)];
 
 #if defined(CONFIG_USE_GOT_ENTRIES)
 			got_allocate = 0;
@@ -1619,7 +1625,7 @@ static void arch_create_got(struct obj_file *f)
 			plt_allocate = 0;
 #endif
 
-			switch (ELF32_R_TYPE(rel->r_info)) {
+			switch (ELF_R_TYPE(rel->r_info)) {
 #if defined(__arm__)
 				case R_ARM_PC24:
 				case R_ARM_PLT32:
@@ -1818,15 +1824,15 @@ obj_add_symbol(struct obj_file *f, const char *name,
 {
 	struct obj_symbol *sym;
 	unsigned long hash = f->symbol_hash(name) % HASH_BUCKETS;
-	int n_type = ELFW(ST_TYPE) (info);
-	int n_binding = ELFW(ST_BIND) (info);
+	int n_type = ELF_ST_TYPE(info);
+	int n_binding = ELF_ST_BIND(info);
 
 	for (sym = f->symtab[hash]; sym; sym = sym->next)
 		if (f->symbol_cmp(sym->name, name) == 0) {
 			int o_secidx = sym->secidx;
 			int o_info = sym->info;
-			int o_type = ELFW(ST_TYPE) (o_info);
-			int o_binding = ELFW(ST_BIND) (o_info);
+			int o_type = ELF_ST_TYPE(o_info);
+			int o_binding = ELF_ST_BIND(o_info);
 
 			/* A redefinition!  Is it legal?  */
 
@@ -1887,7 +1893,7 @@ obj_add_symbol(struct obj_file *f, const char *name,
 	f->symtab[hash] = sym;
 	sym->ksymidx = -1;
 
-	if (ELFW(ST_BIND)(info) == STB_LOCAL && symidx != -1) {
+	if (ELF_ST_BIND(info) == STB_LOCAL && symidx != -1) {
 		if (symidx >= f->local_symtab_size)
 			bb_error_msg("local symbol %s with index %ld exceeds local_symtab_size %ld",
 					name, (long) symidx, (long) f->local_symtab_size);
@@ -2101,14 +2107,14 @@ add_symbols_from( struct obj_file *f,
 #endif /* SYMBOL_PREFIX */
 
 		sym = obj_find_symbol(f, name);
-		if (sym && !(ELFW(ST_BIND) (sym->info) == STB_LOCAL)) {
+		if (sym && !(ELF_ST_BIND(sym->info) == STB_LOCAL)) {
 #ifdef SYMBOL_PREFIX
 			/* Put NAME_BUF into more permanent storage.  */
 			name = xmalloc (name_size);
 			strcpy (name, name_buf);
 #endif
 			sym = obj_add_symbol(f, name, -1,
-					ELFW(ST_INFO) (STB_GLOBAL,
+					ELF_ST_INFO(STB_GLOBAL,
 						STT_NOTYPE),
 					idx, s->value, 0);
 			/* Did our symbol just get installed?  If so, mark the
@@ -2569,7 +2575,7 @@ static int new_create_this_module(struct obj_file *f, const char *m_name)
 	memset(sec->contents, 0, sizeof(struct new_module));
 
 	obj_add_symbol(f, SPFX "__this_module", -1,
-			ELFW(ST_INFO) (STB_LOCAL, STT_OBJECT), sec->idx, 0,
+			ELF_ST_INFO(STB_LOCAL, STT_OBJECT), sec->idx, 0,
 			sizeof(struct new_module));
 
 	obj_string_patch(f, sec->idx, offsetof(struct new_module, name),
@@ -2658,7 +2664,7 @@ static int new_create_module_ksymtab(struct obj_file *f)
 		for (nsyms = i = 0; i < HASH_BUCKETS; ++i) {
 			struct obj_symbol *sym;
 			for (sym = f->symtab[i]; sym; sym = sym->next)
-				if (ELFW(ST_BIND) (sym->info) != STB_LOCAL
+				if (ELF_ST_BIND(sym->info) != STB_LOCAL
 						&& sym->secidx <= SHN_HIRESERVE
 						&& (sym->secidx >= SHN_LORESERVE
 							|| loaded[sym->secidx])) {
@@ -2815,7 +2821,7 @@ static int obj_check_undefineds(struct obj_file *f)
 		struct obj_symbol *sym;
 		for (sym = f->symtab[i]; sym; sym = sym->next)
 			if (sym->secidx == SHN_UNDEF) {
-				if (ELFW(ST_BIND) (sym->info) == STB_WEAK) {
+				if (ELF_ST_BIND(sym->info) == STB_WEAK) {
 					sym->secidx = SHN_ABS;
 					sym->value = 0;
 				} else {
@@ -3001,12 +3007,12 @@ static int obj_relocate(struct obj_file *f, ElfW(Addr) base)
 
 			/* Attempt to find a value to use for this relocation.  */
 
-			symndx = ELFW(R_SYM) (rel->r_info);
+			symndx = ELF_R_SYM(rel->r_info);
 			if (symndx) {
 				/* Note we've already checked for undefined symbols.  */
 
 				extsym = &symtab[symndx];
-				if (ELFW(ST_BIND) (extsym->st_info) == STB_LOCAL) {
+				if (ELF_ST_BIND(extsym->st_info) == STB_LOCAL) {
 					/* Local symbols we look up in the local table to be sure
 					   we get the one that is really intended.  */
 					intsym = f->local_symtab[symndx];
@@ -3027,7 +3033,7 @@ static int obj_relocate(struct obj_file *f, ElfW(Addr) base)
 #if defined(__alpha__) && defined(AXP_BROKEN_GAS)
 			/* Work around a nasty GAS bug, that is fixed as of 2.7.0.9.  */
 			if (!extsym || !extsym->st_name ||
-					ELFW(ST_BIND) (extsym->st_info) != STB_LOCAL)
+					ELF_ST_BIND(extsym->st_info) != STB_LOCAL)
 #endif
 				value += rel->r_addend;
 #endif
@@ -3049,11 +3055,11 @@ static int obj_relocate(struct obj_file *f, ElfW(Addr) base)
 bad_reloc:
 					if (extsym) {
 						bb_error_msg("%s of type %ld for %s", errmsg,
-								(long) ELFW(R_TYPE) (rel->r_info),
+								(long) ELF_R_TYPE(rel->r_info),
 								strtab + extsym->st_name);
 					} else {
 						bb_error_msg("%s of type %ld", errmsg,
-								(long) ELFW(R_TYPE) (rel->r_info));
+								(long) ELF_R_TYPE(rel->r_info));
 					}
 					ret = 0;
 					break;
@@ -3373,7 +3379,7 @@ static void hide_special_symbols(struct obj_file *f)
 	for (p = specials; *p; ++p)
 		if ((sym = obj_find_symbol(f, *p)) != NULL)
 			sym->info =
-				ELFW(ST_INFO) (STB_LOCAL, ELFW(ST_TYPE) (sym->info));
+				ELF_ST_INFO(STB_LOCAL, ELF_ST_TYPE(sym->info));
 }
 
 
@@ -3577,7 +3583,7 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 				(int)(2*sizeof(statbuf.st_mtime)), statbuf.st_mtime,
 				version);
 		sym = obj_add_symbol(f, name, -1,
-				ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
+				ELF_ST_INFO(STB_GLOBAL, STT_NOTYPE),
 				sec->idx, sec->header.sh_addr, 0);
 		if (use_ksymtab)
 			new_add_ksymtab(f, sym);
@@ -3595,7 +3601,7 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 		name = xmalloc(l);
 		snprintf(name, l, "%s%s_P%s",
 				symprefix, m_name, f->persist);
-		sym = obj_add_symbol(f, name, -1, ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
+		sym = obj_add_symbol(f, name, -1, ELF_ST_INFO(STB_GLOBAL, STT_NOTYPE),
 				sec->idx, sec->header.sh_addr, 0);
 		if (use_ksymtab)
 			new_add_ksymtab(f, sym);
@@ -3617,7 +3623,7 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 			snprintf(name, l, "%s%s_S%s_L%ld",
 					symprefix, m_name, sec->name,
 					(long)sec->header.sh_size);
-			sym = obj_add_symbol(f, name, -1, ELFW(ST_INFO) (STB_GLOBAL, STT_NOTYPE),
+			sym = obj_add_symbol(f, name, -1, ELF_ST_INFO(STB_GLOBAL, STT_NOTYPE),
 					sec->idx, sec->header.sh_addr, 0);
 			if (use_ksymtab)
 				new_add_ksymtab(f, sym);
@@ -3707,7 +3713,7 @@ static void print_load_map(struct obj_file *f)
 			value = sym->value + sec->header.sh_addr;
 		}
 
-		if (ELFW(ST_BIND) (sym->info) == STB_LOCAL)
+		if (ELF_ST_BIND(sym->info) == STB_LOCAL)
 			type = tolower(type);
 
 		printf("%0*lx %c %s\n", (int) (2 * sizeof(void *)), value,
