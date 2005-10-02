@@ -40,7 +40,7 @@
 #define ZAP_BOOTBLOCK
 #endif
 
-static const char * device_name /* = NULL */;
+static const char * device_name;
 
 /* Command line options */
 static int	cflag;
@@ -57,7 +57,7 @@ static struct ext2_super_block param;
 static char *creator_os;
 static char *volume_label;
 static char *mount_dir;
-static char *journal_device;
+static char *journal_device = NULL;
 static int	sync_kludge; /* Set using the MKE2FS_SYNC env. option */
 
 static int sys_page_size = 4096;
@@ -167,6 +167,56 @@ static void invalid_block(ext2_filsys fs EXT2FS_ATTR((unused)), blk_t blk)
 }
 
 /*
+ * Busybox stuff
+ */
+static void mke2fs_error_msg_and_die(int retval, const char *fmt, ...)__attribute__ ((format (printf, 2, 3)));
+static void mke2fs_error_msg_and_die(int retval, const char *fmt, ...)
+{
+	va_list ap;
+
+	if (retval) {
+		va_start(ap, fmt);
+		bb_fprintf(stderr,"\nCould not ");
+		bb_vfprintf(stderr, fmt, ap);
+		bb_fprintf(stderr, "\n");
+		va_end(ap);
+		exit(EXIT_FAILURE);
+	}
+}
+
+static void mke2fs_verbose(const char *fmt, ...)__attribute__ ((format (printf, 1, 2)));
+static void mke2fs_verbose(const char *fmt, ...)
+{
+	va_list ap;
+
+	if (!quiet) {
+		va_start(ap, fmt);
+		bb_vfprintf(stdout, fmt, ap);
+		fflush(stdout);
+		va_end(ap);
+	}
+}
+
+static void mke2fs_verbose_done(void)
+{
+	mke2fs_verbose("done\n");
+}
+
+static void mke2fs_warning_msg(int retval, char *fmt, ... )__attribute__ ((format (printf, 2, 3)));
+static void mke2fs_warning_msg(int retval, char *fmt, ... )
+{
+	va_list ap;
+
+	if (retval) {
+		va_start(ap, fmt);
+		bb_fprintf(stderr,"\nWarning: ");
+		bb_vfprintf(stderr, fmt, ap);
+		bb_fprintf(stderr, "\n");
+		va_end(ap);
+	}
+}
+
+/*
  * Reads the bad blocks list from a file
  */
 static void read_bb_file(ext2_filsys fs, badblocks_list *bb_list,
@@ -175,15 +225,10 @@ static void read_bb_file(ext2_filsys fs, badblocks_list *bb_list,
 	FILE		*f;
 	errcode_t	retval;
 
-	f = fopen(bad_blocks_file, "r");
-	if (!f) {
-		bb_perror_msg_and_die("Could not read bad blocks file %s", bad_blocks_file);
-	}
+	f = bb_xfopen(bad_blocks_file, "r");
 	retval = ext2fs_read_bb_FILE(fs, f, bb_list, invalid_block);
 	fclose (f);
-	if (retval) {
-		bb_error_msg_and_die("Could not read bad blocks list");
-	}
+	mke2fs_error_msg_and_die(retval, "read bad blocks from list");
 }
 
 /*
@@ -198,18 +243,14 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 	sprintf(buf, "badblocks -b %d %s%s%s %d", fs->blocksize,
 		quiet ? "" : "-s ", (cflag > 1) ? "-w " : "",
 		fs->device_name, fs->super->s_blocks_count);
-	if (!quiet)
-		printf("Running command: %s\n", buf);
+	mke2fs_verbose("Running command: %s\n", buf);
 	f = popen(buf, "r");
 	if (!f) {
 		bb_perror_msg_and_die("Could not run '%s'", buf);
 	}
 	retval = ext2fs_read_bb_FILE(fs, f, bb_list, invalid_block);
 	pclose(f);
-	if (retval) {
-		bb_error_msg_and_die(
-			"Could not get list of bad blocks from program");
-	}
+	mke2fs_error_msg_and_die(retval, "read bad blocks from program");
 }
 
 static void handle_bad_blocks(ext2_filsys fs, badblocks_list bb_list)
@@ -254,10 +295,9 @@ static void handle_bad_blocks(ext2_filsys fs, badblocks_list bb_list)
 		for (j=0; j < fs->desc_blocks+1; j++) {
 			if (ext2fs_badblocks_list_test(bb_list,
 						       group_block + j)) {
-				if (!group_bad)
-					bb_error_msg(
-						"Warning: the backup superblock/group descriptors at block %d contain\n"
-						"       bad blocks\n", group_block);
+				mke2fs_warning_msg(!group_bad,
+					"the backup superblock/group descriptors at block %d contain\n"
+					"bad blocks\n", group_block);
 				group_bad++;
 				group = ext2fs_group_of_blk(fs, group_block+j);
 				fs->group_desc[group].bg_free_blocks_count++;
@@ -271,9 +311,8 @@ static void handle_bad_blocks(ext2_filsys fs, badblocks_list bb_list)
 	 * Mark all the bad blocks as used...
 	 */
 	retval = ext2fs_badblocks_list_iterate_begin(bb_list, &bb_iter);
-	if (retval) {
-		bb_error_msg_and_die("while marking bad blocks as used");
-	}
+	mke2fs_error_msg_and_die(retval, "mark bad blocks as used");
+
 	while (ext2fs_badblocks_list_iterate(bb_iter, &blk))
 		ext2fs_mark_block_bitmap(fs->block_map, blk);
 	ext2fs_badblocks_list_iterate_end(bb_iter);
@@ -329,7 +368,7 @@ static void progress_close(struct progress_struct *progress)
 {
 	if (progress->format[0] == 0)
 		return;
-	fputs("done                            \n", stdout);
+	printf("%-28s\n", "done");
 }
 
 
@@ -409,12 +448,9 @@ static void write_inode_tables(ext2_filsys fs)
 		num = fs->inode_blocks_per_group;
 
 		retval = zero_blocks(fs, blk, num, 0, &blk, &num);
-		if (retval) {
-			bb_error_msg_and_die(
-				"\nCould not write %d blocks "
-				"in inode table starting at %d.",
-				num, blk);
-		}
+		mke2fs_error_msg_and_die(retval, 
+			"write %d blocks in inode table starting at %d.",
+			num, blk);
 		if (sync_kludge) {
 			if (sync_kludge == 1)
 				sync();
@@ -432,21 +468,15 @@ static void create_root_dir(ext2_filsys fs)
 	struct ext2_inode	inode;
 
 	retval = ext2fs_mkdir(fs, EXT2_ROOT_INO, EXT2_ROOT_INO, 0);
-	if (retval) {
-		bb_error_msg_and_die("Could not create root dir");
-	}
+	mke2fs_error_msg_and_die(retval, "create root dir");
 	if (geteuid()) {
 		retval = ext2fs_read_inode(fs, EXT2_ROOT_INO, &inode);
-		if (retval) {
-			bb_error_msg_and_die("Could not read root inode");
-		}
+		mke2fs_error_msg_and_die(retval, "read root inode");
 		inode.i_uid = getuid();
 		if (inode.i_uid)
 			inode.i_gid = getgid();
 		retval = ext2fs_write_new_inode(fs, EXT2_ROOT_INO, &inode);
-		if (retval) {
-			bb_error_msg_and_die("Could not set root inode ownership");
-		}
+		mke2fs_error_msg_and_die(retval, "set root inode ownership");
 	}
 }
 
@@ -455,27 +485,29 @@ static void create_lost_and_found(ext2_filsys fs)
 	errcode_t		retval;
 	ext2_ino_t		ino;
 	const char		*name = "lost+found";
-	int			i;
+	int			i = 1;
+	char			*msg = "create";
 	int			lpf_size = 0;
 
 	fs->umask = 077;
 	retval = ext2fs_mkdir(fs, EXT2_ROOT_INO, 0, name);
 	if (retval) {
-		bb_error_msg_and_die("Could not create lost+found");
+		goto CREATE_LOST_AND_FOUND_ERROR;
 	}
 
 	retval = ext2fs_lookup(fs, EXT2_ROOT_INO, name, strlen(name), 0, &ino);
 	if (retval) {
-		bb_error_msg_and_die("Could not look up lost+found");
+		msg = "lookup";
+		goto CREATE_LOST_AND_FOUND_ERROR;
 	}
 
-	for (i=1; i < EXT2_NDIR_BLOCKS; i++) {
+	for (; i < EXT2_NDIR_BLOCKS; i++) {
 		if ((lpf_size += fs->blocksize) >= 16*1024)
 			break;
 		retval = ext2fs_expand_dir(fs, ino);
-		if (retval) {
-			bb_error_msg_and_die("Could not expand lost+found");
-		}
+		msg = "expand";
+CREATE_LOST_AND_FOUND_ERROR:
+		mke2fs_error_msg_and_die(retval, "%s %s", msg, name);
 	}
 }
 
@@ -487,10 +519,7 @@ static void create_bad_block_inode(ext2_filsys fs, badblocks_list bb_list)
 	fs->group_desc[0].bg_free_inodes_count--;
 	fs->super->s_free_inodes_count--;
 	retval = ext2fs_update_bb_inode(fs, bb_list);
-	if (retval) {
-		bb_error_msg_and_die("Could not set bad block inode");
-	}
-
+	mke2fs_error_msg_and_die(retval, "set bad block inode");
 }
 
 static void reserve_inodes(ext2_filsys fs)
@@ -514,6 +543,7 @@ static void reserve_inodes(ext2_filsys fs)
 static void zap_sector(ext2_filsys fs, int sect, int nsect)
 {
 	char *buf;
+	char *fmt = "could not %s %d";
 	int retval;
 	unsigned int *magic;
 
@@ -523,7 +553,7 @@ static void zap_sector(ext2_filsys fs, int sect, int nsect)
 		/* Check for a BSD disklabel, and don't erase it if so */
 		retval = io_channel_read_blk(fs->io, 0, -512, buf);
 		if (retval)
-			bb_error_msg("Warning: could not read block 0");
+			mke2fs_warning_msg(retval, fmt, "read block", 0);
 		else {
 			magic = (unsigned int *) (buf + BSD_LABEL_OFFSET);
 			if ((*magic == BSD_DISKMAGIC) ||
@@ -537,8 +567,7 @@ static void zap_sector(ext2_filsys fs, int sect, int nsect)
 	retval = io_channel_write_blk(fs->io, sect, -512*nsect, buf);
 	io_channel_set_blksize(fs->io, fs->blocksize);
 	free(buf);
-	if (retval)
-		bb_error_msg("Warning: could not erase sector %d", sect);
+	mke2fs_warning_msg(retval, fmt, "erase sector", sect);
 }
 
 static void create_journal_dev(ext2_filsys fs)
@@ -546,14 +575,13 @@ static void create_journal_dev(ext2_filsys fs)
 	struct progress_struct 	progress;
 	errcode_t		retval;
 	char			*buf;
+	char			*fmt = "%s journal superblock";
 	blk_t			blk;
 	int			count;
 
 	retval = ext2fs_create_journal_superblock(fs,
 				  fs->super->s_blocks_count, 0, &buf);
-	if (retval) {
-		bb_error_msg_and_die("Could not init journal superblock");
-	}
+	mke2fs_error_msg_and_die(retval, fmt, "init");
 	if (quiet)
 		memset(&progress, 0, sizeof(progress));
 	else
@@ -562,66 +590,58 @@ static void create_journal_dev(ext2_filsys fs)
 
 	retval = zero_blocks(fs, 0, fs->super->s_blocks_count,
 			     &progress, &blk, &count);
-	if (retval) {
-		bb_error_msg_and_die("Could not zero journal device (block %u, count %d)",
+	mke2fs_error_msg_and_die(retval, "zero journal device (block %u, count %d)",
 			blk, count);
-	}
 	zero_blocks(0, 0, 0, 0, 0, 0);
 
 	retval = io_channel_write_blk(fs->io,
 				      fs->super->s_first_data_block+1,
 				      1, buf);
-	if (retval) {
-		bb_error_msg_and_die("Could not write journal superblock");
-	}
+	mke2fs_error_msg_and_die(retval, fmt, "write");
 	progress_close(&progress);
 }
 
 static void show_stats(ext2_filsys fs)
 {
 	struct ext2_super_block *s = fs->super;
-	char			buf[80];
 	char			*os;
 	blk_t			group_block;
 	dgrp_t			i;
 	int			need, col_left;
 
-	if (param.s_blocks_count != s->s_blocks_count)
-		bb_error_msg("warning: %d blocks unused\n",
-		       param.s_blocks_count - s->s_blocks_count);
-
-	memset(buf, 0, sizeof(buf));
-	strncpy(buf, s->s_volume_name, sizeof(s->s_volume_name));
-	printf("Filesystem label=%s\n", buf);
-	fputs("OS type: ", stdout);
+	mke2fs_warning_msg((param.s_blocks_count != s->s_blocks_count),
+		"%d blocks unused\n", param.s_blocks_count - s->s_blocks_count);
 	os = e2p_os2string(fs->super->s_creator_os);
-	fputs(os, stdout);
+	printf(	"Filesystem label=%.*s\n"
+			"OS type: %s\n"
+			"Block size=%u (log=%u)\n"
+			"Fragment size=%u (log=%u)\n"
+			"%u inodes, %u blocks\n"
+			"%u blocks (%2.2f%%) reserved for the super user\n"
+			"First data block=%u\n",
+			(int) sizeof(s->s_volume_name),
+			s->s_volume_name,
+			os,
+			fs->blocksize, s->s_log_block_size,
+			fs->fragsize, s->s_log_frag_size,
+			s->s_inodes_count, s->s_blocks_count, 
+			s->s_r_blocks_count, 100.0 * s->s_r_blocks_count / s->s_blocks_count,
+			s->s_first_data_block);
 	free(os);
-	printf("\nBlock size=%u (log=%u)\n", fs->blocksize,
-		s->s_log_block_size);
-	printf("Fragment size=%u (log=%u)\n", fs->fragsize,
-		s->s_log_frag_size);
-	printf("%u inodes, %u blocks\n", s->s_inodes_count,
-	       s->s_blocks_count);
-	printf("%u blocks (%2.2f%%) reserved for the super user\n",
-		s->s_r_blocks_count,
-	       100.0 * s->s_r_blocks_count / s->s_blocks_count);
-	printf("First data block=%u\n", s->s_first_data_block);
-	if (s->s_reserved_gdt_blocks)
+	if (s->s_reserved_gdt_blocks) {
 		printf("Maximum filesystem blocks=%lu\n",
 		       (s->s_reserved_gdt_blocks + fs->desc_blocks) *
 		       (fs->blocksize / sizeof(struct ext2_group_desc)) *
 		       s->s_blocks_per_group);
-	if (fs->group_desc_count > 1)
-		printf("%u block groups\n", fs->group_desc_count);
-	else
-		printf("%u block group\n", fs->group_desc_count);
-	printf("%u blocks per group, %u fragments per group\n",
-	       s->s_blocks_per_group, s->s_frags_per_group);
-	printf("%u inodes per group\n", s->s_inodes_per_group);
-
+	}
+	printf(	"%u block group%s\n"
+			"%u blocks per group, %u fragments per group\n"
+			"%u inodes per group\n",
+			fs->group_desc_count, (fs->group_desc_count > 1) ? "s" : "",
+			s->s_blocks_per_group, s->s_frags_per_group,
+			s->s_inodes_per_group);
 	if (fs->group_desc_count == 1) {
-		printf("\n");
+		puts("");
 		return;
 	}
 
@@ -642,7 +662,7 @@ static void show_stats(ext2_filsys fs)
 		col_left -= need;
 		printf("%u", group_block);
 	}
-	printf("\n\n");
+	puts("\n");
 }
 
 /*
@@ -651,22 +671,18 @@ static void show_stats(ext2_filsys fs)
  */
 static int set_os(struct ext2_super_block *sb, char *os)
 {
-	if (isdigit (*os))
+	if (isdigit (*os)) {
 		sb->s_creator_os = atoi (os);
-	else if (strcasecmp(os, "linux") == 0)
-		sb->s_creator_os = EXT2_OS_LINUX;
-	else if (strcasecmp(os, "GNU") == 0 || strcasecmp(os, "hurd") == 0)
-		sb->s_creator_os = EXT2_OS_HURD;
-	else if (strcasecmp(os, "masix") == 0)
-		sb->s_creator_os = EXT2_OS_MASIX;
-	else if (strcasecmp(os, "freebsd") == 0)
-		sb->s_creator_os = EXT2_OS_FREEBSD;
-	else if (strcasecmp(os, "lites") == 0)
-		sb->s_creator_os = EXT2_OS_LITES;
-	else
-		return 0;
+		return 1;
+	}
 
-	return 1;
+	if((sb->s_creator_os = e2p_string2os(os)) >= 0) {
+		return 1;
+	} else if (!strcasecmp("GNU", os)) {
+ 		sb->s_creator_os = EXT2_OS_HURD;
+		return 1;
+	}
+	return 0;
 }
 
 #define PATH_SET "PATH=/sbin"
@@ -772,7 +788,6 @@ static __u32 ok_features[3] = {
 	EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER     /* R/O compat */
 };
 
-
 static int PRS(int argc, char *argv[])
 {
 	int		b, c;
@@ -832,26 +847,25 @@ static int PRS(int argc, char *argv[])
 	}
 #endif
 
-	if (argc && *argv) {
-		/* If called as mkfs.ext3, create a journal inode */
-		if (!strcmp(*argv + strlen(*argv) - 9, "mkfs.ext3"))
-			journal_size = -1;
-	}
+	/* If called as mkfs.ext3, create a journal inode */
+	if (last_char_is(bb_applet_name, '3')) 
+		journal_size = -1;
 
 	while ((c = getopt (argc, argv,
 		    "b:cE:f:g:i:jl:m:no:qr:R:s:tvI:J:ST:FL:M:N:O:V")) != EOF) {
 		switch (c) {
 		case 'b':
-			blocksize = strtol(optarg, &tmp, 0);
+			if (safe_strtoi(optarg, &blocksize))
+				goto BLOCKSIZE_ERROR;
 			b = (blocksize > 0) ? blocksize : -blocksize;
 			if (b < EXT2_MIN_BLOCK_SIZE ||
-			    b > EXT2_MAX_BLOCK_SIZE || *tmp) {
+			    b > EXT2_MAX_BLOCK_SIZE) {
+BLOCKSIZE_ERROR:
 				bb_error_msg_and_die("bad block size - %s", optarg);
 			}
-			if (blocksize > 4096)
-				bb_error_msg(
-					"Warning: blocksize %d not usable on most systems",
-					blocksize);
+			mke2fs_warning_msg((blocksize > 4096),
+				"blocksize %d not usable on most systems",
+				blocksize);
 			if (blocksize > 0)
 				param.s_log_block_size =
 					int_log2(blocksize >>
@@ -862,20 +876,15 @@ static int PRS(int argc, char *argv[])
 			cflag++;
 			break;
 		case 'f':
-			size = strtoul(optarg, &tmp, 0);
-			if (size < EXT2_MIN_BLOCK_SIZE ||
-			    size > EXT2_MAX_BLOCK_SIZE || *tmp) {
+			if (safe_strtoi(optarg, &size) || size < EXT2_MIN_BLOCK_SIZE || size > EXT2_MAX_BLOCK_SIZE ){
 				bb_error_msg_and_die("bad fragment size - %s", optarg);
 			}
 			param.s_log_frag_size =
 				int_log2(size >> EXT2_MIN_BLOCK_LOG_SIZE);
-			bb_error_msg(
-				"Warning: fragments not supported.  "
-				"Ignoring -f option");
+			mke2fs_warning_msg(1, "fragments not supported. Ignoring -f option");
 			break;
 		case 'g':
-			param.s_blocks_per_group = strtoul(optarg, &tmp, 0);
-			if (*tmp) {
+			if (safe_strtoi(optarg, &param.s_blocks_per_group)) {
 				bb_error_msg_and_die("Illegal number for blocks per group");
 			}
 			if ((param.s_blocks_per_group % 8) != 0) {
@@ -883,14 +892,13 @@ static int PRS(int argc, char *argv[])
 			}
 			break;
 		case 'i':
-			inode_ratio = strtoul(optarg, &tmp, 0);
-			if (inode_ratio < EXT2_MIN_BLOCK_SIZE ||
-			    inode_ratio > EXT2_MAX_BLOCK_SIZE * 1024 ||
-			    *tmp) {
-				bb_error_msg_and_die("bad inode ratio %s (min %d/max %d",
+			if (safe_strtoi(optarg, &inode_ratio) 
+				|| inode_ratio < EXT2_MIN_BLOCK_SIZE 
+				|| inode_ratio > EXT2_MAX_BLOCK_SIZE * 1024) {
+				bb_error_msg_and_die("bad inode ratio %s (min %d/max %d)",
 					optarg, EXT2_MIN_BLOCK_SIZE,
 					EXT2_MAX_BLOCK_SIZE);
-			}
+				}
 			break;
 		case 'J':
 			parse_journal_opts(&journal_device, &journal_flags, &journal_size, optarg);
@@ -905,8 +913,7 @@ static int PRS(int argc, char *argv[])
 			bad_blocks_filename = optarg;
 			break;
 		case 'm':
-			reserved_ratio = strtoul(optarg, &tmp, 0);
-			if (reserved_ratio > 50 || *tmp) {
+			if (safe_strtoi(optarg, &reserved_ratio) || reserved_ratio > 50 ) {
 				bb_error_msg_and_die("bad reserved blocks percent - %s", optarg);
 			}
 			break;
@@ -934,8 +941,7 @@ static int PRS(int argc, char *argv[])
 			break;
 #ifdef EXT2_DYNAMIC_REV
 		case 'I':
-			inode_size = strtoul(optarg, &tmp, 0);
-			if (*tmp) {
+			if (safe_strtoi(optarg, &inode_size)) {
 				bb_error_msg_and_die("bad inode size - %s", optarg);
 			}
 			break;
@@ -983,19 +989,18 @@ static int PRS(int argc, char *argv[])
 			break;
 		case 'V':
 			/* Print version number and exit */
-			show_version_only++;
+			show_version_only = 1;
+			quiet = 0;
 			break;
 		default:
 			bb_show_usage();
 		}
 	}
-	if ((optind == argc) && !show_version_only)
+	if ((optind == argc) /*&& !show_version_only*/)
 		bb_show_usage();
 	device_name = argv[optind++];
 
-	if (!quiet || show_version_only)
-		bb_error_msg("mke2fs %s (%s)", E2FSPROGS_VERSION,
-			 E2FSPROGS_DATE);
+	mke2fs_verbose("mke2fs %s (%s)\n", E2FSPROGS_VERSION, E2FSPROGS_DATE);
 
 	if (show_version_only) {
 		return 0;
@@ -1018,9 +1023,7 @@ static int PRS(int argc, char *argv[])
 		retval = ext2fs_open(journal_device,
 				     EXT2_FLAG_JOURNAL_DEV_OK, 0,
 				     0, io_ptr, &jfs);
-		if (retval) {
-			bb_error_msg_and_die("Could not open journal device %s", journal_device);
-		}
+		mke2fs_error_msg_and_die(retval, "open journal device %s", journal_device);
 		if ((blocksize < 0) && (jfs->blocksize < (unsigned) (-blocksize))) {
 			bb_error_msg_and_die(
 				"Journal dev blocksize (%d) smaller than "
@@ -1034,29 +1037,23 @@ static int PRS(int argc, char *argv[])
 	}
 
 	if (blocksize > sys_page_size) {
+		mke2fs_warning_msg(1, "%d-byte blocks too big for system (max %d)",
+			blocksize, sys_page_size);
 		if (!force) {
-			bb_error_msg("%d-byte blocks too big for system (max %d)",
-				blocksize, sys_page_size);
 			proceed_question();
 		}
-		bb_error_msg(
-			"Warning: %d-byte blocks too big for system "
-			"(max %d), forced to continue",
-			blocksize, sys_page_size);
+		bb_error_msg("Forced to continue");
 	}
-	if ((blocksize > 4096) &&
-	    (param.s_feature_compat & EXT3_FEATURE_COMPAT_HAS_JOURNAL))
-		bb_error_msg(
-			"\nWarning: some 2.4 kernels do not support "
-			"blocksizes greater than 4096 \n\tusing ext3."
-			"  Use -b 4096 if this is an issue for you\n");
+	mke2fs_warning_msg(((blocksize > 4096) &&
+		(param.s_feature_compat & EXT3_FEATURE_COMPAT_HAS_JOURNAL)),
+		"some 2.4 kernels do not support "
+		"blocksizes greater than 4096 using ext3.\n"
+		"Use -b 4096 if this is an issue for you\n");
 
 	if (optind < argc) {
 		param.s_blocks_count = parse_num_blocks(argv[optind++],
 				param.s_log_block_size);
-		if (!param.s_blocks_count) {
-			bb_error_msg_and_die("bad blocks count - %s", argv[optind - 1]);
-		}
+		mke2fs_error_msg_and_die(!param.s_blocks_count, "bad blocks count - %s", argv[optind - 1]);
 	}
 	if (optind < argc)
 		bb_show_usage();
@@ -1074,8 +1071,7 @@ static int PRS(int argc, char *argv[])
 	     param.s_feature_incompat))
 		param.s_rev_level = 1;	/* Create a revision 1 filesystem */
 
-	if (!force)
-		check_plausibility(device_name);
+	check_plausibility(device_name , force);
 	check_mount(device_name, force, "filesystem");
 
 	param.s_log_frag_size = param.s_log_block_size;
@@ -1097,13 +1093,12 @@ static int PRS(int argc, char *argv[])
 		}
 	}
 
-	if (retval && (retval != EXT2_ET_UNIMPLEMENTED)) {
-		bb_error_msg_and_die("Could not determine filesystem size");
-	}
+	mke2fs_error_msg_and_die((retval && (retval != EXT2_ET_UNIMPLEMENTED)),"determine filesystem size");
+
 	if (!param.s_blocks_count) {
 		if (retval == EXT2_ET_UNIMPLEMENTED) {
-			bb_error_msg_and_die(
-				"Couldn't determine device size; you "
+			mke2fs_error_msg_and_die(1,
+				"determine device size; you "
 				"must specify\nthe size of the "
 				"filesystem");
 		} else {
@@ -1145,9 +1140,7 @@ static int PRS(int argc, char *argv[])
 
 	/* Get the hardware sector size, if available */
 	retval = ext2fs_get_device_sectsize(device_name, &sector_size);
-	if (retval) {
-		bb_error_msg_and_die("Could not determine hardware sector size");
-	}
+	mke2fs_error_msg_and_die(retval, "determine hardware sector size");
 
 	if ((tmp = getenv("MKE2FS_DEVICE_SECTSIZE")) != NULL)
 		sector_size = atoi(tmp);
@@ -1182,10 +1175,9 @@ static int PRS(int argc, char *argv[])
 				inode_size, EXT2_GOOD_OLD_INODE_SIZE,
 				blocksize);
 		}
-		if (inode_size != EXT2_GOOD_OLD_INODE_SIZE)
-			bb_error_msg(
-				"Warning: %d-byte inodes not usable on most systems",
-				inode_size);
+		mke2fs_warning_msg((inode_size != EXT2_GOOD_OLD_INODE_SIZE),
+			"%d-byte inodes not usable on most systems",
+			inode_size);
 		param.s_inode_size = inode_size;
 	}
 
@@ -1203,16 +1195,22 @@ static int PRS(int argc, char *argv[])
 	return 1;
 }
 
+static void clean_up(void)
+{
+	if (ENABLE_FEATURE_CLEAN_UP && journal_device) free(journal_device);
+}
+
 int mke2fs_main (int argc, char *argv[])
 {
 	errcode_t	retval;
 	ext2_filsys	fs;
 	badblocks_list	bb_list = 0;
-	int		journal_blocks;
 	unsigned int	i;
 	int		val;
 	io_manager	io_ptr;
 
+	if (ENABLE_FEATURE_CLEAN_UP)
+		atexit(clean_up);
 	if(!PRS(argc, argv))
 		return 0;
 
@@ -1228,9 +1226,7 @@ int mke2fs_main (int argc, char *argv[])
 	 */
 	retval = ext2fs_initialize(device_name, 0, &param,
 				   io_ptr, &fs);
-	if (retval) {
-		bb_error_msg_and_die("Could not set up superblock");
-	}
+	mke2fs_error_msg_and_die(retval, "set up superblock");
 
 	/*
 	 * Wipe out the old on-disk superblock
@@ -1277,20 +1273,14 @@ int mke2fs_main (int argc, char *argv[])
 	 * Set the volume label...
 	 */
 	if (volume_label) {
-		memset(fs->super->s_volume_name, 0,
-		       sizeof(fs->super->s_volume_name));
-		strncpy(fs->super->s_volume_name, volume_label,
-			sizeof(fs->super->s_volume_name));
+		snprintf(fs->super->s_volume_name, sizeof(fs->super->s_volume_name), "%s", volume_label);
 	}
 
 	/*
 	 * Set the last mount directory
 	 */
 	if (mount_dir) {
-		memset(fs->super->s_last_mounted, 0,
-		       sizeof(fs->super->s_last_mounted));
-		strncpy(fs->super->s_last_mounted, mount_dir,
-			sizeof(fs->super->s_last_mounted));
+		snprintf(fs->super->s_last_mounted, sizeof(fs->super->s_last_mounted), "%s", mount_dir);
 	}
 
 	if (!quiet || noaction)
@@ -1313,9 +1303,7 @@ int mke2fs_main (int argc, char *argv[])
 	handle_bad_blocks(fs, bb_list);
 	fs->stride = fs_stride;
 	retval = ext2fs_allocate_tables(fs);
-	if (retval) {
-		bb_error_msg_and_die("Could not allocate filesystem tables");
-	}
+	mke2fs_error_msg_and_die(retval, "allocate filesystem tables");
 	if (super_only) {
 		fs->super->s_state |= EXT2_ERROR_FS;
 		fs->flags &= ~(EXT2_FLAG_IB_DIRTY|EXT2_FLAG_BB_DIRTY);
@@ -1342,9 +1330,7 @@ int mke2fs_main (int argc, char *argv[])
 			retval = zero_blocks(fs, start, blocks - start,
 					     NULL, &ret_blk, NULL);
 
-		if (retval) {
-			bb_error_msg("Could not zero block %u at end of filesystem", ret_blk);
-		}
+		mke2fs_warning_msg(retval, "could not zero block %u at end of filesystem", ret_blk);
 		write_inode_tables(fs);
 		create_root_dir(fs);
 		create_lost_and_found(fs);
@@ -1353,72 +1339,22 @@ int mke2fs_main (int argc, char *argv[])
 		if (fs->super->s_feature_compat &
 		    EXT2_FEATURE_COMPAT_RESIZE_INODE) {
 			retval = ext2fs_create_resize_inode(fs);
-			if (retval) {
-				bb_error_msg_and_die("Could not reserve blocks for online resize");
-			}
+			mke2fs_error_msg_and_die(retval, "reserve blocks for online resize");
 		}
 	}
 
 	if (journal_device) {
-		ext2_filsys     jfs;
-
-		if (!force)
-			check_plausibility(journal_device);
-		check_mount(journal_device, force, "journal");
-
-		retval = ext2fs_open(journal_device, EXT2_FLAG_RW|
-				     EXT2_FLAG_JOURNAL_DEV_OK, 0,
-				     fs->blocksize, unix_io_manager, &jfs);
-		if (retval) {
-			bb_error_msg_and_die("Could not open journal device %s", journal_device);
-		}
-		if (!quiet) {
-			printf("Adding journal to device %s: ", journal_device);
-			fflush(stdout);
-		}
-		retval = ext2fs_add_journal_device(fs, jfs);
-		if(retval) {
-			bb_error_msg_and_die("Could not add journal to device %s", journal_device);
-		}
-		if (!quiet)
-			printf("done\n");
-		ext2fs_close(jfs);
-		free(journal_device);
+		make_journal_device(journal_device, fs, quiet, force);
 	} else if (journal_size) {
-		journal_blocks = figure_journal_size(journal_size, fs);
-
-		if (!journal_blocks) {
-			fs->super->s_feature_compat &=
-				~EXT3_FEATURE_COMPAT_HAS_JOURNAL;
-			goto no_journal;
-		}
-		if (!quiet) {
-			printf("Creating journal (%d blocks): ",
-			       journal_blocks);
-			fflush(stdout);
-		}
-		retval = ext2fs_add_journal_inode(fs, journal_blocks,
-						  journal_flags);
-		if (retval) {
-			bb_error_msg_and_die("Could not create journal");
-		}
-		if (!quiet)
-			printf("done\n");
+		make_journal_blocks(fs, journal_size, journal_flags, quiet);
 	}
-no_journal:
 
-	if (!quiet)
-		printf("Writing superblocks and "
-		       "filesystem accounting information: ");
+	mke2fs_verbose("Writing superblocks and filesystem accounting information: ");
 	retval = ext2fs_flush(fs);
-	if (retval) {
-		bb_error_msg("\nWarning, had trouble writing out superblocks");
-	}
-	if (!quiet) {
-		printf("done\n\n");
-		if (!getenv("MKE2FS_SKIP_CHECK_MSG"))
-			print_check_message(fs);
-	}
+	mke2fs_warning_msg(retval, "had trouble writing out superblocks");
+	mke2fs_verbose_done();
+	if (!quiet && !getenv("MKE2FS_SKIP_CHECK_MSG"))
+		print_check_message(fs);
 	val = ext2fs_close(fs);
 	return (retval || val) ? 1 : 0;
 }

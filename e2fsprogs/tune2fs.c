@@ -50,7 +50,7 @@ extern int optind;
 #include "util.h"
 #include "blkid/blkid.h"
 
-static char * device_name;
+static char * device_name = NULL;
 static char * new_label, *new_last_mounted, *new_UUID;
 static char * io_options;
 static int c_flag, C_flag, e_flag, f_flag, g_flag, i_flag, l_flag, L_flag;
@@ -66,7 +66,7 @@ static char *features_cmd;
 static char *mntopts_cmd;
 
 static int journal_size, journal_flags;
-static char *journal_device;
+static char *journal_device = NULL;
 
 static const char *please_fsck = "Please run e2fsck on the filesystem\n";
 
@@ -188,26 +188,36 @@ static void remove_journal_inode(ext2_filsys fs)
 	struct ext2_inode	inode;
 	errcode_t		retval;
 	ino_t			ino = fs->super->s_journal_inum;
+	char *msg = "to read";
+	char *s = "journal inode";
 	
 	retval = ext2fs_read_inode(fs, ino,  &inode);
-	if (retval)
-		bb_error_msg_and_die("Failed to read journal inode");
+	if (retval) 
+		goto REMOVE_JOURNAL_INODE_ERROR;
 	if (ino == EXT2_JOURNAL_INO) {
 		retval = ext2fs_read_bitmaps(fs);
-		if (retval)
-			bb_error_msg_and_die("Failed to read bitmaps");
+		if (retval) {
+			msg = "to read bitmaps";
+			s = "";
+			goto REMOVE_JOURNAL_INODE_ERROR;
+		}
 		retval = ext2fs_block_iterate(fs, ino, 0, NULL,
 					      release_blocks_proc, NULL);
-		if (retval)
-			bb_error_msg_and_die("Failed clearing journal inode");
+		if (retval) {
+			msg = "clearing";
+			goto REMOVE_JOURNAL_INODE_ERROR;
+		}
 		memset(&inode, 0, sizeof(inode));
 		ext2fs_mark_bb_dirty(fs);
 		fs->flags &= ~EXT2_FLAG_SUPER_ONLY;
 	} else
 		inode.i_flags &= ~EXT2_IMMUTABLE_FL;
 	retval = ext2fs_write_inode(fs, ino, &inode);
-	if (retval)
-		bb_error_msg_and_die("Failed writing journal inode");
+	if (retval) {
+		msg = "writing";
+REMOVE_JOURNAL_INODE_ERROR:
+		bb_error_msg_and_die("Failed %s %s", msg, s);
+	}
 	fs->super->s_journal_inum = 0;
 	ext2fs_mark_super_dirty(fs);
 }
@@ -269,8 +279,8 @@ static void update_feature_set(ext2_filsys fs, char *features)
 		    EXT3_FEATURE_INCOMPAT_RECOVER) {
 			bb_error_msg_and_die(
 				"The needs_recovery flag is set.  "
-				"Please run e2fsck before clearing\n"
-				"the has_journal flag.");
+				"%s before clearing the has_journal flag.",
+				please_fsck);
 		}
 		if (sb->s_journal_inum) {
 			remove_journal_inode(fs);
@@ -317,48 +327,14 @@ static void update_feature_set(ext2_filsys fs, char *features)
  */
 static void add_journal(ext2_filsys fs)
 {
-	unsigned long journal_blocks;
-	errcode_t	retval;
-	ext2_filsys	jfs;
-	io_manager	io_ptr;
-
 	if (fs->super->s_feature_compat &
 	    EXT3_FEATURE_COMPAT_HAS_JOURNAL) {
-		bb_error_msg("The filesystem already has a journal");
-		goto err;
+		bb_error_msg_and_die("The filesystem already has a journal");
 	}
 	if (journal_device) {
-		check_plausibility(journal_device);
-		check_mount(journal_device, 0, "journal");
-		io_ptr = unix_io_manager;
-		retval = ext2fs_open(journal_device, EXT2_FLAG_RW|
-				     EXT2_FLAG_JOURNAL_DEV_OK, 0,
-				     fs->blocksize, io_ptr, &jfs);
-		if (retval) {
-			bb_error_msg("Failed to open journal on %s", journal_device);
-			goto err;
-		}
-		printf("Creating journal on device %s: ", journal_device);
-		fflush(stdout);
-
-		retval = ext2fs_add_journal_device(fs, jfs);
-		ext2fs_close(jfs);
-		if (retval) {
-			bb_error_msg("Failed to add filesystem to journal on %s", journal_device);
-			goto err;
-		}
-		puts("done");
+		make_journal_device(journal_device, fs, 0, 0);
 	} else if (journal_size) {
-		fputs("Creating journal inode: ", stdout);
-		fflush(stdout);
-		journal_blocks = figure_journal_size(journal_size, fs);
-
-		retval = ext2fs_add_journal_inode(fs, journal_blocks,
-						  journal_flags);
-		if (retval)
-			bb_error_msg_and_die("Failed to create journal file");
-		else
-			puts("done");
+		make_journal_blocks(fs, journal_size, journal_flags, 0);
 		/*
 		 * If the filesystem wasn't mounted, we need to force
 		 * the block group descriptors out.
@@ -368,11 +344,18 @@ static void add_journal(ext2_filsys fs)
 	}
 	print_check_message(fs);
 	return;
+}
 
-err:
-	if (journal_device)
-		free(journal_device);
-	exit(1);
+/*  
+ * Busybox stuff
+ */
+static char * x_blkid_get_devname(const char *token)
+{
+	char * dev_name;
+	
+	if (!(dev_name = blkid_get_devname(NULL, token, NULL)))
+		bb_error_msg_and_die("Unable to resolve '%s'", token);
+	return dev_name;
 }
 
 #ifdef CONFIG_E2LABEL
@@ -383,9 +366,7 @@ static void parse_e2label_options(int argc, char ** argv)
 	io_options = strchr(argv[1], '?');
 	if (io_options)
 		*io_options++ = 0;
-	device_name = blkid_get_devname(NULL, argv[1], NULL);
-	if (!device_name)
-		bb_error_msg_and_die("Unable to resolve '%s'", argv[1]);
+	device_name = x_blkid_get_devname(argv[1]);
 	if (argc == 3) {
 		open_flag = EXT2_FLAG_RW | EXT2_FLAG_JOURNAL_DEV_OK;
 		L_flag = 1;
@@ -393,6 +374,8 @@ static void parse_e2label_options(int argc, char ** argv)
 	} else 
 		print_label++;
 }
+#else
+#define parse_e2label_options(x,y)         
 #endif
 
 static time_t parse_time(char *str)
@@ -425,17 +408,14 @@ static void parse_tune2fs_options(int argc, char **argv)
 {
 	int c;
 	char * tmp;
-	struct group * gr;
-	struct passwd * pw;
 
 	printf("tune2fs %s (%s)\n", E2FSPROGS_VERSION, E2FSPROGS_DATE);
 	while ((c = getopt(argc, argv, "c:e:fg:i:jlm:o:r:s:u:C:J:L:M:O:T:U:")) != EOF)
 		switch (c)
 		{
 			case 'c':
-				max_mount_count = strtol (optarg, &tmp, 0);
-				if (*tmp || max_mount_count > 16000) {
-					bb_error_msg_and_die("bad mounts count - %s", optarg);
+				if (safe_strtoi(optarg, &max_mount_count) ||  max_mount_count > 16000) {
+					goto MOUNTS_COUNT_ERROR;
 				}
 				if (max_mount_count == 0)
 					max_mount_count = -1;
@@ -443,8 +423,8 @@ static void parse_tune2fs_options(int argc, char **argv)
 				open_flag = EXT2_FLAG_RW;
 				break;
 			case 'C':
-				mount_count = strtoul (optarg, &tmp, 0);
-				if (*tmp || mount_count > 16000) {
+				if (safe_strtoi(optarg, &mount_count) || mount_count > 16000) {
+MOUNTS_COUNT_ERROR:
 					bb_error_msg_and_die("bad mounts count - %s", optarg);
 				}
 				C_flag = 1;
@@ -467,19 +447,8 @@ static void parse_tune2fs_options(int argc, char **argv)
 				f_flag = 1;
 				break;
 			case 'g':
-				resgid = strtoul (optarg, &tmp, 0);
-				if (*tmp) {
-					gr = getgrnam (optarg);
-					if (gr == NULL)
-						tmp = optarg;
-					else {
-						resgid = gr->gr_gid;
-						*tmp =0;
-					}
-				}
-				if (*tmp) {
-					bb_error_msg_and_die("bad gid/group name - %s", optarg);
-				}
+				if (safe_strtoul(optarg, &resgid))
+					resgid = bb_xgetgrnam(optarg);
 				g_flag = 1;
 				open_flag = EXT2_FLAG_RW;
 				break;
@@ -532,8 +501,7 @@ static void parse_tune2fs_options(int argc, char **argv)
 					EXT2_FLAG_JOURNAL_DEV_OK;
 				break;
 			case 'm':
-				reserved_ratio = strtoul (optarg, &tmp, 0);
-				if (*tmp || reserved_ratio > 50) {
+				if(safe_strtoul(optarg, &reserved_ratio) || reserved_ratio > 50) {
 					bb_error_msg_and_die("bad reserved block ratio - %s", optarg);
 				}
 				m_flag = 1;
@@ -560,8 +528,7 @@ static void parse_tune2fs_options(int argc, char **argv)
 				open_flag = EXT2_FLAG_RW;
 				break;
 			case 'r':
-				reserved_blocks = strtoul (optarg, &tmp, 0);
-				if (*tmp) {
+				if(safe_strtoul(optarg, &reserved_blocks)) {
 					bb_error_msg_and_die("bad reserved blocks count - %s", optarg);
 				}
 				r_flag = 1;
@@ -577,19 +544,8 @@ static void parse_tune2fs_options(int argc, char **argv)
 				open_flag = EXT2_FLAG_RW;
 				break;
 			case 'u':
-				resuid = strtoul (optarg, &tmp, 0);
-				if (*tmp) {
-					pw = getpwnam (optarg);
-					if (pw == NULL)
-						tmp = optarg;
-					else {
-						resuid = pw->pw_uid;
-						*tmp = 0;
-					}
-				}
-				if (*tmp) {
-					bb_error_msg_and_die("bad uid/user name - %s", optarg);
-				}
+				if (safe_strtoul(optarg, &resuid))
+					resuid = bb_xgetpwnam(optarg);
 				u_flag = 1;
 				open_flag = EXT2_FLAG_RW;
 				break;
@@ -609,26 +565,28 @@ static void parse_tune2fs_options(int argc, char **argv)
 	io_options = strchr(argv[optind], '?');
 	if (io_options)
 		*io_options++ = 0;
-	device_name = blkid_get_devname(NULL, argv[optind], NULL);
-	if (!device_name)
-		bb_error_msg_and_die("Unable to resolve '%s'", argv[optind]);
+	device_name = x_blkid_get_devname(argv[optind]);
 }
 
 #ifdef CONFIG_FINDFS
 static attribute_noreturn void do_findfs(int argc, char **argv)
 {
-	char *dev;
-
 	if ((argc != 2) ||
 	    (strncmp(argv[1], "LABEL=", 6) && strncmp(argv[1], "UUID=", 5)))
 		bb_show_usage();
-	dev = blkid_get_devname(NULL, argv[1], NULL);
-	if (!dev)
-		bb_error_msg_and_die("Unable to resolve '%s'", argv[1]);
-	puts(dev);
+	device_name = x_blkid_get_devname(argv[1]);
+	puts(device_name);
 	exit(0);
 }
+#else
+#define do_findfs(x, y)
 #endif
+
+static void clean_up(void)
+{
+	if (ENABLE_FEATURE_CLEAN_UP && device_name) free(device_name);
+	if (ENABLE_FEATURE_CLEAN_UP && journal_device) free(journal_device);
+}
 
 int tune2fs_main(int argc, char **argv)
 {
@@ -636,21 +594,16 @@ int tune2fs_main(int argc, char **argv)
 	ext2_filsys fs;
 	struct ext2_super_block *sb;
 	io_manager io_ptr;
-#if defined(CONFIG_FINDFS) || defined(CONFIG_E2LABEL)
-	char *program_name = basename(argv[0]);
-#endif
 
-#ifdef CONFIG_FINDFS
-	if (strcmp(program_name, "findfs") == 0)
-		do_findfs(argc, argv);
-#endif
-
-#ifdef CONFIG_E2LABEL
-	if (strcmp(program_name, "e2label") == 0)
+	if (ENABLE_FEATURE_CLEAN_UP)
+		atexit(clean_up);
+		
+	if (ENABLE_FINDFS && (bb_applet_name[0] == 'f')) /* findfs */
+		do_findfs(argc, argv);  /* no return */
+	else if (ENABLE_E2LABEL && (bb_applet_name[0] == 'e')) /* e2label */
 		parse_e2label_options(argc, argv);
 	else
-#endif
-		parse_tune2fs_options(argc, argv);
+		parse_tune2fs_options(argc, argv);  /* tune2fs */
 
 	io_ptr = unix_io_manager;
 	retval = ext2fs_open2(device_name, io_options, open_flag, 
@@ -662,7 +615,7 @@ int tune2fs_main(int argc, char **argv)
 		/* For e2label emulation */
 		printf("%.*s\n", (int) sizeof(sb->s_volume_name),
 		       sb->s_volume_name);
-		exit(0);
+		return 0;
 	}
 	retval = ext2fs_check_if_mounted(device_name, &mount_flags);
 	if (retval)

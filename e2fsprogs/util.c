@@ -29,7 +29,7 @@ void proceed_question(void)
 		exit(1);
 }
 
-void check_plausibility(const char *device)
+void check_plausibility(const char *device, int force)
 {
 	int val;
 #ifdef CONFIG_LFS
@@ -39,7 +39,8 @@ void check_plausibility(const char *device)
 	struct stat s;
 	val = stat(device, &s);
 #endif
-
+	if (force)
+		return;
 	if(val == -1)
 		bb_perror_msg_and_die("Could not stat %s", device);
 	if (!S_ISBLK(s.st_mode)) {
@@ -204,4 +205,51 @@ void print_check_message(ext2_filsys fs)
 		 "Use tune2fs -c or -i to override.\n",
 	       fs->super->s_max_mnt_count,
 	       (double)fs->super->s_checkinterval / (3600 * 24));
+}
+
+void make_journal_device(char *journal_device, ext2_filsys fs, int quiet, int force)
+{
+	errcode_t	retval;
+	ext2_filsys	jfs;
+	io_manager	io_ptr;
+
+	check_plausibility(journal_device, force);
+	check_mount(journal_device, force, "journal");	
+	io_ptr = unix_io_manager;	
+	retval = ext2fs_open(journal_device, EXT2_FLAG_RW|
+					EXT2_FLAG_JOURNAL_DEV_OK, 0,
+					fs->blocksize, io_ptr, &jfs);
+	if (retval)
+		bb_error_msg_and_die("Could not journal device %s", journal_device);
+	if(!quiet)
+		printf("Adding journal to device %s: ", journal_device);
+	fflush(stdout);
+	retval = ext2fs_add_journal_device(fs, jfs);
+	if(retval)
+		bb_error_msg_and_die("\nFailed to add journal to device %s", journal_device);
+	if(!quiet)
+		puts("done");
+	ext2fs_close(jfs);
+}
+
+void make_journal_blocks(ext2_filsys fs, int journal_size, int journal_flags, int quiet)
+{
+	unsigned long journal_blocks;
+	errcode_t	retval;
+		
+	journal_blocks = figure_journal_size(journal_size, fs);
+	if (!journal_blocks) {
+		fs->super->s_feature_compat &=
+			~EXT3_FEATURE_COMPAT_HAS_JOURNAL;
+		return;
+	}
+	if(!quiet)
+		printf("Creating journal (%ld blocks): ", journal_blocks);
+	fflush(stdout);
+	retval = ext2fs_add_journal_inode(fs, journal_blocks,
+						  journal_flags);
+	if(retval)
+		bb_error_msg_and_die("Could not create journal");
+	if(!quiet)
+		puts("done");
 }
