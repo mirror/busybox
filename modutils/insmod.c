@@ -1341,7 +1341,7 @@ arch_apply_relocation(struct obj_file *f,
 			goto bb_use_plt;
 
 #elif defined(__x86_64__)
-#warning hi
+
 		case R_X86_64_NONE:
 			break;
 
