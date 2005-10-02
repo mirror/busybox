@@ -16,9 +16,6 @@ BLKID_SRC   := cache.c dev.c devname.c devno.c blkid_getsize.c \
 BLKID_SRCS  := $(patsubst %,blkid/%, $(BLKID_SRC))
 BLKID_OBJS  := $(patsubst %.c,%.o, $(BLKID_SRCS))
 
-E2FSCK_SRCS := e2fsck.c
-E2FSCK_OBJS := $(patsubst %.c,%.o, $(E2FSCK_SRCS))
-
 E2P_SRC     := fgetsetflags.c fgetsetversion.c pf.c iod.c mntopts.c \
 	       feature.c ls.c uuid.c pe.c ostype.c ps.c hashstr.c \
 	       parse_num.c
@@ -44,7 +41,7 @@ UUID_OBJS   := $(patsubst %.c,%.o, $(UUID_SRCS))
 
 E2FSPROGS-:=
 E2FSPROGS-$(CONFIG_CHATTR)     += chattr.o $(E2P_OBJS)
-E2FSPROGS-$(CONFIG_E2FSCK)     += e2fsck.o util.o $(BLKID_OBJS) $(E2FSCK_OBJS)
+E2FSPROGS-$(CONFIG_E2FSCK)     += e2fsck.o util.o $(BLKID_OBJS)
 E2FSPROGS-$(CONFIG_FSCK)       += fsck.o base_device.o
 E2FSPROGS-$(CONFIG_LSATTR)     += lsattr.o $(E2P_OBJS)
 E2FSPROGS-$(CONFIG_MKE2FS)     += mke2fs.o util.o $(E2P_OBJS) $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)
