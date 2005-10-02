@@ -296,6 +296,9 @@ extern int insmod_ng_main( int argc, char **argv);
 #if defined(__x86_64__)
 #define MATCH_MACHINE(x) (x == EM_X86_64)
 #define SHT_RELM	SHT_RELA
+#define CONFIG_USE_GOT_ENTRIES
+#define CONFIG_GOT_ENTRY_SIZE 8
+#define CONFIG_USE_SINGLE
 #define Elf64_RelM	Elf64_Rela
 #define ELFCLASSM	ELFCLASS64
 #endif
@@ -858,7 +861,6 @@ arch_apply_relocation(struct obj_file *f,
 
 	switch (ELF32_R_TYPE(rel->r_info)) {
 
-
 #if defined(__arm__)
 		case R_ARM_NONE:
 			break;
@@ -1009,6 +1011,75 @@ arch_apply_relocation(struct obj_file *f,
 			assert(got != 0);
 			*loc += v - got;
 			break;
+
+#elif defined(__x86_64__)
+
+		case R_X86_64_NONE:
+			break;
+
+		case R_X86_64_64:
+			*loc += v;
+			break;
+
+		case R_X86_64_32:
+			*(unsigned int *) loc += v;
+			if (v > 0xffffffff)
+			{
+				ret = obj_reloc_overflow; /* Kernel module compiled without -mcmodel=kernel. */
+				/* error("Possibly is module compiled without -mcmodel=kernel!"); */
+			}
+			break;
+
+		case R_X86_64_32S:
+			*(signed int *) loc += v;
+			break;
+
+		case R_X86_64_16:
+			*(unsigned short *) loc += v;
+			break;
+
+		case R_X86_64_8:
+			*(unsigned char *) loc += v;
+			break;
+
+		case R_X86_64_PC32:
+			*(unsigned int *) loc += v - dot;
+			break;
+
+		case R_X86_64_PC16:
+			*(unsigned short *) loc += v - dot;
+			break;
+
+		case R_X86_64_PC8:
+			*(unsigned char *) loc += v - dot;
+			break;
+
+		case R_X86_64_GLOB_DAT:
+		case R_X86_64_JUMP_SLOT:
+			*loc = v;
+			break;
+
+		case R_X86_64_RELATIVE:
+			*loc += f->baseaddr;
+			break;
+
+		case R_X86_64_GOT32:
+		case R_X86_64_GOTPCREL:
+			goto bb_use_got;
+#if 0
+			assert(isym != NULL);
+			if (!isym->gotent.reloc_done)
+			{
+				isym->gotent.reloc_done = 1;
+				*(Elf64_Addr *)(ifile->got->contents + isym->gotent.offset) = v;
+			}
+			/* XXX are these really correct?  */
+			if (ELF64_R_TYPE(rel->r_info) == R_X86_64_GOTPCREL)
+				*(unsigned int *) loc += v + isym->gotent.offset;
+			else
+				*loc += isym->gotent.offset;
+			break;
+#endif
 
 #elif defined(__mc68000__)
 
