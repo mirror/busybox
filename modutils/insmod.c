@@ -110,7 +110,7 @@ extern int insmod_ng_main( int argc, char **argv);
 
 
 /* Alpha */
-#if defined(__alpha__)   
+#if defined(__alpha__)
 #define MATCH_MACHINE(x) (x == EM_ALPHA)
 #define SHT_RELM       SHT_RELA
 #define Elf64_RelM     Elf64_Rela
@@ -843,7 +843,7 @@ arch_apply_relocation(struct obj_file *f,
 					  struct obj_section *targsec,
 					  struct obj_section *symsec,
 					  struct obj_symbol *sym,
-				      ElfW(RelM) *rel, ElfW(Addr) v)
+					  ElfW(RelM) *rel, ElfW(Addr) v)
 {
 	struct arch_file *ifile = (struct arch_file *) f;
 	enum obj_reloc ret = obj_reloc_ok;
@@ -1384,31 +1384,31 @@ arch_apply_relocation(struct obj_file *f,
 #endif
 
 #if defined(__H8300H__) || defined(__H8300S__)
-	        case R_H8_DIR24R8:
+		case R_H8_DIR24R8:
 			loc = (ElfW(Addr) *)((ElfW(Addr))loc - 1);
 			*loc = (*loc & 0xff000000) | ((*loc & 0xffffff) + v);
 			break;
-	        case R_H8_DIR24A8:
+		case R_H8_DIR24A8:
 			*loc += v;
 			break;
- 	        case R_H8_DIR32:
-	        case R_H8_DIR32A16:
+		case R_H8_DIR32:
+		case R_H8_DIR32A16:
 			*loc += v;
 			break;
-	        case R_H8_PCREL16:
+		case R_H8_PCREL16:
 			v -= dot + 2;
-			if ((ElfW(Sword))v > 0x7fff || 
+			if ((ElfW(Sword))v > 0x7fff ||
 			    (ElfW(Sword))v < -(ElfW(Sword))0x8000)
 				ret = obj_reloc_overflow;
-			else 
+			else
 				*(unsigned short *)loc = v;
 			break;
-	        case R_H8_PCREL8:
+		case R_H8_PCREL8:
 			v -= dot + 1;
-			if ((ElfW(Sword))v > 0x7f || 
+			if ((ElfW(Sword))v > 0x7f ||
 			    (ElfW(Sword))v < -(ElfW(Sword))0x80)
 				ret = obj_reloc_overflow;
-			else 
+			else
 				*(unsigned char *)loc = v;
 			break;
 #endif
@@ -1439,7 +1439,7 @@ bb_use_plt:
 #endif
 #if defined(__powerpc__)
 				ip[0] = 0x3d600000 + ((v + 0x8000) >> 16);  /* lis r11,sym@ha */
-				ip[1] = 0x396b0000 + (v & 0xffff);	      /* addi r11,r11,sym@l */
+				ip[1] = 0x396b0000 + (v & 0xffff);          /* addi r11,r11,sym@l */
 				ip[2] = 0x7d6903a6;			      /* mtctr r11 */
 				ip[3] = 0x4e800420;			      /* bctr */
 #endif
@@ -3427,7 +3427,7 @@ static int obj_gpl_license(struct obj_file *f, const char **license)
 #define TAINT_PROPRIETORY_MODULE        (1<<0)
 #define TAINT_FORCED_MODULE             (1<<1)
 #define TAINT_UNSAFE_SMP                (1<<2)
-#define TAINT_URL						"http://www.tux.org/lkml/#export-tainted"
+#define TAINT_URL                       "http://www.tux.org/lkml/#export-tainted"
 
 static void set_tainted(struct obj_file *f, int fd, char *m_name,
 		int kernel_has_tainted, int taint, const char *text1, const char *text2)
