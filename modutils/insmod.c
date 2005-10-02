@@ -143,6 +143,16 @@ extern int insmod_ng_main( int argc, char **argv);
 #endif
 #endif
 
+/* H8/300 */
+#if defined(__H8300H__) || defined(__H8300S__)
+#define MATCH_MACHINE(x) (x == EM_H8_300)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
+#define CONFIG_USE_SINGLE
+#define SYMBOL_PREFIX	"_"
+#endif
+
 /* PA-RISC / HP-PA */
 #if defined(__hppa__)
 #define MATCH_MACHINE(x) (x == EM_PARISC)
@@ -154,16 +164,6 @@ extern int insmod_ng_main( int argc, char **argv);
 #define Elf32_RelM     Elf32_Rela
 #define ELFCLASSM      ELFCLASS32
 #endif
-#endif
-
-/* H8/300 */
-#if defined(__H8300H__) || defined(__H8300S__)
-#define MATCH_MACHINE(x) (x == EM_H8_300)
-#define SHT_RELM	SHT_RELA
-#define Elf32_RelM	Elf32_Rela
-#define ELFCLASSM	ELFCLASS32
-#define CONFIG_USE_SINGLE
-#define SYMBOL_PREFIX	"_"
 #endif
 
 /* x86 */
@@ -858,16 +858,17 @@ arch_apply_relocation(struct obj_file *f,
 #if defined(CONFIG_USE_PLT_ENTRIES)
 	ElfW(Addr) plt = ifile->plt ? ifile->plt->header.sh_addr : 0;
 	unsigned long *ip;
-#if defined(CONFIG_USE_PLT_LIST)
+# if defined(CONFIG_USE_PLT_LIST)
 	struct arch_list_entry *pe;
-#else
+# else
 	struct arch_single_entry *pe;
-#endif
+# endif
 #endif
 
 	switch (ELF_R_TYPE(rel->r_info)) {
 
 #if defined(__arm__)
+
 		case R_ARM_NONE:
 			break;
 
@@ -896,90 +897,46 @@ arch_apply_relocation(struct obj_file *f,
 			*loc += v - got;
 			break;
 
-#elif defined(__s390__)
-		case R_390_32:
-			*(unsigned int *) loc += v;
-			break;
-		case R_390_16:
-			*(unsigned short *) loc += v;
-			break;
-		case R_390_8:
-			*(unsigned char *) loc += v;
+#elif defined(__cris__)
+
+		case R_CRIS_NONE:
 			break;
 
-		case R_390_PC32:
-			*(unsigned int *) loc += v - dot;
-			break;
-		case R_390_PC16DBL:
-			*(unsigned short *) loc += (v - dot) >> 1;
-			break;
-		case R_390_PC16:
-			*(unsigned short *) loc += v - dot;
-			break;
-
-		case R_390_PLT32:
-		case R_390_PLT16DBL:
-			/* find the plt entry and initialize it.  */
-			assert(isym != NULL);
-			pe = (struct arch_single_entry *) &isym->pltent;
-			assert(pe->allocated);
-			if (pe->inited == 0) {
-				ip = (unsigned long *)(ifile->plt->contents + pe->offset);
-				ip[0] = 0x0d105810; /* basr 1,0; lg 1,10(1); br 1 */
-				ip[1] = 0x100607f1;
-				if (ELF_R_TYPE(rel->r_info) == R_390_PLT16DBL)
-					ip[2] = v - 2;
-				else
-					ip[2] = v;
-				pe->inited = 1;
-			}
-
-			/* Insert relative distance to target.  */
-			v = plt + pe->offset - dot;
-			if (ELF_R_TYPE(rel->r_info) == R_390_PLT32)
-				*(unsigned int *) loc = (unsigned int) v;
-			else if (ELF_R_TYPE(rel->r_info) == R_390_PLT16DBL)
-				*(unsigned short *) loc = (unsigned short) ((v + 2) >> 1);
-			break;
-
-		case R_390_GLOB_DAT:
-		case R_390_JMP_SLOT:
+		case R_CRIS_32:
+			/* CRIS keeps the relocation value in the r_addend field and
+			 * should not use whats in *loc at all
+			 */
 			*loc = v;
 			break;
 
-		case R_390_RELATIVE:
-			*loc += f->baseaddr;
-			break;
+#elif defined(__H8300H__) || defined(__H8300S__)
 
-		case R_390_GOTPC:
-			assert(got != 0);
-			*(unsigned long *) loc += got - dot;
+		case R_H8_DIR24R8:
+			loc = (ElfW(Addr) *)((ElfW(Addr))loc - 1);
+			*loc = (*loc & 0xff000000) | ((*loc & 0xffffff) + v);
 			break;
-
-		case R_390_GOT12:
-		case R_390_GOT16:
-		case R_390_GOT32:
-			assert(isym != NULL);
-			assert(got != 0);
-			if (!isym->gotent.inited)
-			{
-				isym->gotent.inited = 1;
-				*(ElfW(Addr) *)(ifile->got->contents + isym->gotent.offset) = v;
-			}
-			if (ELF_R_TYPE(rel->r_info) == R_390_GOT12)
-				*(unsigned short *) loc |= (*(unsigned short *) loc + isym->gotent.offset) & 0xfff;
-			else if (ELF_R_TYPE(rel->r_info) == R_390_GOT16)
-				*(unsigned short *) loc += isym->gotent.offset;
-			else if (ELF_R_TYPE(rel->r_info) == R_390_GOT32)
-				*(unsigned int *) loc += isym->gotent.offset;
+		case R_H8_DIR24A8:
+			*loc += v;
 			break;
-
-#ifndef R_390_GOTOFF32
-#define R_390_GOTOFF32 R_390_GOTOFF
-#endif
-		case R_390_GOTOFF32:
-			assert(got != 0);
-			*loc += v - got;
+		case R_H8_DIR32:
+		case R_H8_DIR32A16:
+			*loc += v;
+			break;
+		case R_H8_PCREL16:
+			v -= dot + 2;
+			if ((ElfW(Sword))v > 0x7fff ||
+			    (ElfW(Sword))v < -(ElfW(Sword))0x8000)
+				ret = obj_reloc_overflow;
+			else
+				*(unsigned short *)loc = v;
+			break;
+		case R_H8_PCREL8:
+			v -= dot + 1;
+			if ((ElfW(Sword))v > 0x7f ||
+			    (ElfW(Sword))v < -(ElfW(Sword))0x80)
+				ret = obj_reloc_overflow;
+			else
+				*(unsigned char *)loc = v;
 			break;
 
 #elif defined(__i386__)
@@ -1017,75 +974,6 @@ arch_apply_relocation(struct obj_file *f,
 			assert(got != 0);
 			*loc += v - got;
 			break;
-
-#elif defined(__x86_64__)
-
-		case R_X86_64_NONE:
-			break;
-
-		case R_X86_64_64:
-			*loc += v;
-			break;
-
-		case R_X86_64_32:
-			*(unsigned int *) loc += v;
-			if (v > 0xffffffff)
-			{
-				ret = obj_reloc_overflow; /* Kernel module compiled without -mcmodel=kernel. */
-				/* error("Possibly is module compiled without -mcmodel=kernel!"); */
-			}
-			break;
-
-		case R_X86_64_32S:
-			*(signed int *) loc += v;
-			break;
-
-		case R_X86_64_16:
-			*(unsigned short *) loc += v;
-			break;
-
-		case R_X86_64_8:
-			*(unsigned char *) loc += v;
-			break;
-
-		case R_X86_64_PC32:
-			*(unsigned int *) loc += v - dot;
-			break;
-
-		case R_X86_64_PC16:
-			*(unsigned short *) loc += v - dot;
-			break;
-
-		case R_X86_64_PC8:
-			*(unsigned char *) loc += v - dot;
-			break;
-
-		case R_X86_64_GLOB_DAT:
-		case R_X86_64_JUMP_SLOT:
-			*loc = v;
-			break;
-
-		case R_X86_64_RELATIVE:
-			*loc += f->baseaddr;
-			break;
-
-		case R_X86_64_GOT32:
-		case R_X86_64_GOTPCREL:
-			goto bb_use_got;
-#if 0
-			assert(isym != NULL);
-			if (!isym->gotent.reloc_done)
-			{
-				isym->gotent.reloc_done = 1;
-				*(Elf64_Addr *)(ifile->got->contents + isym->gotent.offset) = v;
-			}
-			/* XXX are these really correct?  */
-			if (ELF64_R_TYPE(rel->r_info) == R_X86_64_GOTPCREL)
-				*(unsigned int *) loc += v + isym->gotent.offset;
-			else
-				*loc += isym->gotent.offset;
-			break;
-#endif
 
 #elif defined(__mc68000__)
 
@@ -1144,12 +1032,12 @@ arch_apply_relocation(struct obj_file *f,
 		case R_68K_GOT32:
 			goto bb_use_got;
 
-#ifdef R_68K_GOTOFF
+# ifdef R_68K_GOTOFF
 		case R_68K_GOTOFF:
 			assert(got != 0);
 			*loc += v - got;
 			break;
-#endif
+# endif
 
 #elif defined(__mips__)
 
@@ -1263,6 +1151,93 @@ arch_apply_relocation(struct obj_file *f,
 			*loc = v;
 			break;
 
+#elif defined(__s390__)
+
+		case R_390_32:
+			*(unsigned int *) loc += v;
+			break;
+		case R_390_16:
+			*(unsigned short *) loc += v;
+			break;
+		case R_390_8:
+			*(unsigned char *) loc += v;
+			break;
+
+		case R_390_PC32:
+			*(unsigned int *) loc += v - dot;
+			break;
+		case R_390_PC16DBL:
+			*(unsigned short *) loc += (v - dot) >> 1;
+			break;
+		case R_390_PC16:
+			*(unsigned short *) loc += v - dot;
+			break;
+
+		case R_390_PLT32:
+		case R_390_PLT16DBL:
+			/* find the plt entry and initialize it.  */
+			assert(isym != NULL);
+			pe = (struct arch_single_entry *) &isym->pltent;
+			assert(pe->allocated);
+			if (pe->inited == 0) {
+				ip = (unsigned long *)(ifile->plt->contents + pe->offset);
+				ip[0] = 0x0d105810; /* basr 1,0; lg 1,10(1); br 1 */
+				ip[1] = 0x100607f1;
+				if (ELF_R_TYPE(rel->r_info) == R_390_PLT16DBL)
+					ip[2] = v - 2;
+				else
+					ip[2] = v;
+				pe->inited = 1;
+			}
+
+			/* Insert relative distance to target.  */
+			v = plt + pe->offset - dot;
+			if (ELF_R_TYPE(rel->r_info) == R_390_PLT32)
+				*(unsigned int *) loc = (unsigned int) v;
+			else if (ELF_R_TYPE(rel->r_info) == R_390_PLT16DBL)
+				*(unsigned short *) loc = (unsigned short) ((v + 2) >> 1);
+			break;
+
+		case R_390_GLOB_DAT:
+		case R_390_JMP_SLOT:
+			*loc = v;
+			break;
+
+		case R_390_RELATIVE:
+			*loc += f->baseaddr;
+			break;
+
+		case R_390_GOTPC:
+			assert(got != 0);
+			*(unsigned long *) loc += got - dot;
+			break;
+
+		case R_390_GOT12:
+		case R_390_GOT16:
+		case R_390_GOT32:
+			assert(isym != NULL);
+			assert(got != 0);
+			if (!isym->gotent.inited)
+			{
+				isym->gotent.inited = 1;
+				*(ElfW(Addr) *)(ifile->got->contents + isym->gotent.offset) = v;
+			}
+			if (ELF_R_TYPE(rel->r_info) == R_390_GOT12)
+				*(unsigned short *) loc |= (*(unsigned short *) loc + isym->gotent.offset) & 0xfff;
+			else if (ELF_R_TYPE(rel->r_info) == R_390_GOT16)
+				*(unsigned short *) loc += isym->gotent.offset;
+			else if (ELF_R_TYPE(rel->r_info) == R_390_GOT32)
+				*(unsigned int *) loc += isym->gotent.offset;
+			break;
+
+# ifndef R_390_GOTOFF32
+#  define R_390_GOTOFF32 R_390_GOTOFF
+# endif
+		case R_390_GOTOFF32:
+			assert(got != 0);
+			*loc += v - got;
+			break;
+
 #elif defined(__sh__)
 
 		case R_SH_NONE:
@@ -1302,7 +1277,7 @@ arch_apply_relocation(struct obj_file *f,
 			*loc = v - got;
 			break;
 
-#if defined(__SH5__)
+# if defined(__SH5__)
 		case R_SH_IMM_MEDLOW16:
 		case R_SH_IMM_LOW16:
 			{
@@ -1345,15 +1320,10 @@ arch_apply_relocation(struct obj_file *f,
 
 				break;
 			}
-#endif /* __SH5__ */
-#endif /* __sh__ */
+# endif /* __SH5__ */
 
-		default:
-			printf("Warning: unhandled reloc %d\n",(int)ELF_R_TYPE(rel->r_info));
-			ret = obj_reloc_unhandled;
-			break;
+#elif defined (__v850e__)
 
-#if defined (__v850e__)
 		case R_V850_NONE:
 			break;
 
@@ -1369,49 +1339,82 @@ arch_apply_relocation(struct obj_file *f,
 
 		case R_V850_22_PCREL:
 			goto bb_use_plt;
-#endif
 
-#if defined (__cris__)
-		case R_CRIS_NONE:
+#elif defined(__x86_64__)
+#warning hi
+		case R_X86_64_NONE:
 			break;
 
-		case R_CRIS_32:
-			/* CRIS keeps the relocation value in the r_addend field and
-			 * should not use whats in *loc at all
-			 */
+		case R_X86_64_64:
+			*loc += v;
+			break;
+
+		case R_X86_64_32:
+			*(unsigned int *) loc += v;
+			if (v > 0xffffffff)
+			{
+				ret = obj_reloc_overflow; /* Kernel module compiled without -mcmodel=kernel. */
+				/* error("Possibly is module compiled without -mcmodel=kernel!"); */
+			}
+			break;
+
+		case R_X86_64_32S:
+			*(signed int *) loc += v;
+			break;
+
+		case R_X86_64_16:
+			*(unsigned short *) loc += v;
+			break;
+
+		case R_X86_64_8:
+			*(unsigned char *) loc += v;
+			break;
+
+		case R_X86_64_PC32:
+			*(unsigned int *) loc += v - dot;
+			break;
+
+		case R_X86_64_PC16:
+			*(unsigned short *) loc += v - dot;
+			break;
+
+		case R_X86_64_PC8:
+			*(unsigned char *) loc += v - dot;
+			break;
+
+		case R_X86_64_GLOB_DAT:
+		case R_X86_64_JUMP_SLOT:
 			*loc = v;
 			break;
+
+		case R_X86_64_RELATIVE:
+			*loc += f->baseaddr;
+			break;
+
+		case R_X86_64_GOT32:
+		case R_X86_64_GOTPCREL:
+			goto bb_use_got;
+# if 0
+			assert(isym != NULL);
+			if (!isym->gotent.reloc_done)
+			{
+				isym->gotent.reloc_done = 1;
+				*(Elf64_Addr *)(ifile->got->contents + isym->gotent.offset) = v;
+			}
+			/* XXX are these really correct?  */
+			if (ELF64_R_TYPE(rel->r_info) == R_X86_64_GOTPCREL)
+				*(unsigned int *) loc += v + isym->gotent.offset;
+			else
+				*loc += isym->gotent.offset;
+			break;
+# endif
+
 #endif
 
-#if defined(__H8300H__) || defined(__H8300S__)
-		case R_H8_DIR24R8:
-			loc = (ElfW(Addr) *)((ElfW(Addr))loc - 1);
-			*loc = (*loc & 0xff000000) | ((*loc & 0xffffff) + v);
+		default:
+			printf("Warning: unhandled reloc %d\n",(int)ELF_R_TYPE(rel->r_info));
+			ret = obj_reloc_unhandled;
 			break;
-		case R_H8_DIR24A8:
-			*loc += v;
-			break;
-		case R_H8_DIR32:
-		case R_H8_DIR32A16:
-			*loc += v;
-			break;
-		case R_H8_PCREL16:
-			v -= dot + 2;
-			if ((ElfW(Sword))v > 0x7fff ||
-			    (ElfW(Sword))v < -(ElfW(Sword))0x8000)
-				ret = obj_reloc_overflow;
-			else
-				*(unsigned short *)loc = v;
-			break;
-		case R_H8_PCREL8:
-			v -= dot + 1;
-			if ((ElfW(Sword))v > 0x7f ||
-			    (ElfW(Sword))v < -(ElfW(Sword))0x80)
-				ret = obj_reloc_overflow;
-			else
-				*(unsigned char *)loc = v;
-			break;
-#endif
 
 #if defined(CONFIG_USE_PLT_ENTRIES)
 
