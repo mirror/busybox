@@ -1,5 +1,5 @@
 /*
- * Another fast dependencies generator for Makefiles, Version 2.2
+ * Another fast dependencies generator for Makefiles, Version 2.3
  *
  * Copyright (C) 2005 by Vladimir Oleynik <dzo@simtreas.ru>
  * mmaping file may be originally by Linus Torvalds.
@@ -18,6 +18,7 @@
  *    path/file.o: include/config/key*.h found_include_*.h
  *    path/inc.h: include/config/key*.h found_included_include_*.h
  * This program does not generate dependencies for #include <...>
+ * BUG: all includes name must unique
  */
 
 #define LOCAL_INCLUDE_PATH          "include"
@@ -37,7 +38,6 @@
 		   "[-k path_for_stored_keys] [dirs]"
 
 
-
 #define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -55,14 +55,15 @@
 
 typedef struct BB_KEYS {
 	char *keyname;
+	size_t key_sz;
 	const char *value;
 	char *stored_path;
-	int  checked;
+	char *checked;
 	struct BB_KEYS *next;
 } bb_key_t;
 
-static bb_key_t *check_key(bb_key_t *k, const char *nk);
-static bb_key_t *make_new_key(bb_key_t *k, const char *nk);
+static bb_key_t *check_key(bb_key_t *k, const char *nk, size_t key_sz);
+static bb_key_t *make_new_key(bb_key_t *k, const char *nk, size_t key_sz);
 
 /* partial and simplified libbb routine */
 static void bb_error_d(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
@@ -88,8 +89,9 @@ static int mode;
 #define CONFIG_MODE  0
 #define SOURCES_MODE 1
 
-static void parse_inc(const char *include, const char *fname);
-static void parse_conf_opt(char *opt, const char *val, size_t rsz);
+static void parse_inc(const char *include, const char *fname, size_t key_sz);
+static void parse_conf_opt(const char *opt, const char *val,
+				size_t rsz, size_t key_sz);
 
 /* for speed tricks */
 static char first_chars[257];  /* + L_EOF */
@@ -100,7 +102,6 @@ static char first_chars_diu[256];
 static int pagesizem1;
 static size_t mema_id = 128;   /* first allocated for id */
 static char *id_s;
-
 
 
 #define yy_error_d(s) bb_error_d("%s:%d hmm, %s", fname, line, s)
@@ -150,6 +151,7 @@ static void c_lex(const char *fname, long fsize)
   char *val = NULL;
   unsigned char *optr, *oend;
   unsigned char *start = NULL;      /* stupid initialize */
+  size_t opt_len = 0;               /* stupid initialize */
 
   int fd;
   char *map;
@@ -176,19 +178,6 @@ static void c_lex(const char *fname, long fsize)
   called = state = S;
 
   for(;;) {
-	if(state == LI || state == DV) {
-	    /* store "include.h" or config mode #define KEY "|'..."|'  */
-	    if(state == LI) {
-		put_id(0);
-		parse_inc(id, fname);
-	    } else {
-		/* #define KEY "[VAL]" */
-		put_id(c);  /* #define KEY "VALUE"<- */
-		put_id(0);
-		parse_conf_opt(id, val, (optr - start));
-	    }
-	    state = S;
-	}
 	if(prev_state != state) {
 	    prev_state = state;
 	    getc1();
@@ -260,8 +249,7 @@ static void c_lex(const char *fname, long fsize)
 				put_id(c);
 				getc1();
 			    } while(isalnums[c]);
-			    put_id(0);
-			    check_key(key_top, id);
+			    check_key(key_top, id, id_len);
 			}
 		} else {
 		    /* <S>\\ */
@@ -316,7 +304,15 @@ static void c_lex(const char *fname, long fsize)
 			    put_id(c);
 		} else if(c == state) {
 			/* <STR>\" or <CHR>\' */
-			state = called;
+			if(called == LI) {
+			    /* store "include.h" */
+			    parse_inc(id, fname, id_len);
+			} else if(called == DV) {
+			    put_id(c);  /* config mode #define KEY "VAL"<- */
+			    put_id(0);
+			    parse_conf_opt(id, val, (optr - start), opt_len);
+			}
+			state = S;
 			break;
 		} else if(val)
 			put_id(c);
@@ -346,18 +342,18 @@ static void c_lex(const char *fname, long fsize)
 	if(state == POUND) {
 	    /* tricks */
 	    static const char * const preproc[] = {
-		    /* 0-4 */
-		    "", "", "", "", "",
-		    /* 5 */   /* 6 */   /* 7 */
-		    "undef", "define", "include",
+		    /* 0-3 */
+		    "", "", "", "",
+		    /* 4 */ /* 5 */   /* 6 */
+		    "ndef", "efine", "nclude",
 	    };
 	    size_t diu = first_chars_diu[c];   /* strlen and preproc ptr */
-	    const unsigned char *p = optr - 1;
+	    const unsigned char *p = optr;
 
 	    while(isalnums[c]) getc1();
 	    /* have str begined with c, readed == strlen key and compared */
 	    if(diu != S && diu == (optr-p-1) && !memcmp(p, preproc[diu], diu)) {
-		state = *p;
+		state = p[-1];
 		id_len = 0; /* common for save */
 	    } else {
 		state = S;
@@ -392,12 +388,12 @@ static void c_lex(const char *fname, long fsize)
 		}
 		if(!id_len)
 		    yy_error_d("expected identifier");
-		put_id(0);
 		if(state == U) {
-		    parse_conf_opt(id, NULL, (optr - start));
+		    parse_conf_opt(id, NULL, (optr - start), id_len);
 		    state = S;
 		} else {
 		    /* D -> DK */
+		    opt_len = id_len;
 		    state = DK;
 		}
 	    }
@@ -419,9 +415,10 @@ static void c_lex(const char *fname, long fsize)
 		put_id(c);
 		getc1();
 	    }
-	    c = 0;
+	    put_id(0);
+	    parse_conf_opt(id, val, (optr - start), opt_len);
+	    state = S;
 	    ungetc1();
-	    state = DV;
 	    continue;
 	}
     }
@@ -440,28 +437,28 @@ static llist_t *Iop;
 static bb_key_t *Ifound;
 static int noiwarning;
 
-static bb_key_t *check_key(bb_key_t *k, const char *nk)
+static bb_key_t *check_key(bb_key_t *k, const char *nk, size_t key_sz)
 {
     bb_key_t *cur;
 
     for(cur = k; cur; cur = cur->next) {
-	if(strcmp(cur->keyname, nk) == 0) {
-	    cur->checked = 1;
+	if(key_sz == cur->key_sz && memcmp(cur->keyname, nk, key_sz) == 0) {
+	    cur->checked = cur->stored_path;
 	    return cur;
 	}
     }
     return NULL;
 }
 
-static bb_key_t *make_new_key(bb_key_t *k, const char *nk)
+static bb_key_t *make_new_key(bb_key_t *k, const char *nk, size_t key_sz)
 {
 	bb_key_t *cur;
-	size_t nk_size;
 
-	nk_size = strlen(nk) + 1;
-	cur = xmalloc(sizeof(bb_key_t) + nk_size);
-	cur->keyname = memcpy(cur + 1, nk, nk_size);
-	cur->checked = 0;
+	cur = xmalloc(sizeof(bb_key_t) + key_sz + 1);
+	cur->keyname = memcpy(cur + 1, nk, key_sz);
+	cur->keyname[key_sz] = '\0';
+	cur->key_sz = key_sz;
+	cur->checked = NULL;
 	cur->next = k;
 	return cur;
 }
@@ -472,7 +469,7 @@ static inline char *store_include_fullpath(char *p_i, bb_key_t *li)
 
     if(access(p_i, F_OK) == 0) {
 	ok = li->stored_path = bb_simplify_path(p_i);
-	li->checked = 1;
+	li->checked = ok;
     } else {
 	ok = NULL;
     }
@@ -480,33 +477,28 @@ static inline char *store_include_fullpath(char *p_i, bb_key_t *li)
     return ok;
 }
 
-static void parse_inc(const char *include, const char *fname)
+static void parse_inc(const char *include, const char *fname, size_t key_sz)
 {
 	bb_key_t *li;
 	char *p_i;
 	llist_t *lo;
 
-	li = check_key(Ifound, include);
+	li = check_key(Ifound, include, key_sz);
 	if(li)
 	    return;
-	Ifound = li = make_new_key(Ifound, include);
-
+	Ifound = li = make_new_key(Ifound, include, key_sz);
+	include = li->keyname;
 	if(include[0] != '/') {
 	    /* relative */
 	    int w;
-	    const char *p;
 
-	    p_i = strrchr(fname, '/');
-	    if(p_i == NULL) {
-		p = ".";
-		w = 1;
-	    } else {
-		w = (p_i-fname);
-		p = fname;
-	    }
-	    p_i = bb_asprint("%.*s/%s", w, p, include);
+	    p_i = strrchr(fname, '/');  /* fname have absolute pathname */
+	    w = (p_i-fname);
+	    /* find from current directory of source file */
+	    p_i = bb_asprint("%.*s/%s", w, fname, include);
 	    if(store_include_fullpath(p_i, li))
 		return;
+	    /* find from "-I include" specified directories */
 	    for(lo = Iop; lo; lo = lo->link) {
 		p_i = bb_asprint("%s/%s", lo->data, include);
 		if(store_include_fullpath(p_i, li))
@@ -515,8 +507,7 @@ static void parse_inc(const char *include, const char *fname)
 	} else {
 	    /* absolute include pathname */
 	    if(access(include, F_OK) == 0) {
-		li->stored_path = bb_xstrdup(include);
-		li->checked = 1;
+		li->checked = li->stored_path = bb_xstrdup(include);
 		return;
 	    }
 	}
@@ -525,89 +516,91 @@ static void parse_inc(const char *include, const char *fname)
 	    fprintf(stderr, "%s: Warning: #include \"%s\" not found in specified paths\n", fname, include);
 }
 
-static void parse_conf_opt(char *opt, const char *val, size_t recordsz)
+static void parse_conf_opt(const char *opt, const char *val,
+			   size_t recordsz, size_t key_sz)
 {
 	bb_key_t *cur;
+	char *k;
 	char *s, *p;
 	struct stat st;
 	int fd;
 	int cmp_ok = 0;
 	static char *record_buf;
-	static char *r_cmp;
 	static size_t r_sz;
 	ssize_t rw_ret;
 
-	cur = check_key(key_top, opt);
+	cur = check_key(key_top, opt, key_sz);
 	if(cur != NULL) {
 	    /* present already */
-	    cur->checked = 0;   /* store only */
+	    cur->checked = NULL;        /* store only */
 	    if(cur->value == NULL && val == NULL)
 		return;
-	    if(cur->value != NULL && val != NULL && strcmp(cur->value, val) == 0)
+	    if(cur->value != NULL && val != NULL && !strcmp(cur->value, val))
 		return;
-	    fprintf(stderr, "Warning: redefined %s\n", opt);
+	    k = cur->keyname;
+	    fprintf(stderr, "Warning: redefined %s\n", k);
 	} else {
-	    key_top = cur = make_new_key(key_top, opt);
+	    key_top = cur = make_new_key(key_top, opt, key_sz);
+	    k = cur->keyname;
 	}
 	/* do generate record */
 	recordsz += 2;  /* \n\0 */
-	if(recordsz > r_sz) {
-	    record_buf = xrealloc(record_buf, r_sz=recordsz);
-	    r_cmp = xrealloc(r_cmp, recordsz);
-	}
+	if(recordsz > r_sz)
+	    record_buf = xrealloc(record_buf, (r_sz = recordsz) * 2);
 	s = record_buf;
 	/* may be short count " " */
 	if(val) {
 	    if(*val == '\0') {
 		cur->value = "";
-		recordsz = sprintf(s, "#define %s\n", opt);
+		recordsz = sprintf(s, "#define %s\n", k);
 	    } else {
 		cur->value = bb_xstrdup(val);
-		recordsz = sprintf(s, "#define %s %s\n", opt, val);
+		recordsz = sprintf(s, "#define %s %s\n", k, val);
 	    }
 	} else {
 	    cur->value = NULL;
-	    recordsz = sprintf(s, "#undef %s\n", opt);
+	    recordsz = sprintf(s, "#undef %s\n", k);
 	}
 	/* size_t -> ssize_t :( */
 	rw_ret = (ssize_t)recordsz;
 	/* trick, save first char KEY for do fast identify id */
-	first_chars[(int)*opt] = *opt;
+	first_chars[(int)*k] = *k;
 
+	cur->stored_path = k = bb_asprint("%s/%s.h", kp, k);
 	/* key converting [A-Z_] -> [a-z/] */
-	for(p = opt; *p; p++) {
+	for(p = k + kp_len + 1; *p; p++) {
 	    if(*p >= 'A' && *p <= 'Z')
 		    *p = *p - 'A' + 'a';
 	    else if(*p == '_' && p[1] > '9')    /* do not change A_1 to A/1 */
 		    *p = '/';
 	}
 	/* check kp/key.h if present after previous usage */
-	cur->stored_path = opt = bb_asprint("%s/%s.h", kp, opt);
-	if(stat(opt, &st)) {
-	    p = opt + kp_len;
-	    while(*++p) {
+	if(stat(k, &st)) {
+	    for(p = k + kp_len + 1; *p; p++) {
 		/* Auto-create directories. */
 		if (*p == '/') {
 		    *p = '\0';
-		    if (access(opt, F_OK) != 0 && mkdir(opt, 0755) != 0)
-			bb_error_d("mkdir(%s): %m", opt);
+		    if (access(k, F_OK) != 0 && mkdir(k, 0755) != 0)
+			bb_error_d("mkdir(%s): %m", k);
 		    *p = '/';
 		}
 	    }
 	} else {
 		/* found */
 		if(st.st_size == (off_t)recordsz) {
-		    fd = open(opt, O_RDONLY);
+		    char *r_cmp = s + recordsz;
+
+		    fd = open(k, O_RDONLY);
 		    if(fd < 0 || read(fd, r_cmp, recordsz) < rw_ret)
-			bb_error_d("%s: %m", opt);
+			bb_error_d("%s: %m", k);
 		    close(fd);
 		    cmp_ok = memcmp(s, r_cmp, recordsz) == 0;
 		}
 	}
 	if(!cmp_ok) {
-	    fd = open(opt, O_WRONLY|O_CREAT|O_TRUNC, 0644);
+	    fd = open(k, O_WRONLY|O_CREAT|O_TRUNC, 0644);
 	    if(fd < 0 || write(fd, s, recordsz) < rw_ret)
-		bb_error_d("%s: %m", opt);
+		bb_error_d("%s: %m", k);
 	    close(fd);
 	}
 }
@@ -617,16 +610,16 @@ static int show_dep(int first, bb_key_t *k, const char *name)
     bb_key_t *cur;
 
     for(cur = k; cur; cur = cur->next) {
-	if(cur->checked && cur->stored_path) {
+	if(cur->checked) {
 	    if(first) {
 		printf("\n%s:", name);
 		first = 0;
 	    } else {
 		printf(" \\\n  ");
 	    }
-	    printf(" %s", cur->stored_path);
+	    printf(" %s", cur->checked);
 	}
-	cur->checked = 0;
+	cur->checked = NULL;
     }
     return first;
 }
@@ -643,9 +636,6 @@ parse_chd(const char *fe, const char *p, size_t dirlen)
     static char *dir_and_entry;
     static size_t dir_and_entry_sz;
 
-    if (*fe == '.')
-	return NULL;
-
     df_sz = dirlen + strlen(fe) + 2;     /* dir/file\0 */
     if(df_sz > dir_and_entry_sz)
 	dir_and_entry = xrealloc(dir_and_entry, dir_and_entry_sz = df_sz);
@@ -653,7 +643,7 @@ parse_chd(const char *fe, const char *p, size_t dirlen)
     sprintf(fp, "%s/%s", p, fe);
 
     if(stat(fp, &st)) {
-	fprintf(stderr, "Warning: stat(%s): %m", fp);
+	fprintf(stderr, "Warning: stat(%s): %m\n", fp);
 	return NULL;
     }
     if(S_ISREG(st.st_mode)) {
@@ -677,17 +667,14 @@ parse_chd(const char *fe, const char *p, size_t dirlen)
 	    int first;
 
 	    c_lex(fp, st.st_size);
-	    fp = bb_simplify_path(fp);
 	    if(*e == 'c') {
 		/* *.c -> *.o */
-		e = strrchr(fp, '.') + 1;
 		*e = 'o';
 	    }
 	    first = show_dep(1, Ifound, fp);
 	    first = show_dep(first, key_top, fp);
 	    if(first == 0)
 		putchar('\n');
-	    free(fp);
 	}
 	return NULL;
     } else if(S_ISDIR(st.st_mode)) {
@@ -714,7 +701,7 @@ static inline llist_t *llist_add_to(llist_t *old_head, char *new_item)
 	return(new_head);
 }
 
-static void scan_dir_find_ch_files(char *p)
+static void scan_dir_find_ch_files(const char *p)
 {
     llist_t *dirs;
     llist_t *d_add;
@@ -723,24 +710,26 @@ static void scan_dir_find_ch_files(char *p)
     DIR *dir;
     size_t dirlen;
 
-    dirs = llist_add_to(NULL, p);
+    dirs = llist_add_to(NULL, bb_simplify_path(p));
     /* emulate recursive */
     while(dirs) {
 	d_add = NULL;
 	while(dirs) {
 	    dir = opendir(dirs->data);
 	    if (dir == NULL)
-		fprintf(stderr, "Warning: opendir(%s): %m", dirs->data);
+		fprintf(stderr, "Warning: opendir(%s): %m\n", dirs->data);
 	    dirlen = strlen(dirs->data);
 	    while ((de = readdir(dir)) != NULL) {
-		char *found_dir = parse_chd(de->d_name, dirs->data, dirlen);
+		char *found_dir;
 
+		if (de->d_name[0] == '.')
+			continue;
+		found_dir = parse_chd(de->d_name, dirs->data, dirlen);
 		if(found_dir)
 		    d_add = llist_add_to(d_add, found_dir);
 	    }
 	    closedir(dir);
-	    if(dirs->data != p)
-		free(dirs->data);
+	    free(dirs->data);
 	    d = dirs;
 	    dirs = dirs->link;
 	    free(d);
@@ -824,9 +813,9 @@ int main(int argc, char **argv)
 	}
 	first_chars[i] = '-';   /* L_EOF */
 	/* trick for fast find "define", "include", "undef" */
-	first_chars_diu[(int)'d'] = (char)6;    /* strlen("define");  */
-	first_chars_diu[(int)'i'] = (char)7;    /* strlen("include"); */
-	first_chars_diu[(int)'u'] = (char)5;    /* strlen("undef");   */
+	first_chars_diu[(int)'d'] = (char)5;    /* strlen("define") - 1;  */
+	first_chars_diu[(int)'i'] = (char)6;    /* strlen("include") - 1; */
+	first_chars_diu[(int)'u'] = (char)4;    /* strlen("undef") - 1;   */
 
 	/* parse configs */
 	for(fl = configs; fl; fl = fl->link) {
