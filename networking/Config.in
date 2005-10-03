@@ -305,6 +305,13 @@ config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
 	help
 	  Familiar character generator internal inetd service
 
+config CONFIG_FEATURE_INETD_RPC
+	bool "  Support RPC services"
+	default n
+	depends on CONFIG_INETD
+	help
+	  Suuport Sun-RPC based services
+
 
 config CONFIG_IP
 	bool "ip"
