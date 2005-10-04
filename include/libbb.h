@@ -459,6 +459,7 @@ typedef struct llist_s {
 	struct llist_s *link;
 } llist_t;
 extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
+extern llist_t *llist_add_to_end(llist_t *list_head, char *data);
 
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
