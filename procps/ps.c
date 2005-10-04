@@ -33,6 +33,7 @@ extern int ps_main(int argc, char **argv)
 #if ENABLE_FEATURE_PS_WIDE
 	int terminal_width;
 	int w_count = 0;
+	bb_opt_complementally="ww";
 #else
 # define terminal_width 80
 #endif
@@ -40,12 +41,10 @@ extern int ps_main(int argc, char **argv)
 #if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
 	/* handle arguments */
 #if ENABLE_FEATURE_PS_WIDE && ENABLE_SELINUX
-	bb_opt_complementally="ww";
 	i = bb_getopt_ulflags(argc, argv, "wc", &w_count);
 #elif ENABLE_FEATURE_PS_WIDE && !ENABLE_SELINUX
-	bb_opt_complementally="ww";
 	i = bb_getopt_ulflags(argc, argv, "w", &w_count);
-#else /* !ENABLE_FEATURE_PS_WIDE && !ENABLE_SELINUX */
+#else /* !ENABLE_FEATURE_PS_WIDE && ENABLE_SELINUX */
 	i = bb_getopt_ulflags(argc, argv, "c");
 #endif
 #if ENABLE_FEATURE_PS_WIDE
@@ -61,7 +60,7 @@ extern int ps_main(int argc, char **argv)
 	}
 #endif
 #if ENABLE_SELINUX
-	if ((i & 2) && is_selinux_enabled())
+	if ((i & (1+ENABLE_FEATURE_PS_WIDE)) && is_selinux_enabled())
 		use_selinux = 1;
 #endif
 #endif  /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */
