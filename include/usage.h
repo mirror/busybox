@@ -732,6 +732,11 @@
 #else
 #  define USAGE_FIND_INUM(a)
 #endif
+#ifdef CONFIG_FEATURE_FIND_EXEC
+#  define USAGE_FIND_EXEC(a) a
+#else
+#  define USAGE_FIND_EXEC(a)
+#endif
 
 #define find_trivial_usage \
 	"[PATH...] [EXPRESSION]"
@@ -751,7 +756,11 @@
 ) USAGE_FIND_NEWER( \
 	"\n\t-newer FILE\tModified time is more recent than FILE's" \
 ) USAGE_FIND_INUM( \
-	"\n\t-inum N\t\tFile has inode number N")
+	"\n\t-inum N\t\tFile has inode number N" \
+) USAGE_FIND_EXEC( \
+	"\n\t-exec CMD\tExecute CMD with all instances of {} replaced by the" \
+	"\n\t\t\tfiles matching EXPRESSION")
+
 #define find_example_usage \
 	"$ find / -name passwd\n" \
 	"/etc/passwd\n"

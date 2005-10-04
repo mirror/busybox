@@ -39,31 +39,37 @@ static const char msg_invalid_arg[] = "invalid argument `%s' to `%s'";
 
 static char *pattern;
 
-#ifdef CONFIG_FEATURE_FIND_TYPE
+#if ENABLE_FEATURE_FIND_TYPE
 static int type_mask = 0;
 #endif
 
-#ifdef CONFIG_FEATURE_FIND_PERM
+#if ENABLE_FEATURE_FIND_PERM
 static char perm_char = 0;
 static int perm_mask = 0;
 #endif
 
-#ifdef CONFIG_FEATURE_FIND_MTIME
+#if ENABLE_FEATURE_FIND_MTIME
 static char mtime_char;
 static int mtime_days;
 #endif
 
-#ifdef CONFIG_FEATURE_FIND_XDEV
+#if ENABLE_FEATURE_FIND_XDEV
 static dev_t *xdev_dev;
 static int xdev_count = 0;
 #endif
 
-#ifdef CONFIG_FEATURE_FIND_NEWER
+#if ENABLE_FEATURE_FIND_NEWER
 static time_t newer_mtime;
 #endif
 
-#ifdef CONFIG_FEATURE_FIND_INUM
+#if ENABLE_FEATURE_FIND_INUM
 static ino_t inode_num;
+#endif
+
+#if ENABLE_FEATURE_FIND_EXEC
+static char **exec_str;
+static int num_matches;
+static int exec_opt;
 #endif
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
@@ -78,22 +84,17 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 		if (!(fnmatch(pattern, tmp, FNM_PERIOD) == 0))
 			goto no_match;
 	}
-#ifdef CONFIG_FEATURE_FIND_TYPE
-	if (type_mask != 0) {
+	if (ENABLE_FEATURE_FIND_TYPE && type_mask != 0) {
 		if (!((statbuf->st_mode & S_IFMT) == type_mask))
 			goto no_match;
 	}
-#endif
-#ifdef CONFIG_FEATURE_FIND_PERM
-	if (perm_mask != 0) {
+	if (ENABLE_FEATURE_FIND_PERM && perm_mask != 0) {
 		if (!((isdigit(perm_char) && (statbuf->st_mode & 07777) == perm_mask) ||
 			 (perm_char == '-' && (statbuf->st_mode & perm_mask) == perm_mask) ||
 			 (perm_char == '+' && (statbuf->st_mode & perm_mask) != 0)))
 			goto no_match;
 	}
-#endif
-#ifdef CONFIG_FEATURE_FIND_MTIME
-	if (mtime_char != 0) {
+	if (ENABLE_FEATURE_FIND_MTIME && mtime_char != 0) {
 		time_t file_age = time(NULL) - statbuf->st_mtime;
 		time_t mtime_secs = mtime_days * 24 * 60 * 60;
 		if (!((isdigit(mtime_char) && file_age >= mtime_secs &&
@@ -102,9 +103,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 				(mtime_char == '-' && file_age < mtime_secs)))
 			goto no_match;
 	}
-#endif
-#ifdef CONFIG_FEATURE_FIND_XDEV
-	if (xdev_count) {
+	if (ENABLE_FEATURE_FIND_XDEV && xdev_count) {
 		int i;
 		for (i=0; i<xdev_count; i++) {
 			if (xdev_dev[i] == statbuf-> st_dev)
@@ -117,26 +116,31 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 				goto no_match;
 		}
 	}
-#endif
-#ifdef CONFIG_FEATURE_FIND_NEWER
-	if (newer_mtime != 0) {
+	if (ENABLE_FEATURE_FIND_NEWER && newer_mtime != 0) {
 		time_t file_age = newer_mtime - statbuf->st_mtime;
 		if (file_age >= 0)
 			goto no_match;
 	}
-#endif
-#ifdef CONFIG_FEATURE_FIND_INUM
-	if (inode_num != 0) {
+	if (ENABLE_FEATURE_FIND_INUM && inode_num != 0) {
 		if (!(statbuf->st_ino == inode_num))
 			goto no_match;
 	}
-#endif
+	if (ENABLE_FEATURE_FIND_EXEC && exec_opt) {
+		int i;
+		char *cmd_string = "";
+		for (i = 0; i < num_matches; i++)
+			cmd_string = bb_xasprintf("%s%s%s", cmd_string, exec_str[i], fileName);
+		cmd_string = bb_xasprintf("%s%s", cmd_string, exec_str[num_matches]);
+		system(cmd_string);
+		goto no_match;
+	}
+	
 	puts(fileName);
 no_match:
 	return (TRUE);
 }
 
-#ifdef CONFIG_FEATURE_FIND_TYPE
+#if ENABLE_FEATURE_FIND_TYPE
 static int find_type(char *type)
 {
 	int mask = 0;
@@ -193,14 +197,11 @@ int find_main(int argc, char **argv)
 			if (++i == argc)
 				bb_error_msg_and_die(msg_req_arg, "-name");
 			pattern = argv[i];
-#ifdef CONFIG_FEATURE_FIND_TYPE
-		} else if (strcmp(argv[i], "-type") == 0) {
+		} else if (ENABLE_FEATURE_FIND_TYPE && strcmp(argv[i], "-type") == 0) {
 			if (++i == argc)
 				bb_error_msg_and_die(msg_req_arg, "-type");
 			type_mask = find_type(argv[i]);
-#endif
-#ifdef CONFIG_FEATURE_FIND_PERM
-		} else if (strcmp(argv[i], "-perm") == 0) {
+		} else if (ENABLE_FEATURE_FIND_PERM && strcmp(argv[i], "-perm") == 0) {
 			char *end;
 			if (++i == argc)
 				bb_error_msg_and_die(msg_req_arg, "-perm");
@@ -209,9 +210,7 @@ int find_main(int argc, char **argv)
 				bb_error_msg_and_die(msg_invalid_arg, argv[i], "-perm");
 			if ((perm_char = argv[i][0]) == '-')
 				perm_mask = -perm_mask;
-#endif
-#ifdef CONFIG_FEATURE_FIND_MTIME
-		} else if (strcmp(argv[i], "-mtime") == 0) {
+		} else if (ENABLE_FEATURE_FIND_MTIME && strcmp(argv[i], "-mtime") == 0) {
 			char *end;
 			if (++i == argc)
 				bb_error_msg_and_die(msg_req_arg, "-mtime");
@@ -220,9 +219,7 @@ int find_main(int argc, char **argv)
 				bb_error_msg_and_die(msg_invalid_arg, argv[i], "-mtime");
 			if ((mtime_char = argv[i][0]) == '-')
 				mtime_days = -mtime_days;
-#endif
-#ifdef CONFIG_FEATURE_FIND_XDEV
-		} else if (strcmp(argv[i], "-xdev") == 0) {
+		} else if (ENABLE_FEATURE_FIND_XDEV && strcmp(argv[i], "-xdev") == 0) {
 			struct stat stbuf;
 
 			xdev_count = ( firstopt - 1 ) ? ( firstopt - 1 ) : 1;
@@ -241,25 +238,45 @@ int find_main(int argc, char **argv)
 					xdev_dev [i-1] = stbuf. st_dev;
 				}
 			}
-#endif
-#ifdef CONFIG_FEATURE_FIND_NEWER
-		} else if (strcmp(argv[i], "-newer") == 0) {
+		} else if (ENABLE_FEATURE_FIND_NEWER && strcmp(argv[i], "-newer") == 0) {
 			struct stat stat_newer;
 			if (++i == argc)
 				bb_error_msg_and_die(msg_req_arg, "-newer");
 		    if (stat (argv[i], &stat_newer) != 0)
 				bb_error_msg_and_die("file %s not found", argv[i]);
 			newer_mtime = stat_newer.st_mtime;
-#endif
-#ifdef CONFIG_FEATURE_FIND_INUM
-		} else if (strcmp(argv[i], "-inum") == 0) {
+		} else if (ENABLE_FEATURE_FIND_INUM && strcmp(argv[i], "-inum") == 0) {
 			char *end;
 			if (++i == argc)
 				bb_error_msg_and_die(msg_req_arg, "-inum");
 			inode_num = strtol(argv[i], &end, 10);
 			if (end[0] != '\0')
 				bb_error_msg_and_die(msg_invalid_arg, argv[i], "-inum");
-#endif
+		} else if (ENABLE_FEATURE_FIND_EXEC && strcmp(argv[i], "-exec") == 0) {
+			int b_pos;
+			char *cmd_string = "";
+
+			while (i++) {
+				if (i == argc)
+					bb_error_msg_and_die(msg_req_arg, "-exec");
+				if (*argv[i] == ';')
+					break;
+				cmd_string = bb_xasprintf("%s %s", cmd_string, argv[i]);
+			}
+			
+			if (*cmd_string == 0)
+				bb_error_msg_and_die(msg_req_arg, "-exec");
+			cmd_string++;
+			exec_str = xmalloc(sizeof(char *));
+
+			while ((b_pos = strstr(cmd_string, "{}") - cmd_string), (b_pos >= 0)) {
+				num_matches++;
+				exec_str = xrealloc(exec_str, (num_matches + 1) * sizeof(char *));
+				exec_str[num_matches - 1] = bb_xstrndup(cmd_string, b_pos);
+				cmd_string += b_pos + 2;
+			}
+			exec_str[num_matches] = bb_xstrdup(cmd_string);
+			exec_opt = 1;
 		} else
 			bb_show_usage();
 	}
