@@ -43,6 +43,15 @@ config CONFIG_PS
 	help
 	  ps gives a snapshot of the current processes.
 
+config CONFIG_FEATURE_PS_WIDE
+	bool "  Enable argument for wide output (-w)"
+	default n
+	depends on CONFIG_PS
+	help
+	  Support argument 'w' for wide output.
+	  If given once, 132 chars are printed and given more than
+	  one, the length is unlimited.
+
 config CONFIG_RENICE
 	bool "renice"
 	default n

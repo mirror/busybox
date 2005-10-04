@@ -4,19 +4,7 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the Free
- * Software Foundation; either version 2 of the License, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
- * more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
- * Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
 
 #include <stdio.h>
@@ -30,32 +18,47 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 #include <selinux/selinux.h>  /* for is_selinux_enabled()  */
 #endif
 
-static const int TERMINAL_WIDTH = 79;      /* not 80 in case terminal has linefold bug */
-
-
+#define TERMINAL_WIDTH 80
 
 extern int ps_main(int argc, char **argv)
 {
 	procps_status_t * p;
-	int i, len;
-	int terminal_width = TERMINAL_WIDTH;
-
-#ifdef CONFIG_SELINUX
+	int i, len, terminal_width;
+#if ENABLE_SELINUX
 	int use_selinux = 0;
 	security_context_t sid=NULL;
-	if(is_selinux_enabled() && argv[1] && !strcmp(argv[1], "-c") )
-		use_selinux = 1;
 #endif
 
 	get_terminal_width_height(0, &terminal_width, NULL);
+
+#if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
+	/* handle arguments */
+	/* bb_getopt_ulflags(argc, argv,) would force a leading dash */
+	for (len = 1; len < argc; len++) {
+		char *c = argv[len];
+		while (*c) {
+			if (ENABLE_FEATURE_PS_WIDE && *c == 'w')
+				/* if w is given once, GNU ps sets the width to 132,
+				 * if w is given more than once, it is "unlimited"
+				 */
+				terminal_width =
+					(terminal_width==TERMINAL_WIDTH) ? 132 : INT_MAX;
+#if ENABLE_SELINUX
+			if (*c == 'c' && is_selinux_enabled())
+				use_selinux = 1;
+#endif
+			c++;
+		}
+	}
+#endif
+
 	/* Go one less... */
 	terminal_width--;
-
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 	if (use_selinux)
 	  printf("  PID Context                          Stat Command\n");
 	else
@@ -64,8 +67,8 @@ extern int ps_main(int argc, char **argv)
 
 	while ((p = procps_scan(1)) != 0)  {
 		char *namecmd = p->cmd;
-#ifdef CONFIG_SELINUX
-		if ( use_selinux )
+#if ENABLE_SELINUX
+		if (use_selinux )
 		  {
 			char sbuf[128];
 			len = sizeof(sbuf);
@@ -85,18 +88,19 @@ extern int ps_main(int argc, char **argv)
 			  safe_strncpy(sbuf, "unknown",7);
 			}
 			len = printf("%5d %-32s %s ", p->pid, sbuf, p->state);
-		} 
+		}
 		else
 #endif
 		  if(p->rss == 0)
 		    len = printf("%5d %-8s        %s ", p->pid, p->user, p->state);
 		  else
 		    len = printf("%5d %-8s %6ld %s ", p->pid, p->user, p->rss, p->state);
+
 		i = terminal_width-len;
 
-		if(namecmd != 0 && namecmd[0] != 0) {
+		if(namecmd && namecmd[0]) {
 			if(i < 0)
-		i = 0;
+				i = 0;
 			if(strlen(namecmd) > i)
 				namecmd[i] = 0;
 			printf("%s\n", namecmd);
@@ -108,7 +112,9 @@ extern int ps_main(int argc, char **argv)
 				namecmd[i-2] = 0;
 			printf("[%s]\n", namecmd);
 		}
-		free(p->cmd);
+		/* no check needed, but to make valgrind happy..  */
+		if (ENABLE_FEATURE_CLEAN_UP && p->cmd)
+			free(p->cmd);
 	}
 	return EXIT_SUCCESS;
 }

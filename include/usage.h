@@ -2245,17 +2245,12 @@
 	"$ printf \"Val=%d\\n\" 5\n" \
 	"Val=5\n"
 
-#if !defined(CONFIG_SELINUX) && !defined(CONFIG_PS_FEATURE_WIDE)
+#if !defined CONFIG_SELINUX && !ENABLE_FEATURE_PS_WIDE
 #define USAGE_PS "\n\tThis version of ps accepts no options."
 #else
 #define USAGE_PS "\nOptions:"
 #endif
-#ifdef CONFIG_SELINUX
-#define USAGE_NONSELINUX(a)
-#else
-#define USAGE_NONSELINUX(a) a
-#endif
-#ifdef CONFIG_PS_FEATURE_WIDE
+#if ENABLE_FEATURE_PS_WIDE
 #define USAGE_PS_WIDE(a) a
 #else
 #define USAGE_PS_WIDE(a)
@@ -2268,7 +2263,6 @@
 	USAGE_PS \
 	USAGE_SELINUX("\n\t-c\tshow SE Linux context") \
 	USAGE_PS_WIDE("\n\tw\twide output")
-
 
 #define ps_example_usage \
 	"$ ps\n" \
