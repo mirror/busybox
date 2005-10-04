@@ -110,6 +110,22 @@ const char *bb_opt_complementally
 	bb_getopt_ulflags's return value will be as if "-a -b -c" were
 	found.
 
+ "ww"   Option have int counter usaging. For example ps applet:
+	if w is given once, GNU ps sets the width to 132,
+	if w is given more than once, it is "unlimited"
+
+	int w_counter = 0;
+	bb_opt_complementally = "ww";
+	flags = bb_getopt_ulflags(argc, argv, "w", &w_counter);
+
+	if((flags & 1))
+		width = (w_counter == 1) ? 132 : INT_MAX;
+	else
+		get_terminal_width(...&width...);
+
+	w_counter - have counter -w usaging, must set int pointer
+	to bb_getopt_ulflags() after all other requires
+
 Special characters:
 
  "-"    A dash between two options causes the second of the two
@@ -188,6 +204,7 @@ typedef struct {
 	unsigned long switch_off;
 	unsigned long incongruously;
 	void **optarg;               /* char **optarg or llist_t **optarg */
+	int *counter;
 } t_complementally;
 
 /* You can set bb_applet_long_options for parse called long options */
@@ -221,7 +238,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	c = 0;
 	on_off = complementally;
 	for (; *s; s++) {
-		if(c >= (sizeof(flags)*8))
+		if(c >= (int)(sizeof(flags)*8))
 			break;
 		on_off->opt = *s;
 		on_off->switch_on = (1 << c);
@@ -229,6 +246,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 		on_off->switch_off = 0;
 		on_off->incongruously = 0;
 		on_off->optarg = NULL;
+		on_off->counter = NULL;
 		if (s[1] == ':') {
 			on_off->optarg = va_arg (p, void **);
 			do
@@ -245,13 +263,14 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 			if(on_off->opt == l_o->val)
 				break;
 		if(on_off->opt == 0) {
-			if(c >= (sizeof(flags)*8))
+			if(c >= (int)(sizeof(flags)*8))
 				break;
 			on_off->opt = l_o->val;
 			on_off->switch_on = (1 << c);
 			on_off->list_flg = 0;
 			on_off->switch_off = 0;
 			on_off->incongruously = 0;
+			on_off->counter = NULL;
 			if(l_o->has_arg != no_argument)
 				on_off->optarg = va_arg (p, void **);
 			else
@@ -290,7 +309,10 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 					pair_switch = c == '-' ? &(pair->switch_off) : &(pair->incongruously);
 				for (on_off = complementally; on_off->opt; on_off++)
 					if (on_off->opt == *s) {
-						*pair_switch |= on_off->switch_on;
+						if(pair_switch == &(on_off->switch_on))
+						  on_off->counter = va_arg (p, int *);
+						else
+						  *pair_switch |= on_off->switch_on;
 						break;
 					}
 			}
@@ -315,6 +337,8 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 		flags &= ~(on_off->switch_off ^ trigger);
 		flags |= on_off->switch_on ^ trigger;
 		flags ^= trigger;
+		if(on_off->counter)
+			(*(on_off->counter))++;
 		if(on_off->list_flg) {
 			*(llist_t **)(on_off->optarg) =
 				llist_add_to(*(llist_t **)(on_off->optarg), optarg);

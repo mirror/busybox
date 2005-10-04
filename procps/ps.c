@@ -22,42 +22,50 @@
 #include <selinux/selinux.h>  /* for is_selinux_enabled()  */
 #endif
 
-#define TERMINAL_WIDTH 80
-
 extern int ps_main(int argc, char **argv)
 {
 	procps_status_t * p;
-	int i, len, terminal_width;
+	int i, len;
 #if ENABLE_SELINUX
 	int use_selinux = 0;
 	security_context_t sid=NULL;
 #endif
-
-	get_terminal_width_height(0, &terminal_width, NULL);
+#if ENABLE_FEATURE_PS_WIDE
+	int terminal_width;
+	int w_count = 0;
+#else
+# define terminal_width 80
+#endif
 
 #if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
 	/* handle arguments */
-	/* bb_getopt_ulflags(argc, argv,) would force a leading dash */
-	for (len = 1; len < argc; len++) {
-		char *c = argv[len];
-		while (*c) {
-			if (ENABLE_FEATURE_PS_WIDE && *c == 'w')
-				/* if w is given once, GNU ps sets the width to 132,
-				 * if w is given more than once, it is "unlimited"
-				 */
-				terminal_width =
-					(terminal_width==TERMINAL_WIDTH) ? 132 : INT_MAX;
-#if ENABLE_SELINUX
-			if (*c == 'c' && is_selinux_enabled())
-				use_selinux = 1;
+#if ENABLE_FEATURE_PS_WIDE && ENABLE_SELINUX
+	bb_opt_complementally="ww";
+	i = bb_getopt_ulflags(argc, argv, "wc", &w_count);
+#elif ENABLE_FEATURE_PS_WIDE && !ENABLE_SELINUX
+	bb_opt_complementally="ww";
+	i = bb_getopt_ulflags(argc, argv, "w", &w_count);
+#else /* !ENABLE_FEATURE_PS_WIDE && !ENABLE_SELINUX */
+	i = bb_getopt_ulflags(argc, argv, "c");
 #endif
-			c++;
-		}
+#if ENABLE_FEATURE_PS_WIDE
+	/* if w is given once, GNU ps sets the width to 132,
+	 * if w is given more than once, it is "unlimited"
+	 */
+	if((i & 1)) {
+		terminal_width = (w_count==1) ? 132 : INT_MAX;
+	} else {
+		get_terminal_width_height(0, &terminal_width, NULL);
+		/* Go one less... */
+		terminal_width--;
 	}
 #endif
+#if ENABLE_SELINUX
+	if ((i & 2) && is_selinux_enabled())
+		use_selinux = 1;
+#endif
+#endif  /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */
 
-	/* Go one less... */
-	terminal_width--;
 #if ENABLE_SELINUX
 	if (use_selinux)
 	  printf("  PID Context                          Stat Command\n");
@@ -68,7 +76,7 @@ extern int ps_main(int argc, char **argv)
 	while ((p = procps_scan(1)) != 0)  {
 		char *namecmd = p->cmd;
 #if ENABLE_SELINUX
-		if (use_selinux )
+		if (use_selinux)
 		  {
 			char sbuf[128];
 			len = sizeof(sbuf);
@@ -118,4 +126,3 @@ extern int ps_main(int argc, char **argv)
 	}
 	return EXIT_SUCCESS;
 }
-
