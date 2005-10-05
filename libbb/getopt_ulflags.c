@@ -110,7 +110,7 @@ const char *bb_opt_complementally
 	bb_getopt_ulflags's return value will be as if "-a -b -c" were
 	found.
 
- "ww"   Option have int counter usaging. For example ps applet:
+ "ww"   Double option have int counter usaging. For example ps applet:
 	if w is given once, GNU ps sets the width to 132,
 	if w is given more than once, it is "unlimited"
 
@@ -175,6 +175,9 @@ Special characters:
  "!"    If previous point set BB_GETOPT_ERROR, don`t return and call
 	previous example internally
 
+ "-"    A minus as one char in bb_opt_complementally group means that
+	convert the arguments as option, specail for "ps" applet.
+
  "*"    A star after a char in bb_opt_complementally means that the
 	option can occur multiple times:
 
@@ -227,6 +230,9 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	va_list p;
 	const struct option *l_o;
 	char flg_show_usage_if_error = 0;
+	char flg_argv_is_opts = 0;
+	unsigned long trigger;
+	char **pargv = NULL;
 
 	va_start (p, applet_opts);
 
@@ -294,6 +300,10 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 			flg_show_usage_if_error = '!';
 			continue;
 		}
+		if(*s == '-') {
+			flg_argv_is_opts = '-';
+			continue;
+		}
 		for (on_off = complementally; on_off->opt; on_off++)
 			if (on_off->opt == *s)
 				break;
@@ -304,17 +314,17 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 			} else if(*s == '*') {
 				pair->list_flg++;
 			} else {
-				unsigned long *pair_switch = &(pair->switch_on);
-				if(c)
-					pair_switch = c == '-' ? &(pair->switch_off) : &(pair->incongruously);
-				for (on_off = complementally; on_off->opt; on_off++)
-					if (on_off->opt == *s) {
-						if(pair_switch == &(on_off->switch_on))
-						  on_off->counter = va_arg (p, int *);
-						else
-						  *pair_switch |= on_off->switch_on;
-						break;
-					}
+			    unsigned long *pair_switch = &(pair->switch_on);
+			    if(c)
+				pair_switch = c == '-' ? &(pair->switch_off) : &(pair->incongruously);
+			    for (on_off = complementally; on_off->opt; on_off++)
+				if (on_off->opt == *s) {
+				    if(pair_switch == &(on_off->switch_on))
+					on_off->counter = va_arg (p, int *);
+				    else
+					*pair_switch |= on_off->switch_on;
+				    break;
+				}
 			}
 		}
 		s--;
@@ -322,8 +332,8 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 
 	while ((c = getopt_long (argc, argv, applet_opts,
 				 bb_applet_long_options, NULL)) > 0) {
-		unsigned long trigger;
 
+loop_arg_is_opt:
 		for (on_off = complementally; on_off->opt != c; on_off++) {
 			if(!on_off->opt)
 				bb_show_usage ();
@@ -341,9 +351,27 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 			(*(on_off->counter))++;
 		if(on_off->list_flg) {
 			*(llist_t **)(on_off->optarg) =
-				llist_add_to(*(llist_t **)(on_off->optarg), optarg);
+			  llist_add_to(*(llist_t **)(on_off->optarg), optarg);
 		} else if (on_off->optarg) {
 			*(char **)(on_off->optarg) = optarg;
+		}
+		if(flg_argv_is_opts == 'p')
+			break;
+	}
+	if(flg_argv_is_opts) {
+		/* process argv is option, for example "ps" applet */
+		if(flg_argv_is_opts == '-') {
+			flg_argv_is_opts = 'p';
+			pargv = argv + optind;
+		}
+		while(*pargv) {
+			c = **pargv;
+			if(c == '\0') {
+				pargv++;
+			} else {
+				(*pargv)++;
+				goto loop_arg_is_opt;
+			}
 		}
 	}
 

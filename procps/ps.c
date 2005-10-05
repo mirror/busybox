@@ -26,16 +26,19 @@ extern int ps_main(int argc, char **argv)
 {
 	procps_status_t * p;
 	int i, len;
+
 #if ENABLE_SELINUX
 	int use_selinux = 0;
 	security_context_t sid=NULL;
 #endif
+
 #if ENABLE_FEATURE_PS_WIDE
 	int terminal_width;
 	int w_count = 0;
-	bb_opt_complementally="ww";
+
+	bb_opt_complementally="-:ww";
 #else
-# define terminal_width 80
+# define terminal_width 79
 #endif
 
 #if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
@@ -43,7 +46,7 @@ extern int ps_main(int argc, char **argv)
 #if ENABLE_FEATURE_PS_WIDE && ENABLE_SELINUX
 	i = bb_getopt_ulflags(argc, argv, "wc", &w_count);
 #elif ENABLE_FEATURE_PS_WIDE && !ENABLE_SELINUX
-	i = bb_getopt_ulflags(argc, argv, "w", &w_count);
+	bb_getopt_ulflags(argc, argv, "w", &w_count);
 #else /* !ENABLE_FEATURE_PS_WIDE && ENABLE_SELINUX */
 	i = bb_getopt_ulflags(argc, argv, "c");
 #endif
@@ -51,10 +54,10 @@ extern int ps_main(int argc, char **argv)
 	/* if w is given once, GNU ps sets the width to 132,
 	 * if w is given more than once, it is "unlimited"
 	 */
-	if((i & 1)) {
+	if(w_count) {
 		terminal_width = (w_count==1) ? 132 : INT_MAX;
 	} else {
-		get_terminal_width_height(0, &terminal_width, NULL);
+		get_terminal_width_height(1, &terminal_width, NULL);
 		/* Go one less... */
 		terminal_width--;
 	}
