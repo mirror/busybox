@@ -945,7 +945,7 @@ static void config (int sig __attribute__((unused)))
 	if (sep != 0) {
 	  int i;
 
-#define SWAP(type, a, b) {type c=(type)a; (type)a=(type)b; (type)b=(type)c;}
+#define SWAP(type, a, b) do {type c=(type)a; a=(type)b; b=(type)c;} while (0)
 
 	  omask = sigblock (SIGBLOCK);
 	  /*
