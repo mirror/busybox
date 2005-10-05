@@ -275,7 +275,7 @@ depend dep $(top_builddir)/.depend: .depend
 .depend: scripts/bb_mkdep $(DEP_INCLUDES)
 	@rm -f .depend
 	@mkdir -p include/config
-	scripts/bb_mkdep -c include/config.h -c include/bb_config.h > $@.tmp
+	scripts/bb_mkdep -c include/config.h -c include/bb_config.h $(top_srcdir)/ > $@.tmp
 	mv $@.tmp $@
 
 include/config.h: .config
