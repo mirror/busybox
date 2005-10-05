@@ -372,13 +372,14 @@ static void register_rpc (servtab_t *sep)
   int n;
   struct sockaddr_in ir_sin;
   struct protoent *pp;
+  socklen_t size;
 
   if ((pp = getprotobyname (sep->se_proto + 4)) == NULL) {
 	syslog (LOG_ERR, "%s: getproto: %m", sep->se_proto);
 	return;
   }
-  n = sizeof ir_sin;
-  if (getsockname (sep->se_fd, (struct sockaddr *) &ir_sin, &n) < 0) {
+  size = sizeof ir_sin;
+  if (getsockname (sep->se_fd, (struct sockaddr *) &ir_sin, &size) < 0) {
 	syslog (LOG_ERR, "%s/%s: getsockname: %m",
 			sep->se_service, sep->se_proto);
 	return;
@@ -479,7 +480,7 @@ setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof (on))
 	else {
 	  r = bind (sep->se_fd, &sep->se_ctrladdr, sep->se_ctrladdr_size);
 	  if (r == 0) {
-		int len = sep->se_ctrladdr_size;
+		socklen_t len = sep->se_ctrladdr_size;
 		int saveerrno = errno;
 
 		/* update se_ctrladdr_in.sin_port */
@@ -870,10 +871,18 @@ more:
   return (sep);
 }
 
+#define Block_Using_Signals(m) do {     sigemptyset(&m); \
+					sigaddset(&m, SIGCHLD); \
+					sigaddset(&m, SIGHUP); \
+					sigaddset(&m, SIGALRM); \
+					sigprocmask(SIG_BLOCK, &m, NULL); \
+				} while(0)
+
+
 static servtab_t *enter (servtab_t *cp)
 {
   servtab_t *sep;
-  int omask;
+  sigset_t omask;
 
   sep = new_servtab();
   *sep = *cp;
@@ -881,10 +890,10 @@ static servtab_t *enter (servtab_t *cp)
 #ifdef CONFIG_FEATURE_INETD_RPC
   sep->se_rpcprog = -1;
 #endif
-  omask = sigblock (SIGBLOCK);
+  Block_Using_Signals(omask);
   sep->se_next = servtab;
   servtab = sep;
-  sigsetmask (omask);
+  sigprocmask(SIG_UNBLOCK, &omask, NULL);
   return (sep);
 }
 
@@ -925,7 +934,7 @@ static int matchconf (servtab_t *old, servtab_t *new)
 static void config (int sig __attribute__((unused)))
 {
   servtab_t *sep, *cp, **sepp;
-  int omask;
+  sigset_t omask;
   int add;
   size_t n;
   char protoname[10];
@@ -947,7 +956,7 @@ static void config (int sig __attribute__((unused)))
 
 #define SWAP(type, a, b) do {type c=(type)a; a=(type)b; b=(type)c;} while (0)
 
-	  omask = sigblock (SIGBLOCK);
+	  Block_Using_Signals(omask);
 	  /*
 	   * sep->se_wait may be holding the pid of a daemon
 	   * that we're waiting for.  If so, don't overwrite
@@ -974,7 +983,7 @@ static void config (int sig __attribute__((unused)))
 	  sep->se_rpcversl = cp->se_rpcversl;
 	  sep->se_rpcversh = cp->se_rpcversh;
 #endif
-	  sigsetmask (omask);
+	  sigprocmask(SIG_UNBLOCK, &omask, NULL);
 	  freeconfig (cp);
 	  add = 1;
 	} else {
@@ -1117,7 +1126,7 @@ static void config (int sig __attribute__((unused)))
   /*
    * Purge anything not looked at above.
    */
-  omask = sigblock (SIGBLOCK);
+  Block_Using_Signals(omask);
   sepp = &servtab;
   while ((sep = *sepp)) {
 	if (sep->se_checked) {
@@ -1139,7 +1148,7 @@ static void config (int sig __attribute__((unused)))
 	freeconfig (sep);
 	free (sep);
   }
-  (void) sigsetmask (omask);
+  sigprocmask(SIG_UNBLOCK, &omask, NULL);
 }
 
 
@@ -1231,7 +1240,7 @@ static char *LastArg;
 static void
 inetd_setproctitle (char *a, int s)
 {
-  int size;
+  socklen_t size;
   char *cp;
   struct sockaddr_in prt_sin;
   char buf[80];
@@ -1401,7 +1410,7 @@ inetd_main (int argc, char *argv[])
 		  }
 		  if (sep->se_family == AF_INET && sep->se_socktype == SOCK_STREAM) {
 			struct sockaddr_in peer;
-			int plen = sizeof (peer);
+			socklen_t plen = sizeof (peer);
 
 			if (getpeername (ctrl, (struct sockaddr *) &peer, &plen) < 0) {
 			  syslog (LOG_WARNING, "could not getpeername");
@@ -1578,7 +1587,8 @@ static void
 echo_dg (int s, servtab_t *sep __attribute__((unused)))
 {
   char buffer[BUFSIZE];
-  int i, size;
+  int i;
+  socklen_t size;
   /* struct sockaddr_storage ss; */
   struct sockaddr sa;
 
@@ -1675,8 +1685,9 @@ chargen_dg (int s, servtab_t *sep __attribute__((unused)))
   /* struct sockaddr_storage ss; */
   struct sockaddr sa;
   static char *rs;
-  int len, size;
+  int len;
   char text[LINESIZ + 2];
+  socklen_t size;
 
   if (endring == 0) {
 	initring ();
@@ -1742,7 +1753,7 @@ machtime_dg (int s, servtab_t *sep __attribute__((unused)))
   /* struct sockaddr_storage ss; */
   struct sockaddr sa;
   struct sockaddr_in *dg_sin;
-  int size;
+  socklen_t size;
 
   size = sizeof (sa);
   if (recvfrom (s, (char *) &result, sizeof (result), 0, &sa, &size) < 0)
@@ -1781,7 +1792,7 @@ daytime_dg (int s, servtab_t *sep __attribute__((unused)))
   time_t t;
   /* struct sockaddr_storage ss; */
   struct sockaddr sa;
-  int size;
+  socklen_t size;
 
   t = time ((time_t *) 0);
 
