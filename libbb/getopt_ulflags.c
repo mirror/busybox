@@ -110,21 +110,32 @@ const char *bb_opt_complementally
 	bb_getopt_ulflags's return value will be as if "-a -b -c" were
 	found.
 
- "ww"   Double option have int counter usaging. For example ps applet:
+ "ww"   Adjacent double options have a counter associated which indicates
+    the number of occurances of the option. For example the ps applet needs:
 	if w is given once, GNU ps sets the width to 132,
 	if w is given more than once, it is "unlimited"
 
 	int w_counter = 0;
 	bb_opt_complementally = "ww";
-	flags = bb_getopt_ulflags(argc, argv, "w", &w_counter);
+	bb_getopt_ulflags(argc, argv, "w", &w_counter);
 
-	if((flags & 1))
+	if(w_counter)
 		width = (w_counter == 1) ? 132 : INT_MAX;
 	else
 		get_terminal_width(...&width...);
 
-	w_counter - have counter -w usaging, must set int pointer
-	to bb_getopt_ulflags() after all other requires
+	w_counter is a pointer to an integer. It has to be passed to
+	bb_getopt_ulflags() after all other option argument sinks.
+	For example: accept multiple -v to indicate the level of verbosity and
+	for each -b optarg, add optarg to my_b. Finally, if b is given, turn off
+	c and vice versa:
+
+	llist_t *my_b = NULL;
+	int verbose_level = 0;
+	bb_opt_complementally = "vvb*b-c:c-b";
+	bb_getopt_ulflags(argc, argv, "vb:c", &my_b, &verbose_level);
+	while (my_b) { dosomething_with(my_b->data) ; my_b = my_b->link; }
+	if (verbose_level) bb_printf("verbose\n");
 
 Special characters:
 
@@ -155,6 +166,16 @@ Special characters:
 	if(opt & 4)
 		printf("Detected odd -x usaging\n");
 
+ "-"    A minus as the first char in a bb_opt_complementally group means to
+	convert the arguments as option.
+	For example:
+
+	bb_opt_complementally = "-:w";
+	bb_getopt_ulflags(argc, argv, "w");
+
+	Allows option 'w' to be given without a dash (./program w)
+	as well as with a dash (./program -w).
+
  "~"    A tilde between two options, or between an option and a group
 	of options, means that they are mutually exclusive.  Unlike
 	the "-" case above, an error will be forced if the options
@@ -174,9 +195,6 @@ Special characters:
 
  "!"    If previous point set BB_GETOPT_ERROR, don`t return and call
 	previous example internally
-
- "-"    A minus as one char in bb_opt_complementally group means that
-	convert the arguments as option, specail for "ps" applet.
 
  "*"    A star after a char in bb_opt_complementally means that the
 	option can occur multiple times:
