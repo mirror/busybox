@@ -7,9 +7,9 @@
 E2FSPROGS_AR:=e2fsprogs.a
 
 E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs
-E2FSPROGS_INC:=$(top_srcdir)/e2fsprogs
+E2FSPROGS_SRC:=$(top_srcdir)/e2fsprogs
 
-E2FSPROGS_CFLAGS := -I$(E2FSPROGS_INC) -include $(E2FSPROGS_INC)/e2fsbb.h
+E2FSPROGS_CFLAGS := -I$(E2FSPROGS_SRC) -include $(E2FSPROGS_SRC)/e2fsbb.h
 
 BLKID_SRC   := cache.c dev.c devname.c devno.c blkid_getsize.c \
 	       probe.c read.c resolve.c save.c tag.c
@@ -42,13 +42,17 @@ UUID_OBJS   := $(patsubst %.c,%.o, $(UUID_SRCS))
 # for building out-of-tree we need to make sure that the directories to hold
 # the object tree are created
 $(patsubst %,$(E2FSPROGS_DIR)/%, blkid e2fsck e2p ext2fs uuid):
-	mkdir -p "$@"
+	@mkdir -p "$@"
 
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(BLKID_OBJS)):$(E2FSPROGS_DIR)/blkid
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(E2FSCK_OBJS)):$(E2FSPROGS_DIR)/e2fsck
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(E2P_OBJS)):$(E2FSPROGS_DIR)/e2p
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(EXT2FS_OBJS)):$(E2FSPROGS_DIR)/ext2fs
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(UUID_OBJS)):$(E2FSPROGS_DIR)/uuid
+# make sure that the directories are order-only prerequisites. Otherwise we
+# may have object files created after the timestamp of the directory was
+# updated which would lead to spurious rebuilds (as some of the dentries
+# may be older than the dir itself).
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(BLKID_OBJS)):|$(E2FSPROGS_DIR)/blkid
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(E2FSCK_OBJS)):|$(E2FSPROGS_DIR)/e2fsck
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(E2P_OBJS)):|$(E2FSPROGS_DIR)/e2p
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(EXT2FS_OBJS)):|$(E2FSPROGS_DIR)/ext2fs
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(UUID_OBJS)):|$(E2FSPROGS_DIR)/uuid
 
 E2FSPROGS-y:=
 E2FSPROGS-$(CONFIG_CHATTR)     += chattr.o $(E2P_OBJS)
