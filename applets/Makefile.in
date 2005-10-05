@@ -18,7 +18,7 @@ libraries-y+=$(APPLETS_DIR)$(APPLETS_AR)
 $(APPLETS_DIR)$(APPLETS_AR): $(APPLET_OBJ)
 	$(AR) $(ARFLAGS) $@ $(APPLET_OBJ)
 
-$(APPLET_OBJ): $(top_builddir)/.config $(top_srcdir)/include/usage.h
+$(APPLET_OBJ): $(top_builddir)/.config 
 $(APPLET_OBJ): $(APPLETS_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
