@@ -1,4 +1,5 @@
 Please see the LICENSE file for details on copying and usage.
+Please refer to the INSTALL file for instructions on how to build.
 
 BusyBox combines tiny versions of many common UNIX utilities into a single
 small executable. It provides minimalist replacements for most of the utilities
@@ -15,17 +16,8 @@ BusyBox provides a fairly complete POSIX environment for any small or embedded
 system.
 
 BusyBox is extremely configurable.  This allows you to include only the
-components you need, thereby reducing binary size. Run 'make config' or
-'make menuconfig' to select the functionality that you wish to enable.
-
-After the build is complete, a busybox.links file is generated.  This is
-used by 'make install' to create symlinks to the BusyBox binary for all
-compiled in functions.  By default, 'make install' will place the symlink
-forest into `pwd`/_install unless you have defined the PREFIX environment
-variable (i.e., 'make PREFIX=/tmp/foo install')
-
-If you wish to install hard links, rather than symlinks, you can use
-'make PREFIX=/tmp/foo install-hardlinks' instead.
+components you need, thereby reducing binary size. See the file INSTALL
+for details.
 
 ----------------
 
@@ -110,14 +102,14 @@ be downloaded from
 
 CVS:
 
-BusyBox now has its own publicly browsable CVS tree at:
-    http://busybox.net/cgi-bin/cvsweb/busybox/
+BusyBox now has its own publicly browsable SVN tree at:
+    http://busybox.net/cgi-bin/viewcvs.cgi/trunk/busybox/
 
-Anonymous CVS access is available.  For instructions, check out:
-    http://busybox.net/cvs_anon.html
+Anonymous SVN access is available.  For instructions, check out:
+    http://busybox.net/subversion.html
 
-For those that are actively contributing there is even CVS write access:
-    http://busybox.net/cvs_write.html
+For those that are actively contributing there is even SVN write access:
+    http://busybox.net/developer.html
 
 ----------------
 

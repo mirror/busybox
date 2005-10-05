@@ -27,7 +27,7 @@ BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 # With a modern GNU make(1) (highly recommended, that's what all the
 # developers use), all of the following configuration values can be
 # overridden at the command line.  For example:
-#   make CROSS=powerpc-linux- BB_SRC_DIR=$HOME/busybox PREFIX=/mnt/app
+#   make CROSS=powerpc-linux- top_srcdir="$HOME/busybox" PREFIX=/mnt/app
 #--------------------------------------------------------
 
 # If you are running a cross compiler, you will want to set 'CROSS'
@@ -59,11 +59,6 @@ LC_ALL:= C
 # especially from the command line, use this instead of CFLAGS directly.
 # For optimization overrides, it's better still to set OPTIMIZATION.
 CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
-
-# If you have a "pristine" source directory, point BB_SRC_DIR to it.
-# Experimental and incomplete; tell the mailing list
-# <busybox@busybox.net> if you do or don't like it so far.
-BB_SRC_DIR=
 
 # To compile vs some other alternative libc, you may need to use/adjust
 # the following lines to meet your needs...
@@ -176,19 +171,20 @@ ifeq ($(strip $(CONFIG_STATIC)),y)
     LDFLAGS += --static
 endif
 
+ifeq ($(strip $(CONFIG_SELINUX)),y)
+    LIBRARIES += -lselinux
+endif
+
 ifeq ($(strip $(PREFIX)),)
     PREFIX:=`pwd`/_install
 endif
 
 # Additional complications due to support for pristine source dir.
 # Include files in the build directory should take precedence over
-# the copy in BB_SRC_DIR, both during the compilation phase and the
+# the copy in top_srcdir, both during the compilation phase and the
 # shell script that finds the list of object files.
 # Work in progress by <ldoolitt@recycle.lbl.gov>.
-#
-ifneq ($(strip $(BB_SRC_DIR)),)
-    VPATH:=$(BB_SRC_DIR)
-endif
+
 
 OBJECTS:=$(APPLET_SOURCES:.c=.o) busybox.o usage.o applets.o
 CFLAGS    += $(CROSS_CFLAGS)

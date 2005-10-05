@@ -24,8 +24,6 @@ endif
 export srctree=$(top_srcdir)
 vpath %/Config.in $(srctree)
 
-include $(top_srcdir)/Rules.mak
-
 DIRS:=applets archival archival/libunarchive coreutils console-tools \
 	debianutils editors findutils init miscutils modutils networking \
 	networking/libiproute networking/udhcp procps loginutils shell \
@@ -33,15 +31,22 @@ DIRS:=applets archival archival/libunarchive coreutils console-tools \
 
 SRC_DIRS:=$(patsubst %,$(top_srcdir)/%,$(DIRS))
 
-ifeq ($(strip $(CONFIG_SELINUX)),y)
-LIBRARIES += -lselinux
-endif
+# That's our default target when none is given on the command line
+.PHONY: _all
+_all:
+
+# All object directories.
+OBJ_DIRS = scripts/config include $(DIRS)
+$(OBJ_DIRS):
+	mkdir -p "$(patsubst %,$(top_builddir)/%,$@)"
+
+scripts/config/Makefile: $(top_srcdir)/scripts/config/Makefile
+	cp -v $< $@
+
+include $(top_srcdir)/Rules.mak
 
 CONFIG_CONFIG_IN = $(top_srcdir)/sysdeps/$(TARGET_OS)/Config.in
 CONFIG_DEFCONFIG = $(top_srcdir)/sysdeps/$(TARGET_OS)/defconfig
-
-ALL_DIRS:= $(DIRS) scripts/config
-ALL_MAKEFILES:=$(patsubst %,%/Makefile,$(ALL_DIRS))
 
 ifeq ($(KBUILD_SRC),)
 
@@ -49,11 +54,12 @@ ifdef O
   ifeq ("$(origin O)", "command line")
     KBUILD_OUTPUT := $(O)
   endif
+else
+# If no alternate output-dir was specified, we build in cwd
+# We are using KBUILD_OUTPUT nevertheless to make sure that we create
+# Rules.mak and the toplevel Makefile, in case they don't exist.
+  KBUILD_OUTPUT := $(top_builddir)
 endif
-
-# That's our default target when none is given on the command line
-.PHONY: _all
-_all:
 
 ifneq ($(KBUILD_OUTPUT),)
 # Invoke a second make in the output directory, passing relevant variables
@@ -63,24 +69,29 @@ KBUILD_OUTPUT := $(shell cd $(KBUILD_OUTPUT) && /bin/pwd)
 $(if $(wildcard $(KBUILD_OUTPUT)),, \
      $(error output directory "$(saved-output)" does not exist))
 
+# We only need a copy of the Makefile for the config targets and reuse
+# the rest from the source directory, i.e. we do not cp ALL_MAKEFILES.
+all_tree: $(OBJ_DIRS) $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUTPUT)/Makefile scripts/config/Makefile
+
 .PHONY: $(MAKECMDGOALS)
 
-$(filter-out _all,$(MAKECMDGOALS)) _all: $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUTPUT)/Makefile
+$(filter-out _all,$(MAKECMDGOALS)) _all: $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUTPUT)/Makefile all_tree
+#all:
 	$(MAKE) -C $(KBUILD_OUTPUT) \
-	top_srcdir=$(CURDIR) \
-	top_builddir=$(KBUILD_OUTPUT) \
-	KBUILD_SRC=$(CURDIR) \
+	top_srcdir=$(top_srcdir) \
+	top_builddir=$(top_builddir) \
+	KBUILD_SRC=$(top_srcdir) \
 	-f $(CURDIR)/Makefile $@
 
 $(KBUILD_OUTPUT)/Rules.mak:
 	@echo > $@
-	@echo top_srcdir=$(CURDIR) >> $@
+	@echo top_srcdir=$(top_srcdir) >> $@
 	@echo top_builddir=$(KBUILD_OUTPUT) >> $@
 	@echo include $(top_srcdir)/Rules.mak >> $@
 
 $(KBUILD_OUTPUT)/Makefile:
 	@echo > $@
-	@echo top_srcdir=$(CURDIR) >> $@
+	@echo top_srcdir=$(top_srcdir) >> $@
 	@echo top_builddir=$(KBUILD_OUTPUT) >> $@
 	@echo KBUILD_SRC='$$(top_srcdir)' >> $@
 	@echo include '$$(KBUILD_SRC)'/Makefile >> $@
@@ -124,21 +135,61 @@ help:
 	@echo '  sizes			- show size of all enabled busybox symbols'
 	@echo
 
-ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
+
+ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
+
+all: menuconfig
+
+# configuration
+# ---------------------------------------------------------------------------
+
+scripts/config/conf: scripts/config/Makefile
+	$(MAKE) -C scripts/config conf
+	-@if [ ! -f .config ] ; then \
+		cp $(CONFIG_DEFCONFIG) .config; \
+	fi
+
+scripts/config/mconf: scripts/config/Makefile
+	$(MAKE) -C scripts/config ncurses conf mconf
+	-@if [ ! -f .config ] ; then \
+		cp $(CONFIG_DEFCONFIG) .config; \
+	fi
+
+menuconfig: scripts/config/mconf
+	@./scripts/config/mconf $(CONFIG_CONFIG_IN)
+
+config: scripts/config/conf
+	@./scripts/config/conf $(CONFIG_CONFIG_IN)
+
+oldconfig: scripts/config/conf
+	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
+
+randconfig: scripts/config/conf
+	@./scripts/config/conf -r $(CONFIG_CONFIG_IN)
+
+allyesconfig: scripts/config/conf
+	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
+	sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX).*/# \1 is not set/" .config
+	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
+
+allnoconfig: scripts/config/conf
+	@./scripts/config/conf -n $(CONFIG_CONFIG_IN)
+
+defconfig: scripts/config/conf
+	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
+
+else # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 all: busybox busybox.links doc
-
-all_tree:       $(ALL_MAKEFILES)
-
-$(ALL_MAKEFILES): %/Makefile: $(top_srcdir)/%/Makefile
-	[ -d $(@D) ] || mkdir -p $(@D); cp $< $@
 
 # In this section, we need .config
 -include $(top_builddir)/.config.cmd
 include $(patsubst %,%/Makefile.in, $(SRC_DIRS))
 -include $(top_builddir)/.depend
 
-busybox: $(ALL_MAKEFILES) .depend $(libraries-y)
+endif # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
+
+busybox: .depend $(libraries-y)
 	$(CC) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
 	$(STRIPCMD) $@
 
@@ -217,7 +268,7 @@ ifeq ($(strip $(CONFIG_BBCONFIG)),y)
 DEP_INCLUDES += include/bbconfigopts.h
 
 include/bbconfigopts.h: .config
-	scripts/config/mkconfigs > $@
+	$(top_srcdir)/scripts/config/mkconfigs > $@
 endif
 
 depend dep $(top_builddir)/.depend: .depend
@@ -244,48 +295,6 @@ finished2:
 	$(SECHO)
 	$(SECHO) Finished installing...
 	$(SECHO)
-
-else # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
-
-all: menuconfig
-
-# configuration
-# ---------------------------------------------------------------------------
-
-scripts/config/conf: scripts/config/Makefile $(top_srcdir)/Rules.mak
-	$(MAKE) -C scripts/config conf
-	-@if [ ! -f .config ] ; then \
-		cp $(CONFIG_DEFCONFIG) .config; \
-	fi
-
-scripts/config/mconf: scripts/config/Makefile $(top_srcdir)/Rules.mak
-	$(MAKE) -C scripts/config ncurses conf mconf
-	-@if [ ! -f .config ] ; then \
-		cp $(CONFIG_DEFCONFIG) .config; \
-	fi
-
-menuconfig: scripts/config/mconf
-	@./scripts/config/mconf $(CONFIG_CONFIG_IN)
-
-config: scripts/config/conf
-	@./scripts/config/conf $(CONFIG_CONFIG_IN)
-
-oldconfig: scripts/config/conf
-	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
-
-randconfig: scripts/config/conf
-	@./scripts/config/conf -r $(CONFIG_CONFIG_IN)
-
-allyesconfig: scripts/config/conf
-	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX).*/# \1 is not set/" .config
-	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
-
-allnoconfig: scripts/config/conf
-	@./scripts/config/conf -n $(CONFIG_CONFIG_IN)
-
-defconfig: scripts/config/conf
-	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
 
 clean:
 	- $(MAKE) -C scripts/config $@
@@ -326,8 +335,6 @@ release: distclean #doc
 tags:
 	ctags -R .
 
-
-endif # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 endif # ifeq ($(skip-makefile),)
 

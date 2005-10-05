@@ -1,14 +1,50 @@
+Building:
+=========
+
+You will usually build in the source-tree.
+
+Alternatively you can build out-of-tree to have the object files separated
+from the source. This allows for building several different configurations
+from the same set of sources.
+
+A) Building in the source-tree:
+-------------------------------
+
 1) Run 'make config' or 'make menuconfig' and select the
    functionality that you wish to enable.
 
 2) Run 'make'
 
-3) Go get a drink of water, drink a soda, visit the bathroom,
-    or whatever while it compiles.  It doesn't take very
-    long to compile, so you don't really need to waste too
-    much time waiting...
-
-4) Run 'make install' or 'make PREFIX=/target install' to
+3) Run 'make install' or 'make PREFIX=/target install' to
     install busybox and all the needed links.  Some people
     will prefer to install using hardlinks and will instead
     want to run 'make install-hardlinks'....
+
+B) Building out-of-tree:
+------------------------
+
+1) make the directory to hold the object files and chdir to it:
+   'mkdir /tmp/bb ; cd /tmp/bb'
+   Then prepare the config giving the full path to the source in top_srcdir:
+   make top_srcdir=/path/busybox -f /path/busybox/Makefile O=/tmp/b allyesconfig
+ 
+   Note that O=$(pwd) is the default if no O= was specified.
+
+   You now have a buildable tree in $O and can run 'make' without the need
+   to specify any paths.
+
+   Proceed with step #A2 above.
+
+
+Installation:
+=============
+
+After the build is complete, a busybox.links file is generated.  This is
+used by 'make install' to create symlinks to the BusyBox binary for all
+compiled in functions.  By default, 'make install' will place the symlink
+forest into `pwd`/_install unless you have defined the PREFIX environment
+variable (i.e., 'make PREFIX=/tmp/foo install')
+
+If you wish to install hard links, rather than symlinks, you can use
+'make PREFIX=/tmp/foo install-hardlinks' instead.
+

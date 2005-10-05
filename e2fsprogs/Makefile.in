@@ -39,7 +39,18 @@ UUID_SRC    := compare.c gen_uuid.c pack.c parse.c unpack.c unparse.c \
 UUID_SRCS   := $(patsubst %,uuid/%, $(UUID_SRC))
 UUID_OBJS   := $(patsubst %.c,%.o, $(UUID_SRCS))
 
-E2FSPROGS-:=
+# for building out-of-tree we need to make sure that the directories to hold
+# the object tree are created
+$(patsubst %,$(E2FSPROGS_DIR)/%, blkid e2fsck e2p ext2fs uuid):
+	mkdir -p "$@"
+
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(BLKID_OBJS)):$(E2FSPROGS_DIR)/blkid
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(E2FSCK_OBJS)):$(E2FSPROGS_DIR)/e2fsck
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(E2P_OBJS)):$(E2FSPROGS_DIR)/e2p
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(EXT2FS_OBJS)):$(E2FSPROGS_DIR)/ext2fs
+$(patsubst %,$(E2FSPROGS_DIR)/%, $(UUID_OBJS)):$(E2FSPROGS_DIR)/uuid
+
+E2FSPROGS-y:=
 E2FSPROGS-$(CONFIG_CHATTR)     += chattr.o $(E2P_OBJS)
 E2FSPROGS-$(CONFIG_E2FSCK)     += e2fsck.o util.o $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)
 E2FSPROGS-$(CONFIG_FSCK)       += fsck.o base_device.o $(BLKID_OBJS) $(UUID_OBJS)
@@ -53,5 +64,6 @@ libraries-y+=$(E2FSPROGS_DIR)/$(E2FSPROGS_AR)
 $(E2FSPROGS_DIR)/$(E2FSPROGS_AR): $(patsubst %,$(E2FSPROGS_DIR)/%, $(E2FSPROGS-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(E2FSPROGS_DIR)/%, $(E2FSPROGS-y))
 
-$(E2FSPROGS_DIR)/%.o: $(E2FSPROGS_DIR)/%.c
+$(E2FSPROGS_DIR)/%.o: $(subst $(top_builddir),$(top_srcdir),$(E2FSPROGS_DIR)/%.c)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(E2FSPROGS_CFLAGS) -c -o $@ $<
+
