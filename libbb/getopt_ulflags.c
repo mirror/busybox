@@ -134,9 +134,12 @@ const char *bb_opt_complementally
 	llist_t *my_b = NULL;
 	int verbose_level = 0;
 	bb_opt_complementally = "vv:b*:b-c:c-b";
-	bb_getopt_ulflags(argc, argv, "vb:c", &my_b, &verbose_level);
-	while (my_b) { dosomething_with(my_b->data) ; my_b = my_b->link; }
-	if (verbose_level) bb_printf("verbose\n");
+	f = bb_getopt_ulflags(argc, argv, "vb:c", &my_b, &verbose_level);
+	if((f & 2))     // -c after -b unset this -b flag
+	  while (my_b) { dosomething_with(my_b->data) ; my_b = my_b->link; }
+	if(my_b)        // but llist stored always if -b found
+		free_llist(my_b);
+	if (verbose_level) bb_printf("verbose level is %d\n", verbose_level);
 
 Special characters:
 
@@ -174,8 +177,8 @@ Special characters:
 	bb_opt_complementally = "-:w-x:x-w";
 	bb_getopt_ulflags(argc, argv, "wx");
 
-	Allows option 'w' to be given without a dash (./program w x)
-	as well as with a dash (./program -x).
+	Allows any arguments to be given without a dash (./program w x)
+	as well as with a dash (./program -x). Why unset -w see above.
 
  "~"    A tilde between two options, or between an option and a group
 	of options, means that they are mutually exclusive.  Unlike
