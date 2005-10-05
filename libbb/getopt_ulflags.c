@@ -132,7 +132,7 @@ const char *bb_opt_complementally
 
 	llist_t *my_b = NULL;
 	int verbose_level = 0;
-	bb_opt_complementally = "vvb*b-c:c-b";
+	bb_opt_complementally = "vv:b*:b-c:c-b";
 	bb_getopt_ulflags(argc, argv, "vb:c", &my_b, &verbose_level);
 	while (my_b) { dosomething_with(my_b->data) ; my_b = my_b->link; }
 	if (verbose_level) bb_printf("verbose\n");
