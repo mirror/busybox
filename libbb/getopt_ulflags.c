@@ -111,7 +111,8 @@ const char *bb_opt_complementally
 	found.
 
  "ww"   Adjacent double options have a counter associated which indicates
-    the number of occurances of the option. For example the ps applet needs:
+	the number of occurances of the option.
+	For example the ps applet needs:
 	if w is given once, GNU ps sets the width to 132,
 	if w is given more than once, it is "unlimited"
 
@@ -170,11 +171,11 @@ Special characters:
 	convert the arguments as option.
 	For example:
 
-	bb_opt_complementally = "-:w";
-	bb_getopt_ulflags(argc, argv, "w");
+	bb_opt_complementally = "-:w-x:x-w";
+	bb_getopt_ulflags(argc, argv, "wx");
 
-	Allows option 'w' to be given without a dash (./program w)
-	as well as with a dash (./program -w).
+	Allows option 'w' to be given without a dash (./program w x)
+	as well as with a dash (./program -x).
 
  "~"    A tilde between two options, or between an option and a group
 	of options, means that they are mutually exclusive.  Unlike
