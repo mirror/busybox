@@ -177,8 +177,6 @@
 #define CNT_INTVL       60              /* servers in CNT_INTVL sec. */
 #define RETRYTIME       (60*10)         /* retry after bind or server fail */
 
-#define SIGBLOCK        (sigmask(SIGCHLD)|sigmask(SIGHUP)|sigmask(SIGALRM))
-
 #ifndef RLIMIT_NOFILE
 #define RLIMIT_NOFILE   RLIMIT_OFILE
 #endif
@@ -1276,6 +1274,7 @@ inetd_main (int argc, char *argv[])
   pid_t pid;
   char buf[50];
   char *stoomany;
+  sigset_t omask;
 
 #ifdef INETD_SETPROCTITLE
   extern char **environ;
@@ -1383,10 +1382,10 @@ inetd_main (int argc, char *argv[])
 	fd_set readable;
 
 	if (nsock == 0) {
-	  (void) sigblock (SIGBLOCK);
+	  Block_Using_Signals(omask);
 	  while (nsock == 0)
 		sigpause (0L);
-	  (void) sigsetmask (0L);
+	  sigprocmask(SIG_UNBLOCK, &omask, NULL);
 	}
 
 	readable = allsock;
@@ -1425,7 +1424,7 @@ inetd_main (int argc, char *argv[])
 		  }
 		} else
 		  ctrl = sep->se_fd;
-		(void) sigblock (SIGBLOCK);
+		Block_Using_Signals(omask);
 		pid = 0;
 #ifdef INETD_FEATURE_ENABLED
 		if (sep->se_bi == 0 || sep->se_bi->bi_fork)
@@ -1463,7 +1462,7 @@ inetd_main (int argc, char *argv[])
 			  sep->se_fd = -1;
 			  sep->se_count = 0;
 			  nsock--;
-			  sigsetmask (0L);
+			  sigprocmask(SIG_UNBLOCK, &omask, NULL);
 			  if (!timingout) {
 				timingout = 1;
 				alarm (RETRYTIME);
@@ -1477,7 +1476,7 @@ inetd_main (int argc, char *argv[])
 		  syslog (LOG_ERR, "fork: %m");
 		  if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
 			close (ctrl);
-		  sigsetmask (0L);
+		  sigprocmask(SIG_UNBLOCK, &omask, NULL);
 		  sleep (1);
 		  continue;
 		}
@@ -1486,7 +1485,7 @@ inetd_main (int argc, char *argv[])
 		  FD_CLR (sep->se_fd, &allsock);
 		  nsock--;
 		}
-		sigsetmask (0L);
+		sigprocmask(SIG_UNBLOCK, &omask, NULL);
 		if (pid == 0) {
 #ifdef INETD_FEATURE_ENABLED
 		  if (sep->se_bi) {
