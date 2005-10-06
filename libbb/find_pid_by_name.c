@@ -4,19 +4,7 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
 
 #include <stdio.h>
@@ -24,10 +12,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include "libbb.h"
-
-#define COMM_LEN 16 /* synchronize with size of comm in struct task_struct
-					   in /usr/include/linux/sched.h */
-
 
 /* find_pid_by_name()
  *
@@ -37,6 +21,7 @@
  *  the proc filesystem.
  *
  *  Returns a list of all matching PIDs
+ *  It is the caller's duty to free the returned pidlist.
  */
 extern long* find_pid_by_name( const char* pidName)
 {
@@ -45,7 +30,7 @@ extern long* find_pid_by_name( const char* pidName)
 	procps_status_t * p;
 
 	pidList = xmalloc(sizeof(long));
-	while ((p = procps_scan(0)) != 0) 
+	while ((p = procps_scan(0)) != 0)
 	{
 		if (strncmp(p->short_cmd, pidName, COMM_LEN-1) == 0) {
 			pidList=xrealloc( pidList, sizeof(long) * (i+2));
@@ -54,6 +39,22 @@ extern long* find_pid_by_name( const char* pidName)
 	}
 
 	pidList[i] = i==0 ? -1 : 0;
+	return pidList;
+}
+
+extern long *pidlist_reverse(long *pidList)
+{
+	int i=0;
+	while (pidList[i] > 0 && i++);
+	if ( i-- > 0) {
+		long k;
+		int j;
+		for (j = 0; i > j; i--, j++) {
+			k = pidList[i];
+			pidList[i] = pidList[j];
+			pidList[j] = k;
+		}
+	}
 	return pidList;
 }
 

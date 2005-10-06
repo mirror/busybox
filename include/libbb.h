@@ -131,6 +131,7 @@ extern int get_console_fd(void);
 extern struct mntent *find_mount_point(const char *name, const char *table);
 extern void erase_mtab(const char * name);
 extern long *find_pid_by_name( const char* pidName);
+extern long *pidlist_reverse(long *pidList);
 extern char *find_block_device(char *path);
 extern char *bb_get_line_from_file(FILE *file);
 extern char *bb_get_chomped_line_from_file(FILE *file);
@@ -431,6 +432,15 @@ extern ssize_t bb_xread(int fd, void *buf, size_t count);
 extern void bb_xread_all(int fd, void *buf, size_t count);
 extern unsigned char bb_xread_char(int fd);
 
+#ifndef COMM_LEN
+/*#include <sched.h> *//* Task command name length */
+#ifdef TASK_COMM_LEN
+#define COMM_LEN TASK_COMM_LEN
+#else
+#define COMM_LEN 16 /* synchronize with size of comm in struct task_struct
+					                          in /usr/include/linux/sched.h */
+#endif
+#endif
 typedef struct {
 	int pid;
 	char user[9];
@@ -446,7 +456,7 @@ typedef struct {
 
 	/* basename of executable file in call to exec(2),
 		size from kernel headers */
-	char short_cmd[16];
+	char short_cmd[COMM_LEN];
 } procps_status_t;
 
 extern procps_status_t * procps_scan(int save_user_arg0);
@@ -460,6 +470,8 @@ typedef struct llist_s {
 } llist_t;
 extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
 extern llist_t *llist_add_to_end(llist_t *list_head, char *data);
+extern llist_t *llist_free_one(llist_t *elm);
+extern void llist_free(llist_t *elm);
 
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
