@@ -29,17 +29,12 @@
 extern mode_t getopt_mk_fifo_nod(int argc, char **argv)
 {
 	mode_t mode = 0666;
-	int opt;
+	char *smode = NULL;
 
-	while ((opt = getopt(argc, argv, "m:")) > 0) {
-		if (opt == 'm') {
-			mode = 0666;
-			if (bb_parse_mode(optarg, &mode)) {
-				umask(0);
-				continue;
-			}
-		}
-		bb_show_usage();
+	bb_getopt_ulflags(argc, argv, "m:", &smode);
+	if(smode) {
+		if (bb_parse_mode(smode, &mode)) 
+			umask(0);
 	}
 	return mode;
 }
