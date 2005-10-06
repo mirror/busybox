@@ -54,7 +54,7 @@ config_is_set ()
 
 # The testing function
 
-testing()
+testing ()
 {
   if [ $# -ne 5 ]
   then
@@ -62,11 +62,11 @@ testing()
     exit
   fi
 
-  if [ "$debug" = "1" ] ; then
+  if [ $debug -eq 1 ] ; then
     set -x
   fi
 
-  if [ -n "$_BB_CONFIG_DEP" ] && [ "${force}" = "0" ]
+  if [ -n "$_BB_CONFIG_DEP" ] && [ ${force} -eq 0 ]
   then
     if ! config_is_set "$_BB_CONFIG_DEP"
     then
@@ -85,7 +85,7 @@ testing()
   then
 	((FAILCOUNT++))
 	echo "FAIL: $1"
-	if [ "$verbose" = "1" ]
+	if [ $verbose -eq 1 ]
 	then
 		diff -u expected actual
 	fi
@@ -94,7 +94,7 @@ testing()
   fi
   rm -f input expected actual
 
-  if [ "$debug" = "1" ] ; then
+  if [ $debug -eq 1 ] ; then
     set +x
   fi
 

@@ -37,7 +37,7 @@ run_applet_testcase ()
 
 	if [ $? != 0 ] ; then
 		echo FAIL: $testname
-		if [ "$verbose" = 1 ]; then
+		if [ $verbose -gt 0 ]; then
 			cat .logfile.txt
 			#exit 1;
 		fi;
@@ -77,14 +77,16 @@ run_applet_tests ()
 
 
 status=0
+verbose=0
 
 if [ x"$1" = x"-v" ]; then
 	verbose=1
+	export VERBOSE=$verbose
 	shift
 fi
 
 if [ $# -ne 0 ]; then
-	applets="$@"
+	applets=$(cd $srcdir ; for i in $@; do ls ${i}* ; done)
 else
 	applets=$(ls $srcdir)
 fi

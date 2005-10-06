@@ -216,9 +216,19 @@ uninstall: busybox.links
 install-hardlinks: $(top_srcdir)/applets/install.sh busybox busybox.links
 	$(SHELL) $< $(PREFIX) --hardlinks
 
+# see if we are in verbose mode
+KBUILD_VERBOSE :=
+ifdef V
+  ifeq ("$(origin V)", "command line")
+    KBUILD_VERBOSE := $(V)
+  endif
+endif
+ifneq ($(strip $(KBUILD_VERBOSE)),)
+  CHECK_VERBOSE := -v
+endif
 check test: busybox
 	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
-	$(top_srcdir)/testsuite/runtest
+	$(top_srcdir)/testsuite/runtest $(CHECK_VERBOSE)
 
 sizes:
 	-rm -f busybox
