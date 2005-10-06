@@ -624,6 +624,9 @@ static int show_dep(int first, bb_key_t *k, const char *name)
     return first;
 }
 
+static char *pwd;
+static char *replace;
+
 static struct stat st_kp;
 static int dontgenerate_dep;
 
@@ -670,11 +673,23 @@ parse_chd(const char *fe, const char *p, size_t dirlen)
 	    if(*e == 'c') {
 		/* *.c -> *.o */
 		*e = 'o';
+		if(replace) {
+			/* /src_dir/path/file.o to path/file.o */
+			e = fp + strlen(replace);
+			while(*e == '/')
+				e++;
+			/* path/file.o to pwd/path/file.o */
+			e = fp = bb_asprint("%s/%s", pwd, e);
+		}
+	    } else {
+		e = NULL;
 	    }
 	    first = show_dep(1, Ifound, fp);
 	    first = show_dep(first, key_top, fp);
 	    if(first == 0)
 		putchar('\n');
+	    if(replace && e)
+		free(e);
 	}
 	return NULL;
     } else if(S_ISDIR(st.st_mode)) {
@@ -711,6 +726,10 @@ static void scan_dir_find_ch_files(const char *p)
     size_t dirlen;
 
     dirs = llist_add_to(NULL, bb_simplify_path(p));
+    if(strcmp(dirs->data, pwd))
+	replace = bb_xstrdup(dirs->data);
+    else
+	replace = NULL;
     /* emulate recursive */
     while(dirs) {
 	d_add = NULL;
@@ -736,9 +755,10 @@ static void scan_dir_find_ch_files(const char *p)
 	}
 	dirs = d_add;
     }
+    free(replace);
+    replace = NULL;
 }
 
-static char *pwd;
 
 int main(int argc, char **argv)
 {
