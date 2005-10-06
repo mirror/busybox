@@ -52,7 +52,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 
-#include "libbb.h"
+#include "busybox.h"
 
 static const struct option runparts_long_options[] = {
 	{ "test",		0,		NULL,		't' },

@@ -20,7 +20,7 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-#include "libbb.h"
+#include "busybox.h"
 
 #ifdef USE_TTY_GROUP
 #define S_IWGRP_OR_S_IWOTH	S_IWGRP

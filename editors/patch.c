@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "busybox.h"
-#include "libbb.h"
 
 static int copy_lines(FILE *src_stream, FILE *dest_stream, const unsigned int lines_count)
 {
