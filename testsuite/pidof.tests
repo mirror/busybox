@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# pidof tests.
+# Copyright 2005 by Bernhard Fischer
+# Licensed under GPL v2, see file LICENSE for details.
+
+# AUDIT: 
+
+[ ${#COMMAND} -eq 0 ] && COMMAND=pidof
+. testing.sh
+
+# testing "test name" "options" "expected result" "file input" "stdin"
+
+testing "pidof (exit with error)" "veryunlikelyoccuringbinaryname ; echo \$?" \
+	"\n1\n" "" ""
+testing "pidof (exit with success)" "pidof > /dev/null; echo \$?" "0\n" "" ""
+
+
+# Depends on FEATURE_PIDOF_SINGLE
+_BB_CONFIG_DEP=FEATURE_PIDOF_SINGLE
+testing "pidof -s" "-s $(basename $0) ; echo -n \$?" \
+	"$(pidof -s $(basename $0) ; echo -n $?)" "" ""
+
+# Depends on FEATURE_PIDOF_OMIT
+_BB_CONFIG_DEP=FEATURE_PIDOF_OMIT
+testing "pidof -o %PPID" "$(basename $0) -o %PPID ; echo -n \$?" \
+	"$(pidof $(basename $0) -o %PPID ; echo -n $?)" "" ""
+
+exit $FAILCOUNT
