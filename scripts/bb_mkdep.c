@@ -1,5 +1,5 @@
 /*
- * Another fast dependencies generator for Makefiles, Version 2.3
+ * Another fast dependencies generator for Makefiles, Version 2.4
  *
  * Copyright (C) 2005 by Vladimir Oleynik <dzo@simtreas.ru>
  * mmaping file may be originally by Linus Torvalds.
@@ -12,10 +12,10 @@
  * This program does:
  * 1) find #define KEY VALUE or #undef KEY from include/config.h
  * 2) save include/config/key*.h if changed after previous usage
- * 3) recursive scan from "./" *.[ch] files, but skips scan of include/config/
+ * 3) recursive find and scan *.[ch] files, but skips scan of include/config/
  * 4) find #include "*.h" and KEYs using, if not as #define and #undef
  * 5) generate dependencies to stdout
- *    path/file.o: include/config/key*.h found_include_*.h
+ *    pwd/file.o: include/config/key*.h found_include_*.h
  *    path/inc.h: include/config/key*.h found_included_include_*.h
  * This program does not generate dependencies for #include <...>
  * BUG: all includes name must unique
