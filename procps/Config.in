@@ -37,6 +37,22 @@ config CONFIG_PIDOF
 	  Pidof finds the process id's (pids) of the named programs. It prints
 	  those id's on the standard output.
 
+config CONFIG_FEATURE_PIDOF_SINGLE
+	bool "  Enable argument for single shot (-s)"
+	default n
+	depends on CONFIG_PIDOF
+	help
+	  Support argument '-s' for returning only the first pid found.
+
+config CONFIG_FEATURE_PIDOF_OMIT
+	bool "  Enable argument for omitting pids (-o)"
+	default n
+	depends on CONFIG_PIDOF
+	help
+	  Support argument '-o' for omitting the given pids in output.
+	  The special pid %PPID can be used to name the parent process
+	  of the pidof, in other words the calling shell or shell script.
+
 config CONFIG_PS
 	bool "ps"
 	default n

@@ -2160,16 +2160,37 @@
 	"$ patch -p1 <example.diff\n" \
 	"$ patch -p0 -i example.diff"
 
+#if ENABLE_FEATURE_PIDOF_SINGLE
+#define USAGE_FEATURE_PIDOF_SINGLE(a) a
+#else
+#define USAGE_FEATURE_PIDOF_SINGLE(a)
+#endif
+#if ENABLE_FEATURE_PIDOF_OMIT
+#define USAGE_FEATURE_PIDOF_OMIT(a) a
+#else
+#define USAGE_FEATURE_PIDOF_OMIT(a)
+#endif
+#if (ENABLE_FEATURE_PIDOF_SINGLE || ENABLE_FEATURE_PIDOF_OMIT)
+#define USAGE_PIDOF "Options:"
+#else
+#define USAGE_PIDOF "\n\tThis version of pidof accepts no options."
+#endif
+
 #define pidof_trivial_usage \
 	"process-name [OPTION] [process-name ...]"
+
 #define pidof_full_usage \
 	"Lists the PIDs of all processes with names that match the\n" \
 	"names on the command line.\n" \
-	"Options:\n" \
-	"\t-s\t\tdisplay only a single PID"
+	USAGE_PIDOF \
+	USAGE_FEATURE_PIDOF_SINGLE("\n\t-s\t\tdisplay only a single PID") \
+	USAGE_FEATURE_PIDOF_OMIT("\n\t-o\t\tomit given pid.") \
+	USAGE_FEATURE_PIDOF_OMIT("\n\t\t\tUse %PPID to omit the parent pid of pidof itself")
 #define pidof_example_usage \
 	"$ pidof init\n" \
-	"1\n"
+	"1\n" \
+	USAGE_FEATURE_PIDOF_OMIT("$ pidof /bin/sh\n20351 5973 5950\n") \
+	USAGE_FEATURE_PIDOF_OMIT("$ pidof /bin/sh -o %PPID\n20351 5950")
 
 #ifndef CONFIG_FEATURE_FANCY_PING
 #define ping_trivial_usage "host"
