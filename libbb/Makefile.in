@@ -69,7 +69,7 @@ LIBBB_MOBJ5:=bb_xgetpwnam.o bb_xgetgrnam.o bb_getgrgid.o bb_getpwuid.o \
 	bb_getug.o get_ug_id.o
 
 LIBBB_MSRC6:=$(srcdir)/llist.c
-LIBBB_MOBJ6:=llist_add_to.o llist_add_to_end.o
+LIBBB_MOBJ6:=llist_add_to.o llist_add_to_end.o llist_free_one.o llist_free.o
 
 LIBBB_MOBJS0=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ0))
 LIBBB_MOBJS1=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ1))
