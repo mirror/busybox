@@ -23,6 +23,8 @@ A) Building in the source-tree:
 B) Building out-of-tree:
 ------------------------
 
+Note that top_srcdir, O and top_builddir have to be given as absolute paths.
+
 1) make the directory to hold the object files and chdir to it:
    'mkdir /tmp/bb ; cd /tmp/bb'
    Then prepare the config giving the full path to the source in top_srcdir:
