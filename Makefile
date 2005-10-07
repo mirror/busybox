@@ -9,7 +9,8 @@
 # You shouldn't need to mess with anything beyond this point...
 #--------------------------------------------------------------
 noconfig_targets := menuconfig config oldconfig randconfig \
-	defconfig allyesconfig allnoconfig clean distclean \
+	defconfig allyesconfig allnoconfig bareconfig \
+	clean distclean \
 	release tags
 
 # the toplevel sourcedir
@@ -118,7 +119,8 @@ help:
 	@echo 'Configuration:'
 	@echo '  allnoconfig		- disable all symbols in .config'
 	@echo '  allyesconfig		- enable (almost) all symbols in .config'
-	@echo '  config		- text based configurator (of last resort).'
+	@echo '  bareconfig		- enable all basics without any features'
+	@echo '  config		- text based configurator (of last resort)'
 	@echo '  defconfig		- set .config to defaults'
 	@echo '  menuconfig		- interactive curses-based configurator'
 	@echo '  oldconfig		- resolve any unresolved symbols in .config'
@@ -187,6 +189,10 @@ allnoconfig: scripts/config/conf
 	@./scripts/config/conf -n $(CONFIG_CONFIG_IN)
 
 defconfig: scripts/config/conf
+	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
+
+bareconfig: allyesconfig
+	sed -i '/FEATURE/d' .config
 	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
 
 else # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
