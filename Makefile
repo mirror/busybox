@@ -292,11 +292,12 @@ include/bbconfigopts.h: .config
 	$(top_srcdir)/scripts/config/mkconfigs > $@
 endif
 
-depend dep $(top_builddir)/.depend: .depend
+depend dep: .depend
 .depend: scripts/bb_mkdep $(DEP_INCLUDES)
 	@rm -f .depend
 	@mkdir -p include/config
-	scripts/bb_mkdep -c include/config.h -c include/bb_config.h -I $(top_srcdir)/include $(top_srcdir)/ > $@.tmp
+	scripts/bb_mkdep -c include/config.h -c include/bb_config.h \
+			-I $(top_srcdir)/include $(top_srcdir) > $@.tmp
 	mv $@.tmp $@
 
 include/config.h: .config
@@ -355,4 +356,4 @@ tags:
 endif # ifeq ($(skip-makefile),)
 
 .PHONY: dummy subdirs release distclean clean config oldconfig \
-	menuconfig tags check test depend buildtree
+	menuconfig tags check test depend dep buildtree
