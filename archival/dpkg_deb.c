@@ -75,7 +75,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 		 * it should accept a second argument which specifies a
 		 * specific field to print */
 		ar_archive->accept = control_tar_llist;
-		tar_archive->accept = llist_add_to(NULL, "./control");;
+		tar_archive->accept = llist_add_to(NULL, "./control");
 		tar_archive->filter = filter_accept_list;
 		tar_archive->action_data = data_extract_to_stdout;
 	}

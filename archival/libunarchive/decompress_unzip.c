@@ -442,7 +442,7 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned int my_b
 		if ((e = (t = tl + ((unsigned) b & ml))->e) > 16)
 			do {
 				if (e == 99) {
-					bb_error_msg_and_die("inflate_codes error 1");;
+					bb_error_msg_and_die("inflate_codes error 1");
 				}
 				b >>= t->b;
 				k -= t->b;
@@ -478,7 +478,7 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned int my_b
 			if ((e = (t = td + ((unsigned) b & md))->e) > 16)
 				do {
 					if (e == 99)
-						bb_error_msg_and_die("inflate_codes error 2");;
+						bb_error_msg_and_die("inflate_codes error 2");
 					b >>= t->b;
 					k -= t->b;
 					e -= 16;

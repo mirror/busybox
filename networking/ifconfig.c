@@ -353,7 +353,7 @@ int ifconfig_main(int argc, char **argv)
 		for (op = OptArray; op->name; op++) {	/* Find table entry. */
 			if (strcmp(p, op->name) == 0) {	/* If name matches... */
 				if ((mask &= op->flags)) {	/* set the mask and go. */
-					goto FOUND_ARG;;
+					goto FOUND_ARG;
 				}
 				/* If we get here, there was a valid arg with an */
 				/* invalid '-' prefix. */
