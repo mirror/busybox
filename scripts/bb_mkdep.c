@@ -1,5 +1,5 @@
 /*
- * Another fast dependencies generator for Makefiles, Version 2.4
+ * Another fast dependencies generator for Makefiles, Version 2.5
  *
  * Copyright (C) 2005 by Vladimir Oleynik <dzo@simtreas.ru>
  * mmaping file may be originally by Linus Torvalds.
@@ -97,7 +97,11 @@ static void parse_conf_opt(const char *opt, const char *val,
 static char first_chars[257];  /* + L_EOF */
 static char isalnums[257];     /* + L_EOF */
 /* trick for fast find "define", "include", "undef" */
-static char first_chars_diu[256];
+static char first_chars_diu[256] = {
+	[(int)'d'] = (char)5,           /* strlen("define") - 1;  */
+	[(int)'i'] = (char)6,           /* strlen("include") - 1; */
+	[(int)'u'] = (char)4,           /* strlen("undef") - 1;   */
+};
 
 static int pagesizem1;
 static size_t mema_id = 128;   /* first allocated for id */
@@ -134,7 +138,6 @@ static char *id_s;
 #define put_id(c)   do {    if(id_len == local_mema_id)                 \
 				id = xrealloc(id, local_mema_id += 16); \
 			    id[id_len++] = c; } while(0)
-
 
 
 /* stupid C lexical analyser */
@@ -605,14 +608,19 @@ static void parse_conf_opt(const char *opt, const char *val,
 	}
 }
 
-static int show_dep(int first, bb_key_t *k, const char *name)
+static char *pwd;
+
+static int show_dep(int first, bb_key_t *k, const char *name, const char *f)
 {
     bb_key_t *cur;
 
     for(cur = k; cur; cur = cur->next) {
 	if(cur->checked) {
 	    if(first) {
-		printf("\n%s:", name);
+		if(f == NULL)
+			printf("\n%s:", name);
+		else
+			printf("\n%s/%s:", pwd, name);
 		first = 0;
 	    } else {
 		printf(" \\\n  ");
@@ -624,8 +632,7 @@ static int show_dep(int first, bb_key_t *k, const char *name)
     return first;
 }
 
-static char *pwd;
-static char *replace;
+static size_t replace;
 
 static struct stat st_kp;
 static int dontgenerate_dep;
@@ -673,23 +680,17 @@ parse_chd(const char *fe, const char *p, size_t dirlen)
 	    if(*e == 'c') {
 		/* *.c -> *.o */
 		*e = 'o';
-		if(replace) {
-			/* /src_dir/path/file.o to path/file.o */
-			e = fp + strlen(replace);
-			while(*e == '/')
-				e++;
-			/* path/file.o to pwd/path/file.o */
-			e = fp = bb_asprint("%s/%s", pwd, e);
-		}
+		/* /src_dir/path/file.o to path/file.o */
+		fp += replace;
+		if(*fp == '/')
+			fp++;
 	    } else {
 		e = NULL;
 	    }
-	    first = show_dep(1, Ifound, fp);
-	    first = show_dep(first, key_top, fp);
+	    first = show_dep(1, Ifound, fp, e);
+	    first = show_dep(first, key_top, fp, e);
 	    if(first == 0)
 		putchar('\n');
-	    if(replace && e)
-		free(e);
 	}
 	return NULL;
     } else if(S_ISDIR(st.st_mode)) {
@@ -726,10 +727,7 @@ static void scan_dir_find_ch_files(const char *p)
     size_t dirlen;
 
     dirs = llist_add_to(NULL, bb_simplify_path(p));
-    if(strcmp(dirs->data, pwd))
-	replace = bb_xstrdup(dirs->data);
-    else
-	replace = NULL;
+    replace = strlen(dirs->data);
     /* emulate recursive */
     while(dirs) {
 	d_add = NULL;
@@ -755,8 +753,6 @@ static void scan_dir_find_ch_files(const char *p)
 	}
 	dirs = d_add;
     }
-    free(replace);
-    replace = NULL;
 }
 
 
@@ -832,10 +828,6 @@ int main(int argc, char **argv)
 		first_chars[i] = ANY;
 	}
 	first_chars[i] = '-';   /* L_EOF */
-	/* trick for fast find "define", "include", "undef" */
-	first_chars_diu[(int)'d'] = (char)5;    /* strlen("define") - 1;  */
-	first_chars_diu[(int)'i'] = (char)6;    /* strlen("include") - 1; */
-	first_chars_diu[(int)'u'] = (char)4;    /* strlen("undef") - 1;   */
 
 	/* parse configs */
 	for(fl = configs; fl; fl = fl->link) {
