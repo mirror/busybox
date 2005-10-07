@@ -45,7 +45,7 @@ extern long* find_pid_by_name( const char* pidName)
 extern long *pidlist_reverse(long *pidList)
 {
 	int i=0;
-	while (pidList[i] > 0 && i++);
+	while (pidList[i] > 0 && ++i);
 	if ( i-- > 0) {
 		long k;
 		int j;

@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include "busybox.h"
 
@@ -29,7 +30,6 @@
 #if ENABLE_FEATURE_PIDOF_OMIT
 #define _OMIT_COMPL(a) a
 #define _OMIT(a) ,a
-static llist_t *omits; /* list of pids to omit */
 #if ENABLE_FEATURE_PIDOF_SINGLE
 #define OMIT (1<<1)
 #else
@@ -39,58 +39,45 @@ static llist_t *omits; /* list of pids to omit */
 #define _OMIT_COMPL(a) ""
 #define _OMIT(a)
 #define OMIT (0)
+#define omitted (0)
 #endif
 
 extern int pidof_main(int argc, char **argv)
 {
-	int n = 0;
-	int fail = 1;
+	unsigned n = 0;
+	unsigned fail = 1;
 	unsigned long int opt;
 #if ENABLE_FEATURE_PIDOF_OMIT
+	llist_t *omits = NULL; /* list of pids to omit */
 	bb_opt_complementally = _OMIT_COMPL("o*");
 #endif
 
-	/* do option parsing */
-	if ((opt = bb_getopt_ulflags(argc, argv,
+	/* do unconditional option parsing */
+	opt = bb_getopt_ulflags(argc, argv,
 					_SINGLE_COMPL("s") _OMIT_COMPL("o:")
-					_OMIT(&omits)))
-			> 0) {
-#if ENABLE_FEATURE_PIDOF_SINGLE
-		if (!(opt & SINGLE))
-#endif
-#if ENABLE_FEATURE_PIDOF_OMIT
-		if (!(opt & OMIT))
-#endif
-		bb_show_usage();
-	}
+					_OMIT(&omits));
 
 #if ENABLE_FEATURE_PIDOF_OMIT
 	/* fill omit list.  */
 	{
-	RESERVE_CONFIG_BUFFER(getppid_str, 32);
-	llist_t * omits_p = omits;
-	while (omits_p) {
-		/* are we asked to exclude the parent's process ID?  */
-		if (omits_p->data[0] == '%') {
+		RESERVE_CONFIG_BUFFER(getppid_str, 32);
+		llist_t * omits_p = omits;
+		while (omits_p) {
+			/* are we asked to exclude the parent's process ID?  */
 			if (!strncmp(omits_p->data, "%PPID", 5)) {
-				/* yes, exclude ppid */
-				snprintf(getppid_str, sizeof(getppid_str), "%ld", getppid());
-//				omits_p->data = getppid_str;
+				omits_p = llist_free_one(omits_p);
+				snprintf(getppid_str, sizeof(getppid_str), "%d", getppid());
+				omits_p = llist_add_to(omits_p, getppid_str);
 #if 0
 			} else {
 				bb_error_msg_and_die("illegal omit pid value (%s)!\n",
 						omits_p->data);
 #endif
 			}
-		} else {
-		/* no, not talking about ppid but deal with usual case (pid).  */
-			snprintf(getppid_str, sizeof(getppid_str), "%ld",
-					strtol(omits_p->data, NULL, 10));
+			omits_p = omits_p->link;
 		}
-		omits_p->data = getppid_str;
-		omits_p = omits_p->link;
-	}
-	RELEASE_CONFIG_BUFFER(getppid_str);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			RELEASE_CONFIG_BUFFER(getppid_str);
 	}
 #endif
 	/* Looks like everything is set to go.  */
@@ -102,7 +89,7 @@ extern int pidof_main(int argc, char **argv)
 		pidList = pidlist_reverse(find_pid_by_name(argv[optind]));
 		for(pl = pidList; *pl > 0; pl++) {
 #if ENABLE_FEATURE_PIDOF_OMIT
-			unsigned short omitted = 0;
+			unsigned omitted = 0;
 			if (opt & OMIT) {
 				llist_t *omits_p = omits;
 				while (omits_p)
@@ -111,18 +98,19 @@ extern int pidof_main(int argc, char **argv)
 					} else
 						omits_p = omits_p->link;
 			}
-			if (!omitted)
 #endif
-			printf("%s%ld", (n++ ? " " : ""), *pl);
-#if ENABLE_FEATURE_PIDOF_OMIT
-			fail = omitted;
-#else
-			fail = 0;
-#endif
-#if ENABLE_FEATURE_PIDOF_SINGLE
-			if (opt & SINGLE)
+			if (!omitted) {
+				if (n) {
+					putchar(' ');
+				} else {
+					n = 1;
+				}
+				printf("%ld", *pl);
+			}
+			fail = (!ENABLE_FEATURE_PIDOF_OMIT && omitted);
+
+			if (ENABLE_FEATURE_PIDOF_SINGLE && (opt & SINGLE))
 				break;
-#endif
 		}
 		free(pidList);
 		optind++;
