@@ -28,11 +28,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include "busybox.h"
 
-/* This must be a #define, since when CONFIG_DEBUG and BUFFERS_GO_IN_BSS are
- * enabled, we otherwise get a "storage size isn't constant error. */
 #define ASCII 0377
 
 /* some "globals" shared across this file */
@@ -93,6 +92,7 @@ static void map(register unsigned char *string1, unsigned int string1_len,
 /* supported constructs:
  *   Ranges,  e.g.,  [0-9]  ==>  0123456789
  *   Escapes, e.g.,  \a     ==>  Control-G
+ *	 Character classes, e.g. [:upper:] ==> A ... Z
  */
 static unsigned int expand(const char *arg, register unsigned char *buffer)
 {
@@ -115,12 +115,64 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 			arg += 3; /* Skip the assumed a-z */
 		} else if (*arg == '[') {
 			arg++;
-			i = *arg++;
+			if (ENABLE_FEATURE_TR_CLASSES && *arg++ == ':') {
+				if (strncmp(arg, "alpha", 5) == 0) {
+					for (i = 'A'; i <= 'Z'; i++)
+						*buffer++ = i;
+					for (i = 'a'; i <= 'z'; i++)
+						*buffer++ = i;
+				}
+				else if (strncmp(arg, "alnum", 5) == 0) {
+					for (i = 'A'; i <= 'Z'; i++)
+						*buffer++ = i;
+					for (i = 'a'; i <= 'z'; i++)
+						*buffer++ = i;
+					for (i = '0'; i <= '9'; i++)
+						*buffer++ = i;
+				}
+				else if (strncmp(arg, "digit", 5) == 0)
+					for (i = '0'; i <= '9'; i++)
+						*buffer++ = i;
+				else if (strncmp(arg, "lower", 5) == 0)
+					for (i = 'a'; i <= 'z'; i++)
+						*buffer++ = i;
+				else if (strncmp(arg, "upper", 5) == 0)
+					for (i = 'A'; i <= 'Z'; i++)
+						*buffer++ = i;
+				else if (strncmp(arg, "space", 5) == 0)
+					strcat(buffer, " \f\n\r\t\v");
+				else if (strncmp(arg, "blank", 5) == 0)
+					strcat(buffer, " \t");
+				/* gcc gives a warning if braces aren't used here */
+				else if (strncmp(arg, "punct", 5) == 0) {
+					for (i = 0; i <= ASCII; i++)
+						if (isprint(i) && (!isalnum(i)) && (!isspace(i)))
+							*buffer++ = i;
+				}
+				else if (strncmp(arg, "cntrl", 5) == 0) {
+					for (i = 0; i <= ASCII; i++)
+						if (iscntrl(i))
+							*buffer++ = i;
+				}
+				else {
+					strcat(buffer, "[:");
+					arg++;
+					continue;
+				}
+				break;
+			}
+			if (ENABLE_FEATURE_TR_EQUIV && *arg++ == '=') {
+				*buffer++ = *arg;
+				/* skip the closing =] */
+				arg += 3;
+				continue;
+			}
 			if (*arg++ != '-') {
 				*buffer++ = '[';
 				arg -= 2;
 				continue;
 			}
+			i = *arg++;
 			ac = *arg++;
 			while (i <= ac)
 				*buffer++ = i++;
