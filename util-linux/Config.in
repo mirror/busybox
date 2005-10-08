@@ -325,7 +325,7 @@ config CONFIG_MOUNT
 	  NFS filesystems.  Most people using BusyBox will also want to enable
 	  the 'mount' utility.
 
-config CONFIG_NFSMOUNT
+config CONFIG_FEATURE_MOUNT_NFS
 	bool "  Support mounting NFS file systems"
 	default n
 	depends on CONFIG_MOUNT

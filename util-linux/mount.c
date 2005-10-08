@@ -37,7 +37,7 @@
 
 /* This is just a warning of a common mistake.  Possibly this should be a
  * uclibc faq entry rather than in busybox... */
-#if ENABLE_NFSMOUNT && defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
+#if ENABLE_FEATURE_MOUNT_NFS && defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
 #error "You need to build uClibc with UCLIBC_HAS_RPC for busybox mount with NFS support to compile."
 #endif
 
@@ -278,7 +278,7 @@ singlemount:
 
 		// Might this be an NFS filesystem?
 
-		if(ENABLE_NFSMOUNT && (!fsType || !strcmp(fsType,"nfs")) &&
+		if(ENABLE_FEATURE_MOUNT_NFS && (!fsType || !strcmp(fsType,"nfs")) &&
 			strchr(blockDevice, ':') != NULL)
 		{
 			if(nfsmount(blockDevice, directory, &flags, &string_flags, 1))
