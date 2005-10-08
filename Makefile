@@ -9,7 +9,7 @@
 # You shouldn't need to mess with anything beyond this point...
 #--------------------------------------------------------------
 noconfig_targets := menuconfig config oldconfig randconfig \
-	defconfig allyesconfig allnoconfig bareconfig \
+	defconfig allyesconfig allnoconfig allbareconfig \
 	clean distclean \
 	release tags
 
@@ -119,7 +119,7 @@ help:
 	@echo 'Configuration:'
 	@echo '  allnoconfig		- disable all symbols in .config'
 	@echo '  allyesconfig		- enable (almost) all symbols in .config'
-	@echo '  bareconfig		- enable all basics without any features'
+	@echo '  allbareconfig		- enable all basics without any features'
 	@echo '  config		- text based configurator (of last resort)'
 	@echo '  defconfig		- set .config to defaults'
 	@echo '  menuconfig		- interactive curses-based configurator'
@@ -191,9 +191,12 @@ allnoconfig: scripts/config/conf
 defconfig: scripts/config/conf
 	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
 
-bareconfig: allyesconfig
-	sed -i '/FEATURE/d' .config
-	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
+allbareconfig: scripts/config/conf
+	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
+	sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX).*/# \1 is not set/" .config
+	sed -i -e "/FEATURE/s/=.*//;/^[^#]/s/.*FEATURE.*/# \0 is not set/;" .config
+	@echo "CONFIG_FEATURE_BUFFERS_GO_ON_STACK=y" >> .config
+	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 else # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
