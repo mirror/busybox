@@ -36,6 +36,7 @@
 
 #include "rt_names.h"
 #include "utils.h"
+#include "ip_common.h"
 
 #include "libbb.h"
 

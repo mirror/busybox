@@ -16,6 +16,7 @@
 #include <netinet/in.h>
 
 #include "libnetlink.h"
+#include "ll_map.h"
 
 struct idxmap
 {

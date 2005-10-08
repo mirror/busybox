@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include <stdint.h>
+#include "rt_names.h"
 
 static void rtnl_tab_initialize(char *file, char **tab, int size)
 {
