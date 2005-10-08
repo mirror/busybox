@@ -1,18 +1,6 @@
 /*  Copyright (C) 2003     Manuel Novoa III
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Library General Public
- *  License as published by the Free Software Foundation; either
- *  version 2 of the License, or (at your option) any later version.
- *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Library General Public License for more details.
- *
- *  You should have received a copy of the GNU Library General Public
- *  License along with this library; if not, write to the Free
- *  Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Licensed under GPL v2, or later.  See file LICENSE in this tarball.
  */
 
 /*  Nov 6, 2003  Initial version.
@@ -745,7 +733,7 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 
 			do {
 				if (!*m) {
-					if (fputc_unlocked('\n', f) >= 0) {
+					if (fputc('\n', f) >= 0) {
 						rv = 0;
 					}
 					break;
@@ -806,7 +794,7 @@ int putspent(const struct spwd *p, FILE *stream)
 		goto DO_UNLOCK;
 	}
 
-	if (fputc_unlocked('\n', stream) > 0) {
+	if (fputc('\n', stream) > 0) {
 		rv = 0;
 	}
 
@@ -1067,8 +1055,8 @@ int __pgsreader(int (*__parserfunc)(void *d, char *line), void *data,
 	} else {
 		skip = 0;
 		do {
-			if (!fgets_unlocked(line_buff, buflen, f)) {
-				if (feof_unlocked(f)) {
+			if (!fgets(line_buff, buflen, f)) {
+				if (feof(f)) {
 					rv = ENOENT;
 				}
 				break;
