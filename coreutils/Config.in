@@ -436,7 +436,7 @@ config CONFIG_SORT
 	help
 	  sort is used to sort lines of text in specified files.
 
-config CONFIG_SORT_BIG
+config CONFIG_FEATURE_SORT_BIG
 	bool "  full SuSv3 compliant sort (Support -ktcsbdfiozgM)"
 	default y
 	depends on CONFIG_SORT
@@ -546,6 +546,25 @@ config CONFIG_TR
 	help
 	  tr is used to squeeze, and/or delete characters from standard
 	  input, writing to standard output.
+
+config CONFIG_FEATURE_TR_CLASSES
+	bool "  Enable character classes (such as [:upper:])"
+	default n
+	depends on CONFIG_TR
+	help
+	  Enable character classes, enabling commands such as:
+	  tr [:upper:] [:lower:] to convert input into lowercase.
+
+config CONFIG_FEATURE_TR_EQUIV
+	bool "  Enable equivalence classes"
+	default n
+	depends on CONFIG_TR
+	help
+	  Enable equivalence classes, which essentially add the enclosed
+	  character to the current set. For instance, tr [=a=] xyz would
+	  replace all instances of 'a' with 'xyz'. This option is mainly
+	  useful for cases when no other way of expressing a character
+	  is possible.
 
 if CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
 	config CONFIG_TRUE

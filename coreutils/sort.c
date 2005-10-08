@@ -56,7 +56,7 @@ static int global_flags;
 #define FLAG_bb			32768	/* Ignore trailing blanks  */
 
 
-#ifdef CONFIG_SORT_BIG
+#ifdef CONFIG_FEATURE_SORT_BIG
 static char key_separator;
 
 static struct sort_key
@@ -154,7 +154,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 	int flags=global_flags,retval=0;
 	char *x,*y;
 
-#ifdef CONFIG_SORT_BIG
+#ifdef CONFIG_FEATURE_SORT_BIG
 	struct sort_key *key;
 	
 	for(key=key_list;!retval && key;key=key->next_key) {
@@ -178,7 +178,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 			case 0:
 				retval=strcmp(x,y);
 				break;
-#ifdef CONFIG_SORT_BIG
+#ifdef CONFIG_FEATURE_SORT_BIG
 			case FLAG_g:
 			{
 				char *xx,*yy;
@@ -232,6 +232,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 	/* Perform fallback sort if necessary */
 	if(!retval && !(global_flags&FLAG_s))
 			retval=strcmp(*(char **)xarg, *(char **)yarg);
+//dprintf(2,"reverse=%d\n",flags&FLAG_r);
 	return ((flags&FLAG_r)?-1:1)*retval;
 }
 
@@ -248,7 +249,7 @@ int sort_main(int argc, char **argv)
 		line=index(optlist,c);
 		if(!line) bb_show_usage();
 		switch(*line) {
-#ifdef CONFIG_SORT_BIG
+#ifdef CONFIG_FEATURE_SORT_BIG
 			case 'o':
 				if(outfile) bb_error_msg_and_die("Too many -o.");
 				outfile=bb_xfopen(optarg,"w");
@@ -308,7 +309,7 @@ int sort_main(int argc, char **argv)
 		}
 		fclose(fp);
 	}
-#ifdef CONFIG_SORT_BIG
+#ifdef CONFIG_FEATURE_SORT_BIG
 	/* if no key, perform alphabetic sort */
     if(!key_list) add_key()->range[0]=1;
 	/* handle -c */	
