@@ -284,12 +284,13 @@ static void refresh(int);	// update the terminal from screen[]
 static void Indicate_Error(void);       // use flash or beep to indicate error
 #define indicate_error(c) Indicate_Error()
 
+static void Hit_Return(void);
+
 #ifdef CONFIG_FEATURE_VI_SEARCH
 static Byte *char_search(Byte *, Byte *, int, int);	// search for pattern starting at p
 static int mycmp(Byte *, Byte *, int);	// string cmp based in "ignorecase"
 #endif							/* CONFIG_FEATURE_VI_SEARCH */
 #ifdef CONFIG_FEATURE_VI_COLON
-static void Hit_Return(void);
 static Byte *get_one_address(Byte *, int *);	// get colon addr, if present
 static Byte *get_address(Byte *, int *, int *);	// get two colon addrs, if present
 static void colon(Byte *);	// execute the "colon" mode cmds
@@ -1146,6 +1147,7 @@ colon_s_fail:
 	psb(":s expression missing delimiters");
 #endif
 }
+#endif							/* CONFIG_FEATURE_VI_COLON */
 
 static void Hit_Return(void)
 {
@@ -1158,7 +1160,6 @@ static void Hit_Return(void)
 		;
 	redraw(TRUE);		// force redraw all
 }
-#endif							/* CONFIG_FEATURE_VI_COLON */
 
 //----- Synchronize the cursor to Dot --------------------------
 static void sync_cursor(Byte * d, int *row, int *col)
