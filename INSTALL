@@ -1,52 +1,100 @@
 Building:
 =========
 
-You will usually build in the source-tree.
+The BusyBox build process is similar to the Linux kernel build:
 
-Alternatively you can build out-of-tree to have the object files separated
-from the source. This allows for building several different configurations
-from the same set of sources.
+  make menuconfig     # This creates a file called ".config"
+  make                # This creates the "busybox" executable
+  make install        # or make PREFIX=/path/from/root install
 
-A) Building in the source-tree:
--------------------------------
+The full list of configuration and install options is available by typing:
 
-1) Run 'make config' or 'make menuconfig' and select the
-   functionality that you wish to enable.
+  make help
 
-2) Run 'make'
+Quick Start:
+============
 
-3) Run 'make install' or 'make PREFIX=/target install' to
-    install busybox and all the needed links.  Some people
-    will prefer to install using hardlinks and will instead
-    want to run 'make install-hardlinks'....
+The easy way to try out BusyBox for the first time, without having to install
+it, is to enable all features and then use "standalone shell" mode with a
+blank command $PATH:
 
-B) Building out-of-tree:
-------------------------
+  make allyesconfig
+  make
+  PATH= ./busybox ash
 
-Note that top_srcdir, O and top_builddir have to be given as absolute paths.
+Standalone shell mode causes busybox's built-in command shell to run
+any built-in busybox applets directly, without looking for external
+programs by that name.  Supplying an empty command path (as above) means
+the only commands busybox can find are the built-in ones.
 
-1) make the directory to hold the object files and chdir to it:
-   'mkdir /tmp/bb ; cd /tmp/bb'
-   Then prepare the config giving the full path to the source in top_srcdir:
-   make top_srcdir=/path/busybox -f /path/busybox/Makefile O=/tmp/b allyesconfig
- 
-   Note that O=$(pwd) is the default if no O= was specified.
+(Note that the standalone shell requires the /proc directory to function.)
 
-   You now have a buildable tree in $O and can run 'make' without the need
-   to specify any paths.
+Configuring Busybox:
+====================
 
-   Proceed with step #A2 above.
+Busybox is optimized for size, but enabling the full set of functionality
+still results in a fairly large executable (more than 1 megabyte when
+statically linked).  To save space, busybox can be configured with only the
+set of applets needed for each environment.  The minimal configuration, with
+all applets disabled, produces a 4k executable.  (It's useless, but very small.)
 
+The manual configurators "make config" and "make menuconfig" modify the
+existing configuration.  Quick ways to get starting configurations include
+"make allyesconfig" (enables almost all options), "make allnoconfig" (disables
+all options), "make allbaseconfig" (enables all applets but disables all
+optional features), and "make defconfig" (reset to defaults).
 
-Installation:
-=============
+Configuring BusyBox produces a file ".config", which can be saved for future
+use.
 
-After the build is complete, a busybox.links file is generated.  This is
-used by 'make install' to create symlinks to the BusyBox binary for all
-compiled in functions.  By default, 'make install' will place the symlink
-forest into `pwd`/_install unless you have defined the PREFIX environment
-variable (i.e., 'make PREFIX=/tmp/foo install')
+Installing Busybox:
+===================
 
-If you wish to install hard links, rather than symlinks, you can use
-'make PREFIX=/tmp/foo install-hardlinks' instead.
+Busybox is a single executable that can behave like many different commands,
+and BusyBox uses the name it was invoked under to determine the desired
+behavior.  (Try "mv busybox ls" and then "./ls -l".)
 
+Installing busybox consists of creating symlinks (or hardlinks) to the busybox
+binary for each applet enabled in busybox, and making sure these symlinks are
+in the shell's command $PATH.  Running "make install" creates these symlinks,
+or "make install-hardlinks" creates hardlinks instead (useful on systems with
+a limited number of inodes).  This install process ues the file
+"busybox.links" (created by make), which contains the list of enabled applets
+and the path at which to install them.
+
+The special applet name "busybox" (or with any optional suffix, such as
+"busybox-static") uses the first argument to determine which applet to behave
+as (for example, "./busybox cat LICENSE").  (Running the busybox applet with
+no arguments gives a list of all enabled applets.)
+
+Building out-of-tree:
+=====================
+
+By default, the BusyBox build puts its temporary files in the source tree.
+Building from a read-only source tree, or to building multiple
+configurations from the same source directory, requires the ability to
+put the temporary files somewhere else.
+
+To build out of tree, use the O=$BUILDPATH option during the configuration
+step, as in:
+
+  make O=/some/empty/directory allyesconfig
+  cd /some/empty/directory
+  make
+  make PREFIX=. install
+
+(Note, O= requires an absolute path.)
+
+Alternately, cd to the empty directory and do this instead:
+
+  make top_srcdir=/path/to/source -f /path/to/source/Makefile allyesconfig
+  make
+  make install
+
+More Information:
+=================
+
+Se also the busybox FAQ, under the questions "How can I get started using
+BusyBox" and "How do I build a BusyBox-based system?"  The BusyBox FAQ is
+available from http://www.busybox.net/FAQ.html or as the file
+docs/busybox.net/FAQ.html in this tarball.
