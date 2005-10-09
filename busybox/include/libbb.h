@@ -44,7 +44,7 @@
 
 #include "config.h"
 #ifdef CONFIG_SELINUX
-#include <proc_secure.h>
+#include <selinux/selinux.h>
 #endif
 
 #include "pwd_.h"
@@ -424,11 +424,12 @@ void bb_xasprintf(char **string_ptr, const char *format, ...) __attribute__ ((fo
 #define FAIL_DELAY    3
 extern void change_identity ( const struct passwd *pw );
 extern const char *change_identity_e2str ( const struct passwd *pw );
-extern void run_shell ( const char *shell, int loginshell, const char *command, const char **additional_args
+extern void run_shell ( const char *shell, int loginshell, const char *command, const char **additional_args);
 #ifdef CONFIG_SELINUX
-	, security_id_t sid
+extern void renew_current_security_context(void);
+extern void set_current_security_context(security_context_t sid);
 #endif
-);
+
 extern int run_parts(char **args, const unsigned char test_mode, char **env);
 extern int restricted_shell ( const char *shell );
 extern void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw );
@@ -459,11 +460,7 @@ typedef struct {
 	char short_cmd[16];
 } procps_status_t;
 
-extern procps_status_t * procps_scan(int save_user_arg0
-#ifdef CONFIG_SELINUX
-	, int use_selinux, security_id_t *sid
-#endif
-);
+extern procps_status_t * procps_scan(int save_user_arg0);
 extern unsigned short compare_string_array(const char *string_array[], const char *key);
 
 extern int my_query_module(const char *name, int which, void **buf, size_t *bufsize, size_t *ret);
