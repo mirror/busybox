@@ -75,8 +75,6 @@ $(filter-out _all,$(MAKECMDGOALS)) _all: $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUT
 	top_srcdir=$(top_srcdir) \
 	top_builddir=$(top_builddir) \
 	KBUILD_SRC=$(top_srcdir) \
-	PREFIX=$(PREFIX) \
-	CROSS=$(CROSS) \
 	-f $(CURDIR)/Makefile $@
 
 $(KBUILD_OUTPUT)/Rules.mak:
