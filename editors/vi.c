@@ -283,7 +283,6 @@ static void refresh(int);	// update the terminal from screen[]
 
 static void Indicate_Error(void);       // use flash or beep to indicate error
 #define indicate_error(c) Indicate_Error()
-
 static void Hit_Return(void);
 
 #ifdef CONFIG_FEATURE_VI_SEARCH
@@ -1113,13 +1112,18 @@ static void colon(Byte * buf)
 			// system(syscmd);
 			forced = FALSE;
 		}
-		psb("\"%s\" %dL, %dC", fn, li, l);
-		if (q == text && r == end - 1 && l == ch) {
-			file_modified = 0;
-			last_file_modified = -1;
-		}
-		if ((cmd[0] == 'x' || cmd[1] == 'q') && l == ch) {
-			editing = 0;
+		if (l < 0) {
+			if (l == -1)
+				psbs("Write error: %s", strerror(errno));
+		} else {
+			psb("\"%s\" %dL, %dC", fn, li, l);
+			if (q == text && r == end - 1 && l == ch) {
+				file_modified = 0;
+				last_file_modified = -1;
+			}
+			if ((cmd[0] == 'x' || cmd[1] == 'q') && l == ch) {
+				editing = 0;
+			}
 		}
 #ifdef CONFIG_FEATURE_VI_READONLY
 	  vc3:;
@@ -1147,6 +1151,7 @@ colon_s_fail:
 	psb(":s expression missing delimiters");
 #endif
 }
+
 #endif							/* CONFIG_FEATURE_VI_COLON */
 
 static void Hit_Return(void)
@@ -2516,7 +2521,7 @@ static int file_write(Byte * fn, Byte * first, Byte * last)
 
 	if (fn == 0) {
 		psbs("No current filename");
-		return (-1);
+		return (-2);
 	}
 	charcnt = 0;
 	// FIXIT- use the correct umask()
@@ -3440,11 +3445,16 @@ key_cmd_mode:
 				   strncasecmp((char *) p, "wq", cnt) == 0 ||
 				   strncasecmp((char *) p, "x", cnt) == 0) {
 			cnt = file_write(cfn, text, end - 1);
-			file_modified = 0;
-			last_file_modified = -1;
-			psb("\"%s\" %dL, %dC", cfn, count_lines(text, end - 1), cnt);
-			if (p[0] == 'x' || p[1] == 'q') {
-				editing = 0;
+			if (cnt < 0) {
+				if (cnt == -1)
+					psbs("Write error: %s", strerror(errno));
+			} else {
+				file_modified = 0;
+				last_file_modified = -1;
+				psb("\"%s\" %dL, %dC", cfn, count_lines(text, end - 1), cnt);
+				if (p[0] == 'x' || p[1] == 'q') {
+					editing = 0;
+				}
 			}
 		} else if (strncasecmp((char *) p, "file", cnt) == 0 ) {
 			last_status_cksum = 0;	// force status update
@@ -3630,7 +3640,10 @@ key_cmd_mode:
 #endif							/* CONFIG_FEATURE_VI_READONLY */
 			) {
 			cnt = file_write(cfn, text, end - 1);
-			if (cnt == (end - 1 - text + 1)) {
+			if (cnt < 0) {
+				if (cnt == -1)
+					psbs("Write error: %s", strerror(errno));
+			} else if (cnt == (end - 1 - text + 1)) {
 				editing = 0;
 			}
 		} else {
