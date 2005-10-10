@@ -4,7 +4,7 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * Copyright (C) 2005 by Rob Landley <rob@landley.net>
- * 
+ *
  * This program is licensed under the GNU General Public license (GPL)
  * version 2 or later, see http://www.fsf.org/licensing/licenses/gpl.html
  * or the file "LICENSE" in the busybox source tarball for the full text.
@@ -25,11 +25,11 @@
 #define OPT_FORCE			1
 #define OPT_LAZY			2
 #define OPT_ALL				4
-#define OPT_DONTFREELOOP	8
+#define OPT_DONTFREELOOP		8
 #define OPT_NO_MTAB			16
 #define OPT_REMOUNT			32
 /* -v is ignored */
-	
+
 
 extern int umount_main(int argc, char **argv)
 {
@@ -42,26 +42,24 @@ extern int umount_main(int argc, char **argv)
 	struct mtab_list {
 		char *dir;
 		char *device;
-	   	struct mtab_list *next;
+		struct mtab_list *next;
 	} *mtl, *m;
 
-	if(argc < 2) bb_show_usage();
-	
 	/* Parse any options */
-	
-	opt = bb_getopt_ulflags (argc, argv, "flaDnrv");
-	
+
+	opt = bb_getopt_ulflags (argc, argv, OPTION_STRING);
+
 	argc -= optind;
 	argv += optind;
 
 	doForce = MAX((opt & OPT_FORCE), (opt & OPT_LAZY));
-	
+
 	/* Get a list of mount points from mtab.  We read them all in now mostly
 	 * for umount -a (so we don't have to worry about the list changing while
 	 * we iterate over it, or about getting stuck in a loop on the same failing
 	 * entry.  Notice that this also naturally reverses the list so that -a
 	 * umounts the most recent entries first. */
-	
+
 	m=mtl=0;
 	if(!(fp = setmntent(bb_path_mtab_file, "r")))
 		bb_error_msg_and_die("Cannot open %s", bb_path_mtab_file);
@@ -76,12 +74,15 @@ extern int umount_main(int argc, char **argv)
 
 	/* If we're umounting all, then m points to the start of the list and
 	 * the argument list should be empty (which will match all). */
-	if(!(opt & OPT_ALL)) m=0;
+	if(!(opt & OPT_ALL)) {
+		m=0;
+		if(argc <= 0) bb_show_usage();
+	}
 
 	// Loop through everything we're supposed to umount, and do so.
 	for(;;) {
 		int curstat;
-		
+
 		// Do we already know what to umount this time through the loop?
 		if(m) safe_strncpy(path,m->dir,PATH_MAX);
 		// For umount -a, end of mtab means time to exit.
@@ -106,7 +107,7 @@ extern int umount_main(int argc, char **argv)
 				bb_error_msg_and_die("forced umount of %s failed!", path);
 		}
 
-		// If still can't umount, maybe remount read-only?	
+		// If still can't umount, maybe remount read-only?
 		if (curstat && (opt & OPT_REMOUNT) && errno == EBUSY && m) {
 			curstat = mount(m->device, path, NULL, MS_REMOUNT|MS_RDONLY, NULL);
 			bb_error_msg(curstat ? "Cannot remount %s read-only" :
@@ -124,16 +125,16 @@ extern int umount_main(int argc, char **argv)
 			if(ENABLE_FEATURE_MTAB_SUPPORT && !(opt & OPT_NO_MTAB) && m)
 				erase_mtab(m->dir);
 			status = EXIT_FAILURE;
-			bb_perror_msg("Couldn't umount %s\n", path);
+			bb_perror_msg("Couldn't umount %s", path);
 		}
 		// Find next matching mtab entry for -a or umount /dev
-		while(m && (m = m->next)) 
+		while(m && (m = m->next))
 			if((opt & OPT_ALL) || !strcmp(path,m->device))
-			   	break;
+				break;
 	}
 
 	// Free mtab list if necessary
-	
+
 	if(ENABLE_FEATURE_CLEAN_UP) {
 		while(mtl) {
 			m=mtl->next;
