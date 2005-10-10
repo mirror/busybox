@@ -61,13 +61,8 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 
-#if EXT2_FLAT_INCLUDES
-#include "e2_types.h"
+#include "ext2_types.h"
 #include "ext2_fs.h"
-#else
-#include <ext2fs/ext2_types.h>
-#include <ext2fs/ext2_fs.h>
-#endif /* EXT2_FLAT_INCLUDES */
 
 typedef __u32		ext2_ino_t;
 typedef __u32		blk_t;
@@ -76,13 +71,8 @@ typedef __u32		ext2_off_t;
 typedef __s64		e2_blkcnt_t;
 typedef __u32		ext2_dirhash_t;
 
-#if EXT2_FLAT_INCLUDES
 #include "ext2_io.h"
 #include "ext2_err.h"
-#else
-#include <ext2fs/ext2_io.h>
-#include <ext2fs/ext2_err.h>
-#endif
 
 /*
  * Portability help for Microsoft Visual C++
@@ -243,11 +233,7 @@ struct struct_ext2_filsys {
 	io_channel			image_io;
 };
 
-#if EXT2_FLAT_INCLUDES
-#include "e2_bitops.h"
-#else
-#include <ext2fs/bitops.h>
-#endif
+#include "bitops.h"
 
 /*
  * Return flags for the block iterator functions

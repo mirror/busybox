@@ -234,10 +234,6 @@ static void flush_outbuf(void);
  * terms of the GNU General Public License, see the file COPYING.
  */
 
-#if !defined(OF) && defined(lint)
-#  include "gzip.h"
-#endif
-
 #ifndef BITS
 #  define BITS 16
 #endif

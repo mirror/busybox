@@ -28,7 +28,7 @@
 #include <errno.h>
 #endif
 #include "blkidP.h"
-#include "uuid/uuid.h"
+#include "../uuid/uuid.h"
 #include "probe.h"
 
 /*

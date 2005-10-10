@@ -17,7 +17,6 @@
 #include <ctype.h>
 
 #include "blkid.h"
-#include "../../version.h"
 
 static const char *lib_version = E2FSPROGS_VERSION;
 static const char *lib_date = E2FSPROGS_DATE;

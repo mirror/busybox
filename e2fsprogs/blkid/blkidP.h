@@ -16,9 +16,8 @@
 #include <sys/types.h>
 #include <stdio.h>
 
-#include <blkid/blkid.h>
-
-#include <blkid/list.h>
+#include "blkid.h"
+#include "list.h"
 
 #ifdef __GNUC__
 #define __BLKID_ATTR(x) __attribute__(x)

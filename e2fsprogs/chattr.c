@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <ext2fs/ext2_fs.h>
+#include "ext2fs/ext2_fs.h"
 
 #ifdef __GNUC__
 # define EXT2FS_ATTR(x) __attribute__(x)

@@ -33,7 +33,7 @@
 #endif
 
 #include "ext2_fs.h"
-#include "e2p/e2p.h"
+#include "../e2p/e2p.h"
 #include "ext2fs.h"
 #include "jfs_user.h"
 

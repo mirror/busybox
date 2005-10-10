@@ -29,7 +29,7 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
-#include <ext2fs/ext2_fs.h>
+#include "ext2fs/ext2_fs.h"
 #include "e2fsbb.h"
 #include "e2p/e2p.h"
 

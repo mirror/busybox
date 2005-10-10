@@ -9,8 +9,8 @@
  * %End-Header%
  */
 
-#include "ext2fs/ext2fs.h"
-#include "ext2fs/bitops.h"
+#include "ext2fs.h"
+#include "bitops.h"
 
 /*
  *  Allocate memory

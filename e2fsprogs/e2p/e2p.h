@@ -3,12 +3,14 @@
 #include <stdio.h>
 #include <dirent.h>
 
-#include <ext2fs/ext2_fs.h>
+#include "../ext2fs/ext2_fs.h"
 
 #define E2P_FEATURE_COMPAT	0
 #define E2P_FEATURE_INCOMPAT	1
 #define E2P_FEATURE_RO_INCOMPAT	2
-
+#ifndef EXT3_FEATURE_INCOMPAT_EXTENTS
+#define EXT3_FEATURE_INCOMPAT_EXTENTS           0x0040
+#endif
 
 /* `options' for print_flags() */
 

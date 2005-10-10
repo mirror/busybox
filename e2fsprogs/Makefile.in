@@ -9,7 +9,7 @@ E2FSPROGS_AR:=e2fsprogs.a
 E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs
 E2FSPROGS_SRC:=$(top_srcdir)/e2fsprogs
 
-E2FSPROGS_CFLAGS := -I$(E2FSPROGS_SRC) -include $(E2FSPROGS_SRC)/e2fsbb.h
+E2FSPROGS_CFLAGS := -include $(E2FSPROGS_SRC)/e2fsbb.h
 
 BLKID_SRC   := cache.c dev.c devname.c devno.c blkid_getsize.c \
 	       probe.c read.c resolve.c save.c tag.c

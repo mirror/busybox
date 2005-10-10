@@ -23,7 +23,7 @@
 #endif
 
 #include "blkidP.h"
-#include "uuid/uuid.h"
+#include "../uuid/uuid.h"
 
 #ifdef HAVE_STRTOULL
 #define __USE_ISOC9X

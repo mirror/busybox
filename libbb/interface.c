@@ -111,8 +111,6 @@ struct in6_ifreq {
 #if HAVE_AFIPX
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
 #include <netipx/ipx.h>
-#else
-#include "ipx.h"
 #endif
 #endif
 

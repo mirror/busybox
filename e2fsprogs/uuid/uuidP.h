@@ -32,11 +32,7 @@
  * %End-Header%
  */
 
-#ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
-#else
-#include <uuid/uuid_types.h>
-#endif
 #include <sys/types.h>
 
 #include "uuid.h"
