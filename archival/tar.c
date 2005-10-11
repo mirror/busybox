@@ -702,7 +702,7 @@ int tar_main(int argc, char **argv)
 	tar_handle = init_handle();
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE | ARCHIVE_EXTRACT_UNCONDITIONAL;
 
-	bb_opt_complementally = "!c~tx:t~cx:x~ct:X*:T*";
+	bb_opt_complementally = "?c~tx:t~cx:x~ct:X*:T*";
 #ifdef CONFIG_FEATURE_TAR_LONG_OPTIONS
 	bb_applet_long_options = tar_long_options;
 #endif

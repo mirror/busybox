@@ -204,18 +204,18 @@ do_stop(void)
 
 
 static const struct option ssd_long_options[] = {
-	{ "stop",				0,		NULL,		'K' },
-	{ "start",				0,		NULL,		'S' },
+	{ "stop",			0,		NULL,		'K' },
+	{ "start",			0,		NULL,		'S' },
 	{ "background",			0,		NULL,		'b' },
-	{ "quiet",				0,		NULL,		'q' },
+	{ "quiet",			0,		NULL,		'q' },
 	{ "make-pidfile",		0,		NULL,		'm' },
 	{ "startas",			1,		NULL,		'a' },
-	{ "name",				1,		NULL,		'n' },
-	{ "signal",				1,		NULL,		's' },
-	{ "user",				1,		NULL,		'u' },
-	{ "exec",				1,		NULL,		'x' },
+	{ "name",			1,		NULL,		'n' },
+	{ "signal",			1,		NULL,		's' },
+	{ "user",			1,		NULL,		'u' },
+	{ "exec",			1,		NULL,		'x' },
 	{ "pidfile",			1,		NULL,		'p' },
-	{ 0,			0,		0,			0 }
+	{ 0,				0,		0,		0 }
 };
 
 #define SSD_CTX_STOP		1
@@ -233,17 +233,13 @@ start_stop_daemon_main(int argc, char **argv)
 
 	bb_applet_long_options = ssd_long_options;
 
-	bb_opt_complementally = "!K~S:S~K";
+	/* Check required one context option was given */
+	bb_opt_complementally = "?:K?K:S?S:K~S:S~K";
 	opt = bb_getopt_ulflags(argc, argv, "KSbqma:n:s:u:x:p:",
 			&startas, &cmdname, &signame, &userspec, &execname, &pidfile);
 
-	/* Check required one context option was given */
-	if ((opt & (SSD_CTX_STOP | SSD_CTX_START)) == 0) {
-		bb_show_usage();
-	}
-
-	if (opt & SSD_OPT_QUIET)
-		quiet = 1;
+	
+	quiet = opt & SSD_OPT_QUIET;
 
 	if (signame) {
 		signal_nr = bb_xgetlarg(signame, 10, 0, NSIG);

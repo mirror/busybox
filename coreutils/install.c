@@ -61,7 +61,7 @@ extern int install_main(int argc, char **argv)
 	int ret = EXIT_SUCCESS, flags, i, isdir;
 
 	bb_applet_long_options = install_long_options;
-	bb_opt_complementally = "!s~d:d~s";
+	bb_opt_complementally = "?s~d:d~s";
 	/* -c exists for backwards compatability, its needed */
 	flags = bb_getopt_ulflags(argc, argv, "cdpsg:m:o:", &gid_str, &mode_str, &uid_str);	/* 'a' must be 2nd */
 

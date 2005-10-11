@@ -22,7 +22,7 @@
 
 /* BB_AUDIT SUSv3 _NOT_ compliant -- option -G is not currently supported. */
 /* Hacked by Tito Ragusa (C) 2004 to handle usernames of whatever length and to
- * be more similar to GNU id. 
+ * be more similar to GNU id.
  */
 
 #include "busybox.h"
@@ -41,10 +41,10 @@
 #define JUST_GROUP        8
 
 static short printf_full(unsigned int id, const char *arg, const char prefix)
-{	
+{
 	const char *fmt = "%cid=%u";
 	short status=EXIT_FAILURE;
-	
+
 	if(arg) {
 		fmt = "%cid=%u(%s)";
 		status=EXIT_SUCCESS;
@@ -61,15 +61,14 @@ extern int id_main(int argc, char **argv)
 	unsigned long flags;
 	short status;
 
-	bb_opt_complementally = "!u~g:g~u";
+	/* Don't allow -n -r -nr -ug -rug -nug -rnug */
+	bb_opt_complementally = "?u~g:g~u:r?ug:n?ug";
 	flags = bb_getopt_ulflags(argc, argv, "rnug");
 
-	/* Don't allow -n -r -nr */
-	if ((flags <= 3 && flags > 0) 
 	/* Don't allow more than one username */
-	|| (argc > optind + 1))
+	if (argc > (optind + 1))
 		bb_show_usage();
-	
+
 	/* This values could be overwritten later */
 	uid = geteuid();
 	gid = getegid();
@@ -77,13 +76,13 @@ extern int id_main(int argc, char **argv)
 		uid = getuid();
 		gid = getgid();
 	}
-	
+
 	if(argv[optind]) {
 		p=getpwnam(argv[optind]);
 		/* bb_xgetpwnam is needed because it exits on failure */
 		uid = bb_xgetpwnam(argv[optind]);
 		gid = p->pw_gid;
-		/* in this case PRINT_REAL is the same */ 
+		/* in this case PRINT_REAL is the same */
 	}
 
 	if(flags & (JUST_GROUP | JUST_USER)) {
@@ -94,7 +93,7 @@ extern int id_main(int argc, char **argv)
 		} else {
 			bb_printf("%u\n",(flags & JUST_USER) ? uid : gid);
 		}
-		/* exit */ 
+		/* exit */
 		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 
