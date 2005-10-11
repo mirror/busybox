@@ -88,10 +88,9 @@ extern int set_loop(char **device, const char *file, int offset)
 	int i, dfd, ffd, mode, rc=1;
 
 	// Open the file.  Barf if this doesn't work.
-	if((ffd = open(file, mode=O_RDWR))<0)
-		if(errno!=EROFS || (ffd=open(file,mode=O_RDONLY))<0)
-			return errno;
-
+	if((ffd = open(file, mode=O_RDWR))<0 && (ffd = open(file,mode=O_RDONLY))<0)
+		return errno;
+	
 	// Find a loop device
 	for(i=0;rc;i++) {
 		sprintf(dev, LOOP_FORMAT, i++);
