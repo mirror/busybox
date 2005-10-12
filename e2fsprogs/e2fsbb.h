@@ -33,7 +33,6 @@ typedef long errcode_t;
 /* misc crap */
 #define fatal_error(err, msg) bb_error_msg_and_die(msg)
 #define usage() bb_show_usage()
-#define perror(msg) bb_perror_msg(msg)
 
 /* header defines */
 #define ENABLE_HTREE 1

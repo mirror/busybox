@@ -485,7 +485,7 @@ static void load_fs_info(const char *filename)
 	struct fs_info *fs;
 
 	if ((f = fopen(filename, "r")) == NULL) {
-		bb_perror_msg("WARNING: couldn't open %s: %m", filename);
+		bb_perror_msg("WARNING: couldn't open %s", filename);
 		return;
 	}
 	while (!feof(f)) {
