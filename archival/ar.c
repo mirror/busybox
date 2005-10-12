@@ -49,22 +49,27 @@ static void header_verbose_list_ar(const file_header_t *file_header)
 	printf("%s %d/%d%7d %s %s\n", &mode[1], file_header->uid, file_header->gid, (int) file_header->size, &mtime[4], file_header->name);
 }
 
-#define AR_CTX_PRINT			0x01
-#define AR_CTX_LIST				0x02
-#define AR_CTX_EXTRACT			0x04
+#define AR_CTX_PRINT		0x01
+#define AR_CTX_LIST		0x02
+#define AR_CTX_EXTRACT		0x04
 #define AR_OPT_PRESERVE_DATE	0x08
-#define AR_OPT_VERBOSE			0x10
-#define AR_OPT_CREATE			0x20
-#define AR_OPT_INSERT			0x40
+#define AR_OPT_VERBOSE		0x10
+#define AR_OPT_CREATE		0x20
+#define AR_OPT_INSERT		0x40
 
 extern int ar_main(int argc, char **argv)
 {
 	archive_handle_t *archive_handle;
 	unsigned long opt;
-	char *msg_unsupported_err = "Archive %s not supported.  Install binutils 'ar'.";
+	static const char msg_unsupported_err[] = 
+			"Archive %s not supported.  Install binutils 'ar'.";
 	char magic[8];
 
 	archive_handle = init_handle();
+	
+	/* Prepend '-' to the first argument if required */
+	if (argv[1][0] != '-')
+		argv[1] = bb_xasprintf("-%s", argv[1]);
 
 	bb_opt_complementally = "?p~tx:t~px:x~pt";
 	opt = bb_getopt_ulflags(argc, argv, "ptxovcr");
