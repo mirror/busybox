@@ -54,6 +54,3 @@ struct fsck_instance {
 	char *	base_device;
 	struct fsck_instance *next;
 };
-
-extern char *base_device(const char *device);
-extern const char *identify_fs(const char *fs_name, const char *fs_types);

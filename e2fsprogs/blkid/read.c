@@ -18,9 +18,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#if HAVE_ERRNO_H
 #include <errno.h>
-#endif
 
 #include "blkidP.h"
 #include "../uuid/uuid.h"
@@ -33,9 +31,7 @@
 #define STRTOULL strtoul
 #endif
 
-#if HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
 
 /*
  * File format:

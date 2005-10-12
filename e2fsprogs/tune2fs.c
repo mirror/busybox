@@ -25,13 +25,14 @@
  * 94/03/06	- Added the checks interval from Uwe Ohse (uwe@tirka.gun.de)
  */
 
+#include <sys/types.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/types.h>
+#include <getopt.h>
 
 #include "e2fsbb.h"
 #include "ext2fs/ext2_fs.h"
