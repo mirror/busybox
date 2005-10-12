@@ -84,35 +84,31 @@ static struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 
 	/* Parse input and assign appropriately to tm_time */
 
-	if (t =
-		*tm_time, sscanf(t_string, "%d:%d:%d", &t.tm_hour, &t.tm_min,
+	if (t = *tm_time, sscanf(t_string, "%d:%d:%d", &t.tm_hour, &t.tm_min,
 						 &t.tm_sec) == 3) {
 		/* no adjustments needed */
-	} else if (t =
-			   *tm_time, sscanf(t_string, "%d:%d", &t.tm_hour,
+	} else if (t = *tm_time, sscanf(t_string, "%d:%d", &t.tm_hour,
 								&t.tm_min) == 2) {
 		/* no adjustments needed */
-	} else if (t =
-			   *tm_time, sscanf(t_string, "%d.%d-%d:%d:%d", &t.tm_mon,
-								&t.tm_mday, &t.tm_hour, &t.tm_min,
-								&t.tm_sec) == 5) {
+	} else if (t = *tm_time, sscanf(t_string, "%d.%d-%d:%d:%d", &t.tm_mon,
+						&t.tm_mday, &t.tm_hour, 
+						&t.tm_min, &t.tm_sec) == 5) {
 		/* Adjust dates from 1-12 to 0-11 */
 		t.tm_mon -= 1;
-	} else if (t =
-			   *tm_time, sscanf(t_string, "%d.%d-%d:%d", &t.tm_mon,
-								&t.tm_mday, &t.tm_hour, &t.tm_min) == 4) {
+	} else if (t = *tm_time, sscanf(t_string, "%d.%d-%d:%d", &t.tm_mon,
+						&t.tm_mday, 
+						&t.tm_hour, &t.tm_min) == 4) {
 		/* Adjust dates from 1-12 to 0-11 */
 		t.tm_mon -= 1;
-	} else if (t =
-			   *tm_time, sscanf(t_string, "%d.%d.%d-%d:%d:%d", &t.tm_year,
-								&t.tm_mon, &t.tm_mday, &t.tm_hour, &t.tm_min,
-								&t.tm_sec) == 6) {
+	} else if (t = *tm_time, sscanf(t_string, "%d.%d.%d-%d:%d:%d", &t.tm_year,
+						&t.tm_mon, &t.tm_mday, 
+						&t.tm_hour, &t.tm_min,
+							&t.tm_sec) == 6) {
 		t.tm_year -= 1900;	/* Adjust years */
 		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
-	} else if (t =
-			   *tm_time, sscanf(t_string, "%d.%d.%d-%d:%d", &t.tm_year,
-								&t.tm_mon, &t.tm_mday, &t.tm_hour,
-								&t.tm_min) == 5) {
+	} else if (t = *tm_time, sscanf(t_string, "%d.%d.%d-%d:%d", &t.tm_year,
+						&t.tm_mon, &t.tm_mday, 
+						&t.tm_hour, &t.tm_min) == 5) {
 		t.tm_year -= 1900;	/* Adjust years */
 		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
 	} else {
@@ -137,7 +133,9 @@ int date_main(int argc, char **argv)
 	char *date_fmt = NULL;
 	int set_time;
 	int utc;
+#if 0
 	int use_arg = 0;
+#endif
 	time_t tm;
 	unsigned long opt;
 	struct tm tm_time;
@@ -151,7 +149,7 @@ int date_main(int argc, char **argv)
 #else
 # define GETOPT_ISOFMT
 #endif
-	bb_opt_complementally = "?d~ds:s~ds";
+	bb_opt_complementally = "?d~s:s~d";
 	opt = bb_getopt_ulflags(argc, argv, "Rs:ud:r:" GETOPT_ISOFMT,
 					&date_str, &date_str, &filename
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
@@ -160,10 +158,12 @@ int date_main(int argc, char **argv)
 					);
 	set_time = opt & DATE_OPT_SET;
 	utc = opt & DATE_OPT_UTC;
-	if ((utc) && (putenv("TZ=UTC0") != 0)) {
+	if (utc && putenv("TZ=UTC0") != 0) {
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
 	}
+#if 0
 	use_arg = opt & DATE_OPT_DATE;
+#endif
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
 	if(opt & DATE_OPT_TIMESPEC) {
 		if (!isofmt_arg) {
@@ -171,17 +171,17 @@ int date_main(int argc, char **argv)
 		} else {
 			int ifmt_len = bb_strlen(isofmt_arg);
 
-			if ((ifmt_len <= 4)
-				&& (strncmp(isofmt_arg, "date", ifmt_len) == 0)) {
+			if (ifmt_len <= 4
+				&& strncmp(isofmt_arg, "date", ifmt_len) == 0) {
 				ifmt = 1;
-			} else if ((ifmt_len <= 5)
-				   && (strncmp(isofmt_arg, "hours", ifmt_len) == 0)) {
+			} else if (ifmt_len <= 5
+				   && strncmp(isofmt_arg, "hours", ifmt_len) == 0) {
 				ifmt = 2;
-			} else if ((ifmt_len <= 7)
-				   && (strncmp(isofmt_arg, "minutes", ifmt_len) == 0)) {
+			} else if (ifmt_len <= 7
+				   && strncmp(isofmt_arg, "minutes", ifmt_len) == 0) {
 				ifmt = 3;
-			} else if ((ifmt_len <= 7)
-				   && (strncmp(isofmt_arg, "seconds", ifmt_len) == 0)) {
+			} else if (ifmt_len <= 7
+				   && strncmp(isofmt_arg, "seconds", ifmt_len) == 0) {
 				ifmt = 4;
 			}
 		}
@@ -191,6 +191,7 @@ int date_main(int argc, char **argv)
 	}
 #endif
 
+	/* XXX, date_fmt == NULL from this always */
 	if ((date_fmt == NULL) && (optind < argc) && (argv[optind][0] == '+')) {
 		date_fmt = &argv[optind][1];	/* Skip over the '+' */
 	} else if (date_str == NULL) {
@@ -204,7 +205,7 @@ int date_main(int argc, char **argv)
 	if(filename) {
 		struct stat statbuf;
 		if(stat(filename,&statbuf))
-			bb_perror_msg_and_die("File '%s' not found.\n",filename);
+			bb_perror_msg_and_die("File '%s' not found.", filename);
 		tm=statbuf.st_mtime;
 	} else time(&tm);
 	memcpy(&tm_time, localtime(&tm), sizeof(tm_time));
@@ -227,12 +228,12 @@ int date_main(int argc, char **argv)
 		if (tm < 0) {
 			bb_error_msg_and_die(bb_msg_invalid_date, date_str);
 		}
-		if (utc && (putenv("TZ=UTC0") != 0)) {
+		if (utc && putenv("TZ=UTC0") != 0) {
 			bb_error_msg_and_die(bb_msg_memory_exhausted);
 		}
 
 		/* if setting time, set it */
-		if (set_time && (stime(&tm) < 0)) {
+		if (set_time && stime(&tm) < 0) {
 			bb_perror_msg("cannot set date");
 		}
 	}
