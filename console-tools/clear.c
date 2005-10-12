@@ -29,6 +29,5 @@
 
 extern int clear_main(int argc, char **argv)
 {
-	printf("\033[H\033[J");
-	return EXIT_SUCCESS;
+	return printf("\033[H\033[J") != 6;
 }
