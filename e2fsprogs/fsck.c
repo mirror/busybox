@@ -54,6 +54,50 @@
 #endif
 
 /*
+ * fsck.h
+ */
+
+#ifndef DEFAULT_FSTYPE
+#define DEFAULT_FSTYPE	"ext2"
+#endif
+
+#define MAX_DEVICES 32
+#define MAX_ARGS 32
+
+/*
+ * Internal structure for mount tabel entries.
+ */
+
+struct fs_info {
+	char  *device;
+	char  *mountpt;
+	char  *type;
+	char  *opts;
+	int   freq;
+	int   passno;
+	int   flags;
+	struct fs_info *next;
+};
+
+#define FLAG_DONE 1
+#define FLAG_PROGRESS 2
+
+/*
+ * Structure to allow exit codes to be stored
+ */
+struct fsck_instance {
+	int	pid;
+	int	flags;
+	int	exit_status;
+	time_t	start_time;
+	char *	prog;
+	char *	type;
+	char *	device;
+	char *	base_device;
+	struct fsck_instance *next;
+};
+
+/*
  * base_device.c
  *
  * Return the "base device" given a particular device; this is used to

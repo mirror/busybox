@@ -62,7 +62,7 @@
 #include <mntent.h>
 #include <dirent.h>
 
-#include "e2fsbb.h"
+#include "fsck.h"
 
 #include "ext2fs/ext2_fs.h"
 #include "ext2fs/ext2fs.h"
@@ -1435,7 +1435,7 @@ static int check_bb_inode_blocks(ext2_filsys fs, blk_t *block_nr, int blockcnt,
 				 void *priv_data);
 
 
-static void invalid_block(ext2_filsys fs EXT2FS_ATTR((unused)), blk_t blk)
+static void invalid_block(ext2_filsys fs FSCK_ATTR((unused)), blk_t blk)
 {
 	printf(_("Bad block %u out of range; ignored.\n"), blk);
 	return;
@@ -1533,8 +1533,8 @@ fatal:
 
 static int check_bb_inode_blocks(ext2_filsys fs,
 				 blk_t *block_nr,
-				 int blockcnt EXT2FS_ATTR((unused)),
-				 void *priv_data EXT2FS_ATTR((unused)))
+				 int blockcnt FSCK_ATTR((unused)),
+				 void *priv_data FSCK_ATTR((unused)))
 {
 	if (!*block_nr)
 		return 0;
@@ -2663,8 +2663,8 @@ static const char *operation;
 
 static errcode_t
 e2fsck_handle_read_error(io_channel channel, unsigned long block, int count,
-			 void *data, size_t size EXT2FS_ATTR((unused)),
-			 int actual EXT2FS_ATTR((unused)), errcode_t error)
+			 void *data, size_t size FSCK_ATTR((unused)),
+			 int actual FSCK_ATTR((unused)), errcode_t error)
 {
 	int     i;
 	char    *p;
@@ -2706,8 +2706,8 @@ e2fsck_handle_read_error(io_channel channel, unsigned long block, int count,
 
 static errcode_t
 e2fsck_handle_write_error(io_channel channel, unsigned long block, int count,
-			const void *data, size_t size EXT2FS_ATTR((unused)),
-			int actual EXT2FS_ATTR((unused)), errcode_t error)
+			const void *data, size_t size FSCK_ATTR((unused)),
+			int actual FSCK_ATTR((unused)), errcode_t error)
 {
 	int             i;
 	const char      *p;
@@ -5159,7 +5159,7 @@ endit:
  * glock group, call process_inodes.
  */
 static errcode_t scan_callback(ext2_filsys fs,
-			       ext2_inode_scan scan EXT2FS_ATTR((unused)),
+			       ext2_inode_scan scan FSCK_ATTR((unused)),
 			       dgrp_t group, void * priv_data)
 {
 	struct scan_callback_struct *scan_struct;
@@ -5546,7 +5546,7 @@ clear_extattr:
 
 /* Returns 1 if bad htree, 0 if OK */
 static int handle_htree(e2fsck_t ctx, struct problem_context *pctx,
-			ext2_ino_t ino EXT2FS_ATTR((unused)),
+			ext2_ino_t ino FSCK_ATTR((unused)),
 			struct ext2_inode *inode,
 			char *block_buf)
 {
@@ -5813,8 +5813,8 @@ static char *describe_illegal_block(ext2_filsys fs, blk_t block)
 static int process_block(ext2_filsys fs,
 		  blk_t *block_nr,
 		  e2_blkcnt_t blockcnt,
-		  blk_t ref_block EXT2FS_ATTR((unused)),
-		  int ref_offset EXT2FS_ATTR((unused)),
+		  blk_t ref_block FSCK_ATTR((unused)),
+		  int ref_offset FSCK_ATTR((unused)),
 		  void *priv_data)
 {
 	struct process_block_struct_1 *p;
@@ -5959,8 +5959,8 @@ mark_dir:
 static int process_bad_block(ext2_filsys fs,
 		      blk_t *block_nr,
 		      e2_blkcnt_t blockcnt,
-		      blk_t ref_block EXT2FS_ATTR((unused)),
-		      int ref_offset EXT2FS_ATTR((unused)),
+		      blk_t ref_block FSCK_ATTR((unused)),
+		      int ref_offset FSCK_ATTR((unused)),
 		      void *priv_data)
 {
 	struct process_block_struct_1 *p;
@@ -6639,11 +6639,11 @@ static void pass1b(e2fsck_t ctx, char *block_buf)
 	e2fsck_use_inode_shortcuts(ctx, 0);
 }
 
-static int process_pass1b_block(ext2_filsys fs EXT2FS_ATTR((unused)),
+static int process_pass1b_block(ext2_filsys fs FSCK_ATTR((unused)),
 				blk_t   *block_nr,
-				e2_blkcnt_t blockcnt EXT2FS_ATTR((unused)),
-				blk_t ref_blk EXT2FS_ATTR((unused)),
-				int ref_offset EXT2FS_ATTR((unused)),
+				e2_blkcnt_t blockcnt FSCK_ATTR((unused)),
+				blk_t ref_blk FSCK_ATTR((unused)),
+				int ref_offset FSCK_ATTR((unused)),
 				void *priv_data)
 {
 	struct process_block_struct_1b *p;
@@ -6683,9 +6683,9 @@ struct search_dir_struct {
 
 static int search_dirent_proc(ext2_ino_t dir, int entry,
 			      struct ext2_dir_entry *dirent,
-			      int offset EXT2FS_ATTR((unused)),
-			      int blocksize EXT2FS_ATTR((unused)),
-			      char *buf EXT2FS_ATTR((unused)),
+			      int offset FSCK_ATTR((unused)),
+			      int blocksize FSCK_ATTR((unused)),
+			      char *buf FSCK_ATTR((unused)),
 			      void *priv_data)
 {
 	struct search_dir_struct *sd;
@@ -6866,9 +6866,9 @@ static void decrement_badcount(e2fsck_t ctx, blk_t block, struct dup_block *p)
 
 static int delete_file_block(ext2_filsys fs,
 			     blk_t      *block_nr,
-			     e2_blkcnt_t blockcnt EXT2FS_ATTR((unused)),
-			     blk_t ref_block EXT2FS_ATTR((unused)),
-			     int ref_offset EXT2FS_ATTR((unused)),
+			     e2_blkcnt_t blockcnt FSCK_ATTR((unused)),
+			     blk_t ref_block FSCK_ATTR((unused)),
+			     int ref_offset FSCK_ATTR((unused)),
 			     void *priv_data)
 {
 	struct process_block_struct_1b *pb;
@@ -6968,8 +6968,8 @@ struct clone_struct {
 static int clone_file_block(ext2_filsys fs,
 			    blk_t       *block_nr,
 			    e2_blkcnt_t blockcnt,
-			    blk_t ref_block EXT2FS_ATTR((unused)),
-			    int ref_offset EXT2FS_ATTR((unused)),
+			    blk_t ref_block FSCK_ATTR((unused)),
+			    int ref_offset FSCK_ATTR((unused)),
 			    void *priv_data)
 {
 	struct dup_block *p;
@@ -8217,9 +8217,9 @@ abort_free_dict:
  * functioned called by deallocate inode via ext2fs_iterate_block().
  */
 static int deallocate_inode_block(ext2_filsys fs, blk_t *block_nr,
-				  e2_blkcnt_t blockcnt EXT2FS_ATTR((unused)),
-				  blk_t ref_block EXT2FS_ATTR((unused)),
-				  int ref_offset EXT2FS_ATTR((unused)),
+				  e2_blkcnt_t blockcnt FSCK_ATTR((unused)),
+				  blk_t ref_block FSCK_ATTR((unused)),
+				  int ref_offset FSCK_ATTR((unused)),
 				  void *priv_data)
 {
 	e2fsck_t        ctx = (e2fsck_t) priv_data;
@@ -8544,11 +8544,11 @@ static int allocate_dir_block(e2fsck_t ctx, struct ext2_db_entry *db,
 /*
  * This is a helper function for allocate_dir_block().
  */
-static int update_dir_block(ext2_filsys fs EXT2FS_ATTR((unused)),
+static int update_dir_block(ext2_filsys fs FSCK_ATTR((unused)),
 			    blk_t       *block_nr,
 			    e2_blkcnt_t blockcnt,
-			    blk_t ref_block EXT2FS_ATTR((unused)),
-			    int ref_offset EXT2FS_ATTR((unused)),
+			    blk_t ref_block FSCK_ATTR((unused)),
+			    int ref_offset FSCK_ATTR((unused)),
 			    void *priv_data)
 {
 	struct ext2_db_entry *db;
@@ -9161,9 +9161,9 @@ struct fix_dotdot_struct {
 };
 
 static int fix_dotdot_proc(struct ext2_dir_entry *dirent,
-			   int  offset EXT2FS_ATTR((unused)),
-			   int  blocksize EXT2FS_ATTR((unused)),
-			   char *buf EXT2FS_ATTR((unused)),
+			   int  offset FSCK_ATTR((unused)),
+			   int  blocksize FSCK_ATTR((unused)),
+			   char *buf FSCK_ATTR((unused)),
 			   void *priv_data)
 {
 	struct fix_dotdot_struct *fp = (struct fix_dotdot_struct *) priv_data;
@@ -9241,8 +9241,8 @@ struct expand_dir_struct {
 static int expand_dir_proc(ext2_filsys fs,
 			   blk_t        *blocknr,
 			   e2_blkcnt_t  blockcnt,
-			   blk_t ref_block EXT2FS_ATTR((unused)),
-			   int ref_offset EXT2FS_ATTR((unused)),
+			   blk_t ref_block FSCK_ATTR((unused)),
+			   int ref_offset FSCK_ATTR((unused)),
 			   void *priv_data)
 {
 	struct expand_dir_struct *es = (struct expand_dir_struct *) priv_data;
@@ -12221,8 +12221,8 @@ struct out_dir {
 static int fill_dir_block(ext2_filsys fs,
 			  blk_t *block_nr,
 			  e2_blkcnt_t blockcnt,
-			  blk_t ref_block EXT2FS_ATTR((unused)),
-			  int ref_offset EXT2FS_ATTR((unused)),
+			  blk_t ref_block FSCK_ATTR((unused)),
+			  int ref_offset FSCK_ATTR((unused)),
 			  void *priv_data)
 {
 	struct fill_dir_struct  *fd = (struct fill_dir_struct *) priv_data;
@@ -12731,8 +12731,8 @@ struct write_dir_struct {
 static int write_dir_block(ext2_filsys fs,
 			   blk_t        *block_nr,
 			   e2_blkcnt_t blockcnt,
-			   blk_t ref_block EXT2FS_ATTR((unused)),
-			   int ref_offset EXT2FS_ATTR((unused)),
+			   blk_t ref_block FSCK_ATTR((unused)),
+			   int ref_offset FSCK_ATTR((unused)),
 			   void *priv_data)
 {
 	struct write_dir_struct *wd = (struct write_dir_struct *) priv_data;
@@ -13326,8 +13326,8 @@ struct process_block_struct {
 
 static int release_inode_block(ext2_filsys fs, blk_t *block_nr,
 			       e2_blkcnt_t blockcnt,
-			       blk_t    ref_blk EXT2FS_ATTR((unused)),
-			       int      ref_offset EXT2FS_ATTR((unused)),
+			       blk_t    ref_blk FSCK_ATTR((unused)),
+			       int      ref_offset FSCK_ATTR((unused)),
 			       void *priv_data)
 {
 	struct process_block_struct *pb;
@@ -15099,7 +15099,7 @@ static void reserve_stdio_fds(void)
 	close(fd);
 }
 
-static void signal_progress_on(int sig EXT2FS_ATTR((unused)))
+static void signal_progress_on(int sig FSCK_ATTR((unused)))
 {
 	e2fsck_t ctx = e2fsck_global_ctx;
 
@@ -15110,7 +15110,7 @@ static void signal_progress_on(int sig EXT2FS_ATTR((unused)))
 	ctx->progress_fd = 0;
 }
 
-static void signal_progress_off(int sig EXT2FS_ATTR((unused)))
+static void signal_progress_off(int sig FSCK_ATTR((unused)))
 {
 	e2fsck_t ctx = e2fsck_global_ctx;
 
@@ -15121,7 +15121,7 @@ static void signal_progress_off(int sig EXT2FS_ATTR((unused)))
 	ctx->progress = 0;
 }
 
-static void signal_cancel(int sig EXT2FS_ATTR((unused)))
+static void signal_cancel(int sig FSCK_ATTR((unused)))
 {
 	e2fsck_t ctx = e2fsck_global_ctx;
 
