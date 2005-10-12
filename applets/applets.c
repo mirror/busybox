@@ -423,7 +423,7 @@ extern void bb_show_usage (void)
   fprintf (stderr, format_string, bb_msg_full_version, applet_using->name,
 		   usage_string);
 
-  exit (EXIT_FAILURE);
+  exit (bb_default_error_retval);
 }
 
 static int applet_name_compare (const void *x, const void *y)
