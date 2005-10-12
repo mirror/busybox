@@ -47,7 +47,7 @@ LIBBB_MOBJ0:=full_version.o \
 	can_not_create_raw_socket.o perm_denied_are_you_root.o \
 	shadow_file.o passwd_file.o group_file.o gshadow_file.o nologin_file.o \
 	securetty_file.o motd_file.o \
-	msg_standard_input.o msg_standard_output.o shell_file.o
+	msg_standard_input.o msg_standard_output.o shell_file.o bb_dev_null.o
 
 LIBBB_MSRC1:=$(srcdir)/xfuncs.c
 LIBBB_MOBJ1:=xmalloc.o xrealloc.o xcalloc.o xstrdup.o xstrndup.o \

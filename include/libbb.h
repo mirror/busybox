@@ -332,7 +332,7 @@ extern const char * const bb_path_gshadow_file;
 extern const char * const bb_path_group_file;
 extern const char * const bb_path_securetty_file;
 extern const char * const bb_path_motd_file;
-
+extern const char * const bb_dev_null;
 /*
  * You can change LIBBB_DEFAULT_LOGIN_SHELL, but don`t use,
  * use bb_default_login_shell and next defines,

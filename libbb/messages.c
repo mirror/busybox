@@ -97,3 +97,7 @@ const char * const bb_path_motd_file = MOTD_FILE;
 const char * const bb_default_login_shell = LIBBB_DEFAULT_LOGIN_SHELL;
 #endif
 
+#ifdef L_dev_null
+const char * const bb_dev_null = "dev/null";
+#endif
+
