@@ -603,7 +603,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 # define TAR_OPT_STR_CREATE	"ch"
 # define TAR_OPT_FLAG_CREATE	2
 #else
-//# define CTX_CREATE	0
+# define CTX_CREATE	0
 # define TAR_OPT_STR_CREATE	""
 # define TAR_OPT_FLAG_CREATE	0
 #endif
@@ -690,10 +690,6 @@ int tar_main(int argc, char **argv)
 	unsigned long opt;
 	unsigned long ctx_flag = 0;
 
-	if (argc < 2) {
-		bb_show_usage();
-	}
-
 	/* Prepend '-' to the first argument if required */
 	if (argv[1][0] != '-') 
 		argv[1] = bb_xasprintf("-%s", argv[1]);
@@ -702,11 +698,14 @@ int tar_main(int argc, char **argv)
 	tar_handle = init_handle();
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE | ARCHIVE_EXTRACT_UNCONDITIONAL;
 
-	bb_opt_complementally = "?c~tx:t~cx:x~ct:X*:T*";
+#ifdef CONFIG_FEATURE_TAR_CREATE
+	bb_opt_complementally = "?:c?c:t?t:x?x:c~tx:t~cx:x~ct:X*:T*";
+#else
+	bb_opt_complementally = "?:t?t:x?x:t~x:x~t:X*:T*";
+#endif
 #ifdef CONFIG_FEATURE_TAR_LONG_OPTIONS
 	bb_applet_long_options = tar_long_options;
 #endif
-
 	opt = bb_getopt_ulflags(argc, argv, tar_options,
 				&base_dir,      /* Change to dir <optarg> */
 				&tar_filename /* archive filename */
@@ -716,14 +715,7 @@ int tar_main(int argc, char **argv)
 #endif
 				);
 
-#ifdef CONFIG_FEATURE_TAR_CREATE
 	ctx_flag = opt & (CTX_CREATE | CTX_TEST | CTX_EXTRACT);
-#else
-	ctx_flag = opt & (CTX_TEST | CTX_EXTRACT);
-#endif
-	if (ctx_flag == 0) {
-		bb_show_usage();
-	}
 	if(ctx_flag & CTX_TEST) {
 		if ((tar_handle->action_header == header_list) ||
 			(tar_handle->action_header == header_verbose_list)) {
