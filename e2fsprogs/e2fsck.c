@@ -79,18 +79,6 @@
 #endif
 
 /*
- * Exit codes used by fsck-type programs
- */
-#define FSCK_OK          0      /* No errors */
-#define FSCK_NONDESTRUCT 1      /* File system errors corrected */
-#define FSCK_REBOOT      2      /* System should be rebooted */
-#define FSCK_UNCORRECTED 4      /* File system errors left uncorrected */
-#define FSCK_ERROR       8      /* Operational error */
-#define FSCK_USAGE       16     /* Usage or syntax error */
-#define FSCK_CANCELED    32     /* Aborted with a signal or ^C */
-#define FSCK_LIBRARY     128    /* Shared library error */
-
-/*
  * The last ext2fs revision level that this version of e2fsck is able to
  * support
  */
@@ -14255,7 +14243,7 @@ void fatal_error(e2fsck_t ctx, const char *msg)
 	ctx->flags |= E2F_FLAG_ABORT;
 	if (ctx->flags & E2F_FLAG_SETJMP_OK)
 		longjmp(ctx->abort_loc, 1);
-	exit(FSCK_ERROR);
+	exit(EXIT_ERROR);
 }
 #endif
 
@@ -14461,7 +14449,7 @@ void preenhalt(e2fsck_t ctx)
 		ext2fs_mark_super_dirty(fs);
 		ext2fs_close(fs);
 	}
-	exit(FSCK_UNCORRECTED);
+	exit(EXIT_UNCORRECTED);
 }
 
 #ifdef RESOURCE_TRACK
@@ -14742,7 +14730,7 @@ static void usage(e2fsck_t ctx)
 		" -L bad_blocks_file   Set badblocks list\n"
 		));
 
-	exit(FSCK_USAGE);
+	exit(EXIT_USAGE);
 }
 #endif
 
@@ -14881,7 +14869,7 @@ static int is_on_batt(void)
 
 /*
  * This routine checks to see if a filesystem can be skipped; if so,
- * it will exit with E2FSCK_OK.  Under some conditions it will print a
+ * it will exit with EXIT_OK.  Under some conditions it will print a
  * message explaining why a check is being forced.
  */
 static void check_if_skip(e2fsck_t ctx)
@@ -14949,7 +14937,7 @@ static void check_if_skip(e2fsck_t ctx)
 	ext2fs_close(fs);
 	ctx->fs = NULL;
 	e2fsck_free_context(ctx);
-	exit(FSCK_OK);
+	exit(EXIT_OK);
 }
 
 /*
@@ -15078,8 +15066,6 @@ static int e2fsck_update_progress(e2fsck_t ctx, int pass,
 	}
 	return 0;
 }
-
-#define PATH_SET "PATH=/sbin"
 
 static void reserve_stdio_fds(void)
 {
@@ -15379,14 +15365,14 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 		if (cflag || bad_blocks_file) {
 			fprintf(stderr, _("Incompatible options not "
 					  "allowed when byte-swapping.\n"));
-			exit(FSCK_USAGE);
+			exit(EXIT_USAGE);
 		}
 	}
 #endif
 	if (cflag && bad_blocks_file) {
 		fprintf(stderr, _("The -c and the -l/-L options may "
 				  "not be both used at the same time.\n"));
-		exit(FSCK_USAGE);
+		exit(EXIT_USAGE);
 	}
 	/*
 	 * Set up signal action
@@ -15405,22 +15391,8 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 	sigaction(SIGUSR2, &sa, 0);
 
 	/* Update our PATH to include /sbin if we need to run badblocks  */
-	if (cflag) {
-		char *oldpath = getenv("PATH");
-		if (oldpath) {
-			char *newpath;
-
-			newpath = (char *) malloc(sizeof (PATH_SET) + 1 +
-						  strlen (oldpath));
-			if (!newpath)
-				fatal_error(ctx, "Couldn't malloc() newpath");
-			strcpy (newpath, PATH_SET);
-			strcat (newpath, ":");
-			strcat (newpath, oldpath);
-			putenv (newpath);
-		} else
-			putenv (PATH_SET);
-	}
+	if (cflag)
+		e2fs_set_sbin_path();
 #ifdef __CONFIG_JBD_DEBUG__E2FS
 	if (getenv("E2FSCK_JBD_DEBUG"))
 		journal_enable_debug = atoi(getenv("E2FSCK_JBD_DEBUG"));
@@ -15434,7 +15406,7 @@ static const char my_ver_date[] = E2FSPROGS_DATE;
 int e2fsck_main (int argc, char *argv[])
 {
 	errcode_t       retval;
-	int             exit_value = FSCK_OK;
+	int             exit_value = EXIT_OK;
 	ext2_filsys     fs = 0;
 	io_manager      io_ptr;
 	struct ext2_super_block *sb;
@@ -15469,7 +15441,7 @@ int e2fsck_main (int argc, char *argv[])
 	if (retval) {
 		com_err("e2fsck", retval,
 			_("while trying to initialize program"));
-		exit(FSCK_ERROR);
+		exit(EXIT_ERROR);
 	}
 	reserve_stdio_fds();
 
@@ -15484,7 +15456,7 @@ int e2fsck_main (int argc, char *argv[])
 	if (show_version_only) {
 		fprintf(stderr, _("\tUsing %s, %s\n"),
 			error_message(EXT2_ET_BASE), lib_ver_date);
-		exit(FSCK_OK);
+		exit(EXIT_OK);
 	}
 
 	check_mount(ctx);
@@ -15756,30 +15728,30 @@ restart:
 	mtrace_print("Cleanup");
 #endif
 	if (ext2fs_test_changed(fs)) {
-		exit_value |= FSCK_NONDESTRUCT;
+		exit_value |= EXIT_NONDESTRUCT;
 		if (!(ctx->options & E2F_OPT_PREEN))
 		    printf(_("\n%s: ***** FILE SYSTEM WAS MODIFIED *****\n"),
 			       ctx->device_name);
 		if (ctx->mount_flags & EXT2_MF_ISROOT) {
 			printf(_("%s: ***** REBOOT LINUX *****\n"),
 			       ctx->device_name);
-			exit_value |= FSCK_REBOOT;
+			exit_value |= EXIT_DESTRUCT;
 		}
 	}
 	if (!ext2fs_test_valid(fs)) {
 		printf(_("\n%s: ********** WARNING: Filesystem still has "
 			 "errors **********\n\n"), ctx->device_name);
-		exit_value |= FSCK_UNCORRECTED;
-		exit_value &= ~FSCK_NONDESTRUCT;
+		exit_value |= EXIT_UNCORRECTED;
+		exit_value &= ~EXIT_NONDESTRUCT;
 	}
 	if (exit_value & FSCK_CANCELED)
-		exit_value &= ~FSCK_NONDESTRUCT;
+		exit_value &= ~EXIT_NONDESTRUCT;
 	else {
 		show_stats(ctx);
 		if (!(ctx->options & E2F_OPT_READONLY)) {
 			if (ext2fs_test_valid(fs)) {
 				if (!(sb->s_state & EXT2_VALID_FS))
-					exit_value |= FSCK_NONDESTRUCT;
+					exit_value |= EXIT_NONDESTRUCT;
 				sb->s_state = EXT2_VALID_FS;
 			} else
 				sb->s_state &= ~EXT2_VALID_FS;

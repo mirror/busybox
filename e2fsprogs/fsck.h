@@ -10,4 +10,7 @@
 #define EXIT_UNCORRECTED 4
 #define EXIT_ERROR       8
 #define EXIT_USAGE       16
+#define FSCK_CANCELED    32     /* Aborted with a signal or ^C */
 #define EXIT_LIBRARY     128
+
+extern void e2fs_set_sbin_path(void);

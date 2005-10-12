@@ -282,7 +282,6 @@ static int kill_sent;
 static char *fstype;
 static struct fs_info *filesys_info, *filesys_last;
 static struct fsck_instance *instance_list;
-static const char *fsck_prefix_path = "/sbin:/sbin/fs.d:/sbin/fs:/etc/fs:/etc";
 static char *fsck_path;
 static blkid_cache cache;
 
@@ -1349,7 +1348,6 @@ int fsck_main(int argc, char *argv[])
 {
 	int i, status = 0;
 	int interactive = 0;
-	char *oldpath = getenv("PATH");
 	const char *fstab;
 	struct fs_info *fs;
 
@@ -1367,12 +1365,7 @@ int fsck_main(int argc, char *argv[])
 		fstab = _PATH_MNTTAB;
 	load_fs_info(fstab);
 
-	/* Update our search path to include uncommon directories. */
-	if (oldpath) {
-		fsck_path = bb_xasprintf("%s:%s", fsck_prefix_path, oldpath);
-	} else {
-		fsck_path = string_copy(fsck_prefix_path);
-	}
+	e2fs_set_sbin_path();
 
 	if ((num_devices == 1) || (serialize))
 		interactive = 1;

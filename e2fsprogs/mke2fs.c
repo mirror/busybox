@@ -685,8 +685,6 @@ static int set_os(struct ext2_super_block *sb, char *os)
 	return 0;
 }
 
-#define PATH_SET "PATH=/sbin"
-
 static void parse_extended_opts(struct ext2_super_block *sb_param,
 				const char *opts)
 {
@@ -801,17 +799,13 @@ static int PRS(int argc, char *argv[])
 	int		show_version_only = 0;
 	ext2_ino_t	num_inodes = 0;
 	errcode_t	retval;
-	char *		oldpath = getenv("PATH");
 	char *		extended_opts = 0;
 	const char *	fs_type = 0;
 	blk_t		dev_size;
 	long		sysval;
 
 	/* Update our PATH to include /sbin  */
-	if (oldpath) {
-		putenv (bb_xasprintf("%s:%s", PATH_SET, oldpath));
-	} else
-		putenv (PATH_SET);
+	e2fs_set_sbin_path();
 
 	tmp = getenv("MKE2FS_SYNC");
 	if (tmp)
