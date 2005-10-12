@@ -355,7 +355,7 @@ int main(int argc, char **argv)
 			"Probe all devices and exit\n", argv[0]);
 		exit(1);
 	}
-	if ((ret = blkid_get_cache(&cache, "/dev/null")) != 0) {
+	if ((ret = blkid_get_cache(&cache, bb_dev_null)) != 0) {
 		fprintf(stderr, "%s: error creating cache (%d)\n",
 			argv[0], ret);
 		exit(1);

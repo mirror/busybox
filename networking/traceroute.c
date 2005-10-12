@@ -321,7 +321,6 @@ static int maxpacket = 32 * 1024;      /* max ip packet size */
 static int pmtu;                       /* Path MTU Discovery (RFC1191) */
 
 static char *hostname;
-static const char devnull[] = "/dev/null";
 
 static u_short ident;
 static u_short port = 32768 + 666;     /* start udp dest port # for probe packets */
@@ -1090,7 +1089,7 @@ traceroute_main(int argc, char *argv[])
 		bb_perror_msg_and_die("unknown protocol %s", cp);
 
 	/* Insure the socket fds won't be 0, 1 or 2 */
-	do n = bb_xopen(devnull, O_RDONLY); while (n < 2);
+	do n = bb_xopen(bb_dev_null, O_RDONLY); while (n < 2);
 	if (n > 2)
 		close(n);
 

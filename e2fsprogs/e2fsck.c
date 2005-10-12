@@ -15086,7 +15086,7 @@ static void reserve_stdio_fds(void)
 	int     fd;
 
 	while (1) {
-		fd = open("/dev/null", O_RDWR);
+		fd = open(bb_dev_null, O_RDWR);
 		if (fd > 2)
 			break;
 		if (fd < 0) {

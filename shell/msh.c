@@ -2714,7 +2714,7 @@ int act;
 				interactive = 0;
 				if (pin == NULL) {
 					close(0);
-					open("/dev/null", 0);
+					open(bb_dev_null, 0);
 				}
 				_exit(execute(t->left, pin, pout, FEXEC));
 			}

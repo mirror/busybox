@@ -353,7 +353,7 @@ static void console_init(void)
 #ifndef CONFIG_SYSLOGD
 		log_console =
 #endif
-		safe_strncpy(console, "/dev/null", sizeof(console));
+		safe_strncpy(console, bb_dev_null, sizeof(console));
 	} else {
 		s = getenv("TERM");
 		/* check for serial console */
@@ -834,7 +834,7 @@ static void new_init_action(int action, const char *command, const char *cons)
 	/* do not run entries if console device is not available */
 	if (access(cons, R_OK | W_OK))
 		return;
-	if (strcmp(cons, "/dev/null") == 0 && (action & ASKFIRST))
+	if (strcmp(cons, bb_dev_null) == 0 && (action & ASKFIRST))
 		return;
 
 	new_action = calloc((size_t) (1), sizeof(struct init_action));

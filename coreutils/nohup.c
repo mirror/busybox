@@ -115,7 +115,7 @@ int nohup_main (int argc, char **argv)
 	 Note that it is deliberately opened for *writing*,
 	 to ensure any read evokes an error.  */
 	if (isatty (STDIN_FILENO))
-		fd_reopen (STDIN_FILENO, "/dev/null", 0);
+		fd_reopen (STDIN_FILENO, bb_dev_null, 0);
 
 	/* If standard output is a tty, redirect it (appending) to a file.
 	 First try nohup.out, then $HOME/nohup.out.  */

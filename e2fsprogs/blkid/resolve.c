@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 			argv[0], argv[0]);
 		exit(1);
 	}
-	if (blkid_get_cache(&cache, "/dev/null") < 0) {
+	if (blkid_get_cache(&cache, bb_dev_null) < 0) {
 		fprintf(stderr, "Couldn't get blkid cache\n");
 		exit(1);
 	}

@@ -116,7 +116,7 @@ extern int gunzip_main(int argc, char **argv)
 
 		/* Set output filename and number */
 		if (opt & GUNZIP_OPT_TEST) {
-			dst_fd = bb_xopen("/dev/null", O_WRONLY);	/* why does test use filenum 2 ? */
+			dst_fd = bb_xopen(bb_dev_null, O_WRONLY);	/* why does test use filenum 2 ? */
 		} else if (opt & GUNZIP_OPT_STDOUT) {
 			dst_fd = STDOUT_FILENO;
 		} else {
