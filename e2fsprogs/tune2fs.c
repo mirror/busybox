@@ -26,14 +26,6 @@
  */
 
 #include <fcntl.h>
-#include <grp.h>
-#ifdef HAVE_GETOPT_H
-#include <getopt.h>
-#else
-extern char *optarg;
-extern int optind;
-#endif
-#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,6 +41,10 @@ extern int optind;
 #include "ext2fs/jfs_user.h"
 #include "util.h"
 #include "blkid/blkid.h"
+
+#include "busybox.h"
+#include "grp_.h"
+#include "pwd_.h"
 
 static char * device_name = NULL;
 static char * new_label, *new_last_mounted, *new_UUID;

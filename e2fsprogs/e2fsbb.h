@@ -39,7 +39,6 @@ typedef long errcode_t;
 #define ENABLE_HTREE 1
 #define HAVE_ERRNO_H 1
 #define HAVE_EXT2_IOCTLS 1
-#define HAVE_GETOPT_H 1
 #define HAVE_INTTYPES_H 1
 #define HAVE_LINUX_FD_H 1
 #define HAVE_MALLOC_H 1
