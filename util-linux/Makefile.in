@@ -10,7 +10,7 @@ UTILLINUX_DIR:=$(top_builddir)/util-linux/
 endif
 srcdir=$(top_srcdir)/util-linux
 
-UTILLINUX-:=
+UTILLINUX-y:=
 UTILLINUX-$(CONFIG_DMESG)         +=dmesg.o
 UTILLINUX-$(CONFIG_FBSET)         +=fbset.o
 UTILLINUX-$(CONFIG_FDFLUSH)       +=fdflush.o

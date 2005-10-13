@@ -10,7 +10,7 @@ SYSKLOGD_DIR:=$(top_builddir)/sysklogd/
 endif
 srcdir=$(top_srcdir)/sysklogd
 
-SYSKLOGD-:=
+SYSKLOGD-y:=
 SYSKLOGD-$(CONFIG_KLOGD)		+= klogd.o
 SYSKLOGD-$(CONFIG_LOGGER)		+= logger.o
 SYSKLOGD-$(CONFIG_LOGREAD)		+= logread.o
