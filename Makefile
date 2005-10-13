@@ -53,6 +53,11 @@ else
   KBUILD_OUTPUT := $(top_builddir)
 endif
 
+ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
+# pull in OS specific commands like cp, mkdir, etc. early
+-include $(top_srcdir)/Rules.mak
+endif
+
 # All object directories.
 OBJ_DIRS := $(DIRS)
 all_tree := $(patsubst %,$(top_builddir)/%,$(OBJ_DIRS) scripts scripts/config include)
@@ -252,7 +257,7 @@ sizes:
 	-rm -f busybox
 	$(MAKE) top_srcdir=$(top_srcdir) top_builddir=$(top_builddir) \
 		-f $(top_srcdir)/Makefile STRIPCMD=/bin/true
-	nm --size-sort busybox
+	$(NM) --size-sort busybox
 
 # Documentation Targets
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html

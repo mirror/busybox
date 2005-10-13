@@ -19,7 +19,11 @@
 
 #--------------------------------------------------------
 PROG      := busybox
-VERSION   := 1.1.0-pre1
+MAJOR_VERSION   :=1
+MINOR_VERSION   :=1
+SUBLEVEL_VERSION:=0
+EXTRAVERSION    :=-pre1
+VERSION   :=$(MAJOR_VERSION).$(MINOR_VERSION).$(SUBLEVEL_VERSION)$(EXTRAVERSION)
 BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 
 
@@ -43,6 +47,15 @@ NM             = $(CROSS)nm
 STRIP          = $(CROSS)strip
 CPP            = $(CC) -E
 # MAKEFILES      = $(top_builddir)/.config
+RM             = rm
+RM_F           = $(RM) -f
+LN             = ln
+LN_S           = $(LN) -s
+MKDIR          = mkdir
+MKDIR_P        = $(MKDIR) -p
+MV             = mv
+CP             = cp
+
 
 # What OS are you compiling busybox for?  This allows you to include
 # OS specific things, syscall overrides, etc.
