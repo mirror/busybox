@@ -21,7 +21,7 @@ LIBUNARCHIVE_AR:=libunarchive.a
 ifndef $(LIBUNARCHIVE_DIR)
 LIBUNARCHIVE_DIR:=$(top_builddir)/archival/libunarchive/
 endif
-srcdir=$(top_srcdir)/archvial/libunarchive
+srcdir=$(top_srcdir)/archival/libunarchive
 
 LIBUNARCHIVE-y:= \
 \
