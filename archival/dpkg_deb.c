@@ -55,7 +55,7 @@ extern int dpkg_deb_main(int argc, char **argv)
 	control_tar_llist = llist_add_to(control_tar_llist, "control.tar.bz2");
 #endif
 
-	bb_opt_complementally = "?c~efXx:e~cfXx:f~ceXx:X~cefx:x~cefX";
+	bb_opt_complementally = "?c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";
 	opt = bb_getopt_ulflags(argc, argv, "cefXx");
 
 	if (opt & DPKG_DEB_OPT_CONTENTS) {

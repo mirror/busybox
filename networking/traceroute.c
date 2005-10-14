@@ -965,7 +965,7 @@ traceroute_main(int argc, char *argv[])
 
 	opterr = 0;
 #ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
-	bb_opt_complementally = "x-x:g*";
+	bb_opt_complementally = "x-x:g::";
 #else
 	bb_opt_complementally = "x-x";
 #endif

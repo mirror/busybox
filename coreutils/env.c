@@ -38,7 +38,7 @@
  * - correct "-" option usage
  * - multiple "-u unsetenv" support
  * - GNU long option support
- * - save errno after exec failed before bb_perror_msg()
+ * - use bb_default_error_retval
  */
 
 
@@ -65,7 +65,7 @@ extern int env_main(int argc, char** argv)
 	llist_t *unset_env = NULL;
 	extern char **environ;
 
-	bb_opt_complementally = "u*";
+	bb_opt_complementally = "u::";
 	bb_applet_long_options = env_long_options;
 
 	opt = bb_getopt_ulflags(argc, argv, "+iu:", &unset_env);
@@ -93,12 +93,10 @@ extern int env_main(int argc, char** argv)
 	}
 
 	if (*argv) {
-		int er;
-
 		execvp(*argv, argv);
-		er = errno;
-		bb_perror_msg("%s", *argv);     /* Avoid multibyte problems. */
-		return (er == ENOENT) ? 127 : 126;   /* SUSv3-mandated exit codes. */
+		/* SUSv3-mandated exit codes. */
+		bb_default_error_retval = (errno == ENOENT) ? 127 : 126;
+		bb_perror_msg_and_die("%s", *argv);
 	}
 
 	for (ep = environ; *ep; ep++) {

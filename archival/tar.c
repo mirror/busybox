@@ -690,18 +690,16 @@ int tar_main(int argc, char **argv)
 	unsigned long opt;
 	unsigned long ctx_flag = 0;
 
-	/* Prepend '-' to the first argument if required */
-	if (argv[1][0] != '-') 
-		argv[1] = bb_xasprintf("-%s", argv[1]);
-
+	
 	/* Initialise default values */
 	tar_handle = init_handle();
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE | ARCHIVE_EXTRACT_UNCONDITIONAL;
 
+	/* Prepend '-' to the first argument if required */
 #ifdef CONFIG_FEATURE_TAR_CREATE
-	bb_opt_complementally = "?:c?c:t?t:x?x:c~tx:t~cx:x~ct:X*:T*";
+	bb_opt_complementally = "--:-1:X::T::c:t:x:?:c--tx:t--cx:x--ct";
 #else
-	bb_opt_complementally = "?:t?t:x?x:t~x:x~t:X*:T*";
+	bb_opt_complementally = "--:-1:X::T::t:x:?:t--x:x--t";
 #endif
 #ifdef CONFIG_FEATURE_TAR_LONG_OPTIONS
 	bb_applet_long_options = tar_long_options;

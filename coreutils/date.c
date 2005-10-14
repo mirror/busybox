@@ -149,7 +149,7 @@ int date_main(int argc, char **argv)
 #else
 # define GETOPT_ISOFMT
 #endif
-	bb_opt_complementally = "?d~s:s~d";
+	bb_opt_complementally = "?:d--s:s--d";
 	opt = bb_getopt_ulflags(argc, argv, "Rs:ud:r:" GETOPT_ISOFMT,
 					&date_str, &date_str, &filename
 #ifdef CONFIG_FEATURE_DATE_ISOFMT

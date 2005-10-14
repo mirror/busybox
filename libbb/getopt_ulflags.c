@@ -66,7 +66,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 			 &pointer_to_arg_for_c, &pointer_to_arg_for_d);
 
 	The type of the pointer (char* or llist_t *) may be controlled
-	by the "*" special character that is set in the external string
+	by the "::" special separator that is set in the external string
 	bb_opt_complementally (see below for more info).
 
 static const struct option bb_default_long_options[]
@@ -127,13 +127,13 @@ const char *bb_opt_complementally
 
 	w_counter is a pointer to an integer. It has to be passed to
 	bb_getopt_ulflags() after all other option argument sinks.
-	For example: accept multiple -v to indicate the level of verbosity and
-	for each -b optarg, add optarg to my_b. Finally, if b is given, turn off
-	c and vice versa:
+	For example: accept multiple -v to indicate the level of verbosity
+	and for each -b optarg, add optarg to my_b. Finally, if b is given,
+	turn off c and vice versa:
 
 	llist_t *my_b = NULL;
 	int verbose_level = 0;
-	bb_opt_complementally = "vv:b*:b-c:c-b";
+	bb_opt_complementally = "vv:b::b-c:c-b";
 	f = bb_getopt_ulflags(argc, argv, "vb:c", &my_b, &verbose_level);
 	if((f & 2))     // -c after -b unset this -b flag
 	  while (my_b) { dosomething_with(my_b->data) ; my_b = my_b->link; }
@@ -164,15 +164,14 @@ Special characters:
 	opt = bb_getopt_ulflags(argc, argv, "sd:x", &smax_print_depth);
 
 	if (opt & 2) {
-		 max_print_depth = bb_xgetularg10_bnd(smax_print_depth,
-			     0, INT_MAX);
+		 max_print_depth = atoi(smax_print_depth);
 	}
 	if(opt & 4)
 		printf("Detected odd -x usaging\n");
 
- "-"    A minus as the first char in a bb_opt_complementally group means to
-	convert the arguments as option.
-	For example:
+ "-"    A dash as the first char in a bb_opt_complementally group means to
+	convert the arguments as option. Next char for this case can`t set
+	[0-9], recomended use ':' or end of line. For example:
 
 	bb_opt_complementally = "-:w-x:x-w";
 	bb_getopt_ulflags(argc, argv, "wx");
@@ -180,7 +179,10 @@ Special characters:
 	Allows any arguments to be given without a dash (./program w x)
 	as well as with a dash (./program -x). Why unset -w see above.
 
- "~"    A tilde between two options, or between an option and a group
+ "-N"   A dash as the first char in a bb_opt_complementally group with
+	number 0-9 as one char is means check minimal arguments required.
+
+ "--"   A double dash between two options, or between an option and a group
 	of options, means that they are mutually exclusive.  Unlike
 	the "-" case above, an error will be forced if the options
 	are used together.
@@ -189,7 +191,7 @@ Special characters:
 	The cut applet must have only one type of list specified, so
 	-b, -c and -f are mutally exclusive and should raise an error
 	if specified together.  In this case you must set
-	bb_opt_complementally = "b~cf:c~bf:f~bc".  If two of the
+	bb_opt_complementally = "b--cf:c--bf:f--bc".  If two of the
 	mutually exclusive options are found, bb_getopt_ulflags's
 	return value will have the error flag set (BB_GETOPT_ERROR) so
 	that we can check for it:
@@ -199,9 +201,13 @@ Special characters:
 
  "?"    A "ask" as the first char in a bb_opt_complementally group give:
 	if previous point set BB_GETOPT_ERROR, don`t return and
-	call previous example internally
+	call previous example internally. Next char for this case can`t
+	set to [0-9], recomended use ':' or end of line.
 
- "*"    A star after a char in bb_opt_complementally means that the
+ "?N"   A "ask" as the first char in a bb_opt_complementally group with
+	number 0-9 as one char is means check maximal arguments possible.
+
+ "::"   A double colon after a char in bb_opt_complementally means that the
 	option can occur multiple times:
 
 	For example:
@@ -213,32 +219,44 @@ Special characters:
 	(this pointer must be initializated to NULL if the list is empty
 	as required by *llist_add_to(llist_t *old_head, char *new_item).)
 
-	bb_opt_complementally = "e*";
+	bb_opt_complementally = "e::";
 
 	bb_getopt_ulflags(argc, argv, "e:", &patterns);
 	$ grep -e user -e root /etc/passwd
 	root:x:0:0:root:/root:/bin/bash
 	user:x:500:500::/home/user:/bin/bash
 
+ "--"   A double dash as the first char in a bb_opt_complementally group
+	means make first argv[1] as option always as may be added -, special
+	for "ar" and "tar" applets.
+
  "?"    A "ask" between main and group options causes the second of the two
-	to be depending required if first is given on the command line.
+	to be depending required as or if first is given on the command line.
 	For example from "id" applet:
 
 	// Don't allow -n -r -rn -ug -rug -nug -rnug
-	bb_opt_complementally = "?u~g:g~u:r?ug:n?ug";
+	bb_opt_complementally = "r?ug:n?ug:?u--g:g--u";
 	flags = bb_getopt_ulflags(argc, argv, "rnug");
 
 	This example allowed only:
 	$ id; id -u; id -g; id -ru; id -nu; id -rg; id -ng; id -rnu; id -rng
 
- "?"    A "ask" between equivalent options in bb_opt_complementally means
-	requires this option always, checked after switch off from
-	complementally logic
+ "X"    A one options in bb_opt_complementally group means
+	requires this option always with "or" logic if more one specified,
+	checked after switch off from complementally logic.
 	For example from "start-stop-daemon" applet:
 
 	// Don't allow -KS -SK, but -S or -K required
-	bb_opt_complementally = "?:K?K:S?S:K~S:S~K";
+	bb_opt_complementally = "K:S:?K--S:S--K";
 	flags = bb_getopt_ulflags(argc, argv, "KS...);
+
+
+ "x--x" give error if double or more used -x option
+
+ Don`t forget ':' store. For example "?322-22-23X-x-a" interpretet as
+ "?3:22:-2:2-2:2-3Xa:2--x": max args is 3, count -2 usaged, min args is 2,
+ -2 option triggered, unset -3 and -X and -a if -2 any usaged, give error if
+ after -2 the -x option usaged.
 
 */
 
@@ -277,22 +295,25 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	const struct option *l_o;
 	unsigned long trigger;
 	char **pargv = NULL;
+	int min_arg = 0;
+	int max_arg = -1;
 
-#define SHOW_USAGE_IF_ERROR 1
-#define ARGV_IS_OPTS        2
+#define SHOW_USAGE_IF_ERROR     1
+#define ALL_ARGV_IS_OPTS        2
+#define FIRST_ARGV_IS_OPT       4
+#define FREE_FIRST_ARGV_IS_OPT  8
 	int spec_flgs = 0;
 
 	va_start (p, applet_opts);
-
-	/* skip GNU extension */
-	s = applet_opts;
-	if(*s == '+' || *s == '-')
-		s++;
 
 	c = 0;
 	on_off = complementally;
 	memset(on_off, 0, sizeof(complementally));
 
+	/* skip GNU extension */
+	s = applet_opts;
+	if(*s == '+' || *s == '-')
+		s++;
 	for (; *s; s++) {
 		if(c >= (int)(sizeof(flags)*8))
 			break;
@@ -324,68 +345,86 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 			c++;
 		}
 	}
-	c = 0;
 	for (s = bb_opt_complementally; s && *s; s++) {
 		t_complementally *pair;
+		unsigned long *pair_switch;
 
-		if (*s == ':') {
-			c = 0;
+		if (*s == ':')
 			continue;
-		}
-		if (c)
-			continue;
+		c = s[1];
 		if(*s == '?') {
-			spec_flgs |= SHOW_USAGE_IF_ERROR;
+			if(c < '0' || c > '9') {
+				spec_flgs |= SHOW_USAGE_IF_ERROR;
+			} else {
+				max_arg = c - '0';
+				s++;
+			}
 			continue;
 		}
 		if(*s == '-') {
-			spec_flgs |= ARGV_IS_OPTS;
+			if(c < '0' || c > '9') {
+				if(c == '-') {
+					spec_flgs |= FIRST_ARGV_IS_OPT;
+					s++;
+				} else
+					spec_flgs |= ALL_ARGV_IS_OPTS;
+			} else {
+				min_arg = c - '0';
+				s++;
+			}
 			continue;
 		}
 		for (on_off = complementally; on_off->opt; on_off++)
 			if (on_off->opt == *s)
 				break;
+		if(c == ':' && s[2] == ':') {
+			on_off->list_flg++;
+			continue;
+		}
+		if(c == ':' || c == '\0') {
+			requires |= on_off->switch_on;
+			continue;
+		}
+		if(c == *s) {
+			on_off->counter = va_arg (p, int *);
+			s++;
+		}
 		pair = on_off;
+		pair_switch = &(pair->switch_on);
 		for(s++; *s && *s != ':'; s++) {
-			if (*s == '-' || *s == '~' || *s == '?') {
-				c = *s;
-			} else if(*s == '*') {
-				pair->list_flg++;
-			} else {
-			    unsigned long *pair_switch;
-
-			    switch(c) {
-				case '-':
-					pair_switch = &(pair->switch_off);
-					break;
-				case '~':
+			if(*s == '?') {
+				pair_switch = &(pair->requires);
+			} else if (*s == '-') {
+				if(pair_switch == &(pair->switch_off))
 					pair_switch = &(pair->incongruously);
-					break;
-				case '?':
-					pair_switch = &(pair->requires);
-					break;
-				default:
-					pair_switch = &(pair->switch_on);
-			    }
+				else
+					pair_switch = &(pair->switch_off);
+			} else {
 			    for (on_off = complementally; on_off->opt; on_off++)
 				if (on_off->opt == *s) {
-				    if(pair_switch == &(on_off->switch_on))
-					on_off->counter = va_arg (p, int *);
-				    else if(pair_switch == &(on_off->requires))
-					requires |= on_off->switch_on;
-				    else
-					*pair_switch |= on_off->switch_on;
+				    *pair_switch |= on_off->switch_on;
 				    break;
 				}
 			}
 		}
 		s--;
 	}
+	va_end (p);
 
+#if defined(CONFIG_AR) || defined(CONFIG_TAR)
+	if((spec_flgs & FIRST_ARGV_IS_OPT)) {
+		if(argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {
+			argv[1] = bb_xasprintf("-%s", argv[1]);
+			if(ENABLE_FEATURE_CLEAN_UP)
+				spec_flgs |= FREE_FIRST_ARGV_IS_OPT;
+		}
+	}
+#endif
 	while ((c = getopt_long (argc, argv, applet_opts,
 				 bb_applet_long_options, NULL)) >= 0) {
-
+#ifdef CONFIG_PS
 loop_arg_is_opt:
+#endif
 		for (on_off = complementally; on_off->opt != c; on_off++) {
 			/* c==0 if long opt have non NULL flag */
 			if(on_off->opt == 0 && c != 0)
@@ -408,10 +447,14 @@ loop_arg_is_opt:
 		} else if (on_off->optarg) {
 			*(char **)(on_off->optarg) = optarg;
 		}
+#ifdef CONFIG_PS
 		if(pargv != NULL)
 			break;
+#endif
 	}
-	if((spec_flgs & ARGV_IS_OPTS)) {
+
+#ifdef CONFIG_PS
+	if((spec_flgs & ALL_ARGV_IS_OPTS)) {
 		/* process argv is option, for example "ps" applet */
 		if(pargv == NULL)
 			pargv = argv + optind;
@@ -425,6 +468,13 @@ loop_arg_is_opt:
 			}
 		}
 	}
+#endif
+
+#if (defined(CONFIG_AR) || defined(CONFIG_TAR)) && \
+				defined(CONFIG_FEATURE_CLEAN_UP)
+	if((spec_flgs & FREE_FIRST_ARGV_IS_OPT))
+		free(argv[1]);
+#endif
 	/* check depending requires for given options */
 	for (on_off = complementally; on_off->opt; on_off++) {
 		if(on_off->requires && (flags & on_off->switch_on) &&
@@ -432,6 +482,9 @@ loop_arg_is_opt:
 			bb_show_usage ();
 	}
 	if(requires && (flags & requires) == 0)
+		bb_show_usage ();
+	argc -= optind;
+	if(argc < min_arg || (max_arg >= 0 && argc > max_arg))
 		bb_show_usage ();
 	return flags;
 }

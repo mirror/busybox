@@ -68,15 +68,8 @@ extern int ar_main(int argc, char **argv)
 	archive_handle = init_handle();
 	
 	/* Prepend '-' to the first argument if required */
-	if (argv[1][0] != '-')
-		argv[1] = bb_xasprintf("-%s", argv[1]);
-
-	bb_opt_complementally = "?p~tx:t~px:x~pt";
+	bb_opt_complementally = "--:p:t:x:-1:?:p--tx:t--px:x--pt";
 	opt = bb_getopt_ulflags(argc, argv, "ptxovcr");
-
-	if ((opt == 0) || (optind == argc)) {
-		bb_show_usage();
-	}
 
 	if (opt & AR_CTX_PRINT) {
 		archive_handle->action_data = data_extract_to_stdout;

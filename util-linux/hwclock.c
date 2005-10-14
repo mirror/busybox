@@ -209,7 +209,7 @@ static const struct option hwclock_long_options[] = {
 	bb_applet_long_options = hwclock_long_options;
 #endif
 
-	bb_opt_complementally = "?r~ws:w~rs:s~wr:l~u:u~l";
+	bb_opt_complementally = "?:r--ws:w--rs:s--wr:l--u:u--l";
 	opt = bb_getopt_ulflags(argc, argv, "lursw");
 
 	/* If -u or -l wasn't given check if we are using utc */

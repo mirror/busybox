@@ -49,7 +49,7 @@ extern int pidof_main(int argc, char **argv)
 	unsigned long int opt;
 #if ENABLE_FEATURE_PIDOF_OMIT
 	llist_t *omits = NULL; /* list of pids to omit */
-	bb_opt_complementally = _OMIT_COMPL("o*");
+	bb_opt_complementally = _OMIT_COMPL("o::");
 #endif
 
 	/* do unconditional option parsing */

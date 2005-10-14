@@ -234,9 +234,9 @@ start_stop_daemon_main(int argc, char **argv)
 	bb_applet_long_options = ssd_long_options;
 
 	/* Check required one context option was given */
-	bb_opt_complementally = "?:K?K:S?S:K~S:S~K";
+	bb_opt_complementally = "K:S:?:K--S:S--K";
 	opt = bb_getopt_ulflags(argc, argv, "KSbqma:n:s:u:x:p:",
-			&startas, &cmdname, &signame, &userspec, &execname, &pidfile);
+		&startas, &cmdname, &signame, &userspec, &execname, &pidfile);
 
 	
 	quiet = opt & SSD_OPT_QUIET;

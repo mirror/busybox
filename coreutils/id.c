@@ -62,12 +62,9 @@ extern int id_main(int argc, char **argv)
 	short status;
 
 	/* Don't allow -n -r -nr -ug -rug -nug -rnug */
-	bb_opt_complementally = "?u~g:g~u:r?ug:n?ug";
-	flags = bb_getopt_ulflags(argc, argv, "rnug");
-
 	/* Don't allow more than one username */
-	if (argc > (optind + 1))
-		bb_show_usage();
+	bb_opt_complementally = "?1:?:u--g:g--u:r?ug:n?ug";
+	flags = bb_getopt_ulflags(argc, argv, "rnug");
 
 	/* This values could be overwritten later */
 	uid = geteuid();

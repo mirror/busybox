@@ -177,23 +177,25 @@ int wget_main(int argc, char **argv)
 	struct sockaddr_in s_in;
 	llist_t *headers_llist = NULL;
 
-	FILE *sfp = NULL;			/* socket to web/ftp server			*/
-	FILE *dfp = NULL;			/* socket to ftp server (data)		*/
-	char *fname_out = NULL;		/* where to direct output (-O)		*/
-	int do_continue = 0;		/* continue a prev transfer (-c)	*/
-	long beg_range = 0L;		/*   range at which continue begins	*/
-	int got_clen = 0;			/* got content-length: from server	*/
-	FILE *output;				/* socket to web server				*/
-	int quiet_flag = FALSE;		/* Be verry, verry quiet...			*/
-	int use_proxy = 1;          /* Use proxies if env vars are set  */
+	FILE *sfp = NULL;		/* socket to web/ftp server	    */
+	FILE *dfp = NULL;		/* socket to ftp server (data)	    */
+	char *fname_out = NULL;		/* where to direct output (-O)	    */
+	int do_continue = 0;		/* continue a prev transfer (-c)    */
+	long beg_range = 0L;		/*   range at which continue begins */
+	int got_clen = 0;		/* got content-length: from server  */
+	FILE *output;			/* socket to web server		    */
+	int quiet_flag = FALSE;		/* Be verry, verry quiet...	    */
+	int use_proxy = 1;		/* Use proxies if env vars are set  */
 	char *proxy_flag = "on";	/* Use proxies if env vars are set  */
 
 	/*
 	 * Crack command line.
 	 */
-	bb_opt_complementally = "\203*";
+	bb_opt_complementally = "-1:\203::";
 	bb_applet_long_options = wget_long_options;
-	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:", &fname_out, &headers_llist, &dir_prefix, &proxy_flag);
+	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:", 
+					&fname_out, &headers_llist, 
+					&dir_prefix, &proxy_flag);
 	if (opt & WGET_OPT_CONTINUE) {
 		++do_continue;
 	}
@@ -218,9 +220,7 @@ int wget_main(int argc, char **argv)
 			headers_llist = headers_llist->link;
 		}
 	}
-	if (argc - optind != 1)
-			bb_show_usage();
-
+	
 	parse_url(argv[optind], &target);
 	server.host = target.host;
 	server.port = target.port;
