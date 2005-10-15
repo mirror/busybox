@@ -192,21 +192,21 @@ struct minix_dir_entry {
 
 #define BITS_PER_BLOCK (BLOCK_SIZE<<3)
 
-static char *device_name = NULL;
+static char *device_name;
 static int DEV = -1;
-static uint32_t BLOCKS = 0;
-static int check = 0;
-static int badblocks = 0;
+static uint32_t BLOCKS;
+static int check;
+static int badblocks;
 static int namelen = 30;		/* default (changed to 30, per Linus's
 
 								   suggestion, Sun Nov 21 08:05:07 1993) */
 static int dirsize = 32;
 static int magic = MINIX_SUPER_MAGIC2;
-static int version2 = 0;
+static int version2;
 
-static char root_block[BLOCK_SIZE] = "\0";
+static char root_block[BLOCK_SIZE];
 
-static char *inode_buffer = NULL;
+static char *inode_buffer;
 
 #define Inode (((struct minix_inode *) inode_buffer)-1)
 #ifdef CONFIG_FEATURE_MINIX2
@@ -234,8 +234,8 @@ static char *inode_map;
 static char *zone_map;
 
 static unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
-static int used_good_blocks = 0;
-static unsigned long req_nr_inodes = 0;
+static int used_good_blocks;
+static unsigned long req_nr_inodes;
 
 static inline int bit(char * a,unsigned int i)
 {
@@ -632,7 +632,7 @@ static inline long do_check(char *buffer, int try, unsigned int current_block)
 	return got;
 }
 
-static unsigned int currently_testing = 0;
+static unsigned int currently_testing;
 
 static void alarm_intr(int alnum)
 {
@@ -847,6 +847,6 @@ goodbye:
 	}
 	mark_good_blocks();
 	write_tables();
-	return( 0);
+	return 0;
 
 }
