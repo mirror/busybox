@@ -59,12 +59,12 @@
 # define TAR_MAGIC          "ustar"	/* ustar and a null */
 # define TAR_VERSION        "  "	/* Be compatable with GNU tar format */
 
-static const int TAR_BLOCK_SIZE = 512;
-static const int TAR_MAGIC_LEN = 6;
-static const int TAR_VERSION_LEN = 2;
+#define TAR_BLOCK_SIZE		512
+#define TAR_MAGIC_LEN		6
+#define TAR_VERSION_LEN		2
 
 /* POSIX tar Header Block, from POSIX 1003.1-1990  */
-enum { NAME_SIZE = 100 };	/* because gcc won't let me use 'static const int' */
+#define NAME_SIZE			100
 struct TarHeader {		/* byte offset */
 	char name[NAME_SIZE];	/*   0-99 */
 	char mode[8];		/* 100-107 */
@@ -670,6 +670,7 @@ static const struct option tar_long_options[] = {
 # ifdef CONFIG_FEATURE_TAR_FROM
 	{ "files-from",		1,	NULL,	'T' },
 	{ "exclude-from",	1,	NULL,	'X' },
+	{ "exclude",		1,	NULL,	'\n' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_GZIP
 	{ "gzip",			0,	NULL,	'z' },
@@ -688,7 +689,7 @@ int tar_main(int argc, char **argv)
 	char *base_dir = NULL;
 	const char *tar_filename = "-";
 	unsigned long opt;
-	unsigned long ctx_flag = 0;
+	llist_t *excludes;
 
 	
 	/* Initialise default values */
@@ -697,9 +698,9 @@ int tar_main(int argc, char **argv)
 
 	/* Prepend '-' to the first argument if required */
 #ifdef CONFIG_FEATURE_TAR_CREATE
-	bb_opt_complementally = "--:-1:X::T::c:t:x:?:c--tx:t--cx:x--ct";
+	bb_opt_complementally = "--:-1:X::T::\n::c:t:x:?:c--tx:t--cx:x--ct";
 #else
-	bb_opt_complementally = "--:-1:X::T::t:x:?:t--x:x--t";
+	bb_opt_complementally = "--:-1:X::T::\n::t:x:?:t--x:x--t";
 #endif
 #ifdef CONFIG_FEATURE_TAR_LONG_OPTIONS
 	bb_applet_long_options = tar_long_options;
@@ -709,12 +710,12 @@ int tar_main(int argc, char **argv)
 				&tar_filename /* archive filename */
 #ifdef CONFIG_FEATURE_TAR_FROM
 				, &(tar_handle->accept),
-				&(tar_handle->reject)
+				&(tar_handle->reject),
+				&excludes
 #endif
 				);
-
-	ctx_flag = opt & (CTX_CREATE | CTX_TEST | CTX_EXTRACT);
-	if(ctx_flag & CTX_TEST) {
+	
+	if(opt & CTX_TEST) {
 		if ((tar_handle->action_header == header_list) ||
 			(tar_handle->action_header == header_verbose_list)) {
 			tar_handle->action_header = header_verbose_list;
@@ -722,10 +723,10 @@ int tar_main(int argc, char **argv)
 			tar_handle->action_header = header_list;
 		}
 	}
-	if(ctx_flag & CTX_EXTRACT) {
+	if(opt & CTX_EXTRACT) {
 		if (tar_handle->action_data != data_extract_to_stdout)
 			tar_handle->action_data = data_extract_all;
-		}
+	}
 	if(opt & TAR_OPT_2STDOUT) {
 		/* To stdout */
 		tar_handle->action_data = data_extract_to_stdout;
@@ -734,7 +735,7 @@ int tar_main(int argc, char **argv)
 		if ((tar_handle->action_header == header_list) ||
 			(tar_handle->action_header == header_verbose_list))
 		{
-		tar_handle->action_header = header_verbose_list;
+			tar_handle->action_header = header_verbose_list;
 		} else {
 			tar_handle->action_header = header_list;
 		}
@@ -759,12 +760,15 @@ int tar_main(int argc, char **argv)
 	}
 #endif
 #ifdef CONFIG_FEATURE_TAR_FROM
-	if(opt & TAR_OPT_EXCLUDE_FROM) {
-		tar_handle->reject = append_file_list_to_list(tar_handle->reject);
+	tar_handle->reject = append_file_list_to_list(tar_handle->reject);
+	/* Append excludes to reject */
+	while(excludes) {
+		llist_t *temp = excludes->link;
+		excludes->link = tar_handle->reject;
+		tar_handle->reject = excludes;
+		excludes = temp;
 	}
-	if(opt & TAR_OPT_INCLUDE_FROM) {
-		tar_handle->accept = append_file_list_to_list(tar_handle->accept);
-	}
+	tar_handle->accept = append_file_list_to_list(tar_handle->accept);
 #endif
 
 	/* Check if we are reading from stdin */
