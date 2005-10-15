@@ -19,7 +19,7 @@
 struct blkid_magic;
 
 typedef int (*blkid_probe_t)(int fd, blkid_cache cache, blkid_dev dev, 
-			     struct blkid_magic *id, unsigned char *buf);
+			     const struct blkid_magic *id, unsigned char *buf);
 
 struct blkid_magic {
 	const char	*bim_type;	/* type name for this magic */
