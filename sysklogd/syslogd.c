@@ -319,9 +319,8 @@ static void message(char *fmt, ...)
 
 	} else
 #endif
-	if ((fd =
-			 device_open(logFilePath,
-							 O_WRONLY | O_CREAT | O_NOCTTY | O_APPEND |
+	if ((fd = device_open(logFilePath,
+					O_WRONLY | O_CREAT | O_NOCTTY | O_APPEND |
 							 O_NONBLOCK)) >= 0) {
 		fl.l_type = F_WRLCK;
 		fcntl(fd, F_SETLKW, &fl);
@@ -363,8 +362,7 @@ static void message(char *fmt, ...)
 		close(fd);
 	} else {
 		/* Always send console messages to /dev/console so people will see them. */
-		if ((fd =
-			 device_open(_PATH_CONSOLE,
+		if ((fd = device_open(_PATH_CONSOLE,
 						 O_WRONLY | O_NOCTTY | O_NONBLOCK)) >= 0) {
 			va_start(arguments, fmt);
 			vdprintf(fd, fmt, arguments);
@@ -400,7 +398,7 @@ static void logMessage(int pri, char *msg)
 {
 	time_t now;
 	char *timestamp;
-	static char res[20] = "";
+	static char res[20];
 #ifdef CONFIG_FEATURE_REMOTE_LOG	
 	static char line[MAXLINE + 1];
 #endif
