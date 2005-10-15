@@ -600,16 +600,19 @@ static void doSyslogd(void)
 
 		if (FD_ISSET(sock_fd, &fds)) {
 			int i;
+#if MAXLINE > BUFSIZ
+# define TMP_BUF_SZ BUFSIZ
+#else
+# define TMP_BUF_SZ MAXLINE
+#endif
+#define tmpbuf bb_common_bufsiz1
 
-			RESERVE_CONFIG_BUFFER(tmpbuf, MAXLINE + 1);
-
-			memset(tmpbuf, '\0', MAXLINE + 1);
-			if ((i = recv(sock_fd, tmpbuf, MAXLINE, 0)) > 0) {
+			if ((i = recv(sock_fd, tmpbuf, TMP_BUF_SZ, 0)) > 0) {
+				tmpbuf[i] = '\0';
 				serveConnection(tmpbuf, i);
 			} else {
 				bb_perror_msg_and_die("UNIX socket error");
 			}
-			RELEASE_CONFIG_BUFFER(tmpbuf);
 		}				/* FD_ISSET() */
 	}					/* for main loop */
 }
