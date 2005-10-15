@@ -30,7 +30,13 @@ int realpath_main(int argc, char **argv)
 {
 	int retval = EXIT_SUCCESS;
 
+#if PATH_MAX > (BUFSIZ+1)
 	RESERVE_CONFIG_BUFFER(resolved_path, PATH_MAX);
+# define resolved_path_MUST_FREE 1
+#else
+#define resolved_path bb_common_bufsiz1
+# define resolved_path_MUST_FREE 0
+#endif
 
 	if (--argc == 0) {
 		bb_show_usage();
@@ -46,7 +52,7 @@ int realpath_main(int argc, char **argv)
 		}
 	} while (--argc);
 
-#ifdef CONFIG_FEATURE_CLEAN_UP
+#if ENABLE_FEATURE_CLEAN_UP && resolved_path_MUST_FREE
 	RELEASE_CONFIG_BUFFER(resolved_path);
 #endif
 

@@ -282,10 +282,8 @@ int date_main(int argc, char **argv)
 
 	{
 		/* Print OUTPUT (after ALL that!) */
-		RESERVE_CONFIG_BUFFER(t_buff, 201);
-		strftime(t_buff, 200, date_fmt, &tm_time);
-		puts(t_buff);
-		RELEASE_CONFIG_BUFFER(t_buff);
+		strftime(bb_common_bufsiz1, 200, date_fmt, &tm_time);
+		puts(bb_common_bufsiz1);
 	}
 
 	return EXIT_SUCCESS;

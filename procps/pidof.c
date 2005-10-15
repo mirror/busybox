@@ -60,7 +60,7 @@ extern int pidof_main(int argc, char **argv)
 #if ENABLE_FEATURE_PIDOF_OMIT
 	/* fill omit list.  */
 	{
-		RESERVE_CONFIG_BUFFER(getppid_str, 32);
+		char getppid_str[32];
 		llist_t * omits_p = omits;
 		while (omits_p) {
 			/* are we asked to exclude the parent's process ID?  */
@@ -76,8 +76,6 @@ extern int pidof_main(int argc, char **argv)
 			}
 			omits_p = omits_p->link;
 		}
-		if (ENABLE_FEATURE_CLEAN_UP)
-			RELEASE_CONFIG_BUFFER(getppid_str);
 	}
 #endif
 	/* Looks like everything is set to go.  */
