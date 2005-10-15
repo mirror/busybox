@@ -2,21 +2,9 @@
 /*
  * Utility routines.
  *
- * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 1999-2005 by Erik Andersen <andersen@codepoet.org>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 
@@ -75,11 +63,12 @@ extern int del_loop(const char *device)
 	return rc;
 }
 
-// Returns 0 if mounted RW, 1 if mounted read-only, <0 for error.
-// *device is loop device to use, or if *device==NULL finds a loop device to
-// mount it on and sets *device to a strdup of that loop device name.  This
-// search will re-use an existing loop device already bound to that
-// file/offset if it finds one.
+/* Returns 0 if mounted RW, 1 if mounted read-only, <0 for error.
+   *device is loop device to use, or if *device==NULL finds a loop device to
+   mount it on and sets *device to a strdup of that loop device name.  This
+   search will re-use an existing loop device already bound to that
+   file/offset if it finds one.
+ */
 extern int set_loop(char **device, const char *file, int offset)
 {
 	char dev[20];
@@ -87,37 +76,39 @@ extern int set_loop(char **device, const char *file, int offset)
 	struct stat statbuf;
 	int i, dfd, ffd, mode, rc=1;
 
-	// Open the file.  Barf if this doesn't work.
+	/* Open the file.  Barf if this doesn't work.  */
 	if((ffd = open(file, mode=O_RDWR))<0 && (ffd = open(file,mode=O_RDONLY))<0)
 		return errno;
-	
-	// Find a loop device
+
+	/* Find a loop device.  */
 	for(i=0;rc;i++) {
 		sprintf(dev, LOOP_FORMAT, i++);
-		// Ran out of block devices, return failure.
-		if(stat(*device ? : dev, &statbuf) || !S_ISBLK(statbuf.st_mode)) {
+		/* Ran out of block devices, return failure.  */
+		if(stat(*device ? *device : dev, &statbuf) ||
+				!S_ISBLK(statbuf.st_mode)) {
 			rc=ENOENT;
 			break;
 		}
-		// Open the sucker and check its loopiness.
+		/* Open the sucker and check its loopiness.  */
 		if((dfd=open(dev, mode))<0 && errno==EROFS)
 			dfd=open(dev,mode=O_RDONLY);
 		if(dfd<0) continue;
 
 		rc=ioctl(dfd, BB_LOOP_GET_STATUS, &loopinfo);
-		// If device free, claim it.
+		/* If device free, claim it.  */
 		if(rc && errno==ENXIO) {
 			memset(&loopinfo, 0, sizeof(loopinfo));
 			safe_strncpy(loopinfo.lo_file_name, file, LO_NAME_SIZE);
 			loopinfo.lo_offset = offset;
-			// Associate free loop device with file
+			/* Associate free loop device with file.  */
 			if(!ioctl(dfd, LOOP_SET_FD, ffd) &&
 			   !ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo)) rc=0;
 			else ioctl(dfd, LOOP_CLR_FD, 0);
-		// If this block device already set up right, re-use it.
-		// (Yes this is racy, but associating two loop devices with the same
-		// file isn't pretty either.  In general, mounting the same file twice
-		// without using losetup manually is problematic.)
+		/* If this block device already set up right, re-use it.
+		   (Yes this is racy, but associating two loop devices with the same
+		   file isn't pretty either.  In general, mounting the same file twice
+		   without using losetup manually is problematic.)
+		 */
 		} else if(strcmp(file,loopinfo.lo_file_name)
 					|| offset!=loopinfo.lo_offset) rc=1;
 		close(dfd);
