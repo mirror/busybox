@@ -113,15 +113,6 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 #endif
 
  /*
-  * This program tries to not use the standard-i/o library.  This keeps the
-  * executable small on systems that do not have shared libraries (System V
-  * Release <3).
-  */
-#ifndef BUFSIZ
-#define BUFSIZ          1024
-#endif
-
- /*
   * When multiple baud rates are specified on the command line, the first one
   * we will try is the first one specified.
   */
@@ -744,12 +735,12 @@ static void next_speed(struct termio *tp, struct options *op)
 /* return NULL on failure, logname on success */
 static char *get_logname(struct options *op, struct chardata *cp, struct termio *tp)
 {
-	static char logname[BUFSIZ];
+#define logname bb_common_bufsiz1
 	char *bp;
-	char c;                                         /* input character, full eight bits */
-	char ascval;                            /* low 7 bits of input character */
-	int bits;                                       /* # of "1" bits per character */
-	int mask;                                       /* mask with 1 bit up */
+	char c;				/* input character, full eight bits */
+	char ascval;                    /* low 7 bits of input character */
+	int bits;                       /* # of "1" bits per character */
+	int mask;                       /* mask with 1 bit up */
 	static char *erase[] = {        /* backspace-space-backspace */
 		"\010\040\010",                 /* space parity */
 		"\010\040\010",                 /* odd parity */

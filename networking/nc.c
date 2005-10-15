@@ -48,7 +48,9 @@ static void timeout(int signum)
 int nc_main(int argc, char **argv)
 {
 	int do_listen = 0, lport = 0, delay = 0, wsecs = 0, tmpfd, opt, sfd, x;
-	char buf[BUFSIZ];
+	
+#define buf bb_common_bufsiz1
+	
 #ifdef CONFIG_NC_GAPING_SECURITY_HOLE
 	char *pr00gie = NULL;
 #endif

@@ -101,3 +101,6 @@ const char * const bb_default_login_shell = LIBBB_DEFAULT_LOGIN_SHELL;
 const char * const bb_dev_null = "/dev/null";
 #endif
 
+#ifdef L_bb_common_bufsiz1
+char bb_common_bufsiz1[BUFSIZ+1];
+#endif

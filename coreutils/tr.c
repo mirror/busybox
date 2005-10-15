@@ -38,10 +38,11 @@
 static char com_fl, del_fl, sq_fl;
 static short in_index, out_index;
 /* these last are pointers to static buffers declared in tr_main */
-static unsigned char *poutput, *pinput;
+static unsigned char *poutput;
 static unsigned char *pvector;
 static char *pinvec, *poutvec;
 
+#define input bb_common_bufsiz1
 
 static void convert(void)
 {
@@ -51,14 +52,14 @@ static void convert(void)
 
 	for (;;) {
 		if (in_index == read_chars) {
-			if ((read_chars = read(0, (char *) pinput, BUFSIZ)) <= 0) {
+			if ((read_chars = read(0, input, BUFSIZ)) <= 0) {
 				if (write(1, (char *) poutput, out_index) != out_index)
 					bb_error_msg(bb_msg_write_error);
 				exit(0);
 			}
 			in_index = 0;
 		}
-		c = pinput[in_index++];
+		c = input[in_index++];
 		coded = pvector[c];
 		if (del_fl && pinvec[c])
 			continue;
@@ -208,14 +209,12 @@ extern int tr_main(int argc, char **argv)
 	int idx = 1;
 	int i;
 	RESERVE_CONFIG_BUFFER(output, BUFSIZ);
-	RESERVE_CONFIG_BUFFER(input,  BUFSIZ);
 	RESERVE_CONFIG_UBUFFER(vector, ASCII+1);
 	RESERVE_CONFIG_BUFFER(invec,  ASCII+1);
 	RESERVE_CONFIG_BUFFER(outvec, ASCII+1);
 
 	/* ... but make them available globally */
 	poutput = output;
-	pinput  = input;
 	pvector = vector;
 	pinvec  = invec;
 	poutvec = outvec;

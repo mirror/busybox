@@ -44,12 +44,13 @@
  * to pick a random letter to add to out temporary file. */
 typedef unsigned long int bb_uint64_t;
 
+#define tempFn bb_common_bufsiz1
+
 /* if fn is NULL then input is stdin and output is stdout */
 static int convert(char *fn, int ConvType)
 {
 	int c, fd;
 	struct timeval tv;
-	RESERVE_CONFIG_BUFFER(tempFn, BUFSIZ);
 	static bb_uint64_t value=0;
 	FILE *in, *out;
 

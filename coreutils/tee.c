@@ -39,7 +39,7 @@ int tee_main(int argc, char **argv)
 	int retval = EXIT_SUCCESS;
 #ifdef CONFIG_FEATURE_TEE_USE_BLOCK_IO
 	ssize_t c;
-	RESERVE_CONFIG_BUFFER(buf, BUFSIZ);
+# define buf bb_common_bufsiz1
 #else
 	int c;
 #endif
@@ -87,10 +87,6 @@ int tee_main(int argc, char **argv)
 	if (c < 0) {			/* Make sure read errors are signaled. */
 		retval = EXIT_FAILURE;
 	}
-
-#ifdef CONFIG_FEATURE_CLEAN_UP
-	RELEASE_CONFIG_BUFFER(buf);
-#endif
 
 #else
 	setvbuf(stdout, NULL, _IONBF, 0);

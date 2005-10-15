@@ -568,7 +568,7 @@ struct parsefile {
 };
 
 static struct parsefile basepf;         /* top level input file */
-static char basebuf[IBUFSIZ];           /* buffer for top level input file */
+#define basebuf bb_common_bufsiz1       /* buffer for top level input file */
 static struct parsefile *parsefile = &basepf;  /* current input file */
 
 
@@ -5939,7 +5939,6 @@ varunset(const char *end, const char *var, const char *umsg, int varflags)
  */
 
 #define EOF_NLEFT -99           /* value of parsenleft when EOF pushed back */
-#define IBUFSIZ (BUFSIZ + 1)
 
 static void pushfile(void);
 

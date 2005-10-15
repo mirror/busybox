@@ -21,7 +21,7 @@
 #define SULOGIN_PROMPT "\nGive root password for system maintenance\n" \
 	"(or type Control-D for normal startup):"
 
-static const char *forbid[] = {
+static const char * const forbid[] = {
 	"ENV",
 	"BASH_ENV",
 	"HOME",
@@ -53,11 +53,13 @@ extern int sulogin_main(int argc, char **argv)
 	char *device = (char *) 0;
 	const char *name = "root";
 	int timeout = 0;
-	static char pass[BUFSIZ];
+	
+#define pass bb_common_bufsiz1
+	
 	struct passwd pwent;
 	struct passwd *pwd;
 	time_t start, now;
-	const char **p;
+	const char * const *p;
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
 	struct spwd *spwd = NULL;
 #endif							/* CONFIG_FEATURE_SHADOWPASSWDS */

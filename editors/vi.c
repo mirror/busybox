@@ -2226,7 +2226,8 @@ static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 	return (FD_ISSET(0, &rfds));
 }
 
-static Byte readbuffer[BUFSIZ];
+#define readbuffer bb_common_bufsiz1
+
 static int readed_for_parse;
 
 //----- IO Routines --------------------------------------------
