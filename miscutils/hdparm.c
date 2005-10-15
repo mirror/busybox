@@ -165,7 +165,7 @@
 #define CDROM 0x0005
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-static const char *pkt_str[] = {
+static const char * const pkt_str[] = {
 	"Direct-access device",			/* word 0, bits 12-8 = 00 */
 	"Sequential-access device",		/* word 0, bits 12-8 = 01 */
 	"Printer",				/* word 0, bits 12-8 = 02 */
@@ -199,7 +199,8 @@ static const char *pkt_str[] = {
 	"",					/* word 0, bits 12-8 = 1e */
 	"Unknown",				/* word 0, bits 12-8 = 1f */
 };
-static const char *ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
+
+static const char * const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 	"reserved",				/* bit 0 */
 	"hard sectored",			/* bit 1 */
 	"soft sectored",			/* bit 2 */
@@ -276,7 +277,7 @@ static const char *ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 /* word 81: minor version number */
 #define MINOR_MAX		0x1C
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-static const char *minor_str[] = {				/* word 81 value: */
+static const char * const minor_str[] = {				/* word 81 value: */
 	"device does not report version",		/* 0x0000	*/
 	"ATA-1 X3T9.2 781D prior to revision 4",	/* 0x0001	*/
 	"ATA-1 published, ANSI X3.221-1994",		/* 0x0002	*/
@@ -353,7 +354,7 @@ static const char actual_ver[] = {
 #define NUM_CMD_FEAT_STR	48
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-static const char *cmd_feat_str[] = {
+static const char * const cmd_feat_str[] = {
 	"",					/* word 82 bit 15: obsolete  */
 	"NOP cmd",				/* word 82 bit 14 */
 	"READ BUFFER cmd",			/* word 82 bit 13 */
@@ -435,7 +436,7 @@ static const char *cmd_feat_str[] = {
 #define SECU_LEVEL		0x0010
 #define NUM_SECU_STR	6
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-static const char *secu_str[] = {
+static const char * const secu_str[] = {
 	"supported",			/* word 128, bit 0 */
 	"enabled",			/* word 128, bit 1 */
 	"locked",			/* word 128, bit 2 */
@@ -467,8 +468,8 @@ static const char *secu_str[] = {
 
 /* Busybox messages and functions */
 
-static const char * const bb_msg_shared_mem	="could not %s sharedmem buf";
-static const char * const bb_msg_op_not_supp	=" operation not supported on %s disks";
+static const char bb_msg_shared_mem[] = "could not %s sharedmem buf";
+static const char bb_msg_op_not_supp[] = " operation not supported on %s disks";
 
 static void bb_ioctl(int fd, int request, void *argp, const char *string)
 {
@@ -1222,62 +1223,62 @@ static void identify (uint16_t *id_supplied, const char *devname)
 }
 #endif
 
-static int verbose = 0, get_identity = 0, get_geom = 0, noisy = 1, quiet = 0;
-static int flagcount = 0, do_flush = 0, is_scsi_hd = 0, is_xt_hd = 0;
-static int do_ctimings, do_timings = 0;
+static int verbose, get_identity, get_geom, noisy = 1, quiet;
+static int flagcount, do_flush, is_scsi_hd, is_xt_hd;
+static int do_ctimings, do_timings;
 
-static unsigned long set_readahead= 0, get_readahead= 0, Xreadahead= 0;
-static unsigned long set_readonly = 0, get_readonly = 0, readonly = 0;
-static unsigned long set_unmask   = 0, get_unmask   = 0, unmask   = 0;
-static unsigned long set_mult     = 0, get_mult     = 0, mult     = 0;
+static unsigned long set_readahead, get_readahead, Xreadahead;
+static unsigned long set_readonly, get_readonly, readonly;
+static unsigned long set_unmask, get_unmask, unmask;
+static unsigned long set_mult, get_mult, mult;
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
-static unsigned long set_dma      = 0, get_dma      = 0, dma      = 0;
+static unsigned long set_dma, get_dma, dma;
 #endif
-static unsigned long set_dma_q	  = 0, get_dma_q    = 0, dma_q	  = 0;
-static unsigned long set_nowerr   = 0, get_nowerr   = 0, nowerr   = 0;
-static unsigned long set_keep     = 0, get_keep     = 0, keep     = 0;
-static unsigned long set_io32bit  = 0, get_io32bit  = 0, io32bit  = 0;
-static unsigned long set_piomode  = 0, noisy_piomode= 0;
-static int piomode = 0;
+static unsigned long set_dma_q, get_dma_q, dma_q;
+static unsigned long set_nowerr, get_nowerr, nowerr;
+static unsigned long set_keep, get_keep, keep;
+static unsigned long set_io32bit, get_io32bit, io32bit;
+static unsigned long set_piomode, noisy_piomode;
+static int piomode;
 #ifdef HDIO_DRIVE_CMD
-static unsigned long set_dkeep    = 0, get_dkeep    = 0, dkeep    = 0;
-static unsigned long set_standby  = 0, get_standby  = 0, standby_requested= 0;
-static unsigned long set_xfermode = 0, get_xfermode = 0;
-static int xfermode_requested= 0;
-static unsigned long set_lookahead= 0, get_lookahead= 0, lookahead= 0;
-static unsigned long set_prefetch = 0, get_prefetch = 0, prefetch = 0;
-static unsigned long set_defects  = 0, get_defects  = 0, defects  = 0;
-static unsigned long set_wcache   = 0, get_wcache   = 0, wcache   = 0;
-static unsigned long set_doorlock = 0, get_doorlock = 0, doorlock = 0;
-static unsigned long set_seagate  = 0, get_seagate  = 0;
-static unsigned long set_standbynow = 0, get_standbynow = 0;
-static unsigned long set_sleepnow   = 0, get_sleepnow   = 0;
-static unsigned long get_powermode  = 0;
-static unsigned long set_apmmode = 0, get_apmmode= 0, apmmode = 0;
+static unsigned long set_dkeep, get_dkeep, dkeep;
+static unsigned long set_standby, get_standby, standby_requested;
+static unsigned long set_xfermode, get_xfermode;
+static int xfermode_requested;
+static unsigned long set_lookahead, get_lookahead, lookahead;
+static unsigned long set_prefetch, get_prefetch, prefetch;
+static unsigned long set_defects, get_defects, defects;
+static unsigned long set_wcache, get_wcache, wcache;
+static unsigned long set_doorlock, get_doorlock, doorlock;
+static unsigned long set_seagate, get_seagate;
+static unsigned long set_standbynow, get_standbynow;
+static unsigned long set_sleepnow, get_sleepnow;
+static unsigned long get_powermode;
+static unsigned long set_apmmode, get_apmmode, apmmode;
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-static int get_IDentity = 0;
+static int get_IDentity;
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
-static int	unregister_hwif = 0;
-static int	hwif = 0;
+static int	unregister_hwif;
+static int	hwif;
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
-static int	scan_hwif = 0;
-static int	hwif_data = 0;
-static int	hwif_ctrl = 0;
-static int	hwif_irq = 0;
+static int	scan_hwif;
+static int	hwif_data;
+static int	hwif_ctrl;
+static int	hwif_irq;
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-static int	set_busstate = 0, get_busstate = 0, busstate = 0;
+static int	set_busstate, get_busstate, busstate;
 #endif
-static int	reread_partn = 0;
+static int	reread_partn;
 
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
-static int	perform_reset = 0;
+static int	perform_reset;
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET */
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-static int	perform_tristate = 0,	tristate = 0;
+static int	perform_tristate,	tristate;
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF */
 
 // Historically, if there was no HDIO_OBSOLETE_IDENTITY, then
@@ -1292,14 +1293,14 @@ static int	perform_tristate = 0,	tristate = 0;
 // Too bad, really.
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-static const char *cfg_str[] =
+static const char * const cfg_str[] =
 {	"",	     " HardSect",   " SoftSect",  " NotMFM",
 	" HdSw>15uSec", " SpinMotCtl", " Fixed",     " Removeable",
 	" DTR<=5Mbs",   " DTR>5Mbs",   " DTR>10Mbs", " RotSpdTol>.5%",
 	" dStbOff",     " TrkOff",     " FmtGapReq", " nonMagnetic"
 };
 
-static const char *BuffType[]	= {"unknown", "1Sect", "DualPort", "DualPortCache"};
+static const char * const BuffType[]	= {"unknown", "1Sect", "DualPort", "DualPortCache"};
 
 static void dump_identity (const struct hd_driveid *id)
 {
@@ -1497,7 +1498,7 @@ static int read_big_block (int fd, char *buf)
 	return 0;
 }
 
-static double correction = 0.0;
+static double correction;
 
 static void do_time (int flag, int fd)
 /*
@@ -2542,7 +2543,7 @@ int hdparm_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
 		if (!strcmp("-Istdin", *argv))
 		{
-			exit(identify_from_stdin());
+			return identify_from_stdin();
 		}
 #endif
 		p = *argv++;
@@ -2559,7 +2560,7 @@ int hdparm_main(int argc, char **argv)
 						/*bb_error_msg_and_die("%s", VERSION);*/
 						/* We have to return 0 here and not 1 */
 						printf("%s %s\n",bb_applet_name, VERSION);
-						exit(EXIT_SUCCESS);
+						return EXIT_SUCCESS;
 					case 'v':
 						verbose = 1;
 						break;
