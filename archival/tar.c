@@ -94,8 +94,8 @@ typedef struct TarHeader TarHeader;
 typedef struct HardLinkInfo HardLinkInfo;
 struct HardLinkInfo {
 	HardLinkInfo *next;	/* Next entry in list */
-	dev_t dev;			/* Device number */
-	ino_t ino;			/* Inode number */
+	dev_t dev;		/* Device number */
+	ino_t ino;		/* Inode number */
 	short linkCount;	/* (Hard) Link Count */
 	char name[1];		/* Start of filename (must be last) */
 };
@@ -103,7 +103,7 @@ struct HardLinkInfo {
 /* Some info to be carried along when creating a new tarball */
 struct TarBallInfo {
 	char *fileName;		/* File name of the tarball */
-	int tarFd;			/* Open-for-write file descriptor
+	int tarFd;		/* Open-for-write file descriptor
 						   for the tarball */
 	struct stat statBuf;	/* Stat info for the tarball, letting
 							   us know the inode and device that the
@@ -213,8 +213,9 @@ static int putOctal(char *cp, int len, long value)
 
 /* Write out a tar header for the specified file/directory/whatever */
 static inline int writeTarHeader(struct TarBallInfo *tbInfo,
-								 const char *header_name,
-								 const char *real_name, struct stat *statbuf)
+					const char *header_name,
+					const char *real_name, 
+					struct stat *statbuf)
 {
 	long chksum = 0;
 	struct TarHeader header;
@@ -396,7 +397,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	if (exclude_file(tbInfo->excludeList, header_name)) {
 		return SKIP;
 	}
-# endif							/* CONFIG_FEATURE_TAR_FROM */
+# endif		/* CONFIG_FEATURE_TAR_FROM */
 
 	if (writeTarHeader(tbInfo, header_name, fileName, statbuf) == FALSE) {
 		return (FALSE);
@@ -513,7 +514,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 	/* Read the directory/files and iterate over them one at a time */
 	while (include) {
 		if (!recursive_action(include->data, TRUE, dereferenceFlag, FALSE,
-							  writeFileToTarball, writeFileToTarball,
+					writeFileToTarball, writeFileToTarball,
 							  (void *) &tbInfo)) {
 			errorFlag = TRUE;
 		}
@@ -543,7 +544,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 
 	return !errorFlag;
 }
-#endif							/* tar_create */
+#endif	/* tar_create */
 
 #ifdef CONFIG_FEATURE_TAR_FROM
 static llist_t *append_file_list_to_list(llist_t *list)
@@ -588,28 +589,28 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 }
 #endif
 
-#define CTX_TEST	(1 << 0)
-#define CTX_EXTRACT	(1 << 1)
-#define TAR_OPT_BASEDIR  (1 << 2)
-#define TAR_OPT_TARNAME  (1 << 3)
-#define TAR_OPT_2STDOUT  (1 << 4)
-#define TAR_OPT_P        (1 << 5)
-#define TAR_OPT_VERBOSE  (1 << 6)
+#define CTX_TEST		(1 << 0)
+#define CTX_EXTRACT		(1 << 1)
+#define TAR_OPT_BASEDIR		(1 << 2)
+#define TAR_OPT_TARNAME		(1 << 3)
+#define TAR_OPT_2STDOUT		(1 << 4)
+#define TAR_OPT_P		(1 << 5)
+#define TAR_OPT_VERBOSE		(1 << 6)
 #define TAR_OPT_KEEP_OLD	(1 << 7)
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
-# define CTX_CREATE	(1 << 8)
-# define TAR_OPT_DEREFERNCE (1 << 9)
+# define CTX_CREATE		(1 << 8)
+# define TAR_OPT_DEREFERNCE	(1 << 9)
 # define TAR_OPT_STR_CREATE	"ch"
 # define TAR_OPT_FLAG_CREATE	2
 #else
-# define CTX_CREATE	0
+# define CTX_CREATE		0
 # define TAR_OPT_STR_CREATE	""
 # define TAR_OPT_FLAG_CREATE	0
 #endif
 
 #ifdef CONFIG_FEATURE_TAR_BZIP2
-# define TAR_OPT_BZIP2	(1 << (8 + TAR_OPT_FLAG_CREATE))
+# define TAR_OPT_BZIP2		(1 << (8 + TAR_OPT_FLAG_CREATE))
 # define TAR_OPT_STR_BZIP2	"j"
 # define TAR_OPT_FLAG_BZIP2	1
 #else
@@ -652,20 +653,20 @@ static const char tar_options[]="txC:f:Opvk" \
 
 #ifdef CONFIG_FEATURE_TAR_LONG_OPTIONS
 static const struct option tar_long_options[] = {
-	{ "list",			0,	NULL,	't' },
+	{ "list",		0,	NULL,	't' },
 	{ "extract",		0,	NULL,	'x' },
 	{ "directory",		1,	NULL,	'C' },
-	{ "file",			1,	NULL,	'f'	},
+	{ "file",		1,	NULL,	'f' },
 	{ "to-stdout",		0,	NULL,	'O' },
 	{ "same-permissions",	0,	NULL,	'p' },
 	{ "verbose",		0,	NULL,	'v' },
 	{ "keep-old",		0,	NULL,	'k' },
 # ifdef CONFIG_FEATURE_TAR_CREATE
-	{ "create",			0,	NULL,	'c' },
+	{ "create",		0,	NULL,	'c' },
 	{ "dereference",	0,	NULL,	'h' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_BZIP2
-	{ "bzip2",			0,	NULL,	'j' },
+	{ "bzip2",		0,	NULL,	'j' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_FROM
 	{ "files-from",		1,	NULL,	'T' },
@@ -673,12 +674,12 @@ static const struct option tar_long_options[] = {
 	{ "exclude",		1,	NULL,	'\n' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_GZIP
-	{ "gzip",			0,	NULL,	'z' },
+	{ "gzip",		0,	NULL,	'z' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_COMPRESS
 	{ "compress",		0,	NULL,	'Z' },
 # endif
-	{ 0,                 0, 0, 0 }
+	{ 0,                 	0, 0, 0 }
 };
 #endif
 
@@ -689,8 +690,10 @@ int tar_main(int argc, char **argv)
 	char *base_dir = NULL;
 	const char *tar_filename = "-";
 	unsigned long opt;
-	llist_t *excludes;
-
+	
+#if defined(CONFIG_FEATURE_TAR_FROM)
+	llist_t *excludes = NULL;
+#endif
 	
 	/* Initialise default values */
 	tar_handle = init_handle();
@@ -772,7 +775,7 @@ int tar_main(int argc, char **argv)
 #endif
 
 	/* Check if we are reading from stdin */
-	if ((argv[optind]) && (*argv[optind] == '-')) {
+	if (argv[optind] && *argv[optind] == '-') {
 		/* Default is to read from stdin, so just skip to next arg */
 		optind++;
 	}
@@ -856,8 +859,8 @@ int tar_main(int argc, char **argv)
 		/* Ckeck that every file that should have been extracted was */
 		while (tar_handle->accept) {
 			if (find_list_entry(tar_handle->reject, tar_handle->accept->data) == NULL) {
-				if (find_list_entry(tar_handle->passed, tar_handle->accept->data) == NULL) {
-					bb_error_msg_and_die("%s: Not found in archive\n", tar_handle->accept->data);
+ 				if (find_list_entry(tar_handle->passed, tar_handle->accept->data) == NULL) {
+					bb_error_msg_and_die("%s: Not found in archive", tar_handle->accept->data);
 				}
 			}
 			tar_handle->accept = tar_handle->accept->link;
