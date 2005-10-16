@@ -688,8 +688,8 @@ int tar_main(int argc, char **argv)
 
 	/* Prepend '-' to the first argument if required */
 	bb_opt_complementally = ENABLE_FEATURE_TAR_CREATE ?
-		"--:-1:X::T::\n::c:t:x:?:c--tx:t--cx:x--ct" :
-		"--:-1:X::T::\n::t:x:?:t--x:x--t";
+		"--:X::T::\n::c:t:x:?:c--tx:t--cx:x--ct" :
+		"--:X::T::\n::t:x:?:t--x:x--t";
 	if (ENABLE_FEATURE_TAR_LONG_OPTIONS)
 		bb_applet_long_options = tar_long_options;
 	opt = bb_getopt_ulflags(argc, argv, tar_options,
