@@ -60,7 +60,7 @@
 #define TFTP_ERROR 5
 #define TFTP_OACK  6
 
-static const char *tftp_bb_error_msg[] = {
+static const char * const tftp_bb_error_msg[] = {
 	"Undefined error",
 	"File not found",
 	"Access violation",
@@ -71,8 +71,17 @@ static const char *tftp_bb_error_msg[] = {
 	"No such user"
 };
 
-static const int tftp_cmd_get = 1;
-static const int tftp_cmd_put = 2;
+#ifdef CONFIG_FEATURE_TFTP_GET
+# define tftp_cmd_get 1
+#else
+# define tftp_cmd_get 0
+#endif
+#ifdef CONFIG_FEATURE_TFTP_PUT
+# define tftp_cmd_put (tftp_cmd_get+1)
+#else
+# define tftp_cmd_put 0
+#endif
+
 
 #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 
@@ -375,7 +384,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 #endif
 
 		if (opcode == TFTP_ERROR) {
-			char *msg = NULL;
+			const char *msg = NULL;
 
 			if (buf[4] != '\0') {
 				msg = &buf[4];
@@ -383,7 +392,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 			} else if (tmp < (sizeof(tftp_bb_error_msg)
 					  / sizeof(char *))) {
 
-				msg = (char *) tftp_bb_error_msg[tmp];
+				msg = tftp_bb_error_msg[tmp];
 			}
 
 			if (msg) {
@@ -509,71 +518,75 @@ int tftp_main(int argc, char **argv)
 	/* figure out what to pass to getopt */
 
 #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
+	char *sblocksize = NULL;
 #define BS "b:"
+#define BS_ARG , &sblocksize
 #else
 #define BS
+#define BS_ARG
 #endif
 
 #ifdef CONFIG_FEATURE_TFTP_GET
 #define GET "g"
+#define GET_COMPL ":g"
 #else
 #define GET
+#define GET_COMP
 #endif
 
 #ifdef CONFIG_FEATURE_TFTP_PUT
 #define PUT "p"
+#define PUT_COMPL ":p"
 #else
 #define PUT
+#define PUT_COMPL
 #endif
 
-	while ((opt = getopt(argc, argv, BS GET PUT "l:r:")) != -1) {
-		switch (opt) {
+#if defined(CONFIG_FEATURE_TFTP_GET) && defined(CONFIG_FEATURE_TFTP_PUT)
+	bb_opt_complementally = GET_COMPL PUT_COMPL ":?g--p:p--g";
+#elif defined(CONFIG_FEATURE_TFTP_GET) || defined(CONFIG_FEATURE_TFTP_PUT)
+	bb_opt_complementally = GET_COMPL PUT_COMPL;
+#else
+	/* XXX: may be should #error ? */
+#endif
+
+	
+	opt = bb_getopt_ulflags(argc, argv, GET PUT "l:r:" BS, 
+				&localfile, &remotefile BS_ARG);
 #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
-		case 'b':
-			blocksize = atoi(optarg);
-			if (!tftp_blocksize_check(blocksize, 0)) {
-                                return EXIT_FAILURE;
-			}
-			break;
-#endif
-#ifdef CONFIG_FEATURE_TFTP_GET
-		case 'g':
-			cmd = tftp_cmd_get;
-			flags = O_WRONLY | O_CREAT | O_TRUNC;
-			break;
-#endif
-#ifdef CONFIG_FEATURE_TFTP_PUT
-		case 'p':
-			cmd = tftp_cmd_put;
-			flags = O_RDONLY;
-			break;
-#endif
-		case 'l':
-			localfile = optarg;
-			break;
-		case 'r':
-			remotefile = optarg;
-			break;
+	if(sblocksize) {
+		blocksize = atoi(sblocksize);
+		if (!tftp_blocksize_check(blocksize, 0)) {
+			return EXIT_FAILURE;
 		}
 	}
+#endif
 
-	if ((cmd == 0) || (optind == argc)) {
-		bb_show_usage();
-	}
-	if(localfile && strcmp(localfile, "-") == 0) {
-	    fd = fileno((cmd==tftp_cmd_get)? stdout : stdin);
-	}
+	cmd &= (tftp_cmd_get & tftp_cmd_put);
+#ifdef CONFIG_FEATURE_TFTP_GET
+	if(cmd == tftp_cmd_get)
+		flags = O_WRONLY | O_CREAT | O_TRUNC;
+#endif
+#ifdef CONFIG_FEATURE_TFTP_PUT
+	if(cmd == tftp_cmd_put)
+		flags = O_RDONLY;
+#endif
+
 	if(localfile == NULL)
 	    localfile = remotefile;
 	if(remotefile == NULL)
 	    remotefile = localfile;
-	if (fd==-1) {
+	/* XXX: I corrected this, but may be wrong too. vodz */
+	if(localfile==NULL || strcmp(localfile, "-") == 0) {
+	    fd = fileno((cmd==tftp_cmd_get)? stdout : stdin);
+	} else if (fd==-1) {
 	    fd = open(localfile, flags, 0644);
 	}
 	if (fd < 0) {
 		bb_perror_msg_and_die("local file");
 	}
 
+	/* XXX: argv[optind] and/or argv[optind + 1] may be NULL! */
 	host = xgethostbyname(argv[optind]);
 	port = bb_lookup_port(argv[optind + 1], "udp", 69);
 
