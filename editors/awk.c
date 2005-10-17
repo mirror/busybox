@@ -959,10 +959,11 @@ static uint32_t next_token(uint32_t expected)
 				}
 				*(p-1) = '\0';
 				tc = TC_VARIABLE;
+				/* also consume whitespace between functionname and bracket */
+				skip_spaces(&p);
 				if (*p == '(') {
 					tc = TC_FUNCTION;
 				} else {
-					skip_spaces(&p);
 					if (*p == '[') {
 						p++;
 						tc = TC_ARRAY;
