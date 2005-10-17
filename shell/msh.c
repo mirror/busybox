@@ -514,7 +514,7 @@ static int eofc(void);
 static int readc(void);
 static void unget(int c);
 static void ioecho(int c);
-static void prs(char *s);
+static void prs(const char *s);
 static void prn(unsigned u);
 static void closef(int i);
 static void closeall(void);
@@ -622,7 +622,7 @@ struct here {
 	struct here *h_next;
 };
 
-static char *signame[] = {
+static const char * const signame[] = {
 	"Signal 0",
 	"Hangup",
 	(char *) NULL,				/* interrupt */
@@ -644,10 +644,10 @@ static char *signame[] = {
 #define	NSIGNAL (sizeof(signame)/sizeof(signame[0]))
 
 struct res {
-	char *r_name;
+	const char *r_name;
 	int r_val;
 };
-static struct res restab[] = {
+static const struct res restab[] = {
 	{"for", FOR},
 	{"case", CASE},
 	{"esac", ESAC},
@@ -709,7 +709,7 @@ static char **dolv;
 static int dolc;
 static int exstat;
 static char gflg;
-static int interactive = 0;		/* Is this an interactive shell */
+static int interactive;			/* Is this an interactive shell */
 static int execflg;
 static int multiline;			/* \n changed to ; */
 static struct op *outtree;		/* result from parser */
@@ -2245,7 +2245,7 @@ char **wp;
 static int rlookup(n)
 REGISTER char *n;
 {
-	REGISTER struct res *rp;
+	REGISTER const struct res *rp;
 
 	DBGPRINTF7(("RLOOKUP: enter, n is %s\n", n));
 
@@ -5166,7 +5166,7 @@ REGISTER struct ioarg *ap;
 }
 
 static void prs(s)
-REGISTER char *s;
+REGISTER const char *s;
 {
 	if (*s)
 		write(2, s, strlen(s));

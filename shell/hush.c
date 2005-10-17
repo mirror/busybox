@@ -133,7 +133,7 @@ typedef enum {
 
 /* The descrip member of this structure is only used to make debugging
  * output pretty */
-static struct {int mode; int default_fd; char *descrip;} redir_table[] = {
+static const struct {int mode; int default_fd; const char *descrip;} redir_table[] = {
 	{ 0,                         0, "()" },
 	{ O_RDONLY,                  0, "<"  },
 	{ O_CREAT|O_TRUNC|O_WRONLY,  1, ">"  },
@@ -297,8 +297,8 @@ struct in_str {
 #define JOB_STATUS_FORMAT "[%d] %-22s %.40s\n"
 
 struct built_in_command {
-	char *cmd;					/* name */
-	char *descr;				/* description */
+	const char *cmd;			/* name */
+	const char *descr;			/* description */
 	int (*function) (struct child_prog *);	/* function ptr */
 };
 
@@ -414,7 +414,7 @@ static int set_local_var(const char *s, int flg_export);
  * in the parent shell process.  If forked, of course they can not.
  * For example, 'unset foo | whatever' will parse and run, but foo will
  * still be set at the end. */
-static struct built_in_command bltins[] = {
+static const struct built_in_command bltins[] = {
 	{"bg", "Resume a job in the background", builtin_fg_bg},
 	{"break", "Exit for, while or until loop", builtin_not_written},
 	{"cd", "Change working directory", builtin_cd},
@@ -618,7 +618,7 @@ static int builtin_fg_bg(struct child_prog *child)
 /* built-in 'help' handler */
 static int builtin_help(struct child_prog *dummy)
 {
-	struct built_in_command *x;
+	const struct built_in_command *x;
 
 	printf("\nBuilt-in commands:\n");
 	printf("-------------------\n");
@@ -1076,7 +1076,7 @@ static void pseudo_exec(struct child_prog *child)
 {
 	int i, rcode;
 	char *p;
-	struct built_in_command *x;
+	const struct built_in_command *x;
 	if (child->argv) {
 		for (i=0; is_assignment(child->argv[i]); i++) {
 			debug_printf("pid %d environment modification: %s\n",getpid(),child->argv[i]);
@@ -1338,7 +1338,7 @@ static int run_pipe_real(struct pipe *pi)
 	int nextin, nextout;
 	int pipefds[2];				/* pipefds[0] is for reading */
 	struct child_prog *child;
-	struct built_in_command *x;
+	const struct built_in_command *x;
 	char *p;
 
 	nextin = 0;
