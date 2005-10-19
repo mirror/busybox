@@ -324,7 +324,7 @@ static char * const tokenlist =
 	"\3END"		"\0"
 	;
 
-static uint32_t tokeninfo[] = {
+static const uint32_t tokeninfo[] = {
 
 	0,
 	0,
@@ -420,14 +420,14 @@ static xhash *vhash, *ahash, *fdhash, *fnhash;
 static char *programname;
 static short lineno;
 static int is_f0_split;
-static int nfields = 0;
-static var *Fields = NULL;
+static int nfields;
+static var *Fields;
 static tsplitter fsplitter, rsplitter;
-static nvblock *cb = NULL;
+static nvblock *cb;
 static char *pos;
 static char *buf;
-static int icase = FALSE;
-static int exiting = FALSE;
+static int icase;
+static int exiting;
 
 static struct {
 	uint32_t tclass;
@@ -444,8 +444,8 @@ static node *parse_expr(uint32_t);
 static void chain_group(void);
 static var *evaluate(node *, var *);
 static rstream *next_input_file(void);
-static int fmt_num(char *, int, char *, double, int);
-static int awk_exit(int);
+static int fmt_num(char *, int, const char *, double, int);
+static int awk_exit(int) attribute_noreturn;
 
 /* ---- error handling ---- */
 
@@ -462,10 +462,10 @@ static const char EMSG_UNDEF_FUNC[] = "Call to undefined function";
 static const char EMSG_NO_MATH[] = "Math support is not compiled in";
 #endif
 
+static void syntax_error(const char * const message) attribute_noreturn;
 static void syntax_error(const char * const message)
 {
-	bb_error_msg("%s:%i: %s", programname, lineno, message);
-	exit(1);
+	bb_error_msg_and_die("%s:%i: %s", programname, lineno, message);
 }
 
 #define runtime_error(x) syntax_error(x)
@@ -473,7 +473,7 @@ static void syntax_error(const char * const message)
 
 /* ---- hash stuff ---- */
 
-static unsigned int hashidx(char *name)
+static unsigned int hashidx(const char *name)
 {
 	register unsigned int idx=0;
 
@@ -494,7 +494,7 @@ static xhash *hash_init(void)
 }
 
 /* find item in hash, return ptr to data, NULL if not found */
-static void *hash_search(xhash *hash, char *name)
+static void *hash_search(xhash *hash, const char *name)
 {
 	hash_item *hi;
 
@@ -536,7 +536,7 @@ static void hash_rebuild(xhash *hash)
 }
 
 /* find item in hash, add it if necessary. Return ptr to data */
-static void *hash_find(xhash *hash, char *name)
+static void *hash_find(xhash *hash, const char *name)
 {
 	hash_item *hi;
 	unsigned int idx;
@@ -564,7 +564,7 @@ static void *hash_find(xhash *hash, char *name)
 #define newfile(name) (rstream *) hash_find ( fdhash , (name) )
 #define newfunc(name) (func *) hash_find ( fnhash , (name) )
 
-static void hash_remove(xhash *hash, char *name)
+static void hash_remove(xhash *hash, const char *name)
 {
 	hash_item *hi, **phi;
 
@@ -589,7 +589,7 @@ static void skip_spaces(char **s)
 	register char *p = *s;
 
 	while(*p == ' ' || *p == '\t' ||
-					(*p == '\\' && *(p+1) == '\n' && (++p, ++t.lineno))) {
+			(*p == '\\' && *(p+1) == '\n' && (++p, ++t.lineno))) {
 		p++;
 	}
 	*s = p;
@@ -682,13 +682,13 @@ static var *setvar_p(var *v, char *value)
 }
 
 /* same as setvar_p but make a copy of string */
-static var *setvar_s(var *v, char *value)
+static var *setvar_s(var *v, const char *value)
 {
 	return setvar_p(v, (value && *value) ? bb_xstrdup(value) : NULL);
 }
 
 /* same as setvar_s but set USER flag */
-static var *setvar_u(var *v, char *value)
+static var *setvar_u(var *v, const char *value)
 {
 	setvar_s(v, value);
 	v->type |= VF_USER;
@@ -696,7 +696,7 @@ static var *setvar_u(var *v, char *value)
 }
 
 /* set array element to user string */
-static void setari_u(var *a, int idx, char *s)
+static void setari_u(var *a, int idx, const char *s)
 {
 	register var *v;
 	static char sidx[12];
@@ -749,7 +749,7 @@ static double getvar_i(var *v)
 	return v->number;
 }
 
-static var *copyvar(var *dest, var *src)
+static var *copyvar(var *dest, const var *src)
 {
 	if (dest != src) {
 		clrvar(dest);
@@ -852,9 +852,10 @@ static uint32_t next_token(uint32_t expected)
 {
 	char *p, *pp, *s;
 	char *tl;
-	uint32_t tc, *ti;
+	uint32_t tc;
+	const uint32_t *ti;
 	int l;
-	static int concat_inserted = FALSE;
+	static int concat_inserted;
 	static uint32_t save_tclass, save_info;
 	static uint32_t ltclass = TC_OPTERM;
 
@@ -1725,10 +1726,11 @@ static int awk_getline(rstream *rsm, var *v)
 	return r;
 }
 
-static int fmt_num(char *b, int size, char *format, double n, int int_as_int)
+static int fmt_num(char *b, int size, const char *format, double n, int int_as_int)
 {
 	int r=0;
-	char c, *s=format;
+	char c;
+	const char *s=format;
 
 	if (int_as_int && n == (int)n) {
 		r = snprintf(b, size, "%d", (int)n);
@@ -2569,7 +2571,7 @@ static int awk_exit(int r)
 
 /* if expr looks like "var=value", perform assignment and return 1,
  * otherwise return 0 */
-static int is_assignment(char *expr)
+static int is_assignment(const char *expr)
 {
 	char *exprc, *s, *s0, *s1;
 
