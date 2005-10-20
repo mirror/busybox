@@ -47,7 +47,7 @@
 #include <sys/timex.h>
 #include "busybox.h"
 
-static struct {int bit; char *name;} statlist[] = {
+static const struct {int bit; const char *name;} statlist[] = {
 	{ STA_PLL,       "PLL"       },
 	{ STA_PPSFREQ,   "PPSFREQ"   },
 	{ STA_PPSTIME,   "PPSTIME"   },
@@ -63,7 +63,7 @@ static struct {int bit; char *name;} statlist[] = {
 	{ STA_CLOCKERR,  "CLOCKERR"  },
 	{ 0, NULL } };
 
-static char *ret_code_descript[] = {
+static const char * const ret_code_descript[] = {
 	"clock synchronized",
 	"insert leap second",
 	"delete leap second",
@@ -88,7 +88,7 @@ int main(int argc, char ** argv)
 	struct timex txc;
 	int quiet=0;
 	int c, i, ret, sep;
-	char *descript;
+	const char *descript;
 	txc.modes=0;
 	for (;;) {
 		c = getopt( argc, argv, "qo:f:p:t:");

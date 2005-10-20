@@ -24,7 +24,7 @@ struct flags_name {
 	const char	*long_name;
 };
 
-static struct flags_name flags_array[] = {
+static const struct flags_name flags_array[] = {
 	{ EXT2_SECRM_FL, "s", "Secure_Deletion" },
 	{ EXT2_UNRM_FL, "u" , "Undelete" },
 	{ EXT2_SYNC_FL, "S", "Synchronous_Updates" },
@@ -50,7 +50,7 @@ static struct flags_name flags_array[] = {
 void print_flags (FILE * f, unsigned long flags, unsigned options)
 {
 	int long_opt = (options & PFOPT_LONG);
-	struct flags_name *fp;
+	const struct flags_name *fp;
 	int	first = 1;
 
 	for (fp = flags_array; fp->flag != 0; fp++) {

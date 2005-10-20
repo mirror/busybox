@@ -116,7 +116,7 @@ struct fsck_instance {
  * Required for the uber-silly devfs /dev/ide/host1/bus2/target3/lun3
  * pathames.
  */
-static const char *devfs_hier[] = {
+static const char * const devfs_hier[] = {
 	"host", "bus", "target", "lun", 0
 };
 #endif
@@ -125,7 +125,8 @@ static char *base_device(const char *device)
 {
 	char *str, *cp;
 #ifdef CONFIG_FEATURE_DEVFS
-	const char **hier, *disk;
+	const char * const *hier;
+	const char *disk;
 	int len;
 #endif
 
@@ -866,9 +867,9 @@ struct fs_type_compile {
 #define FS_TYPE_OPT     1
 #define FS_TYPE_NEGOPT  2
 
-static const char *fs_type_syntax_error =
-N_("Either all or none of the filesystem types passed to -t must be prefixed\n"
-   "with 'no' or '!'.\n");
+static const char fs_type_syntax_error[] =
+"Either all or none of the filesystem types passed to -t must be prefixed\n"
+   "with 'no' or '!'.";
 
 static void compile_fs_type(char *fs_type, struct fs_type_compile *cmp)
 {

@@ -10,7 +10,7 @@
 #include "e2p.h"
 #include <string.h>
 
-const char *os_tab[] =
+static const char * const os_tab[] =
 	{ "Linux", 
 	  "Hurd", 
 	  "Masix", 
@@ -31,8 +31,7 @@ char *e2p_os2string(int os_type)
 	else
 		os = "(unknown os)";
 
-	ret = xmalloc(strlen(os)+1);
-	strcpy(ret, os);
+	ret = bb_xstrdup(os);
 	return ret;
 }
 
@@ -41,7 +40,7 @@ char *e2p_os2string(int os_type)
  */
 int e2p_string2os(char *str)
 {
-	const char **cpp;
+	const char * const *cpp;
 	int i = 0;
 
 	for (cpp = os_tab; *cpp; cpp++, i++) {

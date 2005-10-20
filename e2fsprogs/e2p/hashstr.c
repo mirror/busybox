@@ -21,7 +21,7 @@ struct hash {
 	const char *string;
 };
 
-static struct hash hash_list[] = {
+static const struct hash hash_list[] = {
 	{ EXT2_HASH_LEGACY,   "legacy" },
 	{ EXT2_HASH_HALF_MD4, "half_md4" },
 	{ EXT2_HASH_TEA,      "tea" },
@@ -30,7 +30,7 @@ static struct hash hash_list[] = {
 
 const char *e2p_hash2string(int num)
 {
-	struct hash *p;
+	const struct hash *p;
 	static char buf[20];
 
 	for (p = hash_list; p->string; p++) {
@@ -46,7 +46,7 @@ const char *e2p_hash2string(int num)
  */
 int e2p_string2hash(char *string)
 {
-	struct hash *p;
+	const struct hash *p;
 	char *eptr;
 	int num;
 

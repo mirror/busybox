@@ -22,7 +22,7 @@ struct feature {
 	const char	*string;
 };
 
-static struct feature feature_list[] = {
+static const struct feature feature_list[] = {
 	{	E2P_FEATURE_COMPAT, EXT2_FEATURE_COMPAT_DIR_PREALLOC,
 			"dir_prealloc" },
 	{	E2P_FEATURE_COMPAT, EXT3_FEATURE_COMPAT_HAS_JOURNAL,
@@ -56,7 +56,7 @@ static struct feature feature_list[] = {
 
 const char *e2p_feature2string(int compat, unsigned int mask)
 {
-	struct feature *f;
+	const struct feature *f;
 	static char buf[20];
 	char fchar;
 	int fnum;
@@ -87,7 +87,7 @@ const char *e2p_feature2string(int compat, unsigned int mask)
 
 int e2p_string2feature(char *string, int *compat_type, unsigned int *mask)
 {
-	struct feature *f;
+	const struct feature *f;
 	char *eptr;
 	int num;
 
@@ -154,8 +154,7 @@ int e2p_edit_feature(const char *str, __u32 *compat_array, __u32 *ok_array)
 	unsigned int	mask;
 	int		compat_type;
 
-	buf = xmalloc(strlen(str)+1);
-	strcpy(buf, str);
+	buf = bb_xstrdup(str);
 	cp = buf;
 	while (cp && *cp) {
 		neg = 0;

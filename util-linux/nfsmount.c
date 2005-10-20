@@ -889,7 +889,7 @@ fail:
 #define EDQUOT	ENOSPC
 #endif
 
-static struct {
+static const struct {
 	enum nfs_stat stat;
 	int errnum;
 } nfs_errtbl[] = {

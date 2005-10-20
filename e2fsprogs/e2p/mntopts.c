@@ -21,7 +21,7 @@ struct mntopt {
 	const char	*string;
 };
 
-static struct mntopt mntopt_list[] = {
+static const struct mntopt mntopt_list[] = {
 	{ EXT2_DEFM_DEBUG,	"debug" },
 	{ EXT2_DEFM_BSDGROUPS,	"bsdgroups" },
 	{ EXT2_DEFM_XATTR_USER,	"user_xattr" },
@@ -35,7 +35,7 @@ static struct mntopt mntopt_list[] = {
 
 const char *e2p_mntopt2string(unsigned int mask)
 {
-	struct mntopt  *f;
+	const struct mntopt  *f;
 	static char buf[20];
 	int	fnum;
 
@@ -50,7 +50,7 @@ const char *e2p_mntopt2string(unsigned int mask)
 
 int e2p_string2mntopt(char *string, unsigned int *mask)
 {
-	struct mntopt  *f;
+	const struct mntopt  *f;
 	char		*eptr;
 	int		num;
 
@@ -99,8 +99,7 @@ int e2p_edit_mntopts(const char *str, __u32 *mntopts, __u32 ok)
 	int	neg;
 	unsigned int	mask;
 
-	buf = xmalloc(strlen(str)+1);
-	strcpy(buf, str);
+	buf = bb_xstrdup(str);
 	cp = buf;
 	while (cp && *cp) {
 		neg = 0;

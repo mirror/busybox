@@ -58,14 +58,14 @@
 #define S_LEN 128
 
 /* These are the defaults */
-static char defaultmap[]="/boot/System.map";
-static char defaultpro[]="/proc/profile";
+static const char defaultmap[]="/boot/System.map";
+static const char defaultpro[]="/proc/profile";
 
 int readprofile_main(int argc, char **argv)
 {
 	FILE *map;
 	int proFd;
-	char *mapFile, *proFile, *mult=0;
+	const char *mapFile, *proFile, *mult=0;
 	unsigned long len=0, indx=1;
 	unsigned long long add0=0;
 	unsigned int step;

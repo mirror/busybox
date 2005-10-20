@@ -170,7 +170,7 @@ static int show_color = 0;
 
 /* long option entry used only for --color, which has no short option
  * equivalent.  */
-static struct option ls_color_opt[] =
+static const struct option ls_color_opt[] =
 {
 	{"color", optional_argument, NULL, 1},
         {NULL, 0, NULL, 0}

@@ -81,9 +81,9 @@ static char const *human_time(time_t t)
 static char const *human_fstype(long f_type)
 {
 	int i;
-	static struct types {
+	static const struct types {
 		long type;
-		char *fs;
+		const char *fs;
 	} humantypes[] = {
 		{ 0xADFF,     "affs" },
 		{ 0x1Cd1,     "devpts" },

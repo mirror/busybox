@@ -3394,7 +3394,7 @@ static int obj_gpl_license(struct obj_file *f, const char **license)
 	 * linux/include/linux/module.h.  Checking for leading "GPL" will not
 	 * work, somebody will use "GPL sucks, this is proprietary".
 	 */
-	static const char *gpl_licenses[] = {
+	static const char * const gpl_licenses[] = {
 		"GPL",
 		"GPL v2",
 		"GPL and additional rights",
