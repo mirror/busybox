@@ -510,7 +510,7 @@ static struct aftype unspec_aftype = {
 	NULL,
 };
 
-static struct aftype *aftypes[] = {
+static struct aftype * const aftypes[] = {
 #if HAVE_AFUNIX
 	&unix_aftype,
 #endif
@@ -672,7 +672,7 @@ static void aftrans_def(char *tool, char *argv0, char *dflt)
 /* Check our protocol family table for this family. */
 static struct aftype *get_aftype(const char *name)
 {
-	struct aftype **afp;
+	struct aftype * const *afp;
 
 #ifdef KEEP_UNUSED
 	if (!sVafinit)
@@ -694,7 +694,7 @@ static struct aftype *get_aftype(const char *name)
 /* Check our protocol family table for this family. */
 static struct aftype *get_afntype(int af)
 {
-	struct aftype **afp;
+	struct aftype * const *afp;
 
 #ifdef KEEP_UNUSED
 	if (!sVafinit)
@@ -713,7 +713,7 @@ static struct aftype *get_afntype(int af)
 /* Check our protocol family table for this family and return its socket */
 static int get_socket_for_af(int af)
 {
-	struct aftype **afp;
+	struct aftype * const *afp;
 
 #ifdef KEEP_UNUSED
 	if (!sVafinit)
@@ -735,7 +735,7 @@ static void print_aflist(int type)
 {
 	int count = 0;
 	char *txt;
-	struct aftype **afp;
+	struct aftype * const *afp;
 
 #ifdef KEEP_UNUSED
 	if (!sVafinit)
@@ -840,7 +840,7 @@ static int skfd = -1;	/* generic raw socket desc.     */
 
 static int sockets_open(int family)
 {
-	struct aftype **aft;
+	struct aftype * const *aft;
 	int sfd = -1;
 	static int force = -1;
 
@@ -889,7 +889,7 @@ static int sockets_open(int family)
 #ifdef CONFIG_FEATURE_CLEAN_UP
 static void sockets_close(void)
 {
-	struct aftype **aft;
+	struct aftype * const *aft;
 	for (aft = aftypes; *aft != NULL; aft++) {
 		struct aftype *af = *aft;
 		if( af->fd != -1 ) {
@@ -1046,13 +1046,13 @@ static char *get_name(char *name, char *p)
 
 	/* Lie about the size of the int pointed to for %n. */
 #if INT_MAX == LONG_MAX
-static const char *ss_fmt[] = {
+static const char * const ss_fmt[] = {
 	"%n%Lu%u%u%u%u%n%n%n%Lu%u%u%u%u%u",
 	"%Lu%Lu%u%u%u%u%n%n%Lu%Lu%u%u%u%u%u",
 	"%Lu%Lu%u%u%u%u%u%u%Lu%Lu%u%u%u%u%u%u"
 };
 #else
-static const char *ss_fmt[] = {
+static const char * const ss_fmt[] = {
 	"%n%Lu%lu%lu%lu%lu%n%n%n%Lu%lu%lu%lu%lu%lu",
 	"%Lu%Lu%lu%lu%lu%lu%n%n%Lu%Lu%lu%lu%lu%lu%lu",
 	"%Lu%Lu%lu%lu%lu%lu%lu%lu%Lu%Lu%lu%lu%lu%lu%lu%lu"
@@ -1350,7 +1350,7 @@ static int do_if_fetch(struct interface *ife)
 		} else {
 			errmsg = strerror(errno);
 		}
-		bb_error_msg(_("%s: error fetching interface information: %s\n"),
+		bb_error_msg(_("%s: error fetching interface information: %s"),
 				ife->name, errmsg);
 		return -1;
 	}
@@ -1369,12 +1369,12 @@ struct hwtype {
 	int suppress_null_addr;
 };
 
-static struct hwtype unspec_hwtype = {
+static const struct hwtype unspec_hwtype = {
 	"unspec", "UNSPEC", -1, 0,
 	UNSPEC_print, NULL, NULL
 };
 
-static struct hwtype loop_hwtype = {
+static const struct hwtype loop_hwtype = {
 	"loop", "Local Loopback", ARPHRD_LOOPBACK, 0,
 	NULL, NULL, NULL
 };
@@ -1478,7 +1478,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 #endif							/* KEEP_UNUSED */
 
 
-static struct hwtype ether_hwtype = {
+static const struct hwtype ether_hwtype = {
 	"ether", "Ethernet", ARPHRD_ETHER, ETH_ALEN,
 	pr_ether, NULL /* UNUSED in_ether */ , NULL
 };
@@ -1500,7 +1500,7 @@ static int do_ppp(int fd)
 }
 #endif							/* KEEP_UNUSED */
 
-static struct hwtype ppp_hwtype = {
+static const struct hwtype ppp_hwtype = {
 	"ppp", "Point-Point Protocol", ARPHRD_PPP, 0,
 	NULL, NULL, NULL /* UNUSED do_ppp */ , 0
 };
@@ -1508,7 +1508,7 @@ static struct hwtype ppp_hwtype = {
 
 #endif							/* HAVE_PPP */
 
-static struct hwtype *hwtypes[] = {
+static const struct hwtype * const hwtypes[] = {
 
 	&loop_hwtype,
 
@@ -1685,9 +1685,9 @@ static const char * const if_port_text[] = {
 #endif
 
 /* Check our hardware type table for this type. */
-static struct hwtype *get_hwntype(int type)
+static const struct hwtype *get_hwntype(int type)
 {
-	struct hwtype **hwp;
+	const struct hwtype * const *hwp;
 
 #ifdef KEEP_UNUSED
 	if (!sVhwinit)
@@ -1704,7 +1704,7 @@ static struct hwtype *get_hwntype(int type)
 }
 
 /* return 1 if address is all zeros */
-static int hw_null_address(struct hwtype *hw, void *ap)
+static int hw_null_address(const struct hwtype *hw, void *ap)
 {
 	unsigned int i;
 	unsigned char *address = (unsigned char *) ap;
@@ -1794,7 +1794,7 @@ static const unsigned short ife_print_flags_mask[] = {
 static void ife_print(struct interface *ptr)
 {
 	struct aftype *ap;
-	struct hwtype *hw;
+	const struct hwtype *hw;
 	int hf;
 	int can_compress = 0;
 
