@@ -243,9 +243,12 @@ ms_rdelay(unsigned secs)
 /**
  * main program
  */
+
+#ifdef	NO_BUSYBOX
 int
 main(int argc, char *argv[])
 	__attribute__ ((weak, alias ("zcip_main")));
+#endif
 
 int zcip_main(int argc, char *argv[])
 {
