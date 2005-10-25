@@ -2,15 +2,8 @@ Busybox TODO
 
 Stuff that needs to be done
 
-tr - missing SuS3 features in busybox 1.0pre10
-
-tr doesnt support [:blank:], [:digit:] or other predefined classes, [=equiv=]
-support is also missing.
-----
 find
-  doesn't understand () or -exec, and these are actually used out in the real
-  world.  The "make uninstall" of lots of things (including busybox itself)
-  breaks because of this, and sometimes even "make install" (like udev).
+  doesn't understand (), lots of susv3 stuff.
 ----
 sh
   The command shell situation is a big mess.  We have three or four different
@@ -21,15 +14,6 @@ sh
   job, but it be a big improvement.
 
   Note: Rob Landley (rob@landley.net) is working on this one, but very slowly...
----
-gzip
-  Can't handle compressing multiple files at once.  (I don't mean making a
-  multiple file archive, I mean compressing more than one file at a time.)
-  Some global variables aren't re-initialized between runs.
----
-gunzip
-  same problem as gzip.  "gunzip one.gz two.gz three.gz" doesn't work for
-  two.gz and three.gz due to global variables not getting reset.
 ---
 diff
   We should have a diff -u command.  We have patch, we should have diff
@@ -46,7 +30,7 @@ man
   It would be nice to have a man command.  Not one that handles troff or
   anything, just one that can handle preformatted ascii man pages, possibly
   compressed.  This could probably be a script in the extras directory that
-  calls cat/zcatbzcat | more
+  calls cat/zcat/bzcat | less
 ---
 bzip2
   Compression-side support.
@@ -74,7 +58,7 @@ Unify archivers
   if it becomes relevant.
 ---
 Text buffer support.
-  Several existing applets and potential additions (sort, vi, less...) read
+  Several existing applets (sort, vi, less...) read
   a whole file into memory and act on it.  There might be an opportunity
   for shared code in there that could be moved into libbb...
 ---
@@ -89,20 +73,23 @@ Individual compilation of applets.
   got the code for (like zlib).
 ---
 buildroot - Make a "dogfood" option
-  Busybox is now capable of replacing most gnu packages for real world use,
-  such as developing software or in a live CD.  A system built from busybox
-  (1.00 with updated sort.c), uclibc 0.9.27, gcc, binutils, make, and a few
-  other development tools (http://www.landley.net/code/firmware has an example
-  system using autoconf, automake, bison, flex, libtools, m4, zlib,
-  and groff: dunno what subset of that is actually necessary) is capable of
-  rebuilding itself, from scratch, under itself.
+  Busybox 1.1 will be capable of replacing most gnu packages for real world use,
+  such as developing software or in a live CD.  It needs wider testing.
+
+  Busybox should now be able to replace bzip2, coreutils, e2fsprogs, file,
+  findutils, gawk, grep, inetutils, less, modutils, net-tools, patch, procps,
+  sed, shadow, sysklogd, sysvinit, tar, util-linux, and vim.  The resulting
+  system should be self-hosting (I.E. able to rebuild itself from source code).
+  This means it would need (at least) binutils, gcc, and make, or equivalents.
 
   It would be a good "eating our own dogfood" test if buildroot had the option
-  of using busybox instead of bzip2, coreutils, file, findutils, gawk, grep,
-  inetutils, modutils, net-tools, procps, sed, shadow, sysklogd, sysvinit, tar,
-  util-linux, and vim.  Anything that's wrong with the resulting system, we
-  can fix.  (It would be nice to be able to upgrade busybox to be able to
-  replace bash, diffutils, gzip, less, and patch as well.)
+  of using a "make allyesconfig" busybox instead of the all of the above
+  packages.  Anything that's wrong with the resulting system, we can fix.  (It
+  would be nice to be able to upgrade busybox to be able to replace bash and
+  diffutils as well, but we're not there yet.)
+
+  One example of an existing system that does this already is Firmware Linux:
+    http://www.landley.net/code/firmware
 ---
 Memory Allocation
   We have a CONFIG_BUFFER mechanism that lets us select whether to do memory
