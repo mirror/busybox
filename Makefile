@@ -185,7 +185,7 @@ randconfig: scripts/config/conf
 
 allyesconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX).*/# \1 is not set/" .config
+	sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX|CONFIG_FEATURE_DEVFS).*/# \1 is not set/" .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 allnoconfig: scripts/config/conf
