@@ -1,10 +1,7 @@
 /*
  * ip.c		"ip" utility frontend.
  *
- *		This program is free software; you can redistribute it and/or
- *		modify it under the terms of the GNU General Public License
- *		as published by the Free Software Foundation; either version
- *		2 of the License, or (at your option) any later version.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
@@ -23,8 +20,8 @@
 #include <netinet/in.h>
 #include <string.h>
 
-#include "./libiproute/utils.h"
-#include "./libiproute/ip_common.h"
+#include "libiproute/utils.h"
+#include "libiproute/ip_common.h"
 
 #include "busybox.h"
 

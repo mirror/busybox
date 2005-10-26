@@ -1,10 +1,7 @@
 /*
  * iproute.c		"ip route".
  *
- *		This program is free software; you can redistribute it and/or
- *		modify it under the terms of the GNU General Public License
- *		as published by the Free Software Foundation; either version
- *		2 of the License, or (at your option) any later version.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
@@ -588,7 +585,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	}
 
 	if (flush) {
-		int round = 0;
+		int _round = 0;
 		char flushb[4096-512];
 
 		if (filter.tb == -1) {
@@ -614,14 +611,14 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 				return -1;
 			}
 			if (filter.flushed == 0) {
-				if (round == 0) {
+				if (_round == 0) {
 					if (filter.tb != -1 || do_ipv6 == AF_INET6)
 						fprintf(stderr, "Nothing to flush.\n");
 				}
 				fflush(stdout);
 				return 0;
 			}
-			round++;
+			_round++;
 			if (flush_update() < 0)
 				exit(1);
 		}
