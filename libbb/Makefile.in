@@ -18,7 +18,7 @@ LIBBB_SRC-y:= \
 	find_pid_by_name.c find_root_device.c fgets_str.c full_read.c \
 	full_write.c get_last_path_component.c get_line_from_file.c \
 	hash_fd.c herror_msg.c herror_msg_and_die.c \
-	human_readable.c inet_common.c inode_hash.c interface.c isdirectory.c \
+	human_readable.c inet_common.c inode_hash.c isdirectory.c \
 	kernel_version.c last_char_is.c login.c loop.c \
 	make_directory.c mode_string.c mtab.c mtab_file.c \
 	obscure.c parse_mode.c parse_number.c perror_msg.c \
@@ -37,6 +37,7 @@ LIBBB_SRC-y:= \
 	bb_echo.c
 
 LIBBB_SRC-$(CONFIG_FEATURE_SHADOWPASSWDS)+= pwd2spwd.c
+LIBBB_SRC-$(CONFIG_IFCONFIG)+=interface.c
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC-y))
 
