@@ -625,6 +625,9 @@
 #ifdef CONFIG_SWAPONOFF
 	APPLET(swapon, swap_on_off_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_SWITCH_ROOT
+	APPLET(switch_root, switch_root_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_SYNC
 	APPLET(sync, sync_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

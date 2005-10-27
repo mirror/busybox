@@ -288,6 +288,28 @@ config CONFIG_PIVOT_ROOT
 	  of wild and crazy things with your Linux system and is far more
 	  powerful than 'chroot'.
 
+	  Note: This is for initrd in linux 2.4.  Under initramfs (introduced
+	  in linux 2.6) use switch_root instead.
+
+config CONFIG_SWITCH_ROOT
+	bool "switch_root"
+	default n
+	help
+	  The switch_root utility is used from initramfs to select a new
+	  root device.  Under initramfs, you have to use this instead of
+	  pivot_root.  (Stop reading here if you don't care why.)
+
+	  Booting with initramfs extracts a gzipped cpio archive into rootfs
+	  (which is a variant of ramfs/tmpfs).  Because rootfs can't be moved
+	  or unmounted*, pivot_root will not work from initramfs.  Instead,
+	  switch_root deletes everything out of rootfs (including itself),
+	  does a mount --move that overmounts rootfs with the new root, and
+	  then execs the specified init program.
+
+	  * Because the Linux kernel uses rootfs internally as the starting
+	  and ending point for searching through the kernel's doubly linked
+	  list of active mount points.  That's why.
+
 config CONFIG_RDATE
 	bool "rdate"
 	default n

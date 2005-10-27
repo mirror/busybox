@@ -2735,6 +2735,12 @@
 	"Options:\n" \
 	"\t-a\tStart swapping on all swap devices"
 
+#define switch_root_trivial_usage \
+	"NEW_ROOT NEW_INIT [ARGUMENTS_TO_INIT]"
+#define switch_root_full_usage \
+	"Use from PID 1 under initramfs to free initramfs, chroot to NEW_ROOT,\n" \
+	"and exec NEW_INIT.\n"
+
 #define sync_trivial_usage \
 	""
 #define sync_full_usage \
