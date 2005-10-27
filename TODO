@@ -23,8 +23,11 @@ fuser
   Would be nice.  The basic susv3 options, plus fuser -k.
 ---
 patch
-  should have simple fuzz factor support to apply patches at an offset which
+  Should have simple fuzz factor support to apply patches at an offset which
   shouldn't take up too much space.
+
+  And while we're at it, a new patch filename quoting format is apparently
+  coming soon:  http://marc.theaimsgroup.com/?l=git&m=112927316408690&w=2
 ---
 man
   It would be nice to have a man command.  Not one that handles troff or
