@@ -2,19 +2,7 @@
  *  Copyright (C) 2003 Glenn L. McGrath
  *  Copyright (C) 2003-2004 Erik Andersen
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include <fcntl.h>
@@ -121,6 +109,8 @@ static int hash_files(int argc, char **argv, const uint8_t hash_algo)
 				if (flags & FLAG_WARN) {
 					bb_error_msg("Invalid format");
 				}
+				count_failed++;
+				return_value = EXIT_FAILURE;
 				free(line);
 				continue;
 			}
@@ -177,14 +167,14 @@ static int hash_files(int argc, char **argv, const uint8_t hash_algo)
 }
 
 #ifdef CONFIG_MD5SUM
-extern int md5sum_main(int argc, char **argv)
+int md5sum_main(int argc, char **argv)
 {
 	return(hash_files(argc, argv, HASH_MD5));
 }
 #endif
 
 #ifdef CONFIG_SHA1SUM
-extern int sha1sum_main(int argc, char **argv)
+int sha1sum_main(int argc, char **argv)
 {
 	return(hash_files(argc, argv, HASH_SHA1));
 }
