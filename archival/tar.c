@@ -578,66 +578,76 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 #define get_header_tar_Z	0
 #endif
 
-#define CTX_TEST				(1 << 0)
-#define CTX_EXTRACT				(1 << 1)
-#define TAR_OPT_BASEDIR			(1 << 2)
-#define TAR_OPT_TARNAME			(1 << 3)
-#define TAR_OPT_2STDOUT			(1 << 4)
-#define TAR_OPT_P				(1 << 5)
-#define TAR_OPT_VERBOSE			(1 << 6)
-#define TAR_OPT_KEEP_OLD		(1 << 7)
+#define CTX_TEST                          (1 << 0)
+#define CTX_EXTRACT                       (1 << 1)
+#define TAR_OPT_BASEDIR                   (1 << 2)
+#define TAR_OPT_TARNAME                   (1 << 3)
+#define TAR_OPT_2STDOUT                   (1 << 4)
+#define TAR_OPT_P                         (1 << 5)
+#define TAR_OPT_VERBOSE                   (1 << 6)
+#define TAR_OPT_KEEP_OLD                  (1 << 7)
 
-# define CTX_CREATE				(1 << 8)
-# define TAR_OPT_DEREFERNCE		(1 << 9)
+#define TAR_OPT_AFTER_START               8
+
+#define CTX_CREATE                        (1 << (TAR_OPT_AFTER_START))
+#define TAR_OPT_DEREFERNCE                (1 << (TAR_OPT_AFTER_START + 1))
 #ifdef CONFIG_FEATURE_TAR_CREATE
-# define TAR_OPT_STR_CREATE		"ch"
-# define TAR_OPT_FLAG_CREATE	2
+# define TAR_OPT_STR_CREATE               "ch"
+# define TAR_OPT_AFTER_CREATE             TAR_OPT_AFTER_START + 2
 #else
-# define TAR_OPT_STR_CREATE		""
-# define TAR_OPT_FLAG_CREATE	0
+# define TAR_OPT_STR_CREATE               ""
+# define TAR_OPT_AFTER_CREATE             TAR_OPT_AFTER_START
 #endif
 
-# define TAR_OPT_BZIP2			(1 << (8 + TAR_OPT_FLAG_CREATE))
+#define TAR_OPT_BZIP2                     (1 << (TAR_OPT_AFTER_CREATE))
 #ifdef CONFIG_FEATURE_TAR_BZIP2
-# define TAR_OPT_STR_BZIP2		"j"
-# define TAR_OPT_FLAG_BZIP2		1
+# define TAR_OPT_STR_BZIP2                "j"
+# define TAR_OPT_AFTER_BZIP2              TAR_OPT_AFTER_CREATE + 1
 #else
-# define TAR_OPT_STR_BZIP2		""
-# define TAR_OPT_FLAG_BZIP2		0
+# define TAR_OPT_STR_BZIP2                ""
+# define TAR_OPT_AFTER_BZIP2              TAR_OPT_AFTER_CREATE
 #endif
 
-# define TAR_OPT_INCLUDE_FROM	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2))
-# define TAR_OPT_EXCLUDE_FROM	(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2 + 1))
+#define TAR_OPT_INCLUDE_FROM              (1 << (TAR_OPT_AFTER_BZIP2))
+#define TAR_OPT_EXCLUDE_FROM              (1 << (TAR_OPT_AFTER_BZIP2 + 1))
 #ifdef CONFIG_FEATURE_TAR_FROM
-# define TAR_OPT_STR_FROM		"T:X:"
-# define TAR_OPT_FLAG_FROM		2
+# define TAR_OPT_STR_FROM                 "T:X:"
+# define TAR_OPT_AFTER_FROM               TAR_OPT_AFTER_BZIP2 + 2
 #else
-# define TAR_OPT_STR_FROM		""
-# define TAR_OPT_FLAG_FROM		0
+# define TAR_OPT_STR_FROM                 ""
+# define TAR_OPT_AFTER_FROM               TAR_OPT_AFTER_BZIP2
 #endif
 
-# define TAR_OPT_GZIP			(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2 + TAR_OPT_FLAG_FROM))
+#define TAR_OPT_GZIP                      (1 << (TAR_OPT_AFTER_FROM))
 #ifdef CONFIG_FEATURE_TAR_GZIP
-# define TAR_OPT_STR_GZIP		"z"
-# define TAR_OPT_FLAG_GZIP		1
+# define TAR_OPT_STR_GZIP                 "z"
+# define TAR_OPT_AFTER_GZIP               TAR_OPT_AFTER_FROM + 1
 #else
-# define TAR_OPT_STR_GZIP		""
-# define TAR_OPT_FLAG_GZIP		0
+# define TAR_OPT_STR_GZIP                 ""
+# define TAR_OPT_AFTER_GZIP               TAR_OPT_AFTER_FROM
 #endif
 
-# define TAR_OPT_UNCOMPRESS		(1 << (8 + TAR_OPT_FLAG_CREATE + TAR_OPT_FLAG_BZIP2 + TAR_OPT_FLAG_FROM + TAR_OPT_FLAG_GZIP))
+#define TAR_OPT_UNCOMPRESS                (1 << (TAR_OPT_AFTER_GZIP))
 #ifdef CONFIG_FEATURE_TAR_COMPRESS
-# define TAR_OPT_STR_COMPRESS	"Z"
+# define TAR_OPT_STR_COMPRESS             "Z"
+# define TAR_OPT_AFTER_COMPRESS           TAR_OPT_AFTER_GZIP + 1
 #else
-# define TAR_OPT_STR_COMPRESS	""
+# define TAR_OPT_STR_COMPRESS             ""
+# define TAR_OPT_AFTER_COMPRESS           TAR_OPT_AFTER_GZIP
 #endif
+
+#define TAR_OPT_NOPRESERVE_OWN            (1 << (TAR_OPT_AFTER_COMPRESS))
+#define TAR_OPT_NOPRESERVE_PERM           (1 << (TAR_OPT_AFTER_COMPRESS + 1))
+#define TAR_OPT_STR_NOPRESERVE            "\203\213"
+#define TAR_OPT_AFTER_NOPRESERVE          TAR_OPT_AFTER_COMPRESS + 2
 
 static const char tar_options[]="txC:f:Opvk" \
 	TAR_OPT_STR_CREATE \
 	TAR_OPT_STR_BZIP2 \
 	TAR_OPT_STR_FROM \
 	TAR_OPT_STR_GZIP \
-	TAR_OPT_STR_COMPRESS;
+	TAR_OPT_STR_COMPRESS \
+	TAR_OPT_STR_NOPRESERVE;
 
 #ifdef CONFIG_FEATURE_TAR_LONG_OPTIONS
 static const struct option tar_long_options[] = {
@@ -649,6 +659,8 @@ static const struct option tar_long_options[] = {
 	{ "same-permissions",	0,	NULL,	'p' },
 	{ "verbose",			0,	NULL,	'v' },
 	{ "keep-old",			0,	NULL,	'k' },
+	{ "no-same-owner",		0,	NULL,	'\203' },
+	{ "no-same-permissions",0,	NULL,	'\213' },
 # ifdef CONFIG_FEATURE_TAR_CREATE
 	{ "create",				0,	NULL,	'c' },
 	{ "dereference",		0,	NULL,	'h' },
@@ -726,6 +738,11 @@ int tar_main(int argc, char **argv)
 	if (opt & TAR_OPT_KEEP_OLD)
 		tar_handle->flags &= ~ARCHIVE_EXTRACT_UNCONDITIONAL;
 
+	if (opt & TAR_OPT_NOPRESERVE_OWN)
+		tar_handle->flags |= ARCHIVE_NOPRESERVE_OWN;
+
+	if (opt & TAR_OPT_NOPRESERVE_PERM)
+		tar_handle->flags |= ARCHIVE_NOPRESERVE_PERM;
 
 	if (ENABLE_FEATURE_TAR_GZIP && (opt & TAR_OPT_GZIP))
 		get_header_ptr = get_header_tar_gz;
