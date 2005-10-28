@@ -74,6 +74,7 @@ extern int __pgsreader(int (*__parserfunc)(void *d, char *line), void *data,
  *   Doing so is analogous to having fgetc() set errno on EOF.
  */
 /**********************************************************************/
+
 #ifdef L_fgetpwent_r
 
 int fgetpwent_r(FILE *__restrict stream, struct passwd *__restrict resultbuf,
@@ -224,6 +225,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 #define GETXXKEY_R_TEST(ENT)	(!strcmp((ENT)->pw_name, key))
 #define DO_GETXXKEY_R_KEYTYPE	const char *__restrict
 #define DO_GETXXKEY_R_PATHNAME  _PATH_PASSWD
+#include "pwd_grp_internal.c"
 #endif
 
 #ifdef L_getgrnam_r
@@ -233,6 +235,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 #define GETXXKEY_R_TEST(ENT)	(!strcmp((ENT)->gr_name, key))
 #define DO_GETXXKEY_R_KEYTYPE	const char *__restrict
 #define DO_GETXXKEY_R_PATHNAME  _PATH_GROUP
+#include "pwd_grp_internal.c"
 #endif
 
 #ifdef L_getspnam_r
@@ -242,6 +245,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 #define GETXXKEY_R_TEST(ENT)	(!strcmp((ENT)->sp_namp, key))
 #define DO_GETXXKEY_R_KEYTYPE	const char *__restrict
 #define DO_GETXXKEY_R_PATHNAME  _PATH_SHADOW
+#include "pwd_grp_internal.c"
 #endif
 
 #ifdef L_getpwuid_r
@@ -251,6 +255,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 #define GETXXKEY_R_TEST(ENT)	((ENT)->pw_uid == key)
 #define DO_GETXXKEY_R_KEYTYPE	uid_t
 #define DO_GETXXKEY_R_PATHNAME  _PATH_PASSWD
+#include "pwd_grp_internal.c"
 #endif
 
 #ifdef L_getgrgid_r
@@ -260,46 +265,9 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 #define GETXXKEY_R_TEST(ENT)	((ENT)->gr_gid == key)
 #define DO_GETXXKEY_R_KEYTYPE	gid_t
 #define DO_GETXXKEY_R_PATHNAME  _PATH_GROUP
+#include "pwd_grp_internal.c"
 #endif
 
-/**********************************************************************/
-#ifdef GETXXKEY_R_FUNC
-
-int GETXXKEY_R_FUNC(DO_GETXXKEY_R_KEYTYPE key,
-					GETXXKEY_R_ENTTYPE *__restrict resultbuf,
-					char *__restrict buffer, size_t buflen,
-					GETXXKEY_R_ENTTYPE **__restrict result)
-{
-	FILE *stream;
-	int rv;
-
-	*result = NULL;
-
-	if (!(stream = fopen(DO_GETXXKEY_R_PATHNAME, "r"))) {
-		rv = errno;
-	} else {
-		do {
-			if (!(rv = __pgsreader(GETXXKEY_R_PARSER, resultbuf,
-								   buffer, buflen, stream))
-				) {
-				if (GETXXKEY_R_TEST(resultbuf)) { /* Found key? */
-					*result = resultbuf;
-					break;
-				}
-			} else {
-				if (rv == ENOENT) {	/* end-of-file encountered. */
-					rv = 0;
-				}
-				break;
-			}
-		} while (1);
-		fclose(stream);
-	}
-
-	return rv;
-}
-
-#endif
 /**********************************************************************/
 #ifdef L_getpwuid
 
@@ -440,22 +408,37 @@ int getpw(uid_t uid, char *buf)
 
 #endif
 /**********************************************************************/
-#ifdef L_getpwent_r
 
+#if defined(L_getpwent_r) || defined(L_getgrent_r) || defined(L_getspent_r)
+#if defined CONFIG_USE_BB_THREADSAFE_SHADOW && defined PTHREAD_MUTEX_INITIALIZER
+static pthread_mutex_t mylock = PTHREAD_MUTEX_INITIALIZER;
+# define LOCK		pthread_mutex_lock(&mylock)
+# define UNLOCK		pthread_mutex_unlock(&mylock);
+#else
+# define LOCK		((void) 0)
+# define UNLOCK		((void) 0)
+#endif
+#endif
+
+#ifdef L_getpwent_r
 static FILE *pwf /*= NULL*/;
 void setpwent(void)
 {
+	LOCK;
 	if (pwf) {
 		rewind(pwf);
 	}
+	UNLOCK;
 }
 
 void endpwent(void)
 {
+	LOCK;
 	if (pwf) {
 		fclose(pwf);
 		pwf = NULL;
 	}
+	UNLOCK;
 }
 
 
@@ -465,6 +448,7 @@ int getpwent_r(struct passwd *__restrict resultbuf,
 {
 	int rv;
 
+	LOCK;
 	*result = NULL;				/* In case of error... */
 
 	if (!pwf) {
@@ -480,6 +464,7 @@ int getpwent_r(struct passwd *__restrict resultbuf,
 	}
 
  ERR:
+	UNLOCK;
 	return rv;
 }
 
@@ -490,17 +475,21 @@ int getpwent_r(struct passwd *__restrict resultbuf,
 static FILE *grf /*= NULL*/;
 void setgrent(void)
 {
+	LOCK;
 	if (grf) {
 		rewind(grf);
 	}
+	UNLOCK;
 }
 
 void endgrent(void)
 {
+	LOCK;
 	if (grf) {
 		fclose(grf);
 		grf = NULL;
 	}
+	UNLOCK;
 }
 
 int getgrent_r(struct group *__restrict resultbuf,
@@ -509,6 +498,7 @@ int getgrent_r(struct group *__restrict resultbuf,
 {
 	int rv;
 
+	LOCK;
 	*result = NULL;				/* In case of error... */
 
 	if (!grf) {
@@ -524,6 +514,7 @@ int getgrent_r(struct group *__restrict resultbuf,
 	}
 
  ERR:
+	UNLOCK;
 	return rv;
 }
 
@@ -534,17 +525,21 @@ int getgrent_r(struct group *__restrict resultbuf,
 static FILE *spf /*= NULL*/;
 void setspent(void)
 {
+	LOCK;
 	if (spf) {
 		rewind(spf);
 	}
+	UNLOCK;
 }
 
 void endspent(void)
 {
+	LOCK;
 	if (spf) {
 		fclose(spf);
 		spf = NULL;
 	}
+	UNLOCK;
 }
 
 int getspent_r(struct spwd *resultbuf, char *buffer, 
@@ -552,6 +547,7 @@ int getspent_r(struct spwd *resultbuf, char *buffer,
 {
 	int rv;
 
+	LOCK;
 	*result = NULL;				/* In case of error... */
 
 	if (!spf) {
@@ -567,6 +563,7 @@ int getspent_r(struct spwd *resultbuf, char *buffer,
 	}
 
  ERR:
+	UNLOCK;
 	return rv;
 }
 
@@ -632,7 +629,7 @@ struct spwd *sgetspent(const char *string)
 
 int initgroups(const char *user, gid_t gid)
 {
-	FILE *grf;
+	FILE *grfile;
 	gid_t *group_list;
 	int num_groups, rv;
 	char **m;
@@ -643,13 +640,13 @@ int initgroups(const char *user, gid_t gid)
 
 	/* We alloc space for 8 gids at a time. */
 	if (((group_list = (gid_t *) malloc(8*sizeof(gid_t *))) != NULL)
-		&& ((grf = fopen(_PATH_GROUP, "r")) != NULL)
+		&& ((grfile = fopen(_PATH_GROUP, "r")) != NULL)
 		) {
 
 		*group_list = gid;
 		num_groups = 1;
 
-		while (!__pgsreader(__parsegrent, &group, buff, sizeof(buff), grf)) {
+		while (!__pgsreader(__parsegrent, &group, buff, sizeof(buff), grfile)) {
 			assert(group.gr_mem); /* Must have at least a NULL terminator. */
 			if (group.gr_gid != gid) {
 				for (m=group.gr_mem ; *m ; m++) {
@@ -673,7 +670,7 @@ int initgroups(const char *user, gid_t gid)
 
 		rv = setgroups(num_groups, group_list);
 	DO_CLOSE:
-		fclose(grf);
+		fclose(grfile);
 	}
 
 	/* group_list will be NULL if initial malloc failed, which may trigger
@@ -756,7 +753,7 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 /**********************************************************************/
 #ifdef L_putspent
 
-static const unsigned char sp_off[] = {
+static const unsigned char _sp_off[] = {
 	offsetof(struct spwd, sp_lstchg),	/* 2 - not a char ptr */
 	offsetof(struct spwd, sp_min), 		/* 3 - not a char ptr */
 	offsetof(struct spwd, sp_max),		/* 4 - not a char ptr */
@@ -780,9 +777,9 @@ int putspent(const struct spwd *p, FILE *stream)
 		goto DO_UNLOCK;
 	}
 
-	for (i=0 ; i < sizeof(sp_off) ; i++) {
+	for (i=0 ; i < sizeof(_sp_off) ; i++) {
 		f = ld_format;
-		if ((x = *(const long int *)(((const char *) p) + sp_off[i])) == -1) {
+		if ((x = *(const long int *)(((const char *) p) + _sp_off[i])) == -1) {
 			f += 3;
 		}
 		if (fprintf(stream, f, x) < 0) {
