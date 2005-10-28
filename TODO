@@ -14,6 +14,8 @@ sh
   job, but it be a big improvement.
 
   Note: Rob Landley (rob@landley.net) is working on this one, but very slowly...
+
+  Support unicode for cmdedit.
 ---
 diff
   We should have a diff -u command.  We have patch, we should have diff
