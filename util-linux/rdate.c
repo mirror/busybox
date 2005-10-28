@@ -62,11 +62,10 @@ static time_t askremotedate(const char *host)
 int rdate_main(int argc, char **argv)
 {
 	time_t remote_time;
+	unsigned long flags;
 	
-	unsigned long flags = bb_getopt_ulflags(argc, argv, "sp");
-	
-	if (!flags || argc == optind)
-		bb_show_usage();
+	bb_opt_complementally = "-1";
+	flags = bb_getopt_ulflags(argc, argv, "sp");
 	
 	remote_time = askremotedate(argv[optind]);
 
