@@ -258,6 +258,9 @@
 #ifdef CONFIG_FTPPUT
 	APPLET(ftpput, ftpgetput_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_FUSER
+	APPLET(fuser, fuser_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_GETOPT
 	APPLET(getopt, getopt_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif

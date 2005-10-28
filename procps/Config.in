@@ -13,6 +13,14 @@ config CONFIG_FREE
 	  memory in the system, as well as the buffers used by the kernel.
 	  The shared memory column should be ignored; it is obsolete.
 
+config CONFIG_FUSER
+	bool "fuser"
+	default n
+	help
+	  fuser lists all PIDs (Process IDs) that currently have a given 
+	  file open.  fuser can also list all PIDs that have a given network
+	  (TCP or UDP) port open.
+
 config CONFIG_KILL
 	bool "kill"
 	default n
@@ -102,6 +110,7 @@ config CONFIG_UPTIME
 	  uptime gives a one line display of the current time, how long
 	  the system has been running, how many users are currently logged
 	  on, and the system load averages for the past 1, 5, and 15 minutes.
+
 
 endmenu
 

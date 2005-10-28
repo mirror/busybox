@@ -19,6 +19,7 @@ PROCPS-$(CONFIG_RENICE)		+= renice.o
 PROCPS-$(CONFIG_BB_SYSCTL)	+= sysctl.o
 PROCPS-$(CONFIG_TOP)		+= top.o
 PROCPS-$(CONFIG_UPTIME)		+= uptime.o
+PROCPS-$(CONFIG_FUSER)		+= fuser.o
 
 libraries-y+=$(PROCPS_DIR)$(PROCPS_AR)
 

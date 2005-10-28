@@ -841,6 +841,16 @@
 	"\t-p, --password         Password to be used\n" \
 	"\t-P, --port             Port number to be used"
 
+#define fuser_trivial_usage \
+	"[options] file OR port/proto"
+#define fuser_full_usage \
+	"Options:\n" \
+	"\t-m         Show all processes on the same mounted fs\n" \
+	"\t-k         Kill all processes that match.\n" \
+	"\t-s         Don't print or kill anything.\n" \
+	"\t-4         When using port/proto only search IPv4 space\n" \
+	"\t-6         When using port/proto only search IPv6 space\n" \
+	"\t-SIGNAL    When used with -k, this signal will be used to kill\n" 
 #define getopt_trivial_usage \
 	"[OPTIONS]..."
 #define getopt_full_usage \
