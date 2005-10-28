@@ -7,11 +7,6 @@
  * GNU Library General Public License
  */
 
-/* this define is needed for asprintf() */
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -72,8 +67,8 @@ static int fuser_file_to_dev_inode(const char *filename,
 {
 	struct stat f_stat;
 	if((stat(filename, &f_stat)) < 0) return 0;
-	memcpy(inode, &f_stat.st_ino, sizeof(ino_t));
-	memcpy(dev, &f_stat.st_dev, sizeof(dev_t));
+	*inode = f_stat.st_ino;
+	*dev = f_stat.st_dev;
         return 1;
 }
 
@@ -82,7 +77,7 @@ static int fuser_find_socket_dev(dev_t *dev) {
 	struct stat buf;
 	
 	if (fd >= 0 && (fstat(fd, &buf)) == 0) {
-		memcpy(dev, &buf.st_dev, sizeof(dev_t));
+		*dev =  buf.st_dev;
 		close(fd);
 		return 1;
 	}
@@ -92,16 +87,12 @@ static int fuser_find_socket_dev(dev_t *dev) {
 static int fuser_parse_net_arg(const char *filename, 
 	const char **proto, int *port) 
 {
-	int tport;
-	char path[PATH_MAX+1], tproto[5];
+	char path[sizeof(FUSER_PROC_DIR)+12], tproto[5];
 
-	if((sscanf(filename, "%d/%4s", &tport, &tproto[0])) != 2) return 0;
-	strncpy(path, FUSER_PROC_DIR, sizeof(FUSER_PROC_DIR));
-	strncat(path, "/net/", 5);
-	strncat(path, tproto, strlen(tproto)); 
+	if((sscanf(filename, "%d/%4s", port, tproto)) != 2) return 0;
+	sprintf(path, "%s/net/%s", FUSER_PROC_DIR, tproto);
 	if((access(path, R_OK)) != 0) return 0;
-	*proto = bb_xstrndup(tproto, strlen(tproto));
-	memcpy(port, &tport, sizeof(int));
+	*proto = bb_xstrdup(tproto);
 	return 1;	
 }
 
@@ -148,30 +139,29 @@ static int fuser_add_inode(inode_list *ilist, dev_t dev, ino_t inode)
 static int fuser_scan_proc_net(int opts, const char *proto, 
 	int port, inode_list *ilist) 
 {
-	char path[PATH_MAX+1], line[FUSER_MAX_LINE+1];
+	char path[sizeof(FUSER_PROC_DIR)+12], line[FUSER_MAX_LINE+1];
 	char addr[128];
 	ino_t tmp_inode;
 	dev_t tmp_dev;
+	uint64_t  uint64_inode;
 	int tmp_port;
 	FILE *f;
 
 	if(!fuser_find_socket_dev(&tmp_dev)) tmp_dev = 0;
-	
-	strncpy(path, FUSER_PROC_DIR, sizeof(FUSER_PROC_DIR));
-	strncat(path, "/net/", 5);
-	strncat(path, proto, strlen(proto)); 
+	sprintf(path, "%s/net/%s", FUSER_PROC_DIR, proto);
 
 	if (!(f = fopen(path, "r"))) return 0;
 	while(fgets(line, FUSER_MAX_LINE, f)) {
 		if(sscanf(line,
 			"%*d: %64[0-9A-Fa-f]:%x %*x:%*x %*x %*x:%*x "
-			"%*x:%*x %*x %*d %*d %lu",
-			&addr[0], &tmp_port, &tmp_inode) == 3) {
+			"%*x:%*x %*x %*d %*d %llu",
+			addr, &tmp_port, &uint64_inode) == 3) {
 			if((strlen(addr) == 8) && 
 				(opts & FUSER_OPT_IP6)) continue;
 			else if((strlen(addr) > 8) &&
 				(opts & FUSER_OPT_IP4)) continue; 
 			if(tmp_port == port) {
+				tmp_inode = uint64_inode;
 				fuser_add_inode(ilist, tmp_dev, tmp_inode);
 			}
 		}
@@ -204,12 +194,14 @@ static int fuser_scan_pid_maps(int opts, const char *fname, pid_t pid,
 	char line[FUSER_MAX_LINE + 1];
 	int major, minor;
 	ino_t inode;
+	uint64_t uint64_inode;
 	dev_t dev;
 
 	if (!(file = fopen(fname, "r"))) return 0;
 	while (fgets(line, FUSER_MAX_LINE, file)) {
-		if(sscanf(line, "%*s %*s %*s %x:%x %ld", 
-			&major, &minor, &inode) != 3) continue;
+		if(sscanf(line, "%*s %*s %*s %x:%x %llu", 
+			&major, &minor, &uint64_inode) != 3) continue;
+		inode = uint64_inode;
 		if(major == 0 && minor == 0 && inode == 0) continue;
 		dev = makedev(major, minor);		
 		if(fuser_search_dev_inode(opts, ilist, dev, inode)) {
@@ -242,12 +234,9 @@ static int fuser_scan_dir_links(int opts, const char *dname, pid_t pid,
 
 	if((d = opendir(dname))) {
 		while((de = readdir(d)) != NULL) {
-			if(!(strcmp(de->d_name, "."))) continue;
-			if(!(strcmp(de->d_name, ".."))) continue;
-			if(asprintf(&lname, "%s/%s", dname, de->d_name) < 0) {
-				free(lname);
+			lname = concat_subpath_file(dname, de->d_name);
+			if(lname == NULL)
 				continue;
-			}
 			fuser_scan_link(opts, lname, pid, ilist, plist);
 			free(lname);
 		}
@@ -269,10 +258,7 @@ static int fuser_scan_proc_pids(int opts, inode_list *ilist, pid_list *plist)
 	while((de = readdir(d)) != NULL) {
 		pid = (pid_t)atoi(de->d_name);
 		if(!pid) continue;
-		if(asprintf(&dname, "%s/%d/", FUSER_PROC_DIR, pid) < 0) {
-			free(dname);
-			continue;
-		}
+		dname = concat_subpath_file(FUSER_PROC_DIR, de->d_name);
 		if(chdir(dname) < 0) {
 			free(dname);
 			continue; 
@@ -285,6 +271,7 @@ static int fuser_scan_proc_pids(int opts, inode_list *ilist, pid_list *plist)
 		fuser_scan_dir_links(opts, "lib", pid, ilist, plist);
 		fuser_scan_dir_links(opts, "mmap", pid, ilist, plist);
 		fuser_scan_pid_maps(opts, "maps", pid, ilist, plist);
+		chdir("..");
 	} 
 	closedir(d);	
 	return 1;
