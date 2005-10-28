@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include <getopt.h>
 #include <time.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -76,40 +75,20 @@ int makedevs_main(int argc, char **argv)
 
 #elif defined CONFIG_FEATURE_MAKEDEVS_TABLE
 
-/*
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 as
- *  published by the Free Software Foundation.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- *
- */
+/* Licensed under the GPL v2 or later, see the file LICENSE in this tarball. */
 
 extern int makedevs_main(int argc, char **argv)
 {
-	int opt;
 	FILE *table = stdin;
 	char *rootdir = NULL;
 	char *line = NULL;
 	int linenum = 0;
 	int ret = EXIT_SUCCESS;
 
-	while ((opt = getopt(argc, argv, "d:")) != -1) {
-		switch(opt) {
-			case 'd':
-				table = bb_xfopen((line=optarg), "r");
-				break;
-			default:
-				bb_show_usage();
-		}
-	}
+	unsigned long flags;
+   	flags = bb_getopt_ulflags(argc, argv, "d:", &line);
+	if (line)
+		table = bb_xfopen(line, "r");
 
 	if (optind >= argc || (rootdir=argv[optind])==NULL) {
 		bb_error_msg_and_die("root directory not specified");
@@ -159,16 +138,9 @@ extern int makedevs_main(int argc, char **argv)
 		if (name[0] == '#') {
 			continue;
 		}
-		if (group) {
-			gid = get_ug_id(group, bb_xgetgrnam);
-		} else {
-			gid = getgid();
-		}
-		if (user) {
-			uid = get_ug_id(user, bb_xgetpwnam);
-		} else {
-			uid = getuid();
-		}
+		
+		gid = group ? get_ug_id(group, bb_xgetgrnam) : getgid();
+		uid = user ? get_ug_id(user, bb_xgetpwnam) : getuid();
 		full_name = concat_path_file(rootdir, name);
 
 		if (type == 'd') {

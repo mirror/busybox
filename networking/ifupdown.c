@@ -12,19 +12,7 @@
  *  Lines in the interfaces file cannot wrap.
  *  To adhere to the FHS, the default state file is /var/run/ifstate.
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 /* TODO: standardise execute() return codes to return 0 for success and 1 for failure */
@@ -819,7 +807,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 				}
 
 				/* Add the interface to the list */
-				defn->autointerfaces = llist_add_to_end(defn->autointerfaces, strdup(firstword));
+				defn->autointerfaces = llist_add_to_end(defn->autointerfaces, bb_xstrdup(firstword));
 				debug_noise("\nauto %s\n", firstword);
 			}
 			currently_processing = NONE;
@@ -1254,7 +1242,7 @@ extern int ifupdown_main(int argc, char **argv)
 			const llist_t *list = state_list;
 			while (list) {
 				new_item = xmalloc(sizeof(llist_t));
-				new_item->data = strdup(list->data);
+				new_item->data = bb_xstrdup(list->data);
 				new_item->link = NULL;
 				list = target_list;
 				if (list == NULL)
@@ -1273,7 +1261,7 @@ extern int ifupdown_main(int argc, char **argv)
 			/* iface_down */
 			const llist_t *list = state_list;
 			while (list) {
-				target_list = llist_add_to_end(target_list, strdup(list->data));
+				target_list = llist_add_to_end(target_list, bb_xstrdup(list->data));
 				list = list->link;
 			}
 			target_list = defn->autointerfaces;
@@ -1294,15 +1282,15 @@ extern int ifupdown_main(int argc, char **argv)
 		int okay = 0;
 		int cmds_ret;
 
-		iface = strdup(target_list->data);
+		iface = bb_xstrdup(target_list->data);
 		target_list = target_list->link;
 
 		pch = strchr(iface, '=');
 		if (pch) {
 			*pch = '\0';
-			liface = strdup(pch + 1);
+			liface = bb_xstrdup(pch + 1);
 		} else {
-			liface = strdup(iface);
+			liface = bb_xstrdup(iface);
 		}
 
 		if (!force) {

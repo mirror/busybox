@@ -5,20 +5,7 @@
  *
  * by Sterling Huxley <sterling@europa.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPL v2 or later, see file License for details.
 */
 
 #include <sys/time.h>
@@ -27,7 +14,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdio.h>
-#include <getopt.h>
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
@@ -46,14 +32,14 @@ static void socket_timeout(int sig)
 
 static time_t askremotedate(const char *host)
 {
-	unsigned long int nett, localt;
+	unsigned long nett;
 	struct sockaddr_in s_in;
 	int fd;
 
 	bb_lookup_host(&s_in, host);
 	s_in.sin_port = bb_lookup_port("time", "tcp", 37);
 
-	/* Add a timeout for dead or non accessable servers */
+	/* Add a timeout for dead or inaccessible servers */
 	alarm(10);
 	signal(SIGALRM, socket_timeout);
 
@@ -61,7 +47,6 @@ static time_t askremotedate(const char *host)
 
 	if (safe_read(fd, (void *)&nett, 4) != 4)    /* read time from server */
 		bb_error_msg_and_die("%s did not send the complete time", host);
-
 	close(fd);
 
 	/* convert from network byte order to local byte order.
@@ -70,40 +55,22 @@ static time_t askremotedate(const char *host)
 	 *  the RFC 868 time 2,208,988,800 corresponds to 00:00  1 Jan 1970 GMT
 	 * Subtract the RFC 868 time  to get Linux epoch
 	 */
-	localt= ntohl(nett) - RFC_868_BIAS;
-
-	return(localt);
+	
+	return(ntohl(nett) - RFC_868_BIAS);
 }
 
 int rdate_main(int argc, char **argv)
 {
 	time_t remote_time;
-	int opt;
-	int setdate = 1;
-	int printdate = 1;
-
-	/* Interpret command line args */
-	while ((opt = getopt(argc, argv, "sp")) > 0) {
-		switch (opt) {
-			case 's':
-				printdate = 0;
-				setdate = 1;
-				break;
-			case 'p':
-				printdate = 1;
-				setdate = 0;
-				break;
-			default:
-				bb_show_usage();
-		}
-	}
-
-	if (optind == argc)
+	
+	unsigned long flags = bb_getopt_ulflags(argc, argv, "sp");
+	
+	if (!flags || argc == optind)
 		bb_show_usage();
-
+	
 	remote_time = askremotedate(argv[optind]);
 
-	if (setdate) {
+	if (flags & 1) {
 		time_t current_time;
 
 		time(&current_time);
@@ -112,10 +79,10 @@ int rdate_main(int argc, char **argv)
 		else
 			if (stime(&remote_time) < 0)
 				bb_perror_msg_and_die("Could not set time of day");
-	}
-
-	if (printdate)
-		printf("%s", ctime(&remote_time));
+		
+	/* No need to check for the -p flag as it's the only option left */
+		
+	} else printf("%s", ctime(&remote_time));
 
 	return EXIT_SUCCESS;
 }

@@ -4,20 +4,7 @@
  *
  * Copyright (C) 2003  Paul Mundt <lethal@linux-sh.org>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include <stdio.h>
@@ -40,19 +27,14 @@ static void watchdog_shutdown(int unused)
 	exit(0);
 }
 
-extern int watchdog_main(int argc, char **argv)
+int watchdog_main(int argc, char **argv)
 {
-	int opt;
-
-	while ((opt = getopt(argc, argv, "t:")) > 0) {
-		switch (opt) {
-			case 't':
-				timer_duration = bb_xgetlarg(optarg, 10, 0, INT_MAX);
-				break;
-			default:
-				bb_show_usage();
-		}
-	}
+	
+	char *t_arg;
+	unsigned long flags;
+	flags = bb_getopt_ulflags(argc, argv, "t:", &t_arg);
+	if (flags & 1)
+		timer_duration = bb_xgetlarg(t_arg, 10, 0, INT_MAX);
 
 	/* We're only interested in the watchdog device .. */
 	if (optind < argc - 1 || argc == 1)

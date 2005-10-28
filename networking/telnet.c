@@ -8,19 +8,7 @@
  * Created: Thu Apr  7 13:29:41 1994 too
  * Last modified: Fri Jun  9 14:34:24 2000 too
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
  * HISTORY
  * Revision 3.1  1994/04/17  11:31:54  too
@@ -636,10 +624,6 @@ extern int telnet_main(int argc, char** argv)
 	int maxfd;
 #endif
 
-#ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
-	int opt;
-#endif
-
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 	get_terminal_width_height(0, &win_width, &win_height);
 #endif
@@ -661,20 +645,10 @@ extern int telnet_main(int argc, char** argv)
 		bb_show_usage();
 
 #ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
-	autologin = NULL;
-	while ((opt = getopt(argc, argv, "al:")) != EOF) {
-		switch (opt) {
-			case 'l':
-				autologin = optarg;
-				break;
-			case 'a':
-				autologin = getenv("USER");
-				break;
-			case '?':
-				bb_show_usage();
-				break;
-		}
-	}
+	unsigned long flags = bb_getopt_ulflags(argc, argv, "al:", &autologin);
+	if (flags & 1)
+		autologin = getenv("USER");
+	
 	if (optind < argc) {
 		bb_lookup_host(&s_in, argv[optind++]);
 		s_in.sin_port = bb_lookup_port((optind < argc) ? argv[optind++] :
