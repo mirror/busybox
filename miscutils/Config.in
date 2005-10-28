@@ -255,6 +255,15 @@ config CONFIG_MT
 	  to advance or rewind a tape past a specified number of archive
 	  files on the tape.
 
+config BB_APPLET_RUNLEVEL
+        bool "runlevel"
+	default n
+	help
+ 	  find the current and previous system runlevel.
+
+	  This applet uses utmp but does not rely on busybox supporing
+	  utmp on purpose. It is used by e.g. emdebian via /etc/init.d/rc.
+
 config CONFIG_RX
         bool "rx"
 	default n

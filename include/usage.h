@@ -2450,6 +2450,18 @@
 	"\t-a ARG\tPass ARG as an argument for every program invoked\n" \
 	"\t-u MASK\tSet the umask to MASK before executing every program"
 
+#if BB_APPLET_RUNLEVEL
+#define runlevel_trivial_usage \
+	"[utmp]"
+#define runlevel_full_usage \
+	"Find the current and previous system runlevel.\n\n" \
+	"If no utmp file exists or if no runlevel record can be found,\n" \
+	"runlevel prints \"unknown\""
+#define runlevel_example_usage \
+	"$ runlevel /var/run/utmp\n" \
+	"N 2"
+#endif
+
 #define rx_trivial_usage \
 	"FILE"
 #define rx_full_usage \
