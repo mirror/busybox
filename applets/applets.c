@@ -64,7 +64,7 @@ const size_t NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);
 #define CONFIG_FILE "/etc/busybox.conf"
 
 /* applets [] is const, so we have to define this "override" structure */
-struct BB_suid_config
+static struct BB_suid_config
 {
   struct BB_applet *m_applet;
 
@@ -73,7 +73,7 @@ struct BB_suid_config
   mode_t m_mode;
 
   struct BB_suid_config *m_next;
-} static *suid_config;
+} *suid_config;
 
 static int suid_cfg_readable;
 
