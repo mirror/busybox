@@ -53,7 +53,7 @@
 	 - commands: (p)rint, (d)elete, (s)ubstitue (with g & I flags)
 	 - edit commands: (a)ppend, (i)nsert, (c)hange
 	 - file commands: (r)ead
-	 - backreferences in substitution expressions (\1, \2...\9)
+	 - backreferences in substitution expressions (\0, \1, \2...\9)
 	 - grouped commands: {cmd1;cmd2}
 	 - transliteration (y/source-chars/dest-chars/)
 	 - pattern space hold space storing / swapping (g, h, x)
@@ -600,7 +600,7 @@ static void do_subst_w_backrefs(const char *line, const char *replace)
 	/* go through the replacement string */
 	for (i = 0; replace[i]; i++) {
 		/* if we find a backreference (\1, \2, etc.) print the backref'ed * text */
-		if (replace[i] == '\\' && replace[i+1]>'0' && replace[i+1]<='9') {
+		if (replace[i] == '\\' && replace[i+1]>='0' && replace[i+1]<='9') {
 			int backref=replace[++i]-'0';
 
 			/* print out the text held in regmatch[backref] */
