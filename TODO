@@ -11,18 +11,13 @@ sh
   work all that well (especially not in a chroot environment), due to apps not
   being reentrant.  Unifying the various shells and figuring out a configurable
   way of adding the minimal set of bash features a given script uses is a big
-  job, but it be a big improvement.
+  job, but it would be a big improvement.
 
   Note: Rob Landley (rob@landley.net) is working on this one, but very slowly...
-
-  Support unicode for cmdedit.
 ---
 diff
   We should have a diff -u command.  We have patch, we should have diff
   (we only need to support unified diffs though).
----
-fuser
-  Would be nice.  The basic susv3 options, plus fuser -k.
 ---
 patch
   Should have simple fuzz factor support to apply patches at an offset which
@@ -51,7 +46,30 @@ Do a SUSv3 audit
 
   Even better would be some kind of automated compliance test harness that
   exercises each command line option and the various corner cases.
---
+---
+Internationalization
+  How much internationalization should we do?
+
+  The low hanging fruit is UTF-8 character set support.  We should do this.
+  (Vodz pointed out the shell's cmdedit as needing work here.  What else?)
+
+  We also have lots of hardwired english text messages.  Consolidating this
+  into some kind of message table not only makes translation easier, but
+  also allows us to consolidate redundant (or close) strings.
+
+  We probably don't want to be bloated with locale support.  (Not unless we can
+  cleanly export it from our underlying C library without having to concern
+  ourselves with it directly.  Perhaps a few specific things like a config
+  option for "date" are low hanging fruit here?)
+
+  What level should things happen at?  How much do we care about
+  internationalizing the text console when X11 and xterms are so much better
+  at it?  (There's some infrastructure here we don't implement: The
+  "unicode_start" and "unicode_stop" shell scripts need "vt-is-UTF8" and a
+  --unicode option to loadkeys.  That implies a real loadkeys/dumpkeys
+  implementation to replace loadkmap/dumpkmap.  Plus messing with console font
+  loading.  Is it worth it, or do we just say "use X"?)
+---
 Unify archivers
   Lots of archivers have the same general infrastructure.  The directory
   traversal code should be factored out, and the guts of each archiver could
