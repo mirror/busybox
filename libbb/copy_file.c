@@ -4,19 +4,7 @@
  *
  * Copyright (C) 2001 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  */
 
@@ -31,6 +19,13 @@
 #include <string.h>
 
 #include "busybox.h"
+
+/* Compiler version-specific crap that should be in a header file somewhere. */
+
+#if !((__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1))
+#define lchown chown
+#endif
+
 
 int copy_file(const char *source, const char *dest, int flags)
 {
@@ -100,7 +95,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		if ((dp = opendir(source)) == NULL) {
 			bb_perror_msg("unable to open directory `%s'", source);
 			status = -1;
-			goto end;
+			goto preserve_status;
 		}
 
 		while ((d = readdir(dp)) != NULL) {
@@ -123,7 +118,8 @@ int copy_file(const char *source, const char *dest, int flags)
 			bb_perror_msg("unable to change permissions of `%s'", dest);
 			status = -1;
 		}
-	} else if (S_ISREG(source_stat.st_mode)) {
+	} else if (S_ISREG(source_stat.st_mode) || (flags & FILEUTILS_DEREFERENCE))
+   	{
 		int src_fd;
 		int dst_fd;
 #ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
@@ -138,6 +134,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 			return 0;
 		}
+		add_to_ino_dev_hashtable(&source_stat, dest);
 #endif
 		src_fd = open(source, O_RDONLY);
 		if (src_fd == -1) {
@@ -193,8 +190,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			bb_perror_msg("unable to close `%s'", source);
 			status = -1;
 		}
-			}
-	else if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
+	} else if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
 	    S_ISSOCK(source_stat.st_mode) || S_ISFIFO(source_stat.st_mode) ||
 	    S_ISLNK(source_stat.st_mode)) {
 
@@ -208,65 +204,54 @@ int copy_file(const char *source, const char *dest, int flags)
 				return -1;
 			}
 		}
+		if (S_ISFIFO(source_stat.st_mode)) {
+			if (mkfifo(dest, source_stat.st_mode) < 0) {
+				bb_perror_msg("cannot create fifo `%s'", dest);
+				return -1;
+			}
+		} else if (S_ISLNK(source_stat.st_mode)) {
+			char *lpath;
+
+			lpath = xreadlink(source);
+			if (symlink(lpath, dest) < 0) {
+				bb_perror_msg("cannot create symlink `%s'", dest);
+				return -1;
+			}
+			free(lpath);
+
+			if (flags & FILEUTILS_PRESERVE_STATUS)
+				if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
+					bb_perror_msg("unable to preserve ownership of `%s'", dest);
+
+			return 0;
+
+		} else {
+			if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
+				bb_perror_msg("unable to create `%s'", dest);
+				return -1;
+			}
+		}
 	} else {
 		bb_error_msg("internal error: unrecognized file type");
 		return -1;
-		}
-	if (S_ISBLK(source_stat.st_mode) || S_ISCHR(source_stat.st_mode) ||
-	    S_ISSOCK(source_stat.st_mode)) {
-		if (mknod(dest, source_stat.st_mode, source_stat.st_rdev) < 0) {
-			bb_perror_msg("unable to create `%s'", dest);
-			return -1;
-		}
-	} else if (S_ISFIFO(source_stat.st_mode)) {
-		if (mkfifo(dest, source_stat.st_mode) < 0) {
-			bb_perror_msg("cannot create fifo `%s'", dest);
-			return -1;
-		}
-	} else if (S_ISLNK(source_stat.st_mode)) {
-		char *lpath;
-
-		lpath = xreadlink(source);
-		if (symlink(lpath, dest) < 0) {
-			bb_perror_msg("cannot create symlink `%s'", dest);
-			return -1;
-		}
-		free(lpath);
-
-#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-		if (flags & FILEUTILS_PRESERVE_STATUS)
-			if (lchown(dest, source_stat.st_uid, source_stat.st_gid) < 0)
-				bb_perror_msg("unable to preserve ownership of `%s'", dest);
-#endif
-
-#ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
-		add_to_ino_dev_hashtable(&source_stat, dest);
-#endif
-
-		return 0;
 	}
 
-#ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
-	if (! S_ISDIR(source_stat.st_mode)) {
-		add_to_ino_dev_hashtable(&source_stat, dest);
-	}
-#endif
-
-end:
+preserve_status:
 
 	if (flags & FILEUTILS_PRESERVE_STATUS) {
 		struct utimbuf times;
+		char *msg="unable to preserve %s of `%s'";
 
 		times.actime = source_stat.st_atime;
 		times.modtime = source_stat.st_mtime;
 		if (utime(dest, &times) < 0)
-			bb_perror_msg("unable to preserve times of `%s'", dest);
+			bb_perror_msg(msg, "times", dest);
 		if (chown(dest, source_stat.st_uid, source_stat.st_gid) < 0) {
 			source_stat.st_mode &= ~(S_ISUID | S_ISGID);
-			bb_perror_msg("unable to preserve ownership of `%s'", dest);
+			bb_perror_msg(msg, "ownership", dest);
 		}
 		if (chmod(dest, source_stat.st_mode) < 0)
-			bb_perror_msg("unable to preserve permissions of `%s'", dest);
+			bb_perror_msg(msg, "permissions", dest);
 	}
 
 	return status;

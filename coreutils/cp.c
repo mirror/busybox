@@ -4,20 +4,7 @@
  *
  * Copyright (C) 2000 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPL v2 or later, see file LICENSE in this tarball for details.
  */
 
 /* BB_AUDIT SUSv3 defects - unsupported options -H, -L, and -P. */
@@ -41,9 +28,6 @@
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 
-/* WARNING!! ORDER IS IMPORTANT!! */
-static const char cp_opts[] = "pdRfiarPHL";
-
 extern int cp_main(int argc, char **argv)
 {
 	struct stat source_stat;
@@ -55,14 +39,7 @@ extern int cp_main(int argc, char **argv)
 	int flags;
 	int status = 0;
 
-	/* Since these are enums, #if tests will not work.  So use assert()s. */
-	assert(FILEUTILS_PRESERVE_STATUS == 1);
-	assert(FILEUTILS_DEREFERENCE == 2);
-	assert(FILEUTILS_RECUR == 4);
-	assert(FILEUTILS_FORCE == 8);
-	assert(FILEUTILS_INTERACTIVE == 16);
-
-	flags = bb_getopt_ulflags(argc, argv, cp_opts);
+	flags = bb_getopt_ulflags(argc, argv, "pdRfiarPHL");
 
 	if (flags & 32) {
 		flags |= (FILEUTILS_PRESERVE_STATUS | FILEUTILS_RECUR | FILEUTILS_DEREFERENCE);
