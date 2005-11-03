@@ -49,11 +49,10 @@ have additions to this FAQ document, we would love to add them,
     BusyBox uses the name it was invoked under to determine which applet is
     being invoked.  (Try "mv busybox ls" and then "./ls -l".)  Installing
     busybox consists of creating symlinks (or hardlinks) to the busybox
-    binary for each applet in busybox, and making sure these symlinks are in
-    the shell's command $PATH.  ("make install" creates these symlinks, and
-    "make install-hardlinks" creates hardlinks instead.)  The special applet
-    name "busybox" (or with any optional suffix, such as "busybox-static")
-    uses the first argument to determine which applet to run, as shown above.
+    binary for each applet in busybox, and making sure these links are in
+    the shell's command $PATH.  The special applet name "busybox" (or with
+    any optional suffix, such as "busybox-static") uses the first argument
+    to determine which applet to run, as shown above.
 </p>
 <p>
     BusyBox also has a feature called the "standalone shell", where the busybox
