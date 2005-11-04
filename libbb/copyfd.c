@@ -33,7 +33,7 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 	while (!size || total < size)
 	{
 		ssize_t wrote, xread = (size && size < BUFSIZ) ? size : BUFSIZ;
-		xread = bb_full_read(src_fd, buffer, xread);
+		xread = safe_read(src_fd, buffer, xread);
 		if (xread > 0) {
 			/* A -1 dst_fd means we need to fake it... */
 			wrote = (dst_fd < 0) ? xread : bb_full_write(dst_fd, buffer, xread);
