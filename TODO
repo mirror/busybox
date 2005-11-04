@@ -34,10 +34,22 @@ man
 ---
 bzip2
   Compression-side support.
-
+---
+init
+  General cleanup.
 
 Architectural issues:
 
+bb_close() with fsync()
+  We should have a bb_close() in place of normal close, with a CONFIG_ option
+  to not just check the return value of close() for an error, but fsync().
+  Close can't reliably report anything useful because if write() accepted the
+  data then it either went out or it's in cache or a pipe buffer.  Either way,
+  there's no guarantee it'll make it to its final destination before close()
+  gets called, so there's no guarantee that any error will be reported.
+  You need to call fsync() if you care about errors that occur after write(),
+  but that can have a big performance impact.  So make it a config option.
+---
 Do a SUSv3 audit
   Look at the full Single Unix Specification version 3 (available online at
   "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and
