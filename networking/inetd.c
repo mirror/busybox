@@ -165,7 +165,6 @@
 #ifdef CONFIG_FEATURE_INETD_RPC
 #include <rpc/rpc.h>
 #include <rpc/pmap_clnt.h>
-#include <rpcsvc/nfs_prot.h>
 #endif
 
 #define _PATH_INETDCONF "/etc/inetd.conf"
