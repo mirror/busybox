@@ -7,9 +7,6 @@
 if [ ${#COMMAND} -eq 0 ]; then COMMAND=sort; fi
 . testing.sh
 
-# Depends on sort
-_BB_CONFIG_DEP=sort
-
 # The basic tests.  These should work even with the small busybox.
 
 testing "sort" "input" "a\nb\nc\n" "c\na\nb\n" ""
@@ -21,6 +18,7 @@ testing "sort reverse" "-r input" "wook\nwalrus\npoint\npabst\naargh\n" \
 
 # These tests require the full option set.
 
+optional FEATURE_SORT_BIG
 # Longish chunk of data re-used by the next few tests
 
 data="42	1	3	woot
@@ -48,7 +46,7 @@ egg	1	2	papyrus
 999	3	0	algebra
 " "$data" ""
 
-# Busybox is definitely doing this one wrong just now...
+# Busybox is definitely doing this one wrong just now.  FIXME
 
 testing "sort key range with numeric option and global reverse" \
 "-k2,3n -r input" \

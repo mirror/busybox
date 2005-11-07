@@ -7,15 +7,9 @@
 if [ ${#COMMAND} -eq 0 ]; then COMMAND=busybox; fi
 . testing.sh
 
-# Depends on nothing
-_BB_CONFIG_DEP=""
-
-# We'll assume "cat" is built in, because we need some other command to test.
-
 HELPDUMP=`$COMMAND`
 
-# The gratuitous "\n"s are due to a shell idiosyncrasy: environment variables
-# seem to strip trailing whitespace, which makes cmp and diff unhappy.
+# We need to test under calling the binary under other names.
 
 ln -s `which "$COMMAND"` busybox-suffix
 ln -s `which "$COMMAND"` unknown
@@ -29,15 +23,16 @@ do
 
 	testing "$i" "" "$HELPDUMP\n\n" "" ""
 
-	testing "$i cat" "cat" "moo" "" "moo"
-
 	testing "$i unknown" "unknown 2>&1" \
 		"unknown: applet not found\n" "" ""
 
 	testing "$i --help" "--help 2>&1" "$HELPDUMP\n\n" "" ""
 
+	optional CAT
+	testing "$i cat" "cat" "moo" "" "moo"
 	testing "$i --help cat" "--help cat 2>&1 | grep prints" \
 		"Concatenates FILE(s) and prints them to stdout.\n" "" ""
+	optional ""
 
 	testing "$i --help unknown" "--help unknown 2>&1" \
 		"unknown: applet not found\n" "" ""

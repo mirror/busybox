@@ -9,9 +9,6 @@
 [ ${#COMMAND} -eq 0 ] && COMMAND=grep
 . testing.sh
 
-# Depends on grep
-_BB_CONFIG_DEP=grep
-
 # testing "test name" "options" "expected result" "file input" "stdin"
 #   file input will be file called "input"
 #   test can create a file "actual" instead of writing to stdout
@@ -75,8 +72,7 @@ testing "grep matches NUL" ". input > /dev/null 2>&1 ; echo \$?" "0\n" "\0\n" ""
 testing "grep handles multiple regexps" "-e one -e two input ; echo \$?" \
 	"one\ntwo\n0\n" "one\ntwo\n" ""
 
-# Depends on FEATURE_GREP_EGREP_ALIAS
-_BB_CONFIG_DEP=FEATURE_GREP_EGREP_ALIAS
+optional FEATURE_GREP_EGREP_ALIAS
 testing "grep -E supports extended regexps" "-E fo+" "foo\n" "" "b\ar\nfoo\nbaz"
 
 exit $FAILCOUNT

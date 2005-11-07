@@ -91,6 +91,11 @@ else
 	applets=$(ls $srcdir)
 fi
 
+# Set up option flags so tests can be selective.
+
+configfile=${bindir:-../../}/.config
+export OPTIONFLAGS=:$(echo $(sed -nr 's/^CONFIG_(.*)=.*/\1/p' $configfile) | sed 's/ /:/')
+
 for applet in $applets; do
 	if [ "$applet" = "links" ]; then continue; fi
 	if [ "$applet" != "CVS" -a -d "$srcdir/$applet" ]; then
@@ -100,9 +105,18 @@ for applet in $applets; do
 			status=1
 		fi
 	fi
+
+	# Is this a new-style test?
 	applet=$(echo "$applet" | sed -n 's/\.tests$//p')
 	if [ ${#applet} -ne 0 ]
 	then
+		appcfg=`grep -i "^# CONFIG_$applet" $configfile`
+		if [ -n "$appcfg" ]
+		then
+			echo "SKIPPED: $applet (is configured out)"
+			continue
+		fi
+		# Setup environment for test.
 		if [ -d links ]; then
 			rm -f links/"$applet" 
 		else

@@ -16,13 +16,11 @@ testing "pidof (exit with error)" "veryunlikelyoccuringbinaryname ; echo \$?" \
 testing "pidof (exit with success)" "pidof > /dev/null; echo \$?" "0\n" "" ""
 
 
-# Depends on FEATURE_PIDOF_SINGLE
-_BB_CONFIG_DEP=FEATURE_PIDOF_SINGLE
+optional FEATURE_PIDOF_SINGLE
 testing "pidof -s" "-s $(basename $0) ; echo -n \$?" \
 	"$(pidof -s $(basename $0) ; echo -n $?)" "" ""
 
-# Depends on FEATURE_PIDOF_OMIT
-_BB_CONFIG_DEP=FEATURE_PIDOF_OMIT
+optional FEATURE_PIDOF_OMIT
 testing "pidof -o %PPID" "$(basename $0) -o %PPID ; echo -n \$?" \
 	"$(pidof $(basename $0) -o %PPID ; echo -n $?)" "" ""
 
