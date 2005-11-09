@@ -1273,7 +1273,7 @@ inetd_main (int argc, char *argv[])
   pid_t pid;
   char buf[50];
   char *stoomany;
-  sigset_t omask;
+  sigset_t omask, wait_mask;
 
 #ifdef INETD_SETPROCTITLE
   extern char **environ;
@@ -1364,7 +1364,7 @@ inetd_main (int argc, char *argv[])
   sigaction (SIGINT, &sa, NULL);
   sa.sa_handler = SIG_IGN;
   sigaction (SIGPIPE, &sa, &sapipe);
-
+  memset(&wait_mask, 0, sizeof(wait_mask)); 
   {
 	/* space for daemons to overwrite environment for ps */
 #define DUMMYSIZE       100
@@ -1383,7 +1383,7 @@ inetd_main (int argc, char *argv[])
 	if (nsock == 0) {
 	  Block_Using_Signals(omask);
 	  while (nsock == 0)
-		sigpause (0L);
+		sigsuspend (&wait_mask);
 	  sigprocmask(SIG_UNBLOCK, &omask, NULL);
 	}
 
