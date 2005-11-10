@@ -2951,6 +2951,7 @@
 	"Telnetd listens for incoming TELNET connections on PORT.\n" \
 	"Options:\n" \
 	"\t-p PORT\tlisten for connections on PORT (default 23)\n" \
+	"\t-b ADDR\tlisten for connections on ADDR (default 0.0.0.0)\n"\
 	"\t-l LOGIN\texec LOGIN on connect (default /bin/sh)\n" \
 	"\t-f issue_file\tDisplay issue_file instead of /etc/issue"
 #endif

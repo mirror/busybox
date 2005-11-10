@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <signal.h>
@@ -390,13 +391,14 @@ telnetd_main(int argc, char **argv)
 #ifndef CONFIG_FEATURE_TELNETD_INETD
 	int on = 1;
 	int portnbr = 23;
+	struct in_addr bind_addr = { .s_addr = 0x0 };
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
 	int c;
 	static const char options[] =
 #ifdef CONFIG_FEATURE_TELNETD_INETD
 		"f:l:";
 #else /* CONFIG_EATURE_TELNETD_INETD */
-		"f:l:p:";
+		"f:l:p:b:";
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
 	int maxlen, w, r;
 
@@ -417,6 +419,10 @@ telnetd_main(int argc, char **argv)
 #ifndef CONFIG_FEATURE_TELNETD_INETD
 			case 'p':
 				portnbr = atoi(optarg);
+				break;
+			case 'b':
+				if (inet_aton(optarg, &bind_addr) == 0)
+					bb_show_usage();
 				break;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
 			default:
@@ -452,9 +458,11 @@ telnetd_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_IPV6
 	sa.sin6_family = AF_INET6;
 	sa.sin6_port = htons(portnbr);
+	/* sa.sin6_addr = bind_addr6; */
 #else
 	sa.sin_family = AF_INET;
 	sa.sin_port = htons(portnbr);
+	sa.sin_addr = bind_addr;
 #endif
 
 	if (bind(master_fd, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
