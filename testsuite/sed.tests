@@ -1,0 +1,109 @@
+#!/bin/sh
+
+# SUSv3 compliant sed tests.
+# Copyright 2005 by Rob Landley <rob@landley.net>
+# Licensed under GPL v2, see file LICENSE for details.
+
+[ -z "$COMMAND" ] && COMMAND=sed
+. testing.sh
+
+# testing "description" "arguments" "result" "infile" "stdin"
+
+# Corner cases
+testing "sed as cat" '"" -' "hello\n" "" "hello\n"
+testing "sed handles empty lines" "-e 's/\$/@/'" "@\n" "" "\n"
+
+# no files (stdin)
+# explicit stdin
+# mix files and stdin (various orders)
+# list stdin twice
+# Trailing EOF.
+#	Multiple files: first no EOF, second length 0.
+#	Match $, at end of each file or all files?
+#	First no EOF, second no matches at all.
+# -e corner cases
+#	without -e
+#	multiple -e
+#		interact with a
+#	-eee arg1 arg2 arg3
+# -f corner cases
+#	-e -f -e
+# -n corner cases
+#	no newline at EOF?
+# -r corner cases
+#	Just make sure it works.
+# -i corner cases:
+#	sed -i -
+#	permissions
+#	-i on a symlink
+#	on a directory
+
+# command list
+testing "sed accepts blanks before command" "-e '1 d'" "" "" ""
+testing "sed accepts newlines in -e" "-e 'i\
+1
+a\
+3'" "1\n2\n3\n" "" "2\n"
+testing "sed accepts multiple -e" "-e 'i\' -e '1' -e 'a\' -e '3'" \
+	"1\n2\n3\n" "" "2\n"
+
+# substitutions
+testing "sed -n" "-n -e s/foo/bar/ -e s/bar/baz/" "" "" "foo\n"
+testing "sed s//p" "-e s/foo/bar/p -e s/bar/baz/p" "bar\nbaz\nbaz\n" \
+	"" "foo\n"
+testing "sed -n s//p" "-ne s/abc/def/p" "def\n" "" "abc\n"
+testing "sed s//g (exhaustive)" "-e 's/[[:space:]]*/,/g'" ",1,2,3,4,5,\n" \
+	"" "12345\n"
+testing "sed s arbitrary delimiter" "-e 's woo boing '" "boing\n" "" "woo\n"
+testing "sed s chains" "-e s/foo/bar/ -e s/bar/baz/" "baz\n" "" "foo\n"
+testing "sed s chains2" "-e s/foo/bar/ -e s/baz/nee/" "bar\n" "" "foo\n"
+testing "sed s [delimiter]" "-e 's@[@]@@'" "onetwo" "" "one@two"
+
+# branch
+testing "sed b (branch)" "-e 'b one;p;: one'" "foo\n" "" "foo\n"
+testing "sed b (branch with no label jumps to end)" "-e 'b;p'" \
+	"foo\n" "" "foo\n"
+
+# test and branch
+testing "sed t (test/branch)" "-e 's/a/1/;t one;p;: one;p'" \
+	"1\n1\nb\nb\nb\nc\nc\nc\n" "" "a\nb\nc\n"
+testing "sed t (test/branch clears test bit)" "-e 's/a/b/;:loop;t loop'" \
+	"b\nb\nc\n" "" "a\nb\nc\n"
+testing "sed T (!test/branch)" "-e 's/a/1/;T notone;p;: notone;p'" \
+	"1\n1\n1\nb\nb\nc\nc\n" "" "a\nb\nc\n"
+
+# Normal sed end-of-script doesn't print "c" because n flushed the pattern
+# space.  If n hits EOF, pattern space is empty when script ends.
+# Query: how does this interact with no newline at EOF?
+testing "sed n (flushes pattern space, terminates early)" "-e 'n;p'" \
+	"a\nb\nb\nc\n" "" "a\nb\nc\n"
+# N does _not_ flush pattern space, therefore c is still in there @ script end.
+testing "sed N (doesn't flush pattern space when terminating)" "-e 'N;p'" \
+	"a\nb\na\nb\nc\n" "" "a\nb\nc\n"
+testing "sed address match newline" '"/b/N;/b\\nc/i woo"' "a\nwoo\nb\nc\nd\n" \
+	"" "a\nb\nc\nd\n"
+
+# Multiple lines in pattern space
+testing "sed N (stops at end of input) and P (prints to first newline only)" \
+	"-n 'N;P;p'" "a\na\nb\n" "" "a\nb\nc\n"
+
+# Hold space
+testing "sed G (append hold space to pattern space)" 'G' "a\n\nb\n\nc\n\n" \
+	"" "a\nb\nc\n"
+#testing "sed g/G (swap/append hold and patter space)"
+#testing "sed g (swap hold/pattern space)"
+
+testing "sed d ends script iteration" \
+	"-e '/ook/d;s/ook/ping/p;i woot'" "" "" "ook\n"
+testing "sed d ends script iteration (2)" \
+	"-e '/ook/d;a\' -e 'bang'" "woot\nbang\n" "" "ook\nwoot\n"
+
+# Ponder this a bit more, why "woo not found" from gnu version?
+#testing "sed doesn't substitute in deleted line" \
+#	"-e '/ook/d;s/ook//;t woo;a bang;'" "bang" "" "ook\n"
+
+# This makes both seds very unhappy.  Why?
+#testing "sed -g (exhaustive)" "sed -e 's/[[:space:]]*/,/g'" ",1,2,3,4,5," \
+#	"" "12345"
+
+exit $FAILCOUNT

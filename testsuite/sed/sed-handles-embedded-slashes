@@ -1,1 +1,0 @@
-test "$(echo fu/bar | busybox sed -e 's/[/]//')" = fubar

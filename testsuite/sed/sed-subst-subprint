@@ -1,9 +1,0 @@
-busybox sed 's/foo/bar/p'>output <<EOF
-foo
-bar
-EOF
-cmp -s output - <<EOF
-bar
-bar
-bar
-EOF
