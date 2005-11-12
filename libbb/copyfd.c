@@ -29,11 +29,13 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 	RESERVE_CONFIG_BUFFER(buffer,BUFSIZ);
 
 	if (src_fd < 0) goto out;
-
 	while (!size || total < size)
 	{
-		ssize_t wrote, xread = (size && size < BUFSIZ) ? size : BUFSIZ;
-		xread = safe_read(src_fd, buffer, xread);
+		ssize_t wrote, xread;
+		
+		xread = safe_read(src_fd, buffer,
+				(!size || size - total > BUFSIZ) ? BUFSIZ : size - total);
+
 		if (xread > 0) {
 			/* A -1 dst_fd means we need to fake it... */
 			wrote = (dst_fd < 0) ? xread : bb_full_write(dst_fd, buffer, xread);
@@ -42,7 +44,6 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 				break;
 			}
 			total += wrote;
-			size -= wrote;
 		} else if (xread < 0) {
 			bb_perror_msg(bb_msg_read_error);
 			break;
