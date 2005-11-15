@@ -6,20 +6,7 @@
  * Copyright (c) 2003 by Andrew Dennison, andrew.dennison@motec.com.au
  * Copyright (c) 2005 by Jim Bauer, jfbauer@nfr.com
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
 */
 
 #include <sys/utsname.h>
@@ -394,16 +381,139 @@ static int already_loaded (const char *name)
 	return 0;
 }
 
+#ifdef CONFIG_MODPROBE_MULTIPLE_OPTIONS
+/* static char* parse_command_string( char* src, char **dst );
+ *   src: pointer to string containing argument
+ *   dst: pointer to where to store the parsed argument
+ *   return value: the pointer to the first char after the parsed argument,
+ *                 NULL if there was no argument parsed (only trailing spaces).
+ *   Note that memory is allocated with bb_xstrdup when a new argument was
+ *   parsed. Don't forget to free it!
+ */
+#define ARG_EMPTY      0x00
+#define ARG_IN_DQUOTES 0x01
+#define ARG_IN_SQUOTES 0x02
+static char *parse_command_string( char *src, char **dst )
+{
+	int opt_status = ARG_EMPTY;
+	char* tmp_str;
+
+	/* Dumb you, I have nothing to do... */
+	if( src == NULL ) return src;
+
+	/* Skip leading spaces */
+	while( *src == ' ' ) {
+		src++;
+	}
+	/* Is the end of string reached? */
+	if( *src == '\0' ) {
+		return NULL;
+	}
+	/* Reached the start of an argument
+	 * By the way, we duplicate a little too much here :-/ but that's the easy way:
+	 * cost effective wrt code, cost consumming wrt memory usage. */
+	*dst = tmp_str = bb_xstrdup( src );
+	/* Get to the end of that argument */
+	while(    ( *tmp_str != '\0' )
+		   && (    ( *tmp_str != ' ' )
+				|| ( opt_status & ( ARG_IN_DQUOTES | ARG_IN_SQUOTES ) ) ) ) {
+		switch( *tmp_str ) {
+			case '\'':
+				if( opt_status & ARG_IN_DQUOTES ) {
+					/* Already in double quotes, keep current char as is */
+				} else {
+					/* shift left 1 char, until end of string: get rid of the opening/closing quotes */
+					memmove( tmp_str, tmp_str + 1, strlen( tmp_str ) );
+					/* mark me: we enter or leave single quotes */
+					opt_status ^= ARG_IN_SQUOTES;
+					/* Back one char, as we need to re-scan the new char there. */
+					tmp_str--;
+				}
+			break;
+			case '"':
+				if( opt_status & ARG_IN_SQUOTES ) {
+					/* Already in single quotes, keep current char as is */
+				} else {
+					/* shift left 1 char, until end of string: get rid of the opening/closing quotes */
+					memmove( tmp_str, tmp_str + 1, strlen( tmp_str ) );
+					/* mark me: we enter or leave double quotes */
+					opt_status ^= ARG_IN_DQUOTES;
+					/* Back one char, as we need to re-scan the new char there. */
+					tmp_str--;
+				}
+			break;
+			case '\\':
+				if( opt_status & ARG_IN_SQUOTES ) {
+					/* Between single quotes: keep as is. */
+				} else {
+					switch( *(tmp_str+1) ) {
+						case 'a':
+						case 'b':
+						case 't':
+						case 'n':
+						case 'v':
+						case 'f':
+						case 'r':
+						case '0':
+							/* We escaped a special character. For now, keep
+							 * both the back-slash and the following char. */
+							tmp_str++; src++;
+							break;
+						default:
+							/* We escaped a space or a single or double quote,
+							 * or a back-slash, or a non-escapable char. Remove
+							 * the '\' and keep the new current char as is. */
+							memmove( tmp_str, tmp_str + 1, strlen( tmp_str ) );
+							break;
+					}
+				}
+			break;
+			/* Any other char that is special shall appear here.
+			 * Example: $ starts a variable
+			case '$':
+				do_variable_expansion();
+				break;
+			 * */
+			default:
+				/* any other char is kept as is. */
+				break;
+		}
+		tmp_str++; /* Go to next char */
+		src++; /* Go to next char to find the end of the argument. */
+	}
+	/* End of string, but still no ending quote */
+	if( opt_status & ( ARG_IN_DQUOTES | ARG_IN_SQUOTES ) ) {
+		bb_error_msg_and_die( "unterminated (single or double) quote in options list: %s", src );
+	}
+	*tmp_str = '\0';
+	return src;
+}
+#endif /* CONFIG_MODPROBE_MULTIPLE_OPTIONS */
+
 static int mod_process ( struct mod_list_t *list, int do_insert )
 {
 	int rc = 0;
+#ifdef CONFIG_MODPROBE_MULTIPLE_OPTIONS
+	char **argv = NULL;
+	char *opts;
+#ifdef CONFIG_FEATURE_CLEAN_UP
+	int argc_malloc;
+#endif
+#else /* CONFIG_MODPROBE_MULTIPLE_OPTIONS */
 	char *argv[10];
+#endif
 	int argc;
 
 	while ( list ) {
 		argc = 0;
+#ifdef CONFIG_MODPROBE_MULTIPLE_OPTIONS
+#ifdef CONFIG_FEATURE_CLEAN_UP
+		argc_malloc = 0;
+#endif
+		argv = (char**) malloc( 6 * sizeof( char* ) ); /* enough for minimal insmod (5 args + NULL) or rmmod (3 args + NULL) */
+#endif
 		if ( do_insert ) {
-		    if (already_loaded (list->m_name) != 1) {
+			if (already_loaded (list->m_name) != 1) {
 				argv[argc++] = "insmod";
 				if (do_syslog)
 					argv[argc++] = "-s";
@@ -411,17 +521,34 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 					argv[argc++] = "-k";
 				if (quiet)
 					argv[argc++] = "-q";
+				else if(verbose) /* verbose and quiet are mutually exclusive */
+					argv[argc++] = "-v";
 				argv[argc++] = list-> m_path;
+#ifdef CONFIG_MODPROBE_MULTIPLE_OPTIONS
+#ifdef CONFIG_FEATURE_CLEAN_UP
+				argc_malloc = argc;
+#endif
+				opts = list-> m_options;
+				while( ( opts = parse_command_string( opts, &(argv[argc]) ) ) != NULL ) {
+					/* Increase the argv array by 1 */
+					argc++;
+					argv = (char**) xrealloc( argv, ( argc + 1 ) * sizeof( char* ) );
+				}
+#else /* CONFIG_MODPROBE_MULTIPLE_OPTIONS */
 				if (list-> m_options)
 					argv[argc++] = list-> m_options;
+#endif /* CONFIG_MODPROBE_MULTIPLE_OPTIONS */
 			}
 		} else {
 			/* modutils uses short name for removal */
-		    if (already_loaded (list->m_name) != 0) {
+			if (already_loaded (list->m_name) != 0) {
 				argv[argc++] = "rmmod";
 				if (do_syslog)
 					argv[argc++] = "-s";
 				argv[argc++] = list->m_name;
+#if ( defined CONFIG_MODPROBE_MULTIPLE_OPTIONS ) && ( defined CONFIG_FEATURE_CLEAN_UP )
+				argc_malloc = argc;
+#endif
 			}
 		}
 		argv[argc] = NULL;
@@ -429,9 +556,9 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 		if (argc) {
 			if (verbose) {
 				int i;
+				printf("argc=%d\n", argc );
 				for (i=0; i<argc; i++)
-				  printf("%s ", argv[i]);
-				printf("\n");
+				  printf("argv[%02d]=\"%s\"\n", i, argv[i]);
 			}
 			if (!show_only) {
 				int rc2 = 0;
@@ -462,7 +589,27 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 					rc = 0; /* success if remove any mod */
 				}
 			}
+#if ( defined CONFIG_MODPROBE_MULTIPLE_OPTIONS ) && ( defined CONFIG_FEATURE_CLEAN_UP )
+			/* the last value in the array has index == argc, but
+			 * it is the terminatign NULL, so we must not free it. */
+			while( argc_malloc < argc ) {
+				free( argv[argc_malloc++] );
+			}
 		}
+		free( argv );
+		/* If CONFIG_FEATURE_CLEAN_UP is not defined, then we leak memory
+		 * here. But it is (quite) small amounts of memory that leak each
+		 * time a module is loaded,  and it is reclaimed when modprobe
+		 * exits anyway.
+		 * This could become a problem when loading a module with LOTS of
+		 * dependencies, with LOTS of options for each dependencies, with
+		 * very little memory on the target... But in that case, the module
+		 * would not load because there is no more memory, so there's no
+		 * problem. Hmm, wait... Is this true, whatever the allocation policy? */
+		argv = NULL;
+#else /* CONFIG_MODPROBE_MULTIPLE_OPTIONS && CONFIG_FEATURE_CLEAN_UP */
+		}
+#endif
 		list = do_insert ? list-> m_prev : list-> m_next;
 	}
 	return (show_only) ? 0 : rc;
@@ -557,8 +704,6 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 	}
 }
 
-
-
 static int mod_insert ( char *mod, int argc, char **argv )
 {
 	struct mod_list_t *tail = 0;
@@ -645,7 +790,7 @@ extern int modprobe_main(int argc, char** argv)
 				show_only++;
 				break;
 			case 'q':
-				quiet++;
+				quiet++; verbose=0;
 				break;
 			case 'r':
 				remove_opt++;
@@ -654,7 +799,7 @@ extern int modprobe_main(int argc, char** argv)
 				do_syslog++;
 				break;
 			case 'v':
-				verbose++;
+				verbose++; quiet=0;
 				break;
 			case 'V':
 			default:

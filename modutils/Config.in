@@ -100,6 +100,25 @@ config CONFIG_MODPROBE
 	  Handle the loading of modules, and their dependancies on a high
 	  level.
 
+	  Note that, in the state it is, modprobe can pass only one option
+	  to the modules it loads. See option below.
+
+config CONFIG_MODPROBE_MULTIPLE_OPTIONS
+	bool "Multiple options parsing"
+	default y
+	depends on CONFIG_MODPROBE
+	help
+	  Allow modprobe to understand more than one option to pass to
+	  modules.
+	  
+	  This is a WIP, while waiting for a common argument parsing
+	  common amongst all BB applets (shell, modprobe, etc...) and
+	  adds around 600 bytes on x86, 700 bytes on ARM. The code is
+	  biggish and uggly, but just works.
+	  
+	  Saying Y here is not a bad idea if you're not that short
+	  on storage capacity.
+
 config CONFIG_RMMOD
 	bool "rmmod"
 	default n
