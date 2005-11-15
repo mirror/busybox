@@ -117,7 +117,7 @@ static void addgroup_wrapper(const char *login, gid_t gid)
 {
 	char *cmd;
 
-	cmd = bb_xasprintf("addgroup -g %d %s", gid, login);
+	cmd = bb_xasprintf("addgroup -g %d \"%s\"", gid, login);
 	system(cmd);
 	free(cmd);
 }
