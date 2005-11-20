@@ -8,20 +8,7 @@
  * Copyright (C) 2003 by Glenn McGrath <bug1@iinet.net.au>
  * Copyright (C) 2003,2004 by Rob Landley <rob@landley.net>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 /* Code overview.
@@ -35,7 +22,7 @@
   (sed_cmd_head/sed_cmd_tail).
 
   add_input_file() adds a FILE * to the list of input files.  We need to
-  know them all ahead of time to find the last line for the $ match.
+  know all input sources ahead of time to find the last line for the $ match.
 
   process_files() does actual sedding, reading data lines from each input FILE *
   (which could be stdin) and applying the sed command list (sed_cmd_head) to
@@ -63,16 +50,8 @@
 	 default to the whole pattern space if no specific address match was
 	 requested.)
 
-	Unsupported features:
-
-	 - most GNU extensions
-	 - and more.
-
 	Todo:
-
 	 - Create a wrapper around regex to make libc's regex conform with sed
-	 - Fix bugs
-
 
 	Reference http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
 */
@@ -209,7 +188,7 @@ static void parse_escapes(char *dest, const char *string, int len, char from, ch
 	*dest=0;
 }
 
-static char *copy_parsing_slashn(const char *string, int len)
+static char *copy_parsing_escapes(const char *string, int len)
 {
 	char *dest=xmalloc(len+1);
 
@@ -270,7 +249,7 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 	if (idx == -1) {
 		bb_error_msg_and_die(bad_format_in_subst);
 	}
-	*match = copy_parsing_slashn(cmdstr_ptr, idx);
+	*match = copy_parsing_escapes(cmdstr_ptr, idx);
 
 	/* save the replacement string */
 	cmdstr_ptr += idx + 1;
@@ -278,7 +257,7 @@ static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 	if (idx == -1) {
 		bb_error_msg_and_die(bad_format_in_subst);
 	}
-	*replace = copy_parsing_slashn(cmdstr_ptr, idx);
+	*replace = copy_parsing_escapes(cmdstr_ptr, idx);
 
 	return ((cmdstr_ptr - cmdstr) + idx);
 }
@@ -307,7 +286,7 @@ static int get_address(char *my_str, int *linenum, regex_t ** regex)
 		if (next == -1)
 			bb_error_msg_and_die("unterminated match expression");
 
-		temp=copy_parsing_slashn(pos,next);
+		temp=copy_parsing_escapes(pos,next);
 		*regex = (regex_t *) xmalloc(sizeof(regex_t));
 		xregcomp(*regex, temp, regex_type|REG_NEWLINE);
 		free(temp);
@@ -380,6 +359,7 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, char *substr)
 			case 'p':
 				sed_cmd->sub_p = 1;
 				break;
+			/* Write to file */
 			case 'w':
 			{
 				char *temp;
@@ -391,6 +371,11 @@ static int parse_subst_cmd(sed_cmd_t * const sed_cmd, char *substr)
 			case 'I':
 				cflags |= REG_ICASE;
 				break;
+			/* Comment */
+			case '#':
+				while(substr[++idx]);
+				/* Fall through */
+			/* End of command */
 			case ';':
 			case '}':
 				goto out;
@@ -1128,13 +1113,11 @@ extern int sed_main(int argc, char **argv)
 		bb_perror_msg_and_die("atexit");
 #endif
 
-#define LIE_TO_AUTOCONF
-#ifdef LIE_TO_AUTOCONF
+	/* Lie to autoconf when it starts asking stupid questions. */
 	if(argc==2 && !strcmp(argv[1],"--version")) {
 		printf("This is not GNU sed version 4.0\n");
 		exit(0);
 	}
-#endif
 
 	/* do normal option parsing */
 	while ((opt = getopt(argc, argv, "irne:f:")) > 0) {
@@ -1160,8 +1143,7 @@ extern int sed_main(int argc, char **argv)
 
 			cmdfile = bb_xfopen(optarg, "r");
 
-			while ((line = bb_get_chomped_line_from_file(cmdfile))
-				 != NULL) {
+			while ((line = bb_get_chomped_line_from_file(cmdfile)) != NULL) {
 				add_cmd(line);
 				getpat=0;
 				free(line);
