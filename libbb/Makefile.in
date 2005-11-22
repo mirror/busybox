@@ -37,7 +37,6 @@ LIBBB_SRC-y:= \
 	bb_echo.c
 
 LIBBB_SRC-$(CONFIG_FEATURE_SHADOWPASSWDS)+= pwd2spwd.c
-LIBBB_SRC-$(CONFIG_IFCONFIG)+=interface.c
 
 LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC-y))
 
