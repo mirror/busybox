@@ -117,8 +117,12 @@ static uint    sector_size = DEFAULT_SECTOR_SIZE,
  * Raw disk label. For DOS-type partition tables the MBR,
  * with descriptions of the primary partitions.
  */
+#if (MAX_SECTOR_SIZE) > (BUFSIZ+1)
 static char MBRbuffer[MAX_SECTOR_SIZE];
-
+#else
+# define MBRbuffer bb_common_bufsiz1
+#endif
+        
 #ifdef CONFIG_FEATURE_SUN_LABEL
 static int     sun_label;                  /* looking at sun disklabel */
 #else
