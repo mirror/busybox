@@ -120,7 +120,7 @@ extern ssize_t bb_xread(int fd, void *buf, size_t count)
 
 	size = read(fd, buf, count);
 	if (size == -1) {
-		bb_perror_msg_and_die("Read error");
+		bb_perror_msg_and_die(bb_msg_read_error);
 	}
 	return(size);
 }
