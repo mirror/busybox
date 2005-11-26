@@ -1006,11 +1006,11 @@ static int ignore(struct fs_info *fs)
 	if (!fs_match(fs, &fs_type_compiled)) return 1;
 
 	/* Are we ignoring this type? */
-	if(compare_string_array(ignored_types, fs->type))
+	if(compare_string_array(ignored_types, fs->type) >= 0)
 		return 1;
 
 	/* Do we really really want to check this fs? */
-	wanted = compare_string_array(really_wanted, fs->type);
+	wanted = compare_string_array(really_wanted, fs->type) >= 0;
 
 	/* See if the <fsck.fs> program is available. */
 	s = find_fsck(fs->type);

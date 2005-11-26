@@ -17,16 +17,16 @@
 #include <string.h>
 
 /* returns the array number of the string */
-extern unsigned short 
+extern int 
 compare_string_array(const char * const string_array[], const char *key)
 {
-	unsigned short i;
+	int i;
 
 	for (i = 0; string_array[i] != 0; i++) {
 		if (strcmp(string_array[i], key) == 0) {
-			break;
+			return i;
 		}
 	}
-	return(i);
+	return -i;
 }
 
