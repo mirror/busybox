@@ -1361,7 +1361,7 @@ int fsck_main(int argc, char *argv[])
 		fstab = _PATH_MNTTAB;
 	load_fs_info(fstab);
 
-	e2fs_set_sbin_path();
+	fsck_path = e2fs_set_sbin_path();
 
 	if ((num_devices == 1) || (serialize))
 		interactive = 1;
@@ -1405,8 +1405,6 @@ int fsck_main(int argc, char *argv[])
 		}
 	}
 	status |= wait_many(FLAG_WAIT_ALL);
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(fsck_path);
 	blkid_put_cache(cache);
 	return status;
 }
