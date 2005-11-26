@@ -466,7 +466,7 @@ typedef struct {
 } procps_status_t;
 
 extern procps_status_t * procps_scan(int save_user_arg0);
-extern unsigned short compare_string_array(const char *string_array[], const char *key);
+extern unsigned short compare_string_array(const char * const string_array[], const char *key);
 
 extern int my_query_module(const char *name, int which, void **buf, size_t *bufsize, size_t *ret);
 
