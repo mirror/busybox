@@ -27,6 +27,7 @@
 #include <getopt.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/utsname.h>
 #include <sys/syscall.h>
 #include "busybox.h"
 
@@ -44,7 +45,16 @@ static inline void filename2modname(char *modname, const char *filename)
 
 	/* Convert to underscores, stop at first . */
 	for (i = 0; afterslash[i] && afterslash[i] != '.'; i++) {
-		if (afterslash[i] == '-')
+		int kr_chk = 1;
+
+		if (ENABLE_FEATURE_2_4_MODULES) {
+			struct utsname uname_info;
+			if (uname(&uname_info) == -1)
+				bb_error_msg_and_die("cannot get uname data");
+			if (strcmp(uname_info.release, "2.6") < 0)
+				kr_chk = 0;
+		}
+		if (kr_chk && (afterslash[i] == '-'))
 			modname[i] = '_';
 		else
 			modname[i] = afterslash[i];
