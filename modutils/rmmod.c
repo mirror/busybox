@@ -32,28 +32,20 @@
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_2_6_MODULES
-static inline void filename2modname(char *modname, const char *filename)
+static inline void filename2modname(char *modname, const char *afterslash)
 {
-	const char *afterslash;
 	unsigned int i;
 
-	afterslash = strrchr(filename, '/');
-	if (!afterslash)
-		afterslash = filename;
-	else
-		afterslash++;
+#if ENABLE_FEATURE_2_4_MODULES
+	int kr_chk = 1;
+	if (get_kernel_revision() <= 2*65536+6*256)
+		kr_chk = 0;
+#else
+#define kr_chk 1
+#endif
 
 	/* Convert to underscores, stop at first . */
 	for (i = 0; afterslash[i] && afterslash[i] != '.'; i++) {
-		int kr_chk = 1;
-
-		if (ENABLE_FEATURE_2_4_MODULES) {
-			struct utsname uname_info;
-			if (uname(&uname_info) == -1)
-				bb_error_msg_and_die("cannot get uname data");
-			if (strcmp(uname_info.release, "2.6") < 0)
-				kr_chk = 0;
-		}
 		if (kr_chk && (afterslash[i] == '-'))
 			modname[i] = '_';
 		else
@@ -66,67 +58,63 @@ static inline void filename2modname(char *modname, const char *filename)
 extern int rmmod_main(int argc, char **argv)
 {
 	int n, ret = EXIT_SUCCESS;
-	size_t nmod = 0; /* number of modules */
-	size_t pnmod = -1; /* previous number of modules */
 	unsigned int flags = O_NONBLOCK|O_EXCL;
 #ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
-	void *buf; /* hold the module names which we ignore but must get */
-	size_t bufsize = 0;
+	/* bb_common_bufsiz1 hold the module names which we ignore 
+	   but must get */
+	size_t bufsize = sizeof(bb_common_bufsiz1);
 #endif
 
 	/* Parse command line. */
-	while ((n = getopt(argc, argv, "a")) != EOF) {
-		switch (n) {
-			case 'w':       // --wait
-				flags &= ~O_NONBLOCK;
-				break;
-			case 'f':       // --force
-				flags |= O_TRUNC;
-				break;
-			case 'a':
-				/* Unload _all_ unused modules via NULL delete_module() call */
-				/* until the number of modules does not change */
+	n = bb_getopt_ulflags(argc, argv, "wfa");
+	if((n & 1))	// --wait
+		flags &= ~O_NONBLOCK;
+	if((n & 2))	// --force
+		flags |= O_TRUNC;
+	if((n & 4)) {
+		/* Unload _all_ unused modules via NULL delete_module() call */
+		/* until the number of modules does not change */
+		size_t nmod = 0; /* number of modules */
+		size_t pnmod = -1; /* previous number of modules */
+		                
+		while (nmod != pnmod) {
+			if (syscall(__NR_delete_module, NULL, flags) < 0) {
+				if (errno==EFAULT)
+					return(ret);
+				bb_perror_msg_and_die("rmmod");
+			}
+			pnmod = nmod;
 #ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
-				buf = xmalloc(bufsize = 256);
+			/* 1 == QM_MODULES */
+			if (my_query_module(NULL, 1, &bb_common_bufsiz1, &bufsize, &nmod)) {
+				bb_perror_msg_and_die("QM_MODULES");
+			}
 #endif
-				while (nmod != pnmod) {
-					if (syscall(__NR_delete_module, NULL, flags) < 0) {
-						if (errno==EFAULT)
-							return(ret);
-						bb_perror_msg_and_die("rmmod");
-					}
-					pnmod = nmod;
-#ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
-					/* 1 == QM_MODULES */
-					if (my_query_module(NULL, 1, &buf, &bufsize, &nmod)) {
-						bb_perror_msg_and_die("QM_MODULES");
-					}
-#endif
-				}
-#if defined CONFIG_FEATURE_CLEAN_UP && CONFIG_FEATURE_QUERY_MODULE_INTERFACE
-				free(buf);
-#endif
-				return EXIT_SUCCESS;
-			default:
-				bb_show_usage();
 		}
+		return EXIT_SUCCESS;
 	}
 
 	if (optind == argc)
 		bb_show_usage();
 
-	{
-		for (n = optind; n < argc; n++) {
+	for (n = optind; n < argc; n++) {
 #ifdef CONFIG_FEATURE_2_6_MODULES
-			char module_name[strlen(argv[n]) + 1];
-			filename2modname(module_name, argv[n]);
+		const char *afterslash;
+		char *module_name;
+		
+		afterslash = strrchr(argv[n], '/');
+		if (!afterslash)
+			afterslash = argv[n];
+		else
+			afterslash++;
+		module_name = alloca(strlen(afterslash) + 1);
+		filename2modname(module_name, afterslash);
 #else
 #define module_name		argv[n]
 #endif
-			if (syscall(__NR_delete_module, module_name, flags) < 0) {
-				bb_perror_msg("%s", argv[n]);
-				ret = EXIT_FAILURE;
-			}
+		if (syscall(__NR_delete_module, module_name, flags) < 0) {
+			bb_perror_msg("%s", argv[n]);
+			ret = EXIT_FAILURE;
 		}
 	}
 
