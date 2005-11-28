@@ -57,7 +57,7 @@ static const char * const add_strings[] = {
 
 static const char add_first[] = "\"%07.7_Ax\n\"";
 
-static const char hexdump_opts[] = "bcdoxe:f:n:s:v";
+static const char hexdump_opts[] = "bcdoxCe:f:n:s:v";
 
 static const struct suffix_mult suffixes[] = {
 	{"b",  512 },
@@ -80,6 +80,10 @@ int hexdump_main(int argc, char **argv)
 			if ((p - hexdump_opts) < 5) {
 				bb_dump_add(add_first);
 				bb_dump_add(add_strings[(int)(p - hexdump_opts)]);
+			} else if (ch == 'C') {
+			        bb_dump_add("\"%08.8_Ax\n\"");
+				bb_dump_add("\"%08.8_ax  \" 8/1 \"%02x \" \"  \" 8/1 \"%02x \" ");
+			        bb_dump_add("\"  |\" 16/1 \"%_p\" \"|\\n\"");
 			} else {
 				/* Sae a little bit of space below by omitting the 'else's. */
 				if (ch == 'e') {

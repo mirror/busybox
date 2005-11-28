@@ -1087,13 +1087,14 @@
 	"daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n"
 
 #define hexdump_trivial_usage \
-	"[-[bcdefnosvx]] [OPTION] FILE"
+	"[-[bcCdefnosvx]] [OPTION] FILE"
 #define hexdump_full_usage \
 	"The hexdump utility is a filter which displays the specified files,\n" \
 	"or the standard input, if no files are specified, in a user specified\n" \
 	"format\n" \
 	"\t-b\t\tOne-byte octal display\n" \
 	"\t-c\t\tOne-byte character display\n" \
+	"\t-C\t\tCanonical hex+ASCII, 16 bytes per line\n" \
 	"\t-d\t\tTwo-byte decimal display\n" \
 	"\t-e FORMAT STRING\n" \
 	"\t-f FORMAT FILE\n" \
