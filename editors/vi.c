@@ -1615,16 +1615,6 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 		if ((p[-1] != '\n') && (dot>text)) {
 			p--;
 			p = text_hole_delete(p, p);	// shrink buffer 1 char
-#ifdef CONFIG_FEATURE_VI_DOT_CMD
-			// also rmove char from last_modifying_cmd
-			if (last_modifying_cmd != 0 && strlen((char *) last_modifying_cmd) > 0) {
-				Byte *q;
-
-				q = last_modifying_cmd;
-				q[strlen((char *) q) - 1] = '\0';	// erase BS
-				q[strlen((char *) q) - 1] = '\0';	// erase prev char
-			}
-#endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 		}
 	} else {
 		// insert a char into text[]
@@ -2009,11 +1999,10 @@ static void start_new_cmd_q(Byte c)
 	memset(last_modifying_cmd, '\0', BUFSIZ);	// clear new cmd queue
 	// if there is a current cmd count put it in the buffer first
 	if (cmdcnt > 0)
-		sprintf((char *) last_modifying_cmd, "%d", cmdcnt);
-	// save char c onto queue
-	last_modifying_cmd[strlen((char *) last_modifying_cmd)] = c;
+		sprintf((char *) last_modifying_cmd, "%d%c", cmdcnt, c);
+	else // just save char c onto queue
+		last_modifying_cmd[0] = c;
 	adding2q = 1;
-	return;
 }
 
 static void end_cmd_q(void)
