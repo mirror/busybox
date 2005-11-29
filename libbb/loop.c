@@ -51,15 +51,30 @@ typedef struct {
 } bb_loop_info;
 #endif
 
-extern int del_loop(const char *device)
+char *query_loop(const char *device)
 {
-	int fd,rc=0;
+	int fd;
+	bb_loop_info loopinfo;
+	char *dev=0;
+	
+	if ((fd = open(device, O_RDONLY)) < 0) return 0;
+	if (!ioctl(fd, BB_LOOP_GET_STATUS, &loopinfo))
+		dev=bb_xasprintf("%ld %s", (long) loopinfo.lo_offset,
+				loopinfo.lo_file_name);
+	close(fd);
 
-	if ((fd = open(device, O_RDONLY)) < 0) rc=1;
-	else {
-		if (ioctl(fd, LOOP_CLR_FD, 0) < 0) rc=1;
-		close(fd);
-	}
+	return dev;
+}	
+
+
+int del_loop(const char *device)
+{
+	int fd, rc;
+
+	if ((fd = open(device, O_RDONLY)) < 0) return 1;
+	rc=ioctl(fd, LOOP_CLR_FD, 0);
+	close(fd);
+	
 	return rc;
 }
 
@@ -69,9 +84,9 @@ extern int del_loop(const char *device)
    search will re-use an existing loop device already bound to that
    file/offset if it finds one.
  */
-extern int set_loop(char **device, const char *file, int offset)
+int set_loop(char **device, const char *file, int offset)
 {
-	char dev[20];
+	char dev[20], *try;
 	bb_loop_info loopinfo;
 	struct stat statbuf;
 	int i, dfd, ffd, mode, rc=1;
@@ -81,20 +96,21 @@ extern int set_loop(char **device, const char *file, int offset)
 		return errno;
 
 	/* Find a loop device.  */
+	try=*device ? : dev;
 	for(i=0;rc;i++) {
 		sprintf(dev, LOOP_FORMAT, i++);
 		/* Ran out of block devices, return failure.  */
-		if(stat(*device ? *device : dev, &statbuf) ||
-				!S_ISBLK(statbuf.st_mode)) {
+		if(stat(try, &statbuf) || !S_ISBLK(statbuf.st_mode)) {
 			rc=ENOENT;
 			break;
 		}
 		/* Open the sucker and check its loopiness.  */
-		if((dfd=open(dev, mode))<0 && errno==EROFS)
-			dfd=open(dev,mode=O_RDONLY);
+		if((dfd=open(try, mode))<0 && errno==EROFS)
+			dfd=open(try,mode=O_RDONLY);
 		if(dfd<0) continue;
 
 		rc=ioctl(dfd, BB_LOOP_GET_STATUS, &loopinfo);
+
 		/* If device free, claim it.  */
 		if(rc && errno==ENXIO) {
 			memset(&loopinfo, 0, sizeof(loopinfo));
@@ -110,7 +126,7 @@ extern int set_loop(char **device, const char *file, int offset)
 		   without using losetup manually is problematic.)
 		 */
 		} else if(strcmp(file,loopinfo.lo_file_name)
-					|| offset!=loopinfo.lo_offset) rc=1;
+					|| offset!=loopinfo.lo_offset) rc=-1;
 		close(dfd);
 		if(*device) break;
 	}

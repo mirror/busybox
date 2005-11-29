@@ -24,8 +24,7 @@
 
 #include "busybox.h"
 
-int
-losetup_main (int argc, char **argv)
+int losetup_main (int argc, char **argv)
 {
   int offset = 0;
 
@@ -34,18 +33,27 @@ losetup_main (int argc, char **argv)
   switch(getopt(argc,argv, "do:")) {
     case 'd':
       /* detach takes exactly one argument */
-      if(optind+1==argc)
-        return del_loop(argv[optind]) ? EXIT_SUCCESS : EXIT_FAILURE;
-      break;
+      if(optind+1==argc && !del_loop(argv[optind])) return EXIT_SUCCESS;
+die_failed:
+      bb_perror_msg_and_die("%s",argv[optind]);
 
     case 'o':
       offset = bb_xparse_number (optarg, NULL);
       /* Fall through to do the losetup */
     case -1:
       /* losetup takes two argument:, loop_device and file */
-      if(optind+2==argc)
-        return set_loop(&argv[optind], argv[optind + 1], offset)<0
-	    ? EXIT_FAILURE : EXIT_SUCCESS;
+      if(optind+2==argc) {
+        if(set_loop(&argv[optind], argv[optind + 1], offset)>=0)
+          return EXIT_SUCCESS;
+        else goto die_failed;
+      }
+      if(optind+1==argc) {
+        char *s=query_loop(argv[optind]);
+        if (!s) goto die_failed;
+        printf("%s: %s\n",argv[optind],s);
+        if(ENABLE_FEATURE_CLEAN_UP) free(s);
+        return EXIT_SUCCESS;
+      }
       break;
   }
   bb_show_usage();
