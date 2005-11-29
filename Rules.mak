@@ -17,6 +17,11 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
+# Pull in the user's busybox configuration
+ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
+-include $(top_builddir)/.config
+endif
+
 #--------------------------------------------------------
 PROG      := busybox
 MAJOR_VERSION   :=1
@@ -106,11 +111,6 @@ TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/mipsel-.*/mipsel/' \
 		-e 's/cris.*/cris/' \
 		)
-endif
-
-# Pull in the user's busybox configuration
-ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
--include $(top_builddir)/.config
 endif
 
 # A nifty macro to make testing gcc features easier
