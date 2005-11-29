@@ -301,10 +301,10 @@ static unsigned long display_generic(void)
 	 * First, we read in the first line. Old kernels will have bogus
 	 * strings we don't care about, whereas new kernels will start right
 	 * out with MemTotal:
-	 * 				-- PFM.
+	 *                              -- PFM.
 	 */
 	if (fscanf(fp, "MemTotal: %lu %s\n", &total, buf) != 2) {
-		fgets(buf, sizeof(buf), fp);	/* skip first line */
+		fgets(buf, sizeof(buf), fp);    /* skip first line */
 
 		fscanf(fp, "Mem: %lu %lu %lu %lu %lu %lu",
 		   &total, &used, &mfree, &shared, &buffers, &cached);
@@ -438,6 +438,7 @@ static void sig_catcher (int sig)
 int top_main(int argc, char **argv)
 {
 	int opt, interval, lines, col;
+	char *sinterval;
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 	struct termios new_settings;
 	struct timeval tv;
@@ -446,18 +447,13 @@ int top_main(int argc, char **argv)
 	struct sigaction sa;
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
 
-	/* Default update rate is 5 seconds */
-	interval = 5;
-
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "d:")) > 0) {
-	    switch (opt) {
-		case 'd':
-		    interval = atoi(optarg);
-		    break;
-		default:
-		    bb_show_usage();
-	    }
+	opt = bb_getopt_ulflags(argc, argv, "d:", &sinterval);
+	if((opt & 1)) {
+		interval = atoi(sinterval);
+	} else {
+		/* Default update rate is 5 seconds */
+		interval = 5;
 	}
 
 	/* Default to 25 lines - 5 lines for status */
