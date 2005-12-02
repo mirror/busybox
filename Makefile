@@ -129,8 +129,7 @@ help:
 	@echo '  oldconfig		- resolve any unresolved symbols in .config'
 	@echo
 	@echo 'Installation:'
-	@echo '  install		- install busybox and symlinks into $prefix'
-	@echo '  install-hardlinks	- install busybox and hardlinks into $prefix'
+	@echo '  install		- install busybox into $prefix'
 	@echo '  uninstall'
 	@echo
 	@echo 'Development:'
@@ -196,8 +195,8 @@ defconfig: scripts/config/conf
 
 allbareconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX).*/# \1 is not set/" .config
-	sed -i -e "/FEATURE/s/=.*//;/^[^#]/s/.*FEATURE.*/# \0 is not set/;" .config
+	@sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX).*/# \1 is not set/" .config
+	@sed -i -e "/FEATURE/s/=.*//;/^[^#]/s/.*FEATURE.*/# \0 is not set/;" .config
 	@echo "CONFIG_FEATURE_BUFFERS_GO_ON_STACK=y" >> .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
@@ -220,7 +219,7 @@ busybox.links: $(top_srcdir)/applets/busybox.mkll include/config.h $(top_srcdir)
 	- $(SHELL) $^ >$@
 
 install: $(top_srcdir)/applets/install.sh busybox busybox.links
-	$(SHELL) $< $(PREFIX)
+	$(SHELL) $< $(PREFIX) $(INSTALL_OPTS)
 ifeq ($(strip $(CONFIG_FEATURE_SUID)),y)
 	@echo
 	@echo
@@ -235,9 +234,6 @@ endif
 uninstall: busybox.links
 	rm -f $(PREFIX)/bin/busybox
 	for i in `cat busybox.links` ; do rm -f $(PREFIX)$$i; done
-
-install-hardlinks: $(top_srcdir)/applets/install.sh busybox busybox.links
-	$(SHELL) $< $(PREFIX) --hardlinks
 
 # see if we are in verbose mode
 KBUILD_VERBOSE :=

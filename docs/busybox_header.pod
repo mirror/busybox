@@ -28,17 +28,16 @@ system.
 
 BusyBox is extremely configurable.  This allows you to include only the
 components you need, thereby reducing binary size. Run 'make config' or 'make
-menuconfig' to select the functionality that you wish to enable.  The run
+menuconfig' to select the functionality that you wish to enable.  Then run
 'make' to compile BusyBox using your configuration.
 
 After the compile has finished, you should use 'make install' to install
-BusyBox.  This will install the '/bin/busybox' binary, and will also create
-symlinks pointing to the '/bin/busybox' binary for each utility that you
-compile into BusyBox.  By default, 'make install' will place these symlinks
-into the './_install' directory, unless you have defined 'PREFIX', thereby
-specifying some alternative location (i.e., 'make PREFIX=/tmp/foo install').
-If you wish to install using hardlinks, rather than the default of using
-symlinks, you can use 'make PREFIX=/tmp/foo install-hardlinks' instead.
+BusyBox. This will install the 'bin/busybox' binary, in the target directory
+specified by PREFIX. PREFIX can be set when configuring BusyBox, or you can
+specify an alternative location at install time (i.e., with a command line
+like 'make PREFIX=/tmp/foo install'). If you enabled any applet installation
+scheme (either as symlinks or hardlinks), these will also be installed in
+the location pointed to by PREFIX.
 
 =head1 USAGE
 

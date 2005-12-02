@@ -58,14 +58,19 @@ Installing busybox consists of creating symlinks (or hardlinks) to the busybox
 binary for each applet enabled in busybox, and making sure these symlinks are
 in the shell's command $PATH.  Running "make install" creates these symlinks,
 or "make install-hardlinks" creates hardlinks instead (useful on systems with
-a limited number of inodes).  This install process ues the file
+a limited number of inodes).  This install process uses the file
 "busybox.links" (created by make), which contains the list of enabled applets
 and the path at which to install them.
 
-The special applet name "busybox" (or with any optional suffix, such as
-"busybox-static") uses the first argument to determine which applet to behave
-as (for example, "./busybox cat LICENSE").  (Running the busybox applet with
-no arguments gives a list of all enabled applets.)
+Installing links to busybox is not always necessary.  The special applet name
+"busybox" (or with any optional suffix, such as "busybox-static") uses the
+first argument to determine which applet to behave as, for example
+"./busybox cat LICENSE".  (Running the busybox applet with no arguments gives
+a list of all enabled applets.) The standalone shell can also call busybox
+applets without links to busybox under other names in the filesystem.  You can
+also configure a standaone install capability into the busybox base applet,
+and then install such links at runtime with one of "busybox --install" (for
+hardlinks) or "busybox --install -s" (for symlinks).
 
 Building out-of-tree:
 =====================
