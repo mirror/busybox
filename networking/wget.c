@@ -24,9 +24,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
 #include <getopt.h>
 
 #include "busybox.h"
