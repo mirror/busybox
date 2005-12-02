@@ -326,7 +326,7 @@ typedef struct
 } HttpEnumString;
 
 static const HttpEnumString httpResponseNames[] = {
-  { HTTP_OK, "OK" },
+  { HTTP_OK, "OK", NULL },
   { HTTP_MOVED_TEMPORARILY, "Found", "Directories must end with a slash." },
   { HTTP_REQUEST_TIMEOUT, "Request Timeout",
     "No request appeared within a reasonable time period." },
@@ -673,7 +673,7 @@ static void parse_conf(const char *path, int flag)
 	    } else {
 		/* sort path, if current lenght eq or bigger then move up */
 		Htaccess *prev_hti = config->auth;
-		int l = strlen(cf);
+		size_t l = strlen(cf);
 		Htaccess *hti;
 
 		for(hti = prev_hti; hti; hti = hti->next) {
@@ -852,7 +852,7 @@ static void addEnvPort(const char *port_name)
 static void decodeBase64(char *Data)
 {
 
-  const unsigned char *in = Data;
+  const unsigned char *in = (const unsigned char *)Data;
   // The decoded size will be at most 3/4 the size of the encoded
   unsigned long ch = 0;
   int i = 0;
@@ -1268,7 +1268,7 @@ static int sendCgi(const char *url,
 			post_readed_size = post_readed_idx = bodyLen = 0; /* broken pipe to CGI */
 		}
       } else if(bodyLen > 0 && post_readed_size == 0 && FD_ISSET(a_c_r, &readSet)) {
-		count = bodyLen > sizeof(wbuf) ? sizeof(wbuf) : bodyLen;
+		count = bodyLen > (int)sizeof(wbuf) ? (int)sizeof(wbuf) : bodyLen;
 		count = safe_read(a_c_r, wbuf, count);
 		if(count > 0) {
 			post_readed_size += count;
@@ -1456,7 +1456,7 @@ static int checkPerm(const char *path, const char *request)
 	    fprintf(stderr,"checkPerm: '%s' ? '%s'\n", p0, request);
 #endif
 	{
-	    int l = strlen(p0);
+	    size_t l = strlen(p0);
 
 	    if(strncmp(p0, path, l) == 0 &&
 			    (l == 1 || path[l] == '/' || path[l] == 0)) {
@@ -1664,53 +1664,57 @@ BAD_REQUEST:
 	}
 	*test = '/';
     }
-
-    // read until blank line for HTTP version specified, else parse immediate
-    while (blank >= 0 && alarm(TIMEOUT) >= 0 && (count = getLine()) > 0) {
+    if(blank >= 0) {
+      // read until blank line for HTTP version specified, else parse immediate
+      while(1) {
+	alarm(TIMEOUT);
+	count = getLine();
+	if(count <= 0)
+		break;
 
 #ifdef DEBUG
-      if (config->debugHttpd) fprintf(stderr, "Header: '%s'\n", buf);
+	if (config->debugHttpd) fprintf(stderr, "Header: '%s'\n", buf);
 #endif
 
 #ifdef CONFIG_FEATURE_HTTPD_CGI
-      /* try and do our best to parse more lines */
-      if ((strncasecmp(buf, Content_length, 15) == 0)) {
-	if(prequest != request_GET)
-		length = strtol(buf + 15, 0, 0); // extra read only for POST
-      } else if ((strncasecmp(buf, "Cookie:", 7) == 0)) {
-		for(test = buf + 7; isspace(*test); test++)
-			;
-		cookie = strdup(test);
-      } else if ((strncasecmp(buf, "Content-Type:", 13) == 0)) {
-		for(test = buf + 13; isspace(*test); test++)
-			;
-		content_type = strdup(test);
-      } else if ((strncasecmp(buf, "Referer:", 8) == 0)) {
-		for(test = buf + 8; isspace(*test); test++)
-			;
-		config->referer = strdup(test);
-      }
+	/* try and do our best to parse more lines */
+	if ((strncasecmp(buf, Content_length, 15) == 0)) {
+	  if(prequest != request_GET)
+		  length = strtol(buf + 15, 0, 0); // extra read only for POST
+	} else if ((strncasecmp(buf, "Cookie:", 7) == 0)) {
+		  for(test = buf + 7; isspace(*test); test++)
+			  ;
+		  cookie = strdup(test);
+	} else if ((strncasecmp(buf, "Content-Type:", 13) == 0)) {
+		  for(test = buf + 13; isspace(*test); test++)
+			  ;
+		  content_type = strdup(test);
+	} else if ((strncasecmp(buf, "Referer:", 8) == 0)) {
+		  for(test = buf + 8; isspace(*test); test++)
+			  ;
+		  config->referer = strdup(test);
+	}
 #endif
 
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-      if (strncasecmp(buf, "Authorization:", 14) == 0) {
-	/* We only allow Basic credentials.
-	 * It shows up as "Authorization: Basic <userid:password>" where
-	 * the userid:password is base64 encoded.
-	 */
-	for(test = buf + 14; isspace(*test); test++)
-		;
-	if (strncasecmp(test, "Basic", 5) != 0)
-		continue;
+	if (strncasecmp(buf, "Authorization:", 14) == 0) {
+	  /* We only allow Basic credentials.
+	   * It shows up as "Authorization: Basic <userid:password>" where
+	   * the userid:password is base64 encoded.
+	   */
+	  for(test = buf + 14; isspace(*test); test++)
+		  ;
+	  if (strncasecmp(test, "Basic", 5) != 0)
+		  continue;
 
-	test += 5;  /* decodeBase64() skiping space self */
-	decodeBase64(test);
-	credentials = checkPerm(url, test);
-      }
+	  test += 5;  /* decodeBase64() skiping space self */
+	  decodeBase64(test);
+	  credentials = checkPerm(url, test);
+	}
 #endif          /* CONFIG_FEATURE_HTTPD_BASIC_AUTH */
 
-    }   /* while extra header reading */
-
+      }   /* while extra header reading */
+    }
     (void) alarm( 0 );
     if(config->alarm_signaled)
 	break;
@@ -1927,38 +1931,36 @@ static void sighup_handler(int sig)
 static const char httpd_opts[]="c:d:h:"
 #ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
 				"e:"
-#define OPT_INC_1 1
-#else
-#define OPT_INC_1 0
 #endif
+#define OPT_INC_1 ENABLE_FEATURE_HTTPD_ENCODE_URL_STR
+
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
 				"r:"
-# ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
+#endif
+#define OPT_INC_2 ENABLE_FEATURE_HTTPD_BASIC_AUTH
+
+#ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
 				"m:"
-# define OPT_INC_2 2
-# else
-# define OPT_INC_2 1
 #endif
-#else
-#define OPT_INC_2 0
-#endif
+#define OPT_INC_3 ENABLE_FEATURE_HTTPD_AUTH_MD5
+
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 				"p:v"
+#endif
 #ifdef CONFIG_FEATURE_HTTPD_SETUID
 				"u:"
 #endif
-#endif /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
 					;
 
-#define OPT_CONFIG_FILE (1<<0)
-#define OPT_DECODE_URL  (1<<1)
-#define OPT_HOME_HTTPD  (1<<2)
-#define OPT_ENCODE_URL  (1<<(2+OPT_INC_1))
-#define OPT_REALM       (1<<(3+OPT_INC_1))
-#define OPT_MD5         (1<<(4+OPT_INC_1))
-#define OPT_PORT        (1<<(3+OPT_INC_1+OPT_INC_2))
-#define OPT_DEBUG       (1<<(4+OPT_INC_1+OPT_INC_2))
-#define OPT_SETUID      (1<<(5+OPT_INC_1+OPT_INC_2))
+#define OPT_CONFIG_FILE (1<<0)                                    /* c */
+#define OPT_DECODE_URL  (1<<1)                                    /* d */
+#define OPT_HOME_HTTPD  (1<<2)                                    /* h */
+#define OPT_ENCODE_URL  (1<<(2+OPT_INC_1))                        /* e */
+#define OPT_REALM       (1<<(2+OPT_INC_1+OPT_INC_2))              /* r */
+#define OPT_MD5         (1<<(2+OPT_INC_1+OPT_INC_2+OPT_INC_3))    /* m */
+#define OPT_PORT        (1<<(3+OPT_INC_1+OPT_INC_2+OPT_INC_3))    /* p */
+#define OPT_DEBUG       (1<<(4+OPT_INC_1+OPT_INC_2+OPT_INC_3))    /* v */
+#define OPT_SETUID      (1<<(5+OPT_INC_1+OPT_INC_2+OPT_INC_3))    /* u */
 
 
 #ifdef HTTPD_STANDALONE
