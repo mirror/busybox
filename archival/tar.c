@@ -322,6 +322,8 @@ static inline int exclude_file(const llist_t *excluded_files, const char *file)
 
 	return 0;
 }
+# else
+#define exclude_file(excluded_files, file) 0
 # endif
 
 static int writeFileToTarball(const char *fileName, struct stat *statbuf,
@@ -449,6 +451,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 			/* Avoid vfork clobbering */
 			(void) &include;
 			(void) &errorFlag;
+			(void) &zip_exec;
 # endif
 
 		gzipPid = vfork();
@@ -463,7 +466,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 			close(gzipStatusPipe[0]);
 			fcntl(gzipStatusPipe[1], F_SETFD, FD_CLOEXEC);	/* close on exec shows sucess */
 
-			execlp(zip_exec, zip_exec, "-f", 0);
+			execlp(zip_exec, zip_exec, "-f", NULL);
 			vfork_exec_errno = errno;
 
 			close(gzipStatusPipe[1]);
@@ -479,7 +482,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 
 				if (n == 0 && vfork_exec_errno != 0) {
 					errno = vfork_exec_errno;
-					bb_perror_msg_and_die("Could not exec %s",zip_exec);
+					bb_perror_msg_and_die("Could not exec %s", zip_exec);
 				} else if ((n < 0) && (errno == EAGAIN || errno == EINTR))
 					continue;	/* try it again */
 				break;
