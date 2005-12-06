@@ -611,7 +611,7 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 								"PERMISSIONS", "MODLOAD", "EXECUTE", "COPY", "IGNORE",
 								"MKOLDCOMPAT", "MKNEWCOMPAT","RMOLDCOMPAT", "RMNEWCOMPAT", 0 };
 
-	short int i;
+	int i;
 
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
@@ -1295,7 +1295,7 @@ static const char *get_variable (const char *variable, void *info)
 	const char *field_names[] = { "hostname", "mntpt", "devpath", "devname",
 								   "uid", "gid", "mode", hostname, mount_point,
 								   gv_info->devpath, gv_info->devname, 0 };
-	short int i;
+	int i;
 
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
 

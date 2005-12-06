@@ -654,7 +654,8 @@ static int iproute_get(int argc, char **argv)
 	char  *odev = NULL;
 	int connected = 0;
 	int from_ok = 0;
-	const char *options[] = { "from", "iif", "oif", "dev", "notify", "connected", "to", 0 };
+	static const char * const options[] = 
+		{ "from", "iif", "oif", "dev", "notify", "connected", "to", 0 };
 
 	memset(&req, 0, sizeof(req));
 
@@ -813,9 +814,10 @@ static int iproute_get(int argc, char **argv)
 
 int do_iproute(int argc, char **argv)
 {
-	const char *ip_route_commands[] = { "add", "append", "change", "chg",
-		"delete", "del", "get", "list", "show", "prepend", "replace", "test", "flush", 0 };
-	unsigned short command_num = 7;
+	static const char * const ip_route_commands[] = 
+		{ "add", "append", "change", "chg", "delete", "del", "get", 
+		"list", "show", "prepend", "replace", "test", "flush", 0 };
+	int command_num = 7;
 	unsigned int flags = 0;
 	int cmd = RTM_NEWROUTE;
 
