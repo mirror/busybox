@@ -4128,7 +4128,7 @@ extern int insmod_ng_main( int argc, char **argv)
 
 	fstat(fd, &st);
 	len = st.st_size;
-	map = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
+	map = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (map == MAP_FAILED) {
 		bb_perror_msg_and_die("cannot mmap `%s'", filename);
 	}
