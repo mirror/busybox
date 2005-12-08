@@ -47,6 +47,8 @@ static int adjust_column(int column, char c)
 
 extern int fold_main(int argc, char **argv)
 {
+	char *w_opt;
+
 	/* If nonzero, at least one of the files we read was standard input. */
 	int have_read_stdin = 0;
 
@@ -74,7 +76,6 @@ extern int fold_main(int argc, char **argv)
 		}
 	}
 
-	char *w_opt;
 	flags = bb_getopt_ulflags(argc, argv, "bsw:", &w_opt);
 	if (flags & 4)
 		width = bb_xgetlarg(w_opt, 10, 1, 10000);
