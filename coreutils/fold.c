@@ -48,15 +48,9 @@ static int adjust_column(int column, char c)
 extern int fold_main(int argc, char **argv)
 {
 	char *w_opt;
-
-	/* If nonzero, at least one of the files we read was standard input. */
-	int have_read_stdin = 0;
-
 	int width = 80;
 	int i;
 	int errs = 0;
-
-	have_read_stdin = 0;
 
 	/* Turn any numeric options into -w options.  */
 	for (i = 1; i < argc; i++) {
@@ -77,7 +71,7 @@ extern int fold_main(int argc, char **argv)
 	}
 
 	flags = bb_getopt_ulflags(argc, argv, "bsw:", &w_opt);
-	if (flags & 4)
+	if (flags & FLAG_WIDTH)
 		width = bb_xgetlarg(w_opt, 10, 1, 10000);
 
 	argv += optind;
@@ -112,7 +106,7 @@ rescan:
 
 				if (column > width) {
 					/* This character would make the line too long.
-			 		  Print the line plus a newline, and make this character
+					   Print the line plus a newline, and make this character
 					   start the next line. */
 					if (flags & FLAG_BREAK_SPACES) {
 						/* Look for the last blank. */
@@ -167,3 +161,4 @@ rescan:
 
 	bb_fflush_stdout_and_exit(errs);
 }
+/* vi: set sw=4 ts=4: */
