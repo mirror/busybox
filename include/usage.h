@@ -766,7 +766,7 @@
 	"/etc/passwd\n"
 
 #define fold_trivial_usage \
-	"[-bsw] [FILE]"
+	"[-bs] [-w WIDTH] [FILE]"
 #define fold_full_usage \
 	"Wrap input lines in each FILE (standard input by default), writing to\n" \
 	"standard output.\n\n" \

@@ -121,6 +121,7 @@ int tail_main(int argc, char **argv)
 	char *s, *buf;
 	const char *fmt;
 
+#ifdef CONFIG_FEATURE_SUSv2
 	/* Allow legacy syntax of an initial numeric option without -n. */
 	if (argc >=2 && ((argv[1][0] == '+') || ((argv[1][0] == '-')
 			/* && (isdigit)(argv[1][1]) */
@@ -130,6 +131,7 @@ int tail_main(int argc, char **argv)
 		optarg = argv[1];
 		goto GET_COUNT;
 	}
+#endif
 
 	while ((opt = getopt(argc, argv, tail_opts)) > 0) {
 		switch (opt) {

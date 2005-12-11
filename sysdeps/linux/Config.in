@@ -203,6 +203,21 @@ config EXTRA_CFLAGS_OPTIONS
 	  if you want to add some simple compiler switches (like -march=i686),
 	  or check for warnings using -Werror, just those options here.
 
+config CONFIG_FEATURE_SUSv2
+	bool "Enable features that are in SuSv2 but not SuSv3?"
+	default y
+	help
+	  This option will enable backwards compatability with SuSv2,
+	  specifically, numeric options such as 'head -1 <file>' will be
+	  supported.
+
+config CONFIG_FEATURE_SUSv2_OBSOLETE
+	bool "Enable features that are obsolete in SuSv2"
+	depends on CONFIG_FEATURE_SUSv2
+	default y
+	help
+	  Disables support for numeric arguments in fold.
+
 endmenu
 
 menu 'Installation Options'

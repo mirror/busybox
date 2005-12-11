@@ -52,6 +52,8 @@ extern int fold_main(int argc, char **argv)
 	int i;
 	int errs = 0;
 
+
+#ifdef CONFIG_FEATURE_SUSv2_OBSOLETE
 	/* Turn any numeric options into -w options.  */
 	for (i = 1; i < argc; i++) {
 		char const *a = argv[i];
@@ -69,6 +71,7 @@ extern int fold_main(int argc, char **argv)
 			}
 		}
 	}
+#endif
 
 	flags = bb_getopt_ulflags(argc, argv, "bsw:", &w_opt);
 	if (flags & FLAG_WIDTH)

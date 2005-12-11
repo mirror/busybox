@@ -56,6 +56,7 @@ int head_main(int argc, char **argv)
 	int c;
 	int retval = EXIT_SUCCESS;
 
+#if defined CONFIG_FEATURE_SUSv2 || defined CONFIG_FEATURE_FANCY_HEAD
 	/* Allow legacy syntax of an initial numeric option without -n. */
 	if ((argc > 1) && (argv[1][0] == '-')
 		/* && (isdigit)(argv[1][1]) */
@@ -66,7 +67,9 @@ int head_main(int argc, char **argv)
 		p = (*argv) + 1;
 		goto GET_COUNT;
 	}
+#endif
 
+	/* No size benefit in converting this to bb_getopt_ulflags */
 	while ((opt = getopt(argc, argv, head_opts)) > 0) {
 		switch(opt) {
 #ifdef CONFIG_FEATURE_FANCY_HEAD
