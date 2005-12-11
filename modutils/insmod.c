@@ -3899,7 +3899,7 @@ extern int insmod_main( int argc, char **argv)
 	} else
 		m_filename = bb_xstrdup(argv[optind]);
 
-	if (!flag_quiet)
+	if (flag_verbose)
 		printf("Using %s\n", m_filename);
 
 #ifdef CONFIG_FEATURE_2_6_MODULES
