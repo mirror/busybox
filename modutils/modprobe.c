@@ -381,7 +381,7 @@ static int already_loaded (const char *name)
 	return 0;
 }
 
-#ifdef CONFIG_MODPROBE_MULTIPLE_OPTIONS
+#ifdef CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS
 /* static char* parse_command_string( char* src, char **dst );
  *   src: pointer to string containing argument
  *   dst: pointer to where to store the parsed argument
@@ -488,25 +488,25 @@ static char *parse_command_string( char *src, char **dst )
 	*tmp_str = '\0';
 	return src;
 }
-#endif /* CONFIG_MODPROBE_MULTIPLE_OPTIONS */
+#endif /* CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
 
 static int mod_process ( struct mod_list_t *list, int do_insert )
 {
 	int rc = 0;
-#ifdef CONFIG_MODPROBE_MULTIPLE_OPTIONS
+#ifdef CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS
 	char **argv = NULL;
 	char *opts;
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	int argc_malloc;
 #endif
-#else /* CONFIG_MODPROBE_MULTIPLE_OPTIONS */
+#else /* CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
 	char *argv[10];
 #endif
 	int argc;
 
 	while ( list ) {
 		argc = 0;
-#ifdef CONFIG_MODPROBE_MULTIPLE_OPTIONS
+#ifdef CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS
 #ifdef CONFIG_FEATURE_CLEAN_UP
 		argc_malloc = 0;
 #endif
@@ -524,7 +524,7 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 				else if(verbose) /* verbose and quiet are mutually exclusive */
 					argv[argc++] = "-v";
 				argv[argc++] = list-> m_path;
-#ifdef CONFIG_MODPROBE_MULTIPLE_OPTIONS
+#ifdef CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS
 #ifdef CONFIG_FEATURE_CLEAN_UP
 				argc_malloc = argc;
 #endif
@@ -534,10 +534,10 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 					argc++;
 					argv = (char**) xrealloc( argv, ( argc + 1 ) * sizeof( char* ) );
 				}
-#else /* CONFIG_MODPROBE_MULTIPLE_OPTIONS */
+#else /* CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
 				if (list-> m_options)
 					argv[argc++] = list-> m_options;
-#endif /* CONFIG_MODPROBE_MULTIPLE_OPTIONS */
+#endif /* CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
 			}
 		} else {
 			/* modutils uses short name for removal */
@@ -546,7 +546,7 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 				if (do_syslog)
 					argv[argc++] = "-s";
 				argv[argc++] = list->m_name;
-#if ( defined CONFIG_MODPROBE_MULTIPLE_OPTIONS ) && ( defined CONFIG_FEATURE_CLEAN_UP )
+#if ( defined CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS ) && ( defined CONFIG_FEATURE_CLEAN_UP )
 				argc_malloc = argc;
 #endif
 			}
@@ -589,7 +589,7 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 					rc = 0; /* success if remove any mod */
 				}
 			}
-#if ( defined CONFIG_MODPROBE_MULTIPLE_OPTIONS ) && ( defined CONFIG_FEATURE_CLEAN_UP )
+#if ( defined CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS ) && ( defined CONFIG_FEATURE_CLEAN_UP )
 			/* the last value in the array has index == argc, but
 			 * it is the terminatign NULL, so we must not free it. */
 			while( argc_malloc < argc ) {
@@ -607,7 +607,7 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 		 * would not load because there is no more memory, so there's no
 		 * problem. Hmm, wait... Is this true, whatever the allocation policy? */
 		argv = NULL;
-#else /* CONFIG_MODPROBE_MULTIPLE_OPTIONS && CONFIG_FEATURE_CLEAN_UP */
+#else /* CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS && CONFIG_FEATURE_CLEAN_UP */
 		}
 #endif
 		list = do_insert ? list-> m_prev : list-> m_next;
