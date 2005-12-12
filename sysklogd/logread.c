@@ -162,6 +162,7 @@ extern int logread_main(int argc, char **argv)
 		}
 		free(buf_data);
 #endif
+		fflush(stdout);
 	} while (follow);
 
 output_end:
