@@ -94,7 +94,7 @@ int chmod_main(int argc, char **argv)
 
 	/* Ok, ready to do the deed now */
 	do {
-		if (! recursive_action (*argv, recursiveFlag, FALSE, FALSE,
+		if (! recursive_action (*argv, recursiveFlag, TRUE, FALSE,
 								fileAction,	fileAction, smode)) {
 			retval = EXIT_FAILURE;
 		}
