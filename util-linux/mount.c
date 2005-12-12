@@ -350,7 +350,7 @@ mount_it_now:
 			if(!f || !rc) break;
 		}
 
-		/* If the mount was sucessful, and we're maintaining an old-style
+		/* If the mount was successful, and we're maintaining an old-style
 		 * mtab file by hand, add new entry to it now. */
 		if((!rc || fakeIt) && useMtab) {
 			FILE *mountTable = setmntent(bb_path_mtab_file, "a+");

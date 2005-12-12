@@ -464,7 +464,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 				dup2(tbInfo.tarFd, 1);
 
 			close(gzipStatusPipe[0]);
-			fcntl(gzipStatusPipe[1], F_SETFD, FD_CLOEXEC);	/* close on exec shows sucess */
+			fcntl(gzipStatusPipe[1], F_SETFD, FD_CLOEXEC);	/* close on exec shows success */
 
 			execlp(zip_exec, zip_exec, "-f", NULL);
 			vfork_exec_errno = errno;
