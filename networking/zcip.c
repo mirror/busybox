@@ -65,7 +65,7 @@
 #include <linux/sockios.h>
 
 
-struct arp_packet {
+static struct arp_packet {
 	struct ether_header hdr;
 	// FIXME this part is netinet/if_ether.h "struct ether_arp"
 	struct arphdr arp;
@@ -214,8 +214,8 @@ bad:
 /**
  * Print usage information.
  */
-static void __attribute__ ((noreturn))
-usage(const char *msg)
+static void __attribute__((noreturn))
+zcip_usage(const char *msg)
 {
 	fprintf(stderr, "%s: %s\n", prog, msg);
 #ifdef	NO_BUSYBOX
@@ -284,7 +284,7 @@ int zcip_main(int argc, char *argv[])
 			if (inet_aton(optarg, &ip) == 0
 					|| (ntohl(ip.s_addr) & IN_CLASSB_NET)
 						!= LINKLOCAL_ADDR) {
-				usage("invalid link address");
+				zcip_usage("invalid link address");
 			}
 			continue;
 		case 'v':
@@ -294,7 +294,7 @@ int zcip_main(int argc, char *argv[])
 			foreground = 1;
 			continue;
 		default:
-			usage("bad option");
+			zcip_usage("bad option");
 		}
 	}
 	if (optind < argc - 1) {
@@ -303,7 +303,7 @@ int zcip_main(int argc, char *argv[])
 		script = argv[optind++];
 	}
 	if (optind != argc || !intf)
-		usage("wrong number of arguments");
+		zcip_usage("wrong number of arguments");
 	openlog(prog, 0, LOG_DAEMON);
 
 	// initialize the interface (modprobe, ifup, etc)
