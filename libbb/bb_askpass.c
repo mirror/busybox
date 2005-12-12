@@ -44,6 +44,7 @@ char *bb_askpass(int timeout, const char * prompt)
 	static char passwd[PWD_BUFFER_SIZE];
 
 	tcgetattr(STDIN_FILENO, &old);
+	tcflush(STDIN_FILENO, TCIFLUSH);
 
 	size = sizeof(passwd);
 	ret = passwd;
