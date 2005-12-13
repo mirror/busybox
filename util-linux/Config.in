@@ -245,6 +245,36 @@ config CONFIG_LOSETUP
 	  file or block device, and to query the status of a loop device.  This
 	  version does not currently support enabling data encryption.
 
+config CONFIG_MDEV
+	bool "mdev"
+	default n
+	help
+	  mdev is a mini-udev implementation: call it with -s to populate
+	  /dev from /sys, then "echo /sbin/mdev > /sys/kernel/hotplug" to
+	  have it handle hotplug events afterwards.  Device names are taken
+	  from sysfs.
+
+config CONFIG_FEATURE_MDEV_CONFIG
+	bool "  Support /etc/mdev.conf"
+	default n
+	depends on CONFIG_MDEV
+	help
+	  The mdev config file contains lines that look like:
+
+	    hd[a-z][0-9]* 0:3 660
+
+	  That's device name (with regex match), uid:gid, and permissions.
+
+	  Optionally, that can be followed (on the same line) by an asterisk
+	  and a command line to run after creating the corresponding device(s),
+	  ala:
+
+	    hdc root:cdrom 660  *ln -s hdc cdrom
+
+	  Config file parsing stops on the first matching line.  If no config
+	  entry is matched, devices are created with default 0:0 660.  (Make
+	  the last line match .* to override this.)
+
 config CONFIG_MKSWAP
 	bool "mkswap"
 	default n

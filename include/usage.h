@@ -1841,6 +1841,26 @@
 	"busybox: OK\n" \
 	"^D\n"
 
+#define mdev_trivial_usage \
+	"[-s]"
+#define mdev_full_usage \
+	"\ts\tScan /sys and populate /dev during system boot\n\n" \
+	"Called with no options (via hotplug) it uses environment variables\n" \
+	"to determine which device to add/remove."
+#ifdef CONFIG_FEATURE_MDEV_CONFIG
+#define mdev_notes_usage \
+	"The mdev config file contains lines that look like:\n" \
+        "  hd[a-z][0-9]* 0:3 660\n\n" \
+        "That's device name (with regex match), uid:gid, and permissions.\n\n" \
+	"Optionally, that can be followed (on the same line) by an asterisk\n" \
+	"and a command line to run after creating the corresponding device(s),\n"\
+	"ala:\n\n" \
+	"  hdc root:cdrom 660  *ln -s hdc cdrom\n\n" \
+	"Config file parsing stops on the first matching line.  If no config\n"\
+	"entry is matched, devices are created with default 0:0 660.  (Make\n"\
+	"the last line match .* to override this.)\n\n"
+#endif
+
 #define mesg_trivial_usage \
 	"[y|n]"
 #define mesg_full_usage \
@@ -2822,10 +2842,12 @@
 	"\t-a\tStart swapping on all swap devices"
 
 #define switch_root_trivial_usage \
-	"NEW_ROOT NEW_INIT [ARGUMENTS_TO_INIT]"
+	"[-c /dev/console] NEW_ROOT NEW_INIT [ARGUMENTS_TO_INIT]"
 #define switch_root_full_usage \
 	"Use from PID 1 under initramfs to free initramfs, chroot to NEW_ROOT,\n" \
-	"and exec NEW_INIT.\n"
+	"and exec NEW_INIT.\n\n" \
+	"Options:\n" \
+	"\t-c\tRedirect console to device on new root"
 
 #define sync_trivial_usage \
 	""

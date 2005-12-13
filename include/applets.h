@@ -414,6 +414,9 @@
 #ifdef CONFIG_MD5SUM
 	APPLET(md5sum, md5sum_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_MDEV
+	APPLET(mdev, mdev_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_MESG
 	APPLET(mesg, mesg_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
