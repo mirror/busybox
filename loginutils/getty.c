@@ -528,12 +528,11 @@ static void open_tty(char *tty, struct termio *tp, int local)
 
 		/* Open the tty as standard input. */
 
+		close(0);
 		debug("open(2)\n");
 		fd = open(tty, O_RDWR | O_NONBLOCK, 0);
-		if (dup2(fd, STDIN_FILENO) == -1)
+		if (fd != 0)
 			error("/dev/%s: cannot open as standard input: %m", tty);
-		close(fd);
-
 	} else {
 
 		/*
