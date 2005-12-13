@@ -65,7 +65,7 @@
 #include <linux/sockios.h>
 
 
-static struct arp_packet {
+struct arp_packet {
 	struct ether_header hdr;
 	// FIXME this part is netinet/if_ether.h "struct ether_arp"
 	struct arphdr arp;
