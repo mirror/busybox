@@ -96,7 +96,7 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 
 static const char tail_opts[] =
 	"fn:c:"
-#ifdef CONFIG_FEATURE_FANCY_TAIL
+#if ENABLE_FEATURE_FANCY_TAIL
 	"qs:v"
 #endif
 	;
@@ -142,7 +142,9 @@ int tail_main(int argc, char **argv)
 				count_bytes = 1;
 				/* FALLS THROUGH */
 			case 'n':
+#if ENABLE_FEATURE_FANCY_TAIL
 			GET_COUNT:
+#endif
 				count = bb_xgetlarg10_sfx(optarg, tail_suffixes);
 				/* Note: Leading whitespace is an error trapped above. */
 				if (*optarg == '+') {
@@ -154,7 +156,7 @@ int tail_main(int argc, char **argv)
 					count = -count;
 				}
 				break;
-#ifdef CONFIG_FEATURE_FANCY_TAIL
+#if ENABLE_FEATURE_FANCY_TAIL
 			case 'q':
 				header_threshhold = INT_MAX;
 				break;
