@@ -81,8 +81,14 @@ CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
 #GCCINCDIR:=$(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
-CFLAGS=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir) -funsigned-char
+CFLAGS=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
 ARFLAGS=cru
+
+
+# gcc centric. Perhaps fiddle with findstring gcc,$(CC) for the rest
+# get the CC MAJOR/MINOR version
+CC_MAJOR:=$(shell printf "%02d" $(shell echo __GNUC__ | $(CC) -E -xc - | tail -n 1))
+CC_MINOR:=$(shell printf "%02d" $(shell echo __GNUC_MINOR__ | $(CC) -E -xc - | tail -n 1))
 
 #--------------------------------------------------------
 export VERSION BUILDTIME HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
@@ -116,6 +122,8 @@ else
 export MAKE_IS_SILENT=y
 SECHO=-@false
 endif
+
+CFLAGS+=$(call check_gcc,-funsigned-char,)
 
 #--------------------------------------------------------
 # Arch specific compiler optimization stuff should go here.
