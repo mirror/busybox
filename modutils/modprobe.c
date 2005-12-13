@@ -497,7 +497,7 @@ static struct dep_t *build_dep ( void )
 							break;
 					}
 					if ( dt ) {
-						if ( CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS ) {
+						if ( ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS ) {
 							char* new_opt = NULL;
 							while( ( opt = parse_command_string( opt, &new_opt ) ) ) {
 								dt-> m_options = append_option( dt-> m_options, new_opt );
