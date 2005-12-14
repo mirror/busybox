@@ -5,7 +5,7 @@
  * Copyright (c) 2002 by Robert Griebl, griebl@gmx.de
  * Copyright (c) 2003 by Andrew Dennison, andrew.dennison@motec.com.au
  * Copyright (c) 2005 by Jim Bauer, jfbauer@nfr.com
- * 
+ *
  * Portions Copyright (c) 2005 by Yann E. MORIN, yann.morin.1998@anciens.enib.fr
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
@@ -33,7 +33,7 @@ struct dep_t {	/* one-way list of dependency rules */
 	char *  m_name;				/* the module name*/
 	char *  m_path;				/* the module file path */
 	struct mod_opt_t *  m_options;	/* the module options */
-	
+
 	int     m_isalias  : 1;			/* the module is an alias */
 	int     m_reserved : 15;		/* stuffin' */
 
@@ -130,7 +130,7 @@ struct mod_opt_t *append_option( struct mod_opt_t *opt_list, char *opt )
 	return opt_list;
 }
 
-#if (defined CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS)
+#if ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS
 /* static char* parse_command_string( char* src, char **dst );
  *   src: pointer to string containing argument
  *   dst: pointer to where to store the parsed argument
@@ -238,7 +238,7 @@ static char *parse_command_string( char *src, char **dst )
 	*dst = xrealloc( *dst, strlen( *dst ) );
 	return src;
 }
-#endif /* CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
+#endif /* ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
 
 /*
  * This function builds a list of dependency rules from /lib/modules/`uname -r\modules.dep.
@@ -296,7 +296,7 @@ static struct dep_t *build_dep ( void )
 
 		/* Is this a new module dep description? */
 		if ( !continuation_line ) {
-			/* find the dep begining */
+			/* find the dep beginning */
 			char *col = strchr ( buffer, ':' );
 			char *dot = col;
 
@@ -382,7 +382,7 @@ static struct dep_t *build_dep ( void )
 				else
 					next = end;
 
-				/* find the begining of the module file name */
+				/* find the beginning of the module file name */
 				deps = strrchr ( p, '/' );
 
 				if ( !deps || ( deps < p )) {
@@ -428,7 +428,7 @@ static struct dep_t *build_dep ( void )
 
 	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias) !
 
-#if defined(CONFIG_FEATURE_2_6_MODULES)
+#if ENABLE_FEATURE_2_6_MODULES
 	if (( fd = open ( "/etc/modprobe.conf", O_RDONLY )) < 0 )
 #endif
 		if (( fd = open ( "/etc/modules.conf", O_RDONLY )) < 0 )
@@ -497,14 +497,14 @@ static struct dep_t *build_dep ( void )
 							break;
 					}
 					if ( dt ) {
-						if ( ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS ) {
-							char* new_opt = NULL;
-							while( ( opt = parse_command_string( opt, &new_opt ) ) ) {
-								dt-> m_options = append_option( dt-> m_options, new_opt );
-							}
-						} else {
-							dt-> m_options = append_option( dt-> m_options, opt );
+#if ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS
+						char* new_opt = NULL;
+						while( ( opt = parse_command_string( opt, &new_opt ) ) ) {
+							dt-> m_options = append_option( dt-> m_options, new_opt );
 						}
+#else
+						dt-> m_options = append_option( dt-> m_options, opt );
+#endif
 					}
 				}
 			}
@@ -711,7 +711,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 	mod = dt-> m_name;
 	path = dt-> m_path;
 	opt = dt-> m_options;
-			
+
 	// search for duplicates
 	for ( find = *head; find; find = find-> m_next ) {
 		if ( !strcmp ( mod, find-> m_name )) {
