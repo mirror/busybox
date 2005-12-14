@@ -141,6 +141,8 @@ static int count_netmask_bits(char *dotted_quad)
 }
 #endif
 
+#if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6 || \
+	ENABLE_FEATURE_IFUPDOWN_IPX
 static void addstr(char **buf, size_t *len, size_t *pos, char *str, size_t str_length)
 {
 	if (*pos + str_length >= *len) {
@@ -319,6 +321,7 @@ static int execute(char *command, struct interface_defn_t *ifd, execfn *exec)
 	}
 	return(1);
 }
+#endif
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_IPX
 static int static_up_ipx(struct interface_defn_t *ifd, execfn *exec)
