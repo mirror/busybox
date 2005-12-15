@@ -285,6 +285,9 @@ static int do_set(int argc, char **argv)
 				flags |= IFF_NOARP;
 			} else
 				return on_off("noarp");
+		} else if (strcmp(*argv, "addr") == 0) {
+			NEXT_ARG();
+			newaddr = *argv;
 		} else {
                         if (strcmp(*argv, "dev") == 0) {
 				NEXT_ARG();
