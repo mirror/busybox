@@ -511,7 +511,6 @@ int tftp_main(int argc, char **argv)
 	int cmd = 0;
 	int fd = -1;
 	int flags = 0;
-	int opt;
 	int result;
 	int blocksize = TFTP_BLOCKSIZE_DEFAULT;
 
@@ -551,7 +550,7 @@ int tftp_main(int argc, char **argv)
 #endif
 
 	
-	opt = bb_getopt_ulflags(argc, argv, GET PUT "l:r:" BS, 
+	cmd = bb_getopt_ulflags(argc, argv, GET PUT "l:r:" BS, 
 				&localfile, &remotefile BS_ARG);
 #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 	if(sblocksize) {
@@ -562,7 +561,7 @@ int tftp_main(int argc, char **argv)
 	}
 #endif
 
-	cmd &= (tftp_cmd_get & tftp_cmd_put);
+	cmd &= (tftp_cmd_get | tftp_cmd_put);
 #ifdef CONFIG_FEATURE_TFTP_GET
 	if(cmd == tftp_cmd_get)
 		flags = O_WRONLY | O_CREAT | O_TRUNC;
