@@ -31,11 +31,10 @@ UTILLINUX-$(CONFIG_MORE)          +=more.o
 UTILLINUX-$(CONFIG_MOUNT)         +=mount.o
 UTILLINUX-$(CONFIG_FEATURE_MOUNT_NFS)	+=nfsmount.o
 UTILLINUX-$(CONFIG_PIVOT_ROOT)    +=pivot_root.o
-UTILLINUX-$(CONFIG_SWITCH_ROOT)   +=switch_root.o
 UTILLINUX-$(CONFIG_RDATE)         +=rdate.o
 UTILLINUX-$(CONFIG_READPROFILE)   +=readprofile.o
 UTILLINUX-$(CONFIG_SWAPONOFF)     +=swaponoff.o
-UTILLINUX-$(CONFIG_SWITCH_ROOT)     +=switch_root.o
+UTILLINUX-$(CONFIG_SWITCH_ROOT)   +=switch_root.o
 UTILLINUX-$(CONFIG_UMOUNT)        +=umount.o
 
 libraries-y+=$(UTILLINUX_DIR)$(UTILLINUX_AR)
