@@ -142,15 +142,6 @@ static int hash_files(int argc, char **argv, const uint8_t hash_algo)
 	} else
 #endif
 	{
-		uint8_t hash_length;
-
-		if (hash_algo == HASH_MD5) {
-			hash_length = 16;
-		} else {
-			hash_length = 20;
-		}
-		hash_value = xmalloc(hash_length);
-
 		while (optind < argc) {
 			char *file_ptr = argv[optind++];
 
