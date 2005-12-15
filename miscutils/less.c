@@ -238,7 +238,7 @@ static void data_readlines(void) {
 	fclose(fp);
 
 	if(inp == NULL)
-		inp = (inp_stdin) ? fopen(CURRENT_TTY, "r") : stdin;
+		inp = (inp_stdin) ? bb_xfopen(CURRENT_TTY, "r") : stdin;
 
 	if (flags & FLAG_N)
 		add_linenumbers();
