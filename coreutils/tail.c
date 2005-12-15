@@ -121,7 +121,7 @@ int tail_main(int argc, char **argv)
 	char *s, *buf;
 	const char *fmt;
 
-#ifdef CONFIG_FEATURE_SUSv2
+#if defined CONFIG_FEATURE_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
 	/* Allow legacy syntax of an initial numeric option without -n. */
 	if (argc >=2 && ((argv[1][0] == '+') || ((argv[1][0] == '-')
 			/* && (isdigit)(argv[1][1]) */
@@ -142,7 +142,7 @@ int tail_main(int argc, char **argv)
 				count_bytes = 1;
 				/* FALLS THROUGH */
 			case 'n':
-#if ENABLE_FEATURE_FANCY_TAIL
+#if defined CONFIG_FEATURE_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
 			GET_COUNT:
 #endif
 				count = bb_xgetlarg10_sfx(optarg, tail_suffixes);

@@ -85,7 +85,7 @@ int head_main(int argc, char **argv)
 #endif
 			case 'n':
 				p = optarg;
-#if ENABLE_FEATURE_FANCY_HEAD
+#if defined CONFIG_FEATURE_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
 			GET_COUNT:
 #endif
 				count = bb_xgetularg10(p);
