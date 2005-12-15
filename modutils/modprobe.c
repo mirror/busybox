@@ -238,6 +238,8 @@ static char *parse_command_string( char *src, char **dst )
 	*dst = xrealloc( *dst, strlen( *dst ) );
 	return src;
 }
+#else
+#define parse_command_string(src, dst)	(0)
 #endif /* ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
 
 /*
@@ -428,9 +430,8 @@ static struct dep_t *build_dep ( void )
 
 	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias) !
 
-#if ENABLE_FEATURE_2_6_MODULES
-	if (( fd = open ( "/etc/modprobe.conf", O_RDONLY )) < 0 )
-#endif
+	if (!ENABLE_FEATURE_2_6_MODULES
+			|| ( fd = open ( "/etc/modprobe.conf", O_RDONLY )) < 0 )
 		if (( fd = open ( "/etc/modules.conf", O_RDONLY )) < 0 )
 			if (( fd = open ( "/etc/conf.modules", O_RDONLY )) < 0 )
 				return first;
@@ -496,15 +497,13 @@ static struct dep_t *build_dep ( void )
 						if ( strcmp ( dt-> m_name, mod ) == 0 )
 							break;
 					}
-					if ( dt ) {
-#if ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS
+					if ( ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS && dt ) {
 						char* new_opt = NULL;
 						while( ( opt = parse_command_string( opt, &new_opt ) ) ) {
 							dt-> m_options = append_option( dt-> m_options, new_opt );
 						}
-#else
+					} else {
 						dt-> m_options = append_option( dt-> m_options, opt );
-#endif
 					}
 				}
 			}
