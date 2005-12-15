@@ -8,12 +8,13 @@ if [ "$prefix" = "" ]; then
     echo "No installation directory, aborting."
     exit 1;
 fi
-if [ "$2" = "--hardlinks" ]; then
-    linkopts="-f"
-else
-    linkopts="-fs"
-fi
 h=`sort busybox.links | uniq`
+case "$2" in
+    --hardlinks) linkopts="-f";;
+    --symlinks)  linkopts="-fs";;
+    "")          h="";;
+    *)           echo "Unknown install option: $2"; exit 1;;
+esac
 
 
 rm -f $prefix/bin/busybox || exit 1

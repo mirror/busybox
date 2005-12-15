@@ -205,4 +205,16 @@ endif
 # have a chance of winning.
 CFLAGS += $(CFLAGS_EXTRA)
 
+#------------------------------------------------------------
+# Installation options
+ifeq ($(strip $(CONFIG_INSTALL_APPLET_HARDLINKS)),y)
+INSTALL_OPTS=--hardlinks
+endif
+ifeq ($(strip $(CONFIG_INSTALL_APPLET_SYMLINKS)),y)
+INSTALL_OPTS=--symlinks
+endif
+ifeq ($(strip $(CONFIG_INSTALL_APPLET_DONT)),y)
+INSTALL_OPTS=
+endif
+
 .PHONY: dummy

@@ -229,6 +229,35 @@ config CONFIG_INSTALL_NO_USR
 	  Disable use of /usr. Don't activate this option if you don't know
 	  that you really want this behaviour.
 
+choice
+       prompt "Applets links"
+       default CONFIG_INSTALL_APPLET_SYMLINKS
+       help
+         Choose how you install applets links.
+
+config CONFIG_INSTALL_APPLET_SYMLINKS
+       bool "as soft-links"
+       help
+         Install applets as soft-links to the busybox binary. This needs some
+         free inodes on the filesystem, but might help with filesystem
+         generators that can't cope with hard-links.
+
+config CONFIG_INSTALL_APPLET_HARDLINKS
+       bool "as hard-links"
+       help
+         Install applets as hard-links to the busybox binary. This might count
+         on a filesystem with few inodes.
+
+config CONFIG_INSTALL_APPLET_DONT
+       bool
+       prompt "not installed"
+       depends on CONFIG_FEATURE_INSTALLER || CONFIG_FEATURE_SH_STANDALONE_SHELL
+       help
+         Do not install applets links. Usefull when using the -install feature
+         or a standalone shell for rescue pruposes.
+
+endchoice
+
 config PREFIX
 	string "BusyBox installation prefix"
 	default "./_install"
