@@ -513,11 +513,12 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 	 * but that isn't necessary for GNU tar interoperability, and
 	 * so is considered a waste of space */
 
+	/* Close so the child process (if any) will exit */
+	close(tbInfo.tarFd);
+
 	/* Hang up the tools, close up shop, head home */
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		close(tbInfo.tarFd);
+	if (ENABLE_FEATURE_CLEAN_UP)
 		freeHardLinkInfo(&tbInfo.hlInfoHead);
-	}
 
 	if (errorFlag)
 		bb_error_msg("Error exit delayed from previous errors");
