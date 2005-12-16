@@ -215,7 +215,7 @@ busybox: .depend $(libraries-y)
 	$(CC) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
 	$(STRIPCMD) $@
 
-busybox.links: $(top_srcdir)/applets/busybox.mkll include/config.h $(top_srcdir)/include/applets.h
+busybox.links: $(top_srcdir)/applets/busybox.mkll include/bb_config.h $(top_srcdir)/include/applets.h
 	- $(SHELL) $^ >$@
 
 install: $(top_srcdir)/applets/install.sh busybox busybox.links
