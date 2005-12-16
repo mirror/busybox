@@ -239,7 +239,6 @@ static void data_readlines(void) {
 
 	if(inp == NULL)
 		inp = (inp_stdin) ? bb_xfopen(CURRENT_TTY, "r") : stdin;
-	if(inp == NULL) bb_perror_msg_and_die("no tty");
 
 	if (flags & FLAG_N)
 		add_linenumbers();
