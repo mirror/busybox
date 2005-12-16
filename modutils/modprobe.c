@@ -497,13 +497,15 @@ static struct dep_t *build_dep ( void )
 						if ( strcmp ( dt-> m_name, mod ) == 0 )
 							break;
 					}
-					if ( ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS && dt ) {
-						char* new_opt = NULL;
-						while( ( opt = parse_command_string( opt, &new_opt ) ) ) {
-							dt-> m_options = append_option( dt-> m_options, new_opt );
+					if ( dt ) {
+						if ( ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS ) {
+							char* new_opt = NULL;
+							while( ( opt = parse_command_string( opt, &new_opt ) ) ) {
+								dt-> m_options = append_option( dt-> m_options, new_opt );
+							}
+						} else {
+							dt-> m_options = append_option( dt-> m_options, opt );
 						}
-					} else {
-						dt-> m_options = append_option( dt-> m_options, opt );
 					}
 				}
 			}
