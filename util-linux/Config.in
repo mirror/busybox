@@ -254,7 +254,7 @@ config CONFIG_MDEV
 	  have it handle hotplug events afterwards.  Device names are taken
 	  from sysfs.
 
-config CONFIG_FEATURE_MDEV_CONFIG
+config CONFIG_FEATURE_MDEV_CONF
 	bool "  Support /etc/mdev.conf"
 	default n
 	depends on CONFIG_MDEV
