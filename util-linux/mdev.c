@@ -21,7 +21,7 @@
 #include "busybox.h"
 #include "xregex.h"
 
-#define DEV_PATH	"/tmp/dev"
+#define DEV_PATH	"/dev"
 
 #include <busybox.h>
 
