@@ -101,7 +101,7 @@ extern int vlock_main(int argc, char **argv)
 	}
 
 	if (argc == 2) {
-		if (strncmp(argv[1], "-a", 2)) {
+		if (strcmp(argv[1], "-a")) {
 			bb_show_usage();
 		} else {
 			o_lock_all = 1;
@@ -199,7 +199,7 @@ extern int vlock_main(int argc, char **argv)
 		}
 
 		crypt_pass = pw_encrypt(pass, pw->pw_passwd);
-		if (strncmp(crypt_pass, pw->pw_passwd, sizeof(crypt_pass)) == 0) {
+		if (strcmp(crypt_pass, pw->pw_passwd) == 0) {
 			memset(pass, 0, strlen(pass));
 			memset(crypt_pass, 0, strlen(crypt_pass));
 			restore_terminal();
