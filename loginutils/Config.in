@@ -133,13 +133,13 @@ config CONFIG_VLOCK
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
-comment "Common options for adduser, deluser, login, su"
-	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU
+comment "Common options for adduser, deluser, login, su, vlock"
+	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU || CONFIG_VLOCK
 
 config CONFIG_FEATURE_SHADOWPASSWDS
 	bool "Support for shadow passwords"
 	default n
-	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU
+	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU || CONFIG_VLOCK
 	help
 	  Build support for shadow password in /etc/shadow.  This file is only
 	  readable by root and thus the encrypted passwords are no longer
