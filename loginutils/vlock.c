@@ -45,29 +45,7 @@ static struct passwd *pw;
 static struct vt_mode ovtm;
 static struct termios oterm;
 static int vfd;
-static int o_lock_all = 0;
-
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
-static struct spwd *spw;
-
-/* getspuid - get a shadow entry by uid */
-static struct spwd *getspuid(uid_t uid)
-{
-	struct spwd *sp;
-	struct passwd *mypw;
-
-	if ((mypw = getpwuid(getuid())) == NULL) {
-		return (NULL);
-	}
-	setspent();
-	while ((sp = getspent()) != NULL) {
-		if (strcmp(mypw->pw_name, sp->sp_namp) == 0)
-			break;
-	}
-	endspent();
-	return (sp);
-}
-#endif
+static unsigned long o_lock_all;
 
 static void release_vt(int signo)
 {
@@ -93,52 +71,23 @@ extern int vlock_main(int argc, char **argv)
 	sigset_t sig;
 	struct sigaction sa;
 	struct vt_mode vtm;
-	int times = 0;
 	struct termios term;
 
 	if (argc > 2) {
 		bb_show_usage();
 	}
 
-	if (argc == 2) {
-		if (strcmp(argv[1], "-a")) {
-			bb_show_usage();
-		} else {
-			o_lock_all = 1;
-		}
+	o_lock_all = bb_getopt_ulflags (argc, argv, "a");
+
+	if((pw = getpwuid(getuid())) == NULL) {
+		bb_error_msg_and_die("Unknown uid %d", getuid());
 	}
 
-	if ((pw = getpwuid(getuid())) == NULL) {
-		bb_error_msg_and_die("no password for uid %d\n", getuid());
-	}
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
-	if ((strcmp(pw->pw_passwd, "x") == 0)
-		|| (strcmp(pw->pw_passwd, "*") == 0)) {
-
-		if ((spw = getspuid(getuid())) == NULL) {
-			bb_error_msg_and_die("could not read shadow password for uid %d: %s\n",
-					   getuid(), strerror(errno));
-		}
-		if (spw->sp_pwdp) {
-			pw->pw_passwd = spw->sp_pwdp;
-		}
-	}
-#endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
-	if (pw->pw_passwd[0] == '!' || pw->pw_passwd[0] == '*') {
-		bb_error_msg_and_die("Account disabled for uid %d\n", getuid());
-	}
-
-	/* we no longer need root privs */
-	setuid(getuid());
-	setgid(getgid());
-
-	if ((vfd = open("/dev/tty", O_RDWR)) < 0) {
-		bb_error_msg_and_die("/dev/tty");
-	};
+	vfd = bb_xopen(CURRENT_TTY, O_RDWR);
 
 	if (ioctl(vfd, VT_GETMODE, &vtm) < 0) {
-		bb_error_msg_and_die("/dev/tty");
-	};
+		bb_perror_msg_and_die("VT_GETMODE");
+	}
 
 	/* mask a bunch of signals */
 	sigprocmask(SIG_SETMASK, NULL, &sig);
@@ -181,45 +130,16 @@ extern int vlock_main(int argc, char **argv)
 	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 
 	do {
-		char *pass, *crypt_pass;
-		char prompt[100];
-
-		if (o_lock_all) {
-			printf("All Virtual Consoles locked.\n");
-		} else {
-			printf("This Virtual Console locked.\n");
-		}
+		printf("Virtual Console%s locked.\n%s's ", (o_lock_all) ? "s" : "", pw->pw_name);
 		fflush(stdout);
-
-		snprintf(prompt, 100, "%s's password: ", pw->pw_name);
-
-		if ((pass = bb_askpass(0, prompt)) == NULL) {
-			restore_terminal();
-			bb_perror_msg_and_die("password");
+		if (correct_password (pw)) {
+			break;
 		}
-
-		crypt_pass = pw_encrypt(pass, pw->pw_passwd);
-		if (strcmp(crypt_pass, pw->pw_passwd) == 0) {
-			memset(pass, 0, strlen(pass));
-			memset(crypt_pass, 0, strlen(crypt_pass));
-			restore_terminal();
-			return 0;
-		}
-		memset(pass, 0, strlen(pass));
-		memset(crypt_pass, 0, strlen(crypt_pass));
-
-		if (isatty(STDIN_FILENO) == 0) {
-			restore_terminal();
-			bb_perror_msg_and_die("isatty");
-		}
-
-		sleep(++times);
-		printf("Password incorrect.\n");
-		if (times >= 3) {
-			sleep(15);
-			times = 2;
-		}
+		sleep(10);
+		puts("Password incorrect.");
 	} while (1);
+	restore_terminal();
+	return 0;
 }
 
 /*
