@@ -56,17 +56,17 @@ static void delete_contents(char *directory)
 			closedir(dir);
 			
 			// Directory should now be empty.  Zap it.
-			printf("rmdir %s\n",directory); // rmdir(directory);
+			rmdir(directory);
 		}
 		
 	// It wasn't a directory.  Zap it.
 		
-	} else printf("unlink %s\n",directory); //unlink(directory);
+	} else unlink(directory);
 }
 
 int switch_root_main(int argc, char *argv[])
 {
-	char *newroot, *console="/dev/console";
+	char *newroot, *console=NULL;
 	struct stat st1, st2;
 	struct statfs stfs;
 
@@ -98,19 +98,24 @@ int switch_root_main(int argc, char *argv[])
 	}
 
 	// Zap everything out of rootdev
+
 	delete_contents("/");
 	
-	// Overmount / with newdir
+	// Overmount / with newdir and chroot into it.  The chdir is needed to
+	// recalculate "." and ".." links.
 
-	if (mount(".", "/", NULL, MS_MOVE, NULL) || chdir("/"))
+	if (mount(".", "/", NULL, MS_MOVE, NULL) || chroot(".") || chdir("/"))
 		bb_error_msg_and_die("moving root");
 	
-	// Reopen stdin/stdout/stderr to /dev/console
-	close(0);
-	if(open(console, O_RDWR) < 0)
-		bb_error_msg_and_die("Bad console '%s'",console);
-	dup2(0, 1);
-	dup2(0, 2);
+	// If a new console specified, redirect stdin/stdout/stderr to that.
+
+	if (console) {
+		close(0);
+		if(open(console, O_RDWR) < 0)
+			bb_error_msg_and_die("Bad console '%s'",console);
+		dup2(0, 1);
+		dup2(0, 2);
+	}
 
 	// Exec real init.  (This is why we must be pid 1.)
 	execv(argv[optind],argv+optind+1);
