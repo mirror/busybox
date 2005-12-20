@@ -52,6 +52,12 @@
 #include <rpc/pmap_clnt.h>
 #include "nfsmount.h"
 
+/* This is just a warning of a common mistake.  Possibly this should be a
+ *  * uclibc faq entry rather than in busybox... */
+#if ENABLE_FEATURE_MOUNT_NFS && defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
+#error "You need to build uClibc with UCLIBC_HAS_RPC for NFS support."
+#endif
+
 
 /*
  * NFS stats. The good thing with these values is that NFSv3 errors are

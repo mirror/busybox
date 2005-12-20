@@ -6,20 +6,7 @@
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * Copyright (C) 2005 by Rob Landley <rob@landley.net>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <limits.h>
@@ -34,12 +21,6 @@
 #include <fcntl.h>		// for CONFIG_FEATURE_MOUNT_LOOP
 #include <sys/ioctl.h>  // for CONFIG_FEATURE_MOUNT_LOOP
 #include "busybox.h"
-
-/* This is just a warning of a common mistake.  Possibly this should be a
- * uclibc faq entry rather than in busybox... */
-#if ENABLE_FEATURE_MOUNT_NFS && defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
-#error "You need to build uClibc with UCLIBC_HAS_RPC for busybox mount with NFS support to compile."
-#endif
 
 // These two aren't always defined in old headers
 #ifndef MS_BIND
@@ -182,7 +163,7 @@ extern int mount_main(int argc, char **argv)
 		while (getmntent_r(mountTable,&m,path,sizeof(path))) {
 			blockDevice = m.mnt_fsname;
 
-			// Clean up display a little bit regarding root devie
+			// Clean up display a little bit regarding root device
 			if(!strcmp(blockDevice, "rootfs")) continue;
 			if(!strcmp(blockDevice, "/dev/root"))
 				blockDevice = find_block_device("/");
@@ -260,7 +241,7 @@ extern int mount_main(int argc, char **argv)
 			free(blockDevice);
 			blockDevice=strdup(m.mnt_fsname);
 			free(directory);
-			directory=strdup(m.mnt_type);
+			directory=strdup(m.mnt_dir);
 		} else {
 			blockDevice=m.mnt_fsname;
 			directory=m.mnt_dir;
@@ -387,16 +368,16 @@ mount_it_now:
 				bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 		}
 		// We couldn't free this earlier becase fsType could be in buf.
-		if(ENABLE_FEATURE_CLEAN_UP) {
-			free(buf);
-			free(blockDevice);
-			free(directory);
-		}
+		if(ENABLE_FEATURE_CLEAN_UP) free(buf);
 		if(!all) break;
 	}
 
 	if(file) endmntent(file);
 	if(rc) bb_perror_msg("Mounting %s on %s failed", blockDevice, directory);
+	if(ENABLE_FEATURE_CLEAN_UP) {
+		free(blockDevice);
+		free(directory);
+	}
 
 	return rc;
 }
