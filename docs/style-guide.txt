@@ -445,7 +445,7 @@ First, some background to put this discussion in context: Static buffers look
 like this in code:
 
 	/* in a .c file outside any functions */
-	static char *buffer[BUFSIZ]; /* happily used by any function in this file,
+	static char buffer[BUFSIZ]; /* happily used by any function in this file,
 	                                but ick! big! */
 
 The problem with these is that any time any busybox app is run, you pay a
