@@ -8,14 +8,13 @@ menu "Login/Password Management Utilities"
 config CONFIG_FEATURE_SHADOWPASSWDS
 	bool "Support for shadow passwords"
 	default n
-	depends on CONFIG_ADDUSER || CONFIG_DELUSER || CONFIG_LOGIN || CONFIG_SU || CONFIG_VLOCK
 	help
 	  Build support for shadow password in /etc/shadow.  This file is only
 	  readable by root and thus the encrypted passwords are no longer
 	  publicly readable.
 
 config CONFIG_USE_BB_SHADOW
-#	bool "  Use busybox shadow password functions"
+	bool #"  Use busybox shadow password functions"
 	default y
 	depends on CONFIG_USE_BB_PWD_GRP && CONFIG_FEATURE_SHADOWPASSWDS
 	help
