@@ -33,7 +33,8 @@ int losetup_main (int argc, char **argv)
   switch(getopt(argc,argv, "do:")) {
     case 'd':
       /* detach takes exactly one argument */
-      if(optind+1==argc && !del_loop(argv[optind])) return EXIT_SUCCESS;
+      if(optind+1!=argc) bb_show_usage();
+      if(!del_loop(argv[optind])) return EXIT_SUCCESS;
 die_failed:
       bb_perror_msg_and_die("%s",argv[optind]);
 

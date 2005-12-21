@@ -1657,7 +1657,7 @@
 	"\t-f\t\toutput data as the log grows"
 
 #define losetup_trivial_usage \
-	"[-od] LOOPDEVICE [FILE]\n"
+	"[-od] LOOPDEVICE [FILE]"
 #define losetup_full_usage \
 	"Associate LOOPDEVICE with FILE, or display current association.\n\n" \
 	"Options:\n" \
