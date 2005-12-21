@@ -89,7 +89,7 @@ int set_loop(char **device, const char *file, int offset)
 	char dev[20], *try;
 	bb_loop_info loopinfo;
 	struct stat statbuf;
-	int i, dfd, ffd, mode, rc=1;
+	int i, dfd, ffd, mode, rc=-1;
 
 	/* Open the file.  Barf if this doesn't work.  */
 	if((ffd = open(file, mode=O_RDWR))<0 && (ffd = open(file,mode=O_RDONLY))<0)
@@ -107,7 +107,7 @@ int set_loop(char **device, const char *file, int offset)
 		/* Open the sucker and check its loopiness.  */
 		if((dfd=open(try, mode))<0 && errno==EROFS)
 			dfd=open(try,mode=O_RDONLY);
-		if(dfd<0) continue;
+		if(dfd<0) goto try_again;
 
 		rc=ioctl(dfd, BB_LOOP_GET_STATUS, &loopinfo);
 
@@ -128,6 +128,7 @@ int set_loop(char **device, const char *file, int offset)
 		} else if(strcmp(file,loopinfo.lo_file_name)
 					|| offset!=loopinfo.lo_offset) rc=-1;
 		close(dfd);
+try_again:
 		if(*device) break;
 	}
 	close(ffd);
