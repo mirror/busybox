@@ -86,7 +86,7 @@ extern int makedevs_main(int argc, char **argv)
 	int ret = EXIT_SUCCESS;
 
 	unsigned long flags;
-   	flags = bb_getopt_ulflags(argc, argv, "d:", &line);
+	flags = bb_getopt_ulflags(argc, argv, "d:", &line);
 	if (line)
 		table = bb_xfopen(line, "r");
 
@@ -138,9 +138,9 @@ extern int makedevs_main(int argc, char **argv)
 		if (name[0] == '#') {
 			continue;
 		}
-		
-		gid = group ? get_ug_id(group, bb_xgetgrnam) : getgid();
-		uid = user ? get_ug_id(user, bb_xgetpwnam) : getuid();
+
+		gid = (*group) ? get_ug_id(group, bb_xgetgrnam) : getgid();
+		uid = (*user) ? get_ug_id(user, bb_xgetpwnam) : getuid();
 		full_name = concat_path_file(rootdir, name);
 
 		if (type == 'd') {
