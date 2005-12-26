@@ -747,7 +747,7 @@ static char *encodeString(const char *string)
   /* take the simple route and encode everything */
   /* could possibly scan once to get length.     */
   int len = strlen(string);
-  char *out = malloc(len*5 +1);
+  char *out = malloc(len * 6 + 1);
   char *p=out;
   char ch;
 
@@ -792,10 +792,21 @@ static char *decodeString(char *orig, int flag_plus_to_space)
     if (*ptr == '+' && flag_plus_to_space)    { *string++ = ' '; ptr++; }
     else if (*ptr != '%') *string++ = *ptr++;
     else  {
-      unsigned int value;
-      sscanf(ptr+1, "%2X", &value);
-      *string++ = value;
-      ptr += 3;
+      unsigned int value1, value2;
+
+      ptr++;
+      if(sscanf(ptr, "%1X", &value1) != 1 ||
+				sscanf(ptr+1, "%1X", &value2) != 1) {
+	if(!flag_plus_to_space)
+		return NULL;
+	*string++ = '%';
+      } else {
+	value1 = value1 * 16 + value2;
+	if(value1 == '/' || value1 == 0)
+		return orig+1;
+	*string++ = value1;
+	ptr += 2;
+      }
     }
   }
   *string = '\0';
@@ -1604,7 +1615,13 @@ BAD_REQUEST:
     *purl = ' ';
     count = sscanf(purl, " %[^ ] HTTP/%d.%*d", buf, &blank);
 
-    decodeString(buf, 0);
+    test = decodeString(buf, 0);
+    if(test == NULL)
+	goto BAD_REQUEST;
+    if(test == (buf+1)) {
+	sendHeaders(HTTP_NOT_FOUND);
+	break;
+    }
     if (count < 1 || buf[0] != '/') {
       /* Garbled request/URL */
       goto BAD_REQUEST;
