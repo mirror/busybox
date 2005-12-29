@@ -12,7 +12,7 @@ export LC_CTYPE=POSIX
 
 CONFIG_H=${1:-include/bb_config.h}
 APPLETS_H=${2:-include/applets.h}
-gcc -E -DMAKE_LINKS -include $CONFIG_H $APPLETS_H |
+$HOSTCC -E -DMAKE_LINKS -include $CONFIG_H $APPLETS_H |
   awk '/^[ \t]*LINK/{
 	dir=substr($2,8)
 	gsub("_","/",dir)
