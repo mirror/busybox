@@ -1533,9 +1533,9 @@ set_remoteuser_var:
 
 /****************************************************************************
  *
- > $Function: handleIncoming()
+ > $Function: handle_sigalrm()
  *
- * $Description: Handle an incoming http request.
+ * $Description: Handle timeouts
  *
  ****************************************************************************/
 
