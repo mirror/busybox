@@ -169,10 +169,7 @@ extern int lsmod_main(int argc, char **argv)
 	  FILE *file;
 	  char line[4096];
 
-	  file = fopen("/proc/modules", "r");
-
-	  if (!file) 
-	    bb_error_msg_and_die("Opening /proc/modules");
+	  file = bb_xfopen("/proc/modules", "r");
 
 	  while (fgets(line, sizeof(line), file)) {
 	    char *tok;
