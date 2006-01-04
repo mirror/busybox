@@ -627,7 +627,7 @@ config CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	default n
 	depends on CONFIG_TRACEROUTE
 	help
-	  Add feature for can specify a loose source route gateway
+	  Add option to specify a loose source route gateway
 	  (8 maximum).
 
 config CONFIG_FEATURE_TRACEROUTE_USE_ICMP
@@ -635,7 +635,7 @@ config CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 	default n
 	depends on CONFIG_TRACEROUTE
 	help
-	  Add feature for can use ICMP ECHO instead of UDP datagrams.
+	  Add feature to allow for ICMP ECHO instead of UDP datagrams.
 
 
 config CONFIG_VCONFIG
