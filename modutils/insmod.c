@@ -217,6 +217,14 @@ extern int insmod_ng_main( int argc, char **argv);
 #define ARCHDATAM       "__dbe_table"
 #endif
 
+/* Nios II */
+#if defined(__nios2__)
+#define MATCH_MACHINE(x) (x == EM_ALTERA_NIOS2)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
+#endif
+
 /* PowerPC */
 #if defined(__powerpc64__)
 #define MATCH_MACHINE(x) (x == EM_PPC64)
@@ -1126,6 +1134,167 @@ arch_apply_relocation(struct obj_file *f,
 				break;
 			}
 
+#elif defined(__nios2__)
+
+		case R_NIOS2_NONE:
+			break;
+
+		case R_NIOS2_BFD_RELOC_32:
+			*loc += v;
+			break;
+
+		case R_NIOS2_BFD_RELOC_16:
+			if (v > 0xffff) {
+				ret = obj_reloc_overflow;
+			}
+			*(short *)loc = v;
+			break;
+
+		case R_NIOS2_BFD_RELOC_8:
+			if (v > 0xff) {
+				ret = obj_reloc_overflow;
+			}
+			*(char *)loc = v;
+			break;
+
+		case R_NIOS2_S16:
+			{
+				Elf32_Addr word;
+
+				if ((Elf32_Sword)v > 0x7fff ||
+				    (Elf32_Sword)v < -(Elf32_Sword)0x8000) {
+					ret = obj_reloc_overflow;
+				}
+
+				word = *loc;
+				*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) |
+				       (word & 0x3f);
+			}
+			break;
+
+		case R_NIOS2_U16:
+			{
+				Elf32_Addr word;
+
+				if (v > 0xffff) {
+					ret = obj_reloc_overflow;
+				}
+
+				word = *loc;
+				*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) |
+				       (word & 0x3f);
+			}
+			break;
+
+		case R_NIOS2_PCREL16:
+			{
+				Elf32_Addr word;
+
+				v -= dot + 4;
+				if ((Elf32_Sword)v > 0x7fff ||
+				    (Elf32_Sword)v < -(Elf32_Sword)0x8000) {
+					ret = obj_reloc_overflow;
+				}
+
+				word = *loc;
+				*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) | (word & 0x3f);
+			}
+			break;
+
+		case R_NIOS2_GPREL:
+			{
+				Elf32_Addr word, gp;
+				/* get _gp */
+				gp = obj_symbol_final_value(f, obj_find_symbol(f, SPFX "_gp"));
+				v-=gp;
+				if ((Elf32_Sword)v > 0x7fff ||
+						(Elf32_Sword)v < -(Elf32_Sword)0x8000) {
+					ret = obj_reloc_overflow;
+				}
+
+				word = *loc;
+				*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) | (word & 0x3f);
+			}
+			break;
+
+		case R_NIOS2_CALL26:
+			if (v & 3)
+				ret = obj_reloc_dangerous;
+			if ((v >> 28) != (dot >> 28))
+				ret = obj_reloc_overflow;
+			*loc = (*loc & 0x3f) | ((v >> 2) << 6);
+			break;
+
+		case R_NIOS2_IMM5:
+			{
+				Elf32_Addr word;
+
+				if (v > 0x1f) {
+					ret = obj_reloc_overflow;
+				}
+
+				word = *loc & ~0x7c0;
+				*loc = word | ((v & 0x1f) << 6);
+			}
+			break;
+
+		case R_NIOS2_IMM6:
+			{
+				Elf32_Addr word;
+
+				if (v > 0x3f) {
+					ret = obj_reloc_overflow;
+				}
+
+				word = *loc & ~0xfc0;
+				*loc = word | ((v & 0x3f) << 6);
+			}
+			break;
+
+		case R_NIOS2_IMM8:
+			{
+				Elf32_Addr word;
+
+				if (v > 0xff) {
+					ret = obj_reloc_overflow;
+				}
+
+				word = *loc & ~0x3fc0;
+				*loc = word | ((v & 0xff) << 6);
+			}
+			break;
+
+		case R_NIOS2_HI16:
+			{
+				Elf32_Addr word;
+
+				word = *loc;
+				*loc = ((((word >> 22) << 16) | ((v >>16) & 0xffff)) << 6) |
+				       (word & 0x3f);
+			}
+			break;
+
+		case R_NIOS2_LO16:
+			{
+				Elf32_Addr word;
+
+				word = *loc;
+				*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) |
+				       (word & 0x3f);
+			}
+			break;
+
+		case R_NIOS2_HIADJ16:
+			{
+				Elf32_Addr word1, word2;
+
+				word1 = *loc;
+				word2 = ((v >> 16) + ((v >> 15) & 1)) & 0xffff;
+				*loc = ((((word1 >> 22) << 16) | word2) << 6) |
+				       (word1 & 0x3f);
+			}
+			break;
+
 #elif defined(__powerpc__)
 
 		case R_PPC_ADDR16_HA:
@@ -1409,6 +1578,8 @@ arch_apply_relocation(struct obj_file *f,
 			break;
 # endif
 
+#else
+# warning "no idea how to handle relocations on your arch"
 #endif
 
 		default:
