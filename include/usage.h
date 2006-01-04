@@ -2060,8 +2060,7 @@
 #define mount_trivial_usage \
 	"[flags] DEVICE NODE [-o options,more-options]"
 #define mount_full_usage \
-	"Mount a filesystem.  Autodetection of filesystem type requires the\n" \
-	"/proc filesystem be already mounted.\n\n" \
+	"Mount a filesystem.  Filesystem autodetection requires /proc be mounted.\n\n" \
 	"Flags:\n"  \
 	"\t-a:\t\tMount all filesystems in fstab\n" \
 	USAGE_MTAB( \
