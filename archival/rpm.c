@@ -143,7 +143,7 @@ int rpm_main(int argc, char **argv)
 		mytags = rpm_gettags(rpm_fd, (int *) &tagcount);
 		offset = lseek(rpm_fd, 0, SEEK_CUR);
 		if (!mytags) { printf("Error reading rpm header\n"); exit(-1); }
-		map = mmap(0, offset > getpagesize() ? (offset + offset % getpagesize()) : getpagesize(), PROT_READ, MAP_SHARED, rpm_fd, 0); // Mimimum is one page
+		map = mmap(0, offset > getpagesize() ? (offset + offset % getpagesize()) : getpagesize(), PROT_READ, MAP_PRIVATE, rpm_fd, 0); // Mimimum is one page
 		if (func & rpm_install) {
 			loop_through_files(RPMTAG_BASENAMES, fileaction_dobackup); /* Backup any config files */
 			extract_cpio_gz(rpm_fd); // Extact the archive

@@ -68,7 +68,7 @@ static void make_device(char *path)
 		/* mmap the config file */
 		if (-1!=(fd=open("/etc/mdev.conf",O_RDONLY))) {
 			len=lseek(fd,0,SEEK_END);
-			conf=mmap(NULL,len,PROT_READ,MAP_SHARED,fd,0);
+			conf=mmap(NULL,len,PROT_READ,MAP_PRIVATE,fd,0);
 			if (conf) {
 				int line=0;
 
