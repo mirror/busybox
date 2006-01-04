@@ -111,7 +111,7 @@ do_it_now:
 		while (--argc >= 0) {
 			int pid;
 
-			if (!isdigit(**argv))
+			if (!isdigit(**argv) && **argv != '-')
 				bb_error_msg_and_die( "Bad PID '%s'", *argv);
 			pid = strtol(*argv, NULL, 0);
 			if (kill(pid, signo) != 0) {
