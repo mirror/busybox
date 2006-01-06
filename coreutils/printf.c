@@ -1,20 +1,11 @@
 /* vi: set sw=4 ts=4: */
 /* printf - format and print data
-   Copyright (C) 90, 91, 92, 93, 94, 95, 1996 Free Software Foundation, Inc.
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
+   Copyright 1999 Dave Cinege
+   Portions copyright (C) 1990-1996 Free Software Foundation, Inc.
 
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
+   Licensed under GPL v2 or later, see file LICENSE in this tarball for details.
+*/
 
 /* Usage: printf format [argument...]
 
@@ -58,13 +49,55 @@
 #include <assert.h>
 #include "busybox.h"
 
-static double xstrtod __P((char *s));
-static long xstrtol __P((char *s));
-static unsigned long xstrtoul __P((char *s));
-static void print_esc_string __P((char *str));
 static int print_formatted __P((char *format, int argc, char **argv));
 static void print_direc __P( (char *start, size_t length,
 			int field_width, int precision, char *argument));
+
+typedef int (*converter)(char *arg, void *result);
+void multiconvert(char *arg, void *result, converter convert)
+{
+	char s[16];
+	if (*arg == '"' || *arg == '\'') {
+		sprintf(s,"%d",(unsigned)*(++arg));
+		arg=s;
+	}
+	if(convert(arg,result)) fprintf(stderr, "%s", arg);
+}
+	
+static unsigned long xstrtoul(char *arg)
+{
+	unsigned long result;
+
+	multiconvert(arg,&result, (converter)safe_strtoul);	
+	return result;
+}
+
+static long xstrtol(char *arg)
+{
+	long result;
+	multiconvert(arg, &result, (converter)safe_strtol);
+	return result;
+}
+
+static double xstrtod(char *arg)
+{
+	double result;
+	multiconvert(arg, &result, (converter)safe_strtod);
+	return result;
+}
+
+static void print_esc_string(char *str)
+{
+	for (; *str; str++) {
+		if (*str == '\\') {
+			str++;
+			putchar(bb_process_escape_sequence((const char **)&str));
+		} else {
+			putchar(*str);
+		}
+
+	}
+}
 
 int printf_main(int argc, char **argv)
 {
@@ -276,41 +309,4 @@ print_direc(char *start, size_t length, int field_width, int precision,
 	}
 
 	free(p);
-}
-
-static unsigned long xstrtoul(char *arg)
-{
-	unsigned long result;
-	if (safe_strtoul(arg, &result))
-		fprintf(stderr, "%s", arg);
-	return result;
-}
-
-static long xstrtol(char *arg)
-{
-	long result;
-	if (safe_strtol(arg, &result))
-		fprintf(stderr, "%s", arg);
-	return result;
-}
-
-static double xstrtod(char *arg)
-{
-	double result;
-	if (safe_strtod(arg, &result))
-		fprintf(stderr, "%s", arg);
-	return result;
-}
-
-static void print_esc_string(char *str)
-{
-	for (; *str; str++) {
-		if (*str == '\\') {
-			str++;
-			putchar(bb_process_escape_sequence((const char **)&str));
-		} else {
-			putchar(*str);
-		}
-
-	}
 }
