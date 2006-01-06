@@ -198,17 +198,7 @@ auth_ok:
 		if ( !failed)
 			break;
 
-		{ // delay next try
-			time_t start, now;
-
-			time ( &start );
-			now = start;
-			while ( difftime ( now, start ) < FAIL_DELAY) {
-				sleep ( FAIL_DELAY );
-				time ( &now );
-			}
-		}
-
+		bb_do_delay(FAIL_DELAY);
 		puts("Login incorrect");
 		username[0] = 0;
 		if ( ++count == 3 ) {

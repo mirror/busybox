@@ -355,7 +355,7 @@ extern const char * const bb_default_login_shell;
 #define DEFAULT_SHELL_SHORT_NAME     (bb_default_login_shell+6)
 
 
-extern const char bb_path_mtab_file[];
+extern char bb_path_mtab_file[];
 
 extern int bb_default_error_retval;
 
@@ -419,6 +419,7 @@ extern size_t bb_strlen(const char *string);
 char *bb_xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
 #define FAIL_DELAY    3
+extern void bb_do_delay(int seconds);
 extern void change_identity ( const struct passwd *pw );
 extern const char *change_identity_e2str ( const struct passwd *pw );
 extern void run_shell ( const char *shell, int loginshell, const char *command, const char **additional_args);

@@ -135,7 +135,7 @@ extern int vlock_main(int argc, char **argv)
 		if (correct_password (pw)) {
 			break;
 		}
-		sleep(10);
+		bb_do_delay(FAIL_DELAY);
 		puts("Password incorrect.");
 	} while (1);
 	restore_terminal();
