@@ -355,7 +355,7 @@ extern const char * const bb_default_login_shell;
 #define DEFAULT_SHELL_SHORT_NAME     (bb_default_login_shell+6)
 
 
-extern char bb_path_mtab_file[];
+extern const char bb_path_mtab_file[];
 
 extern int bb_default_error_retval;
 
