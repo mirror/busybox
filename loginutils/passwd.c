@@ -31,7 +31,7 @@ static int get_algo(char *a)
 }
 
 
-static int update_passwd(const struct passwd *pw, char *crypt_pw)
+static int update_passwd(const struct passwd *pw, const char *crypt_pw)
 {
 	char filename[1024];
 	char buf[1025];
