@@ -331,6 +331,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 {
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *) userData;
 	const char *header_name;
+	int inputFileFd = -1;
 
 	/*
 	   ** Check to see if we are dealing with a hard link.
@@ -385,30 +386,32 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		return SKIP;
 	}
 
-	if (writeTarHeader(tbInfo, header_name, fileName, statbuf) == FALSE) {
-		return (FALSE);
-	}
-
-	/* Now, if the file is a regular file, copy it out to the tarball */
-	if ((tbInfo->hlInfo == NULL)
-		&& (S_ISREG(statbuf->st_mode))) {
-		int inputFileFd;
-		ssize_t readSize = 0;
+	/* Is this a regular file? */
+	if ((tbInfo->hlInfo == NULL) && (S_ISREG(statbuf->st_mode))) {
 
 		/* open the file we want to archive, and make sure all is well */
 		if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
 			bb_perror_msg("%s: Cannot open", fileName);
 			return (FALSE);
 		}
+	}
+
+	/* Add an entry to the tarball */
+	if (writeTarHeader(tbInfo, header_name, fileName, statbuf) == FALSE) {
+		return (FALSE);
+	}
+
+	/* If it was a regular file, write out the body */
+	if (inputFileFd >= 0 ) {
+		ssize_t readSize = 0;
 
 		/* write the file to the archive */
 		readSize = bb_copyfd_eof(inputFileFd, tbInfo->tarFd);
+		close(inputFileFd);
 
 		/* Pad the file up to the tar block size */
 		for (; (readSize % TAR_BLOCK_SIZE) != 0; readSize++)
 			write(tbInfo->tarFd, "\0", 1);
-
-		close(inputFileFd);
 	}
 
 	return (TRUE);
