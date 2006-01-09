@@ -294,7 +294,9 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	va_list p;
 	const struct option *l_o;
 	unsigned long trigger;
+#ifdef CONFIG_PS
 	char **pargv = NULL;
+#endif
 	int min_arg = 0;
 	int max_arg = -1;
 
