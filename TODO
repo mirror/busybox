@@ -1,6 +1,6 @@
 Busybox TODO
 
-Stuff that needs to be done
+Stuff that needs to be done.  All of this is fair game for 1.2.
 
 find
   doesn't understand (), lots of susv3 stuff.
@@ -13,11 +13,20 @@ sh
   way of adding the minimal set of bash features a given script uses is a big
   job, but it would be a big improvement.
 
-  Note: Rob Landley (rob@landley.net) is working on this one, but very slowly...
+  Note: Rob Landley (rob@landley.net) is working on a new unified shell called
+  bbsh, but it's a low priority...
 ---
 diff
   We should have a diff -u command.  We have patch, we should have diff
   (we only need to support unified diffs though).
+
+  Also, make sure we handle empty files properly:
+    From the patch man page:
+
+   you can remove a file by sending out a context diff that compares
+   the file to be deleted with an empty file dated the Epoch.  The
+   file will be removed unless patch is conforming to POSIX and the
+   -E or --remove-empty-files option is not given.
 ---
 patch
   Should have simple fuzz factor support to apply patches at an offset which
@@ -31,12 +40,20 @@ man
   anything, just one that can handle preformatted ascii man pages, possibly
   compressed.  This could probably be a script in the extras directory that
   calls cat/zcat/bzcat | less
+
+  (How doclifter might work into this is anybody's guess.)
 ---
 bzip2
   Compression-side support.
 ---
 init
   General cleanup.
+---
+ar
+  Write support?
+---
+mdev
+  Micro-udev.
 
 Architectural issues:
 
@@ -44,9 +61,11 @@ bb_close() with fsync()
   We should have a bb_close() in place of normal close, with a CONFIG_ option
   to not just check the return value of close() for an error, but fsync().
   Close can't reliably report anything useful because if write() accepted the
-  data then it either went out or it's in cache or a pipe buffer.  Either way,
-  there's no guarantee it'll make it to its final destination before close()
-  gets called, so there's no guarantee that any error will be reported.
+  data then it either went out to the network or it's in cache or a pipe
+  buffer.  Either way, there's no guarantee it'll make it to its final
+  destination before close() gets called, so there's no guarantee that any
+  error will be reported.
+
   You need to call fsync() if you care about errors that occur after write(),
   but that can have a big performance impact.  So make it a config option.
 ---
@@ -89,8 +108,8 @@ Unify archivers
   "add this directory", "add this symlink" and so on.
 
   This could clean up tar and zip, and make it cheaper to add cpio and ar
-  write support, and possibly even cheaply add things like mkisofs someday,
-  if it becomes relevant.
+  write support, and possibly even cheaply add things like mkisofs or
+  mksquashfs someday, if they become relevant.
 ---
 Text buffer support.
   Several existing applets (sort, vi, less...) read
@@ -125,6 +144,10 @@ buildroot - Make a "dogfood" option
 
   One example of an existing system that does this already is Firmware Linux:
     http://www.landley.net/code/firmware
+---
+initramfs
+  Busybox should have a sample initramfs build script.  This depends on
+  involves bbsh, mdev, and switch_root.
 ---
 Memory Allocation
   We have a CONFIG_BUFFER mechanism that lets us select whether to do memory
@@ -202,3 +225,11 @@ FEATURE_CLEAN_UP
   render the existing FEATURE_CLEAN_UP code redundant.
 
   For right now, exit() handles it just fine.
+
+
+
+Minor stuff:
+  watchdog.c could autodetect the timer duration via:
+    if(!ioctl (fd, WDIOC_GETTIMEOUT, &tmo)) timer_duration = 1 + (tmo / 2);
+  Unfortunately, that needs linux/watchdog.h and that contains unfiltered
+  kernel types on some distros, which breaks the build.
