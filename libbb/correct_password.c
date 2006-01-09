@@ -55,7 +55,7 @@ int correct_password ( const struct passwd *pw )
 		struct spwd *sp = getspnam ( pw-> pw_name );
 
 		if ( !sp )
-			bb_error_msg_and_die ( "no valid shadow password" );
+			bb_error_msg_and_die ( "\nno valid shadow password" );
 
 		correct = sp-> sp_pwdp;
 	}
