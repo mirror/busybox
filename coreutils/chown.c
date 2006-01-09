@@ -17,8 +17,8 @@
 #include <string.h>
 #include "busybox.h"
 
-static long uid;
-static long gid;
+static uid_t uid = -1;
+static gid_t gid = -1;
 
 static int (*chown_func)(const char *, uid_t, gid_t) = chown;
 
@@ -57,15 +57,12 @@ int chown_main(int argc, char **argv)
 		groupName = strchr(*argv, ':');
 	}
 
-	gid = -1;
+	/* Check for the username and groupname */
 	if (groupName) {
 		*groupName++ = '\0';
 		gid = get_ug_id(groupName, bb_xgetgrnam);
 	}
-
-	/* Now check for the username */
-	uid = get_ug_id(*argv, bb_xgetpwnam);
-
+	if (--groupName != *argv) uid = get_ug_id(*argv, bb_xgetpwnam);
 	++argv;
 
 	/* Ok, ready to do the deed now */
