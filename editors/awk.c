@@ -2370,7 +2370,7 @@ re_cont:
 
 			  case F_sy:
 				fflush(NULL);
-				R.d = (L.s && *L.s) ? system(L.s) : 0;
+				R.d = (L.s && *L.s) ? (system(L.s) >> 8) : 0;
 				break;
 
 			  case F_ff:
