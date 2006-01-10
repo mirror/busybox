@@ -52,9 +52,9 @@ struct {
 	{"sync", MS_SYNCHRONOUS},
 	{"async", ~MS_SYNCHRONOUS},
 	{"remount", MS_REMOUNT},
-	{"atime", MS_NOATIME},
+	{"atime", ~MS_NOATIME},
 	{"noatime", MS_NOATIME},
-	{"diratime", MS_NODIRATIME},
+	{"diratime", ~MS_NODIRATIME},
 	{"nodiratime", MS_NODIRATIME},
 	{"bind", MS_BIND},
 	{"move", MS_MOVE}
