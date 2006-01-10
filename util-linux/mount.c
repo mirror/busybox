@@ -327,8 +327,11 @@ mount_it_now:
 				}
 				if(!rc || !f) break;
 			}
-			if(f) fclose(f);
-			if(!f || !rc) break;
+			if(!f) break;
+			fclose(f);
+			// goto mount_it_now with -a can jump past the initialization
+			f=0;
+			if(!rc) break;
 		}
 
 		/* If the mount was successful, and we're maintaining an old-style
