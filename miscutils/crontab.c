@@ -342,7 +342,7 @@ ChangeUser(const char *user, short dochdir)
      * Obtain password entry and change privileges
      */
 
-    if ((pas = getpwnam(user)) == 0) {
+    if ((pas = getpwnam(user)) == NULL) {
 	bb_perror_msg_and_die("failed to get uid for %s", user);
 	return(-1);
     }
@@ -357,7 +357,7 @@ ChangeUser(const char *user, short dochdir)
 
     if (dochdir) {
 	if (chdir(pas->pw_dir) < 0) {
-	    bb_perror_msg_and_die("chdir failed: %s %s", user, pas->pw_dir);
+	    bb_perror_msg("chdir failed: %s %s", user, pas->pw_dir);
 	    if (chdir(TMPDIR) < 0) {
 		bb_perror_msg_and_die("chdir failed: %s %s", user, TMPDIR);
 		return(-1);
