@@ -143,6 +143,9 @@ static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 		if (safe_strtoul(buf + 4, &value))
 			bb_error_msg_and_die("SIZE error: %s", buf + 4);
 		filesize = value;
+	} else {
+		filesize = -1;
+		do_continue = 0;
 	}
 
 	if ((local_path[0] == '-') && (local_path[1] == '\0')) {
@@ -185,8 +188,12 @@ static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 	}
 
 	/* Copy the file */
-	if (bb_copyfd_size(fd_data, fd_local, filesize) == -1) {
-		exit(EXIT_FAILURE);
+	if (filesize != -1) {
+		if (-1 == bb_copyfd_size(fd_data, fd_local, filesize))
+			exit(EXIT_FAILURE);
+	} else {
+		if (-1 == bb_copyfd_eof(fd_data, fd_local))
+			exit(EXIT_FAILURE);
 	}
 
 	/* close it all down */
