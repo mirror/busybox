@@ -200,7 +200,7 @@ static void sendping(int junk)
 {
 	struct icmp *pkt;
 	int i;
-	char packet[datalen + 8];
+	char packet[datalen + sizeof(struct icmp)];
 
 	pkt = (struct icmp *) packet;
 
@@ -211,7 +211,7 @@ static void sendping(int junk)
 	pkt->icmp_id = myid;
 	CLR(ntohs(pkt->icmp_seq) % MAX_DUP_CHK);
 
-	gettimeofday((struct timeval *) &packet[8], NULL);
+	gettimeofday((struct timeval *) &pkt->icmp_dun, NULL);
 	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, sizeof(packet));
 
 	i = sendto(pingsock, packet, sizeof(packet), 0,
