@@ -1,10 +1,7 @@
 /*
  * iptunnel.c	       "ip tunnel"
  *
- *		This program is free software; you can redistribute it and/or
- *		modify it under the terms of the GNU General Public License
- *		as published by the Free Software Foundation; either version
- *		2 of the License, or (at your option) any later version.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
@@ -31,7 +28,9 @@
 #include <net/if_arp.h>
 
 #include <asm/types.h>
+#ifndef __constant_htons
 #define __constant_htons htons
+#endif
 #include <linux/if_tunnel.h>
 
 #include "rt_names.h"
@@ -468,7 +467,7 @@ static int do_tunnels_list(struct ip_tunnel_parm *p)
 			bb_error_msg("Wrong format of /proc/net/dev. Sorry.");
 			return -1;
 		}
-		if (sscanf(ptr, "%ld%ld%ld%ld%ld%ld%ld%*d%ld%ld%ld%ld%ld%ld%ld",
+		if (sscanf(ptr, "%lu%lu%lu%lu%lu%lu%lu%*d%lu%lu%lu%lu%lu%lu%lu",
 			   &rx_bytes, &rx_packets, &rx_errs, &rx_drops,
 			   &rx_fifo, &rx_frame, &rx_multi,
 			   &tx_bytes, &tx_packets, &tx_errs, &tx_drops,
