@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * iproute.c		"ip route".
  *
@@ -62,7 +63,8 @@ static int flush_update(void)
 	return 0;
 }
 
-static int print_route(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
+static int print_route(struct sockaddr_nl *who __attribute__((unused)),
+		struct nlmsghdr *n, void *arg)
 {
 	FILE *fp = (FILE*)arg;
 	struct rtmsg *r = NLMSG_DATA(n);
