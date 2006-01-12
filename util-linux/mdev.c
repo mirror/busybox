@@ -42,7 +42,7 @@ static void make_device(char *path)
 	fd = open(temp, O_RDONLY);
 	len = read(fd, temp, PATH_MAX-1);
 	if (len<1) goto end;
-	temp[len] = 0;
+	temp[--len] = 0; // remove trailing \n
 	close(fd);
 	
 	/* Determine device name, type, major and minor */
