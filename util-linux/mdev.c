@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "busybox.h"
 #include "xregex.h"
 
@@ -209,20 +210,34 @@ static void find_dev(char *path)
 
 int mdev_main(int argc, char *argv[])
 {
-	if (argc > 1) {
-		if (argc == 2 && !strcmp(argv[1],"-s")) {
-			RESERVE_CONFIG_BUFFER(temp,PATH_MAX);
-			strcpy(temp,"/sys/block");
-			find_dev(temp);
-			strcpy(temp,"/sys/class");
-			find_dev(temp);
-			if(ENABLE_FEATURE_CLEAN_UP)
-				RELEASE_CONFIG_BUFFER(temp);
-			return 0;
-		} else bb_show_usage();
-	} 
+	char *action;
+	char *env_path;
+	RESERVE_CONFIG_BUFFER(temp,PATH_MAX);
+
+	/* Scan */
 	
-/* hotplug support goes here */
-	
+	if (argc == 2 && !strcmp(argv[1],"-s")) {
+		strcpy(temp,"/sys/block");
+		find_dev(temp);
+		strcpy(temp,"/sys/class");
+		find_dev(temp);
+
+	/* Hotplug */
+
+	} else {
+		action = getenv("ACTION");
+		env_path = getenv("DEVPATH");
+	    if (!action || !env_path) bb_show_usage();
+		
+		if (!strcmp(action, "add")) {
+			sprintf(temp, "/sys%s", env_path);
+			make_device(temp);
+		} else if (!strcmp(action, "remove")) {
+			sprintf(temp, "%s/%s", DEV_PATH, strrchr(env_path, '/') + 1);
+			unlink(temp);
+		}
+	}
+
+	if(ENABLE_FEATURE_CLEAN_UP) RELEASE_CONFIG_BUFFER(temp);
 	return 0;
 }
