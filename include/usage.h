@@ -722,6 +722,11 @@
 #else
 #  define USAGE_FIND_MTIME(a)
 #endif
+#ifdef CONFIG_FEATURE_FIND_MMIN
+  #define USAGE_FIND_MMIN(a) a
+#else
+  #define USAGE_FIND_MMIN(a)
+#endif
 #ifdef CONFIG_FEATURE_FIND_NEWER
 #  define USAGE_FIND_NEWER(a) a
 #else
@@ -752,7 +757,9 @@
 ) USAGE_FIND_PERM( \
 	"\n\t-perm PERMS\tPermissions match any of (+NNN); all of (-NNN);\n\t\t\tor exactly (NNN)" \
 ) USAGE_FIND_MTIME( \
-	"\n\t-mtime TIME\tModified time is greater than (+N); less than (-N);\n\t\t\tor exactly (N) days" \
+	"\n\t-mtime DAYS\tModified time is greater than (+N); less than (-N);\n\t\t\tor exactly (N) days" \
+) USAGE_FIND_MMIN( \
+	"\n\t-mmin MINS\tModified time is greater than (+N); less than (-N);\n\t\t\tor exactly (N) minutes" \
 ) USAGE_FIND_NEWER( \
 	"\n\t-newer FILE\tModified time is more recent than FILE's" \
 ) USAGE_FIND_INUM( \

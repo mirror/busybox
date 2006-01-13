@@ -17,7 +17,15 @@ config CONFIG_FEATURE_FIND_MTIME
 	depends on CONFIG_FIND
 	help
 	  Allow searching based on the modification time of
-	  files.
+	  files, in days.
+
+config CONFIG_FEATURE_FIND_MMIN
+	bool "  Enable modified time matching (-min) option"
+	default y
+	depends on CONFIG_FIND
+	help
+	  Allow searching based on the modification time of
+	  files, in minutes.
 
 config CONFIG_FEATURE_FIND_PERM
 	bool "  Enable permissions matching (-perm) option"

@@ -53,6 +53,11 @@ static char mtime_char;
 static int mtime_days;
 #endif
 
+#ifdef CONFIG_FEATURE_FIND_MMIN
+static char mmin_char;
+static int mmin_mins;
+#endif
+
 #ifdef CONFIG_FEATURE_FIND_XDEV
 static dev_t *xdev_dev;
 static int xdev_count = 0;
@@ -106,6 +111,17 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 						file_age < mtime_secs + 24 * 60 * 60) ||
 				(mtime_char == '+' && file_age >= mtime_secs + 24 * 60 * 60) ||
 				(mtime_char == '-' && file_age < mtime_secs)))
+			goto no_match;
+	}
+#endif
+#ifdef CONFIG_FEATURE_FIND_MMIN
+	if (mmin_char != 0) {
+		time_t file_age = time(NULL) - statbuf->st_mtime;
+		time_t mmin_secs = mmin_mins * 60;
+		if (!((isdigit(mmin_char) && file_age >= mmin_secs &&
+						file_age < mmin_secs + 60) ||
+				(mmin_char == '+' && file_age >= mmin_secs + 60) ||
+				(mmin_char == '-' && file_age < mmin_secs)))
 			goto no_match;
 	}
 #endif
@@ -238,6 +254,17 @@ int find_main(int argc, char **argv)
 				bb_error_msg_and_die(msg_invalid_arg, argv[i], "-mtime");
 			if ((mtime_char = argv[i][0]) == '-')
 				mtime_days = -mtime_days;
+#endif
+#ifdef CONFIG_FEATURE_FIND_MMIN
+		} else if (strcmp(argv[i], "-mmin") == 0) {
+			char *end;
+			if (++i == argc)
+				bb_error_msg_and_die(msg_req_arg, "-mmin");
+			mmin_mins = strtol(argv[i], &end, 10);
+			if (end[0] != '\0')
+				bb_error_msg_and_die(msg_invalid_arg, argv[i], "-mmin");
+			if ((mmin_char = argv[i][0]) == '-')
+				mmin_mins = -mmin_mins;
 #endif
 #ifdef CONFIG_FEATURE_FIND_XDEV
 		} else if (strcmp(argv[i], "-xdev") == 0) {
