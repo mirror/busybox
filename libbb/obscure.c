@@ -84,8 +84,8 @@ static int simple(const char *newval)
 {
 #define digits 1
 #define uppers 2
-#define lowers 3
-#define others 4
+#define lowers 4
+#define others 8
 	int c, is_simple = 0;
 	int size;
 	int i;
