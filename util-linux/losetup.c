@@ -39,7 +39,7 @@ die_failed:
       bb_perror_msg_and_die("%s",argv[optind]);
 
     case 'o':
-      offset = bb_xparse_number (optarg, NULL);
+      offset = atol(optarg);
       /* Fall through to do the losetup */
     case -1:
       /* losetup takes two argument:, loop_device and file */
