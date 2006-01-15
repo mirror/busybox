@@ -17,6 +17,11 @@ FINDUTILS-$(CONFIG_XARGS)	+= xargs.o
 
 libraries-y+=$(FINDUTILS_DIR)$(FINDUTILS_AR)
 
+FINDUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(FINDUTILS-y))
+FINDUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(FINDUTILS_SRC-y)
+APPLET_SRC-a+=$(FINDUTILS_SRC-a)
+
 $(FINDUTILS_DIR)$(FINDUTILS_AR): $(patsubst %,$(FINDUTILS_DIR)%, $(FINDUTILS-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(FINDUTILS_DIR)%, $(FINDUTILS-y))
 

@@ -185,6 +185,7 @@ randconfig: scripts/config/conf
 allyesconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
 	sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX|CONFIG_FEATURE_DEVFS).*/# \1 is not set/" .config
+	echo "CONFIG_FEATURE_SHARED_BUSYBOX=y" >> .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 allnoconfig: scripts/config/conf
@@ -207,19 +208,102 @@ all: busybox busybox.links doc
 # In this section, we need .config
 -include $(top_builddir)/.config.cmd
 include $(patsubst %,%/Makefile.in, $(SRC_DIRS))
--include $(top_builddir)/.depend
 
 endif # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
-busybox: .depend $(libraries-y)
-	$(CC) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ -Wl,--start-group $(libraries-y) $(LIBRARIES) -Wl,--end-group
+-include $(top_builddir)/.config
+-include $(top_builddir)/.depend
+
+
+ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
+
+LD_LIBBUSYBOX:=libbusybox.so
+LIBBUSYBOX_SONAME:=$(LD_LIBBUSYBOX).$(MAJOR_VERSION).$(MINOR_VERSION).$(SUBLEVEL_VERSION)
+DO_INSTALL_LIBS:=$(LD_LIBBUSYBOX) \
+	$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
+	$(LD_LIBBUSYBOX).$(MAJOR_VERSION).$(MINOR_VERSION)
+ 
+ifeq ($(CONFIG_BUILD_AT_ONCE),y)
+# Which parts of the internal libs are requested?
+# Per default we only want what was actually selected.
+ifeq ($(CONFIG_FEATURE_FULL_LIBBUSYBOX),y)
+LIBRARY_DEFINE:=$(LIBRARY_DEFINE-a)
+LIBRARY_SRC   :=$(LIBRARY_SRC-a)
+$(LIBBUSYBOX_SONAME): $(LIBRARY_SRC)
+else
+LIBRARY_DEFINE:=$(LIBRARY_DEFINE-y)
+LIBRARY_SRC   :=$(LIBRARY_SRC-y)
+$(LIBBUSYBOX_SONAME): $(LIBRARY_SRC)
+endif
+else  # CONFIG_BUILD_AT_ONCE
+libbusybox-obj:=archival/libunarchive/libunarchive.a \
+	networking/libiproute/libiproute.a \
+	libpwdgrp/libpwdgrp.a \
+	coreutils/libcoreutils/libcoreutils.a \
+	libbb/libbb.a
+libbusybox-obj:=$(patsubst %,$(top_builddir)/%,$(libbusybox-obj))
+
+$(LIBBUSYBOX_SONAME): $(libbusybox-obj)
+
+LIBRARY_DEFINE:=
+LIBRARY_SRC   :=
+endif # CONFIG_BUILD_AT_ONCE
+
+
+$(LIBBUSYBOX_SONAME):
+ifndef MAJOR_VERSION
+	$(error MAJOR_VERSION needed for $@ is not defined)
+endif
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) -shared \
+	$(CFLAGS_PIC) \
+	-Wl,-soname=$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
+	-Wl,--enable-new-dtags -Wl,--reduce-memory-overheads \
+	-Wl,-z,combreloc -Wl,-shared -Wl,--as-needed -Wl,--warn-shared-textrel \
+	-o $(@) \
+	-Wl,--start-group -Wl,--whole-archive \
+	$(LIBRARY_DEFINE) $(^) \
+	-Wl,--no-whole-archive -Wl,--end-group
+	$(RM_F) $(DO_INSTALL_LIBS)
+	for i in $(DO_INSTALL_LIBS); do $(LN_S) -v $(@) $$i ; done
+	$(STRIPCMD) $@
+
+endif # ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
+
+
+ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
+libraries-y:=$(filter-out $(libbusybox-obj),$(libraries-y))
+LDBUSYBOX:=-L$(top_builddir) -lbusybox
+BUSYBOX_SRC   :=
+BUSYBOX_DEFINE:=
+else
+#LDBUSYBOX:=
+BUSYBOX_SRC   := $(LIBRARY_SRC)
+BUSYBOX_DEFINE:= $(LIBRARY_DEFINE)
+endif # ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
+
+
+ifeq ($(strip $(CONFIG_BUILD_AT_ONCE)),y)
+libraries-y:=
+else
+BUSYBOX_SRC:=
+BUSYBOX_DEFINE:=
+APPLET_SRC-y:=
+APPLETS_DEFINE-y:=
+endif
+
+busybox: .depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(libraries-y)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(PROG_CFLAGS) $(LDFLAGS)  \
+	-o $@ -Wl,--start-group  \
+	$(APPLETS_DEFINE-y) $(APPLET_SRC-y) $(BUSYBOX_DEFINE) $(BUSYBOX_SRC) $(libraries-y) $(LDBUSYBOX) $(LIBRARIES) \
+	-Wl,--end-group
 	$(STRIPCMD) $@
 
 busybox.links: $(top_srcdir)/applets/busybox.mkll include/bb_config.h $(top_srcdir)/include/applets.h
 	- $(SHELL) $^ >$@
 
 install: $(top_srcdir)/applets/install.sh busybox busybox.links
-	$(SHELL) $< $(PREFIX) $(INSTALL_OPTS)
+	DO_INSTALL_LIBS="$(strip $(LIBBUSYBOX_SONAME) $(DO_INSTALL_LIBS))" \
+		$(SHELL) $< $(PREFIX) $(INSTALL_OPTS)
 ifeq ($(strip $(CONFIG_FEATURE_SUID)),y)
 	@echo
 	@echo
@@ -232,8 +316,13 @@ ifeq ($(strip $(CONFIG_FEATURE_SUID)),y)
 endif
 
 uninstall: busybox.links
-	rm -f $(PREFIX)/bin/busybox
-	for i in `cat busybox.links` ; do rm -f $(PREFIX)$$i; done
+	$(RM_F) $(PREFIX)/bin/busybox
+	for i in `cat busybox.links` ; do $(RM_F) $(PREFIX)$$i; done
+ifneq ($(strip $(DO_INSTALL_LIBS)),n)
+	for i in $(LIBBUSYBOX_SONAME) $(DO_INSTALL_LIBS); do \
+		$(RM_F) $(PREFIX)$$i; \
+	done
+endif
 
 # see if we are in verbose mode
 KBUILD_VERBOSE :=
@@ -244,13 +333,14 @@ ifdef V
 endif
 ifneq ($(strip $(KBUILD_VERBOSE)),)
   CHECK_VERBOSE := -v
+# ARFLAGS+=v
 endif
 check test: busybox
 	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
 	$(top_srcdir)/testsuite/runtest $(CHECK_VERBOSE)
 
 sizes:
-	-rm -f busybox
+	-$(RM_F) busybox
 	$(MAKE) top_srcdir=$(top_srcdir) top_builddir=$(top_builddir) \
 		-f $(top_srcdir)/Makefile STRIPCMD=/bin/true
 	$(NM) --size-sort busybox
@@ -278,14 +368,14 @@ docs/BusyBox.1: docs/busybox.pod
 
 docs/BusyBox.html: docs/busybox.net/BusyBox.html
 	- mkdir -p docs
-	-@ rm -f docs/BusyBox.html
+	-@ $(RM_F) docs/BusyBox.html
 	-@ cp docs/busybox.net/BusyBox.html docs/BusyBox.html
 
 docs/busybox.net/BusyBox.html: docs/busybox.pod
 	-@ mkdir -p docs/busybox.net
 	-  pod2html --noindex $< > \
 	    docs/busybox.net/BusyBox.html
-	-@ rm -f pod2htm*
+	-@ $(RM_F) pod2htm*
 
 # The nifty new buildsystem stuff
 scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
@@ -302,7 +392,7 @@ endif
 
 depend dep: .depend
 .depend: scripts/bb_mkdep $(DEP_INCLUDES)
-	@rm -f .depend
+	@$(RM_F) .depend
 	@mkdir -p include/config
 	scripts/bb_mkdep -c include/config.h -c include/bb_config.h \
 			-I $(top_srcdir)/include $(top_srcdir) > $@.tmp
@@ -323,22 +413,24 @@ include/bb_config.h: include/config.h
 
 clean:
 	- $(MAKE) -C scripts/config $@
-	- rm -f docs/busybox.dvi docs/busybox.ps \
+	- $(RM_F) docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pod docs/busybox.net/busybox.html \
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html busybox.links libbb/loop.h \
+	    $(DO_INSTALL_LIBS) $(LIBBUSYBOX_SONAME) \
 	    .config.old busybox
 	- rm -rf _install testsuite/links
-	- find . -name .\*.flags -exec rm -f {} \;
-	- find . -name \*.o -exec rm -f {} \;
-	- find . -name \*.a -exec rm -f {} \;
+	- find . -name .\*.flags -exec $(RM_F) {} \;
+	- find . -name \*.o -exec $(RM_F) {} \;
+	- find . -name \*.a -exec $(RM_F) {} \;
+	- find . -name \*.so -exec $(RM_F) {} \;
 
 distclean: clean
-	- rm -f scripts/bb_mkdep
+	- $(RM_F) scripts/bb_mkdep
 	- rm -rf include/config include/config.h include/bb_config.h include/bbconfigopts.h
-	- find . -name .depend -exec rm -f {} \;
-	rm -f .config .config.old .config.cmd
+	- find . -name .depend -exec $(RM_F) {} \;
+	$(RM_F) .config .config.old .config.cmd
 
 release: distclean #doc
 	cd ..; \
@@ -353,7 +445,7 @@ release: distclean #doc
 	find $(PROG)-$(VERSION)/ -type f \
 		-name .\#* \
 		-print \
-		-exec rm -f {} \; ; \
+		-exec $(RM_F) {} \; ; \
 	\
 	tar -cvzf $(PROG)-$(VERSION).tar.gz $(PROG)-$(VERSION)/;
 

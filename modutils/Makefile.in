@@ -18,6 +18,11 @@ MODUTILS-$(CONFIG_RMMOD)		+= rmmod.o
 
 libraries-y+=$(MODUTILS_DIR)$(MODUTILS_AR)
 
+MODUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(MODUTILS-y))
+MODUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(MODUTILS_SRC-y)
+APPLET_SRC-a+=$(MODUTILS_SRC-a)
+
 $(MODUTILS_DIR)$(MODUTILS_AR): $(patsubst %,$(MODUTILS_DIR)%, $(MODUTILS-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(MODUTILS_DIR)%, $(MODUTILS-y))
 

@@ -2,27 +2,16 @@
 #
 # Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
 #
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+# Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 #
 
 LIBIPROUTE_AR:=libiproute.a
 ifndef $(LIBIPROUTE_DIR)
-LIBIPROUTE_DIR:=$(top_builddir)/networking/libiproute/
+LIBIPROUTE_DIR:=$(top_builddir)/networking/libiproute
 endif
 srcdir=$(top_srcdir)/networking/libiproute
 
+LIBIPROUTE-y:=
 LIBIPROUTE-$(CONFIG_IP) += \
 	ip_parse_common_args.o \
 	ipaddress.o \
@@ -74,11 +63,31 @@ LIBIPROUTE-$(CONFIG_IPTUNNEL) += \
 	rt_names.o \
 	utils.o
 
-libraries-y+=$(LIBIPROUTE_DIR)$(LIBIPROUTE_AR)
+LIBIPROUTE-y:=$(sort $(LIBIPROUTE-y))
 
-$(LIBIPROUTE_DIR)$(LIBIPROUTE_AR): $(patsubst %,$(LIBIPROUTE_DIR)%, $(LIBIPROUTE-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(LIBIPROUTE_DIR)%, $(LIBIPROUTE-y))
+LIBIPROUTE_SRC-y:=$(patsubst %,$(srcdir)/%,$(subst .o,.c,$(LIBIPROUTE-y)))
+LIBIPROUTE_SRC-a:=$(wildcard $(srcdir)/*.c)
+LIBRARY_SRC-y+=$(LIBIPROUTE_SRC-y)
+LIBRARY_SRC-a+=$(LIBIPROUTE_SRC-a)
 
-$(LIBIPROUTE_DIR)%.o: $(srcdir)/%.c
+LIBIPROUTE-obj:=$(LIBIPROUTE_DIR)/$(LIBIPROUTE_AR)
+
+# We do not need to build an empty non-pic object/archive
+ifneq ($(strip $(LIBIPROUTE-y)),)
+libraries-y+=$(LIBIPROUTE_DIR)/$(LIBIPROUTE_AR)
+endif
+
+# If we are building libbusybox.so _and_ we will use it ourselves then we
+# keep it as small as possible
+ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
+ifneq ($(strip $(LIBIPROUTE-y)),)
+libraries-m+=$(LIBIPROUTE-multi-pic)
+endif
+endif
+
+$(LIBIPROUTE_DIR)/$(LIBIPROUTE_AR): $(patsubst %,$(LIBIPROUTE_DIR)/%,$(LIBIPROUTE-y))
+	$(AR) $(ARFLAGS) $@ $(^)
+
+$(LIBIPROUTE_DIR)/%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

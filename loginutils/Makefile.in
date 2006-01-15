@@ -24,6 +24,11 @@ LOGINUTILS-$(CONFIG_DELGROUP)	+= delgroup.o
 
 libraries-y+=$(LOGINUTILS_DIR)$(LOGINUTILS_AR)
 
+LOGINUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(LOGINUTILS-y))
+LOGINUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(LOGINUTILS_SRC-y)
+APPLET_SRC-a+=$(LOGINUTILS_SRC-a)
+
 needcrypt-y:=
 needcrypt-$(CONFIG_LOGIN)	:= y
 needcrypt-$(CONFIG_PASSWD)	:= y
@@ -33,7 +38,7 @@ needcrypt-$(CONFIG_VLOCK)	:= y
 
 
 ifeq ($(needcrypt-y),y)
-  LIBRARIES += -lcrypt
+  LIBRARIES := -lcrypt $(filter-out -lcrypt,$(LIBRARIES))
 endif
 
 $(LOGINUTILS_DIR)$(LOGINUTILS_AR): $(patsubst %,$(LOGINUTILS_DIR)%, $(LOGINUTILS-y))

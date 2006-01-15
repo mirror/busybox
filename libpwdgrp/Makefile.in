@@ -6,10 +6,15 @@
 
 LIBPWDGRP_AR:=libpwdgrp.a
 ifndef $(LIBPWDGRP_DIR)
-LIBPWDGRP_DIR:=$(top_builddir)/libpwdgrp/
+LIBPWDGRP_DIR:=$(top_builddir)/libpwdgrp
 endif
 srcdir=$(top_srcdir)/libpwdgrp
 
+LIBPWDGRP-obj:=$(LIBPWDGRP_DIR)/$(LIBPWDGRP_AR)
+LIBPWDGRP-pic:=$(LIBPWDGRP_DIR)/$(subst .a,-pic.o,$(LIBPWDGRP_AR))
+
+libraries-y+=$(LIBPWDGRP_DIR)/$(LIBPWDGRP_AR)
+libraries-m+=$(LIBPWDGRP-multi-pic)
 
 LIBPWDGRP_MSRC0:=$(srcdir)/pwd_grp.c
 LIBPWDGRP_MOBJ0-$(CONFIG_USE_BB_PWD_GRP):= fgetpwent_r.o fgetgrent_r.o \
@@ -17,19 +22,29 @@ LIBPWDGRP_MOBJ0-$(CONFIG_USE_BB_PWD_GRP):= fgetpwent_r.o fgetgrent_r.o \
 	getgrgid_r.o getpwuid.o getgrgid.o getpwnam.o getgrnam.o getpw.o \
 	getpwent_r.o getgrent_r.o getpwent.o getgrent.o \
 	initgroups.o putpwent.o putgrent.o
-LIBPWDGRP_MOBJS0=$(patsubst %,$(LIBPWDGRP_DIR)%, $(LIBPWDGRP_MOBJ0-y))
+LIBPWDGRP_MOBJS0=$(patsubst %,$(LIBPWDGRP_DIR)/%, $(LIBPWDGRP_MOBJ0-y))
 
 LIBPWDGRP_MSRC1:=$(srcdir)/pwd_grp.c
 LIBPWDGRP_MOBJ1-$(CONFIG_USE_BB_PWD_GRP):= __parsepwent.o __parsegrent.o \
 	__pgsreader.o fgetspent_r.o fgetspent.o sgetspent_r.o getspnam_r.o \
 	getspnam.o getspent_r.o getspent.o sgetspent.o \
 	putspent.o __parsespent.o # getspuid_r.o getspuid.o
-LIBPWDGRP_MOBJS1=$(patsubst %,$(LIBPWDGRP_DIR)%, $(LIBPWDGRP_MOBJ1-y))
+LIBPWDGRP_MOBJS1=$(patsubst %,$(LIBPWDGRP_DIR)/%, $(LIBPWDGRP_MOBJ1-y))
 
-libraries-y+=$(LIBPWDGRP_DIR)$(LIBPWDGRP_AR)
+LIBPWDGRP_DEFINE0-y:=$(patsubst %,-DL_%,$(subst .o,,$(notdir $(LIBPWDGRP_MOBJS0))))
+LIBPWDGRP_DEFINE1-y:=$(patsubst %,-DL_%,$(subst .o,,$(notdir $(LIBPWDGRP_MOBJS1))))
 
-$(LIBPWDGRP_DIR)$(LIBPWDGRP_AR): $(LIBPWDGRP_MOBJS0) $(LIBPWDGRP_MOBJS1)
-	$(AR) $(ARFLAGS) $@ $(LIBPWDGRP_MOBJS0) $(LIBPWDGRP_MOBJS1)
+LIBPWDGRP_SRC-y:=$(LIBPWDGRP_MSRC0)
+
+LIBRARY_SRC-y+=$(LIBPWDGRP_SRC-y)
+LIBRARY_SRC-a+=$(LIBPWDGRP_SRC-y)
+
+LIBRARY_DEFINE-y+=$(LIBPWDGRP_DEFINE0-y) $(LIBPWDGRP_DEFINE1-y)
+LIBRARY_DEFINE-a+=$(LIBPWDGRP_DEFINE0-y) $(LIBPWDGRP_DEFINE1-y)
+
+
+$(LIBPWDGRP_DIR)/$(LIBPWDGRP_AR): $(LIBPWDGRP_MOBJS0) $(LIBPWDGRP_MOBJS1)
+	$(AR) $(ARFLAGS) $(@) $(^)
 
 $(LIBPWDGRP_MOBJS0): $(LIBPWDGRP_MSRC0)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@

@@ -19,6 +19,10 @@ DEBIANUTILS-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o
 DEBIANUTILS-$(CONFIG_WHICH)		+= which.o
 
 libraries-y+=$(DEBIANUTILS_DIR)$(DEBIANUTILS_AR)
+DEBIANUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(DEBIANUTILS-y))
+DEBIANUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(DEBIANUTILS_SRC-y)
+APPLET_SRC-a+=$(DEBIANUTILS_SRC-a)
 
 $(DEBIANUTILS_DIR)$(DEBIANUTILS_AR): $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))

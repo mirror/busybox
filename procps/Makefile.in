@@ -23,6 +23,11 @@ PROCPS-$(CONFIG_FUSER)		+= fuser.o
 
 libraries-y+=$(PROCPS_DIR)$(PROCPS_AR)
 
+PROCPS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(PROCPS-y))
+PROCPS_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(PROCPS_SRC-y)
+APPLET_SRC-a+=$(PROCPS_SRC-a)
+
 $(PROCPS_DIR)$(PROCPS_AR): $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
 

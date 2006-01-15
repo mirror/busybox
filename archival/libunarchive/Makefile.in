@@ -2,26 +2,19 @@
 #
 # Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
 #
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+# Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 #
 
 LIBUNARCHIVE_AR:=libunarchive.a
 ifndef $(LIBUNARCHIVE_DIR)
-LIBUNARCHIVE_DIR:=$(top_builddir)/archival/libunarchive/
+LIBUNARCHIVE_DIR:=$(top_builddir)/archival/libunarchive
 endif
 srcdir=$(top_srcdir)/archival/libunarchive
+
+LIBUNARCHIVE-obj:=$(LIBUNARCHIVE_DIR)/$(LIBUNARCHIVE_AR)
+LIBUNARCHIVE-pic:=$(LIBUNARCHIVE_DIR)/$(subst .a,-pic.a,$(LIBUNARCHIVE_AR))
+
+libraries-y+=$(LIBUNARCHIVE-obj)
 
 LIBUNARCHIVE-y:= \
 \
@@ -74,12 +67,17 @@ LIBUNARCHIVE-$(CONFIG_FEATURE_TAR_COMPRESS) += decompress_uncompress.o
 LIBUNARCHIVE-$(CONFIG_UNCOMPRESS) += decompress_uncompress.o
 LIBUNARCHIVE-$(CONFIG_UNZIP) += $(GUNZIP_FILES)
 
-libraries-y+=$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR)
 
 LIBUNARCHIVE-y:=$(sort $(LIBUNARCHIVE-y))
-$(LIBUNARCHIVE_DIR)$(LIBUNARCHIVE_AR): $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(LIBUNARCHIVE_DIR)%, $(LIBUNARCHIVE-y))
 
-$(LIBUNARCHIVE_DIR)%.o: $(srcdir)/%.c
+LIBUNARCHIVE_SRC-y:=$(patsubst %,$(srcdir)/%,$(subst .o,.c,$(LIBUNARCHIVE-y)))
+LIBUNARCHIVE_SRC-a:=$(wildcard $(srcdir)/*.c)
+LIBRARY_SRC-y+=$(LIBUNARCHIVE_SRC-y)
+LIBRARY_SRC-a+=$(LIBUNARCHIVE_SRC-a)
+
+$(LIBUNARCHIVE_DIR)/$(LIBUNARCHIVE_AR): $(patsubst %,$(LIBUNARCHIVE_DIR)/%,$(LIBUNARCHIVE-y))
+	$(AR) $(ARFLAGS) $(@) $(^)
+
+$(LIBUNARCHIVE_DIR)/%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 

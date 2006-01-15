@@ -48,11 +48,12 @@ extern struct mntent *find_mount_point(const char *name, const char *table)
 		mountDevice = s.st_dev;
 
 
-	if ((mountTable = setmntent(table ? : bb_path_mtab_file, "r")) == 0)
+	if ((mountTable = setmntent(table ? table : bb_path_mtab_file, "r")) == 0)
 		return 0;
 
 	while ((mountEntry = getmntent(mountTable)) != 0) {
-		if (strcmp(name, mountEntry->mnt_dir) == 0
+
+			if(strcmp(name, mountEntry->mnt_dir) == 0
 			|| strcmp(name, mountEntry->mnt_fsname) == 0)	/* String match. */
 			break;
 		if (stat(mountEntry->mnt_fsname, &s) == 0 && s.st_rdev == mountDevice)	/* Match the device. */

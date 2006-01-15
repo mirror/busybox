@@ -27,8 +27,13 @@ ARCHIVAL-$(CONFIG_UNZIP)	+= unzip.o
 
 libraries-y+=$(ARCHIVAL_DIR)$(ARCHIVAL_AR)
 
+ARCHIVAL_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(ARCHIVAL-y))
+ARCHIVAL_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(ARCHIVAL_SRC-y)
+APPLET_SRC-a+=$(ARCHIVAL_SRC-a)
+
 $(ARCHIVAL_DIR)$(ARCHIVAL_AR): $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
+	$(AR) $(ARFLAGS) $@ $(^)
 
 $(ARCHIVAL_DIR)%.o: $(srcdir)/%.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<

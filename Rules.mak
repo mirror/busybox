@@ -81,7 +81,8 @@ CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
 #GCCINCDIR:=$(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
-CFLAGS=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
+CFLAGS+=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
+
 ARFLAGS=cru
 
 
@@ -125,6 +126,8 @@ endif
 
 CFLAGS+=$(call check_gcc,-funsigned-char,)
 
+CFLAGS+=$(call check_gcc,-mmax-stack-frame=256,)
+
 #--------------------------------------------------------
 # Arch specific compiler optimization stuff should go here.
 # Unless you want to override the defaults, do not set anything
@@ -133,15 +136,38 @@ CFLAGS+=$(call check_gcc,-funsigned-char,)
 # use '-Os' optimization if available, else use -O2
 OPTIMIZATION:=$(call check_gcc,-Os,-O2)
 
+ifeq ($(CONFIG_BUILD_AT_ONCE),y)
+# gcc 2.95 exits with 0 for "unrecognized option"
+ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 3 ] ; echo $$?)),0)
+	OPTIMIZATION+=$(call check_gcc,-combine,)
+endif
+OPTIMIZATION+=$(call check_gcc,-funit-at-a-time,)
+PROG_CFLAGS+=$(call check_gcc,-fwhole-program,)
+endif # CONFIG_BUILD_AT_ONCE
+
 # Some nice architecture specific optimizations
 ifeq ($(strip $(TARGET_ARCH)),arm)
 	OPTIMIZATION+=-fstrict-aliasing
+	OPTIMIZATION+=$(call check_gcc,-msingle-pic-base,)
 endif
 ifeq ($(strip $(TARGET_ARCH)),i386)
 	OPTIMIZATION+=$(call check_gcc,-march=i386,)
+# gcc-4.0 and older seem to suffer from these
+ifneq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
 	OPTIMIZATION+=$(call check_gcc,-mpreferred-stack-boundary=2,)
 	OPTIMIZATION+=$(call check_gcc,-falign-functions=0 -falign-jumps=0 -falign-loops=0,\
 		-malign-functions=0 -malign-jumps=0 -malign-loops=0)
+endif # gcc-4.0 and older
+
+# gcc-4.1 and beyond seem to benefit from these
+ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
+	# turn off flags which hurt -Os
+	OPTIMIZATION+=$(call check_gcc,-fno-tree-loop-optimize,)
+	OPTIMIZATION+=$(call check_gcc,-fno-tree-dominator-opts,)
+	OPTIMIZATION+=$(call check_gcc,-fno-strength-reduce,)
+
+	OPTIMIZATION+=$(call check_gcc,-fno-branch-count-reg,)
+endif # gcc-4.1 and beyond
 endif
 OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer
 
@@ -173,11 +199,17 @@ ifeq ($(strip $(CONFIG_DEBUG)),y)
     STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
 else
     CFLAGS+=$(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
-    LDFLAGS += -Wl,-warn-common
+    LDFLAGS += -Wl,-warn-common -Wl,--sort-common 
     STRIPCMD:=$(STRIP) -s --remove-section=.note --remove-section=.comment
 endif
 ifeq ($(strip $(CONFIG_STATIC)),y)
     LDFLAGS += --static
+#else
+#    LIBRARIES += -ldl
+endif
+
+ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
+    CFLAGS_PIC:= -fPIC #-DPIC
 endif
 
 ifeq ($(strip $(CONFIG_SELINUX)),y)

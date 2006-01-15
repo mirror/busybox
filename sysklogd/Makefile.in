@@ -18,6 +18,11 @@ SYSKLOGD-$(CONFIG_SYSLOGD)		+= syslogd.o
 
 libraries-y+=$(SYSKLOGD_DIR)$(SYSKLOGD_AR)
 
+SYSKLOGD_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(SYSKLOGD-y))
+SYSKLOGD_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(SYSKLOGD_SRC-y)
+APPLET_SRC-a+=$(SYSKLOGD_SRC-a)
+
 $(SYSKLOGD_DIR)$(SYSKLOGD_AR): $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
 

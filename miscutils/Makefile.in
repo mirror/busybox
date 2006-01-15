@@ -33,11 +33,16 @@ MISCUTILS-$(CONFIG_WATCHDOG)    += watchdog.o
 
 libraries-y+=$(MISCUTILS_DIR)$(MISCUTILS_AR)
 
+MISCUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(MISCUTILS-y))
+MISCUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(MISCUTILS_SRC-y)
+APPLET_SRC-a+=$(MISCUTILS_SRC-a)
+
 needlibm-y:=
 needlibm-$(CONFIG_DC) := y
 
 ifeq ($(needlibm-y),y)
-  LIBRARIES += -lm
+  LIBRARIES := -lm $(filter-out -lm,$(LIBRARIES))
 endif
 
 $(MISCUTILS_DIR)$(MISCUTILS_AR): $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))

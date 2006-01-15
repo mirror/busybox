@@ -86,7 +86,7 @@
 #define	MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
-extern void bb_show_usage(void) __attribute__ ((noreturn));
+extern void bb_show_usage(void) __attribute__ ((noreturn, externally_visible));
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));

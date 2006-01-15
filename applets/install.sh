@@ -3,8 +3,8 @@
 export LC_ALL=POSIX
 export LC_CTYPE=POSIX
 
-prefix=$1
-if [ "$prefix" = "" ]; then
+prefix=${1}
+if [ -z "$prefix" ]; then
     echo "No installation directory, aborting."
     exit 1;
 fi
@@ -16,7 +16,22 @@ case "$2" in
     *)           echo "Unknown install option: $2"; exit 1;;
 esac
 
+if [ "$DO_INSTALL_LIBS" != "n" ]; then
+	# get the target dir for the libs
+	# This is an incomplete/incorrect list for now
+	case $(uname -m) in
+	x86_64|ppc64*|sparc64*|ia64*|hppa*64*) libdir=/lib64 ;;
+	*) libdir=/lib ;;
+	esac
 
+	mkdir -p $prefix/$libdir || exit 1
+	for i in $DO_INSTALL_LIBS; do
+		rm -f $prefix/$libdir/$i || exit 1
+		if [ -f $i ]; then
+			install -m 644 $i $prefix/$libdir/ || exit 1
+		fi
+	done
+fi
 rm -f $prefix/bin/busybox || exit 1
 mkdir -p $prefix/bin || exit 1
 install -m 755 busybox $prefix/bin/busybox || exit 1

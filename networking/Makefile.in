@@ -9,6 +9,7 @@ ifndef $(NETWORKING_DIR)
 NETWORKING_DIR:=$(top_builddir)/networking/
 endif
 srcdir=$(top_srcdir)/networking
+
 NETWORKING-y:=
 NETWORKING-$(CONFIG_ARPING)       += arping.o
 NETWORKING-$(CONFIG_ETHER_WAKE)   += ether-wake.o
@@ -41,13 +42,22 @@ NETWORKING-$(CONFIG_VCONFIG)      += vconfig.o
 NETWORKING-$(CONFIG_WGET)         += wget.o
 NETWORKING-$(CONFIG_ZCIP)         += zcip.o
 
+NETWORKING-y:=$(sort $(NETWORKING-y))
 libraries-y+=$(NETWORKING_DIR)$(NETWORKING_AR)
+
+NETWORKING_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(NETWORKING-y))
+NETWORKING_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(NETWORKING_SRC-y)
+APPLET_SRC-a+=$(NETWORKING_SRC-a)
+
+LIBRARY_DEFINE-y+= -I$(top_srcdir)/networking
+LIBRARY_DEFINE-a+= -I$(top_srcdir)/networking
 
 needcrypt-y:=
 needcrypt-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) := y
 
 ifeq ($(needcrypt-y),y)
-	LIBRARIES += -lcrypt
+	LIBRARIES := -lcrypt $(filter-out -lcrypt,$(LIBRARIES))
 endif
 
 $(NETWORKING_DIR)$(NETWORKING_AR): $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))

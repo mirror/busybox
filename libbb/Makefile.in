@@ -4,13 +4,13 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-LIBBB_AR:=libbb.a
 ifndef $(LIBBB_DIR)
-LIBBB_DIR:=$(top_builddir)/libbb/
+LIBBB_DIR:=$(top_builddir)/libbb
 endif
 srcdir=$(top_srcdir)/libbb
 
-LIBBB_SRC-y:= \
+LIBBB-n:=
+LIBBB-y:= \
 	bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
 	compare_string_array.c concat_path_file.c copy_file.c copyfd.c \
 	correct_password.c create_icmp_socket.c create_icmp6_socket.c \
@@ -36,10 +36,14 @@ LIBBB_SRC-y:= \
 	warn_ignoring_args.c concat_subpath_file.c vfork_daemon_rexec.c \
 	bb_echo.c bb_do_delay.c
 
-LIBBB_SRC-$(CONFIG_FEATURE_SHADOWPASSWDS)+= pwd2spwd.c
+# conditionally compiled objects:
+LIBBB-$(CONFIG_FEATURE_SHADOWPASSWDS)+=pwd2spwd.c
+LIBBB-$(CONFIG_FEATURE_MTAB_SUPPORT)+= mtab.c
 
-LIBBB_OBJS=$(patsubst %.c,$(LIBBB_DIR)%.o, $(LIBBB_SRC-y))
 
+LIBBB-y:=$(patsubst %,$(srcdir)/%,$(LIBBB-y))
+
+# 1:N objects
 LIBBB_MSRC0:=$(srcdir)/messages.c
 LIBBB_MOBJ0:=full_version.o \
 	memory_exhausted.o invalid_date.o io_error.o \
@@ -49,65 +53,90 @@ LIBBB_MOBJ0:=full_version.o \
 	securetty_file.o motd_file.o \
 	msg_standard_input.o msg_standard_output.o shell_file.o \
 	bb_dev_null.o bb_common_bufsiz1.o
+LIBBB_MOBJ0:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ0))
+$(LIBBB_MOBJ0):$(LIBBB_MSRC0)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -o $@ -c $<
 
 LIBBB_MSRC1:=$(srcdir)/xfuncs.c
 LIBBB_MOBJ1:=xmalloc.o xrealloc.o xcalloc.o xstrdup.o xstrndup.o \
 	xfopen.o xopen.o xread.o xread_all.o xread_char.o \
 	xferror.o xferror_stdout.o xfflush_stdout.o strlen.o
+LIBBB_MOBJ1:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ1))
+$(LIBBB_MOBJ1):$(LIBBB_MSRC1)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -o $@ -c $<
 
 LIBBB_MSRC2:=$(srcdir)/printf.c
 LIBBB_MOBJ2:=bb_vfprintf.o bb_vprintf.o bb_fprintf.o bb_printf.o
+LIBBB_MOBJ2:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ2))
+$(LIBBB_MOBJ2):$(LIBBB_MSRC2)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -o $@ -c $<
 
 LIBBB_MSRC3:=$(srcdir)/xgetularg.c
 LIBBB_MOBJ3:=xgetularg_bnd_sfx.o xgetlarg_bnd_sfx.o getlarg10_sfx.o \
 	xgetularg_bnd.o xgetularg10_bnd.o xgetularg10.o
+LIBBB_MOBJ3:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ3))
+$(LIBBB_MOBJ3):$(LIBBB_MSRC3)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -o $@ -c $<
 
 LIBBB_MSRC4:=$(srcdir)/safe_strtol.c
 LIBBB_MOBJ4:=safe_strtoi.o safe_strtod.o safe_strtol.o safe_strtoul.o
+LIBBB_MOBJ4:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ4))
+$(LIBBB_MOBJ4):$(LIBBB_MSRC4)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -o $@ -c $<
 
 LIBBB_MSRC5:=$(srcdir)/bb_pwd.c
 LIBBB_MOBJ5:=bb_xgetpwnam.o bb_xgetgrnam.o bb_getgrgid.o bb_getpwuid.o \
 	bb_getug.o get_ug_id.o
+LIBBB_MOBJ5:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ5))
+$(LIBBB_MOBJ5):$(LIBBB_MSRC5)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -o $@ -c $<
 
 LIBBB_MSRC6:=$(srcdir)/llist.c
 LIBBB_MOBJ6:=llist_add_to.o llist_add_to_end.o llist_free_one.o llist_free.o
+LIBBB_MOBJ6:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ6))
+$(LIBBB_MOBJ6):$(LIBBB_MSRC6)
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -o $@ -c $<
 
-LIBBB_MOBJS0=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ0))
-LIBBB_MOBJS1=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ1))
-LIBBB_MOBJS2=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ2))
-LIBBB_MOBJS3=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ3))
-LIBBB_MOBJS4=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ4))
-LIBBB_MOBJS5=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ5))
-LIBBB_MOBJS6=$(patsubst %,$(LIBBB_DIR)%, $(LIBBB_MOBJ6))
 
-libraries-y+=$(LIBBB_DIR)$(LIBBB_AR)
+# We need the names of the object files built from MSRC for the L_ defines
+LIBBB_ALL_MOBJ:=$(LIBBB_MOBJ0) $(LIBBB_MOBJ1) $(LIBBB_MOBJ2) $(LIBBB_MOBJ3) $(LIBBB_MOBJ4) $(LIBBB_MOBJ5) $(LIBBB_MOBJ6)
 
-$(LIBBB_DIR)$(LIBBB_AR): $(LIBBB_OBJS) $(LIBBB_MOBJS0) $(LIBBB_MOBJS1) \
-	$(LIBBB_MOBJS2) $(LIBBB_MOBJS3) $(LIBBB_MOBJS4) $(LIBBB_MOBJS5) \
-	$(LIBBB_MOBJS6)
-	$(AR) $(ARFLAGS) $(@) $(LIBBB_OBJS) $(^)
+LIBBB_ALL_MSRC:=$(LIBBB_MSRC0) $(LIBBB_MSRC1) $(LIBBB_MSRC2) $(LIBBB_MSRC3) \
+	$(LIBBB_MSRC4) $(LIBBB_MSRC5) $(LIBBB_MSRC6)
 
-$(LIBBB_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+LIBBB-y:=$(sort $(LIBBB-y) $(LIBBB_ALL_MSRC))
 
-$(LIBBB_MOBJS0): $(LIBBB_MSRC0)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+LIBBB_AR:=$(LIBBB_DIR)/libbb.a
+libraries-y+=$(LIBBB_AR)
 
-$(LIBBB_MOBJS1): $(LIBBB_MSRC1)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+needcrypt-y:=
+ifneq ($(findstring $(srcdir)/pw_encrypt.c,$(LIBBB-y)),)
+needcrypt-y:=y
+else
+ifneq ($(findstring $(srcdir)/correct_password.c,$(LIBBB-y)),)
+needcrypt-y:=y
+endif
+endif
 
-$(LIBBB_MOBJS2): $(LIBBB_MSRC2)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+ifeq ($(needcrypt-y),y)
+  LIBRARIES := -lcrypt $(filter-out -lcrypt,$(LIBRARIES))
+endif
 
-$(LIBBB_MOBJS3): $(LIBBB_MSRC3)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+# all 1:1 objects
+LIBBB_OBJS:=$(patsubst $(srcdir)/%.c,$(LIBBB_DIR)/%.o, $(LIBBB-y))
+$(LIBBB_DIR)/%.o: $(srcdir)/%.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ -c $<
 
-$(LIBBB_MOBJS4): $(LIBBB_MSRC4)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
 
-$(LIBBB_MOBJS5): $(LIBBB_MSRC5)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+LIBBB_SRC-a:=$(wildcard $(srcdir)/*.c)
+LIBRARY_SRC-y+=$(LIBBB-y)
+LIBRARY_SRC-a+=$(LIBBB_SRC-a)
 
-$(LIBBB_MOBJS6): $(LIBBB_MSRC6)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+# all defines needed for 1:N objects
+LIBBB_DEFINE-y:=$(patsubst %,-DL_%,$(subst .o,,$(notdir $(LIBBB_ALL_MOBJ))))
+LIBRARY_DEFINE-y+=$(LIBBB_DEFINE-y)
+LIBRARY_DEFINE-a+=$(LIBBB_DEFINE-y)
+
+$(LIBBB_AR): $(LIBBB_OBJS) $(LIBBB_ALL_MOBJ)
+	$(AR) $(ARFLAGS) $(@) $(^)
 

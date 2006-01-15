@@ -17,16 +17,16 @@ INIT-$(CONFIG_MESG)			+= mesg.o
 INIT-$(CONFIG_POWEROFF)			+= poweroff.o
 INIT-$(CONFIG_REBOOT)			+= reboot.o
 
-ifeq ($(CONFIG_HALT), y)
+ifeq ($(strip $(CONFIG_HALT)),y)
 CONFIG_INIT_SHARED=y
 else
-ifeq ($(CONFIG_INIT), y)
+ifeq ($(strip $(CONFIG_INIT)),y)
 CONFIG_INIT_SHARED=y
 else
-ifeq ($(CONFIG_POWEROFF), y)
+ifeq ($(strip $(CONFIG_POWEROFF)),y)
 CONFIG_INIT_SHARED=y
 else
-ifeq ($(CONFIG_REBOOT), y)
+ifeq ($(strip $(CONFIG_REBOOT)),y)
 CONFIG_INIT_SHARED=y
 else
 CONFIG_INIT_SHARED=n
@@ -35,11 +35,16 @@ endif
 endif
 endif
 
-ifeq ($(CONFIG_INIT_SHARED), y)
+ifeq ($(strip $(CONFIG_INIT_SHARED)),y)
 INIT-$(CONFIG_INIT_SHARED)        += init_shared.o
 endif
 
 libraries-y+=$(INIT_DIR)$(INIT_AR)
+
+INIT_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(INIT-y))
+INIT_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(INIT_SRC-y)
+APPLET_SRC-a+=$(INIT_SRC-a)
 
 $(INIT_DIR)$(INIT_AR): $(patsubst %,$(INIT_DIR)%, $(INIT-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(INIT_DIR)%, $(INIT-y))

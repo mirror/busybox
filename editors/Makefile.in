@@ -15,16 +15,19 @@ EDITOR-$(CONFIG_AWK)	   += awk.o
 EDITOR-$(CONFIG_PATCH)	   += patch.o
 EDITOR-$(CONFIG_SED)       += sed.o
 EDITOR-$(CONFIG_VI)        += vi.o
-EDITOR_SRC:= $(EDITOR-y)
-EDITOR_OBJ:= $(patsubst %.c,$(EDITOR_DIR)%.o, $(EDITOR_SRC))
 
 libraries-y+=$(EDITOR_DIR)$(EDITOR_AR)
+
+EDITOR_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(EDITOR-y))
+EDITOR_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(EDITOR_SRC-y)
+APPLET_SRC-a+=$(EDITOR_SRC-a)
 
 needlibm-y:=
 needlibm-$(CONFIG_FEATURE_AWK_MATH) := y
 
 ifeq ($(needlibm-y),y)
-  LIBRARIES += -lm
+  LIBRARIES := -lm $(filter-out -lm,$(LIBRARIES))
 endif
 
 $(EDITOR_DIR)$(EDITOR_AR): $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))

@@ -19,6 +19,11 @@ SHELLT-$(CONFIG_FEATURE_COMMAND_EDITING)	+= cmdedit.o
 
 libraries-y+=$(SHELL_DIR)$(SHELL_AR)
 
+SHELLT_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(SHELLT-y))
+SHELLT_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(SHELLT_SRC-y)
+APPLET_SRC-a+=$(SHELLT_SRC-a)
+
 $(SHELL_DIR)$(SHELL_AR): $(patsubst %,$(SHELL_DIR)%, $(SHELLT-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(SHELL_DIR)%, $(SHELLT-y))
 

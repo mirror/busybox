@@ -37,7 +37,13 @@ UTILLINUX-$(CONFIG_SWAPONOFF)     +=swaponoff.o
 UTILLINUX-$(CONFIG_SWITCH_ROOT)   +=switch_root.o
 UTILLINUX-$(CONFIG_UMOUNT)        +=umount.o
 
+
 libraries-y+=$(UTILLINUX_DIR)$(UTILLINUX_AR)
+
+UTILLINUX_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(UTILLINUX-y))
+UTILLINUX_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(UTILLINUX_SRC-y)
+APPLET_SRC-a+=$(UTILLINUX_SRC-a)
 
 $(UTILLINUX_DIR)$(UTILLINUX_AR): $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
 	$(AR) $(ARFLAGS) $@ $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
