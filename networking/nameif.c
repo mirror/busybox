@@ -60,16 +60,17 @@ static void serror(const char *s, ...)
 		openlog(bb_applet_name, 0, LOG_LOCAL0);
 		vsyslog(LOG_ERR, s, ap);
 		closelog();
-	} else
-		bb_error_msg(s, ap);
-
+	} else {
+		bb_verror_msg(s, ap);
+		putc('\n', stderr);
+	}
 	va_end(ap);
 
 	exit(EXIT_FAILURE);
 }
 
 /* Check ascii str_macaddr, convert and copy to *mac */
-static struct ether_addr *cc_macaddr(char *str_macaddr)
+static struct ether_addr *cc_macaddr(const char *str_macaddr)
 {
 	struct ether_addr *lmac, *mac;
 
@@ -94,7 +95,7 @@ int nameif_main(int argc, char **argv)
 
 	flags = bb_getopt_ulflags(argc, argv, "sc:", &fname);
 
-	if (argc - optind == 1)
+	if ((argc - optind) & 1)
 		bb_show_usage();
 
 	if (optind < argc) {
@@ -120,8 +121,10 @@ int nameif_main(int argc, char **argv)
 			size_t name_length;
 
 			line_ptr = line + strspn(line, " \t");
-			if ((line_ptr[0] == '#') || (line_ptr[0] == '\n'))
+			if ((line_ptr[0] == '#') || (line_ptr[0] == '\n')) {
+				free(line);
 				continue;
+			}
 			name_length = strcspn(line_ptr, " \t");
 			ch = xcalloc(1, sizeof(mactable_t));
 			ch->ifname = bb_xstrndup(line_ptr, name_length);
