@@ -1038,7 +1038,7 @@ static char *get_name(char *name, char *p)
  * old approach of multiple scanf occurrences with large numbers of
  * args. */
 
-/* static const char *ss_fmt[] = { */
+/* static const char * const ss_fmt[] = { */
 /* 	"%Ln%Lu%lu%lu%lu%lu%ln%ln%Ln%Lu%lu%lu%lu%lu%lu", */
 /* 	"%Lu%Lu%lu%lu%lu%lu%ln%ln%Lu%Lu%lu%lu%lu%lu%lu", */
 /* 	"%Lu%Lu%lu%lu%lu%lu%lu%lu%Lu%Lu%lu%lu%lu%lu%lu%lu" */
@@ -1359,7 +1359,7 @@ static int do_if_fetch(struct interface *ife)
 
 /* This structure defines hardware protocols and their handlers. */
 struct hwtype {
-	const char *name;
+	const char * const name;
 	const char *title;
 	int type;
 	int alen;
