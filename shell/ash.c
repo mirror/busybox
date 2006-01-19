@@ -5256,7 +5256,7 @@ memtodest(const char *p, size_t len, int syntax, int quotes) {
 	q = makestrspace(len * 2, q);
 
 	while (len--) {
-		int c = (unsigned char)*p++;
+		int c = *p++;
 		if (!c)
 			continue;
 		if (quotes && (SIT(c, syntax) == CCTL || SIT(c, syntax) == CBACK))
