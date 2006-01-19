@@ -79,20 +79,12 @@ config CONFIG_CUT
 	  cut is used to print selected parts of lines from
 	  each file to stdout.
 
-if CONFIG_WATCH
-	config CONFIG_DATE
-		default y
-	comment "date (forced enabled for use with watch)"
-endif
-
-if !CONFIG_WATCH
-    config CONFIG_DATE
-	    bool "date"
-	    default n
-	    help
-	      date is used to set the system date or display the
-	      current time in the given format.
-endif
+config CONFIG_DATE
+	bool "date"
+	default n
+	help
+	  date is used to set the system date or display the
+	  current time in the given format.
 
 config CONFIG_FEATURE_DATE_ISOFMT
 	bool "  Enable ISO date format output (-I)"
@@ -179,19 +171,11 @@ config CONFIG_EXPR
 	  expr is used to calculate numbers and print the result
 	  to standard output.
 
-if CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
-	config CONFIG_FALSE
-		default y
-	comment "false (forced enabled for use with shell)"
-endif
-
-if !CONFIG_HUSH && !CONFIG_LASH && !CONFIG_MSH
-    config CONFIG_FALSE
-	    bool "false"
-	    default n
-	    help
-	      false returns an exit code of FALSE (1).
-endif
+config CONFIG_FALSE
+	bool "false"
+	default n
+	help
+	  false returns an exit code of FALSE (1).
 
 config CONFIG_FOLD
 	bool "fold"
@@ -305,17 +289,16 @@ config CONFIG_FEATURE_LS_COLOR
 	help
 	  This enables the --color option to ls.
 
-if CONFIG_FEATURE_LS_COLOR
-    config CONFIG_FEATURE_LS_COLOR_IS_DEFAULT
-	    bool "  Produce colored ls output by default"
-	    default n
-	    help
-	      Saying yes here will turn coloring on by default,
-	      even if no "--color" option is given to the ls command.
-	      This is not recommended, since the colors are not
-	      configurable, and the output may not be legible on
-	      many output screens.
-endif
+config CONFIG_FEATURE_LS_COLOR_IS_DEFAULT
+	bool "  Produce colored ls output by default"
+	default n
+	depends on CONFIG_FEATURE_LS_COLOR
+	help
+	  Saying yes here will turn coloring on by default,
+	  even if no "--color" option is given to the ls command.
+	  This is not recommended, since the colors are not
+	  configurable, and the output may not be legible on
+	  many output screens.
 
 config CONFIG_MD5SUM
 	bool "md5sum"
@@ -525,21 +508,13 @@ config CONFIG_FEATURE_TEE_USE_BLOCK_IO
 	help
 	  Enable this option for a faster tee, at expense of size.
 
-if CONFIG_ASH || CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
-	config CONFIG_TEST
-		default y
-	comment "test (forced enabled for use with shell)"
-endif
-
-if !CONFIG_ASH && !CONFIG_HUSH && !CONFIG_LASH && !CONFIG_MSH
-    config CONFIG_TEST
-	    bool "test"
-	    default n
-	    help
-	      test is used to check file types and compare values,
-	      returning an appropriate exit code. The shells (ash
-	      and bash) have test builtin.
-endif
+config CONFIG_TEST
+	bool "test"
+	default n
+	help
+	  test is used to check file types and compare values,
+	  returning an appropriate exit code. The shells (ash
+	  and bash) have test builtin.
 
 config CONFIG_FEATURE_TEST_64
 	bool "  Extend test to 64 bit"
@@ -581,20 +556,11 @@ config CONFIG_FEATURE_TR_EQUIV
 	  useful for cases when no other way of expressing a character
 	  is possible.
 
-if CONFIG_HUSH || CONFIG_LASH || CONFIG_MSH
-	config CONFIG_TRUE
-		default y
-	comment "true (forced enabled for use with shell)"
-endif
-
-if !CONFIG_HUSH && !CONFIG_LASH && !CONFIG_MSH
-    config CONFIG_TRUE
-	    bool "true"
-	    default n
-	    help
-	      true returns an exit code of TRUE (0).
-
-endif
+config CONFIG_TRUE
+	bool "true"
+	default n
+	help
+	  true returns an exit code of TRUE (0).
 
 config CONFIG_TTY
 	bool "tty"
@@ -636,6 +602,7 @@ config CONFIG_UUENCODE
 config CONFIG_WATCH
 	bool "watch"
 	default n
+	select CONFIG_DATE
 	help
 	  watch is used to execute a program periodically, showing
 	  output to the screen.
@@ -669,7 +636,7 @@ config CONFIG_YES
 	  the default string `y'.
 
 comment "Common options for cp and mv"
-    depends on CONFIG_CP || CONFIG_MV
+	depends on CONFIG_CP || CONFIG_MV
 
 config CONFIG_FEATURE_PRESERVE_HARDLINKS
 	bool "  Preserve hard links"
@@ -693,7 +660,7 @@ config CONFIG_FEATURE_AUTOWIDTH
 	  unable to determine the current screen width.
 
 comment "Common options for df, du, ls"
-    depends on CONFIG_DF || CONFIG_DU || CONFIG_LS
+	depends on CONFIG_DF || CONFIG_DU || CONFIG_LS
 
 config CONFIG_FEATURE_HUMAN_READABLE
 	bool "  Support for human readable output (example 13k, 23M, 235G)"
@@ -703,7 +670,7 @@ config CONFIG_FEATURE_HUMAN_READABLE
 	  Allow df, du, and ls to have human readable output.
 
 comment "Common options for md5sum, sha1sum"
-    depends on CONFIG_MD5SUM || CONFIG_SHA1SUM
+	depends on CONFIG_MD5SUM || CONFIG_SHA1SUM
 
 config CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
 	bool "  Enable -c, -s and -w options"

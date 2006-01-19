@@ -36,6 +36,7 @@ endchoice
 config CONFIG_ASH
 	bool "ash"
 	default y
+	select CONFIG_TEST
 	help
 	  Tha 'ash' shell adds about 60k in the default configuration and is
 	  the most complete and most pedantically correct shell included with
@@ -161,6 +162,9 @@ config CONFIG_ASH_EXPAND_PRMT
 config CONFIG_HUSH
 	bool "hush"
 	default n
+	select CONFIG_TRUE
+	select CONFIG_FALSE
+	select CONFIG_TEST
 	help
 	  hush is a very small shell (just 18k) and it has fairly complete
 	  Bourne shell grammar.  It even handles all the normal flow control
@@ -175,6 +179,9 @@ config CONFIG_HUSH
 config CONFIG_LASH
 	bool "lash"
 	default n
+	select CONFIG_TRUE
+	select CONFIG_FALSE
+	select CONFIG_TEST
 	help
 	  lash is the very smallest shell (adds just 10k) and it is quite
 	  usable as a command prompt, but it is not suitable for any but the
@@ -187,6 +194,9 @@ config CONFIG_LASH
 config CONFIG_MSH
 	bool "msh"
 	default n
+	select CONFIG_TRUE
+	select CONFIG_FALSE
+	select CONFIG_TEST
 	help
 	  The minix shell (adds just 30k) is quite complete and handles things
 	  like for/do/done, case/esac and all the things you expect a Bourne
