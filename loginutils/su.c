@@ -1,4 +1,7 @@
 /* vi: set sw=4 ts=4: */
+/*
+   Licensed under the GPL v2, see the file LICENSE in this tarball.
+*/
 
 #include <fcntl.h>
 #include <signal.h>
@@ -18,12 +21,15 @@
 
 #include "busybox.h"
 
-
-
 /* The shell to run if none is given in the user's passwd entry.  */
+#ifndef DEFAULT_SHELL
+#define DEFAULT_SHELL "/bin/sh"
+#endif
+
+/* Default user.  */
 #define DEFAULT_USER  "root"
 
-//#define SYSLOG_SUCCESS
+/* #define SYSLOG_SUCCESS */
 #define SYSLOG_FAILURE
 
 
@@ -31,7 +37,8 @@
 /* Log the fact that someone has run su */
 
 # if defined( SYSLOG_SUCCESS ) && defined( SYSLOG_FAILURE )
-static void log_su (const char *successful, const char *old_user, const char *tty)
+static void log_su (const char *successful, const char *old_user,
+					const char *tty)
 {
 	syslog ( LOG_NOTICE, "%s%s on %s", successful, old_user, tty);
 }
@@ -98,7 +105,8 @@ int su_main ( int argc, char **argv )
 	if ( !old_user )
 #endif
 		{
-		/* getlogin can fail -- usually due to lack of utmp entry. Resort to getpwuid.  */
+		/* getlogin can fail -- usually due to lack of utmp entry.
+		   Resort to getpwuid.  */
 		pw = getpwuid ( cur_uid );
 		old_user = ( pw ? pw->pw_name : "" );
 	}
@@ -116,8 +124,8 @@ int su_main ( int argc, char **argv )
 	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
 	   is a username that is retrieved via NIS (YP), but that doesn't have
 	   a default shell listed.  */
-	if ( !pw-> pw_shell || !pw->pw_shell [0] )
-		pw-> pw_shell = (char *) DEFAULT_SHELL;
+	if ( !pw->pw_shell || !pw->pw_shell [0] )
+		pw->pw_shell = (char *) DEFAULT_SHELL;
 
 	if ((( cur_uid == 0 ) || correct_password ( pw ))) {
 		log_su_successful(pw->pw_uid, old_user, tty );
@@ -133,7 +141,7 @@ int su_main ( int argc, char **argv )
 	if ( !opt_shell && opt_preserve )
 		opt_shell = getenv ( "SHELL" );
 
-	if ( opt_shell && cur_uid && restricted_shell ( pw-> pw_shell )) {
+	if ( opt_shell && cur_uid && restricted_shell ( pw->pw_shell )) {
 		/* The user being su'd to has a nonstandard shell, and so is
 		   probably a uucp account or has restricted access.  Don't
 		   compromise the account by allowing access with a standard
@@ -147,7 +155,7 @@ int su_main ( int argc, char **argv )
 
 	change_identity ( pw );
 	setup_environment ( opt_shell, opt_loginshell, !opt_preserve, pw );
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
        set_current_security_context(NULL);
 #endif
 	run_shell ( opt_shell, opt_loginshell, opt_command, (const char**)opt_args);

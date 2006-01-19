@@ -2814,7 +2814,9 @@
 #define su_full_usage \
 	"Change user id or become root.\n" \
 	"Options:\n" \
-	"\t-p\tPreserve environment"
+	"\t-p, -m\tPreserve environment" \
+	"\n\t-c\tCommand to pass to 'sh -c'" \
+	"\n\t-s\tShell to use instead of default shell"
 
 #define sulogin_trivial_usage \
 	"[OPTION]... [tty-device]"
