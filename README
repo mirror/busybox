@@ -5,12 +5,12 @@ What is busybox:
 
   BusyBox combines tiny versions of many common UNIX utilities into a single
   small executable.  It provides minimalist replacements for most of the
-  utilities you usually find in bzip2, coreutils, file, findutils, gawk, grep,
-  inetutils, modutils, net-tools, procps, sed, shadow, sysklogd, sysvinit, tar,
-  util-linux, and vim.  The utilities in BusyBox often have fewer options than
-  their full-featured cousins; however, the options that are included provide
-  the expected functionality and behave very much like their larger
-  counterparts.
+  utilities you usually find in bzip2, coreutils, e2fsprogs, file, findutils,
+  gawk, grep, inetutils, less, modutils, net-tools, procps, sed, shadow,
+  sysklogd, sysvinit, tar, util-linux, and vim.  The utilities in BusyBox
+  often have fewer options than their full-featured cousins; however, the
+  options that are included provide the expected functionality and behave
+  very much like their larger counterparts.
 
   BusyBox has been written with size-optimization and limited resources in
   mind, both to produce small binaries and to reduce run-time memory usage.
@@ -50,9 +50,10 @@ Using busybox:
 
   The build automatically generates a file "busybox.links", which is used by
   'make install' to create symlinks to the BusyBox binary for all compiled in
-  commands.  Use the PREFIX environment variable to specify where to install
-  the busybox binary and symlink forest.  (i.e., 'make PREFIX=/tmp/foo install',
-  or 'make PREFIX=/tmp/foo install-hardlinks' if you prefer hard links.)
+  commands.  This uses the PREFIX environment variable to specify where to
+  install, and installs hardlinks or symlinks depending on the configuration
+  preferences.  (You can also manually run the install script at
+  "applets/install.sh").
 
 ----------------
 

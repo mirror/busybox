@@ -5,7 +5,7 @@ export LC_CTYPE=POSIX
 
 prefix=${1}
 if [ -z "$prefix" ]; then
-    echo "No installation directory, aborting."
+    echo "usage: applets/install.sh DESTINATION [--symlinks/--hardlinks]"
     exit 1;
 fi
 h=`sort busybox.links | uniq`
