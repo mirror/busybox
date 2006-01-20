@@ -50,6 +50,10 @@ extern char filter_accept_list_reassign(archive_handle_t *archive_handle)
 			return(EXIT_SUCCESS);
 		}
 #endif
+		if (ENABLE_FEATURE_DEB_TAR_LZMA && !strcmp(name_ptr, ".lzma")) {
+			archive_handle->action_data_subarchive = get_header_tar_lzma;
+			return(EXIT_SUCCESS);
+		}
 	}
 	return(EXIT_FAILURE);
 }

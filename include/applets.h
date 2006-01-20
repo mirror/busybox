@@ -408,6 +408,9 @@
 #ifdef CONFIG_LSMOD
 	APPLET(lsmod, lsmod_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_UNLZMA
+	APPLET(lzmacat, unlzma_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_MAKEDEVS
 	APPLET(makedevs, makedevs_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
@@ -711,6 +714,9 @@
 #endif
 #ifdef CONFIG_UNIX2DOS
 	APPLET(unix2dos, dos2unix_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_UNLZMA
+	APPLET(unlzma, unlzma_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_UNZIP
 	APPLET(unzip, unzip_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)

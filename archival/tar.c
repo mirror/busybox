@@ -615,14 +615,23 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 # define TAR_OPT_AFTER_BZIP2              TAR_OPT_AFTER_CREATE
 #endif
 
-#define TAR_OPT_INCLUDE_FROM              (1 << (TAR_OPT_AFTER_BZIP2))
-#define TAR_OPT_EXCLUDE_FROM              (1 << (TAR_OPT_AFTER_BZIP2 + 1))
+#define TAR_OPT_LZMA                      (1 << (TAR_OPT_AFTER_BZIP2))
+#ifdef CONFIG_FEATURE_TAR_LZMA
+# define TAR_OPT_STR_LZMA                 "a"
+# define TAR_OPT_AFTER_LZMA               TAR_OPT_AFTER_BZIP2 + 1
+#else
+# define TAR_OPT_STR_LZMA                 ""
+# define TAR_OPT_AFTER_LZMA               TAR_OPT_AFTER_BZIP2
+#endif
+
+#define TAR_OPT_INCLUDE_FROM              (1 << (TAR_OPT_AFTER_LZMA))
+#define TAR_OPT_EXCLUDE_FROM              (1 << (TAR_OPT_AFTER_LZMA + 1))
 #ifdef CONFIG_FEATURE_TAR_FROM
 # define TAR_OPT_STR_FROM                 "T:X:"
-# define TAR_OPT_AFTER_FROM               TAR_OPT_AFTER_BZIP2 + 2
+# define TAR_OPT_AFTER_FROM               TAR_OPT_AFTER_LZMA + 2
 #else
 # define TAR_OPT_STR_FROM                 ""
-# define TAR_OPT_AFTER_FROM               TAR_OPT_AFTER_BZIP2
+# define TAR_OPT_AFTER_FROM               TAR_OPT_AFTER_LZMA
 #endif
 
 #define TAR_OPT_GZIP                      (1 << (TAR_OPT_AFTER_FROM))
@@ -651,6 +660,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 static const char tar_options[]="txC:f:Opvk" \
 	TAR_OPT_STR_CREATE \
 	TAR_OPT_STR_BZIP2 \
+	TAR_OPT_STR_LZMA \
 	TAR_OPT_STR_FROM \
 	TAR_OPT_STR_GZIP \
 	TAR_OPT_STR_COMPRESS \
@@ -674,6 +684,9 @@ static const struct option tar_long_options[] = {
 # endif
 # ifdef CONFIG_FEATURE_TAR_BZIP2
 	{ "bzip2",				0,	NULL,	'j' },
+# endif
+# ifdef CONFIG_FEATURE_TAR_LZMA
+	{ "lzma",				0,	NULL,	'a' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_FROM
 	{ "files-from",			1,	NULL,	'T' },
@@ -756,6 +769,9 @@ int tar_main(int argc, char **argv)
 
 	if (ENABLE_FEATURE_TAR_BZIP2 && (opt & TAR_OPT_BZIP2))
 		get_header_ptr = get_header_tar_bz2;
+
+	if (ENABLE_FEATURE_TAR_LZMA && (opt & TAR_OPT_LZMA))
+		get_header_ptr = get_header_tar_lzma;
 
 	if (ENABLE_FEATURE_TAR_COMPRESS && (opt & TAR_OPT_UNCOMPRESS))
 		get_header_ptr = get_header_tar_Z;

@@ -157,6 +157,14 @@ config CONFIG_FEATURE_TAR_BZIP2
 	  If you enable this option you'll be able to extract
 	  archives compressed with bzip2.
 
+config CONFIG_FEATURE_TAR_LZMA
+	bool "  Enable -a option to handle .tar.lzma files"
+	default n
+	depends on CONFIG_TAR
+	help
+	  If you enable this option you'll be able to extract
+	  archives compressed with lzma.
+
 config CONFIG_FEATURE_TAR_FROM
 	bool "  Enable -X (exclude from) and -T (include from) options)"
 	default n
@@ -212,6 +220,29 @@ config CONFIG_UNCOMPRESS
 	  uncompress is used to decompress archives created by compress.
 	  Not much used anymore, replaced by gzip/gunzip.
 
+config CONFIG_UNLZMA
+	bool "unlzma"
+	default n
+	help
+	  unlzma is a compression utility using the Lempel-Ziv-Markov chain
+	  compression algorithm, and range coding.  Compression
+	  is generally considerably better than that achieved by the bzip2
+	  compressors.
+	
+	  The BusyBox unlzma applet is limited to de-compression only.
+	  On an x86 system, this applet adds about 4K.
+	
+	  Unless you have a specific application which requires unlzma, you
+	  should probably say N here.
+
+config CONFIG_FEATURE_LZMA_FAST
+	bool "  Optimze unlzma for speed"
+	default n
+	depends on CONFIG_UNLZMA
+	help
+	  This option reduce decompression time by about 33% at the cost of
+	  a 2K bigger binary.
+
 config CONFIG_UNZIP
 	bool "unzip"
 	default n
@@ -254,5 +285,16 @@ config CONFIG_FEATURE_DEB_TAR_BZ2
 	
 	  You only want this if you are creating your own custom debian packages that
 	  use an internal control.tar.bz2 or data.tar.bz2.
+
+config CONFIG_FEATURE_DEB_TAR_LZMA
+	bool "  lzma debian packages"
+	default n
+	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+	help
+	  This allows dpkg and dpkg-deb to extract deb's that are compressed
+          internally with lzma instead of gzip.
+	
+	  You only want this if you are creating your own custom debian
+          packages that use an internal control.tar.lzma or data.tar.lzma.
 
 endmenu

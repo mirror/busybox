@@ -102,6 +102,19 @@
 #define bzcat_full_usage \
 	"Uncompress to stdout."
 
+#define unlzma_trivial_usage \
+	"[OPTION]... [FILE]"
+#define unlzma_full_usage \
+	"Uncompress FILE (or standard input if FILE is '-' or omitted).\n\n" \
+	"Options:\n" \
+	"\t-c\tWrite output to standard output\n" \
+	"\t-f\tForce"
+
+#define lzmacat_trivial_usage \
+	"FILE"
+#define lzmacat_full_usage \
+	"Uncompress to stdout."
+
 #define cal_trivial_usage \
 	"[-jy] [[month] year]"
 #define cal_full_usage \
@@ -2964,6 +2977,11 @@
 #else
 #  define USAGE_TAR_BZIP2(a)
 #endif
+#ifdef CONFIG_FEATURE_TAR_LZMA
+#  define USAGE_TAR_LZMA(a) a
+#else
+#  define USAGE_TAR_LZMA(a)
+#endif
 #ifdef CONFIG_FEATURE_TAR_COMPRESS
 #  define USAGE_TAR_COMPRESS(a) a
 #else
@@ -2971,7 +2989,7 @@
 #endif
 
 #define tar_trivial_usage \
-	"-[" USAGE_TAR_CREATE("c") USAGE_TAR_GZIP("z") USAGE_TAR_BZIP2("j") USAGE_TAR_COMPRESS("Z") "xtvO] " \
+	"-[" USAGE_TAR_CREATE("c") USAGE_TAR_GZIP("z") USAGE_TAR_BZIP2("j") USAGE_TAR_LZMA("a") USAGE_TAR_COMPRESS("Z") "xtvO] " \
 	USAGE_TAR_EXCLUDE("[-X FILE]") \
 	"[-f TARFILE] [-C DIR] [FILE(s)] ..."
 #define tar_full_usage \
@@ -2983,6 +3001,7 @@
 	"\nArchive format selection:\n" \
 	USAGE_TAR_GZIP("\tz\t\tFilter the archive through gzip\n") \
 	USAGE_TAR_BZIP2("\tj\t\tFilter the archive through bzip2\n") \
+	USAGE_TAR_LZMA("\ta\t\tFilter the archive through lzma\n") \
 	USAGE_TAR_COMPRESS("\tZ\t\tFilter the archive through compress\n") \
 	"\nFile selection:\n" \
 	"\tf\t\tname of TARFILE or \"-\" for stdin\n" \

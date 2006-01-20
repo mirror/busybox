@@ -87,6 +87,7 @@ extern char get_header_ar(archive_handle_t *archive_handle);
 extern char get_header_cpio(archive_handle_t *archive_handle);
 extern char get_header_tar(archive_handle_t *archive_handle);
 extern char get_header_tar_bz2(archive_handle_t *archive_handle);
+extern char get_header_tar_lzma(archive_handle_t *archive_handle);
 extern char get_header_tar_gz(archive_handle_t *archive_handle);
 
 extern void seek_by_jump(const archive_handle_t *archive_handle, const unsigned int amount);
@@ -103,6 +104,7 @@ extern void inflate_init(unsigned int bufsize);
 extern void inflate_cleanup(void);
 extern int inflate_unzip(int in, int out);
 extern int inflate_gunzip(int in, int out);
+extern int unlzma(int src_fd, int dst_fd);
 
 extern int open_transformer(int src_fd, int (*transformer)(int src_fd, int dst_fd));
 
