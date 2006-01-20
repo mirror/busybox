@@ -46,7 +46,7 @@ static int fuser_option(char *option)
 
 	if(!(strlen(option))) return 0;
 	if(option[0] != '-') return 0;
-	*++option;
+	++option;
 	while(*option != '\0') {
 		if(*option == 'm') opt |= FUSER_OPT_MOUNT;
 		else if(*option == 'k') opt |= FUSER_OPT_KILL;
@@ -57,7 +57,7 @@ static int fuser_option(char *option)
 			bb_error_msg_and_die(
 				"Unsupported option '%c'", *option); 
 		}
-		*++option;
+		++option;
 	}
 	return opt;
 }
@@ -278,8 +278,7 @@ static int fuser_scan_proc_pids(int opts, inode_list *ilist, pid_list *plist)
 }
 
 static int fuser_print_pid_list(pid_list *plist) {
-	pid_list *curr;
-	curr = plist;
+	pid_list *curr = plist;
 
 	if(plist == NULL) return 0;
 	while(curr != NULL) {
@@ -291,8 +290,7 @@ static int fuser_print_pid_list(pid_list *plist) {
 }
 
 static int fuser_kill_pid_list(pid_list *plist, int sig) {
-        pid_list *curr;
-        curr = plist;
+        pid_list *curr = plist;
 	pid_t mypid = getpid();
 	int success = 1;
 
