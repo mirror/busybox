@@ -36,8 +36,8 @@ SRC_DIRS:=$(patsubst %,$(top_srcdir)/%,$(DIRS))
 .PHONY: _all
 _all:
 
-CONFIG_CONFIG_IN = $(top_srcdir)/sysdeps/$(TARGET_OS)/Config.in
-CONFIG_DEFCONFIG = $(top_srcdir)/sysdeps/$(TARGET_OS)/defconfig
+CONFIG_CONFIG_IN = $(top_srcdir)/Config.in
+CONFIG_DEFCONFIG = $(top_srcdir)/defconfig
 
 ifeq ($(KBUILD_SRC),)
 
