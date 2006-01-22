@@ -43,23 +43,13 @@ static void make_device(char *path)
 	fd = open(temp, O_RDONLY);
 	len = read(fd, temp, PATH_MAX-1);
 	if (len<1) goto end;
-	temp[--len] = 0; // remove trailing \n
 	close(fd);
 	
 	/* Determine device name, type, major and minor */
 	
 	device_name = strrchr(path, '/') + 1;
 	type = strncmp(path+5, "block/" ,6) ? S_IFCHR : S_IFBLK;
-	major = minor = 0;
-	for (s = temp; *s; s++) {
-		if (*s == ':') {
-			major = minor;
-			minor = 0;
-		} else {
-			minor *= 10;
-			minor += (*s) - '0';
-		}
-	}
+	if(sscanf(temp, "%d:%d", &major, &minor) != 2) goto end;
 
 	/* If we have a config file, look up permissions for this device */
 	
@@ -202,7 +192,7 @@ static void find_dev(char *path)
 		
 		/* If there's a dev entry, mknod it */
 		
-		if (strcmp(entry->d_name, "dev")) make_device(path);
+		if (!strcmp(entry->d_name, "dev")) make_device(path);
 	}
 	
 	closedir(dir);
