@@ -1,0 +1,179 @@
+<!--#include file="header.html" -->
+
+<h2>Rob's notes on programming busybox.</h2>
+
+<ul>
+  <li><a href="#goals">What are the goals of busybox?</a></li>
+  <li><a href="#design">What is the design of busybox?</a></li>
+  <li><a href="#source">How is the source code organized?</a></li>
+  <ul>
+    <li><a href="#source_applets">The applet directories.</a></li>
+    <li><a href="#source_libbb">The busybox shared library (libbb)</a></li>
+  </ul>
+  <li><a href="#adding">Adding an applet to busybox</a></li>
+  <li><a href="#standards">What standards does busybox adhere to?</a></li>
+</ul>
+
+<h2><b><a name="goals" />What are the goals of busybox?</b></h2>
+
+<p>Busybox aims to be the smallest and simplest correct implementation of the
+standard Linux command line tools.  First and foremost, this means the
+smallest executable size we can manage.  We also want to have the simplest
+and cleanest implementation we can manage, be <a href="#standards">standards
+compliant</a>, minimize run-time memory usage (heap and stack), run fast, and
+take over the world.</p>
+
+<h2><b><a name="design" />What is the design of busybox?</b></h2>
+
+<p>Busybox is like a swiss army knife: one thing with many functions.
+The busybox executable can act like many different programs depending on
+the name used to invoke it.  Normal practice is to create a bunch of symlinks
+pointing to the busybox binary, each of which triggers a different busybox
+function.  (See <a href="FAQ.html#getting_started">getting started</a> in the
+FAQ for more information on usage, and <a href="BusyBox.html">the
+busybox documentation</a> for a list of symlink names and what they do.)
+
+<p>The "one binary to rule them all" approach is primarily for size reasons: a
+single multi-purpose executable is smaller then many small files could be.
+This way busybox only has one set of ELF headers, it can easily share code
+between different apps even when statically linked, it has better packing
+efficiency by avoding gaps between files or compression dictionary resets,
+and so on.</p>
+
+<p>Work is underway on new options such as "make standalone" to build separate
+binaries for each applet, and a "libbb.so" to make the busybox common code
+available as a shared library.  Neither is ready yet at the time of this
+writing.</p>
+
+<a name="source" />
+
+<h2><a name="source_applets" /><b>The applet directories</b></h2>
+
+<p>The directory "applets" contains the busybox startup code (applets.c and
+busybox.c), and several subdirectories containing the code for the individual
+applets.</p>
+
+<p>Busybox execution starts with the main() function in applets/busybox.c,
+which sets the global variable bb_applet_name to argv[0] and calls
+run_applet_by_name() in applets/applets.c.  That uses the applets[] array
+(defined in include/busybox.h and filled out in include/applets.h) to
+transfer control to the appropriate APPLET_main() function (such as
+cat_main() or sed_main()).  The individual applet takes it from there.</p>
+
+<p>This is why calling busybox under a different name triggers different
+functionality: main() looks up argv[0] in applets[] to get a function pointer
+to APPLET_main().</p>
+
+<p>Busybox applets may also be invoked through the multiplexor applet
+"busybox" (see busybox_main() in applets/busybox.c), and through the
+standalone shell (grep for STANDALONE_SHELL in applets/shell/*.c).
+See <a href="FAQ.html#getting_started">getting started</a> in the
+FAQ for more information on these alternate usage mechanisms, which are
+just different ways to reach the relevant APPLET_main() function.</p>
+
+<p>The applet subdirectories (archival, console-tools, coreutils,
+debianutils, e2fsprogs, editors, findutils, init, loginutils, miscutils,
+modutils, networking, procps, shell, sysklogd, and util-linux) correspond
+to the configuration sub-menus in menuconfig.  Each subdirectory contains the
+code to implement the applets in that sub-menu, as well as a Config.in
+file defining that configuration sub-menu (with dependencies and help text
+for each applet), and the makefile segment (Makefile.in) for that
+subdirectory.</p>
+
+<p>The run-time --help is stored in usage_messages[], which is initialized at
+the start of applets/applets.c and gets its help text from usage.h.  During the
+build this help text is also used to generate the BusyBox documentation (in
+html, txt, and man page formats) in the docs directory.  See
+<a href="#adding">adding an applet to busybox</a> for more
+information.</p>
+
+<h2><a name="source_libbb" /><b>libbb</b></h2>
+
+<p>Most non-setup code shared between busybox applets lives in the libbb
+directory.  It's a mess that evolved over the years without much auditing
+or cleanup.  For anybody looking for a great project to break into busybox
+development with, documenting libbb would be both incredibly useful and good
+experience.</p>
+
+<p>Common themes in libbb include allocation functions that test
+for failure and abort the program with an error message so the caller doesn't
+have to test the return value (xmalloc(), xstrdup(), etc), wrapped versions
+of open(), close(), read(), and write() that test for their own failures
+and/or retry automatically, linked list management functions (llist.c),
+command line argument parsing (getopt_ulflags.c), and a whole lot more.</p>
+
+<h2><a name="adding" /><b>Adding an applet to busybox</b></h2>
+
+<p>To add a new applet to busybox, first pick a name for the applet and
+a corresponding CONFIG_NAME.  Then do this:</p>
+
+<ul>
+<li>Figure out where in the busybox source tree your applet best fits,
+and put your source code there.  Be sure to use APPLET_main() instead
+of main(), where APPLET is the name of your applet.</li>
+
+<li>Add your applet to the relevant Config.in file (which file you add
+it to determines where it shows up in "make menuconfig").  This uses
+the same general format as the linux kernel's configuration system.</li>
+
+<li>Add your applet to the relevant Makefile.in file (in the same
+directory as the Config.in you chose), using the existing entries as a
+template and the same CONFIG symbol as you used for Config.in.  (Don't
+forget "needlibm" or "needcrypt" if your applet needs libm or
+libcrypt.)</li>
+
+<li>Add your applet to "include/applets.h", using one of the existing
+entries as a template.  (Note: this is in alphabetical order.  Applets
+are found via binary search, and if you add an applet out of order it
+won't work.)</li>
+
+<li>Add your applet's runtime help text to "include/usage.h".  You need
+at least appname_trivial_usage (the minimal help text, always included
+in the busybox binary when this applet is enabled) and appname_full_usage
+(extra help text included in the busybox binary with
+CONFIG_FEATURE_VERBOSE_USAGE is enabled), or it won't compile.
+The other two help entry types (appname_example_usage and
+appname_notes_usage) are optional.  They don't take up space in the binary,
+but instead show up in the generated documentation (BusyBox.html,
+BusyBox.txt, and the man page BusyBox.1).</li>
+
+<li>Run menuconfig, switch your applet on, compile, test, and fix the
+bugs.  Be sure to try both "allyesconfig" and "allnoconfig" (and
+"allbareconfig" if relevant).</li>
+
+</ul>
+
+<h2><a name="standards" />What standards does busybox adhere to?</a></h2>
+
+<p>The standard we're paying attention to is the "Shell and Utilities"
+portion of the <a href=http://www.opengroup.org/onlinepubs/009695399/>Open
+Group Base Standards</a> (also known as the Single Unix Specification version
+3 or SUSv3).  Note that paying attention isn't necessarily the same thing as
+following it.</p>
+
+<p>SUSv3 doesn't even mention things like init, mount, tar, or losetup, nor
+commonly used options like echo's '-e' and '-n', or sed's '-i'.  Busybox is
+driven by what real users actually need, not the fact the standard believes
+we should implement ed or sccs.  For size reasons, we're unlikely to include
+much internationalization support beyond UTF-8, and on top of all that, our
+configuration menu lets developers chop out features to produce smaller but
+very non-standard utilities.</p>
+
+<p>Also, Busybox is aimed primarily at Linux.  Unix standards are interesting
+because Linux tries to adhere to them, but portability to dozens of platforms
+is only interesting in terms of offering a restricted feature set that works
+everywhere, not growing dozens of platform-specific extensions.  Busybox
+should be portable to all hardware platforms Linux supports, and any other
+similar operating systems that are easy to do and won't require much
+maintenance.</p>
+
+<p>In practice, standards compliance tends to be a clean-up step once an
+applet is otherwise finished.  When polishing and testing a busybox applet,
+we ensure we have at least the option of full standards compliance, or else
+document where we (intentionally) fall short.</p>
+
+<br>
+<br>
+<br>
+
+<!--#include file="footer.html" -->
