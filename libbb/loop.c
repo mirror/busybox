@@ -98,7 +98,7 @@ int set_loop(char **device, const char *file, int offset)
 	/* Find a loop device.  */
 	try=*device ? : dev;
 	for(i=0;rc;i++) {
-		sprintf(dev, LOOP_FORMAT, i++);
+		sprintf(dev, LOOP_FORMAT, i);
 		/* Ran out of block devices, return failure.  */
 		if(stat(try, &statbuf) || !S_ISBLK(statbuf.st_mode)) {
 			rc=ENOENT;
