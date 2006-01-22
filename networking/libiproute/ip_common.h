@@ -1,3 +1,5 @@
+#ifndef _IP_COMMON_H
+#define _IP_COMMON_H 1
 extern int preferred_family;
 extern char * _SL_;
 
@@ -5,7 +7,7 @@ extern void ip_parse_common_args(int *argcp, char ***argvp);
 extern int print_neigh(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg);
 extern int ipaddr_list_or_flush(int argc, char **argv, int flush);
 extern int iproute_monitor(int argc, char **argv);
-extern void iplink_usage(void) __attribute__((noreturn));
+extern void iplink_usage(void) ATTRIBUTE_NORETURN;
 extern void ipneigh_reset_filter(void);
 extern int do_ipaddr(int argc, char **argv);
 extern int do_iproute(int argc, char **argv);
@@ -16,3 +18,4 @@ extern int do_iplink(int argc, char **argv);
 extern int do_ipmonitor(int argc, char **argv);
 extern int do_multiaddr(int argc, char **argv);
 extern int do_multiroute(int argc, char **argv);
+#endif /* ip_common.h */

@@ -63,7 +63,7 @@ static int flush_update(void)
 	return 0;
 }
 
-static int print_route(struct sockaddr_nl *who __attribute__((unused)),
+static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		struct nlmsghdr *n, void *arg)
 {
 	FILE *fp = (FILE*)arg;

@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2001 by Gennady Feldman <gfeldman@gena01.com>.
  * Changes: Made this a standalone busybox module which uses standalone
- * 					syslog() client interface.
+ *					syslog() client interface.
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
@@ -14,20 +14,7 @@
  *
  * Maintainer: Gennady Feldman <gfeldman@gena01.com> as of Mar 12, 2001
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include <stdio.h>
@@ -51,7 +38,7 @@ static void klogd_signal(int sig)
 	exit(EXIT_SUCCESS);
 }
 
-static void doKlogd(const int console_log_level) __attribute__ ((noreturn));
+static void doKlogd(const int console_log_level) ATTRIBUTE_NORETURN;
 static void doKlogd(const int console_log_level)
 {
 	int priority = LOG_INFO;

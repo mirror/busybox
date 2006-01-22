@@ -2,10 +2,7 @@
  *
  * Copyright (C) 1992  A. V. Le Blanc (LeBlanc@mcc.ac.uk)
  *
- * This program is free software.  You can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation: either version 1 or
- * (at your option) any later version.
+ * Licensed under the GPL v1 or later, see the file LICENSE in this tarball.
  *
  * Vladimir Oleynik <dzo@simtreas.ru> 2001,2002 Busybox port
  */
@@ -200,7 +197,7 @@ struct partition {
 	unsigned char end_cyl;          /* end cylinder */
 	unsigned char start4[4];        /* starting sector counting from 0 */
 	unsigned char size4[4];         /* nr of sectors in partition */
-} __attribute__((__packed__));
+} ATTRIBUTE_PACKED;
 
 enum failure {
 	ioctl_error, unable_to_open, unable_to_read, unable_to_seek,
@@ -224,7 +221,7 @@ static void list_types(const struct systypes *sys);
 static uint read_int(uint low, uint dflt, uint high, uint base, char *mesg);
 #endif
 static const char *partition_type(unsigned char type);
-static void fdisk_fatal(enum failure why) __attribute__ ((noreturn));
+static void fdisk_fatal(enum failure why) ATTRIBUTE_NORETURN;
 static void get_geometry(void);
 static int get_boot(enum action what);
 

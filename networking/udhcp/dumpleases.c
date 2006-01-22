@@ -1,3 +1,7 @@
+/* vi: set sw=4 ts=4: */
+/*
+   Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ */
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
@@ -21,7 +25,7 @@
 
 
 #ifndef IN_BUSYBOX
-static void __attribute__ ((noreturn)) show_usage(void)
+static void ATTRIBUTE_NORETURN show_usage(void)
 {
 	printf(
 "Usage: dumpleases -f <file> -[r|a]\n\n"

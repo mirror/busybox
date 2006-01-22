@@ -7,20 +7,7 @@
  * Loosely based on original busybox unzip applet by Laurence Anderson.
  * All options and features should work in this version.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 /* For reference see
@@ -79,12 +66,12 @@ typedef union {
 		unsigned short method;	/* 4-5 */
 		unsigned short modtime;	/* 6-7 */
 		unsigned short moddate;	/* 8-9 */
-		unsigned int crc32 __attribute__ ((packed));   	/* 10-13 */
-		unsigned int cmpsize __attribute__ ((packed)); 	/* 14-17 */
-		unsigned int ucmpsize __attribute__ ((packed));	/* 18-21 */
+		unsigned int crc32 ATTRIBUTE_PACKED;   	/* 10-13 */
+		unsigned int cmpsize ATTRIBUTE_PACKED; 	/* 14-17 */
+		unsigned int ucmpsize ATTRIBUTE_PACKED;	/* 18-21 */
 		unsigned short filename_len;	/* 22-23 */
 		unsigned short extra_len;		/* 24-25 */
-	} formated __attribute__ ((packed));
+	} formated ATTRIBUTE_PACKED;
 } zip_header_t;
 
 static void unzip_skip(int fd, off_t skip)

@@ -269,7 +269,7 @@ static inline int bit(char * a,unsigned int i)
 #define mark_zone(x) (setbit(zone_map,(x)-FIRSTZONE+1),changed=1)
 #define unmark_zone(x) (clrbit(zone_map,(x)-FIRSTZONE+1),changed=1)
 
-static void leave(int) __attribute__ ((noreturn));
+static void leave(int) ATTRIBUTE_NORETURN;
 static void leave(int status)
 {
 	if (termios_set)

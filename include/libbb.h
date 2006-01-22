@@ -2,27 +2,14 @@
 /*
  * Busybox main internal header file
  *
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
  * Based in part on code from sash, Copyright (c) 1999 by David I. Bell
  * Permission has been granted to redistribute this code under the GPL.
  *
  */
-#ifndef	__LIBCONFIG_H__
-#define	__LIBCONFIG_H__    1
+#ifndef	__LIBBUSYBOX_H__
+#define	__LIBBUSYBOX_H__    1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +23,7 @@
 
 #include <features.h>
 
+#include "platform.h"
 #include "bb_config.h"
 #ifdef CONFIG_SELINUX
 #include <selinux/selinux.h>
@@ -49,21 +37,6 @@
 #ifdef CONFIG_FEATURE_SHA1_PASSWORDS
 # include "sha1.h"
 #endif
-
-/* Convenience macros to test the version of gcc. */
-#if defined __GNUC__ && defined __GNUC_MINOR__
-# define __GNUC_PREREQ(maj, min) \
-        ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
-#else
-# define __GNUC_PREREQ(maj, min) 0
-#endif
-
-/* __restrict is known in EGCS 1.2 and above. */
-#if !__GNUC_PREREQ (2,92)
-# define __restrict     /* Ignore */
-#endif
-
-#define attribute_noreturn __attribute__ ((__noreturn__))
 
 /* Some useful definitions */
 #define FALSE   ((int) 0)
@@ -86,7 +59,7 @@
 #define	MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
-extern void bb_show_usage(void) __attribute__ ((noreturn, externally_visible));
+extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void bb_perror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
@@ -95,7 +68,7 @@ extern void bb_vherror_msg(const char *s, va_list p);
 extern void bb_herror_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 
-extern void bb_perror_nomsg_and_die(void) __attribute__ ((noreturn));
+extern void bb_perror_nomsg_and_die(void) ATTRIBUTE_NORETURN;
 extern void bb_perror_nomsg(void);
 
 /* These two are used internally -- you shouldn't need to use them */
@@ -147,7 +120,7 @@ extern FILE *bb_wfopen_input(const char *filename);
 extern FILE *bb_xfopen(const char *path, const char *mode);
 
 extern int   bb_fclose_nonstdin(FILE *f);
-extern void  bb_fflush_stdout_and_exit(int retval) __attribute__ ((noreturn));
+extern void  bb_fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
 
 #define BB_GETOPT_ERROR 0x80000000UL
 extern const char *bb_opt_complementally;
@@ -498,4 +471,4 @@ extern int hash_fd(int fd, const size_t size, const uint8_t hash_algo, uint8_t *
 #include <dmalloc.h>
 #endif
 
-#endif /* __LIBCONFIG_H__ */
+#endif /* __LIBBUSYBOX_H__ */

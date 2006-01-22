@@ -5,7 +5,7 @@
  * Busybox port 2002 by Nick Fedchik <nick@fedchik.org.ua>
  *			Glenn McGrath <bug1@iinet.net.au>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball. 
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include <sys/syslog.h>
@@ -48,7 +48,7 @@ typedef struct mactable_s {
 
 static unsigned long flags;
 
-static void serror(const char *s, ...) __attribute__ ((noreturn));
+static void serror(const char *s, ...) ATTRIBUTE_NORETURN;
 
 static void serror(const char *s, ...)
 {

@@ -11,7 +11,7 @@
 #define setlocale(x,y)
 #endif
 
-const char *bb_applet_name __attribute__((externally_visible));
+const char *bb_applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 
 #ifdef CONFIG_FEATURE_INSTALLER
 /*

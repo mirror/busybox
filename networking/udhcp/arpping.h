@@ -27,7 +27,7 @@ struct arpMsg {
 	uint8_t  tHaddr[6];			/* target's hardware address */
 	uint8_t  tInaddr[4];			/* target's IP address */
 	uint8_t  pad[18];			/* pad for min. Ethernet payload (60 bytes) */
-} __attribute__ ((packed));
+} ATTRIBUTE_PACKED;
 
 /* function prototypes */
 int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *arp, char *interface);

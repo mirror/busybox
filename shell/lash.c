@@ -8,20 +8,7 @@
  * under the following liberal license: "We have placed this source code in the
  * public domain. Use it in any project, free or commercial."
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 /* This shell's parsing engine is officially at a dead-end.  Future
@@ -148,7 +135,7 @@ static void remove_job(struct jobset *j_list, struct job *job);
 static int get_command(FILE * source, char *command);
 static int parse_command(char **command_ptr, struct job *job, int *inbg);
 static int run_command(struct job *newjob, int inbg, int outpipe[2]);
-static int pseudo_exec(struct child_prog *cmd) __attribute__ ((noreturn));
+static int pseudo_exec(struct child_prog *cmd) ATTRIBUTE_NORETURN;
 static int busy_loop(FILE * input);
 
 

@@ -12,19 +12,7 @@
  * This code is derived from software contributed to Berkeley by
  * Kenneth Almquist.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
  * Original BSD copyright notice is retained at the end of this file.
  */
@@ -233,11 +221,11 @@ static volatile sig_atomic_t pendingsigs;
 /* EXSIG is turned off by evalbltin(). */
 
 
-static void exraise(int) __attribute__((__noreturn__));
-static void onint(void) __attribute__((__noreturn__));
+static void exraise(int) ATTRIBUTE_NORETURN;
+static void onint(void) ATTRIBUTE_NORETURN;
 
-static void sh_error(const char *, ...) __attribute__((__noreturn__));
-static void exerror(int, const char *, ...) __attribute__((__noreturn__));
+static void sh_error(const char *, ...) ATTRIBUTE_NORETURN;
+static void exerror(int, const char *, ...) ATTRIBUTE_NORETURN;
 
 static void sh_warnx(const char *, ...);
 
@@ -1400,7 +1388,7 @@ struct cmdentry {
 static const char *pathopt;     /* set by padvance */
 
 static void shellexec(char **, const char *, int)
-    __attribute__((__noreturn__));
+    ATTRIBUTE_NORETURN;
 static char *padvance(const char **, const char *);
 static void find_command(char *, struct cmdentry *, int, const char *);
 static struct builtincmd *find_builtin(const char *);
@@ -2026,7 +2014,7 @@ static void ignoresig(int);
 static void onsig(int);
 static int dotrap(void);
 static void setinteractive(int);
-static void exitshell(void) __attribute__((__noreturn__));
+static void exitshell(void) ATTRIBUTE_NORETURN;
 static int decode_signal(const char *, int);
 
 /*
@@ -2504,7 +2492,7 @@ setpwd(const char *val, int setold)
 
 
 static void exverror(int, const char *, va_list)
-    __attribute__((__noreturn__));
+    ATTRIBUTE_NORETURN;
 
 /*
  * Called to raise an exception.  Since C doesn't include exceptions, we
@@ -4518,7 +4506,7 @@ static size_t esclen(const char *, const char *);
 static char *scanleft(char *, char *, char *, char *, int, int);
 static char *scanright(char *, char *, char *, char *, int, int);
 static void varunset(const char *, const char *, const char *, int)
-	__attribute__((__noreturn__));
+	ATTRIBUTE_NORETURN;
 
 
 #define pmatch(a, b) !fnmatch((a), (b), 0)
@@ -9325,8 +9313,8 @@ static int readtoken(void);
 static int xxreadtoken(void);
 static int readtoken1(int firstc, int syntax, char *eofmark, int striptabs);
 static int noexpand(char *);
-static void synexpect(int) __attribute__((__noreturn__));
-static void synerror(const char *) __attribute__((__noreturn__));
+static void synexpect(int) ATTRIBUTE_NORETURN;
+static void synerror(const char *) ATTRIBUTE_NORETURN;
 static void setprompt(int);
 
 

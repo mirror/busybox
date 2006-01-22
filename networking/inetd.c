@@ -928,7 +928,7 @@ static int matchconf (servtab_t *old, servtab_t *new)
   return (1);
 }
 
-static void config (int sig __attribute__((unused)))
+static void config (int sig ATTRIBUTE_UNUSED)
 {
   servtab_t *sep, *cp, **sepp;
   sigset_t omask;
@@ -1149,7 +1149,7 @@ static void config (int sig __attribute__((unused)))
 }
 
 
-static void reapchild (int sig __attribute__((unused)))
+static void reapchild (int sig ATTRIBUTE_UNUSED)
 {
   pid_t pid;
   int save_errno = errno, status;
@@ -1176,7 +1176,7 @@ static void reapchild (int sig __attribute__((unused)))
   errno = save_errno;
 }
 
-static void retry (int sig __attribute__((unused)))
+static void retry (int sig ATTRIBUTE_UNUSED)
 {
   servtab_t *sep;
 
@@ -1200,7 +1200,7 @@ static void retry (int sig __attribute__((unused)))
   }
 }
 
-static void goaway (int sig __attribute__((unused)))
+static void goaway (int sig ATTRIBUTE_UNUSED)
 {
   servtab_t *sep;
 
@@ -1582,7 +1582,7 @@ echo_stream (int s, servtab_t *sep)
 /* Echo service -- echo data back */
 /* ARGSUSED */
 static void
-echo_dg (int s, servtab_t *sep __attribute__((unused)))
+echo_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
   char buffer[BUFSIZE];
   int i;
@@ -1616,7 +1616,7 @@ discard_stream (int s, servtab_t *sep)
 /* Discard service -- ignore data */
 /* ARGSUSED */
 static void
-discard_dg (int s, servtab_t *sep __attribute__((unused)))
+discard_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
   char buffer[BUFSIZE];
 
@@ -1678,7 +1678,7 @@ chargen_stream (int s, servtab_t *sep)
 /* Character generator */
 /* ARGSUSED */
 static void
-chargen_dg (int s, servtab_t *sep __attribute__((unused)))
+chargen_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
   /* struct sockaddr_storage ss; */
   struct sockaddr sa;
@@ -1735,7 +1735,7 @@ static u_int machtime (void)
 
 /* ARGSUSED */
 static void
-machtime_stream (int s, servtab_t *sep __attribute__((unused)))
+machtime_stream (int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
   u_int result;
 
@@ -1745,7 +1745,7 @@ machtime_stream (int s, servtab_t *sep __attribute__((unused)))
 
 /* ARGSUSED */
 static void
-machtime_dg (int s, servtab_t *sep __attribute__((unused)))
+machtime_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
   u_int result;
   /* struct sockaddr_storage ss; */
@@ -1770,7 +1770,7 @@ machtime_dg (int s, servtab_t *sep __attribute__((unused)))
 #ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
 /* Return human-readable time of day */
 /* ARGSUSED */
-static void daytime_stream (int s, servtab_t *sep __attribute__((unused)))
+static void daytime_stream (int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
   char buffer[256];
   time_t t;
@@ -1784,7 +1784,7 @@ static void daytime_stream (int s, servtab_t *sep __attribute__((unused)))
 /* Return human-readable time of day */
 /* ARGSUSED */
 void
-daytime_dg (int s, servtab_t *sep __attribute__((unused)))
+daytime_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
   char buffer[256];
   time_t t;

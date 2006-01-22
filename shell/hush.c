@@ -75,19 +75,7 @@
  *      maybe change map[] to use 2-bit entries
  *      (eventually) remove all the printf's
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 #include <ctype.h>     /* isalpha, isdigit */
 #include <unistd.h>    /* getpid */
@@ -369,7 +357,7 @@ static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
 static int setup_redirects(struct child_prog *prog, int squirrel[]);
 static int run_list_real(struct pipe *pi);
-static void pseudo_exec(struct child_prog *child) __attribute__ ((noreturn));
+static void pseudo_exec(struct child_prog *child) ATTRIBUTE_NORETURN;
 static int run_pipe_real(struct pipe *pi);
 /*   extended glob support: */
 static int globhack(const char *src, int flags, glob_t *pglob);

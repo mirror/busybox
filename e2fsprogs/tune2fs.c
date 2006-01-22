@@ -566,7 +566,7 @@ MOUNTS_COUNT_ERROR:
 }
 
 #ifdef CONFIG_FINDFS
-static attribute_noreturn void do_findfs(int argc, char **argv)
+static ATTRIBUTE_NORETURN void do_findfs(int argc, char **argv)
 {
 	if ((argc != 2) ||
 	    (strncmp(argv[1], "LABEL=", 6) && strncmp(argv[1], "UUID=", 5)))

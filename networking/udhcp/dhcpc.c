@@ -4,19 +4,7 @@
  *
  * Russ Dill <Russ.Dill@asu.edu> July 2001
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include <sys/time.h>
@@ -74,7 +62,7 @@ struct client_config_t client_config = {
 };
 
 #ifndef IN_BUSYBOX
-static void __attribute__ ((noreturn)) show_usage(void)
+static void ATTRIBUTE_NORETURN show_usage(void)
 {
 	printf(
 "Usage: udhcpc [OPTIONS]\n\n"
@@ -101,7 +89,7 @@ static void __attribute__ ((noreturn)) show_usage(void)
 }
 #else
 #define show_usage bb_show_usage
-extern void show_usage(void) __attribute__ ((noreturn));
+extern void show_usage(void) ATTRIBUTE_NORETURN;
 #endif
 
 

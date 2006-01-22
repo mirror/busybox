@@ -5,20 +5,7 @@
  * Copyright (C) 2003 by Arthur van Hoff (avh@strangeberry.com)
  * Copyright (C) 2004 by David Brownell
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
- * 02111-1307 USA
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 /*
@@ -73,7 +60,7 @@ struct arp_packet {
 	struct in_addr source_ip;
 	struct ether_addr target_addr;
 	struct in_addr target_ip;
-} __attribute__ ((__packed__));
+} ATTRIBUTE_PACKED;
 
 /* 169.254.0.0 */
 static const uint32_t LINKLOCAL_ADDR = 0xa9fe0000;
@@ -214,7 +201,7 @@ bad:
 /**
  * Print usage information.
  */
-static void __attribute__((noreturn))
+static void ATTRIBUTE_NORETURN
 zcip_usage(const char *msg)
 {
 	fprintf(stderr, "%s: %s\n", prog, msg);

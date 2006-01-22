@@ -281,7 +281,7 @@ struct hostinfo {
 struct outdata {
 	u_char seq;             /* sequence number of this packet */
 	u_char ttl;             /* ttl packet left with */
-	struct timeval tv __attribute__((packed)); /* time packet left */
+	struct timeval tv ATTRIBUTE_PACKED; /* time packet left */
 };
 
 struct IFADDRLIST {

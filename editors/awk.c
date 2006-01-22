@@ -4,20 +4,7 @@
  *
  * Copyright (C) 2002 by Dmitry Zakharov <dmit@crp.bank.gov.ua>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include <stdio.h>
@@ -445,7 +432,7 @@ static void chain_group(void);
 static var *evaluate(node *, var *);
 static rstream *next_input_file(void);
 static int fmt_num(char *, int, const char *, double, int);
-static int awk_exit(int) attribute_noreturn;
+static int awk_exit(int) ATTRIBUTE_NORETURN;
 
 /* ---- error handling ---- */
 
@@ -462,7 +449,7 @@ static const char EMSG_UNDEF_FUNC[] = "Call to undefined function";
 static const char EMSG_NO_MATH[] = "Math support is not compiled in";
 #endif
 
-static void syntax_error(const char * const message) attribute_noreturn;
+static void syntax_error(const char * const message) ATTRIBUTE_NORETURN;
 static void syntax_error(const char * const message)
 {
 	bb_error_msg_and_die("%s:%i: %s", programname, lineno, message);

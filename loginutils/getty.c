@@ -225,7 +225,7 @@ static void termio_final(struct options *op, struct termio *tp,
 				struct chardata *cp);
 static int caps_lock(const char *s);
 static int bcode(const char *s);
-static void error(const char *fmt, ...) __attribute__ ((noreturn));
+static void error(const char *fmt, ...) ATTRIBUTE_NORETURN;
 
 #ifdef  SYSV_STYLE
 #ifdef CONFIG_FEATURE_UTMP
