@@ -97,6 +97,9 @@
 	"\t-c\tWrite output to standard output\n" \
 	"\t-f\tForce"
 
+#define busybox_notes_usage \
+	"Hello world!\n"
+
 #define bzcat_trivial_usage \
 	"FILE"
 #define bzcat_full_usage \
@@ -2678,7 +2681,7 @@
 	USAGE_FANCY_SLEEP("$ sleep 1d 3h 22m 8s\n" \
 	"[98528 second delay results]\n")
 
-#ifdef CONFIG_SORT_BIG
+#if ENABLE_FEATURE_SORT_BIG
 #  define USAGE_SORT_BIG(a) a
 #else
 #  define USAGE_SORT_BIG(a)
