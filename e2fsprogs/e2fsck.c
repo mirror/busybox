@@ -15674,9 +15674,16 @@ restart:
 	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
 		fatal_error(ctx, 0);
 #ifdef ENABLE_SWAPFS
+
+#ifdef WORDS_BIGENDIAN
+#define NATIVE_FLAG EXT2_FLAG_SWAP_BYTES;
+#else
+#define NATIVE_FLAG 0;
+#endif
+
+
 	if (normalize_swapfs) {
-		if ((fs->flags & EXT2_FLAG_SWAP_BYTES) ==
-		    ext2fs_native_flag()) {
+		if ((fs->flags & EXT2_FLAG_SWAP_BYTES) == NATIVE_FLAG) {
 			fprintf(stderr, _("%s: Filesystem byte order "
 				"already normalized.\n"), ctx->device_name);
 			fatal_error(ctx, 0);

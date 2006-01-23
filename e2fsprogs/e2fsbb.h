@@ -54,4 +54,10 @@ typedef long errcode_t;
 #define HAVE_SYS_TYPES_H 1
 #define HAVE_UNISTD_H 1
 
+/* Endianness */
+#if __BYTE_ORDER== __BIG_ENDIAN
+#define ENABLE_SWAPFS 1
+#define WORDS_BIGENDIAN 1
+#endif
+
 #endif /* __E2FSBB_H__ */

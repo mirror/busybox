@@ -34,7 +34,7 @@ extern "C" {
  * has been configured or if we're being built on a CPU architecture
  * with a non-native byte order.
  */
-#if defined(ENABLE_SWAPFS) || defined(WORDS_BIGENDIAN)
+#if defined(ENABLE_SWAPFS) || defined(WORDS_BIGENDIAN) || __BYTE_ORDER== __BIG_ENDIAN
 #define EXT2FS_ENABLE_SWAPFS
 #endif
 

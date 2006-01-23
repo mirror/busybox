@@ -30,7 +30,7 @@ EXT2FS_SRC  := gen_bitmap.c bitops.c ismounted.c mkjournal.c unix_io.c \
 	       bb_inode.c newdir.c alloc_sb.c lookup.c dirblock.c expanddir.c \
 	       dir_iterate.c link.c res_gdt.c icount.c get_pathname.c dblist.c \
 	       dirhash.c version.c flushb.c unlink.c check_desc.c valid_blk.c \
-	       ext_attr.c bmap.c dblist_dir.c ext2fs_inline.c
+	       ext_attr.c bmap.c dblist_dir.c ext2fs_inline.c swapfs.c
 EXT2FS_SRCS := $(patsubst %,ext2fs/%, $(EXT2FS_SRC))
 EXT2FS_OBJS := $(patsubst %.c,%.o, $(EXT2FS_SRCS))
 
