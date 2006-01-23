@@ -124,7 +124,7 @@ export MAKE_IS_SILENT=y
 SECHO=-@false
 endif
 
-CFLAGS+=$(call check_gcc,-funsigned-char,)
+#CFLAGS+=$(call check_gcc,-funsigned-char,)
 
 CFLAGS+=$(call check_gcc,-mmax-stack-frame=256,)
 
