@@ -111,32 +111,32 @@ _all: all
 
 help:
 	@echo 'Cleaning:'
-	@echo '  clean			- delete temporary files created by build'
-	@echo '  distclean		- delete all non-source files (including .config)'
+	@echo '  clean                  - delete temporary files created by build'
+	@echo '  distclean              - delete all non-source files (including .config)'
 	@echo
 	@echo 'Build:'
-	@echo '  all			- Executable and documentation'
-	@echo '  busybox		- the swiss-army executable'
-	@echo '  doc			- docs/BusyBox.{txt,html,1}'
+	@echo '  all                    - Executable and documentation'
+	@echo '  busybox                - the swiss-army executable'
+	@echo '  doc                    - docs/BusyBox.{txt,html,1}'
 	@echo
 	@echo 'Configuration:'
-	@echo '  allnoconfig		- disable all symbols in .config'
-	@echo '  allyesconfig		- enable (almost) all symbols in .config'
-	@echo '  allbareconfig		- enable all basics without any features'
-	@echo '  config		- text based configurator (of last resort)'
-	@echo '  defconfig		- set .config to defaults'
-	@echo '  menuconfig		- interactive curses-based configurator'
-	@echo '  oldconfig		- resolve any unresolved symbols in .config'
+	@echo '  allnoconfig            - disable all symbols in .config'
+	@echo '  allyesconfig           - enable (almost) all symbols in .config'
+	@echo '  allbareconfig          - enable all basics without any features'
+	@echo '  config         - text based configurator (of last resort)'
+	@echo '  defconfig              - set .config to defaults'
+	@echo '  menuconfig             - interactive curses-based configurator'
+	@echo '  oldconfig              - resolve any unresolved symbols in .config'
 	@echo
 	@echo 'Installation:'
-	@echo '  install		- install busybox into $prefix'
+	@echo '  install                - install busybox into $prefix'
 	@echo '  uninstall'
 	@echo
 	@echo 'Development:'
-	@echo '  check			- run the test suite for all applets'
-	@echo '  randconfig		- generate a random configuration'
-	@echo '  release		- create a distribution tarball'
-	@echo '  sizes			- show size of all enabled busybox symbols'
+	@echo '  check                  - run the test suite for all applets'
+	@echo '  randconfig             - generate a random configuration'
+	@echo '  release                - create a distribution tarball'
+	@echo '  sizes                  - show size of all enabled busybox symbols'
 	@echo
 
 
@@ -222,7 +222,7 @@ LIBBUSYBOX_SONAME:=$(LD_LIBBUSYBOX).$(MAJOR_VERSION).$(MINOR_VERSION).$(SUBLEVEL
 DO_INSTALL_LIBS:=$(LD_LIBBUSYBOX) \
 	$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
 	$(LD_LIBBUSYBOX).$(MAJOR_VERSION).$(MINOR_VERSION)
- 
+
 ifeq ($(CONFIG_BUILD_AT_ONCE),y)
 # Which parts of the internal libs are requested?
 # Per default we only want what was actually selected.
@@ -426,7 +426,7 @@ clean:
 	    docs/busybox.pod docs/busybox.net/busybox.html \
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
-	    docs/busybox.net/BusyBox.html busybox.links include/_usage.h \
+	    docs/busybox.net/BusyBox.html busybox.links \
 	    $(DO_INSTALL_LIBS) $(LIBBUSYBOX_SONAME) \
 	    .config.old busybox
 	- rm -rf _install testsuite/links
@@ -437,7 +437,7 @@ clean:
 
 distclean: clean
 	- $(RM_F) scripts/bb_mkdep
-	- rm -rf include/config include/config.h include/bb_config.h include/bbconfigopts.h
+	- rm -rf include/config $(DEP_INCLUDES)
 	- find . -name .depend -exec $(RM_F) {} \;
 	$(RM_F) .config .config.old .config.cmd
 
