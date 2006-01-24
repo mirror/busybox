@@ -139,7 +139,7 @@ OPTIMIZATION:=$(call check_gcc,-Os,-O2)
 ifeq ($(CONFIG_BUILD_AT_ONCE),y)
 # gcc 2.95 exits with 0 for "unrecognized option"
 ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 3 ] ; echo $$?)),0)
-	OPTIMIZATION+=$(call check_gcc,-combine,)
+	OPTIMIZATION+=$(call check_gcc,--combine,)
 endif
 OPTIMIZATION+=$(call check_gcc,-funit-at-a-time,)
 PROG_CFLAGS+=$(call check_gcc,-fwhole-program,)
