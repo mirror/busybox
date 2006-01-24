@@ -15676,9 +15676,9 @@ restart:
 #ifdef ENABLE_SWAPFS
 
 #ifdef WORDS_BIGENDIAN
-#define NATIVE_FLAG EXT2_FLAG_SWAP_BYTES;
+#define NATIVE_FLAG EXT2_FLAG_SWAP_BYTES
 #else
-#define NATIVE_FLAG 0;
+#define NATIVE_FLAG 0
 #endif
 
 
