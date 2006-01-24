@@ -1615,13 +1615,6 @@ BAD_REQUEST:
     *purl = ' ';
     count = sscanf(purl, " %[^ ] HTTP/%d.%*d", buf, &blank);
 
-    test = decodeString(buf, 0);
-    if(test == NULL)
-	goto BAD_REQUEST;
-    if(test == (buf+1)) {
-	sendHeaders(HTTP_NOT_FOUND);
-	break;
-    }
     if (count < 1 || buf[0] != '/') {
       /* Garbled request/URL */
       goto BAD_REQUEST;
@@ -1639,6 +1632,13 @@ BAD_REQUEST:
       config->query = test;
     }
 
+    test = decodeString(url, 0);
+    if(test == NULL)
+	goto BAD_REQUEST;
+    if(test == (buf+1)) {
+	sendHeaders(HTTP_NOT_FOUND);
+	break;
+    }
     /* algorithm stolen from libbb bb_simplify_path(),
        but don`t strdup and reducing trailing slash and protect out root */
     purl = test = url;
