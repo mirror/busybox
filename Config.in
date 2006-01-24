@@ -164,6 +164,35 @@ config CONFIG_STATIC
 
 	  Most people will leave this set to 'N'.
 
+config CONFIG_BUILD_LIBBUSYBOX
+	bool "Build shared libbusybox"
+	default y
+	help
+	  Build a shared library libbusybox.so which contains all
+	  libraries used inside busybox.
+
+config CONFIG_FEATURE_FULL_LIBBUSYBOX
+	bool "Feature-complete libbusybox"
+	default n if !CONFIG_FEATURE_SHARED_BUSYBOX
+	depends on CONFIG_BUILD_LIBBUSYBOX
+	help
+	  Build a libbusybox with the complete feature-set, disregarding
+	  the actually selected config.
+
+	  Normally, libbusybox will only contain the features which are
+	  used by busybox itself. If you plan to write a separate
+	  standalone application which uses libbusybox say 'Y'.
+
+	  Say 'N' if in doubt.
+
+config CONFIG_FEATURE_SHARED_BUSYBOX
+	bool "Use shared libbusybox for busybox"
+	default y if CONFIG_BUILD_LIBBUSYBOX
+	depends on !CONFIG_STATIC && CONFIG_BUILD_LIBBUSYBOX
+	help
+	  Use libbusybox.so also for busybox itself.
+	  You need to have a working dynamic linker to use this variant.
+
 config CONFIG_LFS
 	bool "Build with Large File Support (for accessing files > 2 GB)"
 	default n
@@ -203,6 +232,25 @@ config EXTRA_CFLAGS_OPTIONS
 	  if you want to add some simple compiler switches (like -march=i686),
 	  or check for warnings using -Werror, just those options here.
 
+config CONFIG_BUILD_AT_ONCE
+	bool "Compile all sources at once"
+	default n
+	help
+	  Normally each source-file is compiled with one invocation of
+	  the compiler.
+	  If you set this option, all sources are compiled at once.
+	  This gives the compiler more opportunities to optimize which can
+	  result in smaller and/or faster binaries.
+
+	  Setting this option will consume alot of memory, e.g. if you
+	  enable all applets with all features, gcc uses more than 300MB
+	  RAM during compilation of busybox.
+
+	  This option is most likely only beneficial for newer compilers
+	  such as gcc-4.1 and above.
+
+	  Say 'N' unless you know what you are doing.
+
 config CONFIG_FEATURE_SUSv2
 	bool "Enable features that are in SuSv2 but not SuSv3?"
 	default y
@@ -216,7 +264,9 @@ config CONFIG_FEATURE_SUSv2_OBSOLETE
 	depends on CONFIG_FEATURE_SUSv2
 	default y
 	help
-	  Disables support for numeric arguments in fold.
+	  Enable pre- SuSv2 features which are deprecated in SuSv2 and
+	  above.
+	  Disables support for e.g. numeric arguments in fold.
 
 endmenu
 
@@ -264,26 +314,24 @@ config PREFIX
 	help
 	  Define your directory to install BusyBox files/subdirs in.
 
-
-
 endmenu
 
 source archival/Config.in
 source coreutils/Config.in
 source console-tools/Config.in
 source debianutils/Config.in
-source e2fsprogs/Config.in
 source editors/Config.in
 source findutils/Config.in
 source init/Config.in
 source loginutils/Config.in
-source miscutils/Config.in
+source e2fsprogs/Config.in
 source modutils/Config.in
+source util-linux/Config.in
+source miscutils/Config.in
 source networking/Config.in
 source procps/Config.in
 source shell/Config.in
 source sysklogd/Config.in
-source util-linux/Config.in
 
 menu 'Debugging Options'
 
