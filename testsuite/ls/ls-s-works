@@ -1,4 +1,4 @@
 [ -n "$d" ] || d=..
-LANG=C ls -1s "$d" > logfile.gnu
+LC_ALL=C ls -1s "$d" > logfile.gnu
 busybox ls -1s "$d" > logfile.bb
 cmp logfile.gnu logfile.bb
