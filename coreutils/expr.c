@@ -7,7 +7,9 @@
  *
  * Busybox modifications
  * Copyright (c) 2000  Edward Betts <edward@debian.org>.
- * Aug 2003  Vladimir Oleynik - reduced 464 bytes.
+ * Copyright (C) 2003-2005  Vladimir Oleynik <dzo@simtreas.ru>
+ *  - reduced 464 bytes.
+ *  - 64 math support
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,11 +54,21 @@ enum valtype {
 };
 typedef enum valtype TYPE;
 
+#if ENABLE_EXPR_MATH_SUPPORT_64
+typedef int64_t arith_t;
+#define PF_REZ      "ll"
+#define STRTOL(s, e, b) strtoll(s, e, b)
+#else
+typedef long arith_t;
+#define PF_REZ      "l"
+#define STRTOL(s, e, b) strtol(s, e, b)
+#endif
+
 /* A value is.... */
 struct valinfo {
-	TYPE type;			/* Which kind. */
-	union {				/* The value itself. */
-		int i;
+	TYPE type;                      /* Which kind. */
+	union {                         /* The value itself. */
+		arith_t i;
 		char *s;
 	} u;
 };
@@ -67,7 +79,7 @@ static char **args;
 
 static VALUE *docolon (VALUE *sv, VALUE *pv);
 static VALUE *eval (void);
-static VALUE *int_value (int i);
+static VALUE *int_value (arith_t i);
 static VALUE *str_value (char *s);
 static int nextarg (char *str);
 static int null (VALUE *v);
@@ -90,7 +102,7 @@ int expr_main (int argc, char **argv)
 		bb_error_msg_and_die ("syntax error");
 
 	if (v->type == integer)
-		printf ("%d\n", v->u.i);
+		printf ("%" PF_REZ "d\n", v->u.i);
 	else
 		puts (v->u.s);
 
@@ -99,7 +111,7 @@ int expr_main (int argc, char **argv)
 
 /* Return a VALUE for I.  */
 
-static VALUE *int_value (int i)
+static VALUE *int_value (arith_t i)
 {
 	VALUE *v;
 
@@ -147,7 +159,7 @@ static int null (VALUE *v)
 static void tostring (VALUE *v)
 {
 	if (v->type == integer) {
-		v->u.s = bb_xasprintf ("%d", v->u.i);
+		v->u.s = bb_xasprintf ("%" PF_REZ "d", v->u.i);
 		v->type = string;
 	}
 }
@@ -157,12 +169,12 @@ static void tostring (VALUE *v)
 static int toarith (VALUE *v)
 {
 	if(v->type == string) {
-		int i;
+		arith_t i;
 		char *e;
 
 		/* Don't interpret the empty string as an integer.  */
 		/* Currently does not worry about overflow or int/long differences. */
-		i = (int) strtol(v->u.s, &e, 10);
+		i = STRTOL(v->u.s, &e, 10);
 		if ((v->u.s == e) || *e)
 			return 0;
 		free (v->u.s);
@@ -214,9 +226,9 @@ static int cmp_common (VALUE *l, VALUE *r, int op)
 
 /* The arithmetic operator handling functions.  */
 
-static int arithmetic_common (VALUE *l, VALUE *r, int op)
+static arith_t arithmetic_common (VALUE *l, VALUE *r, int op)
 {
-  int li, ri;
+  arith_t li, ri;
 
   if (!toarith (l) || !toarith (r))
     bb_error_msg_and_die ("non-numeric argument");
@@ -346,7 +358,7 @@ static VALUE *eval6 (void)
 		tostring (l);
 		tostring (r);
 		v = int_value (strcspn (l->u.s, r->u.s) + 1);
-		if (v->u.i == (int) strlen (l->u.s) + 1)
+		if (v->u.i == (arith_t) strlen (l->u.s) + 1)
 			v->u.i = 0;
 		freev (l);
 		freev (r);
@@ -359,13 +371,13 @@ static VALUE *eval6 (void)
 		i2 = eval6 ();
 		tostring (l);
 		if (!toarith (i1) || !toarith (i2)
-			|| i1->u.i > (int) strlen (l->u.s)
+			|| i1->u.i > (arith_t) strlen (l->u.s)
 			|| i1->u.i <= 0 || i2->u.i <= 0)
 		v = str_value ("");
 		else {
 			v = xmalloc (sizeof(VALUE));
 			v->type = string;
-		       v->u.s = bb_xstrndup(l->u.s + i1->u.i - 1, i2->u.i);
+			v->u.s = bb_xstrndup(l->u.s + i1->u.i - 1, i2->u.i);
 		}
 		freev (l);
 		freev (i1);
@@ -400,7 +412,8 @@ static VALUE *eval5 (void)
 static VALUE *eval4 (void)
 {
 	VALUE *l, *r;
-	int op, val;
+	int op;
+	arith_t val;
 
 	l = eval5 ();
 	while (1) {
@@ -426,7 +439,8 @@ static VALUE *eval4 (void)
 static VALUE *eval3 (void)
 {
 	VALUE *l, *r;
-	int op, val;
+	int op;
+	arith_t val;
 
 	l = eval4 ();
 	while (1) {
@@ -450,7 +464,8 @@ static VALUE *eval3 (void)
 static VALUE *eval2 (void)
 {
 	VALUE *l, *r;
-	int op, val;
+	int op;
+	arith_t val;
 
 	l = eval3 ();
 	while (1) {
