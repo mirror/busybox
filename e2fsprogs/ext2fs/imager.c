@@ -1,11 +1,11 @@
 /*
  * image.c --- writes out the critical parts of the filesystem as a
- * 	flat file.
+ *	flat file.
  *
  * Copyright (C) 2000 Theodore Ts'o.
  *
  * Note: this uses the POSIX IO interfaces, unlike most of the other
- * functions in this library.  So sue me.  
+ * functions in this library.  So sue me.
  *
  * %Begin-Header%
  * This file may be redistributed under the terms of the GNU Public
@@ -67,7 +67,7 @@ errcode_t ext2fs_image_inode_write(ext2_filsys fs, int fd, int flags)
 	errcode_t	retval;
 
 	buf = xmalloc(fs->blocksize * BUF_BLOCKS);
-	
+
 	for (group = 0; group < fs->group_desc_count; group++) {
 		blk = fs->group_desc[(unsigned)group].bg_inode_table;
 		if (!blk)
@@ -127,7 +127,7 @@ errout:
 /*
  * Read in the inode table and stuff it into place
  */
-errcode_t ext2fs_image_inode_read(ext2_filsys fs, int fd, 
+errcode_t ext2fs_image_inode_read(ext2_filsys fs, int fd,
 				  int flags EXT2FS_ATTR((unused)))
 {
 	unsigned int	group, c, left;
@@ -137,7 +137,7 @@ errcode_t ext2fs_image_inode_read(ext2_filsys fs, int fd,
 	errcode_t	retval;
 
 	buf = xmalloc(fs->blocksize * BUF_BLOCKS);
-	
+
 	for (group = 0; group < fs->group_desc_count; group++) {
 		blk = fs->group_desc[(unsigned)group].bg_inode_table;
 		if (!blk) {
@@ -161,7 +161,7 @@ errcode_t ext2fs_image_inode_read(ext2_filsys fs, int fd,
 			retval = io_channel_write_blk(fs->io, blk, c, buf);
 			if (retval)
 				goto errout;
-			
+
 			blk += c;
 			left -= c;
 		}
@@ -176,7 +176,7 @@ errout:
 /*
  * Write out superblock and group descriptors
  */
-errcode_t ext2fs_image_super_write(ext2_filsys fs, int fd, 
+errcode_t ext2fs_image_super_write(ext2_filsys fs, int fd,
 				   int flags EXT2FS_ATTR((unused)))
 {
 	char		*buf, *cp;
@@ -213,7 +213,7 @@ errcode_t ext2fs_image_super_write(ext2_filsys fs, int fd,
 		retval = EXT2_ET_SHORT_WRITE;
 		goto errout;
 	}
-	
+
 	retval = 0;
 
 errout:
@@ -224,7 +224,7 @@ errout:
 /*
  * Read the superblock and group descriptors and overwrite them.
  */
-errcode_t ext2fs_image_super_read(ext2_filsys fs, int fd, 
+errcode_t ext2fs_image_super_read(ext2_filsys fs, int fd,
 				  int flags EXT2FS_ATTR((unused)))
 {
 	char		*buf;
@@ -368,7 +368,7 @@ errcode_t ext2fs_image_bitmap_read(ext2_filsys fs, int fd, int flags)
 		goto errout;
 	}
 	memcpy(ptr, buf, size);
-	
+
 	retval = 0;
 errout:
 	if (buf)

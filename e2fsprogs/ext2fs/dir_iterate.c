@@ -1,6 +1,6 @@
 /*
  * dir_iterate.c --- ext2fs directory iteration operations
- * 
+ *
  * Copyright (C) 1993, 1994, 1994, 1995, 1996, 1997 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -32,7 +32,7 @@
 static int ext2fs_validate_entry(char *buf, int offset, int final_offset)
 {
 	struct ext2_dir_entry *dirent;
-	
+
 	while (offset < final_offset) {
 		dirent = (struct ext2_dir_entry *)(buf + offset);
 		offset += dirent->rec_len;
@@ -59,13 +59,13 @@ errcode_t ext2fs_dir_iterate2(ext2_filsys fs,
 {
 	struct		dir_context	ctx;
 	errcode_t	retval;
-	
+
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
 
 	retval = ext2fs_check_directory(fs, dir);
 	if (retval)
 		return retval;
-	
+
 	ctx.dir = dir;
 	ctx.flags = flags;
 	if (block_buf)
@@ -106,7 +106,7 @@ static int xlate_func(ext2_ino_t dir EXT2FS_ATTR((unused)),
 	return (*xl->func)(dirent, offset, blocksize, buf, xl->real_private);
 }
 
-extern errcode_t ext2fs_dir_iterate(ext2_filsys fs, 
+extern errcode_t ext2fs_dir_iterate(ext2_filsys fs,
 			      ext2_ino_t dir,
 			      int flags,
 			      char *block_buf,
@@ -118,7 +118,7 @@ extern errcode_t ext2fs_dir_iterate(ext2_filsys fs,
 			      void *priv_data)
 {
 	struct xlate xl;
-	
+
 	xl.real_private = priv_data;
 	xl.func = func;
 
@@ -151,7 +151,7 @@ int ext2fs_process_dir_block(ext2_filsys fs,
 		return 0;
 
 	entry = blockcnt ? DIRENT_OTHER_FILE : DIRENT_DOT_FILE;
-	
+
 	ctx->errcode = ext2fs_read_dir_block(fs, *blocknr, ctx->buf);
 	if (ctx->errcode)
 		return BLOCK_ABORT;
@@ -177,18 +177,18 @@ int ext2fs_process_dir_block(ext2_filsys fs,
 				  ctx->priv_data);
 		if (entry < DIRENT_OTHER_FILE)
 			entry++;
-			
+
 		if (ret & DIRENT_CHANGED)
 			changed++;
 		if (ret & DIRENT_ABORT) {
 			do_abort++;
 			break;
 		}
-next:		
- 		if (next_real_entry == offset)
+next:
+		if (next_real_entry == offset)
 			next_real_entry += dirent->rec_len;
- 
- 		if (ctx->flags & DIRENT_FLAG_INCLUDE_REMOVED) {
+
+		if (ctx->flags & DIRENT_FLAG_INCLUDE_REMOVED) {
 			size = ((dirent->name_len & 0xFF) + 11) & ~3;
 
 			if (dirent->rec_len != size)  {

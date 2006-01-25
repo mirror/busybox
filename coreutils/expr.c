@@ -365,7 +365,7 @@ static VALUE *eval6 (void)
 		else {
 			v = xmalloc (sizeof(VALUE));
 			v->type = string;
-                       v->u.s = bb_xstrndup(l->u.s + i1->u.i - 1, i2->u.i);
+		       v->u.s = bb_xstrndup(l->u.s + i1->u.i - 1, i2->u.i);
 		}
 		freev (l);
 		freev (i1);

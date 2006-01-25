@@ -205,8 +205,8 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	    packet.ip.ihl != sizeof(packet.ip) >> 2 || packet.udp.dest != htons(CLIENT_PORT) ||
 	    bytes > (int) sizeof(struct udp_dhcp_packet) ||
 	    ntohs(packet.udp.len) != (uint16_t) (bytes - sizeof(packet.ip))) {
-	    	DEBUG(LOG_INFO, "unrelated/bogus packet");
-	    	return -2;
+		DEBUG(LOG_INFO, "unrelated/bogus packet");
+		return -2;
 	}
 
 	/* check IP checksum */

@@ -45,7 +45,7 @@ static void ext2fs_swap_bitmap(ext2_filsys fs, char *bitmap, int nbytes)
 {
 	__u32 *p = (__u32 *) bitmap;
 	int n;
-		
+
 	for (n = nbytes / sizeof(__u32); n > 0; --n, ++p)
 		*p = ext2fs_swab32(*p);
 }
@@ -53,7 +53,7 @@ static void ext2fs_swap_bitmap(ext2_filsys fs, char *bitmap, int nbytes)
 
 errcode_t ext2fs_write_inode_bitmap(ext2_filsys fs)
 {
-	dgrp_t 		i;
+	dgrp_t		i;
 	size_t		nbytes;
 	errcode_t	retval;
 	char * inode_bitmap = fs->inode_map->bitmap;
@@ -67,7 +67,7 @@ errcode_t ext2fs_write_inode_bitmap(ext2_filsys fs)
 	if (!inode_bitmap)
 		return 0;
 	nbytes = (size_t) ((EXT2_INODES_PER_GROUP(fs->super)+7) / 8);
-	
+
 	retval = ext2fs_get_mem(fs->blocksize, &bitmap_block);
 	if (retval)
 		return retval;
@@ -95,7 +95,7 @@ errcode_t ext2fs_write_inode_bitmap(ext2_filsys fs)
 
 errcode_t ext2fs_write_block_bitmap (ext2_filsys fs)
 {
-	dgrp_t 		i;
+	dgrp_t		i;
 	unsigned int	j;
 	int		nbytes;
 	unsigned int	nbits;
@@ -195,7 +195,7 @@ static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 		if (block_bitmap) {
 			blk = (fs->image_header->offset_blockmap /
 			       fs->blocksize);
-			retval = io_channel_read_blk(fs->image_io, blk, 
+			retval = io_channel_read_blk(fs->image_io, blk,
 			     -(block_nbytes * fs->group_desc_count),
 			     block_bitmap);
 			if (retval)
@@ -243,7 +243,7 @@ static errcode_t read_bitmaps(ext2_filsys fs, int do_inode, int do_block)
 		}
 	}
 	return 0;
-	
+
 cleanup:
 	if (do_block) {
 		ext2fs_free_mem(&fs->block_map);
@@ -296,5 +296,5 @@ errcode_t ext2fs_write_bitmaps(ext2_filsys fs)
 			return retval;
 	}
 	return 0;
-}	
+}
 

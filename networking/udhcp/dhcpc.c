@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 		{"hostname",	required_argument,	0, 'h'},
 		{"fqdn",	required_argument,	0, 'F'},
 		{"interface",	required_argument,	0, 'i'},
-		{"now", 	no_argument,		0, 'n'},
+		{"now",		no_argument,		0, 'n'},
 		{"pidfile",	required_argument,	0, 'p'},
 		{"quit",	no_argument,		0, 'q'},
 		{"request",	required_argument,	0, 'r'},
@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 		client_config.vendorclass[OPT_CODE] = DHCP_VENDOR;
 		client_config.vendorclass[OPT_LEN] = sizeof("udhcp "VERSION) - 1;
 		client_config.vendorclass[OPT_DATA] = 1;
-		memcpy(&client_config.vendorclass[OPT_DATA], 
+		memcpy(&client_config.vendorclass[OPT_DATA],
 			"udhcp "VERSION, sizeof("udhcp "VERSION) - 1);
 	}
 
@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
 					} else if (client_config.abort_if_no_lease) {
 						LOG(LOG_INFO, "No lease, failing.");
 						return 1;
-				  	}
+					}
 					/* wait to try again */
 					packet_num = 0;
 					timeout = now + 60;

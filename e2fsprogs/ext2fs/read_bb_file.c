@@ -29,7 +29,7 @@
 /*
  * Reads a list of bad blocks from  a FILE *
  */
-errcode_t ext2fs_read_bb_FILE2(ext2_filsys fs, FILE *f, 
+errcode_t ext2fs_read_bb_FILE2(ext2_filsys fs, FILE *f,
 			       ext2_badblocks_list *bb_list,
 			       void *priv_data,
 			       void (*invalid)(ext2_filsys fs,
@@ -72,7 +72,7 @@ errcode_t ext2fs_read_bb_FILE2(ext2_filsys fs, FILE *f,
 }
 
 static void call_compat_invalid(ext2_filsys fs, blk_t blk,
-				char *badstr EXT2FS_ATTR((unused)), 
+				char *badstr EXT2FS_ATTR((unused)),
 				void *priv_data)
 {
 	void (*invalid)(ext2_filsys, blk_t);
@@ -86,7 +86,7 @@ static void call_compat_invalid(ext2_filsys fs, blk_t blk,
 /*
  * Reads a list of bad blocks from  a FILE *
  */
-errcode_t ext2fs_read_bb_FILE(ext2_filsys fs, FILE *f, 
+errcode_t ext2fs_read_bb_FILE(ext2_filsys fs, FILE *f,
 			      ext2_badblocks_list *bb_list,
 			      void (*invalid)(ext2_filsys fs, blk_t blk))
 {

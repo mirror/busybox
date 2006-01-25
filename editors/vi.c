@@ -1673,13 +1673,13 @@ static Byte find_range(Byte ** start, Byte ** stop, Byte c)
 		q = dot;
 	} else if (strchr("wW", c)) {
 		do_cmd(c);		// execute movement cmd
- 		// if we are at the next word's first char
- 		// step back one char
- 		// but check the possibilities when it is true
+		// if we are at the next word's first char
+		// step back one char
+		// but check the possibilities when it is true
 		if (dot > text && ((isspace(dot[-1]) && !isspace(dot[0]))
- 				|| (ispunct(dot[-1]) && !ispunct(dot[0]))
- 				|| (isalnum(dot[-1]) && !isalnum(dot[0]))))
-  			dot--;		// move back off of next word
+				|| (ispunct(dot[-1]) && !ispunct(dot[0]))
+				|| (isalnum(dot[-1]) && !isalnum(dot[0]))))
+			dot--;		// move back off of next word
 		if (dot > text && *dot == '\n')
 			dot--;		// stay off NL
 		q = dot;
@@ -2405,7 +2405,7 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 		if (c == '\n' || c == '\r' || c == 27)
 			break;		// is this end of input
 		if (c == erase_char || c == 8 || c == 127) {
-		    	// user wants to erase prev char
+			// user wants to erase prev char
 			i--;		// backup to prev char
 			buf[i] = '\0';	// erase the char
 			buf[i + 1] = '\0';	// null terminate buffer
@@ -3754,11 +3754,11 @@ key_cmd_mode:
 		end_cmd_q();	// stop adding to q
 		break;
 	case 't':			// t- move to char prior to next x
-                last_forward_char = get_one_char();
-                do_cmd(';');
-                if (*dot == last_forward_char)
-                        dot_left();
-                last_forward_char= 0;
+		last_forward_char = get_one_char();
+		do_cmd(';');
+		if (*dot == last_forward_char)
+			dot_left();
+		last_forward_char= 0;
 		break;
 	case 'w':			// w- forward a word
 		if (cmdcnt-- > 1) {
@@ -4047,4 +4047,4 @@ static void crash_test()
 	}
 	return;
 }
-#endif                                                  /* CONFIG_FEATURE_VI_CRASHME */
+#endif					          /* CONFIG_FEATURE_VI_CRASHME */

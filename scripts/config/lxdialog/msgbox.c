@@ -73,7 +73,7 @@ dialog_msgbox (const char *title, const char *prompt, int height, int width,
 
 	wrefresh (dialog);
 	while (key != ESC && key != '\n' && key != ' ' &&
-               key != 'O' && key != 'o' && key != 'X' && key != 'x')
+	       key != 'O' && key != 'o' && key != 'X' && key != 'x')
 	    key = wgetch (dialog);
     } else {
 	key = '\n';

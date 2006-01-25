@@ -54,8 +54,8 @@ static void print_link_flags(FILE *fp, unsigned flags, unsigned mdown)
 	fprintf(fp, "<");
 	flags &= ~IFF_RUNNING;
 #define _PF(f) if (flags&IFF_##f) { \
-                  flags &= ~IFF_##f ; \
-                  fprintf(fp, #f "%s", flags ? "," : ""); }
+		  flags &= ~IFF_##f ; \
+		  fprintf(fp, #f "%s", flags ? "," : ""); }
 	_PF(LOOPBACK);
 	_PF(BROADCAST);
 	_PF(POINTOPOINT);
@@ -74,7 +74,7 @@ static void print_link_flags(FILE *fp, unsigned flags, unsigned mdown)
 #endif
 	_PF(UP);
 #undef _PF
-        if (flags)
+	if (flags)
 		fprintf(fp, "%x", flags);
 	if (mdown)
 		fprintf(fp, ",M-DOWN");
@@ -636,9 +636,9 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 		"anycast", "scope", "dev", "label", "local", 0 };
 	struct rtnl_handle rth;
 	struct {
-		struct nlmsghdr 	n;
-		struct ifaddrmsg 	ifa;
-		char   			buf[256];
+		struct nlmsghdr		n;
+		struct ifaddrmsg	ifa;
+		char			buf[256];
 	} req;
 	char  *d = NULL;
 	char  *l = NULL;

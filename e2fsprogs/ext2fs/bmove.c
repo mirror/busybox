@@ -1,6 +1,6 @@
 /*
  * bmove.c --- Move blocks around to make way for a particular
- * 	filesystem structure.
+ *	filesystem structure.
  *
  * Copyright (C) 1997 Theodore Ts'o.  This file may be redistributed
  * under the terms of the GNU Public License.
@@ -44,7 +44,7 @@ static int process_block(ext2_filsys fs, blk_t	*block_nr,
 	pb = (struct process_block_struct *) priv_data;
 	block = orig = *block_nr;
 	ret = 0;
-	
+
 	/*
 	 * Let's see if this is one which we need to relocate
 	 */
@@ -98,7 +98,7 @@ errcode_t ext2fs_move_blocks(ext2_filsys fs,
 	struct process_block_struct pb;
 	ext2_inode_scan	scan;
 	char		*block_buf;
-	
+
 	retval = ext2fs_open_inode_scan(fs, 0, &scan);
 	if (retval)
 		return retval;
@@ -107,7 +107,7 @@ errcode_t ext2fs_move_blocks(ext2_filsys fs,
 	pb.error = 0;
 	pb.alloc_map = alloc_map ? alloc_map : fs->block_map;
 	pb.flags = flags;
-	
+
 	retval = ext2fs_get_mem(fs->blocksize * 4, &block_buf);
 	if (retval)
 		return retval;
@@ -131,12 +131,12 @@ errcode_t ext2fs_move_blocks(ext2_filsys fs,
 	retval = ext2fs_get_next_inode(scan, &ino, &inode);
 	if (retval)
 		return retval;
-	
+
 	while (ino) {
 		if ((inode.i_links_count == 0) ||
 		    !ext2fs_inode_has_valid_blocks(&inode))
 			goto next;
-		
+
 		pb.ino = ino;
 		pb.inode = &inode;
 

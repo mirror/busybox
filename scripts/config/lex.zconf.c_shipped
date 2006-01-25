@@ -2771,7 +2771,7 @@ YY_FATAL_ERROR( "flex scanner jammed" );
  */
 static int yy_get_next_buffer (void)
 {
-    	register char *dest = YY_CURRENT_BUFFER_LVALUE->yy_ch_buf;
+	register char *dest = YY_CURRENT_BUFFER_LVALUE->yy_ch_buf;
 	register char *source = (yytext_ptr);
 	register int number_to_move, i;
 	int ret_val;
@@ -3091,7 +3091,7 @@ static int yy_get_next_buffer (void)
 
 static void zconf_load_buffer_state  (void)
 {
-    	(yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
+	(yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
 	(yytext_ptr) = (yy_c_buf_p) = YY_CURRENT_BUFFER_LVALUE->yy_buf_pos;
 	zconfin = YY_CURRENT_BUFFER_LVALUE->yy_input_file;
 	(yy_hold_char) = *(yy_c_buf_p);
@@ -3180,7 +3180,7 @@ static void zconf_load_buffer_state  (void)
  */
     void zconf_flush_buffer (YY_BUFFER_STATE  b )
 {
-    	if ( ! b )
+	if ( ! b )
 		return;
 
 	b->yy_n_chars = 0;
@@ -3209,7 +3209,7 @@ static void zconf_load_buffer_state  (void)
  */
 void zconfpush_buffer_state (YY_BUFFER_STATE new_buffer )
 {
-    	if (new_buffer == NULL)
+	if (new_buffer == NULL)
 		return;
 
 	zconfensure_buffer_stack();
@@ -3239,7 +3239,7 @@ void zconfpush_buffer_state (YY_BUFFER_STATE new_buffer )
  */
 void zconfpop_buffer_state (void)
 {
-    	if (!YY_CURRENT_BUFFER)
+	if (!YY_CURRENT_BUFFER)
 		return;
 
 	zconf_delete_buffer(YY_CURRENT_BUFFER );
@@ -3387,7 +3387,7 @@ YY_BUFFER_STATE zconf_scan_bytes  (yyconst char * bytes, int  len )
 
 static void yy_fatal_error (yyconst char* msg )
 {
-    	(void) fprintf( stderr, "%s\n", msg );
+	(void) fprintf( stderr, "%s\n", msg );
 	exit( YY_EXIT_FAILURE );
 }
 
@@ -3514,7 +3514,7 @@ int zconflex_destroy  (void)
 static void yy_flex_strncpy (char* s1, yyconst char * s2, int n )
 {
 	register int i;
-    	for ( i = 0; i < n; ++i )
+	for ( i = 0; i < n; ++i )
 		s1[i] = s2[i];
 }
 #endif
@@ -3523,7 +3523,7 @@ static void yy_flex_strncpy (char* s1, yyconst char * s2, int n )
 static int yy_flex_strlen (yyconst char * s )
 {
 	register int n;
-    	for ( n = 0; s[n]; ++n )
+	for ( n = 0; s[n]; ++n )
 		;
 
 	return n;

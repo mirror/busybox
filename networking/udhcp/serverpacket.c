@@ -138,11 +138,11 @@ int sendOffer(struct dhcpMessage *oldpacket)
 		   /* and the ip is in the lease range */
 		   ntohl(req_align) >= ntohl(server_config.start) &&
 		   ntohl(req_align) <= ntohl(server_config.end) &&
-		
+
 			!static_lease_ip &&  /* Check that its not a static lease */
 			/* and is not already taken/offered */
 		   ((!(lease = find_lease_by_yiaddr(req_align)) ||
-		
+
 		   /* or its taken, but expired */ /* ADDME: or maybe in here */
 		   lease_expired(lease)))) {
 				packet.yiaddr = req_align; /* FIXME: oh my, is there a host using this IP? */

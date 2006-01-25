@@ -31,16 +31,16 @@ die_failed:
     case -1:
       /* losetup takes two argument:, loop_device and file */
       if(optind+2==argc) {
-        if(set_loop(&argv[optind], argv[optind + 1], offset)>=0)
-          return EXIT_SUCCESS;
-        else goto die_failed;
+	if(set_loop(&argv[optind], argv[optind + 1], offset)>=0)
+	  return EXIT_SUCCESS;
+	else goto die_failed;
       }
       if(optind+1==argc) {
-        char *s=query_loop(argv[optind]);
-        if (!s) goto die_failed;
-        printf("%s: %s\n",argv[optind],s);
-        if(ENABLE_FEATURE_CLEAN_UP) free(s);
-        return EXIT_SUCCESS;
+	char *s=query_loop(argv[optind]);
+	if (!s) goto die_failed;
+	printf("%s: %s\n",argv[optind],s);
+	if(ENABLE_FEATURE_CLEAN_UP) free(s);
+	return EXIT_SUCCESS;
       }
       break;
   }

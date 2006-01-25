@@ -647,7 +647,7 @@ extern int telnet_main(int argc, char** argv)
 #ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
 	if (1 & bb_getopt_ulflags(argc, argv, "al:", &autologin))
 		autologin = getenv("USER");
-	
+
 	if (optind < argc) {
 		bb_lookup_host(&s_in, argv[optind++]);
 		s_in.sin_port = bb_lookup_port((optind < argc) ? argv[optind++] :

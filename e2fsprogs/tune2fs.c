@@ -163,7 +163,7 @@ no_valid_journal:
 
 /* Helper function for remove_journal_inode */
 static int release_blocks_proc(ext2_filsys fs, blk_t *blocknr,
-			       int blockcnt EXT2FS_ATTR((unused)), 
+			       int blockcnt EXT2FS_ATTR((unused)),
 			       void *private EXT2FS_ATTR((unused)))
 {
 	blk_t	block;
@@ -187,9 +187,9 @@ static void remove_journal_inode(ext2_filsys fs)
 	ino_t			ino = fs->super->s_journal_inum;
 	char *msg = "to read";
 	char *s = "journal inode";
-	
+
 	retval = ext2fs_read_inode(fs, ino,  &inode);
-	if (retval) 
+	if (retval)
 		goto REMOVE_JOURNAL_INODE_ERROR;
 	if (ino == EXT2_JOURNAL_INO) {
 		retval = ext2fs_read_bitmaps(fs);
@@ -343,13 +343,13 @@ static void add_journal(ext2_filsys fs)
 	return;
 }
 
-/*  
+/*
  * Busybox stuff
  */
 static char * x_blkid_get_devname(const char *token)
 {
 	char * dev_name;
-	
+
 	if (!(dev_name = blkid_get_devname(NULL, token, NULL)))
 		bb_error_msg_and_die("Unable to resolve '%s'", token);
 	return dev_name;
@@ -368,11 +368,11 @@ static void parse_e2label_options(int argc, char ** argv)
 		open_flag = EXT2_FLAG_RW | EXT2_FLAG_JOURNAL_DEV_OK;
 		L_flag = 1;
 		new_label = argv[2];
-	} else 
+	} else
 		print_label++;
 }
 #else
-#define parse_e2label_options(x,y)         
+#define parse_e2label_options(x,y)
 #endif
 
 static time_t parse_time(char *str)
@@ -516,7 +516,7 @@ MOUNTS_COUNT_ERROR:
 				mntopts_cmd = optarg;
 				open_flag = EXT2_FLAG_RW;
 				break;
-				
+
 			case 'O':
 				if (features_cmd) {
 					bb_error_msg_and_die("-O may only be specified once");
@@ -594,7 +594,7 @@ int tune2fs_main(int argc, char **argv)
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		atexit(clean_up);
-		
+
 	if (ENABLE_FINDFS && (bb_applet_name[0] == 'f')) /* findfs */
 		do_findfs(argc, argv);  /* no return */
 	else if (ENABLE_E2LABEL && (bb_applet_name[0] == 'e')) /* e2label */
@@ -603,7 +603,7 @@ int tune2fs_main(int argc, char **argv)
 		parse_tune2fs_options(argc, argv);  /* tune2fs */
 
 	io_ptr = unix_io_manager;
-	retval = ext2fs_open2(device_name, io_options, open_flag, 
+	retval = ext2fs_open2(device_name, io_options, open_flag,
 			      0, 0, io_ptr, &fs);
 	if (retval)
 		bb_error_msg_and_die("No valid superblock on %s", device_name);

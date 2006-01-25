@@ -286,9 +286,9 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 {
 	struct rtnl_handle rth;
 	struct {
-		struct nlmsghdr 	n;
-		struct rtmsg 		r;
-		char   			buf[1024];
+		struct nlmsghdr		n;
+		struct rtmsg		r;
+		char			buf[1024];
 	} req;
 	char  mxbuf[256];
 	struct rtattr * mxrta = (void*)mxbuf;
@@ -648,15 +648,15 @@ static int iproute_get(int argc, char **argv)
 {
 	struct rtnl_handle rth;
 	struct {
-		struct nlmsghdr 	n;
-		struct rtmsg 		r;
-		char   			buf[1024];
+		struct nlmsghdr		n;
+		struct rtmsg		r;
+		char			buf[1024];
 	} req;
 	char  *idev = NULL;
 	char  *odev = NULL;
 	int connected = 0;
 	int from_ok = 0;
-	static const char * const options[] = 
+	static const char * const options[] =
 		{ "from", "iif", "oif", "dev", "notify", "connected", "to", 0 };
 
 	memset(&req, 0, sizeof(req));
@@ -816,8 +816,8 @@ static int iproute_get(int argc, char **argv)
 
 int do_iproute(int argc, char **argv)
 {
-	static const char * const ip_route_commands[] = 
-		{ "add", "append", "change", "chg", "delete", "del", "get", 
+	static const char * const ip_route_commands[] =
+		{ "add", "append", "change", "chg", "delete", "del", "get",
 		"list", "show", "prepend", "replace", "test", "flush", 0 };
 	int command_num = 7;
 	unsigned int flags = 0;

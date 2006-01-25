@@ -97,7 +97,7 @@ static void fill_options(char *dest, uint8_t *option, struct dhcp_option *type_p
 			optlen = 4;
 		case OPTION_IP:	/* Works regardless of host byte order. */
 			dest += sprintip(dest, "", option);
- 			break;
+			break;
 		case OPTION_BOOLEAN:
 			dest += sprintf(dest, *option ? "yes" : "no");
 			break;

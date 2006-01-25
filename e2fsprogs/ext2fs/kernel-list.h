@@ -29,7 +29,7 @@ struct list_head {
 #endif
 
 /*
- * Insert a new entry between two known consecutive entries. 
+ * Insert a new entry between two known consecutive entries.
  *
  * This is only for internal list manipulation where we know
  * the prev/next entries already!
@@ -107,6 +107,6 @@ static __inline__ void list_splice(struct list_head *list, struct list_head *hea
 	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
 #define list_for_each(pos, head) \
-        for (pos = (head)->next; pos != (head); pos = pos->next)
+	for (pos = (head)->next; pos != (head); pos = pos->next)
 
 #endif

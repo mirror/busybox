@@ -1,6 +1,6 @@
 /*
  * ismounted.c --- Check to see if the filesystem was mounted
- * 
+ *
  * Copyright (C) 1995,1996,1997,1998,1999,2000 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -38,17 +38,17 @@
 /*
  * Helper function which checks a file in /etc/mtab format to see if a
  * filesystem is mounted.  Returns an error if the file doesn't exist
- * or can't be opened.  
+ * or can't be opened.
  */
-static errcode_t check_mntent_file(const char *mtab_file, const char *file, 
+static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 				   int *mount_flags, char *mtpt, int mtlen)
 {
-	struct mntent 	*mnt;
+	struct mntent	*mnt;
 	struct stat	st_buf;
 	errcode_t	retval = 0;
 	dev_t		file_dev=0, file_rdev=0;
 	ino_t		file_ino=0;
-	FILE 		*f;
+	FILE		*f;
 	int		fd;
 
 	*mount_flags = 0;
@@ -103,7 +103,7 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 	}
 #ifndef __GNU__ /* The GNU hurd is deficient; what else is new? */
 	/* Validate the entry in case /etc/mtab is out of date */
-	/* 
+	/*
 	 * We need to be paranoid, because some broken distributions
 	 * (read: Slackware) don't initialize /etc/mtab before checking
 	 * all of the non-root filesystems on the disk.
@@ -128,7 +128,7 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 	}
 #endif /* __GNU__ */
 	*mount_flags = EXT2_MF_MOUNTED;
-	
+
 #ifdef MNTOPT_RO
 	/* Check to see if the ro option is set */
 	if (hasmntopt(mnt, MNTOPT_RO))
@@ -145,7 +145,7 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 	 */
 	if (!strcmp(mnt->mnt_dir, "/")) {
 is_root:
-#define TEST_FILE "/.ismount-test-file"		
+#define TEST_FILE "/.ismount-test-file"
 		*mount_flags |= EXT2_MF_ISROOT;
 		fd = open(TEST_FILE, O_RDWR|O_CREAT);
 		if (fd < 0) {
@@ -184,7 +184,7 @@ static errcode_t check_mntent(const char *file, int *mount_flags,
 #endif /* MOUNTED */
 	retval = check_mntent_file(MOUNTED, file, mount_flags, mtpt, mtlen);
 	return retval;
-#else 
+#else
 	*mount_flags = 0;
 	return 0;
 #endif /* defined(MOUNTED) || defined(_PATH_MOUNTED) */
@@ -197,31 +197,31 @@ static errcode_t check_getmntinfo(const char *file, int *mount_flags,
 				  char *mtpt, int mtlen)
 {
 	struct statfs *mp;
-        int    len, n;
-        const  char   *s1;
+	int    len, n;
+	const  char   *s1;
 	char	*s2;
 
-        n = getmntinfo(&mp, MNT_NOWAIT);
-        if (n == 0)
+	n = getmntinfo(&mp, MNT_NOWAIT);
+	if (n == 0)
 		return errno;
 
-        len = sizeof(_PATH_DEV) - 1;
-        s1 = file;
-        if (strncmp(_PATH_DEV, s1, len) == 0)
-                s1 += len;
- 
+	len = sizeof(_PATH_DEV) - 1;
+	s1 = file;
+	if (strncmp(_PATH_DEV, s1, len) == 0)
+		s1 += len;
+
 	*mount_flags = 0;
-        while (--n >= 0) {
-                s2 = mp->f_mntfromname;
-                if (strncmp(_PATH_DEV, s2, len) == 0) {
-                        s2 += len - 1;
-                        *s2 = 'r';
-                }
-                if (strcmp(s1, s2) == 0 || strcmp(s1, &s2[1]) == 0) {
+	while (--n >= 0) {
+		s2 = mp->f_mntfromname;
+		if (strncmp(_PATH_DEV, s2, len) == 0) {
+			s2 += len - 1;
+			*s2 = 'r';
+		}
+		if (strcmp(s1, s2) == 0 || strcmp(s1, &s2[1]) == 0) {
 			*mount_flags = EXT2_MF_MOUNTED;
 			break;
 		}
-                ++mp;
+		++mp;
 	}
 	if (mtpt)
 		strncpy(mtpt, mp->f_mntonname, mtlen);
@@ -270,7 +270,7 @@ static int is_swap_device(const char *file)
 			ret++;
 			break;
 		}
-#endif 	/* __GNU__ */
+#endif	/* __GNU__ */
 	}
 	fclose(f);
 	return ret;
@@ -296,7 +296,7 @@ errcode_t ext2fs_check_mount_point(const char *device, int *mount_flags,
 	}
 #ifdef HAVE_MNTENT_H
 	return check_mntent(device, mount_flags, mtpt, mtlen);
-#else 
+#else
 #ifdef HAVE_GETMNTINFO
 	return check_getmntinfo(device, mount_flags, mtpt, mtlen);
 #else
@@ -312,7 +312,7 @@ errcode_t ext2fs_check_mount_point(const char *device, int *mount_flags,
 /*
  * ext2fs_check_if_mounted() sets the mount_flags EXT2_MF_MOUNTED,
  * EXT2_MF_READONLY, and EXT2_MF_ROOT
- * 
+ *
  */
 errcode_t ext2fs_check_if_mounted(const char *file, int *mount_flags)
 {
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
 {
 	int	retval, mount_flags;
 	char	mntpt[80];
-	
+
 	if (argc < 2) {
 		fprintf(stderr, "Usage: %s device\n", argv[0]);
 		exit(1);
@@ -347,12 +347,12 @@ int main(int argc, char **argv)
 
 	if (mount_flags & EXT2_MF_READONLY)
 		printf("\t%s is read-only.\n", argv[1]);
-	
+
 	if (mount_flags & EXT2_MF_ISROOT)
 		printf("\t%s is the root filesystem.\n", argv[1]);
 	if (mntpt[0])
 		printf("\t%s is mounted on %s.\n", argv[1], mntpt);
-	
+
 	exit(0);
 }
 #endif /* DEBUG */

@@ -1,11 +1,11 @@
 /*
  * feature.c --- convert between features and strings
- * 
+ *
  * Copyright (C) 1999  Theodore Ts'o <tytso@mit.edu>
- * 
+ *
  * This file can be redistributed under the terms of the GNU Library General
  * Public License
- * 
+ *
  */
 
 #include <stdio.h>

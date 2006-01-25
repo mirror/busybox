@@ -1,11 +1,11 @@
 /*
  * getsize.c --- get the size of a partition.
- * 
+ *
  * Copyright (C) 1995, 1995 Theodore Ts'o.
  * Copyright (C) 2003 VMware, Inc.
  *
  * Windows version of ext2fs_get_device_size by Chris Li, VMware.
- * 
+ *
  * %Begin-Header%
  * This file may be redistributed under the terms of the GNU Public
  * License.
@@ -75,10 +75,10 @@ errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 	DWORD filesize;
 #endif /* HAVE_GET_FILE_SIZE_EX */
 
-	dev = CreateFile(file, GENERIC_READ, 
+	dev = CreateFile(file, GENERIC_READ,
 			 FILE_SHARE_READ | FILE_SHARE_WRITE ,
-                	 NULL,  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,  NULL); 
- 
+			 NULL,  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,  NULL);
+
 	if (dev == INVALID_HANDLE_VALUE)
 		return EBADF;
 	if (DeviceIoControl(dev, IOCTL_DISK_GET_PARTITION_INFO,
@@ -87,7 +87,7 @@ errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 			    &retbytes, NULL)) {
 
 		*retblocks = pi.PartitionLength.QuadPart / blocksize;
-	
+
 	} else if (DeviceIoControl(dev, IOCTL_DISK_GET_DRIVE_GEOMETRY,
 				&gi, sizeof(DISK_GEOMETRY),
 				&gi, sizeof(DISK_GEOMETRY),
@@ -137,7 +137,7 @@ errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 	int	fd;
 	int valid_blkgetsize64 = 1;
 #ifdef __linux__
-	struct 		utsname ut;
+	struct		utsname ut;
 #endif
 	unsigned long long size64;
 	unsigned long	size;
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
 {
 	blk_t	blocks;
 	int	retval;
-	
+
 	if (argc < 2) {
 		fprintf(stderr, "Usage: %s device\n", argv[0]);
 		exit(1);

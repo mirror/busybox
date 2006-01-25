@@ -238,7 +238,7 @@ start_stop_daemon_main(int argc, char **argv)
 	opt = bb_getopt_ulflags(argc, argv, "KSbqma:n:s:u:x:p:",
 		&startas, &cmdname, &signame, &userspec, &execname, &pidfile);
 
-	
+
 	quiet = opt & SSD_OPT_QUIET;
 
 	if (signame) {

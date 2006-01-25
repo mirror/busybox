@@ -91,7 +91,7 @@ struct HardLinkInfo {
 struct TarBallInfo {
 	char *fileName;			/* File name of the tarball */
 	int tarFd;				/* Open-for-write file descriptor
-						   	   for the tarball */
+							   for the tarball */
 	struct stat statBuf;	/* Stat info for the tarball, letting
 							   us know the inode and device that the
 							   tarball lives, so we can avoid trying
@@ -569,7 +569,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 
 	/* do the decompression, and cleanup */
 	if (bb_xread_char(archive_handle->src_fd) != 0x1f ||
-	   	bb_xread_char(archive_handle->src_fd) != 0x9d)
+		bb_xread_char(archive_handle->src_fd) != 0x9d)
 	{
 		bb_error_msg_and_die("Invalid magic");
 	}
@@ -699,7 +699,7 @@ static const struct option tar_long_options[] = {
 # ifdef CONFIG_FEATURE_TAR_COMPRESS
 	{ "compress",			0,	NULL,	'Z' },
 # endif
-	{ 0,                 	0, 0, 0 }
+	{ 0,					0, 0, 0 }
 };
 #else
 #define tar_long_options	0
@@ -713,7 +713,7 @@ int tar_main(int argc, char **argv)
 	const char *tar_filename = "-";
 	unsigned long opt;
 	llist_t *excludes = NULL;
-	
+
 	/* Initialise default values */
 	tar_handle = init_handle();
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE | ARCHIVE_EXTRACT_UNCONDITIONAL;
@@ -743,7 +743,7 @@ int tar_main(int argc, char **argv)
 	}
 	if((opt & CTX_EXTRACT) && tar_handle->action_data != data_extract_to_stdout)
 		tar_handle->action_data = data_extract_all;
-		
+
 	if (opt & TAR_OPT_2STDOUT)
 		tar_handle->action_data = data_extract_to_stdout;
 
@@ -843,9 +843,9 @@ int tar_main(int argc, char **argv)
 		int zipMode = 0;
 
 		if (ENABLE_FEATURE_TAR_GZIP && get_header_ptr == get_header_tar_gz)
-		   	zipMode = 1;
+			zipMode = 1;
 		if (ENABLE_FEATURE_TAR_BZIP2 && get_header_ptr == get_header_tar_bz2)
-		   	zipMode = 2;
+			zipMode = 2;
 
 		if ((tar_handle->action_header == header_list) ||
 				(tar_handle->action_header == header_verbose_list))

@@ -1364,7 +1364,7 @@ inetd_main (int argc, char *argv[])
   sigaction (SIGINT, &sa, NULL);
   sa.sa_handler = SIG_IGN;
   sigaction (SIGPIPE, &sa, &sapipe);
-  memset(&wait_mask, 0, sizeof(wait_mask)); 
+  memset(&wait_mask, 0, sizeof(wait_mask));
   {
 	/* space for daemons to overwrite environment for ps */
 #define DUMMYSIZE       100

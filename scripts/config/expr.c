@@ -824,7 +824,7 @@ bool expr_depends_symbol(struct expr *dep, struct symbol *sym)
 	default:
 		;
 	}
- 	return false;
+	return false;
 }
 
 struct expr *expr_extract_eq_and(struct expr **ep1, struct expr **ep2)

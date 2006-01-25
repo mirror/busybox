@@ -173,7 +173,7 @@ extern int lsmod_main(int argc, char **argv)
 
 	  while (fgets(line, sizeof(line), file)) {
 	    char *tok;
-	    
+
 	    tok = strtok(line, " \t");
 	    printf("%-19s", tok);
 	    tok = strtok(NULL, " \t\n");

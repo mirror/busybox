@@ -26,15 +26,15 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 	file_header_t *typed = archive_handle->file_header;
 	union {
 		char raw[60];
-	 	struct {
- 			char name[16];
- 			char date[12];
- 			char uid[6];
- 			char gid[6];
- 			char mode[8];
- 			char size[10];
- 			char magic[2];
- 		} formated;
+		struct {
+			char name[16];
+			char date[12];
+			char uid[6];
+			char gid[6];
+			char mode[8];
+			char size[10];
+			char magic[2];
+		} formated;
 	} ar;
 #ifdef CONFIG_FEATURE_AR_LONG_FILENAMES
 	static char *ar_long_names;
@@ -102,7 +102,7 @@ extern char get_header_ar(archive_handle_t *archive_handle)
 #endif
 	} else {
 		/* short filenames */
-               typed->name = bb_xstrndup(ar.formated.name, 16);
+	       typed->name = bb_xstrndup(ar.formated.name, 16);
 	}
 
 	typed->name[strcspn(typed->name, " /")] = '\0';

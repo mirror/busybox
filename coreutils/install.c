@@ -44,7 +44,7 @@ static const struct option install_long_options[] = {
 	{ "preserve-timestamps",	0,	NULL,	'p' },
 	{ "strip",	0,	NULL,	's' },
 	{ "group",	0,	NULL,	'g' },
-	{ "mode", 	0,	NULL,	'm' },
+	{ "mode",	0,	NULL,	'm' },
 	{ "owner",	0,	NULL,	'o' },
 	{ 0,	0,	0,	0 }
 };

@@ -70,7 +70,7 @@ char bb_process_escape_sequence(const char **ptr)
 		if (d >= base) {
 #ifdef WANT_HEX_ESCAPES
 			if ((base == 16) && (!--num_digits)) {
-/* 				return '\\'; */
+/*				return '\\'; */
 				--q;
 			}
 #endif

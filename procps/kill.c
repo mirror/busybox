@@ -87,7 +87,7 @@ extern int kill_main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-#ifdef CONFIG_KILLALL	
+#ifdef CONFIG_KILLALL
 	/* The -q quiet option */
 	if(argv[1][1]=='q' && argv[1][2]=='\0'){
 		quiet++;

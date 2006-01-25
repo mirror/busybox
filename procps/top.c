@@ -133,20 +133,20 @@ static unsigned long Hertz;
 #define FILE_TO_BUF(filename, fd) do{                           \
     if (fd == -1 && (fd = open(filename, O_RDONLY)) == -1) {    \
 	bb_perror_msg_and_die("/proc not be mounted?");            \
-    }                                                           \
+    }					                   \
     lseek(fd, 0L, SEEK_SET);                                    \
     if ((local_n = read(fd, buf, sizeof buf - 1)) < 0) {        \
 	bb_perror_msg_and_die("%s", filename);                     \
-    }                                                           \
-    buf[local_n] = '\0';                                        \
+    }					                   \
+    buf[local_n] = '\0';					\
 }while(0)
 
 #define FILE_TO_BUF2(filename, fd) do{                          \
     lseek(fd, 0L, SEEK_SET);                                    \
     if ((local_n = read(fd, buf, sizeof buf - 1)) < 0) {        \
 	bb_perror_msg_and_die("%s", filename);                     \
-    }                                                           \
-    buf[local_n] = '\0';                                        \
+    }					                   \
+    buf[local_n] = '\0';					\
 }while(0)
 
 static void init_Hertz_value(void) {

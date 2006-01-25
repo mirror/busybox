@@ -67,7 +67,7 @@ static time_t read_rtc(int utc)
 		if (( rtc = open ( "/dev/misc/rtc", O_RDONLY )) < 0 )
 			bb_perror_msg_and_die ( "Could not access RTC" );
 	}
- 	memset ( &tm, 0, sizeof( struct tm ));
+	memset ( &tm, 0, sizeof( struct tm ));
 	if ( ioctl ( rtc, RTC_RD_TIME, &tm ) < 0 )
 		bb_perror_msg_and_die ( "Could not read time from RTC" );
 	tm. tm_isdst = -1; // not known
@@ -187,10 +187,10 @@ static int check_utc(void)
 }
 
 #define HWCLOCK_OPT_LOCALTIME	0x01
-#define HWCLOCK_OPT_UTC      	0x02
-#define HWCLOCK_OPT_SHOW     	0x04
-#define HWCLOCK_OPT_HCTOSYS  	0x08
-#define HWCLOCK_OPT_SYSTOHC  	0x10
+#define HWCLOCK_OPT_UTC			0x02
+#define HWCLOCK_OPT_SHOW		0x04
+#define HWCLOCK_OPT_HCTOSYS		0x08
+#define HWCLOCK_OPT_SYSTOHC		0x10
 
 extern int hwclock_main ( int argc, char **argv )
 {

@@ -29,7 +29,7 @@ const char *backtitle = NULL;
 
 const char *dialog_result;
 
-/* 
+/*
  * Attribute values, default is for mono display
  */
 chtype attributes[] =
@@ -127,13 +127,13 @@ void dialog_clear (void)
     attr_clear (stdscr, LINES, COLS, screen_attr);
     /* Display background title if it exists ... - SLH */
     if (backtitle != NULL) {
-        int i;
+	int i;
 
-        wattrset (stdscr, screen_attr);
-        mvwaddstr (stdscr, 0, 1, (char *)backtitle);
-        wmove (stdscr, 1, 1);
-        for (i = 1; i < COLS - 1; i++)
-            waddch (stdscr, ACS_HLINE);
+	wattrset (stdscr, screen_attr);
+	mvwaddstr (stdscr, 0, 1, (char *)backtitle);
+	wmove (stdscr, 1, 1);
+	for (i = 1; i < COLS - 1; i++)
+	    waddch (stdscr, ACS_HLINE);
     }
     wnoutrefresh (stdscr);
 }
@@ -204,7 +204,7 @@ print_autowrap (WINDOW * win, const char *prompt, int width, int y, int x)
     strcpy (tempstr, prompt);
 
     prompt_len = strlen(tempstr);
-	
+
     /*
      * Remove newlines
      */
@@ -350,7 +350,7 @@ first_alpha(const char *string, const char *exempt)
 		if (strchr("<[(", c)) ++in_paren;
 		if (strchr(">])", c) && in_paren > 0) --in_paren;
 
-		if ((! in_paren) && isalpha(c) && 
+		if ((! in_paren) && isalpha(c) &&
 		     strchr(exempt, c) == 0)
 			return i;
 	}

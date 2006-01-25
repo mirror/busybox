@@ -60,7 +60,7 @@ extern int rmmod_main(int argc, char **argv)
 	int n, ret = EXIT_SUCCESS;
 	unsigned int flags = O_NONBLOCK|O_EXCL;
 #ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
-	/* bb_common_bufsiz1 hold the module names which we ignore 
+	/* bb_common_bufsiz1 hold the module names which we ignore
 	   but must get */
 	size_t bufsize = sizeof(bb_common_bufsiz1);
 #endif
@@ -76,7 +76,7 @@ extern int rmmod_main(int argc, char **argv)
 		/* until the number of modules does not change */
 		size_t nmod = 0; /* number of modules */
 		size_t pnmod = -1; /* previous number of modules */
-		                
+
 		while (nmod != pnmod) {
 			if (syscall(__NR_delete_module, NULL, flags) != 0) {
 				if (errno==EFAULT)
@@ -101,7 +101,7 @@ extern int rmmod_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_2_6_MODULES
 		const char *afterslash;
 		char *module_name;
-		
+
 		afterslash = strrchr(argv[n], '/');
 		if (!afterslash)
 			afterslash = argv[n];

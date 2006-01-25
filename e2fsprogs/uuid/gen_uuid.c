@@ -16,7 +16,7 @@
  * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, ALL OF
@@ -63,8 +63,8 @@
 #include "uuidP.h"
 
 #ifdef HAVE_SRANDOM
-#define srand(x) 	srandom(x)
-#define rand() 		random()
+#define srand(x)	srandom(x)
+#define rand()		random()
 #endif
 
 static int get_random_fd(void)
@@ -111,7 +111,7 @@ static void get_random_bytes(void *buf, int nbytes)
 			lose_counter = 0;
 		}
 	}
-	
+
 	/*
 	 * We do this all the time, but this is the only source of
 	 * randomness if /dev/random/urandom is out to lunch.
@@ -127,12 +127,12 @@ static void get_random_bytes(void *buf, int nbytes)
 static int get_node_id(unsigned char *node_id)
 {
 #ifdef HAVE_NET_IF_H
-	int 		sd;
-	struct ifreq 	ifr, *ifrp;
-	struct ifconf 	ifc;
+	int		sd;
+	struct ifreq	ifr, *ifrp;
+	struct ifconf	ifc;
 	char buf[1024];
 	int		n, i;
-	unsigned char 	*a;
+	unsigned char	*a;
 #ifdef HAVE_NET_IF_DL_H
 	struct sockaddr_dl *sdlp;
 #endif
@@ -140,7 +140,7 @@ static int get_node_id(unsigned char *node_id)
 /*
  * BSD 4.4 defines the size of an ifreq to be
  * max(sizeof(ifreq), sizeof(ifreq.ifr_name)+ifreq.ifr_addr.sa_len
- * However, under earlier systems, sa_len isn't present, so the size is 
+ * However, under earlier systems, sa_len isn't present, so the size is
  * just sizeof(struct ifreq)
  */
 #ifdef HAVE_SA_LEN
@@ -214,9 +214,9 @@ static int get_clock(uint32_t *clock_high, uint32_t *clock_low, uint16_t *ret_cl
 	static int			adjustment = 0;
 	static struct timeval		last = {0, 0};
 	static uint16_t			clock_seq;
-	struct timeval 			tv;
+	struct timeval			tv;
 	unsigned long long		clock_reg;
-	
+
 try_again:
 	gettimeofday(&tv, 0);
 	if ((last.tv_sec == 0) && (last.tv_usec == 0)) {
@@ -240,7 +240,7 @@ try_again:
 		adjustment = 0;
 		last = tv;
 	}
-		
+
 	clock_reg = tv.tv_usec*10 + adjustment;
 	clock_reg += ((unsigned long long) tv.tv_sec)*10000000;
 	clock_reg += (((unsigned long long) 0x01B21DD2) << 32) + 0x13814000;

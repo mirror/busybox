@@ -1,13 +1,13 @@
 /*
  * unix_io.c --- This is the Unix (well, really POSIX) implementation
- * 	of the I/O manager.
+ *	of the I/O manager.
  *
  * Implements a one-block write-through cache.
  *
- * Includes support for Windows NT support under Cygwin. 
+ * Includes support for Windows NT support under Cygwin.
  *
  * Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
- * 	2002 by Theodore Ts'o.
+ *	2002 by Theodore Ts'o.
  *
  * %Begin-Header%
  * This file may be redistributed under the terms of the GNU Public
@@ -79,7 +79,7 @@ static errcode_t unix_write_blk(io_channel channel, unsigned long block,
 static errcode_t unix_flush(io_channel channel);
 static errcode_t unix_write_byte(io_channel channel, unsigned long offset,
 				int size, const void *data);
-static errcode_t unix_set_option(io_channel channel, const char *option, 
+static errcode_t unix_set_option(io_channel channel, const char *option,
 				 const char *arg);
 
 static void reuse_cache(io_channel channel, struct unix_private_data *data,
@@ -140,7 +140,7 @@ static errcode_t raw_read_blk(io_channel channel,
 		goto error_out;
 	}
 	return 0;
-	
+
 error_out:
 	memset((char *) buf+actual, 0, size-actual);
 	if (channel->read_error)
@@ -168,7 +168,7 @@ static errcode_t raw_read_blk(io_channel channel,
 	location = ((ext2_loff_t) block * channel->block_size) + data->offset;
 #ifdef DEBUG
 	printf("count=%d, size=%d, block=%d, blk_size=%d, location=%lx\n",
-	 		count, size, block, channel->block_size, location);
+			count, size, block, channel->block_size, location);
 #endif
 	if (ext2fs_llseek(data->dev, location, SEEK_SET) != location) {
 		retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
@@ -227,14 +227,14 @@ static errcode_t raw_write_blk(io_channel channel,
 		retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 		goto error_out;
 	}
-	
+
 	actual = write(data->dev, buf, size);
 	if (actual != size) {
 		retval = EXT2_ET_SHORT_WRITE;
 		goto error_out;
 	}
 	return 0;
-	
+
 error_out:
 	if (channel->write_error)
 		retval = (channel->write_error)(channel, block, count, buf,
@@ -254,7 +254,7 @@ static errcode_t alloc_cache(io_channel channel,
 	errcode_t		retval;
 	struct unix_cache	*cache;
 	int			i;
-	
+
 	data->access_time = 0;
 	for (i=0, cache = data->cache; i < CACHE_SIZE; i++, cache++) {
 		cache->block = 0;
@@ -273,7 +273,7 @@ static void free_cache(struct unix_private_data *data)
 {
 	struct unix_cache	*cache;
 	int			i;
-	
+
 	data->access_time = 0;
 	for (i=0, cache = data->cache; i < CACHE_SIZE; i++, cache++) {
 		cache->block = 0;
@@ -298,7 +298,7 @@ static struct unix_cache *find_cached_block(struct unix_private_data *data,
 {
 	struct unix_cache	*cache, *unused_cache, *oldest_cache;
 	int			i;
-	
+
 	unused_cache = oldest_cache = 0;
 	for (i=0, cache = data->cache; i < CACHE_SIZE; i++, cache++) {
 		if (!cache->in_use) {
@@ -345,18 +345,18 @@ static errcode_t flush_cached_blocks(io_channel channel,
 	struct unix_cache	*cache;
 	errcode_t		retval, retval2;
 	int			i;
-	
+
 	retval2 = 0;
 	for (i=0, cache = data->cache; i < CACHE_SIZE; i++, cache++) {
 		if (!cache->in_use)
 			continue;
-		
+
 		if (invalidate)
 			cache->in_use = 0;
-		
+
 		if (!cache->dirty)
 			continue;
-		
+
 		retval = raw_write_blk(channel, data,
 				       cache->block, 1, cache->buf);
 		if (retval)
@@ -376,7 +376,7 @@ static errcode_t unix_open(const char *name, int flags, io_channel *channel)
 	int		open_flags;
 	struct stat	st;
 #ifdef __linux__
-	struct 		utsname ut;
+	struct		utsname ut;
 #endif
 
 	if (name == 0)
@@ -431,7 +431,7 @@ static errcode_t unix_open(const char *name, int flags, io_channel *channel)
 	 * block devices are wrongly getting hit by the filesize
 	 * limit.  This workaround isn't perfect, since it won't work
 	 * if glibc wasn't built against 2.2 header files.  (Sigh.)
-	 * 
+	 *
 	 */
 	if ((flags & IO_FLAG_RW) &&
 	    (uname(&ut) == 0) &&
@@ -442,7 +442,7 @@ static errcode_t unix_open(const char *name, int flags, io_channel *channel)
 	    (fstat(data->dev, &st) == 0) &&
 	    (S_ISBLK(st.st_mode))) {
 		struct rlimit	rlim;
-		
+
 		rlim.rlim_cur = rlim.rlim_max = (unsigned long) RLIM_INFINITY;
 		setrlimit(RLIMIT_FSIZE, &rlim);
 		getrlimit(RLIMIT_FSIZE, &rlim);
@@ -507,7 +507,7 @@ static errcode_t unix_set_blksize(io_channel channel, int blksize)
 		if ((retval = flush_cached_blocks(channel, data, 0)))
 			return retval;
 #endif
-		
+
 		channel->block_size = blksize;
 		free_cache(data);
 		if ((retval = alloc_cache(channel, data)))
@@ -568,7 +568,7 @@ static errcode_t unix_read_blk(io_channel channel, unsigned long block,
 #endif
 		if ((retval = raw_read_blk(channel, data, block, i, cp)))
 			return retval;
-		
+
 		/* Save the results in the cache */
 		for (j=0; j < i; j++) {
 			count--;
@@ -597,7 +597,7 @@ static errcode_t unix_write_blk(io_channel channel, unsigned long block,
 
 #ifdef NO_IO_CACHE
 	return raw_write_blk(channel, data, block, count, buf);
-#else	
+#else
 	/*
 	 * If we're doing an odd-sized write or a very large write,
 	 * flush out the cache completely and then do a direct write.
@@ -616,7 +616,7 @@ static errcode_t unix_write_blk(io_channel channel, unsigned long block,
 	writethrough = channel->flags & CHANNEL_FLAGS_WRITETHROUGH;
 	if (writethrough)
 		retval = raw_write_blk(channel, data, block, count, buf);
-	
+
 	cp = buf;
 	while (count > 0) {
 		cache = find_cached_block(data, block, &reuse);
@@ -655,7 +655,7 @@ static errcode_t unix_write_byte(io_channel channel, unsigned long offset,
 
 	if (lseek(data->dev, offset + data->offset, SEEK_SET) < 0)
 		return errno;
-	
+
 	actual = write(data->dev, buf, size);
 	if (actual != size)
 		return EXT2_ET_SHORT_WRITE;
@@ -664,13 +664,13 @@ static errcode_t unix_write_byte(io_channel channel, unsigned long offset,
 }
 
 /*
- * Flush data buffers to disk.  
+ * Flush data buffers to disk.
  */
 static errcode_t unix_flush(io_channel channel)
 {
 	struct unix_private_data *data;
 	errcode_t retval = 0;
-	
+
 	EXT2_CHECK_MAGIC(channel, EXT2_ET_MAGIC_IO_CHANNEL);
 	data = (struct unix_private_data *) channel->private_data;
 	EXT2_CHECK_MAGIC(data, EXT2_ET_MAGIC_UNIX_IO_CHANNEL);
@@ -682,7 +682,7 @@ static errcode_t unix_flush(io_channel channel)
 	return retval;
 }
 
-static errcode_t unix_set_option(io_channel channel, const char *option, 
+static errcode_t unix_set_option(io_channel channel, const char *option,
 				 const char *arg)
 {
 	struct unix_private_data *data;

@@ -32,7 +32,7 @@
 
 #define EXT2_CHECK_MAGIC(struct, code) \
 	  if ((struct)->magic != (code)) return (code)
-  
+
 struct test_private_data {
 	int	magic;
 	io_channel real;
@@ -56,7 +56,7 @@ static errcode_t test_write_blk(io_channel channel, unsigned long block,
 static errcode_t test_flush(io_channel channel);
 static errcode_t test_write_byte(io_channel channel, unsigned long offset,
 				 int count, const void *buf);
-static errcode_t test_set_option(io_channel channel, const char *option, 
+static errcode_t test_set_option(io_channel channel, const char *option,
 				 const char *arg);
 
 static struct struct_io_manager struct_test_manager = {
@@ -172,10 +172,10 @@ static errcode_t test_open(const char *name, int flags, io_channel *channel)
 			goto cleanup;
 	} else
 		data->real = 0;
-	data->read_blk = 	test_io_cb_read_blk;
-	data->write_blk = 	test_io_cb_write_blk;
-	data->set_blksize = 	test_io_cb_set_blksize;
-	data->write_byte = 	test_io_cb_write_byte;
+	data->read_blk =	test_io_cb_read_blk;
+	data->write_blk =	test_io_cb_write_blk;
+	data->set_blksize =	test_io_cb_set_blksize;
+	data->write_byte =	test_io_cb_write_byte;
 
 	data->outfile = NULL;
 	if ((value = getenv("TEST_IO_LOGFILE")) != NULL)
@@ -186,7 +186,7 @@ static errcode_t test_open(const char *name, int flags, io_channel *channel)
 	data->flags = 0;
 	if ((value = getenv("TEST_IO_FLAGS")) != NULL)
 		data->flags = strtoul(value, NULL, 0);
-	
+
 	data->block = 0;
 	if ((value = getenv("TEST_IO_BLOCK")) != NULL)
 		data->block = strtoul(value, NULL, 0);
@@ -198,7 +198,7 @@ static errcode_t test_open(const char *name, int flags, io_channel *channel)
 	data->write_abort_count = 0;
 	if ((value = getenv("TEST_IO_WRITE_ABORT")) != NULL)
 		data->write_abort_count = strtoul(value, NULL, 0);
-	
+
 	*channel = io;
 	return 0;
 
@@ -221,13 +221,13 @@ static errcode_t test_close(io_channel channel)
 
 	if (--channel->refcount > 0)
 		return 0;
-	
+
 	if (data->real)
 		retval = io_channel_close(data->real);
 
 	if (data->outfile && data->outfile != stderr)
 		fclose(data->outfile);
-	
+
 	ext2fs_free_mem(&channel->private_data);
 	if (channel->name)
 		ext2fs_free_mem(&channel->name);
@@ -280,7 +280,7 @@ static errcode_t test_read_blk(io_channel channel, unsigned long block,
 			test_dump_block(channel, data, block, buf);
 		if (--data->read_abort_count == 0)
 			test_abort(channel, block);
-	} 
+	}
 	return retval;
 }
 
@@ -339,22 +339,22 @@ static errcode_t test_flush(io_channel channel)
 {
 	struct test_private_data *data;
 	errcode_t	retval = 0;
-	
+
 	EXT2_CHECK_MAGIC(channel, EXT2_ET_MAGIC_IO_CHANNEL);
 	data = (struct test_private_data *) channel->private_data;
 	EXT2_CHECK_MAGIC(data, EXT2_ET_MAGIC_TEST_IO_CHANNEL);
 
 	if (data->real)
 		retval = io_channel_flush(data->real);
-	
+
 	if (data->flags & TEST_FLAG_FLUSH)
 		fprintf(data->outfile, "Test_io: flush() returned %s\n",
 			retval ? error_message(retval) : "OK");
-	
+
 	return retval;
 }
 
-static errcode_t test_set_option(io_channel channel, const char *option, 
+static errcode_t test_set_option(io_channel channel, const char *option,
 				 const char *arg)
 {
 	struct test_private_data *data;
@@ -366,10 +366,10 @@ static errcode_t test_set_option(io_channel channel, const char *option,
 
 
 	if (data->flags & TEST_FLAG_SET_OPTION)
-		fprintf(data->outfile, "Test_io: set_option(%s, %s) ", 
+		fprintf(data->outfile, "Test_io: set_option(%s, %s) ",
 			option, arg);
 	if (data->real && data->real->manager->set_option) {
-		retval = (data->real->manager->set_option)(data->real, 
+		retval = (data->real->manager->set_option)(data->real,
 							   option, arg);
 		if (data->flags & TEST_FLAG_SET_OPTION)
 			fprintf(data->outfile, "returned %s\n",

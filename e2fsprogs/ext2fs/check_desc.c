@@ -1,6 +1,6 @@
 /*
  * check_desc.c --- Check the group descriptors of an ext2 filesystem
- * 
+ *
  * Copyright (C) 1993, 1994, 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -61,7 +61,7 @@ errcode_t ext2fs_check_desc(ext2_filsys fs)
 		    ((fs->group_desc[i].bg_inode_table +
 		      fs->inode_blocks_per_group) >= next))
 			return EXT2_ET_GDESC_BAD_INODE_TABLE;
-		
+
 		block = next;
 	}
 	return 0;

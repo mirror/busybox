@@ -873,7 +873,7 @@
 	"\t-s         Don't print or kill anything.\n" \
 	"\t-4         When using port/proto only search IPv4 space\n" \
 	"\t-6         When using port/proto only search IPv6 space\n" \
-	"\t-SIGNAL    When used with -k, this signal will be used to kill\n" 
+	"\t-SIGNAL    When used with -k, this signal will be used to kill\n"
 #define getopt_trivial_usage \
 	"[OPTIONS]..."
 #define getopt_full_usage \
@@ -1873,8 +1873,8 @@
 #ifdef CONFIG_FEATURE_MDEV_CONFIG
 #define mdev_notes_usage \
 	"The mdev config file contains lines that look like:\n" \
-        "  hd[a-z][0-9]* 0:3 660\n\n" \
-        "That's device name (with regex match), uid:gid, and permissions.\n\n" \
+	"  hd[a-z][0-9]* 0:3 660\n\n" \
+	"That's device name (with regex match), uid:gid, and permissions.\n\n" \
 	"Optionally, that can be followed (on the same line) by an asterisk\n" \
 	"and a command line to run after creating the corresponding device(s),\n"\
 	"ala:\n\n" \

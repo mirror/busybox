@@ -1267,7 +1267,7 @@ static int pseudo_exec(struct child_prog *child)
 		char** argv_l=child->argv;
 		int argc_l;
 #ifdef _NEWLIB_VERSION
-		/* newlib uses __getopt_initialized for getopt() in 
+		/* newlib uses __getopt_initialized for getopt() in
 		 * addition to optind, see newlib/libc/sys/linux/getopt.c
 		 */
 		extern int __getopt_initialized = 0;

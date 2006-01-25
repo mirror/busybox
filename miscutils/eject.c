@@ -28,7 +28,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <sys/mount.h>
-#include <mntent.h> 
+#include <mntent.h>
 #include "busybox.h"
 
 /* various defines swiped from linux/cdrom.h */
@@ -41,16 +41,16 @@ extern int eject_main(int argc, char **argv)
 	unsigned long flags;
 	char *device;
 	struct mntent *m;
-	
+
 	flags = bb_getopt_ulflags(argc, argv, "t");
 	device=argv[optind] ? : DEFAULT_CDROM;
-	
+
 	if((m = find_mount_point(device, bb_path_mtab_file))) {
 		if(umount(m->mnt_dir))
 			bb_error_msg_and_die("Can't umount");
-		else if(ENABLE_FEATURE_MTAB_SUPPORT) erase_mtab(m->mnt_fsname);	
+		else if(ENABLE_FEATURE_MTAB_SUPPORT) erase_mtab(m->mnt_fsname);
 	}
-	if (ioctl(bb_xopen( device, (O_RDONLY | O_NONBLOCK)), 
+	if (ioctl(bb_xopen( device, (O_RDONLY | O_NONBLOCK)),
 	          ( flags ? CDROMCLOSETRAY : CDROMEJECT)))
 	{
 		bb_perror_msg_and_die(device);

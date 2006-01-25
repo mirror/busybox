@@ -1039,9 +1039,9 @@ static char *get_name(char *name, char *p)
  * args. */
 
 /* static const char * const ss_fmt[] = { */
-/* 	"%Ln%Lu%lu%lu%lu%lu%ln%ln%Ln%Lu%lu%lu%lu%lu%lu", */
-/* 	"%Lu%Lu%lu%lu%lu%lu%ln%ln%Lu%Lu%lu%lu%lu%lu%lu", */
-/* 	"%Lu%Lu%lu%lu%lu%lu%lu%lu%Lu%Lu%lu%lu%lu%lu%lu%lu" */
+/*	"%Ln%Lu%lu%lu%lu%lu%ln%ln%Ln%Lu%lu%lu%lu%lu%lu", */
+/*	"%Lu%Lu%lu%lu%lu%lu%ln%ln%Lu%Lu%lu%lu%lu%lu%lu", */
+/*	"%Lu%Lu%lu%lu%lu%lu%lu%lu%Lu%Lu%lu%lu%lu%lu%lu%lu" */
 /* }; */
 
 	/* Lie about the size of the int pointed to for %n. */

@@ -77,8 +77,8 @@ int hostname_main(int argc, char **argv)
 	if (argc < 1)
 		bb_show_usage();
 
-        while ((opt = getopt(argc, argv, "dfisF:")) > 0) {
-                switch (opt) {
+	while ((opt = getopt(argc, argv, "dfisF:")) > 0) {
+		switch (opt) {
 		case 'd':
 		case 'f':
 		case 'i':

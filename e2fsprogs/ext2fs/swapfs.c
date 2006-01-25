@@ -1,6 +1,6 @@
 /*
  * swapfs.c --- swap ext2 filesystem data structures
- * 
+ *
  * Copyright (C) 1995, 1996, 2002 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -23,7 +23,7 @@
 #ifdef EXT2FS_ENABLE_SWAPFS
 void ext2fs_swap_super(struct ext2_super_block * sb)
 {
-  	int i;
+	int i;
 	sb->s_inodes_count = ext2fs_swab32(sb->s_inodes_count);
 	sb->s_blocks_count = ext2fs_swab32(sb->s_blocks_count);
 	sb->s_r_blocks_count = ext2fs_swab32(sb->s_r_blocks_count);
@@ -108,11 +108,11 @@ void ext2fs_swap_ext_attr(char *to, char *from, int bufsize, int has_header)
 	}
 
 	while ((char *)from_entry < from_end && *(__u32 *)from_entry) {
-		to_entry->e_value_offs  =	
+		to_entry->e_value_offs  =
 			ext2fs_swab16(from_entry->e_value_offs);
-		to_entry->e_value_block =	
+		to_entry->e_value_block =
 			ext2fs_swab32(from_entry->e_value_block);
-		to_entry->e_value_size  =	
+		to_entry->e_value_size  =
 			ext2fs_swab32(from_entry->e_value_size);
 		from_entry = EXT2_EXT_ATTR_NEXT(from_entry);
 		to_entry   = EXT2_EXT_ATTR_NEXT(to_entry);

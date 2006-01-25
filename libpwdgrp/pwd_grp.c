@@ -220,7 +220,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 
 #ifdef L_getpwnam_r
 #define GETXXKEY_R_FUNC			getpwnam_r
-#define GETXXKEY_R_PARSER   	__parsepwent
+#define GETXXKEY_R_PARSER		__parsepwent
 #define GETXXKEY_R_ENTTYPE		struct passwd
 #define GETXXKEY_R_TEST(ENT)	(!strcmp((ENT)->pw_name, key))
 #define DO_GETXXKEY_R_KEYTYPE	const char *__restrict
@@ -230,7 +230,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 
 #ifdef L_getgrnam_r
 #define GETXXKEY_R_FUNC			getgrnam_r
-#define GETXXKEY_R_PARSER   	__parsegrent
+#define GETXXKEY_R_PARSER		__parsegrent
 #define GETXXKEY_R_ENTTYPE		struct group
 #define GETXXKEY_R_TEST(ENT)	(!strcmp((ENT)->gr_name, key))
 #define DO_GETXXKEY_R_KEYTYPE	const char *__restrict
@@ -240,7 +240,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 
 #ifdef L_getspnam_r
 #define GETXXKEY_R_FUNC			getspnam_r
-#define GETXXKEY_R_PARSER   	__parsespent
+#define GETXXKEY_R_PARSER		__parsespent
 #define GETXXKEY_R_ENTTYPE		struct spwd
 #define GETXXKEY_R_TEST(ENT)	(!strcmp((ENT)->sp_namp, key))
 #define DO_GETXXKEY_R_KEYTYPE	const char *__restrict
@@ -250,7 +250,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 
 #ifdef L_getpwuid_r
 #define GETXXKEY_R_FUNC			getpwuid_r
-#define GETXXKEY_R_PARSER   	__parsepwent
+#define GETXXKEY_R_PARSER		__parsepwent
 #define GETXXKEY_R_ENTTYPE		struct passwd
 #define GETXXKEY_R_TEST(ENT)	((ENT)->pw_uid == key)
 #define DO_GETXXKEY_R_KEYTYPE	uid_t
@@ -260,7 +260,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 
 #ifdef L_getgrgid_r
 #define GETXXKEY_R_FUNC			getgrgid_r
-#define GETXXKEY_R_PARSER   	__parsegrent
+#define GETXXKEY_R_PARSER		__parsegrent
 #define GETXXKEY_R_ENTTYPE		struct group
 #define GETXXKEY_R_TEST(ENT)	((ENT)->gr_gid == key)
 #define DO_GETXXKEY_R_KEYTYPE	gid_t
@@ -442,7 +442,7 @@ void endpwent(void)
 }
 
 
-int getpwent_r(struct passwd *__restrict resultbuf, 
+int getpwent_r(struct passwd *__restrict resultbuf,
 			   char *__restrict buffer, size_t buflen,
 			   struct passwd **__restrict result)
 {
@@ -542,7 +542,7 @@ void endspent(void)
 	UNLOCK;
 }
 
-int getspent_r(struct spwd *resultbuf, char *buffer, 
+int getspent_r(struct spwd *resultbuf, char *buffer,
 			   size_t buflen, struct spwd **result)
 {
 	int rv;
@@ -755,11 +755,11 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 
 static const unsigned char _sp_off[] = {
 	offsetof(struct spwd, sp_lstchg),	/* 2 - not a char ptr */
-	offsetof(struct spwd, sp_min), 		/* 3 - not a char ptr */
+	offsetof(struct spwd, sp_min),		/* 3 - not a char ptr */
 	offsetof(struct spwd, sp_max),		/* 4 - not a char ptr */
-	offsetof(struct spwd, sp_warn), 	/* 5 - not a char ptr */
-	offsetof(struct spwd, sp_inact), 	/* 6 - not a char ptr */
-	offsetof(struct spwd, sp_expire), 	/* 7 - not a char ptr */
+	offsetof(struct spwd, sp_warn),		/* 5 - not a char ptr */
+	offsetof(struct spwd, sp_inact),	/* 6 - not a char ptr */
+	offsetof(struct spwd, sp_expire),	/* 7 - not a char ptr */
 };
 
 int putspent(const struct spwd *p, FILE *stream)
@@ -801,18 +801,18 @@ DO_UNLOCK:
 
 #endif
 /**********************************************************************/
-/* Internal uClibc functions.                                         */
+/* Internal uClibc functions.					 */
 /**********************************************************************/
 #ifdef L___parsepwent
 
 static const unsigned char pw_off[] = {
-	offsetof(struct passwd, pw_name), 	/* 0 */
+	offsetof(struct passwd, pw_name),	/* 0 */
 	offsetof(struct passwd, pw_passwd),	/* 1 */
 	offsetof(struct passwd, pw_uid),	/* 2 - not a char ptr */
-	offsetof(struct passwd, pw_gid), 	/* 3 - not a char ptr */
+	offsetof(struct passwd, pw_gid),	/* 3 - not a char ptr */
 	offsetof(struct passwd, pw_gecos),	/* 4 */
-	offsetof(struct passwd, pw_dir), 	/* 5 */
-	offsetof(struct passwd, pw_shell) 	/* 6 */
+	offsetof(struct passwd, pw_dir),	/* 5 */
+	offsetof(struct passwd, pw_shell)	/* 6 */
 };
 
 int __parsepwent(void *data, char *line)
@@ -825,7 +825,7 @@ int __parsepwent(void *data, char *line)
 	do {
 		p = ((char *) ((struct passwd *) data)) + pw_off[i];
 
-		if ((i & 6) ^ 2) { 	/* i!=2 and i!=3 */
+		if ((i & 6) ^ 2) {	/* i!=2 and i!=3 */
 			*((char **) p) = line;
 			if (i==6) {
 				return 0;
@@ -865,7 +865,7 @@ int __parsepwent(void *data, char *line)
 #ifdef L___parsegrent
 
 static const unsigned char gr_off[] = {
-	offsetof(struct group, gr_name), 	/* 0 */
+	offsetof(struct group, gr_name),	/* 0 */
 	offsetof(struct group, gr_passwd),	/* 1 */
 	offsetof(struct group, gr_gid)		/* 2 - not a char ptr */
 };
@@ -947,7 +947,7 @@ int __parsegrent(void *data, char *line)
 					if (!--i) break;
 					while (*++p) {}
 				} while (1);
-			}				
+			}
 			*members = NULL;
 
 			return 0;
@@ -966,12 +966,12 @@ static const unsigned char sp_off[] = {
 	offsetof(struct spwd, sp_namp),		/* 0 */
 	offsetof(struct spwd, sp_pwdp),		/* 1 */
 	offsetof(struct spwd, sp_lstchg),	/* 2 - not a char ptr */
-	offsetof(struct spwd, sp_min), 		/* 3 - not a char ptr */
+	offsetof(struct spwd, sp_min),		/* 3 - not a char ptr */
 	offsetof(struct spwd, sp_max),		/* 4 - not a char ptr */
-	offsetof(struct spwd, sp_warn), 	/* 5 - not a char ptr */
-	offsetof(struct spwd, sp_inact), 	/* 6 - not a char ptr */
-	offsetof(struct spwd, sp_expire), 	/* 7 - not a char ptr */
-	offsetof(struct spwd, sp_flag) 		/* 8 - not a char ptr */
+	offsetof(struct spwd, sp_warn),		/* 5 - not a char ptr */
+	offsetof(struct spwd, sp_inact),	/* 6 - not a char ptr */
+	offsetof(struct spwd, sp_expire),	/* 7 - not a char ptr */
+	offsetof(struct spwd, sp_flag)		/* 8 - not a char ptr */
 };
 
 int __parsespent(void *data, char * line)

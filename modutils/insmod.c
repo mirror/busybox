@@ -295,7 +295,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #define CONFIG_PLT_ENTRY_SIZE 8
 #define CONFIG_USE_SINGLE
 #ifndef EM_CYGNUS_V850	/* grumble */
-#define EM_CYGNUS_V850 	0x9080
+#define EM_CYGNUS_V850	0x9080
 #endif
 #define SYMBOL_PREFIX	"_"
 #endif
@@ -695,7 +695,7 @@ static int obj_gpl_license(struct obj_file *f, const char **license);
 #ifdef SYMBOL_PREFIX
 #define SPFX	SYMBOL_PREFIX
 #else
-#define SPFX 	""
+#define SPFX	""
 #endif
 
 

@@ -11797,8 +11797,8 @@ static int count_tags(struct buffer_head *bh, int size)
 
 
 /* Make sure we wrap around the log correctly! */
-#define wrap(journal, var)                                              \
-do {                                                                    \
+#define wrap(journal, var)					      \
+do {					                            \
 	if (var >= (journal)->j_last)                                   \
 		var -= ((journal)->j_last - (journal)->j_first);        \
 } while (0)

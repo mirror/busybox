@@ -1,8 +1,8 @@
 /*
  * inline.c --- Includes the inlined functions defined in the header
- * 	files as standalone functions, in case the application program
- * 	is compiled with inlining turned off.
- * 
+ *	files as standalone functions, in case the application program
+ *	is compiled with inlining turned off.
+ *
  * Copyright (C) 1993, 1994 Theodore Ts'o.
  *
  * %Begin-Header%

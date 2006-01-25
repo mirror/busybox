@@ -1,6 +1,6 @@
 /*
  * util.c --- helper functions used by tune2fs and mke2fs
- * 
+ *
  * Copyright 1995, 1996, 1997, 1998, 1999, 2000 by Theodore Ts'o.
  *
  * %Begin-Header%
@@ -99,8 +99,8 @@ void check_mount(const char *device, int force, const char *type)
 		bb_error_msg_and_die("will not make a %s here!", type);
 }
 
-void parse_journal_opts(char **journal_device, int *journal_flags, 
-                        int *journal_size, const char *opts)
+void parse_journal_opts(char **journal_device, int *journal_flags,
+			int *journal_size, const char *opts)
 {
 	char *buf, *token, *next, *p, *arg;
 	int journal_usage = 0;
@@ -118,7 +118,7 @@ void parse_journal_opts(char **journal_device, int *journal_flags,
 		if (p) {
 			*p = 0;
 			next = p+1;
-		} 
+		}
 		arg = strchr(token, '=');
 		if (arg) {
 			*arg = 0;
@@ -155,13 +155,13 @@ void parse_journal_opts(char **journal_device, int *journal_flags,
 			"\tdevice=<journal device>\n\n"
 			"The journal size must be between "
 			"1024 and 102400 filesystem blocks.\n\n");
-}	
+}
 
 /*
  * Determine the number of journal blocks to use, either via
  * user-specified # of megabytes, or via some intelligently selected
  * defaults.
- * 
+ *
  * Find a reasonable journal file size (in blocks) given the number of blocks
  * in the filesystem.  For very small filesystems, it is not reasonable to
  * have a journal that fills more than half of the filesystem.
@@ -214,8 +214,8 @@ void make_journal_device(char *journal_device, ext2_filsys fs, int quiet, int fo
 	io_manager	io_ptr;
 
 	check_plausibility(journal_device, force);
-	check_mount(journal_device, force, "journal");	
-	io_ptr = unix_io_manager;	
+	check_mount(journal_device, force, "journal");
+	io_ptr = unix_io_manager;
 	retval = ext2fs_open(journal_device, EXT2_FLAG_RW|
 					EXT2_FLAG_JOURNAL_DEV_OK, 0,
 					fs->blocksize, io_ptr, &jfs);
@@ -236,7 +236,7 @@ void make_journal_blocks(ext2_filsys fs, int journal_size, int journal_flags, in
 {
 	unsigned long journal_blocks;
 	errcode_t	retval;
-		
+
 	journal_blocks = figure_journal_size(journal_size, fs);
 	if (!journal_blocks) {
 		fs->super->s_feature_compat &=
@@ -259,9 +259,9 @@ char *e2fs_set_sbin_path(void)
 	char *oldpath = getenv("PATH");
 	/* Update our PATH to include /sbin  */
 #define PATH_SET "/sbin"
-	if (oldpath) 
+	if (oldpath)
 		oldpath = bb_xasprintf("%s:%s", PATH_SET, oldpath);
-	 else 
+	 else
 		oldpath = PATH_SET;
 	putenv (oldpath);
 	return oldpath;

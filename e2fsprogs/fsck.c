@@ -104,10 +104,10 @@ struct fsck_instance {
  * assure that we only fsck one partition on a particular drive at any
  * one time.  Otherwise, the disk heads will be seeking all over the
  * place.  If the base device can not be determined, return NULL.
- * 
+ *
  * The base_device() function returns an allocated string which must
  * be freed.
- * 
+ *
  */
 
 

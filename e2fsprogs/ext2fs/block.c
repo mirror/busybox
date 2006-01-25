@@ -1,6 +1,6 @@
 /*
  * block.c --- iterate over all blocks in an inode
- * 
+ *
  * Copyright (C) 1993, 1994, 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -59,7 +59,7 @@ static int block_iterate_ind(blk_t *ind_block, blk_t ref_block,
 		ret |= BLOCK_ERROR;
 		return ret;
 	}
-	ctx->errcode = ext2fs_read_ind_block(ctx->fs, *ind_block, 
+	ctx->errcode = ext2fs_read_ind_block(ctx->fs, *ind_block,
 					     ctx->ind_buf);
 	if (ctx->errcode) {
 		ret |= BLOCK_ERROR;
@@ -71,7 +71,7 @@ static int block_iterate_ind(blk_t *ind_block, blk_t ref_block,
 	if (ctx->flags & BLOCK_FLAG_APPEND) {
 		for (i = 0; i < limit; i++, ctx->bcount++, block_nr++) {
 			flags = (*ctx->func)(ctx->fs, block_nr, ctx->bcount,
-					     *ind_block, offset, 
+					     *ind_block, offset,
 					     ctx->priv_data);
 			changed	|= flags;
 			if (flags & BLOCK_ABORT) {
@@ -85,7 +85,7 @@ static int block_iterate_ind(blk_t *ind_block, blk_t ref_block,
 			if (*block_nr == 0)
 				continue;
 			flags = (*ctx->func)(ctx->fs, block_nr, ctx->bcount,
-					     *ind_block, offset, 
+					     *ind_block, offset,
 					     ctx->priv_data);
 			changed	|= flags;
 			if (flags & BLOCK_ABORT) {
@@ -109,7 +109,7 @@ static int block_iterate_ind(blk_t *ind_block, blk_t ref_block,
 				    ref_offset, ctx->priv_data);
 	return ret;
 }
-	
+
 static int block_iterate_dind(blk_t *dind_block, blk_t ref_block,
 			      int ref_offset, struct block_context *ctx)
 {
@@ -133,7 +133,7 @@ static int block_iterate_dind(blk_t *dind_block, blk_t ref_block,
 		ret |= BLOCK_ERROR;
 		return ret;
 	}
-	ctx->errcode = ext2fs_read_ind_block(ctx->fs, *dind_block, 
+	ctx->errcode = ext2fs_read_ind_block(ctx->fs, *dind_block,
 					     ctx->dind_buf);
 	if (ctx->errcode) {
 		ret |= BLOCK_ERROR;
@@ -185,7 +185,7 @@ static int block_iterate_dind(blk_t *dind_block, blk_t ref_block,
 				    ref_offset, ctx->priv_data);
 	return ret;
 }
-	
+
 static int block_iterate_tind(blk_t *tind_block, blk_t ref_block,
 			      int ref_offset, struct block_context *ctx)
 {
@@ -209,7 +209,7 @@ static int block_iterate_tind(blk_t *tind_block, blk_t ref_block,
 		ret |= BLOCK_ERROR;
 		return ret;
 	}
-	ctx->errcode = ext2fs_read_ind_block(ctx->fs, *tind_block, 
+	ctx->errcode = ext2fs_read_ind_block(ctx->fs, *tind_block,
 					     ctx->tind_buf);
 	if (ctx->errcode) {
 		ret |= BLOCK_ERROR;
@@ -259,10 +259,10 @@ static int block_iterate_tind(blk_t *tind_block, blk_t ref_block,
 		ret |= (*ctx->func)(ctx->fs, tind_block,
 				    BLOCK_COUNT_TIND, ref_block,
 				    ref_offset, ctx->priv_data);
-	
+
 	return ret;
 }
-	
+
 errcode_t ext2fs_block_iterate2(ext2_filsys fs,
 				ext2_ino_t ino,
 				int	flags,
@@ -338,7 +338,7 @@ errcode_t ext2fs_block_iterate2(ext2_filsys fs,
 				goto abort_exit;
 		}
 	}
-	
+
 	/*
 	 * Iterate over normal data blocks
 	 */
@@ -427,7 +427,7 @@ errcode_t ext2fs_block_iterate(ext2_filsys fs,
 			       void *priv_data)
 {
 	struct xlate xl;
-	
+
 	xl.real_private = priv_data;
 	xl.func = func;
 

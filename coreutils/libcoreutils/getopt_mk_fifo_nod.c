@@ -33,7 +33,7 @@ extern mode_t getopt_mk_fifo_nod(int argc, char **argv)
 
 	bb_getopt_ulflags(argc, argv, "m:", &smode);
 	if(smode) {
-		if (bb_parse_mode(smode, &mode)) 
+		if (bb_parse_mode(smode, &mode))
 			umask(0);
 	}
 	return mode;

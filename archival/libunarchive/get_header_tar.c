@@ -20,7 +20,7 @@
  *  References:
  *    GNU tar and star man pages,
  *    Opengroup's ustar interchange format,
- *      	http://www.opengroup.org/onlinepubs/007904975/utilities/pax.html
+ *	http://www.opengroup.org/onlinepubs/007904975/utilities/pax.html
  */
 
 #include <stdio.h>

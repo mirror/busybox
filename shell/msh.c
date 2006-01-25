@@ -335,9 +335,9 @@ static void sig(int i);			/* default signal handler */
 #define GROWBY	  (256)
 /* #define	SHRINKBY   (64) */
 #undef	SHRINKBY
-#define FREE 	  (32767)
-#define BUSY 	  (0)
-#define	ALIGN 	  (sizeof(int)-1)
+#define FREE	  (32767)
+#define BUSY	  (0)
+#define	ALIGN	  (sizeof(int)-1)
 
 
 struct region {

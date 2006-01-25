@@ -164,7 +164,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 		goto no_match;
 	}
 #endif
-	
+
 	puts(fileName);
 no_match:
 	return (TRUE);
@@ -317,7 +317,7 @@ int find_main(int argc, char **argv)
 					break;
 				cmd_string = bb_xasprintf("%s %s", cmd_string, argv[i]);
 			}
-			
+
 			if (*cmd_string == 0)
 				bb_error_msg_and_die(msg_req_arg, "-exec");
 			cmd_string++;

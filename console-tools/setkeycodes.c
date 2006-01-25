@@ -45,7 +45,7 @@ setkeycodes_main(int argc, char** argv)
     if (argc % 2 != 1 || argc < 2) {
       bb_show_usage();
 	}
-	
+
 	fd = get_console_fd();
 
     while (argc > 2) {

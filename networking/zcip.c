@@ -174,7 +174,7 @@ run(char *script, char *arg, char *intf, struct in_addr *ip)
 			execl(script, script, arg, NULL);
 			perror("execl");
 			_exit(EXIT_FAILURE);
-		} 
+		}
 
 		if (waitpid(pid, &status, 0) <= 0) {
 			why = "waitpid";
@@ -365,7 +365,7 @@ fail:
 		fds[0].events = POLLIN;
 		fds[0].revents = 0;
 
-		// poll, being ready to adjust current timeout 
+		// poll, being ready to adjust current timeout
 		if (timeout > 0) {
 			gettimeofday(&tv1, NULL);
 			tv1.tv_usec += (timeout % 1000) * 1000;
@@ -477,7 +477,7 @@ fail:
 					&& p.arp.ar_op != htons(ARPOP_REPLY))
 				continue;
 
-			// some cases are always conflicts 
+			// some cases are always conflicts
 			if ((p.source_ip.s_addr == ip.s_addr)
 					&& (memcmp(&addr, &p.source_addr,
 							ETH_ALEN) != 0)) {
@@ -533,7 +533,7 @@ collision:
 bad:
 	if (foreground)
 		perror(why);
-	else 
+	else
 		syslog(LOG_ERR, "%s %s, %s error: %s",
 			prog, intf, why, strerror(errno));
 	return EXIT_FAILURE;

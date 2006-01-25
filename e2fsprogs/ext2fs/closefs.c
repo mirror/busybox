@@ -1,6 +1,6 @@
 /*
  * closefs.c --- close an ext2 filesystem
- * 
+ *
  * Copyright (C) 1993, 1994, 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -45,7 +45,7 @@ int ext2fs_bg_has_super(ext2_filsys fs, int group_block)
 	return 0;
 }
 
-int ext2fs_super_and_bgd_loc(ext2_filsys fs, 
+int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 			     dgrp_t group,
 			     blk_t *ret_super_blk,
 			     blk_t *ret_old_desc_blk,
@@ -63,7 +63,7 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 	if (fs->super->s_feature_incompat & EXT2_FEATURE_INCOMPAT_META_BG)
 		old_desc_blocks = fs->super->s_first_meta_bg;
 	else
-		old_desc_blocks = 
+		old_desc_blocks =
 			fs->desc_blocks + fs->super->s_reserved_gdt_blocks;
 
 	if (group == fs->group_desc_count-1) {
@@ -100,7 +100,7 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 			numblocks--;
 		}
 	}
-		
+
 	numblocks -= 2 + fs->inode_blocks_per_group;
 
 	if (ret_super_blk)
@@ -188,7 +188,7 @@ static errcode_t write_backup_super(ext2_filsys fs, dgrp_t group,
 				    struct ext2_super_block *super_shadow)
 {
 	dgrp_t	sgrp = group;
-	
+
 	if (sgrp > ((1 << 16) - 1))
 		sgrp = (1 << 16) - 1;
 #ifdef EXT2FS_ENABLE_SWAPFS
@@ -198,7 +198,7 @@ static errcode_t write_backup_super(ext2_filsys fs, dgrp_t group,
 #endif
 		fs->super->s_block_group_nr = sgrp;
 
-	return io_channel_write_blk(fs->io, group_block, -SUPERBLOCK_SIZE, 
+	return io_channel_write_blk(fs->io, group_block, -SUPERBLOCK_SIZE,
 				    super_shadow);
 }
 
@@ -217,7 +217,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 	dgrp_t		j;
 	struct ext2_group_desc *s, *t;
 #endif
-	
+
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
 
 	fs_state = fs->super->s_state;
@@ -252,7 +252,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 	super_shadow = fs->super;
 	group_shadow = fs->group_desc;
 #endif
-	
+
 	/*
 	 * If this is an external journal device, don't write out the
 	 * block group descriptors or any of the backup superblocks
@@ -289,7 +289,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 		blk_t	super_blk, old_desc_blk, new_desc_blk;
 		int	meta_bg;
 
-		ext2fs_super_and_bgd_loc(fs, i, &super_blk, &old_desc_blk, 
+		ext2fs_super_and_bgd_loc(fs, i, &super_blk, &old_desc_blk,
 					 &new_desc_blk, &meta_bg);
 
 		if (!(fs->flags & EXT2_FLAG_MASTER_SB_ONLY) &&i && super_blk) {
@@ -300,7 +300,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 		}
 		if (fs->flags & EXT2_FLAG_SUPER_ONLY)
 			continue;
-		if ((old_desc_blk) && 
+		if ((old_desc_blk) &&
 		    (!(fs->flags & EXT2_FLAG_MASTER_SB_ONLY) || (i == 0))) {
 			retval = io_channel_write_blk(fs->io,
 			      old_desc_blk, old_desc_blocks, group_ptr);
@@ -365,7 +365,7 @@ errout:
 errcode_t ext2fs_close(ext2_filsys fs)
 {
 	errcode_t	retval;
-	
+
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
 
 	if (fs->flags & EXT2_FLAG_DIRTY) {

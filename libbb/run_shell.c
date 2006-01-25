@@ -46,7 +46,7 @@ static security_context_t current_sid=NULL;
 void
 renew_current_security_context(void)
 {
-  if  (current_sid)  
+  if  (current_sid)
     freecon(current_sid);  /* Release old context  */
 
   getcon(&current_sid);  /* update */
@@ -56,7 +56,7 @@ renew_current_security_context(void)
 void
 set_current_security_context(security_context_t sid)
 {
-  if  (current_sid)  
+  if  (current_sid)
     freecon(current_sid);  /* Release old context  */
 
   current_sid=sid;
@@ -84,7 +84,7 @@ void run_shell ( const char *shell, int loginshell, const char *command, const c
 
 	args [0] = bb_get_last_path_component ( bb_xstrdup ( shell ));
 
-	if ( loginshell ) 
+	if ( loginshell )
 		args [0] = bb_xasprintf ("-%s", args [0]);
 
 	if ( command ) {

@@ -41,7 +41,7 @@ Using busybox:
   The behavior of busybox is determined by the name it's called under: as
   "cp" it behaves like cp, as "sed" it behaves like sed, and so on.  Called
   as "busybox" it takes the second argument as the name of the applet to
-  run (I.E. "./busybox ls -l /proc"). 
+  run (I.E. "./busybox ls -l /proc").
 
   The "standalone shell" mode is an easy way to try out busybox; this is a
   command shell that calls the builtin applets without needing them to be

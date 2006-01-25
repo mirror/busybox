@@ -1,7 +1,7 @@
 /*
  * bitops.c --- Bitmap frobbing code.  See bitops.h for the inlined
- * 	routines.
- * 
+ *	routines.
+ *
  * Copyright (C) 1993, 1994, 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%

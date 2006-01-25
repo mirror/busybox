@@ -1,6 +1,6 @@
 /*
  * namei.c --- ext2fs directory lookup operations
- * 
+ *
  * Copyright (C) 1993, 1994, 1994, 1995 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -36,7 +36,7 @@ static errcode_t follow_link(ext2_filsys fs, ext2_ino_t root, ext2_ino_t dir,
 #ifdef NAMEI_DEBUG
 	printf("follow_link: root=%lu, dir=%lu, inode=%lu, lc=%d\n",
 	       root, dir, inode, link_count);
-	
+
 #endif
 	retval = ext2fs_read_inode (fs, inode, &ei);
 	if (retval) return retval;
@@ -85,12 +85,12 @@ static errcode_t dir_namei(ext2_filsys fs, ext2_ino_t root, ext2_ino_t dir,
 	errcode_t retval;
 
 	if ((c = *pathname) == '/') {
-        	dir = root;
+		dir = root;
 		pathname++;
 		pathlen--;
 	}
 	while (1) {
-        	thisname = pathname;
+		thisname = pathname;
 		for (len=0; --pathlen >= 0;len++) {
 			c = *(pathname++);
 			if (c == '/')
@@ -100,10 +100,10 @@ static errcode_t dir_namei(ext2_filsys fs, ext2_ino_t root, ext2_ino_t dir,
 			break;
 		retval = ext2fs_lookup (fs, dir, thisname, len, buf, &inode);
 		if (retval) return retval;
-        	retval = follow_link (fs, root, dir, inode,
+		retval = follow_link (fs, root, dir, inode,
 				      link_count, buf, &dir);
-        	if (retval) return retval;
-    	}
+		if (retval) return retval;
+	}
 	*name = thisname;
 	*namelen = len;
 	*res_inode = dir;
@@ -152,13 +152,13 @@ errcode_t ext2fs_namei(ext2_filsys fs, ext2_ino_t root, ext2_ino_t cwd,
 {
 	char *buf;
 	errcode_t retval;
-	
+
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
 
 	retval = ext2fs_get_mem(fs->blocksize, &buf);
 	if (retval)
 		return retval;
-	
+
 	retval = open_namei(fs, root, cwd, name, strlen(name), 0, 0,
 			    buf, inode);
 
@@ -171,13 +171,13 @@ errcode_t ext2fs_namei_follow(ext2_filsys fs, ext2_ino_t root, ext2_ino_t cwd,
 {
 	char *buf;
 	errcode_t retval;
-	
+
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
 
 	retval = ext2fs_get_mem(fs->blocksize, &buf);
 	if (retval)
 		return retval;
-	
+
 	retval = open_namei(fs, root, cwd, name, strlen(name), 1, 0,
 			    buf, inode);
 
@@ -190,7 +190,7 @@ errcode_t ext2fs_follow_link(ext2_filsys fs, ext2_ino_t root, ext2_ino_t cwd,
 {
 	char *buf;
 	errcode_t retval;
-	
+
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
 
 	retval = ext2fs_get_mem(fs->blocksize, &buf);

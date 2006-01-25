@@ -121,7 +121,7 @@ struct devfsd_notify_struct
 #define BUFFER_SIZE 16384
 #define DEVFSD_VERSION "1.3.25"
 #define CONFIG_FILE  "/etc/devfsd.conf"
-#define MODPROBE 		"/sbin/modprobe"
+#define MODPROBE		"/sbin/modprobe"
 #define MODPROBE_SWITCH_1 "-k"
 #define MODPROBE_SWITCH_2 "-C"
 #define CONFIG_MODULES_DEVFS "/etc/modules.devfs"
@@ -289,7 +289,7 @@ static struct event_type
 /* Busybox messages */
 
 static const char * const bb_msg_proto_rev			= "protocol revision";
-static const char * const bb_msg_bad_config   		= "bad %s config file: %s";
+static const char * const bb_msg_bad_config		= "bad %s config file: %s";
 static const char * const bb_msg_small_buffer		= "buffer too small";
 static const char * const bb_msg_variable_not_found = "variable: %s not found";
 
@@ -297,16 +297,16 @@ static const char * const bb_msg_variable_not_found = "variable: %s not found";
 static void msg_logger(int pri, const char * fmt, ... )
 {
 	va_list ap;
-	int ret; 
-	
+	int ret;
+
 	va_start(ap, fmt);
-	ret = access ("/dev/log", F_OK); 
+	ret = access ("/dev/log", F_OK);
 	if (ret == 0) {
 		openlog(bb_applet_name, 0, LOG_DAEMON);
 		vsyslog( pri , fmt, ap);
 		/* Man: A trailing newline is added when needed. */
 		closelog();
- 	} 
+	}
 	/* ENABLE_DEVFSD_VERBOSE is always enabled if msg_logger is used */
 	if ((ENABLE_DEVFSD_VERBOSE && ret) || ENABLE_DEBUG) {
 		bb_error_msg(fmt, ap);
@@ -319,28 +319,28 @@ static void msg_logger_and_die(int pri, const char* fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
- 	msg_logger(pri, fmt, ap);
+	msg_logger(pri, fmt, ap);
 	va_end(ap);
 	exit(EXIT_FAILURE);
 }
 
 /* Busybox stuff */
 #if defined(CONFIG_DEVFSD_VERBOSE) || defined(CONFIG_DEBUG)
-#define devfsd_error_msg(fmt, args...)                bb_error_msg(fmt, ## args)  
-#define devfsd_perror_msg_and_die(fmt, args...)       bb_perror_msg_and_die(fmt, ## args)  
-#define devfsd_error_msg_and_die(fmt, args...)        bb_error_msg_and_die(fmt, ## args)  
+#define devfsd_error_msg(fmt, args...)                bb_error_msg(fmt, ## args)
+#define devfsd_perror_msg_and_die(fmt, args...)       bb_perror_msg_and_die(fmt, ## args)
+#define devfsd_error_msg_and_die(fmt, args...)        bb_error_msg_and_die(fmt, ## args)
 #if defined(CONFIG_DEBUG)
 #define debug_msg_logger(x, fmt, args...)             msg_logger(x, fmt, ## args)
 #else
-#define debug_msg_logger(x, fmt, args...)    
+#define debug_msg_logger(x, fmt, args...)
 #endif
 #else
 #define debug_msg_logger(x, fmt, args...)
-#define msg_logger(p, fmt, args...) 
+#define msg_logger(p, fmt, args...)
 #define msg_logger_and_die(p, fmt, args...)           exit(1)
 #define devfsd_perror_msg_and_die(fmt, args...)       exit(1)
 #define devfsd_error_msg_and_die(fmt, args...)        exit(1)
-#define devfsd_error_msg(fmt, args...)   
+#define devfsd_error_msg(fmt, args...)
 #endif
 
 static void do_ioctl_and_die(int fd, int request, unsigned long event_mask_flag)
@@ -451,10 +451,10 @@ int devfsd_main (int argc, char **argv)
 		{
 			if(argv[count][1]=='v' && !argv[count][2]) /* -v */
 					print_version = TRUE;
-			else if(ENABLE_DEVFSD_FG_NP && argv[count][1]=='f' 
+			else if(ENABLE_DEVFSD_FG_NP && argv[count][1]=='f'
 					&& argv[count][2]=='g' && !argv[count][3]) /* -fg */
 					do_daemon = FALSE;
-			else if(ENABLE_DEVFSD_FG_NP && argv[count][1]=='n' 
+			else if(ENABLE_DEVFSD_FG_NP && argv[count][1]=='n'
 					&& argv[count][2]=='p' && !argv[count][3]) /* -np */
 					no_polling = TRUE;
 			else
@@ -470,7 +470,7 @@ int devfsd_main (int argc, char **argv)
 
 	if (chdir (mount_point) != 0)
 		devfsd_perror_msg_and_die(mount_point);
-	
+
 	fd = bb_xopen (".devfsd", O_RDONLY);
 
 	if (fcntl (fd, F_SETFD, FD_CLOEXEC) != 0)
@@ -503,15 +503,15 @@ int devfsd_main (int argc, char **argv)
 	new_action.sa_handler = signal_handler;
 	if (sigaction (SIGHUP, &new_action, NULL) != 0 || sigaction (SIGUSR1, &new_action, NULL) != 0 )
 		devfsd_error_msg_and_die( "sigaction");
-	
+
 	bb_printf("%s v%s  started for %s\n",bb_applet_name, DEVFSD_VERSION, mount_point);
 
-	/*  Set umask so that mknod(2), open(2) and mkdir(2) have complete control 	over permissions  */
+	/*  Set umask so that mknod(2), open(2) and mkdir(2) have complete control over permissions  */
 	umask (0);
 	read_config_file (CONFIG_FILE, FALSE, &event_mask);
 	/*  Do the scan before forking, so that boot scripts see the finished product  */
 	dir_operation(SERVICE,mount_point,0,NULL);
-	
+
 	if (ENABLE_DEVFSD_FG_NP && no_polling)
 		exit (0);
 	if (do_daemon)
@@ -553,7 +553,7 @@ static void read_config_file (char *path, int optional, unsigned long *event_mas
 	char *line=NULL;
 
 	debug_msg_logger(LOG_INFO, "%s: %s", __FUNCTION__, path);
-	
+
 	if (stat (path, &statbuf) == 0 )
 	{
 		/* Don't read 0 length files: ignored */
@@ -564,7 +564,7 @@ static void read_config_file (char *path, int optional, unsigned long *event_mas
 			/* strip last / from dirname so we don't need to check for it later */
 			while( path  && path[1]!='\0' && path[strlen(path)-1] == '/')
 				path[strlen(path) -1] = '\0';
-	
+
 			dir_operation(READ_CONFIG, path, 0, event_mask);
 			return;
 		}
@@ -586,7 +586,7 @@ static void read_config_file (char *path, int optional, unsigned long *event_mas
 	} else {
 read_config_file_err:
 	if(optional ==  0  && errno == ENOENT)
-		msg_logger_and_die(LOG_ERR, "read config file: %s: %m", path);	
+		msg_logger_and_die(LOG_ERR, "read config file: %s: %m", path);
 	}
 	return;
 }   /*  End Function read_config_file   */
@@ -691,7 +691,7 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 			the device name) to the module loading  facility.  In  addition,
 			the /etc/modules.devfs configuration file is used.*/
 			 if (ENABLE_DEVFSD_MODLOAD)
-			 	new->action.what = AC_MODLOAD;
+				new->action.what = AC_MODLOAD;
 			 break;
 		case 6: /* EXECUTE */
 			new->action.what = AC_EXECUTE;
@@ -759,7 +759,7 @@ static int do_servicing (int fd, unsigned long event_mask)
 	unsigned long tmp_event_mask;
 
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
-	
+
 	/*  Tell devfs what events we care about  */
 	tmp_event_mask = event_mask;
 	do_ioctl_and_die(fd, DEVFSDIOC_SET_EVENT_MASK, tmp_event_mask);
@@ -816,9 +816,9 @@ static void service_name (const struct devfsd_notify_struct *info)
 			continue;
 		for (n = 0; (n < MAX_SUBEXPR) && (mbuf[n].rm_so != -1); ++n)
 			/* VOID */;
-		
+
 		debug_msg_logger(LOG_INFO, "%s: action.what %d", __FUNCTION__, entry->action.what);
-		
+
 		switch (entry->action.what)
 		{
 			case AC_PERMISSIONS:
@@ -928,7 +928,7 @@ static void action_execute (const struct devfsd_notify_struct *info,
 
 static void action_copy (const struct devfsd_notify_struct *info,
 			 const struct config_entry_struct *entry,
-                         const regmatch_t *regexpr, unsigned int numexpr)
+			 const regmatch_t *regexpr, unsigned int numexpr)
 /*  [SUMMARY] Copy permissions.
     <info> The devfs change.
     <entry> The config file entry.
@@ -945,9 +945,9 @@ static void action_copy (const struct devfsd_notify_struct *info,
 	int ret = 0;
 
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
-	
+
 	dest_stat.st_mode = 0;
-	
+
 	if ( (info->type == DEVFSD_NOTIFY_CHANGE) && S_ISLNK (info->mode) )
 		return;
 	gv_info.info = info;
@@ -970,7 +970,7 @@ static void action_copy (const struct devfsd_notify_struct *info,
 		new_mode |= S_ISVTX;
 	else if ( (info->type == DEVFSD_NOTIFY_CHANGE) && (dest_stat.st_mode & S_ISVTX) )
 		new_mode |= S_ISVTX;
-	ret = copy_inode (destination, &dest_stat, new_mode, source, &source_stat); 
+	ret = copy_inode (destination, &dest_stat, new_mode, source, &source_stat);
 	if (ENABLE_DEBUG && ret && (errno != EEXIST))
 		debug_msg_logger(LOG_ERR, "copy_inode: %s to %s: %m", source, destination);
 	return;
@@ -1126,7 +1126,7 @@ static int copy_inode (const char *destpath, const struct stat *dest_stat,
 				( dest_len   = readlink (destpath  , dest_link  , STRING_LENGTH - 1) ) < 0 )
 				return (FALSE);
 			source_link[source_len]	= '\0';
-			dest_link[dest_len] 	= '\0';
+			dest_link[dest_len]	= '\0';
 			if ( (source_len != dest_len) || (strcmp (source_link, dest_link) != 0) )
 			{
 				unlink (destpath);
@@ -1224,12 +1224,12 @@ static int get_uid_gid (int flag, const char *string)
 	struct passwd *pw_ent;
 	struct group *grp_ent;
 	static char *msg;
-	
+
 	if (ENABLE_DEVFSD_VERBOSE)
 		msg="user";
 
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
-	
+
 	if(ENABLE_DEBUG && flag != UID && flag != GID)
 		msg_logger_and_die(LOG_ERR,"%s: flag != UID && flag != GID", __FUNCTION__);
 
@@ -1241,7 +1241,7 @@ static int get_uid_gid (int flag, const char *string)
 
 	if ( flag == GID && ( grp_ent = getgrnam (string) ) != NULL )
 		return (grp_ent->gr_gid);
-	else if(ENABLE_DEVFSD_VERBOSE) 
+	else if(ENABLE_DEVFSD_VERBOSE)
 		msg="group";
 
 	if(ENABLE_DEVFSD_VERBOSE)
@@ -1264,7 +1264,7 @@ static mode_t get_mode (const char *string)
 		return strtoul (string, NULL, 8);
 	if (strlen (string) != 9)
 		msg_logger_and_die(LOG_ERR, "bad mode: %s", string);
-	
+
 	mode = 0;
 	i= S_IRUSR;
 	while(i>0)
@@ -1280,7 +1280,7 @@ static mode_t get_mode (const char *string)
 static void signal_handler (int sig)
 {
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
-	
+
 	caught_signal = TRUE;
 	if (sig == SIGHUP)
 		caught_sighup = TRUE;
@@ -1301,7 +1301,7 @@ static const char *get_variable (const char *variable, void *info)
 
 	if (gethostname (hostname, STRING_LENGTH - 1) != 0)
 		msg_logger_and_die(LOG_ERR, "gethostname: %m");
-		
+
 		/* Here on error we should do exit(RV_SYS_ERROR), instead we do exit(EXIT_FAILURE) */
 		hostname[STRING_LENGTH - 1] = '\0';
 
@@ -1442,9 +1442,9 @@ static int make_dir_tree (const char *path)
 static int expand_expression(char *output, unsigned int outsize,
 			      const char *input,
 			      const char *(*get_variable_func)(const char *variable, void *info),
-                              void *info,
-                              const char *devname,
-                              const regmatch_t *ex, unsigned int numexp)
+			      void *info,
+			      const char *devname,
+			      const regmatch_t *ex, unsigned int numexp)
 /*  [SUMMARY] Expand environment variables and regular subexpressions in string.
     <output> The output expanded expression is written here.
     <length> The size of the output buffer.
@@ -1632,7 +1632,7 @@ const char *get_old_name (const char *devname, unsigned int namelen,
 		compat_name = buffer;
 	else
 		return NULL;
-		
+
 	debug_msg_logger(LOG_INFO, "%s: scan_dev_name = %d", __FUNCTION__, i);
 
 	/* 1 == scsi/generic, 3 == scsi/cd, 10 == sbp/ */
@@ -1677,10 +1677,10 @@ const char *get_old_name (const char *devname, unsigned int namelen,
 		indexx = atoi (devname + 5);
 		sprintf (buffer, fmt[i], (devname[4] == 'm') ? 'p' : 't', pty1[indexx >> 4], pty2[indexx & 0x0f]);
 	}
-	
+
 	if(ENABLE_DEBUG && compat_name!=NULL)
 		msg_logger(LOG_INFO, "%s: compat_name  %s", __FUNCTION__, compat_name);
-		
+
 	return (compat_name);
 }   /*  End Function get_old_name  */
 
@@ -1692,7 +1692,7 @@ static char get_old_ide_name (unsigned int major, unsigned int minor)
 */
 {
 	char letter='y';	/* 121 */
-	char c='a'; 		/*  97 */
+	char c='a';		/*  97 */
 	int i=IDE0_MAJOR;
 
 	debug_msg_logger(LOG_INFO, __FUNCTION__);

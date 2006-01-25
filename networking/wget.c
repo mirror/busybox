@@ -118,22 +118,22 @@ static char *safe_fgets(char *s, int size, FILE *stream)
  */
 static char *base64enc(unsigned char *p, char *buf, int len) {
 
-        char al[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-                    "0123456789+/";
+	char al[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		    "0123456789+/";
 		char *s = buf;
 
-        while(*p) {
+	while(*p) {
 				if (s >= buf+len-4)
 					bb_error_msg_and_die("buffer overflow");
-                *(s++) = al[(*p >> 2) & 0x3F];
-                *(s++) = al[((*p << 4) & 0x30) | ((*(p+1) >> 4) & 0x0F)];
-                *s = *(s+1) = '=';
-                *(s+2) = 0;
-                if (! *(++p)) break;
-                *(s++) = al[((*p << 2) & 0x3C) | ((*(p+1) >> 6) & 0x03)];
-                if (! *(++p)) break;
-                *(s++) = al[*(p++) & 0x3F];
-        }
+		*(s++) = al[(*p >> 2) & 0x3F];
+		*(s++) = al[((*p << 4) & 0x30) | ((*(p+1) >> 4) & 0x0F)];
+		*s = *(s+1) = '=';
+		*(s+2) = 0;
+		if (! *(++p)) break;
+		*(s++) = al[((*p << 2) & 0x3C) | ((*(p+1) >> 6) & 0x03)];
+		if (! *(++p)) break;
+		*(s++) = al[*(p++) & 0x3F];
+	}
 
 		return buf;
 }
@@ -190,8 +190,8 @@ int wget_main(int argc, char **argv)
 	 */
 	bb_opt_complementally = "-1:\203::";
 	bb_applet_long_options = wget_long_options;
-	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:", 
-					&fname_out, &headers_llist, 
+	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:",
+					&fname_out, &headers_llist,
 					&dir_prefix, &proxy_flag);
 	if (opt & WGET_OPT_CONTINUE) {
 		++do_continue;
@@ -217,7 +217,7 @@ int wget_main(int argc, char **argv)
 			headers_llist = headers_llist->link;
 		}
 	}
-	
+
 	parse_url(argv[optind], &target);
 	server.host = target.host;
 	server.port = target.port;
@@ -347,8 +347,8 @@ int wget_main(int argc, char **argv)
 			fprintf(sfp,"Connection: close\r\n\r\n");
 
 			/*
-		 	* Retrieve HTTP response line and check for "200" status code.
-		 	*/
+			* Retrieve HTTP response line and check for "200" status code.
+			*/
 read_response:
 			if (fgets(buf, sizeof(buf), sfp) == NULL)
 				close_delete_and_die("no response from server");

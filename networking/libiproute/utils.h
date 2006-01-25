@@ -46,8 +46,8 @@ typedef struct
 
 struct dn_naddr
 {
-        unsigned short          a_len;
-        unsigned char a_addr[DN_MAXADDL];
+	unsigned short          a_len;
+	unsigned char a_addr[DN_MAXADDL];
 };
 
 #define IPX_NODE_LEN 6

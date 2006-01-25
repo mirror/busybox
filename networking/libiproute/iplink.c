@@ -289,7 +289,7 @@ static int do_set(int argc, char **argv)
 			NEXT_ARG();
 			newaddr = *argv;
 		} else {
-                        if (strcmp(*argv, "dev") == 0) {
+			if (strcmp(*argv, "dev") == 0) {
 				NEXT_ARG();
 			}
 			if (dev)

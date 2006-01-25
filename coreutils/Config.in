@@ -457,8 +457,8 @@ config CONFIG_FEATURE_STAT_FORMAT
 	default n
 	depends on CONFIG_STAT
 	help
-	  Without this, stat will not support the '-c format' option where 
-	  users can pass a custom format string for output.  This adds about 
+	  Without this, stat will not support the '-c format' option where
+	  users can pass a custom format string for output.  This adds about
 	  7k to a nonstatic build on amd64.
 
 config CONFIG_STTY

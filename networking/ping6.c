@@ -246,7 +246,7 @@ static char *icmp6_type_name (int id)
 	case ICMP6_MEMBERSHIP_QUERY:		return "Membership Query";
 	case ICMP6_MEMBERSHIP_REPORT:		return "Membership Report";
 	case ICMP6_MEMBERSHIP_REDUCTION:	return "Membership Reduction";
-	default: 							return "unknown ICMP type";
+	default:							return "unknown ICMP type";
 	}
 }
 

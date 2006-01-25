@@ -1,6 +1,6 @@
 /*
  * getsectsize.c --- get the sector size of a device.
- * 
+ *
  * Copyright (C) 1995, 1995 Theodore Ts'o.
  * Copyright (C) 2003 VMware, Inc.
  *

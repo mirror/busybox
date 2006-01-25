@@ -55,7 +55,7 @@ static time_t askremotedate(const char *host)
 	 *  the RFC 868 time 2,208,988,800 corresponds to 00:00  1 Jan 1970 GMT
 	 * Subtract the RFC 868 time  to get Linux epoch
 	 */
-	
+
 	return(ntohl(nett) - RFC_868_BIAS);
 }
 
@@ -63,10 +63,10 @@ int rdate_main(int argc, char **argv)
 {
 	time_t remote_time;
 	unsigned long flags;
-	
+
 	bb_opt_complementally = "-1";
 	flags = bb_getopt_ulflags(argc, argv, "sp");
-	
+
 	remote_time = askremotedate(argv[optind]);
 
 	if (flags & 1) {
@@ -78,9 +78,9 @@ int rdate_main(int argc, char **argv)
 		else
 			if (stime(&remote_time) < 0)
 				bb_perror_msg_and_die("Could not set time of day");
-		
+
 	/* No need to check for the -p flag as it's the only option left */
-		
+
 	} else printf("%s", ctime(&remote_time));
 
 	return EXIT_SUCCESS;

@@ -1,13 +1,13 @@
 /*
  * dblist.c -- directory block list functions
- * 
+ *
  * Copyright 1997 by Theodore Ts'o
- * 
+ *
  * %Begin-Header%
  * This file may be redistributed under the terms of the GNU Public
  * License.
  * %End-Header%
- * 
+ *
  */
 
 #include <stdio.h>
@@ -33,7 +33,7 @@ errcode_t ext2fs_get_num_dirs(ext2_filsys fs, ext2_ino_t *ret_num_dirs)
 	ext2_ino_t	num_dirs, max_dirs;
 
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
-	
+
 	num_dirs = 0;
 	max_dirs = fs->super->s_inodes_per_group;
 	for (i = 0; i < fs->group_desc_count; i++) {
@@ -88,7 +88,7 @@ static errcode_t make_dblist(ext2_filsys fs, ext2_ino_t size, ext2_ino_t count,
 	retval = ext2fs_get_mem(len, &dblist->list);
 	if (retval)
 		goto cleanup;
-	
+
 	if (list)
 		memcpy(dblist->list, list, len);
 	else
@@ -155,10 +155,10 @@ errcode_t ext2fs_copy_dblist(ext2_dblist src, ext2_dblist *dest)
 errcode_t ext2fs_add_dir_block(ext2_dblist dblist, ext2_ino_t ino, blk_t blk,
 			       int blockcnt)
 {
-	struct ext2_db_entry 	*new_entry;
+	struct ext2_db_entry	*new_entry;
 	errcode_t		retval;
 	unsigned long		old_size;
-	
+
 	EXT2_CHECK_MAGIC(dblist, EXT2_ET_MAGIC_DBLIST);
 
 	if (dblist->count >= dblist->size) {
@@ -189,7 +189,7 @@ errcode_t ext2fs_set_dir_block(ext2_dblist dblist, ext2_ino_t ino, blk_t blk,
 			       int blockcnt)
 {
 	dgrp_t			i;
-	
+
 	EXT2_CHECK_MAGIC(dblist, EXT2_ET_MAGIC_DBLIST);
 
 	for (i=0; i < dblist->count; i++) {
@@ -225,7 +225,7 @@ errcode_t ext2fs_dblist_iterate(ext2_dblist dblist,
 {
 	ext2_ino_t	i;
 	int		ret;
-	
+
 	EXT2_CHECK_MAGIC(dblist, EXT2_ET_MAGIC_DBLIST);
 
 	if (!dblist->sorted)
@@ -247,7 +247,7 @@ static EXT2_QSORT_TYPE dir_block_cmp(const void *a, const void *b)
 
 	if (db_a->blk != db_b->blk)
 		return (int) (db_a->blk - db_b->blk);
-	
+
 	if (db_a->ino != db_b->ino)
 		return (int) (db_a->ino - db_b->ino);
 

@@ -77,7 +77,7 @@ int nice_main(int argc, char **argv)
 			bb_perror_msg_and_die(Xetpriority_msg, 's');
 		}
 	}
-	
+
 	execvp(*argv, argv);		/* Now exec the desired program. */
 
 	/* The exec failed... */

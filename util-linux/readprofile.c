@@ -149,9 +149,9 @@ int readprofile_main(int argc, char **argv)
 	/*
 	 * Use an fd for the profiling buffer, to skip stdio overhead
 	 */
-	 
+
 	proFd = bb_xopen(proFile,O_RDONLY);
-	
+
 	if (((int)(len=lseek(proFd,0,SEEK_END)) < 0)
 	    || (lseek(proFd,0,SEEK_SET) < 0))
 		bb_perror_msg_and_die(proFile);

@@ -14,53 +14,53 @@
 /* full usage according Donald Becker
  * usage: ether-wake [-i <ifname>] [-p aa:bb:cc:dd[:ee:ff]] 00:11:22:33:44:55\n"
  *
- * 	This program generates and transmits a Wake-On-LAN (WOL)\n"
- * 	\"Magic Packet\", used for restarting machines that have been\n"
- * 	soft-powered-down (ACPI D3-warm state).\n"
- * 	It currently generates the standard AMD Magic Packet format, with\n"
- * 	an optional password appended.\n"
+ *	This program generates and transmits a Wake-On-LAN (WOL)\n"
+ *	\"Magic Packet\", used for restarting machines that have been\n"
+ *	soft-powered-down (ACPI D3-warm state).\n"
+ *	It currently generates the standard AMD Magic Packet format, with\n"
+ *	an optional password appended.\n"
  *
- * 	The single required parameter is the Ethernet MAC (station) address\n"
- * 	of the machine to wake or a host ID with known NSS 'ethers' entry.\n"
- * 	The MAC address may be found with the 'arp' program while the target\n"
- * 	machine is awake.\n"
+ *	The single required parameter is the Ethernet MAC (station) address\n"
+ *	of the machine to wake or a host ID with known NSS 'ethers' entry.\n"
+ *	The MAC address may be found with the 'arp' program while the target\n"
+ *	machine is awake.\n"
  *
- * 	Options:\n"
- * 		-b	Send wake-up packet to the broadcast address.\n"
- * 		-D	Increase the debug level.\n"
- * 		-i ifname	Use interface IFNAME instead of the default 'eth0'.\n"
- * 		-p <pw>		Append the four or six byte password PW to the packet.\n"
- * 					A password is only required for a few adapter types.\n"
- * 					The password may be specified in ethernet hex format\n"
- * 					or dotted decimal (Internet address)\n"
- * 		-p 00:22:44:66:88:aa\n"
- * 		-p 192.168.1.1\n";
- * 
+ *	Options:\n"
+ *		-b	Send wake-up packet to the broadcast address.\n"
+ *		-D	Increase the debug level.\n"
+ *		-i ifname	Use interface IFNAME instead of the default 'eth0'.\n"
+ *		-p <pw>		Append the four or six byte password PW to the packet.\n"
+ *					A password is only required for a few adapter types.\n"
+ *					The password may be specified in ethernet hex format\n"
+ *					or dotted decimal (Internet address)\n"
+ *		-p 00:22:44:66:88:aa\n"
+ *		-p 192.168.1.1\n";
  *
- * 	This program generates and transmits a Wake-On-LAN (WOL) "Magic Packet",
- * 	used for restarting machines that have been soft-powered-down
- * 	(ACPI D3-warm state).  It currently generates the standard AMD Magic Packet
- * 	format, with an optional password appended.
- * 
- * 	This software may be used and distributed according to the terms
- * 	of the GNU Public License, incorporated herein by reference.
- * 	Contact the author for use under other terms.
- * 
- * 	This source file was originally part of the network tricks package, and
- * 	is now distributed to support the Scyld Beowulf system.
- * 	Copyright 1999-2003 Donald Becker and Scyld Computing Corporation.
- * 
- * 	The author may be reached as becker@scyld, or C/O
- * 	 Scyld Computing Corporation
- * 	 914 Bay Ridge Road, Suite 220
- * 	 Annapolis MD 21403
- * 
+ *
+ *	This program generates and transmits a Wake-On-LAN (WOL) "Magic Packet",
+ *	used for restarting machines that have been soft-powered-down
+ *	(ACPI D3-warm state).  It currently generates the standard AMD Magic Packet
+ *	format, with an optional password appended.
+ *
+ *	This software may be used and distributed according to the terms
+ *	of the GNU Public License, incorporated herein by reference.
+ *	Contact the author for use under other terms.
+ *
+ *	This source file was originally part of the network tricks package, and
+ *	is now distributed to support the Scyld Beowulf system.
+ *	Copyright 1999-2003 Donald Becker and Scyld Computing Corporation.
+ *
+ *	The author may be reached as becker@scyld, or C/O
+ *	 Scyld Computing Corporation
+ *	 914 Bay Ridge Road, Suite 220
+ *	 Annapolis MD 21403
+ *
  *   Notes:
  *   On some systems dropping root capability allows the process to be
  *   dumped, traced or debugged.
  *   If someone traces this program, they get control of a raw socket.
  *   Linux handles this safely, but beware when porting this program.
- * 
+ *
  *   An alternative to needing 'root' is using a UDP broadcast socket, however
  *   doing so only works with adapters configured for unicast+broadcast Rx
  *   filter.  That configuration consumes more power.

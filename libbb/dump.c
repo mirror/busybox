@@ -695,7 +695,7 @@ void bb_dump_add(const char *fmt)
 
 	/* start new linked list of format units */
 	/* NOSTRICT */
- 	tfs = (FS *) xcalloc(1,sizeof(FS)); /*DBU:[dave@cray.com] start out NULL */
+	tfs = (FS *) xcalloc(1,sizeof(FS)); /*DBU:[dave@cray.com] start out NULL */
 	if (!bb_dump_fshead) {
 		bb_dump_fshead = tfs;
 	} else {

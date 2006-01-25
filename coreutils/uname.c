@@ -93,7 +93,7 @@ int uname_main(int argc, char **argv)
 	}
 
 #if defined(__sparc__) && defined(__linux__)
- 	if ((fake_sparc != NULL)
+	if ((fake_sparc != NULL)
 		&& ((fake_sparc[0] == 'y')
 			|| (fake_sparc[0] == 'Y'))) {
 		strcpy(uname_info.name.machine, "sparc");

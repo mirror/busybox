@@ -51,9 +51,9 @@
 
 /* Constants for Huffman coding */
 #define MAX_GROUPS			6
-#define GROUP_SIZE   		50		/* 64 would have been more efficient */
-#define MAX_HUFCODE_BITS 	20		/* Longest Huffman code allowed */
-#define MAX_SYMBOLS 		258		/* 256 literals + RUNA + RUNB */
+#define GROUP_SIZE			50		/* 64 would have been more efficient */
+#define MAX_HUFCODE_BITS	20		/* Longest Huffman code allowed */
+#define MAX_SYMBOLS			258		/* 256 literals + RUNA + RUNB */
 #define SYMBOL_RUNA			0
 #define SYMBOL_RUNB			1
 

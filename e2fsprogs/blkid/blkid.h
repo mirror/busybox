@@ -34,13 +34,13 @@ typedef struct blkid_struct_dev_iterate *blkid_dev_iterate;
  * Flags for blkid_get_dev
  *
  * BLKID_DEV_CREATE	Create an empty device structure if not found
- * 			in the cache.
+ *			in the cache.
  * BLKID_DEV_VERIFY	Make sure the device structure corresponds
- * 			with reality.
+ *			with reality.
  * BLKID_DEV_FIND	Just look up a device entry, and return NULL
- * 			if it is not found.
+ *			if it is not found.
  * BLKID_DEV_NORMAL	Get a valid device structure, either from the
- * 			cache or by probing the device.
+ *			cache or by probing the device.
  */
 #define BLKID_DEV_FIND		0x0000
 #define BLKID_DEV_CREATE	0x0001

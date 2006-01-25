@@ -1191,7 +1191,7 @@ extern int sed_main(int argc, char **argv)
 					if(in_place) {
 						struct stat statbuf;
 						int nonstdoutfd;
-						
+
 						outname=bb_xstrndup(argv[i],strlen(argv[i])+6);
 						strcat(outname,"XXXXXX");
 						if(-1==(nonstdoutfd=mkstemp(outname)))

@@ -61,8 +61,8 @@ errcode_t io_channel_write_byte(io_channel channel, unsigned long offset,
 {
 	EXT2_CHECK_MAGIC(channel, EXT2_ET_MAGIC_IO_CHANNEL);
 
-	if (channel->manager->write_byte) 
-		return channel->manager->write_byte(channel, offset, 
+	if (channel->manager->write_byte)
+		return channel->manager->write_byte(channel, offset,
 						    count, data);
 
 	return EXT2_ET_UNIMPLEMENTED;

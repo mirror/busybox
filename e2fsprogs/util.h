@@ -1,7 +1,7 @@
 /*
  * util.h --- header file defining prototypes for helper functions
  * used by tune2fs and mke2fs
- * 
+ *
  * Copyright 2000 by Theodore Ts'o.
  *
  * %Begin-Header%

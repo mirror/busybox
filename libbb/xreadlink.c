@@ -14,7 +14,7 @@
 #include "libbb.h"
 
 extern char *xreadlink(const char *path)
-{   
+{
 	static const int GROWBY = 80; /* how large we will grow strings by */
 
 	char *buf = NULL;

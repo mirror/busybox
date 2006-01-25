@@ -96,7 +96,7 @@ static blkid_tag blkid_find_head_cache(blkid_cache cache, const char *type)
 
 /*
  * Set a tag on an existing device.
- * 
+ *
  * If value is NULL, then delete the tagsfrom the device.
  */
 int blkid_set_tag(blkid_dev dev, const char *name,
@@ -131,7 +131,7 @@ int blkid_set_tag(blkid_dev dev, const char *name,
 		t->bit_dev = dev;
 
 		list_add_tail(&t->bit_tags, &dev->bid_tags);
-		
+
 		if (dev->bid_cache) {
 			head = blkid_find_head_cache(dev->bid_cache,
 						     t->bit_name);
@@ -151,7 +151,7 @@ int blkid_set_tag(blkid_dev dev, const char *name,
 			list_add_tail(&t->bit_names, &head->bit_names);
 		}
 	}
-	
+
 	/* Link common tags directly to the device struct */
 	if (!strcmp(name, "TYPE"))
 		dev->bid_type = val;
@@ -159,7 +159,7 @@ int blkid_set_tag(blkid_dev dev, const char *name,
 		dev->bid_label = val;
 	else if (!strcmp(name, "UUID"))
 		dev->bid_uuid = val;
-		
+
 	if (dev->bid_cache)
 		dev->bid_cache->bic_flags |= BLKID_BIC_FL_CHANGED;
 	return 0;
@@ -235,7 +235,7 @@ errout:
  * This series of functions iterate over all tags in a device
  */
 #define TAG_ITERATE_MAGIC	0x01a5284c
-	
+
 struct blkid_struct_tag_iterate {
 	int			magic;
 	blkid_dev		dev;
@@ -260,7 +260,7 @@ extern int blkid_tag_next(blkid_tag_iterate iter,
 			  const char **type, const char **value)
 {
 	blkid_tag tag;
-	
+
 	*type = 0;
 	*value = 0;
 	if (!iter || iter->magic != TAG_ITERATE_MAGIC ||
@@ -303,9 +303,9 @@ extern blkid_dev blkid_find_dev_with_tag(blkid_cache cache,
 		return NULL;
 
 	blkid_read_cache(cache);
-	
+
 	DBG(DEBUG_TAG, printf("looking for %s=%s in cache\n", type, value));
-	
+
 try_again:
 	pri = -1;
 	dev = 0;
@@ -313,7 +313,7 @@ try_again:
 
 	if (head) {
 		list_for_each(p, &head->bit_names) {
-			blkid_tag tmp = list_entry(p, struct blkid_struct_tag, 
+			blkid_tag tmp = list_entry(p, struct blkid_struct_tag,
 						   bit_names);
 
 			if (!strcmp(tmp->bit_val, value) &&

@@ -53,9 +53,9 @@ extern int sulogin_main(int argc, char **argv)
 	char *device = (char *) 0;
 	const char *name = "root";
 	int timeout = 0;
-	
+
 #define pass bb_common_bufsiz1
-	
+
 	struct passwd pwent;
 	struct passwd *pwd;
 	const char * const *p;

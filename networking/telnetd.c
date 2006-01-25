@@ -94,7 +94,7 @@ struct tsession {
    +-------+     wridx1++     +------+     rdidx1++     +----------+
    |       | <--------------  | buf1 | <--------------  |          |
    |       |     size1--      +------+     size1++      |          |
-   |  pty  |                                            |  socket  |
+   |  pty  |					    |  socket  |
    |       |     rdidx2++     +------+     wridx2++     |          |
    |       |  --------------> | buf2 |  --------------> |          |
    +-------+     size2++      +------+     size2--      +----------+
@@ -166,7 +166,7 @@ remove_iacs(struct tsession *ts, int *pnum_totty) {
 			else if (ptr[1] == SB && ptr[2] == TELOPT_NAWS) {
 				struct winsize ws;
 				if ((ptr+8) >= end)
-					break; 	/* incomplete, can't process */
+					break;	/* incomplete, can't process */
 				ws.ws_col = (ptr[3] << 8) | ptr[4];
 				ws.ws_row = (ptr[5] << 8) | ptr[6];
 				(void) ioctl(ts->ptyfd, TIOCSWINSZ, (char *)&ws);
@@ -383,7 +383,7 @@ int
 telnetd_main(int argc, char **argv)
 {
 #ifndef CONFIG_FEATURE_TELNETD_INETD
-        sockaddr_type sa;
+	sockaddr_type sa;
 	int master_fd;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
 	fd_set rdfdset, wrfdset;
@@ -446,7 +446,7 @@ telnetd_main(int argc, char **argv)
 
 	/* Grab a TCP socket.  */
 
-        master_fd = socket(SOCKET_TYPE, SOCK_STREAM, 0);
+	master_fd = socket(SOCKET_TYPE, SOCK_STREAM, 0);
 	if (master_fd < 0) {
 		bb_perror_msg_and_die("socket");
 	}

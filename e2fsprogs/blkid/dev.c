@@ -73,7 +73,7 @@ extern const char *blkid_dev_devname(blkid_dev dev)
  * This series of functions iterate over all devices in a blkid cache
  */
 #define DEV_ITERATE_MAGIC	0x01a5284c
-	
+
 struct blkid_struct_dev_iterate {
 	int			magic;
 	blkid_cache		cache;

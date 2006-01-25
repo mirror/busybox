@@ -74,8 +74,8 @@
 #define RW_LONG			22  /* extra bytes in R/W LONG cmd ( < ATA-4)*/
 #define START_FW_REV            23  /* ASCII firmware revision */
 #define LENGTH_FW_REV		 4  /*  4 words (8 bytes or characters) */
-#define START_MODEL    		27  /* ASCII model number */
-#define LENGTH_MODEL    	20  /* 20 words (40 bytes or characters) */
+#define START_MODEL		27  /* ASCII model number */
+#define LENGTH_MODEL		20  /* 20 words (40 bytes or characters) */
 #define SECTOR_XFER_MAX	        47  /* r/w multiple: max sectors xfered */
 #define DWORD_IO		48  /* can do double-word IO (ATA-1 only) */
 #define CAPAB_0			49  /* capabilities */
@@ -121,12 +121,12 @@
 				       in low byte, 0x40 in high byte. */
 #define PSWD_CODE		92  /* master password revision code	*/
 #define HWRST_RSLT		93  /* hardware reset result */
-#define ACOUSTIC  		94  /* acoustic mgmt values ( >= ATA-6) */
+#define ACOUSTIC		94  /* acoustic mgmt values ( >= ATA-6) */
 #define LBA_LSB			100 /* LBA: maximum.  Currently only 48 */
 #define LBA_MID			101 /*      bits are used, but addr 103 */
 #define LBA_48_MSB		102 /*      has been reserved for LBA in */
 #define LBA_64_MSB		103 /*      the future. */
-#define RM_STAT 		127 /* removable media status notification feature set support */
+#define RM_STAT			127 /* removable media status notification feature set support */
 #define SECU_STATUS		128 /* security status */
 #define CFA_PWR_MODE		160 /* CFA power mode 1 */
 #define START_MEDIA             176 /* media serial number */
@@ -229,7 +229,7 @@ static const char * const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
  */
 #define STBY_NID_VAL		0x37c8  /*     (a) and     (b) */
 #define STBY_ID_VAL		0x738c	/*     (a) and not (b) */
-#define PWRD_NID_VAL 		0x8c73	/* not (a) and     (b) */
+#define PWRD_NID_VAL		0x8c73	/* not (a) and     (b) */
 #define PWRD_ID_VAL		0xc837	/* not (a) and not (b) */
 
 /* words 47 & 59: sector_xfer_max & sector_xfer_cur */
@@ -237,7 +237,7 @@ static const char * const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 #define MULTIPLE_SETTING_VALID  0x0100  /* 1=multiple sector setting is valid */
 
 /* word 49: capabilities 0 */
-#define STD_STBY  	  	0x2000  /* 1=standard values supported (ATA);
+#define STD_STBY		0x2000  /* 1=standard values supported (ATA);
 					   0=vendor specific values */
 #define IORDY_SUP		0x0800  /* 1=support; 0=may be supported */
 #define IORDY_OFF		0x0400  /* 1=may be disabled */
@@ -255,7 +255,7 @@ static const char * const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 #define MODE			0xff00  /* the mode is in the MSBs */
 
 /* word 53: whats_valid */
-#define OK_W88     	   	0x0004	/* the ultra_dma info is valid */
+#define OK_W88			0x0004	/* the ultra_dma info is valid */
 #define OK_W64_70		0x0002  /* see above for word descriptions */
 #define OK_W54_58		0x0001  /* current cyl, head, sector, cap. info valid */
 
@@ -314,25 +314,25 @@ static const char * const minor_str[] = {				/* word 81 value: */
 #endif
 static const char actual_ver[] = {
 			/* word 81 value: */
-	0,		/* 0x0000	WARNING: 	*/
-	1,		/* 0x0001	WARNING: 	*/
-	1,		/* 0x0002	WARNING: 	*/
-	1,		/* 0x0003	WARNING: 	*/
-	2,		/* 0x0004	WARNING:   This array 		*/
-	2,		/* 0x0005	WARNING:   corresponds 		*/
+	0,		/* 0x0000	WARNING:	*/
+	1,		/* 0x0001	WARNING:	*/
+	1,		/* 0x0002	WARNING:	*/
+	1,		/* 0x0003	WARNING:	*/
+	2,		/* 0x0004	WARNING:   This array		*/
+	2,		/* 0x0005	WARNING:   corresponds		*/
 	3,		/* 0x0006	WARNING:   *exactly*		*/
 	2,		/* 0x0007	WARNING:   to the ATA/		*/
 	3,		/* 0x0008	WARNING:   ATAPI version	*/
-	2,		/* 0x0009	WARNING:   listed in	 	*/
-	3,		/* 0x000a	WARNING:   the 		 	*/
-	3,		/* 0x000b	WARNING:   minor_str 		*/
+	2,		/* 0x0009	WARNING:   listed in		*/
+	3,		/* 0x000a	WARNING:   the			*/
+	3,		/* 0x000b	WARNING:   minor_str		*/
 	3,		/* 0x000c	WARNING:   array		*/
 	4,		/* 0x000d	WARNING:   above.		*/
-	4,		/* 0x000e	WARNING:  			*/
-	4,		/* 0x000f	WARNING:   if you change 	*/
-	4,		/* 0x0010	WARNING:   that one,      	*/
+	4,		/* 0x000e	WARNING:			*/
+	4,		/* 0x000f	WARNING:   if you change	*/
+	4,		/* 0x0010	WARNING:   that one,		*/
 	4,		/* 0x0011	WARNING:   change this one	*/
-	4,		/* 0x0012	WARNING:   too!!!        	*/
+	4,		/* 0x0012	WARNING:   too!!!		*/
 	5,		/* 0x0013	WARNING:	*/
 	4,		/* 0x0014	WARNING:	*/
 	5,		/* 0x0015	WARNING:	*/
@@ -343,7 +343,7 @@ static const char actual_ver[] = {
 	0,		/* 0x001a	WARNING:	*/
 	6,		/* 0x001b	WARNING:	*/
 	6,		/* 0x001c	WARNING:	*/
-	0		/* 0x001d-0xfffe    		*/
+	0		/* 0x001d-0xfffe		*/
 };
 
 /* words 82-84: cmds/feats supported */
@@ -387,7 +387,7 @@ static const char * const cmd_feat_str[] = {
 	"Adv. Power Management feature set",/* word 83 bit  3 */
 	"CFA feature set",			/* word 83 bit  2 */
 	"READ/WRITE DMA QUEUED",		/* word 83 bit  1 */
-	"DOWNLOAD MICROCODE cmd", 		/* word 83 bit  0 */
+	"DOWNLOAD MICROCODE cmd",		/* word 83 bit  0 */
 						/* --------------*/
 	"",					/* word 84 bit 15: !valid bit */
 	"",					/* word 84 bit 14:  valid bit */
@@ -428,7 +428,7 @@ static const char * const cmd_feat_str[] = {
 #define CSEL_VAL		0x0004  /* device num determined by CSEL_VAL */
 
 /* word 127: removable media status notification feature set support */
-#define RM_STAT_BITS 		0x0003
+#define RM_STAT_BITS		0x0003
 #define RM_STAT_SUP		0x0001
 
 /* word 128: security */
@@ -774,7 +774,7 @@ static void identify (uint16_t *id_supplied, const char *devname)
 			like_std = 6;
 		}
 		else if(((std == 4) || (!std && (like_std < 5))) &&
-			((((val[INTEGRITY] 	& SIG) == SIG_VAL) && !chksum) ||
+			((((val[INTEGRITY]	& SIG) == SIG_VAL) && !chksum) ||
 			((	val[HWRST_RSLT] & VALID) == VALID_VAL) ||
 			(((	val[CMDS_SUPP_1] & VALID) == VALID_VAL) &&
 			((	val[CMDS_SUPP_1] & CMDS_W83) > 0x001f)) ) )
@@ -805,14 +805,14 @@ static void identify (uint16_t *id_supplied, const char *devname)
 		if(!std)
 			printf("\n\tLikely used: %u\n",like_std);
 		else if(like_std > std)
-		 	printf("& some of %u\n",like_std);
+			printf("& some of %u\n",like_std);
 		else
 			printf("\n");
 	}
 	else
 	{
 		/* TBD: do CDROM stuff more thoroughly.  For now... */
-	  	kk = 0;
+		kk = 0;
 		if(val[CDR_MINOR] == 9)
 		{
 			kk = 1;
@@ -886,7 +886,7 @@ static void identify (uint16_t *id_supplied, const char *devname)
 		ll = (uint32_t)val[LBA_SECTS_MSB] << 16 | val[LBA_SECTS_LSB];
 		mm = 0; bbbig = 0;
 		if ( (ll > 0x00FBFC10) && (!val[LCYLS]))
-		  	printf("\tCHS addressing not supported\n");
+			printf("\tCHS addressing not supported\n");
 		else
 		{
 			jj = val[WHATS_VALID] & OK_W54_58;
@@ -915,9 +915,9 @@ static void identify (uint16_t *id_supplied, const char *devname)
 		if( ((val[CMDS_SUPP_1] & VALID) == VALID_VAL) &&
 		     (val[CMDS_SUPP_1] & SUPPORT_48_BIT) )
 		{
-			bbbig = (__u64)val[LBA_64_MSB] 	<< 48 |
-			        (__u64)val[LBA_48_MSB] 	<< 32 |
-			        (__u64)val[LBA_MID] 	<< 16 |
+			bbbig = (__u64)val[LBA_64_MSB]	<< 48 |
+			        (__u64)val[LBA_48_MSB]	<< 32 |
+			        (__u64)val[LBA_MID]	<< 16 |
 					val[LBA_LSB] ;
 			printf("\tLBA48  user addressable sectors:%11llu\n",bbbig);
 		}
@@ -1081,7 +1081,7 @@ static void identify (uint16_t *id_supplied, const char *devname)
 
 	/* Programmed IO stuff */
 	printf("\tPIO: ");
-        /* If a drive supports mode n (e.g. 3), it also supports all modes less
+	/* If a drive supports mode n (e.g. 3), it also supports all modes less
 	 * than n (e.g. 3, 2, 1 and 0).  Print all the modes. */
 	if((val[WHATS_VALID] & OK_W64_70) && (val[ADV_PIO_MODES] & PIO_SUP))
 	{
@@ -1349,8 +1349,8 @@ static void dump_identity (const struct hd_driveid *id)
 	capacity = (id->cur_capacity1 << 16) | id->cur_capacity0;
 #endif
 	printf(" CurCHS=%u/%u/%u, CurSects=%lu, LBA=%s",id->cur_cyls, id->cur_heads,
-								 					id->cur_sectors, capacity ,
-								 			((id->capability&2)==0)?"no":"yes");
+													id->cur_sectors, capacity ,
+											((id->capability&2)==0)?"no":"yes");
 
 	if_printf((id->capability&2),", LBAsects=%u", id->lba_capacity);
 
@@ -1363,7 +1363,7 @@ static void dump_identity (const struct hd_driveid *id)
 			if_strcat((id->dma_1word & 0x200),	dmodes, "*");
 			if_strcat((id->dma_1word & 2),		dmodes, "sdma1 ");
 			if_strcat((id->dma_1word & 0x400),	dmodes, "*");
-			if_strcat((id->dma_1word & 4), 		dmodes, "sdma2 ");
+			if_strcat((id->dma_1word & 4),		dmodes, "sdma2 ");
 			if_strcat((id->dma_1word & 0xf800),	dmodes, "*");
 			if_strcat((id->dma_1word & 0xf8),	dmodes, "sdma? ");
 			if_strcat((id->dma_mword & 0x100),	dmodes, "*");
@@ -2346,7 +2346,7 @@ static void process_dev (char *devname)
 		no_scsi();
 		if (ioctl(fd, HDIO_DRIVE_CMD, &args)
 			 && (args[0] = WIN_CHECKPOWERMODE2) /* try again with 0x98 */
-		 	&& ioctl(fd, HDIO_DRIVE_CMD, &args))
+			&& ioctl(fd, HDIO_DRIVE_CMD, &args))
 		{
 			if (errno != EIO || args[0] != 0 || args[1] != 0)
 				state = "unknown";
@@ -2456,7 +2456,7 @@ identify_abort:
 
 
 	if (do_ctimings)
-		do_time(0,fd); 		/*time cache  */
+		do_time(0,fd);		/*time cache  */
 	if (do_timings)
 		do_time(1,fd);		/*time device */
 	if (do_flush)

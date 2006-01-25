@@ -1,6 +1,6 @@
 /*
  * ext2fsP.h --- private header file for ext2 library
- * 
+ *
  * Copyright (C) 1997 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -78,7 +78,7 @@ struct ext2_inode_cache_ent {
 
 /* Function prototypes */
 
-extern int ext2fs_process_dir_block(ext2_filsys  	fs,
+extern int ext2fs_process_dir_block(ext2_filsys		fs,
 				    blk_t		*blocknr,
 				    e2_blkcnt_t		blockcnt,
 				    blk_t		ref_block,

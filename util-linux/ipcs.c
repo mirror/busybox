@@ -29,12 +29,12 @@
  * 19:30:41 1996 by janl@math.uio.no to add code missing in case PID:
  * clauses.
  *
- * Patches from Mike Jagdis (jaggy@purplet.demon.co.uk) applied 
- * Wed Feb 8 12:12:21 1995 by faith@cs.unc.edu to print numeric uids 
+ * Patches from Mike Jagdis (jaggy@purplet.demon.co.uk) applied
+ * Wed Feb 8 12:12:21 1995 by faith@cs.unc.edu to print numeric uids
  * if no passwd file entry.
  *
  * Modified Sat Oct  9 10:55:28 1993 for 0.99.13
- * Original author unknown, may be "krishna balasub@cis.ohio-state.edu" 
+ * Original author unknown, may be "krishna balasub@cis.ohio-state.edu"
  *
  */
 
@@ -136,7 +136,7 @@ static void print_msg (int id);
 static void print_sem (int id);
 
 int ipcs_main (int argc, char **argv) {
-	int opt, msg = 0, sem = 0, shm = 0, id=0, print=0; 
+	int opt, msg = 0, sem = 0, shm = 0, id=0, print=0;
 	char format = 0;
 	char options[] = "atclupsmqi:ih?";
 
@@ -173,7 +173,7 @@ int ipcs_main (int argc, char **argv) {
 		case 'u':
 			format = STATUS;
 			break;
-		case 'h': 
+		case 'h':
 		case '?':
 			bb_show_usage();
 			bb_fflush_stdout_and_exit (0);
@@ -181,11 +181,11 @@ int ipcs_main (int argc, char **argv) {
 	}
 
 	if  (print) {
-		if (shm) { 
+		if (shm) {
 			print_shm (id);
 			bb_fflush_stdout_and_exit (0);
 		}
-		if (sem) { 
+		if (sem) {
 			print_sem (id);
 			bb_fflush_stdout_and_exit (0);
 		}
@@ -201,15 +201,15 @@ int ipcs_main (int argc, char **argv) {
 		msg = sem = shm = 1;
 	bb_printf ("\n");
 
-	if (shm) {	
+	if (shm) {
 		do_shm (format);
 		bb_printf ("\n");
 	}
-	if (sem) {	
+	if (sem) {
 		do_sem (format);
 		bb_printf ("\n");
 	}
-	if (msg) {	
+	if (msg) {
 		do_msg (format);
 		bb_printf ("\n");
 	}
@@ -258,7 +258,7 @@ void do_shm (char format)
 		bb_printf ("kernel not configured for shared memory\n");
 		return;
 	}
-	
+
 	switch (format) {
 	case LIMITS:
 		bb_printf ("------ Shared Memory Limits --------\n");
@@ -282,7 +282,7 @@ void do_shm (char format)
 		bb_printf ("pages allocated %ld\n", shm_info.shm_tot);
 		bb_printf ("pages resident  %ld\n", shm_info.shm_rss);
 		bb_printf ("pages swapped   %ld\n", shm_info.shm_swp);
-		bb_printf ("Swap performance: %ld attempts\t %ld successes\n", 
+		bb_printf ("Swap performance: %ld attempts\t %ld successes\n",
 			shm_info.swap_attempts, shm_info.swap_successes);
 		return;
 
@@ -313,7 +313,7 @@ void do_shm (char format)
 
 	for (id = 0; id <= maxid; id++) {
 		shmid = shmctl (id, SHM_STAT, &shmseg);
-		if (shmid < 0) 
+		if (shmid < 0)
 			continue;
 		if (format == CREATOR)  {
 			print_perms (shmid, ipcp);
@@ -321,7 +321,7 @@ void do_shm (char format)
 		}
 		pw = getpwuid(ipcp->uid);
 		switch (format) {
-		case TIME: 
+		case TIME:
 			if (pw)
 				bb_printf ("%-10d %-10.10s", shmid, pw->pw_name);
 			else
@@ -342,14 +342,14 @@ void do_shm (char format)
 			bb_printf (" %-10d %-10d\n",
 				shmseg.shm_cpid, shmseg.shm_lpid);
 			break;
-			
+
 		default:
 				bb_printf("0x%08x ",ipcp->KEY );
 			if (pw)
 				bb_printf ("%-10d %-10.10s", shmid, pw->pw_name);
 			else
 				bb_printf ("%-10d %-10d", shmid, ipcp->uid);
-			bb_printf ("%-10o %-10lu %-10ld %-6s %-6s\n", 
+			bb_printf ("%-10o %-10lu %-10ld %-6s %-6s\n",
 				ipcp->mode & 0777,
 				/*
 				 * earlier: int, Austin has size_t
@@ -384,7 +384,7 @@ void do_sem (char format)
 		bb_printf ("kernel not configured for semaphores\n");
 		return;
 	}
-	
+
 	switch (format) {
 	case LIMITS:
 		bb_printf ("------ Semaphore Limits --------\n");
@@ -421,7 +421,7 @@ void do_sem (char format)
 
 	default:
 		bb_printf ("------ Semaphore Arrays --------\n");
-		bb_printf ("%-10s %-10s %-10s %-10s %-10s\n", 
+		bb_printf ("%-10s %-10s %-10s %-10s %-10s\n",
 			"key","semid","owner","perms","nsems");
 		break;
 	}
@@ -437,7 +437,7 @@ void do_sem (char format)
 		}
 		pw = getpwuid(ipcp->uid);
 		switch (format) {
-		case TIME: 
+		case TIME:
 			if (pw)
 				bb_printf ("%-8d %-10.10s", semid, pw->pw_name);
 			else
@@ -449,7 +449,7 @@ void do_sem (char format)
 			break;
 		case PID:
 			break;
-			
+
 		default:
 				bb_printf("0x%08x ", ipcp->KEY);
 			if (pw)
@@ -484,7 +484,7 @@ void do_msg (char format)
 		bb_printf ("kernel not configured for message queues\n");
 		return;
 	}
-	
+
 	switch (format) {
 	case LIMITS:
 		if ((msgctl (0, IPC_INFO, (struct msqid_ds *) (void *) &msginfo)) < 0 )
@@ -662,7 +662,7 @@ void print_sem (int semid)
 	bb_printf ("nsems = %ld\n", (long) semds.sem_nsems);
 	bb_printf ("otime = %-26.24s\n",
 		semds.sem_otime ? ctime (&semds.sem_otime) : "Not set");
-	bb_printf ("ctime = %-26.24s\n", ctime (&semds.sem_ctime));	
+	bb_printf ("ctime = %-26.24s\n", ctime (&semds.sem_ctime));
 
 	bb_printf ("%-10s %-10s %-10s %-10s %-10s\n",
 		"semnum","value","ncount","zcount","pid");

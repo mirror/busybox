@@ -156,7 +156,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 
 #ifdef CONFIG_FEATURE_SORT_BIG
 	struct sort_key *key;
-	
+
 	for(key=key_list;!retval && key;key=key->next_key) {
 		flags=(key->flags) ? key->flags : global_flags;
 		/* Chop out and modify key chunks, handling -dfib */
@@ -312,7 +312,7 @@ int sort_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_SORT_BIG
 	/* if no key, perform alphabetic sort */
     if(!key_list) add_key()->range[0]=1;
-	/* handle -c */	
+	/* handle -c */
 	if(global_flags&FLAG_c) {
 		int j=(global_flags&FLAG_u) ? -1 : 0;
 		for(i=1;i<linecount;i++)

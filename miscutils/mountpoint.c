@@ -47,7 +47,7 @@ int mountpoint_main(int argc, char **argv)
 				dev_t st_dev = st.st_dev;
 				ino_t st_ino = st.st_ino;
 				char *p = bb_xasprintf("%s/..", arg);
-				
+
 				if (stat(p, &st) == 0) {
 					short ret = (st_dev != st.st_dev) ||
 						(st_dev == st.st_dev && st_ino == st.st_ino);

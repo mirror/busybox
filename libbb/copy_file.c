@@ -119,7 +119,7 @@ int copy_file(const char *source, const char *dest, int flags)
 			status = -1;
 		}
 	} else if (S_ISREG(source_stat.st_mode) || (flags & FILEUTILS_DEREFERENCE))
-   	{
+	{
 		int src_fd;
 		int dst_fd;
 #ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS

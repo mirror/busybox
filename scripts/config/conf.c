@@ -528,7 +528,7 @@ int main(int ac, char **av)
 			exit(0);
 		}
 	}
-  	name = av[i];
+	name = av[i];
 	if (!name) {
 		printf("%s: configuration file missing\n", av[0]);
 	}

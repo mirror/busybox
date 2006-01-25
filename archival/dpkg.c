@@ -850,7 +850,7 @@ static void write_status_file(deb_file_t **deb_file)
 		}
 
 		tmp_string += 8;
- 		tmp_string += strspn(tmp_string, " \n\t");
+		tmp_string += strspn(tmp_string, " \n\t");
 		package_name = bb_xstrndup(tmp_string, strcspn(tmp_string, "\n\0"));
 		write_flag = FALSE;
 		tmp_string = strstr(control_buffer, "Status:");
@@ -989,8 +989,8 @@ static int package_satisfies_dependency(int package, int depend_type)
 		return 0;
 
 	switch (depend_type) {
-	case EDGE_PRE_DEPENDS: 	return get_status(status_num, 3) == search_name_hashtable("installed");
-	case EDGE_DEPENDS: 	return get_status(status_num, 1) == search_name_hashtable("install");
+	case EDGE_PRE_DEPENDS:	return get_status(status_num, 3) == search_name_hashtable("installed");
+	case EDGE_DEPENDS:	return get_status(status_num, 1) == search_name_hashtable("install");
 	}
 	return 0;
 }
@@ -1078,7 +1078,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 			}
 		}
 		i++;
-	}	
+	}
 
 
 	/* Check dependendcies */
@@ -1114,8 +1114,8 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 		 * things which are broken but unrelated to the
 		 * packages that are currently being installed
 		 */
-                if (state_status == search_name_hashtable("installed"))
-                        continue;
+		if (state_status == search_name_hashtable("installed"))
+			continue;
 #endif
 
 		/* This code is tested only for EDGE_DEPENDS, since I
@@ -1125,13 +1125,13 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 		for (j = 0; j < package_node->num_of_edges; j++) {
 			const edge_t *package_edge = package_node->edge[j];
 			unsigned int package_num;
-			
+
 			if ( package_edge->type == EDGE_OR_PRE_DEPENDS ||
-			     package_edge->type == EDGE_OR_DEPENDS ) { 	/* start an EDGE_OR_ list */
+			     package_edge->type == EDGE_OR_DEPENDS ) {	/* start an EDGE_OR_ list */
 				number_of_alternatives = package_edge->version;
 				root_of_alternatives = package_edge;
 				continue;
-			} else if ( number_of_alternatives == 0 ) { 	/* not in the middle of an EDGE_OR_ list */
+			} else if ( number_of_alternatives == 0 ) {	/* not in the middle of an EDGE_OR_ list */
 				number_of_alternatives = 1;
 				root_of_alternatives = NULL;
 			}
@@ -1329,7 +1329,7 @@ static void free_array(char **array)
  */
 static void list_packages(void)
 {
-        int i;
+	int i;
 
 	printf("    Name           Version\n");
 	printf("+++-==============-==============\n");
@@ -1715,7 +1715,7 @@ int dpkg_main(int argc, char **argv)
 
 			if (package_num == -1) {
 				bb_error_msg("Invalid control file in %s", argv[optind]);
-                                optind++;
+				optind++;
 				continue;
 			}
 			deb_file[deb_count]->package = (unsigned int) package_num;

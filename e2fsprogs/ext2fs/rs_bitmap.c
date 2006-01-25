@@ -53,7 +53,7 @@ errcode_t ext2fs_resize_generic_bitmap(__u32 new_end, __u32 new_real_end,
 		bmap->end = new_end;
 		return 0;
 	}
-	
+
 	size = ((bmap->real_end - bmap->start) / 8) + 1;
 	new_size = ((new_real_end - bmap->start) / 8) + 1;
 
@@ -74,7 +74,7 @@ errcode_t ext2fs_resize_inode_bitmap(__u32 new_end, __u32 new_real_end,
 				     ext2fs_inode_bitmap bmap)
 {
 	errcode_t	retval;
-	
+
 	if (!bmap)
 		return EXT2_ET_INVALID_ARGUMENT;
 
@@ -91,7 +91,7 @@ errcode_t ext2fs_resize_block_bitmap(__u32 new_end, __u32 new_real_end,
 				     ext2fs_block_bitmap bmap)
 {
 	errcode_t	retval;
-	
+
 	if (!bmap)
 		return EXT2_ET_INVALID_ARGUMENT;
 

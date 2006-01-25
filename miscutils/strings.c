@@ -47,23 +47,23 @@ int strings_main(int argc, char **argv)
 	char *string;
 	const char *fmt = "%s: ";
 	char *n_arg = "4";
-	
+
 	opt = bb_getopt_ulflags (argc, argv, "afon:", &n_arg);
 	/* -a is our default behaviour */
-	
+
 	argc -= optind;
 	argv += optind;
 
 	n = bb_xgetlarg(n_arg, 10, 1, INT_MAX);
 	string = xcalloc(n + 1, 1);
 	n--;
-	
+
 	if ( argc == 0) {
 		fmt = "{%s}: ";
 		*argv = (char *)bb_msg_standard_input;
 		goto PIPE;
 	}
-	
+
 	do {
 		if ((file = bb_wfopen(*argv, "r"))) {
 PIPE:

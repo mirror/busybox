@@ -81,19 +81,19 @@ errcode_t ext2fs_create_icount2(ext2_filsys fs, int flags, unsigned int size,
 		if (hint->size > size)
 			size = (size_t) hint->size;
 	}
-	
+
 	retval = ext2fs_get_mem(sizeof(struct ext2_icount), &icount);
 	if (retval)
 		return retval;
 	memset(icount, 0, sizeof(struct ext2_icount));
 
-	retval = ext2fs_allocate_inode_bitmap(fs, 0, 
+	retval = ext2fs_allocate_inode_bitmap(fs, 0,
 					      &icount->single);
 	if (retval)
 		goto errout;
 
 	if (flags & EXT2_ICOUNT_OPT_INCREMENT) {
-		retval = ext2fs_allocate_inode_bitmap(fs, 0, 
+		retval = ext2fs_allocate_inode_bitmap(fs, 0,
 						      &icount->multiple);
 		if (retval)
 			goto errout;
@@ -113,7 +113,7 @@ errcode_t ext2fs_create_icount2(ext2_filsys fs, int flags, unsigned int size,
 			goto errout;
 		icount->size += fs->super->s_inodes_count / 50;
 	}
-	
+
 	bytes = (size_t) (icount->size * sizeof(struct ext2_icount_el));
 #if 0
 	printf("Icount allocated %d entries, %d bytes.\n",
@@ -148,7 +148,7 @@ errout:
 	return(retval);
 }
 
-errcode_t ext2fs_create_icount(ext2_filsys fs, int flags, 
+errcode_t ext2fs_create_icount(ext2_filsys fs, int flags,
 			       unsigned int size,
 			       ext2_icount_t *ret)
 {
@@ -157,12 +157,12 @@ errcode_t ext2fs_create_icount(ext2_filsys fs, int flags,
 
 /*
  * insert_icount_el() --- Insert a new entry into the sorted list at a
- * 	specified position.
+ *	specified position.
  */
 static struct ext2_icount_el *insert_icount_el(ext2_icount_t icount,
 					    ext2_ino_t ino, int pos)
 {
-	struct ext2_icount_el 	*el;
+	struct ext2_icount_el	*el;
 	errcode_t		retval;
 	ext2_ino_t			new_size = 0;
 	int			num;
@@ -170,14 +170,14 @@ static struct ext2_icount_el *insert_icount_el(ext2_icount_t icount,
 	if (icount->count >= icount->size) {
 		if (icount->count) {
 			new_size = icount->list[(unsigned)icount->count-1].ino;
-			new_size = (ext2_ino_t) (icount->count * 
+			new_size = (ext2_ino_t) (icount->count *
 				((float) icount->num_inodes / new_size));
 		}
 		if (new_size < (icount->size + 100))
 			new_size = icount->size + 100;
 #if 0
 		printf("Reallocating icount %d entries...\n", new_size);
-#endif	
+#endif
 		retval = ext2fs_resize_mem((size_t) icount->size *
 					   sizeof(struct ext2_icount_el),
 					   (size_t) new_size *
@@ -203,8 +203,8 @@ static struct ext2_icount_el *insert_icount_el(ext2_icount_t icount,
 
 /*
  * get_icount_el() --- given an inode number, try to find icount
- * 	information in the sorted list.  If the create flag is set,
- * 	and we can't find an entry, create one in the sorted list.
+ *	information in the sorted list.  If the create flag is set,
+ *	and we can't find an entry, create one in the sorted list.
  */
 static struct ext2_icount_el *get_icount_el(ext2_icount_t icount,
 					    ext2_ino_t ino, int create)
@@ -222,7 +222,7 @@ static struct ext2_icount_el *get_icount_el(ext2_icount_t icount,
 	}
 	if (icount->count == 0)
 		return 0;
-	
+
 	if (icount->cursor >= icount->count)
 		icount->cursor = 0;
 	if (ino == icount->list[icount->cursor].ino)
@@ -247,7 +247,7 @@ static struct ext2_icount_el *get_icount_el(ext2_icount_t icount,
 				range = 0;
 			else if (ino > highval)
 				range = 1;
-			else 
+			else
 				range = ((float) (ino - lowval)) /
 					(highval - lowval);
 			mid = low + ((int) (range * (high-low)));
@@ -276,7 +276,7 @@ errcode_t ext2fs_icount_validate(ext2_icount_t icount, FILE *out)
 	errcode_t	ret = 0;
 	unsigned int	i;
 	const char *bad = "bad icount";
-	
+
 	EXT2_CHECK_MAGIC(icount, EXT2_ET_MAGIC_ICOUNT);
 
 	if (icount->count > icount->size) {
@@ -297,7 +297,7 @@ errcode_t ext2fs_icount_validate(ext2_icount_t icount, FILE *out)
 errcode_t ext2fs_icount_fetch(ext2_icount_t icount, ext2_ino_t ino, __u16 *ret)
 {
 	struct ext2_icount_el	*el;
-	
+
 	EXT2_CHECK_MAGIC(icount, EXT2_ET_MAGIC_ICOUNT);
 
 	if (!ino || (ino > icount->num_inodes))
@@ -413,7 +413,7 @@ errcode_t ext2fs_icount_decrement(ext2_icount_t icount, ext2_ino_t ino,
 	if (icount->multiple &&
 	    !ext2fs_test_inode_bitmap(icount->multiple, ino))
 		return EXT2_ET_INVALID_ARGUMENT;
-	
+
 	el = get_icount_el(icount, ino, 0);
 	if (!el || el->count == 0)
 		return EXT2_ET_INVALID_ARGUMENT;

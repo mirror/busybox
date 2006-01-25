@@ -1,7 +1,7 @@
 /* vi:set ts=4:
- * 
+ *
  * mdev - Mini udev for busybox
- * 
+ *
  * Copyright 2005 Rob Landley <rob@landley.net>
  * Copyright 2005 Frank Sorenson <frank@tuxrocks.com>
  *
@@ -38,21 +38,21 @@ static void make_device(char *path)
 	RESERVE_CONFIG_BUFFER(temp,PATH_MAX);
 
 	/* Try to read major/minor string */
-	
+
 	snprintf(temp, PATH_MAX, "%s/dev", path);
 	fd = open(temp, O_RDONLY);
 	len = read(fd, temp, PATH_MAX-1);
 	if (len<1) goto end;
 	close(fd);
-	
+
 	/* Determine device name, type, major and minor */
-	
+
 	device_name = strrchr(path, '/') + 1;
 	type = strncmp(path+5, "block/" ,6) ? S_IFCHR : S_IFBLK;
 	if(sscanf(temp, "%d:%d", &major, &minor) != 2) goto end;
 
 	/* If we have a config file, look up permissions for this device */
-	
+
 	if (ENABLE_FEATURE_MDEV_CONF) {
 		char *conf,*pos,*end;
 
@@ -67,7 +67,7 @@ static void make_device(char *path)
 				for (pos=conf;pos-conf<len;) {
 					int field;
 					char *end2;
-					
+
 					line++;
 					/* find end of this line */
 					for(end=pos;end-conf<len && *end!='\n';end++);
@@ -88,11 +88,11 @@ static void make_device(char *path)
 								regmatch_t off;
 								int result;
 
-								/* Is this it? */	
+								/* Is this it? */
 								xregcomp(&match,regex,REG_EXTENDED);
 								result=regexec(&match,device_name,1,&off,0);
 								regfree(&match);
-								
+
 								/* If not this device, skip rest of line */
 								if(result || off.rm_so
 									|| off.rm_eo!=strlen(device_name))
@@ -159,7 +159,7 @@ found_device:
 		bb_perror_msg_and_die("mknod %s failed", temp);
 
 	if (ENABLE_FEATURE_MDEV_CONF) chown(temp,uid,gid);
-	
+
 end:
 	RELEASE_CONFIG_BUFFER(temp);
 }
@@ -177,7 +177,7 @@ static void find_dev(char *path)
 
 	for (;;) {
 		struct dirent *entry = readdir(dir);
-		
+
 		if (!entry) break;
 
 		/* Skip "." and ".." (also skips hidden files, which is ok) */
@@ -189,12 +189,12 @@ static void find_dev(char *path)
 			find_dev(path);
 			path[len] = 0;
 		}
-		
+
 		/* If there's a dev entry, mknod it */
-		
+
 		if (!strcmp(entry->d_name, "dev")) make_device(path);
 	}
-	
+
 	closedir(dir);
 }
 
@@ -205,7 +205,7 @@ int mdev_main(int argc, char *argv[])
 	RESERVE_CONFIG_BUFFER(temp,PATH_MAX);
 
 	/* Scan */
-	
+
 	if (argc == 2 && !strcmp(argv[1],"-s")) {
 		strcpy(temp,"/sys/block");
 		find_dev(temp);
@@ -218,7 +218,7 @@ int mdev_main(int argc, char *argv[])
 		action = getenv("ACTION");
 		env_path = getenv("DEVPATH");
 	    if (!action || !env_path) bb_show_usage();
-		
+
 		if (!strcmp(action, "add")) {
 			sprintf(temp, "/sys%s", env_path);
 			make_device(temp);

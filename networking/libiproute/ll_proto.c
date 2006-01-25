@@ -92,23 +92,23 @@ __PF(ECONET,econet)
 
 const char * ll_proto_n2a(unsigned short id, char *buf, int len)
 {
-        int i;
+	int i;
 
 	id = ntohs(id);
 
-        for (i=0; i<sizeof(llproto_names)/sizeof(llproto_names[0]); i++) {
-                 if (llproto_names[i].id == id)
+	for (i=0; i<sizeof(llproto_names)/sizeof(llproto_names[0]); i++) {
+		 if (llproto_names[i].id == id)
 			return llproto_names[i].name;
 	}
-        snprintf(buf, len, "[%d]", id);
-        return buf;
+	snprintf(buf, len, "[%d]", id);
+	return buf;
 }
 
 int ll_proto_a2n(unsigned short *id, char *buf)
 {
-        int i;
-        for (i=0; i<sizeof(llproto_names)/sizeof(llproto_names[0]); i++) {
-                 if (strcasecmp(llproto_names[i].name, buf) == 0) {
+	int i;
+	for (i=0; i<sizeof(llproto_names)/sizeof(llproto_names[0]); i++) {
+		 if (strcasecmp(llproto_names[i].name, buf) == 0) {
 			 *id = htons(llproto_names[i].id);
 			 return 0;
 		 }

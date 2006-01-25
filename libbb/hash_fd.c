@@ -212,7 +212,7 @@ static void sha1_end(unsigned char hval[], struct sha1_ctx_t *ctx)
 		ctx->wbuf[cnt++] = 0;
 
 	/* assemble the eight byte counter in the buffer in big-endian  */
-	/* format                                                       */
+	/* format					               */
 
 	ctx->wbuf[14] = swap_b32((ctx->count[1] << 3) | (ctx->count[0] >> 29));
 	ctx->wbuf[15] = swap_b32(ctx->count[0] << 3);
@@ -492,12 +492,12 @@ static void md5_hash_block(const void *buffer, size_t len, struct md5_ctx_t *ctx
 
 #  define OP(a, b, c, d, s, T)	\
       do	\
-        {	\
+	{	\
 	  a += FF (b, c, d) + (*cwp++ = SWAP (*words)) + T;	\
 	  ++words;	\
 	  CYCLIC (a, s);	\
 	  a += b;	\
-        }	\
+	}	\
       while (0)
 
 		/* It is unfortunate that C does not provide an operator for

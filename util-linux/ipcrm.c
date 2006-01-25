@@ -94,7 +94,7 @@ remove_ids(type_id type, int argc, char **argv) {
 			case MSG:
 				ret = msgctl (id, IPC_RMID, NULL);
 				break;
-				
+
 			case SHM:
 				ret = shmctl (id, IPC_RMID, NULL);
 				break;
@@ -109,7 +109,7 @@ remove_ids(type_id type, int argc, char **argv) {
 		argc--;
 		argv++;
 	}
-	
+
 	return(nb_errors);
 }
 
@@ -119,7 +119,7 @@ static int deprecated_main(int argc, char **argv)
 		bb_show_usage();
 		bb_fflush_stdout_and_exit(1);
 	}
-	
+
 	if (!strcmp(argv[1], "shm")) {
 		if (remove_ids(SHM, argc-2, &argv[2]))
 			bb_fflush_stdout_and_exit(1);
@@ -127,7 +127,7 @@ static int deprecated_main(int argc, char **argv)
 	else if (!strcmp(argv[1], "msg")) {
 		if (remove_ids(MSG, argc-2, &argv[2]))
 			bb_fflush_stdout_and_exit(1);
-	} 
+	}
 	else if (!strcmp(argv[1], "sem")) {
 		if (remove_ids(SEM, argc-2, &argv[2]))
 			bb_fflush_stdout_and_exit(1);
@@ -228,7 +228,7 @@ int ipcrm_main(int argc, char **argv)
 		}
 
 		result = ((c == 'q') ? msgctl(id, IPC_RMID, NULL) :
-			  (c == 'm') ? shmctl(id, IPC_RMID, NULL) : 
+			  (c == 'm') ? shmctl(id, IPC_RMID, NULL) :
 			  semctl(id, 0, IPC_RMID, arg));
 
 		if (result < 0) {

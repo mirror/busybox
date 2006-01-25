@@ -841,7 +841,7 @@ static int SIT(int c, int syntax)
 	return S_I_T[indx][syntax];
 }
 
-#else                                                   /* USE_SIT_FUNCTION */
+#else					           /* USE_SIT_FUNCTION */
 
 #define SIT(c, syntax) S_I_T[(int)syntax_index_table[((int)c)+SYNBASE]][syntax]
 
@@ -1142,7 +1142,7 @@ static const char syntax_index_table[258] = {
 	/* 257   127      */ CWORD_CWORD_CWORD_CWORD,
 };
 
-#endif                                                  /* USE_SIT_FUNCTION */
+#endif					          /* USE_SIT_FUNCTION */
 
 /*      alias.c      */
 

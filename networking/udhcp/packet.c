@@ -71,13 +71,13 @@ int get_packet(struct dhcpMessage *packet, int fd)
 		for (i = 0; broken_vendors[i][0]; i++) {
 			if (vendor[OPT_LEN - 2] == (uint8_t) strlen(broken_vendors[i]) &&
 			    !strncmp(vendor, broken_vendors[i], vendor[OPT_LEN - 2])) {
-			    	DEBUG(LOG_INFO, "broken client (%s), forcing broadcast",
-			    		broken_vendors[i]);
-			    	packet->flags |= htons(BROADCAST_FLAG);
+				DEBUG(LOG_INFO, "broken client (%s), forcing broadcast",
+					broken_vendors[i]);
+				packet->flags |= htons(BROADCAST_FLAG);
 			}
 		}
 	}
-			
+
 
 	return bytes;
 }

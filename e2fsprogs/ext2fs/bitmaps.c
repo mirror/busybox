@@ -35,7 +35,7 @@ static errcode_t make_bitmap(__u32 start, __u32 end, __u32 real_end,
 	errcode_t		retval;
 	size_t			size;
 
-	retval = ext2fs_get_mem(sizeof(struct ext2fs_struct_generic_bitmap), 
+	retval = ext2fs_get_mem(sizeof(struct ext2fs_struct_generic_bitmap),
 				&bitmap);
 	if (retval)
 		return retval;
@@ -106,7 +106,7 @@ void ext2fs_set_bitmap_padding(ext2fs_generic_bitmap map)
 		ext2fs_set_bit(j, map->bitmap);
 
 	return;
-}	
+}
 
 errcode_t ext2fs_allocate_inode_bitmap(ext2_filsys fs,
 				       const char *descr,
@@ -128,11 +128,11 @@ errcode_t ext2fs_allocate_inode_bitmap(ext2_filsys fs,
 						descr, &bitmap);
 	if (retval)
 		return retval;
-	
+
 	bitmap->magic = EXT2_ET_MAGIC_INODE_BITMAP;
 	bitmap->fs = fs;
 	bitmap->base_error_code = EXT2_ET_BAD_INODE_MARK;
-	
+
 	*ret = bitmap;
 	return 0;
 }
@@ -151,9 +151,9 @@ errcode_t ext2fs_allocate_block_bitmap(ext2_filsys fs,
 
 	start = fs->super->s_first_data_block;
 	end = fs->super->s_blocks_count-1;
-	real_end = (EXT2_BLOCKS_PER_GROUP(fs->super)  
+	real_end = (EXT2_BLOCKS_PER_GROUP(fs->super)
 		    * fs->group_desc_count)-1 + start;
-	
+
 	retval = ext2fs_allocate_generic_bitmap(start, end, real_end,
 						descr, &bitmap);
 	if (retval)
@@ -162,7 +162,7 @@ errcode_t ext2fs_allocate_block_bitmap(ext2_filsys fs,
 	bitmap->magic = EXT2_ET_MAGIC_BLOCK_BITMAP;
 	bitmap->fs = fs;
 	bitmap->base_error_code = EXT2_ET_BAD_BLOCK_MARK;
-	
+
 	*ret = bitmap;
 	return 0;
 }
@@ -171,7 +171,7 @@ errcode_t ext2fs_fudge_inode_bitmap_end(ext2fs_inode_bitmap bitmap,
 					ext2_ino_t end, ext2_ino_t *oend)
 {
 	EXT2_CHECK_MAGIC(bitmap, EXT2_ET_MAGIC_INODE_BITMAP);
-	
+
 	if (end > bitmap->real_end)
 		return EXT2_ET_FUDGE_INODE_BITMAP_END;
 	if (oend)
@@ -184,7 +184,7 @@ errcode_t ext2fs_fudge_block_bitmap_end(ext2fs_block_bitmap bitmap,
 					blk_t end, blk_t *oend)
 {
 	EXT2_CHECK_MAGIC(bitmap, EXT2_ET_MAGIC_BLOCK_BITMAP);
-	
+
 	if (end > bitmap->real_end)
 		return EXT2_ET_FUDGE_BLOCK_BITMAP_END;
 	if (oend)

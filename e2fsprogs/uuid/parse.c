@@ -1,6 +1,6 @@
 /*
  * parse.c --- UUID parsing
- * 
+ *
  * Copyright (C) 1996, 1997 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -16,7 +16,7 @@
  * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, ALL OF
@@ -42,7 +42,7 @@
 int uuid_parse(const char *in, uuid_t uu)
 {
 	struct uuid	uuid;
-	int 		i;
+	int		i;
 	const char	*cp;
 	char		buf[3];
 
@@ -73,7 +73,7 @@ int uuid_parse(const char *in, uuid_t uu)
 		buf[1] = *cp++;
 		uuid.node[i] = strtoul(buf, NULL, 16);
 	}
-	
+
 	uuid_pack(&uuid, uu);
 	return 0;
 }

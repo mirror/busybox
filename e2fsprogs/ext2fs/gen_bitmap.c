@@ -1,6 +1,6 @@
 /*
  * gen_bitmap.c --- Generic bitmap routines that used to be inlined.
- * 
+ *
  * Copyright (C) 2001 Theodore Ts'o.
  *
  * %Begin-Header%

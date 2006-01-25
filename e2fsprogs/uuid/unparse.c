@@ -1,6 +1,6 @@
 /*
  * unparse.c -- convert a UUID to string
- * 
+ *
  * Copyright (C) 1996, 1997 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -16,7 +16,7 @@
  * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, ALL OF
@@ -36,10 +36,10 @@
 
 #include "uuidP.h"
 
-static const char *fmt_lower = 
+static const char *fmt_lower =
 	"%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x";
 
-static const char *fmt_upper = 
+static const char *fmt_upper =
 	"%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X";
 
 #ifdef UUID_UNPARSE_DEFAULT_UPPER

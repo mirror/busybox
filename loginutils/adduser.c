@@ -244,7 +244,7 @@ int adduser_main(int argc, char **argv)
 	const char *gecos = default_gecos;
 	const char *home = NULL;
 	const char *shell = DEFAULT_SHELL;
- 	const char *usegroup = NULL;
+	const char *usegroup = NULL;
 	int flags;
 	int setpass = 1;
 	int makehome = 1;
@@ -293,7 +293,7 @@ int adduser_main(int argc, char **argv)
 	if (usegroup) {
 		/* Add user to a group that already exists */
 		pw.pw_gid = bb_xgetgrnam(usegroup);
-		/* exits on error */	
+		/* exits on error */
 	}
 
 	/* grand finale */

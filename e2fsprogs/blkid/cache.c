@@ -47,9 +47,9 @@ int blkid_get_cache(blkid_cache *ret_cache, const char *filename)
 	if (!filename)
 		filename = BLKID_CACHE_FILE;
 	cache->bic_filename = blkid_strdup(filename);
-	
+
 	blkid_read_cache(cache);
-	
+
 	*ret_cache = cache;
 	return 0;
 }
@@ -62,7 +62,7 @@ void blkid_put_cache(blkid_cache cache)
 	(void) blkid_flush_cache(cache);
 
 	DBG(DEBUG_CACHE, printf("freeing cache struct\n"));
-	
+
 	/* DEB_DUMP_CACHE(cache); */
 
 	while (!list_empty(&cache->bic_devs)) {
@@ -79,7 +79,7 @@ void blkid_put_cache(blkid_cache cache)
 
 		while (!list_empty(&tag->bit_names)) {
 			blkid_tag bad = list_entry(tag->bit_names.next,
-						   struct blkid_struct_tag, 
+						   struct blkid_struct_tag,
 						   bit_names);
 
 			DBG(DEBUG_CACHE, printf("warning: unfreed tag %s=%s\n",
@@ -90,7 +90,7 @@ void blkid_put_cache(blkid_cache cache)
 	}
 	if (cache->bic_filename)
 		free(cache->bic_filename);
-	
+
 	free(cache);
 }
 

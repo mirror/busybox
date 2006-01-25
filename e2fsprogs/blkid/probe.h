@@ -18,7 +18,7 @@
 
 struct blkid_magic;
 
-typedef int (*blkid_probe_t)(int fd, blkid_cache cache, blkid_dev dev, 
+typedef int (*blkid_probe_t)(int fd, blkid_cache cache, blkid_dev dev,
 			     const struct blkid_magic *id, unsigned char *buf);
 
 struct blkid_magic {
@@ -222,16 +222,16 @@ struct ocfs_volume_header {
 
 struct ocfs_volume_label {
 	unsigned char	disk_lock[48];
-	unsigned char	label[64];	
+	unsigned char	label[64];
 	unsigned char	label_len[2];
 	unsigned char  vol_id[16];
 	unsigned char  vol_id_len[2];
 };
 
 #define ocfsmajor(o) ((__u32)o.major_version[0] \
-                   + (((__u32) o.major_version[1]) << 8) \
-                   + (((__u32) o.major_version[2]) << 16) \
-                   + (((__u32) o.major_version[3]) << 24))
+		   + (((__u32) o.major_version[1]) << 8) \
+		   + (((__u32) o.major_version[2]) << 16) \
+		   + (((__u32) o.major_version[3]) << 24))
 #define ocfslabellen(o)	((__u32)o.label_len[0] + (((__u32) o.label_len[1]) << 8))
 #define ocfsmountlen(o)	((__u32)o.mount_len[0] + (((__u32) o.mount_len[1])<<8))
 
@@ -334,7 +334,7 @@ _INLINE_ __u64 blkid_swab64(__u64 val)
 	return (blkid_swab32(val >> 32) |
 		(((__u64) blkid_swab32(val & 0xFFFFFFFFUL)) << 32));
 }
-#endif 
+#endif
 
 
 

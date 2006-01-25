@@ -26,7 +26,7 @@
  *
  *    *)  A bugfix for the Page-Down problem
  *
- *    *)  Formerly when I used Page Down and Page Up, the cursor would be set 
+ *    *)  Formerly when I used Page Down and Page Up, the cursor would be set
  *        to the first position in the menu box.  Now lxdialog is a bit
  *        smarter and works more like other menu systems (just have a look at
  *        it).
@@ -78,8 +78,8 @@ print_item (WINDOW * win, const char *item, int choice, int selected, int hotkey
     wmove (win, choice, 0);
 #if OLD_NCURSES
     {
-        int i;
-        for (i = 0; i < menu_width; i++)
+	int i;
+	for (i = 0; i < menu_width; i++)
 	    waddch (win, ' ');
     }
 #else
@@ -88,8 +88,8 @@ print_item (WINDOW * win, const char *item, int choice, int selected, int hotkey
     wattrset (win, selected ? item_selected_attr : item_attr);
     mvwaddstr (win, choice, item_x, menu_item);
     if (hotkey) {
-    	wattrset (win, selected ? tag_key_selected_attr : tag_key_attr);
-    	mvwaddch(win, choice, item_x+j, menu_item[j]);
+	wattrset (win, selected ? tag_key_selected_attr : tag_key_attr);
+	mvwaddch(win, choice, item_x+j, menu_item[j]);
     }
     if (selected) {
 	wmove (win, choice, item_x+1);
@@ -225,7 +225,7 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
 
     /*
      * Find length of longest item in order to center menu.
-     * Set 'choice' to default item. 
+     * Set 'choice' to default item.
      */
     item_x = 0;
     for (i = 0; i < item_no; i++) {
@@ -261,7 +261,7 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
     /* Print the menu */
     for (i=0; i < max_choice; i++) {
 	print_item (menu, items[first_item + i]->name, i, i == choice,
-                    (items[first_item + i]->tag[0] != ':'));
+		    (items[first_item + i]->tag[0] != ':'));
     }
 
     wnoutrefresh (menu);
@@ -281,107 +281,107 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
 	if (strchr("ynmh", key))
 		i = max_choice;
 	else {
-        for (i = choice+1; i < max_choice; i++) {
+	for (i = choice+1; i < max_choice; i++) {
 		j = first_alpha(items[scroll + i]->name, "YyNnMmHh");
 		if (key == tolower(items[scroll + i]->name[j]))
-                	break;
+			break;
 	}
 	if (i == max_choice)
-       		for (i = 0; i < max_choice; i++) {
+		for (i = 0; i < max_choice; i++) {
 			j = first_alpha(items[scroll + i]->name, "YyNnMmHh");
 			if (key == tolower(items[scroll + i]->name[j]))
-                		break;
+				break;
 		}
 	}
 
-	if (i < max_choice || 
-            key == KEY_UP || key == KEY_DOWN ||
-            key == '-' || key == '+' ||
-            key == KEY_PPAGE || key == KEY_NPAGE) {
+	if (i < max_choice ||
+	    key == KEY_UP || key == KEY_DOWN ||
+	    key == '-' || key == '+' ||
+	    key == KEY_PPAGE || key == KEY_NPAGE) {
 
-            print_item (menu, items[scroll + choice]->name, choice, FALSE,
-                       (items[scroll + choice]->tag[0] != ':'));
+	    print_item (menu, items[scroll + choice]->name, choice, FALSE,
+		       (items[scroll + choice]->tag[0] != ':'));
 
 	    if (key == KEY_UP || key == '-') {
-                if (choice < 2 && scroll) {
+		if (choice < 2 && scroll) {
 	            /* Scroll menu down */
-                    scrollok (menu, TRUE);
-                    wscrl (menu, -1);
-                    scrollok (menu, FALSE);
+		    scrollok (menu, TRUE);
+		    wscrl (menu, -1);
+		    scrollok (menu, FALSE);
 
-                    scroll--;
+		    scroll--;
 
-                    print_item (menu, items[scroll]->name, 0, FALSE,
-                               (items[scroll]->tag[0] != ':'));
+		    print_item (menu, items[scroll]->name, 0, FALSE,
+			       (items[scroll]->tag[0] != ':'));
 		} else
 		    choice = MAX(choice - 1, 0);
 
 	    } else if (key == KEY_DOWN || key == '+')  {
 
 		print_item (menu, items[scroll + choice]->name, choice, FALSE,
-                                (items[scroll + choice]->tag[0] != ':'));
+				(items[scroll + choice]->tag[0] != ':'));
 
-                if ((choice > max_choice-3) &&
-                    (scroll + max_choice < item_no)
-                   ) {
+		if ((choice > max_choice-3) &&
+		    (scroll + max_choice < item_no)
+		   ) {
 		    /* Scroll menu up */
 		    scrollok (menu, TRUE);
-                    scroll (menu);
-                    scrollok (menu, FALSE);
+		    scroll (menu);
+		    scrollok (menu, FALSE);
 
-                    scroll++;
+		    scroll++;
 
-                    print_item (menu, items[scroll + max_choice - 1]->name,
-                               max_choice-1, FALSE,
-                               (items[scroll + max_choice - 1]->tag[0] != ':'));
-                } else
-                    choice = MIN(choice+1, max_choice-1);
+		    print_item (menu, items[scroll + max_choice - 1]->name,
+			       max_choice-1, FALSE,
+			       (items[scroll + max_choice - 1]->tag[0] != ':'));
+		} else
+		    choice = MIN(choice+1, max_choice-1);
 
 	    } else if (key == KEY_PPAGE) {
 	        scrollok (menu, TRUE);
-                for (i=0; (i < max_choice); i++) {
-                    if (scroll > 0) {
-                	wscrl (menu, -1);
-                	scroll--;
-                	print_item (menu, items[scroll]->name, 0, FALSE,
-                	(items[scroll]->tag[0] != ':'));
-                    } else {
-                        if (choice > 0)
-                            choice--;
-                    }
-                }
-                scrollok (menu, FALSE);
+		for (i=0; (i < max_choice); i++) {
+		    if (scroll > 0) {
+			wscrl (menu, -1);
+			scroll--;
+			print_item (menu, items[scroll]->name, 0, FALSE,
+			(items[scroll]->tag[0] != ':'));
+		    } else {
+			if (choice > 0)
+			    choice--;
+		    }
+		}
+		scrollok (menu, FALSE);
 
-            } else if (key == KEY_NPAGE) {
-                for (i=0; (i < max_choice); i++) {
-                    if (scroll+max_choice < item_no) {
+	    } else if (key == KEY_NPAGE) {
+		for (i=0; (i < max_choice); i++) {
+		    if (scroll+max_choice < item_no) {
 			scrollok (menu, TRUE);
 			scroll(menu);
 			scrollok (menu, FALSE);
-                	scroll++;
-                	print_item (menu, items[scroll + max_choice - 1]->name,
+			scroll++;
+			print_item (menu, items[scroll + max_choice - 1]->name,
 			            max_choice-1, FALSE,
 			            (items[scroll + max_choice - 1]->tag[0] != ':'));
 		    } else {
 			if (choice+1 < max_choice)
 			    choice++;
 		    }
-                }
+		}
 
-            } else
-                choice = i;
+	    } else
+		choice = i;
 
-            print_item (menu, items[scroll + choice]->name, choice, TRUE,
-                       (items[scroll + choice]->tag[0] != ':'));
+	    print_item (menu, items[scroll + choice]->name, choice, TRUE,
+		       (items[scroll + choice]->tag[0] != ':'));
 
-            print_arrows(dialog, item_no, scroll,
-                         box_y, box_x+item_x+1, menu_height);
+	    print_arrows(dialog, item_no, scroll,
+			 box_y, box_x+item_x+1, menu_height);
 
-            wnoutrefresh (dialog);
-            wrefresh (menu);
+	    wnoutrefresh (dialog);
+	    wrefresh (menu);
 
 	    continue;		/* wait for another key press */
-        }
+	}
 
 	switch (key) {
 	case KEY_LEFT:
@@ -405,15 +405,15 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
 		fclose(f);
 	    }
 	    delwin (dialog);
-            items[scroll + choice]->selected = 1;
-            switch (key) {
-            case 's': return 3;
-            case 'y': return 3;
-            case 'n': return 4;
-            case 'm': return 5;
-            case ' ': return 6;
-            case '/': return 7;
-            }
+	    items[scroll + choice]->selected = 1;
+	    switch (key) {
+	    case 's': return 3;
+	    case 'y': return 3;
+	    case 'n': return 4;
+	    case 'm': return 5;
+	    case ' ': return 6;
+	    case '/': return 7;
+	    }
 	    return 0;
 	case 'h':
 	case '?':

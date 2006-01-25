@@ -29,19 +29,19 @@
 
 /* make safe the exported namespace */
 /* from common.h */
-#define background 		udhcp_background
-#define start_log_and_pid 	udhcp_start_log_and_pid
+#define background		udhcp_background
+#define start_log_and_pid	udhcp_start_log_and_pid
 /* from script.h */
-#define run_script 		udhcp_run_script
+#define run_script		udhcp_run_script
 /* from packet.h */
-#define init_header 		udhcp_init_header
-#define get_packet 		udhcp_get_packet
-#define checksum 		udhcp_checksum
-#define raw_packet 		udhcp_raw_packet
-#define kernel_packet 		udhcp_kernel_packet
+#define init_header		udhcp_init_header
+#define get_packet		udhcp_get_packet
+#define checksum		udhcp_checksum
+#define raw_packet		udhcp_raw_packet
+#define kernel_packet		udhcp_kernel_packet
 /* from pidfile.h */
-#define pidfile_acquire 	udhcp_pidfile_acquire
-#define pidfile_write_release 	udhcp_pidfile_write_release
+#define pidfile_acquire		udhcp_pidfile_acquire
+#define pidfile_write_release	udhcp_pidfile_write_release
 /* from options.h */
 #define get_option		udhcp_get_option
 #define end_option		udhcp_end_option

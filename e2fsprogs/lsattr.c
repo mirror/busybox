@@ -97,8 +97,8 @@ static void lsattr_args(const char *name)
 	}
 }
 
-static int lsattr_dir_proc(const char *dir_name, struct dirent *de, 
-                           void *private EXT2FS_ATTR((unused)))
+static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
+			   void *private EXT2FS_ATTR((unused)))
 {
 	STRUCT_STAT	st;
 	char *path;

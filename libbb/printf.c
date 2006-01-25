@@ -65,7 +65,7 @@
 /* Using either the original stdio implementation (from dev86) or
  * my original stdio rewrite.  Macros were:
  * #define ferror(fp)	(((fp)->mode&__MODE_ERR) != 0)
- * #define feof(fp)   	(((fp)->mode&__MODE_EOF) != 0)
+ * #define feof(fp)		(((fp)->mode&__MODE_EOF) != 0)
  * #define clearerr(fp)	((fp)->mode &= ~(__MODE_EOF|__MODE_ERR),0)
  */
 #define SET_FERROR_UNLOCKED(S)    ((S)->mode |= __MODE_ERR)

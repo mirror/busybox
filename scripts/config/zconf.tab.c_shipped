@@ -333,7 +333,7 @@ union yyalloc
 #define YYUNDEFTOK  2
 #define YYMAXUTOK   296
 
-#define YYTRANSLATE(YYX) 						\
+#define YYTRANSLATE(YYX)						\
   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
 
 /* YYTRANSLATE[YYLEX] -- Bison symbol number corresponding to YYLEX.  */
@@ -709,7 +709,7 @@ do								\
       goto yybackup;						\
     }								\
   else								\
-    { 								\
+    {								\
       yyerror ("syntax error: cannot back up");\
       YYERROR;							\
     }								\
@@ -762,7 +762,7 @@ do {								\
   if (yydebug)							\
     {								\
       YYFPRINTF (stderr, "%s ", Title);				\
-      yysymprint (stderr, 					\
+      yysymprint (stderr,					\
                   Token, Value);	\
       YYFPRINTF (stderr, "\n");					\
     }								\

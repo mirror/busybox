@@ -52,8 +52,8 @@ print_item (WINDOW * win, const char *item, int status,
     wattrset (win, selected ? item_selected_attr : item_attr);
     waddstr (win, (char *)item+1);
     if (selected) {
-    	wmove (win, choice, check_x+1);
-    	wrefresh (win);
+	wmove (win, choice, check_x+1);
+	wrefresh (win);
     }
 }
 
@@ -120,7 +120,7 @@ int
 dialog_checklist (const char *title, const char *prompt, int height, int width,
 	int list_height, int item_no, struct dialog_list_item ** items,
 	int flag)
-	
+
 {
     int i, x, y, box_x, box_y;
     int key = 0, button = 0, choice = 0, scroll = 0, max_choice, *status;
@@ -140,7 +140,7 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
     for (i = 0; i < item_no; i++) {
 	status[i] = (items[i]->selected == 1); /* ON */
 	if ((!choice && status[i]) || items[i]->selected == 2) /* SELECTED */
-            choice = i + 1;
+	    choice = i + 1;
     }
     if (choice)
 	    choice--;
@@ -197,7 +197,7 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
 
     /* Find length of longest item in order to center checklist */
     check_x = 0;
-    for (i = 0; i < item_no; i++) 
+    for (i = 0; i < item_no; i++)
 	check_x = MAX (check_x, + strlen (items[i]->name) + 4);
 
     check_x = (list_width - check_x) / 2;
@@ -226,12 +226,12 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
     while (key != ESC) {
 	key = wgetch (dialog);
 
-    	for (i = 0; i < max_choice; i++)
-            if (toupper(key) == toupper(items[scroll + i]->name[0]))
-                break;
+	for (i = 0; i < max_choice; i++)
+	    if (toupper(key) == toupper(items[scroll + i]->name[0]))
+		break;
 
 
-	if ( i < max_choice || key == KEY_UP || key == KEY_DOWN || 
+	if ( i < max_choice || key == KEY_UP || key == KEY_DOWN ||
 	    key == '+' || key == '-' ) {
 	    if (key == KEY_UP || key == '-') {
 		if (!choice) {
@@ -251,7 +251,7 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
 				status[scroll], 0, TRUE);
 		    wnoutrefresh (list);
 
-    		    print_arrows(dialog, choice, item_no, scroll,
+		    print_arrows(dialog, choice, item_no, scroll,
 				box_y, box_x + check_x + 5, list_height);
 
 		    wrefresh (dialog);
@@ -279,7 +279,7 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
 				max_choice - 1, TRUE);
 		    wnoutrefresh (list);
 
-    		    print_arrows(dialog, choice, item_no, scroll,
+		    print_arrows(dialog, choice, item_no, scroll,
 				box_y, box_x + check_x + 5, list_height);
 
 		    wrefresh (dialog);
@@ -342,11 +342,11 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
 		}
 		wnoutrefresh (list);
 		wrefresh (dialog);
-            
+
 		for (i = 0; i < item_no; i++) {
 			items[i]->selected = status[i];
 		}
-            } else {
+	    } else {
 		    for (i = 0; i < item_no; i++)
 			    items[i]->selected = 0;
 		    items[scroll + choice]->selected = 1;
@@ -364,7 +364,7 @@ dialog_checklist (const char *title, const char *prompt, int height, int width,
 	/* Now, update everything... */
 	doupdate ();
     }
-    
+
 
     delwin (dialog);
     free (status);

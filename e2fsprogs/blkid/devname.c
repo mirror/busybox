@@ -54,7 +54,7 @@ blkid_dev blkid_get_dev(blkid_cache cache, const char *devname, int flags)
 		if (strcmp(tmp->bid_name, devname))
 			continue;
 
-		DBG(DEBUG_DEVNAME, 
+		DBG(DEBUG_DEVNAME,
 		    printf("found devname %s in cache\n", tmp->bid_name));
 		dev = tmp;
 		break;
@@ -113,7 +113,7 @@ static void probe_one(blkid_cache cache, const char *ptname,
 		    dev->bid_devno == devno)
 			goto set_pri;
 
-		if (stat(device, &st) == 0 && S_ISBLK(st.st_mode) && 
+		if (stat(device, &st) == 0 && S_ISBLK(st.st_mode) &&
 		    st.st_rdev == devno) {
 			devname = blkid_strdup(device);
 			break;

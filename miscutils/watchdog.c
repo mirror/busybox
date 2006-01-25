@@ -29,7 +29,7 @@ static void watchdog_shutdown(int unused)
 
 int watchdog_main(int argc, char **argv)
 {
-	
+
 	char *t_arg;
 	unsigned long flags;
 	flags = bb_getopt_ulflags(argc, argv, "t:", &t_arg);

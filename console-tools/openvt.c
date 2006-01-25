@@ -39,7 +39,7 @@ int openvt_main(int argc, char **argv)
 
 
 	if (argc < 3)
-        bb_show_usage();
+	bb_show_usage();
 
 	/* check for Illegal vt number: < 1 or > 12 */
 	sprintf(vtname, VC_FORMAT,(int)bb_xgetlarg(argv[1], 10, 1, 12));
@@ -56,7 +56,7 @@ int openvt_main(int argc, char **argv)
 		if (setsid() < 0) {
 #endif
 
-			bb_perror_msg_and_die("Unable to set new session");	
+			bb_perror_msg_and_die("Unable to set new session");
 		}
 		close(0);			/* so that new vt becomes stdin */
 

@@ -1,14 +1,14 @@
 /*
  * bitops.h --- Bitmap frobbing code.  The byte swapping routines are
- * 	also included here.
- * 
+ *	also included here.
+ *
  * Copyright (C) 1993, 1994, 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%
  * This file may be redistributed under the terms of the GNU Public
  * License.
  * %End-Header%
- * 
+ *
  * i386 bitops operations taken from <asm/bitops.h>, Copyright 1992,
  * Linus Torvalds.
  */

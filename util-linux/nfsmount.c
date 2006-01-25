@@ -151,11 +151,11 @@ static const int MS_NODIRATIME = 2048;    /* Do not update directory access time
 #define NFS_MOUNT_VERSION 4
 
 struct nfs2_fh {
-        char                    data[32];
+	char                    data[32];
 };
 struct nfs3_fh {
-        unsigned short          size;
-        unsigned char           data[64];
+	unsigned short          size;
+	unsigned char           data[64];
 };
 
 struct nfs_mount_data {
@@ -687,7 +687,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				       mountprog,
 				       mountvers,
 				       proto,
- 				       mountport);
+				       mountport);
 
 			/* contact the mount daemon via TCP */
 			mount_server_addr.sin_port = htons(pm_mnt->pm_port);
@@ -810,7 +810,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	if (tcp) {
 		if (nfs_mount_version < 3) {
-	     		printf(_("NFS over TCP is not supported.\n"));
+			printf(_("NFS over TCP is not supported.\n"));
 			goto fail;
 		}
 		fsock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);

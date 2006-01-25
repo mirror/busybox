@@ -264,7 +264,7 @@ struct menu *next_menu(struct menu *menu)
 			break;
 		}
 	} while ((menu = menu->parent));
-	
+
 	return menu;
 }
 

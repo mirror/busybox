@@ -66,8 +66,8 @@ typedef union {
 		unsigned short method;	/* 4-5 */
 		unsigned short modtime;	/* 6-7 */
 		unsigned short moddate;	/* 8-9 */
-		unsigned int crc32 ATTRIBUTE_PACKED;   	/* 10-13 */
-		unsigned int cmpsize ATTRIBUTE_PACKED; 	/* 14-17 */
+		unsigned int crc32 ATTRIBUTE_PACKED;	/* 10-13 */
+		unsigned int cmpsize ATTRIBUTE_PACKED;	/* 14-17 */
 		unsigned int ucmpsize ATTRIBUTE_PACKED;	/* 18-21 */
 		unsigned short filename_len;	/* 22-23 */
 		unsigned short extra_len;		/* 24-25 */

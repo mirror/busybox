@@ -1,6 +1,6 @@
 /*
  * expand.c --- expand an ext2fs directory
- * 
+ *
  * Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999  Theodore Ts'o.
  *
  * %Begin-Header%
@@ -36,7 +36,7 @@ static int expand_dir_proc(ext2_filsys	fs,
 	static blk_t	last_blk = 0;
 	char		*block;
 	errcode_t	retval;
-	
+
 	if (*blocknr) {
 		last_blk = *blocknr;
 		return 0;
@@ -62,7 +62,7 @@ static int expand_dir_proc(ext2_filsys	fs,
 		}
 		memset(block, 0, fs->blocksize);
 		retval = io_channel_write_blk(fs->io, new_blk, 1, block);
-	}	
+	}
 	if (retval) {
 		es->err = retval;
 		return BLOCK_ABORT;
@@ -83,7 +83,7 @@ errcode_t ext2fs_expand_dir(ext2_filsys fs, ext2_ino_t dir)
 	errcode_t	retval;
 	struct expand_dir_struct es;
 	struct ext2_inode	inode;
-	
+
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
 
 	if (!(fs->flags & EXT2_FLAG_RW))
@@ -95,11 +95,11 @@ errcode_t ext2fs_expand_dir(ext2_filsys fs, ext2_ino_t dir)
 	retval = ext2fs_check_directory(fs, dir);
 	if (retval)
 		return retval;
-	
+
 	es.done = 0;
 	es.err = 0;
 	es.newblocks = 0;
-	
+
 	retval = ext2fs_block_iterate2(fs, dir, BLOCK_FLAG_APPEND,
 				       0, expand_dir_proc, &es);
 
@@ -114,7 +114,7 @@ errcode_t ext2fs_expand_dir(ext2_filsys fs, ext2_ino_t dir)
 	retval = ext2fs_read_inode(fs, dir, &inode);
 	if (retval)
 		return retval;
-	
+
 	inode.i_size += fs->blocksize;
 	inode.i_blocks += (fs->blocksize / 512) * es.newblocks;
 

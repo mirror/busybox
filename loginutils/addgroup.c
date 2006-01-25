@@ -163,7 +163,7 @@ int addgroup_main(int argc, char **argv)
 	} else {
 		user = "";
 	}
-	
+
 	if_i_am_not_root();
 
 	/* werk */

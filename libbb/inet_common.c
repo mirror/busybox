@@ -206,8 +206,8 @@ int INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
 
 #ifndef IN6_IS_ADDR_UNSPECIFIED
 # define IN6_IS_ADDR_UNSPECIFIED(a) \
-        (((__u32 *) (a))[0] == 0 && ((__u32 *) (a))[1] == 0 && \
-         ((__u32 *) (a))[2] == 0 && ((__u32 *) (a))[3] == 0)
+	(((__u32 *) (a))[0] == 0 && ((__u32 *) (a))[1] == 0 && \
+	 ((__u32 *) (a))[2] == 0 && ((__u32 *) (a))[3] == 0)
 #endif
 
 

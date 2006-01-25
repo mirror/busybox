@@ -218,14 +218,14 @@ config CONFIG_MAKEDEVS
 	  .
 	  There are two choices for command line behaviour, the interface
 	  as used by LEAF/Linux Router Project, or a device table file.
-	  . 
+	  .
 	  'leaf' is traditionally what busybox follows, it allows multiple
 	  devices of a particluar type to be created per command.
 	  e.g. /dev/hda[0-9]
           Device properties are passed as command line arguments.
 	  .
 	  'table' reads device properties from a file or stdin, allowing
-	  a batch of unrelated devices to be makde with one command. 
+	  a batch of unrelated devices to be makde with one command.
           User/group names are allowed as an alternative to uid/gid.
 
 choice

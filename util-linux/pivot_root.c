@@ -16,7 +16,7 @@ extern int pivot_root(const char * new_root,const char * put_old);
 int pivot_root_main(int argc, char **argv)
 {
     if (argc != 3)
-        bb_show_usage();
+	bb_show_usage();
 
 	if (pivot_root(argv[1],argv[2]) < 0)
 		bb_perror_msg_and_die("pivot_root");

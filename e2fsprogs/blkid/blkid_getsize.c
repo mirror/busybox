@@ -70,7 +70,7 @@ blkid_loff_t blkid_get_dev_size(int fd)
 {
 	int valid_blkgetsize64 = 1;
 #ifdef __linux__
-	struct 		utsname ut;
+	struct		utsname ut;
 #endif
 	unsigned long long size64;
 	unsigned long size;

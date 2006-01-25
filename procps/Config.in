@@ -17,7 +17,7 @@ config CONFIG_FUSER
 	bool "fuser"
 	default n
 	help
-	  fuser lists all PIDs (Process IDs) that currently have a given 
+	  fuser lists all PIDs (Process IDs) that currently have a given
 	  file open.  fuser can also list all PIDs that have a given network
 	  (TCP or UDP) port open.
 

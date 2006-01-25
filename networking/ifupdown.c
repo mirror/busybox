@@ -471,8 +471,8 @@ static int static_up(struct interface_defn_t *ifd, execfn *exec)
 	return ((result == 3) ? 3 : 0);
 #else
 	result = execute("ifconfig %iface% %address% netmask %netmask% "
-				"[[broadcast %broadcast%]] 	[[pointopoint %pointopoint%]] "
-				"[[media %media%]] [[mtu %mtu%]] 	[[hw %hwaddress%]] up",
+				"[[broadcast %broadcast%]] [[pointopoint %pointopoint%]] "
+				"[[media %media%]] [[mtu %mtu%]] [[hw %hwaddress%]] up",
 				ifd, exec);
 	result += execute("[[ route add default gw %gateway% %iface% ]]", ifd, exec);
 	return ((result == 2) ? 2 : 0);

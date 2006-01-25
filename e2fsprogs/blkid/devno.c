@@ -171,13 +171,13 @@ char *blkid_devno_to_devname(dev_t devno)
 
 	if (!devname) {
 		DBG(DEBUG_DEVNO,
-		    printf("blkid: couldn't find devno 0x%04lx\n", 
+		    printf("blkid: couldn't find devno 0x%04lx\n",
 			   (unsigned long) devno));
 	} else {
 		DBG(DEBUG_DEVNO,
 		    printf("found devno 0x%04Lx as %s\n", devno, devname));
 	}
-	
+
 
 	return devname;
 }

@@ -75,7 +75,7 @@ unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
 				++e;
 				r *= suffixes->mult;
 				break;
- 			}
+			}
 			++suffixes;
 		}
 	}

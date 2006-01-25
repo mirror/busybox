@@ -102,7 +102,7 @@ extern int logread_main(int argc, char **argv)
 		error_exit("Can't get access to circular buffer from syslogd");
 
 	if ( (log_semid = semget(KEY_ID, 0, 0)) == -1)
-	    	error_exit("Can't get access to semaphone(s) for circular buffer from syslogd");
+		error_exit("Can't get access to semaphone(s) for circular buffer from syslogd");
 
 	// Suppose atomic memory move
 	i = follow ? buf->tail : buf->head;

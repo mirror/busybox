@@ -1,6 +1,6 @@
 /*
  * ext_attr.c --- extended attribute blocks
- * 
+ *
  * Copyright (C) 2001 Andreas Gruenbacher, <a.gruenbacher@computer.org>
  *
  * Copyright (C) 2002 Theodore Ts'o.
@@ -27,7 +27,7 @@ errcode_t ext2fs_read_ext_attr(ext2_filsys fs, blk_t block, void *buf)
 {
 	errcode_t	retval;
 
- 	retval = io_channel_read_blk(fs->io, block, 1, buf);
+	retval = io_channel_read_blk(fs->io, block, 1, buf);
 	if (retval)
 		return retval;
 #ifdef EXT2FS_ENABLE_SWAPFS
@@ -55,7 +55,7 @@ errcode_t ext2fs_write_ext_attr(ext2_filsys fs, blk_t block, void *inbuf)
 	} else
 #endif
 		write_buf = (char *) inbuf;
- 	retval = io_channel_write_blk(fs->io, block, 1, write_buf);
+	retval = io_channel_write_blk(fs->io, block, 1, write_buf);
 	if (buf)
 		ext2fs_free_mem(&buf);
 	if (!retval)

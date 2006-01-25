@@ -44,9 +44,9 @@ static long flags;
 
 static char const *file_type(struct stat const *st)
 {
-	/* See POSIX 1003.1-2001 XCU Table 4-8 lines 17093-17107 
+	/* See POSIX 1003.1-2001 XCU Table 4-8 lines 17093-17107
 	 * for some of these formats.
-	 * To keep diagnostics grammatical in English, the 
+	 * To keep diagnostics grammatical in English, the
 	 * returned string must start with a consonant.
 	 */
 	if (S_ISREG(st->st_mode))  return st->st_size == 0 ? "regular empty file" : "regular file";
@@ -131,8 +131,8 @@ static char const *human_fstype(long f_type)
 
 #ifdef CONFIG_FEATURE_STAT_FORMAT
 /* print statfs info */
-static void print_statfs(char *pformat, size_t buf_len, char m, 
-                         char const *filename, void const *data)
+static void print_statfs(char *pformat, size_t buf_len, char m,
+			 char const *filename, void const *data)
 {
 	struct statfs const *statfsbuf = data;
 
@@ -190,8 +190,8 @@ static void print_statfs(char *pformat, size_t buf_len, char m,
 }
 
 /* print stat info */
-static void print_stat(char *pformat, size_t buf_len, char m, 
-                       char const *filename, void const *data)
+static void print_stat(char *pformat, size_t buf_len, char m,
+		       char const *filename, void const *data)
 {
 #define TYPE_SIGNED(t) (! ((t) 0 < (t) -1))
 	struct stat *statbuf = (struct stat *) data;
@@ -326,9 +326,9 @@ static void print_stat(char *pformat, size_t buf_len, char m,
 	}
 }
 
-static void print_it(char const *masterformat, char const *filename, 
-                     void (*print_func) (char *, size_t, char, char const *, void const *), 
-                     void const *data)
+static void print_it(char const *masterformat, char const *filename,
+		     void (*print_func) (char *, size_t, char, char const *, void const *),
+		     void const *data)
 {
 	char *b;
 

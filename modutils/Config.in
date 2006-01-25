@@ -75,9 +75,9 @@ config CONFIG_LSMOD
 config CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT
 	bool "lsmod pretty output for 2.6.x Linux kernels "
 	default n
-	depends on CONFIG_LSMOD 
+	depends on CONFIG_LSMOD
 	help
-	  This option makes output format of lsmod adjusted to 
+	  This option makes output format of lsmod adjusted to
 	  the format of module-init-tools for Linux kernel 2.6.
 
 config CONFIG_MODPROBE

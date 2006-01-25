@@ -1,6 +1,6 @@
 /*
  * badblocks.c --- routines to manipulate the bad block structure
- * 
+ *
  * Copyright (C) 1994, 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -34,7 +34,7 @@ static errcode_t make_u32_list(int size, int num, __u32 *list,
 {
 	ext2_u32_list	bb;
 	errcode_t	retval;
-	
+
 	retval = ext2fs_get_mem(sizeof(struct ext2_struct_u32_list), &bb);
 	if (retval)
 		return retval;
@@ -54,7 +54,7 @@ static errcode_t make_u32_list(int size, int num, __u32 *list,
 	*ret = bb;
 	return 0;
 }
-	
+
 
 /*
  * This procedure creates an empty u32 list.
@@ -79,7 +79,7 @@ errcode_t ext2fs_badblocks_list_create(ext2_badblocks_list *ret, int size)
 errcode_t ext2fs_u32_copy(ext2_u32_list src, ext2_u32_list *dest)
 {
 	errcode_t	retval;
-	
+
 	retval = make_u32_list(src->size, src->num, src->list, dest);
 	if (retval)
 		return retval;
@@ -271,11 +271,11 @@ int ext2fs_u32_list_iterate(ext2_u32_iterate iter, __u32 *blk)
 
 	if (bb->magic != EXT2_ET_MAGIC_BADBLOCKS_LIST)
 		return 0;
-	
+
 	if (iter->ptr < bb->num) {
 		*blk = bb->list[iter->ptr++];
 		return 1;
-	} 
+	}
 	*blk = 0;
 	return 0;
 }

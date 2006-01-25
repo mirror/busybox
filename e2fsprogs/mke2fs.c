@@ -107,9 +107,9 @@ static const struct mke2fs_defaults settings[] = {
 	{ default_str,	 3, 1024, 8192 },
 	{ "journal",	 0, 4096, 8192 },
 	{ "news",	 0, 4096, 4096 },
-	{ "largefile", 	 0, 4096, 1024 * 1024 },
+	{ "largefile",	 0, 4096, 1024 * 1024 },
 	{ "largefile4",  0, 4096, 4096 * 1024 },
-	{ 0, 		 0,    0, 0},
+	{ 0,		 0,    0, 0},
 };
 
 static void set_fs_defaults(const char *fs_type,
@@ -448,7 +448,7 @@ static void write_inode_tables(ext2_filsys fs)
 		num = fs->inode_blocks_per_group;
 
 		retval = zero_blocks(fs, blk, num, 0, &blk, &num);
-		mke2fs_error_msg_and_die(retval, 
+		mke2fs_error_msg_and_die(retval,
 			"write %d blocks in inode table starting at %d.",
 			num, blk);
 		if (sync_kludge) {
@@ -572,7 +572,7 @@ static void zap_sector(ext2_filsys fs, int sect, int nsect)
 
 static void create_journal_dev(ext2_filsys fs)
 {
-	struct progress_struct 	progress;
+	struct progress_struct	progress;
 	errcode_t		retval;
 	char			*buf;
 	char			*fmt = "%s journal superblock";
@@ -624,7 +624,7 @@ static void show_stats(ext2_filsys fs)
 			os,
 			fs->blocksize, s->s_log_block_size,
 			fs->fragsize, s->s_log_frag_size,
-			s->s_inodes_count, s->s_blocks_count, 
+			s->s_inodes_count, s->s_blocks_count,
 			s->s_r_blocks_count, 100.0 * s->s_r_blocks_count / s->s_blocks_count,
 			s->s_first_data_block);
 	free(os);
@@ -679,7 +679,7 @@ static int set_os(struct ext2_super_block *sb, char *os)
 	if((sb->s_creator_os = e2p_string2os(os)) >= 0) {
 		return 1;
 	} else if (!strcasecmp("GNU", os)) {
- 		sb->s_creator_os = EXT2_OS_HURD;
+		sb->s_creator_os = EXT2_OS_HURD;
 		return 1;
 	}
 	return 0;
@@ -842,7 +842,7 @@ static int PRS(int argc, char *argv[])
 #endif
 
 	/* If called as mkfs.ext3, create a journal inode */
-	if (last_char_is(bb_applet_name, '3')) 
+	if (last_char_is(bb_applet_name, '3'))
 		journal_size = -1;
 
 	while ((c = getopt (argc, argv,
@@ -886,8 +886,8 @@ BLOCKSIZE_ERROR:
 			}
 			break;
 		case 'i':
-			if (safe_strtoi(optarg, &inode_ratio) 
-				|| inode_ratio < EXT2_MIN_BLOCK_SIZE 
+			if (safe_strtoi(optarg, &inode_ratio)
+				|| inode_ratio < EXT2_MIN_BLOCK_SIZE
 				|| inode_ratio > EXT2_MAX_BLOCK_SIZE * 1024) {
 				bb_error_msg_and_die("bad inode ratio %s (min %d/max %d)",
 					optarg, EXT2_MIN_BLOCK_SIZE,

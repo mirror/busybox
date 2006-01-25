@@ -1,5 +1,5 @@
 /*
- * alloc_sb.c --- Allocate the superblock and block group descriptors for a 
+ * alloc_sb.c --- Allocate the superblock and block group descriptors for a
  * newly initialized filesystem.  Used by mke2fs when initializing a filesystem
  *
  * Copyright (C) 1994, 1995, 1996, 2003 Theodore Ts'o.
@@ -27,20 +27,20 @@
 #include "ext2_fs.h"
 #include "ext2fs.h"
 
-int ext2fs_reserve_super_and_bgd(ext2_filsys fs, 
+int ext2fs_reserve_super_and_bgd(ext2_filsys fs,
 				 dgrp_t group,
 				 ext2fs_block_bitmap bmap)
 {
 	blk_t	super_blk, old_desc_blk, new_desc_blk;
 	int	j, old_desc_blocks, num_blocks;
 
-	num_blocks = ext2fs_super_and_bgd_loc(fs, group, &super_blk, 
+	num_blocks = ext2fs_super_and_bgd_loc(fs, group, &super_blk,
 					      &old_desc_blk, &new_desc_blk, 0);
 
 	if (fs->super->s_feature_incompat & EXT2_FEATURE_INCOMPAT_META_BG)
 		old_desc_blocks = fs->super->s_first_meta_bg;
 	else
-		old_desc_blocks = 
+		old_desc_blocks =
 			fs->desc_blocks + fs->super->s_reserved_gdt_blocks;
 
 	if (super_blk || (group == 0))

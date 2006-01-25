@@ -1,6 +1,6 @@
 /*
  * dirblock.c --- directory block routines.
- * 
+ *
  * Copyright (C) 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -28,9 +28,9 @@ errcode_t ext2fs_read_dir_block2(ext2_filsys fs, blk_t block,
 	unsigned int	name_len, rec_len;
 #ifdef EXT2FS_ENABLE_SWAPFS
 	unsigned int do_swap;
-#endif	
+#endif
 
- 	retval = io_channel_read_blk(fs->io, block, 1, buf);
+	retval = io_channel_read_blk(fs->io, block, 1, buf);
 	if (retval)
 		return retval;
 #ifdef EXT2FS_ENABLE_SWAPFS
@@ -110,16 +110,16 @@ errcode_t ext2fs_write_dir_block2(ext2_filsys fs, blk_t block,
 			dirent->rec_len = ext2fs_swab16(dirent->rec_len);
 			dirent->name_len = ext2fs_swab16(dirent->name_len);
 		}
-#ifdef WORDS_BIGENDIAN 
+#ifdef WORDS_BIGENDIAN
 		if (flags & EXT2_DIRBLOCK_V2_STRUCT)
 			dirent->name_len = ext2fs_swab16(dirent->name_len);
 #endif
 	}
- 	retval = io_channel_write_blk(fs->io, block, 1, buf);
+	retval = io_channel_write_blk(fs->io, block, 1, buf);
 	ext2fs_free_mem(&buf);
 	return retval;
 #else
- 	return io_channel_write_blk(fs->io, block, 1, (char *) inbuf);
+	return io_channel_write_blk(fs->io, block, 1, (char *) inbuf);
 #endif
 }
 

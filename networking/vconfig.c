@@ -54,20 +54,20 @@ struct vlan_ioctl_args {
 	int cmd; /* Should be one of the vlan_ioctl_cmds enum above. */
 	char device1[24];
 
-        union {
+	union {
 		char device2[24];
 		int VID;
 		unsigned int skb_priority;
 		unsigned int name_type;
 		unsigned int bind_type;
 		unsigned int flag; /* Matches vlan_dev_info flags */
-        } u;
+	} u;
 
 	short vlan_qos;
 };
 
 #define VLAN_GROUP_ARRAY_LEN 4096
-#define SIOCSIFVLAN	0x8983		/* Set 802.1Q VLAN options 	*/
+#define SIOCSIFVLAN	0x8983		/* Set 802.1Q VLAN options */
 
 /* On entry, table points to the length of the current string plus
  * nul terminator plus data length for the subsequent entry.  The

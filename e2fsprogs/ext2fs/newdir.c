@@ -1,6 +1,6 @@
 /*
  * newdir.c --- create a new directory block
- * 
+ *
  * Copyright (C) 1994, 1995 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -28,7 +28,7 @@
 errcode_t ext2fs_new_dir_block(ext2_filsys fs, ext2_ino_t dir_ino,
 			       ext2_ino_t parent_ino, char **block)
 {
-	struct ext2_dir_entry 	*dir = NULL;
+	struct ext2_dir_entry	*dir = NULL;
 	errcode_t		retval;
 	char			*buf;
 	int			rec_len;
@@ -65,7 +65,7 @@ errcode_t ext2fs_new_dir_block(ext2_filsys fs, ext2_ino_t dir_ino,
 		dir->name_len = 2 | filetype;
 		dir->name[0] = '.';
 		dir->name[1] = '.';
-		
+
 	}
 	*block = buf;
 	return 0;

@@ -173,7 +173,7 @@ static int show_color = 0;
 static const struct option ls_color_opt[] =
 {
 	{"color", optional_argument, NULL, 1},
-        {NULL, 0, NULL, 0}
+	{NULL, 0, NULL, 0}
 };
 
 #define COLOR(mode)	("\000\043\043\043\042\000\043\043"\
@@ -318,7 +318,7 @@ static int count_dirs(struct dnode **dn, int nfiles, int notsubdirs)
 	dirs = 0;
 	for (i = 0; i < nfiles; i++) {
 		if (S_ISDIR(dn[i]->dstat.st_mode)
-			&& (notsubdirs || 
+			&& (notsubdirs ||
 			((dn[i]->name[0] != '.') || (dn[i]->name[1]
 						&& ((dn[i]->name[1] != '.')
 						|| dn[i]->name[2])))))
@@ -747,7 +747,7 @@ static int list_single(struct dnode *dn)
 			{
 				char context[80];
 				int len;
-			
+
 				if (dn->sid) {
 				  /*  I assume sid initilized with NULL  */
 				  len = strlen(dn->sid)+1;
@@ -895,57 +895,57 @@ static const char ls_options[]="Cadil1gnsxAk" \
 
 static const unsigned opt_flags[] = {
 	LIST_SHORT | STYLE_COLUMNS,	/* C */
-	DISP_HIDDEN | DISP_DOT,    	/* a */
-	DISP_NOLIST,               	/* d */
-	LIST_INO,                  	/* i */
-	LIST_LONG | STYLE_LONG,    	/* l - remember LS_DISP_HR in mask! */
-	LIST_SHORT | STYLE_SINGLE, 	/* 1 */
-	0,                         	/* g - ingored */
-	LIST_ID_NUMERIC,           	/* n */
-	LIST_BLOCKS,              	/* s */
-	DISP_ROWS,                	/* x */
-	DISP_HIDDEN,              	/* A */
+	DISP_HIDDEN | DISP_DOT,		/* a */
+	DISP_NOLIST,				/* d */
+	LIST_INO,					/* i */
+	LIST_LONG | STYLE_LONG,		/* l - remember LS_DISP_HR in mask! */
+	LIST_SHORT | STYLE_SINGLE,	/* 1 */
+	0,							/* g - ingored */
+	LIST_ID_NUMERIC,			/* n */
+	LIST_BLOCKS,				/* s */
+	DISP_ROWS,					/* x */
+	DISP_HIDDEN,				/* A */
 #ifdef CONFIG_SELINUX
-	LIST_CONTEXT,             	/* k */
+	LIST_CONTEXT,				/* k */
 #else
-	0,                        	/* k - ingored */
+	0,							/* k - ingored */
 #endif
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 # ifdef CONFIG_FEATURE_LS_SORTFILES
 	TIME_CHANGE | SORT_CTIME,	/* c */
 # else
-	TIME_CHANGE,             	/* c */
+	TIME_CHANGE,				/* c */
 # endif
-	LIST_FULLTIME,           	/* e */
+	LIST_FULLTIME,				/* e */
 # ifdef CONFIG_FEATURE_LS_SORTFILES
-	SORT_MTIME,              	/* t */
+	SORT_MTIME,					/* t */
 # else
-	0,                      	/* t - ignored -- is this correct? */
+	0,							/* t - ignored -- is this correct? */
 # endif
 # ifdef CONFIG_FEATURE_LS_SORTFILES
 	TIME_ACCESS | SORT_ATIME,	/* u */
 # else
-	TIME_ACCESS,             	/* u */
+	TIME_ACCESS,				/* u */
 # endif
 #endif
 #ifdef CONFIG_FEATURE_LS_SORTFILES
-	SORT_SIZE,               	/* S */
-	SORT_EXT,                	/* X */
-	SORT_ORDER_REVERSE,       	/* r */
-	SORT_VERSION,             	/* v */
+	SORT_SIZE,					/* S */
+	SORT_EXT,					/* X */
+	SORT_ORDER_REVERSE,			/* r */
+	SORT_VERSION,				/* v */
 #endif
 #ifdef CONFIG_FEATURE_LS_FILETYPES
 	LIST_FILETYPE | LIST_EXEC,	/* F */
-	LIST_FILETYPE,            	/* p */
+	LIST_FILETYPE,				/* p */
 #endif
 #ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
-	FOLLOW_LINKS,             	/* L */
+	FOLLOW_LINKS,				/* L */
 #endif
 #ifdef CONFIG_FEATURE_LS_RECURSIVE
-	DISP_RECURSIVE,           	/* R */
+	DISP_RECURSIVE,				/* R */
 #endif
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-	LS_DISP_HR,               	/* h */
+	LS_DISP_HR,					/* h */
 #endif
 #ifdef CONFIG_SELINUX
 	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME, /* K */
@@ -1025,7 +1025,7 @@ extern int ls_main(int argc, char **argv)
 	for (i = 0; opt_flags[i] != (1U<<31); i++) {
 		if (opt & (1 << i)) {
 			unsigned int flags = opt_flags[i];
-			
+
 			if (flags & LIST_MASK_TRIGGER) {
 				all_fmt &= ~LIST_MASK;
 			}
@@ -1064,11 +1064,11 @@ extern int ls_main(int argc, char **argv)
 #if CONFIG_FEATURE_LS_COLOR_IS_DEFAULT
 		char *p;
 
-		if ((p = getenv ("LS_COLORS")) != NULL && 
+		if ((p = getenv ("LS_COLORS")) != NULL &&
 			(*p == '\0' || (strcmp(p, "none") == 0))) {
 			;
 		} else if (isatty(STDOUT_FILENO)) {
-		    	show_color = 1;
+			show_color = 1;
 		}
 #endif
 

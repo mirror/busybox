@@ -247,7 +247,7 @@ static void udp_do_one(int lnr, const char *line)
 
 	if (strlen(local_addr) > 8) {
 #ifdef CONFIG_FEATURE_IPV6
-        /* Demangle what the kernel gives us */
+	/* Demangle what the kernel gives us */
 		sscanf(local_addr, "%08X%08X%08X%08X",
 			   &in6.s6_addr32[0], &in6.s6_addr32[1],
 			   &in6.s6_addr32[2], &in6.s6_addr32[3]);

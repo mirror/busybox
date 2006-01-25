@@ -30,7 +30,7 @@ errcode_t ext2fs_compare_block_bitmap(ext2fs_block_bitmap bm1,
 				      ext2fs_block_bitmap bm2)
 {
 	blk_t	i;
-	
+
 	EXT2_CHECK_MAGIC(bm1, EXT2_ET_MAGIC_BLOCK_BITMAP);
 	EXT2_CHECK_MAGIC(bm2, EXT2_ET_MAGIC_BLOCK_BITMAP);
 
@@ -52,7 +52,7 @@ errcode_t ext2fs_compare_inode_bitmap(ext2fs_inode_bitmap bm1,
 				      ext2fs_inode_bitmap bm2)
 {
 	ext2_ino_t	i;
-	
+
 	EXT2_CHECK_MAGIC(bm1, EXT2_ET_MAGIC_INODE_BITMAP);
 	EXT2_CHECK_MAGIC(bm2, EXT2_ET_MAGIC_INODE_BITMAP);
 

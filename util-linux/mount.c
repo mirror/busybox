@@ -32,7 +32,7 @@
 
 /* Consume standard mount options (from -o options or --options).
  * Set appropriate flags and collect unrecognized ones as a comma separated
- * string to pass to kernel */ 
+ * string to pass to kernel */
 
 struct {
 	const char *name;
@@ -104,7 +104,7 @@ extern int mount_main(int argc, char **argv)
 		 *loopFile = 0, *buf = 0,
 		 *files[] = {"/etc/filesystems", "/proc/filesystems", 0};
 	int i, opt, all = FALSE, fakeIt = FALSE, allowWrite = FALSE,
-	   	rc = 1, useMtab = ENABLE_FEATURE_MTAB_SUPPORT;
+		rc = 1, useMtab = ENABLE_FEATURE_MTAB_SUPPORT;
 	int flags=0xc0ed0000;	// Needed for linux 2.2, ignored by 2.4 and 2.6.
 	FILE *file = 0,*f = 0;
 	char path[PATH_MAX*2];
@@ -185,7 +185,7 @@ extern int mount_main(int argc, char **argv)
 	statbuf.st_mode=0;
 	if(optind < argc)
 		blockDevice = !stat(argv[optind], &statbuf) ?
-		  	 	bb_simplify_path(argv[optind]) :
+				bb_simplify_path(argv[optind]) :
 				(ENABLE_FEATURE_CLEAN_UP ? strdup(argv[optind]) : argv[optind]);
 	if(optind+1 < argc) directory = bb_simplify_path(argv[optind+1]);
 
@@ -206,7 +206,7 @@ extern int mount_main(int argc, char **argv)
 				bb_perror_msg("Can't find %s in /etc/fstab\n", blockDevice);
 			break;
 		}
-		
+
 		// If we're mounting all and all doesn't mount this one, skip it.
 
 		if(all) {
@@ -271,7 +271,7 @@ singlemount:
 				goto mount_it_now;
 			}
 		} else {
-			
+
 			// Do we need to allocate a loopback device?
 
 			if(ENABLE_FEATURE_MOUNT_LOOP && !fakeIt && S_ISREG(statbuf.st_mode))
@@ -297,7 +297,7 @@ singlemount:
 			if(fsType || (flags & (MS_REMOUNT | MS_BIND | MS_MOVE)))
 				goto mount_it_now;
 		}
-		
+
 		// Loop through filesystem types until mount succeeds or we run out
 
 		for(i = 0; files[i] && rc; i++) {
@@ -305,11 +305,11 @@ singlemount:
 			if(!f) continue;
 			// Get next block device backed filesystem
 			for(buf = 0; (buf = fsType = bb_get_chomped_line_from_file(f));
-				   	free(buf))
+					free(buf))
 			{
 				// Skip funky entries in /proc
 				if(!strncmp(buf,"nodev",5) && isspace(buf[5])) continue;
-				
+
 				while(isspace(*fsType)) fsType++;
 				if(*buf=='#' || *buf=='*') continue;
 				if(!*fsType) continue;

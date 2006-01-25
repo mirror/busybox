@@ -271,7 +271,7 @@ static const struct config_keyword keywords[] = {
 	{"boot_file",	read_str, &(server_config.boot_file),	""},
 	{"static_lease",read_staticlease, &(server_config.static_leases),	""},
 	/*ADDME: static lease */
-	{"",		NULL, 	  NULL,				""}
+	{"",		NULL,	  NULL,				""}
 };
 
 

@@ -108,7 +108,7 @@ int busybox_main(int argc, char **argv)
 	}
 
 	/* Deal with --help.  (Also print help when called with no arguments) */
-	
+
 	if (argc==1 || !strcmp(argv[1],"--help") ) {
 		if (argc>2) {
 			run_applet_by_name(bb_applet_name=argv[2], 2, argv);
@@ -144,7 +144,7 @@ int busybox_main(int argc, char **argv)
 			exit(0);
 		}
 	} else run_applet_by_name(bb_applet_name=argv[1], argc-1, argv+1);
-	
+
 	bb_error_msg_and_die("applet not found");
 }
 

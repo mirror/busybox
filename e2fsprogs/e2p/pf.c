@@ -41,7 +41,7 @@ static const struct flags_name flags_array[] = {
 	{ EXT2_ECOMPR_FL, "E", "Compression_Error" },
 #endif
 	{ EXT3_JOURNAL_DATA_FL, "j", "Journaled_Data" },
-	{ EXT2_INDEX_FL, "I", "Indexed_direcctory" }, 
+	{ EXT2_INDEX_FL, "I", "Indexed_direcctory" },
 	{ EXT2_NOTAIL_FL, "t", "No_Tailmerging" },
 	{ EXT2_TOPDIR_FL, "T", "Top_of_Directory_Hierarchies" },
 	{ 0, NULL, NULL }

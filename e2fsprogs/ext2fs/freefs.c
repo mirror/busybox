@@ -1,6 +1,6 @@
 /*
  * freefs.c --- free an ext2 filesystem
- * 
+ *
  * Copyright (C) 1993, 1994, 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -52,7 +52,7 @@ void ext2fs_free(ext2_filsys fs)
 
 	if (fs->icache)
 		ext2fs_free_inode_cache(fs->icache);
-	
+
 	fs->magic = 0;
 
 	ext2fs_free_mem(&fs);

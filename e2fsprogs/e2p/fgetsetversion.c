@@ -33,11 +33,11 @@
 #define OPEN_FLAGS (O_RDONLY|O_NONBLOCK)
 #endif
 
-/* 
+/*
    To do fsetversion:     unsigned long *ptr_version must be set to NULL.
-                      and unsigned long version must be set to a value   
+		      and unsigned long version must be set to a value
    To do fgetversion:     unsigned long *ptr_version must NOT be set to NULL
-                      and unsigned long version is ignored.
+		      and unsigned long version is ignored.
 	TITO.
 */
 

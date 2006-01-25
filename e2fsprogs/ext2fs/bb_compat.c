@@ -1,6 +1,6 @@
 /*
  * bb_compat.c --- compatibility badblocks routines
- * 
+ *
  * Copyright (C) 1997 Theodore Ts'o.
  *
  * %Begin-Header%

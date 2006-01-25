@@ -56,7 +56,7 @@ char *query_loop(const char *device)
 	int fd;
 	bb_loop_info loopinfo;
 	char *dev=0;
-	
+
 	if ((fd = open(device, O_RDONLY)) < 0) return 0;
 	if (!ioctl(fd, BB_LOOP_GET_STATUS, &loopinfo))
 		dev=bb_xasprintf("%ld %s", (long) loopinfo.lo_offset,
@@ -64,7 +64,7 @@ char *query_loop(const char *device)
 	close(fd);
 
 	return dev;
-}	
+}
 
 
 int del_loop(const char *device)
@@ -74,7 +74,7 @@ int del_loop(const char *device)
 	if ((fd = open(device, O_RDONLY)) < 0) return 1;
 	rc=ioctl(fd, LOOP_CLR_FD, 0);
 	close(fd);
-	
+
 	return rc;
 }
 

@@ -101,7 +101,7 @@ extern int login_main(int argc, char **argv)
 			if ( optarg != argv[optind-1] )
 				bb_show_usage( );
 
-			if ( !amroot ) 		/* Auth bypass only if real UID is zero */
+			if ( !amroot )		/* Auth bypass only if real UID is zero */
 				bb_error_msg_and_die ( "-f permission denied" );
 
 			safe_strncpy(username, optarg, USERNAME_SIZE);

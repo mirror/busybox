@@ -1,34 +1,34 @@
 /* ------------------------------------------------------------------------- */
-/* tftp.c                                                                    */
-/*                                                                           */
-/* A simple tftp client for busybox.                                         */
-/* Tries to follow RFC1350.                                                  */
-/* Only "octet" mode supported.                                              */
+/* tftp.c					                            */
+/*					                                   */
+/* A simple tftp client for busybox.					 */
+/* Tries to follow RFC1350.					          */
+/* Only "octet" mode supported.					      */
 /* Optional blocksize negotiation (RFC2347 + RFC2348)                        */
-/*                                                                           */
+/*					                                   */
 /* Copyright (C) 2001 Magnus Damm <damm@opensource.se>                       */
-/*                                                                           */
-/* Parts of the code based on:                                               */
-/*                                                                           */
+/*					                                   */
+/* Parts of the code based on:					       */
+/*					                                   */
 /* atftp:  Copyright (C) 2000 Jean-Pierre Lefebvre <helix@step.polymtl.ca>   */
 /*                        and Remi Lefebvre <remi@debian.org>                */
-/*                                                                           */
+/*					                                   */
 /* utftp:  Copyright (C) 1999 Uwe Ohse <uwe@ohse.de>                         */
-/*                                                                           */
+/*					                                   */
 /* This program is free software; you can redistribute it and/or modify      */
 /* it under the terms of the GNU General Public License as published by      */
 /* the Free Software Foundation; either version 2 of the License, or         */
 /* (at your option) any later version.                                       */
-/*                                                                           */
+/*					                                   */
 /* This program is distributed in the hope that it will be useful,           */
 /* but WITHOUT ANY WARRANTY; without even the implied warranty of            */
 /* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          */
 /* General Public License for more details.                                  */
-/*                                                                           */
+/*					                                   */
 /* You should have received a copy of the GNU General Public License         */
 /* along with this program; if not, write to the Free Software               */
 /* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA   */
-/*                                                                           */
+/*					                                   */
 /* ------------------------------------------------------------------------- */
 
 #include <stdio.h>
@@ -87,13 +87,13 @@ static const char * const tftp_bb_error_msg[] = {
 
 static int tftp_blocksize_check(int blocksize, int bufsize)
 {
-        /* Check if the blocksize is valid:
+	/* Check if the blocksize is valid:
 	 * RFC2348 says between 8 and 65464,
 	 * but our implementation makes it impossible
 	 * to use blocksizes smaller than 22 octets.
 	 */
 
-        if ((bufsize && (blocksize > bufsize)) ||
+	if ((bufsize && (blocksize > bufsize)) ||
 	    (blocksize < 8) || (blocksize > 65464)) {
 	        bb_error_msg("bad blocksize");
 	        return 0;
@@ -104,7 +104,7 @@ static int tftp_blocksize_check(int blocksize, int bufsize)
 
 static char *tftp_option_get(char *buf, int len, char *option)
 {
-        int opt_val = 0;
+	int opt_val = 0;
 	int opt_found = 0;
 	int k;
 
@@ -216,7 +216,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 
 		if ((cmd_get && (opcode == TFTP_RRQ)) ||
 			(cmd_put && (opcode == TFTP_WRQ))) {
-                        int too_long = 0;
+			int too_long = 0;
 
 			/* see if the filename fits into buf */
 			/* and fill in packet                */
@@ -418,7 +418,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 
 				 if (res) {
 				         int blksize = atoi(res);
-			
+
 					 if (tftp_blocksize_check(blksize,
 							   tftp_bufsize - 4)) {
 
@@ -452,7 +452,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 		if (cmd_get && (opcode == TFTP_DATA)) {
 
 			if (tmp == block_nr) {
-			
+
 				len = bb_full_write(localfd, &buf[4], len - 4);
 
 				if (len < 0) {
@@ -496,7 +496,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	close(socketfd);
 
-        free(buf);
+	free(buf);
 #endif
 
 	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -549,8 +549,8 @@ int tftp_main(int argc, char **argv)
 	/* XXX: may be should #error ? */
 #endif
 
-	
-	cmd = bb_getopt_ulflags(argc, argv, GET PUT "l:r:" BS, 
+
+	cmd = bb_getopt_ulflags(argc, argv, GET PUT "l:r:" BS,
 				&localfile, &remotefile BS_ARG);
 #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 	if(sblocksize) {

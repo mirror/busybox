@@ -61,12 +61,12 @@ extern int ar_main(int argc, char **argv)
 {
 	archive_handle_t *archive_handle;
 	unsigned long opt;
-	static const char msg_unsupported_err[] = 
+	static const char msg_unsupported_err[] =
 			"Archive %s not supported.  Install binutils 'ar'.";
 	char magic[8];
 
 	archive_handle = init_handle();
-	
+
 	/* Prepend '-' to the first argument if required */
 	bb_opt_complementally = "--:p:t:x:-1:?:p--tx:t--px:x--pt";
 	opt = bb_getopt_ulflags(argc, argv, "ptxovcr");

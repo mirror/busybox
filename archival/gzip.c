@@ -1031,7 +1031,7 @@ static void fill_window(void)
  */
 #define FLUSH_BLOCK(eof) \
    flush_block(block_start >= 0L ? (char*)&window[(unsigned)block_start] : \
-                (char*)NULL, (long)strstart - block_start, (eof))
+		(char*)NULL, (long)strstart - block_start, (eof))
 
 /* ===========================================================================
  * Same as above, but achieves better compression. We use a lazy

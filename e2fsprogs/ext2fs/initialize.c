@@ -1,9 +1,9 @@
 /*
  * initialize.c --- initialize a filesystem handle given superblock
- * 	parameters.  Used by mke2fs when initializing a filesystem.
- * 
+ *	parameters.  Used by mke2fs when initializing a filesystem.
+ *
  * Copyright (C) 1994, 1995, 1996 Theodore Ts'o.
- * 
+ *
  * %Begin-Header%
  * This file may be redistributed under the terms of the GNU Public
  * License.
@@ -36,7 +36,7 @@
 #if defined(__FreeBSD__) &&	defined(EXT2_OS_FREEBSD)
 #define CREATOR_OS EXT2_OS_FREEBSD
 #else
-#if defined(LITES) 	   &&	defined(EXT2_OS_LITES)
+#if defined(LITES)	   &&	defined(EXT2_OS_LITES)
 #define CREATOR_OS EXT2_OS_LITES
 #else
 #define CREATOR_OS EXT2_OS_LINUX /* by default */
@@ -44,13 +44,13 @@
 #endif /* defined(__FreeBSD__) && defined(EXT2_OS_FREEBSD) */
 #endif /* defined(__GNU__)     && defined(EXT2_OS_HURD) */
 #endif /* defined(__linux__)   && defined(EXT2_OS_LINUX) */
-	
+
 /*
  * Note we override the kernel include file's idea of what the default
  * check interval (never) should be.  It's a good idea to check at
  * least *occasionally*, specially since servers will never rarely get
  * to reboot, since Linux is so robust these days.  :-)
- * 
+ *
  * 180 days (six months) seems like a good value.
  */
 #ifdef EXT2_DFL_CHECKINTERVAL
@@ -108,11 +108,11 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 
 	if (!param || !param->s_blocks_count)
 		return EXT2_ET_INVALID_ARGUMENT;
-	
+
 	retval = ext2fs_get_mem(sizeof(struct struct_ext2_filsys), &fs);
 	if (retval)
 		return retval;
-	
+
 	memset(fs, 0, sizeof(struct struct_ext2_filsys));
 	fs->magic = EXT2_ET_MAGIC_EXT2FS_FILSYS;
 	fs->flags = flags | EXT2_FLAG_RW;
@@ -181,7 +181,7 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 	if (super->s_blocks_per_group > EXT2_MAX_BLOCKS_PER_GROUP(super))
 		super->s_blocks_per_group = EXT2_MAX_BLOCKS_PER_GROUP(super);
 	super->s_frags_per_group = super->s_blocks_per_group * frags_per_block;
-	
+
 	super->s_blocks_count = param->s_blocks_count;
 	super->s_r_blocks_count = param->s_r_blocks_count;
 	if (super->s_r_blocks_count >= param->s_blocks_count) {
@@ -222,7 +222,7 @@ retry:
 	 */
 	if (super->s_inodes_count < EXT2_FIRST_INODE(super)+1)
 		super->s_inodes_count = EXT2_FIRST_INODE(super)+1;
-	
+
 	/*
 	 * There should be at least as many inodes as the user
 	 * requested.  Figure out how many inodes per group that
@@ -332,12 +332,12 @@ retry:
 	retval = ext2fs_get_mem(strlen(fs->device_name) + 80, &buf);
 	if (retval)
 		goto cleanup;
-	
+
 	sprintf(buf, "block bitmap for %s", fs->device_name);
 	retval = ext2fs_allocate_block_bitmap(fs, buf, &fs->block_map);
 	if (retval)
 		goto cleanup;
-	
+
 	sprintf(buf, "inode bitmap for %s", fs->device_name);
 	retval = ext2fs_allocate_inode_bitmap(fs, buf, &fs->inode_map);
 	if (retval)
@@ -369,14 +369,14 @@ retry:
 		fs->group_desc[i].bg_free_inodes_count =
 			fs->super->s_inodes_per_group;
 		fs->group_desc[i].bg_used_dirs_count = 0;
-		
+
 		group_block += super->s_blocks_per_group;
 	}
-	
+
 	ext2fs_mark_super_dirty(fs);
 	ext2fs_mark_bb_dirty(fs);
 	ext2fs_mark_ib_dirty(fs);
-	
+
 	io_channel_set_blksize(fs->io, fs->blocksize);
 
 	*ret_fs = fs;

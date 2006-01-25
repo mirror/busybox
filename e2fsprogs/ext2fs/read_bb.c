@@ -38,16 +38,16 @@ struct read_bb_record {
  #pragma argsused
 #endif
 static int mark_bad_block(ext2_filsys fs, blk_t *block_nr,
-			  e2_blkcnt_t blockcnt EXT2FS_ATTR((unused)), 
+			  e2_blkcnt_t blockcnt EXT2FS_ATTR((unused)),
 			  blk_t ref_block EXT2FS_ATTR((unused)),
-			  int ref_offset EXT2FS_ATTR((unused)), 
+			  int ref_offset EXT2FS_ATTR((unused)),
 			  void *priv_data)
 {
 	struct read_bb_record *rb = (struct read_bb_record *) priv_data;
-	
+
 	if (blockcnt < 0)
 		return 0;
-	
+
 	if ((*block_nr < fs->super->s_first_data_block) ||
 	    (*block_nr >= fs->super->s_blocks_count))
 		return 0;	/* Ignore illegal blocks */

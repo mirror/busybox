@@ -19,7 +19,7 @@ struct uuid {
 /* Returns 1 if the uuid is the NULL uuid */
 int e2p_is_null_uuid(void *uu)
 {
-	__u8 	*cp;
+	__u8	*cp;
 	int	i;
 
 	for (i=0, cp = uu; i < 16; i++)
@@ -42,7 +42,7 @@ static void e2p_unpack_uuid(void *in, struct uuid *uu)
 	tmp = *ptr++;
 	tmp = (tmp << 8) | *ptr++;
 	uu->time_mid = tmp;
-	
+
 	tmp = *ptr++;
 	tmp = (tmp << 8) | *ptr++;
 	uu->time_hi_and_version = tmp;

@@ -1,6 +1,6 @@
 /*
  * inode_io.c --- This is allows an inode in an ext2 filesystem image
- * 	to be accessed via the I/O manager interface.
+ *	to be accessed via the I/O manager interface.
  *
  * Copyright (C) 2002 Theodore Ts'o.
  *
@@ -35,7 +35,7 @@ struct inode_private_data {
 	char				name[32];
 	ext2_file_t			file;
 	ext2_filsys			fs;
-	ext2_ino_t 			ino;
+	ext2_ino_t			ino;
 	struct ext2_inode		inode;
 	int				flags;
 	struct inode_private_data	*next;
@@ -75,7 +75,7 @@ errcode_t ext2fs_inode_io_intern2(ext2_filsys fs, ext2_ino_t ino,
 				  struct ext2_inode *inode,
 				  char **name)
 {
-	struct inode_private_data 	*data;
+	struct inode_private_data	*data;
 	errcode_t			retval;
 
 	if ((retval = ext2fs_get_mem(sizeof(struct inode_private_data),
@@ -150,7 +150,7 @@ static errcode_t inode_open(const char *name, int flags, io_channel *channel)
 				   &data->file);
 	if (retval)
 		goto cleanup;
-		
+
 	*channel = io;
 	return 0;
 
@@ -176,7 +176,7 @@ static errcode_t inode_close(io_channel channel)
 		return 0;
 
 	retval = ext2fs_file_close(data->file);
-	
+
 	ext2fs_free_mem(&channel->private_data);
 	if (channel->name)
 		ext2fs_free_mem(&channel->name);
@@ -255,12 +255,12 @@ static errcode_t inode_write_byte(io_channel channel, unsigned long offset,
 }
 
 /*
- * Flush data buffers to disk.  
+ * Flush data buffers to disk.
  */
 static errcode_t inode_flush(io_channel channel)
 {
 	struct inode_private_data *data;
-	
+
 	EXT2_CHECK_MAGIC(channel, EXT2_ET_MAGIC_IO_CHANNEL);
 	data = (struct inode_private_data *) channel->private_data;
 	EXT2_CHECK_MAGIC(data, EXT2_ET_MAGIC_INODE_IO_CHANNEL);

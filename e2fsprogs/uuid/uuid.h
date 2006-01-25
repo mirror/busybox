@@ -1,6 +1,6 @@
 /*
  * Public include file for the UUID library
- * 
+ *
  * Copyright (C) 1996, 1997, 1998 Theodore Ts'o.
  *
  * %Begin-Header%
@@ -16,7 +16,7 @@
  * 3. The name of the author may not be used to endorse or promote
  *    products derived from this software without specific prior
  *    written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, ALL OF
@@ -42,8 +42,8 @@
 typedef unsigned char uuid_t[16];
 
 /* UUID Variant definitions */
-#define UUID_VARIANT_NCS 	0
-#define UUID_VARIANT_DCE 	1
+#define UUID_VARIANT_NCS	0
+#define UUID_VARIANT_DCE	1
 #define UUID_VARIANT_MICROSOFT	2
 #define UUID_VARIANT_OTHER	3
 

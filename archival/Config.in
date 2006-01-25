@@ -47,10 +47,10 @@ config CONFIG_BUNZIP2
 	  is generally considerably better than that achieved by more
 	  conventional LZ77/LZ78-based compressors, and approaches the
 	  performance of the PPM family of statistical compressors.
-	
+
 	  The BusyBox bunzip2 applet is limited to de-compression only.
 	  On an x86 system, this applet adds about 11K.
-	
+
 	  Unless you have a specific application which requires bunzip2, you
 	  should probably say N here.
 
@@ -73,7 +73,7 @@ config CONFIG_DPKG
 	default n
 	help
 	  dpkg is a medium-level tool to install, build, remove and manage Debian packages.
-	
+
 	  This implementation of dpkg has a number of limitations, you should use the
 	  official dpkg if possible.
 
@@ -82,9 +82,9 @@ config CONFIG_DPKG_DEB
 	default n
 	help
 	  dpkg-deb packs, unpacks and provides information about Debian archives.
-	
+
 	  This implementation of dpkg-deb cannot pack archives.
-	
+
 	  Unless you have a specific application which requires dpkg-deb, you should
 	  probably say N here.
 
@@ -228,10 +228,10 @@ config CONFIG_UNLZMA
 	  compression algorithm, and range coding.  Compression
 	  is generally considerably better than that achieved by the bzip2
 	  compressors.
-	
+
 	  The BusyBox unlzma applet is limited to de-compression only.
 	  On an x86 system, this applet adds about 4K.
-	
+
 	  Unless you have a specific application which requires unlzma, you
 	  should probably say N here.
 
@@ -272,7 +272,7 @@ config CONFIG_FEATURE_DEB_TAR_GZ
 	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
 	help
 	  This is the default compression method inside the debian ar file.
-	
+
 	  If you want compatibility with standard .deb's you should say yes here.
 
 config CONFIG_FEATURE_DEB_TAR_BZ2
@@ -282,7 +282,7 @@ config CONFIG_FEATURE_DEB_TAR_BZ2
 	help
 	  This allows dpkg and dpkg-deb to extract deb's that are compressed internally
 	  with bzip2 instead of gzip.
-	
+
 	  You only want this if you are creating your own custom debian packages that
 	  use an internal control.tar.bz2 or data.tar.bz2.
 
@@ -293,7 +293,7 @@ config CONFIG_FEATURE_DEB_TAR_LZMA
 	help
 	  This allows dpkg and dpkg-deb to extract deb's that are compressed
           internally with lzma instead of gzip.
-	
+
 	  You only want this if you are creating your own custom debian
           packages that use an internal control.tar.lzma or data.tar.lzma.
 

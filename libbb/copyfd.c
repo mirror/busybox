@@ -32,7 +32,7 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 	while (!size || total < size)
 	{
 		ssize_t wrote, xread;
-		
+
 		xread = safe_read(src_fd, buffer,
 				(!size || size - total > BUFSIZ) ? BUFSIZ : size - total);
 
@@ -53,7 +53,7 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 			break;
 		}
 	}
-		
+
 out:
 	RELEASE_CONFIG_BUFFER(buffer);
 

@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 				LOG(LOG_ERR, "send OFFER failed");
 			}
 			break;
- 		case DHCPREQUEST:
+		case DHCPREQUEST:
 			DEBUG(LOG_INFO, "received REQUEST");
 
 			requested = get_option(&packet, DHCP_REQUESTED_IP);

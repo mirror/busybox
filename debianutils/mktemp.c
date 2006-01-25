@@ -6,7 +6,7 @@
  * Copyright (C) 2000 by Daniel Jacobowitz
  * Written by Daniel Jacobowitz <dan@debian.org>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball. 
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include <stdio.h>
@@ -19,7 +19,7 @@
 extern int mktemp_main(int argc, char **argv)
 {
 	unsigned long flags = bb_getopt_ulflags(argc, argv, "dq");
-	
+
 	if (optind + 1 != argc)
 		bb_show_usage();
 

@@ -56,7 +56,7 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 			bb_error_msg_and_die("Short file");
 		}
 
- 		while (length > 0) {
+		while (length > 0) {
 			/* Merge four 6 bit chars to three 8 bit chars */
 		    fputc(((line_ptr[0] - 0x20) & 077) << 2 | ((line_ptr[1] - 0x20) & 077) >> 4, dst_stream);
 			line_ptr++;
@@ -65,14 +65,14 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 				break;
 			}
 
-   			fputc(((line_ptr[0] - 0x20) & 077) << 4 | ((line_ptr[1] - 0x20) & 077) >> 2, dst_stream);
+			fputc(((line_ptr[0] - 0x20) & 077) << 4 | ((line_ptr[1] - 0x20) & 077) >> 2, dst_stream);
 			line_ptr++;
 			length--;
 			if (length == 0) {
 				break;
 			}
 
-  			fputc(((line_ptr[0] - 0x20) & 077) << 6 | ((line_ptr[1] - 0x20) & 077), dst_stream);
+			fputc(((line_ptr[0] - 0x20) & 077) << 6 | ((line_ptr[1] - 0x20) & 077), dst_stream);
 			line_ptr += 2;
 			length -= 2;
 		}
@@ -130,10 +130,10 @@ static int read_base64(FILE *src_stream, FILE *dst_stream)
 		/* Merge 6 bit chars to 8 bit */
 	    fputc(translated[0] << 2 | translated[1] >> 4, dst_stream);
 		if (count > 2) {
-	   		fputc(translated[1] << 4 | translated[2] >> 2, dst_stream);
+			fputc(translated[1] << 4 | translated[2] >> 2, dst_stream);
 		}
 		if (count > 3) {
-	  		fputc(translated[2] << 6 | translated[3], dst_stream);
+			fputc(translated[2] << 6 | translated[3], dst_stream);
 		}
 	}
 }

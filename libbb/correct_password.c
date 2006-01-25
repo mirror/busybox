@@ -61,7 +61,7 @@ int correct_password ( const struct passwd *pw )
 	}
 	else
 #endif
-    	correct = pw-> pw_passwd;
+		correct = pw-> pw_passwd;
 
 	if ( correct == 0 || correct[0] == '\0' )
 		return 1;

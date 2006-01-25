@@ -91,23 +91,23 @@ static struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 								&t.tm_min) == 2) {
 		/* no adjustments needed */
 	} else if (t = *tm_time, sscanf(t_string, "%d.%d-%d:%d:%d", &t.tm_mon,
-						&t.tm_mday, &t.tm_hour, 
+						&t.tm_mday, &t.tm_hour,
 						&t.tm_min, &t.tm_sec) == 5) {
 		/* Adjust dates from 1-12 to 0-11 */
 		t.tm_mon -= 1;
 	} else if (t = *tm_time, sscanf(t_string, "%d.%d-%d:%d", &t.tm_mon,
-						&t.tm_mday, 
+						&t.tm_mday,
 						&t.tm_hour, &t.tm_min) == 4) {
 		/* Adjust dates from 1-12 to 0-11 */
 		t.tm_mon -= 1;
 	} else if (t = *tm_time, sscanf(t_string, "%d.%d.%d-%d:%d:%d", &t.tm_year,
-						&t.tm_mon, &t.tm_mday, 
+						&t.tm_mon, &t.tm_mday,
 						&t.tm_hour, &t.tm_min,
 							&t.tm_sec) == 6) {
 		t.tm_year -= 1900;	/* Adjust years */
 		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
 	} else if (t = *tm_time, sscanf(t_string, "%d.%d.%d-%d:%d", &t.tm_year,
-						&t.tm_mon, &t.tm_mday, 
+						&t.tm_mon, &t.tm_mday,
 						&t.tm_hour, &t.tm_min) == 5) {
 		t.tm_year -= 1900;	/* Adjust years */
 		t.tm_mon -= 1;	/* Adjust dates from 1-12 to 0-11 */
@@ -119,9 +119,9 @@ static struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 }
 
 #define DATE_OPT_RFC2822	0x01
-#define DATE_OPT_SET    	0x02
-#define DATE_OPT_UTC    	0x04
-#define DATE_OPT_DATE   	0x08
+#define DATE_OPT_SET		0x02
+#define DATE_OPT_UTC		0x04
+#define DATE_OPT_DATE		0x08
 #define DATE_OPT_REFERENCE	0x10
 #ifdef CONFIG_FEATURE_DATE_ISOFMT
 # define DATE_OPT_TIMESPEC	0x20

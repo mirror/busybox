@@ -148,7 +148,7 @@ uint32_t find_address(int check_expired)
 		     (check_expired  && lease_expired(lease))) &&
 
 		     /* and it isn't on the network */
-	    	     !check_ip(ret)) {
+		     !check_ip(ret)) {
 			return ret;
 			break;
 		}

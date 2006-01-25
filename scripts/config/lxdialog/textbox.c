@@ -472,8 +472,8 @@ print_line (WINDOW * win, int row, int width)
     /* Clear 'residue' of previous line */
 #if OLD_NCURSES
     {
-        int i;
-        for (i = 0; i < width - x; i++)
+	int i;
+	for (i = 0; i < width - x; i++)
 	    waddch (win, ' ');
     }
 #else

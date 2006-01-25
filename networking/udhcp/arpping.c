@@ -23,7 +23,7 @@
  *		ip - our ip
  *		mac - our arp address
  *		interface - interface to use
- * retn: 	1 addr free
+ * retn:	1 addr free
  *		0 addr used
  *		-1 error
  */
@@ -33,7 +33,7 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 {
 
 	int	timeout = 2;
-	int 	optval = 1;
+	int	optval = 1;
 	int	s;			/* socket */
 	int	rv = 1;			/* return value */
 	struct sockaddr addr;		/* for interface name */
@@ -101,6 +101,6 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 		prevTime = uptime();
 	}
 	close(s);
-	DEBUG(LOG_INFO, "%salid arp replies for this address", rv ? "No v" : "V");	
+	DEBUG(LOG_INFO, "%salid arp replies for this address", rv ? "No v" : "V");
 	return rv;
 }

@@ -45,10 +45,10 @@
 #endif
 
 #define	THURSDAY		4		/* for reformation */
-#define	SATURDAY 		6		/* 1 Jan 1 was a Saturday */
+#define	SATURDAY		6		/* 1 Jan 1 was a Saturday */
 
-#define	FIRST_MISSING_DAY 	639787		/* 3 Sep 1752 */
-#define	NUMBER_MISSING_DAYS 	11		/* 11 day correction */
+#define	FIRST_MISSING_DAY	639787		/* 3 Sep 1752 */
+#define	NUMBER_MISSING_DAYS	11		/* 11 day correction */
 
 #define	MAXDAYS			42		/* max slots in a month array */
 #define	SPACE			-1		/* used in day array */

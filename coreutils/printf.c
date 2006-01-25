@@ -63,12 +63,12 @@ void multiconvert(char *arg, void *result, converter convert)
 	}
 	if(convert(arg,result)) fprintf(stderr, "%s", arg);
 }
-	
+
 static unsigned long xstrtoul(char *arg)
 {
 	unsigned long result;
 
-	multiconvert(arg,&result, (converter)safe_strtoul);	
+	multiconvert(arg,&result, (converter)safe_strtoul);
 	return result;
 }
 

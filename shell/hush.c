@@ -1581,7 +1581,7 @@ static int run_list_real(struct pipe *pi)
 		if (rmode == RES_IN) continue;
 		if (rmode == RES_DO) {
 			if (!flag_rep) continue;
-		}	
+		}
 		if ((rmode == RES_DONE)) {
 			if (flag_rep) {
 				flag_restore = 1;
@@ -1782,17 +1782,17 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 {
 	int gr;
 
- 	/* short-circuit for null word */
+	/* short-circuit for null word */
 	/* we can code this better when the debug_printf's are gone */
- 	if (dest->length == 0) {
- 		if (dest->nonnull) {
- 			/* bash man page calls this an "explicit" null */
- 			gr = globhack(dest->data, flags, pglob);
- 			debug_printf("globhack returned %d\n",gr);
- 		} else {
+	if (dest->length == 0) {
+		if (dest->nonnull) {
+			/* bash man page calls this an "explicit" null */
+			gr = globhack(dest->data, flags, pglob);
+			debug_printf("globhack returned %d\n",gr);
+		} else {
 			return 0;
 		}
- 	} else if (glob_needed(dest->data)) {
+	} else if (glob_needed(dest->data)) {
 		gr = glob(dest->data, flags, NULL, pglob);
 		debug_printf("glob returned %d\n",gr);
 		if (gr == GLOB_NOMATCH) {
@@ -2111,7 +2111,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 			if (reserved_word(dest,ctx)) return ctx->w==RES_SNTX;
 		}
 		glob_target = &child->glob_result;
- 		if (child->argv) flags |= GLOB_APPEND;
+		if (child->argv) flags |= GLOB_APPEND;
 	}
 	gr = xglob(dest, flags, glob_target);
 	if (gr != 0) return 1;

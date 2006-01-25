@@ -161,8 +161,8 @@ skip_setflags:
 		iterate_on_dir(name, chattr_dir_proc, NULL);
 }
 
-static int chattr_dir_proc(const char *dir_name, struct dirent *de, 
-                           void *private EXT2FS_ATTR((unused)))
+static int chattr_dir_proc(const char *dir_name, struct dirent *de,
+			   void *private EXT2FS_ATTR((unused)))
 {
 	/*if (strcmp(de->d_name, ".") && strcmp(de->d_name, "..")) {*/
 	if (de->d_name[0] == '.' && (de->d_name[1] == '\0' || \

@@ -58,7 +58,7 @@ void setup_environment ( const char *shell, int loginshell, int changeenv, const
 		 * to change to that directory.  There is no "default" home
 		 * directory.
 		 * Some systems default to HOME=/
-		 */		
+		 */
 		if ( chdir ( pw-> pw_dir )) {
 			if ( chdir ( "/" )) {
 				syslog ( LOG_WARNING, "unable to cd to %s' for user %s'\n", pw-> pw_dir, pw-> pw_name );
@@ -81,7 +81,7 @@ void setup_environment ( const char *shell, int loginshell, int changeenv, const
 	}
 	else if ( changeenv ) {
 		/* Set HOME, SHELL, and if not becoming a super-user,
-	   	   USER and LOGNAME.  */
+		   USER and LOGNAME.  */
 		xsetenv ( "HOME",  pw-> pw_dir );
 		xsetenv ( "SHELL", shell );
 		if  ( pw-> pw_uid ) {

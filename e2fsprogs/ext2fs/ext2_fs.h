@@ -231,9 +231,9 @@ struct ext2_dx_countlimit {
 #define EXT2_IMAGIC_FL			0x00002000
 #define EXT3_JOURNAL_DATA_FL		0x00004000 /* file data should be journaled */
 #define EXT2_NOTAIL_FL			0x00008000 /* file tail should not be merged */
-#define EXT2_DIRSYNC_FL 		0x00010000 /* Synchronous directory modifications */
+#define EXT2_DIRSYNC_FL			0x00010000 /* Synchronous directory modifications */
 #define EXT2_TOPDIR_FL			0x00020000 /* Top of directory hierarchies*/
-#define EXT3_EXTENTS_FL 		0x00080000 /* Inode uses extents */
+#define EXT3_EXTENTS_FL			0x00080000 /* Inode uses extents */
 #define EXT2_RESERVED_FL		0x80000000 /* reserved for ext2 lib */
 
 #define EXT2_FL_USER_VISIBLE		0x0003DFFF /* User visible flags */
@@ -501,12 +501,12 @@ struct ext2_super_block {
 	__u32	s_last_orphan;		/* start of list of inodes to delete */
 	__u32	s_hash_seed[4];		/* HTREE hash seed */
 	__u8	s_def_hash_version;	/* Default hash version to use */
-	__u8	s_jnl_backup_type; 	/* Default type of journal backup */
+	__u8	s_jnl_backup_type;	/* Default type of journal backup */
 	__u16	s_reserved_word_pad;
 	__u32	s_default_mount_opts;
 	__u32	s_first_meta_bg;	/* First metablock group */
 	__u32	s_mkfs_time;		/* When the filesystem was created */
-	__u32	s_jnl_blocks[17]; 	/* Backup of the journal inode */
+	__u32	s_jnl_blocks[17];	/* Backup of the journal inode */
 	__u32	s_reserved[172];	/* Padding to the end of the block */
 };
 
@@ -585,7 +585,7 @@ struct ext2_super_block {
 #define EXT2_DEFM_XATTR_USER	0x0004
 #define EXT2_DEFM_ACL		0x0008
 #define EXT2_DEFM_UID16		0x0010
-#define EXT3_DEFM_JMODE		0x0060 
+#define EXT3_DEFM_JMODE		0x0060
 #define EXT3_DEFM_JMODE_DATA	0x0020
 #define EXT3_DEFM_JMODE_ORDERED	0x0040
 #define EXT3_DEFM_JMODE_WBACK	0x0060

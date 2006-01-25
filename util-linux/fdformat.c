@@ -134,7 +134,7 @@ int fdformat_main(int argc,char **argv)
 			if((read_bytes = safe_read(fd,data,n))!= n ) {
 				if(read_bytes < 0) {
 					bb_perror_msg("Read: ");
-	    		}
+				}
 				bb_error_msg_and_die("Problem reading cylinder %d, expected %d, read %d", cyl, n, read_bytes);
 			}
 			/* Check backwards so we don't need a counter */
@@ -147,14 +147,14 @@ int fdformat_main(int argc,char **argv)
 		/* There is no point in freeing blocks at the end of a program, because
 		all of the program's space is given back to the system when the process
 		terminates.*/
-		
+
 		if (ENABLE_FEATURE_CLEAN_UP) free(data);
-		
+
 		print_and_flush("done\n", NULL);
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
-	
+
 	/* Don't bother closing.  Exit does
 	 * that, so we can save a few bytes */
 	return EXIT_SUCCESS;

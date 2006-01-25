@@ -85,7 +85,7 @@ config CONFIG_GETTY
 
 config CONFIG_FEATURE_UTMP
 	bool "  Support utmp file"
-	depends on CONFIG_GETTY || CONFIG_LOGIN || CONFIG_SU || CONFIG_WHO 
+	depends on CONFIG_GETTY || CONFIG_LOGIN || CONFIG_SU || CONFIG_WHO
 	default n
 	help
 	  The file /var/run/utmp is used to track who is currently logged in.
@@ -96,7 +96,7 @@ config CONFIG_FEATURE_WTMP
 	default n
 	select CONFIG_FEATURE_UTMP
 	help
-	  The file /var/run/wtmp is used to track when user's have logged into 
+	  The file /var/run/wtmp is used to track when user's have logged into
 	  and logged out of the system.
 
 config CONFIG_LOGIN

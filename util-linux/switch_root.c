@@ -47,20 +47,20 @@ static void delete_contents(char *directory)
 				// Skip . and ..
 				if(*newdir=='.' && (!newdir[1] || (newdir[1]=='.' && !newdir[2])))
 					continue;
-				
+
 				// Recurse to delete contents
 				newdir = alloca(strlen(directory) + strlen(d->d_name) + 2);
 				sprintf(newdir, "%s/%s", directory, d->d_name);
 				delete_contents(newdir);
 			}
 			closedir(dir);
-			
+
 			// Directory should now be empty.  Zap it.
 			rmdir(directory);
 		}
-		
+
 	// It wasn't a directory.  Zap it.
-		
+
 	} else unlink(directory);
 }
 
@@ -74,18 +74,18 @@ int switch_root_main(int argc, char *argv[])
 
 	bb_opt_complementally="-2";
 	bb_getopt_ulflags(argc,argv,"c:",&console);
-	
+
 	// Change to new root directory and verify it's a different fs.
 
 	newroot=argv[optind++];
-	
+
 	if (chdir(newroot) || stat(".", &st1) || stat("/", &st2) ||
 		st1.st_dev == st2.st_dev)
 	{
 		bb_error_msg_and_die("bad newroot %s",newroot);
 	}
 	rootdev=st2.st_dev;
-	
+
 	// Additional sanity checks: we're about to rm -rf /,  so be REALLY SURE
 	// we mean it.  (I could make this a CONFIG option, but I would get email
 	// from all the people who WILL eat their filesystemss.)
@@ -100,13 +100,13 @@ int switch_root_main(int argc, char *argv[])
 	// Zap everything out of rootdev
 
 	delete_contents("/");
-	
+
 	// Overmount / with newdir and chroot into it.  The chdir is needed to
 	// recalculate "." and ".." links.
 
 	if (mount(".", "/", NULL, MS_MOVE, NULL) || chroot(".") || chdir("/"))
 		bb_error_msg_and_die("moving root");
-	
+
 	// If a new console specified, redirect stdin/stdout/stderr to that.
 
 	if (console) {

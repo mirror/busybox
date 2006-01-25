@@ -36,10 +36,10 @@
  * broken compatibility because the BusyBox policy doesn't allow them.
  * The supported options are:
  * -t			test. Print the name of the files to be executed, without
- * 				execute them.
+ *				execute them.
  * -a ARG		argument. Pass ARG as an argument the program executed. It can
- * 				be repeated to pass multiple arguments.
- * -u MASK 		umask. Set the umask of the program executed to MASK. */
+ *				be repeated to pass multiple arguments.
+ * -u MASK		umask. Set the umask of the program executed to MASK. */
 
 /* TODO
  * done - convert calls to error in perror... and remove error()

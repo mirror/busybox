@@ -7,7 +7,7 @@
  * This file may be redistributed under the terms of the GNU Public
  * License.
  * %End-Header%
- * 
+ *
  */
 
 #include <stdio.h>

@@ -67,7 +67,7 @@
 #define CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 #define CONFIG_FEATURE_CLEAN_UP
 
-#endif                                                  /* TEST */
+#endif					          /* TEST */
 
 #ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 #include <dirent.h>
@@ -82,7 +82,7 @@
 
 #ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 #include "pwd_.h"
-#endif                                                  /* advanced FEATURES */
+#endif					          /* advanced FEATURES */
 
 
 /* Maximum length of the linked list for the command line history */
@@ -177,7 +177,7 @@ static void win_changed(int nsig)
 		previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
 	else if (nsig == SIGWINCH)      /* signaled called handler */
 		signal(SIGWINCH, win_changed);  /* set for next call       */
-	else                                            /* nsig == 0 */
+	else					    /* nsig == 0 */
 		/* set previous handler    */
 		signal(SIGWINCH, previous_SIGWINCH_handler);    /* reset    */
 }
@@ -907,7 +907,7 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 		}
 
 	/* collapse (command...(command...)...) or {command...{command...}...} */
-	c = 0;                                          /* "recursive" level */
+	c = 0;					  /* "recursive" level */
 	c2 = 0;
 	for (i = 0; int_buf[i]; i++)
 		if (int_buf[i] == '(' || int_buf[i] == '{') {
@@ -1358,7 +1358,7 @@ vi_back_motion(char *command)
 }
 #endif
 
-/* 
+/*
  * the normal emacs mode and vi's insert mode are the same.
  * commands entered when in vi command mode ("escape mode") get
  * an extra bit added to distinguish them.  this lets them share
@@ -1431,7 +1431,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 		newdelflag = 1;
 		ic = c;
 		if (vi_cmdmode)
-		    	ic |= VI_cmdbit;
+			ic |= VI_cmdbit;
 		switch (ic)
 #else
 		switch (c)
@@ -1613,7 +1613,7 @@ prepare_to_die:
 			vi_cmdmode = 0;
 			/* fall through */
 		case VICMD('d'):
-			{ 
+			{
 			int nc, sc;
 			sc = cursor;
 			prevc = ic;
@@ -1632,7 +1632,7 @@ prepare_to_die:
 			case 'E':
 			    switch (c) {
 			    case 'w':   /* "dw", "cw" */
-			    	    vi_word_motion(command, vi_cmdmode);
+				    vi_word_motion(command, vi_cmdmode);
 				    break;
 			    case 'W':   /* 'dW', 'cW' */
 				    vi_Word_motion(command, vi_cmdmode);

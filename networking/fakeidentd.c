@@ -55,7 +55,7 @@ static const int ident_substr_len = sizeof(ident_substr) - 1;
 #define PIDFILE "/var/run/identd.pid"
 
 /*
- * We have to track the 'first connection socket' so that we 
+ * We have to track the 'first connection socket' so that we
  * don't go around closing file descriptors for non-clients.
  *
  * descriptor setup normally

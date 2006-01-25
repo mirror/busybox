@@ -1,6 +1,6 @@
 /*
  * dupfs.c --- duplicate a ext2 filesystem handle
- * 
+ *
  * Copyright (C) 1997, 1998, 2001, 2003, 2005 by Theodore Ts'o.
  *
  * %Begin-Header%
@@ -25,7 +25,7 @@ errcode_t ext2fs_dup_handle(ext2_filsys src, ext2_filsys *dest)
 	errcode_t	retval;
 
 	EXT2_CHECK_MAGIC(src, EXT2_ET_MAGIC_EXT2FS_FILSYS);
-	
+
 	retval = ext2fs_get_mem(sizeof(struct struct_ext2_filsys), &fs);
 	if (retval)
 		return retval;
@@ -91,6 +91,6 @@ errcode_t ext2fs_dup_handle(ext2_filsys src, ext2_filsys *dest)
 errout:
 	ext2fs_free(fs);
 	return retval;
-	
+
 }
 
