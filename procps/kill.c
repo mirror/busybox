@@ -89,7 +89,7 @@ extern int kill_main(int argc, char **argv)
 
 #ifdef CONFIG_KILLALL
 	/* The -q quiet option */
-	if(argv[1][1]=='q' && argv[1][2]=='\0'){
+	if(whichApp != KILL && argv[1][1]=='q' && argv[1][2]=='\0'){
 		quiet++;
 		argv++;
 		argc--;
@@ -105,6 +105,10 @@ extern int kill_main(int argc, char **argv)
 	argc-=2;
 
 do_it_now:
+
+	/* Pid or name required */
+	if (argc <= 0)
+		bb_show_usage();
 
 	if (whichApp == KILL) {
 		/* Looks like they want to do a kill. Do that */
