@@ -12,6 +12,7 @@ srcdir=$(top_srcdir)/networking
 
 NETWORKING-y:=
 NETWORKING-$(CONFIG_ARPING)       += arping.o
+NETWORKING-$(CONFIG_DNSD)         += dnsd.o
 NETWORKING-$(CONFIG_ETHER_WAKE)   += ether-wake.o
 NETWORKING-$(CONFIG_FAKEIDENTD)   += fakeidentd.o
 NETWORKING-$(CONFIG_FTPGET)       += ftpgetput.o

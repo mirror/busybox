@@ -18,6 +18,12 @@ config CONFIG_ARPING
 	help
 	  Ping hosts by ARP packets
 
+config CONFIG_DNSD
+	bool "dnsd"
+	default n
+	help
+	  Small and static DNS server deamon. 
+
 config CONFIG_ETHER_WAKE
 	bool "ether-wake"
 	default n

@@ -469,6 +469,17 @@
 	"\t-n LEVEL\tSets console logging level\n" \
 	"\t-s SIZE\t\tUse a buffer of size SIZE"
 
+#define dnsd_trivial_usage \
+        "[-c config] [-t seconds] [-p port] [-i iface-ip] [-d]"
+#define dnsd_full_usage \
+        "Small and static DNS server daemon\n\n" \
+	"Options:\n" \
+	"\t-c\t\tconfig filename\n" \
+	"\t-t\t\tTTL in seconds\n" \
+	"\t-p\t\tlistening port\n" \
+	"\t-i\t\tlistening iface ip (default all)\n" \
+	"\t-d\t\tdaemonize"
+
 #define dos2unix_trivial_usage \
 	"[option] [FILE]"
 #define dos2unix_full_usage \

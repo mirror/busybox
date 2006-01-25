@@ -164,6 +164,9 @@
 #ifdef CONFIG_DMESG
 	APPLET(dmesg, dmesg_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_DNSD
+	APPLET(dnsd, dnsd_main, _BB_DIR_USR_SBIN, _BB_SUID_ALWAYS)
+#endif
 #ifdef CONFIG_DOS2UNIX
 	APPLET(dos2unix, dos2unix_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
