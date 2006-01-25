@@ -184,14 +184,33 @@ static void INET_setroute(int action, char **args)
 
 	{
 		const char *target = *args++;
+		char *prefix;
 
+		/* recognize x.x.x.x/mask format. */
+		prefix = strchr(target, '/');
+		if(prefix) {
+			int prefix_len;
+
+			prefix_len = bb_xgetularg10_bnd(prefix+1, 0, 32);
+			mask_in_addr(rt) = htonl( ~ (0xffffffffUL >> prefix_len));
+			*prefix = '\0';
+#if HAVE_NEW_ADDRT
+			rt.rt_genmask.sa_family = AF_INET;
+#endif
+		} else {
+			/* Default netmask. */
+			netmask = bb_INET_default;
+		}
 		/* Prefer hostname lookup is -host flag (xflag==1) was given. */
 		isnet = INET_resolve(target, (struct sockaddr_in *) &rt.rt_dst,
 							 (xflag & HOST_FLAG));
 		if (isnet < 0) {
 			bb_error_msg_and_die("resolving %s", target);
 		}
-
+		if(prefix) {
+			/* do not destroy prefix for process args */
+			*prefix = '/';
+		}
 	}
 
 	if (xflag) {		/* Reinit isnet if -net or -host was specified. */
@@ -200,8 +219,6 @@ static void INET_setroute(int action, char **args)
 
 	/* Fill in the other fields. */
 	rt.rt_flags = ((isnet) ? RTF_UP : (RTF_UP | RTF_HOST));
-
-	netmask = bb_INET_default;
 
 	while (*args) {
 		int k = kw_lookup(tbl_ipvx, &args);
