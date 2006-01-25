@@ -67,7 +67,7 @@
 #define CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 #define CONFIG_FEATURE_CLEAN_UP
 
-#endif					          /* TEST */
+#endif  /* TEST */
 
 #ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 #include <dirent.h>
@@ -82,7 +82,7 @@
 
 #ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 #include "pwd_.h"
-#endif					          /* advanced FEATURES */
+#endif  /* advanced FEATURES */
 
 
 /* Maximum length of the linked list for the command line history */
@@ -177,7 +177,7 @@ static void win_changed(int nsig)
 		previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
 	else if (nsig == SIGWINCH)      /* signaled called handler */
 		signal(SIGWINCH, win_changed);  /* set for next call       */
-	else					    /* nsig == 0 */
+	else                                            /* nsig == 0 */
 		/* set previous handler    */
 		signal(SIGWINCH, previous_SIGWINCH_handler);    /* reset    */
 }
@@ -444,7 +444,7 @@ static void redraw(int y, int back_cursor)
 #ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
 static char delbuf[BUFSIZ];  /* a place to store deleted characters */
 static char *delp = delbuf;
-static int newdelflag;	    /* whether delbuf should be reused yet */
+static int newdelflag;      /* whether delbuf should be reused yet */
 #endif
 
 /* Delete the char in front of the cursor, optionally saving it
@@ -563,6 +563,22 @@ static void cmdedit_init(void)
 
 #ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
 
+static char **matches;
+static int num_matches;
+static char *add_char_to_match;
+
+static void add_match(char *matched, int add_char)
+{
+	int nm = num_matches;
+	int nm1 = nm + 1;
+
+	matches = xrealloc(matches, nm1 * sizeof(char *));
+	add_char_to_match = xrealloc(add_char_to_match, nm1);
+	matches[nm] = matched;
+	add_char_to_match[nm] = (char)add_char;
+	num_matches++;
+}
+
 static int is_execute(const struct stat *st)
 {
 	if ((!my_euid && (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))) ||
@@ -574,19 +590,18 @@ static int is_execute(const struct stat *st)
 
 #ifdef CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
 
-static char **username_tab_completion(char *ud, int *num_matches)
+static void username_tab_completion(char *ud, char *with_shash_flg)
 {
 	struct passwd *entry;
 	int userlen;
-	char *temp;
-
 
 	ud++;                           /* ~user/... to user/... */
 	userlen = strlen(ud);
 
-	if (num_matches == 0) {         /* "~/..." or "~user/..." */
+	if (with_shash_flg) {           /* "~/..." or "~user/..." */
 		char *sav_ud = ud - 1;
 		char *home = 0;
+		char *temp;
 
 		if (*ud == '/') {       /* "~/..."     */
 			home = home_pwd_buf;
@@ -609,28 +624,18 @@ static char **username_tab_completion(char *ud, int *num_matches)
 				strcpy(sav_ud, temp2);
 			}
 		}
-		return 0;       /* void, result save to argument :-) */
 	} else {
 		/* "~[^/]*" */
-		char **matches = (char **) NULL;
-		int nm = 0;
-
 		setpwent();
 
 		while ((entry = getpwent()) != NULL) {
 			/* Null usernames should result in all users as possible completions. */
 			if ( /*!userlen || */ !strncmp(ud, entry->pw_name, userlen)) {
-
-				temp = bb_xasprintf("~%s/", entry->pw_name);
-				matches = xrealloc(matches, (nm + 1) * sizeof(char *));
-
-				matches[nm++] = temp;
+				add_match(bb_xasprintf("~%s", entry->pw_name), '/');
 			}
 		}
 
 		endpwent();
-		(*num_matches) = nm;
-		return (matches);
 	}
 }
 #endif  /* CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION */
@@ -693,7 +698,7 @@ static int path_parse(char ***p, int flags)
 	return npth;
 }
 
-static char *add_quote_for_spec_chars(char *found)
+static char *add_quote_for_spec_chars(char *found, int add)
 {
 	int l = 0;
 	char *s = xmalloc((strlen(found) + 1) * 2);
@@ -703,19 +708,17 @@ static char *add_quote_for_spec_chars(char *found)
 			s[l++] = '\\';
 		s[l++] = *found++;
 	}
+	if(add)
+	    s[l++] = (char)add;
 	s[l] = 0;
 	return s;
 }
 
-static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
-					int type)
+static void exe_n_cwd_tab_completion(char *command, int type)
 {
-
-	char **matches = 0;
 	DIR *dir;
 	struct dirent *next;
 	char dirbuf[BUFSIZ];
-	int nm = *num_matches;
 	struct stat st;
 	char *path1[1];
 	char **paths = path1;
@@ -738,7 +741,7 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 		dirbuf[(pfind - command) + 1] = 0;
 #ifdef CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
 		if (dirbuf[0] == '~')   /* ~/... or ~user/... */
-			username_tab_completion(dirbuf, 0);
+			username_tab_completion(dirbuf, dirbuf);
 #endif
 		/* "strip" dirname in command */
 		pfind++;
@@ -755,6 +758,7 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 
 		while ((next = readdir(dir)) != NULL) {
 			char *str_found = next->d_name;
+			int add_chr = 0;
 
 			/* matched ? */
 			if (strncmp(str_found, pfind, strlen(pfind)))
@@ -775,23 +779,22 @@ static char **exe_n_cwd_tab_completion(char *command, int *num_matches,
 				strcpy(found, next->d_name);    /* only name */
 			if (S_ISDIR(st.st_mode)) {
 				/* name is directory      */
-				str_found = found;
-				found = concat_path_file(found, "");
-				free(str_found);
-				str_found = add_quote_for_spec_chars(found);
+				char *e = found + strlen(found) - 1;
+
+				add_chr = '/';
+				if(*e == '/')
+					*e = '\0';
 			} else {
 				/* not put found file if search only dirs for cd */
 				if (type == FIND_DIR_ONLY)
 					goto cont;
-				str_found = add_quote_for_spec_chars(found);
 				if (type == FIND_FILE_ONLY ||
 					(type == FIND_EXE_ONLY && is_execute(&st)))
-					strcat(str_found, " ");
+					add_chr = ' ';
 			}
 			/* Add it to the list */
-			matches = xrealloc(matches, (nm + 1) * sizeof(char *));
-
-			matches[nm++] = str_found;
+			add_match(found, add_chr);
+			continue;
 cont:
 			free(found);
 		}
@@ -801,15 +804,7 @@ cont:
 		free(paths[0]);                 /* allocated memory only in first member */
 		free(paths);
 	}
-	*num_matches = nm;
-	return (matches);
 }
-
-static int match_compare(const void *a, const void *b)
-{
-	return strcmp(*(char **) a, *(char **) b);
-}
-
 
 
 #define QUOT    (UCHAR_MAX+1)
@@ -907,7 +902,7 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 		}
 
 	/* collapse (command...(command...)...) or {command...{command...}...} */
-	c = 0;					  /* "recursive" level */
+	c = 0;                                          /* "recursive" level */
 	c2 = 0;
 	for (i = 0; int_buf[i]; i++)
 		if (int_buf[i] == '(' || int_buf[i] == '{') {
@@ -984,16 +979,20 @@ static int find_match(char *matchBuf, int *len_with_quotes)
    display by column original ideas from ls applet,
    very optimize by my :)
 */
-static void showfiles(char **matches, int nfiles)
+static void showfiles(void)
 {
 	int ncols, row;
 	int column_width = 0;
+	int nfiles = num_matches;
 	int nrows = nfiles;
+	char str_add_chr[2];
+	int l;
 
 	/* find the longest file name-  use that as the column width */
 	for (row = 0; row < nrows; row++) {
-		int l = strlen(matches[row]);
-
+		l = strlen(matches[row]);
+		if(add_char_to_match[row])
+		    l++;
 		if (column_width < l)
 			column_width = l;
 	}
@@ -1004,17 +1003,27 @@ static void showfiles(char **matches, int nfiles)
 		nrows /= ncols;
 		if(nfiles % ncols)
 			nrows++;        /* round up fractionals */
-		column_width = -column_width;   /* for printf("%-Ns", ...); */
 	} else {
 		ncols = 1;
 	}
+	str_add_chr[1] = 0;
 	for (row = 0; row < nrows; row++) {
 		int n = row;
 		int nc;
+		int acol;
 
-		for(nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++)
-			printf("%*s", column_width, matches[n]);
-		printf("%s\n", matches[n]);
+		for(nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
+			str_add_chr[0] = add_char_to_match[n];
+			acol = str_add_chr[0] ? column_width - 1 : column_width;
+			printf("%s%s", matches[n], str_add_chr);
+			l = strlen(matches[n]);
+			while(l < acol) {
+			    putchar(' ');
+			    l++;
+			}
+		}
+		str_add_chr[0] = add_char_to_match[n];
+		printf("%s%s\n", matches[n], str_add_chr);
 	}
 }
 
@@ -1022,21 +1031,20 @@ static void showfiles(char **matches, int nfiles)
 static void input_tab(int *lastWasTab)
 {
 	/* Do TAB completion */
-	static int num_matches;
-	static char **matches;
-
 	if (lastWasTab == 0) {          /* free all memory */
 		if (matches) {
 			while (num_matches > 0)
 				free(matches[--num_matches]);
 			free(matches);
 			matches = (char **) NULL;
+			free(add_char_to_match);
+			add_char_to_match = NULL;
 		}
 		return;
 	}
 	if (! *lastWasTab) {
 
-		char *tmp;
+		char *tmp, *tmp1;
 		int len_found;
 		char matchBuf[BUFSIZ];
 		int find_type;
@@ -1059,64 +1067,68 @@ static void input_tab(int *lastWasTab)
 		 * then try completing this word as a username. */
 
 		if (matchBuf[0] == '~' && strchr(matchBuf, '/') == 0)
-			matches = username_tab_completion(matchBuf, &num_matches);
+			username_tab_completion(matchBuf, NULL);
+		if (!matches)
 #endif
 		/* Try to match any executable in our path and everything
 		 * in the current working directory that matches.  */
-		if (!matches)
-			matches =
-				exe_n_cwd_tab_completion(matchBuf,
-					&num_matches, find_type);
-		/* Remove duplicate found */
+			exe_n_cwd_tab_completion(matchBuf, find_type);
+		/* Remove duplicate found and sort */
 		if(matches) {
-			int i, j;
+			int i, j, n, srt;
 			/* bubble */
-			for(i=0; i<(num_matches-1); i++)
-				for(j=i+1; j<num_matches; j++)
-					if(matches[i]!=0 && matches[j]!=0 &&
-						strcmp(matches[i], matches[j])==0) {
-							free(matches[j]);
-							matches[j]=0;
-					}
-			j=num_matches;
-			num_matches = 0;
-			for(i=0; i<j; i++)
-				if(matches[i]) {
-					if(!strcmp(matches[i], "./"))
-						matches[i][1]=0;
-					else if(!strcmp(matches[i], "../"))
-						matches[i][2]=0;
-					matches[num_matches++]=matches[i];
+			n = num_matches;
+			for(i=0; i<(n-1); i++)
+			    for(j=i+1; j<n; j++)
+				if(matches[i]!=NULL && matches[j]!=NULL) {
+				    srt = strcmp(matches[i], matches[j]);
+				    if(srt == 0) {
+					free(matches[j]);
+					matches[j]=0;
+				    } else if(srt > 0) {
+					tmp1 = matches[i];
+					matches[i] = matches[j];
+					matches[j] = tmp1;
+					srt = add_char_to_match[i];
+					add_char_to_match[i] = add_char_to_match[j];
+					add_char_to_match[j] = srt;
+				    }
 				}
+			j = n;
+			n = 0;
+			for(i=0; i<j; i++)
+			    if(matches[i]) {
+				matches[n]=matches[i];
+				add_char_to_match[n]=add_char_to_match[i];
+				n++;
+			    }
+			num_matches = n;
 		}
 		/* Did we find exactly one match? */
 		if (!matches || num_matches > 1) {
-			char *tmp1;
 
 			beep();
 			if (!matches)
 				return;         /* not found */
-			/* sort */
-			qsort(matches, num_matches, sizeof(char *), match_compare);
-
 			/* find minimal match */
-			tmp = bb_xstrdup(matches[0]);
-			for (tmp1 = tmp; *tmp1; tmp1++)
+			tmp1 = bb_xstrdup(matches[0]);
+			for (tmp = tmp1; *tmp; tmp++)
 				for (len_found = 1; len_found < num_matches; len_found++)
-					if (matches[len_found][(tmp1 - tmp)] != *tmp1) {
-						*tmp1 = 0;
+					if (matches[len_found][(tmp - tmp1)] != *tmp) {
+						*tmp = 0;
 						break;
 					}
-			if (*tmp == 0) {        /* have unique */
-				free(tmp);
+			if (*tmp1 == 0) {        /* have unique */
+				free(tmp1);
 				return;
 			}
+			tmp = add_quote_for_spec_chars(tmp1, 0);
+			free(tmp1);
 		} else {                        /* one match */
-			tmp = matches[0];
+			tmp = add_quote_for_spec_chars(matches[0], add_char_to_match[0]);
 			/* for next completion current found */
 			*lastWasTab = FALSE;
 		}
-
 		len_found = strlen(tmp);
 		/* have space to placed match? */
 		if ((len_found - strlen(matchBuf) + len) < BUFSIZ) {
@@ -1138,8 +1150,7 @@ static void input_tab(int *lastWasTab)
 			/* write out the matched command   */
 			redraw(cmdedit_y, len - recalc_pos);
 		}
-		if (tmp != matches[0])
-			free(tmp);
+		free(tmp);
 	} else {
 		/* Ok -- the last char was a TAB.  Since they
 		 * just hit TAB again, print a list of all the
@@ -1149,7 +1160,7 @@ static void input_tab(int *lastWasTab)
 
 			/* Go to the next line */
 			goto_new_line();
-			showfiles(matches, num_matches);
+			showfiles();
 			redraw(0, len - sav_cursor);
 		}
 	}
@@ -1368,8 +1379,8 @@ vi_back_motion(char *command)
  * hopes of letting the jump tables get smaller:
  *  #define vcase(caselabel) caselabel
  * and then
- *	case CNTRL('A'):
- *	case vcase(VICMD('0'):)
+ *      case CNTRL('A'):
+ *      case vcase(VICMD('0'):)
  * but it didn't seem to make any difference in code size,
  * and the macro-ized code was too ugly.
  */
