@@ -728,6 +728,9 @@ static const char *tokname(int tok)
 #define is_name(c)      ((c) == '_' || isalpha((unsigned char)(c)))
 #define is_in_name(c)   ((c) == '_' || isalnum((unsigned char)(c)))
 
+/* C99 say: "char" declaration may be signed or unsigned default */
+#define SC2INT(chr2may_be_negative_int) (int)((signed char)chr2may_be_negative_int)
+
 /*
  * is_special(c) evaluates to 1 for c in "!#$*-0123456789?@"; 0 otherwise
  * (assuming ascii char codes, as the original implementation did)
@@ -841,7 +844,7 @@ static int SIT(int c, int syntax)
 	return S_I_T[indx][syntax];
 }
 
-#else /* USE_SIT_FUNCTION */
+#else   /* USE_SIT_FUNCTION */
 
 #define SIT(c, syntax) S_I_T[(int)syntax_index_table[((int)c)+SYNBASE]][syntax]
 
@@ -5244,7 +5247,7 @@ memtodest(const char *p, size_t len, int syntax, int quotes) {
 	q = makestrspace(len * 2, q);
 
 	while (len--) {
-		int c = *p++;
+		int c = SC2INT(*p++);
 		if (!c)
 			continue;
 		if (quotes && (SIT(c, syntax) == CCTL || SIT(c, syntax) == CBACK))
@@ -5318,7 +5321,7 @@ numvar:
 			goto param;
 		/* fall through */
 	case '*':
-		sep = ifsset() ? ifsval()[0] : ' ';
+		sep = ifsset() ? SC2INT(ifsval()[0]) : ' ';
 		if (quotes && (SIT(sep, syntax) == CCTL || SIT(sep, syntax) == CBACK))
 			sepq = 1;
 param:
@@ -5920,7 +5923,8 @@ static void pushfile(void);
  * Nul characters in the input are silently discarded.
  */
 
-#define pgetc_as_macro()   (--parsenleft >= 0? *parsenextc++ : preadbuffer())
+
+#define pgetc_as_macro()   (--parsenleft >= 0? SC2INT(*parsenextc++) : preadbuffer())
 
 #ifdef CONFIG_ASH_OPTIMIZE_FOR_SIZE
 #define pgetc_macro() pgetc()
@@ -6085,7 +6089,7 @@ preadbuffer(void)
 #endif
 		popstring();
 		if (--parsenleft >= 0)
-			return (*parsenextc++);
+			return SC2INT(*parsenextc++);
 	}
 	if (parsenleft == EOF_NLEFT || parsefile->buf == NULL)
 		return PEOF;
@@ -6137,7 +6141,7 @@ again:
 
 	*q = savec;
 
-	return *parsenextc++;
+	return SC2INT(*parsenextc++);
 }
 
 /*
@@ -10195,13 +10199,11 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 					if (doprompt)
 						setprompt(2);
 				} else {
-					if (
-						dblquote &&
+					if (dblquote &&
 						c != '\\' && c != '`' &&
 						c != '$' && (
 							c != '"' ||
-							eofmark != NULL
-						)
+							eofmark != NULL)
 					) {
 						USTPUTC(CTLESC, out);
 						USTPUTC('\\', out);
