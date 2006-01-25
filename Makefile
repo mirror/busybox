@@ -184,7 +184,7 @@ randconfig: scripts/config/conf
 
 allyesconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -r -e "s/^(CONFIG_DEBUG|USING_CROSS_COMPILER|CONFIG_STATIC|CONFIG_SELINUX|CONFIG_FEATURE_DEVFS|BUILD_AT_ONCE).*/# \1 is not set/" .config
+	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG|STATIC|SELINUX|FEATURE_DEVFS|BUILD_AT_ONCE)).*/# \1 is not set/" .config
 	echo "CONFIG_FEATURE_SHARED_BUSYBOX=y" >> .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
@@ -215,27 +215,23 @@ endif # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 -include $(top_builddir)/.depend
 
 
-ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
-
-LD_LIBBUSYBOX:=libbusybox.so
-LIBBUSYBOX_SONAME:=$(LD_LIBBUSYBOX).$(MAJOR_VERSION).$(MINOR_VERSION).$(SUBLEVEL_VERSION)
-DO_INSTALL_LIBS:=$(LD_LIBBUSYBOX) \
-	$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
-	$(LD_LIBBUSYBOX).$(MAJOR_VERSION).$(MINOR_VERSION)
-
-ifeq ($(CONFIG_BUILD_AT_ONCE),y)
+ifeq ($(strip $(CONFIG_BUILD_AT_ONCE)),y)
+libraries-y:=
 # Which parts of the internal libs are requested?
 # Per default we only want what was actually selected.
-ifeq ($(CONFIG_FEATURE_FULL_LIBBUSYBOX),y)
+# -a denotes all while -y denotes the selected ones.
+ifeq ($(strip $(CONFIG_FEATURE_FULL_LIBBUSYBOX)),y)
 LIBRARY_DEFINE:=$(LIBRARY_DEFINE-a)
 LIBRARY_SRC   :=$(LIBRARY_SRC-a)
-$(LIBBUSYBOX_SONAME): $(LIBRARY_SRC)
-else
+else # CONFIG_FEATURE_FULL_LIBBUSYBOX
 LIBRARY_DEFINE:=$(LIBRARY_DEFINE-y)
 LIBRARY_SRC   :=$(LIBRARY_SRC-y)
-$(LIBBUSYBOX_SONAME): $(LIBRARY_SRC)
-endif
+endif # CONFIG_FEATURE_FULL_LIBBUSYBOX
+APPLET_SRC:=$(APPLET_SRC-y)
+APPLETS_DEFINE:=$(APPLETS_DEFINE-y)
 else  # CONFIG_BUILD_AT_ONCE
+# no --combine, build archives out of the individual .o
+# This was the old way the binary was built.
 libbusybox-obj:=archival/libunarchive/libunarchive.a \
 	networking/libiproute/libiproute.a \
 	libpwdgrp/libpwdgrp.a \
@@ -243,13 +239,37 @@ libbusybox-obj:=archival/libunarchive/libunarchive.a \
 	libbb/libbb.a
 libbusybox-obj:=$(patsubst %,$(top_builddir)/%,$(libbusybox-obj))
 
-$(LIBBUSYBOX_SONAME): $(libbusybox-obj)
-
-LIBRARY_DEFINE:=
-LIBRARY_SRC   :=
+ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
+# linking against libbusybox, so don't build the .a already contained in the .so
+libraries-y:=$(filter-out $(libbusybox-obj),$(libraries-y))
+endif # CONFIG_FEATURE_SHARED_BUSYBOX
 endif # CONFIG_BUILD_AT_ONCE
 
 
+ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
+LD_LIBBUSYBOX:=libbusybox.so
+LIBBUSYBOX_SONAME:=$(LD_LIBBUSYBOX).$(MAJOR_VERSION).$(MINOR_VERSION).$(SUBLEVEL_VERSION)
+DO_INSTALL_LIBS:=$(LD_LIBBUSYBOX) \
+	$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
+	$(LD_LIBBUSYBOX).$(MAJOR_VERSION).$(MINOR_VERSION)
+
+ifeq ($(strip $(CONFIG_BUILD_AT_ONCE)),y)
+ifneq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
+# --combine but not linking against libbusybox, so compile all
+BUSYBOX_SRC   := $(LIBRARY_SRC)
+BUSYBOX_DEFINE:= $(LIBRARY_DEFINE)
+endif # !CONFIG_FEATURE_SHARED_BUSYBOX
+$(LIBBUSYBOX_SONAME): $(LIBRARY_SRC)
+else # CONFIG_BUILD_AT_ONCE
+$(LIBBUSYBOX_SONAME): $(libbusybox-obj)
+endif # CONFIG_BUILD_AT_ONCE
+endif # CONFIG_BUILD_LIBBUSYBOX
+
+ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
+LDBUSYBOX:=-L$(top_builddir) -lbusybox
+endif
+
+ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 $(LIBBUSYBOX_SONAME):
 ifndef MAJOR_VERSION
 	$(error MAJOR_VERSION needed for $@ is not defined)
@@ -269,32 +289,12 @@ endif
 
 endif # ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 
-
-ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
-libraries-y:=$(filter-out $(libbusybox-obj),$(libraries-y))
-LDBUSYBOX:=-L$(top_builddir) -lbusybox
-BUSYBOX_SRC   :=
-BUSYBOX_DEFINE:=
-else
-#LDBUSYBOX:=
-BUSYBOX_SRC   := $(LIBRARY_SRC)
-BUSYBOX_DEFINE:= $(LIBRARY_DEFINE)
-endif # ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
-
-
-ifeq ($(strip $(CONFIG_BUILD_AT_ONCE)),y)
-libraries-y:=
-else
-BUSYBOX_SRC:=
-BUSYBOX_DEFINE:=
-APPLET_SRC-y:=
-APPLETS_DEFINE-y:=
-endif
-
 busybox: .depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(libraries-y)
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(PROG_CFLAGS) $(LDFLAGS)  \
 	-o $@ -Wl,--start-group  \
-	$(APPLETS_DEFINE-y) $(APPLET_SRC-y) $(BUSYBOX_DEFINE) $(BUSYBOX_SRC) $(libraries-y) $(LDBUSYBOX) $(LIBRARIES) \
+	$(APPLETS_DEFINE) $(APPLET_SRC) \
+	$(BUSYBOX_DEFINE) $(BUSYBOX_SRC) $(libraries-y) \
+	$(LDBUSYBOX) $(LIBRARIES) \
 	-Wl,--end-group
 	$(STRIPCMD) $@
 
