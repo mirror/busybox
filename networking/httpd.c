@@ -2,7 +2,7 @@
  * httpd implementation for busybox
  *
  * Copyright (C) 2002,2003 Glenn Engel <glenne@engel.org>
- * Copyright (C) 2003,2004 Vladimir Oleynik <dzo@simtreas.ru>
+ * Copyright (C) 2003-2006 Vladimir Oleynik <dzo@simtreas.ru>
  *
  * simplify patch stolen from libbb without using strdup
  *
