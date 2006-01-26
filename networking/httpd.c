@@ -1008,7 +1008,7 @@ static int sendHeaders(HttpResponseNum responseNum)
   /* emit the current date */
   strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&timer));
   len = sprintf(buf,
-	"HTTP/1.0 %d %s\nContent-type: %s\r\n"
+	"HTTP/1.0 %d %s\r\nContent-type: %s\r\n"
 	"Date: %s\r\nConnection: close\r\n",
 	  responseNum, responseString, mime_type, timeStr);
 
@@ -1325,11 +1325,11 @@ static int sendCgi(const char *url,
 	  if (firstLine) {
 	    rbuf[count] = 0;
 	    /* check to see if the user script added headers */
-	    if(strncmp(rbuf, "HTTP/1.0 200 OK\n", 4) != 0) {
-	      bb_full_write(s, "HTTP/1.0 200 OK\n", 16);
+	    if(strncmp(rbuf, "HTTP/1.0 200 OK\r\n", 4) != 0) {
+	      bb_full_write(s, "HTTP/1.0 200 OK\r\n", 17);
 	    }
 	    if (strstr(rbuf, "ontent-") == 0) {
-	      bb_full_write(s, "Content-type: text/plain\n\n", 26);
+	      bb_full_write(s, "Content-type: text/plain\r\n\r\n", 28);
 	    }
 	    firstLine = 0;
 	  }
