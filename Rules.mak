@@ -115,6 +115,20 @@ check_gcc=$(shell \
 		then echo "$(1)"; else echo "$(2)"; fi \
 	fi)
 
+# A not very robust macro to check for available ld flags
+check_ld=$(shell \
+	echo "checking='$(1)'" >> foo.txt ; \
+	if [ "x$(1)" != "x" ]; then \
+		$(LD) --help | grep -q \\$(1) && echo "-Wl,$(1)$(2)" ; \
+	fi)
+
+# A not very robust macro to check for available as flags
+check_as=$(shell \
+	if [ "x$(1)" != "x" ]; then \
+		$(AS) --help | grep -q "\\$(1)" && echo "-Wa,$(1)$(2)" ; \
+	fi)
+
+
 # Setup some shortcuts so that silent mode is silent like it should be
 ifeq ($(subst s,,$(MAKEFLAGS)),$(MAKEFLAGS))
 export MAKE_IS_SILENT=n
@@ -145,10 +159,15 @@ OPTIMIZATION+=$(call check_gcc,-funit-at-a-time,)
 PROG_CFLAGS+=$(call check_gcc,-fwhole-program,)
 endif # CONFIG_BUILD_AT_ONCE
 
+LIB_LDFLAGS:=$(call check_ld,--enable-new-dtags,)
+#LIB_LDFLAGS+=$(call check_ld,--reduce-memory-overheads,)
+#LIB_LDFLAGS+=$(call check_ld,--as-needed,)
+#LIB_LDFLAGS+=$(call check_ld,--warn-shared-textrel,)
+
+
 # Some nice architecture specific optimizations
 ifeq ($(strip $(TARGET_ARCH)),arm)
 	OPTIMIZATION+=-fstrict-aliasing
-	OPTIMIZATION+=$(call check_gcc,-msingle-pic-base,)
 endif
 ifeq ($(strip $(TARGET_ARCH)),i386)
 	OPTIMIZATION+=$(call check_gcc,-march=i386,)
@@ -169,7 +188,7 @@ ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
 	OPTIMIZATION+=$(call check_gcc,-fno-branch-count-reg,)
 endif # gcc-4.1 and beyond
 endif
-OPTIMIZATIONS:=$(OPTIMIZATION) -fomit-frame-pointer
+OPTIMIZATIONS:=$(OPTIMIZATION) $(call check_gcc,-fomit-frame-pointer,)
 
 #
 #--------------------------------------------------------
@@ -195,21 +214,22 @@ else
 endif
 ifeq ($(strip $(CONFIG_DEBUG)),y)
     CFLAGS  +=$(WARNINGS) -g -D_GNU_SOURCE
-    LDFLAGS +=-Wl,-warn-common
+    LDFLAGS += $(call check_ld,-warn-common,)
     STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
 else
     CFLAGS+=$(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
-    LDFLAGS += -Wl,-warn-common -Wl,--sort-common 
+    LDFLAGS += $(call check_ld,-warn-common,)
+    LDFLAGS += $(call check_ld,--sort-common,)
     STRIPCMD:=$(STRIP) -s --remove-section=.note --remove-section=.comment
 endif
 ifeq ($(strip $(CONFIG_STATIC)),y)
-    LDFLAGS += --static
+    LDFLAGS += $(call check_ld,--static,)
 #else
 #    LIBRARIES += -ldl
 endif
 
 ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
-    CFLAGS_PIC:= -fPIC #-DPIC
+    CFLAGS_PIC:= $(call check_gcc,-fPIC,)
 endif
 
 ifeq ($(strip $(CONFIG_SELINUX)),y)

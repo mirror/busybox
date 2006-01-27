@@ -277,8 +277,7 @@ endif
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) -shared \
 	$(CFLAGS_PIC) \
 	-Wl,-soname=$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
-	-Wl,--enable-new-dtags -Wl,--reduce-memory-overheads \
-	-Wl,-z,combreloc -Wl,-shared -Wl,--as-needed -Wl,--warn-shared-textrel \
+	-Wl,-z,combreloc $(LIB_LDFLAGS) \
 	-o $(@) \
 	-Wl,--start-group -Wl,--whole-archive \
 	$(LIBRARY_DEFINE) $(^) \
