@@ -235,6 +235,12 @@ second argument to pw_encrypt(text,buffer).</p>
 
 <h2><a name="tips_vfork">Fork and vfork</a></h2>
 
+<p>Busybox hides the difference between fork() and vfork() in
+libbb/bb_fork_exec.c.  If you ever want to fork and exec, use bb_fork_exec()
+(which returns a pid and takes the same arguments as execve(), although in
+this case envp can be NULL) and don't worry about it.  This description is
+here in case you want to know why that does what it does.</p>
+
 <p>On systems that haven't got a Memory Management Unit, fork() is unreasonably
 expensive to implement, so a less capable function called vfork() is used
 instead.</p>
@@ -276,6 +282,11 @@ local variables it doesn't want the parent to see changed when it resumes.)
 processes running at the same time.  It means you can't have two processes
 sharing the same memory without stomping all over each other.  As soon as
 the child calls exec(), the parent resumes.</p>
+
+<p>If the child's attempt to call exec() fails, the child should call _exit()
+rather than a normal exit().  This avoids any atexit() code that might confuse
+the parent.  (The parent should never call _exit(), only a vforked child that
+failed to exec.)</p>
 
 <p>(Now in theory, a nommu system could just copy the _stack_ when it forks
 (which presumably is much shorter than the heap), and leave the heap shared.
