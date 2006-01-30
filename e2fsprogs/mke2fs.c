@@ -878,8 +878,12 @@ BLOCKSIZE_ERROR:
 			mke2fs_warning_msg(1, "fragments not supported. Ignoring -f option");
 			break;
 		case 'g':
-			if (safe_strtoi(optarg, &param.s_blocks_per_group)) {
+			{
+			    int foo;
+			    if (safe_strtoi(optarg, &foo)) {
 				bb_error_msg_and_die("Illegal number for blocks per group");
+			    }
+			    param.s_blocks_per_group = foo;
 			}
 			if ((param.s_blocks_per_group % 8) != 0) {
 				bb_error_msg_and_die("blocks per group must be multiple of 8");

@@ -178,7 +178,7 @@ __u32 ext2fs_swab32(__u32 val)
 
 int ext2fs_find_first_bit_set(void * addr, unsigned size)
 {
-	char	*cp = (unsigned char *) addr;
+	unsigned char	*cp = (unsigned char *) addr;
 	int	res = 0, d0;
 
 	if (!size)

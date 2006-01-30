@@ -860,8 +860,10 @@ arch_apply_relocation(struct obj_file *f,
 #if defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES)
 	struct arch_symbol *isym = (struct arch_symbol *) sym;
 #endif
+#if defined(__arm__) || defined(__i386__) || defined(__mc68000__) || defined(__sh__) || defined(__s390__)
 #if defined(CONFIG_USE_GOT_ENTRIES)
 	ElfW(Addr) got = ifile->got ? ifile->got->header.sh_addr : 0;
+#endif
 #endif
 #if defined(CONFIG_USE_PLT_ENTRIES)
 	ElfW(Addr) plt = ifile->plt ? ifile->plt->header.sh_addr : 0;
@@ -892,7 +894,7 @@ arch_apply_relocation(struct obj_file *f,
 			 * (which is .got) similar to branch,
 			 * but is full 32 bits relative */
 
-			assert(got);
+			assert(got != 0);
 			*loc += got - dot;
 			break;
 
@@ -901,7 +903,7 @@ arch_apply_relocation(struct obj_file *f,
 			goto bb_use_plt;
 
 		case R_ARM_GOTOFF: /* address relative to the got */
-			assert(got);
+			assert(got != 0);
 			*loc += v - got;
 			break;
 

@@ -340,7 +340,7 @@ static int probe_swap1(int fd,
 	/* arbitrary sanity check.. is there any garbage down there? */
 	if (sws->sws_pad[32] == 0 && sws->sws_pad[33] == 0)  {
 		if (sws->sws_volume[0])
-			blkid_set_tag(dev, "LABEL", sws->sws_volume,
+			blkid_set_tag(dev, "LABEL", (const char*)sws->sws_volume,
 				      sizeof(sws->sws_volume));
 		if (sws->sws_uuid[0])
 			set_uuid(dev, sws->sws_uuid);
@@ -415,8 +415,8 @@ static int probe_ocfs(int fd __BLKID_ATTR((unused)),
 	else if (major >= 9)
 		blkid_set_tag(dev,"SEC_TYPE","ntocfs",sizeof("ntocfs"));
 
-	blkid_set_tag(dev, "LABEL", ovl.label, ocfslabellen(ovl));
-	blkid_set_tag(dev, "MOUNT", ovh.mount, ocfsmountlen(ovh));
+	blkid_set_tag(dev, "LABEL", (const char*)ovl.label, ocfslabellen(ovl));
+	blkid_set_tag(dev, "MOUNT", (const char*)ovh.mount, ocfsmountlen(ovh));
 	set_uuid(dev, ovl.vol_id);
 	return 0;
 }
@@ -431,7 +431,7 @@ static int probe_ocfs2(int fd __BLKID_ATTR((unused)),
 
 	osb = (struct ocfs2_super_block *)buf;
 
-	blkid_set_tag(dev, "LABEL", osb->s_label, sizeof(osb->s_label));
+	blkid_set_tag(dev, "LABEL", (const char*)osb->s_label, sizeof(osb->s_label));
 	set_uuid(dev, osb->s_uuid);
 	return 0;
 }

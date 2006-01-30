@@ -70,7 +70,7 @@ static int version = -1;
  */
 
 static int pagesize;
-static int *signature_page;
+static unsigned int *signature_page;
 
 static struct swap_header_v1 {
 	char bootbits[1024];		/* Space for disklabel etc. */
@@ -89,7 +89,7 @@ static inline void init_signature_page(void)
 	if (pagesize != PAGE_SIZE)
 		bb_error_msg("Assuming pages of size %d", pagesize);
 #endif
-	signature_page = (int *) xmalloc(pagesize);
+	signature_page = (unsigned int *) xmalloc(pagesize);
 	memset(signature_page, 0, pagesize);
 	p = (struct swap_header_v1 *) signature_page;
 }
