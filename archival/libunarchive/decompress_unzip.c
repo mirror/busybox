@@ -92,7 +92,7 @@ static unsigned int gunzip_outbuf_count;	/* bytes in output buffer */
 
 /* gunzip_window size--must be a power of two, and
  *  at least 32K for zip's deflate method */
-static const int gunzip_wsize = 0x8000;
+static const unsigned int gunzip_wsize = 0x8000;
 static unsigned char *gunzip_window;
 
 static unsigned int *gunzip_crc_table;
@@ -234,7 +234,7 @@ static int huft_free(huft_t * t)
  */
 int huft_build(unsigned int *b, const unsigned int n,
 			   const unsigned int s, const unsigned short *d,
-			   const unsigned char *e, huft_t ** t, int *m)
+			   const unsigned char *e, huft_t ** t, unsigned int *m)
 {
 	unsigned a;				/* counter for codes of length k */
 	unsigned c[BMAX + 1];	/* bit length count table */
@@ -539,7 +539,7 @@ do_copy:		do {
 
 static int inflate_stored(int my_n, int my_b_stored, int my_k_stored, int setup)
 {
-	static int n, b_stored, k_stored, w;
+	static unsigned int n, b_stored, k_stored, w;
 	if (setup) {
 		n = my_n;
 		b_stored = my_b_stored;
@@ -552,7 +552,7 @@ static int inflate_stored(int my_n, int my_b_stored, int my_k_stored, int setup)
 	while (n--) {
 		b_stored = fill_bitbuffer(b_stored, &k_stored, 8);
 		gunzip_window[w++] = (unsigned char) b_stored;
-		if (w == (unsigned int) gunzip_wsize) {
+		if (w == gunzip_wsize) {
 			gunzip_outbuf_count = (w);
 			//flush_gunzip_window();
 			w = 0;
