@@ -25,6 +25,15 @@ static const char head_opts[] =
 #endif
 	;
 
+#if ENABLE_FEATURE_FANCY_HEAD
+static const struct suffix_mult head_suffixes[] = {
+	{ "b", 512 },
+	{ "k", 1024 },
+	{ "m", 1024*1024 },
+	{ NULL, 0 }
+};
+#endif
+                                        
 static const char header_fmt_str[] = "\n==> %s <==\n";
 
 int head_main(int argc, char **argv)
@@ -75,7 +84,14 @@ int head_main(int argc, char **argv)
 #if !ENABLE_DEBUG_YANK_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
 			GET_COUNT:
 #endif
+
+#if !ENABLE_FEATURE_FANCY_HEAD
 				count = bb_xgetularg10(p);
+#else
+				count = bb_xgetularg_bnd_sfx(p, 10, 
+								0, ULONG_MAX, 
+								head_suffixes);
+#endif
 				break;
 			default:
 				bb_show_usage();
