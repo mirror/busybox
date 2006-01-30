@@ -35,7 +35,7 @@ endchoice
 
 config CONFIG_ASH
 	bool "ash"
-	default y
+	default n
 	select CONFIG_TEST
 	help
 	  Tha 'ash' shell adds about 60k in the default configuration and is
