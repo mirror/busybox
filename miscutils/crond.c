@@ -235,7 +235,7 @@ int crond_main(int ac, char **av)
 		time_t t1 = time(NULL);
 		time_t t2;
 		long dt;
-		short rescan = 60;
+		int rescan = 60;
 		short sleep_time = 60;
 
 		for (;;) {
@@ -532,17 +532,17 @@ static char *ParseField(char *user, char *ary, int modvalue, int off,
 
 static void FixDayDow(CronLine * line)
 {
-	short i;
-	short weekUsed = 0;
-	short daysUsed = 0;
+	int i;
+	int weekUsed = 0;
+	int daysUsed = 0;
 
-	for (i = 0; i < arysize(line->cl_Dow); ++i) {
+	for (i = 0; i < (int)(arysize(line->cl_Dow)); ++i) {
 		if (line->cl_Dow[i] == 0) {
 			weekUsed = 1;
 			break;
 		}
 	}
-	for (i = 0; i < arysize(line->cl_Days); ++i) {
+	for (i = 0; i < (int)(arysize(line->cl_Days)); ++i) {
 		if (line->cl_Days[i] == 0) {
 			daysUsed = 1;
 			break;
@@ -769,7 +769,7 @@ static void DeleteFile(const char *userName)
 
 static int TestJobs(time_t t1, time_t t2)
 {
-	short nJobs = 0;
+	int nJobs = 0;
 	time_t t;
 
 	/* Find jobs > t1 and <= t2 */
