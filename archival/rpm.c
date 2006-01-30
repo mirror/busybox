@@ -247,18 +247,15 @@ rpm_index **rpm_gettags(int fd, int *num_tags)
 
 int bsearch_rpmtag(const void *key, const void *item)
 {
+	int *tag = (int *)key;
 	rpm_index **tmp = (rpm_index **) item;
-	/* gcc throws warnings here when sizeof(void*)!=sizeof(int) ...
-	 * it's ok to ignore it because this isn't a 'real' pointer */
-	return ((int) key - tmp[0]->tag);
+	return (*tag - tmp[0]->tag);
 }
 
 int rpm_getcount(int tag)
 {
 	rpm_index **found;
-	/* gcc throws warnings here when sizeof(void*)!=sizeof(int) ...
-	 * it's ok to ignore it because tag won't be used as a pointer */
-	found = bsearch((void *) tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
+	found = bsearch(&tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
 	if (!found) return 0;
 	else return found[0]->count;
 }
@@ -266,9 +263,7 @@ int rpm_getcount(int tag)
 char *rpm_getstring(int tag, int itemindex)
 {
 	rpm_index **found;
-	/* gcc throws warnings here when sizeof(void*)!=sizeof(int) ...
-	 * it's ok to ignore it because tag won't be used as a pointer */
-	found = bsearch((void *) tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
+	found = bsearch(&tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
 	if (!found || itemindex >= found[0]->count) return NULL;
 	if (found[0]->type == RPM_STRING_TYPE || found[0]->type == RPM_I18NSTRING_TYPE || found[0]->type == RPM_STRING_ARRAY_TYPE) {
 		int n;
@@ -284,7 +279,7 @@ int rpm_getint(int tag, int itemindex)
 	int n, *tmpint;
 	/* gcc throws warnings here when sizeof(void*)!=sizeof(int) ...
 	 * it's ok to ignore it because tag won't be used as a pointer */
-	found = bsearch((void *) tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
+	found = bsearch(&tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
 	if (!found || itemindex >= found[0]->count) return -1;
 	tmpint = (int *) (map + found[0]->offset);
 	if (found[0]->type == RPM_INT32_TYPE) {
