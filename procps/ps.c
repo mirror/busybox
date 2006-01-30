@@ -111,14 +111,14 @@ extern int ps_main(int argc, char **argv)
 		if(namecmd && namecmd[0]) {
 			if(i < 0)
 				i = 0;
-			if(strlen(namecmd) > i)
+			if(strlen(namecmd) > (size_t)i)
 				namecmd[i] = 0;
 			printf("%s\n", namecmd);
 		} else {
 			namecmd = p->short_cmd;
 			if(i < 2)
 				i = 2;
-			if(strlen(namecmd) > (i-2))
+			if(strlen(namecmd) > ((size_t)i-2))
 				namecmd[i-2] = 0;
 			printf("[%s]\n", namecmd);
 		}
