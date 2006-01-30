@@ -679,7 +679,7 @@ static int list_single(struct dnode *dn)
 			break;
 		case LIST_BLOCKS:
 #if _FILE_OFFSET_BITS == 64
-			column += printf("%4lld ", dn->dstat.st_blocks >> 1);
+			column += printf("%4lld ", (long long)dn->dstat.st_blocks >> 1);
 #else
 			column += printf("%4ld ", dn->dstat.st_blocks >> 1);
 #endif

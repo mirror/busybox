@@ -57,10 +57,12 @@ typedef enum valtype TYPE;
 #if ENABLE_EXPR_MATH_SUPPORT_64
 typedef int64_t arith_t;
 #define PF_REZ      "ll"
+#define PF_REZ_TYPE (long long)
 #define STRTOL(s, e, b) strtoll(s, e, b)
 #else
 typedef long arith_t;
 #define PF_REZ      "l"
+#define PF_REZ_TYPE (long)
 #define STRTOL(s, e, b) strtol(s, e, b)
 #endif
 
@@ -102,7 +104,7 @@ int expr_main (int argc, char **argv)
 		bb_error_msg_and_die ("syntax error");
 
 	if (v->type == integer)
-		printf ("%" PF_REZ "d\n", v->u.i);
+		printf ("%" PF_REZ "d\n", PF_REZ_TYPE v->u.i);
 	else
 		puts (v->u.s);
 
@@ -159,7 +161,7 @@ static int null (VALUE *v)
 static void tostring (VALUE *v)
 {
 	if (v->type == integer) {
-		v->u.s = bb_xasprintf ("%" PF_REZ "d", v->u.i);
+		v->u.s = bb_xasprintf ("%" PF_REZ "d", PF_REZ_TYPE v->u.i);
 		v->type = string;
 	}
 }

@@ -52,7 +52,7 @@ static int copy_lines(FILE *src_stream, FILE *dest_stream, const unsigned int li
  * returns malloc'ed filename
  */
 
-static unsigned char *extract_filename(char *line, unsigned short patch_level)
+static char *extract_filename(char *line, unsigned short patch_level)
 {
 	char *filename_start_ptr = line + 4;
 	int i;

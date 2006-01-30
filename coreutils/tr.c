@@ -40,7 +40,7 @@ static short in_index, out_index;
 /* these last are pointers to static buffers declared in tr_main */
 static unsigned char *poutput;
 static unsigned char *pvector;
-static char *pinvec, *poutvec;
+static unsigned char *pinvec, *poutvec;
 
 #define input bb_common_bufsiz1
 
@@ -141,9 +141,9 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 					for (i = 'A'; i <= 'Z'; i++)
 						*buffer++ = i;
 				else if (strncmp(arg, "space", 5) == 0)
-					strcat(buffer, " \f\n\r\t\v");
+					strcat((char*)buffer, " \f\n\r\t\v");
 				else if (strncmp(arg, "blank", 5) == 0)
-					strcat(buffer, " \t");
+					strcat((char*)buffer, " \t");
 				/* gcc gives a warning if braces aren't used here */
 				else if (strncmp(arg, "punct", 5) == 0) {
 					for (i = 0; i <= ASCII; i++)
@@ -156,7 +156,7 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 							*buffer++ = i;
 				}
 				else {
-					strcat(buffer, "[:");
+					strcat((char*)buffer, "[:");
 					arg++;
 					continue;
 				}
@@ -214,10 +214,10 @@ extern int tr_main(int argc, char **argv)
 	RESERVE_CONFIG_BUFFER(outvec, ASCII+1);
 
 	/* ... but make them available globally */
-	poutput = output;
-	pvector = vector;
-	pinvec  = invec;
-	poutvec = outvec;
+	poutput = (unsigned char*)output;
+	pvector = (unsigned char*)vector;
+	pinvec  = (unsigned char*)invec;
+	poutvec = (unsigned char*)outvec;
 
 	if (argc > 1 && argv[idx][0] == '-') {
 		for (ptr = (unsigned char *) &argv[idx][1]; *ptr; ptr++) {
@@ -243,14 +243,14 @@ extern int tr_main(int argc, char **argv)
 	}
 
 	if (argv[idx] != NULL) {
-		input_length = expand(argv[idx++], input);
+		input_length = expand(argv[idx++], (unsigned char*)input);
 		if (com_fl)
-			input_length = complement(input, input_length);
+			input_length = complement((unsigned char*)input, input_length);
 		if (argv[idx] != NULL) {
 			if (*argv[idx] == '\0')
 				bb_error_msg_and_die("STRING2 cannot be empty");
-			output_length = expand(argv[idx], output);
-			map(input, input_length, output, output_length);
+			output_length = expand(argv[idx], (unsigned char*)output);
+			map((unsigned char*)input, input_length, (unsigned char*)output, output_length);
 		}
 		for (i = 0; i < input_length; i++)
 			invec[(unsigned char)input[i]] = TRUE;

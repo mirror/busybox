@@ -52,7 +52,7 @@ extern int loadfont_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-static void do_loadfont(int fd, char *inbuf, int unit, int fontsize)
+static void do_loadfont(int fd, unsigned char *inbuf, int unit, int fontsize)
 {
 	char buf[16384];
 	int i;
@@ -138,7 +138,7 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 static void loadnewfont(int fd)
 {
 	int unit;
-	char inbuf[32768];			/* primitive */
+	unsigned char inbuf[32768];			/* primitive */
 	unsigned int inputlth, offset;
 
 	/*

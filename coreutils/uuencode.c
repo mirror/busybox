@@ -130,7 +130,7 @@ int uuencode_main(int argc, char **argv)
 			memset(&src_buf[size], 0, src_buf_size - size);
 		}
 		/* Encode the buffer we just read in */
-		uuencode(src_buf, dst_buf, size, tbl);
+		uuencode((unsigned char*)src_buf, dst_buf, size, tbl);
 
 		putchar('\n');
 		if (tbl == tbl_std) {

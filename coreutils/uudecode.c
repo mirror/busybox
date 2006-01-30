@@ -93,7 +93,7 @@ static int read_base64(FILE *src_stream, FILE *dst_stream)
 
 		while (count < 4) {
 			char *table_ptr;
-			char ch;
+			int ch;
 
 			/* Get next _valid_ character */
 			do {

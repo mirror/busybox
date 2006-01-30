@@ -115,7 +115,7 @@ extern int install_main(int argc, char **argv)
 					? 0 : S_ISDIR(statbuf.st_mode);
 	}
 	for (i = optind; i < argc - 1; i++) {
-		unsigned char *dest;
+		char *dest;
 
 		dest = argv[argc - 1];
 		if (isdir) dest = concat_path_file(argv[argc - 1], basename(argv[i]));
