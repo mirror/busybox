@@ -133,20 +133,20 @@ static unsigned long Hertz;
 #define FILE_TO_BUF(filename, fd) do{                           \
     if (fd == -1 && (fd = open(filename, O_RDONLY)) == -1) {    \
 	bb_perror_msg_and_die("/proc not be mounted?");            \
-    }					                   \
+    }                                                      \
     lseek(fd, 0L, SEEK_SET);                                    \
     if ((local_n = read(fd, buf, sizeof buf - 1)) < 0) {        \
 	bb_perror_msg_and_die("%s", filename);                     \
-    }					                   \
-    buf[local_n] = '\0';					\
+    }                                                      \
+    buf[local_n] = '\0';                                        \
 }while(0)
 
 #define FILE_TO_BUF2(filename, fd) do{                          \
     lseek(fd, 0L, SEEK_SET);                                    \
     if ((local_n = read(fd, buf, sizeof buf - 1)) < 0) {        \
 	bb_perror_msg_and_die("%s", filename);                     \
-    }					                   \
-    buf[local_n] = '\0';					\
+    }                                                      \
+    buf[local_n] = '\0';                                        \
 }while(0)
 
 static void init_Hertz_value(void) {
@@ -395,7 +395,7 @@ static void display_status(int count, int col)
 			s->pid, s->user, s->state, rss_str_buf, s->ppid,
 			pmem/10, pmem%10);
 #endif
-			if(strlen(namecmd) > col)
+			if((int)strlen(namecmd) > col)
 				namecmd[col] = 0;
 			printf("%s\n", namecmd);
 		s++;
@@ -428,7 +428,7 @@ static void reset_term(void)
 #endif /* CONFIG_FEATURE_CLEAN_UP */
 }
 
-static void sig_catcher (int sig)
+static void sig_catcher (int sig ATTRIBUTE_UNUSED)
 {
 	reset_term();
 }
