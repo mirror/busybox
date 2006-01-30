@@ -2135,7 +2135,7 @@ static void cookmode(void)
 
 //----- Come here when we get a window resize signal ---------
 #ifdef CONFIG_FEATURE_VI_USE_SIGNALS
-static void winch_sig(int sig)
+static void winch_sig(int sig ATTRIBUTE_UNUSED)
 {
 	signal(SIGWINCH, winch_sig);
 #ifdef CONFIG_FEATURE_VI_WIN_RESIZE
@@ -2146,7 +2146,7 @@ static void winch_sig(int sig)
 }
 
 //----- Come here when we get a continue signal -------------------
-static void cont_sig(int sig)
+static void cont_sig(int sig ATTRIBUTE_UNUSED)
 {
 	rawmode();			// terminal to "raw"
 	last_status_cksum = 0;	// force status update
@@ -2158,7 +2158,7 @@ static void cont_sig(int sig)
 }
 
 //----- Come here when we get a Suspend signal -------------------
-static void suspend_sig(int sig)
+static void suspend_sig(int sig ATTRIBUTE_UNUSED)
 {
 	place_cursor(rows - 1, 0, FALSE);	// go to bottom of screen
 	clear_to_eol();		// Erase to end of line
@@ -2177,7 +2177,7 @@ static void catch_sig(int sig)
 	signal(SIGTERM, catch_sig);
 	signal(SIGALRM, catch_sig);
 	if(sig)
-	longjmp(restart, sig);
+		longjmp(restart, sig);
 }
 
 //----- Come here when we get a core dump signal -----------------
@@ -2196,9 +2196,8 @@ static void core_sig(int sig)
 #endif
 
 	if(sig) {       // signaled
-	dot = bound_dot(dot);	// make sure "dot" is valid
-
-	longjmp(restart, sig);
+		dot = bound_dot(dot);	// make sure "dot" is valid
+		longjmp(restart, sig);
 	}
 }
 #endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
@@ -2684,7 +2683,7 @@ static void show_status_line(void)
 		write1(status_buffer);
 		clear_to_eol();
 		if (have_status_msg) {
-			if ((strlen(status_buffer) - (have_status_msg - 1)) >
+			if (((int)strlen(status_buffer) - (have_status_msg - 1)) >
 					(columns - 1) ) {
 				have_status_msg = 0;
 				Hit_Return();
