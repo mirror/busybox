@@ -231,11 +231,12 @@ static void day_array(int month, int year, int *days)
 	memset(days, SPACE, MAXDAYS * sizeof(int));
 
 	if ((month == 9) && (year == 1752)) {
+		size_t oday = 0;
+		
 		j_offset = julian * 244;
-		i = 0;
 		do {
-			days[i+2] = sep1752[i] + j_offset;
-		} while (++i < sizeof(sep1752));
+			days[oday+2] = sep1752[oday] + j_offset;
+		} while (++oday < sizeof(sep1752));
 
 		return;
 	}
