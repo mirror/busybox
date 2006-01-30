@@ -71,13 +71,13 @@
 static int xargs_exec(char *const *args)
 {
 	pid_t p;
-	volatile int exec_errno = 0;	/* shared vfork stack */
+	volatile int exec_errno = 0;    /* shared vfork stack */
 
 	if ((p = vfork()) >= 0) {
 		if (p == 0) {
 			/* vfork -- child */
 			execvp(args[0], args);
-			exec_errno = errno;	/* set error to shared stack */
+			exec_errno = errno;     /* set error to shared stack */
 			_exit(1);
 		} else {
 			/* vfork -- parent */
@@ -137,18 +137,18 @@ static xlist_t *process_stdin(xlist_t * list_arg,
 #define BACKSLASH 2
 #define SPACE     4
 
-	char *s = NULL;		/* start word */
-	char *p = NULL;		/* pointer to end word */
-	char q = 0;		/* quote char */
+	char *s = NULL;         /* start word */
+	char *p = NULL;         /* pointer to end word */
+	char q = 0;             /* quote char */
 	char state = NORM;
 	char eof_str_detected = 0;
-	size_t line_l = 0;	/* size loaded args line */
-	int c;			/* current char */
+	size_t line_l = 0;      /* size loaded args line */
+	int c;                  /* current char */
 	xlist_t *cur;
 	xlist_t *prev;
 
 	for (prev = cur = list_arg; cur; cur = cur->link) {
-		line_l += cur->lenght;	/* previous allocated */
+		line_l += cur->lenght;  /* previous allocated */
 		if (prev != cur)
 			prev = prev->link;
 	}
@@ -192,13 +192,13 @@ unexpected_eof:
 					state = QUOTE;
 				} else {
 set:
-					if ((p - buf) >= mc)
+					if ((size_t)(p - buf) >= mc)
 						bb_error_msg_and_die("argument line too long");
 					*p++ = c;
 				}
 			}
 		}
-		if (state == SPACE) {	/* word's delimiter or EOF detected */
+		if (state == SPACE) {   /* word's delimiter or EOF detected */
 			if (q) {
 				bb_error_msg_and_die("unmatched %s quote",
 					q == '\'' ? "single" : "double");
@@ -238,16 +238,16 @@ static xlist_t *process_stdin(xlist_t * list_arg,
 	const char *eof_str, size_t mc, char *buf)
 {
 
-	int c;			/* current char */
+	int c;                  /* current char */
 	int eof_str_detected = 0;
-	char *s = NULL;		/* start word */
-	char *p = NULL;		/* pointer to end word */
-	size_t line_l = 0;	/* size loaded args line */
+	char *s = NULL;         /* start word */
+	char *p = NULL;         /* pointer to end word */
+	size_t line_l = 0;      /* size loaded args line */
 	xlist_t *cur;
 	xlist_t *prev;
 
 	for (prev = cur = list_arg; cur; cur = cur->link) {
-		line_l += cur->lenght;	/* previous allocated */
+		line_l += cur->lenght;  /* previous allocated */
 		if (prev != cur)
 			prev = prev->link;
 	}
@@ -269,7 +269,7 @@ static xlist_t *process_stdin(xlist_t * list_arg,
 		if ((p - buf) >= mc)
 			bb_error_msg_and_die("argument line too long");
 		*p++ = c == EOF ? 0 : c;
-		if (c == EOF) {	/* word's delimiter or EOF detected */
+		if (c == EOF) { /* word's delimiter or EOF detected */
 			/* word loaded */
 			if (eof_str) {
 				eof_str_detected = strcmp(s, eof_str) == 0;
@@ -340,18 +340,18 @@ static int xargs_ask_confirmation(void)
 #endif
 
 #ifdef CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM
-static xlist_t *process0_stdin(xlist_t * list_arg, const char *eof_str,
+static xlist_t *process0_stdin(xlist_t * list_arg, const char *eof_str ATTRIBUTE_UNUSED,
 							   size_t mc, char *buf)
 {
-	int c;			/* current char */
-	char *s = NULL;		/* start word */
-	char *p = NULL;		/* pointer to end word */
-	size_t line_l = 0;	/* size loaded args line */
+	int c;                  /* current char */
+	char *s = NULL;         /* start word */
+	char *p = NULL;         /* pointer to end word */
+	size_t line_l = 0;      /* size loaded args line */
 	xlist_t *cur;
 	xlist_t *prev;
 
 	for (prev = cur = list_arg; cur; cur = cur->link) {
-		line_l += cur->lenght;	/* previous allocated */
+		line_l += cur->lenght;  /* previous allocated */
 		if (prev != cur)
 			prev = prev->link;
 	}
@@ -366,10 +366,10 @@ static xlist_t *process0_stdin(xlist_t * list_arg, const char *eof_str,
 		}
 		if (s == NULL)
 			s = p = buf;
-		if ((p - buf) >= mc)
+		if ((size_t)(p - buf) >= mc)
 			bb_error_msg_and_die("argument line too long");
 		*p++ = c;
-		if (c == 0) {	/* word's delimiter or EOF detected */
+		if (c == 0) {   /* word's delimiter or EOF detected */
 			/* word loaded */
 			size_t lenght = (p - buf);
 
@@ -395,9 +395,9 @@ static xlist_t *process0_stdin(xlist_t * list_arg, const char *eof_str,
 }
 
 # define READ_ARGS(l, e, nmc, mc) (*read_args)(l, e, nmc, mc)
-# define OPT_INC_0 1	/* future use */
+# define OPT_INC_0 1    /* future use */
 #else
-# define OPT_INC_0 0	/* future use */
+# define OPT_INC_0 0    /* future use */
 # define READ_ARGS(l, e, nmc, mc) process_stdin(l, e, nmc, mc)
 #endif /* CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM */
 
@@ -410,7 +410,7 @@ static xlist_t *process0_stdin(xlist_t * list_arg, const char *eof_str,
 #ifdef CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION
 #define OPT_INTERACTIVE (1<<5)
 #else
-#define OPT_INTERACTIVE (0)	/* require for algorithm &| */
+#define OPT_INTERACTIVE (0)     /* require for algorithm &| */
 #endif
 #define OPT_TERMINATE   (1<<(5+OPT_INC_P))
 #define OPT_ZEROTERM    (1<<(5+OPT_INC_P+OPT_INC_X))
@@ -464,7 +464,7 @@ int xargs_main(int argc, char **argv)
 	orig_arg_max = ARG_MAX;
 	if (orig_arg_max == -1)
 		orig_arg_max = LONG_MAX;
-	orig_arg_max -= 2048;	/* POSIX.2 requires subtracting 2048.  */
+	orig_arg_max -= 2048;   /* POSIX.2 requires subtracting 2048.  */
 	if ((opt & OPT_UPTO_SIZE)) {
 		n_max_chars = bb_xgetularg10_bnd(max_chars, 1, orig_arg_max);
 		for (i = 0; i < a; i++) {
