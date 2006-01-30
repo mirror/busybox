@@ -117,7 +117,6 @@ check_gcc=$(shell \
 
 # A not very robust macro to check for available ld flags
 check_ld=$(shell \
-	echo "checking='$(1)'" >> foo.txt ; \
 	if [ "x$(1)" != "x" ]; then \
 		$(LD) --help | grep -q \\$(1) && echo "-Wl,$(1)$(2)" ; \
 	fi)
@@ -138,7 +137,7 @@ export MAKE_IS_SILENT=y
 SECHO=-@false
 endif
 
-#CFLAGS+=$(call check_gcc,-funsigned-char,)
+CFLAGS+=$(call check_gcc,-funsigned-char,)
 
 CFLAGS+=$(call check_gcc,-mmax-stack-frame=256,)
 
