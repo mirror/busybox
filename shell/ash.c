@@ -1402,8 +1402,10 @@ static void unsetfunc(const char *);
 
 #ifdef CONFIG_ASH_MATH_SUPPORT_64
 typedef int64_t arith_t;
+#define arith_t_type (long long)
 #else
 typedef long arith_t;
+#define arith_t_type (long)
 #endif
 
 #ifdef CONFIG_ASH_MATH_SUPPORT
@@ -10132,15 +10134,15 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 	char *out;
 	int len;
 	char line[EOFMARKLEN + 1];
-	struct nodelist *bqlist;
-	int quotef;
-	int dblquote;
-	int varnest;    /* levels of variables expansion */
-	int arinest;    /* levels of arithmetic expansion */
-	int parenlevel; /* levels of parens in arithmetic */
-	int dqvarnest;  /* levels of variables expansion within double quotes */
-	int oldstyle;
-	int prevsyntax; /* syntax before arithmetic */
+	struct nodelist *bqlist = 0;
+	int quotef = 0;
+	int dblquote = 0;
+	int varnest = 0;    /* levels of variables expansion */
+	int arinest = 0;    /* levels of arithmetic expansion */
+	int parenlevel = 0; /* levels of parens in arithmetic */
+	int dqvarnest = 0;  /* levels of variables expansion within double quotes */
+	int oldstyle = 0;
+	int prevsyntax = 0; /* syntax before arithmetic */
 #if __GNUC__
 	/* Avoid longjmp clobbering */
 	(void) &out;
@@ -10563,7 +10565,7 @@ parsebackq: {
 	struct jmploc jmploc;
 	struct jmploc *volatile savehandler;
 	size_t savelen;
-	int saveprompt;
+	int saveprompt = 0;
 #ifdef __GNUC__
 	(void) &saveprompt;
 #endif
@@ -13380,9 +13382,9 @@ arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 		}
 		/* save to shell variable */
 #ifdef CONFIG_ASH_MATH_SUPPORT_64
-		snprintf(buf, sizeof(buf), "%lld", rez);
+		snprintf(buf, sizeof(buf), "%lld", arith_t_type rez);
 #else
-		snprintf(buf, sizeof(buf), "%ld", rez);
+		snprintf(buf, sizeof(buf), "%ld", arith_t_type rez);
 #endif
 		setvar(numptr_m1->var, buf, 0);
 		/* after saving, make previous value for v++ or v-- */

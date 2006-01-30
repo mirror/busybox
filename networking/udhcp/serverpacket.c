@@ -98,9 +98,9 @@ static void add_bootp_options(struct dhcpMessage *packet)
 {
 	packet->siaddr = server_config.siaddr;
 	if (server_config.sname)
-		strncpy(packet->sname, server_config.sname, sizeof(packet->sname) - 1);
+		strncpy((char*)packet->sname, server_config.sname, sizeof(packet->sname) - 1);
 	if (server_config.boot_file)
-		strncpy(packet->file, server_config.boot_file, sizeof(packet->file) - 1);
+		strncpy((char*)packet->file, server_config.boot_file, sizeof(packet->file) - 1);
 }
 
 

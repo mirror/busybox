@@ -1945,7 +1945,7 @@ static void process_dev (char *devname)
 	{
 		no_scsi();
 		printf(" attempting to unregister hwif#%u\n", hwif);
-		bb_ioctl(fd, HDIO_UNREGISTER_HWIF,(int *)hwif,"HDIO_UNREGISTER_HWIF");
+		bb_ioctl(fd, HDIO_UNREGISTER_HWIF,(int *)(unsigned long)hwif,"HDIO_UNREGISTER_HWIF");
 	}
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
@@ -1977,7 +1977,7 @@ static void process_dev (char *devname)
 			else
 				printf("set UDMA mode to %d\n", (piomode-200));
 		}
-		bb_ioctl(fd, HDIO_SET_PIO_MODE, (int *)piomode, "HDIO_SET_PIO_MODE");
+		bb_ioctl(fd, HDIO_SET_PIO_MODE, (int *)(unsigned long)piomode, "HDIO_SET_PIO_MODE");
 	}
 	if (set_io32bit)
 	{
@@ -2435,7 +2435,7 @@ identify_abort:
 			printf(" setting bus state to %d", busstate);
 			bus_state_value(busstate);
 		}
-		bb_ioctl(fd, HDIO_SET_BUSSTATE, (int *)busstate, "HDIO_SET_BUSSTATE");
+		bb_ioctl(fd, HDIO_SET_BUSSTATE, (int *)(unsigned long)busstate, "HDIO_SET_BUSSTATE");
 	}
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF

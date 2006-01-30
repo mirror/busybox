@@ -143,7 +143,7 @@ static int fuser_scan_proc_net(int opts, const char *proto,
 	char addr[128];
 	ino_t tmp_inode;
 	dev_t tmp_dev;
-	uint64_t  uint64_inode;
+	long long  uint64_inode;
 	int tmp_port;
 	FILE *f;
 
@@ -194,7 +194,7 @@ static int fuser_scan_pid_maps(int opts, const char *fname, pid_t pid,
 	char line[FUSER_MAX_LINE + 1];
 	int major, minor;
 	ino_t inode;
-	uint64_t uint64_inode;
+	long long uint64_inode;
 	dev_t dev;
 
 	if (!(file = fopen(fname, "r"))) return 0;

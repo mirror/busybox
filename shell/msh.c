@@ -1622,7 +1622,7 @@ static void initarea()
 	brkaddr = malloc(AREASIZE);
 	brktop = brkaddr + AREASIZE;
 
-	while ((int) sbrk(0) & ALIGN)
+	while ((long) sbrk(0) & ALIGN)
 		sbrk(1);
 	areabot = (struct region *) sbrk(REGSIZE);
 

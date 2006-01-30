@@ -476,7 +476,8 @@ int devfsd_main (int argc, char **argv)
 	if (fcntl (fd, F_SETFD, FD_CLOEXEC) != 0)
 		devfsd_perror_msg_and_die("FD_CLOEXEC");
 
-	do_ioctl_and_die(fd, DEVFSDIOC_GET_PROTO_REV,(int )&proto_rev);
+	if (ioctl (fd, DEVFSDIOC_GET_PROTO_REV, &proto_rev) == -1)
+		msg_logger_and_die(LOG_ERR, "ioctl");
 
 	/*setup initial entries */
     for (curr = initial_symlinks; curr->dest != NULL; ++curr)

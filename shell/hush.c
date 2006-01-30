@@ -2614,10 +2614,10 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 	return 0;
 }
 
-static void mapset(const unsigned char *set, int code)
+static void mapset(const char *set, int code)
 {
-	const unsigned char *s;
-	for (s=set; *s; s++) map[*s] = code;
+	const char *s;
+	for (s=set; *s; s++) map[(int)*s] = code;
 }
 
 static void update_ifs_map(void)

@@ -1440,7 +1440,7 @@ static int busy_loop(FILE * input)
 	char *next_command = NULL;
 	struct job newjob;
 	int i;
-	int inbg;
+	int inbg = 0;
 	int status;
 #ifdef CONFIG_LASH_JOB_CONTROL
 	pid_t  parent_pgrp;

@@ -347,7 +347,7 @@ extern int vi_main(int argc, char **argv)
 	(void) srand((long) my_pid);
 #endif							/* CONFIG_FEATURE_VI_CRASHME */
 
-	status_buffer = STATUS_BUFFER;
+	status_buffer = (Byte *)STATUS_BUFFER;
 	last_status_cksum = 0;
 
 #ifdef CONFIG_FEATURE_VI_READONLY
@@ -729,7 +729,7 @@ static void colon(Byte * buf)
 	while (isblnk(*buf))
 		buf++;
 	strcpy((char *) args, (char *) buf);
-	buf1 = last_char_is((char *)cmd, '!');
+	buf1 = (Byte*)last_char_is((char *)cmd, '!');
 	if (buf1) {
 		useforce = TRUE;
 		*buf1 = '\0';   // get rid of !
@@ -763,7 +763,7 @@ static void colon(Byte * buf)
 		place_cursor(rows - 1, 0, FALSE);	// go to Status line
 		clear_to_eol();			// clear the line
 		cookmode();
-		system(orig_buf+1);		// run the cmd
+		system((char*)(orig_buf+1));		// run the cmd
 		rawmode();
 		Hit_Return();			// let user see results
 		(void) alarm(3);		// done waiting for input
@@ -787,10 +787,10 @@ static void colon(Byte * buf)
 			psbs("No write since last change (:edit! overrides)");
 			goto vc1;
 		}
-		if (strlen(args) > 0) {
+		if (strlen((char*)args) > 0) {
 			// the user supplied a file name
 			fn= args;
-		} else if (cfn != 0 && strlen(cfn) > 0) {
+		} else if (cfn != 0 && strlen((char*)cfn) > 0) {
 			// no user supplied name- use the current filename
 			fn= cfn;
 			goto vc5;
@@ -2397,7 +2397,7 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 	last_status_cksum = 0;	// force status update
 	place_cursor(rows - 1, 0, FALSE);	// go to Status line, bottom of screen
 	clear_to_eol();		// clear the line
-	write1(prompt);      // write out the :, /, or ? prompt
+	write1((char *) prompt);      // write out the :, /, or ? prompt
 
 	for (i = strlen((char *) buf); i < BUFSIZ;) {
 		c = get_one_char();	// read user input
@@ -2430,7 +2430,7 @@ static int file_size(const Byte * fn) // what is the byte size of "fn"
 	struct stat st_buf;
 	int cnt, sr;
 
-	if (fn == 0 || strlen(fn) <= 0)
+	if (fn == 0 || strlen((char *)fn) <= 0)
 		return (-1);
 	cnt = -1;
 	sr = stat((char *) fn, &st_buf);	// see if file exists
@@ -2586,7 +2586,7 @@ static void place_cursor(int row, int col, int opti)
 	strcat(cm2, "\r");			// start at col 0
 	// just send out orignal source char to get to correct place
 	screenp = &screen[row * columns];	// start of screen line
-	strncat(cm2, screenp, col);
+	strncat(cm2, (char* )screenp, col);
 
 	//----- 3.  Try some other way of moving cursor
 	//---------------------------------------------
@@ -2657,10 +2657,10 @@ static void screen_erase(void)
 	memset(screen, ' ', screensize);	// clear new screen
 }
 
-static int bufsum(char *buf, int count)
+static int bufsum(unsigned char *buf, int count)
 {
 	int sum = 0;
-	char *e = buf + count;
+	unsigned char *e = buf + count;
 	while (buf < e)
 		sum += *buf++;
 	return sum;
@@ -2680,10 +2680,10 @@ static void show_status_line(void)
 	if (have_status_msg || ((cnt > 0 && last_status_cksum != cksum))) {
 		last_status_cksum= cksum;		// remember if we have seen this line
 		place_cursor(rows - 1, 0, FALSE);	// put cursor on status line
-		write1(status_buffer);
+		write1((char*)status_buffer);
 		clear_to_eol();
 		if (have_status_msg) {
-			if (((int)strlen(status_buffer) - (have_status_msg - 1)) >
+			if (((int)strlen((char*)status_buffer) - (have_status_msg - 1)) >
 					(columns - 1) ) {
 				have_status_msg = 0;
 				Hit_Return();
@@ -2937,7 +2937,7 @@ static void refresh(int full_screen)
 			// write line out to terminal
 			{
 				int nic = ce-cs+1;
-				char *out = sp+cs;
+				char *out = (char*)sp+cs;
 
 				while(nic-- > 0) {
 					putchar(*out);
