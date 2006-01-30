@@ -1,10 +1,7 @@
 /*
  * ipaddress.c		"ip address".
  *
- *		This program is free software; you can redistribute it and/or
- *		modify it under the terms of the GNU General Public License
- *		as published by the Free Software Foundation; either version
- *		2 of the License, or (at your option) any later version.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
@@ -103,7 +100,8 @@ static void print_queuelen(char *name)
 		printf("qlen %d", ifr.ifr_qlen);
 }
 
-static int print_linkinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
+static int print_linkinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
+		struct nlmsghdr *n, void ATTRIBUTE_UNUSED *arg)
 {
 	FILE *fp = (FILE*)arg;
 	struct ifinfomsg *ifi = NLMSG_DATA(n);
@@ -205,7 +203,8 @@ static int flush_update(void)
 	return 0;
 }
 
-static int print_addrinfo(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
+static int print_addrinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
+		struct nlmsghdr *n, void ATTRIBUTE_UNUSED *arg)
 {
 	FILE *fp = (FILE*)arg;
 	struct ifaddrmsg *ifa = NLMSG_DATA(n);

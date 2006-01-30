@@ -22,7 +22,8 @@ static gid_t gid = -1;
 
 static int (*chown_func)(const char *, uid_t, gid_t) = chown;
 
-static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
+static int fileAction(const char *fileName, struct stat *statbuf,
+		void ATTRIBUTE_UNUSED *junk)
 {
 	if (!chown_func(fileName,
 				(uid == -1) ? statbuf->st_uid : uid,

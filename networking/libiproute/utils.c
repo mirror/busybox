@@ -1,13 +1,9 @@
 /*
  * utils.c
  *
- *		This program is free software; you can redistribute it and/or
- *		modify it under the terms of the GNU General Public License
- *		as published by the Free Software Foundation; either version
- *		2 of the License, or (at your option) any later version.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
- *
  *
  * Changes:
  *
@@ -321,7 +317,8 @@ int __get_hz(void)
 	return sysconf(_SC_CLK_TCK);
 }
 
-const char *rt_addr_n2a(int af, int len, void *addr, char *buf, int buflen)
+const char *rt_addr_n2a(int af, int ATTRIBUTE_UNUSED len,
+		void *addr, char *buf, int buflen)
 {
 	switch (af) {
 	case AF_INET:

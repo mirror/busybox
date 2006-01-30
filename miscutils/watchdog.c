@@ -20,7 +20,7 @@ static unsigned int timer_duration = 30;
 /* Watchdog file descriptor */
 static int fd;
 
-static void watchdog_shutdown(int unused)
+static void watchdog_shutdown(int ATTRIBUTE_UNUSED unused)
 {
 	write(fd, "V", 1);	/* Magic */
 	close(fd);
