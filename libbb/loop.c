@@ -60,7 +60,7 @@ char *query_loop(const char *device)
 	if ((fd = open(device, O_RDONLY)) < 0) return 0;
 	if (!ioctl(fd, BB_LOOP_GET_STATUS, &loopinfo))
 		dev=bb_xasprintf("%ld %s", (long) loopinfo.lo_offset,
-				loopinfo.lo_file_name);
+				(char *)loopinfo.lo_file_name);
 	close(fd);
 
 	return dev;
@@ -114,7 +114,7 @@ int set_loop(char **device, const char *file, int offset)
 		/* If device free, claim it.  */
 		if(rc && errno==ENXIO) {
 			memset(&loopinfo, 0, sizeof(loopinfo));
-			safe_strncpy(loopinfo.lo_file_name, file, LO_NAME_SIZE);
+			safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
 			loopinfo.lo_offset = offset;
 			/* Associate free loop device with file.  */
 			if(!ioctl(dfd, LOOP_SET_FD, ffd) &&
@@ -125,7 +125,7 @@ int set_loop(char **device, const char *file, int offset)
 		   file isn't pretty either.  In general, mounting the same file twice
 		   without using losetup manually is problematic.)
 		 */
-		} else if(strcmp(file,loopinfo.lo_file_name)
+		} else if(strcmp(file,(char *)loopinfo.lo_file_name)
 					|| offset!=loopinfo.lo_offset) rc=-1;
 		close(dfd);
 try_again:
