@@ -18,7 +18,6 @@
 #include <unistd.h>
 #include "busybox.h"
 
-/* If nonzero, count bytes, not column positions. */
 static unsigned long flags;
 #define FLAG_COUNT_BYTES	1
 #define FLAG_BREAK_SPACES	2
@@ -58,16 +57,11 @@ extern int fold_main(int argc, char **argv)
 		for (i = 1; i < argc; i++) {
 			char const *a = argv[i];
 
-			if (a[0] == '-') {
-				if (a[1] == '-' && !a[2])
+			if (*a++ == '-') {
+				if (*a == '-' && !a[1])
 					break;
-				if (isdigit(a[1])) {
-					char *s = xmalloc(strlen(a) + 2);
-
-					s[0] = '-';
-					s[1] = 'w';
-					strcpy(s + 2, a + 1);
-					argv[i] = s;
+				if (isdigit(*a)) {
+					argv[i] = bb_xasprintf("-w%s", a);
 				}
 			}
 		}
