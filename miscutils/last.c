@@ -100,7 +100,7 @@ extern int last_main(int argc, char **argv)
 		}
 
 		printf("%-10s %-14s %-18s %-12.12s\n", ut.ut_user, ut.ut_line, ut.ut_host,
-				ctime(&(ut.ut_tv.tv_sec)) + 4);
+				ctime((time_t *)&(ut.ut_tv.tv_sec)) + 4);
 	}
 
 	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
