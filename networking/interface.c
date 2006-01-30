@@ -501,7 +501,7 @@ static char *UNSPEC_sprint(struct sockaddr *sap, int numeric)
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
 		return safe_strncpy(buf, _("[NONE SET]"), sizeof(buf));
-	return (UNSPEC_print(sap->sa_data));
+	return (UNSPEC_print((unsigned char *)sap->sa_data));
 }
 
 static struct aftype unspec_aftype = {
@@ -1833,7 +1833,7 @@ static void ife_print(struct interface *ptr)
 	   hardware address if it's null.  */
 	if (hw->print != NULL && (!(hw_null_address(hw, ptr->hwaddr) &&
 								hw->suppress_null_addr)))
-		printf(_("HWaddr %s  "), hw->print(ptr->hwaddr));
+		printf(_("HWaddr %s  "), hw->print((unsigned char *)ptr->hwaddr));
 #ifdef IFF_PORTSEL
 	if (ptr->flags & IFF_PORTSEL) {
 		printf(_("Media:%s"), if_port_text[ptr->map.port] /* [0] */);

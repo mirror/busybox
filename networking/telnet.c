@@ -204,7 +204,7 @@ static void handlenetoutput(int len)
 	 */
 
 	int i, j;
-	byte * p = G.buf;
+	byte * p = (byte*)G.buf;
 	byte outbuf[4*DATABUFSIZE];
 
 	for (i = len, j = 0; i > 0; i--, p++)

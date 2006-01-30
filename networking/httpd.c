@@ -123,8 +123,10 @@ static const char home[] = "./";
 
 #ifdef CONFIG_LFS
 # define cont_l_fmt "%lld"
+# define cont_l_type (long long)
 #else
 # define cont_l_fmt "%ld"
+# define cont_l_type (long)
 #endif
 
 #define TIMEOUT 60
@@ -1028,7 +1030,7 @@ static int sendHeaders(HttpResponseNum responseNum)
   if (config->ContentLength != -1) {    /* file */
     strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&config->last_mod));
     len += sprintf(buf+len, "Last-Modified: %s\r\n%s " cont_l_fmt "\r\n",
-			      timeStr, Content_length, config->ContentLength);
+			      timeStr, Content_length, cont_l_type config->ContentLength);
   }
   strcat(buf, "\r\n");
   len += 2;

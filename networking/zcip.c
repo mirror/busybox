@@ -314,7 +314,7 @@ fail:
 		goto fail;
 	} else {
 		struct ifreq ifr;
-		short seed[3];
+		unsigned short seed[3];
 
 		// get the interface's ethernet address
 		memset(&ifr, 0, sizeof (ifr));

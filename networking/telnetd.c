@@ -131,7 +131,7 @@ static struct tsession *sessions;
   */
 static char *
 remove_iacs(struct tsession *ts, int *pnum_totty) {
-	unsigned char *ptr0 = ts->buf1 + ts->wridx1;
+	unsigned char *ptr0 = (unsigned char *)ts->buf1 + ts->wridx1;
 	unsigned char *ptr = ptr0;
 	unsigned char *totty = ptr;
 	unsigned char *end = ptr + MIN(BUFSIZE - ts->wridx1, ts->size1);

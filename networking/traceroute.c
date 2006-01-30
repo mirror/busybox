@@ -293,7 +293,7 @@ struct IFADDRLIST {
 static const char route[] = "/proc/net/route";
 
 /* last inbound (icmp) packet */
-static u_char  packet[512] __attribute__((align (32)));
+static u_char  packet[512] __attribute__((aligned (32)));
 
 static struct ip *outip;               /* last output (udp) packet */
 static struct udphdr *outudp;          /* last output (udp) packet */
@@ -371,7 +371,7 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 		if (errno == EINVAL)
 			bb_error_msg_and_die(
 			    "SIOCGIFCONF: ifreq struct too small (%d bytes)",
-			    sizeof(ibuf));
+			    (int)sizeof(ibuf));
 		else
 			bb_perror_msg_and_die("SIOCGIFCONF");
 	}

@@ -166,7 +166,7 @@ static int kw_lookup(const char *kwtbl, char ***pargs)
 static void INET_setroute(int action, char **args)
 {
 	struct rtentry rt;
-	const char *netmask;
+	const char *netmask = NULL;
 	int skfd, isnet, xflag;
 
 	assert((action == RTACTION_ADD) || (action == RTACTION_DEL));
