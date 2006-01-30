@@ -53,25 +53,25 @@ extern int fold_main(int argc, char **argv)
 	int errs = 0;
 
 
-#ifdef CONFIG_FEATURE_SUSv2_OBSOLETE
-	/* Turn any numeric options into -w options.  */
-	for (i = 1; i < argc; i++) {
-		char const *a = argv[i];
+	if(!ENABLE_DEBUG_YANK_SUSv2) {
+		/* Turn any numeric options into -w options.  */
+		for (i = 1; i < argc; i++) {
+			char const *a = argv[i];
 
-		if (a[0] == '-') {
-			if (a[1] == '-' && !a[2])
-				break;
-			if (isdigit(a[1])) {
-				char *s = xmalloc(strlen(a) + 2);
+			if (a[0] == '-') {
+				if (a[1] == '-' && !a[2])
+					break;
+				if (isdigit(a[1])) {
+					char *s = xmalloc(strlen(a) + 2);
 
-				s[0] = '-';
-				s[1] = 'w';
-				strcpy(s + 2, a + 1);
-				argv[i] = s;
+					s[0] = '-';
+					s[1] = 'w';
+					strcpy(s + 2, a + 1);
+					argv[i] = s;
+				}
 			}
 		}
 	}
-#endif
 
 	flags = bb_getopt_ulflags(argc, argv, "bsw:", &w_opt);
 	if (flags & FLAG_WIDTH)

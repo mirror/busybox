@@ -4,20 +4,7 @@
  *
  * Copyright (C) 2001 by Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 /* BB_AUDIT SUSv3 compliant (need fancy for -c) */
@@ -53,11 +40,7 @@ static const struct suffix_mult tail_suffixes[] = {
 	{ NULL, 0 }
 };
 
-static int status
-#if EXIT_SUCCESS != 0
-	= EXIT_SUCCESS	/* If it is 0 (paranoid check), let bss initialize it. */
-#endif
-	;
+static int status;
 
 static void tail_xprint_header(const char *fmt, const char *filename)
 {
@@ -121,7 +104,7 @@ int tail_main(int argc, char **argv)
 	char *s, *buf;
 	const char *fmt;
 
-#if defined CONFIG_FEATURE_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
+#if !ENABLE_DEBUG_YANK_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
 	/* Allow legacy syntax of an initial numeric option without -n. */
 	if (argc >=2 && ((argv[1][0] == '+') || ((argv[1][0] == '-')
 			/* && (isdigit)(argv[1][1]) */
@@ -142,7 +125,7 @@ int tail_main(int argc, char **argv)
 				count_bytes = 1;
 				/* FALLS THROUGH */
 			case 'n':
-#if defined CONFIG_FEATURE_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
+#if !ENABLE_DEBUG_YANK_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
 			GET_COUNT:
 #endif
 				count = bb_xgetlarg10_sfx(optarg, tail_suffixes);

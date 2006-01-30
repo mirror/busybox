@@ -184,7 +184,7 @@ randconfig: scripts/config/conf
 
 allyesconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG|STATIC|SELINUX|FEATURE_DEVFS|BUILD_AT_ONCE)).*/# \1 is not set/" .config
+	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|FEATURE_DEVFS|BUILD_AT_ONCE))=.*/# \1 is not set/" .config
 	echo "CONFIG_FEATURE_SHARED_BUSYBOX=y" >> .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
