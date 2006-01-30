@@ -13,7 +13,7 @@ LIBBB-n:=
 LIBBB-y:= \
 	bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
 	compare_string_array.c concat_path_file.c copy_file.c copyfd.c \
-	correct_password.c create_icmp_socket.c create_icmp6_socket.c \
+	create_icmp_socket.c create_icmp6_socket.c \
 	device_open.c dump.c error_msg.c error_msg_and_die.c find_mount_point.c \
 	find_pid_by_name.c find_root_device.c fgets_str.c full_read.c \
 	full_write.c get_last_path_component.c get_line_from_file.c \
@@ -23,7 +23,7 @@ LIBBB-y:= \
 	make_directory.c mode_string.c mtab.c mtab_file.c \
 	obscure.c parse_mode.c parse_number.c perror_msg.c \
 	perror_msg_and_die.c print_file.c get_console.c \
-	process_escape_sequence.c procps.c pw_encrypt.c qmodule.c \
+	process_escape_sequence.c procps.c qmodule.c \
 	read_package_field.c recursive_action.c remove_file.c \
 	restricted_shell.c run_parts.c run_shell.c safe_read.c safe_write.c \
 	safe_strncpy.c setup_environment.c simplify_path.c \
@@ -39,6 +39,12 @@ LIBBB-y:= \
 # conditionally compiled objects:
 LIBBB-$(CONFIG_FEATURE_SHADOWPASSWDS)+=pwd2spwd.c
 LIBBB-$(CONFIG_FEATURE_MTAB_SUPPORT)+= mtab.c
+LIBBB-$(CONFIG_PASSWD)+= pw_encrypt.c
+LIBBB-$(CONFIG_SULOGIN)+= pw_encrypt.c
+LIBBB-$(CONFIG_FEATURE_HTTPD_AUTH_MD5)+= pw_encrypt.c
+LIBBB-$(CONFIG_VLOCK)+= correct_password.c
+LIBBB-$(CONFIG_SU)+= correct_password.c
+LIBBB-$(CONFIG_CONFIG_LOGIN)+= correct_password.c
 
 
 LIBBB-y:=$(patsubst %,$(srcdir)/%,$(LIBBB-y))
