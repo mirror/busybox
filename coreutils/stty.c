@@ -399,6 +399,7 @@ static const struct  control_info control_info[] = {
 static const int NUM_control_info =
 	(sizeof(control_info) / sizeof(struct control_info));
 
+#define EMT(t) ((enum mode_type)(t))
 
 static const char *  visible(unsigned int ch);
 static int           recover_mode(char *arg, struct termios *mode);
@@ -407,17 +408,17 @@ static int           set_mode(const struct mode_info *info,
 					int reversed, struct termios *mode);
 static speed_t       string_to_baud(const char *arg);
 static tcflag_t*     mode_type_flag(enum mode_type type, struct termios *mode);
-static void          display_all(struct termios *mode, int fd);
-static void          display_changed(struct termios *mode, int fd);
-static void          display_recoverable(struct termios *mode, int fd);
+static void          display_all(struct termios *mode);
+static void          display_changed(struct termios *mode);
+static void          display_recoverable(struct termios *mode);
 static void          display_speed(struct termios *mode, int fancy);
-static void          display_window_size(int fancy, int fd);
+static void          display_window_size(int fancy);
 static void          sane_mode(struct termios *mode);
 static void          set_control_char(const struct control_info *info,
 					const char *arg, struct termios *mode);
 static void          set_speed(enum speed_setting type,
 					const char *arg, struct termios *mode);
-static void          set_window_size(int rows, int cols, int fd);
+static void          set_window_size(int rows, int cols);
 
 static const char *device_name;
 
@@ -473,7 +474,7 @@ extern int main(int argc, char **argv)
 #endif
 {
 	struct termios mode;
-	void (*output_func)(struct termios *, int);
+	void (*output_func)(struct termios *);
 	int    optc;
 	int    require_set_attr;
 	int    speed_was_set;
@@ -482,8 +483,6 @@ extern int main(int argc, char **argv)
 	int    k;
 	int    noargs = 1;
 	char * file_name = NULL;
-	int    fd;
-
 
 	output_func = display_changed;
 	verbose_output = 0;
@@ -539,25 +538,25 @@ extern int main(int argc, char **argv)
 		int fdflags;
 
 		device_name = file_name;
-		fd = bb_xopen(device_name, O_RDONLY | O_NONBLOCK);
-		if ((fdflags = fcntl(fd, F_GETFL)) == -1
-			|| fcntl(fd, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
+		fclose(stdin);
+		bb_xopen(device_name, O_RDONLY | O_NONBLOCK);
+		if ((fdflags = fcntl(STDIN_FILENO, F_GETFL)) == -1
+			|| fcntl(STDIN_FILENO, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
 			perror_on_device("%s: couldn't reset non-blocking mode");
 	} else {
-		fd = 0;
 		device_name = bb_msg_standard_input;
 	}
 
 	/* Initialize to all zeroes so there is no risk memcmp will report a
 	   spurious difference in an uninitialized portion of the structure.  */
 	memset(&mode, 0, sizeof(mode));
-	if (tcgetattr(fd, &mode))
+	if (tcgetattr(STDIN_FILENO, &mode))
 		perror_on_device("%s");
 
 	if (verbose_output | recoverable_output | noargs) {
 		max_col = screen_columns();
 		current_col = 0;
-		output_func(&mode, fd);
+		output_func(&mode);
 		return EXIT_SUCCESS;
 	}
 
@@ -637,18 +636,17 @@ extern int main(int argc, char **argv)
 				    bb_error_msg_and_die("missing argument to `%s'", argv[k]);
 				++k;
 				set_window_size((int) bb_xparse_number(argv[k], stty_suffixes),
-								-1, fd);
+								-1);
 			} else if (STREQ(argv[k], "cols") || STREQ(argv[k], "columns")) {
 				if (k == argc - 1)
 				    bb_error_msg_and_die("missing argument to `%s'", argv[k]);
 				++k;
 				set_window_size(-1,
-						(int) bb_xparse_number(argv[k], stty_suffixes),
-						fd);
+						(int) bb_xparse_number(argv[k], stty_suffixes));
 			} else if (STREQ(argv[k], "size")) {
 				max_col = screen_columns();
 				current_col = 0;
-				display_window_size(0, fd);
+				display_window_size(0);
 			}
 #endif
 #ifdef HAVE_C_LINE
@@ -677,7 +675,7 @@ extern int main(int argc, char **argv)
 	if (require_set_attr) {
 		struct termios new_mode;
 
-		if (tcsetattr(fd, TCSADRAIN, &mode))
+		if (tcsetattr(STDIN_FILENO, TCSADRAIN, &mode))
 			perror_on_device("%s");
 
 		/* POSIX (according to Zlotnick's book) tcsetattr returns zero if
@@ -690,7 +688,7 @@ extern int main(int argc, char **argv)
 		/* Initialize to all zeroes so there is no risk memcmp will report a
 		   spurious difference in an uninitialized portion of the structure.  */
 		memset(&new_mode, 0, sizeof(new_mode));
-		if (tcgetattr(fd, &new_mode))
+		if (tcgetattr(STDIN_FILENO, &new_mode))
 			perror_on_device("%s");
 
 		/* Normally, one shouldn't use memcmp to compare structures that
@@ -731,7 +729,7 @@ set_mode(const struct mode_info *info, int reversed, struct termios *mode)
 	if (reversed && (info->flags & REV) == 0)
 		return 0;
 
-	bitsp = mode_type_flag(info->type, mode);
+	bitsp = mode_type_flag(EMT(info->type), mode);
 
 	if (bitsp == NULL) {
 		/* Combination mode. */
@@ -922,10 +920,10 @@ set_speed(enum speed_setting type, const char *arg, struct termios *mode)
 
 	baud = string_to_baud(arg);
 
-	if (type != output_speed) {	/* either input or both */
+	if (type != output_speed) {     /* either input or both */
 		cfsetispeed(mode, baud);
 	}
-	if (type != input_speed) {	/* either output or both */
+	if (type != input_speed) {      /* either output or both */
 		cfsetospeed(mode, baud);
 	}
 }
@@ -940,11 +938,11 @@ static int get_win_size(int fd, struct winsize *win)
 }
 
 static void
-set_window_size(int rows, int cols, int fd)
+set_window_size(int rows, int cols)
 {
 	struct winsize win;
 
-	if (get_win_size(fd, &win)) {
+	if (get_win_size(STDIN_FILENO, &win)) {
 		if (errno != EINVAL)
 			perror_on_device("%s");
 		memset(&win, 0, sizeof(win));
@@ -970,24 +968,24 @@ set_window_size(int rows, int cols, int fd)
 
 		win.ws_row = win.ws_col = 1;
 
-		if ((ioctl(fd, TIOCSWINSZ, (char *) &win) != 0)
-			|| (ioctl(fd, TIOCSSIZE, (char *) &ttysz) != 0)) {
+		if ((ioctl(STDIN_FILENO, TIOCSWINSZ, (char *) &win) != 0)
+			|| (ioctl(STDIN_FILENO, TIOCSSIZE, (char *) &ttysz) != 0)) {
 			perror_on_device("%s");
 		}
 		return;
 	}
 # endif
 
-	if (ioctl(fd, TIOCSWINSZ, (char *) &win))
+	if (ioctl(STDIN_FILENO, TIOCSWINSZ, (char *) &win))
 		perror_on_device("%s");
 }
 
-static void display_window_size(int fancy, int fd)
+static void display_window_size(int fancy)
 {
 	const char *fmt_str = "%s" "\0" "%s: no size information for this device";
 	struct winsize win;
 
-	if (get_win_size(fd, &win)) {
+	if (get_win_size(STDIN_FILENO, &win)) {
 		if ((errno != EINVAL) || ((fmt_str += 2), !fancy)) {
 			perror_on_device(fmt_str);
 		}
@@ -1040,7 +1038,7 @@ static tcflag_t *mode_type_flag(enum mode_type type, struct termios *mode)
 	return NULL;
 }
 
-static void display_changed(struct termios *mode, int fd)
+static void display_changed(struct termios *mode)
 {
 	int i;
 	int empty_line;
@@ -1086,16 +1084,16 @@ static void display_changed(struct termios *mode, int fd)
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & OMIT)
 			continue;
-		if (mode_info[i].type != prev_type) {
+		if (EMT(mode_info[i].type) != prev_type) {
 			if (empty_line == 0) {
 				putchar('\n');
 				current_col = 0;
 				empty_line = 1;
 			}
-			prev_type = mode_info[i].type;
+			prev_type = EMT(mode_info[i].type);
 		}
 
-		bitsp = mode_type_flag(mode_info[i].type, mode);
+		bitsp = mode_type_flag(EMT(mode_info[i].type), mode);
 		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
 		if ((*bitsp & mask) == mode_info[i].bits) {
 			if (mode_info[i].flags & SANE_UNSET) {
@@ -1115,7 +1113,7 @@ static void display_changed(struct termios *mode, int fd)
 }
 
 static void
-display_all(struct termios *mode, int fd)
+display_all(struct termios *mode)
 {
 	int i;
 	tcflag_t *bitsp;
@@ -1124,7 +1122,7 @@ display_all(struct termios *mode, int fd)
 
 	display_speed(mode, 1);
 #ifdef TIOCGWINSZ
-	display_window_size(1, fd);
+	display_window_size(1);
 #endif
 #ifdef HAVE_C_LINE
 	wrapf("line = %d;", mode->c_line);
@@ -1158,13 +1156,13 @@ display_all(struct termios *mode, int fd)
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & OMIT)
 			continue;
-		if (mode_info[i].type != prev_type) {
+		if (EMT(mode_info[i].type) != prev_type) {
 			putchar('\n');
 			current_col = 0;
-			prev_type = mode_info[i].type;
+			prev_type = EMT(mode_info[i].type);
 		}
 
-		bitsp = mode_type_flag(mode_info[i].type, mode);
+		bitsp = mode_type_flag(EMT(mode_info[i].type), mode);
 		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
 		if ((*bitsp & mask) == mode_info[i].bits)
 			wrapf("%s", mode_info[i].name);
@@ -1184,7 +1182,7 @@ static void display_speed(struct termios *mode, int fancy)
 
 	ospeed = ispeed = cfgetispeed(mode);
 	if (ispeed == 0 || ispeed == (ospeed = cfgetospeed(mode))) {
-		ispeed = ospeed;		/* in case ispeed was 0 */
+		ispeed = ospeed;                /* in case ispeed was 0 */
 		fmt_str += 43;
 	}
 	if (fancy) {
@@ -1195,7 +1193,7 @@ static void display_speed(struct termios *mode, int fancy)
 		current_col = 0;
 }
 
-static void display_recoverable(struct termios *mode, int fd)
+static void display_recoverable(struct termios *mode)
 {
 	int i;
 
@@ -1257,11 +1255,11 @@ static void sane_mode(struct termios *mode)
 
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & SANE_SET) {
-			bitsp = mode_type_flag(mode_info[i].type, mode);
+			bitsp = mode_type_flag(EMT(mode_info[i].type), mode);
 			*bitsp = (*bitsp & ~((unsigned long)mode_info[i].mask))
 				| mode_info[i].bits;
 		} else if (mode_info[i].flags & SANE_UNSET) {
-			bitsp = mode_type_flag(mode_info[i].type, mode);
+			bitsp = mode_type_flag(EMT(mode_info[i].type), mode);
 			*bitsp = *bitsp & ~((unsigned long)mode_info[i].mask)
 				& ~mode_info[i].bits;
 		}
