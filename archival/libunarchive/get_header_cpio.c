@@ -66,7 +66,7 @@ extern char get_header_cpio(archive_handle_t *archive_handle)
 	/* There can be padding before archive header */
 	data_align(archive_handle, 4);
 
-	if (archive_xread_all_eof(archive_handle, cpio_header, 110) == 0) {
+	if (archive_xread_all_eof(archive_handle, (unsigned char*)cpio_header, 110) == 0) {
 		return(EXIT_FAILURE);
 	}
 	archive_handle->offset += 110;

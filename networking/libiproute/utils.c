@@ -164,7 +164,7 @@ int get_addr_1(inet_prefix * addr, char *name, int family)
 int get_prefix_1(inet_prefix * dst, char *arg, int family)
 {
 	int err;
-	unsigned plen;
+	int plen;
 	char *slash;
 
 	memset(dst, 0, sizeof(*dst));

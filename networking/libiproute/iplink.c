@@ -166,7 +166,7 @@ static int get_address(char *dev, int *htype)
 {
 	struct ifreq ifr;
 	struct sockaddr_ll me;
-	int alen;
+	socklen_t alen;
 	int s;
 
 	s = socket(PF_PACKET, SOCK_DGRAM, 0);
@@ -211,7 +211,7 @@ static int parse_address(char *dev, int hatype, int halen, char *lla, struct ifr
 	memset(ifr, 0, sizeof(*ifr));
 	strcpy(ifr->ifr_name, dev);
 	ifr->ifr_hwaddr.sa_family = hatype;
-	alen = ll_addr_a2n(ifr->ifr_hwaddr.sa_data, 14, lla);
+	alen = ll_addr_a2n((unsigned char *)(ifr->ifr_hwaddr.sa_data), 14, lla);
 	if (alen < 0)
 		return -1;
 	if (alen != halen) {

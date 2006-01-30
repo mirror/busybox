@@ -347,7 +347,7 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 			}
 			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_MTU, mtu);
 		} else if (matches(*argv, "protocol") == 0) {
-			int prot;
+			uint32_t prot;
 			NEXT_ARG();
 			if (rtnl_rtprot_a2n(&prot, *argv))
 				invarg("\"protocol\" value is invalid\n", *argv);
@@ -493,7 +493,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 
 	while (argc > 0) {
 		if (matches(*argv, "protocol") == 0) {
-			int prot = 0;
+			uint32_t prot = 0;
 			NEXT_ARG();
 			filter.protocolmask = -1;
 			if (rtnl_rtprot_a2n(&prot, *argv)) {

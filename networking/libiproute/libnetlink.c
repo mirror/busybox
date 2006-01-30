@@ -30,7 +30,7 @@ void rtnl_close(struct rtnl_handle *rth)
 
 int rtnl_open(struct rtnl_handle *rth, unsigned subscriptions)
 {
-	int addr_len;
+	socklen_t addr_len;
 
 	memset(rth, 0, sizeof(rth));
 

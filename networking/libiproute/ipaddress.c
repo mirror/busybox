@@ -453,7 +453,7 @@ extern int ipaddr_list_or_flush(int argc, char **argv, int flush)
 				break;
 			case 1: /* scope */
 			{
-				int scope = 0;
+				uint32_t scope = 0;
 				NEXT_ARG();
 				filter.scopemask = -1;
 				if (rtnl_rtscope_a2n(&scope, *argv)) {
@@ -713,7 +713,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 			}
 			case 5: /* scope */
 			{
-				int scope = 0;
+				uint32_t scope = 0;
 				NEXT_ARG();
 				if (rtnl_rtscope_a2n(&scope, *argv)) {
 					invarg(*argv, "invalid scope value.");
