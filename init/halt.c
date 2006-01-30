@@ -1,28 +1,42 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Mini halt implementation for busybox
+ * Poweroff reboot and halt, oh my.
  *
- * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright 2006 by Rob Landley <rob@landley.net>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <signal.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <getopt.h>
 #include <sys/reboot.h>
 #include "busybox.h"
-#include "init_shared.h"
 
+#include <unistd.h>
 
-extern int halt_main(int argc, char **argv)
+int halt_main(int argc, char *argv[])
 {
-	char *delay; /* delay in seconds before rebooting */
+	char *delay = "hpr";
+	int which, flags, magic[] = {RB_HALT_SYSTEM, RB_POWER_OFF, RB_AUTOBOOT},
+		signals[] = {SIGUSR1, SIGUSR2, SIGTERM}, rc = 1;
 
-	if(bb_getopt_ulflags(argc, argv, "d:", &delay)) {
-		sleep(atoi(delay));
-	}
+	/* Figure out which applet we're running */
+	for(which=0;delay[which]!=*bb_applet_name;which++);
 
-	return ENABLE_INIT ? kill(1,SIGUSR1) : bb_shutdown_system(RB_HALT_SYSTEM);
+	/* Parse and handle arguments */
+	flags = bb_getopt_ulflags(argc, argv, "d:nf", &delay);
+	if (flags&1) sleep(atoi(delay));
+	if (!(flags&2)) sync();
+	
+	/* Perform action. */
+	if (ENABLE_INIT && !(flags & 4)) {
+		if (ENABLE_FEATURE_INITRD) {
+			long *pidlist=find_pid_by_name("linuxrc");
+			if (*pidlist>0) rc = kill(*pidlist,signals[which]);
+			if (ENABLE_FEATURE_CLEAN_UP) free(pidlist);
+		}
+		if (rc) rc = kill(1,signals[which]);
+	} else rc = reboot(magic[which]);
+
+	if (rc) bb_error_msg("No.");
+	return rc;
 }

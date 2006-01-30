@@ -751,14 +751,7 @@ static void exec_signal(int sig)
 static void halt_signal(int sig)
 {
 	shutdown_system();
-	message(CONSOLE | LOG,
-#if #cpu(s390)
-			/* Seems the s390 console is Wierd(tm). */
-			"The system is halted. You may reboot now."
-#else
-			"The system is halted. Press Reset or turn off power"
-#endif
-		);
+	message(CONSOLE | LOG, "The system is halted.");
 	sync();
 
 	/* allow time for last message to reach serial console */
@@ -1024,11 +1017,9 @@ extern int init_main(int argc, char **argv)
 	}
 #ifndef DEBUG_INIT
 	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
-	if (getpid() != 1
-#ifdef CONFIG_FEATURE_INITRD
-		&& strstr(bb_applet_name, "linuxrc") == NULL
-#endif
-		) {
+	if (getpid() != 1 &&
+		(!ENABLE_FEATURE_INITRD || !strstr(bb_applet_name, "linuxrc")))
+	{
 		bb_show_usage();
 	}
 	/* Set up sig handlers  -- be sure to

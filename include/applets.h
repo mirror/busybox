@@ -517,8 +517,8 @@
 #ifdef CONFIG_PIVOT_ROOT
 	APPLET(pivot_root, pivot_root_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_POWEROFF
-	APPLET(poweroff, poweroff_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#ifdef CONFIG_HALT
+	APPLET(poweroff, halt_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_PRINTENV
 	APPLET(printenv, printenv_main, _BB_DIR_BIN, _BB_SUID_NEVER)
@@ -544,8 +544,8 @@
 #ifdef CONFIG_REALPATH
 	APPLET(realpath, realpath_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
 #endif
-#ifdef CONFIG_REBOOT
-	APPLET(reboot, reboot_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+#ifdef CONFIG_HALT
+	APPLET(reboot, halt_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_RENICE
 	APPLET(renice, renice_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)

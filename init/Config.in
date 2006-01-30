@@ -12,31 +12,14 @@ config CONFIG_INIT
 	  init is the first program run when the system boots.
 
 config CONFIG_FEATURE_USE_INITTAB
-	bool "  Support reading an inittab file?"
+	bool "  Support reading an inittab file"
 	default y
 	depends on CONFIG_INIT
 	help
 	  Allow init to read an inittab file when the system boot.
 
-config CONFIG_FEATURE_INITRD
-	bool "  Support running init from within an initrd?"
-	default y
-	depends on CONFIG_INIT
-	help
-	  Allow init to be called from an initrd as linuxrc.
-
-config CONFIG_FEATURE_INIT_COREDUMPS
-	bool "  Support dumping core for child processes (debugging only)?"
-	default n
-	depends on CONFIG_INIT
-	help
-	  If this option is enabled and the file /.init_enable_core
-	  exists, then init will call setrlimit() to allow unlimited
-	  core file sizes.  If this option is disabled, processes
-	  will not generate any core files.
-
 config CONFIG_FEATURE_INIT_SCTTY
-	bool "  Support running commands with a controlling-tty?"
+	bool "  Support running commands with a controlling-tty"
 	default n
 	depends on CONFIG_INIT
 	help
@@ -47,18 +30,40 @@ config CONFIG_FEATURE_INIT_SCTTY
 	  the console is only accessed during development or for maintenance.
 
 config CONFIG_FEATURE_EXTRA_QUIET
-	bool "  Should init be _extra_ quiet on boot?"
+	bool "  Be _extra_ quiet on boot"
 	default y
 	depends on CONFIG_INIT
 	help
-	  Prevent init from logging some messages to the console
-	  during boot.
+	  Prevent init from logging some messages to the console during boot.
+
+config CONFIG_FEATURE_INIT_COREDUMPS
+	bool "  Support dumping core for child processes (debugging only)"
+	default n
+	depends on CONFIG_INIT
+	help
+	  If this option is enabled and the file /.init_enable_core
+	  exists, then init will call setrlimit() to allow unlimited
+	  core file sizes.  If this option is disabled, processes
+	  will not generate any core files.
+
+
+
+config CONFIG_FEATURE_INITRD
+	bool "  Support running init from within an initrd (not initramfs)"
+	default y
+	depends on CONFIG_INIT
+	help
+	  Legacy support for running init under the old-style initrd.  Allows
+	  the name linuxrc to act as init, and it doesn't assume init is PID 1.
+
+	  This does not apply to initramfs, which runs /init as PID 1 and
+	  requires no special support.
 
 config CONFIG_HALT
-	bool "halt"
+	bool "poweroff, halt, and reboot"
 	default y
 	help
-	  Stop all processes and halt the system.
+	  Stop all processes and either halt, reboot, or power off the system.
 
 config CONFIG_MESG
 	bool "mesg"
@@ -67,17 +72,9 @@ config CONFIG_MESG
 	  Mesg controls access to your terminal by others.  It is typically
 	  used to allow or disallow other users to write to your terminal
 
-config CONFIG_POWEROFF
-	bool "poweroff"
 	default y
 	help
 	  Stop all processes and (try to) power off the system.
-
-config CONFIG_REBOOT
-	bool "reboot"
-	default y
-	help
-	  Stop all processes and reboot the system.
 
 endmenu
 

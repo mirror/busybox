@@ -1010,11 +1010,13 @@
 	"-rw-rw-r--    1 andersen andersen   554058 Apr 14 17:49 /tmp/busybox.tar.gz\n"
 
 #define halt_trivial_usage \
-	"[-d<delay>]"
+	"[-d<delay>] [-n<nosync>] [-f<force>]"
 #define halt_full_usage \
 	"Halt the system.\n" \
 	"Options:\n" \
-	"\t-d\t\tdelay interval for halting"
+	"\t-d\t\tdelay interval for halting\n" \
+	"\t-n\t\tno call to sync()\n" \
+	"\t-f\t\tforce halt (don't go through init)\n"
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
 #define USAGE_HDPARM_IDENT(a) a
@@ -2372,11 +2374,13 @@
 	"the new root file system."
 
 #define poweroff_trivial_usage \
-	"[-d<delay>]"
+	"[-d<delay>] [-n<nosync>] [-f<force>]"
 #define poweroff_full_usage \
-	"Halt the system and request that the kernel shut off the power.\n" \
+	"Halt and shut off power.\n" \
 	"Options:\n" \
-	"\t-d\t\tdelay interval for shutting off"
+	"\t-d\t\tdelay interval for halting\n" \
+	"\t-n\t\tno call to sync()\n" \
+	"\t-f\t\tforce power off (don't go through init)\n"
 
 #define printenv_trivial_usage \
 	"[VARIABLES...]"
@@ -2475,11 +2479,13 @@
 	"Returns the absolute pathnames of given argument."
 
 #define reboot_trivial_usage \
-	"[-d<delay>]"
+	"[-d<delay>] [-n<nosync>] [-f<force>]"
 #define reboot_full_usage \
 	"Reboot the system.\n" \
 	"Options:\n" \
-	"\t-d\t\tdelay interval for rebooting"
+	"\t-d\t\tdelay interval for rebooting\n" \
+	"\t-n\t\tno call to sync()\n" \
+	"\t-f\t\tforce reboot (don't go through init)\n"
 
 #define renice_trivial_usage \
 	"{{-n INCREMENT} | PRIORITY} [[ -p | -g | -u ] ID ...]"
