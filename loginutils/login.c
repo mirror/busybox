@@ -52,7 +52,7 @@ static int login_prompt ( char *buf_name );
 static void motd ( void );
 
 
-static void alarm_handler ( int sig )
+static void alarm_handler ( int sig ATTRIBUTE_UNUSED)
 {
 	fprintf (stderr, "\nLogin timed out after %d seconds.\n", TIMEOUT );
 	exit ( EXIT_SUCCESS );
@@ -432,6 +432,8 @@ static void checkutmp(int picky)
 	if (ut) {
 		utent = *ut;
 	} else {
+		time_t t_tmp;
+		
 		if (picky) {
 			puts(NO_UTENT);
 			exit(1);
@@ -450,7 +452,8 @@ static void checkutmp(int picky)
 		/* XXX - assumes /dev/tty?? */
 		strncpy(utent.ut_id, utent.ut_line + 3, sizeof utent.ut_id);
 		strncpy(utent.ut_user, "LOGIN", sizeof utent.ut_user);
-		time((time_t*)&utent.ut_time);
+		t_tmp = (time_t)utent.ut_time;
+		time(&t_tmp);
 	}
 }
 
@@ -461,7 +464,7 @@ static void checkutmp(int picky)
  *	USER_PROCESS.  the wtmp file will be updated as well.
  */
 
-static void setutmp(const char *name, const char *line)
+static void setutmp(const char *name, const char *line ATTRIBUTE_UNUSED)
 {
 	utent.ut_type = USER_PROCESS;
 	strncpy(utent.ut_user, name, sizeof utent.ut_user);
