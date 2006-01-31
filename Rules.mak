@@ -118,13 +118,7 @@ check_gcc=$(shell \
 # A not very robust macro to check for available ld flags
 check_ld=$(shell \
 	if [ "x$(1)" != "x" ]; then \
-		$(LD) --help | grep -q \\$(1) && echo "-Wl,$(1)$(2)" ; \
-	fi)
-
-# A not very robust macro to check for available as flags
-check_as=$(shell \
-	if [ "x$(1)" != "x" ]; then \
-		$(AS) --help | grep -q "\\$(1)" && echo "-Wa,$(1)$(2)" ; \
+		$(LD) --help | grep -q "\$(1)" && echo "-Wl,$(1)" ; \
 	fi)
 
 
@@ -213,19 +207,19 @@ else
 endif
 ifeq ($(strip $(CONFIG_DEBUG)),y)
     CFLAGS  +=$(WARNINGS) -g -D_GNU_SOURCE
-    LDFLAGS += $(call check_ld,-warn-common,)
+    LDFLAGS += $(call check_ld,--warn-common,)
     STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
 else
     CFLAGS+=$(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
-    LDFLAGS += $(call check_ld,-warn-common,)
+    LDFLAGS += $(call check_ld,--warn-common,)
     LDFLAGS += $(call check_ld,--sort-common,)
     STRIPCMD:=$(STRIP) -s --remove-section=.note --remove-section=.comment
 endif
 ifeq ($(strip $(CONFIG_STATIC)),y)
-    LDFLAGS += $(call check_ld,--static,)
-#else
-#    LIBRARIES += -ldl
+    PROG_CFLAGS += $(call check_gcc,-static,)
 endif
+CFLAGS_SHARED += $(call check_gcc,-shared,)
+LIB_CFLAGS+=$(CFLAGS_SHARED)
 
 ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
     CFLAGS_PIC:= $(call check_gcc,-fPIC,)

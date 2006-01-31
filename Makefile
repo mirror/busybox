@@ -280,8 +280,8 @@ $(LIBBUSYBOX_SONAME):
 ifndef MAJOR_VERSION
 	$(error MAJOR_VERSION needed for $@ is not defined)
 endif
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) -shared \
-	$(CFLAGS_PIC) \
+	$(CC) $(CFLAGS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) \
+	$(LIB_LDFLAGS) \
 	-Wl,-soname=$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
 	-Wl,-z,combreloc $(LIB_LDFLAGS) \
 	-o $(@) \
