@@ -38,7 +38,7 @@ static char nohelp_text[] = "Sorry, no help available for this option yet.\n";
 
 static void strip(char *str)
 {
-	signed char *p = str;
+	char *p = str;
 	int l;
 
 	while ((isspace(*p)))
