@@ -57,7 +57,7 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 out:
 	RELEASE_CONFIG_BUFFER(buffer);
 
-	return status ? status : total;
+	return status ? status : (ssize_t)total;
 }
 
 
