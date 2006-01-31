@@ -162,6 +162,9 @@ password_check(const char *old, const char *newval, const struct passwd *pwdp)
 	else if (similiar(wrapped, newmono))
 		msg = "too similiar";
 
+	else if ( strstr(newval, pwdp->pw_name) )
+		msg = "don't use something like your username as password";
+
 	else {
 		safe_strncpy(wrapped + lenwrap, wrapped, lenwrap + 1);
 		if (strstr(wrapped, newmono))
@@ -186,7 +189,7 @@ obscure_msg(const char *old, const char *newval, const struct passwd *pwdp)
 	oldlen = strlen(old);
 	newlen = strlen(newval);
 
-#if 0							/* why not check the password when set for the first time?  --marekm */
+#if 0  /* why not check the password when set for the first time?  --marekm */
 	if (old[0] == '\0')
 		/* return (1); */
 		return NULL;
