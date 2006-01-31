@@ -56,7 +56,7 @@ static unsigned int disp_k;	/* bss inits to 0 */
 #endif
 
 static int max_print_depth = INT_MAX;
-static int count_hardlinks = 1;
+static nlink_t count_hardlinks = 1;
 
 static int status
 #if EXIT_SUCCESS == 0

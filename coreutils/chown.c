@@ -26,8 +26,8 @@ static int fileAction(const char *fileName, struct stat *statbuf,
 		void ATTRIBUTE_UNUSED *junk)
 {
 	if (!chown_func(fileName,
-				(uid == -1) ? statbuf->st_uid : uid,
-				(gid == -1) ? statbuf->st_gid : gid)) {
+				(uid == (uid_t)-1) ? statbuf->st_uid : uid,
+				(gid == (gid_t)-1) ? statbuf->st_gid : gid)) {
 		return TRUE;
 	}
 	bb_perror_msg("%s", fileName);	/* A filename could have % in it... */

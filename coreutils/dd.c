@@ -167,7 +167,7 @@ int dd_main(int argc, char **argv)
 		if (n == 0) {
 			break;
 		}
-		if (n == bs) {
+		if ((size_t)n == bs) {
 			in_full++;
 		} else {
 			in_part++;
@@ -180,7 +180,7 @@ int dd_main(int argc, char **argv)
 		if (n < 0) {
 			bb_perror_msg_and_die("%s", outfile);
 		}
-		if (n == bs) {
+		if ((size_t)n == bs) {
 			out_full++;
 		} else {
 			out_part++;
