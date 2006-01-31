@@ -52,13 +52,13 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 
 		line_ptr++;
 		/* Tolerate an overly long line to acomadate a possible exta '`' */
-		if (strlen(line_ptr) < length) {
+		if (strlen(line_ptr) < (size_t)length) {
 			bb_error_msg_and_die("Short file");
 		}
 
 		while (length > 0) {
 			/* Merge four 6 bit chars to three 8 bit chars */
-		    fputc(((line_ptr[0] - 0x20) & 077) << 2 | ((line_ptr[1] - 0x20) & 077) >> 4, dst_stream);
+			fputc(((line_ptr[0] - 0x20) & 077) << 2 | ((line_ptr[1] - 0x20) & 077) >> 4, dst_stream);
 			line_ptr++;
 			length--;
 			if (length == 0) {
@@ -83,7 +83,7 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 
 static int read_base64(FILE *src_stream, FILE *dst_stream)
 {
-	const char *base64_table =
+	static const char base64_table[] =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n";
 	char term_count = 0;
 

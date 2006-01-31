@@ -58,10 +58,10 @@ static const char tbl_std[65] = {
  * buffer of at least 1+BASE64_LENGTH(length) bytes.
  * where BASE64_LENGTH(len) = (4 * ((LENGTH + 2) / 3))
  */
-static void uuencode (const unsigned char *s, const char *store, const int length, const char *tbl)
+static void uuencode (const unsigned char *s, char *store, const int length, const char *tbl)
 {
 	int i;
-	unsigned char *p = (unsigned char *)store;
+	char *p = store;
 
 	/* Transform the 3x8 bits to 4x6 bits, as required by base64.  */
 	for (i = 0; i < length; i += 3) {
@@ -86,9 +86,9 @@ static void uuencode (const unsigned char *s, const char *store, const int lengt
 #define DST_BUF_SIZE    4 * ((SRC_BUF_SIZE + 2) / 3)
 int uuencode_main(int argc, char **argv)
 {
-	const int src_buf_size = SRC_BUF_SIZE;
-	const int dst_buf_size = DST_BUF_SIZE;
-	int write_size = dst_buf_size;
+	const size_t src_buf_size = SRC_BUF_SIZE;
+	const size_t dst_buf_size = DST_BUF_SIZE;
+	size_t write_size = dst_buf_size;
 	struct stat stat_buf;
 	FILE *src_stream = stdin;
 	const char *tbl;
