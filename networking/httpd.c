@@ -54,6 +54,7 @@
  * /adm:admin:setup  # Require user admin, pwd setup on urls starting with /adm/
  * /adm:toor:PaSsWd  # or user toor, pwd PaSsWd on urls starting with /adm/
  * .au:audio/basic   # additional mime type for audio.au files
+ * *.php:/path/php   # running cgi.php scripts through an interpreter
  *
  * A/D may be as a/d or allow/deny - first char case insensitive
  * Deny IP rules take precedence over allow rules.
@@ -285,6 +286,9 @@ typedef struct
 #endif
   volatile int alarm_signaled;
 
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+  Htaccess *script_i;           /* config script interpreters */
+#endif
 } HttpdConfig;
 
 static HttpdConfig *config;
@@ -529,7 +533,7 @@ static void parse_conf(const char *path, int flag)
 
     config->flg_deny_all = 0;
 
-#if defined(CONFIG_FEATURE_HTTPD_BASIC_AUTH) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES)
+#if defined(CONFIG_FEATURE_HTTPD_BASIC_AUTH) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR)
     /* retain previous auth and mime config only for subdir parse */
     if(flag != SUBDIR_PARSE) {
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
@@ -537,6 +541,9 @@ static void parse_conf(const char *path, int flag)
 #endif
 #ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	free_config_lines(&config->mime_a);
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+	free_config_lines(&config->script_i);
 #endif
     }
 #endif
@@ -600,6 +607,9 @@ static void parse_conf(const char *path, int flag)
 #endif
 #ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	   && *p0 != '.'
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+	   && *p0 != '*'
 #endif
 	  )
 	       continue;
@@ -672,7 +682,7 @@ static void parse_conf(const char *path, int flag)
 	}
 #endif
 
-#if defined(CONFIG_FEATURE_HTTPD_BASIC_AUTH) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES)
+#if defined(CONFIG_FEATURE_HTTPD_BASIC_AUTH) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES) || defined(CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR)
 	/* storing current config line */
 	cur = calloc(1, sizeof(Htaccess) + strlen(p0));
 	if(cur) {
@@ -685,6 +695,14 @@ static void parse_conf(const char *path, int flag)
 		/* config .mime line move top for overwrite previous */
 		cur->next = config->mime_a;
 		config->mime_a = cur;
+		continue;
+	    }
+#endif
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+	    if(*cf == '*' && cf[1] == '.') {
+		/* config script interpreter line move top for overwrite previous */
+		cur->next = config->script_i;
+		config->script_i = cur;
 		continue;
 	    }
 #endif
@@ -1219,11 +1237,29 @@ static int sendCgi(const char *url,
 	    if(script) {
 		*script = '\0';
 		if(chdir(realpath_buff) == 0) {
-		  *script = '/';
 		  // now run the program.  If it fails,
 		  // use _exit() so no destructors
 		  // get called and make a mess.
-		  execv(realpath_buff, argp);
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+		  char *interpr = NULL;
+		  char *suffix = strrchr(purl, '.');
+
+		  if(suffix) {
+			Htaccess * cur;
+			for (cur = config->script_i; cur; cur = cur->next)
+				if(strcmp(cur->before_colon + 1, suffix) == 0) {
+					interpr = cur->after_colon;
+					break;
+				}
+		  }
+#endif
+		  *script = '/';
+#ifdef CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+		  if (interpr)
+			execv(interpr, argp);
+		  else
+#endif
+			execv(realpath_buff, argp);
 		}
 	    }
       }
