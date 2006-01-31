@@ -47,6 +47,7 @@ extern int last_main(int argc, char **argv)
 {
 	struct utmp ut;
 	int n, file = STDIN_FILENO;
+	time_t t_tmp;
 
 	if (argc > 1) {
 		bb_show_usage();
@@ -98,9 +99,9 @@ extern int last_main(int argc, char **argv)
 					break;
 			}
 		}
-
+		t_tmp = (time_t)ut.ut_tv.tv_sec;
 		printf("%-10s %-14s %-18s %-12.12s\n", ut.ut_user, ut.ut_line, ut.ut_host,
-				ctime((time_t *)&(ut.ut_tv.tv_sec)) + 4);
+				ctime(&t_tmp) + 4);
 	}
 
 	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
