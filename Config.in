@@ -183,6 +183,11 @@ config CONFIG_FEATURE_FULL_LIBBUSYBOX
 	  used by busybox itself. If you plan to write a separate
 	  standalone application which uses libbusybox say 'Y'.
 
+	  Note: libbusybox is GPL, not LGPL, and exports no stable API that
+	  might act as a copyright barrier.  We can and will modify the
+	  exported function set between releases (even minor version number
+	  changes), and happily break out-of-tree features.
+
 	  Say 'N' if in doubt.
 
 config CONFIG_FEATURE_SHARED_BUSYBOX
