@@ -45,7 +45,7 @@ static int update_passwd(const struct passwd *pw, const char *crypt_pw)
 	struct stat sb;
 	struct flock lock;
 
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
+#if ENABLE_FEATURE_SHADOWPASSWDS
 	if (access(bb_path_shadow_file, F_OK) == 0) {
 		snprintf(filename, sizeof filename, "%s", bb_path_shadow_file);
 	} else
@@ -93,8 +93,9 @@ static int update_passwd(const struct passwd *pw, const char *crypt_pw)
 	rewind(fp);
 	while (!feof(fp)) {
 		fgets(buffer, sizeof buffer, fp);
-		if (!continued) {		// Check to see if we're updating this line.
-			if (strncmp(username, buffer, strlen(username)) == 0) {	// we have a match.
+		if (!continued) { /* Check to see if we're updating this line.  */
+			if (strncmp(username, buffer, strlen(username)) == 0) {
+				/* we have a match. */
 				pw_rest = strchr(buffer, ':');
 				*pw_rest++ = '\0';
 				pw_rest = strchr(pw_rest, ':');
@@ -110,7 +111,7 @@ static int update_passwd(const struct passwd *pw, const char *crypt_pw)
 		} else {
 			continued = 1;
 		}
-		bzero(buffer, sizeof buffer);
+		memset(buffer, 0, sizeof buffer);
 	}
 
 	if (fflush(out_fp) || fsync(fileno(out_fp)) || fclose(out_fp)) {
@@ -145,9 +146,9 @@ extern int passwd_main(int argc, char **argv)
 	int dflg = 0;				/* -d - delete password */
 	const struct passwd *pw;
 
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
+#if ENABLE_FEATURE_SHADOWPASSWDS
 	const struct spwd *sp;
-#endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
+#endif
 	amroot = (getuid() == 0);
 	openlog("passwd", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 	while ((flag = getopt(argc, argv, "a:dlu")) != EOF) {
@@ -186,7 +187,7 @@ extern int passwd_main(int argc, char **argv)
 		syslog(LOG_WARNING, "can't change pwd for `%s'", name);
 		bb_error_msg_and_die("Permission denied.\n");
 	}
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
+#if ENABLE_FEATURE_SHADOWPASSWDS
 	sp = getspnam(name);
 	if (!sp) {
 		sp = (struct spwd *) pwd_to_spwd(pw);
@@ -196,7 +197,7 @@ extern int passwd_main(int argc, char **argv)
 #else
 	cp = pw->pw_passwd;
 	np = name;
-#endif							/* CONFIG_FEATURE_SHADOWPASSWDS */
+#endif
 
 	safe_strncpy(crypt_passwd, cp, sizeof(crypt_passwd));
 	if (!(dflg || lflg || uflg)) {
@@ -339,8 +340,8 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 			return 1;
 		}
 		safe_strncpy(orig, clear, sizeof(orig));
-		bzero(clear, strlen(clear));
-		bzero(cipher, strlen(cipher));
+		memset(clear, 0, strlen(clear));
+		memset(cipher, 0, strlen(cipher));
 	} else {
 		orig[0] = '\0';
 	}
@@ -348,12 +349,12 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 					  "Please use a combination of upper and lower case letters and numbers.\n"
 					  "Enter new password: ")))
 	{
-		bzero(orig, sizeof orig);
+		memset(orig, 0, sizeof orig);
 		/* return -1; */
 		return 1;
 	}
 	safe_strncpy(pass, cp, sizeof(pass));
-	bzero(cp, strlen(cp));
+	memset(cp, 0, strlen(cp));
 	/* if (!obscure(orig, pass, pw)) { */
 	if (obscure(orig, pass, pw)) {
 		if (amroot) {
@@ -364,7 +365,7 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 		}
 	}
 	if (!(cp = bb_askpass(0, "Re-enter new password: "))) {
-		bzero(orig, sizeof orig);
+		memset(orig, 0, sizeof orig);
 		/* return -1; */
 		return 1;
 	}
@@ -373,14 +374,14 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 		/* return -1; */
 		return 1;
 	}
-	bzero(cp, strlen(cp));
-	bzero(orig, sizeof(orig));
+	memset(cp, 0, strlen(cp));
+	memset(orig, 0, sizeof(orig));
 
 	if (algo == 1) {
 		cp = pw_encrypt(pass, "$1$");
 	} else
 		cp = pw_encrypt(pass, crypt_make_salt());
-	bzero(pass, sizeof pass);
+	memset(pass, 0, sizeof pass);
 	safe_strncpy(crypt_passwd, cp, sizeof(crypt_passwd));
 	return 0;
 }
