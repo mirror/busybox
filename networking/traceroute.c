@@ -293,7 +293,7 @@ struct IFADDRLIST {
 static const char route[] = "/proc/net/route";
 
 /* last inbound (icmp) packet */
-static u_char  packet[512] __attribute__((aligned (32)));
+static u_char  packet[512] ATTRIBUTE_ALIGNED(32);
 
 static struct ip *outip;               /* last output (udp) packet */
 static struct udphdr *outudp;          /* last output (udp) packet */

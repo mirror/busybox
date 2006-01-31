@@ -55,6 +55,10 @@
 #define ATTRIBUTE_PACKED __attribute__ ((__packed__))
 #endif /* ATTRIBUTE_NORETURN */
 
+#ifndef ATTRIBUTE_ALIGNED
+#define ATTRIBUTE_ALIGNED(m) __attribute__ ((__aligned__(m)))
+#endif /* ATTRIBUTE_ALIGNED */
+
 /* -fwhole-program makes all symbols local. The attribute externally_visible
    forces a symbol global.  */
 #ifndef ATTRIBUTE_EXTERNALLY_VISIBLE

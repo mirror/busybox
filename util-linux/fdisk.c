@@ -867,8 +867,7 @@ static int xbsd_get_part_index (int max);
 static int xbsd_check_new_partition (int *i);
 static void xbsd_list_types (void);
 static u_short xbsd_dkcksum (struct xbsd_disklabel *lp);
-static int xbsd_initlabel  (struct partition *p, struct xbsd_disklabel *d,
-			    int pindex);
+static int xbsd_initlabel  (struct partition *p, struct xbsd_disklabel *d);
 static int xbsd_readlabel  (struct partition *p, struct xbsd_disklabel *d);
 static int xbsd_writelabel (struct partition *p, struct xbsd_disklabel *d);
 
@@ -885,7 +884,7 @@ static int xbsd_part_index;
 
 #if defined (__alpha__)
 /* We access this through a uint64_t * when checksumming */
-static char disklabelbuffer[BSD_BBSIZE] __attribute__((aligned(8)));
+static char disklabelbuffer[BSD_BBSIZE] ATTRIBUTE_ALIGNED(8);
 #else
 static char disklabelbuffer[BSD_BBSIZE];
 #endif
@@ -1223,9 +1222,9 @@ xbsd_create_disklabel (void) {
 			if (xbsd_initlabel (
 #if defined (__alpha__) || defined (__powerpc__) || defined (__hppa__) || \
     defined (__s390__) || defined (__s390x__)
-				NULL, &xbsd_dlabel, 0
+				NULL, &xbsd_dlabel
 #else
-				xbsd_part, &xbsd_dlabel, xbsd_part_index
+				xbsd_part, &xbsd_dlabel/* not used, xbsd_part_index*/
 #endif
 				) == 1) {
 				xbsd_print_disklabel (1);
@@ -1454,7 +1453,7 @@ xbsd_dkcksum (struct xbsd_disklabel *lp) {
 }
 
 static int
-xbsd_initlabel (struct partition *p, struct xbsd_disklabel *d, int pindex) {
+xbsd_initlabel (struct partition *p, struct xbsd_disklabel *d) {
 	struct xbsd_partition *pp;
 
 	get_geometry ();
