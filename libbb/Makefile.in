@@ -44,7 +44,7 @@ LIBBB-$(CONFIG_SULOGIN)+= pw_encrypt.c
 LIBBB-$(CONFIG_FEATURE_HTTPD_AUTH_MD5)+= pw_encrypt.c
 LIBBB-$(CONFIG_VLOCK)+= correct_password.c
 LIBBB-$(CONFIG_SU)+= correct_password.c
-LIBBB-$(CONFIG_CONFIG_LOGIN)+= correct_password.c
+LIBBB-$(CONFIG_LOGIN)+= correct_password.c
 
 
 LIBBB-y:=$(patsubst %,$(srcdir)/%,$(LIBBB-y))
