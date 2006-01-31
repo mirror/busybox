@@ -233,20 +233,20 @@ struct variables {
 /* globals, connect us to the outside world
  * the first three support $?, $#, and $1 */
 static char **global_argv;
-static unsigned int global_argc;
-static unsigned int last_return_code;
+static int global_argc;
+static int last_return_code;
 extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 
 /* "globals" within this file */
 static char *ifs;
-static char map[256];
+static unsigned char map[256];
 static int fake_mode;
 static int interactive;
 static struct close_me *close_me_head;
 static const char *cwd;
 static struct pipe *job_list;
 static unsigned int last_bg_pid;
-static unsigned int last_jobid;
+static int last_jobid;
 static unsigned int shell_terminal;
 static char *PS1;
 static char *PS2;
@@ -305,7 +305,7 @@ static void debug_printf(const char *format, ...)
 	va_end(args);
 }
 #else
-static inline void debug_printf(const char *format, ...) { }
+static inline void debug_printf(const char *format ATTRIBUTE_UNUSED, ...) { }
 #endif
 #define final_printf debug_printf
 
@@ -472,7 +472,7 @@ static int builtin_cd(struct child_prog *child)
 }
 
 /* built-in 'env' handler */
-static int builtin_env(struct child_prog *dummy)
+static int builtin_env(struct child_prog *dummy ATTRIBUTE_UNUSED)
 {
 	char **e = environ;
 	if (e == NULL) return EXIT_FAILURE;
@@ -604,7 +604,7 @@ static int builtin_fg_bg(struct child_prog *child)
 }
 
 /* built-in 'help' handler */
-static int builtin_help(struct child_prog *dummy)
+static int builtin_help(struct child_prog *dummy ATTRIBUTE_UNUSED)
 {
 	const struct built_in_command *x;
 
@@ -620,7 +620,7 @@ static int builtin_help(struct child_prog *dummy)
 }
 
 /* built-in 'jobs' handler */
-static int builtin_jobs(struct child_prog *child)
+static int builtin_jobs(struct child_prog *child ATTRIBUTE_UNUSED)
 {
 	struct pipe *job;
 	char *status_string;
@@ -638,7 +638,7 @@ static int builtin_jobs(struct child_prog *child)
 
 
 /* built-in 'pwd' handler */
-static int builtin_pwd(struct child_prog *dummy)
+static int builtin_pwd(struct child_prog *dummy ATTRIBUTE_UNUSED)
 {
 	puts(set_cwd());
 	return EXIT_SUCCESS;
@@ -2457,7 +2457,7 @@ int parse_string(o_string *dest, struct p_context *ctx, const char *src)
 int parse_stream(o_string *dest, struct p_context *ctx,
 	struct in_str *input, int end_trigger)
 {
-	unsigned int ch, m;
+	int ch, m;
 	int redir_fd;
 	redir_type redir_style;
 	int next;
@@ -2616,8 +2616,8 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 
 static void mapset(const char *set, int code)
 {
-	const char *s;
-	for (s=set; *s; s++) map[(int)*s] = code;
+	const unsigned char *s;
+	for (s = (const unsigned char *)set; *s; s++) map[(int)*s] = code;
 }
 
 static void update_ifs_map(void)
