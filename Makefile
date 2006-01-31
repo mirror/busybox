@@ -184,15 +184,21 @@ randconfig: scripts/config/conf
 
 allyesconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|FEATURE_DEVFS|BUILD_AT_ONCE))=.*/# \1 is not set/" .config
+	sed -i -r -e "s/^(USING_CROSS_COMPILER)=.*/# \1 is not set/" .config
 	echo "CONFIG_FEATURE_SHARED_BUSYBOX=y" >> .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 allnoconfig: scripts/config/conf
 	@./scripts/config/conf -n $(CONFIG_CONFIG_IN)
 
+#defconfig: scripts/config/conf
+#	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
+
 defconfig: scripts/config/conf
-	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
+	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
+	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|FEATURE_DEVFS|BUILD_AT_ONCE|BUILD_LIBBUSYBOX|FEATURE_FULL_LIBBUSYBOX|FEATURE_SHARED_BUSYBOX))=.*/# \1 is not set/" .config
+	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
+
 
 allbareconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
