@@ -26,9 +26,9 @@
 #include <unistd.h>
 #include "busybox.h"
 
-static int copy_lines(FILE *src_stream, FILE *dest_stream, const unsigned int lines_count)
+static unsigned int copy_lines(FILE *src_stream, FILE *dest_stream, const unsigned int lines_count)
 {
-	int i = 0;
+	unsigned int i = 0;
 
 	while (src_stream && (i < lines_count)) {
 		char *line;
@@ -52,7 +52,7 @@ static int copy_lines(FILE *src_stream, FILE *dest_stream, const unsigned int li
  * returns malloc'ed filename
  */
 
-static char *extract_filename(char *line, unsigned short patch_level)
+static char *extract_filename(char *line, int patch_level)
 {
 	char *filename_start_ptr = line + 4;
 	int i;
@@ -90,7 +90,7 @@ static int file_doesnt_exist(const char *filename)
 
 extern int patch_main(int argc, char **argv)
 {
-	unsigned int patch_level = -1;
+	int patch_level = -1;
 	char *patch_line;
 	int ret;
 	FILE *patch_file = NULL;
