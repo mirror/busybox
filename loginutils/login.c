@@ -466,9 +466,11 @@ static void checkutmp(int picky)
 
 static void setutmp(const char *name, const char *line ATTRIBUTE_UNUSED)
 {
+	time_t t_tmp = (time_t)utent.ut_time;
+	
 	utent.ut_type = USER_PROCESS;
 	strncpy(utent.ut_user, name, sizeof utent.ut_user);
-	time((time_t*)&utent.ut_time);
+	time(&t_tmp);
 	/* other fields already filled in by checkutmp above */
 	setutent();
 	pututline(&utent);
