@@ -185,7 +185,8 @@ static void loop_forever(void)
 /* Print a message to the specified device.
  * Device may be bitwise-or'd from LOG | CONSOLE */
 #ifndef DEBUG_INIT
-static inline void messageD(int device, const char *fmt, ...)
+static inline void messageD(int ATTRIBUTE_UNUSED device, 
+				const char ATTRIBUTE_UNUSED *fmt, ...)
 {
 }
 #else
@@ -689,7 +690,7 @@ static void shutdown_system(void)
 	sync();
 }
 
-static void exec_signal(int sig)
+static void exec_signal(int sig ATTRIBUTE_UNUSED)
 {
 	struct init_action *a, *tmp;
 	sigset_t unblock_signals;
@@ -748,7 +749,7 @@ static void exec_signal(int sig)
 	}
 }
 
-static void halt_signal(int sig)
+static void halt_signal(int sig ATTRIBUTE_UNUSED)
 {
 	shutdown_system();
 	message(CONSOLE | LOG, "The system is halted.");
@@ -765,7 +766,7 @@ static void halt_signal(int sig)
 	loop_forever();
 }
 
-static void reboot_signal(int sig)
+static void reboot_signal(int sig ATTRIBUTE_UNUSED)
 {
 	shutdown_system();
 	message(CONSOLE | LOG, "Please stand by while rebooting the system.");
@@ -779,13 +780,13 @@ static void reboot_signal(int sig)
 	loop_forever();
 }
 
-static void ctrlaltdel_signal(int sig)
+static void ctrlaltdel_signal(int sig ATTRIBUTE_UNUSED)
 {
 	run_actions(CTRLALTDEL);
 }
 
 /* The SIGSTOP & SIGTSTP handler */
-static void stop_handler(int sig)
+static void stop_handler(int sig ATTRIBUTE_UNUSED)
 {
 	int saved_errno = errno;
 
@@ -797,7 +798,7 @@ static void stop_handler(int sig)
 }
 
 /* The SIGCONT handler */
-static void cont_handler(int sig)
+static void cont_handler(int sig ATTRIBUTE_UNUSED)
 {
 	got_cont = 1;
 }
@@ -980,7 +981,7 @@ static void parse_inittab(void)
 }
 
 #ifdef CONFIG_FEATURE_USE_INITTAB
-static void reload_signal(int sig)
+static void reload_signal(int sig ATTRIBUTE_UNUSED)
 {
 	struct init_action *a, *tmp;
 
