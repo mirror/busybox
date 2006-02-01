@@ -648,7 +648,7 @@ static char *process_regex_on_line(char *line, regex_t *pattern) {
 			match_found = 1;
 
 		line2 = insert_highlights(line2, match_structs.rm_so + prev_eo, match_structs.rm_eo + prev_eo);
-		if (match_structs.rm_eo + 11 + prev_eo < strlen(line2))
+		if ((size_t)match_structs.rm_eo + 11 + prev_eo < strlen(line2))
 			strcat(sub_line, line2 + match_structs.rm_eo + 11 + prev_eo);
 
 		prev_eo += match_structs.rm_eo + 11;

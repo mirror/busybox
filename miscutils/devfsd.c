@@ -871,7 +871,7 @@ static void action_permissions (const struct devfsd_notify_struct *info,
 }   /*  End Function action_permissions  */
 
 static void action_modload (const struct devfsd_notify_struct *info,
-			    const struct config_entry_struct *entry)
+			    const struct config_entry_struct *entry ATTRIBUTE_UNUSED)
 /*  [SUMMARY] Load a module.
     <info> The devfs change.
     <entry> The config file entry.
@@ -1705,7 +1705,7 @@ static char get_old_ide_name (unsigned int major, unsigned int minor)
 			i==IDE6_MAJOR || i==IDE7_MAJOR || i==IDE8_MAJOR ||
 			i==IDE9_MAJOR )
 		{
-			if(i==major)
+			if((unsigned int)i==major)
 			{
 				letter=c;
 				break;
@@ -1901,7 +1901,7 @@ static const char *expand_variable (char *buffer, unsigned int length,
 		for (ptr = input; isalnum (ch) || (ch == '_') || (ch == ':');ch = *++ptr)
 			/* VOID */ ;
 		len = ptr - input;
-		if (len >= sizeof tmp)
+		if ((size_t)len >= sizeof tmp)
 			goto expand_variable_out;
 
 		safe_memcpy (tmp, input, len);
@@ -1927,7 +1927,7 @@ static const char *expand_variable (char *buffer, unsigned int length,
 	{
 		/*  Must be simple variable expansion with "${var}"  */
 		len = ptr - input;
-		if (len >= sizeof tmp)
+		if ((size_t)len >= sizeof tmp)
 			goto expand_variable_out;
 
 		safe_memcpy (tmp, input, len);
@@ -1943,7 +1943,7 @@ static const char *expand_variable (char *buffer, unsigned int length,
 	}
 	/*  It's that handy "${var:-word}" expression. Check if var is defined  */
 	len = ptr - input;
-	if (len >= sizeof tmp)
+	if ((size_t)len >= sizeof tmp)
 		goto expand_variable_out;
 
 	safe_memcpy (tmp, input, len);
@@ -1988,7 +1988,7 @@ static const char *expand_variable (char *buffer, unsigned int length,
 	pointer to start of word in "${var:-word}"  */
 	input += 2;
 	len = ptr - input;
-	if (len >= sizeof tmp)
+	if ((size_t)len >= sizeof tmp)
 		goto expand_variable_out;
 
 	safe_memcpy (tmp, input, len);
