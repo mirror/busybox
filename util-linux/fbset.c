@@ -131,7 +131,7 @@ struct fb_var_screeninfo {
 };
 
 
-const static struct cmdoptions_t {
+static const struct cmdoptions_t {
 	const char *name;
 	const unsigned char param_count;
 	const unsigned char code;
