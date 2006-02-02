@@ -250,7 +250,7 @@ config CONFIG_MDEV
 	default n
 	help
 	  mdev is a mini-udev implementation: call it with -s to populate
-	  /dev from /sys, then "echo /sbin/mdev > /sys/kernel/hotplug" to
+	  /dev from /sys, then "echo /sbin/mdev > /proc/sys/kernel/hotplug" to
 	  have it handle hotplug events afterwards.  Device names are taken
 	  from sysfs.
 
@@ -309,6 +309,24 @@ config CONFIG_FEATURE_USE_TERMIOS
 	  will be unable to determine the current screen size, and will be
 	  unable to move the cursor.
 
+config CONFIG_MOUNT
+	bool "mount"
+	default n
+	help
+	  All files and filesystems in Unix are arranged into one big directory
+	  tree.  The 'mount' utility is used to graft a filesystem onto a
+	  particular part of the tree.  A filesystem can either live on a block
+	  device, or it can be accessible over the network, as is the case with
+	  NFS filesystems.  Most people using BusyBox will also want to enable
+	  the 'mount' utility.
+
+config CONFIG_FEATURE_MOUNT_NFS
+	bool "  Support mounting NFS file systems"
+	default n
+	depends on CONFIG_MOUNT
+	help
+	 Enable mounting of NFS file systems.
+
 config CONFIG_PIVOT_ROOT
 	bool "pivot_root"
 	default n
@@ -320,25 +338,6 @@ config CONFIG_PIVOT_ROOT
 
 	  Note: This is for initrd in linux 2.4.  Under initramfs (introduced
 	  in linux 2.6) use switch_root instead.
-
-config CONFIG_SWITCH_ROOT
-	bool "switch_root"
-	default n
-	help
-	  The switch_root utility is used from initramfs to select a new
-	  root device.  Under initramfs, you have to use this instead of
-	  pivot_root.  (Stop reading here if you don't care why.)
-
-	  Booting with initramfs extracts a gzipped cpio archive into rootfs
-	  (which is a variant of ramfs/tmpfs).  Because rootfs can't be moved
-	  or unmounted*, pivot_root will not work from initramfs.  Instead,
-	  switch_root deletes everything out of rootfs (including itself),
-	  does a mount --move that overmounts rootfs with the new root, and
-	  then execs the specified init program.
-
-	  * Because the Linux kernel uses rootfs internally as the starting
-	  and ending point for searching through the kernel's doubly linked
-	  list of active mount points.  That's why.
 
 config CONFIG_RDATE
 	bool "rdate"
@@ -366,23 +365,24 @@ config CONFIG_SWAPONOFF
 	  space.  If you are not using any swap space, you can leave this
 	  option disabled.
 
-config CONFIG_MOUNT
-	bool "mount"
+config CONFIG_SWITCH_ROOT
+	bool "switch_root"
 	default n
 	help
-	  All files and filesystems in Unix are arranged into one big directory
-	  tree.  The 'mount' utility is used to graft a filesystem onto a
-	  particular part of the tree.  A filesystem can either live on a block
-	  device, or it can be accessible over the network, as is the case with
-	  NFS filesystems.  Most people using BusyBox will also want to enable
-	  the 'mount' utility.
+	  The switch_root utility is used from initramfs to select a new
+	  root device.  Under initramfs, you have to use this instead of
+	  pivot_root.  (Stop reading here if you don't care why.)
 
-config CONFIG_FEATURE_MOUNT_NFS
-	bool "  Support mounting NFS file systems"
-	default n
-	depends on CONFIG_MOUNT
-	help
-	 Enable mounting of NFS file systems.
+	  Booting with initramfs extracts a gzipped cpio archive into rootfs
+	  (which is a variant of ramfs/tmpfs).  Because rootfs can't be moved
+	  or unmounted*, pivot_root will not work from initramfs.  Instead,
+	  switch_root deletes everything out of rootfs (including itself),
+	  does a mount --move that overmounts rootfs with the new root, and
+	  then execs the specified init program.
+
+	  * Because the Linux kernel uses rootfs internally as the starting
+	  and ending point for searching through the kernel's doubly linked
+	  list of active mount points.  That's why.
 
 config CONFIG_UMOUNT
 	bool "umount"
