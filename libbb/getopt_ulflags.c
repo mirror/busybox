@@ -182,6 +182,10 @@ Special characters:
  "-N"   A dash as the first char in a bb_opt_complementally group with
 	number 0-9 as one char is means check minimal arguments required.
 
+ "V-"   A option with dash before colon or end line indicate: call
+	bb_show_usage if this option give, for example verbose
+	usage option.
+
  "--"   A double dash between two options, or between an option and a group
 	of options, means that they are mutually exclusive.  Unlike
 	the "-" case above, an error will be forced if the options
@@ -385,6 +389,12 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 		}
 		if(c == ':' || c == '\0') {
 			requires |= on_off->switch_on;
+			continue;
+		}
+		if(c == '-' && (s[2] == ':' || s[2] == '\0')) {
+			flags |= on_off->switch_on;
+			on_off->incongruously |= on_off->switch_on;
+			s++;
 			continue;
 		}
 		if(c == *s) {

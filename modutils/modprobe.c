@@ -55,7 +55,30 @@ struct mod_list_t {	/* two-way list of modules to process */
 
 
 static struct dep_t *depend;
-static int autoclean, show_only, quiet, do_syslog, verbose;
+
+#define main_options "acdklnqrst:vVC:"
+#define INSERT_ALL     1        /* a */
+#define DUMP_CONF_EXIT 2        /* c */
+#define D_OPT_IGNORED  4        /* d */
+#define AUTOCLEAN_FLG  8        /* k */
+#define LIST_ALL       16       /* l */
+#define SHOW_ONLY      32       /* n */
+#define QUIET          64       /* q */
+#define REMOVE_OPT     128      /* r */
+#define DO_SYSLOG      256      /* s */
+#define RESTRICT_DIR   512      /* t */
+#define VERBOSE        1024     /* v */
+#define VERSION_ONLY   2048     /* V */
+#define CONFIG_FILE    4096     /* C */
+
+#define autoclean       (main_opts & AUTOCLEAN_FLG)
+#define show_only       (main_opts & SHOW_ONLY)
+#define quiet           (main_opts & QUIET)
+#define remove_opt      (main_opts & REMOVE_OPT)
+#define do_syslog       (main_opts & DO_SYSLOG)
+#define verbose         (main_opts & VERBOSE)
+
+static int main_opts;
 
 static int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
 {
@@ -234,8 +257,8 @@ static char *parse_command_string( char *src, char **dst )
 	if( opt_status & ( ARG_IN_DQUOTES | ARG_IN_SQUOTES ) ) {
 		bb_error_msg_and_die( "unterminated (single or double) quote in options list: %s", src );
 	}
-	*tmp_str = '\0';
-	*dst = xrealloc( *dst, strlen( *dst ) );
+	*tmp_str++ = '\0';
+	*dst = xrealloc( *dst, (tmp_str - *dst ) );
 	return src;
 }
 #else
@@ -254,7 +277,7 @@ static struct dep_t *build_dep ( void )
 	struct dep_t *first = 0;
 	struct dep_t *current = 0;
 	char buffer[2048];
-	char *filename = buffer;
+	char *filename;
 	int continuation_line = 0;
 	int k_version;
 
@@ -262,17 +285,11 @@ static struct dep_t *build_dep ( void )
 	if ( uname ( &un ))
 		bb_error_msg_and_die("can't determine kernel version");
 
-	// check for buffer overflow in following code
-	if ( bb_strlen ( un.release ) > ( sizeof( buffer ) - 64 )) {
-		return 0;
-	}
 	if (un.release[0] == '2') {
 		k_version = un.release[2] - '0';
 	}
 
-	strcpy ( filename, "/lib/modules/" );
-	strcat ( filename, un.release );
-	strcat ( filename, "/modules.dep" );
+	filename = bb_xasprintf("/lib/modules/%s/modules.dep", un.release );
 
 	if (( fd = open ( filename, O_RDONLY )) < 0 ) {
 
@@ -281,12 +298,13 @@ static struct dep_t *build_dep ( void )
 			return 0;
 		}
 	}
+	free(filename);
 
 	while ( reads ( fd, buffer, sizeof( buffer ))) {
 		int l = bb_strlen ( buffer );
 		char *p = 0;
 
-		while ( isspace ( buffer [l-1] )) {
+		while ( l > 0 && isspace ( buffer [l-1] )) {
 			buffer [l-1] = 0;
 			l--;
 		}
@@ -787,7 +805,7 @@ static int mod_insert ( char *mod, int argc, char **argv )
 static int mod_remove ( char *mod )
 {
 	int rc;
-	static struct mod_list_t rm_a_dummy = { "-a", 0, 0 };
+	static struct mod_list_t rm_a_dummy = { "-a", NULL, NULL, NULL, NULL };
 
 	struct mod_list_t *head = 0;
 	struct mod_list_t *tail = 0;
@@ -807,49 +825,16 @@ static int mod_remove ( char *mod )
 
 extern int modprobe_main(int argc, char** argv)
 {
-	int	opt;
 	int rc = EXIT_SUCCESS;
-	int remove_opt = 0;
+	char *unused;
 
-	autoclean = show_only = quiet = do_syslog = verbose = 0;
-
-	while ((opt = getopt(argc, argv, "acdklnqrst:vVC:")) != -1) {
-		switch(opt) {
-			case 'c': // no config used
-			case 'l': // no pattern matching
+	bb_opt_complementally = "?V-:q-v:v-q";
+	main_opts = bb_getopt_ulflags(argc, argv, "acdklnqrst:vVC:",
+							&unused, &unused);
+	if((main_opts & (DUMP_CONF_EXIT | LIST_ALL)))
 				return EXIT_SUCCESS;
-				break;
-			case 'C': // no config used
-			case 't': // no pattern matching
+	if((main_opts & (RESTRICT_DIR | CONFIG_FILE)))
 				bb_error_msg_and_die("-t and -C not supported");
-
-			case 'a': // ignore
-			case 'd': // ignore
-				break;
-			case 'k':
-				autoclean++;
-				break;
-			case 'n':
-				show_only++;
-				break;
-			case 'q':
-				quiet++; verbose=0;
-				break;
-			case 'r':
-				remove_opt++;
-				break;
-			case 's':
-				do_syslog++;
-				break;
-			case 'v':
-				verbose++; quiet=0;
-				break;
-			case 'V':
-			default:
-				bb_show_usage();
-				break;
-		}
-	}
 
 	depend = build_dep ( );
 
@@ -859,7 +844,7 @@ extern int modprobe_main(int argc, char** argv)
 	if (remove_opt) {
 		do {
 			if (mod_remove ( optind < argc ?
-						bb_xstrdup (argv [optind]) : NULL )) {
+						argv [optind] : NULL )) {
 				bb_error_msg ("failed to remove module %s",
 						argv [optind] );
 				rc = EXIT_FAILURE;
@@ -869,7 +854,7 @@ extern int modprobe_main(int argc, char** argv)
 		if (optind >= argc)
 			bb_error_msg_and_die ( "No module or pattern provided\n" );
 
-		if ( mod_insert ( bb_xstrdup ( argv [optind] ), argc - optind - 1, argv + optind + 1 ))
+		if ( mod_insert ( argv [optind], argc - optind - 1, argv + optind + 1 ))
 			bb_error_msg_and_die ( "failed to load module %s", argv [optind] );
 	}
 
