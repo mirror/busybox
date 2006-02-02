@@ -50,17 +50,19 @@ MCONF_OBJS   = $(patsubst %.c,%.o, $(MCONF_SRC) $(LXD_SRC))
 SHARED_OBJS  = $(patsubst %.c,%.o, $(SHARED_SRC))
 
 conf: $(CONF_OBJS) $(SHARED_OBJS)
-	$(HOSTCC) $(NATIVE_LDFLAGS) $^ -o $@
+	$(SECHO) "  "HOSTCC $@ ; true
+	$(Q)$(HOSTCC) $(NATIVE_LDFLAGS) $^ -o $@
 
 mconf: $(MCONF_OBJS) $(SHARED_OBJS)
-	$(HOSTCC) $(NATIVE_LDFLAGS) $^ -o $@ $(LIBS)
+	$(SECHO) "  "HOSTCC $@ ; true
+	$(Q)$(HOSTCC) $(NATIVE_LDFLAGS) $^ -o $@ $(LIBS)
 
 $(CONF_OBJS): %.o : $(srcdir)/%.c $(SHARED_DEPS)
-	$(HOSTCC) $(HOSTCFLAGS) -I. -c $< -o $@
+	$(compile.h) -I.
 
 $(MCONF_OBJS): %.o : $(srcdir)/%.c $(SHARED_DEPS)
 	@[ -d $(@D) ] || mkdir -v $(@D)
-	$(HOSTCC) $(HOSTCFLAGS) $(HOSTNCURSES) -I. -c $< -o $@
+	$(compile.h) $(HOSTNCURSES) -I.
 
 lkc_defs.h: $(srcdir)/lkc_proto.h
 	@sed < $< > $@ 's/P(\([^,]*\),.*/#define \1 (\*\1_p)/'
@@ -81,21 +83,21 @@ lex.%.c: $(srcdir)/%.l
 else
 
 lex.zconf.o: lex.zconf.c $(SHARED_DEPS)
-	$(HOSTCC) $(HOSTCFLAGS) -I$(srcdir) -c $< -o $@
+	$(compile.h) -I$(srcdir)
 
 lex.zconf.c: $(srcdir)/lex.zconf.c_shipped
-	cp $< $@
+	$(Q)cp $< $@
 
 zconf.tab.c: $(srcdir)/zconf.tab.c_shipped
-	cp $< $@
+	$(Q)cp $< $@
 
 zconf.tab.h: $(srcdir)/zconf.tab.h_shipped
-	cp $< $@
+	$(Q)cp $< $@
 endif
 
 zconf.tab.o: zconf.tab.c lex.zconf.c $(srcdir)/confdata.c $(srcdir)/expr.c \
              $(srcdir)/symbol.c $(srcdir)/menu.c $(SHARED_DEPS)
-	$(HOSTCC) $(HOSTCFLAGS) -I$(srcdir) -I. -c $< -o $@
+	$(compile.h) -I$(srcdir) -I.
 
 .PHONY: ncurses
 

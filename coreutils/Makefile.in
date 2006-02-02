@@ -89,7 +89,7 @@ APPLET_SRC-y+=$(COREUTILS_SRC-y)
 APPLET_SRC-a+=$(COREUTILS_SRC-a)
 
 $(COREUTILS_DIR)$(COREUTILS_AR): $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
+	$(do_ar)
 
 $(COREUTILS_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+	$(compile.c)

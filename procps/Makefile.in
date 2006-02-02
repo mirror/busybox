@@ -29,8 +29,7 @@ APPLET_SRC-y+=$(PROCPS_SRC-y)
 APPLET_SRC-a+=$(PROCPS_SRC-a)
 
 $(PROCPS_DIR)$(PROCPS_AR): $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
+	$(do_ar)
 
 $(PROCPS_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

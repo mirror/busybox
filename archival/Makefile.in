@@ -34,8 +34,7 @@ APPLET_SRC-y+=$(ARCHIVAL_SRC-y)
 APPLET_SRC-a+=$(ARCHIVAL_SRC-a)
 
 $(ARCHIVAL_DIR)$(ARCHIVAL_AR): $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
-	$(AR) $(ARFLAGS) $@ $(^)
+	$(do_ar)
 
 $(ARCHIVAL_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

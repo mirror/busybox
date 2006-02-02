@@ -25,8 +25,7 @@ APPLET_SRC-y+=$(SHELLT_SRC-y)
 APPLET_SRC-a+=$(SHELLT_SRC-a)
 
 $(SHELL_DIR)$(SHELL_AR): $(patsubst %,$(SHELL_DIR)%, $(SHELLT-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(SHELL_DIR)%, $(SHELLT-y))
+	$(do_ar)
 
 $(SHELL_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

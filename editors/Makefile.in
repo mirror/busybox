@@ -31,8 +31,7 @@ ifeq ($(needlibm-y),y)
 endif
 
 $(EDITOR_DIR)$(EDITOR_AR): $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))
+	$(do_ar)
 
 $(EDITOR_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

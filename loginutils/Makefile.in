@@ -42,8 +42,7 @@ ifeq ($(needcrypt-y),y)
 endif
 
 $(LOGINUTILS_DIR)$(LOGINUTILS_AR): $(patsubst %,$(LOGINUTILS_DIR)%, $(LOGINUTILS-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(LOGINUTILS_DIR)%, $(LOGINUTILS-y))
+	$(do_ar)
 
 $(LOGINUTILS_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

@@ -23,8 +23,7 @@ APPLET_SRC-y+=$(FINDUTILS_SRC-y)
 APPLET_SRC-a+=$(FINDUTILS_SRC-a)
 
 $(FINDUTILS_DIR)$(FINDUTILS_AR): $(patsubst %,$(FINDUTILS_DIR)%, $(FINDUTILS-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(FINDUTILS_DIR)%, $(FINDUTILS-y))
+	$(do_ar)
 
 $(FINDUTILS_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

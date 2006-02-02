@@ -24,8 +24,7 @@ APPLET_SRC-y+=$(SYSKLOGD_SRC-y)
 APPLET_SRC-a+=$(SYSKLOGD_SRC-a)
 
 $(SYSKLOGD_DIR)$(SYSKLOGD_AR): $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(SYSKLOGD_DIR)%, $(SYSKLOGD-y))
+	$(do_ar)
 
 $(SYSKLOGD_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

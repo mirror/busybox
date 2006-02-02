@@ -86,8 +86,7 @@ endif
 endif
 
 $(LIBIPROUTE_DIR)/$(LIBIPROUTE_AR): $(patsubst %,$(LIBIPROUTE_DIR)/%,$(LIBIPROUTE-y))
-	$(AR) $(ARFLAGS) $@ $(^)
+	$(do_ar)
 
 $(LIBIPROUTE_DIR)/%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

@@ -967,9 +967,8 @@ int main(int ac, char **av)
 
 	if (stat == 0) {
 		conf_write(NULL);
-		printf("\n\n"
-			"*** End of BusyBox configuration.\n"
-			"*** Check the top-level Makefile for additional configuration options.\n\n");
+		printf("\n"
+			"*** End of BusyBox configuration.\n");
 	} else
 		printf("\n\nYour BusyBox configuration changes were NOT saved.\n\n");
 

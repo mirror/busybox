@@ -45,8 +45,7 @@ endif
 LIBCOREUTILS_OBJS=$(patsubst %,$(LIBCOREUTILS_DIR)/%, $(LIBCOREUTILS-y))
 
 $(LIBCOREUTILS_DIR)/$(LIBCOREUTILS_AR): $(patsubst %,$(LIBCOREUTILS_DIR)/%,$(LIBCOREUTILS-y))
-	$(AR) $(ARFLAGS) $(@) $(^)
+	$(do_ar)
 
 $(LIBCOREUTILS_DIR)/%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

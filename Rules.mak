@@ -121,16 +121,6 @@ check_ld=$(shell \
 		$(LD) --help | grep -q "\$(1)" && echo "-Wl,$(1)" ; \
 	fi)
 
-
-# Setup some shortcuts so that silent mode is silent like it should be
-ifeq ($(subst s,,$(MAKEFLAGS)),$(MAKEFLAGS))
-export MAKE_IS_SILENT=n
-SECHO=@echo
-else
-export MAKE_IS_SILENT=y
-SECHO=-@false
-endif
-
 CFLAGS+=$(call check_gcc,-funsigned-char,)
 
 CFLAGS+=$(call check_gcc,-mmax-stack-frame=256,)
@@ -261,5 +251,60 @@ endif
 ifeq ($(strip $(CONFIG_INSTALL_APPLET_DONT)),y)
 INSTALL_OPTS=
 endif
+
+#------------------------------------------------------------
+# Make the output nice and tight
+MAKEFLAGS += --no-print-directory
+export MAKE_IS_SILENT=n
+ifneq ($(findstring s,$(MAKEFLAGS)),)
+export MAKE_IS_SILENT=y
+SECHO := @-false
+DISP  := sil
+Q     := @
+else
+ifneq ($(V)$(VERBOSE),)
+SECHO := @-false
+DISP  := ver
+Q     := 
+else
+SECHO := @echo
+DISP  := pur
+Q     := @
+endif
+endif
+
+show_objs = $(subst $(top_builddir)/,,$(subst ../,,$@))
+pur_disp_compile.c = echo "  "CC $(show_objs)
+pur_disp_compile.h = echo "  "HOSTCC $(show_objs)
+pur_disp_strip     = echo "  "STRIP $(show_objs)
+pur_disp_link      = echo "  "LINK $(show_objs)
+pur_disp_ar        = echo "  "AR $(ARFLAGS) $(show_objs)
+sil_disp_compile.c = true
+sil_disp_compile.h = true
+sil_disp_strip     = true
+sil_disp_link      = true
+sil_disp_ar        = true
+ver_disp_compile.c = echo $(cmd_compile.c)
+ver_disp_compile.h = echo $(cmd_compile.h)
+ver_disp_strip     = echo $(cmd_strip)
+ver_disp_link      = echo $(cmd_link)
+ver_disp_ar        = echo $(cmd_ar)
+disp_compile.c     = $($(DISP)_disp_compile.c)
+disp_compile.h     = $($(DISP)_disp_compile.h)
+disp_strip         = $($(DISP)_disp_strip)
+disp_link          = $($(DISP)_disp_link)
+disp_ar            = $($(DISP)_disp_ar)
+disp_gen           = $(SECHO) "  "GEN $@ ; true
+disp_doc           = $(SECHO) "  "DOC $(subst docs/,,$@) ; true
+cmd_compile.c      = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+cmd_compile.h      = $(HOSTCC) $(HOSTCFLAGS) -c -o $@ $<
+cmd_strip          = $(STRIPCMD) $@
+cmd_link           = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS)
+cmd_ar             = $(AR) $(ARFLAGS) $@ $^
+compile.c          = @$(disp_compile.c) ; $(cmd_compile.c)
+compile.h          = @$(disp_compile.h) ; $(cmd_compile.h)
+do_strip           = @$(disp_strip)     ; $(cmd_strip)
+do_link            = @$(disp_link)      ; $(cmd_link)
+do_ar              = @$(disp_ar)        ; $(cmd_ar)
 
 .PHONY: dummy

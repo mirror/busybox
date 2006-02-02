@@ -79,8 +79,7 @@ LIBRARY_SRC-y+=$(LIBUNARCHIVE_SRC-y)
 LIBRARY_SRC-a+=$(LIBUNARCHIVE_SRC-a)
 
 $(LIBUNARCHIVE_DIR)/$(LIBUNARCHIVE_AR): $(patsubst %,$(LIBUNARCHIVE_DIR)/%,$(LIBUNARCHIVE-y))
-	$(AR) $(ARFLAGS) $(@) $(^)
+	$(do_ar)
 
 $(LIBUNARCHIVE_DIR)/%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

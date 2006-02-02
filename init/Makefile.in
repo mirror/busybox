@@ -47,8 +47,7 @@ APPLET_SRC-y+=$(INIT_SRC-y)
 APPLET_SRC-a+=$(INIT_SRC-a)
 
 $(INIT_DIR)$(INIT_AR): $(patsubst %,$(INIT_DIR)%, $(INIT-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(INIT_DIR)%, $(INIT-y))
+	$(do_ar)
 
 $(INIT_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

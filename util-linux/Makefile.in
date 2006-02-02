@@ -46,10 +46,10 @@ APPLET_SRC-y+=$(UTILLINUX_SRC-y)
 APPLET_SRC-a+=$(UTILLINUX_SRC-a)
 
 $(UTILLINUX_DIR)$(UTILLINUX_AR): $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(UTILLINUX_DIR)%, $(UTILLINUX-y))
+	$(do_ar)
 
 $(UTILLINUX_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+	$(compile.c)
 
 ifneq ($(strip $(CONFIG_LFS)),y)
 ifeq ($(strip $(FDISK_SUPPORT_LARGE_DISKS)),y)

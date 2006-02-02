@@ -24,8 +24,7 @@ APPLET_SRC-y+=$(MODUTILS_SRC-y)
 APPLET_SRC-a+=$(MODUTILS_SRC-a)
 
 $(MODUTILS_DIR)$(MODUTILS_AR): $(patsubst %,$(MODUTILS_DIR)%, $(MODUTILS-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(MODUTILS_DIR)%, $(MODUTILS-y))
+	$(do_ar)
 
 $(MODUTILS_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

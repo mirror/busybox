@@ -19,9 +19,8 @@ APPLET_SRC-a+=$(APPLET_SRC)
 libraries-y+=$(APPLETS_DIR)$(APPLETS_AR)
 
 $(APPLETS_DIR)$(APPLETS_AR): $(APPLET_OBJ)
-	$(AR) $(ARFLAGS) $@ $(APPLET_OBJ)
+	$(do_ar)
 
 $(APPLET_OBJ): $(top_builddir)/.config 
 $(APPLET_OBJ): $(APPLETS_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

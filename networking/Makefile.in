@@ -62,7 +62,7 @@ ifeq ($(needcrypt-y),y)
 endif
 
 $(NETWORKING_DIR)$(NETWORKING_AR): $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
+	$(do_ar)
 
 $(NETWORKING_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+	$(compile.c)

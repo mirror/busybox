@@ -25,8 +25,7 @@ APPLET_SRC-y+=$(DEBIANUTILS_SRC-y)
 APPLET_SRC-a+=$(DEBIANUTILS_SRC-a)
 
 $(DEBIANUTILS_DIR)$(DEBIANUTILS_AR): $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))
+	$(do_ar)
 
 $(DEBIANUTILS_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

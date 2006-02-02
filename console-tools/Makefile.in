@@ -29,8 +29,7 @@ APPLET_SRC-y+=$(CONSOLETOOLS_SRC-y)
 APPLET_SRC-a+=$(CONSOLETOOLS_SRC-a)
 
 $(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR): $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS-y))
-	$(AR) $(ARFLAGS) $@ $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS-y))
+	$(do_ar)
 
 $(CONSOLETOOLS_DIR)%.o: $(srcdir)/%.c
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c)

@@ -44,12 +44,10 @@ LIBRARY_DEFINE-a+=$(LIBPWDGRP_DEFINE0-y) $(LIBPWDGRP_DEFINE1-y)
 
 
 $(LIBPWDGRP_DIR)/$(LIBPWDGRP_AR): $(LIBPWDGRP_MOBJS0) $(LIBPWDGRP_MOBJS1)
-	$(AR) $(ARFLAGS) $(@) $(^)
+	$(do_ar)
 
 $(LIBPWDGRP_MOBJS0): $(LIBPWDGRP_MSRC0)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
+	$(compile.c) -DL_$(notdir $*)
 
 $(LIBPWDGRP_MOBJS1): $(LIBPWDGRP_MSRC1)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -DL_$(notdir $*) -c $< -o $@
-
-
+	$(compile.c) -DL_$(notdir $*)

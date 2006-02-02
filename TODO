@@ -2,6 +2,9 @@ Busybox TODO
 
 Stuff that needs to be done.  All of this is fair game for 1.2.
 
+build system
+  make -j is broken, -j1 is forced atm
+----
 find
   doesn't understand (), lots of susv3 stuff.
 ----

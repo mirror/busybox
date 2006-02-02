@@ -76,7 +76,7 @@ $(if $(wildcard $(KBUILD_OUTPUT)),, \
 .PHONY: $(MAKECMDGOALS)
 
 $(filter-out _all,$(MAKECMDGOALS)) _all: $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUTPUT)/Makefile all_tree
-	$(MAKE) -C $(KBUILD_OUTPUT) \
+	$(Q)$(MAKE) -C $(KBUILD_OUTPUT) \
 	top_srcdir=$(top_srcdir) \
 	top_builddir=$(top_builddir) \
 	KBUILD_SRC=$(top_srcdir) \
@@ -159,13 +159,13 @@ all: menuconfig
 # ---------------------------------------------------------------------------
 
 scripts/config/conf: scripts/config/Makefile
-	$(MAKE) -C scripts/config conf
+	$(Q)$(MAKE) -C scripts/config conf
 	-@if [ ! -f .config ] ; then \
 		cp $(CONFIG_DEFCONFIG) .config; \
 	fi
 
 scripts/config/mconf: scripts/config/Makefile
-	$(MAKE) -C scripts/config ncurses conf mconf
+	$(Q)$(MAKE) -C scripts/config ncurses conf mconf
 	-@if [ ! -f .config ] ; then \
 		cp $(CONFIG_DEFCONFIG) .config; \
 	fi
@@ -280,8 +280,7 @@ $(LIBBUSYBOX_SONAME):
 ifndef MAJOR_VERSION
 	$(error MAJOR_VERSION needed for $@ is not defined)
 endif
-	$(CC) $(CFLAGS) $(LIB_CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) \
-	$(LIB_LDFLAGS) \
+	$(do_link) $(LIB_CFLAGS) $(LIB_LDFLAGS) \
 	-Wl,-soname=$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
 	-Wl,-z,combreloc $(LIB_LDFLAGS) \
 	-o $(@) \
@@ -290,21 +289,21 @@ endif
 	-Wl,--no-whole-archive -Wl,--end-group
 	$(RM_F) $(DO_INSTALL_LIBS)
 	for i in $(DO_INSTALL_LIBS); do $(LN_S) -v $(@) $$i ; done
-	$(STRIPCMD) $@
+	$(do_strip)
 
 endif # ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 
 busybox: .depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(libraries-y)
-	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(PROG_CFLAGS) $(LDFLAGS)  \
+	$(do_link) $(PROG_CFLAGS) \
 	-o $@ -Wl,--start-group  \
 	$(APPLETS_DEFINE) $(APPLET_SRC) \
 	$(BUSYBOX_DEFINE) $(BUSYBOX_SRC) $(libraries-y) \
 	$(LDBUSYBOX) $(LIBRARIES) \
 	-Wl,--end-group
-	$(STRIPCMD) $@
+	$(do_strip)
 
 busybox.links: $(top_srcdir)/applets/busybox.mkll include/bb_config.h $(top_srcdir)/include/applets.h
-	- $(SHELL) $^ >$@
+	$(Q)-$(SHELL) $^ >$@
 
 install: $(top_srcdir)/applets/install.sh busybox busybox.links
 	DO_INSTALL_LIBS="$(strip $(LIBBUSYBOX_SONAME) $(DO_INSTALL_LIBS))" \
@@ -354,33 +353,34 @@ sizes:
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
 docs/busybox.pod : $(top_srcdir)/docs/busybox_header.pod $(top_srcdir)/include/usage.h $(top_srcdir)/docs/busybox_footer.pod
-	-mkdir -p docs
-	- ( cat $(top_srcdir)/docs/busybox_header.pod; \
+	$(disp_doc)
+	$(Q)-mkdir -p docs
+	$(Q)-( cat $(top_srcdir)/docs/busybox_header.pod; \
 	    $(top_srcdir)/docs/autodocifier.pl $(top_srcdir)/include/usage.h; \
 	    cat $(top_srcdir)/docs/busybox_footer.pod ) > docs/busybox.pod
 
 docs/BusyBox.txt: docs/busybox.pod
-	$(SECHO)
-	$(SECHO) BusyBox Documentation
-	$(SECHO)
-	-mkdir -p docs
-	-pod2text $< > $@
+	$(disp_doc)
+	$(Q)-mkdir -p docs
+	$(Q)-pod2text $< > $@
 
 docs/BusyBox.1: docs/busybox.pod
-	- mkdir -p docs
-	- pod2man --center=BusyBox --release="version $(VERSION)" \
+	$(disp_doc)
+	$(Q)-mkdir -p docs
+	$(Q)-pod2man --center=BusyBox --release="version $(VERSION)" \
 		$< > $@
 
 docs/BusyBox.html: docs/busybox.net/BusyBox.html
-	- mkdir -p docs
-	-@ $(RM_F) docs/BusyBox.html
-	-@ cp docs/busybox.net/BusyBox.html docs/BusyBox.html
+	$(disp_doc)
+	$(Q)-mkdir -p docs
+	$(Q)-$(RM_F) docs/BusyBox.html
+	$(Q)-cp docs/busybox.net/BusyBox.html docs/BusyBox.html
 
 docs/busybox.net/BusyBox.html: docs/busybox.pod
-	-@ mkdir -p docs/busybox.net
-	-  pod2html --noindex $< > \
+	$(Q)-mkdir -p docs/busybox.net
+	$(Q)-pod2html --noindex $< > \
 	    docs/busybox.net/BusyBox.html
-	-@ $(RM_F) pod2htm*
+	$(Q)-$(RM_F) pod2htm*
 
 # The nifty new buildsystem stuff
 scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
@@ -392,16 +392,18 @@ ifeq ($(strip $(CONFIG_BBCONFIG)),y)
 DEP_INCLUDES += include/bbconfigopts.h
 
 include/bbconfigopts.h: .config
-	$(top_srcdir)/scripts/config/mkconfigs > $@
+	$(disp_gen)
+	$(Q)$(top_srcdir)/scripts/config/mkconfigs > $@
 endif
 
 depend dep: .depend
 .depend: scripts/bb_mkdep $(DEP_INCLUDES)
-	@$(RM_F) .depend
-	@mkdir -p include/config
-	scripts/bb_mkdep -c include/config.h -c include/bb_config.h \
+	$(disp_gen)
+	$(Q)$(RM_F) .depend
+	$(Q)mkdir -p include/config
+	$(Q)scripts/bb_mkdep -c include/config.h -c include/bb_config.h \
 			-I $(top_srcdir)/include $(top_srcdir) > $@.tmp
-	mv $@.tmp $@
+	$(Q)mv $@.tmp $@
 
 include/config.h: .config
 	@if [ ! -x $(top_builddir)/scripts/config/conf ] ; then \
@@ -423,7 +425,8 @@ include/bb_config.h: include/config.h
 #define USAGE_HAVE_DOT_CONFIG(a)
 #endif
 include/_usage.h: .config
-	awk '/CONFIG|BB_APPLET/{gsub("#[[:space:]]*|=y|.*CONFIG_|.*BB_APPLET_","");if(!/=/){print("#if ENABLE_"$$1"\n#define USAGE_"$$1"(a) a\n#else\n#define USAGE_"$$1"(a)\n#endif");}}' $(<) > $(@)
+	$(disp_gen)
+	$(Q)awk '/CONFIG|BB_APPLET/{gsub("#[[:space:]]*|=y|.*CONFIG_|.*BB_APPLET_","");if(!/=/){print("#if ENABLE_"$$1"\n#define USAGE_"$$1"(a) a\n#else\n#define USAGE_"$$1"(a)\n#endif");}}' $(<) > $(@)
 
 clean:
 	- $(MAKE) -C scripts/config $@
