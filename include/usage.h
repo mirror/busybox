@@ -1880,7 +1880,7 @@
 #define mdev_trivial_usage \
 	"[-s]"
 #define mdev_full_usage \
-	"\ts\tScan /sys and populate /dev during system boot\n\n" \
+	"\t-s\tScan /sys and populate /dev during system boot\n\n" \
 	"Called with no options (via hotplug) it uses environment variables\n" \
 	"to determine which device to add/remove."
 #ifdef CONFIG_FEATURE_MDEV_CONFIG
