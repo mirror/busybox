@@ -170,15 +170,13 @@ end:
 static void find_dev(char *path)
 {
 	DIR *dir;
-	int len=strlen(path);
+	size_t len=strlen(path);
+	struct dirent *entry;
 
-	if (!(dir = opendir(path)))
-		bb_perror_msg_and_die("No %s",path);
+	if ((dir = opendir(path)) == NULL)
+		return;
 
-	for (;;) {
-		struct dirent *entry = readdir(dir);
-
-		if (!entry) break;
+	while ((entry = readdir(dir)) != NULL) {
 
 		/* Skip "." and ".." (also skips hidden files, which is ok) */
 
@@ -187,7 +185,6 @@ static void find_dev(char *path)
 		if (entry->d_type == DT_DIR) {
 			snprintf(path+len, PATH_MAX-len, "/%s", entry->d_name);
 			find_dev(path);
-			path[len] = 0;
 		}
 
 		/* If there's a dev entry, mknod it */
