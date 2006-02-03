@@ -42,8 +42,8 @@ static void make_device(char *path)
 	snprintf(temp, PATH_MAX, "%s/dev", path);
 	fd = open(temp, O_RDONLY);
 	len = read(fd, temp, PATH_MAX-1);
-	if (len<1) goto end;
 	close(fd);
+	if (len<1) goto end;
 
 	/* Determine device name, type, major and minor */
 
