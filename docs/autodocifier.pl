@@ -150,7 +150,21 @@ foreach (@ARGV) {
 # generate structured documentation
 
 my $generator = \&pod_for_usage;
-foreach my $applet (sort keys %docs) {
+
+my @names = sort keys %docs;
+print "\t[, [[, ";
+for (my $i = 0; $i < $#names; $i++) {
+	if (($i + 2) % 8 == 0) {
+		print "\n\t";
+	}
+	print "$names[$i], ";
+}
+print $names[-1];
+
+print "\n\n=head1 COMMAND DESCRIPTIONS\n";
+print "\n=over 4\n\n";
+
+foreach my $applet (@names) {
 	print $generator->($applet, $docs{$applet});
 }
 
