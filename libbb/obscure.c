@@ -163,7 +163,7 @@ password_check(const char *old, const char *newval, const struct passwd *pwdp)
 		msg = "too similiar";
 
 	else if ( strstr(newval, pwdp->pw_name) )
-		msg = "don't use something like your username as password";
+		msg = "username in password";
 
 	else {
 		safe_strncpy(wrapped + lenwrap, wrapped, lenwrap + 1);
