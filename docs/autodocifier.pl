@@ -51,10 +51,14 @@ sub pod_for_usage {
 
 	# make options bold
 	my $trivial = $usage->{trivial};
-	$trivial =~ s/(?<!\w)(-\w+)/B<$1>/sxg;
+	if (!defined $usage->{trivial}) {
+		$trivial = "";
+	} else {
+		$trivial =~ s/(?<!\w)(-\w+)/B<$1>/sxg;
+	}
 	my @f0 =
 		map { $_ !~ /^\s/ && s/(?<!\w)(-\w+)/B<$1>/g; $_ }
-		split("\n", $usage->{full});
+		split("\n", (defined $usage->{full} ? $usage->{full} : ""));
 
 	# add "\n" prior to certain lines to make indented
 	# lines look right
@@ -89,7 +93,6 @@ sub pod_for_usage {
 		"$full\n\n"   .
 		"$notes"  .
 		"$example" .
-		"-------------------------------".
 		"\n\n"
 	;
 }
