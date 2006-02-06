@@ -72,9 +72,9 @@
 	"[OPTION]... [program-text] [FILE ...]"
 #define awk_full_usage \
 	"Options:\n" \
-	"\t-v var=val\t\tassign value 'val' to variable 'var'\n" \
+	"\t-v var=val\tassign value 'val' to variable 'var'\n" \
 	"\t-F sep\t\tuse 'sep' as field separator\n" \
-	"\t-f progname\t\tread program source from file 'progname'"
+	"\t-f progname\tread program source from file 'progname'"
 
 #define basename_trivial_usage \
 	"FILE [SUFFIX]"
