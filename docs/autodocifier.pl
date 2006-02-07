@@ -87,6 +87,13 @@ sub pod_for_usage {
 			split("\n", $usage->{example})) . "\n\n"
 		: "";
 
+	# Pad the name so that the applet name gets a line
+	# by itself in BusyBox.txt
+	my $spaces = 10 - length($name);
+	if ($spaces > 0) {
+		$name .= " " x $spaces;
+	}
+
 	return
 		"=item B<$name>".
 		"\n\n$name $trivial\n\n".
