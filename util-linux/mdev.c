@@ -197,6 +197,7 @@ static void find_dev(char *path)
 		if (entry->d_type == DT_DIR) {
 			snprintf(path+len, PATH_MAX-len, "/%s", entry->d_name);
 			find_dev(path);
+			path[len] = 0;
 		}
 
 		/* If there's a dev entry, mknod it */
