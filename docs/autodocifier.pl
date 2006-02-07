@@ -155,14 +155,15 @@ foreach (@ARGV) {
 my $generator = \&pod_for_usage;
 
 my @names = sort keys %docs;
-print "\t[, [[, ";
+my $line = "\t[, [[, ";
 for (my $i = 0; $i < $#names; $i++) {
-	if (($i + 2) % 8 == 0) {
-		print "\n\t";
+	if (length ($line.$names[$i]) >= 65) {
+		print "$line\n\t";
+		$line = "";
 	}
-	print "$names[$i], ";
+	$line .= "$names[$i], ";
 }
-print $names[-1];
+print $line . $names[-1];
 
 print "\n\n=head1 COMMAND DESCRIPTIONS\n";
 print "\n=over 4\n\n";
