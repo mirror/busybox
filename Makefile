@@ -121,10 +121,10 @@ help:
 	@echo
 	@echo 'Configuration:'
 	@echo '  allnoconfig		- disable all symbols in .config'
-	@echo '  allyesconfig		- enable (almost) all symbols in .config'
-	@echo '  allbareconfig		- enable all basics without any features'
+	@echo '  allyesconfig		- enable all symbols in .config (see defconfig)'
+	@echo '  allbareconfig		- enable all applets without any sub-features'
 	@echo '  config		- text based configurator (of last resort)'
-	@echo '  defconfig		- set .config to defaults'
+	@echo '  defconfig		- set .config to largest generic configuration'
 	@echo '  menuconfig		- interactive curses-based configurator'
 	@echo '  oldconfig		- resolve any unresolved symbols in .config'
 	@echo
@@ -191,12 +191,13 @@ allyesconfig: scripts/config/conf
 allnoconfig: scripts/config/conf
 	@./scripts/config/conf -n $(CONFIG_CONFIG_IN)
 
-#defconfig: scripts/config/conf
-#	@./scripts/config/conf -d $(CONFIG_CONFIG_IN)
+# defconfig is allyesconfig minus any features that are specialized enough
+# or cause enough behavior change that the user really should switch them on
+# manually if that's what they want.  Sort of "maximum sane config".
 
 defconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|FEATURE_DEVFS|BUILD_AT_ONCE|BUILD_LIBBUSYBOX|FEATURE_FULL_LIBBUSYBOX|FEATURE_SHARED_BUSYBOX))=.*/# \1 is not set/" .config
+	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP)))=.*/# \1 is not set/" .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 
