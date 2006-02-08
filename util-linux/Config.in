@@ -393,6 +393,13 @@ config CONFIG_UMOUNT
 	  the tool to use.  If you enabled the 'mount' utility, you almost certainly
 	  also want to enable 'umount'.
 
+config CONFIG_FEATURE_UMOUNT_ALL
+	bool "  umount -a option"
+	default n
+	depends on CONFIG_UMOUNT
+	help
+	  Support -a option to unmount all currently mounted filesystems.
+
 comment "Common options for mount/umount"
 	depends on CONFIG_MOUNT || CONFIG_UMOUNT
 

@@ -21,15 +21,14 @@
 #include <getopt.h>
 #include "busybox.h"
 
-#define OPTION_STRING		"flaDnrv"
+#define OPTION_STRING		"flDnrva"
 #define OPT_FORCE			1
 #define OPT_LAZY			2
-#define OPT_ALL				4
-#define OPT_DONTFREELOOP		8
-#define OPT_NO_MTAB			16
-#define OPT_REMOUNT			32
-/* -v is ignored */
-
+#define OPT_DONTFREELOOP	4
+#define OPT_NO_MTAB			8
+#define OPT_REMOUNT			16
+#define OPT_IGNORED			32	// -v is ignored
+#define OPT_ALL				(ENABLE_FEATURE_UMOUNT_ALL ? 64 : 0)
 
 extern int umount_main(int argc, char **argv)
 {
@@ -61,24 +60,25 @@ extern int umount_main(int argc, char **argv)
 	 * umounts the most recent entries first. */
 
 	m=mtl=0;
-	if(!(fp = setmntent(bb_path_mtab_file, "r")))
-		bb_error_msg_and_die("Cannot open %s", bb_path_mtab_file);
-	while (getmntent_r(fp,&me,path,sizeof(path))) {
-		m=xmalloc(sizeof(struct mtab_list));
-		m->next=mtl;
-		m->device=bb_xstrdup(me.mnt_fsname);
-		m->dir=bb_xstrdup(me.mnt_dir);
-		mtl=m;
-	}
-	endmntent(fp);
+	if(opt & OPT_ALL) {
 
-	/* If we're umounting all, then m points to the start of the list and
-	 * the argument list should be empty (which will match all). */
-	if(!(opt & OPT_ALL)) {
-		m=0;
-		if(argc <= 0) bb_show_usage();
-	}
+		/* If we're umounting all, then m points to the start of the list and
+		 * the argument list should be empty (which will match all). */
 
+		if(!(fp = setmntent(bb_path_mtab_file, "r")))
+			bb_error_msg_and_die("Cannot open %s", bb_path_mtab_file);
+		while (getmntent_r(fp,&me,path,sizeof(path))) {
+			m=xmalloc(sizeof(struct mtab_list));
+			m->next=mtl;
+			m->device=bb_xstrdup(me.mnt_fsname);
+			m->dir=bb_xstrdup(me.mnt_dir);
+			mtl=m;
+		}
+		endmntent(fp);
+
+	/* If we're not mounting all, we need at least one argument. */
+	} else if(argc <= 0) bb_show_usage();
+	
 	// Loop through everything we're supposed to umount, and do so.
 	for(;;) {
 		int curstat;
@@ -92,9 +92,10 @@ extern int umount_main(int argc, char **argv)
 		else {
 			// Get next command line argument (and look it up in mtab list)
 			realpath(*argv++, path);
-			for(m = mtl; m; m = m->next)
-				if(!strcmp(path, m->dir) || !strcmp(path, m->device))
-					break;
+			if (ENABLE_FEATURE_MTAB_SUPPORT)
+				for(m = mtl; m; m = m->next)
+					if(!strcmp(path, m->dir) || !strcmp(path, m->device))
+						break;
 		}
 
 		// Let's ask the thing nicely to unmount.
