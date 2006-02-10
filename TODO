@@ -72,6 +72,14 @@ bb_close() with fsync()
   You need to call fsync() if you care about errors that occur after write(),
   but that can have a big performance impact.  So make it a config option.
 ---
+Unify base64 handling.
+  There's base64 encoding and decoding going on in:
+    networking/wget.c:base64enc()
+    coreutils/uudecode.c:read_base64()
+    coreutils/uuencode.c:tbl_base64[]
+    networking/httpd.c:decodeBase64()
+  And probably elsewhere.  That needs to be unified into libbb functions.
+---
 Do a SUSv3 audit
   Look at the full Single Unix Specification version 3 (available online at
   "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and
@@ -150,7 +158,7 @@ buildroot - Make a "dogfood" option
 ---
 initramfs
   Busybox should have a sample initramfs build script.  This depends on
-  involves bbsh, mdev, and switch_root.
+  bbsh, mdev, and switch_root.
 ---
 Memory Allocation
   We have a CONFIG_BUFFER mechanism that lets us select whether to do memory
