@@ -14,8 +14,6 @@ INIT-y:=
 INIT-$(CONFIG_HALT)			+= halt.o
 INIT-$(CONFIG_INIT)			+= init.o
 INIT-$(CONFIG_MESG)			+= mesg.o
-INIT-$(CONFIG_POWEROFF)			+= poweroff.o
-INIT-$(CONFIG_REBOOT)			+= reboot.o
 
 ifeq ($(strip $(CONFIG_HALT)),y)
 CONFIG_INIT_SHARED=y
@@ -23,21 +21,11 @@ else
 ifeq ($(strip $(CONFIG_INIT)),y)
 CONFIG_INIT_SHARED=y
 else
-ifeq ($(strip $(CONFIG_POWEROFF)),y)
-CONFIG_INIT_SHARED=y
-else
-ifeq ($(strip $(CONFIG_REBOOT)),y)
-CONFIG_INIT_SHARED=y
-else
 CONFIG_INIT_SHARED=n
 endif
 endif
-endif
-endif
 
-ifeq ($(strip $(CONFIG_INIT_SHARED)),y)
 INIT-$(CONFIG_INIT_SHARED)        += init_shared.o
-endif
 
 libraries-y+=$(INIT_DIR)$(INIT_AR)
 
