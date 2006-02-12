@@ -16,6 +16,7 @@
   <ul>
     <li><a href="#tips_encrypted_passwords">Encrypted Passwords</a></li>
     <li><a href="#tips_vfork">Fork and vfork</a></li>
+    <li><a href="#tips_short_read">Short reads and writes</a></li>
   </ul>
 </ul>
 
@@ -297,6 +298,39 @@ heap if both of you try to do it at the same time and wind up stomping on
 each other while traversing the free memory lists).  The thing about vfork is
 that it's a big red flag warning "there be dragons here" rather than
 something subtle and thus even more dangerous.)</p>
+
+<h2><a name="tips_sort_read">Short reads and writes</a></h2>
+
+<p>Busybox has special functions, bb_full_read() and bb_full_write(), to
+check that all the data we asked for got read or written.  Is this a real
+world consideration?  Try the following:</p>
+
+<pre>while true; do echo hello; sleep 1; done | tee out.txt</pre>
+
+<p>If tee is implemented with bb_full_read(), tee doesn't display output
+in real time but blocks until its entire input buffer (generally a couple
+kilobytes) is read, then displays it all at once.  In that case, we _want_
+the short read, for user interface reasons.  (Note that read() should never
+return 0 unless it has hit the end of input, and an attempt to write 0
+bytes should be ignored by the OS.)</p>
+
+<p>As for short writes, play around with two processes piping data to each
+other on the command line (cat bigfile | gzip > out.gz) and suspend and
+resume a few times (ctrl-z to suspend, "fg" to resume).  The writer can
+experience short writes, which are especially dangerous because if you don't
+notice them you'll discard data.  They can also happen when a system is under
+load and a fast process is piping to a slower one.  (Such as an xterm waiting
+on x11 when the scheduler decides X is being a CPU hog with all that
+text console scrolling...)</p>
+
+<p>So will data always be read from the far end of a pipe at the
+same chunk sizes it was written in?  Nope.  Don't rely on that.  For one
+counterexample, see <a href="http://www.faqs.org/rfcs/rfc896.html">rfc 896</p>
+for Nagle's algorithm</a>, which waits a fraction of a second or so before
+sending out small amounts of data through a TCP/IP connection in case more
+data comes in that can be merged into the same packet.  (In case you were
+wondering why action games that use TCP/IP set TCP_NODELAY to lower the latency
+on their their sockets, now you know.)</p>
 
 <br>
 <br>
