@@ -1,9 +1,14 @@
 /*
- * Another fast dependencies generator for Makefiles, Version 3.0
+ * Another fast dependencies generator for Makefiles, Version 4.0
  *
- * Copyright (C) 2005 by Vladimir Oleynik <dzo@simtreas.ru>
+ * Copyright (C) 2005,2006 by Vladimir Oleynik <dzo@simtreas.ru>
  *
  * mmaping file may be originally by Linus Torvalds.
+ *
+ * infix parser/evaluator for #if expression
+ *      Copyright (c) 2001 Aaron Lehmann <aaronl@vitelus.com>
+ *      Copyright (c) 2001 Manuel Novoa III <mjn3@codepoet.org>
+ *      Copyright (c) 2003 Vladimir Oleynik <dzo@simtreas.ru>
  *
  * bb_simplify_path()
  *      Copyright (C) 2005 Manuel Novoa III <mjn3@codepoet.org>
@@ -15,7 +20,7 @@
  *      Copyright (C) 2003 Glenn McGrath
  *      Copyright (C) Vladimir Oleynik <dzo@simtreas.ru>
  *
- * (c) 2005 Bernhard Fischer:
+ * (c) 2005,2006 Bernhard Fischer:
  *  - commentary typos,
  *  - move "memory exhausted" into msg_enomem,
  *  - more verbose --help output.
@@ -29,6 +34,7 @@
  *    path/inc.h: include/config/key*.h found_included_include_*.h
  * 5) save include/config/key*.h if changed after previous usage
  * This program does not generate dependencies for #include <...>
+ * Config file can have #if #elif #else #ifdef #ifndef #endif lines
  */
 
 #define LOCAL_INCLUDE_PATH          "include"
@@ -103,9 +109,9 @@ static llist_t *configs;    /* list of -c usaged and them stat() after parsed */
 static llist_t *Iop;        /* list of -I include usaged */
 
 static char *pwd;           /* current work directory */
-static size_t replace;      /* replace current work directory with build dir */
+static size_t replace;      /* replace current work derectory to build dir */
 
-static const char *kp;      /* KEY path, argument of -k used */
+static const char *kp;      /* KEY path, argument of -k usaged */
 static size_t kp_len;
 static struct stat st_kp;   /* stat(kp) */
 
@@ -139,22 +145,44 @@ static inline bb_key_t *check_key(bb_key_t *k, const char *nk, size_t key_sz)
     return NULL;
 }
 
+static inline const char *lookup_key(const char *nk, size_t key_sz)
+{
+    bb_key_t *cur;
+
+    for(cur = key_top; cur; cur = cur->next) {
+	if(key_sz == cur->key_sz && memcmp(cur->keyname, nk, key_sz) == 0) {
+	    return cur->value;
+	}
+    }
+    return NULL;
+}
+
 /* for lexical analyser */
 static int pagesizem1;      /* padding mask = getpagesize() - 1 */
 
 /* for speed tricks */
 static char first_chars[1+UCHAR_MAX];               /* + L_EOF */
 static char isalnums[1+UCHAR_MAX];                  /* + L_EOF */
-/* trick for fast find "define", "include", "undef" */
-static const char first_chars_diu[UCHAR_MAX] = {
-	[(int)'d'] = (char)5,           /* strlen("define")  - 1; */
-	[(int)'i'] = (char)6,           /* strlen("include") - 1; */
-	[(int)'u'] = (char)4,           /* strlen("undef")   - 1; */
+
+/* trick for fast find "define", "include", "undef",
+"if((n)def)" "else", "endif"  */
+static const char * const preproc[] = {
+/* 0   1       2      3       4     5       6        7         8      9 */
+"", "efine", "lif", "lse", "ndif", "f", "fdef", "fndef", "nclude", "ndef" };
+static const unsigned char first_chars_deiu[UCHAR_MAX] = {
+	[(int)'d'] = (unsigned char)(1|0x10),     /* define */
+	[(int)'e'] = (unsigned char)(2|0x40),     /* elif, else, endif  */
+	[(int)'i'] = (unsigned char)(5|0x80),     /* if ifdef ifndef include */
+	[(int)'u'] = (unsigned char)(9|0x90),     /* undef */
 };
 
 #define CONFIG_MODE  0
-#define SOURCES_MODE 1
-static int mode;
+#define IF0_MODE     1  /* #if 0  */
+#define IF1_MODE     2  /* #if 1 */
+#define ELSE0_MODE   4  /* #else found after #if 0 */
+#define ELSE1_MODE   8  /* #else found after #if 1 */
+#define ELIF1_MODE   16 /* #elif found after #if 1 */
+#define FALSE_MODES  (IF0_MODE|ELSE1_MODE|ELIF1_MODE)
 
 #define yy_error_d(s) bb_error_d("%s:%d hmm, %s", fname, line, s)
 
@@ -165,9 +193,15 @@ static int mode;
 #define REM    '/'      /* block comment */
 #define BS     '\\'     /* back slash */
 #define POUND  '#'      /* # */
-#define D      '5'      /* #define preprocessor's directive */
-#define I      '6'      /* #include preprocessor's directive */
-#define U      '4'      /* #undef preprocessor's directive */
+#define D      '1'      /* #define preprocessor's directive */
+#define EI     '2'      /* #elif preprocessor's directive */
+#define E      '3'      /* #else preprocessor's directive */
+#define EF     '4'      /* #endif preprocessor's directive */
+#define F      '5'      /* #if preprocessor's directive */
+#define IFD    '6'      /* #ifdef preprocessor's directive */
+#define IFND   '7'      /* #ifndef preprocessor's directive */
+#define I      '8'      /* #include preprocessor's directive */
+#define U      '9'      /* #undef preprocessor's directive */
 #define DK     'K'      /* #define KEY... (config mode) */
 #define ANY    '*'      /* any unparsed chars */
 
@@ -189,15 +223,820 @@ static char id_s[4096];
 #define put_id(ic)  do {    if(id_len == sizeof(id_s)) goto too_long; \
 				id[id_len++] = ic; } while(0)
 
+static char ifcpp_stack[1024];
+static int  ptr_ifcpp_stack;
+#define push_mode() do { \
+			if(ptr_ifcpp_stack == (int)sizeof(ifcpp_stack)) \
+				yy_error_d("#if* stack overflow"); \
+			ifcpp_stack[ptr_ifcpp_stack++] = (char)mode; \
+			} while(0)
 
-/* stupid C lexical analyser */
-static void c_lex(const char *fname, long fsize)
+#define pop_mode()  do { \
+			if(ptr_ifcpp_stack == 0) \
+				yy_error_d("unexpected #endif"); \
+			mode = ifcpp_stack[--ptr_ifcpp_stack]; \
+			} while(0)
+
+/* #if expression */
+typedef long long arith_t;
+
+static arith_t arith (const char *expr, int *perrcode);
+
+/* The code uses a simple two-stack algorithm. See
+ * http://www.onthenet.com.au/~grahamis/int2008/week02/lect02.html
+ * for a detailed explanation of the infix-to-postfix algorithm on which
+ * this is based (this code differs in that it applies operators immediately
+ * to the stack instead of adding them to a queue to end up with an
+ * expression). */
+
+#define arith_isspace(arithval) \
+	(arithval == ' ' || arithval == '\v' || arithval == '\t' || arithval == '\f')
+
+
+typedef unsigned char operator;
+
+/* An operator's token id is a bit of a bitfield. The lower 5 bits are the
+ * precedence, and 3 high bits are an ID unique across operators of that
+ * precedence. The ID portion is so that multiple operators can have the
+ * same precedence, ensuring that the leftmost one is evaluated first.
+ * Consider * and /. */
+
+#define tok_decl(prec,id) (((id)<<5)|(prec))
+#define PREC(op) ((op) & 0x1F)
+
+#define TOK_LPAREN tok_decl(0,0)
+
+#define TOK_COMMA tok_decl(1,0)
+
+/* conditional is right associativity too */
+#define TOK_CONDITIONAL tok_decl(2,0)
+#define TOK_CONDITIONAL_SEP tok_decl(2,1)
+
+#define TOK_OR tok_decl(3,0)
+
+#define TOK_AND tok_decl(4,0)
+
+#define TOK_BOR tok_decl(5,0)
+
+#define TOK_BXOR tok_decl(6,0)
+
+#define TOK_BAND tok_decl(7,0)
+
+#define TOK_EQ tok_decl(8,0)
+#define TOK_NE tok_decl(8,1)
+
+#define TOK_LT tok_decl(9,0)
+#define TOK_GT tok_decl(9,1)
+#define TOK_GE tok_decl(9,2)
+#define TOK_LE tok_decl(9,3)
+
+#define TOK_LSHIFT tok_decl(10,0)
+#define TOK_RSHIFT tok_decl(10,1)
+
+#define TOK_ADD tok_decl(11,0)
+#define TOK_SUB tok_decl(11,1)
+
+#define TOK_MUL tok_decl(12,0)
+#define TOK_DIV tok_decl(12,1)
+#define TOK_REM tok_decl(12,2)
+
+/* For now unary operators. */
+#define UNARYPREC 13
+#define TOK_BNOT tok_decl(UNARYPREC,0)
+#define TOK_NOT tok_decl(UNARYPREC,1)
+
+#define TOK_UMINUS tok_decl(UNARYPREC+1,0)
+#define TOK_UPLUS tok_decl(UNARYPREC+1,1)
+
+#define SPEC_PREC (UNARYPREC+1)
+
+#define TOK_NUM tok_decl(SPEC_PREC, 0)
+#define TOK_RPAREN tok_decl(SPEC_PREC, 1)
+
+#define NUMPTR (*numstackptr)
+
+typedef struct ARITCH_VAR_NUM {
+	arith_t val;
+	arith_t contidional_second_val;
+	char contidional_second_val_initialized;
+} v_n_t;
+
+
+typedef struct CHK_VAR_RECURSIVE_LOOPED {
+	const char *var;
+	size_t var_sz;
+	struct CHK_VAR_RECURSIVE_LOOPED *next;
+} chk_var_recursive_looped_t;
+
+static chk_var_recursive_looped_t *prev_chk_var_recursive;
+
+
+static int arith_lookup_val(const char *var, size_t key_sz, arith_t *pval)
+{
+    const char * p = lookup_key(var, key_sz);
+
+    if(p) {
+	int errcode;
+
+	/* recursive try as expression */
+	chk_var_recursive_looped_t *cur;
+	chk_var_recursive_looped_t cur_save;
+
+	for(cur = prev_chk_var_recursive; cur; cur = cur->next) {
+	    if(cur->var_sz == key_sz && memcmp(cur->var, var, key_sz) == 0) {
+		/* expression recursion loop detected */
+		return -5;
+	    }
+	}
+	/* save current lookuped var name */
+	cur = prev_chk_var_recursive;
+	cur_save.var = var;
+	cur_save.var_sz = key_sz;
+	cur_save.next = cur;
+	prev_chk_var_recursive = &cur_save;
+
+	*pval = arith (p, &errcode);
+	/* restore previous ptr after recursiving */
+	prev_chk_var_recursive = cur;
+	return errcode;
+    } else {
+	/* disallow undefined var */
+	fprintf(stderr, "%.*s ", (int)key_sz, var);
+	return -4;
+    }
+}
+
+/* "applying" a token means performing it on the top elements on the integer
+ * stack. For a unary operator it will only change the top element, but a
+ * binary operator will pop two arguments and push a result */
+static inline int
+arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
+{
+	v_n_t *numptr_m1;
+	arith_t numptr_val, rez;
+
+	if (NUMPTR == numstack) goto err; /* There is no operator that can work
+										 without arguments */
+	numptr_m1 = NUMPTR - 1;
+
+	rez = numptr_m1->val;
+	if (op == TOK_UMINUS)
+		rez *= -1;
+	else if (op == TOK_NOT)
+		rez = !rez;
+	else if (op == TOK_BNOT)
+		rez = ~rez;
+	else if (op != TOK_UPLUS) {
+		/* Binary operators */
+
+	    /* check and binary operators need two arguments */
+	    if (numptr_m1 == numstack) goto err;
+
+	    /* ... and they pop one */
+	    --NUMPTR;
+	    numptr_val = rez;
+	    if (op == TOK_CONDITIONAL) {
+		if(! numptr_m1->contidional_second_val_initialized) {
+		    /* protect $((expr1 ? expr2)) without ": expr" */
+		    goto err;
+		}
+		rez = numptr_m1->contidional_second_val;
+	    } else if(numptr_m1->contidional_second_val_initialized) {
+		    /* protect $((expr1 : expr2)) without "expr ? " */
+		    goto err;
+	    }
+	    numptr_m1 = NUMPTR - 1;
+	    if (op == TOK_CONDITIONAL) {
+		    numptr_m1->contidional_second_val = rez;
+	    }
+	    rez = numptr_m1->val;
+	    if (op == TOK_BOR)
+			rez |= numptr_val;
+	    else if (op == TOK_OR)
+			rez = numptr_val || rez;
+	    else if (op == TOK_BAND)
+			rez &= numptr_val;
+	    else if (op == TOK_BXOR)
+			rez ^= numptr_val;
+	    else if (op == TOK_AND)
+			rez = rez && numptr_val;
+	    else if (op == TOK_EQ)
+			rez = (rez == numptr_val);
+	    else if (op == TOK_NE)
+			rez = (rez != numptr_val);
+	    else if (op == TOK_GE)
+			rez = (rez >= numptr_val);
+	    else if (op == TOK_RSHIFT)
+			rez >>= numptr_val;
+	    else if (op == TOK_LSHIFT)
+			rez <<= numptr_val;
+	    else if (op == TOK_GT)
+			rez = (rez > numptr_val);
+	    else if (op == TOK_LT)
+			rez = (rez < numptr_val);
+	    else if (op == TOK_LE)
+			rez = (rez <= numptr_val);
+	    else if (op == TOK_MUL)
+			rez *= numptr_val;
+	    else if (op == TOK_ADD)
+			rez += numptr_val;
+	    else if (op == TOK_SUB)
+			rez -= numptr_val;
+	    else if (op == TOK_COMMA)
+			rez = numptr_val;
+	    else if (op == TOK_CONDITIONAL_SEP) {
+			if (numptr_m1 == numstack) {
+			    /* protect $((expr : expr)) without "expr ? " */
+			    goto err;
+			}
+			numptr_m1->contidional_second_val_initialized = op;
+			numptr_m1->contidional_second_val = numptr_val;
+	    }
+	    else if (op == TOK_CONDITIONAL) {
+			rez = rez ?
+			      numptr_val : numptr_m1->contidional_second_val;
+	    }
+	    else if(numptr_val==0)          /* zero divisor check */
+			return -2;
+	    else if (op == TOK_DIV)
+			rez /= numptr_val;
+	    else if (op == TOK_REM)
+			rez %= numptr_val;
+	}
+	numptr_m1->val = rez;
+	return 0;
+err: return(-1);
+}
+
+/* longest must first */
+static const char op_tokens[] = {
+	'<','<',    0, TOK_LSHIFT,
+	'>','>',    0, TOK_RSHIFT,
+	'|','|',    0, TOK_OR,
+	'&','&',    0, TOK_AND,
+	'!','=',    0, TOK_NE,
+	'<','=',    0, TOK_LE,
+	'>','=',    0, TOK_GE,
+	'=','=',    0, TOK_EQ,
+	'!',        0, TOK_NOT,
+	'<',        0, TOK_LT,
+	'>',        0, TOK_GT,
+	'|',        0, TOK_BOR,
+	'&',        0, TOK_BAND,
+	'*',        0, TOK_MUL,
+	'/',        0, TOK_DIV,
+	'%',        0, TOK_REM,
+	'+',        0, TOK_ADD,
+	'-',        0, TOK_SUB,
+	'^',        0, TOK_BXOR,
+	'~',        0, TOK_BNOT,
+	',',        0, TOK_COMMA,
+	'?',        0, TOK_CONDITIONAL,
+	':',        0, TOK_CONDITIONAL_SEP,
+	')',        0, TOK_RPAREN,
+	'(',        0, TOK_LPAREN,
+	0
+};
+/* ptr to ")" */
+#define endexpression &op_tokens[sizeof(op_tokens)-7]
+
+/*
+ * Return of a legal variable name (a letter or underscore followed by zero or
+ * more letters, underscores, and digits).
+ */
+
+static inline char *
+endofname(const char *name)
+{
+	char *p;
+
+	p = (char *) name;
+	if (! ID(*p))
+		return p;
+	while (*++p) {
+		if (! ISALNUM(*p))
+			break;
+	}
+	return p;
+}
+
+
+/* Like strncpy but make sure the resulting string is always 0 terminated. */
+static inline char * safe_strncpy(char *dst, const char *src, size_t size)
+{
+	dst[size-1] = '\0';
+	return strncpy(dst, src, size-1);
+}
+
+static arith_t arith (const char *expr, int *perrcode)
+{
+    char arithval;          /* Current character under analysis */
+    operator lasttok, op;
+    operator prec;
+
+    const char *p = endexpression;
+    int errcode;
+
+    size_t datasizes = strlen(expr) + 2;
+
+    /* Stack of integers */
+    /* The proof that there can be no more than strlen(startbuf)/2+1 integers
+     * in any given correct or incorrect expression is left as an exercise to
+     * the reader. */
+    v_n_t *numstack = alloca(((datasizes)/2)*sizeof(v_n_t)),
+	    *numstackptr = numstack;
+    /* Stack of operator tokens */
+    operator *stack = alloca((datasizes) * sizeof(operator)),
+	    *stackptr = stack;
+
+    *stackptr++ = lasttok = TOK_LPAREN;     /* start off with a left paren */
+    *perrcode = errcode = 0;
+
+    while(1) {
+	if ((arithval = *expr) == 0) {
+		if (p == endexpression) {
+			/* Null expression. */
+err:
+			return (*perrcode = -1);
+		}
+
+		/* This is only reached after all tokens have been extracted from the
+		 * input stream. If there are still tokens on the operator stack, they
+		 * are to be applied in order. At the end, there should be a final
+		 * result on the integer stack */
+
+		if (expr != endexpression + 1) {
+			/* If we haven't done so already, */
+			/* append a closing right paren */
+			expr = endexpression;
+			/* and let the loop process it. */
+			continue;
+		}
+		/* At this point, we're done with the expression. */
+		if (numstackptr != numstack+1) {
+			/* ... but if there isn't, it's bad */
+			goto err;
+		}
+	ret:
+		*perrcode = errcode;
+		return numstack->val;
+	} else {
+		/* Continue processing the expression. */
+		if (arith_isspace(arithval)) {
+			/* Skip whitespace */
+			goto prologue;
+		}
+		if((p = endofname(expr)) != expr) {
+			size_t var_name_size = (p-expr);
+
+			if(var_name_size == 7 &&
+				strncmp(expr, "defined", var_name_size) == 0) {
+			    int brace_form = 0;
+			    const char *v;
+
+			    while(arith_isspace(*p)) p++;
+			    if(*p == '(') {
+				p++;
+				while(arith_isspace(*p)) p++;
+				brace_form = 1;
+			    }
+			    expr = p;
+			    if((p = endofname(expr)) == expr)
+				goto err;
+			    var_name_size = (p-expr);
+			    while(arith_isspace(*p)) p++;
+			    if(brace_form && *p++ != ')')
+				goto err;
+			    v = lookup_key(expr, var_name_size);
+			    numstackptr->val = (v != NULL) ? 1 : 0;
+			} else {
+			    errcode = arith_lookup_val(expr, var_name_size,
+					&(numstackptr->val));
+			    if(errcode) goto ret;
+			}
+			expr = p;
+		num:
+			numstackptr->contidional_second_val_initialized = 0;
+			numstackptr++;
+			lasttok = TOK_NUM;
+			continue;
+		} else if (arithval >= '0' && arithval <= '9') {
+			numstackptr->val = strtoll(expr, (char **) &expr, 0);
+			while(*expr == 'l' || *expr == 'L' || *expr == 'u' ||
+								*expr == 'U')
+			    expr++;
+			goto num;
+		}
+		for(p = op_tokens; ; p++) {
+			const char *o;
+
+			if(*p == 0) {
+				/* strange operator not found */
+				goto err;
+			}
+			for(o = expr; *p && *o == *p; p++)
+				o++;
+			if(! *p) {
+				/* found */
+				expr = o - 1;
+				break;
+			}
+			/* skip tail uncompared token */
+			while(*p)
+				p++;
+			/* skip zero delim */
+			p++;
+		}
+		op = p[1];
+
+		/* Plus and minus are binary (not unary) _only_ if the last
+		 * token was as number, or a right paren (which pretends to be
+		 * a number, since it evaluates to one). Think about it.
+		 * It makes sense. */
+		if (lasttok != TOK_NUM) {
+			if(op == TOK_ADD)
+			    op = TOK_UPLUS;
+			else if(op == TOK_SUB)
+			    op = TOK_UMINUS;
+		}
+		/* We don't want a unary operator to cause recursive descent on the
+		 * stack, because there can be many in a row and it could cause an
+		 * operator to be evaluated before its argument is pushed onto the
+		 * integer stack. */
+		/* But for binary operators, "apply" everything on the operator
+		 * stack until we find an operator with a lesser priority than the
+		 * one we have just extracted. */
+		/* Left paren is given the lowest priority so it will never be
+		 * "applied" in this way.
+		 * if associativity is right and priority eq, applied also skip
+		 */
+		prec = PREC(op);
+		if ((prec > 0 && prec < UNARYPREC) || prec == SPEC_PREC) {
+			/* not left paren or unary */
+			if (lasttok != TOK_NUM) {
+				/* binary op must be preceded by a num */
+				goto err;
+			}
+			while (stackptr != stack) {
+			    if (op == TOK_RPAREN) {
+				/* The algorithm employed here is simple: while we don't
+				 * hit an open paren nor the bottom of the stack, pop
+				 * tokens and apply them */
+				if (stackptr[-1] == TOK_LPAREN) {
+				    --stackptr;
+				    /* Any operator directly after a */
+				    lasttok = TOK_NUM;
+				    /* close paren should consider itself binary */
+				    goto prologue;
+				}
+			    } else {
+				operator prev_prec = PREC(stackptr[-1]);
+
+				if (prev_prec < prec)
+					break;
+				/* check right assoc */
+				if(prev_prec == prec && prec == PREC(TOK_CONDITIONAL))
+					break;
+			    }
+			    errcode = arith_apply(*--stackptr, numstack, &numstackptr);
+			    if(errcode) goto ret;
+			}
+			if (op == TOK_RPAREN) {
+				goto err;
+			}
+		}
+
+		/* Push this operator to the stack and remember it. */
+		*stackptr++ = lasttok = op;
+
+	  prologue:
+		++expr;
+	}
+    }
+}
+
+/* stupid C lexical analyser for configs.h */
+static void c_lex_config(const char *fname, long fsize)
 {
   int c;
   int state;
   int line;
   char *id = id_s;
-  size_t id_len = 0;                /* stupid initialization */
+  size_t id_len = 0;                /* stupid initialize */
+  unsigned char *optr, *oend;
+  int mode = CONFIG_MODE;
+
+  int fd;
+  char *map;
+  int mapsize;
+
+  if(fsize == 0) {
+    fprintf(stderr, "Warning: %s is empty\n", fname);
+    return;
+  }
+  fd = open(fname, O_RDONLY);
+  if(fd < 0) {
+	perror(fname);
+	return;
+  }
+  mapsize = (fsize+pagesizem1) & ~pagesizem1;
+  map = mmap(NULL, mapsize, PROT_READ, MAP_PRIVATE, fd, 0);
+  if ((long) map == -1)
+	bb_error_d("%s: mmap: %m", fname);
+
+  optr = (unsigned char *)map;
+  oend = optr + fsize;
+
+  line = 1;
+  state = S;
+
+  for(;;) {
+    getc1();
+    for(;;) {
+	/* [ \t]+ eat first space */
+	while(c == ' ' || c == '\t')
+	    getc1();
+
+	if(state == S) {
+		while(first_chars[c] == ANY) {
+		    /* <S>unparsed */
+		    if(c == '\n')
+			line++;
+		    getc1();
+		}
+		if(c == L_EOF) {
+			/* <S><<EOF>> */
+			munmap(map, mapsize);
+			close(fd);
+			if(mode != CONFIG_MODE)
+				yy_error_d("expected #endif");
+			return;
+		}
+		if(c == REM) {
+			/* <S>/ */
+			getc0();
+			if(c == REM) {
+				/* <S>"//"[^\n]* */
+				do getc0(); while(c != '\n' && c != L_EOF);
+			} else if(c == '*') {
+				/* <S>[/][*] goto parse block comments */
+				break;
+			}
+		} else if(c == POUND) {
+			/* <S># */
+			state = c;
+			getc1();
+		} else if(c == STR || c == CHR) {
+			/* <S>\"|\' */
+			int qc = c;
+
+			for(;;) {
+			    /* <STR,CHR>. */
+			    getc1();
+			    if(c == qc) {
+				/* <STR>\" or <CHR>\' */
+				break;
+			    }
+			    if(c == BS) {
+				/* <STR,CHR>\\ but is not <STR,CHR>\\\n */
+				getc0();
+			    }
+			    if(c == '\n' || c == L_EOF)
+				yy_error_d("unterminated");
+			}
+			getc1();
+		} else {
+			/* <S>[A-Z_a-z0-9] */
+
+			/* trick for fast drop id
+			   if key with this first char undefined */
+			if(first_chars[c] == 0 || (mode & FALSE_MODES) != 0) {
+			    /* skip <S>[A-Z_a-z0-9]+ */
+			    do getc1(); while(isalnums[c]);
+			} else {
+			    id_len = 0;
+			    do {
+				/* <S>[A-Z_a-z0-9]+ */
+				put_id(c);
+				getc1();
+			    } while(isalnums[c]);
+			    check_key(key_top, id, id_len);
+			}
+		}
+		continue;
+	}
+	/* begin preprocessor states */
+	if(c == L_EOF)
+	    yy_error_d("unexpected EOF");
+	if(c == REM) {
+		/* <#.*>/ */
+		getc0();
+		if(c == REM)
+			yy_error_d("detected // in preprocessor line");
+		if(c == '*') {
+			/* <#.*>[/][*] goto parse block comments */
+			break;
+		}
+		/* hmm, #.*[/] */
+		yy_error_d("strange preprocessor line");
+	}
+	if(state == POUND) {
+	    /* tricks */
+	    int diu = (int)first_chars_deiu[c];   /* preproc ptr */
+
+	    state = S;
+	    if(diu != S) {
+		int p_num_str, p_num_max;
+
+		getc1();
+		id_len = 0;
+		while(isalnums[c]) {
+		    put_id(c);
+		    getc1();
+		}
+		put_id(0);
+		p_num_str = diu & 0xf;
+		p_num_max = diu >> 4;
+		for(diu = p_num_str; diu <= p_num_max; diu++)
+		    if(!strcmp(id, preproc[diu])) {
+			state = (diu + '0');
+			/* common */
+			id_len = 0;
+			break;
+		}
+	    } else {
+		while(isalnums[c]) getc1();
+	    }
+	} else if(state == EF) {
+		/* #endif */
+		pop_mode();
+		state = S;
+	} else if(state == I) {
+		if(c == STR && (mode & FALSE_MODES) == 0) {
+			/* <I>\" */
+			for(;;) {
+			    getc1();
+			    if(c == STR)
+				break;
+			    if(c == L_EOF)
+				yy_error_d("unexpected EOF");
+			    put_id(c);
+			}
+			put_id(0);
+			/* store "include.h" */
+			parse_inc(id, fname);
+			getc1();
+		}
+		/* else another (may be wrong) #include ... */
+		state = S;
+	} else if(state == F) {
+	    arith_t t;
+	    int errcode;
+
+	    while(c != '\n' && c != L_EOF) {
+		put_id(c);
+		getc1();
+	    }
+	    put_id(0);
+	    t = arith(id, &errcode);
+	    if (errcode < 0) {
+		if (errcode == -2)
+		    yy_error_d("divide by zero");
+		else if (errcode == -4)
+		    yy_error_d("undefined");
+		else if (errcode == -5)
+		    yy_error_d("expression recursion loop detected");
+		else
+		    yy_error_d("syntax error");
+	    }
+	    push_mode();
+	    mode = t != 0 ? IF1_MODE : IF0_MODE;
+	    state = S;
+	} else if(state == IFD || state == IFND) {
+	    /* save KEY from #if(n)def KEY ... */
+	    const char *v;
+
+	    push_mode();
+	    while(isalnums[c]) {
+		put_id(c);
+		getc1();
+	    }
+	    if(!id_len)
+		yy_error_d("expected identifier");
+	    v = lookup_key(id, id_len);
+	    mode = IF1_MODE;
+	    if(state == IFD && v == NULL)
+		mode = IF0_MODE;
+	    else if(state == IFND && v != NULL)
+		    mode = IF0_MODE;
+	    state = S;
+	} else if(state == EI) {
+	    /* #elif */
+	    if(mode == CONFIG_MODE || mode == ELSE0_MODE || mode == ELSE1_MODE)
+		yy_error_d("unexpected #elif");
+	    if(mode == IF0_MODE) {
+		pop_mode();
+		state = F;
+	    } else {
+		mode = ELIF1_MODE;
+		state = S;
+	    }
+	} else if(state == E) {
+	    if(mode == CONFIG_MODE || mode == ELSE0_MODE || mode == ELSE1_MODE)
+		yy_error_d("unexpected #else");
+	    if(mode == IF0_MODE)
+		mode = ELSE0_MODE;
+	    else if(mode == IF1_MODE)
+		mode = ELSE1_MODE;
+	    state = S;
+	} else if(state == D || state == U) {
+	    /* save KEY from #"define"|"undef" ... */
+	    while(isalnums[c]) {
+		put_id(c);
+		getc1();
+	    }
+	    if(!id_len)
+		yy_error_d("expected identifier");
+	    if(state == U) {
+		if((mode & FALSE_MODES) == 0)
+		    parse_conf_opt(id, NULL, id_len);
+		state = S;
+	    } else {
+		/* D -> DK */
+		state = DK;
+	    }
+	} else {
+	    /* state==<DK> #define KEY[ ] */
+	    size_t opt_len = id_len;
+	    char *val = id + opt_len;
+	    char *sp;
+
+	    for(;;) {
+		if(c == L_EOF || c == '\n')
+		    break;
+		put_id(c);
+		getc1();
+	    }
+	    sp = id + id_len;
+	    put_id(0);
+	    /* trim tail spaces */
+	    while(--sp >= val && (*sp == ' ' || *sp == '\t'
+				|| *sp == '\f' || *sp == '\v'))
+		*sp = '\0';
+	    if((mode & FALSE_MODES) == 0)
+		parse_conf_opt(id, val, opt_len);
+	    state = S;
+	}
+    }
+
+    /* <REM> */
+    getc0();
+    for(;;) {
+	  /* <REM>[^*]+ */
+	  while(c != '*') {
+		if(c == '\n') {
+		    /* <REM>\n */
+		    if(state != S)
+			yy_error_d("unexpected newline");
+		    line++;
+		} else if(c == L_EOF)
+		    yy_error_d("unexpected EOF");
+		getc0();
+	  }
+	  /* <REM>[*] */
+	  getc0();
+	  if(c == REM) {
+		/* <REM>[*][/] */
+		break;
+	  }
+    }
+  }
+too_long:
+  yy_error_d("phrase too long");
+}
+
+/* trick for fast find "define", "include", "undef" */
+static const char first_chars_diu[UCHAR_MAX] = {
+	[(int)'d'] = (char)5,           /* strlen("define")  - 1; */
+	[(int)'i'] = (char)6,           /* strlen("include") - 1; */
+	[(int)'u'] = (char)4,           /* strlen("undef")   - 1; */
+};
+
+#undef D
+#undef I
+#undef U
+#define D      '5'      /* #define preprocessor's directive */
+#define I      '6'      /* #include preprocessor's directive */
+#define U      '4'      /* #undef preprocessor's directive */
+
+/* stupid C lexical analyser for sources */
+static void c_lex_src(const char *fname, long fsize)
+{
+  int c;
+  int state;
+  int line;
+  char *id = id_s;
+  size_t id_len = 0;                /* stupid initialize */
   unsigned char *optr, *oend;
 
   int fd;
@@ -314,11 +1153,11 @@ static void c_lex(const char *fname, long fsize)
 	}
 	if(state == POUND) {
 	    /* tricks */
-	    static const char * const preproc[] = {
+	    static const char * const p_preproc[] = {
 		    /* 0 1   2  3     4        5        6 */
 		    "", "", "", "", "ndef", "efine", "nclude"
 	    };
-	    size_t diu = first_chars_diu[c];   /* strlen and preproc ptr */
+	    size_t diu = first_chars_diu[c];   /* strlen and p_preproc ptr */
 
 	    state = S;
 	    if(diu != S) {
@@ -328,8 +1167,8 @@ static void c_lex(const char *fname, long fsize)
 		    put_id(c);
 		    getc1();
 		}
-		/* str begins with c, read == strlen key and compared */
-		if(diu == id_len && !memcmp(id, preproc[diu], diu)) {
+		/* have str begined with c, readed == strlen key and compared */
+		if(diu == id_len && !memcmp(id, p_preproc[diu], diu)) {
 		    state = diu + '0';
 		    id_len = 0; /* common for save */
 		}
@@ -354,49 +1193,10 @@ static void c_lex(const char *fname, long fsize)
 		}
 		/* else another (may be wrong) #include ... */
 		state = S;
-	} else if(state == D || state == U) {
-	    if(mode == SOURCES_MODE) {
+	} else /* if(state == D || state == U) */ {
 		/* ignore depend with #define or #undef KEY */
 		while(isalnums[c]) getc1();
 		state = S;
-	    } else {
-		/* save KEY from #"define"|"undef" ... */
-		while(isalnums[c]) {
-		    put_id(c);
-		    getc1();
-		}
-		if(!id_len)
-		    yy_error_d("expected identifier");
-		if(state == U) {
-		    parse_conf_opt(id, NULL, id_len);
-		    state = S;
-		} else {
-		    /* D -> DK */
-		    if(c == '(')
-			yy_error_d("unexpected function macro");
-		    state = DK;
-		}
-	    }
-	} else {
-	    /* state==<DK> #define KEY[ ] (config mode) */
-	    size_t opt_len = id_len;
-	    char *val = id + opt_len;
-	    char *sp;
-
-	    for(;;) {
-		if(c == L_EOF || c == '\n')
-		    break;
-		put_id(c);
-		getc1();
-	    }
-	    sp = id + id_len;
-	    put_id(0);
-	    /* trim tail spaces */
-	    while(--sp >= val && (*sp == ' ' || *sp == '\t'
-				|| *sp == '\f' || *sp == '\v'))
-		*sp = '\0';
-	    parse_conf_opt(id, val, opt_len);
-	    state = S;
 	}
     }
 
@@ -427,7 +1227,7 @@ too_long:
 }
 
 
-/* bb_simplify_path special variant for absolute pathname */
+/* bb_simplify_path special variant for apsolute pathname */
 static size_t bb_qa_simplify_path(char *path)
 {
 	char *s, *p;
@@ -477,7 +1277,7 @@ static void parse_inc(const char *include, const char *fname)
 	const char *p;
 
 	lo = Iop;
-	p = strrchr(fname, '/');    /* fname has absolute pathname */
+	p = strrchr(fname, '/');    /* fname have absolute pathname */
 	w = (p-fname);
 	/* find from current directory of source file */
 	ap = bb_asprint("%.*s/%s", w, fname, include);
@@ -502,14 +1302,15 @@ static void parse_inc(const char *include, const char *fname)
 
 	/* find from "-I include" specified directories */
 	free(ap);
-	/* lo->data has absolute pathname */
+	/* lo->data have absolute pathname */
 	ap = bb_asprint("%s/%s", lo->data, include);
 	lo = lo->link;
     }
 
     cur = xmalloc(sizeof(bb_key_t));
-    cur->keyname = cur->stored_path = ap;
+    cur->keyname = ap;
     cur->key_sz = key_sz;
+    cur->stored_path = ap;
     cur->value = cur->checked = p_i;
     if(p_i == NULL && noiwarning)
 	fprintf(stderr, "%s: Warning: #include \"%s\" not found\n", fname, include);
@@ -528,7 +1329,7 @@ static void parse_conf_opt(const char *opt, const char *val, size_t key_sz)
 
 	cur = check_key(key_top, opt, key_sz);
 	if(cur != NULL) {
-	    /* already present */
+	    /* present already */
 	    cur->checked = NULL;        /* store only */
 	    if(cur->value == NULL && val == NULL)
 		return;
@@ -568,7 +1369,7 @@ static void parse_conf_opt(const char *opt, const char *val, size_t key_sz)
 	first_chars[(int)*k] = *k;
 
 	cur->stored_path = k = bb_asprint("%s/%s.h", kp, k);
-	/* key conversion [A-Z_] -> [a-z/] */
+	/* key converting [A-Z_] -> [a-z/] */
 	for(p = k + kp_len + 1; *p; p++) {
 	    if(*p >= 'A' && *p <= 'Z')
 		    *p = *p - 'A' + 'a';
@@ -604,7 +1405,7 @@ static void store_keys(void)
 	    }
 	    /* size_t -> ssize_t :( */
 	    rw_ret = (ssize_t)recordsz;
-	    /* check kp/key.h, compare after previous use */
+	    /* check kp/key.h, compare after previous usage */
 	    cmp_ok = 0;
 	    k = cur->stored_path;
 	    if(stat(k, &st)) {
@@ -709,7 +1510,7 @@ parse_chd(const char *fe, const char *p, size_t dirlen)
 	    }
 	}
 	/* direntry is *.[ch] regular file and is not configs */
-	c_lex(fp, st.st_size);
+	c_lex_src(fp, st.st_size);
 	if(!dontgenerate_dep) {
 	    int first;
 	    if(*e == 'c') {
@@ -740,7 +1541,7 @@ parse_chd(const char *fe, const char *p, size_t dirlen)
     return NULL;
 }
 
-/* from libbb but inlined for speed considerations */
+/* from libbb but inline for fast */
 static inline llist_t *llist_add_to(llist_t *old_head, char *new_item)
 {
 	llist_t *new_head;
@@ -763,7 +1564,7 @@ static void scan_dir_find_ch_files(const char *p)
 
     dirs = llist_add_to(NULL, bb_simplify_path(p));
     replace = strlen(dirs->data);
-    /* emulate recursion */
+    /* emulate recursive */
     while(dirs) {
 	d_add = NULL;
 	while(dirs) {
@@ -803,7 +1604,7 @@ int main(int argc, char **argv)
 	llist_t *fl;
 
 	{
-	    /* for bb_simplify_path, this program has no chdir() */
+	    /* for bb_simplify_path, this program have not chdir() */
 	    /* libbb-like my xgetcwd() */
 	    unsigned path_max = 512;
 
@@ -863,7 +1664,7 @@ int main(int argc, char **argv)
 	for(i = 0; i < UCHAR_MAX; i++) {
 	    if(ISALNUM(i))
 		isalnums[i] = i;
-	    /* set unparsed chars to speed up the parser */
+	    /* set unparsed chars for speed up of parser */
 	    else if(i != CHR && i != STR && i != POUND && i != REM)
 		first_chars[i] = ANY;
 	}
@@ -875,7 +1676,7 @@ int main(int argc, char **argv)
 
 	    if(stat(fl->data, &st))
 		bb_error_d("stat(%s): %m", fl->data);
-	    c_lex(fl->data, st.st_size);
+	    c_lex_config(fl->data, st.st_size);
 	    free(fl->data);
 	    /* trick for fast comparing found files with configs */
 	    fl->data = xmalloc(sizeof(struct stat));
@@ -883,7 +1684,6 @@ int main(int argc, char **argv)
 	}
 
 	/* main loop */
-	mode = SOURCES_MODE;
 	argv += optind;
 	if(*argv) {
 	    while(*argv)
@@ -923,6 +1723,7 @@ static char *bb_asprint(const char *format, ...)
 }
 
 /* partial libbb routine as is */
+
 static char *bb_simplify_path(const char *path)
 {
 	char *s, *start, *p;
@@ -930,7 +1731,7 @@ static char *bb_simplify_path(const char *path)
 	if (path[0] == '/')
 		start = bb_xstrdup(path);
 	else {
-		/* is not libbb, but this program has no chdir() */
+		/* is not libbb, but this program have not chdir() */
 		start = bb_asprint("%s/%s", pwd, path);
 	}
 	p = s = start;

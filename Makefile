@@ -185,7 +185,6 @@ randconfig: scripts/config/conf
 allyesconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
 	sed -i -r -e "s/^(USING_CROSS_COMPILER)=.*/# \1 is not set/" .config
-	echo "CONFIG_FEATURE_SHARED_BUSYBOX=y" >> .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 allnoconfig: scripts/config/conf
@@ -197,7 +196,7 @@ allnoconfig: scripts/config/conf
 
 defconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP)))=.*/# \1 is not set/" .config
+	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP|UDHCP_DEBUG)))=.*/# \1 is not set/" .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 
@@ -387,7 +386,7 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
-DEP_INCLUDES := include/config.h include/bb_config.h include/_usage.h
+DEP_INCLUDES := include/config.h include/bb_config.h
 
 ifeq ($(strip $(CONFIG_BBCONFIG)),y)
 DEP_INCLUDES += include/bbconfigopts.h
@@ -414,20 +413,12 @@ include/config.h: .config
 
 include/bb_config.h: include/config.h
 	@echo -e "#ifndef BB_CONFIG_H\n#define BB_CONFIG_H" > $@
-	@sed -e 's/#undef CONFIG_\(.*\)/#define ENABLE_\1 0/' \
-	    -e 's/#define CONFIG_\(.*\)/#define CONFIG_\1\n#define ENABLE_\1/' \
-		< $< >> $@
+	@sed -e h -e 's/#undef CONFIG_\(.*\)/#define ENABLE_\1 0/p' -e g \
+	   -e 's/#undef CONFIG_\(.*\)/#define USE_\1(...)/p' -e g \
+	   -e 's/#define CONFIG_\([^ ]*\).*/#define ENABLE_\1 1/p' -e g -e \
+	   's/#define CONFIG_\([^ ]*\).*/#define USE_\1(...) __VA_ARGS__/p' \
+	   -e g $< >> $@
 	@echo "#endif" >> $@
-
-# Create macros for usage.h, e.g.:
-#if ENABLE_HAVE_DOT_CONFIG
-#define USAGE_HAVE_DOT_CONFIG(a) a
-#else
-#define USAGE_HAVE_DOT_CONFIG(a)
-#endif
-include/_usage.h: .config
-	$(disp_gen)
-	$(Q)awk '/CONFIG|BB_APPLET/{gsub("#[[:space:]]*|=y|.*CONFIG_|.*BB_APPLET_","");if(!/=/){print("#if ENABLE_"$$1"\n#define USAGE_"$$1"(a) a\n#else\n#define USAGE_"$$1"(a)\n#endif");}}' $(<) > $(@)
 
 clean:
 	- $(MAKE) -C scripts/config $@

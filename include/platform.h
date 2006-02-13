@@ -78,9 +78,4 @@
 # endif
 #endif
 
-
-/* include USAGE_APPLET_x helper macros for usage.h.  */
-/*
-#include "_usage.h"
-*/
 #endif	/* platform.h	*/
