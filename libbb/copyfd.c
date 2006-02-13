@@ -44,6 +44,7 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 				break;
 			}
 			total += wrote;
+			if (total == size) status = 0;
 		} else if (xread < 0) {
 			bb_perror_msg(bb_msg_read_error);
 			break;
