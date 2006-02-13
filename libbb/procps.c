@@ -13,8 +13,23 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <asm/page.h>
+#include <fcntl.h>
 
 #include "libbb.h"
+
+
+static int read_to_buf(char *filename, void *buf, int bufsize)
+{
+	int fd;
+
+	fd = open(filename, O_RDONLY);
+	if(fd < 0)
+		return -1;
+	bufsize = read(fd, buf, bufsize);
+	close(fd);
+	return bufsize;
+}
+
 
 extern procps_status_t * procps_scan(int save_user_arg0)
 {
@@ -24,8 +39,8 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 	char *name;
 	int n;
 	char status[32];
+	char *status_tail;
 	char buf[1024];
-	FILE *fp;
 	procps_status_t curstatus;
 	int pid;
 	long tasknice;
@@ -50,18 +65,14 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 		pid = atoi(name);
 		curstatus.pid = pid;
 
-		sprintf(status, "/proc/%d", pid);
+		status_tail = status + sprintf(status, "/proc/%d", pid);
 		if(stat(status, &sb))
 			continue;
 		bb_getpwuid(curstatus.user, sb.st_uid, sizeof(curstatus.user));
 
-		sprintf(status, "/proc/%d/stat", pid);
-
-		if((fp = fopen(status, "r")) == NULL)
-			continue;
-		name = fgets(buf, sizeof(buf), fp);
-		fclose(fp);
-		if(name == NULL)
+		strcpy(status_tail, "/stat");
+		n = read_to_buf(status, buf, sizeof(buf));
+		if(n < 0)
 			continue;
 		name = strrchr(buf, ')'); /* split into "PID (cmd" and "<rest>" */
 		if(name == 0 || name[1] != ' ')
@@ -113,10 +124,9 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 #endif
 
 		if(save_user_arg0) {
-			sprintf(status, "/proc/%d/cmdline", pid);
-			if((fp = fopen(status, "r")) == NULL)
-				continue;
-			if((n=fread(buf, 1, sizeof(buf)-1, fp)) > 0) {
+			strcpy(status_tail, "/cmdline");
+			n = read_to_buf(status, buf, sizeof(buf));
+			if(n > 0) {
 				if(buf[n-1]=='\n')
 					buf[--n] = 0;
 				name = buf;
@@ -131,7 +141,6 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 					curstatus.cmd = strdup(buf);
 				/* if NULL it work true also */
 			}
-			fclose(fp);
 		}
 		return memcpy(&ret_status, &curstatus, sizeof(procps_status_t));
 	}
