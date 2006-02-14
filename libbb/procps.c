@@ -18,16 +18,19 @@
 #include "libbb.h"
 
 
-static int read_to_buf(char *filename, void *buf, int bufsize)
+#define PROCPS_BUFSIZE 1024
+
+static int read_to_buf(const char *filename, void *buf)
 {
 	int fd;
+	ssize_t ret;
 
 	fd = open(filename, O_RDONLY);
 	if(fd < 0)
 		return -1;
-	bufsize = read(fd, buf, bufsize);
+	ret = read(fd, buf, PROCPS_BUFSIZE);
 	close(fd);
-	return bufsize;
+	return ret;
 }
 
 
@@ -40,7 +43,7 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 	int n;
 	char status[32];
 	char *status_tail;
-	char buf[1024];
+	char buf[PROCPS_BUFSIZE];
 	procps_status_t curstatus;
 	int pid;
 	long tasknice;
@@ -71,7 +74,7 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 		bb_getpwuid(curstatus.user, sb.st_uid, sizeof(curstatus.user));
 
 		strcpy(status_tail, "/stat");
-		n = read_to_buf(status, buf, sizeof(buf));
+		n = read_to_buf(status, buf);
 		if(n < 0)
 			continue;
 		name = strrchr(buf, ')'); /* split into "PID (cmd" and "<rest>" */
@@ -125,7 +128,7 @@ extern procps_status_t * procps_scan(int save_user_arg0)
 
 		if(save_user_arg0) {
 			strcpy(status_tail, "/cmdline");
-			n = read_to_buf(status, buf, sizeof(buf));
+			n = read_to_buf(status, buf);
 			if(n > 0) {
 				if(buf[n-1]=='\n')
 					buf[--n] = 0;
