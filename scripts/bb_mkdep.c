@@ -109,7 +109,7 @@ static llist_t *configs;    /* list of -c usaged and them stat() after parsed */
 static llist_t *Iop;        /* list of -I include usaged */
 
 static char *pwd;           /* current work directory */
-static size_t replace;      /* replace current work derectory with build dir */
+static size_t replace;      /* replace current work directory with build dir */
 
 static const char *kp;      /* KEY path, argument of -k used */
 static size_t kp_len;
@@ -1604,7 +1604,7 @@ int main(int argc, char **argv)
 	llist_t *fl;
 
 	{
-	    /* for bb_simplify_path, this program has not chdir() */
+	    /* for bb_simplify_path, this program has no chdir() */
 	    /* libbb-like my xgetcwd() */
 	    unsigned path_max = 512;
 
@@ -1731,7 +1731,7 @@ static char *bb_simplify_path(const char *path)
 	if (path[0] == '/')
 		start = bb_xstrdup(path);
 	else {
-		/* is not libbb, but this program has not chdir() */
+		/* is not libbb, but this program has no chdir() */
 		start = bb_asprint("%s/%s", pwd, path);
 	}
 	p = s = start;
