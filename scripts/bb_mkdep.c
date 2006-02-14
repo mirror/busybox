@@ -109,9 +109,9 @@ static llist_t *configs;    /* list of -c usaged and them stat() after parsed */
 static llist_t *Iop;        /* list of -I include usaged */
 
 static char *pwd;           /* current work directory */
-static size_t replace;      /* replace current work derectory to build dir */
+static size_t replace;      /* replace current work derectory with build dir */
 
-static const char *kp;      /* KEY path, argument of -k usaged */
+static const char *kp;      /* KEY path, argument of -k used */
 static size_t kp_len;
 static struct stat st_kp;   /* stat(kp) */
 
@@ -722,7 +722,7 @@ static void c_lex_config(const char *fname, long fsize)
   int state;
   int line;
   char *id = id_s;
-  size_t id_len = 0;                /* stupid initialize */
+  size_t id_len = 0;                /* stupid initialization */
   unsigned char *optr, *oend;
   int mode = CONFIG_MODE;
 
@@ -1036,7 +1036,7 @@ static void c_lex_src(const char *fname, long fsize)
   int state;
   int line;
   char *id = id_s;
-  size_t id_len = 0;                /* stupid initialize */
+  size_t id_len = 0;                /* stupid initialization */
   unsigned char *optr, *oend;
 
   int fd;
@@ -1167,7 +1167,7 @@ static void c_lex_src(const char *fname, long fsize)
 		    put_id(c);
 		    getc1();
 		}
-		/* have str begined with c, readed == strlen key and compared */
+		/* str begins with c, read == strlen key and compared */
 		if(diu == id_len && !memcmp(id, p_preproc[diu], diu)) {
 		    state = diu + '0';
 		    id_len = 0; /* common for save */
@@ -1227,7 +1227,7 @@ too_long:
 }
 
 
-/* bb_simplify_path special variant for apsolute pathname */
+/* bb_simplify_path special variant for absolute pathname */
 static size_t bb_qa_simplify_path(char *path)
 {
 	char *s, *p;
@@ -1277,7 +1277,7 @@ static void parse_inc(const char *include, const char *fname)
 	const char *p;
 
 	lo = Iop;
-	p = strrchr(fname, '/');    /* fname have absolute pathname */
+	p = strrchr(fname, '/');    /* fname has absolute pathname */
 	w = (p-fname);
 	/* find from current directory of source file */
 	ap = bb_asprint("%.*s/%s", w, fname, include);
@@ -1302,7 +1302,7 @@ static void parse_inc(const char *include, const char *fname)
 
 	/* find from "-I include" specified directories */
 	free(ap);
-	/* lo->data have absolute pathname */
+	/* lo->data has absolute pathname */
 	ap = bb_asprint("%s/%s", lo->data, include);
 	lo = lo->link;
     }
@@ -1329,7 +1329,7 @@ static void parse_conf_opt(const char *opt, const char *val, size_t key_sz)
 
 	cur = check_key(key_top, opt, key_sz);
 	if(cur != NULL) {
-	    /* present already */
+	    /* already present */
 	    cur->checked = NULL;        /* store only */
 	    if(cur->value == NULL && val == NULL)
 		return;
@@ -1369,7 +1369,7 @@ static void parse_conf_opt(const char *opt, const char *val, size_t key_sz)
 	first_chars[(int)*k] = *k;
 
 	cur->stored_path = k = bb_asprint("%s/%s.h", kp, k);
-	/* key converting [A-Z_] -> [a-z/] */
+	/* key conversion [A-Z_] -> [a-z/] */
 	for(p = k + kp_len + 1; *p; p++) {
 	    if(*p >= 'A' && *p <= 'Z')
 		    *p = *p - 'A' + 'a';
@@ -1405,7 +1405,7 @@ static void store_keys(void)
 	    }
 	    /* size_t -> ssize_t :( */
 	    rw_ret = (ssize_t)recordsz;
-	    /* check kp/key.h, compare after previous usage */
+	    /* check kp/key.h, compare after previous use */
 	    cmp_ok = 0;
 	    k = cur->stored_path;
 	    if(stat(k, &st)) {
@@ -1541,7 +1541,7 @@ parse_chd(const char *fe, const char *p, size_t dirlen)
     return NULL;
 }
 
-/* from libbb but inline for fast */
+/* from libbb but inlined for speed considerations */
 static inline llist_t *llist_add_to(llist_t *old_head, char *new_item)
 {
 	llist_t *new_head;
@@ -1564,7 +1564,7 @@ static void scan_dir_find_ch_files(const char *p)
 
     dirs = llist_add_to(NULL, bb_simplify_path(p));
     replace = strlen(dirs->data);
-    /* emulate recursive */
+    /* emulate recursion */
     while(dirs) {
 	d_add = NULL;
 	while(dirs) {
@@ -1604,7 +1604,7 @@ int main(int argc, char **argv)
 	llist_t *fl;
 
 	{
-	    /* for bb_simplify_path, this program have not chdir() */
+	    /* for bb_simplify_path, this program has not chdir() */
 	    /* libbb-like my xgetcwd() */
 	    unsigned path_max = 512;
 
@@ -1664,7 +1664,7 @@ int main(int argc, char **argv)
 	for(i = 0; i < UCHAR_MAX; i++) {
 	    if(ISALNUM(i))
 		isalnums[i] = i;
-	    /* set unparsed chars for speed up of parser */
+	    /* set unparsed chars to speed up the parser */
 	    else if(i != CHR && i != STR && i != POUND && i != REM)
 		first_chars[i] = ANY;
 	}
@@ -1731,7 +1731,7 @@ static char *bb_simplify_path(const char *path)
 	if (path[0] == '/')
 		start = bb_xstrdup(path);
 	else {
-		/* is not libbb, but this program have not chdir() */
+		/* is not libbb, but this program has not chdir() */
 		start = bb_asprint("%s/%s", pwd, path);
 	}
 	p = s = start;
