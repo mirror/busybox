@@ -118,6 +118,6 @@ int switch_root_main(int argc, char *argv[])
 	}
 
 	// Exec real init.  (This is why we must be pid 1.)
-	execv(argv[optind],argv+optind+1);
+	execv(argv[optind],argv+optind);
 	bb_error_msg_and_die("Bad init '%s'",argv[optind]);
 }
