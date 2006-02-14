@@ -948,7 +948,7 @@ static uint32_t next_token(uint32_t expected)
 				*(p-1) = '\0';
 				tc = TC_VARIABLE;
 				/* also consume whitespace between functionname and bracket */
-				skip_spaces(&p);
+				if (! (expected & TC_VARIABLE)) skip_spaces(&p);
 				if (*p == '(') {
 					tc = TC_FUNCTION;
 				} else {
@@ -1656,6 +1656,7 @@ static int awk_getline(rstream *rsm, var *v)
 				}
 			} else if (c != '\0') {
 				s = strchr(b+pp, c);
+				if (! s) s = memchr(b+pp, '\0', p - pp);
 				if (s) {
 					so = eo = s-b;
 					eo++;
@@ -2614,7 +2615,7 @@ static rstream *next_input_file(void)
 extern int awk_main(int argc, char **argv)
 {
 	char *s, *s1;
-	int i, j, c;
+	int i, j, c, flen;
 	var *v;
 	static var tv;
 	char **envp;
@@ -2682,9 +2683,16 @@ keep_going:
 				F = afopen(programname = optarg, "r");
 				s = NULL;
 				/* one byte is reserved for some trick in next_token */
-				for (i=j=1; j>0; i+=j) {
-					s = (char *)xrealloc(s, i+4096);
-					j = fread(s+i, 1, 4094, F);
+				if (fseek(F, 0, SEEK_END) == 0) {
+					flen = ftell(F);
+					s = (char *)xmalloc(flen+4);
+					fseek(F, 0, SEEK_SET);
+					i = 1 + fread(s+1, 1, flen, F);
+				} else {
+					for (i=j=1; j>0; i+=j) {
+						s = (char *)xrealloc(s, i+4096);
+						j = fread(s+i, 1, 4094, F);
+					}
 				}
 				s[i] = '\0';
 				fclose(F);
