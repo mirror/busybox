@@ -34,10 +34,10 @@ static int have_read_stdin;
    Return 1 if successful.  */
 static int bsd_sum_file(const char *file, int print_name)
 {
-	register FILE *fp;
-	register int checksum = 0;          /* The checksum mod 2^16. */
-	register uintmax_t total_bytes = 0; /* The number of bytes. */
-	register int ch;                    /* Each character read. */
+	FILE *fp;
+	int checksum = 0;          /* The checksum mod 2^16. */
+	uintmax_t total_bytes = 0; /* The number of bytes. */
+	int ch;                    /* Each character read. */
 
 	if (IS_STDIN(file)) {
 		fp = stdin;
@@ -66,8 +66,7 @@ static int bsd_sum_file(const char *file, int print_name)
 		return 0;
 	}
 
-	printf("%05d %5s ", checksum,
-	       make_human_readable_str(total_bytes, 1, 1024));
+	printf("%05d %5ju ", checksum, (total_bytes+1023)/1024);
 	if (print_name > 1)
 		puts(file);
 	else
@@ -128,8 +127,7 @@ release_and_ret:
 		int r = (s & 0xffff) + ((s & 0xffffffff) >> 16);
 		s = (r & 0xffff) + (r >> 16);
 
-		printf("%d %s ", s,
-		       make_human_readable_str(total_bytes, 1, 512));
+		printf("%d %ju ", s, (total_bytes+511)/512);
 	}
 	puts(print_name ? file : "");
 
