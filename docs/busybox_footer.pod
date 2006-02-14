@@ -25,7 +25,7 @@ use of any NSS support files or libraries.
 
 =head1 MAINTAINER
 
-Erik Andersen <andersen@codepoet.org>
+Rob Landley <rob@landley.net>
 
 =head1 AUTHORS
 
