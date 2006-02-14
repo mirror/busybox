@@ -130,9 +130,9 @@ static unsigned long Hertz;
  *
  */
 
-static int file_to_buf(char *buf, int bufsize, char *filename, int *d)
+#define file_to_buf_bufsize 80
+static inline int file_to_buf(char *buf, const char *filename, int fd)
 {
-	int fd = *d;
 	int sz;
 
 	if (fd == -1) {
@@ -142,13 +142,12 @@ static int file_to_buf(char *buf, int bufsize, char *filename, int *d)
 	} else {
 		lseek(fd, 0L, SEEK_SET);
 	}
-	sz = read(fd, buf, bufsize - 1);
+	sz = read(fd, buf, file_to_buf_bufsize - 1);
 	if (sz < 0) {
 		bb_perror_msg_and_die("%s", filename);
 	}
 	buf[sz] = '\0';
-	*d = fd;
-	return sz;
+	return fd;
 }
 
 static void init_Hertz_value(void)
@@ -165,11 +164,11 @@ static void init_Hertz_value(void)
 	if(smp_num_cpus<1) smp_num_cpus=1;
 
 	do {
-		file_to_buf(buf, sizeof(buf), "uptime", &uptime_fd);
+		uptime_fd = file_to_buf(buf, "uptime", uptime_fd);
 		up_1 = strtod(buf, 0);
-		file_to_buf(buf, sizeof(buf), "stat", &stat_fd);
+		stat_fd = file_to_buf(buf, "stat", stat_fd);
 		sscanf(buf, "cpu %lu %lu %lu %lu", &user_j, &nice_j, &sys_j, &other_j);
-		file_to_buf(buf, sizeof(buf), "uptime", &uptime_fd);
+		uptime_fd = file_to_buf(buf, "uptime", uptime_fd);
 		up_2 = strtod(buf, 0);
 	} while((long)( (up_2-up_1)*1000.0/up_1 )); /* want under 0.1% error */
 	close(uptime_fd);
