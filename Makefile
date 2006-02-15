@@ -386,7 +386,7 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
 	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
-DEP_INCLUDES := include/config.h include/bb_config.h
+DEP_INCLUDES := include/bb_config.h
 
 ifeq ($(strip $(CONFIG_BBCONFIG)),y)
 DEP_INCLUDES += include/bbconfigopts.h
@@ -401,24 +401,14 @@ depend dep: .depend
 	$(disp_gen)
 	$(Q)$(RM_F) .depend
 	$(Q)mkdir -p include/config
-	$(Q)scripts/bb_mkdep -c include/config.h -c include/bb_config.h \
-			-I $(top_srcdir)/include $(top_srcdir) > $@.tmp
+	$(Q)scripts/bb_mkdep -I $(top_srcdir)/include $(top_srcdir) > $@.tmp
 	$(Q)mv $@.tmp $@
 
-include/config.h: .config
+include/bb_config.h: .config
 	@if [ ! -x $(top_builddir)/scripts/config/conf ] ; then \
 	    $(MAKE) -C scripts/config conf; \
 	fi;
 	@$(top_builddir)/scripts/config/conf -o $(CONFIG_CONFIG_IN)
-
-include/bb_config.h: include/config.h
-	@echo -e "#ifndef BB_CONFIG_H\n#define BB_CONFIG_H" > $@
-	@sed -e h -e 's/#undef CONFIG_\(.*\)/#define ENABLE_\1 0/p' -e g \
-	   -e 's/#undef CONFIG_\(.*\)/#define USE_\1(...)/p' -e g \
-	   -e 's/#define CONFIG_\([^ ]*\).*/#define ENABLE_\1 1/p' -e g -e \
-	   's/#define CONFIG_\([^ ]*\).*/#define USE_\1(...) __VA_ARGS__/p' \
-	   -e g $< >> $@
-	@echo "#endif" >> $@
 
 clean:
 	- $(MAKE) -C scripts/config $@

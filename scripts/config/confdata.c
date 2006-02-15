@@ -279,6 +279,7 @@ int conf_write(const char *name)
 	char dirname[128], tmpname[128], newname[128];
 	int type, l;
 	const char *str;
+	const char *opt_name;
 
 	dirname[0] = 0;
 	if (name && name[0]) {
@@ -316,6 +317,7 @@ int conf_write(const char *name)
 		     "# Automatically generated make config: don't edit\n"
 		     "#\n");
 	if (out_h) {
+		fprintf(out_h, "#ifndef BB_CONFIG_H\n#define BB_CONFIG_H\n");
 		fprintf(out_h, "/*\n"
 			     " * Automatically generated header file: don't edit\n"
 			     " */\n\n"
@@ -367,14 +369,23 @@ int conf_write(const char *name)
 				if (modules_sym->curr.tri == no)
 					type = S_BOOLEAN;
 			}
+			opt_name = strchr(sym->name, '_');
+			if(opt_name == NULL)
+				opt_name = sym->name;
+			else
+				opt_name++;
 			switch (type) {
 			case S_BOOLEAN:
 			case S_TRISTATE:
 				switch (sym_get_tristate_value(sym)) {
 				case no:
 					fprintf(out, "# %s is not set\n", sym->name);
-					if (out_h)
+					if (out_h) {
 						fprintf(out_h, "#undef %s\n", sym->name);
+						fprintf(out_h, "#define ENABLE_%s 0\n", opt_name);
+						fprintf(out_h, "#define USE_%s(...)\n", opt_name);
+						fprintf(out_h, "#define UNUSE_%s(...)  __VA_ARGS__\n", opt_name);
+					}
 					break;
 				case mod:
 #if 0
@@ -385,8 +396,12 @@ int conf_write(const char *name)
 					break;
 				case yes:
 					fprintf(out, "%s=y\n", sym->name);
-					if (out_h)
+					if (out_h) {
 						fprintf(out_h, "#define %s 1\n", sym->name);
+						fprintf(out_h, "#define ENABLE_%s 1\n", opt_name);
+						fprintf(out_h, "#define USE_%s(...)  __VA_ARGS__\n", opt_name);
+						fprintf(out_h, "#define UNUSE_%s(...)\n", opt_name);
+					}
 					break;
 				}
 				break;
@@ -412,32 +427,47 @@ int conf_write(const char *name)
 					}
 				} while (*str);
 				fputs("\"\n", out);
-				if (out_h)
+				if (out_h) {
 					fputs("\"\n", out_h);
+					fprintf(out_h, "#define ENABLE_%s 1\n", opt_name);
+					fprintf(out_h, "#define USE_%s(...)  __VA_ARGS__\n", opt_name);
+					fprintf(out_h, "#define UNUSE_%s(...)\n", opt_name);
+				}
 				break;
 			case S_HEX:
 				str = sym_get_string_value(sym);
 				if (str[0] != '0' || (str[1] != 'x' && str[1] != 'X')) {
 					fprintf(out, "%s=%s\n", sym->name, *str ? str : "0");
-					if (out_h)
+					if (out_h) {
 						fprintf(out_h, "#define %s 0x%s\n", sym->name, str);
+						fprintf(out_h, "#define ENABLE_%s 1\n", opt_name);
+						fprintf(out_h, "#define USE_%s(...)  __VA_ARGS__\n", opt_name);
+						fprintf(out_h, "#define UNUSE_%s(...)\n", opt_name);
+					}
 					break;
 				}
 			case S_INT:
 				str = sym_get_string_value(sym);
 				fprintf(out, "%s=%s\n", sym->name, *str ? str : "0");
-				if (out_h)
+				if (out_h) {
 					fprintf(out_h, "#define %s %s\n", sym->name, str);
+					fprintf(out_h, "#define ENABLE_%s 1\n", opt_name);
+					fprintf(out_h, "#define USE_%s(...)  __VA_ARGS__\n", opt_name);
+					fprintf(out_h, "#define UNUSE_%s(...)\n", opt_name);
+				}
 				break;
 			}
+			if (out_h)
+				fprintf(out_h, "\n");
 		}
 next:
 		menu = next_menu(menu);
 	}
 	fclose(out);
 	if (out_h) {
+		fprintf(out_h, "#endif /* BB_CONFIG_H */\n");
 		fclose(out_h);
-		rename(".tmpconfig.h", "include/config.h");
+		rename(".tmpconfig.h", "include/bb_config.h");
 		file_write_dep(NULL);
 	}
 	if (!name || basename != conf_def_filename) {

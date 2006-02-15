@@ -1,5 +1,5 @@
 /*
- * Another fast dependencies generator for Makefiles, Version 4.0
+ * Another fast dependencies generator for Makefiles, Version 4.1
  *
  * Copyright (C) 2005,2006 by Vladimir Oleynik <dzo@simtreas.ru>
  *
@@ -26,7 +26,7 @@
  *  - more verbose --help output.
  *
  * This program does:
- * 1) find #define KEY VALUE or #undef KEY from include/config.h
+ * 1) find #define KEY VALUE or #undef KEY from include/bb_config.h
  * 2) recursive find and scan *.[ch] files, but skips scan of include/config/
  * 3) find #include "*.h" and KEYs using, if not as #define and #undef
  * 4) generate dependencies to stdout
@@ -39,7 +39,7 @@
 
 #define LOCAL_INCLUDE_PATH          "include"
 #define INCLUDE_CONFIG_PATH         LOCAL_INCLUDE_PATH"/config"
-#define INCLUDE_CONFIG_KEYS_PATH    LOCAL_INCLUDE_PATH"/config.h"
+#define INCLUDE_CONFIG_KEYS_PATH    LOCAL_INCLUDE_PATH"/bb_config.h"
 
 #define bb_mkdep_full_options \
 "\nOptions:" \
@@ -308,7 +308,7 @@ typedef unsigned char operator;
 #define TOK_UMINUS tok_decl(UNARYPREC+1,0)
 #define TOK_UPLUS tok_decl(UNARYPREC+1,1)
 
-#define SPEC_PREC (UNARYPREC+1)
+#define SPEC_PREC (UNARYPREC+2)
 
 #define TOK_NUM tok_decl(SPEC_PREC, 0)
 #define TOK_RPAREN tok_decl(SPEC_PREC, 1)
@@ -520,13 +520,6 @@ endofname(const char *name)
 	return p;
 }
 
-
-/* Like strncpy but make sure the resulting string is always 0 terminated. */
-static inline char * safe_strncpy(char *dst, const char *src, size_t size)
-{
-	dst[size-1] = '\0';
-	return strncpy(dst, src, size-1);
-}
 
 static arith_t arith (const char *expr, int *perrcode)
 {
@@ -1400,7 +1393,10 @@ static void store_keys(void)
 		if(*val == '\0') {
 		    recordsz = sprintf(record_buf, "#define %s\n", k);
 		} else {
-		    recordsz = sprintf(record_buf, "#define %s %s\n", k, val);
+		    if(val[0] != '(')
+			recordsz = sprintf(record_buf, "#define %s %s\n", k, val);
+		    else
+			recordsz = sprintf(record_buf, "#define %s%s\n", k, val);
 		}
 	    }
 	    /* size_t -> ssize_t :( */
