@@ -240,16 +240,12 @@ typedef struct
 {
   char buf[MAX_MEMORY_BUFF];
 
-#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-  const char *realm;
-  char *remoteuser;
-#endif
+  USE_FEATURE_HTTPD_BASIC_AUTH(const char *realm;)
+  USE_FEATURE_HTTPD_BASIC_AUTH(char *remoteuser;)
 
   const char *query;
 
-#ifdef CONFIG_FEATURE_HTTPD_CGI
-  char *referer;
-#endif
+  USE_FEATURE_HTTPD_CGI(char *referer;)
 
   const char *configFile;
 
@@ -1991,39 +1987,42 @@ static void sighup_handler(int sig)
 }
 #endif
 
+enum httpd_opts_nums {
+	c_opt_config_file = 0,
+	d_opt_decode_url,
+	h_opt_home_httpd,
+	USE_FEATURE_HTTPD_ENCODE_URL_STR(e_opt_encode_url,)
+	USE_FEATURE_HTTPD_BASIC_AUTH(r_opt_realm,)
+	USE_FEATURE_HTTPD_AUTH_MD5(m_opt_md5,)
+	USE_FEATURE_HTTPD_SETUID(u_opt_setuid,)
+	UNUSE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(p_opt_port,)
+};
 
 static const char httpd_opts[]="c:d:h:"
-#ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-				"e:"
-#endif
-#define OPT_INC_1 ENABLE_FEATURE_HTTPD_ENCODE_URL_STR
+	USE_FEATURE_HTTPD_ENCODE_URL_STR("e:")
+	USE_FEATURE_HTTPD_BASIC_AUTH("r:")
+	USE_FEATURE_HTTPD_AUTH_MD5("m:")
+	USE_FEATURE_HTTPD_SETUID("u:")
+	UNUSE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY("p:");
 
-#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-				"r:"
-#endif
-#define OPT_INC_2 ENABLE_FEATURE_HTTPD_BASIC_AUTH
+#define OPT_CONFIG_FILE (1<<c_opt_config_file)
+#define OPT_DECODE_URL  (1<<d_opt_decode_url)
+#define OPT_HOME_HTTPD  (1<<h_opt_home_httpd)
 
-#ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
-				"m:"
-#endif
-#define OPT_INC_3 ENABLE_FEATURE_HTTPD_AUTH_MD5
+#define OPT_ENCODE_URL  USE_FEATURE_HTTPD_ENCODE_URL_STR((1<<e_opt_encode_url)) \
+			UNUSE_FEATURE_HTTPD_ENCODE_URL_STR(0)
 
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-				"p:"
-#endif
-#ifdef CONFIG_FEATURE_HTTPD_SETUID
-				"u:"
-#endif
-					;
+#define OPT_REALM       USE_FEATURE_HTTPD_BASIC_AUTH((1<<r_opt_realm)) \
+			UNUSE_FEATURE_HTTPD_BASIC_AUTH(0)
 
-#define OPT_CONFIG_FILE (1<<0)                                    /* c */
-#define OPT_DECODE_URL  (1<<1)                                    /* d */
-#define OPT_HOME_HTTPD  (1<<2)                                    /* h */
-#define OPT_ENCODE_URL  (1<<(2+OPT_INC_1))                        /* e */
-#define OPT_REALM       (1<<(2+OPT_INC_1+OPT_INC_2))              /* r */
-#define OPT_MD5         (1<<(2+OPT_INC_1+OPT_INC_2+OPT_INC_3))    /* m */
-#define OPT_PORT        (1<<(3+OPT_INC_1+OPT_INC_2+OPT_INC_3))    /* p */
-#define OPT_SETUID      (1<<(4+OPT_INC_1+OPT_INC_2+OPT_INC_3))    /* u */
+#define OPT_MD5         USE_FEATURE_HTTPD_AUTH_MD5((1<<m_opt_md5)) \
+			UNUSE_FEATURE_HTTPD_AUTH_MD5(0)
+
+#define OPT_SETUID      USE_FEATURE_HTTPD_SETUID((1<<u_opt_setuid)) \
+			UNUSE_FEATURE_HTTPD_SETUID(0)
+
+#define OPT_PORT        UNUSE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY((1<<p_opt_port)) \
+			USE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(0)
 
 
 #ifdef HTTPD_STANDALONE
@@ -2035,22 +2034,14 @@ int httpd_main(int argc, char *argv[])
   unsigned long opt;
   const char *home_httpd = home;
   char *url_for_decode;
-#ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-  const char *url_for_encode;
-#endif
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-  const char *s_port;
-  int server;
-#endif
+  USE_FEATURE_HTTPD_ENCODE_URL_STR(const char *url_for_encode;)
+  UNUSE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(const char *s_port;)
+  UNUSE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(int server;)
 
-#ifdef CONFIG_FEATURE_HTTPD_SETUID
-  const char *s_uid;
-  long uid = -1;
-#endif
+  USE_FEATURE_HTTPD_SETUID(const char *s_uid;)
+  USE_FEATURE_HTTPD_SETUID(long uid = -1;)
 
-#ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
-  const char *pass;
-#endif
+  USE_FEATURE_HTTPD_AUTH_MD5(const char *pass;)
 
   config = xcalloc(1, sizeof(*config));
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
@@ -2065,22 +2056,12 @@ int httpd_main(int argc, char *argv[])
 
   opt = bb_getopt_ulflags(argc, argv, httpd_opts,
 			&(config->configFile), &url_for_decode, &home_httpd
-#ifdef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-			, &url_for_encode
-#endif
-#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-			, &(config->realm)
-# ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
-			, &pass
-# endif
-#endif
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-			, &s_port
-#endif
-#ifdef CONFIG_FEATURE_HTTPD_SETUID
-			, &s_uid
-#endif
-    );
+			USE_FEATURE_HTTPD_ENCODE_URL_STR(, &url_for_encode)
+			USE_FEATURE_HTTPD_BASIC_AUTH(, &(config->realm))
+			USE_FEATURE_HTTPD_AUTH_MD5(, &pass)
+			USE_FEATURE_HTTPD_SETUID(, &s_uid)
+			UNUSE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(, &s_port)
+	);
 
   if(opt & OPT_DECODE_URL) {
       printf("%s", decodeString(url_for_decode, 1));
