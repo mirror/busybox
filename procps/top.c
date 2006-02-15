@@ -394,9 +394,13 @@ static void display_status(int count, int col)
 			s->pid, s->user, s->state, rss_str_buf, s->ppid,
 			pmem/10, pmem%10);
 #endif
-			if((int)strlen(namecmd) > col)
-				namecmd[col] = 0;
-			printf("%s\n", namecmd);
+		if((int)strlen(namecmd) > col)
+			namecmd[col] = 0;
+		printf("%s", namecmd);
+		if(count)
+			putchar('\n');
+		else
+			fflush(stdout);
 		s++;
 	}
 }
@@ -485,7 +489,7 @@ int top_main(int argc, char **argv)
 
 	get_terminal_width_height(0, &col, &lines);
 	if (lines > 4) {
-		lines -= 5;
+		lines -= 4;
 #ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		col = col - 80 + 35 - 6;
 #else
@@ -544,7 +548,7 @@ int top_main(int argc, char **argv)
 				return EXIT_FAILURE;
 			}
 			if(c == 'q' || c == initial_settings.c_cc[VINTR])
-				return EXIT_SUCCESS;
+				break;
 			if(c == 'M') {
 #ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 				sort_function[0] = mem_sort;
@@ -579,6 +583,8 @@ int top_main(int argc, char **argv)
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
 		clearmems();
 	}
-
+	if(ENABLE_FEATURE_CLEAN_UP)
+		clearmems();
+	putchar('\n');
 	return EXIT_SUCCESS;
 }
