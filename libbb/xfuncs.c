@@ -180,7 +180,6 @@ extern void bb_xfflush_stdout(void)
 
 #ifdef L_strlen
 /* Stupid gcc always includes its own builtin strlen()... */
-#undef strlen
 size_t bb_strlen(const char *string)
 {
 	    return(strlen(string));
