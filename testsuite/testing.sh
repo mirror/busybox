@@ -42,9 +42,9 @@ export SKIP=
 
 optional()
 {
-  option="$OPTIONFLAGS" | egrep "(^|:)$1(:|\$)"
+  option=`echo "$OPTIONFLAGS" | egrep "(^|:)$1(:|\$)"`
   # Not set?
-  if [[ -z "$1" || -z "$OPTIONFLAGS" || ${#option} -ne 0 ]]
+  if [ -z "$1" ] || [ -z "$OPTIONFLAGS" ] || [ ${#option} -ne 0 ]
   then
     SKIP=""
     return
