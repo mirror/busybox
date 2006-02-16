@@ -956,9 +956,9 @@ extern int msh_main(int argc, char **argv)
 			interactive++;
 #ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
 #ifdef MSHDEBUG
-			printf("\n\n" BB_BANNER " Built-in shell (msh with debug)\n");
+			printf("\n\n%s Built-in shell (msh with debug)\n", BB_BANNER);
 #else
-			printf("\n\n" BB_BANNER " Built-in shell (msh)\n");
+			printf("\n\n%s Built-in shell (msh)\n", BB_BANNER);
 #endif
 			printf("Enter 'help' for a list of built-in commands.\n\n");
 #endif

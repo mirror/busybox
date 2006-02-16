@@ -1,5 +1,5 @@
 /*
- * Another fast dependencies generator for Makefiles, Version 4.1
+ * Another fast dependencies generator for Makefiles, Version 4.2
  *
  * Copyright (C) 2005,2006 by Vladimir Oleynik <dzo@simtreas.ru>
  *
@@ -1261,6 +1261,7 @@ static void parse_inc(const char *include, const char *fname)
     llist_t *lo;
     char *ap;
     size_t key_sz;
+    struct stat st;
 
     if(*include == '/') {
 	lo = NULL;
@@ -1284,8 +1285,18 @@ static void parse_inc(const char *include, const char *fname)
 	    free(ap);
 	    return;
 	}
-	if(access(ap, F_OK) == 0) {
+	if(stat(ap, &st) == 0) {
 	    /* found */
+	    llist_t *cfl;
+
+	    for(cfl = configs; cfl; cfl = cfl->link) {
+		struct stat *config = (struct stat *)cfl->data;
+
+		if (st.st_dev == config->st_dev && st.st_ino == config->st_ino) {
+			/* skip depend with bb_configs.h */
+			return NULL;
+		}
+	    }
 	    p_i = ap;
 	    break;
 	} else if(lo == NULL) {
@@ -1501,7 +1512,7 @@ parse_chd(const char *fe, const char *p, size_t dirlen)
 	    struct stat *config = (struct stat *)cfl->data;
 
 	    if (st.st_dev == config->st_dev && st.st_ino == config->st_ino) {
-		/* skip already parsed configs.h */
+		/* skip already parsed bb_configs.h */
 		return NULL;
 	    }
 	}

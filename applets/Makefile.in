@@ -10,7 +10,7 @@ APPLETS_DIR:=$(top_builddir)/applets/
 endif
 srcdir=$(top_srcdir)/applets
 
-APPLET_SRC:= $(patsubst %,$(srcdir)/%,applets.c busybox.c)
+APPLET_SRC:= $(patsubst %,$(srcdir)/%,applets.c busybox.c version.c)
 APPLET_OBJ:= $(patsubst $(srcdir)/%.c,$(APPLETS_DIR)%.o, $(APPLET_SRC))
 
 APPLET_SRC-y+=$(APPLET_SRC)

@@ -104,7 +104,7 @@
 #include "standalone.h"
 #define hush_main main
 #undef CONFIG_FEATURE_SH_FANCY_PROMPT
-#define BB_BANNER
+#define BB_BANNER ""
 #endif
 #define SPECIAL_VAR_SYMBOL 03
 #define FLAG_EXIT_FROM_LOOP 1
@@ -2812,7 +2812,8 @@ int hush_main(int argc, char **argv)
 	if (interactive) {
 		/* Looks like they want an interactive shell */
 #ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
-		printf( "\n\n" BB_BANNER " hush - the humble shell v0.01 (testing)\n");
+		printf( "\n\n%s hush - the humble shell v0.01 (testing)\n",
+			BB_BANNER);
 		printf( "Enter 'help' for a list of built-in commands.\n\n");
 #endif
 		setup_job_control();

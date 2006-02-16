@@ -21,11 +21,7 @@
 #error "Sorry, this libc version is not supported :("
 #endif
 
-#ifndef BB_EXTRA_VERSION
-#define BB_BANNER "BusyBox v" BB_VER " (" BB_BT ")"
-#else
-#define BB_BANNER "BusyBox v" BB_VER " (" BB_EXTRA_VERSION ")"
-#endif
+extern const char BB_BANNER[];
 
 #include <features.h>
 

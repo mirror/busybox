@@ -22,7 +22,12 @@
 #include "libbb.h"
 
 #ifdef L_full_version
-	const char * const bb_msg_full_version = BB_BANNER " multi-call binary";
+#ifndef BB_EXTRA_VERSION
+#define LIBBB_BANNER "BusyBox's library v" BB_VER " (" BB_BT ")"
+#else
+#define LIBBB_BANNER "BusyBox's library v" BB_VER " (" BB_EXTRA_VERSION ")"
+#endif
+	const char * const libbb_msg_full_version = LIBBB_BANNER;
 #endif
 #ifdef L_memory_exhausted
 	const char * const bb_msg_memory_exhausted = "memory exhausted";

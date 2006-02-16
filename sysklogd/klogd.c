@@ -61,7 +61,7 @@ static void doKlogd(const int console_log_level)
 	if (console_log_level != -1)
 		klogctl(8, NULL, console_log_level);
 
-	syslog(LOG_NOTICE, "klogd started: " BB_BANNER);
+	syslog(LOG_NOTICE, "klogd started: %s", BB_BANNER);
 
 	while (1) {
 		/* Use kernel syscalls */

@@ -11833,8 +11833,9 @@ setinteractive(int on)
 
 				if(!do_banner) {
 					out1fmt(
-			"\n\n" BB_BANNER " Built-in shell (ash)\n"
-			"Enter 'help' for a list of built-in commands.\n\n");
+			"\n\n%s Built-in shell (ash)\n"
+			"Enter 'help' for a list of built-in commands.\n\n",
+					BB_BANNER);
 					do_banner++;
 				}
 		}
