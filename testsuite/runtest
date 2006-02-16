@@ -94,7 +94,7 @@ fi
 # Set up option flags so tests can be selective.
 
 configfile=${bindir:-../../}/.config
-export OPTIONFLAGS=:$(echo $(sed -nr 's/^CONFIG_(.*)=.*/\1/p' $configfile) | sed 's/ /:/')
+export OPTIONFLAGS=:$(echo $(sed -nr 's/^CONFIG_(.*)=.*/\1/p' $configfile) | sed 's/ /:/g')
 
 for applet in $applets; do
 	if [ "$applet" = "links" ]; then continue; fi
