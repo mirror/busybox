@@ -413,7 +413,7 @@ got_huff_bits:
 			   context).  Thus space is saved. */
 
 			t += (runPos << nextSym); /* +runPos if RUNA; +2*runPos if RUNB */
-			runPos <<= 1;
+			if(runPos < dbufSize) runPos <<= 1;
 			goto end_of_huffman_loop;
 		}
 
