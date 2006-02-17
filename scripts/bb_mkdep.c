@@ -1294,7 +1294,7 @@ static void parse_inc(const char *include, const char *fname)
 
 		if (st.st_dev == config->st_dev && st.st_ino == config->st_ino) {
 			/* skip depend with bb_configs.h */
-			return NULL;
+			return;
 		}
 	    }
 	    p_i = ap;
