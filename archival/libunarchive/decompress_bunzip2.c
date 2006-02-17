@@ -71,7 +71,7 @@ struct group_data {
 
 typedef struct {
 	/* State for interrupting output loop */
-	
+
 	int writeCopies,writePos,writeRunCountdown,writeCount,writeCurrent;
 
 	/* I/O tracking data (file handles, buffers, positions, etc.) */
@@ -154,34 +154,34 @@ static int get_next_block(bunzip_data *bd)
 	dbuf=bd->dbuf;
 	dbufSize=bd->dbufSize;
 	selectors=bd->selectors;
-	
+
 	/* Reset longjmp I/O error handling */
-	
+
 	i=setjmp(bd->jmpbuf);
 	if(i) return i;
-	
+
 	/* Read in header signature and CRC, then validate signature.
 	   (last block signature means CRC is for whole file, return now) */
-	
+
 	i = get_bits(bd,24);
 	j = get_bits(bd,24);
 	bd->headerCRC=get_bits(bd,32);
 	if ((i == 0x177245) && (j == 0x385090)) return RETVAL_LAST_BLOCK;
 	if ((i != 0x314159) || (j != 0x265359)) return RETVAL_NOT_BZIP_DATA;
-	
+
 	/* We can add support for blockRandomised if anybody complains.  There was
 	   some code for this in busybox 1.0.0-pre3, but nobody ever noticed that
 	   it didn't actually work. */
-	
+
 	if(get_bits(bd,1)) return RETVAL_OBSOLETE_INPUT;
 	if((origPtr=get_bits(bd,24)) > dbufSize) return RETVAL_DATA_ERROR;
-	
+
 	/* mapping table: if some byte values are never used (encoding things
 	   like ascii text), the compression code removes the gaps to have fewer
 	   symbols to deal with, and writes a sparse bitfield indicating which
 	   values were present.  We make a translation table to convert the symbols
 	   back to the corresponding bytes. */
-	
+
 	t=get_bits(bd, 16);
 	symTotal=0;
 	for (i=0;i<16;i++) {
@@ -191,81 +191,81 @@ static int get_next_block(bunzip_data *bd)
 				if(k&(1<<(15-j))) symToByte[symTotal++]=(16*i)+j;
 		}
 	}
-	
+
 	/* How many different Huffman coding groups does this block use? */
-	
+
 	groupCount=get_bits(bd,3);
 	if (groupCount<2 || groupCount>MAX_GROUPS) return RETVAL_DATA_ERROR;
-	
+
 	/* nSelectors: Every GROUP_SIZE many symbols we select a new Huffman coding
 	   group.  Read in the group selector list, which is stored as MTF encoded
 	   bit runs.  (MTF=Move To Front, as each value is used it's moved to the
 	   start of the list.) */
-	
+
 	if(!(nSelectors=get_bits(bd, 15))) return RETVAL_DATA_ERROR;
 	for(i=0; i<groupCount; i++) mtfSymbol[i] = i;
 	for(i=0; i<nSelectors; i++) {
-		
+
 		/* Get next value */
-		
+
 		for(j=0;get_bits(bd,1);j++) if (j>=groupCount) return RETVAL_DATA_ERROR;
-		
+
 		/* Decode MTF to get the next selector */
-		
+
 		uc = mtfSymbol[j];
 		for(;j;j--) mtfSymbol[j] = mtfSymbol[j-1];
 		mtfSymbol[0]=selectors[i]=uc;
 	}
-	
+
 	/* Read the Huffman coding tables for each group, which code for symTotal
 	   literal symbols, plus two run symbols (RUNA, RUNB) */
-	
+
 	symCount=symTotal+2;
 	for (j=0; j<groupCount; j++) {
 		unsigned char length[MAX_SYMBOLS],temp[MAX_HUFCODE_BITS+1];
 		int	minLen,	maxLen, pp;
-		
+
 		/* Read Huffman code lengths for each symbol.  They're stored in
 		   a way similar to mtf; record a starting value for the first symbol,
 		   and an offset from the previous value for everys symbol after that.
 		   (Subtracting 1 before the loop and then adding it back at the end is
 		   an optimization that makes the test inside the loop simpler: symbol
 		   length 0 becomes negative, so an unsigned inequality catches it.) */
-		
+
 		t=get_bits(bd, 5)-1;
 		for (i = 0; i < symCount; i++) {
 			for(;;) {
 				if (((unsigned)t) > (MAX_HUFCODE_BITS-1))
 					return RETVAL_DATA_ERROR;
-				
+
 				/* If first bit is 0, stop.  Else second bit indicates whether
 				   to increment or decrement the value.  Optimization: grab 2
 				   bits and unget the second if the first was 0. */
-				
+
 				k = get_bits(bd,2);
 				if (k < 2) {
 					bd->inbufBitCount++;
 					break;
 				}
-				
+
 				/* Add one if second bit 1, else subtract 1.  Avoids if/else */
-				
+
 				t+=(((k+1)&2)-1);
 			}
-			
+
 			/* Correct for the initial -1, to get the final symbol length */
-			
+
 			length[i]=t+1;
 		}
-		
+
 		/* Find largest and smallest lengths in this group */
-		
+
 		minLen=maxLen=length[0];
 		for(i = 1; i < symCount; i++) {
 			if(length[i] > maxLen) maxLen = length[i];
 			else if(length[i] < minLen) minLen = length[i];
 		}
-		
+
 		/* Calculate permute[], base[], and limit[] tables from length[].
 		 *
 		 * permute[] is the lookup table for converting Huffman coded symbols
@@ -276,47 +276,47 @@ static int get_next_block(bunzip_data *bd)
 		 * number of bits can have.  This is how the Huffman codes can vary in
 		 * length: each code with a value>limit[length] needs another bit.
 		 */
-		
+
 		hufGroup=bd->groups+j;
 		hufGroup->minLen = minLen;
 		hufGroup->maxLen = maxLen;
-		
+
 		/* Note that minLen can't be smaller than 1, so we adjust the base
 		   and limit array pointers so we're not always wasting the first
 		   entry.  We do this again when using them (during symbol decoding).*/
-		
+
 		base=hufGroup->base-1;
 		limit=hufGroup->limit-1;
-		
+
 		/* Calculate permute[].  Concurently, initialize temp[] and limit[]. */
-		
+
 		pp=0;
 		for(i=minLen;i<=maxLen;i++) {
 			temp[i]=limit[i]=0;
 			for(t=0;t<symCount;t++)
 				if(length[t]==i) hufGroup->permute[pp++] = t;
 		}
-		
+
 		/* Count symbols coded for at each bit length */
-		
+
 		for (i=0;i<symCount;i++) temp[length[i]]++;
-		
+
 		/* Calculate limit[] (the largest symbol-coding value at each bit
 		 * length, which is (previous limit<<1)+symbols at this level), and
 		 * base[] (number of symbols to ignore at each bit length, which is
 		 * limit minus the cumulative count of symbols coded for already). */
-		
+
 		pp=t=0;
 		for (i=minLen; i<maxLen; i++) {
 			pp+=temp[i];
-			
+
 			/* We read the largest possible symbol size and then unget bits
 			   after determining how many we need, and those extra bits could
 			   be set to anything.  (They're noise from future symbols.)  At
 			   each level we're really only interested in the first few bits,
 			   so here we set all the trailing to-be-ignored bits to 1 so they
 			   don't affect the value>limit[length] comparison. */
-			
+
 			limit[i]= (pp << (maxLen - i)) - 1;
 			pp<<=1;
 			base[i+1]=pp-(t+=temp[i]);
@@ -325,34 +325,34 @@ static int get_next_block(bunzip_data *bd)
 		limit[maxLen]=pp+temp[maxLen]-1;
 		base[minLen]=0;
 	}
-	
+
 	/* We've finished reading and digesting the block header.  Now read this
 	   block's Huffman coded symbols from the file and undo the Huffman coding
 	   and run length encoding, saving the result into dbuf[dbufCount++]=uc */
 
 	/* Initialize symbol occurrence counters and symbol Move To Front table */
-	
+
 	for(i=0;i<256;i++) {
 		byteCount[i] = 0;
 		mtfSymbol[i]=(unsigned char)i;
 	}
-	
+
 	/* Loop through compressed symbols. */
-	
+
 	runPos=dbufCount=selector=0;
 	for(;;) {
-		
+
 		/* fetch next Huffman coding group from list. */
-		
+
 		symCount=GROUP_SIZE-1;
 		if(selector>=nSelectors) return RETVAL_DATA_ERROR;
 		hufGroup=bd->groups+selectors[selector++];
 		base=hufGroup->base-1;
 		limit=hufGroup->limit-1;
 continue_this_group:
-		
+
 		/* Read next Huffman-coded symbol. */
-		
+
 		/* Note: It is far cheaper to read maxLen bits and back up than it is
 		   to read minLen bits and then an additional bit at a time, testing
 		   as we go.  Because there is a trailing last block (with file CRC),
@@ -362,7 +362,7 @@ continue_this_group:
 		   dry).  The following (up to got_huff_bits:) is equivalent to
 		   j=get_bits(bd,hufGroup->maxLen);
 		 */
-		
+
 		while (bd->inbufBitCount<hufGroup->maxLen) {
 			if(bd->inbufPos==bd->inbufCount) {
 				j = get_bits(bd,hufGroup->maxLen);
@@ -373,37 +373,37 @@ continue_this_group:
 		};
 		bd->inbufBitCount-=hufGroup->maxLen;
 		j = (bd->inbufBits>>bd->inbufBitCount)&((1<<hufGroup->maxLen)-1);
-		
+
 got_huff_bits:
-		
+
 		/* Figure how how many bits are in next symbol and unget extras */
-		
+
 		i=hufGroup->minLen;
 		while(j>limit[i]) ++i;
 		bd->inbufBitCount += (hufGroup->maxLen - i);
-		
+
 		/* Huffman decode value to get nextSym (with bounds checking) */
-		
+
 		if ((i > hufGroup->maxLen)
 			|| (((unsigned)(j=(j>>(hufGroup->maxLen-i))-base[i]))
 				>= MAX_SYMBOLS))
 			return RETVAL_DATA_ERROR;
 		nextSym = hufGroup->permute[j];
-		
+
 		/* We have now decoded the symbol, which indicates either a new literal
 		   byte, or a repeated run of the most recent literal byte.  First,
 		   check if nextSym indicates a repeated run, and if so loop collecting
 		   how many times to repeat the last literal. */
-		
+
 		if (((unsigned)nextSym) <= SYMBOL_RUNB) { /* RUNA or RUNB */
-			
+
 			/* If this is the start of a new run, zero out counter */
-			
+
 			if(!runPos) {
 				runPos = 1;
 				t = 0;
 			}
-			
+
 			/* Neat trick that saves 1 symbol: instead of or-ing 0 or 1 at
 			   each bit position, add 1 or 2 instead.  For example,
 			   1011 is 1<<0 + 1<<1 + 2<<2.  1010 is 2<<0 + 2<<1 + 1<<2.
@@ -411,17 +411,17 @@ got_huff_bits:
 			   the basic or 0/1 method (except all bits 0, which would use no
 			   symbols, but a run of length 0 doesn't mean anything in this
 			   context).  Thus space is saved. */
-			
+
 			t += (runPos << nextSym); /* +runPos if RUNA; +2*runPos if RUNB */
 			runPos <<= 1;
 			goto end_of_huffman_loop;
 		}
-		
+
 		/* When we hit the first non-run symbol after a run, we now know
 		   how many times to repeat the last literal, so append that many
 		   copies to our buffer of decoded symbols (dbuf) now.  (The last
 		   literal used is the one at the head of the mtfSymbol array.) */
-		
+
 		if(runPos) {
 			runPos=0;
 			if(dbufCount+t>=dbufSize) return RETVAL_DATA_ERROR;
@@ -430,11 +430,11 @@ got_huff_bits:
 			byteCount[uc] += t;
 			while(t--) dbuf[dbufCount++]=uc;
 		}
-		
+
 		/* Is this the terminating symbol? */
-		
+
 		if(nextSym>symTotal) break;
-		
+
 		/* At this point, nextSym indicates a new literal character.  Subtract
 		   one to get the position in the MTF array at which this literal is
 		   currently to be found.  (Note that the result can't be -1 or 0,
@@ -442,30 +442,30 @@ got_huff_bits:
 		   first symbol in the mtf array, position 0, would have been handled
 		   as part of a run above.  Therefore 1 unused mtf position minus
 		   2 non-literal nextSym values equals -1.) */
-		
+
 		if(dbufCount>=dbufSize) return RETVAL_DATA_ERROR;
 		i = nextSym - 1;
 		uc = mtfSymbol[i];
-		
+
 		/* Adjust the MTF array.  Since we typically expect to move only a
 		 * small number of symbols, and are bound by 256 in any case, using
 		 * memmove here would typically be bigger and slower due to function
 		 * call overhead and other assorted setup costs. */
-		
+
 		do {
 			mtfSymbol[i] = mtfSymbol[i-1];
 		} while (--i);
 		mtfSymbol[0] = uc;
 		uc=symToByte[uc];
-		
+
 		/* We have our literal byte.  Save it into dbuf. */
-		
+
 		byteCount[uc]++;
 		dbuf[dbufCount++] = (unsigned int)uc;
-		
+
 		/* Skip group initialization if we're not done with this group.  Done
 		 * this way to avoid compiler warning. */
-		
+
 end_of_huffman_loop:
 		if(symCount--) goto continue_this_group;
 	}
@@ -476,7 +476,7 @@ end_of_huffman_loop:
 	   Now undo the Burrows-Wheeler transform on dbuf.
 	   See http://dogma.net/markn/articles/bwt/bwt.htm
 	 */
-	
+
 	/* Turn byteCount into cumulative occurrence counts of 0 to n-1. */
 
 	j=0;
@@ -497,7 +497,7 @@ end_of_huffman_loop:
 	/* Decode first byte by hand to initialize "previous" byte.  Note that it
 	   doesn't get output, and if the first three characters are identical
 	   it doesn't qualify as a run (hence writeRunCountdown=5). */
-	
+
 	if(dbufCount) {
 		if(origPtr>=dbufCount) return RETVAL_DATA_ERROR;
 		bd->writePos=dbuf[origPtr];
