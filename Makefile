@@ -384,7 +384,7 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 
 # The nifty new buildsystem stuff
 scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
-	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
+	$(Q)$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
 DEP_INCLUDES := include/bb_config.h
 
