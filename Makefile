@@ -428,7 +428,7 @@ clean:
 distclean: clean
 	- $(RM_F) scripts/bb_mkdep
 	- rm -rf include/config $(DEP_INCLUDES)
-	- find . -name .depend -exec $(RM_F) {} \;
+	- find . -name .depend'*' -exec $(RM_F) {} \;
 	$(RM_F) .config .config.old .config.cmd
 
 release: distclean #doc
