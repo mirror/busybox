@@ -1297,6 +1297,9 @@ arch_apply_relocation(struct obj_file *f,
 			}
 			break;
 
+#elif defined(__powerpc64__)
+		/* do this someday ... */
+
 #elif defined(__powerpc__)
 
 		case R_PPC_ADDR16_HA:
