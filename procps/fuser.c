@@ -18,6 +18,7 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/sysmacros.h>
 #include "busybox.h"
 
 #define FUSER_PROC_DIR "/proc"
