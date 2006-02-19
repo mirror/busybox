@@ -352,18 +352,18 @@ static int next(char **argv)
 	/* NOTREACHED */
 }
 
-static u_char *get(void)
+static unsigned char *get(void)
 {
 	static int ateof = 1;
-	static u_char *curp=NULL, *savp; /*DBU:[dave@cray.com]initialize curp */
+	static unsigned char *curp=NULL, *savp; /*DBU:[dave@cray.com]initialize curp */
 	register int n;
 	int need, nread;
-	u_char *tmpp;
+	unsigned char *tmpp;
 
 	if (!curp) {
 		address = (off_t)0; /*DBU:[dave@cray.com] initialize,initialize..*/
-		curp = (u_char *) xmalloc(bb_dump_blocksize);
-		savp = (u_char *) xmalloc(bb_dump_blocksize);
+		curp = (unsigned char *) xmalloc(bb_dump_blocksize);
+		savp = (unsigned char *) xmalloc(bb_dump_blocksize);
 	} else {
 		tmpp = curp;
 		curp = savp;
@@ -378,19 +378,19 @@ static u_char *get(void)
 		 */
 		if (!bb_dump_length || (ateof && !next((char **) NULL))) {
 			if (need == bb_dump_blocksize) {
-				return ((u_char *) NULL);
+				return ((unsigned char *) NULL);
 			}
 			if (bb_dump_vflag != ALL && !bcmp(curp, savp, nread)) {
 				if (bb_dump_vflag != DUP) {
 					printf("*\n");
 				}
-				return ((u_char *) NULL);
+				return ((unsigned char *) NULL);
 			}
 			memset((char *) curp + nread, 0, need);
 			eaddress = address + nread;
 			return (curp);
 		}
-		n = fread((char *) curp + nread, sizeof(u_char),
+		n = fread((char *) curp + nread, sizeof(unsigned char),
 				  bb_dump_length == -1 ? need : MIN(bb_dump_length, need), stdin);
 		if (!n) {
 			if (ferror(stdin)) {
@@ -451,7 +451,7 @@ static const char conv_str[] =
 	"\0";
 
 
-static void conv_c(PR * pr, u_char * p)
+static void conv_c(PR * pr, unsigned char * p)
 {
 	const char *str = conv_str;
 	char buf[10];
@@ -476,7 +476,7 @@ static void conv_c(PR * pr, u_char * p)
 	}
 }
 
-static void conv_u(PR * pr, u_char * p)
+static void conv_u(PR * pr, unsigned char * p)
 {
 	static const char list[] =
 		"nul\0soh\0stx\0etx\0eot\0enq\0ack\0bel\0"
@@ -507,10 +507,10 @@ static void display(void)
 	register FU *fu;
 	register PR *pr;
 	register int cnt;
-	register u_char *bp;
+	register unsigned char *bp;
 
 	off_t saveaddress;
-	u_char savech = 0, *savebp;
+	unsigned char savech = 0, *savebp;
 
 	while ((bp = get()) != NULL) {
 		for (fs = bb_dump_fshead, savebp = bp, saveaddress = address; fs;

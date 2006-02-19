@@ -243,8 +243,8 @@
  * Overlay for ip header used by other protocols (tcp, udp).
  */
 struct ipovly {
-	u_char  ih_x1[9];               /* (unused) */
-	u_char  ih_pr;                  /* protocol */
+	unsigned char  ih_x1[9];               /* (unused) */
+	unsigned char  ih_pr;                  /* protocol */
 	short   ih_len;                 /* protocol length */
 	struct  in_addr ih_src;         /* source internet address */
 	struct  in_addr ih_dst;         /* destination internet address */
@@ -279,8 +279,8 @@ struct hostinfo {
 
 /* Data section of the probe packet */
 struct outdata {
-	u_char seq;             /* sequence number of this packet */
-	u_char ttl;             /* ttl packet left with */
+	unsigned char seq;             /* sequence number of this packet */
+	unsigned char ttl;             /* ttl packet left with */
 	struct timeval tv ATTRIBUTE_PACKED; /* time packet left */
 };
 
@@ -293,7 +293,7 @@ struct IFADDRLIST {
 static const char route[] = "/proc/net/route";
 
 /* last inbound (icmp) packet */
-static u_char  packet[512] ATTRIBUTE_ALIGNED(32);
+static unsigned char  packet[512] ATTRIBUTE_ALIGNED(32);
 
 static struct ip *outip;               /* last output (udp) packet */
 static struct udphdr *outudp;          /* last output (udp) packet */
@@ -596,7 +596,7 @@ in_cksum(u_short *addr, int len)
 
 	/* mop up an odd byte, if necessary */
 	if (nleft == 1)
-		sum += *(u_char *)w;
+		sum += *(unsigned char *)w;
 
 	/*
 	 * add back carry outs from top 16 bits to low 16 bits
@@ -689,7 +689,7 @@ send_probe(int seq, int ttl, struct timeval *tp)
 		if (packlen & 1) {
 			if ((i % 8) == 0)
 				printf("\n\t");
-			printf(" %02x", *(u_char *)sp);
+			printf(" %02x", *(unsigned char *)sp);
 		}
 		printf("]\n");
 	}
@@ -728,7 +728,7 @@ deltaT(struct timeval *t1p, struct timeval *t2p)
  * Convert an ICMP "type" field to a printable string.
  */
 static inline const char *
-pr_type(u_char t)
+pr_type(unsigned char t)
 {
 	static const char * const ttab[] = {
 	"Echo Reply",   "ICMP 1",       "ICMP 2",       "Dest Unreachable",
@@ -746,10 +746,10 @@ pr_type(u_char t)
 #endif
 
 static int
-packet_ok(u_char *buf, int cc, struct sockaddr_in *from, int seq)
+packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 {
 	struct icmp *icp;
-	u_char type, code;
+	unsigned char type, code;
 	int hlen;
 	struct ip *ip;
 
@@ -790,7 +790,7 @@ packet_ok(u_char *buf, int cc, struct sockaddr_in *from, int seq)
 			    icp->icmp_seq == htons(seq))
 				return -2;
 
-			hicmp = (struct icmp *)((u_char *)hip + hlen);
+			hicmp = (struct icmp *)((unsigned char *)hip + hlen);
 			/* XXX 8 is a magic number */
 			if (hlen + 8 <= cc &&
 			    hip->ip_p == IPPROTO_ICMP &&
@@ -800,7 +800,7 @@ packet_ok(u_char *buf, int cc, struct sockaddr_in *from, int seq)
 		} else
 #endif
 		      {
-			up = (struct udphdr *)((u_char *)hip + hlen);
+			up = (struct udphdr *)((unsigned char *)hip + hlen);
 			/* XXX 8 is a magic number */
 			if (hlen + 12 <= cc &&
 			    hip->ip_p == IPPROTO_UDP &&
@@ -850,7 +850,7 @@ inetname(struct sockaddr_in *from)
 }
 
 static inline void
-print(u_char *buf, int cc, struct sockaddr_in *from)
+print(unsigned char *buf, int cc, struct sockaddr_in *from)
 {
 	struct ip *ip;
 	int hlen;
@@ -928,7 +928,7 @@ traceroute_main(int argc, char *argv[])
 {
 	int code, n;
 	char *cp;
-	u_char *outp;
+	unsigned char *outp;
 	u_int32_t *ap;
 	struct sockaddr_in *from = (struct sockaddr_in *)&wherefrom;
 	struct sockaddr_in *to = (struct sockaddr_in *)&whereto;
@@ -1112,7 +1112,7 @@ traceroute_main(int argc, char *argv[])
 #ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
 #if defined(IP_OPTIONS)
 	if (lsrr > 0) {
-		u_char optlist[MAX_IPOPTLEN];
+		unsigned char optlist[MAX_IPOPTLEN];
 
 		cp = "ip";
 		if ((pe = getprotobyname(cp)) == NULL)
@@ -1179,10 +1179,10 @@ traceroute_main(int argc, char *argv[])
 		outip->ip_tos = tos;
 	outip->ip_len = htons(packlen);
 	outip->ip_off = htons(off);
-	outp = (u_char *)(outip + 1);
+	outp = (unsigned char *)(outip + 1);
 	outip->ip_dst = to->sin_addr;
 
-	outip->ip_hl = (outp - (u_char *)outip) >> 2;
+	outip->ip_hl = (outp - (unsigned char *)outip) >> 2;
 	ident = (getpid() & 0xffff) | 0x8000;
 #ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 	if (useicmp) {
