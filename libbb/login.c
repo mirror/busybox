@@ -96,6 +96,7 @@ void print_login_issue(const char *issue_file, const char *tty)
 
 					case 'h':
 						gethostname(buf, sizeof(buf) - 1);
+						buf[sizeof(buf) - 1] = '\0';
 						break;
 
 					case 'l':
@@ -105,7 +106,7 @@ void print_login_issue(const char *issue_file, const char *tty)
 					default:
 						buf[0] = c;
 				}
-		}
+			}
 			fputs(outbuf, stdout);
 		}
 
