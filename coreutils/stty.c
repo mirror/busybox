@@ -44,7 +44,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
-#include <memory.h>
 #include <fcntl.h>
 #include "busybox.h"
 
