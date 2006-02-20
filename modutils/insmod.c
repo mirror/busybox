@@ -1298,7 +1298,7 @@ arch_apply_relocation(struct obj_file *f,
 			break;
 
 #elif defined(__powerpc64__)
-		/* do this someday ... */
+		/* PPC64 needs a 2.6 kernel, 2.4 module relocation irrelevant */
 
 #elif defined(__powerpc__)
 
