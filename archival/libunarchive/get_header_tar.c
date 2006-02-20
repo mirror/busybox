@@ -1,17 +1,4 @@
-/*
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+/* Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  *  FIXME:
  *    In privileged mode if uname and gname map to a uid and gid then use the
@@ -70,7 +57,8 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 
 	if (bb_full_read(archive_handle->src_fd, tar.raw, 512) != 512) {
 		/* Assume end of file */
-		return(EXIT_FAILURE);
+		bb_error_msg_and_die("Short header");
+		//return(EXIT_FAILURE);
 	}
 	archive_handle->offset += 512;
 
@@ -120,10 +108,14 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 		linkname = NULL;
 	} else
 #endif
-	if (tar.formated.prefix[0] == 0) {
-		file_header->name = strdup(tar.formated.name);
-	} else {
-		file_header->name = concat_path_file(tar.formated.prefix, tar.formated.name);
+	{
+		file_header->name = strndup(tar.formated.name,100);
+
+		if (tar.formated.prefix[0]) {
+			char *temp = file_header->name;
+			file_header->name = concat_path_file(tar.formated.prefix, temp);
+			free(temp);
+		}
 	}
 
 	file_header->uid = strtol(tar.formated.uid, NULL, 8);
