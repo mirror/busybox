@@ -37,7 +37,7 @@ void print_login_issue(const char *issue_file, const char *tty)
 {
 	FILE *fd;
 	int c;
-	char buf[256];
+	char buf[256+2];
 	const char *outbuf;
 	time_t t;
 	struct utsname uts;
@@ -82,8 +82,8 @@ void print_login_issue(const char *issue_file, const char *tty)
 
 					case 'D':
 					case 'o':
-						getdomainname(buf, sizeof(buf));
-						buf[sizeof(buf) - 1] = '\0';
+						buf[0] = '\0';
+						getdomainname(buf, sizeof(buf) - 1);
 						break;
 
 					case 'd':
@@ -95,8 +95,8 @@ void print_login_issue(const char *issue_file, const char *tty)
 						break;
 
 					case 'h':
+						buf[0] = '\0';
 						gethostname(buf, sizeof(buf) - 1);
-						buf[sizeof(buf) - 1] = '\0';
 						break;
 
 					case 'l':
@@ -120,8 +120,8 @@ void print_login_prompt(void)
 {
 	char buf[MAXHOSTNAMELEN+1];
 
-	gethostname(buf, MAXHOSTNAMELEN);
-	fputs(buf, stdout);
+	if(gethostname(buf, MAXHOSTNAMELEN) == 0)
+		fputs(buf, stdout);
 
 	fputs(LOGIN, stdout);
 	fflush(stdout);
