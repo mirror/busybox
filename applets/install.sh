@@ -20,7 +20,7 @@ if [ "$DO_INSTALL_LIBS" != "n" ]; then
 	# get the target dir for the libs
 	# This is an incomplete/incorrect list for now
 	case $(uname -m) in
-	x86_64|ppc64*|sparc64*|ia64*|hppa*64*) libdir=/lib64 ;;
+	x86_64|ppc64*|sparc64*|ia64*|hppa*64*|s390x*) libdir=/lib64 ;;
 	*) libdir=/lib ;;
 	esac
 
