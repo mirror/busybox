@@ -454,7 +454,7 @@ int conf_write(const char *name)
 				fprintf(out_h, "#define ENABLE_%s %d\n", opt_name, use_flg);
 				fprintf(out_h, "#define USE_%s(...)%s\n", opt_name,
 					(use_flg ? "  __VA_ARGS__" : ""));
-				fprintf(out_h, "#define UNUSE_%s(...)%s\n\n", opt_name,
+				fprintf(out_h, "#define SKIP_%s(...)%s\n\n", opt_name,
 					(use_flg ? "" : "  __VA_ARGS__"));
 			}
 			/* end busybox`s code */
