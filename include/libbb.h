@@ -387,7 +387,9 @@ void reset_ino_dev_hashtable(void);
 
 /* Stupid gcc always includes its own builtin strlen()... */
 extern size_t bb_strlen(const char *string);
+#ifndef BB_STRLEN_IMPLEMENTATION
 #define strlen(x)   bb_strlen(x)
+#endif
 
 char *bb_xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 
