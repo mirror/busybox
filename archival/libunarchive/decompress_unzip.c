@@ -271,7 +271,7 @@ int huft_build(unsigned int *b, const unsigned int n,
 	if (c[0] == n) { /* null input--all zero length codes */
 		*t = (huft_t *) NULL;
 		*m = 0;
-		return 0;
+		return 2;
 	}
 
 	/* Find minimum and maximum length, bound *m by those */
