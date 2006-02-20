@@ -58,6 +58,7 @@ struct client_config_t client_config = {
 	.hostname = NULL,
 	.fqdn = NULL,
 	.ifindex = 0,
+	.retries = 3,
 	.arp = "\0\0\0\0\0\0",		/* appease gcc-3.0 */
 };
 
@@ -202,13 +203,14 @@ int main(int argc, char *argv[])
 		{"request",	required_argument,	0, 'r'},
 		{"script",	required_argument,	0, 's'},
 		{"version",	no_argument,		0, 'v'},
+		{"retries",	required_argument,	0, 't'},		
 		{0, 0, 0, 0}
 	};
 
 	/* get options */
 	while (1) {
 		int option_index = 0;
-		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qr:s:v", arg_options, &option_index);
+		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qr:s:t:v", arg_options, &option_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -284,6 +286,9 @@ int main(int argc, char *argv[])
 		case 's':
 			client_config.script = optarg;
 			break;
+		case 't':
+			client_config.retries = atoi(optarg);
+			break;
 		case 'v':
 			printf("udhcpcd, version %s\n\n", VERSION);
 			return 0;
@@ -353,7 +358,7 @@ int main(int argc, char *argv[])
 			/* timeout dropped to zero */
 			switch (state) {
 			case INIT_SELECTING:
-				if (packet_num < 3) {
+				if (packet_num < client_config.retries) {
 					if (packet_num == 0)
 						xid = random_xid();
 
@@ -378,7 +383,7 @@ int main(int argc, char *argv[])
 				break;
 			case RENEW_REQUESTED:
 			case REQUESTING:
-				if (packet_num < 3) {
+				if (packet_num < client_config.retries) {
 					/* send request packet */
 					if (state == RENEW_REQUESTED)
 						send_renew(xid, server_addr, requested_ip); /* unicast */

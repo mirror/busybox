@@ -3239,7 +3239,7 @@
 	"Adjust filesystem options on ext[23] filesystems.\n\n"
 
 #define udhcpc_trivial_usage \
-	"[-Cfbnqv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n[-p pidfile] [-r IP] [-s script]"
+	"[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n[-p pidfile] [-r IP] [-s script]"
 #define udhcpc_full_usage \
 	"\t-c,\t--clientid=CLIENTID\tSet client identifier\n" \
 	"\t-C,\t--clientid-none\tSuppress default client identifier\n" \
@@ -3254,6 +3254,7 @@
 	"\t-q,\t--quit\tQuit after obtaining lease\n" \
 	"\t-r,\t--request=IP\tIP address to request (default: none)\n" \
 	"\t-s,\t--script=file\tRun file at dhcp events (default: /usr/share/udhcpc/default.script)\n" \
+	"\t-t,\t--retries=NUM\tSend up to NUM request packets\n"\
 	"\t-v,\t--version\tDisplay version"
 
 #define udhcpd_trivial_usage \
