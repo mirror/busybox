@@ -18,7 +18,9 @@ DEBIANUTILS-$(CONFIG_RUN_PARTS)		+= run_parts.o
 DEBIANUTILS-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o
 DEBIANUTILS-$(CONFIG_WHICH)		+= which.o
 
+ifneq ($(strip $(DEBIANUTILS-y)),)
 libraries-y+=$(DEBIANUTILS_DIR)$(DEBIANUTILS_AR)
+endif
 DEBIANUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(DEBIANUTILS-y))
 DEBIANUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(DEBIANUTILS_SRC-y)

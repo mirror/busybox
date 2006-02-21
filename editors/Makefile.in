@@ -16,7 +16,9 @@ EDITOR-$(CONFIG_PATCH)	   += patch.o
 EDITOR-$(CONFIG_SED)       += sed.o
 EDITOR-$(CONFIG_VI)        += vi.o
 
+ifneq ($(strip $(EDITOR-y)),)
 libraries-y+=$(EDITOR_DIR)$(EDITOR_AR)
+endif
 
 EDITOR_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(EDITOR-y))
 EDITOR_SRC-a:=$(wildcard $(srcdir)/*.c)

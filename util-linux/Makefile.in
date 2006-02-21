@@ -38,8 +38,9 @@ UTILLINUX-$(CONFIG_SWAPONOFF)     +=swaponoff.o
 UTILLINUX-$(CONFIG_SWITCH_ROOT)   +=switch_root.o
 UTILLINUX-$(CONFIG_UMOUNT)        +=umount.o
 
-
+ifneq ($(strip $(UTILLINUX-y)),)
 libraries-y+=$(UTILLINUX_DIR)$(UTILLINUX_AR)
+endif
 
 UTILLINUX_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(UTILLINUX-y))
 UTILLINUX_SRC-a:=$(wildcard $(srcdir)/*.c)

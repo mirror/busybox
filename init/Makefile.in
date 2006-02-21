@@ -27,7 +27,9 @@ endif
 
 INIT-$(CONFIG_INIT_SHARED)        += init_shared.o
 
+ifneq ($(strip $(INIT-y)),)
 libraries-y+=$(INIT_DIR)$(INIT_AR)
+endif
 
 INIT_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(INIT-y))
 INIT_SRC-a:=$(wildcard $(srcdir)/*.c)

@@ -16,7 +16,9 @@ SYSKLOGD-$(CONFIG_LOGGER)		+= logger.o
 SYSKLOGD-$(CONFIG_LOGREAD)		+= logread.o
 SYSKLOGD-$(CONFIG_SYSLOGD)		+= syslogd.o
 
+ifneq ($(strip $(SYSKLOGD-y)),)
 libraries-y+=$(SYSKLOGD_DIR)$(SYSKLOGD_AR)
+endif
 
 SYSKLOGD_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(SYSKLOGD-y))
 SYSKLOGD_SRC-a:=$(wildcard $(srcdir)/*.c)

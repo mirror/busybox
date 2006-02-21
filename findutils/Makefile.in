@@ -15,7 +15,9 @@ FINDUTILS-$(CONFIG_FIND)	+= find.o
 FINDUTILS-$(CONFIG_GREP)	+= grep.o
 FINDUTILS-$(CONFIG_XARGS)	+= xargs.o
 
+ifneq ($(strip $(FINDUTILS-y)),)
 libraries-y+=$(FINDUTILS_DIR)$(FINDUTILS_AR)
+endif
 
 FINDUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(FINDUTILS-y))
 FINDUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)

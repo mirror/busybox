@@ -22,7 +22,9 @@ LOGINUTILS-$(CONFIG_VLOCK)	+= vlock.o
 LOGINUTILS-$(CONFIG_DELUSER)	+= deluser.o
 LOGINUTILS-$(CONFIG_DELGROUP)	+= delgroup.o
 
+ifneq ($(strip $(LOGINUTILS-y)),)
 libraries-y+=$(LOGINUTILS_DIR)$(LOGINUTILS_AR)
+endif
 
 LOGINUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(LOGINUTILS-y))
 LOGINUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)

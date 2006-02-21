@@ -32,7 +32,9 @@ UDHCP-$(CONFIG_UDHCPD)		+= dhcpd.c arpping.c files.c leases.c \
 UDHCP-$(CONFIG_DUMPLEASES)	+= dumpleases.c
 UDHCP_OBJS:=$(patsubst %.c,$(UDHCP_DIR)%.o, $(UDHCP-y))
 
+ifneq ($(strip $(UDHCP-y)),)
 libraries-y+=$(UDHCP_DIR)$(UDHCP_AR)
+endif
 
 UDHCP-y:=$(patsubst %,$(srcdir)/%,$(UDHCP-y))
 UDHCP-a:=$(wildcard $(srcdir)/*.c)

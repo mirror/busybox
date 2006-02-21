@@ -64,7 +64,10 @@ E2FSPROGS-$(CONFIG_TUNE2FS)    += tune2fs.o util.o $(E2P_OBJS) $(BLKID_OBJS) $(E
 
 E2FSPROGS-y:=$(sort $(E2FSPROGS-y))
 
+ifneq ($(strip $(E2FSPROGS-y)),)
 libraries-y+=$(E2FSPROGS_DIR)/$(E2FSPROGS_AR)
+endif
+
 E2FSPROGS_SRC-y:=$(patsubst %.o,$(E2FSPROGS_SRC)/%.c,$(E2FSPROGS-y))
 E2FSPROGS_SRC-a:=$(wildcard $(E2FSPROGS_SRC)/*.c) $(patsubst %,$(E2FSPROGS_SRC)/%,$(BLKID_SRCS) $(E2P_SRCS) $(EXT2FS_SRCS) $(UUID_SRCS))
 APPLET_SRC-y+=$(E2FSPROGS_CFLAGS) $(E2FSPROGS_SRC-y)

@@ -22,7 +22,9 @@ CONSOLETOOLS-$(CONFIG_OPENVT)	+= openvt.o
 CONSOLETOOLS-$(CONFIG_RESET)	+= reset.o
 CONSOLETOOLS-$(CONFIG_SETKEYCODES)	+= setkeycodes.o
 
+ifneq ($(strip $(CONSOLETOOLS-y)),)
 libraries-y+=$(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR)
+endif
 CONSOLETOOLS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(CONSOLETOOLS-y))
 CONSOLETOOLS_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(CONSOLETOOLS_SRC-y)

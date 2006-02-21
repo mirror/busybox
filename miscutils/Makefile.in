@@ -31,7 +31,9 @@ MISCUTILS-$(CONFIG_STRINGS)     += strings.o
 MISCUTILS-$(CONFIG_TIME)        += time.o
 MISCUTILS-$(CONFIG_WATCHDOG)    += watchdog.o
 
+ifneq ($(strip $(MISCUTILS-y)),)
 libraries-y+=$(MISCUTILS_DIR)$(MISCUTILS_AR)
+endif
 
 MISCUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(MISCUTILS-y))
 MISCUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)

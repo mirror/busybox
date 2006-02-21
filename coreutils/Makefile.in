@@ -82,7 +82,11 @@ COREUTILS-$(CONFIG_WHOAMI)    += whoami.o
 COREUTILS-$(CONFIG_YES)       += yes.o
 
 COREUTILS-y:=$(sort $(COREUTILS-y))
+
+ifneq ($(strip $(COREUTILS-y)),)
 libraries-y+=$(COREUTILS_DIR)$(COREUTILS_AR)
+endif
+
 COREUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(COREUTILS-y))
 COREUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(COREUTILS_SRC-y)

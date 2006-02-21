@@ -21,7 +21,9 @@ PROCPS-$(CONFIG_TOP)		+= top.o
 PROCPS-$(CONFIG_UPTIME)		+= uptime.o
 PROCPS-$(CONFIG_FUSER)		+= fuser.o
 
+ifneq ($(strip $(PROCPS-y)),)
 libraries-y+=$(PROCPS_DIR)$(PROCPS_AR)
+endif
 
 PROCPS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(PROCPS-y))
 PROCPS_SRC-a:=$(wildcard $(srcdir)/*.c)

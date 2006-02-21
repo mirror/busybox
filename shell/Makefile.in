@@ -17,7 +17,9 @@ SHELLT-$(CONFIG_LASH)				+= lash.o
 SHELLT-$(CONFIG_MSH)				+= msh.o
 SHELLT-$(CONFIG_FEATURE_COMMAND_EDITING)	+= cmdedit.o
 
+ifneq ($(strip $(SHELLT-y)),)
 libraries-y+=$(SHELL_DIR)$(SHELL_AR)
+endif
 
 SHELLT_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(SHELLT-y))
 SHELLT_SRC-a:=$(wildcard $(srcdir)/*.c)

@@ -44,7 +44,9 @@ NETWORKING-$(CONFIG_WGET)         += wget.o
 NETWORKING-$(CONFIG_ZCIP)         += zcip.o
 
 NETWORKING-y:=$(sort $(NETWORKING-y))
+ifneq ($(strip $(NETWORKING-y)),)
 libraries-y+=$(NETWORKING_DIR)$(NETWORKING_AR)
+endif
 
 NETWORKING_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(NETWORKING-y))
 NETWORKING_SRC-a:=$(wildcard $(srcdir)/*.c)

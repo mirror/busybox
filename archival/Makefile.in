@@ -26,7 +26,9 @@ ARCHIVAL-$(CONFIG_TAR)		+= tar.o
 ARCHIVAL-$(CONFIG_UNCOMPRESS)	+= uncompress.o
 ARCHIVAL-$(CONFIG_UNZIP)	+= unzip.o
 
+ifneq ($(strip $(ARCHIVAL-y)),)
 libraries-y+=$(ARCHIVAL_DIR)$(ARCHIVAL_AR)
+endif
 
 ARCHIVAL_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(ARCHIVAL-y))
 ARCHIVAL_SRC-a:=$(wildcard $(srcdir)/*.c)
