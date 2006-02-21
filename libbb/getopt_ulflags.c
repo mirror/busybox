@@ -230,11 +230,13 @@ Special characters:
 	root:x:0:0:root:/root:/bin/bash
 	user:x:500:500::/home/user:/bin/bash
 
- "--"   A double dash as the first char in a bb_opt_complementally group
-	means make first argv[1] as option always as may be added -, special
-	for "ar" and "tar" applets.
+ "--"   A double dash at the beginning of bb_opt_complementally means the
+	argv[1] string should always be treated as options, even if it isn't
+	prefixed with a "-".  This is to support the special syntax in applets
+	such as "ar" and "tar":
+	tar xvf foo.tar
 
- "?"    A "ask" between main and group options causes the second of the two
+ "?"    An "ask" between main and group options causes the second of the two
 	to be depending required as or if first is given on the command line.
 	For example from "id" applet:
 
@@ -264,6 +266,8 @@ Special characters:
 
 */
 
+/* this should be bb_opt_complementary, but we'll just keep it as
+   bb_opt_complementally due to the Russian origins */
 const char *bb_opt_complementally;
 
 typedef struct {
