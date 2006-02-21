@@ -1626,6 +1626,13 @@
 	"\t\treached.\n" \
 	"\t-h, -?\tDisplay this help message\n"
 
+#define setarch_trivial_usage \
+	"<personality> <program> [args ...]"
+#define setarch_full_usage \
+	"Personality may be:\n" \
+	"\tlinux32\tSet 32bit uname emulation\n" \
+	"\tlinux64\tSet 64bit uname emulation"
+
 #define ln_trivial_usage \
 	"[OPTION] TARGET... LINK_NAME|DIRECTORY"
 #define ln_full_usage \

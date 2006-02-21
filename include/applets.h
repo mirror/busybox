@@ -378,6 +378,10 @@
 #ifdef CONFIG_FEATURE_INITRD
 	APPLET_NOUSAGE("linuxrc", init_main, _BB_DIR_ROOT, _BB_SUID_NEVER)
 #endif
+#ifdef CONFIG_SETARCH
+	APPLET_NOUSAGE("linux32", setarch_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+	APPLET_NOUSAGE("linux64", setarch_main, _BB_DIR_BIN, _BB_SUID_NEVER)
+#endif
 #ifdef CONFIG_LN
 	APPLET(ln, ln_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
@@ -585,6 +589,9 @@
 #endif
 #ifdef CONFIG_SEQ
 	APPLET(seq, seq_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+#endif
+#ifdef CONFIG_SETARCH
+	APPLET(setarch, setarch_main, _BB_DIR_BIN, _BB_SUID_NEVER)
 #endif
 #ifdef CONFIG_SETCONSOLE
 	APPLET(setconsole, setconsole_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
