@@ -332,10 +332,13 @@
 	"\nOptions:\n" \
 	"\t-R\t\tOutputs RFC-822 compliant date string\n" \
 	"\t-d STRING\tDisplays time described by STRING, not `now'\n" \
-	USAGE_DATE_ISOFMT("\t-I[TIMESPEC]\tOutputs an ISO-8601 compliant date/time string\n" \
-	"\t\t\tTIMESPEC=`date' (or missing) for date only,\n" \
-	"\t\t\t`hours', `minutes', or `seconds' for date and,\n" \
-	"\t\t\ttime to the indicated precision\n") \
+	USAGE_DATE_ISOFMT( \
+		"\t-I[TIMESPEC]\tOutputs an ISO-8601 compliant date/time string\n" \
+		"\t\t\tTIMESPEC=`date' (or missing) for date only,\n" \
+		"\t\t\t`hours', `minutes', or `seconds' for date and,\n" \
+		"\t\t\ttime to the indicated precision\n" \
+		"\t-D hint\t\tUse 'hint' as date format, via strptime()\n" \
+	) \
 	"\t-s\t\tSets time described by STRING\n" \
 	"\t-r FILE\t\tDisplays the last modification time of FILE\n" \
 	"\t-u\t\tPrints or sets Coordinated Universal Time"
