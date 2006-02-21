@@ -92,6 +92,8 @@ static const struct option bb_default_long_options[]
 	is to name the config option CONFIG_FEATURE_<applet>_LONG_OPTIONS.
 
 const char *bb_opt_complementally
+	this should be bb_opt_complementary, but we'll just keep it as
+	bb_opt_complementally due to the Russian origins
 
  ":"    The colon (":") is used to separate groups of two or more chars
 	and/or groups of chars and special characters (stating some
@@ -170,7 +172,7 @@ Special characters:
 		printf("Detected odd -x usaging\n");
 
  "-"    A dash as the first char in a bb_opt_complementally group means to
-	convert the arguments as option. Next char for this case can`t set
+	convert the arguments as option. Next char for this case can't set
 	[0-9], recomended use ':' or end of line. For example:
 
 	bb_opt_complementally = "-:w-x:x-w";
@@ -204,8 +206,8 @@ Special characters:
 		bb_show_usage();
 
  "?"    A "ask" as the first char in a bb_opt_complementally group give:
-	if previous point set BB_GETOPT_ERROR, don`t return and
-	call previous example internally. Next char for this case can`t
+	if previous point set BB_GETOPT_ERROR, don't return and
+	call previous example internally. Next char for this case can't
 	set to [0-9], recomended use ':' or end of line.
 
  "?N"   A "ask" as the first char in a bb_opt_complementally group with
@@ -259,7 +261,7 @@ Special characters:
 
  "x--x" give error if double or more used -x option
 
- Don`t forget ':' store. For example "?322-22-23X-x-a" interpretet as
+ Don't forget ':' store. For example "?322-22-23X-x-a" interpretet as
  "?3:22:-2:2-2:2-3Xa:2--x": max args is 3, count -2 usaged, min args is 2,
  -2 option triggered, unset -3 and -X and -a if -2 any usaged, give error if
  after -2 the -x option usaged.
