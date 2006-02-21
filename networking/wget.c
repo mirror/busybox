@@ -238,7 +238,7 @@ int wget_main(int argc, char **argv)
 	if (!fname_out) {
 		// Dirty hack. Needed because bb_get_last_path_component
 		// will destroy trailing / by storing '\0' in last byte!
-		if(target.path[strlen(target.path)-1]!='/') {
+		if(*target.path && target.path[strlen(target.path)-1]!='/') {
 			fname_out =
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 				curfile =
