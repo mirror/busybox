@@ -464,9 +464,29 @@ extern void vfork_daemon_rexec(int nochdir, int noclose,
 extern int get_terminal_width_height(int fd, int *width, int *height);
 extern unsigned long get_ug_id(const char *s, long (*__bb_getxxnam)(const char *));
 
-#define HASH_SHA1	1
-#define HASH_MD5	2
-extern int hash_fd(int fd, const size_t size, const uint8_t hash_algo, uint8_t *hashval);
+typedef struct _sha1_ctx_t_ {
+	uint32_t count[2];
+	uint32_t hash[5];
+	uint32_t wbuf[16];
+} sha1_ctx_t;
+
+void sha1_begin(sha1_ctx_t *ctx);
+void sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx);
+void *sha1_end(void *resbuf, sha1_ctx_t *ctx);
+
+typedef struct _md5_ctx_t_ {
+	uint32_t A;
+	uint32_t B;
+	uint32_t C;
+	uint32_t D;
+	uint32_t total[2];
+	uint32_t buflen;
+	char buffer[128];
+} md5_ctx_t;
+
+void md5_begin(md5_ctx_t *ctx);
+void md5_hash(const void *data, size_t length, md5_ctx_t *ctx);
+void *md5_end(void *resbuf, md5_ctx_t *ctx);
 
 /* busybox.h will include dmalloc later for us, else include it here.  */
 #if !defined _BB_INTERNAL_H_ && defined DMALLOC

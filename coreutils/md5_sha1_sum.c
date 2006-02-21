@@ -15,6 +15,7 @@
 
 #include "busybox.h"
 
+typedef enum { HASH_SHA1, HASH_MD5 } hash_algo_t;
 
 #define FLAG_SILENT	1
 #define FLAG_CHECK	2
@@ -35,39 +36,70 @@ static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
 	return (hex_value);
 }
 
-static uint8_t *hash_file(const char *filename, uint8_t hash_algo)
+static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 {
-	int src_fd = strcmp(filename, "-") == 0 ? STDIN_FILENO :
-		open(filename, O_RDONLY);
-	if (src_fd == -1) {
+	int src_fd, hash_len, count;
+	union _ctx_ {
+		sha1_ctx_t sha1;
+		md5_ctx_t md5;
+	} context;
+	uint8_t *hash_value = NULL;
+	RESERVE_CONFIG_UBUFFER(in_buf, 4096);
+	void (*update)(const void*, size_t, void*);
+	void (*final)(void*, void*);
+	
+	if(strcmp(filename, "-") == 0) {
+		src_fd = STDIN_FILENO;
+	} else if(0 > (src_fd = open(filename, O_RDONLY))) {
 		bb_perror_msg("%s", filename);
 		return NULL;
-	} else {
-		uint8_t *hash_value;
-		RESERVE_CONFIG_UBUFFER(hash_value_bin, 20);
-		hash_value = hash_fd(src_fd, -1, hash_algo, hash_value_bin) != -2 ?
-			hash_bin_to_hex(hash_value_bin, hash_algo == HASH_MD5 ? 16 : 20) :
-			NULL;
-		RELEASE_CONFIG_BUFFER(hash_value_bin);
-		close(src_fd);
-		return hash_value;
 	}
+
+	// figure specific hash algorithims
+	if(ENABLE_MD5SUM && hash_algo==HASH_MD5) {
+		md5_begin(&context.md5);
+		update = (void (*)(const void*, size_t, void*))md5_hash;
+		final = (void (*)(void*, void*))md5_end;
+		hash_len = 16;
+	} else if(ENABLE_SHA1SUM && hash_algo==HASH_SHA1) {
+		sha1_begin(&context.sha1);
+		update = (void (*)(const void*, size_t, void*))sha1_hash;
+		final = (void (*)(void*, void*))sha1_end;
+		hash_len = 20;
+	} else {
+		bb_error_msg_and_die("algotithm not supported");
+	}
+	
+
+	while(0 < (count = read(src_fd, in_buf, sizeof in_buf))) {
+		update(in_buf, count, &context);
+	}
+
+	if(count == 0) {
+		final(in_buf, &context);
+		hash_value = hash_bin_to_hex(in_buf, hash_len);
+	}
+	
+	RELEASE_CONFIG_BUFFER(in_buf);
+	
+	if(src_fd != STDIN_FILENO) {
+		close(src_fd);
+	}
+	
+	return hash_value;
 }
 
 /* This could become a common function for md5 as well, by using md5_stream */
-static int hash_files(int argc, char **argv, const uint8_t hash_algo)
+static int hash_files(int argc, char **argv, hash_algo_t hash_algo)
 {
 	int return_value = EXIT_SUCCESS;
 	uint8_t *hash_value;
-
-#ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
 	unsigned int flags;
 
-	flags = bb_getopt_ulflags(argc, argv, "scw");
-#endif
+	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK)
+		flags = bb_getopt_ulflags(argc, argv, "scw");
 
-#ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
-	if (!(flags & FLAG_CHECK)) {
+	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && !(flags & FLAG_CHECK)) {
 		if (flags & FLAG_SILENT) {
 			bb_error_msg_and_die
 				("the -s option is meaningful only when verifying checksums");
@@ -76,13 +108,12 @@ static int hash_files(int argc, char **argv, const uint8_t hash_algo)
 				("the -w option is meaningful only when verifying checksums");
 		}
 	}
-#endif
 
 	if (argc == optind) {
 		argv[argc++] = "-";
 	}
-#ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
-	if (flags & FLAG_CHECK) {
+	
+	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && flags & FLAG_CHECK) {
 		FILE *pre_computed_stream;
 		int count_total = 0;
 		int count_failed = 0;
@@ -139,9 +170,7 @@ static int hash_files(int argc, char **argv, const uint8_t hash_algo)
 		if (bb_fclose_nonstdin(pre_computed_stream) == EOF) {
 			bb_perror_msg_and_die("Couldnt close file %s", file_ptr);
 		}
-	} else
-#endif
-	{
+	} else {
 		while (optind < argc) {
 			char *file_ptr = argv[optind++];
 

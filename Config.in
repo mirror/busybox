@@ -322,6 +322,7 @@ source networking/Config.in
 source procps/Config.in
 source shell/Config.in
 source sysklogd/Config.in
+source libbb/Config.in
 
 menu 'Debugging Options'
 

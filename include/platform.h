@@ -78,4 +78,19 @@
 # endif
 #endif
 
+/* ---- Endian Detection ------------------------------------ */
+#ifndef __APPLE__
+    #include <byteswap.h>
+    #include <endian.h>
+#endif
+
+#ifdef __BIG_ENDIAN__
+    #define BB_BIG_ENDIAN 1
+#elif __BYTE_ORDER == __BIG_ENDIAN
+    #define BB_BIG_ENDIAN 1
+#else 
+    #define BB_BIG_ENDIAN 0
+#endif
+
+
 #endif	/* platform.h	*/
