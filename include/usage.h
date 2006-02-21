@@ -250,7 +250,7 @@
 #define bbconfig_trivial_usage \
 	""
 #define bbconfig_full_usage \
-	"Print the config file which built busybox\n"
+	"Print the config file which built busybox"
 
 #define cp_trivial_usage \
 	"[OPTION]... SOURCE DEST"
@@ -642,7 +642,7 @@
 	"Options:\n" \
 	"\t-b\t\tSend wake-up packet to the broadcast address\n" \
 	"\t-i iface\tUse interface ifname instead of the default \"eth0\"\n" \
-	"\t-p pass\tAppend the four or six byte password PW to the packet\n"
+	"\t-p pass\tAppend the four or six byte password PW to the packet"
 
 #define expr_trivial_usage \
 	"EXPRESSION"
@@ -884,7 +884,8 @@
 	"\t-s         Don't print or kill anything.\n" \
 	"\t-4         When using port/proto only search IPv4 space\n" \
 	"\t-6         When using port/proto only search IPv6 space\n" \
-	"\t-SIGNAL    When used with -k, this signal will be used to kill\n"
+	"\t-SIGNAL    When used with -k, this signal will be used to kill"
+
 #define getopt_trivial_usage \
 	"[OPTIONS]..."
 #define getopt_full_usage \
@@ -1016,7 +1017,7 @@
 	"Options:\n" \
 	"\t-d\t\tdelay interval for halting\n" \
 	"\t-n\t\tno call to sync()\n" \
-	"\t-f\t\tforce halt (don't go through init)\n"
+	"\t-f\t\tforce halt (don't go through init)"
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
 #define USAGE_HDPARM_IDENT(a) a
@@ -1521,7 +1522,7 @@
 	"to remove a segment by shmid value.\n" \
 	"\t-m | -M\tRemove the memory segment after the last detatch\n" \
 	"\t-q | -Q\tRemove the message queue\n" \
-	"\t-s | -S\tRemove the semaphore\n"
+	"\t-s | -S\tRemove the semaphore"
 
 #define ipcs_trivial_usage \
 	"[[-smq] -i shmid] | [[-asmq] [-tclup]]"
@@ -1537,7 +1538,7 @@
 	"\t-p\tpid\n" \
 	"\t-s\tcreator\n" \
 	"\t-a\tlimits\n" \
-	"\t-i\tsummary\n"
+	"\t-i\tsummary"
 
 #define iplink_trivial_usage \
 	"{ set DEVICE { up | down | arp { on | off } | show [ DEVICE ] }"
@@ -1624,7 +1625,7 @@
 	"\t\tfile\n" \
 	"\t-~\tSuppress ~s displayed when input past the end of the file is\n" \
 	"\t\treached.\n" \
-	"\t-h, -?\tDisplay this help message\n"
+	"\t-h, -?\tDisplay this help message"
 
 #define setarch_trivial_usage \
 	"<personality> <program> [args ...]"
@@ -2022,7 +2023,7 @@
 	"\t-q\tQuiet output\n" \
 	"\t-r\tRemove module (stacks) or do autoclean\n" \
 	"\t-s\tReport via syslog instead of stderr\n" \
-	"\t-v\tVerbose output\n\n"
+	"\t-v\tVerbose output"
 #define modprobe_notes_usage \
 "modprobe can (un)load a stack of modules, passing each module options (when\n" \
 "loading). modprobe uses a configuration file to determine what option(s) to\n" \
@@ -2387,7 +2388,7 @@
 	"Options:\n" \
 	"\t-d\t\tdelay interval for halting\n" \
 	"\t-n\t\tno call to sync()\n" \
-	"\t-f\t\tforce power off (don't go through init)\n"
+	"\t-f\t\tforce power off (don't go through init)"
 
 #define printenv_trivial_usage \
 	"[VARIABLES...]"
@@ -2492,7 +2493,7 @@
 	"Options:\n" \
 	"\t-d\t\tdelay interval for rebooting\n" \
 	"\t-n\t\tno call to sync()\n" \
-	"\t-f\t\tforce reboot (don't go through init)\n"
+	"\t-f\t\tforce reboot (don't go through init)"
 
 #define renice_trivial_usage \
 	"{{-n INCREMENT} | PRIORITY} [[ -p | -g | -u ] ID ...]"
@@ -3243,7 +3244,7 @@
 	"[-L volume-label] [-M last-mounted-dir] [-O [^]feature[,...]] " \
 	"[-T last-check-time] [-U UUID] device"
 #define tune2fs_full_usage \
-	"Adjust filesystem options on ext[23] filesystems.\n\n"
+	"Adjust filesystem options on ext[23] filesystems."
 
 #define udhcpc_trivial_usage \
 	"[-Cfbnqtv] [-c CID] [-V VCLS] [-H HOSTNAME] [-i INTERFACE]\n[-p pidfile] [-r IP] [-s script]"
@@ -3530,6 +3531,6 @@
 	"\t-f              foreground mode\n" \
 	"\t-q              quit after address (no daemon)\n" \
 	"\t-r 169.254.x.x  request this address first\n" \
-	"\t-v              verbose; show version\n"
+	"\t-v              verbose; show version"
 
 #endif /* __BB_USAGE_H__ */
