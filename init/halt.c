@@ -15,9 +15,11 @@
 
 int halt_main(int argc, char *argv[])
 {
+	static const int magic[] = {RB_HALT_SYSTEM, RB_POWER_OFF, RB_AUTOBOOT};
+	static const int signals[] = {SIGUSR1, SIGUSR2, SIGTERM};
+
 	char *delay = "hpr";
-	int which, flags, magic[] = {RB_HALT_SYSTEM, RB_POWER_OFF, RB_AUTOBOOT},
-		signals[] = {SIGUSR1, SIGUSR2, SIGTERM}, rc = 1;
+	int which, flags, rc = 1;
 
 	/* Figure out which applet we're running */
 	for(which=0;delay[which]!=*bb_applet_name;which++);

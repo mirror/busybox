@@ -46,12 +46,13 @@ void init_header(struct dhcpMessage *packet, char type)
 /* read a packet from socket fd, return -1 on read error, -2 on packet error */
 int get_packet(struct dhcpMessage *packet, int fd)
 {
-	int bytes;
-	int i;
-	const char broken_vendors[][8] = {
+	static const char broken_vendors[][8] = {
 		"MSFT 98",
 		""
 	};
+
+	int bytes;
+	int i;
 	char unsigned *vendor;
 
 	memset(packet, 0, sizeof(struct dhcpMessage));

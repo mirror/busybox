@@ -416,7 +416,8 @@ static void ipaddr_reset_filter(int _oneline)
 
 extern int ipaddr_list_or_flush(int argc, char **argv, int flush)
 {
-	const char *option[] = { "to", "scope", "up", "label", "dev", 0 };
+	static const char *const option[] = { "to", "scope", "up", "label", "dev", 0 };
+
 	struct nlmsg_list *linfo = NULL;
 	struct nlmsg_list *ainfo = NULL;
 	struct nlmsg_list *l;
@@ -499,7 +500,7 @@ extern int ipaddr_list_or_flush(int argc, char **argv, int flush)
 	if (filter_dev) {
 		filter.ifindex = ll_name_to_index(filter_dev);
 		if (filter.ifindex <= 0) {
-			bb_error_msg("Device \"%s\" does not exist.", filter_dev);
+			bb_error_msg("Device \"%s\" does not exist", filter_dev);
 			return -1;
 		}
 	}
@@ -631,8 +632,11 @@ static int default_scope(inet_prefix *lcl)
 
 static int ipaddr_modify(int cmd, int argc, char **argv)
 {
-	const char *option[] = { "peer", "remote", "broadcast", "brd",
-		"anycast", "scope", "dev", "label", "local", 0 };
+	static const char *const option[] = {
+		"peer", "remote", "broadcast", "brd",
+		"anycast", "scope", "dev", "label", "local", 0
+	};
+
 	struct rtnl_handle rth;
 	struct {
 		struct nlmsghdr		n;
@@ -716,7 +720,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 				uint32_t scope = 0;
 				NEXT_ARG();
 				if (rtnl_rtscope_a2n(&scope, *argv)) {
-					invarg(*argv, "invalid scope value.");
+					invarg(*argv, "invalid scope value");
 				}
 				req.ifa.ifa_scope = scope;
 				scoped = 1;
@@ -749,11 +753,11 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	}
 
 	if (d == NULL) {
-		bb_error_msg("Not enough information: \"dev\" argument is required.");
+		bb_error_msg("Not enough information: \"dev\" argument is required");
 		return -1;
 	}
 	if (l && matches(d, l) != 0) {
-		bb_error_msg_and_die("\"dev\" (%s) must match \"label\" (%s).", d, l);
+		bb_error_msg_and_die("\"dev\" (%s) must match \"label\" (%s)", d, l);
 	}
 
 	if (peer_len == 0 && local_len && cmd != RTM_DELADDR) {
@@ -803,7 +807,10 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 
 extern int do_ipaddr(int argc, char **argv)
 {
-	const char *commands[] = { "add", "delete", "list", "show", "lst", "flush", 0 };
+	static const char *const commands[] = {
+		"add", "delete", "list", "show", "lst", "flush", 0
+	};
+
 	int command_num = 2;
 
 	if (*argv) {

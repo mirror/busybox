@@ -120,12 +120,11 @@ static char const *human_fstype(long f_type)
 		{ 0x858458f6, "romfs" },
 		{ 0x73717368, "squashfs" },
 		{ 0x62656572, "sysfs" },
-		{ 0, "UNKNOWN" },
-		{ 0, NULL }
+		{ 0, "UNKNOWN" }
 	};
 	for (i=0; humantypes[i].type; ++i)
 		if (humantypes[i].type == f_type)
-			return humantypes[i].fs;
+			break;
 	return humantypes[i].fs;
 }
 

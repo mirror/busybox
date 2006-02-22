@@ -1305,9 +1305,11 @@ static const char * const BuffType[]	= {"unknown", "1Sect", "DualPort", "DualPor
 static void dump_identity (const struct hd_driveid *id)
 {
 	int i;
-	char pmodes[64] = {0,}, dmodes[128]={0,}, umodes[128]={0,};
+	char pmodes[64], dmodes[128], umodes[128];
 	const unsigned short int *id_regs= (const void*) id;
 	unsigned long capacity;
+
+	pmodes[0] = dmodes[0] = umodes[0] = '\0';
 
 	printf("\n Model=%.40s, FwRev=%.8s, SerialNo=%.20s\n Config={",
 				id->model, id->fw_rev, id->serial_no);

@@ -59,8 +59,9 @@ static const struct option env_long_options[] = {
 
 extern int env_main(int argc, char** argv)
 {
+	static char *cleanenv[1] = { NULL };
+
 	char **ep, *p;
-	char *cleanenv[1] = { NULL };
 	unsigned long opt;
 	llist_t *unset_env = NULL;
 	extern char **environ;

@@ -552,9 +552,12 @@ static void free_package(common_node_t *node)
 
 static unsigned int fill_package_struct(char *control_buffer)
 {
+	static const char *const field_names[] = { "Package", "Version",
+		"Pre-Depends", "Depends","Replaces", "Provides",
+		"Conflicts", "Suggests", "Recommends", "Enhances", 0
+	};
+
 	common_node_t *new_node = (common_node_t *) xcalloc(1, sizeof(common_node_t));
-	const char *field_names[] = { "Package", "Version", "Pre-Depends", "Depends",
-		"Replaces", "Provides", "Conflicts", "Suggests", "Recommends", "Enhances", 0};
 	char *field_name;
 	char *field_value;
 	int field_start = 0;

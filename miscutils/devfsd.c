@@ -606,16 +606,17 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 	char name[STRING_LENGTH];
 	char * msg="";
 	char *ptr;
-
-	/* !!!! Only Uppercase Keywords in devsfd.conf */
-	const char *options[] = {	"CLEAR_CONFIG", "INCLUDE", "OPTIONAL_INCLUDE", "RESTORE",
-								"PERMISSIONS", "MODLOAD", "EXECUTE", "COPY", "IGNORE",
-								"MKOLDCOMPAT", "MKNEWCOMPAT","RMOLDCOMPAT", "RMNEWCOMPAT", 0 };
-
 	int i;
 
-	debug_msg_logger(LOG_INFO, __FUNCTION__);
+	/* !!!! Only Uppercase Keywords in devsfd.conf */
+	static const char *const options[] = {
+		"CLEAR_CONFIG", "INCLUDE", "OPTIONAL_INCLUDE",
+		"RESTORE", "PERMISSIONS", "MODLOAD", "EXECUTE",
+		"COPY", "IGNORE", "MKOLDCOMPAT", "MKNEWCOMPAT",
+		"RMOLDCOMPAT", "RMNEWCOMPAT", 0
+	};
 
+	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	for (count = 0; count < MAX_ARGS; ++count) p[count][0] = '\0';
 	num_args = sscanf (line, "%s %s %s %s %s %s %s %s %s %s",
@@ -678,7 +679,7 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 			if ( ( ptr = strchr (p[0], '.') ) == NULL )
 			{
 				msg="UID.GID";
-				goto process_config_line_err; /*"missing '.' in UID.GID */
+				goto process_config_line_err; /*"missing '.' in UID.GID"*/
 			}
 
 			*ptr++ = '\0';
@@ -993,17 +994,19 @@ static void action_compat (const struct devfsd_notify_struct *info, unsigned int
 	unsigned int i;
 	char rewind_;
 	/* 1 to 5  "scsi/" , 6 to 9 "ide/host" */
-	const char *fmt[] = {	NULL ,
-							"sg/c%db%dt%du%d",			/* scsi/generic */
-							"sd/c%db%dt%du%d",			/* scsi/disc */
-							"sr/c%db%dt%du%d",			/* scsi/cd */
-							"sd/c%db%dt%du%dp%d",		/* scsi/part */
-							"st/c%db%dt%du%dm%d%c",		/* scsi/mt */
-							"ide/hd/c%db%dt%du%d",		/* ide/host/disc */
-							"ide/cd/c%db%dt%du%d",		/* ide/host/cd */
-							"ide/hd/c%db%dt%du%dp%d",	/* ide/host/part */
-							"ide/mt/c%db%dt%du%d%s",	/* ide/host/mt */
-							NULL };
+	static const char *const fmt[] = {
+		NULL ,
+		"sg/c%db%dt%du%d",		/* scsi/generic */
+		"sd/c%db%dt%du%d",		/* scsi/disc */
+		"sr/c%db%dt%du%d",		/* scsi/cd */
+		"sd/c%db%dt%du%dp%d",		/* scsi/part */
+		"st/c%db%dt%du%dm%d%c",		/* scsi/mt */
+		"ide/hd/c%db%dt%du%d",		/* ide/host/disc */
+		"ide/cd/c%db%dt%du%d",		/* ide/host/cd */
+		"ide/hd/c%db%dt%du%dp%d",	/* ide/host/part */
+		"ide/mt/c%db%dt%du%d%s",	/* ide/host/mt */
+		NULL
+	};
 
 	/*  First construct compatibility name  */
 	switch (action)
@@ -1596,20 +1599,22 @@ const char *get_old_name (const char *devname, unsigned int namelen,
 	const char *pty2;
 	size_t len;
 	/* 1 to 5  "scsi/" , 6 to 9 "ide/host", 10 sbp/, 11 vcc/, 12 pty/ */
-	const char *fmt[] = {	NULL ,
-							"sg%u",			/* scsi/generic */
-							NULL,			/* scsi/disc */
-							"sr%u",			/* scsi/cd */
-							NULL,			/* scsi/part */
-							"nst%u%c",		/* scsi/mt */
-							"hd%c"	,		/* ide/host/disc */
-							"hd%c"	,		/* ide/host/cd */
-							"hd%c%s",		/* ide/host/part */
-							"%sht%d",		/* ide/host/mt */
-							"sbpcd%u",		/* sbp/ */
-							"vcs%s",		/* vcc/ */
-							"%cty%c%c",		/* pty/ */
-							NULL };
+	static const char *const fmt[] = {
+		NULL ,
+		"sg%u",			/* scsi/generic */
+		NULL,			/* scsi/disc */
+		"sr%u",			/* scsi/cd */
+		NULL,			/* scsi/part */
+		"nst%u%c",		/* scsi/mt */
+		"hd%c"	,		/* ide/host/disc */
+		"hd%c"	,		/* ide/host/cd */
+		"hd%c%s",		/* ide/host/part */
+		"%sht%d",		/* ide/host/mt */
+		"sbpcd%u",		/* sbp/ */
+		"vcs%s",		/* vcc/ */
+		"%cty%c%c",		/* pty/ */
+		NULL
+	};
 
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
