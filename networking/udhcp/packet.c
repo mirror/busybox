@@ -177,24 +177,30 @@ int kernel_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_po
 	if ((fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
 		return -1;
 
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &n, sizeof(n)) == -1)
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &n, sizeof(n)) == -1) {
+		close(fd);
 		return -1;
+	}
 
 	memset(&client, 0, sizeof(client));
 	client.sin_family = AF_INET;
 	client.sin_port = htons(source_port);
 	client.sin_addr.s_addr = source_ip;
 
-	if (bind(fd, (struct sockaddr *)&client, sizeof(struct sockaddr)) == -1)
+	if (bind(fd, (struct sockaddr *)&client, sizeof(struct sockaddr)) == -1) {
+		close(fd);
 		return -1;
+	}
 
 	memset(&client, 0, sizeof(client));
 	client.sin_family = AF_INET;
 	client.sin_port = htons(dest_port);
 	client.sin_addr.s_addr = dest_ip;
 
-	if (connect(fd, (struct sockaddr *)&client, sizeof(struct sockaddr)) == -1)
+	if (connect(fd, (struct sockaddr *)&client, sizeof(struct sockaddr)) == -1) {
+		close(fd);
 		return -1;
+	}
 
 	result = write(fd, payload, sizeof(struct dhcpMessage));
 	close(fd);
