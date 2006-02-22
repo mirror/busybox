@@ -2584,7 +2584,6 @@
 	"\t-a ARG\tPass ARG as an argument for every program invoked\n" \
 	"\t-u MASK\tSet the umask to MASK before executing every program"
 
-#if BB_APPLET_RUNLEVEL
 #define runlevel_trivial_usage \
 	"[utmp]"
 #define runlevel_full_usage \
@@ -2594,7 +2593,6 @@
 #define runlevel_example_usage \
 	"$ runlevel /var/run/utmp\n" \
 	"N 2"
-#endif
 
 #define rx_trivial_usage \
 	"FILE"
