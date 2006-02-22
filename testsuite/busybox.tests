@@ -45,4 +45,16 @@ testing "busybox as unknown name" "2>&1" "unknown: applet not found\n" "" ""
 
 rm -f busybox-suffix unknown
 
+
+# verify the applet order is correct in applets.h
+# otherwise applets wont be called properly
+sed -n \
+	-e '/^\tAPPLET/{s:.*(::;s:,.*::;s:"::g;p}' \
+	../include/applets.h > applet.order.current
+LC_ALL=C sort applet.order.current > applet.order.correct
+diff -u applet.order.current applet.order.correct
+FAILCOUNT=$[$FAILCOUNT+$?]
+rm -f applet.order.current applet.order.correct
+
+
 exit $FAILCOUNT
