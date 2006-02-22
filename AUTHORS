@@ -82,10 +82,12 @@ Matt Kraai <kraai@alumni.cmu.edu>
     documentation, bugfixes, test suite
 
 Rob Landley <rob@landley.net>
-    sed (major rewrite in 2003, and I now maintain the thing).
-    bunzip2 (complete from-scratch rewrite, then mjn3 optimized the result.)
-    sort (more or less from scratch rewrite in 2004, I now maintain it).
-    I've patched lots of other applets, but don't maintain 'em.
+    Became busybox maintainer in 2006.
+
+    sed (major rewrite in 2003, and I now maintain the thing)
+    bunzip2 (complete from-scratch rewrite, then mjn3 optimized the result)
+    sort (more or less from scratch rewrite in 2004, I now maintain it)
+    mount (rewrite in 2005, I maintain the new one)
 
 Stephan Linz <linz@li-pro.net>
     ipcalc, Red Hat equivalence
