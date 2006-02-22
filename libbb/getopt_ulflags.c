@@ -69,6 +69,13 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	by the "::" special separator that is set in the external string
 	bb_opt_complementally (see below for more info).
 
+ "+"    If the first character in the applet_opts string is a plus,
+	then option processing will stop as soon as a non-option is
+	encountered in the argv array.  Useful for applets like env
+	which should not process arguments to subprograms:
+	env -i ls -d /
+	Here we want env to process just the '-i', not the '-d'.
+
 static const struct option bb_default_long_options[]
 
 	This struct allows you to define long options.  The syntax for
