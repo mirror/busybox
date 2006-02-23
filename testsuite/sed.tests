@@ -98,6 +98,41 @@ testing "sed d ends script iteration" \
 testing "sed d ends script iteration (2)" \
 	"-e '/ook/d;a\' -e 'bang'" "woot\nbang\n" "" "ook\nwoot\n"
 
+# Multiple files, with varying newlines and NUL bytes
+testing "sed embedded NUL" "-e 's/woo/bang/'" "\0bang\0woo\0" "" "\0woo\0woo\0"
+
+# sed has funky behavior with newlines at the end of file.  Test lots of
+# corner cases with the optional newline appending behavior.
+
+testing "sed normal newlines" "-e 's/woo/bang/' input -" "bang\nbang\n" \
+	"woo\n" "woo\n"
+testing "sed leave off trailing newline" "-e 's/woo/bang/' input -" \
+	"bang\nbang" "woo\n" "woo"
+testing "sed autoinsert newline" "-e 's/woo/bang/' input -" "bang\nbang" \
+	"woo" "woo"
+testing "sed empty file plus cat" "-e 's/nohit//' input -" "one\ntwo" \
+	"" "one\ntwo" 
+testing "sed cat plus empty file" "-e 's/nohit//' input -" "one\ntwo" \
+	"one\ntwo" ""
+testing "sed append autoinserts newline" "-e '/woot/a woo' -" "woot\nwoo\n" \
+	"" "woot"
+testing "sed insert doesn't autoinsert newline" "-e '/woot/i woo' -" \
+	"woo\nwoot" "" "woot"
+testing "sed print autoinsert newlines" "-e 'p' -" "one\none" "" "one"
+testing "sed print autoinsert newlines two files" "-e 'p' input -" \
+	"one\none\ntwo\ntwo" "one" "two"
+
+testing "sed noprint, no match, no newline" "-ne 's/woo/bang/' input" \
+	"" "no\n" ""
+testing "sed selective matches with nl" "-ne 's/woo/bang/p' input -" \
+	"a bang\nc bang\n" "a woo\nb no" "c woo\nd no"
+testing "sed selective matches insert newline" "-ne 's/woo/bang/p' input -" \
+	"a bang\nb bang\nd bang" "a woo\nb woo" "c no\nd woo"
+testing "sed selective matches noinsert newline" "-ne 's/woo/bang/p' input -" \
+	"a bang\nb bang" "a woo\nb woo" "c no\nd no"
+testing "sed clusternewline" "-e '/one/a 111' -e '/two/i 222' -e p input -" \
+	"one\none\n111\n222\ntwo\ntwo" "one" "two" 
+
 # Ponder this a bit more, why "woo not found" from gnu version?
 #testing "sed doesn't substitute in deleted line" \
 #	"-e '/ook/d;s/ook//;t woo;a bang;'" "bang" "" "ook\n"
