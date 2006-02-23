@@ -255,7 +255,7 @@ config CONFIG_MT
 	  to advance or rewind a tape past a specified number of archive
 	  files on the tape.
 
-config BB_APPLET_RUNLEVEL
+config CONFIG_RUNLEVEL
         bool "runlevel"
 	default n
 	help
