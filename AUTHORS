@@ -164,3 +164,9 @@ Paul Fox <pgf@foxharp.boston.ma.us>
 
 Roberto A. Foglietta <me@roberto.foglietta.name>
     port: dnsd
+
+Bernhard Fischer <rep.nop@aon.at>
+    misc
+
+Mike Frysinger <vapier@gentoo.org>
+    initial e2fsprogs, printenv, setarch, sum, misc
