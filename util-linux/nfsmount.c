@@ -53,7 +53,7 @@
 #include "nfsmount.h"
 
 /* This is just a warning of a common mistake.  Possibly this should be a
- *  * uclibc faq entry rather than in busybox... */
+ * uclibc faq entry rather than in busybox... */
 #if ENABLE_FEATURE_MOUNT_NFS && defined(__UCLIBC__) && ! defined(__UCLIBC_HAS_RPC__)
 #error "You need to build uClibc with UCLIBC_HAS_RPC for NFS support."
 #endif
@@ -118,8 +118,6 @@ static const int NFS_PORT = 2049;
 # define bindtextdomain(Domain, Directory) /* empty */
 # undef textdomain
 # define textdomain(Domain) /* empty */
-# define _(Text) (Text)
-# define N_(Text) (Text)
 
 static const int MS_MGC_VAL = 0xc0ed0000; /* Magic number indicatng "new" flags */
 static const int MS_RDONLY = 1;      /* Mount read-only */

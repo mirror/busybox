@@ -81,7 +81,6 @@
 # undef HAVE_AFINET6
 #endif
 
-#define _(x) x
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
 #define _PATH_PROCNET_IFINET6           "/proc/net/if_inet6"
 #define new(p) ((p) = xcalloc(1,sizeof(*(p))))

@@ -26,10 +26,6 @@ typedef long errcode_t;
 #define ERRCODE_RANGE 8
 #define error_message(code) strerror((int) (code & ((1<<ERRCODE_RANGE)-1)))
 
-/* NLS crap */
-#define _(x) x
-#define N_(x) x
-
 /* misc crap */
 #define fatal_error(err, msg) bb_error_msg_and_die(msg)
 #define usage() bb_show_usage()

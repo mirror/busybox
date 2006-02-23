@@ -88,9 +88,13 @@
     #define BB_BIG_ENDIAN 1
 #elif __BYTE_ORDER == __BIG_ENDIAN
     #define BB_BIG_ENDIAN 1
-#else 
+#else
     #define BB_BIG_ENDIAN 0
 #endif
 
+/* ---- miscellaneous --------------------------------------- */
+/* NLS stuff */
+#define _(Text) Text
+#define N_(Text) (Text)
 
 #endif	/* platform.h	*/
