@@ -237,29 +237,41 @@ second argument to pw_encrypt(text,buffer).</p>
 
 <h2><a name="tips_vfork">Fork and vfork</a></h2>
 
+<p>On systems that haven't got a Memory Management Unit, fork() is unreasonably
+expensive to implement (and sometimes even impossible), so a less capable
+function called vfork() is used instead.  (Using vfork() on a system with an
+MMU is like pounding a nail with a wrench.  Not the best tool for the job, but
+it works.)</p>
+
 <p>Busybox hides the difference between fork() and vfork() in
 libbb/bb_fork_exec.c.  If you ever want to fork and exec, use bb_fork_exec()
 (which returns a pid and takes the same arguments as execve(), although in
 this case envp can be NULL) and don't worry about it.  This description is
 here in case you want to know why that does what it does.</p>
 
-<p>On systems that haven't got a Memory Management Unit, fork() is unreasonably
-expensive to implement, so a less capable function called vfork() is used
-instead.</p>
+<p>Implementing fork() depends on having a Memory Management Unit.  With an
+MMU then you can simply set up a second set of page tables and share the
+physical memory via copy-on-write.  So a fork() followed quickly by exec()
+only copies a few pages of the parent's memory, just the ones it changes
+before freeing them.</p>
 
-<p>The reason vfork() exists is that if you haven't got an MMU then you can't
-simply set up a second set of page tables and share the physical memory via
-copy-on-write, which is what fork() normally does.  This means that actually
-forking has to copy all the parent's memory (which could easily be tens of
-megabytes).  And you have to do this even though that memory gets freed again
-as soon as the exec happens, so it's probably all a big waste of time.</p>
+<p>With a very primitive MMU (using a base pointer plus length instead of page
+tables, which can provide virtual addresses and protect processes from each
+other, but no copy on write) you can still implement fork.  But it's
+unreasonably expensive, because you have to copy all the parent process's
+memory into the new process (which could easily be several megabytes per fork).
+And you have to do this even though that memory gets freed again as soon as the
+exec happens.  (This is not just slow and a waste of space but causes memory
+usage spikes that can easily cause the system to run out of memory.)</p>
 
-<p>This is not only slow and a waste of space, it also causes totally
-unnecessary memory usage spikes based on how big the _parent_ process is (not
-the child), and these spikes are quite likely to trigger an out of memory
-condition on small systems (which is where nommu is common anyway).  So
-although you _can_ emulate a real fork on a nommu system, you really don't
-want to.</p>
+<p>Without even a primitive MMU, you have no virtual addresses.  Every process
+can reach out and touch any other process's memory, because all pointers are to
+physical addresses with no protection.  Even if you copy a process's memory to
+new physical addresses, all of its pointers point to the old objects in the
+old process.  (Searching through the new copy's memory for pointers and
+redirect them to the new locations is not an easy problem.)</p>
+
+<p>So with a primitive or missing MMU, fork() is just not a good idea.</p>
 
 <p>In theory, vfork() is just a fork() that writeably shares the heap and stack
 rather than copying it (so what one process writes the other one sees).  In
@@ -267,10 +279,10 @@ practice, vfork() has to suspend the parent process until the child does exec,
 at which point the parent wakes up and resumes by returning from the call to
 vfork().  All modern kernel/libc combinations implement vfork() to put the
 parent to sleep until the child does its exec.  There's just no other way to
-make it work: they're sharing the same stack, so if either one returns from its
-function it stomps on the callstack so that when the other process returns,
-hilarity ensues.  In fact without suspending the parent there's no way to even
-store separate copies of the return value (the pid) from the vfork() call
+make it work: the parent has to know the child has done its exec() or exit()
+before it's safe to return from the function it's in, so it has to block
+until that happens.  In fact without suspending the parent there's no way to
+even store separate copies of the return value (the pid) from the vfork() call
 itself: both assignments write into the same memory location.</p>
 
 <p>One way to understand (and in fact implement) vfork() is this: imagine
@@ -292,6 +304,7 @@ failed to exec.)</p>
 
 <p>(Now in theory, a nommu system could just copy the _stack_ when it forks
 (which presumably is much shorter than the heap), and leave the heap shared.
+Even with no MMU at all
 In practice, you've just wound up in a multi-threaded situation and you can't
 do a malloc() or free() on your heap without freeing the other process's memory
 (and if you don't have the proper locking for being threaded, corrupting the
