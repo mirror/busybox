@@ -126,6 +126,15 @@ between it and the opening control block statement. Examples:
 
 		do {
 
+Exceptions:
+
+ - if you have long logic statements that need to be wrapped, then uncuddling
+   the bracket to improve readability is allowed:
+
+		if (some_really_long_checks && some_other_really_long_checks \
+		    && some_more_really_long_checks)
+		{
+			do_foo_now;
 
 Spacing around Parentheses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
