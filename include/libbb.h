@@ -108,7 +108,7 @@ extern long *pidlist_reverse(long *pidList);
 extern char *find_block_device(char *path);
 extern char *bb_get_line_from_file(FILE *file);
 extern char *bb_get_chomped_line_from_file(FILE *file);
-extern char *bb_get_chunk_from_file(FILE *file);
+extern char *bb_get_chunk_from_file(FILE *file, int *end);
 extern int bb_copyfd_size(int fd1, int fd2, const off_t size);
 extern int bb_copyfd_eof(int fd1, int fd2);
 extern void  bb_xprint_and_close_file(FILE *file);
