@@ -8,6 +8,8 @@
  * Copyright (C) 2003 by Glenn McGrath <bug1@iinet.net.au>
  * Copyright (C) 2003,2004 by Rob Landley <rob@landley.net>
  *
+ * MAINTAINER: Rob Landley <rob@landley.net>
+ * 
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
@@ -74,8 +76,8 @@ typedef struct sed_cmd_s {
     regex_t *sub_match;	/* For 's/sub_match/string/' */
     int beg_line;		/* 'sed 1p'   0 == apply commands to all lines */
     int end_line;		/* 'sed 1,3p' 0 == one line only. -1 = last line ($) */
-
-    FILE *file;			/* File (sr) command writes to, -1 for none. */
+	
+    FILE *file;			/* File (sw) command writes to, -1 for none. */
     char *string;		/* Data string for (saicytb) commands. */
 
     unsigned short which_match;		/* (s) Which match to replace (0 for all) */
@@ -83,7 +85,7 @@ typedef struct sed_cmd_s {
     /* Bitfields (gcc won't group them if we don't) */
     unsigned int invert:1;			/* the '!' after the address */
     unsigned int in_match:1;		/* Next line also included in match? */
-    unsigned int no_newline:1;		/* Last line written by (sr) had no '\n' */
+    unsigned int no_newline:1;		/* Last line written by (sw) had no '\n' */
     unsigned int sub_p:1;			/* (s) print option */
 
 
@@ -120,6 +122,7 @@ struct append_list {
 };
 static struct append_list *append_head=NULL, *append_tail=NULL;
 
+void free_and_close_stuff(void);
 #ifdef CONFIG_FEATURE_CLEAN_UP
 static void free_and_close_stuff(void)
 {
@@ -729,13 +732,13 @@ static char *get_next_line(int *no_newline)
 	int len;
 
 	flush_append();
-	while(current_input_file<input_file_count) {
-		temp=bb_get_line_from_file(input_file_list[current_input_file]);
-		if(temp) {
-			len=strlen(temp);
-			*no_newline=!(len && temp[len-1]=='\n');
-			if(!*no_newline) temp[len-1]=0;
+	while (current_input_file<input_file_count) {
+		temp = bb_get_chunk_from_file(input_file_list[current_input_file],&len);
+		if (temp) {
+			*no_newline = !(len && temp[len-1]=='\n');
+			if (!*no_newline) temp[len-1] = 0;
 			break;
+		// Close this file and advance to next one
 		} else fclose(input_file_list[current_input_file++]);
 	}
 
@@ -762,12 +765,15 @@ static int puts_maybe_newline(char *s, FILE *file, int missing_newline, int no_n
 
 #define sed_puts(s,n) missing_newline=puts_maybe_newline(s,nonstdout,missing_newline,n)
 
+/* Process all the lines in all the files */
+
 static void process_files(void)
 {
 	char *pattern_space, *next_line;
 	int linenum = 0, missing_newline=0;
 	int no_newline,next_no_newline=0;
 
+	/* Prime the pump */
 	next_line = get_next_line(&next_no_newline);
 
 	/* go through every line in each file */
@@ -779,7 +785,8 @@ static void process_files(void)
 		if(!(pattern_space=next_line)) break;
 		no_newline=next_no_newline;
 
-		/* Read one line in advance so we can act on the last line, the '$' address */
+		/* Read one line in advance so we can act on the last line,
+		 * the '$' address */
 		next_line = get_next_line(&next_no_newline);
 		linenum++;
 restart:
@@ -921,16 +928,16 @@ restart:
 					/* Read file, append contents to output */
 					case 'r':
 					{
-						FILE *outfile;
+						FILE *rfile;
 
-						outfile = fopen(sed_cmd->string, "r");
-						if (outfile) {
+						rfile = fopen(sed_cmd->string, "r");
+						if (rfile) {
 							char *line;
 
-							while ((line = bb_get_chomped_line_from_file(outfile))
+							while ((line = bb_get_chomped_line_from_file(rfile))
 									!= NULL)
 								append(line);
-							bb_xprint_and_close_file(outfile);
+							bb_xprint_and_close_file(rfile);
 						}
 
 						break;
@@ -1107,11 +1114,9 @@ extern int sed_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS, opt, getpat = 1;
 
-#ifdef CONFIG_FEATURE_CLEAN_UP
 	/* destroy command strings on exit */
-	if (atexit(free_and_close_stuff) == -1)
+	if (ENABLE_FEATURE_CLEAN_UP && atexit(free_and_close_stuff) == -1)
 		bb_perror_msg_and_die("atexit");
-#endif
 
 	/* Lie to autoconf when it starts asking stupid questions. */
 	if(argc==2 && !strcmp(argv[1],"--version")) {
@@ -1197,12 +1202,15 @@ extern int sed_main(int argc, char **argv)
 						if(-1==(nonstdoutfd=mkstemp(outname)))
 							bb_error_msg_and_die("no temp file");
 						nonstdout=fdopen(nonstdoutfd,"w");
+						
 						/* Set permissions of output file */
+						
 						fstat(fileno(file),&statbuf);
 						fchmod(nonstdoutfd,statbuf.st_mode);
 						add_input_file(file);
 						process_files();
 						fclose(nonstdout);
+						
 						nonstdout=stdout;
 						unlink(argv[i]);
 						rename(outname,argv[i]);
