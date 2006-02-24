@@ -55,8 +55,8 @@
 #include "ext2fs.h"
 
 #if defined(__CYGWIN__) || defined (WIN32)
-#include "windows.h"
-#include "winioctl.h"
+#include <windows.h>
+#include <winioctl.h>
 
 #if (_WIN32_WINNT >= 0x0500)
 #define HAVE_GET_FILE_SIZE_EX 1

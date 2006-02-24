@@ -101,7 +101,7 @@
 #include "cmdedit.h"
 #else
 #define bb_applet_name "hush"
-#include "standalone.h"
+//#include "standalone.h"
 #define hush_main main
 #undef CONFIG_FEATURE_SH_FANCY_PROMPT
 #define BB_BANNER ""
