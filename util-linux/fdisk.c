@@ -1,12 +1,9 @@
 /* fdisk.c -- Partition table manipulator for Linux.
  *
  * Copyright (C) 1992  A. V. Le Blanc (LeBlanc@mcc.ac.uk)
+ * Copyright (C) 2001,2002 Vladimir Oleynik <dzo@simtreas.ru> (initial bb port)
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
- * Copyright (C) 2001,2002 Vladimir Oleynik <dzo@simtreas.ru>
- *    initial busybox port, BSD license 
- * 
- * This applet have not the support person from busybox.
  */
 
 /* Current changes have not compatibility with this version */
