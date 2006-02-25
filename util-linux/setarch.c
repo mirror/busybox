@@ -3,7 +3,6 @@
  * Linux32/linux64 allows for changing uname emulation.
  *
  * Copyright 2002 Andi Kleen, SuSE Labs.
- * This file is subject to the GNU General Public License v2 
  *
  * Licensed under GPL v2 or later, see file License for details.
 */
