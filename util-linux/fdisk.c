@@ -37,8 +37,6 @@
 
 #include "busybox.h"
 
-#define MAKE_VERSION(p,q,r)     (65536*(p) + 256*(q) + (r))
-
 #define DKTYPENAMES
 
 #define BLKRRPART  _IO(0x12,95)    /* re-read partition table */
@@ -3977,8 +3975,7 @@ create_doslabel(void)
 static void
 get_sectorsize(void)
 {
-	if (!user_set_sector_size
-	 && get_kernel_revision() >= MAKE_VERSION(2,3,3)) {
+	if (!user_set_sector_size) {
 		int arg;
 		if (ioctl(fd, BLKSSZGET, &arg) == 0)
 			sector_size = arg;
