@@ -1157,7 +1157,6 @@ extern int ifupdown_main(int argc, char **argv)
 {
 	int (*cmds) (struct interface_defn_t *) = NULL;
 	struct interfaces_file_t *defn;
-	FILE *state_fp = NULL;
 	llist_t *state_list = NULL;
 	llist_t *target_list = NULL;
 	const char *interfaces = "/etc/network/interfaces";
@@ -1228,10 +1227,6 @@ extern int ifupdown_main(int argc, char **argv)
 
 	if (!defn) {
 		exit(EXIT_FAILURE);
-	}
-
-	if (no_act) {
-		state_fp = fopen(statefile, "r");
 	}
 
 	/* Create a list of interfaces to work on */
@@ -1398,9 +1393,8 @@ extern int ifupdown_main(int argc, char **argv)
 
 	/* Actually write the new state */
 	if (!no_act) {
+		FILE *state_fp = NULL;
 
-		if (state_fp)
-			fclose(state_fp);
 		state_fp = bb_xfopen(statefile, "a+");
 
 		if (ftruncate(fileno(state_fp), 0) < 0) {
@@ -1417,12 +1411,7 @@ extern int ifupdown_main(int argc, char **argv)
 			state_list = state_list->link;
 		}
 		fflush(state_fp);
-	}
-
-	/* Cleanup */
-	if (state_fp != NULL) {
 		fclose(state_fp);
-		state_fp = NULL;
 	}
 
 	if (any_failures)
