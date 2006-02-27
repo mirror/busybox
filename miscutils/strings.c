@@ -5,19 +5,7 @@
  * Copyright (c) 1980, 1987
  *	The Regents of the University of California.  All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
  * Original copyright notice is retained at the end of this file.
  *
@@ -30,8 +18,6 @@
 #include <getopt.h>
 #include <ctype.h>
 #include "busybox.h"
-
-#define ISSTR(ch)	(isprint(ch) || ch == '\t')
 
 #define WHOLE_FILE		1
 #define PRINT_NAME		2
@@ -48,7 +34,7 @@ int strings_main(int argc, char **argv)
 	const char *fmt = "%s: ";
 	char *n_arg = "4";
 
-	opt = bb_getopt_ulflags (argc, argv, "afon:", &n_arg);
+	opt = bb_getopt_ulflags(argc, argv, "afon:", &n_arg);
 	/* -a is our default behaviour */
 
 	argc -= optind;
@@ -58,7 +44,7 @@ int strings_main(int argc, char **argv)
 	string = xcalloc(n + 1, 1);
 	n--;
 
-	if ( argc == 0) {
+	if (argc == 0) {
 		fmt = "{%s}: ";
 		*argv = (char *)bb_msg_standard_input;
 		goto PIPE;
@@ -70,9 +56,9 @@ PIPE:
 			count = 0;
 			do {
 				c = fgetc(file);
-				if (ISSTR(c)) {
+				if (isprint(c) || c == '\t') {
 					if (i <= n) {
-						string[i]=c;
+						string[i] = c;
 					} else {
 						putchar(c);
 					}
@@ -81,7 +67,7 @@ PIPE:
 							printf(fmt, *argv);
 						}
 						if (opt & PRINT_OFFSET) {
-							printf("%7lo ", count - n );
+							printf("%7lo ", count - n);
 						}
 						printf("%s", string);
 					}
@@ -96,11 +82,12 @@ PIPE:
 			} while (c != EOF);
 			bb_fclose_nonstdin(file);
 		} else {
-			status=EXIT_FAILURE;
+			status = EXIT_FAILURE;
 		}
-	} while ( --argc > 0 );
+	} while (--argc > 0);
 
-	if (ENABLE_FEATURE_CLEAN_UP) free(string);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(string);
 
 	bb_fflush_stdout_and_exit(status);
 }
