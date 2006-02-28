@@ -37,7 +37,6 @@ SRC_DIRS:=$(patsubst %,$(top_srcdir)/%,$(DIRS))
 _all:
 
 CONFIG_CONFIG_IN = $(top_srcdir)/Config.in
-CONFIG_DEFCONFIG = $(top_srcdir)/defconfig
 
 ifeq ($(KBUILD_SRC),)
 
@@ -145,7 +144,7 @@ include $(top_srcdir)/Rules.mak
 ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 # Default target if none was requested explicitly
-all: menuconfig
+all: defconfig menuconfig
 
 # warn if no configuration exists and we are asked to build a non-config target
 .config:
@@ -161,13 +160,13 @@ all: menuconfig
 scripts/config/conf: scripts/config/Makefile
 	$(Q)$(MAKE) -C scripts/config conf
 	-@if [ ! -f .config ] ; then \
-		cp $(CONFIG_DEFCONFIG) .config; \
+		touch .config; \
 	fi
 
 scripts/config/mconf: scripts/config/Makefile
 	$(Q)$(MAKE) -C scripts/config ncurses conf mconf
 	-@if [ ! -f .config ] ; then \
-		cp $(CONFIG_DEFCONFIG) .config; \
+		touch .config; \
 	fi
 
 menuconfig: scripts/config/mconf
@@ -196,7 +195,7 @@ allnoconfig: scripts/config/conf
 
 defconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
-	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP|UDHCP_DEBUG)))=.*/# \1 is not set/" .config
+	sed -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP|UDHCP_DEBUG)|INSTALL_NO_USR))=.*/# \1 is not set/" .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 
