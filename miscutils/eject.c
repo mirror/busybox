@@ -43,7 +43,7 @@ extern int eject_main(int argc, char **argv)
 	}
 	if (ioctl(bb_xopen(device, (O_RDONLY | O_NONBLOCK)),
 				(flags ? CDROMCLOSETRAY : CDROMEJECT))) {
-		bb_perror_msg_and_die(device);
+		bb_perror_msg_and_die("%s", device);
 	}
 	return (EXIT_SUCCESS);
 }

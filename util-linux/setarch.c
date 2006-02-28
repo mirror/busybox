@@ -49,5 +49,5 @@ retry:
 	execvp(argv[0], argv);
 
 failure:
-	bb_perror_msg_and_die(argv[0]);
+	bb_perror_msg_and_die("%s", argv[0]);
 }
