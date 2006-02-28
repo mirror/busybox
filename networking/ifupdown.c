@@ -53,13 +53,12 @@
 struct interface_defn_t;
 
 typedef int (execfn)(char *command);
-typedef int (command_set)(struct interface_defn_t *ifd, execfn *e);
 
 struct method_t
 {
 	char *name;
-	command_set *up;
-	command_set *down;
+	int (*up)(struct interface_defn_t *ifd, execfn *e);
+	int (*down)(struct interface_defn_t *ifd, execfn *e);
 };
 
 struct address_family_t
@@ -92,15 +91,10 @@ struct variable_t
 
 struct interface_defn_t
 {
-	struct interface_defn_t *prev;
-	struct interface_defn_t *next;
-
-	char *iface;
 	struct address_family_t *address_family;
 	struct method_t *method;
 
-	int automatic;
-
+	char *iface;
 	int max_options;
 	int n_options;
 	struct variable_t *option;
@@ -645,17 +639,6 @@ static struct method_t *get_method(struct address_family_t *af, char *name)
 	return(NULL);
 }
 
-static int duplicate_if(struct interface_defn_t *ifa, struct interface_defn_t *ifb)
-{
-	if (strcmp(ifa->iface, ifb->iface) != 0) {
-		return(0);
-	}
-	if (ifa->address_family != ifb->address_family) {
-		return(0);
-	}
-	return(1);
-}
-
 static const llist_t *find_list_string(const llist_t *list, const char *string)
 {
 	while (list) {
@@ -778,22 +761,19 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 					return NULL;
 				}
 
-				currif->automatic = 1;
 				currif->max_options = 0;
 				currif->n_options = 0;
 				currif->option = NULL;
 
 				{
-					struct interface_defn_t *tmp;
 					llist_t *iface_list;
-					iface_list = defn->ifaces;
-					while (iface_list) {
-						tmp = (struct interface_defn_t *) iface_list->data;
-						if (duplicate_if(tmp, currif)) {
+					for (iface_list = defn->ifaces; iface_list; iface_list = iface_list->link) {
+						struct interface_defn_t *tmp = (struct interface_defn_t *) iface_list->data;
+						if ((strcmp(tmp->iface, currif->iface) == 0) ||
+							(tmp->address_family == currif->address_family)) {
 							bb_error_msg("duplicate interface \"%s\"", tmp->iface);
 							return NULL;
 						}
-						iface_list = iface_list->link;
 					}
 
 					defn->ifaces = llist_add_to_end(defn->ifaces, (char*)currif);
@@ -896,7 +876,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 	return defn;
 }
 
-static char *setlocalenv(char *format, char *name, char *value)
+static char *setlocalenv(char *format, const char *name, const char *value)
 {
 	char *result;
 	char *here;
@@ -922,7 +902,7 @@ static char *setlocalenv(char *format, char *name, char *value)
 	return result;
 }
 
-static void set_environ(struct interface_defn_t *iface, char *mode)
+static void set_environ(struct interface_defn_t *iface, const char *mode)
 {
 	char **environend;
 	int i;
@@ -989,20 +969,20 @@ static int doit(char *str)
 	return (1);
 }
 
-static int execute_all(struct interface_defn_t *ifd, execfn *exec, const char *opt)
+static int execute_all(struct interface_defn_t *ifd, const char *opt)
 {
 	int i;
 	char *buf;
 	for (i = 0; i < ifd->n_options; i++) {
 		if (strcmp(ifd->option[i].name, opt) == 0) {
-			if (!(*exec) (ifd->option[i].value)) {
+			if (!doit(ifd->option[i].value)) {
 				return 0;
 			}
 		}
 	}
 
 	buf = bb_xasprintf("run-parts /etc/network/if-%s.d", opt);
-	if ((*exec)(buf) != 1) {
+	if (doit(buf) != 1) {
 		return 0;
 	}
 	return 1;
@@ -1016,9 +996,9 @@ static int iface_up(struct interface_defn_t *iface)
 {
 	if (!iface->method->up(iface,check)) return -1;
 	set_environ(iface, "start");
-	if (!execute_all(iface, doit, "pre-up")) return 0;
+	if (!execute_all(iface, "pre-up")) return 0;
 	if (!iface->method->up(iface, doit)) return 0;
-	if (!execute_all(iface, doit, "up")) return 0;
+	if (!execute_all(iface, "up")) return 0;
 	return 1;
 }
 
@@ -1026,9 +1006,9 @@ static int iface_down(struct interface_defn_t *iface)
 {
 	if (!iface->method->down(iface,check)) return -1;
 	set_environ(iface, "stop");
-	if (!execute_all(iface, doit, "down")) return 0;
+	if (!execute_all(iface, "down")) return 0;
 	if (!iface->method->down(iface, doit)) return 0;
-	if (!execute_all(iface, doit, "post-down")) return 0;
+	if (!execute_all(iface, "post-down")) return 0;
 	return 1;
 }
 
@@ -1373,7 +1353,7 @@ extern int ifupdown_main(int argc, char **argv)
 					free(iface_state->data);
 					iface_state->data = newiface;
 				}
-			} else if (cmds == iface_down) {
+			} else {
 				/* Remove an interface from the linked list */
 				if (iface_state) {
 					/* This needs to be done better */
@@ -1395,14 +1375,7 @@ extern int ifupdown_main(int argc, char **argv)
 	if (!no_act) {
 		FILE *state_fp = NULL;
 
-		state_fp = bb_xfopen(statefile, "a+");
-
-		if (ftruncate(fileno(state_fp), 0) < 0) {
-			bb_error_msg_and_die("failed to truncate statefile %s: %s", statefile, strerror(errno));
-		}
-
-		rewind(state_fp);
-
+		state_fp = bb_xfopen(statefile, "w");
 		while (state_list) {
 			if (state_list->data) {
 				fputs(state_list->data, state_fp);
@@ -1410,7 +1383,6 @@ extern int ifupdown_main(int argc, char **argv)
 			}
 			state_list = state_list->link;
 		}
-		fflush(state_fp);
 		fclose(state_fp);
 	}
 
