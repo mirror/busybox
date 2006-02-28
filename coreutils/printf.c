@@ -49,9 +49,9 @@
 #include <assert.h>
 #include "busybox.h"
 
-static int print_formatted __P((char *format, int argc, char **argv));
-static void print_direc __P( (char *start, size_t length,
-			int field_width, int precision, char *argument));
+static int print_formatted (char *format, int argc, char **argv);
+static void print_direc (char *start, size_t length,
+			int field_width, int precision, char *argument);
 
 typedef int (*converter)(char *arg, void *result);
 void multiconvert(char *arg, void *result, converter convert)

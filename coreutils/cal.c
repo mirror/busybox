@@ -88,9 +88,9 @@ static int is_leap_year(int year)
 #define	leap_years_since_year_1(yr) \
 	((yr) / 4 - centuries_since_1700(yr) + quad_centuries_since_1700(yr))
 
-static void center __P((char *, int, int));
-static void day_array __P((int, int, int *));
-static void trim_trailing_spaces_and_print __P((char *));
+static void center (char *, int, int);
+static void day_array (int, int, int *);
+static void trim_trailing_spaces_and_print (char *);
 
 static void blank_string(char *buf, size_t buflen);
 static char *build_row(char *p, int *dp);
