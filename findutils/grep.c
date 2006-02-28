@@ -11,8 +11,9 @@
 /* BB_AUDIT GNU defects - always acts as -a.  */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/grep.html */
 /*
- * Apr 2004 by Vladimir Oleynik <dzo@simtreas.ru> -
+ * 2004,2006 (C) Vladimir Oleynik <dzo@simtreas.ru> -
  * correction "-e pattern1 -e pattern2" logic and more optimizations.
+ * precompiled regex
 */
 
 #include <stdio.h>
@@ -82,6 +83,13 @@ static int last_line_printed;
 static llist_t *pattern_head;   /* growable list of patterns to match */
 static char *cur_file;          /* the current file we are reading */
 
+typedef struct GREP_LIST_DATA {
+	char *pattern;
+	regex_t preg;
+#define PATTERN_MEM_A 1
+#define COMPILED 2
+	int flg_mem_alocated_compiled;
+} grep_list_data_t;
 
 static void print_line(const char *line, int linenum, char decoration)
 {
@@ -115,12 +123,14 @@ static int grep_file(FILE *file)
 
 	while ((line = bb_get_chomped_line_from_file(file)) != NULL) {
 		llist_t *pattern_ptr = pattern_head;
+		grep_list_data_t * gl;
 
 		linenum++;
 		ret = 0;
 		while (pattern_ptr) {
+			gl = (grep_list_data_t *)pattern_ptr->data;
 			if (FGREP_FLAG) {
-				ret = strstr(line, pattern_ptr->data) != NULL;
+				ret = strstr(line, gl->pattern) != NULL;
 			} else {
 				/*
 				 * test for a postitive-assertion match (regexec returns success (0)
@@ -128,10 +138,11 @@ static int grep_file(FILE *file)
 				 * match (regexec returns failure (REG_NOMATCH) and the user specified
 				 * invert search)
 				 */
-				regex_t regex;
-				xregcomp(&regex, pattern_ptr->data, reflags);
-				ret |= regexec(&regex, line, 0, NULL, 0) == 0;
-				regfree(&regex);
+				if(!(gl->flg_mem_alocated_compiled & COMPILED)) {
+					gl->flg_mem_alocated_compiled |= COMPILED;
+					xregcomp(&(gl->preg), gl->pattern, reflags);
+				}
+				ret |= regexec(&(gl->preg), line, 0, NULL, 0) == 0;
 			}
 			pattern_ptr = pattern_ptr->link;
 		} /* while (pattern_ptr) */
@@ -230,6 +241,25 @@ static int grep_file(FILE *file)
 	return nmatches;
 }
 
+#if ENABLE_FEATURE_CLEAN_UP
+#define new_grep_list_data(p, m) add_grep_list_data(p, m)
+static char * add_grep_list_data(char *pattern, int flg_used_mem)
+#else
+#define new_grep_list_data(p, m) add_grep_list_data(p)
+static char * add_grep_list_data(char *pattern)
+#endif
+{
+	grep_list_data_t *gl = xmalloc(sizeof(grep_list_data_t));
+	gl->pattern = pattern;
+#if ENABLE_FEATURE_CLEAN_UP
+	gl->flg_mem_alocated_compiled = flg_used_mem;
+#else
+	gl->flg_mem_alocated_compiled = 0;
+#endif
+	return (char *)gl;
+}
+
+
 static void load_regexes_from_file(llist_t *fopt)
 {
 	char *line;
@@ -243,7 +273,8 @@ static void load_regexes_from_file(llist_t *fopt)
 		free(cur);
 		f = bb_xfopen(ffile, "r");
 		while ((line = bb_get_chomped_line_from_file(f)) != NULL) {
-			pattern_head = llist_add_to(pattern_head, line);
+			pattern_head = llist_add_to(pattern_head,
+				new_grep_list_data(line, PATTERN_MEM_A));
 		}
 	}
 }
@@ -296,7 +327,7 @@ extern int grep_main(int argc, char **argv)
 		lines_after = 0;
 	} else if(lines_before > 0)
 		before_buf = (char **)xcalloc(lines_before, sizeof(char *));
-	}
+  }
 #else
 	/* with auto sanity checks */
 	bb_opt_complementally = "H-h:e::f::c-n:q-n:l-n";
@@ -309,6 +340,13 @@ extern int grep_main(int argc, char **argv)
 		print_filename++;
 	if(opt & GREP_OPT_h)
 		print_filename--;
+	if (pattern_head != NULL) {
+		/* convert char *argv[] to grep_list_data_t */
+		llist_t *cur;
+
+		for(cur = pattern_head; cur; cur = cur->link)
+			cur->data = new_grep_list_data(cur->data, 0);
+	}
 	if(opt & GREP_OPT_f)
 		load_regexes_from_file(fopt);
 
@@ -333,7 +371,9 @@ extern int grep_main(int argc, char **argv)
 		if (*argv == NULL)
 			bb_show_usage();
 		else {
-			pattern_head = llist_add_to(pattern_head, *argv++);
+			char *pattern = new_grep_list_data(*argv++, 0);
+
+			pattern_head = llist_add_to(pattern_head, pattern);
 			argc--;
 		}
 	}
@@ -373,14 +413,20 @@ extern int grep_main(int argc, char **argv)
 	}
 
 	/* destroy all the elments in the pattern list */
-	if (ENABLE_FEATURE_CLEAN_UP)
-	while (pattern_head) {
-		llist_t *pattern_head_ptr = pattern_head;
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		while (pattern_head) {
+			llist_t *pattern_head_ptr = pattern_head;
+			grep_list_data_t *gl =
+				(grep_list_data_t *)pattern_head_ptr->data;
 
-		pattern_head = pattern_head->link;
-		free(pattern_head_ptr);
+			pattern_head = pattern_head->link;
+			if((gl->flg_mem_alocated_compiled & PATTERN_MEM_A))
+				free(gl->pattern);
+			if((gl->flg_mem_alocated_compiled & COMPILED))
+				regfree(&(gl->preg));
+			free(pattern_head_ptr);
+		}
 	}
-
 	/* 0 = success, 1 = failed, 2 = error */
 	/* If the -q option is specified, the exit status shall be zero
 	 * if an input line is selected, even if an error was detected.  */
