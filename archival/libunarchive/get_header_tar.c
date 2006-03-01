@@ -109,7 +109,7 @@ extern char get_header_tar(archive_handle_t *archive_handle)
 	} else
 #endif
 	{
-		file_header->name = strndup(tar.formated.name,100);
+		file_header->name = bb_xstrndup(tar.formated.name,100);
 
 		if (tar.formated.prefix[0]) {
 			char *temp = file_header->name;
