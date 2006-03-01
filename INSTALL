@@ -72,6 +72,13 @@ also configure a standaone install capability into the busybox base applet,
 and then install such links at runtime with one of "busybox --install" (for
 hardlinks) or "busybox --install -s" (for symlinks).
 
+If you built busybox as shared object which uses libbusybox.so and have not
+yet installed the binary but want to run tests, then set your LD_LIBRARY_PATH
+accordingly before running the executable:
+
+  export LD_LIBRARY_PATH=`pwd`
+  ./busybox
+
 Building out-of-tree:
 =====================
 
@@ -80,8 +87,13 @@ Building from a read-only source tree, or to building multiple
 configurations from the same source directory, requires the ability to
 put the temporary files somewhere else.
 
-To build out of tree, use the O=$BUILDPATH option during the configuration
-step, as in:
+To build out of tree, cd to the empty directory and do this instead:
+
+  make -f /path/to/source/Makefile allyesconfig
+  make
+  make install
+
+Alternately, use the O=$BUILDPATH option during the configuration step, as in:
 
   make O=/some/empty/directory allyesconfig
   cd /some/empty/directory
@@ -90,11 +102,6 @@ step, as in:
 
 (Note, O= requires an absolute path.)
 
-Alternately, cd to the empty directory and do this instead:
-
-  make top_srcdir=/path/to/source -f /path/to/source/Makefile allyesconfig
-  make
-  make install
 
 More Information:
 =================

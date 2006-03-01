@@ -4,13 +4,9 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-MISCUTILS_AR:=miscutils.a
-ifndef $(MISCUTILS_DIR)
-MISCUTILS_DIR:=$(top_builddir)/miscutils/
-endif
 srcdir=$(top_srcdir)/miscutils
+objdir=$(top_builddir)/miscutils
 
-MISCUTILS-y:=
 MISCUTILS-$(CONFIG_ADJTIMEX)    += adjtimex.o
 MISCUTILS-$(CONFIG_CROND)       += crond.o
 MISCUTILS-$(CONFIG_CRONTAB)     += crontab.o
@@ -31,8 +27,13 @@ MISCUTILS-$(CONFIG_STRINGS)     += strings.o
 MISCUTILS-$(CONFIG_TIME)        += time.o
 MISCUTILS-$(CONFIG_WATCHDOG)    += watchdog.o
 
-ifneq ($(strip $(MISCUTILS-y)),)
-libraries-y+=$(MISCUTILS_DIR)$(MISCUTILS_AR)
+needlibm-y:=
+needlibm-$(CONFIG_DC) := y
+ifeq ($(needlibm-m),y)
+needlibm-y:=y
+endif
+ifeq ($(needlibm-y),y)
+  LIBRARIES := $(filter-out -lm,$(LIBRARIES)) -lm
 endif
 
 MISCUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(MISCUTILS-y))
@@ -40,15 +41,5 @@ MISCUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(MISCUTILS_SRC-y)
 APPLET_SRC-a+=$(MISCUTILS_SRC-a)
 
-needlibm-y:=
-needlibm-$(CONFIG_DC) := y
+miscutils_OBJ:=  $(patsubst %,$(objdir)/%,$(MISCUTILS-y))
 
-ifeq ($(needlibm-y),y)
-  LIBRARIES := -lm $(filter-out -lm,$(LIBRARIES))
-endif
-
-$(MISCUTILS_DIR)$(MISCUTILS_AR): $(patsubst %,$(MISCUTILS_DIR)%, $(MISCUTILS-y))
-	$(do_ar)
-
-$(MISCUTILS_DIR)%.o: $(srcdir)/%.c
-	$(compile.c)

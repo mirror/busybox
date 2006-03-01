@@ -10,6 +10,12 @@ ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
 -include $(top_builddir)/.config
 endif
 
+ifeq ($(MAKELEVEL),0)
+ifeq ($(HAVE_DOT_CONFIG),y)
+rules-mak-rules:=0
+endif
+endif
+
 #--------------------------------------------------------
 PROG      := busybox
 MAJOR_VERSION   :=1
@@ -30,8 +36,9 @@ BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 # If you are running a cross compiler, you will want to set 'CROSS'
 # to something more interesting...  Target architecture is determined
 # by asking the CC compiler what arch it compiles things for, so unless
-# your compiler is broken, you should not need to specify TARGET_ARCH
+# your compiler is broken, you should not need to specify __TARGET_ARCH
 CROSS           =$(subst ",, $(strip $(CROSS_COMPILER_PREFIX)))
+#")
 CC             = $(CROSS)gcc
 AR             = $(CROSS)ar
 AS             = $(CROSS)as
@@ -39,16 +46,19 @@ LD             = $(CROSS)ld
 NM             = $(CROSS)nm
 STRIP          = $(CROSS)strip
 CPP            = $(CC) -E
-# MAKEFILES      = $(top_builddir)/.config
-RM             = rm
-RM_F           = $(RM) -f
-LN             = ln
-LN_S           = $(LN) -s
-MKDIR          = mkdir
-MKDIR_P        = $(MKDIR) -p
-MV             = mv
-CP             = cp
+SED           ?= sed
+AWK           ?= awk
 
+
+ifdef PACKAGE_BE_VERBOSE
+PACKAGE_BE_VERBOSE := $(shell echo $(PACKAGE_BE_VERBOSE) | $(SED) "s/[[:alpha:]]*//g")
+endif
+
+# for make V=3 and above make $(shell) invocations verbose
+ifeq ($(if $(strip $(PACKAGE_BE_VERBOSE)),$(shell test $(PACKAGE_BE_VERBOSE) -gt 2 ; echo $$?),1),0)
+ SHELL+=-x
+ MKDEP_ARGS:=-w
+endif
 
 # What OS are you compiling busybox for?  This allows you to include
 # OS specific things, syscall overrides, etc.
@@ -63,8 +73,9 @@ LC_ALL:= C
 
 # If you want to add some simple compiler switches (like -march=i686),
 # especially from the command line, use this instead of CFLAGS directly.
-# For optimization overrides, it's better still to set OPTIMIZATION.
+# For optimization overrides, it's better still to set OPTIMIZATIONS.
 CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
+#")
 
 # To compile vs some other alternative libc, you may need to use/adjust
 # the following lines to meet your needs...
@@ -81,20 +92,50 @@ CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
 #GCCINCDIR:=$(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
-CFLAGS+=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
+CFLAGS+=-I$(top_builddir)/include -I$(top_srcdir)/include
 
 ARFLAGS=cru
 
 
+
+# Get the CC MAJOR/MINOR version
 # gcc centric. Perhaps fiddle with findstring gcc,$(CC) for the rest
-# get the CC MAJOR/MINOR version
 CC_MAJOR:=$(shell printf "%02d" $(shell echo __GNUC__ | $(CC) -E -xc - | tail -n 1))
 CC_MINOR:=$(shell printf "%02d" $(shell echo __GNUC_MINOR__ | $(CC) -E -xc - | tail -n 1))
 
+# Note: spaces are significant here!
+# Check if CC version is equal to given MAJOR,MINOR. Returns empty if false.
+define cc_eq
+$(shell [ $(CC_MAJOR) -eq $(1) -a $(CC_MINOR) -eq $(2) ] && echo y)
+endef
+# Check if CC version is greater or equal than given MAJOR,MINOR
+define cc_ge
+$(shell [ $(CC_MAJOR) -ge $(1) -a $(CC_MINOR) -ge $(2) ] && echo y)
+endef
+# Check if CC version is less or equal than given MAJOR,MINOR
+define cc_le
+$(shell [ $(CC_MAJOR) -le $(1) -a $(CC_MINOR) -le $(2) ] && echo y)
+endef
+
+# Workaround bugs in make-3.80 for eval in conditionals
+define is_eq
+$(shell [ $(1) = $(2) ] 2> /dev/null && echo y)
+endef
+define is_neq
+$(shell [ $(1) != $(2) ] 2> /dev/null && echo y)
+endef
+
 #--------------------------------------------------------
 export VERSION BUILDTIME HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
-ifeq ($(strip $(TARGET_ARCH)),)
-TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
+
+# TARGET_ARCH and TARGET_MACH will be passed verbatim to CC with recent
+# versions of make, so we use __TARGET_ARCH here.
+# Current builtin rules looks like that:
+# COMPILE.s = $(AS) $(ASFLAGS) $(TARGET_MACH)
+# COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
+
+ifeq ($(strip $(__TARGET_ARCH)),)
+__TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		-e 's/i.86/i386/' \
 		-e 's/sparc.*/sparc/' \
 		-e 's/arm.*/arm/g' \
@@ -108,70 +149,60 @@ TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		)
 endif
 
-# A nifty macro to make testing gcc features easier
-check_gcc=$(shell \
-	if [ "$(1)" != "" ]; then \
-		if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; \
-		then echo "$(1)"; else echo "$(2)"; fi \
-	fi)
-
-# A not very robust macro to check for available ld flags
-check_ld=$(shell \
-	if [ "x$(1)" != "x" ]; then \
-		$(LD) --help | grep -q "\$(1)" && echo "-Wl,$(1)" ; \
-	fi)
-
-CFLAGS+=$(call check_gcc,-funsigned-char,)
-
-CFLAGS+=$(call check_gcc,-mmax-stack-frame=256,)
+$(call check_gcc,CFLAGS,-funsigned-char,)
+$(call check_gcc,CFLAGS,-mmax-stack-frame=256,)
 
 #--------------------------------------------------------
 # Arch specific compiler optimization stuff should go here.
 # Unless you want to override the defaults, do not set anything
-# for OPTIMIZATION...
+# for OPTIMIZATIONS...
 
 # use '-Os' optimization if available, else use -O2
-OPTIMIZATION:=$(call check_gcc,-Os,-O2)
+$(call check_gcc,OPTIMIZATIONS,-Os,-O2)
 
-ifeq ($(CONFIG_BUILD_AT_ONCE),y)
 # gcc 2.95 exits with 0 for "unrecognized option"
-ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 3 ] ; echo $$?)),0)
-	OPTIMIZATION+=$(call check_gcc,--combine,)
-endif
-OPTIMIZATION+=$(call check_gcc,-funit-at-a-time,)
-PROG_CFLAGS+=$(call check_gcc,-fwhole-program,)
-endif # CONFIG_BUILD_AT_ONCE
+$(if $(call is_eq,$(CONFIG_BUILD_AT_ONCE),y),\
+  $(if $(call cc_ge,3,0),\
+    $(call check_gcc,CFLAGS_COMBINE,--combine,)))
 
-LIB_LDFLAGS:=$(call check_ld,--enable-new-dtags,)
-#LIB_LDFLAGS+=$(call check_ld,--reduce-memory-overheads,)
-#LIB_LDFLAGS+=$(call check_ld,--as-needed,)
-#LIB_LDFLAGS+=$(call check_ld,--warn-shared-textrel,)
+$(if $(call is_eq,$(CONFIG_BUILD_AT_ONCE),y),\
+  $(call check_gcc,OPTIMIZATIONS,-funit-at-a-time,))
 
+# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=25795
+#$(if $(call is_eq,$(CONFIG_BUILD_AT_ONCE),y),\
+#  $(call check_gcc,PROG_CFLAGS,-fwhole-program,))
+
+$(call check_ld,LIB_LDFLAGS,--enable-new-dtags,)
+#$(call check_ld,LIB_LDFLAGS,--reduce-memory-overheads,)
+#$(call check_ld,LIB_LDFLAGS,--as-needed,)
+#$(call check_ld,LIB_LDFLAGS,--warn-shared-textrel,)
+
+$(call check_ld,PROG_LDFLAGS,--gc-sections,)
 
 # Some nice architecture specific optimizations
-ifeq ($(strip $(TARGET_ARCH)),arm)
-	OPTIMIZATION+=-fstrict-aliasing
-endif
-ifeq ($(strip $(TARGET_ARCH)),i386)
-	OPTIMIZATION+=$(call check_gcc,-march=i386,)
+ifeq ($(__TARGET_ARCH),arm)
+    OPTIMIZATIONS+=-fstrict-aliasing
+endif # arm
+
+$(if $(call is_eq,$(__TARGET_ARCH),i386),\
+  $(call check_gcc,OPTIMIZATIONS,-march=i386,))
+
 # gcc-4.0 and older seem to suffer from these
-ifneq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
-	OPTIMIZATION+=$(call check_gcc,-mpreferred-stack-boundary=2,)
-	OPTIMIZATION+=$(call check_gcc,-falign-functions=0 -falign-jumps=0 -falign-loops=0,\
-		-malign-functions=0 -malign-jumps=0 -malign-loops=0)
-endif # gcc-4.0 and older
+$(if $(call cc_le,4,0),\
+  $(call check_gcc,OPTIMIZATIONS,-mpreferred-stack-boundary=2,)\
+  $(call check_gcc,OPTIMIZATIONS,-falign-functions=0 -falign-jumps=0 -falign-loops=0,\
+		-malign-functions=0 -malign-jumps=0 -malign-loops=0))
 
 # gcc-4.1 and beyond seem to benefit from these
-ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
-	# turn off flags which hurt -Os
-	OPTIMIZATION+=$(call check_gcc,-fno-tree-loop-optimize,)
-	OPTIMIZATION+=$(call check_gcc,-fno-tree-dominator-opts,)
-	OPTIMIZATION+=$(call check_gcc,-fno-strength-reduce,)
+# turn off flags which hurt -Os
+$(if $(call cc_ge,4,1),\
+  $(call check_gcc,OPTIMIZATIONS,-fno-tree-loop-optimize,)\
+  $(call check_gcc,OPTIMIZATIONS,-fno-tree-dominator-opts,)\
+  $(call check_gcc,OPTIMIZATIONS,-fno-strength-reduce,)\
+\
+  $(call check_gcc,OPTIMIZATIONS,-fno-branch-count-reg,))
 
-	OPTIMIZATION+=$(call check_gcc,-fno-branch-count-reg,)
-endif # gcc-4.1 and beyond
-endif
-OPTIMIZATIONS:=$(OPTIMIZATION) $(call check_gcc,-fomit-frame-pointer,)
+$(call check_gcc,OPTIMIZATIONS,-fomit-frame-pointer,)
 
 #
 #--------------------------------------------------------
@@ -182,40 +213,40 @@ OPTIMIZATIONS:=$(OPTIMIZATION) $(call check_gcc,-fomit-frame-pointer,)
 # prone to casual user adjustment.
 #
 
-ifeq ($(strip $(CONFIG_LFS)),y)
+ifeq ($(CONFIG_LFS),y)
     # For large file summit support
     CFLAGS+=-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 endif
-ifeq ($(strip $(CONFIG_DMALLOC)),y)
+ifeq ($(CONFIG_DMALLOC),y)
     # For testing mem leaks with dmalloc
     CFLAGS+=-DDMALLOC
     LIBRARIES:=-ldmalloc
 else
-    ifeq ($(strip $(CONFIG_EFENCE)),y)
+    ifeq ($(CONFIG_EFENCE),y)
 	LIBRARIES:=-lefence
     endif
 endif
-ifeq ($(strip $(CONFIG_DEBUG)),y)
+
+$(if $(call is_eq,$(CONFIG_DEBUG),y),\
+ $(call check_ld,LDFLAGS,--warn-common,),\
+ $(call check_ld,LDFLAGS,--warn-common,)$(call check_ld,LDFLAGS,--sort-common,))
+ifeq ($(CONFIG_DEBUG),y)
     CFLAGS  +=$(WARNINGS) -g -D_GNU_SOURCE
-    LDFLAGS += $(call check_ld,--warn-common,)
     STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
 else
     CFLAGS+=$(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
-    LDFLAGS += $(call check_ld,--warn-common,)
-    LDFLAGS += $(call check_ld,--sort-common,)
     STRIPCMD:=$(STRIP) -s --remove-section=.note --remove-section=.comment
 endif
-ifeq ($(strip $(CONFIG_STATIC)),y)
-    PROG_CFLAGS += $(call check_gcc,-static,)
-endif
-CFLAGS_SHARED += $(call check_gcc,-shared,)
+$(if $(call is_eq,$(CONFIG_STATIC),y),\
+    $(call check_gcc,PROG_CFLAGS,-static,))
+
+$(call check_gcc,CFLAGS_SHARED,-shared,)
 LIB_CFLAGS+=$(CFLAGS_SHARED)
 
-ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
-    CFLAGS_PIC:= $(call check_gcc,-fPIC,)
-endif
+$(if $(call is_eq,$(CONFIG_BUILD_LIBBUSYBOX),y),\
+    $(call check_gcc,CFLAGS_PIC,-fPIC,))
 
-ifeq ($(strip $(CONFIG_SELINUX)),y)
+ifeq ($(CONFIG_SELINUX),y)
     LIBRARIES += -lselinux
 endif
 
@@ -223,14 +254,6 @@ ifeq ($(strip $(PREFIX)),)
     PREFIX:=`pwd`/_install
 endif
 
-# Additional complications due to support for pristine source dir.
-# Include files in the build directory should take precedence over
-# the copy in top_srcdir, both during the compilation phase and the
-# shell script that finds the list of object files.
-# Work in progress by <ldoolitt@recycle.lbl.gov>.
-
-
-OBJECTS:=$(APPLET_SOURCES:.c=.o) busybox.o usage.o applets.o
 CFLAGS    += $(CROSS_CFLAGS)
 ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
@@ -252,59 +275,118 @@ ifeq ($(strip $(CONFIG_INSTALL_APPLET_DONT)),y)
 INSTALL_OPTS=
 endif
 
+
+#------------------------------------------------------------
+# object extensions
+
+# object potentially used in shared object
+ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
+# single-object extension
+os:=.os
+# multi-object extension
+om:=.osm
+else
+os:=.o
+om:=.om
+endif
+
 #------------------------------------------------------------
 # Make the output nice and tight
-MAKEFLAGS += --no-print-directory
+
+# for make V=2 and above, do print directory
+ifneq ($(shell test -n "$(strip $(PACKAGE_BE_VERBOSE))" && test $(PACKAGE_BE_VERBOSE) -gt 1 ; echo $$?),0)
+  MAKEFLAGS += --no-print-directory
+endif
+
+export MAKEOVERRIDES
 export MAKE_IS_SILENT=n
 ifneq ($(findstring s,$(MAKEFLAGS)),)
 export MAKE_IS_SILENT=y
-SECHO := @-false
 DISP  := sil
 Q     := @
 else
 ifneq ($(V)$(VERBOSE),)
-SECHO := @-false
 DISP  := ver
 Q     := 
 else
-SECHO := @echo
 DISP  := pur
 Q     := @
 endif
 endif
 
-show_objs = $(subst $(top_builddir)/,,$(subst ../,,$@))
-pur_disp_compile.c = echo "  "CC $(show_objs)
-pur_disp_compile.h = echo "  "HOSTCC $(show_objs)
-pur_disp_strip     = echo "  "STRIP $(show_objs)
-pur_disp_link      = echo "  "LINK $(show_objs)
-pur_disp_ar        = echo "  "AR $(ARFLAGS) $(show_objs)
-sil_disp_compile.c = true
-sil_disp_compile.h = true
-sil_disp_strip     = true
-sil_disp_link      = true
-sil_disp_ar        = true
-ver_disp_compile.c = echo $(cmd_compile.c)
-ver_disp_compile.h = echo $(cmd_compile.h)
-ver_disp_strip     = echo $(cmd_strip)
-ver_disp_link      = echo $(cmd_link)
-ver_disp_ar        = echo $(cmd_ar)
+define show_objs
+  $(subst $(top_builddir)/,,$(subst ../,,$@))
+endef
+pur_disp_compile.c = @echo "  "CC $(show_objs) ;
+pur_disp_compile.h = @echo "  "HOSTCC $(show_objs) ;
+pur_disp_strip     = @echo "  "STRIP $(show_objs) ;
+pur_disp_link      = @echo "  "LINK $(show_objs) ;
+pur_disp_link.h    = @echo "  "HOSTLINK $(show_objs) ;
+pur_disp_ar        = @echo "  "AR $(ARFLAGS) $(show_objs) ;
+pur_disp_gen       = @echo "  "GEN $@ ;
+pur_disp_doc       = @echo "  "DOC $(subst docs/,,$@) ;
+pur_disp_bin       = @echo "  "BIN $(show_objs) ;
+sil_disp_compile.c = @
+sil_disp_compile.h = @
+sil_disp_strip     = @
+sil_disp_link      = @
+sil_disp_link.h    = @
+sil_disp_ar        = @
+sil_disp_gen       = @
+sil_disp_doc       = @
+sil_disp_bin       = @
+ver_disp_compile.c =
+ver_disp_compile.h =
+ver_disp_strip     =
+ver_disp_link      =
+ver_disp_link.h    =
+ver_disp_ar        =
+ver_disp_gen       =
+ver_disp_doc       =
+ver_disp_bin       =
 disp_compile.c     = $($(DISP)_disp_compile.c)
 disp_compile.h     = $($(DISP)_disp_compile.h)
 disp_strip         = $($(DISP)_disp_strip)
 disp_link          = $($(DISP)_disp_link)
+disp_link.h        = $($(DISP)_disp_link.h)
 disp_ar            = $($(DISP)_disp_ar)
-disp_gen           = $(SECHO) "  "GEN $@ ; true
-disp_doc           = $(SECHO) "  "DOC $(subst docs/,,$@) ; true
-cmd_compile.c      = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
+disp_gen           = $($(DISP)_disp_gen)
+disp_doc           = $($(DISP)_disp_doc)
+disp_bin           = $($(DISP)_disp_bin)
+# CFLAGS-dir        == $(CFLAGS-$(notdir $(@D)))
+# CFLAGS-dir-file.o == $(CFLAGS-$(notdir $(@D))-$(notdir $(@F)))
+# CFLAGS-dir-file.c == $(CFLAGS-$(notdir $(<D))-$(notdir $(<F)))
+# all prerequesites == $(foreach fil,$^,$(CFLAGS-$(notdir $(patsubst %/$,%,$(dir $(fil))))-$(notdir $(fil))))
+cmd_compile.c      = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) -I$(srcdir) -c -o $@ $< \
+ $(foreach f,$^,$(CFLAGS-$(notdir $(patsubst %/$,%,$(dir $(f))))-$(notdir $(f)))) \
+ $(CFLAGS-$(notdir $(@D))-$(notdir $(@F))) \
+ $(CFLAGS-$(notdir $(@D)))
+cmd_compile.m      = $(cmd_compile.c) -DL_$(patsubst %$(suffix $(notdir $@)),%,$(notdir $@))
 cmd_compile.h      = $(HOSTCC) $(HOSTCFLAGS) -c -o $@ $<
 cmd_strip          = $(STRIPCMD) $@
-cmd_link           = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS)
+cmd_link           = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) -I$(srcdir) $(LDFLAGS)
+cmd_link.h         = $(HOSTCC) $(HOSTCFLAGS) $(HOST_LDFLAGS) $^ -o $@
 cmd_ar             = $(AR) $(ARFLAGS) $@ $^
-compile.c          = @$(disp_compile.c) ; $(cmd_compile.c)
-compile.h          = @$(disp_compile.h) ; $(cmd_compile.h)
-do_strip           = @$(disp_strip)     ; $(cmd_strip)
-do_link            = @$(disp_link)      ; $(cmd_link)
-do_ar              = @$(disp_ar)        ; $(cmd_ar)
+compile.c          = $(disp_compile.c) $(cmd_compile.c)
+compile.m          = $(disp_compile.c) $(cmd_compile.m)
+compile.h          = $(disp_compile.h) $(cmd_compile.h)
+do_strip           = $(disp_strip)     $(cmd_strip)
+do_link            = $(disp_link)      $(cmd_link)
+do_link.h          = $(disp_link.h)    $(cmd_link.h)
+do_ar              = $(disp_ar)        $(cmd_ar)
+
+ifdef rules-mak-rules
+.SUFFIXES: .c .S .o .os .om .osm .oS .so .a .s .i .E
+
+# generic rules
+%.o:  %.c ; $(compile.c)
+%.os: %.c ; $(compile.c) $(CFLAGS_PIC)
+%.o:      ; $(compile.c)
+%.os:     ; $(compile.c) $(CFLAGS_PIC)
+%.om:     ; $(compile.m)
+%.osm:    ; $(compile.m) $(CFLAGS_PIC)
+
+endif # rules-mak-rules
 
 .PHONY: dummy
+

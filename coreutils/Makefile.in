@@ -4,13 +4,9 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-COREUTILS_AR:=coreutils.a
-ifndef $(COREUTILS_DIR)
-COREUTILS_DIR:=$(top_builddir)/coreutils/
-endif
 srcdir=$(top_srcdir)/coreutils
+objdir=$(top_builddir)/coreutils
 
-COREUTILS-y:=
 COREUTILS-$(CONFIG_BASENAME)  += basename.o
 COREUTILS-$(CONFIG_CAL)       += cal.o
 COREUTILS-$(CONFIG_CAT)       += cat.o
@@ -82,18 +78,12 @@ COREUTILS-$(CONFIG_WHOAMI)    += whoami.o
 COREUTILS-$(CONFIG_YES)       += yes.o
 
 COREUTILS-y:=$(sort $(COREUTILS-y))
-
-ifneq ($(strip $(COREUTILS-y)),)
-libraries-y+=$(COREUTILS_DIR)$(COREUTILS_AR)
-endif
+COREUTILS-m:=$(sort $(COREUTILS-m))
 
 COREUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(COREUTILS-y))
 COREUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(COREUTILS_SRC-y)
 APPLET_SRC-a+=$(COREUTILS_SRC-a)
 
-$(COREUTILS_DIR)$(COREUTILS_AR): $(patsubst %,$(COREUTILS_DIR)%, $(COREUTILS-y))
-	$(do_ar)
+coreutils_OBJ:=  $(patsubst %,$(objdir)/%,$(COREUTILS-y))
 
-$(COREUTILS_DIR)%.o: $(srcdir)/%.c
-	$(compile.c)

@@ -3,49 +3,21 @@
 # Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
 #
 # Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
-#
 
-LIBCOREUTILS_AR:=libcoreutils.a
-ifndef $(LIBCOREUTILS_DIR)
-LIBCOREUTILS_DIR:=$(top_builddir)/coreutils/libcoreutils
-endif
 srcdir=$(top_srcdir)/coreutils/libcoreutils
+objdir=$(top_builddir)/coreutils/libcoreutils
 
-LIBCOREUTILS_ALL_SRC:= cp_mv_stat.c getopt_mk_fifo_nod.c
-
-LIBCOREUTILS-y:=
-LIBCOREUTILS-$(CONFIG_MKFIFO)	+= getopt_mk_fifo_nod.o
-LIBCOREUTILS-$(CONFIG_MKNOD)	+= getopt_mk_fifo_nod.o
-LIBCOREUTILS-$(CONFIG_INSTALL)	+= cp_mv_stat.o
-LIBCOREUTILS-$(CONFIG_CP)	+= cp_mv_stat.o
-LIBCOREUTILS-$(CONFIG_MV)	+= cp_mv_stat.o
+LIBCOREUTILS-$(CONFIG_MKFIFO)	+= getopt_mk_fifo_nod
+LIBCOREUTILS-$(CONFIG_MKNOD)	+= getopt_mk_fifo_nod
+LIBCOREUTILS-$(CONFIG_INSTALL)	+= cp_mv_stat
+LIBCOREUTILS-$(CONFIG_CP)	+= cp_mv_stat
+LIBCOREUTILS-$(CONFIG_MV)	+= cp_mv_stat
 
 LIBCOREUTILS-y:=$(sort $(LIBCOREUTILS-y))
 
-LIBCOREUTILS_SRC-y:=$(patsubst %,$(srcdir)/%,$(subst .o,.c,$(LIBCOREUTILS-y)))
+LIBCOREUTILS_SRC-y:=$(patsubst %,$(srcdir)/%.c,$(LIBCOREUTILS-y))
 LIBCOREUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
 LIBRARY_SRC-y+=$(LIBCOREUTILS_SRC-y)
 LIBRARY_SRC-a+=$(LIBCOREUTILS_SRC-a)
 
-LIBCOREUTILS-multi-obj:=$(LIBCOREUTILS_DIR)/$(subst .a,-multi.o,$(LIBCOREUTILS_AR))
-LIBCOREUTILS-multi-pic:=$(LIBCOREUTILS_DIR)/$(subst .a,-pic.o,$(LIBCOREUTILS_AR))
-
-# We do not need to build an empty non-pic object/archive
-ifneq ($(strip $(LIBCOREUTILS-y)),)
-libraries-y+=$(LIBCOREUTILS_DIR)/$(LIBCOREUTILS_AR)
-endif
-# If we are building libbusybox.so _and_ we will use it ourselves then we
-# keep it as small as possible
-ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
-ifneq ($(strip $(LIBIPROUTE-y)),)
-libraries-m+=$(LIBCOREUTILS-multi-pic)
-endif
-endif
-
-LIBCOREUTILS_OBJS=$(patsubst %,$(LIBCOREUTILS_DIR)/%, $(LIBCOREUTILS-y))
-
-$(LIBCOREUTILS_DIR)/$(LIBCOREUTILS_AR): $(patsubst %,$(LIBCOREUTILS_DIR)/%,$(LIBCOREUTILS-y))
-	$(do_ar)
-
-$(LIBCOREUTILS_DIR)/%.o: $(srcdir)/%.c
-	$(compile.c)
+coreutils_libcoreutils_OBJ$(os):=$(patsubst %,$(objdir)/%$(os),$(LIBCOREUTILS-y))

@@ -4,12 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-E2FSPROGS_AR:=e2fsprogs.a
-
-E2FSPROGS_DIR:=$(top_builddir)/e2fsprogs
-E2FSPROGS_SRC:=$(top_srcdir)/e2fsprogs
-
-E2FSPROGS_CFLAGS := -include $(E2FSPROGS_SRC)/e2fsbb.h
+srcdir:=$(top_srcdir)/e2fsprogs
+objdir:=$(top_builddir)/e2fsprogs
 
 BLKID_SRC   := cache.c dev.c devname.c devno.c blkid_getsize.c \
 	       probe.c read.c resolve.c save.c tag.c
@@ -39,22 +35,23 @@ UUID_SRC    := compare.c gen_uuid.c pack.c parse.c unpack.c unparse.c \
 UUID_SRCS   := $(patsubst %,uuid/%, $(UUID_SRC))
 UUID_OBJS   := $(patsubst %.c,%.o, $(UUID_SRCS))
 
+
 # for building out-of-tree we need to make sure that the directories to hold
 # the object tree are created
-$(patsubst %,$(E2FSPROGS_DIR)/%, blkid e2fsck e2p ext2fs uuid):
+$(patsubst %,$(objdir)/%, blkid e2fsck e2p ext2fs uuid):
 	@mkdir -p "$@"
 
 # make sure that the directories are order-only prerequisites. Otherwise we
 # may have object files created after the timestamp of the directory was
 # updated which would lead to spurious rebuilds (as some of the dentries
 # may be older than the dir itself).
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(BLKID_OBJS)):|$(E2FSPROGS_DIR)/blkid
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(E2FSCK_OBJS)):|$(E2FSPROGS_DIR)/e2fsck
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(E2P_OBJS)):|$(E2FSPROGS_DIR)/e2p
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(EXT2FS_OBJS)):|$(E2FSPROGS_DIR)/ext2fs
-$(patsubst %,$(E2FSPROGS_DIR)/%, $(UUID_OBJS)):|$(E2FSPROGS_DIR)/uuid
+$(patsubst %,$(objdir)/%,$(BLKID_OBJS)): $(objdir)/blkid/%.o: $(srcdir)/%.c|$(objdir)/blkid
+$(patsubst %,$(objdir)/%,$(E2FSCK_OBJS)):$(objdir)/e2fsck/%.o:$(srcdir)/%.c|$(objdir)/e2fsck
+$(patsubst %,$(objdir)/%,$(E2P_OBJS)):   $(objdir)/e2p/%.o:   $(srcdir)/%.c|$(objdir)/e2p
+$(patsubst %,$(objdir)/%,$(EXT2FS_OBJS)):$(objdir)/ext2fs/%.o:$(srcdir)/%.c|$(objdir)/ext2fs
+$(patsubst %,$(objdir)/%,$(UUID_OBJS)):  $(objdir)/uuid/%.o:  $(srcdir)/%.c|$(objdir)/uuid
 
-E2FSPROGS-y:=
+
 E2FSPROGS-$(CONFIG_CHATTR)     += chattr.o $(E2P_OBJS)
 E2FSPROGS-$(CONFIG_E2FSCK)     += e2fsck.o util.o $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)
 E2FSPROGS-$(CONFIG_FSCK)       += fsck.o util.o $(BLKID_OBJS) $(UUID_OBJS)
@@ -63,24 +60,26 @@ E2FSPROGS-$(CONFIG_MKE2FS)     += mke2fs.o util.o $(E2P_OBJS) $(BLKID_OBJS) $(EX
 E2FSPROGS-$(CONFIG_TUNE2FS)    += tune2fs.o util.o $(E2P_OBJS) $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)
 
 E2FSPROGS-y:=$(sort $(E2FSPROGS-y))
-
-ifneq ($(strip $(E2FSPROGS-y)),)
-libraries-y+=$(E2FSPROGS_DIR)/$(E2FSPROGS_AR)
+ifneq ($(E2FSPROGS-y),)
+CFLAGS-e2fsprogs := -include $(srcdir)/e2fsbb.h
 endif
 
-E2FSPROGS_SRC-y:=$(patsubst %.o,$(E2FSPROGS_SRC)/%.c,$(E2FSPROGS-y))
-E2FSPROGS_SRC-a:=$(wildcard $(E2FSPROGS_SRC)/*.c) $(patsubst %,$(E2FSPROGS_SRC)/%,$(BLKID_SRCS) $(E2P_SRCS) $(EXT2FS_SRCS) $(UUID_SRCS))
-APPLET_SRC-y+=$(E2FSPROGS_CFLAGS) $(E2FSPROGS_SRC-y)
-APPLET_SRC-a+=$(E2FSPROGS_CFLAGS) $(E2FSPROGS_SRC-a)
+E2FSPROGS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(E2FSPROGS-y))
+E2FSPROGS_SRC-a:=$(wildcard $(srcdir)/*.c) $(patsubst %,$(srcdir)/%,$(BLKID_SRCS) $(E2P_SRCS) $(EXT2FS_SRCS) $(UUID_SRCS))
+APPLET_SRC-y+=$(E2FSPROGS_SRC-y)
+APPLET_SRC-a+=$(E2FSPROGS_SRC-a)
 
-# XXX: FIXME: change .c to include their stuff relative to $(E2FSPROGS_SRC)
-E2FSPROGS_TMP_KLUDGE:=$(patsubst %,-I$(E2FSPROGS_SRC)/%,blkid e2fsck e2p ext2fs uuid)
+$(warning FIXME: change .c to include their stuff relative to $(srcdir))
+E2FSPROGS_TMP_KLUDGE:=$(patsubst %,-I$(srcdir)/%,blkid e2fsck e2p ext2fs uuid)
+CFLAGS-blkid=$(E2FSPROGS_TMP_KLUDGE) $(CFLAGS-e2fsprogs)
+CFLAGS-e2fsck=$(E2FSPROGS_TMP_KLUDGE) $(CFLAGS-e2fsprogs)
+CFLAGS-e2p=$(E2FSPROGS_TMP_KLUDGE) $(CFLAGS-e2fsprogs)
+CFLAGS-ext2fs=$(E2FSPROGS_TMP_KLUDGE) $(CFLAGS-e2fsprogs)
+CFLAGS-uuid=$(E2FSPROGS_TMP_KLUDGE) $(CFLAGS-e2fsprogs)
 
-APPLETS_DEFINE-y+=$(E2FSPROGS_CFLAGS) -I$(E2FSPROGS_SRC) $(E2FSPROGS_TMP_KLUDGE)
-APPLETS_DEFINE-a+=$(E2FSPROGS_CFLAGS) -I$(E2FSPROGS_SRC) $(E2FSPROGS_TMP_KLUDGE)
 
-$(E2FSPROGS_DIR)/$(E2FSPROGS_AR): $(patsubst %,$(E2FSPROGS_DIR)/%, $(E2FSPROGS-y))
-	$(do_ar)
+APPLETS_DEFINE-y+=$(CFLAGS-e2fsprogs) -I$(srcdir) $(E2FSPROGS_TMP_KLUDGE)
+APPLETS_DEFINE-a+=$(CFLAGS-e2fsprogs) -I$(srcdir) $(E2FSPROGS_TMP_KLUDGE)
 
-$(E2FSPROGS_DIR)/%.o: $(subst $(top_builddir),$(top_srcdir),$(E2FSPROGS_DIR)/%.c)
-	$(compile.c) $(E2FSPROGS_CFLAGS)
+e2fsprogs_OBJ:=  $(patsubst %,$(objdir)/%,$(E2FSPROGS-y))
+

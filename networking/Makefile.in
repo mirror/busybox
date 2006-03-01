@@ -4,13 +4,9 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-NETWORKING_AR:=networking.a
-ifndef $(NETWORKING_DIR)
-NETWORKING_DIR:=$(top_builddir)/networking/
-endif
 srcdir=$(top_srcdir)/networking
+objdir=$(top_builddir)/networking
 
-NETWORKING-y:=
 NETWORKING-$(CONFIG_ARPING)       += arping.o
 NETWORKING-$(CONFIG_DNSD)         += dnsd.o
 NETWORKING-$(CONFIG_ETHER_WAKE)   += ether-wake.o
@@ -44,8 +40,15 @@ NETWORKING-$(CONFIG_WGET)         += wget.o
 NETWORKING-$(CONFIG_ZCIP)         += zcip.o
 
 NETWORKING-y:=$(sort $(NETWORKING-y))
-ifneq ($(strip $(NETWORKING-y)),)
-libraries-y+=$(NETWORKING_DIR)$(NETWORKING_AR)
+NETWORKING-m:=$(sort $(NETWORKING-m))
+
+needcrypt-y:=
+needcrypt-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) := y
+ifeq ($(needcrypt-m),y)
+needcrypt-y:=y
+endif
+ifeq ($(needcrypt-y),y)
+	LIBRARIES := -lcrypt $(filter-out -lcrypt,$(LIBRARIES))
 endif
 
 NETWORKING_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(NETWORKING-y))
@@ -56,15 +59,5 @@ APPLET_SRC-a+=$(NETWORKING_SRC-a)
 LIBRARY_DEFINE-y+= -I$(top_srcdir)/networking
 LIBRARY_DEFINE-a+= -I$(top_srcdir)/networking
 
-needcrypt-y:=
-needcrypt-$(CONFIG_FEATURE_HTTPD_AUTH_MD5) := y
+networking_OBJ:=  $(patsubst %,$(objdir)/%,$(NETWORKING-y))
 
-ifeq ($(needcrypt-y),y)
-	LIBRARIES := -lcrypt $(filter-out -lcrypt,$(LIBRARIES))
-endif
-
-$(NETWORKING_DIR)$(NETWORKING_AR): $(patsubst %,$(NETWORKING_DIR)%, $(NETWORKING-y))
-	$(do_ar)
-
-$(NETWORKING_DIR)%.o: $(srcdir)/%.c
-	$(compile.c)

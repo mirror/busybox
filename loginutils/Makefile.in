@@ -4,13 +4,9 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-LOGINUTILS_AR:=loginutils.a
-ifndef LOGINUTILS_DIR
-LOGINUTILS_DIR:=$(top_builddir)/loginutils/
-endif
 srcdir=$(top_srcdir)/loginutils
+objdir=$(top_builddir)/loginutils
 
-LOGINUTILS-y:=
 LOGINUTILS-$(CONFIG_ADDGROUP)	+= addgroup.o
 LOGINUTILS-$(CONFIG_ADDUSER)	+= adduser.o
 LOGINUTILS-$(CONFIG_GETTY)	+= getty.o
@@ -22,9 +18,6 @@ LOGINUTILS-$(CONFIG_VLOCK)	+= vlock.o
 LOGINUTILS-$(CONFIG_DELUSER)	+= deluser.o
 LOGINUTILS-$(CONFIG_DELGROUP)	+= delgroup.o
 
-ifneq ($(strip $(LOGINUTILS-y)),)
-libraries-y+=$(LOGINUTILS_DIR)$(LOGINUTILS_AR)
-endif
 
 LOGINUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(LOGINUTILS-y))
 LOGINUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
@@ -37,14 +30,12 @@ needcrypt-$(CONFIG_PASSWD)	:= y
 needcrypt-$(CONFIG_SU)		:= y
 needcrypt-$(CONFIG_SULOGIN)	:= y
 needcrypt-$(CONFIG_VLOCK)	:= y
-
-
+ifeq ($(needcrypt-m),y)
+needcrypt-y:=y
+endif
 ifeq ($(needcrypt-y),y)
   LIBRARIES := -lcrypt $(filter-out -lcrypt,$(LIBRARIES))
 endif
 
-$(LOGINUTILS_DIR)$(LOGINUTILS_AR): $(patsubst %,$(LOGINUTILS_DIR)%, $(LOGINUTILS-y))
-	$(do_ar)
+loginutils_OBJ:=  $(patsubst %,$(objdir)/%,$(LOGINUTILS-y))
 
-$(LOGINUTILS_DIR)%.o: $(srcdir)/%.c
-	$(compile.c)

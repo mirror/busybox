@@ -4,34 +4,25 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-CONSOLETOOLS_AR:=console-tools.a
-ifndef $(CONSOLETOOLS_DIR)
-CONSOLETOOLS_DIR:=$(top_builddir)/console-tools/
-endif
 srcdir=$(top_srcdir)/console-tools
+objdir=$(top_builddir)/console-tools
 
-CONSOLETOOLS-y:=
 CONSOLETOOLS-$(CONFIG_CHVT)		+= chvt.o
-CONSOLETOOLS-$(CONFIG_CLEAR)	+= clear.o
+CONSOLETOOLS-$(CONFIG_CLEAR)		+= clear.o
 CONSOLETOOLS-$(CONFIG_DEALLOCVT)	+= deallocvt.o
-CONSOLETOOLS-$(CONFIG_DUMPKMAP)	+= dumpkmap.o
+CONSOLETOOLS-$(CONFIG_DUMPKMAP)		+= dumpkmap.o
 CONSOLETOOLS-$(CONFIG_SETCONSOLE)	+= setconsole.o
-CONSOLETOOLS-$(CONFIG_LOADFONT)	+= loadfont.o
-CONSOLETOOLS-$(CONFIG_LOADKMAP)	+= loadkmap.o
-CONSOLETOOLS-$(CONFIG_OPENVT)	+= openvt.o
-CONSOLETOOLS-$(CONFIG_RESET)	+= reset.o
+CONSOLETOOLS-$(CONFIG_LOADFONT)		+= loadfont.o
+CONSOLETOOLS-$(CONFIG_LOADKMAP)		+= loadkmap.o
+CONSOLETOOLS-$(CONFIG_OPENVT)		+= openvt.o
+CONSOLETOOLS-$(CONFIG_RESET)		+= reset.o
 CONSOLETOOLS-$(CONFIG_SETKEYCODES)	+= setkeycodes.o
 
-ifneq ($(strip $(CONSOLETOOLS-y)),)
-libraries-y+=$(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR)
-endif
+
 CONSOLETOOLS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(CONSOLETOOLS-y))
 CONSOLETOOLS_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(CONSOLETOOLS_SRC-y)
 APPLET_SRC-a+=$(CONSOLETOOLS_SRC-a)
 
-$(CONSOLETOOLS_DIR)$(CONSOLETOOLS_AR): $(patsubst %,$(CONSOLETOOLS_DIR)%, $(CONSOLETOOLS-y))
-	$(do_ar)
+console-tools_OBJ:=  $(patsubst %,$(objdir)/%,$(CONSOLETOOLS-y))
 
-$(CONSOLETOOLS_DIR)%.o: $(srcdir)/%.c
-	$(compile.c)

@@ -28,7 +28,8 @@ if [ "$DO_INSTALL_LIBS" != "n" ]; then
 	for i in $DO_INSTALL_LIBS; do
 		rm -f $prefix/$libdir/$i || exit 1
 		if [ -f $i ]; then
-			install -m 644 $i $prefix/$libdir/ || exit 1
+			cp -a $i $prefix/$libdir/ || exit 1
+			chmod 0644 $prefix/$libdir/$i || exit 1
 		fi
 	done
 fi
