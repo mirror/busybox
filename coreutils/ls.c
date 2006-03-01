@@ -203,10 +203,6 @@ static int list_single(struct dnode *);
 
 static unsigned int all_fmt;
 
-#ifdef CONFIG_SELINUX
-static int selinux_enabled= 0;
-#endif
-
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 static int terminal_width = TERMINAL_WIDTH;
 static unsigned short tabstops = COLUMN_GAP;
@@ -746,7 +742,7 @@ static int list_single(struct dnode *dn)
 		case LIST_CONTEXT:
 			{
 				char context[80];
-				int len;
+				int len = 0;
 
 				if (dn->sid) {
 				  /*  I assume sid initilized with NULL  */
