@@ -59,12 +59,9 @@ void ext2fs_free_icount(ext2_icount_t icount)
 		return;
 
 	icount->magic = 0;
-	if (icount->list)
-		ext2fs_free_mem(&icount->list);
-	if (icount->single)
-		ext2fs_free_inode_bitmap(icount->single);
-	if (icount->multiple)
-		ext2fs_free_inode_bitmap(icount->multiple);
+	ext2fs_free_mem(&icount->list);
+	ext2fs_free_inode_bitmap(icount->single);
+	ext2fs_free_inode_bitmap(icount->multiple);
 	ext2fs_free_mem(&icount);
 }
 

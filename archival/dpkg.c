@@ -544,8 +544,7 @@ static void free_package(common_node_t *node)
 		for (i = 0; i < node->num_of_edges; i++) {
 			free(node->edge[i]);
 		}
-		if ( node->edge )
-			free(node->edge);
+		free(node->edge);
 		free(node);
 	}
 }

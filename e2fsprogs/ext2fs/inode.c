@@ -123,7 +123,7 @@ errcode_t ext2fs_open_inode_scan(ext2_filsys fs, int buffer_blocks,
 		save_get_blocks = fs->get_blocks;
 		fs->get_blocks = 0;
 		retval = ext2fs_read_bb_inode(fs, &fs->badblocks);
-		if (retval && fs->badblocks) {
+		if (retval) {
 			ext2fs_badblocks_list_free(fs->badblocks);
 			fs->badblocks = 0;
 		}

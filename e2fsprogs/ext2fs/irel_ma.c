@@ -309,8 +309,7 @@ static errcode_t ima_move(ext2_irel irel, ext2_ino_t old, ext2_ino_t new)
 		return ENOENT;
 
 	ma->entries[(unsigned) new] = ma->entries[(unsigned) old];
-	if (ma->ref_entries[(unsigned) new].refs)
-		ext2fs_free_mem(&ma->ref_entries[(unsigned) new].refs);
+	ext2fs_free_mem(&ma->ref_entries[(unsigned) new].refs);
 	ma->ref_entries[(unsigned) new] = ma->ref_entries[(unsigned) old];
 
 	ma->entries[(unsigned) old].new = 0;
@@ -332,8 +331,7 @@ static errcode_t ima_delete(ext2_irel irel, ext2_ino_t old)
 		return ENOENT;
 
 	ma->entries[old].new = 0;
-	if (ma->ref_entries[(unsigned) old].refs)
-		ext2fs_free_mem(&ma->ref_entries[(unsigned) old].refs);
+	ext2fs_free_mem(&ma->ref_entries[(unsigned) old].refs);
 	ma->orig_map[ma->entries[(unsigned) old].orig] = 0;
 
 	ma->ref_entries[(unsigned) old].num = 0;
@@ -352,21 +350,17 @@ static errcode_t ima_free(ext2_irel irel)
 	ma = irel->priv_data;
 
 	if (ma) {
-		if (ma->orig_map)
-			ext2fs_free_mem(&ma->orig_map);
-		if (ma->entries)
-			ext2fs_free_mem(&ma->entries);
+		ext2fs_free_mem(&ma->orig_map);
+		ext2fs_free_mem(&ma->entries);
 		if (ma->ref_entries) {
 			for (ino = 0; ino <= ma->max_inode; ino++) {
-				if (ma->ref_entries[(unsigned) ino].refs)
-					ext2fs_free_mem(&ma->ref_entries[(unsigned) ino].refs);
+				ext2fs_free_mem(&ma->ref_entries[(unsigned) ino].refs);
 			}
 			ext2fs_free_mem(&ma->ref_entries);
 		}
 		ext2fs_free_mem(&ma);
 	}
-	if (irel->name)
-		ext2fs_free_mem(&irel->name);
+	ext2fs_free_mem(&irel->name);
 	ext2fs_free_mem(&irel);
 	return 0;
 }

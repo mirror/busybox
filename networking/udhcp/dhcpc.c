@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 		case 'c':
 			if (no_clientid) show_usage();
 			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			if (client_config.clientid) free(client_config.clientid);
+			free(client_config.clientid);
 			client_config.clientid = xmalloc(len + 2);
 			client_config.clientid[OPT_CODE] = DHCP_CLIENT_ID;
 			client_config.clientid[OPT_LEN] = len;
@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'V':
 			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			if (client_config.vendorclass) free(client_config.vendorclass);
+			free(client_config.vendorclass);
 			client_config.vendorclass = xmalloc(len + 2);
 			client_config.vendorclass[OPT_CODE] = DHCP_VENDOR;
 			client_config.vendorclass[OPT_LEN] = len;
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 		case 'h':
 		case 'H':
 			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			if (client_config.hostname) free(client_config.hostname);
+			free(client_config.hostname);
 			client_config.hostname = xmalloc(len + 2);
 			client_config.hostname[OPT_CODE] = DHCP_HOST_NAME;
 			client_config.hostname[OPT_LEN] = len;
@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'F':
 			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			if (client_config.fqdn) free(client_config.fqdn);
+			free(client_config.fqdn);
 			client_config.fqdn = xmalloc(len + 5);
 			client_config.fqdn[OPT_CODE] = DHCP_FQDN;
 			client_config.fqdn[OPT_LEN] = len + 3;

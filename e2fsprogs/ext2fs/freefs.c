@@ -30,25 +30,17 @@ void ext2fs_free(ext2_filsys fs)
 	if (fs->io) {
 		io_channel_close(fs->io);
 	}
-	if (fs->device_name)
-		ext2fs_free_mem(&fs->device_name);
-	if (fs->super)
-		ext2fs_free_mem(&fs->super);
-	if (fs->orig_super)
-		ext2fs_free_mem(&fs->orig_super);
-	if (fs->group_desc)
-		ext2fs_free_mem(&fs->group_desc);
-	if (fs->block_map)
-		ext2fs_free_block_bitmap(fs->block_map);
-	if (fs->inode_map)
-		ext2fs_free_inode_bitmap(fs->inode_map);
+	ext2fs_free_mem(&fs->device_name);
+	ext2fs_free_mem(&fs->super);
+	ext2fs_free_mem(&fs->orig_super);
+	ext2fs_free_mem(&fs->group_desc);
+	ext2fs_free_block_bitmap(fs->block_map);
+	ext2fs_free_inode_bitmap(fs->inode_map);
 
-	if (fs->badblocks)
-		ext2fs_badblocks_list_free(fs->badblocks);
+	ext2fs_badblocks_list_free(fs->badblocks);
 	fs->badblocks = 0;
 
-	if (fs->dblist)
-		ext2fs_free_dblist(fs->dblist);
+	ext2fs_free_dblist(fs->dblist);
 
 	if (fs->icache)
 		ext2fs_free_inode_cache(fs->icache);
@@ -64,14 +56,8 @@ void ext2fs_free_generic_bitmap(ext2fs_inode_bitmap bitmap)
 		return;
 
 	bitmap->magic = 0;
-	if (bitmap->description) {
-		ext2fs_free_mem(&bitmap->description);
-		bitmap->description = 0;
-	}
-	if (bitmap->bitmap) {
-		ext2fs_free_mem(&bitmap->bitmap);
-		bitmap->bitmap = 0;
-	}
+	ext2fs_free_mem(&bitmap->description);
+	ext2fs_free_mem(&bitmap->bitmap);
 	ext2fs_free_mem(&bitmap);
 }
 
@@ -100,10 +86,8 @@ static void ext2fs_free_inode_cache(struct ext2_inode_cache *icache)
 {
 	if (--icache->refcount)
 		return;
-	if (icache->buffer)
-		ext2fs_free_mem(&icache->buffer);
-	if (icache->cache)
-		ext2fs_free_mem(&icache->cache);
+	ext2fs_free_mem(&icache->buffer);
+	ext2fs_free_mem(&icache->cache);
 	icache->buffer_blk = 0;
 	ext2fs_free_mem(&icache);
 }
@@ -113,12 +97,10 @@ static void ext2fs_free_inode_cache(struct ext2_inode_cache *icache)
  */
 void ext2fs_u32_list_free(ext2_u32_list bb)
 {
-	if (bb->magic != EXT2_ET_MAGIC_BADBLOCKS_LIST)
+	if (!bb || bb->magic != EXT2_ET_MAGIC_BADBLOCKS_LIST)
 		return;
 
-	if (bb->list)
-		ext2fs_free_mem(&bb->list);
-	bb->list = 0;
+	ext2fs_free_mem(&bb->list);
 	ext2fs_free_mem(&bb);
 }
 
@@ -136,9 +118,7 @@ void ext2fs_free_dblist(ext2_dblist dblist)
 	if (!dblist || (dblist->magic != EXT2_ET_MAGIC_DBLIST))
 		return;
 
-	if (dblist->list)
-		ext2fs_free_mem(&dblist->list);
-	dblist->list = 0;
+	ext2fs_free_mem(&dblist->list);
 	if (dblist->fs && dblist->fs->dblist == dblist)
 		dblist->fs->dblist = 0;
 	dblist->magic = 0;

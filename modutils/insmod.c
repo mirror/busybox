@@ -4231,9 +4231,8 @@ out:
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	if(fp)
 		fclose(fp);
-	if(tmp1) {
-		free(tmp1);
-	} else {
+	free(tmp1);
+	if(!tmp1) {
 		free(m_name);
 	}
 	free(m_filename);

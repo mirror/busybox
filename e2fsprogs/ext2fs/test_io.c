@@ -203,10 +203,8 @@ static errcode_t test_open(const char *name, int flags, io_channel *channel)
 	return 0;
 
 cleanup:
-	if (io)
-		ext2fs_free_mem(&io);
-	if (data)
-		ext2fs_free_mem(&data);
+	ext2fs_free_mem(&io);
+	ext2fs_free_mem(&data);
 	return retval;
 }
 
@@ -229,8 +227,7 @@ static errcode_t test_close(io_channel channel)
 		fclose(data->outfile);
 
 	ext2fs_free_mem(&channel->private_data);
-	if (channel->name)
-		ext2fs_free_mem(&channel->name);
+	ext2fs_free_mem(&channel->name);
 	ext2fs_free_mem(&channel);
 	return retval;
 }

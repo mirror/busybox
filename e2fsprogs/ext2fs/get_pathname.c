@@ -132,8 +132,7 @@ static errcode_t ext2fs_get_pathname_int(ext2_filsys fs, ext2_ino_t dir,
 	retval = 0;
 
 cleanup:
-	if (gp.name)
-		ext2fs_free_mem(&gp.name);
+	ext2fs_free_mem(&gp.name);
 	return retval;
 }
 

@@ -218,8 +218,7 @@ int main(int argc, char** argv)
 	}
 	printf("Looking for device 0x%04Lx\n", devno);
 	devname = blkid_devno_to_devname(devno);
-	if (devname)
-		free(devname);
+	free(devname);
 	return 0;
 }
 #endif

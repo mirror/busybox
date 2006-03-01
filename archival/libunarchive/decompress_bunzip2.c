@@ -714,7 +714,7 @@ extern int uncompressStream(int src_fd, int dst_fd)
 	} else {
 		bb_error_msg("Decompression failed");
 	}
-	if(bd->dbuf) free(bd->dbuf);
+	free(bd->dbuf);
 	free(bd);
 	free(outbuf);
 

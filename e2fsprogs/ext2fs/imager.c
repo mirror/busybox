@@ -371,7 +371,6 @@ errcode_t ext2fs_image_bitmap_read(ext2_filsys fs, int fd, int flags)
 
 	retval = 0;
 errout:
-	if (buf)
-		free(buf);
+	free(buf);
 	return (retval);
 }

@@ -62,7 +62,7 @@ static int read_str(const char *line, void *arg)
 {
 	char **dest = arg;
 
-	if (*dest) free(*dest);
+	free(*dest);
 	*dest = strdup(line);
 
 	return 1;

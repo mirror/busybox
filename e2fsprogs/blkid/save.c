@@ -148,8 +148,7 @@ int blkid_flush_cache(blkid_cache cache)
 	}
 
 errout:
-	if (tmp)
-		free(tmp);
+	free(tmp);
 	return ret;
 }
 

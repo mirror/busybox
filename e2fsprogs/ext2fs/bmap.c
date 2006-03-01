@@ -257,8 +257,7 @@ errcode_t ext2fs_bmap(ext2_filsys fs, ext2_ino_t ino, struct ext2_inode *inode,
 	retval = block_tind_bmap(fs, bmap_flags, b, block_buf,
 				 &blocks_alloc, block, phys_blk);
 done:
-	if (buf)
-		ext2fs_free_mem(&buf);
+	ext2fs_free_mem(&buf);
 	if ((retval == 0) && (blocks_alloc || inode_dirty)) {
 		inode->i_blocks += (blocks_alloc * fs->blocksize) / 512;
 		retval = ext2fs_write_inode(fs, ino, inode);

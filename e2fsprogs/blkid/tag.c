@@ -41,11 +41,8 @@ void blkid_free_tag(blkid_tag tag)
 	list_del(&tag->bit_tags);	/* list of tags for this device */
 	list_del(&tag->bit_names);	/* list of tags with this type */
 
-	if (tag->bit_name)
-		free(tag->bit_name);
-	if (tag->bit_val)
-		free(tag->bit_val);
-
+	free(tag->bit_name);
+	free(tag->bit_val);
 	free(tag);
 }
 
@@ -112,8 +109,7 @@ int blkid_set_tag(blkid_dev dev, const char *name,
 		return -BLKID_ERR_MEM;
 	t = blkid_find_tag_dev(dev, name);
 	if (!value) {
-		if (t)
-			blkid_free_tag(t);
+		blkid_free_tag(t);
 	} else if (t) {
 		if (!strcmp(t->bit_val, val)) {
 			/* Same thing, exit */
@@ -165,12 +161,10 @@ int blkid_set_tag(blkid_dev dev, const char *name,
 	return 0;
 
 errout:
-	if (t)
-		blkid_free_tag(t);
-	else if (val)
+	blkid_free_tag(t);
+	if (!t)
 		free(val);
-	if (head)
-		blkid_free_tag(head);
+	blkid_free_tag(head);
 	return -BLKID_ERR_MEM;
 }
 

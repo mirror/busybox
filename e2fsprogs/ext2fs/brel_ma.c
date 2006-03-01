@@ -186,12 +186,10 @@ static errcode_t bma_free(ext2_brel brel)
 	ma = brel->priv_data;
 
 	if (ma) {
-		if (ma->entries)
-			ext2fs_free_mem(&ma->entries);
+		ext2fs_free_mem(&ma->entries);
 		ext2fs_free_mem(&ma);
 	}
-	if (brel->name)
-		ext2fs_free_mem(&brel->name);
+	ext2fs_free_mem(&brel->name);
 	ext2fs_free_mem(&brel);
 	return 0;
 }

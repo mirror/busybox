@@ -119,10 +119,8 @@ errcode_t ext2fs_move_blocks(ext2_filsys fs,
 	 * block move.
 	 */
 	if (flags & EXT2_BMOVE_GET_DBLIST) {
-		if (fs->dblist) {
-			ext2fs_free_dblist(fs->dblist);
-			fs->dblist = NULL;
-		}
+		ext2fs_free_dblist(fs->dblist);
+		fs->dblist = NULL;
 		retval = ext2fs_init_dblist(fs, 0);
 		if (retval)
 			return retval;

@@ -556,10 +556,8 @@ static void add_cmd(char *cmdstr)
 	}
 
 	/* If we glued multiple lines together, free the memory. */
-	if(add_cmd_line) {
-		free(add_cmd_line);
-		add_cmd_line=NULL;
-	}
+	free(add_cmd_line);
+	add_cmd_line=NULL;
 }
 
 /* Append to a string, reallocating memory as necessary. */

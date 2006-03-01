@@ -73,8 +73,7 @@ errcode_t ext2fs_file_open2(ext2_filsys fs, ext2_ino_t ino,
 	return 0;
 
 fail:
-	if (file->buf)
-		ext2fs_free_mem(&file->buf);
+	ext2fs_free_mem(&file->buf);
 	ext2fs_free_mem(&file);
 	return retval;
 }
@@ -197,8 +196,7 @@ errcode_t ext2fs_file_close(ext2_file_t file)
 
 	retval = ext2fs_file_flush(file);
 
-	if (file->buf)
-		ext2fs_free_mem(&file->buf);
+	ext2fs_free_mem(&file->buf);
 	ext2fs_free_mem(&file);
 
 	return retval;

@@ -393,7 +393,7 @@ extern int unzip_main(int argc, char **argv)
 			goto _check_file;
 
 		default:
-			printf("error:  invalid response [%c]\n",(char)i);
+			printf("error: invalid response [%c]\n",(char)i);
 			goto _check_file;
 		}
 
@@ -405,8 +405,8 @@ extern int unzip_main(int argc, char **argv)
 	}
 
 	if (verbosity == v_list) {
-		printf(" --------                   -------\n");
-		printf("%9d                   %d files\n", total_size, total_entries);
+		printf(" --------                   -------\n"
+		       "%9d                   %d files\n", total_size, total_entries);
 	}
 
 	return(EXIT_SUCCESS);

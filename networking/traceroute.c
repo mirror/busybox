@@ -902,10 +902,8 @@ gethostinfo(const char *host)
 static void
 freehostinfo(struct hostinfo *hi)
 {
-	if (hi->name != NULL) {
-		free(hi->name);
-		hi->name = NULL;
-	}
+	free(hi->name);
+	hi->name = NULL;
 	free((char *)hi->addrs);
 	free((char *)hi);
 }

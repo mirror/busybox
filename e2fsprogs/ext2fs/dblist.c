@@ -99,8 +99,7 @@ static errcode_t make_dblist(ext2_filsys fs, ext2_ino_t size, ext2_ino_t count,
 		fs->dblist = dblist;
 	return 0;
 cleanup:
-	if (dblist)
-		ext2fs_free_mem(&dblist);
+	ext2fs_free_mem(&dblist);
 	return retval;
 }
 

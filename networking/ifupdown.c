@@ -1356,16 +1356,15 @@ extern int ifupdown_main(int argc, char **argv)
 			} else {
 				/* Remove an interface from the linked list */
 				if (iface_state) {
-					/* This needs to be done better */
+					const llist_t *link = iface_state->link;
 					free(iface_state->data);
-					free(iface_state->link);
-					if (iface_state->link) {
-						iface_state->data = iface_state->link->data;
-						iface_state->link = iface_state->link->link;
-					} else {
-						iface_state->data = NULL;
-						iface_state->link = NULL;
+					iface_state->data = NULL;
+					iface_state->link = NULL;
+					if (link) {
+						iface_state->data = link->data;
+						iface_state->link = link->link;
 					}
+					free(link);
 				}
 			}
 		}

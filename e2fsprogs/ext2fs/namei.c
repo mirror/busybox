@@ -61,8 +61,7 @@ static errcode_t follow_link(ext2_filsys fs, ext2_ino_t root, ext2_ino_t dir,
 		pathname = (char *)&(ei.i_block[0]);
 	retval = open_namei(fs, root, dir, pathname, ei.i_size, 1,
 			    link_count, buf, res_inode);
-	if (buffer)
-		ext2fs_free_mem(&buffer);
+	ext2fs_free_mem(&buffer);
 	return retval;
 }
 

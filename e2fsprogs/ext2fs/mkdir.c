@@ -133,8 +133,7 @@ errcode_t ext2fs_mkdir(ext2_filsys fs, ext2_ino_t parent, ext2_ino_t inum,
 	ext2fs_inode_alloc_stats2(fs, ino, +1, 1);
 
 cleanup:
-	if (block)
-		ext2fs_free_mem(&block);
+	ext2fs_free_mem(&block);
 	return retval;
 
 }

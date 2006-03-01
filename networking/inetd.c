@@ -413,8 +413,7 @@ static void freeconfig (servtab_t *cp)
   free (cp->se_group);
   free (cp->se_server);
   for (i = 0; i < MAXARGV; i++)
-	if (cp->se_argv[i])
-	  free (cp->se_argv[i]);
+	free (cp->se_argv[i]);
 }
 
 static int bump_nofile (void)

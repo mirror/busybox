@@ -280,8 +280,7 @@ static void free_cache(struct unix_private_data *data)
 		cache->access_time = 0;
 		cache->dirty = 0;
 		cache->in_use = 0;
-		if (cache->buf)
-			ext2fs_free_mem(&cache->buf);
+		ext2fs_free_mem(&cache->buf);
 		cache->buf = 0;
 	}
 }
@@ -461,8 +460,7 @@ cleanup:
 		free_cache(data);
 		ext2fs_free_mem(&data);
 	}
-	if (io)
-		ext2fs_free_mem(&io);
+	ext2fs_free_mem(&io);
 	return retval;
 }
 
@@ -487,8 +485,7 @@ static errcode_t unix_close(io_channel channel)
 	free_cache(data);
 
 	ext2fs_free_mem(&channel->private_data);
-	if (channel->name)
-		ext2fs_free_mem(&channel->name);
+	ext2fs_free_mem(&channel->name);
 	ext2fs_free_mem(&channel);
 	return retval;
 }

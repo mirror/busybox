@@ -2036,10 +2036,7 @@ static struct dir_info *e2fsck_get_dir_info(e2fsck_t ctx, ext2_ino_t ino)
  */
 static void e2fsck_free_dir_info(e2fsck_t ctx)
 {
-	if (ctx->dir_info) {
-		ext2fs_free_mem(&ctx->dir_info);
-		ctx->dir_info = 0;
-	}
+	ext2fs_free_mem(&ctx->dir_info);
 	ctx->dir_info_size = 0;
 	ctx->dir_info_count = 0;
 }
@@ -2178,13 +2175,9 @@ static void e2fsck_free_dx_dir_info(e2fsck_t ctx)
 	if (ctx->dx_dir_info) {
 		dir = ctx->dx_dir_info;
 		for (i=0; i < ctx->dx_dir_info_count; i++) {
-			if (dir->dx_block) {
-				ext2fs_free_mem(&dir->dx_block);
-				dir->dx_block = 0;
-			}
+			ext2fs_free_mem(&dir->dx_block);
 		}
 		ext2fs_free_mem(&ctx->dx_dir_info);
-		ctx->dx_dir_info = 0;
 	}
 	ctx->dx_dir_info_size = 0;
 	ctx->dx_dir_info_count = 0;
@@ -2245,8 +2238,7 @@ static void ea_refcount_free(ext2_refcount_t refcount)
 	if (!refcount)
 		return;
 
-	if (refcount->list)
-		ext2fs_free_mem(&refcount->list);
+	ext2fs_free_mem(&refcount->list);
 	ext2fs_free_mem(&refcount);
 }
 
@@ -2259,32 +2251,22 @@ static errcode_t e2fsck_reset_context(e2fsck_t ctx)
 	ctx->flags = 0;
 	ctx->lost_and_found = 0;
 	ctx->bad_lost_and_found = 0;
-	if (ctx->inode_used_map) {
-		ext2fs_free_inode_bitmap(ctx->inode_used_map);
-		ctx->inode_used_map = 0;
-	}
-	if (ctx->inode_dir_map) {
-		ext2fs_free_inode_bitmap(ctx->inode_dir_map);
-		ctx->inode_dir_map = 0;
-	}
-	if (ctx->inode_reg_map) {
-		ext2fs_free_inode_bitmap(ctx->inode_reg_map);
-		ctx->inode_reg_map = 0;
-	}
-	if (ctx->block_found_map) {
-		ext2fs_free_block_bitmap(ctx->block_found_map);
-		ctx->block_found_map = 0;
-	}
-	if (ctx->inode_link_info) {
-		ext2fs_free_icount(ctx->inode_link_info);
-		ctx->inode_link_info = 0;
-	}
+	ext2fs_free_inode_bitmap(ctx->inode_used_map);
+	ctx->inode_used_map = 0;
+	ext2fs_free_inode_bitmap(ctx->inode_dir_map);
+	ctx->inode_dir_map = 0;
+	ext2fs_free_inode_bitmap(ctx->inode_reg_map);
+	ctx->inode_reg_map = 0;
+	ext2fs_free_block_bitmap(ctx->block_found_map);
+	ctx->block_found_map = 0;
+	ext2fs_free_icount(ctx->inode_link_info);
+	ctx->inode_link_info = 0;
 	if (ctx->journal_io) {
 		if (ctx->fs && ctx->fs->io != ctx->journal_io)
 			io_channel_close(ctx->journal_io);
 		ctx->journal_io = 0;
 	}
-	if (ctx->fs && ctx->fs->dblist) {
+	if (ctx->fs) {
 		ext2fs_free_dblist(ctx->fs->dblist);
 		ctx->fs->dblist = 0;
 	}
@@ -2292,54 +2274,29 @@ static errcode_t e2fsck_reset_context(e2fsck_t ctx)
 #ifdef ENABLE_HTREE
 	e2fsck_free_dx_dir_info(ctx);
 #endif
-	if (ctx->refcount) {
-		ea_refcount_free(ctx->refcount);
-		ctx->refcount = 0;
-	}
-	if (ctx->refcount_extra) {
-		ea_refcount_free(ctx->refcount_extra);
-		ctx->refcount_extra = 0;
-	}
-	if (ctx->block_dup_map) {
-		ext2fs_free_block_bitmap(ctx->block_dup_map);
-		ctx->block_dup_map = 0;
-	}
-	if (ctx->block_ea_map) {
-		ext2fs_free_block_bitmap(ctx->block_ea_map);
-		ctx->block_ea_map = 0;
-	}
-	if (ctx->inode_bb_map) {
-		ext2fs_free_inode_bitmap(ctx->inode_bb_map);
-		ctx->inode_bb_map = 0;
-	}
-	if (ctx->inode_bad_map) {
-		ext2fs_free_inode_bitmap(ctx->inode_bad_map);
-		ctx->inode_bad_map = 0;
-	}
-	if (ctx->inode_imagic_map) {
-		ext2fs_free_inode_bitmap(ctx->inode_imagic_map);
-		ctx->inode_imagic_map = 0;
-	}
-	if (ctx->dirs_to_hash) {
-		ext2fs_u32_list_free(ctx->dirs_to_hash);
-		ctx->dirs_to_hash = 0;
-	}
+	ea_refcount_free(ctx->refcount);
+	ctx->refcount = 0;
+	ea_refcount_free(ctx->refcount_extra);
+	ctx->refcount_extra = 0;
+	ext2fs_free_block_bitmap(ctx->block_dup_map);
+	ctx->block_dup_map = 0;
+	ext2fs_free_block_bitmap(ctx->block_ea_map);
+	ctx->block_ea_map = 0;
+	ext2fs_free_inode_bitmap(ctx->inode_bb_map);
+	ctx->inode_bb_map = 0;
+	ext2fs_free_inode_bitmap(ctx->inode_bad_map);
+	ctx->inode_bad_map = 0;
+	ext2fs_free_inode_bitmap(ctx->inode_imagic_map);
+	ctx->inode_imagic_map = 0;
+	ext2fs_u32_list_free(ctx->dirs_to_hash);
+	ctx->dirs_to_hash = 0;
 
 	/*
 	 * Clear the array of invalid meta-data flags
 	 */
-	if (ctx->invalid_inode_bitmap_flag) {
-		ext2fs_free_mem(&ctx->invalid_inode_bitmap_flag);
-		ctx->invalid_inode_bitmap_flag = 0;
-	}
-	if (ctx->invalid_block_bitmap_flag) {
-		ext2fs_free_mem(&ctx->invalid_block_bitmap_flag);
-		ctx->invalid_block_bitmap_flag = 0;
-	}
-	if (ctx->invalid_inode_table_flag) {
-		ext2fs_free_mem(&ctx->invalid_inode_table_flag);
-		ctx->invalid_inode_table_flag = 0;
-	}
+	ext2fs_free_mem(&ctx->invalid_inode_bitmap_flag);
+	ext2fs_free_mem(&ctx->invalid_block_bitmap_flag);
+	ext2fs_free_mem(&ctx->invalid_inode_table_flag);
 
 	/* Clear statistic counters */
 	ctx->fs_directory_count = 0;
@@ -3118,20 +3075,16 @@ static errcode_t e2fsck_get_journal(e2fsck_t ctx, journal_t **ret_journal)
 	journal->j_superblock = (journal_superblock_t *)bh->b_data;
 
 #ifdef USE_INODE_IO
-	if (j_inode)
-		ext2fs_free_mem(&j_inode);
+	ext2fs_free_mem(&j_inode);
 #endif
 
 	*ret_journal = journal;
 	return 0;
 
 errout:
-	if (dev_fs)
-		ext2fs_free_mem(&dev_fs);
-	if (j_inode)
-		ext2fs_free_mem(&j_inode);
-	if (journal)
-		ext2fs_free_mem(&journal);
+	ext2fs_free_mem(&dev_fs);
+	ext2fs_free_mem(&j_inode);
+	ext2fs_free_mem(&journal);
 	return retval;
 
 }
@@ -3368,11 +3321,9 @@ static void e2fsck_journal_release(e2fsck_t ctx, journal_t *journal,
 	}
 
 #ifndef USE_INODE_IO
-	if (journal->j_inode)
-		ext2fs_free_mem(&journal->j_inode);
+	ext2fs_free_mem(&journal->j_inode);
 #endif
-	if (journal->j_fs_dev)
-		ext2fs_free_mem(&journal->j_fs_dev);
+	ext2fs_free_mem(&journal->j_fs_dev);
 	ext2fs_free_mem(&journal);
 }
 
@@ -4346,7 +4297,6 @@ static __u64 ext2_max_sizes[EXT2_MAX_BLOCK_LOG_SIZE -
 static void unwind_pass1(void)
 {
 	ext2fs_free_mem(&inodes_to_process);
-	inodes_to_process = 0;
 }
 
 /*
@@ -5086,10 +5036,8 @@ static void e2fsck_pass1(e2fsck_t ctx)
 		handle_fs_bad_blocks(ctx);
 
 	/* We don't need the block_ea_map any more */
-	if (ctx->block_ea_map) {
-		ext2fs_free_block_bitmap(ctx->block_ea_map);
-		ctx->block_ea_map = 0;
-	}
+	ext2fs_free_block_bitmap(ctx->block_ea_map);
+	ctx->block_ea_map = 0;
 
 	if (ctx->flags & E2F_FLAG_RESIZE_INODE) {
 		ext2fs_block_bitmap save_bmap;
@@ -7359,14 +7307,10 @@ static void e2fsck_pass2(e2fsck_t ctx)
 	ext2fs_free_mem(&buf);
 	ext2fs_free_dblist(fs->dblist);
 
-	if (ctx->inode_bad_map) {
-		ext2fs_free_inode_bitmap(ctx->inode_bad_map);
-		ctx->inode_bad_map = 0;
-	}
-	if (ctx->inode_reg_map) {
-		ext2fs_free_inode_bitmap(ctx->inode_reg_map);
-		ctx->inode_reg_map = 0;
-	}
+	ext2fs_free_inode_bitmap(ctx->inode_bad_map);
+	ctx->inode_bad_map = 0;
+	ext2fs_free_inode_bitmap(ctx->inode_reg_map);
+	ctx->inode_reg_map = 0;
 
 	clear_problem_context(&pctx);
 	if (ctx->large_files) {
@@ -8665,14 +8609,10 @@ static void e2fsck_pass3(e2fsck_t ctx)
 
 abort_exit:
 	e2fsck_free_dir_info(ctx);
-	if (inode_loop_detect) {
-		ext2fs_free_inode_bitmap(inode_loop_detect);
-		inode_loop_detect = 0;
-	}
-	if (inode_done_map) {
-		ext2fs_free_inode_bitmap(inode_done_map);
-		inode_done_map = 0;
-	}
+	ext2fs_free_inode_bitmap(inode_loop_detect);
+	inode_loop_detect = 0;
+	ext2fs_free_inode_bitmap(inode_done_map);
+	inode_done_map = 0;
 
 #ifdef RESOURCE_TRACK
 	if (ctx->options & E2F_OPT_TIME2) {
@@ -9497,8 +9437,7 @@ static void e2fsck_pass4(e2fsck_t ctx)
 	ctx->inode_bb_map = 0;
 	ext2fs_free_inode_bitmap(ctx->inode_imagic_map);
 	ctx->inode_imagic_map = 0;
-	if (buf)
-		ext2fs_free_mem(&buf);
+	ext2fs_free_mem(&buf);
 #ifdef RESOURCE_TRACK
 	if (ctx->options & E2F_OPT_TIME2) {
 		e2fsck_clear_progbar(ctx);
@@ -12360,10 +12299,8 @@ static errcode_t alloc_size_dir(ext2_filsys fs, struct out_dir *outdir,
 
 static void free_out_dir(struct out_dir *outdir)
 {
-	if (outdir->buf)
-		free(outdir->buf);
-	if (outdir->hashes)
-		free(outdir->hashes);
+	free(outdir->buf);
+	free(outdir->hashes);
 	outdir->max = 0;
 	outdir->num =0;
 }
@@ -12872,14 +12809,10 @@ resort:
 	}
 
 	retval = write_directory(ctx, fs, &outdir, ino, fd.compress);
-	if (retval)
-		goto errout;
 
 errout:
-	if (dir_buf)
-		free(dir_buf);
-	if (fd.harray)
-		free(fd.harray);
+	free(dir_buf);
+	free(fd.harray);
 
 	free_out_dir(&outdir);
 	return retval;
@@ -12957,8 +12890,7 @@ void e2fsck_rehash_directories(e2fsck_t ctx)
 	if (!all_dirs)
 		ext2fs_u32_list_iterate_end(iter);
 
-	if (ctx->dirs_to_hash)
-		ext2fs_u32_list_free(ctx->dirs_to_hash);
+	ext2fs_u32_list_free(ctx->dirs_to_hash);
 	ctx->dirs_to_hash = 0;
 
 #ifdef RESOURCE_TRACK
@@ -13676,8 +13608,7 @@ static void check_resize_inode(e2fsck_t ctx)
 	}
 
 cleanup:
-	if (dind_buf)
-		ext2fs_free_mem(&dind_buf);
+	ext2fs_free_mem(&dind_buf);
 
  }
 
@@ -14639,8 +14570,7 @@ blk_t get_backup_sb(e2fsck_t ctx, ext2_filsys fs, const char *name,
 cleanup:
 	if (io)
 		io_channel_close(io);
-	if (buf)
-		ext2fs_free_mem(&buf);
+	ext2fs_free_mem(&buf);
 	return (ret_sb);
 }
 
