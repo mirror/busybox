@@ -10,17 +10,14 @@
 # testing "description" "arguments" "result" "infile" "stdin"
 
 # Corner cases
-testing "sed as cat" '"" -' "hello\n" "" "hello\n"
+testing "sed no files (stdin)" '""' "hello\n" "" "hello\n"
+testing "sed explicit stdin" '"" -' "hello\n" "" "hello\n"
 testing "sed handles empty lines" "-e 's/\$/@/'" "@\n" "" "\n"
+testing "sed stdin twice" '"" - -' "hello" "" "hello"
 
-# no files (stdin)
-# explicit stdin
-# mix files and stdin (various orders)
-# list stdin twice
 # Trailing EOF.
-#	Multiple files: first no EOF, second length 0.
 #	Match $, at end of each file or all files?
-#	First no EOF, second no matches at all.
+
 # -e corner cases
 #	without -e
 #	multiple -e
@@ -37,6 +34,9 @@ testing "sed handles empty lines" "-e 's/\$/@/'" "@\n" "" "\n"
 #	permissions
 #	-i on a symlink
 #	on a directory
+#       With $ last-line test
+# Continue with \
+#       End of script with trailing \
 
 # command list
 testing "sed accepts blanks before command" "-e '1 d'" "" "" ""
@@ -100,6 +100,10 @@ testing "sed d ends script iteration (2)" \
 
 # Multiple files, with varying newlines and NUL bytes
 testing "sed embedded NUL" "-e 's/woo/bang/'" "\0bang\0woo\0" "" "\0woo\0woo\0"
+testing "sed embedded NUL g" "-e 's/woo/bang/g'" "bang\0bang\0" "" "woo\0woo\0"
+echo -e "/woo/a he\0llo" > sed.commands
+testing "sed NUL in command" "-f sed.commands" "woo\nhe\0llo\n" "" "woo"
+rm sed.commands
 
 # sed has funky behavior with newlines at the end of file.  Test lots of
 # corner cases with the optional newline appending behavior.
@@ -121,10 +125,9 @@ testing "sed insert doesn't autoinsert newline" "-e '/woot/i woo' -" \
 testing "sed print autoinsert newlines" "-e 'p' -" "one\none" "" "one"
 testing "sed print autoinsert newlines two files" "-e 'p' input -" \
 	"one\none\ntwo\ntwo" "one" "two"
-
 testing "sed noprint, no match, no newline" "-ne 's/woo/bang/' input" \
 	"" "no\n" ""
-testing "sed selective matches with nl" "-ne 's/woo/bang/p' input -" \
+testing "sed selective matches with one nl" "-ne 's/woo/bang/p' input -" \
 	"a bang\nc bang\n" "a woo\nb no" "c woo\nd no"
 testing "sed selective matches insert newline" "-ne 's/woo/bang/p' input -" \
 	"a bang\nb bang\nd bang" "a woo\nb woo" "c no\nd woo"
@@ -132,6 +135,39 @@ testing "sed selective matches noinsert newline" "-ne 's/woo/bang/p' input -" \
 	"a bang\nb bang" "a woo\nb woo" "c no\nd no"
 testing "sed clusternewline" "-e '/one/a 111' -e '/two/i 222' -e p input -" \
 	"one\none\n111\n222\ntwo\ntwo" "one" "two" 
+
+# Test end-of-file matching behavior
+
+testing "sed match EOF" " -e '"'$p'"'" "hello\nthere\nthere" "" "hello\nthere"
+testing "sed match EOF two files" " -e '"'$p'"' input -" \
+	"one\ntwo\nthree\nfour\nfour" "one\ntwo" "three\nfour"
+echo -ne "three\nfour" > input2
+testing "sed match EOF inline" \
+	" -e '"'$i ook'"' -i input input2 && cat input input2" \
+	"one\nook\ntwothree\nook\nfour" "one\ntwo" ""
+rm input2
+
+# Test lie-to-autoconf
+
+testing "sed lie-to-autoconf" "--version | grep -o 'GNU sed version '" \
+	"GNU sed version \n" "" ""
+
+# Jump to nonexistent label
+testing "sed nonexistent label" "-e 'b walrus' 2> /dev/null || echo yes" \
+	"yes\n" "" ""
+
+testing "sed backref from empty s uses range regex" \
+	"-e '/woot/s//eep \0 eep/'" "eep woot eep" "" "woot"
+
+testing "sed backref from empty s uses range regex with newline" \
+	"-e '/woot/s//eep \0 eep/'" "eep woot eep\n" "" "woot\n"
+
+# -i with no filename
+
+touch ./-  # Detect gnu failure mode here.
+testing "sed -i with no arg [GNUFAIL]" "-e '' -i 2> /dev/null || echo yes" \
+	"yes\n" "" ""
+rm ./-     # Clean up
 
 # Ponder this a bit more, why "woo not found" from gnu version?
 #testing "sed doesn't substitute in deleted line" \
