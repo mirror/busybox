@@ -9,7 +9,7 @@
  * Copyright (C) 2003,2004 by Rob Landley <rob@landley.net>
  *
  * MAINTAINER: Rob Landley <rob@landley.net>
- * 
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
@@ -76,7 +76,7 @@ typedef struct sed_cmd_s {
     regex_t *sub_match;	/* For 's/sub_match/string/' */
     int beg_line;		/* 'sed 1p'   0 == apply commands to all lines */
     int end_line;		/* 'sed 1,3p' 0 == one line only. -1 = last line ($) */
-	
+
     FILE *file;			/* File (sw) command writes to, -1 for none. */
     char *string;		/* Data string for (saicytb) commands. */
 
@@ -122,8 +122,8 @@ struct append_list {
 };
 static struct append_list *append_head=NULL, *append_tail=NULL;
 
-void free_and_close_stuff(void);
-#ifdef CONFIG_FEATURE_CLEAN_UP
+static void free_and_close_stuff(void);
+#if ENABLE_FEATURE_CLEAN_UP
 static void free_and_close_stuff(void)
 {
 	sed_cmd_t *sed_cmd = sed_cmd_head.next;
@@ -1200,15 +1200,15 @@ extern int sed_main(int argc, char **argv)
 						if(-1==(nonstdoutfd=mkstemp(outname)))
 							bb_error_msg_and_die("no temp file");
 						nonstdout=fdopen(nonstdoutfd,"w");
-						
+
 						/* Set permissions of output file */
-						
+
 						fstat(fileno(file),&statbuf);
 						fchmod(nonstdoutfd,statbuf.st_mode);
 						add_input_file(file);
 						process_files();
 						fclose(nonstdout);
-						
+
 						nonstdout=stdout;
 						unlink(argv[i]);
 						rename(outname,argv[i]);
