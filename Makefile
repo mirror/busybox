@@ -313,7 +313,9 @@ endif # CONFIG_FEATURE_SHARED_BUSYBOX
 endif # CONFIG_BUILD_AT_ONCE
 
 # build an .a to keep .hash et al small
-$(if $(bin-obj-y)$(bin-mobj-y),$(eval applets.a:=$(bin-obj-y) $(bin-mobj-y)))
+ifneq ($(bin-obj-y)$(bin-mobj-y),)
+  applets.a:=$(bin-obj-y) $(bin-mobj-y)
+endif
 ifdef applets.a
 applets.a: $(applets.a)
 	$(do_ar)
@@ -363,7 +365,7 @@ endif
 
 endif # ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 
-busybox: $(top_builddir)/.depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(APPLET_SRC) $(bin-obj.a)
+busybox_unstripped: $(top_builddir)/.depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(APPLET_SRC) $(bin-obj.a)
 	$(do_link) $(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) \
 	$(foreach f,$(^:.o=.c),$(CFLAGS-$(notdir $(patsubst %/$,%,$(dir $(f))))-$(notdir $(f)))) \
 	$(CFLAGS-$(@)) \
@@ -373,6 +375,9 @@ busybox: $(top_builddir)/.depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(APPLET_SR
 	$(bin-obj.a) \
 	$(LDBUSYBOX) $(LIBRARIES) \
 	-Wl,--end-group
+
+busybox: busybox_unstripped
+	$(Q)cp busybox_unstripped busybox
 	$(do_strip)
 
 busybox.links: $(top_srcdir)/applets/busybox.mkll include/bb_config.h $(top_srcdir)/include/applets.h
@@ -405,11 +410,8 @@ check test: busybox
 	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
 	$(top_srcdir)/testsuite/runtest $(CHECK_VERBOSE)
 
-sizes:
-	-rm -f busybox
-	$(MAKE) top_srcdir=$(top_srcdir) top_builddir=$(top_builddir) \
-		-f $(top_srcdir)/Makefile STRIPCMD=/bin/true
-	$(NM) --size-sort busybox
+sizes: busybox_unstripped
+	$(NM) --size-sort $(<)
 
 # Documentation Targets
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html ;
