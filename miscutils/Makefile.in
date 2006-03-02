@@ -29,9 +29,6 @@ MISCUTILS-$(CONFIG_WATCHDOG)    += watchdog.o
 
 needlibm-y:=
 needlibm-$(CONFIG_DC) := y
-ifeq ($(needlibm-m),y)
-needlibm-y:=y
-endif
 ifeq ($(needlibm-y),y)
   LIBRARIES := $(filter-out -lm,$(LIBRARIES)) -lm
 endif

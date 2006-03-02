@@ -30,9 +30,6 @@ needcrypt-$(CONFIG_PASSWD)	:= y
 needcrypt-$(CONFIG_SU)		:= y
 needcrypt-$(CONFIG_SULOGIN)	:= y
 needcrypt-$(CONFIG_VLOCK)	:= y
-ifeq ($(needcrypt-m),y)
-needcrypt-y:=y
-endif
 ifeq ($(needcrypt-y),y)
   LIBRARIES := -lcrypt $(filter-out -lcrypt,$(LIBRARIES))
 endif

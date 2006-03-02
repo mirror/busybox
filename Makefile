@@ -243,9 +243,8 @@ endif # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 # depending on it.
 DIRS_UPPER:=$(shell echo $(DIRS) | $(SED) 'h;y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')
 
-# First populate the variables ..._OBJ-y ...OBJ-m et al
+# First populate the variables ..._OBJ-y et al
 $(foreach d,$(DIRS_UPPER),$(eval $(notdir $(d))-y:=))
-$(foreach d,$(DIRS_UPPER),$(eval $(notdir $(d))-m:=))
 
 include $(patsubst %,%/Makefile.in,$(SRC_DIRS))
 

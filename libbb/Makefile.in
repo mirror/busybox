@@ -45,7 +45,7 @@ LIBBB-$(CONFIG_SU)+= correct_password.c
 LIBBB-$(CONFIG_LOGIN)+= correct_password.c
 
 
-LIBBB-y:=$(patsubst %,$(srcdir)/%,$(LIBBB-y) $(LIBBB-m))
+LIBBB-y:=$(patsubst %,$(srcdir)/%,$(LIBBB-y))
 
 # 1:N objects
 LIBBB_MSRC0:=$(srcdir)/messages.c
