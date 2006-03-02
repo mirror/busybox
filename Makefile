@@ -271,7 +271,7 @@ ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 # individual object files
 -include $(top_builddir)/.depend
 
-
+$(top_builddir)/applets/applets.o: $(top_builddir)/.config
 # Everything is set.
 
 all: busybox busybox.links doc ;

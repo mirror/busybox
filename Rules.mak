@@ -94,7 +94,7 @@ CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
 CFLAGS+=-I$(top_builddir)/include -I$(top_srcdir)/include
 
-ARFLAGS=cru
+ARFLAGS=cruP
 
 
 
