@@ -100,7 +100,7 @@ saved-output := $(PACKAGE_OUTPUTDIR)
 $(if $(wildcard $(PACKAGE_OUTPUTDIR)),, \
      $(error output directory "$(saved-output)" does not exist))
 
-.PHONY: $(MAKECMDGOALS)
+.PHONY: $(filter $(noconfig_targets),$(MAKECMDGOALS))
 
 $(PACKAGE_OUTPUTDIR)/Rules.mak:
 	@echo > $@
