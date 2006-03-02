@@ -122,9 +122,9 @@ struct append_list {
 };
 static struct append_list *append_head=NULL, *append_tail=NULL;
 
-static void free_and_close_stuff(void);
+void sed_free_and_close_stuff(void);
 #if ENABLE_FEATURE_CLEAN_UP
-static void free_and_close_stuff(void)
+void sed_free_and_close_stuff(void)
 {
 	sed_cmd_t *sed_cmd = sed_cmd_head.next;
 
@@ -1113,7 +1113,7 @@ extern int sed_main(int argc, char **argv)
 	int status = EXIT_SUCCESS, opt, getpat = 1;
 
 	/* destroy command strings on exit */
-	if (ENABLE_FEATURE_CLEAN_UP && atexit(free_and_close_stuff) == -1)
+	if (ENABLE_FEATURE_CLEAN_UP && atexit(sed_free_and_close_stuff) == -1)
 		bb_perror_msg_and_die("atexit");
 
 	/* Lie to autoconf when it starts asking stupid questions. */
