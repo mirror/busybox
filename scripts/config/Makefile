@@ -2,8 +2,12 @@
 #
 # Copyright (C) 2002 Erik Andersen <andersen@codepoet.org>
 
+ifndef top_srcdir
 top_srcdir=../..
+endif
+ifndef top_builddir
 top_builddir=../..
+endif
 srcdir=$(top_srcdir)/scripts/config
 include $(top_srcdir)/Rules.mak
 

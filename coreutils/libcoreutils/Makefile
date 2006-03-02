@@ -17,8 +17,12 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
 
+ifndef top_srcdir
 top_srcdir=../..
+endif
+ifndef top_builddir
 top_builddir=../..
+endif
 srcdir=$(top_srcdir)/coreutils/libcoreutils
 LIBCOREUTILS_DIR:=./
 include $(top_builddir)/Rules.mak
