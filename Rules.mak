@@ -187,7 +187,7 @@ endif # arm
 $(if $(call is_eq,$(__TARGET_ARCH),i386),\
   $(call check_gcc,OPTIMIZATIONS,-march=i386,))
 
-# gcc-4.0 and older seem to suffer from these
+# gcc-4.0 and older seem to benefit from these
 $(if $(call cc_le,4,0),\
   $(call check_gcc,OPTIMIZATIONS,-mpreferred-stack-boundary=2,)\
   $(call check_gcc,OPTIMIZATIONS,-falign-functions=1 -falign-jumps=1 -falign-loops=1,\
