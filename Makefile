@@ -317,7 +317,9 @@ ifneq ($(bin-obj-y)$(bin-mobj-y),)
 endif
 ifdef applets.a
 applets.a: $(applets.a)
+	$(Q)-rm -f $(@)
 	$(do_ar)
+
 bin-obj.a=applets.a
 endif
 
