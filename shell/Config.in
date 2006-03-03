@@ -226,7 +226,7 @@ config CONFIG_FEATURE_SH_STANDALONE_SHELL
 	  busybox to use the ifconfig busybox applet.  Specifying the fully
 	  qualified executable name, such as '/sbin/ifconfig' will still
 	  execute the /sbin/ifconfig executable on the filesystem.  This option
-	  is generally used when creating a staticly linked version of busybox
+	  is generally used when creating a statically linked version of busybox
 	  for use as a rescue shell, in the event that you screw up your system.
 
 	  Note that when using this option, the shell will attempt to directly
