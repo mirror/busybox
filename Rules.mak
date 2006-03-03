@@ -190,7 +190,7 @@ $(if $(call is_eq,$(__TARGET_ARCH),i386),\
 # gcc-4.0 and older seem to suffer from these
 $(if $(call cc_le,4,0),\
   $(call check_gcc,OPTIMIZATIONS,-mpreferred-stack-boundary=2,)\
-  $(call check_gcc,OPTIMIZATIONS,-falign-functions=0 -falign-jumps=0 -falign-loops=0,\
+  $(call check_gcc,OPTIMIZATIONS,-falign-functions=1 -falign-jumps=1 -falign-loops=1,\
 		-malign-functions=0 -malign-jumps=0 -malign-loops=0))
 
 # gcc-4.1 and beyond seem to benefit from these
