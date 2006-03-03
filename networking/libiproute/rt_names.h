@@ -5,12 +5,9 @@
 
 extern const char* rtnl_rtprot_n2a(int id, char *buf, int len);
 extern const char* rtnl_rtscope_n2a(int id, char *buf, int len);
-extern const char* rtnl_rttable_n2a(int id, char *buf, int len);
-extern const char* rtnl_rtrealm_n2a(int id, char *buf, int len);
 extern const char* rtnl_dsfield_n2a(int id, char *buf, int len);
 extern int rtnl_rtprot_a2n(uint32_t *id, char *arg);
 extern int rtnl_rtscope_a2n(uint32_t *id, char *arg);
-extern int rtnl_rttable_a2n(uint32_t *id, char *arg);
 extern int rtnl_rtrealm_a2n(uint32_t *id, char *arg);
 extern int rtnl_dsfield_a2n(uint32_t *id, char *arg);
 

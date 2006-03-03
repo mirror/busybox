@@ -37,10 +37,6 @@ extern int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, i
 
 extern int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len);
 
-extern int rtnl_listen(struct rtnl_handle *, int (*handler)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
-		       void *jarg);
-extern int rtnl_from_file(FILE *, int (*handler)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
-		       void *jarg);
 
 #endif /* __LIBNETLINK_H__ */
 
