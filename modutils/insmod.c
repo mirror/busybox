@@ -268,8 +268,8 @@ extern int insmod_ng_main( int argc, char **argv);
 #define CONFIG_USE_SINGLE
 /* the SH changes have only been tested in =little endian= mode */
 /* I'm not sure about big endian, so let's warn: */
-#if defined(__sh__) && defined(__BIG_ENDIAN__)
-#error insmod.c may require changes for use on big endian SH
+#if defined(__sh__) && BB_BIG_ENDIAN
+# error insmod.c may require changes for use on big endian SH
 #endif
 /* it may or may not work on the SH1/SH2... Error on those also */
 #if ((!(defined(__SH3__) || defined(__SH4__) || defined(__SH5__)))) && (defined(__sh__))
@@ -511,10 +511,10 @@ static const int MODUTILS_OBJ_H = 1;
 #include <elf.h>
 #include <endian.h>
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#define ELFDATAM	ELFDATA2LSB
-#elif __BYTE_ORDER == __BIG_ENDIAN
-#define ELFDATAM	ELFDATA2MSB
+#if BB_LITTLE_ENDIAN
+# define ELFDATAM	ELFDATA2LSB
+#else
+# define ELFDATAM	ELFDATA2MSB
 #endif
 
 #ifndef ElfW

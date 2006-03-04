@@ -119,10 +119,10 @@ int unlzma(int src_fd, int dst_fd)
 	pos_state_mask = (1 << pb) - 1;
 	literal_pos_mask = (1 << lp) - 1;
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if BB_BIG_ENDIAN
 	header.dict_size = bswap_32(header.dict_size);
 	header.dst_size = bswap_64(header.dst_size);
-#endif							/* __BYTE_ORDER */
+#endif
 
 	if (header.dict_size == 0)
 		header.dict_size = 1;

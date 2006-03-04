@@ -48,8 +48,8 @@
 #include <asm/byteorder.h>
 
 
-#if (__BYTE_ORDER == __BIG_ENDIAN) && !defined(__USE_XOPEN)
-#define __USE_XOPEN
+#if BB_BIG_ENDIAN && !defined(__USE_XOPEN)
+# define __USE_XOPEN
 #endif
 
 /* device types */

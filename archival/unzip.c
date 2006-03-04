@@ -32,7 +32,7 @@
 #include "unarchive.h"
 #include "busybox.h"
 
-#if (BYTE_ORDER == BIG_ENDIAN)
+#if BB_BIG_ENDIAN
 static inline unsigned short
 __swap16(unsigned short x) {
 	return (((uint16_t)(x) & 0xFF) << 8) | (((uint16_t)(x) & 0xFF00) >> 8);
@@ -45,10 +45,10 @@ __swap32(uint32_t x) {
 		((x & 0xFF0000) >> 8) |
 		((x & 0xFF000000) >> 24));
 }
-#else
-#define __swap16(x) (x)
-#define __swap32(x) (x)
-#endif
+#else /* it's little-endian */
+# define __swap16(x) (x)
+# define __swap32(x) (x)
+#endif /* BB_BIG_ENDIAN */
 
 #define ZIP_FILEHEADER_MAGIC		__swap32(0x04034b50)
 #define ZIP_CDS_MAGIC			__swap32(0x02014b50)
@@ -253,7 +253,7 @@ extern int unzip_main(int argc, char **argv)
 
 		/* Read the file header */
 		unzip_read(src_fd, zip_header.raw, 26);
-#if (BYTE_ORDER == BIG_ENDIAN)
+#if BB_BIG_ENDIAN
 		zip_header.formated.version = __swap16(zip_header.formated.version);
 		zip_header.formated.flags = __swap16(zip_header.formated.flags);
 		zip_header.formated.method = __swap16(zip_header.formated.method);
@@ -264,7 +264,7 @@ extern int unzip_main(int argc, char **argv)
 		zip_header.formated.ucmpsize = __swap32(zip_header.formated.ucmpsize);
 		zip_header.formated.filename_len = __swap16(zip_header.formated.filename_len);
 		zip_header.formated.extra_len = __swap16(zip_header.formated.extra_len);
-#endif
+#endif /* BB_BIG_ENDIAN */
 		if ((zip_header.formated.method != 0) && (zip_header.formated.method != 8)) {
 			bb_error_msg_and_die("Unsupported compression method %d", zip_header.formated.method);
 		}
