@@ -482,7 +482,7 @@ clean:
 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html busybox.links \
 	    $(DO_INSTALL_LIBS) $(LIBBUSYBOX_SONAME) \
-	    .config.old busybox
+	    .config.old busybox busybox_unstripped
 	- rm -r -f _install testsuite/links
 	- find . -name .\*.flags -exec rm -f {} \;
 	- find . -name \*.o -exec rm -f {} \;
