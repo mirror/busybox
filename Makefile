@@ -488,6 +488,7 @@ clean:
 	- find . -name \*.o -exec rm -f {} \;
 	- find . -name \*.om -exec rm -f {} \;
 	- find . -name \*.os -exec rm -f {} \;
+	- find . -name \*.osm -exec rm -f {} \;
 	- find . -name \*.a -exec rm -f {} \;
 
 distclean: clean
