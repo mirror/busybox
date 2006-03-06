@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void bb_verror_msg(const char *s, va_list p)
+void bb_verror_msg(const char *s, va_list p)
 {
 	fflush(stdout);
 	fprintf(stderr, "%s: ", bb_applet_name);

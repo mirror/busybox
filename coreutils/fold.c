@@ -44,7 +44,7 @@ static int adjust_column(int column, char c)
 	return column;
 }
 
-extern int fold_main(int argc, char **argv)
+int fold_main(int argc, char **argv)
 {
 	char *w_opt;
 	int width = 80;

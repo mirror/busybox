@@ -21,7 +21,7 @@
 #include "unarchive.h"
 #include "libbb.h"
 
-extern void data_skip(archive_handle_t *archive_handle)
+void data_skip(archive_handle_t *archive_handle)
 {
 	archive_handle->seek(archive_handle, archive_handle->file_header->size);
 }

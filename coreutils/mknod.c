@@ -32,7 +32,7 @@
 static const char modes_chars[] = { 'p', 'c', 'u', 'b', 0, 1, 1, 2 };
 static const mode_t modes_cubp[] = { S_IFIFO, S_IFCHR, S_IFBLK };
 
-extern int mknod_main(int argc, char **argv)
+int mknod_main(int argc, char **argv)
 {
 	mode_t mode;
 	dev_t dev;

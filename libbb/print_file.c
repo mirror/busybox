@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include "libbb.h"
 
-extern void bb_xprint_and_close_file(FILE *file)
+void bb_xprint_and_close_file(FILE *file)
 {
 	bb_xfflush_stdout();
 	/* Note: Do not use STDOUT_FILENO here, as this is a lib routine
@@ -45,7 +45,7 @@ extern void bb_xprint_and_close_file(FILE *file)
  *  exits with default error code if an error occurs
  */
 
-extern int bb_xprint_file_by_name(const char *filename)
+int bb_xprint_file_by_name(const char *filename)
 {
 	FILE *f;
 

@@ -138,7 +138,7 @@ static int read_base64(FILE *src_stream, FILE *dst_stream)
 	}
 }
 
-extern int uudecode_main(int argc, char **argv)
+int uudecode_main(int argc, char **argv)
 {
 	int (*decode_fn_ptr) (FILE * src, FILE * dst);
 	FILE *src_stream;

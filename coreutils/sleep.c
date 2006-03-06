@@ -46,7 +46,7 @@ static const struct suffix_mult sleep_suffixes[] = {
 };
 #endif
 
-extern int sleep_main(int argc, char **argv)
+int sleep_main(int argc, char **argv)
 {
 	unsigned int duration;
 

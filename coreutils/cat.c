@@ -40,7 +40,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
-extern int cat_main(int argc, char **argv)
+int cat_main(int argc, char **argv)
 {
 	FILE *f;
 	int retval = EXIT_SUCCESS;

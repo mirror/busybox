@@ -25,7 +25,7 @@
 #define CDROMEJECT                0x5309  /* Ejects the cdrom media */
 #define DEFAULT_CDROM             "/dev/cdrom"
 
-extern int eject_main(int argc, char **argv)
+int eject_main(int argc, char **argv)
 {
 	unsigned long flags;
 	char *device;

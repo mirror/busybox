@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-extern int yes_main(int argc, char **argv)
+int yes_main(int argc, char **argv)
 {
 	static const char fmt_str[] = " %s";
 	const char *fmt;

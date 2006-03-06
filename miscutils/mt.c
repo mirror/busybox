@@ -50,7 +50,7 @@ static const struct mt_opcodes opcodes[] = {
 	{0, 0}
 };
 
-extern int mt_main(int argc, char **argv)
+int mt_main(int argc, char **argv)
 {
 	const char *file = "/dev/tape";
 	const struct mt_opcodes *code = opcodes;

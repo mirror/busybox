@@ -26,7 +26,7 @@
 
 
 #if (__GLIBC__ < 2)
-extern int vdprintf(int d, const char *format, va_list ap)
+int vdprintf(int d, const char *format, va_list ap)
 {
 	char buf[BUF_SIZE];
 	int len;

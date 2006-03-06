@@ -97,7 +97,7 @@ static const int NEW_MOD_VISITED = 8;
 static const int NEW_MOD_USED_ONCE = 16;
 static const int NEW_MOD_INITIALIZING = 64;
 
-extern int lsmod_main(int argc, char **argv)
+int lsmod_main(int argc, char **argv)
 {
 	struct module_info info;
 	char *module_names, *mn, *deps, *dn;
@@ -160,7 +160,7 @@ extern int lsmod_main(int argc, char **argv)
 
 #else /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */
 
-extern int lsmod_main(int argc, char **argv)
+int lsmod_main(int argc, char **argv)
 {
 	printf("Module                  Size  Used by");
 	check_tainted();

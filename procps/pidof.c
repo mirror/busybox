@@ -42,7 +42,7 @@
 #define omitted (0)
 #endif
 
-extern int pidof_main(int argc, char **argv)
+int pidof_main(int argc, char **argv)
 {
 	unsigned n = 0;
 	unsigned fail = 1;

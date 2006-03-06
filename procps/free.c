@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-extern int free_main(int argc, char **argv)
+int free_main(int argc, char **argv)
 {
 	struct sysinfo info;
 	sysinfo(&info);

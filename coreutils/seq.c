@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-extern int seq_main(int argc, char **argv)
+int seq_main(int argc, char **argv)
 {
 	double last, first, increment, i;
 	

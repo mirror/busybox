@@ -1108,7 +1108,7 @@ static void add_cmd_block(char *cmdstr)
 	free(temp);
 }
 
-extern int sed_main(int argc, char **argv)
+int sed_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS, opt, getpat = 1;
 

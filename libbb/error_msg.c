@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void bb_error_msg(const char *s, ...)
+void bb_error_msg(const char *s, ...)
 {
 	va_list p;
 

@@ -16,7 +16,7 @@
 #include <sys/stat.h>
 #include "busybox.h"
 
-extern int which_main(int argc, char **argv)
+int which_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;
 	size_t i, count;

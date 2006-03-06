@@ -3903,7 +3903,7 @@ static void print_load_map(struct obj_file *f)
 
 #endif
 
-extern int insmod_main( int argc, char **argv)
+int insmod_main( int argc, char **argv)
 {
 	int opt;
 	int len;
@@ -4267,7 +4267,7 @@ static const char *moderror(int err)
 	}
 }
 
-extern int insmod_ng_main( int argc, char **argv)
+int insmod_ng_main( int argc, char **argv)
 {
 	int i;
 	int fd;

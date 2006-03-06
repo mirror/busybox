@@ -23,7 +23,7 @@
 #include <ctype.h>
 #include "libbb.h"
 
-extern const char *bb_skip_whitespace(const char *s)
+const char *bb_skip_whitespace(const char *s)
 {
 	while (isspace(*s)) {
 		++s;

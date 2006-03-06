@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include "unarchive.h"
 
-extern const llist_t *find_list_entry(const llist_t *list, const char *filename)
+const llist_t *find_list_entry(const llist_t *list, const char *filename)
 {
 	while (list) {
 		if (fnmatch(list->data, filename, 0) == 0) {

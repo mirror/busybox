@@ -1007,7 +1007,7 @@ static void reload_signal(int sig ATTRIBUTE_UNUSED)
 }
 #endif							/* CONFIG_FEATURE_USE_INITTAB */
 
-extern int init_main(int argc, char **argv)
+int init_main(int argc, char **argv)
 {
 	struct init_action *a;
 	pid_t wpid;

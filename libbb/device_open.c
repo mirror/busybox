@@ -25,7 +25,7 @@
 
 
 /* try to open up the specified device */
-extern int device_open(const char *device, int mode)
+int device_open(const char *device, int mode)
 {
 	int m, f, fd = -1;
 

@@ -26,7 +26,7 @@
 #include "libbb.h"
 
 
-extern void bb_vherror_msg(const char *s, va_list p)
+void bb_vherror_msg(const char *s, va_list p)
 {
 	if(s == 0)
 		s = "";

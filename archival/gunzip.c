@@ -75,7 +75,7 @@ static char *license_msg[] = {
 #define GUNZIP_OPT_TEST		4
 #define GUNZIP_OPT_DECOMPRESS	8
 
-extern int gunzip_main(int argc, char **argv)
+int gunzip_main(int argc, char **argv)
 {
 	char status = EXIT_SUCCESS;
 	unsigned long opt;

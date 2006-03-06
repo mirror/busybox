@@ -467,9 +467,9 @@ static const struct suffix_mult stty_suffixes[] = {
 };
 
 #ifndef TEST
-extern int stty_main(int argc, char **argv)
+int stty_main(int argc, char **argv)
 #else
-extern int main(int argc, char **argv)
+int main(int argc, char **argv)
 #endif
 {
 	struct termios mode;

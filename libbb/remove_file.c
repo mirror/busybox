@@ -30,7 +30,7 @@
 #include <getopt.h>
 #include "libbb.h"
 
-extern int remove_file(const char *path, int flags)
+int remove_file(const char *path, int flags)
 {
 	struct stat path_stat;
 	int path_exists = 1;

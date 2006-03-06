@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-extern int echo_main(int argc, char** argv)
+int echo_main(int argc, char** argv)
 {
 	(void)bb_echo(argc, argv);
 	bb_fflush_stdout_and_exit(EXIT_SUCCESS);

@@ -24,7 +24,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-extern char get_header_tar_bz2(archive_handle_t *archive_handle)
+char get_header_tar_bz2(archive_handle_t *archive_handle)
 {
 	/* Cant lseek over pipe's */
 	archive_handle->seek = seek_by_char;

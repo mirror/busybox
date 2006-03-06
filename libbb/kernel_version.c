@@ -30,7 +30,7 @@
  * so, for example,  to check if the kernel is greater than 2.2.11:
  *     if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
  */
-extern int get_kernel_revision(void)
+int get_kernel_revision(void)
 {
 	struct utsname name;
 	char *s;

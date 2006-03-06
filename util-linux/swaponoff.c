@@ -66,7 +66,7 @@ static int do_em_all(void)
 
 #define DO_ALL    0x01
 
-extern int swap_on_off_main(int argc, char **argv)
+int swap_on_off_main(int argc, char **argv)
 {
 	int ret;
 

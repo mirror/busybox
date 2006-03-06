@@ -26,7 +26,7 @@
 #include "libbb.h"
 #include "coreutils.h"
 
-extern mode_t getopt_mk_fifo_nod(int argc, char **argv)
+mode_t getopt_mk_fifo_nod(int argc, char **argv)
 {
 	mode_t mode = 0666;
 	char *smode = NULL;

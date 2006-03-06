@@ -613,7 +613,7 @@ static void cookmode(void)
 	if (G.do_termios) tcsetattr(0, TCSADRAIN, &G.termios_def);
 }
 
-extern int telnet_main(int argc, char** argv)
+int telnet_main(int argc, char** argv)
 {
 	int len;
 	struct sockaddr_in s_in;

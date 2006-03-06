@@ -34,7 +34,7 @@ static int read_to_buf(const char *filename, void *buf)
 }
 
 
-extern procps_status_t * procps_scan(int save_user_arg0)
+procps_status_t * procps_scan(int save_user_arg0)
 {
 	static DIR *dir;
 	struct dirent *entry;

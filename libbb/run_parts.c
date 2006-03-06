@@ -47,7 +47,7 @@ static int valid_name(const struct dirent *d)
  * test_mode = 2 means to fail silently on missing directories
  */
 
-extern int run_parts(char **args, const unsigned char test_mode, char **env)
+int run_parts(char **args, const unsigned char test_mode, char **env)
 {
 	struct dirent **namelist = 0;
 	struct stat st;

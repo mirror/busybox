@@ -25,7 +25,7 @@
 #include <time.h>
 #include "busybox.h"
 
-extern int who_main(int argc, char **argv)
+int who_main(int argc, char **argv)
 {
     struct utmp *ut;
     struct stat st;

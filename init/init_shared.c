@@ -18,7 +18,7 @@
 
 #ifndef CONFIG_INIT
 const char * const bb_shutdown_format = "\r%s\n";
-extern int bb_shutdown_system(unsigned long magic)
+int bb_shutdown_system(unsigned long magic)
 {
 	int pri = LOG_KERN|LOG_NOTICE|LOG_FACMASK;
 	const char *message;

@@ -414,7 +414,7 @@ static void ipaddr_reset_filter(int _oneline)
 	filter.oneline = _oneline;
 }
 
-extern int ipaddr_list_or_flush(int argc, char **argv, int flush)
+int ipaddr_list_or_flush(int argc, char **argv, int flush)
 {
 	static const char *const option[] = { "to", "scope", "up", "label", "dev", 0 };
 
@@ -805,7 +805,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	exit(0);
 }
 
-extern int do_ipaddr(int argc, char **argv)
+int do_ipaddr(int argc, char **argv)
 {
 	static const char *const commands[] = {
 		"add", "delete", "list", "show", "lst", "flush", 0

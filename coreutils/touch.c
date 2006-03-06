@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-extern int touch_main(int argc, char **argv)
+int touch_main(int argc, char **argv)
 {
 	int fd;
 	int flags;

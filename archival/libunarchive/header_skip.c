@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "unarchive.h"
 
-extern void header_skip(const file_header_t *file_header ATTRIBUTE_UNUSED)
+void header_skip(const file_header_t *file_header ATTRIBUTE_UNUSED)
 {
 }

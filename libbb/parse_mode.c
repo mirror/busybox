@@ -29,7 +29,7 @@
 
 #define FILEMODEBITS    (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)
 
-extern int bb_parse_mode(const char *s, mode_t *current_mode)
+int bb_parse_mode(const char *s, mode_t *current_mode)
 {
 	static const mode_t who_mask[] = {
 		S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO, /* a */

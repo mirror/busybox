@@ -27,7 +27,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-extern void data_extract_all(archive_handle_t *archive_handle)
+void data_extract_all(archive_handle_t *archive_handle)
 {
 	file_header_t *file_header = archive_handle->file_header;
 	int dst_fd;

@@ -19,7 +19,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-extern char get_header_tar_gz(archive_handle_t *archive_handle)
+char get_header_tar_gz(archive_handle_t *archive_handle)
 {
 	unsigned char magic[2];
 

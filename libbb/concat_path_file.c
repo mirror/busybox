@@ -28,7 +28,7 @@
 #include <string.h>
 #include "libbb.h"
 
-extern char *concat_path_file(const char *path, const char *filename)
+char *concat_path_file(const char *path, const char *filename)
 {
 	char *lc;
 

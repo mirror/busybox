@@ -13,7 +13,7 @@
 
 #ifdef L_llist_add_to
 /* Add data to the start of the linked list.  */
-extern llist_t *llist_add_to(llist_t *old_head, char *new_item)
+llist_t *llist_add_to(llist_t *old_head, char *new_item)
 {
 	llist_t *new_head;
 
@@ -27,7 +27,7 @@ extern llist_t *llist_add_to(llist_t *old_head, char *new_item)
 
 #ifdef L_llist_add_to_end
 /* Add data to the end of the linked list.  */
-extern llist_t *llist_add_to_end(llist_t *list_head, char *data)
+llist_t *llist_add_to_end(llist_t *list_head, char *data)
 {
 	llist_t *new_item;
 
@@ -50,7 +50,7 @@ extern llist_t *llist_add_to_end(llist_t *list_head, char *data)
 #ifdef L_llist_free_one
 /* Free the current list element and advance to the next entry in the list.
  * Returns a pointer to the next element.  */
-extern llist_t *llist_free_one(llist_t *elm)
+llist_t *llist_free_one(llist_t *elm)
 {
 	llist_t *next = elm ? elm->link : NULL;
 #if ENABLE_DMALLOC /* avoid warnings from dmalloc's error-free-null option */
@@ -64,7 +64,7 @@ extern llist_t *llist_free_one(llist_t *elm)
 
 #ifdef L_llist_free
 /* Recursively free all elements in the linked list.  */
-extern void llist_free(llist_t *elm)
+void llist_free(llist_t *elm)
 {
 	while ((elm = llist_free_one(elm)));
 }

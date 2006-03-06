@@ -28,7 +28,7 @@
 
 #include "libbb.h"
 
-extern char *concat_subpath_file(const char *path, const char *f)
+char *concat_subpath_file(const char *path, const char *f)
 {
 	if(f && *f == '.' && (!f[1] || (f[1] == '.' && !f[2])))
 		return NULL;

@@ -19,7 +19,7 @@
 #include "unarchive.h"
 #include "busybox.h"
 
-extern void unpack_ar_archive(archive_handle_t *ar_archive)
+void unpack_ar_archive(archive_handle_t *ar_archive)
 {
 	char magic[7];
 

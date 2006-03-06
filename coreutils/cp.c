@@ -28,7 +28,7 @@
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 
-extern int cp_main(int argc, char **argv)
+int cp_main(int argc, char **argv)
 {
 	struct stat source_stat;
 	struct stat dest_stat;

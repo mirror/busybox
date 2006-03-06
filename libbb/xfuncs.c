@@ -26,7 +26,7 @@
 
 #ifndef DMALLOC
 #ifdef L_xmalloc
-extern void *xmalloc(size_t size)
+void *xmalloc(size_t size)
 {
 	void *ptr = malloc(size);
 	if (ptr == NULL && size != 0)
@@ -36,7 +36,7 @@ extern void *xmalloc(size_t size)
 #endif
 
 #ifdef L_xrealloc
-extern void *xrealloc(void *ptr, size_t size)
+void *xrealloc(void *ptr, size_t size)
 {
 	ptr = realloc(ptr, size);
 	if (ptr == NULL && size != 0)
@@ -46,7 +46,7 @@ extern void *xrealloc(void *ptr, size_t size)
 #endif
 
 #ifdef L_xcalloc
-extern void *xcalloc(size_t nmemb, size_t size)
+void *xcalloc(size_t nmemb, size_t size)
 {
 	void *ptr = calloc(nmemb, size);
 	if (ptr == NULL && nmemb != 0 && size != 0)
@@ -96,7 +96,7 @@ FILE *bb_xfopen(const char *path, const char *mode)
 #endif
 
 #ifdef L_xopen
-extern int bb_xopen(const char *pathname, int flags)
+int bb_xopen(const char *pathname, int flags)
 {
 	int ret;
 
@@ -109,7 +109,7 @@ extern int bb_xopen(const char *pathname, int flags)
 #endif
 
 #ifdef L_xread
-extern ssize_t bb_xread(int fd, void *buf, size_t count)
+ssize_t bb_xread(int fd, void *buf, size_t count)
 {
 	ssize_t size;
 
@@ -122,7 +122,7 @@ extern ssize_t bb_xread(int fd, void *buf, size_t count)
 #endif
 
 #ifdef L_xread_all
-extern void bb_xread_all(int fd, void *buf, size_t count)
+void bb_xread_all(int fd, void *buf, size_t count)
 {
 	ssize_t size;
 
@@ -138,7 +138,7 @@ extern void bb_xread_all(int fd, void *buf, size_t count)
 #endif
 
 #ifdef L_xread_char
-extern unsigned char bb_xread_char(int fd)
+unsigned char bb_xread_char(int fd)
 {
 	char tmp;
 
@@ -149,7 +149,7 @@ extern unsigned char bb_xread_char(int fd)
 #endif
 
 #ifdef L_xferror
-extern void bb_xferror(FILE *fp, const char *fn)
+void bb_xferror(FILE *fp, const char *fn)
 {
 	if (ferror(fp)) {
 		bb_error_msg_and_die("%s", fn);
@@ -158,14 +158,14 @@ extern void bb_xferror(FILE *fp, const char *fn)
 #endif
 
 #ifdef L_xferror_stdout
-extern void bb_xferror_stdout(void)
+void bb_xferror_stdout(void)
 {
 	bb_xferror(stdout, bb_msg_standard_output);
 }
 #endif
 
 #ifdef L_xfflush_stdout
-extern void bb_xfflush_stdout(void)
+void bb_xfflush_stdout(void)
 {
 	if (fflush(stdout)) {
 		bb_perror_msg_and_die(bb_msg_standard_output);

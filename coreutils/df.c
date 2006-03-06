@@ -46,7 +46,7 @@ static long kscale(long b, long bs)
 }
 #endif
 
-extern int df_main(int argc, char **argv)
+int df_main(int argc, char **argv)
 {
 	long blocks_used;
 	long blocks_percent_used;

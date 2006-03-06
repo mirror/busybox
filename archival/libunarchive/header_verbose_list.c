@@ -4,7 +4,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-extern void header_verbose_list(const file_header_t *file_header)
+void header_verbose_list(const file_header_t *file_header)
 {
 	struct tm *mtime = localtime(&(file_header->mtime));
 

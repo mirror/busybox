@@ -20,7 +20,7 @@
 #include "libbb.h"
 
 /* transformer(), more than meets the eye */
-extern int open_transformer(int src_fd, int (*transformer)(int src_fd, int dst_fd))
+int open_transformer(int src_fd, int (*transformer)(int src_fd, int dst_fd))
 {
 	int fd_pipe[2];
 	int pid;

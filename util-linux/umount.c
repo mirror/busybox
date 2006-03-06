@@ -30,7 +30,7 @@
 #define OPT_IGNORED			32	// -v is ignored
 #define OPT_ALL				(ENABLE_FEATURE_UMOUNT_ALL ? 64 : 0)
 
-extern int umount_main(int argc, char **argv)
+int umount_main(int argc, char **argv)
 {
 	int doForce;
 	char path[2*PATH_MAX];

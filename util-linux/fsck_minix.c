@@ -1321,7 +1321,7 @@ static void free_name_list(void)
 }
 #endif
 
-extern int fsck_minix_main(int argc, char **argv)
+int fsck_minix_main(int argc, char **argv)
 {
 	struct termios tmp;
 	int count;

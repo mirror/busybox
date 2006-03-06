@@ -46,7 +46,7 @@ static void catchalarm(int ATTRIBUTE_UNUSED junk)
 }
 
 
-extern int sulogin_main(int argc, char **argv)
+int sulogin_main(int argc, char **argv)
 {
 	char *cp;
 	char *device = (char *) 0;

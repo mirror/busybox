@@ -28,7 +28,7 @@
 #include <string.h>
 #include "busybox.h"
 
-extern int bb_echo(int ATTRIBUTE_UNUSED argc, char **argv)
+int bb_echo(int ATTRIBUTE_UNUSED argc, char **argv)
 {
 #ifndef CONFIG_FEATURE_FANCY_ECHO
 #define eflag '\\'

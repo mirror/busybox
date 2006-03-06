@@ -100,7 +100,7 @@ static int pencode(char *s)
 }
 
 
-extern int logger_main(int argc, char **argv)
+int logger_main(int argc, char **argv)
 {
 	int pri = LOG_USER | LOG_NOTICE;
 	int option = 0;

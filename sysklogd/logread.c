@@ -75,7 +75,7 @@ static inline void sem_down(int semid)
 		error_exit("semop[SMrdn]");
 }
 
-extern int logread_main(int argc, char **argv)
+int logread_main(int argc, char **argv)
 {
 	int i;
 	int follow=0;

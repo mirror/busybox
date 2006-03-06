@@ -31,7 +31,7 @@
 /*	Read a block of data from stdin, write it to stdout.
  *  Activity is indicated by a '.' to stderr
  */
-extern int pipe_progress_main(int argc, char **argv)
+int pipe_progress_main(int argc, char **argv)
 {
 	RESERVE_CONFIG_BUFFER(buf, PIPE_PROGRESS_SIZE);
 	time_t t = time(NULL);

@@ -43,7 +43,7 @@
 #define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
 
 
-extern int uptime_main(int argc, char **argv)
+int uptime_main(int argc, char **argv)
 {
 	int updays, uphours, upminutes;
 	struct sysinfo info;

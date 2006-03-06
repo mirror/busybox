@@ -20,7 +20,7 @@
 #include "unarchive.h"
 #include "libbb.h"
 
-extern void archive_xread_all(const archive_handle_t *archive_handle, void *buf, const size_t count)
+void archive_xread_all(const archive_handle_t *archive_handle, void *buf, const size_t count)
 {
 	ssize_t size;
 

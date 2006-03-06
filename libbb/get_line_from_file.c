@@ -45,14 +45,14 @@ char *bb_get_chunk_from_file(FILE *file, int *end)
 }
 
 /* Get line, including trailing /n if any */
-extern char *bb_get_line_from_file(FILE *file)
+char *bb_get_line_from_file(FILE *file)
 {
 	int i;
 	return bb_get_chunk_from_file(file, &i);
 }
 
 /* Get line.  Remove trailing /n */
-extern char *bb_get_chomped_line_from_file(FILE *file)
+char *bb_get_chomped_line_from_file(FILE *file)
 {
 	int i;
 	char *c=bb_get_chunk_from_file(file, &i);

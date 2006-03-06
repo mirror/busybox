@@ -332,7 +332,7 @@ static inline void showmode(struct fb_var_screeninfo *v)
 #ifdef STANDALONE
 int main(int argc, char **argv)
 #else
-extern int fbset_main(int argc, char **argv)
+int fbset_main(int argc, char **argv)
 #endif
 {
 	struct fb_var_screeninfo var, varset;

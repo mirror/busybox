@@ -819,7 +819,7 @@ static char *current_prompt;
  */
 
 
-extern int msh_main(int argc, char **argv)
+int msh_main(int argc, char **argv)
 {
 	REGISTER int f;
 	REGISTER char *s;

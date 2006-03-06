@@ -49,7 +49,7 @@ static const struct option install_long_options[] = {
 	{ 0,	0,	0,	0 }
 };
 
-extern int install_main(int argc, char **argv)
+int install_main(int argc, char **argv)
 {
 	mode_t mode;
 	uid_t uid;

@@ -22,7 +22,7 @@ static char *longname = NULL;
 static char *linkname = NULL;
 #endif
 
-extern char get_header_tar(archive_handle_t *archive_handle)
+char get_header_tar(archive_handle_t *archive_handle)
 {
 	file_header_t *file_header = archive_handle->file_header;
 	union {

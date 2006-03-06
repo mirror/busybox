@@ -55,7 +55,7 @@ static inline void filename2modname(char *modname, const char *afterslash)
 }
 #endif
 
-extern int rmmod_main(int argc, char **argv)
+int rmmod_main(int argc, char **argv)
 {
 	int n, ret = EXIT_SUCCESS;
 	unsigned int flags = O_NONBLOCK|O_EXCL;

@@ -22,7 +22,7 @@
 #include <selinux/selinux.h>  /* for is_selinux_enabled()  */
 #endif
 
-extern int ps_main(int argc, char **argv)
+int ps_main(int argc, char **argv)
 {
 	procps_status_t * p;
 	int i, len;

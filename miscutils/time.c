@@ -456,7 +456,7 @@ static void run_command (char *const *cmd, resource_t *resp)
     signal (SIGQUIT, quit_signal);
 }
 
-extern int time_main (int argc, char **argv)
+int time_main (int argc, char **argv)
 {
     int gotone;
     resource_t res;

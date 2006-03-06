@@ -36,7 +36,7 @@
 #define LN_BACKUP           8
 #define LN_SUFFIX           16
 
-extern int ln_main(int argc, char **argv)
+int ln_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;
 	int flag;

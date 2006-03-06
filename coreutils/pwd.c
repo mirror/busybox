@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-extern int pwd_main(int argc, char **argv)
+int pwd_main(int argc, char **argv)
 {
 	char *buf;
 

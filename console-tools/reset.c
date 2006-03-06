@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
-extern int reset_main(int argc, char **argv)
+int reset_main(int argc, char **argv)
 {
 	if (isatty(1)) {
 		/* See 'man 4 console_codes' for details:

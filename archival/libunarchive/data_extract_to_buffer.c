@@ -17,7 +17,7 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-extern void data_extract_to_buffer(archive_handle_t *archive_handle)
+void data_extract_to_buffer(archive_handle_t *archive_handle)
 {
 	const unsigned int size = archive_handle->file_header->size;
 

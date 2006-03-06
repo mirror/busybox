@@ -280,7 +280,7 @@ static void load_regexes_from_file(llist_t *fopt)
 }
 
 
-extern int grep_main(int argc, char **argv)
+int grep_main(int argc, char **argv)
 {
 	FILE *file;
 	int matched;

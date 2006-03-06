@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
-extern int rm_main(int argc, char **argv)
+int rm_main(int argc, char **argv)
 {
 	int status = 0;
 	int flags = 0;

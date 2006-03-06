@@ -892,7 +892,7 @@ static int inflate_get_next_window(void)
 }
 
 /* Initialise bytebuffer, be careful not to overfill the buffer */
-extern void inflate_init(unsigned int bufsize)
+void inflate_init(unsigned int bufsize)
 {
 	/* Set the bytebuffer size, default is same as gunzip_wsize */
 	bytebuffer_max = bufsize + 8;
@@ -900,12 +900,12 @@ extern void inflate_init(unsigned int bufsize)
 	bytebuffer_size = 0;
 }
 
-extern void inflate_cleanup(void)
+void inflate_cleanup(void)
 {
 	free(bytebuffer);
 }
 
-extern int inflate_unzip(int in, int out)
+int inflate_unzip(int in, int out)
 {
 	ssize_t nwrote;
 	typedef void (*sig_type) (int);
@@ -952,7 +952,7 @@ extern int inflate_unzip(int in, int out)
 	return 0;
 }
 
-extern int inflate_gunzip(int in, int out)
+int inflate_gunzip(int in, int out)
 {
 	unsigned int stored_crc = 0;
 	unsigned int count;

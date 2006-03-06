@@ -202,7 +202,7 @@ static int complement(unsigned char *buffer, int buffer_len)
 	return ix;
 }
 
-extern int tr_main(int argc, char **argv)
+int tr_main(int argc, char **argv)
 {
 	register unsigned char *ptr;
 	int output_length=0, input_length;

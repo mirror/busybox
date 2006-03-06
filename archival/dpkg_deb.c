@@ -28,7 +28,7 @@
 #define DPKG_DEB_OPT_EXTRACT	8
 #define DPKG_DEB_OPT_EXTRACT_VERBOSE	16
 
-extern int dpkg_deb_main(int argc, char **argv)
+int dpkg_deb_main(int argc, char **argv)
 {
 	archive_handle_t *ar_archive;
 	archive_handle_t *tar_archive;

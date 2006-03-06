@@ -22,7 +22,7 @@
 
 #include <libbb.h>
 
-extern void bb_warn_ignoring_args(int n)
+void bb_warn_ignoring_args(int n)
 {
 	if (n) {
 		bb_perror_msg("ignoring all arguments");

@@ -684,7 +684,7 @@ static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
 /* Example usage: decompress src_fd to dst_fd.  (Stops at end of bzip data,
    not end of file.) */
 
-extern int uncompressStream(int src_fd, int dst_fd)
+int uncompressStream(int src_fd, int dst_fd)
 {
 	char *outbuf;
 	bunzip_data *bd;

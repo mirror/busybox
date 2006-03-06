@@ -43,7 +43,7 @@
 #error struct utmp member char[] size(s) have changed!
 #endif
 
-extern int last_main(int argc, char **argv)
+int last_main(int argc, char **argv)
 {
 	struct utmp ut;
 	int n, file = STDIN_FILENO;

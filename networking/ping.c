@@ -138,7 +138,7 @@ static void ping(const char *host)
 	return;
 }
 
-extern int ping_main(int argc, char **argv)
+int ping_main(int argc, char **argv)
 {
 	argc--;
 	argv++;
@@ -377,7 +377,7 @@ static void ping(const char *host)
 	pingstats(0);
 }
 
-extern int ping_main(int argc, char **argv)
+int ping_main(int argc, char **argv)
 {
 	char *thisarg;
 

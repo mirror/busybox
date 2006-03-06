@@ -125,7 +125,7 @@ static void unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 	}
 }
 
-extern int unzip_main(int argc, char **argv)
+int unzip_main(int argc, char **argv)
 {
 	zip_header_t zip_header;
 	enum {v_silent, v_normal, v_list} verbosity = v_normal;

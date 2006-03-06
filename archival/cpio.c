@@ -38,7 +38,7 @@
 #define CPIO_OPT_CREATE_LEADING_DIR	0x20
 #define CPIO_OPT_PRESERVE_MTIME		0x40
 
-extern int cpio_main(int argc, char **argv)
+int cpio_main(int argc, char **argv)
 {
 	archive_handle_t *archive_handle;
 	char *cpio_filename = NULL;

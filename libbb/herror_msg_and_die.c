@@ -24,7 +24,7 @@
 
 #include "libbb.h"
 
-extern void bb_herror_msg_and_die(const char *s, ...)
+void bb_herror_msg_and_die(const char *s, ...)
 {
 	va_list p;
 

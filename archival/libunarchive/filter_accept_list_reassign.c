@@ -28,7 +28,7 @@
  *  e.g. if its a .tar.gz modify archive_handle->sub_archive to process a .tar.gz
  *       or if its a .tar.bz2 make archive_handle->sub_archive handle that
  */
-extern char filter_accept_list_reassign(archive_handle_t *archive_handle)
+char filter_accept_list_reassign(archive_handle_t *archive_handle)
 {
 	/* Check the file entry is in the accept list */
 	if (find_list_entry(archive_handle->accept, archive_handle->file_header->name)) {

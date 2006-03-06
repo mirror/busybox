@@ -31,7 +31,7 @@
 /* From <linux/fd.h> */
 #define FDFLUSH  _IO(2,0x4b)
 
-extern int fdflush_main(int argc, char **argv)
+int fdflush_main(int argc, char **argv)
 {
 	int fd, result;
 

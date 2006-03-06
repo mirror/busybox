@@ -1191,7 +1191,7 @@ static int get_next_history(void)
 }
 
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
-extern void load_history ( const char *fromfile )
+void load_history ( const char *fromfile )
 {
 	FILE *fp;
 	int hi;
@@ -1225,7 +1225,7 @@ extern void load_history ( const char *fromfile )
 	cur_history = n_history = hi;
 }
 
-extern void save_history ( const char *tofile )
+void save_history ( const char *tofile )
 {
 	FILE *fp = fopen ( tofile, "w" );
 

@@ -23,7 +23,7 @@
  *  Returns a list of all matching PIDs
  *  It is the caller's duty to free the returned pidlist.
  */
-extern long* find_pid_by_name( const char* pidName)
+long* find_pid_by_name( const char* pidName)
 {
 	long* pidList;
 	int i=0;
@@ -42,7 +42,7 @@ extern long* find_pid_by_name( const char* pidName)
 	return pidList;
 }
 
-extern long *pidlist_reverse(long *pidList)
+long *pidlist_reverse(long *pidList)
 {
 	int i=0;
 	while (pidList[i] > 0 && ++i);

@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-extern int mktemp_main(int argc, char **argv)
+int mktemp_main(int argc, char **argv)
 {
 	unsigned long flags = bb_getopt_ulflags(argc, argv, "dq");
 

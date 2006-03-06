@@ -332,7 +332,7 @@ static void write1(const char *out)
 	fputs(out, stdout);
 }
 
-extern int vi_main(int argc, char **argv)
+int vi_main(int argc, char **argv)
 {
 	int c;
 	RESERVE_CONFIG_BUFFER(STATUS_BUFFER, STATUS_BUFFER_LEN);

@@ -183,7 +183,7 @@ static int test_eaccess(char *path, int mode);
 static int is_a_group_member(gid_t gid);
 static void initialize_group_array(void);
 
-extern int test_main(int argc, char **argv)
+int test_main(int argc, char **argv)
 {
 	int res;
 

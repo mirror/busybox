@@ -62,7 +62,7 @@ out:
 }
 
 
-extern int bb_copyfd_size(int fd1, int fd2, const off_t size)
+int bb_copyfd_size(int fd1, int fd2, const off_t size)
 {
 	if (size) {
 		return(bb_full_fd_action(fd1, fd2, size));
@@ -70,7 +70,7 @@ extern int bb_copyfd_size(int fd1, int fd2, const off_t size)
 	return(0);
 }
 
-extern int bb_copyfd_eof(int fd1, int fd2)
+int bb_copyfd_eof(int fd1, int fd2)
 {
 	return(bb_full_fd_action(fd1, fd2, 0));
 }

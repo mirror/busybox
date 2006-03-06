@@ -103,7 +103,7 @@ static void doKlogd(const int console_log_level)
 #define OPT_LEVEL        1
 #define OPT_FOREGROUND   2
 
-extern int klogd_main(int argc, char **argv)
+int klogd_main(int argc, char **argv)
 {
 	unsigned long opt;
 	char *c_arg;

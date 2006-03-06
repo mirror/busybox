@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
-extern int tty_main(int argc, char **argv)
+int tty_main(int argc, char **argv)
 {
 	const char *s;
 	int silent;		/* Note: No longer relevant in SUSv3. */

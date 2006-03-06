@@ -40,7 +40,7 @@ static const struct option mkdir_long_options[] = {
 	{ 0, 0, 0, 0 }
 };
 
-extern int mkdir_main (int argc, char **argv)
+int mkdir_main (int argc, char **argv)
 {
 	mode_t mode = (mode_t)(-1);
 	int status = EXIT_SUCCESS;

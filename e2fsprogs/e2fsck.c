@@ -14897,7 +14897,7 @@ static float calc_percent(const struct percent_tbl *tbl, int pass, int curr,
 		+ tbl->table[pass-1]);
 }
 
-extern void e2fsck_clear_progbar(e2fsck_t ctx)
+void e2fsck_clear_progbar(e2fsck_t ctx)
 {
 	if (!(ctx->flags & E2F_FLAG_PROG_BAR))
 		return;

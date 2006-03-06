@@ -95,7 +95,7 @@ static unsigned short codetab[HSIZE];
  * with those of the compress() routine.  See the definitions above.
  */
 
-extern int uncompress(int fd_in, int fd_out)
+int uncompress(int fd_in, int fd_out)
 {
 	unsigned char *stackp;
 	long int code;

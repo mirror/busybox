@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern void bb_vperror_msg(const char *s, va_list p)
+void bb_vperror_msg(const char *s, va_list p)
 {
 	int err=errno;
 	if(s == 0) s = "";

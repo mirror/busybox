@@ -132,7 +132,7 @@ static int update_passwd(const struct passwd *pw, const char *crypt_pw)
 }
 
 
-extern int passwd_main(int argc, char **argv)
+int passwd_main(int argc, char **argv)
 {
 	int amroot;
 	char *cp;

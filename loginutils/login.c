@@ -59,7 +59,7 @@ static void alarm_handler ( int sig ATTRIBUTE_UNUSED)
 }
 
 
-extern int login_main(int argc, char **argv)
+int login_main(int argc, char **argv)
 {
 	char tty[BUFSIZ];
 	char full_tty[200];

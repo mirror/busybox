@@ -289,7 +289,7 @@ static void cut_file(FILE *file)
 }
 
 
-extern int cut_main(int argc, char **argv)
+int cut_main(int argc, char **argv)
 {
 	unsigned long opt;
 	char *sopt, *sdopt;

@@ -29,7 +29,7 @@
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 
-extern int mkfifo_main(int argc, char **argv)
+int mkfifo_main(int argc, char **argv)
 {
 	mode_t mode;
 	int retval = EXIT_SUCCESS;

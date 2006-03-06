@@ -35,7 +35,7 @@
 #define KILL 0
 #define KILLALL 1
 
-extern int kill_main(int argc, char **argv)
+int kill_main(int argc, char **argv)
 {
 	int whichApp, signo = SIGTERM;
 	const char *name;

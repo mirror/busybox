@@ -236,7 +236,7 @@ struct blkid_struct_tag_iterate {
 	struct list_head	*p;
 };
 
-extern blkid_tag_iterate blkid_tag_iterate_begin(blkid_dev dev)
+blkid_tag_iterate blkid_tag_iterate_begin(blkid_dev dev)
 {
 	blkid_tag_iterate	iter;
 
@@ -267,7 +267,7 @@ extern int blkid_tag_next(blkid_tag_iterate iter,
 	return 0;
 }
 
-extern void blkid_tag_iterate_end(blkid_tag_iterate iter)
+void blkid_tag_iterate_end(blkid_tag_iterate iter)
 {
 	if (!iter || iter->magic != TAG_ITERATE_MAGIC)
 		return;

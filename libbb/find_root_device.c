@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-extern char *find_block_device(char *path)
+char *find_block_device(char *path)
 {
 	DIR *dir;
 	struct dirent *entry;

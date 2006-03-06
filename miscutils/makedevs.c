@@ -77,7 +77,7 @@ int makedevs_main(int argc, char **argv)
 
 /* Licensed under the GPL v2 or later, see the file LICENSE in this tarball. */
 
-extern int makedevs_main(int argc, char **argv)
+int makedevs_main(int argc, char **argv)
 {
 	FILE *table = stdin;
 	char *rootdir = NULL;

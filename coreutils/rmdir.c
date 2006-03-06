@@ -28,7 +28,7 @@
 #include <libgen.h>
 #include "busybox.h"
 
-extern int rmdir_main(int argc, char **argv)
+int rmdir_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;
 	int flags;

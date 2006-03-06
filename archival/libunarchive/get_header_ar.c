@@ -21,7 +21,7 @@
 #include "unarchive.h"
 #include "libbb.h"
 
-extern char get_header_ar(archive_handle_t *archive_handle)
+char get_header_ar(archive_handle_t *archive_handle)
 {
 	file_header_t *typed = archive_handle->file_header;
 	union {

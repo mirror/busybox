@@ -39,7 +39,7 @@
 #include <sys/wait.h>
 #include "busybox.h"
 
-extern int watch_main(int argc, char **argv)
+int watch_main(int argc, char **argv)
 {
 	const int header_len = 40;
 	time_t t;

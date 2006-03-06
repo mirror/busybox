@@ -2612,7 +2612,7 @@ static rstream *next_input_file(void)
 	return &rsm;
 }
 
-extern int awk_main(int argc, char **argv)
+int awk_main(int argc, char **argv)
 {
 	char *s, *s1;
 	int i, j, c, flen;

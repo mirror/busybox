@@ -30,7 +30,7 @@
 #define GUNZIP_TO_STDOUT	1
 #define GUNZIP_FORCE	2
 
-extern int uncompress_main(int argc, char **argv)
+int uncompress_main(int argc, char **argv)
 {
 	int status = EXIT_SUCCESS;
 	unsigned long flags;

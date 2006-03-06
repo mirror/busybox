@@ -3,7 +3,7 @@
 #include "libbb.h"
 #include "unarchive.h" /* for external decl of check_header_gzip */
 
-extern void check_header_gzip(int src_fd)
+void check_header_gzip(int src_fd)
 {
 	union {
 		unsigned char raw[8];

@@ -405,7 +405,7 @@ static void check_suid (struct BB_applet *applet)
 
 
 
-extern void bb_show_usage (void)
+void bb_show_usage (void)
 {
   const char *format_string;
   const char *usage_string = usage_messages;

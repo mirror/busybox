@@ -244,7 +244,7 @@ obscure_msg(const char *old, const char *newval, const struct passwd *pwdp)
  *	check passwords.
  */
 
-extern int obscure(const char *old, const char *newval, const struct passwd *pwdp)
+int obscure(const char *old, const char *newval, const struct passwd *pwdp)
 {
 	const char *msg = obscure_msg(old, newval, pwdp);
 

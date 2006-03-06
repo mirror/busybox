@@ -57,7 +57,7 @@ static void gotsig(int sig)
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
 
 
-extern int more_main(int argc, char **argv)
+int more_main(int argc, char **argv)
 {
 	int c, lines, input = 0;
 	int please_display_more_prompt = 0;

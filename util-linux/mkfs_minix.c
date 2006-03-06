@@ -694,7 +694,7 @@ static void get_list_blocks(char *filename)
 		printf("one bad block\n");
 }
 
-extern int mkfs_minix_main(int argc, char **argv)
+int mkfs_minix_main(int argc, char **argv)
 {
 	int i=1;
 	char *tmp;

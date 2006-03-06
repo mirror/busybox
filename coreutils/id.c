@@ -53,7 +53,7 @@ static short printf_full(unsigned int id, const char *arg, const char prefix)
 	return status;
 }
 
-extern int id_main(int argc, char **argv)
+int id_main(int argc, char **argv)
 {
 	struct passwd *p;
 	uid_t uid;
