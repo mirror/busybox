@@ -47,8 +47,10 @@ extern int mknod_main(int argc, char **argv)
 
 		dev = 0;
 		if ((*name != 'p') && ((argc -= 2) == 2)) {
-			dev = (bb_xgetularg10_bnd(argv[2], 0, 255) << 8)
-				+ bb_xgetularg10_bnd(argv[3], 0, 255);
+			/* Autodetect what the system supports; thexe macros should
+			 * optimize out to two constants. */
+			dev = makedev(bb_xgetularg10_bnd(argv[2], 0, major(UINT_MAX)),
+						  bb_xgetularg10_bnd(argv[3], 0, minor(UINT_MAX)));
 		}
 
 		if (argc == 2) {
