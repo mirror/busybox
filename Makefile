@@ -10,8 +10,15 @@
 #--------------------------------------------------------------
 noconfig_targets := menuconfig config oldconfig randconfig \
 	defconfig allyesconfig allnoconfig allbareconfig \
+	clean distclean \
 	release tags
 
+# make-3.79.1 didn't support MAKEFILE_LIST
+# for building out-of-tree, users of make-3.79 still have to pass top_srcdir=
+# to make: make -f /srcs/busybox/Makefile top_srcdir=/srcs/busybox
+ifndef MAKEFILE_LIST
+MAKEFILE_LIST=.
+endif
 # the toplevel sourcedir
 ifndef top_srcdir
 top_srcdir:=$(shell cd $(dir $(firstword $(MAKEFILE_LIST))) && pwd)
@@ -59,6 +66,13 @@ endif
 #######################################################################
 # Try to workaround bugs in make
 
+# make-3.79.1 didn't understand order-only prerequisites ('|').
+# Just treat them as normal prerequisites. Note that this will lead to
+# spurious rebuilds.
+ifeq ($(MAKE_VERSION),3.79.1)
+|: ;
+endif
+
 # Workaround for bugs in make-3.80
 # eval is broken if it is in a conditional
 
@@ -85,7 +99,6 @@ $(eval $(1)+=$(if $(2),$(if $(shell $(LD) $(2) -o /dev/null -b binary /dev/null 
 endef
 
 #######################################################################
-
 
 -include $(top_srcdir)/Rules.mak
 
@@ -251,19 +264,20 @@ include $(patsubst %,%/Makefile.in,$(SRC_DIRS))
 # Then we need the dependencies for ..._OBJ
 define dir_pattern.o
 ifeq ($(os),.os)
-# write patterns for both .os and .o
 $(if $($(1)_OBJ.os),$($(1)_OBJ.os:.os=.o): $(top_builddir)/$(2)/%.o: $(top_srcdir)/$(2)/%.c)
 endif
 $(if $($(1)_OBJ$(os)),$($(1)_OBJ$(os)): $(top_builddir)/$(2)/%$(os): $(top_srcdir)/$(2)/%.c)
 $(if $($(1)_OBJ),$($(1)_OBJ): $(top_builddir)/$(2)/%.o: $(top_srcdir)/$(2)/%.c)
-
-lib-obj-y+=$($(1)_OBJ) $($(1)_OBJ.o) $($(1)_OBJ.os)
-lib-mobj-y+=$($(1)_MOBJ.o) $($(1)_MOBJ.os)
-bin-obj-y+=$($(1)_OBJ:.os=.o) $($(1)_OBJ.o:.os=.o) $($(1)_OBJ.os:.os=.o)
-bin-mobj-y+=$($(1)_MOBJ.o:.osm=.om) $($(1)_MOBJ.os:.osm=.om)
 endef
+
 # The actual directory patterns for .o*
 $(foreach d,$(DIRS),$(eval $(call dir_pattern.o,$(subst /,_,$(d)),$(d))))
+
+define file_lists
+$($(1)$(2)) $($(1)$(2).o) $($(1)$(2).os)
+endef
+bin-obj-y:=$(subst .os,.o,$(foreach d,$(DIRS),$(call file_lists,$(subst /,_,$(d)),_OBJ)))
+bin-mobj-y:=$(subst .osm,.om,$(foreach d,$(DIRS),$(call file_lists,$(subst /,_,$(d)),_MOBJ)))
 
 ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 # Finally pull in the dependencies (headers and other includes) of the
@@ -481,7 +495,7 @@ clean:
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html busybox.links \
-	    $(DO_INSTALL_LIBS) $(LIBBUSYBOX_SONAME) \
+	    libbusybox.so* \
 	    .config.old busybox busybox_unstripped
 	- rm -r -f _install testsuite/links
 	- find . -name .\*.flags -exec rm -f {} \;
