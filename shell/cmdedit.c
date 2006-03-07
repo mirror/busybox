@@ -442,9 +442,10 @@ static void redraw(int y, int back_cursor)
 }
 
 #ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
-static char delbuf[BUFSIZ];  /* a place to store deleted characters */
-static char *delp = delbuf;
-static int newdelflag;      /* whether delbuf should be reused yet */
+#define DELBUFSIZ 128
+static char *delbuf;  /* a (malloced) place to store deleted characters */
+static char *delp;
+static char newdelflag;      /* whether delbuf should be reused yet */
 #endif
 
 /* Delete the char in front of the cursor, optionally saving it
@@ -459,10 +460,13 @@ static void input_delete(int save)
 #ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
 	if (save) {
 		if (newdelflag) {
+			if (!delbuf)
+				delbuf = malloc(DELBUFSIZ);
+			/* safe if malloc fails */
 			delp = delbuf;
 			newdelflag = 0;
 		}
-		if (delp - delbuf < BUFSIZ)
+		if (delbuf && (delp - delbuf < DELBUFSIZ))
 			*delp++ = command_ps[j];
 	}
 #endif
@@ -1370,23 +1374,18 @@ vi_back_motion(char *command)
 #endif
 
 /*
- * the normal emacs mode and vi's insert mode are the same.
- * commands entered when in vi command mode ("escape mode") get
- * an extra bit added to distinguish them.  this lets them share
- * much of the code in the big switch and while loop.  i
- * experimented with an ugly macro to make the case labels for
- * these cases go away entirely when vi mode isn't configured, in
- * hopes of letting the jump tables get smaller:
- *  #define vcase(caselabel) caselabel
- * and then
- *      case CNTRL('A'):
- *      case vcase(VICMD('0'):)
- * but it didn't seem to make any difference in code size,
- * and the macro-ized code was too ugly.
+ * the emacs and vi modes share much of the code in the big
+ * command loop.  commands entered when in vi's command mode (aka
+ * "escape mode") get an extra bit added to distinguish them --
+ * this keeps them from being self-inserted.  this clutters the
+ * big switch a bit, but keeps all the code in one place.
  */
 
-#define VI_cmdbit 0x100
-#define VICMD(somecmd) ((somecmd)|VI_cmdbit)
+#define vbit 0x100
+
+/* leave out the "vi-mode"-only case labels if vi editing isn't
+ * configured. */
+#define vi_case(caselabel) USE_FEATURE_COMMAND_EDITING(caselabel)
 
 /* convert uppercase ascii to equivalent control char, for readability */
 #define CNTRL(uc_char) ((uc_char) - 0x40)
@@ -1398,8 +1397,9 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	int break_out = 0;
 	int lastWasTab = FALSE;
 	unsigned char c;
+	unsigned int ic;
 #ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
-	unsigned int ic, prevc;
+	unsigned int prevc;
 	int vi_cmdmode = 0;
 #endif
 	/* prepare before init handlers */
@@ -1438,38 +1438,37 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			/* if we can't read input then exit */
 			goto prepare_to_die;
 
+		ic = c;
+
 #ifdef CONFIG_FEATURE_COMMAND_EDITING_VI
 		newdelflag = 1;
-		ic = c;
 		if (vi_cmdmode)
-			ic |= VI_cmdbit;
-		switch (ic)
-#else
-		switch (c)
+			ic |= vbit;
 #endif
+		switch (ic)
 		{
 		case '\n':
 		case '\r':
-		case VICMD('\n'):
-		case VICMD('\r'):
+		vi_case( case '\n'|vbit: )
+		vi_case( case '\r'|vbit: )
 			/* Enter */
 			goto_new_line();
 			break_out = 1;
 			break;
 		case CNTRL('A'):
-		case VICMD('0'):
+		vi_case( case '0'|vbit: )
 			/* Control-a -- Beginning of line */
 			input_backward(cursor);
 			break;
 		case CNTRL('B'):
-		case VICMD('h'):
-		case VICMD('\b'):
-		case VICMD(DEL):
+		vi_case( case 'h'|vbit: )
+		vi_case( case '\b'|vbit: )
+		vi_case( case DEL|vbit: )
 			/* Control-b -- Move back one character */
 			input_backward(1);
 			break;
 		case CNTRL('C'):
-		case VICMD(CNTRL('C')):
+		vi_case( case CNTRL('C')|vbit: )
 			/* Control-c -- stop gathering input */
 			goto_new_line();
 #ifndef CONFIG_ASH
@@ -1503,13 +1502,13 @@ prepare_to_die:
 			}
 			break;
 		case CNTRL('E'):
-		case VICMD('$'):
+		vi_case( case '$'|vbit: )
 			/* Control-e -- End of line */
 			input_end();
 			break;
 		case CNTRL('F'):
-		case VICMD('l'):
-		case VICMD(' '):
+		vi_case( case 'l'|vbit: )
+		vi_case( case ' '|vbit: )
 			/* Control-f -- Move forward one character */
 			input_forward();
 			break;
@@ -1530,22 +1529,22 @@ prepare_to_die:
 			printf("\033[J");
 			break;
 		case CNTRL('L'):
-		case VICMD(CNTRL('L')):
+		vi_case( case CNTRL('L')|vbit: )
 			/* Control-l -- clear screen */
 			printf("\033[H");
 			redraw(0, len-cursor);
 			break;
 #if MAX_HISTORY >= 1
 		case CNTRL('N'):
-		case VICMD(CNTRL('N')):
-		case VICMD('j'):
+		vi_case( case CNTRL('N')|vbit: )
+		vi_case( case 'j'|vbit: )
 			/* Control-n -- Get next command in history */
 			if (get_next_history())
 				goto rewrite_line;
 			break;
 		case CNTRL('P'):
-		case VICMD(CNTRL('P')):
-		case VICMD('k'):
+		vi_case( case CNTRL('P')|vbit: )
+		vi_case( case 'k'|vbit: )
 			/* Control-p -- Get previous command from history */
 			if (cur_history > 0) {
 				get_previous_history();
@@ -1556,7 +1555,7 @@ prepare_to_die:
 			break;
 #endif
 		case CNTRL('U'):
-		case VICMD(CNTRL('U')):
+		vi_case( case CNTRL('U')|vbit: )
 			/* Control-U -- Clear line before cursor */
 			if (cursor) {
 				strcpy(command, command + cursor);
@@ -1564,7 +1563,7 @@ prepare_to_die:
 			}
 			break;
 		case CNTRL('W'):
-		case VICMD(CNTRL('W')):
+		vi_case( case CNTRL('W')|vbit: )
 			/* Control-W -- Remove the last word */
 			while (cursor > 0 && isspace(command[cursor-1]))
 				input_backspace();
@@ -1572,58 +1571,58 @@ prepare_to_die:
 				input_backspace();
 			break;
 #if CONFIG_FEATURE_COMMAND_EDITING_VI
-		case VICMD('i'):
+		case 'i'|vbit:
 			vi_cmdmode = 0;
 			break;
-		case VICMD('I'):
+		case 'I'|vbit:
 			input_backward(cursor);
 			vi_cmdmode = 0;
 			break;
-		case VICMD('a'):
+		case 'a'|vbit:
 			input_forward();
 			vi_cmdmode = 0;
 			break;
-		case VICMD('A'):
+		case 'A'|vbit:
 			input_end();
 			vi_cmdmode = 0;
 			break;
-		case VICMD('x'):
+		case 'x'|vbit:
 			input_delete(1);
 			break;
-		case VICMD('X'):
+		case 'X'|vbit:
 			if (cursor > 0) {
 				input_backward(1);
 				input_delete(1);
 			}
 			break;
-		case VICMD('W'):
+		case 'W'|vbit:
 			vi_Word_motion(command, 1);
 			break;
-		case VICMD('w'):
+		case 'w'|vbit:
 			vi_word_motion(command, 1);
 			break;
-		case VICMD('E'):
+		case 'E'|vbit:
 			vi_End_motion(command);
 			break;
-		case VICMD('e'):
+		case 'e'|vbit:
 			vi_end_motion(command);
 			break;
-		case VICMD('B'):
+		case 'B'|vbit:
 			vi_Back_motion(command);
 			break;
-		case VICMD('b'):
+		case 'b'|vbit:
 			vi_back_motion(command);
 			break;
-		case VICMD('C'):
+		case 'C'|vbit:
 			vi_cmdmode = 0;
 			/* fall through */
-		case VICMD('D'):
+		case 'D'|vbit:
 			goto clear_to_eol;
 
-		case VICMD('c'):
+		case 'c'|vbit:
 			vi_cmdmode = 0;
 			/* fall through */
-		case VICMD('d'):
+		case 'd'|vbit:
 			{
 			int nc, sc;
 			sc = cursor;
@@ -1682,13 +1681,13 @@ prepare_to_die:
 			}
 			}
 			break;
-		case VICMD('p'):
+		case 'p'|vbit:
 			input_forward();
 			/* fallthrough */
-		case VICMD('P'):
+		case 'P'|vbit:
 			put();
 			break;
-		case VICMD('r'):
+		case 'r'|vbit:
 			if (safe_read(0, &c, 1) < 1)
 				goto prepare_to_die;
 			if (c == 0)
@@ -1700,7 +1699,9 @@ prepare_to_die:
 			}
 			break;
 #endif /* CONFIG_FEATURE_COMMAND_EDITING_VI */
-		case ESC:{
+
+		case ESC:
+
 #if CONFIG_FEATURE_COMMAND_EDITING_VI
 			if (vi_mode) {
 				/* ESC: insert mode --> command mode */
@@ -1714,8 +1715,8 @@ prepare_to_die:
 				goto prepare_to_die;
 			/* different vt100 emulations */
 			if (c == '[' || c == 'O') {
-		case VICMD('['):
-		case VICMD('O'):
+		vi_case( case '['|vbit: )
+		vi_case( case 'O'|vbit: )
 				if (safe_read(0, &c, 1) < 1)
 					goto prepare_to_die;
 			}
@@ -1787,7 +1788,6 @@ rewrite_line:
 				beep();
 			}
 			break;
-		}
 
 		default:        /* If it's regular input, do the normal thing */
 #ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
