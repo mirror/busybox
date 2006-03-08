@@ -108,13 +108,28 @@ struct romfs_super_block {
 	unsigned char	ros_volume[16];
 };
 
+struct cramfs_super_block {
+	__u8		magic[4];
+	__u32		size;
+	__u32		flags;
+	__u32		future;
+	__u8		signature[16];
+	struct cramfs_info {
+		__u32		crc;
+		__u32		edition;
+		__u32		blocks;
+		__u32		files;
+	} info;
+	__u8		name[16];
+};
+
 struct swap_id_block {
 /*	unsigned char	sws_boot[1024]; */
 	__u32		sws_version;
 	__u32		sws_lastpage;
 	__u32		sws_nrbad;
 	unsigned char	sws_uuid[16];
-	unsigned char	sws_volume[16];
+	char		sws_volume[16];
 	unsigned char	sws_pad[117];
 	__u32		sws_badpg;
 };
@@ -216,22 +231,22 @@ struct ocfs_volume_header {
 	unsigned char	minor_version[4];
 	unsigned char	major_version[4];
 	unsigned char	signature[128];
-	unsigned char  mount[128];
-	unsigned char  mount_len[2];
+	char		mount[128];
+	unsigned char   mount_len[2];
 };
 
 struct ocfs_volume_label {
 	unsigned char	disk_lock[48];
-	unsigned char	label[64];
+	char		label[64];	
 	unsigned char	label_len[2];
 	unsigned char  vol_id[16];
 	unsigned char  vol_id_len[2];
 };
 
 #define ocfsmajor(o) ((__u32)o.major_version[0] \
-		   + (((__u32) o.major_version[1]) << 8) \
-		   + (((__u32) o.major_version[2]) << 16) \
-		   + (((__u32) o.major_version[3]) << 24))
+                   + (((__u32) o.major_version[1]) << 8) \
+                   + (((__u32) o.major_version[2]) << 16) \
+                   + (((__u32) o.major_version[3]) << 24))
 #define ocfslabellen(o)	((__u32)o.label_len[0] + (((__u32) o.label_len[1]) << 8))
 #define ocfsmountlen(o)	((__u32)o.mount_len[0] + (((__u32) o.mount_len[1])<<8))
 
@@ -241,7 +256,7 @@ struct ocfs2_super_block {
 	unsigned char  signature[8];
 	unsigned char  s_dummy1[184];
 	unsigned char  s_dummy2[80];
-	unsigned char  s_label[64];
+	char	       s_label[64];
 	unsigned char  s_uuid[16];
 };
 

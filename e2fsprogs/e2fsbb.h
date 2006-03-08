@@ -11,8 +11,8 @@
 #include "libbb.h"
 
 /* version we've last synced against */
-#define E2FSPROGS_VERSION "1.37"
-#define E2FSPROGS_DATE "21-Mar-2005"
+#define E2FSPROGS_VERSION "1.38"
+#define E2FSPROGS_DATE "30-Jun-2005"
 
 /* make sure com_err.h isnt included before us */
 #ifdef __COM_ERR_H__
@@ -51,7 +51,7 @@ typedef long errcode_t;
 #define HAVE_UNISTD_H 1
 
 /* Endianness */
-#if __BYTE_ORDER== __BIG_ENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
 #define ENABLE_SWAPFS 1
 #define WORDS_BIGENDIAN 1
 #endif

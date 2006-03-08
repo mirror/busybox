@@ -33,6 +33,11 @@
 
 #include <stdlib.h>
 
+#ifdef TEST_PROGRAM
+#define blkid_debug_dump_dev(dev)  (debug_dump_dev(dev))
+static void debug_dump_dev(blkid_dev dev);
+#endif
+
 /*
  * File format:
  *
@@ -355,7 +360,7 @@ static int blkid_parse_line(blkid_cache cache, blkid_dev *dev_p, char *cp)
 		blkid_free_dev(dev);
 	}
 
-	DEB_DUMP_DEV(DEBUG_READ, dev);
+	DBG(DEBUG_READ, blkid_debug_dump_dev(dev));
 
 	return ret;
 }
@@ -433,6 +438,32 @@ errout:
 }
 
 #ifdef TEST_PROGRAM
+static void debug_dump_dev(blkid_dev dev)
+{
+	struct list_head *p;
+
+	if (!dev) {
+		printf("  dev: NULL\n");
+		return;
+	}
+
+	printf("  dev: name = %s\n", dev->bid_name);
+	printf("  dev: DEVNO=\"0x%0llx\"\n", dev->bid_devno);
+	printf("  dev: TIME=\"%lu\"\n", dev->bid_time);
+	printf("  dev: PRI=\"%d\"\n", dev->bid_pri);
+	printf("  dev: flags = 0x%08X\n", dev->bid_flags);
+
+	list_for_each(p, &dev->bid_tags) {
+		blkid_tag tag = list_entry(p, struct blkid_struct_tag, bit_tags);
+		if (tag)
+			printf("    tag: %s=\"%s\"\n", tag->bit_name, 
+			       tag->bit_val);
+		else
+			printf("    tag: NULL\n");
+	}
+	printf("\n");
+}
+
 int main(int argc, char**argv)
 {
 	blkid_cache cache = NULL;

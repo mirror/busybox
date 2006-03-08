@@ -3712,6 +3712,8 @@ err_out:
  *      @j      journal
  *      @l      lost+found
  *      @L      is a link
+ *      @m      multiply-claimed
+ *      @n      invalid
  *      @o      orphaned
  *      @p      problem in
  *      @r      root inode
@@ -3749,6 +3751,8 @@ static const char * const abbrevs[] = {
 	N_("hHTREE @d @i"),
 	N_("llost+found"),
 	N_("Lis a link"),
+    N_("mmultiply-claimed"),
+    N_("ninvalid"),
 	N_("oorphaned"),
 	N_("pproblem in"),
 	N_("rroot @i"),
@@ -4698,7 +4702,8 @@ static void e2fsck_pass1(e2fsck_t ctx)
 	if (ctx->progress)
 		if ((ctx->progress)(ctx, 1, 0, ctx->fs->group_desc_count))
 			return;
-	if (fs->super->s_wtime < fs->super->s_inodes_count)
+	if ((fs->super->s_wtime < fs->super->s_inodes_count) ||
+	    (fs->super->s_mtime < fs->super->s_inodes_count))
 		busted_fs_time = 1;
 
 	while (1) {
@@ -5052,6 +5057,11 @@ static void e2fsck_pass1(e2fsck_t ctx)
 			ctx->flags |= E2F_FLAG_ABORT;
 			return;
 		}
+		e2fsck_read_inode(ctx, EXT2_RESIZE_INO, inode,
+				  "recreate inode");
+		inode->i_mtime = time(0);
+		e2fsck_write_inode(ctx, EXT2_RESIZE_INO, inode, 
+				  "recreate inode");
 		fs->block_map = save_bmap;
 		ctx->flags &= ~E2F_FLAG_RESIZE_INODE;
 	}
@@ -6702,7 +6712,7 @@ static void pass1d(e2fsck_t ctx, char *block_buf)
 		shared_len = 0;
 		file_ok = 1;
 		ino = (ext2_ino_t)VOIDPTR_TO_INT(dnode_getkey(n));
-		if (ino == EXT2_BAD_INO)
+		if (ino == EXT2_BAD_INO || ino == EXT2_RESIZE_INO)
 			continue;
 
 		/*
@@ -10052,7 +10062,7 @@ static const char * const prompt[] = {
 	N_("Abort"),            /* 11 */
 	N_("Split"),            /* 12 */
 	N_("Continue"),         /* 13 */
-	N_("Clone duplicate/bad blocks"), /* 14 */
+	N_("Clone multiply-claimed blocks"), /* 14 */
 	N_("Delete file"),      /* 15 */
 	N_("Suppress messages"),/* 16 */
 	N_("Unlink"),           /* 17 */
@@ -10080,7 +10090,7 @@ static const char * const preen_msg[] = {
 	N_("ABORTED"),          /* 11 */
 	N_("SPLIT"),            /* 12 */
 	N_("CONTINUING"),       /* 13 */
-	N_("DUPLICATE/BAD BLOCKS CLONED"), /* 14 */
+	N_("MULTIPLY-CLAIMED BLOCKS CLONED"), /* 14 */
 	N_("FILE DELETED"),     /* 15 */
 	N_("SUPPRESSED"),       /* 16 */
 	N_("UNLINKED"),         /* 17 */
@@ -10147,12 +10157,11 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Relocate hint */
 	{ PR_0_RELOCATE_HINT,
-	  N_("Note: if there is several inode or block bitmap blocks\n"
-	  "which require relocation, or one part of the inode table\n"
-	  "which must be moved, you may wish to try running e2fsck\n"
-	  "with the '-b %S' option first.  The problem may lie only\n"
-	  "with the primary block group descriptor, and the backup\n"
-	  "block group descriptor may be OK.\n\n"),
+	  N_("Note: if several inode or block bitmap blocks or part\n"
+	  "of the inode table require relocation, you may wish to try\n"
+	  "running e2fsck with the '-b %S' option first.  The problem\n"
+	  "may lie only with the primary block group descriptors, and\n"
+	  "the backup block group descriptors may be OK.\n\n"),
 	  PROMPT_NONE, PR_PREEN_OK | PR_NOCOLLATE },
 
 	/* Miscellaneous superblock corruption */
@@ -10167,7 +10176,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Inode count in superblock is incorrect */
 	{ PR_0_INODE_COUNT_WRONG,
-	  N_("@i count in @S is %i, should be %j.\n"),
+	  N_("@i count in @S is %i, @s %j.\n"),
 	  PROMPT_FIX, 0 },
 
 	{ PR_0_HURD_CLEAR_FILETYPE,
@@ -10176,7 +10185,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Journal inode is invalid */
 	{ PR_0_JOURNAL_BAD_INODE,
-	  N_("@S has a bad ext3 @j (@i %i).\n"),
+	  N_("@S has an @n ext3 @j (@i %i).\n"),
 	  PROMPT_CLEAR, PR_PREEN_OK },
 
 	/* The external journal has (unsupported) multiple filesystems */
@@ -10224,7 +10233,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Journal has data, but recovery flag is clear */
 	{ PR_0_JOURNAL_RECOVERY_CLEAR,
-	  N_("ext3 recovery flag clear, but @j has data.\n"),
+	  N_("ext3 recovery flag is clear, but @j has data.\n"),
 	  PROMPT_NONE, 0 },
 
 	/* Ask if we should clear the journal */
@@ -10269,7 +10278,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Filesystem revision is 0, but feature flags are set */
 	{ PR_0_FS_REV_LEVEL,
-	  "@f has feature flag(s) set, but is a revision 0 @f.  ",
+	  N_("@f has feature flag(s) set, but is a revision 0 @f.  "),
 	  PROMPT_FIX, PR_PREEN_OK | PR_NO_OK },
 
 	/* Journal superblock has an unknown read-only feature flag set */
@@ -10289,7 +10298,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Moving journal to hidden file */
 	{ PR_0_MOVE_JOURNAL,
-	  N_("Moving @j from /%s to hidden inode.\n\n"),
+	  N_("Moving @j from /%s to hidden @i.\n\n"),
 	  PROMPT_NONE, 0 },
 
 	/* Error moving journal to hidden file */
@@ -10299,7 +10308,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Clearing V2 journal superblock */
 	{ PR_0_CLEAR_V2_JOURNAL,
-	  N_("Found invalid V2 @j @S fields (from V1 journal).\n"
+	  N_("Found @n V2 @j @S fields (from V1 @j).\n"
 	     "Clearing fields beyond the V1 @j @S...\n\n"),
 	  PROMPT_NONE, 0 },
 
@@ -10316,7 +10325,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Resize_inode not enabled, but resize inode is non-zero */
 	{ PR_0_CLEAR_RESIZE_INODE,
-	  N_("Resize_@i not enabled, but the resize inode is non-zero.  "),
+	  N_("Resize_@i not enabled, but the resize @i is non-zero.  "),
 	  PROMPT_CLEAR, 0 },
 
 	/* Resize inode invalid */
@@ -10342,7 +10351,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Reserved inode has bad mode */
 	{ PR_1_RESERVED_BAD_MODE,
-	  N_("Reserved @i %i %Q has bad mode.  "),
+	  N_("Reserved @i %i (%Q) has @n mode.  "),
 	  PROMPT_CLEAR, PR_PREEN_OK },
 
 	/* Deleted inode has zero dtime */
@@ -10449,9 +10458,8 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Bad primary block prompt */
 	{ PR_1_BAD_PRIMARY_BLOCK_PROMPT,
-	  N_("You can clear the this @b (and hope for the best) from the\n"
-	  "bad @b list and hope that @b is really OK, but there are no\n"
-	  "guarantees.\n\n"),
+	  N_("You can remove this @b from the bad @b list and hope\n"
+	     "that the @b is really OK.  But there are no guarantees.\n\n"),
 	  PROMPT_CLEAR, PR_PREEN_NOMSG },
 
 	/* Bad primary superblock */
@@ -10514,12 +10522,12 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Error allocating inode bitmap */
 	{ PR_1_ALLOCATE_IBITMAP_ERROR,
-	  "@A @i @B (%N): %m\n",
+	  N_("@A @i @B (%N): %m\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Error allocating block bitmap */
 	{ PR_1_ALLOCATE_BBITMAP_ERROR,
-	  "@A @b @B (%N): %m\n",
+	  N_("@A @b @B (%N): %m\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Error allocating icount structure */
@@ -10579,17 +10587,17 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Non-zero size for device, fifo or socket inode */
 	{ PR_1_SET_NONZSIZE,
-	  "Special (@v/socket/fifo) @i %i has non-zero size.  ",
+	  N_("Special (@v/socket/fifo) @i %i has non-zero size.  "),
 	  PROMPT_FIX, PR_PREEN_OK },
 
 	/* Filesystem revision is 0, but feature flags are set */
 	{ PR_1_FS_REV_LEVEL,
-	  "@f has feature flag(s) set, but is a revision 0 @f.  ",
+	  N_("@f has feature flag(s) set, but is a revision 0 @f.  "),
 	  PROMPT_FIX, PR_PREEN_OK | PR_NO_OK },
 
 	/* Journal inode is not in use, but contains data */
 	{ PR_1_JOURNAL_INODE_NOT_CLEAR,
-	  "@j @i is not in use, but contains data.  ",
+	  N_("@j @i is not in use, but contains data.  "),
 	  PROMPT_CLEAR, PR_PREEN_OK },
 
 	/* Journal has bad mode */
@@ -10599,7 +10607,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Deal with inodes that were part of orphan linked list */
 	{ PR_1_LOW_DTIME,
-	  N_("@i %i was part of the orphaned @i list.  "),
+	  N_("@i %i was part of the @o @i list.  "),
 	  PROMPT_FIX, PR_LATCH_LOW_DTIME, 0 },
 
 	/* Deal with inodes that were part of corrupted orphan linked
@@ -10610,7 +10618,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Error allocating refcount structure */
 	{ PR_1_ALLOCATE_REFCOUNT,
-	  "@A refcount structure (%N): %m\n",
+	  N_("@A refcount structure (%N): %m\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Error reading extended attribute block */
@@ -10630,7 +10638,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Extended attribute reference count incorrect */
 	{ PR_1_EXTATTR_REFCOUNT,
-	  N_("@a @b %b has reference count %B, should be %N.  "),
+	  N_("@a @b %b has reference count %B, @s %N.  "),
 	  PROMPT_FIX, 0 },
 
 	/* Error writing Extended Attribute block while fixing refcount */
@@ -10640,12 +10648,12 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Multiple EA blocks not supported */
 	{ PR_1_EA_MULTI_BLOCK,
-	  N_("@a @b %b has h_blocks > 1.  "),
+	  N_("@a @b %b has h_@bs > 1.  "),
 	  PROMPT_CLEAR, 0},
 
 	/* Error allocating EA region allocation structure */
 	{ PR_1_EA_ALLOC_REGION,
-	  N_("Error allocating @a @b %b.  "),
+	  N_("@A @a @b %b.  "),
 	  PROMPT_ABORT, 0},
 
 	/* Error EA allocation collision */
@@ -10655,12 +10663,12 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Bad extended attribute name */
 	{ PR_1_EA_BAD_NAME,
-	  N_("@a @b %b is corrupt (invalid name).  "),
+	  N_("@a @b %b is corrupt (@n name).  "),
 	  PROMPT_CLEAR, 0},
 
 	/* Bad extended attribute value */
 	{ PR_1_EA_BAD_VALUE,
-	  N_("@a @b %b is corrupt (invalid value).  "),
+	  N_("@a @b %b is corrupt (@n value).  "),
 	  PROMPT_CLEAR, 0},
 
 	/* Inode too big (latch question) */
@@ -10694,7 +10702,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Invalid root node in HTREE directory */
 	{ PR_1_HTREE_BADROOT,
-	  N_("@h %i has an invalid root node.\n"),
+	  N_("@h %i has an @n root node.\n"),
 	  PROMPT_CLEAR_HTREE, PR_PREEN_OK },
 
 	/* Unsupported hash version in HTREE directory */
@@ -10725,45 +10733,45 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* invalid inode->i_extra_isize */
 	{ PR_1_EXTRA_ISIZE,
-	  N_("@i %i has a extra size (%IS) which is invalid\n"),
+	  N_("@i %i has a extra size (%IS) which is @n\n"),
 	  PROMPT_FIX, PR_PREEN_OK },
 
 	/* invalid ea entry->e_name_len */
 	{ PR_1_ATTR_NAME_LEN,
-	  N_("@a in @i %i has a namelen (%N) which is invalid\n"),
+	  N_("@a in @i %i has a namelen (%N) which is @n\n"),
 	  PROMPT_CLEAR, PR_PREEN_OK },
 
 	/* invalid ea entry->e_value_size */
 	{ PR_1_ATTR_VALUE_SIZE,
-	  N_("@a in @i %i has a value size (%N) which is invalid\n"),
+	  N_("@a in @i %i has a value size (%N) which is @n\n"),
 	  PROMPT_CLEAR, PR_PREEN_OK },
 
 	/* invalid ea entry->e_value_offs */
 	{ PR_1_ATTR_VALUE_OFFSET,
-	  N_("@a in @i %i has a value offset (%N) which is invalid\n"),
+	  N_("@a in @i %i has a value offset (%N) which is @n\n"),
 	  PROMPT_CLEAR, PR_PREEN_OK },
 
 	/* invalid ea entry->e_value_block */
 	{ PR_1_ATTR_VALUE_BLOCK,
-	  N_("@a in @i %i has a value block (%N) which is invalid (must be 0)\n"),
+	  N_("@a in @i %i has a value @b (%N) which is @n (must be 0)\n"),
 	  PROMPT_CLEAR, PR_PREEN_OK },
 
 	/* invalid ea entry->e_hash */
 	{ PR_1_ATTR_HASH,
-	  N_("@a in @i %i has a hash (%N) which is invalid (must be 0)\n"),
+	  N_("@a in @i %i has a hash (%N) which is @n (must be 0)\n"),
 	  PROMPT_CLEAR, PR_PREEN_OK },
 
 	/* Pass 1b errors */
 
 	/* Pass 1B: Rescan for duplicate/bad blocks */
 	{ PR_1B_PASS_HEADER,
-	  N_("Duplicate @bs found... invoking duplicate @b passes.\n"
-	  "Pass 1B: Rescan for duplicate/bad @bs\n"),
+	  N_("\nRunning additional passes to resolve @bs claimed by more than one @i...\n"
+	  "Pass 1B: Rescanning for @m @bs\n"),
 	  PROMPT_NONE, 0 },
 
 	/* Duplicate/bad block(s) header */
 	{ PR_1B_DUP_BLOCK_HEADER,
-	  N_("Duplicate/bad @b(s) in @i %i:"),
+	  N_("@m @b(s) in @i %i:"),
 	  PROMPT_NONE, 0 },
 
 	/* Duplicate/bad block(s) in inode */
@@ -10783,7 +10791,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Error allocating inode bitmap */
 	{ PR_1B_ALLOCATE_IBITMAP_ERROR,
-	  N_("@A @i @B (inode_dup_map): %m\n"),
+	  N_("@A @i @B (@i_dup_map): %m\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Error while iterating over blocks */
@@ -10793,25 +10801,25 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Error adjusting EA refcount */
 	{ PR_1B_ADJ_EA_REFCOUNT,
-	  N_("Error addjusting refcount for @a @b %b (@i %i): %m\n"),
+	  N_("Error adjusting refcount for @a @b %b (@i %i): %m\n"),
 	  PROMPT_NONE, 0 },
 
 
-	/* Pass 1C: Scan directories for inodes with dup blocks. */
+	/* Pass 1C: Scan directories for inodes with multiply-claimed blocks. */
 	{ PR_1C_PASS_HEADER,
-	  N_("Pass 1C: Scan directories for @is with dup @bs.\n"),
+	  N_("Pass 1C: Scanning directories for @is with @m @bs.\n"),
 	  PROMPT_NONE, 0 },
 
 
-	/* Pass 1D: Reconciling duplicate blocks */
+	/* Pass 1D: Reconciling multiply-claimed blocks */
 	{ PR_1D_PASS_HEADER,
-	  N_("Pass 1D: Reconciling duplicate @bs\n"),
+	  N_("Pass 1D: Reconciling @m @bs\n"),
 	  PROMPT_NONE, 0 },
 
 	/* File has duplicate blocks */
 	{ PR_1D_DUP_FILE,
 	  N_("File %Q (@i #%i, mod time %IM) \n"
-	  "  has %B duplicate @b(s), shared with %N file(s):\n"),
+	  "  has %B @m @b(s), shared with %N file(s):\n"),
 	  PROMPT_NONE, 0 },
 
 	/* List of files sharing duplicate blocks */
@@ -10826,12 +10834,12 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Report of how many duplicate/bad inodes */
 	{ PR_1D_NUM_DUP_INODES,
-	  N_("(There are %N @is containing duplicate/bad @bs.)\n\n"),
+	  N_("(There are %N @is containing @m @bs.)\n\n"),
 	  PROMPT_NONE, 0 },
 
 	/* Duplicated blocks already reassigned or cloned. */
 	{ PR_1D_DUP_BLOCKS_DEALT,
-	  N_("Duplicated @bs already reassigned or cloned.\n\n"),
+	  N_("@m @bs already reassigned or cloned.\n\n"),
 	  PROMPT_NONE, 0 },
 
 	/* Clone duplicate/bad blocks? */
@@ -10855,12 +10863,12 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Bad inode number for '.' */
 	{ PR_2_BAD_INODE_DOT,
-	  N_("Bad @i number for '.' in @d @i %i.\n"),
+	  N_("@n @i number for '.' in @d @i %i.\n"),
 	  PROMPT_FIX, 0 },
 
 	/* Directory entry has bad inode number */
 	{ PR_2_BAD_INO,
-	  N_("@E has bad @i #: %Di.\n"),
+	  N_("@E has @n @i #: %Di.\n"),
 	  PROMPT_CLEAR, 0 },
 
 	/* Directory entry has deleted or unused inode */
@@ -10905,12 +10913,12 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* First entry in directory inode doesn't contain '.' */
 	{ PR_2_1ST_NOT_DOT,
-	  N_("First @e '%Dn' (inode=%Di) in @d @i %i (%p) @s '.'\n"),
+	  N_("First @e '%Dn' (@i=%Di) in @d @i %i (%p) @s '.'\n"),
 	  PROMPT_FIX, 0 },
 
 	/* Second entry in directory inode doesn't contain '..' */
 	{ PR_2_2ND_NOT_DOT_DOT,
-	  N_("Second @e '%Dn' (inode=%Di) in @d @i %i @s '..'\n"),
+	  N_("Second @e '%Dn' (@i=%Di) in @d @i %i @s '..'\n"),
 	  PROMPT_FIX, 0 },
 
 	/* i_faddr should be zero */
@@ -10940,7 +10948,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* inode has bad mode */
 	{ PR_2_BAD_MODE,
-	  N_("@i %i (%Q) has a bad mode (%Im).\n"),
+	  N_("@i %i (%Q) has @n mode (%Im).\n"),
 	  PROMPT_CLEAR, 0 },
 
 	/* directory corrupted */
@@ -10995,7 +11003,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Final rec_len is wrong */
 	{ PR_2_FINAL_RECLEN,
-	  N_("@E has rec_len of %Dr, should be %N.\n"),
+	  N_("@E has rec_len of %Dr, @s %N.\n"),
 	  PROMPT_FIX, 0 },
 
 	/* Error allocating icount structure */
@@ -11050,7 +11058,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Directory filetype incorrect */
 	{ PR_2_BAD_FILETYPE,
-	  N_("@E has an incorrect filetype (was %Dt, should be %N).\n"),
+	  N_("@E has an incorrect filetype (was %Dt, @s %N).\n"),
 	  PROMPT_FIX, 0 },
 
 	/* Directory filetype set on filesystem */
@@ -11060,17 +11068,17 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Directory filename is null */
 	{ PR_2_NULL_NAME,
-	  N_("@E has a zero-length name.\n"),
+	  N_("@E has a @z name.\n"),
 	  PROMPT_CLEAR, 0 },
 
 	/* Invalid symlink */
 	{ PR_2_INVALID_SYMLINK,
-	  N_("Symlink %Q (@i #%i) is invalid.\n"),
+	  N_("Symlink %Q (@i #%i) is @n.\n"),
 	  PROMPT_CLEAR, 0 },
 
 	/* i_file_acl (extended attribute block) is bad */
 	{ PR_2_FILE_ACL_BAD,
-	  N_("@a @b @F invalid (%If).\n"),
+	  N_("@a @b @F @n (%If).\n"),
 	  PROMPT_CLEAR, 0 },
 
 	/* Filesystem contains large files, but has no such flag in sb */
@@ -11100,7 +11108,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Clear invalid HTREE directory */
 	{ PR_2_HTREE_CLEAR,
-	  N_("Invalid @h %d (%q).  "), PROMPT_CLEAR, 0 },
+	  N_("@n @h %d (%q).  "), PROMPT_CLEAR, 0 },
 
 	/* Bad block in htree interior node */
 	{ PR_2_HTREE_BADBLK,
@@ -11109,22 +11117,22 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Error adjusting EA refcount */
 	{ PR_2_ADJ_EA_REFCOUNT,
-	  N_("Error addjusting refcount for @a @b %b (@i %i): %m\n"),
+	  N_("Error adjusting refcount for @a @b %b (@i %i): %m\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Invalid HTREE root node */
 	{ PR_2_HTREE_BAD_ROOT,
-	  N_("@p @h %d: root node is invalid\n"),
+	  N_("@p @h %d: root node is @n\n"),
 	  PROMPT_CLEAR_HTREE, PR_PREEN_OK },
 
 	/* Invalid HTREE limit */
 	{ PR_2_HTREE_BAD_LIMIT,
-	  N_("@p @h %d: node (%B) has bad limit (%N)\n"),
+	  N_("@p @h %d: node (%B) has @n limit (%N)\n"),
 	  PROMPT_CLEAR_HTREE, PR_PREEN_OK },
 
 	/* Invalid HTREE count */
 	{ PR_2_HTREE_BAD_COUNT,
-	  N_("@p @h %d: node (%B) has bad count (%N)\n"),
+	  N_("@p @h %d: node (%B) has @n count (%N)\n"),
 	  PROMPT_CLEAR_HTREE, PR_PREEN_OK },
 
 	/* HTREE interior node has out-of-order hashes in table */
@@ -11132,9 +11140,9 @@ static const struct e2fsck_problem problem_table[] = {
 	  N_("@p @h %d: node (%B) has an unordered hash table\n"),
 	  PROMPT_CLEAR_HTREE, PR_PREEN_OK },
 
-	/* Node in HTREE directory has bad depth */
+	/* Node in HTREE directory has invalid depth */
 	{ PR_2_HTREE_BAD_DEPTH,
-	  N_("@p @h %d: node (%B) has bad depth\n"),
+	  N_("@p @h %d: node (%B) has @n depth\n"),
 	  PROMPT_NONE, 0 },
 
 	/* Duplicate directory entry found */
@@ -11236,7 +11244,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Couldn't fix parent directory -- couldn't find it */
 	{ PR_3_FIX_PARENT_NOFIND,
-	  N_("Couldn't fix parent of @i %i: Couldn't find parent @d entry\n\n"),
+	  N_("Couldn't fix parent of @i %i: Couldn't find parent @d @e\n\n"),
 	  PROMPT_NONE, 0 },
 
 	/* Error allocating inode bitmap */
@@ -11315,12 +11323,12 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Unattached zero-length inode */
 	{ PR_4_ZERO_LEN_INODE,
-	  "@u @z @i %i.  ",
+	  N_("@u @z @i %i.  "),
 	  PROMPT_CLEAR, PR_PREEN_OK|PR_NO_OK },
 
 	/* Unattached inode */
 	{ PR_4_UNATTACHED_INODE,
-	  "@u @i %i\n",
+	  N_("@u @i %i\n"),
 	  PROMPT_CONNECT, 0 },
 
 	/* Inode ref count wrong */
@@ -11332,7 +11340,7 @@ static const struct e2fsck_problem problem_table[] = {
 	  N_("WARNING: PROGRAMMING BUG IN E2FSCK!\n"
 	  "\tOR SOME BONEHEAD (YOU) IS CHECKING A MOUNTED (LIVE) FILESYSTEM.\n"
 	  "@i_link_info[%i] is %N, @i.i_links_count is %Il.  "
-	  "They should be the same!\n"),
+	  "They @s the same!\n"),
 	  PROMPT_NONE, 0 },
 
 	/* Pass 5 errors */
@@ -11430,12 +11438,12 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Error copying in replacement inode bitmap */
 	{ PR_5_COPY_IBITMAP_ERROR,
-	  "Error copying in replacement @i @B: %m\n",
+	  N_("Error copying in replacement @i @B: %m\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Error copying in replacement block bitmap */
 	{ PR_5_COPY_BBITMAP_ERROR,
-	  "Error copying in replacement @b @B: %m\n",
+	  N_("Error copying in replacement @b @B: %m\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Block range not used, but marked in bitmap */
@@ -13523,7 +13531,7 @@ static void check_resize_inode(e2fsck_t ctx)
 		}
 	}
 
-	/* Read the resizde inode */
+	/* Read the resize inode */
 	pctx.ino = EXT2_RESIZE_INO;
 	retval = ext2fs_read_inode(fs, EXT2_RESIZE_INO, &inode);
 	if (retval) {
@@ -14641,7 +14649,7 @@ static void usage(e2fsck_t ctx)
 	fprintf(stderr,
 		_("Usage: %s [-panyrcdfvstDFSV] [-b superblock] [-B blocksize]\n"
 		"\t\t[-I inode_buffer_blocks] [-P process_inode_size]\n"
-		"\t\t[-l|-L bad_blocks_file] [-C fd] [-j ext-journal]\n"
+		"\t\t[-l|-L bad_blocks_file] [-C fd] [-j external_journal]\n"
 		"\t\t[-E extended-options] device\n"),
 		ctx->program_name);
 
@@ -14655,7 +14663,7 @@ static void usage(e2fsck_t ctx)
 		" -v                   Be verbose\n"
 		" -b superblock        Use alternative superblock\n"
 		" -B blocksize         Force blocksize when looking for superblock\n"
-		" -j external-journal  Set location of the external journal\n"
+		" -j external_journal  Set location of the external journal\n"
 		" -l bad_blocks_file   Add to badblocks list\n"
 		" -L bad_blocks_file   Set badblocks list\n"
 		));
@@ -15080,16 +15088,19 @@ static void parse_extended_opts(e2fsck_t ctx, const char *opts)
 				continue;
 			}
 			ctx->ext_attr_ver = ea_ver;
-		} else
+		} else {
+			fprintf(stderr, _("Unknown extended option: %s\n"),
+				token);
 			extended_usage++;
+		}
 	}
 	if (extended_usage) {
 		bb_error_msg_and_die(
 			"Extended options are separated by commas, "
 			"and may take an argument which\n"
 			"is set off by an equals ('=') sign.  "
-			"Valid raid options are:\n"
-			"\tea_ver=<ea_version (1 or 2)\n\n");
+			"Valid extended options are:\n"
+			"\tea_ver=<ea_version (1 or 2)>\n\n");
 	}
 }
 

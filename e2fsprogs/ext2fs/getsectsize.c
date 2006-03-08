@@ -23,7 +23,7 @@
 #include <linux/fd.h>
 #endif
 
-#if defined(__linux__) && defined(_IO) && !defined(BLKGETSIZE)
+#if defined(__linux__) && defined(_IO) && !defined(BLKSSZGET)
 #define BLKSSZGET  _IO(0x12,104)/* get block device sector size */
 #endif
 

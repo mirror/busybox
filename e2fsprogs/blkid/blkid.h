@@ -55,6 +55,8 @@ extern int blkid_get_cache(blkid_cache *cache, const char *filename);
 extern const char *blkid_dev_devname(blkid_dev dev);
 
 extern blkid_dev_iterate blkid_dev_iterate_begin(blkid_cache cache);
+extern int blkid_dev_set_search(blkid_dev_iterate iter, 
+				char *search_type, char *search_value);
 extern int blkid_dev_next(blkid_dev_iterate iterate, blkid_dev *dev);
 extern void blkid_dev_iterate_end(blkid_dev_iterate iterate);
 
@@ -63,6 +65,7 @@ extern char *blkid_devno_to_devname(dev_t devno);
 
 /* devname.c */
 extern int blkid_probe_all(blkid_cache cache);
+extern int blkid_probe_all_new(blkid_cache cache);
 extern blkid_dev blkid_get_dev(blkid_cache cache, const char *devname,
 			       int flags);
 
@@ -86,7 +89,8 @@ extern blkid_tag_iterate blkid_tag_iterate_begin(blkid_dev dev);
 extern int blkid_tag_next(blkid_tag_iterate iterate,
 			      const char **type, const char **value);
 extern void blkid_tag_iterate_end(blkid_tag_iterate iterate);
-
+extern int blkid_dev_has_tag(blkid_dev dev, const char *type, 
+			      const char *value);
 extern blkid_dev blkid_find_dev_with_tag(blkid_cache cache,
 					 const char *type,
 					 const char *value);

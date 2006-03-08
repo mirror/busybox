@@ -89,14 +89,20 @@ void check_mount(const char *device, int force, const char *type)
 		bb_error_msg("Could not determine if %s is mounted", device);
 		return;
 	}
-	if (!(mount_flags & EXT2_MF_MOUNTED))
-		return;
+	if (mount_flags & EXT2_MF_MOUNTED) {
+		bb_error_msg("%s is mounted !", device);
+force_check:
+		if (force)
+			bb_error_msg("badblocks forced anyways");
+		else
+			bb_error_msg_and_die("it's not safe to run badblocks!");
+	}
 
-	bb_error_msg("%s is mounted !", device);
-	if (force)
-		bb_error_msg("forcing anyways and ignoring /etc/mtab status");
-	else
-		bb_error_msg_and_die("will not make a %s here!", type);
+	if (mount_flags & EXT2_MF_BUSY) {  
+		bb_error_msg("%s is apparently in use by the system", device);
+		goto force_check;
+	}
+
 }
 
 void parse_journal_opts(char **journal_device, int *journal_flags,
@@ -189,10 +195,14 @@ int figure_journal_size(int size, ext2_filsys fs)
 
 	if (fs->super->s_blocks_count < 32768)
 		j_blocks = 1024;
-	else if (fs->super->s_blocks_count < 262144)
+	else if (fs->super->s_blocks_count < 256*1024)
 		j_blocks = 4096;
-	else
+	else if (fs->super->s_blocks_count < 512*1024)
 		j_blocks = 8192;
+	else if (fs->super->s_blocks_count < 1024*1024)
+		j_blocks = 16384;
+	else
+		j_blocks = 32768;
 
 	return j_blocks;
 }

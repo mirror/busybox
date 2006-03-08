@@ -98,7 +98,8 @@ static void get_ext2_info(blkid_dev dev, unsigned char *buf)
 static int probe_ext3(int fd __BLKID_ATTR((unused)),
 		      blkid_cache cache __BLKID_ATTR((unused)),
 		      blkid_dev dev,
-		      const struct blkid_magic *id, unsigned char *buf)
+		      struct blkid_magic *id __BLKID_ATTR((unused)), 
+		      unsigned char *buf)
 {
 	struct ext2_super_block *es;
 
@@ -124,10 +125,10 @@ static int probe_ext3(int fd __BLKID_ATTR((unused)),
 static int probe_ext2(int fd __BLKID_ATTR((unused)),
 		      blkid_cache cache __BLKID_ATTR((unused)),
 		      blkid_dev dev,
-		      const struct blkid_magic *id, unsigned char *buf)
+		      struct blkid_magic *id __BLKID_ATTR((unused)), 
+		      unsigned char *buf)
 {
 	struct ext2_super_block *es;
-//	const char *sec_type = 0, *label = 0;
 
 	es = (struct ext2_super_block *)buf;
 
@@ -303,6 +304,23 @@ static int probe_romfs(int fd __BLKID_ATTR((unused)),
 	return 0;
 }
 
+static int probe_cramfs(int fd __BLKID_ATTR((unused)), 
+		       blkid_cache cache __BLKID_ATTR((unused)), 
+		       blkid_dev dev,
+		       struct blkid_magic *id __BLKID_ATTR((unused)), 
+		       unsigned char *buf)
+{
+	struct cramfs_super_block *csb;
+	const char *label = 0;
+
+	csb = (struct cramfs_super_block *)buf;
+
+	if (strlen((char *) csb->name))
+		label = (char *) csb->name;
+	blkid_set_tag(dev, "LABEL", label, 0);
+	return 0;
+}
+
 static int probe_swap0(int fd __BLKID_ATTR((unused)),
 		       blkid_cache cache __BLKID_ATTR((unused)),
 		       blkid_dev dev,
@@ -321,7 +339,6 @@ static int probe_swap1(int fd,
 		       unsigned char *buf __BLKID_ATTR((unused)))
 {
 	struct swap_id_block *sws;
-//	const char *label = 0;
 
 	probe_swap0(fd, cache, dev, id, buf);
 	/*
@@ -489,7 +506,7 @@ static const struct blkid_magic type_array[] = {
   { "xfs",	 0,	 0,  4, "XFSB",			probe_xfs },
   { "romfs",	 0,	 0,  8, "-rom1fs-",		probe_romfs },
   { "bfs",	 0,	 0,  4, "\316\372\173\033",	0 },
-  { "cramfs",	 0,	 0,  4, "E=\315\034",		0 },
+  { "cramfs",	 0,	 0,  4, "E=\315\050",		probe_cramfs },
   { "qnx4",	 0,	 4,  6, "QNX4FS",		0 },
   { "udf",	32,	 1,  5, "BEA01",		probe_udf },
   { "udf",	32,	 1,  5, "BOOT2",		probe_udf },
@@ -647,7 +664,7 @@ found_type:
 
 		blkid_set_tag(dev, "TYPE", type, 0);
 
-		DBG(DEBUG_PROBE, printf("%s: devno 0x%04Lx, type %s\n",
+		DBG(DEBUG_PROBE, printf("%s: devno 0x%04llx, type %s\n",
 			   dev->bid_name, st.st_rdev, type));
 	}
 

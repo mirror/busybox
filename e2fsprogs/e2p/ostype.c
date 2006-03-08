@@ -9,6 +9,7 @@
 
 #include "e2p.h"
 #include <string.h>
+#include <stdlib.h>
 
 static const char * const os_tab[] =
 	{ "Linux",

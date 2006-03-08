@@ -15,9 +15,9 @@
 
 #include <strings.h>
 
-extern int ext2fs_set_bit(int nr,void * addr);
-extern int ext2fs_clear_bit(int nr, void * addr);
-extern int ext2fs_test_bit(int nr, const void * addr);
+extern int ext2fs_set_bit(unsigned int nr,void * addr);
+extern int ext2fs_clear_bit(unsigned int nr, void * addr);
+extern int ext2fs_test_bit(unsigned int nr, const void * addr);
 extern __u16 ext2fs_swab16(__u16 val);
 extern __u32 ext2fs_swab32(__u32 val);
 

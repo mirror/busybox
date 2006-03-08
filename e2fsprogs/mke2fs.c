@@ -711,7 +711,7 @@ static void parse_extended_opts(struct ext2_super_block *sb_param,
 			}
 			fs_stride = strtoul(arg, &p, 0);
 			if (*p || (fs_stride == 0)) {
-				bb_error_msg("Invalid stride parameter");
+				bb_error_msg("Invalid stride parameter: %s", arg);
 				r_usage++;
 				continue;
 			}
@@ -735,7 +735,8 @@ static void parse_extended_opts(struct ext2_super_block *sb_param,
 				continue;
 			}
 			if (resize <= sb_param->s_blocks_count) {
-				bb_error_msg("The resize maximum must be greater than the filesystem size");
+				bb_error_msg("The resize maximum must be greater "
+				             "than the filesystem size");
 				r_usage++;
 				continue;
 			}
@@ -767,10 +768,10 @@ static void parse_extended_opts(struct ext2_super_block *sb_param,
 	if (r_usage) {
 		bb_error_msg_and_die(
 			"\nBad options specified.\n\n"
-			"Options are separated by commas, "
+			"Extended options are separated by commas, "
 			"and may take an argument which\n"
 			"\tis set off by an equals ('=') sign.\n\n"
-			"Valid raid options are:\n"
+			"Valid extended options are:\n"
 			"\tstride=<stride length in blocks>\n"
 			"\tresize=<resize maximum size in blocks>\n");
 	}
@@ -855,7 +856,7 @@ static int PRS(int argc, char *argv[])
 			if (b < EXT2_MIN_BLOCK_SIZE ||
 			    b > EXT2_MAX_BLOCK_SIZE) {
 BLOCKSIZE_ERROR:
-				bb_error_msg_and_die("bad block size - %s", optarg);
+				bb_error_msg_and_die("invalid block size - %s", optarg);
 			}
 			mke2fs_warning_msg((blocksize > 4096),
 				"blocksize %d not usable on most systems",
@@ -871,7 +872,7 @@ BLOCKSIZE_ERROR:
 			break;
 		case 'f':
 			if (safe_strtoi(optarg, &size) || size < EXT2_MIN_BLOCK_SIZE || size > EXT2_MAX_BLOCK_SIZE ){
-				bb_error_msg_and_die("bad fragment size - %s", optarg);
+				bb_error_msg_and_die("invalid fragment size - %s", optarg);
 			}
 			param.s_log_frag_size =
 				int_log2(size >> EXT2_MIN_BLOCK_LOG_SIZE);
@@ -893,7 +894,7 @@ BLOCKSIZE_ERROR:
 			if (safe_strtoi(optarg, &inode_ratio)
 				|| inode_ratio < EXT2_MIN_BLOCK_SIZE
 				|| inode_ratio > EXT2_MAX_BLOCK_SIZE * 1024) {
-				bb_error_msg_and_die("bad inode ratio %s (min %d/max %d)",
+				bb_error_msg_and_die("invalid inode ratio %s (min %d/max %d)",
 					optarg, EXT2_MIN_BLOCK_SIZE,
 					EXT2_MAX_BLOCK_SIZE);
 				}
@@ -912,7 +913,7 @@ BLOCKSIZE_ERROR:
 			break;
 		case 'm':
 			if (safe_strtoi(optarg, &reserved_ratio) || reserved_ratio > 50 ) {
-				bb_error_msg_and_die("bad reserved blocks percent - %s", optarg);
+				bb_error_msg_and_die("invalid reserved blocks percent - %s", optarg);
 			}
 			break;
 		case 'n':
@@ -940,7 +941,7 @@ BLOCKSIZE_ERROR:
 #ifdef EXT2_DYNAMIC_REV
 		case 'I':
 			if (safe_strtoi(optarg, &inode_size)) {
-				bb_error_msg_and_die("bad inode size - %s", optarg);
+				bb_error_msg_and_die("invalid inode size - %s", optarg);
 			}
 			break;
 #endif
@@ -1051,7 +1052,7 @@ BLOCKSIZE_ERROR:
 	if (optind < argc) {
 		param.s_blocks_count = parse_num_blocks(argv[optind++],
 				param.s_log_block_size);
-		mke2fs_error_msg_and_die(!param.s_blocks_count, "bad blocks count - %s", argv[optind - 1]);
+		mke2fs_error_msg_and_die(!param.s_blocks_count, "invalid blocks count - %s", argv[optind - 1]);
 	}
 	if (optind < argc)
 		bb_show_usage();
@@ -1165,11 +1166,16 @@ BLOCKSIZE_ERROR:
 		}
 	}
 
+	if (!force && param.s_blocks_count >= (1 << 31)) {
+		bb_error_msg_and_die("Filesystem too large.  No more than 2**31-1 blocks\n"
+			"\t (8TB using a blocksize of 4k) are currently supported.");
+	}
+
 	if (inode_size) {
 		if (inode_size < EXT2_GOOD_OLD_INODE_SIZE ||
 		    inode_size > EXT2_BLOCK_SIZE(&param) ||
 		    inode_size & (inode_size - 1)) {
-			bb_error_msg_and_die("bad inode size %d (min %d/max %d)",
+			bb_error_msg_and_die("invalid inode size %d (min %d/max %d)",
 				inode_size, EXT2_GOOD_OLD_INODE_SIZE,
 				blocksize);
 		}

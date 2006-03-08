@@ -339,20 +339,18 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	printf("Device %s reports flags %02x\n", argv[1], mount_flags);
+	if (mount_flags & EXT2_MF_BUSY)
+		printf("\t%s is apparently in use.\n", argv[1]);
 	if (mount_flags & EXT2_MF_MOUNTED)
 		printf("\t%s is mounted.\n", argv[1]);
-
 	if (mount_flags & EXT2_MF_SWAP)
 		printf("\t%s is a swap device.\n", argv[1]);
-
 	if (mount_flags & EXT2_MF_READONLY)
 		printf("\t%s is read-only.\n", argv[1]);
-
 	if (mount_flags & EXT2_MF_ISROOT)
 		printf("\t%s is the root filesystem.\n", argv[1]);
 	if (mntpt[0])
 		printf("\t%s is mounted on %s.\n", argv[1], mntpt);
-
 	exit(0);
 }
 #endif /* DEBUG */

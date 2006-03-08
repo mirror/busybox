@@ -579,7 +579,7 @@
 #define e2fsck_trivial_usage \
 	"[-panyrcdfvstDFSV] [-b superblock] [-B blocksize] " \
 	"[-I inode_buffer_blocks] [-P process_inode_size] " \
-	"[-l|-L bad_blocks_file] [-C fd] [-j ext-journal] " \
+	"[-l|-L bad_blocks_file] [-C fd] [-j external_journal] " \
 	"[-E extended-options] device"
 #define e2fsck_full_usage \
 	"Check a Linux ext2/ext3 file system.\n\n" \

@@ -35,7 +35,7 @@ void blkid_free_dev(blkid_dev dev)
 
 	DBG(DEBUG_DEV,
 	    printf("  freeing dev %s (%s)\n", dev->bid_name, dev->bid_type));
-	DEB_DUMP_DEV(DEBUG_DEV, dev);
+	DBG(DEBUG_DEV, blkid_debug_dump_dev(dev));
 
 	list_del(&dev->bid_devs);
 	while (!list_empty(&dev->bid_tags)) {
@@ -56,6 +56,34 @@ const char *blkid_dev_devname(blkid_dev dev)
 {
 	return dev->bid_name;
 }
+
+#ifdef CONFIG_BLKID_DEBUG
+void blkid_debug_dump_dev(blkid_dev dev)
+{
+	struct list_head *p;
+
+	if (!dev) {
+		printf("  dev: NULL\n");
+		return;
+	}
+
+	printf("  dev: name = %s\n", dev->bid_name);
+	printf("  dev: DEVNO=\"0x%0llx\"\n", dev->bid_devno);
+	printf("  dev: TIME=\"%lu\"\n", dev->bid_time);
+	printf("  dev: PRI=\"%d\"\n", dev->bid_pri);
+	printf("  dev: flags = 0x%08X\n", dev->bid_flags);
+
+	list_for_each(p, &dev->bid_tags) {
+		blkid_tag tag = list_entry(p, struct blkid_struct_tag, bit_tags);
+		if (tag)   
+			printf("    tag: %s=\"%s\"\n", tag->bit_name, 
+			       tag->bit_val);
+		else
+			printf("    tag: NULL\n");
+	}
+	printf("\n");
+}
+#endif
 
 /*
  * dev iteration routines for the public libblkid interface.
@@ -114,3 +142,72 @@ void blkid_dev_iterate_end(blkid_dev_iterate iter)
 	free(iter);
 }
 
+#ifdef TEST_PROGRAM
+#ifdef HAVE_GETOPT_H
+#include <getopt.h>
+#else
+extern char *optarg;
+extern int optind;
+#endif
+
+void usage(char *prog)
+{
+	fprintf(stderr, "Usage: %s [-f blkid_file] [-m debug_mask]\n", prog);
+	fprintf(stderr, "\tList all devices and exit\n", prog);
+	exit(1);
+}
+
+int main(int argc, char **argv)
+{
+	blkid_dev_iterate	iter;
+	blkid_cache 		cache = NULL;
+	blkid_dev		dev;
+	int			c, ret;
+	char			*tmp;
+	char			*file = NULL;
+	char			*search_type = NULL;
+	char			*search_value = NULL;
+
+	while ((c = getopt (argc, argv, "m:f:")) != EOF)
+		switch (c) {
+		case 'f':
+			file = optarg;
+			break;
+		case 'm':
+			blkid_debug_mask = strtoul (optarg, &tmp, 0);
+			if (*tmp) {
+				fprintf(stderr, "Invalid debug mask: %d\n", 
+					optarg);
+				exit(1);
+			}
+			break;
+		case '?':
+			usage(argv[0]);
+		}
+	if (argc >= optind+2) {
+		search_type = argv[optind];
+		search_value = argv[optind+1];
+		optind += 2;
+	}
+	if (argc != optind)
+		usage(argv[0]);
+
+	if ((ret = blkid_get_cache(&cache, file)) != 0) {
+		fprintf(stderr, "%s: error creating cache (%d)\n",
+			argv[0], ret);
+		exit(1);
+	}
+
+	iter = blkid_dev_iterate_begin(cache);
+	if (search_type)
+		blkid_dev_set_search(iter, search_type, search_value);
+	while (blkid_dev_next(iter, &dev) == 0) {
+		printf("Device: %s\n", blkid_dev_devname(dev));
+	}
+	blkid_dev_iterate_end(iter);
+
+
+	blkid_put_cache(cache);
+	return (0);
+}
+#endif

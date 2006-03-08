@@ -63,7 +63,7 @@ void blkid_put_cache(blkid_cache cache)
 
 	DBG(DEBUG_CACHE, printf("freeing cache struct\n"));
 
-	/* DEB_DUMP_CACHE(cache); */
+	/* DBG(DEBUG_CACHE, blkid_debug_dump_cache(cache)); */
 
 	while (!list_empty(&cache->bic_devs)) {
 		blkid_dev dev = list_entry(cache->bic_devs.next,
