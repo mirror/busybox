@@ -441,18 +441,14 @@ clean:
 	    libbusybox.so* \
 	    .config.old busybox busybox_unstripped
 	- rm -r -f _install testsuite/links
-	- find . -name .\*.flags -exec rm -f {} \;
-	- find . -name \*.o -exec rm -f {} \;
-	- find . -name \*.om -exec rm -f {} \;
-	- find . -name \*.os -exec rm -f {} \;
-	- find . -name \*.osm -exec rm -f {} \;
-	- find . -name \*.a -exec rm -f {} \;
+	- find . -name .\*.flags -o -name \*.o  -o -name \*.om \
+	    -o -name \*.os -o -name \*.osm -o -name \*.a | xargs rm -f
 
 distclean: clean
 	- $(MAKE) -C scripts/config clean
 	- rm -f scripts/bb_mkdep
 	- rm -r -f include/config $(DEP_INCLUDES)
-	- find . -name .depend'*' -exec rm -f {} \;
+	- find . -name .depend'*' | xargs rm -f 
 	rm -f .config .config.old .config.cmd
 
 release: distclean #doc
