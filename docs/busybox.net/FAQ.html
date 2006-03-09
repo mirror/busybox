@@ -10,6 +10,7 @@ have additions to this FAQ document, we would love to add them,
 <ol>
 <li><a href="#getting_started">How can I get started using BusyBox?</a>
 <li><a href="#build_system">How do I build a BusyBox-based system?</a>
+<li><a href="#init">Busybox init isn't working!</a>
 <li><a href="#kernel">Which Linux kernel versions are supported?</a>
 <li><a href="#arch">Which architectures does BusyBox run on?</a>
 <li><a href="#libc">Which C libraries are supported?</a>
@@ -113,6 +114,33 @@ have additions to this FAQ document, we would love to add them,
     For more instructions, see the website.
 </p>
 
+<hr />
+<p>
+<h2><a name="init">Busybox init isn't working!</a></h2>
+<p>
+    Build a statically linked version of the following "hello world" program
+    with your cross compiler toolchain.
+</p>
+<pre>
+#include &lt;stdio.h&gt;
+
+int main(int argc, char *argv)
+{
+  printf("Hello world!\n");
+  sleep(999999999);
+}
+</pre>
+
+<p>
+    Now try to boot your device with an "init=" argument pointing to your
+    hello world program.  Did you see the hello world message?  Until you
+    do, don't bother messing with busybox init.
+</p>
+
+<p>
+    Once you've got it working statically linked, try getting it to work
+    dynamically linked.  Then read the FAQ entry before this one.
+</p>
 
 <hr />
 <p>
