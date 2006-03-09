@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/console-tools
-objdir=$(top_builddir)/console-tools
+srcdir:=$(top_srcdir)/console-tools
+objdir:=$(top_builddir)/console-tools
 
 CONSOLETOOLS-$(CONFIG_CHVT)		+= chvt.o
 CONSOLETOOLS-$(CONFIG_CLEAR)		+= clear.o
@@ -25,4 +25,8 @@ APPLET_SRC-y+=$(CONSOLETOOLS_SRC-y)
 APPLET_SRC-a+=$(CONSOLETOOLS_SRC-a)
 
 console-tools_OBJ:=  $(patsubst %,$(objdir)/%,$(CONSOLETOOLS-y))
+
+$(console-tools_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/console-tools.a: $(console-tools_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/console-tools.a
 

@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/archival
-objdir=$(top_builddir)/archival
+srcdir:=$(top_srcdir)/archival
+objdir:=$(top_builddir)/archival
 
 ARCHIVAL-$(CONFIG_AR)		+= ar.o
 ARCHIVAL-$(CONFIG_BUNZIP2)	+= bunzip2.o
@@ -27,4 +27,8 @@ APPLET_SRC-y+=$(ARCHIVAL_SRC-y)
 APPLET_SRC-a+=$(ARCHIVAL_SRC-a)
 
 archival_OBJ:=  $(patsubst %,$(objdir)/%,$(ARCHIVAL-y))
+
+$(archival_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/archival.a: $(archival_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/archival.a
 

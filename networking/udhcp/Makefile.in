@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/networking/udhcp
-objdir=$(top_builddir)/networking/udhcp
+srcdir:=$(top_srcdir)/networking/udhcp
+objdir:=$(top_builddir)/networking/udhcp
 
 #ok, so I forgot how to do an or, but this is a quick and dirty hack
 ifeq ($(strip $(CONFIG_UDHCPC)),y)
@@ -87,4 +87,8 @@ endif
 
 
 networking_udhcp_OBJ:=$(patsubst %.c,$(objdir)/%.o,$(UDHCP-y))
+
+$(networking_udhcp_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/udhcp.a: $(networking_udhcp_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/udhcp.a
 

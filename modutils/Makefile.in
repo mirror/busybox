@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/modutils
-objdir=$(top_builddir)/modutils
+srcdir:=$(top_srcdir)/modutils
+objdir:=$(top_builddir)/modutils
 
 MODUTILS-$(CONFIG_INSMOD)		+= insmod.o
 MODUTILS-$(CONFIG_LSMOD)		+= lsmod.o
@@ -18,4 +18,8 @@ APPLET_SRC-y+=$(MODUTILS_SRC-y)
 APPLET_SRC-a+=$(MODUTILS_SRC-a)
 
 modutils_OBJ:=  $(patsubst %,$(objdir)/%,$(MODUTILS-y))
+
+$(modutils_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/modutils.a: $(modutils_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/modutils.a
 

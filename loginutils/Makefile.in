@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/loginutils
-objdir=$(top_builddir)/loginutils
+srcdir:=$(top_srcdir)/loginutils
+objdir:=$(top_builddir)/loginutils
 
 LOGINUTILS-$(CONFIG_ADDGROUP)	+= addgroup.o
 LOGINUTILS-$(CONFIG_ADDUSER)	+= adduser.o
@@ -35,4 +35,8 @@ ifeq ($(needcrypt-y),y)
 endif
 
 loginutils_OBJ:=  $(patsubst %,$(objdir)/%,$(LOGINUTILS-y))
+
+$(loginutils_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/loginutils.a: $(loginutils_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/loginutils.a
 

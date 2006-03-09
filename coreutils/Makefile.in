@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/coreutils
-objdir=$(top_builddir)/coreutils
+srcdir:=$(top_srcdir)/coreutils
+objdir:=$(top_builddir)/coreutils
 
 COREUTILS-$(CONFIG_BASENAME)  += basename.o
 COREUTILS-$(CONFIG_CAL)       += cal.o
@@ -85,4 +85,8 @@ APPLET_SRC-y+=$(COREUTILS_SRC-y)
 APPLET_SRC-a+=$(COREUTILS_SRC-a)
 
 coreutils_OBJ:=  $(patsubst %,$(objdir)/%,$(COREUTILS-y))
+
+$(coreutils_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/coreutils.a: $(coreutils_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/coreutils.a
 

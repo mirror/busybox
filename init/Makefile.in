@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/init
-objdir=$(top_builddir)/init
+srcdir:=$(top_srcdir)/init
+objdir:=$(top_builddir)/init
 
 INIT-$(CONFIG_HALT)			+= halt.o
 INIT-$(CONFIG_INIT)			+= init.o
@@ -29,4 +29,8 @@ APPLET_SRC-y+=$(INIT_SRC-y)
 APPLET_SRC-a+=$(INIT_SRC-a)
 
 init_OBJ:=  $(patsubst %,$(objdir)/%,$(INIT-y))
+
+$(init_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/init.a: $(init_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/init.a
 

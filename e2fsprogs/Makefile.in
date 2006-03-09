@@ -45,14 +45,7 @@ $(patsubst %,$(objdir)/%, blkid e2fsck e2p ext2fs uuid):
 # may have object files created after the timestamp of the directory was
 # updated which would lead to spurious rebuilds (as some of the dentries
 # may be older than the dir itself).
-ifneq ($(MAKE_VERSION),3.81beta4)
-# /top/obj/dir/*.o: /top/obj/dir/file.o: /top/src/dir/file.c
-$(patsubst %,$(objdir)/%,$(BLKID_OBJS)): $(objdir)/blkid/%.o: $(srcdir)/blkid/%.c |$(objdir)/blkid
-$(patsubst %,$(objdir)/%,$(E2FSCK_OBJS)):$(objdir)/e2fsck/%.o:$(srcdir)/e2fsck/%.c|$(objdir)/e2fsck
-$(patsubst %,$(objdir)/%,$(E2P_OBJS)):   $(objdir)/e2p/%.o:   $(srcdir)/e2p/%.c   |$(objdir)/e2p
-$(patsubst %,$(objdir)/%,$(EXT2FS_OBJS)):$(objdir)/ext2fs/%.o:$(srcdir)/ext2fs/%.c|$(objdir)/ext2fs
-$(patsubst %,$(objdir)/%,$(UUID_OBJS)):  $(objdir)/uuid/%.o:  $(srcdir)/uuid/%.c  |$(objdir)/uuid
-else
+ifeq ($(MAKE_VERSION),3.81beta4)
 # alleged bug in 3.81beta4. Stripping dir from dir/files.c
 # /top/obj/dir/*.o: /top/obj/dir/file.o: /top/src/file.c
 $(patsubst %,$(objdir)/%,$(BLKID_OBJS)): $(objdir)/blkid/%.o: $(srcdir)/%.c |$(objdir)/blkid
@@ -60,7 +53,39 @@ $(patsubst %,$(objdir)/%,$(E2FSCK_OBJS)):$(objdir)/e2fsck/%.o:$(srcdir)/%.c|$(ob
 $(patsubst %,$(objdir)/%,$(E2P_OBJS)):   $(objdir)/e2p/%.o:   $(srcdir)/%.c   |$(objdir)/e2p
 $(patsubst %,$(objdir)/%,$(EXT2FS_OBJS)):$(objdir)/ext2fs/%.o:$(srcdir)/%.c|$(objdir)/ext2fs
 $(patsubst %,$(objdir)/%,$(UUID_OBJS)):  $(objdir)/uuid/%.o:  $(srcdir)/%.c  |$(objdir)/uuid
+
+e2fsprogs-rules-seen:=1
 endif
+
+ifeq ($(MAKE_VERSION),3.79.1)
+# no order-only prerequesites
+$(patsubst %,$(objdir)/%,$(BLKID_OBJS)): $(objdir)/blkid/%.o: $(srcdir)/blkid/%.c #|$(objdir)/blkid
+$(patsubst %,$(objdir)/%,$(E2FSCK_OBJS)):$(objdir)/e2fsck/%.o:$(srcdir)/e2fsck/%.c#|$(objdir)/e2fsck
+$(patsubst %,$(objdir)/%,$(E2P_OBJS)):   $(objdir)/e2p/%.o:   $(srcdir)/e2p/%.c   #|$(objdir)/e2p
+$(patsubst %,$(objdir)/%,$(EXT2FS_OBJS)):$(objdir)/ext2fs/%.o:$(srcdir)/ext2fs/%.c#|$(objdir)/ext2fs
+$(patsubst %,$(objdir)/%,$(UUID_OBJS)):  $(objdir)/uuid/%.o:  $(srcdir)/uuid/%.c  #|$(objdir)/uuid
+$(patsubst %,$(objdir)/%,$(BLKID_OBJS)): $(objdir)/blkid
+$(patsubst %,$(objdir)/%,$(E2FSCK_OBJS)):$(objdir)/e2fsck
+$(patsubst %,$(objdir)/%,$(E2P_OBJS)):   $(objdir)/e2p
+$(patsubst %,$(objdir)/%,$(EXT2FS_OBJS)):$(objdir)/ext2fs
+$(patsubst %,$(objdir)/%,$(UUID_OBJS)):  $(objdir)/uuid
+$(patsubst %,$(objdir)/%,$(BLKID_OBJS)): $(objdir)/blkid
+$(patsubst %,$(objdir)/%,$(E2FSCK_OBJS)):$(objdir)/e2fsck
+$(patsubst %,$(objdir)/%,$(E2P_OBJS)):   $(objdir)/e2p
+$(patsubst %,$(objdir)/%,$(EXT2FS_OBJS)):$(objdir)/ext2fs
+$(patsubst %,$(objdir)/%,$(UUID_OBJS)):  $(objdir)/uuid
+
+e2fsprogs-rules-seen:=1
+endif
+
+ifndef e2fsprogs-rules-seen
+$(patsubst %,$(objdir)/%,$(BLKID_OBJS)): $(objdir)/blkid/%.o: $(srcdir)/blkid/%.c |$(objdir)/blkid
+$(patsubst %,$(objdir)/%,$(E2FSCK_OBJS)):$(objdir)/e2fsck/%.o:$(srcdir)/e2fsck/%.c|$(objdir)/e2fsck
+$(patsubst %,$(objdir)/%,$(E2P_OBJS)):   $(objdir)/e2p/%.o:   $(srcdir)/e2p/%.c   |$(objdir)/e2p
+$(patsubst %,$(objdir)/%,$(EXT2FS_OBJS)):$(objdir)/ext2fs/%.o:$(srcdir)/ext2fs/%.c|$(objdir)/ext2fs
+$(patsubst %,$(objdir)/%,$(UUID_OBJS)):  $(objdir)/uuid/%.o:  $(srcdir)/uuid/%.c  |$(objdir)/uuid
+endif
+
 
 E2FSPROGS-$(CONFIG_CHATTR)     += chattr.o $(E2P_OBJS)
 E2FSPROGS-$(CONFIG_E2FSCK)     += e2fsck.o util.o $(BLKID_OBJS) $(EXT2FS_OBJS) $(UUID_OBJS)
@@ -92,4 +117,8 @@ APPLETS_DEFINE-y+=$(CFLAGS-e2fsprogs) -I$(srcdir) $(E2FSPROGS_TMP_KLUDGE)
 APPLETS_DEFINE-a+=$(CFLAGS-e2fsprogs) -I$(srcdir) $(E2FSPROGS_TMP_KLUDGE)
 
 e2fsprogs_OBJ:=  $(patsubst %,$(objdir)/%,$(E2FSPROGS-y))
+
+$(e2fsprogs_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/e2fsprogs.a: $(e2fsprogs_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/e2fsprogs.a
 

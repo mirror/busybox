@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/findutils
-objdir=$(top_builddir)/findutils
+srcdir:=$(top_srcdir)/findutils
+objdir:=$(top_builddir)/findutils
 
 FINDUTILS-$(CONFIG_FIND)	+= find.o
 FINDUTILS-$(CONFIG_GREP)	+= grep.o
@@ -17,4 +17,8 @@ APPLET_SRC-y+=$(FINDUTILS_SRC-y)
 APPLET_SRC-a+=$(FINDUTILS_SRC-a)
 
 findutils_OBJ:=  $(patsubst %,$(objdir)/%,$(FINDUTILS-y))
+
+$(findutils_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/findutils.a: $(findutils_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/findutils.a
 

@@ -3,10 +3,9 @@
 # Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
 #
 # Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
-#
 
-srcdir=$(top_srcdir)/networking/libiproute
-objdir=$(top_builddir)/networking/libiproute
+srcdir:=$(top_srcdir)/networking/libiproute
+objdir:=$(top_builddir)/networking/libiproute
 
 LIBIPROUTE-$(CONFIG_IP) += \
 	ip_parse_common_args \
@@ -67,4 +66,8 @@ LIBRARY_SRC-y+=$(LIBIPROUTE_SRC-y)
 LIBRARY_SRC-a+=$(LIBIPROUTE_SRC-a)
 
 networking_libiproute_OBJ$(os):=$(patsubst %,$(objdir)/%$(os),$(LIBIPROUTE-y))
+
+$(networking_libiproute_OBJ$(os)): $(objdir)/%$(os): $(srcdir)/%.c
+$(objdir)/networking.a: $(networking_libiproute_OBJ$(os))
+libraries-y:=$(libraries-y) $(objdir)/networking.a
 

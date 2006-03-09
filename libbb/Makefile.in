@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/libbb
-objdir=$(top_builddir)/libbb
+srcdir:=$(top_srcdir)/libbb
+objdir:=$(top_builddir)/libbb
 
 LIBBB-n:=
 LIBBB-y:= \
@@ -145,4 +145,9 @@ $(LIBBB_MOBJ4:.osm=.om): $(LIBBB_MSRC4)
 $(LIBBB_MOBJ5:.osm=.om): $(LIBBB_MSRC5)
 $(LIBBB_MOBJ6:.osm=.om): $(LIBBB_MSRC6)
 endif
+
+$(libbb_OBJ.os): $(objdir)/%.os: $(srcdir)/%.c
+$(libbb_OBJ.o): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/libbb.a: $(libbb_OBJ$(os)) $(libbb_MOBJ$(os))
+libraries-y:=$(libraries-y) $(objdir)/libbb.a
 

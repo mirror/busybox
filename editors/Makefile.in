@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/editors
-objdir=$(top_builddir)/editors
+srcdir:=$(top_srcdir)/editors
+objdir:=$(top_builddir)/editors
 
 EDITORS-$(CONFIG_AWK)	+= awk.o
 EDITORS-$(CONFIG_PATCH)	+= patch.o
@@ -25,4 +25,8 @@ APPLET_SRC-y+=$(EDITOR_SRC-y)
 APPLET_SRC-a+=$(EDITOR_SRC-a)
 
 editors_OBJ:=  $(patsubst %,$(objdir)/%,$(EDITORS-y))
+
+$(editors_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/editors.a: $(editors_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/editors.a
 

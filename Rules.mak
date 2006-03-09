@@ -71,6 +71,16 @@ HOSTCFLAGS= -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer
 # Ensure consistent sort order, 'gcc -print-search-dirs' behavior, etc.
 LC_ALL:= C
 
+# initialize flags here
+CFLAGS:=
+CFLAGS_COMBINE:=
+CFLAGS_PIC:=
+LD_FLAGS:=
+LIB_LDFLAGS:=
+PROG_LDFLAGS:=
+PROG_CFLAGS:=
+OPTIMIZATIONS:=
+
 # If you want to add some simple compiler switches (like -march=i686),
 # especially from the command line, use this instead of CFLAGS directly.
 # For optimization overrides, it's better still to set OPTIMIZATIONS.
@@ -94,7 +104,7 @@ CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
 CFLAGS+=-I$(top_builddir)/include -I$(top_srcdir)/include
 
-ARFLAGS=cruP
+ARFLAGS=cru
 
 
 
@@ -149,8 +159,8 @@ __TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		)
 endif
 
-$(call check_gcc,CFLAGS,-funsigned-char,)
-$(call check_gcc,CFLAGS,-mmax-stack-frame=256,)
+CFLAGS+=$(call check_gcc,CFLAGS,-funsigned-char,)
+CFLAGS+=$(call check_gcc,CFLAGS,-mmax-stack-frame=256,)
 
 #--------------------------------------------------------
 # Arch specific compiler optimization stuff should go here.
@@ -158,51 +168,51 @@ $(call check_gcc,CFLAGS,-mmax-stack-frame=256,)
 # for OPTIMIZATIONS...
 
 # use '-Os' optimization if available, else use -O2
-$(call check_gcc,OPTIMIZATIONS,-Os,-O2)
+OPTIMIZATIONS+=$(call check_gcc,OPTIMIZATIONS,-Os,-O2)
 
 # gcc 2.95 exits with 0 for "unrecognized option"
-$(if $(call is_eq,$(CONFIG_BUILD_AT_ONCE),y),\
+CFLAGS_COMBINE+=$(if $(call is_eq,$(CONFIG_BUILD_AT_ONCE),y),\
   $(if $(call cc_ge,3,0),\
     $(call check_gcc,CFLAGS_COMBINE,--combine,)))
 
-$(if $(call is_eq,$(CONFIG_BUILD_AT_ONCE),y),\
+OPTIMIZATIONS+=$(if $(call is_eq,$(CONFIG_BUILD_AT_ONCE),y),\
   $(call check_gcc,OPTIMIZATIONS,-funit-at-a-time,))
 
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=25795
-#$(if $(call is_eq,$(CONFIG_BUILD_AT_ONCE),y),\
+#PROG_CFLAGS+=$(if $(call is_eq,$(CONFIG_BUILD_AT_ONCE),y),\
 #  $(call check_gcc,PROG_CFLAGS,-fwhole-program,))
 
-$(call check_ld,LIB_LDFLAGS,--enable-new-dtags,)
-#$(call check_ld,LIB_LDFLAGS,--reduce-memory-overheads,)
-#$(call check_ld,LIB_LDFLAGS,--as-needed,)
-#$(call check_ld,LIB_LDFLAGS,--warn-shared-textrel,)
+LIB_LDFLAGS+=$(call check_ld,LIB_LDFLAGS,--enable-new-dtags,)
+#LIB_LDFLAGS+=$(call check_ld,LIB_LDFLAGS,--reduce-memory-overheads,)
+#LIB_LDFLAGS+=$(call check_ld,LIB_LDFLAGS,--as-needed,)
+#LIB_LDFLAGS+=$(call check_ld,LIB_LDFLAGS,--warn-shared-textrel,)
 
-$(call check_ld,PROG_LDFLAGS,--gc-sections,)
+PROG_LDFLAGS+=$(call check_ld,PROG_LDFLAGS,--gc-sections,)
 
 # Some nice architecture specific optimizations
 ifeq ($(__TARGET_ARCH),arm)
     OPTIMIZATIONS+=-fstrict-aliasing
 endif # arm
 
-$(if $(call is_eq,$(__TARGET_ARCH),i386),\
+OPTIMIZATIONS+=$(if $(call is_eq,$(__TARGET_ARCH),i386),\
   $(call check_gcc,OPTIMIZATIONS,-march=i386,))
 
 # gcc-4.0 and older seem to benefit from these
-$(if $(call cc_le,4,0),\
+OPTIMIZATIONS+=$(if $(call cc_le,4,0),\
   $(call check_gcc,OPTIMIZATIONS,-mpreferred-stack-boundary=2,)\
   $(call check_gcc,OPTIMIZATIONS,-falign-functions=1 -falign-jumps=1 -falign-loops=1,\
 		-malign-functions=0 -malign-jumps=0 -malign-loops=0))
 
 # gcc-4.1 and beyond seem to benefit from these
 # turn off flags which hurt -Os
-$(if $(call cc_ge,4,1),\
+OPTIMIZATIONS+=$(if $(call cc_ge,4,1),\
   $(call check_gcc,OPTIMIZATIONS,-fno-tree-loop-optimize,)\
   $(call check_gcc,OPTIMIZATIONS,-fno-tree-dominator-opts,)\
   $(call check_gcc,OPTIMIZATIONS,-fno-strength-reduce,)\
 \
   $(call check_gcc,OPTIMIZATIONS,-fno-branch-count-reg,))
 
-$(call check_gcc,OPTIMIZATIONS,-fomit-frame-pointer,)
+OPTIMIZATIONS+=$(call check_gcc,OPTIMIZATIONS,-fomit-frame-pointer,)
 
 #
 #--------------------------------------------------------
@@ -227,9 +237,7 @@ else
     endif
 endif
 
-$(if $(call is_eq,$(CONFIG_DEBUG),y),\
- $(call check_ld,LDFLAGS,--warn-common,),\
- $(call check_ld,LDFLAGS,--warn-common,)$(call check_ld,LDFLAGS,--sort-common,))
+LDFLAGS+=$(if $(call is_eq,$(CONFIG_DEBUG),y),$(call check_ld,LDFLAGS,--warn-common,)$(call check_ld,LDFLAGS,--sort-common,))
 ifeq ($(CONFIG_DEBUG),y)
     CFLAGS  +=$(WARNINGS) -g -D_GNU_SOURCE
     STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
@@ -237,14 +245,15 @@ else
     CFLAGS+=$(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
     STRIPCMD:=$(STRIP) -s --remove-section=.note --remove-section=.comment
 endif
-$(if $(call is_eq,$(CONFIG_STATIC),y),\
+PROG_CFLAGS+=$(if $(call is_eq,$(CONFIG_STATIC),y),\
     $(call check_gcc,PROG_CFLAGS,-static,))
 
-$(call check_gcc,CFLAGS_SHARED,-shared,)
+CFLAGS_SHARED+=$(call check_gcc,CFLAGS_SHARED,-shared,)
 LIB_CFLAGS+=$(CFLAGS_SHARED)
 
-$(if $(call is_eq,$(CONFIG_BUILD_LIBBUSYBOX),y),\
+CFLAGS_PIC+=$(if $(call is_eq,$(CONFIG_BUILD_LIBBUSYBOX),y),\
     $(call check_gcc,CFLAGS_PIC,-fPIC,))
+LIB_CFLAGS+=$(CFLAGS_PIC)
 
 ifeq ($(CONFIG_SELINUX),y)
     LIBRARIES += -lselinux
@@ -379,12 +388,11 @@ ifdef rules-mak-rules
 .SUFFIXES: .c .S .o .os .om .osm .oS .so .a .s .i .E
 
 # generic rules
-%.o:  %.c ; $(compile.c)
-%.os: %.c ; $(compile.c) $(CFLAGS_PIC)
 %.o:      ; $(compile.c)
 %.os:     ; $(compile.c) $(CFLAGS_PIC)
 %.om:     ; $(compile.m)
 %.osm:    ; $(compile.m) $(CFLAGS_PIC)
+%.a:      ; $(do_ar)
 
 endif # rules-mak-rules
 

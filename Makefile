@@ -13,15 +13,16 @@ noconfig_targets := menuconfig config oldconfig randconfig \
 	clean distclean \
 	release tags
 
-# make-3.79.1 didn't support MAKEFILE_LIST
-# for building out-of-tree, users of make-3.79 still have to pass top_srcdir=
-# to make: make -f /srcs/busybox/Makefile top_srcdir=/srcs/busybox
-ifndef MAKEFILE_LIST
-MAKEFILE_LIST=.
-endif
 # the toplevel sourcedir
 ifndef top_srcdir
+# make-3.79.1 didn't support MAKEFILE_LIST
+# for building out-of-tree, users of make-3.79.1 still have to pass top_srcdir=
+# to make: make -f /srcs/busybox/Makefile top_srcdir=/srcs/busybox
+ifdef MAKEFILE_LIST
 top_srcdir:=$(shell cd $(dir $(firstword $(MAKEFILE_LIST))) && pwd)
+else
+top_srcdir:=$(CURDIR)
+endif
 endif
 # toplevel directory of the object-tree
 ifndef top_builddir
@@ -63,44 +64,22 @@ else
   PACKAGE_OUTPUTDIR := $(top_builddir)
 endif
 
-#######################################################################
-# Try to workaround bugs in make
-
-# make-3.79.1 didn't understand order-only prerequisites ('|').
-# Just treat them as normal prerequisites. Note that this will lead to
-# spurious rebuilds.
-ifeq ($(MAKE_VERSION),3.79.1)
-|: ;
-endif
-
-# Workaround for bugs in make-3.80
-# eval is broken if it is in a conditional
-
-#$ cat 3.80-eval-in-cond.mak 
-#all:: ; @echo it
-#define Y
-#  all:: ; @echo worked
-#endef
-#ifdef BAR
-#$(eval $(Y))
-#endif
-#$ make -f 3.80-eval-in-cond.mak
-#it
-#$ make -f 3.80-eval-in-cond.mak BAR=set
-#3.80-eval-in-cond.mak:5: *** missing `endif'.  Stop.
-
-# This was fixed in December 2003.
 define check_gcc
-$(eval $(1)+=$(if $(2),$(if $(shell $(CC) $(2) -S -o /dev/null -xc /dev/null > /dev/null 2>&1 && echo y),$(2),$(if $(3),$(3))),$(if $(3),$(3))))
+$(if $(2),$(if $(shell $(CC) $(2) -S -o /dev/null -xc /dev/null > /dev/null 2>&1 && echo y),$(2),$(if $(3),$(3))),$(if $(3),$(3)))
 endef
 
 define check_ld
-$(eval $(1)+=$(if $(2),$(if $(shell $(LD) $(2) -o /dev/null -b binary /dev/null > /dev/null 2>&1 && echo y),$(shell echo \-Wl,$(2)),$(if $(3),$(3))),$(if $(3),$(3))))
+$(if $(2),$(if $(shell $(LD) $(2) -o /dev/null -b binary /dev/null > /dev/null 2>&1 && echo y),$(shell echo \-Wl,$(2)),$(if $(3),$(3))),$(if $(3),$(3)))
 endef
 
 #######################################################################
+# make-3.79.1 doesn't support order-only prerequisites..
+ifeq ($(MAKE_VERSION),3.79.1)
+|: $(^) ;
+endif
+#######################################################################
 
--include $(top_srcdir)/Rules.mak
+
 
 # Handle building out of tree
 ifneq ($(top_builddir),$(top_srcdir))
@@ -179,6 +158,8 @@ help:
 	@echo '				  2 also print when make enters a directory'
 	@echo '				  3 also verbosely print shell invocations'
 
+-include $(top_srcdir)/Rules.mak
+
 ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 # Default target if none was requested explicitly
 all: defconfig menuconfig ;
@@ -252,32 +233,7 @@ ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 endif # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 
-# convert $(DIRS) to upper case. Use sed instead of tr since we're already
-# depending on it.
-DIRS_UPPER:=$(shell echo $(DIRS) | $(SED) 'h;y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')
-
-# First populate the variables ..._OBJ-y et al
-$(foreach d,$(DIRS_UPPER),$(eval $(notdir $(d))-y:=))
-
 include $(patsubst %,%/Makefile.in,$(SRC_DIRS))
-
-# Then we need the dependencies for ..._OBJ
-define dir_pattern.o
-ifeq ($(os),.os)
-$(if $($(1)_OBJ.os),$($(1)_OBJ.os:.os=.o): $(top_builddir)/$(2)/%.o: $(top_srcdir)/$(2)/%.c)
-endif
-$(if $($(1)_OBJ$(os)),$($(1)_OBJ$(os)): $(top_builddir)/$(2)/%$(os): $(top_srcdir)/$(2)/%.c)
-$(if $($(1)_OBJ),$($(1)_OBJ): $(top_builddir)/$(2)/%.o: $(top_srcdir)/$(2)/%.c)
-endef
-
-# The actual directory patterns for .o*
-$(foreach d,$(DIRS),$(eval $(call dir_pattern.o,$(subst /,_,$(d)),$(d))))
-
-define file_lists
-$($(1)$(2)) $($(1)$(2).o) $($(1)$(2).os)
-endef
-bin-obj-y:=$(subst .os,.o,$(foreach d,$(DIRS),$(call file_lists,$(subst /,_,$(d)),_OBJ)))
-bin-mobj-y:=$(subst .osm,.om,$(foreach d,$(DIRS),$(call file_lists,$(subst /,_,$(d)),_MOBJ)))
 
 ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
 # Finally pull in the dependencies (headers and other includes) of the
@@ -294,9 +250,7 @@ all: busybox busybox.links doc ;
 # IMA compiles all sources at once (aka IPO aka IPA etc.)
 
 ifeq ($(strip $(CONFIG_BUILD_AT_ONCE)),y)
-# We are not building .o
-bin-obj-y:=
-bin-mobj-y:=
+libraries-y:=
 # Which parts of the internal libs are requested?
 # Per default we only want what was actually selected.
 # -a denotes all while -y denotes the selected ones.
@@ -312,30 +266,17 @@ APPLETS_DEFINE:=$(APPLETS_DEFINE-y)
 else  # CONFIG_BUILD_AT_ONCE
 # no --combine, build archives out of the individual .o
 # This was the old way the binary was built.
-libbusybox-obj:=$(archival_libunarchive_OBJ$(os)) \
-	$(networking_libiproute_OBJ$(os)) \
-	$(libpwdgrp_MOBJ$(os)) \
-	$(coreutils_libcoreutils_OBJ$(os)) \
-	$(libbb_OBJ$(os)) $(libbb_MOBJ$(os))
-
+libbusybox-obj:=archival/libunarchive/libunarchive.a \
+	networking/libiproute/libiproute.a \
+	libpwdgrp/libpwdgrp.a coreutils/libcoreutils/libcoreutils.a \
+	libbb/libbb.a
+libbusybox-obj:=$(patsubst %,$(top_builddir)/%,$(libbusybox-obj))
 ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
-# linking against libbusybox, so don't build the .o already contained in the .so
-bin-obj-y:=$(filter-out $(libbusybox-obj) $(libbusybox-obj:.os=.o),$(bin-obj-y))
-bin-mobj-y:=$(filter-out $(libbusybox-obj) $(libbusybox-obj:.osm=.om),$(bin-mobj-y))
+# linking against libbusybox, so don't build the .a already contained in the .so
+libraries-y:=$(filter-out $(libbusybox-obj),$(libraries-y))
 endif # CONFIG_FEATURE_SHARED_BUSYBOX
+
 endif # CONFIG_BUILD_AT_ONCE
-
-# build an .a to keep .hash et al small
-ifneq ($(bin-obj-y)$(bin-mobj-y),)
-  applets.a:=$(bin-obj-y) $(bin-mobj-y)
-endif
-ifdef applets.a
-applets.a: $(applets.a)
-	$(Q)-rm -f $(@)
-	$(do_ar)
-
-bin-obj.a=applets.a
-endif
 
 ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 LD_LIBBUSYBOX:=libbusybox.so
@@ -355,6 +296,8 @@ endif # !CONFIG_FEATURE_SHARED_BUSYBOX
 $(LIBBUSYBOX_SONAME): $(LIBRARY_SRC)
 else # CONFIG_BUILD_AT_ONCE
 $(LIBBUSYBOX_SONAME): $(libbusybox-obj)
+AR_INTRO:=-Wl,--whole-archive
+AR_EXTRO:=-Wl,--no-whole-archive
 endif # CONFIG_BUILD_AT_ONCE
 
 
@@ -367,12 +310,12 @@ $(LIBBUSYBOX_SONAME):
 ifndef MAJOR_VERSION
 	$(error MAJOR_VERSION needed for $@ is not defined)
 endif
-	$(do_link) $(LIB_CFLAGS) $(LIB_LDFLAGS) $(CFLAGS_COMBINE) \
+	$(do_link) $(LIB_CFLAGS) $(CFLAGS_COMBINE) \
 	-Wl,-soname=$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
 	-Wl,-z,combreloc $(LIB_LDFLAGS) \
 	-o $(@) \
 	-Wl,--start-group \
-	$(LIBRARY_DEFINE) $(^) \
+	$(LIBRARY_DEFINE) $(AR_INTRO) $(^) $(AR_EXTRO) \
 	-Wl,--end-group
 	@rm -f $(DO_INSTALL_LIBS)
 	@for i in $(DO_INSTALL_LIBS); do ln -s $(@) $$i ; done
@@ -380,14 +323,14 @@ endif
 
 endif # ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 
-busybox_unstripped: $(top_builddir)/.depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(APPLET_SRC) $(bin-obj.a)
+busybox_unstripped: $(top_builddir)/.depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(APPLET_SRC) $(libraries-y)
 	$(do_link) $(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) \
 	$(foreach f,$(^:.o=.c),$(CFLAGS-$(notdir $(patsubst %/$,%,$(dir $(f))))-$(notdir $(f)))) \
 	$(CFLAGS-$(@)) \
 	-o $@ -Wl,--start-group \
 	$(APPLETS_DEFINE) $(APPLET_SRC) \
 	$(BUSYBOX_DEFINE) $(BUSYBOX_SRC) \
-	$(bin-obj.a) \
+	$(libraries-y) \
 	$(LDBUSYBOX) $(LIBRARIES) \
 	-Wl,--end-group
 
@@ -538,3 +481,4 @@ tags:
 	defconfig allyesconfig allnoconfig allbareconfig \
 	clean distclean \
 	release tags
+

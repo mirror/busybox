@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/networking
-objdir=$(top_builddir)/networking
+srcdir:=$(top_srcdir)/networking
+objdir:=$(top_builddir)/networking
 
 NETWORKING-$(CONFIG_ARPING)       += arping.o
 NETWORKING-$(CONFIG_DNSD)         += dnsd.o
@@ -56,4 +56,8 @@ LIBRARY_DEFINE-y+= -I$(top_srcdir)/networking
 LIBRARY_DEFINE-a+= -I$(top_srcdir)/networking
 
 networking_OBJ:=  $(patsubst %,$(objdir)/%,$(NETWORKING-y))
+
+$(networking_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/networking.a: $(networking_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/networking.a
 

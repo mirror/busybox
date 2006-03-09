@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/sysklogd
-objdir=$(top_builddir)/sysklogd
+srcdir:=$(top_srcdir)/sysklogd
+objdir:=$(top_builddir)/sysklogd
 
 SYSKLOGD-$(CONFIG_KLOGD)		+= klogd.o
 SYSKLOGD-$(CONFIG_LOGGER)		+= logger.o
@@ -19,4 +19,8 @@ APPLET_SRC-y+=$(SYSKLOGD_SRC-y)
 APPLET_SRC-a+=$(SYSKLOGD_SRC-a)
 
 sysklogd_OBJ:=  $(patsubst %,$(objdir)/%,$(SYSKLOGD-y))
+
+$(sysklogd_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/sysklogd.a: $(sysklogd_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/sysklogd.a
 

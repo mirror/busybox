@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/miscutils
-objdir=$(top_builddir)/miscutils
+srcdir:=$(top_srcdir)/miscutils
+objdir:=$(top_builddir)/miscutils
 
 MISCUTILS-$(CONFIG_ADJTIMEX)    += adjtimex.o
 MISCUTILS-$(CONFIG_CROND)       += crond.o
@@ -39,4 +39,8 @@ APPLET_SRC-y+=$(MISCUTILS_SRC-y)
 APPLET_SRC-a+=$(MISCUTILS_SRC-a)
 
 miscutils_OBJ:=  $(patsubst %,$(objdir)/%,$(MISCUTILS-y))
+
+$(miscutils_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/miscutils.a: $(miscutils_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/miscutils.a
 

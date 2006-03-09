@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/util-linux
-objdir=$(top_builddir)/util-linux
+srcdir:=$(top_srcdir)/util-linux
+objdir:=$(top_builddir)/util-linux
 
 UTIL-LINUX-$(CONFIG_DMESG)         +=dmesg.o
 UTIL-LINUX-$(CONFIG_FBSET)         +=fbset.o
@@ -47,4 +47,8 @@ endif
 endif
 
 util-linux_OBJ:=  $(patsubst %,$(objdir)/%,$(UTIL-LINUX-y))
+
+$(util-linux_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/util-linux.a: $(util-linux_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/util-linux.a
 

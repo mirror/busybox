@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/coreutils/libcoreutils
-objdir=$(top_builddir)/coreutils/libcoreutils
+srcdir:=$(top_srcdir)/coreutils/libcoreutils
+objdir:=$(top_builddir)/coreutils/libcoreutils
 
 LIBCOREUTILS-$(CONFIG_MKFIFO)	+= getopt_mk_fifo_nod
 LIBCOREUTILS-$(CONFIG_MKNOD)	+= getopt_mk_fifo_nod
@@ -21,3 +21,8 @@ LIBRARY_SRC-y+=$(LIBCOREUTILS_SRC-y)
 LIBRARY_SRC-a+=$(LIBCOREUTILS_SRC-a)
 
 coreutils_libcoreutils_OBJ$(os):=$(patsubst %,$(objdir)/%$(os),$(LIBCOREUTILS-y))
+
+$(coreutils_libcoreutils_OBJ$(os)): $(objdir)/%$(os): $(srcdir)/%.c
+$(objdir)/libcoreutils.a: $(coreutils_libcoreutils_OBJ$(os))
+libraries-y:=$(libraries-y) $(objdir)/libcoreutils.a
+

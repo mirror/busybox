@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/libpwdgrp
-objdir=$(top_builddir)/libpwdgrp
+srcdir:=$(top_srcdir)/libpwdgrp
+objdir:=$(top_builddir)/libpwdgrp
 
 LIBPWDGRP_MSRC0:=$(srcdir)/pwd_grp.c
 LIBPWDGRP_M0-$(CONFIG_USE_BB_PWD_GRP):= fgetpwent_r fgetgrent_r \
@@ -43,3 +43,7 @@ ifeq ($(om),.osm)
 $(LIBPWDGRP_MOBJ0:.osm=.om): $(LIBPWDGRP_MSRC0)
 $(LIBPWDGRP_MOBJ1:.osm=.om): $(LIBPWDGRP_MSRC1)
 endif
+
+$(objdir)/libpwdgrp.a: $(libpwdgrp_MOBJ$(os))
+libraries-y:=$(libraries-y) $(objdir)/libpwdgrp.a
+

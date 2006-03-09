@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/archival/libunarchive
-objdir=$(top_builddir)/archival/libunarchive
+srcdir:=$(top_srcdir)/archival/libunarchive
+objdir:=$(top_builddir)/archival/libunarchive
 
 LIBUNARCHIVE-y:= \
 \
@@ -70,4 +70,8 @@ LIBRARY_SRC-y+=$(LIBUNARCHIVE_SRC-y)
 LIBRARY_SRC-a+=$(LIBUNARCHIVE_SRC-a)
 
 archival_libunarchive_OBJ$(os):=$(patsubst %,$(objdir)/%$(os),$(LIBUNARCHIVE-y))
+
+$(archival_libunarchive_OBJ$(os)): $(objdir)/%$(os): $(srcdir)/%.c
+$(objdir)/libunarchive.a: $(archival_libunarchive_OBJ$(os))
+libraries-y:=$(libraries-y) $(objdir)/libunarchive.a
 

@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/procps
-objdir=$(top_builddir)/procps
+srcdir:=$(top_srcdir)/procps
+objdir:=$(top_builddir)/procps
 
 PROCPS-$(CONFIG_FREE)		+= free.o
 PROCPS-$(CONFIG_KILL)		+= kill.o
@@ -24,4 +24,8 @@ APPLET_SRC-y+=$(PROCPS_SRC-y)
 APPLET_SRC-a+=$(PROCPS_SRC-a)
 
 procps_OBJ:=  $(patsubst %,$(objdir)/%,$(PROCPS-y))
+
+$(procps_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/procps.a: $(procps_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/procps.a
 

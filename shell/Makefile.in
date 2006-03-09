@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/shell
-objdir=$(top_builddir)/shell
+srcdir:=$(top_srcdir)/shell
+objdir:=$(top_builddir)/shell
 
 SHELL-$(CONFIG_ASH)				+= ash.o
 SHELL-$(CONFIG_HUSH)				+= hush.o
@@ -20,4 +20,8 @@ APPLET_SRC-y+=$(SHELLT_SRC-y)
 APPLET_SRC-a+=$(SHELLT_SRC-a)
 
 shell_OBJ:=  $(patsubst %,$(objdir)/%,$(SHELL-y))
+
+$(shell_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/shell.a: $(shell_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/shell.a
 

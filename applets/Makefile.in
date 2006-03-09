@@ -4,8 +4,8 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir=$(top_srcdir)/applets
-objdir=$(top_builddir)/applets
+srcdir:=$(top_srcdir)/applets
+objdir:=$(top_builddir)/applets
 
 APPLETS_SRC:= $(patsubst %,$(srcdir)/%,applets.c busybox.c version.c)
 
@@ -13,4 +13,8 @@ APPLET_SRC-y+=$(APPLETS_SRC)
 APPLET_SRC-a+=$(APPLETS_SRC)
 
 applets_OBJ:=$(patsubst $(srcdir)/%.c,$(objdir)/%.o,$(APPLETS_SRC))
+
+$(applets_OBJ): $(objdir)/%.o: $(srcdir)/%.c
+$(objdir)/applets.a: $(applets_OBJ)
+libraries-y:=$(libraries-y) $(objdir)/applets.a
 
