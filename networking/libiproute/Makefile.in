@@ -68,6 +68,6 @@ LIBRARY_SRC-a+=$(LIBIPROUTE_SRC-a)
 networking_libiproute_OBJ$(os):=$(patsubst %,$(objdir)/%$(os),$(LIBIPROUTE-y))
 
 $(networking_libiproute_OBJ$(os)): $(objdir)/%$(os): $(srcdir)/%.c
-$(objdir)/networking.a: $(networking_libiproute_OBJ$(os))
-libraries-y:=$(libraries-y) $(objdir)/networking.a
+$(objdir)/libiproute.a: $(networking_libiproute_OBJ$(os))
+libraries-y:=$(libraries-y) $(objdir)/libiproute.a
 
