@@ -20,7 +20,6 @@
 #include <stdint.h>
 
 #include <netdb.h>
-#include <netinet/in.h>
 
 #include <features.h>
 

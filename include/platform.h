@@ -92,8 +92,16 @@
     #define BB_BIG_ENDIAN 0
 #endif
 
+/* ---- Networking ------------------------------------------ */
+#ifndef __APPLE__
+#include <arpa/inet.h>
+#else
+#include <netinet/in.h>
+#endif
+
 /* ---- miscellaneous --------------------------------------- */
 /* NLS stuff */
+/* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
 #define _(Text) Text
 #define N_(Text) (Text)
 
