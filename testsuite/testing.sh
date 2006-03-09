@@ -58,7 +58,7 @@ testing ()
 {
   if [ $# -ne 5 ]
   then
-    echo "Test $1 has the wrong number of arguments" >&2
+    echo "Test $1 has the wrong number of arguments ($# $*)" >&2
     exit
   fi
 
@@ -74,7 +74,7 @@ testing ()
 
   echo -ne "$3" > expected
   echo -ne "$4" > input
-  echo -n -e "$5" | eval "$COMMAND $2" > actual
+  echo -ne "$5" | eval "$COMMAND $2" > actual
   RETVAL=$?
 
   cmp expected actual > /dev/null
@@ -97,4 +97,31 @@ testing ()
   fi
 
   return $RETVAL
+}
+
+# Recursively grab an executable and all the libraries needed to run it.
+# Source paths beginning with / will be copied into destpath, otherwise
+# the file is assumed to already be there and only its library dependencies
+# are copied.
+
+function mkchroot
+{
+  [ $# -lt 2 ] && return
+
+  dest=$1
+  shift
+  for i in "$@"
+  do
+    if [ "${i:0:1}" == "/" ]
+    then
+      [ -f "$dest/$i" ] && continue
+      d=`echo "$i" | grep -o '.*/'` &&
+      mkdir -p "$dest/$d" &&
+      cat "$i" > "$dest/$i" &&
+      chmod +x "$dest/$i"
+    else
+      i="$dest/$i"
+    fi
+    mkchroot "$dest" $(ldd "$i" | egrep -o '/.* ')
+  done
 }
