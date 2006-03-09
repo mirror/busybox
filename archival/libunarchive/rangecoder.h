@@ -56,7 +56,8 @@ typedef struct {
 #define RC_MODEL_TOTAL_BITS 11
 
 
-static speed_inline void rc_read(rc_t * rc)
+/* Called twice: once at startup and once in rc_normalize() */
+static void rc_read(rc_t * rc)
 {
 	rc->buffer_size = read(rc->fd, rc->buffer, rc->buffer_size);
 	if (rc->buffer_size <= 0)
@@ -65,6 +66,7 @@ static speed_inline void rc_read(rc_t * rc)
 	rc->buffer_end = rc->buffer + rc->buffer_size;
 }
 
+/* Called once */
 static always_inline void rc_init(rc_t * rc, int fd, int buffer_size)
 {
 	int i;
@@ -84,35 +86,50 @@ static always_inline void rc_init(rc_t * rc, int fd, int buffer_size)
 	}
 }
 
+/* Called once. TODO: bb_maybe_free() */
 static always_inline void rc_free(rc_t * rc)
 {
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(rc->buffer);
 }
 
+/* Called twice, but one callsite is in speed_inline'd rc_is_bit_0_helper() */
+static void rc_do_normalize(rc_t * rc)
+{
+	if (rc->ptr >= rc->buffer_end)
+		rc_read(rc);
+	rc->range <<= 8;
+	rc->code = (rc->code << 8) | *rc->ptr++;
+}
 static always_inline void rc_normalize(rc_t * rc)
 {
 	if (rc->range < (1 << RC_TOP_BITS)) {
-		if (rc->ptr >= rc->buffer_end)
-			rc_read(rc);
-		rc->range <<= 8;
-		rc->code = (rc->code << 8) | *rc->ptr++;
+		rc_do_normalize(rc);
 	}
 }
 
-static speed_inline int rc_is_bit_0(rc_t * rc, uint16_t * p)
+/* Called 9 times */
+/* Why rc_is_bit_0_helper exists?
+ * Because we want to always expose (rc->code < rc->bound) to optimizer
+ */
+static speed_inline uint32_t rc_is_bit_0_helper(rc_t * rc, uint16_t * p)
 {
 	rc_normalize(rc);
 	rc->bound = *p * (rc->range >> RC_MODEL_TOTAL_BITS);
-	return rc->code < rc->bound;
+	return rc->bound;
+}
+static always_inline int rc_is_bit_0(rc_t * rc, uint16_t * p)
+{
+	uint32_t t = rc_is_bit_0_helper(rc, p);
+	return rc->code < t;
 }
 
+/* Called ~10 times, but very small, thus inlined */
 static speed_inline void rc_update_bit_0(rc_t * rc, uint16_t * p)
 {
 	rc->range = rc->bound;
 	*p += ((1 << RC_MODEL_TOTAL_BITS) - *p) >> RC_MOVE_BITS;
 }
-
 static speed_inline void rc_update_bit_1(rc_t * rc, uint16_t * p)
 {
 	rc->range -= rc->bound;
@@ -120,7 +137,8 @@ static speed_inline void rc_update_bit_1(rc_t * rc, uint16_t * p)
 	*p -= *p >> RC_MOVE_BITS;
 }
 
-static speed_inline int rc_get_bit(rc_t * rc, uint16_t * p, int *symbol)
+/* Called 4 times in unlzma loop */
+static int rc_get_bit(rc_t * rc, uint16_t * p, int *symbol)
 {
 	if (rc_is_bit_0(rc, p)) {
 		rc_update_bit_0(rc, p);
@@ -133,6 +151,7 @@ static speed_inline int rc_get_bit(rc_t * rc, uint16_t * p, int *symbol)
 	}
 }
 
+/* Called once */
 static always_inline int rc_direct_bit(rc_t * rc)
 {
 	rc_normalize(rc);
@@ -144,6 +163,7 @@ static always_inline int rc_direct_bit(rc_t * rc)
 	return 0;
 }
 
+/* Called twice */
 static speed_inline void
 rc_bit_tree_decode(rc_t * rc, uint16_t * p, int num_levels, int *symbol)
 {
