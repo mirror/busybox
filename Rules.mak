@@ -10,10 +10,8 @@ ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
 -include $(top_builddir)/.config
 endif
 
-ifeq ($(MAKELEVEL),0)
 ifeq ($(HAVE_DOT_CONFIG),y)
 rules-mak-rules:=0
-endif
 endif
 
 #--------------------------------------------------------
