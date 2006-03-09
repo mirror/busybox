@@ -434,7 +434,7 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 		while(isspace(*cmdstr)) cmdstr++;
 		length = strcspn(cmdstr, semicolon_whitespace);
 		if (length) {
-			sed_cmd->string = strndup(cmdstr, length);
+			sed_cmd->string = bb_xstrndup(cmdstr, length);
 			cmdstr += length;
 		}
 	}

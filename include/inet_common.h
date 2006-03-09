@@ -11,7 +11,7 @@
 #include <features.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
+#include <netinet/in.h>
 
 
 extern const char bb_INET_default[];    /* = "default" */
