@@ -236,6 +236,16 @@ static void sendping(int junk)
 	}
 }
 
+/* libc defines have changed around on us, whee ! */
+#ifndef ICMP6_MEMBERSHIP_QUERY
+# define ICMP6_MEMBERSHIP_QUERY MLD_LISTENER_QUERY
+#endif
+#ifndef ICMP6_MEMBERSHIP_REPORT
+# define ICMP6_MEMBERSHIP_REPORT MLD_LISTENER_REPORT
+#endif
+#ifndef ICMP6_MEMBERSHIP_REDUCTION
+# define ICMP6_MEMBERSHIP_REDUCTION MLD_LISTENER_REDUCTION
+#endif
 static char *icmp6_type_name (int id)
 {
 	switch (id) {
