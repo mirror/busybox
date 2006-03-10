@@ -57,11 +57,13 @@ enum redir_type { REDIRECT_INPUT, REDIRECT_OVERWRITE,
 };
 #endif
 
-static const unsigned int DEFAULT_CONTEXT=0x1;
-static const unsigned int IF_TRUE_CONTEXT=0x2;
-static const unsigned int IF_FALSE_CONTEXT=0x4;
-static const unsigned int THEN_EXP_CONTEXT=0x8;
-static const unsigned int ELSE_EXP_CONTEXT=0x10;
+enum {
+	DEFAULT_CONTEXT = 0x1,
+	IF_TRUE_CONTEXT = 0x2,
+	IF_FALSE_CONTEXT = 0x4,
+	THEN_EXP_CONTEXT = 0x8,
+	ELSE_EXP_CONTEXT = 0x10
+};
 
 #ifdef CONFIG_LASH_PIPE_N_REDIRECTS
 struct redir_struct {

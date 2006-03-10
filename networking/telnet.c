@@ -35,7 +35,7 @@
 #include "busybox.h"
 
 #if 0
-static const int DOTRACE = 1;
+enum { DOTRACE = 1 };
 #endif
 
 #ifdef DOTRACE
@@ -55,14 +55,14 @@ static const int DOTRACE = 1;
 #define DATABUFSIZE  128
 #define IACBUFSIZE   128
 
-static const int CHM_TRY = 0;
-static const int CHM_ON = 1;
-static const int CHM_OFF = 2;
-
-static const int UF_ECHO = 0x01;
-static const int UF_SGA = 0x02;
-
 enum {
+	CHM_TRY = 0,
+	CHM_ON = 1,
+	CHM_OFF = 2,
+
+	UF_ECHO = 0x01,
+	UF_SGA = 0x02,
+
 	TS_0 = 1,
 	TS_IAC = 2,
 	TS_OPT = 3,

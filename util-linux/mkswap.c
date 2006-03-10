@@ -48,7 +48,7 @@
 
 #ifndef _IO
 /* pre-1.3.45 */
-static const int BLKGETSIZE = 0x1260;
+enum { BLKGETSIZE = 0x1260 };
 #else
 /* same on i386, m68k, arm; different on alpha, mips, sparc, ppc */
 #define BLKGETSIZE _IO(0x12,96)

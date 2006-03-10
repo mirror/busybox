@@ -53,9 +53,11 @@
 
 /* NON_OPT is the code that is returned when a non-option is found in '+'
    mode */
-static const int NON_OPT = 1;
+enum {
+	NON_OPT = 1,
 /* LONG_OPT is the code that is returned when a long option is found. */
-static const int LONG_OPT = 2;
+	LONG_OPT = 2
+};
 
 /* The shells recognized. */
 typedef enum {BASH,TCSH} shell_t;
@@ -195,7 +197,7 @@ int generate_output(char * argv[],int argc,const char *optstr,
 static struct option *long_options;
 static int long_options_length; /* Length of array */
 static int long_options_nr; /* Nr of used elements in array */
-static const int LONG_OPTIONS_INCR = 10;
+enum { LONG_OPTIONS_INCR = 10 };
 #define init_longopt() add_longopt(NULL,0)
 
 /* Register a long option. The contents of name is copied. */

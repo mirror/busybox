@@ -56,13 +56,15 @@
 #include <stddef.h>				/* offsetof */
 #include "busybox.h"
 
-static const int DEFDATALEN = 56;
-static const int MAXIPLEN = 60;
-static const int MAXICMPLEN = 76;
-static const int MAXPACKET = 65468;
-#define	MAX_DUP_CHK	(8 * 128)
-static const int MAXWAIT = 10;
-static const int PINGINTERVAL = 1;		/* second */
+enum {
+	DEFDATALEN = 56,
+	MAXIPLEN = 60,
+	MAXICMPLEN = 76,
+	MAXPACKET = 65468,
+	MAX_DUP_CHK = (8 * 128),
+	MAXWAIT = 10,
+	PINGINTERVAL = 1		/* second */
+};
 
 #define O_QUIET         (1 << 0)
 #define O_VERBOSE       (1 << 1)

@@ -47,7 +47,7 @@ struct vt_stat {
 	unsigned short v_signal;	/* signal to send */
 	unsigned short v_state;	/* vt bitmask */
 };
-static const int VT_GETSTATE = 0x5603;	/* get global vt state info */
+enum { VT_GETSTATE = 0x5603 };	/* get global vt state info */
 
 /* From <linux/serial.h> */
 struct serial_struct {
@@ -145,22 +145,25 @@ static char console[CONSOLE_BUFF_SIZE] = _PATH_CONSOLE;
 static char *log_console = VC_5;
 #endif
 static sig_atomic_t got_cont = 0;
-static const int LOG = 0x1;
-static const int CONSOLE = 0x2;
+
+enum {
+	LOG = 0x1,
+	CONSOLE = 0x2,
 
 #if defined CONFIG_FEATURE_EXTRA_QUIET
-static const int MAYBE_CONSOLE = 0x0;
+	MAYBE_CONSOLE = 0x0,
 #else
-#define MAYBE_CONSOLE	CONSOLE
+	MAYBE_CONSOLE = CONSOLE,
 #endif
-#ifndef RB_HALT_SYSTEM
-static const int RB_HALT_SYSTEM = 0xcdef0123;
-static const int RB_ENABLE_CAD = 0x89abcdef;
-static const int RB_DISABLE_CAD = 0;
 
-#define RB_POWER_OFF    0x4321fedc
-static const int RB_AUTOBOOT = 0x01234567;
+#ifndef RB_HALT_SYSTEM
+	RB_HALT_SYSTEM = 0xcdef0123,
+	RB_ENABLE_CAD = 0x89abcdef,
+	RB_DISABLE_CAD = 0,
+	RB_POWER_OFF = 0x4321fedc,
+	RB_AUTOBOOT = 0x01234567,
 #endif
+};
 
 static const char * const environment[] = {
 	"HOME=/",

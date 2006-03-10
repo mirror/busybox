@@ -51,7 +51,7 @@
 #define MAXIDLETIME 45
 
 static const char ident_substr[] = " : USERID : UNIX : ";
-static const int ident_substr_len = sizeof(ident_substr) - 1;
+enum { ident_substr_len = sizeof(ident_substr) - 1 };
 #define PIDFILE "/var/run/identd.pid"
 
 /*

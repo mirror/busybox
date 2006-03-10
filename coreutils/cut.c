@@ -45,9 +45,11 @@ struct cut_list {
 	int endpos;
 };
 
-static const int BOL = 0;
-static const int EOL = INT_MAX;
-static const int NON_RANGE = -1;
+enum {
+	BOL = 0,
+	EOL = INT_MAX,
+	NON_RANGE = -1
+};
 
 static struct cut_list *cut_lists = NULL; /* growable array holding a series of lists */
 static unsigned int nlists = 0; /* number of elements in above list */

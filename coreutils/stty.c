@@ -343,9 +343,10 @@ static const struct  mode_info mode_info[] = {
 	MI_ENTRY(stty_dec,   combination, OMIT,              0,          0 ),
 };
 
-static const int NUM_mode_info =
-
-	(sizeof(mode_info) / sizeof(struct mode_info));
+enum {
+	NUM_mode_info =
+	(sizeof(mode_info) / sizeof(struct mode_info))
+};
 
 /* Control character settings.  */
 struct control_info {
@@ -395,8 +396,10 @@ static const struct  control_info control_info[] = {
 	{stty_time,  0,       VTIME},
 };
 
-static const int NUM_control_info =
-	(sizeof(control_info) / sizeof(struct control_info));
+enum {
+	NUM_control_info =
+	(sizeof(control_info) / sizeof(struct control_info))
+};
 
 #define EMT(t) ((enum mode_type)(t))
 

@@ -343,7 +343,7 @@ extern int insmod_ng_main( int argc, char **argv);
 
 
 #ifndef MODUTILS_MODULE_H
-static const int MODUTILS_MODULE_H = 1;
+/* Why? static const int MODUTILS_MODULE_H = 1;*/
 
 #ident "$Id: insmod.c,v 1.126 2004/12/26 09:13:32 vapier Exp $"
 
@@ -364,9 +364,11 @@ static const int MODUTILS_MODULE_H = 1;
 #undef tgt_sizeof_char_p
 #undef tgt_sizeof_void_p
 #undef tgt_long
-static const int tgt_sizeof_long = 8;
-static const int tgt_sizeof_char_p = 8;
-static const int tgt_sizeof_void_p = 8;
+enum {
+	tgt_sizeof_long = 8,
+	tgt_sizeof_char_p = 8,
+	tgt_sizeof_void_p = 8
+};
 #define tgt_long		long long
 #endif
 
@@ -441,23 +443,26 @@ struct new_module_info
 };
 
 /* Bits of module.flags.  */
-static const int NEW_MOD_RUNNING = 1;
-static const int NEW_MOD_DELETED = 2;
-static const int NEW_MOD_AUTOCLEAN = 4;
-static const int NEW_MOD_VISITED = 8;
-static const int NEW_MOD_USED_ONCE = 16;
+enum {
+	NEW_MOD_RUNNING = 1,
+	NEW_MOD_DELETED = 2,
+	NEW_MOD_AUTOCLEAN = 4,
+	NEW_MOD_VISITED = 8,
+	NEW_MOD_USED_ONCE = 16
+};
 
 int init_module(const char *name, const struct new_module *);
 int query_module(const char *name, int which, void *buf,
 		size_t bufsize, size_t *ret);
 
 /* Values for query_module's which.  */
-
-static const int QM_MODULES = 1;
-static const int QM_DEPS = 2;
-static const int QM_REFS = 3;
-static const int QM_SYMBOLS = 4;
-static const int QM_INFO = 5;
+enum {
+	QM_MODULES = 1,
+	QM_DEPS = 2,
+	QM_REFS = 3,
+	QM_SYMBOLS = 4,
+	QM_INFO = 5
+};
 
 /*======================================================================*/
 /* The system calls unchanged between 2.0 and 2.1.  */
@@ -501,7 +506,7 @@ int delete_module(const char *);
 
 
 #ifndef MODUTILS_OBJ_H
-static const int MODUTILS_OBJ_H = 1;
+/* Why? static const int MODUTILS_OBJ_H = 1; */
 
 #ident "$Id: insmod.c,v 1.126 2004/12/26 09:13:32 vapier Exp $"
 
@@ -700,7 +705,7 @@ static int obj_gpl_license(struct obj_file *f, const char **license);
 
 
 #define _PATH_MODULES	"/lib/modules"
-static const int STRVERSIONLEN = 32;
+enum { STRVERSIONLEN = 32 };
 
 /*======================================================================*/
 

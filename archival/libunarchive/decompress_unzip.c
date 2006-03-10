@@ -92,7 +92,7 @@ static unsigned int gunzip_outbuf_count;	/* bytes in output buffer */
 
 /* gunzip_window size--must be a power of two, and
  *  at least 32K for zip's deflate method */
-static const unsigned int gunzip_wsize = 0x8000;
+enum { gunzip_wsize = 0x8000 };
 static unsigned char *gunzip_window;
 
 static unsigned int *gunzip_crc_table;

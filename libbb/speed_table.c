@@ -67,7 +67,7 @@ static const struct speed_map speeds[] = {
 #endif
 };
 
-static const int NUM_SPEEDS = (sizeof(speeds) / sizeof(struct speed_map));
+enum { NUM_SPEEDS = (sizeof(speeds) / sizeof(struct speed_map)) };
 
 unsigned long bb_baud_to_value(speed_t speed)
 {

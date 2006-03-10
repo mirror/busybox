@@ -62,20 +62,22 @@ struct arp_packet {
 	struct in_addr target_ip;
 } ATTRIBUTE_PACKED;
 
+enum {
 /* 169.254.0.0 */
-static const uint32_t LINKLOCAL_ADDR = 0xa9fe0000;
+	LINKLOCAL_ADDR = 0xa9fe0000,
 
 /* protocol timeout parameters, specified in seconds */
-static const unsigned PROBE_WAIT = 1;
-static const unsigned PROBE_MIN = 1;
-static const unsigned PROBE_MAX = 2;
-static const unsigned PROBE_NUM = 3;
-static const unsigned MAX_CONFLICTS = 10;
-static const unsigned RATE_LIMIT_INTERVAL = 60;
-static const unsigned ANNOUNCE_WAIT = 2;
-static const unsigned ANNOUNCE_NUM = 2;
-static const unsigned ANNOUNCE_INTERVAL = 2;
-static const time_t DEFEND_INTERVAL = 10;
+	PROBE_WAIT = 1,
+	PROBE_MIN = 1,
+	PROBE_MAX = 2,
+	PROBE_NUM = 3,
+	MAX_CONFLICTS = 10,
+	RATE_LIMIT_INTERVAL = 60,
+	ANNOUNCE_WAIT = 2,
+	ANNOUNCE_NUM = 2,
+	ANNOUNCE_INTERVAL = 2,
+	DEFEND_INTERVAL = 10
+};
 
 static const unsigned char ZCIP_VERSION[] = "0.75 (18 April 2005)";
 static char *prog;

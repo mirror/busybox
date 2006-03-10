@@ -30,7 +30,7 @@
 
 
 /* From <linux/kd.h> */
-static const int KDGKBTYPE = 0x4B33;  /* get keyboard type */
+enum { KDGKBTYPE = 0x4B33 };  /* get keyboard type */
 
 
 static int open_a_console(const char *fnam)

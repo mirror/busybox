@@ -732,25 +732,26 @@ static unsigned match_start;	/* start of matching string */
 static int eofile;		/* flag set at end of input file */
 static unsigned lookahead;	/* number of valid bytes ahead in window */
 
-static const unsigned max_chain_length = 4096;
+enum {
+	max_chain_length = 4096,
 
 /* To speed up deflation, hash chains are never searched beyond this length.
  * A higher limit improves compression ratio but degrades the speed.
  */
 
-static const unsigned int max_lazy_match = 258;
+	max_lazy_match = 258,
 
 /* Attempt to find a better match only when the current match is strictly
  * smaller than this value. This mechanism is used only for compression
  * levels >= 4.
  */
-#define max_insert_length  max_lazy_match
+	max_insert_length = max_lazy_match,
 /* Insert new strings in the hash table only if the match length
  * is not greater than this length. This saves time but degrades compression.
  * max_insert_length is used only for compression levels <= 3.
  */
 
-static const unsigned good_match = 32;
+	good_match = 32,
 
 /* Use a faster search when the previous match is longer than this */
 
@@ -761,12 +762,13 @@ static const unsigned good_match = 32;
  * found for specific files.
  */
 
-static const int nice_match = 258;	/* Stop searching when current match exceeds this */
+	nice_match = 258	/* Stop searching when current match exceeds this */
 
 /* Note: the deflate() code requires max_lazy >= MIN_MATCH and max_chain >= 4
  * For deflate_fast() (levels <= 3) good is ignored and lazy has a different
  * meaning.
  */
+};
 
 #define EQUAL 0
 /* result of memcmp for equal strings */

@@ -392,7 +392,7 @@ static char * vValues =
 /* hash size may grow to these values */
 #define FIRST_PRIME 61;
 static const unsigned int PRIMES[] = { 251, 1021, 4093, 16381, 65521 };
-static const unsigned int NPRIMES = sizeof(PRIMES) / sizeof(unsigned int);
+enum { NPRIMES = sizeof(PRIMES) / sizeof(unsigned int) };
 
 /* globals */
 

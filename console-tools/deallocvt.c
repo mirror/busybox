@@ -30,7 +30,7 @@
 #include "busybox.h"
 
 /* From <linux/vt.h> */
-static const int VT_DISALLOCATE = 0x5608;  /* free memory associated to vt */
+enum { VT_DISALLOCATE = 0x5608 }; /* free memory associated to vt */
 
 int deallocvt_main(int argc, char *argv[])
 {

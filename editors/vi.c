@@ -138,18 +138,20 @@ static const char CMup[] = "\033[A";
 static const char CMdown[] = "\n";
 
 
-static const int YANKONLY = FALSE;
-static const int YANKDEL = TRUE;
-static const int FORWARD = 1;	// code depends on "1"  for array index
-static const int BACK = -1;	// code depends on "-1" for array index
-static const int LIMITED = 0;	// how much of text[] in char_search
-static const int FULL = 1;	// how much of text[] in char_search
+enum {
+	YANKONLY = FALSE,
+	YANKDEL = TRUE,
+	FORWARD = 1,	// code depends on "1"  for array index
+	BACK = -1,	// code depends on "-1" for array index
+	LIMITED = 0,	// how much of text[] in char_search
+	FULL = 1,	// how much of text[] in char_search
 
-static const int S_BEFORE_WS = 1;	// used in skip_thing() for moving "dot"
-static const int S_TO_WS = 2;		// used in skip_thing() for moving "dot"
-static const int S_OVER_WS = 3;		// used in skip_thing() for moving "dot"
-static const int S_END_PUNCT = 4;	// used in skip_thing() for moving "dot"
-static const int S_END_ALNUM = 5;	// used in skip_thing() for moving "dot"
+	S_BEFORE_WS = 1,	// used in skip_thing() for moving "dot"
+	S_TO_WS = 2,		// used in skip_thing() for moving "dot"
+	S_OVER_WS = 3,		// used in skip_thing() for moving "dot"
+	S_END_PUNCT = 4,	// used in skip_thing() for moving "dot"
+	S_END_ALNUM = 5 	// used in skip_thing() for moving "dot"
+};
 
 typedef unsigned char Byte;
 

@@ -82,20 +82,22 @@ struct module_info
 
 int query_module(const char *name, int which, void *buf, size_t bufsize, size_t *ret);
 
+enum {
 /* Values for query_module's which.  */
-static const int QM_MODULES = 1;
-static const int QM_DEPS = 2;
-static const int QM_REFS = 3;
-static const int QM_SYMBOLS = 4;
-static const int QM_INFO = 5;
+	QM_MODULES = 1,
+	QM_DEPS = 2,
+	QM_REFS = 3,
+	QM_SYMBOLS = 4,
+	QM_INFO = 5,
 
 /* Bits of module.flags.  */
-static const int NEW_MOD_RUNNING = 1;
-static const int NEW_MOD_DELETED = 2;
-static const int NEW_MOD_AUTOCLEAN = 4;
-static const int NEW_MOD_VISITED = 8;
-static const int NEW_MOD_USED_ONCE = 16;
-static const int NEW_MOD_INITIALIZING = 64;
+	NEW_MOD_RUNNING = 1,
+	NEW_MOD_DELETED = 2,
+	NEW_MOD_AUTOCLEAN = 4,
+	NEW_MOD_VISITED = 8,
+	NEW_MOD_USED_ONCE = 16,
+	NEW_MOD_INITIALIZING = 64
+};
 
 int lsmod_main(int argc, char **argv)
 {

@@ -15,7 +15,7 @@
 
 char *xreadlink(const char *path)
 {
-	static const int GROWBY = 80; /* how large we will grow strings by */
+	enum { GROWBY = 80 }; /* how large we will grow strings by */
 
 	char *buf = NULL;
 	int bufsize = 0, readsize = 0;

@@ -38,11 +38,11 @@
 #define DEFAULTFBDEV  FB_0
 #define DEFAULTFBMODE "/etc/fb.modes"
 
-static const int OPT_CHANGE   = (1 << 0);
-static const int OPT_INFO     = (1 << 1);
-static const int OPT_READMODE = (1 << 2);
-
 enum {
+	OPT_CHANGE   = (1 << 0),
+	OPT_INFO     = (1 << 1),
+	OPT_READMODE = (1 << 2),
+
 	CMD_FB = 1,
 	CMD_DB = 2,
 	CMD_GEOMETRY = 3,
@@ -84,8 +84,10 @@ enum {
 static unsigned int g_options = 0;
 
 /* Stuff stolen from the kernel's fb.h */
-static const int FBIOGET_VSCREENINFO = 0x4600;
-static const int FBIOPUT_VSCREENINFO = 0x4601;
+enum {
+	FBIOGET_VSCREENINFO = 0x4600,
+	FBIOPUT_VSCREENINFO = 0x4601
+};
 struct fb_bitfield {
 	uint32_t offset;			/* beginning of bitfield	*/
 	uint32_t length;			/* length of bitfield		*/
@@ -179,12 +181,14 @@ static const struct cmdoptions_t {
 
 #ifdef CONFIG_FEATURE_FBSET_READMODE
 /* taken from linux/fb.h */
-static const int FB_VMODE_INTERLACED = 1;	/* interlaced	*/
-static const int FB_VMODE_DOUBLE = 2;	/* double scan */
-static const int FB_SYNC_HOR_HIGH_ACT = 1;	/* horizontal sync high active	*/
-static const int FB_SYNC_VERT_HIGH_ACT = 2;	/* vertical sync high active	*/
-static const int FB_SYNC_EXT = 4;	/* external sync		*/
-static const int FB_SYNC_COMP_HIGH_ACT = 8;	/* composite sync high active   */
+enum {
+	FB_VMODE_INTERLACED = 1,	/* interlaced	*/
+	FB_VMODE_DOUBLE = 2,	/* double scan */
+	FB_SYNC_HOR_HIGH_ACT = 1,	/* horizontal sync high active	*/
+	FB_SYNC_VERT_HIGH_ACT = 2,	/* vertical sync high active	*/
+	FB_SYNC_EXT = 4,	/* external sync		*/
+	FB_SYNC_COMP_HIGH_ACT = 8	/* composite sync high active   */
+};
 #endif
 static int readmode(struct fb_var_screeninfo *base, const char *fn,
 					const char *mode)

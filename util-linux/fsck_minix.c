@@ -98,26 +98,8 @@
 #include <sys/param.h>
 #include "busybox.h"
 
-static const int MINIX_ROOT_INO = 1;
-static const int MINIX_LINK_MAX = 250;
-static const int MINIX2_LINK_MAX = 65530;
-
-static const int MINIX_I_MAP_SLOTS = 8;
-static const int MINIX_Z_MAP_SLOTS = 64;
-static const int MINIX_SUPER_MAGIC = 0x137F;		/* original minix fs */
-static const int MINIX_SUPER_MAGIC2 = 0x138F;		/* minix fs, 30 char names */
-static const int MINIX2_SUPER_MAGIC = 0x2468;		/* minix V2 fs */
-static const int MINIX2_SUPER_MAGIC2 = 0x2478;		/* minix V2 fs, 30 char names */
-static const int MINIX_VALID_FS = 0x0001;		/* Clean fs. */
-static const int MINIX_ERROR_FS = 0x0002;		/* fs has errors. */
-
-#define MINIX_INODES_PER_BLOCK ((BLOCK_SIZE)/(sizeof (struct minix_inode)))
-#define MINIX2_INODES_PER_BLOCK ((BLOCK_SIZE)/(sizeof (struct minix2_inode)))
-
-static const int MINIX_V1 = 0x0001;		/* original minix fs */
-static const int MINIX_V2 = 0x0002;		/* minix V2 fs */
-
-#define INODE_VERSION(inode)	inode->i_sb->u.minix_sb.s_version
+#define BLOCK_SIZE_BITS 10
+#define BLOCK_SIZE (1<<BLOCK_SIZE_BITS)
 
 /*
  * This is the original minix inode layout on disk.
@@ -151,6 +133,29 @@ struct minix2_inode {
 	uint32_t i_zone[10];
 };
 
+enum {
+	MINIX_ROOT_INO = 1,
+	MINIX_LINK_MAX = 250,
+	MINIX2_LINK_MAX = 65530,
+
+	MINIX_I_MAP_SLOTS = 8,
+	MINIX_Z_MAP_SLOTS = 64,
+	MINIX_SUPER_MAGIC = 0x137F,		/* original minix fs */
+	MINIX_SUPER_MAGIC2 = 0x138F,		/* minix fs, 30 char names */
+	MINIX2_SUPER_MAGIC = 0x2468,		/* minix V2 fs */
+	MINIX2_SUPER_MAGIC2 = 0x2478,		/* minix V2 fs, 30 char names */
+	MINIX_VALID_FS = 0x0001,		/* Clean fs. */
+	MINIX_ERROR_FS = 0x0002,		/* fs has errors. */
+
+	MINIX_INODES_PER_BLOCK = ((BLOCK_SIZE)/(sizeof (struct minix_inode))),
+	MINIX2_INODES_PER_BLOCK = ((BLOCK_SIZE)/(sizeof (struct minix2_inode))),
+
+	MINIX_V1 = 0x0001,		/* original minix fs */
+	MINIX_V2 = 0x0002 		/* minix V2 fs */
+};
+
+#define INODE_VERSION(inode)	inode->i_sb->u.minix_sb.s_version
+
 /*
  * minix super-block data on disk
  */
@@ -172,8 +177,6 @@ struct minix_dir_entry {
 	char name[0];
 };
 
-#define BLOCK_SIZE_BITS 10
-#define BLOCK_SIZE (1<<BLOCK_SIZE_BITS)
 
 #define NAME_MAX         255   /* # chars in a file name */
 
@@ -187,7 +190,7 @@ struct minix_dir_entry {
 #define volatile
 #endif
 
-static const int ROOT_INO = 1;
+enum { ROOT_INO = 1 };
 
 #define UPPER(size,n) ((size+((n)-1))/(n))
 #define INODE_SIZE (sizeof(struct minix_inode))
@@ -219,7 +222,7 @@ static struct termios termios;
 static int termios_set = 0;
 
 /* File-name data */
-static const int MAX_DEPTH = 32;
+enum { MAX_DEPTH = 32 };
 static int name_depth = 0;
 // static char name_list[MAX_DEPTH][BUFSIZ + 1];
 static char **name_list = NULL;

@@ -27,11 +27,12 @@ static char *fileconf = "/etc/dnsd.conf";
 #define LOCK_FILE       "/var/run/dnsd.lock"
 #define LOG_FILE        "/var/log/dnsd.log"
 
-#define  MAX_HOST_LEN 16        // longest host name allowed is 15
-#define IP_STRING_LEN 18        // .xxx.xxx.xxx.xxx\0
+enum {
+	MAX_HOST_LEN = 16,      // longest host name allowed is 15
+	IP_STRING_LEN = 18,     // .xxx.xxx.xxx.xxx\0
 
 //must be strlen('.in-addr.arpa') larger than IP_STRING_LEN
-static const int MAX_NAME_LEN = (IP_STRING_LEN + 13);
+	MAX_NAME_LEN = (IP_STRING_LEN + 13),
 
 /* Cannot get bigger packets than 512 per RFC1035
    In practice this can be set considerably smaller:
@@ -39,12 +40,13 @@ static const int MAX_NAME_LEN = (IP_STRING_LEN + 13);
    ttl(4B) + rlen(2B) + r (MAX_NAME_LEN =21B) +
    2*querystring (2 MAX_NAME_LEN= 42B), all together 90 Byte
 */
-static const int MAX_PACK_LEN = 512 + 1;
+	MAX_PACK_LEN = 512 + 1,
 
-#define  DEFAULT_TTL 30;        // increase this when not testing?
+	DEFAULT_TTL = 30,       // increase this when not testing?
 
-static const int REQ_A = 1;
-static const int REQ_PTR = 12;
+	REQ_A = 1,
+	REQ_PTR = 12
+};
 
 struct dns_repl {		// resource record, add 0 or 1 to accepted dns_msg in resp
 	uint16_t rlen;

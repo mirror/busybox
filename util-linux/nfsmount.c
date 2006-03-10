@@ -105,13 +105,14 @@ enum nfs_stat {
 #define NFS_PROGRAM	100003
 
 
-
+enum {
 #ifndef NFS_FHSIZE
-static const int NFS_FHSIZE = 32;
+	NFS_FHSIZE = 32,
 #endif
 #ifndef NFS_PORT
-static const int NFS_PORT = 2049;
+	NFS_PORT = 2049
 #endif
+};
 
 /* Disable the nls stuff */
 # undef bindtextdomain
@@ -119,19 +120,21 @@ static const int NFS_PORT = 2049;
 # undef textdomain
 # define textdomain(Domain) /* empty */
 
-static const int MS_MGC_VAL = 0xc0ed0000; /* Magic number indicatng "new" flags */
-static const int MS_RDONLY = 1;      /* Mount read-only */
-static const int MS_NOSUID = 2;      /* Ignore suid and sgid bits */
-static const int MS_NODEV = 4;      /* Disallow access to device special files */
-static const int MS_NOEXEC = 8;      /* Disallow program execution */
-static const int MS_SYNCHRONOUS = 16;      /* Writes are synced at once */
-static const int MS_REMOUNT = 32;      /* Alter flags of a mounted FS */
-static const int MS_MANDLOCK = 64;      /* Allow mandatory locks on an FS */
-static const int S_QUOTA = 128;     /* Quota initialized for file/directory/symlink */
-static const int S_APPEND = 256;     /* Append-only file */
-static const int S_IMMUTABLE = 512;     /* Immutable file */
-static const int MS_NOATIME = 1024;    /* Do not update access times. */
-static const int MS_NODIRATIME = 2048;    /* Do not update directory access times */
+enum {
+	MS_MGC_VAL = 0xc0ed0000, /* Magic number indicatng "new" flags */
+	MS_RDONLY = 1,      /* Mount read-only */
+	MS_NOSUID = 2,      /* Ignore suid and sgid bits */
+	MS_NODEV = 4,      /* Disallow access to device special files */
+	MS_NOEXEC = 8,      /* Disallow program execution */
+	MS_SYNCHRONOUS = 16,      /* Writes are synced at once */
+	MS_REMOUNT = 32,      /* Alter flags of a mounted FS */
+	MS_MANDLOCK = 64,      /* Allow mandatory locks on an FS */
+	S_QUOTA = 128,     /* Quota initialized for file/directory/symlink */
+	S_APPEND = 256,     /* Append-only file */
+	S_IMMUTABLE = 512,     /* Immutable file */
+	MS_NOATIME = 1024,    /* Do not update access times. */
+	MS_NODIRATIME = 2048    /* Do not update directory access times */
+};
 
 
 /*
@@ -177,17 +180,18 @@ struct nfs_mount_data {
 };
 
 /* bits in the flags field */
-
-static const int NFS_MOUNT_SOFT = 0x0001;	/* 1 */
-static const int NFS_MOUNT_INTR = 0x0002;	/* 1 */
-static const int NFS_MOUNT_SECURE = 0x0004;	/* 1 */
-static const int NFS_MOUNT_POSIX = 0x0008;	/* 1 */
-static const int NFS_MOUNT_NOCTO = 0x0010;	/* 1 */
-static const int NFS_MOUNT_NOAC = 0x0020;	/* 1 */
-static const int NFS_MOUNT_TCP = 0x0040;	/* 2 */
-static const int NFS_MOUNT_VER3 = 0x0080;	/* 3 */
-static const int NFS_MOUNT_KERBEROS = 0x0100;	/* 3 */
-static const int NFS_MOUNT_NONLM = 0x0200;	/* 3 */
+enum {
+	NFS_MOUNT_SOFT = 0x0001,	/* 1 */
+	NFS_MOUNT_INTR = 0x0002,	/* 1 */
+	NFS_MOUNT_SECURE = 0x0004,	/* 1 */
+	NFS_MOUNT_POSIX = 0x0008,	/* 1 */
+	NFS_MOUNT_NOCTO = 0x0010,	/* 1 */
+	NFS_MOUNT_NOAC = 0x0020,	/* 1 */
+	NFS_MOUNT_TCP = 0x0040,		/* 2 */
+	NFS_MOUNT_VER3 = 0x0080,	/* 3 */
+	NFS_MOUNT_KERBEROS = 0x0100,	/* 3 */
+	NFS_MOUNT_NONLM = 0x0200	/* 3 */
+};
 
 
 #define UTIL_LINUX_VERSION "2.10m"
@@ -213,8 +217,10 @@ static char *nfs_strerror(int status);
 #define MAKE_VERSION(p,q,r)	(65536*(p) + 256*(q) + (r))
 #define MAX_NFSPROT ((nfs_mount_version >= 4) ? 3 : 2)
 
-static const int EX_FAIL = 32;       /* mount failure */
-static const int EX_BG = 256;       /* retry in background (internal only) */
+enum {
+	EX_FAIL = 32,       /* mount failure */
+	EX_BG = 256        /* retry in background (internal only) */
+};
 
 
 /*
