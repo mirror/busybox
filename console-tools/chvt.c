@@ -44,8 +44,8 @@ int chvt_main(int argc, char **argv)
 
 	fd = get_console_fd();
 	num =  bb_xgetlarg(argv[1], 10, 0, INT_MAX);
-	if((-1 == ioctl(fd, VT_ACTIVATE, num)) ||
-	   (-1 == ioctl(fd, VT_WAITACTIVE, num))) {
+	if ((-1 == ioctl(fd, VT_ACTIVATE, num))
+	|| (-1 == ioctl(fd, VT_WAITACTIVE, num))) {
 		bb_perror_msg_and_die("ioctl");
 	}
 	return EXIT_SUCCESS;

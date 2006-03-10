@@ -35,28 +35,19 @@
 int openvt_main(int argc, char **argv)
 {
 	int fd;
-	char vtname[sizeof VC_FORMAT + 2];
+	char vtname[sizeof(VC_FORMAT) + 2];
 
 
-	if (argc < 3)
-	bb_show_usage();
-
+	if (argc < 3) {
+		bb_show_usage();
+	}
 	/* check for Illegal vt number: < 1 or > 12 */
-	sprintf(vtname, VC_FORMAT,(int)bb_xgetlarg(argv[1], 10, 1, 12));
+	sprintf(vtname, VC_FORMAT, (int)bb_xgetlarg(argv[1], 10, 1, 12));
 
-	argv+=2;
-	argc-=2;
-
-	if(fork() == 0) {
+	if (fork() == 0) {
 		/* leave current vt */
-
-#ifdef   ESIX_5_3_2_D
-		if (setpgrp() < 0) {
-#else
 		if (setsid() < 0) {
-#endif
-
-			bb_perror_msg_and_die("Unable to set new session");
+			bb_perror_msg_and_die("setsid");
 		}
 		close(0);			/* so that new vt becomes stdin */
 
@@ -67,7 +58,7 @@ int openvt_main(int argc, char **argv)
 		dup2(fd, STDOUT_FILENO);
 		dup2(fd, STDERR_FILENO);
 
-		execvp(argv[0], argv);
+		execvp(argv[2], &argv[2]);
 		_exit(1);
 	}
 	return EXIT_SUCCESS;
