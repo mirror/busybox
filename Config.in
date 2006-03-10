@@ -9,6 +9,8 @@ config HAVE_DOT_CONFIG
 	bool
 	default y
 
+comment "Busybox Settings"
+
 menu "General Configuration"
 
 choice
@@ -260,70 +262,6 @@ config CONFIG_BUILD_AT_ONCE
 
 endmenu
 
-menu 'Installation Options'
-
-config CONFIG_INSTALL_NO_USR
-	bool "Don't use /usr"
-	default n
-	help
-	  Disable use of /usr. Don't activate this option if you don't know
-	  that you really want this behaviour.
-
-choice
-       prompt "Applets links"
-       default CONFIG_INSTALL_APPLET_SYMLINKS
-       help
-         Choose how you install applets links.
-
-config CONFIG_INSTALL_APPLET_SYMLINKS
-       bool "as soft-links"
-       help
-         Install applets as soft-links to the busybox binary. This needs some
-         free inodes on the filesystem, but might help with filesystem
-         generators that can't cope with hard-links.
-
-config CONFIG_INSTALL_APPLET_HARDLINKS
-       bool "as hard-links"
-       help
-         Install applets as hard-links to the busybox binary. This might count
-         on a filesystem with few inodes.
-
-config CONFIG_INSTALL_APPLET_DONT
-       bool
-       prompt "not installed"
-       depends on CONFIG_FEATURE_INSTALLER || CONFIG_FEATURE_SH_STANDALONE_SHELL
-       help
-         Do not install applets links. Usefull when using the -install feature
-         or a standalone shell for rescue pruposes.
-
-endchoice
-
-config PREFIX
-	string "BusyBox installation prefix"
-	default "./_install"
-	help
-	  Define your directory to install BusyBox files/subdirs in.
-
-endmenu
-
-source archival/Config.in
-source coreutils/Config.in
-source console-tools/Config.in
-source debianutils/Config.in
-source editors/Config.in
-source findutils/Config.in
-source init/Config.in
-source loginutils/Config.in
-source e2fsprogs/Config.in
-source modutils/Config.in
-source util-linux/Config.in
-source miscutils/Config.in
-source networking/Config.in
-source procps/Config.in
-source shell/Config.in
-source sysklogd/Config.in
-source libbb/Config.in
-
 menu 'Debugging Options'
 
 config CONFIG_DEBUG
@@ -390,3 +328,70 @@ config CONFIG_DEBUG_YANK_SUSv2
 	  yank from renice too.)
 
 endmenu
+
+menu 'Installation Options'
+
+config CONFIG_INSTALL_NO_USR
+	bool "Don't use /usr"
+	default n
+	help
+	  Disable use of /usr. Don't activate this option if you don't know
+	  that you really want this behaviour.
+
+choice
+       prompt "Applets links"
+       default CONFIG_INSTALL_APPLET_SYMLINKS
+       help
+         Choose how you install applets links.
+
+config CONFIG_INSTALL_APPLET_SYMLINKS
+       bool "as soft-links"
+       help
+         Install applets as soft-links to the busybox binary. This needs some
+         free inodes on the filesystem, but might help with filesystem
+         generators that can't cope with hard-links.
+
+config CONFIG_INSTALL_APPLET_HARDLINKS
+       bool "as hard-links"
+       help
+         Install applets as hard-links to the busybox binary. This might count
+         on a filesystem with few inodes.
+
+config CONFIG_INSTALL_APPLET_DONT
+       bool
+       prompt "not installed"
+       depends on CONFIG_FEATURE_INSTALLER || CONFIG_FEATURE_SH_STANDALONE_SHELL
+       help
+         Do not install applets links. Usefull when using the -install feature
+         or a standalone shell for rescue pruposes.
+
+endchoice
+
+config PREFIX
+	string "BusyBox installation prefix"
+	default "./_install"
+	help
+	  Define your directory to install BusyBox files/subdirs in.
+
+endmenu
+
+source libbb/Config.in
+
+comment "Applets"
+
+source archival/Config.in
+source coreutils/Config.in
+source console-tools/Config.in
+source debianutils/Config.in
+source editors/Config.in
+source findutils/Config.in
+source init/Config.in
+source loginutils/Config.in
+source e2fsprogs/Config.in
+source modutils/Config.in
+source util-linux/Config.in
+source miscutils/Config.in
+source networking/Config.in
+source procps/Config.in
+source shell/Config.in
+source sysklogd/Config.in
