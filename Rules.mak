@@ -238,10 +238,13 @@ endif
 LDFLAGS+=$(if $(call is_eq,$(CONFIG_DEBUG),y),$(call check_ld,LDFLAGS,--warn-common,)$(call check_ld,LDFLAGS,--sort-common,))
 ifeq ($(CONFIG_DEBUG),y)
     CFLAGS  +=$(WARNINGS) -g -D_GNU_SOURCE
-    STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
 else
     CFLAGS+=$(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
+endif
+ifeq ($(CONFIG_STRIP_BINARIES),y)
     STRIPCMD:=$(STRIP) -s --remove-section=.note --remove-section=.comment
+else
+    STRIPCMD:=/bin/true -Not_stripping_since_we_are_debugging
 endif
 PROG_CFLAGS+=$(if $(call is_eq,$(CONFIG_STATIC),y),\
     $(call check_gcc,PROG_CFLAGS,-static,))
