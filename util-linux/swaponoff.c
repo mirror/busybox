@@ -23,8 +23,7 @@ static int swap_enable_disable(const char *device)
 	int status;
 	struct stat st;
 
-	if (stat(device, &st) < 0)
-		bb_perror_msg_and_die("cannot stat %s", device);
+	xstat(device, &st);
 
 	/* test for holes */
 	if (S_ISREG(st.st_mode))

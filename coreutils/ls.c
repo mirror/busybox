@@ -230,7 +230,7 @@ static struct dnode *my_stat(char *fullname, char *name)
 		  rc = getfilecon(fullname,&sid);
 		}
 #endif
-		  rc = stat(fullname, &dstat);
+		rc = stat(fullname, &dstat);
 		if(rc) {
 			bb_perror_msg("%s", fullname);
 			status = EXIT_FAILURE;

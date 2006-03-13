@@ -1871,8 +1871,7 @@ static void process_dev (char *devname)
 #ifndef HDIO_DRIVE_CMD
 	int force_operation = 0;
 #endif
-	if (stat(devname,&stat_buf))
-		bb_perror_msg_and_die(devname);
+	xstat(devname,&stat_buf);
 
 	switch(major(stat_buf.st_rdev))
 	{

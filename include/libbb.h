@@ -122,6 +122,8 @@ extern FILE *bb_xfopen(const char *path, const char *mode);
 extern int   bb_fclose_nonstdin(FILE *f);
 extern void  bb_fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
 
+extern void xstat(const char *filename, struct stat *buf);
+
 #define BB_GETOPT_ERROR 0x80000000UL
 extern const char *bb_opt_complementally;
 extern const struct option *bb_applet_long_options;

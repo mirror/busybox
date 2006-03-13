@@ -165,8 +165,7 @@ int date_main(int argc, char **argv)
 
 	if(filename) {
 		struct stat statbuf;
-		if(stat(filename,&statbuf))
-			bb_perror_msg_and_die("File '%s' not found.", filename);
+		xstat(filename,&statbuf);
 		tm=statbuf.st_mtime;
 	} else time(&tm);
 	memcpy(&tm_time, localtime(&tm), sizeof(tm_time));

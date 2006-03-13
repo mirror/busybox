@@ -53,8 +53,8 @@ pid_is_exec(pid_t pid, const char *name)
 	char buf[32];
 	struct stat sb, exec_stat;
 
-	if (name && stat(name, &exec_stat))
-		bb_perror_msg_and_die("stat %s", name);
+	if (name)
+		xstat(name, &exec_stat);
 
 	sprintf(buf, "/proc/%d/exe", pid);
 	if (stat(buf, &sb) != 0)

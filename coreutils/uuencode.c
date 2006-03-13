@@ -105,9 +105,7 @@ int uuencode_main(int argc, char **argv)
 	switch (argc - optind) {
 		case 2:
 			src_stream = bb_xfopen(argv[optind], "r");
-			if (stat(argv[optind], &stat_buf) < 0) {
-				bb_perror_msg_and_die("stat");
-			}
+			xstat(argv[optind], &stat_buf);
 			mode = stat_buf.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
 			if (src_stream == stdout) {
 				puts("NULL");

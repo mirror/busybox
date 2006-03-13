@@ -274,15 +274,13 @@ int find_main(int argc, char **argv)
 			xdev_dev = xmalloc ( xdev_count * sizeof( dev_t ));
 
 			if ( firstopt == 1 ) {
-				if ( stat ( ".", &stbuf ) < 0 )
-					bb_error_msg_and_die("could not stat '.'" );
+				xstat ( ".", &stbuf );
 				xdev_dev [0] = stbuf. st_dev;
 			}
 			else {
 
 				for (i = 1; i < firstopt; i++) {
-					if ( stat ( argv [i], &stbuf ) < 0 )
-						bb_error_msg_and_die("could not stat '%s'", argv [i] );
+					xstat ( argv [i], &stbuf );
 					xdev_dev [i-1] = stbuf. st_dev;
 				}
 			}
@@ -292,8 +290,7 @@ int find_main(int argc, char **argv)
 			struct stat stat_newer;
 			if (++i == argc)
 				bb_error_msg_and_die(msg_req_arg, "-newer");
-		    if (stat (argv[i], &stat_newer) != 0)
-				bb_error_msg_and_die("file %s not found", argv[i]);
+			xstat (argv[i], &stat_newer);
 			newer_mtime = stat_newer.st_mtime;
 #endif
 #ifdef CONFIG_FEATURE_FIND_INUM
