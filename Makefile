@@ -144,7 +144,7 @@ include $(top_srcdir)/Rules.mak
 ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 # Default target if none was requested explicitly
-all: defconfig menuconfig
+all: menuconfig
 
 # warn if no configuration exists and we are asked to build a non-config target
 .config:
