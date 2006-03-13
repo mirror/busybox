@@ -162,7 +162,7 @@ help:
 
 ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 # Default target if none was requested explicitly
-all: defconfig menuconfig ;
+all: menuconfig ;
 
 ifneq ($(filter-out $(noconfig_targets),$(MAKECMDGOALS)),)
 # warn if no configuration exists and we are asked to build a non-config target
@@ -191,6 +191,7 @@ scripts/config/mconf: scripts/config/Makefile
 	$(Q)$(MAKE) -C scripts/config ncurses conf mconf
 
 menuconfig: scripts/config/mconf
+	@[ -f .config ] || make $(MAKEFLAGS) defconfig
 	@./scripts/config/mconf $(CONFIG_CONFIG_IN)
 
 config: scripts/config/conf

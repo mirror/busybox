@@ -9,7 +9,7 @@ config HAVE_DOT_CONFIG
 	bool
 	default y
 
-comment "Busybox Settings"
+menu "Busybox Settings"
 
 menu "General Configuration"
 
@@ -383,6 +383,8 @@ config PREFIX
 endmenu
 
 source libbb/Config.in
+
+endmenu
 
 comment "Applets"
 
