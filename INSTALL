@@ -16,9 +16,14 @@ Quick Start:
 
 The easy way to try out BusyBox for the first time, without having to install
 it, is to enable all features and then use "standalone shell" mode with a
-blank command $PATH:
+blank command $PATH.
 
-  make allyesconfig
+To enable all features, use "make defconfig", which produces the largest
+general-purpose configuration.  (It's allyesconfig minus debugging options,
+optional packaging choices, and a few special-purpose features requiring
+extra configuration to use.)
+
+  make defconfig
   make
   PATH= ./busybox ash
 
@@ -27,25 +32,34 @@ any built-in busybox applets directly, without looking for external
 programs by that name.  Supplying an empty command path (as above) means
 the only commands busybox can find are the built-in ones.
 
-(Note that the standalone shell requires the /proc directory to function.)
+(Note that the standalone shell currently requires /proc/self/exe to
+launch new applets.)
 
 Configuring Busybox:
 ====================
 
 Busybox is optimized for size, but enabling the full set of functionality
-still results in a fairly large executable (more than 1 megabyte when
-statically linked).  To save space, busybox can be configured with only the
+still results in a fairly large executable -- more than 1 megabyte when
+statically linked.  To save space, busybox can be configured with only the
 set of applets needed for each environment.  The minimal configuration, with
 all applets disabled, produces a 4k executable.  (It's useless, but very small.)
 
-The manual configurators "make config" and "make menuconfig" modify the
-existing configuration.  Quick ways to get starting configurations include
-"make allyesconfig" (enables almost all options), "make allnoconfig" (disables
-all options), "make allbaseconfig" (enables all applets but disables all
-optional features), and "make defconfig" (reset to defaults).
+The manual configurator "make menuconfig" modifies the existing configuration.
+(For systems without ncurses, try "make config" instead.) The two most
+interesting starting configurations are "make allnoconfig" (to start with
+everything disabled and add just what you need), and "make defconfig" (to
+start with everything enabled and remove what you don't need).  If menuconfig
+is run without an existing configuration, make defconfig will run first to
+create a known starting point.
+
+Other starting configurations (mostly used for testing purposes) include
+"make allbaseconfig" (enables all applets but disables all optional features),
+"make allyesconfig" (enables absolutely everything including debug features),
+and "make randconfig" (produce a random configuration).
 
 Configuring BusyBox produces a file ".config", which can be saved for future
-use.
+use.  Run "make oldconfig" to bring a .config file from an older version of
+busybox up to date.
 
 Installing Busybox:
 ===================
@@ -72,36 +86,33 @@ also configure a standaone install capability into the busybox base applet,
 and then install such links at runtime with one of "busybox --install" (for
 hardlinks) or "busybox --install -s" (for symlinks).
 
-If you built busybox as shared object which uses libbusybox.so and have not
-yet installed the binary but want to run tests, then set your LD_LIBRARY_PATH
-accordingly before running the executable:
+If you enabled the busybox shared library feature (libbusybox.so) and want
+to run tests without installing, set your LD_LIBRARY_PATH accordingly when
+running the executable:
 
-  export LD_LIBRARY_PATH=`pwd`
-  ./busybox
+  LD_LIBRARY_PATH=`pwd` ./busybox
 
 Building out-of-tree:
 =====================
 
 By default, the BusyBox build puts its temporary files in the source tree.
-Building from a read-only source tree, or to building multiple
-configurations from the same source directory, requires the ability to
-put the temporary files somewhere else.
+Building from a read-only source tree, or building multiple configurations from
+the same source directory, requires the ability to put the temporary files
+somewhere else.
 
-To build out of tree, cd to the empty directory and do this instead:
+To build out of tree, cd to an empty directory and configure busybox from there:
 
-  make -f /path/to/source/Makefile allyesconfig
+  make -f /path/to/source/Makefile defconfig
   make
   make install
 
-Alternately, use the O=$BUILDPATH option during the configuration step, as in:
+Alternately, use the O=$BUILDPATH option (with an absolute path) during the
+configuration step, as in:
 
   make O=/some/empty/directory allyesconfig
   cd /some/empty/directory
   make
   make PREFIX=. install
-
-(Note, O= requires an absolute path.)
-
 
 More Information:
 =================
