@@ -236,15 +236,16 @@ static void sendping(int junk)
 	}
 }
 
-/* libc defines have changed around on us, whee ! */
-#ifndef ICMP6_MEMBERSHIP_QUERY
-# define ICMP6_MEMBERSHIP_QUERY MLD_LISTENER_QUERY
+/* RFC3542 changed some definitions from RFC2292 for no good reason, whee !
+ * the newer 3542 uses a MLD_ prefix where as 2292 uses ICMP6_ prefix */
+#ifndef MLD_LISTENER_QUERY
+# define MLD_LISTENER_QUERY ICMP6_MEMBERSHIP_QUERY
 #endif
-#ifndef ICMP6_MEMBERSHIP_REPORT
-# define ICMP6_MEMBERSHIP_REPORT MLD_LISTENER_REPORT
+#ifndef MLD_LISTENER_REPORT
+# define MLD_LISTENER_REPORT ICMP6_MEMBERSHIP_REPORT
 #endif
-#ifndef ICMP6_MEMBERSHIP_REDUCTION
-# define ICMP6_MEMBERSHIP_REDUCTION MLD_LISTENER_REDUCTION
+#ifndef MLD_LISTENER_REDUCTION
+# define MLD_LISTENER_REDUCTION ICMP6_MEMBERSHIP_REDUCTION
 #endif
 static char *icmp6_type_name (int id)
 {
@@ -255,9 +256,9 @@ static char *icmp6_type_name (int id)
 	case ICMP6_PARAM_PROB:				return "Parameter Problem";
 	case ICMP6_ECHO_REPLY:				return "Echo Reply";
 	case ICMP6_ECHO_REQUEST:			return "Echo Request";
-	case ICMP6_MEMBERSHIP_QUERY:		return "Membership Query";
-	case ICMP6_MEMBERSHIP_REPORT:		return "Membership Report";
-	case ICMP6_MEMBERSHIP_REDUCTION:	return "Membership Reduction";
+	case MLD_LISTENER_QUERY:			return "Listener Query";
+	case MLD_LISTENER_REPORT:			return "Listener Report";
+	case MLD_LISTENER_REDUCTION:		return "Listener Reduction";
 	default:							return "unknown ICMP type";
 	}
 }
