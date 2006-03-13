@@ -4,9 +4,13 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir:=$(top_srcdir)/debianutils
-objdir:=$(top_builddir)/debianutils
+DEBIANUTILS_AR:=debianutils.a
+ifndef $(DEBIANUTILS_DIR)
+DEBIANUTILS_DIR:=$(top_builddir)/debianutils/
+endif
+srcdir=$(top_srcdir)/debianutils
 
+DEBIANUTILS-y:=
 DEBIANUTILS-$(CONFIG_MKTEMP)		+= mktemp.o
 DEBIANUTILS-$(CONFIG_PIPE_PROGRESS)	+= pipe_progress.o
 DEBIANUTILS-$(CONFIG_READLINK)		+= readlink.o
@@ -14,14 +18,16 @@ DEBIANUTILS-$(CONFIG_RUN_PARTS)		+= run_parts.o
 DEBIANUTILS-$(CONFIG_START_STOP_DAEMON)	+= start_stop_daemon.o
 DEBIANUTILS-$(CONFIG_WHICH)		+= which.o
 
+ifneq ($(strip $(DEBIANUTILS-y)),)
+libraries-y+=$(DEBIANUTILS_DIR)$(DEBIANUTILS_AR)
+endif
 DEBIANUTILS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(DEBIANUTILS-y))
 DEBIANUTILS_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(DEBIANUTILS_SRC-y)
 APPLET_SRC-a+=$(DEBIANUTILS_SRC-a)
 
-debianutils_OBJ:=  $(patsubst %,$(objdir)/%,$(DEBIANUTILS-y))
+$(DEBIANUTILS_DIR)$(DEBIANUTILS_AR): $(patsubst %,$(DEBIANUTILS_DIR)%, $(DEBIANUTILS-y))
+	$(do_ar)
 
-$(debianutils_OBJ): $(objdir)/%.o: $(srcdir)/%.c
-$(objdir)/debianutils.a: $(debianutils_OBJ)
-libraries-y:=$(libraries-y) $(objdir)/debianutils.a
-
+$(DEBIANUTILS_DIR)%.o: $(srcdir)/%.c
+	$(compile.c)

@@ -4,9 +4,14 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir:=$(top_srcdir)/archival
-objdir:=$(top_builddir)/archival
+ARCHIVAL_AR:=archival.a
+ifndef $(ARCHIVAL_DIR)
+ARCHIVAL_DIR:=$(top_builddir)/archival/
+endif
+srcdir=$(top_srcdir)/archival
 
+ARCHIVAL-y:=
+ARCHIVAL-$(CONFIG_APT_GET)	+=
 ARCHIVAL-$(CONFIG_AR)		+= ar.o
 ARCHIVAL-$(CONFIG_BUNZIP2)	+= bunzip2.o
 ARCHIVAL-$(CONFIG_UNLZMA)	+= unlzma.o
@@ -21,14 +26,17 @@ ARCHIVAL-$(CONFIG_TAR)		+= tar.o
 ARCHIVAL-$(CONFIG_UNCOMPRESS)	+= uncompress.o
 ARCHIVAL-$(CONFIG_UNZIP)	+= unzip.o
 
+ifneq ($(strip $(ARCHIVAL-y)),)
+libraries-y+=$(ARCHIVAL_DIR)$(ARCHIVAL_AR)
+endif
+
 ARCHIVAL_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(ARCHIVAL-y))
 ARCHIVAL_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(ARCHIVAL_SRC-y)
 APPLET_SRC-a+=$(ARCHIVAL_SRC-a)
 
-archival_OBJ:=  $(patsubst %,$(objdir)/%,$(ARCHIVAL-y))
+$(ARCHIVAL_DIR)$(ARCHIVAL_AR): $(patsubst %,$(ARCHIVAL_DIR)%, $(ARCHIVAL-y))
+	$(do_ar)
 
-$(archival_OBJ): $(objdir)/%.o: $(srcdir)/%.c
-$(objdir)/archival.a: $(archival_OBJ)
-libraries-y:=$(libraries-y) $(objdir)/archival.a
-
+$(ARCHIVAL_DIR)%.o: $(srcdir)/%.c
+	$(compile.c)

@@ -2,12 +2,8 @@
 #
 # Copyright (C) 2002 Erik Andersen <andersen@codepoet.org>
 
-ifndef top_srcdir
 top_srcdir=../..
-endif
-ifndef top_builddir
 top_builddir=../..
-endif
 srcdir=$(top_srcdir)/scripts/config
 include $(top_srcdir)/Rules.mak
 
@@ -54,10 +50,12 @@ MCONF_OBJS   = $(patsubst %.c,%.o, $(MCONF_SRC) $(LXD_SRC))
 SHARED_OBJS  = $(patsubst %.c,%.o, $(SHARED_SRC))
 
 conf: $(CONF_OBJS) $(SHARED_OBJS)
-	$(do_link.h)
+	$(SECHO) "  "HOSTCC $@ ; true
+	$(Q)$(HOSTCC) $(NATIVE_LDFLAGS) $^ -o $@
 
 mconf: $(MCONF_OBJS) $(SHARED_OBJS)
-	$(do_link.h) $(LIBS)
+	$(SECHO) "  "HOSTCC $@ ; true
+	$(Q)$(HOSTCC) $(NATIVE_LDFLAGS) $^ -o $@ $(LIBS)
 
 $(CONF_OBJS): %.o : $(srcdir)/%.c $(SHARED_DEPS)
 	$(compile.h) -I.

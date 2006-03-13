@@ -15,18 +15,11 @@ noconfig_targets := menuconfig config oldconfig randconfig \
 
 # the toplevel sourcedir
 ifndef top_srcdir
-# make-3.79.1 didn't support MAKEFILE_LIST
-# for building out-of-tree, users of make-3.79.1 still have to pass top_srcdir=
-# to make: make -f /srcs/busybox/Makefile top_srcdir=/srcs/busybox
-ifdef MAKEFILE_LIST
-top_srcdir:=$(shell cd $(dir $(firstword $(MAKEFILE_LIST))) && pwd)
-else
-top_srcdir:=$(CURDIR)
-endif
+top_srcdir=$(CURDIR)
 endif
 # toplevel directory of the object-tree
 ifndef top_builddir
-top_builddir:=$(CURDIR)
+top_builddir=$(CURDIR)
 endif
 
 export srctree=$(top_srcdir)
@@ -41,86 +34,79 @@ SRC_DIRS:=$(patsubst %,$(top_srcdir)/%,$(DIRS))
 
 # That's our default target when none is given on the command line
 .PHONY: _all
+_all:
 
-_all: all
+CONFIG_CONFIG_IN = $(top_srcdir)/Config.in
 
-# see if we are in verbose mode
-ifdef VERBOSE
-  CHECK_VERBOSE := -v
-  PACKAGE_BE_VERBOSE := $(VERBOSE)
-endif
-ifdef V
-  CHECK_VERBOSE := -v
-  PACKAGE_BE_VERBOSE := $(V)
-endif
+ifeq ($(KBUILD_SRC),)
 
 ifdef O
   ifeq ("$(origin O)", "command line")
-    PACKAGE_OUTPUTDIR := $(shell cd $(O) && pwd)
-    top_builddir := $(PACKAGE_OUTPUTDIR)
+    KBUILD_OUTPUT := $(O)
+    top_builddir := $(O)
   endif
 else
 # If no alternate output-dir was specified, we build in cwd
-  PACKAGE_OUTPUTDIR := $(top_builddir)
+# We are using KBUILD_OUTPUT nevertheless to make sure that we create
+# Rules.mak and the toplevel Makefile, in case they don't exist.
+  KBUILD_OUTPUT := $(top_builddir)
 endif
 
-define check_gcc
-$(if $(2),$(if $(shell $(CC) $(2) -S -o /dev/null -xc /dev/null > /dev/null 2>&1 && echo y),$(2),$(if $(3),$(3))),$(if $(3),$(3)))
-endef
-
-define check_ld
-$(if $(2),$(if $(shell $(LD) $(2) -o /dev/null -b binary /dev/null > /dev/null 2>&1 && echo y),$(shell echo \-Wl,$(2)),$(if $(3),$(3))),$(if $(3),$(3)))
-endef
-
-#######################################################################
-# make-3.79.1 doesn't support order-only prerequisites..
-ifeq ($(MAKE_VERSION),3.79.1)
-|: $(^) ;
+ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
+# pull in OS specific commands like cp, mkdir, etc. early
+-include $(top_srcdir)/Rules.mak
 endif
-#######################################################################
 
-
-
-# Handle building out of tree
-ifneq ($(top_builddir),$(top_srcdir))
-all_tree := $(patsubst %,$(top_builddir)/%,$(DIRS) scripts scripts/config include include/config)
+# All object directories.
+OBJ_DIRS := $(DIRS)
+all_tree := $(patsubst %,$(top_builddir)/%,$(OBJ_DIRS) scripts scripts/config include)
+all_tree: $(all_tree)
 $(all_tree):
 	@mkdir -p "$@"
 
-saved-output := $(PACKAGE_OUTPUTDIR)
-
-$(if $(wildcard $(PACKAGE_OUTPUTDIR)),, \
+ifneq ($(KBUILD_OUTPUT),)
+# Invoke a second make in the output directory, passing relevant variables
+# Check that the output directory actually exists
+saved-output := $(KBUILD_OUTPUT)
+KBUILD_OUTPUT := $(shell cd $(KBUILD_OUTPUT) && /bin/pwd)
+$(if $(wildcard $(KBUILD_OUTPUT)),, \
      $(error output directory "$(saved-output)" does not exist))
 
-.PHONY: $(filter $(noconfig_targets),$(MAKECMDGOALS))
+.PHONY: $(MAKECMDGOALS)
 
-$(PACKAGE_OUTPUTDIR)/Rules.mak:
+$(filter-out _all,$(MAKECMDGOALS)) _all: $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUTPUT)/Makefile all_tree
+	$(Q)$(MAKE) -C $(KBUILD_OUTPUT) \
+	top_srcdir=$(top_srcdir) \
+	top_builddir=$(top_builddir) \
+	KBUILD_SRC=$(top_srcdir) \
+	-f $(CURDIR)/Makefile $@
+
+$(KBUILD_OUTPUT)/Rules.mak:
 	@echo > $@
 	@echo top_srcdir=$(top_srcdir) >> $@
-	@echo top_builddir=$(PACKAGE_OUTPUTDIR) >> $@
-	@echo include $$\(top_srcdir\)/Rules.mak >> $@
+	@echo top_builddir=$(KBUILD_OUTPUT) >> $@
+	@echo include $(top_srcdir)/Rules.mak >> $@
 
-$(PACKAGE_OUTPUTDIR)/Makefile:
+$(KBUILD_OUTPUT)/Makefile:
 	@echo > $@
 	@echo top_srcdir=$(top_srcdir) >> $@
-	@echo top_builddir=$(PACKAGE_OUTPUTDIR) >> $@
-	@echo PACKAGE_SOURCEDIR='$$(top_srcdir)' >> $@
-	@echo include '$$(PACKAGE_SOURCEDIR)'/Makefile >> $@
+	@echo top_builddir=$(KBUILD_OUTPUT) >> $@
+	@echo KBUILD_SRC='$$(top_srcdir)' >> $@
+	@echo include '$$(KBUILD_SRC)'/Makefile >> $@
 
+# Leave processing to above invocation of make
+skip-makefile := 1
+endif # ifneq ($(KBUILD_OUTPUT),)
+endif # ifeq ($(KBUILD_SRC),)
 
-buildtree := $(all_tree) $(PACKAGE_OUTPUTDIR)/Rules.mak $(PACKAGE_OUTPUTDIR)/Makefile
+ifeq ($(skip-makefile),)
 
 # We only need a copy of the Makefile for the config targets and reuse
 # the rest from the source directory, i.e. we do not cp ALL_MAKEFILES.
-scripts/config/Makefile: $(top_srcdir)/scripts/config/Makefile | $(buildtree)
-	@cp $(top_srcdir)/scripts/config/Makefile $@
+scripts/config/Makefile: $(top_srcdir)/scripts/config/Makefile
+	cp $< $@
 
-else
-all_tree := include/config
-$(all_tree):
-	@mkdir -p "$@"
-buildtree := $(all_tree)
-endif # ifneq ($(PACKAGE_OUTPUTDIR),$(top_srcdir))
+_all: all
 
 help:
 	@echo 'Cleaning:'
@@ -151,44 +137,37 @@ help:
 	@echo '  release		- create a distribution tarball'
 	@echo '  sizes			- show size of all enabled busybox symbols'
 	@echo
-	@echo 'Make flags:'
-	@echo '  V=<number>		- print verbose make output (default: unset)'
-	@echo '				  0 print CC invocations'
-	@echo '				  1'
-	@echo '				  2 also print when make enters a directory'
-	@echo '				  3 also verbosely print shell invocations'
 
--include $(top_srcdir)/Rules.mak
+
+include $(top_srcdir)/Rules.mak
 
 ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
-# Default target if none was requested explicitly
-all: menuconfig ;
 
-ifneq ($(filter-out $(noconfig_targets),$(MAKECMDGOALS)),)
+# Default target if none was requested explicitly
+all: defconfig menuconfig
+
 # warn if no configuration exists and we are asked to build a non-config target
 .config:
 	@echo ""
 	@echo "No $(top_builddir)/$@ found!"
-	@echo "Please refer to 'make help', section Configuration."
+	@echo "Please refer to 'make  help', section Configuration."
 	@echo ""
 	@exit 1
-else
-# Avoid implicit rule to kick in by using an empty command
-.config: $(buildtree) ;
-endif
-endif # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
-
 
 # configuration
 # ---------------------------------------------------------------------------
 
-CONFIG_CONFIG_IN = $(top_srcdir)/Config.in
-
 scripts/config/conf: scripts/config/Makefile
 	$(Q)$(MAKE) -C scripts/config conf
+	-@if [ ! -f .config ] ; then \
+		touch .config; \
+	fi
 
 scripts/config/mconf: scripts/config/Makefile
 	$(Q)$(MAKE) -C scripts/config ncurses conf mconf
+	-@if [ ! -f .config ] ; then \
+		touch .config; \
+	fi
 
 menuconfig: scripts/config/mconf
 	@[ -f .config ] || make $(MAKEFLAGS) defconfig
@@ -220,6 +199,7 @@ defconfig: scripts/config/conf
 	@$(SED) -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP|UDHCP_DEBUG)|INSTALL_NO_USR))=.*/# \1 is not set/" .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
+
 allbareconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
 	@$(SED) -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG|STATIC|SELINUX|DEVFSD|NC_GAPING_SECURITY_HOLE|BUILD_AT_ONCE)).*/# \1 is not set/" .config
@@ -227,28 +207,19 @@ allbareconfig: scripts/config/conf
 	@echo "CONFIG_FEATURE_BUFFERS_GO_ON_STACK=y" >> .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
-ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
+else # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
-# Load all Config.in
+all: busybox busybox.links doc
+
+# In this section, we need .config
 -include $(top_builddir)/.config.cmd
+include $(patsubst %,%/Makefile.in, $(SRC_DIRS))
 
-endif # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
+endif # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
-include $(patsubst %,%/Makefile.in,$(SRC_DIRS))
-
-ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
-# Finally pull in the dependencies (headers and other includes) of the
-# individual object files
+-include $(top_builddir)/.config
 -include $(top_builddir)/.depend
 
-$(top_builddir)/applets/applets.o: $(top_builddir)/.config
-# Everything is set.
-
-all: busybox busybox.links doc ;
-
-# Two modes of operation: legacy and IMA
-# Legacy mode builds each object through an individual invocation of CC
-# IMA compiles all sources at once (aka IPO aka IPA etc.)
 
 ifeq ($(strip $(CONFIG_BUILD_AT_ONCE)),y)
 libraries-y:=
@@ -269,15 +240,17 @@ else  # CONFIG_BUILD_AT_ONCE
 # This was the old way the binary was built.
 libbusybox-obj:=archival/libunarchive/libunarchive.a \
 	networking/libiproute/libiproute.a \
-	libpwdgrp/libpwdgrp.a coreutils/libcoreutils/libcoreutils.a \
+	libpwdgrp/libpwdgrp.a \
+	coreutils/libcoreutils/libcoreutils.a \
 	libbb/libbb.a
 libbusybox-obj:=$(patsubst %,$(top_builddir)/%,$(libbusybox-obj))
+
 ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
 # linking against libbusybox, so don't build the .a already contained in the .so
 libraries-y:=$(filter-out $(libbusybox-obj),$(libraries-y))
 endif # CONFIG_FEATURE_SHARED_BUSYBOX
-
 endif # CONFIG_BUILD_AT_ONCE
+
 
 ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 LD_LIBBUSYBOX:=libbusybox.so
@@ -286,21 +259,17 @@ DO_INSTALL_LIBS:=$(LD_LIBBUSYBOX) \
 	$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
 	$(LD_LIBBUSYBOX).$(MAJOR_VERSION).$(MINOR_VERSION)
 
-endif # CONFIG_BUILD_LIBBUSYBOX
-
 ifeq ($(strip $(CONFIG_BUILD_AT_ONCE)),y)
 ifneq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
-# --combine but not linking against libbusybox, so compile lib*.c
+# --combine but not linking against libbusybox, so compile all
 BUSYBOX_SRC   := $(LIBRARY_SRC)
 BUSYBOX_DEFINE:= $(LIBRARY_DEFINE)
 endif # !CONFIG_FEATURE_SHARED_BUSYBOX
 $(LIBBUSYBOX_SONAME): $(LIBRARY_SRC)
 else # CONFIG_BUILD_AT_ONCE
 $(LIBBUSYBOX_SONAME): $(libbusybox-obj)
-AR_INTRO:=-Wl,--whole-archive
-AR_EXTRO:=-Wl,--no-whole-archive
 endif # CONFIG_BUILD_AT_ONCE
-
+endif # CONFIG_BUILD_LIBBUSYBOX
 
 ifeq ($(strip $(CONFIG_FEATURE_SHARED_BUSYBOX)),y)
 LDBUSYBOX:=-L$(top_builddir) -lbusybox
@@ -315,23 +284,20 @@ endif
 	-Wl,-soname=$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
 	-Wl,-z,combreloc $(LIB_LDFLAGS) \
 	-o $(@) \
-	-Wl,--start-group \
-	$(LIBRARY_DEFINE) $(AR_INTRO) $(^) $(AR_EXTRO) \
-	-Wl,--end-group
+	-Wl,--start-group -Wl,--whole-archive \
+	$(LIBRARY_DEFINE) $(^) \
+	-Wl,--no-whole-archive -Wl,--end-group
 	@rm -f $(DO_INSTALL_LIBS)
 	@for i in $(DO_INSTALL_LIBS); do ln -s $(@) $$i ; done
 	$(do_strip)
 
 endif # ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 
-busybox_unstripped: $(top_builddir)/.depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(APPLET_SRC) $(libraries-y)
+busybox_unstripped: .depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(libraries-y)
 	$(do_link) $(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) \
-	$(foreach f,$(^:.o=.c),$(CFLAGS-$(notdir $(patsubst %/$,%,$(dir $(f))))-$(notdir $(f)))) \
-	$(CFLAGS-$(@)) \
-	-o $@ -Wl,--start-group \
+	-o $@ -Wl,--start-group  \
 	$(APPLETS_DEFINE) $(APPLET_SRC) \
-	$(BUSYBOX_DEFINE) $(BUSYBOX_SRC) \
-	$(libraries-y) \
+	$(BUSYBOX_DEFINE) $(BUSYBOX_SRC) $(libraries-y) \
 	$(LDBUSYBOX) $(LIBRARIES) \
 	-Wl,--end-group
 
@@ -365,6 +331,17 @@ ifneq ($(strip $(DO_INSTALL_LIBS)),n)
 	done
 endif
 
+# see if we are in verbose mode
+KBUILD_VERBOSE :=
+ifdef V
+  ifeq ("$(origin V)", "command line")
+    KBUILD_VERBOSE := $(V)
+  endif
+endif
+ifneq ($(strip $(KBUILD_VERBOSE)),)
+  CHECK_VERBOSE := -v
+# ARFLAGS+=v
+endif
 check test: busybox
 	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
 	$(top_srcdir)/testsuite/runtest $(CHECK_VERBOSE)
@@ -373,7 +350,7 @@ sizes: busybox_unstripped
 	$(NM) --size-sort $(<)
 
 # Documentation Targets
-doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html ;
+doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
 
 docs/busybox.pod : $(top_srcdir)/docs/busybox_header.pod $(top_srcdir)/include/usage.h $(top_srcdir)/docs/busybox_footer.pod $(top_srcdir)/docs/autodocifier.pl
 	$(disp_doc)
@@ -407,7 +384,7 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 
 # The nifty new dependency stuff
 scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
-	$(do_link.h)
+	$(Q)$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
 
 DEP_INCLUDES := include/bb_config.h
 
@@ -419,21 +396,22 @@ include/bbconfigopts.h: .config
 	$(Q)$(top_srcdir)/scripts/config/mkconfigs > $@
 endif
 
-depend dep: $(top_builddir)/.depend ;
-$(top_builddir)/.depend: $(buildtree) scripts/bb_mkdep $(DEP_INCLUDES)
+depend dep: .depend
+.depend: scripts/bb_mkdep $(DEP_INCLUDES)
 	$(disp_gen)
 	$(Q)rm -f .depend
-	$(Q)scripts/bb_mkdep $(MKDEP_ARGS) \
-		-I $(top_srcdir)/include $(top_srcdir) > $@.tmp
+	$(Q)mkdir -p include/config
+	$(Q)scripts/bb_mkdep -I $(top_srcdir)/include $(top_srcdir) > $@.tmp
 	$(Q)mv $@.tmp $@
 
 include/bb_config.h: .config
-	$(disp_gen)
+	@if [ ! -x $(top_builddir)/scripts/config/conf ] ; then \
+	    $(MAKE) -C scripts/config conf; \
+	fi;
 	@$(top_builddir)/scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
-endif # ifeq ($(strip $(HAVE_DOT_CONFIG)),y)
-
 clean:
+	- $(MAKE) -C scripts/config $@
 	- rm -f docs/busybox.dvi docs/busybox.ps \
 	    docs/busybox.pod docs/busybox.net/busybox.html \
 	    docs/busybox pod2htm* *.gdb *.elf *~ core .*config.log \
@@ -446,10 +424,9 @@ clean:
 	    -o -name \*.os -o -name \*.osm -o -name \*.a | xargs rm -f
 
 distclean: clean
-	- $(MAKE) -C scripts/config clean
 	- rm -f scripts/bb_mkdep
 	- rm -r -f include/config $(DEP_INCLUDES)
-	- find . -name .depend'*' | xargs rm -f 
+	- find . -name .depend'*' | xargs rm -f
 	rm -f .config .config.old .config.cmd
 
 release: distclean #doc
@@ -472,10 +449,8 @@ release: distclean #doc
 tags:
 	ctags -R .
 
-# keep these in sync with noconfig_targets above!
-.PHONY: dummy subdirs check test depend dep buildtree \
-        menuconfig config oldconfig randconfig \
-	defconfig allyesconfig allnoconfig allbareconfig \
-	clean distclean \
-	release tags
 
+endif # ifeq ($(skip-makefile),)
+
+.PHONY: dummy subdirs release distclean clean config oldconfig \
+	menuconfig tags check test depend dep buildtree

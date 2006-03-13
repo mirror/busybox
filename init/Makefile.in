@@ -4,9 +4,13 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir:=$(top_srcdir)/init
-objdir:=$(top_builddir)/init
+INIT_AR:=init.a
+ifndef $(INIT_DIR)
+INIT_DIR:=$(top_builddir)/init/
+endif
+srcdir=$(top_srcdir)/init
 
+INIT-y:=
 INIT-$(CONFIG_HALT)			+= halt.o
 INIT-$(CONFIG_INIT)			+= init.o
 INIT-$(CONFIG_MESG)			+= mesg.o
@@ -23,14 +27,17 @@ endif
 
 INIT-$(CONFIG_INIT_SHARED)        += init_shared.o
 
+ifneq ($(strip $(INIT-y)),)
+libraries-y+=$(INIT_DIR)$(INIT_AR)
+endif
+
 INIT_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(INIT-y))
 INIT_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(INIT_SRC-y)
 APPLET_SRC-a+=$(INIT_SRC-a)
 
-init_OBJ:=  $(patsubst %,$(objdir)/%,$(INIT-y))
+$(INIT_DIR)$(INIT_AR): $(patsubst %,$(INIT_DIR)%, $(INIT-y))
+	$(do_ar)
 
-$(init_OBJ): $(objdir)/%.o: $(srcdir)/%.c
-$(objdir)/init.a: $(init_OBJ)
-libraries-y:=$(libraries-y) $(objdir)/init.a
-
+$(INIT_DIR)%.o: $(srcdir)/%.c
+	$(compile.c)

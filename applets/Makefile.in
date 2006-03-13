@@ -4,17 +4,23 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir:=$(top_srcdir)/applets
-objdir:=$(top_builddir)/applets
+APPLETS_AR:=applets.a
+ifndef $(APPLETS_DIR)
+APPLETS_DIR:=$(top_builddir)/applets/
+endif
+srcdir=$(top_srcdir)/applets
 
-APPLETS_SRC:= $(patsubst %,$(srcdir)/%,applets.c busybox.c version.c)
+APPLET_SRC:= $(patsubst %,$(srcdir)/%,applets.c busybox.c version.c)
+APPLET_OBJ:= $(patsubst $(srcdir)/%.c,$(APPLETS_DIR)%.o, $(APPLET_SRC))
 
-APPLET_SRC-y+=$(APPLETS_SRC)
-APPLET_SRC-a+=$(APPLETS_SRC)
+APPLET_SRC-y+=$(APPLET_SRC)
+APPLET_SRC-a+=$(APPLET_SRC)
 
-applets_OBJ:=$(patsubst $(srcdir)/%.c,$(objdir)/%.o,$(APPLETS_SRC))
+libraries-y+=$(APPLETS_DIR)$(APPLETS_AR)
 
-$(applets_OBJ): $(objdir)/%.o: $(srcdir)/%.c
-$(objdir)/applets.a: $(applets_OBJ)
-libraries-y:=$(libraries-y) $(objdir)/applets.a
+$(APPLETS_DIR)$(APPLETS_AR): $(APPLET_OBJ)
+	$(do_ar)
 
+$(APPLET_OBJ): $(top_builddir)/.config 
+$(APPLET_OBJ): $(APPLETS_DIR)%.o: $(srcdir)/%.c
+	$(compile.c)

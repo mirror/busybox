@@ -4,29 +4,36 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir:=$(top_srcdir)/editors
-objdir:=$(top_builddir)/editors
+EDITOR_AR:=editors.a
+ifndef $(EDITOR_DIR)
+EDITOR_DIR:=$(top_builddir)/editors/
+endif
+srcdir=$(top_srcdir)/editors
 
-EDITORS-$(CONFIG_AWK)	+= awk.o
-EDITORS-$(CONFIG_PATCH)	+= patch.o
-EDITORS-$(CONFIG_SED)	+= sed.o
-EDITORS-$(CONFIG_VI)	+= vi.o
+EDITOR-y:=
+EDITOR-$(CONFIG_AWK)	   += awk.o
+EDITOR-$(CONFIG_PATCH)	   += patch.o
+EDITOR-$(CONFIG_SED)       += sed.o
+EDITOR-$(CONFIG_VI)        += vi.o
+
+ifneq ($(strip $(EDITOR-y)),)
+libraries-y+=$(EDITOR_DIR)$(EDITOR_AR)
+endif
+
+EDITOR_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(EDITOR-y))
+EDITOR_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(EDITOR_SRC-y)
+APPLET_SRC-a+=$(EDITOR_SRC-a)
 
 needlibm-y:=
 needlibm-$(CONFIG_FEATURE_AWK_MATH) := y
 
 ifeq ($(needlibm-y),y)
-  LIBRARIES := $(filter-out -lm,$(LIBRARIES)) -lm
+  LIBRARIES := -lm $(filter-out -lm,$(LIBRARIES))
 endif
 
-EDITOR_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(EDITORS-y))
-EDITOR_SRC-a:=$(wildcard $(srcdir)/*.c)
-APPLET_SRC-y+=$(EDITOR_SRC-y)
-APPLET_SRC-a+=$(EDITOR_SRC-a)
+$(EDITOR_DIR)$(EDITOR_AR): $(patsubst %,$(EDITOR_DIR)%, $(EDITOR-y))
+	$(do_ar)
 
-editors_OBJ:=  $(patsubst %,$(objdir)/%,$(EDITORS-y))
-
-$(editors_OBJ): $(objdir)/%.o: $(srcdir)/%.c
-$(objdir)/editors.a: $(editors_OBJ)
-libraries-y:=$(libraries-y) $(objdir)/editors.a
-
+$(EDITOR_DIR)%.o: $(srcdir)/%.c
+	$(compile.c)

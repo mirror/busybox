@@ -4,9 +4,13 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-srcdir:=$(top_srcdir)/procps
-objdir:=$(top_builddir)/procps
+PROCPS_AR:=procps.a
+ifndef $(PROCPS_DIR)
+PROCPS_DIR:=$(top_builddir)/procps/
+endif
+srcdir=$(top_srcdir)/procps
 
+PROCPS-y:=
 PROCPS-$(CONFIG_FREE)		+= free.o
 PROCPS-$(CONFIG_KILL)		+= kill.o
 PROCPS-$(CONFIG_PIDOF)		+= pidof.o
@@ -17,15 +21,17 @@ PROCPS-$(CONFIG_TOP)		+= top.o
 PROCPS-$(CONFIG_UPTIME)		+= uptime.o
 PROCPS-$(CONFIG_FUSER)		+= fuser.o
 
+ifneq ($(strip $(PROCPS-y)),)
+libraries-y+=$(PROCPS_DIR)$(PROCPS_AR)
+endif
 
 PROCPS_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(PROCPS-y))
 PROCPS_SRC-a:=$(wildcard $(srcdir)/*.c)
 APPLET_SRC-y+=$(PROCPS_SRC-y)
 APPLET_SRC-a+=$(PROCPS_SRC-a)
 
-procps_OBJ:=  $(patsubst %,$(objdir)/%,$(PROCPS-y))
+$(PROCPS_DIR)$(PROCPS_AR): $(patsubst %,$(PROCPS_DIR)%, $(PROCPS-y))
+	$(do_ar)
 
-$(procps_OBJ): $(objdir)/%.o: $(srcdir)/%.c
-$(objdir)/procps.a: $(procps_OBJ)
-libraries-y:=$(libraries-y) $(objdir)/procps.a
-
+$(PROCPS_DIR)%.o: $(srcdir)/%.c
+	$(compile.c)
