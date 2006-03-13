@@ -10,7 +10,7 @@
 #--------------------------------------------------------------
 noconfig_targets := menuconfig config oldconfig randconfig \
 	defconfig allyesconfig allnoconfig allbareconfig \
-	clean distclean \
+	clean distclean help \
 	release tags
 
 # the toplevel sourcedir
