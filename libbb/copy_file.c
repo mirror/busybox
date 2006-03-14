@@ -165,11 +165,10 @@ int copy_file(const char *source, const char *dest, int flags)
 					return -1;
 				}
 
-				dest_exists = 0;
+				goto dest_removed;
 			}
-		}
-
-		if (!dest_exists) {
+		} else {
+dest_removed:
 			dst_fd = open(dest, O_WRONLY|O_CREAT, source_stat.st_mode);
 			if (dst_fd == -1) {
 				bb_perror_msg("unable to open `%s'", dest);
