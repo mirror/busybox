@@ -4,10 +4,23 @@
  *
  * Copyright (C) 1995, 1996 by Bruce Perens <bruce@pixar.com>.
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
- * Copyright (C) 2005 by Rob Landley <rob@landley.net>
+ * Copyright (C) 2005-2006 by Rob Landley <rob@landley.net>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
+
+/* todo:
+ * bb_getopt_ulflags();
+ */
+
+/* Design notes: There is no spec for this.  Remind me to write one.
+
+   mount_main() calls singlemount() which calls mount_it_now().
+ 
+   mount_main() can loop through /etc/fstab for mount -a
+   singlemount() can loop through /etc/filesystems for fstype detection.
+   mount_it_now() does the actual mount.
+*/
 
 #include <limits.h>
 #include <stdlib.h>
@@ -29,18 +42,28 @@
 #ifndef MS_MOVE
 #define MS_MOVE		8192
 #endif
+#ifndef MS_SILENT
+#define MS_SILENT	32768
+#endif
 
-/* Consume standard mount options (from -o options or --options).
- * Set appropriate flags and collect unrecognized ones as a comma separated
- * string to pass to kernel */
+// Not real flags, but we want to be able to check for this.
+#define MOUNT_NOAUTO    (1<<29)
+#define MOUNT_SWAP      (1<<30)
+/* Standard mount options (from -o options or --options), with corresponding
+ * flags */
 
 struct {
 	const char *name;
 	long flags;
-} static const  mount_options[] = {
+} static const mount_options[] = {
+	// NOP flags.
+
 	{"loop", 0},
 	{"defaults", 0},
-	{"noauto", 0},
+	{"quiet", 0},
+
+	// vfs flags 
+
 	{"ro", MS_RDONLY},
 	{"rw", ~MS_RDONLY},
 	{"nosuid", MS_NOSUID},
@@ -51,336 +74,469 @@ struct {
 	{"noexec", MS_NOEXEC},
 	{"sync", MS_SYNCHRONOUS},
 	{"async", ~MS_SYNCHRONOUS},
-	{"remount", MS_REMOUNT},
 	{"atime", ~MS_NOATIME},
 	{"noatime", MS_NOATIME},
 	{"diratime", ~MS_NODIRATIME},
 	{"nodiratime", MS_NODIRATIME},
+	{"loud", ~MS_SILENT},
+	
+	// action flags
+
+	{"remount", MS_REMOUNT},
 	{"bind", MS_BIND},
-	{"move", MS_MOVE}
+	{"move", MS_MOVE},
+	{"noauto",MOUNT_NOAUTO},
+	{"swap",MOUNT_SWAP}
 };
 
-/* Uses the mount_options list above */
-static void parse_mount_options(char *options, int *flags, char **strflags)
+/* Append mount options to string */
+static void append_mount_options(char **oldopts, char *newopts)
 {
+	if(*oldopts && **oldopts) {
+		char *temp=bb_xasprintf("%s,%s",*oldopts,newopts);
+		free(*oldopts);
+		*oldopts=temp;
+	} else {
+		if (ENABLE_FEATURE_CLEAN_UP) free(*oldopts);
+		*oldopts = bb_xstrdup(newopts);
+	}
+}
+
+/* Use the mount_options list to parse options into flags.
+ * Return list of unrecognized options in *strflags if strflags!=NULL */
+static int parse_mount_options(char *options, char **unrecognized)
+{
+	int flags = MS_SILENT;
+
 	// Loop through options
-	for(;;) {
+	for (;;) {
 		int i;
 		char *comma = strchr(options, ',');
 
-		if(comma) *comma = 0;
+		if (comma) *comma = 0;
 
 		// Find this option in mount_options
-		for(i = 0; i < (sizeof(mount_options) / sizeof(*mount_options)); i++) {
-			if(!strcasecmp(mount_options[i].name, options)) {
+		for (i = 0; i < (sizeof(mount_options) / sizeof(*mount_options)); i++) {
+			if (!strcasecmp(mount_options[i].name, options)) {
 				long fl = mount_options[i].flags;
-				if(fl < 0) *flags &= fl;
-				else *flags |= fl;
+				if(fl < 0) flags &= fl;
+				else flags |= fl;
 				break;
 			}
 		}
-		// Unrecognized mount option?
-		if(i == (sizeof(mount_options) / sizeof(*mount_options))) {
+		// If unrecognized not NULL, append unrecognized mount options */
+		if (unrecognized
+				&& i == (sizeof(mount_options) / sizeof(*mount_options)))
+		{	
 			// Add it to strflags, to pass on to kernel
-			i = *strflags ? strlen(*strflags) : 0;
-			*strflags = xrealloc(*strflags, i+strlen(options)+2);
+			i = *unrecognized ? strlen(*unrecognized) : 0;
+			*unrecognized = xrealloc(*unrecognized, i+strlen(options)+2);
+			
 			// Comma separated if it's not the first one
-			if(i) (*strflags)[i++] = ',';
-			strcpy((*strflags)+i, options);
+			if (i) (*unrecognized)[i++] = ',';
+			strcpy((*unrecognized)+i, options);
 		}
+		
 		// Advance to next option, or finish
 		if(comma) {
 			*comma = ',';
 			options = ++comma;
 		} else break;
 	}
+	
+	return flags;
 }
 
-/* This does the work */
+// Return a list of all block device backed filesystems
 
-extern int mount_main(int argc, char **argv)
+static llist_t *get_block_backed_filesystems(void)
 {
-	char *string_flags = 0, *fsType = 0, *blockDevice = 0, *directory = 0,
-		 *loopFile = 0, *buf = 0,
-		 *files[] = {"/etc/filesystems", "/proc/filesystems", 0};
-	int i, opt, all = FALSE, fakeIt = FALSE, allowWrite = FALSE,
-		rc = 1, useMtab = ENABLE_FEATURE_MTAB_SUPPORT;
-	int flags=0xc0ed0000;	// Needed for linux 2.2, ignored by 2.4 and 2.6.
-	FILE *file = 0,*f = 0;
-	char path[PATH_MAX*2];
-	struct mntent m;
-	struct stat statbuf;
+	char *fs, *buf,
+		 *filesystems[] = {"/etc/filesystems", "/proc/filesystems", 0};
+	llist_t *list = 0;
+	int i;
+	FILE *f;
 
+	for(i = 0; filesystems[i]; i++) {
+		if(!(f = fopen(filesystems[i], "r"))) continue;
+		
+		for(fs = buf = 0; (fs = buf = bb_get_chomped_line_from_file(f));
+			free(buf))
+		{
+			if(!strncmp(buf,"nodev",5) && isspace(buf[5])) continue;
+			
+			while(isspace(*fs)) fs++;
+			if(*fs=='#' || *fs=='*') continue;
+			if(!*fs) continue;
+			
+			list=llist_add_to_end(list,bb_xstrdup(fs));
+		}
+		if (ENABLE_FEATURE_CLEAN_UP) fclose(f);
+	}
+
+	return list;
+}
+
+llist_t *fslist = 0;
+
+void delete_block_backed_filesystems(void);
+#if ENABLE_FEATURE_CLEAN_UP
+static void delete_block_backed_filesystems(void)
+{
+	llist_free(fslist);
+}
+#endif
+
+#if ENABLE_FEATURE_MTAB_SUPPORT
+static int useMtab;
+#else
+#define useMtab 0
+#endif
+
+// Perform actual mount of specific filesystem at specific location.
+
+static int mount_it_now(struct mntent *mp, int vfsflags)
+{
+	int rc;
+	char *filteropts = 0;
+
+	parse_mount_options(mp->mnt_opts, &filteropts);
+	// Mount, with fallback to read-only if necessary.
+
+	for(;;) {
+		rc = mount(mp->mnt_fsname, mp->mnt_dir, mp->mnt_type,
+				vfsflags, filteropts);
+		if(!rc || (vfsflags&MS_RDONLY) || (errno!=EACCES && errno!=EROFS))
+			break;
+		bb_error_msg("%s is write-protected, mounting read-only",
+				mp->mnt_fsname);
+		vfsflags |= MS_RDONLY;
+	}
+
+    free(filteropts);
+
+	// Abort entirely if permission denied.
+
+	if (rc && errno == EPERM)
+		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
+
+	/* If the mount was successful, and we're maintaining an old-style
+	 * mtab file by hand, add the new entry to it now. */
+	
+	if(ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc) {
+		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
+		int i;
+
+		if(!mountTable)
+			bb_error_msg("No %s\n",bb_path_mtab_file);
+
+		// Add vfs string flags
+
+		for(i=0; mount_options[i].flags != MS_REMOUNT; i++)
+			if (mount_options[i].flags > 0)
+				append_mount_options(&(mp->mnt_opts),
+// Shut up about the darn const.  It's not important.  I don't care.
+						(char *)mount_options[i].name);
+
+		// Remove trailing / (if any) from directory we mounted on
+
+		i = strlen(mp->mnt_dir);
+		if(i>1 && mp->mnt_dir[i-1] == '/') mp->mnt_dir[i-1] = 0;
+
+		// Write and close.
+
+		if(!mp->mnt_type || !*mp->mnt_type) mp->mnt_type="--bind";
+		addmntent(mountTable, mp);
+		endmntent(mountTable);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			if(strcmp(mp->mnt_type,"--bind")) mp->mnt_type = 0;
+	}
+	
+	return rc;
+}
+
+
+// Mount one directory.  Handles NFS, loopback, autobind, and filesystem type
+// detection.  Returns 0 for success, nonzero for failure.
+
+static int singlemount(struct mntent *mp)
+{
+	int rc = 0, vfsflags;
+	char *loopFile = 0;
+	llist_t *fl = 0;
+	struct stat st;
+
+	vfsflags = parse_mount_options(mp->mnt_opts, 0);
+
+	// Might this be an NFS filesystem?
+
+	if (ENABLE_FEATURE_MOUNT_NFS &&
+		(!mp->mnt_type || !strcmp(mp->mnt_type,"nfs")) &&
+		strchr(mp->mnt_fsname, ':') != NULL)
+	{
+		char *options=0;
+		parse_mount_options(mp->mnt_opts, &options);
+		if (nfsmount(mp->mnt_fsname, mp->mnt_dir, &vfsflags, &options, 1)) {
+			bb_perror_msg("nfsmount failed");
+			return 1;
+		}
+		
+		// Strangely enough, nfsmount() doesn't actually mount() anything.
+
+		else return mount_it_now(mp, vfsflags);
+	}
+
+	// Look at the file.  (Not found isn't a failure for remount.)
+
+	if (lstat(mp->mnt_fsname, &st));
+
+	if (!(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))) {	
+		// Do we need to allocate a loopback device for it?
+	
+		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
+			loopFile = mp->mnt_fsname;
+			mp->mnt_fsname = 0;
+			switch(set_loop(&(mp->mnt_fsname), loopFile, 0)) {
+				case 0:
+				case 1:
+					break;
+				default:
+					bb_error_msg( errno == EPERM || errno == EACCES
+						? bb_msg_perm_denied_are_you_root
+					   	: "Couldn't setup loop device");
+					return errno;
+			}
+			
+		// Autodetect bind mounts
+
+		} else if (S_ISDIR(st.st_mode) && !mp->mnt_type) vfsflags |= MS_BIND;
+	}
+
+	/* If we know the fstype (or don't need to), jump straight
+	 * to the actual mount. */
+
+	if (mp->mnt_type || (vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE)))
+		rc = mount_it_now(mp, vfsflags);
+
+	// Loop through filesystem types until mount succeeds or we run out
+
+	else for (fl = fslist; fl; fl = fl->link) {
+		mp->mnt_type = fl->data;
+
+		if (!(rc = mount_it_now(mp,vfsflags))) break;
+
+		mp->mnt_type = 0;
+	}
+
+	// Mount failed.  Clean up
+	if (rc && loopFile) {
+		del_loop(mp->mnt_fsname);
+		if(ENABLE_FEATURE_CLEAN_UP) free(loopFile);
+	}
+	return rc;
+}
+
+
+// Parse options, if necessary parse fstab/mtab, and call singlemount for
+// each directory to be mounted.
+
+int mount_main(int argc, char **argv)
+{
+	char *cmdopts = bb_xstrdup(""), *fstabname, *fstype=0, *storage_path=0;
+	FILE *fstab;
+	int i, opt, all = FALSE, rc = 1;
+	struct mntent mtpair[2], *mtcur = mtpair;
+	
 	/* parse long options, like --bind and --move.  Note that -o option
 	 * and --option are synonymous.  Yes, this means --remount,rw works. */
 
-	for(i = opt = 0; i < argc; i++) {
-		if(argv[i][0] == '-' && argv[i][1] == '-')
-			parse_mount_options(argv[i]+2, &flags, &string_flags);
-		else argv[opt++] = argv[i];
+	for (i = opt = 0; i < argc; i++) {
+		if (argv[i][0] == '-' && argv[i][1] == '-') {
+			append_mount_options(&cmdopts,argv[i]+2);	
+		} else argv[opt++] = argv[i];
 	}
 	argc = opt;
 
 	// Parse remaining options
 
-	while((opt = getopt(argc, argv, "o:t:rwafnv")) > 0) {
+	while ((opt = getopt(argc, argv, "o:t:rwavnf")) > 0) {
 		switch (opt) {
-		case 'o':
-			parse_mount_options(optarg, &flags, &string_flags);
-			break;
-		case 't':
-			fsType = optarg;
-			break;
-		case 'r':
-			flags |= MS_RDONLY;
-			break;
-		case 'w':
-			allowWrite=TRUE;
-			break;
-		case 'a':
-			all = TRUE;
-			break;
-		case 'f':
-			fakeIt = TRUE;
-			break;
-		case 'n':
-			useMtab = FALSE;
-			break;
-		case 'v':
-			break;		// ignore -v
-		default:
-			bb_show_usage();
+			case 'o':
+				append_mount_options(&cmdopts, optarg);
+				break;
+			case 't':
+				fstype = optarg;
+				break;
+			case 'r':
+				append_mount_options(&cmdopts, "ro");
+				break;
+			case 'w':
+				append_mount_options(&cmdopts, "rw");
+				break;
+			case 'a':
+				all = TRUE;
+				break;
+			case 'n':
+				USE_FEATURE_MTAB_SUPPORT(useMtab = FALSE;)
+				break;
+			case 'f':
+				USE_FEATURE_MTAB_SUPPORT(fakeIt = FALSE;)
+				break;
+			case 'v':
+				break;		// ignore -v
+			default:
+				bb_show_usage();
 		}
 	}
+	
+	// Ignore type "auto".
 
+	if (fstype && !strcmp(fstype, "auto")) fstype = NULL;
+
+	// Three or more non-option arguments?  Die with a usage message.
+
+	if (optind-argc>2) bb_show_usage();
+	
 	// If we have no arguments, show currently mounted filesystems
 
-	if(!all && (optind == argc)) {
-		FILE *mountTable = setmntent(bb_path_mtab_file, "r");
+	if (optind == argc) {
+		if (!all) {
+			FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 
-		if(!mountTable) bb_perror_msg_and_die(bb_path_mtab_file);
+			if(!mountTable) bb_error_msg_and_die("No %s",bb_path_mtab_file);
 
-		while (getmntent_r(mountTable,&m,path,sizeof(path))) {
-			blockDevice = m.mnt_fsname;
+			while (getmntent_r(mountTable,mtpair,bb_common_bufsiz1,
+								sizeof(bb_common_bufsiz1)))
+			{
+				// Don't show rootfs.
+				if (!strcmp(mtpair->mnt_fsname, "rootfs")) continue;
 
-			// Clean up display a little bit regarding root device
-			if(!strcmp(blockDevice, "rootfs")) continue;
-			if(!strcmp(blockDevice, "/dev/root"))
-				blockDevice = find_block_device("/");
-
-			if(!fsType || !strcmp(m.mnt_type, fsType))
-				printf("%s on %s type %s (%s)\n", blockDevice, m.mnt_dir,
-					   m.mnt_type, m.mnt_opts);
-			if(ENABLE_FEATURE_CLEAN_UP && blockDevice != m.mnt_fsname)
-				free(blockDevice);
+				if (!fstype || !strcmp(mtpair->mnt_type, fstype))
+					printf("%s on %s type %s (%s)\n", mtpair->mnt_fsname,
+							mtpair->mnt_dir, mtpair->mnt_type,
+							mtpair->mnt_opts);
+			}
+			if (ENABLE_FEATURE_CLEAN_UP) endmntent(mountTable);
+			return EXIT_SUCCESS;
 		}
-		endmntent(mountTable);
-		return EXIT_SUCCESS;
 	}
 
-	/* The next argument is what to mount.  if there's an argument after that
-	 * it's where to mount it.  If we're not mounting all, and we have both
-	 * of these arguments, jump straight to the actual mount. */
+	/* Initialize list of block backed filesystems */
 
-	statbuf.st_mode=0;
-	if(optind < argc)
-		blockDevice = !stat(argv[optind], &statbuf) ?
-				bb_simplify_path(argv[optind]) :
-				(ENABLE_FEATURE_CLEAN_UP ? strdup(argv[optind]) : argv[optind]);
-	if(optind+1 < argc) directory = bb_simplify_path(argv[optind+1]);
+	fslist = get_block_backed_filesystems();
+	if (ENABLE_FEATURE_CLEAN_UP) atexit(delete_block_backed_filesystems);
+	
+	// When we have two arguments, the second is the directory and we can
+	// skip looking at fstab entirely.  We can always abspath() the directory
+	// argument when we get it.
 
-    // If we don't have to loop through fstab, skip ahead a bit.
+	if (optind+2 == argc) {
+		mtpair->mnt_fsname = argv[optind];
+		mtpair->mnt_dir = argv[optind+1];
+		mtpair->mnt_type = fstype;
+		mtpair->mnt_opts = cmdopts;
+		rc = singlemount(mtpair);
+		goto clean_up;
+	}
 
-	if(!all && optind+1!=argc) goto singlemount;
+	// If we have at least one argument, it's the storage location
+		
+	if (optind < argc) storage_path = bb_simplify_path(argv[optind]);
+	
+	// Open either fstab or mtab
 
-	// Loop through /etc/fstab entries to look up this entry.
+	if (parse_mount_options(cmdopts,0) & MS_REMOUNT)
+		fstabname = (char *)bb_path_mtab_file;  // Again with the evil const.
+	else fstabname="/etc/fstab";
+	
+	if (!(fstab=setmntent(fstabname,"r")))
+		bb_perror_msg_and_die("Cannot read %s",fstabname);
+	
+	// Loop through entries until we find what we're looking for.
 
-	if(!(file=setmntent("/etc/fstab","r")))
-		bb_perror_msg_and_die("\nCannot read /etc/fstab");
-	for(;;) {
+	memset(mtpair,0,sizeof(mtpair));
+	for (;;) {
+		struct mntent *mtnext = mtpair + (mtcur==mtpair ? 1 : 0);
 
 		// Get next fstab entry
 
-		if(!getmntent_r(file,&m,path,sizeof(path))) {
-			if(!all)
-				bb_perror_msg("Can't find %s in /etc/fstab\n", blockDevice);
+		if (!getmntent_r(fstab, mtcur, bb_common_bufsiz1,
+					sizeof(bb_common_bufsiz1)))
+		{
+			// Were we looking for something specific?
+
+			if (optind != argc) {
+
+				// If we didn't find anything, complain.
+
+				if (!mtnext->mnt_fsname)
+					bb_error_msg_and_die("Can't find %s in %s",
+						argv[optind], fstabname);
+				
+				// Mount the last thing we found.
+
+				mtcur = mtnext;
+				mtcur->mnt_opts=bb_xstrdup(mtcur->mnt_opts);
+				append_mount_options(&(mtcur->mnt_opts),cmdopts);
+				rc = singlemount(mtcur);
+				free(mtcur->mnt_opts);
+			}
 			break;
 		}
+		
+		/* If we're trying to mount something specific and this isn't it,
+		 * skip it.  Note we must match both the exact text in fstab (ala
+		 * "proc") or a full path from root */
 
-		// If we're mounting all and all doesn't mount this one, skip it.
+		if (optind != argc) {
 
-		if(all) {
-			if(strstr(m.mnt_opts,"noauto") || strstr(m.mnt_type,"swap"))
-				continue;
-			flags=0;
+			// Is this what we're looking for?
 
-		/* If we're mounting something specific and this isn't it, skip it.
-		 * Note we must match both the exact text in fstab (ala "proc") or
-		 * a full path from root */
+			if(strcmp(argv[optind],mtcur->mnt_fsname) &&
+			   strcmp(storage_path,mtcur->mnt_fsname) &&
+			   strcmp(argv[optind],mtcur->mnt_dir) &&
+			   strcmp(storage_path,mtcur->mnt_dir)) continue;
 
-		} else if(strcmp(blockDevice,m.mnt_fsname) &&
-				  strcmp(argv[optind],m.mnt_fsname) &&
-				  strcmp(blockDevice,m.mnt_dir) &&
-				  strcmp(argv[optind],m.mnt_dir)) continue;
+			// Remember this entry.  Something later may have overmounted
+			// it, and we want the _last_ match.
 
-		/* Parse flags from /etc/fstab (unless this is a single mount
-		 * overriding fstab -- note the "all" test above zeroed the flags,
-		 * to prevent flags from previous entries affecting this one, so
-		 * the only way we could get here with nonzero flags is a single
-		 * mount). */
+			mtcur = mtnext;
+		
+		// If we're mounting all.
 
-		if(!flags) {
-			if(ENABLE_FEATURE_CLEAN_UP) free(string_flags);
-			string_flags=NULL;
-			parse_mount_options(m.mnt_opts, &flags, &string_flags);
-		}
-
-		/* Fill out remaining fields with info from mtab */
-
-		if(ENABLE_FEATURE_CLEAN_UP) {
-			free(blockDevice);
-			blockDevice=strdup(m.mnt_fsname);
-			free(directory);
-			directory=strdup(m.mnt_dir);
 		} else {
-			blockDevice=m.mnt_fsname;
-			directory=m.mnt_dir;
+			
+			// Do we need to match a filesystem type?
+			if (fstype && strcmp(mtcur->mnt_type,fstype)) continue;
+			
+			// Skip noauto and swap anyway.
+
+			if (parse_mount_options(mtcur->mnt_opts,0)
+				& (MOUNT_NOAUTO | MOUNT_SWAP)) continue;
+
+			// Mount this thing.
+
+			rc = singlemount(mtcur);
+			if (rc) {
+				// Don't whine about already mounted fs when mounting all.
+				if (errno == EBUSY) rc = 0;
+				else break;
+			}
 		}
-		fsType=m.mnt_type;
-
-		/* Ok, we're ready to actually mount a specific source on a specific
-		 * directory now. */
-
-singlemount:
-
-		// If they said -w, override fstab
-
-		if(allowWrite) flags&=~MS_RDONLY;
-
-		// Might this be an NFS filesystem?
-
-		if(ENABLE_FEATURE_MOUNT_NFS && (!fsType || !strcmp(fsType,"nfs")) &&
-			strchr(blockDevice, ':') != NULL)
-		{
-			if(nfsmount(blockDevice, directory, &flags, &string_flags, 1))
-				bb_perror_msg("nfsmount failed");
-			else {
-				rc = 0;
-				fsType="nfs";
-				// Strangely enough, nfsmount() doesn't actually mount()
-				goto mount_it_now;
-			}
-		} else {
-
-			// Do we need to allocate a loopback device?
-
-			if(ENABLE_FEATURE_MOUNT_LOOP && !fakeIt && S_ISREG(statbuf.st_mode))
-			{
-				loopFile = blockDevice;
-				blockDevice = 0;
-				switch(set_loop(&blockDevice, loopFile, 0)) {
-					case 0:
-					case 1:
-						break;
-					default:
-						bb_error_msg_and_die(
-							errno == EPERM || errno == EACCES ?
-							bb_msg_perm_denied_are_you_root :
-							"Couldn't setup loop device");
-						break;
-				}
-			}
-
-			/* If we know the fstype (or don't need to), jump straight
-			 * to the actual mount. */
-
-			if(fsType || (flags & (MS_REMOUNT | MS_BIND | MS_MOVE)))
-				goto mount_it_now;
-		}
-
-		// Loop through filesystem types until mount succeeds or we run out
-
-		for(i = 0; files[i] && rc; i++) {
-			f = fopen(files[i], "r");
-			if(!f) continue;
-			// Get next block device backed filesystem
-			for(buf = 0; (buf = fsType = bb_get_chomped_line_from_file(f));
-					free(buf))
-			{
-				// Skip funky entries in /proc
-				if(!strncmp(buf,"nodev",5) && isspace(buf[5])) continue;
-
-				while(isspace(*fsType)) fsType++;
-				if(*buf=='#' || *buf=='*') continue;
-				if(!*fsType) continue;
-mount_it_now:
-				// Okay, try to mount
-
-				if (!fakeIt) {
-					for(;;) {
-						rc = mount(blockDevice, directory, fsType, flags, string_flags);
-						if(!rc || (flags&MS_RDONLY) || (errno!=EACCES && errno!=EROFS))
-							break;
-						bb_error_msg("%s is write-protected, mounting read-only", blockDevice);
-						flags|=MS_RDONLY;
-					}
-				}
-				if(!rc || !f) break;
-			}
-			if(!f) break;
-			fclose(f);
-			// goto mount_it_now with -a can jump past the initialization
-			f=0;
-			if(!rc) break;
-		}
-
-		/* If the mount was successful, and we're maintaining an old-style
-		 * mtab file by hand, add new entry to it now. */
-		if((!rc || fakeIt) && useMtab) {
-			FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
-
-			if(!mountTable) bb_perror_msg(bb_path_mtab_file);
-			else {
-				// Remove trailing / (if any) from directory we mounted on
-				int length=strlen(directory);
-				if(length>1 && directory[length-1] == '/')
-					directory[length-1]=0;
-
-				// Fill out structure (should be ok to re-use existing one).
-				m.mnt_fsname=blockDevice;
-				m.mnt_dir=directory;
-				m.mnt_type=fsType ? : "--bind";
-				m.mnt_opts=string_flags ? :
-					((flags & MS_RDONLY) ? "ro" : "rw");
-				m.mnt_freq = 0;
-				m.mnt_passno = 0;
-
-				// Write and close
-				addmntent(mountTable, &m);
-				endmntent(mountTable);
-			}
-		} else {
-			// Mount failed.  Clean up
-			if(loopFile) {
-				del_loop(blockDevice);
-				if(ENABLE_FEATURE_CLEAN_UP) free(loopFile);
-			}
-			// Don't whine about already mounted fs when mounting all.
-			if(rc<0 && errno == EBUSY && all) rc = 0;
-			else if (errno == EPERM)
-				bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-		}
-		// We couldn't free this earlier becase fsType could be in buf.
-		if(ENABLE_FEATURE_CLEAN_UP) free(buf);
-		if(!all) break;
 	}
+	if (ENABLE_FEATURE_CLEAN_UP) endmntent(fstab);
 
-	if(file) endmntent(file);
-	if(rc) bb_perror_msg("Mounting %s on %s failed", blockDevice, directory);
-	if(ENABLE_FEATURE_CLEAN_UP) {
-		free(blockDevice);
-		free(directory);
+clean_up:
+
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		free(storage_path);
+		free(cmdopts);
+		free(fstype);
 	}
+	
+	if(rc)
+		bb_perror_msg("Mounting %s on %s failed",
+				mtcur->mnt_fsname, mtcur->mnt_dir);
 
 	return rc;
 }
