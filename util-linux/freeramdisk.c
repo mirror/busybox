@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include "busybox.h"
 
-extern int freeramdisk_main(int argc, char **argv)
+int freeramdisk_main(int argc, char **argv)
 {
 	int result;
 	int fd;
