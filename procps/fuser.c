@@ -73,7 +73,8 @@ static int fuser_file_to_dev_inode(const char *filename,
 	return 1;
 }
 
-static int fuser_find_socket_dev(dev_t *dev) {
+static int fuser_find_socket_dev(dev_t *dev)
+{
 	int fd = socket(PF_INET, SOCK_DGRAM,0);
 	struct stat buf;
 
@@ -278,7 +279,8 @@ static int fuser_scan_proc_pids(int opts, inode_list *ilist, pid_list *plist)
 	return 1;
 }
 
-static int fuser_print_pid_list(pid_list *plist) {
+static int fuser_print_pid_list(pid_list *plist)
+{
 	pid_list *curr = plist;
 
 	if(plist == NULL) return 0;
@@ -290,7 +292,8 @@ static int fuser_print_pid_list(pid_list *plist) {
 	return 1;
 }
 
-static int fuser_kill_pid_list(pid_list *plist, int sig) {
+static int fuser_kill_pid_list(pid_list *plist, int sig)
+{
 	pid_list *curr = plist;
 	pid_t mypid = getpid();
 	int success = 1;
@@ -309,7 +312,8 @@ static int fuser_kill_pid_list(pid_list *plist, int sig) {
 	return success;
 }
 
-extern int fuser_main(int argc, char **argv) {
+int fuser_main(int argc, char **argv)
+{
 	int port, i, optn;
 	int* fni; /* file name indexes of argv */
 	int fnic = 0;  /* file name index count */
