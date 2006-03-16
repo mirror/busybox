@@ -53,12 +53,8 @@ llist_t *llist_add_to_end(llist_t *list_head, char *data)
 llist_t *llist_free_one(llist_t *elm)
 {
 	llist_t *next = elm ? elm->link : NULL;
-#if ENABLE_DMALLOC /* avoid warnings from dmalloc's error-free-null option */
-	if (elm)
-#endif
-		free(elm);
-	elm = next;
-	return elm;
+	free(elm);
+	return next;
 }
 #endif
 
