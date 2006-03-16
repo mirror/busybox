@@ -4,7 +4,9 @@
 [ -n "$bindir" ] || bindir=$(dirname $(pwd))
 PATH=$bindir:$PATH
 
-run_applet_testcase ()
+# Run old-style test.
+
+function run_applet_testcase
 {
 	local applet=$1
 	local testcase=$2
@@ -91,6 +93,16 @@ else
 	applets=$(ls $srcdir)
 fi
 
+# Populate a directory with links to all busybox applets
+
+LINKSDIR="${bindir}/runtest-tempdir-links"
+rm -rf "$LINKSDIR" 2>/dev/null
+mkdir "$LINKSDIR"
+for i in $(sed 's@/[a-z0-9/\[]*/@@' $bindir/busybox.links)
+do
+	ln -s $bindir/busybox "$LINKSDIR"/$i
+done
+
 # Set up option flags so tests can be selective.
 
 configfile=${bindir:-../../}/.config
@@ -110,25 +122,16 @@ for applet in $applets; do
 	applet=$(echo "$applet" | sed -n 's/\.tests$//p')
 	if [ ${#applet} -ne 0 ]
 	then
-		appcfg=`grep -i "^# CONFIG_$applet" $configfile`
-		if [ -n "$appcfg" ]
+		if [ ! -h "$LINKSDIR/$applet" ]
 		then
-			echo "SKIPPED: $applet (is configured out)"
+			echo "SKIPPED: $applet (not built)"
 			continue
 		fi
-		# Setup environment for test.
-		if [ -d links ]; then
-			rm -f links/"$applet" 
-		else
-			mkdir links 2> /dev/null
-		fi
-		ln -s ${bindir:-../..}/busybox links/"$applet"
-		PATH="$srcdir:$PATH" COMMAND="links/$applet" \
+		PATH="$LINKSDIR":$srcdir:$bindir:$PATH \
 			"${srcdir:-.}/$applet".tests
 		if [ $? -ne 0 ]; then status=1; fi
 	fi
 
 done
-rm -f links/*
-rmdir links
+rm -rf "$LINKSDIR"
 exit $status
