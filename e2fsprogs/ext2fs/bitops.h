@@ -13,6 +13,7 @@
  * Linus Torvalds.
  */
 
+#include <string.h>
 #include <strings.h>
 
 extern int ext2fs_set_bit(unsigned int nr,void * addr);
