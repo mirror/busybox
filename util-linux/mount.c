@@ -201,6 +201,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags)
 	char *filteropts = 0;
 
 	parse_mount_options(mp->mnt_opts, &filteropts);
+
 	// Mount, with fallback to read-only if necessary.
 
 	for(;;) {
@@ -261,12 +262,16 @@ static int mount_it_now(struct mntent *mp, int vfsflags)
 
 static int singlemount(struct mntent *mp)
 {
-	int rc = 0, vfsflags;
+	int rc = 1, vfsflags;
 	char *loopFile = 0;
 	llist_t *fl = 0;
 	struct stat st;
 
 	vfsflags = parse_mount_options(mp->mnt_opts, 0);
+
+	// Treat fstype "auto" as unspecified.
+
+	if (mp->mnt_type && !strcmp(mp->mnt_type,"auto")) mp->mnt_type = 0;
 
 	// Might this be an NFS filesystem?
 
@@ -294,7 +299,7 @@ static int singlemount(struct mntent *mp)
 		// Do we need to allocate a loopback device for it?
 	
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
-			loopFile = mp->mnt_fsname;
+			loopFile = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_fsname = 0;
 			switch(set_loop(&(mp->mnt_fsname), loopFile, 0)) {
 				case 0:
@@ -306,7 +311,7 @@ static int singlemount(struct mntent *mp)
 					   	: "Couldn't setup loop device");
 					return errno;
 			}
-			
+
 		// Autodetect bind mounts
 
 		} else if (S_ISDIR(st.st_mode) && !mp->mnt_type) vfsflags |= MS_BIND;
@@ -320,18 +325,34 @@ static int singlemount(struct mntent *mp)
 
 	// Loop through filesystem types until mount succeeds or we run out
 
-	else for (fl = fslist; fl; fl = fl->link) {
-		mp->mnt_type = fl->data;
+	else {
 
-		if (!(rc = mount_it_now(mp,vfsflags))) break;
+		/* Initialize list of block backed filesystems.  This has to be
+		 * done here so that during "mount -a", mounts after /proc shows up
+		 * can autodetect. */
 
-		mp->mnt_type = 0;
+		if (!fslist) {
+			fslist = get_block_backed_filesystems();
+			if (ENABLE_FEATURE_CLEAN_UP && fslist)
+				atexit(delete_block_backed_filesystems);
+		}
+	
+		for (fl = fslist; fl; fl = fl->link) {
+			mp->mnt_type = fl->data;
+
+			if (!(rc = mount_it_now(mp,vfsflags))) break;
+
+			mp->mnt_type = 0;
+		}
 	}
 
 	// Mount failed.  Clean up
 	if (rc && loopFile) {
 		del_loop(mp->mnt_fsname);
-		if(ENABLE_FEATURE_CLEAN_UP) free(loopFile);
+		if(ENABLE_FEATURE_CLEAN_UP) {
+			free(loopFile);
+			free(mp->mnt_fsname);
+		}
 	}
 	return rc;
 }
@@ -389,10 +410,6 @@ int mount_main(int argc, char **argv)
 		}
 	}
 	
-	// Ignore type "auto".
-
-	if (fstype && !strcmp(fstype, "auto")) fstype = NULL;
-
 	// Three or more non-option arguments?  Die with a usage message.
 
 	if (optind-argc>2) bb_show_usage();
@@ -421,11 +438,6 @@ int mount_main(int argc, char **argv)
 		}
 	}
 
-	/* Initialize list of block backed filesystems */
-
-	fslist = get_block_backed_filesystems();
-	if (ENABLE_FEATURE_CLEAN_UP) atexit(delete_block_backed_filesystems);
-	
 	// When we have two arguments, the second is the directory and we can
 	// skip looking at fstab entirely.  We can always abspath() the directory
 	// argument when we get it.
@@ -483,7 +495,7 @@ int mount_main(int argc, char **argv)
 			}
 			break;
 		}
-		
+
 		/* If we're trying to mount something specific and this isn't it,
 		 * skip it.  Note we must match both the exact text in fstab (ala
 		 * "proc") or a full path from root */
