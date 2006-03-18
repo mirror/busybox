@@ -7,8 +7,6 @@
  * All rights reserved.
  *
  * dos2unix filters reading input from stdin and writing output to stdout.
- * Without arguments it reverts the format (e.i. if source is in UNIX format,
- * output is in DOS format and vice versa).
  *
  *  Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 */
@@ -94,9 +92,9 @@ int dos2unix_main(int argc, char *argv[])
 
 	/* See if we are supposed to be doing dos2unix or unix2dos */
 	if (argv[0][0]=='d') {
-	    ConvType = CT_DOS2UNIX;  /*1*/
+	    ConvType = CT_DOS2UNIX;  /*2*/
 	} else {
-	    ConvType = CT_UNIX2DOS;  /*2*/
+	    ConvType = CT_UNIX2DOS;  /*1*/
 	}
 	/* -u and -d are mutally exclusive */
 	bb_opt_complementally = "?:u--d:d--u";
