@@ -7,7 +7,6 @@
  * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
 
-#include "libbb.h"
 
 #ifdef L_bb_getgrgid
   /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
@@ -27,6 +26,7 @@
   *                   the program exits.
   */
 
+#include "libbb.h"
 #include "grp_.h"
 
 /* gets a groupname given a gid */
@@ -42,6 +42,7 @@ char * bb_getgrgid(char *group, long gid, int bufsize)
 #ifdef L_bb_xgetgrnam
 #include <stdio.h>
 #include <string.h>
+#include "libbb.h"
 #include "pwd_.h"
 #include "grp_.h"
 
@@ -62,6 +63,7 @@ long bb_xgetgrnam(const char *name)
 #ifdef L_bb_xgetpwnam
 #include <stdio.h>
 #include <string.h>
+#include "libbb.h"
 #include "pwd_.h"
 #include "grp_.h"
 
@@ -97,6 +99,7 @@ long bb_xgetpwnam(const char *name)
   *                   the program exits.
   */
 
+#include "libbb.h"
 #include "pwd_.h"
 
 /* gets a username given a uid */
@@ -126,6 +129,7 @@ char * bb_getpwuid(char *name, long uid, int bufsize)
 
 #include <stdio.h>
 #include <assert.h>
+#include "libbb.h"
 
 
 /* internal function for bb_getpwuid and bb_getgrgid */
@@ -148,6 +152,7 @@ char * bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix)
 #ifdef L_get_ug_id
 /* indirect dispatcher for pwd helpers.  */
 #include <stdlib.h>
+#include "libbb.h"
 
 extern unsigned long get_ug_id(const char *s,
 		long (*__bb_getxxnam)(const char *))
