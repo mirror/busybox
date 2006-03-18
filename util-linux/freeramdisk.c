@@ -28,8 +28,8 @@ int freeramdisk_main(int argc, char **argv)
 	fd = bb_xopen(argv[1], O_RDWR);
 
 	// Act like freeramdisk, fdflush, or both depending on configuration.
-	result = ioctl(fd, (bb_applet_name[1]=='r' && ENABLE_FREERAMDISK)
-		   	|| !ENABLE_FDFLUSH ? _IO(0x12,97) : _IO(2,0x4b));
+	result = ioctl(fd, (ENABLE_FREERAMDISK && bb_applet_name[1]=='r')
+			|| !ENABLE_FDFLUSH ? _IO(0x12,97) : _IO(2,0x4b));
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
 
