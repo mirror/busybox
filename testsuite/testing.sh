@@ -110,13 +110,16 @@ function mkchroot
   shift
   for i in "$@"
   do
-    if [ "${i:0:1}" == "/" ]
+    [ "${i:0:1}" == "/" ] || i=$(which $i)
+    [ -f "$dest/$i" ] && continue
+    if [ -e "$i" ]
     then
-      [ -f "$dest/$i" ] && continue
       d=`echo "$i" | grep -o '.*/'` &&
       mkdir -p "$dest/$d" &&
       cat "$i" > "$dest/$i" &&
       chmod +x "$dest/$i"
+    else
+      echo "Not found: $i"
     fi
     mkchroot "$dest" $(ldd "$i" | egrep -o '/.* ')
   done
