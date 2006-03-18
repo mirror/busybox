@@ -18,6 +18,11 @@
 #include <unistd.h>
 #include "busybox.h"
 
+/* From linux/fs.h */
+#define BLKFLSBUF  _IO(0x12,97)
+/* From <linux/fd.h> */
+#define FDFLUSH  _IO(2,0x4b)
+
 int freeramdisk_main(int argc, char **argv)
 {
 	int result;
@@ -29,7 +34,7 @@ int freeramdisk_main(int argc, char **argv)
 
 	// Act like freeramdisk, fdflush, or both depending on configuration.
 	result = ioctl(fd, (ENABLE_FREERAMDISK && bb_applet_name[1]=='r')
-			|| !ENABLE_FDFLUSH ? _IO(0x12,97) : _IO(2,0x4b));
+			|| !ENABLE_FDFLUSH ? BLKFLSBUF : FDFLUSH);
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
 
