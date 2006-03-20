@@ -16,7 +16,7 @@
 /* Design notes: There is no spec for this.  Remind me to write one.
 
    mount_main() calls singlemount() which calls mount_it_now().
- 
+
    mount_main() can loop through /etc/fstab for mount -a
    singlemount() can loop through /etc/filesystems for fstype detection.
    mount_it_now() does the actual mount.
@@ -62,7 +62,7 @@ struct {
 	{"defaults", 0},
 	{"quiet", 0},
 
-	// vfs flags 
+	// vfs flags
 
 	{"ro", MS_RDONLY},
 	{"rw", ~MS_RDONLY},
@@ -79,7 +79,7 @@ struct {
 	{"diratime", ~MS_NODIRATIME},
 	{"nodiratime", MS_NODIRATIME},
 	{"loud", ~MS_SILENT},
-	
+
 	// action flags
 
 	{"remount", MS_REMOUNT},
@@ -127,23 +127,23 @@ static int parse_mount_options(char *options, char **unrecognized)
 		// If unrecognized not NULL, append unrecognized mount options */
 		if (unrecognized
 				&& i == (sizeof(mount_options) / sizeof(*mount_options)))
-		{	
+		{
 			// Add it to strflags, to pass on to kernel
 			i = *unrecognized ? strlen(*unrecognized) : 0;
 			*unrecognized = xrealloc(*unrecognized, i+strlen(options)+2);
-			
+
 			// Comma separated if it's not the first one
 			if (i) (*unrecognized)[i++] = ',';
 			strcpy((*unrecognized)+i, options);
 		}
-		
+
 		// Advance to next option, or finish
 		if(comma) {
 			*comma = ',';
 			options = ++comma;
 		} else break;
 	}
-	
+
 	return flags;
 }
 
@@ -159,16 +159,16 @@ static llist_t *get_block_backed_filesystems(void)
 
 	for(i = 0; filesystems[i]; i++) {
 		if(!(f = fopen(filesystems[i], "r"))) continue;
-		
+
 		for(fs = buf = 0; (fs = buf = bb_get_chomped_line_from_file(f));
 			free(buf))
 		{
 			if(!strncmp(buf,"nodev",5) && isspace(buf[5])) continue;
-			
+
 			while(isspace(*fs)) fs++;
 			if(*fs=='#' || *fs=='*') continue;
 			if(!*fs) continue;
-			
+
 			list=llist_add_to_end(list,bb_xstrdup(fs));
 		}
 		if (ENABLE_FEATURE_CLEAN_UP) fclose(f);
@@ -226,7 +226,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags)
 
 	/* If the mount was successful, and we're maintaining an old-style
 	 * mtab file by hand, add the new entry to it now. */
-	
+
 	if(ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc) {
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
 		int i;
@@ -255,7 +255,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags)
 		if (ENABLE_FEATURE_CLEAN_UP)
 			if(strcmp(mp->mnt_type,"--bind")) mp->mnt_type = 0;
 	}
-	
+
 	return rc;
 }
 
@@ -288,7 +288,7 @@ static int singlemount(struct mntent *mp)
 			bb_perror_msg("nfsmount failed");
 			return 1;
 		}
-		
+
 		// Strangely enough, nfsmount() doesn't actually mount() anything.
 
 		else return mount_it_now(mp, vfsflags);
@@ -298,9 +298,9 @@ static int singlemount(struct mntent *mp)
 
 	if (lstat(mp->mnt_fsname, &st));
 
-	if (!(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))) {	
+	if (!(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))) {
 		// Do we need to allocate a loopback device for it?
-	
+
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
 			loopFile = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_fsname = 0;
@@ -341,7 +341,7 @@ static int singlemount(struct mntent *mp)
 				atexit(delete_block_backed_filesystems);
 #endif
 		}
-	
+
 		for (fl = fslist; fl; fl = fl->link) {
 			mp->mnt_type = fl->data;
 
@@ -372,13 +372,13 @@ int mount_main(int argc, char **argv)
 	FILE *fstab;
 	int i, opt, all = FALSE, rc = 1;
 	struct mntent mtpair[2], *mtcur = mtpair;
-	
+
 	/* parse long options, like --bind and --move.  Note that -o option
 	 * and --option are synonymous.  Yes, this means --remount,rw works. */
 
 	for (i = opt = 0; i < argc; i++) {
 		if (argv[i][0] == '-' && argv[i][1] == '-') {
-			append_mount_options(&cmdopts,argv[i]+2);	
+			append_mount_options(&cmdopts,argv[i]+2);
 		} else argv[opt++] = argv[i];
 	}
 	argc = opt;
@@ -414,11 +414,11 @@ int mount_main(int argc, char **argv)
 				bb_show_usage();
 		}
 	}
-	
+
 	// Three or more non-option arguments?  Die with a usage message.
 
 	if (optind-argc>2) bb_show_usage();
-	
+
 	// If we have no arguments, show currently mounted filesystems
 
 	if (optind == argc) {
@@ -457,18 +457,18 @@ int mount_main(int argc, char **argv)
 	}
 
 	// If we have at least one argument, it's the storage location
-		
+
 	if (optind < argc) storage_path = bb_simplify_path(argv[optind]);
-	
+
 	// Open either fstab or mtab
 
 	if (parse_mount_options(cmdopts,0) & MS_REMOUNT)
 		fstabname = (char *)bb_path_mtab_file;  // Again with the evil const.
 	else fstabname="/etc/fstab";
-	
+
 	if (!(fstab=setmntent(fstabname,"r")))
 		bb_perror_msg_and_die("Cannot read %s",fstabname);
-	
+
 	// Loop through entries until we find what we're looking for.
 
 	memset(mtpair,0,sizeof(mtpair));
@@ -489,7 +489,7 @@ int mount_main(int argc, char **argv)
 				if (!mtnext->mnt_fsname)
 					bb_error_msg_and_die("Can't find %s in %s",
 						argv[optind], fstabname);
-				
+
 				// Mount the last thing we found.
 
 				mtcur = mtnext;
@@ -518,14 +518,14 @@ int mount_main(int argc, char **argv)
 			// it, and we want the _last_ match.
 
 			mtcur = mtnext;
-		
+
 		// If we're mounting all.
 
 		} else {
-			
+
 			// Do we need to match a filesystem type?
 			if (fstype && strcmp(mtcur->mnt_type,fstype)) continue;
-			
+
 			// Skip noauto and swap anyway.
 
 			if (parse_mount_options(mtcur->mnt_opts,0)
@@ -550,7 +550,7 @@ clean_up:
 		free(cmdopts);
 		free(fstype);
 	}
-	
+
 	if(rc)
 		bb_perror_msg("Mounting %s on %s failed",
 				mtcur->mnt_fsname, mtcur->mnt_dir);
