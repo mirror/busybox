@@ -179,7 +179,6 @@ static llist_t *get_block_backed_filesystems(void)
 
 llist_t *fslist = 0;
 
-void delete_block_backed_filesystems(void);
 #if ENABLE_FEATURE_CLEAN_UP
 static void delete_block_backed_filesystems(void)
 {
@@ -189,8 +188,10 @@ static void delete_block_backed_filesystems(void)
 
 #if ENABLE_FEATURE_MTAB_SUPPORT
 static int useMtab;
+static int fakeIt;
 #else
 #define useMtab 0
+#define fakeIt 0
 #endif
 
 // Perform actual mount of specific filesystem at specific location.
@@ -201,6 +202,8 @@ static int mount_it_now(struct mntent *mp, int vfsflags)
 	char *filteropts = 0;
 
 	parse_mount_options(mp->mnt_opts, &filteropts);
+
+	if (fakeIt) { return 0; }
 
 	// Mount, with fallback to read-only if necessary.
 
@@ -333,8 +336,10 @@ static int singlemount(struct mntent *mp)
 
 		if (!fslist) {
 			fslist = get_block_backed_filesystems();
+#if ENABLE_FEATURE_CLEAN_UP
 			if (ENABLE_FEATURE_CLEAN_UP && fslist)
 				atexit(delete_block_backed_filesystems);
+#endif
 		}
 	
 		for (fl = fslist; fl; fl = fl->link) {
