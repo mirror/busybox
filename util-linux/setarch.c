@@ -16,7 +16,7 @@
 
 #include "busybox.h"
 
-int setarch_main(int argc, char **argv)
+int setarch_main(int ATTRIBUTE_UNUSED argc, char **argv)
 {
 	int pers = -1;
 
@@ -26,9 +26,9 @@ int setarch_main(int argc, char **argv)
 	 * argv[0]         -> "personality"
 	 */
 retry:
-	if (!strcmp(argv[0], "linux64"))
+	if (argv[0][5] == '6') /* linux64 */
 		pers = PER_LINUX;
-	else if (!strcmp(argv[0], "linux32"))
+	else if (argv[0][5] == '3') /* linux32 */
 		pers = PER_LINUX32;
 	else if (pers == -1 && argv[1] != NULL) {
 		pers = PER_LINUX32;
@@ -42,12 +42,11 @@ retry:
 		bb_show_usage();
 
 	/* Try to set personality */
-	if (personality(pers) < 0)
-		goto failure;
+	if (personality(pers) >= 0) {
 
-	/* Try to execute the program */
-	execvp(argv[0], argv);
+		/* Try to execute the program */
+		execvp(argv[0], argv);
+	}
 
-failure:
 	bb_perror_msg_and_die("%s", argv[0]);
 }

@@ -354,9 +354,19 @@ config CONFIG_READPROFILE
 	help
 	  This allows you to parse /proc/profile for basic profiling.
 
+config CONFIG_LINUX32
+	default n
+	depends on CONFIG_SETARCH
+
+config CONFIG_LINUX64
+	default n
+	depends on CONFIG_SETARCH
+
 config CONFIG_SETARCH
 	bool "setarch"
 	default n
+	select CONFIG_LINUX32
+	select CONFIG_LINUX64
 	help
 	  The linux32 utility is used to create a 32bit environment for the
 	  specified program (usually a shell).  It only makes sense to have
