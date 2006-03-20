@@ -36,7 +36,7 @@ static void delete_contents(char *directory)
 	struct stat st;
 
 	// Don't descend into other filesystems
-	if (stat(directory,&st) || st.st_dev != rootdev) return;
+	if (lstat(directory,&st) || st.st_dev != rootdev) return;
 
 	// Recursively delete the contents of directories.
 	if (S_ISDIR(st.st_mode)) {
@@ -79,7 +79,7 @@ int switch_root_main(int argc, char *argv[])
 
 	newroot=argv[optind++];
 
-	if (chdir(newroot) || stat(".", &st1) || stat("/", &st2) ||
+	if (chdir(newroot) || lstat(".", &st1) || lstat("/", &st2) ||
 		st1.st_dev == st2.st_dev)
 	{
 		bb_error_msg_and_die("bad newroot %s",newroot);
@@ -90,7 +90,7 @@ int switch_root_main(int argc, char *argv[])
 	// we mean it.  (I could make this a CONFIG option, but I would get email
 	// from all the people who WILL eat their filesystemss.)
 
-	if (stat("/init", &st1) || !S_ISREG(st1.st_mode) || statfs("/", &stfs) ||
+	if (lstat("/init", &st1) || !S_ISREG(st1.st_mode) || statfs("/", &stfs) ||
 		(stfs.f_type != RAMFS_MAGIC && stfs.f_type != TMPFS_MAGIC) ||
 		getpid() != 1)
 	{
