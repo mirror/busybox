@@ -128,7 +128,7 @@ help:
 	@echo '  oldconfig		- resolve any unresolved symbols in .config'
 	@echo
 	@echo 'Installation:'
-	@echo '  install		- install busybox into $prefix'
+	@echo '  install		- install busybox into $(PREFIX)'
 	@echo '  uninstall'
 	@echo
 	@echo 'Development:'
