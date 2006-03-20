@@ -59,6 +59,7 @@ struct client_config_t client_config = {
 	.fqdn = NULL,
 	.ifindex = 0,
 	.retries = 3,
+	.timeout = 3,
 	.arp = "\0\0\0\0\0\0",		/* appease gcc-3.0 */
 };
 
@@ -84,6 +85,8 @@ static void ATTRIBUTE_NORETURN show_usage(void)
 "  -r, --request=IP                IP address to request (default: none)\n"
 "  -s, --script=file               Run file at dhcp events (default:\n"
 "                                  " DEFAULT_SCRIPT ")\n"
+"  -T, --timeout=seconds           Try to get the lease for the amount of\n"
+"                                  seconds (default: 3)\n"
 "  -v, --version                   Display version\n"
 	);
 	exit(0);
@@ -202,6 +205,7 @@ int main(int argc, char *argv[])
 		{"quit",	no_argument,		0, 'q'},
 		{"request",	required_argument,	0, 'r'},
 		{"script",	required_argument,	0, 's'},
+		{"timeout",	required_argument,	0, 'T'},
 		{"version",	no_argument,		0, 'v'},
 		{"retries",	required_argument,	0, 't'},		
 		{0, 0, 0, 0}
@@ -210,7 +214,7 @@ int main(int argc, char *argv[])
 	/* get options */
 	while (1) {
 		int option_index = 0;
-		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qr:s:t:v", arg_options, &option_index);
+		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qr:s:T:t:v", arg_options, &option_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -285,6 +289,9 @@ int main(int argc, char *argv[])
 			break;
 		case 's':
 			client_config.script = optarg;
+			break;
+		case 'T':
+			client_config.timeout = atoi(optarg);
 			break;
 		case 't':
 			client_config.retries = atoi(optarg);
@@ -365,7 +372,7 @@ int main(int argc, char *argv[])
 					/* send discover packet */
 					send_discover(xid, requested_ip); /* broadcast */
 
-					timeout = now + ((packet_num == 2) ? 4 : 2);
+					timeout = now + client_config.timeout;
 					packet_num++;
 				} else {
 					run_script(NULL, "leasefail");
