@@ -19,7 +19,7 @@ LIBBB-y:= \
 	full_write.c get_last_path_component.c get_line_from_file.c \
 	herror_msg.c herror_msg_and_die.c \
 	human_readable.c inet_common.c inode_hash.c isdirectory.c \
-	kernel_version.c last_char_is.c login.c loop.c \
+	kernel_version.c last_char_is.c login.c \
 	make_directory.c md5.c mode_string.c mtab_file.c \
 	obscure.c parse_mode.c parse_number.c perror_msg.c \
 	perror_msg_and_die.c print_file.c get_console.c \
@@ -38,6 +38,7 @@ LIBBB-y:= \
 
 # conditionally compiled objects:
 LIBBB-$(CONFIG_FEATURE_SHADOWPASSWDS)+=pwd2spwd.c
+LIBBB-$(CONFIG_FEATURE_MOUNT_LOOP)+= loop.c
 LIBBB-$(CONFIG_FEATURE_MTAB_SUPPORT)+= mtab.c
 LIBBB-$(CONFIG_PASSWD)+= pw_encrypt.c
 LIBBB-$(CONFIG_SULOGIN)+= pw_encrypt.c
