@@ -1,4 +1,10 @@
 /* vi:set ts=4:*/
+/* Copyright 2005 Rob Landley <rob@landley.net>
+ *
+ * Switch from rootfs to another filesystem as the root of the mount tree.
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ */
 
 #include <dirent.h>
 #include <fcntl.h>
