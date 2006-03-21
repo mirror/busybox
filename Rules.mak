@@ -131,7 +131,8 @@ ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 3 ] ; echo $$?)),0)
 	CFLAGS_COMBINE:=$(call check_gcc,--combine,)
 endif
 OPTIMIZATION+=$(call check_gcc,-funit-at-a-time,)
-PROG_CFLAGS+=$(call check_gcc,-fwhole-program,)
+# http://gcc.gnu.org/bugzilla/show_bug.cgi?id=25795
+#PROG_CFLAGS+=$(call check_gcc,-fwhole-program,)
 endif # CONFIG_BUILD_AT_ONCE
 
 LIB_LDFLAGS:=$(call check_ld,--enable-new-dtags,)
