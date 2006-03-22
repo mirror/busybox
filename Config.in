@@ -326,13 +326,6 @@ config CONFIG_EFENCE
 
 endchoice
 
-config CONFIG_STRIP_BINARIES
-	bool "Strip busybox objects"
-	default y if !CONFIG_DEBUG
-	default n if CONFIG_DEBUG
-	help
-	  Whether or not we strip the busybox binary and such.
-
 config CONFIG_DEBUG_YANK_SUSv2
 	bool "Disable obsolete features removed before SUSv3?"
 	default y
