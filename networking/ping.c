@@ -17,7 +17,7 @@
 #include <sys/file.h>
 #include <sys/time.h>
 #include <sys/times.h>
-#include <sys/signal.h>
+#include <signal.h>
 
 #include <netinet/in.h>
 #include <netinet/ip.h>

@@ -21,7 +21,7 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <sys/signal.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <ctype.h>
