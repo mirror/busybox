@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>  // For makedev
 #include <unistd.h>
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
