@@ -29,9 +29,9 @@ int seq_main(int argc, char **argv)
 	}
 
 	/* You should note that this is pos-5.0.91 semantics, -- FK. */
-	if (first < last ? increment > 0 : increment < 0) {
+	if (first <= last ? increment > 0 : increment < 0) {
 		for (i = first;
-			 (first < last) ? (i <= last) : (i >= last);
+			 (first <= last) ? (i <= last) : (i >= last);
 			 i += increment)
 		{
 				printf("%g\n", i);
