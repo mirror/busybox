@@ -620,7 +620,9 @@ static void run_actions(int action)
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
 		if (a->action == action) {
-			if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
+			if (access(a->terminal, R_OK | W_OK)) {
+				delete_init_action(a);
+			} else if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
 				waitfor(a);
 				delete_init_action(a);
 			} else if (a->action & ONCE) {
@@ -815,9 +817,6 @@ static void new_init_action(int action, const char *command, const char *cons)
 	if (*cons == '\0')
 		cons = console;
 
-	/* do not run entries if console device is not available */
-	if (access(cons, R_OK | W_OK))
-		return;
 	if (strcmp(cons, bb_dev_null) == 0 && (action & ASKFIRST))
 		return;
 
