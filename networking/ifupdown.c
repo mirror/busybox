@@ -769,7 +769,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 					llist_t *iface_list;
 					for (iface_list = defn->ifaces; iface_list; iface_list = iface_list->link) {
 						struct interface_defn_t *tmp = (struct interface_defn_t *) iface_list->data;
-						if ((strcmp(tmp->iface, currif->iface) == 0) ||
+						if ((strcmp(tmp->iface, currif->iface) == 0) && 
 							(tmp->address_family == currif->address_family)) {
 							bb_error_msg("duplicate interface \"%s\"", tmp->iface);
 							return NULL;
