@@ -205,7 +205,7 @@ allbareconfig: scripts/config/conf
 	@$(SED) -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG|STATIC|SELINUX|DEVFSD|NC_GAPING_SECURITY_HOLE|BUILD_AT_ONCE)).*/# \1 is not set/" .config
 	@$(SED) -i -e "/FEATURE/s/=.*//;/^[^#]/s/.*FEATURE.*/# \0 is not set/;" .config
 	@echo "CONFIG_FEATURE_BUFFERS_GO_ON_STACK=y" >> .config
-	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
+	@yes n | ./scripts/config/conf -o $(CONFIG_CONFIG_IN)
 
 else # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
