@@ -85,7 +85,7 @@ int fdformat_main(int argc,char **argv)
 
 	/* R_OK is needed for verifying */
 	if (stat(*argv,&st) < 0 || access(*argv,W_OK | R_OK ) < 0) {
-		bb_perror_msg_and_die(*argv);
+		bb_perror_msg_and_die("%s",*argv);
 	}
 	if (!S_ISBLK(st.st_mode)) {
 		bb_error_msg_and_die("%s: not a block device",*argv);

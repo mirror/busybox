@@ -100,7 +100,7 @@ int watch_main(int argc, char **argv)
 			//child
 			dup2(old_stdout, STDOUT_FILENO);
 			execvp(*watched_argv, watched_argv);
-			bb_perror_msg_and_die(*watched_argv);
+			bb_perror_msg_and_die("%s", *watched_argv);
 		} else {
 			bb_perror_msg_and_die("vfork");
 		}

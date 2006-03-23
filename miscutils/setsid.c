@@ -41,6 +41,6 @@ setsid_main(int argc, char *argv[]) {
 
 	execvp(argv[1], argv + 1);
 
-	bb_perror_msg_and_die(argv[1]);
+	bb_perror_msg_and_die("%s", argv[1]);
 
 }
