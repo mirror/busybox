@@ -170,4 +170,3 @@ int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 	DEBUG(LOG_ERR, "Could not add option 0x%02x", code);
 	return 0;
 }
-

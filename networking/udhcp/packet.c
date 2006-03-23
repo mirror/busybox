@@ -50,7 +50,6 @@ int get_packet(struct dhcpMessage *packet, int fd)
 		"MSFT 98",
 		""
 	};
-
 	int bytes;
 	int i;
 	char unsigned *vendor;
@@ -78,7 +77,6 @@ int get_packet(struct dhcpMessage *packet, int fd)
 			}
 		}
 	}
-
 
 	return bytes;
 }

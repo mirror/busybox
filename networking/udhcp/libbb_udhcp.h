@@ -3,13 +3,14 @@
 /* bit of a hack, do this no matter what the order of the includes.
  * (for busybox) */
 
-#ifdef CONFIG_INSTALL_NO_USR
-#undef DEFAULT_SCRIPT
-#define DEFAULT_SCRIPT  "/share/udhcpc/default.script"
-#endif
-
 #ifndef _LIBBB_UDHCP_H
 #define _LIBBB_UDHCP_H
+
+#ifdef CONFIG_INSTALL_NO_USR
+# define DEFAULT_SCRIPT  "/share/udhcpc/default.script"
+#else
+# define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
+#endif
 
 #ifdef IN_BUSYBOX
 #include "busybox.h"
@@ -56,11 +57,19 @@
 /* from dhcpd.h */
 #define server_config		udhcp_server_config
 
-#else /* ! BB_VER */
+#else /* ! IN_BUSYBOX */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/sysinfo.h>
+
+#ifndef ATTRIBUTE_NORETURN
+#define ATTRIBUTE_NORETURN __attribute__ ((__noreturn__))
+#endif /* ATTRIBUTE_NORETURN */
+
+#ifndef ATTRIBUTE_PACKED
+#define ATTRIBUTE_PACKED __attribute__ ((__packed__))
+#endif /* ATTRIBUTE_PACKED */
 
 #define TRUE			1
 #define FALSE			0
@@ -78,6 +87,6 @@ static inline FILE *xfopen(const char *file, const char *mode)
 	return fp;
 }
 
-#endif /* BB_VER */
+#endif /* IN_BUSYBOX */
 
 #endif /* _LIBBB_UDHCP_H */

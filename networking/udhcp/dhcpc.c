@@ -469,6 +469,7 @@ int main(int argc, char *argv[])
 					(unsigned long) packet.xid, xid);
 				continue;
 			}
+
 			/* Ignore packets that aren't for us */
 			if (memcmp(packet.chaddr, client_config.arp, 6)) {
 				DEBUG(LOG_INFO, "packet does not have our chaddr -- ignoring");

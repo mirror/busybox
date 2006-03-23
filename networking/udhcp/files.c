@@ -139,6 +139,7 @@ static void attach_option(struct option_set **opt_list, struct dhcp_option *opti
 	}
 }
 
+
 /* read a dhcp option and add it to opt_list */
 static int read_opt(const char *const_line, void *arg)
 {
