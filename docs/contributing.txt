@@ -400,7 +400,7 @@ coder, you may be invited to become a committer, thus enabling you to commit
 changes directly to CVS. This is nice because you don't have to wait for
 someone else to commit your change for you, you can just do it yourself.
 
-But note that this is a priviledge that comes with some responsibilities. You
+But note that this is a privilege that comes with some responsibilities. You
 should test your changes before you commit them. You should also talk to an
 applet maintainer before you make any kind of sweeping changes to somebody
 else's code. Big changes should still go to the mailing list first. Remember,

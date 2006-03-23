@@ -372,7 +372,7 @@ static void check_suid (struct BB_applet *applet)
 	  } else
 		setuid (ruid);                  /* no suid -> drop */
 	} else {
-		/* default: drop all priviledges */
+		/* default: drop all privileges */
 	  setgid (rgid);
 	  setuid (ruid);
 	}
@@ -391,9 +391,9 @@ static void check_suid (struct BB_applet *applet)
 
   if (applet->need_suid == _BB_SUID_ALWAYS) {
 	if (geteuid () != 0)
-	  bb_error_msg_and_die ("This applet requires root priviledges!");
+	  bb_error_msg_and_die ("This applet requires root privileges!");
   } else if (applet->need_suid == _BB_SUID_NEVER) {
-	setgid (rgid);                          /* drop all priviledges */
+	setgid (rgid);                          /* drop all privileges */
 	setuid (ruid);
   }
 }
