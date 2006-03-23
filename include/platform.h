@@ -53,7 +53,7 @@
 
 #ifndef ATTRIBUTE_PACKED
 #define ATTRIBUTE_PACKED __attribute__ ((__packed__))
-#endif /* ATTRIBUTE_NORETURN */
+#endif /* ATTRIBUTE_PACKED */
 
 #ifndef ATTRIBUTE_ALIGNED
 #define ATTRIBUTE_ALIGNED(m) __attribute__ ((__aligned__(m)))
