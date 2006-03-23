@@ -4,20 +4,7 @@
  *
  * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 /* Mar 12, 2003     Manuel Novoa III
@@ -33,101 +20,22 @@
  * failure.  That would allow us to defer error checking until applet
  * exit.  Unfortunately, there is no standard way of setting a streams
  * error indicator... even though we can clear it with clearerr().
+ */
+
+/* Mar 22, 2006     Rich Felker III
  *
- * Therefore, we have to resort to implementation dependent code.  Feel
- * free to send patches for stdio implementations where the following
- * fails.
- *
- * NOTE: None of this is thread safe.  As busybox is a non-threaded app,
- *       that isn't currently an issue.
+ * Actually there is a portable way to set the error indicator. See below.
+ * It is not thread-safe as written due to a race condition with file
+ * descriptors but since BB is not threaded that does not matter. It can be
+ * made thread-safe at the expense of slightly more code, if this is ever
+ * needed in the future.
  */
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <unistd.h>
+#include <errno.h>
 #include "libbb.h"
-
-#if defined(__UCLIBC__)
-
-# if defined(__FLAG_ERROR)
-/* Using my newer stdio implementation.  Unlocked macros are:
- * #define __CLEARERR(stream) \
-	  ((stream)->modeflags &= ~(__FLAG_EOF|__FLAG_ERROR), (void)0)
- * #define __FEOF(stream)		((stream)->modeflags & __FLAG_EOF)
- * #define __FERROR(stream)	((stream)->modeflags & __FLAG_ERROR)
- */
-#  if defined(__MASK_READING)
-#   define SET_FERROR_UNLOCKED(S)    ((S)->__modeflags |= __FLAG_ERROR)
-#  else
-#   define SET_FERROR_UNLOCKED(S)    ((S)->modeflags |= __FLAG_ERROR)
-#  endif
-
-# elif defined(__MODE_ERR)
-/* Using either the original stdio implementation (from dev86) or
- * my original stdio rewrite.  Macros were:
- * #define ferror(fp)	(((fp)->mode&__MODE_ERR) != 0)
- * #define feof(fp)		(((fp)->mode&__MODE_EOF) != 0)
- * #define clearerr(fp)	((fp)->mode &= ~(__MODE_EOF|__MODE_ERR),0)
- */
-#define SET_FERROR_UNLOCKED(S)    ((S)->mode |= __MODE_ERR)
-
-# else
-#  error unknown uClibc stdio implemenation!
-# endif
-
-#elif defined(__NEWLIB_H__)
-/* I honestly don't know if there are different versions of stdio in
- * newlibs history.  Anyway, here's what's current.
- * #define __sfeof(p)      (((p)->_flags & __SEOF) != 0)
- * #define __sferror(p)    (((p)->_flags & __SERR) != 0)
- * #define __sclearerr(p)  ((void)((p)->_flags &= ~(__SERR|__SEOF)))
- */
-# define SET_FERROR_UNLOCKED(S)    ((S)->_flags |= __SERR)
-
-#elif defined(__GLIBC__)
-
-# if defined(_STDIO_USES_IOSTREAM)
-/* Apparently using the newer libio implementation, with associated defines:
- * #define _IO_feof_unlocked(__fp) (((__fp)->_flags & _IO_EOF_SEEN) != 0)
- * #define _IO_ferror_unlocked(__fp) (((__fp)->_flags & _IO_ERR_SEEN) != 0)
- */
-#  define SET_FERROR_UNLOCKED(S)    ((S)->_flags |= _IO_ERR_SEEN)
-
-# else
-/* Assume the older version of glibc which used a bitfield entry
- * as a stream error flag.  The associated defines were:
- * #define __clearerr(stream)      ((stream)->__error = (stream)->__eof = 0)
- * #define feof_unlocked(stream)         ((stream)->__eof != 0)
- * #define ferror_unlocked(stream)       ((stream)->__error != 0)
- */
-#  define SET_FERROR_UNLOCKED(S)    ((S)->__error = 1)
-
-# endif
-
-#elif defined(__dietlibc__)
-/*
- *     WARNING!!!  dietlibc is quite buggy.  WARNING!!!
- *
- * Some example bugs as of March 12, 2003...
- *   1) fputc() doesn't set the error indicator on failure.
- *   2) freopen() doesn't maintain the same stream object, contrary to
- *      standards.  This makes it useless in its primary role of
- *      reassociating stdin/stdout/stderr.
- *   3) printf() often fails to correctly format output when conversions
- *      involve padding.  It is also practically useless for floating
- *      point output.
- *
- * But, if you're determined to use it anyway, (as of the current version)
- * you can extract the information you need from dietstdio.h.  See the
- * other library implementations for examples.
- */
-# error dietlibc is currently not supported.  Please see the commented source.
-
-#else /* some other lib */
-/* Please see the comments for the above supported libraries for examples
- * of what is required to support your stdio implementation.
- */
-# error Your stdio library is currently not supported.  Please see the commented source.
-#endif
 
 #ifdef L_bb_vfprintf
 extern int bb_vfprintf(FILE * __restrict stream,
@@ -137,7 +45,22 @@ extern int bb_vfprintf(FILE * __restrict stream,
 	int rv;
 
 	if ((rv = vfprintf(stream, format, arg)) < 0) {
-		SET_FERROR_UNLOCKED(stream);
+		/* The following sequence portably sets the error flag for
+		 * stream on any remotely POSIX-compliant implementation. */
+
+		int errno_save = errno;
+		int fd = fileno(stream);
+		int tmp = dup(fd);
+
+		fflush(stream);
+		close(fd);
+		/* Force an attempted write to nonexistant fd => EBADF */
+		fputc(0, stream);
+		fflush(stream);
+		/* Restore the stream's original fd */
+		dup2(tmp, fd);
+		close(tmp);
+		errno = errno_save;
 	}
 
 	return rv;
