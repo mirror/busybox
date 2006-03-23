@@ -39,6 +39,7 @@ LIBBB-y:= \
 # conditionally compiled objects:
 LIBBB-$(CONFIG_FEATURE_SHADOWPASSWDS)+=pwd2spwd.c
 LIBBB-$(CONFIG_FEATURE_MOUNT_LOOP)+= loop.c
+LIBBB-$(CONFIG_LOSETUP)+= loop.c
 LIBBB-$(CONFIG_FEATURE_MTAB_SUPPORT)+= mtab.c
 LIBBB-$(CONFIG_PASSWD)+= pw_encrypt.c
 LIBBB-$(CONFIG_SULOGIN)+= pw_encrypt.c
