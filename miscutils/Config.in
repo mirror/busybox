@@ -225,7 +225,7 @@ config CONFIG_MAKEDEVS
           Device properties are passed as command line arguments.
 	  .
 	  'table' reads device properties from a file or stdin, allowing
-	  a batch of unrelated devices to be makde with one command.
+	  a batch of unrelated devices to be made with one command.
           User/group names are allowed as an alternative to uid/gid.
 
 choice
