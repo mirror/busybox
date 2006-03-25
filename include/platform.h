@@ -85,11 +85,14 @@
 #endif
 
 #ifdef __BIG_ENDIAN__
-    #define BB_BIG_ENDIAN 1
+	#define BB_BIG_ENDIAN 1
+	#define BB_LITTLE_ENDIAN 0
 #elif __BYTE_ORDER == __BIG_ENDIAN
-    #define BB_BIG_ENDIAN 1
+	#define BB_BIG_ENDIAN 1
+	#define BB_LITTLE_ENDIAN 0
 #else
-    #define BB_BIG_ENDIAN 0
+	#define BB_BIG_ENDIAN 0
+	#define BB_LITTLE_ENDIAN 1
 #endif
 
 /* ---- Networking ------------------------------------------ */
