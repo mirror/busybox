@@ -516,12 +516,6 @@ int delete_module(const char *);
 #include <elf.h>
 #include <endian.h>
 
-#if BB_LITTLE_ENDIAN
-# define ELFDATAM	ELFDATA2LSB
-#else
-# define ELFDATAM	ELFDATA2MSB
-#endif
-
 #ifndef ElfW
 # if ELFCLASSM == ELFCLASS32
 #  define ElfW(x)  Elf32_ ## x
@@ -3331,7 +3325,8 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits)
 		return NULL;
 	}
 	if (f->header.e_ident[EI_CLASS] != ELFCLASSM
-			|| f->header.e_ident[EI_DATA] != ELFDATAM
+			|| f->header.e_ident[EI_DATA] != (BB_BIG_ENDIAN
+			   	? ELFDATA2MSB : ELFDATA2LSB)
 			|| f->header.e_ident[EI_VERSION] != EV_CURRENT
 			|| !MATCH_MACHINE(f->header.e_machine)) {
 		bb_error_msg("ELF file not for this architecture");
