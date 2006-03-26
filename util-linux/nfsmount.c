@@ -948,8 +948,6 @@ static char *nfs_strerror(int status)
 static bool_t
 xdr_fhandle (XDR *xdrs, fhandle objp)
 {
-	//register int32_t *buf;
-
 	 if (!xdr_opaque (xdrs, objp, FHSIZE))
 		 return FALSE;
 	return TRUE;
@@ -958,8 +956,6 @@ xdr_fhandle (XDR *xdrs, fhandle objp)
 bool_t
 xdr_fhstatus (XDR *xdrs, fhstatus *objp)
 {
-	//register int32_t *buf;
-
 	 if (!xdr_u_int (xdrs, &objp->fhs_status))
 		 return FALSE;
 	switch (objp->fhs_status) {
@@ -976,8 +972,6 @@ xdr_fhstatus (XDR *xdrs, fhstatus *objp)
 bool_t
 xdr_dirpath (XDR *xdrs, dirpath *objp)
 {
-	//register int32_t *buf;
-
 	 if (!xdr_string (xdrs, objp, MNTPATHLEN))
 		 return FALSE;
 	return TRUE;
@@ -986,8 +980,6 @@ xdr_dirpath (XDR *xdrs, dirpath *objp)
 bool_t
 xdr_fhandle3 (XDR *xdrs, fhandle3 *objp)
 {
-	//register int32_t *buf;
-
 	 if (!xdr_bytes (xdrs, (char **)&objp->fhandle3_val, (unsigned int *) &objp->fhandle3_len, FHSIZE3))
 		 return FALSE;
 	return TRUE;
@@ -996,8 +988,6 @@ xdr_fhandle3 (XDR *xdrs, fhandle3 *objp)
 bool_t
 xdr_mountres3_ok (XDR *xdrs, mountres3_ok *objp)
 {
-	//register int32_t *buf;
-
 	 if (!xdr_fhandle3 (xdrs, &objp->fhandle))
 		 return FALSE;
 	 if (!xdr_array (xdrs, (char **)&objp->auth_flavours.auth_flavours_val, (unsigned int *) &objp->auth_flavours.auth_flavours_len, ~0,
@@ -1009,8 +999,6 @@ xdr_mountres3_ok (XDR *xdrs, mountres3_ok *objp)
 bool_t
 xdr_mountstat3 (XDR *xdrs, mountstat3 *objp)
 {
-	//register int32_t *buf;
-
 	 if (!xdr_enum (xdrs, (enum_t *) objp))
 		 return FALSE;
 	return TRUE;
@@ -1019,8 +1007,6 @@ xdr_mountstat3 (XDR *xdrs, mountstat3 *objp)
 bool_t
 xdr_mountres3 (XDR *xdrs, mountres3 *objp)
 {
-	//register int32_t *buf;
-
 	 if (!xdr_mountstat3 (xdrs, &objp->fhs_status))
 		 return FALSE;
 	switch (objp->fhs_status) {
