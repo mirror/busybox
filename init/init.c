@@ -39,6 +39,11 @@
 #endif
 
 
+#ifdef CONFIG_SELINUX
+# include <selinux/selinux.h>
+#endif /* CONFIG_SELINUX */
+
+
 #define INIT_BUFFS_SIZE 256
 
 /* From <linux/vt.h> */
@@ -1096,6 +1101,22 @@ int init_main(int argc, char **argv)
 		 * of "askfirst" shells */
 		parse_inittab();
 	}
+
+#ifdef CONFIG_SELINUX
+	if (getenv("SELINUX_INIT") == NULL) {
+		int enforce = 0;
+
+		putenv("SELINUX_INIT=YES");
+		if (selinux_init_load_policy(&enforce) == 0) {
+			execv(argv[0], argv);
+		} else if (enforce > 0) {
+			/* SELinux in enforcing mode but load_policy failed */
+			/* At this point, we probably can't open /dev/console, so log() won't work */
+			message(CONSOLE,"Unable to load SELinux Policy. Machine is in enforcing mode. Halting now.");
+			exit(1);
+		}
+	}
+#endif /* CONFIG_SELINUX */
 
 	/* Make the command line just say "init"  -- thats all, nothing else */
 	fixup_argv(argc, argv, "init");
