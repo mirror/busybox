@@ -100,7 +100,7 @@ static void unzip_create_leading_dirs(char *fn)
 	free(name);
 }
 
-static void unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
+static int unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 {
 	if (zip_header->formated.method == 0) {
 		/* Method 0 - stored (not compressed) */
@@ -117,12 +117,15 @@ static void unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 		/* Validate decompression - crc */
 		if (zip_header->formated.crc32 != (gunzip_crc ^ 0xffffffffL)) {
 			bb_error_msg("Invalid compressed data--crc error");
+			return 1;
 		}
 		/* Validate decompression - size */
 		if (zip_header->formated.ucmpsize != gunzip_bytes_out) {
 			bb_error_msg("Invalid compressed data--length error");
+			return 1;
 		}
 	}
+	return 0;
 }
 
 int unzip_main(int argc, char **argv)
@@ -137,7 +140,7 @@ int unzip_main(int argc, char **argv)
 	llist_t *zaccept = NULL;
 	llist_t *zreject = NULL;
 	char *base_dir = NULL;
-	int i, opt, opt_range = 0, list_header_done = 0;
+	int failed, i, opt, opt_range = 0, list_header_done = 0;
 	char key_buf[512];
 	struct stat stat_buf;
 
@@ -239,6 +242,8 @@ int unzip_main(int argc, char **argv)
 
 	if (verbosity != v_silent)
 		printf("Archive:  %s\n", src_fn);
+
+	failed = 0;
 
 	while (1) {
 		unsigned int magic;
@@ -367,7 +372,9 @@ int unzip_main(int argc, char **argv)
 			if (verbosity == v_normal) {
 				printf("  inflating: %s\n", dst_fn);
 			}
-			unzip_extract(&zip_header, src_fd, dst_fd);
+			if (unzip_extract(&zip_header, src_fd, dst_fd)) {
+			    failed = 1;
+			}
 			if (dst_fd != STDOUT_FILENO) {
 				/* closing STDOUT is potentially bad for future business */
 				close(dst_fd);
@@ -409,7 +416,7 @@ int unzip_main(int argc, char **argv)
 		       "%9d                   %d files\n", total_size, total_entries);
 	}
 
-	return(EXIT_SUCCESS);
+	return failed;
 }
 
 /* END CODE */
