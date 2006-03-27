@@ -79,7 +79,7 @@ int login_main(int argc, char **argv)
 	char *opt_host = 0;
 	int alarmstarted = 0;
 #ifdef CONFIG_SELINUX
-	security_context_t stat_sid = NULL, sid = NULL, old_tty_sid=NULL, new_tty_sid=NULL;
+	security_context_t user_sid = NULL;
 #endif
 
 	username[0]=0;
@@ -223,22 +223,19 @@ auth_ok:
 #ifdef CONFIG_SELINUX
 	if (is_selinux_enabled())
 	{
-		struct stat st;
-		int rc;
+		security_context_t old_tty_sid, new_tty_sid;
 
-		if (get_default_context(username, NULL, &sid))
+		if (get_default_context(username, NULL, &user_sid))
 		{
 			fprintf(stderr, "Unable to get SID for %s\n", username);
 			exit(1);
 		}
-		rc = getfilecon(full_tty,&stat_sid);
-		freecon(stat_sid);
-		if ((rc<0) || (stat(full_tty, &st)<0))
+		if (getfilecon(full_tty, &old_tty_sid) < 0)
 		{
-			fprintf(stderr, "stat_secure(%.100s) failed: %.100s\n", full_tty, strerror(errno));
+			fprintf(stderr, "getfilecon(%.100s) failed: %.100s\n", full_tty, strerror(errno));
 			return EXIT_FAILURE;
 		}
-		if (security_compute_relabel (sid, old_tty_sid, SECCLASS_CHR_FILE, &new_tty_sid) != 0)
+		if (security_compute_relabel(user_sid, old_tty_sid, SECCLASS_CHR_FILE, &new_tty_sid) != 0)
 		{
 			fprintf(stderr, "security_change_sid(%.100s) failed: %.100s\n", full_tty, strerror(errno));
 			return EXIT_FAILURE;
@@ -248,9 +245,6 @@ auth_ok:
 			fprintf(stderr, "chsid(%.100s, %s) failed: %.100s\n", full_tty, new_tty_sid, strerror(errno));
 			return EXIT_FAILURE;
 		}
-		freecon(sid);
-		freecon(old_tty_sid);
-		freecon(new_tty_sid);
 	}
 #endif
 	if ( !is_my_tty ( full_tty ))
@@ -273,7 +267,9 @@ auth_ok:
 	if ( pw-> pw_uid == 0 )
 		syslog ( LOG_INFO, "root login %s\n", fromhost );
 #ifdef CONFIG_SELINUX
-	set_current_security_context(sid);
+	/* well, a simple setexeccon() here would do the job as well,
+	 * but let's play the game for now */
+	set_current_security_context(user_sid);
 #endif
 	run_shell ( tmp, 1, 0, 0);	/* exec the shell finally. */
 
