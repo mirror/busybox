@@ -3,23 +3,8 @@
  * tiny vi.c: A small 'vi' clone
  * Copyright (C) 2000, 2001 Sterling Huxley <sterling@europa.com>
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-
-static const char vi_Version[] =
-	"$Id: vi.c,v 1.38 2004/08/19 19:15:06 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -85,6 +70,9 @@ static const char vi_Version[] =
 #include <stdarg.h>
 #ifndef STANDALONE
 #include "busybox.h"
+#define vi_Version BB_VER " " BB_BT
+#else
+#define vi_Version "standalone"
 #endif							/* STANDALONE */
 
 #ifdef CONFIG_LOCALE_SUPPORT
