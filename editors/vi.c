@@ -1072,9 +1072,10 @@ static void colon(Byte * buf)
 #endif							/* CONFIG_FEATURE_VI_SEARCH */
 	} else if (strncasecmp((char *) cmd, "version", i) == 0) {	// show software version
 		psb("%s", vi_Version);
-	} else if ((strncasecmp((char *) cmd, "write", i) == 0) ||	// write text to file
-			   (strncasecmp((char *) cmd, "wq", i) == 0) ||
-			   (strncasecmp((char *) cmd, "x", i) == 0)) {
+	} else if (strncasecmp((char *) cmd, "write", i) == 0		// write text to file
+			|| strncasecmp((char *) cmd, "wq", i) == 0
+			|| strncasecmp((char *) cmd, "wn", i) == 0
+			|| strncasecmp((char *) cmd, "x", i) == 0) {
 		// is there a file name to write to?
 		if (strlen((char *) args) > 0) {
 			fn = args;
@@ -1111,7 +1112,9 @@ static void colon(Byte * buf)
 				file_modified = 0;
 				last_file_modified = -1;
 			}
-			if ((cmd[0] == 'x' || cmd[1] == 'q') && l == ch) {
+			if ((cmd[0] == 'x' || cmd[1] == 'q' || cmd[1] == 'n' ||
+			     cmd[0] == 'X' || cmd[1] == 'Q' || cmd[1] == 'N')
+			     && l == ch) {
 				editing = 0;
 			}
 		}
@@ -3420,9 +3423,10 @@ key_cmd_mode:
 			} else {
 				editing = 0;
 			}
-		} else if (strncasecmp((char *) p, "write", cnt) == 0 ||
-				   strncasecmp((char *) p, "wq", cnt) == 0 ||
-				   strncasecmp((char *) p, "x", cnt) == 0) {
+		} else if (strncasecmp((char *) p, "write", cnt) == 0
+				|| strncasecmp((char *) p, "wq", cnt) == 0
+				|| strncasecmp((char *) p, "wn", cnt) == 0
+				|| strncasecmp((char *) p, "x", cnt) == 0) {
 			cnt = file_write(cfn, text, end - 1);
 			if (cnt < 0) {
 				if (cnt == -1)
@@ -3431,7 +3435,8 @@ key_cmd_mode:
 				file_modified = 0;
 				last_file_modified = -1;
 				psb("\"%s\" %dL, %dC", cfn, count_lines(text, end - 1), cnt);
-				if (p[0] == 'x' || p[1] == 'q') {
+				if (p[0] == 'x' || p[1] == 'q' || p[1] == 'n' ||
+				    p[0] == 'X' || p[1] == 'Q' || p[1] == 'N') {
 					editing = 0;
 				}
 			}
