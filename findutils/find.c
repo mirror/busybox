@@ -79,6 +79,15 @@ static int exec_opt;
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
+#ifdef CONFIG_FEATURE_FIND_XDEV
+	if (S_ISDIR(statbuf->st_mode) && xdev_count) {
+		int i;
+		for (i=0; i<xdev_count; i++) {
+			if (xdev_dev[i] != statbuf->st_dev)
+				return SKIP;
+		}
+	}
+#endif
 	if (pattern != NULL) {
 		const char *tmp = strrchr(fileName, '/');
 
@@ -123,21 +132,6 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 				(mmin_char == '+' && file_age >= mmin_secs + 60) ||
 				(mmin_char == '-' && file_age < mmin_secs)))
 			goto no_match;
-	}
-#endif
-#ifdef CONFIG_FEATURE_FIND_XDEV
-	if (xdev_count) {
-		int i;
-		for (i=0; i<xdev_count; i++) {
-			if (xdev_dev[i] == statbuf-> st_dev)
-				break;
-		}
-		if (i == xdev_count) {
-			if(S_ISDIR(statbuf->st_mode))
-				return SKIP;
-			else
-				goto no_match;
-		}
 	}
 #endif
 #ifdef CONFIG_FEATURE_FIND_NEWER
