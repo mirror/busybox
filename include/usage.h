@@ -2648,6 +2648,11 @@
 #define setkeycodes_example_usage \
 	"$ setkeycodes e030 127\n"
 
+#define setlogcons_trivial_usage \
+	"N"
+#define setlogcons_full_usage \
+	"Redirects the kernel output to console N (0 for current)."
+
 #define setsid_trivial_usage \
 	"program [arg ...]"
 #define setsid_full_usage \

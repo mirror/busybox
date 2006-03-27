@@ -72,4 +72,10 @@ config CONFIG_SETKEYCODES
 	  This program loads entries into the kernel's scancode-to-keycode
 	  map, allowing unusual keyboards to generate usable keycodes.
 
+config CONFIG_SETLOGCONS
+	bool "setlogcons"
+	default n
+	help
+	  This program redirects the output console of kernel messages.
+
 endmenu
