@@ -548,7 +548,6 @@ clean_up:
 	if (ENABLE_FEATURE_CLEAN_UP) {
 		free(storage_path);
 		free(cmdopts);
-		free(fstype);
 	}
 
 	if(rc)
