@@ -3617,12 +3617,13 @@ key_cmd_mode:
 			indicate_error(c);
 			break;
 		}
-		if (file_modified
+		if (file_modified) {
 #ifdef CONFIG_FEATURE_VI_READONLY
-			&& ! vi_readonly
-			&& ! readonly
-#endif							/* CONFIG_FEATURE_VI_READONLY */
-			) {
+			if (vi_readonly || readonly) {
+			    psbs("\"%s\" File is read only", cfn);
+			    break;
+			}
+#endif		/* CONFIG_FEATURE_VI_READONLY */
 			cnt = file_write(cfn, text, end - 1);
 			if (cnt < 0) {
 				if (cnt == -1)
