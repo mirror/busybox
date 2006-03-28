@@ -147,13 +147,13 @@ void sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx)
 void *sha1_end(void *resbuf, sha1_ctx_t *ctx)
 {
 	/* SHA1 Final padding and digest calculation  */
-	#if BB_BIG_ENDIAN
-		static uint32_t mask[4] = { 0x00000000, 0xff000000, 0xffff0000, 0xffffff00 };
-		static uint32_t bits[4] = { 0x80000000, 0x00800000, 0x00008000, 0x00000080 };
-	#else
-		static uint32_t mask[4] = { 0x00000000, 0x000000ff, 0x0000ffff, 0x00ffffff };
-		static uint32_t bits[4] = { 0x00000080, 0x00008000, 0x00800000, 0x80000000 };
-	#endif /* __BYTE_ORDER */
+#if BB_BIG_ENDIAN
+	static uint32_t mask[4] = { 0x00000000, 0xff000000, 0xffff0000, 0xffffff00 };
+	static uint32_t bits[4] = { 0x80000000, 0x00800000, 0x00008000, 0x00000080 };
+#else
+	static uint32_t mask[4] = { 0x00000000, 0x000000ff, 0x0000ffff, 0x00ffffff };
+	static uint32_t bits[4] = { 0x00000080, 0x00008000, 0x00800000, 0x80000000 };
+#endif /* __BYTE_ORDER */
 
 	uint8_t *hval = resbuf;
 	uint32_t i, cnt = (uint32_t) (ctx->count[0] & SHA1_MASK);

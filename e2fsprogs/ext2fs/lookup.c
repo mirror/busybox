@@ -26,7 +26,7 @@ struct lookup_struct  {
 };
 
 #ifdef __TURBOC__
- #pragma argsused
+# pragma argsused
 #endif
 static int lookup_proc(struct ext2_dir_entry *dirent,
 		       int	offset EXT2FS_ATTR((unused)),

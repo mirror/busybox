@@ -92,7 +92,7 @@ static int link_proc(struct ext2_dir_entry *dirent,
  * entry filetype.
  */
 #ifdef __TURBOC__
- #pragma argsused
+# pragma argsused
 #endif
 errcode_t ext2fs_link(ext2_filsys fs, ext2_ino_t dir, const char *name,
 		      ext2_ino_t ino, int flags)

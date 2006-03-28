@@ -404,7 +404,7 @@ struct xlate {
 };
 
 #ifdef __TURBOC__
- #pragma argsused
+# pragma argsused
 #endif
 static int xlate_func(ext2_filsys fs, blk_t *blocknr, e2_blkcnt_t blockcnt,
 		      blk_t ref_block EXT2FS_ATTR((unused)),

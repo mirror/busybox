@@ -147,7 +147,7 @@ cleanup:
  * indirect blocks.
  */
 #ifdef __TURBOC__
- #pragma argsused
+# pragma argsused
 #endif
 static int clear_bad_block_proc(ext2_filsys fs, blk_t *block_nr,
 				e2_blkcnt_t blockcnt,

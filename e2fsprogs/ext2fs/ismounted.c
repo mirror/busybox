@@ -284,7 +284,7 @@ static int is_swap_device(const char *file)
  * characters.
  */
 #ifdef __TURBOC__
- #pragma argsused
+# pragma argsused
 #endif
 errcode_t ext2fs_check_mount_point(const char *device, int *mount_flags,
 				  char *mtpt, int mtlen)

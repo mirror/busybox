@@ -35,7 +35,7 @@ struct get_pathname_struct {
 };
 
 #ifdef __TURBOC__
- #pragma argsused
+# pragma argsused
 #endif
 static int get_pathname_proc(struct ext2_dir_entry *dirent,
 			     int	offset EXT2FS_ATTR((unused)),

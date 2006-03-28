@@ -28,7 +28,7 @@ struct link_struct  {
 };
 
 #ifdef __TURBOC__
- #pragma argsused
+# pragma argsused
 #endif
 static int unlink_proc(struct ext2_dir_entry *dirent,
 		     int	offset EXT2FS_ATTR((unused)),
