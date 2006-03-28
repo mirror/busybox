@@ -210,11 +210,7 @@ endif
 
 
 ifeq ($(strip $(CONFIG_SELINUX)),y)
-    SELINUX_INC ?= /usr/include
-    SELINUX_LIB ?= /usr/lib
-    CFLAGS      := -I$(SELINUX_INC) $(CFLAGS)
-    LDFLAGS     := -L$(SELINUX_LIB) $(LDFLAGS)
-    LIBRARIES   += -lselinux
+    LIBRARIES += -lselinux
 endif
 
 ifeq ($(strip $(PREFIX)),)
