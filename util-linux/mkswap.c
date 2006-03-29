@@ -59,9 +59,17 @@ static int DEV = -1;
 static long PAGES = 0;
 static int check = 0;
 static int badpages = 0;
+#if ENABLE_FEATURE_MKSWAP_V0
 static int version = -1;
-
 #define MAKE_VERSION(p,q,r)	(65536*(p) + 256*(q) + (r))
+#else
+#define version 1
+/* and make sure that we optimize away anything which would deal with checking
+ * the kernel revision as we have v1 support only anyway.
+ */
+#define MAKE_VERSION(p,q,r) 1
+#define get_kernel_revision() 1
+#endif
 
 /*
  * The definition of the union swap_header uses the constant PAGE_SIZE.
@@ -74,7 +82,7 @@ static unsigned int *signature_page;
 
 static struct swap_header_v1 {
 	char bootbits[1024];		/* Space for disklabel etc. */
-	unsigned int version;
+	unsigned int swap_version;
 	unsigned int last_page;
 	unsigned int nr_badpages;
 	unsigned int padding[125];
@@ -172,23 +180,11 @@ static int bit_test_and_clear(unsigned int *addr, unsigned int nr)
 	return (r & m) != 0;
 }
 
-
 static void page_ok(int page)
 {
-	if (version == 0)
+	if (ENABLE_FEATURE_MKSWAP_V0) {
 		bit_set(signature_page, page);
-}
-
-static inline void page_bad(int page)
-{
-	if (version == 0)
-		bit_test_and_clear(signature_page, page);
-	else {
-		if (badpages == MAX_BADPAGES)
-			bb_error_msg_and_die("too many bad pages");
-		p->badpages[badpages] = page;
 	}
-	badpages++;
 }
 
 static void check_blocks(void)
@@ -200,7 +196,7 @@ static void check_blocks(void)
 	buffer = xmalloc(pagesize);
 	current_page = 0;
 	while (current_page < PAGES) {
-		if (!check) {
+		if (!check && version == 0) {
 			page_ok(current_page++);
 			continue;
 		}
@@ -208,15 +204,23 @@ static void check_blocks(void)
 			current_page * pagesize)
 			bb_error_msg_and_die("seek failed in check_blocks");
 		if ((do_seek = (pagesize != read(DEV, buffer, pagesize)))) {
-			page_bad(current_page++);
+			current_page++;
+			if (version == 0)
+				bit_test_and_clear(signature_page, current_page);
+			else {
+				if (badpages == MAX_BADPAGES)
+					bb_error_msg_and_die("too many bad pages");
+				p->badpages[badpages] = current_page;
+			}
+			badpages++;
 			continue;
 		}
 		page_ok(current_page++);
 	}
-	if (badpages == 1)
-		printf("one bad page\n");
-	else if (badpages > 1)
-		printf("%d bad pages\n", badpages);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(buffer);
+	if (badpages > 0)
+		printf("%d bad page%s\n", badpages, (badpages==1)?"":"s");
 }
 
 static long valid_offset(int fd, int offset)
@@ -249,17 +253,15 @@ static int find_size(int fd)
 }
 
 /* return size in pages, to avoid integer overflow */
-static long get_size(const char *file)
+static inline long get_size(const char *file)
 {
 	int fd;
 	long size;
 
-	if ((fd = open(file, O_RDONLY)) < 0)
+	if ((fd = open(file, O_RDONLY)) < 0) /* TODO: bb_xopen3 */
 		bb_perror_msg_and_die("%s", file);
 	if (ioctl(fd, BLKGETSIZE, &size) >= 0) {
-		int sectors_per_page = pagesize / 512;
-
-		size /= sectors_per_page;
+		size /= pagesize / 512;
 	} else {
 		size = find_size(fd) / pagesize;
 	}
@@ -274,66 +276,53 @@ int mkswap_main(int argc, char **argv)
 	int sz;
 	int maxpages;
 	int goodpages;
-	int offset;
+#ifdef __sparc__
 	int force = 0;
+#endif
 
 	init_signature_page();		/* get pagesize */
 
-	while (argc-- > 1) {
-		argv++;
-		if (argv[0][0] != '-') {
-			if (device_name) {
-				int blocks_per_page = pagesize / 1024;
-
-				PAGES = strtol(argv[0], &tmp, 0) / blocks_per_page;
-				if (*tmp)
-					bb_show_usage();
-			} else
-				device_name = argv[0];
-		} else {
-			switch (argv[0][1]) {
-			case 'c':
-				check = 1;
-				break;
-			case 'f':
-				force = 1;
-				break;
-			case 'v':
-				version = atoi(argv[0] + 2);
-				break;
-			default:
-				bb_show_usage();
-			}
-		}
-	}
-	if (!device_name) {
-		bb_error_msg("error: Nowhere to set up swap on?");
-		bb_show_usage();
-	}
-	sz = get_size(device_name);
-	if (!PAGES) {
-		PAGES = sz;
-	} else if (PAGES > sz && !force) {
-		bb_error_msg("error: size %ld is larger than device size %d",
-				PAGES * (pagesize / 1024), sz * (pagesize / 1024));
-		return EXIT_FAILURE;
-	}
-
-	if (version == -1) {
+	bb_opt_complementally = "?"; /* call bb_show_usage internally */
+	sz = bb_getopt_ulflags(argc, argv, "+cfv:", &tmp);
+	if (sz & 1)
+		check = 1;
+#ifdef __sparc__
+	if (sz & 2)
+		force = 1;
+#endif
+#if ENABLE_FEATURE_MKSWAP_V0
+	if (sz & 4) {
+		version = bb_xgetlarg(tmp, 10, 0, 1);
+	} else {
 		if (get_kernel_revision() < MAKE_VERSION(2, 1, 117))
 			version = 0;
 		else
 			version = 1;
 	}
-	if (version != 0 && version != 1) {
-		bb_error_msg("error: unknown version %d", version);
-		bb_show_usage();
+#endif
+
+	argv += optind;
+	argc -= optind;
+
+	goodpages = pagesize / 1024; /* cache division */
+	while (argc--) {
+		if (device_name) {
+			PAGES = bb_xgetlarg(argv[0], 0, 10, sz * goodpages) / goodpages;
+			argc = 0; /* ignore any surplus args.. */
+		} else {
+			device_name = argv[0];
+			sz = get_size(device_name);
+			argv++;
+		}
 	}
-	if (PAGES < 10) {
-		bb_error_msg("error: swap area needs to be at least %ldkB",
-				(long) (10 * pagesize / 1024));
-		bb_show_usage();
+
+	if (!device_name) {
+		bb_error_msg_and_die("error: Nowhere to set up swap on?");
 	}
+	if (!PAGES) {
+		PAGES = sz;
+	}
+
 #if 0
 	maxpages = ((version == 0) ? V0_MAX_PAGES : V1_MAX_PAGES);
 #else
@@ -350,7 +339,7 @@ int mkswap_main(int argc, char **argv)
 	if (PAGES > maxpages) {
 		PAGES = maxpages;
 		bb_error_msg("warning: truncating swap area to %ldkB",
-				PAGES * pagesize / 1024);
+				PAGES * goodpages);
 	}
 
 	DEV = open(device_name, O_RDWR);
@@ -389,7 +378,7 @@ int mkswap_main(int argc, char **argv)
 	if (version == 0 && !bit_test_and_clear(signature_page, 0))
 		bb_error_msg_and_die("fatal: first page unreadable");
 	if (version == 1) {
-		p->version = version;
+		p->swap_version = version;
 		p->last_page = PAGES - 1;
 		p->nr_badpages = badpages;
 	}
@@ -401,11 +390,12 @@ int mkswap_main(int argc, char **argv)
 		   version, (long) (goodpages * pagesize));
 	write_signature((version == 0) ? "SWAP-SPACE" : "SWAPSPACE2");
 
-	offset = ((version == 0) ? 0 : 1024);
-	if (lseek(DEV, offset, SEEK_SET) != offset)
+	sz = ((version == 0) ? 0 : 1024); /* offset */
+	if (lseek(DEV, sz, SEEK_SET) != sz)
 		bb_error_msg_and_die("unable to rewind swap-device");
-	if (write(DEV, (char *) signature_page + offset, pagesize - offset)
-		!= pagesize - offset)
+	goodpages = pagesize - sz; /* cache substraction */
+	if (write(DEV, (char *) signature_page + sz, goodpages)
+		!= goodpages)
 		bb_error_msg_and_die("unable to write signature page");
 
 	/*
@@ -414,5 +404,9 @@ int mkswap_main(int argc, char **argv)
 	 */
 	if (fsync(DEV))
 		bb_error_msg_and_die("fsync failed");
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		close(DEV);
+		free(signature_page);
+	}
 	return EXIT_SUCCESS;
 }

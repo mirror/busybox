@@ -288,6 +288,16 @@ config CONFIG_MKSWAP
 	  Once you have created swap space using 'mkswap' you need to enable
 	  the swap space using the 'swapon' utility.
 
+config CONFIG_FEATURE_MKSWAP_V0
+	bool "  version 0 support"
+	default n
+	depends on CONFIG_MKSWAP
+#	depends on CONFIG_MKSWAP && CONFIG_DEPRECATED
+	help
+	  Enable support for the old v0 style.
+	  If your kernel is older than 2.1.117, then v0 support is the
+	  only option.
+
 config CONFIG_MORE
 	bool "more"
 	default n
