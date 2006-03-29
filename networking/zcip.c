@@ -437,7 +437,7 @@ fail:
 
 				gettimeofday(&tv2, NULL);
 				if (timercmp(&tv1, &tv2, <)) {
-					timeout = -1;
+					timeout = 0;
 				} else {
 					timersub(&tv1, &tv2, &tv1);
 					timeout = 1000 * tv1.tv_sec
