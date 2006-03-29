@@ -27,7 +27,6 @@
 #include <assert.h>
 #include "libbb.h"
 
-extern
 unsigned long bb_xparse_number(const char *numstr,
 							   const struct suffix_mult *suffixes)
 {

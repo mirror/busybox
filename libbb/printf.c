@@ -38,7 +38,7 @@
 #include "libbb.h"
 
 #ifdef L_bb_vfprintf
-extern int bb_vfprintf(FILE * __restrict stream,
+int bb_vfprintf(FILE * __restrict stream,
 					   const char * __restrict format,
 					   va_list arg)
 {
@@ -75,7 +75,7 @@ int bb_vprintf(const char * __restrict format, va_list arg)
 #endif
 
 #ifdef L_bb_fprintf
-extern int bb_fprintf(FILE * __restrict stream,
+int bb_fprintf(FILE * __restrict stream,
 					  const char * __restrict format, ...)
 {
 	va_list arg;

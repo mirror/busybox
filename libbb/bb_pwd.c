@@ -154,7 +154,7 @@ char * bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix)
 #include <stdlib.h>
 #include "libbb.h"
 
-extern unsigned long get_ug_id(const char *s,
+unsigned long get_ug_id(const char *s,
 		long (*__bb_getxxnam)(const char *))
 {
 	unsigned long r;
