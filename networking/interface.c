@@ -1038,23 +1038,23 @@ static char *get_name(char *name, char *p)
  * args. */
 
 /* static const char * const ss_fmt[] = { */
-/*	"%Ln%Lu%lu%lu%lu%lu%ln%ln%Ln%Lu%lu%lu%lu%lu%lu", */
-/*	"%Lu%Lu%lu%lu%lu%lu%ln%ln%Lu%Lu%lu%lu%lu%lu%lu", */
-/*	"%Lu%Lu%lu%lu%lu%lu%lu%lu%Lu%Lu%lu%lu%lu%lu%lu%lu" */
+/*	"%lln%llu%lu%lu%lu%lu%ln%ln%lln%llu%lu%lu%lu%lu%lu", */
+/*	"%llu%llu%lu%lu%lu%lu%ln%ln%llu%llu%lu%lu%lu%lu%lu", */
+/*	"%llu%llu%lu%lu%lu%lu%lu%lu%llu%llu%lu%lu%lu%lu%lu%lu" */
 /* }; */
 
 	/* Lie about the size of the int pointed to for %n. */
 #if INT_MAX == LONG_MAX
 static const char * const ss_fmt[] = {
-	"%n%Lu%u%u%u%u%n%n%n%Lu%u%u%u%u%u",
-	"%Lu%Lu%u%u%u%u%n%n%Lu%Lu%u%u%u%u%u",
-	"%Lu%Lu%u%u%u%u%u%u%Lu%Lu%u%u%u%u%u%u"
+	"%n%llu%u%u%u%u%n%n%n%llu%u%u%u%u%u",
+	"%llu%llu%u%u%u%u%n%n%llu%llu%u%u%u%u%u",
+	"%llu%llu%u%u%u%u%u%u%llu%llu%u%u%u%u%u%u"
 };
 #else
 static const char * const ss_fmt[] = {
-	"%n%Lu%lu%lu%lu%lu%n%n%n%Lu%lu%lu%lu%lu%lu",
-	"%Lu%Lu%lu%lu%lu%lu%n%n%Lu%Lu%lu%lu%lu%lu%lu",
-	"%Lu%Lu%lu%lu%lu%lu%lu%lu%Lu%Lu%lu%lu%lu%lu%lu%lu"
+	"%n%llu%lu%lu%lu%lu%n%n%n%llu%lu%lu%lu%lu%lu",
+	"%llu%llu%lu%lu%lu%lu%n%n%llu%llu%lu%lu%lu%lu%lu",
+	"%llu%llu%lu%lu%lu%lu%lu%lu%llu%llu%lu%lu%lu%lu%lu%lu"
 };
 
 #endif
@@ -1748,7 +1748,7 @@ static void print_bytes_scaled(unsigned long long ull, const char *end)
 #endif
 	} while (i);
 
-	printf("X bytes:%Lu (%Lu.%u %sB)%s", ull, int_part, frac_part, ext, end);
+	printf("X bytes:%llu (%llu.%u %sB)%s", ull, int_part, frac_part, ext, end);
 }
 
 static const char * const ife_print_flags_strs[] = {
@@ -1989,23 +1989,23 @@ static void ife_print(struct interface *ptr)
 		 */
 		printf("          ");
 
-		printf(_("RX packets:%Lu errors:%lu dropped:%lu overruns:%lu frame:%lu\n"),
+		printf("RX packets:%llu errors:%lu dropped:%lu overruns:%lu frame:%lu\n",
 			   ptr->stats.rx_packets, ptr->stats.rx_errors,
 			   ptr->stats.rx_dropped, ptr->stats.rx_fifo_errors,
 			   ptr->stats.rx_frame_errors);
 		if (can_compress)
-			printf(_("             compressed:%lu\n"),
+			printf("             compressed:%lu\n",
 				   ptr->stats.rx_compressed);
 		printf("          ");
-		printf(_("TX packets:%Lu errors:%lu dropped:%lu overruns:%lu carrier:%lu\n"),
+		printf("TX packets:%llu errors:%lu dropped:%lu overruns:%lu carrier:%lu\n",
 			   ptr->stats.tx_packets, ptr->stats.tx_errors,
 			   ptr->stats.tx_dropped, ptr->stats.tx_fifo_errors,
 			   ptr->stats.tx_carrier_errors);
-		printf(_("          collisions:%lu "), ptr->stats.collisions);
+		printf("          collisions:%lu "), ptr->stats.collisions;
 		if (can_compress)
-			printf(_("compressed:%lu "), ptr->stats.tx_compressed);
+			printf("compressed:%lu ", ptr->stats.tx_compressed);
 		if (ptr->tx_queue_len != -1)
-			printf(_("txqueuelen:%d "), ptr->tx_queue_len);
+			printf("txqueuelen:%d ", ptr->tx_queue_len);
 		printf("\n          R");
 		print_bytes_scaled(ptr->stats.rx_bytes, "  T");
 		print_bytes_scaled(ptr->stats.tx_bytes, "\n");

@@ -400,7 +400,7 @@ static int do_statfs(char const *filename, char const *format)
 #else
 
 	format = (flags & OPT_TERSE
-		? "%s %Lx %lu "
+		? "%s %llx %lu "
 		: "  File: \"%s\"\n"
 		  "    ID: %-8Lx Namelen: %-7lu ");
 	printf(format,
