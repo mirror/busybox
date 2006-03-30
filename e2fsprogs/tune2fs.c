@@ -579,7 +579,7 @@ static ATTRIBUTE_NORETURN void do_findfs(int argc, char **argv)
 #define do_findfs(x, y)
 #endif
 
-static void clean_up(void)
+static void tune2fs_clean_up(void)
 {
 	if (ENABLE_FEATURE_CLEAN_UP && device_name) free(device_name);
 	if (ENABLE_FEATURE_CLEAN_UP && journal_device) free(journal_device);
@@ -593,7 +593,7 @@ int tune2fs_main(int argc, char **argv)
 	io_manager io_ptr;
 
 	if (ENABLE_FEATURE_CLEAN_UP)
-		atexit(clean_up);
+		atexit(tune2fs_clean_up);
 
 	if (ENABLE_FINDFS && (bb_applet_name[0] == 'f')) /* findfs */
 		do_findfs(argc, argv);  /* no return */

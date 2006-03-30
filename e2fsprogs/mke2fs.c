@@ -1199,7 +1199,7 @@ BLOCKSIZE_ERROR:
 	return 1;
 }
 
-static void clean_up(void)
+static void mke2fs_clean_up(void)
 {
 	if (ENABLE_FEATURE_CLEAN_UP && journal_device) free(journal_device);
 }
@@ -1214,7 +1214,7 @@ int mke2fs_main (int argc, char *argv[])
 	io_manager	io_ptr;
 
 	if (ENABLE_FEATURE_CLEAN_UP)
-		atexit(clean_up);
+		atexit(mke2fs_clean_up);
 	if(!PRS(argc, argv))
 		return 0;
 
