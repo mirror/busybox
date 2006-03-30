@@ -1491,7 +1491,7 @@
 	"{ {add|del} IFADDR dev STRING | {show|flush}\n" \
 	"\t\t[ dev STRING ] [ to PREFIX ] }"
 #define ipaddr_full_usage \
-	"ipaddr {add|del} IFADDR dev STRING\n" \
+	"ipaddr {add|delete} IFADDR dev STRING\n" \
 	"ipaddr {show|flush} [ dev STRING ] [ scope SCOPE-ID ]\n" \
 	"\t\t\t[ to PREFIX ] [ label PATTERN ]\n" \
 	"\t\t\tIFADDR := PREFIX | ADDR peer PREFIX\n" \
