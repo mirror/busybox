@@ -2001,7 +2001,7 @@ static void ife_print(struct interface *ptr)
 			   ptr->stats.tx_packets, ptr->stats.tx_errors,
 			   ptr->stats.tx_dropped, ptr->stats.tx_fifo_errors,
 			   ptr->stats.tx_carrier_errors);
-		printf("          collisions:%lu "), ptr->stats.collisions;
+		printf("          collisions:%lu ", ptr->stats.collisions);
 		if (can_compress)
 			printf("compressed:%lu ", ptr->stats.tx_compressed);
 		if (ptr->tx_queue_len != -1)
