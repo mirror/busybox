@@ -184,8 +184,6 @@ static void delete_block_backed_filesystems(void)
 {
 	llist_free(fslist);
 }
-#else
-void delete_block_backed_filesystems(void);
 #endif
 
 #if ENABLE_FEATURE_MTAB_SUPPORT
@@ -198,9 +196,12 @@ static int fakeIt;
 
 // Perform actual mount of specific filesystem at specific location.
 
-static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
+static int mount_it_now(struct mntent *mp, int vfsflags)
 {
 	int rc;
+	char *filteropts = 0;
+
+	parse_mount_options(mp->mnt_opts, &filteropts);
 
 	if (fakeIt) { return 0; }
 
@@ -215,6 +216,8 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 				mp->mnt_fsname);
 		vfsflags |= MS_RDONLY;
 	}
+
+    free(filteropts);
 
 	// Abort entirely if permission denied.
 
@@ -263,11 +266,11 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 static int singlemount(struct mntent *mp)
 {
 	int rc = 1, vfsflags;
-	char *loopFile = 0, *filteropts = 0;
+	char *loopFile = 0;
 	llist_t *fl = 0;
 	struct stat st;
 
-	vfsflags = parse_mount_options(mp->mnt_opts, &filteropts);
+	vfsflags = parse_mount_options(mp->mnt_opts, 0);
 
 	// Treat fstype "auto" as unspecified.
 
@@ -279,16 +282,16 @@ static int singlemount(struct mntent *mp)
 		(!mp->mnt_type || !strcmp(mp->mnt_type,"nfs")) &&
 		strchr(mp->mnt_fsname, ':') != NULL)
 	{
-		if (nfsmount(mp->mnt_fsname, mp->mnt_dir, &vfsflags, &filteropts, 1)) {
+		char *options=0;
+		parse_mount_options(mp->mnt_opts, &options);
+		if (nfsmount(mp->mnt_fsname, mp->mnt_dir, &vfsflags, &options, 1)) {
 			bb_perror_msg("nfsmount failed");
 			return 1;
-		} else {
-			// Strangely enough, nfsmount() doesn't actually mount() anything.
-			rc = mount_it_now(mp, vfsflags, filteropts);
-			if (ENABLE_FEATURE_CLEAN_UP) free(filteropts);
-			
-			return rc;
 		}
+
+		// Strangely enough, nfsmount() doesn't actually mount() anything.
+
+		else return mount_it_now(mp, vfsflags);
 	}
 
 	// Look at the file.  (Not found isn't a failure for remount.)
@@ -321,7 +324,7 @@ static int singlemount(struct mntent *mp)
 	 * to the actual mount. */
 
 	if (mp->mnt_type || (vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE)))
-		rc = mount_it_now(mp, vfsflags, filteropts);
+		rc = mount_it_now(mp, vfsflags);
 
 	// Loop through filesystem types until mount succeeds or we run out
 
@@ -333,26 +336,25 @@ static int singlemount(struct mntent *mp)
 
 		if (!fslist) {
 			fslist = get_block_backed_filesystems();
+#if ENABLE_FEATURE_CLEAN_UP
 			if (ENABLE_FEATURE_CLEAN_UP && fslist)
 				atexit(delete_block_backed_filesystems);
+#endif
 		}
 
 		for (fl = fslist; fl; fl = fl->link) {
 			mp->mnt_type = fl->data;
 
-			if (!(rc = mount_it_now(mp,vfsflags, filteropts))) break;
+			if (!(rc = mount_it_now(mp,vfsflags))) break;
 
 			mp->mnt_type = 0;
 		}
 	}
 
-	if (ENABLE_FEATURE_CLEAN_UP) free(filteropts);
-
-	// If mount failed, clean up loop file (if any).
-
+	// Mount failed.  Clean up
 	if (rc && loopFile) {
 		del_loop(mp->mnt_fsname);
-		if (ENABLE_FEATURE_CLEAN_UP) {
+		if(ENABLE_FEATURE_CLEAN_UP) {
 			free(loopFile);
 			free(mp->mnt_fsname);
 		}
