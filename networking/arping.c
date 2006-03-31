@@ -71,7 +71,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 {
 	int err;
 	struct timeval now;
-	unsigned char buf[256];
+	RESERVE_CONFIG_UBUFFER(buf, 256);
 	struct arphdr *ah = (struct arphdr *) buf;
 	unsigned char *p = (unsigned char *) (ah + 1);
 
@@ -105,6 +105,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 		if (!(cfg&unicasting))
 			brd_sent++;
 	}
+	RELEASE_CONFIG_BUFFER(buf);
 	return err;
 }
 
@@ -456,12 +457,12 @@ int arping_main(int argc, char **argv)
 
 	while (1) {
 		sigset_t sset, osset;
-		unsigned char packet[4096];
+		RESERVE_CONFIG_UBUFFER(packet, 4096);
 		struct sockaddr_ll from;
 		socklen_t alen = sizeof(from);
 		int cc;
 
-		if ((cc = recvfrom(s, packet, sizeof(packet), 0,
+		if ((cc = recvfrom(s, packet, 4096, 0,
 						   (struct sockaddr *) &from, &alen)) < 0) {
 			perror("recvfrom");
 			continue;
@@ -472,5 +473,6 @@ int arping_main(int argc, char **argv)
 		sigprocmask(SIG_BLOCK, &sset, &osset);
 		recv_pack(packet, cc, &from);
 		sigprocmask(SIG_SETMASK, &osset, NULL);
+		RELEASE_CONFIG_BUFFER(packet);
 	}
 }
