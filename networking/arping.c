@@ -29,16 +29,17 @@ static struct in_addr dst;
 static struct sockaddr_ll me;
 static struct sockaddr_ll he;
 static struct timeval last;
-struct cfg_s {
-	int dad:1;
-	int unsolicited:1;
-	int advert:1;
-	int quiet:1;
-	int quit_on_reply:1;
-	int unicasting:1;
-	int broadcast_only:1;
+
+enum cfg_e {
+	dad = 1,
+	unsolicited = 2,
+	advert = 4,
+	quiet = 8,
+	quit_on_reply = 16,
+	unicasting = 32,
+	broadcast_only = 64
 };
-static struct cfg_s cfg;
+static int cfg;
 
 static int s;
 static int count = -1;
@@ -70,7 +71,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 {
 	int err;
 	struct timeval now;
-	RESERVE_CONFIG_UBUFFER(buf, 256);
+	unsigned char buf[256];
 	struct arphdr *ah = (struct arphdr *) buf;
 	unsigned char *p = (unsigned char *) (ah + 1);
 
@@ -79,7 +80,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	ah->ar_pro = htons(ETH_P_IP);
 	ah->ar_hln = ME->sll_halen;
 	ah->ar_pln = 4;
-	ah->ar_op = cfg.advert ? htons(ARPOP_REPLY) : htons(ARPOP_REQUEST);
+	ah->ar_op = cfg&advert ? htons(ARPOP_REPLY) : htons(ARPOP_REQUEST);
 
 	memcpy(p, &ME->sll_addr, ah->ar_hln);
 	p += ME->sll_halen;
@@ -87,7 +88,7 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	memcpy(p, src_addr, 4);
 	p += 4;
 
-	if (cfg.advert)
+	if (cfg&advert)
 		memcpy(p, &ME->sll_addr, ah->ar_hln);
 	else
 		memcpy(p, &HE->sll_addr, ah->ar_hln);
@@ -101,16 +102,15 @@ static int send_pack(int sock, struct in_addr *src_addr,
 	if (err == p - buf) {
 		last = now;
 		sent++;
-		if (!cfg.unicasting)
+		if (!(cfg&unicasting))
 			brd_sent++;
 	}
-	RELEASE_CONFIG_BUFFER(buf);
 	return err;
 }
 
 static void finish(void)
 {
-	if (!cfg.quiet) {
+	if (!(cfg&quiet)) {
 		printf("Sent %d probes (%d broadcast(s))\n", sent, brd_sent);
 		printf("Received %d repl%s", received, (received > 1) ? "ies" : "y");
 		if (brd_recv || req_recv) {
@@ -124,9 +124,9 @@ static void finish(void)
 		putchar('\n');
 		fflush(stdout);
 	}
-	if (cfg.dad)
+	if (cfg&dad)
 		exit(!!received);
-	if (cfg.unsolicited)
+	if (cfg&unsolicited)
 		exit(0);
 	exit(!received);
 }
@@ -147,7 +147,7 @@ static void catcher(void)
 
 	if (last.tv_sec == 0 || MS_TDIFF(tv, last) > 500) {
 		send_pack(s, &src, &dst, &me, &he);
-		if (count == 0 && cfg.unsolicited)
+		if (count == 0 && cfg&unsolicited)
 			finish();
 	}
 	alarm(1);
@@ -186,7 +186,7 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		return 0;
 	memcpy(&src_ip, p + ah->ar_hln, 4);
 	memcpy(&dst_ip, p + ah->ar_hln + 4 + ah->ar_hln, 4);
-	if (!cfg.dad) {
+	if (!(cfg&dad)) {
 		if (src_ip.s_addr != dst.s_addr)
 			return 0;
 		if (src.s_addr != dst_ip.s_addr)
@@ -214,7 +214,7 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		if (src.s_addr && src.s_addr != dst_ip.s_addr)
 			return 0;
 	}
-	if (!cfg.quiet) {
+	if (!(cfg&quiet)) {
 		int s_printed = 0;
 		struct timeval tv;
 
@@ -254,18 +254,17 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 		brd_recv++;
 	if (ah->ar_op == htons(ARPOP_REQUEST))
 		req_recv++;
-	if (cfg.quit_on_reply)
+	if (cfg&quit_on_reply)
 		finish();
-	if (!cfg.broadcast_only) {
+	if (!(cfg&broadcast_only)) {
 		memcpy(he.sll_addr, p, me.sll_halen);
-		cfg.unicasting = 1;
+		cfg |= unicasting;
 	}
 	return 1;
 }
 
 int arping_main(int argc, char **argv)
 {
-	int ch;
 	char *device = "eth0";
 	int ifindex;
 	char *source = NULL;
@@ -276,51 +275,40 @@ int arping_main(int argc, char **argv)
 
 	setuid(getuid());
 
-	while ((ch = getopt(argc, argv, "h?bfDUAqc:w:s:I:")) != EOF) {
-		switch (ch) {
-		case 'b':
-			cfg.broadcast_only = 1;
-			break;
-		case 'D':
-			cfg.dad = 1;
-			cfg.quit_on_reply = 1;
-			break;
-		case 'U':
-			cfg.unsolicited = 1;
-			break;
-		case 'A':
-			cfg.advert = 1;
-			cfg.unsolicited = 1;
-			break;
-		case 'q':
-			cfg.quiet = 1;
-			break;
-		case 'c':
-			count = atoi(optarg);
-			break;
-		case 'w':
-			timeout = atoi(optarg);
-			break;
-		case 'I':
-			if (optarg == NULL)
-				bb_show_usage();
-			if (bb_strlen(optarg) > IF_NAMESIZE) {
-				bb_error_msg_and_die("Interface name `%s' must be less than %d",
-								optarg, IF_NAMESIZE);
-			}
-			device = optarg;
-			break;
-		case 'f':
-			cfg.quit_on_reply = 1;
-			break;
-		case 's':
-			source = optarg;
-			break;
-		case 'h':
-		case '?':
-		default:
-			bb_show_usage();
+	{
+		unsigned long opt;
+		char *_count, *_timeout, *_device;
+		opt = bb_getopt_ulflags(argc, argv, "DUAqfbc:w:i:s:",
+						&_count, &_timeout, &_device);
+		if (opt & 1) { /* Dad */
+			cfg |= dad;
+			cfg |= quit_on_reply;
 		}
+		if (opt & 2) /* Unsolicited */
+			cfg |= unsolicited;
+		if (opt & 4) { /* Advert */
+			cfg |= advert;
+			cfg |= unsolicited;
+		}
+		if (opt & 8) /* quiet */
+			cfg |= quiet;
+		if (opt & 16) /* quit on reply */
+			cfg |= quit_on_reply;
+		if (opt & 32) /* broadcast only */
+			cfg |= broadcast_only;
+		if (opt & 64) /* count */
+			count = atoi(_count);
+		if (opt & 128) /* timeout */
+			timeout = atoi(_timeout);
+		if (opt & 256) { /* interface */
+			if (bb_strlen(_device) > IF_NAMESIZE) {
+				bb_error_msg_and_die("Interface name `%s' must be less than %d",
+								_device, IF_NAMESIZE);
+			}
+			device = _device;
+		}
+		if (opt & 512) /* source */
+			source = optarg;
 	}
 	argc -= optind;
 	argv += optind;
@@ -329,12 +317,13 @@ int arping_main(int argc, char **argv)
 		bb_show_usage();
 
 	target = *argv;
-	bb_default_error_retval = 2;
+
 
 	if (s < 0) {
-		bb_perror_msg("socket");
-		exit(ifindex);
+		bb_default_error_retval = ifindex;
+		bb_perror_msg_and_die("socket");
 	}
+	bb_default_error_retval = 2;
 
 	{
 		struct ifreq ifr;
@@ -354,7 +343,7 @@ int arping_main(int argc, char **argv)
 		}
 		if (ifr.ifr_flags & (IFF_NOARP | IFF_LOOPBACK)) {
 			bb_error_msg("Interface %s is not ARPable", device);
-			exit(cfg.dad ? 0 : 2);
+			exit(cfg&dad ? 0 : 2);
 		}
 	}
 
@@ -372,10 +361,10 @@ int arping_main(int argc, char **argv)
 		bb_error_msg_and_die("invalid source address %s", source);
 	}
 
-	if (!cfg.dad && cfg.unsolicited && src.s_addr == 0)
+	if (!(cfg&dad) && cfg&unsolicited && src.s_addr == 0)
 		src = dst;
 
-	if (!cfg.dad || src.s_addr) {
+	if (!(cfg&dad) || src.s_addr) {
 		struct sockaddr_in saddr;
 		int probe_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -395,7 +384,7 @@ int arping_main(int argc, char **argv)
 			if (bind(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr)) == -1) {
 				bb_error_msg_and_die("bind");
 			}
-		} else if (!cfg.dad) {
+		} else if (!(cfg&dad)) {
 			int on = 1;
 			socklen_t alen = sizeof(saddr);
 
@@ -435,18 +424,18 @@ int arping_main(int argc, char **argv)
 	}
 	if (me.sll_halen == 0) {
 		bb_error_msg("Interface \"%s\" is not ARPable (no ll address)", device);
-		exit(cfg.dad ? 0 : 2);
+		exit(cfg&dad ? 0 : 2);
 	}
 	he = me;
 	memset(he.sll_addr, -1, he.sll_halen);
 
-	if (!cfg.quiet) {
+	if (!(cfg&quiet)) {
 		printf("ARPING to %s", inet_ntoa(dst));
 		printf(" from %s via %s\n", inet_ntoa(src),
 			   device ? device : "unknown");
 	}
 
-	if (!src.s_addr && !cfg.dad) {
+	if (!src.s_addr && !(cfg&dad)) {
 		bb_error_msg_and_die("no src address in the non-DAD mode");
 	}
 
