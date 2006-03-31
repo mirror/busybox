@@ -37,9 +37,19 @@ config CONFIG_FEATURE_BUFFERS_GO_IN_BSS
 
 endchoice
 
+config CONFIG_SHOW_USAGE
+	bool "Show terse applet usage messages"
+	default y
+	help
+	  All BusyBox applets will show help messages when invoked with
+	  wrong arguments. You can turn off printing these terse usage
+	  messages if you say no here.
+	  This will save you up to 7k.
+
 config CONFIG_FEATURE_VERBOSE_USAGE
 	bool "Show verbose applet usage messages"
 	default n
+	select CONFIG_SHOW_USAGE
 	help
 	  All BusyBox applets will show more verbose help messages when
 	  busybox is invoked with --help.  This will add a lot of text to the

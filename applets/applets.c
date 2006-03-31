@@ -32,6 +32,7 @@
 #include <assert.h>
 #include "busybox.h"
 
+#if ENABLE_SHOW_USAGE
 const char usage_messages[] =
 
 #define MAKE_USAGE
@@ -42,6 +43,7 @@ const char usage_messages[] =
 ;
 
 #undef MAKE_USAGE
+#endif /* ENABLE_SHOW_USAGE */
 #undef APPLET
 #undef APPLET_NOUSAGE
 #undef PROTOTYPES
@@ -407,6 +409,7 @@ static void check_suid (struct BB_applet *applet)
 
 void bb_show_usage (void)
 {
+#if ENABLE_SHOW_USAGE
   const char *format_string;
   const char *usage_string = usage_messages;
   int i;
@@ -422,6 +425,7 @@ void bb_show_usage (void)
 	format_string = "%s\n\nNo help available.\n\n";
   fprintf (stderr, format_string, bb_msg_full_version, applet_using->name,
 		   usage_string);
+#endif /* ENABLE_SHOW_USAGE */
 
   exit (bb_default_error_retval);
 }
