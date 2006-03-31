@@ -46,7 +46,7 @@
 	"\t-v\t\tverbosely list files processed"
 
 #define arping_trivial_usage \
-	"[-fqbDUA] [-c count] [-w timeout] [-I device] [-s sender] target"
+	"[-fqbDUA] [-c count] [-w timeout] [-i device] [-s sender] target"
 #define arping_full_usage \
 	"Ping hosts by ARP requests/replies.\n\n" \
 	"Options:\n" \
@@ -58,7 +58,7 @@
 	"\t-A\t\tARP answer mode, update your neighbours\n" \
 	"\t-c count\tStop after sending count ARP request packets\n" \
 	"\t-w timeout\tTime to wait for ARP reply, in seconds\n" \
-	"\t-I device\tOutgoing interface name, default is eth0\n" \
+	"\t-i device\tOutgoing interface name, default is eth0\n" \
 	"\t-s sender\tSet specific sender IP address\n" \
 	"\ttarget\t\tTarget IP address of ARP request"
 
