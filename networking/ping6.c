@@ -111,7 +111,7 @@ static void ping(const char *host)
 	setsockopt(pingsock, SOL_RAW, IPV6_CHECKSUM, (char *) &sockopt,
 			   sizeof(sockopt));
 
-	c = sendto(pingsock, packet, sizeof(packet), 0,
+	c = sendto(pingsock, packet, DEFDATALEN + sizeof (struct icmp6_hdr), 0,
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in6));
 
 	if (c < 0 || c != sizeof(packet))
@@ -204,7 +204,7 @@ static void sendping(int junk)
 {
 	struct icmp6_hdr *pkt;
 	int i;
-	char packet[datalen + 8];
+	char packet[datalen + sizeof (struct icmp6_hdr)];
 
 	pkt = (struct icmp6_hdr *) packet;
 

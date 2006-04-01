@@ -108,7 +108,7 @@ static void ping(const char *host)
 	pkt->icmp_type = ICMP_ECHO;
 	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, sizeof(packet));
 
-	c = sendto(pingsock, packet, sizeof(packet), 0,
+	c = sendto(pingsock, packet, DEFDATALEN + ICMP_MINLEN, 0,
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in));
 
 	if (c < 0 || c != sizeof(packet))
@@ -202,7 +202,7 @@ static void sendping(int junk)
 {
 	struct icmp *pkt;
 	int i;
-	char packet[datalen + sizeof(struct icmp)];
+	char packet[datalen + ICMP_MINLEN];
 
 	pkt = (struct icmp *) packet;
 
