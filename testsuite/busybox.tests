@@ -6,18 +6,6 @@
 
 . testing.sh
 
-# verify the applet order is correct in applets.h, otherwise applets won't
-# be called properly.
-#sed -n -e '/^USE_^\tAPPLET/{s:.*(::;s:,.*::;s:"::g;p}' 
-#	../include/applets.h > applet.order1
-#LC_ALL=C sort applet.order.current > applet.order.correct
-#diff -u applet.order.current applet.order.correct
-#FAILCOUNT=$[$FAILCOUNT+$?]
-#rm -f applet.order.current applet.order.correct
-
-
-
-
 HELPDUMP=`busybox`
 
 # We need to test under calling the binary under other names.
