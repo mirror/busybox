@@ -11,6 +11,7 @@
 
 #include "ext2fs.h"
 #include "bitops.h"
+#include <string.h>
 
 /*
  *  Allocate memory

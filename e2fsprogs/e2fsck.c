@@ -35,40 +35,8 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE 1 /* get strnlen() */
 #endif
-#include <sys/types.h>
-#include <inttypes.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <time.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <setjmp.h>
-#include <errno.h>
-#include <getopt.h>
-#include <limits.h>
-#include <stddef.h>
-#include <assert.h>
-#include <signal.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/resource.h>
-#include <sys/param.h>
-#include <sys/mount.h>
-#include <sys/ioctl.h>
-#include <malloc.h>
-#include <termios.h>
-#include <mntent.h>
-#include <dirent.h>
 
-#include "fsck.h"
-
-#include "ext2fs/ext2_fs.h"
-#include "ext2fs/ext2fs.h"
-#include "blkid/blkid.h"
-#include "ext2fs/ext2_ext_attr.h"
-#include "uuid/uuid.h"
+#include "e2fsck.h"	/*Put all of our defines here to clean things up*/
 
 #ifdef __GNUC__
 #define _INLINE_ __inline__
@@ -77,274 +45,6 @@
 #define _INLINE_
 #define EXT2FS_ATTR(x)
 #endif
-
-/*
- * The last ext2fs revision level that this version of e2fsck is able to
- * support
- */
-#define E2FSCK_CURRENT_REV      1
-
-/*
- * The directory information structure; stores directory information
- * collected in earlier passes, to avoid disk i/o in fetching the
- * directory information.
- */
-struct dir_info {
-	ext2_ino_t              ino;    /* Inode number */
-	ext2_ino_t              dotdot; /* Parent according to '..' */
-	ext2_ino_t              parent; /* Parent according to treewalk */
-};
-
-
-/*
- * The indexed directory information structure; stores information for
- * directories which contain a hash tree index.
- */
-struct dx_dir_info {
-	ext2_ino_t              ino;            /* Inode number */
-	int                     numblocks;      /* number of blocks */
-	int                     hashversion;
-	short                   depth;          /* depth of tree */
-	struct dx_dirblock_info *dx_block;      /* Array of size numblocks */
-};
-
-#define DX_DIRBLOCK_ROOT        1
-#define DX_DIRBLOCK_LEAF        2
-#define DX_DIRBLOCK_NODE        3
-#define DX_DIRBLOCK_CORRUPT     4
-#define DX_DIRBLOCK_CLEARED     8
-
-struct dx_dirblock_info {
-	int             type;
-	blk_t           phys;
-	int             flags;
-	blk_t           parent;
-	ext2_dirhash_t  min_hash;
-	ext2_dirhash_t  max_hash;
-	ext2_dirhash_t  node_min_hash;
-	ext2_dirhash_t  node_max_hash;
-};
-
-#define DX_FLAG_REFERENCED      1
-#define DX_FLAG_DUP_REF         2
-#define DX_FLAG_FIRST           4
-#define DX_FLAG_LAST            8
-
-#ifdef RESOURCE_TRACK
-/*
- * This structure is used for keeping track of how much resources have
- * been used for a particular pass of e2fsck.
- */
-struct resource_track {
-	struct timeval time_start;
-	struct timeval user_start;
-	struct timeval system_start;
-	void    *brk_start;
-};
-#endif
-
-/*
- * E2fsck options
- */
-#define E2F_OPT_READONLY        0x0001
-#define E2F_OPT_PREEN           0x0002
-#define E2F_OPT_YES             0x0004
-#define E2F_OPT_NO              0x0008
-#define E2F_OPT_TIME            0x0010
-#define E2F_OPT_TIME2           0x0020
-#define E2F_OPT_CHECKBLOCKS     0x0040
-#define E2F_OPT_DEBUG           0x0080
-#define E2F_OPT_FORCE           0x0100
-#define E2F_OPT_WRITECHECK      0x0200
-#define E2F_OPT_COMPRESS_DIRS   0x0400
-
-/*
- * E2fsck flags
- */
-#define E2F_FLAG_ABORT          0x0001 /* Abort signaled */
-#define E2F_FLAG_CANCEL         0x0002 /* Cancel signaled */
-#define E2F_FLAG_SIGNAL_MASK    0x0003
-#define E2F_FLAG_RESTART        0x0004 /* Restart signaled */
-
-#define E2F_FLAG_SETJMP_OK      0x0010 /* Setjmp valid for abort */
-
-#define E2F_FLAG_PROG_BAR       0x0020 /* Progress bar on screen */
-#define E2F_FLAG_PROG_SUPPRESS  0x0040 /* Progress suspended */
-#define E2F_FLAG_JOURNAL_INODE  0x0080 /* Create a new ext3 journal inode */
-#define E2F_FLAG_SB_SPECIFIED   0x0100 /* The superblock was explicitly
-					* specified by the user */
-#define E2F_FLAG_RESTARTED      0x0200 /* E2fsck has been restarted */
-#define E2F_FLAG_RESIZE_INODE   0x0400 /* Request to recreate resize inode */
-
-/*
- * Defines for indicating the e2fsck pass number
- */
-#define E2F_PASS_1      1
-#define E2F_PASS_2      2
-#define E2F_PASS_3      3
-#define E2F_PASS_4      4
-#define E2F_PASS_5      5
-#define E2F_PASS_1B     6
-
-
-/*
- * This is the global e2fsck structure.
- */
-typedef struct e2fsck_struct *e2fsck_t;
-
-/*
- * Define the extended attribute refcount structure
- */
-typedef struct ea_refcount *ext2_refcount_t;
-
-struct e2fsck_struct {
-	ext2_filsys fs;
-	const char *program_name;
-	char *filesystem_name;
-	char *device_name;
-	char *io_options;
-	int     flags;          /* E2fsck internal flags */
-	int     options;
-	blk_t   use_superblock; /* sb requested by user */
-	blk_t   superblock;     /* sb used to open fs */
-	int     blocksize;      /* blocksize */
-	blk_t   num_blocks;     /* Total number of blocks */
-	int     mount_flags;
-	blkid_cache blkid;      /* blkid cache */
-
-	jmp_buf abort_loc;
-
-	unsigned long abort_code;
-
-	int (*progress)(e2fsck_t ctx, int pass, unsigned long cur,
-			unsigned long max);
-
-	ext2fs_inode_bitmap inode_used_map; /* Inodes which are in use */
-	ext2fs_inode_bitmap inode_bad_map; /* Inodes which are bad somehow */
-	ext2fs_inode_bitmap inode_dir_map; /* Inodes which are directories */
-	ext2fs_inode_bitmap inode_bb_map; /* Inodes which are in bad blocks */
-	ext2fs_inode_bitmap inode_imagic_map; /* AFS inodes */
-	ext2fs_inode_bitmap inode_reg_map; /* Inodes which are regular files*/
-
-	ext2fs_block_bitmap block_found_map; /* Blocks which are in use */
-	ext2fs_block_bitmap block_dup_map; /* Blks referenced more than once */
-	ext2fs_block_bitmap block_ea_map; /* Blocks which are used by EA's */
-
-	/*
-	 * Inode count arrays
-	 */
-	ext2_icount_t   inode_count;
-	ext2_icount_t inode_link_info;
-
-	ext2_refcount_t refcount;
-	ext2_refcount_t refcount_extra;
-
-	/*
-	 * Array of flags indicating whether an inode bitmap, block
-	 * bitmap, or inode table is invalid
-	 */
-	int *invalid_inode_bitmap_flag;
-	int *invalid_block_bitmap_flag;
-	int *invalid_inode_table_flag;
-	int invalid_bitmaps;    /* There are invalid bitmaps/itable */
-
-	/*
-	 * Block buffer
-	 */
-	char *block_buf;
-
-	/*
-	 * For pass1_check_directory and pass1_get_blocks
-	 */
-	ext2_ino_t stashed_ino;
-	struct ext2_inode *stashed_inode;
-
-	/*
-	 * Location of the lost and found directory
-	 */
-	ext2_ino_t lost_and_found;
-	int bad_lost_and_found;
-
-	/*
-	 * Directory information
-	 */
-	int             dir_info_count;
-	int             dir_info_size;
-	struct dir_info *dir_info;
-
-	/*
-	 * Indexed directory information
-	 */
-	int             dx_dir_info_count;
-	int             dx_dir_info_size;
-	struct dx_dir_info *dx_dir_info;
-
-	/*
-	 * Directories to hash
-	 */
-	ext2_u32_list   dirs_to_hash;
-
-	/*
-	 * Tuning parameters
-	 */
-	int process_inode_size;
-	int inode_buffer_blocks;
-
-	/*
-	 * ext3 journal support
-	 */
-	io_channel      journal_io;
-	char    *journal_name;
-
-#ifdef RESOURCE_TRACK
-	/*
-	 * For timing purposes
-	 */
-	struct resource_track   global_rtrack;
-#endif
-
-	/*
-	 * How we display the progress update (for unix)
-	 */
-	int progress_fd;
-	int progress_pos;
-	int progress_last_percent;
-	unsigned int progress_last_time;
-	int interactive;        /* Are we connected directly to a tty? */
-	char start_meta[2], stop_meta[2];
-
-	/* File counts */
-	int fs_directory_count;
-	int fs_regular_count;
-	int fs_blockdev_count;
-	int fs_chardev_count;
-	int fs_links_count;
-	int fs_symlinks_count;
-	int fs_fast_symlinks_count;
-	int fs_fifo_count;
-	int fs_total_count;
-	int fs_badblocks_count;
-	int fs_sockets_count;
-	int fs_ind_count;
-	int fs_dind_count;
-	int fs_tind_count;
-	int fs_fragmented;
-	int large_files;
-	int fs_ext_attr_inodes;
-	int fs_ext_attr_blocks;
-
-	int ext_attr_ver;
-
-	/*
-	 * For the use of callers of the e2fsck functions; not used by
-	 * e2fsck functions themselves.
-	 */
-	void *priv_data;
-};
-
-/* Used by the region allocation code */
-typedef __u32 region_addr_t;
-typedef struct region_struct *region_t;
 
 /*
  * Procedure declarations
@@ -395,6 +95,8 @@ static blk_t get_backup_sb(e2fsck_t ctx, ext2_filsys fs,
 static void e2fsck_clear_progbar(e2fsck_t ctx);
 static int e2fsck_simple_progress(e2fsck_t ctx, const char *label,
 				  float percent, unsigned int dpynum);
+
+
 /*
  * problem.h --- e2fsck problem error codes
  */
@@ -1349,7 +1051,6 @@ typedef struct dict_load_t {
  * Pull in the definition of the e2fsck context structure
  */
 
-
 struct buffer_head {
 	char            b_data[8192];
 	e2fsck_t        b_ctx;
@@ -1361,21 +1062,9 @@ struct buffer_head {
 	int             b_err;
 };
 
-struct inode {
-	e2fsck_t        i_ctx;
-	ext2_ino_t      i_ino;
-	struct ext2_inode i_ext2;
-};
-
-struct kdev_s {
-	e2fsck_t        k_ctx;
-	int             k_dev;
-};
 
 #define K_DEV_FS        1
 #define K_DEV_JOURNAL   2
-
-typedef struct kdev_s *kdev_t;
 
 #define lock_buffer(bh) do {} while(0)
 #define unlock_buffer(bh) do {} while(0)
@@ -1409,11 +1098,6 @@ static _INLINE_ void do_cache_destroy(kmem_cache_t *cache)
 {
 	free(cache);
 }
-
-/*
- * Now pull in the real linux/jfs.h definitions.
- */
-#include "ext2fs/kernel-jbd.h"
 
 /*
  * badblocks.c --- replace/append bad blocks to the bad block inode
@@ -2720,11 +2404,6 @@ static void ehandler_init(io_channel channel)
 
 #define MNT_FL (MS_MGC_VAL | MS_RDONLY)
 
-
-#ifdef __CONFIG_JBD_DEBUG__E2FS         /* Enabled by configure --enable-jfs-debug */
-static int bh_count = 0;
-#endif
-
 /*
  * Define USE_INODE_IO to use the inode_io.c / fileio.c codepaths.
  * This creates a larger static binary, and a smaller binary using
@@ -2768,9 +2447,6 @@ static struct buffer_head *getblk(kdev_t kdev, blk_t blocknr, int blocksize)
 	if (!bh)
 		return NULL;
 
-	jfs_debug(4, "getblk for block %lu (%d bytes)(total %d)\n",
-		  (unsigned long) blocknr, blocksize, ++bh_count);
-
 	bh->b_ctx = kdev->k_ctx;
 	if (kdev->k_dev == K_DEV_FS)
 		bh->b_io = kdev->k_ctx->fs->io;
@@ -2802,8 +2478,6 @@ static void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 	for (; nr > 0; --nr) {
 		bh = *bhp++;
 		if (rw == READ && !bh->b_uptodate) {
-			jfs_debug(3, "reading block %lu/%p\n",
-				  (unsigned long) bh->b_blocknr, (void *) bh);
 			retval = io_channel_read_blk(bh->b_io,
 						     bh->b_blocknr,
 						     1, bh->b_data);
@@ -2816,8 +2490,6 @@ static void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 			}
 			bh->b_uptodate = 1;
 		} else if (rw == WRITE && bh->b_dirty) {
-			jfs_debug(3, "writing block %lu/%p\n",
-				  (unsigned long) bh->b_blocknr, (void *) bh);
 			retval = io_channel_write_blk(bh->b_io,
 						      bh->b_blocknr,
 						      1, bh->b_data);
@@ -2830,10 +2502,6 @@ static void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 			}
 			bh->b_dirty = 0;
 			bh->b_uptodate = 1;
-		} else {
-			jfs_debug(3, "no-op %s for block %lu\n",
-				  rw == READ ? "read" : "write",
-				  (unsigned long) bh->b_blocknr);
 		}
 	}
 }
@@ -2852,8 +2520,6 @@ static void brelse(struct buffer_head *bh)
 {
 	if (bh->b_dirty)
 		ll_rw_block(WRITE, 1, &bh);
-	jfs_debug(3, "freeing block %lu/%p (total %d)\n",
-		  (unsigned long) bh->b_blocknr, (void *) bh, --bh_count);
 	ext2fs_free_mem(&bh);
 }
 
@@ -3012,14 +2678,9 @@ static errcode_t e2fsck_get_journal(e2fsck_t ctx, journal_t **ret_journal)
 			return EXT2_ET_LOAD_EXT_JOURNAL;
 		}
 
-		jfs_debug(1, "Using journal file %s\n", journal_name);
 		io_ptr = unix_io_manager;
 	}
 
-#if 0
-	test_io_backing_manager = io_ptr;
-	io_ptr = test_io_manager;
-#endif
 #ifndef USE_INODE_IO
 	if (ext_journal)
 #endif
@@ -11681,13 +11342,10 @@ static int jread(struct buffer_head **bhp, journal_t *journal,
 
 	*bhp = NULL;
 
-	J_ASSERT (offset < journal->j_maxlen);
-
 	err = journal_bmap(journal, offset, &blocknr);
 
 	if (err) {
-		printk (KERN_ERR "JBD: bad block at offset %u\n",
-			offset);
+		printf ("JBD: bad block at offset %u\n", offset);
 		return err;
 	}
 
@@ -11704,8 +11362,7 @@ static int jread(struct buffer_head **bhp, journal_t *journal,
 	}
 
 	if (!buffer_uptodate(bh)) {
-		printk (KERN_ERR "JBD: Failed to read block at offset %u\n",
-			offset);
+		printf ("JBD: Failed to read block at offset %u\n", offset);
 		brelse(bh);
 		return -EIO;
 	}
@@ -11779,8 +11436,6 @@ int journal_recover(journal_t *journal)
 	 */
 
 	if (!sb->s_start) {
-		jbd_debug(1, "No recovery required, last transaction %d\n",
-			  ntohl(sb->s_sequence));
 		journal->j_transaction_sequence = ntohl(sb->s_sequence) + 1;
 		return 0;
 	}
@@ -11790,12 +11445,6 @@ int journal_recover(journal_t *journal)
 		err = do_one_pass(journal, &info, PASS_REVOKE);
 	if (!err)
 		err = do_one_pass(journal, &info, PASS_REPLAY);
-
-	jbd_debug(0, "JBD: recovery, exit status %d, "
-		  "recovered transactions %u to %u\n",
-		  err, info.start_transaction, info.end_transaction);
-	jbd_debug(0, "JBD: Replayed %d and revoked %d/%d blocks\n",
-		  info.nr_replays, info.nr_revoke_hits, info.nr_revokes);
 
 	/* Restart the log at the next transaction ID, thus invalidating
 	 * any existing commit records in the log. */
@@ -11837,8 +11486,6 @@ static int do_one_pass(journal_t *journal,
 	if (pass == PASS_SCAN)
 		info->start_transaction = first_commit_ID;
 
-	jbd_debug(1, "Starting recovery pass %d\n", pass);
-
 	/*
 	 * Now we walk through the log, transaction by transaction,
 	 * making sure that each transaction has a commit block in the
@@ -11861,14 +11508,10 @@ static int do_one_pass(journal_t *journal,
 			if (tid_geq(next_commit_ID, info->end_transaction))
 				break;
 
-		jbd_debug(2, "Scanning for sequence ID %u at %lu/%lu\n",
-			  next_commit_ID, next_log_block, journal->j_last);
-
 		/* Skip over each chunk of the transaction looking
 		 * either the next descriptor block or the final commit
 		 * record. */
 
-		jbd_debug(3, "JBD: checking block %ld\n", next_log_block);
 		err = jread(&bh, journal, next_log_block);
 		if (err)
 			goto failed;
@@ -11891,8 +11534,6 @@ static int do_one_pass(journal_t *journal,
 
 		blocktype = ntohl(tmp->h_blocktype);
 		sequence = ntohl(tmp->h_sequence);
-		jbd_debug(3, "Found magic %d, sequence %d\n",
-			  blocktype, sequence);
 
 		if (sequence != next_commit_ID) {
 			brelse(bh);
@@ -11935,14 +11576,12 @@ static int do_one_pass(journal_t *journal,
 					/* Recover what we can, but
 					 * report failure at the end. */
 					success = err;
-					printk (KERN_ERR
-						"JBD: IO error %d recovering "
+					printf ("JBD: IO error %d recovering "
 						"block %ld in log\n",
 						err, io_block);
 				} else {
 					unsigned long blocknr;
 
-					J_ASSERT(obh != NULL);
 					blocknr = ntohl(tag->t_blocknr);
 
 					/* If the block has been
@@ -11962,8 +11601,7 @@ static int do_one_pass(journal_t *journal,
 						       blocknr,
 						     journal->j_blocksize);
 					if (nbh == NULL) {
-						printk(KERN_ERR
-						       "JBD: Out of memory "
+						printf ("JBD: Out of memory "
 						       "during recovery.\n");
 						err = -ENOMEM;
 						brelse(bh);
@@ -11979,10 +11617,8 @@ static int do_one_pass(journal_t *journal,
 							htonl(JFS_MAGIC_NUMBER);
 					}
 
-					BUFFER_TRACE(nbh, "marking dirty");
 					mark_buffer_uptodate(nbh, 1);
 					mark_buffer_dirty(nbh);
-					BUFFER_TRACE(nbh, "marking uptodate");
 					++info->nr_replays;
 					/* ll_rw_block(WRITE, 1, &nbh); */
 					unlock_buffer(nbh);
@@ -12026,8 +11662,6 @@ static int do_one_pass(journal_t *journal,
 			continue;
 
 		default:
-			jbd_debug(3, "Unrecognised magic %d, end of scan.\n",
-				  blocktype);
 			goto done;
 		}
 	}
@@ -12046,7 +11680,7 @@ static int do_one_pass(journal_t *journal,
 		/* It's really bad news if different passes end up at
 		 * different places (but possible due to IO errors). */
 		if (info->end_transaction != next_commit_ID) {
-			printk (KERN_ERR "JBD: recovery pass %d ended at "
+			printf ("JBD: recovery pass %d ended at "
 				"transaction %u, expected %u\n",
 				pass, next_commit_ID, info->end_transaction);
 			if (!success)
@@ -13067,15 +12701,11 @@ int journal_init_revoke(journal_t *journal, int hash_size)
 {
 	int shift, tmp;
 
-	J_ASSERT (journal->j_revoke == NULL);
-
 	journal->j_revoke = kmem_cache_alloc(revoke_table_cache, GFP_KERNEL);
 	if (!journal->j_revoke)
 		return -ENOMEM;
 
 	/* Check that the hash_size is a power of two */
-	J_ASSERT ((hash_size & (hash_size-1)) == 0);
-
 	journal->j_revoke->hash_size = hash_size;
 
 	shift = 0;
@@ -13111,7 +12741,6 @@ void journal_destroy_revoke(journal_t *journal)
 
 	for (i=0; i<table->hash_size; i++) {
 		hash_list = &table->hash_table[i];
-		J_ASSERT (list_empty(hash_list));
 	}
 
 	free(table->hash_table);
@@ -14158,15 +13787,6 @@ static void swap_filesys(e2fsck_t ctx)
  * util.c --- miscellaneous utilities
  */
 
-#ifdef HAVE_CONIO_H
-#undef HAVE_TERMIOS_H
-#include <conio.h>
-#define read_a_char()   getch()
-#else
-#ifdef HAVE_TERMIOS_H
-#include <termios.h>
-#endif
-#endif
 
 #if 0
 void fatal_error(e2fsck_t ctx, const char *msg)

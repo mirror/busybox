@@ -39,7 +39,7 @@
 #include "ext2fs/ext2fs.h"
 #include "uuid/uuid.h"
 #include "e2p/e2p.h"
-#include "ext2fs/jfs_user.h"
+#include "ext2fs/kernel-jbd.h"
 #include "util.h"
 #include "blkid/blkid.h"
 
