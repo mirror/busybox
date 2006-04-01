@@ -98,7 +98,7 @@ fi
 LINKSDIR="${bindir}/runtest-tempdir-links"
 rm -rf "$LINKSDIR" 2>/dev/null
 mkdir "$LINKSDIR"
-for i in $(sed 's@/[a-z0-9/\[]*/@@' $bindir/busybox.links)
+for i in $(sed 's@/[a-z0-9/\[]*/@@' $bindir/busybox.links 2>/dev/null)
 do
 	ln -s $bindir/busybox "$LINKSDIR"/$i
 done
@@ -122,7 +122,7 @@ for applet in $applets; do
 	applet=$(echo "$applet" | sed -n 's/\.tests$//p')
 	if [ ${#applet} -ne 0 ]
 	then
-		if [ ! -h "$LINKSDIR/$applet" ]
+		if [ ! -h "$LINKSDIR/$applet" ] && [ ${applet:0:4} != "all_" ]
 		then
 			echo "SKIPPED: $applet (not built)"
 			continue
