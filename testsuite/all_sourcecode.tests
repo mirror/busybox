@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Tests for the sourcecode base itself.
+# Copyright 2006 by Mike Frysinger <vapier@gentoo.org>
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+# verify the applet order is correct in applets.h, otherwise
+# applets won't be called properly.
+sed -n -e '/^USE_[A-Z]*(APPLET(/{s:.*(::;s:,.*::;s:"::g;p}' \
+	../include/applets.h > applet.order.current
+LC_ALL=C sort applet.order.current > applet.order.correct
+testing "Applet order" "diff -u applet.order.current applet.order.correct" "" "" ""
+rm -f applet.order.current applet.order.correct
+
+exit $FAILCOUNT
