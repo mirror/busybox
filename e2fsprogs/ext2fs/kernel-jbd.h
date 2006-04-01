@@ -18,7 +18,7 @@
 
 #include <sys/types.h>
 #include <linux/types.h>
-#include "ext2fs/ext2fs.h"
+#include "ext2fs.h"
 
 /*
  * Standard header for all descriptor blocks:
