@@ -17,8 +17,8 @@
 #
 # The "testing" function takes five arguments:
 #	$1) Description to display when running command
-#	$2) Command line arguments to command"
-#	$3) Expected result (on stdout)"
+#	$2) Command line arguments to command
+#	$3) Expected result (on stdout)
 #	$4) Data written to file "input"
 #	$5) Data written to stdin
 #
