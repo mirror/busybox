@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #ifndef	__UNARCHIVE_H__
 #define	__UNARCHIVE_H__
 
@@ -25,11 +26,13 @@ typedef struct file_headers_s {
 } file_header_t;
 
 typedef struct archive_handle_s {
-	/* define if the header and data compenent should processed */
+	/* define if the header and data component should processed */
 	char (*filter)(struct archive_handle_s *);
 	llist_t *accept;
+	/* List of files that have been rejected */
 	llist_t *reject;
-	llist_t *passed;	/* List of files that have successfully been worked on */
+	/* List of files that have successfully been worked on */
+	llist_t *passed;
 
 	/* Contains the processed header entry */
 	file_header_t *file_header;
@@ -58,7 +61,7 @@ typedef struct archive_handle_s {
 	/* Temporary storage */
 	char *buffer;
 
-	/* Misc. stuff */
+	/* Flags and misc. stuff */
 	unsigned char flags;
 
 } archive_handle_t;
