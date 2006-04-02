@@ -232,6 +232,7 @@ static int huft_free(huft_t * t)
  * t:	result: starting table
  * m:	maximum lookup bits, returns actual
  */
+static
 int huft_build(unsigned int *b, const unsigned int n,
 			   const unsigned int s, const unsigned short *d,
 			   const unsigned char *e, huft_t ** t, unsigned int *m)
