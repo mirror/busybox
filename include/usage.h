@@ -2743,7 +2743,7 @@
 	USAGE_SORT_BIG("\t-s\tstable (don't sort ties alphabetically)\n") \
 	"\t-u\tsuppress duplicate lines" \
 	USAGE_SORT_BIG("\n\t-z\tinput terminated by nulls, not newlines\n") \
-	USAGE_SORT_BIG("\t-mST\tignored for GNU compatability") \
+	USAGE_SORT_BIG("\t-mST\tignored for GNU compatibility") \
 	""
 #define sort_example_usage \
 	"$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n" \

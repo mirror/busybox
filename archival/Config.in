@@ -189,7 +189,7 @@ config CONFIG_FEATURE_TAR_COMPRESS
 	  If you enable this option tar will be able to call uncompress,
 	  when extracting .tar.Z archives.
 
-config CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
+config CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY
 	bool "  Enable support for old tar header format"
 	default N
 	depends on CONFIG_TAR

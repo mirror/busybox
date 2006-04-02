@@ -218,7 +218,7 @@ extern int vdprintf(int d, const char *format, va_list ap);
 int nfsmount(const char *spec, const char *node, int *flags,
 	     char **mount_opts, int running_bg);
 
-/* Include our own copy of struct sysinfo to avoid binary compatability
+/* Include our own copy of struct sysinfo to avoid binary compatibility
  * problems with Linux 2.4, which changed things.  Grumble, grumble. */
 struct sysinfo {
 	long uptime;			/* Seconds since boot */

@@ -80,7 +80,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	 * 0's are for the old tar format
 	 */
 	if (strncmp(tar.formated.magic, "ustar", 5) != 0) {
-#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
+#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY
 		if (strncmp(tar.formated.magic, "\0\0\0\0\0", 5) != 0)
 #endif
 			bb_error_msg_and_die("Invalid tar magic");
@@ -144,7 +144,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 		/* Reserved for high performance files, treat as normal file */
 	case 0:
 	case '0':
-#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATABILITY
+#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY
 		if (last_char_is(file_header->name, '/')) {
 			file_header->mode |= S_IFDIR;
 		} else
