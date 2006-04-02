@@ -198,11 +198,9 @@ else
 endif
 # warn a bit more verbosely for non-release versions
 ifneq ($(EXTRAVERSION),)
-    CFLAGS+=$(call check_gcc,-Wformat,)
-    CFLAGS+=$(call check_gcc,-Wformat=2,)
-    CFLAGS+=$(call check_gcc,-Wformat-nonliteral,)
-    CFLAGS+=$(call check_gcc,-Wformat-security,)
-    CFLAGS+=$(call check_gcc,-Wformat-y2k,)
+    CFLAGS+=$(call check_gcc,-Wstrict-prototypes,)
+    CFLAGS+=$(call check_gcc,-Wmissing-prototypes,)
+    CFLAGS+=$(call check_gcc,-Wmissing-declarations,)
 endif
 STRIPCMD:=$(STRIP) -s --remove-section=.note --remove-section=.comment
 ifeq ($(strip $(CONFIG_STATIC)),y)
