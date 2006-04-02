@@ -1,259 +1,179 @@
 /* vi: set sw=4 ts=4: */
 /*
- * Copyright 1989 - 1994, Julianne Frances Haugh <jockgrrl@austin.rr.com>
- * Copyright 2006, Bernhard Fischer <busybox@busybox.net>
- * All rights reserved.
+ * Mini weak password checker implementation for busybox
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of Julianne F. Haugh nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ * Copyright (C) 2006 Tito Ragusa <farmatito@tiscali.it>
  *
- * THIS SOFTWARE IS PROVIDED BY JULIE HAUGH AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL JULIE HAUGH OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/*
- * This version of obscure.c contains modifications to support "cracklib"
- * by Alec Muffet (alec.muffett@uk.sun.com).  You must obtain the Cracklib
- * library source code for this function to operate.
- */
+/*	A good password:
+	1)	should contain at least six characters (man passwd);
+	2)	empty passwords are not permitted;
+	3)	should contain a mix of four different types of characters
+		upper case letters,
+		lower case letters,
+		numbers,
+		special characters such as !@#$%^&*,;".
+	This password types should not  be permitted:
+	a)	pure numbers: birthdates, social security number, license plate, phone numbers;
+	b)	words and all letters only passwords (uppercase, lowercase or mixed)
+		as palindromes, consecutive or repetitive letters 
+		or adjacent letters on your keyboard;
+	c)	username, real name, company name or (e-mail?) address
+		in any form (as-is, reversed, capitalized, doubled, etc.).
+		(we can check only against username, gecos and hostname)
+	d)	common and obvious letter-number replacements 
+		(e.g. replace the letter O with number 0)
+		such as "M1cr0$0ft" or "P@ssw0rd" (CAVEAT: we cannot check for them
+		without the use of a dictionary).
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+	For each missing type of characters an increase of password length is
+	requested.
+
+	If user is root we warn only.
+
+	CAVEAT: some older versions of crypt() truncates passwords to 8 chars,
+	so that aaaaaaaa1Q$ is equal to aaaaaaaa making it possible to fool
+	some of our checks. We don't test for this special case as newer versions
+	of crypt do not truncate passwords.
+*/
+
 #include <ctype.h>
+#include <unistd.h>
+#include <string.h>
+
 #include "libbb.h"
 
-/*
- * can't be a palindrome - like `R A D A R' or `M A D A M'
- */
 
-static int palindrome(const char *newval)
+/* passwords should consist of 6 (to 8 characters) */
+#define MINLEN 6 
+
+
+static int string_checker_helper(const char *p1, const char *p2) __attribute__ ((__pure__));
+
+static int string_checker_helper(const char *p1, const char *p2)
 {
-	int i, j;
-
-	i = strlen(newval);
-
-	for (j = 0; j < i; j++)
-		if (newval[i - j - 1] != newval[j])
-			return 0;
-
-	return 1;
+	/* as-is or capitalized */
+	if (strcasecmp(p1, p2) == 0
+	/* as sub-string */
+	|| strcasestr(p2, p1) != NULL
+	/* invert in case haystack is shorter than needle */
+	|| strcasestr(p1, p2) != NULL)
+		return 1;
+	return 0;
 }
 
-/*
- * more than half of the characters are different ones.
- */
-
-static int similiar(const char *old, const char *newval)
+static int string_checker(const char *p1, const char *p2)
 {
-	int i, j;
-
-	for (i = j = 0; newval[i] && old[i]; i++)
-		if (strchr(newval, old[i]))
-			j++;
-
-	if (i >= j * 2)
-		return 0;
-
-	return 1;
-}
-
-/*
- * a nice mix of characters.
- */
-
-static int simple(const char *newval)
-{
-#define digits 1
-#define uppers 2
-#define lowers 4
-#define others 8
-	int c, is_simple = 0;
 	int size;
+	/* check string */
+	int ret = string_checker_helper(p1, p2);
+	/* Make our own copy */
+	char *p = bb_xstrdup(p1);
+	/* reverse string */
+	size = strlen(p);
+
+	while (size--) {
+		*p = p1[size];
+		p++;
+	}
+	/* restore pointer */
+	p -= strlen(p1);
+	/* check reversed string */
+	ret |= string_checker_helper(p, p2);
+	/* clean up */
+	memset(p, 0, strlen(p1));
+	free(p);
+	return ret;
+}
+
+#define LOWERCASE          1
+#define UPPERCASE          2
+#define NUMBERS            4
+#define SPECIAL            8
+
+static const char *obscure_msg(const char *old_p, const char *new_p, const struct passwd *pw) 
+{
 	int i;
+	int c;
+	int length;
+	int mixed = 0;
+	/* Add 1 for each type of characters to the minlen of password */
+	int size = MINLEN + 8;
+	const char *p;
+	char hostname[255];
 
-	for (i = 0; (c = *newval++) != 0; i++) {
-		if (isdigit(c))
-			is_simple |= digits;
-		else if (isupper(c))
-			is_simple |= uppers;
-		else if (islower(c))
-			is_simple |= lowers;
-		else
-			is_simple |= others;
+	/* size */
+	if (!new_p || (length = strlen(new_p)) < MINLEN)
+		return("too short");
+	
+	/* no username as-is, as sub-string, reversed, capitalized, doubled */
+	if (string_checker(new_p, pw->pw_name)) {
+		return "similar to username";
+	}
+	/* no gecos as-is, as sub-string, reversed, capitalized, doubled */
+	if (string_checker(new_p, pw->pw_gecos)) {
+		return "similar to gecos";
+	}
+	/* hostname as-is, as sub-string, reversed, capitalized, doubled */
+	if (gethostname(hostname, 255) == 0) {
+		hostname[254] = '\0';
+		if (string_checker(new_p, hostname)) {
+			return "similar to hostname";
+		}
 	}
 
-	/*
-	 * The scam is this - a password of only one character type
-	 * must be 8 letters long.  Two types, 7, and so on.
-	 */
+	/* Should / Must contain a mix of: */
+	for (i = 0; i < length; i++) {
+		if (islower(new_p[i])) {        /* a-z */
+			mixed |= LOWERCASE;
+		} else if (isupper(new_p[i])) { /* A-Z */
+			mixed |= UPPERCASE;
+		} else if (isdigit(new_p[i])) { /* 0-9 */
+			mixed |= NUMBERS;
+		} else  {                       /* special characters */
+			mixed |= SPECIAL;
+		}
+		/* More than 50% similar characters ? */
+		c = 0;
+		p = new_p;
+		while (1) {
+			if ((p = strchr(p, new_p[i])) == NULL) {
+				break;
+			}
+			c++;
+			if (!++p) {
+				break; /* move past the matched char if possible */
+			}
+		}
 
-	size = 9;
-	if (is_simple & digits)
-		size--;
-	if (is_simple & uppers)
-		size--;
-	if (is_simple & lowers)
-		size--;
-	if (is_simple & others)
-		size--;
-
-	if (size <= i)
-		return 0;
-
-	return 1;
-#undef digits
-#undef uppers
-#undef lowers
-#undef others
-}
-
-static char *str_lower(char *string)
-{
-	char *cp;
-
-	for (cp = string; *cp; cp++)
-		*cp = tolower(*cp);
-	return string;
-}
-
-static const char *
-password_check(const char *old, const char *newval, const struct passwd *pwdp)
-{
-	const char *msg;
-	char *newmono, *wrapped;
-	int lenwrap;
-
-	if (strcmp(newval, old) == 0)
-		return "no change";
-	if (simple(newval))
-		return "too simple";
-
-	msg = NULL;
-	newmono = str_lower(bb_xstrdup(newval));
-	lenwrap = strlen(old);
-	wrapped = (char *) xmalloc(lenwrap * 2 + 1);
-	str_lower(strcpy(wrapped, old));
-
-	if (palindrome(newmono))
-		msg = "a palindrome";
-
-	else if (strcmp(wrapped, newmono) == 0)
-		msg = "case changes only";
-
-	else if (similiar(wrapped, newmono))
-		msg = "too similiar";
-
-	else if ( strstr(newval, pwdp->pw_name) )
-		msg = "username in password";
-
-	else {
-		safe_strncpy(wrapped + lenwrap, wrapped, lenwrap + 1);
-		if (strstr(wrapped, newmono))
-			msg = "rotated";
+		if (c >= (length / 2)) {
+			return "too many similar characters";
+		}
 	}
-
-	memset(newmono, 0, strlen(newmono));
-	memset(wrapped, 0, lenwrap * 2);
-	free(newmono);
-	free(wrapped);
-
-	return msg;
+	for(i=0;i<4;i++)
+		if (mixed & (1<<i)) size -= 2;
+	if (length < size)
+		return "too weak";
+	
+	if (old_p && old_p[0] != '\0') {
+		/* check vs. old password */
+		if (string_checker(new_p, old_p)) {
+			return "similar to old password";
+		}
+	}
+	return NULL;
 }
-
-static const char *
-obscure_msg(const char *old, const char *newval, const struct passwd *pwdp)
-{
-	int maxlen, oldlen, newlen;
-	char *new1, *old1;
-	const char *msg;
-
-	oldlen = strlen(old);
-	newlen = strlen(newval);
-
-#if 0  /* why not check the password when set for the first time?  --marekm */
-	if (old[0] == '\0')
-		/* return (1); */
-		return NULL;
-#endif
-
-	if (newlen < 5)
-		return "too short";
-
-	/*
-	 * Remaining checks are optional.
-	 */
-	/* Not for us -- Sean
-	 *if (!getdef_bool("OBSCURE_CHECKS_ENAB"))
-	 *      return NULL;
-	 */
-	msg = password_check(old, newval, pwdp);
-	if (msg)
-		return msg;
-
-	/* The traditional crypt() truncates passwords to 8 chars.  It is
-	   possible to circumvent the above checks by choosing an easy
-	   8-char password and adding some random characters to it...
-	   Example: "password$%^&*123".  So check it again, this time
-	   truncated to the maximum length.  Idea from npasswd.  --marekm */
-
-	maxlen = 8;
-	if (oldlen <= maxlen && newlen <= maxlen)
-		return NULL;
-
-	new1 = (char *) bb_xstrdup(newval);
-	old1 = (char *) bb_xstrdup(old);
-	if (newlen > maxlen)
-		new1[maxlen] = '\0';
-	if (oldlen > maxlen)
-		old1[maxlen] = '\0';
-
-	msg = password_check(old1, new1, pwdp);
-
-	memset(new1, 0, newlen);
-	memset(old1, 0, oldlen);
-	free(new1);
-	free(old1);
-
-	return msg;
-}
-
-/*
- * Obscure - see if password is obscure enough.
- *
- *	The programmer is encouraged to add as much complexity to this
- *	routine as desired.  Included are some of my favorite ways to
- *	check passwords.
- */
 
 int obscure(const char *old, const char *newval, const struct passwd *pwdp)
 {
-	const char *msg = obscure_msg(old, newval, pwdp);
+	const char *msg;
 
-	/*  if (msg) { */
-	if (msg != NULL) {
+	if ((msg = obscure_msg(old, newval, pwdp))) {
 		printf("Bad password: %s.\n", msg);
-		/* return 0; */
-		return 1;
+		/* If user is root warn only */
+		return (getuid())? 1 : 0;
 	}
-	/* return 1; */
 	return 0;
 }
