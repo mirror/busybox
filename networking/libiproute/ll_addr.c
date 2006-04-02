@@ -12,7 +12,10 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <net/if_arp.h>
+
+#include "rt_names.h"
 #include "utils.h"
+
 #include "libbb.h"
 
 const char *ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int blen)

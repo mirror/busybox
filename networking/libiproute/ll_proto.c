@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <arpa/inet.h>
 #include <string.h>
+
+#include "rt_names.h"
 #include "utils.h"
 
 #if __GLIBC__ >=2 && __GLIBC_MINOR >= 1
