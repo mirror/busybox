@@ -27,6 +27,8 @@
 
 #include "libbb.h"
 
+#include "unarchive.h"
+
 #include "rangecoder.h"
 
 

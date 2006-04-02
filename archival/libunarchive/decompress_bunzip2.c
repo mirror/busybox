@@ -24,7 +24,7 @@
 	I would ask that anyone benefiting from this work, especially those
 	using it in commercial products, consider making a donation to my local
 	non-profit hospice organization (www.hospiceacadiana.com) in the name of
-   	the woman I loved, Toni W. Hagan, who passed away Feb. 12, 2003.
+	the woman I loved, Toni W. Hagan, who passed away Feb. 12, 2003.
 
 	Manuel
  */
@@ -37,6 +37,8 @@
 #include <limits.h>
 
 #include "libbb.h"
+
+#include "unarchive.h"
 
 /* Constants for Huffman coding */
 #define MAX_GROUPS			6
