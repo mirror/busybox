@@ -1,9 +1,9 @@
 /*
  *  md5.c - Compute MD5 checksum of strings according to the
  *          definition of MD5 in RFC 1321 from April 1992.
- * 
+ *
  *  Written by Ulrich Drepper <drepper@gnu.ai.mit.edu>, 1995.
- *  
+ *
  *  Copyright (C) 1995-1999 Free Software Foundation, Inc.
  *  Copyright (C) 2001 Manuel Novoa III
  *  Copyright (C) 2003 Glenn L. McGrath
@@ -19,7 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "busybox.h"
+#include "libbb.h"
 
 # if CONFIG_MD5_SIZE_VS_SPEED < 0 || CONFIG_MD5_SIZE_VS_SPEED > 3
 # define MD5_SIZE_VS_SPEED 2
@@ -71,7 +71,7 @@ void md5_begin(md5_ctx_t *ctx)
  * starting at BUFFER.
  * It is necessary that LEN is a multiple of 64!!!
  */
-void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
+static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
 {
 	uint32_t correct_words[16];
 	const uint32_t *words = buffer;

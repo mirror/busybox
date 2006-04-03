@@ -21,7 +21,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <ctype.h>
-#include "libbb.h"
+#include "busybox.h"
 
 static char *fileconf = "/etc/dnsd.conf";
 #define LOCK_FILE       "/var/run/dnsd.lock"

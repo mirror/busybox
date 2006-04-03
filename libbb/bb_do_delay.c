@@ -9,6 +9,7 @@
 
 #include <time.h>
 #include <unistd.h>
+#include "libbb.h"
 
 void bb_do_delay(int seconds)
 {

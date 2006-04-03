@@ -62,23 +62,6 @@ extern const struct BB_applet applets[];
 #include "applets.h"
 #undef PROTOTYPES
 
-#ifdef CONFIG_FEATURE_BUFFERS_GO_ON_STACK
-#define RESERVE_CONFIG_BUFFER(buffer,len)           char buffer[len]
-#define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char buffer[len]
-#define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
-#else
-#ifdef CONFIG_FEATURE_BUFFERS_GO_IN_BSS
-#define RESERVE_CONFIG_BUFFER(buffer,len)  static          char buffer[len]
-#define RESERVE_CONFIG_UBUFFER(buffer,len) static unsigned char buffer[len]
-#define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
-#else
-#define RESERVE_CONFIG_BUFFER(buffer,len)           char *buffer=xmalloc(len)
-#define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char *buffer=xmalloc(len)
-#define RELEASE_CONFIG_BUFFER(buffer)      free (buffer)
-#endif
-#endif
-
-
 #ifndef RB_POWER_OFF
 /* Stop system and switch power off if possible.  */
 #define RB_POWER_OFF   0x4321fedc

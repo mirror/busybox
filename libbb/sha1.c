@@ -45,7 +45,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "busybox.h"
+#include "libbb.h"
 
 # define SHA1_BLOCK_SIZE  64
 # define SHA1_DIGEST_SIZE 20

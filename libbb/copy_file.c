@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "busybox.h"
+#include "libbb.h"
 
 /* Compiler version-specific crap that should be in a header file somewhere. */
 

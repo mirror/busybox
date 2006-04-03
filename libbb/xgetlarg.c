@@ -1,6 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
  * Copyright (C) 2003-2004 Erik Andersen <andersen@codepoet.org>
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 
@@ -11,7 +13,7 @@
 #include <assert.h>
 #include <ctype.h>
 
-#include "busybox.h"
+#include "libbb.h"
 
 long bb_xgetlarg(const char *arg, int base, long lower, long upper)
 {

@@ -32,7 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "libbb.h"
+#include "busybox.h"
 
 #define MAX_OPT_DEPTH 10
 #define EUNBALBRACK 10001

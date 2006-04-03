@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "busybox.h"
+#include "libbb.h"
 
 int bb_echo(int ATTRIBUTE_UNUSED argc, char **argv)
 {

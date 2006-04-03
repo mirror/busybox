@@ -59,6 +59,24 @@
 #define	MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
+/* buffer allocation schemes */
+#ifdef CONFIG_FEATURE_BUFFERS_GO_ON_STACK
+#define RESERVE_CONFIG_BUFFER(buffer,len)           char buffer[len]
+#define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char buffer[len]
+#define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
+#else
+#ifdef CONFIG_FEATURE_BUFFERS_GO_IN_BSS
+#define RESERVE_CONFIG_BUFFER(buffer,len)  static          char buffer[len]
+#define RESERVE_CONFIG_UBUFFER(buffer,len) static unsigned char buffer[len]
+#define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
+#else
+#define RESERVE_CONFIG_BUFFER(buffer,len)           char *buffer=xmalloc(len)
+#define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char *buffer=xmalloc(len)
+#define RELEASE_CONFIG_BUFFER(buffer)      free (buffer)
+#endif
+#endif
+
+
 extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
