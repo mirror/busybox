@@ -133,7 +133,7 @@ static char *reads ( int fd, char *buffer, size_t len )
 /*
  * This function appends an option to a list
  */
-struct mod_opt_t *append_option( struct mod_opt_t *opt_list, char *opt )
+static struct mod_opt_t *append_option( struct mod_opt_t *opt_list, char *opt )
 {
 	struct mod_opt_t *ol = opt_list;
 

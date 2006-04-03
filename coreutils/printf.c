@@ -54,7 +54,7 @@ static void print_direc (char *start, size_t length,
 			int field_width, int precision, char *argument);
 
 typedef int (*converter)(char *arg, void *result);
-void multiconvert(char *arg, void *result, converter convert)
+static void multiconvert(char *arg, void *result, converter convert)
 {
 	char s[16];
 	if (*arg == '"' || *arg == '\'') {
