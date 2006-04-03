@@ -112,8 +112,10 @@ static int send_pack(int sock, struct in_addr *src_addr,
 static void finish(void)
 {
 	if (!(cfg&quiet)) {
-		printf("Sent %d probes (%d broadcast(s))\n", sent, brd_sent);
-		printf("Received %d repl%s", received, (received > 1) ? "ies" : "y");
+		printf("Sent %d probes (%d broadcast(s))\n"
+			"Received %d repl%s",
+			sent, brd_sent,
+			received, (received > 1) ? "ies" : "y");
 		if (brd_recv || req_recv) {
 			printf(" (");
 			if (req_recv)
@@ -221,12 +223,11 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 
 		gettimeofday(&tv, NULL);
 
-		printf("%s ",
-			   FROM->sll_pkttype == PACKET_HOST ? "Unicast" : "Broadcast");
-		printf("%s from ",
-			   ah->ar_op == htons(ARPOP_REPLY) ? "reply" : "request");
-		printf("%s ", inet_ntoa(src_ip));
-		printf("[%s]", ether_ntoa((struct ether_addr *) p));
+		printf("%s %s from %s [%s]",
+			FROM->sll_pkttype == PACKET_HOST ? "Unicast" : "Broadcast",
+			ah->ar_op == htons(ARPOP_REPLY) ? "reply" : "request",
+			inet_ntoa(src_ip),
+			ether_ntoa((struct ether_addr *) p));
 		if (dst_ip.s_addr != src.s_addr) {
 			printf("for %s ", inet_ntoa(dst_ip));
 			s_printed = 1;
@@ -421,9 +422,9 @@ int arping_main(int argc, char **argv)
 	memset(he.sll_addr, -1, he.sll_halen);
 
 	if (!(cfg&quiet)) {
-		printf("ARPING to %s", inet_ntoa(dst));
-		printf(" from %s via %s\n", inet_ntoa(src),
-			   device ? device : "unknown");
+		printf("ARPING to %s from %s via %s\n",
+			inet_ntoa(dst), inet_ntoa(src),
+			device ? device : "unknown");
 	}
 
 	if (!src.s_addr && !(cfg&dad)) {
