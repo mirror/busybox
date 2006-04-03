@@ -279,13 +279,14 @@ int arping_main(int argc, char **argv)
 	{
 		unsigned long opt;
 		char *_count, *_timeout, *_device;
+
+		/* Dad also sets quit_on_reply.
+		 * Advert also sets unsolicited.
+		 */
+		bb_opt_complementally = "Df:AU";
 		opt = bb_getopt_ulflags(argc, argv, "DUAqfbc:w:i:s:",
 						&_count, &_timeout, &_device);
 		cfg |= opt & 63; /* set respective flags */
-		if (opt & 1) /* Dad also sets quit_on_reply */
-			cfg |= quit_on_reply;
-		if (opt & 4) /* Advert also sets unsolicited */
-			cfg |= unsolicited;
 		if (opt & 64) /* count */
 			count = atoi(_count);
 		if (opt & 128) /* timeout */
