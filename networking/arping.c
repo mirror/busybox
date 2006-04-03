@@ -36,8 +36,8 @@ enum cfg_e {
 	advert = 4,
 	quiet = 8,
 	quit_on_reply = 16,
-	unicasting = 32,
-	broadcast_only = 64
+	broadcast_only = 32,
+	unicasting = 64
 };
 static int cfg;
 
@@ -281,22 +281,11 @@ int arping_main(int argc, char **argv)
 		char *_count, *_timeout, *_device;
 		opt = bb_getopt_ulflags(argc, argv, "DUAqfbc:w:i:s:",
 						&_count, &_timeout, &_device);
-		if (opt & 1) { /* Dad */
-			cfg |= dad;
+		cfg |= opt & 63; /* set respective flags */
+		if (opt & 1) /* Dad also sets quit_on_reply */
 			cfg |= quit_on_reply;
-		}
-		if (opt & 2) /* Unsolicited */
+		if (opt & 4) /* Advert also sets unsolicited */
 			cfg |= unsolicited;
-		if (opt & 4) { /* Advert */
-			cfg |= advert;
-			cfg |= unsolicited;
-		}
-		if (opt & 8) /* quiet */
-			cfg |= quiet;
-		if (opt & 16) /* quit on reply */
-			cfg |= quit_on_reply;
-		if (opt & 32) /* broadcast only */
-			cfg |= broadcast_only;
 		if (opt & 64) /* count */
 			count = atoi(_count);
 		if (opt & 128) /* timeout */
