@@ -10,7 +10,7 @@
 # verify the applet order is correct in applets.h, otherwise
 # applets won't be called properly.
 sed -n -e '/^USE_[A-Z]*(APPLET(/{s:.*(::;s:,.*::;s:"::g;p}' \
-	$srcdir/../include/applets.h > applet.order.current
+	$srcdir/../include/applets.h > applet.order.current 2> /dev/null
 LC_ALL=C sort applet.order.current > applet.order.correct
 testing "Applet order" "diff -u applet.order.current applet.order.correct" "" "" ""
 rm -f applet.order.current applet.order.correct
