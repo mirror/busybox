@@ -179,51 +179,6 @@ __u32 ext2fs_swab32(__u32 val)
 		((val<<8)&0xFF0000) | (val<<24));
 }
 
-int ext2fs_find_first_bit_set(void * addr, unsigned size)
-{
-	unsigned char	*cp = (unsigned char *) addr;
-	int	res = 0, d0;
-
-	if (!size)
-		return 0;
-
-	while ((size > res) && (*cp == 0)) {
-		cp++;
-		res += 8;
-	}
-	d0 = ffs(*cp);
-	if (d0 == 0)
-		return size;
-
-	return res + d0 - 1;
-}
-
-int ext2fs_find_next_bit_set (void * addr, int size, int offset)
-{
-	unsigned char * p;
-	int set = 0, bit = offset & 7, res = 0, d0;
-
-	res = offset >> 3;
-	p = ((unsigned char *) addr) + res;
-
-	if (bit) {
-		set = ffs(*p & ~((1 << bit) - 1));
-		if (set)
-			return (offset & ~7) + set - 1;
-		p++;
-		res += 8;
-	}
-	while ((size > res) && (*p == 0)) {
-		p++;
-		res += 8;
-	}
-	d0 = ffs(*p);
-	if (d0 == 0)
-		return size;
-
-	return (res + d0 - 1);
-}
-
 int ext2fs_test_generic_bitmap(ext2fs_generic_bitmap bitmap,
 					blk_t bitno);
 
