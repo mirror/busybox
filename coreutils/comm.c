@@ -4,21 +4,7 @@
  *
  * Copyright (C) 2005 by Robert Sullivan <cogito.ergo.cogito@gmail.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
- * 02111-1307 USA
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <stdio.h>
@@ -75,16 +61,16 @@ static void cmp_files(char **infiles)
 		fgets(thisline[i], LINE_LEN, streams[i]);
 	}
 
-	while (thisline[0] || thisline[1]) {
+	while (*thisline[0] || *thisline[1]) {
 		int order = 0;
 
 		i = 0;
 		if (feof(streams[0])) i |= BB_EOF_0;
 		if (feof(streams[1])) i |= BB_EOF_1;
 
-		if (!thisline[0])
+		if (!*thisline[0])
 			order = 1;
-		else if (!thisline[1])
+		else if (!*thisline[1])
 			order = -1;
 		else {
 			int tl0_len, tl1_len;
