@@ -5,48 +5,20 @@
  * Copyright (C) 1999 by Lineo, inc. and John Beppu
  * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  */
 
-#include <errno.h>
-#include <fcntl.h>
-#include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include "busybox.h"
-#include "pwd_.h"
-#include "grp_.h"
-
-
-/* structs __________________________ */
-
-/* data _____________________________ */
-
-/* defaults : should this be in an external file? */
-static const char default_passwd[] = "x";
-
 
 /* make sure gr_name isn't taken, make sure gid is kosher
  * return 1 on failure */
-static int group_study(const char *filename, struct group *g)
+static int group_study(struct group *g)
 {
 	FILE *etc_group;
 	gid_t desired;
@@ -54,16 +26,16 @@ static int group_study(const char *filename, struct group *g)
 	struct group *grp;
 	const int max = 65000;
 
-	etc_group = bb_xfopen(filename, "r");
+	etc_group = bb_xfopen(bb_path_group_file, "r");
 
 	/* make sure gr_name isn't taken, make sure gid is kosher */
 	desired = g->gr_gid;
 	while ((grp = fgetgrent(etc_group))) {
 		if ((strcmp(grp->gr_name, g->gr_name)) == 0) {
-			bb_error_msg_and_die("%s: group already in use\n", g->gr_name);
+			bb_error_msg_and_die("%s: group already in use", g->gr_name);
 		}
 		if ((desired) && grp->gr_gid == desired) {
-			bb_error_msg_and_die("%d: gid has already been allocated\n",
+			bb_error_msg_and_die("%d: gid already in use",
 							  desired);
 		}
 		if ((grp->gr_gid > g->gr_gid) && (grp->gr_gid < max)) {
@@ -83,55 +55,32 @@ static int group_study(const char *filename, struct group *g)
 }
 
 /* append a new user to the passwd file */
-static int addgroup(const char *filename, char *group, gid_t gid, const char *user)
+static int addgroup(char *group, gid_t gid, const char *user)
 {
-	FILE *etc_group;
-
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
-	FILE *etc_gshadow;
-#endif
-
+	FILE *file;
 	struct group gr;
-
-	/* group:passwd:gid:userlist */
-	static const char entryfmt[] = "%s:%s:%d:%s\n";
 
 	/* make sure gid and group haven't already been allocated */
 	gr.gr_gid = gid;
 	gr.gr_name = group;
-	if (group_study(filename, &gr))
+	if (group_study(&gr))
 		return 1;
 
 	/* add entry to group */
-	etc_group = bb_xfopen(filename, "a");
+	file = bb_xfopen(bb_path_group_file, "a");
+	/* group:passwd:gid:userlist */
+	fprintf(file, "%s:%s:%d:%s\n", group, "x", gr.gr_gid, user);
+	fclose(file);
 
-	fprintf(etc_group, entryfmt, group, default_passwd, gr.gr_gid, user);
-	fclose(etc_group);
-
-
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
-	/* add entry to gshadow if necessary */
-	if (access(bb_path_gshadow_file, F_OK|W_OK) == 0) {
-		etc_gshadow = bb_xfopen(bb_path_gshadow_file, "a");
-		fprintf(etc_gshadow, "%s:!::\n", group);
-		fclose(etc_gshadow);
-	}
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	file = bb_xfopen(bb_path_gshadow_file, "a");
+	fprintf(file, "%s:!::\n", group);
+	fclose(file);
 #endif
 
 	/* return 1; */
 	return 0;
 }
-
-#ifndef CONFIG_ADDUSER
-static inline void if_i_am_not_root(void)
-{
-	if (geteuid()) {
-		bb_error_msg_and_die( "Only root may add a user or group to the system.");
-	}
-}
-#else
-extern void if_i_am_not_root(void);
-#endif
 
 /*
  * addgroup will take a login_name as its first parameter.
@@ -143,29 +92,22 @@ extern void if_i_am_not_root(void);
 int addgroup_main(int argc, char **argv)
 {
 	char *group;
-	char *user;
 	gid_t gid = 0;
+	
+	/* check for min, max and missing args and exit on error */
+	bb_opt_complementally = "-1:?2:?";
 
-	/* get remaining args */
-	if(bb_getopt_ulflags(argc, argv, "g:", &group)) {
+	if (bb_getopt_ulflags(argc, argv, "g:", &group)) {
 		gid = bb_xgetlarg(group, 10, 0, LONG_MAX);
 	}
+	/* move past the commandline options */
+	argv += optind;
 
-	if (optind < argc) {
-		group = argv[optind];
-		optind++;
-	} else {
-		bb_show_usage();
+	/* need to be root */
+	if(geteuid()) {
+		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
-
-	if (optind < argc) {
-		user = argv[optind];
-	} else {
-		user = "";
-	}
-
-	if_i_am_not_root();
 
 	/* werk */
-	return addgroup(bb_path_group_file, group, gid, user);
+	return addgroup(argv[0], gid, (argv[1]) ? argv[1] : "");
 }
