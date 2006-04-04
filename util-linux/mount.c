@@ -291,11 +291,11 @@ static int singlemount(struct mntent *mp)
 		}
 	}
 
-	// Look at the file.  (Not found isn't a failure for remount.)
+	// Look at the file.  (Not found isn't a failure for remount, or for
+	// a synthetic filesystem like proc or sysfs.)
 
 	if (lstat(mp->mnt_fsname, &st));
-
-	if (!(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))) {
+	else if (!(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))) {
 		// Do we need to allocate a loopback device for it?
 
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
