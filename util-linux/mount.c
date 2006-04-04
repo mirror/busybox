@@ -477,8 +477,9 @@ int mount_main(int argc, char **argv)
 
 		// Get next fstab entry
 
-		if (!getmntent_r(fstab, mtcur, bb_common_bufsiz1,
-					sizeof(bb_common_bufsiz1)))
+		if (!getmntent_r(fstab, mtcur, bb_common_bufsiz1
+					+ (mtcur==mtpair ? sizeof(bb_common_bufsiz1)/2 : 0),
+				sizeof(bb_common_bufsiz1)/2))
 		{
 			// Were we looking for something specific?
 
