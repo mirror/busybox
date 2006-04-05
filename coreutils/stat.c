@@ -466,7 +466,7 @@ static int do_stat(char const *filename, char const *format)
 	print_it(format, filename, print_stat, &statbuf);
 #else
 	if (flags & OPT_TERSE) {
-		printf("%s %lu %lu %lx %lu %lu %lx %lu %lu %lx %lx %lu %lu %lu %lu\n",
+		printf("%s %"PRIuMAX" %"PRIuMAX" %lx %lu %lu %"PRIxMAX" %"PRIuMAX" %lu %lx %lx %lu %lu %lu %lu\n",
 		       filename,
 		       (uintmax_t) (statbuf.st_size),
 		       (uintmax_t) statbuf.st_blocks,
@@ -500,8 +500,8 @@ static int do_stat(char const *filename, char const *format)
 		else
 			printf("  File: \"%s\"\n", filename);
 
-		printf("  Size: %-10lu\tBlocks: %-10lu IO Block: %-6lu %s\n"
-		       "Device: %lxh/%lud\tInode: %-10lu  Links: %-5lu",
+		printf("  Size: %-10"PRIuMAX"\tBlocks: %-10"PRIuMAX" IO Block: %-6lu %s\n"
+		       "Device: %"PRIxMAX"h/%"PRIuMAX"d\tInode: %-10"PRIuMAX"  Links: %-5lu",
 		       (uintmax_t) (statbuf.st_size),
 		       (uintmax_t) statbuf.st_blocks,
 		       (unsigned long int) statbuf.st_blksize,
