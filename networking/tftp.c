@@ -530,7 +530,7 @@ int tftp_main(int argc, char **argv)
 #define GET_COMPL ":g"
 #else
 #define GET
-#define GET_COMP
+#define GET_COMPL
 #endif
 
 #ifdef CONFIG_FEATURE_TFTP_PUT
