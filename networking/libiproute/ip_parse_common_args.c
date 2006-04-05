@@ -16,10 +16,10 @@
 
 #include <string.h>
 
+#include "libbb.h"
 #include "utils.h"
 #include "ip_common.h"
 
-#include "busybox.h"
 
 int preferred_family = AF_UNSPEC;
 int oneline = 0;

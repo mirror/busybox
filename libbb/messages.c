@@ -6,7 +6,6 @@
  *
  */
 
-#include "busybox.h"
 #include "libbb.h"
 
 #ifdef L_full_version

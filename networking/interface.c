@@ -73,7 +73,7 @@
 #include <sys/types.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include "libbb.h"
+#include "busybox.h"
 
 #ifdef CONFIG_FEATURE_IPV6
 # define HAVE_AFINET6 1

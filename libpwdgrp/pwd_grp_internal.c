@@ -26,10 +26,11 @@
 #include <errno.h>
 #include <assert.h>
 #include <ctype.h>
-#include "busybox.h"
+
 #include "pwd_.h"
 #include "grp_.h"
 #include "shadow_.h"
+#include "libbb.h"
 
 #ifndef _PATH_SHADOW
 #define	_PATH_SHADOW	"/etc/shadow"
