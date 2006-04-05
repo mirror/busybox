@@ -681,9 +681,9 @@ static enum obj_reloc arch_apply_relocation (struct obj_file *f,
 				      ElfW(RelM) *rel, ElfW(Addr) value);
 
 static void arch_create_got (struct obj_file *f);
-#if ENABLE_FEATURE_CHECK_TAINTED_MODULE
+
 static int obj_gpl_license(struct obj_file *f, const char **license);
-#endif /* ENABLE_FEATURE_CHECK_TAINTED_MODULE */
+
 #endif /* obj.h */
 //----------------------------------------------------------------------------
 //--------end of modutils obj.h
