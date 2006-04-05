@@ -284,6 +284,7 @@ static int singlemount(struct mntent *mp)
 			return 1;
 		} else {
 			// Strangely enough, nfsmount() doesn't actually mount() anything.
+			mp->mnt_type = "nfs";
 			rc = mount_it_now(mp, vfsflags, filteropts);
 			if (ENABLE_FEATURE_CLEAN_UP) free(filteropts);
 			
