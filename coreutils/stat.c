@@ -1,3 +1,4 @@
+/* vi:set ts=4:*/
 /*
  * stat -- display file or file system status
  *
@@ -8,23 +9,11 @@
  * Written by Michael Meskes
  * Taken from coreutils and turned into a busybox applet by Mike Frysinger
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <stdio.h>
+#include <inttypes.h>
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
@@ -540,9 +529,7 @@ int stat_main(int argc, char **argv)
 	int (*statfunc)(char const *, char const *) = do_stat;
 
 	flags = bb_getopt_ulflags(argc, argv, "ftL"
-#ifdef CONFIG_FEATURE_STAT_FORMAT
-	"c:", &format
-#endif
+	USE_FEATURE_STAT_FORMAT("c:", &format)
 	);
 
 	if (flags & 1)                /* -f */
