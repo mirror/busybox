@@ -302,9 +302,9 @@ static void window_size_get(int);	// find out what size the window is
 #ifdef CONFIG_FEATURE_VI_SETOPTS
 static void showmatching(Byte *);	// show the matching pair ()  []  {}
 #endif							/* CONFIG_FEATURE_VI_SETOPTS */
-#if defined(CONFIG_FEATURE_VI_YANKMARK) || defined(CONFIG_FEATURE_VI_COLON) || defined(CONFIG_FEATURE_VI_CRASHME)
+#if defined(CONFIG_FEATURE_VI_YANKMARK) || defined(CONFIG_FEATURE_VI_SEARCH) || defined(CONFIG_FEATURE_VI_CRASHME)
 static Byte *string_insert(Byte *, Byte *);	// insert the string at 'p'
-#endif							/* CONFIG_FEATURE_VI_YANKMARK || CONFIG_FEATURE_VI_COLON || CONFIG_FEATURE_VI_CRASHME */
+#endif							/* CONFIG_FEATURE_VI_YANKMARK || CONFIG_FEATURE_VI_SEARCH || CONFIG_FEATURE_VI_CRASHME */
 #ifdef CONFIG_FEATURE_VI_YANKMARK
 static Byte *text_yank(Byte *, Byte *, int);	// save copy of "p" into a register
 static Byte what_reg(void);		// what is letter of current YDreg
@@ -2008,7 +2008,7 @@ static void end_cmd_q(void)
 }
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
 
-#if defined(CONFIG_FEATURE_VI_YANKMARK) || defined(CONFIG_FEATURE_VI_COLON) || defined(CONFIG_FEATURE_VI_CRASHME)
+#if defined(CONFIG_FEATURE_VI_YANKMARK) || defined(CONFIG_FEATURE_VI_SEARCH) || defined(CONFIG_FEATURE_VI_CRASHME)
 static Byte *string_insert(Byte * p, Byte * s) // insert the string at 'p'
 {
 	int cnt, i;
