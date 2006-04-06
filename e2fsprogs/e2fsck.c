@@ -76,18 +76,10 @@ static void *e2fsck_allocate_memory(e2fsck_t ctx, unsigned int size,
 static int ask(e2fsck_t ctx, const char * string, int def);
 static void e2fsck_read_bitmaps(e2fsck_t ctx);
 static void preenhalt(e2fsck_t ctx);
-#ifdef RESOURCE_TRACK
-static void print_resource_track(const char *desc,
-				 struct resource_track *track);
-static void init_resource_track(struct resource_track *track);
-#endif
 static void e2fsck_read_inode(e2fsck_t ctx, unsigned long ino,
 			      struct ext2_inode * inode, const char * proc);
 static void e2fsck_write_inode(e2fsck_t ctx, unsigned long ino,
 			       struct ext2_inode * inode, const char * proc);
-#ifdef MTRACE
-static void mtrace_print(char *mesg);
-#endif
 static blk_t get_backup_sb(e2fsck_t ctx, ext2_filsys fs,
 			   const char *name, io_manager manager);
 
@@ -1631,9 +1623,6 @@ static void e2fsck_add_dir_info(e2fsck_t ctx, ext2_ino_t ino, ext2_ino_t parent)
 	errcode_t       retval;
 	unsigned long   old_size;
 
-#if 0
-	printf("add_dir_info for inode %lu...\n", ino);
-#endif
 	if (!ctx->dir_info) {
 		ctx->dir_info_count = 0;
 		retval = ext2fs_get_num_dirs(ctx->fs, &num_dirs);
@@ -1763,9 +1752,6 @@ static void e2fsck_add_dx_dir(e2fsck_t ctx, ext2_ino_t ino, int num_blocks)
 	errcode_t       retval;
 	unsigned long   old_size;
 
-#if 0
-	printf("add_dx_dir_info for inode %lu...\n", ino);
-#endif
 	if (!ctx->dx_dir_info) {
 		ctx->dx_dir_info_count = 0;
 		ctx->dx_dir_info_size = 100; /* Guess */
@@ -2168,9 +2154,6 @@ retry:
 	printf("Non-cursor get_refcount_el: %u\n", blk);
 #endif
 	while (low <= high) {
-#if 0
-		mid = (low+high)/2;
-#else
 		if (low == high)
 			mid = low;
 		else {
@@ -2187,7 +2170,7 @@ retry:
 					(highval - lowval);
 			mid = low + ((int) (range * (high-low)));
 		}
-#endif
+
 		if (blk == refcount->list[mid].ea_blk) {
 			refcount->cursor = mid+1;
 			return &refcount->list[mid];
@@ -4164,9 +4147,6 @@ fix:
 	 * it seems like a corruption. it's very unlikely we could repair
 	 * EA(s) in automatic fashion -bzzz
 	 */
-#if 0
-	problem = PR_1_ATTR_HASH;
-#endif
 	if (problem == 0 || !fix_problem(ctx, problem, pctx))
 		return;
 
@@ -4189,10 +4169,6 @@ static void check_inode_extra_space(e2fsck_t ctx, struct problem_context *pctx)
 		return;
 	}
 
-#if 0
-	printf("inode #%u, i_extra_size %d\n", pctx->ino,
-			inode->i_extra_isize);
-#endif
 	/* i_extra_isize must cover i_extra_isize + i_pad1 at least */
 	min = sizeof(inode->i_extra_isize) + sizeof(inode->i_pad1);
 	max = EXT2_INODE_SIZE(sb) - EXT2_GOOD_OLD_INODE_SIZE;
@@ -4227,9 +4203,6 @@ static void e2fsck_pass1(e2fsck_t ctx)
 	struct ext2_inode *inode;
 	ext2_inode_scan scan;
 	char            *block_buf;
-#ifdef RESOURCE_TRACK
-	struct resource_track   rtrack;
-#endif
 	unsigned char   frag, fsize;
 	struct          problem_context pctx;
 	struct          scan_callback_struct scan_struct;
@@ -4238,9 +4211,6 @@ static void e2fsck_pass1(e2fsck_t ctx)
 	int             busted_fs_time = 0;
 	int             inode_size;
 
-#ifdef RESOURCE_TRACK
-	init_resource_track(&rtrack);
-#endif
 	clear_problem_context(&pctx);
 
 	if (!(ctx->options & E2F_OPT_PREEN))
@@ -4252,9 +4222,7 @@ static void e2fsck_pass1(e2fsck_t ctx)
 			ctx->dirs_to_hash = 0;
 	}
 
-#ifdef MTRACE
-	mtrace_print("Pass 1");
-#endif
+	/* Pass 1 */
 
 #define EXT2_BPP(bits) (1ULL << ((bits) - 2))
 
@@ -4753,12 +4721,6 @@ endit:
 	ext2fs_free_mem(&block_buf);
 	ext2fs_free_mem(&inode);
 
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME2) {
-		e2fsck_clear_progbar(ctx);
-		print_resource_track(_("Pass 1"), &rtrack);
-	}
-#endif
 }
 
 /*
@@ -4797,9 +4759,7 @@ static void process_inodes(e2fsck_t ctx, char *block_buf)
 	char                    buf[80];
 	struct problem_context  pctx;
 
-#if 0
-	printf("begin process_inodes: ");
-#endif
+	/* begin process_inodes */
 	if (process_inode_count == 0)
 		return;
 	old_operation = ehandler_operation(0);
@@ -4811,10 +4771,6 @@ static void process_inodes(e2fsck_t ctx, char *block_buf)
 	for (i=0; i < process_inode_count; i++) {
 		pctx.inode = ctx->stashed_inode = &inodes_to_process[i].inode;
 		pctx.ino = ctx->stashed_ino = inodes_to_process[i].ino;
-
-#if 0
-		printf("%u ", pctx.ino);
-#endif
 		sprintf(buf, _("reading indirect blocks of inode %u"),
 			pctx.ino);
 		ehandler_operation(buf);
@@ -4825,9 +4781,8 @@ static void process_inodes(e2fsck_t ctx, char *block_buf)
 	ctx->stashed_inode = old_stashed_inode;
 	ctx->stashed_ino = old_stashed_ino;
 	process_inode_count = 0;
-#if 0
-	printf("end process inodes\n");
-#endif
+	/* end process inodes */
+
 	ehandler_operation(old_operation);
 }
 
@@ -5045,11 +5000,6 @@ static int check_ext_attr(e2fsck_t ctx, struct problem_context *pctx,
 			return 0;
 		}
 	}
-
-#if 0
-	/* Debugging text */
-	printf("Inode %u has EA block %u\n", ino, blk);
-#endif
 
 	/* Have we seen this EA block before? */
 	if (ext2fs_fast_test_block_bitmap(ctx->block_ea_map, blk)) {
@@ -5313,11 +5263,7 @@ static void check_blocks(e2fsck_t ctx, struct problem_context *pctx,
 	}
 
 	pb.num_blocks *= (fs->blocksize / 512);
-#if 0
-	printf("inode %u, i_size = %lu, last_block = %lld, i_blocks=%lu, num_blocks = %lu\n",
-	       ino, inode->i_size, pb.last_block, inode->i_blocks,
-	       pb.num_blocks);
-#endif
+
 	if (pb.is_dir) {
 		int nblock = inode->i_size >> EXT2_BLOCK_SIZE_BITS(fs->super);
 		if (nblock > (pb.last_block + 1))
@@ -5362,57 +5308,6 @@ out:
 		e2fsck_write_inode(ctx, ino, inode, "check_blocks");
 }
 
-#if 0
-/*
- * Helper function called by process block when an illegal block is
- * found.  It returns a description about why the block is illegal
- */
-static char *describe_illegal_block(ext2_filsys fs, blk_t block)
-{
-	blk_t   super;
-	int     i;
-	static char     problem[80];
-
-	super = fs->super->s_first_data_block;
-	strcpy(problem, "PROGRAMMING ERROR: Unknown reason for illegal block");
-	if (block < super) {
-		sprintf(problem, "< FIRSTBLOCK (%u)", super);
-		return(problem);
-	} else if (block >= fs->super->s_blocks_count) {
-		sprintf(problem, "> BLOCKS (%u)", fs->super->s_blocks_count);
-		return(problem);
-	}
-	for (i = 0; i < fs->group_desc_count; i++) {
-		if (block == super) {
-			sprintf(problem, "is the superblock in group %d", i);
-			break;
-		}
-		if (block > super &&
-		    block <= (super + fs->desc_blocks)) {
-			sprintf(problem, "is in the group descriptors "
-				"of group %d", i);
-			break;
-		}
-		if (block == fs->group_desc[i].bg_block_bitmap) {
-			sprintf(problem, "is the block bitmap of group %d", i);
-			break;
-		}
-		if (block == fs->group_desc[i].bg_inode_bitmap) {
-			sprintf(problem, "is the inode bitmap of group %d", i);
-			break;
-		}
-		if (block >= fs->group_desc[i].bg_inode_table &&
-		    (block < fs->group_desc[i].bg_inode_table
-		     + fs->inode_blocks_per_group)) {
-			sprintf(problem, "is in the inode table of group %d",
-				i);
-			break;
-		}
-		super += fs->super->s_blocks_per_group;
-	}
-	return(problem);
-}
-#endif
 
 /*
  * This is a helper function for check_blocks().
@@ -5473,19 +5368,10 @@ static int process_block(ext2_filsys fs,
 		if (blockcnt < 0)
 			return 0;
 		if (blockcnt * fs->blocksize < p->inode->i_size) {
-#if 0
-			printf("Missing block (#%d) in directory inode %lu!\n",
-			       blockcnt, p->ino);
-#endif
 			goto mark_dir;
 		}
 		return 0;
 	}
-
-#if 0
-	printf("Process_block, inode %lu, block %u, #%d\n", p->ino, blk,
-	       blockcnt);
-#endif
 
 	/*
 	 * Simplistic fragmentation check.  We merely require that the
@@ -5623,9 +5509,7 @@ static int process_bad_block(ext2_filsys fs,
 			mark_block_used(ctx, blk);
 		return 0;
 	}
-#if 0
-	printf ("DEBUG: Marking %u as bad.\n", blk);
-#endif
+
 	ctx->fs_badblocks_count++;
 	/*
 	 * If the block is not used, then mark it as used and return.
@@ -6609,10 +6493,7 @@ static int clone_file_block(ext2_filsys fs,
 					return BLOCK_ABORT;
 				}
 			}
-#if 0
-			printf("Cloning block %u to %u\n", *block_nr,
-			       new_block);
-#endif
+
 			retval = io_channel_read_blk(fs->io, *block_nr, 1,
 						     cs->buf);
 			if (retval) {
@@ -6785,8 +6666,6 @@ static int check_if_fs_block(e2fsck_t ctx, blk_t test_block)
  *      - The inode_reg_map bitmap
  */
 
-/* #define DX_DEBUG */
-
 /*
  * Keeps track of how many times an inode is referenced.
  */
@@ -6820,9 +6699,6 @@ static void e2fsck_pass2(e2fsck_t ctx)
 	struct problem_context  pctx;
 	ext2_filsys             fs = ctx->fs;
 	char                    *buf;
-#ifdef RESOURCE_TRACK
-	struct resource_track   rtrack;
-#endif
 	struct dir_info         *dir;
 	struct check_dir_struct cd;
 	struct dx_dir_info      *dx_dir;
@@ -6832,15 +6708,9 @@ static void e2fsck_pass2(e2fsck_t ctx)
 	problem_t               code;
 	int                     bad_dir;
 
-#ifdef RESOURCE_TRACK
-	init_resource_track(&rtrack);
-#endif
-
 	clear_problem_context(&cd.pctx);
 
-#ifdef MTRACE
-	mtrace_print("Pass 2");
-#endif
+	/* Pass 2 */
 
 	if (!(ctx->options & E2F_OPT_PREEN))
 		fix_problem(ctx, PR_2_PASS_HEADER, &cd.pctx);
@@ -7007,12 +6877,6 @@ static void e2fsck_pass2(e2fsck_t ctx)
 		}
 	}
 
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME2) {
-		e2fsck_clear_progbar(ctx);
-		print_resource_track(_("Pass 2"), &rtrack);
-	}
-#endif
 }
 
 #define MAX_DEPTH 32000
@@ -7294,28 +7158,11 @@ static void parse_int_node(ext2_filsys fs,
 
 	if (db->blockcnt == 0) {
 		root = (struct ext2_dx_root_info *) (block_buf + 24);
-
-#ifdef DX_DEBUG
-		printf("Root node dump:\n");
-		printf("\t Reserved zero: %d\n", root->reserved_zero);
-		printf("\t Hash Version: %d\n", root->hash_version);
-		printf("\t Info length: %d\n", root->info_length);
-		printf("\t Indirect levels: %d\n", root->indirect_levels);
-		printf("\t Flags: %d\n", root->unused_flags);
-#endif
-
 		ent = (struct ext2_dx_entry *) (block_buf + 24 + root->info_length);
 	} else {
 		ent = (struct ext2_dx_entry *) (block_buf+8);
 	}
 	limit = (struct ext2_dx_countlimit *) ent;
-
-#ifdef DX_DEBUG
-	printf("Number of entries (count): %d\n",
-	       ext2fs_le16_to_cpu(limit->count));
-	printf("Number of entries (limit): %d\n",
-	       ext2fs_le16_to_cpu(limit->limit));
-#endif
 
 	count = ext2fs_le16_to_cpu(limit->count);
 	expect_limit = (fs->blocksize - ((char *) ent - block_buf)) /
@@ -7335,10 +7182,6 @@ static void parse_int_node(ext2_filsys fs,
 	for (i=0; i < count; i++) {
 		prev_hash = hash;
 		hash = i ? (ext2fs_le32_to_cpu(ent[i].hash) & ~1) : 0;
-#ifdef DX_DEBUG
-		printf("Entry #%d: Hash 0x%08x, block %d\n", i,
-		       hash, ext2fs_le32_to_cpu(ent[i].block));
-#endif
 		blk = ext2fs_le32_to_cpu(ent[i].block) & 0x0ffffff;
 		/* Check to make sure the block is valid */
 		if (blk > (blk_t) dx_dir->numblocks) {
@@ -7372,10 +7215,6 @@ static void parse_int_node(ext2_filsys fs,
 		if (i == 0)
 			dx_db->flags |= DX_FLAG_FIRST;
 	}
-#ifdef DX_DEBUG
-	printf("Blockcnt = %d, min hash 0x%08x, max hash 0x%08x\n",
-	       db->blockcnt, min_hash, max_hash);
-#endif
 	dx_db = &dx_dir->dx_block[db->blockcnt];
 	dx_db->min_hash = min_hash;
 	dx_db->max_hash = max_hash;
@@ -7512,11 +7351,6 @@ static int check_dir_block(ext2_filsys fs,
 	if (ctx->dirs_to_hash &&
 	    ext2fs_u32_list_test(ctx->dirs_to_hash, ino))
 		dups_found++;
-
-#if 0
-	printf("In process_dir_block block %lu, #%d, inode %lu\n", block_nr,
-	       db->blockcnt, ino);
-#endif
 
 	cd->pctx.errcode = ext2fs_read_dir_block(fs, block_nr, buf);
 	if (cd->pctx.errcode == EXT2_ET_DIR_CORRUPTED)
@@ -7775,16 +7609,8 @@ static int check_dir_block(ext2_filsys fs,
 		offset += dirent->rec_len;
 		dot_state++;
 	} while (offset < fs->blocksize);
-#if 0
-	printf("\n");
-#endif
 #ifdef ENABLE_HTREE
 	if (dx_db) {
-#ifdef DX_DEBUG
-		printf("db_block %d, type %d, min_hash 0x%0x, max_hash 0x%0x\n",
-		       db->blockcnt, dx_db->type,
-		       dx_db->min_hash, dx_db->max_hash);
-#endif
 		cd->pctx.dir = cd->pctx.ino;
 		if ((dx_db->type == DX_DIRBLOCK_ROOT) ||
 		    (dx_db->type == DX_DIRBLOCK_NODE))
@@ -8205,22 +8031,13 @@ static void e2fsck_pass3(e2fsck_t ctx)
 {
 	ext2_filsys fs = ctx->fs;
 	int             i;
-#ifdef RESOURCE_TRACK
-	struct resource_track   rtrack;
-#endif
 	struct problem_context  pctx;
 	struct dir_info *dir;
 	unsigned long maxdirs, count;
 
-#ifdef RESOURCE_TRACK
-	init_resource_track(&rtrack);
-#endif
-
 	clear_problem_context(&pctx);
 
-#ifdef MTRACE
-	mtrace_print("Pass 3");
-#endif
+	/* Pass 3 */
 
 	if (!(ctx->options & E2F_OPT_PREEN))
 		fix_problem(ctx, PR_3_PASS_HEADER, &pctx);
@@ -8236,13 +8053,6 @@ static void e2fsck_pass3(e2fsck_t ctx)
 		ctx->flags |= E2F_FLAG_ABORT;
 		goto abort_exit;
 	}
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME) {
-		e2fsck_clear_progbar(ctx);
-		print_resource_track(_("Peak memory"), &ctx->global_rtrack);
-	}
-#endif
-
 	check_root(ctx);
 	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
 		goto abort_exit;
@@ -8284,13 +8094,6 @@ abort_exit:
 	inode_loop_detect = 0;
 	ext2fs_free_inode_bitmap(inode_done_map);
 	inode_done_map = 0;
-
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME2) {
-		e2fsck_clear_progbar(ctx);
-		print_resource_track(_("Pass 3"), &rtrack);
-	}
-#endif
 }
 
 /*
@@ -8650,9 +8453,6 @@ ext2_ino_t e2fsck_get_lost_and_found(e2fsck_t ctx, int fix)
 	ext2fs_icount_store(ctx->inode_count, ino, 2);
 	ext2fs_icount_store(ctx->inode_link_info, ino, 2);
 	ctx->lost_and_found = ino;
-#if 0
-	printf("/lost+found created; inode #%lu\n", ino);
-#endif
 	return ino;
 }
 
@@ -8722,11 +8522,6 @@ errcode_t e2fsck_adjust_inode_count(e2fsck_t ctx, ext2_ino_t ino, int adj)
 	retval = ext2fs_read_inode(fs, ino, &inode);
 	if (retval)
 		return retval;
-
-#if 0
-	printf("Adjusting link count for inode %lu by %d (from %d)\n", ino, adj,
-	       inode.i_links_count);
-#endif
 
 	if (adj == 1) {
 		ext2fs_icount_increment(ctx->inode_count, ino, 0);
@@ -8803,10 +8598,6 @@ static void fix_dotdot(e2fsck_t ctx, struct dir_info *dir, ext2_ino_t parent)
 	fp.parent = parent;
 	fp.done = 0;
 	fp.ctx = ctx;
-
-#if 0
-	printf("Fixing '..' of inode %lu to be %lu...\n", dir->ino, parent);
-#endif
 
 	retval = ext2fs_dir_iterate(fs, dir->ino, DIRENT_FLAG_INCLUDE_EMPTY,
 				    0, fix_dotdot_proc, &fp);
@@ -9026,21 +8817,12 @@ static void e2fsck_pass4(e2fsck_t ctx)
 	ext2_filsys fs = ctx->fs;
 	ext2_ino_t      i;
 	struct ext2_inode       inode;
-#ifdef RESOURCE_TRACK
-	struct resource_track   rtrack;
-#endif
 	struct problem_context  pctx;
 	__u16   link_count, link_counted;
 	char    *buf = 0;
 	int     group, maxgroup;
 
-#ifdef RESOURCE_TRACK
-	init_resource_track(&rtrack);
-#endif
-
-#ifdef MTRACE
-	mtrace_print("Pass 4");
-#endif
+	/* Pass 4 */
 
 	clear_problem_context(&pctx);
 
@@ -9109,12 +8891,6 @@ static void e2fsck_pass4(e2fsck_t ctx)
 	ext2fs_free_inode_bitmap(ctx->inode_imagic_map);
 	ctx->inode_imagic_map = 0;
 	ext2fs_free_mem(&buf);
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME2) {
-		e2fsck_clear_progbar(ctx);
-		print_resource_track(_("Pass 4"), &rtrack);
-	}
-#endif
 }
 
 /*
@@ -9594,18 +9370,9 @@ static void check_block_end(e2fsck_t ctx)
 
 static void e2fsck_pass5(e2fsck_t ctx)
 {
-#ifdef RESOURCE_TRACK
-	struct resource_track   rtrack;
-#endif
 	struct problem_context  pctx;
 
-#ifdef MTRACE
-	mtrace_print("Pass 5");
-#endif
-
-#ifdef RESOURCE_TRACK
-	init_resource_track(&rtrack);
-#endif
+	/* Pass 5 */
 
 	clear_problem_context(&pctx);
 
@@ -9637,13 +9404,6 @@ static void e2fsck_pass5(e2fsck_t ctx)
 	ctx->inode_dir_map = 0;
 	ext2fs_free_block_bitmap(ctx->block_found_map);
 	ctx->block_found_map = 0;
-
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME2) {
-		e2fsck_clear_progbar(ctx);
-		print_resource_track(_("Pass 5"), &rtrack);
-	}
-#endif
 }
 
 /*
@@ -12408,11 +12168,6 @@ static errcode_t e2fsck_rehash_dir(e2fsck_t ctx, ext2_ino_t ino)
 		goto errout;
 	}
 
-#if 0
-	printf("%d entries (%d bytes) found in inode %d\n",
-	       fd.num_array, fd.dir_size, ino);
-#endif
-
 	/* Sort the list */
 resort:
 	if (fd.compress)
@@ -12463,18 +12218,11 @@ errout:
 void e2fsck_rehash_directories(e2fsck_t ctx)
 {
 	struct problem_context  pctx;
-#ifdef RESOURCE_TRACK
-	struct resource_track   rtrack;
-#endif
 	struct dir_info         *dir;
 	ext2_u32_iterate        iter;
 	ext2_ino_t              ino;
 	errcode_t               retval;
 	int                     i, cur, max, all_dirs, dir_index, first = 1;
-
-#ifdef RESOURCE_TRACK
-	init_resource_track(&rtrack);
-#endif
 
 	all_dirs = ctx->options & E2F_OPT_COMPRESS_DIRS;
 
@@ -12516,9 +12264,6 @@ void e2fsck_rehash_directories(e2fsck_t ctx)
 			fix_problem(ctx, PR_3A_PASS_HEADER, &pctx);
 			first = 0;
 		}
-#if 0
-		fix_problem(ctx, PR_3A_OPTIMIZE_DIR, &pctx);
-#endif
 		pctx.errcode = e2fsck_rehash_dir(ctx, ino);
 		if (pctx.errcode) {
 			end_problem_latch(ctx, PR_LATCH_OPTIMIZE_DIR);
@@ -12534,13 +12279,6 @@ void e2fsck_rehash_directories(e2fsck_t ctx)
 
 	ext2fs_u32_list_free(ctx->dirs_to_hash);
 	ctx->dirs_to_hash = 0;
-
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME2) {
-		e2fsck_clear_progbar(ctx);
-		print_resource_track("Pass 3A", &rtrack);
-	}
-#endif
 }
 
 /*
@@ -13463,7 +13201,6 @@ static void check_super_block(e2fsck_t ctx)
 
 	clear_problem_context(&pctx);
 
-#ifndef EXT2_SKIP_UUID
 	/*
 	 * If the UUID field isn't assigned, assign it.
 	 */
@@ -13474,9 +13211,8 @@ static void check_super_block(e2fsck_t ctx)
 			fs->flags &= ~EXT2_FLAG_MASTER_SB_ONLY;
 		}
 	}
-#endif
 
-	/*
+	/* FIXME - HURD support?
 	 * For the Hurd, check to see if the filetype option is set,
 	 * since it doesn't support it.
 	 */
@@ -13727,18 +13463,10 @@ static void ext2fs_swap_bitmap(ext2fs_generic_bitmap bmap)
 static void swap_filesys(e2fsck_t ctx)
 {
 	ext2_filsys fs = ctx->fs;
-#ifdef RESOURCE_TRACK
-	struct resource_track   rtrack;
-
-	init_resource_track(&rtrack);
-#endif
-
 	if (!(ctx->options & E2F_OPT_PREEN))
 		printf(_("Pass 0: Doing byte-swap of filesystem\n"));
 
-#ifdef MTRACE
-	mtrace_print("Byte swap");
-#endif
+	/* Byte swap */
 
 	if (fs->super->s_mnt_count) {
 		fprintf(stderr, _("%s: the filesystem must be freshly "
@@ -13773,11 +13501,6 @@ static void swap_filesys(e2fsck_t ctx)
 	fs->flags &= ~EXT2_FLAG_MASTER_SB_ONLY;
 	ext2fs_flush(fs);
 	fs->flags |= EXT2_FLAG_MASTER_SB_ONLY;
-
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME2)
-		print_resource_track(_("Byte swap"), &rtrack);
-#endif
 }
 #endif  /* ENABLE_SWAPFS */
 
@@ -13788,33 +13511,12 @@ static void swap_filesys(e2fsck_t ctx)
  */
 
 
-#if 0
-void fatal_error(e2fsck_t ctx, const char *msg)
-{
-	if (msg)
-		fprintf (stderr, "e2fsck: %s\n", msg);
-	if (ctx->fs && ctx->fs->io) {
-		if (ctx->fs->io->magic == EXT2_ET_MAGIC_IO_CHANNEL)
-			io_channel_flush(ctx->fs->io);
-		else
-			fprintf(stderr, "e2fsck: io manager magic bad!\n");
-	}
-	ctx->flags |= E2F_FLAG_ABORT;
-	if (ctx->flags & E2F_FLAG_SETJMP_OK)
-		longjmp(ctx->abort_loc, 1);
-	exit(EXIT_ERROR);
-}
-#endif
-
 void *e2fsck_allocate_memory(e2fsck_t ctx, unsigned int size,
 			     const char *description)
 {
 	void *ret;
 	char buf[256];
 
-#ifdef DEBUG_ALLOCATE_MEMORY
-	printf("Allocating %d bytes for %s...\n", size, description);
-#endif
 	ret = malloc(size);
 	if (!ret) {
 		sprintf(buf, "Can't allocate %s\n", description);
@@ -14011,75 +13713,6 @@ void preenhalt(e2fsck_t ctx)
 	exit(EXIT_UNCORRECTED);
 }
 
-#ifdef RESOURCE_TRACK
-void init_resource_track(struct resource_track *track)
-{
-#ifdef HAVE_GETRUSAGE
-	struct rusage r;
-#endif
-
-	track->brk_start = sbrk(0);
-	gettimeofday(&track->time_start, 0);
-#ifdef HAVE_GETRUSAGE
-#ifdef sun
-	memset(&r, 0, sizeof(struct rusage));
-#endif
-	getrusage(RUSAGE_SELF, &r);
-	track->user_start = r.ru_utime;
-	track->system_start = r.ru_stime;
-#else
-	track->user_start.tv_sec = track->user_start.tv_usec = 0;
-	track->system_start.tv_sec = track->system_start.tv_usec = 0;
-#endif
-}
-
-static _INLINE_ float timeval_subtract(struct timeval *tv1,
-				       struct timeval *tv2)
-{
-	return ((tv1->tv_sec - tv2->tv_sec) +
-		((float) (tv1->tv_usec - tv2->tv_usec)) / 1000000);
-}
-
-void print_resource_track(const char *desc, struct resource_track *track)
-{
-#ifdef HAVE_GETRUSAGE
-	struct rusage r;
-#endif
-#ifdef HAVE_MALLINFO
-	struct mallinfo malloc_info;
-#endif
-	struct timeval time_end;
-
-	gettimeofday(&time_end, 0);
-
-	if (desc)
-		printf("%s: ", desc);
-
-#ifdef HAVE_MALLINFO
-#define kbytes(x)       (((x) + 1023) / 1024)
-
-	malloc_info = mallinfo();
-	printf(_("Memory used: %dk/%dk (%dk/%dk), "),
-	       kbytes(malloc_info.arena), kbytes(malloc_info.hblkhd),
-	       kbytes(malloc_info.uordblks), kbytes(malloc_info.fordblks));
-#else
-	printf(_("Memory used: %d, "),
-	       (int) (((char *) sbrk(0)) - ((char *) track->brk_start)));
-#endif
-#ifdef HAVE_GETRUSAGE
-	getrusage(RUSAGE_SELF, &r);
-
-	printf(_("time: %5.2f/%5.2f/%5.2f\n"),
-	       timeval_subtract(&time_end, &track->time_start),
-	       timeval_subtract(&r.ru_utime, &track->user_start),
-	       timeval_subtract(&r.ru_stime, &track->system_start));
-#else
-	printf(_("elapsed time: %6.3f\n"),
-	       timeval_subtract(&time_end, &track->time_start));
-#endif
-}
-#endif /* RESOURCE_TRACK */
-
 void e2fsck_read_inode(e2fsck_t ctx, unsigned long ino,
 			      struct ext2_inode * inode, const char *proc)
 {
@@ -14119,17 +13752,6 @@ extern void e2fsck_write_inode(e2fsck_t ctx, unsigned long ino,
 		fatal_error(ctx, 0);
 	}
 }
-
-#ifdef MTRACE
-void mtrace_print(char *mesg)
-{
-	FILE    *malloc_get_mallstream();
-	FILE    *f = malloc_get_mallstream();
-
-	if (f)
-		fprintf(f, "============= %s\n", mesg);
-}
-#endif
 
 blk_t get_backup_sb(e2fsck_t ctx, ext2_filsys fs, const char *name,
 		   io_manager manager)
@@ -14258,39 +13880,6 @@ static int verbose;
 static int replace_bad_blocks;
 static int keep_bad_blocks;
 static char *bad_blocks_file;
-
-#ifdef __CONFIG_JBD_DEBUG__E2FS         /* Enabled by configure --enable-jfs-debug */
-int journal_enable_debug = -1;
-#endif
-
-#if 0
-static void usage(e2fsck_t ctx)
-{
-	fprintf(stderr,
-		_("Usage: %s [-panyrcdfvstDFSV] [-b superblock] [-B blocksize]\n"
-		"\t\t[-I inode_buffer_blocks] [-P process_inode_size]\n"
-		"\t\t[-l|-L bad_blocks_file] [-C fd] [-j external_journal]\n"
-		"\t\t[-E extended-options] device\n"),
-		ctx->program_name);
-
-	fprintf(stderr, _("\nEmergency help:\n"
-		" -p                   Automatic repair (no questions)\n"
-		" -n                   Make no changes to the filesystem\n"
-		" -y                   Assume \"yes\" to all questions\n"
-		" -c                   Check for bad blocks and add them to the badblock list\n"
-		" -f                   Force checking even if filesystem is marked clean\n"));
-	fprintf(stderr, _(""
-		" -v                   Be verbose\n"
-		" -b superblock        Use alternative superblock\n"
-		" -B blocksize         Force blocksize when looking for superblock\n"
-		" -j external_journal  Set location of the external journal\n"
-		" -l bad_blocks_file   Add to badblocks list\n"
-		" -L bad_blocks_file   Set badblocks list\n"
-		));
-
-	exit(EXIT_USAGE);
-}
-#endif
 
 #define P_E2(singular, plural, n)       n, ((n) == 1 ? singular : plural)
 
@@ -14729,9 +14318,6 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 {
 	int             flush = 0;
 	int             c, fd;
-#ifdef MTRACE
-	extern void     *mallwatch;
-#endif
 	e2fsck_t        ctx;
 	errcode_t       retval;
 	struct sigaction        sa;
@@ -14804,15 +14390,9 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 			ctx->options |= E2F_OPT_YES;
 			break;
 		case 't':
-#ifdef RESOURCE_TRACK
-			if (ctx->options & E2F_OPT_TIME)
-				ctx->options |= E2F_OPT_TIME2;
-			else
-				ctx->options |= E2F_OPT_TIME;
-#else
+			/* FIXME - This needs to go away in a future path - will change binary */
 			fprintf(stderr, _("The -t option is not "
 				"supported on this version of e2fsck.\n"));
-#endif
 			break;
 		case 'c':
 			if (cflag++)
@@ -14858,11 +14438,6 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 		case 'V':
 			show_version_only = 1;
 			break;
-#ifdef MTRACE
-		case 'M':
-			mallwatch = (void *) strtol(optarg, NULL, 0);
-			break;
-#endif
 		case 'N':
 			ctx->device_name = optarg;
 			break;
@@ -14954,10 +14529,6 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 	/* Update our PATH to include /sbin if we need to run badblocks  */
 	if (cflag)
 		e2fs_set_sbin_path();
-#ifdef __CONFIG_JBD_DEBUG__E2FS
-	if (getenv("E2FSCK_JBD_DEBUG"))
-		journal_enable_debug = atoi(getenv("E2FSCK_JBD_DEBUG"));
-#endif
 	return 0;
 }
 
@@ -14978,18 +14549,7 @@ int e2fsck_main (int argc, char *argv[])
 	int flags, run_result;
 
 	clear_problem_context(&pctx);
-#ifdef MTRACE
-	mtrace();
-#endif
-#ifdef MCHECK
-	mcheck(0);
-#endif
-#ifdef ENABLE_NLS
-	setlocale(LC_MESSAGES, "");
-	setlocale(LC_CTYPE, "");
-	bindtextdomain(NLS_CAT_NAME, LOCALEDIR);
-	textdomain(NLS_CAT_NAME);
-#endif
+
 	my_ver = ext2fs_parse_version_string(my_ver_string);
 	lib_ver = ext2fs_get_library_version(0, &lib_ver_date);
 	if (my_ver > lib_ver) {
@@ -15005,10 +14565,6 @@ int e2fsck_main (int argc, char *argv[])
 		exit(EXIT_ERROR);
 	}
 	reserve_stdio_fds();
-
-#ifdef RESOURCE_TRACK
-	init_resource_track(&ctx->global_rtrack);
-#endif
 
 	if (!(ctx->options & E2F_OPT_PREEN) || show_version_only)
 		fprintf(stderr, "e2fsck %s (%s)\n", my_ver_string,
@@ -15187,6 +14743,7 @@ restart:
 		goto get_newer;
 	}
 #ifdef ENABLE_COMPRESSION
+	/* FIXME - do we support this at all? */
 	if (sb->s_feature_incompat & EXT2_FEATURE_INCOMPAT_COMPRESSION)
 		com_err(ctx->program_name, 0,
 			_("Warning: compression support is experimental.\n"));
@@ -15292,9 +14849,7 @@ restart:
 	if (run_result & E2F_FLAG_ABORT)
 		fatal_error(ctx, _("aborted"));
 
-#ifdef MTRACE
-	mtrace_print("Cleanup");
-#endif
+	/* Cleanup */
 	if (ext2fs_test_changed(fs)) {
 		exit_value |= EXIT_NONDESTRUCT;
 		if (!(ctx->options & E2F_OPT_PREEN))
@@ -15336,11 +14891,6 @@ restart:
 	free(ctx->filesystem_name);
 	free(ctx->journal_name);
 	e2fsck_free_context(ctx);
-
-#ifdef RESOURCE_TRACK
-	if (ctx->options & E2F_OPT_TIME)
-		print_resource_track(NULL, &ctx->global_rtrack);
-#endif
 
 	return exit_value;
 }

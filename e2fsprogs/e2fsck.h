@@ -95,19 +95,6 @@ The following defines are used in the 'flags' field of a dx_dirblock_info
 #define DX_FLAG_FIRST           4
 #define DX_FLAG_LAST            8
 
-#ifdef RESOURCE_TRACK
-/*
- * This structure is used for keeping track of how much resources have
- * been used for a particular pass of e2fsck.
- */
-struct resource_track {
-	struct timeval time_start;
-	struct timeval user_start;
-	struct timeval system_start;
-	void    *brk_start;
-};
-#endif
-
 /*
  * E2fsck options
  */
@@ -288,13 +275,6 @@ struct e2fsck_struct {
 	 */
 	io_channel      journal_io;
 	char    *journal_name;
-
-#ifdef RESOURCE_TRACK
-	/*
-	 * For timing purposes
-	 */
-	struct resource_track   global_rtrack;
-#endif
 
 	/*
 	 * How we display the progress update (for unix)
