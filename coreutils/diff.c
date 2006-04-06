@@ -501,7 +501,7 @@ static int skipline(FILE *f)
  *      to confounding by hashing (which result in "jackpot")
  *  2.  collect random access indexes to the two files
  */
-static void check(char *file1, FILE *f1, char *file2, FILE *f2)
+static void check(FILE *f1, FILE *f2)
 {
         int i, j, jackpot, c, d;
         long ctold, ctnew;
@@ -636,7 +636,7 @@ static void uni_range(int a, int b)
                 printf("%d,0", b);
 }
 
-static int fetch(long *f, int a, int b, FILE *lb, int ch, int oldfile)
+static int fetch(long *f, int a, int b, FILE *lb, int ch)
 {
         int i, j, c, lastc, col, nc;
 
@@ -733,23 +733,23 @@ static void dump_unified_vec(FILE *f1, FILE *f2)
 
                 switch (ch) {
                 case 'c':
-                        fetch(ixold, lowa, a - 1, f1, ' ', 0);
-                        fetch(ixold, a, b, f1, '-', 0);
-                        fetch(ixnew, c, d, f2, '+', 0);
+                        fetch(ixold, lowa, a - 1, f1, ' ');
+                        fetch(ixold, a, b, f1, '-');
+                        fetch(ixnew, c, d, f2, '+');
                         break;
                 case 'd':
-                        fetch(ixold, lowa, a - 1, f1, ' ', 0);
-                        fetch(ixold, a, b, f1, '-', 0);
+                        fetch(ixold, lowa, a - 1, f1, ' ');
+                        fetch(ixold, a, b, f1, '-');
                         break;
                 case 'a':
-                        fetch(ixnew, lowc, c - 1, f2, ' ', 0);
-                        fetch(ixnew, c, d, f2, '+', 0);
+                        fetch(ixnew, lowc, c - 1, f2, ' ');
+                        fetch(ixnew, c, d, f2, '+');
                         break;
                 }
                 lowa = b + 1;
                 lowc = d + 1;
         }
-        fetch(ixnew, d + 1, upd, f2, ' ', 0);
+        fetch(ixnew, d + 1, upd, f2, ' ');
 
         context_vec_ptr = context_vec_start - 1;
 }
@@ -994,7 +994,7 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 
         ixold = xrealloc(ixold, (len[0] + 2) * sizeof(long));
         ixnew = xrealloc(ixnew, (len[1] + 2) * sizeof(long));
-        check(file1, f1, file2, f2);
+        check(f1, f2);
         output(file1, f1, file2, f2);
 
 closem:
@@ -1061,7 +1061,8 @@ static int dir_strcmp(const void *p1, const void *p2) {
 
 /* This function adds a filename to dl, the directory listing. */
 
-static int add_to_dirlist (const char *filename, struct stat *statbuf, void *userdata) {
+static int add_to_dirlist (const char *filename,
+		struct stat ATTRIBUTE_UNUSED *sb, void *userdata) {
 	dl_count++;
 	dl = xrealloc(dl, dl_count * sizeof(char *));
 	dl[dl_count - 1] = bb_xstrdup(filename);
