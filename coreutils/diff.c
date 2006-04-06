@@ -88,15 +88,16 @@ static unsigned long cmd_flags;
 #define FLAG_b	(1<<1)
 #define FLAG_d  (1<<2)
 #define FLAG_i	(1<<3)
-#define FLAG_N	(1<<4)
-#define FLAG_q	(1<<5)
-#define FLAG_r	(1<<6)
-#define FLAG_s	(1<<7)
-#define FLAG_S	(1<<8)
-#define FLAG_t	(1<<9)
-#define FLAG_T	(1<<10)
-#define FLAG_U	(1<<11)
-#define	FLAG_w	(1<<12)
+#define FLAG_L	(1<<4)
+#define FLAG_N	(1<<5)
+#define FLAG_q	(1<<6)
+#define FLAG_r	(1<<7)
+#define FLAG_s	(1<<8)
+#define FLAG_S	(1<<9)
+#define FLAG_t	(1<<10)
+#define FLAG_T	(1<<11)
+#define FLAG_U	(1<<12)
+#define	FLAG_w	(1<<13)
 
 int context, status;
 char *start, *label[2];
@@ -376,7 +377,6 @@ static int isqrt(int n) {
 	return (x);
 }
 
-
 static int newcand(int x, int y, int pred)
 {
         struct cand *q;
@@ -422,10 +422,10 @@ static int stone(int *a, int n, int *b, int *c)
         int i, k, y, j, l;
         int oldc, tc, oldl;
         u_int numtries;
-#ifdef CONFIG_FEATURE_DIFF_MINIMAL
-	const u_int bound = (cmd_flags & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
+#if ENABLE_FEATURE_DIFF_MINIMAL
+		const u_int bound = (cmd_flags & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
 #else
-	const u_int bound = MAX(256, isqrt(n));
+		const u_int bound = MAX(256, isqrt(n));
 #endif
         k = 0;
         c[0] = newcand(0, 0, 0);
@@ -672,7 +672,7 @@ static int fetch(long *f, int a, int b, FILE *lb, int ch)
 
 static int asciifile(FILE *f)
 {
-#ifdef CONFIG_FEATURE_DIFF_BINARY
+#if ENABLE_FEATURE_DIFF_BINARY
 	unsigned char buf[BUFSIZ];
 	int i, cnt;
 #endif
@@ -680,14 +680,16 @@ static int asciifile(FILE *f)
 	if ((cmd_flags & FLAG_a) || f == NULL)
 		return (1);
 
-#ifdef CONFIG_FEATURE_DIFF_BINARY
+#if ENABLE_FEATURE_DIFF_BINARY
 	rewind(f);
-        cnt = fread(buf, 1, sizeof(buf), f);
-        for (i = 0; i < cnt; i++)
-                if (!isprint(buf[i]) && !isspace(buf[i]))
-                        return (0);
+	cnt = fread(buf, 1, sizeof(buf), f);
+	for (i = 0; i < cnt; i++) {
+		if (!isprint(buf[i]) && !isspace(buf[i])) {
+			return (0);
+		}
+	}
 #endif
-        return (1);
+	return (1);
 }
 
 /* dump accumulated "unified" diff changes */
@@ -837,7 +839,10 @@ static void change(char *file1, FILE *f1, char *file2, FILE *f2, int a, int b, i
 
 static void output(char *file1, FILE *f1, char *file2, FILE *f2)
 {
-        int m, i0, i1, j0, j1;
+
+		/* Note that j0 and j1 can't be used as they are defined in math.h.
+		 * This also allows the rather amusing variable 'j00'... */
+		int m, i0, i1, j00, j01;
 
         rewind(f1);
         rewind(f2);
@@ -847,13 +852,13 @@ static void output(char *file1, FILE *f1, char *file2, FILE *f2)
         for (i0 = 1; i0 <= m; i0 = i1 + 1) {
                         while (i0 <= m && J[i0] == J[i0 - 1] + 1)
                                 i0++;
-                        j0 = J[i0 - 1] + 1;
+                        j00 = J[i0 - 1] + 1;
                         i1 = i0 - 1;
                         while (i1 < m && J[i1 + 1] == 0)
                                 i1++;
-                        j1 = J[i1 + 1] - 1;
-                        J[i1] = j1;
-                        change(file1, f1, file2, f2, i0, i1, j0, j1);
+                        j01 = J[i1 + 1] - 1;
+                        J[i1] = j01;
+                        change(file1, f1, file2, f2, i0, i1, j00, j01);
         }
         if (m == 0) {
                 change(file1, f1, file2, f2, 1, 0, 1, len[1]);
@@ -1064,7 +1069,7 @@ static void do_diff (char *dir1, char *path1, char *dir2, char *path2) {
 }
 #endif
 
-#ifdef CONFIG_FEATURE_DIFF_DIR
+#if ENABLE_FEATURE_DIFF_DIR
 static int dir_strcmp(const void *p1, const void *p2) {
 	return strcmp(*(char * const *)p1, *(char * const *)p2);
 }
@@ -1196,13 +1201,36 @@ static void diffdir (char *p1, char *p2) {
 
 
 
-extern int diff_main(int argc, char **argv) {
-        char *ep;
-        int gotstdin = 0;
+int diff_main(int argc, char **argv) {
+	char *ep;
+	int gotstdin = 0;
 
 	char *U_opt;
-	cmd_flags = bb_getopt_ulflags(argc, argv, "abdiNqrsS:tTU:wu", &start, &U_opt);
-	
+	llist_t *L_arg = NULL;
+	bb_opt_complementally = "L::";
+	cmd_flags = bb_getopt_ulflags(argc, argv, "abdiL:NqrsS:tTU:wu", &L_arg, &start, &U_opt);
+
+	if (cmd_flags & FLAG_L) {
+		while (L_arg) {
+			if (label[0] == NULL)
+				label[0] = L_arg->data;
+			else if (label[1] == NULL)
+				label[1] = L_arg->data;
+			else
+				bb_show_usage();
+
+			L_arg = L_arg->link;
+		}
+
+		/* If both label[0] and label[1] were set, they need to be swapped. */
+		if (label[0] && label[1]) {
+			char *tmp;
+			tmp = label[1];
+			label[1] = label[0];
+			label[0] = tmp;
+		}
+	}
+
 	context = 3;	/* This is the default number of lines of context. */
 	if (cmd_flags & FLAG_U) {
 		context = strtol(U_opt, &ep, 10);
@@ -1235,23 +1263,23 @@ extern int diff_main(int argc, char **argv) {
         if (gotstdin && (S_ISDIR(stb1.st_mode) || S_ISDIR(stb2.st_mode)))
                 bb_error_msg_and_die("Can't compare - to a directory");
         if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
-#ifdef CONFIG_FEATURE_DIFF_DIR
+#if ENABLE_FEATURE_DIFF_DIR
 		diffdir(argv[0], argv[1]);
 #else
 		bb_error_msg_and_die("Directory comparison not supported");
 #endif
 	}
-	else {	
+	else {
 		if (S_ISDIR(stb1.st_mode)) {
 			argv[0] = concat_path_file(argv[0], argv[1]);
 			if (stat(argv[0], &stb1) < 0)
 				bb_perror_msg_and_die("Couldn't stat %s", argv[0]);
-        	}
-        	if (S_ISDIR(stb2.st_mode)) {
+		}
+		if (S_ISDIR(stb2.st_mode)) {
 			argv[1] = concat_path_file(argv[1], argv[0]);
 			if (stat(argv[1], &stb2) < 0)
 				bb_perror_msg_and_die("Couldn't stat %s", argv[1]);
-        	}
+		}
 		print_status(diffreg(argv[0], argv[1], 0), argv[0], argv[1], NULL);
 	}
 	exit(status);

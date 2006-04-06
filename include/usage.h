@@ -454,7 +454,7 @@
 	"/dev/sda3              8690864   8553540    137324  98% /\n"
 
 #define diff_trivial_usage \
-	"[-abdiNqrTstw] [-S FILE] [-U LINES] FILE1 FILE2"
+	"[-abdiNqrTstw] [-L LABEL] [-S FILE] [-U LINES] FILE1 FILE2"
 #define diff_full_usage \
 	"Compare files line by line and output the differences between them.\n" \
 	"This diff implementation only supports unified diffs.\n\n" \
@@ -463,6 +463,7 @@
 	"\t-b\tIgnore changes in the amount of whitespace\n" \
 	"\t-d\tTry hard to find a smaller set of changes\n" \
 	"\t-i\tIgnore case differences\n" \
+	"\t-L\tUse LABEL instead of the filename in the unified header\n" \
 	"\t-N\tTreat absent files as empty\n" \
 	"\t-q\tOutput only whether files differ\n" \
 	"\t-r\tRecursively compare any subdirectories\n" \
