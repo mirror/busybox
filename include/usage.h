@@ -453,6 +453,26 @@
 	"Filesystem           1k-blocks      Used Available Use% Mounted on\n" \
 	"/dev/sda3              8690864   8553540    137324  98% /\n"
 
+#define diff_trivial_usage \
+	"[-abdiNqrTstw] [-S FILE] [-U LINES] FILE1 FILE2"
+#define diff_full_usage \
+	"Compare files line by line and output the differences between them.\n" \
+	"This diff implementation only supports unified diffs.\n\n" \
+	"Options:\n" \
+	"\t-a\tTreat all files as text\n" \
+	"\t-b\tIgnore changes in the amount of whitespace\n" \
+	"\t-d\tTry hard to find a smaller set of changes\n" \
+	"\t-i\tIgnore case differences\n" \
+	"\t-N\tTreat absent files as empty\n" \
+	"\t-q\tOutput only whether files differ\n" \
+	"\t-r\tRecursively compare any subdirectories\n" \
+	"\t-S\tStart with FILE when comparing directories\n" \
+	"\t-T\tMake tabs line up by prefixing a tab when necessary\n" \
+	"\t-s\tReport when two files are the same\n" \
+	"\t-t\tExpand tabs to spaces in output\n" \
+	"\t-U\tOutput LINES lines of context\n" \
+	"\t-w\tIgnore all whitespace\n"
+
 #define dirname_trivial_usage \
 	"FILENAME"
 #define dirname_full_usage \

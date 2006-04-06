@@ -25,6 +25,7 @@ COREUTILS-$(CONFIG_CUT)       += cut.o
 COREUTILS-$(CONFIG_DATE)      += date.o
 COREUTILS-$(CONFIG_DD)        += dd.o
 COREUTILS-$(CONFIG_DF)        += df.o
+COREUTILS-$(CONFIG_DIFF)      += diff.o
 COREUTILS-$(CONFIG_DIRNAME)   += dirname.o
 COREUTILS-$(CONFIG_DOS2UNIX)  += dos2unix.o
 COREUTILS-$(CONFIG_DU)        += du.o
