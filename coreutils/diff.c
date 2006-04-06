@@ -154,47 +154,48 @@ static void print_only(const char *path, size_t dirlen, const char *entry)
 
 static void print_status(int val, char *path1, char *path2, char *entry)
 {
+	const char * const _entry = entry ? entry : "";
+	char *_path1 = entry ? concat_path_file(path1, _entry) : path1;
+	char *_path2 = entry ? concat_path_file(path2, _entry) : path2;
         switch (val) {
         case D_ONLY:
                 print_only(path1, strlen(path1), entry);
                 break;
         case D_COMMON:
-                printf("Common subdirectories: %s%s and %s%s\n",
-                    path1, entry ? entry : "", path2, entry ? entry : "");
+                printf("Common subdirectories: %s and %s\n", _path1, _path2);
                 break;
         case D_BINARY:
-                printf("Binary files %s%s and %s%s differ\n",
-                    path1, entry ? entry : "", path2, entry ? entry : "");
+                printf("Binary files %s and %s differ\n", _path1, _path2);
                 break;
         case D_DIFFER:
                 if (cmd_flags & FLAG_q)
-                        printf("Files %s%s and %s%s differ\n",
-                            path1, entry ? entry : "",
-                            path2, entry ? entry : "");
+                        printf("Files %s and %s differ\n", _path1, _path2);
                 break;
         case D_SAME:
                 if (cmd_flags & FLAG_s)
-                        printf("Files %s%s and %s%s are identical\n",
-                            path1, entry ? entry : "",
-                            path2, entry ? entry : "");
+                        printf("Files %s and %s are identical\n", _path1, _path2);
                 break;
         case D_MISMATCH1:
-                printf("File %s%s is a directory while file %s%s is a regular file\n",
-                    path1, entry ? entry : "", path2, entry ? entry : "");
+                printf("File %s is a directory while file %s is a regular file\n",
+                    _path1, _path2);
                 break;
         case D_MISMATCH2:
-                printf("File %s%s is a regular file while file %s%s is a directory\n",
-                    path1, entry ? entry : "", path2, entry ? entry : "");
+                printf("File %s is a regular file while file %s is a directory\n",
+                    _path1, _path2);
                 break;
         case D_SKIPPED1:
-                printf("File %s%s is not a regular file or directory and was skipped\n",
-                    path1, entry ? entry : "");
+                printf("File %s is not a regular file or directory and was skipped\n",
+                    _path1);
                 break;
         case D_SKIPPED2:
-                printf("File %s%s is not a regular file or directory and was skipped\n",
-                    path2, entry ? entry : "");
+                printf("File %s is not a regular file or directory and was skipped\n",
+                    _path2);
                 break;
         }
+		if (entry) {
+			free(_path1);
+			free(_path2);
+		}
 }
 
 /*
@@ -293,8 +294,8 @@ static int files_differ(FILE *f1, FILE *f2, int flags)
 static void prepare(int i, FILE *fd, off_t filesize)
 {
         struct line *p;
-        int j, h;
-        size_t sz;
+        int h;
+        size_t j, sz;
 
         rewind(fd);
 
@@ -671,13 +672,15 @@ static int fetch(long *f, int a, int b, FILE *lb, int ch)
 
 static int asciifile(FILE *f)
 {
+#ifdef CONFIG_FEATURE_DIFF_BINARY
+	unsigned char buf[BUFSIZ];
+	int i, cnt;
+#endif
 
 	if ((cmd_flags & FLAG_a) || f == NULL)
 		return (1);
-#ifdef CONFIG_FEATURE_DIFF_BINARY
-        unsigned char buf[BUFSIZ];
-        int i, cnt;
 
+#ifdef CONFIG_FEATURE_DIFF_BINARY
 	rewind(f);
         cnt = fread(buf, 1, sizeof(buf), f);
         for (i = 0; i < cnt; i++)
@@ -730,7 +733,7 @@ static void dump_unified_vec(FILE *f1, FILE *f2)
                         ch = 'c';
                 else
                         ch = (a <= b) ? 'd' : 'a';
-
+#if 0
                 switch (ch) {
                 case 'c':
                         fetch(ixold, lowa, a - 1, f1, ' ');
@@ -746,6 +749,16 @@ static void dump_unified_vec(FILE *f1, FILE *f2)
                         fetch(ixnew, c, d, f2, '+');
                         break;
                 }
+#else
+                if (ch == 'c' || ch == 'd') {
+                        fetch(ixold, lowa, a - 1, f1, ' ');
+                        fetch(ixold, a, b, f1, '-');
+				}
+                if (ch == 'a')
+                        fetch(ixnew, lowc, c - 1, f2, ' ');
+                if (ch == 'c' || ch == 'a')
+                        fetch(ixnew, c, d, f2, '+');
+#endif
                 lowa = b + 1;
                 lowc = d + 1;
         }
@@ -948,12 +961,9 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
                         f2 = bb_xfopen(file2, "r");
         }
 	
-	switch (files_differ(f1, f2, flags)) {
-        case 0:
+	if ((i=files_differ(f1, f2, flags)) == 0)
                 goto closem;
-        case 1:
-                break;
-        default:
+	else if (i != 1) {/* 1 == ok */
                 /* error */
                 status |= 2;
                 goto closem;
@@ -1078,10 +1088,7 @@ static int add_to_dirlist (const char *filename,
 static char **get_dir(char *path) {
 
 	int i;
-
-	/* Reset dl_count - there's no need to free dl as bb_xrealloc does
-	 * the job nicely. */	
-	dl_count = 0;
+	char **retval;
 
 	/* If -r has been set, then the recursive_action function will be
 	 * used. Unfortunately, this outputs the root directory along with
@@ -1091,7 +1098,11 @@ static char **get_dir(char *path) {
 
 	int path_len = strlen(path);
 	void *userdata = &path_len;
-	
+
+	/* Reset dl_count - there's no need to free dl as bb_xrealloc does
+	 * the job nicely. */
+	dl_count = 0;
+
 	/* Now fill dl with a listing. */
 	if (cmd_flags & FLAG_r)
 		recursive_action(path, TRUE, TRUE, FALSE, add_to_dirlist, NULL, userdata);
@@ -1112,7 +1123,7 @@ static char **get_dir(char *path) {
 	qsort(dl, dl_count, sizeof(char *), dir_strcmp);
 
 	/* Copy dl so that we can return it. */
-	char **retval = xmalloc(dl_count * sizeof(char *));
+	retval = xmalloc(dl_count * sizeof(char *));
 	for (i = 0; i < dl_count; i++)
 		retval[i] = bb_xstrdup(dl[i]);
 
