@@ -653,6 +653,7 @@ config CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 	help
 	  Add feature to allow for ICMP ECHO instead of UDP datagrams.
 
+source networking/udhcp/Config.in
 
 config CONFIG_VCONFIG
 	bool "vconfig"
