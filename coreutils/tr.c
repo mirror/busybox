@@ -209,7 +209,7 @@ int tr_main(int argc, char **argv)
 	int idx = 1;
 	int i;
 	RESERVE_CONFIG_BUFFER(output, BUFSIZ);
-	RESERVE_CONFIG_UBUFFER(vector, ASCII+1);
+	RESERVE_CONFIG_BUFFER(vector, ASCII+1);
 	RESERVE_CONFIG_BUFFER(invec,  ASCII+1);
 	RESERVE_CONFIG_BUFFER(outvec, ASCII+1);
 

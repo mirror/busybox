@@ -82,7 +82,7 @@ static int bsd_sum_file(const char *file, int print_name)
 #define MY_BUF_SIZE 8192
 static int sysv_sum_file(const char *file, int print_name)
 {
-	RESERVE_CONFIG_UBUFFER(buf, MY_BUF_SIZE);
+	RESERVE_CONFIG_BUFFER(buf, MY_BUF_SIZE);
 	int fd;
 	uintmax_t total_bytes = 0;
 
