@@ -684,7 +684,7 @@ config CONFIG_FEATURE_WGET_AUTHENTICATION
 config CONFIG_FEATURE_WGET_IP6_LITERAL
 	bool "  Enable IPv6 literal addresses"
 	default y
-	depends on CONFIG_WGET
+	depends on CONFIG_WGET && CONFIG_FEATURE_IPV6
 	help
 	  Support IPv6 address literal notation in URLs.
 
