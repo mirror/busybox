@@ -259,15 +259,15 @@ before freeing them.</p>
 <p>With a very primitive MMU (using a base pointer plus length instead of page
 tables, which can provide virtual addresses and protect processes from each
 other, but no copy on write) you can still implement fork.  But it's
-unreasonably expensive, because you have to copy all the parent process's
+unreasonably expensive, because you have to copy all the parent process'
 memory into the new process (which could easily be several megabytes per fork).
 And you have to do this even though that memory gets freed again as soon as the
 exec happens.  (This is not just slow and a waste of space but causes memory
 usage spikes that can easily cause the system to run out of memory.)</p>
 
 <p>Without even a primitive MMU, you have no virtual addresses.  Every process
-can reach out and touch any other process's memory, because all pointers are to
-physical addresses with no protection.  Even if you copy a process's memory to
+can reach out and touch any other process' memory, because all pointers are to
+physical addresses with no protection.  Even if you copy a process' memory to
 new physical addresses, all of its pointers point to the old objects in the
 old process.  (Searching through the new copy's memory for pointers and
 redirect them to the new locations is not an easy problem.)</p>
@@ -307,7 +307,7 @@ failed to exec.)</p>
 (which presumably is much shorter than the heap), and leave the heap shared.
 Even with no MMU at all
 In practice, you've just wound up in a multi-threaded situation and you can't
-do a malloc() or free() on your heap without freeing the other process's memory
+do a malloc() or free() on your heap without freeing the other process' memory
 (and if you don't have the proper locking for being threaded, corrupting the
 heap if both of you try to do it at the same time and wind up stomping on
 each other while traversing the free memory lists).  The thing about vfork is
@@ -350,16 +350,16 @@ on their their sockets, now you know.)</p>
 <h2><a name="tips_memory">Memory used by relocatable code, PIC, and static linking.</a></h2>
 
 <p>The downside of standard dynamic linking is that it results in self-modifying
-code.  Although each executable's pages are mmaped() into a process's address
+code.  Although each executable's pages are mmaped() into a process' address
 space from the executable file and are thus naturally shared between processes
 out of the page cache, the library loader (ld-linux.so.2 or ld-uClibc.so.0)
 writes to these pages to supply addresses for relocatable symbols.  This
 dirties the pages, triggering copy-on-write allocation of new memory for each
-processes's dirtied pages.</p>
+processes' dirtied pages.</p>
 
 <p>One solution to this is Position Independent Code (PIC), a way of linking
 a file so all the relocations are grouped together.  This dirties fewer
-pages (often just a single page) for each process's relocations.  The down
+pages (often just a single page) for each process' relocations.  The down
 side is this results in larger executables, which take up more space on disk
 (and a correspondingly larger space in memory).  But when many copies of the
 same program are running, PIC dynamic linking trades a larger disk footprint
@@ -373,7 +373,7 @@ of a win anyway.</p>
 
 <p>You can tell the glibc linker to display debugging information about its
 relocations with the environment variable "LD_DEBUG".  Try
-"LD_DEBUG=help /bin/true" for a list of commands.  Learning to interperet
+"LD_DEBUG=help /bin/true" for a list of commands.  Learning to interpret
 "LD_DEBUG=statistics cat /proc/self/statm" could be interesting.</p>
 
 <h2><a name="who">Who are the BusyBox developers?</a></h2>
