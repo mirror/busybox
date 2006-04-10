@@ -508,6 +508,8 @@ void md5_begin(md5_ctx_t *ctx);
 void md5_hash(const void *data, size_t length, md5_ctx_t *ctx);
 void *md5_end(void *resbuf, md5_ctx_t *ctx);
 
+extern uint32_t *bb_crc32_filltable (int endian);
+
 /* busybox.h will include dmalloc later for us, else include it here.  */
 #if !defined _BB_INTERNAL_H_ && defined DMALLOC
 #include <dmalloc.h>

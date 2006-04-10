@@ -95,8 +95,8 @@ static unsigned int gunzip_outbuf_count;	/* bytes in output buffer */
 enum { gunzip_wsize = 0x8000 };
 static unsigned char *gunzip_window;
 
-static unsigned int *gunzip_crc_table;
-unsigned int gunzip_crc;
+static uint32_t *gunzip_crc_table;
+uint32_t gunzip_crc;
 
 /* If BMAX needs to be larger than 16, then h and x[] should be ulg. */
 #define BMAX 16	/* maximum bit length of any code (16 for explode) */
@@ -166,35 +166,6 @@ static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current
 		*current += 8;
 	}
 	return(bitbuffer);
-}
-
-static void make_gunzip_crc_table(void)
-{
-	const unsigned int poly = 0xedb88320;	/* polynomial exclusive-or pattern */
-	unsigned short i;	/* counter for all possible eight bit values */
-
-	/* initial shift register value */
-	gunzip_crc = 0xffffffffL;
-	gunzip_crc_table = (unsigned int *) xmalloc(256 * sizeof(unsigned int));
-
-	/* Compute and print table of CRC's, five per line */
-	for (i = 0; i < 256; i++) {
-		unsigned int table_entry;	/* crc shift register */
-		unsigned char k;	/* byte being shifted into crc apparatus */
-
-		table_entry = i;
-		/* The idea to initialize the register with the byte instead of
-		   * zero was stolen from Haruhiko Okumura's ar002
-		 */
-		for (k = 8; k; k--) {
-			if (table_entry & 1) {
-				table_entry = (table_entry >> 1) ^ poly;
-			} else {
-				table_entry >>= 1;
-			}
-		}
-		gunzip_crc_table[i] = table_entry;
-	}
 }
 
 /*
@@ -922,8 +893,9 @@ int inflate_unzip(int in, int out)
 	gunzip_bb = 0;
 
 	/* Create the crc table */
-	make_gunzip_crc_table();
-
+	gunzip_crc_table = bb_crc32_filltable(0);
+	gunzip_crc = ~0;
+	
 	/* Allocate space for buffer */
 	bytebuffer = xmalloc(bytebuffer_max);
 
@@ -955,7 +927,7 @@ int inflate_unzip(int in, int out)
 
 int inflate_gunzip(int in, int out)
 {
-	unsigned int stored_crc = 0;
+	uint32_t stored_crc = 0;
 	unsigned int count;
 
 	inflate_unzip(in, out);
@@ -972,7 +944,7 @@ int inflate_gunzip(int in, int out)
 	}
 
 	/* Validate decompression - crc */
-	if (stored_crc != (gunzip_crc ^ 0xffffffffL)) {
+	if (stored_crc != (~gunzip_crc)) {
 		bb_error_msg("crc error");
 		return -1;
 	}

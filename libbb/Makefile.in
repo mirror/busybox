@@ -13,7 +13,7 @@ LIBBB-n:=
 LIBBB-y:= \
 	bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
 	compare_string_array.c concat_path_file.c copy_file.c copyfd.c \
-	create_icmp_socket.c create_icmp6_socket.c \
+	crc32.c create_icmp_socket.c create_icmp6_socket.c \
 	device_open.c dump.c error_msg.c error_msg_and_die.c find_mount_point.c \
 	find_pid_by_name.c find_root_device.c fgets_str.c full_read.c \
 	full_write.c get_last_path_component.c get_line_from_file.c \

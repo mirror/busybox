@@ -84,8 +84,8 @@ typedef struct {
 
 	/* The CRC values stored in the block header and calculated from the data */
 
-	unsigned int crc32Table[256],headerCRC, totalCRC, writeCRC;
-
+	uint32_t headerCRC, totalCRC, writeCRC;
+	uint32_t *crc32Table;
 	/* Intermediate buffer and its size (in bytes) */
 
 	unsigned int *dbuf, dbufSize;
@@ -620,7 +620,7 @@ decode_next_byte:
 		bd->writeCount=previous;
 		return (previous!=RETVAL_LAST_BLOCK) ? previous : gotcount;
 	}
-	bd->writeCRC=0xffffffffUL;
+	bd->writeCRC=~0;
 	pos=bd->writePos;
 	current=bd->writeCurrent;
 	goto decode_next_byte;
@@ -634,7 +634,7 @@ static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
 						int len)
 {
 	bunzip_data *bd;
-	unsigned int i,j,c;
+	unsigned int i;
 	const unsigned int BZh0=(((unsigned int)'B')<<24)+(((unsigned int)'Z')<<16)
 							+(((unsigned int)'h')<<8)+(unsigned int)'0';
 
@@ -657,12 +657,7 @@ static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
 
 	/* Init the CRC32 table (big endian) */
 
-	for(i=0;i<256;i++) {
-		c=i<<24;
-		for(j=8;j;j--)
-			c=c&0x80000000 ? (c<<1)^0x04c11db7 : (c<<1);
-		bd->crc32Table[i]=c;
-	}
+	bd->crc32Table = bb_crc32_filltable(1);
 
 	/* Setup for I/O error handling via longjmp */
 
