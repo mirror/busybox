@@ -222,7 +222,7 @@ config CONFIG_FEATURE_IFUPDOWN_IP
 	  Use the iproute "ip" command to implement "ifup" and "ifdown", rather
 	  than the default of using the older 'ifconfig' and 'route' utilities.
 
-config CONFIG_FEATURE_IFUPDOWN_IP_BUUILTIN
+config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
 	bool "  Use busybox ip applet"
 	default y
 	depends on CONFIG_FEATURE_IFUPDOWN_IP
@@ -236,7 +236,7 @@ config CONFIG_FEATURE_IFUPDOWN_IP_BUUILTIN
 	  If leave this disabled, you must install the full-blown iproute2
 	  utility or the  "ifup" and "ifdown" applets will not work.
 
-config CONFIG_FEATURE_IFUPDOWN_IP_BUUILTIN
+config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
 	bool "  Use busybox ifconfig and route applets"
 	default y
 	depends on CONFIG_IFUPDOWN && !CONFIG_FEATURE_IFUPDOWN_IP
