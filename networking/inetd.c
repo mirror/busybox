@@ -155,11 +155,11 @@
 #include "busybox.h"
 
 //#define CONFIG_FEATURE_INETD_RPC
-//#define CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
-//#define CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
-//#define CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
-//#define CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
-//#define CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
+//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
+//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
+//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
+//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 //#define CONFIG_FEATURE_IPV6
 
 #ifdef CONFIG_FEATURE_INETD_RPC
@@ -191,17 +191,17 @@ static struct rlimit rlim_ofile;
 
 
 /* Check unsupporting builtin */
-#if defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO || \
-	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD || \
-	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME || \
-	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME || \
-	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+#if defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 # define INETD_FEATURE_ENABLED
 #endif
 
-#if defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO || \
-	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD || \
-	defined CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+#if defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD || \
+	defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 # define INETD_SETPROCTITLE
 #endif
 
@@ -225,7 +225,7 @@ typedef struct servtab
   char *se_user;                        /* user name to run as */
   char *se_group;                       /* group name to run as */
 #ifdef INETD_FEATURE_ENABLED
-  const struct biltin *se_bi;                 /* if built-in, description */
+  const struct builtin *se_bi;                 /* if built-in, description */
 #endif
   char *se_server;                      /* server program */
 #define MAXARGV 20
@@ -254,7 +254,7 @@ typedef struct servtab
 static servtab_t *servtab;
 
 #ifdef INETD_FEATURE_ENABLED
-struct biltin
+struct builtin
 {
   const char *bi_service;               /* internally provided service name */
   int bi_socktype;                      /* type of socket supported */
@@ -264,53 +264,53 @@ struct biltin
 };
 
 	/* Echo received data */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 static void echo_stream (int, servtab_t *);
 static void echo_dg (int, servtab_t *);
 #endif
 	/* Internet /dev/null */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 static void discard_stream (int, servtab_t *);
 static void discard_dg (int, servtab_t *);
 #endif
 	/* Return 32 bit time since 1900 */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
 static void machtime_stream (int, servtab_t *);
 static void machtime_dg (int, servtab_t *);
 #endif
 	/* Return human-readable time */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 static void daytime_stream (int, servtab_t *);
 static void daytime_dg (int, servtab_t *);
 #endif
 	/* Familiar character generator */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 static void chargen_stream (int, servtab_t *);
 static void chargen_dg (int, servtab_t *);
 #endif
 
-static const struct biltin biltins[] = {
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
+static const struct builtin builtins[] = {
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
   /* Echo received data */
   {"echo", SOCK_STREAM, 1, 0, echo_stream,},
   {"echo", SOCK_DGRAM, 0, 0, echo_dg,},
 #endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
   /* Internet /dev/null */
   {"discard", SOCK_STREAM, 1, 0, discard_stream,},
   {"discard", SOCK_DGRAM, 0, 0, discard_dg,},
 #endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
   /* Return 32 bit time since 1900 */
   {"time", SOCK_STREAM, 0, 0, machtime_stream,},
   {"time", SOCK_DGRAM, 0, 0, machtime_dg,},
 #endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
   /* Return human-readable time */
   {"daytime", SOCK_STREAM, 0, 0, daytime_stream,},
   {"daytime", SOCK_DGRAM, 0, 0, daytime_dg,},
 #endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
   /* Familiar character generator */
   {"chargen", SOCK_STREAM, 1, 0, chargen_stream,},
   {"chargen", SOCK_DGRAM, 0, 0, chargen_dg,},
@@ -744,9 +744,9 @@ more:
   sep->se_server = newstr (skip (&cp));
   if (strcmp (sep->se_server, "internal") == 0) {
 #ifdef INETD_FEATURE_ENABLED
-	const struct biltin *bi;
+	const struct builtin *bi;
 
-	for (bi = biltins; bi->bi_service; bi++)
+	for (bi = builtins; bi->bi_service; bi++)
 	  if (bi->bi_socktype == sep->se_socktype &&
 		  strcmp (bi->bi_service, sep->se_service) == 0)
 		break;
@@ -1549,9 +1549,9 @@ inetd_main (int argc, char *argv[])
  */
 #define BUFSIZE 4096
 
-#if defined(CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO) || \
-    defined(CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN) || \
-    defined(CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME)
+#if defined(CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO) || \
+    defined(CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN) || \
+    defined(CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME)
 static int dg_badinput (struct sockaddr_in *dg_sin)
 {
   if (ntohs (dg_sin->sin_port) < IPPORT_RESERVED)
@@ -1563,7 +1563,7 @@ static int dg_badinput (struct sockaddr_in *dg_sin)
 }
 #endif
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 /* Echo service -- echo data back */
 /* ARGSUSED */
 static void
@@ -1596,9 +1596,9 @@ echo_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	return;
   (void) sendto (s, buffer, i, 0, &sa, sizeof (sa));
 }
-#endif  /* CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO */
+#endif  /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO */
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 /* Discard service -- ignore data */
 /* ARGSUSED */
 static void
@@ -1621,10 +1621,10 @@ discard_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
 
   (void) read (s, buffer, sizeof (buffer));
 }
-#endif /* CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD */
+#endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD */
 
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 #define LINESIZ 72
 static char ring[128];
 static char *endring;
@@ -1709,10 +1709,10 @@ chargen_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
   text[LINESIZ + 1] = '\n';
   (void) sendto (s, text, sizeof (text), 0, &sa, sizeof (sa));
 }
-#endif /* CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN */
+#endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN */
 
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
 /*
  * Return a machine readable date and time, in the form of the
  * number of seconds since midnight, Jan 1, 1900.  Since gettimeofday
@@ -1763,10 +1763,10 @@ machtime_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
   result = machtime ();
   (void) sendto (s, (char *) &result, sizeof (result), 0, &sa, sizeof (sa));
 }
-#endif /* CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME */
+#endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME */
 
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
+#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 /* Return human-readable time of day */
 /* ARGSUSED */
 static void daytime_stream (int s, servtab_t *sep ATTRIBUTE_UNUSED)
@@ -1801,4 +1801,4 @@ daytime_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
   (void) sprintf (buffer, "%.24s\r\n", ctime (&t));
   (void) sendto (s, buffer, strlen (buffer), 0, &sa, sizeof (sa));
 }
-#endif /* CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME */
+#endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME */

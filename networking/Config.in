@@ -222,7 +222,7 @@ config CONFIG_FEATURE_IFUPDOWN_IP
 	  Use the iproute "ip" command to implement "ifup" and "ifdown", rather
 	  than the default of using the older 'ifconfig' and 'route' utilities.
 
-config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
+config CONFIG_FEATURE_IFUPDOWN_IP_BUUILTIN
 	bool "  Use busybox ip applet"
 	default y
 	depends on CONFIG_FEATURE_IFUPDOWN_IP
@@ -236,7 +236,7 @@ config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
 	  If leave this disabled, you must install the full-blown iproute2
 	  utility or the  "ifup" and "ifdown" applets will not work.
 
-config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
+config CONFIG_FEATURE_IFUPDOWN_IP_BUUILTIN
 	bool "  Use busybox ifconfig and route applets"
 	default y
 	depends on CONFIG_IFUPDOWN && !CONFIG_FEATURE_IFUPDOWN_IP
@@ -286,35 +286,35 @@ config CONFIG_INETD
 	help
 	  Internet superserver daemon
 
-config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_ECHO
+config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 	bool "  Support echo service"
 	default y
 	depends on CONFIG_INETD
 	help
 	  Echo received data internal inetd service
 
-config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DISCARD
+config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 	bool "  Support discard service"
 	default y
 	depends on CONFIG_INETD
 	help
 	  Internet /dev/null internal inetd service
 
-config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_TIME
+config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
 	bool "  Support time service"
 	default y
 	depends on CONFIG_INETD
 	help
 	  Return 32 bit time since 1900 internal inetd service
 
-config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_DAYTIME
+config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 	bool "  Support daytime service"
 	default y
 	depends on CONFIG_INETD
 	help
 	  Return human-readable time internal inetd service
 
-config CONFIG_FEATURE_INETD_SUPPORT_BILTIN_CHARGEN
+config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 	bool "  Support chargen service"
 	default y
 	depends on CONFIG_INETD
