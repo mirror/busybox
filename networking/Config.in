@@ -260,7 +260,7 @@ config CONFIG_FEATURE_IFUPDOWN_IPV4
 config CONFIG_FEATURE_IFUPDOWN_IPV6
 	bool "  Enable support for IPv6"
 	default n
-	depends on CONFIG_IFUPDOWN
+	depends on CONFIG_IFUPDOWN && CONFIG_FEATURE_IPV6
 	help
 	  If you need support for IPv6, turn this option on.
 
@@ -687,8 +687,6 @@ config CONFIG_FEATURE_WGET_IP6_LITERAL
 	depends on CONFIG_WGET
 	help
 	  Support IPv6 address literal notation in URLs.
-
-source networking/udhcp/Config.in
 
 config CONFIG_ZCIP
 	bool "zcip"
