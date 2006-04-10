@@ -4,20 +4,9 @@
  *
  * Copyright (C) 1999 by Lineo, inc. and John Beppu
  * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
+ * Unified with delgroup by Tito Ragusa <farmatito@tiscali.it>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  */
 
@@ -28,39 +17,82 @@
 #include <string.h>
 #include "busybox.h"
 
+/* where to start and stop deletion */
+typedef struct {
+	size_t start;
+	size_t stop;
+} Bounds;
 
-#include "delline.c"
+/* An interesting side-effect of boundary()'s
+ * implementation is that the first user (typically root)
+ * cannot be removed.  Let's call it a feature. */
+static inline Bounds boundary(const char *buffer, const char *login)
+{
+	char needle[256];
+	char *start;
+	char *stop;
+	Bounds b;
 
-static const char deluser_format[]="%s: User could not be removed from %s";
+	snprintf(needle, 256, "\n%s:", login);
+	needle[255] = 0;
+	start = strstr(buffer, needle);
+	if (!start) {
+		b.start = 0;
+		b.stop = 0;
+		return b;
+	}
+	start++;
+
+	stop = index(start, '\n');	/* index is a BSD-ism */
+	b.start = start - buffer;
+	b.stop = stop - buffer;
+	return b;
+}
+
+/* grep -v ^login (except it only deletes the first match) */
+/* ...in fact, I think I'm going to simplify this later */
+static void del_line_matching(const char *login, const char *filename)
+{
+	char *buffer;
+	FILE *passwd;
+	Bounds b;
+	struct stat statbuf;
+
+
+	if ((passwd = bb_wfopen(filename, "r"))) {
+		xstat(filename, &statbuf);
+		buffer = (char *) xmalloc(statbuf.st_size * sizeof(char));
+		fread(buffer, statbuf.st_size, sizeof(char), passwd);
+		fclose(passwd);
+		/* find the user to remove */
+		b = boundary(buffer, login);
+		if (b.stop != 0) {
+			/* write the file w/o the user */
+			if ((passwd = bb_wfopen(filename, "w"))) {
+				fwrite(buffer, (b.start - 1), sizeof(char), passwd);
+				fwrite(&buffer[b.stop], (statbuf.st_size - b.stop), sizeof(char), passwd);
+				fclose(passwd);
+			}
+		} else {
+			bb_error_msg("Can't find '%s' in '%s'", login, filename);
+		}
+		free(buffer);
+	}
+}
 
 int deluser_main(int argc, char **argv)
 {
-	/* int successful; */
-	int failure;
-
 	if (argc != 2) {
 		bb_show_usage();
 	} else {
-
-		failure = del_line_matching(argv[1], bb_path_passwd_file);
-		if (failure) {
-			bb_error_msg_and_die(deluser_format, argv[1], bb_path_passwd_file);
+		if (ENABLE_DELUSER && bb_applet_name[3] == 'u') {
+			del_line_matching(argv[1], bb_path_passwd_file);
+			if (ENABLE_FEATURE_SHADOWPASSWDS)
+				del_line_matching(argv[1], bb_path_shadow_file);
 		}
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
-		failure = del_line_matching(argv[1], bb_path_shadow_file);
-		if (failure) {
-			bb_error_msg_and_die(deluser_format, argv[1], bb_path_shadow_file);
-		}
-		failure = del_line_matching(argv[1], bb_path_gshadow_file);
-		if (failure) {
-			bb_error_msg_and_die(deluser_format, argv[1], bb_path_gshadow_file);
-		}
-#endif
-		failure = del_line_matching(argv[1], bb_path_group_file);
-		if (failure) {
-			bb_error_msg_and_die(deluser_format, argv[1], bb_path_group_file);
-		}
-
+		del_line_matching(argv[1], bb_path_group_file);
+		if (ENABLE_FEATURE_SHADOWPASSWDS)
+			del_line_matching(argv[1], bb_path_gshadow_file);
 	}
 	return (EXIT_SUCCESS);
 }

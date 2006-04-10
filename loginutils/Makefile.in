@@ -20,7 +20,9 @@ LOGINUTILS-$(CONFIG_SU)		+= su.o
 LOGINUTILS-$(CONFIG_SULOGIN)	+= sulogin.o
 LOGINUTILS-$(CONFIG_VLOCK)	+= vlock.o
 LOGINUTILS-$(CONFIG_DELUSER)	+= deluser.o
-LOGINUTILS-$(CONFIG_DELGROUP)	+= delgroup.o
+LOGINUTILS-$(CONFIG_DELGROUP)	+= deluser.o
+
+LOGINUTILS-y:=$(sort $(LOGINUTILS-y))
 
 ifneq ($(strip $(LOGINUTILS-y)),)
 libraries-y+=$(LOGINUTILS_DIR)$(LOGINUTILS_AR)
