@@ -22,9 +22,6 @@ sh
   bbsh, but it's a low priority...
 ---
 diff
-  We should have a diff -u command.  We have patch, we should have diff
-  (we only need to support unified diffs though).
-
   Also, make sure we handle empty files properly:
     From the patch man page:
 
