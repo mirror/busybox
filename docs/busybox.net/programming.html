@@ -17,6 +17,7 @@
     <li><a href="#tips_encrypted_passwords">Encrypted Passwords</a></li>
     <li><a href="#tips_vfork">Fork and vfork</a></li>
     <li><a href="#tips_short_read">Short reads and writes</a></li>
+    <li><a href="#tips_memory">Memory used by relocatable code, PIC, and static linking.</a></li>
   </ul>
   <li><a href="#who">Who are the BusyBox developers?</a></li>
 </ul>
@@ -346,6 +347,35 @@ data comes in that can be merged into the same packet.  (In case you were
 wondering why action games that use TCP/IP set TCP_NODELAY to lower the latency
 on their their sockets, now you know.)</p>
 
+<h2><a name="tips_memory">Memory used by relocatable code, PIC, and static linking.</a></h2>
+
+<p>The downside of standard dynamic linking is that it results in self-modifying
+code.  Although each executable's pages are mmaped() into a process's address
+space from the executable file and are thus naturally shared between processes
+out of the page cache, the library loader (ld-linux.so.2 or ld-uClibc.so.0)
+writes to these pages to supply addresses for relocatable symbols.  This
+dirties the pages, triggering copy-on-write allocation of new memory for each
+processes's dirtied pages.</p>
+
+<p>One solution to this is Position Independent Code (PIC), a way of linking
+a file so all the relocations are grouped together.  This dirties fewer
+pages (often just a single page) for each process's relocations.  The down
+side is this results in larger executables, which take up more space on disk
+(and a correspondingly larger space in memory).  But when many copies of the
+same program are running, PIC dynamic linking trades a larger disk footprint
+for a smaller memory footprint, by sharing more pages.</p>
+
+<p>A third solution is static linking.  A statically linked program has no
+relocations, and thus the entire executable is shared between all running
+instances.  This tends to have a significantly larger disk footprint, but
+on a system with only one or two executables, shared libraries aren't much
+of a win anyway.</p>
+
+<p>You can tell the glibc linker to display debugging information about its
+relocations with the environment variable "LD_DEBUG".  Try
+"LD_DEBUG=help /bin/true" for a list of commands.  Learning to interperet
+"LD_DEBUG=statistics cat /proc/self/statm" could be interesting.</p>
+
 <h2><a name="who">Who are the BusyBox developers?</a></h2>
 
 <p>The following login accounts currently exist on busybox.net.  (I.E. these
@@ -375,7 +405,6 @@ solar     :Ned Ludd
 timr      :Tim Riker
 tobiasa   :Tobias Anderberg
 vapier    :Mike Frysinger
-vodz      :Vladimir N. Oleynik
 </pre>
 
 <p>The following accounts used to exist on busybox.net, but don't anymore so
@@ -395,6 +424,7 @@ miles
 proski
 rjune
 tausq
+vodz      :Vladimir N. Oleynik
 </pre>
 
 
