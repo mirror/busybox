@@ -266,6 +266,104 @@ static char *parse_command_string( char *src, char **dst )
 #endif /* ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS */
 
 /*
+ * This function reads aliases and default module options from a configuration file
+ * (/etc/modprobe.conf syntax). It supports includes (only files, no directories).
+ */
+static void include_conf ( struct dep_t **first, struct dep_t **current, char *buffer, int buflen, int fd )
+{
+	int continuation_line = 0;
+
+	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias) !
+
+	while ( reads ( fd, buffer, buflen)) {
+		int l;
+		char *p;
+
+		p = strchr ( buffer, '#' );
+		if ( p )
+			*p = 0;
+
+		l = bb_strlen ( buffer );
+
+		while ( l && isspace ( buffer [l-1] )) {
+			buffer [l-1] = 0;
+			l--;
+		}
+
+		if ( l == 0 ) {
+			continuation_line = 0;
+			continue;
+		}
+
+		if ( !continuation_line ) {
+			if (( strncmp ( buffer, "alias", 5 ) == 0 ) && isspace ( buffer [5] )) {
+				char *alias, *mod;
+
+				if ( parse_tag_value ( buffer + 6, &alias, &mod )) {
+					/* handle alias as a module dependent on the aliased module */
+					if ( !*current ) {
+						(*first) = (*current) = (struct dep_t *) xcalloc ( 1, sizeof ( struct dep_t ));
+					}
+					else {
+						(*current)-> m_next = (struct dep_t *) xcalloc ( 1, sizeof ( struct dep_t ));
+						(*current) = (*current)-> m_next;
+					}
+					(*current)-> m_name  = bb_xstrdup ( alias );
+					(*current)-> m_isalias = 1;
+
+					if (( strcmp ( mod, "off" ) == 0 ) || ( strcmp ( mod, "null" ) == 0 )) {
+						(*current)-> m_depcnt = 0;
+						(*current)-> m_deparr = 0;
+					}
+					else {
+						(*current)-> m_depcnt  = 1;
+						(*current)-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
+						(*current)-> m_deparr[0] = bb_xstrdup ( mod );
+					}
+					(*current)-> m_next    = 0;
+				}
+			}
+			else if (( strncmp ( buffer, "options", 7 ) == 0 ) && isspace ( buffer [7] )) {
+				char *mod, *opt;
+
+				/* split the line in the module/alias name, and options */
+				if ( parse_tag_value ( buffer + 8, &mod, &opt )) {
+					struct dep_t *dt;
+
+					/* find the corresponding module */
+					for ( dt = *first; dt; dt = dt-> m_next ) {
+						if ( strcmp ( dt-> m_name, mod ) == 0 )
+							break;
+					}
+					if ( dt ) {
+						if ( ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS ) {
+							char* new_opt = NULL;
+							while( ( opt = parse_command_string( opt, &new_opt ) ) ) {
+								dt-> m_options = append_option( dt-> m_options, new_opt );
+							}
+						} else {
+							dt-> m_options = append_option( dt-> m_options, opt );
+						}
+					}
+				}
+			}
+			else if (( strncmp ( buffer, "include", 7 ) == 0 ) && isspace ( buffer [7] )) {
+
+				int fdi; char *filename = buffer + 8;
+
+				while ( isspace ( *filename ))
+					filename++;
+
+				if (( fdi = open ( filename, O_RDONLY )) >= 0 ) {
+					include_conf(first, current, buffer, buflen, fdi);
+					close(fdi);
+				}
+			}
+		}
+	}
+}
+
+/*
  * This function builds a list of dependency rules from /lib/modules/`uname -r\modules.dep.
  * It then fills every modules and aliases with their  default options, found by parsing
  * modprobe.conf (or modules.conf, or conf.modules).
@@ -446,90 +544,28 @@ static struct dep_t *build_dep ( void )
 	}
 	close ( fd );
 
-	// alias parsing is not 100% correct (no correct handling of continuation lines within an alias) !
-
 	if (!ENABLE_FEATURE_2_6_MODULES
 			|| ( fd = open ( "/etc/modprobe.conf", O_RDONLY )) < 0 )
 		if (( fd = open ( "/etc/modules.conf", O_RDONLY )) < 0 )
 			if (( fd = open ( "/etc/conf.modules", O_RDONLY )) < 0 )
 				return first;
 
-	continuation_line = 0;
-	while ( reads ( fd, buffer, sizeof( buffer ))) {
-		int l;
-		char *p;
+	include_conf (&first, &current, buffer, sizeof(buffer), fd);
+	close(fd);
 
-		p = strchr ( buffer, '#' );
-		if ( p )
-			*p = 0;
+	filename = bb_xasprintf("/lib/modules/%s/modules.alias", un.release );
 
-		l = bb_strlen ( buffer );
+	if (( fd = open ( filename, O_RDONLY )) < 0 ) {
 
-		while ( l && isspace ( buffer [l-1] )) {
-			buffer [l-1] = 0;
-			l--;
-		}
-
-		if ( l == 0 ) {
-			continuation_line = 0;
-			continue;
-		}
-
-		if ( !continuation_line ) {
-			if (( strncmp ( buffer, "alias", 5 ) == 0 ) && isspace ( buffer [5] )) {
-				char *alias, *mod;
-
-				if ( parse_tag_value ( buffer + 6, &alias, &mod )) {
-					/* handle alias as a module dependent on the aliased module */
-					if ( !current ) {
-						first = current = (struct dep_t *) xcalloc ( 1, sizeof ( struct dep_t ));
-					}
-					else {
-						current-> m_next = (struct dep_t *) xcalloc ( 1, sizeof ( struct dep_t ));
-						current = current-> m_next;
-					}
-					current-> m_name  = bb_xstrdup ( alias );
-					current-> m_isalias = 1;
-
-					if (( strcmp ( mod, "off" ) == 0 ) || ( strcmp ( mod, "null" ) == 0 )) {
-						current-> m_depcnt = 0;
-						current-> m_deparr = 0;
-					}
-					else {
-						current-> m_depcnt  = 1;
-						current-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
-						current-> m_deparr[0] = bb_xstrdup ( mod );
-					}
-					current-> m_next    = 0;
-				}
-			}
-			else if (( strncmp ( buffer, "options", 7 ) == 0 ) && isspace ( buffer [7] )) {
-				char *mod, *opt;
-
-				/* split the line in the module/alias name, and options */
-				if ( parse_tag_value ( buffer + 8, &mod, &opt )) {
-					struct dep_t *dt;
-
-					/* find the corresponding module */
-					for ( dt = first; dt; dt = dt-> m_next ) {
-						if ( strcmp ( dt-> m_name, mod ) == 0 )
-							break;
-					}
-					if ( dt ) {
-						if ( ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS ) {
-							char* new_opt = NULL;
-							while( ( opt = parse_command_string( opt, &new_opt ) ) ) {
-								dt-> m_options = append_option( dt-> m_options, new_opt );
-							}
-						} else {
-							dt-> m_options = append_option( dt-> m_options, opt );
-						}
-					}
-				}
-			}
+		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
+		if (( fd = open ( "/lib/modules/modules.alias", O_RDONLY )) < 0 ) {
+			return first;
 		}
 	}
-	close ( fd );
+	free(filename);
+
+	include_conf (&first, &current, buffer, sizeof(buffer), fd);
+	close(fd);
 
 	return first;
 }
