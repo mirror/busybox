@@ -22,7 +22,7 @@
   <li><a href="#who">Who are the BusyBox developers?</a></li>
 </ul>
 
-<h2><b><a name="goals" />What are the goals of busybox?</b></h2>
+<h2><b><a name="goals">What are the goals of busybox?</a></b></h2>
 
 <p>Busybox aims to be the smallest and simplest correct implementation of the
 standard Linux command line tools.  First and foremost, this means the
@@ -31,7 +31,7 @@ and cleanest implementation we can manage, be <a href="#standards">standards
 compliant</a>, minimize run-time memory usage (heap and stack), run fast, and
 take over the world.</p>
 
-<h2><b><a name="design" />What is the design of busybox?</b></h2>
+<h2><b><a name="design">What is the design of busybox?</a></b></h2>
 
 <p>Busybox is like a swiss army knife: one thing with many functions.
 The busybox executable can act like many different programs depending on
@@ -53,9 +53,9 @@ binaries for each applet, and a "libbb.so" to make the busybox common code
 available as a shared library.  Neither is ready yet at the time of this
 writing.</p>
 
-<a name="source" />
+<a name="source"></a>
 
-<h2><a name="source_applets" /><b>The applet directories</b></h2>
+<h2><a name="source_applets"><b>The applet directories</b></a></h2>
 
 <p>The directory "applets" contains the busybox startup code (applets.c and
 busybox.c), and several subdirectories containing the code for the individual
@@ -95,7 +95,7 @@ html, txt, and man page formats) in the docs directory.  See
 <a href="#adding">adding an applet to busybox</a> for more
 information.</p>
 
-<h2><a name="source_libbb" /><b>libbb</b></h2>
+<h2><a name="source_libbb"><b>libbb</b></a></h2>
 
 <p>Most non-setup code shared between busybox applets lives in the libbb
 directory.  It's a mess that evolved over the years without much auditing
@@ -110,7 +110,7 @@ of open(), close(), read(), and write() that test for their own failures
 and/or retry automatically, linked list management functions (llist.c),
 command line argument parsing (getopt_ulflags.c), and a whole lot more.</p>
 
-<h2><a name="adding" /><b>Adding an applet to busybox</b></h2>
+<h2><a name="adding"><b>Adding an applet to busybox</b></a></h2>
 
 <p>To add a new applet to busybox, first pick a name for the applet and
 a corresponding CONFIG_NAME.  Then do this:</p>
@@ -151,10 +151,10 @@ bugs.  Be sure to try both "allyesconfig" and "allnoconfig" (and
 
 </ul>
 
-<h2><a name="standards" />What standards does busybox adhere to?</a></h2>
+<h2><a name="standards">What standards does busybox adhere to?</a></h2>
 
 <p>The standard we're paying attention to is the "Shell and Utilities"
-portion of the <a href=http://www.opengroup.org/onlinepubs/009695399/>Open
+portion of the <a href="http://www.opengroup.org/onlinepubs/009695399/">Open
 Group Base Standards</a> (also known as the Single Unix Specification version
 3 or SUSv3).  Note that paying attention isn't necessarily the same thing as
 following it.</p>
@@ -330,7 +330,7 @@ return 0 unless it has hit the end of input, and an attempt to write 0
 bytes should be ignored by the OS.)</p>
 
 <p>As for short writes, play around with two processes piping data to each
-other on the command line (cat bigfile | gzip > out.gz) and suspend and
+other on the command line (cat bigfile | gzip &gt; out.gz) and suspend and
 resume a few times (ctrl-z to suspend, "fg" to resume).  The writer can
 experience short writes, which are especially dangerous because if you don't
 notice them you'll discard data.  They can also happen when a system is under
@@ -340,7 +340,7 @@ text console scrolling...)</p>
 
 <p>So will data always be read from the far end of a pipe at the
 same chunk sizes it was written in?  Nope.  Don't rely on that.  For one
-counterexample, see <a href="http://www.faqs.org/rfcs/rfc896.html">rfc 896</p>
+counterexample, see <a href="http://www.faqs.org/rfcs/rfc896.html">rfc 896 
 for Nagle's algorithm</a>, which waits a fraction of a second or so before
 sending out small amounts of data through a TCP/IP connection in case more
 data comes in that can be merged into the same packet.  (In case you were
