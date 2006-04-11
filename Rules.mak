@@ -73,7 +73,7 @@ CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
 #GCCINCDIR:=$(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
 WARNINGS=-Wall -Wstrict-prototypes -Wshadow
-CFLAGS+=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
+CFLAGS:=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
 
 ARFLAGS=cru
 
