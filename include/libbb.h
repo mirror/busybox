@@ -479,8 +479,11 @@ extern void llist_free(llist_t *elm);
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 
+#if defined(__uClinux__)
 extern void vfork_daemon_rexec(int nochdir, int noclose,
 		int argc, char **argv, char *foreground_opt);
+#endif
+
 extern int get_terminal_width_height(int fd, int *width, int *height);
 extern unsigned long get_ug_id(const char *s, long (*__bb_getxxnam)(const char *));
 
