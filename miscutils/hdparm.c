@@ -2772,8 +2772,10 @@ missing_arg_error:
 							p = *argv++, --argc;
 						else
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF */
+#if defined CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF || defined CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 expected_hwif_error:
 							bb_error_msg_and_die("expected hwif value"); /* "expected hwif_irq" */
+#endif /* CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF || CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF */
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 
 						sscanf(p, "%i", &hwif_irq);
