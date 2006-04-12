@@ -13,7 +13,7 @@
  */
 
 #include <stdio.h>
-#include <inttypes.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
@@ -146,15 +146,15 @@ static void print_statfs(char *pformat, size_t buf_len, char m,
 		printf(pformat, human_fstype(statfsbuf->f_type));
 		break;
 	case 'b':
-		strncat(pformat, "ld", buf_len);
+		strncat(pformat, "jd", buf_len);
 		printf(pformat, (intmax_t) (statfsbuf->f_blocks));
 		break;
 	case 'f':
-		strncat(pformat, "ld", buf_len);
+		strncat(pformat, "jd", buf_len);
 		printf(pformat, (intmax_t) (statfsbuf->f_bfree));
 		break;
 	case 'a':
-		strncat(pformat, "ld", buf_len);
+		strncat(pformat, "jd", buf_len);
 		printf(pformat, (intmax_t) (statfsbuf->f_bavail));
 		break;
 	case 'S':
@@ -163,11 +163,11 @@ static void print_statfs(char *pformat, size_t buf_len, char m,
 		printf(pformat, (unsigned long int) (statfsbuf->f_bsize));
 		break;
 	case 'c':
-		strncat(pformat, "ld", buf_len);
+		strncat(pformat, "jd", buf_len);
 		printf(pformat, (intmax_t) (statfsbuf->f_files));
 		break;
 	case 'd':
-		strncat(pformat, "ld", buf_len);
+		strncat(pformat, "jd", buf_len);
 		printf(pformat, (intmax_t) (statfsbuf->f_ffree));
 		break;
 	default:
@@ -208,15 +208,15 @@ static void print_stat(char *pformat, size_t buf_len, char m,
 		}
 		break;
 	case 'd':
-		strncat(pformat, "lu", buf_len);
+		strncat(pformat, "ju", buf_len);
 		printf(pformat, (uintmax_t) statbuf->st_dev);
 		break;
 	case 'D':
-		strncat(pformat, "lx", buf_len);
+		strncat(pformat, "jx", buf_len);
 		printf(pformat, (uintmax_t) statbuf->st_dev);
 		break;
 	case 'i':
-		strncat(pformat, "lu", buf_len);
+		strncat(pformat, "ju", buf_len);
 		printf(pformat, (uintmax_t) statbuf->st_ino);
 		break;
 	case 'a':
@@ -268,7 +268,7 @@ static void print_stat(char *pformat, size_t buf_len, char m,
 		printf(pformat, (unsigned long int) minor(statbuf->st_rdev));
 		break;
 	case 's':
-		strncat(pformat, "lu", buf_len);
+		strncat(pformat, "ju", buf_len);
 		printf(pformat, (uintmax_t) (statbuf->st_size));
 		break;
 	case 'B':
@@ -276,7 +276,7 @@ static void print_stat(char *pformat, size_t buf_len, char m,
 		printf(pformat, (unsigned long int) 512); //ST_NBLOCKSIZE
 		break;
 	case 'b':
-		strncat(pformat, "lu", buf_len);
+		strncat(pformat, "ju", buf_len);
 		printf(pformat, (uintmax_t) statbuf->st_blocks);
 		break;
 	case 'o':
@@ -405,8 +405,8 @@ static int do_statfs(char const *filename, char const *format)
 	format = (flags & OPT_TERSE
 		? "%lu %ld %ld %ld %ld %ld\n"
 		: "Block size: %-10lu\n"
-		  "Blocks: Total: %-10ld Free: %-10ld Available: %ld\n"
-		  "Inodes: Total: %-10ld Free: %ld\n");
+		  "Blocks: Total: %-10jd Free: %-10jd Available: %jd\n"
+		  "Inodes: Total: %-10jd Free: %jd\n");
 	printf(format,
 	       (unsigned long int) (statfsbuf.f_bsize),
 	       (intmax_t) (statfsbuf.f_blocks),
@@ -455,7 +455,7 @@ static int do_stat(char const *filename, char const *format)
 	print_it(format, filename, print_stat, &statbuf);
 #else
 	if (flags & OPT_TERSE) {
-		printf("%s %"PRIuMAX" %"PRIuMAX" %lx %lu %lu %"PRIxMAX" %"PRIuMAX" %lu %lx %lx %lu %lu %lu %lu\n",
+		printf("%s %ju %ju %lx %lu %lu %jx %ju %lu %lx %lx %lu %lu %lu %lu\n",
 		       filename,
 		       (uintmax_t) (statbuf.st_size),
 		       (uintmax_t) statbuf.st_blocks,
@@ -489,8 +489,8 @@ static int do_stat(char const *filename, char const *format)
 		else
 			printf("  File: \"%s\"\n", filename);
 
-		printf("  Size: %-10"PRIuMAX"\tBlocks: %-10"PRIuMAX" IO Block: %-6lu %s\n"
-		       "Device: %"PRIxMAX"h/%"PRIuMAX"d\tInode: %-10"PRIuMAX"  Links: %-5lu",
+		printf("  Size: %-10ju\tBlocks: %-10ju IO Block: %-6lu %s\n"
+		       "Device: %jxh/%jud\tInode: %-10ju  Links: %-5lu",
 		       (uintmax_t) (statbuf.st_size),
 		       (uintmax_t) statbuf.st_blocks,
 		       (unsigned long int) statbuf.st_blksize,
