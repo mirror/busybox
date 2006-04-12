@@ -216,9 +216,8 @@ listen_socket(char *iface_addr, int listen_port)
 	a.sin_family = AF_INET;
 	if (!inet_aton(iface_addr, &a.sin_addr))
 		bb_perror_msg_and_die("bad iface address");
-	if (bind(s, (struct sockaddr *)&a, sizeof(a)) < 0)
-		bb_perror_msg_and_die("bind() failed");
-	listen(s, 50);
+	bb_xbind(s, (struct sockaddr *)&a, sizeof(a));
+	listen(s, 50); /* bb_xlisten? */
 	sprintf(msg, "accepting UDP packets on addr:port %s:%d\n",
 		iface_addr, (int)listen_port);
 	log_message(LOG_FILE, msg);

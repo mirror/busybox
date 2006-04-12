@@ -461,14 +461,8 @@ telnetd_main(int argc, char **argv)
 	sa.sin_addr = bind_addr;
 #endif
 
-	if (bind(master_fd, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
-		bb_perror_msg_and_die("bind");
-	}
-
-	if (listen(master_fd, 1) < 0) {
-		bb_perror_msg_and_die("listen");
-	}
-
+	bb_xbind(master_fd, (struct sockaddr *) &sa, sizeof(sa));
+	bb_xlisten(master_fd, 1);
 	bb_xdaemon(0, 0);
 
 	maxfd = master_fd;

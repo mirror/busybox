@@ -90,16 +90,13 @@ int nc_main(int argc, char **argv)
 		memset(&address.sin_addr, 0, sizeof(address.sin_addr));
 		address.sin_port = lport;
 
-		if (bind(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
-			bb_perror_msg_and_die("bind");
+		bb_xbind(sfd, (struct sockaddr *) &address, sizeof(address));
 	}
 
 	if (do_listen) {
 		socklen_t addrlen = sizeof(address);
 
-		if (listen(sfd, 1) < 0)
-			bb_perror_msg_and_die("listen");
-
+		bb_xlisten(sfd, 1);
 		if ((tmpfd = accept(sfd, (struct sockaddr *) &address, &addrlen)) < 0)
 			bb_perror_msg_and_die("accept");
 

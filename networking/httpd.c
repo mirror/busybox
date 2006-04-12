@@ -958,12 +958,9 @@ static int openServer(void)
 #else
   setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) ;
 #endif
-  if (bind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket)) == 0) {
-    listen(fd, 9);
-    signal(SIGCHLD, SIG_IGN);   /* prevent zombie (defunct) processes */
-  } else {
-    bb_perror_msg_and_die("bind");
-  }
+  bb_xbind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket));
+  listen(fd, 9); /* bb_xlisten? */
+  signal(SIGCHLD, SIG_IGN);   /* prevent zombie (defunct) processes */
   return fd;
 }
 #endif  /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */

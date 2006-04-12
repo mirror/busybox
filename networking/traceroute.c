@@ -1253,9 +1253,7 @@ traceroute_main(int argc, char *argv[])
 
 	outip->ip_src = from->sin_addr;
 #ifndef IP_HDRINCL
-	if (bind(sndsock, (struct sockaddr *)from, sizeof(*from)) < 0) {
-		bb_perror_msg_and_die("bind");
-	}
+	bb_xbind(sndsock, (struct sockaddr *)from, sizeof(*from));
 #endif
 
 	fprintf(stderr, "traceroute to %s (%s)", hostname, inet_ntoa(to->sin_addr));

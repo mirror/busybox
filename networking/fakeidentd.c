@@ -113,10 +113,10 @@ static void inetbind(void)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 
-	if (bind(s, (struct sockaddr *)&addr, len) < 0)
+	if (bind(s, (struct sockaddr *)&addr, len) < 0) /* bb_xbind? */
 		bb_perror_msg_and_die("Cannot bind() port %i", IDENT_PORT);
 
-	if (listen(s, 5) < 0)
+	if (listen(s, 5) < 0) /* bb_xlisten? */
 		bb_perror_msg_and_die("Cannot listen() on port %i", IDENT_PORT);
 
 	movefd(s, 0);

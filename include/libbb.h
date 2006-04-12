@@ -147,6 +147,8 @@ extern void  bb_fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
 extern void xstat(const char *filename, struct stat *buf);
 extern int  bb_xsocket(int domain, int type, int protocol);
 extern void bb_xdaemon(int nochdir, int noclose);
+extern void bb_xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
+extern void bb_xlisten(int s, int backlog);
 
 #define BB_GETOPT_ERROR 0x80000000UL
 extern const char *bb_opt_complementally;
