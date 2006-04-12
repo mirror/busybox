@@ -197,9 +197,7 @@ int crond_main(int ac, char **av)
 	 * change directory
 	 */
 
-	if (chdir(CDir) != 0) {
-		bb_perror_msg_and_die("%s", CDir);
-	}
+	bb_xchdir(CDir);
 	signal(SIGHUP, SIG_IGN);	/* hmm.. but, if kill -HUP original
 								 * version - his died. ;(
 								 */

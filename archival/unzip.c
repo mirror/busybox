@@ -236,9 +236,8 @@ int unzip_main(int argc, char **argv)
 	}
 
 	/* Change dir if necessary */
-	if (base_dir && chdir(base_dir)) {
-		bb_perror_msg_and_die("Cannot chdir");
-	}
+	if (base_dir)
+		bb_xchdir(base_dir);
 
 	if (verbosity != v_silent)
 		printf("Archive:  %s\n", src_fn);

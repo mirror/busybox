@@ -2077,9 +2077,7 @@ int httpd_main(int argc, char *argv[])
 #endif
 #endif
 
-  if(chdir(home_httpd)) {
-    bb_perror_msg_and_die("can`t chdir to %s", home_httpd);
-  }
+  bb_xchdir(home_httpd);
 #ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
   server = openServer();
 # ifdef CONFIG_FEATURE_HTTPD_SETUID

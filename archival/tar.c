@@ -19,9 +19,8 @@
  *
  * Based in part on the tar implementation from busybox-0.28
  *  Copyright (C) 1995 Bruce Perens
- *  This is free software under the GNU General Public License.
  *
- * Licensed under GPL v2 (or later), see file LICENSE in this tarball.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <fcntl.h>
@@ -834,8 +833,8 @@ int tar_main(int argc, char **argv)
 		}
 	}
 
-	if ((base_dir) && (chdir(base_dir)))
-		bb_perror_msg_and_die("Couldnt chdir to %s", base_dir);
+	if (base_dir)
+		bb_xchdir(base_dir);
 
 	/* create an archive */
 	if (ENABLE_FEATURE_TAR_CREATE && (opt & CTX_CREATE)) {

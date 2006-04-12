@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * A tiny 'top' utility.
  *
@@ -468,9 +469,7 @@ int top_main(int argc, char **argv)
 	col = 35;
 #endif
 	/* change to /proc */
-	if (chdir("/proc") < 0) {
-		bb_perror_msg_and_die("chdir('/proc')");
-	}
+	bb_xchdir("/proc");
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 	tcgetattr(0, (void *) &initial_settings);
 	memcpy(&new_settings, &initial_settings, sizeof(struct termios));

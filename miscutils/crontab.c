@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * CRONTAB
  *
@@ -148,8 +149,7 @@ crontab_main(int ac, char **av)
      * Change directory to our crontab directory
      */
 
-    if (chdir(CDir) < 0)
-	bb_perror_msg_and_die("cannot change dir to %s", CDir);
+    bb_xchdir(CDir);
 
     /*
      * Handle options as appropriate
@@ -358,10 +358,7 @@ ChangeUser(const char *user, short dochdir)
     if (dochdir) {
 	if (chdir(pas->pw_dir) < 0) {
 	    bb_perror_msg("chdir failed: %s %s", user, pas->pw_dir);
-	    if (chdir(TMPDIR) < 0) {
-		bb_perror_msg_and_die("chdir failed: %s %s", user, TMPDIR);
-		return(-1);
-	    }
+	    bb_xchdir(TMPDIR);
 	}
     }
     return(pas->pw_uid);
