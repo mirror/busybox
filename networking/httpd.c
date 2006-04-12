@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * httpd implementation for busybox
  *
@@ -2114,8 +2115,7 @@ int httpd_main(int argc, char *argv[])
 
 #if !ENABLE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 # if !DEBUG
-  if (daemon(1, 0) < 0)     /* don`t change curent directory */
-	bb_perror_msg_and_die("daemon");
+  bb_xdaemon(1, 0);     /* don`t change curent directory */
 # endif
   return miniHttpd(server);
 #else

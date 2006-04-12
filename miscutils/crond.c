@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * crond -d[#] -c <crondir> -f -b
  *
@@ -213,9 +214,7 @@ int crond_main(int ac, char **av)
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(1, 0, ac, av, "-f");
 #else							/* uClinux */
-		if (daemon(1, 0) < 0) {
-			bb_perror_msg_and_die("daemon");
-		}
+		bb_xdaemon(1, 0);
 #endif							/* uClinux */
 	}
 

@@ -275,8 +275,7 @@ start_stop_daemon_main(int argc, char **argv)
 	}
 	*--argv = startas;
 	if (opt & SSD_OPT_BACKGROUND) {
-		if (daemon(0, 0) == -1)
-			bb_perror_msg_and_die ("unable to fork");
+		bb_xdaemon(0, 0);
 		setsid();
 	}
 	if (opt & SSD_OPT_MAKEPID) {

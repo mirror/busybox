@@ -5,6 +5,7 @@
  * Copyright (C) 2005 Roberto A. Foglietta (me@roberto.foglietta.name)
  * Copyright (C) 2005 Odd Arild Olsen (oao at fibula dot no)
  * Copyright (C) 2003 Paul Sheer
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * Odd Arild Olsen started out with the sheerdns [1] of Paul Sheer and rewrote
@@ -408,9 +409,7 @@ int dnsd_main(int argc, char **argv)
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(1, 0, argc, argv, "-d");
 #else							/* uClinux */
-		if (daemon(1, 0) < 0) {
-			bb_perror_msg_and_die("daemon");
-		}
+		bb_xdaemon(1, 0);
 #endif							/* uClinuvx */
 
 	dnsentryinit(is_verbose());

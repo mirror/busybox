@@ -1314,7 +1314,7 @@ inetd_main (int argc, char *argv[])
 	/* reexec for vfork() do continue parent */
 	vfork_daemon_rexec (0, 0, argc, argv, "-f");
 #else
-	daemon (0, 0);
+	daemon (0, 0); /* bb_xdaemon? */
 #endif /* uClinux */
   } else {
 	setsid ();
@@ -1802,3 +1802,4 @@ daytime_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
   (void) sendto (s, buffer, strlen (buffer), 0, &sa, sizeof (sa));
 }
 #endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME */
+/* vi: set sw=4 ts=4: */

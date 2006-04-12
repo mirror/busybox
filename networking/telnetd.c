@@ -1,4 +1,4 @@
-/* vi:set ts=4:*/
+/* vi: set sw=4 ts=4: */
 /*
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
@@ -469,9 +469,7 @@ telnetd_main(int argc, char **argv)
 		bb_perror_msg_and_die("listen");
 	}
 
-	if (daemon(0, 0) < 0)
-		bb_perror_msg_and_die("daemon");
-
+	bb_xdaemon(0, 0);
 
 	maxfd = master_fd;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */

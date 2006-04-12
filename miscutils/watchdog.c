@@ -40,8 +40,7 @@ int watchdog_main(int argc, char **argv)
 	if (optind < argc - 1 || argc == 1)
 		bb_show_usage();
 
-	if (daemon(0, 1) < 0)
-		bb_perror_msg_and_die("Failed forking watchdog daemon");
+	bb_xdaemon(0, 1);
 
 	signal(SIGHUP, watchdog_shutdown);
 	signal(SIGINT, watchdog_shutdown);

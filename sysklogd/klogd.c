@@ -121,8 +121,7 @@ int klogd_main(int argc, char **argv)
 #if defined(__uClinux__)
 		vfork_daemon_rexec(0, 1, argc, argv, "-n");
 #else /* __uClinux__ */
-		if (daemon(0, 1) < 0)
-			bb_perror_msg_and_die("daemon");
+		bb_xdaemon(0, 1);
 #endif /* __uClinux__ */
 	}
 	doKlogd(console_log_level);
