@@ -17,7 +17,7 @@
 #	be unique, although if it isn't you may have strange results.  If this
 #	field is left blank, it is completely ignored.  Also note that if
 #	BusyBox detects that a serial console is in use, then all entries
-#	containing non-empty id fields will _not_ be run.  BusyBox init does
+#	containing non-empty id fields will be ignored.  BusyBox init does
 #	nothing with utmp.  We don't need no stinkin' utmp.
 #
 # <runlevels>: The runlevels field is completely ignored.
