@@ -1228,8 +1228,8 @@ int gzip_main(int argc, char **argv)
 				inFileNum = STDIN_FILENO;
 				outFileNum = STDOUT_FILENO;
 			} else {
-				inFileNum = open(argv[i], O_RDONLY);
-				if (inFileNum < 0 || fstat(inFileNum, &statBuf) < 0)
+				inFileNum = bb_xopen(argv[i], O_RDONLY);
+				if (fstat(inFileNum, &statBuf) < 0)
 					bb_perror_msg_and_die("%s", argv[i]);
 				time_stamp = statBuf.st_ctime;
 				ifile_size = statBuf.st_size;

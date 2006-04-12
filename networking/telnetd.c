@@ -1,10 +1,9 @@
-/* $Id: telnetd.c,v 1.13 2004/09/14 17:24:58 bug1 Exp $
- *
+/* vi:set ts=4:*/
+/*
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
  *
- * This file is distributed under the Gnu Public License (GPL),
- * please see the file LICENSE for further information.
+ * Licensed under GPL, see file LICENSE in this tarball for details.
  *
  * ---------------------------------------------------------------------------
  * (C) Copyright 2000, Axis Communications AB, LUND, SWEDEN
@@ -446,10 +445,7 @@ telnetd_main(int argc, char **argv)
 
 	/* Grab a TCP socket.  */
 
-	master_fd = socket(SOCKET_TYPE, SOCK_STREAM, 0);
-	if (master_fd < 0) {
-		bb_perror_msg_and_die("socket");
-	}
+	master_fd = bb_xsocket(SOCKET_TYPE, SOCK_STREAM, 0);
 	(void)setsockopt(master_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
 	/* Set it to listen to specified port.  */

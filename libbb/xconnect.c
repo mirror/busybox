@@ -61,7 +61,7 @@ void bb_lookup_host(struct sockaddr_in *s_in, const char *host)
 
 int xconnect(struct sockaddr_in *s_addr)
 {
-	int s = socket(AF_INET, SOCK_STREAM, 0);
+	int s = bb_xsocket(AF_INET, SOCK_STREAM, 0);
 	if (connect(s, (struct sockaddr *)s_addr, sizeof(struct sockaddr_in)) < 0)
 	{
 		if (ENABLE_FEATURE_CLEAN_UP) close(s);

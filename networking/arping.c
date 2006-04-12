@@ -1,4 +1,4 @@
-/* vi:set ts=4:*/
+/* vi: set sw=4 ts=4: */
 /*
  * arping.c - Ping hosts by ARP requests/replies
  *
@@ -358,7 +358,7 @@ int arping_main(int argc, char **argv)
 
 	if (!(cfg&dad) || src.s_addr) {
 		struct sockaddr_in saddr;
-		int probe_fd = socket(AF_INET, SOCK_DGRAM, 0);
+		int probe_fd = socket(AF_INET, SOCK_DGRAM, 0); /* maybe use bb_xsocket? */
 
 		if (probe_fd < 0) {
 			bb_error_msg_and_die("socket");

@@ -6,20 +6,7 @@
  * Original Author: Tomi Ollila <too@iki.fi>
  *                  http://www.guru-group.fi/~too/sw/
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <unistd.h>
@@ -117,8 +104,7 @@ static void inetbind(void)
 	else
 		port = se->s_port;
 
-	if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		bb_perror_msg_and_die("Cannot create server socket");
+	s = bb_xsocket(AF_INET, SOCK_STREAM, 0);
 
 	setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 

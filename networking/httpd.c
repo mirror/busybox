@@ -6,19 +6,7 @@
  *
  * simplify patch stolen from libbb without using strdup
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  *****************************************************************************
  *
@@ -959,25 +947,21 @@ static int openServer(void)
   memset(&lsocket, 0, sizeof(lsocket));
   lsocket.sin_family = AF_INET;
   lsocket.sin_addr.s_addr = INADDR_ANY;
-  lsocket.sin_port = htons(config->port) ;
-  fd = socket(AF_INET, SOCK_STREAM, 0);
-  if (fd >= 0) {
-    /* tell the OS it's OK to reuse a previous address even though */
-    /* it may still be in a close down state.  Allows bind to succeed. */
-    int on = 1;
+  lsocket.sin_port = htons(config->port);
+  fd = bb_xsocket(AF_INET, SOCK_STREAM, 0);
+  /* tell the OS it's OK to reuse a previous address even though */
+  /* it may still be in a close down state.  Allows bind to succeed. */
+  int on = 1;
 #ifdef SO_REUSEPORT
-    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (void *)&on, sizeof(on)) ;
+  setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (void *)&on, sizeof(on)) ;
 #else
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) ;
+  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) ;
 #endif
-    if (bind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket)) == 0) {
-      listen(fd, 9);
-      signal(SIGCHLD, SIG_IGN);   /* prevent zombie (defunct) processes */
-    } else {
-	bb_perror_msg_and_die("bind");
-    }
+  if (bind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket)) == 0) {
+    listen(fd, 9);
+    signal(SIGCHLD, SIG_IGN);   /* prevent zombie (defunct) processes */
   } else {
-	bb_perror_msg_and_die("create socket");
+    bb_perror_msg_and_die("bind");
   }
   return fd;
 }

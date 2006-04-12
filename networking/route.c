@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* route
  *
  * Similar to the standard Unix route, but with only the necessary
@@ -9,11 +10,7 @@
  *              Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *              (derived from FvK's 'route.c     1.70    01/04/94')
  *
- * This program is free software; you can redistribute it
- * and/or  modify it under  the terms of  the GNU General
- * Public  License as  published  by  the  Free  Software
- * Foundation;  either  version 2 of the License, or  (at
- * your option) any later version.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * $Id: route.c,v 1.26 2004/03/19 23:27:08 mjn3 Exp $
  *
@@ -338,9 +335,7 @@ static void INET_setroute(int action, char **args)
 	}
 
 	/* Create a socket to the INET kernel. */
-	if ((skfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		bb_perror_msg_and_die("socket");
-	}
+	skfd = bb_xsocket(AF_INET, SOCK_DGRAM, 0);
 
 	if (ioctl(skfd, ((action==RTACTION_ADD) ? SIOCADDRT : SIOCDELRT), &rt)<0) {
 		bb_perror_msg_and_die("SIOC[ADD|DEL]RT");
@@ -434,9 +429,7 @@ static void INET6_setroute(int action, char **args)
 	}
 
 	/* Create a socket to the INET6 kernel. */
-	if ((skfd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-		bb_perror_msg_and_die("socket");
-	}
+	skfd = bb_xsocket(AF_INET6, SOCK_DGRAM, 0);
 
 	rt.rtmsg_ifindex = 0;
 

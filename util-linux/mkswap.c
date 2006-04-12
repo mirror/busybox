@@ -258,8 +258,7 @@ static inline long get_size(const char *file)
 	int fd;
 	long size;
 
-	if ((fd = open(file, O_RDONLY)) < 0) /* TODO: bb_xopen3 */
-		bb_perror_msg_and_die("%s", file);
+	fd = bb_xopen(file, O_RDONLY);
 	if (ioctl(fd, BLKGETSIZE, &size) >= 0) {
 		size /= pagesize / 512;
 	} else {
@@ -342,8 +341,8 @@ int mkswap_main(int argc, char **argv)
 				PAGES * goodpages);
 	}
 
-	DEV = open(device_name, O_RDWR);
-	if (DEV < 0 || fstat(DEV, &statbuf) < 0)
+	DEV = bb_xopen(device_name, O_RDWR);
+	if (fstat(DEV, &statbuf) < 0)
 		bb_perror_msg_and_die("%s", device_name);
 	if (!S_ISBLK(statbuf.st_mode))
 		check = 0;

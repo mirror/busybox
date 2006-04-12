@@ -1,10 +1,8 @@
+/* vi: set sw=4 ts=4: */
 /*
  * ether-wake.c - Send a magic packet to wake up sleeping machines.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version
- * 2 of the License, or (at your option) any later version.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * Author:      Donald Becker, http://www.scyld.com/"; http://www.scyld.com/wakeonlan.html
  * Busybox port: Christian Volkmann <haveaniceday@online.de>
@@ -95,10 +93,10 @@
  */
 #ifdef PF_PACKET
 # define whereto_t sockaddr_ll
-# define make_socket() socket(PF_PACKET, SOCK_RAW, 0)
+# define make_socket() bb_xsocket(PF_PACKET, SOCK_RAW, 0)
 #else
 # define whereto_t sockaddr
-# define make_socket() socket(AF_INET, SOCK_PACKET, SOCK_PACKET)
+# define make_socket() bb_xsocket(AF_INET, SOCK_PACKET, SOCK_PACKET)
 #endif
 
 #ifdef DEBUG
@@ -145,8 +143,6 @@ int etherwake_main(int argc, char *argv[])
 
 	/* create the raw socket */
 	s = make_socket();
-	if (s < 0)
-		bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
 
 	/* now that we have a raw socket we can drop root */
 	setuid(getuid());

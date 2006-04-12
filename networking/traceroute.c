@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Copyright (c) 1988, 1989, 1991, 1994, 1995, 1996, 1997, 1998, 1999, 2000
  *      The Regents of the University of California.  All rights reserved.
@@ -359,9 +360,7 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 	struct ifreq ibuf[(32 * 1024) / sizeof(struct ifreq)], ifr;
 	struct IFADDRLIST *st_ifaddrlist;
 
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (fd < 0)
-		bb_perror_msg_and_die("socket");
+	fd = bb_xsocket(AF_INET, SOCK_DGRAM, 0);
 
 	ifc.ifc_len = sizeof(ibuf);
 	ifc.ifc_buf = (caddr_t)ibuf;
@@ -1091,8 +1090,7 @@ traceroute_main(int argc, char *argv[])
 	if (n > 2)
 		close(n);
 
-	if ((s = socket(AF_INET, SOCK_RAW, pe->p_proto)) < 0)
-		bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
+	s = bb_xsocket(AF_INET, SOCK_RAW, pe->p_proto);
 
 #ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	if (op & USAGE_OP_DEBUG)
@@ -1103,9 +1101,7 @@ traceroute_main(int argc, char *argv[])
 		(void)setsockopt(s, SOL_SOCKET, SO_DONTROUTE, (char *)&on,
 		    sizeof(on));
 
-	sndsock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-	if (sndsock < 0)
-		bb_perror_msg_and_die(bb_msg_can_not_create_raw_socket);
+	sndsock = bb_xsocket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 
 #ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
 #if defined(IP_OPTIONS)

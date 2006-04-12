@@ -1,35 +1,23 @@
-/* ------------------------------------------------------------------------- */
-/* tftp.c					                            */
-/*					                                   */
-/* A simple tftp client for busybox.					 */
-/* Tries to follow RFC1350.					          */
-/* Only "octet" mode supported.					      */
-/* Optional blocksize negotiation (RFC2347 + RFC2348)                        */
-/*					                                   */
-/* Copyright (C) 2001 Magnus Damm <damm@opensource.se>                       */
-/*					                                   */
-/* Parts of the code based on:					       */
-/*					                                   */
-/* atftp:  Copyright (C) 2000 Jean-Pierre Lefebvre <helix@step.polymtl.ca>   */
-/*                        and Remi Lefebvre <remi@debian.org>                */
-/*					                                   */
-/* utftp:  Copyright (C) 1999 Uwe Ohse <uwe@ohse.de>                         */
-/*					                                   */
-/* This program is free software; you can redistribute it and/or modify      */
-/* it under the terms of the GNU General Public License as published by      */
-/* the Free Software Foundation; either version 2 of the License, or         */
-/* (at your option) any later version.                                       */
-/*					                                   */
-/* This program is distributed in the hope that it will be useful,           */
-/* but WITHOUT ANY WARRANTY; without even the implied warranty of            */
-/* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU          */
-/* General Public License for more details.                                  */
-/*					                                   */
-/* You should have received a copy of the GNU General Public License         */
-/* along with this program; if not, write to the Free Software               */
-/* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA   */
-/*					                                   */
-/* ------------------------------------------------------------------------- */
+/* vi: set sw=4 ts=4: */
+/* -------------------------------------------------------------------------
+ * tftp.c
+ *
+ * A simple tftp client for busybox.
+ * Tries to follow RFC1350.
+ * Only "octet" mode supported.
+ * Optional blocksize negotiation (RFC2347 + RFC2348)
+ *
+ * Copyright (C) 2001 Magnus Damm <damm@opensource.se>
+ *
+ * Parts of the code based on:
+ *
+ * atftp:  Copyright (C) 2000 Jean-Pierre Lefebvre <helix@step.polymtl.ca>
+ *                        and Remi Lefebvre <remi@debian.org>
+ *
+ * utftp:  Copyright (C) 1999 Uwe Ohse <uwe@ohse.de>
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * ------------------------------------------------------------------------- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -177,7 +165,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 
 	tftp_bufsize += 4;
 
-	if ((socketfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((socketfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) { /* bb_xsocket? */
 		bb_perror_msg("socket");
 		return EXIT_FAILURE;
 	}

@@ -369,12 +369,7 @@ static void message(char *fmt, ...)
 static void init_RemoteLog(void)
 {
 	memset(&remoteaddr, 0, sizeof(remoteaddr));
-	remotefd = socket(AF_INET, SOCK_DGRAM, 0);
-
-	if (remotefd < 0) {
-		bb_error_msg("cannot create socket");
-	}
-
+	remotefd = bb_xsocket(AF_INET, SOCK_DGRAM, 0);
 	remoteaddr.sin_family = AF_INET;
 	remoteaddr.sin_addr = *(struct in_addr *) *(xgethostbyname(RemoteHost))->h_addr_list;
 	remoteaddr.sin_port = htons(RemotePort);
@@ -543,11 +538,7 @@ static void doSyslogd(void)
 	memset(&sunx, 0, sizeof(sunx));
 	sunx.sun_family = AF_UNIX;
 	strncpy(sunx.sun_path, lfile, sizeof(sunx.sun_path));
-	if ((sock_fd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0) {
-		bb_perror_msg_and_die("Couldn't get file descriptor for socket "
-						   _PATH_LOG);
-	}
-
+	sock_fd = bb_xsocket(AF_UNIX, SOCK_DGRAM, 0);
 	addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
 	if (bind(sock_fd, (struct sockaddr *) &sunx, addrLength) < 0) {
 		bb_perror_msg_and_die("Could not connect to socket " _PATH_LOG);

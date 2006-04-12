@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* ifconfig
  *
  * Similar to the standard Unix ifconfig, but with only the necessary
@@ -9,14 +10,7 @@
  * Authors of the original ifconfig was:
  *              Fred N. van Kempen, <waltje@uwalt.nl.mugnet.org>
  *
- * This program is free software; you can redistribute it
- * and/or  modify it under  the terms of  the GNU General
- * Public  License as  published  by  the  Free  Software
- * Foundation;  either  version 2 of the License, or  (at
- * your option) any later version.
- *
- * $Id: ifconfig.c,v 1.30 2004/03/31 11:30:08 andersen Exp $
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 /*
@@ -335,9 +329,7 @@ int ifconfig_main(int argc, char **argv)
 	}
 
 	/* Create a channel to the NET kernel. */
-	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		bb_perror_msg_and_die("socket");
-	}
+	sockfd = bb_xsocket(AF_INET, SOCK_DGRAM, 0);
 
 	/* get interface name */
 	safe_strncpy(ifr.ifr_name, *argv, IFNAMSIZ);

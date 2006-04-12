@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Mini DNS server implementation for busybox
  *
@@ -204,8 +205,7 @@ listen_socket(char *iface_addr, int listen_port)
 	char msg[100];
 	int s;
 	int yes = 1;
-	if ((s = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
-		bb_perror_msg_and_die("socket() failed");
+	s = bb_xsocket(PF_INET, SOCK_DGRAM, 0);
 #ifdef SO_REUSEADDR
 	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&yes, sizeof(yes)) < 0)
 		bb_perror_msg_and_die("setsockopt() failed");
