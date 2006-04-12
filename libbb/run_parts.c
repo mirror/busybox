@@ -7,12 +7,7 @@
  * rewrite to vfork usage by
  * Copyright (C) 2002 by Vladimir Oleynik <dzo@simtreas.ru>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 
@@ -69,7 +64,7 @@ int run_parts(char **args, const unsigned char test_mode, char **env)
 		if (test_mode & 2) {
 			return(2);
 		}
-		bb_perror_msg_and_die("failed to open directory %s", arg0);
+		bb_perror_msg_and_die("unable to open `%s'", arg0);
 	}
 
 	for (i = 0; i < entries; i++) {

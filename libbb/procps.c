@@ -50,9 +50,7 @@ procps_status_t * procps_scan(int save_user_arg0)
 	struct stat sb;
 
 	if (!dir) {
-		dir = opendir("/proc");
-		if(!dir)
-			bb_error_msg_and_die("Can't open /proc");
+		dir = bb_xopendir("/proc");
 	}
 	for(;;) {
 		if((entry = readdir(dir)) == NULL) {

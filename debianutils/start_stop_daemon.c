@@ -143,9 +143,7 @@ do_procinit(void)
 		return;
 	}
 
-	procdir = opendir("/proc");
-	if (!procdir)
-		bb_perror_msg_and_die ("opendir /proc");
+	procdir = bb_xopendir("/proc");
 
 	foundany = 0;
 	while ((entry = readdir(procdir)) != NULL) {

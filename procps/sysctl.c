@@ -4,13 +4,8 @@
  *
  *
  * "Copyright 1999 George Staikos
- * This file may be used subject to the terms and conditions of the
- * GNU General Public License Version 2, or any later version
- * at your option, as published by the Free Software Foundation.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details."
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * Changelog:
  *	v1.01:
@@ -57,7 +52,6 @@ static const char ERR_UNKNOWN_READING[] =
 	"error: unknown error %d reading key '%s'\n";
 static const char ERR_PERMISSION_DENIED[] =
 	"error: permission denied on key '%s'\n";
-static const char ERR_OPENING_DIR[] = "error: unable to open directory '%s'\n";
 static const char ERR_PRELOAD_FILE[] =
 	"error: unable to open preload file '%s'\n";
 static const char WARN_BAD_LINE[] =
@@ -316,8 +310,7 @@ int sysctl_display_all(const char *path, int output, int show_table)
 	char *tmpdir;
 	struct stat ts;
 
-	if (!(dp = opendir(path))) {
-		bb_perror_msg(ERR_OPENING_DIR, path);
+	if (!(dp = bb_opendir(path))) {
 		retval = -1;
 	} else {
 		while ((de = readdir(dp)) != NULL) {

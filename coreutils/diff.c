@@ -1114,8 +1114,8 @@ static char **get_dir(char *path) {
 	else {
 		DIR *dp;
 		struct dirent *ep;
-		if ((dp = opendir(path)) == NULL)
-			bb_error_msg("Error reading directory");
+
+		dp = bb_opendir(path);
 		while ((ep = readdir(dp))) {
 			if ((!strcmp(ep->d_name, "..")) || (!strcmp(ep->d_name, ".")))
 				continue;

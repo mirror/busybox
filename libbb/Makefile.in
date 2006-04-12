@@ -105,12 +105,18 @@ LIBBB_MOBJ6:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ6))
 $(LIBBB_MOBJ6):$(LIBBB_MSRC6)
 	$(compile.c) -DL_$(notdir $*)
 
+LIBBB_MSRC7:=$(srcdir)/opendir.c
+LIBBB_MOBJ7:=bb_opendir.o bb_xopendir.o
+LIBBB_MOBJ7:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ7))
+$(LIBBB_MOBJ7):$(LIBBB_MSRC7)
+	$(compile.c) -DL_$(notdir $*)
 
 # We need the names of the object files built from MSRC for the L_ defines
-LIBBB_ALL_MOBJ:=$(LIBBB_MOBJ0) $(LIBBB_MOBJ1) $(LIBBB_MOBJ2) $(LIBBB_MOBJ3) $(LIBBB_MOBJ4) $(LIBBB_MOBJ5) $(LIBBB_MOBJ6)
+LIBBB_ALL_MOBJ:=$(LIBBB_MOBJ0) $(LIBBB_MOBJ1) $(LIBBB_MOBJ2) $(LIBBB_MOBJ3) \
+	$(LIBBB_MOBJ4) $(LIBBB_MOBJ5) $(LIBBB_MOBJ6) $(LIBBB_MOBJ7)
 
 LIBBB_ALL_MSRC:=$(LIBBB_MSRC0) $(LIBBB_MSRC1) $(LIBBB_MSRC2) $(LIBBB_MSRC3) \
-	$(LIBBB_MSRC4) $(LIBBB_MSRC5) $(LIBBB_MSRC6)
+	$(LIBBB_MSRC4) $(LIBBB_MSRC5) $(LIBBB_MSRC6) $(LIBBB_MSRC7)
 
 LIBBB-y:=$(sort $(LIBBB-y) $(LIBBB_ALL_MSRC))
 

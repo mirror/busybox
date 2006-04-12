@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <termios.h>
+#include <dirent.h>
 #include <stdint.h>
 
 #include <netinet/in.h>
@@ -98,6 +99,8 @@ extern int bb_echo(int argc, char** argv);
 
 extern const char *bb_mode_string(int mode);
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
+extern DIR *bb_opendir(const char *path);
+extern DIR *bb_xopendir(const char *path);
 
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);

@@ -92,8 +92,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 
 		/* Recursively copy files in SOURCE.  */
-		if ((dp = opendir(source)) == NULL) {
-			bb_perror_msg("unable to open directory `%s'", source);
+		if ((dp = bb_opendir(source)) == NULL) {
 			status = -1;
 			goto preserve_status;
 		}
