@@ -254,4 +254,6 @@ bzero() -> memset()
 ---
 sigblock(), siggetmask(), sigsetmask(), sigmask() -> sigprocmask et al
 ---
+vdprintf() -> similar sized functionality
+---
 
