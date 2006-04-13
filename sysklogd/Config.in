@@ -21,7 +21,7 @@ config CONFIG_SYSLOGD
 	  you wait long enough....
 
 config CONFIG_FEATURE_ROTATE_LOGFILE
-	bool "  Rotate message files"
+	bool "Rotate message files"
 	default n
 	depends on CONFIG_SYSLOGD
 	help
@@ -29,7 +29,7 @@ config CONFIG_FEATURE_ROTATE_LOGFILE
 	  on his own. No need to use an external rotatescript.
 
 config CONFIG_FEATURE_REMOTE_LOG
-	bool "  Remote Log support"
+	bool "Remote Log support"
 	default n
 	depends on CONFIG_SYSLOGD
 	help
@@ -43,7 +43,7 @@ config CONFIG_FEATURE_REMOTE_LOG
 	  by an intruder.
 
 config CONFIG_FEATURE_IPC_SYSLOG
-	bool "  Circular Buffer support"
+	bool "Circular Buffer support"
 	default n
 	depends on CONFIG_SYSLOGD
 	help
@@ -65,7 +65,7 @@ config CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE
 	  used to record system log messages.
 
 config CONFIG_LOGREAD
-	bool "  logread"
+	bool "logread"
 	default y
 	depends on CONFIG_FEATURE_IPC_SYSLOG
 	help
@@ -75,7 +75,7 @@ config CONFIG_LOGREAD
 	  stored in the syslogd circular buffer.
 
 config CONFIG_FEATURE_LOGREAD_REDUCED_LOCKING
-	bool "    logread double buffering"
+	bool "logread double buffering"
 	default n
 	depends on CONFIG_LOGREAD
 	help

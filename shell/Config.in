@@ -48,14 +48,14 @@ comment "Ash Shell Options"
 	depends on CONFIG_ASH
 
 config CONFIG_ASH_JOB_CONTROL
-	bool "  Enable Job control"
+	bool "Enable Job control"
 	default y
 	depends on CONFIG_ASH
 	help
 	  Enable job control in the ash shell.
 
 config CONFIG_ASH_READ_NCHARS
-	bool "  Enable 'read -n N' and 'read -s' support"
+	bool "Enable 'read -n N' and 'read -s' support"
 	default n
 	depends on CONFIG_ASH
 	help
@@ -63,7 +63,7 @@ config CONFIG_ASH_READ_NCHARS
 	  'read -s' will read without echoing the user's input.
 
 config CONFIG_ASH_READ_TIMEOUT
-	bool "  Enable 'read -t S' support."
+	bool "Enable 'read -t S' support."
 	default n
 	depends on CONFIG_ASH
 	help
@@ -72,21 +72,21 @@ config CONFIG_ASH_READ_TIMEOUT
 	  as a decimal fraction, e.g. 'read -t 2.5 foo'.
 
 config CONFIG_ASH_ALIAS
-	bool "  Enable alias support"
+	bool "Enable alias support"
 	default y
 	depends on CONFIG_ASH
 	help
 	  Enable alias support in the ash shell.
 
 config CONFIG_ASH_MATH_SUPPORT
-	bool "  Enable Posix math support"
+	bool "Enable Posix math support"
 	default y
 	depends on CONFIG_ASH
 	help
 	  Enable math support in the ash shell.
 
 config CONFIG_ASH_MATH_SUPPORT_64
-	bool "    Extend Posix math support to 64 bit"
+	bool "Extend Posix math support to 64 bit"
 	default n
 	depends on CONFIG_ASH_MATH_SUPPORT
 	help
@@ -95,14 +95,14 @@ config CONFIG_ASH_MATH_SUPPORT_64
 	  large numbers.
 
 config CONFIG_ASH_GETOPTS
-	bool "  Enable getopts builtin to parse positional parameters"
+	bool "Enable getopts builtin to parse positional parameters"
 	default n
 	depends on CONFIG_ASH
 	help
 	  Enable getopts builtin in the ash shell.
 
 config CONFIG_ASH_CMDCMD
-	bool "  Enable cmdcmd to override shell builtins"
+	bool "Enable cmdcmd to override shell builtins"
 	default n
 	depends on CONFIG_ASH
 	help
@@ -111,7 +111,7 @@ config CONFIG_ASH_CMDCMD
 	  even when there is an ash builtin command with the same name.
 
 config CONFIG_ASH_BUILTIN_ECHO
-	bool "  Enable builtin version of 'echo'"
+	bool "Enable builtin version of 'echo'"
 	default n
 	depends on CONFIG_ASH
 	help
@@ -119,28 +119,28 @@ config CONFIG_ASH_BUILTIN_ECHO
 
 # this entry also appears in coreutils/Config.in, next to the echo applet
 config CONFIG_FEATURE_FANCY_ECHO
-	bool "  Enable echo options (-n and -e)"
+	bool "Enable echo options (-n and -e)"
 	default y
 	depends on CONFIG_ASH_BUILTIN_ECHO
 	help
 	  This adds options (-n and -e) to echo.
 
 config CONFIG_ASH_MAIL
-	bool "  Check for new mail on interactive shells"
+	bool "Check for new mail on interactive shells"
 	default y
 	depends on CONFIG_ASH
 	help
 	  Enable "check for new mail" in the ash shell.
 
 config CONFIG_ASH_OPTIMIZE_FOR_SIZE
-	bool "  Optimize for size instead of speed"
+	bool "Optimize for size instead of speed"
 	default y
 	depends on CONFIG_ASH
 	help
 	  Compile ash for reduced size at the price of speed.
 
 config CONFIG_ASH_RANDOM_SUPPORT
-	bool "  Enable pseudorandom generator and variable $RANDOM"
+	bool "Enable pseudorandom generator and variable $RANDOM"
 	default n
 	depends on CONFIG_ASH
 	help
@@ -151,7 +151,7 @@ config CONFIG_ASH_RANDOM_SUPPORT
 	  variable will no longer have special treatment.
 
 config CONFIG_ASH_EXPAND_PRMT
-	bool "  Expand prompt string"
+	bool "Expand prompt string"
 	default n
 	depends on CONFIG_ASH
 	help

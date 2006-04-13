@@ -84,14 +84,14 @@ config CONFIG_GETTY
 	  getty lets you log in on a tty, it is normally invoked by init.
 
 config CONFIG_FEATURE_UTMP
-	bool "  Support utmp file"
+	bool "Support utmp file"
 	depends on CONFIG_GETTY || CONFIG_LOGIN || CONFIG_SU || CONFIG_WHO
 	default n
 	help
 	  The file /var/run/utmp is used to track who is currently logged in.
 
 config CONFIG_FEATURE_WTMP
-	bool "  Support wtmp file"
+	bool "Support wtmp file"
 	depends on CONFIG_GETTY || CONFIG_LOGIN || CONFIG_SU || CONFIG_LAST
 	default n
 	select CONFIG_FEATURE_UTMP
@@ -110,7 +110,7 @@ config CONFIG_LOGIN
 	  work properly.
 
 config CONFIG_FEATURE_SECURETTY
-	bool "  Support for /etc/securetty"
+	bool "Support for /etc/securetty"
 	default y
 	depends on CONFIG_LOGIN
 	help

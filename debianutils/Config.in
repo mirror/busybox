@@ -25,7 +25,7 @@ config CONFIG_READLINK
 	  of the file it points to
 
 config CONFIG_FEATURE_READLINK_FOLLOW
-	bool "  Enable canonicalization by following all symlinks (-f)"
+	bool "Enable canonicalization by following all symlinks (-f)"
 	default n
 	depends on CONFIG_READLINK
 	help

@@ -87,7 +87,7 @@ config CONFIG_DATE
 	  current time in the given format.
 
 config CONFIG_FEATURE_DATE_ISOFMT
-	bool "  Enable ISO date format output (-I)"
+	bool "Enable ISO date format output (-I)"
 	default y
 	depends on CONFIG_DATE
 	help
@@ -118,7 +118,7 @@ config CONFIG_DIFF
 	  the patch command.
 
 config CONFIG_FEATURE_DIFF_BINARY
-	bool "  Enable checks for binary files"
+	bool "Enable checks for binary files"
 	default y
 	depends on CONFIG_DIFF
 	help
@@ -126,7 +126,7 @@ config CONFIG_FEATURE_DIFF_BINARY
 	  before a comparison is carried out.
 
 config CONFIG_FEATURE_DIFF_DIR
-	bool "  Enable directory support"
+	bool "Enable directory support"
 	default y
 	depends on CONFIG_DIFF
 	help
@@ -134,7 +134,7 @@ config CONFIG_FEATURE_DIFF_DIR
 	  comparison.
 
 config CONFIG_FEATURE_DIFF_MINIMAL
-	bool "  Enable -d option to find smaller sets of changes"
+	bool "Enable -d option to find smaller sets of changes"
 	default n
 	depends on CONFIG_DIFF
 	help
@@ -168,7 +168,7 @@ config CONFIG_DU
 	  for specified files.
 
 config CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
-	bool "  Use a default blocksize of 1024 bytes (1K)"
+	bool "Use a default blocksize of 1024 bytes (1K)"
 	default y
 	depends on CONFIG_DU
 	help
@@ -182,7 +182,7 @@ config CONFIG_ECHO
 
 # this entry also appears in shell/Config.in, next to the echo builtin
 config CONFIG_FEATURE_FANCY_ECHO
-	bool "  Enable echo options (-n and -e)"
+	bool "Enable echo options (-n and -e)"
 	default y
 	depends on CONFIG_ECHO
 	help
@@ -204,7 +204,7 @@ config CONFIG_EXPR
 	  to standard output.
 
 config CONFIG_EXPR_MATH_SUPPORT_64
-	bool "    Extend Posix numbers support to 64 bit"
+	bool "Extend Posix numbers support to 64 bit"
 	default n
 	depends on CONFIG_EXPR
 	help
@@ -232,7 +232,7 @@ config CONFIG_HEAD
 	  from files.
 
 config CONFIG_FEATURE_FANCY_HEAD
-	bool "  Enable head options (-c, -q, and -v)"
+	bool "Enable head options (-c, -q, and -v)"
 	default n
 	depends on CONFIG_HEAD
 	help
@@ -282,56 +282,56 @@ config CONFIG_LS
 	  ls is used to list the contents of directories.
 
 config CONFIG_FEATURE_LS_FILETYPES
-	bool "  Enable filetyping options (-p and -F)"
+	bool "Enable filetyping options (-p and -F)"
 	default y
 	depends on CONFIG_LS
 	help
 	  Enable the ls options (-p and -F).
 
 config CONFIG_FEATURE_LS_FOLLOWLINKS
-	bool "  Enable symlinks dereferencing (-L)"
+	bool "Enable symlinks dereferencing (-L)"
 	default y
 	depends on CONFIG_LS
 	help
 	  Enable the ls option (-L).
 
 config CONFIG_FEATURE_LS_RECURSIVE
-	bool "  Enable recursion (-R)"
+	bool "Enable recursion (-R)"
 	default y
 	depends on CONFIG_LS
 	help
 	  Enable the ls option (-R).
 
 config CONFIG_FEATURE_LS_SORTFILES
-	bool "  Sort the file names"
+	bool "Sort the file names"
 	default y
 	depends on CONFIG_LS
 	help
 	  Allow ls to sort file names alphabetically.
 
 config CONFIG_FEATURE_LS_TIMESTAMPS
-	bool "  Show file timestamps"
+	bool "Show file timestamps"
 	default y
 	depends on CONFIG_LS
 	help
 	  Allow ls to display timestamps for files.
 
 config CONFIG_FEATURE_LS_USERNAME
-	bool "  Show username/groupnames"
+	bool "Show username/groupnames"
 	default y
 	depends on CONFIG_LS
 	help
 	  Allow ls to display username/groupname for files.
 
 config CONFIG_FEATURE_LS_COLOR
-	bool "  Allow use of color to identify file types"
+	bool "Allow use of color to identify file types"
 	default y
 	depends on CONFIG_LS
 	help
 	  This enables the --color option to ls.
 
 config CONFIG_FEATURE_LS_COLOR_IS_DEFAULT
-	bool "  Produce colored ls output by default"
+	bool "Produce colored ls output by default"
 	default n
 	depends on CONFIG_FEATURE_LS_COLOR
 	help
@@ -448,7 +448,7 @@ config CONFIG_SLEEP
 	  sleep is used to pause for a specified number of seconds,
 
 config CONFIG_FEATURE_FANCY_SLEEP
-	bool "  Enable multiple integer args and optional time suffixes"
+	bool "Enable multiple integer args and optional time suffixes"
 	default n
 	depends on CONFIG_SLEEP
 	help
@@ -461,7 +461,7 @@ config CONFIG_SORT
 	  sort is used to sort lines of text in specified files.
 
 config CONFIG_FEATURE_SORT_BIG
-	bool "  full SuSv3 compliant sort (Support -ktcsbdfiozgM)"
+	bool "full SuSv3 compliant sort (Support -ktcsbdfiozgM)"
 	default y
 	depends on CONFIG_SORT
 	help
@@ -479,7 +479,7 @@ config CONFIG_STAT
 	  display file or filesystem status.
 
 config CONFIG_FEATURE_STAT_FORMAT
-	bool "  Enable custom formats (-c)"
+	bool "Enable custom formats (-c)"
 	default n
 	depends on CONFIG_STAT
 	help
@@ -513,7 +513,7 @@ config CONFIG_TAIL
 	  from files.
 
 config CONFIG_FEATURE_FANCY_TAIL
-	bool "  Enable extra tail options (-q, -s, and -v)"
+	bool "Enable extra tail options (-q, -s, and -v)"
 	default y
 	depends on CONFIG_TAIL
 	help
@@ -528,7 +528,7 @@ config CONFIG_TEE
 	  to standard output and files.
 
 config CONFIG_FEATURE_TEE_USE_BLOCK_IO
-	bool "  Enable block i/o (larger/faster) instead of byte i/o."
+	bool "Enable block i/o (larger/faster) instead of byte i/o."
 	default n
 	depends on CONFIG_TEE
 	help
@@ -543,7 +543,7 @@ config CONFIG_TEST
 	  and bash) have test builtin.
 
 config CONFIG_FEATURE_TEST_64
-	bool "  Extend test to 64 bit"
+	bool "Extend test to 64 bit"
 	default n
 	depends on CONFIG_TEST
 	help
@@ -564,7 +564,7 @@ config CONFIG_TR
 	  input, writing to standard output.
 
 config CONFIG_FEATURE_TR_CLASSES
-	bool "  Enable character classes (such as [:upper:])"
+	bool "Enable character classes (such as [:upper:])"
 	default n
 	depends on CONFIG_TR
 	help
@@ -572,7 +572,7 @@ config CONFIG_FEATURE_TR_CLASSES
 	  tr [:upper:] [:lower:] to convert input into lowercase.
 
 config CONFIG_FEATURE_TR_EQUIV
-	bool "  Enable equivalence classes"
+	bool "Enable equivalence classes"
 	default n
 	depends on CONFIG_TR
 	help
@@ -665,7 +665,7 @@ comment "Common options for cp and mv"
 	depends on CONFIG_CP || CONFIG_MV
 
 config CONFIG_FEATURE_PRESERVE_HARDLINKS
-	bool "  Preserve hard links"
+	bool "Preserve hard links"
 	default n
 	depends on CONFIG_CP || CONFIG_MV
 	help
@@ -675,7 +675,7 @@ comment "Common options for ls, more and telnet"
 	depends on CONFIG_LS || CONFIG_MORE || CONFIG_TELNET
 
 config CONFIG_FEATURE_AUTOWIDTH
-	bool "  Calculate terminal & column widths"
+	bool "Calculate terminal & column widths"
 	default y
 	depends on CONFIG_LS || CONFIG_MORE || CONFIG_TELNET
 	help
@@ -689,7 +689,7 @@ comment "Common options for df, du, ls"
 	depends on CONFIG_DF || CONFIG_DU || CONFIG_LS
 
 config CONFIG_FEATURE_HUMAN_READABLE
-	bool "  Support for human readable output (example 13k, 23M, 235G)"
+	bool "Support for human readable output (example 13k, 23M, 235G)"
 	default n
 	depends on CONFIG_DF || CONFIG_DU || CONFIG_LS
 	help
@@ -699,7 +699,7 @@ comment "Common options for md5sum, sha1sum"
 	depends on CONFIG_MD5SUM || CONFIG_SHA1SUM
 
 config CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
-	bool "  Enable -c, -s and -w options"
+	bool "Enable -c, -s and -w options"
 	default n
 	depends on CONFIG_MD5SUM || CONFIG_SHA1SUM
 	help

@@ -111,7 +111,7 @@ comment "Options common to multiple modutils"
 
 config CONFIG_FEATURE_CHECK_TAINTED_MODULE
 	# Simulate indentation
-	bool "  Support tainted module checking with new kernels"
+	bool "Support tainted module checking with new kernels"
 	default y
 	depends on CONFIG_INSMOD || CONFIG_LSMOD
 	help
@@ -122,7 +122,7 @@ config CONFIG_FEATURE_CHECK_TAINTED_MODULE
 
 config CONFIG_FEATURE_2_4_MODULES
 	# Simulate indentation
-	bool "  Support version 2.2.x to 2.4.x Linux kernels"
+	bool "Support version 2.2.x to 2.4.x Linux kernels"
 	default y
 	depends on CONFIG_INSMOD || CONFIG_RMMOD
 	help
@@ -130,7 +130,7 @@ config CONFIG_FEATURE_2_4_MODULES
 
 config CONFIG_FEATURE_2_6_MODULES
 	# Simulate indentation
-	bool "  Support version 2.6.x Linux kernels"
+	bool "Support version 2.6.x Linux kernels"
 	default y
 	depends on CONFIG_INSMOD || CONFIG_RMMOD || CONFIG_MODPROBE
 	help

@@ -35,7 +35,7 @@ config CONFIG_CROND
 	  work properly.
 
 config CONFIG_FEATURE_CROND_CALL_SENDMAIL
-	bool "  Using /usr/sbin/sendmail?"
+	bool "Using /usr/sbin/sendmail?"
 	default n
 	depends on CONFIG_CROND
 	help
@@ -112,7 +112,7 @@ config CONFIG_LESS
 	  a wide array of features, and is an improvement over 'more'.
 
 config CONFIG_FEATURE_LESS_BRACKETS
-	bool "  Enable bracket searching"
+	bool "Enable bracket searching"
 	default y
 	depends on CONFIG_LESS
 	help
@@ -120,7 +120,7 @@ config CONFIG_FEATURE_LESS_BRACKETS
 	  brackets, facilitating programming.
 
 config CONFIG_FEATURE_LESS_FLAGS
-	bool "  Enable extra flags"
+	bool "Enable extra flags"
 	default y
 	depends on CONFIG_LESS
 	help
@@ -130,7 +130,7 @@ config CONFIG_FEATURE_LESS_FLAGS
 	  The -m flag enables a simpler status line with a percentage.
 
 config CONFIG_FEATURE_LESS_FLAGCS
-	bool "  Enable flag changes"
+	bool "Enable flag changes"
 	default n
 	depends on CONFIG_LESS
 	help
@@ -138,14 +138,14 @@ config CONFIG_FEATURE_LESS_FLAGCS
 	  less itself.
 
 config CONFIG_FEATURE_LESS_MARKS
-	bool "  Enable marks"
+	bool "Enable marks"
 	default n
 	depends on CONFIG_LESS
 	help
 	  Marks enable positions in a file to be stored for easy reference.
 
 config CONFIG_FEATURE_LESS_REGEXP
-	bool "  Enable regular expressions"
+	bool "Enable regular expressions"
 	default n
 	depends on CONFIG_LESS
 	help
@@ -160,7 +160,7 @@ config CONFIG_HDPARM
 	  CONFIG_FEATURE_HDPARM_GET_IDENTITY option)....
 
 config CONFIG_FEATURE_HDPARM_GET_IDENTITY
-	bool "  Support obtaining detailed information directly from drives"
+	bool "Support obtaining detailed information directly from drives"
 	default y
 	depends on CONFIG_HDPARM
 	help
@@ -169,7 +169,7 @@ config CONFIG_FEATURE_HDPARM_GET_IDENTITY
 	  feature set.  Enabling this option will add about 16k...
 
 config CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
-	bool "  Register an IDE interface (DANGEROUS)"
+	bool "Register an IDE interface (DANGEROUS)"
 	default n
 	depends on CONFIG_HDPARM
 	help
@@ -177,7 +177,7 @@ config CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 	  This is dangerous stuff, so you should probably say N.
 
 config CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
-	bool "  Un-register an IDE interface (DANGEROUS)"
+	bool "Un-register an IDE interface (DANGEROUS)"
 	default n
 	depends on CONFIG_HDPARM
 	help
@@ -185,7 +185,7 @@ config CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 	  This is dangerous stuff, so you should probably say N.
 
 config CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
-	bool "  perform device reset (DANGEROUS)"
+	bool "perform device reset (DANGEROUS)"
 	default n
 	depends on CONFIG_HDPARM
 	help
@@ -193,7 +193,7 @@ config CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
 	  This is dangerous stuff, so you should probably say N.
 
 config CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-	bool "  tristate device for hotswap (DANGEROUS)"
+	bool "tristate device for hotswap (DANGEROUS)"
 	default n
 	depends on CONFIG_HDPARM
 	help
@@ -202,7 +202,7 @@ config CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 	  stuff, so you should probably say N.
 
 config CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
-	bool "  get/set using_dma flag (DANGEROUS)"
+	bool "get/set using_dma flag (DANGEROUS)"
 	default n
 	depends on CONFIG_HDPARM
 	help

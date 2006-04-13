@@ -27,7 +27,7 @@ config CONFIG_FBSET
 	  if you wish to enable the 'fbset' utility.
 
 config CONFIG_FEATURE_FBSET_FANCY
-	bool "  Turn on extra fbset options"
+	bool "Turn on extra fbset options"
 	default n
 	depends on CONFIG_FBSET
 	help
@@ -37,7 +37,7 @@ config CONFIG_FEATURE_FBSET_FANCY
 	  options.
 
 config CONFIG_FEATURE_FBSET_READMODE
-	bool "  Turn on fbset readmode support"
+	bool "Turn on fbset readmode support"
 	default n
 	depends on CONFIG_FBSET
 	help
@@ -73,14 +73,14 @@ config CONFIG_FDISK
 	  'disk slices' that are defined on a hard drive.
 
 config FDISK_SUPPORT_LARGE_DISKS
-	bool "  support over 4GB disks"
+	bool "support over 4GB disks"
 	default y
 	depends on CONFIG_FDISK
 	help
 	  Enable this option to support large disks > 4GB.
 
 config CONFIG_FEATURE_FDISK_WRITABLE
-	bool "  Write support"
+	bool "Write support"
 	default y
 	depends on CONFIG_FDISK
 	help
@@ -89,7 +89,7 @@ config CONFIG_FEATURE_FDISK_WRITABLE
 	  disabled, you will only be able to view the partition table.
 
 config CONFIG_FEATURE_AIX_LABEL
-	bool "  Support AIX disklabels"
+	bool "Support AIX disklabels"
 	default n
 	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
@@ -97,7 +97,7 @@ config CONFIG_FEATURE_AIX_LABEL
 	  Most people can safely leave this option disabled.
 
 config CONFIG_FEATURE_SGI_LABEL
-	bool "  Support SGI disklabels"
+	bool "Support SGI disklabels"
 	default n
 	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
@@ -105,7 +105,7 @@ config CONFIG_FEATURE_SGI_LABEL
 	  Most people can safely leave this option disabled.
 
 config CONFIG_FEATURE_SUN_LABEL
-	bool "  Support SUN disklabels"
+	bool "Support SUN disklabels"
 	default n
  	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
@@ -113,7 +113,7 @@ config CONFIG_FEATURE_SUN_LABEL
 	  Most people can safely leave this option disabled.
 
 config CONFIG_FEATURE_OSF_LABEL
-	bool "  Support BSD disklabels"
+	bool "Support BSD disklabels"
 	default n
 	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
@@ -121,7 +121,7 @@ config CONFIG_FEATURE_OSF_LABEL
 	  and define and edit BSD disk slices.
 
 config CONFIG_FEATURE_FDISK_ADVANCED
-	bool "  Support expert mode"
+	bool "Support expert mode"
 	default n
 	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
 	help
@@ -164,7 +164,7 @@ comment "Minix filesystem support"
     depends on CONFIG_FSCK_MINIX || CONFIG_MKFS_MINIX
 
 config CONFIG_FEATURE_MINIX2
-	bool "  Support Minix fs v2 (fsck_minix/mkfs_minix)"
+	bool "Support Minix fs v2 (fsck_minix/mkfs_minix)"
 	default y
 	depends on CONFIG_FSCK_MINIX || CONFIG_MKFS_MINIX
 	help
@@ -200,7 +200,7 @@ config CONFIG_HWCLOCK
 	  correct time when Linux is _not_ running.
 
 config CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
-	bool "  Support long options (--hctosys,...)"
+	bool "Support long options (--hctosys,...)"
 	default n
 	depends on CONFIG_HWCLOCK
 	help
@@ -209,7 +209,7 @@ config CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
 	  then enable this option.
 
 config CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS
-	bool "  Use FHS /var/lib/hwclock/adjtime"
+	bool "Use FHS /var/lib/hwclock/adjtime"
 	default y
 	depends on CONFIG_HWCLOCK
 	help
@@ -255,7 +255,7 @@ config CONFIG_MDEV
 	  from sysfs.
 
 config CONFIG_FEATURE_MDEV_CONF
-	bool "  Support /etc/mdev.conf"
+	bool "Support /etc/mdev.conf"
 	default n
 	depends on CONFIG_MDEV
 	help
@@ -289,7 +289,7 @@ config CONFIG_MKSWAP
 	  the swap space using the 'swapon' utility.
 
 config CONFIG_FEATURE_MKSWAP_V0
-	bool "  version 0 support"
+	bool "version 0 support"
 	default n
 	depends on CONFIG_MKSWAP
 #	depends on CONFIG_MKSWAP && CONFIG_DEPRECATED
@@ -309,7 +309,7 @@ config CONFIG_MORE
 	  any need to reading text files, you can leave this disabled.
 
 config CONFIG_FEATURE_USE_TERMIOS
-	bool "  Use termios to manipulate the screen"
+	bool "Use termios to manipulate the screen"
 	default y
 	depends on CONFIG_MORE
 	help
@@ -331,7 +331,7 @@ config CONFIG_MOUNT
 	  the 'mount' utility.
 
 config CONFIG_FEATURE_MOUNT_NFS
-	bool "  Support mounting NFS file systems"
+	bool "Support mounting NFS file systems"
 	default n
 	depends on CONFIG_MOUNT
 	help
@@ -413,7 +413,7 @@ config CONFIG_UMOUNT
 	  also want to enable 'umount'.
 
 config CONFIG_FEATURE_UMOUNT_ALL
-	bool "  umount -a option"
+	bool "umount -a option"
 	default n
 	depends on CONFIG_UMOUNT
 	help
@@ -423,7 +423,7 @@ comment "Common options for mount/umount"
 	depends on CONFIG_MOUNT || CONFIG_UMOUNT
 
 config CONFIG_FEATURE_MOUNT_LOOP
-	bool "  Support loopback mounts"
+	bool "Support loopback mounts"
 	default n
 	depends on CONFIG_MOUNT || CONFIG_UMOUNT
 	help
@@ -439,7 +439,7 @@ config CONFIG_FEATURE_MOUNT_LOOP
 	  (If you don't want umount to free the loop device, use "umount -D".)
 
 config CONFIG_FEATURE_MTAB_SUPPORT
-	bool "  Support for the old /etc/mtab file"
+	bool "Support for the old /etc/mtab file"
 	default n
 	depends on CONFIG_MOUNT || CONFIG_UMOUNT
 	help
