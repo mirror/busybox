@@ -68,7 +68,7 @@ $(LIBBB_MOBJ0):$(LIBBB_MSRC0)
 
 LIBBB_MSRC1:=$(srcdir)/xfuncs.c
 LIBBB_MOBJ1:=xmalloc.o xrealloc.o xcalloc.o xstrdup.o xstrndup.o \
-	xfopen.o xopen.o xread.o xread_all.o xread_char.o \
+	xfopen.o xopen.o xopen3.o xread.o xread_all.o xread_char.o \
 	xferror.o xferror_stdout.o xfflush_stdout.o strlen.o
 LIBBB_MOBJ1:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ1))
 $(LIBBB_MOBJ1):$(LIBBB_MSRC1)

@@ -123,7 +123,8 @@ int vconfig_main(int argc, char **argv)
 	}
 
 	/* Don't bother closing the filedes.  It will be closed on cleanup. */
-	bb_xopen(conf_file_name, O_RDONLY);	/* Will die if 802.1q is not present */
+	/* Will die if 802.1q is not present */
+	bb_xopen3(conf_file_name, O_RDONLY, 0);
 
 	memset(&ifr, 0, sizeof(struct vlan_ioctl_args));
 

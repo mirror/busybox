@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*-------------------------------------------------------------------------
  * Filename:      xmodem.c
  * Version:       $Id: rx.c,v 1.2 2004/03/15 08:28:46 andersen Exp $
@@ -289,13 +290,8 @@ int rx_main(int argc, char **argv)
 			bb_show_usage();
 
 	fn = argv[1];
-	ttyfd = open("/dev/tty", O_RDWR);
-	if (ttyfd < 0)
-			bb_error_msg_and_die("%s: open on /dev/tty failed: %m\n", argv[0]);
-
-	filefd = open(fn, O_RDWR|O_CREAT|O_TRUNC, 0666);
-	if (filefd < 0)
-			bb_error_msg_and_die("%s: open on %s failed: %m\n", argv[0], fn);
+	ttyfd = bb_xopen3("/dev/tty", O_RDWR, 0);
+	filefd = bb_xopen3(fn, O_RDWR|O_CREAT|O_TRUNC, 0666);
 
 	if (tcgetattr(ttyfd, &tty) < 0)
 			bb_error_msg_and_die("%s: tcgetattr failed: %m\n", argv[0]);

@@ -100,10 +100,17 @@ FILE *bb_xfopen(const char *path, const char *mode)
 #ifdef L_xopen
 int bb_xopen(const char *pathname, int flags)
 {
+	return bb_xopen3(pathname, flags, 0777);
+}
+#endif
+
+#ifdef L_xopen3
+int bb_xopen3(const char *pathname, int flags, int mode)
+{
 	int ret;
 
-	ret = open(pathname, flags, 0777);
-	if (ret == -1) {
+	ret = open(pathname, flags, mode);
+	if (ret < 0) {
 		bb_perror_msg_and_die("%s", pathname);
 	}
 	return ret;
@@ -116,7 +123,7 @@ ssize_t bb_xread(int fd, void *buf, size_t count)
 	ssize_t size;
 
 	size = read(fd, buf, count);
-	if (size == -1) {
+	if (size < 0) {
 		bb_perror_msg_and_die(bb_msg_read_error);
 	}
 	return(size);

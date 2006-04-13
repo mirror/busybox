@@ -101,8 +101,7 @@ int mt_main(int argc, char **argv)
 			break;
 	}
 
-	if ((fd = open(file, mode, 0)) < 0)
-		bb_perror_msg_and_die("%s", file);
+	fd = bb_xopen3(file, mode, 0);
 
 	switch (code->value) {
 		case MTTELL:

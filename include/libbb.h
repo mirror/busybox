@@ -440,6 +440,7 @@ extern struct spwd *pwd_to_spwd(const struct passwd *pw);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 
 extern int bb_xopen(const char *pathname, int flags);
+extern int bb_xopen3(const char *pathname, int flags, int mode);
 extern ssize_t bb_xread(int fd, void *buf, size_t count);
 extern void bb_xread_all(int fd, void *buf, size_t count);
 extern unsigned char bb_xread_char(int fd);

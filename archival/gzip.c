@@ -1228,7 +1228,7 @@ int gzip_main(int argc, char **argv)
 				inFileNum = STDIN_FILENO;
 				outFileNum = STDOUT_FILENO;
 			} else {
-				inFileNum = bb_xopen(argv[i], O_RDONLY);
+				inFileNum = bb_xopen3(argv[i], O_RDONLY, 0);
 				if (fstat(inFileNum, &statBuf) < 0)
 					bb_perror_msg_and_die("%s", argv[i]);
 				time_stamp = statBuf.st_ctime;

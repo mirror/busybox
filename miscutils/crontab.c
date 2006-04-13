@@ -179,20 +179,16 @@ crontab_main(int ac, char **av)
 	    char buf[1024];
 
 	    snprintf(tmp, sizeof(tmp), TMPDIR "/crontab.%d", getpid());
-	    if ((fd = open(tmp, O_RDWR|O_CREAT|O_TRUNC|O_EXCL, 0600)) >= 0) {
-		chown(tmp, getuid(), getgid());
-		if ((fi = fopen(pas->pw_name, "r"))) {
-		    while ((n = fread(buf, 1, sizeof(buf), fi)) > 0)
-			write(fd, buf, n);
-		}
-		EditFile(caller, tmp);
-		remove(tmp);
-		lseek(fd, 0L, 0);
-		repFd = fd;
-	    } else {
-		bb_error_msg_and_die("unable to create %s", tmp);
+	    fd = bb_xopen3(tmp, O_RDWR|O_CREAT|O_TRUNC|O_EXCL, 0600);
+	    chown(tmp, getuid(), getgid());
+	    if ((fi = fopen(pas->pw_name, "r"))) {
+		while ((n = fread(buf, 1, sizeof(buf), fi)) > 0)
+		    write(fd, buf, n);
 	    }
-
+	    EditFile(caller, tmp);
+	    remove(tmp);
+	    lseek(fd, 0L, 0);
+	    repFd = fd;
 	}
 	option = REPLACE;
 	/* fall through */
@@ -289,11 +285,8 @@ GetReplaceStream(const char *user, const char *file)
     if (ChangeUser(user, 0) < 0)
 	exit(0);
 
-    fd = open(file, O_RDONLY);
-    if (fd < 0) {
-	bb_error_msg("unable to open %s", file);
-	exit(0);
-    }
+    bb_default_error_retval = 0;
+    fd = bb_xopen3(file, O_RDONLY, 0);
     buf[0] = 0;
     write(filedes[1], buf, 1);
     while ((n = read(fd, buf, sizeof(buf))) > 0) {
