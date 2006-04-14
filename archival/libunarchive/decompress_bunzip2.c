@@ -1,13 +1,12 @@
 /* vi: set sw=4 ts=4: */
-/*	Small bzip2 deflate implementation, by Rob Landley (rob@landley.net).
+/* Small bzip2 deflate implementation, by Rob Landley (rob@landley.net).
 
-	Based on bzip2 decompression code by Julian R Seward (jseward@acm.org),
-	which also acknowledges contributions by Mike Burrows, David Wheeler,
-	Peter Fenwick, Alistair Moffat, Radford Neal, Ian H. Witten,
-	Robert Sedgewick, and Jon L. Bentley.
+   Based on bzip2 decompression code by Julian R Seward (jseward@acm.org),
+   which also acknowledges contributions by Mike Burrows, David Wheeler,
+   Peter Fenwick, Alistair Moffat, Radford Neal, Ian H. Witten,
+   Robert Sedgewick, and Jon L. Bentley.
 
-	This code is licensed under the LGPLv2:
-		LGPL http://www.gnu.org/copyleft/lgpl.html
+   Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
 */
 
 /*
