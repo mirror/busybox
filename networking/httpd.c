@@ -128,66 +128,6 @@ static const char home[] = "./";
 
 //#define DEBUG 1
 
-/* Configure options, disabled by default as custom httpd feature */
-
-/* disabled as optional features */
-//#define CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-//#define CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-//#define CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-//#define CONFIG_FEATURE_HTTPD_SETUID
-//#define CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-
-/* If set, use this server from internet superserver only */
-//#define CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-
-/* You can use this server as standalone, require libbb.a for linking */
-//#define HTTPD_STANDALONE
-
-/* Config options, disable this for do very small module */
-//#define CONFIG_FEATURE_HTTPD_CGI
-//#define CONFIG_FEATURE_HTTPD_BASIC_AUTH
-//#define CONFIG_FEATURE_HTTPD_AUTH_MD5
-
-#ifdef HTTPD_STANDALONE
-/* standalone, enable all features */
-#undef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-/* unset config option for remove warning as redefined */
-#undef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-#undef CONFIG_FEATURE_HTTPD_AUTH_MD5
-#undef CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-#undef CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-#undef CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-#undef CONFIG_FEATURE_HTTPD_CGI
-#undef CONFIG_FEATURE_HTTPD_SETUID
-#undef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-/* enable all features now */
-#define CONFIG_FEATURE_HTTPD_BASIC_AUTH
-#define CONFIG_FEATURE_HTTPD_AUTH_MD5
-#define CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-#define CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-#define CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-#define CONFIG_FEATURE_HTTPD_CGI
-#define CONFIG_FEATURE_HTTPD_SETUID
-#define CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-
-/* require from libbb.a for linking */
-const char *bb_applet_name = "httpd";
-
-void bb_show_usage(void)
-{
-  fprintf(stderr, "Usage: %s [-p <port>] [-c configFile] [-d/-e <string>] "
-		  "[-r realm] [-u user] [-h homedir]\n", bb_applet_name);
-  exit(1);
-}
-#endif
-
-#ifdef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-#undef CONFIG_FEATURE_HTTPD_SETUID  /* use inetd user.group config settings */
-#undef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP    /* so is not daemon */
-/* inetd set stderr to accepted socket and we can`t true see debug messages */
-#undef DEBUG
-#endif
-
 #ifndef DEBUG
 # define DEBUG 0
 #endif
@@ -1989,11 +1929,7 @@ static const char httpd_opts[]="c:d:h:"
 			USE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(0)
 
 
-#ifdef HTTPD_STANDALONE
-int main(int argc, char *argv[])
-#else
 int httpd_main(int argc, char *argv[])
-#endif
 {
   unsigned long opt;
   const char *home_httpd = home;
