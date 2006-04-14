@@ -160,15 +160,6 @@ static const char home[] = "./";
 #undef CONFIG_FEATURE_HTTPD_CGI
 #undef CONFIG_FEATURE_HTTPD_SETUID
 #undef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-#undef ENABLE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-#undef ENABLE_FEATURE_HTTPD_BASIC_AUTH
-#undef ENABLE_FEATURE_HTTPD_AUTH_MD5
-#undef ENABLE_FEATURE_HTTPD_ENCODE_URL_STR
-#undef ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-#undef ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-#undef ENABLE_FEATURE_HTTPD_CGI
-#undef ENABLE_FEATURE_HTTPD_SETUID
-#undef ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 /* enable all features now */
 #define CONFIG_FEATURE_HTTPD_BASIC_AUTH
 #define CONFIG_FEATURE_HTTPD_AUTH_MD5
@@ -178,15 +169,6 @@ static const char home[] = "./";
 #define CONFIG_FEATURE_HTTPD_CGI
 #define CONFIG_FEATURE_HTTPD_SETUID
 #define CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-#define ENABLE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY  0
-#define ENABLE_FEATURE_HTTPD_BASIC_AUTH             1
-#define ENABLE_FEATURE_HTTPD_AUTH_MD5               1
-#define ENABLE_FEATURE_HTTPD_ENCODE_URL_STR         1
-#define ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV 1
-#define ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES 1
-#define ENABLE_FEATURE_HTTPD_CGI                    1
-#define ENABLE_FEATURE_HTTPD_SETUID                 1
-#define ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP   1
 
 /* require from libbb.a for linking */
 const char *bb_applet_name = "httpd";
@@ -239,7 +221,7 @@ typedef struct
   const char *configFile;
 
   unsigned int rmt_ip;
-#if ENABLE_FEATURE_HTTPD_CGI || DEBUG
+#if defined(CONFIG_FEATURE_HTTPD_CGI) || DEBUG
   char rmt_ip_str[16];     /* for set env REMOTE_ADDR */
 #endif
   unsigned port;           /* server initial port and for
@@ -1893,7 +1875,7 @@ static int miniHttpd(int server)
 	}
 	config->accepted_socket = s;
 	config->rmt_ip = ntohl(fromAddr.sin_addr.s_addr);
-#if ENABLE_FEATURE_HTTPD_CGI || DEBUG
+#if defined(CONFIG_FEATURE_HTTPD_CGI) || DEBUG
 	sprintf(config->rmt_ip_str, "%u.%u.%u.%u",
 		(unsigned char)(config->rmt_ip >> 24),
 		(unsigned char)(config->rmt_ip >> 16),
@@ -1941,7 +1923,7 @@ static int miniHttpd(void)
 
   getpeername (0, (struct sockaddr *)&fromAddrLen, &sinlen);
   config->rmt_ip = ntohl(fromAddrLen.sin_addr.s_addr);
-#if ENABLE_FEATURE_HTTPD_CGI
+#ifdef CONFIG_FEATURE_HTTPD_CGI
   sprintf(config->rmt_ip_str, "%u.%u.%u.%u",
 		(unsigned char)(config->rmt_ip >> 24),
 		(unsigned char)(config->rmt_ip >> 16),
@@ -2108,7 +2090,7 @@ int httpd_main(int argc, char *argv[])
   parse_conf(default_path_httpd_conf, FIRST_PARSE);
 #endif
 
-#if !ENABLE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
 # if !DEBUG
   bb_xdaemon(1, 0);     /* don`t change curent directory */
 # endif
