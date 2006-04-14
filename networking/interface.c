@@ -44,12 +44,6 @@
  *
  */
 #define HAVE_AFINET 1
-#undef HAVE_AFIPX
-#undef HAVE_AFATALK
-#undef HAVE_AFNETROM
-#undef HAVE_AFX25
-#undef HAVE_AFECONET
-#undef HAVE_AFASH
 
 /*
  *
@@ -107,12 +101,6 @@ struct in6_ifreq {
 
 #endif							/* HAVE_AFINET6 */
 
-#if HAVE_AFIPX
-#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1)
-#include <netipx/ipx.h>
-#endif
-#endif
-
 /* Defines for glibc2.0 users. */
 #ifndef SIOCSIFTXQLEN
 #define SIOCSIFTXQLEN      0x8943
@@ -155,34 +143,7 @@ struct aftype {
 #ifdef KEEP_UNUSED
 
 static int flag_unx;
-
-#ifdef HAVE_AFIPX
-static int flag_ipx;
-#endif
-#ifdef HAVE_AFX25
-static int flag_ax25;
-#endif
-#ifdef HAVE_AFATALK
-static int flag_ddp;
-#endif
-#ifdef HAVE_AFNETROM
-static int flag_netrom;
-#endif
 static int flag_inet;
-
-#ifdef HAVE_AFINET6
-static int flag_inet6;
-#endif
-#ifdef HAVE_AFECONET
-static int flag_econet;
-#endif
-#ifdef HAVE_AFX25
-static int flag_x25 = 0;
-#endif
-#ifdef HAVE_AFASH
-static int flag_ash;
-#endif
-
 
 static struct aftrans_t {
 	char *alias;
@@ -190,27 +151,11 @@ static struct aftrans_t {
 	int *flag;
 } aftrans[] = {
 
-#ifdef HAVE_AFX25
-	{
-	"ax25", "ax25", &flag_ax25},
-#endif
 	{
 	"ip", "inet", &flag_inet},
 #ifdef HAVE_AFINET6
 	{
 	"ip6", "inet6", &flag_inet6},
-#endif
-#ifdef HAVE_AFIPX
-	{
-	"ipx", "ipx", &flag_ipx},
-#endif
-#ifdef HAVE_AFATALK
-	{
-	"appletalk", "ddp", &flag_ddp},
-#endif
-#ifdef HAVE_AFNETROM
-	{
-	"netrom", "netrom", &flag_netrom},
 #endif
 	{
 	"inet", "inet", &flag_inet},
@@ -218,25 +163,9 @@ static struct aftrans_t {
 	{
 	"inet6", "inet6", &flag_inet6},
 #endif
-#ifdef HAVE_AFATALK
-	{
-	"ddp", "ddp", &flag_ddp},
-#endif
 	{
 	"unix", "unix", &flag_unx}, {
 	"tcpip", "inet", &flag_inet},
-#ifdef HAVE_AFECONET
-	{
-	"econet", "ec", &flag_econet},
-#endif
-#ifdef HAVE_AFX25
-	{
-	"x25", "x25", &flag_x25},
-#endif
-#ifdef HAVE_AFASH
-	{
-	"ash", "ash", &flag_ash},
-#endif
 	{
 	0, 0, 0}
 };
@@ -519,30 +448,6 @@ static struct aftype * const aftypes[] = {
 #if HAVE_AFINET6
 	&inet6_aftype,
 #endif
-#if HAVE_AFAX25
-	&ax25_aftype,
-#endif
-#if HAVE_AFNETROM
-	&netrom_aftype,
-#endif
-#if HAVE_AFROSE
-	&rose_aftype,
-#endif
-#if HAVE_AFIPX
-	&ipx_aftype,
-#endif
-#if HAVE_AFATALK
-	&ddp_aftype,
-#endif
-#if HAVE_AFECONET
-	&ec_aftype,
-#endif
-#if HAVE_AFASH
-	&ash_aftype,
-#endif
-#if HAVE_AFX25
-	&x25_aftype,
-#endif
 	&unspec_aftype,
 	NULL
 };
@@ -561,30 +466,6 @@ static void afinit()
 #endif
 #if HAVE_AFINET6
 	inet6_aftype.title = _("IPv6");
-#endif
-#if HAVE_AFAX25
-	ax25_aftype.title = _("AMPR AX.25");
-#endif
-#if HAVE_AFNETROM
-	netrom_aftype.title = _("AMPR NET/ROM");
-#endif
-#if HAVE_AFIPX
-	ipx_aftype.title = _("Novell IPX");
-#endif
-#if HAVE_AFATALK
-	ddp_aftype.title = _("Appletalk DDP");
-#endif
-#if HAVE_AFECONET
-	ec_aftype.title = _("Econet");
-#endif
-#if HAVE_AFX25
-	x25_aftype.title = _("CCITT X.25");
-#endif
-#if HAVE_AFROSE
-	rose_aftype.title = _("AMPR ROSE");
-#endif
-#if HAVE_AFASH
-	ash_aftype.title = _("Ash");
 #endif
 	sVafinit = 1;
 }
@@ -802,20 +683,7 @@ struct interface {
 	struct sockaddr dstaddr;	/* P-P IP address        */
 	struct sockaddr broadaddr;	/* IP broadcast address  */
 	struct sockaddr netmask;	/* IP network mask       */
-	struct sockaddr ipxaddr_bb;	/* IPX network address   */
-	struct sockaddr ipxaddr_sn;	/* IPX network address   */
-	struct sockaddr ipxaddr_e3;	/* IPX network address   */
-	struct sockaddr ipxaddr_e2;	/* IPX network address   */
-	struct sockaddr ddpaddr;	/* Appletalk DDP address */
-	struct sockaddr ecaddr;	/* Econet address        */
 	int has_ip;
-	int has_ipx_bb;
-	int has_ipx_sn;
-	int has_ipx_e3;
-	int has_ipx_e2;
-	int has_ax25;
-	int has_ddp;
-	int has_econet;
 	char hwaddr[32];	/* HW address            */
 	int statistics_valid;
 	struct user_net_device_stats stats;	/* statistics            */
@@ -867,14 +735,6 @@ static int sockets_open(int family)
 			if (access(af->flag_file, R_OK))
 				continue;
 		}
-#if HAVE_AFNETROM
-		if (af->af == AF_NETROM)
-			type = SOCK_SEQPACKET;
-#endif
-#if HAVE_AFX25
-		if (af->af == AF_X25)
-			type = SOCK_SEQPACKET;
-#endif
 		af->fd = socket(af->af, type, 0);
 		if (af->fd >= 0)
 			sfd = af->fd;
@@ -1170,17 +1030,6 @@ static int for_all_interfaces(int (*doit) (struct interface *, void *),
 	return 0;
 }
 
-/* Support for fetching an IPX address */
-
-#if HAVE_AFIPX
-static int ipx_getaddr(int sock, int ft, struct ifreq *ifr)
-{
-	((struct sockaddr_ipx *) &ifr->ifr_addr)->sipx_type = ft;
-	return ioctl(sock, SIOCGIFADDR, ifr);
-}
-#endif
-
-
 /* Fetch the interface configuration from the kernel. */
 static int if_fetch(struct interface *ife)
 {
@@ -1280,57 +1129,6 @@ static int if_fetch(struct interface *ife)
 				ife->netmask = ifr.ifr_netmask;
 		} else
 			memset(&ife->addr, 0, sizeof(struct sockaddr));
-	}
-#endif
-
-#if HAVE_AFATALK
-	/* DDP address maybe ? */
-	fd = get_socket_for_af(AF_APPLETALK);
-	if (fd >= 0) {
-		strcpy(ifr.ifr_name, ifname);
-		if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) {
-			ife->ddpaddr = ifr.ifr_addr;
-			ife->has_ddp = 1;
-		}
-	}
-#endif
-
-#if HAVE_AFIPX
-	/* Look for IPX addresses with all framing types */
-	fd = get_socket_for_af(AF_IPX);
-	if (fd >= 0) {
-		strcpy(ifr.ifr_name, ifname);
-		if (!ipx_getaddr(fd, IPX_FRAME_ETHERII, &ifr)) {
-			ife->has_ipx_bb = 1;
-			ife->ipxaddr_bb = ifr.ifr_addr;
-		}
-		strcpy(ifr.ifr_name, ifname);
-		if (!ipx_getaddr(fd, IPX_FRAME_SNAP, &ifr)) {
-			ife->has_ipx_sn = 1;
-			ife->ipxaddr_sn = ifr.ifr_addr;
-		}
-		strcpy(ifr.ifr_name, ifname);
-		if (!ipx_getaddr(fd, IPX_FRAME_8023, &ifr)) {
-			ife->has_ipx_e3 = 1;
-			ife->ipxaddr_e3 = ifr.ifr_addr;
-		}
-		strcpy(ifr.ifr_name, ifname);
-		if (!ipx_getaddr(fd, IPX_FRAME_8022, &ifr)) {
-			ife->has_ipx_e2 = 1;
-			ife->ipxaddr_e2 = ifr.ifr_addr;
-		}
-	}
-#endif
-
-#if HAVE_AFECONET
-	/* Econet address maybe? */
-	fd = get_socket_for_af(AF_ECONET);
-	if (fd >= 0) {
-		strcpy(ifr.ifr_name, ifname);
-		if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) {
-			ife->ecaddr = ifr.ifr_addr;
-			ife->has_econet = 1;
-		}
 	}
 #endif
 
@@ -1521,61 +1319,14 @@ static const struct hwtype * const hwtypes[] = {
 #if HAVE_HWSTRIP
 	&strip_hwtype,
 #endif
-#if HAVE_HWASH
-	&ash_hwtype,
-#endif
 #if HAVE_HWETHER
 	&ether_hwtype,
-#endif
-#if HAVE_HWTR
-	&tr_hwtype,
-#ifdef ARPHRD_IEEE802_TR
-	&tr_hwtype1,
-#endif
-#endif
-#if HAVE_HWAX25
-	&ax25_hwtype,
-#endif
-#if HAVE_HWNETROM
-	&netrom_hwtype,
-#endif
-#if HAVE_HWROSE
-	&rose_hwtype,
 #endif
 #if HAVE_HWTUNNEL
 	&tunnel_hwtype,
 #endif
 #if HAVE_HWPPP
 	&ppp_hwtype,
-#endif
-#if HAVE_HWHDLCLAPB
-	&hdlc_hwtype,
-	&lapb_hwtype,
-#endif
-#if HAVE_HWARC
-	&arcnet_hwtype,
-#endif
-#if HAVE_HWFR
-	&dlci_hwtype,
-	&frad_hwtype,
-#endif
-#if HAVE_HWSIT
-	&sit_hwtype,
-#endif
-#if HAVE_HWFDDI
-	&fddi_hwtype,
-#endif
-#if HAVE_HWHIPPI
-	&hippi_hwtype,
-#endif
-#if HAVE_HWIRDA
-	&irda_hwtype,
-#endif
-#if HAVE_HWEC
-	&ec_hwtype,
-#endif
-#if HAVE_HWX25
-	&x25_hwtype,
 #endif
 	&unspec_hwtype,
 	NULL
@@ -1598,58 +1349,11 @@ static void hwinit()
 #if HAVE_HWETHER
 	ether_hwtype.title = _("Ethernet");
 #endif
-#if HAVE_HWASH
-	ash_hwtype.title = _("Ash");
-#endif
-#if HAVE_HWFDDI
-	fddi_hwtype.title = _("Fiber Distributed Data Interface");
-#endif
-#if HAVE_HWHIPPI
-	hippi_hwtype.title = _("HIPPI");
-#endif
-#if HAVE_HWAX25
-	ax25_hwtype.title = _("AMPR AX.25");
-#endif
-#if HAVE_HWROSE
-	rose_hwtype.title = _("AMPR ROSE");
-#endif
-#if HAVE_HWNETROM
-	netrom_hwtype.title = _("AMPR NET/ROM");
-#endif
-#if HAVE_HWX25
-	x25_hwtype.title = _("generic X.25");
-#endif
 #if HAVE_HWTUNNEL
 	tunnel_hwtype.title = _("IPIP Tunnel");
 #endif
 #if HAVE_HWPPP
 	ppp_hwtype.title = _("Point-to-Point Protocol");
-#endif
-#if HAVE_HWHDLCLAPB
-	hdlc_hwtype.title = _("(Cisco)-HDLC");
-	lapb_hwtype.title = _("LAPB");
-#endif
-#if HAVE_HWARC
-	arcnet_hwtype.title = _("ARCnet");
-#endif
-#if HAVE_HWFR
-	dlci_hwtype.title = _("Frame Relay DLCI");
-	frad_hwtype.title = _("Frame Relay Access Device");
-#endif
-#if HAVE_HWSIT
-	sit_hwtype.title = _("IPv6-in-IPv4");
-#endif
-#if HAVE_HWIRDA
-	irda_hwtype.title = _("IrLAP");
-#endif
-#if HAVE_HWTR
-	tr_hwtype.title = _("16/4 Mbps Token Ring");
-#ifdef ARPHRD_IEEE802_TR
-	tr_hwtype1.title = _("16/4 Mbps Token Ring (New)");
-#endif
-#endif
-#if HAVE_HWEC
-	ec_hwtype.title = _("Econet");
 #endif
 	sVhwinit = 1;
 }
@@ -1797,15 +1501,6 @@ static void ife_print(struct interface *ptr)
 	int hf;
 	int can_compress = 0;
 
-#if HAVE_AFIPX
-	static struct aftype *ipxtype = NULL;
-#endif
-#if HAVE_AFECONET
-	static struct aftype *ectype = NULL;
-#endif
-#if HAVE_AFATALK
-	static struct aftype *ddptype = NULL;
-#endif
 #if HAVE_AFINET6
 	FILE *f;
 	char addr6[40], devname[20];
@@ -1915,46 +1610,6 @@ static void ife_print(struct interface *ptr)
 			}
 		}
 		fclose(f);
-	}
-#endif
-
-#if HAVE_AFIPX
-	if (ipxtype == NULL)
-		ipxtype = get_afntype(AF_IPX);
-
-	if (ipxtype != NULL) {
-		if (ptr->has_ipx_bb)
-			printf(_("          IPX/Ethernet II addr:%s\n"),
-				   ipxtype->sprint(&ptr->ipxaddr_bb, 1));
-		if (ptr->has_ipx_sn)
-			printf(_("          IPX/Ethernet SNAP addr:%s\n"),
-				   ipxtype->sprint(&ptr->ipxaddr_sn, 1));
-		if (ptr->has_ipx_e2)
-			printf(_("          IPX/Ethernet 802.2 addr:%s\n"),
-				   ipxtype->sprint(&ptr->ipxaddr_e2, 1));
-		if (ptr->has_ipx_e3)
-			printf(_("          IPX/Ethernet 802.3 addr:%s\n"),
-				   ipxtype->sprint(&ptr->ipxaddr_e3, 1));
-	}
-#endif
-
-#if HAVE_AFATALK
-	if (ddptype == NULL)
-		ddptype = get_afntype(AF_APPLETALK);
-	if (ddptype != NULL) {
-		if (ptr->has_ddp)
-			printf(_("          EtherTalk Phase 2 addr:%s\n"),
-				   ddptype->sprint(&ptr->ddpaddr, 1));
-	}
-#endif
-
-#if HAVE_AFECONET
-	if (ectype == NULL)
-		ectype = get_afntype(AF_ECONET);
-	if (ectype != NULL) {
-		if (ptr->has_econet)
-			printf(_("          econet addr:%s\n"),
-				   ectype->sprint(&ptr->ecaddr, 1));
 	}
 #endif
 

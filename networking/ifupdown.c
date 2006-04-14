@@ -135,8 +135,7 @@ static int count_netmask_bits(char *dotted_quad)
 }
 #endif
 
-#if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6 || \
-	ENABLE_FEATURE_IFUPDOWN_IPX
+#if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6
 static void addstr(char **buf, size_t *len, size_t *pos, char *str, size_t str_length)
 {
 	if (*pos + str_length >= *len) {
@@ -316,39 +315,6 @@ static int execute(char *command, struct interface_defn_t *ifd, execfn *exec)
 	return(1);
 }
 #endif
-
-#ifdef CONFIG_FEATURE_IFUPDOWN_IPX
-static int static_up_ipx(struct interface_defn_t *ifd, execfn *exec)
-{
-	return(execute("ipx_interface add %iface% %frame% %netnum%", ifd, exec));
-}
-
-static int static_down_ipx(struct interface_defn_t *ifd, execfn *exec)
-{
-	return(execute("ipx_interface del %iface% %frame%", ifd, exec));
-}
-
-static int dynamic_up(struct interface_defn_t *ifd, execfn *exec)
-{
-	return(execute("ipx_interface add %iface% %frame%", ifd, exec));
-}
-
-static int dynamic_down(struct interface_defn_t *ifd, execfn *exec)
-{
-	return(execute("ipx_interface del %iface% %frame%", ifd, exec));
-}
-
-static struct method_t methods_ipx[] = {
-	{ "dynamic", dynamic_up, dynamic_down, },
-	{ "static", static_up_ipx, static_down_ipx, },
-};
-
-static struct address_family_t addr_ipx = {
-	"ipx",
-	sizeof(methods_ipx) / sizeof(struct method_t),
-	methods_ipx
-};
-#endif /* IFUP_FEATURE_IPX */
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_IPV6
 static int loopback_up6(struct interface_defn_t *ifd, execfn *exec)
@@ -720,9 +686,6 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 #endif
 #ifdef CONFIG_FEATURE_IFUPDOWN_IPV6
 					&addr_inet6,
-#endif
-#ifdef CONFIG_FEATURE_IFUPDOWN_IPX
-					&addr_ipx,
 #endif
 					NULL
 				};
