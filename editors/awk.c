@@ -45,7 +45,7 @@ typedef struct var_s {
 	double number;
 	char *string;
 	union {
-		int aidx;				/* func arg index (on compilation stage) */
+		int aidx;				/* func arg idx (for compilation stage) */
 		struct xhash_s *array;	/* array ptr */
 		struct var_s *parent;	/* for func args, ptr to actual parameter */
 		char **walker;			/* list of array elements (for..in) */
