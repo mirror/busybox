@@ -221,7 +221,7 @@ print_autowrap (WINDOW * win, const char *prompt, int width, int y, int x)
 	newl = 1;
 	word = tempstr;
 	while (word && *word) {
-	    sp = index(word, ' ');
+	    sp = strchr(word, ' ');
 	    if (sp)
 	        *sp++ = 0;
 
@@ -232,7 +232,7 @@ print_autowrap (WINDOW * win, const char *prompt, int width, int y, int x)
 	    wlen = strlen(word);
 	    if (wlen > room ||
 	       (newl && wlen < 4 && sp && wlen+1+strlen(sp) > room
-		     && (!(sp2 = index(sp, ' ')) || wlen+1+(sp2-sp) > room))) {
+		     && (!(sp2 = strchr(sp, ' ')) || wlen+1+(sp2-sp) > room))) {
 		cur_y++;
 		cur_x = x;
 	    }

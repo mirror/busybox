@@ -236,7 +236,7 @@ int sort_main(int argc, char **argv)
 	bb_default_error_retval = 2;
 	/* Parse command line options */
 	while((c=getopt(argc,argv,optlist))>0) {
-		line=index(optlist,c);
+		line=strchr(optlist,c);
 		if(!line) bb_show_usage();
 		switch(*line) {
 #ifdef CONFIG_FEATURE_SORT_BIG
@@ -267,7 +267,7 @@ int sort_main(int argc, char **argv)
 							break;
 						} /* no else needed: fall through to syntax error
 							 because comma isn't in optlist */
-						temp2=index(optlist,*temp);
+						temp2=strchr(optlist,*temp);
 						flag=(1<<(temp2-optlist));
 						if(!temp2 || (flag>FLAG_M && flag<FLAG_b))
 							bb_error_msg_and_die("Unknown key option.");

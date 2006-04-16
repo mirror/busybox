@@ -43,7 +43,7 @@ static inline Bounds boundary(const char *buffer, const char *login)
 	}
 	start++;
 
-	stop = index(start, '\n');	/* index is a BSD-ism */
+	stop = strchr(start, '\n');
 	b.start = start - buffer;
 	b.stop = stop - buffer;
 	return b;
