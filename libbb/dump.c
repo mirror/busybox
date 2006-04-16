@@ -380,7 +380,7 @@ static unsigned char *get(void)
 			if (need == bb_dump_blocksize) {
 				return ((unsigned char *) NULL);
 			}
-			if (bb_dump_vflag != ALL && !bcmp(curp, savp, nread)) {
+			if (bb_dump_vflag != ALL && !memcmp(curp, savp, nread)) {
 				if (bb_dump_vflag != DUP) {
 					printf("*\n");
 				}
@@ -405,7 +405,7 @@ static unsigned char *get(void)
 		}
 		if (!(need -= n)) {
 			if (bb_dump_vflag == ALL || bb_dump_vflag == FIRST
-				|| bcmp(curp, savp, bb_dump_blocksize)) {
+				|| memcmp(curp, savp, bb_dump_blocksize)) {
 				if (bb_dump_vflag == DUP || bb_dump_vflag == FIRST) {
 					bb_dump_vflag = WAIT;
 				}
