@@ -659,16 +659,13 @@ static void regex_process(void)
 	char current_line[256];
 	int i;
 	int j = 0;
-	regex_t *pattern;
+	regex_t pattern;
 
 	/* Reset variables */
 	match_lines[0] = -1;
 	match_pos = 0;
 	num_matches = 0;
 	match_found = 0;
-
-	pattern = (regex_t *) malloc(sizeof(regex_t));
-	memset(pattern, 0, sizeof(regex_t));
 
 	/* Get the uncompiled regular expression from the user */
 	clear_line();
@@ -681,14 +678,15 @@ static void regex_process(void)
 			uncomp_regex[i-1] = '\0';
 		else
 			while((i = getchar()) != '\n' && i != EOF);
-	}
+	} else
+		return;
 
 	/* Compile the regex and check for errors */
-	xregcomp(pattern, uncomp_regex, 0);
+	xregcomp(&pattern, uncomp_regex, 0);
 
 	/* Run the regex on each line of the current file here */
 	for (i = 0; i <= num_flines; i++) {
-		strcpy(current_line, process_regex_on_line(flines[i], pattern));
+		strcpy(current_line, process_regex_on_line(flines[i], &pattern));
 		flines[i] = bb_xstrdup(current_line);
 		if (match_found) {
 			match_lines[j] = i;
