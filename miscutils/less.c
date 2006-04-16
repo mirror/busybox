@@ -215,7 +215,7 @@ static void data_readlines(void)
 	for (i = 0; (feof(fp)==0) && (i <= MAXLINES); i++) {
 		strcpy(current_line, "");
 		fgets(current_line, 256, fp);
-		if(fp != stdin)
+		if (fp != stdin)
 			bb_xferror(fp, filename);
 		flines = xrealloc(flines, (i+1) * sizeof(char *));
 		flines[i] = bb_xstrdup(current_line);
@@ -229,7 +229,7 @@ static void data_readlines(void)
 
 	fclose(fp);
 
-	if(inp == NULL)
+	if (inp == NULL)
 		inp = (inp_stdin) ? bb_xfopen(CURRENT_TTY, "r") : stdin;
 
 	if (flags & FLAG_N)
@@ -358,7 +358,7 @@ static void buffer_init(void)
 {
 	int i;
 
-	if(buffer == NULL) {
+	if (buffer == NULL) {
 		/* malloc the number of lines needed for the buffer */
 		buffer = xrealloc(buffer, height * sizeof(char *));
 	} else {
@@ -677,8 +677,8 @@ static void regex_process(void)
 	uncomp_regex[0] = 0;
 	fgets(uncomp_regex, sizeof(uncomp_regex), stdin);
 	i = strlen(uncomp_regex);
-	if(i > 0) {
-		if(uncomp_regex[i-1] == '\n')
+	if (i > 0) {
+		if (uncomp_regex[i-1] == '\n')
 			uncomp_regex[i-1] = '\0';
 		else
 			while((i = getchar()) != '\n' && i != EOF);
