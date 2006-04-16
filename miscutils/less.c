@@ -130,19 +130,21 @@ static struct termios term_orig, term_vi;
 static FILE *inp;
 
 /* Reset terminal input to normal */
-static void set_tty_cooked(void) {
+static void set_tty_cooked(void)
+{
 	fflush(stdout);
 	tcsetattr(fileno(inp), TCSANOW, &term_orig);
 }
 
 /* Set terminal input to raw mode  (taken from vi.c) */
-static void set_tty_raw(void) {
+static void set_tty_raw(void)
+{
 	tcsetattr(fileno(inp), TCSANOW, &term_vi);
 }
 
 /* Exit the program gracefully */
-static void tless_exit(int code) {
-
+static void tless_exit(int code)
+{
 	/* TODO: We really should save the terminal state when we start,
 		 and restore it when we exit. Less does this with the
 		 "ti" and "te" termcap commands; can this be done with
@@ -155,8 +157,8 @@ static void tless_exit(int code) {
 /* Grab a character from input without requiring the return key. If the
    character is ASCII \033, get more characters and assign certain sequences
    special return codes. Note that this function works best with raw input. */
-static int tless_getch(void) {
-
+static int tless_getch(void)
+{
 	int input;
 
 	set_tty_raw();
@@ -191,18 +193,20 @@ static int tless_getch(void) {
 
 /* Move the cursor to a position (x,y), where (0,0) is the
    top-left corner of the console */
-static void move_cursor(int x, int y) {
+static void move_cursor(int x, int y)
+{
 	printf("\033[%i;%iH", x, y);
 }
 
-static void clear_line(void) {
+static void clear_line(void)
+{
 	move_cursor(height, 0);
 	printf("\033[K");
 }
 
 /* This adds line numbers to every line, as the -N flag necessitates */
-static void add_linenumbers(void) {
-
+static void add_linenumbers(void)
+{
 	char current_line[256];
 	int i;
 
@@ -212,8 +216,8 @@ static void add_linenumbers(void) {
 	}
 }
 
-static void data_readlines(void) {
-
+static void data_readlines(void)
+{
 	int i;
 	char current_line[256];
 	FILE *fp;
@@ -245,7 +249,8 @@ static void data_readlines(void) {
 }
 
 /* Turn a percentage into a line number */
-static int reverse_percent(int percentage) {
+static int reverse_percent(int percentage)
+{
 	double linenum = percentage;
 	linenum = ((linenum / 100) * num_flines) - 1;
 	return(linenum);
@@ -255,13 +260,14 @@ static int reverse_percent(int percentage) {
 
 /* Interestingly, writing calc_percent as a function and not a prototype saves around 32 bytes
  * on my build. */
-static int calc_percent(void) {
+static int calc_percent(void)
+{
 	return ((100 * (line_pos + height - 2) / num_flines) + 1);
 }
 
 /* Print a status line if -M was specified */
-static void m_status_print(void) {
-
+static void m_status_print(void)
+{
 	int percentage;
 
 	if (!past_eof) {
@@ -295,8 +301,8 @@ static void m_status_print(void) {
 }
 
 /* Print a status line if -m was specified */
-static void medium_status_print(void) {
-
+static void medium_status_print(void)
+{
 	int percentage;
 	percentage = calc_percent();
 
@@ -310,8 +316,8 @@ static void medium_status_print(void) {
 #endif
 
 /* Print the status line */
-static void status_print(void) {
-
+static void status_print(void)
+{
 	/* Change the status if flags have been set */
 #ifdef CONFIG_FEATURE_LESS_FLAGS
 	if (flags & FLAG_M)
@@ -340,8 +346,8 @@ static void status_print(void) {
 }
 
 /* Print the buffer */
-static void buffer_print(void) {
-
+static void buffer_print(void)
+{
 	int i;
 
 	printf("%s", CLEAR);
@@ -360,8 +366,8 @@ static void buffer_print(void) {
 }
 
 /* Initialise the buffer */
-static void buffer_init(void) {
-
+static void buffer_init(void)
+{
 	int i;
 
 	if(buffer == NULL) {
@@ -385,8 +391,8 @@ static void buffer_init(void) {
 }
 
 /* Move the buffer up and down in the file in order to scroll */
-static void buffer_down(int nlines) {
-
+static void buffer_down(int nlines)
+{
 	int i;
 
 	if (!past_eof) {
@@ -415,8 +421,8 @@ static void buffer_down(int nlines) {
 	}
 }
 
-static void buffer_up(int nlines) {
-
+static void buffer_up(int nlines)
+{
 	int i;
 	int tilde_line;
 
@@ -467,8 +473,8 @@ static void buffer_up(int nlines) {
 	}
 }
 
-static void buffer_line(int linenum) {
-
+static void buffer_line(int linenum)
+{
 	int i;
 
 	past_eof = 0;
@@ -499,8 +505,8 @@ static void buffer_line(int linenum) {
 }
 
 /* Reinitialise everything for a new file - free the memory and start over */
-static void reinitialise(void) {
-
+static void reinitialise(void)
+{
 	int i;
 
 	for (i = 0; i <= num_flines; i++)
@@ -512,8 +518,8 @@ static void reinitialise(void) {
 	buffer_print();
 }
 
-static void examine_file(void) {
-
+static void examine_file(void)
+{
 	int newline_offset;
 
 	clear_line();
@@ -538,7 +544,8 @@ static void examine_file(void) {
  *  0: go to the first file
  *  1: go forward one file
 */
-static void change_file (int direction) {
+static void change_file(int direction)
+{
 	if (current_file != ((direction > 0) ? num_files : 1)) {
 		current_file = direction ? current_file + direction : 1;
 		strcpy(filename, files[current_file - 1]);
@@ -550,8 +557,8 @@ static void change_file (int direction) {
 	}
 }
 
-static void remove_current_file(void) {
-
+static void remove_current_file(void)
+{
 	int i;
 
 	if (current_file != 1) {
@@ -571,8 +578,8 @@ static void remove_current_file(void) {
 	}
 }
 
-static void colon_process(void) {
-
+static void colon_process(void)
+{
 	int keypress;
 
 	/* Clear the current line and print a prompt */
@@ -616,13 +623,14 @@ static void colon_process(void) {
 /* Get a regular expression from the user, and then go through the current
    file line by line, running a processing regex function on each one. */
 
-static char *insert_highlights (char *line, int start, int end) {
-
+static char *insert_highlights(char *line, int start, int end)
+{
 	return bb_xasprintf("%.*s%s%.*s%s%s", start, line, HIGHLIGHT,
 			end - start, line + start, NORMAL, line + end);
 }
 
-static char *process_regex_on_line(char *line, regex_t *pattern) {
+static char *process_regex_on_line(char *line, regex_t *pattern)
+{
 	/* This function takes the regex and applies it to the line.
 	   Each part of the line that matches has the HIGHLIGHT
 	   and NORMAL escape sequences placed around it by
@@ -658,8 +666,8 @@ static char *process_regex_on_line(char *line, regex_t *pattern) {
 	return line2;
 }
 
-static void regex_process(void) {
-
+static void regex_process(void)
+{
 	char uncomp_regex[100];
 	char current_line[256];
 	int i;
@@ -708,8 +716,8 @@ static void regex_process(void) {
 		buffer_init();
 }
 
-static void goto_match(int match) {
-
+static void goto_match(int match)
+{
 	/* This goes to a specific match - all line positions of matches are
 	   stored within the match_lines[] array. */
 	if ((match < num_matches) && (match >= 0)) {
@@ -718,8 +726,8 @@ static void goto_match(int match) {
 	}
 }
 
-static void search_backwards(void) {
-
+static void search_backwards(void)
+{
 	int current_linepos = line_pos;
 	int i;
 
@@ -740,8 +748,8 @@ static void search_backwards(void) {
 }
 #endif
 
-static void number_process(int first_digit) {
-
+static void number_process(int first_digit)
+{
 	int i = 1;
 	int num;
 	char num_input[80];
@@ -803,8 +811,8 @@ END:
 }
 
 #ifdef CONFIG_FEATURE_LESS_FLAGCS
-static void flag_change(void) {
-
+static void flag_change(void)
+{
 	int keypress;
 
 	clear_line();
@@ -829,8 +837,8 @@ static void flag_change(void) {
 	}
 }
 
-static void show_flag_status(void) {
-
+static void show_flag_status(void)
+{
 	int keypress;
 	int flag_val;
 
@@ -864,8 +872,8 @@ static void show_flag_status(void) {
 }
 #endif
 
-static void full_repaint(void) {
-
+static void full_repaint(void)
+{
 	int temp_line_pos = line_pos;
 	data_readlines();
 	buffer_init();
@@ -874,8 +882,8 @@ static void full_repaint(void) {
 }
 
 
-static void save_input_to_file(void) {
-
+static void save_input_to_file(void)
+{
 	char current_line[256];
 	int i;
 	FILE *fp;
@@ -896,8 +904,8 @@ static void save_input_to_file(void) {
 }
 
 #ifdef CONFIG_FEATURE_LESS_MARKS
-static void add_mark(void) {
-
+static void add_mark(void)
+{
 	int letter;
 	int mark_line;
 
@@ -922,8 +930,8 @@ static void add_mark(void) {
 	}
 }
 
-static void goto_mark(void) {
-
+static void goto_mark(void)
+{
 	int letter;
 	int i;
 
@@ -949,8 +957,8 @@ static void goto_mark(void) {
 
 #ifdef CONFIG_FEATURE_LESS_BRACKETS
 
-static char opp_bracket (char bracket) {
-
+static char opp_bracket(char bracket)
+{
 	switch (bracket) {
 		case '{': case '[':
 			return bracket + 2;
@@ -970,8 +978,8 @@ static char opp_bracket (char bracket) {
 	}
 }
 
-static void match_right_bracket(char bracket) {
-
+static void match_right_bracket(char bracket)
+{
 	int bracket_line = -1;
 	int i;
 
@@ -995,8 +1003,8 @@ static void match_right_bracket(char bracket) {
 	}
 }
 
-static void match_left_bracket (char bracket) {
-
+static void match_left_bracket(char bracket)
+{
 	int bracket_line = -1;
 	int i;
 
@@ -1025,7 +1033,8 @@ static void match_left_bracket (char bracket) {
 
 #endif  /* CONFIG_FEATURE_LESS_BRACKETS */
 
-static void keypress_process(int keypress) {
+static void keypress_process(int keypress)
+{
 	switch (keypress) {
 		case KEY_DOWN: case 'e': case 'j': case '\015':
 			buffer_down(1);
