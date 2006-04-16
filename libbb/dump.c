@@ -550,12 +550,12 @@ static void display(void)
 
 							switch (pr->bcnt) {
 							case 4:
-								bcopy((char *) bp, (char *) &fval,
+								memmove((char *) &fval, (char *) bp,
 									  sizeof(fval));
 								printf(pr->fmt, fval);
 								break;
 							case 8:
-								bcopy((char *) bp, (char *) &dval,
+								memmove((char *) &dval, (char *) bp,
 									  sizeof(dval));
 								printf(pr->fmt, dval);
 								break;
@@ -571,12 +571,12 @@ static void display(void)
 								printf(pr->fmt, (int) *bp);
 								break;
 							case 2:
-								bcopy((char *) bp, (char *) &sval,
+								memmove((char *) &sval, (char *) bp,
 									  sizeof(sval));
 								printf(pr->fmt, (int) sval);
 								break;
 							case 4:
-								bcopy((char *) bp, (char *) &ival,
+								memmove((char *) &ival, (char *) bp,
 									  sizeof(ival));
 								printf(pr->fmt, ival);
 								break;
@@ -604,12 +604,12 @@ static void display(void)
 								printf(pr->fmt, (unsigned int) * bp);
 								break;
 							case 2:
-								bcopy((char *) bp, (char *) &sval,
+								memmove((char *) &sval, (char *) bp,
 									  sizeof(sval));
 								printf(pr->fmt, (unsigned int) sval);
 								break;
 							case 4:
-								bcopy((char *) bp, (char *) &ival,
+								memmove((char *) &ival, (char *) bp,
 									  sizeof(ival));
 								printf(pr->fmt, ival);
 								break;
