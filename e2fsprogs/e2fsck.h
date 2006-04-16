@@ -20,7 +20,6 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 #include <sys/ioctl.h>
-#include <malloc.h>
 #include <termios.h>
 #include <mntent.h>
 #include <dirent.h>

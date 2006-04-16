@@ -38,7 +38,6 @@
 #include <paths.h>
 #include <unistd.h>
 #include <errno.h>
-#include <malloc.h>
 #include <signal.h>
 
 #include "fsck.h"
