@@ -625,12 +625,11 @@ static char *process_regex_on_line(char *line, regex_t *pattern)
 	   insert_highlights, and then the line is returned. */
 
 	int match_status;
-	char *line2 = (char *) malloc((sizeof(char) * (strlen(line) + 1)) + 64);
+	char *line2 = (char *) xmalloc((sizeof(char) * (strlen(line) + 1)) + 64);
 	char sub_line[256];
 	int prev_eo = 0;
 	regmatch_t match_structs;
 
-	memset(sub_line, 0, 256);
 	strcpy(line2, line);
 
 	match_found = 0;
@@ -638,7 +637,7 @@ static char *process_regex_on_line(char *line, regex_t *pattern)
 
 	while (match_status == 0) {
 
-		memset(sub_line, 0, 256);
+		memset(sub_line, 0, sizeof(sub_line));
 
 		if (match_found == 0)
 			match_found = 1;
