@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2005 Bernhard Fischer
  *
- * Licensed under the GPL v2, see the file LICENSE in this tarball.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
  * Based on sysvinit's mountpoint
  */

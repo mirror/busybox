@@ -5,9 +5,9 @@
  * run as root, but NOT setuid root
  *
  * Copyright 1994 Matthew Dillon (dillon@apollo.west.oic.com)
- * May be distributed under the GNU General Public License
+ * Vladimir Oleynik <dzo@simtreas.ru> (C) 2002
  *
- * Vladimir Oleynik <dzo@simtreas.ru> (C) 2002 to be used in busybox
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #define VERSION "2.3.2"

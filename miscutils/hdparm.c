@@ -2,12 +2,10 @@
 /*
  * hdparm implementation for busybox
  *
- *
  * Copyright (C) [2003] by [Matteo Croce] <3297627799@wind.it>
- *
  * Hacked by Tito <farmatito@tiscali.it> for size optimization.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  *
  * This program is based on the source code of hdparm: see below...
  * hdparm.c - Command line interface to get/set hard disk parameters

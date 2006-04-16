@@ -5,7 +5,6 @@
  * Copyright (C) 2005  Tito Ragusa <farmatito@tiscali.it>
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
- *
  */
 
 /*
