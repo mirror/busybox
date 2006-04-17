@@ -376,6 +376,41 @@ relocations with the environment variable "LD_DEBUG".  Try
 "LD_DEBUG=help /bin/true" for a list of commands.  Learning to interpret
 "LD_DEBUG=statistics cat /proc/self/statm" could be interesting.</p>
 
+<p>For more on this topic, here's Rich Felker:</p>
+<blockquote>
+<p>Dynamic linking (without fixed load addresses) fundamentally requires
+at least one dirty page per dso that uses symbols. Making calls (but
+never taking the address explicitly) to functions within the same dso
+does not require a dirty page by itself, but will with ELF unless you
+use -Bsymbolic or hidden symbols when linking.</p>
+
+<p>ELF uses significant additional stack space for the kernel to pass all
+the ELF data structures to the newly created process image. These are
+located above the argument list and environment. This normally adds 1
+dirty page to the process size.</p>
+
+<p>The ELF dynamic linker has its own data segment, adding one or more
+dirty pages. I believe it also performs relocations on itself.</p>
+
+<p>The ELF dynamic linker makes significant dynamic allocations to manage
+the global symbol table and the loaded dso's. This data is never
+freed. It will be needed again if libdl is used, so unconditionally
+freeing it is not possible, but normal programs do not use libdl. Of
+course with glibc all programs use libdl (due to nsswitch) so the
+issue was never addressed.</p>
+
+<p>ELF also has the issue that segments are not page-aligned on disk.
+This saves up to 4k on disk, but at the expense of using an additional
+dirty page in most cases, due to a large portion of the first data
+page being filled with a duplicate copy of the last text page.</p>
+
+<p>The above is just a partial list of the tiny memory penalties of ELF
+dynamic linking, which eventually add up to quite a bit. The smallest
+I've been able to get a process down to is 8 dirty pages, and the
+above factors seem to mostly account for it (but some were difficult
+to measure).</p>
+</blockquote>
+
 <h2><a name="who">Who are the BusyBox developers?</a></h2>
 
 <p>The following login accounts currently exist on busybox.net.  (I.E. these
