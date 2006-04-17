@@ -291,8 +291,8 @@ static const char * const minor_str[] = {				/* word 81 value: */
 	"Reserved",					/* 0x001a	*/
 	"ATA/ATAPI-6 T13 1410D revision 2",		/* 0x001b	*/
 	"ATA/ATAPI-6 T13 1410D revision 1",		/* 0x001c	*/
-	"reserved"					/* 0x001d	*/
-	"reserved"					/* 0x001e	*/
+	"reserved",					/* 0x001d	*/
+	"reserved",					/* 0x001e	*/
 	"reserved"					/* 0x001f-0xfffe*/
 };
 #endif
@@ -1427,10 +1427,10 @@ static void dump_identity (const struct hd_driveid *id)
 	{
 		printf("\n Drive conforms to: ");
 		if_else_printf((id->minor_rev_num <= 31),"%s: ","unknown: ", minor_str[id->minor_rev_num]);
-		if (id->major_rev_num < 31)
-		{
+		if (id->major_rev_num != 0x0000 &&  /* NOVAL_0 */
+		    id->major_rev_num != 0xFFFF) {  /* NOVAL_1 */
 			for (i=0; i <= 15; i++)
-				if_printf((id->major_rev_num & (1<<i))," %u", i);
+				if_printf((id->major_rev_num & (1<<i))," ATA/ATAPI-%u", i);
 		}
 	}
 #endif /* __NEW_HD_DRIVE_ID */
