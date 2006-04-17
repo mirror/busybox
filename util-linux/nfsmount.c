@@ -572,13 +572,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	if (nfs_mount_version >= 3)
 		data.flags |= (nolock ? NFS_MOUNT_NONLM : 0);
 #endif
-	if (nfsvers > MAX_NFSPROT) {
+	if (nfsvers > MAX_NFSPROT || mountvers > MAX_NFSPROT) {
 		bb_error_msg("NFSv%d not supported!", nfsvers);
-		return 0;
-	}
-	if (mountvers > MAX_NFSPROT) {
-		bb_error_msg("NFSv%d not supported!", nfsvers);
-		return 0;
+		return 1;
 	}
 	if (nfsvers && !mountvers)
 		mountvers = (nfsvers < 3) ? 1 : nfsvers;
