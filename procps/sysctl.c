@@ -2,8 +2,7 @@
 /*
  * Sysctl 1.01 - A utility to read and manipulate the sysctl parameters
  *
- *
- * "Copyright 1999 George Staikos
+ * Copyright 1999 George Staikos
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
@@ -335,11 +334,3 @@ int sysctl_display_all(const char *path, int output, int show_table)
 
 	return retval;
 }						/* end sysctl_display_all() */
-
-#ifdef STANDALONE_SYSCTL
-int main(int argc, char **argv)
-{
-	return sysctl_main(argc, argv);
-}
-const char *bb_applet_name = "sysctl";
-#endif
