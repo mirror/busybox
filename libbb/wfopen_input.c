@@ -38,15 +38,6 @@ FILE *bb_wfopen_input(const char *filename)
 	if ((filename != bb_msg_standard_input)
 		&& filename[0] && ((filename[0] != '-') || filename[1])
 	) {
-#if 0
-		/* This check shouldn't be necessary for linux, but is left
-		 * here disabled just in case. */
-		struct stat stat_buf;
-		if (is_directory(filename, 1, &stat_buf)) {
-			bb_error_msg("%s: Is a directory", filename);
-			return NULL;
-		}
-#endif
 		fp = bb_wfopen(filename, "r");
 	}
 
