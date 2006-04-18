@@ -224,6 +224,11 @@
 #define chvt_full_usage \
 	"Changes the foreground virtual terminal to /dev/ttyN"
 
+#define cksum_trivial_usage \
+	"FILES..."
+#define cksum_full_usage \
+	"Calculates the CRC32 checksums of FILES."
+
 #define clear_trivial_usage \
 	""
 #define clear_full_usage \

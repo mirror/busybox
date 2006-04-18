@@ -52,6 +52,12 @@ config CONFIG_CHROOT
 	  chroot is used to change the root directory and run a command.
 	  The default command is `/bin/sh'.
 
+config CONFIG_CKSUM
+	bool "cksum"
+	default n
+	help
+	  cksum is used to calculate the CRC32 checksum of a file.
+
 config CONFIG_CMP
 	bool "cmp"
 	default n
