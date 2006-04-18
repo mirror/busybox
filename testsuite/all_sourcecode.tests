@@ -47,6 +47,7 @@ find $srcdir/../ \
 		-e '\<readed\>' \
 		-e '\<formated\>' \
 		-e '\<algorithic\>' \
+		-e '\<deamon\>' \
 		| sed -e "s:^$srcdir/\.\./::g" > src.typos
 testing "Common typos" "cat src.typos" "" "" ""
 rm -f src.typos
