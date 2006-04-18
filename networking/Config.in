@@ -62,15 +62,33 @@ config CONFIG_HTTPD
 	  Serve web pages via an HTTP server.
 
 config CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-	bool "  Support using httpd only from inetd"
+	bool "Support using httpd only from inetd"
 	default n
 	depends on CONFIG_HTTPD
 	help
 	  This option disables uid and port options for the httpd applet
 	  but requires inetd server daemon.
 
+config CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
+	bool "Support reloading the global config file using hup signal"
+	default n
+	depends on CONFIG_HTTPD && !CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+	help
+	  This option enables processing of SIGHUP to reload cached
+	  configuration settings.
+
+config CONFIG_FEATURE_HTTPD_SETUID
+	bool "Enable support -u <user> option"
+	default n
+	depends on CONFIG_HTTPD && !CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+	help
+	  This option allows the server to run as a specific user
+	  rather than defaulting to the user that starts the server.
+	  Use of this option requires special privileges to change to a
+	  different user.
+
 config CONFIG_FEATURE_HTTPD_BASIC_AUTH
-	bool "  Enable Basic http Authentication"
+	bool "Enable Basic http Authentication"
 	default y
 	depends on CONFIG_HTTPD
 	help
@@ -78,35 +96,15 @@ config CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	  authentication on a per url basis.
 
 config CONFIG_FEATURE_HTTPD_AUTH_MD5
-	bool "  Support MD5 crypted passwords for http Authentication"
+	bool "Support MD5 crypted passwords for http Authentication"
 	default n
 	depends on CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	help
 	  Enables basic per url authentication from /etc/httpd.conf
 	  using md5 passwords.
 
-if !CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-config CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-	bool "  Support reloading the global config file using hup signal"
-	default n
-	depends on CONFIG_HTTPD
-	help
-	  This option enables processing of SIGHUP to reload cached
-	  configuration settings.
-
-config CONFIG_FEATURE_HTTPD_SETUID
-	bool "  Enable support -u <user> option"
-	default n
-	depends on CONFIG_HTTPD
-	help
-	  This option allows the server to run as a specific user
-	  rather than defaulting to the user that starts the server.
-	  Use of this option requires special privileges to change to a
-	  different user.
-endif
-
 config CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
-	bool "  Support loading additional MIME types at run-time"
+	bool "Support loading additional MIME types at run-time"
 	default n
 	depends on CONFIG_HTTPD
 	help
@@ -114,7 +112,7 @@ config CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	  run-time to be specified in the configuration file.
 
 config CONFIG_FEATURE_HTTPD_CGI
-	bool "  Support Common Gateway Interface (CGI)"
+	bool "Support Common Gateway Interface (CGI)"
 	default y
 	depends on CONFIG_HTTPD
 	help
@@ -122,7 +120,7 @@ config CONFIG_FEATURE_HTTPD_CGI
 	  when specific urls are requested.
 
 config CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-	bool "  Enable support for running scripts through an interpreter"
+	bool "Enable support for running scripts through an interpreter"
 	default n
 	depends on CONFIG_FEATURE_HTTPD_CGI
 	help
@@ -133,7 +131,7 @@ config CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	  *.php:/path/to/your/php
 
 config CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-	bool "  Support the REMOTE_PORT environment variable for CGI"
+	bool "Support the REMOTE_PORT environment variable for CGI"
 	default n
 	depends on CONFIG_FEATURE_HTTPD_CGI
 	help
@@ -141,7 +139,7 @@ config CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 	  references that contain a unique port number.
 
 config CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
-	bool "  Enable the -e option for shell script CGI simplification."
+	bool "Enable the -e option for shell script CGI simplification."
 	default y
 	depends on CONFIG_HTTPD
 	help
@@ -157,7 +155,7 @@ config CONFIG_IFCONFIG
 	  Ifconfig is used to configure the kernel-resident network interfaces.
 
 config CONFIG_FEATURE_IFCONFIG_STATUS
-	bool "  Enable status reporting output (+7k)"
+	bool "Enable status reporting output (+7k)"
 	default y
 	depends on CONFIG_IFCONFIG
 	help
@@ -165,7 +163,7 @@ config CONFIG_FEATURE_IFCONFIG_STATUS
 	  of the currently active interfaces.
 
 config CONFIG_FEATURE_IFCONFIG_SLIP
-	bool "  Enable slip-specific options \"keepalive\" and \"outfill\""
+	bool "Enable slip-specific options \"keepalive\" and \"outfill\""
 	default n
 	depends on CONFIG_IFCONFIG
 	help
@@ -173,7 +171,7 @@ config CONFIG_FEATURE_IFCONFIG_SLIP
 	  planning on using serial lines, leave this unchecked.
 
 config CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
-	bool "  Enable options \"mem_start\", \"io_addr\", and \"irq\""
+	bool "Enable options \"mem_start\", \"io_addr\", and \"irq\""
 	default n
 	depends on CONFIG_IFCONFIG
 	help
@@ -181,7 +179,7 @@ config CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 	  and/or the interrupt line used by the specified device.
 
 config CONFIG_FEATURE_IFCONFIG_HW
-	bool "  Enable option \"hw\" (ether only)"
+	bool "Enable option \"hw\" (ether only)"
 	default y
 	depends on CONFIG_IFCONFIG
 	help
@@ -190,7 +188,7 @@ config CONFIG_FEATURE_IFCONFIG_HW
 	  class.
 
 config CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
-	bool "  Set the broadcast automatically"
+	bool "Set the broadcast automatically"
 	default n
 	depends on CONFIG_IFCONFIG
 	help
@@ -215,7 +213,7 @@ config CONFIG_IFUPDOWN
 	  standalone utilities.
 
 config CONFIG_FEATURE_IFUPDOWN_IP
-	bool "  Use ip applet"
+	bool "Use ip applet"
 	default n
 	depends on CONFIG_IFUPDOWN
 	help
@@ -223,7 +221,7 @@ config CONFIG_FEATURE_IFUPDOWN_IP
 	  than the default of using the older 'ifconfig' and 'route' utilities.
 
 config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
-	bool "  Use busybox ip applet"
+	bool "Use busybox ip applet"
 	default y
 	depends on CONFIG_FEATURE_IFUPDOWN_IP
 	select CONFIG_IP
@@ -237,7 +235,7 @@ config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
 	  utility or the  "ifup" and "ifdown" applets will not work.
 
 config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
-	bool "  Use busybox ifconfig and route applets"
+	bool "Use busybox ifconfig and route applets"
 	default y
 	depends on CONFIG_IFUPDOWN && !CONFIG_FEATURE_IFUPDOWN_IP
 	select CONFIG_IFCONFIG
@@ -251,21 +249,21 @@ config CONFIG_FEATURE_IFUPDOWN_IP_BUILTIN
 	  work.
 
 config CONFIG_FEATURE_IFUPDOWN_IPV4
-	bool "  Enable support for IPv4"
+	bool "Enable support for IPv4"
 	default y
 	depends on CONFIG_IFUPDOWN
 	help
 	  If you want busybox to talk IPv4, leave this on.
 
 config CONFIG_FEATURE_IFUPDOWN_IPV6
-	bool "  Enable support for IPv6"
+	bool "Enable support for IPv6"
 	default n
 	depends on CONFIG_IFUPDOWN && CONFIG_FEATURE_IPV6
 	help
 	  If you need support for IPv6, turn this option on.
 
 config CONFIG_FEATURE_IFUPDOWN_IPX
-	bool "  Enable support for IPX"
+	bool "Enable support for IPX"
 	default n
 	depends on CONFIG_IFUPDOWN
 	help
@@ -273,7 +271,7 @@ config CONFIG_FEATURE_IFUPDOWN_IPX
 	  networks.
 
 config CONFIG_FEATURE_IFUPDOWN_MAPPING
-	bool "  Enable mapping support"
+	bool "Enable mapping support"
 	default n
 	depends on CONFIG_IFUPDOWN
 	help
@@ -287,42 +285,42 @@ config CONFIG_INETD
 	  Internet superserver daemon
 
 config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
-	bool "  Support echo service"
+	bool "Support echo service"
 	default y
 	depends on CONFIG_INETD
 	help
 	  Echo received data internal inetd service
 
 config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
-	bool "  Support discard service"
+	bool "Support discard service"
 	default y
 	depends on CONFIG_INETD
 	help
 	  Internet /dev/null internal inetd service
 
 config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
-	bool "  Support time service"
+	bool "Support time service"
 	default y
 	depends on CONFIG_INETD
 	help
 	  Return 32 bit time since 1900 internal inetd service
 
 config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
-	bool "  Support daytime service"
+	bool "Support daytime service"
 	default y
 	depends on CONFIG_INETD
 	help
 	  Return human-readable time internal inetd service
 
 config CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
-	bool "  Support chargen service"
+	bool "Support chargen service"
 	default y
 	depends on CONFIG_INETD
 	help
 	  Familiar character generator internal inetd service
 
 config CONFIG_FEATURE_INETD_RPC
-	bool "  Support RPC services"
+	bool "Support RPC services"
 	default n
 	depends on CONFIG_INETD
 	help
@@ -407,7 +405,7 @@ config CONFIG_IPCALC
 	  resulting broadcast, network, and host range.
 
 config CONFIG_FEATURE_IPCALC_FANCY
-	bool "  Fancy IPCALC, more options, adds 1 kbyte"
+	bool "Fancy IPCALC, more options, adds 1 kbyte"
 	default y
 	depends on CONFIG_IPCALC
 	help
@@ -462,7 +460,7 @@ config CONFIG_PING
 	  elicit an ICMP ECHO_RESPONSE from a host or gateway.
 
 config CONFIG_FEATURE_FANCY_PING
-	bool "  Enable fancy ping output"
+	bool "Enable fancy ping output"
 	default y
 	depends on CONFIG_PING
 	help
@@ -477,7 +475,7 @@ config CONFIG_PING6
 	  This will give you a ping that can talk IPv6.
 
 config CONFIG_FEATURE_FANCY_PING6
-	bool "  Enable fancy ping6 output"
+	bool "Enable fancy ping6 output"
 	default y
 	depends on CONFIG_PING6
 	help
@@ -498,7 +496,7 @@ config CONFIG_TELNET
 	  used to test other simple protocols.
 
 config CONFIG_FEATURE_TELNET_TTYPE
-	bool "  Pass TERM type to remote host"
+	bool "Pass TERM type to remote host"
 	default y
 	depends on CONFIG_TELNET
 	help
@@ -507,7 +505,7 @@ config CONFIG_FEATURE_TELNET_TTYPE
 	  things like ANSI colors and other control sequences behave.
 
 config CONFIG_FEATURE_TELNET_AUTOLOGIN
-	bool "  Pass USER type to remote host"
+	bool "Pass USER type to remote host"
 	default y
 	depends on CONFIG_TELNET
 	help
@@ -559,7 +557,7 @@ config CONFIG_TELNETD
 
 
 config CONFIG_FEATURE_TELNETD_INETD
-	bool "  Support call from inetd only"
+	bool "Support call from inetd only"
 	default n
 	depends on CONFIG_TELNETD
 	help
@@ -575,7 +573,7 @@ config CONFIG_TFTP
 	  for a network-enabled bootloader.
 
 config CONFIG_FEATURE_TFTP_GET
-	bool "  Enable \"get\" command"
+	bool "Enable \"get\" command"
 	default y
 	depends on CONFIG_TFTP
 	help
@@ -583,7 +581,7 @@ config CONFIG_FEATURE_TFTP_GET
 	  a client to retrieve a file from a TFTP server.
 
 config CONFIG_FEATURE_TFTP_PUT
-	bool "  Enable \"put\" command"
+	bool "Enable \"put\" command"
 	default y
 	depends on CONFIG_TFTP
 	help
@@ -591,14 +589,14 @@ config CONFIG_FEATURE_TFTP_PUT
 	  a client to transfer a file to a TFTP server.
 
 config CONFIG_FEATURE_TFTP_BLOCKSIZE
-	bool "  Enable \"blocksize\" command"
+	bool "Enable \"blocksize\" command"
 	default n
 	depends on CONFIG_TFTP
 	help
 	  Allow the client to specify the desired block size for transfers.
 
 config CONFIG_FEATURE_TFTP_DEBUG
-	bool "  Enable debug"
+	bool "Enable debug"
 	default n
 	depends on CONFIG_TFTP
 	help
@@ -613,7 +611,7 @@ config CONFIG_TRACEROUTE
 	  Utility to trace the route of IP packets
 
 config CONFIG_FEATURE_TRACEROUTE_VERBOSE
-	bool "  Enable verbose output"
+	bool "Enable verbose output"
 	default n
 	depends on CONFIG_TRACEROUTE
 	help
@@ -621,7 +619,7 @@ config CONFIG_FEATURE_TRACEROUTE_VERBOSE
 	  hostnames and ICMP response types.
 
 config CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
-	bool "  Enable loose source route"
+	bool "Enable loose source route"
 	default n
 	depends on CONFIG_TRACEROUTE
 	help
@@ -629,7 +627,7 @@ config CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	  (8 maximum).
 
 config CONFIG_FEATURE_TRACEROUTE_USE_ICMP
-	bool "  Use ICMP instead of UDP"
+	bool "Use ICMP instead of UDP"
 	default n
 	depends on CONFIG_TRACEROUTE
 	help
@@ -651,21 +649,21 @@ config CONFIG_WGET
 	  HTTPS, and FTP servers.
 
 config CONFIG_FEATURE_WGET_STATUSBAR
-	bool "  Enable a nifty process meter (+2k)"
+	bool "Enable a nifty process meter (+2k)"
 	default y
 	depends on CONFIG_WGET
 	help
 	  Enable the transfer progress bar for wget transfers.
 
 config CONFIG_FEATURE_WGET_AUTHENTICATION
-	bool "  Enable HTTP authentication"
+	bool "Enable HTTP authentication"
 	default y
 	depends on CONFIG_WGET
 	help
 	  Support authenticated HTTP transfers.
 
 config CONFIG_FEATURE_WGET_IP6_LITERAL
-	bool "  Enable IPv6 literal addresses"
+	bool "Enable IPv6 literal addresses"
 	default y
 	depends on CONFIG_WGET && CONFIG_FEATURE_IPV6
 	help
