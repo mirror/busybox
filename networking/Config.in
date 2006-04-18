@@ -9,8 +9,8 @@ config CONFIG_FEATURE_IPV6
 	bool "Enable IPv6 support"
 	default n
 	help
-	  Enable IPv6 support to busybox. This makes applets that talk IP
-	  able to work with IPv6.
+	  Enable IPv6 support in busybox.
+	  This adds IPv6 support in the networking applets.
 
 config CONFIG_ARPING
 	bool "arping"
@@ -22,7 +22,7 @@ config CONFIG_DNSD
 	bool "dnsd"
 	default n
 	help
-	  Small and static DNS server deamon. 
+	  Small and static DNS server daemon. 
 
 config CONFIG_ETHER_WAKE
 	bool "ether-wake"
@@ -34,8 +34,8 @@ config CONFIG_FAKEIDENTD
 	bool "fakeidentd"
 	default n
 	help
-	  fakeidentd listens to the ident port and returns a set fake
-	  value whatever it gets.
+	  fakeidentd listens on the ident port and returns a predefined
+	  fake value on any query.
 
 config CONFIG_FTPGET
 	bool "ftpget"
@@ -100,7 +100,7 @@ config CONFIG_FEATURE_HTTPD_AUTH_MD5
 	default n
 	depends on CONFIG_FEATURE_HTTPD_BASIC_AUTH
 	help
-	  Enables basic per url authentication from /etc/httpd.conf
+	  Enables basic per URL authentication from /etc/httpd.conf
 	  using md5 passwords.
 
 config CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
@@ -117,7 +117,7 @@ config CONFIG_FEATURE_HTTPD_CGI
 	depends on CONFIG_HTTPD
 	help
 	  This option allows scripts and executables to be invoked
-	  when specific urls are requested.
+	  when specific URLs are requested.
 
 config CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	bool "Enable support for running scripts through an interpreter"
@@ -125,7 +125,7 @@ config CONFIG_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	depends on CONFIG_FEATURE_HTTPD_CGI
 	help
 	  This option enables support for running scripts through an 
-	  interpreter. Turn this on, if you want PHP scripts to work 
+	  interpreter. Turn this on if you want PHP scripts to work 
 	  properly. You need to supply an addition line in your httpd 
 	  config file:
 	  *.php:/path/to/your/php
@@ -143,7 +143,7 @@ config CONFIG_FEATURE_HTTPD_ENCODE_URL_STR
 	default y
 	depends on CONFIG_HTTPD
 	help
-	  After set, this option allows html encoding arbitrary
+	  This option allows html encoding arbitrary
 	  strings for display of the browser.  Output goes to stdout.
 	  For example, httpd -e "<Hello World>" as
 	  "&#60Hello&#32World&#62".
