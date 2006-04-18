@@ -28,7 +28,7 @@
 
 /* vars to control behavior */
 #define OPT_TERSE 2
-#define OPT_DEREFERNCE 4
+#define OPT_DEREFERENCE 4
 static long flags;
 
 static char const *file_type(struct stat const *st)
@@ -424,7 +424,7 @@ static int do_stat(char const *filename, char const *format)
 {
 	struct stat statbuf;
 
-	if ((flags & OPT_DEREFERNCE ? stat : lstat) (filename, &statbuf) != 0) {
+	if ((flags & OPT_DEREFERENCE ? stat : lstat) (filename, &statbuf) != 0) {
 		bb_perror_msg("cannot stat '%s'", filename);
 		return 0;
 	}

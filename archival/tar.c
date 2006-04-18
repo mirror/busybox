@@ -596,7 +596,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 #define TAR_OPT_AFTER_START               8
 
 #define CTX_CREATE                        (1 << (TAR_OPT_AFTER_START))
-#define TAR_OPT_DEREFERNCE                (1 << (TAR_OPT_AFTER_START + 1))
+#define TAR_OPT_DEREFERENCE               (1 << (TAR_OPT_AFTER_START + 1))
 #ifdef CONFIG_FEATURE_TAR_CREATE
 # define TAR_OPT_STR_CREATE               "ch"
 # define TAR_OPT_AFTER_CREATE             TAR_OPT_AFTER_START + 2
@@ -851,7 +851,8 @@ int tar_main(int argc, char **argv)
 		{
 			verboseFlag = TRUE;
 		}
-		writeTarFile(tar_handle->src_fd, verboseFlag, opt & TAR_OPT_DEREFERNCE, tar_handle->accept,
+		writeTarFile(tar_handle->src_fd, verboseFlag, opt & TAR_OPT_DEREFERENCE,
+				tar_handle->accept,
 			tar_handle->reject, zipMode);
 	} else {
 		while (get_header_ptr(tar_handle) == EXIT_SUCCESS);
