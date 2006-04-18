@@ -209,7 +209,7 @@ static void circ_message(const char *msg)
 	 *      "tail" are actually offsets from the beginning of the buffer.
 	 *
 	 * Note: This algorithm uses Linux IPC mechanism w/ shared memory and semaphores to provide
-	 *       a threasafe way of handling shared memory operations.
+	 *       a threadsafe way of handling shared memory operations.
 	 */
 	if ((buf->tail + l) < buf->size) {
 		/* before we append the message we need to check the HEAD so that we won't
@@ -236,7 +236,7 @@ static void circ_message(const char *msg)
 					/* Note: HEAD is only used to "retrieve" messages, it's not used
 					   when writing messages into our buffer */
 				} else {	/* show an error message to know we messed up? */
-					printf("Weird! Can't find the terminator token??? \n");
+					printf("Weird! Can't find the terminator token?\n");
 					buf->head = 0;
 				}
 			}
@@ -273,7 +273,7 @@ static void circ_message(const char *msg)
 			buf->tail = k + 1;
 		} else {
 			printf
-				("Weird! Can't find the terminator token from the beginning??? \n");
+				("Weird! Can't find the terminator token from the beginning?\n");
 			buf->head = buf->tail = 0;	/* reset buffer, since it's probably corrupted */
 		}
 
