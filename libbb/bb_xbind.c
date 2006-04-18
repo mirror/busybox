@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2006 Denis Vlasenko
  *
- * Licensed under LGPL, see file docs/lesser.txt in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 #include <sys/types.h>
 #include <sys/socket.h>
