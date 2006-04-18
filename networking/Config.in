@@ -337,61 +337,67 @@ config CONFIG_IP
 	  utility.  You generally don't need "ip" to use busybox with
 	  TCP/IP.
 
-if CONFIG_IP && CONFIG_IPADDR
-	config CONFIG_FEATURE_IP_ADDRESS
-		default y
-	comment "  address (forced enabled for ipaddr)"
-endif
-if ! (CONFIG_IP && CONFIG_IPADDR)
-	config CONFIG_FEATURE_IP_ADDRESS
-		bool "  address"
-		default y
-		depends on CONFIG_IP
-		help
-		  Address manipulation support for the "ip" applet.
-endif
+config CONFIG_FEATURE_IP_ADDRESS
+	bool "ip address"
+	default y
+	depends on CONFIG_IP
+	help
+	  Address manipulation support for the "ip" applet.
 
-if CONFIG_IP && CONFIG_IPLINK
-	config CONFIG_FEATURE_IP_LINK
-		default y
-	comment "  link (forced enabled for iplink)"
-endif
-if !(CONFIG_IP && CONFIG_IPLINK)
-	config CONFIG_FEATURE_IP_LINK
-		bool "  link"
-		default y
-		depends on CONFIG_IP
-		help
-		  Configure network devices with "ip".
-endif
+config CONFIG_FEATURE_IP_LINK
+	bool "ip link"
+	default y
+	depends on CONFIG_IP
+	help
+	  Configure network devices with "ip".
 
-if CONFIG_IP && CONFIG_IPROUTE
-	config CONFIG_FEATURE_IP_ROUTE
-		default y
-	comment "  route (forced enabled for iproute)"
-endif
-if !(CONFIG_IP && CONFIG_IPROUTE)
-	config CONFIG_FEATURE_IP_ROUTE
-		bool "  route"
-		default y
-		depends on CONFIG_IP
-		help
-		  Add support for routing table management to "ip".
-endif
+config CONFIG_FEATURE_IP_ROUTE
+	bool "ip route"
+	default y
+	depends on CONFIG_IP
+	help
+	  Add support for routing table management to "ip".
 
-if CONFIG_IP && CONFIG_IPTUNNEL
-	config CONFIG_FEATURE_IP_TUNNEL
-		default y
-	comment "  tunnel (forced enabled for iptunnel)"
-endif
-if !(CONFIG_IP && CONFIG_IPTUNNEL)
-	config CONFIG_FEATURE_IP_TUNNEL
-		bool "  tunnel"
-		default n
-		depends on CONFIG_IP
-		help
-		  Add support for tunneling commands to "ip".
-endif
+config CONFIG_FEATURE_IP_TUNNEL
+	bool "ip tunnel"
+	default n
+	depends on CONFIG_IP
+	help
+	  Add support for tunneling commands to "ip".
+
+config CONFIG_FEATURE_IP_SHORT_FORMS
+	bool "Support short forms of ip commands."
+	default n
+	depends on CONFIG_IP
+	help
+	  Also support short-form of ip <OBJECT> commands:
+	  ip addr   -> ipaddr
+	  ip link   -> iplink
+	  ip route  -> iproute
+	  ip tunnel -> iptunnel
+
+	  Say N unless you desparately need the short form of the ip
+	  object commands.
+
+config CONFIG_IPADDR
+	bool
+	default y
+	depends on CONFIG_FEATURE_IP_SHORT_FORMS && CONFIG_FEATURE_IP_ADDRESS
+
+config CONFIG_IPLINK
+	bool
+	default y
+	depends on CONFIG_FEATURE_IP_SHORT_FORMS && CONFIG_FEATURE_IP_LINK
+
+config CONFIG_IPROUTE
+	bool
+	default y
+	depends on CONFIG_FEATURE_IP_SHORT_FORMS && CONFIG_FEATURE_IP_ROUTE
+
+config CONFIG_IPTUNNEL
+	bool
+	default y
+	depends on CONFIG_FEATURE_IP_SHORT_FORMS && CONFIG_FEATURE_IP_TUNNEL
 
 config CONFIG_IPCALC
 	bool "ipcalc"
@@ -406,30 +412,6 @@ config CONFIG_FEATURE_IPCALC_FANCY
 	depends on CONFIG_IPCALC
 	help
 	  Adds the options hostname, prefix and silent to the output of "ipcalc".
-
-config CONFIG_IPADDR
-	bool "ipaddr"
-	default n
-	help
-	  Equivalent to selecting address support to "ip", above.
-
-config CONFIG_IPLINK
-	bool "iplink"
-	default n
-	help
-	  Equivalent to selecting link support to "ip", above.
-
-config CONFIG_IPROUTE
-	bool "iproute"
-	default n
-	help
-	  Equivalent to selecting route support to "ip", above.
-
-config CONFIG_IPTUNNEL
-	bool "iptunnel"
-	default n
-	help
-	  Equivalent to selecting tunnel support to "ip", above.
 
 config CONFIG_NAMEIF
 	bool "nameif"
