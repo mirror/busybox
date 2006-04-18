@@ -108,7 +108,6 @@ static int match_lines[100];
 static int match_pos;
 static int num_matches;
 static int match_backwards;
-static int num_back_match = 1;
 #endif
 
 /* Needed termios structures */
@@ -653,6 +652,16 @@ static char *process_regex_on_line(char *line, regex_t *pattern)
 	return line2;
 }
 
+static void goto_match(int match)
+{
+	/* This goes to a specific match - all line positions of matches are
+	   stored within the match_lines[] array. */
+	if ((match < num_matches) && (match >= 0)) {
+		buffer_line(match_lines[match]);
+		match_pos = match;
+	}
+}
+
 static void regex_process(void)
 {
 	char uncomp_regex[100];
@@ -661,28 +670,28 @@ static void regex_process(void)
 	int j = 0;
 	regex_t pattern;
 
+	/* Get the uncompiled regular expression from the user */
+	clear_line();
+	putchar((match_backwards) ? '?' : '/');
+	uncomp_regex[0] = 0;
+	fgets(uncomp_regex, sizeof(uncomp_regex), inp);
+	
+	if (strlen(uncomp_regex) == 1) {
+		goto_match(match_backwards ? match_pos - 1 : match_pos + 1);
+		buffer_print();
+		return;
+	}
+	
+	uncomp_regex[strlen(uncomp_regex) - 1] = '\0';
+	
+	/* Compile the regex and check for errors */
+	xregcomp(&pattern, uncomp_regex, 0);
+
 	/* Reset variables */
 	match_lines[0] = -1;
 	match_pos = 0;
 	num_matches = 0;
 	match_found = 0;
-
-	/* Get the uncompiled regular expression from the user */
-	clear_line();
-	putchar((match_backwards) ? '?' : '/');
-	uncomp_regex[0] = 0;
-	fgets(uncomp_regex, sizeof(uncomp_regex), stdin);
-	i = strlen(uncomp_regex);
-	if (i > 0) {
-		if (uncomp_regex[i-1] == '\n')
-			uncomp_regex[i-1] = '\0';
-		else
-			while((i = getchar()) != '\n' && i != EOF);
-	} else
-		return;
-
-	/* Compile the regex and check for errors */
-	xregcomp(&pattern, uncomp_regex, 0);
 
 	/* Run the regex on each line of the current file here */
 	for (i = 0; i <= num_flines; i++) {
@@ -695,41 +704,21 @@ static void regex_process(void)
 	}
 
 	num_matches = j;
-	if ((match_lines[0] != -1) && (num_flines > height - 2))
-		buffer_line(match_lines[0]);
+	if ((match_lines[0] != -1) && (num_flines > height - 2)) {
+		if (match_backwards) {
+			for (i = 0; i < num_matches; i++) {
+				if (match_lines[i] > line_pos) {
+					match_pos = i - 1;
+					buffer_line(match_lines[match_pos]);
+					break;
+				}
+			}
+		}
+		else
+			buffer_line(match_lines[0]);
+	}
 	else
 		buffer_init();
-}
-
-static void goto_match(int match)
-{
-	/* This goes to a specific match - all line positions of matches are
-	   stored within the match_lines[] array. */
-	if ((match < num_matches) && (match >= 0)) {
-		buffer_line(match_lines[match]);
-		match_pos = match;
-	}
-}
-
-static void search_backwards(void)
-{
-	int current_linepos = line_pos;
-	int i;
-
-	match_backwards = 1;
-	regex_process();
-
-	for (i = 0; i < num_matches; i++) {
-		if (match_lines[i] > current_linepos) {
-			buffer_line(match_lines[i - num_back_match]);
-			break;
-		}
-	}
-
-	/* Reset variables */
-	match_backwards = 0;
-	num_back_match = 1;
-
 }
 #endif
 
@@ -757,8 +746,10 @@ static void number_process(int first_digit)
 	keypress = num_input[i];
 	num_input[i] = '\0';
 	num = strtol(num_input, &endptr, 10);
-	if (endptr==num_input || *endptr!='\0' || num < 1 || num > MAXLINES)
-		goto END;
+	if (endptr==num_input || *endptr!='\0' || num < 1 || num > MAXLINES) {
+		buffer_print();
+		return;
+	}
 
 	/* We now know the number and the letter entered, so we process them */
 	switch (keypress) {
@@ -777,22 +768,20 @@ static void number_process(int first_digit)
 			break;
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 		case 'n':
-			goto_match(match_pos + num - 1);
+			goto_match(match_pos + num);
 			break;
 		case '/':
+			match_backwards = 0;
 			regex_process();
-			goto_match(num - 1);
 			break;
 		case '?':
-			num_back_match = num;
-			search_backwards();
+			match_backwards = 1;
+			regex_process();
 			break;
 #endif
 		default:
 			break;
 	}
-END:
-	buffer_print();
 }
 
 #ifdef CONFIG_FEATURE_LESS_FLAGCS
@@ -1087,6 +1076,7 @@ static void keypress_process(int keypress)
 #endif
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 		case '/':
+			match_backwards = 0;
 			regex_process();
 			buffer_print();
 			break;
@@ -1099,7 +1089,8 @@ static void keypress_process(int keypress)
 			buffer_print();
 			break;
 		case '?':
-			search_backwards();
+			match_backwards = 1;
+			regex_process();
 			buffer_print();
 			break;
 #endif
