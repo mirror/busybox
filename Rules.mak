@@ -72,11 +72,14 @@ CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
 #CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR) -funsigned-char
 #GCCINCDIR:=$(shell gcc -print-search-dirs | sed -ne "s/install: \(.*\)/\1include/gp")
 
-WARNINGS=-Wall -Wstrict-prototypes -Wshadow
-CFLAGS:=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
-
+# This must bind late because srcdir is reset for every source subdirectory.
+CFLAGS=-I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir)
+CFLAGS+=$(CHECKED_CFLAGS)
 ARFLAGS=cru
 
+# Warnings
+
+CFLAGS+=-Wall -Wstrict-prototypes -Wshadow
 
 # gcc centric. Perhaps fiddle with findstring gcc,$(CC) for the rest
 # get the CC MAJOR/MINOR version
@@ -100,8 +103,13 @@ TARGET_ARCH:=$(shell $(CC) -dumpmachine | sed -e s'/-.*//' \
 		)
 endif
 
-# A nifty macro to make testing gcc features easier
+# A nifty macro to make testing gcc features easier, but note that everything
+# that uses this _must_ use := or it will be re-evaluated for every file.
+ifeq ($(strip $(V)),2)
+VERBOSE_CHECK_GCC=echo check_gcc $(1) >> /dev/stderr;
+endif
 check_gcc=$(shell \
+	$(VERBOSE_CHECK_GCC)\
 	if [ "$(1)" != "" ]; then \
 		if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; \
 		then echo "$(1)"; else echo "$(2)"; fi \
@@ -113,9 +121,13 @@ check_ld=$(shell \
 		$(LD) --help | grep -q "\$(1)" && echo "-Wl,$(1)" ; \
 	fi)
 
-CFLAGS+=$(call check_gcc,-funsigned-char,)
+# Pin CHECKED_CFLAGS with := so it's only evaluated once.
+CHECKED_CFLAGS:=$(call check_gcc,-funsigned-char,)
+CHECKED_CFLAGS+=$(call check_gcc,-mmax-stack-frame=256,)
 
-CFLAGS+=$(call check_gcc,-mmax-stack-frame=256,)
+# Preemptively pin this too.
+PROG_CFLAGS:=
+
 
 #--------------------------------------------------------
 # Arch specific compiler optimization stuff should go here.
@@ -189,24 +201,24 @@ else
     endif
 endif
 ifeq ($(strip $(CONFIG_DEBUG)),y)
-    CFLAGS  +=$(WARNINGS) -g -D_GNU_SOURCE
+    CFLAGS  +=-g -D_GNU_SOURCE
     LDFLAGS += $(call check_ld,--warn-common,)
 else
-    CFLAGS+=$(WARNINGS) $(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
+    CFLAGS+=$(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
     LDFLAGS += $(call check_ld,--warn-common,)
     LDFLAGS += $(call check_ld,--sort-common,)
 endif
 # warn a bit more verbosely for non-release versions
 ifneq ($(EXTRAVERSION),)
-    CFLAGS+=$(call check_gcc,-Wstrict-prototypes,)
-    CFLAGS+=$(call check_gcc,-Wmissing-prototypes,)
-    CFLAGS+=$(call check_gcc,-Wmissing-declarations,)
+    CHECKED_CFLAGS+=$(call check_gcc,-Wstrict-prototypes,)
+    CHECKED_CFLAGS+=$(call check_gcc,-Wmissing-prototypes,)
+    CHECKED_CFLAGS+=$(call check_gcc,-Wmissing-declarations,)
 endif
 STRIPCMD:=$(STRIP) -s --remove-section=.note --remove-section=.comment
 ifeq ($(strip $(CONFIG_STATIC)),y)
     PROG_CFLAGS += $(call check_gcc,-static,)
 endif
-CFLAGS_SHARED += $(call check_gcc,-shared,)
+CFLAGS_SHARED := $(call check_gcc,-shared,)
 LIB_CFLAGS+=$(CFLAGS_SHARED)
 
 ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
@@ -231,7 +243,7 @@ endif
 
 
 OBJECTS:=$(APPLET_SOURCES:.c=.o) busybox.o usage.o applets.o
-CFLAGS    += $(CROSS_CFLAGS)
+CFLAGS    += $(CHECKED_CFLAGS) $(CROSS_CFLAGS)
 ifdef BB_INIT_SCRIPT
     CFLAGS += -DINIT_SCRIPT='"$(BB_INIT_SCRIPT)"'
 endif
