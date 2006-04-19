@@ -116,7 +116,8 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 			arg += 3; /* Skip the assumed a-z */
 		} else if (*arg == '[') {
 			arg++;
-			if (ENABLE_FEATURE_TR_CLASSES && *arg++ == ':') {
+			i = *arg++;
+			if (ENABLE_FEATURE_TR_CLASSES && i == ':') {
 				if (strncmp(arg, "alpha", 5) == 0) {
 					for (i = 'A'; i <= 'Z'; i++)
 						*buffer++ = i;
@@ -124,11 +125,11 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 						*buffer++ = i;
 				}
 				else if (strncmp(arg, "alnum", 5) == 0) {
+					for (i = '0'; i <= '9'; i++)
+						*buffer++ = i;
 					for (i = 'A'; i <= 'Z'; i++)
 						*buffer++ = i;
 					for (i = 'a'; i <= 'z'; i++)
-						*buffer++ = i;
-					for (i = '0'; i <= '9'; i++)
 						*buffer++ = i;
 				}
 				else if (strncmp(arg, "digit", 5) == 0)
@@ -140,10 +141,15 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 				else if (strncmp(arg, "upper", 5) == 0)
 					for (i = 'A'; i <= 'Z'; i++)
 						*buffer++ = i;
-				else if (strncmp(arg, "space", 5) == 0)
-					strcat((char*)buffer, " \f\n\r\t\v");
-				else if (strncmp(arg, "blank", 5) == 0)
-					strcat((char*)buffer, " \t");
+				else if (strncmp(arg, "space", 5) == 0) {
+				    const char s[] = "\t\n\v\f\r ";
+					strcat((char*)buffer, s);
+					buffer += sizeof(s) - 1;
+				}
+				else if (strncmp(arg, "blank", 5) == 0) {
+					*buffer++ = '\t';
+					*buffer++ = ' ';
+				}
 				/* gcc gives a warning if braces aren't used here */
 				else if (strncmp(arg, "punct", 5) == 0) {
 					for (i = 0; i <= ASCII; i++)
@@ -156,13 +162,13 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 							*buffer++ = i;
 				}
 				else {
-					strcat((char*)buffer, "[:");
-					arg++;
+					*buffer++ = '[';
+					*buffer++ = ':';
 					continue;
 				}
 				break;
 			}
-			if (ENABLE_FEATURE_TR_EQUIV && *arg++ == '=') {
+			if (ENABLE_FEATURE_TR_EQUIV && i == '=') {
 				*buffer++ = *arg;
 				/* skip the closing =] */
 				arg += 3;
@@ -173,7 +179,6 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 				arg -= 2;
 				continue;
 			}
-			i = *arg++;
 			ac = *arg++;
 			while (i <= ac)
 				*buffer++ = i++;
