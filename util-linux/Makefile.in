@@ -57,11 +57,7 @@ $(UTILLINUX_DIR)%.o: $(srcdir)/%.c
 
 ifneq ($(strip $(CONFIG_LFS)),y)
 ifeq ($(strip $(FDISK_SUPPORT_LARGE_DISKS)),y)
-
 $(UTILLINUX_DIR)fdisk.o: $(srcdir)/fdisk.c
-	$(CC) $(CFLAGS) \
-		-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 \
-		$(EXTRA_CFLAGS) -c -o $@ $<
-
+	$(compile.c) -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 endif
 endif
