@@ -326,6 +326,9 @@ int fuser_main(int argc, char **argv)
 	int killsig = SIGTERM;
 	int success = 1;
 
+	if (argc < 2)
+		bb_show_usage();
+
 	fni = xmalloc(sizeof(int));
 	for(i=1;i<argc;i++) {
 		optn = fuser_option(argv[i]);
