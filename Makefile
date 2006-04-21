@@ -305,6 +305,9 @@ busybox: busybox_unstripped
 	$(Q)cp busybox_unstripped busybox
 	$(do_strip)
 
+%.bflt: %_unstripped
+	$(do_elf2flt)
+
 busybox.links: $(top_srcdir)/applets/busybox.mkll include/bb_config.h $(top_srcdir)/include/applets.h
 	$(Q)-$(SHELL) $^ >$@
 
