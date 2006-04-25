@@ -11,8 +11,8 @@
 #include <dirent.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/param.h>
 #include <unistd.h>
-#include <asm/page.h>
 #include <fcntl.h>
 
 #include "libbb.h"
