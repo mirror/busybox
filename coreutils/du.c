@@ -31,12 +31,12 @@
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-# ifdef CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
+# ifdef CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
 static unsigned long disp_hr = KILOBYTE;
 # else
 static unsigned long disp_hr = 512;
 # endif
-#elif defined CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
+#elif defined CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
 static unsigned int disp_k = 1;
 #else
 static unsigned int disp_k;	/* bss inits to 0 */
@@ -160,7 +160,7 @@ int du_main(int argc, char **argv)
 	char *smax_print_depth;
 	unsigned long opt;
 
-#ifdef CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
+#ifdef CONFIG_FEATURE_DU_DEFUALT_BLOCKSIZE_1K
 	if (getenv("POSIXLY_CORRECT")) {	/* TODO - a new libbb function? */
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
 		disp_hr = 512;
@@ -194,7 +194,7 @@ int du_main(int argc, char **argv)
 #else
 	bb_opt_complementally = "H-L:L-H:s-d:d-s";
 	opt = bb_getopt_ulflags(argc, argv, "aHkLsx" "d:" "lc", &smax_print_depth);
-#if !defined CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
+#if !defined CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
 	if((opt & (1 << 2))) {
 		/* -k opt */
 			disp_k = 1;

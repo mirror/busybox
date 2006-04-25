@@ -324,12 +324,6 @@
 	"$ echo \"Hello world\" | cut -f 2 -d ' '\n" \
 	"world\n"
 
-#ifdef CONFIG_FEATURE_DATE_ISOFMT
-#define USAGE_DATE_ISOFMT(a) a
-#else
-#define USAGE_DATE_ISOFMT(a)
-#endif
-
 #define date_trivial_usage \
 	"[OPTION]... [MMDDhhmm[[CC]YY][.ss]] [+FORMAT]"
 #define date_full_usage \
@@ -337,13 +331,13 @@
 	"\nOptions:\n" \
 	"\t-R\t\tOutputs RFC-822 compliant date string\n" \
 	"\t-d STRING\tDisplays time described by STRING, not `now'\n" \
-	USAGE_DATE_ISOFMT( \
-		"\t-I[TIMESPEC]\tOutputs an ISO-8601 compliant date/time string\n" \
-		"\t\t\tTIMESPEC=`date' (or missing) for date only,\n" \
-		"\t\t\t`hours', `minutes', or `seconds' for date and,\n" \
-		"\t\t\ttime to the indicated precision\n" \
-		"\t-D hint\t\tUse 'hint' as date format, via strptime()\n" \
-	) \
+USE_FEATURE_DATE_ISOFMT( \
+	"\t-I[TIMESPEC]\tOutputs an ISO-8601 compliant date/time string\n" \
+	"\t\t\tTIMESPEC=`date' (or missing) for date only,\n" \
+	"\t\t\t`hours', `minutes', or `seconds' for date and,\n" \
+	"\t\t\ttime to the indicated precision\n" \
+	"\t-D hint\t\tUse 'hint' as date format, via strptime()\n" \
+) \
 	"\t-s\t\tSets time described by STRING\n" \
 	"\t-r FILE\t\tDisplays the last modification time of FILE\n" \
 	"\t-u\t\tPrints or sets Coordinated Universal Time"
@@ -412,43 +406,31 @@
 #define deluser_full_usage \
 	 "Deletes user USER from the system"
 
-#ifdef CONFIG_DEVFSD_FG_NP
-#  define USAGE_DEVFSD_FG_NP(a) a
-#else
-#  define USAGE_DEVFSD_FG_NP(a)
-#endif
-
 #define devfsd_trivial_usage \
 	"mntpnt [-v]" \
-	USAGE_DEVFSD_FG_NP("[-fg][-np]" )
+	USE_DEVFSD_FG_NP("[-fg][-np]" )
 #define devfsd_full_usage \
 	"Optional daemon for managing devfs permissions and old device name symlinks.\n" \
 	"\nOptions:\n" \
 	"\tmntpnt\tThe mount point where devfs is mounted.\n\n" \
 	"\t-v\tPrint the protocol version numbers for devfsd\n" \
 	"\t\tand the kernel-side protocol version and exits." \
-	USAGE_DEVFSD_FG_NP( "\n\n\t-fg\tRun the daemon in the foreground.\n\n" \
+	USE_DEVFSD_FG_NP( "\n\n\t-fg\tRun the daemon in the foreground.\n\n" \
 	"\t-np\tExit  after  parsing  the configuration file\n" \
 	"\t\tand processing synthetic REGISTER events.\n" \
 	"\t\tDo not poll for events.")
 
-#ifdef CONFIG_FEATURE_HUMAN_READABLE
-#  define USAGE_HUMAN_READABLE(a) a
-#  define USAGE_NOT_HUMAN_READABLE(a)
-#else
-#  define USAGE_HUMAN_READABLE(a)
-#  define USAGE_NOT_HUMAN_READABLE(a) a
-#endif
 #define df_trivial_usage \
-	"[-" USAGE_HUMAN_READABLE("hm") USAGE_NOT_HUMAN_READABLE("") "k] [FILESYSTEM ...]"
+	"[-" USE_FEATURE_HUMAN_READABLE("hm") "k] [FILESYSTEM ...]"
 #define df_full_usage \
 	"Print the filesystem space used and space available.\n\n" \
 	"Options:\n" \
-	USAGE_HUMAN_READABLE( \
-	"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
-	"\t-m\tprint sizes in megabytes\n" \
-	"\t-k\tprint sizes in kilobytes(default)") USAGE_NOT_HUMAN_READABLE( \
-	"\n\t-k\tprint sizes in kilobytes(compatibility)")
+	USE_FEATURE_HUMAN_READABLE( \
+		"\n\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
+		"\t-m\tprint sizes in megabytes\n" \
+		"\t-k\tprint sizes in kilobytes(default)" \
+	) \
+	SKIP_FEATURE_HUMAN_READABLE("\n\t-k\tignored")
 #define df_example_usage \
 	"$ df\n" \
 	"Filesystem           1k-blocks      Used Available Use% Mounted on\n" \
@@ -545,20 +527,13 @@
 #define dpkg_deb_example_usage \
 	"$ dpkg-deb -X ./busybox_0.48-1_i386.deb /tmp\n"
 
-#ifdef CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
-#define USAGE_DU_DEFALT_BLOCKSIZE_1k(a) a
-#define USAGE_NOT_DU_DEFALT_BLOCKSIZE_1k(a)
-#else
-#define USAGE_DU_DEFALT_BLOCKSIZE_1k(a)
-#define USAGE_NOT_DU_DEFALT_BLOCKSIZE_1k(a) a
-#endif
-
 #define du_trivial_usage \
-	"[-aHLdclsx" USAGE_HUMAN_READABLE("hm") "k] [FILE]..."
+	"[-aHLdclsx" USE_FEATURE_HUMAN_READABLE("hm") "k] [FILE]..."
 #define du_full_usage \
 	"Summarizes disk space used for each FILE and/or directory.\n" \
 	"Disk space is printed in units of " \
-	USAGE_DU_DEFALT_BLOCKSIZE_1k("1024") USAGE_NOT_DU_DEFALT_BLOCKSIZE_1k("512") \
+	USE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("1024") \
+	SKIP_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("512") \
 	" bytes.\n\n" \
 	"Options:\n" \
 	"\t-a\tshow sizes of files in addition to directories\n" \
@@ -569,10 +544,12 @@
 	"\t-l\tcount sizes many times if hard linked\n" \
 	"\t-s\tdisplay only a total for each argument\n" \
 	"\t-x\tskip directories on different filesystems\n" \
-	USAGE_HUMAN_READABLE( \
-	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
-	"\t-m\tprint sizes in megabytes\n" ) \
-	"\t-k\tprint sizes in kilobytes" USAGE_DU_DEFALT_BLOCKSIZE_1k("(default)")
+	USE_FEATURE_HUMAN_READABLE( \
+		"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n" \
+		"\t-m\tprint sizes in megabytes\n" \
+	) \
+	"\t-k\tprint sizes in kilobytes" \
+	USE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("(default)")
 #define du_example_usage \
 	"$ du\n" \
 	"16      ./CVS\n" \
@@ -622,24 +599,20 @@
 	"\t-l file\tAdd to badblocks list\n" \
 	"\t-L file\tSet badblocks list"
 
-#ifdef CONFIG_FEATURE_FANCY_ECHO
-#  define USAGE_FANCY_ECHO(a) a
-#else
-#  define USAGE_FANCY_ECHO(a)
-#endif
-
 #define echo_trivial_usage \
-	USAGE_FANCY_ECHO("[-neE] ") "[ARG ...]"
+	USE_FEATURE_FANCY_ECHO("[-neE] ") "[ARG ...]"
 #define echo_full_usage \
 	"Prints the specified ARGs to stdout\n\n" \
-	USAGE_FANCY_ECHO("Options:\n" \
-	"\t-n\tsuppress trailing newline\n" \
-	"\t-e\tinterpret backslash-escaped characters (i.e., \\t=tab)\n" \
-	"\t-E\tdisable interpretation of backslash-escaped characters")
+	USE_FEATURE_FANCY_ECHO( \
+		"Options:\n" \
+		"\t-n\tsuppress trailing newline\n" \
+		"\t-e\tinterpret backslash-escaped characters (i.e., \\t=tab)\n" \
+		"\t-E\tdisable interpretation of backslash-escaped characters" \
+	)
 #define echo_example_usage \
 	"$ echo \"Erik is cool\"\n" \
 	"Erik is cool\n" \
-	USAGE_FANCY_ECHO("$  echo -e \"Erik\\nis\\ncool\"\n" \
+	USE_FEATURE_FANCY_ECHO("$  echo -e \"Erik\\nis\\ncool\"\n" \
 	"Erik\n" \
 	"is\n" \
 	"cool\n" \
@@ -763,42 +736,6 @@
 	"\t-S SECTORS  Set the number of sectors\n" \
 	"\t-v  Give fdisk version"
 
-#ifdef CONFIG_FEATURE_FIND_TYPE
-#  define USAGE_FIND_TYPE(a) a
-#else
-#  define USAGE_FIND_TYPE(a)
-#endif
-#ifdef CONFIG_FEATURE_FIND_PERM
-#  define USAGE_FIND_PERM(a) a
-#else
-#  define USAGE_FIND_PERM(a)
-#endif
-#ifdef CONFIG_FEATURE_FIND_MTIME
-#  define USAGE_FIND_MTIME(a) a
-#else
-#  define USAGE_FIND_MTIME(a)
-#endif
-#ifdef CONFIG_FEATURE_FIND_MMIN
-  #define USAGE_FIND_MMIN(a) a
-#else
-  #define USAGE_FIND_MMIN(a)
-#endif
-#ifdef CONFIG_FEATURE_FIND_NEWER
-#  define USAGE_FIND_NEWER(a) a
-#else
-#  define USAGE_FIND_NEWER(a)
-#endif
-#ifdef CONFIG_FEATURE_FIND_INUM
-#  define USAGE_FIND_INUM(a) a
-#else
-#  define USAGE_FIND_INUM(a)
-#endif
-#ifdef CONFIG_FEATURE_FIND_EXEC
-#  define USAGE_FIND_EXEC(a) a
-#else
-#  define USAGE_FIND_EXEC(a)
-#endif
-
 #define find_trivial_usage \
 	"[PATH...] [EXPRESSION]"
 #define find_full_usage \
@@ -808,19 +745,19 @@
 	"\t-follow\t\tDereference symbolic links\n" \
 	"\t-name PATTERN\tFile name (leading directories removed) matches PATTERN\n" \
 	"\t-print\t\tPrint (default and assumed)\n" \
-	USAGE_FIND_TYPE( \
+	USE_FEATURE_FIND_TYPE( \
 	"\n\t-type X\t\tFiletype matches X (where X is one of: f,d,l,b,c,...)" \
-) USAGE_FIND_PERM( \
+) USE_FEATURE_FIND_PERM( \
 	"\n\t-perm PERMS\tPermissions match any of (+NNN); all of (-NNN);\n\t\t\tor exactly (NNN)" \
-) USAGE_FIND_MTIME( \
+) USE_FEATURE_FIND_MTIME( \
 	"\n\t-mtime DAYS\tModified time is greater than (+N); less than (-N);\n\t\t\tor exactly (N) days" \
-) USAGE_FIND_MMIN( \
+) USE_FEATURE_FIND_MMIN( \
 	"\n\t-mmin MINS\tModified time is greater than (+N); less than (-N);\n\t\t\tor exactly (N) minutes" \
-) USAGE_FIND_NEWER( \
+) USE_FEATURE_FIND_NEWER( \
 	"\n\t-newer FILE\tModified time is more recent than FILE's" \
-) USAGE_FIND_INUM( \
+) USE_FEATURE_FIND_INUM( \
 	"\n\t-inum N\t\tFile has inode number N" \
-) USAGE_FIND_EXEC( \
+) USE_FEATURE_FIND_EXEC( \
 	"\n\t-exec CMD\tExecute CMD with all instances of {} replaced by the" \
 	"\n\t\t\tfiles matching EXPRESSION")
 
@@ -966,20 +903,10 @@
 	"\t-I initstring\tSets the init string to send before anything else\n" \
 	"\t-H login_host\tLog login_host into the utmp file as the hostname"
 
-#if ENABLE_FEATURE_GREP_EGREP_ALIAS
-#define USAGE_GREP_E(a) a
-#else
-#define USAGE_GREP_E(a)
-#endif
-#if ENABLE_FEATURE_GREP_CONTEXT
-#define USAGE_GREP_CTX(a) a
-#else
-#define USAGE_GREP_CTX(a)
-#endif
 #define grep_trivial_usage \
 	"[-ihHnqvs" \
-	USAGE_GREP_E("E") \
-	USAGE_GREP_CTX("ABC") \
+	USE_FEATURE_GREP_EGREP_ALIAS("E") \
+	USE_FEATURE_GREP_CONTEXT("ABC") \
 	"] PATTERN [FILEs...]"
 #define grep_full_usage \
 	"Search for PATTERN in each FILE or standard input.\n\n" \
@@ -997,10 +924,10 @@
 	"\t-f\tread PATTERN from file\n" \
 	"\t-e\tPATTERN is a regular expression\n" \
 	"\t-F\tPATTERN is a set of newline-separated strings" \
-	USAGE_GREP_E("\n\t-E\tPATTERN is an extended regular expression") \
-	USAGE_GREP_CTX("\n\t-A\tprint NUM lines of trailing context") \
-	USAGE_GREP_CTX("\n\t-B\tprint NUM lines of leading context") \
-	USAGE_GREP_CTX("\n\t-C\tprint NUM lines of output context")
+	USE_FEATURE_GREP_EGREP_ALIAS("\n\t-E\tPATTERN is an extended regular expression") \
+	USE_FEATURE_GREP_CONTEXT("\n\t-A\tprint NUM lines of trailing context") \
+	USE_FEATURE_GREP_CONTEXT("\n\t-B\tprint NUM lines of leading context") \
+	USE_FEATURE_GREP_CONTEXT("\n\t-C\tprint NUM lines of output context")
 
 #define grep_example_usage \
 	"$ grep root /etc/passwd\n" \
@@ -1048,12 +975,6 @@
 	"\t-n\t\tno call to sync()\n" \
 	"\t-f\t\tforce halt (don't go through init)"
 
-#ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-#define USAGE_HDPARM_IDENT(a) a
-#else
-#define USAGE_HDPARM_IDENT(a)
-#endif
-
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 #define USAGE_SCAN_HWIF(a) a
 #else
@@ -1100,8 +1021,8 @@
 	"\t-g   display drive geometry\n" \
 	"\t-h   display terse usage information\n" \
 	"\t-i   display drive identification\n" \
-	USAGE_HDPARM_IDENT("\t-I   detailed/current information directly from drive\n") \
-	USAGE_HDPARM_IDENT("\t-Istdin  similar to -I, but wants /proc/ide/" "*" "/hd?/identify as input\n") \
+	USE_FEATURE_HDPARM_GET_IDENTITY("\t-I   detailed/current information directly from drive\n") \
+	USE_FEATURE_HDPARM_GET_IDENTITY("\t-Istdin  similar to -I, but wants /proc/ide/" "*" "/hd?/identify as input\n") \
 	"\t-k   get/set keep_settings_over_reset flag (0/1)\n" \
 	"\t-K   set drive keep_features_over_reset flag (0/1)\n" \
 	"\t-L   set drive doorlock (0/1) (removable harddisks only)\n" \
@@ -1780,7 +1701,7 @@
 #endif
 
 #define ls_trivial_usage \
-	"[-1Aa" USAGE_LS_TIMESTAMPS("c") "Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") "s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" USAGE_LS_SORTFILES("X") USAGE_HUMAN_READABLE("h") USAGE_NOT_HUMAN_READABLE("") "k" USAGE_SELINUX("K") "] [filenames...]"
+	"[-1Aa" USAGE_LS_TIMESTAMPS("c") "Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") "s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" USAGE_LS_SORTFILES("X") USE_FEATURE_HUMAN_READABLE("h") "k" USAGE_SELINUX("K") "] [filenames...]"
 #define ls_full_usage \
 	"List directory contents\n\n" \
 	"Options:\n" \
@@ -1809,7 +1730,7 @@
 	USAGE_AUTOWIDTH("\t-w NUM\tassume the terminal is NUM columns wide\n") \
 	"\t-x\tlist entries by lines instead of by columns\n" \
 	USAGE_LS_SORTFILES("\t-X\tsort the listing by extension\n") \
-	USAGE_HUMAN_READABLE( \
+	USE_FEATURE_HUMAN_READABLE( \
 	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n") \
 	USAGE_SELINUX("\t-k\tprint security context\n") \
 	USAGE_SELINUX("\t-K\tprint security context in long format\n")

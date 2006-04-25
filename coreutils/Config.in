@@ -26,6 +26,13 @@ config CONFIG_CAT
 	  cat is used to concatenate files and print them to the standard
 	  output.  Enable this option if you wish to enable the 'cat' utility.
 
+config CONFIG_FEATURE_CAT_ESCAPE
+	bool "support -vetET"
+	depends on CONFIG_CAT
+	default n
+	help
+	  Sheer bloat.
+
 config CONFIG_CHGRP
 	bool "chgrp"
 	default n
@@ -173,7 +180,7 @@ config CONFIG_DU
 	  du is used to report the amount of disk space used
 	  for specified files.
 
-config CONFIG_FEATURE_DU_DEFALT_BLOCKSIZE_1K
+config CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
 	bool "Use a default blocksize of 1024 bytes (1K)"
 	default y
 	depends on CONFIG_DU
