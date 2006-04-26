@@ -136,6 +136,7 @@ help:
 	@echo '  randconfig		- generate a random configuration'
 	@echo '  release		- create a distribution tarball'
 	@echo '  sizes			- show size of all enabled busybox symbols'
+	@echo '  objsizes		- show size of each .o object built'
 	@echo
 
 
@@ -349,8 +350,13 @@ check test: busybox
 	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
 	$(top_srcdir)/testsuite/runtest $(CHECK_VERBOSE)
 
+.PHONY: sizes
 sizes: busybox_unstripped
 	$(NM) --size-sort $(<)
+
+.PHONY: objsizes
+objsizes: busybox_unstripped
+	$(SHELL) $(top_srcdir)/scripts/objsizes
 
 # Documentation Targets
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html

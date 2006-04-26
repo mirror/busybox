@@ -1,0 +1,8 @@
+#!/bin/sh
+
+printf "%9s %11s %9s %9s %s\n" "text+data" text+rodata rwdata bss filename
+find -name '*.o' | sed 's:^\./::' | xargs size | grep '^ *[0-9]' \
+| while read text data bss dec hex filename; do
+    printf "%9d %11d %9d %9d %s\n" $((text+data)) $text $data $bss "$filename"
+done \
+| sort
