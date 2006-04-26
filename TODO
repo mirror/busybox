@@ -56,6 +56,9 @@ ar
 ---
 mdev
   Micro-udev.
+---
+crond
+  turn FEATURE_DEBUG_OPT into ENABLE_FEATURE_CROND_DEBUG_OPT
 
 Architectural issues:
 
