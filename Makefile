@@ -405,6 +405,13 @@ include/bbconfigopts.h: .config
 	$(Q)$(top_srcdir)/scripts/config/mkconfigs > $@
 endif
 
+scripts/usage: $(top_srcdir)/scripts/usage.c .config
+	$(HOSTCC) $(HOSTCFLAGS) -I$(top_srcdir)/include -o $@ $<
+
+DEP_INCLUDES += include/usage_compressed.h
+include/usage_compressed.h: .config scripts/usage
+	$(Q)sh $(top_srcdir)/scripts/usage_compressed "$(top_srcdir)/scripts" > $@
+
 depend dep: .depend
 .depend: scripts/bb_mkdep $(DEP_INCLUDES)
 	$(disp_gen)

@@ -32,23 +32,19 @@
 #include <assert.h>
 #include "busybox.h"
 
-#if ENABLE_SHOW_USAGE
-const char usage_messages[] =
-
+#if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
+static const char usage_messages[] =
 #define MAKE_USAGE
 #include "usage.h"
-
 #include "applets.h"
-
 ;
-
 #undef MAKE_USAGE
 #endif /* ENABLE_SHOW_USAGE */
+
 #undef APPLET
 #undef APPLET_NOUSAGE
 #undef PROTOTYPES
 #include "applets.h"
-
 
 static struct BB_applet *applet_using;
 
@@ -405,27 +401,69 @@ static void check_suid (struct BB_applet *applet)
 
 
 
+#if ENABLE_FEATURE_COMPRESS_USAGE
 
+#include "usage_compressed.h"
+#include "unarchive.h"
+
+static const char *unpack_usage_messages(void)
+{
+	int input[2], output[2], pid;
+	char *buf;
+
+	if(pipe(input) < 0 || pipe(output) < 0)
+		exit(1);
+
+	pid = fork();
+	switch (pid) {
+	case -1: /* error */
+		exit(1);
+	case 0: /* child */
+		close(input[1]);
+		close(output[0]);
+		uncompressStream(input[0], output[1]);
+		exit(0);
+	}
+	/* parent */
+
+	close(input[0]);
+	close(output[1]);
+	pid = fork();
+	switch (pid) {
+	case -1: /* error */
+		exit(1);
+	case 0: /* child */
+		bb_full_write(input[1], packed_usage, sizeof(packed_usage));
+		exit(0);
+	}
+	/* parent */
+	close(input[1]);
+
+	buf = xmalloc(SIZEOF_usage_messages);
+	bb_full_read(output[0], buf, SIZEOF_usage_messages);
+	return buf;
+}
+
+#else
+#define unpack_usage_messages() usage_messages;
+#endif /* ENABLE_FEATURE_COMPRESS_USAGE */
 
 void bb_show_usage (void)
 {
-#if ENABLE_SHOW_USAGE
-  const char *format_string;
-  const char *usage_string = usage_messages;
-  int i;
+	if (ENABLE_SHOW_USAGE) {
+		const char *format_string;
+		const char *usage_string = unpack_usage_messages();
+		int i;
 
-  for (i = applet_using - applets; i > 0;) {
-	if (!*usage_string++) {
-	  --i;
+		for (i = applet_using - applets; i > 0;)
+			if (!*usage_string++) --i;
+
+		format_string = "%s\n\nUsage: %s %s\n\n";
+		if (*usage_string == '\b')
+			format_string = "%s\n\nNo help available.\n\n";
+		fprintf (stderr, format_string, bb_msg_full_version,
+			applet_using->name, usage_string);
 	}
-  }
-
-  format_string = "%s\n\nUsage: %s %s\n\n";
-  if (*usage_string == '\b')
-	format_string = "%s\n\nNo help available.\n\n";
-  fprintf (stderr, format_string, bb_msg_full_version, applet_using->name,
-		   usage_string);
-#endif /* ENABLE_SHOW_USAGE */
 
   exit (bb_default_error_retval);
 }

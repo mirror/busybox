@@ -19,7 +19,6 @@
 # define APPLET(a,b,c,d) extern int b(int argc, char **argv);
 # define APPLET_NOUSAGE(a,b,c,d) extern int b(int argc, char **argv);
 # define APPLET_ODDNAME(a,b,c,d,e) extern int b(int argc, char **argv);
-  extern const char usage_messages[];
 #elif defined(MAKE_USAGE)
 # ifdef CONFIG_FEATURE_VERBOSE_USAGE
 #  define APPLET(a,b,c,d) a##_trivial_usage "\n\n" a##_full_usage "\0"
