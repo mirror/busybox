@@ -22,10 +22,10 @@ testing "seq one argument" "seq 3" "1\n2\n3\n" "" ""
 testing "seq two arguments" "seq 5 7" "5\n6\n7\n" "" ""
 testing "seq two arguments reversed" "seq 7 5" "" "" ""
 testing "seq two arguments equal" "seq 3 3" "3\n" "" ""
-# test negative non-null step
-testing "seq two arguments equal, arbitrary negative step" "seq 1 -15 1" "1\n" "" ""
-# test positive non-null step
-testing "seq two arguments equal, arbitrary positive step" "seq 1 +15 1" "1\n" "" ""
+testing "seq two arguments equal, arbitrary negative step" "seq 1 -15 1" \
+	"1\n" "" ""
+testing "seq two arguments equal, arbitrary positive step" "seq 1 +15 1" \
+	"1\n" "" ""
 testing "seq count up by 2" "seq 4 2 8" "4\n6\n8\n" "" ""
 testing "seq count down by 2" "seq 8 -2 4" "8\n6\n4\n" "" ""
 testing "seq count wrong way #1" "seq 4 -2 8" "" "" ""
