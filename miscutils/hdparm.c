@@ -259,10 +259,10 @@ static const char * const ata1_cfg_str[] = {			/* word 0 in ATA-1 mode */
 /* NOVAL_0 or  NOVAL_1 means device does not report version */
 
 /* word 81: minor version number */
-#define MINOR_MAX		0x1C
+#define MINOR_MAX		0x22
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-static const char * const minor_str[] = {				/* word 81 value: */
-	"device does not report version",		/* 0x0000	*/
+static const char *minor_str[MINOR_MAX+2] = {			/* word 81 value: */
+	"Unspecified",					/* 0x0000	*/
 	"ATA-1 X3T9.2 781D prior to revision 4",	/* 0x0001	*/
 	"ATA-1 published, ANSI X3.221-1994",		/* 0x0002	*/
 	"ATA-1 X3T9.2 781D revision 4",			/* 0x0003	*/
@@ -280,23 +280,27 @@ static const char * const minor_str[] = {				/* word 81 value: */
 	"ATA/ATAPI-4 X3T13 1153D revision 7",		/* 0x000f	*/
 	"ATA/ATAPI-4 T13 1153D revision 18",		/* 0x0010	*/
 	"ATA/ATAPI-4 T13 1153D revision 15",		/* 0x0011	*/
-	"ATA/ATAPI-4 published, ANSI NCITS 317-1998",	/* 0x0012	*/
+	"ATA/ATAPI-4 published, ANSI INCITS 317-1998",	/* 0x0012	*/
 	"ATA/ATAPI-5 T13 1321D revision 3",
 	"ATA/ATAPI-4 T13 1153D revision 14",		/* 0x0014	*/
 	"ATA/ATAPI-5 T13 1321D revision 1",		/* 0x0015	*/
-	"ATA/ATAPI-5 published, ANSI NCITS 340-2000",	/* 0x0016	*/
+	"ATA/ATAPI-5 published, ANSI INCITS 340-2000",	/* 0x0016	*/
 	"ATA/ATAPI-4 T13 1153D revision 17",		/* 0x0017	*/
 	"ATA/ATAPI-6 T13 1410D revision 0",		/* 0x0018	*/
 	"ATA/ATAPI-6 T13 1410D revision 3a",		/* 0x0019	*/
-	"Reserved",					/* 0x001a	*/
+	"ATA/ATAPI-7 T13 1532D revision 1",		/* 0x001a	*/
 	"ATA/ATAPI-6 T13 1410D revision 2",		/* 0x001b	*/
 	"ATA/ATAPI-6 T13 1410D revision 1",		/* 0x001c	*/
-	"reserved",					/* 0x001d	*/
-	"reserved",					/* 0x001e	*/
-	"reserved"					/* 0x001f-0xfffe*/
+	"ATA/ATAPI-7 published, ANSI INCITS 397-2005",	/* 0x001d	*/
+	"ATA/ATAPI-7 T13 1532D revision 0",		/* 0x001e	*/
+	"Reserved"					/* 0x001f	*/
+	"Reserved"					/* 0x0020	*/
+	"ATA/ATAPI-7 T13 1532D revision 4a",		/* 0x0021	*/
+	"ATA/ATAPI-6 published, ANSI INCITS 361-2002",	/* 0x0022	*/
+	"Reserved"					/* 0x0023-0xfffe*/
 };
 #endif
-static const char actual_ver[] = {
+static const char actual_ver[MINOR_MAX+2] = {
 			/* word 81 value: */
 	0,		/* 0x0000	WARNING:	*/
 	1,		/* 0x0001	WARNING:	*/
@@ -324,10 +328,16 @@ static const char actual_ver[] = {
 	4,		/* 0x0017	WARNING:	*/
 	6,		/* 0x0018	WARNING:	*/
 	6,		/* 0x0019	WARNING:	*/
-	0,		/* 0x001a	WARNING:	*/
+	7,		/* 0x001a	WARNING:	*/
 	6,		/* 0x001b	WARNING:	*/
 	6,		/* 0x001c	WARNING:	*/
-	0		/* 0x001d-0xfffe		*/
+	7,		/* 0x001d	WARNING:	*/
+	7,		/* 0x001e	WARNING:	*/
+	0,		/* 0x001f	WARNING:	*/
+	0,		/* 0x0020	WARNING:	*/
+	7,		/* 0x0021	WARNING:	*/
+	6,		/* 0x0022	WARNING:	*/
+	0		/* 0x0023-0xfffe    	*/
 };
 
 /* words 82-84: cmds/feats supported */
