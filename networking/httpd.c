@@ -183,7 +183,7 @@ typedef struct
   Htaccess *mime_a;             /* config mime types */
 #endif
 
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
   int accepted_socket;
 # define a_c_r config->accepted_socket
 # define a_c_w config->accepted_socket
@@ -776,7 +776,7 @@ static void addEnv(const char *name_before_underline,
   }
 }
 
-#if defined(CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV) || !defined(CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY)
+#if defined(CONFIG_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV) || defined(CONFIG_FEATURE_HTTPD_WITHOUT_INETD)
 /* set environs SERVER_PORT and REMOTE_PORT */
 static void addEnvPort(const char *port_name)
 {
@@ -848,7 +848,7 @@ static void decodeBase64(char *Data)
 #endif
 
 
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
 /****************************************************************************
  *
  > $Function: openServer()
@@ -885,7 +885,7 @@ static int openServer(void)
   signal(SIGCHLD, SIG_IGN);   /* prevent zombie (defunct) processes */
   return fd;
 }
-#endif  /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
+#endif  /* CONFIG_FEATURE_HTTPD_WITHOUT_INETD */
 
 /****************************************************************************
  *
@@ -1163,7 +1163,7 @@ static int sendCgi(const char *url,
 		}
 	    }
       }
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
       config->accepted_socket = 1;      /* send to stdout */
 #endif
       sendHeaders(HTTP_NOT_FOUND);
@@ -1728,7 +1728,7 @@ FORBIDDEN:      /* protect listing /cgi-bin */
 			config->last_mod = sb.st_mtime;
 		}
 		sendFile(test);
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
 		/* unset if non inetd looped */
 		config->ContentLength = -1;
 #endif
@@ -1741,7 +1741,7 @@ FORBIDDEN:      /* protect listing /cgi-bin */
   } while (0);
 
 
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
 /* from inetd don`t looping: freeing, closing automatic from exit always */
 # if DEBUG
   fprintf(stderr, "closing socket\n");
@@ -1754,7 +1754,7 @@ FORBIDDEN:      /* protect listing /cgi-bin */
   free(config->remoteuser);
 #endif
 # endif
-#endif  /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
+#endif  /* CONFIG_FEATURE_HTTPD_WITHOUT_INETD */
   shutdown(a_c_w, SHUT_WR);
 
   /* Properly wait for remote to closed */
@@ -1768,9 +1768,9 @@ FORBIDDEN:      /* protect listing /cgi-bin */
   } while (retval > 0 && (read (a_c_r, buf, sizeof (config->buf)) > 0));
 
   shutdown(a_c_r, SHUT_RD);
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
   close(config->accepted_socket);
-#endif  /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
+#endif  /* CONFIG_FEATURE_HTTPD_WITHOUT_INETD */
 }
 
 /****************************************************************************
@@ -1788,7 +1788,7 @@ FORBIDDEN:      /* protect listing /cgi-bin */
  * $Return: (int) . . . . Always 0.
  *
  ****************************************************************************/
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
 static int miniHttpd(int server)
 {
   fd_set readfd, portfd;
@@ -1874,7 +1874,7 @@ static int miniHttpd(void)
   handleIncoming();
   return 0;
 }
-#endif  /* CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY */
+#endif  /* CONFIG_FEATURE_HTTPD_WITHOUT_INETD */
 
 #ifdef CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 static void sighup_handler(int sig)
@@ -1899,7 +1899,7 @@ enum httpd_opts_nums {
 	USE_FEATURE_HTTPD_BASIC_AUTH(r_opt_realm,)
 	USE_FEATURE_HTTPD_AUTH_MD5(m_opt_md5,)
 	USE_FEATURE_HTTPD_SETUID(u_opt_setuid,)
-	SKIP_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(p_opt_port,)
+	USE_FEATURE_HTTPD_WITHOUT_INETD(p_opt_port,)
 };
 
 static const char httpd_opts[]="c:d:h:"
@@ -1907,7 +1907,7 @@ static const char httpd_opts[]="c:d:h:"
 	USE_FEATURE_HTTPD_BASIC_AUTH("r:")
 	USE_FEATURE_HTTPD_AUTH_MD5("m:")
 	USE_FEATURE_HTTPD_SETUID("u:")
-	SKIP_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY("p:");
+	USE_FEATURE_HTTPD_WITHOUT_INETD("p:");
 
 #define OPT_CONFIG_FILE (1<<c_opt_config_file)
 #define OPT_DECODE_URL  (1<<d_opt_decode_url)
@@ -1925,8 +1925,8 @@ static const char httpd_opts[]="c:d:h:"
 #define OPT_SETUID      USE_FEATURE_HTTPD_SETUID((1<<u_opt_setuid)) \
 			SKIP_FEATURE_HTTPD_SETUID(0)
 
-#define OPT_PORT        SKIP_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY((1<<p_opt_port)) \
-			USE_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(0)
+#define OPT_PORT        USE_FEATURE_HTTPD_WITHOUT_INETD((1<<p_opt_port)) \
+			SKIP_FEATURE_HTTPD_WITHOUT_INETD(0)
 
 
 int httpd_main(int argc, char *argv[])
@@ -1935,8 +1935,8 @@ int httpd_main(int argc, char *argv[])
   const char *home_httpd = home;
   char *url_for_decode;
   USE_FEATURE_HTTPD_ENCODE_URL_STR(const char *url_for_encode;)
-  SKIP_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(const char *s_port;)
-  SKIP_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(int server;)
+  USE_FEATURE_HTTPD_WITHOUT_INETD(const char *s_port;)
+  USE_FEATURE_HTTPD_WITHOUT_INETD(int server;)
 
   USE_FEATURE_HTTPD_SETUID(const char *s_uid;)
   USE_FEATURE_HTTPD_SETUID(long uid = -1;)
@@ -1948,7 +1948,7 @@ int httpd_main(int argc, char *argv[])
   config->realm = "Web Server Authentication";
 #endif
 
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
   config->port = 80;
 #endif
 
@@ -1960,7 +1960,7 @@ int httpd_main(int argc, char *argv[])
 			USE_FEATURE_HTTPD_BASIC_AUTH(, &(config->realm))
 			USE_FEATURE_HTTPD_AUTH_MD5(, &pass)
 			USE_FEATURE_HTTPD_SETUID(, &s_uid)
-			SKIP_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY(, &s_port)
+			USE_FEATURE_HTTPD_WITHOUT_INETD(, &s_port)
 	);
 
   if(opt & OPT_DECODE_URL) {
@@ -1979,7 +1979,7 @@ int httpd_main(int argc, char *argv[])
       return 0;
   }
 #endif
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
     if(opt & OPT_PORT)
 	config->port = bb_xgetlarg(s_port, 10, 1, 0xffff);
 #ifdef CONFIG_FEATURE_HTTPD_SETUID
@@ -1996,7 +1996,7 @@ int httpd_main(int argc, char *argv[])
 #endif
 
   bb_xchdir(home_httpd);
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
   server = openServer();
 # ifdef CONFIG_FEATURE_HTTPD_SETUID
   /* drop privileges */
@@ -2014,7 +2014,7 @@ int httpd_main(int argc, char *argv[])
 	clearenv();
 	if(p)
 		setenv("PATH", p, 1);
-# ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+# ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
 	addEnvPort("SERVER");
 # endif
    }
@@ -2026,7 +2026,7 @@ int httpd_main(int argc, char *argv[])
   parse_conf(default_path_httpd_conf, FIRST_PARSE);
 #endif
 
-#ifndef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+#ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
 # if !DEBUG
   bb_xdaemon(1, 0);     /* don`t change curent directory */
 # endif

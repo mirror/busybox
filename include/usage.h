@@ -975,36 +975,6 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-n\t\tno call to sync()\n" \
 	"\t-f\t\tforce halt (don't go through init)"
 
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
-#define USAGE_SCAN_HWIF(a) a
-#else
-#define USAGE_SCAN_HWIF(a)
-#endif
-
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
-#define USAGE_UNREGISTER_HWIF(a) a
-#else
-#define USAGE_UNREGISTER_HWIF(a)
-#endif
-
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
-#define USAGE_DRIVE_RESET(a) a
-#else
-#define USAGE_DRIVE_RESET(a)
-#endif
-
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-#define USAGE_TRISTATE_HWIF(a) a
-#else
-#define USAGE_TRISTATE_HWIF(a)
-#endif
-
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
-#define USAGE_GETSET_DMA(a) a
-#else
-#define USAGE_GETSET_DMA(a)
-#endif
-
 #define hdparm_trivial_usage \
 	"[options] [device] .."
 #define hdparm_full_usage \
@@ -1015,7 +985,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-B   set Advanced Power Management setting (1-255)\n" \
 	"\t-c   get/set IDE 32-bit IO setting\n" \
 	"\t-C   check IDE power mode status\n" \
-	USAGE_GETSET_DMA("\t-d   get/set using_dma flag\n") \
+	USE_FEATURE_HDPARM_HDIO_GETSET_DMA("\t-d   get/set using_dma flag\n") \
 	"\t-D   enable/disable drive defect-mgmt\n" \
 	"\t-f   flush buffer cache for device on exit\n" \
 	"\t-g   display drive geometry\n" \
@@ -1033,28 +1003,22 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-q   change next setting quietly\n" \
 	"\t-Q   get/set DMA tagged-queuing depth (if supported)\n" \
 	"\t-r   get/set readonly flag (DANGEROUS to set)\n" \
-	USAGE_SCAN_HWIF("\t-R   register an IDE interface (DANGEROUS)\n") \
+	USE_FEATURE_HDPARM_HDIO_SCAN_HWIF("\t-R   register an IDE interface (DANGEROUS)\n") \
 	"\t-S   set standby (spindown) timeout\n" \
 	"\t-t   perform device read timings\n" \
 	"\t-T   perform cache read timings\n" \
 	"\t-u   get/set unmaskirq flag (0/1)\n" \
-	USAGE_UNREGISTER_HWIF("\t-U   un-register an IDE interface (DANGEROUS)\n") \
+	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF("\t-U   un-register an IDE interface (DANGEROUS)\n") \
 	"\t-v   defaults; same as -mcudkrag for IDE drives\n" \
 	"\t-V   display program version and exit immediately\n" \
-	USAGE_DRIVE_RESET("\t-w   perform device reset (DANGEROUS)\n") \
+	USE_FEATURE_HDPARM_HDIO_DRIVE_RESET("\t-w   perform device reset (DANGEROUS)\n") \
 	"\t-W   set drive write-caching flag (0/1) (DANGEROUS)\n" \
-	USAGE_TRISTATE_HWIF("\t-x   tristate device for hotswap (0/1) (DANGEROUS)\n") \
+	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF("\t-x   tristate device for hotswap (0/1) (DANGEROUS)\n") \
 	"\t-X   set IDE xfer mode (DANGEROUS)\n" \
 	"\t-y   put IDE drive in standby mode\n" \
 	"\t-Y   put IDE drive to sleep\n" \
 	"\t-Z   disable Seagate auto-powersaving mode\n" \
 	"\t-z   re-read partition table"
-
-#ifdef CONFIG_FEATURE_FANCY_HEAD
-#define USAGE_FANCY_HEAD(a) a
-#else
-#define USAGE_FANCY_HEAD(a)
-#endif
 
 #define head_trivial_usage \
 	"[OPTION]... [FILE]..."
@@ -1064,7 +1028,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n" \
 	"Options:\n" \
 	"\t-n NUM\t\tPrint first NUM lines instead of first 10" \
-	USAGE_FANCY_HEAD( \
+	USE_FEATURE_FANCY_HEAD( \
 	"\n\t-c NUM\t\toutput the first NUM bytes\n" \
 	"\t-q\t\tnever output headers giving file names\n" \
 	"\t-v\t\talways output headers giving file names" )
@@ -1111,44 +1075,22 @@ USE_FEATURE_DATE_ISOFMT( \
 	"$ hostname\n" \
 	"sage\n"
 
-#ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
-#  define USAGE_HTTPD_BASIC_AUTH(a) a
-#  ifdef CONFIG_FEATURE_HTTPD_AUTH_MD5
-#    define USAGE_HTTPD_AUTH_MD5(a) a
-#  else
-#    define USAGE_HTTPD_AUTH_MD5(a)
-#  endif
-#else
-#  define USAGE_HTTPD_BASIC_AUTH(a)
-#  define USAGE_HTTPD_AUTH_MD5(a)
-#endif
-#ifdef CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-#  define USAGE_HTTPD_STANDALONE(a)
-#  define USAGE_HTTPD_SETUID(a)
-#else
-#  define USAGE_HTTPD_STANDALONE(a) a
-#  ifdef CONFIG_FEATURE_HTTPD_SETUID
-#    define USAGE_HTTPD_SETUID(a) a
-#  else
-#    define USAGE_HTTPD_SETUID(a)
-#  endif
-#endif
 #define httpd_trivial_usage \
 	"[-c <conf file>]" \
-	USAGE_HTTPD_STANDALONE(" [-p <port>]") \
-	USAGE_HTTPD_SETUID(" [-u user]") \
-	USAGE_HTTPD_BASIC_AUTH(" [-r <realm>]") \
-	USAGE_HTTPD_AUTH_MD5(" [-m pass]") \
+	USE_FEATURE_HTTPD_WITHOUT_INETD(" [-p <port>]") \
+	USE_FEATURE_HTTPD_SETUID(" [-u user]") \
+	USE_FEATURE_HTTPD_BASIC_AUTH(" [-r <realm>]") \
+	USE_FEATURE_HTTPD_AUTH_MD5(" [-m pass]") \
 	" [-h home]" \
 	" [-d/-e <string>]"
 #define httpd_full_usage \
 	"Listens for incoming http server requests.\n\n" \
 	"Options:\n" \
 	"\t-c FILE\t\tSpecifies configuration file. (default httpd.conf)\n" \
-	USAGE_HTTPD_STANDALONE("\t-p PORT\tServer port (default 80)\n") \
-	USAGE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privileges port\n") \
-	USAGE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
-	USAGE_HTTPD_AUTH_MD5("\t-m PASS\t\tCrypt PASS with md5 algorithm\n") \
+	USE_FEATURE_HTTPD_WITHOUT_INETD("\t-p PORT\tServer port (default 80)\n") \
+	USE_FEATURE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privileges port\n") \
+	USE_FEATURE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
+	USE_FEATURE_HTTPD_AUTH_MD5("\t-m PASS\t\tCrypt PASS with md5 algorithm\n") \
 	"\t-h HOME  \tSpecifies http HOME directory (default ./)\n" \
 	"\t-e STRING\tHtml encode STRING\n" \
 	"\t-d STRING\tURL decode STRING"

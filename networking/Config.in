@@ -61,18 +61,18 @@ config CONFIG_HTTPD
 	help
 	  Serve web pages via an HTTP server.
 
-config CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
-	bool "Support using httpd only from inetd"
+config CONFIG_FEATURE_HTTPD_WITHOUT_INETD
+	bool "Support using httpd as a daemon (not from inetd)"
 	default n
 	depends on CONFIG_HTTPD
 	help
-	  This option disables uid and port options for the httpd applet
-	  but requires inetd server daemon.
+	  This option enables uid and port options for the httpd applet,
+	  and eliminates the need to be called from the inetd server daemon.
 
 config CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 	bool "Support reloading the global config file using hup signal"
 	default n
-	depends on CONFIG_HTTPD && !CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+	depends on CONFIG_HTTPD && CONFIG_FEATURE_HTTPD_WITHOUT_INETD
 	help
 	  This option enables processing of SIGHUP to reload cached
 	  configuration settings.
@@ -80,7 +80,7 @@ config CONFIG_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 config CONFIG_FEATURE_HTTPD_SETUID
 	bool "Enable support -u <user> option"
 	default n
-	depends on CONFIG_HTTPD && !CONFIG_FEATURE_HTTPD_USAGE_FROM_INETD_ONLY
+	depends on CONFIG_HTTPD && CONFIG_FEATURE_HTTPD_WITHOUT_INETD
 	help
 	  This option allows the server to run as a specific user
 	  rather than defaulting to the user that starts the server.
