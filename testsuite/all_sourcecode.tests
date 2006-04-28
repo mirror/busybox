@@ -70,7 +70,7 @@ rm -f src.obsolete.funcs
 find $srcdir/.. '(' -name '*.c' -o -name '*.h' ')' -print0 | xargs -0 \
 	grep -E -e '\<(malloc|memory)\.h\>' \
 	| sed -e "s:^$srcdir/\.\./::g" > src.obsolete.headers
-testing "Obsolete function usage" "cat src.obsolete.headers" "" "" ""
+testing "Obsolete headers" "cat src.obsolete.headers" "" "" ""
 rm -f src.obsolete.headers
 
 
