@@ -144,8 +144,12 @@ ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 3 ] ; echo $$?)),0)
 	CFLAGS_COMBINE:=$(call check_gcc,--combine,)
 endif
 OPTIMIZATION+=$(call check_gcc,-funit-at-a-time,)
+OPTIMIZATION+=$(call check_gcc,-fgcse-after-reload,)
+ifneq ($(CONFIG_BUILD_LIBBUSYBOX),y)
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=25795
-#PROG_CFLAGS+=$(call check_gcc,-fwhole-program,)
+# This prevents us from using -fwhole-program when we build the lib
+PROG_CFLAGS+=$(call check_gcc,-fwhole-program,)
+endif # CONFIG_BUILD_LIBBUSYBOX
 endif # CONFIG_BUILD_AT_ONCE
 
 LIB_LDFLAGS:=$(call check_ld,--enable-new-dtags,)
@@ -214,6 +218,10 @@ ifneq ($(EXTRAVERSION),)
     CHECKED_CFLAGS+=$(call check_gcc,-Wstrict-prototypes,)
     CHECKED_CFLAGS+=$(call check_gcc,-Wmissing-prototypes,)
     CHECKED_CFLAGS+=$(call check_gcc,-Wmissing-declarations,)
+    CHECKED_CFLAGS+=$(call check_gcc,-Wunused,)
+    CHECKED_CFLAGS+=$(call check_gcc,-Winit-self,)
+    CHECKED_CFLAGS+=$(call check_gcc,-Wshadow,)
+    CHECKED_CFLAGS+=$(call check_gcc,-Wcast-align,)
 endif
 STRIPCMD:=$(STRIP) -s --remove-section=.note --remove-section=.comment
 ifeq ($(strip $(CONFIG_STATIC)),y)
