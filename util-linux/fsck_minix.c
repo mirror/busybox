@@ -671,8 +671,8 @@ static void read_tables(void)
 {
 	inode_map = xmalloc(IMAPS * BLOCK_SIZE);
 	zone_map = xmalloc(ZMAPS * BLOCK_SIZE);
-	memset(inode_map, 0, sizeof(inode_map));
-	memset(zone_map, 0, sizeof(zone_map));
+	memset(inode_map, 0, IMAPS * BLOCK_SIZE);
+	memset(zone_map, 0, ZMAPS * BLOCK_SIZE);
 	inode_buffer = xmalloc(INODE_BUFFER_SIZE);
 	inode_count = xmalloc(INODES + 1);
 	zone_count = xmalloc(ZONES);
