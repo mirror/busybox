@@ -632,10 +632,8 @@ static void print_ascii(uint16_t *p, uint8_t length) {
    intentional. */
 static void identify(uint16_t *id_supplied, const char *devname)
 {
-
-	char *id_file = NULL;
-	FILE *fl;
-	uint16_t val[256], ii, jj, kk;
+	uint16_t buf[256];
+	uint16_t *val, ii, jj, kk;
 	uint16_t like_std = 1, std = 0, min_std = 0xffff;
 	uint16_t dev = NO_DEV, eqpt = NO_DEV;
 	uint8_t  have_mode = 0, err_dma = 0;
@@ -643,37 +641,11 @@ static void identify(uint16_t *id_supplied, const char *devname)
 	uint32_t ll, mm, nn, oo;
 	uint64_t bbbig; /* (:) */
 
-	if (id_supplied)
-	{
-#if __BYTE_ORDER == __BIG_ENDIAN
-		swab(id_supplied, val, sizeof(val));
-#else
-		memcpy(val, id_supplied, sizeof(val));
-#endif
-	}
-	else
-	{
-		/* open the file, read in all the info and close it */
-		if (devname == NULL)
-			fl = stdin;
-		else {
-			id_file = bb_xasprintf("/proc/ide/%s/identify", devname);
-			fl = bb_xfopen(id_file, "r");
-		}
-		/* calculate checksum over all bytes */
-		for(ii = GEN_CONFIG; ii<=INTEGRITY; ii++)
-		{
-			unsigned int scratch;
-			if(1 != fscanf(fl,"%04x",&scratch))
-				break;
-			val[ii] = (uint16_t)scratch;
-			chksum += val[ii] + (val[ii] >> 8);
-		}
-		bb_fclose_nonstdin(fl);
-		if (ENABLE_FEATURE_CLEAN_UP) free(id_file);
-		if(ii < (INTEGRITY+1))
-			bb_error_msg_and_die("Input file wrong format or length");
-	}
+	if (BB_BIG_ENDIAN) {
+		swab(id_supplied, buf, sizeof(buf));
+		val = buf;
+	} else val = id_supplied;
+
 	chksum &= 0xff;
 
 	/* check if we recognise the device type */
