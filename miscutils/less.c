@@ -104,10 +104,11 @@ static int num_marks;
 
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 static int match_found;
-static int match_lines[100];
+static int *match_lines;
 static int match_pos;
 static int num_matches;
 static int match_backwards;
+static regex_t old_pattern;
 #endif
 
 /* Needed termios structures */
@@ -233,14 +234,6 @@ static void data_readlines(void)
 
 	if (flags & FLAG_N)
 		add_linenumbers();
-}
-
-/* Turn a percentage into a line number */
-static int reverse_percent(int percentage)
-{
-	double linenum = percentage;
-	linenum = ((linenum / 100) * num_flines) - 1;
-	return(linenum);
 }
 
 #ifdef CONFIG_FEATURE_LESS_FLAGS
@@ -463,12 +456,11 @@ static void buffer_up(int nlines)
 static void buffer_line(int linenum)
 {
 	int i;
-
 	past_eof = 0;
 
-	if (linenum < 1 || linenum > num_flines) {
+	if (linenum < 0 || linenum > num_flines) {
 		clear_line();
-		printf("%s%s%i%s", HIGHLIGHT, "Cannot seek to line number ", linenum, NORMAL);
+		printf("%s%s%i%s", HIGHLIGHT, "Cannot seek to line number ", linenum + 1, NORMAL);
 	}
 	else if (linenum < (num_flines - height - 2)) {
 		for (i = 0; i < (height - 1); i++) {
@@ -476,6 +468,7 @@ static void buffer_line(int linenum)
 			buffer[i] = bb_xstrdup(flines[linenum + i]);
 		}
 		line_pos = linenum;
+		buffer_print();
 	}
 	else {
 		for (i = 0; i < (height - 1); i++) {
@@ -488,6 +481,7 @@ static void buffer_line(int linenum)
 		line_pos = linenum;
 		/* Set past_eof so buffer_down and buffer_up act differently */
 		past_eof = 1;
+		buffer_print();
 	}
 }
 
@@ -610,46 +604,44 @@ static void colon_process(void)
 /* Get a regular expression from the user, and then go through the current
    file line by line, running a processing regex function on each one. */
 
-static char *insert_highlights(char *line, int start, int end)
-{
-	return bb_xasprintf("%.*s%s%.*s%s%s", start, line, HIGHLIGHT,
-			end - start, line + start, NORMAL, line + end);
-}
-
-static char *process_regex_on_line(char *line, regex_t *pattern)
+static char *process_regex_on_line(char *line, regex_t *pattern, int action)
 {
 	/* This function takes the regex and applies it to the line.
 	   Each part of the line that matches has the HIGHLIGHT
 	   and NORMAL escape sequences placed around it by
-	   insert_highlights, and then the line is returned. */
-
+	   insert_highlights if action = 1, or has the escape sequences
+	   removed if action = 0, and then the line is returned. */
 	int match_status;
 	char *line2 = (char *) xmalloc((sizeof(char) * (strlen(line) + 1)) + 64);
-	char sub_line[256];
-	int prev_eo = 0;
+	char *growline = "";
 	regmatch_t match_structs;
 
-	strcpy(line2, line);
+	line2 = bb_xstrdup(line);
 
 	match_found = 0;
 	match_status = regexec(pattern, line2, 1, &match_structs, 0);
-
+	
 	while (match_status == 0) {
-
-		memset(sub_line, 0, sizeof(sub_line));
-
 		if (match_found == 0)
 			match_found = 1;
-
-		line2 = insert_highlights(line2, match_structs.rm_so + prev_eo, match_structs.rm_eo + prev_eo);
-		if ((size_t)match_structs.rm_eo + 11 + prev_eo < strlen(line2))
-			strcat(sub_line, line2 + match_structs.rm_eo + 11 + prev_eo);
-
-		prev_eo += match_structs.rm_eo + 11;
-		match_status = regexec(pattern, sub_line, 1, &match_structs, REG_NOTBOL);
+		
+		if (action) {
+			growline = bb_xasprintf("%s%.*s%s%.*s%s", growline, match_structs.rm_so, line2, HIGHLIGHT, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so, NORMAL); 
+		}
+		else {
+			growline = bb_xasprintf("%s%.*s%.*s", growline, match_structs.rm_so - 4, line2, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so);
+		}
+		
+		line2 += match_structs.rm_eo;
+		match_status = regexec(pattern, line2, 1, &match_structs, REG_NOTBOL);
 	}
-
-	return line2;
+	
+	growline = bb_xasprintf("%s%s", growline, line2);
+	
+	return (match_found ? growline : line);
+	
+	free(growline);
+	free(line2);
 }
 
 static void goto_match(int match)
@@ -665,11 +657,10 @@ static void goto_match(int match)
 static void regex_process(void)
 {
 	char uncomp_regex[100];
-	char current_line[256];
+	char *current_line;
 	int i;
 	int j = 0;
 	regex_t pattern;
-
 	/* Get the uncompiled regular expression from the user */
 	clear_line();
 	putchar((match_backwards) ? '?' : '/');
@@ -677,32 +668,43 @@ static void regex_process(void)
 	fgets(uncomp_regex, sizeof(uncomp_regex), inp);
 	
 	if (strlen(uncomp_regex) == 1) {
-		goto_match(match_backwards ? match_pos - 1 : match_pos + 1);
-		buffer_print();
+		if (num_matches)
+			goto_match(match_backwards ? match_pos - 1 : match_pos + 1);
+		else
+			buffer_print();
 		return;
 	}
-	
 	uncomp_regex[strlen(uncomp_regex) - 1] = '\0';
 	
 	/* Compile the regex and check for errors */
 	xregcomp(&pattern, uncomp_regex, 0);
 
+	if (num_matches) {
+		/* Get rid of all the highlights we added previously */
+		for (i = 0; i <= num_flines; i++) {
+			current_line = process_regex_on_line(flines[i], &old_pattern, 0);
+			flines[i] = bb_xstrdup(current_line);
+		}
+	}
+	old_pattern = pattern;
+	
 	/* Reset variables */
+	match_lines = xrealloc(match_lines, sizeof(int));
 	match_lines[0] = -1;
 	match_pos = 0;
 	num_matches = 0;
 	match_found = 0;
-
 	/* Run the regex on each line of the current file here */
 	for (i = 0; i <= num_flines; i++) {
-		strcpy(current_line, process_regex_on_line(flines[i], &pattern));
+		current_line = process_regex_on_line(flines[i], &pattern, 1);
 		flines[i] = bb_xstrdup(current_line);
 		if (match_found) {
+			match_lines = xrealloc(match_lines, (j + 1) * sizeof(int));
 			match_lines[j] = i;
 			j++;
 		}
 	}
-
+	
 	num_matches = j;
 	if ((match_lines[0] != -1) && (num_flines > height - 2)) {
 		if (match_backwards) {
@@ -764,7 +766,7 @@ static void number_process(int first_digit)
 				buffer_line(num - 1);
 			break;
 		case 'p': case '%':
-			buffer_line(reverse_percent(num));
+			buffer_line(((num / 100) * num_flines) - 1);
 			break;
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 		case 'n':
@@ -852,7 +854,6 @@ static void full_repaint(void)
 	data_readlines();
 	buffer_init();
 	buffer_line(temp_line_pos);
-	buffer_print();
 }
 
 
@@ -866,7 +867,7 @@ static void save_input_to_file(void)
 	printf("Log file: ");
 	fgets(current_line, 256, inp);
 	current_line[strlen(current_line) - 1] = '\0';
-	if (strlen(current_line)) {
+	if (strlen(current_line) > 1) {
 		fp = bb_xfopen(current_line, "w");
 		for (i = 0; i < num_flines; i++)
 			fprintf(fp, "%s", flines[i]);
@@ -973,7 +974,6 @@ static void match_right_bracket(char bracket)
 			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
 
 		buffer_line(bracket_line - height + 2);
-		buffer_print();
 	}
 }
 
@@ -1001,7 +1001,6 @@ static void match_left_bracket(char bracket)
 			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
 
 		buffer_line(bracket_line);
-		buffer_print();
 	}
 }
 
@@ -1035,12 +1034,10 @@ static void keypress_process(int keypress)
 			buffer_print();
 			break;
 		case 'g': case 'p': case '<': case '%':
-			buffer_up(num_flines + 1);
-			buffer_print();
+			buffer_line(0);
 			break;
 		case 'G': case '>':
-			buffer_down(num_flines + 1);
-			buffer_print();
+			buffer_line(num_flines - height + 2);
 			break;
 		case 'q': case 'Q':
 			tless_exit(0);
@@ -1078,20 +1075,16 @@ static void keypress_process(int keypress)
 		case '/':
 			match_backwards = 0;
 			regex_process();
-			buffer_print();
 			break;
 		case 'n':
 			goto_match(match_pos + 1);
-			buffer_print();
 			break;
 		case 'N':
 			goto_match(match_pos - 1);
-			buffer_print();
 			break;
 		case '?':
 			match_backwards = 1;
 			regex_process();
-			buffer_print();
 			break;
 #endif
 #ifdef CONFIG_FEATURE_LESS_FLAGCS
