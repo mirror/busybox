@@ -465,11 +465,22 @@ static const char * const secu_str[] = {
 static const char bb_msg_shared_mem[] = "could not %s sharedmem buf";
 static const char bb_msg_op_not_supp[] = " operation not supported on %s disks";
 
-static void bb_ioctl(int fd, int request, void *argp, const char *string)
+static int bb_ioctl(int fd, int request, void *argp, const char *string)
 {
-	if (ioctl (fd, request, argp) != 0)
+	int e = ioctl(fd, request, argp);
+	if (e && string)
 		bb_perror_msg(" %s", string);
+	return e;
 }
+
+static int bb_ioctl_alt(int fd, int cmd, unsigned char *args, int alt, const char *string)
+{
+	if (!ioctl(fd, cmd, args))
+		return 0;
+	args[0] = alt;
+	return bb_ioctl(fd, cmd, args, string);
+}
+
 
 static void if_printf(unsigned long i, char *fmt, ... )
 {
@@ -1454,7 +1465,7 @@ static void flush_buffer_cache (int fd)
 #ifdef HDIO_DRIVE_CMD
 	sleep(1);
 	if (ioctl(fd, HDIO_DRIVE_CMD, NULL) && errno != EINVAL)	/* await completion */
-			bb_perror_msg("HDIO_DRIVE_CMD");
+		bb_perror_msg("HDIO_DRIVE_CMD");
 #endif
 }
 
@@ -2116,13 +2127,13 @@ static void process_dev (char *devname)
 		args[2] = wcache ? 0x02 : 0x82;
 		if_printf_on_off(get_wcache," setting drive write-caching to %ld", wcache);
 #ifdef DO_FLUSHCACHE
-		if (!wcache && ioctl(fd, HDIO_DRIVE_CMD, &flushcache))
-			bb_perror_msg ("HDIO_DRIVE_CMD(flushcache)");
+		if (!wcache)
+			bb_ioctl(fd, HDIO_DRIVE_CMD, &flushcache, "HDIO_DRIVE_CMD(flushcache)");
 #endif /* DO_FLUSHCACHE */
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setcache)");
 #ifdef DO_FLUSHCACHE
-		if (!wcache && ioctl(fd, HDIO_DRIVE_CMD, &flushcache))
-			bb_perror_msg ("HDIO_DRIVE_CMD(flushcache)");
+		if (!wcache)
+			bb_ioctl(fd, HDIO_DRIVE_CMD, &flushcache, "HDIO_DRIVE_CMD(flushcache)");
 #endif /* DO_FLUSHCACHE */
 	}
 	if (set_standbynow)
@@ -2133,13 +2144,10 @@ static void process_dev (char *devname)
 #ifndef WIN_STANDBYNOW2
 #define WIN_STANDBYNOW2 0x94
 #endif
-		static unsigned char args1[4] = {WIN_STANDBYNOW1,0,0,0};
-		static unsigned char args2[4] = {WIN_STANDBYNOW2,0,0,0};
 		no_scsi();
 		if_printf(get_standbynow," issuing standby command\n");
-		if (ioctl(fd, HDIO_DRIVE_CMD, &args1)
-		 && ioctl(fd, HDIO_DRIVE_CMD, &args2))
-			bb_perror_msg("HDIO_DRIVE_CMD(standby)");
+		args[0] = WIN_STANDBYNOW1;
+		bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args, WIN_STANDBYNOW2, "HDIO_DRIVE_CMD(standby)");
 	}
 	if (set_sleepnow)
 	{
@@ -2149,13 +2157,10 @@ static void process_dev (char *devname)
 #ifndef WIN_SLEEPNOW2
 #define WIN_SLEEPNOW2 0x99
 #endif
-		static unsigned char args1[4] = {WIN_SLEEPNOW1,0,0,0};
-		static unsigned char args2[4] = {WIN_SLEEPNOW2,0,0,0};
 		no_scsi();
 		if_printf(get_sleepnow," issuing sleep command\n");
-		if (ioctl(fd, HDIO_DRIVE_CMD, &args1)
-		 && ioctl(fd, HDIO_DRIVE_CMD, &args2))
-			bb_perror_msg("HDIO_DRIVE_CMD(sleep)");
+		args[0] = WIN_SLEEPNOW1;
+		bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args, WIN_SLEEPNOW2, "HDIO_DRIVE_CMD(sleep)");
 	}
 	if (set_seagate)
 	{
@@ -2207,9 +2212,7 @@ static void process_dev (char *devname)
 	if ((verbose && !is_scsi_hd && !is_xt_hd) || get_io32bit)
 	{
 		no_scsi_no_xt();
-		if(ioctl(fd, HDIO_GET_32BIT, &parm))
-			bb_perror_msg("HDIO_GET_32BIT");
-		else
+		if(!bb_ioctl(fd, HDIO_GET_32BIT, &parm, "HDIO_GET_32BIT"))
 		{
 			printf(" IO_support   =%3ld (", parm);
 			switch (parm)
@@ -2245,9 +2248,7 @@ static void process_dev (char *devname)
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
 	if ((verbose && !is_scsi_hd) || get_dma) {
 		no_scsi();
-		if(ioctl(fd, HDIO_GET_DMA, &parm))
-			bb_perror_msg("HDIO_GET_DMA");
-		else
+		if(!bb_ioctl(fd, HDIO_GET_DMA, &parm, "HDIO_GET_DMA"))
 		{
 			printf(" using_dma    = %2ld", parm);
 			if (parm == 8)
@@ -2294,16 +2295,16 @@ static void process_dev (char *devname)
 		static struct hd_big_geometry bg;
 #endif
 
-		if (ioctl(fd, BLKGETSIZE, &parm))
-			bb_perror_msg("BLKGETSIZE");
+		if (!bb_ioctl(fd, BLKGETSIZE, &parm, "BLKGETSIZE"))
+		{
 #ifdef HDIO_GETGEO_BIG
-		else if (!ioctl(fd, HDIO_GETGEO_BIG, &bg))
-			printf(msg, bg.cylinders, bg.heads, bg.sectors, parm, bg.start);
+			if (!bb_ioctl(fd, HDIO_GETGEO_BIG, &bg, "HDIO_GETGEO_BIG"))
+				printf(msg, bg.cylinders, bg.heads, bg.sectors, parm, bg.start);
+			else
 #endif
-		else if (ioctl(fd, HDIO_GETGEO, &g))
-			bb_perror_msg("HDIO_GETGEO");
-		else
-			printf(msg, g.cylinders, g.heads, g.sectors, parm, g.start);
+			if (!bb_ioctl(fd, HDIO_GETGEO, &g, "HDIO_GETGEO"))
+				printf(msg, g.cylinders, g.heads, g.sectors, parm, g.start);
+		}
 	}
 #ifdef HDIO_DRIVE_CMD
 	if (get_powermode)
@@ -2315,11 +2316,10 @@ static void process_dev (char *devname)
 #define WIN_CHECKPOWERMODE2 0x98
 #endif
 		const char *state;
+
 		no_scsi();
 		args[0] = WIN_CHECKPOWERMODE1;
-		if (ioctl(fd, HDIO_DRIVE_CMD, &args)
-			 && (args[0] = WIN_CHECKPOWERMODE2) /* try again with 0x98 */
-			&& ioctl(fd, HDIO_DRIVE_CMD, &args))
+		if (bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args, WIN_CHECKPOWERMODE2, 0))
 		{
 			if (errno != EIO || args[0] != 0 || args[1] != 0)
 				state = "unknown";
@@ -2374,23 +2374,19 @@ static void process_dev (char *devname)
 
 	if (get_IDentity)
 	{
-		unsigned char args1[4+512] = {WIN_IDENTIFY,0,0,1,};
+		unsigned char args1[4+512]; /* = { ... } will eat 0.5k of rodata! */
 		unsigned i;
 
 		no_scsi_no_xt();
 
-		if (ioctl(fd, HDIO_DRIVE_CMD, &args1))
-		{
-			args[0] = WIN_PIDENTIFY;
-			if (ioctl(fd, HDIO_DRIVE_CMD, &args1))
-			{
-				bb_perror_msg("HDIO_DRIVE_CMD(identify)");
-				goto identify_abort;
-			}
-		}
+		memset(args1, 0, sizeof(args1));
+		args1[0] = WIN_IDENTIFY;
+		args1[3] = 1;
+		if (bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY, "HDIO_DRIVE_CMD(identify)"))
+			goto identify_abort;
+
 		for(i=0; i<(sizeof args1)/2; i+=2)
 			__le16_to_cpus((uint16_t *)(&args1[i]));
-
 		identify((void *)&args1[4], NULL);
 identify_abort:
 	/* VOID */;
@@ -2412,9 +2408,7 @@ identify_abort:
 	if (get_busstate)
 	{
 		no_scsi();
-		if (ioctl(fd, HDIO_GET_BUSSTATE, &parm))
-			bb_perror_msg("HDIO_GET_BUSSTATE");
-		else
+		if (!bb_ioctl(fd, HDIO_GET_BUSSTATE, &parm, "HDIO_GET_BUSSTATE"))
 		{
 			printf(" busstate     = %2ld", parm);
 			bus_state_value(parm);
