@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mtio.h>
-#include <sys/fcntl.h>
+#include <fcntl.h>
 #include "busybox.h"
 
 struct mt_opcodes {
