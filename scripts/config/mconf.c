@@ -11,7 +11,6 @@
 
 #include <sys/ioctl.h>
 #include <sys/wait.h>
-#include <sys/termios.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
