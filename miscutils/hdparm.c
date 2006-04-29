@@ -630,7 +630,7 @@ static void identify (uint16_t *id_supplied, const char *devname)
 	uint8_t  have_mode = 0, err_dma = 0;
 	uint8_t  chksum = 0;
 	uint32_t ll, mm, nn, oo;
-	__u64 bbbig; /* (:) */
+	uint64_t bbbig; /* (:) */
 
 	if (id_supplied)
 	{
@@ -642,14 +642,13 @@ static void identify (uint16_t *id_supplied, const char *devname)
 	}
 	else
 	{
-		id_file = xcalloc(1, strlen(devname)+22);
-		sprintf(id_file, "/proc/ide/%s/identify", devname);
 		/* open the file, read in all the info and close it */
-		if (id_file == NULL)
+		if (devname == NULL)
 			fl = stdin;
-		else
+		else {
+			id_file = bb_xasprintf("/proc/ide/%s/identify", devname);
 			fl = bb_xfopen(id_file, "r");
-
+		}
 		/* calculate checksum over all bytes */
 		for(ii = GEN_CONFIG; ii<=INTEGRITY; ii++)
 		{
@@ -659,8 +658,8 @@ static void identify (uint16_t *id_supplied, const char *devname)
 			val[ii] = (uint16_t)scratch;
 			chksum += val[ii] + (val[ii] >> 8);
 		}
-		fclose(fl);
-		/*bb_fclose_nonstdin(fl);*/
+		bb_fclose_nonstdin(fl);
+		if (ENABLE_FEATURE_CLEAN_UP) free(id_file);
 		if(ii < (INTEGRITY+1))
 			bb_error_msg_and_die("Input file wrong format or length");
 	}
@@ -909,15 +908,15 @@ static void identify (uint16_t *id_supplied, const char *devname)
 		if( ((val[CMDS_SUPP_1] & VALID) == VALID_VAL) &&
 		     (val[CMDS_SUPP_1] & SUPPORT_48_BIT) )
 		{
-			bbbig = (__u64)val[LBA_64_MSB]	<< 48 |
-			        (__u64)val[LBA_48_MSB]	<< 32 |
-			        (__u64)val[LBA_MID]	<< 16 |
+			bbbig = (uint64_t)val[LBA_64_MSB]	<< 48 |
+			        (uint64_t)val[LBA_48_MSB]	<< 32 |
+			        (uint64_t)val[LBA_MID]	<< 16 |
 					val[LBA_LSB] ;
 			printf("\tLBA48  user addressable sectors:%11llu\n",bbbig);
 		}
 
 		if (!bbbig)
-			bbbig = (__u64)(ll>mm ? ll : mm); /* # 512 byte blocks */
+			bbbig = (uint64_t)(ll>mm ? ll : mm); /* # 512 byte blocks */
 		printf("\tdevice size with M = 1024*1024: %11llu MBytes\n",bbbig>>11);
 		bbbig = (bbbig<<9)/1000000;
 		printf("\tdevice size with M = 1000*1000: %11llu MBytes ",bbbig);
