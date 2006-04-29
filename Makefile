@@ -393,7 +393,7 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 
 # The nifty new dependency stuff
 scripts/bb_mkdep: $(top_srcdir)/scripts/bb_mkdep.c
-	$(Q)$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
+	$(compile.h)
 
 DEP_INCLUDES := include/bb_config.h
 
@@ -406,7 +406,7 @@ include/bbconfigopts.h: .config
 endif
 
 scripts/usage: $(top_srcdir)/scripts/usage.c .config
-	$(HOSTCC) $(HOSTCFLAGS) -I$(top_srcdir)/include -o $@ $<
+	$(compile.h) -I$(top_srcdir)/include
 
 DEP_INCLUDES += include/usage_compressed.h
 include/usage_compressed.h: .config scripts/usage
