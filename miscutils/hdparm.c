@@ -1652,6 +1652,12 @@ static void no_xt (void)
 		bb_error_msg_and_die(bb_msg_op_not_supp,"XT");
 }
 
+static void no_scsi_no_xt (void)
+{
+	no_scsi();
+	no_xt();
+}
+
 static void on_off (unsigned int value)
 {
 	printf(value ? " (on)\n" : " (off)\n");
@@ -1864,6 +1870,8 @@ static void process_dev (char *devname)
 #ifndef HDIO_DRIVE_CMD
 	int force_operation = 0;
 #endif
+	unsigned char args[4] = {WIN_SETFEATURES,0,0,0};
+
 	xstat(devname,&stat_buf);
 
 	switch(major(stat_buf.st_rdev))
@@ -1945,7 +1953,6 @@ static void process_dev (char *devname)
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 	if (scan_hwif)
 	{
-		int	args[3];
 		no_scsi();
 		printf(" attempting to scan hwif (0x%x, 0x%x, %u)\n", hwif_data, hwif_ctrl, hwif_irq);
 		args[0] = hwif_data;
@@ -1956,8 +1963,7 @@ static void process_dev (char *devname)
 #endif
 	if (set_piomode)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 
 		if (noisy_piomode)
 		{
@@ -1975,15 +1981,13 @@ static void process_dev (char *devname)
 	}
 	if (set_io32bit)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		if_printf(get_io32bit," setting 32-bit IO_support flag to %ld\n", io32bit);
 		bb_ioctl(fd, HDIO_SET_32BIT, (int *)io32bit, "HDIO_SET_32BIT");
 	}
 	if (set_mult)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		if_printf(get_mult, " setting multcount to %ld\n", mult);
 		if(ioctl(fd, HDIO_SET_MULTCOUNT, mult))
 			bb_perror_msg("HDIO_SET_MULTCOUNT");
@@ -1999,8 +2003,7 @@ static void process_dev (char *devname)
 	}
 	if (set_unmask)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		if_printf_on_off(get_unmask," setting unmaskirq to %ld", unmask);
 		bb_ioctl(fd, HDIO_SET_UNMASKINTR, (int *)unmask, "HDIO_SET_UNMASKINTR");
 	}
@@ -2020,25 +2023,20 @@ static void process_dev (char *devname)
 	}
 	if (set_nowerr)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		if_printf_on_off(get_nowerr," setting nowerr to %ld", nowerr);
 		bb_ioctl(fd, HDIO_SET_NOWERR, (int *)nowerr,"HDIO_SET_NOWERR");
 	}
 	if (set_keep)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		if_printf_on_off(get_keep," setting keep_settings to %ld", keep);
 		bb_ioctl(fd, HDIO_SET_KEEPSETTINGS, (int *)keep,"HDIO_SET_KEEPSETTINGS");
 	}
 #ifdef HDIO_DRIVE_CMD
 	if (set_doorlock)
 	{
-		unsigned char args[4] = {0,0,0,0};
-		no_scsi();
-		no_xt();
-
+		no_scsi_no_xt();
 		args[0] = doorlock ? WIN_DOORLOCK : WIN_DOORUNLOCK;
 		if_printf_on_off(get_doorlock," setting drive doorlock to %ld", doorlock);
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args,"HDIO_DRIVE_CMD(doorlock)");
@@ -2046,17 +2044,13 @@ static void process_dev (char *devname)
 	if (set_dkeep)
 	{
 		/* lock/unlock the drive's "feature" settings */
-		unsigned char args[4] = {WIN_SETFEATURES,0,0,0};
-		no_scsi();
-		no_xt();
-
+		no_scsi_no_xt();
 		if_printf_on_off(get_dkeep," setting drive keep features to %ld", dkeep);
 		args[2] = dkeep ? 0x66 : 0xcc;
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args,"HDIO_DRIVE_CMD(keepsettings)");
 	}
 	if (set_defects)
 	{
-		unsigned char args[4] = {WIN_SETFEATURES,0,0x04,0};
 		no_scsi();
 		args[2] = defects ? 0x04 : 0x84;
 		if_printf(get_defects," setting drive defect-mgmt to %ld\n", defects);
@@ -2064,21 +2058,17 @@ static void process_dev (char *devname)
 	}
 	if (set_prefetch)
 	{
-		unsigned char args[4] = {WIN_SETFEATURES,0,0xab,0};
-		no_scsi();
-		no_xt();
-
+		no_scsi_no_xt();
 		args[1] = prefetch;
+		args[2] = 0xab;
 		if_printf(get_prefetch," setting drive prefetch to %ld\n", prefetch);
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setprefetch)");
 	}
 	if (set_xfermode)
 	{
-		unsigned char args[4] = {WIN_SETFEATURES,0,3,0};
-		no_scsi();
-		no_xt();
-
+		no_scsi_no_xt();
 		args[1] = xfermode_requested;
+		args[2] = 3;
 		if (get_xfermode)
 		{
 			printf(" setting xfermode to %d", xfermode_requested);
@@ -2088,17 +2078,13 @@ static void process_dev (char *devname)
 	}
 	if (set_lookahead)
 	{
-		unsigned char args[4] = {WIN_SETFEATURES,0,0,0};
-		no_scsi();
-		no_xt();
-
+		no_scsi_no_xt();
 		args[2] = lookahead ? 0xaa : 0x55;
 		if_printf_on_off(get_lookahead," setting drive read-lookahead to %ld", lookahead);
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setreadahead)");
 	}
 	if (set_apmmode)
 	{
-		unsigned char args[4] = {WIN_SETFEATURES,0,0,0};
 		no_scsi();
 		apmmode=check_if_min_and_set_val(apmmode,1);
 		apmmode=check_if_maj_and_set_val(apmmode,255);
@@ -2124,11 +2110,9 @@ static void process_dev (char *devname)
 #ifndef WIN_FLUSHCACHE
 #define WIN_FLUSHCACHE 0xe7
 #endif
-		unsigned char flushcache[4] = {WIN_FLUSHCACHE,0,0,0};
+		static unsigned char flushcache[4] = {WIN_FLUSHCACHE,0,0,0};
 #endif /* DO_FLUSHCACHE */
-		unsigned char args[4] = {WIN_SETFEATURES,0,0,0};
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		args[2] = wcache ? 0x02 : 0x82;
 		if_printf_on_off(get_wcache," setting drive write-caching to %ld", wcache);
 #ifdef DO_FLUSHCACHE
@@ -2149,8 +2133,8 @@ static void process_dev (char *devname)
 #ifndef WIN_STANDBYNOW2
 #define WIN_STANDBYNOW2 0x94
 #endif
-		unsigned char args1[4] = {WIN_STANDBYNOW1,0,0,0};
-		unsigned char args2[4] = {WIN_STANDBYNOW2,0,0,0};
+		static unsigned char args1[4] = {WIN_STANDBYNOW1,0,0,0};
+		static unsigned char args2[4] = {WIN_STANDBYNOW2,0,0,0};
 		no_scsi();
 		if_printf(get_standbynow," issuing standby command\n");
 		if (ioctl(fd, HDIO_DRIVE_CMD, &args1)
@@ -2165,8 +2149,8 @@ static void process_dev (char *devname)
 #ifndef WIN_SLEEPNOW2
 #define WIN_SLEEPNOW2 0x99
 #endif
-		unsigned char args1[4] = {WIN_SLEEPNOW1,0,0,0};
-		unsigned char args2[4] = {WIN_SLEEPNOW2,0,0,0};
+		static unsigned char args1[4] = {WIN_SLEEPNOW1,0,0,0};
+		static unsigned char args2[4] = {WIN_SLEEPNOW2,0,0,0};
 		no_scsi();
 		if_printf(get_sleepnow," issuing sleep command\n");
 		if (ioctl(fd, HDIO_DRIVE_CMD, &args1)
@@ -2175,17 +2159,16 @@ static void process_dev (char *devname)
 	}
 	if (set_seagate)
 	{
-		unsigned char args[4] = {0xfb,0,0,0};
-		no_scsi();
-		no_xt();
+		args[0] = 0xfb;
+		no_scsi_no_xt();
 		if_printf(get_seagate," disabling Seagate auto powersaving mode\n");
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(seagatepwrsave)");
 	}
 	if (set_standby)
 	{
-		unsigned char args[4] = {WIN_SETIDLE1,standby_requested,0,0};
-		no_scsi();
-		no_xt();
+		args[0] = WIN_SETIDLE1;
+		args[1] = standby_requested;
+		no_scsi_no_xt();
 		if (get_standby)
 		{
 			printf(" setting standby to %lu", standby_requested);
@@ -2223,8 +2206,7 @@ static void process_dev (char *devname)
 	}
 	if ((verbose && !is_scsi_hd && !is_xt_hd) || get_io32bit)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		if(ioctl(fd, HDIO_GET_32BIT, &parm))
 			bb_perror_msg("HDIO_GET_32BIT");
 		else
@@ -2254,8 +2236,7 @@ static void process_dev (char *devname)
 	}
 	if ((verbose && !is_scsi_hd && !is_xt_hd) || get_unmask)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		bb_ioctl_on_off(fd, HDIO_GET_UNMASKINTR,(unsigned long *)parm,
 						"HDIO_GET_UNMASKINTR"," unmaskirq    = %2ld");
 	}
@@ -2284,16 +2265,14 @@ static void process_dev (char *devname)
 	}
 	if ((verbose && !is_scsi_hd && !is_xt_hd) || get_keep)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		bb_ioctl_on_off (fd, HDIO_GET_KEEPSETTINGS,(unsigned long *)parm,
 							"HDIO_GET_KEEPSETTINGS"," keepsettings = %2ld");
 	}
 
 	if (get_nowerr)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		bb_ioctl_on_off  (fd, HDIO_GET_NOWERR,(unsigned long *)&parm,
 							" HDIO_GET_NOWERR"," nowerr       = %2ld");
 	}
@@ -2335,9 +2314,9 @@ static void process_dev (char *devname)
 #ifndef WIN_CHECKPOWERMODE2
 #define WIN_CHECKPOWERMODE2 0x98
 #endif
-		unsigned char args[4] = {WIN_CHECKPOWERMODE1,0,0,0};
 		const char *state;
 		no_scsi();
+		args[0] = WIN_CHECKPOWERMODE1;
 		if (ioctl(fd, HDIO_DRIVE_CMD, &args)
 			 && (args[0] = WIN_CHECKPOWERMODE2) /* try again with 0x98 */
 			&& ioctl(fd, HDIO_DRIVE_CMD, &args))
@@ -2356,17 +2335,16 @@ static void process_dev (char *devname)
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
 	if (perform_reset)
 	{
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 		bb_ioctl(fd, HDIO_DRIVE_RESET, NULL, "HDIO_DRIVE_RESET");
 	}
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET */
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 	if (perform_tristate)
 	{
-		unsigned char args[4] = {0,tristate,0,0};
-		no_scsi();
-		no_xt();
+		args[0] = 0;
+		args[1] = tristate;
+		no_scsi_no_xt();
 		bb_ioctl(fd, HDIO_TRISTATE_HWIF, &args, "HDIO_TRISTATE_HWIF");
 	}
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF */
@@ -2375,8 +2353,7 @@ static void process_dev (char *devname)
 	{
 		static struct hd_driveid id;
 
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 
 		if (!ioctl(fd, HDIO_GET_IDENTITY, &id))
 		{
@@ -2397,25 +2374,24 @@ static void process_dev (char *devname)
 
 	if (get_IDentity)
 	{
-		unsigned char args[4+512] = {WIN_IDENTIFY,0,0,1,};
+		unsigned char args1[4+512] = {WIN_IDENTIFY,0,0,1,};
 		unsigned i;
 
-		no_scsi();
-		no_xt();
+		no_scsi_no_xt();
 
-		if (ioctl(fd, HDIO_DRIVE_CMD, &args))
+		if (ioctl(fd, HDIO_DRIVE_CMD, &args1))
 		{
 			args[0] = WIN_PIDENTIFY;
-			if (ioctl(fd, HDIO_DRIVE_CMD, &args))
+			if (ioctl(fd, HDIO_DRIVE_CMD, &args1))
 			{
 				bb_perror_msg("HDIO_DRIVE_CMD(identify)");
 				goto identify_abort;
 			}
 		}
-		for(i=0; i<(sizeof args)/2; i+=2)
-		    __le16_to_cpus((uint16_t *)(&args[i]));
+		for(i=0; i<(sizeof args1)/2; i+=2)
+			__le16_to_cpus((uint16_t *)(&args1[i]));
 
-		identify((void *)&args[4], NULL);
+		identify((void *)&args1[4], NULL);
 identify_abort:
 	/* VOID */;
 	}
