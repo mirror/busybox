@@ -28,7 +28,6 @@
 #include "busybox.h"
 #include <linux/types.h>
 #include <linux/hdreg.h>
-#include <linux/major.h>
 #include <asm/byteorder.h>
 
 
@@ -630,7 +629,7 @@ static void print_ascii(uint16_t *p, uint8_t length) {
    others, though, were declared in hdparm.c with global scope; since other
    functions in that file have static (file) scope, I assume the difference is
    intentional. */
-static void identify(uint16_t *id_supplied, const char *devname)
+static void identify(uint16_t *id_supplied)
 {
 	uint16_t buf[256];
 	uint16_t *val, ii, jj, kk;
@@ -1200,7 +1199,7 @@ static void identify(uint16_t *id_supplied, const char *devname)
 #endif
 
 static int verbose, get_identity, get_geom, noisy = 1, quiet;
-static int flagcount, do_flush, is_scsi_hd, is_xt_hd;
+static int flagcount, do_flush;
 static int do_ctimings, do_timings;
 
 static unsigned long set_readahead, get_readahead, Xreadahead;
@@ -1620,26 +1619,6 @@ quit:
 		bb_error_msg(bb_msg_shared_mem,"detach"); /*"could not detach sharedmem buf"*/
 }
 
-
-static void no_scsi(void)
-{
-	/*" operation not supported on SCSI disks"*/
-	if (is_scsi_hd)
-		bb_error_msg_and_die(bb_msg_op_not_supp,"SCSI");
-}
-
-static void no_xt(void)
-{
-	if (is_xt_hd)
-		bb_error_msg_and_die(bb_msg_op_not_supp,"XT");
-}
-
-static void no_scsi_no_xt(void)
-{
-	no_scsi();
-	no_xt();
-}
-
 static void on_off (unsigned int value)
 {
 	printf(value ? " (on)\n" : " (off)\n");
@@ -1836,85 +1815,14 @@ static void interpret_xfermode(unsigned int xfermode)
 }
 #endif /* HDIO_DRIVE_CMD */
 
-#ifndef VXVM_MAJOR
-#define VXVM_MAJOR 199
-#endif
-
-#ifndef CCISS_MAJOR
-#define CCISS_MAJOR 104
-#endif
-
 static void process_dev(char *devname)
 {
 	int fd;
 	static long parm, multcount;
-	struct stat stat_buf;
 #ifndef HDIO_DRIVE_CMD
 	int force_operation = 0;
 #endif
 	unsigned char args[4] = {WIN_SETFEATURES,0,0,0};
-
-	xstat(devname,&stat_buf);
-
-	switch(major(stat_buf.st_rdev))
-	{
-#ifdef SCSI_DISK0_MAJOR
-		case (SCSI_DISK0_MAJOR):
-		case (SCSI_DISK1_MAJOR):
-		case (SCSI_DISK2_MAJOR):
-		case (SCSI_DISK3_MAJOR):
-		case (SCSI_DISK4_MAJOR):
-		case (SCSI_DISK5_MAJOR):
-		case (SCSI_DISK6_MAJOR):
-		case (SCSI_DISK7_MAJOR):
-#else
-		case (SCSI_DISK_MAJOR):
-#endif
-#ifdef MD_MAJOR
-		case (MD_MAJOR):
-#endif
-		case (VXVM_MAJOR):
-#ifdef LVM_BLK_MAJOR
-		case (LVM_BLK_MAJOR):
-#endif
-		case (CCISS_MAJOR):
-			is_scsi_hd = 1;
-			break;
-#ifdef XT_DISK_MAJOR
-		case (XT_DISK_MAJOR):
-			is_xt_hd = 1;
-			break;
-#endif
-		case IDE0_MAJOR:
-		case IDE1_MAJOR:
-#ifdef IDE2_MAJOR
-		case IDE2_MAJOR:
-#endif
-#ifdef IDE3_MAJOR
-		case IDE3_MAJOR:
-#endif
-#ifdef IDE4_MAJOR
-		case IDE4_MAJOR:
-#endif
-#ifdef IDE5_MAJOR
-		case IDE5_MAJOR:
-#endif
-#ifdef IDE6_MAJOR
-		case IDE6_MAJOR:
-#endif
-#ifdef IDE7_MAJOR
-		case IDE7_MAJOR:
-#endif
-#ifdef IDE8_MAJOR
-		case IDE8_MAJOR:
-#endif
-#ifdef IDE9_MAJOR
-		case IDE9_MAJOR:
-#endif
-			break;	/* do nothing */
-		default:
-			bb_error_msg_and_die("%s not supported",devname);
-	}
 
 	fd = bb_xopen(devname, O_RDONLY|O_NONBLOCK);
 	if_printf(!quiet, "\n%s:\n", devname);
@@ -1927,7 +1835,6 @@ static void process_dev(char *devname)
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 	if (unregister_hwif)
 	{
-		no_scsi();
 		printf(" attempting to unregister hwif#%u\n", hwif);
 		bb_ioctl(fd, HDIO_UNREGISTER_HWIF,(int *)(unsigned long)hwif,"HDIO_UNREGISTER_HWIF");
 	}
@@ -1935,7 +1842,6 @@ static void process_dev(char *devname)
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 	if (scan_hwif)
 	{
-		no_scsi();
 		printf(" attempting to scan hwif (0x%x, 0x%x, %u)\n", hwif_data, hwif_ctrl, hwif_irq);
 		args[0] = hwif_data;
 		args[1] = hwif_ctrl;
@@ -1945,8 +1851,6 @@ static void process_dev(char *devname)
 #endif
 	if (set_piomode)
 	{
-		no_scsi_no_xt();
-
 		if (noisy_piomode)
 		{
 			printf(" attempting to ");
@@ -1963,13 +1867,11 @@ static void process_dev(char *devname)
 	}
 	if (set_io32bit)
 	{
-		no_scsi_no_xt();
 		if_printf(get_io32bit," setting 32-bit IO_support flag to %ld\n", io32bit);
 		bb_ioctl(fd, HDIO_SET_32BIT, (int *)io32bit, "HDIO_SET_32BIT");
 	}
 	if (set_mult)
 	{
-		no_scsi_no_xt();
 		if_printf(get_mult, " setting multcount to %ld\n", mult);
 		if (ioctl(fd, HDIO_SET_MULTCOUNT, mult))
 			bb_perror_msg("HDIO_SET_MULTCOUNT");
@@ -1985,40 +1887,34 @@ static void process_dev(char *devname)
 	}
 	if (set_unmask)
 	{
-		no_scsi_no_xt();
 		if_printf_on_off(get_unmask," setting unmaskirq to %ld", unmask);
 		bb_ioctl(fd, HDIO_SET_UNMASKINTR, (int *)unmask, "HDIO_SET_UNMASKINTR");
 	}
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
 	if (set_dma)
 	{
-		no_scsi();
 		if_printf_on_off(get_dma," setting using_dma to %ld", dma);
 		bb_ioctl(fd, HDIO_SET_DMA, (int *)dma, "HDIO_SET_DMA");
 	}
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA */
 	if (set_dma_q)
 	{
-		no_scsi();
 		if_printf_on_off(get_dma_q," setting DMA queue_depth to %ld", dma_q);
 		bb_ioctl(fd, HDIO_SET_QDMA, (int *)dma_q, "HDIO_SET_QDMA");
 	}
 	if (set_nowerr)
 	{
-		no_scsi_no_xt();
 		if_printf_on_off(get_nowerr," setting nowerr to %ld", nowerr);
 		bb_ioctl(fd, HDIO_SET_NOWERR, (int *)nowerr,"HDIO_SET_NOWERR");
 	}
 	if (set_keep)
 	{
-		no_scsi_no_xt();
 		if_printf_on_off(get_keep," setting keep_settings to %ld", keep);
 		bb_ioctl(fd, HDIO_SET_KEEPSETTINGS, (int *)keep,"HDIO_SET_KEEPSETTINGS");
 	}
 #ifdef HDIO_DRIVE_CMD
 	if (set_doorlock)
 	{
-		no_scsi_no_xt();
 		args[0] = doorlock ? WIN_DOORLOCK : WIN_DOORUNLOCK;
 		if_printf_on_off(get_doorlock," setting drive doorlock to %ld", doorlock);
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args,"HDIO_DRIVE_CMD(doorlock)");
@@ -2026,21 +1922,18 @@ static void process_dev(char *devname)
 	if (set_dkeep)
 	{
 		/* lock/unlock the drive's "feature" settings */
-		no_scsi_no_xt();
 		if_printf_on_off(get_dkeep," setting drive keep features to %ld", dkeep);
 		args[2] = dkeep ? 0x66 : 0xcc;
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args,"HDIO_DRIVE_CMD(keepsettings)");
 	}
 	if (set_defects)
 	{
-		no_scsi();
 		args[2] = defects ? 0x04 : 0x84;
 		if_printf(get_defects," setting drive defect-mgmt to %ld\n", defects);
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args,"HDIO_DRIVE_CMD(defectmgmt)");
 	}
 	if (set_prefetch)
 	{
-		no_scsi_no_xt();
 		args[1] = prefetch;
 		args[2] = 0xab;
 		if_printf(get_prefetch," setting drive prefetch to %ld\n", prefetch);
@@ -2048,7 +1941,6 @@ static void process_dev(char *devname)
 	}
 	if (set_xfermode)
 	{
-		no_scsi_no_xt();
 		args[1] = xfermode_requested;
 		args[2] = 3;
 		if (get_xfermode)
@@ -2060,14 +1952,12 @@ static void process_dev(char *devname)
 	}
 	if (set_lookahead)
 	{
-		no_scsi_no_xt();
 		args[2] = lookahead ? 0xaa : 0x55;
 		if_printf_on_off(get_lookahead," setting drive read-lookahead to %ld", lookahead);
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setreadahead)");
 	}
 	if (set_apmmode)
 	{
-		no_scsi();
 		apmmode=check_if_min_and_set_val(apmmode,1);
 		apmmode=check_if_maj_and_set_val(apmmode,255);
 		if_printf(get_apmmode," setting APM level to");
@@ -2094,7 +1984,6 @@ static void process_dev(char *devname)
 #endif
 		static unsigned char flushcache[4] = {WIN_FLUSHCACHE,0,0,0};
 #endif /* DO_FLUSHCACHE */
-		no_scsi_no_xt();
 		args[2] = wcache ? 0x02 : 0x82;
 		if_printf_on_off(get_wcache," setting drive write-caching to %ld", wcache);
 #ifdef DO_FLUSHCACHE
@@ -2115,7 +2004,6 @@ static void process_dev(char *devname)
 #ifndef WIN_STANDBYNOW2
 #define WIN_STANDBYNOW2 0x94
 #endif
-		no_scsi();
 		if_printf(get_standbynow," issuing standby command\n");
 		args[0] = WIN_STANDBYNOW1;
 		bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args, WIN_STANDBYNOW2, "HDIO_DRIVE_CMD(standby)");
@@ -2128,7 +2016,6 @@ static void process_dev(char *devname)
 #ifndef WIN_SLEEPNOW2
 #define WIN_SLEEPNOW2 0x99
 #endif
-		no_scsi();
 		if_printf(get_sleepnow," issuing sleep command\n");
 		args[0] = WIN_SLEEPNOW1;
 		bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args, WIN_SLEEPNOW2, "HDIO_DRIVE_CMD(sleep)");
@@ -2136,7 +2023,6 @@ static void process_dev(char *devname)
 	if (set_seagate)
 	{
 		args[0] = 0xfb;
-		no_scsi_no_xt();
 		if_printf(get_seagate," disabling Seagate auto powersaving mode\n");
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(seagatepwrsave)");
 	}
@@ -2144,7 +2030,6 @@ static void process_dev(char *devname)
 	{
 		args[0] = WIN_SETIDLE1;
 		args[1] = standby_requested;
-		no_scsi_no_xt();
 		if (get_standby)
 		{
 			printf(" setting standby to %lu", standby_requested);
@@ -2165,13 +2050,12 @@ static void process_dev(char *devname)
 	if (!flagcount)
 		verbose = 1;
 
-	if ((verbose && !is_scsi_hd && !is_xt_hd) || get_mult || get_identity)
+	if (verbose || get_mult || get_identity)
 	{
-		no_scsi();
 		multcount = -1;
 		if (ioctl(fd, HDIO_GET_MULTCOUNT, &multcount))
 		{
-			if ((verbose && !is_xt_hd) || get_mult)
+			if (verbose || get_mult)
 				bb_perror_msg("HDIO_GET_MULTCOUNT");
 		}
 		else if (verbose | get_mult)
@@ -2180,9 +2064,8 @@ static void process_dev(char *devname)
 			on_off(multcount);
 		}
 	}
-	if ((verbose && !is_scsi_hd && !is_xt_hd) || get_io32bit)
+	if (verbose || get_io32bit)
 	{
-		no_scsi_no_xt();
 		if (!bb_ioctl(fd, HDIO_GET_32BIT, &parm, "HDIO_GET_32BIT"))
 		{
 			printf(" IO_support   =%3ld (", parm);
@@ -2208,17 +2091,15 @@ static void process_dev(char *devname)
 			}
 		}
 	}
-	if ((verbose && !is_scsi_hd && !is_xt_hd) || get_unmask)
+	if (verbose || get_unmask)
 	{
-		no_scsi_no_xt();
 		bb_ioctl_on_off(fd, HDIO_GET_UNMASKINTR,(unsigned long *)parm,
 						"HDIO_GET_UNMASKINTR"," unmaskirq    = %2ld");
 	}
 
 
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
-	if ((verbose && !is_scsi_hd) || get_dma) {
-		no_scsi();
+	if (verbose || get_dma) {
 		if (!bb_ioctl(fd, HDIO_GET_DMA, &parm, "HDIO_GET_DMA"))
 		{
 			printf(" using_dma    = %2ld", parm);
@@ -2231,20 +2112,17 @@ static void process_dev(char *devname)
 #endif
 	if (get_dma_q)
 	{
-		no_scsi();
 		bb_ioctl_on_off (fd, HDIO_GET_QDMA,(unsigned long *)parm,
 						  "HDIO_GET_QDMA"," queue_depth  = %2ld");
 	}
-	if ((verbose && !is_scsi_hd && !is_xt_hd) || get_keep)
+	if (verbose || get_keep)
 	{
-		no_scsi_no_xt();
 		bb_ioctl_on_off (fd, HDIO_GET_KEEPSETTINGS,(unsigned long *)parm,
 							"HDIO_GET_KEEPSETTINGS"," keepsettings = %2ld");
 	}
 
 	if (get_nowerr)
 	{
-		no_scsi_no_xt();
 		bb_ioctl_on_off  (fd, HDIO_GET_NOWERR,(unsigned long *)&parm,
 							" HDIO_GET_NOWERR"," nowerr       = %2ld");
 	}
@@ -2253,7 +2131,7 @@ static void process_dev(char *devname)
 		bb_ioctl_on_off(fd, BLKROGET,(unsigned long *)parm,
 						  " BLKROGET"," readonly     = %2ld");
 	}
-	if ((verbose && !is_scsi_hd) || get_readahead)
+	if (verbose || get_readahead)
 	{
 		bb_ioctl_on_off (fd, BLKRAGET, (unsigned long *) parm,
 							" BLKRAGET"," readahead    = %2ld");
@@ -2288,7 +2166,6 @@ static void process_dev(char *devname)
 #endif
 		const char *state;
 
-		no_scsi();
 		args[0] = WIN_CHECKPOWERMODE1;
 		if (bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args, WIN_CHECKPOWERMODE2, 0))
 		{
@@ -2306,7 +2183,6 @@ static void process_dev(char *devname)
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
 	if (perform_reset)
 	{
-		no_scsi_no_xt();
 		bb_ioctl(fd, HDIO_DRIVE_RESET, NULL, "HDIO_DRIVE_RESET");
 	}
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET */
@@ -2315,7 +2191,6 @@ static void process_dev(char *devname)
 	{
 		args[0] = 0;
 		args[1] = tristate;
-		no_scsi_no_xt();
 		bb_ioctl(fd, HDIO_TRISTATE_HWIF, &args, "HDIO_TRISTATE_HWIF");
 	}
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF */
@@ -2323,8 +2198,6 @@ static void process_dev(char *devname)
 	if (get_identity)
 	{
 		static struct hd_driveid id;
-
-		no_scsi_no_xt();
 
 		if (!ioctl(fd, HDIO_GET_IDENTITY, &id))
 		{
@@ -2348,8 +2221,6 @@ static void process_dev(char *devname)
 		unsigned char args1[4+512]; /* = { ... } will eat 0.5k of rodata! */
 		unsigned i;
 
-		no_scsi_no_xt();
-
 		memset(args1, 0, sizeof(args1));
 		args1[0] = WIN_IDENTIFY;
 		args1[3] = 1;
@@ -2358,7 +2229,7 @@ static void process_dev(char *devname)
 
 		for (i=0; i<(sizeof args1)/2; i+=2)
 			__le16_to_cpus((uint16_t *)(&args1[i]));
-		identify((void *)&args1[4], NULL);
+		identify((void *)&args1[4]);
 identify_abort:
 	/* VOID */;
 	}
@@ -2366,7 +2237,6 @@ identify_abort:
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 	if (set_busstate)
 	{
-		no_scsi();
 		if (get_busstate)
 		{
 			printf(" setting bus state to %d", busstate);
@@ -2378,7 +2248,6 @@ identify_abort:
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
 	if (get_busstate)
 	{
-		no_scsi();
 		if (!bb_ioctl(fd, HDIO_GET_BUSSTATE, &parm, "HDIO_GET_BUSSTATE"))
 		{
 			printf(" busstate     = %2ld", parm);
@@ -2453,7 +2322,7 @@ static int identify_from_stdin(void)
 		b += 5;
 		count -= 5;
 	}
-	identify(sbuf, NULL);
+	identify(sbuf);
 	return 0;
 }
 #endif
