@@ -12,12 +12,14 @@
   </ul>
   <li><a href="#adding">Adding an applet to busybox</a></li>
   <li><a href="#standards">What standards does busybox adhere to?</a></li>
+  <li><a href="#portability">Portability.</a></li>
   <li><a href="#tips">Tips and tricks.</a></li>
   <ul>
     <li><a href="#tips_encrypted_passwords">Encrypted Passwords</a></li>
     <li><a href="#tips_vfork">Fork and vfork</a></li>
     <li><a href="#tips_short_read">Short reads and writes</a></li>
     <li><a href="#tips_memory">Memory used by relocatable code, PIC, and static linking.</a></li>
+    <li><a href="#tips_kernel_headers">Including Linux kernel headers.</a></li>
   </ul>
   <li><a href="#who">Who are the BusyBox developers?</a></li>
 </ul>
@@ -179,6 +181,82 @@ maintenance.</p>
 applet is otherwise finished.  When polishing and testing a busybox applet,
 we ensure we have at least the option of full standards compliance, or else
 document where we (intentionally) fall short.</p>
+
+<h2><a name="portability">Portability.</a></h2>
+
+<p>Busybox is a Linux project, but that doesn't mean we don't have to worry
+about portability.  First of all, there are different hardware platforms,
+different C library implementations, different versions of the kernel and
+build toolchain...  The file "include/platform.h" exists to centralize and
+encapsulate various platform-specific things in one place, so most busybox
+code doesn't have to care where it's running.</p>
+
+<p>To start with, Linux runs on dozens of hardware platforms.  We try to test
+each release on x86, x86-64, arm, power pc, and mips.  (Since qemu can handle
+all of these, this isn't that hard.)  This means we have to care about a number
+of portability issues like endianness, word size, and alignment, all of which
+belong in platform.h.  That header handles conditional #includes and gives
+us macros we can use in the rest of our code.  At some point in the future
+we might grow a platform.c, possibly even a platform subdirectory.  As long
+as the applets themselves don't have to care.</p>
+
+<p>On a related note, we made the "default signedness of char varies" problem
+go away by feeding the compiler -funsigned-char.  This gives us consistent
+behavior on all platforms, and defaults to 8-bit clean text processing (which
+gets us halfway to UTF-8 support).  NOMMU support is less easily separated
+(see the tips section later in this document), but we're working on it.</p>
+
+<p>Another type of portability is build environments: we unapologetically use
+a number of gcc and glibc extensions (as does the Linux kernel), but these have
+been picked up by packages like uClibc, TCC, and Intel's C Compiler.  As for
+gcc, we take advantage of newer compiler optimizations to get the smallest
+possible size, but we also regression test against an older build environment
+using the Red Hat 9 image at "http://busybox.net/downloads/qemu".  This has a
+2.4 kernel, gcc 3.2, make 3.79.1, and glibc 2.3, and is the oldest
+build/deployment environment we still put any effort into maintaining.  (If
+anyone takes an interest in older kernels you're welcome to submit patches,
+but the effort would probably be better spent
+<a href="http://www.selenic.com/linux-tiny/">trimming
+down the 2.6 kernel</a>.)  Older gcc versions than that are uninteresting since
+we now use c99 features, although
+<a href="http://fabrice.bellard.free.fr/tcc/">tcc</a> might be worth a
+look.</p>
+
+<p>We also test busybox against the current release of uClibc.  Older versions
+of uClibc aren't very interesting (they were buggy, and uClibc wasn't really
+usable as a general-purpose C library before version 0.9.26 anyway).</p>
+
+<p>Other unix implementations are mostly uninteresting, since Linux binaries
+have become the new standard for portable Unix programs.  Specifically,
+the ubiquity of Linux was cited as the main reason the Intel Binary
+Compatability Standard 2 died, by the standards group organized to name a
+successor to ibcs2: <a href="http://www.telly.org/86open/">the 86open
+project</a>.  That project disbanded in 1999 with the endorsement of an
+existing standard: Linux ELF binaries.  Since then, the major players at the
+time (such as <a
+href=http://www-03.ibm.com/servers/aix/products/aixos/linux/index.html>AIX</a>, <a
+href=http://www.sun.com/software/solaris/ds/linux_interop.jsp#3>Solaris</a>, and
+<a href=http://www.onlamp.com/pub/a/bsd/2000/03/17/linuxapps.html>FreeBSD</a>)
+have all either grown Linux support or folded.</p>
+
+<p>The major exceptions are newcomer MacOS X, some embedded environments
+(such as newlib+libgloss) which provide a posix environment but not a full
+Linux environment, and environments like Cygwin that provide only partial Linux
+emulation.  Also, some embedded Linux systems run a Linux kernel but amputate
+things like the /proc directory to save space.</p>
+
+<p>Supporting these systems is largely a question of providing a clean subset
+of BusyBox's functionality -- whichever applets can easily be made to
+work in that environment.  Annotating the configuration system to
+indicate which applets require which prerequisites (such as procfs) is
+also welcome.  Other efforts to support these systems (swapping #include
+files to build in different environments, adding adapter code to platform.h,
+adding more extensive special-case supporting infrastructure such as mount's
+legacy mtab support) are handled on a case-by-case basis.  Support that can be
+cleanly hidden in platform.h is reasonably attractive, and failing that
+support that can be cleanly separated into a separate conditionally compiled
+file is at least worth a look.  Special-case code in the body of an applet is
+something we're trying to avoid.</p>
 
 <h2><a name="tips" />Programming tips and tricks.</a></h2>
 
@@ -410,6 +488,42 @@ I've been able to get a process down to is 8 dirty pages, and the
 above factors seem to mostly account for it (but some were difficult
 to measure).</p>
 </blockquote>
+
+<h2><a name="tips_kernel_headers"></a>Including kernel headers</h2>
+
+<p>The "linux" or "asm" directories of /usr/include contain Linux kernel
+headers, so that the C library can talk directly to the Linux kernel.  In
+a perfect world, applications shouldn't include these headers directly, but
+we don't live in a perfect world.</p>
+
+<p>For example, Busybox's losetup code wants linux/loop.c because nothing else
+#defines the structures to call the kernel's loopback device setup ioctls.
+Attempts to cut and paste the information into a local busybox header file
+proved incredibly painful, because portions of the loop_info structure vary by
+architecture, namely the type __kernel_dev_t has different sizes on alpha,
+arm, x86, and so on.  Meaning we either #include <linux/posix_types.h> or
+we hardwire #ifdefs to check what platform we're building on and define this
+type appropriately for every single hardware architecture supported by
+Linux, which is simply unworkable.</p>
+
+<p>This is aside from the fact that the relevant type defined in
+posix_types.h was renamed to __kernel_old_dev_t during the 2.5 series, so
+to cut and paste the structure into our header we have to #include
+<linux/version.h> to figure out which name to use.  (What we actually do is
+check if we're building on 2.6, and if so just use the new 64 bit structure
+instead to avoid the rename entirely.)  But we still need the version
+check, since 2.4 didn't have the 64 bit structure.</p>
+
+<p>The BusyBox developers spent <u>two years</u> _two years_ trying to figure
+out a clean way to do all this.  There isn't one.  The losetup in the
+util-linux package from kernel.org isn't doing it cleanly either, they just
+hide the ugliness by nesting #include files.  Their mount/loop.h
+#includes "my_dev_t.h", which #includes <linux/posix_types.h> and
+<linux/version.h> just like we do.  There simply is no alternative.</p>
+
+<p>We should never directly include kernel headers when there's a better
+way to do it, but block copying information out of the kernel headers is not
+a better way.</p>
 
 <h2><a name="who">Who are the BusyBox developers?</a></h2>
 
