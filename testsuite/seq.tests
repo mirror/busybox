@@ -6,7 +6,6 @@
 
 # AUDIT: Full SUSv3 coverage (except internationalization).
 
-[ -z "$COMMAND" ] && COMMAND=seq
 . testing.sh
 
 # testing "test name" "options" "expected result" "file input" "stdin"

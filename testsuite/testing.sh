@@ -6,9 +6,6 @@
 
 # This file defines two functions, "testing" and "optionflag"
 
-# The "testing" function must have the following environment variable set:
-#    COMMAND = command to execute
-#
 # The following environment variables may be set to enable optional behavior
 # in "testing":
 #    VERBOSE - Print the diff -u of each failed test case.
@@ -75,7 +72,7 @@ testing ()
 
   echo -ne "$3" > expected
   echo -ne "$4" > input
-  [ -z "$VERBOSE" ] || echo "echo '$5' | $COMMAND $2"
+  [ -z "$VERBOSE" ] || echo "echo '$5' | $2"
   echo -ne "$5" | eval "$2" > actual
   RETVAL=$?
 
