@@ -115,6 +115,18 @@ config CONFIG_DD
 	  by default) using specific input and output blocksizes,
 	  while optionally performing conversions on it.
 
+config CONFIG_FEATURE_DD_SIGNAL_HANDLING
+	bool "Enable DD signal handling for status reporting"
+	default y
+	depends on CONFIG_DD
+	help
+	  sending a SIGUSR1 signal to a running `dd' process makes it 
+	  print to standard error the number of records read and written 
+	  so far, then to resume copying.
+
+	  $ dd if=/dev/zero of=/dev/null& pid=$! $ kill -USR1 $pid; sleep 1; kill $pid 
+	  10899206+0 records in 10899206+0 records out
+
 config CONFIG_DF
 	bool "df"
 	default n

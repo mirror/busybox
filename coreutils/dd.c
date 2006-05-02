@@ -15,8 +15,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+#include <signal.h>  // For FEATURE_DD_SIGNAL_HANDLING
 #include "busybox.h"
-
 
 static const struct suffix_mult dd_suffixes[] = {
 	{ "c", 1 },
@@ -31,12 +31,20 @@ static const struct suffix_mult dd_suffixes[] = {
 	{ NULL, 0 }
 };
 
+static size_t out_full;
+static size_t out_part;
+static size_t in_full;
+static size_t in_part;
+
+static void dd_output_status(int cur_signal)
+{
+	fprintf(stderr, "%ld+%ld records in\n%ld+%ld records out\n",
+			(long)in_full, (long)in_part,
+			(long)out_full, (long)out_part);
+}
+
 int dd_main(int argc, char **argv)
 {
-	size_t out_full = 0;
-	size_t out_part = 0;
-	size_t in_full = 0;
-	size_t in_part = 0;
 	size_t count = -1;
 	size_t bs = 512;
 	ssize_t n;
@@ -52,6 +60,17 @@ int dd_main(int argc, char **argv)
 	const char *infile = NULL;
 	const char *outfile = NULL;
 	char *buf;
+
+	if (ENABLE_FEATURE_DD_SIGNAL_HANDLING)
+	{
+		struct sigaction sa;
+
+		memset(&sa, 0, sizeof(sa));
+		sa.sa_handler = dd_output_status; 
+		sa.sa_flags = SA_RESTART;
+		sigemptyset(&sa.sa_mask);
+		sigaction(SIGUSR1, &sa, 0); 
+	}
 
 	for (i = 1; i < argc; i++) {
 		if (strncmp("bs=", argv[i], 3) == 0)
@@ -180,9 +199,7 @@ int dd_main(int argc, char **argv)
 		bb_perror_msg_and_die("%s", outfile);
 	}
 
-	fprintf(stderr, "%ld+%ld records in\n%ld+%ld records out\n",
-			(long)in_full, (long)in_part,
-			(long)out_full, (long)out_part);
+	dd_output_status(0);
 
 	return EXIT_SUCCESS;
 }
