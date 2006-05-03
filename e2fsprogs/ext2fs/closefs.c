@@ -191,7 +191,7 @@ static errcode_t write_backup_super(ext2_filsys fs, dgrp_t group,
 
 	if (sgrp > ((1 << 16) - 1))
 		sgrp = (1 << 16) - 1;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if (fs->flags & EXT2_FLAG_SWAP_BYTES)
 		super_shadow->s_block_group_nr = ext2fs_swab16(sgrp);
 	else
@@ -213,7 +213,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 	struct ext2_group_desc *group_shadow = 0;
 	char	*group_ptr;
 	int	old_desc_blocks;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	dgrp_t		j;
 	struct ext2_group_desc *s, *t;
 #endif
@@ -224,7 +224,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 
 	fs->super->s_wtime = time(NULL);
 	fs->super->s_block_group_nr = 0;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if (fs->flags & EXT2_FLAG_SWAP_BYTES) {
 		retval = EXT2_ET_NO_MEMORY;
 		retval = ext2fs_get_mem(SUPERBLOCK_SIZE, &super_shadow);
@@ -267,7 +267,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 	 * we write out the backup superblocks.)
 	 */
 	fs->super->s_state &= ~EXT2_VALID_FS;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if (fs->flags & EXT2_FLAG_SWAP_BYTES) {
 		*super_shadow = *fs->super;
 		ext2fs_swap_super(super_shadow);
@@ -316,7 +316,7 @@ errcode_t ext2fs_flush(ext2_filsys fs)
 	}
 	fs->super->s_block_group_nr = 0;
 	fs->super->s_state = fs_state;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if (fs->flags & EXT2_FLAG_SWAP_BYTES) {
 		*super_shadow = *fs->super;
 		ext2fs_swap_super(super_shadow);

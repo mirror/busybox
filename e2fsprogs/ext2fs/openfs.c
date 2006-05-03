@@ -89,7 +89,7 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 	int		groups_per_block, blocks_per_group;
 	blk_t		group_block, blk;
 	char		*dest, *cp;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	int j;
 	struct ext2_group_desc *gdp;
 #endif
@@ -175,7 +175,7 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 	if (fs->orig_super)
 		memcpy(fs->orig_super, fs->super, SUPERBLOCK_SIZE);
 
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if ((fs->super->s_magic == ext2fs_swab16(EXT2_SUPER_MAGIC)) ||
 	    (fs->flags & EXT2_FLAG_SWAP_BYTES)) {
 		fs->flags |= EXT2_FLAG_SWAP_BYTES;
@@ -277,7 +277,7 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 		retval = io_channel_read_blk(fs->io, blk, 1, dest);
 		if (retval)
 			goto cleanup;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 		if (fs->flags & EXT2_FLAG_SWAP_BYTES) {
 			gdp = (struct ext2_group_desc *) dest;
 			for (j=0; j < groups_per_block; j++)

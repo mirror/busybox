@@ -10,9 +10,7 @@
  */
 
 #include <stdio.h>
-#if HAVE_UNISTD_H
 #include <unistd.h>
-#endif
 #include <string.h>
 #include <time.h>
 
@@ -20,7 +18,7 @@
 #include "ext2fs.h"
 #include "ext2_ext_attr.h"
 
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 void ext2fs_swap_super(struct ext2_super_block * sb)
 {
 	int i;

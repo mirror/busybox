@@ -2,6 +2,7 @@
  * e2fsck
  *
  * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
+ * Copyright (C) 2006 Garrett Kajmowicz
  * This file may be
  * redistributed under the terms of the GNU Public License.
  *
@@ -37,14 +38,6 @@
 #endif
 
 #include "e2fsck.h"	/*Put all of our defines here to clean things up*/
-
-#ifdef __GNUC__
-#define _INLINE_ __inline__
-#define EXT2FS_ATTR(x) __attribute__(x)
-#else
-#define _INLINE_
-#define EXT2FS_ATTR(x)
-#endif
 
 /*
  * Procedure declarations
@@ -219,7 +212,7 @@ typedef struct {
  * functions.
  */
 
-static _INLINE_ kmem_cache_t * do_cache_create(int len)
+static kmem_cache_t * do_cache_create(int len)
 {
 	kmem_cache_t *new_cache;
 
@@ -229,7 +222,7 @@ static _INLINE_ kmem_cache_t * do_cache_create(int len)
 	return new_cache;
 }
 
-static _INLINE_ void do_cache_destroy(kmem_cache_t *cache)
+static void do_cache_destroy(kmem_cache_t *cache)
 {
 	free(cache);
 }
@@ -266,8 +259,7 @@ static void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
 	retval = ext2fs_block_iterate(fs, EXT2_BAD_INO, 0, 0,
 				      check_bb_inode_blocks, 0);
 	if (retval) {
-		com_err("ext2fs_block_iterate", retval,
-			_("while sanity checking the bad blocks inode"));
+		bb_error_msg(_("while sanity checking the bad blocks inode"));
 		goto fatal;
 	}
 
@@ -278,8 +270,7 @@ static void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
 	if (!replace_bad_blocks) {
 		retval = ext2fs_read_bb_inode(fs, &bb_list);
 		if (retval) {
-			com_err("ext2fs_read_bb_inode", retval,
-				_("while reading the bad blocks inode"));
+			bb_error_msg(_("while reading the bad blocks inode"));
 			goto fatal;
 		}
 	}
@@ -292,8 +283,7 @@ static void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
 	if (bad_blocks_file) {
 		f = fopen(bad_blocks_file, "r");
 		if (!f) {
-			com_err("read_bad_blocks_file", errno,
-				_("while trying to open %s"), bad_blocks_file);
+			bb_error_msg(_("while trying to open %s"), bad_blocks_file);
 			goto fatal;
 		}
 	} else {
@@ -303,8 +293,7 @@ static void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
 			fs->device_name, fs->super->s_blocks_count);
 		f = popen(buf, "r");
 		if (!f) {
-			com_err("read_bad_blocks_file", errno,
-				_("while trying popen '%s'"), buf);
+			bb_error_msg(_("while trying popen '%s'"), buf);
 			goto fatal;
 		}
 	}
@@ -314,8 +303,7 @@ static void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
 	else
 		pclose(f);
 	if (retval) {
-		com_err("ext2fs_read_bb_FILE", retval,
-			_("while reading in list of bad blocks from file"));
+		bb_error_msg(_("while reading in list of bad blocks from file"));
 		goto fatal;
 	}
 
@@ -324,8 +312,7 @@ static void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
 	 */
 	retval = ext2fs_update_bb_inode(fs, bb_list);
 	if (retval) {
-		com_err("ext2fs_update_bb_inode", retval,
-			_("while updating bad block inode"));
+		bb_error_msg(_("while updating bad block inode"));
 		goto fatal;
 	}
 
@@ -390,7 +377,6 @@ static int check_bb_inode_blocks(ext2_filsys fs,
 
 #define dict_root(D) ((D)->nilnode.left)
 #define dict_nil(D) (&(D)->nilnode)
-#define DICT_DEPTH_MAX 64
 
 static void dnode_free(dnode_t *node);
 
@@ -1528,8 +1514,6 @@ static void ehandler_init(io_channel channel)
  * any later version.
  */
 
-#define MNT_FL (MS_MGC_VAL | MS_RDONLY)
-
 /*
  * Define USE_INODE_IO to use the inode_io.c / fileio.c codepaths.
  * This creates a larger static binary, and a smaller binary using
@@ -1608,8 +1592,7 @@ static void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 						     bh->b_blocknr,
 						     1, bh->b_data);
 			if (retval) {
-				com_err(bh->b_ctx->device_name, retval,
-					"while reading block %lu\n",
+				bb_error_msg("while reading block %lu\n",
 					(unsigned long) bh->b_blocknr);
 				bh->b_err = retval;
 				continue;
@@ -1620,8 +1603,7 @@ static void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 						      bh->b_blocknr,
 						      1, bh->b_data);
 			if (retval) {
-				com_err(bh->b_ctx->device_name, retval,
-					"while writing block %lu\n",
+				bb_error_msg("while writing block %lu\n",
 					(unsigned long) bh->b_blocknr);
 				bh->b_err = retval;
 				continue;
@@ -1831,7 +1813,7 @@ static errcode_t e2fsck_get_journal(e2fsck_t ctx, journal_t **ret_journal)
 		memcpy(&jsuper, start ? bh->b_data :  bh->b_data + 1024,
 		       sizeof(jsuper));
 		brelse(bh);
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 		if (jsuper.s_magic == ext2fs_swab16(EXT2_SUPER_MAGIC))
 			ext2fs_swap_super(&jsuper);
 #endif
@@ -1937,8 +1919,7 @@ static errcode_t e2fsck_journal_load(journal_t *journal)
 
 	ll_rw_block(READ, 1, &jbh);
 	if (jbh->b_err) {
-		com_err(ctx->device_name, jbh->b_err,
-			_("reading journal superblock\n"));
+		bb_error_msg(_("reading journal superblock\n"));
 		return jbh->b_err;
 	}
 
@@ -1994,8 +1975,7 @@ static errcode_t e2fsck_journal_load(journal_t *journal)
 	 * format to be able to proceed safely, so any other checks that
 	 * fail we should attempt to recover from. */
 	if (jsb->s_blocksize != htonl(journal->j_blocksize)) {
-		com_err(ctx->program_name, EXT2_ET_CORRUPT_SUPERBLOCK,
-			_("%s: no valid journal superblock found\n"),
+		bb_error_msg(_("%s: no valid journal superblock found\n"),
 			ctx->device_name);
 		return EXT2_ET_CORRUPT_SUPERBLOCK;
 	}
@@ -2003,8 +1983,7 @@ static errcode_t e2fsck_journal_load(journal_t *journal)
 	if (ntohl(jsb->s_maxlen) < journal->j_maxlen)
 		journal->j_maxlen = ntohl(jsb->s_maxlen);
 	else if (ntohl(jsb->s_maxlen) > journal->j_maxlen) {
-		com_err(ctx->program_name, EXT2_ET_CORRUPT_SUPERBLOCK,
-			_("%s: journal too short\n"),
+		bb_error_msg(_("%s: journal too short\n"),
 			ctx->device_name);
 		return EXT2_ET_CORRUPT_SUPERBLOCK;
 	}
@@ -2297,10 +2276,9 @@ static int e2fsck_run_ext3_journal(e2fsck_t ctx)
 			     &ctx->fs);
 
 	if (retval) {
-		com_err(ctx->program_name, retval,
-			_("while trying to re-open %s"),
+		bb_error_msg(_("while trying to re-open %s"),
 			ctx->device_name);
-		fatal_error(ctx, 0);
+		bb_error_msg_and_die(0);
 	}
 	ctx->fs->priv_data = ctx;
 
@@ -2737,7 +2715,7 @@ static void expand_inode_expression(char ch,
 /*
  * This function expands '%dX' expressions
  */
-static _INLINE_ void expand_dirent_expression(char ch,
+static void expand_dirent_expression(char ch,
 					      struct problem_context *ctx)
 {
 	struct ext2_dir_entry   *dirent;
@@ -2776,7 +2754,7 @@ static _INLINE_ void expand_dirent_expression(char ch,
 	}
 }
 
-static _INLINE_ void expand_percent_expression(ext2_filsys fs, char ch,
+static void expand_percent_expression(ext2_filsys fs, char ch,
 					       struct problem_context *ctx)
 {
 	if (!ctx)
@@ -3036,7 +3014,7 @@ static void alloc_imagic_map(e2fsck_t ctx);
 static void mark_inode_bad(e2fsck_t ctx, ino_t ino);
 static void handle_fs_bad_blocks(e2fsck_t ctx);
 static void process_inodes(e2fsck_t ctx, char *block_buf);
-static EXT2_QSORT_TYPE process_inode_cmp(const void *a, const void *b);
+static int process_inode_cmp(const void *a, const void *b);
 static errcode_t scan_callback(ext2_filsys fs, ext2_inode_scan scan,
 				  dgrp_t group, void * priv_data);
 static void adjust_extattr_refcount(e2fsck_t ctx, ext2_refcount_t refcount,
@@ -3929,7 +3907,7 @@ static void process_inodes(e2fsck_t ctx, char *block_buf)
 	ehandler_operation(old_operation);
 }
 
-static EXT2_QSORT_TYPE process_inode_cmp(const void *a, const void *b)
+static int process_inode_cmp(const void *a, const void *b)
 {
 	const struct process_inode_block *ib_a =
 		(const struct process_inode_block *) a;
@@ -4015,7 +3993,7 @@ static void alloc_imagic_map(e2fsck_t ctx)
  * WARNING: Assumes checks have already been done to make sure block
  * is valid.  This is true in both process_block and process_bad_block.
  */
-static _INLINE_ void mark_block_used(e2fsck_t ctx, blk_t block)
+static void mark_block_used(e2fsck_t ctx, blk_t block)
 {
 	struct          problem_context pctx;
 
@@ -5522,8 +5500,7 @@ static int delete_file_block(ext2_filsys fs,
 			p = (struct dup_block *) dnode_get(n);
 			decrement_badcount(ctx, *block_nr, p);
 		} else
-			com_err("delete_file_block", 0,
-			    _("internal error; can't find dup_blk for %d\n"),
+			bb_error_msg(_("internal error; can't find dup_blk for %d\n"),
 				*block_nr);
 	} else {
 		ext2fs_unmark_block_bitmap(ctx->block_found_map, *block_nr);
@@ -5656,8 +5633,7 @@ static int clone_file_block(ext2_filsys fs,
 			ext2fs_mark_block_bitmap(fs->block_map, new_block);
 			return BLOCK_CHANGED;
 		} else
-			com_err("clone_file_block", 0,
-			    _("internal error; can't find dup_blk for %d\n"),
+			bb_error_msg(_("internal error; can't find dup_blk for %d\n"),
 				*block_nr);
 	}
 	return 0;
@@ -5699,8 +5675,7 @@ static int clone_file(e2fsck_t ctx, ext2_ino_t ino,
 		goto errout;
 	}
 	if (cs.errcode) {
-		com_err("clone_file", cs.errcode,
-			_("returned from clone_file_block"));
+		bb_error_msg(_("returned from clone_file_block"));
 		retval = cs.errcode;
 		goto errout;
 	}
@@ -5827,7 +5802,7 @@ static int update_dir_block(ext2_filsys fs,
 static void clear_htree(e2fsck_t ctx, ext2_ino_t ino);
 static int htree_depth(struct dx_dir_info *dx_dir,
 		       struct dx_dirblock_info *dx_db);
-static EXT2_QSORT_TYPE special_dir_block_cmp(const void *a, const void *b);
+static int special_dir_block_cmp(const void *a, const void *b);
 
 struct check_dir_struct {
 	char *buf;
@@ -6057,7 +6032,7 @@ static int dict_de_cmp(const void *a, const void *b)
  * This guarantees that the root node of the htree directories are
  * processed first, so we know what hash version to use.
  */
-static EXT2_QSORT_TYPE special_dir_block_cmp(const void *a, const void *b)
+static int special_dir_block_cmp(const void *a, const void *b)
 {
 	const struct ext2_db_entry *db_a =
 		(const struct ext2_db_entry *) a;
@@ -6239,7 +6214,7 @@ static int ext2_file_type(unsigned int mode)
 	return 0;
 }
 
-static _INLINE_ int check_filetype(e2fsck_t ctx,
+static int check_filetype(e2fsck_t ctx,
 				   struct ext2_dir_entry *dirent,
 				   struct problem_context *pctx)
 {
@@ -6909,7 +6884,7 @@ static int e2fsck_process_bad_inode(e2fsck_t ctx, ext2_ino_t dir,
 	    !(fs->super->s_feature_compat & EXT2_FEATURE_COMPAT_EXT_ATTR) &&
 	    fix_problem(ctx, PR_2_FILE_ACL_ZERO, &pctx)) {
 		inode.i_file_acl = 0;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 		/*
 		 * This is a special kludge to deal with long symlinks
 		 * on big endian systems.  i_blocks had already been
@@ -10166,7 +10141,7 @@ int fix_problem(e2fsck_t ctx, problem_t code, struct problem_context *pctx)
 		preenhalt(ctx);
 
 	if (ptr->flags & PR_FATAL)
-		fatal_error(ctx, 0);
+		bb_error_msg_and_die(0);
 
 	if (ptr->prompt == PROMPT_NONE) {
 		if (ptr->flags & PR_NOCOLLATE)
@@ -10198,7 +10173,7 @@ int fix_problem(e2fsck_t ctx, problem_t code, struct problem_context *pctx)
 	}
 
 	if ((ptr->prompt == PROMPT_ABORT) && answer)
-		fatal_error(ctx, 0);
+		bb_error_msg_and_die(0);
 
 	if (ptr->flags & PR_AFTER_CODE)
 		answer = fix_problem(ctx, ptr->second_code, pctx);
@@ -10773,7 +10748,7 @@ static int fill_dir_block(ext2_filsys fs,
 }
 
 /* Used for sorting the hash entry */
-static EXT2_QSORT_TYPE name_cmp(const void *a, const void *b)
+static int name_cmp(const void *a, const void *b)
 {
 	const struct hash_entry *he_a = (const struct hash_entry *) a;
 	const struct hash_entry *he_b = (const struct hash_entry *) b;
@@ -10797,7 +10772,7 @@ static EXT2_QSORT_TYPE name_cmp(const void *a, const void *b)
 }
 
 /* Used for sorting the hash entry */
-static EXT2_QSORT_TYPE hash_cmp(const void *a, const void *b)
+static int hash_cmp(const void *a, const void *b)
 {
 	const struct hash_entry *he_a = (const struct hash_entry *) a;
 	const struct hash_entry *he_b = (const struct hash_entry *) b;
@@ -11891,8 +11866,7 @@ static int release_inode_blocks(e2fsck_t ctx, ext2_ino_t ino,
 	retval = ext2fs_block_iterate2(fs, ino, BLOCK_FLAG_DEPTH_TRAVERSE,
 				      block_buf, release_inode_block, &pb);
 	if (retval) {
-		com_err("release_inode_blocks", retval,
-			_("while calling ext2fs_block_iterate for inode %d"),
+		bb_error_msg(_("while calling ext2fs_block_iterate for inode %d"),
 			ino);
 		return 1;
 	}
@@ -11914,8 +11888,7 @@ static int release_inode_blocks(e2fsck_t ctx, ext2_ino_t ino,
 			count = 1;
 		}
 		if (retval) {
-			com_err("release_inode_blocks", retval,
-		_("while calling ext2fs_adjust_ea_refocunt for inode %d"),
+			bb_error_msg(_("while calling ext2fs_adjust_ea_refocunt for inode %d"),
 				ino);
 			return 1;
 		}
@@ -12486,14 +12459,12 @@ static void swap_inode_blocks(e2fsck_t ctx, ext2_ino_t ino, char *block_buf,
 	retval = ext2fs_block_iterate(ctx->fs, ino, 0, block_buf,
 				      swap_block, &sb);
 	if (retval) {
-		com_err("swap_inode_blocks", retval,
-			_("while calling ext2fs_block_iterate"));
+		bb_error_msg(_("while calling ext2fs_block_iterate"));
 		ctx->flags |= E2F_FLAG_ABORT;
 		return;
 	}
 	if (sb.errcode) {
-		com_err("swap_inode_blocks", sb.errcode,
-			_("while calling iterator function"));
+		bb_error_msg(_("while calling iterator function"));
 		ctx->flags |= E2F_FLAG_ABORT;
 		return;
 	}
@@ -12514,8 +12485,7 @@ static void swap_inodes(e2fsck_t ctx)
 	retval = ext2fs_get_mem(fs->blocksize * fs->inode_blocks_per_group,
 				&buf);
 	if (retval) {
-		com_err("swap_inodes", retval,
-			_("while allocating inode buffer"));
+		bb_error_msg(_("while allocating inode buffer"));
 		ctx->flags |= E2F_FLAG_ABORT;
 		return;
 	}
@@ -12526,8 +12496,7 @@ static void swap_inodes(e2fsck_t ctx)
 		      fs->group_desc[group].bg_inode_table,
 		      fs->inode_blocks_per_group, buf);
 		if (retval) {
-			com_err("swap_inodes", retval,
-				_("while reading inode table (group %d)"),
+			bb_error_msg(_("while reading inode table (group %d)"),
 				group);
 			ctx->flags |= E2F_FLAG_ABORT;
 			return;
@@ -12564,8 +12533,7 @@ static void swap_inodes(e2fsck_t ctx)
 		      fs->group_desc[group].bg_inode_table,
 		      fs->inode_blocks_per_group, buf);
 		if (retval) {
-			com_err("swap_inodes", retval,
-				_("while writing inode table (group %d)"),
+			bb_error_msg(_("while writing inode table (group %d)"),
 				group);
 			ctx->flags |= E2F_FLAG_ABORT;
 			return;
@@ -12577,7 +12545,7 @@ static void swap_inodes(e2fsck_t ctx)
 	ext2fs_flush_icache(fs);
 }
 
-#if defined(__powerpc__) && defined(EXT2FS_ENABLE_SWAPFS)
+#if defined(__powerpc__) && BB_BIG_ENDIAN
 /*
  * On the PowerPC, the big-endian variant of the ext2 filesystem
  * has its bitmaps stored as 32-bit words with bit 0 as the LSB
@@ -12663,7 +12631,7 @@ void *e2fsck_allocate_memory(e2fsck_t ctx, unsigned int size,
 	ret = malloc(size);
 	if (!ret) {
 		sprintf(buf, "Can't allocate %s\n", description);
-		fatal_error(ctx, buf);
+		bb_error_msg_and_die(buf);
 	}
 	memset(ret, 0, size);
 	return ret;
@@ -12792,20 +12760,18 @@ void e2fsck_read_bitmaps(e2fsck_t ctx)
 	errcode_t       retval;
 
 	if (ctx->invalid_bitmaps) {
-		com_err(ctx->program_name, 0,
-		    _("e2fsck_read_bitmaps: illegal bitmap block(s) for %s"),
+		bb_error_msg(_("e2fsck_read_bitmaps: illegal bitmap block(s) for %s"),
 			ctx->device_name);
-		fatal_error(ctx, 0);
+		bb_error_msg_and_die(0);
 	}
 
 	ehandler_operation(_("reading inode and block bitmaps"));
 	retval = ext2fs_read_bitmaps(fs);
 	ehandler_operation(0);
 	if (retval) {
-		com_err(ctx->program_name, retval,
-			_("while retrying to read bitmaps for %s"),
+		bb_error_msg(_("while retrying to read bitmaps for %s"),
 			ctx->device_name);
-		fatal_error(ctx, 0);
+		bb_error_msg_and_die(0);
 	}
 }
 
@@ -12819,10 +12785,9 @@ static void e2fsck_write_bitmaps(e2fsck_t ctx)
 		retval = ext2fs_write_block_bitmap(fs);
 		ehandler_operation(0);
 		if (retval) {
-			com_err(ctx->program_name, retval,
-			    _("while retrying to write block bitmaps for %s"),
+			bb_error_msg(_("while retrying to write block bitmaps for %s"),
 				ctx->device_name);
-			fatal_error(ctx, 0);
+			bb_error_msg_and_die(0);
 		}
 	}
 
@@ -12831,10 +12796,9 @@ static void e2fsck_write_bitmaps(e2fsck_t ctx)
 		retval = ext2fs_write_inode_bitmap(fs);
 		ehandler_operation(0);
 		if (retval) {
-			com_err(ctx->program_name, retval,
-			    _("while retrying to write inode bitmaps for %s"),
+			bb_error_msg(_("while retrying to write inode bitmaps for %s"),
 				ctx->device_name);
-			fatal_error(ctx, 0);
+			bb_error_msg_and_die(0);
 		}
 	}
 }
@@ -12863,9 +12827,8 @@ void e2fsck_read_inode(e2fsck_t ctx, unsigned long ino,
 
 	retval = ext2fs_read_inode(ctx->fs, ino, inode);
 	if (retval) {
-		com_err("ext2fs_read_inode", retval,
-			_("while reading inode %ld in %s"), ino, proc);
-		fatal_error(ctx, 0);
+		bb_error_msg(_("while reading inode %ld in %s"), ino, proc);
+		bb_error_msg_and_die(0);
 	}
 }
 
@@ -12877,9 +12840,8 @@ extern void e2fsck_write_inode_full(e2fsck_t ctx, unsigned long ino,
 
 	retval = ext2fs_write_inode_full(ctx->fs, ino, inode, bufsize);
 	if (retval) {
-		com_err("ext2fs_write_inode", retval,
-			_("while writing inode %ld in %s"), ino, proc);
-		fatal_error(ctx, 0);
+		bb_error_msg(_("while writing inode %ld in %s"), ino, proc);
+		bb_error_msg_and_die(0);
 	}
 }
 
@@ -12890,9 +12852,8 @@ extern void e2fsck_write_inode(e2fsck_t ctx, unsigned long ino,
 
 	retval = ext2fs_write_inode(ctx->fs, ino, inode);
 	if (retval) {
-		com_err("ext2fs_write_inode", retval,
-			_("while writing inode %ld in %s"), ino, proc);
-		fatal_error(ctx, 0);
+		bb_error_msg(_("while writing inode %ld in %s"), ino, proc);
+		bb_error_msg_and_die(0);
 	}
 }
 
@@ -12946,7 +12907,7 @@ blk_t get_backup_sb(e2fsck_t ctx, ext2_filsys fs, const char *name,
 		if (io_channel_read_blk(io, superblock,
 					-SUPERBLOCK_SIZE, buf))
 			continue;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 		if (sb->s_magic == ext2fs_swab16(EXT2_SUPER_MAGIC))
 			ext2fs_swap_super(sb);
 #endif
@@ -13085,8 +13046,7 @@ static void check_mount(e2fsck_t ctx)
 	retval = ext2fs_check_if_mounted(ctx->filesystem_name,
 					 &ctx->mount_flags);
 	if (retval) {
-		com_err("ext2fs_check_if_mount", retval,
-			_("while determining whether %s is mounted."),
+		bb_error_msg(_("while determining whether %s is mounted."),
 			ctx->filesystem_name);
 		return;
 	}
@@ -13107,7 +13067,7 @@ static void check_mount(e2fsck_t ctx)
 
 	printf(_("%s is mounted.  "), ctx->filesystem_name);
 	if (!ctx->interactive)
-		fatal_error(ctx, _("Cannot continue, aborting.\n\n"));
+		bb_error_msg_and_die(_("Cannot continue, aborting.\n\n"));
 	printf(_("\n\n\007\007\007\007WARNING!!!  "
 	       "Running e2fsck on a mounted filesystem may cause\n"
 	       "SEVERE filesystem damage.\007\007\007\n\n"));
@@ -13502,8 +13462,7 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 				_("Error validating file descriptor %d: %s\n"),
 					ctx->progress_fd,
 					error_message(errno));
-				fatal_error(ctx,
-			_("Invalid completion information file descriptor"));
+				bb_error_msg_and_die(_("Invalid completion information file descriptor"));
 			} else
 				close(fd);
 			break;
@@ -13517,8 +13476,7 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 		case 'a':
 			if (ctx->options & (E2F_OPT_YES|E2F_OPT_NO)) {
 			conflict_opt:
-				fatal_error(ctx,
-	_("Only one the options -p/-a, -n or -y may be specified."));
+				bb_error_msg_and_die(_("Only one the options -p/-a, -n or -y may be specified."));
 			}
 			ctx->options |= E2F_OPT_PREEN;
 			break;
@@ -13602,12 +13560,12 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 			keep_bad_blocks++;
 			break;
 		default:
-			usage();
+			bb_show_usage();
 		}
 	if (show_version_only)
 		return 0;
 	if (optind != argc - 1)
-		usage();
+		bb_show_usage();
 	if ((ctx->options & E2F_OPT_NO) && !bad_blocks_file &&
 	    !cflag && !swapfs && !(ctx->options & E2F_OPT_COMPRESS_DIRS))
 		ctx->options |= E2F_OPT_READONLY;
@@ -13616,9 +13574,8 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 		*ctx->io_options++ = 0;
 	ctx->filesystem_name = blkid_get_devname(ctx->blkid, argv[optind], 0);
 	if (!ctx->filesystem_name) {
-		com_err(ctx->program_name, 0, _("Unable to resolve '%s'"),
-			argv[optind]);
-		fatal_error(ctx, 0);
+		bb_error_msg(_("Unable to resolve '%s'"), argv[optind]);
+		bb_error_msg_and_die(0);
 	}
 	if (extended_opts)
 		parse_extended_opts(ctx, extended_opts);
@@ -13626,16 +13583,14 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 	if (flush) {
 		fd = open(ctx->filesystem_name, O_RDONLY, 0);
 		if (fd < 0) {
-			com_err("open", errno,
-				_("while opening %s for flushing"),
+			bb_error_msg(_("while opening %s for flushing"),
 				ctx->filesystem_name);
-			fatal_error(ctx, 0);
+			bb_error_msg_and_die(0);
 		}
 		if ((retval = ext2fs_sync_device(fd, 1))) {
-			com_err("ext2fs_sync_device", retval,
-				_("while trying to flush %s"),
+			bb_error_msg(_("while trying to flush %s"),
 				ctx->filesystem_name);
-			fatal_error(ctx, 0);
+			bb_error_msg_and_die(0);
 		}
 		close(fd);
 	}
@@ -13703,8 +13658,7 @@ int e2fsck_main (int argc, char *argv[])
 
 	retval = PRS(argc, argv, &ctx);
 	if (retval) {
-		com_err("e2fsck", retval,
-			_("while trying to initialize program"));
+		bb_error_msg(_("while trying to initialize program"));
 		exit(EXIT_ERROR);
 	}
 	reserve_stdio_fds();
@@ -13725,8 +13679,7 @@ int e2fsck_main (int argc, char *argv[])
 	    !(ctx->options & E2F_OPT_NO) &&
 	    !(ctx->options & E2F_OPT_YES)) {
 		if (!ctx->interactive)
-			fatal_error(ctx,
-				    _("need terminal for interactive repairs"));
+			bb_error_msg_and_die(_("need terminal for interactive repairs"));
 	}
 	ctx->superblock = ctx->use_superblock;
 restart:
@@ -13773,7 +13726,7 @@ restart:
 		}
 	}
 	if (retval) {
-		com_err(ctx->program_name, retval, _("while trying to open %s"),
+		bb_error_msg(_("while trying to open %s"),
 			ctx->filesystem_name);
 		if (retval == EXT2_ET_REV_TOO_HIGH) {
 			printf(_("The filesystem revision is apparently "
@@ -13798,17 +13751,16 @@ restart:
 #endif
 		else
 			fix_problem(ctx, PR_0_SB_CORRUPT, &pctx);
-		fatal_error(ctx, 0);
+		bb_error_msg_and_die(0);
 	}
 	ctx->fs = fs;
 	fs->priv_data = ctx;
 	sb = fs->super;
 	if (sb->s_rev_level > E2FSCK_CURRENT_REV) {
-		com_err(ctx->program_name, EXT2_ET_REV_TOO_HIGH,
-			_("while trying to open %s"),
+		bb_error_msg(_("while trying to open %s"),
 			ctx->filesystem_name);
 	get_newer:
-		fatal_error(ctx, _("Get a newer version of e2fsck!"));
+		bb_error_msg_and_die(_("Get a newer version of e2fsck!"));
 	}
 
 	/*
@@ -13828,10 +13780,9 @@ restart:
 	 */
 	retval = e2fsck_check_ext3_journal(ctx);
 	if (retval) {
-		com_err(ctx->program_name, retval,
-			_("while checking ext3 journal for %s"),
+		bb_error_msg(_("while checking ext3 journal for %s"),
 			ctx->device_name);
-		fatal_error(ctx, 0);
+		bb_error_msg_and_die(0);
 	}
 
 	/*
@@ -13852,16 +13803,14 @@ restart:
 				 * happen, unless the hardware or
 				 * device driver is being bogus.
 				 */
-				com_err(ctx->program_name, 0,
-					_("unable to set superblock flags on %s\n"), ctx->device_name);
-				fatal_error(ctx, 0);
+				bb_error_msg(_("unable to set superblock flags on %s\n"), ctx->device_name);
+				bb_error_msg_and_die(0);
 			}
 			retval = e2fsck_run_ext3_journal(ctx);
 			if (retval) {
-				com_err(ctx->program_name, retval,
-				_("while recovering ext3 journal of %s"),
+				bb_error_msg(_("while recovering ext3 journal of %s"),
 					ctx->device_name);
-				fatal_error(ctx, 0);
+				bb_error_msg_and_die(0);
 			}
 			ext2fs_close(ctx->fs);
 			ctx->fs = 0;
@@ -13876,25 +13825,21 @@ restart:
 	 */
 	if ((sb->s_feature_compat & ~EXT2_LIB_FEATURE_COMPAT_SUPP) ||
 	    (sb->s_feature_incompat & ~EXT2_LIB_FEATURE_INCOMPAT_SUPP)) {
-		com_err(ctx->program_name, EXT2_ET_UNSUPP_FEATURE,
-			"(%s)", ctx->device_name);
+		bb_error_msg("(%s)", ctx->device_name);
 		goto get_newer;
 	}
 	if (sb->s_feature_ro_compat & ~EXT2_LIB_FEATURE_RO_COMPAT_SUPP) {
-		com_err(ctx->program_name, EXT2_ET_RO_UNSUPP_FEATURE,
-			"(%s)", ctx->device_name);
+		bb_error_msg("(%s)", ctx->device_name);
 		goto get_newer;
 	}
 #ifdef ENABLE_COMPRESSION
 	/* FIXME - do we support this at all? */
 	if (sb->s_feature_incompat & EXT2_FEATURE_INCOMPAT_COMPRESSION)
-		com_err(ctx->program_name, 0,
-			_("Warning: compression support is experimental.\n"));
+		bb_error_msg(_("Warning: compression support is experimental.\n"));
 #endif
 #ifndef ENABLE_HTREE
 	if (sb->s_feature_compat & EXT2_FEATURE_COMPAT_DIR_INDEX) {
-		com_err(ctx->program_name, 0,
-			_("E2fsck not compiled with HTREE support,\n\t"
+		bb_error_msg(_("E2fsck not compiled with HTREE support,\n\t"
 			  "but filesystem %s has HTREE directories.\n"),
 			ctx->device_name);
 		goto get_newer;
@@ -13926,14 +13871,14 @@ restart:
 	ext2fs_mark_valid(fs);
 	check_super_block(ctx);
 	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-		fatal_error(ctx, 0);
+		bb_error_msg_and_die(0);
 	check_if_skip(ctx);
 	if (bad_blocks_file)
 		read_bad_blocks_file(ctx, bad_blocks_file, replace_bad_blocks);
 	else if (cflag)
 		read_bad_blocks_file(ctx, 0, !keep_bad_blocks); /* Test disk */
 	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-		fatal_error(ctx, 0);
+		bb_error_msg_and_die(0);
 #ifdef ENABLE_SWAPFS
 
 #ifdef WORDS_BIGENDIAN
@@ -13947,13 +13892,13 @@ restart:
 		if ((fs->flags & EXT2_FLAG_SWAP_BYTES) == NATIVE_FLAG) {
 			fprintf(stderr, _("%s: Filesystem byte order "
 				"already normalized.\n"), ctx->device_name);
-			fatal_error(ctx, 0);
+			bb_error_msg_and_die(0);
 		}
 	}
 	if (swapfs) {
 		swap_filesys(ctx);
 		if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-			fatal_error(ctx, 0);
+			bb_error_msg_and_die(0);
 	}
 #endif
 
@@ -13964,8 +13909,7 @@ restart:
 
 	retval = ext2fs_read_bb_inode(fs, &fs->badblocks);
 	if (retval) {
-		com_err(ctx->program_name, retval,
-			_("while reading bad blocks inode"));
+		bb_error_msg(_("while reading bad blocks inode"));
 		preenhalt(ctx);
 		printf(_("This doesn't bode well,"
 			 " but we'll try to go on...\n"));
@@ -13977,9 +13921,8 @@ restart:
 		printf(_("Restarting e2fsck from the beginning...\n"));
 		retval = e2fsck_reset_context(ctx);
 		if (retval) {
-			com_err(ctx->program_name, retval,
-				_("while resetting context"));
-			fatal_error(ctx, 0);
+			bb_error_msg(_("while resetting context"));
+			bb_error_msg_and_die(0);
 		}
 		ext2fs_close(fs);
 		goto restart;
@@ -13990,7 +13933,7 @@ restart:
 		exit_value |= FSCK_CANCELED;
 	}
 	if (run_result & E2F_FLAG_ABORT)
-		fatal_error(ctx, _("aborted"));
+		bb_error_msg_and_die(_("aborted"));
 
 	/* Cleanup */
 	if (ext2fs_test_changed(fs)) {

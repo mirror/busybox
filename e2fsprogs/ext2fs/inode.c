@@ -446,7 +446,7 @@ errcode_t ext2fs_get_next_inode_full(ext2_inode_scan scan, ext2_ino_t *ino,
 		scan->ptr += scan->inode_size - extra_bytes;
 		scan->bytes_left -= scan->inode_size - extra_bytes;
 
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 		if ((scan->fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 		    (scan->fs->flags & EXT2_FLAG_SWAP_BYTES_READ))
 			ext2fs_swap_inode_full(scan->fs,
@@ -460,7 +460,7 @@ errcode_t ext2fs_get_next_inode_full(ext2_inode_scan scan, ext2_ino_t *ino,
 			retval = EXT2_ET_BAD_BLOCK_IN_INODE_TABLE;
 		scan->scan_flags &= ~EXT2_SF_BAD_EXTRA_BYTES;
 	} else {
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 		if ((scan->fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 		    (scan->fs->flags & EXT2_FLAG_SWAP_BYTES_READ))
 			ext2fs_swap_inode_full(scan->fs,
@@ -574,7 +574,7 @@ errcode_t ext2fs_read_inode_full(ext2_filsys fs, ext2_ino_t ino,
 		block_nr++;
 	}
 
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if ((fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 	    (fs->flags & EXT2_FLAG_SWAP_BYTES_READ))
 		ext2fs_swap_inode_full(fs, (struct ext2_inode_large *) inode,
@@ -646,7 +646,7 @@ errcode_t ext2fs_write_inode_full(ext2_filsys fs, ext2_ino_t ino,
 		w_inode = &temp_inode;
 	memset(w_inode, 0, length);
 
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if ((fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 	    (fs->flags & EXT2_FLAG_SWAP_BYTES_WRITE))
 		ext2fs_swap_inode_full(fs, w_inode,

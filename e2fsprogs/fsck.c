@@ -1175,14 +1175,6 @@ static int check_all(void)
 	return status;
 }
 
-#if 0
-static void usage(void)
-{
-	fputs("Usage: fsck [-ANPRTV] [ -C [ fd ] ] [-t fstype] [fs-options] [filesys ...]\n", stderr);
-	exit(EXIT_USAGE);
-}
-#endif
-
 static void signal_cancel(int sig FSCK_ATTR((unused)))
 {
 	cancel_requested++;
@@ -1300,13 +1292,13 @@ static void PRS(int argc, char *argv[])
 			case 't':
 				tmp = 0;
 				if (fstype)
-					usage();
+					bb_show_usage();
 				if (arg[j+1])
 					tmp = arg+j+1;
 				else if ((i+1) < argc)
 					tmp = argv[++i];
 				else
-					usage();
+					bb_show_usage();
 				fstype = string_copy(tmp);
 				compile_fs_type(fstype, &fs_type_compiled);
 				goto next_arg;
@@ -1314,7 +1306,7 @@ static void PRS(int argc, char *argv[])
 				opts_for_fsck++;
 				break;
 			case '?':
-				usage();
+				bb_show_usage();
 				break;
 			default:
 				options[++opt] = arg[j];

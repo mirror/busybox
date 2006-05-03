@@ -12,15 +12,12 @@
  */
 
 #include <stdio.h>
-#if HAVE_UNISTD_H
 #include <unistd.h>
-#endif
 #include <string.h>
 #include <time.h>
 
 #include "ext2_fs.h"
 #include "ext2_ext_attr.h"
-
 #include "ext2fs.h"
 
 errcode_t ext2fs_read_ext_attr(ext2_filsys fs, blk_t block, void *buf)
@@ -30,7 +27,7 @@ errcode_t ext2fs_read_ext_attr(ext2_filsys fs, blk_t block, void *buf)
 	retval = io_channel_read_blk(fs->io, block, 1, buf);
 	if (retval)
 		return retval;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if ((fs->flags & (EXT2_FLAG_SWAP_BYTES|
 			  EXT2_FLAG_SWAP_BYTES_READ)) != 0)
 		ext2fs_swap_ext_attr(buf, buf, fs->blocksize, 1);
@@ -44,7 +41,7 @@ errcode_t ext2fs_write_ext_attr(ext2_filsys fs, blk_t block, void *inbuf)
 	char		*write_buf;
 	char		*buf = NULL;
 
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if ((fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 	    (fs->flags & EXT2_FLAG_SWAP_BYTES_WRITE)) {
 		retval = ext2fs_get_mem(fs->blocksize, &buf);

@@ -26,14 +26,14 @@ errcode_t ext2fs_read_dir_block2(ext2_filsys fs, blk_t block,
 	char		*p, *end;
 	struct ext2_dir_entry *dirent;
 	unsigned int	name_len, rec_len;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	unsigned int do_swap;
 #endif
 
 	retval = io_channel_read_blk(fs->io, block, 1, buf);
 	if (retval)
 		return retval;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	do_swap = (fs->flags & (EXT2_FLAG_SWAP_BYTES|
 				EXT2_FLAG_SWAP_BYTES_READ)) != 0;
 #endif
@@ -41,7 +41,7 @@ errcode_t ext2fs_read_dir_block2(ext2_filsys fs, blk_t block,
 	end = (char *) buf + fs->blocksize;
 	while (p < end-8) {
 		dirent = (struct ext2_dir_entry *) p;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 		if (do_swap) {
 			dirent->inode = ext2fs_swab32(dirent->inode);
 			dirent->rec_len = ext2fs_swab16(dirent->rec_len);
@@ -75,7 +75,7 @@ errcode_t ext2fs_read_dir_block(ext2_filsys fs, blk_t block,
 errcode_t ext2fs_write_dir_block2(ext2_filsys fs, blk_t block,
 				  void *inbuf, int flags EXT2FS_ATTR((unused)))
 {
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	int		do_swap = 0;
 	errcode_t	retval;
 	char		*p, *end;

@@ -18,12 +18,6 @@
 #include "ext2_fs.h"
 #include "ext2fs.h"
 
-#if defined(__GNUC__) && !defined(NO_INLINE_FUNCS)
-#define _BMAP_INLINE_	__inline__
-#else
-#define _BMAP_INLINE_
-#endif
-
 extern errcode_t ext2fs_bmap(ext2_filsys fs, ext2_ino_t ino,
 			     struct ext2_inode *inode,
 			     char *block_buf, int bmap_flags,
@@ -31,7 +25,7 @@ extern errcode_t ext2fs_bmap(ext2_filsys fs, ext2_ino_t ino,
 
 #define inode_bmap(inode, nr) ((inode)->i_block[(nr)])
 
-static _BMAP_INLINE_ errcode_t block_ind_bmap(ext2_filsys fs, int flags,
+static errcode_t block_ind_bmap(ext2_filsys fs, int flags,
 					      blk_t ind, char *block_buf,
 					      int *blocks_alloc,
 					      blk_t nr, blk_t *ret_blk)
@@ -51,7 +45,7 @@ static _BMAP_INLINE_ errcode_t block_ind_bmap(ext2_filsys fs, int flags,
 
 	if (flags & BMAP_SET) {
 		b = *ret_blk;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 		if ((fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 		    (fs->flags & EXT2_FLAG_SWAP_BYTES_WRITE))
 			b = ext2fs_swab32(b);
@@ -62,7 +56,7 @@ static _BMAP_INLINE_ errcode_t block_ind_bmap(ext2_filsys fs, int flags,
 
 	b = ((blk_t *) block_buf)[nr];
 
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if ((fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 	    (fs->flags & EXT2_FLAG_SWAP_BYTES_READ))
 		b = ext2fs_swab32(b);
@@ -75,7 +69,7 @@ static _BMAP_INLINE_ errcode_t block_ind_bmap(ext2_filsys fs, int flags,
 		if (retval)
 			return retval;
 
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 		if ((fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 		    (fs->flags & EXT2_FLAG_SWAP_BYTES_WRITE))
 			((blk_t *) block_buf)[nr] = ext2fs_swab32(b);
@@ -94,7 +88,7 @@ static _BMAP_INLINE_ errcode_t block_ind_bmap(ext2_filsys fs, int flags,
 	return 0;
 }
 
-static _BMAP_INLINE_ errcode_t block_dind_bmap(ext2_filsys fs, int flags,
+static errcode_t block_dind_bmap(ext2_filsys fs, int flags,
 					       blk_t dind, char *block_buf,
 					       int *blocks_alloc,
 					       blk_t nr, blk_t *ret_blk)
@@ -114,7 +108,7 @@ static _BMAP_INLINE_ errcode_t block_dind_bmap(ext2_filsys fs, int flags,
 	return retval;
 }
 
-static _BMAP_INLINE_ errcode_t block_tind_bmap(ext2_filsys fs, int flags,
+static errcode_t block_tind_bmap(ext2_filsys fs, int flags,
 					       blk_t tind, char *block_buf,
 					       int *blocks_alloc,
 					       blk_t nr, blk_t *ret_blk)
@@ -167,7 +161,7 @@ errcode_t ext2fs_bmap(ext2_filsys fs, ext2_ino_t ino, struct ext2_inode *inode,
 	if (block < EXT2_NDIR_BLOCKS) {
 		if (bmap_flags & BMAP_SET) {
 			b = *phys_blk;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 			if ((fs->flags & EXT2_FLAG_SWAP_BYTES) ||
 			    (fs->flags & EXT2_FLAG_SWAP_BYTES_READ))
 				b = ext2fs_swab32(b);

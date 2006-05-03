@@ -22,7 +22,7 @@
 errcode_t ext2fs_read_ind_block(ext2_filsys fs, blk_t blk, void *buf)
 {
 	errcode_t	retval;
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	blk_t		*block_nr;
 	int		i;
 	int		limit = fs->blocksize >> 2;
@@ -36,7 +36,7 @@ errcode_t ext2fs_read_ind_block(ext2_filsys fs, blk_t blk, void *buf)
 		if (retval)
 			return retval;
 	}
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if (fs->flags & (EXT2_FLAG_SWAP_BYTES | EXT2_FLAG_SWAP_BYTES_READ)) {
 		block_nr = (blk_t *) buf;
 		for (i = 0; i < limit; i++, block_nr++)
@@ -48,7 +48,7 @@ errcode_t ext2fs_read_ind_block(ext2_filsys fs, blk_t blk, void *buf)
 
 errcode_t ext2fs_write_ind_block(ext2_filsys fs, blk_t blk, void *buf)
 {
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	blk_t		*block_nr;
 	int		i;
 	int		limit = fs->blocksize >> 2;
@@ -57,7 +57,7 @@ errcode_t ext2fs_write_ind_block(ext2_filsys fs, blk_t blk, void *buf)
 	if (fs->flags & EXT2_FLAG_IMAGE_FILE)
 		return 0;
 
-#ifdef EXT2FS_ENABLE_SWAPFS
+#if BB_BIG_ENDIAN
 	if (fs->flags & (EXT2_FLAG_SWAP_BYTES | EXT2_FLAG_SWAP_BYTES_WRITE)) {
 		block_nr = (blk_t *) buf;
 		for (i = 0; i < limit; i++, block_nr++)

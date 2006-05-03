@@ -27,7 +27,7 @@
 #include "ext2fs.h"
 #include "e2image.h"
 
-#if defined(__powerpc__) && defined(EXT2FS_ENABLE_SWAPFS)
+#if defined(__powerpc__) && BB_BIG_ENDIAN
 /*
  * On the PowerPC, the big-endian variant of the ext2 filesystem
  * has its bitmaps stored as 32-bit words with bit 0 as the LSB

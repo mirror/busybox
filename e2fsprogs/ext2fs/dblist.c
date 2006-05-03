@@ -20,7 +20,7 @@
 #include "ext2_fs.h"
 #include "ext2fsP.h"
 
-static EXT2_QSORT_TYPE dir_block_cmp(const void *a, const void *b);
+static int dir_block_cmp(const void *a, const void *b);
 
 /*
  * Returns the number of directories in the filesystem as reported by
@@ -203,7 +203,7 @@ errcode_t ext2fs_set_dir_block(ext2_dblist dblist, ext2_ino_t ino, blk_t blk,
 }
 
 void ext2fs_dblist_sort(ext2_dblist dblist,
-			EXT2_QSORT_TYPE (*sortfunc)(const void *,
+			int (*sortfunc)(const void *,
 						    const void *))
 {
 	if (!sortfunc)
@@ -237,7 +237,7 @@ errcode_t ext2fs_dblist_iterate(ext2_dblist dblist,
 	return 0;
 }
 
-static EXT2_QSORT_TYPE dir_block_cmp(const void *a, const void *b)
+static int dir_block_cmp(const void *a, const void *b)
 {
 	const struct ext2_db_entry *db_a =
 		(const struct ext2_db_entry *) a;

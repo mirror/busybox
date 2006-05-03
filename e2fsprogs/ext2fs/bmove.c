@@ -14,9 +14,7 @@
 #if HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
-#if HAVE_SYS_TIME_H
 #include <sys/time.h>
-#endif
 
 #include "ext2_fs.h"
 #include "ext2fsP.h"

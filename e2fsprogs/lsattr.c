@@ -33,12 +33,6 @@
 #include "e2fsbb.h"
 #include "e2p/e2p.h"
 
-#ifdef __GNUC__
-# define EXT2FS_ATTR(x) __attribute__(x)
-#else
-# define EXT2FS_ATTR(x)
-#endif
-
 #define OPT_RECUR 1
 #define OPT_ALL 2
 #define OPT_DIRS_OPT 4
@@ -98,7 +92,7 @@ static void lsattr_args(const char *name)
 }
 
 static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
-			   void *private EXT2FS_ATTR((unused)))
+			   void *private)
 {
 	STRUCT_STAT	st;
 	char *path;

@@ -12,30 +12,11 @@
 #ifndef _EXT2FS_EXT2FS_H
 #define _EXT2FS_EXT2FS_H
 
-#ifdef __GNUC__
-#define EXT2FS_ATTR(x) __attribute__(x)
-#else
+
 #define EXT2FS_ATTR(x)
-#endif
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-/*
- * Non-GNU C compilers won't necessarily understand inline
- */
-#if (!defined(__GNUC__) && !defined(__WATCOMC__))
-#define NO_INLINE_FUNCS
-#endif
-
-/*
- * Build in support for byte-swapping filesystems if we the feature
- * has been configured or if we're being built on a CPU architecture
- * with a non-native byte order.
- */
-#if defined(ENABLE_SWAPFS) || defined(WORDS_BIGENDIAN) || __BYTE_ORDER== __BIG_ENDIAN
-#define EXT2FS_ENABLE_SWAPFS
 #endif
 
 /*
@@ -74,15 +55,6 @@ typedef __u32		ext2_dirhash_t;
 #include "ext2_io.h"
 #include "ext2_err.h"
 
-/*
- * Portability help for Microsoft Visual C++
- */
-#ifdef _MSC_VER
-#define EXT2_QSORT_TYPE int __cdecl
-#else
-#define EXT2_QSORT_TYPE int
-#endif
-
 typedef struct struct_ext2_filsys *ext2_filsys;
 
 struct ext2fs_struct_generic_bitmap {
@@ -104,12 +76,7 @@ typedef struct ext2fs_struct_generic_bitmap *ext2fs_generic_bitmap;
 typedef struct ext2fs_struct_generic_bitmap *ext2fs_inode_bitmap;
 typedef struct ext2fs_struct_generic_bitmap *ext2fs_block_bitmap;
 
-#ifdef EXT2_DYNAMIC_REV
 #define EXT2_FIRST_INODE(s)	EXT2_FIRST_INO(s)
-#else
-#define EXT2_FIRST_INODE(s)	EXT2_FIRST_INO
-#define EXT2_INODE_SIZE(s)	sizeof(struct ext2_inode)
-#endif
 
 /*
  * badblocks list definitions
@@ -609,7 +576,7 @@ extern errcode_t ext2fs_init_dblist(ext2_filsys fs, ext2_dblist *ret_dblist);
 extern errcode_t ext2fs_add_dir_block(ext2_dblist dblist, ext2_ino_t ino,
 				      blk_t blk, int blockcnt);
 extern void ext2fs_dblist_sort(ext2_dblist dblist,
-			       EXT2_QSORT_TYPE (*sortfunc)(const void *,
+			       int (*sortfunc)(const void *,
 							   const void *));
 extern errcode_t ext2fs_dblist_iterate(ext2_dblist dblist,
 	int (*func)(ext2_filsys fs, struct ext2_db_entry *db_info,

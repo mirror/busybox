@@ -27,7 +27,6 @@
 #include <sys/types.h>
 #include <linux/types.h>
 
-
 /*
  * Now pull in the real linux/jfs.h definitions.
  */
@@ -82,8 +81,6 @@ These defines are used in the type field of dx_dirblock_info
 #define DX_DIRBLOCK_ROOT        1
 #define DX_DIRBLOCK_LEAF        2
 #define DX_DIRBLOCK_NODE        3
-#define DX_DIRBLOCK_CORRUPT     4
-#define DX_DIRBLOCK_CLEARED     8
 
 
 /*
@@ -102,7 +99,6 @@ The following defines are used in the 'flags' field of a dx_dirblock_info
 #define E2F_OPT_YES             0x0004
 #define E2F_OPT_NO              0x0008
 #define E2F_OPT_TIME            0x0010
-#define E2F_OPT_TIME2           0x0020
 #define E2F_OPT_CHECKBLOCKS     0x0040
 #define E2F_OPT_DEBUG           0x0080
 #define E2F_OPT_FORCE           0x0100
@@ -127,21 +123,10 @@ The following defines are used in the 'flags' field of a dx_dirblock_info
 #define E2F_FLAG_RESTARTED      0x0200 /* E2fsck has been restarted */
 #define E2F_FLAG_RESIZE_INODE   0x0400 /* Request to recreate resize inode */
 
-/*
- * Defines for indicating the e2fsck pass number
- */
-#define E2F_PASS_1      1
-#define E2F_PASS_2      2
-#define E2F_PASS_3      3
-#define E2F_PASS_4      4
-#define E2F_PASS_5      5
-#define E2F_PASS_1B     6
 
 /*Don't know where these come from*/
 #define READ 0
 #define WRITE 1
-#define KERN_ERR ""
-#define KERN_DEBUG ""
 #define cpu_to_be32(n) htonl(n)
 #define be32_to_cpu(n) ntohl(n)
 
