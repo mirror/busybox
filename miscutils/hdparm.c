@@ -2143,21 +2143,13 @@ static void process_dev(char *devname)
 	}
 	if (verbose || get_geom)
 	{
-		static const char msg[] = " geometry     = %u/%u/%u, sectors = %ld, start = %ld\n";
-		static struct hd_geometry g;
-#ifdef HDIO_GETGEO_BIG
-		static struct hd_big_geometry bg;
-#endif
-
 		if (!bb_ioctl(fd, BLKGETSIZE, &parm, "BLKGETSIZE"))
 		{
-#ifdef HDIO_GETGEO_BIG
-			if (!bb_ioctl(fd, HDIO_GETGEO_BIG, &bg, "HDIO_GETGEO_BIG"))
-				printf(msg, bg.cylinders, bg.heads, bg.sectors, parm, bg.start);
-			else
-#endif
+			struct hd_geometry g;
+
 			if (!bb_ioctl(fd, HDIO_GETGEO, &g, "HDIO_GETGEO"))
-				printf(msg, g.cylinders, g.heads, g.sectors, parm, g.start);
+				printf(" geometry     = %u/%u/%u, sectors = %ld, start = %ld\n",
+						g.cylinders, g.heads, g.sectors, parm, g.start);
 		}
 	}
 #ifdef HDIO_DRIVE_CMD
