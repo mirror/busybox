@@ -396,8 +396,10 @@ static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
 
 /*----------------------------------------------------------------------*/
 #ifdef CONFIG_FEATURE_LS_SORTFILES
-static int sortcmp(struct dnode *d1, struct dnode *d2)
+static int sortcmp(const void *a, const void *b)
 {
+	struct dnode *d1 = *(struct dnode **)a;
+	struct dnode *d2 = *(struct dnode **)b;
 	unsigned int sort_opts = all_fmt & SORT_MASK;
 	int dif;
 
@@ -432,27 +434,9 @@ static int sortcmp(struct dnode *d1, struct dnode *d2)
 }
 
 /*----------------------------------------------------------------------*/
-static void shellsort(struct dnode **dn, int size)
+static void dnsort(struct dnode **dn, int size)
 {
-	struct dnode *temp;
-	int gap, i, j;
-
-	/* shell short the array */
-	if (dn == NULL || size < 2)
-		return;
-
-	for (gap = size / 2; gap > 0; gap /= 2) {
-		for (i = gap; i < size; i++) {
-			for (j = i - gap; j >= 0; j -= gap) {
-				if (sortcmp(dn[j], dn[j + gap]) <= 0)
-					break;
-				/* they are out of order, swap them */
-				temp = dn[j];
-				dn[j] = dn[j + gap];
-				dn[j + gap] = temp;
-			}
-		}
-	}
+	qsort(dn, size, sizeof *dn, sortcmp);
 }
 #endif
 
@@ -543,7 +527,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 		if (nfiles > 0) {
 			/* list all files at this level */
 #ifdef CONFIG_FEATURE_LS_SORTFILES
-			shellsort(subdnp, nfiles);
+			dnsort(subdnp, nfiles);
 #endif
 			showfiles(subdnp, nfiles);
 #ifdef CONFIG_FEATURE_LS_RECURSIVE
@@ -553,7 +537,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 				dndirs = countsubdirs(subdnp, nfiles);
 				if (dndirs > 0) {
 #ifdef CONFIG_FEATURE_LS_SORTFILES
-					shellsort(dnd, dndirs);
+					dnsort(dnd, dndirs);
 #endif
 					showdirs(dnd, dndirs, 0);
 					free(dnd);	/* free the array of dnode pointers to the dirs */
@@ -1135,7 +1119,7 @@ int ls_main(int argc, char **argv)
 
 	if (all_fmt & DISP_NOLIST) {
 #ifdef CONFIG_FEATURE_LS_SORTFILES
-		shellsort(dnp, nfiles);
+		dnsort(dnp, nfiles);
 #endif
 		if (nfiles > 0)
 			showfiles(dnp, nfiles);
@@ -1146,7 +1130,7 @@ int ls_main(int argc, char **argv)
 		dnfiles = nfiles - dndirs;
 		if (dnfiles > 0) {
 #ifdef CONFIG_FEATURE_LS_SORTFILES
-			shellsort(dnf, dnfiles);
+			dnsort(dnf, dnfiles);
 #endif
 			showfiles(dnf, dnfiles);
 			if (ENABLE_FEATURE_CLEAN_UP)
@@ -1154,7 +1138,7 @@ int ls_main(int argc, char **argv)
 		}
 		if (dndirs > 0) {
 #ifdef CONFIG_FEATURE_LS_SORTFILES
-			shellsort(dnd, dndirs);
+			dnsort(dnd, dndirs);
 #endif
 			showdirs(dnd, dndirs, dnfiles == 0);
 			if (ENABLE_FEATURE_CLEAN_UP)
