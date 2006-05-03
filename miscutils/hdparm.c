@@ -399,6 +399,10 @@ static const char * const cmd_feat_str[] = {
 	"SMART self-test ",			/* word 84 bit  1 */
 	"SMART error logging "			/* word 84 bit  0 */
 };
+
+static void identify(uint16_t *id_supplied) ATTRIBUTE_NORETURN;
+static void identify_from_stdin(void) ATTRIBUTE_NORETURN;
+
 #endif
 
 
@@ -629,6 +633,7 @@ static void print_ascii(uint16_t *p, uint8_t length) {
    others, though, were declared in hdparm.c with global scope; since other
    functions in that file have static (file) scope, I assume the difference is
    intentional. */
+
 static void identify(uint16_t *id_supplied)
 {
 	uint16_t buf[256];
@@ -2224,14 +2229,11 @@ static void process_dev(char *devname)
 		memset(args1, 0, sizeof(args1));
 		args1[0] = WIN_IDENTIFY;
 		args1[3] = 1;
-		if (bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY, "HDIO_DRIVE_CMD(identify)"))
-			goto identify_abort;
-
-		for (i=0; i<(sizeof args1)/2; i+=2)
-			__le16_to_cpus((uint16_t *)(&args1[i]));
-		identify((void *)&args1[4]);
-identify_abort:
-	/* VOID */;
+		if (!bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY, "HDIO_DRIVE_CMD(identify)")) {
+			for (i=0; i<(sizeof args1)/2; i+=2)
+				__le16_to_cpus((uint16_t *)(&args1[i]));
+			identify((void *)&args1[4]);
+		}
 	}
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
@@ -2307,7 +2309,7 @@ static int fromhex(unsigned char c)
 	bb_error_msg_and_die("bad char: '%c' 0x%02x", c, c);
 }
 
-static int identify_from_stdin(void)
+static void identify_from_stdin(void)
 {
 	unsigned short sbuf[800];
 	unsigned char  buf[1600], *b = (unsigned char *)buf;
@@ -2323,7 +2325,6 @@ static int identify_from_stdin(void)
 		count -= 5;
 	}
 	identify(sbuf);
-	return 0;
 }
 #endif
 
@@ -2344,12 +2345,8 @@ int hdparm_main(int argc, char **argv)
 
 	while (argc--)
 	{
-#ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-		if (!strcmp("-Istdin", *argv))
-		{
-			return identify_from_stdin();
-		}
-#endif
+		if (ENABLE_FEATURE_HDPARM_GET_IDENTITY && !strcmp("-Istdin", *argv))
+			identify_from_stdin();
 		p = *argv++;
 		if (*p == '-')
 		{
