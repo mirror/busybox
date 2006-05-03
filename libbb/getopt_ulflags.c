@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-/*                  Documentation !
+/*                  Documentation
 
 unsigned long
 bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
@@ -44,13 +44,13 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 
 	flags = bb_getopt_ulflags(argc, argv, "rnug");
 
-	"r" will add 1    (bit 1 : 0x01)
-	"n" will add 2    (bit 2 : 0x02)
-	"u  will add 4    (bit 3 : 0x03)
-	"g" will add 8    (bit 4 : 0x04)
+	"r" will add 1    (bit 0)
+	"n" will add 2    (bit 1)
+	"u  will add 4    (bit 2)
+	"g" will add 8    (bit 3)
 
-	 and so on.  You can also look at the return value as a bit
-	 field and each option sets one of bits.
+	and so on.  You can also look at the return value as a bit
+	field and each option sets one bit.
 
  ":"    If one of the options requires an argument, then add a ":"
 	after the char in applet_opts and provide a pointer to store
@@ -62,10 +62,10 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	char *pointer_to_arg_for_d;
 
 	flags = bb_getopt_ulflags(argc, argv, "a:b:c:d:",
-			 &pointer_to_arg_for_a, &pointer_to_arg_for_b,
-			 &pointer_to_arg_for_c, &pointer_to_arg_for_d);
+			&pointer_to_arg_for_a, &pointer_to_arg_for_b,
+			&pointer_to_arg_for_c, &pointer_to_arg_for_d);
 
-	The type of the pointer (char* or llist_t *) may be controlled
+	The type of the pointer (char* or llist_t*) may be controlled
 	by the "::" special separator that is set in the external string
 	bb_opt_complementally (see below for more info).
 
@@ -76,23 +76,24 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	env -i ls -d /
 	Here we want env to process just the '-i', not the '-d'.
 
-static const struct option bb_default_long_options[]
+const struct option *bb_applet_long_options
 
 	This struct allows you to define long options.  The syntax for
 	declaring the array is just like that of getopt's longopts.
 	(see getopt(3))
 
 	static const struct option applet_long_options[] = {
-		{ "verbose", 0, 0, v },
+		{ "verbose", 0, 0, 'v' },
 		{ 0, 0, 0, 0 }
 	};
 	bb_applet_long_options = applet_long_options;
 
-	The last argument (val) can undefined from applet_opts.
-	If you use this, then:
+	The last member of struct option (val) typically is set to
+	matching short option from applet_opts. If there is no matching
+	char in applet_opts, then:
 	- return bit have next position after short options
 	- if has_arg is not "no_argument", use ptr for arg also
-	- bb_opt_complementally have effects for this too
+	- bb_opt_complementally affects it too
 
 	Note: a good applet will make long options configurable via the
 	config process and not a required feature.  The current standard
@@ -120,7 +121,7 @@ const char *bb_opt_complementally
 	found.
 
  "ww"   Adjacent double options have a counter associated which indicates
-	the number of occurances of the option.
+	the number of occurences of the option.
 	For example the ps applet needs:
 	if w is given once, GNU ps sets the width to 132,
 	if w is given more than once, it is "unlimited"
@@ -144,17 +145,18 @@ const char *bb_opt_complementally
 	int verbose_level = 0;
 	bb_opt_complementally = "vv:b::b-c:c-b";
 	f = bb_getopt_ulflags(argc, argv, "vb:c", &my_b, &verbose_level);
-	if((f & 2))     // -c after -b unset this -b flag
-	  while (my_b) { dosomething_with(my_b->data) ; my_b = my_b->link; }
-	if(my_b)        // but llist stored always if -b found
+	if((f & 2))     // -c after -b unsets -b flag
+		while(my_b) { dosomething_with(my_b->data) ; my_b = my_b->link; }
+	if(my_b)        // but llist is stored if -b is specified
 		free_llist(my_b);
-	if (verbose_level) bb_printf("verbose level is %d\n", verbose_level);
+	if(verbose_level) bb_printf("verbose level is %d\n", verbose_level);
 
 Special characters:
 
  "-"    A dash between two options causes the second of the two
-	to be unset (and ignored or triggered) if it is given on
-	the command line.
+	to be unset (and ignored) if it is given on the command line.
+
+	[FIXME: what if they are the same? like "x-x"? Is it ever useful?]
 
 	For example:
 	The du applet has the options "-s" and "-d depth".  If
@@ -172,28 +174,30 @@ Special characters:
 	bb_opt_complementally = "s-d:d-s:x-x";
 	opt = bb_getopt_ulflags(argc, argv, "sd:x", &smax_print_depth);
 
-	if (opt & 2) {
-		 max_print_depth = atoi(smax_print_depth);
-	}
-	if(opt & 4)
-		printf("Detected odd -x usaging\n");
+	if (opt & 2)
+		max_print_depth = atoi(smax_print_depth);
+	if (opt & 4)
+		printf("Detected odd -x usage\n");
 
- "-"    A dash as the first char in a bb_opt_complementally group means to
-	convert the arguments as option. Next char for this case can't set
-	[0-9], recomended use ':' or end of line. For example:
+ "-"    A dash as the first char in a bb_opt_complementally group forces
+	all arguments to be treated as options, even if they have
+	no leading dashes. Next char in this case can't be a digit (0-9),
+	use ':' or end of line. For example:
 
 	bb_opt_complementally = "-:w-x:x-w";
 	bb_getopt_ulflags(argc, argv, "wx");
 
 	Allows any arguments to be given without a dash (./program w x)
-	as well as with a dash (./program -x). Why unset -w see above.
+	as well as with a dash (./program -x).
 
- "-N"   A dash as the first char in a bb_opt_complementally group with
-	number 0-9 as one char is means check minimal arguments required.
+ "-N"   A dash as the first char in a bb_opt_complementally group followed
+	by a single digit (0-9) means that at least N non-option
+	arguments must be present on the command line
 
- "V-"   A option with dash before colon or end line indicate: call
-	bb_show_usage if this option give, for example verbose
-	usage option.
+ "V-"   An option with dash before colon or end-of-line results in
+	bb_show_usage being called if this option is encountered.
+	This is typically used to implement "print verbose usage message
+	and exit" option.
 
  "--"   A double dash between two options, or between an option and a group
 	of options, means that they are mutually exclusive.  Unlike
@@ -212,16 +216,17 @@ Special characters:
 	if (flags & BB_GETOPT_ERROR)
 		bb_show_usage();
 
- "?"    A "ask" as the first char in a bb_opt_complementally group give:
-	if previous point set BB_GETOPT_ERROR, don't return and
-	call previous example internally. Next char for this case can't
-	set to [0-9], recomended use ':' or end of line.
+ "?"    A "?" as the first char in a bb_opt_complementally group means:
+	if BB_GETOPT_ERROR is detected, don't return, call bb_show_usage
+	and exit instead. Next char after '?' can't be a digit.
 
- "?N"   A "ask" as the first char in a bb_opt_complementally group with
-	number 0-9 as one char is means check maximal arguments possible.
+ "?N"   A "?" as the first char in a bb_opt_complementally group followed
+	by a single digit (0-9) means that at most N arguments must be present
+	on the command line.
 
  "::"   A double colon after a char in bb_opt_complementally means that the
-	option can occur multiple times:
+	option can occur multiple times. Each occurrence will be saved as
+	a llist_t element instead of char*.
 
 	For example:
 	The grep applet can have one or more "-e pattern" arguments.
@@ -245,8 +250,10 @@ Special characters:
 	such as "ar" and "tar":
 	tar xvf foo.tar
 
- "?"    An "ask" between main and group options causes the second of the two
-	to be depending required as or if first is given on the command line.
+ "?"    An "?" between an option and a group of options means that
+	at least one of them is required to occur if the first option
+	occurs in preceding command line arguments.
+
 	For example from "id" applet:
 
 	// Don't allow -n -r -rn -ug -rug -nug -rnug
@@ -256,22 +263,22 @@ Special characters:
 	This example allowed only:
 	$ id; id -u; id -g; id -ru; id -nu; id -rg; id -ng; id -rnu; id -rng
 
- "X"    A one options in bb_opt_complementally group means
-	requires this option always with "or" logic if more one specified,
-	checked after switch off from complementally logic.
+ "X"    A bb_opt_complementally group with just a single letter means
+	that this this option is required. If more than one such group exists,
+	at least one option is required to occur (not all of them).
 	For example from "start-stop-daemon" applet:
 
-	// Don't allow -KS -SK, but -S or -K required
+	// Don't allow -KS -SK, but -S or -K is required
 	bb_opt_complementally = "K:S:?K--S:S--K";
 	flags = bb_getopt_ulflags(argc, argv, "KS...);
 
 
  "x--x" give error if double or more used -x option
 
- Don't forget ':' store. For example "?322-22-23X-x-a" interpretet as
- "?3:22:-2:2-2:2-3Xa:2--x": max args is 3, count -2 usaged, min args is 2,
- -2 option triggered, unset -3 and -X and -a if -2 any usaged, give error if
- after -2 the -x option usaged.
+ Don't forget to use ':'. For example "?322-22-23X-x-a" is interpreted as
+ "?3:22:-2:2-2:2-3Xa:2--x": max 3 args; count uses of '-2'; min 2 args;
+ if there is a '-2' option then unset '-3', '-X' and '-a'; if there is
+ a '-2' and after it a '-x' then error out.
 
 */
 
