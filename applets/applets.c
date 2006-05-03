@@ -434,7 +434,7 @@ static const char *unpack_usage_messages(void)
 }
 
 #else
-#define unpack_usage_messages() usage_messages;
+#define unpack_usage_messages() usage_messages
 #endif /* ENABLE_FEATURE_COMPRESS_USAGE */
 
 void bb_show_usage (void)
