@@ -219,6 +219,7 @@ static int version2;
 static struct termios termios;
 static int termios_set;
 
+static char *inode_buffer;
 #define Inode (((struct minix_inode *) inode_buffer)-1)
 #define Inode2 (((struct minix2_inode *) inode_buffer)-1)
 static char super_block_buffer[BLOCK_SIZE];
