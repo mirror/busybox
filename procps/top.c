@@ -343,18 +343,12 @@ static void display_status(int count, int scr_width)
 			sprintf(rss_str_buf, "%6ldM", s->rss/1024);
 		else
 			sprintf(rss_str_buf, "%7ld", s->rss);
-#ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-		{
-			div_t pcpu = div((s->pcpu*pcpu_scale) >> pcpu_shift, 10);
-			col -= printf("\n%5d %-8s %s  %s%6d%3u.%c%3u.%c ",
+		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(div_t pcpu = div((s->pcpu*pcpu_scale) >> pcpu_shift, 10));
+		col -= printf("\n%5d %-8s %s  %s%6d%3u.%c" \
+			   	USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE("%3u.%c") " ",
 				s->pid, s->user, s->state, rss_str_buf, s->ppid,
-				pcpu.quot, '0'+pcpu.rem, pmem.quot, '0'+pmem.rem);
-		}
-#else
-		col -= printf("\n%5d %-8s %s  %s%6d%3u.%c ",
-			s->pid, s->user, s->state, rss_str_buf, s->ppid,
-			pmem.quot, '0'+pmem.rem););
-#endif
+				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(pcpu.quot, '0'+pcpu.rem,)
+				pmem.quot, '0'+pmem.rem);
 		if (col>0)
 			printf("%.*s", col, s->short_cmd);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu, 
