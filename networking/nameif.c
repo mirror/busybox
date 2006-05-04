@@ -184,11 +184,11 @@ int nameif_main(int argc, char **argv)
 		}
 		if (ch->next != NULL)
 			(ch->next)->prev = ch->prev;
-#ifdef CONFIG_FEATURE_CLEAN_UP
-		free(ch->ifname);
-		free(ch->mac);
-		free(ch);
-#endif
+		if (ENABLE_FEATURE_CLEAN_UP) {
+			free(ch->ifname);
+			free(ch->mac);
+			free(ch);
+		}
 	}
 
 	return 0;

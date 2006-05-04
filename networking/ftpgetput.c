@@ -122,7 +122,9 @@ static FILE *ftp_login(ftp_host_info_t *server)
 	return(control_stream);
 }
 
-#ifdef CONFIG_FTPGET
+#if !ENABLE_FTPGET
+#define ftp_receive 0
+#else
 static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 		const char *local_path, char *server_path)
 {
@@ -207,7 +209,9 @@ static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
 }
 #endif
 
-#ifdef CONFIG_FTPPUT
+#if !ENABLE_FTPPUT
+#define ftp_send 0
+#else
 static int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 		const char *server_path, char *local_path)
 {
@@ -299,24 +303,12 @@ int ftpgetput_main(int argc, char **argv)
 	int (*ftp_action)(ftp_host_info_t *, FILE *, const char *, char *) = NULL;
 
 	/* Check to see if the command is ftpget or ftput */
-#ifdef CONFIG_FTPPUT
-# ifdef CONFIG_FTPGET
-	if (bb_applet_name[3] == 'p') {
+	if (ENABLE_FTPPUT && (!ENABLE_FTPGET || bb_applet_name[3] == 'p')) {
 		ftp_action = ftp_send;
 	}
-# else
-	ftp_action = ftp_send;
-# endif
-#endif
-#ifdef CONFIG_FTPGET
-# ifdef CONFIG_FTPPUT
-	if (bb_applet_name[3] == 'g') {
+	if (ENABLE_FTPGET && (!ENABLE_FTPPUT || bb_applet_name[3] == 'g')) {
 		ftp_action = ftp_recieve;
 	}
-# else
-	ftp_action = ftp_recieve;
-# endif
-#endif
 
 	/* Set default values */
 	server = xmalloc(sizeof(ftp_host_info_t));
