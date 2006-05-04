@@ -32,17 +32,6 @@
 # endif
 #endif
 
-#if 0
-/* Attribute __malloc__ on functions was valid as of gcc 2.96. */
-#ifndef ATTRIBUTE_MALLOC
-# if __GNUC_PREREQ (2,96)
-#  define ATTRIBUTE_MALLOC __attribute__ ((__malloc__))
-# else
-#  define ATTRIBUTE_MALLOC
-# endif /* GNUC >= 2.96 */
-#endif /* ATTRIBUTE_MALLOC */
-#endif
-
 #ifndef ATTRIBUTE_UNUSED
 # define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 #endif /* ATTRIBUTE_UNUSED */
@@ -76,6 +65,11 @@
 # ifndef __extension__
 #  define __extension__
 # endif
+#endif
+
+#ifdef __GNUC__
+#define strlen(x) bb_strlen(x)
+extern size_t bb_strlen(const char *string);
 #endif
 
 /* ---- Endian Detection ------------------------------------ */

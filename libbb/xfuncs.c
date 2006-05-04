@@ -14,15 +14,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
-
-/* Since gcc always inlines strlen(), this saves a byte or two, but we need
- * the #undef here to avoid endless loop from #define strlen bb_strlen */
-#ifdef L_strlen
-#define BB_STRLEN_IMPLEMENTATION
-#endif
-
-#include "libbb.h"
-
+#include "busybox.h"
 
 #ifndef DMALLOC
 #ifdef L_xmalloc
@@ -182,10 +174,12 @@ void bb_xfflush_stdout(void)
 }
 #endif
 
+// GCC forces inlining of strlen everywhere, which is generally a byte
+// larger than calling a function, and it's called a lot so it adds up.
 #ifdef L_strlen
 size_t bb_strlen(const char *string)
 {
-	    return(strlen(string));
+	    return(__builtin_strlen(string));
 }
 #endif
 
