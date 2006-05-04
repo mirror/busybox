@@ -133,6 +133,7 @@ help:
 	@echo
 	@echo 'Development:'
 	@echo '  check			- run the test suite for all applets'
+	@echo '  checkhelp		- check for missing help-entries in Config.in'
 	@echo '  randconfig		- generate a random configuration'
 	@echo '  release		- create a distribution tarball'
 	@echo '  sizes			- show size of all enabled busybox symbols'
@@ -350,6 +351,10 @@ check test: busybox
 	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
 	$(top_srcdir)/testsuite/runtest $(CHECK_VERBOSE)
 
+.PHONY: checkhelp
+checkhelp:
+	$(Q)$(top_srcdir)/scripts/checkhelp.awk \
+		$(wildcard $(patsubst %,%/Config.in,$(SRC_DIRS) ./))
 .PHONY: sizes
 sizes: busybox_unstripped
 	$(NM) --size-sort $(<)
