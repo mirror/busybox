@@ -11,8 +11,9 @@ endif
 srcdir=$(top_srcdir)/editors
 
 EDITOR-y:=
-EDITOR-$(CONFIG_AWK)	   += awk.o
-EDITOR-$(CONFIG_PATCH)	   += patch.o
+EDITOR-$(CONFIG_AWK)       += awk.o
+EDITOR-$(CONFIG_ED)        += ed.o
+EDITOR-$(CONFIG_PATCH)     += patch.o
 EDITOR-$(CONFIG_SED)       += sed.o
 EDITOR-$(CONFIG_VI)        += vi.o
 

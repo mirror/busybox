@@ -626,6 +626,9 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Options:\n" \
 	"\t-t\tclose tray"
 
+#define ed_trivial_usage ""
+#define ed_full_usage ""
+
 #define env_trivial_usage \
 	"[-iu] [-] [name=value]... [command]"
 #define env_full_usage \

@@ -20,6 +20,14 @@ config CONFIG_FEATURE_AWK_MATH
 	  Enable math functions of the Awk programming language.
 	  NOTE: This will require libm to be present for linking.
 
+config CONFIG_ED
+	bool "ed"
+	default n
+	help
+	  The original 1970's Unix text editor, from the days of teletypes.
+	  Small, simple, evil.  Part of SUSv3.  If you're not already using
+	  this, you don't need it.
+
 config CONFIG_PATCH
 	bool "patch"
 	default n
