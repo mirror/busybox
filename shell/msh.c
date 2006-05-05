@@ -53,7 +53,7 @@
 #define REGISTER register
 
 
-#define MSHDEBUG 1
+/*#define MSHDEBUG 1*/
 
 #ifdef MSHDEBUG
 int mshdbg = 0;
