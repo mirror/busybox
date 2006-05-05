@@ -1325,11 +1325,8 @@ static void dump_identity(const struct hd_driveid *id)
 
 	}
 	if_printf((!(id->field_valid&1))," (maybe):");
-#if __BYTE_ORDER == __BIG_ENDIAN
-	capacity = (id->cur_capacity0 << 16) | id->cur_capacity1;
-#else
-	capacity = (id->cur_capacity1 << 16) | id->cur_capacity0;
-#endif
+	if (BB_BIG_ENDIAN) capacity = (id->cur_capacity0 << 16) | id->cur_capacity1;
+	else capacity = (id->cur_capacity1 << 16) | id->cur_capacity0;
 	printf(" CurCHS=%u/%u/%u, CurSects=%lu, LBA=%s",id->cur_cyls, id->cur_heads,
 													id->cur_sectors, capacity ,
 											((id->capability&2)==0)?"no":"yes");
@@ -1827,6 +1824,8 @@ static void process_dev(char *devname)
 #ifndef HDIO_DRIVE_CMD
 	int force_operation = 0;
 #endif
+	/* Please restore args[n] to these values after each ioctl
+	   except for args[2] */
 	unsigned char args[4] = {WIN_SETFEATURES,0,0,0};
 
 	fd = bb_xopen(devname, O_RDONLY|O_NONBLOCK);
@@ -1852,6 +1851,8 @@ static void process_dev(char *devname)
 		args[1] = hwif_ctrl;
 		args[2] = hwif_irq;
 		bb_ioctl(fd, HDIO_SCAN_HWIF, args, "HDIO_SCAN_HWIF");
+		args[0] = WIN_SETFEATURES;
+		args[1] = 0;
 	}
 #endif
 	if (set_piomode)
@@ -1921,8 +1922,10 @@ static void process_dev(char *devname)
 	if (set_doorlock)
 	{
 		args[0] = doorlock ? WIN_DOORLOCK : WIN_DOORUNLOCK;
+		args[2] = 0;
 		if_printf_on_off(get_doorlock," setting drive doorlock to %ld", doorlock);
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args,"HDIO_DRIVE_CMD(doorlock)");
+		args[0] = WIN_SETFEATURES;
 	}
 	if (set_dkeep)
 	{
@@ -1943,6 +1946,7 @@ static void process_dev(char *devname)
 		args[2] = 0xab;
 		if_printf(get_prefetch," setting drive prefetch to %ld\n", prefetch);
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setprefetch)");
+		args[1] = 0;
 	}
 	if (set_xfermode)
 	{
@@ -1954,6 +1958,7 @@ static void process_dev(char *devname)
 			interpret_xfermode(xfermode_requested);
 		}
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args,"HDIO_DRIVE_CMD(setxfermode)");
+		args[1] = 0;
 	}
 	if (set_lookahead)
 	{
@@ -1980,6 +1985,7 @@ static void process_dev(char *devname)
 			if_printf(get_apmmode," 0x%02lX (%ld)\n",apmmode,apmmode);
 		}
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args,"HDIO_DRIVE_CMD");
+		args[1] = 0;
 	}
 	if (set_wcache)
 	{
@@ -2001,6 +2007,11 @@ static void process_dev(char *devname)
 			bb_ioctl(fd, HDIO_DRIVE_CMD, &flushcache, "HDIO_DRIVE_CMD(flushcache)");
 #endif /* DO_FLUSHCACHE */
 	}
+
+	/* In code below, we do not preserve args[0], but the rest
+	   is preserved, including args[2] */
+	args[2] = 0;
+
 	if (set_standbynow)
 	{
 #ifndef WIN_STANDBYNOW1
@@ -2041,6 +2052,7 @@ static void process_dev(char *devname)
 			interpret_standby(standby_requested);
 		}
 		bb_ioctl(fd, HDIO_DRIVE_CMD, &args, "HDIO_DRIVE_CMD(setidle1)");
+		args[1] = 0;
 	}
 #else	/* HDIO_DRIVE_CMD */
 	if (force_operation)
@@ -2173,6 +2185,7 @@ static void process_dev(char *devname)
 		}
 		else
 			state = (args[2] == 255) ? "active/idle" : "standby";
+		args[1] = args[2] = 0;
 
 		printf(" drive state is:  %s\n", state);
 	}
