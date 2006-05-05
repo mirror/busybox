@@ -153,7 +153,7 @@ void *sha1_end(void *resbuf, sha1_ctx_t *ctx)
 #else
 	static uint32_t mask[4] = { 0x00000000, 0x000000ff, 0x0000ffff, 0x00ffffff };
 	static uint32_t bits[4] = { 0x00000080, 0x00008000, 0x00800000, 0x80000000 };
-#endif /* __BYTE_ORDER */
+#endif
 
 	uint8_t *hval = resbuf;
 	uint32_t i, cnt = (uint32_t) (ctx->count[0] & SHA1_MASK);

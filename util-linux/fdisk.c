@@ -2343,7 +2343,7 @@ create_sgilabel(void)
 		"until you decide to write them. After that, of course, the previous\n"
 		"content will be unrecoverably lost.\n\n"));
 
-	sgi_other_endian = (BYTE_ORDER == LITTLE_ENDIAN);
+	sgi_other_endian = (BB_LITTLE_ENDIAN);
 	res = ioctl(fd, BLKGETSIZE, &longsectors);
 	if (!ioctl(fd, HDIO_GETGEO, &geometry)) {
 		heads = geometry.heads;
@@ -2681,11 +2681,7 @@ create_sunlabel(void)
 		_("Building a new sun disklabel. Changes will remain in memory only,\n"
 		"until you decide to write them. After that, of course, the previous\n"
 		"content won't be recoverable.\n\n"));
-#if BYTE_ORDER == LITTLE_ENDIAN
-	sun_other_endian = 1;
-#else
-	sun_other_endian = 0;
-#endif
+	sun_other_endian = BB_LITTLE_ENDIAN;
 	memset(MBRbuffer, 0, sizeof(MBRbuffer));
 	sunlabel->magic = SUN_SSWAP16(SUN_LABEL_MAGIC);
 	if (!floppy) {
