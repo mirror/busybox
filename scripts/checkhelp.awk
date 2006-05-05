@@ -23,6 +23,9 @@
 /^[[:space:]]*help[[:space:]]*$/ {
 	help[pos] = 1;
 }
+/^[[:space:]]*bool[[:space:]]*$/ {
+	help[pos] = 1; # ignore options which are not selectable
+}
 BEGIN {
 	pos = -1;
 	is_choice = 0;
