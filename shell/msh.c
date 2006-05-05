@@ -53,7 +53,7 @@
 #define REGISTER register
 
 
-/*#define MSHDEBUG 1*/
+#define MSHDEBUG 1
 
 #ifdef MSHDEBUG
 int mshdbg = 0;
@@ -776,10 +776,11 @@ static struct env e = {
 };
 
 #ifdef MSHDEBUG
+void print_t(struct op *t);
 void print_t(struct op *t)
 {
-	DBGPRINTF(("T: t=0x%x, type %s, words=0x%x, IOword=0x%x\n", t,
-			   T_CMD_NAMES[t->type], t->words, t->ioact));
+	DBGPRINTF(("T: t=%p, type %s, words=%p, IOword=%p\n", t,
+	          T_CMD_NAMES[t->type], t->words, t->ioact));
 
 	if (t->words) {
 		DBGPRINTF(("T: W1: %s", t->words[0]));
@@ -788,6 +789,7 @@ void print_t(struct op *t)
 	return;
 }
 
+void print_tree(struct op *head);
 void print_tree(struct op *head)
 {
 	if (head == NULL) {
@@ -795,7 +797,7 @@ void print_tree(struct op *head)
 		return;
 	}
 
-	DBGPRINTF(("NODE: 0x%x,  left 0x%x, right 0x%x\n", head, head->left,
+	DBGPRINTF(("NODE: %p,  left %p, right %p\n", head, head->left,
 			   head->right));
 
 	if (head->left)
@@ -827,7 +829,7 @@ int msh_main(int argc, char **argv)
 	char *name, **ap;
 	int (*iof) (struct ioarg *);
 
-	DBGPRINTF(("MSH_MAIN: argc %d, environ 0x%x\n", argc, environ));
+	DBGPRINTF(("MSH_MAIN: argc %d, environ %p\n", argc, environ));
 
 	initarea();
 	if ((ap = environ) != NULL) {
@@ -992,7 +994,7 @@ int msh_main(int argc, char **argv)
 	}
 	setval(lookup("#"), putn((--dolc < 0) ? (dolc = 0) : dolc));
 
-	DBGPRINTF(("MSH_MAIN: begin FOR loop, interactive %d, e.iop 0x%x, iostack 0x%x\n", interactive, e.iop, iostack));
+	DBGPRINTF(("MSH_MAIN: begin FOR loop, interactive %d, e.iop %p, iostack %p\n", interactive, e.iop, iostack));
 
 	for (;;) {
 		if (interactive && e.iop <= iostack) {
@@ -1070,10 +1072,10 @@ struct op *head;
 	if (head->words == NULL)
 		return (NULL);
 
-	DBGPRINTF5(("SCANTREE: checking node 0x%x\n", head));
+	DBGPRINTF5(("SCANTREE: checking node %p\n", head));
 
 	if ((head->type != TDOT) && (strcmp(".", head->words[0]) == 0)) {
-		DBGPRINTF5(("SCANTREE: dot found in node 0x%x\n", head));
+		DBGPRINTF5(("SCANTREE: dot found in node %p\n", head));
 		return (head);
 	}
 
@@ -1086,7 +1088,7 @@ static void onecommand()
 	REGISTER int i;
 	jmp_buf m1;
 
-	DBGPRINTF(("ONECOMMAND: enter, outtree=0x%x\n", outtree));
+	DBGPRINTF(("ONECOMMAND: enter, outtree=%p\n", outtree));
 
 	while (e.oenv)
 		quitenv();
@@ -1126,7 +1128,7 @@ static void onecommand()
 	execflg = 0;
 
 	if (!flag['n']) {
-		DBGPRINTF(("ONECOMMAND: calling execute, t=outtree=0x%x\n",
+		DBGPRINTF(("ONECOMMAND: calling execute, t=outtree=%p\n",
 				   outtree));
 		execute(outtree, NOPIPE, NOPIPE, 0);
 	}
@@ -1217,7 +1219,7 @@ static void quitenv()
 	REGISTER struct env *ep;
 	REGISTER int fd;
 
-	DBGPRINTF(("QUITENV: e.oenv=0x%x\n", e.oenv));
+	DBGPRINTF(("QUITENV: e.oenv=%p\n", e.oenv));
 
 	if ((ep = e.oenv) != NULL) {
 		fd = e.iofd;
@@ -1790,7 +1792,7 @@ int cf;
 
 	t = command(cf);
 
-	DBGPRINTF9(("PIPELINE: t=0x%x\n", t));
+	DBGPRINTF9(("PIPELINE: t=%p\n", t));
 
 	if (t != NULL) {
 		while ((c = yylex(0)) == '|') {
@@ -1809,7 +1811,7 @@ int cf;
 		peeksym = c;
 	}
 
-	DBGPRINTF7(("PIPELINE: returning t=0x%x\n", t));
+	DBGPRINTF7(("PIPELINE: returning t=%p\n", t));
 	return (t);
 }
 
@@ -1822,7 +1824,7 @@ static struct op *andor()
 
 	t = pipeline(0);
 
-	DBGPRINTF9(("ANDOR: t=0x%x\n", t));
+	DBGPRINTF9(("ANDOR: t=%p\n", t));
 
 	if (t != NULL) {
 		while ((c = yylex(0)) == LOGAND || c == LOGOR) {
@@ -1837,7 +1839,7 @@ static struct op *andor()
 		peeksym = c;
 	}
 
-	DBGPRINTF7(("ANDOR: returning t=0x%x\n", t));
+	DBGPRINTF7(("ANDOR: returning t=%p\n", t));
 	return (t);
 }
 
@@ -1869,7 +1871,7 @@ static struct op *c_list()
 		peeksym = c;
 	}
 	/* IF */
-	DBGPRINTF7(("C_LIST: returning t=0x%x\n", t));
+	DBGPRINTF7(("C_LIST: returning t=%p\n", t));
 	return (t);
 }
 
@@ -2060,7 +2062,7 @@ int cf;
 	t = namelist(t);
 	iolist = iosave;
 
-	DBGPRINTF(("COMMAND: returning 0x%x\n", t));
+	DBGPRINTF(("COMMAND: returning %p\n", t));
 
 	return (t);
 }
@@ -2077,7 +2079,7 @@ int mark;
 	t = c_list();
 	multiline--;
 	t = block(type, t, NOBLOCK, NOWORDS);
-	DBGPRINTF(("DOWHOLEFILE: return t=0x%x\n", t));
+	DBGPRINTF(("DOWHOLEFILE: return t=%p\n", t));
 	return (t);
 }
 
@@ -2149,7 +2151,7 @@ static struct op *caselist()
 		t = list(t, casepart());
 	}
 
-	DBGPRINTF(("CASELIST, returning t=0x%x\n", t));
+	DBGPRINTF(("CASELIST, returning t=%p\n", t));
 	return (t);
 }
 
@@ -2167,7 +2169,7 @@ static struct op *casepart()
 	if ((peeksym = yylex(CONTIN)) != ESAC)
 		musthave(BREAK, CONTIN);
 
-	DBGPRINTF7(("CASEPART: made newtp(TPAT, t=0x%x)\n", t));
+	DBGPRINTF7(("CASEPART: made newtp(TPAT, t=%p)\n", t));
 
 	return (t);
 }
@@ -2210,7 +2212,7 @@ static char **wordlist()
 static struct op *list(t1, t2)
 REGISTER struct op *t1, *t2;
 {
-	DBGPRINTF7(("LIST: enter, t1=0x%x, t2=0x%x\n", t1, t2));
+	DBGPRINTF7(("LIST: enter, t1=%p, t2=%p\n", t1, t2));
 
 	if (t1 == NULL)
 		return (t2);
@@ -2235,7 +2237,7 @@ char **wp;
 	t->right = t2;
 	t->words = wp;
 
-	DBGPRINTF7(("BLOCK: inserted 0x%x between 0x%x and 0x%x\n", t, t1,
+	DBGPRINTF7(("BLOCK: inserted %p between %p and %p\n", t, t1,
 				t2));
 
 	return (t);
@@ -2271,7 +2273,7 @@ static struct op *newtp()
 	t->right = NULL;
 	t->str = NULL;
 
-	DBGPRINTF3(("NEWTP: allocated 0x%x\n", t));
+	DBGPRINTF3(("NEWTP: allocated %p\n", t));
 
 	return (t);
 }
@@ -2280,7 +2282,7 @@ static struct op *namelist(t)
 REGISTER struct op *t;
 {
 
-	DBGPRINTF7(("NAMELIST: enter, t=0x%x, type %s, iolist=0x%x\n", t,
+	DBGPRINTF7(("NAMELIST: enter, t=%p, type %s, iolist=%p\n", t,
 				T_CMD_NAMES[t->type], iolist));
 
 	if (iolist) {
@@ -2617,7 +2619,7 @@ int act;
 		return (0);
 	}
 
-	DBGPRINTF(("EXECUTE: t=0x%x, t->type=%d (%s), t->words is %s\n", t,
+	DBGPRINTF(("EXECUTE: t=%p, t->type=%d (%s), t->words is %s\n", t,
 			   t->type, T_CMD_NAMES[t->type],
 			   ((t->words == NULL) ? "NULL" : t->words[0])));
 
@@ -2630,7 +2632,7 @@ int act;
 /* Hard to know how many words there are, be careful of garbage pointer values */
 /* They are likely to cause "PCI bus fault" errors */
 #if 0
-	DBGPRINTF(("EXECUTE: t->left=0x%x, t->right=0x%x, t->words[1] is %s\n",
+	DBGPRINTF(("EXECUTE: t->left=%p, t->right=%p, t->words[1] is %s\n",
 			   t->left, t->right,
 			   ((t->words[1] == NULL) ? "NULL" : t->words[1])));
 	DBGPRINTF7(("EXECUTE: t->words[2] is %s, t->words[3] is %s\n",
@@ -2779,9 +2781,9 @@ int act;
 					((cp == NULL) ? "NULL" : cp)));
 
 		if ((t1 = findcase(t->left, cp)) != NULL) {
-			DBGPRINTF7(("EXECUTE: TCASE, calling execute(t=0x%x, t1=0x%x)...\n", t, t1));
+			DBGPRINTF7(("EXECUTE: TCASE, calling execute(t=%p, t1=%p)...\n", t, t1));
 			rv = execute(t1, pin, pout, 0);
-			DBGPRINTF7(("EXECUTE: TCASE, back from execute(t=0x%x, t1=0x%x)...\n", t, t1));
+			DBGPRINTF7(("EXECUTE: TCASE, back from execute(t=%p, t1=%p)...\n", t, t1));
 		}
 		break;
 
@@ -2816,7 +2818,7 @@ int act;
 		runtrap(i);
 	}
 
-	DBGPRINTF(("EXECUTE: returning from t=0x%x, rv=%d\n", t, rv));
+	DBGPRINTF(("EXECUTE: returning from t=%p, rv=%d\n", t, rv));
 	return (rv);
 }
 
@@ -2852,7 +2854,7 @@ forkexec(REGISTER struct op *t, int *pin, int *pout, int act, char **wp)
 	(void) &owp;
 #endif
 
-	DBGPRINTF(("FORKEXEC: t=0x%x, pin 0x%x, pout 0x%x, act %d\n", t, pin,
+	DBGPRINTF(("FORKEXEC: t=%p, pin %p, pout %p, act %d\n", t, pin,
 			   pout, act));
 	DBGPRINTF7(("FORKEXEC: t->words is %s\n",
 				((t->words == NULL) ? "NULL" : t->words[0])));
@@ -2882,7 +2884,7 @@ forkexec(REGISTER struct op *t, int *pin, int *pout, int act, char **wp)
 		/* strip all initial assignments */
 		/* not correct wrt PATH=yyy command  etc */
 		if (flag['x']) {
-			DBGPRINTF9(("FORKEXEC: echo'ing, cp=0x%x, wp=0x%x, owp=0x%x\n",
+			DBGPRINTF9(("FORKEXEC: echo'ing, cp=%p, wp=%p, owp=%p\n",
 						cp, wp, owp));
 			echo(cp ? wp : owp);
 		}
@@ -2912,7 +2914,7 @@ forkexec(REGISTER struct op *t, int *pin, int *pout, int act, char **wp)
 				((t->words == NULL) ? "NULL" : t->words[0]),
 				((t->words == NULL) ? "NULL" : t->words[1])));
 #endif
-	DBGPRINTF(("FORKEXEC: shcom 0x%x, f&FEXEC 0x%x, owp 0x%x\n", shcom,
+	DBGPRINTF(("FORKEXEC: shcom %p, f&FEXEC 0x%x, owp %p\n", shcom,
 			   f & FEXEC, owp));
 
 	if (shcom == NULL && (f & FEXEC) == 0) {
@@ -2958,7 +2960,7 @@ forkexec(REGISTER struct op *t, int *pin, int *pout, int act, char **wp)
 		}
 
 		/* Must be the child process, pid should be 0 */
-		DBGPRINTF(("FORKEXEC: child process, shcom=0x%x\n", shcom));
+		DBGPRINTF(("FORKEXEC: child process, shcom=%p\n", shcom));
 
 		if (interactive) {
 			signal(SIGINT, SIG_IGN);
@@ -3062,7 +3064,7 @@ int pipein, pipeout;
 	REGISTER int u = -1;
 	char *cp = NULL, *msg;
 
-	DBGPRINTF(("IOSETUP: iop 0x%x, pipein 0x%x, pipeout 0x%x\n", iop,
+	DBGPRINTF(("IOSETUP: iop %p, pipein %i, pipeout %i\n", iop,
 			   pipein, pipeout));
 
 	if (iop->io_unit == IODEFAULT)	/* take default */
@@ -3166,7 +3168,7 @@ char *w;
 
 	if (t->type == TLIST) {
 		if ((tp = find1case(t->left, w)) != NULL) {
-			DBGPRINTF3(("FIND1CASE: found one to the left, returning tp=0x%x\n", tp));
+			DBGPRINTF3(("FIND1CASE: found one to the left, returning tp=%p\n", tp));
 			return (tp);
 		}
 		t1 = t->right;			/* TPAT */
@@ -3175,7 +3177,7 @@ char *w;
 
 	for (wp = t1->words; *wp;)
 		if ((cp = evalstr(*wp++, DOSUB)) && gmatch(w, cp)) {
-			DBGPRINTF3(("FIND1CASE: returning &t1->left= 0x%x.\n",
+			DBGPRINTF3(("FIND1CASE: returning &t1->left= %p.\n",
 						&t1->left));
 			return (&t1->left);
 		}
@@ -3300,7 +3302,7 @@ char *c, **v, **envp;
 	}
 #endif
 
-	DBGPRINTF(("REXECVE: c=0x%x, v=0x%x, envp=0x%x\n", c, v, envp));
+	DBGPRINTF(("REXECVE: c=%p, v=%p, envp=%p\n", c, v, envp));
 
 	sp = any('/', c) ? "" : path->value;
 	asis = *sp == '\0';
@@ -3361,7 +3363,7 @@ static int run(struct ioarg *argp, int (*f) (struct ioarg *))
 	(void) &rv;
 #endif
 
-	DBGPRINTF(("RUN: enter, areanum %d, outtree 0x%x, failpt 0x%x\n",
+	DBGPRINTF(("RUN: enter, areanum %d, outtree %p, failpt %p\n",
 			   areanum, outtree, failpt));
 
 	areanum++;
@@ -3546,7 +3548,7 @@ struct op *t;
 	char *cp;
 	int maltmp;
 
-	DBGPRINTF(("DODOT: enter, t=0x%x, tleft 0x%x, tright 0x%x, e.linep is %s\n", t, t->left, t->right, ((e.linep == NULL) ? "NULL" : e.linep)));
+	DBGPRINTF(("DODOT: enter, t=%p, tleft %p, tright %p, e.linep is %s\n", t, t->left, t->right, ((e.linep == NULL) ? "NULL" : e.linep)));
 
 	if ((cp = t->words[1]) == NULL) {
 		DBGPRINTF(("DODOT: bad args, ret 0\n"));
@@ -3765,7 +3767,7 @@ struct op *t;
 	if ((cp = t->words[1]) != NULL)
 		setstatus(getn(cp));
 
-	DBGPRINTF(("DOEXIT: calling leave(), t=0x%x\n", t));
+	DBGPRINTF(("DOEXIT: calling leave(), t=%p\n", t));
 
 	leave();
 	/* NOTREACHED */
@@ -3788,7 +3790,7 @@ struct op *t;
 
 static void rdexp(char **wp, void (*f) (struct var *), int key)
 {
-	DBGPRINTF6(("RDEXP: enter, wp=0x%x, func=0x%x, key=%d\n", wp, f, key));
+	DBGPRINTF6(("RDEXP: enter, wp=%p, func=%p, key=%d\n", wp, f, key));
 	DBGPRINTF6(("RDEXP: *wp=%s\n", *wp));
 
 	if (*wp != NULL) {
@@ -3978,7 +3980,7 @@ int f;
 {
 	struct wdblock *wb;
 
-	DBGPRINTF6(("EVALSTR: enter, cp=0x%x, f=%d\n", cp, f));
+	DBGPRINTF6(("EVALSTR: enter, cp=%p, f=%d\n", cp, f));
 
 	wb = NULL;
 	if (expand(cp, &wb, f)) {
@@ -4382,7 +4384,7 @@ int quoted;
 
 	while ((i = vfork()) == -1 && errno == EAGAIN);
 
-	DBGPRINTF3(("GRAVE: i is %d\n", io));
+	DBGPRINTF3(("GRAVE: i is %p\n", io));
 
 	if (i < 0) {
 		closepipe(pf);
@@ -4806,10 +4808,10 @@ static int readc()
 {
 	REGISTER int c;
 
-	RCPRINTF(("READC: e.iop 0x%x, e.iobase 0x%x\n", e.iop, e.iobase));
+	RCPRINTF(("READC: e.iop %p, e.iobase %p\n", e.iop, e.iobase));
 
 	for (; e.iop >= e.iobase; e.iop--) {
-		RCPRINTF(("READC: e.iop 0x%x, peekc 0x%x\n", e.iop, e.iop->peekc));
+		RCPRINTF(("READC: e.iop %p, peekc 0x%x\n", e.iop, e.iop->peekc));
 		if ((c = e.iop->peekc) != '\0') {
 			e.iop->peekc = 0;
 			return (c);
@@ -4847,7 +4849,7 @@ static int readc()
 	}							/* FOR */
 
 	if (e.iop >= iostack) {
-		RCPRINTF(("READC: return 0, e.iop 0x%x\n", e.iop));
+		RCPRINTF(("READC: return 0, e.iop %p\n", e.iop));
 		return (0);
 	}
 
@@ -4868,7 +4870,7 @@ char c;
 
 static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
 {
-	DBGPRINTF(("PUSHIO: argp 0x%x, argp->afid 0x%x, e.iop 0x%x\n", argp,
+	DBGPRINTF(("PUSHIO: argp %p, argp->afid 0x%x, e.iop %p\n", argp,
 			   argp->afid, e.iop));
 
 	/* Set env ptr for io source to next array spot and check for array overflow */
@@ -4908,9 +4910,9 @@ static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
 			e.iop->argp->afid = bufid;	/* assign buffer id */
 		}
 
-		DBGPRINTF(("PUSHIO: iostack 0x%x,  e.iop 0x%x, afbuf 0x%x\n",
+		DBGPRINTF(("PUSHIO: iostack %p,  e.iop %p, afbuf %p\n",
 				   iostack, e.iop, e.iop->argp->afbuf));
-		DBGPRINTF(("PUSHIO: mbuf 0x%x, sbuf 0x%x, bid %d, e.iop 0x%x\n",
+		DBGPRINTF(("PUSHIO: mbuf %p, sbuf %p, bid %d, e.iop %p\n",
 				   &mainbuf, &sharedbuf, bufid, e.iop));
 
 	}
@@ -5130,7 +5132,7 @@ struct io *iop;
 {
 	REGISTER int c;
 
-	DBGPRINTF3(("QGRAVECHAR: enter, ap=0x%x, iop=0x%x\n", ap, iop));
+	DBGPRINTF3(("QGRAVECHAR: enter, ap=%p, iop=%p\n", ap, iop));
 
 	if (iop->xchar) {
 		if (iop->nlcount) {
@@ -5263,7 +5265,7 @@ struct ioword *iop;
 {
 	REGISTER struct here *h, *lh;
 
-	DBGPRINTF7(("MARKHERE: enter, s=0x%x\n", s));
+	DBGPRINTF7(("MARKHERE: enter, s=%p\n", s));
 
 	h = (struct here *) space(sizeof(struct here));
 	if (h == 0)
@@ -5323,7 +5325,7 @@ int ec;
 	char myline[LINELIM + 1];
 	char *thenext;
 
-	DBGPRINTF7(("READHERE: enter, name=0x%x, s=0x%x\n", name, s));
+	DBGPRINTF7(("READHERE: enter, name=%p, s=%p\n", name, s));
 
 	tf = mkstemp(tname);
 	if (tf < 0)
