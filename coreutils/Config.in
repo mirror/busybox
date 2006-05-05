@@ -184,6 +184,9 @@ config CONFIG_UNIX2DOS
 	bool
 	default y
 	depends on CONFIG_DOS2UNIX
+	help
+	  unix2dos is used to convert a text file from UNIX format to
+	  DOS format, and vice versa.
 
 config CONFIG_DU
 	bool "du (default blocksize of 512 bytes)"
