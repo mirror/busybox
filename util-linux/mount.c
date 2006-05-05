@@ -533,11 +533,13 @@ int mount_main(int argc, char **argv)
 
 			// Mount this thing.
 
-			rc = singlemount(mtcur);
-			if (rc) {
+			if (singlemount(mtcur)) {
 				// Don't whine about already mounted fs when mounting all.
-				if (errno == EBUSY) rc = 0;
-				else break;
+				// Note: we should probably change return value to indicate 
+				// failure, without causing a duplicate error message.
+				if (errno != EBUSY) bb_perror_msg("Mounting %s on %s failed",
+						mtcur->mnt_fsname, mtcur->mnt_dir);
+				rc = 0;
 			}
 		}
 	}
