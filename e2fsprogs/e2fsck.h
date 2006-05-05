@@ -518,7 +518,6 @@ struct e2fsck_struct {
 	ext2fs_inode_bitmap inode_used_map; /* Inodes which are in use */
 	ext2fs_inode_bitmap inode_bad_map; /* Inodes which are bad somehow */
 	ext2fs_inode_bitmap inode_dir_map; /* Inodes which are directories */
-	ext2fs_inode_bitmap inode_bb_map; /* Inodes which are in bad blocks */
 	ext2fs_inode_bitmap inode_imagic_map; /* AFS inodes */
 	ext2fs_inode_bitmap inode_reg_map; /* Inodes which are regular files*/
 
@@ -612,7 +611,6 @@ struct e2fsck_struct {
 	int fs_fast_symlinks_count;
 	int fs_fifo_count;
 	int fs_total_count;
-	int fs_badblocks_count;
 	int fs_sockets_count;
 	int fs_ind_count;
 	int fs_dind_count;

@@ -101,7 +101,6 @@ struct problem_context {
 };
 
 
-
 /*
  * Function declarations
  */
@@ -227,124 +226,6 @@ static void do_cache_destroy(kmem_cache_t *cache)
 	free(cache);
 }
 
-/*
- * badblocks.c --- replace/append bad blocks to the bad block inode
- */
-
-static int check_bb_inode_blocks(ext2_filsys fs, blk_t *block_nr, int blockcnt,
-				 void *priv_data);
-
-
-static void invalid_block(ext2_filsys fs FSCK_ATTR((unused)), blk_t blk)
-{
-	printf(_("Bad block %u out of range; ignored.\n"), blk);
-	return;
-}
-
-static void read_bad_blocks_file(e2fsck_t ctx, const char *bad_blocks_file,
-			  int replace_bad_blocks)
-{
-	ext2_filsys fs = ctx->fs;
-	errcode_t       retval;
-	badblocks_list  bb_list = 0;
-	FILE            *f;
-	char            buf[1024];
-
-	e2fsck_read_bitmaps(ctx);
-
-	/*
-	 * Make sure the bad block inode is sane.  If there are any
-	 * illegal blocks, clear them.
-	 */
-	retval = ext2fs_block_iterate(fs, EXT2_BAD_INO, 0, 0,
-				      check_bb_inode_blocks, 0);
-	if (retval) {
-		bb_error_msg(_("while sanity checking the bad blocks inode"));
-		goto fatal;
-	}
-
-	/*
-	 * If we're appending to the bad blocks inode, read in the
-	 * current bad blocks.
-	 */
-	if (!replace_bad_blocks) {
-		retval = ext2fs_read_bb_inode(fs, &bb_list);
-		if (retval) {
-			bb_error_msg(_("while reading the bad blocks inode"));
-			goto fatal;
-		}
-	}
-
-	/*
-	 * Now read in the bad blocks from the file; if
-	 * bad_blocks_file is null, then try to run the badblocks
-	 * command.
-	 */
-	if (bad_blocks_file) {
-		f = fopen(bad_blocks_file, "r");
-		if (!f) {
-			bb_error_msg(_("while trying to open %s"), bad_blocks_file);
-			goto fatal;
-		}
-	} else {
-		sprintf(buf, "badblocks -b %d %s%s%s %d", fs->blocksize,
-			(ctx->options & E2F_OPT_PREEN) ? "" : "-s ",
-			(ctx->options & E2F_OPT_WRITECHECK) ? "-n " : "",
-			fs->device_name, fs->super->s_blocks_count);
-		f = popen(buf, "r");
-		if (!f) {
-			bb_error_msg(_("while trying popen '%s'"), buf);
-			goto fatal;
-		}
-	}
-	retval = ext2fs_read_bb_FILE(fs, f, &bb_list, invalid_block);
-	if (bad_blocks_file)
-		fclose(f);
-	else
-		pclose(f);
-	if (retval) {
-		bb_error_msg(_("while reading in list of bad blocks from file"));
-		goto fatal;
-	}
-
-	/*
-	 * Finally, update the bad blocks from the bad_block_map
-	 */
-	retval = ext2fs_update_bb_inode(fs, bb_list);
-	if (retval) {
-		bb_error_msg(_("while updating bad block inode"));
-		goto fatal;
-	}
-
-	ext2fs_badblocks_list_free(bb_list);
-	return;
-
-fatal:
-	ctx->flags |= E2F_FLAG_ABORT;
-	return;
-
-}
-
-static int check_bb_inode_blocks(ext2_filsys fs,
-				 blk_t *block_nr,
-				 int blockcnt FSCK_ATTR((unused)),
-				 void *priv_data FSCK_ATTR((unused)))
-{
-	if (!*block_nr)
-		return 0;
-
-	/*
-	 * If the block number is outrageous, clear it and ignore it.
-	 */
-	if (*block_nr >= fs->super->s_blocks_count ||
-	    *block_nr < fs->super->s_first_data_block) {
-		printf(_("Warning illegal block %u found in bad block inode.  Cleared.\n"), *block_nr);
-		*block_nr = 0;
-		return BLOCK_CHANGED;
-	}
-
-	return 0;
-}
 
 /*
  * Dictionary Abstract Data Type
@@ -1081,8 +962,6 @@ static errcode_t e2fsck_reset_context(e2fsck_t ctx)
 	ctx->block_dup_map = 0;
 	ext2fs_free_block_bitmap(ctx->block_ea_map);
 	ctx->block_ea_map = 0;
-	ext2fs_free_inode_bitmap(ctx->inode_bb_map);
-	ctx->inode_bb_map = 0;
 	ext2fs_free_inode_bitmap(ctx->inode_bad_map);
 	ctx->inode_bad_map = 0;
 	ext2fs_free_inode_bitmap(ctx->inode_imagic_map);
@@ -1107,7 +986,6 @@ static errcode_t e2fsck_reset_context(e2fsck_t ctx)
 	ctx->fs_fast_symlinks_count = 0;
 	ctx->fs_fifo_count = 0;
 	ctx->fs_total_count = 0;
-	ctx->fs_badblocks_count = 0;
 	ctx->fs_sockets_count = 0;
 	ctx->fs_ind_count = 0;
 	ctx->fs_dind_count = 0;
@@ -2983,7 +2861,6 @@ static int region_allocate(region_t region, region_addr_t start, int n)
  *      - A bitmap of which inodes are directories.     (inode_dir_map)
  *      - A bitmap of which inodes are regular files.   (inode_reg_map)
  *      - A bitmap of which inodes have bad fields.     (inode_bad_map)
- *      - A bitmap of which inodes are in bad blocks.   (inode_bb_map)
  *      - A bitmap of which inodes are imagic inodes.   (inode_imagic_map)
  *      - A bitmap of which blocks are in use.          (block_found_map)
  *      - A bitmap of which blocks are in use by two inodes     (block_dup_map)
@@ -3009,7 +2886,6 @@ static int process_bad_block(ext2_filsys fs, blk_t *block_nr,
 static void check_blocks(e2fsck_t ctx, struct problem_context *pctx,
 			 char *block_buf);
 static void mark_table_blocks(e2fsck_t ctx);
-static void alloc_bb_map(e2fsck_t ctx);
 static void alloc_imagic_map(e2fsck_t ctx);
 static void mark_inode_bad(e2fsck_t ctx, ino_t ino);
 static void handle_fs_bad_blocks(e2fsck_t ctx);
@@ -3462,10 +3338,6 @@ static void e2fsck_pass1(e2fsck_t ctx)
 		if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
 			return;
 		if (pctx.errcode == EXT2_ET_BAD_BLOCK_IN_INODE_TABLE) {
-			if (!ctx->inode_bb_map)
-				alloc_bb_map(ctx);
-			ext2fs_mark_inode_bitmap(ctx->inode_bb_map, ino);
-			ext2fs_mark_inode_bitmap(ctx->inode_used_map, ino);
 			continue;
 		}
 		if (pctx.errcode) {
@@ -3945,26 +3817,6 @@ static void mark_inode_bad(e2fsck_t ctx, ino_t ino)
 	ext2fs_mark_inode_bitmap(ctx->inode_bad_map, ino);
 }
 
-
-/*
- * This procedure will allocate the inode "bb" (badblock) map table
- */
-static void alloc_bb_map(e2fsck_t ctx)
-{
-	struct          problem_context pctx;
-
-	clear_problem_context(&pctx);
-	pctx.errcode = ext2fs_allocate_inode_bitmap(ctx->fs,
-					      _("inode in bad block map"),
-					      &ctx->inode_bb_map);
-	if (pctx.errcode) {
-		pctx.num = 4;
-		fix_problem(ctx, PR_1_ALLOCATE_IBITMAP_ERROR, &pctx);
-		/* Should never get here */
-		ctx->flags |= E2F_FLAG_ABORT;
-		return;
-	}
-}
 
 /*
  * This procedure will allocate the inode imagic table
@@ -4570,222 +4422,20 @@ mark_dir:
 	return ret_code;
 }
 
-static int process_bad_block(ext2_filsys fs,
+static int process_bad_block(ext2_filsys fs FSCK_ATTR((unused)),
 		      blk_t *block_nr,
 		      e2_blkcnt_t blockcnt,
 		      blk_t ref_block FSCK_ATTR((unused)),
 		      int ref_offset FSCK_ATTR((unused)),
-		      void *priv_data)
+		      void *priv_data EXT2FS_ATTR((unused)))
 {
-	struct process_block_struct_1 *p;
-	blk_t           blk = *block_nr;
-	blk_t           first_block;
-	dgrp_t          i;
-	struct problem_context *pctx;
-	e2fsck_t        ctx;
-
 	/*
 	 * Note: This function processes blocks for the bad blocks
 	 * inode, which is never compressed.  So we don't use HOLE_BLKADDR().
 	 */
 
-	if (!blk)
-		return 0;
-
-	p = (struct process_block_struct_1 *) priv_data;
-	ctx = p->ctx;
-	pctx = p->pctx;
-
-	pctx->ino = EXT2_BAD_INO;
-	pctx->blk = blk;
-	pctx->blkcount = blockcnt;
-
-	if ((blk < fs->super->s_first_data_block) ||
-	    (blk >= fs->super->s_blocks_count)) {
-		if (fix_problem(ctx, PR_1_BB_ILLEGAL_BLOCK_NUM, pctx)) {
-			*block_nr = 0;
-			return BLOCK_CHANGED;
-		} else
-			return 0;
-	}
-
-	if (blockcnt < 0) {
-		if (ext2fs_test_block_bitmap(p->fs_meta_blocks, blk)) {
-			p->bbcheck = 1;
-			if (fix_problem(ctx, PR_1_BB_FS_BLOCK, pctx)) {
-				*block_nr = 0;
-				return BLOCK_CHANGED;
-			}
-		} else if (ext2fs_test_block_bitmap(ctx->block_found_map,
-						    blk)) {
-			p->bbcheck = 1;
-			if (fix_problem(ctx, PR_1_BBINODE_BAD_METABLOCK,
-					pctx)) {
-				*block_nr = 0;
-				return BLOCK_CHANGED;
-			}
-			if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-				return BLOCK_ABORT;
-		} else
-			mark_block_used(ctx, blk);
-		return 0;
-	}
-
-	ctx->fs_badblocks_count++;
-	/*
-	 * If the block is not used, then mark it as used and return.
-	 * If it is already marked as found, this must mean that
-	 * there's an overlap between the filesystem table blocks
-	 * (bitmaps and inode table) and the bad block list.
-	 */
-	if (!ext2fs_test_block_bitmap(ctx->block_found_map, blk)) {
-		ext2fs_mark_block_bitmap(ctx->block_found_map, blk);
-		return 0;
-	}
-	/*
-	 * Try to find the where the filesystem block was used...
-	 */
-	first_block = fs->super->s_first_data_block;
-
-	for (i = 0; i < fs->group_desc_count; i++ ) {
-		pctx->group = i;
-		pctx->blk = blk;
-		if (!ext2fs_bg_has_super(fs, i))
-			goto skip_super;
-		if (blk == first_block) {
-			if (i == 0) {
-				if (fix_problem(ctx,
-						PR_1_BAD_PRIMARY_SUPERBLOCK,
-						pctx)) {
-					*block_nr = 0;
-					return BLOCK_CHANGED;
-				}
-				return 0;
-			}
-			fix_problem(ctx, PR_1_BAD_SUPERBLOCK, pctx);
-			return 0;
-		}
-		if ((blk > first_block) &&
-		    (blk <= first_block + fs->desc_blocks)) {
-			if (i == 0) {
-				pctx->blk = *block_nr;
-				if (fix_problem(ctx,
-			PR_1_BAD_PRIMARY_GROUP_DESCRIPTOR, pctx)) {
-					*block_nr = 0;
-					return BLOCK_CHANGED;
-				}
-				return 0;
-			}
-			fix_problem(ctx, PR_1_BAD_GROUP_DESCRIPTORS, pctx);
-			return 0;
-		}
-	skip_super:
-		if (blk == fs->group_desc[i].bg_block_bitmap) {
-			if (fix_problem(ctx, PR_1_BB_BAD_BLOCK, pctx)) {
-				ctx->invalid_block_bitmap_flag[i]++;
-				ctx->invalid_bitmaps++;
-			}
-			return 0;
-		}
-		if (blk == fs->group_desc[i].bg_inode_bitmap) {
-			if (fix_problem(ctx, PR_1_IB_BAD_BLOCK, pctx)) {
-				ctx->invalid_inode_bitmap_flag[i]++;
-				ctx->invalid_bitmaps++;
-			}
-			return 0;
-		}
-		if ((blk >= fs->group_desc[i].bg_inode_table) &&
-		    (blk < (fs->group_desc[i].bg_inode_table +
-			    fs->inode_blocks_per_group))) {
-			/*
-			 * If there are bad blocks in the inode table,
-			 * the inode scan code will try to do
-			 * something reasonable automatically.
-			 */
-			return 0;
-		}
-		first_block += fs->super->s_blocks_per_group;
-	}
-	/*
-	 * If we've gotten to this point, then the only
-	 * possibility is that the bad block inode meta data
-	 * is using a bad block.
-	 */
-	if ((blk == p->inode->i_block[EXT2_IND_BLOCK]) ||
-	    (blk == p->inode->i_block[EXT2_DIND_BLOCK]) ||
-	    (blk == p->inode->i_block[EXT2_TIND_BLOCK])) {
-		p->bbcheck = 1;
-		if (fix_problem(ctx, PR_1_BBINODE_BAD_METABLOCK, pctx)) {
-			*block_nr = 0;
-			return BLOCK_CHANGED;
-		}
-		if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
-			return BLOCK_ABORT;
-		return 0;
-	}
-
-	pctx->group = -1;
-
-	/* Warn user that the block wasn't claimed */
-	fix_problem(ctx, PR_1_PROGERR_CLAIMED_BLOCK, pctx);
-
-	return 0;
-}
-
-static void new_table_block(e2fsck_t ctx, blk_t first_block, int group,
-			    const char *name, int num, blk_t *new_block)
-{
-	ext2_filsys fs = ctx->fs;
-	blk_t           old_block = *new_block;
-	int             i;
-	char            *buf;
-	struct problem_context  pctx;
-
-	clear_problem_context(&pctx);
-
-	pctx.group = group;
-	pctx.blk = old_block;
-	pctx.str = name;
-
-	pctx.errcode = ext2fs_get_free_blocks(fs, first_block,
-			first_block + fs->super->s_blocks_per_group,
-					num, ctx->block_found_map, new_block);
-	if (pctx.errcode) {
-		pctx.num = num;
-		fix_problem(ctx, PR_1_RELOC_BLOCK_ALLOCATE, &pctx);
-		ext2fs_unmark_valid(fs);
-		return;
-	}
-	pctx.errcode = ext2fs_get_mem(fs->blocksize, &buf);
-	if (pctx.errcode) {
-		fix_problem(ctx, PR_1_RELOC_MEMORY_ALLOCATE, &pctx);
-		ext2fs_unmark_valid(fs);
-		return;
-	}
-	ext2fs_mark_super_dirty(fs);
-	fs->flags &= ~EXT2_FLAG_MASTER_SB_ONLY;
-	pctx.blk2 = *new_block;
-	fix_problem(ctx, (old_block ? PR_1_RELOC_FROM_TO :
-			  PR_1_RELOC_TO), &pctx);
-	pctx.blk2 = 0;
-	for (i = 0; i < num; i++) {
-		pctx.blk = i;
-		ext2fs_mark_block_bitmap(ctx->block_found_map, (*new_block)+i);
-		if (old_block) {
-			pctx.errcode = io_channel_read_blk(fs->io,
-				   old_block + i, 1, buf);
-			if (pctx.errcode)
-				fix_problem(ctx, PR_1_RELOC_READ_ERR, &pctx);
-		} else
-			memset(buf, 0, fs->blocksize);
-
-		pctx.blk = (*new_block) + i;
-		pctx.errcode = io_channel_write_blk(fs->io, pctx.blk,
-					      1, buf);
-		if (pctx.errcode)
-			fix_problem(ctx, PR_1_RELOC_WRITE_ERR, &pctx);
-	}
-	ext2fs_free_mem(&buf);
+	printf("Unrecoverable Error: Found %lli bad blocks starting at block number: %u\n", blockcnt, *block_nr);
+	return BLOCK_ERROR;
 }
 
 /*
@@ -4797,28 +4447,8 @@ static void new_table_block(e2fsck_t ctx, blk_t first_block, int group,
  */
 static void handle_fs_bad_blocks(e2fsck_t ctx)
 {
-	ext2_filsys fs = ctx->fs;
-	dgrp_t          i;
-	int             first_block = fs->super->s_first_data_block;
-
-	for (i = 0; i < fs->group_desc_count; i++) {
-		if (ctx->invalid_block_bitmap_flag[i]) {
-			new_table_block(ctx, first_block, i, _("block bitmap"),
-					1, &fs->group_desc[i].bg_block_bitmap);
-		}
-		if (ctx->invalid_inode_bitmap_flag[i]) {
-			new_table_block(ctx, first_block, i, _("inode bitmap"),
-					1, &fs->group_desc[i].bg_inode_bitmap);
-		}
-		if (ctx->invalid_inode_table_flag[i]) {
-			new_table_block(ctx, first_block, i, _("inode table"),
-					fs->inode_blocks_per_group,
-					&fs->group_desc[i].bg_inode_table);
-			ctx->flags |= E2F_FLAG_RESTART;
-		}
-		first_block += fs->super->s_blocks_per_group;
-	}
-	ctx->invalid_bitmaps = 0;
+	printf("Bad blocks detected on your filesystem\n"
+		"You should get your data off as the device will soon die\n");
 }
 
 /*
@@ -6579,14 +6209,6 @@ static int check_dir_block(ext2_filsys fs,
 			 * If the inode is unused, offer to clear it.
 			 */
 			problem = PR_2_UNUSED_INODE;
-		} else if (ctx->inode_bb_map &&
-			   (ext2fs_test_inode_bitmap(ctx->inode_bb_map,
-						     dirent->inode))) {
-			/*
-			 * If the inode is in a bad block, offer to
-			 * clear it.
-			 */
-			problem = PR_2_BB_INODE;
 		} else if ((dot_state > 1) &&
 			   ((dirent->name_len & 0xFF) == 1) &&
 			   (dirent->name[0] == '.')) {
@@ -7863,7 +7485,6 @@ errcode_t e2fsck_expand_directory(e2fsck_t ctx, ext2_ino_t dir,
  * pass4.c -- pass #4 of e2fsck: Check reference counts
  *
  * Pass 4 frees the following data structures:
- *      - A bitmap of which inodes are in bad blocks.   (inode_bb_map)
  *      - A bitmap of which inodes are imagic inodes.   (inode_imagic_map)
  */
 
@@ -7967,9 +7588,7 @@ static void e2fsck_pass4(e2fsck_t ctx)
 			continue;
 		if (!(ext2fs_test_inode_bitmap(ctx->inode_used_map, i)) ||
 		    (ctx->inode_imagic_map &&
-		     ext2fs_test_inode_bitmap(ctx->inode_imagic_map, i)) ||
-		    (ctx->inode_bb_map &&
-		     ext2fs_test_inode_bitmap(ctx->inode_bb_map, i)))
+		     ext2fs_test_inode_bitmap(ctx->inode_imagic_map, i)))
 			continue;
 		ext2fs_icount_fetch(ctx->inode_link_info, i, &link_count);
 		ext2fs_icount_fetch(ctx->inode_count, i, &link_counted);
@@ -8004,8 +7623,6 @@ static void e2fsck_pass4(e2fsck_t ctx)
 	}
 	ext2fs_free_icount(ctx->inode_link_info); ctx->inode_link_info = 0;
 	ext2fs_free_icount(ctx->inode_count); ctx->inode_count = 0;
-	ext2fs_free_inode_bitmap(ctx->inode_bb_map);
-	ctx->inode_bb_map = 0;
 	ext2fs_free_inode_bitmap(ctx->inode_imagic_map);
 	ctx->inode_imagic_map = 0;
 	ext2fs_free_mem(&buf);
@@ -12981,10 +12598,6 @@ static int cflag;               /* check disk */
 static int show_version_only;
 static int verbose;
 
-static int replace_bad_blocks;
-static int keep_bad_blocks;
-static char *bad_blocks_file;
-
 #define P_E2(singular, plural, n)       n, ((n) == 1 ? singular : plural)
 
 static void show_stats(e2fsck_t ctx)
@@ -13024,7 +12637,6 @@ static void show_stats(e2fsck_t ctx)
 		ctx->fs_ind_count, ctx->fs_dind_count, ctx->fs_tind_count);
 	printf ("%8d block%s used (%d%%)\n", P_E2("", "s", blocks_used),
 		(int) ((long long) 100 * blocks_used / blocks));
-	printf ("%8d bad block%s\n", P_E2("", "s", ctx->fs_badblocks_count));
 	printf ("%8d large file%s\n", P_E2("", "s", ctx->large_files));
 	printf ("\n%8d regular file%s\n", P_E2("", "s", ctx->fs_regular_count));
 	printf ("%8d director%s\n", P_E2("y", "ies", ctx->fs_directory_count));
@@ -13131,8 +12743,7 @@ static void check_if_skip(e2fsck_t ctx)
 	int batt = is_on_batt();
 	time_t now = time(0);
 
-	if ((ctx->options & E2F_OPT_FORCE) || bad_blocks_file ||
-	    cflag || swapfs)
+	if ((ctx->options & E2F_OPT_FORCE) || cflag || swapfs)
 		return;
 
 	if ((fs->super->s_state & EXT2_ERROR_FS) ||
@@ -13519,11 +13130,6 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 		case 'P':
 			ctx->process_inode_size = atoi(optarg);
 			break;
-		case 'L':
-			replace_bad_blocks++;
-		case 'l':
-			bad_blocks_file = string_copy(optarg, 0);
-			break;
 		case 'd':
 			ctx->options |= E2F_OPT_DEBUG;
 			break;
@@ -13556,9 +13162,6 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 					  "of e2fsck\n"));
 			exit(1);
 #endif
-		case 'k':
-			keep_bad_blocks++;
-			break;
 		default:
 			bb_show_usage();
 		}
@@ -13566,7 +13169,7 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 		return 0;
 	if (optind != argc - 1)
 		bb_show_usage();
-	if ((ctx->options & E2F_OPT_NO) && !bad_blocks_file &&
+	if ((ctx->options & E2F_OPT_NO) &&
 	    !cflag && !swapfs && !(ctx->options & E2F_OPT_COMPRESS_DIRS))
 		ctx->options |= E2F_OPT_READONLY;
 	ctx->io_options = strchr(argv[optind], '?');
@@ -13595,19 +13198,13 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 		close(fd);
 	}
 #ifdef ENABLE_SWAPFS
-	if (swapfs) {
-		if (cflag || bad_blocks_file) {
+	if (swapfs && cflag) {
 			fprintf(stderr, _("Incompatible options not "
 					  "allowed when byte-swapping.\n"));
 			exit(EXIT_USAGE);
 		}
 	}
 #endif
-	if (cflag && bad_blocks_file) {
-		fprintf(stderr, _("The -c and the -l/-L options may "
-				  "not be both used at the same time.\n"));
-		exit(EXIT_USAGE);
-	}
 	/*
 	 * Set up signal action
 	 */
@@ -13873,10 +13470,6 @@ restart:
 	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
 		bb_error_msg_and_die(0);
 	check_if_skip(ctx);
-	if (bad_blocks_file)
-		read_bad_blocks_file(ctx, bad_blocks_file, replace_bad_blocks);
-	else if (cflag)
-		read_bad_blocks_file(ctx, 0, !keep_bad_blocks); /* Test disk */
 	if (ctx->flags & E2F_FLAG_SIGNAL_MASK)
 		bb_error_msg_and_die(0);
 #ifdef ENABLE_SWAPFS
