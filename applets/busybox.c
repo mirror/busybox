@@ -143,7 +143,7 @@ int busybox_main(int argc, char **argv)
 			printf("\n\n");
 			exit(0);
 		}
-	} else run_applet_by_name(bb_applet_name=argv[1], argc-1, argv+1);
+	} else run_applet_by_name(argv[1], argc-1, argv+1);
 
 	bb_error_msg_and_die("applet not found");
 }
