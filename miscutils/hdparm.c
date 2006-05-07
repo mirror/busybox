@@ -25,6 +25,7 @@
 #include <sys/time.h>
 #include <sys/times.h>
 #include <sys/mount.h>
+#include <getopt.h>
 #include "busybox.h"
 #include <linux/types.h>
 #include <linux/hdreg.h>
@@ -567,13 +568,6 @@ static uint16_t check_if_maj_and_set_val(uint16_t a, uint16_t b)
 	return a;
 }
 
-static unsigned long int set_flag(char *p, char max)
-{
-	if (*p >= '0' && *p <=  max )
-		return 1;
-	return 0;
-}
-
 /* end of  busybox specific stuff */
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
@@ -633,7 +627,6 @@ static void print_ascii(uint16_t *p, uint8_t length) {
    others, though, were declared in hdparm.c with global scope; since other
    functions in that file have static (file) scope, I assume the difference is
    intentional. */
-
 static void identify(uint16_t *id_supplied)
 {
 	uint16_t buf[256];
@@ -1240,17 +1233,17 @@ static unsigned long set_apmmode, get_apmmode, apmmode;
 static int get_IDentity;
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
-static int	unregister_hwif;
-static int	hwif;
+static unsigned long	unregister_hwif;
+static unsigned long	hwif;
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
-static int	scan_hwif;
-static int	hwif_data;
-static int	hwif_ctrl;
-static int	hwif_irq;
+static unsigned long scan_hwif;
+static unsigned long hwif_data;
+static unsigned long hwif_ctrl;
+static unsigned long hwif_irq;
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-static int	set_busstate, get_busstate, busstate;
+static unsigned long	set_busstate, get_busstate, busstate;
 #endif
 static int	reread_partn;
 
@@ -1258,7 +1251,7 @@ static int	reread_partn;
 static int	perform_reset;
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET */
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-static int	perform_tristate,	tristate;
+static unsigned long	perform_tristate,	tristate;
 #endif /* CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF */
 
 // Historically, if there was no HDIO_OBSOLETE_IDENTITY, then
@@ -1839,14 +1832,14 @@ static void process_dev(char *devname)
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
 	if (unregister_hwif)
 	{
-		printf(" attempting to unregister hwif#%u\n", hwif);
+		printf(" attempting to unregister hwif#%lu\n", hwif);
 		bb_ioctl(fd, HDIO_UNREGISTER_HWIF,(int *)(unsigned long)hwif,"HDIO_UNREGISTER_HWIF");
 	}
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 	if (scan_hwif)
 	{
-		printf(" attempting to scan hwif (0x%x, 0x%x, %u)\n", hwif_data, hwif_ctrl, hwif_irq);
+		printf(" attempting to scan hwif (0x%lx, 0x%lx, %lu)\n", hwif_data, hwif_ctrl, hwif_irq);
 		args[0] = hwif_data;
 		args[1] = hwif_ctrl;
 		args[2] = hwif_irq;
@@ -2246,7 +2239,7 @@ static void process_dev(char *devname)
 	{
 		if (get_busstate)
 		{
-			printf(" setting bus state to %d", busstate);
+			printf(" setting bus state to %ld", busstate);
 			bus_state_value(busstate);
 		}
 		bb_ioctl(fd, HDIO_SET_BUSSTATE, (int *)(unsigned long)busstate, "HDIO_SET_BUSSTATE");
@@ -2273,35 +2266,6 @@ static void process_dev(char *devname)
 	if (do_flush)
 		flush_buffer_cache(fd);
 	close(fd);
-}
-
-static char * GET_NUMBER(char *p, unsigned long *flag, unsigned long *num)
-{
-	*num = 0;
-	while (isdigit(*p)) {
-		*flag = 1;
-		*num = (*num * 10) + (*p++ - '0');
-	}
-	return p;
-}
-
-static char * GET_STRING(char *p, unsigned long *flag, int *num)
-{
-	char *tmpstr;
-	char name[32];
-	tmpstr = name;
-	tmpstr[0] = '\0';
-	while (isalnum(*p) && (tmpstr - name) < 31) {
-		tmpstr[0] = *p++;
-		tmpstr[1] = '\0';
-		++tmpstr;
-	}
-	*num = translate_xfermode(name);
-	if (*num == -1)
-		*flag = 0;
-	else
-		*flag = 1;
-	return p;
 }
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
@@ -2333,351 +2297,166 @@ static void identify_from_stdin(void)
 }
 #endif
 
-static void missing_arg(int arg, char c, char* add)
+/* busybox specific stuff */
+static void parse_opts(int flag, unsigned long *get, unsigned long *set, unsigned long *value, int min, int max)
 {
-	if (!arg)
-		bb_error_msg("-%c: missing value %s", c, (add!=NULL)? add :"");
-}
-
-/* our main() routine: */
-int hdparm_main(int argc, char **argv)
-{
-	char c, *p;
-
-	++argv;
-	if (!--argc)
-		bb_show_usage();
-
-	while (argc--)
-	{
-		if (ENABLE_FEATURE_HDPARM_GET_IDENTITY && !strcmp("-Istdin", *argv))
-			identify_from_stdin();
-		p = *argv++;
-		if (*p == '-')
-		{
-			if (!*++p)
-				bb_show_usage();
-			while ((c = *p++))
-			{
-				++flagcount;
-				switch (c)
-				{
-					case 'V':
-						/*bb_error_msg_and_die("%s", VERSION);*/
-						/* We have to return 0 here and not 1 */
-						printf("%s %s\n",bb_applet_name, VERSION);
-						return EXIT_SUCCESS;
-					case 'v':
-						verbose = 1;
-						break;
-#ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
-					case 'I':
-						get_IDentity = 1;
-						break;
-					case 'i':
-						get_identity = 1;
-						break;
-#endif
-					case 'g':
-						get_geom = 1;
-						break;
-					case 'f':
-						do_flush = 1;
-						break;
-					case 'q':
-						quiet = 1;
-						noisy = 0;
-						break;
-					case 'u':
-						get_unmask = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_unmask = set_flag(p,'1'))==1)
-							unmask  = *p++ - '0';
-						break;
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA
-					case 'd':
-						get_dma = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_dma = set_flag(p,'9'))==1)
-							dma = *p++ - '0';
-						break;
-#endif /* CONFIG_FEATURE_HDPARM_HDIO_GETSET_DMA */
-					case 'n':
-						get_nowerr = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_nowerr = set_flag(p,'1'))==1)
-							nowerr  = *p++ - '0';
-						break;
-					case 'p':
-						noisy_piomode = noisy;
-						noisy = 1;
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_STRING(p,&set_piomode,&piomode);
-						break;
-					case 'r':
-						get_readonly = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_readonly = set_flag(p,'1'))==1)
-							readonly  = *p++ - '0';
-						break;
-					case 'm':
-						get_mult = noisy;
-						noisy = 1;
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_NUMBER(p,&set_mult,&mult);
-						break;
-					case 'c':
-						get_io32bit = noisy;
-						noisy = 1;
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_NUMBER(p,&set_io32bit,&io32bit);
-						break;
-#ifdef HDIO_DRIVE_CMD
-					case 'S':
-						get_standby = noisy;
-						noisy = 1;
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_NUMBER(p,&set_standby,&standby_requested);
-						missing_arg(set_standby, c, NULL);
-						break;
-
-					case 'D':
-						get_defects = noisy;
-						noisy = 1;
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_NUMBER(p,&set_defects,&defects);
-						missing_arg(set_defects, c, NULL);
-						break;
-					case 'P':
-						get_prefetch = noisy;
-						noisy = 1;
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_NUMBER(p,&set_prefetch,&prefetch);
-						missing_arg(set_prefetch, c, NULL);
-						break;
-
-					case 'X':
-						get_xfermode = noisy;
-						noisy = 1;
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_STRING(p,&set_xfermode,&xfermode_requested);
-						missing_arg(set_xfermode, c, NULL);
-						break;
-
-					case 'K':
-						get_dkeep = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_dkeep = set_flag(p,'1'))==1)
-							dkeep  = *p++ - '0';
-						else
-							goto missing_arg_error;
-						break;
-
-					case 'A':
-						get_lookahead = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_lookahead = set_flag(p,'1'))==1)
-							lookahead  = *p++ - '0';
-						else
-							goto missing_arg_error;
-						break;
-
-					case 'L':
-						get_doorlock = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_doorlock = set_flag(p,'1'))==1)
-							doorlock  = *p++ - '0';
-						else
-							goto missing_arg_error;
-						break;
-
-					case 'W':
-						get_wcache = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_wcache = set_flag(p,'1'))==1)
-							wcache  = *p++ - '0';
-						else
-missing_arg_error:
-							missing_arg(1, c, "(0/1)");
-						break;
-
-					case 'C':
-						get_powermode = noisy;
-						noisy = 1;
-						break;
-
-					case 'y':
-						get_standbynow = noisy;
-						noisy = 1;
-						set_standbynow = 1;
-						break;
-
-					case 'Y':
-						get_sleepnow = noisy;
-						noisy = 1;
-						set_sleepnow = 1;
-						break;
-
-					case 'z':
-						reread_partn = 1;
-						break;
-
-					case 'Z':
-						get_seagate = noisy;
-						noisy = 1;
-						set_seagate = 1;
-						break;
-#endif /* HDIO_DRIVE_CMD */
-					case 'k':
-						get_keep = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_keep = set_flag(p,'1'))==1)
-							keep  = *p++ - '0';
-						break;
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF
-					case 'U':
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if (! p)
-							goto expected_hwif_error; /* "expected hwif_nr" */
-
-						sscanf(p++, "%i", &hwif);
-
-						unregister_hwif = 1;
-						break;
-#endif /* CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF */
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
-					case 'R':
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if (! p)
-							goto expected_hwif_error; /* "expected hwif_data" */
-
-						sscanf(p++, "%i", &hwif_data);
-
-						if (argc && isdigit(**argv))
-							p = *argv++, --argc;
-						else
-							goto expected_hwif_error; /* "expected hwif_ctrl" */
-
-						sscanf(p, "%i", &hwif_ctrl);
-
-						if (argc && isdigit(**argv))
-							p = *argv++, --argc;
-						else
-#endif /* CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF */
-#if defined CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF || defined CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
-expected_hwif_error:
-							bb_error_msg_and_die("expected hwif value"); /* "expected hwif_irq" */
-#endif /* CONFIG_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF || CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF */
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
-
-						sscanf(p, "%i", &hwif_irq);
-
-						*p = '\0';
-
-						scan_hwif = 1;
-						break;
-#endif /* CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF */
-					case 'Q':
-#ifdef HDIO_GET_QDMA
-						get_dma_q = noisy;
-						noisy = 1;
-#ifdef HDIO_SET_QDMA
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_NUMBER(p,&set_dma_q,&dma_q);
-#ifdef HDIO_GET_QDMA
-						dma_q = -dma_q;
-#endif
-#endif
-#endif
-						break;
-
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET
-					case 'w':
-						perform_reset = 1;
-						break;
-#endif /* CONFIG_FEATURE_HDPARM_HDIO_DRIVE_RESET */
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-					case 'x':
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((perform_tristate = set_flag(p,'1'))==1)
-							tristate  = *p++ - '0';
-						else
-							missing_arg(1, c, "(0/1)");
-						break;
-
-#endif /* CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF */
-					case 'a':
-						get_readahead = noisy;
-						noisy = 1;
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_NUMBER(p,&set_readahead,&Xreadahead);
-						break;
-					case 'B':
-						get_apmmode = noisy;
-						noisy = 1;
-						if (!*p && argc && isalnum(**argv))
-							p = *argv++, --argc;
-						p=GET_NUMBER(p,&set_apmmode,&apmmode);
-						missing_arg(set_apmmode, c, "(1-255)");
-						break;
-					case 't':
-						do_timings = 1;
-						do_flush = 1;
-						break;
-					case 'T':
-						do_ctimings = 1;
-						do_flush = 1;
-						break;
-#ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
-					case 'b':
-						get_busstate = noisy;
-						noisy = 1;
-						if (!*p && argc && isdigit(**argv))
-							p = *argv++, --argc;
-						if ((set_busstate = set_flag(p,'2'))==1)
-							busstate  = *p++ - '0';
-						break;
-#endif
-					case 'h':
-					default:
-						bb_show_usage();
-				}
-			}
-			if (!argc)
-				bb_show_usage();
-		} else {
-			process_dev(p);
+	if (flag) {
+		/* noisy is a global var */
+		if (get) { /* *get is initialized to 0 */
+			*get = noisy;
+			noisy = 1;
+		}
+		if (optarg) {
+			*set = 1;
+			*value = bb_xgetlarg(optarg, 10, min, max);
 		}
 	}
-	return 0 ;
+}
+
+#ifdef HDIO_DRIVE_CMD
+static void parse_opts_v2(int flag, unsigned long *get, unsigned long *set)
+{
+	if (flag) {
+		/* noisy is a global var */
+		*get = noisy;
+		noisy = 1;
+		*set = 1;
+	}
+}
+#endif
+
+static void parse_opts_v3(int flag, unsigned long *get, unsigned long *set, int *value)
+{
+	if (flag) {
+		/* noisy is a global var */
+		*get = noisy;
+		noisy = 1;
+		if (optarg) {
+			*set = ((*value = translate_xfermode(optarg)) > -1);
+		}
+	}
+}
+
+/*-------------------------------------*/
+/* getopt long options */
+#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
+static const struct option HDPARM_LONG_OPT[] =
+{
+	{"Istdin", 0, NULL, '\256'},
+	{NULL, 0, NULL, 0}
+};
+#else
+#define HDPARM_LONG_OPT			NULL
+#endif
+/*-------------------------------------*/
+/* getopt short options */
+static const char hdparm_options[]=	"Vvgfqu::n::p:r::m::c::k::a::B:tTh"\
+	USE_FEATURE_HDPARM_GET_IDENTITY("\256iI")
+	USE_FEATURE_HDPARM_HDIO_GETSET_DMA("d::")
+#ifdef HDIO_DRIVE_CMD
+									"S::D::P::X::K::A::L::W::CyYzZ"
+#endif
+	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF("U:")
+#ifdef HDIO_GET_QDMA
+#ifdef HDIO_SET_QDMA
+									"Q:"
+#else
+									"Q"
+#endif
+#endif
+	USE_FEATURE_HDPARM_HDIO_DRIVE_RESET("w")
+	USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF("x::b:")
+	USE_FEATURE_HDPARM_HDIO_SCAN_HWIF("R:");
+/*-------------------------------------*/
+
+/* our main() routine: */
+int hdparm_main(int argc, char **argv) ATTRIBUTE_NORETURN;
+int hdparm_main(int argc, char **argv)
+{
+	int c;
+
+	while ((c = getopt_long (argc, argv, hdparm_options, HDPARM_LONG_OPT , NULL)) >= 0) {
+		/* When no flags are given (flagcount = 0), -acdgkmnru is assumed. */
+		flagcount++;
+#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
+		if (c == '\256') {
+			identify_from_stdin(); /* EXIT */
+		}
+#endif
+		if (c == 'V') {
+			printf("%s %s\n",bb_applet_name, VERSION);
+			exit(EXIT_SUCCESS);
+		}	
+
+		verbose = (c == 'v');
+		USE_FEATURE_HDPARM_GET_IDENTITY(get_IDentity = (c == 'I'));
+		USE_FEATURE_HDPARM_GET_IDENTITY(get_identity = (c == 'i'));
+		get_geom = (c == 'g');
+		do_flush = (c == 'f');
+		if (c == 'q') {
+			quiet = 1;
+			noisy = 0;
+		}
+		parse_opts((c == 'u'), &get_unmask, &set_unmask, &unmask, 0, 1);
+		USE_FEATURE_HDPARM_HDIO_GETSET_DMA(parse_opts((c == 'd'), &get_dma, &set_dma, &dma, 0, 9));
+		parse_opts((c == 'n'), &get_nowerr, &set_nowerr, &nowerr, 0, 1);
+		parse_opts_v3((c == 'p'), &noisy_piomode, &set_piomode, &piomode);
+		parse_opts((c == 'r'), &get_readonly, &set_readonly, &readonly, 0, 1);
+		parse_opts((c == 'm'), &get_mult, &set_mult, &mult, 0, INT_MAX /*32*/);
+		parse_opts((c == 'c'), &get_io32bit, &set_io32bit, &io32bit, 0, INT_MAX /*8*/);
+		parse_opts((c == 'k'), &get_keep, &set_keep, &keep, 0, 1);
+		parse_opts((c == 'a'), &get_readahead, &set_readahead, &Xreadahead, 0, INT_MAX);
+		parse_opts((c == 'B'), &get_apmmode, &set_apmmode, &apmmode, 1, 255);
+		do_flush |= do_timings = (c == 't');
+		do_flush |= do_ctimings = (c == 'T');
+#ifdef HDIO_DRIVE_CMD
+		parse_opts((c == 'S'), &get_standby, &set_standby, &standby_requested, 0, INT_MAX);	
+		parse_opts((c == 'D'), &get_defects, &set_defects, &defects, 0, INT_MAX);
+		parse_opts((c == 'P'), &get_prefetch, &set_prefetch, &prefetch, 0, INT_MAX);
+		parse_opts_v3((c == 'X'), &get_xfermode, &set_xfermode, &xfermode_requested);
+		parse_opts((c == 'K'), &get_dkeep, &set_dkeep, &prefetch, 0, 1);
+		parse_opts((c == 'A'), &get_lookahead, &set_lookahead, &lookahead, 0, 1);
+		parse_opts((c == 'L'), &get_doorlock, &set_doorlock, &doorlock, 0, 1);
+		parse_opts((c == 'W'), &get_wcache, &set_wcache, &wcache, 0, 1);
+		parse_opts_v3((c == 'C'), &get_powermode, NULL, NULL);
+		parse_opts_v2((c == 'y'), &get_standbynow, &set_standbynow);
+		parse_opts_v2((c == 'Y'), &get_sleepnow, &set_sleepnow);
+		reread_partn = (c == 'z');
+		parse_opts_v2((c == 'Z'), &get_seagate, &set_seagate);
+#endif
+		USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(parse_opts((c == 'U'), NULL, &unregister_hwif, &hwif, 0, INT_MAX));	
+#ifdef HDIO_GET_QDMA
+#ifdef HDIO_SET_QDMA
+		parse_opts((c == 'Q'), &get_dma_q, &set_dma_q, &dma_q, 0, INT_MAX);
+#else
+		parse_opts((c == 'Q'), &get_dma_q, NULL, NULL, 0, 0);	
+#endif
+#endif		
+		USE_FEATURE_HDPARM_HDIO_DRIVE_RESET( perform_reset = (c == 'r'));
+		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(parse_opts((c == 'x'), NULL, &perform_tristate, &tristate, 0, 1));	
+		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(parse_opts((c == 'b'), &get_busstate, &set_busstate, &busstate, 0, 2));	
+#if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
+		if (c == 'R') {
+			parse_opts((c == 'R'), NULL, &scan_hwif, &hwif_data, 0, INT_MAX);	
+			hwif_ctrl =  bb_xgetlarg((argv[optind]) ? argv[optind] : "", 10, 0, INT_MAX);
+			hwif_irq  =  bb_xgetlarg((argv[optind+1]) ? argv[optind+1] : "", 10, 0, INT_MAX);
+			/* Move past the 2 additional arguments */
+			argv += 2;
+			argc -= 2;
+		}
+#endif
+	}
+
+	argc -= optind;
+	argv += optind;
+
+	if (argc < 1) {
+		bb_show_usage();
+	}
+
+	while (argc--) {
+		process_dev(*argv);
+		argv++;
+	}
+	exit(EXIT_SUCCESS);
 }
