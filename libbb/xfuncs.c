@@ -174,15 +174,6 @@ void bb_xfflush_stdout(void)
 }
 #endif
 
-// GCC forces inlining of strlen everywhere, which is generally a byte
-// larger than calling a function, and it's called a lot so it adds up.
-#ifdef L_strlen
-size_t bb_strlen(const char *string)
-{
-	    return(__builtin_strlen(string));
-}
-#endif
-
 /* END CODE */
 /*
 Local Variables:

@@ -67,11 +67,6 @@
 # endif
 #endif
 
-#ifdef __GNUC__
-#define strlen(x) bb_strlen(x)
-extern size_t bb_strlen(const char *string);
-#endif
-
 /* ---- Endian Detection ------------------------------------ */
 #ifndef __APPLE__
 # include <byteswap.h>

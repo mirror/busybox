@@ -125,6 +125,7 @@ check_ld=$(shell \
 # Pin CHECKED_CFLAGS with := so it's only evaluated once.
 CHECKED_CFLAGS:=$(call check_gcc,-funsigned-char,)
 CHECKED_CFLAGS+=$(call check_gcc,-mmax-stack-frame=256,)
+CHECKED_CFLAGS+=$(call check_gcc,-fno-builtin-strlen)
 
 # Preemptively pin this too.
 PROG_CFLAGS:=

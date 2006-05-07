@@ -293,7 +293,7 @@ int arping_main(int argc, char **argv)
 		if (opt & 128) /* timeout */
 			timeout = atoi(_timeout);
 		if (opt & 256) { /* interface */
-			if (bb_strlen(_device) > IF_NAMESIZE) {
+			if (strlen(_device) > IF_NAMESIZE) {
 				bb_error_msg_and_die("Interface name `%s' must be less than %d",
 								_device, IF_NAMESIZE);
 			}

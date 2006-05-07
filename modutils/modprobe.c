@@ -283,7 +283,7 @@ static void include_conf ( struct dep_t **first, struct dep_t **current, char *b
 		if ( p )
 			*p = 0;
 
-		l = bb_strlen ( buffer );
+		l = strlen ( buffer );
 
 		while ( l && isspace ( buffer [l-1] )) {
 			buffer [l-1] = 0;
@@ -399,7 +399,7 @@ static struct dep_t *build_dep ( void )
 	free(filename);
 
 	while ( reads ( fd, buffer, sizeof( buffer ))) {
-		int l = bb_strlen ( buffer );
+		int l = strlen ( buffer );
 		char *p = 0;
 
 		while ( l > 0 && isspace ( buffer [l-1] )) {

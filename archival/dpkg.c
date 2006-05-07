@@ -1573,7 +1573,7 @@ static void unpack_package(deb_file_t *deb_file)
 	init_archive_deb_control(archive_handle);
 
 	while(all_control_files[i]) {
-		char *c = (char *) xmalloc(3 + bb_strlen(all_control_files[i]));
+		char *c = (char *) xmalloc(3 + strlen(all_control_files[i]));
 		sprintf(c, "./%s", all_control_files[i]);
 		accept_list= llist_add_to(accept_list, c);
 		i++;

@@ -338,7 +338,7 @@ static int check_tty ( const char *tty )
 
 	if (( fp = fopen ( bb_path_securetty_file, "r" ))) {
 		while ( fgets ( buf, sizeof( buf ) - 1, fp )) {
-			for ( i = bb_strlen( buf ) - 1; i >= 0; --i ) {
+			for ( i = strlen( buf ) - 1; i >= 0; --i ) {
 				if ( !isspace ( buf[i] ))
 					break;
 			}

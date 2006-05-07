@@ -256,7 +256,7 @@ static char *parse(char *command, struct interface_defn_t *ifd)
 					varvalue = get_var(command, nextpercent - command, ifd);
 
 					if (varvalue) {
-						addstr(&result, &len, &pos, varvalue, bb_strlen(varvalue));
+						addstr(&result, &len, &pos, varvalue, strlen(varvalue));
 					} else {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 						/* Sigh...  Add a special case for 'ip' to convert from
@@ -267,7 +267,7 @@ static char *parse(char *command, struct interface_defn_t *ifd)
 							if (varvalue && (res=count_netmask_bits(varvalue)) > 0) {
 								char argument[255];
 								sprintf(argument, "%d", res);
-								addstr(&result, &len, &pos, argument, bb_strlen(argument));
+								addstr(&result, &len, &pos, argument, strlen(argument));
 								command = nextpercent + 1;
 								break;
 							}
@@ -763,7 +763,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 					{
 						int i;
 
-						if (bb_strlen(buf_ptr) == 0) {
+						if (strlen(buf_ptr) == 0) {
 							bb_error_msg("option with empty value \"%s\"", buf);
 							return NULL;
 						}
@@ -845,7 +845,7 @@ static char *setlocalenv(char *format, const char *name, const char *value)
 	char *here;
 	char *there;
 
-	result = xmalloc(bb_strlen(format) + bb_strlen(name) + bb_strlen(value) + 1);
+	result = xmalloc(strlen(format) + strlen(name) + strlen(value) + 1);
 
 	sprintf(result, format, name, value);
 
@@ -860,7 +860,7 @@ static char *setlocalenv(char *format, const char *name, const char *value)
 			here++;
 		}
 	}
-	memmove(here, there, bb_strlen(there) + 1);
+	memmove(here, there, strlen(there) + 1);
 
 	return result;
 }
@@ -1061,7 +1061,7 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 			/* If we are able to read a line of output from the script,
 			 * remove any trailing whitespace and use this value
 			 * as the name of the logical interface. */
-			char *pch = new_logical + bb_strlen(new_logical) - 1;
+			char *pch = new_logical + strlen(new_logical) - 1;
 
 			while (pch >= new_logical && isspace(*pch))
 				*(pch--) = '\0';
@@ -1083,7 +1083,7 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 
 static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 {
-	unsigned short iface_len = bb_strlen(iface);
+	unsigned short iface_len = strlen(iface);
 	llist_t *search = state_list;
 
 	while (search) {
@@ -1308,7 +1308,7 @@ int ifupdown_main(int argc, char **argv)
 			llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
-				char *newiface = xmalloc(bb_strlen(iface) + 1 + bb_strlen(liface) + 1);
+				char *newiface = xmalloc(strlen(iface) + 1 + strlen(liface) + 1);
 				sprintf(newiface, "%s=%s", iface, liface);
 				if (iface_state == NULL) {
 					state_list = llist_add_to_end(state_list, newiface);

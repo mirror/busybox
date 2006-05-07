@@ -146,7 +146,7 @@ int sysctl_preload_file(const char *filename, int output)
 		if (*ptr == '#' || *ptr == ';')
 			continue;
 
-		if (bb_strlen(ptr) < 2)
+		if (strlen(ptr) < 2)
 			continue;
 
 		name = strtok(ptr, "=");
@@ -323,7 +323,7 @@ int sysctl_display_all(const char *path, int output, int show_table)
 					sysctl_display_all(tmpdir, output, show_table);
 				} else
 					retval |=
-						sysctl_read_setting(tmpdir + bb_strlen(PROC_PATH),
+						sysctl_read_setting(tmpdir + strlen(PROC_PATH),
 											output);
 
 			}

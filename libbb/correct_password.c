@@ -72,6 +72,6 @@ int correct_password ( const struct passwd *pw )
 		return 0;
 	}
 	encrypted = crypt ( unencrypted, correct );
-	memset ( unencrypted, 0, bb_strlen ( unencrypted ));
+	memset ( unencrypted, 0, strlen ( unencrypted ));
 	return ( strcmp ( encrypted, correct ) == 0 ) ? 1 : 0;
 }

@@ -29,7 +29,7 @@ int which_main(int argc, char **argv)
 
 	path_list = getenv("PATH");
 	if (path_list != NULL) {
-		size_t path_len = bb_strlen(path_list);
+		size_t path_len = strlen(path_list);
 		char *new_list = NULL;
 		count = 1;
 
@@ -88,7 +88,7 @@ int which_main(int argc, char **argv)
 					break;
 				}
 				free(buf);
-				path_n += (bb_strlen(path_n) + 1);
+				path_n += (strlen(path_n) + 1);
 			}
 		}
 		if (found) {

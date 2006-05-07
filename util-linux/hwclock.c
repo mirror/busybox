@@ -109,7 +109,7 @@ static int show_clock(int utc)
 
 	safe_strncpy ( buffer, ctime ( &t ), 64);
 	if ( buffer [0] )
-		buffer [bb_strlen ( buffer ) - 1] = 0;
+		buffer [strlen ( buffer ) - 1] = 0;
 
 	//printf ( "%s  %.6f seconds %s\n", buffer, 0.0, utc ? "" : ( ptm-> tm_isdst ? tzname [1] : tzname [0] ));
 	printf ( "%s  %.6f seconds\n", buffer, 0.0 );
@@ -157,7 +157,7 @@ static int check_utc(void)
 		RESERVE_CONFIG_BUFFER(buffer, 128);
 
 		while ( fgets ( buffer, sizeof( buffer ), f )) {
-			int len = bb_strlen ( buffer );
+			int len = strlen ( buffer );
 
 			while ( len && isspace ( buffer [len - 1] ))
 				len--;
