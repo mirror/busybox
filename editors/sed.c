@@ -116,11 +116,7 @@ static sed_cmd_t sed_cmd_head;
 static sed_cmd_t *sed_cmd_tail = &sed_cmd_head;
 
 /* Linked list of append lines */
-struct append_list {
-	char *string;
-	struct append_list *next;
-};
-static struct append_list *append_head=NULL, *append_tail=NULL;
+static llist_t *append_head=NULL;
 
 void sed_free_and_close_stuff(void);
 #if ENABLE_FEATURE_CLEAN_UP
@@ -128,12 +124,7 @@ void sed_free_and_close_stuff(void)
 {
 	sed_cmd_t *sed_cmd = sed_cmd_head.next;
 
-	while(append_head) {
-		append_tail=append_head->next;
-		free(append_head->string);
-		free(append_head);
-		append_head=append_tail;
-	}
+	llist_free_contents(append_head);
 
 	while (sed_cmd) {
 		sed_cmd_t *sed_cmd_next = sed_cmd->next;
@@ -691,28 +682,20 @@ static sed_cmd_t *branch_to(const char *label)
 	bb_error_msg_and_die("Can't find label for jump to `%s'", label);
 }
 
-/* Append copy of string to append buffer */
 static void append(char *s)
 {
-	struct append_list *temp=calloc(1,sizeof(struct append_list));
-
-	if(append_head)
-		append_tail=(append_tail->next=temp);
-	else append_head=append_tail=temp;
-	temp->string=strdup(s);
+	append_head=llist_add_to_end(append_head, bb_xstrdup(s));
 }
 
 static void flush_append(void)
 {
+	char *data;
+
 	/* Output appended lines. */
-	while(append_head) {
-		fprintf(nonstdout,"%s\n",append_head->string);
-		append_tail=append_head->next;
-		free(append_head->string);
-		free(append_head);
-		append_head=append_tail;
+	while((data = (char *)llist_pop(&append_head))) {
+		fprintf(nonstdout,"%s\n",data);
+		free(data);
 	}
-	append_head=append_tail=NULL;
 }
 
 static void add_input_file(FILE *file)
@@ -1113,8 +1096,7 @@ int sed_main(int argc, char **argv)
 	int status = EXIT_SUCCESS, opt, getpat = 1;
 
 	/* destroy command strings on exit */
-	if (ENABLE_FEATURE_CLEAN_UP && atexit(sed_free_and_close_stuff) == -1)
-		bb_perror_msg_and_die("atexit");
+	if (ENABLE_FEATURE_CLEAN_UP) atexit(sed_free_and_close_stuff);
 
 	/* Lie to autoconf when it starts asking stupid questions. */
 	if(argc==2 && !strcmp(argv[1],"--version")) {
