@@ -2298,9 +2298,8 @@ static void identify_from_stdin(void)
 #endif
 
 /* busybox specific stuff */
-static void parse_opts(int flag, unsigned long *get, unsigned long *set, unsigned long *value, int min, int max)
+static void parse_opts(unsigned long *get, unsigned long *set, unsigned long *value, int min, int max)
 {
-	if (flag) {
 		/* noisy is a global var */
 		if (get) { /* *get is initialized to 0 */
 			*get = noisy;
@@ -2310,7 +2309,6 @@ static void parse_opts(int flag, unsigned long *get, unsigned long *set, unsigne
 			*set = 1;
 			*value = bb_xgetlarg(optarg, 10, min, max);
 		}
-	}
 }
 
 #ifdef HDIO_DRIVE_CMD
@@ -2397,47 +2395,49 @@ int hdparm_main(int argc, char **argv)
 			quiet = 1;
 			noisy = 0;
 		}
-		parse_opts((c == 'u'), &get_unmask, &set_unmask, &unmask, 0, 1);
-		USE_FEATURE_HDPARM_HDIO_GETSET_DMA(parse_opts((c == 'd'), &get_dma, &set_dma, &dma, 0, 9));
-		parse_opts((c == 'n'), &get_nowerr, &set_nowerr, &nowerr, 0, 1);
-		parse_opts_v3((c == 'p'), &noisy_piomode, &set_piomode, &piomode);
-		parse_opts((c == 'r'), &get_readonly, &set_readonly, &readonly, 0, 1);
-		parse_opts((c == 'm'), &get_mult, &set_mult, &mult, 0, INT_MAX /*32*/);
-		parse_opts((c == 'c'), &get_io32bit, &set_io32bit, &io32bit, 0, INT_MAX /*8*/);
-		parse_opts((c == 'k'), &get_keep, &set_keep, &keep, 0, 1);
-		parse_opts((c == 'a'), &get_readahead, &set_readahead, &Xreadahead, 0, INT_MAX);
-		parse_opts((c == 'B'), &get_apmmode, &set_apmmode, &apmmode, 1, 255);
+		if (c == 'u') parse_opts(&get_unmask, &set_unmask, &unmask, 0, 1);
+		USE_FEATURE_HDPARM_HDIO_GETSET_DMA(if (c == 'd') parse_opts(&get_dma, &set_dma, &dma, 0, 9));
+		if (c == 'n') parse_opts(&get_nowerr, &set_nowerr, &nowerr, 0, 1);
+		parse_opts_v3((c == 'p'),&noisy_piomode, &set_piomode, &piomode);
+		if (c == 'r') parse_opts(&get_readonly, &set_readonly, &readonly, 0, 1);
+		if (c == 'm') parse_opts(&get_mult, &set_mult, &mult, 0, INT_MAX /*32*/);
+		if (c == 'c') parse_opts(&get_io32bit, &set_io32bit, &io32bit, 0, INT_MAX /*8*/);
+		if (c == 'k') parse_opts(&get_keep, &set_keep, &keep, 0, 1);
+		if (c == 'a') parse_opts(&get_readahead, &set_readahead, &Xreadahead, 0, INT_MAX);
+		if (c == 'B') parse_opts(&get_apmmode, &set_apmmode, &apmmode, 1, 255);
 		do_flush |= do_timings = (c == 't');
 		do_flush |= do_ctimings = (c == 'T');
 #ifdef HDIO_DRIVE_CMD
-		parse_opts((c == 'S'), &get_standby, &set_standby, &standby_requested, 0, INT_MAX);	
-		parse_opts((c == 'D'), &get_defects, &set_defects, &defects, 0, INT_MAX);
-		parse_opts((c == 'P'), &get_prefetch, &set_prefetch, &prefetch, 0, INT_MAX);
+		if (c == 'S') parse_opts(&get_standby, &set_standby, &standby_requested, 0, INT_MAX);	
+		if (c == 'D') parse_opts(&get_defects, &set_defects, &defects, 0, INT_MAX);
+		if (c == 'P') parse_opts(&get_prefetch, &set_prefetch, &prefetch, 0, INT_MAX);
 		parse_opts_v3((c == 'X'), &get_xfermode, &set_xfermode, &xfermode_requested);
-		parse_opts((c == 'K'), &get_dkeep, &set_dkeep, &prefetch, 0, 1);
-		parse_opts((c == 'A'), &get_lookahead, &set_lookahead, &lookahead, 0, 1);
-		parse_opts((c == 'L'), &get_doorlock, &set_doorlock, &doorlock, 0, 1);
-		parse_opts((c == 'W'), &get_wcache, &set_wcache, &wcache, 0, 1);
+		if (c == 'K') parse_opts(&get_dkeep, &set_dkeep, &prefetch, 0, 1);
+		if (c == 'A') parse_opts(&get_lookahead, &set_lookahead, &lookahead, 0, 1);
+		if (c == 'L') parse_opts(&get_doorlock, &set_doorlock, &doorlock, 0, 1);
+		if (c == 'W') parse_opts(&get_wcache, &set_wcache, &wcache, 0, 1);
 		parse_opts_v3((c == 'C'), &get_powermode, NULL, NULL);
 		parse_opts_v2((c == 'y'), &get_standbynow, &set_standbynow);
 		parse_opts_v2((c == 'Y'), &get_sleepnow, &set_sleepnow);
 		reread_partn = (c == 'z');
 		parse_opts_v2((c == 'Z'), &get_seagate, &set_seagate);
 #endif
-		USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(parse_opts((c == 'U'), NULL, &unregister_hwif, &hwif, 0, INT_MAX));	
+		USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(if (c == 'U') parse_opts(NULL, &unregister_hwif, &hwif, 0, INT_MAX));	
 #ifdef HDIO_GET_QDMA
+		if (c == 'Q') {
 #ifdef HDIO_SET_QDMA
-		parse_opts((c == 'Q'), &get_dma_q, &set_dma_q, &dma_q, 0, INT_MAX);
+			parse_opts(&get_dma_q, &set_dma_q, &dma_q, 0, INT_MAX);
 #else
-		parse_opts((c == 'Q'), &get_dma_q, NULL, NULL, 0, 0);	
+			parse_opts(&get_dma_q, NULL, NULL, 0, 0);	
 #endif
+		}
 #endif		
 		USE_FEATURE_HDPARM_HDIO_DRIVE_RESET( perform_reset = (c == 'r'));
-		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(parse_opts((c == 'x'), NULL, &perform_tristate, &tristate, 0, 1));	
-		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(parse_opts((c == 'b'), &get_busstate, &set_busstate, &busstate, 0, 2));	
+		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'x') parse_opts(NULL, &perform_tristate, &tristate, 0, 1));	
+		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'b') parse_opts(&get_busstate, &set_busstate, &busstate, 0, 2));	
 #if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
 		if (c == 'R') {
-			parse_opts((c == 'R'), NULL, &scan_hwif, &hwif_data, 0, INT_MAX);	
+			parse_opts(NULL, &scan_hwif, &hwif_data, 0, INT_MAX);	
 			hwif_ctrl =  bb_xgetlarg((argv[optind]) ? argv[optind] : "", 10, 0, INT_MAX);
 			hwif_irq  =  bb_xgetlarg((argv[optind+1]) ? argv[optind+1] : "", 10, 0, INT_MAX);
 			/* Move past the 2 additional arguments */
