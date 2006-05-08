@@ -455,7 +455,11 @@ config CONFIG_FEATURE_MTAB_SUPPORT
 	  example a mount under chroot won't update it), can't handle modern
 	  features like separate per-process filesystem namespaces, requires
 	  that your /etc directory be writeable, tends to get easily confused
-	  by --bind or --move mounts, and so on.  (In brief: avoid.)
+	  by --bind or --move mounts, won't update if you rename a directory
+	  that contains a mount point, and so on.  (In brief: avoid.)
+
+	  About the only reason to use this is if you've removed /proc from
+	  your kernel.
 
 endmenu
 
