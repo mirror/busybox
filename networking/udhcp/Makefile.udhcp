@@ -1,0 +1,110 @@
+# udhcp makefile
+
+DESTDIR     = 
+prefix      = /usr
+SBINDIR     = /sbin
+USRSBINDIR  = $(DESTDIR)$(prefix)/sbin
+USRBINDIR   = $(DESTDIR)$(prefix)/bin
+USRSHAREDIR = $(DESTDIR)$(prefix)/share
+
+# Uncomment this to get a shared binary. Call as udhcpd for the server,
+# and udhcpc for the client
+#COMBINED_BINARY=1
+
+# Uncomment this for extra output and to compile with debugging symbols
+#UDHCP_DEBUG=1
+
+# Uncomment this to output messages to syslog, otherwise, messages go to stdout
+#UDHCP_SYSLOG=1
+
+# Set to the prefix of your cross-compiler
+#CROSS_COMPILE=arm-uclibc-
+
+
+#---------------------------------------------------#
+# You should not have to change anything below here #
+#---------------------------------------------------#
+
+CC = $(CROSS_COMPILE)gcc
+LD = $(CROSS_COMPILE)gcc
+INSTALL = install
+
+OBJS_SHARED = common.o options.o packet.o pidfile.o signalpipe.o socket.o
+DHCPD_OBJS = dhcpd.o arpping.o files.o leases.o serverpacket.o static_leases.o
+DHCPC_OBJS = dhcpc.o clientpacket.o clientsocket.o script.o
+
+ifdef COMBINED_BINARY
+EXEC1 = udhcpd
+OBJS1 = $(DHCPD_OBJS) $(DHCPC_OBJS) $(OBJS_SHARED) frontend.o
+CFLAGS += -DCOMBINED_BINARY
+else
+EXEC1 = udhcpd
+OBJS1 = $(DHCPD_OBJS) $(OBJS_SHARED)
+
+EXEC2 = udhcpc
+OBJS2 = $(DHCPC_OBJS) $(OBJS_SHARED)
+endif
+
+EXEC3 = dumpleases
+OBJS3 = dumpleases.o
+
+BOOT_PROGRAM = udhcpc
+DAEMON = udhcpd
+COMMAND = dumpleases
+
+ifdef UDHCP_SYSLOG
+CFLAGS += -DUDHCP_SYSLOG
+endif
+
+CFLAGS += -W -Wall -Wstrict-prototypes -D_GNU_SOURCE
+
+ifdef UDHCP_DEBUG
+CFLAGS += -g -DUDHCP_DEBUG
+STRIP=true
+else
+CFLAGS += -Os -fomit-frame-pointer
+STRIP=$(CROSS_COMPILE)strip
+endif
+
+all: $(EXEC1) $(EXEC2) $(EXEC3)
+	$(STRIP) --remove-section=.note --remove-section=.comment $(EXEC1) $(EXEC2) $(EXEC3)
+
+$(OBJS1) $(OBJS2) $(OBJS3): *.h Makefile
+$(EXEC1) $(EXEC2) $(EXEC3): Makefile
+
+.c.o:
+	$(CC) -c $(CFLAGS) $<
+	
+$(EXEC1): $(OBJS1)
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJS1) -o $(EXEC1)
+
+$(EXEC2): $(OBJS2)
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJS2) -o $(EXEC2)
+
+$(EXEC3): $(OBJS3)
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJS3) -o $(EXEC3)
+
+
+install: all
+	mkdir -p $(USRSBINDIR) $(USRBINDIR) 
+	$(INSTALL) -m 755 $(DAEMON) $(USRSBINDIR)
+	$(INSTALL) -m 755 $(COMMAND) $(USRBINDIR)
+ifdef COMBINED_BINARY
+	ln -sf $(DAEMON) $(USRSBINDIR)/$(BOOT_PROGRAM)
+else
+	$(INSTALL) -m 755 $(BOOT_PROGRAM) $(USRSBINDIR)
+endif
+	mkdir -p $(USRSHAREDIR)/udhcpc
+	for name in bound deconfig nak renew script ; do \
+		$(INSTALL) -m 755 samples/sample.$$name \
+			$(USRSHAREDIR)/udhcpc/default.$$name ; \
+	done
+	mkdir -p $(USRSHAREDIR)/man/man1
+	$(INSTALL) -m 644 dumpleases.1 $(USRSHAREDIR)/man/man1
+	mkdir -p $(USRSHAREDIR)/man/man5
+	$(INSTALL) -m 644 udhcpd.conf.5 $(USRSHAREDIR)/man/man5
+	mkdir -p $(USRSHAREDIR)/man/man8
+	$(INSTALL) -m 644 udhcpc.8 udhcpd.8 $(USRSHAREDIR)/man/man8
+
+clean:
+	-rm -f udhcpd udhcpc dumpleases *.o *.a core

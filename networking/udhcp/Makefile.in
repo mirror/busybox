@@ -1,0 +1,53 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+#
+
+UDHCP_AR:=udhcp.a
+ifndef $(UDHCP_DIR)
+UDHCP_DIR:=$(top_builddir)/networking/udhcp/
+endif
+srcdir=$(top_srcdir)/networking/udhcp
+
+#ok, so I forgot how to do an or, but this is a quick and dirty hack
+ifeq ($(strip $(CONFIG_UDHCPC)),y)
+CONFIG_UDHCP_SHARED=y
+else
+ifeq ($(strip $(CONFIG_UDHCPD)),y)
+CONFIG_UDHCP_SHARED=y
+else
+CONFIG_UDHCP_SHARED=n
+endif
+endif
+
+UDHCP-y:=
+UDHCP-$(CONFIG_UDHCP_SHARED)    += common.c options.c packet.c pidfile.c \
+				   signalpipe.c socket.c
+UDHCP-$(CONFIG_UDHCPC)		+= dhcpc.c clientpacket.c clientsocket.c \
+				   script.c
+UDHCP-$(CONFIG_UDHCPD)		+= dhcpd.c arpping.c files.c leases.c \
+				   serverpacket.c static_leases.c
+UDHCP-$(CONFIG_DUMPLEASES)	+= dumpleases.c
+UDHCP_OBJS:=$(patsubst %.c,$(UDHCP_DIR)%.o, $(UDHCP-y))
+
+ifneq ($(strip $(UDHCP-y)),)
+libraries-y+=$(UDHCP_DIR)$(UDHCP_AR)
+endif
+
+UDHCP-y:=$(patsubst %,$(srcdir)/%,$(UDHCP-y))
+UDHCP-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(UDHCP-y)
+APPLET_SRC-a+=$(UDHCP-a)
+
+UDHCP_INCLUDES:=$(srcdir)
+
+APPLETS_DEFINE-y+=-DIN_BUSYBOX -I$(UDHCP_INCLUDES)
+APPLETS_DEFINE-a+=-DIN_BUSYBOX -I$(UDHCP_INCLUDES)
+
+$(UDHCP_DIR)$(UDHCP_AR): $(UDHCP_OBJS)
+	$(do_ar)
+
+$(UDHCP_OBJS): $(UDHCP_DIR)%.o : $(srcdir)/%.c
+	$(compile.c) -DIN_BUSYBOX
