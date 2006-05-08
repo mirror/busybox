@@ -38,23 +38,25 @@ static void make_device(char *path)
 	int mode = 0660;
 	uid_t uid = 0;
 	gid_t gid = 0;
+	char *temp = path + strlen(path);
 
-	RESERVE_CONFIG_BUFFER(temp, PATH_MAX);
+	/* Try to read major/minor string.  Note that the kernel puts \n after
+	 * the data, so we don't need to worry about null terminating the string
+	 * because sscanf() will stop at the first nondigit, which \n is.  We
+	 * also depend on path having writeable space after it. */
 
-	/* Try to read major/minor string */
-
-	snprintf(temp, PATH_MAX, "%s/dev", path);
-	fd = open(temp, O_RDONLY);
-	len = read(fd, temp, PATH_MAX-1);
+	strcat(path, "/dev");
+	fd = open(path, O_RDONLY);
+	len = read(fd, temp + 1, 64);
+	*temp++ = 0;
 	close(fd);
-	if (len < 1) goto end;
+	if (len < 1) return;
 
 	/* Determine device name, type, major and minor */
 
 	device_name = strrchr(path, '/') + 1;
-	type = strncmp(path+5, "block/", 6) ? S_IFCHR : S_IFBLK;
-	if (sscanf(temp, "%d:%d", &major, &minor) != 2)
-		goto end;
+	type = path[5]=='c' ? S_IFCHR : S_IFBLK;
+	if (sscanf(temp, "%d:%d", &major, &minor) != 2) return;
 
 	/* If we have a config file, look up permissions for this device */
 
@@ -167,18 +169,14 @@ found_device:
 		}
 	}
 
-	sprintf(temp, "%s/%s", DEV_PATH, device_name);
 	umask(0);
-	if (mknod(temp, mode | type, makedev(major, minor)) && errno != EEXIST)
-		bb_perror_msg_and_die("mknod %s failed", temp);
+	if (mknod(device_name, mode | type, makedev(major, minor)) && errno != EEXIST)
+		bb_perror_msg_and_die("mknod %s failed", device_name);
 
 	if (major==root_major && minor==root_minor)
-		symlink(temp,DEV_PATH "/root");
+		symlink(device_name, "root");
 	
-	if (ENABLE_FEATURE_MDEV_CONF) chown(temp,uid,gid);
-
-end:
-	RELEASE_CONFIG_BUFFER(temp);
+	if (ENABLE_FEATURE_MDEV_CONF) chown(device_name, uid, gid);
 }
 
 /* Recursive search of /sys/block or /sys/class.  path must be a writeable
@@ -220,6 +218,8 @@ int mdev_main(int argc, char *argv[])
 	char *env_path;
 	RESERVE_CONFIG_BUFFER(temp,PATH_MAX);
 
+	bb_xchdir(DEV_PATH);
+
 	/* Scan */
 
 	if (argc == 2 && !strcmp(argv[1],"-s")) {
@@ -245,8 +245,7 @@ int mdev_main(int argc, char *argv[])
 			sprintf(temp, "/sys%s", env_path);
 			make_device(temp);
 		} else if (!strcmp(action, "remove")) {
-			sprintf(temp, "%s/%s", DEV_PATH, strrchr(env_path, '/') + 1);
-			unlink(temp);
+			unlink(strrchr(env_path, '/') + 1);
 		}
 	}
 
