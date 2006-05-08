@@ -362,7 +362,7 @@ sizes: busybox_unstripped
 	$(NM) --size-sort $(<)
 .PHONY: bloatcheck
 bloatcheck: busybox_old busybox_unstripped
-	@scripts/bloat-o-meter busybox_old busybox_unstripped
+	@$(top_srcdir)/scripts/bloat-o-meter busybox_old busybox_unstripped
 
 .PHONY: objsizes
 objsizes: busybox_unstripped
