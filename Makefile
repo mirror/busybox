@@ -27,7 +27,7 @@ vpath %/Config.in $(srctree)
 
 DIRS:=applets archival archival/libunarchive coreutils console-tools \
 	debianutils editors findutils init miscutils modutils networking \
-	networking/libiproute procps loginutils shell \
+	networking/libiproute networking/udhcp procps loginutils shell \
 	sysklogd util-linux e2fsprogs libpwdgrp coreutils/libcoreutils libbb
 
 SRC_DIRS:=$(patsubst %,$(top_srcdir)/%,$(DIRS))
