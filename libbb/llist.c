@@ -47,21 +47,32 @@ llist_t *llist_add_to_end(llist_t *list_head, char *data)
 }
 #endif
 
-#ifdef L_llist_free_one
-/* Free the current list element and advance to the next entry in the list.
- * Returns a pointer to the next element.  */
-llist_t *llist_free_one(llist_t *elm)
+#ifdef L_llist_pop
+/* Remove first element from the list and return it */
+void *llist_pop(llist_t **head)
 {
-	llist_t *next = elm ? elm->link : NULL;
-	free(elm);
-	return next;
+	void *data;
+
+	if(!*head) data = *head;
+	else {
+		void *next = (*head)->link;
+		data = (*head)->data;
+		*head = (*head)->link;
+		free(next);
+	}
+
+	return data;
 }
 #endif
 
 #ifdef L_llist_free
-/* Recursively free all elements in the linked list.  */
-void llist_free(llist_t *elm)
+/* Recursively free all elements in the linked list.  If freeit != NULL
+ * call it on each datum in the list */
+void llist_free(llist_t *elm, void (*freeit)(void *data))
 {
-	while ((elm = llist_free_one(elm)));
+	while (elm) {
+		void *data = llist_pop(&elm);
+		if (freeit) freeit(data);
+	}
 }
 #endif

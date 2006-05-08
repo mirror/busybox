@@ -477,8 +477,8 @@ typedef struct llist_s {
 } llist_t;
 extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
 extern llist_t *llist_add_to_end(llist_t *list_head, char *data);
-extern llist_t *llist_free_one(llist_t *elm);
-extern void llist_free(llist_t *elm);
+extern void *llist_pop(llist_t **elm);
+extern void llist_free(llist_t *elm, void (*freeit)(void *data));
 
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);

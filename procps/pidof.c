@@ -65,7 +65,7 @@ int pidof_main(int argc, char **argv)
 		while (omits_p) {
 			/* are we asked to exclude the parent's process ID?  */
 			if (!strncmp(omits_p->data, "%PPID", 5)) {
-				omits_p = llist_free_one(omits_p);
+				llist_pop(&omits_p);
 				snprintf(getppid_str, sizeof(getppid_str), "%d", getppid());
 				omits_p = llist_add_to(omits_p, getppid_str);
 #if 0
@@ -117,7 +117,7 @@ int pidof_main(int argc, char **argv)
 
 #if ENABLE_FEATURE_PIDOF_OMIT
 	if (ENABLE_FEATURE_CLEAN_UP)
-		llist_free(omits);
+		llist_free(omits, NULL);
 #endif
 	return fail ? EXIT_FAILURE : EXIT_SUCCESS;
 }

@@ -182,7 +182,7 @@ llist_t *fslist = 0;
 #if ENABLE_FEATURE_CLEAN_UP
 static void delete_block_backed_filesystems(void)
 {
-	llist_free(fslist);
+	llist_free(fslist, free);
 }
 #else
 void delete_block_backed_filesystems(void);

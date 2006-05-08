@@ -101,7 +101,7 @@ $(LIBBB_MOBJ5):$(LIBBB_MSRC5)
 	$(compile.c) -DL_$(notdir $*)
 
 LIBBB_MSRC6:=$(srcdir)/llist.c
-LIBBB_MOBJ6:=llist_add_to.o llist_add_to_end.o llist_free_one.o llist_free.o
+LIBBB_MOBJ6:=llist_add_to.o llist_add_to_end.o llist_pop.o llist_free.o
 LIBBB_MOBJ6:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ6))
 $(LIBBB_MOBJ6):$(LIBBB_MSRC6)
 	$(compile.c) -DL_$(notdir $*)
