@@ -288,16 +288,26 @@ endmenu
 menu 'Debugging Options'
 
 config CONFIG_DEBUG
-	bool "Build BusyBox with Debugging symbols"
+	bool "Build BusyBox with extra Debugging symbols"
 	default n
 	help
-	  Say Y here if you wish to compile BusyBox with debugging symbols.
-	  This will allow you to use a debugger to examine BusyBox internals
-	  while applets are running.  This increases the size of the binary
-	  considerably and should only be used when doing development.
-	  If you are doing development and want to debug BusyBox, answer Y.
+	  Say Y here if you wish to examine BusyBox internals while applets are
+	  running.  This increases the size of the binary considerably, and
+	  should only be used when doing development.  If you are doing
+	  development and want to debug BusyBox, answer Y.
 
 	  Most people should answer N.
+
+config CONFIG_DEBUG_PESSIMIZE
+	bool "Disable compiler optimizations."
+	default n
+	depends on CONFIG_DEBUG
+	help
+	  The compiler's optimization of source code can eliminate and reorder
+	  code, resulting in an executable that's hard to understand when
+	  stepping through it with a debugger.  This switches it off, resulting
+	  in a much bigger executable that more closely matches the source
+	  code.
 
 choice
 	prompt "Additional debugging library"

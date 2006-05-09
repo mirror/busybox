@@ -75,13 +75,14 @@ CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
 
 # This must bind late because srcdir is reset for every source subdirectory.
 INCS:=-I$(top_builddir)/include -I$(top_srcdir)/include
-CFLAGS=$(INCS) -I$(srcdir)
+CFLAGS=$(INCS) -I$(srcdir) -D_GNU_SOURCE
 CFLAGS+=$(CHECKED_CFLAGS)
 ARFLAGS=cru
 
 # Warnings
 
-CFLAGS+=-Wall -Wstrict-prototypes -Wshadow
+CFLAGS += -Wall -Wstrict-prototypes -Wshadow
+LDFLAGS += $(call check_ld,--warn-common,)
 
 # gcc centric. Perhaps fiddle with findstring gcc,$(CC) for the rest
 # get the CC MAJOR/MINOR version
@@ -183,7 +184,7 @@ ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
 	OPTIMIZATION+=$(call check_gcc,-fno-branch-count-reg,)
 endif # gcc-4.1 and beyond
 endif
-OPTIMIZATIONS:=$(OPTIMIZATION) $(call check_gcc,-fomit-frame-pointer,)
+OPTIMIZATION+=$(call check_gcc,-fomit-frame-pointer,)
 
 #
 #--------------------------------------------------------
@@ -207,14 +208,21 @@ else
 	LIBRARIES:=-lefence
     endif
 endif
+
+# Debugging info
+
 ifeq ($(strip $(CONFIG_DEBUG)),y)
-    CFLAGS  +=-g -D_GNU_SOURCE
-    LDFLAGS += $(call check_ld,--warn-common,)
+    CFLAGS +=-g
 else
-    CFLAGS+=$(OPTIMIZATIONS) -D_GNU_SOURCE -DNDEBUG
-    LDFLAGS += $(call check_ld,--warn-common,)
+    CFLAGS +=-DNDEBUG
     LDFLAGS += $(call check_ld,--sort-common,)
 endif
+
+ifneq ($(strip $(CONFIG_DEBUG_PESSIMIZE)),y)
+else
+    CFLAGS += $(OPTIMIZATION)
+endif
+
 # warn a bit more verbosely for non-release versions
 ifneq ($(EXTRAVERSION),)
     CHECKED_CFLAGS+=$(call check_gcc,-Wstrict-prototypes,)
