@@ -176,12 +176,14 @@ static int compare_keys(const void *xarg, const void *yarg)
 				/* not numbers < NaN < -infinity < numbers < +infinity) */
 				if(x==xx) retval=(y==yy ? 0 : -1);
 				else if(y==yy) retval=1;
-				else if(isnan(dx)) retval=isnan(dy) ? 0 : -1;
-				else if(isnan(dy)) retval=1;
-				else if(isinf(dx)) {
-					if(dx<0) retval=((isinf(dy) && dy<0) ? 0 : -1);
-					else retval=((isinf(dy) && dy>0) ? 0 : 1);
-				} else if(isinf(dy)) retval=dy<0 ? 1 : -1;
+				/* Check for isnan */
+				else if(dx != dx) retval = (dy != dy) ? 0 : -1;
+				else if(dy != dy) retval = 1;
+				/* Check for infinity.  Could underflow, but it avoids libm. */
+				else if(1.0/dx == 0.0) {
+					if(dx<0) retval=((1.0/dy == 0.0 && dy<0) ? 0 : -1);
+					else retval=((1.0/dy == 0.0 && dy>0) ? 0 : 1);
+				} else if(1.0/dy == 0.0) retval=dy<0 ? 1 : -1;
 				else retval=dx>dy ? 1 : (dx<dy ? -1 : 0);
 				break;
 			}
