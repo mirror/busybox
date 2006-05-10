@@ -354,7 +354,7 @@ free_session(struct tsession *ts)
 	struct tsession *t = sessions;
 
 	/* Unlink this telnet session from the session list.  */
-	if(t == ts)
+	if (t == ts)
 		sessions = ts->next;
 	else {
 		while(t->next != ts)
@@ -369,9 +369,9 @@ free_session(struct tsession *ts)
 	close(ts->ptyfd);
 	close(ts->sockfd);
 
-	if(ts->ptyfd == maxfd || ts->sockfd == maxfd)
+	if (ts->ptyfd == maxfd || ts->sockfd == maxfd)
 		maxfd--;
-	if(ts->ptyfd == maxfd || ts->sockfd == maxfd)
+	if (ts->ptyfd == maxfd || ts->sockfd == maxfd)
 		maxfd--;
 
 	free(ts);
@@ -620,9 +620,9 @@ telnetd_main(int argc, char **argv)
 					continue;
 				}
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
-				if(!*(ts->buf1 + ts->rdidx1 + r - 1)) {
+				if (!*(ts->buf1 + ts->rdidx1 + r - 1)) {
 					r--;
-					if(!r)
+					if (!r)
 						continue;
 				}
 				ts->rdidx1 += r;
