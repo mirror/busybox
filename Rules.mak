@@ -353,4 +353,12 @@ do_elf2flt         = @$(disp_elf2flt)   ; $(cmd_elf2flt)
 %.o: %.c
 	$(compile.c)
 
+uppercase = $(shell echo $1 | tr '[:lower:]' '[:upper:]')
+%.a:
+	@if test -z "$($(call uppercase,$*)_DIR)" ; then \
+		echo "Invalid target $@" ; \
+		exit 1 ; \
+	fi
+	$(Q)$(MAKE) $($(call uppercase,$*)_DIR)$@
+
 .PHONY: dummy
