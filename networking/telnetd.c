@@ -298,9 +298,8 @@ make_new_session(int sockfd)
 	send_iac(ts, WILL, TELOPT_ECHO);
 	send_iac(ts, WILL, TELOPT_SGA);
 
-
 	if ((pid = fork()) < 0) {
-		syslog(LOG_ERR, "Can`t forking");
+		syslog(LOG_ERR, "Could not fork");
 	}
 	if (pid == 0) {
 		/* In child, open the child's side of the tty.  */
@@ -314,7 +313,7 @@ make_new_session(int sockfd)
 		if (open(tty_name, O_RDWR /*| O_NOCTTY*/) < 0) {
 			syslog(LOG_ERR, "Could not open tty");
 			exit(1);
-			}
+		}
 		dup(0);
 		dup(0);
 
