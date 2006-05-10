@@ -525,7 +525,8 @@ telnetd_main(int argc, char **argv)
 #ifndef CONFIG_FEATURE_TELNETD_INETD
 		/* First check for and accept new sessions.  */
 		if (FD_ISSET(master_fd, &rdfdset)) {
-			int fd, salen;
+			int fd;
+			socklen_t salen;
 
 			salen = sizeof(sa);
 			if ((fd = accept(master_fd, (struct sockaddr *)&sa,
