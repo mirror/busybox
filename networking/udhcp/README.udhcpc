@@ -27,6 +27,7 @@ The command line options for the udhcp client are:
 -r, --request=IP                IP address to request (default: none)
 -s, --script=file               Run file at dhcp events (default:
                                 /usr/share/udhcpc/default.script)
+-t, --retries=NUM               Send up to NUM request packets
 -v, --version                   Display version
 
 
