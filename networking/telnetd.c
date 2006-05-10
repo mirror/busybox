@@ -22,6 +22,7 @@
  */
 
 /*#define DEBUG 1 */
+#undef DEBUG
 
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -223,6 +224,9 @@ getpty(char *line)
 		}
 		for (j = 0; j < 16; j++) {
 			line[9] = j < 10 ? j + '0' : j - 10 + 'a';
+#ifdef DEBUG
+			fprintf(stderr, "Trying to open device: %s\n", line);
+#endif
 			if ((p = open(line, O_RDWR | O_NOCTTY)) >= 0) {
 				line[5] = 't';
 				return p;
@@ -277,7 +281,7 @@ make_new_session(int sockfd)
 	pty = getpty(tty_name);
 
 	if (pty < 0) {
-		syslog(LOG_ERR, "All network ports in use!");
+		syslog(LOG_ERR, "All terminals in use!");
 		return 0;
 	}
 
