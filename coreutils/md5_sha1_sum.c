@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  Copyright (C) 2003 Glenn L. McGrath
  *  Copyright (C) 2003-2004 Erik Andersen
@@ -47,45 +48,44 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 	RESERVE_CONFIG_UBUFFER(in_buf, 4096);
 	void (*update)(const void*, size_t, void*);
 	void (*final)(void*, void*);
-	
-	if(strcmp(filename, "-") == 0) {
+
+	if (strcmp(filename, "-") == 0) {
 		src_fd = STDIN_FILENO;
 	} else if(0 > (src_fd = open(filename, O_RDONLY))) {
 		bb_perror_msg("%s", filename);
 		return NULL;
 	}
 
-	// figure specific hash algorithims
-	if(ENABLE_MD5SUM && hash_algo==HASH_MD5) {
+	/* figure specific hash algorithims */
+	if (ENABLE_MD5SUM && hash_algo==HASH_MD5) {
 		md5_begin(&context.md5);
 		update = (void (*)(const void*, size_t, void*))md5_hash;
 		final = (void (*)(void*, void*))md5_end;
 		hash_len = 16;
-	} else if(ENABLE_SHA1SUM && hash_algo==HASH_SHA1) {
+	} else if (ENABLE_SHA1SUM && hash_algo==HASH_SHA1) {
 		sha1_begin(&context.sha1);
 		update = (void (*)(const void*, size_t, void*))sha1_hash;
 		final = (void (*)(void*, void*))sha1_end;
 		hash_len = 20;
 	} else {
-		bb_error_msg_and_die("algotithm not supported");
+		bb_error_msg_and_die("algorithm not supported");
 	}
-	
 
-	while(0 < (count = read(src_fd, in_buf, sizeof in_buf))) {
+	while (0 < (count = read(src_fd, in_buf, sizeof in_buf))) {
 		update(in_buf, count, &context);
 	}
 
-	if(count == 0) {
+	if (count == 0) {
 		final(in_buf, &context);
 		hash_value = hash_bin_to_hex(in_buf, hash_len);
 	}
-	
+
 	RELEASE_CONFIG_BUFFER(in_buf);
-	
-	if(src_fd != STDIN_FILENO) {
+
+	if (src_fd != STDIN_FILENO) {
 		close(src_fd);
 	}
-	
+
 	return hash_value;
 }
 
@@ -112,7 +112,7 @@ static int hash_files(int argc, char **argv, hash_algo_t hash_algo)
 	if (argc == optind) {
 		argv[argc++] = "-";
 	}
-	
+
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && flags & FLAG_CHECK) {
 		FILE *pre_computed_stream;
 		int count_total = 0;
@@ -189,13 +189,13 @@ static int hash_files(int argc, char **argv, hash_algo_t hash_algo)
 #ifdef CONFIG_MD5SUM
 int md5sum_main(int argc, char **argv)
 {
-	return(hash_files(argc, argv, HASH_MD5));
+	return (hash_files(argc, argv, HASH_MD5));
 }
 #endif
 
 #ifdef CONFIG_SHA1SUM
 int sha1sum_main(int argc, char **argv)
 {
-	return(hash_files(argc, argv, HASH_SHA1));
+	return (hash_files(argc, argv, HASH_SHA1));
 }
 #endif
