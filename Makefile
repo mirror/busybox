@@ -450,9 +450,10 @@ clean:
 	    -o -name \*.os -o -name \*.osm -o -name \*.a | xargs rm -f
 
 distclean: clean
-	- rm -f scripts/bb_mkdep
-	- rm -r -f include/config $(DEP_INCLUDES)
-	- find . -name .depend'*' | xargs rm -f
+	rm -f scripts/bb_mkdep scripts/usage
+	rm -r -f include/config include/_usage.h include/config.h $(DEP_INCLUDES)
+	find . -name .depend'*' -print0 | xargs -0 rm -f
+	rm -f .hdepend
 	rm -f .config .config.old .config.cmd
 
 release: distclean #doc
