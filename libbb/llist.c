@@ -5,6 +5,7 @@
  * Copyright (C) 2003 Glenn McGrath
  * Copyright (C) 2005 Vladimir Oleynik
  * Copyright (C) 2005 Bernhard Fischer
+ * Copyright (C) 2006 Rob Landley <rob@landley.net>
  *
  * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
@@ -57,8 +58,8 @@ void *llist_pop(llist_t **head)
 	else {
 		void *next = (*head)->link;
 		data = (*head)->data;
-		*head = (*head)->link;
-		free(next);
+		free(*head);
+		*head = next;
 	}
 
 	return data;
