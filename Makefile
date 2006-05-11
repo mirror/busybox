@@ -132,8 +132,7 @@ help:
 	@echo '  uninstall'
 	@echo
 	@echo 'Development:'
-	@echo '  bloatcheck             - show size difference between busybox_unstripped'
-	@echo '                           and busybox_old'
+	@echo '  bloatcheck		- show size difference between old and new versions'
 	@echo '  check			- run the test suite for all applets'
 	@echo '  checkhelp		- check for missing help-entries in Config.in'
 	@echo '  randconfig		- generate a random configuration'
