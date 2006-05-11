@@ -76,7 +76,7 @@ static unsigned char inbuf[IBUFSIZ + 64];
 static unsigned char outbuf[OBUFSIZ + 2048];
 
 
-static long int htab[HSIZE];
+static unsigned char htab[HSIZE];
 static unsigned short codetab[HSIZE];
 
 #define	htabof(i)				htab[i]
