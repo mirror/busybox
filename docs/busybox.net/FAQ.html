@@ -1,37 +1,61 @@
 <!--#include file="header.html" -->
 
-
 <h3>Frequently Asked Questions</h3>
 
 This is a collection of some of the more frequently asked questions
 about BusyBox.  Some of the questions even have answers. If you
 have additions to this FAQ document, we would love to add them,
 
+<h2>General questions</h2>
 <ol>
 <li><a href="#getting_started">How can I get started using BusyBox?</a>
 <li><a href="#build_system">How do I build a BusyBox-based system?</a>
-<li><a href="#init">Busybox init isn't working!</a>
 <li><a href="#kernel">Which Linux kernel versions are supported?</a>
 <li><a href="#arch">Which architectures does BusyBox run on?</a>
 <li><a href="#libc">Which C libraries are supported?</a>
 <li><a href="#commercial">Can I include BusyBox as part of the software on my device?</a>
-<li><a href="#bugs">I think I found a bug in BusyBox!  What should I do?!</a>
-<li><a href="#job_control">Why do I keep getting "sh: can't access tty; job control
-	turned off" errors?  Why doesn't Control-C work within my shell?</a>
-<li><a href="#demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come
-	you don't answer all my questions on the mailing list instantly?  I demand
-	that you help me with all of my problems <em>Right Now</em>!</a>
-<li><a href="#helpme">I need help with BusyBox!  What should I do?</a>
-<li><a href="#contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox developers willing to
-	be paid in order to fix bugs or add in &lt;favorite feature&gt;?  Are you willing to provide
-	support contracts?</a>
 <li><a href="#external">Where can I find other small utilities since busybox does not include the features I want?</a></li>
-<li><a href="#support">I think you guys are great and I want to help support your work!</a>
-<li><a href="#optimize">I want to make busybox even smaller, how do I go about it?</a>
+<li><a href="#demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come you don't answer all my questions on the mailing list instantly?  I demand that you help me with all of my problems <em>Right Now</em>!</a>
+<li><a href="#helpme">I need help with BusyBox!  What should I do?</a>
+<li><a href="#contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox developers willing to be paid in order to fix bugs or add in &lt;favorite feature&gt;?  Are you willing to provide support contracts?</a>
+</ol>
 
+<h2>Troubleshooting</h2>
+<ol>
+<li><a href="#bugs">I think I found a bug in BusyBox!  What should I do?!</a></li>
+<li><a href="#init">Busybox init isn't working!</a></li>
+<li><a href="#sed">I can't configure busybox on my system.</a></li>
+<li><a href="#job_control">Why do I keep getting "sh: can't access tty; job control turned off" errors?  Why doesn't Control-C work within my shell?</a></li>
+</ol>
+
+<h2>Programming questions</h2>
+<ol>
+  <li><a href="#goals">What are the goals of busybox?</a></li>
+  <li><a href="#design">What is the design of busybox?</a></li>
+  <li><a href="#source">How is the source code organized?</a></li>
+  <ul>
+    <li><a href="#source_applets">The applet directories.</a></li>
+    <li><a href="#source_libbb">The busybox shared library (libbb)</a></li>
+  </ul>
+  <li><a href="#optimize">I want to make busybox even smaller, how do I go about it?</a></li>
+  <li><a href="#adding">Adding an applet to busybox</a></li>
+  <li><a href="#standards">What standards does busybox adhere to?</a></li>
+  <li><a href="#portability">Portability.</a></li>
+  <li><a href="#tips">Tips and tricks.</a></li>
+  <ul>
+    <li><a href="#tips_encrypted_passwords">Encrypted Passwords</a></li>
+    <li><a href="#tips_vfork">Fork and vfork</a></li>
+    <li><a href="#tips_short_read">Short reads and writes</a></li>
+    <li><a href="#tips_memory">Memory used by relocatable code, PIC, and static linking.</a></li>
+    <li><a href="#tips_kernel_headers">Including Linux kernel headers.</a></li>
+  </ul>
+  <li><a href="#who">Who are the BusyBox developers?</a></li>
+</ul>
 
 
 </ol>
+
+<h1>General questions</h1>
 
 <hr />
 <p>
@@ -116,34 +140,6 @@ have additions to this FAQ document, we would love to add them,
 
 <hr />
 <p>
-<h2><a name="init">Busybox init isn't working!</a></h2>
-<p>
-    Build a statically linked version of the following "hello world" program
-    with your cross compiler toolchain.
-</p>
-<pre>
-#include &lt;stdio.h&gt;
-
-int main(int argc, char *argv)
-{
-  printf("Hello world!\n");
-  sleep(999999999);
-}
-</pre>
-
-<p>
-    Now try to boot your device with an "init=" argument pointing to your
-    hello world program.  Did you see the hello world message?  Until you
-    do, don't bother messing with busybox init.
-</p>
-
-<p>
-    Once you've got it working statically linked, try getting it to work
-    dynamically linked.  Then read the FAQ entry before this one.
-</p>
-
-<hr />
-<p>
 <h2><a name="kernel">Which Linux kernel versions are supported?</a></h2>
 <p>
     Full functionality requires Linux 2.4.x or better.  (Earlier versions may
@@ -185,73 +181,29 @@ int main(int argc, char *argv)
     <a href="http://www.busybox.net/lists/busybox/2005-March/013759.html">this thread</a>).
     This is still experimental, but may be supported in a future release.
 </p>
+
 <hr />
 <p>
 <h2><a name="commercial">Can I include BusyBox as part of the software on my device?</a></h2>
+<p>
 
+<p>
     Yes.  As long as you <a href="http://busybox.net/license.html">fully comply
     with the generous terms of the GPL BusyBox license</a> you can ship BusyBox
     as part of the software on your device.
-
-    <br>
-    <a href="#support">Please consider sharing some of the money you make.</a>
-
+</p>
 
 <hr />
 <p>
-<h2><a name="bugs">I think I found a bug in BusyBox!  What should I do?</a></h2>
+<h2><a name="external">where can i find other small utilities since busybox 
+	does not include the features i want?</a></h2>
 <p>
-
-
-<p>
-
-    If you simply need help with using or configuring BusyBox, please submit a
-    detailed description of your problem to the BusyBox mailing list at <a
-    href="mailto:busybox@mail.busybox.net"> busybox@mail.busybox.net</a>.
-    Please do not send email to individual developers asking
-    for private help unless you are planning on paying for consulting services.
-    When we answer questions on the BusyBox mailing list, it helps everyone,
-    while private answers help only you...
-
-    <p>
-
-    The developers of BusyBox are busy people, and have only so much they can
-    keep in their brains at a time.  As a result, bug reports sometimes get
-    lost when posted to the mailing list.  To prevent your bug report from
-    getting lost, if you find a bug in BusyBox, please use the <a
-    href="http://bugs.busybox.net/">BusyBox Bug and Patch Tracking System</a>
-    to submit a detailed bug report.
-
-    <p>
-
-    The same also applies to patches... Regardless of whether your patch is a
-    bug fix or adds shiney new features, please post your patch to the <a
-    href="http://bugs.busybox.net/">BusyBox Bug and Patch Tracking System</a>
-    to make certain it is properly considered.
-
+	we maintain such a <a href="tinyutils.html">list</a> on this site!
+</p>
 
 <hr />
 <p>
-<h2><a name="job_control">Why do I keep getting "sh: can't access tty; job control
-	turned off" errors?  Why doesn't Control-C work within my shell?</a></h2>
-<p>
-
-    Job control will be turned off since your shell can not obtain a controlling
-    terminal.  This typically happens when you run your shell on /dev/console.
-    The kernel will not provide a controlling terminal on the /dev/console
-    device.  Your should run your shell on a normal tty such as tty1 or ttyS0
-    and everything will work perfectly.  If you <em>REALLY</em> want your shell
-    to run on /dev/console, then you can hack your kernel (if you are into that
-    sortof thing) by changing drivers/char/tty_io.c to change the lines where
-    it sets "noctty = 1;" to instead set it to "0".  I recommend you instead
-    run your shell on a real console...
-
-
-<hr />
-<p>
-<h2><a name="demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come
-	you don't answer all my questions on the mailing list instantly?  I demand
-	that you help me with all of my problems <em>Right Now</em>!</a></h2>
+<h2><a name="demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come you don't answer all my questions on the mailing list instantly?  I demand that you help me with all of my problems <em>Right Now</em>!</a></h2>
 <p>
 
     You have not paid us a single cent and yet you still have the product of
@@ -266,81 +218,243 @@ int main(int argc, char *argv)
 <p>
 
     If you find that you need help with BusyBox, you can ask for help on the
-    BusyBox mailing list at busybox@mail.busybox.net.  In addition to the BusyBox
-    mailing list, Erik (andersee), Manuel (mjn3), Rob (landley) and others are
-    known to hang out on the uClibc IRC channel: #uclibc on irc.freenode.net.
-    (Daily logs of that IRC channel, going back to 2002, are available
-    <a href="http://ibot.Rikers.org/%23uclibc/">here</a>.)
+    BusyBox mailing list at busybox@busybox.net.</p>
 
-    <p>
+<p> In addition to the mailing list, Erik Andersen (andersee), Manuel Nova
+    (mjn3), Rob Landley (landley), Mike Frysinger (SpanKY), Bernhard Fischer
+    (blindvt), and other long-time BusyBox developers are known to hang out
+    on the uClibc IRC channel: #uclibc on irc.freenode.net.  There is a
+    <a href="http://ibot.Rikers.org/%23uclibc/">web archive of
+    daily logs of the #uclibc IRC channel</a> going back to 2002.
+</p>
 
+<p>
     <b>Please do not send private email to Rob, Erik, Manuel, or the other
     BusyBox contributors asking for private help unless you are planning on
     paying for consulting services.</b>
+</p>
 
-    <p>
-
+<p>
     When we answer questions on the BusyBox mailing list, it helps everyone
     since people with similar problems in the future will be able to get help
     by searching the mailing list archives.  Private help is reserved as a paid
     service.  If you need to use private communication, or if you are serious
     about getting timely assistance with BusyBox, you should seriously consider
     paying for consulting services.
-
-    <p>
-
-
+</p>
 
 <hr />
 <p>
-<h2><a name="contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox
-	developers willing to be paid in order to fix bugs or add in &lt;favorite feature&gt;?
-	Are you willing to provide support contracts?</a></h2>
+<h2><a name="contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox developers willing to be paid in order to fix bugs or add in &lt;favorite feature&gt;?  Are you willing to provide support contracts?</a></h2>
+</p>
+
 <p>
+    Yes we are.  The easy way to sponsor a new feature is to post an offer on
+    the mailing list to see who's interested.  You can also email the project's
+    maintainer and ask them to recommend someone.
+</p>
 
-    Sure!  Now you have our attention!  What you should do is contact <a
-	href="mailto:andersen@codepoet.org">Erik Andersen</a> of <a
-	href="http://codepoet-consulting.com/">CodePoet Consulting</a> to bid
-    on your project.  If Erik is too busy to personally add your feature, there
-    are many other active BusyBox contributors who will almost certainly be able
-    to help you out.  Erik can contact them privately, and may even let you to
-    post your request for services on the mailing list.
+<p> If you prefer to deal with an organization rather than an individual, Rob
+    Landley (the current BusyBox maintainer) works for
+    <a http://www.timesys.com>TimeSys</a>, and Eric Andersen (the previous
+    busybox maintainer and current uClibc maintainer) owns
+    <a href="http://codepoet-consulting.com/">CodePoet Consulting</a>.  Both
+    companies offer support contracts and handle new development, and there
+    are plenty of other companies that do the same.
+</p>
 
+
+
+
+<h1>Troubleshooting</h1>
+
+<hr />
+<p></p>
+<h2><a name="bugs">I think I found a bug in BusyBox!  What should I do?</a></h2>
+<p></p>
+
+<p>
+    If you simply need help with using or configuring BusyBox, please submit a
+    detailed description of your problem to the BusyBox mailing list at <a
+    href="mailto:busybox@busybox.net"> busybox@busybox.net</a>.
+    Please do not send email to individual developers asking
+    for private help unless you are planning on paying for consulting services.
+    When we answer questions on the BusyBox mailing list, it helps everyone,
+    while private answers help only you...
+</p>
+
+<p>
+    The developers of BusyBox are busy people, and have only so much they can
+    keep in their brains at a time.  As a result, bug reports and new feature
+    patches sometimes get lost when posted to the mailing list.  To prevent
+    your bug report from getting lost, if you find a bug in BusyBox that isn't
+    immediately addressed, please use the <a
+    href="http://bugs.busybox.net/">BusyBox Bug and Patch Tracking System</a>
+    to submit a detailed explanation and we'll get to it as soon as we can.
+</p>
 
 <hr />
 <p>
-<h2><a name="external">Where can I find other small utilities since busybox 
-	does not include the features I want?</a></h2>
+<h2><a name="init">Busybox init isn't working!</a></h2>
 <p>
-	We maintain such a <a href="tinyutils.html">list</a> on this site!
+    Build a statically linked version of the following "hello world" program
+    with your cross compiler toolchain.
+</p>
+<pre>
+#include &lt;stdio.h&gt;
 
+int main(int argc, char *argv)
+{
+  printf("Hello world!\n");
+  sleep(999999999);
+}
+</pre>
+
+<p>
+    Now try to boot your device with an "init=" argument pointing to your
+    hello world program.  Did you see the hello world message?  Until you
+    do, don't bother messing with busybox init.
+</p>
+
+<p>
+    Once you've got it working statically linked, try getting it to work
+    dynamically linked.  Then read the FAQ entry <a href="#build_system">How
+    do I build a BusyBox-based system?</a>
+</p>
 
 <hr />
 <p>
-<h2><a name="support">I think you guys are great and I want to help support your work!</a></h2>
+<h2><a name="sed">I can't configure busybox on my system.</a></h2>
+<p>
+    Configuring Busybox depends on a recent version of sed.  Older
+    distributions (Red Hat 7.2, Debian 3.0) may not come with a
+    usable version.  Luckily BusyBox can use its own sed to configure itself,
+    although this leads to a bit of a chicken and egg problem.
+    You can work around this by hand-configuring busybox to build with just
+    sed, then putting that sed in your path to configure the rest of busybox
+    with, like so:
+</p>
+
+<pre>
+  tar xvjf sources/busybox-x.x.x.tar.bz2
+  cd busybox-x.x.x
+  make allnoconfig
+  make include/bb_config.h
+  echo "CONFIG_SED=y" >> .config
+  echo "#undef ENABLE_SED" >> include/bb_config.h
+  echo "#define ENABLE_SED 1" >> include/bb_config.h
+  make
+  mv busybox sed
+  export PATH=`pwd`:"$PATH"
+</pre>
+
+<p>Then you can run "make defconfig" or "make menuconfig" normally.</p>
+
+<hr />
+<p>
+<h2><a name="job_control">Why do I keep getting "sh: can't access tty; job control turned off" errors?  Why doesn't Control-C work within my shell?</a></h2>
 <p>
 
-    Wow, that would be great!  If you would like to make a donation to help
-    support BusyBox, and/or request features, you can click here:
+    Job control will be turned off since your shell can not obtain a controlling
+    terminal.  This typically happens when you run your shell on /dev/console.
+    The kernel will not provide a controlling terminal on the /dev/console
+    device.  Your should run your shell on a normal tty such as tty1 or ttyS0
+    and everything will work perfectly.  If you <em>REALLY</em> want your shell
+    to run on /dev/console, then you can hack your kernel (if you are into that
+    sortof thing) by changing drivers/char/tty_io.c to change the lines where
+    it sets "noctty = 1;" to instead set it to "0".  I recommend you instead
+    run your shell on a real console...
+</p>
 
-    <!-- Begin PayPal Logo -->
-    <center>
-    <form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-	<input type="hidden" name="cmd" value="_xclick">
-	<input type="hidden" name="business" value="andersen@codepoet.org">
-	<input type="hidden" name="item_name" value="Support BusyBox">
-	<input type="hidden" name="image_url" value="http://codepoet-consulting.com/images/codepoet.png">
-	<input type="hidden" name="no_shipping" value="1">
-	<input type="image" src="images/donate.png" name="submit" alt="Make donation using PayPal">
-    </form>
-    </center>
-    <!-- End PayPal Logo -->
+<h1>Development</h1>
 
-    If you prefer to contact Erik directly to make a donation, donate hardware,
-    request support, etc, you can contact
-    <a href="http://codepoet-consulting.com/">CodePoet Consulting</a> here.
-    CodePoet Consulting can accept both Visa and MasterCard for those that do
-    not trust PayPal...
+<h2><b><a name="goals">What are the goals of busybox?</a></b></h2>
+
+<p>Busybox aims to be the smallest and simplest correct implementation of the
+standard Linux command line tools.  First and foremost, this means the
+smallest executable size we can manage.  We also want to have the simplest
+and cleanest implementation we can manage, be <a href="#standards">standards
+compliant</a>, minimize run-time memory usage (heap and stack), run fast, and
+take over the world.</p>
+
+<h2><b><a name="design">What is the design of busybox?</a></b></h2>
+
+<p>Busybox is like a swiss army knife: one thing with many functions.
+The busybox executable can act like many different programs depending on
+the name used to invoke it.  Normal practice is to create a bunch of symlinks
+pointing to the busybox binary, each of which triggers a different busybox
+function.  (See <a href="FAQ.html#getting_started">getting started</a> in the
+FAQ for more information on usage, and <a href="BusyBox.html">the
+busybox documentation</a> for a list of symlink names and what they do.)
+
+<p>The "one binary to rule them all" approach is primarily for size reasons: a
+single multi-purpose executable is smaller then many small files could be.
+This way busybox only has one set of ELF headers, it can easily share code
+between different apps even when statically linked, it has better packing
+efficiency by avoding gaps between files or compression dictionary resets,
+and so on.</p>
+
+<p>Work is underway on new options such as "make standalone" to build separate
+binaries for each applet, and a "libbb.so" to make the busybox common code
+available as a shared library.  Neither is ready yet at the time of this
+writing.</p>
+
+<a name="source"></a>
+
+<h2><a name="source_applets"><b>The applet directories</b></a></h2>
+
+<p>The directory "applets" contains the busybox startup code (applets.c and
+busybox.c), and several subdirectories containing the code for the individual
+applets.</p>
+
+<p>Busybox execution starts with the main() function in applets/busybox.c,
+which sets the global variable bb_applet_name to argv[0] and calls
+run_applet_by_name() in applets/applets.c.  That uses the applets[] array
+(defined in include/busybox.h and filled out in include/applets.h) to
+transfer control to the appropriate APPLET_main() function (such as
+cat_main() or sed_main()).  The individual applet takes it from there.</p>
+
+<p>This is why calling busybox under a different name triggers different
+functionality: main() looks up argv[0] in applets[] to get a function pointer
+to APPLET_main().</p>
+
+<p>Busybox applets may also be invoked through the multiplexor applet
+"busybox" (see busybox_main() in applets/busybox.c), and through the
+standalone shell (grep for STANDALONE_SHELL in applets/shell/*.c).
+See <a href="FAQ.html#getting_started">getting started</a> in the
+FAQ for more information on these alternate usage mechanisms, which are
+just different ways to reach the relevant APPLET_main() function.</p>
+
+<p>The applet subdirectories (archival, console-tools, coreutils,
+debianutils, e2fsprogs, editors, findutils, init, loginutils, miscutils,
+modutils, networking, procps, shell, sysklogd, and util-linux) correspond
+to the configuration sub-menus in menuconfig.  Each subdirectory contains the
+code to implement the applets in that sub-menu, as well as a Config.in
+file defining that configuration sub-menu (with dependencies and help text
+for each applet), and the makefile segment (Makefile.in) for that
+subdirectory.</p>
+
+<p>The run-time --help is stored in usage_messages[], which is initialized at
+the start of applets/applets.c and gets its help text from usage.h.  During the
+build this help text is also used to generate the BusyBox documentation (in
+html, txt, and man page formats) in the docs directory.  See
+<a href="#adding">adding an applet to busybox</a> for more
+information.</p>
+
+<h2><a name="source_libbb"><b>libbb</b></a></h2>
+
+<p>Most non-setup code shared between busybox applets lives in the libbb
+directory.  It's a mess that evolved over the years without much auditing
+or cleanup.  For anybody looking for a great project to break into busybox
+development with, documenting libbb would be both incredibly useful and good
+experience.</p>
+
+<p>Common themes in libbb include allocation functions that test
+for failure and abort the program with an error message so the caller doesn't
+have to test the return value (xmalloc(), xstrdup(), etc), wrapped versions
+of open(), close(), read(), and write() that test for their own failures
+and/or retry automatically, linked list management functions (llist.c),
+command line argument parsing (getopt_ulflags.c), and a whole lot more.</p>
 
 <hr />
 <p>
@@ -352,14 +466,515 @@ int main(int argc, char *argv)
 	so a small change may not even be visible by itself, but many small
 	savings add up).
 </p>
+
+<p>     The busybox Makefile builds two versions of busybox, one of which
+        (busybox_unstripped) has extra information that various analysis tools
+        can use.  (This has nothing to do with CONFIG_DEBUG, leave that off
+        when trying to optimize for size.)
+</p>
+
+<p>     The <b>"make bloatcheck"</b> option uses Matt Mackall's bloat-o-meter
+        script to compare two versions of busybox (busybox_unstripped vs
+        busybox_old), and report which symbols changed size and by how much.
+        To use it, first build a base version, rename busybox_unstripped to
+        busybox_old, and then build a new version with your changes and run
+        "make bloatcheck" to see the size differences from the old version.
+</p>
 <p>
-	The busybox Makefile can generate a report of how much space is actually
-	being used by each function and variable.  Run "<b>make sizes</b>" (preferably
-	with CONFIG_DEBUG off) to get a list of symbols and the amount of
-	space allocated for each one, sorted by size.
+        The first line of output has totals: how many symbols were added or
+        removed, how many symbols grew or shrank, the number of bytes added
+        and number of bytes removed by these changes, and finally the total
+        number of bytes difference between the two files.  The remaining
+        lines show each individual symbol, the old and new sizes, and the
+        increase or decrease in size (which results are sorted by).
+</p>
+<p>
+	The <b>"make sizes"</b> option produces raw symbol size information for
+        busybox_unstripped.  This is the output from the "nm --size-sort"
+        command (see "man nm" for more information), and is the information
+        bloat-o-meter parses to produce the comparison report above.  For
+        defconfig, this is a good way to find the largest symbols in the tree
+        (which is a good place to start when trying to shrink the code).  To
+        take a closer look at individual applets, configure busybox with just
+        one applet (run "make allnoconfig" and then switch on a single applet
+        with menuconfig), and then use "make sizes" to see the size of that
+        applet's components.
+</p>
+<p>
+        The "showasm" command (in the scripts directory) produces an assembly
+        dump of a function, providing a closer look at what changed.  Try
+        "scripts/showasm busybox_unstripped" to list available symbols, and
+        "scripts/showasm busybox_unstripped symbolname" to see the assembly
+        for a sepecific symbol.
 </p>
 <hr />
 
+
+
+<h2><a name="adding"><b>Adding an applet to busybox</b></a></h2>
+
+<p>To add a new applet to busybox, first pick a name for the applet and
+a corresponding CONFIG_NAME.  Then do this:</p>
+
+<ul>
+<li>Figure out where in the busybox source tree your applet best fits,
+and put your source code there.  Be sure to use APPLET_main() instead
+of main(), where APPLET is the name of your applet.</li>
+
+<li>Add your applet to the relevant Config.in file (which file you add
+it to determines where it shows up in "make menuconfig").  This uses
+the same general format as the linux kernel's configuration system.</li>
+
+<li>Add your applet to the relevant Makefile.in file (in the same
+directory as the Config.in you chose), using the existing entries as a
+template and the same CONFIG symbol as you used for Config.in.  (Don't
+forget "needlibm" or "needcrypt" if your applet needs libm or
+libcrypt.)</li>
+
+<li>Add your applet to "include/applets.h", using one of the existing
+entries as a template.  (Note: this is in alphabetical order.  Applets
+are found via binary search, and if you add an applet out of order it
+won't work.)</li>
+
+<li>Add your applet's runtime help text to "include/usage.h".  You need
+at least appname_trivial_usage (the minimal help text, always included
+in the busybox binary when this applet is enabled) and appname_full_usage
+(extra help text included in the busybox binary with
+CONFIG_FEATURE_VERBOSE_USAGE is enabled), or it won't compile.
+The other two help entry types (appname_example_usage and
+appname_notes_usage) are optional.  They don't take up space in the binary,
+but instead show up in the generated documentation (BusyBox.html,
+BusyBox.txt, and the man page BusyBox.1).</li>
+
+<li>Run menuconfig, switch your applet on, compile, test, and fix the
+bugs.  Be sure to try both "allyesconfig" and "allnoconfig" (and
+"allbareconfig" if relevant).</li>
+
+</ul>
+
+<h2><a name="standards">What standards does busybox adhere to?</a></h2>
+
+<p>The standard we're paying attention to is the "Shell and Utilities"
+portion of the <a href="http://www.opengroup.org/onlinepubs/009695399/">Open
+Group Base Standards</a> (also known as the Single Unix Specification version
+3 or SUSv3).  Note that paying attention isn't necessarily the same thing as
+following it.</p>
+
+<p>SUSv3 doesn't even mention things like init, mount, tar, or losetup, nor
+commonly used options like echo's '-e' and '-n', or sed's '-i'.  Busybox is
+driven by what real users actually need, not the fact the standard believes
+we should implement ed or sccs.  For size reasons, we're unlikely to include
+much internationalization support beyond UTF-8, and on top of all that, our
+configuration menu lets developers chop out features to produce smaller but
+very non-standard utilities.</p>
+
+<p>Also, Busybox is aimed primarily at Linux.  Unix standards are interesting
+because Linux tries to adhere to them, but portability to dozens of platforms
+is only interesting in terms of offering a restricted feature set that works
+everywhere, not growing dozens of platform-specific extensions.  Busybox
+should be portable to all hardware platforms Linux supports, and any other
+similar operating systems that are easy to do and won't require much
+maintenance.</p>
+
+<p>In practice, standards compliance tends to be a clean-up step once an
+applet is otherwise finished.  When polishing and testing a busybox applet,
+we ensure we have at least the option of full standards compliance, or else
+document where we (intentionally) fall short.</p>
+
+<h2><a name="portability">Portability.</a></h2>
+
+<p>Busybox is a Linux project, but that doesn't mean we don't have to worry
+about portability.  First of all, there are different hardware platforms,
+different C library implementations, different versions of the kernel and
+build toolchain...  The file "include/platform.h" exists to centralize and
+encapsulate various platform-specific things in one place, so most busybox
+code doesn't have to care where it's running.</p>
+
+<p>To start with, Linux runs on dozens of hardware platforms.  We try to test
+each release on x86, x86-64, arm, power pc, and mips.  (Since qemu can handle
+all of these, this isn't that hard.)  This means we have to care about a number
+of portability issues like endianness, word size, and alignment, all of which
+belong in platform.h.  That header handles conditional #includes and gives
+us macros we can use in the rest of our code.  At some point in the future
+we might grow a platform.c, possibly even a platform subdirectory.  As long
+as the applets themselves don't have to care.</p>
+
+<p>On a related note, we made the "default signedness of char varies" problem
+go away by feeding the compiler -funsigned-char.  This gives us consistent
+behavior on all platforms, and defaults to 8-bit clean text processing (which
+gets us halfway to UTF-8 support).  NOMMU support is less easily separated
+(see the tips section later in this document), but we're working on it.</p>
+
+<p>Another type of portability is build environments: we unapologetically use
+a number of gcc and glibc extensions (as does the Linux kernel), but these have
+been picked up by packages like uClibc, TCC, and Intel's C Compiler.  As for
+gcc, we take advantage of newer compiler optimizations to get the smallest
+possible size, but we also regression test against an older build environment
+using the Red Hat 9 image at "http://busybox.net/downloads/qemu".  This has a
+2.4 kernel, gcc 3.2, make 3.79.1, and glibc 2.3, and is the oldest
+build/deployment environment we still put any effort into maintaining.  (If
+anyone takes an interest in older kernels you're welcome to submit patches,
+but the effort would probably be better spent
+<a href="http://www.selenic.com/linux-tiny/">trimming
+down the 2.6 kernel</a>.)  Older gcc versions than that are uninteresting since
+we now use c99 features, although
+<a href="http://fabrice.bellard.free.fr/tcc/">tcc</a> might be worth a
+look.</p>
+
+<p>We also test busybox against the current release of uClibc.  Older versions
+of uClibc aren't very interesting (they were buggy, and uClibc wasn't really
+usable as a general-purpose C library before version 0.9.26 anyway).</p>
+
+<p>Other unix implementations are mostly uninteresting, since Linux binaries
+have become the new standard for portable Unix programs.  Specifically,
+the ubiquity of Linux was cited as the main reason the Intel Binary
+Compatability Standard 2 died, by the standards group organized to name a
+successor to ibcs2: <a href="http://www.telly.org/86open/">the 86open
+project</a>.  That project disbanded in 1999 with the endorsement of an
+existing standard: Linux ELF binaries.  Since then, the major players at the
+time (such as <a
+href=http://www-03.ibm.com/servers/aix/products/aixos/linux/index.html>AIX</a>, <a
+href=http://www.sun.com/software/solaris/ds/linux_interop.jsp#3>Solaris</a>, and
+<a href=http://www.onlamp.com/pub/a/bsd/2000/03/17/linuxapps.html>FreeBSD</a>)
+have all either grown Linux support or folded.</p>
+
+<p>The major exceptions are newcomer MacOS X, some embedded environments
+(such as newlib+libgloss) which provide a posix environment but not a full
+Linux environment, and environments like Cygwin that provide only partial Linux
+emulation.  Also, some embedded Linux systems run a Linux kernel but amputate
+things like the /proc directory to save space.</p>
+
+<p>Supporting these systems is largely a question of providing a clean subset
+of BusyBox's functionality -- whichever applets can easily be made to
+work in that environment.  Annotating the configuration system to
+indicate which applets require which prerequisites (such as procfs) is
+also welcome.  Other efforts to support these systems (swapping #include
+files to build in different environments, adding adapter code to platform.h,
+adding more extensive special-case supporting infrastructure such as mount's
+legacy mtab support) are handled on a case-by-case basis.  Support that can be
+cleanly hidden in platform.h is reasonably attractive, and failing that
+support that can be cleanly separated into a separate conditionally compiled
+file is at least worth a look.  Special-case code in the body of an applet is
+something we're trying to avoid.</p>
+
+<h2><a name="tips" />Programming tips and tricks.</a></h2>
+
+<p>Various things busybox uses that aren't particularly well documented
+elsewhere.</p>
+
+<h2><a name="tips_encrypted_passwords">Encrypted Passwords</a></h2>
+
+<p>Password fields in /etc/passwd and /etc/shadow are in a special format.
+If the first character isn't '$', then it's an old DES style password.  If
+the first character is '$' then the password is actually three fields
+separated by '$' characters:</p>
+<pre>
+  <b>$type$salt$encrypted_password</b>
+</pre>
+
+<p>The "type" indicates which encryption algorithm to use: 1 for MD5 and 2 for SHA1.</p>
+
+<p>The "salt" is a bunch of ramdom characters (generally 8) the encryption
+algorithm uses to perturb the password in a known and reproducible way (such
+as by appending the random data to the unencrypted password, or combining
+them with exclusive or).  Salt is randomly generated when setting a password,
+and then the same salt value is re-used when checking the password.  (Salt is
+thus stored unencrypted.)</p>
+
+<p>The advantage of using salt is that the same cleartext password encrypted
+with a different salt value produces a different encrypted value.
+If each encrypted password uses a different salt value, an attacker is forced
+to do the cryptographic math all over again for each password they want to
+check.  Without salt, they could simply produce a big dictionary of commonly
+used passwords ahead of time, and look up each password in a stolen password
+file to see if it's a known value.  (Even if there are billions of possible
+passwords in the dictionary, checking each one is just a binary search against
+a file only a few gigabytes long.)  With salt they can't even tell if two
+different users share the same password without guessing what that password
+is and decrypting it.  They also can't precompute the attack dictionary for
+a specific password until they know what the salt value is.</p>
+
+<p>The third field is the encrypted password (plus the salt).  For md5 this
+is 22 bytes.</p>
+
+<p>The busybox function to handle all this is pw_encrypt(clear, salt) in
+"libbb/pw_encrypt.c".  The first argument is the clear text password to be
+encrypted, and the second is a string in "$type$salt$password" format, from
+which the "type" and "salt" fields will be extracted to produce an encrypted
+value.  (Only the first two fields are needed, the third $ is equivalent to
+the end of the string.)  The return value is an encrypted password in
+/etc/passwd format, with all three $ separated fields.  It's stored in
+a static buffer, 128 bytes long.</p>
+
+<p>So when checking an existing password, if pw_encrypt(text,
+old_encrypted_password) returns a string that compares identical to
+old_encrypted_password, you've got the right password.  When setting a new
+password, generate a random 8 character salt string, put it in the right
+format with sprintf(buffer, "$%c$%s", type, salt), and feed buffer as the
+second argument to pw_encrypt(text,buffer).</p>
+
+<h2><a name="tips_vfork">Fork and vfork</a></h2>
+
+<p>On systems that haven't got a Memory Management Unit, fork() is unreasonably
+expensive to implement (and sometimes even impossible), so a less capable
+function called vfork() is used instead.  (Using vfork() on a system with an
+MMU is like pounding a nail with a wrench.  Not the best tool for the job, but
+it works.)</p>
+
+<p>Busybox hides the difference between fork() and vfork() in
+libbb/bb_fork_exec.c.  If you ever want to fork and exec, use bb_fork_exec()
+(which returns a pid and takes the same arguments as execve(), although in
+this case envp can be NULL) and don't worry about it.  This description is
+here in case you want to know why that does what it does.</p>
+
+<p>Implementing fork() depends on having a Memory Management Unit.  With an
+MMU then you can simply set up a second set of page tables and share the
+physical memory via copy-on-write.  So a fork() followed quickly by exec()
+only copies a few pages of the parent's memory, just the ones it changes
+before freeing them.</p>
+
+<p>With a very primitive MMU (using a base pointer plus length instead of page
+tables, which can provide virtual addresses and protect processes from each
+other, but no copy on write) you can still implement fork.  But it's
+unreasonably expensive, because you have to copy all the parent process'
+memory into the new process (which could easily be several megabytes per fork).
+And you have to do this even though that memory gets freed again as soon as the
+exec happens.  (This is not just slow and a waste of space but causes memory
+usage spikes that can easily cause the system to run out of memory.)</p>
+
+<p>Without even a primitive MMU, you have no virtual addresses.  Every process
+can reach out and touch any other process' memory, because all pointers are to
+physical addresses with no protection.  Even if you copy a process' memory to
+new physical addresses, all of its pointers point to the old objects in the
+old process.  (Searching through the new copy's memory for pointers and
+redirect them to the new locations is not an easy problem.)</p>
+
+<p>So with a primitive or missing MMU, fork() is just not a good idea.</p>
+
+<p>In theory, vfork() is just a fork() that writeably shares the heap and stack
+rather than copying it (so what one process writes the other one sees).  In
+practice, vfork() has to suspend the parent process until the child does exec,
+at which point the parent wakes up and resumes by returning from the call to
+vfork().  All modern kernel/libc combinations implement vfork() to put the
+parent to sleep until the child does its exec.  There's just no other way to
+make it work: the parent has to know the child has done its exec() or exit()
+before it's safe to return from the function it's in, so it has to block
+until that happens.  In fact without suspending the parent there's no way to
+even store separate copies of the return value (the pid) from the vfork() call
+itself: both assignments write into the same memory location.</p>
+
+<p>One way to understand (and in fact implement) vfork() is this: imagine
+the parent does a setjmp and then continues on (pretending to be the child)
+until the exec() comes around, then the _exec_ does the actual fork, and the
+parent does a longjmp back to the original vfork call and continues on from
+there.  (It thus becomes obvious why the child can't return, or modify
+local variables it doesn't want the parent to see changed when it resumes.)
+
+<p>Note a common mistake: the need for vfork doesn't mean you can't have two
+processes running at the same time.  It means you can't have two processes
+sharing the same memory without stomping all over each other.  As soon as
+the child calls exec(), the parent resumes.</p>
+
+<p>If the child's attempt to call exec() fails, the child should call _exit()
+rather than a normal exit().  This avoids any atexit() code that might confuse
+the parent.  (The parent should never call _exit(), only a vforked child that
+failed to exec.)</p>
+
+<p>(Now in theory, a nommu system could just copy the _stack_ when it forks
+(which presumably is much shorter than the heap), and leave the heap shared.
+Even with no MMU at all
+In practice, you've just wound up in a multi-threaded situation and you can't
+do a malloc() or free() on your heap without freeing the other process' memory
+(and if you don't have the proper locking for being threaded, corrupting the
+heap if both of you try to do it at the same time and wind up stomping on
+each other while traversing the free memory lists).  The thing about vfork is
+that it's a big red flag warning "there be dragons here" rather than
+something subtle and thus even more dangerous.)</p>
+
+<h2><a name="tips_sort_read">Short reads and writes</a></h2>
+
+<p>Busybox has special functions, bb_full_read() and bb_full_write(), to
+check that all the data we asked for got read or written.  Is this a real
+world consideration?  Try the following:</p>
+
+<pre>while true; do echo hello; sleep 1; done | tee out.txt</pre>
+
+<p>If tee is implemented with bb_full_read(), tee doesn't display output
+in real time but blocks until its entire input buffer (generally a couple
+kilobytes) is read, then displays it all at once.  In that case, we _want_
+the short read, for user interface reasons.  (Note that read() should never
+return 0 unless it has hit the end of input, and an attempt to write 0
+bytes should be ignored by the OS.)</p>
+
+<p>As for short writes, play around with two processes piping data to each
+other on the command line (cat bigfile | gzip &gt; out.gz) and suspend and
+resume a few times (ctrl-z to suspend, "fg" to resume).  The writer can
+experience short writes, which are especially dangerous because if you don't
+notice them you'll discard data.  They can also happen when a system is under
+load and a fast process is piping to a slower one.  (Such as an xterm waiting
+on x11 when the scheduler decides X is being a CPU hog with all that
+text console scrolling...)</p>
+
+<p>So will data always be read from the far end of a pipe at the
+same chunk sizes it was written in?  Nope.  Don't rely on that.  For one
+counterexample, see <a href="http://www.faqs.org/rfcs/rfc896.html">rfc 896 
+for Nagle's algorithm</a>, which waits a fraction of a second or so before
+sending out small amounts of data through a TCP/IP connection in case more
+data comes in that can be merged into the same packet.  (In case you were
+wondering why action games that use TCP/IP set TCP_NODELAY to lower the latency
+on their their sockets, now you know.)</p>
+
+<h2><a name="tips_memory">Memory used by relocatable code, PIC, and static linking.</a></h2>
+
+<p>The downside of standard dynamic linking is that it results in self-modifying
+code.  Although each executable's pages are mmaped() into a process' address
+space from the executable file and are thus naturally shared between processes
+out of the page cache, the library loader (ld-linux.so.2 or ld-uClibc.so.0)
+writes to these pages to supply addresses for relocatable symbols.  This
+dirties the pages, triggering copy-on-write allocation of new memory for each
+processes' dirtied pages.</p>
+
+<p>One solution to this is Position Independent Code (PIC), a way of linking
+a file so all the relocations are grouped together.  This dirties fewer
+pages (often just a single page) for each process' relocations.  The down
+side is this results in larger executables, which take up more space on disk
+(and a correspondingly larger space in memory).  But when many copies of the
+same program are running, PIC dynamic linking trades a larger disk footprint
+for a smaller memory footprint, by sharing more pages.</p>
+
+<p>A third solution is static linking.  A statically linked program has no
+relocations, and thus the entire executable is shared between all running
+instances.  This tends to have a significantly larger disk footprint, but
+on a system with only one or two executables, shared libraries aren't much
+of a win anyway.</p>
+
+<p>You can tell the glibc linker to display debugging information about its
+relocations with the environment variable "LD_DEBUG".  Try
+"LD_DEBUG=help /bin/true" for a list of commands.  Learning to interpret
+"LD_DEBUG=statistics cat /proc/self/statm" could be interesting.</p>
+
+<p>For more on this topic, here's Rich Felker:</p>
+<blockquote>
+<p>Dynamic linking (without fixed load addresses) fundamentally requires
+at least one dirty page per dso that uses symbols. Making calls (but
+never taking the address explicitly) to functions within the same dso
+does not require a dirty page by itself, but will with ELF unless you
+use -Bsymbolic or hidden symbols when linking.</p>
+
+<p>ELF uses significant additional stack space for the kernel to pass all
+the ELF data structures to the newly created process image. These are
+located above the argument list and environment. This normally adds 1
+dirty page to the process size.</p>
+
+<p>The ELF dynamic linker has its own data segment, adding one or more
+dirty pages. I believe it also performs relocations on itself.</p>
+
+<p>The ELF dynamic linker makes significant dynamic allocations to manage
+the global symbol table and the loaded dso's. This data is never
+freed. It will be needed again if libdl is used, so unconditionally
+freeing it is not possible, but normal programs do not use libdl. Of
+course with glibc all programs use libdl (due to nsswitch) so the
+issue was never addressed.</p>
+
+<p>ELF also has the issue that segments are not page-aligned on disk.
+This saves up to 4k on disk, but at the expense of using an additional
+dirty page in most cases, due to a large portion of the first data
+page being filled with a duplicate copy of the last text page.</p>
+
+<p>The above is just a partial list of the tiny memory penalties of ELF
+dynamic linking, which eventually add up to quite a bit. The smallest
+I've been able to get a process down to is 8 dirty pages, and the
+above factors seem to mostly account for it (but some were difficult
+to measure).</p>
+</blockquote>
+
+<h2><a name="tips_kernel_headers"></a>Including kernel headers</h2>
+
+<p>The "linux" or "asm" directories of /usr/include contain Linux kernel
+headers, so that the C library can talk directly to the Linux kernel.  In
+a perfect world, applications shouldn't include these headers directly, but
+we don't live in a perfect world.</p>
+
+<p>For example, Busybox's losetup code wants linux/loop.c because nothing else
+#defines the structures to call the kernel's loopback device setup ioctls.
+Attempts to cut and paste the information into a local busybox header file
+proved incredibly painful, because portions of the loop_info structure vary by
+architecture, namely the type __kernel_dev_t has different sizes on alpha,
+arm, x86, and so on.  Meaning we either #include <linux/posix_types.h> or
+we hardwire #ifdefs to check what platform we're building on and define this
+type appropriately for every single hardware architecture supported by
+Linux, which is simply unworkable.</p>
+
+<p>This is aside from the fact that the relevant type defined in
+posix_types.h was renamed to __kernel_old_dev_t during the 2.5 series, so
+to cut and paste the structure into our header we have to #include
+<linux/version.h> to figure out which name to use.  (What we actually do is
+check if we're building on 2.6, and if so just use the new 64 bit structure
+instead to avoid the rename entirely.)  But we still need the version
+check, since 2.4 didn't have the 64 bit structure.</p>
+
+<p>The BusyBox developers spent <u>two years</u> trying to figure
+out a clean way to do all this.  There isn't one.  The losetup in the
+util-linux package from kernel.org isn't doing it cleanly either, they just
+hide the ugliness by nesting #include files.  Their mount/loop.h
+#includes "my_dev_t.h", which #includes <linux/posix_types.h> and
+<linux/version.h> just like we do.  There simply is no alternative.</p>
+
+<p>Just because directly #including kernel headers is sometimes
+unavoidable doesn't me we should include them when there's a better
+way to do it.  However, block copying information out of the kernel headers
+is not a better way.</p>
+
+<h2><a name="who">Who are the BusyBox developers?</a></h2>
+
+<p>The following login accounts currently exist on busybox.net.  (I.E. these
+people can commit <a href="http://busybox.net/downloads/patches">patches</a>
+into subversion for the BusyBox, uClibc, and buildroot projects.)</p>
+
+<pre>
+aldot     :Bernhard Fischer
+andersen  :Erik Andersen      <- uClibc and BuildRoot maintainer.
+bug1      :Glenn McGrath
+davidm    :David McCullough
+gkajmowi  :Garrett Kajmowicz  <- uClibc++ maintainer
+jbglaw    :Jan-Benedict Glaw
+jocke     :Joakim Tjernlund
+landley   :Rob Landley        <- BusyBox maintainer
+lethal    :Paul Mundt
+mjn3      :Manuel Novoa III
+osuadmin  :osuadmin
+pgf       :Paul Fox
+pkj       :Peter Kjellerstedt
+prpplague :David Anders
+psm       :Peter S. Mazinger
+russ      :Russ Dill
+sandman   :Robert Griebl
+sjhill    :Steven J. Hill
+solar     :Ned Ludd
+timr      :Tim Riker
+tobiasa   :Tobias Anderberg
+vapier    :Mike Frysinger
+</pre>
+
+<p>The following accounts used to exist on busybox.net, but don't anymore so
+I can't ask /etc/passwd for their names.  (If anybody would like to make
+a stab at it...)</p>
+
+<pre>
+aaronl
+beppu
+dwhedon
+erik    : Also Erik Andersen?
+gfeldman
+jimg
+kraai
+markw
+miles
+proski
+rjune
+tausq
+vodz      :Vladimir N. Oleynik
+</pre>
 
 
 <br>
