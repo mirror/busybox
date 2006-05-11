@@ -1729,6 +1729,7 @@ static int if_print(char *ifname)
 	return res;
 }
 
+int display_interfaces(char *ifname);
 int display_interfaces(char *ifname)
 {
 	int status;
