@@ -8,16 +8,17 @@ have additions to this FAQ document, we would love to add them,
 
 <h2>General questions</h2>
 <ol>
-<li><a href="#getting_started">How can I get started using BusyBox?</a>
-<li><a href="#build_system">How do I build a BusyBox-based system?</a>
-<li><a href="#kernel">Which Linux kernel versions are supported?</a>
-<li><a href="#arch">Which architectures does BusyBox run on?</a>
-<li><a href="#libc">Which C libraries are supported?</a>
-<li><a href="#commercial">Can I include BusyBox as part of the software on my device?</a>
-<li><a href="#external">Where can I find other small utilities since busybox does not include the features I want?</a></li>
-<li><a href="#demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come you don't answer all my questions on the mailing list instantly?  I demand that you help me with all of my problems <em>Right Now</em>!</a>
-<li><a href="#helpme">I need help with BusyBox!  What should I do?</a>
-<li><a href="#contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox developers willing to be paid in order to fix bugs or add in &lt;favorite feature&gt;?  Are you willing to provide support contracts?</a>
+<li><a href="#getting_started">How can I get started using BusyBox?</a></li>
+<li><a href="#configure">How do I configure busybox?</a></li>
+<li><a href="#build_system">How do I build a BusyBox-based system?</a></li>
+<li><a href="#kernel">Which Linux kernel versions are supported?</a></li>
+<li><a href="#arch">Which architectures does BusyBox run on?</a></li>
+<li><a href="#libc">Which C libraries are supported?</a></li>
+<li><a href="#commercial">Can I include BusyBox as part of the software on my device?</a></li>
+<li><a href="#external">Where can I find other small utilities since busybox does not include the features I want?</a></li></li>
+<li><a href="#demanding">I demand that you to add &lt;favorite feature&gt; right now!   How come you don't answer all my questions on the mailing list instantly?  I demand that you help me with all of my problems <em>Right Now</em>!</a></li>
+<li><a href="#helpme">I need help with BusyBox!  What should I do?</a></li>
+<li><a href="#contracts">I need you to add &lt;favorite feature&gt;!  Are the BusyBox developers willing to be paid in order to fix bugs or add in &lt;favorite feature&gt;?  Are you willing to provide support contracts?</a></li>
 </ol>
 
 <h2>Troubleshooting</h2>
@@ -61,10 +62,10 @@ have additions to this FAQ document, we would love to add them,
 <p>
 <h2><a name="getting_started">How can I get started using BusyBox?</a></h2>
 <p> If you just want to try out busybox without installing it, download the
-    tarball, extract it, run "make allyesconfig", and then run "make".
+    tarball, extract it, run "make defconfig", and then run "make".
 </p>
 <p>
-    This will create a busybox binary with all features enabled.  To try
+    This will create a busybox binary with almost all features enabled.  To try
     out a busybox applet, type "./busybox [appletname] [options]", for
     example "./busybox ls -l" or "./busybox cat LICENSE".  Type "./busybox"
     to see a command list, and "busybox appletname --help" to see a brief
@@ -90,6 +91,57 @@ have additions to this FAQ document, we would love to add them,
     standalone shell is dependent on the existence of /proc/self/exe, so before
     using it in a chroot environment you must mount /proc.)
 </p>
+
+<hr />
+<p>
+<h2><a name="configure">How do I configure busybox?</a></h2>
+<p> Busybox is configured similarly to the linux kernel.  Create a default
+    configuration and then run "make menuconfig" to modify it.  The end
+    result is a .config file that tells the busybox build process what features
+    to include.  So instead of "./configure; make; make install" the equivalent
+    busybox build would be "make defconfig; make; make install".
+</p>
+
+<p> Busybox configured with all features enabled is a little under a megabyte
+    dynamically linked on x86.  To create a smaller busybox, configure it with
+    fewer features.  Individual busybox applets cost anywhere from a few
+    hundred bytes to tens of kilobytes.  Disable unneeded applets to save,
+    space, using menuconfig.
+</p>
+
+<p>The most important busybox configurators are:</p>
+
+<ul>
+<li><p>make <b>defconfig</b> - Create the maximum "sane" configuration.  This
+enables almost all features, minus things like debugging options and features
+that require changes to the rest of the system to work (such as selinux or
+devfs device names).  Use this if you want to start from a full-featured
+busybox and remove features until it's small enough.</p></li>
+<li><p>make <b>allnoconfig</b> - Disable everything.  This creates a tiny version
+of busybox that doesn't do anything.  Start here if you know exactly what
+you want and would like to select only those features.</p></li>
+<li><p>make <b>menuconfig</b> - Interactively modify a .config file through a
+multi-level menu interface.  Use this after one of the previous two.</p></li>
+</ul>
+
+<p>Some other configuration options are:</p>
+<ul>
+<li><p>make <b>oldconfig</b> - Update an old .config file for a newer version
+of busybox.</p></li>
+<li><p>make <b>allyesconfig</b> - Select absolutely everything.  This creates
+a statically linked version of busybox full of debug code, with dependencies on
+selinux, using devfs names...  This makes sure everything compiles.  Whether
+or not the result would do anything useful is an open question.</p></li>
+<li><p>make <b>allbareconfig</b> - Select all applets but disable all sub-features
+within each applet.  More build coverage testing.</p></li>
+<li><p>make <b>randconfig</b> - Create a random configuration for test purposes.</p></li>
+</ul>
+
+<p> Menuconfig modifies your .config file through an interactive menu where you can enable or disable
+    busybox features, and get help about each feature.
+
+
+
 <p>
     To build a smaller busybox binary, run "make menuconfig" and disable the
     features you don't need.  (Or run "make allnoconfig" and then use
