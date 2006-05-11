@@ -892,14 +892,14 @@ static void identify(uint16_t *id_supplied)
 			        (uint64_t)val[LBA_48_MSB]	<< 32 |
 			        (uint64_t)val[LBA_MID]	<< 16 |
 					val[LBA_LSB] ;
-			printf("\tLBA48  user addressable sectors:%11llu\n",bbbig);
+			printf("\tLBA48  user addressable sectors:%11llu\n",(long long unsigned int)bbbig);
 		}
 
 		if (!bbbig)
 			bbbig = (uint64_t)(ll>mm ? ll : mm); /* # 512 byte blocks */
-		printf("\tdevice size with M = 1024*1024: %11llu MBytes\n",bbbig>>11);
+		printf("\tdevice size with M = 1024*1024: %11llu MBytes\n",(long long unsigned int)(bbbig>>11));
 		bbbig = (bbbig<<9)/1000000;
-		printf("\tdevice size with M = 1000*1000: %11llu MBytes ",bbbig);
+		printf("\tdevice size with M = 1000*1000: %11llu MBytes ",(long long unsigned int)bbbig);
 
 		if_else_printf((bbbig > 1000),"(%llu GB)\n","\n",bbbig/1000);
 
