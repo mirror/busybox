@@ -81,10 +81,12 @@ config CONFIG_LOCALE_SUPPORT
 	  busybox to support locale settings.
 
 config CONFIG_FEATURE_DEVFS
-	bool "Support for devfs"
+	bool "Use devfs names for devices"
 	default n
 	help
-	  Enable if you want BusyBox to work with devfs.
+	  This tells busybox to look for names like /dev/loop/0 instead of
+          /dev/loop0.  If your /dev directory has normal names instead of
+          devfs names, you don't want this.
 
 config CONFIG_FEATURE_DEVPTS
 	bool "Use the devpts filesystem for Unix98 PTYs"
