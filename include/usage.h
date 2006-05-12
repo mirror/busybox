@@ -748,7 +748,9 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-follow\t\tDereference symbolic links\n" \
 	"\t-name PATTERN\tFile name (leading directories removed) matches PATTERN\n" \
 	"\t-print\t\tPrint (default and assumed)\n" \
-	USE_FEATURE_FIND_TYPE( \
+	USE_FEATURE_FIND_PRINT0( \
+	"\t-print0\t\tDelimit output with null characters rather than\n\t\t\tnewlines" \
+) USE_FEATURE_FIND_TYPE( \
 	"\n\t-type X\t\tFiletype matches X (where X is one of: f,d,l,b,c,...)" \
 ) USE_FEATURE_FIND_PERM( \
 	"\n\t-perm PERMS\tPermissions match any of (+NNN); all of (-NNN);\n\t\t\tor exactly (NNN)" \

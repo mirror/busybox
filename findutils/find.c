@@ -38,6 +38,9 @@ static const char msg_req_arg[] = "option `%s' requires an argument";
 static const char msg_invalid_arg[] = "invalid argument `%s' to `%s'";
 
 static char *pattern;
+#ifdef CONFIG_FEATURE_FIND_PRINT0
+static char printsep = '\n';
+#endif
 
 #ifdef CONFIG_FEATURE_FIND_TYPE
 static int type_mask = 0;
@@ -159,7 +162,11 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 	}
 #endif
 
+#ifdef CONFIG_FEATURE_FIND_PRINT0
+	printf("%s%c", fileName, printsep);
+#else
 	puts(fileName);
+#endif
 no_match:
 	return (TRUE);
 }
@@ -217,6 +224,10 @@ int find_main(int argc, char **argv)
 		else if (strcmp(argv[i], "-print") == 0) {
 			;
 			}
+#ifdef CONFIG_FEATURE_FIND_PRINT0
+		else if (strcmp(argv[i], "-print0") == 0)
+			printsep = '\0';
+#endif
 		else if (strcmp(argv[i], "-name") == 0) {
 			if (++i == argc)
 				bb_error_msg_and_die(msg_req_arg, "-name");

@@ -11,6 +11,16 @@ config CONFIG_FIND
 	help
 	  find is used to search your system to find specified files.
 
+config CONFIG_FEATURE_FIND_PRINT0
+	bool "Enable -print0 option"
+	default y
+	depends on CONFIG_FIND
+	help
+	  Causes output names to be separated by a null character
+	  rather than a newline.  This allows names that contain
+	  newlines and other whitespace to be more easily
+	  interpreted by other programs.
+
 config CONFIG_FEATURE_FIND_MTIME
 	bool "Enable modified time matching (-mtime) option"
 	default y
