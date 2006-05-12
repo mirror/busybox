@@ -52,62 +52,53 @@ LIBBB-$(CONFIG_LOGIN)+= correct_password.c
 
 LIBBB-y:=$(patsubst %,$(srcdir)/%,$(LIBBB-y))
 
+get-file-subparts = $(addsuffix .o,$(shell sed -n -e "s/^\#ifdef L_//p" ${1}))
+
 # 1:N objects
 LIBBB_MSRC0:=$(srcdir)/messages.c
-LIBBB_MOBJ0:=full_version.o \
-	memory_exhausted.o invalid_date.o io_error.o \
-	read_error.o write_error.o name_longer_than_foo.o unknown.o \
-	can_not_create_raw_socket.o perm_denied_are_you_root.o \
-	shadow_file.o passwd_file.o group_file.o gshadow_file.o nologin_file.o \
-	securetty_file.o motd_file.o \
-	msg_standard_input.o msg_standard_output.o shell_file.o \
-	bb_dev_null.o bb_common_bufsiz1.o
+LIBBB_MOBJ0:=$(call get-file-subparts, ${LIBBB_MSRC0})
 LIBBB_MOBJ0:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ0))
 $(LIBBB_MOBJ0):$(LIBBB_MSRC0)
 	$(compile.c) -DL_$(notdir $*)
 
 LIBBB_MSRC1:=$(srcdir)/xfuncs.c
-LIBBB_MOBJ1:=xmalloc.o xrealloc.o xcalloc.o xstrdup.o xstrndup.o \
-	xfopen.o xopen.o xopen3.o xread.o xread_all.o xread_char.o \
-	xferror.o xferror_stdout.o xfflush_stdout.o
+LIBBB_MOBJ1:=$(call get-file-subparts, ${LIBBB_MSRC1})
 LIBBB_MOBJ1:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ1))
 $(LIBBB_MOBJ1):$(LIBBB_MSRC1)
 	$(compile.c) -DL_$(notdir $*)
 
 LIBBB_MSRC2:=$(srcdir)/printf.c
-LIBBB_MOBJ2:=bb_vfprintf.o bb_vprintf.o bb_fprintf.o bb_printf.o
+LIBBB_MOBJ2:=$(call get-file-subparts, ${LIBBB_MSRC2})
 LIBBB_MOBJ2:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ2))
 $(LIBBB_MOBJ2):$(LIBBB_MSRC2)
 	$(compile.c) -DL_$(notdir $*)
 
 LIBBB_MSRC3:=$(srcdir)/xgetularg.c
-LIBBB_MOBJ3:=xgetularg_bnd_sfx.o xgetlarg_bnd_sfx.o getlarg10_sfx.o \
-	xgetularg_bnd.o xgetularg10_bnd.o xgetularg10.o
+LIBBB_MOBJ3:=$(call get-file-subparts, ${LIBBB_MSRC3})
 LIBBB_MOBJ3:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ3))
 $(LIBBB_MOBJ3):$(LIBBB_MSRC3)
 	$(compile.c) -DL_$(notdir $*)
 
 LIBBB_MSRC4:=$(srcdir)/safe_strtol.c
-LIBBB_MOBJ4:=safe_strtoi.o safe_strtod.o safe_strtol.o safe_strtoul.o
+LIBBB_MOBJ4:=$(call get-file-subparts, ${LIBBB_MSRC4})
 LIBBB_MOBJ4:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ4))
 $(LIBBB_MOBJ4):$(LIBBB_MSRC4)
 	$(compile.c) -DL_$(notdir $*)
 
 LIBBB_MSRC5:=$(srcdir)/bb_pwd.c
-LIBBB_MOBJ5:=bb_xgetpwnam.o bb_xgetgrnam.o bb_getgrgid.o bb_getpwuid.o \
-	bb_getug.o get_ug_id.o
+LIBBB_MOBJ5:=$(call get-file-subparts, ${LIBBB_MSRC5})
 LIBBB_MOBJ5:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ5))
 $(LIBBB_MOBJ5):$(LIBBB_MSRC5)
 	$(compile.c) -DL_$(notdir $*)
 
 LIBBB_MSRC6:=$(srcdir)/llist.c
-LIBBB_MOBJ6:=llist_add_to.o llist_add_to_end.o llist_pop.o llist_free.o
+LIBBB_MOBJ6:=$(call get-file-subparts, ${LIBBB_MSRC6})
 LIBBB_MOBJ6:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ6))
 $(LIBBB_MOBJ6):$(LIBBB_MSRC6)
 	$(compile.c) -DL_$(notdir $*)
 
 LIBBB_MSRC7:=$(srcdir)/opendir.c
-LIBBB_MOBJ7:=bb_opendir.o bb_xopendir.o
+LIBBB_MOBJ7:=$(call get-file-subparts, ${LIBBB_MSRC7})
 LIBBB_MOBJ7:=$(patsubst %,$(LIBBB_DIR)/%, $(LIBBB_MOBJ7))
 $(LIBBB_MOBJ7):$(LIBBB_MSRC7)
 	$(compile.c) -DL_$(notdir $*)
