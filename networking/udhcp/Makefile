@@ -23,8 +23,8 @@ endif
 ifndef top_builddir
 top_builddir=../..
 endif
-srcdir=$(top_srcdir)/networking/libiproute
-LIBIPROUTE_DIR:=./
+srcdir=$(top_srcdir)/networking/udhcp
+UDHCP_DIR:=./
 include $(top_srcdir)/Rules.mak
 include $(top_builddir)/.config
 include Makefile.in

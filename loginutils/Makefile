@@ -12,7 +12,7 @@ top_builddir=..
 endif
 srcdir=$(top_srcdir)/loginutils
 LOGINUTILS_DIR:=./
-include $(top_builddir)/Rules.mak
+include $(top_srcdir)/Rules.mak
 include $(top_builddir)/.config
 include Makefile.in
 all: $(libraries-y)
