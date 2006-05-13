@@ -471,7 +471,7 @@ static pid_t run(const struct init_action *a)
 						break;
 					}
 					/* FIXME handle other errors */
-		}
+				}
 
 				/* See if stealing the controlling tty back is necessary */
 				pgrp = tcgetpgrp(0);
