@@ -13,7 +13,7 @@ endif
 srcdir=$(top_srcdir)/e2fsprogs
 E2FSPROGS_DIR:=./
 include $(top_builddir)/.config
-include $(top_builddir)/Rules.mak
+include $(top_srcdir)/Rules.mak
 include Makefile.in
 all: $(libraries-y)
 -include $(top_builddir)/.depend

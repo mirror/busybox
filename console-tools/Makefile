@@ -12,7 +12,7 @@ top_builddir=..
 endif
 srcdir=$(top_srcdir)/console/tools
 CONSOLETOOLS_DIR:=./
-include $(top_builddir)/Rules.mak
+include $(top_srcdir)/Rules.mak
 include $(top_builddir)/.config
 include $(srcdir)/Makefile.in
 all: $(libraries-y)

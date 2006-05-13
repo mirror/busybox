@@ -12,7 +12,7 @@ top_builddir=..
 endif
 ARCHIVAL_DIR:=./
 srcdir=$(top_srcdir)/archival
-include $(top_builddir)/Rules.mak
+include $(top_srcdir)/Rules.mak
 include $(top_builddir)/.config
 include $(srcdir)/Makefile.in
 all: $(libraries-y)
