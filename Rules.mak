@@ -219,7 +219,6 @@ else
 endif
 
 ifneq ($(strip $(CONFIG_DEBUG_PESSIMIZE)),y)
-else
     CFLAGS += $(OPTIMIZATION)
 endif
 
