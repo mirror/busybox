@@ -65,11 +65,6 @@ Downloading the current source code:
     http://busybox.net/downloads/
 
   You can browse the up to the minute source code and change history online.
-  The "stable" series is at:
-
-    http://www.busybox.net/cgi-bin/viewcvs.cgi/branches/busybox_1_00_stable/busybox/
-
-  And the development series is at:
 
     http://www.busybox.net/cgi-bin/viewcvs.cgi/trunk/busybox/
 
@@ -199,5 +194,5 @@ Supported hardware:
 
 Please feed suggestions, bug reports, insults, and bribes back to the busybox
 maintainer:
-	Erik Andersen
-	<andersen@codepoet.org>
+	Rob Landley
+	<rob@landley.net>
