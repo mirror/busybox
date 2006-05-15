@@ -116,10 +116,10 @@ LIBBB_AR:=$(LIBBB_DIR)/libbb.a
 libraries-y+=$(LIBBB_AR)
 
 needcrypt-y:=
-ifneq ($(findstring $(srcdir)/pw_encrypt.c,$(LIBBB-y)),)
+ifneq ($(filter $(srcdir)/pw_encrypt.c,$(LIBBB-y)),)
 needcrypt-y:=y
 else
-ifneq ($(findstring $(srcdir)/correct_password.c,$(LIBBB-y)),)
+ifneq ($(filter $(srcdir)/correct_password.c,$(LIBBB-y)),)
 needcrypt-y:=y
 endif
 endif
