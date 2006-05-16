@@ -370,19 +370,23 @@ USE_FEATURE_DATE_ISOFMT( \
 	"64\n"
 
 #define dd_trivial_usage \
-	"[if=FILE] [of=FILE] [bs=N] [count=N] [skip=N]\n" \
-	"\t  [seek=N] [conv=notrunc|noerror|sync]"
+	"[if=FILE] [of=FILE] " USE_FEATURE_DD_IBS_OBS("[ibs=N] [obs=N] ") "[bs=N] [count=N] [skip=N]\n" \
+	"\t  [seek=N]" USE_FEATURE_DD_IBS_OBS(" [conv=notrunc|noerror|sync]")
 #define dd_full_usage \
 	"Copy a file, converting and formatting according to options\n\n" \
 	"\tif=FILE\t\tread from FILE instead of stdin\n" \
 	"\tof=FILE\t\twrite to FILE instead of stdout\n" \
 	"\tbs=N\t\tread and write N bytes at a time\n" \
+	USE_FEATURE_DD_IBS_OBS("\tibs=N\t\tread N bytes at a time\n") \
+	USE_FEATURE_DD_IBS_OBS("\tobs=N\t\twrite N bytes at a time\n") \
 	"\tcount=N\t\tcopy only N input blocks\n" \
 	"\tskip=N\t\tskip N input blocks\n" \
 	"\tseek=N\t\tskip N output blocks\n" \
-	"\tconv=notrunc\tdon't truncate output file\n" \
-	"\tconv=noerror\tcontinue after read errors\n" \
-	"\tconv=sync\tpad blocks with zeros\n" \
+	USE_FEATURE_DD_IBS_OBS( \
+		"\tconv=notrunc\tdon't truncate output file\n" \
+		"\tconv=noerror\tcontinue after read errors\n" \
+		"\tconv=sync\tpad blocks with zeros\n" \
+	) \
 	"\n" \
 	"Numbers may be suffixed by c (x1), w (x2), b (x512), kD (x1000), k (x1024),\n" \
 	"MD (x1000000), M (x1048576), GD (x1000000000) or G (x1073741824)"

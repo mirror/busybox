@@ -127,6 +127,14 @@ config CONFIG_FEATURE_DD_SIGNAL_HANDLING
 	  $ dd if=/dev/zero of=/dev/null& pid=$! $ kill -USR1 $pid; sleep 1; kill $pid 
 	  10899206+0 records in 10899206+0 records out
 
+config CONFIG_FEATURE_DD_IBS_OBS
+	bool "Enable ibs, obs and conv options"
+	default n
+	depends on CONFIG_DD
+	help
+	  Enables support for writing a certain number of bytes in and out,
+	  at a time, and performing conversions on the data stream.
+
 config CONFIG_DF
 	bool "df"
 	default n

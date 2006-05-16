@@ -45,21 +45,13 @@ static void dd_output_status(int cur_signal)
 
 int dd_main(int argc, char **argv)
 {
-	size_t count = -1;
-	size_t bs = 512;
+	size_t count = -1, oc = 0, ibs = 512, obs = 512;
 	ssize_t n;
-	off_t seek = 0;
-	off_t skip = 0;
-	int sync_flag = FALSE;
-	int noerror = FALSE;
-	int trunc_flag = TRUE;
-	int oflag;
-	int ifd;
-	int ofd;
-	int i;
-	const char *infile = NULL;
-	const char *outfile = NULL;
-	char *buf;
+	off_t seek = 0, skip = 0;
+	int sync_flag = FALSE, noerror = FALSE, trunc_flag = TRUE, twobufs_flag = 0,
+		oflag, ifd, ofd, i;
+	const char *infile = NULL, *outfile = NULL;
+	char *ibuf, *obuf;
 
 	if (ENABLE_FEATURE_DD_SIGNAL_HANDLING)
 	{
@@ -73,43 +65,49 @@ int dd_main(int argc, char **argv)
 	}
 
 	for (i = 1; i < argc; i++) {
-		if (strncmp("bs=", argv[i], 3) == 0)
-			bs = bb_xparse_number(argv[i]+3, dd_suffixes);
-		else if (strncmp("count=", argv[i], 6) == 0)
+		if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("ibs=", argv[i], 4)) {
+			ibs = bb_xparse_number(argv[i]+4, dd_suffixes);
+			twobufs_flag++;
+		} else if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("obs=", argv[i], 4)) {
+			obs = bb_xparse_number(argv[i]+4, dd_suffixes);
+			twobufs_flag++;
+		} else if (!strncmp("bs=", argv[i], 3)) {
+			ibs = obs = bb_xparse_number(argv[i]+3, dd_suffixes);
+		} else if (!strncmp("count=", argv[i], 6))
 			count = bb_xparse_number(argv[i]+6, dd_suffixes);
-		else if (strncmp("seek=", argv[i], 5) == 0)
+		else if (!strncmp("seek=", argv[i], 5))
 			seek = bb_xparse_number(argv[i]+5, dd_suffixes);
-		else if (strncmp("skip=", argv[i], 5) == 0)
+		else if (!strncmp("skip=", argv[i], 5))
 			skip = bb_xparse_number(argv[i]+5, dd_suffixes);
-		else if (strncmp("if=", argv[i], 3) == 0)
+		else if (!strncmp("if=", argv[i], 3))
 			infile = argv[i]+3;
-		else if (strncmp("of=", argv[i], 3) == 0)
+		else if (!strncmp("of=", argv[i], 3))
 			outfile = argv[i]+3;
-		else if (strncmp("conv=", argv[i], 5) == 0) {
-			buf = argv[i]+5;
+		else if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("conv=", argv[i], 5)) {
+			ibuf = argv[i]+5;
 			while (1) {
-				if (strncmp("notrunc", buf, 7) == 0) {
+				if (!strncmp("notrunc", ibuf, 7)) {
 					trunc_flag = FALSE;
-					buf += 7;
-				} else if (strncmp("sync", buf, 4) == 0) {
+					ibuf += 7;
+				} else if (!strncmp("sync", ibuf, 4)) {
 					sync_flag = TRUE;
-					buf += 4;
-				} else if (strncmp("noerror", buf, 7) == 0) {
+					ibuf += 4;
+				} else if (!strncmp("noerror", ibuf, 7)) {
 					noerror = TRUE;
-					buf += 7;
+					ibuf += 7;
 				} else {
 					bb_error_msg_and_die("invalid conversion `%s'", argv[i]+5);
 				}
-				if (buf[0] == '\0')
-					break;
-				if (buf[0] == ',')
-					buf++;
+				if (ibuf[0] == '\0') break;
+				if (ibuf[0] == ',') ibuf++;
 			}
 		} else
 			bb_show_usage();
 	}
+	ibuf = xmalloc(ibs);
 
-	buf = xmalloc(bs);
+	if (twobufs_flag) obuf = xmalloc(obs);
+	else obuf = ibuf;
 
 	if (infile != NULL) {
 		ifd = bb_xopen(infile, O_RDONLY);
@@ -128,7 +126,7 @@ int dd_main(int argc, char **argv)
 		ofd = bb_xopen3(outfile, oflag, 0666);
 
 		if (seek && trunc_flag) {
-			if (ftruncate(ofd, seek * bs) < 0) {
+			if (ftruncate(ofd, seek * obs) < 0) {
 				struct stat st;
 
 				if (fstat (ofd, &st) < 0 || S_ISREG (st.st_mode) ||
@@ -143,13 +141,19 @@ int dd_main(int argc, char **argv)
 	}
 
 	if (skip) {
-		if (lseek(ifd, skip * bs, SEEK_CUR) < 0) {
-			bb_perror_msg_and_die("%s", infile);
+		if (lseek(ifd, skip * ibs, SEEK_CUR) < 0) {
+			while (skip-- > 0) {
+				n = safe_read(ifd, ibuf, ibs);
+				if (n < 0)
+					bb_perror_msg_and_die("%s", infile);
+				if (n == 0)
+					break;
+			}
 		}
 	}
 
 	if (seek) {
-		if (lseek(ofd, seek * bs, SEEK_CUR) < 0) {
+		if (lseek(ofd, seek * obs, SEEK_CUR) < 0) {
 			bb_perror_msg_and_die("%s", outfile);
 		}
 	}
@@ -157,40 +161,63 @@ int dd_main(int argc, char **argv)
 	while (in_full + in_part != count) {
 		if (noerror) {
 			/* Pre-zero the buffer when doing the noerror thing */
-			memset(buf, '\0', bs);
+			memset(ibuf, '\0', ibs);
 		}
-		n = safe_read(ifd, buf, bs);
+
+		n = safe_read(ifd, ibuf, ibs);
+		if (n == 0) {
+			break;
+		}
 		if (n < 0) {
 			if (noerror) {
-				n = bs;
+				n = ibs;
 				bb_perror_msg("%s", infile);
 			} else {
 				bb_perror_msg_and_die("%s", infile);
 			}
 		}
-		if (n == 0) {
-			break;
-		}
-		if ((size_t)n == bs) {
+		if ((size_t)n == ibs) {
 			in_full++;
 		} else {
 			in_part++;
+			if (sync_flag) {
+				memset(ibuf + n, '\0', ibs - n);
+				n = ibs;
+			}
 		}
-		if (sync_flag) {
-			memset(buf + n, '\0', bs - n);
-			n = bs;
-		}
-		n = bb_full_write(ofd, buf, n);
-		if (n < 0) {
-			bb_perror_msg_and_die("%s", outfile);
-		}
-		if ((size_t)n == bs) {
-			out_full++;
+		if (twobufs_flag) {
+			char *tmp = ibuf;
+			while (n) {
+				size_t d = obs - oc;
+
+				if (d > n) d = n;
+				memcpy(obuf + oc, tmp, d);
+				n -= d;
+				tmp += d;
+				oc += d;
+				if (oc == obs) {
+					if (bb_full_write(ofd, obuf, obs) < 0) {
+						bb_perror_msg_and_die("%s", outfile);
+					}
+					out_full++;
+					oc = 0;
+				}
+			}
 		} else {
-			out_part++;
+			if ((n = bb_full_write(ofd, ibuf, n)) < 0) {
+				bb_perror_msg_and_die("%s", outfile);
+			}
+			if (n == ibs) out_full++;
+			else out_part++;
 		}
 	}
-
+	
+	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {
+		if (bb_full_write(ofd, obuf, oc) < 0) {
+			bb_perror_msg_and_die("%s", outfile);
+		}
+		out_part++;
+	}
 	if (close (ifd) < 0) {
 		bb_perror_msg_and_die("%s", infile);
 	}
