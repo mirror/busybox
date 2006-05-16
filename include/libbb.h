@@ -506,7 +506,7 @@ typedef struct _md5_ctx_t_ {
 	uint32_t B;
 	uint32_t C;
 	uint32_t D;
-	uint32_t total[2];
+	uint64_t total;
 	uint32_t buflen;
 	char buffer[128];
 } md5_ctx_t;

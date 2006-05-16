@@ -71,7 +71,7 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 		bb_error_msg_and_die("algorithm not supported");
 	}
 
-	while (0 < (count = read(src_fd, in_buf, sizeof in_buf))) {
+	while (0 < (count = read(src_fd, in_buf, 4096))) {
 		update(in_buf, count, &context);
 	}
 

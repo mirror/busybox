@@ -33,14 +33,8 @@
 # elif defined(bswap_32)
 #  define SWAP(n) bswap_32(n)
 # else
-#  define SWAP(n) ((n << 24) | ((n&65280)<<8) | ((n&16711680)>>8) | (n>>24))
+#  define SWAP(n) ((n << 24) | ((n&0xFF00)<<8) | ((n&0xFF0000)>>8) | (n>>24))
 # endif
-
-# if MD5_SIZE_VS_SPEED == 0
-/* This array contains the bytes used to pad the buffer to the next
-   64-byte boundary.  (RFC 1321, 3.1: Step 1)  */
-static const unsigned char fillbuf[64] = { 0x80, 0 /* , 0, 0, ...  */  };
-# endif	/* MD5_SIZE_VS_SPEED == 0 */
 
 /* Initialize structure containing state of computation.
  * (RFC 1321, 3.3: Step 3)
@@ -52,7 +46,7 @@ void md5_begin(md5_ctx_t *ctx)
 	ctx->C = 0x98badcfe;
 	ctx->D = 0x10325476;
 
-	ctx->total[0] = ctx->total[1] = 0;
+	ctx->total = 0;
 	ctx->buflen = 0;
 }
 
@@ -66,17 +60,11 @@ void md5_begin(md5_ctx_t *ctx)
 # define FH(b, c, d) (b ^ c ^ d)
 # define FI(b, c, d) (c ^ (b | ~d))
 
-/* Starting with the result of former calls of this function (or the
- * initialization function update the context for the next LEN bytes
- * starting at BUFFER.
- * It is necessary that LEN is a multiple of 64!!!
- */
-static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
+/* Hash a single block, 64 bytes long and 4-byte aligned. */
+static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 {
 	uint32_t correct_words[16];
 	const uint32_t *words = buffer;
-	size_t nwords = len / sizeof(uint32_t);
-	const uint32_t *endp = words + nwords;
 
 # if MD5_SIZE_VS_SPEED > 0
 	static const uint32_t C_array[] = {
@@ -126,16 +114,8 @@ static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
 	uint32_t C = ctx->C;
 	uint32_t D = ctx->D;
 
-	/* First increment the byte count.  RFC 1321 specifies the possible
-	   length of the file up to 2^64 bits.  Here we only compute the
-	   number of bytes.  Do a double word increment.  */
-	ctx->total[0] += len;
-	if (ctx->total[0] < len)
-		++ctx->total[1];
-
 	/* Process all bytes in the buffer with 64 bytes in each round of
 	   the loop.  */
-	while (words < endp) {
 		uint32_t *cwp = correct_words;
 		uint32_t A_save = A;
 		uint32_t B_save = B;
@@ -397,7 +377,6 @@ static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
 		B += B_save;
 		C += C_save;
 		D += D_save;
-	}
 
 	/* Put checksum in context given as argument.  */
 	ctx->A = A;
@@ -406,55 +385,39 @@ static void md5_hash_block(const void *buffer, size_t len, md5_ctx_t *ctx)
 	ctx->D = D;
 }
 
-/* Starting with the result of former calls of this function (or the
- * initialization function update the context for the next LEN bytes
- * starting at BUFFER.
- * It is NOT required that LEN is a multiple of 64.
- */
+/* Feed data through a temporary buffer to call md5_hash_aligned_block()
+ * with chunks of data that are 4-byte aligned and a multiple of 64 bytes.
+ * This function's internal buffer remembers previous data until it has 64
+ * bytes worth to pass on.  Call md5_end() to flush this buffer. */
 
-static void md5_hash_bytes(const void *buffer, size_t len, md5_ctx_t *ctx)
+void md5_hash(const void *buffer, size_t len, md5_ctx_t *ctx)
 {
-	/* When we already have some bits in our internal buffer concatenate
-	   both inputs first.  */
-	if (ctx->buflen != 0) {
-		size_t left_over = ctx->buflen;
-		size_t add = 128 - left_over > len ? len : 128 - left_over;
+	char *buf=(char *)buffer;
 
-		memcpy(&ctx->buffer[left_over], buffer, add);
-		ctx->buflen += add;
+	/* RFC 1321 specifies the possible length of the file up to 2^64 bits,
+	 * Here we only track the number of bytes.  */
 
-		if (left_over + add > 64) {
-			md5_hash_block(ctx->buffer, (left_over + add) & ~63, ctx);
-			/* The regions in the following copy operation cannot overlap.  */
-			memcpy(ctx->buffer, &ctx->buffer[(left_over + add) & ~63],
-				   (left_over + add) & 63);
-			ctx->buflen = (left_over + add) & 63;
+	ctx->total += len;
+
+	// Process all input.
+
+	while (len) {
+		int i = 64 - ctx->buflen;
+
+		// Copy data into aligned buffer.
+
+		if (i > len) i = len;
+		memcpy(ctx->buffer + ctx->buflen, buf, i);
+		len -= i;
+		ctx->buflen += i;
+		buf += i;
+
+		// When buffer fills up, process it.
+
+		if (ctx->buflen == 64) {
+			md5_hash_block(ctx->buffer, ctx);
+			ctx->buflen = 0;
 		}
-
-		buffer = (const char *) buffer + add;
-		len -= add;
-	}
-
-	/* Process available complete blocks.  */
-	if (len > 64) {
-		md5_hash_block(buffer, len & ~63, ctx);
-		buffer = (const char *) buffer + (len & ~63);
-		len &= 63;
-	}
-
-	/* Move remaining bytes in internal buffer.  */
-	if (len > 0) {
-		memcpy(ctx->buffer, buffer, len);
-		ctx->buflen = len;
-	}
-}
-
-void md5_hash(const void *data, size_t length, md5_ctx_t *ctx)
-{
-	if (length % 64 == 0) {
-		md5_hash_block(data, length, ctx);
-	} else {
-		md5_hash_bytes(data, length, ctx);
 	}
 }
 
@@ -468,31 +431,23 @@ void md5_hash(const void *data, size_t length, md5_ctx_t *ctx)
  */
 void *md5_end(void *resbuf, md5_ctx_t *ctx)
 {
-	/* Take yet unprocessed bytes into account.  */
-	uint32_t bytes = ctx->buflen;
-	size_t pad;
+	char *buf = ctx->buffer;
+	int i;
 
-	/* Now count remaining bytes.  */
-	ctx->total[0] += bytes;
-	if (ctx->total[0] < bytes)
-		++ctx->total[1];
+	/* Pad data to block size.  */
 
-	pad = bytes >= 56 ? 64 + 56 - bytes : 56 - bytes;
-# if MD5_SIZE_VS_SPEED > 0
-	memset(&ctx->buffer[bytes], 0, pad);
-	ctx->buffer[bytes] = 0x80;
-# else
-	memcpy(&ctx->buffer[bytes], fillbuf, pad);
-# endif	/* MD5_SIZE_VS_SPEED > 0 */
+	buf[ctx->buflen++] = 0x80;
+	memset(buf + ctx->buflen, 0, 128 - ctx->buflen);
 
 	/* Put the 64-bit file length in *bits* at the end of the buffer.  */
-	*(uint32_t *) & ctx->buffer[bytes + pad] = SWAP(ctx->total[0] << 3);
-	*(uint32_t *) & ctx->buffer[bytes + pad + 4] =
-		SWAP(((ctx->total[1] << 3) | (ctx->total[0] >> 29)));
+	ctx->total <<= 3;
+	if (ctx->buflen > 56) buf += 64;
+	for (i = 0; i < 8; i++)  buf[56 + i] = ctx->total >> (i*8);
 
 	/* Process last bytes.  */
-	md5_hash_block(ctx->buffer, bytes + pad + 8, ctx);
-
+	if (buf != ctx->buffer) md5_hash_block(ctx->buffer, ctx);
+	md5_hash_block(buf, ctx);
+	
 	/* Put result from CTX in first 16 bytes following RESBUF.  The result is
 	 * always in little endian byte order, so that a byte-wise output yields
 	 * to the wanted ASCII representation of the message digest.
