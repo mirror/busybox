@@ -588,7 +588,6 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	}
 
 	if (flush) {
-		int _round = 0;
 		char flushb[4096-512];
 
 		if (filter.tb == -1) {
@@ -614,14 +613,9 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 				return -1;
 			}
 			if (filter.flushed == 0) {
-				if (_round == 0) {
-					if (filter.tb != -1 || do_ipv6 == AF_INET6)
-						fprintf(stderr, "Nothing to flush.\n");
-				}
 				fflush(stdout);
 				return 0;
 			}
-			_round++;
 			if (flush_update() < 0)
 				exit(1);
 		}

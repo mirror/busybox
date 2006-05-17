@@ -506,7 +506,6 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 	}
 
 	if (flush) {
-		int round = 0;
 		char flushb[4096-512];
 
 		filter.flushb = flushb;
@@ -525,14 +524,9 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 				exit(1);
 			}
 			if (filter.flushed == 0) {
-#if 0
-				if (round == 0)
-					fprintf(stderr, "Nothing to flush.\n");
-#endif
 				fflush(stdout);
 				return 0;
 			}
-			round++;
 			if (flush_update() < 0)
 				exit(1);
 		}
