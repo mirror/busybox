@@ -2,6 +2,17 @@
 
 
 <ul>
+  <li><b>17 May 2006 -- BusyBox 1.1.3 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.1.3.tar.bz2">BusyBox
+    1.1.3</a> is another bugfix release.  It makes passwd use salt, fixes a
+    memory freeing bug in ls, fixes "build all sources at once" mode, makes
+    mount -a not abort on the first failure, fixes msh so ctrl-c doesn't kill
+    background processes, makes patch work with patch hunks that don't have a
+    timestamp, make less's text search a lot more robust (the old one could
+    segfault), and fixes readlink -f when built against uClibc.</p>
+
+    <p>Expect 1.2.0 sometime next month, which won't be a bugfix release.</p>
+
   <li><b>10 April 2006 -- BusyBox 1.1.2 (stable)</b>
     <p>You can now download <a href="http://busybox.net/downloads/busybox-1.1.2.tar.bz2">BusyBox 1.1.2</a>, a bug fix release consisting of 11 patches
     backported from the development branch: Some build fixes, several fixes
