@@ -13202,7 +13202,6 @@ static errcode_t PRS(int argc, char *argv[], e2fsck_t *ret_ctx)
 			fprintf(stderr, _("Incompatible options not "
 					  "allowed when byte-swapping.\n"));
 			exit(EXIT_USAGE);
-		}
 	}
 #endif
 	/*
