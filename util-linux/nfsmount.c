@@ -214,7 +214,6 @@ enum {
 
 static char *nfs_strerror(int status);
 
-#define MAKE_VERSION(p,q,r)	(65536*(p) + 256*(q) + (r))
 #define MAX_NFSPROT ((nfs_mount_version >= 4) ? 3 : 2)
 
 enum {
@@ -249,13 +248,13 @@ find_kernel_nfs_mount_version(void)
 
 	nfs_mount_version = NFS_MOUNT_VERSION; /* default */
 
-	kernel_version = get_kernel_revision();
+	kernel_version = get_linux_version_code();
 	if (kernel_version) {
-		if (kernel_version < MAKE_VERSION(2,1,32))
+		if (kernel_version < KERNEL_VERSION(2,1,32))
 			nfs_mount_version = 1;
-		else if (kernel_version < MAKE_VERSION(2,2,18) ||
-				(kernel_version >=   MAKE_VERSION(2,3,0) &&
-				 kernel_version < MAKE_VERSION(2,3,99)))
+		else if (kernel_version < KERNEL_VERSION(2,2,18) ||
+				(kernel_version >=   KERNEL_VERSION(2,3,0) &&
+				 kernel_version < KERNEL_VERSION(2,3,99)))
 			nfs_mount_version = 3;
 		else
 			nfs_mount_version = 4; /* since 2.3.99pre4 */
@@ -844,7 +843,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	  * to avoid problems with multihomed hosts.
 	  * --Swen
 	  */
-	if (get_kernel_revision() <= 66314
+	if (get_linux_version_code() <= KERNEL_VERSION(2,3,10)
 	    && connect(fsock, (struct sockaddr *) &server_addr,
 		       sizeof (server_addr)) < 0) {
 		perror(_("nfs connect"));

@@ -61,14 +61,14 @@ static int check = 0;
 static int badpages = 0;
 #if ENABLE_FEATURE_MKSWAP_V0
 static int version = -1;
-#define MAKE_VERSION(p,q,r)	(65536*(p) + 256*(q) + (r))
 #else
 #define version 1
 /* and make sure that we optimize away anything which would deal with checking
  * the kernel revision as we have v1 support only anyway.
  */
-#define MAKE_VERSION(p,q,r) 1
-#define get_kernel_revision() 1
+#undef KERNEL_VERSION
+#define KERNEL_VERSION(p,q,r) 1
+#define get_linux_version_code() 1
 #endif
 
 /*
@@ -293,7 +293,7 @@ int mkswap_main(int argc, char **argv)
 	if (sz & 4) {
 		version = bb_xgetlarg(tmp, 10, 0, 1);
 	} else {
-		if (get_kernel_revision() < MAKE_VERSION(2, 1, 117))
+		if (get_linux_version_code() < KERNEL_VERSION(2, 1, 117))
 			version = 0;
 		else
 			version = 1;
@@ -327,7 +327,7 @@ int mkswap_main(int argc, char **argv)
 #else
 	if (!version)
 		maxpages = V0_MAX_PAGES;
-	else if (get_kernel_revision() >= MAKE_VERSION(2, 2, 1))
+	else if (get_linux_version_code() >= KERNEL_VERSION(2,2,1))
 		maxpages = V1_MAX_PAGES;
 	else {
 		maxpages = V1_OLD_MAX_PAGES;

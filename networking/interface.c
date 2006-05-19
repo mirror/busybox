@@ -78,7 +78,6 @@
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
 #define _PATH_PROCNET_IFINET6           "/proc/net/if_inet6"
 #define new(p) ((p) = xcalloc(1,sizeof(*(p))))
-#define KRELEASE(maj,min,patch) ((maj) * 65536 + (min)*256 + (patch))
 
 #ifdef HAVE_HWSLIP
 #include <net/if_slip.h>
@@ -713,7 +712,7 @@ static int sockets_open(int family)
 
 	if (force < 0) {
 		force = 0;
-		if (get_kernel_revision() < KRELEASE(2, 1, 0))
+		if (get_linux_version_code() < KERNEL_VERSION(2,1,0))
 			force = 1;
 		if (access("/proc/net", R_OK))
 			force = 1;

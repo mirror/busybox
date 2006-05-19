@@ -91,6 +91,13 @@
 # include <netinet/in.h>
 #endif
 
+/*----- Kernel versioning ------------------------------------*/
+#ifdef __linux__
+#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
+#else
+#error implement KERNEL_VERSION for your platform
+#endif
+
 /* ---- miscellaneous --------------------------------------- */
 /* NLS stuff */
 /* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */

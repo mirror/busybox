@@ -120,7 +120,7 @@ extern long bb_xgetlarg(const char *arg, int base, long lower, long upper);
 extern unsigned long bb_baud_to_value(speed_t speed);
 extern speed_t bb_value_to_baud(unsigned long value);
 
-extern int get_kernel_revision(void);
+extern int get_linux_version_code(void);
 
 extern int get_console_fd(void);
 extern struct mntent *find_mount_point(const char *name, const char *table);

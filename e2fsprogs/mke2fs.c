@@ -833,8 +833,8 @@ static int PRS(int argc, char *argv[])
 #endif
 
 #ifdef __linux__
-	linux_version_code = get_kernel_revision();
-	if (linux_version_code && linux_version_code < (2*65536 + 2*256)) {
+	linux_version_code = get_linux_version_code();
+	if (linux_version_code && linux_version_code < KERNEL_VERSION(2,2,0)) {
 		param.s_rev_level = 0;
 		param.s_feature_incompat = 0;
 		param.s_feature_compat = 0;

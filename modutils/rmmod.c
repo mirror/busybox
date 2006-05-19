@@ -38,7 +38,7 @@ static inline void filename2modname(char *modname, const char *afterslash)
 
 #if ENABLE_FEATURE_2_4_MODULES
 	int kr_chk = 1;
-	if (get_kernel_revision() <= 2*65536+6*256)
+	if (get_linux_version_code() <= KERNEL_VERSION(2,6,0))
 		kr_chk = 0;
 #else
 #define kr_chk 1

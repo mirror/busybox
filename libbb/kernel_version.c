@@ -26,11 +26,12 @@
 
 #include "libbb.h"
 
-/* Returns kernel version encoded as major*65536 + minor*256 + patch,
+/* Returns current kernel version encoded as major*65536 + minor*256 + patch,
  * so, for example,  to check if the kernel is greater than 2.2.11:
- *     if (get_kernel_revision() <= 2*65536+2*256+11) { <stuff> }
+ *
+ *     if (get_linux_version_code() > KERNEL_VERSION(2,2,11)) { <stuff> }
  */
-int get_kernel_revision(void)
+int get_linux_version_code(void)
 {
 	struct utsname name;
 	char *s;
