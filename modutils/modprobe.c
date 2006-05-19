@@ -364,8 +364,8 @@ static void include_conf ( struct dep_t **first, struct dep_t **current, char *b
 }
 
 /*
- * This function builds a list of dependency rules from /lib/modules/`uname -r\modules.dep.
- * It then fills every modules and aliases with their  default options, found by parsing
+ * This function builds a list of dependency rules from /lib/modules/`uname -r`\modules.dep.
+ * It then fills every modules and aliases with their default options, found by parsing
  * modprobe.conf (or modules.conf, or conf.modules).
  */
 static struct dep_t *build_dep ( void )
@@ -389,7 +389,8 @@ static struct dep_t *build_dep ( void )
 
 	filename = bb_xasprintf("/lib/modules/%s/modules.dep", un.release );
 	fd = open ( filename, O_RDONLY );
-	if (ENABLE_FEATURE_CLEAN_UP) free(filename);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(filename);
 	if (fd < 0) {
 		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
 		if (( fd = open ( "/lib/modules/modules.dep", O_RDONLY )) < 0 ) {
@@ -552,16 +553,16 @@ static struct dep_t *build_dep ( void )
 	include_conf (&first, &current, buffer, sizeof(buffer), fd);
 	close(fd);
 
-	filename = bb_xasprintf("/lib/modules/%s/modules.alias", un.release );
-
-	if (( fd = open ( filename, O_RDONLY )) < 0 ) {
-
+	filename = bb_xasprintf("/lib/modules/%s/modules.alias", un.release);
+	fd = open ( filename, O_RDONLY );
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(filename);
+	if (fd < 0) {
 		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
 		if (( fd = open ( "/lib/modules/modules.alias", O_RDONLY )) < 0 ) {
 			return first;
 		}
 	}
-	free(filename);
 
 	include_conf (&first, &current, buffer, sizeof(buffer), fd);
 	close(fd);
