@@ -18,12 +18,12 @@
 	This password types should not  be permitted:
 	a)	pure numbers: birthdates, social security number, license plate, phone numbers;
 	b)	words and all letters only passwords (uppercase, lowercase or mixed)
-		as palindromes, consecutive or repetitive letters 
+		as palindromes, consecutive or repetitive letters
 		or adjacent letters on your keyboard;
 	c)	username, real name, company name or (e-mail?) address
 		in any form (as-is, reversed, capitalized, doubled, etc.).
 		(we can check only against username, gecos and hostname)
-	d)	common and obvious letter-number replacements 
+	d)	common and obvious letter-number replacements
 		(e.g. replace the letter O with number 0)
 		such as "M1cr0$0ft" or "P@ssw0rd" (CAVEAT: we cannot check for them
 		without the use of a dictionary).
@@ -42,12 +42,13 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 
 #include "libbb.h"
 
 
 /* passwords should consist of 6 (to 8 characters) */
-#define MINLEN 6 
+#define MINLEN 6
 
 
 static int string_checker_helper(const char *p1, const char *p2) __attribute__ ((__pure__));
@@ -93,7 +94,7 @@ static int string_checker(const char *p1, const char *p2)
 #define NUMBERS            4
 #define SPECIAL            8
 
-static const char *obscure_msg(const char *old_p, const char *new_p, const struct passwd *pw) 
+static const char *obscure_msg(const char *old_p, const char *new_p, const struct passwd *pw)
 {
 	int i;
 	int c;
@@ -107,7 +108,7 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 	/* size */
 	if (!new_p || (length = strlen(new_p)) < MINLEN)
 		return("too short");
-	
+
 	/* no username as-is, as sub-string, reversed, capitalized, doubled */
 	if (string_checker(new_p, pw->pw_name)) {
 		return "similar to username";
@@ -152,11 +153,11 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 			return "too many similar characters";
 		}
 	}
-	for(i=0;i<4;i++)
+	for (i=0; i<4; i++)
 		if (mixed & (1<<i)) size -= 2;
 	if (length < size)
 		return "too weak";
-	
+
 	if (old_p && old_p[0] != '\0') {
 		/* check vs. old password */
 		if (string_checker(new_p, old_p)) {
