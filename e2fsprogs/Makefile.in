@@ -55,8 +55,8 @@ endif
 
 E2FSPROGS_SRC-y:=$(patsubst %.o,$(E2FSPROGS_SRC)/%.c,$(E2FSPROGS-y))
 E2FSPROGS_SRC-a:=$(wildcard $(E2FSPROGS_SRC)/*.c) $(patsubst %,$(E2FSPROGS_SRC)/%,$(BLKID_SRCS) $(E2P_SRCS) $(EXT2FS_SRCS) $(UUID_SRCS))
-APPLET_SRC-y+=$(E2FSPROGS_CFLAGS) $(E2FSPROGS_SRC-y)
-APPLET_SRC-a+=$(E2FSPROGS_CFLAGS) $(E2FSPROGS_SRC-a)
+APPLET_SRC-y+=$(E2FSPROGS_SRC-y)
+APPLET_SRC-a+=$(E2FSPROGS_SRC-a)
 
 # XXX: FIXME: change .c to include their stuff relative to $(E2FSPROGS_SRC)
 E2FSPROGS_TMP_KLUDGE:=$(patsubst %,-I$(E2FSPROGS_SRC)/%,blkid e2fsck e2p ext2fs uuid)
