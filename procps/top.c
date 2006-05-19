@@ -338,20 +338,21 @@ static void display_status(int count, int scr_width)
 	while (count--) {
 		div_t pmem = div( (s->rss*pmem_scale) >> pmem_shift, 10);
 		int col = scr_width+1;
+		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(div_t pcpu;)
 
 		if (s->rss >= 100*1024)
 			sprintf(rss_str_buf, "%6ldM", s->rss/1024);
 		else
 			sprintf(rss_str_buf, "%7ld", s->rss);
-		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(div_t pcpu = div((s->pcpu*pcpu_scale) >> pcpu_shift, 10));
+		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(pcpu = div((s->pcpu*pcpu_scale) >> pcpu_shift, 10);)
 		col -= printf("\n%5d %-8s %s  %s%6d%3u.%c" \
-			   	USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE("%3u.%c") " ",
+				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE("%3u.%c") " ",
 				s->pid, s->user, s->state, rss_str_buf, s->ppid,
 				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(pcpu.quot, '0'+pcpu.rem,)
 				pmem.quot, '0'+pmem.rem);
 		if (col>0)
 			printf("%.*s", col, s->short_cmd);
-		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu, 
+		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
 			jif.busy - prev_jif.busy, jif.total - prev_jif.total); */
 		s++;
 	}
