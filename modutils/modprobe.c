@@ -290,15 +290,15 @@ static struct dep_t *build_dep ( void )
 	}
 
 	filename = bb_xasprintf("/lib/modules/%s/modules.dep", un.release );
-
-	if (( fd = open ( filename, O_RDONLY )) < 0 ) {
-
+	fd = open ( filename, O_RDONLY );
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(filename);
+	if (fd < 0) {
 		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
 		if (( fd = open ( "/lib/modules/modules.dep", O_RDONLY )) < 0 ) {
 			return 0;
 		}
 	}
-	free(filename);
 
 	while ( reads ( fd, buffer, sizeof( buffer ))) {
 		int l = bb_strlen ( buffer );
