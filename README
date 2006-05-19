@@ -5,12 +5,12 @@ What is busybox:
 
   BusyBox combines tiny versions of many common UNIX utilities into a single
   small executable.  It provides minimalist replacements for most of the
-  utilities you usually find in bzip2, coreutils, e2fsprogs, file, findutils,
-  gawk, grep, inetutils, less, modutils, net-tools, procps, sed, shadow,
-  sysklogd, sysvinit, tar, util-linux, and vim.  The utilities in BusyBox
-  often have fewer options than their full-featured cousins; however, the
-  options that are included provide the expected functionality and behave
-  very much like their larger counterparts.
+  utilities you usually find in bzip2, coreutils, dhcp, diffutils, e2fsprogs,
+  file, findutils, gawk, grep, inetutils, less, modutils, net-tools, procps,
+  sed, shadow, sysklogd, sysvinit, tar, util-linux, and vim.  The utilities
+  in BusyBox often have fewer options than their full-featured cousins;
+  however, the options that are included provide the expected functionality
+  and behave very much like their larger counterparts.
 
   BusyBox has been written with size-optimization and limited resources in
   mind, both to produce small binaries and to reduce run-time memory usage.
