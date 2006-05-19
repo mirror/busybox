@@ -210,7 +210,7 @@ static void data_readlines(void)
 	char current_line[256];
 	FILE *fp;
 
-	fp = (inp_stdin) ? stdin : bb_xfopen(filename, "rt");
+	fp = (inp_stdin) ? stdin : bb_xfopen(filename, "r");
 	flines = NULL;
 	for (i = 0; (feof(fp)==0) && (i <= MAXLINES); i++) {
 		strcpy(current_line, "");
