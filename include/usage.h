@@ -1166,8 +1166,8 @@ USE_FEATURE_DATE_ISOFMT( \
 #define ifconfig_full_usage \
 	"configure a network interface\n\n" \
 	"Options:\n" \
-	USAGE_IPV6("[add <address>[/<prefixlen>]]\n") \
-	USAGE_IPV6("[del <address>[/<prefixlen>]]\n") \
+	USAGE_IPV6("\t[add <address>[/<prefixlen>]]\n") \
+	USAGE_IPV6("\t[del <address>[/<prefixlen>]]\n") \
 	"\t[[-]broadcast [<address>]]  [[-]pointopoint [<address>]]\n" \
 	"\t[netmask <address>]  [dstaddr <address>]\n" \
 	USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
