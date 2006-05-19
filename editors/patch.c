@@ -54,29 +54,19 @@ static unsigned int copy_lines(FILE *src_stream, FILE *dest_stream, const unsign
 
 static char *extract_filename(char *line, int patch_level)
 {
-	char *filename_start_ptr = line + 4;
+	char *temp, *filename_start_ptr = line + 4;
 	int i;
 
 	/* Terminate string at end of source filename */
-	{
-		char *line_ptr;
-		line_ptr = strchr(filename_start_ptr, '\t');
-		if (!line_ptr) {
-			bb_perror_msg("Malformed line %s", line);
-			return(NULL);
-		}
-		*line_ptr = '\0';
-	}
+	temp = strchr(filename_start_ptr, '\t');
+	if (temp)
+		*temp = 0;
 
 	/* Skip over (patch_level) number of leading directories */
 	for (i = 0; i < patch_level; i++) {
-		char *dirname_ptr;
-
-		dirname_ptr = strchr(filename_start_ptr, '/');
-		if (!dirname_ptr) {
+		if (!(temp = strchr(filename_start_ptr, '/')))
 			break;
-		}
-		filename_start_ptr = dirname_ptr + 1;
+		filename_start_ptr = temp + 1;
 	}
 
 	return(bb_xstrdup(filename_start_ptr));
