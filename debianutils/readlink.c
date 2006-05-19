@@ -25,7 +25,7 @@ int readlink_main(int argc, char **argv)
 			bb_show_usage();
 
 	if (opt & READLINK_FLAG_f)
-		buf = realpath(argv[optind], NULL);
+		buf = realpath(argv[optind], bb_common_bufsiz1);
 	else
 		buf = xreadlink(argv[ENABLE_FEATURE_READLINK_FOLLOW ? optind : 1]);
 
@@ -33,7 +33,8 @@ int readlink_main(int argc, char **argv)
 		return EXIT_FAILURE;
 	puts(buf);
 
-	if (ENABLE_FEATURE_CLEAN_UP) free(buf);
+	if (ENABLE_FEATURE_CLEAN_UP && buf != bb_common_bufsiz1)
+		free(buf);
 
 	return EXIT_SUCCESS;
 }
