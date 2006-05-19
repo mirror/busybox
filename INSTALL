@@ -53,7 +53,7 @@ is run without an existing configuration, make defconfig will run first to
 create a known starting point.
 
 Other starting configurations (mostly used for testing purposes) include
-"make allbaseconfig" (enables all applets but disables all optional features),
+"make allbareconfig" (enables all applets but disables all optional features),
 "make allyesconfig" (enables absolutely everything including debug features),
 and "make randconfig" (produce a random configuration).
 
