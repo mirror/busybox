@@ -3,8 +3,23 @@
  * tiny vi.c: A small 'vi' clone
  * Copyright (C) 2000, 2001 Sterling Huxley <sterling@europa.com>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+static const char vi_Version[] =
+	"$Id: vi.c,v 1.38 2004/08/19 19:15:06 andersen Exp $";
 
 /*
  * To compile for standalone use:
@@ -53,6 +68,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -70,9 +86,6 @@
 #include <stdarg.h>
 #ifndef STANDALONE
 #include "busybox.h"
-#define vi_Version BB_VER " " BB_BT
-#else
-#define vi_Version "standalone"
 #endif							/* STANDALONE */
 
 #ifdef CONFIG_LOCALE_SUPPORT
@@ -1072,10 +1085,9 @@ static void colon(Byte * buf)
 #endif							/* CONFIG_FEATURE_VI_SEARCH */
 	} else if (strncasecmp((char *) cmd, "version", i) == 0) {	// show software version
 		psb("%s", vi_Version);
-	} else if (strncasecmp((char *) cmd, "write", i) == 0		// write text to file
-			|| strncasecmp((char *) cmd, "wq", i) == 0
-			|| strncasecmp((char *) cmd, "wn", i) == 0
-			|| strncasecmp((char *) cmd, "x", i) == 0) {
+	} else if ((strncasecmp((char *) cmd, "write", i) == 0) ||	// write text to file
+			   (strncasecmp((char *) cmd, "wq", i) == 0) ||
+			   (strncasecmp((char *) cmd, "x", i) == 0)) {
 		// is there a file name to write to?
 		if (strlen((char *) args) > 0) {
 			fn = args;
@@ -1112,9 +1124,7 @@ static void colon(Byte * buf)
 				file_modified = 0;
 				last_file_modified = -1;
 			}
-			if ((cmd[0] == 'x' || cmd[1] == 'q' || cmd[1] == 'n' ||
-			     cmd[0] == 'X' || cmd[1] == 'Q' || cmd[1] == 'N')
-			     && l == ch) {
+			if ((cmd[0] == 'x' || cmd[1] == 'q') && l == ch) {
 				editing = 0;
 			}
 		}
@@ -3423,10 +3433,9 @@ key_cmd_mode:
 			} else {
 				editing = 0;
 			}
-		} else if (strncasecmp((char *) p, "write", cnt) == 0
-				|| strncasecmp((char *) p, "wq", cnt) == 0
-				|| strncasecmp((char *) p, "wn", cnt) == 0
-				|| strncasecmp((char *) p, "x", cnt) == 0) {
+		} else if (strncasecmp((char *) p, "write", cnt) == 0 ||
+				   strncasecmp((char *) p, "wq", cnt) == 0 ||
+				   strncasecmp((char *) p, "x", cnt) == 0) {
 			cnt = file_write(cfn, text, end - 1);
 			if (cnt < 0) {
 				if (cnt == -1)
@@ -3435,8 +3444,7 @@ key_cmd_mode:
 				file_modified = 0;
 				last_file_modified = -1;
 				psb("\"%s\" %dL, %dC", cfn, count_lines(text, end - 1), cnt);
-				if (p[0] == 'x' || p[1] == 'q' || p[1] == 'n' ||
-				    p[0] == 'X' || p[1] == 'Q' || p[1] == 'N') {
+				if (p[0] == 'x' || p[1] == 'q') {
 					editing = 0;
 				}
 			}
@@ -3617,13 +3625,12 @@ key_cmd_mode:
 			indicate_error(c);
 			break;
 		}
-		if (file_modified) {
+		if (file_modified
 #ifdef CONFIG_FEATURE_VI_READONLY
-			if (vi_readonly || readonly) {
-			    psbs("\"%s\" File is read only", cfn);
-			    break;
-			}
-#endif		/* CONFIG_FEATURE_VI_READONLY */
+			&& ! vi_readonly
+			&& ! readonly
+#endif							/* CONFIG_FEATURE_VI_READONLY */
+			) {
 			cnt = file_write(cfn, text, end - 1);
 			if (cnt < 0) {
 				if (cnt == -1)

@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/ioctl.h>
