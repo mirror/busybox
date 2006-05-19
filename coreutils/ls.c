@@ -350,20 +350,18 @@ static struct dnode **dnalloc(int num)
 }
 
 #ifdef CONFIG_FEATURE_LS_RECURSIVE
-static void dfree(struct dnode **dnp)
+static void dfree(struct dnode **dnp, int nfiles)
 {
-	struct dnode *cur, *next;
+	int i;
 
 	if (dnp == NULL)
 		return;
 
-	cur = dnp[0];
-	while (cur != NULL) {
+	for (i = 0; i < nfiles; i++) {
+		struct dnode *cur = dnp[i];
 		if(cur->allocated)
 			free(cur->fullname);	/* free the filename */
-		next = cur->next;
 		free(cur);		/* free the dnode */
-		cur = next;
 	}
 	free(dnp);			/* free the array holding the dnode pointers */
 }
@@ -573,7 +571,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 					free(dnd);	/* free the array of dnode pointers to the dirs */
 				}
 			}
-			dfree(subdnp);	/* free the dnodes and the fullname mem */
+			dfree(subdnp, nfiles);	/* free the dnodes and the fullname mem */
 #endif
 		}
 	}
@@ -1164,13 +1162,19 @@ int ls_main(int argc, char **argv)
 			shellsort(dnf, dnfiles);
 #endif
 			showfiles(dnf, dnfiles);
+			if (ENABLE_FEATURE_CLEAN_UP)
+				free(dnf);
 		}
 		if (dndirs > 0) {
 #ifdef CONFIG_FEATURE_LS_SORTFILES
 			shellsort(dnd, dndirs);
 #endif
 			showdirs(dnd, dndirs, dnfiles == 0);
+			if (ENABLE_FEATURE_CLEAN_UP)
+				free(dnd);
 		}
 	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		dfree(dnp, nfiles);
 	return (status);
 }
