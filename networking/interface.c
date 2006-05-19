@@ -52,7 +52,6 @@
  */
 #define HAVE_HWETHER	1
 #define HAVE_HWPPP	1
-#undef HAVE_HWSLIP
 
 
 #include "inet_common.h"
@@ -78,10 +77,6 @@
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
 #define _PATH_PROCNET_IFINET6           "/proc/net/if_inet6"
 #define new(p) ((p) = xcalloc(1,sizeof(*(p))))
-
-#ifdef HAVE_HWSLIP
-#include <net/if_slip.h>
-#endif
 
 #if HAVE_AFINET6
 
@@ -1061,27 +1056,6 @@ static int if_fetch(struct interface *ife)
 	else
 		ife->mtu = ifr.ifr_mtu;
 
-#ifdef HAVE_HWSLIP
-	if (ife->type == ARPHRD_SLIP || ife->type == ARPHRD_CSLIP ||
-		ife->type == ARPHRD_SLIP6 || ife->type == ARPHRD_CSLIP6 ||
-		ife->type == ARPHRD_ADAPT) {
-#ifdef SIOCGOUTFILL
-		strcpy(ifr.ifr_name, ifname);
-		if (ioctl(skfd, SIOCGOUTFILL, &ifr) < 0)
-			ife->outfill = 0;
-		else
-			ife->outfill = (unsigned int) ifr.ifr_data;
-#endif
-#ifdef SIOCGKEEPALIVE
-		strcpy(ifr.ifr_name, ifname);
-		if (ioctl(skfd, SIOCGKEEPALIVE, &ifr) < 0)
-			ife->keepalive = 0;
-		else
-			ife->keepalive = (unsigned int) ifr.ifr_data;
-#endif
-	}
-#endif
-
 #ifdef SIOCGIFMAP
 	strcpy(ifr.ifr_name, ifname);
 	if (ioctl(skfd, SIOCGIFMAP, &ifr) == 0)
@@ -1308,13 +1282,6 @@ static const struct hwtype * const hwtypes[] = {
 
 	&loop_hwtype,
 
-#if HAVE_HWSLIP
-	&slip_hwtype,
-	&cslip_hwtype,
-	&slip6_hwtype,
-	&cslip6_hwtype,
-	&adaptive_hwtype,
-#endif
 #if HAVE_HWSTRIP
 	&strip_hwtype,
 #endif
@@ -1338,13 +1305,6 @@ static void hwinit()
 {
 	loop_hwtype.title = _("Local Loopback");
 	unspec_hwtype.title = _("UNSPEC");
-#if HAVE_HWSLIP
-	slip_hwtype.title = _("Serial Line IP");
-	cslip_hwtype.title = _("VJ Serial Line IP");
-	slip6_hwtype.title = _("6-bit Serial Line IP");
-	cslip6_hwtype.title = _("VJ 6-bit Serial Line IP");
-	adaptive_hwtype.title = _("Adaptive Serial Line IP");
-#endif
 #if HAVE_HWETHER
 	ether_hwtype.title = _("Ethernet");
 #endif
