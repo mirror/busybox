@@ -322,6 +322,7 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 	char *clear;
 	char *cipher;
 	char *cp;
+	char salt[12]; /* "$N$XXXXXXXX" or "XX" */
 	char orig[200];
 	char pass[200];
 
@@ -376,11 +377,18 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 	}
 	memset(cp, 0, strlen(cp));
 	memset(orig, 0, sizeof(orig));
+	memset(salt, 0, sizeof(salt));
 
 	if (algo == 1) {
-		cp = pw_encrypt(pass, "$1$");
-	} else
-		cp = pw_encrypt(pass, crypt_make_salt());
+		strcpy(salt, "$1$");
+		strcat(salt, crypt_make_salt());
+		strcat(salt, crypt_make_salt());
+		strcat(salt, crypt_make_salt());
+	}
+
+	strcat(salt, crypt_make_salt());
+	cp = pw_encrypt(pass, salt);
+
 	memset(pass, 0, sizeof pass);
 	safe_strncpy(crypt_passwd, cp, sizeof(crypt_passwd));
 	return 0;
