@@ -25,6 +25,7 @@
 #include <sys/time.h>
 #include <sys/times.h>
 #include <sys/mount.h>
+#include <sys/mman.h>
 #include <getopt.h>
 #include "busybox.h"
 #include <linux/types.h>
@@ -1406,36 +1407,20 @@ static void do_time(int flag, int fd)
 	flag = 1 time_device
 */
 {
-	char *buf;
 	struct itimerval e1, e2;
-	int shmid;
 	double elapsed, elapsed2;
 	unsigned int max_iterations = 1024, total_MB, iterations;
 	unsigned long long blksize;
+	RESERVE_CONFIG_BUFFER(buf, TIMING_BUF_BYTES);
+
+	if (mlock(buf, TIMING_BUF_BYTES)) {
+		bb_perror_msg("mlock");
+		goto quit2;
+	}
 
 	if (0 == do_blkgetsize(fd, &blksize)) {
 		max_iterations = blksize / (2 * 1024) / TIMING_BUF_MB;
 	}
-
-	if ((shmid = shmget(IPC_PRIVATE, TIMING_BUF_BYTES, 0600)) == -1)
-	{
-		bb_perror_msg("shmget"); /*"could not allocate sharedmem buf"*/
-		return;
-	}
-	if (shmctl(shmid, SHM_LOCK, NULL) == -1)
-	{
-		bb_perror_msg("shmctl"); /*"could not lock sharedmem buf"*/
-		(void) shmctl(shmid, IPC_RMID, NULL);
-		return;
-	}
-	if ((buf = shmat(shmid, (char *) 0, 0)) == (char *) -1)
-	{
-		bb_perror_msg("shmat"); /*"could not attach sharedmem buf"*/
-		(void) shmctl(shmid, IPC_RMID, NULL);
-		return;
-	}
-	if (shmctl(shmid, IPC_RMID, NULL) == -1)
-		bb_perror_msg("shmctl");
 
 	/* Clear out the device request queues & give them time to complete */
 	sync();
@@ -1505,8 +1490,9 @@ static void do_time(int flag, int fd)
 		print_timing(total_MB, elapsed);
 	}
 quit:
-	if (-1 == shmdt(buf))
-		bb_perror_msg("shmdt"); /*"could not detach sharedmem buf"*/
+	munlock(buf, TIMING_BUF_BYTES);
+quit2:
+	RELEASE_CONFIG_BUFFER(buf);
 }
 
 static void on_off (unsigned int value)
