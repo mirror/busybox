@@ -2,24 +2,12 @@
 /*
  * Mini less implementation for busybox
  *
- *
  * Copyright (C) 2005 by Rob Sullivan <cogito.ergo.cogito@gmail.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
- * 02111-1307 USA
- *
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ */
+
+/*
  *      This program needs a lot of development, so consider it in a beta stage
  *      at best.
  *
@@ -116,11 +104,11 @@ static int num_marks;
 
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 static int match_found;
-static int match_lines[100];
+static int *match_lines;
 static int match_pos;
 static int num_matches;
 static int match_backwards;
-static int num_back_match = 1;
+static regex_t old_pattern;
 #endif
 
 /* Needed termios structures */
@@ -130,19 +118,21 @@ static struct termios term_orig, term_vi;
 static FILE *inp;
 
 /* Reset terminal input to normal */
-static void set_tty_cooked(void) {
+static void set_tty_cooked(void)
+{
 	fflush(stdout);
 	tcsetattr(fileno(inp), TCSANOW, &term_orig);
 }
 
 /* Set terminal input to raw mode  (taken from vi.c) */
-static void set_tty_raw(void) {
+static void set_tty_raw(void)
+{
 	tcsetattr(fileno(inp), TCSANOW, &term_vi);
 }
 
 /* Exit the program gracefully */
-static void tless_exit(int code) {
-
+static void tless_exit(int code)
+{
 	/* TODO: We really should save the terminal state when we start,
 		 and restore it when we exit. Less does this with the
 		 "ti" and "te" termcap commands; can this be done with
@@ -155,8 +145,8 @@ static void tless_exit(int code) {
 /* Grab a character from input without requiring the return key. If the
    character is ASCII \033, get more characters and assign certain sequences
    special return codes. Note that this function works best with raw input. */
-static int tless_getch(void) {
-
+static int tless_getch(void)
+{
 	int input;
 
 	set_tty_raw();
@@ -191,18 +181,20 @@ static int tless_getch(void) {
 
 /* Move the cursor to a position (x,y), where (0,0) is the
    top-left corner of the console */
-static void move_cursor(int x, int y) {
+static void move_cursor(int x, int y)
+{
 	printf("\033[%i;%iH", x, y);
 }
 
-static void clear_line(void) {
+static void clear_line(void)
+{
 	move_cursor(height, 0);
 	printf("\033[K");
 }
 
 /* This adds line numbers to every line, as the -N flag necessitates */
-static void add_linenumbers(void) {
-
+static void add_linenumbers(void)
+{
 	char current_line[256];
 	int i;
 
@@ -212,8 +204,8 @@ static void add_linenumbers(void) {
 	}
 }
 
-static void data_readlines(void) {
-
+static void data_readlines(void)
+{
 	int i;
 	char current_line[256];
 	FILE *fp;
@@ -223,7 +215,7 @@ static void data_readlines(void) {
 	for (i = 0; (feof(fp)==0) && (i <= MAXLINES); i++) {
 		strcpy(current_line, "");
 		fgets(current_line, 256, fp);
-		if(fp != stdin)
+		if (fp != stdin)
 			bb_xferror(fp, filename);
 		flines = xrealloc(flines, (i+1) * sizeof(char *));
 		flines[i] = bb_xstrdup(current_line);
@@ -237,31 +229,25 @@ static void data_readlines(void) {
 
 	fclose(fp);
 
-	if(inp == NULL)
+	if (inp == NULL)
 		inp = (inp_stdin) ? bb_xfopen(CURRENT_TTY, "r") : stdin;
 
 	if (flags & FLAG_N)
 		add_linenumbers();
 }
 
-/* Turn a percentage into a line number */
-static int reverse_percent(int percentage) {
-	double linenum = percentage;
-	linenum = ((linenum / 100) * num_flines) - 1;
-	return(linenum);
-}
-
 #ifdef CONFIG_FEATURE_LESS_FLAGS
 
 /* Interestingly, writing calc_percent as a function and not a prototype saves around 32 bytes
  * on my build. */
-static int calc_percent(void) {
+static int calc_percent(void)
+{
 	return ((100 * (line_pos + height - 2) / num_flines) + 1);
 }
 
 /* Print a status line if -M was specified */
-static void m_status_print(void) {
-
+static void m_status_print(void)
+{
 	int percentage;
 
 	if (!past_eof) {
@@ -295,8 +281,8 @@ static void m_status_print(void) {
 }
 
 /* Print a status line if -m was specified */
-static void medium_status_print(void) {
-
+static void medium_status_print(void)
+{
 	int percentage;
 	percentage = calc_percent();
 
@@ -310,8 +296,8 @@ static void medium_status_print(void) {
 #endif
 
 /* Print the status line */
-static void status_print(void) {
-
+static void status_print(void)
+{
 	/* Change the status if flags have been set */
 #ifdef CONFIG_FEATURE_LESS_FLAGS
 	if (flags & FLAG_M)
@@ -340,8 +326,8 @@ static void status_print(void) {
 }
 
 /* Print the buffer */
-static void buffer_print(void) {
-
+static void buffer_print(void)
+{
 	int i;
 
 	printf("%s", CLEAR);
@@ -360,11 +346,11 @@ static void buffer_print(void) {
 }
 
 /* Initialise the buffer */
-static void buffer_init(void) {
-
+static void buffer_init(void)
+{
 	int i;
 
-	if(buffer == NULL) {
+	if (buffer == NULL) {
 		/* malloc the number of lines needed for the buffer */
 		buffer = xrealloc(buffer, height * sizeof(char *));
 	} else {
@@ -385,8 +371,8 @@ static void buffer_init(void) {
 }
 
 /* Move the buffer up and down in the file in order to scroll */
-static void buffer_down(int nlines) {
-
+static void buffer_down(int nlines)
+{
 	int i;
 
 	if (!past_eof) {
@@ -415,8 +401,8 @@ static void buffer_down(int nlines) {
 	}
 }
 
-static void buffer_up(int nlines) {
-
+static void buffer_up(int nlines)
+{
 	int i;
 	int tilde_line;
 
@@ -467,15 +453,14 @@ static void buffer_up(int nlines) {
 	}
 }
 
-static void buffer_line(int linenum) {
-
+static void buffer_line(int linenum)
+{
 	int i;
-
 	past_eof = 0;
 
-	if (linenum < 1 || linenum > num_flines) {
+	if (linenum < 0 || linenum > num_flines) {
 		clear_line();
-		printf("%s%s%i%s", HIGHLIGHT, "Cannot seek to line number ", linenum, NORMAL);
+		printf("%s%s%i%s", HIGHLIGHT, "Cannot seek to line number ", linenum + 1, NORMAL);
 	}
 	else if (linenum < (num_flines - height - 2)) {
 		for (i = 0; i < (height - 1); i++) {
@@ -483,6 +468,7 @@ static void buffer_line(int linenum) {
 			buffer[i] = bb_xstrdup(flines[linenum + i]);
 		}
 		line_pos = linenum;
+		buffer_print();
 	}
 	else {
 		for (i = 0; i < (height - 1); i++) {
@@ -495,12 +481,13 @@ static void buffer_line(int linenum) {
 		line_pos = linenum;
 		/* Set past_eof so buffer_down and buffer_up act differently */
 		past_eof = 1;
+		buffer_print();
 	}
 }
 
 /* Reinitialise everything for a new file - free the memory and start over */
-static void reinitialise(void) {
-
+static void reinitialise(void)
+{
 	int i;
 
 	for (i = 0; i <= num_flines; i++)
@@ -512,8 +499,8 @@ static void reinitialise(void) {
 	buffer_print();
 }
 
-static void examine_file(void) {
-
+static void examine_file(void)
+{
 	int newline_offset;
 
 	clear_line();
@@ -538,7 +525,8 @@ static void examine_file(void) {
  *  0: go to the first file
  *  1: go forward one file
 */
-static void change_file (int direction) {
+static void change_file(int direction)
+{
 	if (current_file != ((direction > 0) ? num_files : 1)) {
 		current_file = direction ? current_file + direction : 1;
 		strcpy(filename, files[current_file - 1]);
@@ -550,8 +538,8 @@ static void change_file (int direction) {
 	}
 }
 
-static void remove_current_file(void) {
-
+static void remove_current_file(void)
+{
 	int i;
 
 	if (current_file != 1) {
@@ -571,8 +559,8 @@ static void remove_current_file(void) {
 	}
 }
 
-static void colon_process(void) {
-
+static void colon_process(void)
+{
 	int keypress;
 
 	/* Clear the current line and print a prompt */
@@ -616,100 +604,48 @@ static void colon_process(void) {
 /* Get a regular expression from the user, and then go through the current
    file line by line, running a processing regex function on each one. */
 
-static char *insert_highlights (char *line, int start, int end) {
-
-	return bb_xasprintf("%.*s%s%.*s%s%s", start, line, HIGHLIGHT,
-			end - start, line + start, NORMAL, line + end);
-}
-
-static char *process_regex_on_line(char *line, regex_t *pattern) {
+static char *process_regex_on_line(char *line, regex_t *pattern, int action)
+{
 	/* This function takes the regex and applies it to the line.
 	   Each part of the line that matches has the HIGHLIGHT
 	   and NORMAL escape sequences placed around it by
-	   insert_highlights, and then the line is returned. */
-
+	   insert_highlights if action = 1, or has the escape sequences
+	   removed if action = 0, and then the line is returned. */
 	int match_status;
-	char *line2 = (char *) malloc((sizeof(char) * (strlen(line) + 1)) + 64);
-	char sub_line[256];
-	int prev_eo = 0;
+	char *line2 = (char *) xmalloc((sizeof(char) * (strlen(line) + 1)) + 64);
+	char *growline = "";
 	regmatch_t match_structs;
 
-	memset(sub_line, 0, 256);
-	strcpy(line2, line);
+	line2 = bb_xstrdup(line);
 
 	match_found = 0;
 	match_status = regexec(pattern, line2, 1, &match_structs, 0);
-
+	
 	while (match_status == 0) {
-
-		memset(sub_line, 0, 256);
-
 		if (match_found == 0)
 			match_found = 1;
-
-		line2 = insert_highlights(line2, match_structs.rm_so + prev_eo, match_structs.rm_eo + prev_eo);
-		if ((size_t)match_structs.rm_eo + 11 + prev_eo < strlen(line2))
-			strcat(sub_line, line2 + match_structs.rm_eo + 11 + prev_eo);
-
-		prev_eo += match_structs.rm_eo + 11;
-		match_status = regexec(pattern, sub_line, 1, &match_structs, REG_NOTBOL);
-	}
-
-	return line2;
-}
-
-static void regex_process(void) {
-
-	char uncomp_regex[100];
-	char current_line[256];
-	int i;
-	int j = 0;
-	regex_t *pattern;
-
-	/* Reset variables */
-	match_lines[0] = -1;
-	match_pos = 0;
-	num_matches = 0;
-	match_found = 0;
-
-	pattern = (regex_t *) malloc(sizeof(regex_t));
-	memset(pattern, 0, sizeof(regex_t));
-
-	/* Get the uncompiled regular expression from the user */
-	clear_line();
-	putchar((match_backwards) ? '?' : '/');
-	uncomp_regex[0] = 0;
-	fgets(uncomp_regex, sizeof(uncomp_regex), stdin);
-	i = strlen(uncomp_regex);
-	if(i > 0) {
-		if(uncomp_regex[i-1] == '\n')
-			uncomp_regex[i-1] = '\0';
-		else
-			while((i = getchar()) != '\n' && i != EOF);
-	}
-
-	/* Compile the regex and check for errors */
-	xregcomp(pattern, uncomp_regex, 0);
-
-	/* Run the regex on each line of the current file here */
-	for (i = 0; i <= num_flines; i++) {
-		strcpy(current_line, process_regex_on_line(flines[i], pattern));
-		flines[i] = bb_xstrdup(current_line);
-		if (match_found) {
-			match_lines[j] = i;
-			j++;
+		
+		if (action) {
+			growline = bb_xasprintf("%s%.*s%s%.*s%s", growline, match_structs.rm_so, line2, HIGHLIGHT, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so, NORMAL); 
 		}
+		else {
+			growline = bb_xasprintf("%s%.*s%.*s", growline, match_structs.rm_so - 4, line2, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so);
+		}
+		
+		line2 += match_structs.rm_eo;
+		match_status = regexec(pattern, line2, 1, &match_structs, REG_NOTBOL);
 	}
-
-	num_matches = j;
-	if ((match_lines[0] != -1) && (num_flines > height - 2))
-		buffer_line(match_lines[0]);
-	else
-		buffer_init();
+	
+	growline = bb_xasprintf("%s%s", growline, line2);
+	
+	return (match_found ? growline : line);
+	
+	free(growline);
+	free(line2);
 }
 
-static void goto_match(int match) {
-
+static void goto_match(int match)
+{
 	/* This goes to a specific match - all line positions of matches are
 	   stored within the match_lines[] array. */
 	if ((match < num_matches) && (match >= 0)) {
@@ -718,30 +654,78 @@ static void goto_match(int match) {
 	}
 }
 
-static void search_backwards(void) {
-
-	int current_linepos = line_pos;
+static void regex_process(void)
+{
+	char uncomp_regex[100];
+	char *current_line;
 	int i;
+	int j = 0;
+	regex_t pattern;
+	/* Get the uncompiled regular expression from the user */
+	clear_line();
+	putchar((match_backwards) ? '?' : '/');
+	uncomp_regex[0] = 0;
+	fgets(uncomp_regex, sizeof(uncomp_regex), inp);
+	
+	if (strlen(uncomp_regex) == 1) {
+		if (num_matches)
+			goto_match(match_backwards ? match_pos - 1 : match_pos + 1);
+		else
+			buffer_print();
+		return;
+	}
+	uncomp_regex[strlen(uncomp_regex) - 1] = '\0';
+	
+	/* Compile the regex and check for errors */
+	xregcomp(&pattern, uncomp_regex, 0);
 
-	match_backwards = 1;
-	regex_process();
-
-	for (i = 0; i < num_matches; i++) {
-		if (match_lines[i] > current_linepos) {
-			buffer_line(match_lines[i - num_back_match]);
-			break;
+	if (num_matches) {
+		/* Get rid of all the highlights we added previously */
+		for (i = 0; i <= num_flines; i++) {
+			current_line = process_regex_on_line(flines[i], &old_pattern, 0);
+			flines[i] = bb_xstrdup(current_line);
 		}
 	}
-
+	old_pattern = pattern;
+	
 	/* Reset variables */
-	match_backwards = 0;
-	num_back_match = 1;
-
+	match_lines = xrealloc(match_lines, sizeof(int));
+	match_lines[0] = -1;
+	match_pos = 0;
+	num_matches = 0;
+	match_found = 0;
+	/* Run the regex on each line of the current file here */
+	for (i = 0; i <= num_flines; i++) {
+		current_line = process_regex_on_line(flines[i], &pattern, 1);
+		flines[i] = bb_xstrdup(current_line);
+		if (match_found) {
+			match_lines = xrealloc(match_lines, (j + 1) * sizeof(int));
+			match_lines[j] = i;
+			j++;
+		}
+	}
+	
+	num_matches = j;
+	if ((match_lines[0] != -1) && (num_flines > height - 2)) {
+		if (match_backwards) {
+			for (i = 0; i < num_matches; i++) {
+				if (match_lines[i] > line_pos) {
+					match_pos = i - 1;
+					buffer_line(match_lines[match_pos]);
+					break;
+				}
+			}
+		}
+		else
+			buffer_line(match_lines[0]);
+	}
+	else
+		buffer_init();
 }
 #endif
 
-static void number_process(int first_digit) {
-
+static void number_process(int first_digit)
+{
 	int i = 1;
 	int num;
 	char num_input[80];
@@ -764,8 +748,10 @@ static void number_process(int first_digit) {
 	keypress = num_input[i];
 	num_input[i] = '\0';
 	num = strtol(num_input, &endptr, 10);
-	if (endptr==num_input || *endptr!='\0' || num < 1 || num > MAXLINES)
-		goto END;
+	if (endptr==num_input || *endptr!='\0' || num < 1 || num > MAXLINES) {
+		buffer_print();
+		return;
+	}
 
 	/* We now know the number and the letter entered, so we process them */
 	switch (keypress) {
@@ -780,31 +766,29 @@ static void number_process(int first_digit) {
 				buffer_line(num - 1);
 			break;
 		case 'p': case '%':
-			buffer_line(reverse_percent(num));
+			buffer_line(((num / 100) * num_flines) - 1);
 			break;
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 		case 'n':
-			goto_match(match_pos + num - 1);
+			goto_match(match_pos + num);
 			break;
 		case '/':
+			match_backwards = 0;
 			regex_process();
-			goto_match(num - 1);
 			break;
 		case '?':
-			num_back_match = num;
-			search_backwards();
+			match_backwards = 1;
+			regex_process();
 			break;
 #endif
 		default:
 			break;
 	}
-END:
-	buffer_print();
 }
 
 #ifdef CONFIG_FEATURE_LESS_FLAGCS
-static void flag_change(void) {
-
+static void flag_change(void)
+{
 	int keypress;
 
 	clear_line();
@@ -829,8 +813,8 @@ static void flag_change(void) {
 	}
 }
 
-static void show_flag_status(void) {
-
+static void show_flag_status(void)
+{
 	int keypress;
 	int flag_val;
 
@@ -864,18 +848,17 @@ static void show_flag_status(void) {
 }
 #endif
 
-static void full_repaint(void) {
-
+static void full_repaint(void)
+{
 	int temp_line_pos = line_pos;
 	data_readlines();
 	buffer_init();
 	buffer_line(temp_line_pos);
-	buffer_print();
 }
 
 
-static void save_input_to_file(void) {
-
+static void save_input_to_file(void)
+{
 	char current_line[256];
 	int i;
 	FILE *fp;
@@ -884,7 +867,7 @@ static void save_input_to_file(void) {
 	printf("Log file: ");
 	fgets(current_line, 256, inp);
 	current_line[strlen(current_line) - 1] = '\0';
-	if (strlen(current_line)) {
+	if (strlen(current_line) > 1) {
 		fp = bb_xfopen(current_line, "w");
 		for (i = 0; i < num_flines; i++)
 			fprintf(fp, "%s", flines[i]);
@@ -896,8 +879,8 @@ static void save_input_to_file(void) {
 }
 
 #ifdef CONFIG_FEATURE_LESS_MARKS
-static void add_mark(void) {
-
+static void add_mark(void)
+{
 	int letter;
 	int mark_line;
 
@@ -922,8 +905,8 @@ static void add_mark(void) {
 	}
 }
 
-static void goto_mark(void) {
-
+static void goto_mark(void)
+{
 	int letter;
 	int i;
 
@@ -949,8 +932,8 @@ static void goto_mark(void) {
 
 #ifdef CONFIG_FEATURE_LESS_BRACKETS
 
-static char opp_bracket (char bracket) {
-
+static char opp_bracket(char bracket)
+{
 	switch (bracket) {
 		case '{': case '[':
 			return bracket + 2;
@@ -970,8 +953,8 @@ static char opp_bracket (char bracket) {
 	}
 }
 
-static void match_right_bracket(char bracket) {
-
+static void match_right_bracket(char bracket)
+{
 	int bracket_line = -1;
 	int i;
 
@@ -991,12 +974,11 @@ static void match_right_bracket(char bracket) {
 			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
 
 		buffer_line(bracket_line - height + 2);
-		buffer_print();
 	}
 }
 
-static void match_left_bracket (char bracket) {
-
+static void match_left_bracket(char bracket)
+{
 	int bracket_line = -1;
 	int i;
 
@@ -1019,13 +1001,13 @@ static void match_left_bracket (char bracket) {
 			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
 
 		buffer_line(bracket_line);
-		buffer_print();
 	}
 }
 
 #endif  /* CONFIG_FEATURE_LESS_BRACKETS */
 
-static void keypress_process(int keypress) {
+static void keypress_process(int keypress)
+{
 	switch (keypress) {
 		case KEY_DOWN: case 'e': case 'j': case '\015':
 			buffer_down(1);
@@ -1052,12 +1034,10 @@ static void keypress_process(int keypress) {
 			buffer_print();
 			break;
 		case 'g': case 'p': case '<': case '%':
-			buffer_up(num_flines + 1);
-			buffer_print();
+			buffer_line(0);
 			break;
 		case 'G': case '>':
-			buffer_down(num_flines + 1);
-			buffer_print();
+			buffer_line(num_flines - height + 2);
 			break;
 		case 'q': case 'Q':
 			tless_exit(0);
@@ -1093,20 +1073,18 @@ static void keypress_process(int keypress) {
 #endif
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 		case '/':
+			match_backwards = 0;
 			regex_process();
-			buffer_print();
 			break;
 		case 'n':
 			goto_match(match_pos + 1);
-			buffer_print();
 			break;
 		case 'N':
 			goto_match(match_pos - 1);
-			buffer_print();
 			break;
 		case '?':
-			search_backwards();
-			buffer_print();
+			match_backwards = 1;
+			regex_process();
 			break;
 #endif
 #ifdef CONFIG_FEATURE_LESS_FLAGCS
