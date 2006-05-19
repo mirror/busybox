@@ -183,6 +183,7 @@ void run_applet_by_name(const char *name, int argc, char **argv);
  * to have the prototypes here unconditionally.  */
 extern void *xmalloc(size_t size);
 extern void *xrealloc(void *old, size_t size);
+extern void *xzalloc(size_t size);
 extern void *xcalloc(size_t nmemb, size_t size);
 
 extern char *bb_xstrdup (const char *s);

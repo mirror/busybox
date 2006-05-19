@@ -37,6 +37,15 @@ void *xrealloc(void *ptr, size_t size)
 }
 #endif
 
+#ifdef L_xzalloc
+void *xzalloc(size_t size)
+{
+	void *ptr = xmalloc(size);
+	memset(ptr, 0, size);
+	return ptr;
+}
+#endif
+
 #ifdef L_xcalloc
 void *xcalloc(size_t nmemb, size_t size)
 {
