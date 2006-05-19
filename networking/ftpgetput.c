@@ -350,11 +350,3 @@ int ftpgetput_main(int argc, char **argv)
 
 	return(ftp_action(server, control_stream, argv[optind + 1], argv[optind + 2]));
 }
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

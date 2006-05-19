@@ -99,11 +99,3 @@ int which_main(int argc, char **argv)
 	}
 	bb_fflush_stdout_and_exit(status);
 }
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

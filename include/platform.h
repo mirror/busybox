@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
    Copyright 2006, Bernhard Fischer
 
@@ -99,9 +100,11 @@
 #endif
 
 /* ---- miscellaneous --------------------------------------- */
+#if ENABLE_DEBUG_KEEP_NLS_CRAP
 /* NLS stuff */
 /* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
 #define _(Text) Text
 #define N_(Text) (Text)
+#endif
 
 #endif	/* platform.h	*/

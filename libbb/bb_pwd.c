@@ -168,13 +168,3 @@ unsigned long get_ug_id(const char *s,
 	return r;
 }
 #endif /* L_get_ug_id */
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
-

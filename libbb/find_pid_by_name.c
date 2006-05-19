@@ -57,12 +57,3 @@ long *pidlist_reverse(long *pidList)
 	}
 	return pidList;
 }
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

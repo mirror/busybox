@@ -2,19 +2,7 @@
  * getopt.c - Enhanced implementation of BSD getopt(1)
  *   Copyright (c) 1997, 1998, 1999, 2000  Frodo Looijaard <frodol@dds.nl>
  *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 /*
@@ -380,11 +368,3 @@ int getopt_main(int argc, char *argv[])
 		argv[optind-1]=argv[0];
        return (generate_output(argv+optind-1,argc-optind+1,optstr,long_options));
 }
-
-/*
-  Local Variables:
-  c-file-style: "linux"
-  c-basic-offset: 4
-  tab-width: 4
-  End:
-*/

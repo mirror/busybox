@@ -854,13 +854,3 @@ progressmeter(int flag)
  *
  *	$Id: wget.c,v 1.75 2004/10/08 08:27:40 andersen Exp $
  */
-
-
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

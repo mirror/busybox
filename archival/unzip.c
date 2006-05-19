@@ -417,12 +417,3 @@ int unzip_main(int argc, char **argv)
 
 	return failed;
 }
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

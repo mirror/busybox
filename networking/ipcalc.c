@@ -8,6 +8,8 @@
  * This is a complete reimplementation of the ipcalc program
  * from Red Hat.  I didn't look at their source code, but there
  * is no denying that this is a loving reimplementation
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <stdio.h>
@@ -214,12 +216,3 @@ int ipcalc_main(int argc, char **argv)
 
 	return EXIT_SUCCESS;
 }
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

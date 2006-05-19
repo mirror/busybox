@@ -22,11 +22,3 @@ void bb_do_delay(int seconds)
 		time(&now);
 	}
 }
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

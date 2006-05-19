@@ -1,4 +1,7 @@
 /* vi: set sw=4 ts=4: */
+/*
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ */
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -147,11 +150,3 @@ int busybox_main(int argc, char **argv)
 
 	bb_error_msg_and_die("applet not found");
 }
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

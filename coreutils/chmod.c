@@ -89,11 +89,3 @@ int chmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
 
 	return retval;
 }
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

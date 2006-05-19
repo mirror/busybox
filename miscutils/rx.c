@@ -317,11 +317,3 @@ int rx_main(int argc, char **argv)
 
 	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

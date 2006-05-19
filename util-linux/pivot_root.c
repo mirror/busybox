@@ -5,6 +5,8 @@
  * busyboxed by Evin Robertson
  * pivot_root syscall stubbed by Erik Andersen, so it will compile
  *     regardless of the kernel being used.
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -24,12 +26,3 @@ int pivot_root_main(int argc, char **argv)
     return EXIT_SUCCESS;
 
 }
-
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

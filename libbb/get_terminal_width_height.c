@@ -29,13 +29,3 @@ int get_terminal_width_height(int fd, int *width, int *height)
 
 	return ret;
 }
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
-

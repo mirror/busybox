@@ -116,13 +116,3 @@ int recursive_action(const char *fileName,
 	}
 	return TRUE;
 }
-
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

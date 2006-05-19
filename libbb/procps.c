@@ -4,8 +4,8 @@
  *
  * Copyright 1998 by Albert Cahalan; all rights reserved.
  * Copyright (C) 2002 by Vladimir Oleynik <dzo@simtreas.ru>
- * GNU Library General Public License Version 2, or any later version
  *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <dirent.h>
@@ -146,12 +146,3 @@ procps_status_t * procps_scan(int save_user_arg0)
 		return memcpy(&ret_status, &curstatus, sizeof(procps_status_t));
 	}
 }
-
-/* END CODE */
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/

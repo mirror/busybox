@@ -76,11 +76,3 @@ int chown_main(int argc, char **argv)
 
 	return retval;
 }
-
-/*
-Local Variables:
-c-file-style: "linux"
-c-basic-offset: 4
-tab-width: 4
-End:
-*/
