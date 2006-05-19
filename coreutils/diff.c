@@ -8,7 +8,7 @@
  * Sponsored in part by the Defense Advanced Research Projects
  * Agency (DARPA) and Air Force Research Laboratory, Air Force
  * Materiel Command, USAF, under agreement number F39502-99-1-0512.
- * 
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
@@ -405,11 +405,11 @@ static int stone(int *a, int n, int *b, int *c)
 {
         int i, k, y, j, l;
         int oldc, tc, oldl;
-        u_int numtries;
+        unsigned int numtries;
 #if ENABLE_FEATURE_DIFF_MINIMAL
-		const u_int bound = (cmd_flags & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
+		const unsigned int bound = (cmd_flags & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
 #else
-		const u_int bound = MAX(256, isqrt(n));
+		const unsigned int bound = MAX(256, isqrt(n));
 #endif
         k = 0;
         c[0] = newcand(0, 0, 0);
@@ -933,7 +933,7 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
                 goto closem;
 
         if (flags & D_EMPTY1)
-                f1 = bb_xfopen(_PATH_DEVNULL, "r");
+                f1 = bb_xfopen(bb_dev_null, "r");
         else {
                 if (strcmp(file1, "-") == 0)
                         f1 = stdin;
@@ -942,7 +942,7 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
         }
 
         if (flags & D_EMPTY2)
-                f2 = bb_xfopen(_PATH_DEVNULL, "r");
+                f2 = bb_xfopen(bb_dev_null, "r");
         else {
                 if (strcmp(file2, "-") == 0)
                         f2 = stdin;
