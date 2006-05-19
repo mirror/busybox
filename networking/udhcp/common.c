@@ -42,8 +42,10 @@ long uptime(void)
 static inline void sanitize_fds(void)
 {
 	int zero;
-	if ((zero = open(_PATH_DEVNULL, O_RDWR, 0)) < 0) return;
-	while (zero < 3) zero = dup(zero);
+	if ((zero = open(bb_dev_null, O_RDWR, 0)) < 0)
+		return;
+	while (zero < 3)
+		zero = dup(zero);
 	close(zero);
 }
 
@@ -76,7 +78,7 @@ void udhcp_logging(int level, const char *fmt, ...)
 
 	va_start(p, fmt);
 	__va_copy(p2, p);
-	if(!daemonized) {
+	if (!daemonized) {
 		vprintf(fmt, p);
 		putchar('\n');
 	}
@@ -103,7 +105,7 @@ void udhcp_logging(int level, const char *fmt, ...)
 	va_list p;
 
 	va_start(p, fmt);
-	if(!daemonized) {
+	if (!daemonized) {
 		printf("%s, ", syslog_level_msg[level]);
 		vprintf(fmt, p);
 		putchar('\n');

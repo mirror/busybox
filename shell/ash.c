@@ -7147,8 +7147,8 @@ forkchild(struct job *jp, union node *n, int mode)
 		ignoresig(SIGQUIT);
 		if (jp->nprocs == 0) {
 			close(0);
-			if (open(_PATH_DEVNULL, O_RDONLY) != 0)
-				sh_error("Can't open %s", _PATH_DEVNULL);
+			if (open(bb_dev_null, O_RDONLY) != 0)
+				sh_error("Can't open %s", bb_dev_null);
 		}
 	}
 	if (!oldlvl && iflag) {
