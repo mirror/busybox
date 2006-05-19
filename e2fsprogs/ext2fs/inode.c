@@ -44,7 +44,6 @@ struct ext2_struct_inode_scan {
 	int			bytes_left;
 	char			*temp_buffer;
 	errcode_t		(*done_group)(ext2_filsys fs,
-					      ext2_inode_scan scan,
 					      dgrp_t group,
 					      void * priv_data);
 	void *			done_group_data;
@@ -183,7 +182,6 @@ void ext2fs_close_inode_scan(ext2_inode_scan scan)
 
 void ext2fs_set_inode_callback(ext2_inode_scan scan,
 			       errcode_t (*done_group)(ext2_filsys fs,
-						       ext2_inode_scan scan,
 						       dgrp_t group,
 						       void * priv_data),
 			       void *done_group_data)
@@ -393,7 +391,7 @@ errcode_t ext2fs_get_next_inode_full(ext2_inode_scan scan, ext2_ino_t *ino,
 	force_new_group:
 		if (scan->done_group) {
 			retval = (scan->done_group)
-				(scan->fs, scan, scan->current_group,
+				(scan->fs, scan->current_group,
 				 scan->done_group_data);
 			if (retval)
 				return retval;

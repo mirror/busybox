@@ -2891,7 +2891,7 @@ static void mark_inode_bad(e2fsck_t ctx, ino_t ino);
 static void handle_fs_bad_blocks(e2fsck_t ctx);
 static void process_inodes(e2fsck_t ctx, char *block_buf);
 static int process_inode_cmp(const void *a, const void *b);
-static errcode_t scan_callback(ext2_filsys fs, ext2_inode_scan scan,
+static errcode_t scan_callback(ext2_filsys fs,
 				  dgrp_t group, void * priv_data);
 static void adjust_extattr_refcount(e2fsck_t ctx, ext2_refcount_t refcount,
 				    char *block_buf, int adjust_sign);
@@ -3721,7 +3721,6 @@ endit:
  * glock group, call process_inodes.
  */
 static errcode_t scan_callback(ext2_filsys fs,
-			       ext2_inode_scan scan FSCK_ATTR((unused)),
 			       dgrp_t group, void * priv_data)
 {
 	struct scan_callback_struct *scan_struct;

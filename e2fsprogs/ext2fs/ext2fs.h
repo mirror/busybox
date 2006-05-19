@@ -752,7 +752,6 @@ extern errcode_t ext2fs_inode_scan_goto_blockgroup(ext2_inode_scan scan,
 extern void ext2fs_set_inode_callback
 	(ext2_inode_scan scan,
 	 errcode_t (*done_group)(ext2_filsys fs,
-				 ext2_inode_scan scan,
 				 dgrp_t group,
 				 void * priv_data),
 	 void *done_group_data);
