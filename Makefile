@@ -173,7 +173,7 @@ scripts/config/mconf: scripts/config/Makefile
 	fi
 
 menuconfig: scripts/config/mconf
-	@[ -f .config ] || make $(MAKEFLAGS) defconfig
+	@[ -f .config ] || $(MAKE) $(MAKEFLAGS) defconfig
 	@./scripts/config/mconf $(CONFIG_CONFIG_IN)
 
 config: scripts/config/conf
@@ -186,29 +186,29 @@ randconfig: scripts/config/conf
 	@./scripts/config/conf -r $(CONFIG_CONFIG_IN)
 
 allyesconfig: scripts/config/conf
-	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
+	@./scripts/config/conf -y $(CONFIG_CONFIG_IN) > /dev/null
 	@$(SED) -i -r -e "s/^(USING_CROSS_COMPILER)=.*/# \1 is not set/" .config
-	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
+	@./scripts/config/conf -o $(CONFIG_CONFIG_IN) > /dev/null
 
 allnoconfig: scripts/config/conf
-	@./scripts/config/conf -n $(CONFIG_CONFIG_IN)
+	@./scripts/config/conf -n $(CONFIG_CONFIG_IN) > /dev/null
 
 # defconfig is allyesconfig minus any features that are specialized enough
 # or cause enough behavior change that the user really should switch them on
 # manually if that's what they want.  Sort of "maximum sane config".
 
 defconfig: scripts/config/conf
-	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
+	@./scripts/config/conf -y $(CONFIG_CONFIG_IN) > /dev/null
 	@$(SED) -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP|UDHCP_DEBUG)|INSTALL_NO_USR))=.*/# \1 is not set/" .config
-	@./scripts/config/conf -o $(CONFIG_CONFIG_IN)
+	@./scripts/config/conf -o $(CONFIG_CONFIG_IN) > /dev/null
 
 
 allbareconfig: scripts/config/conf
-	@./scripts/config/conf -y $(CONFIG_CONFIG_IN)
+	@./scripts/config/conf -y $(CONFIG_CONFIG_IN) > /dev/null
 	@$(SED) -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG|STATIC|SELINUX|DEVFSD|NC_GAPING_SECURITY_HOLE|BUILD_AT_ONCE)).*/# \1 is not set/" .config
 	@$(SED) -i -e "/FEATURE/s/=.*//;/^[^#]/s/.*FEATURE.*/# \0 is not set/;" .config
 	@echo "CONFIG_FEATURE_BUFFERS_GO_ON_STACK=y" >> .config
-	@yes n | ./scripts/config/conf -o $(CONFIG_CONFIG_IN)
+	@yes n | ./scripts/config/conf -o $(CONFIG_CONFIG_IN) > /dev/null
 
 else # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
