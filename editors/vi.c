@@ -2180,7 +2180,9 @@ static void core_sig(int sig)
 	signal(SIGQUIT, core_sig);
 	signal(SIGILL, core_sig);
 	signal(SIGTRAP, core_sig);
+#ifdef SIGIOT
 	signal(SIGIOT, core_sig);
+#endif
 	signal(SIGABRT, core_sig);
 	signal(SIGFPE, core_sig);
 	signal(SIGBUS, core_sig);
