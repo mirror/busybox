@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Copyright (c) 2002 by David I. Bell
  * Permission is granted to use, distribute, or modify this source,
@@ -11,11 +12,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <memory.h>
 #include <time.h>
 #include <ctype.h>
 #include <sys/param.h>
-#include <malloc.h>
 #include "busybox.h"
 
 #define	USERSIZE	1024	/* max line length typed in by user */
@@ -321,7 +320,7 @@ static void doCommands(void)
 					bb_error_msg("No file name specified");
 					break;
 				}
-	
+
 				writeLines(cp, num1, num2);
 				break;
 
@@ -349,7 +348,7 @@ static void doCommands(void)
 
 				printLines(curNum, curNum, FALSE);
 				break;
-	
+
 			case '-':
 				if (setCurNum(curNum - 1))
 					printLines(curNum, curNum, FALSE);
@@ -672,7 +671,7 @@ static void addLines(int num)
 /*
  * Parse a line number argument if it is present.  This is a sum
  * or difference of numbers, '.', '$', 'x, or a search string.
- * Returns TRUE if successful (whether or not there was a number). 
+ * Returns TRUE if successful (whether or not there was a number).
  * Returns FALSE if there was a parsing error, with a message output.
  * Whether there was a number is returned indirectly, as is the number.
  * The character pointer which stopped the scan is also returned.
@@ -1141,7 +1140,7 @@ static int insertLine(int num, const char * data, int len)
 
 	newLp = (LINE *) malloc(sizeof(LINE) + len - 1);
 
-	if (newLp == NULL) 
+	if (newLp == NULL)
 	{
 		bb_error_msg("Failed to allocate memory for line");
 
