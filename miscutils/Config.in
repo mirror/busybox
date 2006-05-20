@@ -34,6 +34,13 @@ config CONFIG_CROND
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
+config CONFIG_DEBUG_CROND_OPTION
+	bool "Support debug option -d"
+	depends on CONFIG_CROND
+	default n
+	help
+	  Support option -d to enter debug mode.
+
 config CONFIG_FEATURE_CROND_CALL_SENDMAIL
 	bool "Using /usr/sbin/sendmail?"
 	default n
