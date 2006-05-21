@@ -283,21 +283,6 @@ int crond_main(int ac, char **av)
 	bb_fflush_stdout_and_exit(EXIT_SUCCESS); /* not reached */
 }
 
-#if ENABLE_DEBUG_CROND_OPTION || ENABLE_FEATURE_CROND_CALL_SENDMAIL
-/*
-    write to temp file..
-*/
-static void fdprintf(int fd, const char *ctl, ...)
-{
-	va_list va;
-
-	va_start(va, ctl);
-	vdprintf(fd, ctl, va);
-	va_end(va);
-}
-#endif
-
-
 static int ChangeUser(const char *user)
 {
 	struct passwd *pas;

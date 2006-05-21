@@ -105,4 +105,6 @@
 #define _(Text) Text
 #define N_(Text) (Text)
 
+#define fdprintf(...) dprintf(__VA_ARGS__)
+
 #endif	/* platform.h	*/
