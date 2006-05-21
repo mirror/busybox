@@ -28,7 +28,12 @@
 
 #include <busybox.h>
 
-int root_major, root_minor;
+struct mdev_globals
+{
+	int root_major, root_minor;
+} mdev_globals;
+
+#define bbg mdev_globals
 
 /* mknod in /dev based on a path like "/sys/block/hda/hda1" */
 static void make_device(char *path)
@@ -173,7 +178,7 @@ found_device:
 	if (mknod(device_name, mode | type, makedev(major, minor)) && errno != EEXIST)
 		bb_perror_msg_and_die("mknod %s failed", device_name);
 
-	if (major==root_major && minor==root_minor)
+	if (major==bbg.root_major && minor==bbg.root_minor)
 		symlink(device_name, "root");
 	
 	if (ENABLE_FEATURE_MDEV_CONF) chown(device_name, uid, gid);
@@ -226,8 +231,8 @@ int mdev_main(int argc, char *argv[])
 		struct stat st;
 
 		stat("/", &st);  // If this fails, we have bigger problems.
-		root_major=major(st.st_dev);
-		root_minor=minor(st.st_dev);
+		bbg.root_major=major(st.st_dev);
+		bbg.root_minor=minor(st.st_dev);
 		strcpy(temp,"/sys/block");
 		find_dev(temp);
 		strcpy(temp,"/sys/class");
