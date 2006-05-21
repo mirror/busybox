@@ -415,17 +415,21 @@ include/bbconfigopts.h: .config
 endif
 
 ifeq ($(strip $(CONFIG_FEATURE_COMPRESS_USAGE)),y)
-scripts/usage: $(top_srcdir)/scripts/usage.c
+USAGE_BIN:=scripts/usage
+$(USAGE_BIN): $(top_srcdir)/scripts/usage.c
 	$(do_link.h)
 
 DEP_INCLUDES += include/usage_compressed.h
 
-include/usage_compressed.h: scripts/usage .config
-	$(Q)$(SHELL) $(top_srcdir)/scripts/usage_compressed "$(top_srcdir)/scripts" > $@
+include/usage_compressed.h: .config $(USAGE_BIN)
+	$(Q)$(SHELL) $(top_srcdir)/scripts/usage_compressed "$(top_builddir)/scripts" > $@
 endif # CONFIG_FEATURE_COMPRESS_USAGE
 
+# workaround alleged bug in make-3.80, make-3.81
+.NOTPARALLEL: .depend
+
 depend dep: .depend
-.depend: scripts/bb_mkdep $(DEP_INCLUDES)
+.depend: scripts/bb_mkdep $(USAGE_BIN) $(DEP_INCLUDES)
 	$(disp_gen)
 	$(Q)rm -f .depend
 	$(Q)mkdir -p include/config
