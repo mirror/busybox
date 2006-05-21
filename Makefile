@@ -419,7 +419,7 @@ scripts/usage: $(top_srcdir)/scripts/usage.c .config
 
 DEP_INCLUDES += include/usage_compressed.h
 include/usage_compressed.h: .config scripts/usage
-	$(Q)sh $(top_srcdir)/scripts/usage_compressed "$(top_srcdir)/scripts" > $@
+	$(Q)$(SHELL) $(top_srcdir)/scripts/usage_compressed "$(top_srcdir)/scripts" > $@
 
 depend dep: .depend
 .depend: scripts/bb_mkdep $(DEP_INCLUDES)
