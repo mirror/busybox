@@ -453,7 +453,7 @@ clean:
 
 distclean: clean
 	rm -f scripts/bb_mkdep scripts/usage
-	rm -r -f include/config include/_usage.h include/config.h $(DEP_INCLUDES)
+	rm -r -f include/config include/config.h $(DEP_INCLUDES)
 	find . -name .depend'*' -print0 | xargs -0 rm -f
 	rm -f .hdepend
 	rm -f .config .config.old .config.cmd
