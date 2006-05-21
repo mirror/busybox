@@ -449,7 +449,7 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 		parse_escapes(match,match,strlen(match),i,i);
 		parse_escapes(replace,replace,strlen(replace),i,i);
 
-		sed_cmd->string = xcalloc(1, (strlen(match) + 1) * 2);
+		sed_cmd->string = xzalloc((strlen(match) + 1) * 2);
 		for (i = 0; match[i] && replace[i]; i++) {
 			sed_cmd->string[i * 2] = match[i];
 			sed_cmd->string[(i * 2) + 1] = replace[i];
@@ -513,7 +513,7 @@ static void add_cmd(char *cmdstr)
 		 *            part1 part2  part3
 		 */
 
-		sed_cmd = xcalloc(1, sizeof(sed_cmd_t));
+		sed_cmd = xzalloc(sizeof(sed_cmd_t));
 
 		/* first part (if present) is an address: either a '$', a number or a /regex/ */
 		cmdstr += get_address(cmdstr, &sed_cmd->beg_line, &sed_cmd->beg_match);

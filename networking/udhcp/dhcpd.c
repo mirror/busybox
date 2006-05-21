@@ -52,30 +52,18 @@ struct dhcpOfferedAddr *leases;
 struct server_config_t server_config;
 
 
-#ifdef COMBINED_BINARY
 int udhcpd_main(int argc, char *argv[])
-#else
-int main(int argc, char *argv[])
-#endif
 {
 	fd_set rfds;
 	struct timeval tv;
-	int server_socket = -1;
-	int bytes, retval;
+	int server_socket = -1, bytes, retval, max_sock;
 	struct dhcpMessage packet;
-	uint8_t *state;
-	uint8_t *server_id, *requested;
-	uint32_t server_id_align, requested_align;
-	unsigned long timeout_end;
+	uint8_t *state, *server_id, *requested;
+	uint32_t server_id_align, requested_align, static_lease_ip;
+	unsigned long timeout_end, num_ips;
 	struct option_set *option;
-	struct dhcpOfferedAddr *lease;
-	struct dhcpOfferedAddr static_lease;
-	int max_sock;
-	unsigned long num_ips;
+	struct dhcpOfferedAddr *lease, static_lease;
 
-	uint32_t static_lease_ip;
-
-	memset(&server_config, 0, sizeof(struct server_config_t));
 	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
 
 	/* Start the log, sanitize fd's, and write a pid file */
@@ -96,7 +84,7 @@ int main(int argc, char *argv[])
 		server_config.max_leases = num_ips;
 	}
 
-	leases = xcalloc(server_config.max_leases, sizeof(struct dhcpOfferedAddr));
+	leases = xzalloc(server_config.max_leases * sizeof(struct dhcpOfferedAddr));
 	read_leases(server_config.lease_file);
 
 	if (read_interface(server_config.interface, &server_config.ifindex,

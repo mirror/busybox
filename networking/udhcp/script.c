@@ -159,7 +159,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 		if (!(over & SNAME_FIELD) && packet->sname[0]) num_options++;
 	}
 
-	envp = xcalloc(sizeof(char *), num_options + 5);
+	envp = xzalloc(sizeof(char *) * (num_options + 5));
 	j = 0;
 	asprintf(&envp[j++], "interface=%s", client_config.interface);
 	asprintf(&envp[j++], "%s=%s", "PATH",
