@@ -414,12 +414,15 @@ include/bbconfigopts.h: .config
 	$(Q)$(top_srcdir)/scripts/config/mkconfigs > $@
 endif
 
-scripts/usage: $(top_srcdir)/scripts/usage.c .config
-	$(do_link.h) -I$(top_srcdir)/include
+ifeq ($(strip $(CONFIG_FEATURE_COMPRESS_USAGE)),y)
+scripts/usage: $(top_srcdir)/scripts/usage.c
+	$(do_link.h)
 
 DEP_INCLUDES += include/usage_compressed.h
-include/usage_compressed.h: .config scripts/usage
+
+include/usage_compressed.h: scripts/usage .config
 	$(Q)$(SHELL) $(top_srcdir)/scripts/usage_compressed "$(top_srcdir)/scripts" > $@
+endif # CONFIG_FEATURE_COMPRESS_USAGE
 
 depend dep: .depend
 .depend: scripts/bb_mkdep $(DEP_INCLUDES)
