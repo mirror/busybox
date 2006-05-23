@@ -10,6 +10,7 @@
  */
 
 #include <fcntl.h>
+#include <signal.h>
 #include <unistd.h>
 #include "busybox.h"
 
@@ -44,8 +45,8 @@ int nohup_main(int argc, char *argv[])
 	temp = isatty(2);
 	if (temp) fdprintf(2,"Writing to %s\n", home ? home : nohupout);
 	dup2(temp ? 1 : nullfd, 2);
-
 	close(nullfd);
+	signal (SIGHUP, SIG_IGN);
 
 	// Exec our new program.
 
