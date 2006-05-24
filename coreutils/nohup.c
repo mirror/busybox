@@ -2,7 +2,7 @@
 /* nohup - invoke a utility immune to hangups.
  * 
  * Busybox version based on nohup specification at
- * http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
+ * http://www.opengroup.org/onlinepubs/007904975/utilities/nohup.html
  * 
  * Copyright 2006 Rob Landley <rob@landley.net>
  * 
@@ -18,6 +18,10 @@ int nohup_main(int argc, char *argv[])
 {
 	int temp, nullfd;
 	char *nohupout = "nohup.out", *home = NULL;
+
+	// I have no idea why the standard cares about this.
+
+	bb_default_error_retval = 127;
 
 	if (argc<2) bb_show_usage();
 
