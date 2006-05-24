@@ -134,7 +134,7 @@ void sed_free_and_close_stuff(void)
 {
 	sed_cmd_t *sed_cmd = bbg.sed_cmd_head.next;
 
-	llist_free_contents(bbg.append_head);
+	llist_free(bbg.append_head, free);
 
 	while (sed_cmd) {
 		sed_cmd_t *sed_cmd_next = sed_cmd->next;
