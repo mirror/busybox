@@ -37,8 +37,6 @@ int nc_main(int argc, char **argv)
 {
 	int do_listen = 0, lport = 0, delay = 0, wsecs = 0, tmpfd, opt, sfd, x;
 
-#define buf bb_common_bufsiz1
-
 #ifdef CONFIG_NC_GAPING_SECURITY_HOLE
 	char *pr00gie = NULL;
 #endif
@@ -146,8 +144,11 @@ int nc_main(int argc, char **argv)
 
 		for (fd = 0; fd < FD_SETSIZE; fd++) {
 			if (FD_ISSET(fd, &testfds)) {
-				if ((nread = safe_read(fd, buf, sizeof(buf))) < 0)
+				if ((nread = safe_read(fd, bb_common_bufsiz1,
+					sizeof(bb_common_bufsiz1))) < 0)
+				{
 					bb_perror_msg_and_die(bb_msg_read_error);
+				}
 
 				if (fd == sfd) {
 					if (nread == 0)
@@ -162,7 +163,7 @@ int nc_main(int argc, char **argv)
 					ofd = sfd;
 				}
 
-				if (bb_full_write(ofd, buf, nread) < 0)
+				if (bb_full_write(ofd, bb_common_bufsiz1, nread) < 0)
 					bb_perror_msg_and_die(bb_msg_write_error);
 				if (delay > 0) {
 					sleep(delay);
