@@ -1133,7 +1133,7 @@ int less_main(int argc, char **argv) {
 	}
 
 	strcpy(filename, (inp_stdin) ? bb_msg_standard_input : files[0]);
-	get_terminal_width_height(0, &width, &height)
+	get_terminal_width_height(0, &width, &height);
 	data_readlines();
 	tcgetattr(fileno(inp), &term_orig);
 	term_vi = term_orig;
