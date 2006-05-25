@@ -33,16 +33,15 @@ function run_applet_testcase
 
 	rm -rf tmp
 	mkdir -p tmp
-	pushd tmp >/dev/null
+	pushd tmp > /dev/null
 
-	d=$srcdir sh -x -e $testcase >.logfile.txt 2>&1
+	d=$srcdir sh -x -e $testcase >.logfile.txt 2>&1 || status=$?
 
-	if [ $? != 0 ] ; then
+	if [ $status -ne 0 ] ; then
 		echo FAIL: $testname
 		if [ $verbose -gt 0 ]; then
 			cat .logfile.txt
-			#exit 1;
-		fi;
+		fi
 		status=$?
 	else
 		echo PASS: $testname
@@ -50,7 +49,7 @@ function run_applet_testcase
 		status=$?
 	fi
 
-	popd >/dev/null
+	popd > /dev/null
 	rm -rf tmp
 
 	return $status
@@ -122,14 +121,18 @@ for applet in $applets; do
 	applet=$(echo "$applet" | sed -n 's/\.tests$//p')
 	if [ ${#applet} -ne 0 ]
 	then
-		if [ ! -h "$LINKSDIR/$applet" ] && [ ${applet:0:4} != "all_" ]
+		if [ ! -h "$LINKSDIR/$applet" ] && [ "${applet:0:4}" != "all_" ]
 		then
 			echo "SKIPPED: $applet (not built)"
 			continue
 		fi
-		PATH="$LINKSDIR":$srcdir:$bindir:$PATH \
+		if PATH="$LINKSDIR":$srcdir:$bindir:$PATH \
 			"${srcdir:-.}/$applet".tests
-		if [ $? -ne 0 ]; then status=1; fi
+		then
+		  :
+		else
+		  status=1
+		fi
 	fi
 
 done
