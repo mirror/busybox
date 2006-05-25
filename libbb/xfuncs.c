@@ -182,3 +182,37 @@ void bb_xfflush_stdout(void)
 	}
 }
 #endif
+
+#ifdef L_spawn
+// This does a fork/exec in one call, using vfork().
+pid_t bb_spawn(char **argv)
+{
+	static int failed;
+	pid_t pid;
+
+	// Be nice to nommu machines.
+	failed = 0;
+	pid = vfork();
+	if (pid < 0) return pid;
+	if (!pid) {
+		execvp(*argv, argv);
+
+		// We're sharing a stack with blocked parent, let parent know we failed
+		// and then exit to unblock parent (but don't run atexit() stuff, which
+		// would screw up parent.)
+
+		failed = -1;
+		_exit(0);
+	}
+	return failed ? failed : pid;
+}
+#endif
+
+#ifdef L_xspawn
+pid_t bb_xspawn(char **argv)
+{
+	pid_t pid = bb_spawn(argv);
+	if (pid < 0) bb_perror_msg_and_die("%s", *argv);
+	return pid;
+}
+#endif
