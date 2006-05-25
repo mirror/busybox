@@ -70,9 +70,6 @@
 /* Maximum number of lines in a file */
 #define MAXLINES 10000
 
-/* Get height and width of terminal */
-#define tty_width_height()              get_terminal_width_height(0, &width, &height)
-
 static int height;
 static int width;
 static char **files;
@@ -1136,7 +1133,7 @@ int less_main(int argc, char **argv) {
 	}
 
 	strcpy(filename, (inp_stdin) ? bb_msg_standard_input : files[0]);
-	tty_width_height();
+	get_terminal_width_height(0, &width, &height)
 	data_readlines();
 	tcgetattr(fileno(inp), &term_orig);
 	term_vi = term_orig;
