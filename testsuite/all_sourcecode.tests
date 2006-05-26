@@ -39,7 +39,6 @@ find $srcdir/../ \
 		-e '\<depency\>' \
 		-e '\<defalt\>' \
 		-e '\<remaing\>' \
-		-e '\<queuing\>' \
 		-e '\<detatch\>' \
 		-e '\<sempahore\>' \
 		-e '\<reprenstative\>' \
