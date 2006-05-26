@@ -14,7 +14,7 @@ LIBBB-y:= \
 	bb_asprintf.c ask_confirmation.c change_identity.c chomp.c \
 	compare_string_array.c concat_path_file.c copy_file.c copyfd.c \
 	crc32.c create_icmp_socket.c create_icmp6_socket.c \
-	device_open.c dump.c error_msg.c error_msg_and_die.c find_mount_point.c \
+	device_open.c dump.c error_msg.c error_msg_and_die.c \
 	find_pid_by_name.c find_root_device.c fgets_str.c full_read.c \
 	full_write.c get_last_path_component.c get_line_from_file.c \
 	herror_msg.c herror_msg_and_die.c \
@@ -48,7 +48,8 @@ LIBBB-$(CONFIG_FEATURE_HTTPD_AUTH_MD5)+= pw_encrypt.c
 LIBBB-$(CONFIG_VLOCK)+= correct_password.c
 LIBBB-$(CONFIG_SU)+= correct_password.c
 LIBBB-$(CONFIG_LOGIN)+= correct_password.c
-
+LIBBB-$(CONFIG_DF)+= find_mount_point.c
+LIBBB-$(CONFIG_EJECT)+= find_mount_point.c
 
 LIBBB-y:=$(patsubst %,$(srcdir)/%,$(LIBBB-y))
 
