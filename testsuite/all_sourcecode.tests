@@ -36,9 +36,10 @@ find $srcdir/../ \
 		-e '\<compatability\>' \
 		-e '\<compatable\>' \
 		-e '\<fordeground\>' \
-		-e '\<depency\>' \
+		-e '\<depency\>' -e '\<dependancy\>' -e '\<dependancies\>' \
 		-e '\<defalt\>' \
 		-e '\<remaing\>' \
+		-e '\<queueing\>' \
 		-e '\<detatch\>' \
 		-e '\<sempahore\>' \
 		-e '\<reprenstative\>' \
