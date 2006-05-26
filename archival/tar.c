@@ -551,7 +551,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 		cur = cur->link;
 		free(tmp);
 		while ((line = bb_get_chomped_line_from_file(src_stream)) != NULL)
-				newlist = llist_add_to(newlist, line);
+				llist_add_to(&newlist, line);
 		fclose(src_stream);
 	}
 	return newlist;
@@ -800,7 +800,7 @@ int tar_main(int argc, char **argv)
 		if (filename_ptr > argv[optind])
 			*filename_ptr = '\0';
 
-		tar_handle->accept = llist_add_to(tar_handle->accept, argv[optind]);
+		llist_add_to(&(tar_handle->accept), argv[optind]);
 		optind++;
 	}
 

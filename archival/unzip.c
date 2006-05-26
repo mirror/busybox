@@ -180,7 +180,7 @@ int unzip_main(int argc, char **argv)
 
 		case 1: /* Include files */
 			if (opt == 1) {
-				zaccept = llist_add_to(zaccept, optarg);
+				llist_add_to(&zaccept, optarg);
 
 			} else if (opt == 'd') {
 				base_dir = optarg;
@@ -196,7 +196,7 @@ int unzip_main(int argc, char **argv)
 
 		case 2 : /* Exclude files */
 			if (opt == 1) {
-				zreject = llist_add_to(zreject, optarg);
+				llist_add_to(&zreject, optarg);
 
 			} else if (opt == 'd') { /* Extract to base directory */
 				base_dir = optarg;

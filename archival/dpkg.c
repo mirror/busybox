@@ -1484,10 +1484,10 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 
 	/* We don't care about data.tar.* or debian-binary, just control.tar.* */
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
-	ar_handle->accept = llist_add_to(NULL, "control.tar.gz");
+	llist_add_to(&(ar_handle->accept), "control.tar.gz");
 #endif
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
-	ar_handle->accept = llist_add_to(ar_handle->accept, "control.tar.bz2");
+	llist_add_to(&(ar_handle->accept), "control.tar.bz2");
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
@@ -1506,10 +1506,10 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 
 	/* We don't care about control.tar.* or debian-binary, just data.tar.* */
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
-	ar_handle->accept = llist_add_to(NULL, "data.tar.gz");
+	llist_add_to(&(ar_handle->accept), "data.tar.gz");
 #endif
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
-	ar_handle->accept = llist_add_to(ar_handle->accept, "data.tar.bz2");
+	llist_add_to(&(ar_handle->accept), "data.tar.bz2");
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
@@ -1575,7 +1575,7 @@ static void unpack_package(deb_file_t *deb_file)
 	while(all_control_files[i]) {
 		char *c = (char *) xmalloc(3 + strlen(all_control_files[i]));
 		sprintf(c, "./%s", all_control_files[i]);
-		accept_list= llist_add_to(accept_list, c);
+		llist_add_to(&accept_list, c);
 		i++;
 	}
 	archive_handle->sub_archive->accept = accept_list;
@@ -1705,7 +1705,7 @@ int dpkg_main(int argc, char **argv)
 			llist_t *control_list = NULL;
 
 			/* Extract the control file */
-			control_list = llist_add_to(NULL, "./control");
+			llist_add_to(&control_list, "./control");
 			archive_handle = init_archive_deb_ar(argv[optind]);
 			init_archive_deb_control(archive_handle);
 			deb_file[deb_count]->control_file = deb_extract_control_file_to_buffer(archive_handle, control_list);

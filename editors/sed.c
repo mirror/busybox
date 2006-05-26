@@ -683,7 +683,7 @@ static sed_cmd_t *branch_to(const char *label)
 
 static void append(char *s)
 {
-	bbg.append_head = llist_add_to_end(bbg.append_head, bb_xstrdup(s));
+	llist_add_to_end(&bbg.append_head, bb_xstrdup(s));
 }
 
 static void flush_append(void)

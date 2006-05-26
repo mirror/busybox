@@ -474,8 +474,7 @@ loop_arg_is_opt:
 		if(on_off->counter)
 			(*(on_off->counter))++;
 		if(on_off->list_flg) {
-			*(llist_t **)(on_off->optarg) =
-			  llist_add_to(*(llist_t **)(on_off->optarg), optarg);
+			llist_add_to((llist_t **)(on_off->optarg), optarg);
 		} else if (on_off->optarg) {
 			*(char **)(on_off->optarg) = optarg;
 		}

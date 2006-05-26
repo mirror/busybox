@@ -67,12 +67,7 @@ int pidof_main(int argc, char **argv)
 			if (!strncmp(omits_p->data, "%PPID", 5)) {
 				llist_pop(&omits_p);
 				snprintf(getppid_str, sizeof(getppid_str), "%d", getppid());
-				omits_p = llist_add_to(omits_p, getppid_str);
-#if 0
-			} else {
-				bb_error_msg_and_die("illegal omit pid value (%s)!\n",
-						omits_p->data);
-#endif
+				llist_add_to(&omits_p, getppid_str);
 			}
 			omits_p = omits_p->link;
 		}

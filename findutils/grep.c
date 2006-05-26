@@ -273,7 +273,7 @@ static void load_regexes_from_file(llist_t *fopt)
 		free(cur);
 		f = bb_xfopen(ffile, "r");
 		while ((line = bb_get_chomped_line_from_file(f)) != NULL) {
-			pattern_head = llist_add_to(pattern_head,
+			llist_add_to(&pattern_head,
 				new_grep_list_data(line, PATTERN_MEM_A));
 		}
 	}
@@ -373,7 +373,7 @@ int grep_main(int argc, char **argv)
 		else {
 			char *pattern = new_grep_list_data(*argv++, 0);
 
-			pattern_head = llist_add_to(pattern_head, pattern);
+			llist_add_to(&pattern_head, pattern);
 			argc--;
 		}
 	}

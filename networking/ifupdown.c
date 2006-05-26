@@ -739,7 +739,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 						}
 					}
 
-					defn->ifaces = llist_add_to_end(defn->ifaces, (char*)currif);
+					llist_add_to_end(&(defn->ifaces), (char*)currif);
 				}
 				debug_noise("iface %s %s %s\n", currif->iface, address_family_name, method_name);
 			}
@@ -753,7 +753,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 				}
 
 				/* Add the interface to the list */
-				defn->autointerfaces = llist_add_to_end(defn->autointerfaces, bb_xstrdup(firstword));
+				llist_add_to_end(&(defn->autointerfaces), bb_xstrdup(firstword));
 				debug_noise("\nauto %s\n", firstword);
 			}
 			currently_processing = NONE;
@@ -1202,14 +1202,14 @@ int ifupdown_main(int argc, char **argv)
 			/* iface_down */
 			const llist_t *list = state_list;
 			while (list) {
-				target_list = llist_add_to_end(target_list, bb_xstrdup(list->data));
+				llist_add_to_end(&target_list, bb_xstrdup(list->data));
 				list = list->link;
 			}
 			target_list = defn->autointerfaces;
 #endif
 		}
 	} else {
-		target_list = llist_add_to_end(target_list, argv[optind]);
+		llist_add_to_end(&target_list, argv[optind]);
 	}
 
 
@@ -1311,7 +1311,7 @@ int ifupdown_main(int argc, char **argv)
 				char *newiface = xmalloc(strlen(iface) + 1 + strlen(liface) + 1);
 				sprintf(newiface, "%s=%s", iface, liface);
 				if (iface_state == NULL) {
-					state_list = llist_add_to_end(state_list, newiface);
+					llist_add_to_end(&state_list, newiface);
 				} else {
 					free(iface_state->data);
 					iface_state->data = newiface;

@@ -169,7 +169,7 @@ static llist_t *get_block_backed_filesystems(void)
 			if(*fs=='#' || *fs=='*') continue;
 			if(!*fs) continue;
 
-			list=llist_add_to_end(list,bb_xstrdup(fs));
+			llist_add_to_end(&list,bb_xstrdup(fs));
 		}
 		if (ENABLE_FEATURE_CLEAN_UP) fclose(f);
 	}
