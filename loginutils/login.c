@@ -463,7 +463,7 @@ static void checkutmp(int picky)
 static void setutmp(const char *name, const char *line ATTRIBUTE_UNUSED)
 {
 	time_t t_tmp = (time_t)utent.ut_time;
-	
+
 	utent.ut_type = USER_PROCESS;
 	strncpy(utent.ut_user, name, sizeof utent.ut_user);
 	time(&t_tmp);
@@ -472,10 +472,10 @@ static void setutmp(const char *name, const char *line ATTRIBUTE_UNUSED)
 	pututline(&utent);
 	endutent();
 #ifdef CONFIG_FEATURE_WTMP
-	if (access(_PATH_WTMP, R_OK|W_OK) == -1) {
-		close(creat(_PATH_WTMP, 0664));
+	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {
+		close(creat(bb_path_wtmp_file, 0664));
 	}
-	updwtmp(_PATH_WTMP, &utent);
+	updwtmp(bb_path_wtmp_file, &utent);
 #endif
 }
 #endif /* CONFIG_FEATURE_UTMP */

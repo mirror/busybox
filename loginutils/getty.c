@@ -496,9 +496,9 @@ static void update_utmp(char *line)
 	endutent();
 
 #ifdef CONFIG_FEATURE_WTMP
-	if (access(_PATH_WTMP, R_OK|W_OK) == -1)
-		close(creat(_PATH_WTMP, 0664));
-	updwtmp(_PATH_WTMP, &ut);
+	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1)
+		close(creat(bb_path_wtmp_file, 0664));
+	updwtmp(bb_path_wtmp_file, &ut);
 #endif
 }
 

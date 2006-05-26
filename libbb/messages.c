@@ -93,6 +93,20 @@ const char * const bb_default_login_shell = LIBBB_DEFAULT_LOGIN_SHELL;
 const char * const bb_dev_null = "/dev/null";
 #endif
 
+#ifdef L_bb_path_wtmp_file
+#include <utmp.h>
+/* This is usually something like "/var/adm/wtmp" or "/var/log/wtmp" */
+const char * const bb_path_wtmp_file =
+#if defined _PATH_WTMP
+_PATH_WTMP;
+#elif defined WTMP_FILE
+WTMP_FILE;
+#else
+# error unknown path to wtmp file
+#endif
+#endif
+
+
 #ifdef L_bb_common_bufsiz1
 char bb_common_bufsiz1[BUFSIZ+1];
 #endif

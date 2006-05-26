@@ -26,7 +26,11 @@
  * Do what we can while still keeping this reasonably small.
  * Note: We are assuming the ut_id[] size is fixed at 4. */
 
-#if (UT_LINESIZE != 32) || (UT_NAMESIZE != 32) || (UT_HOSTSIZE != 256)
+#if defined UT_LINESIZE \
+	&& ((UT_LINESIZE != 32) || (UT_NAMESIZE != 32) || (UT_HOSTSIZE != 256))
+#error struct utmp member char[] size(s) have changed!
+#elif defined __UT_LINESIZE \
+	&& ((__UT_LINESIZE != 32) || (__UT_NAMESIZE != 64) || (__UT_HOSTSIZE != 256))
 #error struct utmp member char[] size(s) have changed!
 #endif
 
@@ -39,7 +43,7 @@ int last_main(int argc, char **argv)
 	if (argc > 1) {
 		bb_show_usage();
 	}
-	file = bb_xopen(_PATH_WTMP, O_RDONLY);
+	file = bb_xopen(bb_path_wtmp_file, O_RDONLY);
 
 	printf("%-10s %-14s %-18s %-12.12s %s\n", "USER", "TTY", "HOST", "LOGIN", "TIME");
 	while ((n = safe_read(file, (void*)&ut, sizeof(struct utmp))) != 0) {

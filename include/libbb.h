@@ -11,6 +11,8 @@
 #ifndef	__LIBBUSYBOX_H__
 #define	__LIBBUSYBOX_H__    1
 
+#include "platform.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -18,14 +20,10 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <dirent.h>
-#include <stdint.h>
 
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include <features.h>
-
-#include "platform.h"
 #include "bb_config.h"
 #ifdef CONFIG_SELINUX
 #include <selinux/selinux.h>
@@ -41,8 +39,11 @@
 #endif
 
 /* Some useful definitions */
+#undef FALSE
 #define FALSE   ((int) 0)
+#undef TRUE
 #define TRUE    ((int) 1)
+#undef SKIP
 #define SKIP	((int) 2)
 
 /* for mtab.c */
@@ -348,6 +349,7 @@ extern const char * const bb_path_gshadow_file;
 extern const char * const bb_path_group_file;
 extern const char * const bb_path_securetty_file;
 extern const char * const bb_path_motd_file;
+extern const char * const bb_path_wtmp_file;
 extern const char * const bb_dev_null;
 
 #ifndef BUFSIZ
