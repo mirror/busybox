@@ -44,8 +44,22 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <sys/timex.h>
 #include "busybox.h"
+
+#if !defined ADJ_OFFSET_SINGLESHOT && defined MOD_CLKA && defined MOD_OFFSET
+#define ADJ_OFFSET_SINGLESHOT (MOD_CLKA | MOD_OFFSET)
+#endif
+#if !defined ADJ_FREQUENCY && defined MOD_FREQUENCY
+#define ADJ_FREQUENCY MOD_FREQUENCY
+#endif
+#if !defined ADJ_TIMECONST && defined MOD_TIMECONST
+#define ADJ_TIMECONST MOD_TIMECONST
+#endif
+#if !defined ADJ_TICK && defined MOD_CLKB
+#define ADJ_TICK MOD_CLKB
+#endif
 
 static const struct {int bit; const char *name;} statlist[] = {
 	{ STA_PLL,       "PLL"       },
