@@ -836,7 +836,7 @@ static void identify(uint16_t *id_supplied)
 		printf("\tdevice size with M = 1000*1000: %11llu MBytes ",(long long unsigned int)bbbig);
 
 		if (bbbig > 1000)
-			printf("(%llu GB)\n", bbbig/1000);
+			printf("(%llu GB)\n", (long long unsigned int)bbbig/1000);
 		else 
 			printf("\n");
 	}
