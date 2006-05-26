@@ -15,7 +15,19 @@
 
 int halt_main(int argc, char *argv[])
 {
-	static const int magic[] = {RB_HALT_SYSTEM, RB_POWER_OFF, RB_AUTOBOOT};
+	static const int magic[] = {
+#ifdef RB_HALT_SYSTEM
+RB_HALT_SYSTEM,
+#elif defined RB_HALT
+RB_HALT,
+#endif
+#ifdef RB_POWER_OFF
+RB_POWER_OFF,
+#elif defined RB_POWERDOWN
+RB_POWERDOWN,
+#endif
+RB_AUTOBOOT
+	};
 	static const int signals[] = {SIGUSR1, SIGUSR2, SIGTERM};
 
 	char *delay = "hpr";
