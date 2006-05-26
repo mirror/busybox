@@ -79,6 +79,16 @@
 #endif
 
 
+typedef struct llist_s {
+	char *data;
+	struct llist_s *link;
+} llist_t;
+extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
+extern llist_t *llist_add_to_end(llist_t *list_head, char *data);
+extern void *llist_pop(llist_t **elm);
+extern void llist_free(llist_t *elm, void (*freeit)(void *data));
+
+
 extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
@@ -473,15 +483,6 @@ extern procps_status_t * procps_scan(int save_user_arg0);
 extern int compare_string_array(const char * const string_array[], const char *key);
 
 extern int my_query_module(const char *name, int which, void **buf, size_t *bufsize, size_t *ret);
-
-typedef struct llist_s {
-	char *data;
-	struct llist_s *link;
-} llist_t;
-extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
-extern llist_t *llist_add_to_end(llist_t *list_head, char *data);
-extern void *llist_pop(llist_t **elm);
-extern void llist_free(llist_t *elm, void (*freeit)(void *data));
 
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
