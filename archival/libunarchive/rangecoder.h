@@ -1,39 +1,8 @@
-/*
- * Small range coder implementation for lzma.
- * Copyright (C) 2006  Aurelien Jacobs <aurel@gnuage.org>
- *
- * Based on LzmaDecode.c from the LZMA SDK 4.22 (http://www.7-zip.org/)
- * Copyright (c) 1999-2005  Igor Pavlov
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- */
-
-#include <stdint.h>
 
 #include "libbb.h"
 
-#ifndef always_inline
-#  if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ >0)
-#    define always_inline __attribute__((always_inline)) inline
-#  else
-#    define always_inline inline
-#  endif
-#endif
-
 #ifdef CONFIG_FEATURE_LZMA_FAST
-#  define speed_inline always_inline
+#  define speed_inline ATTRIBUTE_ALWAYS_INLINE
 #else
 #  define speed_inline
 #endif
@@ -67,7 +36,7 @@ static void rc_read(rc_t * rc)
 }
 
 /* Called once */
-static always_inline void rc_init(rc_t * rc, int fd, int buffer_size)
+static ATTRIBUTE_ALWAYS_INLINE void rc_init(rc_t * rc, int fd, int buffer_size)
 {
 	int i;
 
@@ -87,7 +56,7 @@ static always_inline void rc_init(rc_t * rc, int fd, int buffer_size)
 }
 
 /* Called once. TODO: bb_maybe_free() */
-static always_inline void rc_free(rc_t * rc)
+static ATTRIBUTE_ALWAYS_INLINE void rc_free(rc_t * rc)
 {
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(rc->buffer);
@@ -101,7 +70,7 @@ static void rc_do_normalize(rc_t * rc)
 	rc->range <<= 8;
 	rc->code = (rc->code << 8) | *rc->ptr++;
 }
-static always_inline void rc_normalize(rc_t * rc)
+static ATTRIBUTE_ALWAYS_INLINE void rc_normalize(rc_t * rc)
 {
 	if (rc->range < (1 << RC_TOP_BITS)) {
 		rc_do_normalize(rc);
@@ -118,7 +87,7 @@ static speed_inline uint32_t rc_is_bit_0_helper(rc_t * rc, uint16_t * p)
 	rc->bound = *p * (rc->range >> RC_MODEL_TOTAL_BITS);
 	return rc->bound;
 }
-static always_inline int rc_is_bit_0(rc_t * rc, uint16_t * p)
+static ATTRIBUTE_ALWAYS_INLINE int rc_is_bit_0(rc_t * rc, uint16_t * p)
 {
 	uint32_t t = rc_is_bit_0_helper(rc, p);
 	return rc->code < t;
@@ -152,7 +121,7 @@ static int rc_get_bit(rc_t * rc, uint16_t * p, int *symbol)
 }
 
 /* Called once */
-static always_inline int rc_direct_bit(rc_t * rc)
+static ATTRIBUTE_ALWAYS_INLINE int rc_direct_bit(rc_t * rc)
 {
 	rc_normalize(rc);
 	rc->range >>= 1;
