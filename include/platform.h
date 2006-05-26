@@ -197,6 +197,12 @@ typedef unsigned long long int  uintmax_t;
 /* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
 #define fdprintf dprintf
 
+/* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
+/* FIXME: fix tar.c! */
+#ifndef FNM_LEADING_DIR
+#define FNM_LEADING_DIR 0
+#endif
+
 /* move to platform.c */
 #if (defined __digital__ && defined __unix__)
 /* use legacy setpgrp(pidt_,pid_t) for now..  */
