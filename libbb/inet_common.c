@@ -62,7 +62,6 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 	}
 	if (hostfirst) {
 		/* Don't try again */
-		errno = h_errno;
 		return -1;
 	}
 #ifdef DEBUG
@@ -74,7 +73,6 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 	bb_error_msg("gethostbyname (%s)", name);
 #endif
 	if ((hp = gethostbyname(name)) == (struct hostent *) NULL) {
-		errno = h_errno;
 		return -1;
 	}
 	memcpy((char *) &s_in->sin_addr, (char *) hp->h_addr_list[0],
