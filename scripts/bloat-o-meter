@@ -57,3 +57,7 @@ print "add/remove: %s/%s grow/shrink: %s/%s up/down: %s/%s (%s)" % \
 print "%-40s %7s %7s %+7s" % ("function", "old", "new", "delta")
 for d, n in delta:
     if d: print "%-40s %7s %7s %+7d" % (n, old.get(n,"-"), new.get(n,"-"), d)
+print "----------------------------------------------------------------"
+s=")"
+if (up-down)>=0: s="("
+print "Result                                                :-%s%+7d" % (s, up-down)
