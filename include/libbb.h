@@ -84,8 +84,8 @@ typedef struct llist_s {
 	char *data;
 	struct llist_s *link;
 } llist_t;
-extern llist_t *llist_add_to(llist_t *old_head, char *new_item);
-extern llist_t *llist_add_to_end(llist_t *list_head, char *data);
+extern llist_t *llist_add_to(llist_t *old_head, void *data);
+extern llist_t *llist_add_to_end(llist_t *list_head, void *data);
 extern void *llist_pop(llist_t **elm);
 extern void llist_free(llist_t *elm, void (*freeit)(void *data));
 

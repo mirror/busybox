@@ -14,12 +14,12 @@
 
 #ifdef L_llist_add_to
 /* Add data to the start of the linked list.  */
-llist_t *llist_add_to(llist_t *old_head, char *new_item)
+llist_t *llist_add_to(llist_t *old_head, void *data)
 {
 	llist_t *new_head;
 
 	new_head = xmalloc(sizeof(llist_t));
-	new_head->data = new_item;
+	new_head->data = data;
 	new_head->link = old_head;
 
 	return (new_head);
@@ -28,7 +28,7 @@ llist_t *llist_add_to(llist_t *old_head, char *new_item)
 
 #ifdef L_llist_add_to_end
 /* Add data to the end of the linked list.  */
-llist_t *llist_add_to_end(llist_t *list_head, char *data)
+llist_t *llist_add_to_end(llist_t *list_head, void *data)
 {
 	llist_t *new_item;
 
