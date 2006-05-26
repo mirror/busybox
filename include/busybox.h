@@ -15,15 +15,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#if __GNU_LIBRARY__ < 5 && \
-    !defined(__dietlibc__) && \
-    !defined(_NEWLIB_VERSION)
-#error "Sorry, this libc version is not supported :("
-#endif
-
 extern const char BB_BANNER[];
-
-#include <features.h>
 
 /* Pull in the utility routines from libbb */
 #include "libbb.h"

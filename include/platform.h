@@ -33,6 +33,26 @@
 # endif
 #endif
 
+#undef inline
+#if __STDC_VERSION__ > 199901L
+/* it's a keyword */
+#else
+# if __GNUC_PREREQ (2,7)
+#  define inline __inline__
+# else
+#  define inline
+# endif
+#endif
+
+#ifndef __const
+# define __const const
+#endif
+
+#ifndef __THROW
+# define __THROW
+#endif
+
+
 #ifndef ATTRIBUTE_UNUSED
 # define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 #endif /* ATTRIBUTE_UNUSED */
@@ -48,6 +68,14 @@
 #ifndef ATTRIBUTE_ALIGNED
 # define ATTRIBUTE_ALIGNED(m) __attribute__ ((__aligned__(m)))
 #endif /* ATTRIBUTE_ALIGNED */
+
+#ifndef ATTRIBUTE_ALWAYS_INLINE
+# if __GNUC_PREREQ (3,0)
+#  define ATTRIBUTE_ALWAYS_INLINE __attribute__ ((always_inline)) inline
+# else
+#  define ATTRIBUTE_ALWAYS_INLINE inline
+# endif
+#endif
 
 /* -fwhole-program makes all symbols local. The attribute externally_visible
    forces a symbol global.  */
@@ -69,10 +97,17 @@
 #endif
 
 /* ---- Endian Detection ------------------------------------ */
-#ifndef __APPLE__
+#if !defined __APPLE__ && !(defined __digital__ && defined __unix__)
 # include <byteswap.h>
 # include <endian.h>
 #endif
+
+#if (defined __digital__ && defined __unix__)
+# include <sex.h>
+# define __BIG_ENDIAN__ (BYTE_ORDER == BIG_ENDIAN)
+# define __BYTE_ORDER BYTE_ORDER
+#endif
+
 
 #ifdef __BIG_ENDIAN__
 # define BB_BIG_ENDIAN 1
@@ -92,19 +127,81 @@
 # include <netinet/in.h>
 #endif
 
+#ifndef __socklen_t_defined
+typedef int socklen_t;
+#endif
+
+/* ---- Compiler dependent settings ------------------------- */
+#ifndef __GNUC__
+#if defined __INTEL_COMPILER
+__extension__ typedef __signed__ long long __s64;
+__extension__ typedef unsigned long long __u64;
+#endif /* __INTEL_COMPILER */
+#endif /* ifndef __GNUC__ */
+
+#if (defined __digital__ && defined __unix__)
+# undef HAVE_STDBOOL_H
+# undef HAVE_MNTENT_H
+#else
+# define HAVE_STDBOOL_H 1
+# define HAVE_MNTENT_H 1
+#endif /* ___digital__ && __unix__ */
+
 /*----- Kernel versioning ------------------------------------*/
 #ifdef __linux__
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
-#else
-#error implement KERNEL_VERSION for your platform
 #endif
 
 /* ---- miscellaneous --------------------------------------- */
+
+#if __GNU_LIBRARY__ < 5 && \
+	!defined(__dietlibc__) && \
+	!defined(_NEWLIB_VERSION) && \
+	!(defined __digital__ && defined __unix__)
+#error "Sorry, this libc version is not supported :("
+#endif
+
+#if defined __GLIBC__ || defined __UCLIBC__ \
+	|| defined __dietlibc__ || defined _NEWLIB_VERSION
+#include <features.h>
+#define HAVE_FEATURES_H
+#include <stdint.h>
+#define HAVE_STDINT_H
+#else
+/* Largest integral types.  */
+#if __BIG_ENDIAN__
+typedef long int                intmax_t;
+typedef unsigned long int       uintmax_t;
+#else
+__extension__
+typedef long long int           intmax_t;
+__extension__
+typedef unsigned long long int  uintmax_t;
+#endif
+#endif
+
+#if (defined __digital__ && defined __unix__)
+#include <standards.h>
+#define HAVE_STANDARDS_H
+#include <inttypes.h>
+#define HAVE_INTTYPES_H
+#define PRIu32 "u"
+#endif
+
+
 /* NLS stuff */
 /* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
 #define _(Text) Text
 #define N_(Text) (Text)
 
-#define fdprintf(...) dprintf(__VA_ARGS__)
+/* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
+#define fdprintf dprintf
 
+/* move to platform.c */
+#if (defined __digital__ && defined __unix__)
+/* use legacy setpgrp(pidt_,pid_t) for now..  */
+#define bb_setpgrp do{pid_t __me = getpid();setpgrp(__me,__me);}while(0)
+#else
+#define bb_setpgrp setpgrp()
+#endif
 #endif	/* platform.h	*/
