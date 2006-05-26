@@ -8,7 +8,7 @@
 #--------------------------------------------------------------
 # You shouldn't need to mess with anything beyond this point...
 #--------------------------------------------------------------
-noconfig_targets := menuconfig config oldconfig randconfig \
+noconfig_targets := menuconfig config oldconfig randconfig hosttools \
 	defconfig allyesconfig allnoconfig allbareconfig \
 	clean distclean help \
 	release tags
@@ -126,6 +126,10 @@ help:
 	@echo '  defconfig		- set .config to largest generic configuration'
 	@echo '  menuconfig		- interactive curses-based configurator'
 	@echo '  oldconfig		- resolve any unresolved symbols in .config'
+	@echo '  hosttools  		- build sed for the host.'
+	@echo '  			  You can use these commands if the commands on the host'
+	@echo '  			  is unusable. Afterwards use it like:'
+	@echo '			  make SED="$(top_builddir)/sed"'
 	@echo
 	@echo 'Installation:'
 	@echo '  install		- install busybox into $(PREFIX)'
@@ -210,6 +214,18 @@ allbareconfig: scripts/config/conf
 	@echo "CONFIG_FEATURE_BUFFERS_GO_ON_STACK=y" >> .config
 	@yes n | ./scripts/config/conf -o $(CONFIG_CONFIG_IN) > /dev/null
 
+hosttools:
+	$(Q)cp .config .config.bak || noold=yea
+	$(Q)$(MAKE) CC="$(HOSTCC)" CFLAGS="$(HOSTCFLAGS) $(INCS)" allnoconfig
+	$(Q)mv .config .config.in
+	$(Q)(grep -v CONFIG_SED .config.in ; \
+	 echo "CONFIG_SED=y" ; ) > .config
+	$(Q)$(MAKE) CC="$(HOSTCC)" CFLAGS="$(HOSTCFLAGS) $(INCS)" oldconfig include/bb_config.h
+	$(Q)$(MAKE) CC="$(HOSTCC)" CFLAGS="$(HOSTCFLAGS) $(INCS)" busybox
+	$(Q)[ -f .config.bak ] && mv .config.bak .config || rm .config
+	mv busybox sed
+	@echo "Now do: $(MAKE) SED=$(top_builddir)/sed <target>"
+
 else # ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
 
 all: busybox busybox.links doc
@@ -287,9 +303,9 @@ endif
 	-Wl,-soname=$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
 	-Wl,-z,combreloc $(LIB_LDFLAGS) \
 	-o $(@) \
-	-Wl,--start-group -Wl,--whole-archive \
+	$(LD_START_GROUP) $(LD_WHOLE_ARCHIVE) \
 	$(LIBRARY_DEFINE) $(^) \
-	-Wl,--no-whole-archive -Wl,--end-group
+	$(LD_NO_WHOLE_ARCHIVE) $(LD_END_GROUP)
 	@rm -f $(DO_INSTALL_LIBS)
 	@for i in $(DO_INSTALL_LIBS); do ln -s $(@) $$i ; done
 	$(do_strip)
@@ -298,11 +314,11 @@ endif # ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 
 busybox_unstripped: .depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(APPLET_SRC) $(libraries-y)
 	$(do_link) $(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) \
-	-o $@ -Wl,--start-group  \
+	-o $@ $(LD_START_GROUP)  \
 	$(APPLETS_DEFINE) $(APPLET_SRC) \
 	$(BUSYBOX_DEFINE) $(BUSYBOX_SRC) $(libraries-y) \
 	$(LDBUSYBOX) $(LIBRARIES) \
-	-Wl,--end-group
+	$(LD_END_GROUP)
 
 busybox: busybox_unstripped
 	$(Q)cp busybox_unstripped busybox
@@ -349,8 +365,8 @@ ifneq ($(strip $(KBUILD_VERBOSE)),)
 # ARFLAGS+=v
 endif
 check test: busybox
-	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite \
-	$(top_srcdir)/testsuite/runtest $(CHECK_VERBOSE)
+	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite SED="$(SED)" \
+	$(SHELL) $(top_srcdir)/testsuite/runtest $(CHECK_VERBOSE)
 
 .PHONY: checkhelp
 checkhelp:
@@ -422,7 +438,7 @@ $(USAGE_BIN): $(top_srcdir)/scripts/usage.c
 DEP_INCLUDES += include/usage_compressed.h
 
 include/usage_compressed.h: .config $(USAGE_BIN)
-	$(Q)$(SHELL) $(top_srcdir)/scripts/usage_compressed "$(top_builddir)/scripts" > $@
+	$(Q)SED="$(SED)" $(SHELL) $(top_srcdir)/scripts/usage_compressed "$(top_builddir)/scripts" > $@
 endif # CONFIG_FEATURE_COMPRESS_USAGE
 
 # workaround alleged bug in make-3.80, make-3.81
@@ -486,4 +502,4 @@ tags:
 endif # ifeq ($(skip-makefile),)
 
 .PHONY: dummy subdirs release distclean clean config oldconfig \
-	menuconfig tags check test depend dep buildtree
+	menuconfig tags check test depend dep buildtree hosttools
