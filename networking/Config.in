@@ -49,6 +49,13 @@ config CONFIG_FTPPUT
 	help
 	  Store a remote file via FTP.
 
+config CONFIG_FEATURE_FTPGETPUT_LONG_OPTIONS
+	bool "Enable long options in ftpget/ftpput"
+	default n
+	depends on CONFIG_GETOPT_LONG && (CONFIG_FTPGET || CONFIG_FTPPUT)
+	help
+	  Support long options for the ftpget/ftpput applet.
+
 config CONFIG_HOSTNAME
 	bool "hostname"
 	default n
@@ -410,6 +417,13 @@ config CONFIG_FEATURE_IPCALC_FANCY
 	depends on CONFIG_IPCALC
 	help
 	  Adds the options hostname, prefix and silent to the output of "ipcalc".
+
+config CONFIG_FEATURE_IPCALC_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CONFIG_IPCALC && CONFIG_GETOPT_LONG
+	help
+	  Support long options for the ipcalc applet.
 
 config CONFIG_NAMEIF
 	bool "nameif"

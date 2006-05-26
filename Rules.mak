@@ -308,9 +308,9 @@ ifeq ($(strip $(PREFIX)),)
     PREFIX:=`pwd`/_install
 endif
 
-#ifneq ($(strip $(CONFIG_GETOPT_LONG)),y)
-#    CFLAGS += -D__need_getopt
-#endif
+ifneq ($(strip $(CONFIG_GETOPT_LONG)),y)
+    CFLAGS += -D__need_getopt
+endif
 
 # Additional complications due to support for pristine source dir.
 # Include files in the build directory should take precedence over

@@ -82,6 +82,7 @@ int ipcalc_main(int argc, char **argv)
 	char *ipstr, *prefixstr;
 #endif
 
+#if ENABLE_FEATURE_IPCALC_LONG_OPTIONS
 	static const struct option long_options[] = {
 		{"netmask",		no_argument, NULL, 'm'},
 		{"broadcast",	no_argument, NULL, 'b'},
@@ -95,6 +96,7 @@ int ipcalc_main(int argc, char **argv)
 	};
 
 	bb_applet_long_options = long_options;
+#endif
 	mode = bb_getopt_ulflags(argc, argv,
 #ifdef CONFIG_FEATURE_IPCALC_FANCY
 			"mbnphs"

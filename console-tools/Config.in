@@ -65,6 +65,13 @@ config CONFIG_SETCONSOLE
 	  This program redirects the system console to another device,
 	  like the current tty while logged in via telnet.
 
+config CONFIG_FEATURE_SETCONSOLE_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CONFIG_SET_CONSOLE && CONFIG_GETOPT_LONG
+	help
+	  Support long options for the setconsole applet.
+
 config CONFIG_SETKEYCODES
 	bool "setkeycodes"
 	default n

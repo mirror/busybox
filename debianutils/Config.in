@@ -46,6 +46,13 @@ config CONFIG_RUN_PARTS
 	  Unless you know that run-parts is used in some of your scripts
 	  you can safely say N here.
 
+config CONFIG_FEATURE_RUN_PARTS_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CONFIG_RUN_PARTS && CONFIG_GETOPT_LONG
+	help
+	  Support long options for the run-parts applet.
+
 config CONFIG_START_STOP_DAEMON
 	bool "start-stop-daemon"
 	default y
@@ -53,6 +60,13 @@ config CONFIG_START_STOP_DAEMON
 	  start-stop-daemon is used to control the creation and
 	  termination of system-level processes, usually the ones
 	  started during the startup of the system.
+
+config CONFIG_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CONFIG_START_STOP_DAEMON && CONFIG_GETOPT_LONG
+	help
+	  Support long options for the start-stop-daemon applet.
 
 config CONFIG_WHICH
 	bool "which"

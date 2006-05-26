@@ -169,7 +169,7 @@ config CONFIG_HDPARM
 config CONFIG_FEATURE_HDPARM_GET_IDENTITY
 	bool "Support obtaining detailed information directly from drives"
 	default y
-	depends on CONFIG_HDPARM
+	depends on CONFIG_HDPARM && CONFIG_GETOPT_LONG
 	help
 	  Enables the -I and -Istdin options to obtain detailed information
 	  directly from drives about their capabilities and supported ATA

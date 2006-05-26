@@ -37,7 +37,7 @@ struct linux_rtc_time {
 #define RTC_SET_TIME   _IOW('p', 0x0a, struct linux_rtc_time) /* Set RTC time    */
 #define RTC_RD_TIME    _IOR('p', 0x09, struct linux_rtc_time) /* Read RTC time   */
 
-#ifdef CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
+#if ENABLE_FEATURE_HWCLOCK_LONG_OPTIONS
 # ifndef _GNU_SOURCE
 #  define _GNU_SOURCE
 # endif
@@ -186,7 +186,7 @@ int hwclock_main ( int argc, char **argv )
 	unsigned long opt;
 	int utc;
 
-#ifdef CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
+#if ENABLE_FEATURE_HWCLOCK_LONG_OPTIONS
 static const struct option hwclock_long_options[] = {
 		{ "localtime", 0, 0, 'l' },
 		{ "utc",       0, 0, 'u' },

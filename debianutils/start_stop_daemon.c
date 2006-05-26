@@ -200,7 +200,7 @@ do_stop(void)
 	}
 }
 
-
+#if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
 static const struct option ssd_long_options[] = {
 	{ "stop",			0,		NULL,		'K' },
 	{ "start",			0,		NULL,		'S' },
@@ -215,6 +215,7 @@ static const struct option ssd_long_options[] = {
 	{ "pidfile",			1,		NULL,		'p' },
 	{ 0,				0,		0,		0 }
 };
+#endif
 
 #define SSD_CTX_STOP		1
 #define SSD_CTX_START		2
@@ -229,7 +230,9 @@ start_stop_daemon_main(int argc, char **argv)
 	char *signame = NULL;
 	char *startas = NULL;
 
+#if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
 	bb_applet_long_options = ssd_long_options;
+#endif
 
 	/* Check required one context option was given */
 	bb_opt_complementally = "K:S:?:K--S:S--K";

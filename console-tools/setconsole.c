@@ -16,10 +16,12 @@
 
 #include "busybox.h"
 
+#if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
 static const struct option setconsole_long_options[] = {
 	{ "reset", 0, NULL, 'r' },
 	{ 0, 0, 0, 0 }
 };
+#endif
 
 #define OPT_SETCONS_RESET 1
 
@@ -28,7 +30,9 @@ int setconsole_main(int argc, char **argv)
 	unsigned long flags;
 	const char *device = CURRENT_TTY;
 
+#if ENABLE_FEATURE_SETCONSOLE_LONG_OPTIONS
 	bb_applet_long_options = setconsole_long_options;
+#endif
 	flags = bb_getopt_ulflags(argc, argv, "r");
 
 	if (argc - optind > 1)

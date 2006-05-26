@@ -199,10 +199,10 @@ config CONFIG_HWCLOCK
 	  shutdown in the hardware clock, so the hardware will keep the
 	  correct time when Linux is _not_ running.
 
-config CONFIG_FEATURE_HWCLOCK_LONGOPTIONS
+config CONFIG_FEATURE_HWCLOCK_LONG_OPTIONS
 	bool "Support long options (--hctosys,...)"
 	default n
-	depends on CONFIG_HWCLOCK
+	depends on CONFIG_HWCLOCK && CONFIG_GETOPT_LONG
 	help
 	  By default, the hwclock utility only uses short options.  If you
 	  are overly fond of its long options, such as --hctosys, --utc, etc)

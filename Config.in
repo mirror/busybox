@@ -80,6 +80,21 @@ config CONFIG_LOCALE_SUPPORT
 	  Enable this if your system has locale support and you would like
 	  busybox to support locale settings.
 
+config CONFIG_GETOPT_LONG
+	bool "Enable getopt long (system needs struct option for this to work)"
+	default n
+	depends on !CONFIG_NO_GETOPT_LONG
+	help
+	  EXPERIMENTAL!
+	  Enable this if your system support long options for getopt and
+	  you want to use them in busybox.
+
+# remove this comment to disable getopt_long per default.
+#config CONFIG_NO_GETOPT_LONG
+#	bool
+#	default y
+#	depends on !CONFIG_GETOPT_LONG
+
 config CONFIG_FEATURE_DEVFS
 	bool "Use devfs names for devices"
 	default n

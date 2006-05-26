@@ -39,6 +39,7 @@
 #define INSTALL_OPT_MODE  32
 #define INSTALL_OPT_OWNER  64
 
+#if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
 static const struct option install_long_options[] = {
 	{ "directory",	0,	NULL,	'd' },
 	{ "preserve-timestamps",	0,	NULL,	'p' },
@@ -48,6 +49,7 @@ static const struct option install_long_options[] = {
 	{ "owner",	0,	NULL,	'o' },
 	{ 0,	0,	0,	0 }
 };
+#endif
 
 int install_main(int argc, char **argv)
 {
@@ -60,7 +62,9 @@ int install_main(int argc, char **argv)
 	int copy_flags = FILEUTILS_DEREFERENCE | FILEUTILS_FORCE;
 	int ret = EXIT_SUCCESS, flags, i, isdir;
 
+#if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
 	bb_applet_long_options = install_long_options;
+#endif
 	bb_opt_complementally = "?:s--d:d--s";
 	/* -c exists for backwards compatibility, its needed */
 	flags = bb_getopt_ulflags(argc, argv, "cdpsg:m:o:", &gid_str, &mode_str, &uid_str);	/* 'a' must be 2nd */

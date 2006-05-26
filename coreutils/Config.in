@@ -232,6 +232,13 @@ config CONFIG_ENV
 	  a command; without options it displays the current
 	  environment.
 
+config CONFIG_FEATURE_ENV_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CONFIG_ENV && CONFIG_GETOPT_LONG
+	help
+	  Support long options for the env applet.
+
 config CONFIG_EXPR
 	bool "expr"
 	default n
@@ -292,6 +299,13 @@ config CONFIG_INSTALL
 	default n
 	help
 	  Copy files and set attributes.
+
+config CONFIG_FEATURE_INSTALL_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CONFIG_INSTALL && CONFIG_GETOPT_LONG
+	help
+	  Support long options for the install applet.
 
 config CONFIG_LENGTH
 	bool "length"
@@ -362,7 +376,7 @@ config CONFIG_FEATURE_LS_USERNAME
 config CONFIG_FEATURE_LS_COLOR
 	bool "Allow use of color to identify file types"
 	default y
-	depends on CONFIG_LS
+	depends on CONFIG_LS && CONFIG_GETOPT_LONG
 	help
 	  This enables the --color option to ls.
 
@@ -389,6 +403,13 @@ config CONFIG_MKDIR
 	help
 	  mkdir is used to create directories with the specified names.
 
+config CONFIG_FEATURE_MKDIR_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CONFIG_MKDIR && CONFIG_GETOPT_LONG
+	help
+	  Support long options for the mkdir applet.
+
 config CONFIG_MKFIFO
 	bool "mkfifo"
 	default n
@@ -408,6 +429,13 @@ config CONFIG_MV
 	default n
 	help
 	  mv is used to move or rename files or directories.
+
+config CONFIG_FEATURE_MV_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CONFIG_MV && CONFIG_GETOPT_LONG
+	help
+	  Support long options for the mv applet.
 
 config CONFIG_NICE
 	bool "nice"

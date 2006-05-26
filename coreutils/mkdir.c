@@ -34,11 +34,13 @@
 #include <getopt.h> /* struct option */
 #include "busybox.h"
 
+#if ENABLE_FEATURE_MKDIR_LONG_OPTIONS
 static const struct option mkdir_long_options[] = {
 	{ "mode", 1, NULL, 'm' },
 	{ "parents", 0, NULL, 'p' },
 	{ 0, 0, 0, 0 }
 };
+#endif
 
 int mkdir_main (int argc, char **argv)
 {
@@ -48,7 +50,9 @@ int mkdir_main (int argc, char **argv)
 	unsigned long opt;
 	char *smode;
 
+#if ENABLE_FEATURE_MKDIR_LONG_OPTIONS
 	bb_applet_long_options = mkdir_long_options;
+#endif
 	opt = bb_getopt_ulflags(argc, argv, "m:p", &smode);
 	if(opt & 1) {
 			mode = 0777;

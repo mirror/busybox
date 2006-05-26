@@ -50,12 +50,13 @@
 #include <getopt.h> /* struct option */
 #include "busybox.h"
 
-
+#if ENABLE_FEATURE_ENV_LONG_OPTIONS
 static const struct option env_long_options[] = {
 	{ "ignore-environment", 0, NULL, 'i' },
 	{ "unset", 1, NULL, 'u' },
 	{ 0, 0, 0, 0 }
 };
+#endif
 
 int env_main(int argc, char** argv)
 {
@@ -67,7 +68,9 @@ int env_main(int argc, char** argv)
 	extern char **environ;
 
 	bb_opt_complementally = "u::";
+#if ENABLE_FEATURE_ENV_LONG_OPTIONS
 	bb_applet_long_options = env_long_options;
+#endif
 
 	opt = bb_getopt_ulflags(argc, argv, "+iu:", &unset_env);
 
