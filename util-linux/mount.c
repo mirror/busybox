@@ -351,7 +351,7 @@ static int singlemount(struct mntent *mp)
 
 	// If mount failed, clean up loop file (if any).
 
-	if (rc && loopFile) {
+	if (ENABLE_FEATURE_MOUNT_LOOP && rc && loopFile) {
 		del_loop(mp->mnt_fsname);
 		if (ENABLE_FEATURE_CLEAN_UP) {
 			free(loopFile);
