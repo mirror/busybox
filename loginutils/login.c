@@ -147,7 +147,7 @@ int login_main(int argc, char **argv)
 	else
 		snprintf ( fromhost, sizeof( fromhost ) - 1, " on `%.100s'", tty );
 
-	setpgrp();
+	bb_setpgrp;
 
 	openlog ( "login", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH );
 

@@ -9,6 +9,7 @@
 
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/reboot.h>
@@ -26,7 +27,7 @@ int bb_shutdown_system(unsigned long magic)
 	/* Don't kill ourself */
 	signal(SIGTERM,SIG_IGN);
 	signal(SIGHUP,SIG_IGN);
-	setpgrp();
+	bb_setpgrp;
 
 	/* Allow Ctrl-Alt-Del to reboot system. */
 #ifndef RB_ENABLE_CAD

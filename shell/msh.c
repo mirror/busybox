@@ -3031,7 +3031,7 @@ forkexec(REGISTER struct op *t, int *pin, int *pout, int act, char **wp)
 	} else {
 		/* put non-interactive processes into a different process group.
 		 * we don't support jobs, but this is at least sane: see Bug 659 */
-		setpgrp();
+		bb_setpgrp;
 	}
 
 	if (t->type == TPAREN)
