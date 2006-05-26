@@ -30,7 +30,7 @@ static void ATTRIBUTE_NORETURN show_usage(void)
 	printf(
 "Usage: dumpleases -f <file> -[r|a]\n\n"
 "  -f, --file=FILENAME             Leases file to load\n"
-"  -r, --remaining                 Interepret lease times as time remaing\n"
+"  -r, --remaining                 Interepret lease times as time remaining\n"
 "  -a, --absolute                  Interepret lease times as expire time\n");
 	exit(0);
 }

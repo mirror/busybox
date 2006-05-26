@@ -291,7 +291,7 @@
 	"\t-l num\tlog level (8 - default)\n" \
 	"\t-S\tlog to syslogd (default)\n" \
 	"\t-L file\tlog to file\n" \
-	"\t-f\trun in fordeground\n" \
+	"\t-f\trun in foreground\n" \
 	"\t-b\trun in background (default)\n" \
 	"\t-c dir\tworking dir"
 
@@ -513,7 +513,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-i\t\tInstall the package\n" \
 	"\t-l\t\tList of installed packages\n" \
 	"\t-C\t\tConfigure an unpackaged package\n" \
-	"\t-F depends\tIgnore depency problems\n" \
+	"\t-F depends\tIgnore dependency problems\n" \
 	"\t-P\t\tPurge all files of a package\n" \
 	"\t-r\t\tRemove all but the configuration files for a package\n" \
 	"\t-u\t\tUnpack a package, but don't configure it"
@@ -580,7 +580,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Displays the DHCP leases granted by udhcpd.\n\n" \
 	"Options:\n" \
 	"\t-f,\t--file=FILENAME\tLeases file to load\n" \
-	"\t-r,\t--remaining\tInterpret lease times as time remaing\n" \
+	"\t-r,\t--remaining\tInterpret lease times as time remaining\n" \
 	"\t-a,\t--absolute\tInterpret lease times as expire time"
 
 #define e2fsck_trivial_usage \
@@ -1421,7 +1421,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"The upper-case options MQS are used to remove a shared memory\n" \
 	"segment by an shmkey value. The lower-case options mqs are used\n" \
 	"to remove a segment by shmid value.\n" \
-	"\t-m | -M\tRemove the memory segment after the last detatch\n" \
+	"\t-m | -M\tRemove the memory segment after the last detach\n" \
 	"\t-q | -Q\tRemove the message queue\n" \
 	"\t-s | -S\tRemove the semaphore"
 
@@ -1432,7 +1432,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Resource specification:\n" \
 	"\t-m\tshared memory segments\n" \
 	"\t-q\tmessage queues\n" \
-	"\t-s\tsempahore arrays\n" \
+	"\t-s\tsemaphore arrays\n" \
 	"\t-a\tall (default)\n" \
 	"Output format:\n" \
 	"\t-t\ttime\n" \
@@ -1944,7 +1944,7 @@ USE_FEATURE_DATE_ISOFMT( \
 "\n" \
 "  alias <alias_name> <mod_name>\n" \
 "    Makes it possible to modprobe alias_name, when there is no such module.\n" \
-"    It makes sense if your mod_name is long, or you want a more reprenstative\n" \
+"    It makes sense if your mod_name is long, or you want a more representative\n" \
 "    name for that module (eg. 'scsi' in place of 'aha7xxx').\n" \
 "    This makes it also possible to use a different set of options (below) for\n" \
 "    the module and the alias.\n" \
@@ -1978,11 +1978,11 @@ USE_FEATURE_DATE_ISOFMT( \
 	"   which are the default for alias 'tulip2'\n\n" \
 	"$ modprobe tulip2 irq=8\n" \
 	"   will load the module 'tulip' with default options 'irq=4 io=0x308 irq=8',\n" \
-	"   which are the default for alias 'tulip2' overriden by the option 'irq=8'\n\n" \
+	"   which are the default for alias 'tulip2' overridden by the option 'irq=8'\n\n" \
 	"   from the command line\n\n" \
 	"$ modprobe tulip2 irq=2 io=0x210\n" \
 	"   will load the module 'tulip' with default options 'irq=4 io=0x308 irq=4 io=0x210',\n" \
-	"   which are the default for alias 'tulip2' overriden by the options 'irq=2 io=0x210'\n\n" \
+	"   which are the default for alias 'tulip2' overridden by the options 'irq=2 io=0x210'\n\n" \
 	"   from the command line\n"
 
 #define more_trivial_usage \
@@ -3409,7 +3409,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Executes COMMAND on every item given by standard input.\n\n" \
 	"Options:\n" \
 	USAGE_XARGS_CONFIRMATION("\t-p\tPrompt the user about whether to run each command\n") \
-	"\t-r\tDo not run command for empty readed lines\n" \
+	"\t-r\tDo not run command for empty read lines\n" \
 	USAGE_XARGS_TERMOPT("\t-x\tExit if the size is exceeded\n") \
 	USAGE_XARGS_ZERO_TERM("\t-0\tInput filenames are terminated by a null character\n") \
 	"\t-t\tPrint the command line on stderr before executing it"

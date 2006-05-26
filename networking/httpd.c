@@ -200,7 +200,7 @@ typedef struct
 
 static HttpdConfig *config;
 
-static const char request_GET[] = "GET";    /* size algorithic optimize */
+static const char request_GET[] = "GET";    /* size algorithmic optimize */
 
 static const char* const suffixTable [] = {
 /* Warning: shorted equivalent suffix in one line must be first */

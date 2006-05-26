@@ -623,7 +623,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		return retval;
 	}
 
-	/* create mount deamon client */
+	/* create mount daemon client */
 	/* See if the nfs host = mount host. */
 	if (mounthost) {
 	  if (mounthost[0] >= '0' && mounthost[0] <= '9') {
@@ -835,7 +835,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 #endif
 	}
 #ifdef NFS_MOUNT_DEBUG
-	printf(_("using port %d for nfs deamon\n"), port);
+	printf(_("using port %d for nfs daemon\n"), port);
 #endif
 	server_addr.sin_port = htons(port);
 	 /*

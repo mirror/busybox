@@ -84,7 +84,7 @@ config CONFIG_MODPROBE
 	bool "modprobe"
 	default n
 	help
-	  Handle the loading of modules, and their dependancies on a high
+	  Handle the loading of modules, and their dependencies on a high
 	  level.
 
 	  Note that in the state, modprobe does not understand multiple

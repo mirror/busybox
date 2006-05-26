@@ -116,8 +116,8 @@ my @output = $kernelsyms ? `cat $kernelsyms` : `nm $kernel`;
 warn "\nMODULE = $tgtname\n" if $verbose;
 build_ref_tables($tgtname, \@output, $exp, $dep);
 
-# resolve the dependancies for each module
-# reduce dependancies: remove unresolvable and resolved from vmlinux/System.map
+# resolve the dependencies for each module
+# reduce dependencies: remove unresolvable and resolved from vmlinux/System.map
 # remove duplicates
 foreach my $module (keys %$dep) {
     warn "reducing module: $module\n" if $verbose;
@@ -225,7 +225,7 @@ Example:
 =head1 DESCRIPTION
 
 The purpose of this script is to automagically generate a list of of kernel
-module dependancies.  This script produces dependancy lists that should be
+module dependencies.  This script produces dependency lists that should be
 identical to the depmod program from the modutils package.  Unlike the depmod
 binary, however, depmod.pl is designed to be run on your host system, not
 on your target system.

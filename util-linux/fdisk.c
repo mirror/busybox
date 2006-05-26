@@ -5075,7 +5075,7 @@ static void
 add_partition(int n, int sys)
 {
 	char mesg[256];         /* 48 does not suffice in Japanese */
-	int i, readed = 0;
+	int i, num_read = 0;
 	struct partition *p = ptes[n].part_table;
 	struct partition *q = ptes[ext_index].part_table;
 	long long llimit;
@@ -5124,12 +5124,12 @@ add_partition(int n, int sys)
 		}
 		if (start > limit)
 			break;
-		if (start >= temp+units_per_sector && readed) {
+		if (start >= temp+units_per_sector && num_read) {
 			printf(_("Sector %llu is already allocated\n"), (unsigned long long)temp);
 			temp = start;
-			readed = 0;
+			num_read = 0;
 		}
-		if (!readed && start == temp) {
+		if (!num_read && start == temp) {
 			off_t saved_start;
 
 			saved_start = start;
@@ -5139,9 +5139,9 @@ add_partition(int n, int sys)
 				start = (start - 1) * units_per_sector;
 				if (start < saved_start) start = saved_start;
 			}
-			readed = 1;
+			num_read = 1;
 		}
-	} while (start != temp || !readed);
+	} while (start != temp || !num_read);
 	if (n > 4) {                    /* NOT for fifth partition */
 		struct pte *pe = &ptes[n];
 
