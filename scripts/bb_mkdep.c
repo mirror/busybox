@@ -69,10 +69,19 @@
 #include <fcntl.h>
 #include <limits.h>
 
+#ifdef __GNUC__
+#define ATTRIBUTE __attribute__
+#else
+#define ATTRIBUTE(a) /* nothing */
+#endif
+
+#if !(defined __USE_ISOC99 || (defined __GLIBC_HAVE_LONG_LONG && defined __USE_MISC))
+#define strtoll strtol
+#endif
 
 /* partial and simplified libbb routine */
-static void bb_error_d(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
-static char * bb_asprint(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+static void bb_error_d(const char *s, ...) ATTRIBUTE ((noreturn, format (printf, 1, 2)));
+static char * bb_asprint(const char *format, ...) ATTRIBUTE ((format (printf, 1, 2)));
 static char *bb_simplify_path(const char *path);
 
 /* stolen from libbb as is */
@@ -1598,7 +1607,7 @@ static void scan_dir_find_ch_files(const char *p)
     }
 }
 
-static void show_usage(void) __attribute__ ((noreturn));
+static void show_usage(void) ATTRIBUTE ((noreturn));
 static void show_usage(void)
 {
 	bb_error_d("%s\n%s\n", bb_mkdep_terse_options, bb_mkdep_full_options);
@@ -1720,9 +1729,16 @@ static char *bb_asprint(const char *format, ...)
 	int r;
 	char *out;
 
+#ifdef __USE_GNU
 	va_start(p, format);
 	r = vasprintf(&out, format, p);
 	va_end(p);
+#else
+	out = xmalloc(BUFSIZ);
+	va_start(p, format);
+	r = vsprintf(out, format, p);
+	va_end(p);
+#endif
 
 	if (r < 0)
 		bb_error_d("bb_asprint: %m");
