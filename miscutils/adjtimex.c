@@ -5,39 +5,9 @@
  * Last hack: March 2001
  * Copyright 1997, 2000, 2001 Larry Doolittle <LRDoolittle@lbl.gov>
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License (Version 2,
- *  June 1991) as published by the Free Software Foundation.  At the
- *  time of writing, that license was published by the FSF with the URL
- *  http://www.gnu.org/copyleft/gpl.html, and is incorporated herein by
- *  reference.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- * This adjtimex(1) is very similar in intent to adjtimex(8) by Steven
- * Dick <ssd@nevets.oau.org> and Jim Van Zandt <jrv@vanzandt.mv.com>
- * (see http://metalab.unc.edu/pub/Linux/system/admin/time/adjtimex*).
- * That version predates this one, and is _much_ bigger and more
- * featureful.  My independently written version was very similar to
- * Steven's from the start, because they both follow the kernel timex
- * structure.  I further tweaked this version to be equivalent to Steven's
- * where possible, but I don't like getopt_long, so the actual usage
- * syntax is incompatible.
- *
- * Amazingly enough, my Red Hat 5.2 sys/timex (and sub-includes)
- * don't actually give a prototype for adjtimex(2), so building
- * this code (with -Wall) gives a warning.  Later versions of
- * glibc fix this issue.
- *
- * This program is too simple for a Makefile, just build with:
- *  gcc -Wall -O adjtimex.c -o adjtimex
- *
  * busyboxed 20 March 2001, Larry Doolittle <ldoolitt@recycle.lbl.gov>
- * It will autosense if it is built in a busybox environment, based
- * on the BB_VER preprocessor macro.
+ * 
+ * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
 #include <stdio.h>
@@ -46,19 +16,6 @@
 #include <unistd.h>
 #include <sys/timex.h>
 #include "busybox.h"
-
-#if !defined ADJ_OFFSET_SINGLESHOT && defined MOD_CLKA && defined MOD_OFFSET
-#define ADJ_OFFSET_SINGLESHOT (MOD_CLKA | MOD_OFFSET)
-#endif
-#if !defined ADJ_FREQUENCY && defined MOD_FREQUENCY
-#define ADJ_FREQUENCY MOD_FREQUENCY
-#endif
-#if !defined ADJ_TIMECONST && defined MOD_TIMECONST
-#define ADJ_TIMECONST MOD_TIMECONST
-#endif
-#if !defined ADJ_TICK && defined MOD_CLKB
-#define ADJ_TICK MOD_CLKB
-#endif
 
 static const struct {int bit; const char *name;} statlist[] = {
 	{ STA_PLL,       "PLL"       },
@@ -84,19 +41,7 @@ static const char * const ret_code_descript[] = {
 	"leap second has occurred",
 	"clock not synchronized" };
 
-#ifdef BB_VER
-#define main adjtimex_main
-#else
-void usage(char *prog)
-{
-	fprintf(stderr,
-		"Usage: %s [ -q ] [ -o offset ] [ -f frequency ] [ -p timeconstant ] [ -t tick ]\n",
-		prog);
-}
-#define bb_show_usage() usage(argv[0])
-#endif
-
-int main(int argc, char ** argv)
+int adjtimex_main(int argc, char **argv)
 {
 	struct timex txc;
 	int quiet=0;
