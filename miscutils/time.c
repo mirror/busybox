@@ -29,7 +29,6 @@
 #include <string.h>
 #include <limits.h>
 #include <unistd.h>
-#include <sys/time.h>
 #include <sys/types.h>		/* For pid_t. */
 #include <sys/wait.h>
 #include <sys/param.h>		/* For getpagesize, maybe.  */

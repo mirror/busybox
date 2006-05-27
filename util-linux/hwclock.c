@@ -9,7 +9,6 @@
 
 
 #include <sys/ioctl.h>
-#include <sys/time.h>
 #include <sys/utsname.h>
 #include <ctype.h>
 #include <fcntl.h>

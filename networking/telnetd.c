@@ -24,7 +24,6 @@
 /*#define DEBUG 1 */
 #undef DEBUG
 
-#include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>

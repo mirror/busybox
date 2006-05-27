@@ -15,7 +15,6 @@
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
 #include <sys/stat.h>
 
 #include <ctype.h>

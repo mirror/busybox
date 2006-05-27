@@ -36,7 +36,6 @@
 #define _UUID_UUID_H
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <time.h>
 
 typedef unsigned char uuid_t[16];

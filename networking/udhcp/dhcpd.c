@@ -34,7 +34,6 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <time.h>
-#include <sys/time.h>
 
 #include "dhcpd.h"
 #include "arpping.h"

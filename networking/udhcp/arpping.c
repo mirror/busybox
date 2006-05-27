@@ -5,7 +5,6 @@
  * by Yoichi Hariguchi <yoichi@fore.com>
  */
 
-#include <sys/time.h>
 #include <time.h>
 #include <sys/socket.h>
 #include <netinet/if_ether.h>

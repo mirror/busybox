@@ -11,7 +11,6 @@
 
 #include <stdlib.h>
 #include <errno.h>
-#include <sys/time.h>
 #include <unistd.h>
 #include <time.h>
 #include <stdio.h>

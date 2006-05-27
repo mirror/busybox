@@ -99,7 +99,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>    /* for connect and socket*/
 #include <netinet/in.h>    /* for sockaddr_in       */
-#include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <fcntl.h>         /* for open modes        */

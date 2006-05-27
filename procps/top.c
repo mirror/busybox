@@ -40,7 +40,6 @@
 
 #ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 #include <time.h>
-#include <sys/time.h>
 #include <fcntl.h>
 #include <netinet/in.h>  /* htons */
 #endif
@@ -370,7 +369,6 @@ static void clearmems(void)
 
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 #include <termios.h>
-#include <sys/time.h>
 #include <signal.h>
 
 

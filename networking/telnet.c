@@ -45,13 +45,6 @@ enum { DOTRACE = 1 };
 #define TRACE(x, y)
 #endif
 
-#if 0
-#define USE_POLL
-#include <sys/poll.h>
-#else
-#include <sys/time.h>
-#endif
-
 #define DATABUFSIZE  128
 #define IACBUFSIZE   128
 

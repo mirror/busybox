@@ -24,7 +24,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <sys/time.h>
 #include <sys/ioctl.h>
 #include "busybox.h"
 

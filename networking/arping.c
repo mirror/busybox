@@ -10,7 +10,6 @@
 
 #include <sys/ioctl.h>
 #include <signal.h>
-#include <sys/time.h>
 
 #include <errno.h>
 #include <stdlib.h>

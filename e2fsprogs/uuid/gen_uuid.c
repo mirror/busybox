@@ -38,7 +38,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/file.h>
 #ifdef HAVE_SYS_IOCTL_H

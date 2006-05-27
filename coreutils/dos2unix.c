@@ -15,7 +15,6 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <fcntl.h>
-#include <sys/time.h>
 #include "busybox.h"
 
 #define CT_UNIX2DOS     1

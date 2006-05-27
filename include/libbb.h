@@ -24,6 +24,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include <sys/time.h>
+
 #include "bb_config.h"
 #ifdef CONFIG_SELINUX
 #include <selinux/selinux.h>

@@ -218,7 +218,6 @@
 #include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <sys/time.h>                           /* concession to AIX */
 #include <sys/select.h>
 #include "inet_common.h"
 

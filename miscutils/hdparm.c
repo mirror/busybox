@@ -20,7 +20,6 @@
 #include <endian.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
-#include <sys/time.h>
 #include <sys/times.h>
 #include <sys/mount.h>
 #include <sys/mman.h>

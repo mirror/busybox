@@ -8,7 +8,6 @@
  * Licensed under GPL v2 or later, see file License for details.
 */
 
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

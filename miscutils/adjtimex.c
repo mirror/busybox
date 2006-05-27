@@ -44,7 +44,6 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/time.h>
 #include <sys/timex.h>
 #include "busybox.h"
 

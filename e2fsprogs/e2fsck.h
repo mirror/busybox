@@ -14,7 +14,6 @@
 #include <stddef.h>
 #include <assert.h>
 #include <signal.h>
-#include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/param.h>

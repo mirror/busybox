@@ -57,7 +57,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
