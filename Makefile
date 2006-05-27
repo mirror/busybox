@@ -5,9 +5,13 @@
 # Licensed under GPLv2, see the file LICENSE in this tarball for details.
 #
 
-#--------------------------------------------------------------
-# You shouldn't need to mess with anything beyond this point...
-#--------------------------------------------------------------
+# You shouldn't have to edit anything in this file for configuration
+# purposes, try "make help" or read http://busybox.net/FAQ.html.
+
+.PHONY: dummy subdirs release distclean clean config oldconfig menuconfig \
+        tags check test depend dep buildtree hosttools _all checkhelp \
+        sizes bloatcheck baseline objsizes
+
 noconfig_targets := menuconfig config oldconfig randconfig hosttools \
 	defconfig allyesconfig allnoconfig allbareconfig \
 	clean distclean help \
@@ -33,7 +37,6 @@ DIRS:=applets archival archival/libunarchive coreutils console-tools \
 SRC_DIRS:=$(patsubst %,$(top_srcdir)/%,$(DIRS))
 
 # That's our default target when none is given on the command line
-.PHONY: _all
 _all:
 
 CONFIG_CONFIG_IN = $(top_srcdir)/Config.in
@@ -136,6 +139,7 @@ help:
 	@echo '  uninstall'
 	@echo
 	@echo 'Development:'
+	@echo '  baseline		- create busybox_old for bloatcheck.
 	@echo '  bloatcheck		- show size difference between old and new versions'
 	@echo '  check			- run the test suite for all applets'
 	@echo '  checkhelp		- check for missing help-entries in Config.in'
@@ -364,22 +368,24 @@ ifneq ($(strip $(KBUILD_VERBOSE)),)
   CHECK_VERBOSE := -v
 # ARFLAGS+=v
 endif
+
 check test: busybox
 	bindir=$(top_builddir) srcdir=$(top_srcdir)/testsuite SED="$(SED)" \
 	$(SHELL) $(top_srcdir)/testsuite/runtest $(CHECK_VERBOSE)
 
-.PHONY: checkhelp
 checkhelp:
 	$(Q)$(top_srcdir)/scripts/checkhelp.awk \
 		$(wildcard $(patsubst %,%/Config.in,$(SRC_DIRS) ./))
-.PHONY: sizes
+
 sizes: busybox_unstripped
 	$(NM) --size-sort $(<)
-.PHONY: bloatcheck
+
 bloatcheck: busybox_old busybox_unstripped
 	@$(top_srcdir)/scripts/bloat-o-meter busybox_old busybox_unstripped
 
-.PHONY: objsizes
+baseline: busybox_unstripped
+	@mv busybox_unstripped busybox_old
+
 objsizes: busybox_unstripped
 	$(SHELL) $(top_srcdir)/scripts/objsizes
 
@@ -501,5 +507,3 @@ tags:
 
 endif # ifeq ($(skip-makefile),)
 
-.PHONY: dummy subdirs release distclean clean config oldconfig \
-	menuconfig tags check test depend dep buildtree hosttools
