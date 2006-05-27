@@ -27,7 +27,7 @@ extern int setlogcons_main(int argc, char **argv)
 	if (argc == 2)
 		arg.subarg = atoi(argv[1]);
 
-	if (ioctl(bb_xopen("/dev/tty1", O_RDONLY), TIOCLINUX, &arg))
+	if (ioctl(bb_xopen(VC_1, O_RDONLY), TIOCLINUX, &arg))
 		bb_perror_msg_and_die("TIOCLINUX");;
 
 	return 0;

@@ -311,9 +311,7 @@ static int xargs_ask_confirmation(void)
 	int c, savec;
 
 	if (!tty_stream) {
-		tty_stream = fopen("/dev/tty", "r");
-		if (!tty_stream)
-			bb_perror_msg_and_die("/dev/tty");
+		tty_stream = bb_xfopen(CURRENT_TTY, "r");
 		/* pranoidal security by vodz */
 		fcntl(fileno(tty_stream), F_SETFD, FD_CLOEXEC);
 	}

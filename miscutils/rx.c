@@ -290,7 +290,7 @@ int rx_main(int argc, char **argv)
 			bb_show_usage();
 
 	fn = argv[1];
-	ttyfd = bb_xopen3("/dev/tty", O_RDWR, 0);
+	ttyfd = bb_xopen3(CURRENT_TTY, O_RDWR, 0);
 	filefd = bb_xopen3(fn, O_RDWR|O_CREAT|O_TRUNC, 0666);
 
 	if (tcgetattr(ttyfd, &tty) < 0)
