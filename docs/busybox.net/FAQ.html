@@ -528,9 +528,11 @@ command line argument parsing (getopt_ulflags.c), and a whole lot more.</p>
 <p>     The <b>"make bloatcheck"</b> option uses Matt Mackall's bloat-o-meter
         script to compare two versions of busybox (busybox_unstripped vs
         busybox_old), and report which symbols changed size and by how much.
-        To use it, first build a base version, rename busybox_unstripped to
-        busybox_old, and then build a new version with your changes and run
-        "make bloatcheck" to see the size differences from the old version.
+        To use it, first build a base version with <b>"make baseline"</b>.
+        (This creates busybox_old, which should have the original sizes for
+        comparison purposes.)  Then build the new version with your changes
+        and run "make bloatcheck" to see the size differences from the old
+        version.
 </p>
 <p>
         The first line of output has totals: how many symbols were added or
