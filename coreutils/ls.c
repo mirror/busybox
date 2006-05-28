@@ -353,6 +353,8 @@ static void dfree(struct dnode **dnp, int nfiles)
 	}
 	free(dnp);			/* free the array holding the dnode pointers */
 }
+#else
+#define dfree(...)
 #endif
 
 static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)

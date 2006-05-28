@@ -67,9 +67,6 @@ int more_main(int argc, char **argv)
 	int len, page_height;
 	int terminal_width;
 	int terminal_height;
-#ifndef CONFIG_FEATURE_USE_TERMIOS
-	int cin_fileno;
-#endif
 
 	argc--;
 	argv++;
@@ -80,9 +77,9 @@ int more_main(int argc, char **argv)
 		cin = fopen(CURRENT_TTY, "r");
 		if (!cin)
 			cin = bb_xfopen(CONSOLE_DEV, "r");
-		cin_fileno = fileno(cin);
 		please_display_more_prompt = 2;
 #ifdef CONFIG_FEATURE_USE_TERMIOS
+		cin_fileno = fileno(cin);
 		getTermSettings(cin_fileno, &initial_settings);
 		new_settings = initial_settings;
 		new_settings.c_lflag &= ~ICANON;
@@ -112,7 +109,7 @@ int more_main(int argc, char **argv)
 
 		please_display_more_prompt &= ~1;
 
-		get_terminal_width_height(cin_fileno, &terminal_width, &terminal_height);
+		get_terminal_width_height(fileno(cin), &terminal_width, &terminal_height);
 		if (terminal_height > 4)
 			terminal_height -= 2;
 		if (terminal_width > 0)
