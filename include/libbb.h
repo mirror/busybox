@@ -24,6 +24,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include <inttypes.h>
 #include <sys/time.h>
 
 #include "bb_config.h"

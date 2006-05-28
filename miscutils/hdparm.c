@@ -825,17 +825,17 @@ static void identify(uint16_t *id_supplied)
 			        (uint64_t)val[LBA_48_MSB]	<< 32 |
 			        (uint64_t)val[LBA_MID]	<< 16 |
 					val[LBA_LSB] ;
-			printf("\tLBA48  user addressable sectors:%11llu\n",(long long unsigned int)bbbig);
+			printf("\tLBA48  user addressable sectors:%11"PRIu64"\n",bbbig);
 		}
 
 		if (!bbbig)
 			bbbig = (uint64_t)(ll>mm ? ll : mm); /* # 512 byte blocks */
-		printf("\tdevice size with M = 1024*1024: %11llu MBytes\n",(long long unsigned int)(bbbig>>11));
+		printf("\tdevice size with M = 1024*1024: %11"PRIu64" MBytes\n",bbbig>>11);
 		bbbig = (bbbig<<9)/1000000;
-		printf("\tdevice size with M = 1000*1000: %11llu MBytes ",(long long unsigned int)bbbig);
+		printf("\tdevice size with M = 1000*1000: %11"PRIu64" MBytes ",bbbig);
 
 		if (bbbig > 1000)
-			printf("(%llu GB)\n", (long long unsigned int)bbbig/1000);
+			printf("(%"PRIu64" GB)\n", bbbig/1000);
 		else 
 			printf("\n");
 	}

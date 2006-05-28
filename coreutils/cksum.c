@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <inttypes.h>
 #include "busybox.h"
 
 int cksum_main(int argc, char **argv) {
