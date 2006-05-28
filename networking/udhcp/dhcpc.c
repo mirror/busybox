@@ -27,7 +27,6 @@
 #include "options.h"
 #include "clientpacket.h"
 #include "clientsocket.h"
-#include "script.h"
 #include "socket.h"
 #include "signalpipe.h"
 
@@ -120,7 +119,7 @@ static void perform_renew(void)
 		state = RENEW_REQUESTED;
 		break;
 	case RENEW_REQUESTED: /* impatient are we? fine, square 1 */
-		run_script(NULL, "deconfig");
+		udhcp_run_script(NULL, "deconfig");
 	case REQUESTING:
 	case RELEASED:
 		change_mode(LISTEN_RAW);
@@ -152,7 +151,7 @@ static void perform_release(void)
 		LOG(LOG_INFO, "Unicasting a release of %s to %s",
 				inet_ntoa(temp_addr), buffer);
 		send_release(server_addr, requested_ip); /* unicast */
-		run_script(NULL, "deconfig");
+		udhcp_run_script(NULL, "deconfig");
 	}
 	LOG(LOG_INFO, "Entering released state");
 
@@ -164,7 +163,7 @@ static void perform_release(void)
 
 static void client_background(void)
 {
-	background(client_config.pidfile);
+	udhcp_background(client_config.pidfile);
 	client_config.foreground = 1; /* Do not fork again. */
 	client_config.background_if_no_lease = 0;
 }
@@ -297,7 +296,7 @@ int main(int argc, char *argv[])
 			client_config.retries = atoi(optarg);
 			break;
 		case 'v':
-			printf("udhcpcd, version %s\n\n", VERSION);
+			printf("version %s\n\n", BB_VER);
 			return 0;
 			break;
 		default:
@@ -306,7 +305,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Start the log, sanitize fd's, and write a pid file */
-	start_log_and_pid("udhcpc", client_config.pidfile);
+	udhcp_start_log_and_pid("udhcpc", client_config.pidfile);
 
 	if (read_interface(client_config.interface, &client_config.ifindex,
 			   NULL, client_config.arp) < 0)
@@ -322,12 +321,12 @@ int main(int argc, char *argv[])
 	}
 
 	if (!client_config.vendorclass) {
-		client_config.vendorclass = xmalloc(sizeof("udhcp "VERSION) + 2);
+		client_config.vendorclass = xmalloc(sizeof("udhcp "BB_VER) + 2);
 		client_config.vendorclass[OPT_CODE] = DHCP_VENDOR;
-		client_config.vendorclass[OPT_LEN] = sizeof("udhcp "VERSION) - 1;
+		client_config.vendorclass[OPT_LEN] = sizeof("udhcp "BB_VER) - 1;
 		client_config.vendorclass[OPT_DATA] = 1;
 		memcpy(&client_config.vendorclass[OPT_DATA],
-			"udhcp "VERSION, sizeof("udhcp "VERSION) - 1);
+			"udhcp "BB_VER, sizeof("udhcp "BB_VER) - 1);
 	}
 
 
@@ -335,7 +334,7 @@ int main(int argc, char *argv[])
 	udhcp_sp_setup();
 
 	state = INIT_SELECTING;
-	run_script(NULL, "deconfig");
+	udhcp_run_script(NULL, "deconfig");
 	change_mode(LISTEN_RAW);
 
 	for (;;) {
@@ -375,7 +374,7 @@ int main(int argc, char *argv[])
 					timeout = now + client_config.timeout;
 					packet_num++;
 				} else {
-					run_script(NULL, "leasefail");
+					udhcp_run_script(NULL, "leasefail");
 					if (client_config.background_if_no_lease) {
 						LOG(LOG_INFO, "No lease, forking to background.");
 						client_background();
@@ -400,7 +399,7 @@ int main(int argc, char *argv[])
 					packet_num++;
 				} else {
 					/* timed out, go back to init state */
-					if (state == RENEW_REQUESTED) run_script(NULL, "deconfig");
+					if (state == RENEW_REQUESTED) udhcp_run_script(NULL, "deconfig");
 					state = INIT_SELECTING;
 					timeout = now;
 					packet_num = 0;
@@ -434,7 +433,7 @@ int main(int argc, char *argv[])
 					/* timed out, enter init state */
 					state = INIT_SELECTING;
 					LOG(LOG_INFO, "Lease lost, entering init state");
-					run_script(NULL, "deconfig");
+					udhcp_run_script(NULL, "deconfig");
 					timeout = now;
 					packet_num = 0;
 					change_mode(LISTEN_RAW);
@@ -455,7 +454,7 @@ int main(int argc, char *argv[])
 			/* a packet is ready, read it */
 
 			if (listen_mode == LISTEN_KERNEL)
-				len = get_packet(&packet, fd);
+				len = udhcp_get_packet(&packet, fd);
 			else len = get_raw_packet(&packet, fd);
 
 			if (len == -1 && errno != EINTR) {
@@ -523,7 +522,7 @@ int main(int argc, char *argv[])
 					start = now;
 					timeout = t1 + start;
 					requested_ip = packet.yiaddr;
-					run_script(&packet,
+					udhcp_run_script(&packet,
 						   ((state == RENEWING || state == REBINDING) ? "renew" : "bound"));
 
 					state = BOUND;
@@ -536,9 +535,9 @@ int main(int argc, char *argv[])
 				} else if (*message == DHCPNAK) {
 					/* return to init state */
 					LOG(LOG_INFO, "Received DHCP NAK");
-					run_script(&packet, "nak");
+					udhcp_run_script(&packet, "nak");
 					if (state != REQUESTING)
-						run_script(NULL, "deconfig");
+						udhcp_run_script(NULL, "deconfig");
 					state = INIT_SELECTING;
 					timeout = now;
 					requested_ip = 0;

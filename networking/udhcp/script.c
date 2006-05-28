@@ -4,19 +4,7 @@
  *
  * Russ Dill <Russ.Dill@asu.edu> July 2001
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <string.h>
@@ -33,7 +21,6 @@
 #include "options.h"
 #include "dhcpd.h"
 #include "dhcpc.h"
-#include "script.h"
 
 /* get a rough idea of how long an option will be (rounding up...) */
 static const int max_option_length[] = {
@@ -161,10 +148,10 @@ static char **fill_envp(struct dhcpMessage *packet)
 
 	envp = xzalloc(sizeof(char *) * (num_options + 5));
 	j = 0;
-	asprintf(&envp[j++], "interface=%s", client_config.interface);
-	asprintf(&envp[j++], "%s=%s", "PATH",
+	envp[j++] = bb_xasprintf("interface=%s", client_config.interface);
+	envp[j++] = bb_xasprintf("PATH=%s",
 		getenv("PATH") ? : "/bin:/usr/bin:/sbin:/usr/sbin");
-	asprintf(&envp[j++], "%s=%s", "HOME", getenv("HOME") ? : "/");
+	envp[j++] = bb_xasprintf("HOME=%s", getenv("HOME") ? : "/");
 
 	if (packet == NULL) return envp;
 
@@ -182,7 +169,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 		/* Fill in a subnet bits option for things like /24 */
 		if (dhcp_options[i].code == DHCP_SUBNET) {
 			memcpy(&subnet, temp, 4);
-			asprintf(&envp[j++], "mask=%d", mton(&subnet));
+			envp[j++] = bb_xasprintf("mask=%d", mton(&subnet));
 		}
 	}
 	if (packet->siaddr) {
@@ -192,19 +179,19 @@ static char **fill_envp(struct dhcpMessage *packet)
 	if (!(over & FILE_FIELD) && packet->file[0]) {
 		/* watch out for invalid packets */
 		packet->file[sizeof(packet->file) - 1] = '\0';
-		asprintf(&envp[j++], "boot_file=%s", packet->file);
+		envp[j++] = bb_xasprintf("boot_file=%s", packet->file);
 	}
 	if (!(over & SNAME_FIELD) && packet->sname[0]) {
 		/* watch out for invalid packets */
 		packet->sname[sizeof(packet->sname) - 1] = '\0';
-		asprintf(&envp[j++], "sname=%s", packet->sname);
+		envp[j++] = bb_xasprintf("sname=%s", packet->sname);
 	}
 	return envp;
 }
 
 
 /* Call a script with a par file and env vars */
-void run_script(struct dhcpMessage *packet, const char *name)
+void udhcp_run_script(struct dhcpMessage *packet, const char *name)
 {
 	int pid;
 	char **envp, **curr;

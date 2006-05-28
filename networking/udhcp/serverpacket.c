@@ -36,7 +36,7 @@ static int send_packet_to_relay(struct dhcpMessage *payload)
 {
 	DEBUG(LOG_INFO, "Forwarding packet to relay");
 
-	return kernel_packet(payload, server_config.server, SERVER_PORT,
+	return udhcp_kernel_packet(payload, server_config.server, SERVER_PORT,
 			payload->giaddr, SERVER_PORT);
 }
 
@@ -64,7 +64,7 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 		ciaddr = payload->yiaddr;
 		chaddr = payload->chaddr;
 	}
-	return raw_packet(payload, server_config.server, SERVER_PORT,
+	return udhcp_raw_packet(payload, server_config.server, SERVER_PORT,
 			ciaddr, CLIENT_PORT, chaddr, server_config.ifindex);
 }
 
@@ -83,7 +83,7 @@ static int send_packet(struct dhcpMessage *payload, int force_broadcast)
 
 static void init_packet(struct dhcpMessage *packet, struct dhcpMessage *oldpacket, char type)
 {
-	init_header(packet, type);
+	udhcp_init_header(packet, type);
 	packet->xid = oldpacket->xid;
 	memcpy(packet->chaddr, oldpacket->chaddr, 16);
 	packet->flags = oldpacket->flags;

@@ -29,12 +29,12 @@ struct udp_dhcp_packet {
 	struct dhcpMessage data;
 };
 
-void init_header(struct dhcpMessage *packet, char type);
-int get_packet(struct dhcpMessage *packet, int fd);
-uint16_t checksum(void *addr, int count);
-int raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_port,
+void udhcp_init_header(struct dhcpMessage *packet, char type);
+int udhcp_get_packet(struct dhcpMessage *packet, int fd);
+uint16_t udhcp_checksum(void *addr, int count);
+int udhcp_raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_port,
 		   uint32_t dest_ip, int dest_port, uint8_t *dest_arp, int ifindex);
-int kernel_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_port,
+int udhcp_kernel_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_port,
 		   uint32_t dest_ip, int dest_port);
 
 

@@ -14,10 +14,8 @@ uint32_t getIpByMac(struct static_lease *lease_struct, void *arg);
 /* Check to see if an ip is reserved as a static ip */
 uint32_t reservedIp(struct static_lease *lease_struct, uint32_t ip);
 
-#ifdef UDHCP_DEBUG
-/* Print out static leases just to check what's going on */
+/* Print out static leases just to check what's going on (debug code) */
 void printStaticLeases(struct static_lease **lease_struct);
-#endif
 
 #endif
 

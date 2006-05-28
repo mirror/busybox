@@ -6,19 +6,7 @@
  *
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <fcntl.h>
@@ -66,7 +54,7 @@ int udhcpd_main(int argc, char *argv[])
 	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
 
 	/* Start the log, sanitize fd's, and write a pid file */
-	start_log_and_pid("udhcpd", server_config.pidfile);
+	udhcp_start_log_and_pid("udhcpd", server_config.pidfile);
 
 	if ((option = find_option(server_config.options, DHCP_LEASE_TIME))) {
 		memcpy(&server_config.lease, option->data + 2, 4);
@@ -90,9 +78,8 @@ int udhcpd_main(int argc, char *argv[])
 			   &server_config.server, server_config.arp) < 0)
 		return 1;
 
-#ifndef UDHCP_DEBUG
-	background(server_config.pidfile); /* hold lock during fork. */
-#endif
+	if (!ENABLE_FEATURE_UDHCP_DEBUG)
+		udhcp_background(server_config.pidfile); /* hold lock during fork. */
 
 	/* Setup the signal pipe */
 	udhcp_sp_setup();
@@ -139,7 +126,7 @@ int udhcpd_main(int argc, char *argv[])
 		default: continue;	/* signal or error (probably EINTR) */
 		}
 
-		if ((bytes = get_packet(&packet, server_socket)) < 0) { /* this waits for a packet - idle */
+		if ((bytes = udhcp_get_packet(&packet, server_socket)) < 0) { /* this waits for a packet - idle */
 			if (bytes == -1 && errno != EINTR) {
 				DEBUG(LOG_INFO, "error on read, %m, reopening socket");
 				close(server_socket);

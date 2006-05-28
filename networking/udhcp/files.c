@@ -241,9 +241,7 @@ static int read_staticlease(const char *const_line, void *arg)
 
 	addStaticLease(arg, mac_bytes, ip);
 
-#ifdef UDHCP_DEBUG
-	printStaticLeases(arg);
-#endif
+	if (ENABLE_FEATURE_UDHCP_DEBUG) printStaticLeases(arg);
 
 	return 1;
 
@@ -280,9 +278,6 @@ int read_config(const char *file)
 {
 	FILE *in;
 	char buffer[READ_CONFIG_BUF_SIZE], *token, *line;
-#ifdef UDHCP_DEBUG
-	char orig[READ_CONFIG_BUF_SIZE];
-#endif
 	int i, lm = 0;
 
 	for (i = 0; keywords[i].keyword[0]; i++)
@@ -295,11 +290,11 @@ int read_config(const char *file)
 	}
 
 	while (fgets(buffer, READ_CONFIG_BUF_SIZE, in)) {
+		char debug_orig[READ_CONFIG_BUF_SIZE];
+
 		lm++;
 		if (strchr(buffer, '\n')) *(strchr(buffer, '\n')) = '\0';
-#ifdef UDHCP_DEBUG
-		strcpy(orig, buffer);
-#endif
+		if (ENABLE_FEATURE_UDHCP_DEBUG) strcpy(debug_orig, buffer);
 		if (strchr(buffer, '#')) *(strchr(buffer, '#')) = '\0';
 
 		if (!(token = strtok(buffer, " \t"))) continue;
@@ -315,7 +310,7 @@ int read_config(const char *file)
 			if (!strcasecmp(token, keywords[i].keyword))
 				if (!keywords[i].handler(line, keywords[i].var)) {
 					LOG(LOG_ERR, "Failure parsing line %d of %s", lm, file);
-					DEBUG(LOG_ERR, "unable to parse '%s'", orig);
+					DEBUG(LOG_ERR, "unable to parse '%s'", debug_orig);
 					/* reset back to the default value */
 					keywords[i].handler(keywords[i].def, keywords[i].var);
 				}

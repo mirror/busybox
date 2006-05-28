@@ -50,7 +50,7 @@ static inline void sanitize_fds(void)
 }
 
 
-void background(const char *pidfile)
+void udhcp_background(const char *pidfile)
 {
 #ifdef __uClinux__
 	LOG(LOG_ERR, "Cannot background in uclinux (yet)");
@@ -69,7 +69,7 @@ void background(const char *pidfile)
 }
 
 
-#ifdef UDHCP_SYSLOG
+#ifdef CONFIG_FEATURE_UDHCP_SYSLOG
 
 void udhcp_logging(int level, const char *fmt, ...)
 {
@@ -115,7 +115,7 @@ void udhcp_logging(int level, const char *fmt, ...)
 #endif
 
 
-void start_log_and_pid(const char *client_server, const char *pidfile)
+void udhcp_start_log_and_pid(const char *client_server, const char *pidfile)
 {
 	int pid_fd;
 
@@ -129,9 +129,8 @@ void start_log_and_pid(const char *client_server, const char *pidfile)
 	/* equivelent of doing a fflush after every \n */
 	setlinebuf(stdout);
 
-#ifdef UDHCP_SYSLOG
-	openlog(client_server, LOG_PID | LOG_CONS, LOG_LOCAL0);
-#endif
+	if (ENABLE_FEATURE_UDHCP_SYSLOG)
+		openlog(client_server, LOG_PID | LOG_CONS, LOG_LOCAL0);
 
-	udhcp_logging(LOG_INFO, "%s (v%s) started", client_server, VERSION);
+	udhcp_logging(LOG_INFO, "%s (v%s) started", client_server, BB_VER);
 }

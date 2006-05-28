@@ -4,19 +4,7 @@
  *
  * Russ Dill <Russ.Dill@asu.edu> July 2001
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include <string.h>
@@ -69,7 +57,7 @@ unsigned long random_xid(void)
 /* initialize a packet with the proper defaults */
 static void init_packet(struct dhcpMessage *packet, char type)
 {
-	init_header(packet, type);
+	udhcp_init_header(packet, type);
 	memcpy(packet->chaddr, client_config.arp, 6);
 	if (client_config.clientid)
 	    add_option_string(packet->options, client_config.clientid);
@@ -109,7 +97,7 @@ int send_discover(unsigned long xid, unsigned long requested)
 
 	add_requests(&packet);
 	LOG(LOG_DEBUG, "Sending discover...");
-	return raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
+	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
 
@@ -129,7 +117,7 @@ int send_selecting(unsigned long xid, unsigned long server, unsigned long reques
 	add_requests(&packet);
 	addr.s_addr = requested;
 	LOG(LOG_DEBUG, "Sending select for %s...", inet_ntoa(addr));
-	return raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
+	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
 
@@ -147,8 +135,8 @@ int send_renew(unsigned long xid, unsigned long server, unsigned long ciaddr)
 	add_requests(&packet);
 	LOG(LOG_DEBUG, "Sending renew...");
 	if (server)
-		ret = kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
-	else ret = raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
+		ret = udhcp_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
+	else ret = udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 	return ret;
 }
@@ -167,7 +155,7 @@ int send_release(unsigned long server, unsigned long ciaddr)
 	add_simple_option(packet.options, DHCP_SERVER_ID, server);
 
 	LOG(LOG_DEBUG, "Sending release...");
-	return kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
+	return udhcp_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
 }
 
 
@@ -212,7 +200,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	/* check IP checksum */
 	check = packet.ip.check;
 	packet.ip.check = 0;
-	if (check != checksum(&(packet.ip), sizeof(packet.ip))) {
+	if (check != udhcp_checksum(&(packet.ip), sizeof(packet.ip))) {
 		DEBUG(LOG_INFO, "bad IP header checksum, ignoring");
 		return -1;
 	}
@@ -228,7 +216,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	packet.ip.saddr = source;
 	packet.ip.daddr = dest;
 	packet.ip.tot_len = packet.udp.len; /* cheat on the psuedo-header */
-	if (check && check != checksum(&packet, bytes)) {
+	if (check && check != udhcp_checksum(&packet, bytes)) {
 		DEBUG(LOG_ERR, "packet with bad UDP checksum received, ignoring");
 		return -2;
 	}

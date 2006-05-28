@@ -93,7 +93,7 @@ uint32_t reservedIp(struct static_lease *lease_struct, uint32_t ip)
 
 }
 
-#ifdef UDHCP_DEBUG
+#ifdef CONFIG_FEATURE_UDHCP_DEBUG
 /* Print out static leases just to check what's going on */
 /* Takes the address of the pointer to the static_leases linked list */
 void printStaticLeases(struct static_lease **arg)
