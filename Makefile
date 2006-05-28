@@ -139,7 +139,7 @@ help:
 	@echo '  uninstall'
 	@echo
 	@echo 'Development:'
-	@echo '  baseline		- create busybox_old for bloatcheck.
+	@echo '  baseline		- create busybox_old for bloatcheck.'
 	@echo '  bloatcheck		- show size difference between old and new versions'
 	@echo '  check			- run the test suite for all applets'
 	@echo '  checkhelp		- check for missing help-entries in Config.in'
