@@ -7,6 +7,11 @@ have any suggestions how they plan to go about it, and to minimize conflicts
 between your work and theirs.  But otherwise, all of these are fair game.
 
 Rob Landley <rob@landley.net>:
+  Add a libbb/platform.c
+    Implement fdprintf() for platforms that haven't got one.
+    Implement bb_realpath() that can handle NULL on non-glibc.
+    Cleanup bb_asprintf()
+
   Migrate calloc() and bb_calloc() occurrences to bb_xzalloc().
   Remove obsolete _() wrapper crud for internationalization we don't do.
   Figure out where we need utf8 support, and add it.
@@ -97,6 +102,10 @@ Rob Landley <rob@landley.net>:
 Bernhard Fischer <rep.nop@anon.at>:
   Makefile stuff:
     make -j is broken, -j1 is forced atm
+  New debug options:
+    -Wlarger-than-127
+  Collate BUFSIZ IOBUF_SIZE MY_BUF_SIZE PIPE_PROGRESS_SIZE BUFSIZE PIPESIZE
+    Use bb_common_bufsiz1?
 
 As yet unclaimed:
 
