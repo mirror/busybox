@@ -16,11 +16,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* These defines are very important for BusyBox.  Without these,
- * huge chunks of ram are pre-allocated making the BusyBox bss
- * size Freaking Huge(tm), which is a bad thing.*/
 #define SMALL_MEM
-#define DYN_ALLOC
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -87,17 +83,11 @@ typedef unsigned long ulg;
 #  endif
 #endif
 
-#ifdef DYN_ALLOC
 #  define DECLARE(type, array, size)  static type * array
 #  define ALLOC(type, array, size) { \
-      array = (type*)xcalloc((size_t)(((size)+1L)/2), 2*sizeof(type)); \
+      array = (type*)xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type)); \
    }
 #  define FREE(array) {free(array), array=NULL;}
-#else
-#  define DECLARE(type, array, size)  static type array[size]
-#  define ALLOC(type, array, size)
-#  define FREE(array)
-#endif
 
 #define tab_suffix window
 #define tab_prefix prev	/* hash link (see deflate.c) */

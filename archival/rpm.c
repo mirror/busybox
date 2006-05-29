@@ -208,7 +208,7 @@ void extract_cpio_gz(int fd) {
 
 rpm_index **rpm_gettags(int fd, int *num_tags)
 {
-	rpm_index **tags = calloc(200, sizeof(struct rpmtag *)); /* We should never need mode than 200, and realloc later */
+	rpm_index **tags = xzalloc(200 * sizeof(struct rpmtag *)); /* We should never need mode than 200, and realloc later */
 	int pass, tagindex = 0;
 	lseek(fd, 96, SEEK_CUR); /* Seek past the unused lead */
 
@@ -327,13 +327,10 @@ void fileaction_list(char *filename, int ATTRIBUTE_UNUSED fileref)
 void loop_through_files(int filetag, void (*fileaction)(char *filename, int fileref))
 {
 	int count = 0;
-	char *filename, *tmp_dirname, *tmp_basename;
 	while (rpm_getstring(filetag, count)) {
-		tmp_dirname = rpm_getstring(RPMTAG_DIRNAMES, rpm_getint(RPMTAG_DIRINDEXES, count)); /* 1st put on the directory */
-		tmp_basename = rpm_getstring(RPMTAG_BASENAMES, count);
-		filename = xmalloc(strlen(tmp_basename) + strlen(tmp_dirname) + 1);
-		strcpy(filename, tmp_dirname); /* First the directory name */
-		strcat(filename, tmp_basename); /* then the filename */
+		char * filename = bb_xasprintf("%s%s",
+			rpm_getstring(RPMTAG_DIRNAMES, rpm_getint(RPMTAG_DIRINDEXES,
+			count)), rpm_getstring(RPMTAG_BASENAMES, count));
 		fileaction(filename, count++);
 		free(filename);
 	}

@@ -36,12 +36,12 @@ static void rc_read(rc_t * rc)
 }
 
 /* Called once */
-static ATTRIBUTE_ALWAYS_INLINE void rc_init(rc_t * rc, int fd, int buffer_size)
+static void rc_init(rc_t * rc, int fd, int buffer_size)
 {
 	int i;
 
 	rc->fd = fd;
-	rc->buffer = malloc(buffer_size);
+	rc->buffer = xmalloc(buffer_size);
 	rc->buffer_size = buffer_size;
 	rc->buffer_end = rc->buffer + rc->buffer_size;
 	rc->ptr = rc->buffer_end;

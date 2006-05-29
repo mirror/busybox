@@ -168,17 +168,15 @@ char get_header_tar(archive_handle_t *archive_handle)
 		break;
 #ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L': {
-			longname = xmalloc(file_header->size + 1);
+			longname = xzalloc(file_header->size + 1);
 			archive_xread_all(archive_handle, longname, file_header->size);
-			longname[file_header->size] = '\0';
 			archive_handle->offset += file_header->size;
 
 			return(get_header_tar(archive_handle));
 		}
 	case 'K': {
-			linkname = xmalloc(file_header->size + 1);
+			linkname = xzalloc(file_header->size + 1);
 			archive_xread_all(archive_handle, linkname, file_header->size);
-			linkname[file_header->size] = '\0';
 			archive_handle->offset += file_header->size;
 
 			file_header->name = linkname;

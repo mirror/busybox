@@ -7,19 +7,7 @@
  *
  *  Started life as a busybox implementation of udpkg
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 /*
@@ -556,7 +544,7 @@ static unsigned int fill_package_struct(char *control_buffer)
 		"Conflicts", "Suggests", "Recommends", "Enhances", 0
 	};
 
-	common_node_t *new_node = (common_node_t *) xcalloc(1, sizeof(common_node_t));
+	common_node_t *new_node = (common_node_t *) xzalloc(sizeof(common_node_t));
 	char *field_name;
 	char *field_value;
 	int field_start = 0;
@@ -677,8 +665,7 @@ static void set_status(const unsigned int status_node_num, const char *new_value
 			bb_error_msg_and_die("DEBUG ONLY: this shouldnt happen");
 	}
 
-	new_status = (char *) xmalloc(want_len + flag_len + status_len + 3);
-	sprintf(new_status, "%s %s %s", name_hashtable[want], name_hashtable[flag], name_hashtable[status]);
+	new_status = bb_xasprintf("%s %s %s", name_hashtable[want], name_hashtable[flag], name_hashtable[status]);
 	status_hashtable[status_node_num]->status = search_name_hashtable(new_status);
 	free(new_status);
 	return;
@@ -740,79 +727,6 @@ static void index_status_file(const char *filename)
 	fclose(status_file);
 	return;
 }
-
-#if 0 /* this code is no longer used */
-char *get_depends_field(common_node_t *package, const int depends_type)
-{
-	char *depends = NULL;
-	char *old_sep = (char *)xcalloc(1, 3);
-	char *new_sep = (char *)xcalloc(1, 3);
-	int line_size = 0;
-	int depends_size;
-
-	int i;
-
-	for (i = 0; i < package->num_of_edges; i++) {
-		if ((package->edge[i]->type == EDGE_OR_PRE_DEPENDS) ||
-			(package->edge[i]->type == EDGE_OR_DEPENDS)) {
-		}
-
-		if ((package->edge[i]->type == depends_type) ||
-			(package->edge[i]->type == depends_type + 1)) {
-			/* Check if its the first time through */
-
-			depends_size = 8 + strlen(name_hashtable[package->edge[i]->name])
-				+ strlen(name_hashtable[package->edge[i]->version]);
-			line_size += depends_size;
-			depends = (char *) xrealloc(depends, line_size + 1);
-
-			/* Check to see if this dependency is the type we are looking for
-			 * +1 to check for 'extra' types, e.g. ored dependecies */
-			strcpy(old_sep, new_sep);
-			if (package->edge[i]->type == depends_type) {
-				strcpy(new_sep, ", ");
-			}
-			else if (package->edge[i]->type == depends_type + 1) {
-				strcpy(new_sep, "| ");
-			}
-
-			if (depends_size == line_size) {
-				strcpy(depends, "");
-			} else {
-				if ((strcmp(old_sep, "| ") == 0) && (strcmp(new_sep, "| ") == 0)) {
-					strcat(depends, " | ");
-				} else {
-					strcat(depends, ", ");
-				}
-			}
-
-			strcat(depends, name_hashtable[package->edge[i]->name]);
-			if (strcmp(name_hashtable[package->edge[i]->version], "NULL") != 0) {
-				if (package->edge[i]->operator == VER_EQUAL) {
-					strcat(depends, " (= ");
-				}
-				else if (package->edge[i]->operator == VER_LESS) {
-					strcat(depends, " (<< ");
-				}
-				else if (package->edge[i]->operator == VER_LESS_EQUAL) {
-					strcat(depends, " (<= ");
-				}
-				else if (package->edge[i]->operator == VER_MORE) {
-					strcat(depends, " (>> ");
-				}
-				else if (package->edge[i]->operator == VER_MORE_EQUAL) {
-					strcat(depends, " (>= ");
-				} else {
-					strcat(depends, " (");
-				}
-				strcat(depends, name_hashtable[package->edge[i]->version]);
-				strcat(depends, ")");
-			}
-		}
-	}
-	return(depends);
-}
-#endif
 
 static void write_buffer_no_status(FILE *new_status_file, const char *control_buffer)
 {
@@ -1027,11 +941,9 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 					package_hashtable[package_num]->edge[j]->operator);
 				if (package_hashtable[conflicts_package_num] == NULL) {
 					/* create a new package */
-					common_node_t *new_node = (common_node_t *) xmalloc(sizeof(common_node_t));
+					common_node_t *new_node = (common_node_t *) xzalloc(sizeof(common_node_t));
 					new_node->name = package_hashtable[package_num]->edge[j]->name;
 					new_node->version = package_hashtable[package_num]->edge[j]->version;
-					new_node->num_of_edges = 0;
-					new_node->edge = NULL;
 					package_hashtable[conflicts_package_num] = new_node;
 				}
 				conflicts = xrealloc(conflicts, sizeof(int) * (conflicts_num + 1));
@@ -1279,15 +1191,10 @@ static int run_package_script(const char *package_name, const char *script_type)
 	char *script_path;
 	int result;
 
-	script_path = xmalloc(strlen(package_name) + strlen(script_type) + 21);
-	sprintf(script_path, "/var/lib/dpkg/info/%s.%s", package_name, script_type);
+	script_path = bb_xasprintf("/var/lib/dpkg/info/%s.%s", package_name, script_type);
 
 	/* If the file doesnt exist is isnt a fatal */
-	if (lstat(script_path, &path_stat) < 0) {
-		result = EXIT_SUCCESS;
-	} else {
-		result = system(script_path);
-	}
+	result = lstat(script_path, &path_stat) < 0 ? EXIT_SUCCESS : system(script_path);
 	free(script_path);
 	return(result);
 }
@@ -1301,13 +1208,11 @@ static char **all_control_list(const char *package_name)
 	char **remove_files;
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
-	remove_files = xmalloc(sizeof(all_control_files));
+	remove_files = xzalloc(sizeof(all_control_files));
 	while (all_control_files[i]) {
-		remove_files[i] = xmalloc(strlen(package_name) + strlen(all_control_files[i]) + 21);
-		sprintf(remove_files[i], "/var/lib/dpkg/info/%s.%s", package_name, all_control_files[i]);
+		remove_files[i] = bb_xasprintf("/var/lib/dpkg/info/%s.%s", package_name, all_control_files[i]);
 		i++;
 	}
-	remove_files[sizeof(all_control_files)/sizeof(char*) - 1] = NULL;
 
 	return(remove_files);
 }
@@ -1400,11 +1305,9 @@ static void remove_package(const unsigned int package_num, int noisy)
 	free_array(remove_files);
 
 	/* Create a list of files in /var/lib/dpkg/info/<package>.* to keep  */
-	exclude_files = xmalloc(sizeof(char*) * 3);
+	exclude_files = xzalloc(sizeof(char*) * 3);
 	exclude_files[0] = bb_xstrdup(conffile_name);
-	exclude_files[1] = xmalloc(package_name_length + 27);
-	sprintf(exclude_files[1], "/var/lib/dpkg/info/%s.postrm", package_name);
-	exclude_files[2] = NULL;
+	exclude_files[1] = bb_xasprintf("/var/lib/dpkg/info/%s.postrm", package_name);
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
 	remove_files = all_control_list(package_name);
@@ -1440,8 +1343,7 @@ static void purge_package(const unsigned int package_num)
 	sprintf(list_name, "/var/lib/dpkg/info/%s.list", package_name);
 	remove_files = create_list(list_name);
 
-	exclude_files = xmalloc(sizeof(char*));
-	exclude_files[0] = NULL;
+	exclude_files = xzalloc(sizeof(char*));
 
 	/* Some directories cant be removed straight away, so do multiple passes */
 	while (remove_file_array(remove_files, exclude_files));
@@ -1536,9 +1438,7 @@ static void data_extract_all_prefix(archive_handle_t *archive_handle)
 
 	name_ptr += strspn(name_ptr, "./");
 	if (name_ptr[0] != '\0') {
-		archive_handle->file_header->name = xmalloc(strlen(archive_handle->buffer) + 2 + strlen(name_ptr));
-		strcpy(archive_handle->file_header->name, archive_handle->buffer);
-		strcat(archive_handle->file_header->name, name_ptr);
+		archive_handle->file_header->name = bb_xasprintf("%s%s", archive_handle->buffer, name_ptr);
 		data_extract_all(archive_handle);
 	}
 	return;
@@ -1567,14 +1467,12 @@ static void unpack_package(deb_file_t *deb_file)
 	}
 
 	/* Extract control.tar.gz to /var/lib/dpkg/info/<package>.filename */
-	info_prefix = (char *) xmalloc(strlen(package_name) + 20 + 4 + 2);
-	sprintf(info_prefix, "/var/lib/dpkg/info/%s.", package_name);
+	info_prefix = bb_xasprintf("/var/lib/dpkg/info/%s.", package_name);
 	archive_handle = init_archive_deb_ar(deb_file->filename);
 	init_archive_deb_control(archive_handle);
 
 	while(all_control_files[i]) {
-		char *c = (char *) xmalloc(3 + strlen(all_control_files[i]));
-		sprintf(c, "./%s", all_control_files[i]);
+		char *c = bb_xasprintf("./%s", all_control_files[i]);
 		llist_add_to(&accept_list, c);
 		i++;
 	}
@@ -1699,7 +1597,7 @@ int dpkg_main(int argc, char **argv)
 	while (optind < argc) {
 		/* deb_count = nb_elem - 1 and we need nb_elem + 1 to allocate terminal node [NULL pointer] */
 		deb_file = xrealloc(deb_file, sizeof(deb_file_t *) * (deb_count + 2));
-		deb_file[deb_count] = (deb_file_t *) xmalloc(sizeof(deb_file_t));
+		deb_file[deb_count] = (deb_file_t *) xzalloc(sizeof(deb_file_t));
 		if (dpkg_opt & dpkg_opt_filename) {
 			archive_handle_t *archive_handle;
 			llist_t *control_list = NULL;
@@ -1742,8 +1640,6 @@ int dpkg_main(int argc, char **argv)
 			}
 		}
 		else if (dpkg_opt & dpkg_opt_package_name) {
-			deb_file[deb_count]->filename = NULL;
-			deb_file[deb_count]->control_file = NULL;
 			deb_file[deb_count]->package = search_package_hashtable(
 				search_name_hashtable(argv[optind]),
 				search_name_hashtable("ANY"), VER_ANY);

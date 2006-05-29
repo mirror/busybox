@@ -275,9 +275,8 @@ int unzip_main(int argc, char **argv)
 
 		/* Read filename */
 		free(dst_fn);
-		dst_fn = xmalloc(zip_header.formated.filename_len + 1);
+		dst_fn = xzalloc(zip_header.formated.filename_len + 1);
 		unzip_read(src_fd, dst_fn, zip_header.formated.filename_len);
-		dst_fn[zip_header.formated.filename_len] = 0;
 
 		/* Skip extra header bytes */
 		unzip_skip(src_fd, zip_header.formated.extra_len);

@@ -644,8 +644,7 @@ static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
 
 	/* Allocate bunzip_data.  Most fields initialize to zero. */
 
-	bd=*bdp=xmalloc(i);
-	memset(bd,0,sizeof(bunzip_data));
+	bd=*bdp=xzalloc(i);
 
 	/* Setup input buffer */
 

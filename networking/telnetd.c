@@ -3,7 +3,7 @@
  * Simple telnet server
  * Bjorn Wesen, Axis Communications AB (bjornw@axis.com)
  *
- * Licensed under GPL, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * ---------------------------------------------------------------------------
  * (C) Copyright 2000, Axis Communications AB, LUND, SWEDEN
@@ -260,20 +260,16 @@ make_new_session(int sockfd)
 	struct termios termbuf;
 	int pty, pid;
 	char tty_name[32];
-	struct tsession *ts = malloc(sizeof(struct tsession) + BUFSIZE * 2);
+	struct tsession *ts = xzalloc(sizeof(struct tsession) + BUFSIZE * 2);
 
 	ts->buf1 = (char *)(&ts[1]);
 	ts->buf2 = ts->buf1 + BUFSIZE;
 
 #ifdef CONFIG_FEATURE_TELNETD_INETD
-	ts->sockfd_read = 0;
 	ts->sockfd_write = 1;
 #else /* CONFIG_FEATURE_TELNETD_INETD */
 	ts->sockfd = sockfd;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
-
-	ts->rdidx1 = ts->wridx1 = ts->size1 = 0;
-	ts->rdidx2 = ts->wridx2 = ts->size2 = 0;
 
 	/* Got a new connection, set up a tty and spawn a shell.  */
 
