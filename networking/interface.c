@@ -76,7 +76,6 @@
 
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
 #define _PATH_PROCNET_IFINET6           "/proc/net/if_inet6"
-#define new(p) ((p) = xcalloc(1,sizeof(*(p))))
 
 #if HAVE_AFINET6
 
@@ -789,7 +788,8 @@ static struct interface *add_interface(char *name)
 		if (n < 0)
 			break;
 	}
-	new(new);
+
+	new = xzalloc(sizeof(*new));
 	safe_strncpy(new->name, name, IFNAMSIZ);
 	nextp = ife ? &ife->next : &int_list;
 	new->prev = ife;

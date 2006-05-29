@@ -17,6 +17,7 @@
 
 #include "libnetlink.h"
 #include "ll_map.h"
+#include "libbb.h"
 
 struct idxmap
 {
@@ -57,9 +58,7 @@ int ll_remember_index(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 			break;
 
 	if (im == NULL) {
-		im = malloc(sizeof(*im));
-		if (im == NULL)
-			return 0;
+		im = xmalloc(sizeof(*im));
 		im->next = *imp;
 		im->index = ifi->ifi_index;
 		*imp = im;

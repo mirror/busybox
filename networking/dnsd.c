@@ -82,8 +82,7 @@ static uint32_t ttl = DEFAULT_TTL;
 /*
  * Convert host name from C-string to dns length/string.
  */
-static void
-convname(char *a, uint8_t *q)
+static void convname(char *a, uint8_t *q)
 {
 	int i = (q[0] == '.') ? 0 : 1;
 	for(; i < MAX_HOST_LEN-1 && *q; i++, q++)
@@ -95,8 +94,7 @@ convname(char *a, uint8_t *q)
 /*
  * Insert length of substrings insetad of dots
  */
-static void
-undot(uint8_t * rip)
+static void undot(uint8_t * rip)
 {
 	int i = 0, s = 0;
 	while(rip[i]) i++;
@@ -111,8 +109,7 @@ undot(uint8_t * rip)
 /*
  * Append message to log file
  */
-static void
-log_message(char *filename, char *message)
+static void log_message(char *filename, char *message)
 {
 	FILE *logfile;
 	if (!daemonmode)
@@ -133,8 +130,7 @@ log_message(char *filename, char *message)
  * converting to a length/string substring for that label.
  */
 
-static int
-getfileentry(FILE * fp, struct dns_entry *s, int verb)
+static int getfileentry(FILE * fp, struct dns_entry *s, int verb)
 {
 	unsigned int a,b,c,d;
 	char *r, *name;
@@ -168,19 +164,16 @@ restart:
 /*
  * Read hostname/IP records from file
  */
-static void
-dnsentryinit(int verb)
+static void dnsentryinit(int verb)
 {
 	FILE *fp;
 	struct dns_entry *m, *prev;
 	prev = dnsentry = NULL;
 
-	if(!(fp = fopen(fileconf, "r")))
-		bb_perror_msg_and_die("open %s",fileconf);
+	fp = bb_xfopen(fileconf, "r");
 
 	while (1) {
-		if(!(m = (struct dns_entry *)malloc(sizeof(struct dns_entry))))
-			bb_perror_msg_and_die("malloc dns_entry");
+		m = xmalloc(sizeof(struct dns_entry));
 
 		m->next = NULL;
 		if (getfileentry(fp, m, verb))
@@ -199,8 +192,7 @@ dnsentryinit(int verb)
 /*
  * Set up UDP socket
  */
-static int
-listen_socket(char *iface_addr, int listen_port)
+static int listen_socket(char *iface_addr, int listen_port)
 {
 	struct sockaddr_in a;
 	char msg[100];
@@ -228,8 +220,7 @@ listen_socket(char *iface_addr, int listen_port)
  * Look query up in dns records and return answer if found
  * qs is the query string, first byte the string length
  */
-static int
-table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
+static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 {
 	int i;
 	struct dns_entry *d=dnsentry;
@@ -269,8 +260,7 @@ table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
  * Decode message and generate answer
  */
 #define eret(s) do { fprintf (stderr, "%s\n", s); return -1; } while (0)
-static int
-process_packet(uint8_t * buf)
+static int process_packet(uint8_t * buf)
 {
 	struct dns_head *head;
 	struct dns_prop *qprop;
@@ -367,8 +357,7 @@ process_packet(uint8_t * buf)
 /*
  * Exit on signal
  */
-static void
-interrupt(int x)
+static void interrupt(int x)
 {
 	unlink(LOCK_FILE);
 	write(2, "interrupt exiting\n", 18);

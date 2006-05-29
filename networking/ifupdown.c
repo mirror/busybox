@@ -629,10 +629,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 
 	enum { NONE, IFACE, MAPPING } currently_processing = NONE;
 
-	defn = xmalloc(sizeof(struct interfaces_file_t));
-	defn->autointerfaces = NULL;
-	defn->mappings = NULL;
-	defn->ifaces = NULL;
+	defn = xzalloc(sizeof(struct interfaces_file_t));
 
 	f = bb_xfopen(filename, "r");
 
@@ -647,10 +644,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 
 		if (strcmp(firstword, "mapping") == 0) {
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
-			currmap = xmalloc(sizeof(struct mapping_defn_t));
-			currmap->max_matches = 0;
-			currmap->n_matches = 0;
-			currmap->match = NULL;
+			currmap = xzalloc(sizeof(struct mapping_defn_t));
 
 			while ((firstword = next_word(&buf_ptr)) != NULL) {
 				if (currmap->max_matches == currmap->n_matches) {
@@ -690,7 +684,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 					NULL
 				};
 
-				currif = xmalloc(sizeof(struct interface_defn_t));
+				currif = xzalloc(sizeof(struct interface_defn_t));
 				iface_name = next_word(&buf_ptr);
 				address_family_name = next_word(&buf_ptr);
 				method_name = next_word(&buf_ptr);
@@ -724,9 +718,6 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 					return NULL;
 				}
 
-				currif->max_options = 0;
-				currif->n_options = 0;
-				currif->option = NULL;
 
 				{
 					llist_t *iface_list;
@@ -845,9 +836,7 @@ static char *setlocalenv(char *format, const char *name, const char *value)
 	char *here;
 	char *there;
 
-	result = xmalloc(strlen(format) + strlen(name) + strlen(value) + 1);
-
-	sprintf(result, format, name, value);
+	result = bb_xasprintf(format, name, value);
 
 	for (here = there = result; *there != '=' && *there; there++) {
 		if (*there == '-')
@@ -878,11 +867,9 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
 			*ppch = NULL;
 		}
 		free(__myenviron);
-		__myenviron = NULL;
 	}
-	__myenviron = xmalloc(sizeof(char *) * (n_env_entries + 1 /* for final NULL */ ));
+	__myenviron = xzalloc(sizeof(char *) * (n_env_entries + 1 /* for final NULL */ ));
 	environend = __myenviron;
-	*environend = NULL;
 
 	for (i = 0; i < iface->n_options; i++) {
 		if (strcmp(iface->option[i].name, "up") == 0
@@ -892,19 +879,13 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
 			continue;
 		}
 		*(environend++) = setlocalenv("IF_%s=%s", iface->option[i].name, iface->option[i].value);
-		*environend = NULL;
 	}
 
 	*(environend++) = setlocalenv("%s=%s", "IFACE", iface->iface);
-	*environend = NULL;
 	*(environend++) = setlocalenv("%s=%s", "ADDRFAM", iface->address_family->name);
-	*environend = NULL;
 	*(environend++) = setlocalenv("%s=%s", "METHOD", iface->method->name);
-	*environend = NULL;
 	*(environend++) = setlocalenv("%s=%s", "MODE", mode);
-	*environend = NULL;
 	*(environend++) = setlocalenv("%s=%s", "PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
-	*environend = NULL;
 }
 
 static int doit(char *str)
@@ -1069,7 +1050,7 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 			free(logical);
 			logical = new_logical;
 		} else {
-			/* If we are UNABLE to read a line of output, discard are
+			/* If we are UNABLE to read a line of output, discard our
 			 * freshly allocated memory. */
 			free(new_logical);
 		}
@@ -1177,28 +1158,6 @@ int ifupdown_main(int argc, char **argv)
 		if (cmds == iface_up) {
 			target_list = defn->autointerfaces;
 		} else {
-#if 0
-			/* iface_down */
-			llist_t *new_item;
-			const llist_t *list = state_list;
-			while (list) {
-				new_item = xmalloc(sizeof(llist_t));
-				new_item->data = bb_xstrdup(list->data);
-				new_item->link = NULL;
-				list = target_list;
-				if (list == NULL)
-					target_list = new_item;
-				else {
-					while (list->link) {
-						list = list->link;
-					}
-					list = new_item;
-				}
-				list = list->link;
-			}
-			target_list = defn->autointerfaces;
-#else
-
 			/* iface_down */
 			const llist_t *list = state_list;
 			while (list) {
@@ -1206,7 +1165,6 @@ int ifupdown_main(int argc, char **argv)
 				list = list->link;
 			}
 			target_list = defn->autointerfaces;
-#endif
 		}
 	} else {
 		llist_add_to_end(&target_list, argv[optind]);
@@ -1308,8 +1266,7 @@ int ifupdown_main(int argc, char **argv)
 			llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
-				char *newiface = xmalloc(strlen(iface) + 1 + strlen(liface) + 1);
-				sprintf(newiface, "%s=%s", iface, liface);
+				char *newiface = bb_xasprintf("%s=%s", iface, liface);
 				if (iface_state == NULL) {
 					llist_add_to_end(&state_list, newiface);
 				} else {
@@ -1318,17 +1275,7 @@ int ifupdown_main(int argc, char **argv)
 				}
 			} else {
 				/* Remove an interface from the linked list */
-				if (iface_state) {
-					llist_t *l = iface_state->link;
-					free(iface_state->data);
-					iface_state->data = NULL;
-					iface_state->link = NULL;
-					if (l) {
-						iface_state->data = l->data;
-						iface_state->link = l->link;
-					}
-					free(l);
-				}
+				free(llist_pop(&iface_state));
 			}
 		}
 	}

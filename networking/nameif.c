@@ -105,7 +105,7 @@ int nameif_main(int argc, char **argv)
 
 			if (strlen(*a) > IF_NAMESIZE)
 				serror("interface name `%s' too long", *a);
-			ch = xcalloc(1, sizeof(mactable_t));
+			ch = xzalloc(sizeof(mactable_t));
 			ch->ifname = bb_xstrdup(*a++);
 			ch->mac = cc_macaddr(*a++);
 			if (clist)
@@ -126,7 +126,7 @@ int nameif_main(int argc, char **argv)
 				continue;
 			}
 			name_length = strcspn(line_ptr, " \t");
-			ch = xcalloc(1, sizeof(mactable_t));
+			ch = xzalloc(sizeof(mactable_t));
 			ch->ifname = bb_xstrndup(line_ptr, name_length);
 			if (name_length > IF_NAMESIZE)
 				serror("interface name `%s' too long", ch->ifname);
