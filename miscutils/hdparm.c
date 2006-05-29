@@ -26,7 +26,6 @@
 #include <getopt.h>
 #include <linux/types.h>
 #include <linux/hdreg.h>
-#include <asm/byteorder.h>
 
 #if BB_BIG_ENDIAN && !defined(__USE_XOPEN)
 # define __USE_XOPEN
@@ -2007,9 +2006,9 @@ static void process_dev(char *devname)
 		args1[0] = WIN_IDENTIFY;
 		args1[3] = 1;
 		if (!bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY, "HDIO_DRIVE_CMD(identify)")) {
-			for (i=0; i<(sizeof args1)/2; i+=2)
-				__le16_to_cpus((uint16_t *)(&args1[i]));
-			identify((void *)&args1[4]);
+			uint16_t *ptr = (uint16_t *)args1;
+			for (i=0; i<sizeof(args1)/2; i++) ptr[i] = SWAP_LE16(ptr[i]);
+			identify((void *)(ptr+2));
 		}
 	}
 #endif
@@ -2057,7 +2056,7 @@ static int fromhex(unsigned char c)
 
 static void identify_from_stdin(void)
 {
-	unsigned short sbuf[800];
+	uint16_t sbuf[800];
 	unsigned char  buf[1600], *b = (unsigned char *)buf;
 	int i, count = read(0, buf, 1280);
 
@@ -2066,8 +2065,7 @@ static void identify_from_stdin(void)
 
 	for (i = 0; count >= 4; ++i)
 	{
-		sbuf[i] = (fromhex(b[0]) << 12) | (fromhex(b[1]) << 8) | (fromhex(b[2]) << 4) | fromhex(b[3]);
-		__le16_to_cpus((uint16_t *)(&sbuf[i]));
+		sbuf[i] = SWAP_LE16((fromhex(b[0]) << 12) | (fromhex(b[1]) << 8) | (fromhex(b[2]) << 4) | fromhex(b[3]));
 		b += 5;
 		count -= 5;
 	}

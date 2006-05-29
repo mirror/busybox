@@ -27,15 +27,6 @@
 # define MD5_SIZE_VS_SPEED CONFIG_MD5_SIZE_VS_SPEED
 # endif
 
-/* Handle endian-ness */
-# if !BB_BIG_ENDIAN
-#  define SWAP(n) (n)
-# elif defined(bswap_32)
-#  define SWAP(n) bswap_32(n)
-# else
-#  define SWAP(n) ((n << 24) | ((n&0xFF00)<<8) | ((n&0xFF0000)>>8) | (n>>24))
-# endif
-
 /* Initialize structure containing state of computation.
  * (RFC 1321, 3.3: Step 3)
  */
@@ -132,7 +123,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 		uint32_t temp;
 
 		for (i = 0; i < 16; i++) {
-			cwp[i] = SWAP(words[i]);
+			cwp[i] = SWAP_LE32(words[i]);
 		}
 		words += 16;
 
@@ -224,7 +215,7 @@ static void md5_hash_block(const void *buffer, md5_ctx_t *ctx)
 #  define OP(a, b, c, d, s, T)	\
       do	\
 	{	\
-	  a += FF (b, c, d) + (*cwp++ = SWAP (*words)) + T;	\
+	  a += FF (b, c, d) + (*cwp++ = SWAP_LE32(*words)) + T; \
 	  ++words;	\
 	  CYCLIC (a, s);	\
 	  a += b;	\
@@ -455,10 +446,10 @@ void *md5_end(void *resbuf, md5_ctx_t *ctx)
 	 * IMPORTANT: On some systems it is required that RESBUF is correctly
 	 * aligned for a 32 bits value.
 	 */
-	((uint32_t *) resbuf)[0] = SWAP(ctx->A);
-	((uint32_t *) resbuf)[1] = SWAP(ctx->B);
-	((uint32_t *) resbuf)[2] = SWAP(ctx->C);
-	((uint32_t *) resbuf)[3] = SWAP(ctx->D);
+	((uint32_t *) resbuf)[0] = SWAP_LE32(ctx->A);
+	((uint32_t *) resbuf)[1] = SWAP_LE32(ctx->B);
+	((uint32_t *) resbuf)[2] = SWAP_LE32(ctx->C);
+	((uint32_t *) resbuf)[3] = SWAP_LE32(ctx->D);
 
 	return resbuf;
 }

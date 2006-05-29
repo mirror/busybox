@@ -48,11 +48,6 @@
 # define __const const
 #endif
 
-#ifndef __THROW
-# define __THROW
-#endif
-
-
 #ifndef ATTRIBUTE_UNUSED
 # define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 #endif /* ATTRIBUTE_UNUSED */
@@ -116,6 +111,22 @@
 #else
 # define BB_BIG_ENDIAN 0
 # define BB_LITTLE_ENDIAN 1
+#endif
+
+#if BB_BIG_ENDIAN
+#define SWAP_BE16(x) x
+#define SWAP_BE32(x) x
+#define SWAP_BE64(x) x
+#define SWAP_LE16(x) bswap_16(x)
+#define SWAP_LE32(x) bswap_32(x)
+#define SWAP_LE64(x) bswap_64(x)
+#else
+#define SWAP_BE16(x) bswap_16(x)
+#define SWAP_BE32(x) bswap_32(x)
+#define SWAP_BE64(x) bswap_64(x)
+#define SWAP_LE16(x) x
+#define SWAP_LE32(x) x
+#define SWAP_LE64(x) x
 #endif
 
 /* ---- Networking ------------------------------------------ */
