@@ -266,11 +266,11 @@ static void message(int device, const char *fmt, ...)
 }
 
 /* Set terminal settings to reasonable defaults */
-static void set_term(int fd)
+static void set_term(void)
 {
 	struct termios tty;
 
-	tcgetattr(fd, &tty);
+	tcgetattr(STDIN_FILENO, &tty);
 
 	/* set control chars */
 	tty.c_cc[VINTR] = 3;	/* C-c */
@@ -300,7 +300,7 @@ static void set_term(int fd)
 	tty.c_lflag =
 		ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
 
-	tcsetattr(fd, TCSANOW, &tty);
+	tcsetattr(STDIN_FILENO, TCSANOW, &tty);
 }
 
 static void console_init(void)
@@ -448,7 +448,7 @@ static pid_t run(const struct init_action *a)
 		open_new_terminal(a->terminal, 1);
 
 		/* Make sure the terminal will act fairly normal for us */
-		set_term(0);
+		set_term();
 		/* Setup stdout, stderr for the new process so
 		 * they point to the supplied terminal */
 		dup(0);
@@ -744,7 +744,7 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 			open_new_terminal(a->terminal, 0);
 
 			/* Make sure the terminal will act fairly normal for us */
-			set_term(0);
+			set_term();
 			/* Setup stdout, stderr on the supplied terminal */
 			dup(0);
 			dup(0);
@@ -1059,7 +1059,7 @@ int init_main(int argc, char **argv)
 	close(2);
 
 	if (device_open(console, O_RDWR | O_NOCTTY) == 0) {
-		set_term(0);
+		set_term();
 		close(0);
 	}
 
