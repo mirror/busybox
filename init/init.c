@@ -313,7 +313,7 @@ static void console_init(void)
 
 	if ((s = getenv("CONSOLE")) != NULL || (s = getenv("console")) != NULL) {
 		safe_strncpy(console, s, sizeof(console));
-#if #cpu(sparc)
+#if 0 /* #cpu(sparc) */
 	/* sparc kernel supports console=tty[ab] parameter which is also
 	 * passed to init, so catch it here */
 		/* remap tty[ab] to /dev/ttyS[01] */
