@@ -386,6 +386,23 @@ static void fixup_argv(int argc, char **argv, char *new_argv0)
 	}
 }
 
+/* Open the new terminal device */
+static void open_new_terminal(const char *device, char fail) {
+	struct stat sb;
+
+	if ((device_open(device, O_RDWR)) < 0) {
+		if (stat(device, &sb) != 0) {
+			message(LOG | CONSOLE, "device '%s' does not exist.", device);
+		} else {
+			message(LOG | CONSOLE, "Bummer, can't open %s", device);
+		}
+		if (fail)
+			_exit(1);
+		/* else */
+		halt_signal(SIGUSR1);
+	}
+}
+
 static pid_t run(const struct init_action *a)
 {
 	int i, junk;
@@ -405,7 +422,6 @@ static pid_t run(const struct init_action *a)
 	sigprocmask(SIG_BLOCK, &nmask, &omask);
 
 	if ((pid = fork()) == 0) {
-		struct stat sb;
 
 		/* Clean up */
 		close(0);
@@ -429,14 +445,7 @@ static pid_t run(const struct init_action *a)
 		setsid();
 
 		/* Open the new terminal device */
-		if ((device_open(a->terminal, O_RDWR)) < 0) {
-			if (stat(a->terminal, &sb) != 0) {
-				message(LOG | CONSOLE, "device '%s' does not exist.", a->terminal);
-			} else {
-				message(LOG | CONSOLE, "Bummer, can't open %s", a->terminal);
-			}
-			_exit(1);
-		}
+		open_new_terminal(a->terminal, 1);
 
 		/* Make sure the terminal will act fairly normal for us */
 		set_term(0);
@@ -575,12 +584,15 @@ static pid_t run(const struct init_action *a)
 				  getpid(), a->terminal, cmdpath);
 
 #if defined CONFIG_FEATURE_INIT_COREDUMPS
-		if (stat(CORE_ENABLE_FLAG_FILE, &sb) == 0) {
-			struct rlimit limit;
+		{
+			struct stat sb;
+			if (stat(CORE_ENABLE_FLAG_FILE, &sb) == 0) {
+				struct rlimit limit;
 
-			limit.rlim_cur = RLIM_INFINITY;
-			limit.rlim_max = RLIM_INFINITY;
-			setrlimit(RLIMIT_CORE, &limit);
+				limit.rlim_cur = RLIM_INFINITY;
+				limit.rlim_max = RLIM_INFINITY;
+				setrlimit(RLIMIT_CORE, &limit);
+			}
 		}
 #endif
 
@@ -729,15 +741,7 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 			close(2);
 
 			/* Open the new terminal device */
-			if ((device_open(a->terminal, O_RDWR)) < 0) {
-				struct stat sb;
-				if (stat(a->terminal, &sb) != 0) {
-					message(LOG | CONSOLE, "device '%s' does not exist.", a->terminal);
-				} else {
-					message(LOG | CONSOLE, "Bummer, can't open %s", a->terminal);
-				}
-				halt_signal(SIGUSR1);
-			}
+			open_new_terminal(a->terminal, 0);
 
 			/* Make sure the terminal will act fairly normal for us */
 			set_term(0);

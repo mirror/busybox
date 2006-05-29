@@ -27,7 +27,7 @@ Rob Landley <rob@landley.net>:
   bzip2
     Compression-side support.
   init
-    General cleanup.
+    General cleanup (should use ENABLE_FEATURE_INIT_SYSLOG and ENABLE_FEATURE_INIT_DEBUG).
   Unify base64 handling.
     There's base64 encoding and decoding going on in:
       networking/wget.c:base64enc()
