@@ -11,6 +11,14 @@ config CONFIG_INIT
 	help
 	  init is the first program run when the system boots.
 
+config CONFIG_DEBUG_INIT
+	bool "debugging aid"
+	default n
+	depends on CONFIG_INIT
+	help
+	  Turn this on to disable all the dangerous
+	  rebooting stuff when debugging.
+
 config CONFIG_FEATURE_USE_INITTAB
 	bool "Support reading an inittab file"
 	default y

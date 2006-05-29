@@ -9,11 +9,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* Turn this on to disable all the dangerous
-   rebooting stuff when debugging.
-#define DEBUG_INIT
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -191,13 +186,13 @@ static void loop_forever(void)
 
 /* Print a message to the specified device.
  * Device may be bitwise-or'd from LOG | CONSOLE */
-#ifndef DEBUG_INIT
-static inline void messageD(int ATTRIBUTE_UNUSED device, 
+#if ENABLE_DEBUG_INIT
+#define messageD message
+#else
+static inline void messageD(int ATTRIBUTE_UNUSED device,
 				const char ATTRIBUTE_UNUSED *fmt, ...)
 {
 }
-#else
-#define messageD message
 #endif
 static void message(int device, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
@@ -253,7 +248,7 @@ static void message(int device, const char *fmt, ...)
 		if (fd >= 0) {
 			bb_full_write(fd, msg, l);
 			close(fd);
-#ifdef DEBUG_INIT
+#if ENABLE_DEBUG_INIT
 		/* all descriptors may be closed */
 		} else {
 			bb_error_msg("Bummer, can't print: ");
@@ -655,7 +650,7 @@ static void run_actions(int action)
 	}
 }
 
-#ifndef DEBUG_INIT
+#if !ENABLE_DEBUG_INIT
 static void init_reboot(unsigned long magic)
 {
 	pid_t pid;
@@ -816,7 +811,7 @@ static void cont_handler(int sig ATTRIBUTE_UNUSED)
 	got_cont = 1;
 }
 
-#endif							/* ! DEBUG_INIT */
+#endif							/* ! ENABLE_DEBUG_INIT */
 
 static void new_init_action(int action, const char *command, const char *cons)
 {
@@ -1026,7 +1021,7 @@ int init_main(int argc, char **argv)
 	if (argc > 1 && !strcmp(argv[1], "-q")) {
 		return kill(1,SIGHUP);
 	}
-#ifndef DEBUG_INIT
+#if !ENABLE_DEBUG_INIT
 	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
 	if (getpid() != 1 &&
 		(!ENABLE_FEATURE_INITRD || !strstr(bb_applet_name, "linuxrc")))
