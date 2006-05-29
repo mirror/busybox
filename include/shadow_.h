@@ -79,7 +79,7 @@ extern int getspent_r (struct spwd *__result_buf, char *__buffer,
 
 extern int getspnam_r (__const char *__name, struct spwd *__result_buf,
 		       char *__buffer, size_t __buflen,
-		       struct spwd **__result)__THROW;
+		       struct spwd **__result);
 
 extern int sgetspent_r (__const char *__string, struct spwd *__result_buf,
 			char *__buffer, size_t __buflen,
