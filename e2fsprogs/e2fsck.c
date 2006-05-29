@@ -39,6 +39,9 @@
 
 #include "e2fsck.h"	/*Put all of our defines here to clean things up*/
 
+#define _(x) x
+#define N_(x) x
+
 /*
  * Procedure declarations
  */

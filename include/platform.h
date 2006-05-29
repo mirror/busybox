@@ -97,17 +97,15 @@
 #endif
 
 /* ---- Endian Detection ------------------------------------ */
-#if !defined __APPLE__ && !(defined __digital__ && defined __unix__)
-# include <byteswap.h>
-# include <endian.h>
-#endif
 
 #if (defined __digital__ && defined __unix__)
 # include <sex.h>
 # define __BIG_ENDIAN__ (BYTE_ORDER == BIG_ENDIAN)
 # define __BYTE_ORDER BYTE_ORDER
+#elif !defined __APPLE__
+# include <byteswap.h>
+# include <endian.h>
 #endif
-
 
 #ifdef __BIG_ENDIAN__
 # define BB_BIG_ENDIAN 1
@@ -188,13 +186,7 @@ typedef unsigned long long int  uintmax_t;
 #define PRIu32 "u"
 #endif
 
-
-/* NLS stuff */
-/* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
-#define _(Text) Text
-#define N_(Text) (Text)
-
-/* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
+// Need to implement fdprintf for platforms that haven't got dprintf.
 #define fdprintf dprintf
 
 /* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */

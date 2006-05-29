@@ -10,6 +10,8 @@
 #define UTIL_LINUX_VERSION "2.12"
 
 
+#define _(x) x
+
 #define PROC_PARTITIONS "/proc/partitions"
 
 #include <features.h>
