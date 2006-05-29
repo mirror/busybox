@@ -502,19 +502,18 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				else if (!strncmp(opteq+1, "udp", 3))
 					tcp = 0;
 				else
-					printf(_("Warning: Unrecognized proto= option.\n"));
+					printf("Warning: Unrecognized proto= option.\n");
 			} else if (!strcmp(opt, "namlen")) {
 #if NFS_MOUNT_VERSION >= 2
 				if (nfs_mount_version >= 2)
 					data.namlen = val;
 				else
 #endif
-				printf(_("Warning: Option namlen is not supported.\n"));
+				printf("Warning: Option namlen is not supported.\n");
 			} else if (!strcmp(opt, "addr"))
 				/* ignore */;
 			else {
-				printf(_("unknown nfs mount parameter: "
-				       "%s=%d\n"), opt, val);
+				printf("unknown nfs mount parameter: %s=%d\n", opt, val);
 				goto fail;
 			}
 		}
@@ -548,10 +547,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				if (nfs_mount_version >= 3)
 					nolock = !val;
 				else
-					printf(_("Warning: option nolock is not supported.\n"));
+					printf("Warning: option nolock is not supported.\n");
 			} else {
-				printf(_("unknown nfs mount option: "
-					   "%s%s\n"), val ? "" : "no", opt);
+				printf("unknown nfs mount option: %s%s\n", val ? "" : "no", opt);
 				goto fail;
 			}
 		}
@@ -809,18 +807,18 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	if (tcp) {
 		if (nfs_mount_version < 3) {
-			printf(_("NFS over TCP is not supported.\n"));
+			printf("NFS over TCP is not supported.\n");
 			goto fail;
 		}
 		fsock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	} else
 		fsock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fsock < 0) {
-		perror(_("nfs socket"));
+		perror("nfs socket");
 		goto fail;
 	}
 	if (bindresvport(fsock, 0) < 0) {
-		perror(_("nfs bindresvport"));
+		perror("nfs bindresvport");
 		goto fail;
 	}
 	if (port == 0) {
@@ -831,11 +829,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			port = NFS_PORT;
 #ifdef NFS_MOUNT_DEBUG
 		else
-			printf(_("used portmapper to find NFS port\n"));
+			printf("used portmapper to find NFS port\n");
 #endif
 	}
 #ifdef NFS_MOUNT_DEBUG
-	printf(_("using port %d for nfs daemon\n"), port);
+	printf("using port %d for nfs daemon\n", port);
 #endif
 	server_addr.sin_port = htons(port);
 	 /*
@@ -846,7 +844,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	if (get_linux_version_code() <= KERNEL_VERSION(2,3,10)
 	    && connect(fsock, (struct sockaddr *) &server_addr,
 		       sizeof (server_addr)) < 0) {
-		perror(_("nfs connect"));
+		perror("nfs connect");
 		goto fail;
 	}
 
@@ -936,7 +934,7 @@ static char *nfs_strerror(int status)
 		if (nfs_errtbl[i].stat == status)
 			return strerror(nfs_errtbl[i].errnum);
 	}
-	sprintf(buf, _("unknown nfs status return value: %d"), status);
+	sprintf(buf, "unknown nfs status return value: %d", status);
 	return buf;
 }
 
