@@ -874,9 +874,7 @@ static void write_status_file(deb_file_t **deb_file)
 	/* Create a separate backfile to dpkg */
 	if (rename("/var/lib/dpkg/status", "/var/lib/dpkg/status.udeb.bak") == -1) {
 		struct stat stat_buf;
-		if (stat("/var/lib/dpkg/status", &stat_buf) == 0) {
-			bb_error_msg_and_die("Couldnt create backup status file");
-		}
+		xstat("/var/lib/dpkg/status", &stat_buf);
 		/* Its ok if renaming the status file fails because status
 		 * file doesnt exist, maybe we are starting from scratch */
 		bb_error_msg("No status file found, creating new one");

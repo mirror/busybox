@@ -1237,13 +1237,13 @@ int diff_main(int argc, char **argv) {
         if (strcmp(argv[0], "-") == 0) {
                 fstat(STDIN_FILENO, &stb1);
                 gotstdin = 1;
-        } else if (stat(argv[0], &stb1) != 0)
-                bb_perror_msg_and_die("Couldn't stat %s", argv[0]);
+        } else
+			xstat(argv[0], &stb1);
         if (strcmp(argv[1], "-") == 0) {
                 fstat(STDIN_FILENO, &stb2);
                 gotstdin = 1;
-        } else if (stat(argv[1], &stb2) != 0)
-                bb_perror_msg_and_die("Couldn't stat %s", argv[1]);
+        } else
+			xstat(argv[1], &stb2);
         if (gotstdin && (S_ISDIR(stb1.st_mode) || S_ISDIR(stb2.st_mode)))
                 bb_error_msg_and_die("Can't compare - to a directory");
         if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
@@ -1256,13 +1256,11 @@ int diff_main(int argc, char **argv) {
 	else {
 		if (S_ISDIR(stb1.st_mode)) {
 			argv[0] = concat_path_file(argv[0], argv[1]);
-			if (stat(argv[0], &stb1) < 0)
-				bb_perror_msg_and_die("Couldn't stat %s", argv[0]);
+			xstat(argv[0], &stb1);
 		}
 		if (S_ISDIR(stb2.st_mode)) {
 			argv[1] = concat_path_file(argv[1], argv[0]);
-			if (stat(argv[1], &stb2) < 0)
-				bb_perror_msg_and_die("Couldn't stat %s", argv[1]);
+			xstat(argv[1], &stb2);
 		}
 		print_status(diffreg(argv[0], argv[1], 0), argv[0], argv[1], NULL);
 	}

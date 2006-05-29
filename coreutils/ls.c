@@ -208,18 +208,15 @@ static struct dnode *my_stat(char *fullname, char *name)
 #ifdef CONFIG_SELINUX
 	security_context_t sid=NULL;
 #endif
-	int rc;
 
 #ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
 	if (all_fmt & FOLLOW_LINKS) {
 #ifdef CONFIG_SELINUX
-	        if (is_selinux_enabled())  {
-		  rc=0; /*  Set the number which means success before hand.  */
-		  rc = getfilecon(fullname,&sid);
+		if (is_selinux_enabled())  {
+			 getfilecon(fullname,&sid);
 		}
 #endif
-		rc = stat(fullname, &dstat);
-		if(rc) {
+		if (stat(fullname, &dstat)) {
 			bb_perror_msg("%s", fullname);
 			status = EXIT_FAILURE;
 			return 0;
@@ -229,12 +226,10 @@ static struct dnode *my_stat(char *fullname, char *name)
 	{
 #ifdef CONFIG_SELINUX
 	        if  (is_selinux_enabled())  {
-		  rc=0; /*  Set the number which means success before hand.  */
-		  rc = lgetfilecon(fullname,&sid);
+		  lgetfilecon(fullname,&sid);
 		}
 #endif
-		rc = lstat(fullname, &dstat);
-		if(rc) {
+		if (lstat(fullname, &dstat)) {
 			bb_perror_msg("%s", fullname);
 			status = EXIT_FAILURE;
 			return 0;
