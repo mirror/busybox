@@ -36,9 +36,9 @@
 /*
  * Output flags
  */
-#define D_HEADER        1        /* Print a header/footer between files */
-#define D_EMPTY1        2        /* Treat first file as empty (/dev/null) */
-#define D_EMPTY2        4        /* Treat second file as empty (/dev/null) */
+#define D_HEADER        1	/* Print a header/footer between files */
+#define D_EMPTY1        2	/* Treat first file as empty (/dev/null) */
+#define D_EMPTY2        4	/* Treat second file as empty (/dev/null) */
 
 /*
  * Status values for print_status() and diffreg() return values
@@ -68,6 +68,7 @@
 
 /* Command line options */
 static unsigned long cmd_flags;
+
 #define FLAG_a	(1<<0)
 #define FLAG_b	(1<<1)
 #define FLAG_d  (1<<2)
@@ -90,14 +91,14 @@ char **dl;
 int dl_count = 0;
 
 struct cand {
-        int x;
-        int y;
-        int pred;
+	int x;
+	int y;
+	int pred;
 };
 
 struct line {
-        int serial;
-        int value;
+	int serial;
+	int value;
 } *file[2];
 
 /*
@@ -106,145 +107,145 @@ struct line {
  * understand the highly mnemonic field names)
  */
 struct context_vec {
-        int a;                        /* start line in old file */
-        int b;                        /* end line in old file */
-        int c;                        /* start line in new file */
-        int d;                        /* end line in new file */
+	int a;				/* start line in old file */
+	int b;				/* end line in old file */
+	int c;				/* start line in new file */
+	int d;				/* end line in new file */
 };
 
-static int  *J;                 /* will be overlaid on class */
-static int  *class;             /* will be overlaid on file[0] */
-static int  *klist;             /* will be overlaid on file[0] after class */
-static int  *member;            /* will be overlaid on file[1] */
-static int   clen;
-static int   len[2];
-static int   pref, suff;        /* length of prefix and suffix */
-static int   slen[2];
-static int   anychange;
-static long *ixnew;             /* will be overlaid on file[1] */
-static long *ixold;             /* will be overlaid on klist */
-static struct cand *clist;      /* merely a free storage pot for candidates */
-static int   clistlen;          /* the length of clist */
-static struct line *sfile[2];   /* shortened by pruning common prefix/suffix */
+static int *J;			/* will be overlaid on class */
+static int *class;		/* will be overlaid on file[0] */
+static int *klist;		/* will be overlaid on file[0] after class */
+static int *member;		/* will be overlaid on file[1] */
+static int clen;
+static int len[2];
+static int pref, suff;	/* length of prefix and suffix */
+static int slen[2];
+static int anychange;
+static long *ixnew;		/* will be overlaid on file[1] */
+static long *ixold;		/* will be overlaid on klist */
+static struct cand *clist;	/* merely a free storage pot for candidates */
+static int clistlen;	/* the length of clist */
+static struct line *sfile[2];	/* shortened by pruning common prefix/suffix */
 static struct context_vec *context_vec_start;
 static struct context_vec *context_vec_end;
 static struct context_vec *context_vec_ptr;
 
 static void print_only(const char *path, size_t dirlen, const char *entry)
 {
-        if (dirlen > 1)
-                dirlen--;
-        printf("Only in %.*s: %s\n", (int)dirlen, path, entry);
+	if (dirlen > 1)
+		dirlen--;
+	printf("Only in %.*s: %s\n", (int) dirlen, path, entry);
 }
 
 static void print_status(int val, char *path1, char *path2, char *entry)
 {
-	const char * const _entry = entry ? entry : "";
+	const char *const _entry = entry ? entry : "";
 	char *_path1 = entry ? concat_path_file(path1, _entry) : path1;
 	char *_path2 = entry ? concat_path_file(path2, _entry) : path2;
-        switch (val) {
-        case D_ONLY:
-                print_only(path1, strlen(path1), entry);
-                break;
-        case D_COMMON:
-                printf("Common subdirectories: %s and %s\n", _path1, _path2);
-                break;
-        case D_BINARY:
-                printf("Binary files %s and %s differ\n", _path1, _path2);
-                break;
-        case D_DIFFER:
-                if (cmd_flags & FLAG_q)
-                        printf("Files %s and %s differ\n", _path1, _path2);
-                break;
-        case D_SAME:
-                if (cmd_flags & FLAG_s)
-                        printf("Files %s and %s are identical\n", _path1, _path2);
-                break;
-        case D_MISMATCH1:
-                printf("File %s is a directory while file %s is a regular file\n",
-                    _path1, _path2);
-                break;
-        case D_MISMATCH2:
-                printf("File %s is a regular file while file %s is a directory\n",
-                    _path1, _path2);
-                break;
-        case D_SKIPPED1:
-                printf("File %s is not a regular file or directory and was skipped\n",
-                    _path1);
-                break;
-        case D_SKIPPED2:
-                printf("File %s is not a regular file or directory and was skipped\n",
-                    _path2);
-                break;
-        }
-		if (entry) {
-			free(_path1);
-			free(_path2);
-		}
+
+	switch (val) {
+	case D_ONLY:
+		print_only(path1, strlen(path1), entry);
+		break;
+	case D_COMMON:
+		printf("Common subdirectories: %s and %s\n", _path1, _path2);
+		break;
+	case D_BINARY:
+		printf("Binary files %s and %s differ\n", _path1, _path2);
+		break;
+	case D_DIFFER:
+		if (cmd_flags & FLAG_q)
+			printf("Files %s and %s differ\n", _path1, _path2);
+		break;
+	case D_SAME:
+		if (cmd_flags & FLAG_s)
+			printf("Files %s and %s are identical\n", _path1, _path2);
+		break;
+	case D_MISMATCH1:
+		printf("File %s is a directory while file %s is a regular file\n",
+			   _path1, _path2);
+		break;
+	case D_MISMATCH2:
+		printf("File %s is a regular file while file %s is a directory\n",
+			   _path1, _path2);
+		break;
+	case D_SKIPPED1:
+		printf("File %s is not a regular file or directory and was skipped\n",
+			   _path1);
+		break;
+	case D_SKIPPED2:
+		printf("File %s is not a regular file or directory and was skipped\n",
+			   _path2);
+		break;
+	}
+	if (entry) {
+		free(_path1);
+		free(_path2);
+	}
 }
 
 /*
  * Hash function taken from Robert Sedgewick, Algorithms in C, 3d ed., p 578.
  */
-static int readhash(FILE *f)
+static int readhash(FILE * f)
 {
-        int i, t, space;
-        int sum;
+	int i, t, space;
+	int sum;
 
-        sum = 1;
-        space = 0;
-        if (!(cmd_flags & FLAG_b) && !(cmd_flags & FLAG_w)) {
-                if (FLAG_i)
-                        for (i = 0; (t = getc(f)) != '\n'; i++) {
-                                if (t == EOF) {
-                                        if (i == 0)
-                                                return (0);
-                                        break;
-                                }
-                                sum = sum * 127 + t;
-                        }
-                else
-                        for (i = 0; (t = getc(f)) != '\n'; i++) {
-                                if (t == EOF) {
-                                        if (i == 0)
-                                                return (0);
-                                        break;
-                                }
-                                sum = sum * 127 + t;
-                        }
-        } else {
-                for (i = 0;;) {
-                        switch (t = getc(f)) {
-                        case '\t':
-                        case '\r':
-                        case '\v':
-                        case '\f':
-                        case ' ':
-                                space++;
-                                continue;
-                        default:
-                                if (space && !(cmd_flags & FLAG_w)) {
-                                        i++;
-                                        space = 0;
-                                }
-                                sum = sum * 127 + t;
-                                i++;
-                                continue;
-                        case EOF:
-                                if (i == 0)
-                                        return (0);
-                                /* FALLTHROUGH */
-                        case '\n':
-                                break;
-                        }
-                        break;
-                }
-        }
-        /*
-         * There is a remote possibility that we end up with a zero sum.
-         * Zero is used as an EOF marker, so return 1 instead.
-         */
-        return (sum == 0 ? 1 : sum);
+	sum = 1;
+	space = 0;
+	if (!(cmd_flags & FLAG_b) && !(cmd_flags & FLAG_w)) {
+		if (FLAG_i)
+			for (i = 0; (t = getc(f)) != '\n'; i++) {
+				if (t == EOF) {
+					if (i == 0)
+						return (0);
+					break;
+				}
+				sum = sum * 127 + t;
+		} else
+			for (i = 0; (t = getc(f)) != '\n'; i++) {
+				if (t == EOF) {
+					if (i == 0)
+						return (0);
+					break;
+				}
+				sum = sum * 127 + t;
+			}
+	} else {
+		for (i = 0;;) {
+			switch (t = getc(f)) {
+			case '\t':
+			case '\r':
+			case '\v':
+			case '\f':
+			case ' ':
+				space++;
+				continue;
+			default:
+				if (space && !(cmd_flags & FLAG_w)) {
+					i++;
+					space = 0;
+				}
+				sum = sum * 127 + t;
+				i++;
+				continue;
+			case EOF:
+				if (i == 0)
+					return (0);
+				/* FALLTHROUGH */
+			case '\n':
+				break;
+			}
+			break;
+		}
+	}
+	/*
+	 * There is a remote possibility that we end up with a zero sum.
+	 * Zero is used as an EOF marker, so return 1 instead.
+	 */
+	return (sum == 0 ? 1 : sum);
 }
 
 
@@ -253,103 +254,103 @@ static int readhash(FILE *f)
  * Check to see if the given files differ.
  * Returns 0 if they are the same, 1 if different, and -1 on error.
  */
-static int files_differ(FILE *f1, FILE *f2, int flags)
+static int files_differ(FILE * f1, FILE * f2, int flags)
 {
-        char buf1[BUFSIZ], buf2[BUFSIZ];
-        size_t i, j;
+	char buf1[BUFSIZ], buf2[BUFSIZ];
+	size_t i, j;
 
-        if ((flags & (D_EMPTY1|D_EMPTY2)) || stb1.st_size != stb2.st_size ||
-            (stb1.st_mode & S_IFMT) != (stb2.st_mode & S_IFMT))
-                return (1);
-        while(1) {
-                i = fread(buf1, 1, sizeof(buf1), f1);
-                j = fread(buf2, 1, sizeof(buf2), f2);
-                if (i != j)
-                        return (1);
-                if (i == 0 && j == 0) {
-                        if (ferror(f1) || ferror(f2))
-                                return (1);
-                        return (0);
-                }
-                if (memcmp(buf1, buf2, i) != 0)
-                        return (1);
-        }
+	if ((flags & (D_EMPTY1 | D_EMPTY2)) || stb1.st_size != stb2.st_size ||
+		(stb1.st_mode & S_IFMT) != (stb2.st_mode & S_IFMT))
+		return (1);
+	while (1) {
+		i = fread(buf1, 1, sizeof(buf1), f1);
+		j = fread(buf2, 1, sizeof(buf2), f2);
+		if (i != j)
+			return (1);
+		if (i == 0 && j == 0) {
+			if (ferror(f1) || ferror(f2))
+				return (1);
+			return (0);
+		}
+		if (memcmp(buf1, buf2, i) != 0)
+			return (1);
+	}
 }
 
-static void prepare(int i, FILE *fd, off_t filesize)
+static void prepare(int i, FILE * fd, off_t filesize)
 {
-        struct line *p;
-        int h;
-        size_t j, sz;
+	struct line *p;
+	int h;
+	size_t j, sz;
 
-        rewind(fd);
+	rewind(fd);
 
-        sz = (filesize <= FSIZE_MAX ? filesize : FSIZE_MAX) / 25;
-        if (sz < 100)
-                sz = 100;
+	sz = (filesize <= FSIZE_MAX ? filesize : FSIZE_MAX) / 25;
+	if (sz < 100)
+		sz = 100;
 
-        p = xmalloc((sz + 3) * sizeof(struct line));
-        for (j = 0; (h = readhash(fd));) {
-                if (j == sz) {
-                        sz = sz * 3 / 2;
-                        p = xrealloc(p, (sz + 3) * sizeof(struct line));
-                }
-                p[++j].value = h;
-        }
-        len[i] = j;
-        file[i] = p;
+	p = xmalloc((sz + 3) * sizeof(struct line));
+	for (j = 0; (h = readhash(fd));) {
+		if (j == sz) {
+			sz = sz * 3 / 2;
+			p = xrealloc(p, (sz + 3) * sizeof(struct line));
+		}
+		p[++j].value = h;
+	}
+	len[i] = j;
+	file[i] = p;
 }
 
 static void prune(void)
 {
-        int i, j;
+	int i, j;
 
-        for (pref = 0; pref < len[0] && pref < len[1] &&
-            file[0][pref + 1].value == file[1][pref + 1].value;
-            pref++)
-                ;
-        for (suff = 0; suff < len[0] - pref && suff < len[1] - pref &&
-            file[0][len[0] - suff].value == file[1][len[1] - suff].value;
-            suff++)
-                ;
-        for (j = 0; j < 2; j++) {
-                sfile[j] = file[j] + pref;
-                slen[j] = len[j] - pref - suff;
-                for (i = 0; i <= slen[j]; i++)
-                        sfile[j][i].serial = i;
-        }
+	for (pref = 0; pref < len[0] && pref < len[1] &&
+		 file[0][pref + 1].value == file[1][pref + 1].value; pref++);
+	for (suff = 0; suff < len[0] - pref && suff < len[1] - pref &&
+		 file[0][len[0] - suff].value == file[1][len[1] - suff].value;
+		 suff++);
+	for (j = 0; j < 2; j++) {
+		sfile[j] = file[j] + pref;
+		slen[j] = len[j] - pref - suff;
+		for (i = 0; i <= slen[j]; i++)
+			sfile[j][i].serial = i;
+	}
 }
 
 static void equiv(struct line *a, int n, struct line *b, int m, int *c)
 {
-        int i, j;
+	int i, j;
 
-        i = j = 1;
-        while (i <= n && j <= m) {
-                if (a[i].value < b[j].value)
-                        a[i++].value = 0;
-                else if (a[i].value == b[j].value)
-                        a[i++].value = j;
-                else
-                        j++;
-        }
-        while (i <= n)
-                a[i++].value = 0;
-        b[m + 1].value = 0;
-        j = 0;
-        while (++j <= m) {
-                c[j] = -b[j].serial;
-                while (b[j + 1].value == b[j].value) {
-                        j++;
-                        c[j] = b[j].serial;
-                }
-        }
-        c[j] = -1;
+	i = j = 1;
+	while (i <= n && j <= m) {
+		if (a[i].value < b[j].value)
+			a[i++].value = 0;
+		else if (a[i].value == b[j].value)
+			a[i++].value = j;
+		else
+			j++;
+	}
+	while (i <= n)
+		a[i++].value = 0;
+	b[m + 1].value = 0;
+	j = 0;
+	while (++j <= m) {
+		c[j] = -b[j].serial;
+		while (b[j + 1].value == b[j].value) {
+			j++;
+			c[j] = b[j].serial;
+		}
+	}
+	c[j] = -1;
 }
 
-static int isqrt(int n) {
+static int isqrt(int n)
+{
 	int y, x = 1;
-	if (n == 0) return(0);
+
+	if (n == 0)
+		return (0);
 
 	do {
 		y = x;
@@ -363,120 +364,121 @@ static int isqrt(int n) {
 
 static int newcand(int x, int y, int pred)
 {
-        struct cand *q;
+	struct cand *q;
 
-        if (clen == clistlen) {
-                clistlen = clistlen * 11 / 10;
-                clist = xrealloc(clist, clistlen * sizeof(struct cand));
-        }
-        q = clist + clen;
-        q->x = x;
-        q->y = y;
-        q->pred = pred;
-        return (clen++);
+	if (clen == clistlen) {
+		clistlen = clistlen * 11 / 10;
+		clist = xrealloc(clist, clistlen * sizeof(struct cand));
+	}
+	q = clist + clen;
+	q->x = x;
+	q->y = y;
+	q->pred = pred;
+	return (clen++);
 }
 
 
 static int search(int *c, int k, int y)
 {
-        int i, j, l, t;
+	int i, j, l, t;
 
-        if (clist[c[k]].y < y)        /* quick look for typical case */
-                return (k + 1);
-        i = 0;
-        j = k + 1;
-        while (1) {
-                l = i + j;
-                if ((l >>= 1) <= i)
-                        break;
-                t = clist[c[l]].y;
-                if (t > y)
-                        j = l;
-                else if (t < y)
-                        i = l;
-                else
-                        return (l);
-        }
-        return (l + 1);
+	if (clist[c[k]].y < y)	/* quick look for typical case */
+		return (k + 1);
+	i = 0;
+	j = k + 1;
+	while (1) {
+		l = i + j;
+		if ((l >>= 1) <= i)
+			break;
+		t = clist[c[l]].y;
+		if (t > y)
+			j = l;
+		else if (t < y)
+			i = l;
+		else
+			return (l);
+	}
+	return (l + 1);
 }
 
 
 static int stone(int *a, int n, int *b, int *c)
 {
-        int i, k, y, j, l;
-        int oldc, tc, oldl;
-        unsigned int numtries;
+	int i, k, y, j, l;
+	int oldc, tc, oldl;
+	unsigned int numtries;
+
 #if ENABLE_FEATURE_DIFF_MINIMAL
-		const unsigned int bound = (cmd_flags & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
+	const unsigned int bound =
+		(cmd_flags & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
 #else
-		const unsigned int bound = MAX(256, isqrt(n));
+	const unsigned int bound = MAX(256, isqrt(n));
 #endif
-        k = 0;
-        c[0] = newcand(0, 0, 0);
-        for (i = 1; i <= n; i++) {
-                j = a[i];
-                if (j == 0)
-                        continue;
-                y = -b[j];
-                oldl = 0;
-                oldc = c[0];
-                numtries = 0;
-                do {
-                        if (y <= clist[oldc].y)
-                                continue;
-                        l = search(c, k, y);
-                        if (l != oldl + 1)
-                                oldc = c[l - 1];
-                        if (l <= k) {
-                                if (clist[c[l]].y <= y)
-                                        continue;
-                                tc = c[l];
-                                c[l] = newcand(i, y, oldc);
-                                oldc = tc;
-                                oldl = l;
-                                numtries++;
-                        } else {
-                                c[l] = newcand(i, y, oldc);
-                                k++;
-                                break;
-                        }
-                } while ((y = b[++j]) > 0 && numtries < bound);
-        }
-        return (k);
+	k = 0;
+	c[0] = newcand(0, 0, 0);
+	for (i = 1; i <= n; i++) {
+		j = a[i];
+		if (j == 0)
+			continue;
+		y = -b[j];
+		oldl = 0;
+		oldc = c[0];
+		numtries = 0;
+		do {
+			if (y <= clist[oldc].y)
+				continue;
+			l = search(c, k, y);
+			if (l != oldl + 1)
+				oldc = c[l - 1];
+			if (l <= k) {
+				if (clist[c[l]].y <= y)
+					continue;
+				tc = c[l];
+				c[l] = newcand(i, y, oldc);
+				oldc = tc;
+				oldl = l;
+				numtries++;
+			} else {
+				c[l] = newcand(i, y, oldc);
+				k++;
+				break;
+			}
+		} while ((y = b[++j]) > 0 && numtries < bound);
+	}
+	return (k);
 }
 
 static void unravel(int p)
 {
-        struct cand *q;
-        int i;
+	struct cand *q;
+	int i;
 
-        for (i = 0; i <= len[0]; i++)
-                J[i] = i <= pref ? i :
-                    i > len[0] - suff ? i + len[1] - len[0] : 0;
-        for (q = clist + p; q->y != 0; q = clist + q->pred)
-                J[q->x + pref] = q->y + pref;
+	for (i = 0; i <= len[0]; i++)
+		J[i] = i <= pref ? i : i > len[0] - suff ? i + len[1] - len[0] : 0;
+	for (q = clist + p; q->y != 0; q = clist + q->pred)
+		J[q->x + pref] = q->y + pref;
 }
 
 
 static void unsort(struct line *f, int l, int *b)
 {
-        int *a, i;
+	int *a, i;
 
-        a = xmalloc((l + 1) * sizeof(int));
-        for (i = 1; i <= l; i++)
-                a[f[i].serial] = f[i].value;
-        for (i = 1; i <= l; i++)
-                b[i] = a[i];
-        free(a);
+	a = xmalloc((l + 1) * sizeof(int));
+	for (i = 1; i <= l; i++)
+		a[f[i].serial] = f[i].value;
+	for (i = 1; i <= l; i++)
+		b[i] = a[i];
+	free(a);
 }
 
-static int skipline(FILE *f)
+static int skipline(FILE * f)
 {
-        int i, c;
+	int i, c;
 
-        for (i = 1; (c = getc(f)) != '\n' && c != EOF; i++)
-                continue;
-        return (i);
+	for (i = 1; (c = getc(f)) != '\n' && c != EOF; i++)
+		continue;
+	return (i);
 }
 
 
@@ -486,175 +488,174 @@ static int skipline(FILE *f)
  *      to confounding by hashing (which result in "jackpot")
  *  2.  collect random access indexes to the two files
  */
-static void check(FILE *f1, FILE *f2)
+static void check(FILE * f1, FILE * f2)
 {
-        int i, j, jackpot, c, d;
-        long ctold, ctnew;
+	int i, j, jackpot, c, d;
+	long ctold, ctnew;
 
-        rewind(f1);
-        rewind(f2);
-        j = 1;
-        ixold[0] = ixnew[0] = 0;
-        jackpot = 0;
-        ctold = ctnew = 0;
-        for (i = 1; i <= len[0]; i++) {
-                if (J[i] == 0) {
-                        ixold[i] = ctold += skipline(f1);
-                        continue;
-                }
-                while (j < J[i]) {
-                        ixnew[j] = ctnew += skipline(f2);
-                        j++;
-                }
-                if ((cmd_flags & FLAG_b) || (cmd_flags & FLAG_w) || (cmd_flags & FLAG_i)) {
-                        while (1) {
-                                c = getc(f1);
-                                d = getc(f2);
-                                /*
-                                 * GNU diff ignores a missing newline
-                                 * in one file if bflag || wflag.
-                                 */
-                                if (((cmd_flags & FLAG_b) || (cmd_flags & FLAG_w)) &&
-                                    ((c == EOF && d == '\n') ||
-                                    (c == '\n' && d == EOF))) {
-                                        break;
-                                }
-                                ctold++;
-                                ctnew++;
-                                if ((cmd_flags & FLAG_b) && isspace(c) && isspace(d)) {
-                                        do {
-                                                if (c == '\n')
-                                                        break;
-                                                ctold++;
-                                        } while (isspace(c = getc(f1)));
-                                        do {
-                                                if (d == '\n')
-                                                        break;
-                                                ctnew++;
-                                        } while (isspace(d = getc(f2)));
-                                } else if (cmd_flags & FLAG_w) {
-                                        while (isspace(c) && c != '\n') {
-                                                c = getc(f1);
-                                                ctold++;
-                                        }
-                                        while (isspace(d) && d != '\n') {
-                                                d = getc(f2);
-                                                ctnew++;
-                                        }
-                                }
-                                if (c != d) {
-                                        jackpot++;
-                                        J[i] = 0;
-                                        if (c != '\n' && c != EOF)
-                                                ctold += skipline(f1);
-                                        if (d != '\n' && c != EOF)
-                                                ctnew += skipline(f2);
-                                        break;
-                                }
-                                if (c == '\n' || c == EOF)
-                                        break;
-                        }
-                } else {
-                        while (1) {
-                                ctold++;
-                                ctnew++;
-                                if ((c = getc(f1)) != (d = getc(f2))) {
-                                        J[i] = 0;
-                                        if (c != '\n' && c != EOF)
-                                                ctold += skipline(f1);
-                                        if (d != '\n' && c != EOF)
-                                                ctnew += skipline(f2);
-                                        break;
-                                }
-                                if (c == '\n' || c == EOF)
-                                        break;
-                        }
-                }
-                ixold[i] = ctold;
-                ixnew[j] = ctnew;
-                j++;
-        }
-        for (; j <= len[1]; j++)
-                ixnew[j] = ctnew += skipline(f2);
+	rewind(f1);
+	rewind(f2);
+	j = 1;
+	ixold[0] = ixnew[0] = 0;
+	jackpot = 0;
+	ctold = ctnew = 0;
+	for (i = 1; i <= len[0]; i++) {
+		if (J[i] == 0) {
+			ixold[i] = ctold += skipline(f1);
+			continue;
+		}
+		while (j < J[i]) {
+			ixnew[j] = ctnew += skipline(f2);
+			j++;
+		}
+		if ((cmd_flags & FLAG_b) || (cmd_flags & FLAG_w)
+			|| (cmd_flags & FLAG_i)) {
+			while (1) {
+				c = getc(f1);
+				d = getc(f2);
+				/*
+				 * GNU diff ignores a missing newline
+				 * in one file if bflag || wflag.
+				 */
+				if (((cmd_flags & FLAG_b) || (cmd_flags & FLAG_w)) &&
+					((c == EOF && d == '\n') || (c == '\n' && d == EOF))) {
+					break;
+				}
+				ctold++;
+				ctnew++;
+				if ((cmd_flags & FLAG_b) && isspace(c) && isspace(d)) {
+					do {
+						if (c == '\n')
+							break;
+						ctold++;
+					} while (isspace(c = getc(f1)));
+					do {
+						if (d == '\n')
+							break;
+						ctnew++;
+					} while (isspace(d = getc(f2)));
+				} else if (cmd_flags & FLAG_w) {
+					while (isspace(c) && c != '\n') {
+						c = getc(f1);
+						ctold++;
+					}
+					while (isspace(d) && d != '\n') {
+						d = getc(f2);
+						ctnew++;
+					}
+				}
+				if (c != d) {
+					jackpot++;
+					J[i] = 0;
+					if (c != '\n' && c != EOF)
+						ctold += skipline(f1);
+					if (d != '\n' && c != EOF)
+						ctnew += skipline(f2);
+					break;
+				}
+				if (c == '\n' || c == EOF)
+					break;
+			}
+		} else {
+			while (1) {
+				ctold++;
+				ctnew++;
+				if ((c = getc(f1)) != (d = getc(f2))) {
+					J[i] = 0;
+					if (c != '\n' && c != EOF)
+						ctold += skipline(f1);
+					if (d != '\n' && c != EOF)
+						ctnew += skipline(f2);
+					break;
+				}
+				if (c == '\n' || c == EOF)
+					break;
+			}
+		}
+		ixold[i] = ctold;
+		ixnew[j] = ctnew;
+		j++;
+	}
+	for (; j <= len[1]; j++)
+		ixnew[j] = ctnew += skipline(f2);
 }
 
 /* shellsort CACM #201 */
 static void sort(struct line *a, int n)
 {
-        struct line *ai, *aim, w;
-        int j, m = 0, k;
+	struct line *ai, *aim, w;
+	int j, m = 0, k;
 
-        if (n == 0)
-                return;
-        for (j = 1; j <= n; j *= 2)
-                m = 2 * j - 1;
-        for (m /= 2; m != 0; m /= 2) {
-                k = n - m;
-                for (j = 1; j <= k; j++) {
-                        for (ai = &a[j]; ai > a; ai -= m) {
-                                aim = &ai[m];
-                                if (aim < ai)
-                                        break;        /* wraparound */
-                                if (aim->value > ai[0].value ||
-                                    (aim->value == ai[0].value &&
-                                        aim->serial > ai[0].serial))
-                                        break;
-                                w.value = ai[0].value;
-                                ai[0].value = aim->value;
-                                aim->value = w.value;
-                                w.serial = ai[0].serial;
-                                ai[0].serial = aim->serial;
-                                aim->serial = w.serial;
-                        }
-                }
-        }
+	if (n == 0)
+		return;
+	for (j = 1; j <= n; j *= 2)
+		m = 2 * j - 1;
+	for (m /= 2; m != 0; m /= 2) {
+		k = n - m;
+		for (j = 1; j <= k; j++) {
+			for (ai = &a[j]; ai > a; ai -= m) {
+				aim = &ai[m];
+				if (aim < ai)
+					break;	/* wraparound */
+				if (aim->value > ai[0].value ||
+					(aim->value == ai[0].value && aim->serial > ai[0].serial))
+					break;
+				w.value = ai[0].value;
+				ai[0].value = aim->value;
+				aim->value = w.value;
+				w.serial = ai[0].serial;
+				ai[0].serial = aim->serial;
+				aim->serial = w.serial;
+			}
+		}
+	}
 }
 
 
 static void uni_range(int a, int b)
 {
-        if (a < b)
-                printf("%d,%d", a, b - a + 1);
-        else if (a == b)
-                printf("%d", b);
-        else
-                printf("%d,0", b);
+	if (a < b)
+		printf("%d,%d", a, b - a + 1);
+	else if (a == b)
+		printf("%d", b);
+	else
+		printf("%d,0", b);
 }
 
-static int fetch(long *f, int a, int b, FILE *lb, int ch)
+static int fetch(long *f, int a, int b, FILE * lb, int ch)
 {
-        int i, j, c, lastc, col, nc;
+	int i, j, c, lastc, col, nc;
 
-        if (a > b)
-                return (0);
-        for (i = a; i <= b; i++) {
-                fseek(lb, f[i - 1], SEEK_SET);
-                nc = f[i] - f[i - 1];
-                if (ch != '\0') {
-                        putchar(ch);
-                        if (cmd_flags & FLAG_T)
-                                putchar('\t');
-                }
-                col = 0;
-                for (j = 0, lastc = '\0'; j < nc; j++, lastc = c) {
-                        if ((c = getc(lb)) == EOF) {
-                                puts("\n\\ No newline at end of file");
-                                return (0);
-                        }
-                        if (c == '\t' && (cmd_flags & FLAG_t)) {
-                                do {
-                                        putchar(' ');
-                                } while (++col & 7);
-                        } else {
-                                putchar(c);
-                                col++;
-                        }
-                }
-        }
-        return (0);
+	if (a > b)
+		return (0);
+	for (i = a; i <= b; i++) {
+		fseek(lb, f[i - 1], SEEK_SET);
+		nc = f[i] - f[i - 1];
+		if (ch != '\0') {
+			putchar(ch);
+			if (cmd_flags & FLAG_T)
+				putchar('\t');
+		}
+		col = 0;
+		for (j = 0, lastc = '\0'; j < nc; j++, lastc = c) {
+			if ((c = getc(lb)) == EOF) {
+				puts("\n\\ No newline at end of file");
+				return (0);
+			}
+			if (c == '\t' && (cmd_flags & FLAG_t)) {
+				do {
+					putchar(' ');
+				} while (++col & 7);
+			} else {
+				putchar(c);
+				col++;
+			}
+		}
+	}
+	return (0);
 }
 
-static int asciifile(FILE *f)
+static int asciifile(FILE * f)
 {
 #if ENABLE_FEATURE_DIFF_BINARY
 	unsigned char buf[BUFSIZ];
@@ -677,97 +678,93 @@ static int asciifile(FILE *f)
 }
 
 /* dump accumulated "unified" diff changes */
-static void dump_unified_vec(FILE *f1, FILE *f2)
+static void dump_unified_vec(FILE * f1, FILE * f2)
 {
 	struct context_vec *cvp = context_vec_start;
-        int lowa, upb, lowc, upd;
-        int a, b, c, d;
-        char ch;
+	int lowa, upb, lowc, upd;
+	int a, b, c, d;
+	char ch;
 
-        if (context_vec_start > context_vec_ptr)
-                return;
+	if (context_vec_start > context_vec_ptr)
+		return;
 
-        b = d = 0;                /* gcc */
-        lowa = MAX(1, cvp->a - context);
-        upb = MIN(len[0], context_vec_ptr->b + context);
-        lowc = MAX(1, cvp->c - context);
-        upd = MIN(len[1], context_vec_ptr->d + context);
+	b = d = 0;			/* gcc */
+	lowa = MAX(1, cvp->a - context);
+	upb = MIN(len[0], context_vec_ptr->b + context);
+	lowc = MAX(1, cvp->c - context);
+	upd = MIN(len[1], context_vec_ptr->d + context);
 
-        fputs("@@ -", stdout);
-        uni_range(lowa, upb);
-        fputs(" +", stdout);
-        uni_range(lowc, upd);
-        fputs(" @@", stdout);
-        putchar('\n');
+	fputs("@@ -", stdout);
+	uni_range(lowa, upb);
+	fputs(" +", stdout);
+	uni_range(lowc, upd);
+	fputs(" @@", stdout);
+	putchar('\n');
 
-        /*
-         * Output changes in "unified" diff format--the old and new lines
-         * are printed together.
-         */
-        for (; cvp <= context_vec_ptr; cvp++) {
-                a = cvp->a;
-                b = cvp->b;
-                c = cvp->c;
-                d = cvp->d;
+	/*
+	 * Output changes in "unified" diff format--the old and new lines
+	 * are printed together.
+	 */
+	for (; cvp <= context_vec_ptr; cvp++) {
+		a = cvp->a;
+		b = cvp->b;
+		c = cvp->c;
+		d = cvp->d;
 
-                /*
-                 * c: both new and old changes
-                 * d: only changes in the old file
-                 * a: only changes in the new file
-                 */
-                if (a <= b && c <= d)
-                        ch = 'c';
-                else
-                        ch = (a <= b) ? 'd' : 'a';
+		/*
+		 * c: both new and old changes
+		 * d: only changes in the old file
+		 * a: only changes in the new file
+		 */
+		if (a <= b && c <= d)
+			ch = 'c';
+		else
+			ch = (a <= b) ? 'd' : 'a';
 #if 0
-                switch (ch) {
-                case 'c':
-                        fetch(ixold, lowa, a - 1, f1, ' ');
-                        fetch(ixold, a, b, f1, '-');
-                        fetch(ixnew, c, d, f2, '+');
-                        break;
-                case 'd':
-                        fetch(ixold, lowa, a - 1, f1, ' ');
-                        fetch(ixold, a, b, f1, '-');
-                        break;
-                case 'a':
-                        fetch(ixnew, lowc, c - 1, f2, ' ');
-                        fetch(ixnew, c, d, f2, '+');
-                        break;
-                }
+		switch (ch) {
+		case 'c':
+			fetch(ixold, lowa, a - 1, f1, ' ');
+			fetch(ixold, a, b, f1, '-');
+			fetch(ixnew, c, d, f2, '+');
+			break;
+		case 'd':
+			fetch(ixold, lowa, a - 1, f1, ' ');
+			fetch(ixold, a, b, f1, '-');
+			break;
+		case 'a':
+			fetch(ixnew, lowc, c - 1, f2, ' ');
+			fetch(ixnew, c, d, f2, '+');
+			break;
+		}
 #else
-                if (ch == 'c' || ch == 'd') {
-                        fetch(ixold, lowa, a - 1, f1, ' ');
-                        fetch(ixold, a, b, f1, '-');
-				}
-                if (ch == 'a')
-                        fetch(ixnew, lowc, c - 1, f2, ' ');
-                if (ch == 'c' || ch == 'a')
-                        fetch(ixnew, c, d, f2, '+');
+		if (ch == 'c' || ch == 'd') {
+			fetch(ixold, lowa, a - 1, f1, ' ');
+			fetch(ixold, a, b, f1, '-');
+		}
+		if (ch == 'a')
+			fetch(ixnew, lowc, c - 1, f2, ' ');
+		if (ch == 'c' || ch == 'a')
+			fetch(ixnew, c, d, f2, '+');
 #endif
-                lowa = b + 1;
-                lowc = d + 1;
-        }
-        fetch(ixnew, d + 1, upd, f2, ' ');
+		lowa = b + 1;
+		lowc = d + 1;
+	}
+	fetch(ixnew, d + 1, upd, f2, ' ');
 
-        context_vec_ptr = context_vec_start - 1;
+	context_vec_ptr = context_vec_start - 1;
 }
 
 
 static void print_header(const char *file1, const char *file2)
 {
-        if (label[0] != NULL)
-                printf("%s %s\n", "---",
-                    label[0]);
-        else
-                printf("%s %s\t%s", "---",
-                    file1, ctime(&stb1.st_mtime));
-        if (label[1] != NULL)
-                printf("%s %s\n", "+++",
-                    label[1]);
-        else
-                printf("%s %s\t%s", "+++",
-                    file2, ctime(&stb2.st_mtime));
+	if (label[0] != NULL)
+		printf("%s %s\n", "---", label[0]);
+	else
+		printf("%s %s\t%s", "---", file1, ctime(&stb1.st_mtime));
+	if (label[1] != NULL)
+		printf("%s %s\n", "+++", label[1]);
+	else
+		printf("%s %s\t%s", "+++", file2, ctime(&stb2.st_mtime));
 }
 
 
@@ -779,77 +776,82 @@ static void print_header(const char *file1, const char *file2)
  * lines appended (beginning at b).  If c is greater than d then there are
  * lines missing from the to file.
  */
-static void change(char *file1, FILE *f1, char *file2, FILE *f2, int a, int b, int c, int d)
+static void change(char *file1, FILE * f1, char *file2, FILE * f2, int a,
+				   int b, int c, int d)
 {
 	static size_t max_context = 64;
 
-        if (a > b && c > d)	return;
-	if (cmd_flags & FLAG_q) return;
-	
-        /*
-        * Allocate change records as needed.
-        */
-                if (context_vec_ptr == context_vec_end - 1) {
-                        ptrdiff_t offset = context_vec_ptr - context_vec_start;
-                        max_context <<= 1;
-                        context_vec_start = xrealloc(context_vec_start,
-                            max_context * sizeof(struct context_vec));
-                        context_vec_end = context_vec_start + max_context;
-                        context_vec_ptr = context_vec_start + offset;
-                }
-                if (anychange == 0) {
-                        /*
-                         * Print the context/unidiff header first time through.
-                         */
-                        print_header(file1, file2);
-                        anychange = 1;
-                } else if (a > context_vec_ptr->b + (2 * context) + 1 &&
-                    c > context_vec_ptr->d + (2 * context) + 1) {
-                        /*
-                         * If this change is more than 'context' lines from the
-                         * previous change, dump the record and reset it.
-                         */
-                    	dump_unified_vec(f1, f2);
-                }
-                context_vec_ptr++;
-                context_vec_ptr->a = a;
-                context_vec_ptr->b = b;
-                context_vec_ptr->c = c;
-                context_vec_ptr->d = d;
-                return;
-        
+	if (a > b && c > d)
+		return;
+	if (cmd_flags & FLAG_q)
+		return;
+
+	/*
+	 * Allocate change records as needed.
+	 */
+	if (context_vec_ptr == context_vec_end - 1) {
+		ptrdiff_t offset = context_vec_ptr - context_vec_start;
+
+		max_context <<= 1;
+		context_vec_start = xrealloc(context_vec_start,
+									 max_context *
+									 sizeof(struct context_vec));
+		context_vec_end = context_vec_start + max_context;
+		context_vec_ptr = context_vec_start + offset;
+	}
+	if (anychange == 0) {
+		/*
+		 * Print the context/unidiff header first time through.
+		 */
+		print_header(file1, file2);
+		anychange = 1;
+	} else if (a > context_vec_ptr->b + (2 * context) + 1 &&
+			   c > context_vec_ptr->d + (2 * context) + 1) {
+		/*
+		 * If this change is more than 'context' lines from the
+		 * previous change, dump the record and reset it.
+		 */
+		dump_unified_vec(f1, f2);
+	}
+	context_vec_ptr++;
+	context_vec_ptr->a = a;
+	context_vec_ptr->b = b;
+	context_vec_ptr->c = c;
+	context_vec_ptr->d = d;
+	return;
+
 }
 
 
-static void output(char *file1, FILE *f1, char *file2, FILE *f2)
+static void output(char *file1, FILE * f1, char *file2, FILE * f2)
 {
 
-		/* Note that j0 and j1 can't be used as they are defined in math.h.
-		 * This also allows the rather amusing variable 'j00'... */
-		int m, i0, i1, j00, j01;
+	/* Note that j0 and j1 can't be used as they are defined in math.h.
+	 * This also allows the rather amusing variable 'j00'... */
+	int m, i0, i1, j00, j01;
 
-        rewind(f1);
-        rewind(f2);
-        m = len[0];
-        J[0] = 0;
-        J[m + 1] = len[1] + 1;
-        for (i0 = 1; i0 <= m; i0 = i1 + 1) {
-                        while (i0 <= m && J[i0] == J[i0 - 1] + 1)
-                                i0++;
-                        j00 = J[i0 - 1] + 1;
-                        i1 = i0 - 1;
-                        while (i1 < m && J[i1 + 1] == 0)
-                                i1++;
-                        j01 = J[i1 + 1] - 1;
-                        J[i1] = j01;
-                        change(file1, f1, file2, f2, i0, i1, j00, j01);
-        }
-        if (m == 0) {
-                change(file1, f1, file2, f2, 1, 0, 1, len[1]);
+	rewind(f1);
+	rewind(f2);
+	m = len[0];
+	J[0] = 0;
+	J[m + 1] = len[1] + 1;
+	for (i0 = 1; i0 <= m; i0 = i1 + 1) {
+		while (i0 <= m && J[i0] == J[i0 - 1] + 1)
+			i0++;
+		j00 = J[i0 - 1] + 1;
+		i1 = i0 - 1;
+		while (i1 < m && J[i1 + 1] == 0)
+			i1++;
+		j01 = J[i1 + 1] - 1;
+		J[i1] = j01;
+		change(file1, f1, file2, f2, i0, i1, j00, j01);
+	}
+	if (m == 0) {
+		change(file1, f1, file2, f2, 1, 0, 1, len[1]);
 	}
 	if (anychange != 0) {
-        	dump_unified_vec(f1, f2);
-        }
+		dump_unified_vec(f1, f2);
+	}
 }
 
 /*
@@ -917,108 +919,109 @@ static void output(char *file1, FILE *f1, char *file2, FILE *f2)
 
 static int diffreg(char *ofile1, char *ofile2, int flags)
 {
-        char *file1 = ofile1;
-        char *file2 = ofile2;
-        FILE *f1 = NULL;
-        FILE *f2 = NULL;
-        int rval = D_SAME;
-        int i;
+	char *file1 = ofile1;
+	char *file2 = ofile2;
+	FILE *f1 = NULL;
+	FILE *f2 = NULL;
+	int rval = D_SAME;
+	int i;
 
-        anychange = 0;
-        context_vec_ptr = context_vec_start - 1;
-                
-        if (S_ISDIR(stb1.st_mode) != S_ISDIR(stb2.st_mode))
-                return (S_ISDIR(stb1.st_mode) ? D_MISMATCH1 : D_MISMATCH2);
-        if (strcmp(file1, "-") == 0 && strcmp(file2, "-") == 0)
-                goto closem;
+	anychange = 0;
+	context_vec_ptr = context_vec_start - 1;
 
-        if (flags & D_EMPTY1)
-                f1 = bb_xfopen(bb_dev_null, "r");
-        else {
-                if (strcmp(file1, "-") == 0)
-                        f1 = stdin;
-                else
-                        f1 = bb_xfopen(file1, "r");
-        }
+	if (S_ISDIR(stb1.st_mode) != S_ISDIR(stb2.st_mode))
+		return (S_ISDIR(stb1.st_mode) ? D_MISMATCH1 : D_MISMATCH2);
+	if (strcmp(file1, "-") == 0 && strcmp(file2, "-") == 0)
+		goto closem;
 
-        if (flags & D_EMPTY2)
-                f2 = bb_xfopen(bb_dev_null, "r");
-        else {
-                if (strcmp(file2, "-") == 0)
-                        f2 = stdin;
-                else
-                        f2 = bb_xfopen(file2, "r");
-        }
-	
-	if ((i=files_differ(f1, f2, flags)) == 0)
-                goto closem;
-	else if (i != 1) {/* 1 == ok */
-                /* error */
-                status |= 2;
-                goto closem;
-        }
+	if (flags & D_EMPTY1)
+		f1 = bb_xfopen(bb_dev_null, "r");
+	else {
+		if (strcmp(file1, "-") == 0)
+			f1 = stdin;
+		else
+			f1 = bb_xfopen(file1, "r");
+	}
 
-        if (!asciifile(f1) || !asciifile(f2)) {
-                rval = D_BINARY;
-                status |= 1;
-                goto closem;
-        }
+	if (flags & D_EMPTY2)
+		f2 = bb_xfopen(bb_dev_null, "r");
+	else {
+		if (strcmp(file2, "-") == 0)
+			f2 = stdin;
+		else
+			f2 = bb_xfopen(file2, "r");
+	}
 
-        prepare(0, f1, stb1.st_size);
-        prepare(1, f2, stb2.st_size);
-        prune();
-        sort(sfile[0], slen[0]);
-        sort(sfile[1], slen[1]);
+	if ((i = files_differ(f1, f2, flags)) == 0)
+		goto closem;
+	else if (i != 1) {	/* 1 == ok */
+		/* error */
+		status |= 2;
+		goto closem;
+	}
 
-        member = (int *)file[1];
-        equiv(sfile[0], slen[0], sfile[1], slen[1], member);
-        member = xrealloc(member, (slen[1] + 2) * sizeof(int));
-
-        class = (int *)file[0];
-        unsort(sfile[0], slen[0], class);
-        class = xrealloc(class, (slen[0] + 2) * sizeof(int));
-
-        klist = xmalloc((slen[0] + 2) * sizeof(int));
-        clen = 0;
-        clistlen = 100;
-        clist = xmalloc(clistlen * sizeof(struct cand));
-        i = stone(class, slen[0], member, klist);
-        free(member);
-        free(class);
-
-        J = xrealloc(J, (len[0] + 2) * sizeof(int));
-        unravel(klist[i]);
-        free(clist);
-        free(klist);
-
-        ixold = xrealloc(ixold, (len[0] + 2) * sizeof(long));
-        ixnew = xrealloc(ixnew, (len[1] + 2) * sizeof(long));
-        check(f1, f2);
-        output(file1, f1, file2, f2);
-
-closem:
-        if (anychange) {
+	if (!asciifile(f1) || !asciifile(f2)) {
+		rval = D_BINARY;
 		status |= 1;
-                if (rval == D_SAME)
-                        rval = D_DIFFER;
-        }
-        if (f1 != NULL)
-                fclose(f1);
-        if (f2 != NULL)
-                fclose(f2);
-        if (file1 != ofile1)
-                free(file1);
-        if (file2 != ofile2)
-                free(file2);
+		goto closem;
+	}
+
+	prepare(0, f1, stb1.st_size);
+	prepare(1, f2, stb2.st_size);
+	prune();
+	sort(sfile[0], slen[0]);
+	sort(sfile[1], slen[1]);
+
+	member = (int *) file[1];
+	equiv(sfile[0], slen[0], sfile[1], slen[1], member);
+	member = xrealloc(member, (slen[1] + 2) * sizeof(int));
+
+	class = (int *) file[0];
+	unsort(sfile[0], slen[0], class);
+	class = xrealloc(class, (slen[0] + 2) * sizeof(int));
+
+	klist = xmalloc((slen[0] + 2) * sizeof(int));
+	clen = 0;
+	clistlen = 100;
+	clist = xmalloc(clistlen * sizeof(struct cand));
+	i = stone(class, slen[0], member, klist);
+	free(member);
+	free(class);
+
+	J = xrealloc(J, (len[0] + 2) * sizeof(int));
+	unravel(klist[i]);
+	free(clist);
+	free(klist);
+
+	ixold = xrealloc(ixold, (len[0] + 2) * sizeof(long));
+	ixnew = xrealloc(ixnew, (len[1] + 2) * sizeof(long));
+	check(f1, f2);
+	output(file1, f1, file2, f2);
+
+  closem:
+	if (anychange) {
+		status |= 1;
+		if (rval == D_SAME)
+			rval = D_DIFFER;
+	}
+	if (f1 != NULL)
+		fclose(f1);
+	if (f2 != NULL)
+		fclose(f2);
+	if (file1 != ofile1)
+		free(file1);
+	if (file2 != ofile2)
+		free(file2);
 	return (rval);
 }
 
 #if ENABLE_FEATURE_DIFF_DIR
-static void do_diff (char *dir1, char *path1, char *dir2, char *path2) {
-	
+static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
+{
+
 	int flags = D_HEADER;
 	int val;
-	
+
 	char *fullpath1 = bb_xasprintf("%s/%s", dir1, path1);
 	char *fullpath2 = bb_xasprintf("%s/%s", dir2, path2);
 
@@ -1036,7 +1039,7 @@ static void do_diff (char *dir1, char *path1, char *dir2, char *path2) {
 
 	if (stb1.st_mode == 0)
 		stb1.st_mode = stb2.st_mode;
-	
+
 	if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
 		printf("Common subdirectories: %s and %s\n", fullpath1, fullpath2);
 		return;
@@ -1048,33 +1051,37 @@ static void do_diff (char *dir1, char *path1, char *dir2, char *path2) {
 		val = D_SKIPPED2;
 	else
 		val = diffreg(fullpath1, fullpath2, flags);
-	
+
 	print_status(val, fullpath1, fullpath2, NULL);
 }
 #endif
 
 #if ENABLE_FEATURE_DIFF_DIR
-static int dir_strcmp(const void *p1, const void *p2) {
-	return strcmp(*(char * const *)p1, *(char * const *)p2);
+static int dir_strcmp(const void *p1, const void *p2)
+{
+	return strcmp(*(char *const *) p1, *(char *const *) p2);
 }
 
 /* This function adds a filename to dl, the directory listing. */
 
-static int add_to_dirlist (const char *filename,
-		struct stat ATTRIBUTE_UNUSED *sb, void *userdata) {
+static int add_to_dirlist(const char *filename,
+						  struct stat ATTRIBUTE_UNUSED * sb, void *userdata)
+{
 	dl_count++;
 	dl = xrealloc(dl, dl_count * sizeof(char *));
 	dl[dl_count - 1] = bb_xstrdup(filename);
 	if (cmd_flags & FLAG_r) {
 		int *pp = (int *) userdata;
 		int path_len = *pp + 1;
+
 		dl[dl_count - 1] = &(dl[dl_count - 1])[path_len];
 	}
 	return TRUE;
 }
 
 /* This returns a sorted directory listing. */
-static char **get_dir(char *path) {
+static char **get_dir(char *path)
+{
 
 	int i;
 	char **retval;
@@ -1094,7 +1101,8 @@ static char **get_dir(char *path) {
 
 	/* Now fill dl with a listing. */
 	if (cmd_flags & FLAG_r)
-		recursive_action(path, TRUE, TRUE, FALSE, add_to_dirlist, NULL, userdata);
+		recursive_action(path, TRUE, TRUE, FALSE, add_to_dirlist, NULL,
+						 userdata);
 	else {
 		DIR *dp;
 		struct dirent *ep;
@@ -1119,29 +1127,30 @@ static char **get_dir(char *path) {
 	return retval;
 }
 
-static void diffdir (char *p1, char *p2) {
-	
+static void diffdir(char *p1, char *p2)
+{
+
 	char **dirlist1, **dirlist2;
 	char *dp1, *dp2;
 	int dirlist1_count, dirlist2_count;
 	int pos;
 
 	/* Check for trailing slashes. */
-	
+
 	if (p1[strlen(p1) - 1] == '/')
 		p1[strlen(p1) - 1] = '\0';
 	if (p2[strlen(p2) - 1] == '/')
 		p2[strlen(p2) - 1] = '\0';
-	
+
 	/* Get directory listings for p1 and p2. */
-	
+
 	dirlist1 = get_dir(p1);
 	dirlist1_count = dl_count;
 	dirlist1[dirlist1_count] = NULL;
 	dirlist2 = get_dir(p2);
 	dirlist2_count = dl_count;
 	dirlist2[dirlist2_count] = NULL;
-	
+
 	/* If -S was set, find the starting point. */
 	if (start) {
 		while (*dirlist1 != NULL && strcmp(*dirlist1, start) < 0)
@@ -1151,11 +1160,11 @@ static void diffdir (char *p1, char *p2) {
 		if ((*dirlist1 == NULL) || (*dirlist2 == NULL))
 			bb_error_msg("Invalid argument to -S");
 	}
-	
+
 	/* Now that both dirlist1 and dirlist2 contain sorted directory
 	 * listings, we can start to go through dirlist1. If both listings
 	 * contain the same file, then do a normal diff. Otherwise, behaviour
-	 * is determined by whether the -N flag is set. */	
+	 * is determined by whether the -N flag is set. */
 	while (*dirlist1 != NULL || *dirlist2 != NULL) {
 		dp1 = *dirlist1;
 		dp2 = *dirlist2;
@@ -1164,15 +1173,13 @@ static void diffdir (char *p1, char *p2) {
 			do_diff(p1, dp1, p2, dp2);
 			dirlist1++;
 			dirlist2++;
-		}
-		else if (pos < 0) {
+		} else if (pos < 0) {
 			if (cmd_flags & FLAG_N)
 				do_diff(p1, dp1, p2, NULL);
 			else
 				print_only(p1, strlen(p1) + 1, dp1);
 			dirlist1++;
-		}
-		else {
+		} else {
 			if (cmd_flags & FLAG_N)
 				do_diff(p1, NULL, p2, dp2);
 			else
@@ -1185,14 +1192,18 @@ static void diffdir (char *p1, char *p2) {
 
 
 
-int diff_main(int argc, char **argv) {
+int diff_main(int argc, char **argv)
+{
 	char *ep;
 	int gotstdin = 0;
 
 	char *U_opt;
 	llist_t *L_arg = NULL;
+
 	bb_opt_complementally = "L::";
-	cmd_flags = bb_getopt_ulflags(argc, argv, "abdiL:NqrsS:tTU:wu", &L_arg, &start, &U_opt);
+	cmd_flags =
+		bb_getopt_ulflags(argc, argv, "abdiL:NqrsS:tTU:wu", &L_arg, &start,
+						  &U_opt);
 
 	if (cmd_flags & FLAG_L) {
 		while (L_arg) {
@@ -1209,13 +1220,14 @@ int diff_main(int argc, char **argv) {
 		/* If both label[0] and label[1] were set, they need to be swapped. */
 		if (label[0] && label[1]) {
 			char *tmp;
+
 			tmp = label[1];
 			label[1] = label[0];
 			label[0] = tmp;
 		}
 	}
 
-	context = 3;	/* This is the default number of lines of context. */
+	context = 3;		/* This is the default number of lines of context. */
 	if (cmd_flags & FLAG_U) {
 		context = strtol(U_opt, &ep, 10);
 		if (context == 0) {
@@ -1224,36 +1236,35 @@ int diff_main(int argc, char **argv) {
 		}
 	}
 	argc -= optind;
-        argv += optind;
+	argv += optind;
 
-        /*
-         * Do sanity checks, fill in stb1 and stb2 and call the appropriate
-         * driver routine.  Both drivers use the contents of stb1 and stb2.
-         */
-        if (argc < 2) {
+	/*
+	 * Do sanity checks, fill in stb1 and stb2 and call the appropriate
+	 * driver routine.  Both drivers use the contents of stb1 and stb2.
+	 */
+	if (argc < 2) {
 		bb_error_msg("Missing filename");
 		bb_show_usage();
 	}
-        if (strcmp(argv[0], "-") == 0) {
-                fstat(STDIN_FILENO, &stb1);
-                gotstdin = 1;
-        } else
-			xstat(argv[0], &stb1);
-        if (strcmp(argv[1], "-") == 0) {
-                fstat(STDIN_FILENO, &stb2);
-                gotstdin = 1;
-        } else
-			xstat(argv[1], &stb2);
-        if (gotstdin && (S_ISDIR(stb1.st_mode) || S_ISDIR(stb2.st_mode)))
-                bb_error_msg_and_die("Can't compare - to a directory");
-        if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
+	if (strcmp(argv[0], "-") == 0) {
+		fstat(STDIN_FILENO, &stb1);
+		gotstdin = 1;
+	} else
+		xstat(argv[0], &stb1);
+	if (strcmp(argv[1], "-") == 0) {
+		fstat(STDIN_FILENO, &stb2);
+		gotstdin = 1;
+	} else
+		xstat(argv[1], &stb2);
+	if (gotstdin && (S_ISDIR(stb1.st_mode) || S_ISDIR(stb2.st_mode)))
+		bb_error_msg_and_die("Can't compare - to a directory");
+	if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
 #if ENABLE_FEATURE_DIFF_DIR
 		diffdir(argv[0], argv[1]);
 #else
 		bb_error_msg_and_die("Directory comparison not supported");
 #endif
-	}
-	else {
+	} else {
 		if (S_ISDIR(stb1.st_mode)) {
 			argv[0] = concat_path_file(argv[0], argv[1]);
 			xstat(argv[0], &stb1);
@@ -1266,4 +1277,3 @@ int diff_main(int argc, char **argv) {
 	}
 	exit(status);
 }
-
