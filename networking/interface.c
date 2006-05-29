@@ -182,7 +182,7 @@ static char *UNIX_sprint(struct sockaddr *sap, int numeric)
 	static char buf[64];
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
-		return safe_strncpy(buf, _("[NONE SET]"), sizeof(buf));
+		return safe_strncpy(buf, "[NONE SET]", sizeof(buf));
 	return (UNIX_print(sap->sa_data));
 }
 
@@ -217,7 +217,7 @@ static char *INET_sprint(struct sockaddr *sap, int numeric)
 	static char buff[128];
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
-		return safe_strncpy(buff, _("[NONE SET]"), sizeof(buff));
+		return safe_strncpy(buff, "[NONE SET]", sizeof(buff));
 
 	if (INET_rresolve(buff, sizeof(buff), (struct sockaddr_in *) sap,
 					  numeric, 0xffffff00) != 0)
@@ -233,7 +233,7 @@ static char *INET_sprintmask(struct sockaddr *sap, int numeric,
 	static char buff[128];
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
-		return safe_strncpy(buff, _("[NONE SET]"), sizeof(buff));
+		return safe_strncpy(buff, "[NONE SET]", sizeof(buff));
 	if (INET_rresolve(buff, sizeof(buff), (struct sockaddr_in *) sap,
 					  numeric, netmask) != 0)
 		return (NULL);
@@ -353,10 +353,10 @@ static char *INET6_sprint(struct sockaddr *sap, int numeric)
 	static char buff[128];
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
-		return safe_strncpy(buff, _("[NONE SET]"), sizeof(buff));
+		return safe_strncpy(buff, "[NONE SET]", sizeof(buff));
 	if (INET6_rresolve
 		(buff, sizeof(buff), (struct sockaddr_in6 *) sap, numeric) != 0)
-		return safe_strncpy(buff, _("[UNKNOWN]"), sizeof(buff));
+		return safe_strncpy(buff, "[UNKNOWN]", sizeof(buff));
 	return (buff);
 }
 
@@ -422,7 +422,7 @@ static char *UNSPEC_sprint(struct sockaddr *sap, int numeric)
 	static char buf[64];
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
-		return safe_strncpy(buf, _("[NONE SET]"), sizeof(buf));
+		return safe_strncpy(buf, "[NONE SET]", sizeof(buf));
 	return (UNSPEC_print((unsigned char *)sap->sa_data));
 }
 
@@ -451,15 +451,15 @@ static short sVafinit = 0;
 
 static void afinit()
 {
-	unspec_aftype.title = _("UNSPEC");
+	unspec_aftype.title = "UNSPEC";
 #if HAVE_AFUNIX
-	unix_aftype.title = _("UNIX Domain");
+	unix_aftype.title = "UNIX Domain";
 #endif
 #if HAVE_AFINET
-	inet_aftype.title = _("DARPA Internet");
+	inet_aftype.title = "DARPA Internet";
 #endif
 #if HAVE_AFINET6
-	inet6_aftype.title = _("IPv6");
+	inet6_aftype.title = "IPv6";
 #endif
 	sVafinit = 1;
 }
@@ -486,7 +486,7 @@ static int aftrans_opt(const char *arg)
 			if (strcmp(tmp1, paft->alias))
 				continue;
 			if (strlen(paft->name) + strlen(afname) + 1 >= sizeof(afname)) {
-				bb_error_msg(_("Too many address family arguments."));
+				bb_error_msg("Too many address family arguments.");
 				return (0);
 			}
 			if (paft->flag)
@@ -497,7 +497,7 @@ static int aftrans_opt(const char *arg)
 			break;
 		}
 		if (!paft->alias) {
-			bb_error_msg(_("Unknown address family `%s'."), tmp1);
+			bb_error_msg("Unknown address family `%s'.", tmp1);
 			return (1);
 		}
 		tmp1 = tmp2;
@@ -560,7 +560,7 @@ static struct aftype *get_aftype(const char *name)
 		afp++;
 	}
 	if (strchr(name, ','))
-		bb_error_msg(_("Please don't supply more than one address family."));
+		bb_error_msg("Only one address family.");
 	return (NULL);
 }
 #endif							/* KEEP_UNUSED */
@@ -627,7 +627,7 @@ static void print_aflist(int type)
 		txt = (*afp)->name;
 		if (!txt)
 			txt = "..";
-		fprintf(stderr, "%s (%s) ", txt, _((*afp)->title));
+		fprintf(stderr, "%s (%s) ", txt, (*afp)->title);
 		count++;
 		afp++;
 	}
@@ -734,7 +734,7 @@ static int sockets_open(int family)
 			sfd = af->fd;
 	}
 	if (sfd < 0) {
-		bb_error_msg(_("No usable address families found."));
+		bb_error_msg("No usable address families found.");
 	}
 	return sfd;
 }
@@ -971,7 +971,7 @@ static int if_readlist_proc(char *target)
 
 	fh = fopen(_PATH_PROCNET_DEV, "r");
 	if (!fh) {
-		bb_perror_msg(_("Warning: cannot open %s. Limited output."), _PATH_PROCNET_DEV);
+		bb_perror_msg("Warning: cannot open %s. Limited output.", _PATH_PROCNET_DEV);
 		return if_readconf();
 	}
 	fgets(buf, sizeof buf, fh);	/* eat line */
@@ -1116,11 +1116,11 @@ static int do_if_fetch(struct interface *ife)
 
 		if (errno == ENODEV) {
 			/* Give better error message for this case. */
-			errmsg = _("Device not found");
+			errmsg = "Device not found";
 		} else {
 			errmsg = strerror(errno);
 		}
-		bb_error_msg(_("%s: error fetching interface information: %s"),
+		bb_error_msg("%s: error fetching interface information: %s",
 				ife->name, errmsg);
 		return -1;
 	}
@@ -1195,7 +1195,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 			val = c - 'A' + 10;
 		else {
 #ifdef DEBUG
-			bb_error_msg(_("in_ether(%s): invalid ether address!\n"), orig);
+			bb_error_msg("in_ether(%s): invalid ether address!\n", orig);
 #endif
 			errno = EINVAL;
 			return (-1);
@@ -1212,7 +1212,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 			val >>= 4;
 		else {
 #ifdef DEBUG
-			bb_error_msg(_("in_ether(%s): invalid ether address!"), orig);
+			bb_error_msg("in_ether(%s): invalid ether address!", orig);
 #endif
 			errno = EINVAL;
 			return (-1);
@@ -1226,7 +1226,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 		if (*bufp == ':') {
 #ifdef DEBUG
 			if (i == ETH_ALEN) {
-				bb_error_msg(_("in_ether(%s): trailing : ignored!"), orig);
+				bb_error_msg("in_ether(%s): trailing : ignored!", orig);
 			}
 #endif
 			bufp++;
@@ -1236,7 +1236,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 #ifdef DEBUG
 	/* That's it.  Any trailing junk? */
 	if ((i == ETH_ALEN) && (*bufp != '\0')) {
-		bb_error_msg(_("in_ether(%s): trailing junk!"), orig);
+		bb_error_msg("in_ether(%s): trailing junk!", orig);
 		errno = EINVAL;
 		return (-1);
 	}
@@ -1265,7 +1265,7 @@ static const struct hwtype ether_hwtype = {
 /* Start the PPP encapsulation on the file descriptor. */
 static int do_ppp(int fd)
 {
-	bb_error_msg(_("You cannot start PPP with this program."));
+	bb_error_msg("You cannot start PPP with this program.");
 	return -1;
 }
 #endif							/* KEEP_UNUSED */
@@ -1303,16 +1303,16 @@ static short sVhwinit = 0;
 
 static void hwinit()
 {
-	loop_hwtype.title = _("Local Loopback");
-	unspec_hwtype.title = _("UNSPEC");
+	loop_hwtype.title = "Local Loopback";
+	unspec_hwtype.title = "UNSPEC";
 #if HAVE_HWETHER
-	ether_hwtype.title = _("Ethernet");
+	ether_hwtype.title = "Ethernet";
 #endif
 #if HAVE_HWTUNNEL
-	tunnel_hwtype.title = _("IPIP Tunnel");
+	tunnel_hwtype.title = "IPIP Tunnel";
 #endif
 #if HAVE_HWPPP
-	ppp_hwtype.title = _("Point-to-Point Protocol");
+	ppp_hwtype.title = "Point-to-Point Protocol";
 #endif
 	sVhwinit = 1;
 }
@@ -1481,32 +1481,32 @@ static void ife_print(struct interface *ptr)
 	if (hw == NULL)
 		hw = get_hwntype(-1);
 
-	printf(_("%-9.9s Link encap:%s  "), ptr->name, _(hw->title));
+	printf("%-9.9s Link encap:%s  ", ptr->name, hw->title);
 	/* For some hardware types (eg Ash, ATM) we don't print the
 	   hardware address if it's null.  */
 	if (hw->print != NULL && (!(hw_null_address(hw, ptr->hwaddr) &&
 								hw->suppress_null_addr)))
-		printf(_("HWaddr %s  "), hw->print((unsigned char *)ptr->hwaddr));
+		printf("HWaddr %s  ", hw->print((unsigned char *)ptr->hwaddr));
 #ifdef IFF_PORTSEL
 	if (ptr->flags & IFF_PORTSEL) {
-		printf(_("Media:%s"), if_port_text[ptr->map.port] /* [0] */);
+		printf("Media:%s", if_port_text[ptr->map.port] /* [0] */);
 		if (ptr->flags & IFF_AUTOMEDIA)
-			printf(_("(auto)"));
+			printf("(auto)");
 	}
 #endif
 	printf("\n");
 
 #if HAVE_AFINET
 	if (ptr->has_ip) {
-		printf(_("          %s addr:%s "), ap->name,
+		printf("          %s addr:%s ", ap->name,
 			   ap->sprint(&ptr->addr, 1));
 		if (ptr->flags & IFF_POINTOPOINT) {
-			printf(_(" P-t-P:%s "), ap->sprint(&ptr->dstaddr, 1));
+			printf(" P-t-P:%s ", ap->sprint(&ptr->dstaddr, 1));
 		}
 		if (ptr->flags & IFF_BROADCAST) {
-			printf(_(" Bcast:%s "), ap->sprint(&ptr->broadaddr, 1));
+			printf(" Bcast:%s ", ap->sprint(&ptr->broadaddr, 1));
 		}
-		printf(_(" Mask:%s\n"), ap->sprint(&ptr->netmask, 1));
+		printf(" Mask:%s\n", ap->sprint(&ptr->netmask, 1));
 	}
 #endif
 
@@ -1542,28 +1542,28 @@ static void ife_print(struct interface *ptr)
 				inet_pton(AF_INET6, addr6,
 						  (struct sockaddr *) &sap.sin6_addr);
 				sap.sin6_family = AF_INET6;
-				printf(_("          inet6 addr: %s/%d"),
+				printf("          inet6 addr: %s/%d",
 					   inet6_aftype.sprint((struct sockaddr *) &sap, 1),
 					   plen);
-				printf(_(" Scope:"));
+				printf(" Scope:");
 				switch (scope & IPV6_ADDR_SCOPE_MASK) {
 				case 0:
-					printf(_("Global"));
+					printf("Global");
 					break;
 				case IPV6_ADDR_LINKLOCAL:
-					printf(_("Link"));
+					printf("Link");
 					break;
 				case IPV6_ADDR_SITELOCAL:
-					printf(_("Site"));
+					printf("Site");
 					break;
 				case IPV6_ADDR_COMPATv4:
-					printf(_("Compat"));
+					printf("Compat");
 					break;
 				case IPV6_ADDR_LOOPBACK:
-					printf(_("Host"));
+					printf("Host");
 					break;
 				default:
-					printf(_("Unknown"));
+					printf("Unknown");
 				}
 				printf("\n");
 			}
@@ -1576,21 +1576,21 @@ static void ife_print(struct interface *ptr)
 	/* DONT FORGET TO ADD THE FLAGS IN ife_print_short, too */
 
 	if (ptr->flags == 0) {
-		printf(_("[NO FLAGS] "));
+		printf("[NO FLAGS] ");
 	} else {
 		int i = 0;
 		do {
 			if (ptr->flags & ife_print_flags_mask[i]) {
-				printf(_(ife_print_flags_strs[i]));
+				printf(ife_print_flags_strs[i]);
 			}
 		} while (ife_print_flags_mask[++i]);
 	}
 
 	/* DONT FORGET TO ADD THE FLAGS IN ife_print_short */
-	printf(_(" MTU:%d  Metric:%d"), ptr->mtu, ptr->metric ? ptr->metric : 1);
+	printf(" MTU:%d  Metric:%d", ptr->mtu, ptr->metric ? ptr->metric : 1);
 #ifdef SIOCSKEEPALIVE
 	if (ptr->outfill || ptr->keepalive)
-		printf(_("  Outfill:%d  Keepalive:%d"), ptr->outfill, ptr->keepalive);
+		printf("  Outfill:%d  Keepalive:%d", ptr->outfill, ptr->keepalive);
 #endif
 	printf("\n");
 
@@ -1630,17 +1630,17 @@ static void ife_print(struct interface *ptr)
 		 ptr->map.base_addr)) {
 		printf("          ");
 		if (ptr->map.irq)
-			printf(_("Interrupt:%d "), ptr->map.irq);
+			printf("Interrupt:%d ", ptr->map.irq);
 		if (ptr->map.base_addr >= 0x100)	/* Only print devices using it for
 											   I/O maps */
-			printf(_("Base address:0x%lx "),
+			printf("Base address:0x%lx ",
 				   (unsigned long) ptr->map.base_addr);
 		if (ptr->map.mem_start) {
-			printf(_("Memory:%lx-%lx "), ptr->map.mem_start,
+			printf("Memory:%lx-%lx ", ptr->map.mem_start,
 				   ptr->map.mem_end);
 		}
 		if (ptr->map.dma)
-			printf(_("DMA chan:%x "), ptr->map.dma);
+			printf("DMA chan:%x ", ptr->map.dma);
 		printf("\n");
 	}
 	printf("\n");
