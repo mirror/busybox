@@ -169,7 +169,7 @@ LD_START_GROUP:=$(shell echo "int bar(void){return 0;}" > conftest.c ; \
 	$(AR) $(ARFLAGS) conftest.a conftest.o ; \
 	$(CC) -Wl,--start-group conftest.a conftest_main.o -Wl,--end-group \
 	 -o conftest > /dev/null 2>&1 && echo "-Wl,--start-group" ; \
-	echo rm conftest_main.o conftest_main.c conftest.o conftest.c \
+	rm conftest_main.o conftest_main.c conftest.o conftest.c \
 	 conftest.a conftest > /dev/null 2>&1 ; )
 ifneq ($(findstring start-group,$(LD_START_GROUP)),)
 LD_END_GROUP:= -Wl,--end-group
