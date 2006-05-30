@@ -174,7 +174,7 @@ static const char * const environment[] = {
 
 /* Function prototypes */
 static void delete_init_action(struct init_action *a);
-static int waitfor(const struct init_action *a);
+static int waitfor(const struct init_action *a, pid_t pid);
 static void halt_signal(int sig);
 
 
@@ -200,14 +200,14 @@ static void message(int device, const char *fmt, ...)
 {
 	va_list arguments;
 	int l;
-	char msg[1024];
+	RESERVE_CONFIG_BUFFER(msg, 1024);
 #ifndef CONFIG_SYSLOGD
 	static int log_fd = -1;
 #endif
 
 	msg[0] = '\r';
 		va_start(arguments, fmt);
-	l = vsnprintf(msg + 1, sizeof(msg) - 2, fmt, arguments) + 1;
+	l = vsnprintf(msg + 1, 1024 - 2, fmt, arguments) + 1;
 		va_end(arguments);
 
 #ifdef CONFIG_SYSLOGD
@@ -258,6 +258,7 @@ static void message(int device, const char *fmt, ...)
 #endif
 		}
 	}
+	RELEASE_CONFIG_BUFFER(msg);
 }
 
 /* Set terminal settings to reasonable defaults */
@@ -400,7 +401,7 @@ static void open_new_terminal(const char *device, char fail) {
 
 static pid_t run(const struct init_action *a)
 {
-	int i, junk;
+	int i;
 	pid_t pid;
 	char *s, *tmpCmd, *cmd[INIT_BUFFS_SIZE], *cmdpath;
 	char buf[INIT_BUFFS_SIZE + 6];	/* INIT_BUFFS_SIZE+strlen("exec ")+1 */
@@ -452,7 +453,6 @@ static pid_t run(const struct init_action *a)
 		/* If the init Action requires us to wait, then force the
 		 * supplied terminal to be the controlling tty. */
 		if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
-			pid_t pgrp, tmp_pid;
 
 			/* Now fork off another process to just hang around */
 			if ((pid = fork()) < 0) {
@@ -468,17 +468,9 @@ static pid_t run(const struct init_action *a)
 				signal(SIGQUIT, SIG_IGN);
 				signal(SIGCHLD, SIG_DFL);
 
-				/* Wait for child to exit */
-				while ((tmp_pid = waitpid(pid, &junk, 0)) != pid) {
-					if (tmp_pid == -1 && errno == ECHILD) {
-						break;
-					}
-					/* FIXME handle other errors */
-				}
-
+				waitfor(NULL, pid);
 				/* See if stealing the controlling tty back is necessary */
-				pgrp = tcgetpgrp(0);
-				if (pgrp != getpid())
+				if (tcgetpgrp(0) != getpid())
 					_exit(0);
 
 				/* Use a temporary process to steal the controlling tty. */
@@ -491,10 +483,7 @@ static pid_t run(const struct init_action *a)
 					ioctl(0, TIOCSCTTY, 1);
 					_exit(0);
 				}
-				while ((tmp_pid = waitpid(pid, &junk, 0)) != pid) {
-					if (tmp_pid < 0 && errno == ECHILD)
-						break;
-				}
+				waitfor(NULL, pid);
 				_exit(0);
 			}
 
@@ -603,15 +592,15 @@ static pid_t run(const struct init_action *a)
 	return pid;
 }
 
-static int waitfor(const struct init_action *a)
+static int waitfor(const struct init_action *a, pid_t pid)
 {
-	int pid;
+	int runpid;
 	int status, wpid;
 
-	pid = run(a);
+	runpid = (NULL == a)? pid : run(a);
 	while (1) {
-		wpid = waitpid(pid,&status,0);
-		if (wpid == pid)
+		wpid = waitpid(runpid,&status,0);
+		if (wpid == runpid)
 			break;
 		if (wpid == -1 && errno == ECHILD) {
 			/* we missed its termination */
@@ -634,7 +623,7 @@ static void run_actions(int action)
 			if (access(a->terminal, R_OK | W_OK)) {
 				delete_init_action(a);
 			} else if (a->action & (SYSINIT | WAIT | CTRLALTDEL | SHUTDOWN | RESTART)) {
-				waitfor(a);
+				waitfor(a, 0);
 				delete_init_action(a);
 			} else if (a->action & ONCE) {
 				run(a);
