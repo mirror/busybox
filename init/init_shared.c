@@ -44,16 +44,16 @@ int bb_shutdown_system(unsigned long magic)
 	sync();
 
 	/* Send signals to every process _except_ pid 1 */
-	message = "Sending SIGTERM to all processes.";
-	syslog(pri, "%s", message);
+	message = "TERM";
+	syslog(pri, init_sending_format, message);
 	printf(bb_shutdown_format, message);
 
 	kill(-1, SIGTERM);
 	sleep(1);
 	sync();
 
-	message = "Sending SIGKILL to all processes.";
-	syslog(pri, "%s", message);
+	message = "KILL";
+	syslog(pri, init_sending_format, message);
 	printf(bb_shutdown_format, message);
 
 	kill(-1, SIGKILL);
