@@ -5,7 +5,7 @@ This document describes how to buid a boot floppy using the following
 components:
 
  - Linux Kernel (http://www.kernel.org)
- - uClibc: C library (http://cvs.uclinux.org/uClibc.html)
+ - uClibc: C library (http://www.uclibc.org/)
  - Busybox: Unix utilities (http://busybox.net/)
  - Syslinux: bootloader (http://syslinux.zytor.com)
 
