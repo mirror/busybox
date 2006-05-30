@@ -7,6 +7,8 @@ have any suggestions how they plan to go about it, and to minimize conflicts
 between your work and theirs.  But otherwise, all of these are fair game.
 
 Rob Landley <rob@landley.net>:
+  Add BB_NOMMU to platform.h and migrate __uClinux__ tests to that.
+    #if defined __UCLIBC__ && !defined __ARCH_USE_MMU__
   Add a libbb/platform.c
     Implement fdprintf() for platforms that haven't got one.
     Implement bb_realpath() that can handle NULL on non-glibc.
