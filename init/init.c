@@ -1005,7 +1005,6 @@ int init_main(int argc, char **argv)
 {
 	struct init_action *a;
 	pid_t wpid;
-	int status;
 
 	if (argc > 1 && !strcmp(argv[1], "-q")) {
 		return kill(1,SIGHUP);
@@ -1139,7 +1138,7 @@ int init_main(int argc, char **argv)
 		sleep(1);
 
 		/* Wait for a child process to exit */
-		wpid = wait(&status);
+		wpid = wait(NULL);
 		while (wpid > 0) {
 			/* Find out who died and clean up their corpse */
 			for (a = init_action_list; a; a = a->next) {
@@ -1153,7 +1152,7 @@ int init_main(int argc, char **argv)
 				}
 			}
 			/* see if anyone else is waiting to be reaped */
-			wpid = waitpid (-1, &status, WNOHANG);
+			wpid = waitpid (-1, NULL, WNOHANG);
 		}
 	}
 }
