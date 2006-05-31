@@ -110,8 +110,10 @@ static void ping(const char *host)
 	c = sendto(pingsock, packet, DEFDATALEN + ICMP_MINLEN, 0,
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in));
 
-	if (c < 0 || c != sizeof(packet))
+	if (c < 0) {
+		if (ENABLE_FEATURE_CLEAN_UP) close(pingsock);
 		bb_perror_msg_and_die("sendto");
+	}
 
 	signal(SIGALRM, noresp);
 	alarm(5);					/* give the host 5000ms to respond */
@@ -135,6 +137,7 @@ static void ping(const char *host)
 				break;
 		}
 	}
+	if (ENABLE_FEATURE_CLEAN_UP) close(pingsock);
 	printf("%s is alive!\n", hostname);
 	return;
 }
