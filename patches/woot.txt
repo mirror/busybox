@@ -1,1 +1,26 @@
 Testing to see if I can rename a file without blanking its history.
+
+That'd be dalias' suggestion..
+
+Mine was #define isdigit(a) (a>='0'&&a<='9'), but i forgot to record the
+exact savings..
+   text    data     bss     dec     hex filename
+ 864252   10252  645860 1520364  1732ec busybox_old
+ 863714   10244  645892 1519850  1730ea busybox_unstripped
+
+
+Index: include/libbb.h
+===================================================================
+--- include/libbb.h	(revision 15244)
++++ include/libbb.h	(working copy)
+@@ -531,4 +531,10 @@
+ #include <dmalloc.h>
+ #endif
+ 
++#if 1
++#include <ctype.h>
++#define _CTYPE_H 1 /* muahahaha */
++#undef isdigit
++#define isdigit(a) ((unsigned)(a)-'0' < 10)
++#endif
+ #endif /* __LIBBUSYBOX_H__ */
