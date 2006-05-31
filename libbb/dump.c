@@ -98,7 +98,7 @@ static void rewrite(FS * fs)
 		for (nconv = 0, fmtp = fu->fmt; *fmtp; nextpr = &pr->nextpr) {
 			/* NOSTRICT */
 			/* DBU:[dvae@cray.com] calloc so that forward ptrs start out NULL*/
-			pr = (PR *) xcalloc(1,sizeof(PR));
+			pr = (PR *) xzalloc(sizeof(PR));
 			if (!fu->nextpr)
 				fu->nextpr = pr;
 			/* ignore nextpr -- its unused inside the loop and is
@@ -683,7 +683,7 @@ void bb_dump_add(const char *fmt)
 
 	/* start new linked list of format units */
 	/* NOSTRICT */
-	tfs = (FS *) xcalloc(1,sizeof(FS)); /*DBU:[dave@cray.com] start out NULL */
+	tfs = (FS *) xzalloc(sizeof(FS)); /*DBU:[dave@cray.com] start out NULL */
 	if (!bb_dump_fshead) {
 		bb_dump_fshead = tfs;
 	} else {
@@ -703,7 +703,7 @@ void bb_dump_add(const char *fmt)
 		/* allocate a new format unit and link it in */
 		/* NOSTRICT */
 		/* DBU:[dave@cray.com] calloc so that forward pointers start out NULL */
-		tfu = (FU *) xcalloc(1,sizeof(FU));
+		tfu = (FU *) xzalloc(sizeof(FU));
 		*nextfu = tfu;
 		nextfu = &tfu->nextfu;
 		tfu->reps = 1;
