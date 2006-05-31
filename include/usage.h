@@ -136,6 +136,13 @@
 	"$ cat /proc/uptime\n" \
 	"110716.72 17.67"
 
+#define catv_trivial_usage \
+	"[-etv] [FILE]..."
+#define catv_full_usage \
+	"Display nonprinting characters as ^x or M-x.\n\n"\
+	"\t-e\tEnd each line with $\n" \
+	"\t-t\tShow tabs as ^I\n" \
+	"\t-v\tDon't use ^x or M-x escapes."
 #define chattr_trivial_usage \
 	"[-R] [-+=AacDdijsStTu] [-v version] files..."
 #define chattr_full_usage \
