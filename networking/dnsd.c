@@ -92,7 +92,7 @@ static void convname(char *a, uint8_t *q)
 }
 
 /*
- * Insert length of substrings insetad of dots
+ * Insert length of substrings instead of dots
  */
 static void undot(uint8_t * rip)
 {
@@ -393,12 +393,12 @@ int dnsd_main(int argc, char **argv)
 	}
 
 	if(is_daemon())
-#if defined(__uClinux__)
+#ifdef BB_NOMMU
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(1, 0, argc, argv, "-d");
-#else							/* uClinux */
+#else
 		bb_xdaemon(1, 0);
-#endif							/* uClinuvx */
+#endif
 
 	dnsentryinit(is_verbose());
 

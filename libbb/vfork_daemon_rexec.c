@@ -22,7 +22,7 @@
 #include "libbb.h"
 
 
-#if defined(__uClinux__)
+#ifdef BB_NOMMU
 void vfork_daemon_rexec(int nochdir, int noclose,
 		int argc, char **argv, char *foreground_opt)
 {
@@ -64,4 +64,4 @@ void vfork_daemon_rexec(int nochdir, int noclose,
 		exit(0);
 	}
 }
-#endif /* uClinux */
+#endif /* BB_NOMMU */

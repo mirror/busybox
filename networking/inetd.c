@@ -1309,12 +1309,12 @@ inetd_main (int argc, char *argv[])
 	bb_error_msg_and_die ("non-root must specify a config file");
 
   if (!(opt & 2)) {
-#if defined(__uClinux__)
+#ifdef BB_NOMMU
 	/* reexec for vfork() do continue parent */
 	vfork_daemon_rexec (0, 0, argc, argv, "-f");
 #else
-	daemon (0, 0); /* bb_xdaemon? */
-#endif /* uClinux */
+	bb_xdaemon (0, 0);
+#endif
   } else {
 	setsid ();
   }

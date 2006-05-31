@@ -670,11 +670,11 @@ int syslogd_main(int argc, char **argv)
 	umask(0);
 
 	if (doFork == TRUE) {
-#if defined(__uClinux__)
+#ifdef BB_NOMMU
 		vfork_daemon_rexec(0, 1, argc, argv, "-n");
-#else /* __uClinux__ */
+#else
 		bb_xdaemon(0, 1);
-#endif /* __uClinux__ */
+#endif
 	}
 	doSyslogd();
 

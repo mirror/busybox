@@ -205,12 +205,12 @@ int crond_main(int ac, char **av)
 	 */
 
 	if (!(opt & 4)) {
-#if defined(__uClinux__)
+#ifdef BB_NOMMU
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(1, 0, ac, av, "-f");
-#else							/* uClinux */
+#else
 		bb_xdaemon(1, 0);
-#endif							/* uClinux */
+#endif
 	}
 
 	(void) startlogger();	/* need if syslog mode selected */

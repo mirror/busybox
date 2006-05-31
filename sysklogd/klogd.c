@@ -118,11 +118,11 @@ int klogd_main(int argc, char **argv)
 	}
 
 	if (!(opt & OPT_FOREGROUND)) {
-#if defined(__uClinux__)
+#ifdef BB_NOMMU
 		vfork_daemon_rexec(0, 1, argc, argv, "-n");
-#else /* __uClinux__ */
+#else
 		bb_xdaemon(0, 1);
-#endif /* __uClinux__ */
+#endif
 	}
 	doKlogd(console_log_level);
 

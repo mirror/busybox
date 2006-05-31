@@ -492,7 +492,7 @@ extern int my_query_module(const char *name, int which, void **buf, size_t *bufs
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 
-#if defined(__uClinux__)
+#ifdef BB_NOMMU
 extern void vfork_daemon_rexec(int nochdir, int noclose,
 		int argc, char **argv, char *foreground_opt);
 #endif
