@@ -9,15 +9,6 @@
 
 #include "bb_config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-extern const char BB_BANNER[];
-
-/* Pull in the utility routines from libbb */
 #include "libbb.h"
 
 enum Location {
@@ -53,23 +44,5 @@ extern const struct BB_applet applets[];
 #define PROTOTYPES
 #include "applets.h"
 #undef PROTOTYPES
-
-#ifndef RB_POWER_OFF
-/* Stop system and switch power off if possible.  */
-#define RB_POWER_OFF   0x4321fedc
-#endif
-
-/* Try to pull in PATH_MAX */
-#include <limits.h>
-
-/* for PATH_MAX on systems that don't have it in limits.h */
-#include <sys/param.h>
-#ifndef PATH_MAX
-#define  PATH_MAX         256
-#endif
-
-#ifdef DMALLOC
-#include <dmalloc.h>
-#endif
 
 #endif							/* _BB_INTERNAL_H_ */

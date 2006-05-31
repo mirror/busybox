@@ -11,23 +11,22 @@
 #ifndef	__LIBBUSYBOX_H__
 #define	__LIBBUSYBOX_H__    1
 
+#include "bb_config.h"
 #include "platform.h"
 
+#include <dirent.h>
+#include <inttypes.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <termios.h>
-#include <dirent.h>
-
-#include <netinet/in.h>
-#include <netdb.h>
-
-#include <inttypes.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <termios.h>
 
-#include "bb_config.h"
+
+
 #ifdef CONFIG_SELINUX
 #include <selinux/selinux.h>
 #endif
@@ -526,9 +525,22 @@ void *md5_end(void *resbuf, md5_ctx_t *ctx);
 
 extern uint32_t *bb_crc32_filltable (int endian);
 
-/* busybox.h will include dmalloc later for us, else include it here.  */
-#if !defined _BB_INTERNAL_H_ && defined DMALLOC
+#ifndef RB_POWER_OFF
+/* Stop system and switch power off if possible.  */
+#define RB_POWER_OFF   0x4321fedc
+#endif
+
+/* Try to pull in PATH_MAX */
+#include <limits.h>
+#include <sys/param.h>
+#ifndef PATH_MAX
+#define  PATH_MAX         256
+#endif
+
+#ifdef DMALLOC
 #include <dmalloc.h>
 #endif
+
+extern const char BB_BANNER[];
 
 #endif /* __LIBBUSYBOX_H__ */
