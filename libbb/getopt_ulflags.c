@@ -298,13 +298,14 @@ typedef struct {
 } t_complementally;
 
 /* You can set bb_applet_long_options for parse called long options */
-
+#if ENABLE_GETOPT_LONG
 static const struct option bb_default_long_options[] = {
 /*      { "help", 0, NULL, '?' }, */
 	{ 0, 0, 0, 0 }
 };
 
 const struct option *bb_applet_long_options = bb_default_long_options;
+#endif
 
 unsigned long
 bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
@@ -316,7 +317,9 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	const unsigned char *s;
 	t_complementally *on_off;
 	va_list p;
+#if ENABLE_GETOPT_LONG
 	const struct option *l_o;
+#endif
 	unsigned long trigger;
 #ifdef CONFIG_PS
 	char **pargv = NULL;
@@ -355,6 +358,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 		c++;
 	}
 
+#if ENABLE_GETOPT_LONG
 	for(l_o = bb_applet_long_options; l_o->name; l_o++) {
 		if(l_o->flag)
 			continue;
@@ -371,6 +375,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 			c++;
 		}
 	}
+#endif /* ENABLE_GETOPT_LONG */
 	for (s = (const unsigned char *)bb_opt_complementally; s && *s; s++) {
 		t_complementally *pair;
 		unsigned long *pair_switch;
@@ -452,8 +457,12 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 		}
 	}
 #endif
+#if ENABLE_GETOPT_LONG
 	while ((c = getopt_long (argc, argv, applet_opts,
 				 bb_applet_long_options, NULL)) >= 0) {
+#else
+	while ((c = getopt (argc, argv, applet_opts)) >= 0) {
+#endif /* ENABLE_GETOPT_LONG */
 #ifdef CONFIG_PS
 loop_arg_is_opt:
 #endif
