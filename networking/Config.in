@@ -683,6 +683,13 @@ config CONFIG_FEATURE_WGET_IP6_LITERAL
 	help
 	  Support IPv6 address literal notation in URLs.
 
+config CONFIG_FEATURE_WGET_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on CONFIG_WGET && CONFIG_GETOPT_LONG
+	help
+	  Support long options for the wget applet.
+
 config CONFIG_ZCIP
 	bool "zcip"
 	default n
