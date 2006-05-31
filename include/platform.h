@@ -197,7 +197,19 @@ typedef unsigned long long int  uintmax_t;
 #define PRIu32 "u"
 #endif
 
-// Need to implement fdprintf for platforms that haven't got dprintf.
+/* uclibc does not implement daemon for no-mmu systems.
+ * For 0.9.29 and svn, __ARCH_USE_MMU__ indicates no-mmu reliably.
+ * For earlier versions there is no reliable way to check if we are building
+ * for a mmu-less system; the user should pass CFLAGS_EXTRA="-DBB_NOMMU"
+ * on his own.
+ */
+#if defined __UCLIBC__ && __UCLIBC_MAJOR__ >= 0 && __UCLIBC_MINOR__ >= 9 && \
+    __UCLIBC_SUBLEVEL__ > 28 && !defined __ARCH_USE_MMU__
+#define BB_NOMMU
+#endif
+
+/* Need to implement fdprintf for platforms that haven't got dprintf. */
+/* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
 #define fdprintf dprintf
 
 /* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
@@ -214,9 +226,7 @@ typedef unsigned long long int  uintmax_t;
 #define bb_setpgrp setpgrp()
 #endif
 
-// I have no idea what platform this was for since aldot didn't say, but
-// it belongs here since Linux doesn't need it.
-
+/* This is needed on some non linux unices like Tru64 */
 #if !defined ADJ_OFFSET_SINGLESHOT && defined MOD_CLKA && defined MOD_OFFSET
 #define ADJ_OFFSET_SINGLESHOT (MOD_CLKA | MOD_OFFSET)
 #endif
