@@ -29,7 +29,7 @@
 
 #include "busybox.h"
 
-static void klogd_signal(int sig)
+static void klogd_signal(int sig ATTRIBUTE_UNUSED)
 {
 	klogctl(7, NULL, 0);
 	klogctl(0, 0, 0);
@@ -38,13 +38,39 @@ static void klogd_signal(int sig)
 	exit(EXIT_SUCCESS);
 }
 
-static void doKlogd(const int console_log_level) ATTRIBUTE_NORETURN;
-static void doKlogd(const int console_log_level)
+#define OPT_LEVEL        1
+#define OPT_FOREGROUND   2
+
+#define KLOGD_LOGBUF_SIZE 4096
+
+int klogd_main(int argc, char **argv)
 {
+	RESERVE_CONFIG_BUFFER(log_buffer, KLOGD_LOGBUF_SIZE);
+	int console_log_level = -1;
 	int priority = LOG_INFO;
-	char log_buffer[4096];
 	int i, n, lastc;
 	char *start;
+
+
+	{
+		unsigned long opt;
+
+		/* do normal option parsing */
+		opt = bb_getopt_ulflags(argc, argv, "c:n", &start);
+
+		if (opt & OPT_LEVEL) {
+			/* Valid levels are between 1 and 8 */
+			console_log_level = bb_xgetlarg(start, 10, 1, 8);
+		}
+
+		if (!(opt & OPT_FOREGROUND)) {
+#ifdef BB_NOMMU
+			vfork_daemon_rexec(0, 1, argc, argv, "-n");
+#else
+			bb_xdaemon(0, 1);
+#endif
+		}
+	}
 
 	openlog("kernel", 0, LOG_KERN);
 
@@ -65,12 +91,13 @@ static void doKlogd(const int console_log_level)
 
 	while (1) {
 		/* Use kernel syscalls */
-		memset(log_buffer, '\0', sizeof(log_buffer));
-		n = klogctl(2, log_buffer, sizeof(log_buffer));
+		memset(log_buffer, '\0', KLOGD_LOGBUF_SIZE);
+		n = klogctl(2, log_buffer, KLOGD_LOGBUF_SIZE);
 		if (n < 0) {
 			if (errno == EINTR)
 				continue;
-			syslog(LOG_ERR, "klogd: Error return from sys_sycall: %d - %m.\n", errno);
+			syslog(LOG_ERR, "klogd: Error from sys_sycall: %d - %m.\n",
+				   errno);
 			exit(EXIT_FAILURE);
 		}
 
@@ -81,7 +108,7 @@ static void doKlogd(const int console_log_level)
 			if (lastc == '\0' && log_buffer[i] == '<') {
 				priority = 0;
 				i++;
-				while (isdigit(log_buffer[i])) {
+				while (log_buffer[i] >= '0' && log_buffer[i] <= '9') {
 					priority = priority * 10 + (log_buffer[i] - '0');
 					i++;
 				}
@@ -98,33 +125,8 @@ static void doKlogd(const int console_log_level)
 			lastc = log_buffer[i];
 		}
 	}
-}
-
-#define OPT_LEVEL        1
-#define OPT_FOREGROUND   2
-
-int klogd_main(int argc, char **argv)
-{
-	unsigned long opt;
-	char *c_arg;
-	int console_log_level = -1;
-
-	/* do normal option parsing */
-	opt = bb_getopt_ulflags (argc, argv, "c:n", &c_arg);
-
-	if (opt & OPT_LEVEL) {
-		/* Valid levels are between 1 and 8 */
-		console_log_level = bb_xgetlarg(c_arg, 10, 1, 8);
-	}
-
-	if (!(opt & OPT_FOREGROUND)) {
-#ifdef BB_NOMMU
-		vfork_daemon_rexec(0, 1, argc, argv, "-n");
-#else
-		bb_xdaemon(0, 1);
-#endif
-	}
-	doKlogd(console_log_level);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		RELEASE_CONFIG_BUFFER(log_buffer);
 
 	return EXIT_SUCCESS;
 }
