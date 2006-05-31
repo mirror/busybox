@@ -13,6 +13,22 @@ menu "Busybox Settings"
 
 menu "General Configuration"
 
+config CONFIG_NITPICK
+	bool "See lots more (probably unnecessary) configuration options."
+	default n
+	help
+	  Some BusyBox applets have more configuration options than anyone
+	  will ever care about.  To avoid drowining people in complexity, most
+	  of the applet features that can be set to a sane default value are
+	  hidden, unless you hit the above switch.
+
+	  This is better than to telling people to edit the busybox source
+	  code, but not by much.
+
+	  See http://en.wikipedia.org/wiki/Fibber_McGee_and_Molly#The_Closet
+
+	  You have been warned.
+
 choice
 	prompt "Buffer allocation policy"
 	default CONFIG_FEATURE_BUFFERS_USE_MALLOC
@@ -81,19 +97,12 @@ config CONFIG_LOCALE_SUPPORT
 	  busybox to support locale settings.
 
 config CONFIG_GETOPT_LONG
-	bool "Enable getopt long (system needs struct option for this to work)"
+	bool "Enable support for --long-options"
 	default n
 	depends on !CONFIG_NO_GETOPT_LONG
 	help
-	  EXPERIMENTAL!
-	  Enable this if your system support long options for getopt and
-	  you want to use them in busybox.
-
-# remove this comment to disable getopt_long per default.
-#config CONFIG_NO_GETOPT_LONG
-#	bool
-#	default y
-#	depends on !CONFIG_GETOPT_LONG
+	  Enable this if you want busybox applets to use the gnu --long-option
+	  style, in addition to single character -a -b -c style options.
 
 config CONFIG_FEATURE_DEVFS
 	bool "Use devfs names for devices"
@@ -103,6 +112,9 @@ config CONFIG_FEATURE_DEVFS
           /dev/loop0.  If your /dev directory has normal names instead of
           devfs names, you don't want this.
 
+	  This is obsolete and will be going away someday.  Consider it
+	  deprecated.
+
 config CONFIG_FEATURE_DEVPTS
 	bool "Use the devpts filesystem for Unix98 PTYs"
 	default y if CONFIG_FEATURE_DEVFS
@@ -111,7 +123,7 @@ config CONFIG_FEATURE_DEVPTS
 	  busybox will use /dev/ptmx for the master side of the pseudoterminal
 	  and /dev/pts/<number> for the slave side.  Otherwise, BSD style
 	  /dev/ttyp<number> will be used. To use this option, you should have
-	  devpts or devfs mounted.
+	  devpts mounted.
 
 config CONFIG_FEATURE_CLEAN_UP
 	bool "Clean up all memory before exiting (usually not needed)"
@@ -129,15 +141,25 @@ config CONFIG_FEATURE_SUID
 	bool "Support for SUID/SGID handling"
 	default n
 	help
-	  Support SUID and SGID binaries.
+	  With this option you can install the busybox binary belonging
+	  to root with the suid bit set, and it'll and it'll automatically drop
+	  priviledges for applets that don't need root access.
+
+	  If you're really paranoid and don't want to do this, build two
+	  busybox binaries with different applets in them (and the appropriate
+	  symlinks pointing to each binary), and only set the suid bit on the
+	  one that needs it.  The applets currently marked to need the suid bit
+	  are login, passwd, su, ping, traceroute, crontab, dnsd, ipcrm, ipcs,
+	  and vlock.
 
 config CONFIG_FEATURE_SUID_CONFIG
 	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
 	default n if CONFIG_FEATURE_SUID
 	depends on CONFIG_FEATURE_SUID
 	help
-	  Allow the SUID / SGID state of an applet to be determined runtime by
-	  checking /etc/busybox.conf.  The format of this file is as follows:
+	  Allow the SUID / SGID state of an applet to be determined at runtime
+	  by checking /etc/busybox.conf.  (This is sort of a poor man's sudo.)
+	  The format of this file is as follows:
 
 	  <applet> = [Ssx-][Ssx-][x-] (<username>|<uid>).(<groupname>|<gid>)
 
@@ -164,7 +186,7 @@ config CONFIG_FEATURE_SUID_CONFIG
 
 config CONFIG_FEATURE_SUID_CONFIG_QUIET
 	bool "Suppress warning message if /etc/busybox.conf is not readable"
-	default n
+	default y
 	depends on CONFIG_FEATURE_SUID_CONFIG
 	help
 	  /etc/busybox.conf should be readable by the user needing the SUID, check
