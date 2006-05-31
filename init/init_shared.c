@@ -17,6 +17,7 @@
 #include "busybox.h"
 #include "init_shared.h"
 
+const char * const init_sending_format = "Sending SIG%s to all processes.";
 #ifndef CONFIG_INIT
 const char * const bb_shutdown_format = "\r%s\n";
 int bb_shutdown_system(unsigned long magic)
