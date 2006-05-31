@@ -169,11 +169,12 @@ config CONFIG_HDPARM
 config CONFIG_FEATURE_HDPARM_GET_IDENTITY
 	bool "Support obtaining detailed information directly from drives"
 	default y
-	depends on CONFIG_HDPARM && CONFIG_GETOPT_LONG
+	depends on CONFIG_HDPARM
 	help
-	  Enables the -I and -Istdin options to obtain detailed information
+	  Enables the -I and -i options to obtain detailed information
 	  directly from drives about their capabilities and supported ATA
-	  feature set.  Enabling this option will add about 16k...
+	  feature set. If no device name is specified, hdparm will read
+	  identify data from stdin. Enabling this option will add about 16k...
 
 config CONFIG_FEATURE_HDPARM_HDIO_SCAN_HWIF
 	bool "Register an IDE interface (DANGEROUS)"

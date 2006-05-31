@@ -23,7 +23,6 @@
 #include <sys/times.h>
 #include <sys/mount.h>
 #include <sys/mman.h>
-#include <getopt.h>
 #include <linux/types.h>
 #include <linux/hdreg.h>
 
@@ -2095,21 +2094,9 @@ static void parse_xfermode(int flag, unsigned long *get, unsigned long *set, int
 	}
 }
 
-/*-------------------------------------*/
-/* getopt long options */
-#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-static const struct option HDPARM_LONG_OPT[] =
-{
-	{"Istdin", 0, NULL, '\256'},
-	{NULL, 0, NULL, 0}
-};
-#else
-#define HDPARM_LONG_OPT			NULL
-#endif
-/*-------------------------------------*/
-/* getopt short options */
+/*------- getopt short options --------*/
 static const char hdparm_options[]=	"gfu::n::p:r::m::c::k::a::B:tTh"\
-	USE_FEATURE_HDPARM_GET_IDENTITY("\256iI")
+	USE_FEATURE_HDPARM_GET_IDENTITY("iI")
 	USE_FEATURE_HDPARM_HDIO_GETSET_DMA("d::")
 #ifdef HDIO_DRIVE_CMD
 									"S::D::P::X::K::A::L::W::CyYzZ"
@@ -2134,13 +2121,9 @@ int hdparm_main(int argc, char **argv)
 	int c;
 	int flagcount = 0;
 
-	while ((c = getopt_long (argc, argv, hdparm_options, HDPARM_LONG_OPT , NULL)) >= 0) {
+	while ((c = getopt(argc, argv, hdparm_options)) >= 0) {
 		flagcount++;
-#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
-		if (c == '\256') {
-			identify_from_stdin(); /* EXIT */
-		}
-#endif
+		if (c == 'h') bb_show_usage(); /* EXIT */
 		USE_FEATURE_HDPARM_GET_IDENTITY(get_IDentity = (c == 'I'));
 		USE_FEATURE_HDPARM_GET_IDENTITY(get_identity = (c == 'i'));
 		get_geom |= (c == 'g');
@@ -2204,9 +2187,11 @@ int hdparm_main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
+#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
 	if (argc < 1) {
-		bb_show_usage();
+		identify_from_stdin(); /* EXIT */
 	}
+#endif
 
 	while (argc--) {
 		process_dev(*argv);

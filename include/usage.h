@@ -994,7 +994,8 @@ USE_FEATURE_DATE_ISOFMT( \
 #define hdparm_trivial_usage \
 	"[options] [device] .."
 #define hdparm_full_usage \
-	"Options:" \
+	USE_FEATURE_HDPARM_GET_IDENTITY("\tIf no device name is specified read from stdin.\n") \
+	"\nOptions:\n" \
 	"\t-a   get/set fs readahead\n" \
 	"\t-A   set drive read-lookahead flag (0/1)\n" \
 	"\t-b   get/set bus state (0 == off, 1 == on, 2 == tristate)\n" \
@@ -1006,9 +1007,8 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-f   flush buffer cache for device on exit\n" \
 	"\t-g   display drive geometry\n" \
 	"\t-h   display terse usage information\n" \
-	"\t-i   display drive identification\n" \
+	USE_FEATURE_HDPARM_GET_IDENTITY("\t-i   display drive identification\n") \
 	USE_FEATURE_HDPARM_GET_IDENTITY("\t-I   detailed/current information directly from drive\n") \
-	USE_FEATURE_HDPARM_GET_IDENTITY("\t-Istdin  similar to -I, but wants /proc/ide/" "*" "/hd?/identify as input\n") \
 	"\t-k   get/set keep_settings_over_reset flag (0/1)\n" \
 	"\t-K   set drive keep_features_over_reset flag (0/1)\n" \
 	"\t-L   set drive doorlock (0/1) (removable harddisks only)\n" \
