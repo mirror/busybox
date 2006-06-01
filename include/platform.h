@@ -157,9 +157,7 @@ __extension__ typedef unsigned long long __u64;
 #endif /* ___digital__ && __unix__ */
 
 /*----- Kernel versioning ------------------------------------*/
-#ifdef __linux__
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
-#endif
 
 /* ---- miscellaneous --------------------------------------- */
 
