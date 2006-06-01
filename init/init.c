@@ -175,7 +175,7 @@ static const char * const environment[] = {
 /* Function prototypes */
 static void delete_init_action(struct init_action *a);
 static int waitfor(const struct init_action *a, pid_t pid);
-static void halt_signal(int sig);
+static void shutdown_signal(int sig);
 
 
 static void loop_forever(void)
@@ -395,7 +395,7 @@ static void open_new_terminal(const char *device, char fail) {
 		if (fail)
 			_exit(1);
 		/* else */
-		halt_signal(SIGUSR1);
+		shutdown_signal(SIGUSR1);
 	}
 }
 
@@ -746,33 +746,30 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 	}
 }
 
-static void halt_signal(int sig ATTRIBUTE_UNUSED)
+static void shutdown_signal(int sig)
 {
+	char *m;
+	int rb;
+
 	shutdown_system();
-	message(CONSOLE | LOG, "The system is halted.");
+
+	if (sig == SIGTERM) {
+		m = "reboot";
+		rb = RB_AUTOBOOT;
+	} else if (sig == SIGUSR2) {
+		m = "poweroff";
+		rb = RB_POWER_OFF;
+	} else {
+		m = "halt";
+		rb = RB_HALT_SYSTEM;
+	}
+	message(CONSOLE | LOG, "Requesting system %s.", m);
 	sync();
 
 	/* allow time for last message to reach serial console */
 	sleep(2);
 
-	if (sig == SIGUSR2)
-		init_reboot(RB_POWER_OFF);
-	else
-		init_reboot(RB_HALT_SYSTEM);
-
-	loop_forever();
-}
-
-static void reboot_signal(int sig ATTRIBUTE_UNUSED)
-{
-	shutdown_system();
-	message(CONSOLE | LOG, "Please stand by while rebooting the system.");
-	sync();
-
-	/* allow time for last message to reach serial console */
-	sleep(2);
-
-	init_reboot(RB_AUTOBOOT);
+	init_reboot(rb);
 
 	loop_forever();
 }
@@ -1020,10 +1017,10 @@ int init_main(int argc, char **argv)
 	 * clear all of these in run() */
 	signal(SIGHUP, exec_signal);
 	signal(SIGQUIT, exec_signal);
-	signal(SIGUSR1, halt_signal);
-	signal(SIGUSR2, halt_signal);
+	signal(SIGUSR1, shutdown_signal);
+	signal(SIGUSR2, shutdown_signal);
 	signal(SIGINT, ctrlaltdel_signal);
-	signal(SIGTERM, reboot_signal);
+	signal(SIGTERM, shutdown_signal);
 	signal(SIGCONT, cont_handler);
 	signal(SIGSTOP, stop_handler);
 	signal(SIGTSTP, stop_handler);
