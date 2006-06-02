@@ -1,3 +1,10 @@
+/* vi: set sw=4 ts=4: */
+/*
+ * Version stuff.
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ */
+
 #include "busybox.h"
 
 #ifndef BB_EXTRA_VERSION

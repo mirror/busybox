@@ -13,6 +13,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -31,8 +32,6 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/param.h>
-
-#include "busybox.h"
 
 /* SYSLOG_NAMES defined to pull some extra junk from syslog.h */
 #define SYSLOG_NAMES

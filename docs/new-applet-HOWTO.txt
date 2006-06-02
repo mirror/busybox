@@ -16,6 +16,8 @@ such as who you stole the code from and so forth. Also include the mini-GPL
 boilerplate. Be sure to name the main function <applet>_main instead of main.
 And be sure to put it in <applet>.c. Usage does not have to be taken care of by
 your applet.
+Make sure to #include "busybox.h" as the first include file in your applet so
+the bb_config.h and appropriate platform specific files are included properly.
 
 For a new applet mu, here is the code that would go in mu.c:
 
@@ -25,13 +27,13 @@ For a new applet mu, here is the code that would go in mu.c:
 /*
  * Mini mu implementation for busybox
  *
- *
  * Copyright (C) [YEAR] by [YOUR NAME] <YOUR EMAIL>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "busybox.h"
+#include <other.h>
 
 int mu_main(int argc, char **argv)
 {

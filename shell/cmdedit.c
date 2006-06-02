@@ -31,6 +31,7 @@
  */
 
 
+#include "busybox.h"
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
@@ -40,8 +41,6 @@
 #include <ctype.h>
 #include <signal.h>
 #include <limits.h>
-
-#include "busybox.h"
 
 #include "../shell/cmdedit.h"
 

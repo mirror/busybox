@@ -9,12 +9,12 @@
  * Based on which from debianutils
  */
 
+#include "busybox.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include "busybox.h"
 
 int which_main(int argc, char **argv)
 {

@@ -12,12 +12,12 @@
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
+#include "busybox.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "busybox.h"
 
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
 static const char usage_messages[] =

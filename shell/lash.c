@@ -21,6 +21,7 @@
 //#define DEBUG_SHELL
 
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -33,7 +34,6 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <termios.h>
-#include "busybox.h"
 #include "cmdedit.h"
 
 #ifdef CONFIG_LOCALE_SUPPORT

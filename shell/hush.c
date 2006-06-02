@@ -77,6 +77,8 @@
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
+
+#include "busybox.h"
 #include <ctype.h>     /* isalpha, isdigit */
 #include <unistd.h>    /* getpid */
 #include <stdlib.h>    /* getenv, atoi */
@@ -97,7 +99,6 @@
 /* #define DEBUG_SHELL */
 
 #if 1
-#include "busybox.h"
 #include "cmdedit.h"
 #else
 #define bb_applet_name "hush"

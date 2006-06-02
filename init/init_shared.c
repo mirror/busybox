@@ -7,6 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+#include "busybox.h"
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -14,7 +15,6 @@
 #include <getopt.h>
 #include <sys/reboot.h>
 #include <sys/syslog.h>
-#include "busybox.h"
 #include "init_shared.h"
 
 const char * const init_sending_format = "Sending SIG%s to all processes.";

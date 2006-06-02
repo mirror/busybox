@@ -7,6 +7,7 @@
  * Adapted for busybox David Kimdon <dwhedon@gordian.com>
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,8 +18,6 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <getopt.h> /* struct option */
-
-#include "busybox.h"
 #include "pwd_.h"
 
 static int signal_nr = 15;

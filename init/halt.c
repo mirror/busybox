@@ -7,10 +7,9 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+#include "busybox.h"
 #include <signal.h>
 #include <sys/reboot.h>
-#include "busybox.h"
-
 #include <unistd.h>
 
 int halt_main(int argc, char *argv[])
@@ -40,7 +39,7 @@ RB_AUTOBOOT
 	flags = bb_getopt_ulflags(argc, argv, "d:nf", &delay);
 	if (flags&1) sleep(atoi(delay));
 	if (!(flags&2)) sync();
-	
+
 	/* Perform action. */
 	if (ENABLE_INIT && !(flags & 4)) {
 		if (ENABLE_FEATURE_INITRD) {

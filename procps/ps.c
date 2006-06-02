@@ -7,6 +7,7 @@
  * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,7 +18,6 @@
 #include <string.h>
 #include <termios.h>
 #include <sys/ioctl.h>
-#include "busybox.h"
 #if ENABLE_SELINUX
 #include <selinux/selinux.h>  /* for is_selinux_enabled()  */
 #endif

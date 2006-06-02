@@ -1,13 +1,15 @@
 /* vi: set sw=4 ts=4: */
 /*
+ * BusyBox' main applet dispatcher.
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
+#include "busybox.h"
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
-#include "busybox.h"
 #if ENABLE_LOCALE_SUPPORT
 #include <locale.h>
 #else

@@ -17,6 +17,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>		/* for our signal() handlers */
@@ -26,8 +27,6 @@
 #include <ctype.h>
 #include <sys/syslog.h>
 #include <sys/klog.h>
-
-#include "busybox.h"
 
 static void klogd_signal(int sig ATTRIBUTE_UNUSED)
 {

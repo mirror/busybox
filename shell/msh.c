@@ -27,6 +27,7 @@
  * Original copyright notice is retained at the end of this file.
  */
 
+#include "busybox.h"
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -46,7 +47,6 @@
 #include <sys/wait.h>
 
 #include "cmdedit.h"
-#include "busybox.h"
 
 
 /* Conditional use of "register" keyword */

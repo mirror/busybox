@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * tiny fuser implementation
  *
@@ -7,6 +8,7 @@
  * GNU Library General Public License
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -19,7 +21,6 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/sysmacros.h>
-#include "busybox.h"
 
 #define FUSER_PROC_DIR "/proc"
 #define FUSER_MAX_LINE 255

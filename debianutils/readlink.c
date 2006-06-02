@@ -7,11 +7,11 @@
  * Licensed under GPL v2, see file LICENSE in this tarball for details.
  */
 
+#include "busybox.h"
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include "busybox.h"
 
 #define READLINK_FLAG_f	(1 << 0)
 
@@ -33,7 +33,8 @@ int readlink_main(int argc, char **argv)
 		return EXIT_FAILURE;
 	puts(buf);
 
-	if (ENABLE_FEATURE_CLEAN_UP && buf != bb_common_bufsiz1) free(buf);
+	if (ENABLE_FEATURE_CLEAN_UP && buf != bb_common_bufsiz1)
+		free(buf);
 
 	return EXIT_SUCCESS;
 }

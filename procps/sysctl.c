@@ -1,4 +1,4 @@
-
+/* vi: set sw=4 ts=4: */
 /*
  * Sysctl 1.01 - A utility to read and manipulate the sysctl parameters
  *
@@ -14,6 +14,7 @@
  *
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -23,7 +24,6 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include "busybox.h"
 
 /*
  *    Function Prototypes

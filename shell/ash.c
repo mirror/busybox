@@ -44,10 +44,11 @@
  */
 
 
-
 #define IFS_BROKEN
 
 #define PROFILE 0
+
+#include "busybox.h"
 
 #ifdef DEBUG
 #define _GNU_SOURCE
@@ -76,12 +77,10 @@
 #include <paths.h>
 #include <setjmp.h>
 #include <signal.h>
-#include <stdint.h>
+/*#include <stdint.h>*/
 #include <time.h>
 #include <fnmatch.h>
 
-
-#include "busybox.h"
 #include "pwd_.h"
 
 #ifdef CONFIG_ASH_JOB_CONTROL
