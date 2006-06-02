@@ -25,6 +25,7 @@ my $kernelsyms="";
 my $stdout=0;
 my $verbose=0;
 my $help=0;
+my $nm = $ENV{'NM'} || "nm";
 
 # more globals
 my (@liblist) = ();
@@ -104,7 +105,7 @@ foreach my $obj ( @liblist ){
     warn "\nMODULE = $tgtname\n" if $verbose;
 
     # get a list of symbols
-	my @output=`nm $obj`;
+	my @output=`$nm $obj`;
 
     build_ref_tables($tgtname, \@output, $exp, $dep);
 }
@@ -112,7 +113,7 @@ foreach my $obj ( @liblist ){
 
 # vmlinux is a special name that is only used to resolve symbols
 my $tgtname = 'vmlinux';
-my @output = $kernelsyms ? `cat $kernelsyms` : `nm $kernel`;
+my @output = $kernelsyms ? `cat $kernelsyms` : `$nm $kernel`;
 warn "\nMODULE = $tgtname\n" if $verbose;
 build_ref_tables($tgtname, \@output, $exp, $dep);
 
