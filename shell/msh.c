@@ -1621,7 +1621,7 @@ REGISTER int sub;
 
 static void initarea()
 {
-	brkaddr = malloc(AREASIZE);
+	brkaddr = xmalloc(AREASIZE);
 	brktop = brkaddr + AREASIZE;
 
 	while ((long) sbrk(0) & ALIGN)
