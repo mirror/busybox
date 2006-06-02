@@ -13,24 +13,17 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <sys/types.h>
 #include <sys/ioctl.h>
-#include <sys/stat.h>
 
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <netinet/in.h>
-#include <netdb.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 
 #include "busybox.h"
 
@@ -286,6 +279,8 @@ static const struct option ftpgetput_long_options[] = {
 	{"port", 1, NULL, 'P'},
 	{0, 0, 0, 0}
 };
+#else
+#define ftpgetput_long_options 0
 #endif
 
 int ftpgetput_main(int argc, char **argv)
@@ -320,9 +315,9 @@ int ftpgetput_main(int argc, char **argv)
 	/*
 	 * Decipher the command line
 	 */
-#if ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS
-	bb_applet_long_options = ftpgetput_long_options;
-#endif
+	if (ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS)
+		bb_applet_long_options = ftpgetput_long_options;
+
 	opt = bb_getopt_ulflags(argc, argv, "cvu:p:P:", &server->user, &server->password, &port);
 
 	/* Process the non-option command line arguments */
