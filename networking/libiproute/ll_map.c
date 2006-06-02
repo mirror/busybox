@@ -10,14 +10,11 @@
  *
  */
 
-#include <stdio.h>
+#include "libbb.h"
 #include <string.h>
-#include <stdlib.h>
-#include <netinet/in.h>
 
 #include "libnetlink.h"
 #include "ll_map.h"
-#include "libbb.h"
 
 struct idxmap
 {

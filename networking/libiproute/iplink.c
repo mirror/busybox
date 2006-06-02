@@ -1,21 +1,17 @@
 /*
  * iplink.c		"ip link".
  *
- *		This program is free software; you can redistribute it and/or
- *		modify it under the terms of the GNU General Public License
- *		as published by the Free Software Foundation; either version
- *		2 of the License, or (at your option) any later version.
- *
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
+
+#include "libbb.h"
 
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <linux/version.h>
 
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -23,18 +19,11 @@
 #include <net/if_packet.h>
 #include <netpacket/packet.h>
 
-#if __GLIBC__ >=2 && __GLIBC_MINOR >= 1
 #include <net/ethernet.h>
-#else
-#include <linux/if_ether.h>
-#endif
 
 #include "rt_names.h"
 #include "utils.h"
 #include "ip_common.h"
-
-#include "libbb.h"
-
 
 /* take from linux/sockios.h */
 #define SIOCSIFNAME	0x8923		/* set interface name */
@@ -96,7 +85,6 @@ static int do_chflags(char *dev, __u32 flags, __u32 mask)
 
 static int do_changename(char *dev, char *newdev)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 4, 0)
 	struct ifreq ifr;
 	int fd;
 	int err;
@@ -114,8 +102,6 @@ static int do_changename(char *dev, char *newdev)
 	}
 	close(fd);
 	return err;
-#endif
-	return 0;
 }
 
 static int set_qlen(char *dev, int qlen)

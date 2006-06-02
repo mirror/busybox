@@ -13,9 +13,10 @@
  * Kunihiro Ishiguro <kunihiro@zebra.org> 001102: rtnh_ifindex was not initialized
  */
 
+#include "libbb.h"
+
 #include <sys/socket.h>
 
-#include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -23,8 +24,6 @@
 #include "rt_names.h"
 #include "utils.h"
 #include "ip_common.h"
-
-#include "libbb.h"
 
 #ifndef RTAX_RTTVAR
 #define RTAX_RTTVAR RTAX_HOPS

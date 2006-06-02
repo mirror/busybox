@@ -13,16 +13,14 @@
  * Phil Karn <karn@ka9q.ampr.org>	990408:	"pmtudisc" flag
  */
 
+#include "libbb.h"
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <arpa/inet.h>
 #include <netinet/ip.h>
-#include <netinet/in.h>
 
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -37,7 +35,6 @@
 #include "utils.h"
 #include "ip_common.h"
 
-#include "libbb.h"
 
 static int do_ioctl_get_ifindex(char *dev)
 {

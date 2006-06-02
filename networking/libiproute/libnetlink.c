@@ -10,10 +10,10 @@
  *
  */
 
+#include "libbb.h"
 #include <sys/socket.h>
 
 #include <errno.h>
-#include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -21,7 +21,6 @@
 #include <sys/uio.h>
 
 #include "libnetlink.h"
-#include "libbb.h"
 
 void rtnl_close(struct rtnl_handle *rth)
 {

@@ -9,15 +9,13 @@
  *	Laszlo Valko <valko@linux.karinthy.hu> 990223: address label must be zero terminated
  */
 
+#include "libbb.h"
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 
 #include <fnmatch.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <arpa/inet.h>
 
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -26,7 +24,6 @@
 #include "utils.h"
 #include "ip_common.h"
 
-#include "libbb.h"
 
 static struct
 {

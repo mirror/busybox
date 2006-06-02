@@ -10,13 +10,12 @@
  * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
  */
 
-#include <stdlib.h>
+#include "libbb.h"
+
 #include <string.h>
 #include <unistd.h>
-#include <arpa/inet.h>
 
 #include "utils.h"
-#include "libbb.h"
 #include "inet_common.h"
 
 int get_integer(int *val, char *arg, int base)
