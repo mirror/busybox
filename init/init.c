@@ -9,6 +9,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -24,7 +25,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/reboot.h>
-#include "busybox.h"
 
 #include "init_shared.h"
 
@@ -138,12 +138,14 @@ struct init_action {
 
 /* Static variables */
 static struct init_action *init_action_list = NULL;
-static char console[CONSOLE_BUFF_SIZE] = _PATH_CONSOLE;
+static char console[CONSOLE_BUFF_SIZE] = CONSOLE_DEV;
 
 #ifndef CONFIG_SYSLOGD
 static char *log_console = VC_5;
 #endif
+#if !ENABLE_DEBUG_INIT
 static sig_atomic_t got_cont = 0;
+#endif
 
 enum {
 	LOG = 0x1,
@@ -156,7 +158,7 @@ enum {
 #endif
 
 #ifndef RB_HALT_SYSTEM
-	RB_HALT_SYSTEM = 0xcdef0123,
+	RB_HALT_SYSTEM = 0xcdef0123, /* FIXME: this overflows enum */
 	RB_ENABLE_CAD = 0x89abcdef,
 	RB_DISABLE_CAD = 0,
 	RB_POWER_OFF = 0x4321fedc,
@@ -175,8 +177,9 @@ static const char * const environment[] = {
 /* Function prototypes */
 static void delete_init_action(struct init_action *a);
 static int waitfor(const struct init_action *a, pid_t pid);
+#if !ENABLE_DEBUG_INIT
 static void shutdown_signal(int sig);
-
+#endif
 
 static void loop_forever(void)
 {
@@ -242,7 +245,7 @@ static void message(int device, const char *fmt, ...)
 #endif
 
 	if (device & CONSOLE) {
-		int fd = device_open(_PATH_CONSOLE,
+		int fd = device_open(CONSOLE_DEV,
 					O_WRONLY | O_NOCTTY | O_NONBLOCK);
 		/* Always send console messages to /dev/console so people will see them. */
 		if (fd >= 0) {
@@ -327,7 +330,7 @@ static void console_init(void)
 			/* this is linux virtual tty */
 			snprintf(console, sizeof(console) - 1, VC_FORMAT, vt.v_active);
 		} else {
-			safe_strncpy(console, _PATH_CONSOLE, sizeof(console));
+			safe_strncpy(console, CONSOLE_DEV, sizeof(console));
 			tried++;
 		}
 	}
@@ -335,7 +338,7 @@ static void console_init(void)
 	while ((fd = open(console, O_RDONLY | O_NONBLOCK)) < 0 && tried < 2) {
 		/* Can't open selected console -- try
 			logical system console and VT_MASTER */
-		safe_strncpy(console, (tried == 0 ? _PATH_CONSOLE : CURRENT_VC),
+		safe_strncpy(console, (tried == 0 ? CONSOLE_DEV : CURRENT_VC),
 							sizeof(console));
 		tried++;
 	}
@@ -383,7 +386,7 @@ static void fixup_argv(int argc, char **argv, char *new_argv0)
 }
 
 /* Open the new terminal device */
-static void open_new_terminal(const char *device, char fail) {
+static void open_new_terminal(const char * const device, const int fail) {
 	struct stat sb;
 
 	if ((device_open(device, O_RDWR)) < 0) {
@@ -395,7 +398,11 @@ static void open_new_terminal(const char *device, char fail) {
 		if (fail)
 			_exit(1);
 		/* else */
+#if !ENABLE_DEBUG_INIT
 		shutdown_signal(SIGUSR1);
+#else
+		_exit(2);
+#endif
 	}
 }
 
