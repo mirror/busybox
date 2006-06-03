@@ -11,6 +11,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
 */
 
+#include "busybox.h"
 #include <sys/utsname.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -22,7 +23,6 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <fnmatch.h>
-#include "busybox.h"
 
 struct mod_opt_t {	/* one-way list of options to pass to a module */
 	char *  m_opt_val;
@@ -880,7 +880,7 @@ int modprobe_main(int argc, char** argv)
 	depend = build_dep ( );
 
 	if ( !depend )
-		bb_error_msg_and_die ( "could not parse modules.dep\n" );
+		bb_error_msg_and_die ( "could not parse modules.dep" );
 
 	if (remove_opt) {
 		do {
@@ -893,7 +893,7 @@ int modprobe_main(int argc, char** argv)
 		} while ( ++optind < argc );
 	} else {
 		if (optind >= argc)
-			bb_error_msg_and_die ( "No module or pattern provided\n" );
+			bb_error_msg_and_die ( "No module or pattern provided" );
 
 		if ( mod_insert ( argv [optind], argc - optind - 1, argv + optind + 1 ))
 			bb_error_msg_and_die ( "failed to load module %s", argv [optind] );

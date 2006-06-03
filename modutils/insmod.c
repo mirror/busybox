@@ -58,6 +58,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+#include "busybox.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -70,7 +71,6 @@
 #include <getopt.h>
 #include <fcntl.h>
 #include <sys/utsname.h>
-#include "busybox.h"
 
 #if !defined(CONFIG_FEATURE_2_4_MODULES) && \
 	!defined(CONFIG_FEATURE_2_6_MODULES)
@@ -3313,7 +3313,7 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits)
 	}
 	if (f->header.e_ident[EI_CLASS] != ELFCLASSM
 			|| f->header.e_ident[EI_DATA] != (BB_BIG_ENDIAN
-			   	? ELFDATA2MSB : ELFDATA2LSB)
+				? ELFDATA2MSB : ELFDATA2LSB)
 			|| f->header.e_ident[EI_VERSION] != EV_CURRENT
 			|| !MATCH_MACHINE(f->header.e_machine)) {
 		bb_error_msg("ELF file not for this architecture");
