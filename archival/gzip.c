@@ -324,7 +324,7 @@ static void write_buf(int fd, void *buf, unsigned cnt)
 	unsigned n;
 
 	while ((n = write(fd, buf, cnt)) != cnt) {
-		if (n == (unsigned) (-1)) bb_error_msg_and_die("can't write");
+		if (n == (unsigned) (-1)) bb_error_msg_and_die(bb_msg_write_error);
 		cnt -= n;
 		buf = (void *) ((char *) buf + n);
 	}

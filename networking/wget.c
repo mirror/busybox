@@ -512,7 +512,7 @@ read_response:
 	do {
 		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, ((chunked || got_clen) && (filesize < sizeof(buf)) ? filesize : sizeof(buf)), dfp)) > 0) {
 			if (safe_fwrite(buf, 1, n, output) != n) {
-				bb_perror_msg_and_die("write error");
+				bb_perror_msg_and_die(bb_msg_write_error);
 			}
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 			statbytes+=n;
@@ -532,7 +532,7 @@ read_response:
 		}
 
 		if (n == 0 && ferror(dfp)) {
-			bb_perror_msg_and_die("network read error");
+			bb_perror_msg_and_die(bb_msg_read_error);
 		}
 	} while (chunked);
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR

@@ -70,7 +70,7 @@ static ssize_t tail_read(int fd, char *buf, size_t count)
 		end = sbuf.st_size;
 	lseek(fd, end < current ? 0 : current, SEEK_SET);
 	if ((r = safe_read(fd, buf, count)) < 0) {
-		bb_perror_msg("read");
+		bb_perror_msg(bb_msg_read_error);
 		status = EXIT_FAILURE;
 	}
 

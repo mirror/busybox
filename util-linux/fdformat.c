@@ -133,7 +133,7 @@ int fdformat_main(int argc,char **argv)
 			print_and_flush("%3d\b\b\b", cyl);
 			if((read_bytes = safe_read(fd,data,n))!= n ) {
 				if(read_bytes < 0) {
-					bb_perror_msg("Read: ");
+					bb_perror_msg(bb_msg_read_error);
 				}
 				bb_error_msg_and_die("Problem reading cylinder %d, expected %d, read %d", cyl, n, read_bytes);
 			}

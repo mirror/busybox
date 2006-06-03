@@ -266,7 +266,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 				len = bb_full_read(localfd, cp, tftp_bufsize - 4);
 
 				if (len < 0) {
-					bb_perror_msg("read");
+					bb_perror_msg(bb_msg_read_error);
 					break;
 				}
 
@@ -443,7 +443,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 				len = bb_full_write(localfd, &buf[4], len - 4);
 
 				if (len < 0) {
-					bb_perror_msg("write");
+					bb_perror_msg(bb_msg_write_error);
 					break;
 				}
 

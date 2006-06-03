@@ -848,7 +848,7 @@ diff -u -r1.25 tftp.c
 +					lseek(localfd, bn*(tftp_bufsize-4), SEEK_SET);
 +					len = write(localfd, &buf[4], len-4);
 +					if (len < 0) {
-+						bb_perror_msg("write");
++						bb_perror_msg(bb_msg_write_error);
 +						break;
 +					}
 +					bit_set(bn, mcblockmap);
