@@ -68,7 +68,7 @@ int rdate_main(int argc, char **argv)
 
 	remote_time = askremotedate(argv[optind]);
 
-	if (flags & 1) {
+	if ((flags & 2) == 0) {
 		time_t current_time;
 
 		time(&current_time);
@@ -77,10 +77,10 @@ int rdate_main(int argc, char **argv)
 		else
 			if (stime(&remote_time) < 0)
 				bb_perror_msg_and_die("Could not set time of day");
+	}
 
-	/* No need to check for the -p flag as it's the only option left */
-
-	} else printf("%s", ctime(&remote_time));
+	if ((flags & 1) == 0)
+		printf("%s", ctime(&remote_time));
 
 	return EXIT_SUCCESS;
 }
