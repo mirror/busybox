@@ -223,6 +223,5 @@ int dc_main(int argc, char **argv)
 			argc--;
 		}
 	}
-	stack_machine(0);
 	return EXIT_SUCCESS;
 }
