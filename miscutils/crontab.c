@@ -10,6 +10,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -39,8 +40,6 @@
 #ifndef PATH_VI
 #define PATH_VI         "/bin/vi"   /* location of vi       */
 #endif
-
-#include "busybox.h"
 
 static const char  *CDir = CRONTABS;
 

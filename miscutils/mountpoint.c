@@ -9,11 +9,11 @@
  * Based on sysvinit's mountpoint
  */
 
+#include "busybox.h"
 #include <sys/stat.h>
 #include <errno.h> /* errno */
 #include <string.h> /* strerror */
 #include <getopt.h> /* optind */
-#include "busybox.h"
 
 int mountpoint_main(int argc, char **argv)
 {

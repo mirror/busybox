@@ -30,14 +30,13 @@
  *      redirected input has been read from stdin
 */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
 #include <ctype.h>
-
-#include "busybox.h"
 
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 #include "xregex.h"

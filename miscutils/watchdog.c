@@ -7,12 +7,12 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "busybox.h"
 
 /* Userspace timer duration, in seconds */
 static unsigned int timer_duration = 30;

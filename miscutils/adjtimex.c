@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * adjtimex.c - read, and possibly modify, the Linux kernel `timex' variables.
  *
@@ -6,16 +7,16 @@
  * Copyright 1997, 2000, 2001 Larry Doolittle <LRDoolittle@lbl.gov>
  *
  * busyboxed 20 March 2001, Larry Doolittle <ldoolitt@recycle.lbl.gov>
- * 
+ *
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/timex.h>
-#include "busybox.h"
 
 static const struct {int bit; const char *name;} statlist[] = {
 	{ STA_PLL,       "PLL"       },

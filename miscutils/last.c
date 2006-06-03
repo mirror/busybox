@@ -7,6 +7,7 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
+#include "busybox.h"
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -16,7 +17,6 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
-#include "busybox.h"
 
 #ifndef SHUTDOWN_TIME
 #  define SHUTDOWN_TIME 254

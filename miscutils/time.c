@@ -21,6 +21,7 @@
    Heavily modified for busybox by Erik Andersen <andersen@codepoet.org>
    */
 
+#include "busybox.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
@@ -35,7 +36,6 @@
 
 #define TV_MSEC tv_usec / 1000
 #include <sys/resource.h>
-#include "busybox.h"
 
 /* Information on the resources used by a child process.  */
 typedef struct

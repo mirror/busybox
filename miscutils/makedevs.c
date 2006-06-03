@@ -7,6 +7,7 @@
  * known bugs: can't deal with alpha ranges
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +17,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/sysmacros.h>     /* major() and minor() */
-#include "busybox.h"
 
 #ifdef CONFIG_FEATURE_MAKEDEVS_LEAF
 int makedevs_main(int argc, char **argv)

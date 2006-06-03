@@ -12,6 +12,7 @@
 
 #define VERSION "2.3.2"
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -28,8 +29,6 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
-
-#include "busybox.h"
 
 #define arysize(ary)    (sizeof(ary)/sizeof((ary)[0]))
 

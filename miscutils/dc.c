@@ -1,11 +1,11 @@
 /* vi: set sw=4 ts=4: */
+#include "busybox.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
-#include "busybox.h"
 
 /* Tiny RPN calculator, because "expr" didn't give me bitwise operations. */
 

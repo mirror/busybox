@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * setsid.c -- execute a command in a new session
  * Rick Sladkey <jrs@world.std.com>
@@ -13,10 +14,10 @@
  * - busyboxed
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "busybox.h"
 
 int setsid_main(int argc, char *argv[])
 {

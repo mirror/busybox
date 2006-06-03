@@ -12,12 +12,12 @@
  *          - by Mark Lord (C) 1994-2002 -- freely distributable
  */
 
+#include "busybox.h"
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
-#include <endian.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
 #include <sys/times.h>
@@ -30,8 +30,6 @@
 # define __USE_XOPEN
 #endif
 #include <unistd.h>
-
-#include "busybox.h"
 
 /* device types */
 /* ------------ */

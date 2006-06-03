@@ -13,11 +13,11 @@
  * Badly hacked by Tito Ragusa <farmatito@tiscali.it>
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
-#include "busybox.h"
 
 #define WHOLE_FILE		1
 #define PRINT_NAME		2

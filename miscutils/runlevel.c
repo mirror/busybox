@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * runlevel	Prints out the previous and the current runlevel.
  *
@@ -11,12 +12,11 @@
  * initially busyboxified by Bernhard Fischer
  */
 
+#include "busybox.h"
 #include <stdio.h>
 #include <utmp.h>
 #include <time.h>
 #include <stdlib.h>
-
-#include "busybox.h"
 
 int runlevel_main(int argc, char *argv[])
 {

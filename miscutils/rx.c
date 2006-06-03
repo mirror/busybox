@@ -20,6 +20,7 @@
  *
  */
 
+#include "busybox.h"
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -31,7 +32,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
-#include "busybox.h"
 
 
 #define SOH 0x01
