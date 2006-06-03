@@ -481,7 +481,7 @@ static void add_cmd(char *cmdstr)
 		cmdstr = bb_xasprintf("%s\n%s", bbg.add_cmd_line, cmdstr);
 		free(bbg.add_cmd_line);
 		bbg.add_cmd_line = cmdstr;
-	} else bbg.add_cmd_line=NULL;
+	} else bbg.add_cmd_line=NULL; /* XXX: erm.. bbg.add_cmd_line was 0 and we set it to *0 here why? */
 
 	/* If this line ends with backslash, request next line. */
 	temp=strlen(cmdstr);
@@ -737,8 +737,8 @@ static int puts_maybe_newline(char *s, FILE *file, int missing_newline, int no_n
 	if(!no_newline) fputc('\n',file);
 
     if(ferror(file)) {
-		fprintf(stderr,"Write failed.\n");
-		exit(4);  /* It's what gnu sed exits with... */
+		bb_default_error_retval = 4;  /* It's what gnu sed exits with... */
+		bb_error_msg_and_die(bb_msg_write_error);
 	}
 
 	return no_newline;
