@@ -21,6 +21,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include "busybox.h"
 
 struct mod_opt_t {	/* one-way list of options to pass to a module */
@@ -721,9 +722,13 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 	struct mod_opt_t *opt = 0;
 	char *path = 0;
 
-	// check dependencies
+	/* Search for the given module name amongst all dependency rules.
+	 * The module name in a dependency rule can be a shell pattern,
+	 * so try to match the given module name against such a pattern.
+	 * Of course if the name in the dependency rule is a plain string,
+	 * then we consider it a pattern, and matching will still work. */
 	for ( dt = depend; dt; dt = dt-> m_next ) {
-		if ( strcmp ( dt-> m_name, mod ) == 0) {
+		if ( fnmatch ( dt-> m_name, mod, 0 ) == 0) {
 			break;
 		}
 	}
