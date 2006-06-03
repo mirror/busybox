@@ -3,6 +3,7 @@
  * Mini watchdog implementation for busybox
  *
  * Copyright (C) 2003  Paul Mundt <lethal@linux-sh.org>
+ * Copyright (C) 2006  Bernhard Fischer <busybox@busybox.net>
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
@@ -13,9 +14,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
-
-/* Userspace timer duration, in seconds */
-static unsigned int timer_duration = 30;
 
 /* Watchdog file descriptor */
 static int fd;
@@ -29,11 +27,10 @@ static void watchdog_shutdown(int ATTRIBUTE_UNUSED unused)
 
 int watchdog_main(int argc, char **argv)
 {
-
+	unsigned long timer_duration = 30; /* Userspace timer duration, in seconds */
 	char *t_arg;
-	unsigned long flags;
-	flags = bb_getopt_ulflags(argc, argv, "t:", &t_arg);
-	if (flags & 1)
+
+	if (bb_getopt_ulflags(argc, argv, "t:", &t_arg))
 		timer_duration = bb_xgetlarg(t_arg, 10, 0, INT_MAX);
 
 	/* We're only interested in the watchdog device .. */
