@@ -259,12 +259,17 @@ Minor stuff:
     if(!ioctl (fd, WDIOC_GETTIMEOUT, &tmo)) timer_duration = 1 + (tmo / 2);
   Unfortunately, that needs linux/watchdog.h and that contains unfiltered
   kernel types on some distros, which breaks the build.
-
+---
   use bb_error_msg where appropriate: See
   egrep "(printf.*\([[:space:]]*(stderr|2)|[^_]write.*\([[:space:]]*(stderr|2))"
-
+---
   use bb_perror_msg where appropriate: See
   egrep "[^_]perror"
+---
+  Remove superfluous fmt occurances: e.g.
+  fprintf(stderr, "%s: %s not found\n", "unalias", *argptr);
+  -> fprintf(stderr, "unalias: %s not found\n", *argptr);
+---
 
 
 Code cleanup:
