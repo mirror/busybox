@@ -260,6 +260,12 @@ Minor stuff:
   Unfortunately, that needs linux/watchdog.h and that contains unfiltered
   kernel types on some distros, which breaks the build.
 
+  use bb_error_msg where appropriate: See
+  egrep "(printf.*\([[:space:]]*(stderr|2)|[^_]write.*\([[:space:]]*(stderr|2))"
+
+  use bb_perror_msg where appropriate: See
+  egrep "[^_]perror"
+
 
 Code cleanup:
 
