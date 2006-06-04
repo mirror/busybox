@@ -27,6 +27,8 @@ testing "grep - (specify stdin)" "grep two -" "two\n" "" \
 testing "grep input (specify file)" "grep two input" "two\n" \
 	"one\ntwo\nthree\nthree\nthree\n" ""
 
+testing "grep (no newline at EOL)" "grep bug" "bug" "bug" ""
+
 # Note that this assumes actual is empty.
 testing "grep input actual (two files)" "grep two input actual 2> /dev/null" \
 	"input:two\n" "one\ntwo\nthree\nthree\nthree\n" ""
