@@ -270,6 +270,8 @@ Minor stuff:
   fprintf(stderr, "%s: %s not found\n", "unalias", *argptr);
   -> fprintf(stderr, "unalias: %s not found\n", *argptr);
 ---
+  possible code duplication ingroup() and is_a_group_member()
+---
 
 
 Code cleanup:
