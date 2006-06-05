@@ -481,7 +481,7 @@ static void add_cmd(char *cmdstr)
 		cmdstr = bb_xasprintf("%s\n%s", bbg.add_cmd_line, cmdstr);
 		free(bbg.add_cmd_line);
 		bbg.add_cmd_line = cmdstr;
-	} else bbg.add_cmd_line=NULL; /* XXX: erm.. bbg.add_cmd_line was 0 and we set it to *0 here why? */
+	}
 
 	/* If this line ends with backslash, request next line. */
 	temp=strlen(cmdstr);
