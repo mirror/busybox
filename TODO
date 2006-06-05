@@ -272,6 +272,9 @@ Minor stuff:
 ---
   possible code duplication ingroup() and is_a_group_member()
 ---
+  unify itoa: netstat.c, hush.c, lash.c, msh.c
+  Put one single, robust version into e.g. safe_strtol.c
+---
 
 
 Code cleanup:
