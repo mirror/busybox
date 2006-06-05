@@ -8,17 +8,17 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
+#include "busybox.h"
+
 #include <sys/syslog.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <net/if.h>
 #include <netinet/ether.h>
 
-#include "busybox.h"
 
 /* Older versions of net/if.h do not appear to define IF_NAMESIZE. */
 #ifndef IF_NAMESIZE

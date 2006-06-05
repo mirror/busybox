@@ -9,28 +9,22 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+#include "busybox.h"
+
 #include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/syslog.h>
 
 #include <pwd.h>
-#include <netdb.h>
 
 #include <sys/syslog.h>
-#include <sys/types.h>
 #include <time.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <errno.h>
-#include <arpa/inet.h>
 #include <sys/uio.h>
 
-#include "busybox.h"
 
 #define IDENT_PORT  113
 #define MAXCONNS    20

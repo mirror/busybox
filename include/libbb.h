@@ -25,8 +25,6 @@
 #include <sys/types.h>
 #include <termios.h>
 
-
-
 #ifdef CONFIG_SELINUX
 #include <selinux/selinux.h>
 #endif
@@ -38,6 +36,17 @@
 #endif
 #ifdef CONFIG_FEATURE_SHA1_PASSWORDS
 # include "sha1.h"
+#endif
+
+/* Try to pull in PATH_MAX */
+#include <limits.h>
+#include <sys/param.h>
+#ifndef PATH_MAX
+#define  PATH_MAX         256
+#endif
+
+#ifdef DMALLOC
+#include <dmalloc.h>
 #endif
 
 /* Some useful definitions */
@@ -457,12 +466,11 @@ extern void bb_xread_all(int fd, void *buf, size_t count);
 extern unsigned char bb_xread_char(int fd);
 
 #ifndef COMM_LEN
-/*#include <sched.h> *//* Task command name length */
 #ifdef TASK_COMM_LEN
 #define COMM_LEN TASK_COMM_LEN
 #else
-#define COMM_LEN 16 /* synchronize with size of comm in struct task_struct
-					                          in /usr/include/linux/sched.h */
+/* synchronize with sizeof(task_struct.comm) in /usr/include/linux/sched.h */
+#define COMM_LEN 16
 #endif
 #endif
 typedef struct {
@@ -528,17 +536,6 @@ extern uint32_t *bb_crc32_filltable (int endian);
 #ifndef RB_POWER_OFF
 /* Stop system and switch power off if possible.  */
 #define RB_POWER_OFF   0x4321fedc
-#endif
-
-/* Try to pull in PATH_MAX */
-#include <limits.h>
-#include <sys/param.h>
-#ifndef PATH_MAX
-#define  PATH_MAX         256
-#endif
-
-#ifdef DMALLOC
-#include <dmalloc.h>
 #endif
 
 extern const char BB_BANNER[];
