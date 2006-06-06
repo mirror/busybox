@@ -117,6 +117,14 @@ extern int insmod_ng_main( int argc, char **argv);
 #define CONFIG_USE_SINGLE
 #endif
 
+/* blackfin */
+#if defined(BFIN)
+#define MATCH_MACHINE(x) (x == EM_BLACKFIN)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
+#endif
+
 /* CRIS */
 #if defined(__cris__)
 #define MATCH_MACHINE(x) (x == EM_CRIS)
@@ -185,6 +193,15 @@ extern int insmod_ng_main( int argc, char **argv);
 #define CONFIG_USE_GOT_ENTRIES
 #define CONFIG_GOT_ENTRY_SIZE 4
 #define CONFIG_USE_SINGLE
+#endif
+
+/* Microblaze */
+#if defined(__microblaze__)
+#define CONFIG_USE_SINGLE
+#define MATCH_MACHINE(x) (x == EM_XILINX_MICROBLAZE)
+#define SHT_RELM	SHT_RELA
+#define Elf32_RelM	Elf32_Rela
+#define ELFCLASSM	ELFCLASS32
 #endif
 
 /* MIPS */
