@@ -988,6 +988,65 @@ arch_apply_relocation(struct obj_file *f,
 			*loc += v - got;
 			break;
 
+#elif defined (__microblaze__)
+		case R_MICROBLAZE_NONE:
+		case R_MICROBLAZE_64_NONE:
+		case R_MICROBLAZE_32_SYM_OP_SYM:
+		case R_MICROBLAZE_32_PCREL:
+			break;
+
+		case R_MICROBLAZE_64_PCREL: {
+			/* dot is the address of the current instruction.
+			 * v is the target symbol address.
+			 * So we need to extract the offset in the code,
+			 * adding v, then subtrating the current address 
+			 * of this instruction.
+			 * Ex: "IMM 0xFFFE  bralid 0x0000" = "bralid 0xFFFE0000"
+			 */
+
+			/* Get split offset stored in code */
+			unsigned int temp = (loc[0] & 0xFFFF) << 16 |
+						(loc[1] & 0xFFFF);
+
+			/* Adjust relative offset. -4 adjustment required 
+			 * because dot points to the IMM insn, but branch
+			 * is computed relative to the branch instruction itself.
+			 */
+			temp += v - dot - 4;
+
+			/* Store back into code */
+			loc[0] = (loc[0] & 0xFFFF0000) | temp >> 16;
+			loc[1] = (loc[1] & 0xFFFF0000) | (temp & 0xFFFF);
+
+			break;
+		}
+
+		case R_MICROBLAZE_32:
+			*loc += v;
+			break;
+
+		case R_MICROBLAZE_64: {
+			/* Get split pointer stored in code */
+			unsigned int temp1 = (loc[0] & 0xFFFF) << 16 |
+						(loc[1] & 0xFFFF);
+
+			/* Add reloc offset */
+			temp1+=v;
+
+			/* Store back into code */
+			loc[0] = (loc[0] & 0xFFFF0000) | temp1 >> 16;
+			loc[1] = (loc[1] & 0xFFFF0000) | (temp1 & 0xFFFF);
+
+			break;
+		}
+
+		case R_MICROBLAZE_32_PCREL_LO:
+		case R_MICROBLAZE_32_LO:
+		case R_MICROBLAZE_SRO32:
+		case R_MICROBLAZE_SRW32:
+			ret = obj_reloc_unhandled;
+			break;
+
 #elif defined(__mc68000__)
 
 		case R_68K_NONE:
