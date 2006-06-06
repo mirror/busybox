@@ -161,11 +161,11 @@ __extension__ typedef unsigned long long __u64;
 
 /* ---- miscellaneous --------------------------------------- */
 
-#if __GNU_LIBRARY__ < 5 && \
+#if defined(__GNU_LIBRARY__) && __GNU_LIBRARY__ < 5 && \
 	!defined(__dietlibc__) && \
 	!defined(_NEWLIB_VERSION) && \
 	!(defined __digital__ && defined __unix__)
-#error "Sorry, this libc version is not supported :("
+# error "Sorry, this libc version is not supported :("
 #endif
 
 #if defined __GLIBC__ || defined __UCLIBC__ \
