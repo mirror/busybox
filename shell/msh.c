@@ -93,6 +93,15 @@ int mshdbg_rc = 0;
 #endif							/* MSHDEBUG */
 
 
+#ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
+# define DEFAULT_ROOT_PROMPT "\\u:\\w> "
+# define DEFAULT_USER_PROMPT "\\u:\\w$ "
+#else
+# define DEFAULT_ROOT_PROMPT "# "
+# define DEFAULT_USER_PROMPT "$ "
+#endif
+
+
 /* -------- sh.h -------- */
 /*
  * shell
@@ -877,9 +886,9 @@ int msh_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
 	if (prompt->value == null)
 #endif
-		setval(prompt, "$ ");
+		setval(prompt, DEFAULT_USER_PROMPT);
 	if (geteuid() == 0) {
-		setval(prompt, "# ");
+		setval(prompt, DEFAULT_ROOT_PROMPT);
 		prompt->status &= ~EXPORT;
 	}
 	cprompt = lookup("PS2");
