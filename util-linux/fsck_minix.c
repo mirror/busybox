@@ -215,7 +215,6 @@ static int changed;			/* flags if the filesystem has been changed */
 static int errors_uncorrected;	/* flag if some error was not corrected */
 static int dirsize = 16;
 static int namelen = 14;
-static int version2;
 static struct termios termios;
 static int termios_set;
 
@@ -227,6 +226,7 @@ static char super_block_buffer[BLOCK_SIZE];
 #define Super (*(struct minix_super_block *)super_block_buffer)
 #define INODES ((unsigned long)Super.s_ninodes)
 #ifdef CONFIG_FEATURE_MINIX2
+static int version2;
 #define ZONES ((unsigned long)(version2 ? Super.s_zones : Super.s_nzones))
 #else
 #define ZONES ((unsigned long)(Super.s_nzones))
