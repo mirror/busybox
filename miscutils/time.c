@@ -410,7 +410,7 @@ static void run_command(char *const *cmd, resource_t * resp)
 	__sighandler_t interrupt_signal, quit_signal;
 
 	gettimeofday(&resp->start, (struct timezone *) 0);
-	pid = fork();		/* Run CMD as child process.  */
+	pid = vfork();		/* Run CMD as child process.  */
 	if (pid < 0)
 		bb_error_msg_and_die("cannot fork");
 	else if (pid == 0) {	/* If child.  */
