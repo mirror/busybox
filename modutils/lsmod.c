@@ -190,13 +190,13 @@ int lsmod_main(int argc, char **argv)
 	  }
 	  fclose(file);
 	}
-	return 0;  /* Success  */
+	return EXIT_SUCCESS;
 #else
-	if (bb_xprint_file_by_name("/proc/modules") < 0) {
-		return 0;
-	}
+	if (bb_xprint_file_by_name("/proc/modules") == 0)
+		return EXIT_SUCCESS;
 #endif  /*  CONFIG_FEATURE_2_6_MODULES  */
-	return 1;
+
+	return EXIT_FAILURE;
 }
 
 #endif /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */
