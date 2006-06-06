@@ -25,19 +25,13 @@ config CONFIG_CAT
 	help
 	  cat is used to concatenate files and print them to the standard
 	  output.  Enable this option if you wish to enable the 'cat' utility.
+
 config CONFIG_CATV
 	bool "catv"
 	default n
 	help
 	  Display nonprinting characters as escape sequences (like some
 	  implementations' cat -v option).
-
-config CONFIG_FEATURE_CAT_ESCAPE
-	bool "support -vetET"
-	depends on CONFIG_CAT
-	default n
-	help
-	  Sheer bloat.
 
 config CONFIG_CHGRP
 	bool "chgrp"
