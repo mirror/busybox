@@ -6,6 +6,7 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "libbb.h"
@@ -15,4 +16,3 @@ void bb_xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen)
 	if (bind(sockfd, my_addr, addrlen))
 		bb_perror_msg_and_die("bind");
 }
-
