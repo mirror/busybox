@@ -37,7 +37,11 @@ int watchdog_main(int argc, char **argv)
 	if (optind < argc - 1 || argc == 1)
 		bb_show_usage();
 
+#ifdef BB_NOMMU
+	vfork_daemon(0, 1);
+#else
 	bb_xdaemon(0, 1);
+#endif
 
 	signal(SIGHUP, watchdog_shutdown);
 	signal(SIGINT, watchdog_shutdown);
