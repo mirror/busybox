@@ -71,6 +71,7 @@ procps_status_t * procps_scan(int save_user_arg0)
 			continue;
 		bb_getpwuid(curstatus.user, sb.st_uid, sizeof(curstatus.user));
 
+		/* see proc(5) for some details on this */
 		strcpy(status_tail, "/stat");
 		n = read_to_buf(status, buf);
 		if(n < 0)
