@@ -86,15 +86,15 @@ procps_status_t * procps_scan(int save_user_arg0)
 		"%*s %*s %*s %*s "     /* pgrp, session, tty, tpgid */
 		"%*s %*s %*s %*s %*s " /* flags, min_flt, cmin_flt, maj_flt, cmaj_flt */
 #ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-		"%lu %lu "
+		"%lu %lu "             /* utime, stime */
 #else
-		"%*s %*s "
+		"%*s %*s "             /* utime, stime */
 #endif
 		"%*s %*s %*s "         /* cutime, cstime, priority */
-		"%ld "
+		"%ld "                 /* nice */
 		"%*s %*s %*s "         /* timeout, it_real_value, start_time */
 		"%*s "                 /* vsize */
-		"%ld",
+		"%ld",                 /* rss */
 		curstatus.state, &curstatus.ppid,
 #ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		&curstatus.utime, &curstatus.stime,
