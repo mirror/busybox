@@ -20,7 +20,7 @@ static int fd;
 
 static void watchdog_shutdown(int ATTRIBUTE_UNUSED unused)
 {
-	write(fd, "V", 1);	/* Magic */
+	write(fd, "V", 1);	/* Magic, see watchdog-api.txt in kernel */
 	close(fd);
 	exit(0);
 }
