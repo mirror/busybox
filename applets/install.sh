@@ -5,15 +5,15 @@ export LC_CTYPE=POSIX
 
 prefix=${1}
 if [ -z "$prefix" ]; then
-    echo "usage: applets/install.sh DESTINATION [--symlinks/--hardlinks]"
-    exit 1;
+	echo "usage: applets/install.sh DESTINATION [--symlinks/--hardlinks]"
+	exit 1;
 fi
 h=`sort busybox.links | uniq`
 case "$2" in
-    --hardlinks) linkopts="-f";;
-    --symlinks)  linkopts="-fs";;
-    "")          h="";;
-    *)           echo "Unknown install option: $2"; exit 1;;
+	--hardlinks) linkopts="-f";;
+	--symlinks)  linkopts="-fs";;
+	"")          h="";;
+	*)           echo "Unknown install option: $2"; exit 1;;
 esac
 
 if [ "$DO_INSTALL_LIBS" != "n" ]; then
@@ -42,26 +42,26 @@ for i in $h ; do
 	appdir=`dirname $i`
 	mkdir -p $prefix/$appdir || exit 1
 	if [ "$2" = "--hardlinks" ]; then
-	    bb_path="$prefix/bin/busybox"
+		bb_path="$prefix/bin/busybox"
 	else
-	    case "$appdir" in
+		case "$appdir" in
 		/)
-		    bb_path="bin/busybox"
+			bb_path="bin/busybox"
 		;;
 		/bin)
-		    bb_path="busybox"
+			bb_path="busybox"
 		;;
 		/sbin)
-		    bb_path="../bin/busybox"
+			bb_path="../bin/busybox"
 		;;
 		/usr/bin|/usr/sbin)
-		    bb_path="../../bin/busybox"
+			bb_path="../../bin/busybox"
 		;;
 		*)
 		echo "Unknown installation directory: $appdir"
 		exit 1
 		;;
-	    esac
+		esac
 	fi
 	echo "  $prefix$i -> $bb_path"
 	ln $linkopts $bb_path $prefix$i || exit 1
