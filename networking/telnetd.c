@@ -109,7 +109,7 @@ static struct tsession *sessions;
 
 /*
 
-   Remove all IAC's from the buffer pointed to by bf (recieved IACs are ignored
+   Remove all IAC's from the buffer pointed to by bf (received IACs are ignored
    and must be removed so as to not be interpreted by the terminal).  Make an
    uninterrupted string of characters fit for the terminal.  Do this by packing
    all characters meant for the terminal sequentially towards the end of bf.

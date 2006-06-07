@@ -117,7 +117,7 @@ static FILE *ftp_login(ftp_host_info_t *server)
 #if !ENABLE_FTPGET
 #define ftp_receive 0
 #else
-static int ftp_recieve(ftp_host_info_t *server, FILE *control_stream,
+static int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 		const char *local_path, char *server_path)
 {
 	char buf[512];
@@ -303,7 +303,7 @@ int ftpgetput_main(int argc, char **argv)
 		ftp_action = ftp_send;
 	}
 	if (ENABLE_FTPGET && (!ENABLE_FTPPUT || bb_applet_name[3] == 'g')) {
-		ftp_action = ftp_recieve;
+		ftp_action = ftp_receive;
 	}
 
 	/* Set default values */
