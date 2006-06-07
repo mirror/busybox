@@ -9,9 +9,11 @@ if [ -z "$prefix" ]; then
 	exit 1;
 fi
 h=`sort busybox.links | uniq`
+cleanup="0"
 case "$2" in
 	--hardlinks) linkopts="-f";;
 	--symlinks)  linkopts="-fs";;
+	--cleanup)   cleanup="1";;
 	"")          h="";;
 	*)           echo "Unknown install option: $2"; exit 1;;
 esac
@@ -34,6 +36,22 @@ if [ -n "$DO_INSTALL_LIBS" ] && [ "$DO_INSTALL_LIBS" != "n" ]; then
 		fi
 	done
 fi
+
+if [ "$cleanup" = "1" ] && [ -e "$prefix/bin/busybox" ]; then
+	inode=`ls -i "$prefix/bin/busybox" | awk '{print $1}'`
+	sub_shell_it=`
+	cd "$prefix"
+	for d in usr/sbin usr/bin sbin bin ; do
+		pd=$PWD
+		if [ -d "$d" ]; then
+			cd $d
+			ls -iL . | grep "^ *$inode" | awk '{print $2}' | env -i xargs rm -f
+		fi
+		cd "$pd"
+	done
+	`
+fi
+
 rm -f $prefix/bin/busybox || exit 1
 mkdir -p $prefix/bin || exit 1
 install -m 755 busybox $prefix/bin/busybox || exit 1
