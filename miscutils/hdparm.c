@@ -565,10 +565,8 @@ static void print_ascii(uint16_t *p, uint8_t length) {
 	printf("\n");
 }
 
-/* identify() is the only extern function used across two source files.  The
-   others, though, were declared in hdparm.c with global scope; since other
-   functions in that file have static (file) scope, I assume the difference is
-   intentional. */
+// Parse 512 byte disk identification block and print much crap.
+
 static void identify(uint16_t *id_supplied)
 {
 	uint16_t buf[256];
@@ -580,6 +578,8 @@ static void identify(uint16_t *id_supplied)
 	uint32_t ll, mm, nn, oo;
 	uint64_t bbbig; /* (:) */
 	const char *strng;
+
+	// Adjust for endianness if necessary.
 
 	if (BB_BIG_ENDIAN) {
 		swab(id_supplied, buf, sizeof(buf));
@@ -1997,16 +1997,12 @@ static void process_dev(char *devname)
 	if (get_IDentity)
 	{
 		unsigned char args1[4+512]; /* = { ... } will eat 0.5k of rodata! */
-		unsigned i;
 
 		memset(args1, 0, sizeof(args1));
 		args1[0] = WIN_IDENTIFY;
 		args1[3] = 1;
-		if (!bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY, "HDIO_DRIVE_CMD(identify)")) {
-			uint16_t *ptr = (uint16_t *)args1;
-			for (i=0; i<sizeof(args1)/2; i++) ptr[i] = SWAP_LE16(ptr[i]);
-			identify((void *)(ptr+2));
-		}
+		if (!bb_ioctl_alt(fd, HDIO_DRIVE_CMD, args1, WIN_PIDENTIFY, "HDIO_DRIVE_CMD(identify)"))
+			identify((void *)(args1 + 4));
 	}
 #endif
 #ifdef CONFIG_FEATURE_HDPARM_HDIO_TRISTATE_HWIF
@@ -2053,19 +2049,23 @@ static int fromhex(unsigned char c)
 
 static void identify_from_stdin(void)
 {
-	uint16_t sbuf[800];
-	unsigned char  buf[1600], *b = (unsigned char *)buf;
+	uint16_t sbuf[256];
+	unsigned char  buf[1280], *b = (unsigned char *)buf;
 	int i, count = read(0, buf, 1280);
 
 	if (count != 1280)
 		bb_error_msg_and_die("read(%d bytes) failed (rc=%d)", 1280, count);
 
-	for (i = 0; count >= 4; ++i)
+	// Convert the newline-separated hex data into an identify block.
+
+	for (i = 0; i<256; i++)
 	{
-		sbuf[i] = SWAP_LE16((fromhex(b[0]) << 12) | (fromhex(b[1]) << 8) | (fromhex(b[2]) << 4) | fromhex(b[3]));
-		b += 5;
-		count -= 5;
+		int j;
+		for(j=0;j<4;j++) sbuf[i] = (sbuf[i] <<4) + fromhex(*(b++));
 	}
+
+	// Parse the data.
+
 	identify(sbuf);
 }
 #endif
