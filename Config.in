@@ -104,17 +104,6 @@ config CONFIG_GETOPT_LONG
 	  Enable this if you want busybox applets to use the gnu --long-option
 	  style, in addition to single character -a -b -c style options.
 
-config CONFIG_FEATURE_DEVFS
-	bool "Use devfs names for devices"
-	default n
-	help
-	  This tells busybox to look for names like /dev/loop/0 instead of
-          /dev/loop0.  If your /dev directory has normal names instead of
-          devfs names, you don't want this.
-
-	  This is obsolete and will be going away someday.  Consider it
-	  deprecated.
-
 config CONFIG_FEATURE_DEVPTS
 	bool "Use the devpts filesystem for Unix98 PTYs"
 	default y if CONFIG_FEATURE_DEVFS

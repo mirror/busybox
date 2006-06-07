@@ -64,9 +64,11 @@ config CONFIG_DC
 	  precision arithmetic.
 
 config CONFIG_DEVFSD
-	bool "devfsd"
+	bool "devfsd (obsolete)"
 	default n
 	help
+	  This is deprecated, and will be going away in a future release.
+
 	  Provides compatibility with old device names on a devfs systems.
 	  You should set it to true if you have devfs enabled.
 	  The following keywords in devsfd.conf are supported:
@@ -81,7 +83,8 @@ config CONFIG_DEVFSD_MODLOAD
 	default n
 	depends on CONFIG_DEVFSD
 	help
-	  This actually doesn't work with busybox  modutils but needs the real modutils.
+	  This actually doesn't work with busybox modutils but needs
+	  the external modutils.
 
 config CONFIG_DEVFSD_FG_NP
 	bool "Enables the -fg and -np options"
@@ -97,6 +100,17 @@ config CONFIG_DEVFSD_VERBOSE
 	depends on CONFIG_DEVFSD
 	help
 	  Increases logging to stderr or syslog.
+
+config CONFIG_FEATURE_DEVFS
+	bool "  Use devfs names for all devices (obsolete)"
+	default n
+	help
+	  This tells busybox to look for names like /dev/loop/0 instead of
+	  /dev/loop0.  If your /dev directory has normal names instead of
+	  devfs names, you don't want this.
+
+	  This is obsolete and will be going away someday.  Consider it
+	  deprecated.
 
 config CONFIG_EJECT
 	bool "eject"
