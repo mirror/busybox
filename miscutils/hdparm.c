@@ -2122,8 +2122,8 @@ int hdparm_main(int argc, char **argv)
 	while ((c = getopt(argc, argv, hdparm_options)) >= 0) {
 		flagcount++;
 		if (c == 'h') bb_show_usage(); /* EXIT */
-		USE_FEATURE_HDPARM_GET_IDENTITY(get_IDentity = (c == 'I'));
-		USE_FEATURE_HDPARM_GET_IDENTITY(get_identity = (c == 'i'));
+		USE_FEATURE_HDPARM_GET_IDENTITY(get_IDentity |= (c == 'I'));
+		USE_FEATURE_HDPARM_GET_IDENTITY(get_identity |= (c == 'i'));
 		get_geom |= (c == 'g');
 		do_flush |= (c == 'f');
 		if (c == 'u') parse_opts(&get_unmask, &set_unmask, &unmask, 0, 1);
