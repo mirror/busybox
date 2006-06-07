@@ -291,6 +291,12 @@ config CONFIG_SETSID
 	help
 	  setsid runs a program in a new session
 
+config CONFIG_TASKSET
+	bool "taskset"
+	default n
+	help
+	  Retrieve or set a processes's CPU affinity (on linux)
+
 config CONFIG_TIME
 	bool "time"
 	default n
