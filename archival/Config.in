@@ -240,7 +240,7 @@ config CONFIG_FEATURE_LZMA_FAST
 	default n
 	depends on CONFIG_UNLZMA
 	help
-	  This option reduce decompression time by about 33% at the cost of
+	  This option reduces decompression time by about 33% at the cost of
 	  a 2K bigger binary.
 
 config CONFIG_UNZIP
