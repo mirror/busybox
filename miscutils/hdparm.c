@@ -2185,11 +2185,11 @@ int hdparm_main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-#if ENABLE_FEATURE_HDPARM_GET_IDENTITY
 	if (argc < 1) {
-		identify_from_stdin(); /* EXIT */
+		if (ENABLE_FEATURE_HDPARM_GET_IDENTITY && !isatty(STDIN_FILENO))
+			identify_from_stdin(); /* EXIT */
+		else bb_show_usage();
 	}
-#endif
 
 	while (argc--) {
 		process_dev(*argv);

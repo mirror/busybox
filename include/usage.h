@@ -994,7 +994,7 @@ USE_FEATURE_DATE_ISOFMT( \
 #define hdparm_trivial_usage \
 	"[options] [device] .."
 #define hdparm_full_usage \
-	USE_FEATURE_HDPARM_GET_IDENTITY("\tIf no device name is specified read from stdin.\n") \
+	USE_FEATURE_HDPARM_GET_IDENTITY("\tIf no device name is specified try to read from stdin.\n") \
 	"\nOptions:\n" \
 	"\t-a   get/set fs readahead\n" \
 	"\t-A   set drive read-lookahead flag (0/1)\n" \
