@@ -16,7 +16,7 @@ case "$2" in
 	*)           echo "Unknown install option: $2"; exit 1;;
 esac
 
-if [ "$DO_INSTALL_LIBS" != "n" ]; then
+if [ -n "$DO_INSTALL_LIBS" ] && [ "$DO_INSTALL_LIBS" != "n" ]; then
 	# get the target dir for the libs
 	# assume it starts with lib
 	libdir=$($CC -print-file-name=libc.so | \
