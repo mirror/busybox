@@ -10,10 +10,12 @@ if [ -z "$prefix" ]; then
 fi
 h=`sort busybox.links | uniq`
 cleanup="0"
+noclobber="0"
 case "$2" in
 	--hardlinks) linkopts="-f";;
 	--symlinks)  linkopts="-fs";;
 	--cleanup)   cleanup="1";;
+	--noclobber) noclobber="1";;
 	"")          h="";;
 	*)           echo "Unknown install option: $2"; exit 1;;
 esac
@@ -81,8 +83,12 @@ for i in $h ; do
 		;;
 		esac
 	fi
-	echo "  $prefix$i -> $bb_path"
-	ln $linkopts $bb_path $prefix$i || exit 1
+	if [ "$noclobber" = "0" ] || [ ! -e "$prefix$i" ]; then
+		echo "  $prefix$i -> $bb_path"
+		ln $linkopts $bb_path $prefix$i || exit 1
+	else
+		echo "  $prefix$i already exists"
+	fi
 done
 
 exit 0
