@@ -178,7 +178,6 @@ static arith_t getn(const char *s);
 static int newerf(const char *f1, const char *f2);
 static int olderf(const char *f1, const char *f2);
 static int equalf(const char *f1, const char *f2);
-static void syntax(const char *op, const char *msg);
 static int test_eaccess(char *path, int mode);
 static int is_a_group_member(gid_t gid);
 static void initialize_group_array(void);
@@ -230,18 +229,9 @@ int test_main(int argc, char **argv)
 	res = !oexpr(t_lex(*t_wp));
 
 	if (*t_wp != NULL && *++t_wp != NULL)
-		syntax(*t_wp, "unknown operand");
+		bb_error_msg_and_die("%s: unknown operand", *t_wp);
 
 	return (res);
-}
-
-static void syntax(const char *op, const char *msg)
-{
-	if (op && *op) {
-		bb_error_msg_and_die("%s: %s", op, msg);
-	} else {
-		bb_error_msg_and_die("%s", msg);
-	}
 }
 
 static arith_t oexpr(enum token n)
@@ -279,18 +269,18 @@ static arith_t primary(enum token n)
 	arith_t res;
 
 	if (n == EOI) {
-		syntax(NULL, "argument expected");
+		bb_error_msg_and_die("argument expected");
 	}
 	if (n == LPAREN) {
 		res = oexpr(t_lex(*++t_wp));
 		if (t_lex(*++t_wp) != RPAREN)
-			syntax(NULL, "closing paren expected");
+			bb_error_msg_and_die("closing paren expected");
 		return res;
 	}
 	if (t_wp_op && t_wp_op->op_type == UNOP) {
 		/* unary expression */
 		if (*++t_wp == NULL)
-			syntax(t_wp_op->op_text, "argument expected");
+			bb_error_msg_and_die(bb_msg_requires_arg, t_wp_op->op_text);
 		switch (n) {
 		case STREZ:
 			return strlen(*t_wp) == 0;
@@ -320,7 +310,7 @@ static int binop(void)
 	op = t_wp_op;
 
 	if ((opnd2 = *++t_wp) == (char *) 0)
-		syntax(op->op_text, "argument expected");
+		bb_error_msg_and_die(bb_msg_requires_arg, op->op_text);
 
 	switch (op->op_num) {
 	case STREQ:

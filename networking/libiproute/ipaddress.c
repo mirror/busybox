@@ -430,11 +430,11 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 
 	if (flush) {
 		if (argc <= 0) {
-			fprintf(stderr, "Flush requires arguments.\n");
+			bb_error_msg(bb_msg_requires_arg, "flush");
 			return -1;
 		}
 		if (filter.family == AF_PACKET) {
-			fprintf(stderr, "Cannot flush link addresses.\n");
+			bb_error_msg("Cannot flush link addresses.");
 			return -1;
 		}
 	}
@@ -456,7 +456,7 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 				filter.scopemask = -1;
 				if (rtnl_rtscope_a2n(&scope, *argv)) {
 					if (strcmp(*argv, "all") != 0) {
-						invarg("invalid \"scope\"\n", *argv);
+						invarg(*argv, "scope");
 					}
 					scope = RT_SCOPE_NOWHERE;
 					filter.scopemask = 0;
@@ -711,7 +711,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 				uint32_t scope = 0;
 				NEXT_ARG();
 				if (rtnl_rtscope_a2n(&scope, *argv)) {
-					invarg(*argv, "invalid scope value");
+					invarg(*argv, "scope");
 				}
 				req.ifa.ifa_scope = scope;
 				scoped = 1;
@@ -744,7 +744,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	}
 
 	if (d == NULL) {
-		bb_error_msg("Not enough information: \"dev\" argument is required");
+		bb_error_msg(bb_msg_requires_arg,"\"dev\"");
 		return -1;
 	}
 	if (l && matches(d, l) != 0) {

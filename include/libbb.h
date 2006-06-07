@@ -350,6 +350,8 @@ extern const char * const bb_msg_name_longer_than_foo;
 extern const char * const bb_msg_unknown;
 extern const char * const bb_msg_can_not_create_raw_socket;
 extern const char * const bb_msg_perm_denied_are_you_root;
+extern const char * const bb_msg_requires_arg;
+extern const char * const bb_msg_invalid_arg;
 extern const char * const bb_msg_standard_input;
 extern const char * const bb_msg_standard_output;
 

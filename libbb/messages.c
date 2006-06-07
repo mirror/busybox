@@ -38,10 +38,16 @@
 	const char * const bb_msg_unknown = "(unknown)";
 #endif
 #ifdef L_can_not_create_raw_socket
-	const char * const bb_msg_can_not_create_raw_socket = "can`t create raw socket";
+	const char * const bb_msg_can_not_create_raw_socket = "can't create raw socket";
 #endif
 #ifdef L_perm_denied_are_you_root
 	const char * const bb_msg_perm_denied_are_you_root = "permission denied. (are you root?)";
+#endif
+#ifdef L_msg_requires_arg
+	const char * const bb_msg_requires_arg = "%s requires an argument";
+#endif
+#ifdef L_msg_invalid_arg
+	const char * const bb_msg_invalid_arg = "invalid argument `%s' to `%s'";
 #endif
 #ifdef L_msg_standard_input
 	const char * const bb_msg_standard_input = "standard input";

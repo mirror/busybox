@@ -240,9 +240,9 @@ void incomplete_command(void)
 	exit(-1);
 }
 
-void invarg(char *msg, char *arg)
+void invarg(const char const *arg, const char const *opt)
 {
-	bb_error_msg("argument \"%s\" is wrong: %s", arg, msg);
+	bb_error_msg(bb_msg_invalid_arg, arg, opt);
 	exit(-1);
 }
 

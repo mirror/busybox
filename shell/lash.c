@@ -284,7 +284,7 @@ static int builtin_fg_bg(struct child_prog *child)
 		}
 	} else {
 		if (sscanf(child->argv[1], "%%%d", &jobnum) != 1) {
-			bb_error_msg("%s: bad argument '%s'", child->argv[0], child->argv[1]);
+			bb_error_msg(bb_msg_invalid_arg, child->argv[1], child->argv[0]);
 			return EXIT_FAILURE;
 		}
 		for (job = child->family->job_list->head; job; job = job->next) {
@@ -465,7 +465,7 @@ static int builtin_source(struct child_prog *child)
 static int builtin_unset(struct child_prog *child)
 {
 	if (child->argv[1] == NULL) {
-		printf( "unset: parameter required.\n");
+		printf(bb_msg_requires_arg, "unset");
 		return EXIT_FAILURE;
 	}
 	unsetenv(child->argv[1]);

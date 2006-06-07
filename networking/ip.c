@@ -59,7 +59,7 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 			else if (strcmp(argv[1], "link") == 0)
 				preferred_family = AF_PACKET;
 			else
-				invarg(argv[1], "invalid protocol family");
+				invarg(bb_msg_invalid_arg, argv[1], "-family");
 		} else if (strcmp(opt, "-4") == 0) {
 			preferred_family = AF_INET;
 		} else if (strcmp(opt, "-6") == 0) {

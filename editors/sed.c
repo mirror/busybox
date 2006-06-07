@@ -1166,7 +1166,7 @@ int sed_main(int argc, char **argv)
 	 * files were specified or '-' was specified, take input from stdin.
 	 * Otherwise, we process all the files specified. */
 	if (argv[optind] == NULL) {
-		if(bbg.in_place) bb_error_msg_and_die("Filename required for -i");
+		if(bbg.in_place) bb_error_msg_and_die(bb_msg_requires_arg, "-i");
 		add_input_file(stdin);
 		process_files();
 	} else {

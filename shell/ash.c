@@ -8762,7 +8762,7 @@ procargs(int argc, char **argv)
 	xminusc = minusc;
 	if (*xargv == NULL) {
 		if (xminusc)
-			sh_error("-c requires an argument");
+			sh_error(bb_msg_requires_arg, "-c");
 		sflag = 1;
 	}
 	if (iflag == 2 && sflag == 1 && isatty(0) && isatty(1))

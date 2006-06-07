@@ -456,12 +456,13 @@ static void read_block(unsigned int nr, char *addr)
 		return;
 	}
 	if (BLOCK_SIZE * nr != lseek(IN, BLOCK_SIZE * nr, SEEK_SET)) {
-		printf("Read error: unable to seek to block in file '%s'\n",
-				current_name);
+		printf("%s: unable to seek to block in file '%s'\n",
+				bb_msg_read_error, current_name);
 		errors_uncorrected = 1;
 		memset(addr, 0, BLOCK_SIZE);
 	} else if (BLOCK_SIZE != read(IN, addr, BLOCK_SIZE)) {
-		printf("Read error: bad block in file '%s'\n", current_name);
+		printf("%s: bad block in file '%s'\n",
+				bb_msg_read_error, current_name);
 		errors_uncorrected = 1;
 		memset(addr, 0, BLOCK_SIZE);
 	}
@@ -483,7 +484,8 @@ static void write_block(unsigned int nr, char *addr)
 	if (BLOCK_SIZE * nr != lseek(IN, BLOCK_SIZE * nr, SEEK_SET))
 		die("seek failed in write_block");
 	if (BLOCK_SIZE != write(IN, addr, BLOCK_SIZE)) {
-		printf("Write error: bad block in file '%s'\n", current_name);
+		printf("%s: bad block in file '%s'\n",
+				bb_msg_write_error, current_name);
 		errors_uncorrected = 1;
 	}
 }

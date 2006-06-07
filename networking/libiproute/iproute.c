@@ -343,14 +343,14 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 				NEXT_ARG();
 			}
 			if (get_unsigned(&mtu, *argv, 0)) {
-				invarg("\"mtu\" value is invalid\n", *argv);
+				invarg(*argv, "mtu");
 			}
 			rta_addattr32(mxrta, sizeof(mxbuf), RTAX_MTU, mtu);
 		} else if (matches(*argv, "protocol") == 0) {
 			uint32_t prot;
 			NEXT_ARG();
 			if (rtnl_rtprot_a2n(&prot, *argv))
-				invarg("\"protocol\" value is invalid\n", *argv);
+				invarg(*argv, "protocol");
 			req.r.rtm_protocol = prot;
 			proto_ok =1;
 		} else if (strcmp(*argv, "dev") == 0 ||
@@ -487,7 +487,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 	filter.tb = RT_TABLE_MAIN;
 
 	if (flush && argc <= 0) {
-		fprintf(stderr, "\"ip route flush\" requires arguments.\n");
+		bb_error_msg(bb_msg_requires_arg, "\"ip route flush\"");
 		return -1;
 	}
 
@@ -498,7 +498,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 			filter.protocolmask = -1;
 			if (rtnl_rtprot_a2n(&prot, *argv)) {
 				if (strcmp(*argv, "all") != 0) {
-					invarg("invalid \"protocol\"\n", *argv);
+					invarg(*argv, "protocol");
 				}
 				prot = 0;
 				filter.protocolmask = 0;
@@ -541,7 +541,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 				if (matches(*argv, "cache") == 0) {
 					filter.tb = -1;
 				} else if (matches(*argv, "main") != 0) {
-					invarg("invalid \"table\"", *argv);
+					invarg(*argv, "table");
 				}
 			} else if (matches(*argv, "cache") == 0) {
 				filter.tb = -1;

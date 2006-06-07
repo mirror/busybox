@@ -259,9 +259,9 @@ static int parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 			NEXT_ARG();
 			if (strcmp(*argv, "inherit") != 0) {
 				if (get_unsigned(&uval, *argv, 0))
-					invarg("invalid TTL\n", *argv);
+					invarg(*argv, "TTL");
 				if (uval > 255)
-					invarg("TTL must be <=255\n", *argv);
+					invarg(*argv, "TTL must be <=255");
 				p->iph.ttl = uval;
 			}
 		} else if (strcmp(*argv, "tos") == 0 ||
@@ -270,7 +270,7 @@ static int parse_args(int argc, char **argv, int cmd, struct ip_tunnel_parm *p)
 			NEXT_ARG();
 			if (strcmp(*argv, "inherit") != 0) {
 				if (rtnl_dsfield_a2n(&uval, *argv))
-					invarg("bad TOS value", *argv);
+					invarg(*argv, "TOS");
 				p->iph.tos = uval;
 			} else
 				p->iph.tos = 1;

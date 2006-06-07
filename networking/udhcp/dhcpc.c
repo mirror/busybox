@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 		{"script",	required_argument,	0, 's'},
 		{"timeout",	required_argument,	0, 'T'},
 		{"version",	no_argument,		0, 'v'},
-		{"retries",	required_argument,	0, 't'},		
+		{"retries",	required_argument,	0, 't'},
 		{0, 0, 0, 0}
 	};
 

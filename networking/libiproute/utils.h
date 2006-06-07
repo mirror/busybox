@@ -1,13 +1,13 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__ 1
 
+#include "libbb.h"
 #include <asm/types.h>
 #include <resolv.h>
 
 #include "libnetlink.h"
 #include "ll_map.h"
 #include "rtm_map.h"
-#include "libbb.h"
 
 extern int preferred_family;
 extern int show_stats;
@@ -77,7 +77,7 @@ extern int get_s8(__s8 *val, char *arg, int base);
 extern const char *format_host(int af, int len, void *addr, char *buf, int buflen);
 extern const char *rt_addr_n2a(int af, int len, void *addr, char *buf, int buflen);
 
-void invarg(char *, char *) ATTRIBUTE_NORETURN;
+void invarg(const char const*, const char const*) ATTRIBUTE_NORETURN;
 void duparg(char *, char *) ATTRIBUTE_NORETURN;
 void duparg2(char *, char *) ATTRIBUTE_NORETURN;
 int matches(char *arg, char *pattern);

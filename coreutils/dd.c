@@ -96,7 +96,7 @@ int dd_main(int argc, char **argv)
 					noerror = TRUE;
 					ibuf += 7;
 				} else {
-					bb_error_msg_and_die("invalid conversion `%s'", argv[i]+5);
+					bb_error_msg_and_die(bb_msg_invalid_arg, argv[i]+5, "conv");
 				}
 				if (ibuf[0] == '\0') break;
 				if (ibuf[0] == ',') ibuf++;

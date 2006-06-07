@@ -86,7 +86,7 @@ static void unzip_skip(int fd, off_t skip)
 static void unzip_read(int fd, void *buf, size_t count)
 {
 	if (bb_xread(fd, buf, count) != count) {
-		bb_error_msg_and_die("Read failure");
+		bb_error_msg_and_die(bb_msg_read_error);
 	}
 }
 
@@ -95,7 +95,7 @@ static void unzip_create_leading_dirs(char *fn)
 	/* Create all leading directories */
 	char *name = bb_xstrdup(fn);
 	if (bb_make_directory(dirname(name), 0777, FILEUTILS_RECUR)) {
-		bb_error_msg_and_die("Failed to create directory");
+		bb_error_msg_and_die("Exiting"); /* bb_make_directory is noisy */
 	}
 	free(name);
 }
@@ -282,8 +282,8 @@ int unzip_main(int argc, char **argv)
 		unzip_skip(src_fd, zip_header.formated.extra_len);
 
 		if ((verbosity == v_list) && !list_header_done){
-			printf("  Length     Date   Time    Name\n");
-			printf(" --------    ----   ----    ----\n");
+			printf("  Length     Date   Time    Name\n"
+				   " --------    ----   ----    ----\n");
 			list_header_done = 1;
 		}
 
@@ -321,7 +321,7 @@ int unzip_main(int argc, char **argv)
 					}
 					unzip_create_leading_dirs(dst_fn);
 					if (bb_make_directory(dst_fn, 0777, 0)) {
-						bb_error_msg_and_die("Failed to create directory");
+						bb_error_msg_and_die("Exiting");
 					}
 				} else {
 					if (!S_ISDIR(stat_buf.st_mode)) {

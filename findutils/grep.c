@@ -313,12 +313,12 @@ int grep_main(int argc, char **argv)
 	if(opt & GREP_OPT_A) {
 		lines_after = strtoul(slines_after, &junk, 10);
 		if(*junk != '\0')
-			bb_error_msg_and_die("invalid context length argument");
+			bb_error_msg_and_die(bb_msg_invalid_arg, slines_after, "-A");
 	}
 	if(opt & GREP_OPT_B) {
 		lines_before = strtoul(slines_before, &junk, 10);
 		if(*junk != '\0')
-			bb_error_msg_and_die("invalid context length argument");
+			bb_error_msg_and_die(bb_msg_invalid_arg, slines_before, "-B");
 	}
 	/* sanity checks after parse may be invalid numbers ;-) */
 	if ((opt & (GREP_OPT_c|GREP_OPT_q|GREP_OPT_l|GREP_OPT_L))) {

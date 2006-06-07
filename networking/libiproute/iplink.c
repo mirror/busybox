@@ -252,7 +252,7 @@ static int do_set(int argc, char **argv)
 			if (mtu != -1)
 				duparg("mtu", *argv);
 			if (get_integer(&mtu, *argv, 0))
-				invarg("Invalid \"mtu\" value\n", *argv);
+				invarg(*argv, "mtu");
 		} else if (strcmp(*argv, "multicast") == 0) {
 			NEXT_ARG();
 			mask |= IFF_MULTICAST;
@@ -286,7 +286,7 @@ static int do_set(int argc, char **argv)
 	}
 
 	if (!dev) {
-		bb_error_msg("Not enough of information: \"dev\" argument is required.");
+		bb_error_msg(bb_msg_requires_arg, "\"dev\"");
 		exit(-1);
 	}
 

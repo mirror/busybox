@@ -1158,7 +1158,7 @@ static void diffdir(char *p1, char *p2)
 		while (*dirlist2 != NULL && strcmp(*dirlist2, start) < 0)
 			dirlist2++;
 		if ((*dirlist1 == NULL) || (*dirlist2 == NULL))
-			bb_error_msg("Invalid argument to -S");
+			bb_error_msg(bb_msg_invalid_arg, "NULL", "-S");
 	}
 
 	/* Now that both dirlist1 and dirlist2 contain sorted directory
@@ -1194,7 +1194,6 @@ static void diffdir(char *p1, char *p2)
 
 int diff_main(int argc, char **argv)
 {
-	char *ep;
 	int gotstdin = 0;
 
 	char *U_opt;
@@ -1229,11 +1228,7 @@ int diff_main(int argc, char **argv)
 
 	context = 3;		/* This is the default number of lines of context. */
 	if (cmd_flags & FLAG_U) {
-		context = strtol(U_opt, &ep, 10);
-		if (context == 0) {
-			bb_error_msg("Invalid context length");
-			bb_show_usage();
-		}
+		context = bb_xgetlarg(U_opt, 10, 1, INT_MAX);
 	}
 	argc -= optind;
 	argv += optind;
