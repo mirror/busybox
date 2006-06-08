@@ -398,7 +398,8 @@ static const char * const cmd_feat_str[] = {
 
 static void identify(uint16_t *id_supplied) ATTRIBUTE_NORETURN;
 static void identify_from_stdin(void) ATTRIBUTE_NORETURN;
-
+#else
+void identify_from_stdin(void);
 #endif
 
 
