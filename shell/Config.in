@@ -95,11 +95,27 @@ config CONFIG_ASH_MATH_SUPPORT_64
 	  large numbers.
 
 config CONFIG_ASH_GETOPTS
-	bool "Enable getopts builtin to parse positional parameters"
+	bool "Builtin getopt to parse positional parameters"
 	default n
 	depends on CONFIG_ASH
 	help
 	  Enable getopts builtin in the ash shell.
+
+config CONFIG_ASH_BUILTIN_ECHO
+	bool "Builtin version of 'echo'"
+	default y
+	select CONFIG_ECHO
+	depends on CONFIG_ASH
+	help
+	  Enable support for echo, built in to ash.
+
+config CONFIG_ASH_BUILTIN_TEST
+	bool "Builtin version of 'test'"
+	default y
+	select CONFIG_TEST
+	depends on CONFIG_ASH
+	help
+	  Enable support for test, built in to ash.
 
 config CONFIG_ASH_CMDCMD
 	bool "Enable cmdcmd to override shell builtins"
@@ -109,21 +125,6 @@ config CONFIG_ASH_CMDCMD
 	  Enable support for the ash 'command' builtin, which allows
 	  you to run the specified command with the specified arguments,
 	  even when there is an ash builtin command with the same name.
-
-config CONFIG_ASH_BUILTIN_ECHO
-	bool "Enable builtin version of 'echo'"
-	default n
-	depends on CONFIG_ASH
-	help
-	  Enable support for echo, built in to ash.
-
-# this entry also appears in coreutils/Config.in, next to the echo applet
-config CONFIG_FEATURE_FANCY_ECHO
-	bool "Enable echo options (-n and -e)"
-	default y
-	depends on CONFIG_ASH_BUILTIN_ECHO
-	help
-	  This adds options (-n and -e) to echo.
 
 config CONFIG_ASH_MAIL
 	bool "Check for new mail on interactive shells"
@@ -228,6 +229,11 @@ config CONFIG_FEATURE_SH_STANDALONE_SHELL
 	  execute the /sbin/ifconfig executable on the filesystem.  This option
 	  is generally used when creating a statically linked version of busybox
 	  for use as a rescue shell, in the event that you screw up your system.
+
+	  Note that this will *also* cause applets to take precedence
+	  over shell builtins of the same name.  So turning this on will
+	  eliminate any performance gained by turning on the builtin "echo"
+	  and "test" commands in ash.
 
 	  Note that when using this option, the shell will attempt to directly
 	  run '/bin/busybox'.  If you do not have the busybox binary sitting in

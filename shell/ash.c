@@ -1225,6 +1225,9 @@ static int evalcmd(int, char **);
 #ifdef CONFIG_ASH_BUILTIN_ECHO
 static int echocmd(int, char **);
 #endif
+#ifdef CONFIG_ASH_BUILTIN_TEST
+static int testcmd(int, char **);
+#endif
 static int execcmd(int, char **);
 static int exitcmd(int, char **);
 static int exportcmd(int, char **);
@@ -1286,10 +1289,15 @@ struct builtincmd {
 
 
 #define COMMANDCMD (builtincmd + 5 + \
-	ENABLE_ASH_ALIAS + ENABLE_ASH_JOB_CONTROL)
+	2 * ENABLE_ASH_BUILTIN_TEST + \
+	ENABLE_ASH_ALIAS + \
+	ENABLE_ASH_JOB_CONTROL)
 #define EXECCMD (builtincmd + 7 + \
-	ENABLE_ASH_CMDCMD + ENABLE_ASH_ALIAS + \
-	ENABLE_ASH_BUILTIN_ECHO + ENABLE_ASH_JOB_CONTROL)
+	2 * ENABLE_ASH_BUILTIN_TEST + \
+	ENABLE_ASH_ALIAS + \
+	ENABLE_ASH_JOB_CONTROL + \
+	ENABLE_ASH_CMDCMD + \
+	ENABLE_ASH_BUILTIN_ECHO)
 
 #define BUILTIN_NOSPEC  "0"
 #define BUILTIN_SPECIAL "1"
@@ -1307,6 +1315,10 @@ struct builtincmd {
 static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_SPEC_REG      ".", dotcmd },
 	{ BUILTIN_SPEC_REG      ":", truecmd },
+#ifdef CONFIG_ASH_BUILTIN_TEST
+	{ BUILTIN_REGULAR	"[", testcmd },
+	{ BUILTIN_REGULAR	"[[", testcmd },
+#endif
 #ifdef CONFIG_ASH_ALIAS
 	{ BUILTIN_REG_ASSG      "alias", aliascmd },
 #endif
@@ -1353,6 +1365,9 @@ static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_SPEC_REG      "set", setcmd },
 	{ BUILTIN_SPEC_REG      "source", dotcmd },
 	{ BUILTIN_SPEC_REG      "shift", shiftcmd },
+#ifdef CONFIG_ASH_BUILTIN_TEST
+	{ BUILTIN_REGULAR	"test", testcmd },
+#endif
 	{ BUILTIN_SPEC_REG      "times", timescmd },
 	{ BUILTIN_SPEC_REG      "trap", trapcmd },
 	{ BUILTIN_REGULAR       "true", truecmd },
@@ -8143,6 +8158,15 @@ echocmd(int argc, char **argv)
 	return bb_echo(argc, argv);
 }
 #endif
+
+#ifdef CONFIG_ASH_BUILTIN_TEST
+static int
+testcmd(int argc, char **argv)
+{
+	return bb_test(argc, argv);
+}
+#endif
+
 /*      memalloc.c        */
 
 /*

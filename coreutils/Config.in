@@ -603,8 +603,8 @@ config CONFIG_TEST
 	default n
 	help
 	  test is used to check file types and compare values,
-	  returning an appropriate exit code. The shells (ash
-	  and bash) have test builtin.
+	  returning an appropriate exit code.  The bash shell
+	  has test built in, ash can build it in optionally.
 
 config CONFIG_FEATURE_TEST_64
 	bool "Extend test to 64 bit"

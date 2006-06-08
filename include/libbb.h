@@ -118,6 +118,7 @@ extern void bb_verror_msg(const char *s, va_list p) __attribute__ ((format (prin
 extern void bb_vperror_msg(const char *s, va_list p)  __attribute__ ((format (printf, 1, 0)));
 
 extern int bb_echo(int argc, char** argv);
+extern int bb_test(int argc, char** argv);
 
 extern const char *bb_mode_string(int mode);
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
