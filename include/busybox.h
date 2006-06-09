@@ -11,6 +11,7 @@
 
 #include "libbb.h"
 
+/* order matters:  used as index into "install_dir[]" in busybox.c */
 enum Location {
 	_BB_DIR_ROOT = 0,
 	_BB_DIR_BIN,
