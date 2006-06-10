@@ -172,7 +172,7 @@ static inline int tftp(const int cmd, const struct hostent *host,
 	len = sizeof(sa);
 
 	memset(&sa, 0, len);
-	bind(socketfd, (struct sockaddr *)&sa, len);
+	bb_xbind(socketfd, (struct sockaddr *)&sa, len);
 
 	sa.sin_family = host->h_addrtype;
 	sa.sin_port = port;
