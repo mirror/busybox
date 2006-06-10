@@ -18,7 +18,7 @@
  * stored and free'ed  by the caller.  If end is null '\n' isn't considered
  * and of line.  If end isn't null, length of the chunk read is stored in it. */
 
-char *bb_get_chunk_from_file(FILE *file, int *end)
+char *bb_get_chunk_from_file(FILE * file, int *end)
 {
 	int ch;
 	int idx = 0;
@@ -30,10 +30,12 @@ char *bb_get_chunk_from_file(FILE *file, int *end)
 		if (idx > linebufsz - 2) {
 			linebuf = xrealloc(linebuf, linebufsz += 80);
 		}
-		linebuf[idx++] = (char)ch;
-		if (!ch || (end && ch == '\n')) break;
+		linebuf[idx++] = (char) ch;
+		if (!ch || (end && ch == '\n'))
+			break;
 	}
-	if (end) *end = idx;
+	if (end)
+		*end = idx;
 	if (linebuf) {
 		if (ferror(file)) {
 			free(linebuf);
@@ -45,18 +47,21 @@ char *bb_get_chunk_from_file(FILE *file, int *end)
 }
 
 /* Get line, including trailing /n if any */
-char *bb_get_line_from_file(FILE *file)
+char *bb_get_line_from_file(FILE * file)
 {
 	int i;
+
 	return bb_get_chunk_from_file(file, &i);
 }
 
 /* Get line.  Remove trailing /n */
-char *bb_get_chomped_line_from_file(FILE *file)
+char *bb_get_chomped_line_from_file(FILE * file)
 {
 	int i;
-	char *c=bb_get_chunk_from_file(file, &i);
-	if(i) c[--i]=0;
-	
+	char *c = bb_get_chunk_from_file(file, &i);
+
+	if (i && c[--i] == '\n')
+		c[i] = 0;
+
 	return c;
 }
