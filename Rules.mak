@@ -56,6 +56,7 @@ LC_ALL:= C
 # especially from the command line, use this instead of CFLAGS directly.
 # For optimization overrides, it's better still to set OPTIMIZATION.
 CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
+# be gentle to vi coloring.. ")
 
 # To compile vs some other alternative libc, you may need to use/adjust
 # the following lines to meet your needs...
@@ -114,6 +115,10 @@ check_cc=$(shell \
 		rm -f conftest.c conftest.o; \
 	fi)
 
+ifeq ($(filter-out $(nocheck_targets),$(MAKECMDGOALS)),)
+check_cc:=
+endif
+
 # A not very robust macro to check for available ld flags
 ifeq ($(strip $(V)),2)
 VERBOSE_CHECK_LD=echo LD=\"$(1)\" check_ld $(2) >&2;
@@ -124,6 +129,10 @@ check_ld=$(shell \
 		$(1) -o /dev/null -b binary /dev/null > /dev/null 2>&1 && \
 		echo "-Wl,$(2)" ; \
 	fi)
+
+ifeq ($(filter-out $(nocheck_targets),$(MAKECMDGOALS)),)
+check_ld:=
+endif
 
 # A not very robust macro to check for available strip flags
 ifeq ($(strip $(V)),2)
@@ -139,6 +148,9 @@ check_strip=$(shell \
 		rm -f conftest.c conftest.o > /dev/null 2>&1 ; \
 	fi)
 
+ifeq ($(filter-out $(nocheck_targets),$(MAKECMDGOALS)),)
+check_strip:=
+endif
 
 
 # Select the compiler needed to build binaries for your development system
@@ -410,7 +422,7 @@ do_link.h          = @$(disp_link.h)    ; $(cmd_link.h)
 do_ar              = @$(disp_ar)        ; $(cmd_ar)
 do_elf2flt         = @$(disp_elf2flt)   ; $(cmd_elf2flt)
 
-uppercase = $(shell echo $1 | tr '[:lower:]' '[:upper:]')
+uppercase = $(shell echo $1 | $(SED) -e "y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/")
 %.a:
 	@if test -z "$($(call uppercase,$*)_DIR)" ; then \
 		echo "Invalid target $@" ; \

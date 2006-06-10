@@ -17,6 +17,8 @@ noconfig_targets := menuconfig config oldconfig randconfig hosttools \
 	clean distclean help \
 	release tags
 
+nocheck_targets := clean distclean help release tags
+
 # the toplevel sourcedir
 ifndef top_srcdir
 top_srcdir=$(CURDIR)
@@ -56,7 +58,7 @@ else
 endif
 
 ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
-# pull in OS specific commands like cp, mkdir, etc. early
+# pull in settings early
 -include $(top_srcdir)/Rules.mak
 endif
 
