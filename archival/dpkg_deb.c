@@ -89,8 +89,8 @@ int dpkg_deb_main(int argc, char **argv)
 		extract_dir = argv[optind];
 	}
 	if (extract_dir) {
-		mkdir(extract_dir, 0777);
-		chdir(extract_dir); /* error check? */
+		mkdir(extract_dir, 0777); /* bb_make_directory(extract_dir, 0777, 0) */
+		bb_xchdir(extract_dir);
 	}
 	unpack_ar_archive(ar_archive);
 

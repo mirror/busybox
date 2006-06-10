@@ -198,7 +198,7 @@ void extract_cpio_gz(int fd) {
 		bb_error_msg_and_die("Invalid gzip magic");
 	}
 	check_header_gzip(archive_handle->src_fd);
-	chdir("/"); // Install RPM's to root
+	bb_xchdir("/"); // Install RPM's to root
 
 	archive_handle->src_fd = open_transformer(archive_handle->src_fd, inflate_gunzip);
 	archive_handle->offset = 0;
