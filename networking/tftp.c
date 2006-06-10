@@ -150,7 +150,7 @@ static int tftp(const int cmd, const struct hostent *host,
 	socklen_t fromlen;
 	fd_set rfds;
 	int socketfd;
-	int len, itmp;
+	int len;
 	int opcode = 0;
 	int finished = 0;
 	int timeout = TFTP_NUM_RETRIES;
@@ -308,8 +308,8 @@ static int tftp(const int cmd, const struct hostent *host,
 			FD_ZERO(&rfds);
 			FD_SET(socketfd, &rfds);
 
-			itmp = select(socketfd + 1, &rfds, NULL, NULL, &tv);
-			if (itmp == 1) {
+			switch (select(socketfd + 1, &rfds, NULL, NULL, &tv)) {
+			case 1:
 				len = recvfrom(socketfd, buf, tftp_bufsize, 0,
 							   (struct sockaddr *) &from, &fromlen);
 
@@ -330,8 +330,7 @@ static int tftp(const int cmd, const struct hostent *host,
 				/* fall-through for bad packets! */
 				/* discard the packet - treat as timeout */
 				timeout = TFTP_NUM_RETRIES;
-
-			} else if (itmp == 0) {
+			case 0:
 				bb_error_msg("timeout");
 
 				timeout--;
@@ -340,8 +339,7 @@ static int tftp(const int cmd, const struct hostent *host,
 					bb_error_msg("last timeout");
 				}
 				break;
-
-			} else {
+			default:
 				bb_perror_msg("select");
 				len = -1;
 			}
