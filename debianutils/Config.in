@@ -61,6 +61,15 @@ config CONFIG_START_STOP_DAEMON
 	  termination of system-level processes, usually the ones
 	  started during the startup of the system.
 
+config CONFIG_FEATURE_START_STOP_DAEMON_FANCY
+	bool "Support additional arguments"
+	default y
+	depends on CONFIG_START_STOP_DAEMON
+	help
+	  Support additional arguments.
+	  -o|--oknodo ignored since we exit with 0 anyway
+	  -v|--verbose
+
 config CONFIG_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
 	bool "Enable long options"
 	default n

@@ -2681,6 +2681,10 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\n\t-n|--name <process-name>\tstop processes with this name" \
 	"\n\t-p|--pidfile <pid-file>\t\tsave or load pid using a pid-file" \
 	"\n\t-q|--quiet\t\t\tbe quiet" \
+USE_FEATURE_START_STOP_DAEMON_FANCY( \
+	"\n\t-o|--oknodo\t\t\texit status 0 if nothing done" \
+	"\n\t-v|--verbose\t\t\tbe verbose" \
+) \
 	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)"
 
 #ifdef CONFIG_FEATURE_STAT_FORMAT
