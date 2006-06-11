@@ -61,7 +61,7 @@ echo \
  */"
 
 echo "static char const bbconfig_config[] ="
-echo "\"CONFIG_BEGIN=n\\n\\"
+echo "\"\\"
 echo "`sed 's/\"/\\\\\"/g' $config | grep "^#\? \?CONFIG_" | awk '{ print $0 "\\\\n\\\\" }' `"
-echo "CONFIG_END=n\\n\";"
+echo "\";"
 echo "#endif /* _BBCONFIG_H */"
