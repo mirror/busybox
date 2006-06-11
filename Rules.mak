@@ -115,7 +115,7 @@ check_cc=$(shell \
 		rm -f conftest.c conftest.o; \
 	fi)
 
-ifeq ($(filter-out $(nocheck_targets),$(MAKECMDGOALS)),)
+ifneq ($(filter $(nocheck_targets),$(MAKECMDGOALS)),)
 check_cc:=
 endif
 
@@ -130,7 +130,7 @@ check_ld=$(shell \
 		echo "-Wl,$(2)" ; \
 	fi)
 
-ifeq ($(filter-out $(nocheck_targets),$(MAKECMDGOALS)),)
+ifneq ($(filter $(nocheck_targets),$(MAKECMDGOALS)),)
 check_ld:=
 endif
 
@@ -148,7 +148,7 @@ check_strip=$(shell \
 		rm -f conftest.c conftest.o > /dev/null 2>&1 ; \
 	fi)
 
-ifeq ($(filter-out $(nocheck_targets),$(MAKECMDGOALS)),)
+ifneq ($(filter $(nocheck_targets),$(MAKECMDGOALS)),)
 check_strip:=
 endif
 
