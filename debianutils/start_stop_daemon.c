@@ -159,7 +159,7 @@ static int do_stop(void)
 	do_procinit();
 
 	if (cmdname)
-		what=cmdname;//strcpy(what, cmdname);
+		strcpy(what, cmdname);
 	else if (execname)
 		strcpy(what, execname);
 	else if (pidfile)
