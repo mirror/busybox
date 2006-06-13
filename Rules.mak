@@ -253,6 +253,7 @@ ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
 endif # gcc-4.1 and beyond
 endif
 OPTIMIZATION+=$(call check_cc,$(CC),-fomit-frame-pointer,)
+OPTIMIZATION+=$(call check_cc,$(CC),-ffunction-sections -fdata-sections,)
 
 #
 #--------------------------------------------------------
@@ -284,6 +285,7 @@ ifeq ($(strip $(CONFIG_DEBUG)),y)
 else
     CFLAGS +=-DNDEBUG
     CHECKED_LDFLAGS += $(call check_ld,$(LD),--sort-common,)
+    CHECKED_LDFLAGS += $(call check_ld,--gc-sections,)
 endif
 
 ifneq ($(strip $(CONFIG_DEBUG_PESSIMIZE)),y)
