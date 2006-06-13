@@ -518,8 +518,6 @@ int tftp_main(int argc, char **argv)
 	bb_opt_complementally = GET_COMPL PUT_COMPL ":?g--p:p--g";
 #elif defined(CONFIG_FEATURE_TFTP_GET) || defined(CONFIG_FEATURE_TFTP_PUT)
 	bb_opt_complementally = GET_COMPL PUT_COMPL;
-#else
-#error "Either CONFIG_FEATURE_TFTP_GET or CONFIG_FEATURE_TFTP_PUT must be defined"
 #endif
 
 
