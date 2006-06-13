@@ -20,13 +20,6 @@
 
 #include "libbb.h"
 
-/* Compiler version-specific crap that should be in a header file somewhere. */
-
-#if !((__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1))
-#define lchown chown
-#endif
-
-
 int copy_file(const char *source, const char *dest, int flags)
 {
 	struct stat source_stat;

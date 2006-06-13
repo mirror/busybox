@@ -149,10 +149,8 @@ __extension__ typedef unsigned long long __u64;
 #endif /* ifndef __GNUC__ */
 
 #if (defined __digital__ && defined __unix__)
-# undef HAVE_STDBOOL_H
 # undef HAVE_MNTENT_H
 #else
-# define HAVE_STDBOOL_H 1
 # define HAVE_MNTENT_H 1
 #endif /* ___digital__ && __unix__ */
 
@@ -167,6 +165,8 @@ __extension__ typedef unsigned long long __u64;
 	!(defined __digital__ && defined __unix__)
 # error "Sorry, this libc version is not supported :("
 #endif
+
+// Don't perpetuate e2fsck crap into the headers.  Clean up e2fsck instead.
 
 #if defined __GLIBC__ || defined __UCLIBC__ \
 	|| defined __dietlibc__ || defined _NEWLIB_VERSION
@@ -187,12 +187,10 @@ typedef unsigned long long int  uintmax_t;
 #endif
 #endif
 
-#if (defined __digital__ && defined __unix__)
-#include <standards.h>
-#define HAVE_STANDARDS_H
-#include <inttypes.h>
-#define HAVE_INTTYPES_H
-#define PRIu32 "u"
+// Is this for non-linux systems, or what?
+
+#if !((__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1))
+#define lchown chown
 #endif
 
 /* uclibc does not implement daemon for no-mmu systems.
@@ -206,8 +204,9 @@ typedef unsigned long long int  uintmax_t;
 #define BB_NOMMU
 #endif
 
-/* Need to implement fdprintf for platforms that haven't got dprintf. */
-/* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
+/* Platforms that haven't got dprintf need to implement fdprintf() in
+ * libbb.  This would require a platform.c.  It's not going to be cleaned
+ * out of the tree, so stop saying it should be. */
 #define fdprintf dprintf
 
 /* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
@@ -216,15 +215,16 @@ typedef unsigned long long int  uintmax_t;
 #define FNM_LEADING_DIR 0
 #endif
 
-/* move to platform.c */
 #if (defined __digital__ && defined __unix__)
-/* use legacy setpgrp(pidt_,pid_t) for now..  */
-#define bb_setpgrp do{pid_t __me = getpid();setpgrp(__me,__me);}while(0)
-#else
-#define bb_setpgrp setpgrp()
-#endif
+#include <standards.h>
+#define HAVE_STANDARDS_H
+#include <inttypes.h>
+#define HAVE_INTTYPES_H
+#define PRIu32 "u"
 
-/* This is needed on some non linux unices like Tru64 */
+/* use legacy setpgrp(pidt_,pid_t) for now.  move to platform.c */
+#define bb_setpgrp do{pid_t __me = getpid();setpgrp(__me,__me);}while(0)
+
 #if !defined ADJ_OFFSET_SINGLESHOT && defined MOD_CLKA && defined MOD_OFFSET
 #define ADJ_OFFSET_SINGLESHOT (MOD_CLKA | MOD_OFFSET)
 #endif
@@ -236,6 +236,14 @@ typedef unsigned long long int  uintmax_t;
 #endif
 #if !defined ADJ_TICK && defined MOD_CLKB
 #define ADJ_TICK MOD_CLKB
+#endif
+
+#else
+#define bb_setpgrp setpgrp()
+#endif
+
+#if defined(__linux__) && !defined(BLKGETSIZE64)
+#define BLKGETSIZE64 _IOR(0x12,114,size_t)
 #endif
 
 #endif	/* platform.h	*/
