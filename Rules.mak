@@ -103,7 +103,7 @@ endif
 # A nifty macro to make testing gcc features easier, but note that everything
 # that uses this _must_ use := or it will be re-evaluated everytime it is
 # referenced.
-ifeq ($(strip $(V)),2)
+ifeq ($(strip $(BUILD_VERBOSE)),2)
 VERBOSE_CHECK_CC=echo CC=\"$(1)\" check_cc $(2) >&2;
 endif
 check_cc=$(shell \
@@ -120,7 +120,7 @@ check_cc:=
 endif
 
 # A not very robust macro to check for available ld flags
-ifeq ($(strip $(V)),2)
+ifeq ($(strip $(BUILD_VERBOSE)),2)
 VERBOSE_CHECK_LD=echo LD=\"$(1)\" check_ld $(2) >&2;
 endif
 check_ld=$(shell \
@@ -135,7 +135,7 @@ check_ld:=
 endif
 
 # A not very robust macro to check for available strip flags
-ifeq ($(strip $(V)),2)
+ifeq ($(strip $(BUILD_VERBOSE)),2)
 VERBOSE_CHECK_STRIP=echo STRIPCMD=\"$(1)\" check_strip $(2) >&2;
 endif
 check_strip=$(shell \
@@ -365,7 +365,7 @@ SECHO := @-false
 DISP  := sil
 Q     := @
 else
-ifneq ($(V)$(VERBOSE),)
+ifneq ($(BUILD_VERBOSE),)
 SECHO := @-false
 DISP  := ver
 Q     := 
@@ -410,7 +410,18 @@ disp_elf2flt       = $($(DISP)_disp_elf2flt)
 cmd_compile.c      = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 cmd_compile.h      = $(HOSTCC) $(HOSTCFLAGS) $(INCS) -c -o $@ $<
 cmd_strip          = $(STRIPCMD) $@
-cmd_link           = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS)
+cmd_link           = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) \
+			$(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) \
+			-o $@ $(LD_START_GROUP)  \
+			$(APPLETS_DEFINE) $(APPLET_SRC) \
+			$(BUSYBOX_DEFINE) $(BUSYBOX_SRC) $(libraries-y) \
+			$(LDBUSYBOX) $(LIBRARIES) \
+			$(LD_END_GROUP)
+cmd_link.so        = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) \
+			$(LIB_CFLAGS) $(CFLAGS_COMBINE) $(LIB_LDFLAGS) \
+			-o $(@) $(LD_START_GROUP) $(LD_WHOLE_ARCHIVE) \
+			$(LIBRARY_DEFINE) $(^) \
+			$(LD_NO_WHOLE_ARCHIVE) $(LD_END_GROUP)
 cmd_link.h         = $(HOSTCC) $(HOSTCFLAGS) $(INCS) $< -o $@
 cmd_ar             = $(AR) $(ARFLAGS) $@ $^
 cmd_elf2flt        = $(ELF2FLT) $(ELF2FLTFLAGS) $< -o $@
@@ -418,6 +429,7 @@ compile.c          = @$(disp_compile.c) ; $(cmd_compile.c)
 compile.h          = @$(disp_compile.h) ; $(cmd_compile.h)
 do_strip           = @$(disp_strip)     ; $(cmd_strip)
 do_link            = @$(disp_link)      ; $(cmd_link)
+do_link.so         = @$(disp_link)      ; $(cmd_link.so)
 do_link.h          = @$(disp_link.h)    ; $(cmd_link.h)
 do_ar              = @$(disp_ar)        ; $(cmd_ar)
 do_elf2flt         = @$(disp_elf2flt)   ; $(cmd_elf2flt)

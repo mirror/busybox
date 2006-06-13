@@ -43,18 +43,36 @@ _all:
 
 CONFIG_CONFIG_IN = $(top_srcdir)/Config.in
 
-ifeq ($(KBUILD_SRC),)
-
+ifeq ($(BUILD_SRC),)
 ifdef O
   ifeq ("$(origin O)", "command line")
-    KBUILD_OUTPUT := $(O)
+    BUILD_OUTPUT := $(O)
     top_builddir := $(O)
   endif
 else
 # If no alternate output-dir was specified, we build in cwd
-# We are using KBUILD_OUTPUT nevertheless to make sure that we create
+# We are using BUILD_OUTPUT nevertheless to make sure that we create
 # Rules.mak and the toplevel Makefile, in case they don't exist.
-  KBUILD_OUTPUT := $(top_builddir)
+  BUILD_OUTPUT := $(top_builddir)
+endif
+
+# see if we are in verbose mode
+BUILD_VERBOSE :=
+ifdef V
+  ifeq ("$(origin V)", "command line")
+    BUILD_VERBOSE := $(V)
+  endif
+endif
+ifdef VERBOSE
+  ifeq ("$(origin VERBOSE)", "command line")
+    BUILD_VERBOSE := $(VERBOSE)
+  endif
+endif
+
+ifneq ($(strip $(BUILD_VERBOSE)),)
+  export BUILD_VERBOSE
+  CHECK_VERBOSE := -v
+# ARFLAGS+=v
 endif
 
 ifneq ($(strip $(HAVE_DOT_CONFIG)),y)
@@ -69,40 +87,40 @@ all_tree: $(all_tree)
 $(all_tree):
 	@mkdir -p "$@"
 
-ifneq ($(KBUILD_OUTPUT),)
+ifneq ($(BUILD_OUTPUT),)
 # Invoke a second make in the output directory, passing relevant variables
 # Check that the output directory actually exists
-saved-output := $(KBUILD_OUTPUT)
-KBUILD_OUTPUT := $(shell cd $(KBUILD_OUTPUT) && /bin/pwd)
-$(if $(wildcard $(KBUILD_OUTPUT)),, \
+saved-output := $(BUILD_OUTPUT)
+BUILD_OUTPUT := $(shell cd $(BUILD_OUTPUT) && /bin/pwd)
+$(if $(wildcard $(BUILD_OUTPUT)),, \
      $(error output directory "$(saved-output)" does not exist))
 
 .PHONY: $(MAKECMDGOALS)
 
-$(filter-out _all,$(MAKECMDGOALS)) _all: $(KBUILD_OUTPUT)/Rules.mak $(KBUILD_OUTPUT)/Makefile all_tree
-	$(Q)$(MAKE) -C $(KBUILD_OUTPUT) \
+$(filter-out _all,$(MAKECMDGOALS)) _all: $(BUILD_OUTPUT)/Rules.mak $(BUILD_OUTPUT)/Makefile all_tree
+	$(Q)$(MAKE) -C $(BUILD_OUTPUT) \
 	top_srcdir=$(top_srcdir) \
 	top_builddir=$(top_builddir) \
-	KBUILD_SRC=$(top_srcdir) \
+	BUILD_SRC=$(top_srcdir) \
 	-f $(CURDIR)/Makefile $@
 
-$(KBUILD_OUTPUT)/Rules.mak:
+$(BUILD_OUTPUT)/Rules.mak:
 	@echo > $@
 	@echo top_srcdir=$(top_srcdir) >> $@
-	@echo top_builddir=$(KBUILD_OUTPUT) >> $@
+	@echo top_builddir=$(BUILD_OUTPUT) >> $@
 	@echo include $(top_srcdir)/Rules.mak >> $@
 
-$(KBUILD_OUTPUT)/Makefile:
+$(BUILD_OUTPUT)/Makefile:
 	@echo > $@
 	@echo top_srcdir=$(top_srcdir) >> $@
-	@echo top_builddir=$(KBUILD_OUTPUT) >> $@
-	@echo KBUILD_SRC='$$(top_srcdir)' >> $@
-	@echo include '$$(KBUILD_SRC)'/Makefile >> $@
+	@echo top_builddir=$(BUILD_OUTPUT) >> $@
+	@echo BUILD_SRC='$$(top_srcdir)' >> $@
+	@echo include '$$(BUILD_SRC)'/Makefile >> $@
 
 # Leave processing to above invocation of make
 skip-makefile := 1
-endif # ifneq ($(KBUILD_OUTPUT),)
-endif # ifeq ($(KBUILD_SRC),)
+endif # ifneq ($(BUILD_OUTPUT),)
+endif # ifeq ($(BUILD_SRC),)
 
 ifeq ($(skip-makefile),)
 
@@ -305,13 +323,9 @@ $(LIBBUSYBOX_SONAME):
 ifndef MAJOR_VERSION
 	$(error MAJOR_VERSION needed for $@ is not defined)
 endif
-	$(do_link) $(LIB_CFLAGS) $(CFLAGS_COMBINE) \
+	$(do_link.so) \
 	-Wl,-soname=$(LD_LIBBUSYBOX).$(MAJOR_VERSION) \
-	-Wl,-z,combreloc $(LIB_LDFLAGS) \
-	-o $(@) \
-	$(LD_START_GROUP) $(LD_WHOLE_ARCHIVE) \
-	$(LIBRARY_DEFINE) $(^) \
-	$(LD_NO_WHOLE_ARCHIVE) $(LD_END_GROUP)
+	-Wl,-z,combreloc
 	@rm -f $(DO_INSTALL_LIBS)
 	@for i in $(DO_INSTALL_LIBS); do ln -s $(@) $$i ; done
 	$(do_strip)
@@ -319,12 +333,7 @@ endif
 endif # ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 
 busybox_unstripped: .depend $(LIBBUSYBOX_SONAME) $(BUSYBOX_SRC) $(APPLET_SRC) $(libraries-y)
-	$(do_link) $(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) \
-	-o $@ $(LD_START_GROUP)  \
-	$(APPLETS_DEFINE) $(APPLET_SRC) \
-	$(BUSYBOX_DEFINE) $(BUSYBOX_SRC) $(libraries-y) \
-	$(LDBUSYBOX) $(LIBRARIES) \
-	$(LD_END_GROUP)
+	$(do_link)
 
 busybox: busybox_unstripped
 	$(Q)cp busybox_unstripped busybox
@@ -357,18 +366,6 @@ ifneq ($(strip $(DO_INSTALL_LIBS)),n)
 	for i in $(LIBBUSYBOX_SONAME) $(DO_INSTALL_LIBS); do \
 		rm -f $(PREFIX)$$i; \
 	done
-endif
-
-# see if we are in verbose mode
-KBUILD_VERBOSE :=
-ifdef V
-  ifeq ("$(origin V)", "command line")
-    KBUILD_VERBOSE := $(V)
-  endif
-endif
-ifneq ($(strip $(KBUILD_VERBOSE)),)
-  CHECK_VERBOSE := -v
-# ARFLAGS+=v
 endif
 
 check test: busybox
