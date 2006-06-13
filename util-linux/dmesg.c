@@ -1,80 +1,35 @@
-/* vi: set sw=4 ts=4: */
-/* dmesg.c -- Print out the contents of the kernel ring buffer
- * Created: Sat Oct  9 16:19:47 1993
- * Revised: Thu Oct 28 21:52:17 1993 by faith@cs.unc.edu
- * Copyright 1993 Theodore Ts'o (tytso@athena.mit.edu)
- * This program comes with ABSOLUTELY NO WARRANTY.
- * Modifications by Rick Sladkey (jrs@world.std.com)
- * Larger buffersize 3 June 1998 by Nicolai Langfeldt, based on a patch
- * by Peeter Joot.  This was also suggested by John Hudson.
- * 1999-02-22 Arkadiusz Mi¶kiewicz <misiek@misiek.eu.org>
- * - added Native Language Support
+/* vi: set ts=4:
+ * 
+ * dmesg - display/control kernel ring buffer.
  *
- * from util-linux -- adapted for busybox by
- * Erik Andersen <andersen@codepoet.org>. I ripped out Native Language
- * Support, replaced getopt, added some gotos for redundant stuff.
+ * Copyring 2006 Rob Landley <rob@landley.net>
  *
- * Audited and cleaned up on 7 March 2003 to reduce size of
- * check error handling by Erik Andersen <andersen@codepoet.org>
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
+#include "busybox.h"
+#include <unistd.h>
 #include <sys/klog.h>
 
-#include "busybox.h"
-
-int dmesg_main(int argc, char **argv)
+int dmesg_main(int argc, char *argv[])
 {
-	char *buf, *tmp;
-	int bufsize = 8196;
-	int i, n = 0;
-	int c = 3;
+	char *size, *level;
+	int flags = bb_getopt_ulflags(argc, argv, "c:s:n:", &size, &level);
 
-	i = bb_getopt_ulflags(argc, argv, "cn:s:", &buf, &tmp);
-	if (i & 1)
-				c = 4;
-	if (i & 2) {
-				c = 8;
-				n = bb_xgetlarg(buf, 10, 0, 10);
-	}
-	if (i & 4)
-				/* I think a 512k max kernel ring buffer is big enough for
-				 * anybody, as the default is 16k...  Could be wrong though.
-				 * If so I'm sure I'll hear about it by the enraged masses*/
-				bufsize = bb_xgetlarg(tmp, 10, 4096, 512*1024);
+	if (flags & 4) {
+		if(klogctl(8, NULL, bb_xgetlarg(size, 10, 0, 10)))
+			bb_perror_msg_and_die("klogctl");
+	} else {
+		int len;
+		char *buf;
 
-	if (c == 8) {
-		if (klogctl(c, NULL, n) < 0)
-			goto die_the_death;
-		goto all_done;
+		len = (flags & 2) ? bb_xgetlarg(size, 10, 4096, INT_MAX) : 16384;
+		buf = xmalloc(len);
+		if (0 > (len = klogctl(3 + (flags & 1), buf, len)))
+			bb_perror_msg_and_die("klogctl");
+		write(1,buf,len);
+		if (len && buf[len-1]!='\n') putchar('\n');
 	}
 
-	buf = xmalloc(bufsize);
-	if ((n = klogctl(c, buf, bufsize)) < 0)
-		goto die_the_death;
-
-	c = '\n';
-	for (i = 0; i < n; i++) {
-		if (c == '\n' && buf[i] == '<') {
-			i++;
-			while (buf[i] >= '0' && buf[i] <= '9')
-				i++;
-			if (buf[i] == '>')
-				i++;
-		}
-		c = buf[i];
-		putchar(c);
-	}
-	if (c != '\n')
-		putchar('\n');
-all_done:
-	if (ENABLE_FEATURE_CLEAN_UP) {
-		free(buf);
-	}
-
-	return EXIT_SUCCESS;
-die_the_death:
-	bb_perror_nomsg_and_die();
+	return 0;
 }
