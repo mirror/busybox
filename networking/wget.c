@@ -120,11 +120,11 @@ static char *base64enc(unsigned char *p, char *buf, int len) {
 
 	char al[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		    "0123456789+/";
-		char *s = buf;
+	char *s = buf;
 
 	while(*p) {
-				if (s >= buf+len-4)
-					bb_error_msg_and_die("buffer overflow");
+		if (s >= buf+len-4)
+			bb_error_msg_and_die("buffer overflow");
 		*(s++) = al[(*p >> 2) & 0x3F];
 		*(s++) = al[((*p << 4) & 0x30) | ((*(p+1) >> 4) & 0x0F)];
 		*s = *(s+1) = '=';
@@ -135,7 +135,7 @@ static char *base64enc(unsigned char *p, char *buf, int len) {
 		*(s++) = al[*(p++) & 0x3F];
 	}
 
-		return buf;
+	return buf;
 }
 #endif
 
@@ -153,7 +153,7 @@ static const struct option wget_long_options[] = {
 	{ "quiet",           0, NULL, 'q' },
 	{ "passive-ftp",     0, NULL, 139 },
 	{ "output-document", 1, NULL, 'O' },
-	{ "header",	         1, NULL, 131 },
+	{ "header",          1, NULL, 131 },
 	{ "directory-prefix",1, NULL, 'P' },
 	{ "proxy",           1, NULL, 'Y' },
 	{ 0,                 0, 0, 0 }
@@ -358,9 +358,9 @@ read_response:
 				close_delete_and_die("no response from server");
 
 			for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
-			;
+				;
 			for ( ; isspace(*s) ; ++s)
-			;
+				;
 			switch (status = atoi(s)) {
 				case 0:
 				case 100:
@@ -402,7 +402,7 @@ read_response:
 					if (strcasecmp(s, "chunked") == 0) {
 						chunked = got_clen = 1;
 					} else {
-					close_delete_and_die("server wants to do %s transfer encoding", s);
+						close_delete_and_die("server wants to do %s transfer encoding", s);
 					}
 				}
 				if (strcasecmp(buf, "location") == 0) {
@@ -494,7 +494,6 @@ read_response:
 
 		if (ftpcmd("RETR /", target.path, sfp, buf) > 150)
 			close_delete_and_die("RETR: %s", buf+4);
-
 	}
 
 
