@@ -137,11 +137,8 @@ int gunzip_main(int argc, char **argv)
 				bb_error_msg_and_die("Invalid extension");
 			}
 
-			/* Open output file */
-			dst_fd = bb_xopen(new_path, O_WRONLY | O_CREAT);
-
-			/* Set permissions on the file */
-			chmod(new_path, stat_buf.st_mode);
+			/* Open output file (with correct permissions) */
+			dst_fd = bb_xopen3(new_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
 
 			/* If unzip succeeds remove the old file */
 			delete_path = old_path;

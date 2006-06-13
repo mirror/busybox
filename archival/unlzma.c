@@ -41,13 +41,18 @@ int unlzma_main(int argc, char **argv)
 		filename = 0;
 
 	if (filename) {
+		struct stat stat_buf;
 		char *extension = filename + strlen(filename) - 5;
 
 		if (strcmp(extension, ".lzma") != 0) {
 			bb_error_msg_and_die("Invalid extension");
 		}
+		/* TODO: xstat? */
+		if (stat(filename, &stat_buf) < 0) {
+			bb_error_msg_and_die("Couldn't stat file %s", filename);
+		}
 		*extension = 0;
-		dst_fd = bb_xopen(filename, O_WRONLY | O_CREAT);
+		dst_fd = bb_xopen3(filename, O_WRONLY | O_CREAT, stat_buf.st_mode);
 	} else
 		dst_fd = STDOUT_FILENO;
 	status = unlzma(src_fd, dst_fd);
