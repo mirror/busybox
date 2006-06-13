@@ -109,11 +109,6 @@ struct built_in_command {
 	int (*function) (struct child_prog *);	/* function ptr */
 };
 
-struct close_me {
-	int fd;
-	struct close_me *next;
-};
-
 /* function prototypes for builtins */
 static int builtin_cd(struct child_prog *cmd);
 static int builtin_exec(struct child_prog *cmd);
@@ -129,9 +124,6 @@ static int builtin_read(struct child_prog *cmd);
 
 
 /* function prototypes for shell stuff */
-static void mark_open(int fd);
-static void mark_closed(int fd);
-static void close_all(void);
 static void checkjobs(struct jobset *job_list);
 static void remove_job(struct jobset *j_list, struct job *job);
 static int get_command(FILE * source, char *command);
@@ -177,7 +169,7 @@ static char *local_pending_command = NULL;
 static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
-static struct close_me *close_me_head;
+static llist_t *close_me_list;
 static int last_return_code;
 static int last_bg_pid;
 static unsigned int last_jobid;
@@ -251,7 +243,7 @@ static int builtin_exec(struct child_prog *child)
 	if (child->argv[1] == NULL)
 		return EXIT_SUCCESS;   /* Really? */
 	child->argv++;
-	close_all();
+	while(close_me_list) close((int)llist_pop(&close_me_list));
 	pseudo_exec(child);
 	/* never returns */
 }
@@ -453,11 +445,11 @@ static int builtin_source(struct child_prog *child)
 	}
 
 	fd=fileno(input);
-	mark_open(fd);
+	llist_add_to(&close_me_list, (void *)fd);
 	/* Now run the file */
 	status = busy_loop(input);
 	fclose(input);
-	mark_closed(fd);
+	llist_pop(&close_me_list);
 	return (status);
 }
 
@@ -471,36 +463,6 @@ static int builtin_unset(struct child_prog *child)
 	unsetenv(child->argv[1]);
 	return EXIT_SUCCESS;
 }
-
-static void mark_open(int fd)
-{
-	struct close_me *new = xmalloc(sizeof(struct close_me));
-	new->fd = fd;
-	new->next = close_me_head;
-	close_me_head = new;
-}
-
-static void mark_closed(int fd)
-{
-	struct close_me *tmp;
-	if (close_me_head == NULL || close_me_head->fd != fd)
-		bb_error_msg_and_die("corrupt close_me");
-	tmp = close_me_head;
-	close_me_head = close_me_head->next;
-	free(tmp);
-}
-
-static void close_all()
-{
-	struct close_me *c, *tmp;
-	for (c=close_me_head; c; c=tmp) {
-		close(c->fd);
-		tmp=c->next;
-		free(c);
-	}
-	close_me_head = NULL;
-}
-
 
 #ifdef CONFIG_LASH_JOB_CONTROL
 /* free up all memory from a job */
@@ -769,33 +731,29 @@ static char* itoa(register int i)
 
 static char * strsep_space( char *string, int * ix)
 {
-	char *token, *begin;
-
-	begin = string;
+	char *token;
 
 	/* Short circuit the trivial case */
 	if ( !string || ! string[*ix])
 		return NULL;
 
 	/* Find the end of the token. */
-	while( string && string[*ix] && !isspace(string[*ix]) ) {
+	while( string[*ix] && !isspace(string[*ix]) ) {
 		(*ix)++;
 	}
 
 	/* Find the end of any whitespace trailing behind
 	 * the token and let that be part of the token */
-	while( string && string[*ix] && isspace(string[*ix]) ) {
+	while( string[*ix] && isspace(string[*ix]) ) {
 		(*ix)++;
 	}
 
-	if (! string && *ix==0) {
+	if (!*ix) {
 		/* Nothing useful was found */
 		return NULL;
 	}
 
-	token = xmalloc(*ix+1);
-	token[*ix] = '\0';
-	strncpy(token, string,  *ix);
+	token = bb_xstrndup(string, *ix);
 
 	return token;
 }
@@ -980,7 +938,6 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	int argv_alloced;
 	int saw_quote = 0;
 	char quote = '\0';
-	int count;
 	struct child_prog *prog;
 #ifdef CONFIG_LASH_PIPE_N_REDIRECTS
 	int i;
@@ -1008,7 +965,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	   Getting clean memory relieves us of the task of NULL
 	   terminating things and makes the rest of this look a bit
 	   cleaner (though it is, admittedly, a tad less efficient) */
-	job->cmdbuf = command = xcalloc(2*strlen(*command_ptr) + 1, sizeof(char));
+	job->cmdbuf = command = xzalloc(2*strlen(*command_ptr) + 1);
 	job->text = NULL;
 
 	prog = job->progs;
@@ -1209,14 +1166,10 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	prog->argv[argc_l] = NULL;
 
 	if (!return_command) {
-		job->text = xmalloc(strlen(*command_ptr) + 1);
-		strcpy(job->text, *command_ptr);
+		job->text = bb_xstrdup(*command_ptr);
 	} else {
 		/* This leaves any trailing spaces, which is a bit sloppy */
-		count = return_command - *command_ptr;
-		job->text = xmalloc(count + 1);
-		strncpy(job->text, *command_ptr, count);
-		job->text[count] = '\0';
+		job->text = bb_xstrndup(*command_ptr, return_command - *command_ptr);
 	}
 
 	*command_ptr = return_command;
@@ -1320,9 +1273,8 @@ static void insert_job(struct job *newjob, int inbg)
 		newjob->job_list->fg = thejob;
 
 		/* move the new process group into the foreground */
-		/* suppress messages when run from /linuxrc mag@sysgo.de */
-		if (tcsetpgrp(shell_terminal, newjob->pgrp) && errno != ENOTTY)
-			bb_perror_msg("tcsetpgrp");
+		/* Ignore errors since child could have already exited */
+		tcsetpgrp(shell_terminal, newjob->pgrp);
 	}
 #endif
 }
@@ -1385,7 +1337,8 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			signal(SIGTTOU, SIG_DFL);
 			signal(SIGCHLD, SIG_DFL);
 
-			close_all();
+			// Close all open filehandles.
+			while(close_me_list) close((int)llist_pop(&close_me_list));
 
 			if (outpipe[1]!=-1) {
 				close(outpipe[0]);
@@ -1447,7 +1400,7 @@ static int busy_loop(FILE * input)
 	newjob.job_list = &job_list;
 	newjob.job_context = DEFAULT_CONTEXT;
 
-	command = (char *) xcalloc(BUFSIZ, sizeof(char));
+	command = xzalloc(BUFSIZ);
 
 	while (1) {
 		if (!job_list.fg) {
@@ -1464,7 +1417,7 @@ static int busy_loop(FILE * input)
 
 			if (! expand_arguments(next_command)) {
 				free(command);
-				command = (char *) xcalloc(BUFSIZ, sizeof(char));
+				command = xzalloc(BUFSIZ);
 				next_command = NULL;
 				continue;
 			}
@@ -1478,7 +1431,7 @@ static int busy_loop(FILE * input)
 			}
 			else {
 				free(command);
-				command = (char *) xcalloc(BUFSIZ, sizeof(char));
+				command = (char *) xzalloc(BUFSIZ);
 				next_command = NULL;
 			}
 		} else {
@@ -1607,7 +1560,7 @@ int lash_main(int argc_l, char **argv_l)
 	/* These variables need re-initializing when recursing */
 	last_jobid = 0;
 	local_pending_command = NULL;
-	close_me_head = NULL;
+	close_me_list = NULL;
 	job_list.head = NULL;
 	job_list.fg = NULL;
 	last_return_code=1;
@@ -1616,12 +1569,11 @@ int lash_main(int argc_l, char **argv_l)
 		FILE *prof_input;
 		prof_input = fopen("/etc/profile", "r");
 		if (prof_input) {
-			int tmp_fd = fileno(prof_input);
-			mark_open(tmp_fd);
+			llist_add_to(&close_me_list, (void *)fileno(prof_input));
 			/* Now run the file */
 			busy_loop(prof_input);
 			fclose(prof_input);
-			mark_closed(tmp_fd);
+			llist_pop(&close_me_list);
 		}
 	}
 
@@ -1664,7 +1616,8 @@ int lash_main(int argc_l, char **argv_l)
 	} else if (local_pending_command==NULL) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		input = bb_xfopen(argv[optind], "r");
-		mark_open(fileno(input));  /* be lazy, never mark this closed */
+		/* be lazy, never mark this closed */
+		llist_add_to(&close_me_list, (void *)fileno(input));
 	}
 
 	/* initialize the cwd -- this is never freed...*/
