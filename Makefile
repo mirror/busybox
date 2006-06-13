@@ -437,7 +437,7 @@ endif
 
 ifeq ($(strip $(CONFIG_FEATURE_COMPRESS_USAGE)),y)
 USAGE_BIN:=scripts/usage
-$(USAGE_BIN): $(top_srcdir)/scripts/usage.c
+$(USAGE_BIN): $(top_srcdir)/scripts/usage.c .config
 	$(do_link.h)
 
 DEP_INCLUDES += include/usage_compressed.h
