@@ -42,15 +42,19 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
 static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 
 /* Globals (can be accessed from signal handlers */
-static off_t filesize = 0;		/* content-length of the file */
-static int chunked = 0;			/* chunked transfer encoding */
+static off_t filesize;		/* content-length of the file */
+static int chunked;		/* chunked transfer encoding */
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);
-static char *curfile;			/* Name of current file being transferred. */
+static char *curfile;		/* Name of current file being transferred. */
 static struct timeval start;	/* Time a transfer started. */
-static volatile unsigned long statbytes = 0; /* Number of bytes transferred so far. */
+static off_t transferred;	/* Number of bytes transferred so far. */
 /* For progressmeter() -- number of seconds before xfer considered "stalled" */
-static const int STALLTIME = 5;
+enum {
+	STALLTIME = 5
+};
+#else
+static inline void progressmeter(int flag) {}
 #endif
 
 static void close_and_delete_outfile(FILE* output, char *fname_out, int do_continue)
@@ -321,7 +325,7 @@ int wget_main(int argc, char **argv)
 			if (use_proxy) {
 				const char *format = "GET %stp://%s:%d/%s HTTP/1.1\r\n";
 #ifdef CONFIG_FEATURE_WGET_IP6_LITERAL
-				if (strchr (target.host, ':'))
+				if (strchr(target.host, ':'))
 					format = "GET %stp://[%s]:%d/%s HTTP/1.1\r\n";
 #endif
 				fprintf(sfp, format,
@@ -504,17 +508,17 @@ read_response:
 		fgets(buf, sizeof(buf), dfp);
 		filesize = strtol(buf, (char **) NULL, 16);
 	}
-#ifdef CONFIG_FEATURE_WGET_STATUSBAR
+
 	if (quiet_flag==FALSE)
 		progressmeter(-1);
-#endif
+
 	do {
 		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, ((chunked || got_clen) && (filesize < sizeof(buf)) ? filesize : sizeof(buf)), dfp)) > 0) {
 			if (safe_fwrite(buf, 1, n, output) != n) {
 				bb_perror_msg_and_die(bb_msg_write_error);
 			}
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
-			statbytes+=n;
+			transferred += n;
 #endif
 			if (got_clen) {
 				filesize -= n;
@@ -534,10 +538,10 @@ read_response:
 			bb_perror_msg_and_die(bb_msg_read_error);
 		}
 	} while (chunked);
-#ifdef CONFIG_FEATURE_WGET_STATUSBAR
+
 	if (quiet_flag==FALSE)
 		progressmeter(1);
-#endif
+
 	if ((use_proxy == 0) && target.is_ftp) {
 		fclose(dfp);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 226)
@@ -724,13 +728,12 @@ alarmtimer(int wait)
 static void
 progressmeter(int flag)
 {
-	static const char prefixes[] = " KMGTP";
 	static struct timeval lastupdate;
 	static off_t lastsize, totalsize;
+
 	struct timeval now, td, wait;
-	off_t cursize, abbrevsize;
-	double elapsed;
-	int ratio, barlength, i, remaining;
+	off_t abbrevsize;
+	int elapsed, ratio, barlength, i;
 	char buf[256];
 
 	if (flag == -1) {
@@ -741,68 +744,52 @@ progressmeter(int flag)
 	}
 
 	(void) gettimeofday(&now, (struct timezone *) 0);
-	cursize = statbytes;
+	ratio = 100;
 	if (totalsize != 0 && !chunked) {
-		ratio = 100.0 * cursize / totalsize;
-		ratio = MAX(ratio, 0);
+		ratio = (int) (100 * transferred / totalsize);
 		ratio = MIN(ratio, 100);
-	} else
-		ratio = 100;
+	}
 
-	snprintf(buf, sizeof(buf), "\r%-20.20s %3d%% ", curfile, ratio);
+	fprintf(stderr, "\r%-20.20s%4d%% ", curfile, ratio);
 
 	barlength = getttywidth() - 51;
-	if (barlength > 0) {
+	if (barlength > 0 && barlength < sizeof(buf)) {
 		i = barlength * ratio / 100;
-		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-			 "|%.*s%*s|", i,
-			 "*****************************************************************************"
-			 "*****************************************************************************",
-			 barlength - i, "");
+		memset(buf, '*', i);
+		memset(buf + i, ' ', barlength - i);
+		buf[barlength] = '\0';
+		fprintf(stderr, "|%s|", buf);
 	}
 	i = 0;
-	abbrevsize = cursize;
-	while (abbrevsize >= 100000 && i < sizeof(prefixes)) {
+	abbrevsize = transferred;
+	while (abbrevsize >= 100000) {
 		i++;
 		abbrevsize >>= 10;
 	}
-	snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), " %5d %c%c ",
-	     (int) abbrevsize, prefixes[i], prefixes[i] == ' ' ? ' ' :
-		 'B');
+	/* See http://en.wikipedia.org/wiki/Tera */
+	fprintf(stderr, "%6d %c%c ", (int)abbrevsize, " KMGTPEZY"[i], i?'B':' ');
 
 	timersub(&now, &lastupdate, &wait);
-	if (cursize > lastsize) {
+	if (transferred > lastsize) {
 		lastupdate = now;
-		lastsize = cursize;
-		if (wait.tv_sec >= STALLTIME) {
-			start.tv_sec += wait.tv_sec;
-			start.tv_usec += wait.tv_usec;
-		}
+		lastsize = transferred;
+		if (wait.tv_sec >= STALLTIME)
+			timeradd(&start, &wait, &start);
 		wait.tv_sec = 0;
 	}
 	timersub(&now, &start, &td);
-	elapsed = td.tv_sec + (td.tv_usec / 1000000.0);
+	elapsed = td.tv_sec;
 
 	if (wait.tv_sec >= STALLTIME) {
-		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-			 " - stalled -");
-	} else if (statbytes <= 0 || elapsed <= 0.0 || cursize > totalsize || chunked) {
-		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-			 "   --:-- ETA");
+		fprintf(stderr, " - stalled -");
+	} else if (transferred <= 0 || elapsed <= 0 || transferred > totalsize || chunked) {
+		fprintf(stderr, "--:--:-- ETA");
 	} else {
-		remaining = (int) (totalsize / (statbytes / elapsed) - elapsed);
-		i = remaining / 3600;
-		if (i)
-			snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-				 "%2d:", i);
-		else
-			snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-				 "   ");
-		i = remaining % 3600;
-		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-			 "%02d:%02d ETA", i / 60, i % 60);
+		/* totalsize / (transferred/elapsed) - elapsed: */
+		int eta = (int) (totalsize*elapsed/transferred - elapsed);
+		i = eta % 3600;
+		fprintf(stderr, "%02d:%02d:%02d ETA", eta / 3600, i / 60, i % 60);
 	}
-	write(STDERR_FILENO, buf, strlen(buf));
 
 	if (flag == -1) {
 		struct sigaction sa;
@@ -813,7 +800,7 @@ progressmeter(int flag)
 		alarmtimer(1);
 	} else if (flag == 1) {
 		alarmtimer(0);
-		statbytes = 0;
+		transferred = 0;
 		putc('\n', stderr);
 	}
 }
