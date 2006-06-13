@@ -197,17 +197,18 @@ static void find_dev(char *path)
 		return;
 
 	while ((entry = readdir(dir)) != NULL) {
+		struct stat st;
 
 		/* Skip "." and ".." (also skips hidden files, which is ok) */
 
 		if (entry->d_name[0] == '.')
 			continue;
 
-		if (entry->d_type == DT_DIR) {
-			snprintf(path+len, PATH_MAX-len, "/%s", entry->d_name);
-			find_dev(path);
-			path[len] = 0;
-		}
+		// uClibc doesn't fill out entry->d_type reliably. so we use lstat().
+
+		snprintf(path+len, PATH_MAX-len, "/%s", entry->d_name);
+		if (!lstat(path, &st) && S_ISDIR(st.st_mode)) find_dev(path);
+		path[len] = 0;
 
 		/* If there's a dev entry, mknod it */
 
