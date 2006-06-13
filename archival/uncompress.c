@@ -61,11 +61,9 @@ int uncompress_main(int argc, char **argv)
 			*extension = '\0';
 
 			/* Open output file */
-			dst_fd = bb_xopen(uncompressed_file, O_WRONLY | O_CREAT);
-
-			/* Set permissions on the file */
-			stat(compressed_file, &stat_buf);
-			chmod(uncompressed_file, stat_buf.st_mode);
+			xstat(compressed_file, &stat_buf);
+			dst_fd = bb_xopen3(uncompressed_file, O_WRONLY | O_CREAT,
+					stat_buf.st_mode);
 
 			/* If unzip succeeds remove the old file */
 			delete_path = compressed_file;

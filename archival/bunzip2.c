@@ -50,10 +50,7 @@ int bunzip2_main(int argc, char **argv)
 		if (strcmp(extension, ".bz2") != 0) {
 			bb_error_msg_and_die("Invalid extension");
 		}
-		/* TODO: xstat */
-		if (stat(filename, &stat_buf) < 0) {
-			bb_error_msg_and_die("Couldn't stat file %s", filename);
-		}
+		xstat(filename, &stat_buf);
 		*extension=0;
 		dst_fd = bb_xopen3(filename, O_WRONLY | O_CREAT, stat_buf.st_mode);
 	} else dst_fd = STDOUT_FILENO;
