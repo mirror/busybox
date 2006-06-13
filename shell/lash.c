@@ -1182,9 +1182,12 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 static int pseudo_exec(struct child_prog *child)
 {
 	struct built_in_command *x;
-#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
-	char *name;
-#endif
+
+	/* Check if the command sets an environment variable. */
+	if( strchr(child->argv[0], '=') != NULL ) {
+		child->argv[1] = child->argv[0];
+		_exit(builtin_export(child));
+	}
 
 	/* Check if the command matches any of the non-forking builtins.
 	 * Depending on context, this might be redundant.  But it's
@@ -1204,7 +1207,7 @@ static int pseudo_exec(struct child_prog *child)
 			_exit (x->function(child));
 		}
 	}
-#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
+
 	/* Check if the command matches any busybox internal
 	 * commands ("applets") here.  Following discussions from
 	 * November 2000 on busybox@busybox.net, don't use
@@ -1216,17 +1219,15 @@ static int pseudo_exec(struct child_prog *child)
 	 * /bin/foo invocation will fork and exec /bin/foo, even if
 	 * /bin/foo is a symlink to busybox.
 	 */
-	name = child->argv[0];
 
-	{
-		char** argv_l=child->argv;
+	if (ENABLE_FEATURE_SH_STANDALONE_SHELL) {
+		char **argv_l = child->argv;
 		int argc_l;
 
-		for(argc_l=0;*argv_l!=NULL; argv_l++, argc_l++);
+		for(argc_l=0; *argv_l; argv_l++, argc_l++);
 		optind = 1;
-		run_applet_by_name(name, argc_l, child->argv);
+		run_applet_by_name(child->argv[0], argc_l, child->argv);
 	}
-#endif
 
 	execvp(child->argv[0], child->argv);
 
