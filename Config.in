@@ -238,8 +238,8 @@ config CONFIG_STATIC
 
 config CONFIG_BUILD_LIBBUSYBOX
 	bool "Build shared libbusybox"
-	depends on CONFIG_STANDALONE
 	default n
+	default y if CONFIG_STANDALONE
 	help
 	  Build a shared library libbusybox.so which contains all
 	  libraries used inside busybox.
