@@ -16,9 +16,15 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+
+static int is_executable_file(const char const * a, struct stat *b)
+{
+	return (!access(a,X_OK) && !stat(a, b) && S_ISREG(b->st_mode));
+}
+
 int which_main(int argc, char **argv)
 {
-	int status = EXIT_SUCCESS;
+	int status;
 	size_t i, count;
 	char *path_list;
 
@@ -63,13 +69,12 @@ int which_main(int argc, char **argv)
 		count = 5;
 	}
 
+	status = EXIT_SUCCESS;
 	while (argc-- > 0) {
 		struct stat stat_b;
 		char *buf;
 		char *path_n;
-		char found = 0;
-#define is_executable_file(a, b) (!access(a,X_OK) && !stat(a, &b) && \
-		S_ISREG(b.st_mode))
+		int found = 0;
 
 		argv++;
 		path_n = path_list;
@@ -77,14 +82,14 @@ int which_main(int argc, char **argv)
 
 		/* if filename is either absolute or contains slashes,
 		 * stat it */
-		if (strchr(buf, '/') != NULL && is_executable_file(buf, stat_b)) {
-			found = 1;
+		if (strchr(buf, '/') != NULL && is_executable_file(buf, &stat_b)) {
+			found++;
 		} else {
 			/* Couldn't access file and file doesn't contain slashes */
 			for (i = 0; i < count; i++) {
 				buf = concat_path_file(path_n, *argv);
-				if (is_executable_file(buf, stat_b)) {
-					found = 1;
+				if (is_executable_file(buf, &stat_b)) {
+					found++;
 					break;
 				}
 				free(buf);
