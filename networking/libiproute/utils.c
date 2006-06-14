@@ -240,7 +240,7 @@ void incomplete_command(void)
 	exit(-1);
 }
 
-void invarg(const char const *arg, const char const *opt)
+void invarg(const char * const arg, const char * const opt)
 {
 	bb_error_msg(bb_msg_invalid_arg, arg, opt);
 	exit(-1);
