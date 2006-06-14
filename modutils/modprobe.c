@@ -574,7 +574,7 @@ static struct dep_t *build_dep ( void )
 /* return 1 = loaded, 0 = not loaded, -1 = can't tell */
 static int already_loaded (const char *name)
 {
-	int fd;
+	int fd, ret = 0;
 	char buffer[4096];
 
 	fd = open ("/proc/modules", O_RDONLY);
@@ -586,17 +586,28 @@ static int already_loaded (const char *name)
 
 		p = strchr (buffer, ' ');
 		if (p) {
+			const char *n;
+
+			// Truncate buffer at first space and check for matches, with
+			// the idiosyncrasy that _ and - are interchangeable because the
+			// 2.6 kernel does weird things.
+
 			*p = 0;
-			for( p = buffer; ENABLE_FEATURE_2_6_MODULES && *p; p++ ) {
-				*p = ((*p)=='-')?'_':*p;
-			}
-			if (strcmp (name, buffer) == 0) {
-				close (fd);
-				return 1;
+			for (p = buffer, n = name; ; p++, n++) {
+				if (*p != *n) {
+					if ((*p == '_' || *p == '-') && (*n == '_' || *n == '-'))
+						continue;
+					break;
+				}
+				// If we made it to the end, that's a match.
+				if (!*p) {
+					ret = 1;
+					goto done;
+				}
 			}
 		}
 	}
-
+done:
 	close (fd);
 	return 0;
 }
@@ -628,14 +639,16 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 		if ( do_insert ) {
 			if (already_loaded (list->m_name) != 1) {
 				argv[argc++] = "insmod";
-				if (do_syslog)
-					argv[argc++] = "-s";
-				if (autoclean)
-					argv[argc++] = "-k";
-				if (quiet)
-					argv[argc++] = "-q";
-				else if(verbose) /* verbose and quiet are mutually exclusive */
-					argv[argc++] = "-v";
+				if (ENABLE_FEATURE_2_4_MODULES) {
+					if (do_syslog)
+						argv[argc++] = "-s";
+					if (autoclean)
+						argv[argc++] = "-k";
+					if (quiet)
+						argv[argc++] = "-q";
+					else if(verbose) /* verbose and quiet are mutually exclusive */
+						argv[argc++] = "-v";
+				}
 				argv[argc++] = list-> m_path;
 				if( ENABLE_FEATURE_CLEAN_UP )
 					argc_malloc = argc;
