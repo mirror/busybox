@@ -609,7 +609,7 @@ config CONFIG_FEATURE_TFTP_BLOCKSIZE
 	help
 	  Allow the client to specify the desired block size for transfers.
 
-config CONFIG_FEATURE_TFTP_DEBUG
+config CONFIG_DEBUG_TFTP
 	bool "Enable debug"
 	default n
 	depends on CONFIG_TFTP
