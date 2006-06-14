@@ -95,7 +95,7 @@ static int tftp_blocksize_check(int blocksize, int bufsize)
 	return blocksize;
 }
 
-static char *tftp_option_get(char *buf, int len, const char const *option)
+static char *tftp_option_get(char *buf, int len, const char * const option)
 {
 	int opt_val = 0;
 	int opt_found = 0;
@@ -142,8 +142,6 @@ static int tftp(const int cmd, const struct hostent *host,
 		   const char *remotefile, const int localfd,
 		   const unsigned short port, int tftp_bufsize)
 {
-#define cmd_get  cmd & tftp_cmd_get
-#define cmd_put  cmd & tftp_cmd_put
 	struct sockaddr_in sa;
 	struct sockaddr_in from;
 	struct timeval tv;
@@ -181,10 +179,10 @@ static int tftp(const int cmd, const struct hostent *host,
 		   sizeof(sa.sin_addr));
 
 	/* build opcode */
-	if (cmd_get) {
+	if (cmd & tftp_cmd_get) {
 		opcode = TFTP_RRQ;
 	}
-	if (cmd_put) {
+	if (cmd & tftp_cmd_put) {
 		opcode = TFTP_WRQ;
 	}
 
@@ -197,8 +195,8 @@ static int tftp(const int cmd, const struct hostent *host,
 		cp += 2;
 
 		/* add filename and mode */
-		if (((cmd_get) && (opcode == TFTP_RRQ)) ||
-			((cmd_put) && (opcode == TFTP_WRQ)))
+		if (((cmd & tftp_cmd_get) && (opcode == TFTP_RRQ)) ||
+			((cmd & tftp_cmd_put) && (opcode == TFTP_WRQ)))
 		{
 			int too_long = 0;
 
@@ -245,8 +243,8 @@ static int tftp(const int cmd, const struct hostent *host,
 
 		/* add ack and data */
 
-		if (((cmd_get) && (opcode == TFTP_ACK)) ||
-			((cmd_put) && (opcode == TFTP_DATA))) {
+		if (((cmd & tftp_cmd_get) && (opcode == TFTP_ACK)) ||
+			((cmd & tftp_cmd_put) && (opcode == TFTP_DATA))) {
 
 			*((unsigned short *) cp) = htons(block_nr);
 
@@ -254,7 +252,7 @@ static int tftp(const int cmd, const struct hostent *host,
 
 			block_nr++;
 
-			if ((cmd_put) && (opcode == TFTP_DATA)) {
+			if ((cmd & tftp_cmd_put) && (opcode == TFTP_DATA)) {
 				len = bb_full_read(localfd, cp, tftp_bufsize - 4);
 
 				if (len < 0) {
@@ -279,7 +277,7 @@ static int tftp(const int cmd, const struct hostent *host,
 
 			len = cp - buf;
 
-#ifdef CONFIG_FEATURE_TFTP_DEBUG
+#ifdef CONFIG_DEBUG_TFTP
 			fprintf(stderr, "sending %u bytes\n", len);
 			for (cp = buf; cp < &buf[len]; cp++)
 				fprintf(stderr, "%02x ", (unsigned char) *cp);
@@ -355,7 +353,7 @@ static int tftp(const int cmd, const struct hostent *host,
 		opcode = ntohs(*((unsigned short *) buf));
 		tmp = ntohs(*((unsigned short *) &buf[2]));
 
-#ifdef CONFIG_FEATURE_TFTP_DEBUG
+#ifdef CONFIG_DEBUG_TFTP
 		fprintf(stderr, "received %d bytes: %04x %04x\n", len, opcode, tmp);
 #endif
 
@@ -395,12 +393,12 @@ static int tftp(const int cmd, const struct hostent *host,
 
 					if (tftp_blocksize_check(blksize, tftp_bufsize - 4)) {
 
-						if (cmd_put) {
+						if (cmd & tftp_cmd_put) {
 							opcode = TFTP_DATA;
 						} else {
 							opcode = TFTP_ACK;
 						}
-#ifdef CONFIG_FEATURE_TFTP_DEBUG
+#ifdef CONFIG_DEBUG_TFTP
 						fprintf(stderr, "using %s %u\n", OPTION_BLOCKSIZE,
 								blksize);
 #endif
@@ -422,7 +420,7 @@ static int tftp(const int cmd, const struct hostent *host,
 		}
 #endif
 
-		if ((cmd_get) && (opcode == TFTP_DATA)) {
+		if ((cmd & tftp_cmd_get) && (opcode == TFTP_DATA)) {
 
 			if (tmp == block_nr) {
 
@@ -453,7 +451,7 @@ static int tftp(const int cmd, const struct hostent *host,
 			}
 		}
 
-		if ((cmd_put) && (opcode == TFTP_ACK)) {
+		if ((cmd & tftp_cmd_put) && (opcode == TFTP_ACK)) {
 
 			if (tmp == (unsigned short) (block_nr - 1)) {
 				if (finished) {
@@ -562,7 +560,7 @@ int tftp_main(int argc, char **argv)
 	host = xgethostbyname(argv[optind]);
 	port = bb_lookup_port(argv[optind + 1], "udp", 69);
 
-#ifdef CONFIG_FEATURE_TFTP_DEBUG
+#ifdef CONFIG_DEBUG_TFTP
 	fprintf(stderr, "using server \"%s\", remotefile \"%s\", "
 			"localfile \"%s\".\n",
 			inet_ntoa(*((struct in_addr *) host->h_addr)),
@@ -571,12 +569,11 @@ int tftp_main(int argc, char **argv)
 
 	result = tftp(cmd, host, remotefile, fd, port, blocksize);
 
-#ifdef CONFIG_FEATURE_CLEAN_UP
 	if (!(fd == STDOUT_FILENO || fd == STDIN_FILENO)) {
-		close(fd);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			close(fd);
+		if (cmd == tftp_cmd_get && result != EXIT_SUCCESS)
+			unlink(localfile);
 	}
-#endif
-	if (cmd == tftp_cmd_get && result != EXIT_SUCCESS)
-		unlink(localfile);
 	return (result);
 }
