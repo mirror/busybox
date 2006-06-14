@@ -3306,8 +3306,7 @@ char *c, **v, **envp;
 		/* We have to exec here since we vforked.  Running
 		 * run_applet_by_name() won't work and bad things
 		 * will happen. */
-		execve("/proc/self/exe", v, envp);
-		execve("busybox", v, envp);
+		execve(CONFIG_BUSYBOX_EXEC_PATH, v, envp);
 	}
 #endif
 

@@ -3737,9 +3737,7 @@ tryexec(char *cmd, char **argv, char **envp)
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	if(find_applet_by_name(cmd) != NULL) {
 		/* re-exec ourselves with the new arguments */
-		execve("/proc/self/exe",argv,envp);
-		/* If proc isn't mounted, try hardcoded path to busybox binary*/
-		execve("/bin/busybox",argv,envp);
+		execve(CONFIG_BUSYBOX_EXEC_PATH,argv,envp);
 		/* If they called chroot or otherwise made the binary no longer
 		 * executable, fall through */
 	}
