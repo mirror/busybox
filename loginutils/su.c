@@ -65,8 +65,6 @@ static void log_su (const char *successful, const char *old_user,
 int su_main ( int argc, char **argv )
 {
 	unsigned long flags;
-	int opt_preserve;
-	int opt_loginshell;
 	char *opt_shell = 0;
 	char *opt_command = 0;
 	char *opt_username = DEFAULT_USER;
@@ -81,11 +79,12 @@ int su_main ( int argc, char **argv )
 
 	flags = bb_getopt_ulflags(argc, argv, "mplc:s:",
 						  &opt_command, &opt_shell);
-	opt_preserve = flags & 3;
-	opt_loginshell = (flags & 4 ? 1 : 0);
+#define SU_OPT_m (3)
+#define SU_OPT_p (3)
+#define SU_OPT_l (4)
 
 	if (optind < argc  && argv[optind][0] == '-' && argv[optind][1] == 0) {
-		opt_loginshell = 1;
+		flags |= SU_OPT_l;
 		++optind;
     }
 
@@ -137,7 +136,7 @@ int su_main ( int argc, char **argv )
 	closelog();
 #endif
 
-	if ( !opt_shell && opt_preserve )
+	if ( !opt_shell && (flags & SU_OPT_p))
 		opt_shell = getenv ( "SHELL" );
 
 	if ( opt_shell && cur_uid && restricted_shell ( pw->pw_shell )) {
@@ -153,11 +152,11 @@ int su_main ( int argc, char **argv )
 		opt_shell = pw->pw_shell;
 
 	change_identity ( pw );
-	setup_environment ( opt_shell, opt_loginshell, !opt_preserve, pw );
+	setup_environment(opt_shell, flags & SU_OPT_l, !(flags & SU_OPT_p), pw);
 #if ENABLE_SELINUX
        set_current_security_context(NULL);
 #endif
-	run_shell ( opt_shell, opt_loginshell, opt_command, (const char**)opt_args);
+	run_shell(opt_shell, flags & SU_OPT_l, opt_command, (const char**)opt_args);
 
 	return EXIT_FAILURE;
 }
