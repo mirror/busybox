@@ -9,6 +9,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -189,13 +190,14 @@ pid_t bb_spawn(char **argv)
 {
 	static int failed;
 	pid_t pid;
+	void *app = find_applet_by_name(argv[0]);
 
 	// Be nice to nommu machines.
 	failed = 0;
 	pid = vfork();
 	if (pid < 0) return pid;
 	if (!pid) {
-		execvp(*argv, argv);
+		execvp(app ? CONFIG_BUSYBOX_EXEC_PATH : *argv, argv);
 
 		// We're sharing a stack with blocked parent, let parent know we failed
 		// and then exit to unblock parent (but don't run atexit() stuff, which
@@ -216,3 +218,15 @@ pid_t bb_xspawn(char **argv)
 	return pid;
 }
 #endif
+
+#ifdef L_wait4
+int wait4pid(int pid)
+{
+	int status;
+
+	if (pid == -1 || waitpid(pid, &status, 0) == -1) return -1;
+	if (WIFEXITED(status)) return WEXITSTATUS(status);
+	if (WIFSIGNALED(status)) return WTERMSIG(status);
+	return 0;
+}
+#endif	

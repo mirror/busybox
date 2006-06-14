@@ -32,6 +32,7 @@ config CONFIG_NITPICK
 choice
 	prompt "Buffer allocation policy"
 	default CONFIG_FEATURE_BUFFERS_USE_MALLOC
+	depends on CONFIG_NITPICK
 	help
 	  There are 3 ways BusyBox can handle buffer allocations:
 	  - Use malloc. This costs code size for the call to xmalloc.
@@ -75,10 +76,16 @@ config CONFIG_FEATURE_VERBOSE_USAGE
 config CONFIG_FEATURE_COMPRESS_USAGE
 	bool "Store applet usage messages in compressed form"
 	default y
-	depends on CONFIG_SHOW_USAGE
+	depends on CONFIG_SHOW_USAGE && CONFIG_NITPICK
 	help
 	  Store usage messages in compressed form, uncompress them on-the-fly
 	  when <applet> --help is called.
+
+	  If you have a really tiny busybox with few applets enabled (and
+	  bunzip2 isn't one of them), the overhead of the decompressor might
+	  be noticeable.  Also, if you run executables directly from ROM
+	  and have very little memory, this might not be a win.  Otherwise,
+	  you probably want this.
 
 config CONFIG_FEATURE_INSTALLER
 	bool "Support --install [-s] to install applet links at runtime"
@@ -99,14 +106,13 @@ config CONFIG_LOCALE_SUPPORT
 config CONFIG_GETOPT_LONG
 	bool "Enable support for --long-options"
 	default n
-	depends on !CONFIG_NO_GETOPT_LONG
 	help
 	  Enable this if you want busybox applets to use the gnu --long-option
 	  style, in addition to single character -a -b -c style options.
 
 config CONFIG_FEATURE_DEVPTS
 	bool "Use the devpts filesystem for Unix98 PTYs"
-	default y if CONFIG_FEATURE_DEVFS
+	default y
 	help
 	  Enable if you want BusyBox to use Unix98 PTY support. If enabled,
 	  busybox will use /dev/ptmx for the master side of the pseudoterminal
@@ -117,6 +123,7 @@ config CONFIG_FEATURE_DEVPTS
 config CONFIG_FEATURE_CLEAN_UP
 	bool "Clean up all memory before exiting (usually not needed)"
 	default n
+	depends on CONFIG_NITPICK
 	help
 	  As a size optimization, busybox normally exits without explicitly
 	  freeing dynamically allocated memory or closing files.  This saves
@@ -201,6 +208,16 @@ config CONFIG_SELINUX
 
 	  Most people will leave this set to 'N'.
 
+config CONFIG_BUSYBOX_EXEC_PATH
+	string "Path to BusyBox executable"
+	default "/proc/self/exe"
+	help
+	  When Busybox applets need to run other busybox applets, BusyBox
+	  sometimes needs to exec() itself.  When the /proc filesystem is
+	  mounted, /proc/self/exe always points to the currently running
+	  executable.  If you haven't got /proc, set this to wherever you
+	  want to run BusyBox from.
+
 endmenu
 
 menu 'Build Options'
@@ -221,7 +238,8 @@ config CONFIG_STATIC
 
 config CONFIG_BUILD_LIBBUSYBOX
 	bool "Build shared libbusybox"
-	default y
+	depends on CONFIG_STANDALONE
+	default n
 	help
 	  Build a shared library libbusybox.so which contains all
 	  libraries used inside busybox.

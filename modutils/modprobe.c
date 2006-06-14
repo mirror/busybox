@@ -666,27 +666,8 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 				printf("%s module %s\n", do_insert?"Loading":"Unloading", list-> m_name );
 			}
 			if (!show_only) {
-				int rc2 = 0;
-				int status;
-				switch (fork()) {
-				case -1:
-					rc2 = 1;
-					break;
-				case 0: //child
-					execvp(argv[0], argv);
-					bb_perror_msg_and_die("exec of %s", argv[0]);
-					/* NOTREACHED */
-				default:
-					if (wait(&status) == -1) {
-						rc2 = 1;
-						break;
-					}
-					if (WIFEXITED(status))
-						rc2 = WEXITSTATUS(status);
-					if (WIFSIGNALED(status))
-						rc2 = WTERMSIG(status);
-					break;
-				}
+				int rc2 = wait4pid(bb_spawn(argv));
+				
 				if (do_insert) {
 					rc = rc2; /* only last module matters */
 				}
