@@ -90,8 +90,6 @@ enum {
 #define LIST_MASK       ((LIST_EXEC << 1) - 1)
 
 /* what files will be displayed */
-/* TODO -- We may be able to make DISP_NORMAL 0 to save a bit slot. */
-#define DISP_NORMAL	(1U<<14)	/* show normal filenames */
 #define DISP_DIRNAME	(1U<<15)	/* 2 or more items? label directories */
 #define DISP_HIDDEN	(1U<<16)	/* show filenames starting with .  */
 #define DISP_DOT	(1U<<17)	/* show . and .. */
@@ -99,7 +97,7 @@ enum {
 #define DISP_RECURSIVE	(1U<<19)	/* show directory and everything below it */
 #define DISP_ROWS	(1U<<20)	/* print across rows */
 
-#define DISP_MASK       (((DISP_ROWS << 1) - 1) & ~(DISP_NORMAL - 1))
+#define DISP_MASK       (((DISP_ROWS << 1) - 1) & ~(DISP_DIRNAME - 1))
 
 #ifdef CONFIG_FEATURE_LS_SORTFILES
 /* how will the files be sorted */
@@ -254,8 +252,7 @@ static char fgcolor(mode_t mode)
 	if (errno == ENOENT) {
 		return '\037';
 	}
-	if (LIST_EXEC && S_ISREG(mode)
-		&& (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+	if (S_ISREG(mode) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		return COLOR(0xF000);	/* File is executable ... */
 	return COLOR(mode);
 }
@@ -263,8 +260,7 @@ static char fgcolor(mode_t mode)
 /*----------------------------------------------------------------------*/
 static char bgcolor(mode_t mode)
 {
-	if (LIST_EXEC && S_ISREG(mode)
-		&& (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+	if (S_ISREG(mode) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		return ATTR(0xF000);	/* File is executable ... */
 	return ATTR(mode);
 }
@@ -276,8 +272,11 @@ static char append_char(mode_t mode)
 {
 	if (!(all_fmt & LIST_FILETYPE))
 		return '\0';
-	if ((all_fmt & LIST_EXEC) && S_ISREG(mode)
-		&& (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+	if (S_ISDIR(mode))
+		return '/';
+	if (!(all_fmt & LIST_EXEC))
+		return '\0';
+	if (S_ISREG(mode) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
 		return '*';
 	return APPCHAR(mode);
 }
@@ -944,7 +943,7 @@ int ls_main(int argc, char **argv)
 	char *color_opt;
 #endif
 
-	all_fmt = LIST_SHORT | DISP_NORMAL | STYLE_AUTO
+	all_fmt = LIST_SHORT | STYLE_AUTO
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 		| TIME_MOD
 #endif
