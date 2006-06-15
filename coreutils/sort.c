@@ -74,9 +74,7 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 			for(i=1;i<key->range[2*j]+j;i++) {
 				/* Skip leading blanks or first separator */
 				if(str[end]) {
-					if(key_separator) {
-						if(str[end]==key_separator) end++;
-					} else if(isspace(str[end]))
+					if(!key_separator && isspace(str[end]))
 						while(isspace(str[end])) end++;
 				}
 				/* Skip body of key */

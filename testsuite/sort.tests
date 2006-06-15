@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # SUSv3 compliant sort tests.
 # Copyright 2005 by Rob Landley <rob@landley.net>
@@ -65,5 +65,19 @@ testing "sort key range with multiple options" "sort -k2,3rn input" \
 42	1	3	woot
 egg	1	2	papyrus
 " "$data" ""
+
+testing "sort key doesn't strip leading blanks, disables fallback global sort" \
+"sort -n -k2 -t ' '" " a \n 1 \n 2 \n" "" " 2 \n 1 \n a \n" 
+
+testing "sort key edge case with -t" "sort -n -k4 -t/" \
+"/usr/lib/finish-install.d/1
+/usr/lib/finish-install.d/4
+/usr/lib/prebaseconfig.d/2
+/usr/lib/prebaseconfig.d/6
+" "" "/usr/lib/finish-install.d/1
+/usr/lib/prebaseconfig.d/2
+/usr/lib/finish-install.d/4
+/usr/lib/prebaseconfig.d/6
+"
 
 exit $FAILCOUNT
