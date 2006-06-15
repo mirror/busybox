@@ -14,14 +14,12 @@
 
 #include "busybox.h"
 #include <string.h>
-#include <stdlib.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
 #include <sys/times.h>
-#include <sys/mount.h>
 #include <sys/mman.h>
 #include <linux/types.h>
 #include <linux/hdreg.h>

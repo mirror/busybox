@@ -17,7 +17,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <sys/mount.h>
 #include <mntent.h>
 
 /* various defines swiped from linux/cdrom.h */

@@ -242,8 +242,11 @@ typedef unsigned long long int  uintmax_t;
 #define bb_setpgrp setpgrp()
 #endif
 
-#if defined(__linux__) && !defined(BLKGETSIZE64)
+#if defined(__linux__)
+#include <sys/mount.h>
+#if !defined(BLKGETSIZE64)
 #define BLKGETSIZE64 _IOR(0x12,114,size_t)
+#endif
 #endif
 
 #endif	/* platform.h	*/

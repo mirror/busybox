@@ -13,7 +13,7 @@
  * bb_getopt_ulflags();
  */
 
-/* Design notes: There is no spec for this.  Remind me to write one.
+/* Design notes: There is no spec for mount.  Remind me to write one.
 
    mount_main() calls singlemount() which calls mount_it_now().
 
@@ -22,18 +22,14 @@
    mount_it_now() does the actual mount.
 */
 
-#include <limits.h>
-#include <stdlib.h>
+#include "busybox.h"
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#include <stdio.h>
 #include <mntent.h>
 #include <ctype.h>
-#include <sys/mount.h>
 #include <fcntl.h>		// for CONFIG_FEATURE_MOUNT_LOOP
 #include <sys/ioctl.h>  // for CONFIG_FEATURE_MOUNT_LOOP
-#include "busybox.h"
 
 // These two aren't always defined in old headers
 #ifndef MS_BIND

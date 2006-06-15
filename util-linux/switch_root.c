@@ -6,17 +6,12 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <dirent.h>
+#include "busybox.h"
 #include <fcntl.h>
-#include <stdio.h>
 #include <string.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/vfs.h>
 #include <unistd.h>
 
-#include "busybox.h"
 
 // Make up for header deficiencies.
 

@@ -7,16 +7,13 @@
  * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
 
-#include <stdio.h>
+#include "busybox.h"
 #include <mntent.h>
 #include <dirent.h>
 #include <errno.h>
 #include <string.h>
-#include <stdlib.h>
-#include <sys/mount.h>
 #include <sys/swap.h>
 
-#include "busybox.h"
 
 static int swap_enable_disable(const char *device)
 {

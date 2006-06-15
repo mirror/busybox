@@ -33,18 +33,12 @@
  * nfsmount.c,v 1.1.1.1 1993/11/18 08:40:51 jrs Exp
  */
 
+#include "busybox.h"
 #include <unistd.h>
-#include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include <netdb.h>
-#include <sys/socket.h>
 #include <time.h>
 #include <sys/utsname.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include "busybox.h"
 #undef TRUE
 #undef FALSE
 #include <rpc/rpc.h>
@@ -121,19 +115,7 @@ enum {
 # define textdomain(Domain) /* empty */
 
 enum {
-	MS_MGC_VAL = 0xc0ed0000, /* Magic number indicatng "new" flags */
-	MS_RDONLY = 1,      /* Mount read-only */
-	MS_NOSUID = 2,      /* Ignore suid and sgid bits */
-	MS_NODEV = 4,      /* Disallow access to device special files */
-	MS_NOEXEC = 8,      /* Disallow program execution */
-	MS_SYNCHRONOUS = 16,      /* Writes are synced at once */
-	MS_REMOUNT = 32,      /* Alter flags of a mounted FS */
-	MS_MANDLOCK = 64,      /* Allow mandatory locks on an FS */
 	S_QUOTA = 128,     /* Quota initialized for file/directory/symlink */
-	S_APPEND = 256,     /* Append-only file */
-	S_IMMUTABLE = 512,     /* Immutable file */
-	MS_NOATIME = 1024,    /* Do not update access times. */
-	MS_NODIRATIME = 2048    /* Do not update directory access times */
 };
 
 

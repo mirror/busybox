@@ -11,15 +11,11 @@
  *
  */
 
-#include <limits.h>
-#include <stdio.h>
+#include "busybox.h"
 #include <mntent.h>
 #include <errno.h>
 #include <string.h>
-#include <stdlib.h>
-#include <sys/mount.h>
 #include <getopt.h>
-#include "busybox.h"
 
 #define OPTION_STRING		"flDnrvad"
 #define OPT_FORCE			1
