@@ -48,39 +48,23 @@
 # define __const const
 #endif
 
-#ifndef ATTRIBUTE_UNUSED
 # define ATTRIBUTE_UNUSED __attribute__ ((__unused__))
-#endif /* ATTRIBUTE_UNUSED */
-
-#ifndef ATTRIBUTE_NORETURN
 # define ATTRIBUTE_NORETURN __attribute__ ((__noreturn__))
-#endif /* ATTRIBUTE_NORETURN */
-
-#ifndef ATTRIBUTE_PACKED
 # define ATTRIBUTE_PACKED __attribute__ ((__packed__))
-#endif /* ATTRIBUTE_PACKED */
-
-#ifndef ATTRIBUTE_ALIGNED
 # define ATTRIBUTE_ALIGNED(m) __attribute__ ((__aligned__(m)))
-#endif /* ATTRIBUTE_ALIGNED */
-
-#ifndef ATTRIBUTE_ALWAYS_INLINE
 # if __GNUC_PREREQ (3,0)
 #  define ATTRIBUTE_ALWAYS_INLINE __attribute__ ((always_inline)) inline
 # else
 #  define ATTRIBUTE_ALWAYS_INLINE inline
 # endif
-#endif
 
 /* -fwhole-program makes all symbols local. The attribute externally_visible
    forces a symbol global.  */
-#ifndef ATTRIBUTE_EXTERNALLY_VISIBLE
 # if __GNUC_PREREQ (4,1)
 #  define ATTRIBUTE_EXTERNALLY_VISIBLE __attribute__ ((__externally_visible__))
 # else
 #  define ATTRIBUTE_EXTERNALLY_VISIBLE
 # endif /* GNUC >= 4.1 */
-#endif /* ATTRIBUTE_EXTERNALLY_VISIBLE */
 
 /* We use __extension__ in some places to suppress -pedantic warnings
    about GCC extensions.  This feature didn't work properly before
@@ -185,12 +169,6 @@ typedef long long int           intmax_t;
 __extension__
 typedef unsigned long long int  uintmax_t;
 #endif
-#endif
-
-// Is this for non-linux systems, or what?
-
-#if !((__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1))
-#define lchown chown
 #endif
 
 /* uclibc does not implement daemon for no-mmu systems.
