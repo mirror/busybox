@@ -430,7 +430,7 @@ DEP_INCLUDES := include/bb_config.h
 ifeq ($(strip $(CONFIG_BBCONFIG)),y)
 DEP_INCLUDES += include/bbconfigopts.h
 
-include/bbconfigopts.h: .config
+include/bbconfigopts.h: .config $(top_srcdir)/scripts/config/mkconfigs
 	$(disp_gen)
 	$(Q)$(top_srcdir)/scripts/config/mkconfigs > $@
 endif
@@ -442,7 +442,7 @@ $(USAGE_BIN): $(top_srcdir)/scripts/usage.c .config
 
 DEP_INCLUDES += include/usage_compressed.h
 
-include/usage_compressed.h: .config $(USAGE_BIN)
+include/usage_compressed.h: .config $(USAGE_BIN) $(top_srcdir)/scripts/usage_compressed
 	$(Q)SED="$(SED)" $(SHELL) $(top_srcdir)/scripts/usage_compressed "$(top_builddir)/scripts" > $@
 endif # CONFIG_FEATURE_COMPRESS_USAGE
 
