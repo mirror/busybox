@@ -239,10 +239,14 @@ config CONFIG_STATIC
 config CONFIG_BUILD_LIBBUSYBOX
 	bool "Build shared libbusybox"
 	default n
-	default y if CONFIG_STANDALONE
 	help
 	  Build a shared library libbusybox.so which contains all
 	  libraries used inside busybox.
+
+	  This is an experimental feature intended to support the upcoming
+	  "make standalone" mode.  Enabling it against the one big busybox
+	  binary serves no purpose (and increases the size).  You should
+	  almost certainly say "no" to this right now.
 
 config CONFIG_FEATURE_FULL_LIBBUSYBOX
 	bool "Feature-complete libbusybox"
