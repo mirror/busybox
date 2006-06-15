@@ -37,7 +37,7 @@ export SKIP=
 
 # Helper functions
 
-optional ()
+optional()
 {
   option=`echo "$OPTIONFLAGS" | egrep "(^|:)$1(:|\$)"`
   # Not set?
@@ -55,7 +55,6 @@ testing ()
 {
   NAME="$1"
   [ -z "$1" ] && NAME=$2
-  ret=0
 
   if [ $# -ne 5 ]
   then
@@ -77,15 +76,12 @@ testing ()
   echo -ne "$5" | eval "$2" > actual
   RETVAL=$?
 
-  cmp expected actual > /dev/null || ret=$?
-  if [ $ret -ne 0 ]
+  cmp expected actual > /dev/null 
+  if [ $? -ne 0 ]
   then
     FAILCOUNT=$[$FAILCOUNT+1]
     echo "FAIL: $NAME"
-    if [ -n "$VERBOSE" ]
-    then
-      diff -u expected actual || /bin/true
-    fi
+    [ -n "$VERBOSE" ] && diff -u expected actual
   else
     echo "PASS: $NAME"
   fi
@@ -101,7 +97,7 @@ testing ()
 # the file is assumed to already be there and only its library dependencies
 # are copied.
 
-mkchroot ()
+function mkchroot
 {
   [ $# -lt 2 ] && return
 
@@ -130,7 +126,7 @@ mkchroot ()
 # Needed commands listed on command line
 # Script fed to stdin.
 
-dochroot ()
+function dochroot
 {
   mkdir tmpdir4chroot
   mount -t ramfs tmpdir4chroot tmpdir4chroot
