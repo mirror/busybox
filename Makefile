@@ -140,6 +140,7 @@ help:
 	@echo '  all			- Executable and documentation'
 	@echo '  busybox		- the swiss-army executable'
 	@echo '  doc			- docs/BusyBox.{txt,html,1}'
+	@echo '  html			- create html-based cross-reference'
 	@echo
 	@echo 'Configuration:'
 	@echo '  allnoconfig		- disable all symbols in .config'
@@ -473,7 +474,7 @@ clean:
 	    libbusybox.so* \
 	    .config.old busybox busybox_unstripped
 	- rm -r -f _install testsuite/links
-	- find . -name .\*.flags -o -name \*.o  -o -name \*.om \
+	- find . -name .\*.flags -o -name \*.o  -o -name \*.om -o -name \*.syn \
 	    -o -name \*.os -o -name \*.osm -o -name \*.a | xargs rm -f
 
 distclean: clean
@@ -502,6 +503,17 @@ release: distclean #doc
 
 tags:
 	ctags -R .
+
+# documentation, cross-reference
+# Modern distributions already ship synopsis packages (e.g. debian)
+# If you have an old distribution go to http://synopsis.fresco.org/
+syn_tgt := $(wildcard $(patsubst %,%/*.c,$(SRC_DIRS)))
+syn     := $(patsubst %.c, %.syn, $(syn_tgt))
+
+%.syn: %.c
+	synopsis -p C -l Comments.SSDFilter,Comments.Previous $(INCS) -Wp,verbose,debug,preprocess,cppflags="'$(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) $(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) $(APPLETS_DEFINE) $(BUSYBOX_DEFINE)'" -o $@ $<
+html: $(syn)
+	synopsis -f HTML -Wf,title="'BusyBox Documentation'" -o $@ $^
 
 
 endif # ifeq ($(skip-makefile),)
