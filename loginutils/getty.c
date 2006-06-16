@@ -212,20 +212,6 @@ static struct Speedtab speedtab[] = {
 };
 #endif
 
-static void parse_args(int argc, char **argv, struct options *op);
-static void parse_speeds(struct options *op, char *arg);
-static void open_tty(char *tty, struct termio *tp, int local);
-static void termio_init(struct termio *tp, int speed, struct options *op);
-static void auto_baud(struct termio *tp);
-static void do_prompt(struct options *op, struct termio *tp);
-static void next_speed(struct termio *tp, struct options *op);
-static char *get_logname(struct options *op, struct chardata *cp,
-					struct termio *tp);
-static void termio_final(struct options *op, struct termio *tp,
-				struct chardata *cp);
-static int caps_lock(const char *s);
-static int bcode(const char *s);
-static void error(const char *fmt, ...) ATTRIBUTE_NORETURN;
 
 #ifdef  SYSV_STYLE
 #ifdef CONFIG_FEATURE_UTMP
@@ -247,136 +233,84 @@ FILE *dbf;
 #define debug(s)                                /* nothing */
 #endif
 
-int getty_main(int argc, char **argv)
+
+/*
+ * output error messages
+ */
+static void error(const char *fmt, ...) ATTRIBUTE_NORETURN;
+static void error(const char *fmt, ...)
 {
-	char *logname = NULL;           /* login name, given to /bin/login */
-	struct chardata chardata;       /* set by get_logname() */
-	struct termio termio;           /* terminal mode bits */
-	static struct options options = {
-		0,                      /* show /etc/issue (SYSV_STYLE) */
-		0,                      /* no timeout */
-		_PATH_LOGIN,            /* default login program */
-		"tty1",                 /* default tty line */
-		"",                     /* modem init string */
-#ifdef ISSUE
-		ISSUE,                  /* default issue file */
+	va_list va_alist;
+	char buf[256];
+
+#ifdef CONFIG_SYSLOGD
+	va_start(va_alist, fmt);
+	vsnprintf(buf, sizeof(buf), fmt, va_alist);
+	openlog(bb_applet_name, 0, LOG_AUTH);
+	syslog(LOG_ERR, "%s", buf);
+	closelog();
 #else
-		NULL,
-#endif
-		0,                      /* no baud rates known yet */
-	};
+	int fd;
+	size_t l;
 
-#ifdef DEBUGGING
-	dbf = bb_xfopen(DEBUGTERM, "w");
-
-	{
-		int i;
-
-		for (i = 1; i < argc; i++) {
-			debug(argv[i]);
-			debug("\n");
-		}
+	snprintf(buf, sizeof(buf), "%s: ", bb_applet_name);
+	l = strlen(buf);
+	va_start(va_alist, fmt);
+	vsnprintf(buf + l, sizeof(buf) - l, fmt, va_alist);
+	l = strlen(buf);
+	/* truncate if need */
+	if((l + 3) > sizeof(buf))
+		l = sizeof(buf) - 3;
+	/* add \r\n always */
+	buf[l++] = '\r';
+	buf[l++] = '\n';
+	buf[l] = 0;
+	if ((fd = open("/dev/console", 1)) >= 0) {
+		write(fd, buf, l);
+		close(fd);
 	}
 #endif
 
-	/* Parse command-line arguments. */
+	va_end(va_alist);
 
-	parse_args(argc, argv, &options);
-
-#ifdef __linux__
-	setsid();
-#endif
-
-	/* Update the utmp file. */
-
-
-#ifdef  SYSV_STYLE
-#ifdef CONFIG_FEATURE_UTMP
-	update_utmp(options.tty);
-#endif
-#endif
-
-	debug("calling open_tty\n");
-	/* Open the tty as standard { input, output, error }. */
-	open_tty(options.tty, &termio, options.flags & F_LOCAL);
-
-#ifdef __linux__
-	{
-		int iv;
-
-		iv = getpid();
-		ioctl(0, TIOCSPGRP, &iv);
-	}
-#endif
-	/* Initialize the termio settings (raw mode, eight-bit, blocking i/o). */
-	debug("calling termio_init\n");
-	termio_init(&termio, options.speeds[FIRST_SPEED], &options);
-
-	/* write the modem init string and DON'T flush the buffers */
-	if (options.flags & F_INITSTRING) {
-		debug("writing init string\n");
-		write(1, options.initstring, strlen(options.initstring));
-	}
-
-	if (!(options.flags & F_LOCAL)) {
-		/* go to blocking write mode unless -L is specified */
-		fcntl(1, F_SETFL, fcntl(1, F_GETFL, 0) & ~O_NONBLOCK);
-	}
-
-	/* Optionally detect the baud rate from the modem status message. */
-	debug("before autobaud\n");
-	if (options.flags & F_PARSE)
-		auto_baud(&termio);
-
-	/* Set the optional timer. */
-	if (options.timeout)
-		(void) alarm((unsigned) options.timeout);
-
-	/* optionally wait for CR or LF before writing /etc/issue */
-	if (options.flags & F_WAITCRLF) {
-		char ch;
-
-		debug("waiting for cr-lf\n");
-		while (read(0, &ch, 1) == 1) {
-			ch &= 0x7f;                     /* strip "parity bit" */
-#ifdef DEBUGGING
-			fprintf(dbf, "read %c\n", ch);
-#endif
-			if (ch == '\n' || ch == '\r')
-				break;
-		}
-	}
-
-	chardata = init_chardata;
-	if (!(options.flags & F_NOPROMPT)) {
-		/* Read the login name. */
-		debug("reading login name\n");
-		/* while ((logname = get_logname(&options, &chardata, &termio)) == 0) */
-		while ((logname = get_logname(&options, &chardata, &termio)) ==
-			   NULL) next_speed(&termio, &options);
-	}
-
-	/* Disable timer. */
-
-	if (options.timeout)
-		(void) alarm(0);
-
-	/* Finalize the termio settings. */
-
-	termio_final(&options, &termio, &chardata);
-
-	/* Now the newline character should be properly written. */
-
-	(void) write(1, "\n", 1);
-
-	/* Let the login program take care of password validation. */
-
-	(void) execl(options.login, options.login, "--", logname, (char *) 0);
-	error("%s: can't exec %s: %m", options.tty, options.login);
+	(void) sleep((unsigned) 10);    /* be kind to init(8) */
+	exit(1);
 }
 
-/* parse-args - parse command-line arguments */
 
+
+/* bcode - convert speed string to speed code; return 0 on failure */
+static int bcode(const char *s)
+{
+	int r;
+	unsigned long value;
+	if (safe_strtoul((char *)s, &value)) {
+		return -1;
+	}
+	if ((r = bb_value_to_baud(value)) > 0) {
+		return r;
+	}
+	return 0;
+}
+
+
+/* parse_speeds - parse alternate baud rates */
+static void parse_speeds(struct options *op, char *arg)
+{
+	char *cp;
+
+	debug("entered parse_speeds\n");
+	for (cp = strtok(arg, ","); cp != 0; cp = strtok((char *) 0, ",")) {
+		if ((op->speeds[op->numspeed++] = bcode(cp)) <= 0)
+			error("bad speed: %s", cp);
+		if (op->numspeed > MAX_SPEED)
+			error("too many alternate speeds");
+	}
+	debug("exiting parsespeeds\n");
+}
+
+
+/* parse-args - parse command-line arguments */
 static void parse_args(int argc, char **argv, struct options *op)
 {
 	char *ts;
@@ -426,84 +360,6 @@ static void parse_args(int argc, char **argv, struct options *op)
 
 	debug("exiting parseargs\n");
 }
-
-/* parse_speeds - parse alternate baud rates */
-
-static void parse_speeds(struct options *op, char *arg)
-{
-	char *cp;
-
-	debug("entered parse_speeds\n");
-	for (cp = strtok(arg, ","); cp != 0; cp = strtok((char *) 0, ",")) {
-		if ((op->speeds[op->numspeed++] = bcode(cp)) <= 0)
-			error("bad speed: %s", cp);
-		if (op->numspeed > MAX_SPEED)
-			error("too many alternate speeds");
-	}
-	debug("exiting parsespeeds\n");
-}
-
-#ifdef  SYSV_STYLE
-#ifdef CONFIG_FEATURE_UTMP
-
-/* update_utmp - update our utmp entry */
-static void update_utmp(char *line)
-{
-	struct utmp ut;
-	struct utmp *utp;
-	time_t t;
-	int mypid = getpid();
-#if ! (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1))
-	struct flock lock;
-#endif
-
-	/*
-	 * The utmp file holds miscellaneous information about things started by
-	 * /sbin/init and other system-related events. Our purpose is to update
-	 * the utmp entry for the current process, in particular the process type
-	 * and the tty line we are listening to. Return successfully only if the
-	 * utmp file can be opened for update, and if we are able to find our
-	 * entry in the utmp file.
-	 */
-	if (access(_PATH_UTMP, R_OK|W_OK) == -1) {
-		close(creat(_PATH_UTMP, 0664));
-	}
-	utmpname(_PATH_UTMP);
-	setutent();
-	while ((utp = getutent())
-		   && !(utp->ut_type == INIT_PROCESS && utp->ut_pid == mypid))  /* nothing */
-		;
-
-	if (utp) {
-		memcpy(&ut, utp, sizeof(ut));
-	} else {
-		/* some inits don't initialize utmp... */
-		memset(&ut, 0, sizeof(ut));
-		strncpy(ut.ut_id, line + 3, sizeof(ut.ut_id));
-	}
-	/*endutent(); */
-
-	strncpy(ut.ut_user, "LOGIN", sizeof(ut.ut_user));
-	strncpy(ut.ut_line, line, sizeof(ut.ut_line));
-	if (fakehost)
-		strncpy(ut.ut_host, fakehost, sizeof(ut.ut_host));
-	time(&t);
-	ut.ut_time = t;
-	ut.ut_type = LOGIN_PROCESS;
-	ut.ut_pid = mypid;
-
-	pututline(&ut);
-	endutent();
-
-#ifdef CONFIG_FEATURE_WTMP
-	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1)
-		close(creat(bb_path_wtmp_file, 0664));
-	updwtmp(bb_path_wtmp_file, &ut);
-#endif
-}
-
-#endif /* CONFIG_FEATURE_UTMP */
-#endif /* SYSV_STYLE */
 
 /* open_tty - set up tty as standard { input, output, error } */
 static void open_tty(char *tty, struct termio *tp, int local)
@@ -611,7 +467,6 @@ static void open_tty(char *tty, struct termio *tp, int local)
 }
 
 /* termio_init - initialize termio settings */
-
 static void termio_init(struct termio *tp, int speed, struct options *op)
 {
 	/*
@@ -710,15 +565,6 @@ static void auto_baud(struct termio *tp)
 	(void) ioctl(0, TCSETA, tp);
 }
 
-/* do_prompt - show login prompt, optionally preceded by /etc/issue contents */
-static void do_prompt(struct options *op, struct termio *tp)
-{
-#ifdef  ISSUE                                   /* optional: show /etc/issue */
-	print_login_issue(op->issue, op->tty);
-#endif
-	print_login_prompt();
-}
-
 /* next_speed - select next baud rate */
 static void next_speed(struct termio *tp, struct options *op)
 {
@@ -730,11 +576,36 @@ static void next_speed(struct termio *tp, struct options *op)
 	(void) ioctl(0, TCSETA, tp);
 }
 
+
+/* do_prompt - show login prompt, optionally preceded by /etc/issue contents */
+static void do_prompt(struct options *op, struct termio *tp)
+{
+#ifdef  ISSUE                                   /* optional: show /etc/issue */
+	print_login_issue(op->issue, op->tty);
+#endif
+	print_login_prompt();
+}
+
+/* caps_lock - string contains upper case without lower case */
+/* returns 1 if true, 0 if false */
+static int caps_lock(const char *s)
+{
+	int capslock;
+
+	for (capslock = 0; *s; s++) {
+		if (islower(*s))
+			return (0);
+		if (capslock == 0)
+			capslock = isupper(*s);
+	}
+	return (capslock);
+}
+
+#define logname bb_common_bufsiz1
 /* get_logname - get user name, establish parity, speed, erase, kill, eol */
 /* return NULL on failure, logname on success */
 static char *get_logname(struct options *op, struct chardata *cp, struct termio *tp)
 {
-#define logname bb_common_bufsiz1
 	char *bp;
 	char c;				/* input character, full eight bits */
 	char ascval;                    /* low 7 bits of input character */
@@ -901,73 +772,195 @@ static void termio_final(struct options *op, struct termio *tp, struct chardata 
 		error("%s: ioctl: TCSETA: %m", op->tty);
 }
 
-/* caps_lock - string contains upper case without lower case */
-/* returns 1 if true, 0 if false */
-static int caps_lock(const char *s)
-{
-	int capslock;
 
-	for (capslock = 0; *s; s++) {
-		if (islower(*s))
-			return (0);
-		if (capslock == 0)
-			capslock = isupper(*s);
+#ifdef  SYSV_STYLE
+#ifdef CONFIG_FEATURE_UTMP
+/* update_utmp - update our utmp entry */
+static void update_utmp(char *line)
+{
+	struct utmp ut;
+	struct utmp *utp;
+	time_t t;
+	int mypid = getpid();
+#if ! (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1))
+	struct flock lock;
+#endif
+
+	/*
+	 * The utmp file holds miscellaneous information about things started by
+	 * /sbin/init and other system-related events. Our purpose is to update
+	 * the utmp entry for the current process, in particular the process type
+	 * and the tty line we are listening to. Return successfully only if the
+	 * utmp file can be opened for update, and if we are able to find our
+	 * entry in the utmp file.
+	 */
+	if (access(_PATH_UTMP, R_OK|W_OK) == -1) {
+		close(creat(_PATH_UTMP, 0664));
 	}
-	return (capslock);
+	utmpname(_PATH_UTMP);
+	setutent();
+	while ((utp = getutent())
+		   && !(utp->ut_type == INIT_PROCESS && utp->ut_pid == mypid))  /* nothing */
+		;
+
+	if (utp) {
+		memcpy(&ut, utp, sizeof(ut));
+	} else {
+		/* some inits don't initialize utmp... */
+		memset(&ut, 0, sizeof(ut));
+		strncpy(ut.ut_id, line + 3, sizeof(ut.ut_id));
+	}
+	/*endutent(); */
+
+	strncpy(ut.ut_user, "LOGIN", sizeof(ut.ut_user));
+	strncpy(ut.ut_line, line, sizeof(ut.ut_line));
+	if (fakehost)
+		strncpy(ut.ut_host, fakehost, sizeof(ut.ut_host));
+	time(&t);
+	ut.ut_time = t;
+	ut.ut_type = LOGIN_PROCESS;
+	ut.ut_pid = mypid;
+
+	pututline(&ut);
+	endutent();
+
+#ifdef CONFIG_FEATURE_WTMP
+	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1)
+		close(creat(bb_path_wtmp_file, 0664));
+	updwtmp(bb_path_wtmp_file, &ut);
+#endif
 }
 
-/* bcode - convert speed string to speed code; return 0 on failure */
-static int bcode(const char *s)
-{
-	int r;
-	unsigned long value;
-	if (safe_strtoul((char *)s, &value)) {
-		return -1;
-	}
-	if ((r = bb_value_to_baud(value)) > 0) {
-		return r;
-	}
-	return 0;
-}
+#endif /* CONFIG_FEATURE_UTMP */
+#endif /* SYSV_STYLE */
 
-/*
- * output error messages
- */
-static void error(const char *fmt, ...)
-{
-	va_list va_alist;
-	char buf[256];
 
-#ifdef CONFIG_SYSLOGD
-	va_start(va_alist, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, va_alist);
-	openlog(bb_applet_name, 0, LOG_AUTH);
-	syslog(LOG_ERR, "%s", buf);
-	closelog();
+#undef logname
+int getty_main(int argc, char **argv)
+{
+	char *logname = NULL;           /* login name, given to /bin/login */
+	struct chardata chardata;       /* set by get_logname() */
+	struct termio termio;           /* terminal mode bits */
+	static struct options options = {
+		0,                      /* show /etc/issue (SYSV_STYLE) */
+		0,                      /* no timeout */
+		_PATH_LOGIN,            /* default login program */
+		"tty1",                 /* default tty line */
+		"",                     /* modem init string */
+#ifdef ISSUE
+		ISSUE,                  /* default issue file */
 #else
-	int fd;
-	size_t l;
+		NULL,
+#endif
+		0,                      /* no baud rates known yet */
+	};
 
-	snprintf(buf, sizeof(buf), "%s: ", bb_applet_name);
-	l = strlen(buf);
-	va_start(va_alist, fmt);
-	vsnprintf(buf + l, sizeof(buf) - l, fmt, va_alist);
-	l = strlen(buf);
-	/* truncate if need */
-	if((l + 3) > sizeof(buf))
-		l = sizeof(buf) - 3;
-	/* add \r\n always */
-	buf[l++] = '\r';
-	buf[l++] = '\n';
-	buf[l] = 0;
-	if ((fd = open("/dev/console", 1)) >= 0) {
-		write(fd, buf, l);
-		close(fd);
+#ifdef DEBUGGING
+	dbf = bb_xfopen(DEBUGTERM, "w");
+
+	{
+		int i;
+
+		for (i = 1; i < argc; i++) {
+			debug(argv[i]);
+			debug("\n");
+		}
 	}
 #endif
 
-	va_end(va_alist);
+	/* Parse command-line arguments. */
 
-	(void) sleep((unsigned) 10);    /* be kind to init(8) */
-	exit(1);
+	parse_args(argc, argv, &options);
+
+#ifdef __linux__
+	setsid();
+#endif
+
+	/* Update the utmp file. */
+
+
+#ifdef  SYSV_STYLE
+#ifdef CONFIG_FEATURE_UTMP
+	update_utmp(options.tty);
+#endif
+#endif
+
+	debug("calling open_tty\n");
+	/* Open the tty as standard { input, output, error }. */
+	open_tty(options.tty, &termio, options.flags & F_LOCAL);
+
+#ifdef __linux__
+	{
+		int iv;
+
+		iv = getpid();
+		ioctl(0, TIOCSPGRP, &iv);
+	}
+#endif
+	/* Initialize the termio settings (raw mode, eight-bit, blocking i/o). */
+	debug("calling termio_init\n");
+	termio_init(&termio, options.speeds[FIRST_SPEED], &options);
+
+	/* write the modem init string and DON'T flush the buffers */
+	if (options.flags & F_INITSTRING) {
+		debug("writing init string\n");
+		write(1, options.initstring, strlen(options.initstring));
+	}
+
+	if (!(options.flags & F_LOCAL)) {
+		/* go to blocking write mode unless -L is specified */
+		fcntl(1, F_SETFL, fcntl(1, F_GETFL, 0) & ~O_NONBLOCK);
+	}
+
+	/* Optionally detect the baud rate from the modem status message. */
+	debug("before autobaud\n");
+	if (options.flags & F_PARSE)
+		auto_baud(&termio);
+
+	/* Set the optional timer. */
+	if (options.timeout)
+		(void) alarm((unsigned) options.timeout);
+
+	/* optionally wait for CR or LF before writing /etc/issue */
+	if (options.flags & F_WAITCRLF) {
+		char ch;
+
+		debug("waiting for cr-lf\n");
+		while (read(0, &ch, 1) == 1) {
+			ch &= 0x7f;                     /* strip "parity bit" */
+#ifdef DEBUGGING
+			fprintf(dbf, "read %c\n", ch);
+#endif
+			if (ch == '\n' || ch == '\r')
+				break;
+		}
+	}
+
+	chardata = init_chardata;
+	if (!(options.flags & F_NOPROMPT)) {
+		/* Read the login name. */
+		debug("reading login name\n");
+		/* while ((logname = get_logname(&options, &chardata, &termio)) == 0) */
+		while ((logname = get_logname(&options, &chardata, &termio)) ==
+			   NULL) next_speed(&termio, &options);
+	}
+
+	/* Disable timer. */
+
+	if (options.timeout)
+		(void) alarm(0);
+
+	/* Finalize the termio settings. */
+
+	termio_final(&options, &termio, &chardata);
+
+	/* Now the newline character should be properly written. */
+
+	(void) write(1, "\n", 1);
+
+	/* Let the login program take care of password validation. */
+
+	(void) execl(options.login, options.login, "--", logname, (char *) 0);
+	error("%s: can't exec %s: %m", options.tty, options.login);
 }
+
