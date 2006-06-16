@@ -1,6 +1,7 @@
 
 The code and graphics on this website (and it's mirror sites, if any) are
 Copyright (c) 1999-2004 by Erik Andersen.  All rights reserved.
+Copyright (c) 2005-2006 Rob Landley.
 
 Documents on this Web site including their graphical elements, design, and
 layout are protected by trade dress and other laws and MAY BE COPIED OR
@@ -24,6 +25,6 @@ HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 You have been warned.
 
-You can contact the webmaster at <andersen@codepoet.org> if you have some sort
+You can contact the webmaster at <rob@landley.net> if you have some sort
 of problem with this.
 
