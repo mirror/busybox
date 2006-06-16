@@ -18,8 +18,6 @@
 #include <unistd.h>
 #include "busybox.h"
 
-/* From linux/fs.h */
-#define BLKFLSBUF  _IO(0x12,97)
 /* From <linux/fd.h> */
 #define FDFLUSH  _IO(2,0x4b)
 

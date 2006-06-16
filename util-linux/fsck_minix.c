@@ -98,9 +98,6 @@
 #include <sys/param.h>
 #include "busybox.h"
 
-#define BLOCK_SIZE_BITS 10
-#define BLOCK_SIZE (1<<BLOCK_SIZE_BITS)
-
 /*
  * This is the original minix inode layout on disk.
  * Note the 8-bit gid and atime and ctime.

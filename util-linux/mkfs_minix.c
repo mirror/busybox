@@ -151,9 +151,6 @@ struct minix_dir_entry {
 	char name[0];
 };
 
-#define BLOCK_SIZE_BITS 10
-#define BLOCK_SIZE (1<<BLOCK_SIZE_BITS)
-
 #define NAME_MAX         255   /* # chars in a file name */
 
 #define MINIX_INODES_PER_BLOCK ((BLOCK_SIZE)/(sizeof (struct minix_inode)))

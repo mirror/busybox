@@ -35,24 +35,14 @@
  *
  */
 
-#include <stdio.h>
+#include "busybox.h"
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include <stdlib.h>
 #include <sys/ioctl.h>			/* for _IO */
 #include <sys/utsname.h>
 #include <asm/page.h>			/* for PAGE_SIZE and PAGE_SHIFT */
 				/* we also get PAGE_SIZE via getpagesize() */
-#include "busybox.h"
-
-#ifndef _IO
-/* pre-1.3.45 */
-enum { BLKGETSIZE = 0x1260 };
-#else
-/* same on i386, m68k, arm; different on alpha, mips, sparc, ppc */
-#define BLKGETSIZE _IO(0x12,96)
-#endif
 
 static char *device_name = NULL;
 static int DEV = -1;
