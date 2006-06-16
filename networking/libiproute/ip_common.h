@@ -1,5 +1,12 @@
 #ifndef _IP_COMMON_H
 #define _IP_COMMON_H 1
+
+#include "busybox.h"
+#include <asm/types.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
+
+
 extern int preferred_family;
 extern char * _SL_;
 
