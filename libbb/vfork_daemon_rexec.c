@@ -23,9 +23,12 @@
 
 
 #ifdef BB_NOMMU
-static void vfork_daemon_common(int nochdir, int noclose)
+void vfork_daemon_rexec(int nochdir, int noclose,
+		int argc, char **argv, char *foreground_opt)
 {
 	int fd;
+	char **vfork_args;
+	int a = 0;
 
 	setsid();
 
@@ -38,24 +41,7 @@ static void vfork_daemon_common(int nochdir, int noclose)
 		dup2(fd, STDERR_FILENO);
 		if (fd > 2)
 			close(fd);
-	}	
-}
-
-void vfork_daemon(int nochdir, int noclose)
-{
-	vfork_daemon_common(nochdir, noclose);
-
-	if (vfork())
-		exit(0);
-}
-
-void vfork_daemon_rexec(int nochdir, int noclose,
-		int argc, char **argv, char *foreground_opt)
-{
-	char **vfork_args;
-	int a = 0;
-
-	vfork_daemon_common(nochdir, noclose);
+	}
 
 	vfork_args = xcalloc(sizeof(char *), argc + 3);
 	vfork_args[a++] = "/bin/busybox";
