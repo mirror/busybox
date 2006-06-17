@@ -43,12 +43,12 @@ static const struct speed_map speeds[] = {
 	{B2400, 2400},
 	{B4800, 4800},
 	{B9600, 9600},
-#ifdef	B19200
+#ifdef B19200
 	{B19200, 19200},
 #elif defined(EXTA)
 	{EXTA, 19200},
 #endif
-#ifdef	B38400
+#ifdef B38400
 	{B38400, 38400/256 + 0x8000U},
 #elif defined(EXTB)
 	{EXTB, 38400/256 + 0x8000U},
@@ -64,6 +64,39 @@ static const struct speed_map speeds[] = {
 #endif
 #ifdef B460800
 	{B460800, 460800/256 + 0x8000U},
+#endif
+#ifdef B500000
+	{B500000, 500000/256 + 0x8000U},
+#endif
+#ifdef B576000
+	{B576000, 576000/256 + 0x8000U},
+#endif
+#ifdef B921600
+	{B921600, 921600/256 + 0x8000U},
+#endif
+#ifdef B1000000
+	{B1000000, 1000000/256 + 0x8000U},
+#endif
+#ifdef B1152000
+	{B1152000, 1152000/256 + 0x8000U},
+#endif
+#ifdef B1500000
+	{B1500000, 1500000/256 + 0x8000U},
+#endif
+#ifdef B2000000
+	{B2000000, 2000000/256 + 0x8000U},
+#endif
+#ifdef B2500000
+	{B2500000, 2500000/256 + 0x8000U},
+#endif
+#ifdef B3000000
+	{B3000000, 3000000/256 + 0x8000U},
+#endif
+#ifdef B3500000
+	{B3500000, 3500000/256 + 0x8000U},
+#endif
+#ifdef B4000000
+	{B4000000, 4000000/256 + 0x8000U},
 #endif
 };
 
