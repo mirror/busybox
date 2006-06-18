@@ -287,7 +287,7 @@ static int bcode(const char *s)
 	if (safe_strtoul((char *)s, &value)) {
 		return -1;
 	}
-	if ((r = bb_value_to_baud(value)) > 0) {
+	if ((r = tty_value_to_baud(value)) > 0) {
 		return r;
 	}
 	return 0;

@@ -1190,7 +1190,7 @@ static void display_speed(struct termios *mode, int fancy)
 	if (fancy) {
 		fmt_str += 9;
 	}
-	wrapf(fmt_str, bb_baud_to_value(ispeed), bb_baud_to_value(ospeed));
+	wrapf(fmt_str, tty_baud_to_value(ispeed), tty_baud_to_value(ospeed));
 	if (!fancy)
 		current_col = 0;
 }
@@ -1239,7 +1239,7 @@ static int recover_mode(char *arg, struct termios *mode)
 
 static speed_t string_to_baud(const char *arg)
 {
-	return bb_value_to_baud(bb_xparse_number(arg, 0));
+	return tty_value_to_baud(bb_xparse_number(arg, 0));
 }
 
 static void sane_mode(struct termios *mode)
