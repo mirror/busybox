@@ -38,10 +38,6 @@
 #define TFTP_TIMEOUT 5	/* seconds */
 #define TFTP_NUM_RETRIES 5 /* number of retries */
 
-/* RFC2348 says between 8 and 65464 */
-#define TFTP_OCTECTS_MIN 8
-#define TFTP_OCTECTS_MAX 65464
-
 static const char * const MODE_OCTET = "octet";
 #define MODE_OCTET_LEN 6 /* sizeof(MODE_OCTET)*/
 
@@ -87,7 +83,7 @@ static int tftp_blocksize_check(int blocksize, int bufsize)
 	 */
 
 	if ((bufsize && (blocksize > bufsize)) ||
-		(blocksize < TFTP_OCTECTS_MIN) || (blocksize > TFTP_OCTECTS_MAX)) {
+		(blocksize < 8) || (blocksize > 65564)) {
 		bb_error_msg("bad blocksize");
 		return 0;
 	}
