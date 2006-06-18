@@ -9,8 +9,7 @@
  * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  */
 
-#include <stdio.h>
-#include <arpa/inet.h>
+#include "libbb.h"
 #include <string.h>
 
 #include "rt_names.h"

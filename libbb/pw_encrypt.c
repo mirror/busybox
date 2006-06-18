@@ -20,9 +20,9 @@
  *
  */
 
+#include "libbb.h"
 #include <string.h>
 #include <crypt.h>
-#include "libbb.h"
 
 
 char *pw_encrypt(const char *clear, const char *salt)

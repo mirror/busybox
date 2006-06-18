@@ -19,14 +19,12 @@
  *     "This program is in the Public Domain."
  */
 
-#include <sys/types.h>
+#include "busybox.h"
 #include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
-#include "busybox.h"
 
 /* test(1) accepts the following grammar:
 	oexpr	::= aexpr | aexpr "-o" oexpr ;
@@ -482,8 +480,7 @@ static arith_t getn(const char *s)
 	if (errno != 0)
 		syntax(s, "out of range");
 
-	/*   p = bb_skip_whitespace(p); avoid const warning */
-	if (*(bb_skip_whitespace(p)))
+	if (*(skip_whitespace(p)))
 		syntax(s, "bad number");
 
 	return r;

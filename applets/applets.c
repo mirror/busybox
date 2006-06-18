@@ -14,8 +14,6 @@
 
 #include "busybox.h"
 #include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
@@ -43,7 +41,6 @@ const size_t NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);
 
 #ifdef CONFIG_FEATURE_SUID_CONFIG
 
-#include <sys/stat.h>
 #include <ctype.h>
 #include "pwd_.h"
 #include "grp_.h"
@@ -99,7 +96,7 @@ static char *get_trimmed_slice(char *s, char *e)
 
 	/* Next, advance past all leading space and return a ptr to the
 	 * first non-space char; possibly the terminating nul. */
-	return (char *) bb_skip_whitespace(s);
+	return skip_whitespace(s);
 }
 
 
@@ -240,7 +237,7 @@ static void parse_config_file(void)
 
 				/* Get the specified mode. */
 
-				e = (char *) bb_skip_whitespace(e+1);
+				e = skip_whitespace(e+1);
 
 				for (i=0 ; i < 3 ; i++) {
 					const char *q;
@@ -253,7 +250,7 @@ static void parse_config_file(void)
 
 				/* Now get the the user/group info. */
 
-				s = (char *) bb_skip_whitespace(e);
+				s = skip_whitespace(e);
 
 				/* Note: We require whitespace between the mode and the
 				 * user/group info. */

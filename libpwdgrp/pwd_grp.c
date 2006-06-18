@@ -17,6 +17,7 @@
  *
  */
 
+#include "libbb.h"
 #include <features.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,10 +28,9 @@
 #include <assert.h>
 #include <ctype.h>
 
-#include "pwd_.h"
-#include "grp_.h"
-#include "shadow_.h"
-#include "libbb.h"
+//#include "pwd_.h"
+//#include "grp_.h"
+//#include "shadow_.h"
 
 #ifndef _PATH_SHADOW
 #define	_PATH_SHADOW	"/etc/shadow"

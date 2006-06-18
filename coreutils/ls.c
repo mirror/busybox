@@ -36,32 +36,18 @@ enum {
 
 /************************************************************************/
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdio.h>
+#include "busybox.h"
 #include <unistd.h>
-#include <dirent.h>
 #include <errno.h>
-#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <termios.h>
 #include <getopt.h> /* struct option */
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>     /* major() and minor() */
-#include "busybox.h"
-#ifdef CONFIG_SELINUX
-#include <selinux/selinux.h>   /* for is_selinux_enabled() */
-#endif
-
-#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 #include <time.h>
-#endif
 
 /* what is the overall style of the listing */
-#define STYLE_AUTO      (0)
 #define STYLE_COLUMNS   (1U<<21)	/* fill columns */
 #define STYLE_LONG      (2U<<21)	/* one record per line, extended info */
 #define STYLE_SINGLE    (3U<<21)	/* one record per line */
@@ -99,7 +85,7 @@ enum {
 
 #define DISP_MASK       (((DISP_ROWS << 1) - 1) & ~(DISP_DIRNAME - 1))
 
-#ifdef CONFIG_FEATURE_LS_SORTFILES
+// CONFIG_FEATURE_LS_SORTFILES
 /* how will the files be sorted */
 #define SORT_ORDER_FORWARD   0		/* sort in reverse order */
 #define SORT_ORDER_REVERSE   (1U<<27)	/* sort in reverse order */
@@ -114,7 +100,6 @@ enum {
 #define SORT_DIR       (7U<<28)		/* sort by file or directory */
 
 #define SORT_MASK      (7U<<28)
-#endif
 
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 /* which of the three times will be used */
@@ -416,11 +401,8 @@ static int sortcmp(const void *a, const void *b)
 
 	if (dif == 0) {
 		/* sort by name- may be a tie_breaker for time or size cmp */
-#ifdef CONFIG_LOCALE_SUPPORT
-		dif = strcoll(d1->name, d2->name);
-#else
-		dif = strcmp(d1->name, d2->name);
-#endif
+		if (ENABLE_LOCALE_SUPPORT) dif = strcoll(d1->name, d2->name);
+		else dif = strcmp(d1->name, d2->name);
 	}
 
 	if (all_fmt & SORT_ORDER_REVERSE) {
@@ -434,7 +416,11 @@ static void dnsort(struct dnode **dn, int size)
 {
 	qsort(dn, size, sizeof *dn, sortcmp);
 }
+#else
+#define sortcmp(a, b) 0
+#define dnsort(dn, size)
 #endif
+
 
 /*----------------------------------------------------------------------*/
 static void showfiles(struct dnode **dn, int nfiles)
@@ -502,11 +488,8 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 {
 	int i, nfiles;
 	struct dnode **subdnp;
-
-#ifdef CONFIG_FEATURE_LS_RECURSIVE
 	int dndirs;
 	struct dnode **dnd;
-#endif
 
 	if (dn == NULL || ndirs < 1)
 		return;
@@ -522,9 +505,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 		nfiles = countfiles(subdnp);
 		if (nfiles > 0) {
 			/* list all files at this level */
-#ifdef CONFIG_FEATURE_LS_SORTFILES
-			dnsort(subdnp, nfiles);
-#endif
+			if (ENABLE_FEATURE_LS_SORTFILES) dnsort(subdnp, nfiles);
 			showfiles(subdnp, nfiles);
 #ifdef CONFIG_FEATURE_LS_RECURSIVE
 			if (all_fmt & DISP_RECURSIVE) {
@@ -532,9 +513,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 				dnd = splitdnarray(subdnp, nfiles, SPLIT_SUBDIR);
 				dndirs = countsubdirs(subdnp, nfiles);
 				if (dndirs > 0) {
-#ifdef CONFIG_FEATURE_LS_SORTFILES
-					dnsort(dnd, dndirs);
-#endif
+					if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnd, dndirs);
 					showdirs(dnd, dndirs, 0);
 					free(dnd);	/* free the array of dnode pointers to the dirs */
 				}
@@ -796,12 +775,6 @@ static int list_single(struct dnode *dn)
 # define LS_STR_TIMESTAMPS	""
 #endif
 
-#ifdef CONFIG_FEATURE_LS_SORTFILES
-# define LS_STR_SORTFILES	"SXrv"
-#else
-# define LS_STR_SORTFILES	""
-#endif
-
 #ifdef CONFIG_FEATURE_LS_FILETYPES
 # define LS_STR_FILETYPES	"Fp"
 #else
@@ -840,7 +813,7 @@ static int list_single(struct dnode *dn)
 
 static const char ls_options[]="Cadil1gnsxAk" \
 	LS_STR_TIMESTAMPS \
-	LS_STR_SORTFILES \
+	USE_FEATURE_LS_SORTFILES("SXrv") \
 	LS_STR_FILETYPES \
 	LS_STR_FOLLOW_LINKS \
 	LS_STR_RECURSIVE \
@@ -872,22 +845,10 @@ static const unsigned opt_flags[] = {
 	0,							/* k - ingored */
 #endif
 #ifdef CONFIG_FEATURE_LS_TIMESTAMPS
-# ifdef CONFIG_FEATURE_LS_SORTFILES
-	TIME_CHANGE | SORT_CTIME,	/* c */
-# else
-	TIME_CHANGE,				/* c */
-# endif
+	TIME_CHANGE | (ENABLE_FEATURE_LS_SORTFILES * SORT_CTIME),	/* c */
 	LIST_FULLTIME,				/* e */
-# ifdef CONFIG_FEATURE_LS_SORTFILES
-	SORT_MTIME,					/* t */
-# else
-	0,							/* t - ignored -- is this correct? */
-# endif
-# ifdef CONFIG_FEATURE_LS_SORTFILES
-	TIME_ACCESS | SORT_ATIME,	/* u */
-# else
-	TIME_ACCESS,				/* u */
-# endif
+	ENABLE_FEATURE_LS_SORTFILES * SORT_MTIME,	/* t */
+	TIME_ACCESS | (ENABLE_FEATURE_LS_SORTFILES * SORT_ATIME),	/* u */
 #endif
 #ifdef CONFIG_FEATURE_LS_SORTFILES
 	SORT_SIZE,					/* S */
@@ -943,14 +904,8 @@ int ls_main(int argc, char **argv)
 	char *color_opt;
 #endif
 
-	all_fmt = LIST_SHORT | STYLE_AUTO
-#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
-		| TIME_MOD
-#endif
-#ifdef CONFIG_FEATURE_LS_SORTFILES
-		| SORT_NAME | SORT_ORDER_FORWARD
-#endif
-		;
+	all_fmt = LIST_SHORT | (ENABLE_FEATURE_LS_TIMESTAMPS * TIME_MOD) |
+		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_ORDER_FORWARD));
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
 	/* Obtain the terminal width.  */
@@ -993,11 +948,9 @@ int ls_main(int argc, char **argv)
 			if (flags & STYLE_MASK_TRIGGER) {
 				all_fmt &= ~STYLE_MASK;
 			}
-#ifdef CONFIG_FEATURE_LS_SORTFILES
-			if (flags & SORT_MASK_TRIGGER) {
+			if (ENABLE_FEATURE_LS_SORTFILES && (flags & SORT_MASK_TRIGGER)) {
 				all_fmt &= ~SORT_MASK;
 			}
-#endif
 			if (flags & DISP_MASK_TRIGGER) {
 				all_fmt &= ~DISP_MASK;
 			}
@@ -1049,12 +1002,12 @@ int ls_main(int argc, char **argv)
 	if (all_fmt & DISP_NOLIST)
 		all_fmt &= ~DISP_RECURSIVE;	/* no recurse if listing only dir */
 #endif
-#if defined (CONFIG_FEATURE_LS_TIMESTAMPS) && defined (CONFIG_FEATURE_LS_SORTFILES)
-	if (all_fmt & TIME_CHANGE)
-		all_fmt = (all_fmt & ~SORT_MASK) | SORT_CTIME;
-	if (all_fmt & TIME_ACCESS)
-		all_fmt = (all_fmt & ~SORT_MASK) | SORT_ATIME;
-#endif
+	if (ENABLE_FEATURE_LS_TIMESTAMPS && ENABLE_FEATURE_LS_SORTFILES) {
+		if (all_fmt & TIME_CHANGE)
+			all_fmt = (all_fmt & ~SORT_MASK) | SORT_CTIME;
+		if (all_fmt & TIME_ACCESS)
+			all_fmt = (all_fmt & ~SORT_MASK) | SORT_ATIME;
+	}
 	if ((all_fmt & STYLE_MASK) != STYLE_LONG) /* only for long list */
 		all_fmt &= ~(LIST_ID_NUMERIC|LIST_FULLTIME|LIST_ID_NAME|LIST_ID_NUMERIC);
 #ifdef CONFIG_FEATURE_LS_USERNAME
@@ -1063,13 +1016,8 @@ int ls_main(int argc, char **argv)
 #endif
 
 	/* choose a display format */
-	if ((all_fmt & STYLE_MASK) == STYLE_AUTO)
-#if STYLE_AUTO != 0
-		all_fmt = (all_fmt & ~STYLE_MASK)
-				| (isatty(STDOUT_FILENO) ? STYLE_COLUMNS : STYLE_SINGLE);
-#else
+	if (!(all_fmt & STYLE_MASK))
 		all_fmt |= (isatty(STDOUT_FILENO) ? STYLE_COLUMNS : STYLE_SINGLE);
-#endif
 
 	/*
 	 * when there are no cmd line args we have to supply a default "." arg.
@@ -1114,9 +1062,7 @@ int ls_main(int argc, char **argv)
 	}
 
 	if (all_fmt & DISP_NOLIST) {
-#ifdef CONFIG_FEATURE_LS_SORTFILES
-		dnsort(dnp, nfiles);
-#endif
+		if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnp, nfiles);
 		if (nfiles > 0)
 			showfiles(dnp, nfiles);
 	} else {
@@ -1125,17 +1071,13 @@ int ls_main(int argc, char **argv)
 		dndirs = countdirs(dnp, nfiles);
 		dnfiles = nfiles - dndirs;
 		if (dnfiles > 0) {
-#ifdef CONFIG_FEATURE_LS_SORTFILES
-			dnsort(dnf, dnfiles);
-#endif
+			if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnf, dnfiles);
 			showfiles(dnf, dnfiles);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(dnf);
 		}
 		if (dndirs > 0) {
-#ifdef CONFIG_FEATURE_LS_SORTFILES
-			dnsort(dnd, dndirs);
-#endif
+			if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnd, dndirs);
 			showdirs(dnd, dndirs, dnfiles == 0);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(dnd);

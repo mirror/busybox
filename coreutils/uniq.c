@@ -10,12 +10,10 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/uniq.html */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "busybox.h"
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
-#include "busybox.h"
 
 static const char uniq_opts[] = "f:s:" "cdu\0\1\2\4";
 
@@ -77,7 +75,7 @@ int uniq_main(int argc, char **argv)
 		while ((s1 = bb_get_chomped_line_from_file(in)) != NULL) {
 			e1 = s1;
 			for (i=skip_fields ; i ; i--) {
-				e1 = bb_skip_whitespace(e1);
+				e1 = skip_whitespace(e1);
 				while (*e1 && !isspace(*e1)) {
 					++e1;
 				}

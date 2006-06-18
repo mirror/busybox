@@ -200,7 +200,7 @@ extern void bb_warn_ignoring_args(int n);
 
 extern void chomp(char *s);
 extern void trim(char *s);
-extern const char *bb_skip_whitespace(const char *);
+extern char *skip_whitespace(const char *);
 
 extern struct BB_applet *find_applet_by_name(const char *name);
 void run_applet_by_name(const char *name, int argc, char **argv);
