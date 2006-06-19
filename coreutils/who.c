@@ -14,12 +14,9 @@
  *----------------------------------------------------------------------
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <utmp.h>
-#include <sys/stat.h>
-#include <time.h>
 #include "busybox.h"
+#include <utmp.h>
+#include <time.h>
 
 static const char * idle_string (time_t t)
 {
@@ -33,7 +30,7 @@ static const char * idle_string (time_t t)
 		sprintf (str, "%02d:%02d",
 				(int) (s / (60 * 60)),
 				(int) ((s % (60 * 60)) / 60));
-		return (const char *) str;
+		return str;
 	}
 	return "old";
 }
@@ -52,14 +49,16 @@ int who_main(int argc, char **argv)
 	printf("USER       TTY      IDLE      TIME           HOST\n");
 	while ((ut = getutent()) != NULL) {
 		if (ut->ut_user[0] && ut->ut_type == USER_PROCESS) {
+			time_t thyme = ut->ut_tv.tv_sec;
+
 			/* ut->ut_line is device name of tty - "/dev/" */
 			name = concat_path_file("/dev", ut->ut_line);
 			printf("%-10s %-8s %-8s  %-12.12s   %s\n", ut->ut_user, ut->ut_line,
 									(stat(name, &st)) ?  "?" : idle_string(st.st_atime),
-									ctime((time_t*)&(ut->ut_tv.tv_sec)) + 4, ut->ut_host);
-			free(name);
+									ctime(&thyme) + 4, ut->ut_host);
+			if (ENABLE_FEATURE_CLEAN_UP) free(name);
 		}
 	}
-	endutent();
+	if (ENABLE_FEATURE_CLEAN_UP) endutent();
 	return 0;
 }

@@ -3,15 +3,7 @@
  * nfsmount.c -- Linux NFS mount
  * Copyright (C) 1993 Rick Sladkey <jrs@world.std.com>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2, or (at your option)
- * any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * Wed Feb  8 12:51:48 1995, biro@yggdrasil.com (Ross Biro): allow all port
  * numbers to be specified on the command line.
@@ -965,7 +957,7 @@ xdr_mountres3_ok (XDR *xdrs, mountres3_ok *objp)
 {
 	 if (!xdr_fhandle3 (xdrs, &objp->fhandle))
 		 return FALSE;
-	 if (!xdr_array (xdrs, (char **)&objp->auth_flavours.auth_flavours_val, (unsigned int *) &objp->auth_flavours.auth_flavours_len, ~0,
+	 if (!xdr_array (xdrs, &(objp->auth_flavours.auth_flavours_val), &(objp->auth_flavours.auth_flavours_len), ~0,
 		sizeof (int), (xdrproc_t) xdr_int))
 		 return FALSE;
 	return TRUE;

@@ -3,9 +3,6 @@
  *
  * Copyright (C) 1993, 1994, 1995, 1996, 1997 Theodore Ts'o.
  * Copyright (C) 2006 Garrett Kajmowicz
- * This file may be
- * redistributed under the terms of the GNU Public License.
- *
  *
  * Dictionary Abstract Data Type
  * Copyright (C) 1997 Kaz Kylheku <kaz@ashi.footprints.net>
@@ -25,12 +22,10 @@
  *
  * Copyright 1999-2000 Red Hat Software --- All Rights Reserved
  *
- * This file is part of the Linux kernel and is made available under
- * the terms of the GNU General Public License, version 2, or at your
- * option, any later version, incorporated herein by reference.
- *
  * Journal recovery routines for the generic filesystem journaling code;
  * part of the ext2fs journaling system.
+ *
+ * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
 #ifndef _GNU_SOURCE
@@ -2532,16 +2527,8 @@ static void expand_inode_expression(char ch,
 		if (LINUX_S_ISDIR(inode->i_mode))
 			printf("%u", inode->i_size);
 		else {
-#ifdef EXT2_NO_64_TYPE
-			if (inode->i_size_high)
-				printf("0x%x%08x", inode->i_size_high,
-				       inode->i_size);
-			else
-				printf("%u", inode->i_size);
-#else
-			printf("%llu", (inode->i_size |
-					((__u64) inode->i_size_high << 32)));
-#endif
+			printf("%"PRIu64, (inode->i_size |
+					((uint64_t) inode->i_size_high << 32)));
 		}
 		break;
 	case 'S':
@@ -2649,11 +2636,7 @@ static void expand_percent_expression(ext2_filsys fs, char ch,
 		printf("%u", ctx->blk);
 		break;
 	case 'B':
-#ifdef EXT2_NO_64_TYPE
-		printf("%d", ctx->blkcount);
-#else
-		printf("%lld", ctx->blkcount);
-#endif
+		printf("%"PRIi64, ctx->blkcount);
 		break;
 	case 'c':
 		printf("%u", ctx->blk2);
@@ -2674,11 +2657,7 @@ static void expand_percent_expression(ext2_filsys fs, char ch,
 		printf("%s", error_message(ctx->errcode));
 		break;
 	case 'N':
-#ifdef EXT2_NO_64_TYPE
-		printf("%u", ctx->num);
-#else
-		printf("%llu", ctx->num);
-#endif
+		printf("%"PRIi64, ctx->num);
 		break;
 	case 'p':
 		print_pathname(fs, ctx->ino, 0);
@@ -2700,11 +2679,7 @@ static void expand_percent_expression(ext2_filsys fs, char ch,
 		printf("%s", ctx->str ? ctx->str : "NULL");
 		break;
 	case 'X':
-#ifdef EXT2_NO_64_TYPE
-		printf("0x%x", ctx->num);
-#else
-		printf("0x%llx", ctx->num);
-#endif
+		printf("0x%"PRIi64, ctx->num);
 		break;
 	default:
 	no_context:
@@ -4436,7 +4411,7 @@ static int process_bad_block(ext2_filsys fs FSCK_ATTR((unused)),
 	 * inode, which is never compressed.  So we don't use HOLE_BLKADDR().
 	 */
 
-	printf("Unrecoverable Error: Found %lli bad blocks starting at block number: %u\n", blockcnt, *block_nr);
+	printf("Unrecoverable Error: Found %"PRIi64" bad blocks starting at block number: %u\n", blockcnt, *block_nr);
 	return BLOCK_ERROR;
 }
 

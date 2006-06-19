@@ -243,7 +243,7 @@ static int builtin_exec(struct child_prog *child)
 	if (child->argv[1] == NULL)
 		return EXIT_SUCCESS;   /* Really? */
 	child->argv++;
-	while(close_me_list) close((int)llist_pop(&close_me_list));
+	while(close_me_list) close((long)llist_pop(&close_me_list));
 	pseudo_exec(child);
 	/* never returns */
 }
@@ -433,7 +433,6 @@ static int builtin_source(struct child_prog *child)
 {
 	FILE *input;
 	int status;
-	int fd;
 
 	if (child->argv[1] == NULL)
 		return EXIT_FAILURE;
@@ -444,8 +443,7 @@ static int builtin_source(struct child_prog *child)
 		return EXIT_FAILURE;
 	}
 
-	fd=fileno(input);
-	llist_add_to(&close_me_list, (void *)fd);
+	llist_add_to(&close_me_list, (void *)(long)fileno(input));
 	/* Now run the file */
 	status = busy_loop(input);
 	fclose(input);
@@ -1339,7 +1337,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			signal(SIGCHLD, SIG_DFL);
 
 			// Close all open filehandles.
-			while(close_me_list) close((int)llist_pop(&close_me_list));
+			while(close_me_list) close((long)llist_pop(&close_me_list));
 
 			if (outpipe[1]!=-1) {
 				close(outpipe[0]);
@@ -1570,7 +1568,7 @@ int lash_main(int argc_l, char **argv_l)
 		FILE *prof_input;
 		prof_input = fopen("/etc/profile", "r");
 		if (prof_input) {
-			llist_add_to(&close_me_list, (void *)fileno(prof_input));
+			llist_add_to(&close_me_list, (void *)(long)fileno(prof_input));
 			/* Now run the file */
 			busy_loop(prof_input);
 			fclose(prof_input);
@@ -1618,7 +1616,7 @@ int lash_main(int argc_l, char **argv_l)
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
 		input = bb_xfopen(argv[optind], "r");
 		/* be lazy, never mark this closed */
-		llist_add_to(&close_me_list, (void *)fileno(input));
+		llist_add_to(&close_me_list, (void *)(long)fileno(input));
 	}
 
 	/* initialize the cwd -- this is never freed...*/

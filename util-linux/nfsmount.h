@@ -91,7 +91,7 @@ struct mountres3_ok {
 	fhandle3 fhandle;
 	struct {
 		unsigned int auth_flavours_len;
-		int *auth_flavours_val;
+		char *auth_flavours_val;
 	} auth_flavours;
 };
 typedef struct mountres3_ok mountres3_ok;
