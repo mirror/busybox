@@ -24,6 +24,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <termios.h>
+#include <unistd.h>
 
 #ifdef CONFIG_SELINUX
 #include <selinux/selinux.h>
