@@ -129,7 +129,7 @@ static struct aftype inet_aftype = {
 	.name =		"inet",
 	.title =	"DARPA Internet",
 	.af =		AF_INET,
-	.alen =		sizeof(unsigned long),
+	.alen =		4,
 	.sprint =	INET_sprint,
 	.fd =		-1
 };
@@ -444,22 +444,16 @@ static int if_readconf(void)
 
 static char *get_name(char *name, char *p)
 {
-	/* Extract <name>[:<alias>] from nul-terminated p where p matches
-	   <name>[:<alias>]: after leading whitespace.
+	/* Extract <name> from nul-terminated p where p matches
+	   <name>: after leading whitespace.
 	   If match is not made, set name empty and return unchanged p */
-	int namestart=0, nameend=0, aliasend;
+	int namestart=0, nameend=0;
 	while (isspace(p[namestart]))
 		namestart++;
 	nameend=namestart;
 	while (p[nameend] && p[nameend]!=':' && !isspace(p[nameend]))
 		nameend++;
 	if (p[nameend]==':') {
-		aliasend=nameend+1;
-		while (p[aliasend] && isdigit(p[aliasend]))
-			aliasend++;
-		if (p[aliasend]==':') {
-			nameend=aliasend;
-		}
 		if ((nameend-namestart)<IFNAMSIZ) {
 			memcpy(name,&p[namestart],nameend-namestart);
 			name[nameend-namestart]='\0';
@@ -469,7 +463,7 @@ static char *get_name(char *name, char *p)
 			name[0]='\0';
 		}
 	} else {
-		/* first ':' not found - return empty */
+		/* trailing ':' not found - return empty */
 		name[0]='\0';
 	}
 	return p + 1;
