@@ -228,7 +228,7 @@ static int builtin_cd(struct child_prog *child)
 	else
 		newdir = child->argv[1];
 	if (chdir(newdir)) {
-		printf("cd: %s: %m\n", newdir);
+		bb_perror_msg("cd: %s", newdir);
 		return EXIT_FAILURE;
 	}
 	cwd = xgetcwd((char *)cwd);
@@ -378,7 +378,7 @@ static int builtin_export(struct child_prog *child)
 	}
 	res = putenv(v);
 	if (res)
-		fprintf(stderr, "export: %m\n");
+		bb_perror_msg("export");
 #ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
 	if (strncmp(v, "PS1=", 4)==0)
 		PS1 = getenv("PS1");
@@ -420,7 +420,7 @@ static int builtin_read(struct child_prog *child)
 		if((s = strdup(string)))
 			res = putenv(s);
 		if (res)
-			fprintf(stderr, "read: %m\n");
+			bb_perror_msg("read");
 	}
 	else
 		fgets(string, sizeof(string), stdin);
@@ -1231,7 +1231,7 @@ static int pseudo_exec(struct child_prog *child)
 
 	/* Do not use bb_perror_msg_and_die() here, since we must not
 	 * call exit() but should call _exit() instead */
-	fprintf(stderr, "%s: %m\n", child->argv[0]);
+	bb_perror_msg("%s", child->argv[0]);
 	_exit(EXIT_FAILURE);
 }
 

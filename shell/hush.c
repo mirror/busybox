@@ -665,7 +665,7 @@ static int builtin_read(struct child_prog *child)
 		} else
 			res = -1;
 		if (res)
-			fprintf(stderr, "read: %m\n");
+			bb_perror_msg("read");
 		free(var);      /* So not move up to avoid breaking errno */
 		return res;
 	} else {
