@@ -126,13 +126,12 @@ static char *INET_sprint(struct sockaddr *sap, int numeric)
 }
 
 static struct aftype inet_aftype = {
-	"inet", "DARPA Internet", AF_INET, sizeof(unsigned long),
-	NULL /* UNUSED INET_print */ , INET_sprint,
-	NULL /* UNUSED INET_input */ , NULL /* UNUSED INET_reserror */ ,
-	NULL /*INET_rprint */ , NULL /*INET_rinput */ ,
-	NULL /* UNUSED INET_getnetmask */ ,
-	-1,
-	NULL
+	.name =		"inet",
+	.title =	"DARPA Internet",
+	.af =		AF_INET,
+	.alen =		sizeof(unsigned long),
+	.sprint =	INET_sprint,
+	.fd =		-1
 };
 
 #if HAVE_AFINET6
@@ -152,13 +151,12 @@ static char *INET6_sprint(struct sockaddr *sap, int numeric)
 }
 
 static struct aftype inet6_aftype = {
-	"inet6", "IPv6", AF_INET6, sizeof(struct in6_addr),
-	NULL /* UNUSED INET6_print */ , INET6_sprint,
-	NULL /* UNUSED INET6_input */ , NULL /* UNUSED INET6_reserror */ ,
-	NULL /*INET6_rprint */ , NULL /*INET6_rinput */ ,
-	NULL /* UNUSED INET6_getnetmask */ ,
-	-1,
-	NULL
+	.name =		"inet6",
+	.title =	"IPv6",
+	.af =		AF_INET6,
+	.alen =		sizeof(struct in6_addr),
+	.sprint =	INET6_sprint,
+	.fd =		-1
 };
 
 #endif							/* HAVE_AFINET6 */
