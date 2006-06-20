@@ -31,22 +31,6 @@
  *			(default AF was wrong)
  */
 
-/*
- *
- * Protocol Families.
- *
- */
-#define HAVE_AFINET 1
-
-/*
- *
- * Device Hardware types.
- *
- */
-#define HAVE_HWETHER	1
-#define HAVE_HWPPP	1
-
-
 #include "inet_common.h"
 #include <stdio.h>
 #include <errno.h>
@@ -126,37 +110,6 @@ struct aftype {
 	char *flag_file;
 };
 
-#if HAVE_AFUNIX
-
-/* Display a UNIX domain address. */
-static char *UNIX_print(unsigned char *ptr)
-{
-	return (ptr);
-}
-
-
-/* Display a UNIX domain address. */
-static char *UNIX_sprint(struct sockaddr *sap, int numeric)
-{
-	static char buf[64];
-
-	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
-		return safe_strncpy(buf, "[NONE SET]", sizeof(buf));
-	return (UNIX_print(sap->sa_data));
-}
-
-
-static struct aftype unix_aftype = {
-	"unix", "UNIX Domain", AF_UNIX, 0,
-	UNIX_print, UNIX_sprint, NULL, NULL,
-	NULL, NULL, NULL,
-	-1,
-	"/proc/net/unix"
-};
-#endif							/* HAVE_AFUNIX */
-
-#if HAVE_AFINET
-
 /* Display an Internet socket address. */
 static char *INET_sprint(struct sockaddr *sap, int numeric)
 {
@@ -181,8 +134,6 @@ static struct aftype inet_aftype = {
 	-1,
 	NULL
 };
-
-#endif							/* HAVE_AFINET */
 
 #if HAVE_AFINET6
 
@@ -247,12 +198,7 @@ static struct aftype unspec_aftype = {
 };
 
 static struct aftype * const aftypes[] = {
-#if HAVE_AFUNIX
-	&unix_aftype,
-#endif
-#if HAVE_AFINET
 	&inet_aftype,
-#endif
 #if HAVE_AFINET6
 	&inet6_aftype,
 #endif
@@ -721,7 +667,6 @@ static int if_fetch(struct interface *ife)
 	ife->tx_queue_len = -1;	/* unknown value */
 #endif
 
-#if HAVE_AFINET
 	/* IPv4 address? */
 	fd = get_socket_for_af(AF_INET);
 	if (fd >= 0) {
@@ -750,7 +695,6 @@ static int if_fetch(struct interface *ife)
 		} else
 			memset(&ife->addr, 0, sizeof(struct sockaddr));
 	}
-#endif
 
 	return 0;
 }
@@ -796,7 +740,6 @@ static const struct hwtype loop_hwtype = {
 	NULL, NULL, NULL
 };
 
-#if HAVE_HWETHER
 #include <net/if_arp.h>
 
 #if (__GLIBC__ >=2 && __GLIBC_MINOR >= 1) || defined(_NEWLIB_VERSION)
@@ -822,12 +765,6 @@ static const struct hwtype ether_hwtype = {
 	pr_ether, NULL /* UNUSED in_ether */ , NULL
 };
 
-
-#endif							/* HAVE_HWETHER */
-
-
-#if HAVE_HWPPP
-
 #include <net/if_arp.h>
 
 static const struct hwtype ppp_hwtype = {
@@ -835,25 +772,10 @@ static const struct hwtype ppp_hwtype = {
 	NULL, NULL, NULL /* UNUSED do_ppp */ , 0
 };
 
-
-#endif							/* HAVE_PPP */
-
 static const struct hwtype * const hwtypes[] = {
-
 	&loop_hwtype,
-
-#if HAVE_HWSTRIP
-	&strip_hwtype,
-#endif
-#if HAVE_HWETHER
 	&ether_hwtype,
-#endif
-#if HAVE_HWTUNNEL
-	&tunnel_hwtype,
-#endif
-#if HAVE_HWPPP
 	&ppp_hwtype,
-#endif
 	&unspec_hwtype,
 	NULL
 };
@@ -1005,7 +927,6 @@ static void ife_print(struct interface *ptr)
 #endif
 	printf("\n");
 
-#if HAVE_AFINET
 	if (ptr->has_ip) {
 		printf("          %s addr:%s ", ap->name,
 			   ap->sprint(&ptr->addr, 1));
@@ -1017,7 +938,6 @@ static void ife_print(struct interface *ptr)
 		}
 		printf(" Mask:%s\n", ap->sprint(&ptr->netmask, 1));
 	}
-#endif
 
 #if HAVE_AFINET6
 
