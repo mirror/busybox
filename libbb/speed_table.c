@@ -56,7 +56,7 @@ static const struct speed_map speeds[] = {
 
 enum { NUM_SPEEDS = (sizeof(speeds) / sizeof(struct speed_map)) };
 
-unsigned long tty_baud_to_value(speed_t speed)
+unsigned int tty_baud_to_value(speed_t speed)
 {
 	int i = 0;
 
@@ -72,7 +72,7 @@ unsigned long tty_baud_to_value(speed_t speed)
 	return 0;
 }
 
-speed_t tty_value_to_baud(unsigned long value)
+speed_t tty_value_to_baud(unsigned int value)
 {
 	int i = 0;
 
