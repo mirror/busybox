@@ -111,6 +111,8 @@ static char no_act = 0;
 static char verbose = 0;
 static char **__myenviron = NULL;
 
+#if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6
+
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 
 static unsigned int count_bits(unsigned int a)
@@ -135,7 +137,6 @@ static int count_netmask_bits(char *dotted_quad)
 }
 #endif
 
-#if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6
 static void addstr(char **buf, size_t *len, size_t *pos, char *str, size_t str_length)
 {
 	if (*pos + str_length >= *len) {
