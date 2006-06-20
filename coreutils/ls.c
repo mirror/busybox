@@ -101,14 +101,10 @@ enum {
 
 #define SORT_MASK      (7U<<28)
 
-#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
 /* which of the three times will be used */
-#define TIME_MOD       0
-#define TIME_CHANGE    (1U<<23)
-#define TIME_ACCESS    (1U<<24)
-
-#define TIME_MASK      (3U<<23)
-#endif
+#define TIME_CHANGE    ((1U<<23) * ENABLE_FEATURE_LS_TIMESTAMPS)
+#define TIME_ACCESS    ((1U<<24) * ENABLE_FEATURE_LS_TIMESTAMPS)
+#define TIME_MASK      ((3U<<23) * ENABLE_FEATURE_LS_TIMESTAMPS)
 
 #ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
 #define FOLLOW_LINKS   (1U<<25)
@@ -507,19 +503,21 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 			/* list all files at this level */
 			if (ENABLE_FEATURE_LS_SORTFILES) dnsort(subdnp, nfiles);
 			showfiles(subdnp, nfiles);
-#ifdef CONFIG_FEATURE_LS_RECURSIVE
-			if (all_fmt & DISP_RECURSIVE) {
-				/* recursive- list the sub-dirs */
-				dnd = splitdnarray(subdnp, nfiles, SPLIT_SUBDIR);
-				dndirs = countsubdirs(subdnp, nfiles);
-				if (dndirs > 0) {
-					if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnd, dndirs);
-					showdirs(dnd, dndirs, 0);
-					free(dnd);	/* free the array of dnode pointers to the dirs */
+			if (ENABLE_FEATURE_LS_RECURSIVE) {
+				if (all_fmt & DISP_RECURSIVE) {
+					/* recursive- list the sub-dirs */
+					dnd = splitdnarray(subdnp, nfiles, SPLIT_SUBDIR);
+					dndirs = countsubdirs(subdnp, nfiles);
+					if (dndirs > 0) {
+						if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnd, dndirs);
+						showdirs(dnd, dndirs, 0);
+						/* free the array of dnode pointers to the dirs */
+						free(dnd);
+					}
 				}
+				/* free the dnodes and the fullname mem */
+				dfree(subdnp, nfiles);
 			}
-			dfree(subdnp, nfiles);	/* free the dnodes and the fullname mem */
-#endif
 		}
 	}
 }
@@ -825,7 +823,6 @@ static const char ls_options[]="Cadil1gnsxAk" \
 #define STYLE_MASK_TRIGGER	STYLE_MASK
 #define SORT_MASK_TRIGGER	SORT_MASK
 #define DISP_MASK_TRIGGER	DISP_ROWS
-#define TIME_MASK_TRIGGER	TIME_MASK
 
 static const unsigned opt_flags[] = {
 	LIST_SHORT | STYLE_COLUMNS,	/* C */
@@ -904,7 +901,7 @@ int ls_main(int argc, char **argv)
 	char *color_opt;
 #endif
 
-	all_fmt = LIST_SHORT | (ENABLE_FEATURE_LS_TIMESTAMPS * TIME_MOD) |
+	all_fmt = LIST_SHORT |
 		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_ORDER_FORWARD));
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
@@ -954,11 +951,9 @@ int ls_main(int argc, char **argv)
 			if (flags & DISP_MASK_TRIGGER) {
 				all_fmt &= ~DISP_MASK;
 			}
-#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
-			if (flags & TIME_MASK_TRIGGER) {
+			if (flags & TIME_MASK) {
 				all_fmt &= ~TIME_MASK;
 			}
-#endif
 			if (flags & LIST_CONTEXT) {
 				all_fmt |= STYLE_SINGLE;
 			}
