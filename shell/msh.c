@@ -56,7 +56,7 @@
 /*#define MSHDEBUG 1*/
 
 #ifdef MSHDEBUG
-int mshdbg = 0;
+int mshdbg = MSHDEBUG;
 
 #define DBGPRINTF(x)	if(mshdbg>0)printf x
 #define DBGPRINTF0(x)	if(mshdbg>0)printf x
@@ -880,7 +880,6 @@ int msh_main(int argc, char **argv)
 	if (mshdbg_var->value == null)
 		setval(mshdbg_var, "0");
 #endif
-
 
 	prompt = lookup("PS1");
 #ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
