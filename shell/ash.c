@@ -1312,6 +1312,7 @@ struct builtincmd {
 #define IS_BUILTIN_REGULAR(builtincmd) ((builtincmd)->name[0] & 2)
 #define IS_BUILTIN_ASSIGN(builtincmd) ((builtincmd)->name[0] & 4)
 
+/* make sure to keep these in proper order since it is searched via bsearch() */
 static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_SPEC_REG      ".", dotcmd },
 	{ BUILTIN_SPEC_REG      ":", truecmd },
