@@ -1363,8 +1363,8 @@ static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_SPEC_REG_ASSG "readonly", exportcmd },
 	{ BUILTIN_SPEC_REG      "return", returncmd },
 	{ BUILTIN_SPEC_REG      "set", setcmd },
-	{ BUILTIN_SPEC_REG      "source", dotcmd },
 	{ BUILTIN_SPEC_REG      "shift", shiftcmd },
+	{ BUILTIN_SPEC_REG      "source", dotcmd },
 #ifdef CONFIG_ASH_BUILTIN_TEST
 	{ BUILTIN_REGULAR	"test", testcmd },
 #endif
