@@ -609,7 +609,7 @@ static int already_loaded (const char *name)
 	}
 done:
 	close (fd);
-	return 0;
+	return ret;
 }
 
 static int mod_process ( struct mod_list_t *list, int do_insert )
