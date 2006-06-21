@@ -529,7 +529,8 @@ int mount_main(int argc, char **argv)
 
 			// Mount this thing.
 
-			if (singlemount(mtcur)) {
+			rc = singlemount(mtcur);
+			if(rc) {
 				// Don't whine about already mounted fs when mounting all.
 				// Note: we should probably change return value to indicate 
 				// failure, without causing a duplicate error message.
