@@ -1,4 +1,4 @@
-/* vi: set sw=8 ts=8: */
+/* vi: set sw=4 ts=4: */
 /*
  * tiny vi.c: A small 'vi' clone
  * Copyright (C) 2000, 2001 Sterling Huxley <sterling@europa.com>
@@ -253,9 +253,6 @@ static void end_cmd_q(void);	// stop saving input chars
 #else							/* CONFIG_FEATURE_VI_DOT_CMD */
 #define end_cmd_q()
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
-#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
-static void window_size_get(int);	// find out what size the window is
-#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
 #ifdef CONFIG_FEATURE_VI_SETOPTS
 static void showmatching(Byte *);	// show the matching pair ()  []  {}
 #endif							/* CONFIG_FEATURE_VI_SETOPTS */
@@ -362,14 +359,6 @@ int vi_main(int argc, char **argv)
 	return (0);
 }
 
-#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
-//----- See what the window size currently is --------------------
-static inline void window_size_get(int fd)
-{
-	get_terminal_width_height(fd, &columns, &rows);
-}
-#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
-
 static void edit_file(Byte * fn)
 {
 	Byte c;
@@ -386,9 +375,8 @@ static void edit_file(Byte * fn)
 	rows = 24;
 	columns = 80;
 	ch= -1;
-#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
-	window_size_get(0);
-#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
+	if (ENABLE_FEATURE_VI_WIN_RESIZE)
+		get_terminal_width_height(0, &columns, &rows);
 	new_screen(rows, columns);	// get memory for virtual screen
 
 	cnt = file_size(fn);	// file size
@@ -2069,9 +2057,8 @@ static void cookmode(void)
 static void winch_sig(int sig ATTRIBUTE_UNUSED)
 {
 	signal(SIGWINCH, winch_sig);
-#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
-	window_size_get(0);
-#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
+	if (ENABLE_FEATURE_VI_WIN_RESIZE)
+	   get_terminal_width_height(0, &columns, &rows);
 	new_screen(rows, columns);	// get memory for virtual screen
 	redraw(TRUE);		// re-draw the screen
 }
@@ -2765,9 +2752,8 @@ static void refresh(int full_screen)
 	int last_li= -2;				// last line that changed- for optimizing cursor movement
 #endif							/* CONFIG_FEATURE_VI_OPTIMIZE_CURSOR */
 
-#ifdef CONFIG_FEATURE_VI_WIN_RESIZE
-	window_size_get(0);
-#endif							/* CONFIG_FEATURE_VI_WIN_RESIZE */
+	if (ENABLE_FEATURE_VI_WIN_RESIZE)
+		get_terminal_width_height(0, &columns, &rows);
 	sync_cursor(dot, &crow, &ccol);	// where cursor will be (on "dot")
 	tp = screenbegin;	// index into text[] of top line
 
