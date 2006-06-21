@@ -7,14 +7,6 @@
  */
 
 /*
- * To compile for standalone use:
- *	gcc -Wall -Os -s -DSTANDALONE -o vi vi.c
- *	  or
- *	gcc -Wall -Os -s -DSTANDALONE -DCONFIG_FEATURE_VI_CRASHME -o vi vi.c		# include testing features
- *	strip vi
- */
-
-/*
  * Things To Do:
  *	EXINIT
  *	$HOME/.exrc  and  ./.exrc
@@ -30,50 +22,20 @@
  *	An "ex" line oriented mode- maybe using "cmdedit"
  */
 
-//----  Feature --------------  Bytes to implement
-#ifdef STANDALONE
-#define vi_main			main
-#define CONFIG_FEATURE_VI_COLON	// 4288
-#define CONFIG_FEATURE_VI_YANKMARK	// 1408
-#define CONFIG_FEATURE_VI_SEARCH	// 1088
-#define CONFIG_FEATURE_VI_USE_SIGNALS	// 1056
-#define CONFIG_FEATURE_VI_DOT_CMD	//  576
-#define CONFIG_FEATURE_VI_READONLY	//  128
-#define CONFIG_FEATURE_VI_SETOPTS	//  576
-#define CONFIG_FEATURE_VI_SET	//  224
-#define CONFIG_FEATURE_VI_WIN_RESIZE	//  256  WIN_RESIZE
-// To test editor using CRASHME:
-//    vi -C filename
-// To stop testing, wait until all to text[] is deleted, or
-//    Ctrl-Z and kill -9 %1
-// while in the editor Ctrl-T will toggle the crashme function on and off.
-//#define CONFIG_FEATURE_VI_CRASHME		// randomly pick commands to execute
-#endif							/* STANDALONE */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "busybox.h"
 #include <string.h>
 #include <strings.h>
-#include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <time.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <setjmp.h>
 #include <regex.h>
 #include <ctype.h>
-#include <assert.h>
 #include <errno.h>
-#include <stdarg.h>
-#ifndef STANDALONE
-#include "busybox.h"
 #define vi_Version BB_VER " " BB_BT
-#else
-#define vi_Version "standalone"
-#endif							/* STANDALONE */
 
 #ifdef CONFIG_LOCALE_SUPPORT
 #define Isprint(c) isprint((c))
@@ -81,10 +43,6 @@
 #define Isprint(c) ( (c) >= ' ' && (c) != 127 && (c) != ((unsigned char)'\233') )
 #endif
 
-#ifndef TRUE
-#define TRUE			((int)1)
-#define FALSE			((int)0)
-#endif							/* TRUE */
 #define MAX_SCR_COLS		BUFSIZ
 
 // Misc. non-Ascii keys that report an escape sequence
@@ -288,7 +246,6 @@ static void colon(Byte *);	// execute the "colon" mode cmds
 static void winch_sig(int);	// catch window size changes
 static void suspend_sig(int);	// catch ctrl-Z
 static void catch_sig(int);     // catch ctrl-C and alarm time-outs
-static void core_sig(int);	// catch a core dump signal
 #endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
 #ifdef CONFIG_FEATURE_VI_DOT_CMD
 static void start_new_cmd_q(Byte);	// new queue for command
@@ -461,29 +418,10 @@ static void edit_file(Byte * fn)
 
 #ifdef CONFIG_FEATURE_VI_USE_SIGNALS
 	catch_sig(0);
-	core_sig(0);
 	signal(SIGWINCH, winch_sig);
 	signal(SIGTSTP, suspend_sig);
 	sig = setjmp(restart);
 	if (sig != 0) {
-		const char *msg = "";
-
-		if (sig == SIGWINCH)
-			msg = "(window resize)";
-		if (sig == SIGHUP)
-			msg = "(hangup)";
-		if (sig == SIGINT)
-			msg = "(interrupt)";
-		if (sig == SIGTERM)
-			msg = "(terminate)";
-		if (sig == SIGBUS)
-			msg = "(bus error)";
-		if (sig == SIGSEGV)
-			msg = "(I tried to touch invalid memory)";
-		if (sig == SIGALRM)
-			msg = "(alarm)";
-
-		psbs("-- caught signal %d %s--", sig, msg);
 		screenbegin = dot = text;
 	}
 #endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
@@ -2165,32 +2103,9 @@ static void suspend_sig(int sig ATTRIBUTE_UNUSED)
 //----- Come here when we get a signal ---------------------------
 static void catch_sig(int sig)
 {
-	signal(SIGHUP, catch_sig);
 	signal(SIGINT, catch_sig);
-	signal(SIGTERM, catch_sig);
-	signal(SIGALRM, catch_sig);
 	if(sig)
 		longjmp(restart, sig);
-}
-
-//----- Come here when we get a core dump signal -----------------
-static void core_sig(int sig)
-{
-	signal(SIGQUIT, core_sig);
-	signal(SIGILL, core_sig);
-	signal(SIGTRAP, core_sig);
-	signal(SIGABRT, core_sig);
-	signal(SIGFPE, core_sig);
-	signal(SIGBUS, core_sig);
-	signal(SIGSEGV, core_sig);
-#ifdef SIGSYS
-	signal(SIGSYS, core_sig);
-#endif
-
-	if(sig) {       // signaled
-		dot = bound_dot(dot);	// make sure "dot" is valid
-		longjmp(restart, sig);
-	}
 }
 #endif							/* CONFIG_FEATURE_VI_USE_SIGNALS */
 
