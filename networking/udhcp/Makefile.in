@@ -12,10 +12,10 @@ endif
 srcdir=$(top_srcdir)/networking/udhcp
 
 #ok, so I forgot how to do an or, but this is a quick and dirty hack
-ifeq ($(strip $(CONFIG_UDHCPC)),y)
+ifeq ($(strip $(CONFIG_APP_UDHCPC)),y)
 CONFIG_UDHCP_SHARED=y
 else
-ifeq ($(strip $(CONFIG_UDHCPD)),y)
+ifeq ($(strip $(CONFIG_APP_UDHCPD)),y)
 CONFIG_UDHCP_SHARED=y
 else
 CONFIG_UDHCP_SHARED=n
@@ -25,11 +25,11 @@ endif
 UDHCP-y:=
 UDHCP-$(CONFIG_UDHCP_SHARED)    += common.c options.c packet.c pidfile.c \
 				   signalpipe.c socket.c
-UDHCP-$(CONFIG_UDHCPC)		+= dhcpc.c clientpacket.c clientsocket.c \
+UDHCP-$(CONFIG_APP_UDHCPC)	+= dhcpc.c clientpacket.c clientsocket.c \
 				   script.c
-UDHCP-$(CONFIG_UDHCPD)		+= dhcpd.c arpping.c files.c leases.c \
+UDHCP-$(CONFIG_APP_UDHCPD)	+= dhcpd.c arpping.c files.c leases.c \
 				   serverpacket.c static_leases.c
-UDHCP-$(CONFIG_DUMPLEASES)	+= dumpleases.c
+UDHCP-$(CONFIG_APP_DUMPLEASES)	+= dumpleases.c
 UDHCP_OBJS:=$(patsubst %.c,$(UDHCP_DIR)%.o, $(UDHCP-y))
 
 ifneq ($(strip $(UDHCP-y)),)
