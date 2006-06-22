@@ -307,15 +307,6 @@ config CROSS_COMPILER_PREFIX
 	  then I would enter '/usr/i386-linux-uclibc/bin/i386-uclibc-' here,
 	  which will ensure the correct compiler is used.
 
-config EXTRA_CFLAGS_OPTIONS
-	string "Any extra CFLAGS options for the compiler?"
-	default ""
-	help
-	  Do you want to pass any extra CFLAGS options to the compiler as
-	  you build BusyBox? If so, this is the option for you...  For example,
-	  if you want to add some simple compiler switches (like -march=i686),
-	  or check for warnings using -Werror, just those options here.
-
 config CONFIG_BUILD_AT_ONCE
 	bool "Compile all sources at once"
 	default n

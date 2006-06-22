@@ -52,26 +52,6 @@ TARGET_OS=linux
 # Ensure consistent sort order, 'gcc -print-search-dirs' behavior, etc.
 LC_ALL:= C
 
-# If you want to add some simple compiler switches (like -march=i686),
-# especially from the command line, use this instead of CFLAGS directly.
-# For optimization overrides, it's better still to set OPTIMIZATION.
-CFLAGS_EXTRA=$(subst ",, $(strip $(EXTRA_CFLAGS_OPTIONS)))
-# be gentle to vi coloring.. ")
-
-# To compile vs some other alternative libc, you may need to use/adjust
-# the following lines to meet your needs...
-#
-# If you are using Red Hat 6.x with the compatible RPMs (for developing under
-# Red Hat 5.x and glibc 2.0) uncomment the following.  Be sure to read about
-# using the compatible RPMs (compat-*) at http://www.redhat.com !
-#LIBCDIR:=/usr/i386-glibc20-linux
-#
-# For other libraries, you are on your own.  But these may (or may not) help...
-#LDFLAGS+=-nostdlib
-#LIBRARIES:=$(LIBCDIR)/lib/libc.a -lgcc
-#CROSS_CFLAGS+=-nostdinc -I$(LIBCDIR)/include -I$(GCCINCDIR) -funsigned-char
-#GCCINCDIR:=$(shell gcc -print-search-dirs | $(SED) -ne "s/install: \(.*\)/\1include/gp")
-
 # This must bind late because srcdir is reset for every source subdirectory.
 INCS:=-I$(top_builddir)/include -I$(top_srcdir)/include
 CFLAGS=$(INCS) -I$(srcdir) -D_GNU_SOURCE
@@ -343,7 +323,7 @@ endif
 
 # Put user-supplied flags at the end, where they
 # have a chance of winning.
-CFLAGS += $(CFLAGS_EXTRA)
+-include $(top_builddir)/.config.mak
 
 #------------------------------------------------------------
 # Installation options
