@@ -9,10 +9,6 @@
  */
 
 /*
- * This can build as part of BusyBox or by itself:
- *
- *	$(CROSS_COMPILE)cc -Os -Wall -DNO_BUSYBOX -DDEBUG -o zcip zcip.c
- *
  * ZCIP just manages the 169.254.*.* addresses.  That network is not
  * routed at the IP level, though various proxies or bridges can
  * certainly be used.  Its naming is built over multicast DNS.
@@ -26,22 +22,15 @@
 // - avoid silent script failures, especially under load...
 // - link status monitoring (restart on link-up; stop on link-down)
 
+#include "busybox.h"
 #include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <syslog.h>
 #include <poll.h>
 #include <time.h>
-#include <unistd.h>
 
-#include <sys/ioctl.h>
-#include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/socket.h>
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <netinet/ether.h>
 #include <net/ethernet.h>
 #include <net/if.h>
@@ -78,34 +67,20 @@ enum {
 	DEFEND_INTERVAL = 10
 };
 
-static const unsigned char ZCIP_VERSION[] = "0.75 (18 April 2005)";
-static char *prog;
-
 static const struct in_addr null_ip = { 0 };
 static const struct ether_addr null_addr = { {0, 0, 0, 0, 0, 0} };
 
 static int verbose = 0;
 
-#ifdef DEBUG
-
-#define DBG(fmt,args...) \
-	fprintf(stderr, "%s: " fmt , prog , ## args)
-#define VDBG(fmt,args...) do { \
-	if (verbose) fprintf(stderr, "%s: " fmt , prog ,## args); \
-	} while (0)
-#else
-
 #define DBG(fmt,args...) \
 	do { } while (0)
 #define VDBG	DBG
-#endif				/* DEBUG */
 
 /**
  * Pick a random link local IP address on 169.254/16, except that
  * the first and last 256 addresses are reserved.
  */
-static void
-pick(struct in_addr *ip)
+static void pick(struct in_addr *ip)
 {
 	unsigned	tmp;
 
@@ -119,8 +94,7 @@ pick(struct in_addr *ip)
 /**
  * Broadcast an ARP packet.
  */
-static int
-arp(int fd, struct sockaddr *saddr, int op,
+static int arp(int fd, struct sockaddr *saddr, int op,
 	const struct ether_addr *source_addr, struct in_addr source_ip,
 	const struct ether_addr *target_addr, struct in_addr target_ip)
 {
@@ -153,8 +127,7 @@ arp(int fd, struct sockaddr *saddr, int op,
 /**
  * Run a script.
  */
-static int
-run(char *script, char *arg, char *intf, struct in_addr *ip)
+static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 {
 	int pid, status;
 	char *why;
@@ -182,8 +155,8 @@ run(char *script, char *arg, char *intf, struct in_addr *ip)
 			goto bad;
 		}
 		if (WEXITSTATUS(status) != 0) {
-			fprintf(stderr, "%s: script %s failed, exit=%d\n",
-					prog, script, WEXITSTATUS(status));
+			bb_error_msg("script %s failed, exit=%d\n",
+					script, WEXITSTATUS(status));
 			return -errno;
 		}
 	}
@@ -195,35 +168,11 @@ bad:
 	return status;
 }
 
-#ifndef	NO_BUSYBOX
-#include "busybox.h"
-#endif
-
-/**
- * Print usage information.
- */
-static void ATTRIBUTE_NORETURN
-zcip_usage(const char *msg)
-{
-	fprintf(stderr, "%s: %s\n", prog, msg);
-#ifdef	NO_BUSYBOX
-	fprintf(stderr, "Usage: %s [OPTIONS] ifname script\n"
-			"\t-f              foreground mode (implied by -v)\n"
-			"\t-q              quit after address (no daemon)\n"
-			"\t-r 169.254.x.x  request this address first\n"
-			"\t-v              verbose; show version\n",
-			prog);
-	exit(0);
-#else
-	bb_show_usage();
-#endif
-}
 
 /**
  * Return milliseconds of random delay, up to "secs" seconds.
  */
-static inline unsigned
-ms_rdelay(unsigned secs)
+static inline unsigned ms_rdelay(unsigned secs)
 {
 	return lrand48() % (secs * 1000);
 }
@@ -231,12 +180,6 @@ ms_rdelay(unsigned secs)
 /**
  * main program
  */
-
-#ifdef	NO_BUSYBOX
-int
-main(int argc, char *argv[])
-	__attribute__ ((weak, alias ("zcip_main")));
-#endif
 
 int zcip_main(int argc, char *argv[])
 {
@@ -259,7 +202,6 @@ int zcip_main(int argc, char *argv[])
 	int t;
 
 	// parse commandline: prog [options] ifname script
-	prog = argv[0];
 	while ((t = getopt(argc, argv, "fqr:v")) != EOF) {
 		switch (t) {
 		case 'f':
@@ -272,17 +214,15 @@ int zcip_main(int argc, char *argv[])
 			if (inet_aton(optarg, &ip) == 0
 					|| (ntohl(ip.s_addr) & IN_CLASSB_NET)
 						!= LINKLOCAL_ADDR) {
-				zcip_usage("invalid link address");
+				bb_error_msg_and_die("invalid link address");
 			}
 			continue;
 		case 'v':
-			if (!verbose)
-				printf("%s: version %s\n", prog, ZCIP_VERSION);
 			verbose++;
 			foreground = 1;
 			continue;
 		default:
-			zcip_usage("bad option");
+			bb_error_msg_and_die("bad option");
 		}
 	}
 	if (optind < argc - 1) {
@@ -291,8 +231,8 @@ int zcip_main(int argc, char *argv[])
 		script = argv[optind++];
 	}
 	if (optind != argc || !intf)
-		zcip_usage("wrong number of arguments");
-	openlog(prog, 0, LOG_DAEMON);
+		bb_show_usage();
+	openlog(bb_applet_name, 0, LOG_DAEMON);
 
 	// initialize the interface (modprobe, ifup, etc)
 	if (run(script, "init", intf, NULL) < 0)
@@ -447,8 +387,7 @@ fail:
 				if (fds[0].revents & POLLERR) {
 					// FIXME: links routinely go down;
 					// this shouldn't necessarily exit.
-					fprintf(stderr, "%s %s: poll error\n",
-							prog, intf);
+					bb_error_msg("%s: poll error\n", intf);
 					if (ready) {
 						run(script, "deconfig",
 								intf, &ip);
@@ -536,6 +475,6 @@ bad:
 		perror(why);
 	else
 		syslog(LOG_ERR, "%s %s, %s error: %s",
-			prog, intf, why, strerror(errno));
+			bb_applet_name, intf, why, strerror(errno));
 	return EXIT_FAILURE;
 }
