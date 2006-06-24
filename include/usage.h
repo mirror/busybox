@@ -2047,6 +2047,8 @@ USE_FEATURE_DATE_ISOFMT( \
 	"$ mount /dev/fd0 /mnt -t msdos -o ro\n" \
 	"$ mount /tmp/diskimage /opt -t ext2 -o loop\n" \
 	"$ mount cd_image.iso mydir\n"
+#define mount_notes_usage \
+	"Returns 0 for success, number of failed mounts for -a, or errno for one mount." 
 
 #define mountpoint_trivial_usage \
 	"[-q] <[-d] DIR | -x DEVICE>"
@@ -3463,6 +3465,6 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\t-f              foreground mode\n" \
 	"\t-q              quit after address (no daemon)\n" \
 	"\t-r 169.254.x.x  request this address first\n" \
-	"\t-v              verbose; show version"
+	"\t-v              verbose"
 
 #endif /* __BB_USAGE_H__ */
