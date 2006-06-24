@@ -14,12 +14,17 @@
 #include "bb_config.h"
 #include "platform.h"
 
+#include <ctype.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
