@@ -8,17 +8,9 @@
  *
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include "libbb.h"
 #include <utime.h>
 #include <errno.h>
-#include <dirent.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "libbb.h"
 
 int copy_file(const char *source, const char *dest, int flags)
 {
@@ -110,24 +102,25 @@ int copy_file(const char *source, const char *dest, int flags)
 			bb_perror_msg("unable to change permissions of `%s'", dest);
 			status = -1;
 		}
-	} else if (S_ISREG(source_stat.st_mode) || (flags & FILEUTILS_DEREFERENCE))
+	} else if (S_ISREG(source_stat.st_mode) ||
+		   (S_ISLNK(source_stat.st_mode) && (flags & FILEUTILS_DEREFERENCE)))
 	{
 		int src_fd;
 		int dst_fd;
-#ifdef CONFIG_FEATURE_PRESERVE_HARDLINKS
-		char *link_name;
+		if (ENABLE_FEATURE_PRESERVE_HARDLINKS) {
+			char *link_name;
 
-		if (!(flags & FILEUTILS_DEREFERENCE) &&
-				is_in_ino_dev_hashtable(&source_stat, &link_name)) {
-			if (link(link_name, dest) < 0) {
-				bb_perror_msg("unable to link `%s'", dest);
-				return -1;
+			if (!(flags & FILEUTILS_DEREFERENCE) &&
+					is_in_ino_dev_hashtable(&source_stat, &link_name)) {
+				if (link(link_name, dest) < 0) {
+					bb_perror_msg("unable to link `%s'", dest);
+					return -1;
+				}
+
+				return 0;
 			}
-
-			return 0;
+			add_to_ino_dev_hashtable(&source_stat, dest);
 		}
-		add_to_ino_dev_hashtable(&source_stat, dest);
-#endif
 		src_fd = open(source, O_RDONLY);
 		if (src_fd == -1) {
 			bb_perror_msg("unable to open `%s'", source);
