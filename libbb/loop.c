@@ -118,9 +118,10 @@ int set_loop(char **device, const char *file, int offset)
 			safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
 			loopinfo.lo_offset = offset;
 			/* Associate free loop device with file.  */
-			if(!ioctl(dfd, LOOP_SET_FD, ffd) &&
-			   !ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo)) rc=0;
-			else ioctl(dfd, LOOP_CLR_FD, 0);
+			if(!ioctl(dfd, LOOP_SET_FD, ffd)) {
+			   if (!ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo)) rc=0;
+				else ioctl(dfd, LOOP_CLR_FD, 0);
+			}
 
 		/* If this block device already set up right, re-use it.
 		   (Yes this is racy, but associating two loop devices with the same
