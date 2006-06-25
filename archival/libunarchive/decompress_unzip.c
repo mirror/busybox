@@ -21,21 +21,6 @@
  * to free leaked bytebuffer memory (used in unzip.c), and some minor style
  * guide cleanups by Ed Clark
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
- *
  * gzip (GNU zip) -- compress files with zip algorithm and 'compress' interface
  * Copyright (C) 1992-1993 Jean-loup Gailly
  * The unzip code was written and put in the public domain by Mark Adler.
@@ -43,38 +28,14 @@
  * written by Spencer Thomas, Joe Orost, James Woods, Jim McKie, Steve Davies,
  * Ken Turkowski, Dave Mack and Peter Jannesen.
  *
- * See the license_msg below and the file COPYING for the software license.
  * See the file algorithm.doc for the compression algorithms and file formats.
+ * 
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#if 0
-static char *license_msg[] = {
-	"   Copyright (C) 1992-1993 Jean-loup Gailly",
-	"   This program is free software; you can redistribute it and/or modify",
-	"   it under the terms of the GNU General Public License as published by",
-	"   the Free Software Foundation; either version 2, or (at your option)",
-	"   any later version.",
-	"",
-	"   This program is distributed in the hope that it will be useful,",
-	"   but WITHOUT ANY WARRANTY; without even the implied warranty of",
-	"   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the",
-	"   GNU General Public License for more details.",
-	"",
-	"   You should have received a copy of the GNU General Public License",
-	"   along with this program; if not, write to the Free Software",
-	"   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.",
-	0
-};
-#endif
-
-#include <sys/types.h>
+#include "libbb.h"
 #include <sys/wait.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include "libbb.h"
 #include "unarchive.h"
 
 typedef struct huft_s {
@@ -213,17 +174,17 @@ int huft_build(unsigned int *b, const unsigned int n,
 	unsigned eob_len;		/* length of end-of-block code (value 256) */
 	unsigned f;				/* i repeats in table every f entries */
 	int g;					/* maximum code length */
-	int h;					/* table level */
-	register unsigned i;	/* counter, current code */
-	register unsigned j;	/* counter */
-	register int k;			/* number of bits in current code */
-	register unsigned *p;	/* pointer into c[], b[], or v[] */
-	register huft_t *q;		/* points to current table */
+	int htl;				/* table level */
+	unsigned i;				/* counter, current code */
+	unsigned j;				/* counter */
+	int k;					/* number of bits in current code */
+	unsigned *p;			/* pointer into c[], b[], or v[] */
+	huft_t *q;				/* points to current table */
 	huft_t r;				/* table entry for structure assignment */
 	huft_t *u[BMAX];		/* table stack */
 	unsigned v[N_MAX];		/* values in order of bit length */
 	int ws[BMAX+1];			/* bits decoded stack */
-	register int w;			/* bits decoded */
+	int w;					/* bits decoded */
 	unsigned x[BMAX + 1];	/* bit offsets, then code stack */
 	unsigned *xp;			/* pointer into x */
 	int y;					/* number of dummy codes added */
@@ -284,7 +245,7 @@ int huft_build(unsigned int *b, const unsigned int n,
 	/* Generate the Huffman codes and for each, make the table entries */
 	x[0] = i = 0;			/* first Huffman code is zero */
 	p = v;					/* grab values in bit order */
-	h = -1;					/* no tables yet--level -1 */
+	htl = -1;				/* no tables yet--level -1 */
 	w = ws[0] = 0;			/* bits decoded */
 	u[0] = (huft_t *) NULL;	/* just to keep compilers happy */
 	q = (huft_t *) NULL;	/* ditto */
@@ -296,8 +257,8 @@ int huft_build(unsigned int *b, const unsigned int n,
 		while (a--) {
 			/* here i is the Huffman code of length k bits for value *p */
 			/* make tables up to required level */
-			while (k > ws[h + 1]) {
-				w = ws[++h];
+			while (k > ws[htl + 1]) {
+				w = ws[++htl];
 
 				/* compute minimum size table less than or equal to *m bits */
 				z = (z = g - w) > *m ? *m : z; /* upper limit on table size */
@@ -314,22 +275,22 @@ int huft_build(unsigned int *b, const unsigned int n,
 				}
 				j = (w + j > eob_len && w < eob_len) ? eob_len - w : j;	/* make EOB code end at table */
 				z = 1 << j;	/* table entries for j-bit table */
-				ws[h+1] = w + j;	/* set bits decoded in stack */
+				ws[htl+1] = w + j;	/* set bits decoded in stack */
 
 				/* allocate and link in new table */
-				q = (huft_t *) xmalloc((z + 1) * sizeof(huft_t));
+				q = (huft_t *) xzalloc((z + 1) * sizeof(huft_t));
 				*t = q + 1;	/* link to list for huft_free() */
-				*(t = &(q->v.t)) = NULL;
-				u[h] = ++q;	/* table starts after link */
+				t = &(q->v.t);
+				u[htl] = ++q;	/* table starts after link */
 
 				/* connect to last table, if there is one */
-				if (h) {
-					x[h] = i; /* save pattern for backing up */
-					r.b = (unsigned char) (w - ws[h - 1]); /* bits to dump before this table */
+				if (htl) {
+					x[htl] = i; /* save pattern for backing up */
+					r.b = (unsigned char) (w - ws[htl - 1]); /* bits to dump before this table */
 					r.e = (unsigned char) (16 + j); /* bits in this table */
 					r.v.t = q; /* pointer to this table */
-					j = (i & ((1 << w) - 1)) >> ws[h - 1];
-					u[h - 1][j] = r; /* connect to last table */
+					j = (i & ((1 << w) - 1)) >> ws[htl - 1];
+					u[htl - 1][j] = r; /* connect to last table */
 				}
 			}
 
@@ -358,8 +319,8 @@ int huft_build(unsigned int *b, const unsigned int n,
 			i ^= j;
 
 			/* backup over finished tables */
-			while ((i & ((1 << w) - 1)) != x[h]) {
-				w = ws[--h];
+			while ((i & ((1 << w) - 1)) != x[htl]) {
+				w = ws[--htl];
 			}
 		}
 	}

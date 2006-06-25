@@ -62,7 +62,7 @@ crontab_main(int ac, char **av)
     if ((pas = getpwuid(UserId)) == NULL)
 	bb_perror_msg_and_die("getpwuid");
 
-    strncpy(caller, pas->pw_name, sizeof(caller));
+    safe_strncpy(caller, pas->pw_name, sizeof(caller));
 
     i = 1;
     if (ac > 1) {

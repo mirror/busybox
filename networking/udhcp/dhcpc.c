@@ -61,41 +61,6 @@ struct client_config_t client_config = {
 	.arp = "\0\0\0\0\0\0",		/* appease gcc-3.0 */
 };
 
-#ifndef IN_BUSYBOX
-static void ATTRIBUTE_NORETURN show_usage(void)
-{
-	printf(
-"Usage: udhcpc [OPTIONS]\n\n"
-"  -c, --clientid=CLIENTID         Set client identifier - type is first char\n"
-"  -C, --clientid-none             Suppress default client identifier\n"
-"  -V, --vendorclass=CLASSID       Set vendor class identifier\n"
-"  -H, --hostname=HOSTNAME         Client hostname\n"
-"  -h                              Alias for -H\n"
-"  -F, --fqdn=FQDN                 Client fully qualified domain name\n"
-"  -f, --foreground                Do not fork after getting lease\n"
-"  -b, --background                Fork to background if lease cannot be\n"
-"                                  immediately negotiated.\n"
-"  -i, --interface=INTERFACE       Interface to use (default: eth0)\n"
-"  -n, --now                       Exit with failure if lease cannot be\n"
-"                                  immediately negotiated.\n"
-"  -p, --pidfile=file              Store process ID of daemon in file\n"
-"  -q, --quit                      Quit after obtaining lease\n"
-"  -r, --request=IP                IP address to request (default: none)\n"
-"  -s, --script=file               Run file at dhcp events (default:\n"
-"                                  " DEFAULT_SCRIPT ")\n"
-"  -T, --timeout=seconds           Try to get the lease for the amount of\n"
-"                                  seconds (default: 3)\n"
-"  -t, --retries=NUM               Send up to NUM request packets\n"
-"  -v, --version                   Display version\n"
-	);
-	exit(0);
-}
-#else
-#define show_usage bb_show_usage
-extern void show_usage(void) ATTRIBUTE_NORETURN;
-#endif
-
-
 /* just a little helper */
 static void change_mode(int new_mode)
 {
@@ -169,11 +134,7 @@ static void client_background(void)
 }
 
 
-#ifdef COMBINED_BINARY
 int udhcpc_main(int argc, char *argv[])
-#else
-int main(int argc, char *argv[])
-#endif
 {
 	uint8_t *temp, *message;
 	unsigned long t1 = 0, t2 = 0, xid = 0;
@@ -218,7 +179,7 @@ int main(int argc, char *argv[])
 
 		switch (c) {
 		case 'c':
-			if (no_clientid) show_usage();
+			if (no_clientid) bb_show_usage();
 			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
 			free(client_config.clientid);
 			client_config.clientid = xmalloc(len + 2);
@@ -228,7 +189,7 @@ int main(int argc, char *argv[])
 			strncpy((char*)client_config.clientid + OPT_DATA, optarg, len);
 			break;
 		case 'C':
-			if (client_config.clientid) show_usage();
+			if (client_config.clientid) bb_show_usage();
 			no_clientid = 1;
 			break;
 		case 'V':
@@ -300,7 +261,7 @@ int main(int argc, char *argv[])
 			return 0;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 

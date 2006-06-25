@@ -1974,7 +1974,7 @@ create_sgiinfo(void)
 	/* I keep SGI's habit to write the sgilabel to the second block */
 	sgilabel->directory[0].vol_file_start = SGI_SSWAP32(2);
 	sgilabel->directory[0].vol_file_size = SGI_SSWAP32(sizeof(sgiinfo));
-	strncpy((char*)sgilabel->directory[0].vol_file_name, "sgilabel", 8);
+	strcpy((char*)sgilabel->directory[0].vol_file_name, "sgilabel");
 }
 
 static sgiinfo *fill_sgiinfo(void);
