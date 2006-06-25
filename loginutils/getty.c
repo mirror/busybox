@@ -808,14 +808,14 @@ static void update_utmp(char *line)
 	} else {
 		/* some inits don't initialize utmp... */
 		memset(&ut, 0, sizeof(ut));
-		strncpy(ut.ut_id, line + 3, sizeof(ut.ut_id));
+		safe_strncpy(ut.ut_id, line + 3, sizeof(ut.ut_id));
 	}
 	/*endutent(); */
 
-	strncpy(ut.ut_user, "LOGIN", sizeof(ut.ut_user));
-	strncpy(ut.ut_line, line, sizeof(ut.ut_line));
+	strcpy(ut.ut_user, "LOGIN");
+	safe_strncpy(ut.ut_line, line, sizeof(ut.ut_line));
 	if (fakehost)
-		strncpy(ut.ut_host, fakehost, sizeof(ut.ut_host));
+		safe_strncpy(ut.ut_host, fakehost, sizeof(ut.ut_host));
 	time(&t);
 	ut.ut_time = t;
 	ut.ut_type = LOGIN_PROCESS;
