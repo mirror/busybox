@@ -240,7 +240,7 @@ int zcip_main(int argc, char *argv[])
 
 	// initialize saddr
 	memset(&saddr, 0, sizeof (saddr));
-	strncpy(saddr.sa_data, intf, sizeof (saddr.sa_data));
+	safe_strncpy(saddr.sa_data, intf, sizeof (saddr.sa_data));
 
 	// open an ARP socket
 	if ((fd = socket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP))) < 0) {

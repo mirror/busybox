@@ -42,12 +42,8 @@
 #ifdef CONFIG_FEATURE_TAR_CREATE
 
 /* Tar file constants  */
-# define TAR_MAGIC          "ustar"	/* ustar and a null */
-# define TAR_VERSION        "  "	/* Be compatible with GNU tar format */
 
 #define TAR_BLOCK_SIZE		512
-#define TAR_MAGIC_LEN		6
-#define TAR_VERSION_LEN		2
 
 /* POSIX tar Header Block, from POSIX 1003.1-1990  */
 #define NAME_SIZE			100
@@ -208,15 +204,14 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 
 	memset(&header, 0, size);
 
-	strncpy(header.name, header_name, sizeof(header.name));
+	safe_strncpy(header.name, header_name, sizeof(header.name));
 
 	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode);
 	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
 	putOctal(header.gid, sizeof(header.gid), statbuf->st_gid);
 	putOctal(header.size, sizeof(header.size), 0);	/* Regular file size is handled later */
 	putOctal(header.mtime, sizeof(header.mtime), statbuf->st_mtime);
-	strncpy(header.magic, TAR_MAGIC TAR_VERSION,
-			TAR_MAGIC_LEN + TAR_VERSION_LEN);
+	strcpy(header.magic, "ustar  ");
 
 	/* Enter the user and group names (default to root if it fails) */
 	if (bb_getpwuid(header.uname, statbuf->st_uid, sizeof(header.uname)) == NULL)
