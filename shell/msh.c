@@ -308,7 +308,7 @@ static struct var *lookup(char *n);
 static int rlookup(char *n);
 static struct wdblock *glob(char *cp, struct wdblock *wb);
 static int my_getc(int ec);
-static int subgetc(int ec, int quoted);
+static int subgetc(char ec, int quoted);
 static char **makenv(int all, struct wdblock *wb);
 static char **eval(char **ap, int f);
 static int setstatus(int s);
@@ -522,7 +522,7 @@ static int run(struct ioarg *argp, int (*f) (struct ioarg *));
 static int eofc(void);
 static int readc(void);
 static void unget(int c);
-static void ioecho(int c);
+static void ioecho(char c);
 static void prs(const char *s);
 static void prn(unsigned u);
 static void closef(int i);
@@ -1020,7 +1020,7 @@ int msh_main(int argc, char **argv)
 	DBGPRINTF(("MSH_MAIN: returning.\n"));
 }
 
-static void setdash()
+static void setdash(void)
 {
 	REGISTER char *cp;
 	REGISTER int c;
@@ -1034,8 +1034,7 @@ static void setdash()
 	setval(lookup("-"), m);
 }
 
-static int newfile(s)
-REGISTER char *s;
+static int newfile(REGISTER char *s)
 {
 	REGISTER int f;
 
@@ -1057,8 +1056,7 @@ REGISTER char *s;
 }
 
 
-struct op *scantree(head)
-struct op *head;
+struct op *scantree(struct op *head)
 {
 	struct op *dotnode;
 
@@ -1091,7 +1089,7 @@ struct op *head;
 }
 
 
-static void onecommand()
+static void onecommand(void)
 {
 	REGISTER int i;
 	jmp_buf m1;
@@ -1152,13 +1150,13 @@ static void onecommand()
 	}
 }
 
-static void fail()
+static void fail(void)
 {
 	longjmp(failpt, 1);
 	/* NOTREACHED */
 }
 
-static void leave()
+static void leave(void)
 {
 	DBGPRINTF(("LEAVE: leave called!\n"));
 
@@ -1171,8 +1169,7 @@ static void leave()
 	/* NOTREACHED */
 }
 
-static void warn(s)
-REGISTER char *s;
+static void warn(REGISTER char *s)
 {
 	if (*s) {
 		prs(s);
@@ -1183,8 +1180,7 @@ REGISTER char *s;
 		leave();
 }
 
-static void err(s)
-char *s;
+static void err(char *s)
 {
 	warn(s);
 	if (flag['n'])
@@ -1197,8 +1193,7 @@ char *s;
 	e.iop = e.iobase = iostack;
 }
 
-static int newenv(f)
-int f;
+static int newenv(int f)
 {
 	REGISTER struct env *ep;
 
@@ -1222,7 +1217,7 @@ int f;
 	return (0);
 }
 
-static void quitenv()
+static void quitenv(void)
 {
 	REGISTER struct env *ep;
 	REGISTER int fd;
@@ -1242,8 +1237,7 @@ static void quitenv()
 /*
  * Is any character from s1 in s2?
  */
-static int anys(s1, s2)
-REGISTER char *s1, *s2;
+static int anys(REGISTER char *s1, REGISTER char *s2)
 {
 	while (*s1)
 		if (any(*s1++, s2))
@@ -1254,9 +1248,7 @@ REGISTER char *s1, *s2;
 /*
  * Is character c in s?
  */
-static int any(c, s)
-REGISTER int c;
-REGISTER char *s;
+static int any(REGISTER int c, REGISTER char *s)
 {
 	while (*s)
 		if (*s++ == c)
@@ -1264,14 +1256,12 @@ REGISTER char *s;
 	return (0);
 }
 
-static char *putn(n)
-REGISTER int n;
+static char *putn(REGISTER int n)
 {
 	return (itoa(n));
 }
 
-static char *itoa(n)
-REGISTER int n;
+static char *itoa(REGISTER int n)
 {
 	static char s[20];
 
@@ -1285,8 +1275,7 @@ static void next(int f)
 	PUSHIO(afile, f, filechar);
 }
 
-static void onintr(s)
-int s;							/* ANSI C requires a parameter */
+static void onintr(int s)					/* ANSI C requires a parameter */
 {
 	signal(SIGINT, onintr);
 	intr = 1;
@@ -1301,8 +1290,7 @@ int s;							/* ANSI C requires a parameter */
 	}
 }
 
-static char *space(n)
-int n;
+static char *space(int n)
 {
 	REGISTER char *cp;
 
@@ -1311,9 +1299,7 @@ int n;
 	return (cp);
 }
 
-static char *strsave(s, a)
-REGISTER char *s;
-int a;
+static char *strsave(REGISTER char *s, int a)
 {
 	REGISTER char *cp, *xp;
 
@@ -1328,15 +1314,13 @@ int a;
 /*
  * trap handling
  */
-static void sig(i)
-REGISTER int i;
+static void sig(REGISTER int i)
 {
 	trapset = i;
 	signal(i, sig);
 }
 
-static void runtrap(i)
-int i;
+static void runtrap(int i)
 {
 	char *trapstr;
 
@@ -1357,8 +1341,7 @@ int i;
  * not previously there, enter it now and
  * return a null value.
  */
-static struct var *lookup(n)
-REGISTER char *n;
+static struct var *lookup(REGISTER char *n)
 {
 	REGISTER struct var *vp;
 	REGISTER char *cp;
@@ -1398,9 +1381,7 @@ REGISTER char *n;
 /*
  * give variable at `vp' the value `val'.
  */
-static void setval(vp, val)
-struct var *vp;
-char *val;
+static void setval(struct var *vp, char *val)
 {
 	nameval(vp, val, (char *) NULL);
 }
@@ -1412,9 +1393,7 @@ char *val;
  * this is all so that exporting
  * values is reasonably painless.
  */
-static void nameval(vp, val, name)
-REGISTER struct var *vp;
-char *val, *name;
+static void nameval(REGISTER struct var *vp, char *val, char *name)
 {
 	REGISTER char *cp, *xp;
 	char *nv;
@@ -1449,21 +1428,18 @@ char *val, *name;
 	vp->status |= fl;
 }
 
-static void export(vp)
-struct var *vp;
+static void export(struct var *vp)
 {
 	vp->status |= EXPORT;
 }
 
-static void ronly(vp)
-struct var *vp;
+static void ronly(struct var *vp)
 {
 	if (isalpha(vp->name[0]) || vp->name[0] == '_')	/* not an internal symbol */
 		vp->status |= RONLY;
 }
 
-static int isassign(s)
-REGISTER char *s;
+static int isassign(REGISTER char *s)
 {
 	DBGPRINTF7(("ISASSIGN: enter, s=%s\n", s));
 
@@ -1476,9 +1452,7 @@ REGISTER char *s;
 	return (1);
 }
 
-static int assign(s, cf)
-REGISTER char *s;
-int cf;
+static int assign(REGISTER char *s, int cf)
 {
 	REGISTER char *cp;
 	struct var *vp;
@@ -1497,8 +1471,7 @@ int cf;
 	return (1);
 }
 
-static int checkname(cp)
-REGISTER char *cp;
+static int checkname(REGISTER char *cp)
 {
 	DBGPRINTF7(("CHECKNAME: enter, cp=%s\n", cp));
 
@@ -1510,8 +1483,7 @@ REGISTER char *cp;
 	return (1);
 }
 
-static void putvlist(f, out)
-REGISTER int f, out;
+static void putvlist(REGISTER int f, REGISTER int out)
 {
 	REGISTER struct var *vp;
 
@@ -1526,8 +1498,7 @@ REGISTER int f, out;
 		}
 }
 
-static int eqname(n1, n2)
-REGISTER char *n1, *n2;
+static int eqname(REGISTER char *n1, REGISTER char *n2)
 {
 	for (; *n1 != '=' && *n1 != 0; n1++)
 		if (*n2++ != *n1)
@@ -1535,8 +1506,7 @@ REGISTER char *n1, *n2;
 	return (*n2 == 0 || *n2 == '=');
 }
 
-static char *findeq(cp)
-REGISTER char *cp;
+static char *findeq(REGISTER char *cp)
 {
 	while (*cp != '\0' && *cp != '=')
 		cp++;
@@ -1556,8 +1526,7 @@ REGISTER char *cp;
 #define	QMASK	(CMASK&~QUOTE)
 #define	NOT	'!'					/* might use ^ */
 
-static int gmatch(s, p)
-REGISTER char *s, *p;
+static int gmatch(REGISTER char *s, REGISTER char *p)
 {
 	REGISTER int sc, pc;
 
@@ -1592,9 +1561,7 @@ REGISTER char *s, *p;
 	return (*s == 0);
 }
 
-static char *cclass(p, sub)
-REGISTER char *p;
-REGISTER int sub;
+static char *cclass(REGISTER char *p, REGISTER int sub)
 {
 	REGISTER int c, d, not, found;
 
@@ -1627,7 +1594,7 @@ REGISTER int sub;
 
 #define sbrk(X) ({ void * __q = (void *)-1; if (brkaddr + (int)(X) < brktop) { __q = brkaddr; brkaddr+=(int)(X); } __q;})
 
-static void initarea()
+static void initarea(void)
 {
 	brkaddr = xmalloc(AREASIZE);
 	brktop = brkaddr + AREASIZE;
@@ -1642,8 +1609,7 @@ static void initarea()
 	areanxt = areabot;
 }
 
-char *getcell(nbytes)
-unsigned nbytes;
+char *getcell(unsigned nbytes)
 {
 	REGISTER int nregio;
 	REGISTER struct region *p, *q;
@@ -1711,8 +1677,7 @@ unsigned nbytes;
 	return ((char *) (p + 1));
 }
 
-static void freecell(cp)
-char *cp;
+static void freecell(char *cp)
 {
 	REGISTER struct region *p;
 
@@ -1724,8 +1689,7 @@ char *cp;
 	}
 }
 
-static void freearea(a)
-REGISTER int a;
+static void freearea(REGISTER int a)
 {
 	REGISTER struct region *p, *top;
 
@@ -1735,9 +1699,7 @@ REGISTER int a;
 			p->area = FREE;
 }
 
-static void setarea(cp, a)
-char *cp;
-int a;
+static void setarea(char *cp, int a)
 {
 	REGISTER struct region *p;
 
@@ -1745,13 +1707,12 @@ int a;
 		(p - 1)->area = a;
 }
 
-int getarea(cp)
-char *cp;
+int getarea(char *cp)
 {
 	return ((struct region *) cp - 1)->area;
 }
 
-static void garbage()
+static void garbage(void)
 {
 	REGISTER struct region *p, *q, *top;
 
@@ -1778,7 +1739,7 @@ static void garbage()
  * shell: syntax (C version)
  */
 
-int yyparse()
+int yyparse(void)
 {
 	DBGPRINTF7(("YYPARSE: enter...\n"));
 
@@ -1790,8 +1751,7 @@ int yyparse()
 	return (yynerrs != 0);
 }
 
-static struct op *pipeline(cf)
-int cf;
+static struct op *pipeline(int cf)
 {
 	REGISTER struct op *t, *p;
 	REGISTER int c;
@@ -1823,7 +1783,7 @@ int cf;
 	return (t);
 }
 
-static struct op *andor()
+static struct op *andor(void)
 {
 	REGISTER struct op *t, *p;
 	REGISTER int c;
@@ -1851,7 +1811,7 @@ static struct op *andor()
 	return (t);
 }
 
-static struct op *c_list()
+static struct op *c_list(void)
 {
 	REGISTER struct op *t, *p;
 	REGISTER int c;
@@ -1883,8 +1843,7 @@ static struct op *c_list()
 	return (t);
 }
 
-static int synio(cf)
-int cf;
+static int synio(int cf)
 {
 	REGISTER struct ioword *iop;
 	REGISTER int i;
@@ -1909,8 +1868,7 @@ int cf;
 	return (1);
 }
 
-static void musthave(c, cf)
-int c, cf;
+static void musthave(int c, int cf)
 {
 	if ((peeksym = yylex(cf)) != c) {
 		DBGPRINTF7(("MUSTHAVE: error!\n"));
@@ -1920,7 +1878,7 @@ int c, cf;
 	peeksym = 0;
 }
 
-static struct op *simple()
+static struct op *simple(void)
 {
 	REGISTER struct op *t;
 
@@ -1947,8 +1905,7 @@ static struct op *simple()
 	}
 }
 
-static struct op *nested(type, mark)
-int type, mark;
+static struct op *nested(int type, int mark)
 {
 	REGISTER struct op *t;
 
@@ -1961,8 +1918,7 @@ int type, mark;
 	return (block(type, t, NOBLOCK, NOWORDS));
 }
 
-static struct op *command(cf)
-int cf;
+static struct op *command(int cf)
 {
 	REGISTER struct op *t;
 	struct wdblock *iosave;
@@ -2075,9 +2031,7 @@ int cf;
 	return (t);
 }
 
-static struct op *dowholefile(type, mark)
-int type;
-int mark;
+static struct op *dowholefile(int type, int mark)
 {
 	REGISTER struct op *t;
 
@@ -2091,8 +2045,7 @@ int mark;
 	return (t);
 }
 
-static struct op *dogroup(onlydone)
-int onlydone;
+static struct op *dogroup(int onlydone)
 {
 	REGISTER int c;
 	REGISTER struct op *mylist;
@@ -2107,7 +2060,7 @@ int onlydone;
 	return (mylist);
 }
 
-static struct op *thenpart()
+static struct op *thenpart(void)
 {
 	REGISTER int c;
 	REGISTER struct op *t;
@@ -2125,7 +2078,7 @@ static struct op *thenpart()
 	return (t);
 }
 
-static struct op *elsepart()
+static struct op *elsepart(void)
 {
 	REGISTER int c;
 	REGISTER struct op *t;
@@ -2149,7 +2102,7 @@ static struct op *elsepart()
 	}
 }
 
-static struct op *caselist()
+static struct op *caselist(void)
 {
 	REGISTER struct op *t;
 
@@ -2163,7 +2116,7 @@ static struct op *caselist()
 	return (t);
 }
 
-static struct op *casepart()
+static struct op *casepart(void)
 {
 	REGISTER struct op *t;
 
@@ -2182,7 +2135,7 @@ static struct op *casepart()
 	return (t);
 }
 
-static char **pattern()
+static char **pattern(void)
 {
 	REGISTER int c, cf;
 
@@ -2198,7 +2151,7 @@ static char **pattern()
 	return (copyw());
 }
 
-static char **wordlist()
+static char **wordlist(void)
 {
 	REGISTER int c;
 
@@ -2217,8 +2170,7 @@ static char **wordlist()
 /*
  * supporting functions
  */
-static struct op *list(t1, t2)
-REGISTER struct op *t1, *t2;
+static struct op *list(REGISTER struct op *t1, REGISTER struct op *t2)
 {
 	DBGPRINTF7(("LIST: enter, t1=%p, t2=%p\n", t1, t2));
 
@@ -2230,10 +2182,7 @@ REGISTER struct op *t1, *t2;
 	return (block(TLIST, t1, t2, NOWORDS));
 }
 
-static struct op *block(type, t1, t2, wp)
-int type;
-struct op *t1, *t2;
-char **wp;
+static struct op *block(int type, struct op *t1, struct op *t2, char **wp)
 {
 	REGISTER struct op *t;
 
@@ -2252,8 +2201,7 @@ char **wp;
 }
 
 /* See if given string is a shell multiline (FOR, IF, etc) */
-static int rlookup(n)
-REGISTER char *n;
+static int rlookup(REGISTER char *n)
 {
 	REGISTER const struct res *rp;
 
@@ -2269,7 +2217,7 @@ REGISTER char *n;
 	return (0);					/* Not a shell multiline */
 }
 
-static struct op *newtp()
+static struct op *newtp(void)
 {
 	REGISTER struct op *t;
 
@@ -2286,8 +2234,7 @@ static struct op *newtp()
 	return (t);
 }
 
-static struct op *namelist(t)
-REGISTER struct op *t;
+static struct op *namelist(REGISTER struct op *t)
 {
 
 	DBGPRINTF7(("NAMELIST: enter, t=%p, type %s, iolist=%p\n", t,
@@ -2315,7 +2262,7 @@ REGISTER struct op *t;
 	return (t);
 }
 
-static char **copyw()
+static char **copyw(void)
 {
 	REGISTER char **wd;
 
@@ -2324,13 +2271,12 @@ static char **copyw()
 	return (wd);
 }
 
-static void word(cp)
-char *cp;
+static void word(char *cp)
 {
 	wdlist = addword(cp, wdlist);
 }
 
-static struct ioword **copyio()
+static struct ioword **copyio(void)
 {
 	REGISTER struct ioword **iop;
 
@@ -2339,10 +2285,7 @@ static struct ioword **copyio()
 	return (iop);
 }
 
-static struct ioword *io(u, f, cp)
-int u;
-int f;
-char *cp;
+static struct ioword *io(int u, int f, char *cp)
 {
 	REGISTER struct ioword *iop;
 
@@ -2354,13 +2297,12 @@ char *cp;
 	return (iop);
 }
 
-static void zzerr()
+static void zzerr(void)
 {
 	yyerror("syntax error");
 }
 
-static void yyerror(s)
-char *s;
+static void yyerror(char *s)
 {
 	yynerrs++;
 	if (interactive && e.iop <= iostack) {
@@ -2371,8 +2313,7 @@ char *s;
 	fail();
 }
 
-static int yylex(cf)
-int cf;
+static int yylex(int cf)
 {
 	REGISTER int c, c1;
 	int atstart;
@@ -2505,8 +2446,7 @@ int cf;
 }
 
 
-static int collect(c, c1)
-REGISTER int c, c1;
+static int collect(REGISTER int c, REGISTER int c1)
 {
 	char s[2];
 
@@ -2541,8 +2481,7 @@ REGISTER int c, c1;
 
 /* "multiline commands" helper func */
 /* see if next 2 chars form a shell multiline */
-static int dual(c)
-REGISTER int c;
+static int dual(REGISTER int c)
 {
 	char s[3];
 	REGISTER char *cp = s;
@@ -2560,8 +2499,7 @@ REGISTER int c;
 	return (c);					/* String is multiline, return numeric multiline (restab) code */
 }
 
-static void diag(ec)
-REGISTER int ec;
+static void diag(REGISTER int ec)
 {
 	REGISTER int c;
 
@@ -2581,8 +2519,7 @@ REGISTER int ec;
 		yylval.i |= IODUP;
 }
 
-static char *tree(size)
-unsigned size;
+static char *tree(unsigned size)
 {
 	REGISTER char *t;
 
@@ -2605,10 +2542,7 @@ unsigned size;
  */
 
 
-static int execute(t, pin, pout, act)
-REGISTER struct op *t;
-int *pin, *pout;
-int act;
+static int execute(REGISTER struct op *t, int *pin, int *pout, int act)
 {
 	REGISTER struct op *t1;
 	volatile int i, rv, a;
@@ -3065,9 +2999,7 @@ forkexec(REGISTER struct op *t, int *pin, int *pout, int act, char **wp)
  * 0< 1> are ignored as required
  * within pipelines.
  */
-static int iosetup(iop, pipein, pipeout)
-REGISTER struct ioword *iop;
-int pipein, pipeout;
+static int iosetup(REGISTER struct ioword *iop, int pipein, int pipeout)
 {
 	REGISTER int u = -1;
 	char *cp = NULL, *msg;
@@ -3143,8 +3075,7 @@ int pipein, pipeout;
 	return (0);
 }
 
-static void echo(wp)
-REGISTER char **wp;
+static void echo(REGISTER char **wp)
 {
 	REGISTER int i;
 
@@ -3157,9 +3088,7 @@ REGISTER char **wp;
 	prs("\n");
 }
 
-static struct op **find1case(t, w)
-struct op *t;
-char *w;
+static struct op **find1case(struct op *t, char *w)
 {
 	REGISTER struct op *t1;
 	struct op **tp;
@@ -3194,9 +3123,7 @@ char *w;
 	return ((struct op **) NULL);
 }
 
-static struct op *findcase(t, w)
-struct op *t;
-char *w;
+static struct op *findcase(struct op *t, char *w)
 {
 	REGISTER struct op **tp;
 
@@ -3206,8 +3133,7 @@ char *w;
 /*
  * Enter a new loop level (marked for break/continue).
  */
-static void brkset(bc)
-struct brkcon *bc;
+static void brkset(struct brkcon *bc)
 {
 	bc->nextlev = brklist;
 	brklist = bc;
@@ -3220,9 +3146,7 @@ struct brkcon *bc;
  * Ignore interrupt signals while waiting
  * unless `canintr' is true.
  */
-static int waitfor(lastpid, canintr)
-REGISTER int lastpid;
-int canintr;
+static int waitfor(REGISTER int lastpid, int canintr)
 {
 	REGISTER int pid, rv;
 	int s;
@@ -3277,8 +3201,7 @@ int canintr;
 	return (rv);
 }
 
-static int setstatus(s)
-REGISTER int s;
+static int setstatus(REGISTER int s)
 {
 	exstat = s;
 	setval(lookup("?"), putn(s));
@@ -3290,8 +3213,7 @@ REGISTER int s;
  * If getenv("PATH") were kept up-to-date,
  * execvp might be used.
  */
-static char *rexecve(c, v, envp)
-char *c, **v, **envp;
+static char *rexecve(char *c, char **v, char **envp)
 {
 	REGISTER int i;
 	REGISTER char *sp, *tp;
@@ -3455,8 +3377,7 @@ static int dolabel(struct op *t)
 	return (0);
 }
 
-static int dochdir(t)
-REGISTER struct op *t;
+static int dochdir(REGISTER struct op *t)
 {
 	REGISTER char *cp, *er;
 
@@ -3471,8 +3392,7 @@ REGISTER struct op *t;
 	return (1);
 }
 
-static int doshift(t)
-REGISTER struct op *t;
+static int doshift(REGISTER struct op *t)
 {
 	REGISTER int n;
 
@@ -3491,8 +3411,7 @@ REGISTER struct op *t;
 /*
  * execute login and newgrp directly
  */
-static int dologin(t)
-struct op *t;
+static int dologin(struct op *t)
 {
 	REGISTER char *cp;
 
@@ -3507,8 +3426,7 @@ struct op *t;
 	return (1);
 }
 
-static int doumask(t)
-REGISTER struct op *t;
+static int doumask(REGISTER struct op *t)
 {
 	REGISTER int i, n;
 	REGISTER char *cp;
@@ -3527,8 +3445,7 @@ REGISTER struct op *t;
 	return (0);
 }
 
-static int doexec(t)
-REGISTER struct op *t;
+static int doexec(REGISTER struct op *t)
 {
 	REGISTER int i;
 	jmp_buf ex;
@@ -3547,8 +3464,7 @@ REGISTER struct op *t;
 	return (1);
 }
 
-static int dodot(t)
-struct op *t;
+static int dodot(struct op *t)
 {
 	REGISTER int i;
 	REGISTER char *sp, *tp;
@@ -3600,8 +3516,7 @@ struct op *t;
 	return (-1);
 }
 
-static int dowait(t)
-struct op *t;
+static int dowait(struct op *t)
 {
 	REGISTER int i;
 	REGISTER char *cp;
@@ -3616,8 +3531,7 @@ struct op *t;
 	return (0);
 }
 
-static int doread(t)
-struct op *t;
+static int doread(struct op *t)
 {
 	REGISTER char *cp, **wp;
 	REGISTER int nb = 0;
@@ -3640,14 +3554,12 @@ struct op *t;
 	return (nb <= 0);
 }
 
-static int doeval(t)
-REGISTER struct op *t;
+static int doeval(REGISTER struct op *t)
 {
 	return (RUN(awordlist, t->words + 1, wdchar));
 }
 
-static int dotrap(t)
-REGISTER struct op *t;
+static int dotrap(REGISTER struct op *t)
 {
 	REGISTER int n, i;
 	REGISTER int resetsig;
@@ -3686,8 +3598,7 @@ REGISTER struct op *t;
 	return (0);
 }
 
-static int getsig(s)
-char *s;
+static int getsig(char *s)
 {
 	REGISTER int n;
 
@@ -3708,8 +3619,7 @@ static void setsig(REGISTER int n, sighandler_t f)
 	}
 }
 
-static int getn(as)
-char *as;
+static int getn(char *as)
 {
 	REGISTER char *s;
 	REGISTER int n, m;
@@ -3729,21 +3639,17 @@ char *as;
 	return (n * m);
 }
 
-static int dobreak(t)
-struct op *t;
+static int dobreak(struct op *t)
 {
 	return (brkcontin(t->words[1], 1));
 }
 
-static int docontinue(t)
-struct op *t;
+static int docontinue(struct op *t)
 {
 	return (brkcontin(t->words[1], 0));
 }
 
-static int brkcontin(cp, val)
-REGISTER char *cp;
-int val;
+static int brkcontin(REGISTER char *cp, int val)
 {
 	REGISTER struct brkcon *bc;
 	REGISTER int nl;
@@ -3765,8 +3671,7 @@ int val;
 	/* NOTREACHED */
 }
 
-static int doexit(t)
-struct op *t;
+static int doexit(struct op *t)
 {
 	REGISTER char *cp;
 
@@ -3781,15 +3686,13 @@ struct op *t;
 	return (0);
 }
 
-static int doexport(t)
-struct op *t;
+static int doexport(struct op *t)
 {
 	rdexp(t->words + 1, export, EXPORT);
 	return (0);
 }
 
-static int doreadonly(t)
-struct op *t;
+static int doreadonly(struct op *t)
 {
 	rdexp(t->words + 1, ronly, RONLY);
 	return (0);
@@ -3818,15 +3721,13 @@ static void rdexp(char **wp, void (*f) (struct var *), int key)
 		putvlist(key, 1);
 }
 
-static void badid(s)
-REGISTER char *s;
+static void badid(REGISTER char *s)
 {
 	prs(s);
 	err(": bad identifier");
 }
 
-static int doset(t)
-REGISTER struct op *t;
+static int doset(REGISTER struct op *t)
 {
 	REGISTER struct var *vp;
 	REGISTER char *cp;
@@ -3869,9 +3770,7 @@ REGISTER struct op *t;
 	return (0);
 }
 
-static void varput(s, out)
-REGISTER char *s;
-int out;
+static void varput(REGISTER char *s, int out)
 {
 	if (isalnum(*s) || *s == '_') {
 		write(out, s, strlen(s));
@@ -3981,9 +3880,7 @@ static char **makenv(int all, struct wdblock *wb)
 	return (getwords(wb));
 }
 
-static char *evalstr(cp, f)
-REGISTER char *cp;
-int f;
+static char *evalstr(REGISTER char *cp, int f)
 {
 	struct wdblock *wb;
 
@@ -4046,8 +3943,7 @@ static int expand(char *cp, REGISTER struct wdblock **wbp, int f)
 /*
  * Blank interpretation and quoting
  */
-static char *blank(f)
-int f;
+static char *blank(int f)
 {
 	REGISTER int c, c1;
 	REGISTER char *sp;
@@ -4116,9 +4012,7 @@ int f;
 /*
  * Get characters, substituting for ` and $
  */
-static int subgetc(ec, quoted)
-REGISTER char ec;
-int quoted;
+static int subgetc(REGISTER char ec, int quoted)
 {
 	REGISTER char c;
 
@@ -4144,8 +4038,7 @@ int quoted;
 /*
  * Prepare to generate the string returned by ${} substitution.
  */
-static int dollar(quoted)
-int quoted;
+static int dollar(int quoted)
 {
 	int otask;
 	struct io *oiop;
@@ -4249,8 +4142,7 @@ int quoted;
  * Run the command in `...` and read its output.
  */
 
-static int grave(quoted)
-int quoted;
+static int grave(int quoted)
 {
 	char *cp;
 	REGISTER int i;
@@ -4429,8 +4321,7 @@ int quoted;
 }
 
 
-static char *unquote(as)
-REGISTER char *as;
+static char *unquote(REGISTER char *as)
 {
 	REGISTER char *s;
 
@@ -4453,9 +4344,7 @@ REGISTER char *as;
 static struct wdblock *cl, *nl;
 static char spcl[] = "[?*";
 
-static struct wdblock *glob(cp, wb)
-char *cp;
-struct wdblock *wb;
+static struct wdblock *glob(char *cp, struct wdblock *wb)
 {
 	REGISTER int i;
 	REGISTER char *pp;
@@ -4499,9 +4388,7 @@ struct wdblock *wb;
 	return (wb);
 }
 
-static void globname(we, pp)
-char *we;
-REGISTER char *pp;
+static void globname(char *we, REGISTER char *pp)
 {
 	REGISTER char *np, *cp;
 	char *name, *gp, *dp;
@@ -4562,10 +4449,7 @@ REGISTER char *pp;
  * start..end1 / middle end
  * the slashes come for free
  */
-static char *generate(start1, end1, middle, end)
-char *start1;
-REGISTER char *end1;
-char *middle, *end;
+static char *generate(char *start1, REGISTER char *end1, char *middle, char *end)
 {
 	char *p;
 	REGISTER char *op, *xp;
@@ -4580,8 +4464,7 @@ char *middle, *end;
 	return (p);
 }
 
-static int anyspcl(wb)
-REGISTER struct wdblock *wb;
+static int anyspcl(REGISTER struct wdblock *wb)
 {
 	REGISTER int i;
 	REGISTER char **wd;
@@ -4593,16 +4476,14 @@ REGISTER struct wdblock *wb;
 	return (0);
 }
 
-static int xstrcmp(p1, p2)
-char *p1, *p2;
+static int xstrcmp(char *p1, char *p2)
 {
 	return (strcmp(*(char **) p1, *(char **) p2));
 }
 
 /* -------- word.c -------- */
 
-static struct wdblock *newword(nw)
-REGISTER int nw;
+static struct wdblock *newword(REGISTER int nw)
 {
 	REGISTER struct wdblock *wb;
 
@@ -4612,9 +4493,7 @@ REGISTER int nw;
 	return (wb);
 }
 
-static struct wdblock *addword(wd, wb)
-char *wd;
-REGISTER struct wdblock *wb;
+static struct wdblock *addword(char *wd, REGISTER struct wdblock *wb)
 {
 	REGISTER struct wdblock *wb2;
 	REGISTER int nw;
@@ -4634,8 +4513,7 @@ REGISTER struct wdblock *wb;
 }
 
 static
-char **getwords(wb)
-REGISTER struct wdblock *wb;
+char **getwords(REGISTER struct wdblock *wb)
 {
 	REGISTER char **wd;
 	REGISTER int nb;
@@ -4655,19 +4533,14 @@ REGISTER struct wdblock *wb;
 static int (*func) (char *, char *);
 static int globv;
 
-static void glob0(a0, a1, a2, a3)
-char *a0;
-unsigned a1;
-int a2;
-int (*a3) (char *, char *);
+static void glob0(char *a0, unsigned a1, int a2, int (*a3) (char *, char *))
 {
 	func = a3;
 	globv = a2;
 	glob1(a0, a0 + a1 * a2);
 }
 
-static void glob1(base, lim)
-char *base, *lim;
+static void glob1(char *base, char *lim)
 {
 	REGISTER char *i, *j;
 	int v2;
@@ -4736,8 +4609,7 @@ char *base, *lim;
 	}
 }
 
-static void glob2(i, j)
-char *i, *j;
+static void glob2(char *i, char *j)
 {
 	REGISTER char *index1, *index2, c;
 	int m;
@@ -4752,8 +4624,7 @@ char *i, *j;
 	} while (--m);
 }
 
-static void glob3(i, j, k)
-char *i, *j, *k;
+static void glob3(char *i, char *j, char *k)
 {
 	REGISTER char *index1, *index2, *index3;
 	int c;
@@ -4799,19 +4670,18 @@ static int my_getc(int ec)
 	return (c);
 }
 
-static void unget(c)
-int c;
+static void unget(int c)
 {
 	if (e.iop >= e.iobase)
 		e.iop->peekc = c;
 }
 
-static int eofc()
+static int eofc(void)
 {
 	return e.iop < e.iobase || (e.iop->peekc == 0 && e.iop->prev == 0);
 }
 
-static int readc()
+static int readc(void)
 {
 	REGISTER int c;
 
@@ -4867,8 +4737,7 @@ static int readc()
 	return (0);
 }
 
-static void ioecho(c)
-char c;
+static void ioecho(char c)
 {
 	if (flag['v'])
 		write(2, &c, sizeof c);
@@ -4940,8 +4809,7 @@ static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
 	return;
 }
 
-static struct io *setbase(ip)
-struct io *ip;
+static struct io *setbase(struct io *ip)
 {
 	REGISTER struct io *xp;
 
@@ -4957,8 +4825,7 @@ struct io *ip;
 /*
  * Produce the characters of a string, then a newline, then EOF.
  */
-static int nlchar(ap)
-REGISTER struct ioarg *ap;
+static int nlchar(REGISTER struct ioarg *ap)
 {
 	REGISTER int c;
 
@@ -4975,8 +4842,7 @@ REGISTER struct ioarg *ap;
  * Given a list of words, produce the characters
  * in them, with a space after each word.
  */
-static int wdchar(ap)
-REGISTER struct ioarg *ap;
+static int wdchar(REGISTER struct ioarg *ap)
 {
 	REGISTER char c;
 	REGISTER char **wl;
@@ -4997,8 +4863,7 @@ REGISTER struct ioarg *ap;
  * Return the characters of a list of words,
  * producing a space between them.
  */
-static int dolchar(ap)
-REGISTER struct ioarg *ap;
+static int dolchar(REGISTER struct ioarg *ap)
 {
 	REGISTER char *wp;
 
@@ -5009,8 +4874,7 @@ REGISTER struct ioarg *ap;
 	return (0);
 }
 
-static int xxchar(ap)
-REGISTER struct ioarg *ap;
+static int xxchar(REGISTER struct ioarg *ap)
 {
 	REGISTER int c;
 
@@ -5026,8 +4890,7 @@ REGISTER struct ioarg *ap;
 /*
  * Produce the characters from a single word (string).
  */
-static int strchar(ap)
-REGISTER struct ioarg *ap;
+static int strchar(REGISTER struct ioarg *ap)
 {
 	REGISTER int c;
 
@@ -5039,8 +4902,7 @@ REGISTER struct ioarg *ap;
 /*
  * Produce quoted characters from a single word (string).
  */
-static int qstrchar(ap)
-REGISTER struct ioarg *ap;
+static int qstrchar(REGISTER struct ioarg *ap)
 {
 	REGISTER int c;
 
@@ -5052,8 +4914,7 @@ REGISTER struct ioarg *ap;
 /*
  * Return the characters from a file.
  */
-static int filechar(ap)
-REGISTER struct ioarg *ap;
+static int filechar(REGISTER struct ioarg *ap)
 {
 	REGISTER int i;
 	char c;
@@ -5104,8 +4965,7 @@ REGISTER struct ioarg *ap;
 /*
  * Return the characters from a here temp file.
  */
-static int herechar(ap)
-REGISTER struct ioarg *ap;
+static int herechar(REGISTER struct ioarg *ap)
 {
 	char c;
 
@@ -5122,9 +4982,7 @@ REGISTER struct ioarg *ap;
  * Return the characters produced by a process (`...`).
  * Quote them if required, and remove any trailing newline characters.
  */
-static int gravechar(ap, iop)
-struct ioarg *ap;
-struct io *iop;
+static int gravechar(struct ioarg *ap, struct io *iop)
 {
 	REGISTER int c;
 
@@ -5133,9 +4991,7 @@ struct io *iop;
 	return (c);
 }
 
-static int qgravechar(ap, iop)
-REGISTER struct ioarg *ap;
-struct io *iop;
+static int qgravechar(REGISTER struct ioarg *ap, struct io *iop)
 {
 	REGISTER int c;
 
@@ -5164,8 +5020,7 @@ struct io *iop;
 /*
  * Return a single command (usually the first line) from a file.
  */
-static int linechar(ap)
-REGISTER struct ioarg *ap;
+static int linechar(REGISTER struct ioarg *ap)
 {
 	REGISTER int c;
 
@@ -5178,27 +5033,24 @@ REGISTER struct ioarg *ap;
 	return (c);
 }
 
-static void prs(s)
-REGISTER const char *s;
+static void prs(REGISTER const char *s)
 {
 	if (*s)
 		write(2, s, strlen(s));
 }
 
-static void prn(u)
-unsigned u;
+static void prn(unsigned u)
 {
 	prs(itoa(u));
 }
 
-static void closef(i)
-REGISTER int i;
+static void closef(REGISTER int i)
 {
 	if (i > 2)
 		close(i);
 }
 
-static void closeall()
+static void closeall(void)
 {
 	REGISTER int u;
 
@@ -5210,8 +5062,7 @@ static void closeall()
 /*
  * remap fd into Shell's fd space
  */
-static int remap(fd)
-REGISTER int fd;
+static int remap(REGISTER int fd)
 {
 	REGISTER int i;
 	int map[NOFILE];
@@ -5241,8 +5092,7 @@ REGISTER int fd;
 	return (fd);
 }
 
-static int openpipe(pv)
-REGISTER int *pv;
+static int openpipe(REGISTER int *pv)
 {
 	REGISTER int i;
 
@@ -5251,8 +5101,7 @@ REGISTER int *pv;
 	return (i);
 }
 
-static void closepipe(pv)
-REGISTER int *pv;
+static void closepipe(REGISTER int *pv)
 {
 	if (pv != NULL) {
 		close(*pv++);
@@ -5266,9 +5115,7 @@ REGISTER int *pv;
  * here documents
  */
 
-static void markhere(s, iop)
-REGISTER char *s;
-struct ioword *iop;
+static void markhere(REGISTER char *s, struct ioword *iop)
 {
 	REGISTER struct here *h, *lh;
 
@@ -5302,7 +5149,7 @@ struct ioword *iop;
 	h->h_dosub = iop->io_flag & IOXHERE;
 }
 
-static void gethere()
+static void gethere(void)
 {
 	REGISTER struct here *h, *hp;
 
@@ -5320,10 +5167,7 @@ static void gethere()
 	}
 }
 
-static void readhere(name, s, ec)
-char **name;
-REGISTER char *s;
-int ec;
+static void readhere(char **name, REGISTER char *s, int ec)
 {
 	int tf;
 	char tname[30] = ".msh_XXXXXX";
@@ -5382,9 +5226,7 @@ int ec;
  * open here temp file.
  * if unquoted here, expand here temp file into second temp file.
  */
-static int herein(hname, xdoll)
-char *hname;
-int xdoll;
+static int herein(char *hname, int xdoll)
 {
 	REGISTER int hf;
 	int tf;
@@ -5428,7 +5270,7 @@ int xdoll;
 		return (hf);
 }
 
-static void scraphere()
+static void scraphere(void)
 {
 	REGISTER struct here *h;
 
@@ -5442,8 +5284,7 @@ static void scraphere()
 }
 
 /* unlink here temp files before a freearea(area) */
-static void freehere(area)
-int area;
+static void freehere(int area)
 {
 	REGISTER struct here *h, *hl;
 

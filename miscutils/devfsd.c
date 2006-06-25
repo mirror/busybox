@@ -1186,7 +1186,7 @@ do_chown:
 	return (FALSE);
 }   /*  End Function copy_inode  */
 
-static void free_config ()
+static void free_config (void)
 /*  [SUMMARY] Free the configuration information.
     [RETURNS] Nothing.
 */

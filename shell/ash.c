@@ -9026,8 +9026,7 @@ setcmd(int argc, char **argv)
 
 #ifdef CONFIG_ASH_GETOPTS
 static void
-getoptsreset(value)
-	const char *value;
+getoptsreset(const char *value)
 {
 	shellparam.optind = number(value);
 	shellparam.optoff = -1;
@@ -9994,7 +9993,7 @@ static const char xxreadtoken_tokens[] = {
 #define xxreadtoken_singles \
 	(sizeof(xxreadtoken_chars) - xxreadtoken_doubles - 1)
 
-static int xxreadtoken()
+static int xxreadtoken(void)
 {
 	int c;
 
