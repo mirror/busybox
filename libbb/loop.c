@@ -119,7 +119,7 @@ int set_loop(char **device, const char *file, int offset)
 			loopinfo.lo_offset = offset;
 			/* Associate free loop device with file.  */
 			if(!ioctl(dfd, LOOP_SET_FD, ffd)) {
-			   if (!ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo)) rc=0;
+				if (!ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo)) rc=0;
 				else ioctl(dfd, LOOP_CLR_FD, 0);
 			}
 
