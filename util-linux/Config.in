@@ -265,15 +265,30 @@ config CONFIG_FEATURE_MDEV_CONF
 
 	  That's device name (with regex match), uid:gid, and permissions.
 
-	  Optionally, that can be followed (on the same line) by an asterisk
-	  and a command line to run after creating the corresponding device(s),
-	  ala:
-
-	    hdc root:cdrom 660  *ln -s hdc cdrom
-
 	  Config file parsing stops on the first matching line.  If no config
 	  entry is matched, devices are created with default 0:0 660.  (Make
 	  the last line match .* to override this.)
+
+config CONFIG_FEATURE_MDEV_EXEC
+	bool "Support command execution at device addition/removal"
+	default n
+	depends on CONFIG_FEATURE_MDEV_CONF
+	help
+	  This adds support for an optional field to /etc/mdev.conf, consisting
+	  of a special character and a command line to run after creating the
+	  corresponding device(s) and before removing, ala:
+
+	    hdc root:cdrom 660  *ln -s $MDEV cdrom
+
+	  The $MDEV environment variable is set to the name of the device.
+
+	  The special characters and their meanings are:
+	    @ Run after creating the device.
+	    $ Run before removing the device.
+	    * Run both after creating and before removing the device.
+
+	  Commands are executed via system() so you need /bin/sh, meaning you
+	  probably want to select a default shell in the Shells menu.
 
 config CONFIG_MKSWAP
 	bool "mkswap"

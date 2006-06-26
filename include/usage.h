@@ -1799,19 +1799,25 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-s\tScan /sys and populate /dev during system boot\n\n" \
 	"Called with no options (via hotplug) it uses environment variables\n" \
 	"to determine which device to add/remove."
-#ifdef CONFIG_FEATURE_MDEV_CONFIG
-#define mdev_notes_usage \
+#define mdev_notes_usage "" \
+USE_FEATURE_MDEV_CONFIG( \
 	"The mdev config file contains lines that look like:\n" \
 	"  hd[a-z][0-9]* 0:3 660\n\n" \
 	"That's device name (with regex match), uid:gid, and permissions.\n\n" \
-	"Optionally, that can be followed (on the same line) by an asterisk\n" \
-	"and a command line to run after creating the corresponding device(s),\n"\
-	"ala:\n\n" \
-	"  hdc root:cdrom 660  *ln -s hdc cdrom\n\n" \
+	USE_FEATURE_MDEV_EXEC( \
+		"Optionally, that can be followed (on the same line) by a special character\n" \
+		"and a command line to run after creating/before deleting the corresponding\n" \
+		"device(s).  The environment variable $MDEV indicates the active device node\n" \
+		"(which is useful if it's a regex match).  For example:\n\n" \
+		"  hdc root:cdrom 660  *ln -s $MDEV cdrom\n\n" \
+		"The special characters are @ (run after creating), $ (run before deleting),\n" \
+		"and * (run both after creating and before deleting).  The commands run in\n" \
+		"the /dev directory, and use system() which calls /bin/sh.\n\n" \
+	) \
 	"Config file parsing stops on the first matching line.  If no config\n"\
 	"entry is matched, devices are created with default 0:0 660.  (Make\n"\
-	"the last line match .* to override this.)\n\n"
-#endif
+	"the last line match .* to override this.)\n\n" \
+)
 
 #define mesg_trivial_usage \
 	"[y|n]"
