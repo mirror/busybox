@@ -3372,11 +3372,12 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"Mon Dec 17 10:31:44 GMT 2000"
 
 #define watchdog_trivial_usage \
-	"[-t <seconds>] DEV"
+	"[-t <seconds>] [-F] DEV"
 #define watchdog_full_usage \
 	"Periodically write to watchdog device DEV.\n" \
 	"Options:\n" \
-	"\t-t\tTimer period in seconds - default is 30"
+	"\t-t\tTimer period in seconds - default is 30\n" \
+	"\t-F\tStay in the foreground and don't fork"
 
 #define wc_trivial_usage \
 	"[OPTION]... [FILE]..."
