@@ -771,11 +771,24 @@ static const struct hwtype ppp_hwtype = {
 	.type =		ARPHRD_PPP
 };
 
+#ifdef CONFIG_FEATURE_IPV6
+static const struct hwtype sit_hwtype = {
+	.name =			"sit",
+	.title =		"IPv6-in-IPv4",
+	.type =			ARPHRD_SIT,
+	.print =		UNSPEC_print,
+	.suppress_null_addr =	1
+} ;
+#endif
+
 static const struct hwtype * const hwtypes[] = {
 	&loop_hwtype,
 	&ether_hwtype,
 	&ppp_hwtype,
 	&unspec_hwtype,
+#ifdef CONFIG_FEATURE_IPV6
+	&sit_hwtype,
+#endif
 	NULL
 };
 
