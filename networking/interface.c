@@ -723,13 +723,16 @@ struct hwtype {
 };
 
 static const struct hwtype unspec_hwtype = {
-	"unspec", "UNSPEC", -1, 0,
-	UNSPEC_print, NULL, NULL
+	.name =		"unspec",
+	.title =	"UNSPEC",
+	.type =		-1,
+	.print =	UNSPEC_print
 };
 
 static const struct hwtype loop_hwtype = {
-	"loop", "Local Loopback", ARPHRD_LOOPBACK, 0,
-	NULL, NULL, NULL
+	.name =		"loop",
+	.title =	"Local Loopback",
+	.type =		ARPHRD_LOOPBACK
 };
 
 #include <net/if_arp.h>
@@ -753,15 +756,19 @@ static char *pr_ether(unsigned char *ptr)
 }
 
 static const struct hwtype ether_hwtype = {
-	"ether", "Ethernet", ARPHRD_ETHER, ETH_ALEN,
-	pr_ether, NULL /* UNUSED in_ether */ , NULL
+	.name =		"ether",
+	.title =	"Ethernet",
+	.type =		ARPHRD_ETHER,
+	.alen =		ETH_ALEN,
+	.print =	pr_ether
 };
 
 #include <net/if_arp.h>
 
 static const struct hwtype ppp_hwtype = {
-	"ppp", "Point-Point Protocol", ARPHRD_PPP, 0,
-	NULL, NULL, NULL /* UNUSED do_ppp */ , 0
+	.name =		"ppp",
+	.title =	"Point-to-Point Protocol",
+	.type =		ARPHRD_PPP
 };
 
 static const struct hwtype * const hwtypes[] = {
