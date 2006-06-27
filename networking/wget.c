@@ -6,27 +6,12 @@
  *
  */
 
-#include <stdio.h>
+#include "busybox.h"
 #include <errno.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
 #include <signal.h>
 #include <sys/ioctl.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
 #include <getopt.h>
 
-#include "busybox.h"
 
 struct host_info {
 	char *host;
@@ -458,13 +443,12 @@ read_response:
 				close_delete_and_die("ftp login: %s", buf+4);
 		}
 
-		ftpcmd("CDUP", NULL, sfp, buf);
 		ftpcmd("TYPE I", NULL, sfp, buf);
 
 		/*
 		 * Querying file size
 		 */
-		if (ftpcmd("SIZE /", target.path, sfp, buf) == 213) {
+		if (ftpcmd("SIZE ", target.path, sfp, buf) == 213) {
 			unsigned long value;
 			if (safe_strtoul(buf+4, &value)) {
 				close_delete_and_die("SIZE value is garbage");
@@ -496,7 +480,7 @@ read_response:
 				filesize -= beg_range;
 		}
 
-		if (ftpcmd("RETR /", target.path, sfp, buf) > 150)
+		if (ftpcmd("RETR ", target.path, sfp, buf) > 150)
 			close_delete_and_die("RETR: %s", buf+4);
 	}
 
