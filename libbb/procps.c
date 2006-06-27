@@ -28,7 +28,8 @@ static int read_to_buf(const char *filename, void *buf)
 	fd = open(filename, O_RDONLY);
 	if(fd < 0)
 		return -1;
-	ret = read(fd, buf, PROCPS_BUFSIZE);
+	ret = read(fd, buf, PROCPS_BUFSIZE-1);
+	((char *)buf)[ret > 0 ? ret : 0] = 0;
 	close(fd);
 	return ret;
 }
