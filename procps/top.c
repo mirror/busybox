@@ -388,6 +388,7 @@ static void reset_term(void)
 static void sig_catcher(int sig ATTRIBUTE_UNUSED)
 {
 	reset_term();
+	exit(1);
 }
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
 
@@ -423,11 +424,7 @@ int top_main(int argc, char **argv)
 	new_settings.c_lflag &= ~(ECHO | ECHONL);
 
 	signal(SIGTERM, sig_catcher);
-	sigaction(SIGTERM, (struct sigaction *) 0, &sa);
-	sa.sa_flags |= SA_RESTART;
-	sa.sa_flags &= ~SA_INTERRUPT;
-	sigaction(SIGTERM, &sa, (struct sigaction *) 0);
-	sigaction(SIGINT, &sa, (struct sigaction *) 0);
+	signal(SIGINT, sig_catcher);
 	tcsetattr(0, TCSANOW, (void *) &new_settings);
 	atexit(reset_term);
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
