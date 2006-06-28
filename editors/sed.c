@@ -1054,7 +1054,7 @@ restart:
 					case 'x': /* Exchange hold and pattern space */
 					{
 						char *tmp = pattern_space;
-						pattern_space = bbg.hold_space;
+						pattern_space = bbg.hold_space ? : xzalloc(1);
 						no_newline=0;
 						bbg.hold_space = tmp;
 						break;
