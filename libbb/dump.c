@@ -424,7 +424,7 @@ static unsigned char *get(void)
 
 static void bpad(PR * pr)
 {
-	register char *p1, *p2;
+	char *p1, *p2;
 
 	/*
 	 * remove all conversion flags; '-' is the only one valid
@@ -433,7 +433,8 @@ static void bpad(PR * pr)
 	pr->flags = F_BPAD;
 	*pr->cchar = 's';
 	for (p1 = pr->fmt; *p1 != '%'; ++p1);
-	for (p2 = ++p1; *p1 && strchr(" -0+#", *p1); ++p1);
+	for (p2 = ++p1; *p1 && strchr(" -0+#", *p1); ++p1)
+		if (pr->nospace) pr->nospace--;
 	while ((*p2++ = *p1++) != 0);
 }
 
