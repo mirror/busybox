@@ -2205,12 +2205,12 @@ USE_FEATURE_MDEV_CONFIG( \
 	"\t-u\tUnlocks (re-enables) the specified user account"
 
 #define patch_trivial_usage \
-	"[-p<num>] [-i<patch.diff>]"
+	"[-p<num>] [-i <diff>]"
 #define patch_full_usage \
-	"[-p<num>]\n" \
-	"[-i<diff>]"
+	"\t-p <num>\tStrip <num> leading components from file names\n" \
+	"\t-i <diff>\tRead <diff> instead of stdin"
 #define patch_example_usage \
-	"$ patch -p1 <example.diff\n" \
+	"$ patch -p1 < example.diff\n" \
 	"$ patch -p0 -i example.diff"
 
 #if ENABLE_FEATURE_PIDOF_SINGLE
