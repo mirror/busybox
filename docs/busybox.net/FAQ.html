@@ -349,8 +349,11 @@ within each applet.  More build coverage testing.</p></li>
 <p>
 <h2><a name="init">Busybox init isn't working!</a></h2>
 <p>
-    Build a statically linked version of the following "hello world" program
-    with your cross compiler toolchain.
+    Init is the first program that runs, so it might be that no programs are
+    working on your new system because of a problem with your cross-compiler,
+    kernel, console settings, shared libraries, root filesystem...  To rule all
+    that out, first build a statically linked version of the following "hello
+    world" program with your cross compiler toolchain:
 </p>
 <pre>
 #include &lt;stdio.h&gt;
@@ -371,7 +374,9 @@ int main(int argc, char *argv)
 <p>
     Once you've got it working statically linked, try getting it to work
     dynamically linked.  Then read the FAQ entry <a href="#build_system">How
-    do I build a BusyBox-based system?</a>
+    do I build a BusyBox-based system?</a>, and the
+    <a href="/downloads/BusyBox.html#item_init">documentation for BusyBox
+    init</a>.
 </p>
 
 <hr />
