@@ -222,6 +222,9 @@ typedef unsigned long long int  uintmax_t;
 
 #if defined(__linux__)
 #include <sys/mount.h>
+#if !defined(BLKSSZGET)
+#define BLKSSZGET _IO(0x12, 104)
+#endif
 #if !defined(BLKGETSIZE64)
 #define BLKGETSIZE64 _IOR(0x12,114,size_t)
 #endif
