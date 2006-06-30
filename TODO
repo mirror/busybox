@@ -99,6 +99,17 @@ Rob Landley <rob@landley.net>:
   initramfs
     Busybox should have a sample initramfs build script.  This depends on
     bbsh, mdev, and switch_root.
+  mkdep
+    Write a mkdep that doesn't segfault if there's a directory it doesn't
+    have permission to read, isn't based on manually editing the output of
+    lexx and yacc, doesn't make such a mess under include/config, etc.
+  Group globals into unions of structures.
+    Go through and turn all the global and static variables into structures,
+    and have all those structures be in a big union shared between processes,
+    so busybox uses less bss.  (This is a big win on nommu machines.)  See
+    sed.c and mdev.c for examples.
+  Go through bugs.busybox.net and close out all of that somehow.
+    This one's open to everybody, but I'll wind up doing it...
 
 
 Bernhard Fischer <rep.nop@anon.at>:
