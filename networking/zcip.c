@@ -307,20 +307,20 @@ fail:
 		fds[0].revents = 0;
 
 		// poll, being ready to adjust current timeout
-		if (timeout > 0) {
-			gettimeofday(&tv1, NULL);
-			tv1.tv_usec += (timeout % 1000) * 1000;
-			while (tv1.tv_usec > 1000000) {
-				tv1.tv_usec -= 1000000;
-				tv1.tv_sec++;
-			}
-			tv1.tv_sec += timeout / 1000;
-		} else if (timeout == 0) {
+		if (!timeout) {
 			timeout = ms_rdelay(PROBE_WAIT);
 			// FIXME setsockopt(fd, SO_ATTACH_FILTER, ...) to
 			// make the kernel filter out all packets except
 			// ones we'd care about.
 		}
+		gettimeofday(&tv1, NULL);
+		tv1.tv_usec += (timeout % 1000) * 1000;
+		while (tv1.tv_usec > 1000000) {
+			tv1.tv_usec -= 1000000;
+			tv1.tv_sec++;
+		}
+		tv1.tv_sec += timeout / 1000;
+	
 		VDBG("...wait %ld %s nprobes=%d, nclaims=%d\n",
 				timeout, intf, nprobes, nclaims);
 		switch (poll(fds, 1, timeout)) {
