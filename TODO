@@ -30,6 +30,11 @@ Rob Landley <rob@landley.net>:
     Compression-side support.
   init
     General cleanup (should use ENABLE_FEATURE_INIT_SYSLOG and ENABLE_FEATURE_INIT_DEBUG).
+  depmod
+    busybox lacks a way to update module deps when running from firmware without the
+    use of the depmod.pl (perl is to bloated for most embedded setups) and or orig
+    modutils. The orig depmod is rather pointless to have to add to a firmware image 
+    in when we already have a insmod/rmmod and friends.
   Unify base64 handling.
     There's base64 encoding and decoding going on in:
       networking/wget.c:base64enc()
