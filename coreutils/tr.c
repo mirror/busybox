@@ -18,14 +18,16 @@
 
 #include "busybox.h"
 
+// Even with -funsigned-char, gcc still complains about char as an array index.
+
+#define GCC4_IS_STUPID int
+
 #define ASCII 0377
 
 /* some "globals" shared across this file */
 static char com_fl, del_fl, sq_fl;
 /* these last are pointers to static buffers declared in tr_main */
-static unsigned char *poutput;
-static unsigned char *pvector;
-static unsigned char *pinvec, *poutvec;
+static char *poutput, *pvector, *pinvec, *poutvec;
 
 static void convert(void)
 {
@@ -60,17 +62,17 @@ static void convert(void)
 	/* NOTREACHED */
 }
 
-static void map(register unsigned char *string1, unsigned int string1_len,
-		register unsigned char *string2, unsigned int string2_len)
+static void map(char *string1, unsigned int string1_len,
+		char *string2, unsigned int string2_len)
 {
-	unsigned char last = '0';
+	char last = '0';
 	unsigned int i, j;
 
 	for (j = 0, i = 0; i < string1_len; i++) {
 		if (string2_len <= j)
-			pvector[string1[i]] = last;
+			pvector[(GCC4_IS_STUPID)string1[i]] = last;
 		else
-			pvector[string1[i]] = last = string2[j++];
+			pvector[(GCC4_IS_STUPID)string1[i]] = last = string2[j++];
 	}
 }
 
@@ -79,9 +81,9 @@ static void map(register unsigned char *string1, unsigned int string1_len,
  *   Escapes, e.g.,  \a     ==>  Control-G
  *	 Character classes, e.g. [:upper:] ==> A ... Z
  */
-static unsigned int expand(const char *arg, register unsigned char *buffer)
+static unsigned int expand(const char *arg, char *buffer)
 {
-	unsigned char *buffer_start = buffer;
+	char *buffer_start = buffer;
 	int i, ac;
 
 	while (*arg) {
@@ -174,7 +176,7 @@ static unsigned int expand(const char *arg, register unsigned char *buffer)
 	return (buffer - buffer_start);
 }
 
-static int complement(unsigned char *buffer, int buffer_len)
+static int complement(char *buffer, int buffer_len)
 {
 	register short i, j, ix;
 	char conv[ASCII + 2];
@@ -203,10 +205,10 @@ int tr_main(int argc, char **argv)
 	RESERVE_CONFIG_BUFFER(outvec, ASCII+1);
 
 	/* ... but make them available globally */
-	poutput = (unsigned char*)output;
-	pvector = (unsigned char*)vector;
-	pinvec  = (unsigned char*)invec;
-	poutvec = (unsigned char*)outvec;
+	poutput = output;
+	pvector = vector;
+	pinvec  = invec;
+	poutvec = outvec;
 
 	if (argc > 1 && argv[idx][0] == '-') {
 		for (ptr = (unsigned char *) &argv[idx][1]; *ptr; ptr++) {
@@ -238,13 +240,13 @@ int tr_main(int argc, char **argv)
 		if (argv[idx] != NULL) {
 			if (*argv[idx] == '\0')
 				bb_error_msg_and_die("STRING2 cannot be empty");
-			output_length = expand(argv[idx], (unsigned char*)output);
-			map(bb_common_bufsiz1, input_length, (unsigned char*)output, output_length);
+			output_length = expand(argv[idx], output);
+			map(bb_common_bufsiz1, input_length, output, output_length);
 		}
 		for (i = 0; i < input_length; i++)
-			invec[bb_common_bufsiz1[i]] = TRUE;
+			invec[(GCC4_IS_STUPID)bb_common_bufsiz1[i]] = TRUE;
 		for (i = 0; i < output_length; i++)
-			outvec[(unsigned char)output[i]] = TRUE;
+			outvec[(GCC4_IS_STUPID)output[i]] = TRUE;
 	}
 	convert();
 	return (0);
