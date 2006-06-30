@@ -80,7 +80,7 @@ char * bb_xstrndup (const char *s, int n)
 {
 	char *t;
 
-	if (s == NULL)
+	if (ENABLE_DEBUG && s == NULL)
 		bb_error_msg_and_die("bb_xstrndup bug");
 
 	t = xmalloc(++n);
