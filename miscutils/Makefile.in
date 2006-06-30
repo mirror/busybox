@@ -28,7 +28,6 @@ MISCUTILS-$(CONFIG_RUNLEVEL)    += runlevel.o
 MISCUTILS-$(CONFIG_RX)          += rx.o
 MISCUTILS-$(CONFIG_SETSID)      += setsid.o
 MISCUTILS-$(CONFIG_STRINGS)     += strings.o
-MISCUTILS-$(CONFIG_TASKSET)     += taskset.o
 MISCUTILS-$(CONFIG_TIME)        += time.o
 MISCUTILS-$(CONFIG_WATCHDOG)    += watchdog.o
 
