@@ -402,7 +402,6 @@ int top_main(int argc, char **argv)
 	struct timeval tv;
 	fd_set readfds;
 	unsigned char c;
-	struct sigaction sa;
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
 
 	/* do normal option parsing */
