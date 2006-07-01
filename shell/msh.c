@@ -195,11 +195,7 @@ static char *T_CMD_NAMES[] = {
 #define	BIT(i)	(1<<(i))
 #define	FEXEC	BIT(0)			/* execute without forking */
 
-#if 0							/* Original value */
-#define AREASIZE	(65000)
-#else
 #define AREASIZE	(90000)
-#endif
 
 /*
  * flags to control evaluation of words
@@ -2566,18 +2562,6 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 		? eval(wp2, t->type == TCOM ? DOALL : DOALL & ~DOKEY)
 		: NULL;
 
-/* Hard to know how many words there are, be careful of garbage pointer values */
-/* They are likely to cause "PCI bus fault" errors */
-#if 0
-	DBGPRINTF(("EXECUTE: t->left=%p, t->right=%p, t->words[1] is %s\n",
-			   t->left, t->right,
-			   ((t->words[1] == NULL) ? "NULL" : t->words[1])));
-	DBGPRINTF7(("EXECUTE: t->words[2] is %s, t->words[3] is %s\n",
-				((t->words[2] == NULL) ? "NULL" : t->words[2]),
-				((t->words[3] == NULL) ? "NULL" : t->words[3])));
-#endif
-
-
 	switch (t->type) {
 	case TDOT:
 		DBGPRINTF3(("EXECUTE: TDOT\n"));
@@ -2796,21 +2780,6 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	DBGPRINTF7(("FORKEXEC: t->words is %s\n",
 				((t->words == NULL) ? "NULL" : t->words[0])));
 
-/* Hard to know how many words there are, be careful of garbage pointer values */
-/* They are likely to cause "PCI bus fault" errors */
-#if 0
-	DBGPRINTF7(("FORKEXEC: t->words is %s, t->words[1] is %s\n",
-				((t->words == NULL) ? "NULL" : t->words[0]),
-				((t->words == NULL) ? "NULL" : t->words[1])));
-	DBGPRINTF7(("FORKEXEC: wp is %s, wp[1] is %s\n",
-				((wp == NULL) ? "NULL" : wp[0]),
-				((wp[1] == NULL) ? "NULL" : wp[1])));
-	DBGPRINTF7(("FORKEXEC: wp2 is %s, wp[3] is %s\n",
-				((wp[2] == NULL) ? "NULL" : wp[2]),
-				((wp[3] == NULL) ? "NULL" : wp[3])));
-#endif
-
-
 	owp = wp;
 	resetsig = 0;
 	rv = -1;					/* system-detected error */
@@ -2825,14 +2794,6 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 						cp, wp, owp));
 			echo(cp ? wp : owp);
 		}
-#if 0
-		DBGPRINTF9(("FORKEXEC: t->words is %s, t->words[1] is %s\n",
-					((t->words == NULL) ? "NULL" : t->words[0]),
-					((t->words == NULL) ? "NULL" : t->words[1])));
-		DBGPRINTF9(("FORKEXEC: wp is %s, wp[1] is %s\n",
-					((wp == NULL) ? "NULL" : wp[0]),
-					((wp == NULL) ? "NULL" : wp[1])));
-#endif
 
 		if (cp == NULL && t->ioact == NULL) {
 			while ((cp = *owp++) != NULL && assign(cp, COPYV));
@@ -2846,11 +2807,6 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	t->words = wp;
 	f = act;
 
-#if 0
-	DBGPRINTF3(("FORKEXEC: t->words is %s, t->words[1] is %s\n",
-				((t->words == NULL) ? "NULL" : t->words[0]),
-				((t->words == NULL) ? "NULL" : t->words[1])));
-#endif
 	DBGPRINTF(("FORKEXEC: shcom %p, f&FEXEC 0x%x, owp %p\n", shcom,
 			   f & FEXEC, owp));
 

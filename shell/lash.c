@@ -543,16 +543,6 @@ static void checkjobs(struct jobset *j_list)
 			/* child stopped */
 			job->stopped_progs++;
 			job->progs[prognum].is_stopped = 1;
-
-#if 0
-			/* Printing this stuff is a pain, since it tends to
-			 * overwrite the prompt an inconveinient moments.  So
-			 * don't do that.  */
-			if (job->stopped_progs == job->num_progs) {
-				printf(JOB_STATUS_FORMAT, job->jobid, "Stopped",
-					   job->text);
-			}
-#endif
 		}
 	}
 

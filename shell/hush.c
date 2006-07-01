@@ -1251,15 +1251,6 @@ static int checkjobs(struct pipe* fg_pipe)
 			/* child stopped */
 			pi->stopped_progs++;
 			pi->progs[prognum].is_stopped = 1;
-
-#if 0
-			/* Printing this stuff is a pain, since it tends to
-			 * overwrite the prompt an inconveinient moments.  So
-			 * don't do that.  */
-			if (pi->stopped_progs == pi->num_progs) {
-				printf("\n"JOB_STATUS_FORMAT, pi->jobid, "Stopped", pi->text);
-			}
-#endif
 		}
 	}
 
@@ -1271,32 +1262,6 @@ static int checkjobs(struct pipe* fg_pipe)
 	//	bb_perror_msg("tcsetpgrp-2");
 	return -1;
 }
-
-/* Figure out our controlling tty, checking in order stderr,
- * stdin, and stdout.  If check_pgrp is set, also check that
- * we belong to the foreground process group associated with
- * that tty.  The value of shell_terminal is needed in order to call
- * tcsetpgrp(shell_terminal, ...); */
-#if 0
-static void controlling_tty(int check_pgrp)
-{
-	pid_t curpgrp;
-
-	if ((curpgrp = tcgetpgrp(shell_terminal = 2)) < 0
-			&& (curpgrp = tcgetpgrp(shell_terminal = 0)) < 0
-			&& (curpgrp = tcgetpgrp(shell_terminal = 1)) < 0)
-		goto shell_terminal_error;
-
-	if (check_pgrp && curpgrp != getpgid(0))
-		goto shell_terminal_error;
-
-	return;
-
-shell_terminal_error:
-		shell_terminal = -1;
-		return;
-}
-#endif
 
 /* run_pipe_real() starts all the jobs, but doesn't wait for anything
  * to finish.  See checkjobs().
@@ -1758,19 +1723,6 @@ static int glob_needed(const char *s)
 	}
 	return 0;
 }
-
-#if 0
-static void globprint(glob_t *pglob)
-{
-	int i;
-	debug_printf("glob_t at %p:\n", pglob);
-	debug_printf("  gl_pathc=%d  gl_pathv=%p  gl_offs=%d  gl_flags=%d\n",
-		pglob->gl_pathc, pglob->gl_pathv, pglob->gl_offs, pglob->gl_flags);
-	for (i=0; i<pglob->gl_pathc; i++)
-		debug_printf("pglob->gl_pathv[%d] = %p = %s\n", i,
-			pglob->gl_pathv[i], pglob->gl_pathv[i]);
-}
-#endif
 
 static int xglob(o_string *dest, int flags, glob_t *pglob)
 {
@@ -2255,13 +2207,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 			dup2(channel[1],1);
 			close(channel[1]);
 		}
-#if 0
-#define SURROGATE "surrogate response"
-		write(1,SURROGATE,sizeof(SURROGATE));
-		_exit(run_list(head));
-#else
 		_exit(run_list_real(head));   /* leaks memory */
-#endif
 	}
 	debug_printf("forked child %d\n",pid);
 	close(channel[1]);
@@ -2476,14 +2422,6 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 				debug_printf("leaving parse_stream (triggered)\n");
 				return 0;
 			}
-#if 0
-			if (ch=='\n') {
-				/* Yahoo!  Time to run with it! */
-				done_pipe(ctx,PIPE_SEQ);
-				run_list(ctx->list_head);
-				initialize_context(ctx);
-			}
-#endif
 			if (m!=2) switch (ch) {
 		case '#':
 			if (dest->length == 0 && !dest->quote) {

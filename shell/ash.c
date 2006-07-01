@@ -2547,11 +2547,6 @@ onint(void) {
 	int i;
 
 	intpending = 0;
-#if 0
-	/* comment by vodz: its strange for me, this programm don`t use other
-	   signal block */
-	sigsetmask(0);
-#endif
 	i = EXSIG;
 	if (gotsig[SIGINT - 1] && !trap[SIGINT]) {
 		if (!(rootshell && iflag)) {
