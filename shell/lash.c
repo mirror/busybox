@@ -1171,12 +1171,6 @@ static int pseudo_exec(struct child_prog *child)
 {
 	struct built_in_command *x;
 
-	/* Check if the command sets an environment variable. */
-	if( strchr(child->argv[0], '=') != NULL ) {
-		child->argv[1] = child->argv[0];
-		_exit(builtin_export(child));
-	}
-
 	/* Check if the command matches any of the non-forking builtins.
 	 * Depending on context, this might be redundant.  But it's
 	 * easier to waste a few CPU cycles than it is to figure out
@@ -1300,6 +1294,12 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 		 * is doomed to failure, and doesn't work on bash, either.
 		 */
 		if (newjob->num_progs == 1) {
+			/* Check if the command sets an environment variable. */
+			if (strchr(child->argv[0], '=') != NULL) {
+				child->argv[1] = child->argv[0];
+				return builtin_export(child);
+			}
+
 			for (x = bltins; x->cmd; x++) {
 				if (strcmp(child->argv[0], x->cmd) == 0 ) {
 					int rcode;
