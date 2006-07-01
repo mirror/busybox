@@ -98,15 +98,8 @@
 /* #include <dmalloc.h> */
 /* #define DEBUG_SHELL */
 
-#if 1
 #include "cmdedit.h"
-#else
-#define bb_applet_name "hush"
-//#include "standalone.h"
-#define hush_main main
-#undef CONFIG_FEATURE_SH_FANCY_PROMPT
-#define BB_BANNER ""
-#endif
+
 #define SPECIAL_VAR_SYMBOL 03
 #define FLAG_EXIT_FROM_LOOP 1
 #define FLAG_PARSE_SEMICOLON (1 << 1)		/* symbol ';' is special for parser */
@@ -2247,7 +2240,6 @@ static int redirect_opt_num(o_string *o)
 static FILE *generate_stream_from_list(struct pipe *head)
 {
 	FILE *pf;
-#if 1
 	int pid, channel[2];
 	if (pipe(channel)<0) bb_perror_msg_and_die("pipe");
 #if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
@@ -2275,11 +2267,6 @@ static FILE *generate_stream_from_list(struct pipe *head)
 	close(channel[1]);
 	pf = fdopen(channel[0],"r");
 	debug_printf("pipe on FILE *%p\n",pf);
-#else
-	free_pipe_list(head,0);
-	pf=popen("echo surrogate response","r");
-	debug_printf("started fake pipe on FILE *%p\n",pf);
-#endif
 	return pf;
 }
 
