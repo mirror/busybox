@@ -377,7 +377,7 @@ static int is_my_tty ( const char *tty )
 static void motd (void)
 {
 	FILE *fp;
-	register int c;
+	int c;
 
 	if (( fp = fopen ( bb_path_motd_file, "r" ))) {
 		while (( c = getc ( fp )) != EOF )

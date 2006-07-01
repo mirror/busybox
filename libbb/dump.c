@@ -37,9 +37,9 @@ static const char lcc[] = "diouxX";
 
 int bb_dump_size(FS * fs)
 {
-	register FU *fu;
-	register int bcnt, cur_size;
-	register char *fmt;
+	FU *fu;
+	int bcnt, cur_size;
+	char *fmt;
 	const char *p;
 	int prec;
 
@@ -354,7 +354,7 @@ static unsigned char *get(void)
 {
 	static int ateof = 1;
 	static unsigned char *curp=NULL, *savp; /*DBU:[dave@cray.com]initialize curp */
-	register int n;
+	int n;
 	int need, nread;
 	unsigned char *tmpp;
 
@@ -502,11 +502,11 @@ static void conv_u(PR * pr, unsigned char * p)
 static void display(void)
 {
 /*  extern FU *endfu; */
-	register FS *fs;
-	register FU *fu;
-	register PR *pr;
-	register int cnt;
-	register unsigned char *bp;
+	FS *fs;
+	FU *fu;
+	PR *pr;
+	int cnt;
+	unsigned char *bp;
 
 	off_t saveaddress;
 	unsigned char savech = 0, *savebp;
@@ -650,7 +650,7 @@ static void display(void)
 
 int bb_dump_dump(char **argv)
 {
-	register FS *tfs;
+	FS *tfs;
 
 	/* figure out the data block bb_dump_size */
 	for (bb_dump_blocksize = 0, tfs = bb_dump_fshead; tfs; tfs = tfs->nextfs) {

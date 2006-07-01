@@ -514,7 +514,7 @@ static int inflate_stored(int my_n, int my_b_stored, int my_k_stored, int setup)
 static int inflate_block(int *e)
 {
 	unsigned t;			/* block type */
-	register unsigned int b;	/* bit buffer */
+	unsigned int b;	/* bit buffer */
 	unsigned int k;	/* number of bits in bit buffer */
 
 	/* make local bit buffer */

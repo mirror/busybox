@@ -463,7 +463,7 @@ static void syntax_error(const char * const message)
 
 static unsigned int hashidx(const char *name)
 {
-	register unsigned int idx=0;
+	unsigned int idx=0;
 
 	while (*name)  idx = *name++ + (idx << 6) - idx;
 	return idx;
@@ -574,7 +574,7 @@ static void hash_remove(xhash *hash, const char *name)
 
 static void skip_spaces(char **s)
 {
-	register char *p = *s;
+	char *p = *s;
 
 	while(*p == ' ' || *p == '\t' ||
 			(*p == '\\' && *(p+1) == '\n' && (++p, ++t.lineno))) {
@@ -585,7 +585,7 @@ static void skip_spaces(char **s)
 
 static char *nextword(char **s)
 {
-	register char *p = *s;
+	char *p = *s;
 
 	while (*(*s)++) ;
 
@@ -594,7 +594,7 @@ static char *nextword(char **s)
 
 static char nextchar(char **s)
 {
-	register char c, *pps;
+	char c, *pps;
 
 	c = *((*s)++);
 	pps = *s;
@@ -686,7 +686,7 @@ static var *setvar_u(var *v, const char *value)
 /* set array element to user string */
 static void setari_u(var *a, int idx, const char *s)
 {
-	register var *v;
+	var *v;
 	static char sidx[12];
 
 	sprintf(sidx, "%d", idx);
@@ -991,7 +991,7 @@ static void rollback_token(void) { t.rollback = TRUE; }
 
 static node *new_node(uint32_t info)
 {
-	register node *n;
+	node *n;
 
 	n = (node *)xzalloc(sizeof(node));
 	n->info = info;
@@ -1136,7 +1136,7 @@ static node *parse_expr(uint32_t iexp)
 /* add node to chain. Return ptr to alloc'd node */
 static node *chain_node(uint32_t info)
 {
-	register node *n;
+	node *n;
 
 	if (! seq->first)
 		seq->first = seq->last = new_node(0);
@@ -1355,7 +1355,7 @@ static void parse_program(char *p)
 
 static node *mk_splitter(char *s, tsplitter *spl)
 {
-	register regex_t *re, *ire;
+	regex_t *re, *ire;
 	node *n;
 
 	re = &spl->re[0];

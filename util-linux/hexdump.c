@@ -15,7 +15,7 @@
 
 static void bb_dump_addfile(char *name)
 {
-	register char *p;
+	char *p;
 	FILE *fp;
 	char *buf;
 

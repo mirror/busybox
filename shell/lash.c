@@ -707,10 +707,10 @@ static int get_command(FILE * source, char *command)
 	return 0;
 }
 
-static char* itoa(register int i)
+static char* itoa(int i)
 {
 	static char a[7]; /* Max 7 ints */
-	register char *b = a + sizeof(a) - 1;
+	char *b = a + sizeof(a) - 1;
 	int   sign = (i < 0);
 
 	if (sign)

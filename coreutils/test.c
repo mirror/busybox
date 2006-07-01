@@ -554,7 +554,7 @@ static void initialize_group_array(void)
 /* Return non-zero if GID is one that we have in our groups list. */
 static int is_a_group_member(gid_t gid)
 {
-	register int i;
+	int i;
 
 	/* Short-circuit if possible, maybe saving a call to getgroups(). */
 	if (gid == getgid() || gid == getegid())

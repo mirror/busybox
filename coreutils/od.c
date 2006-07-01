@@ -35,7 +35,7 @@
 static void
 odoffset(int argc, char ***argvp)
 {
-	register char *num, *p;
+	char *num, *p;
 	int base;
 	char *end;
 

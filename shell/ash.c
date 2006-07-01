@@ -13472,7 +13472,7 @@ static const char op_tokens[] = {
 
 static arith_t arith (const char *expr, int *perrcode)
 {
-    register char arithval; /* Current character under analysis */
+    char arithval; /* Current character under analysis */
     operator lasttok, op;
     operator prec;
 

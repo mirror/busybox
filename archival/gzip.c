@@ -484,7 +484,7 @@ static void send_bits(int value, int length)
  */
 static unsigned bi_reverse(unsigned code, int len)
 {
-	register unsigned res = 0;
+	unsigned res = 0;
 
 	do {
 		res |= code & 1;
@@ -782,7 +782,7 @@ static void check_match(IPos start, IPos match, int length);
  */
 static void lm_init(ush * flags)
 {
-	register unsigned j;
+	unsigned j;
 
 	/* Initialize the hash table. */
 	memset(head, 0, HASH_SIZE * sizeof(*head));
@@ -832,9 +832,9 @@ static void lm_init(ush * flags)
 static int longest_match(IPos cur_match)
 {
 	unsigned chain_length = max_chain_length;	/* max hash chain length */
-	register uch *scan = window + strstart;	/* current string */
-	register uch *match;	/* matched string */
-	register int len;	/* length of current match */
+	uch *scan = window + strstart;	/* current string */
+	uch *match;	/* matched string */
+	int len;	/* length of current match */
 	int best_len = prev_length;	/* best match length so far */
 	IPos limit =
 		strstart > (IPos) MAX_DIST ? strstart - (IPos) MAX_DIST : NIL;
@@ -848,9 +848,9 @@ static int longest_match(IPos cur_match)
 #if HASH_BITS < 8 || MAX_MATCH != 258
 #  error Code too clever
 #endif
-	register uch *strend = window + strstart + MAX_MATCH;
-	register uch scan_end1 = scan[best_len - 1];
-	register uch scan_end = scan[best_len];
+	uch *strend = window + strstart + MAX_MATCH;
+	uch scan_end1 = scan[best_len - 1];
+	uch scan_end = scan[best_len];
 
 	/* Do not waste too much time if we already have a good match: */
 	if (prev_length >= good_match) {
@@ -937,7 +937,7 @@ static void check_match(IPos start, IPos match, int length)
  */
 static void fill_window(void)
 {
-	register unsigned n, m;
+	unsigned n, m;
 	unsigned more =
 		(unsigned) (window_size - (ulg) lookahead - (ulg) strstart);
 	/* Amount of free space at the end of the window. */
@@ -1005,7 +1005,7 @@ static ulg deflate(void)
 	IPos prev_match;	/* previous match */
 	int flush;			/* set if current block must be flushed */
 	int match_available = 0;	/* set if previous match exists */
-	register unsigned match_length = MIN_MATCH - 1;	/* length of best match */
+	unsigned match_length = MIN_MATCH - 1;	/* length of best match */
 
 	/* Process the input block. */
 	while (lookahead != 0) {

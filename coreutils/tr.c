@@ -178,7 +178,7 @@ static unsigned int expand(const char *arg, char *buffer)
 
 static int complement(char *buffer, int buffer_len)
 {
-	register short i, j, ix;
+	short i, j, ix;
 	char conv[ASCII + 2];
 
 	ix = 0;
@@ -195,7 +195,7 @@ static int complement(char *buffer, int buffer_len)
 
 int tr_main(int argc, char **argv)
 {
-	register unsigned char *ptr;
+	unsigned char *ptr;
 	int output_length=0, input_length;
 	int idx = 1;
 	int i;

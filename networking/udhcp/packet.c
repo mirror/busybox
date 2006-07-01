@@ -87,7 +87,7 @@ uint16_t udhcp_checksum(void *addr, int count)
 	/* Compute Internet Checksum for "count" bytes
 	 *         beginning at location "addr".
 	 */
-	register int32_t sum = 0;
+	int32_t sum = 0;
 	uint16_t *source = (uint16_t *) addr;
 
 	while (count > 1)  {

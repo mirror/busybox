@@ -71,7 +71,7 @@ int bb_echo(int ATTRIBUTE_UNUSED argc, char **argv)
 just_echo:
 #endif
 	while (*argv) {
-		register int c;
+		int c;
 
 		while ((c = *(*argv)++)) {
 			if (c == eflag) {	/* Check for escape seq. */
