@@ -312,9 +312,6 @@ int mkswap_main(int argc, char **argv)
 		PAGES = sz;
 	}
 
-#if 0
-	maxpages = ((version == 0) ? V0_MAX_PAGES : V1_MAX_PAGES);
-#else
 	if (!version)
 		maxpages = V0_MAX_PAGES;
 	else if (get_linux_version_code() >= KERNEL_VERSION(2,2,1))
@@ -324,7 +321,6 @@ int mkswap_main(int argc, char **argv)
 		if (maxpages > V1_MAX_PAGES)
 			maxpages = V1_MAX_PAGES;
 	}
-#endif
 	if (PAGES > maxpages) {
 		PAGES = maxpages;
 		bb_error_msg("warning: truncating swap area to %ldkB",
