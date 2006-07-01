@@ -25,58 +25,6 @@
 
 #include "busybox.h"
 
-#if 0
-int preferred_family = AF_UNSPEC;
-int oneline = 0;
-char * _SL_ = NULL;
-
-void ip_parse_common_args(int *argcp, char ***argvp)
-{
-	int argc = *argcp;
-	char **argv = *argvp;
-
-	while (argc > 1) {
-		char *opt = argv[1];
-
-		if (strcmp(opt,"--") == 0) {
-			argc--; argv++;
-			break;
-		}
-
-		if (opt[0] != '-')
-			break;
-
-		if (opt[1] == '-')
-			opt++;
-
-		if (matches(opt, "-family") == 0) {
-			argc--;
-			argv++;
-			if (strcmp(argv[1], "inet") == 0)
-				preferred_family = AF_INET;
-			else if (strcmp(argv[1], "inet6") == 0)
-				preferred_family = AF_INET6;
-			else if (strcmp(argv[1], "link") == 0)
-				preferred_family = AF_PACKET;
-			else
-				invarg(bb_msg_invalid_arg, argv[1], "-family");
-		} else if (strcmp(opt, "-4") == 0) {
-			preferred_family = AF_INET;
-		} else if (strcmp(opt, "-6") == 0) {
-			preferred_family = AF_INET6;
-		} else if (strcmp(opt, "-0") == 0) {
-			preferred_family = AF_PACKET;
-		} else if (matches(opt, "-oneline") == 0) {
-			++oneline;
-		} else {
-			bb_show_usage();
-		}
-		argc--;	argv++;
-	}
-	_SL_ = oneline ? "\\" : "\n" ;
-}
-#endif
-
 int ip_main(int argc, char **argv)
 {
 	int ret = EXIT_FAILURE;

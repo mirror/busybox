@@ -351,12 +351,6 @@ static void ping(const char *host)
 		struct icmp6_filter filt;
 		if (!(options & O_VERBOSE)) {
 			ICMP6_FILTER_SETBLOCKALL(&filt);
-#if 0
-			if ((options & F_FQDN) || (options & F_FQDNOLD) ||
-				(options & F_NODEADDR) || (options & F_SUPTYPES))
-				ICMP6_FILTER_SETPASS(ICMP6_NI_REPLY, &filt);
-			else
-#endif
 				ICMP6_FILTER_SETPASS(ICMP6_ECHO_REPLY, &filt);
 		} else {
 			ICMP6_FILTER_SETPASSALL(&filt);

@@ -34,10 +34,6 @@
 #include <netinet/in.h>
 #include "busybox.h"
 
-#if 0
-enum { DOTRACE = 1 };
-#endif
-
 #ifdef DOTRACE
 #include <arpa/inet.h> /* for inet_ntoa()... */
 #define TRACE(x, y) do { if (x) printf y; } while (0)
@@ -310,17 +306,6 @@ static void putiac2(byte wwdd, byte c)
 	putiac(wwdd);
 	putiac(c);
 }
-
-#if 0
-static void putiac1(byte c)
-{
-	if (G.iaclen + 2 > IACBUFSIZE)
-		iacflush();
-
-	putiac(IAC);
-	putiac(c);
-}
-#endif
 
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
 static void putiac_subopt(byte c, char *str)

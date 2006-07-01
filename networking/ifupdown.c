@@ -43,11 +43,7 @@
 #define MAX_INTERFACE_LENGTH 10
 #endif
 
-#if 0
-#define debug_noise(fmt, args...) printf(fmt, ## args)
-#else
 #define debug_noise(fmt, args...)
-#endif
 
 /* Forward declaration */
 struct interface_defn_t;

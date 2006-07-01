@@ -628,11 +628,7 @@ static void INET6_displayroutes(int noresolve)
 			snaddr6.sin6_family = AF_INET6;
 			INET6_rresolve(naddr6, sizeof(naddr6),
 						   (struct sockaddr_in6 *) &snaddr6,
-#if 0
-						   (noresolve | 0x8000) /* Default instead of *. */
-#else
 						   0x0fff /* Apparently, upstream never resolves. */
-#endif
 						   );
 
 			if (!r) {			/* 1st pass */
