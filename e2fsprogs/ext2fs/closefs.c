@@ -151,10 +151,6 @@ static errcode_t write_primary_superblock(ext2_filsys fs,
 			if (old_super[check_idx] == new_super[check_idx])
 				break;
 		size = 2 * (check_idx - write_idx);
-#if 0
-		printf("Writing %d bytes starting at %d\n",
-		       size, write_idx*2);
-#endif
 		retval = io_channel_write_byte(fs->io,
 			       SUPERBLOCK_OFFSET + (2 * write_idx), size,
 					       new_super + write_idx);

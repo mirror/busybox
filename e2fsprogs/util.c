@@ -110,14 +110,7 @@ void parse_journal_opts(char **journal_device, int *journal_flags,
 {
 	char *buf, *token, *next, *p, *arg;
 	int journal_usage = 0;
-#if 0
-	int	len;
-	len = strlen(opts);
-	buf = xmalloc(len+1);
-	strcpy(buf, opts);
-#else
 	buf = bb_xstrdup(opts);
-#endif
 	for (token = buf; token && *token; token = next) {
 		p = strchr(token, ',');
 		next = 0;

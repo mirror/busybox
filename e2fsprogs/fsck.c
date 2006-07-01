@@ -135,12 +135,6 @@ static char *base_device(const char *device)
 		goto errout;
 	cp += 5;
 
-#if 0	/* this is for old stuff no one uses anymore ? */
-	/* Skip over /dev/dsk/... */
-	if (strncmp(cp, "dsk/", 4) == 0)
-		cp += 4;
-#endif
-
 	/*
 	 * For md devices, we treat them all as if they were all
 	 * on one disk, since we don't know how to parallelize them.
@@ -918,9 +912,6 @@ static void compile_fs_type(char *fs_type, struct fs_type_compile *cmp)
 				bb_error_msg_and_die("%s", fs_type_syntax_error);
 			}
 		}
-#if 0
-		printf("Adding %s to list (type %d).\n", s, cmp->type[num]);
-#endif
 		cmp->list[num++] = string_copy(s);
 		s = strtok(NULL, ",");
 	}

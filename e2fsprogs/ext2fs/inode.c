@@ -355,27 +355,6 @@ static errcode_t get_next_blocks(ext2_inode_scan scan)
 	return 0;
 }
 
-#if 0
-/*
- * Returns 1 if the entire inode_buffer has a non-zero size and
- * contains all zeros.  (Not just deleted inodes, since that means
- * that part of the inode table was used at one point; we want all
- * zeros, which means that the inode table is pristine.)
- */
-static inline int is_empty_scan(ext2_inode_scan scan)
-{
-	int	i;
-
-	if (scan->bytes_left == 0)
-		return 0;
-
-	for (i=0; i < scan->bytes_left; i++)
-		if (scan->ptr[i])
-			return 0;
-	return 1;
-}
-#endif
-
 errcode_t ext2fs_get_next_inode_full(ext2_inode_scan scan, ext2_ino_t *ino,
 				     struct ext2_inode *inode, int bufsize)
 {
