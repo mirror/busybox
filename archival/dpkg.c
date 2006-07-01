@@ -1021,15 +1021,6 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 			continue;
 		}
 
-#if 0
-		/* This might be needed so we don't complain about
-		 * things which are broken but unrelated to the
-		 * packages that are currently being installed
-		 */
-		if (state_status == search_name_hashtable("installed"))
-			continue;
-#endif
-
 		/* This code is tested only for EDGE_DEPENDS, since I
 		 * have no suitable pre-depends available. There is no
 		 * reason that it shouldn't work though :-)

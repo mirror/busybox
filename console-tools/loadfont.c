@@ -127,11 +127,6 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	ud.entry_ct = ct;
 	ud.entries = up;
 	if (ioctl(fd, PIO_UNIMAP, &ud)) {
-#if 0
-		if (errno == ENOMEM) {
-			/* change advice parameters */
-		}
-#endif
 		bb_perror_msg_and_die("PIO_UNIMAP");
 	}
 }

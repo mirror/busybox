@@ -720,23 +720,6 @@ static void dump_unified_vec(FILE * f1, FILE * f2)
 			ch = 'c';
 		else
 			ch = (a <= b) ? 'd' : 'a';
-#if 0
-		switch (ch) {
-		case 'c':
-			fetch(ixold, lowa, a - 1, f1, ' ');
-			fetch(ixold, a, b, f1, '-');
-			fetch(ixnew, c, d, f2, '+');
-			break;
-		case 'd':
-			fetch(ixold, lowa, a - 1, f1, ' ');
-			fetch(ixold, a, b, f1, '-');
-			break;
-		case 'a':
-			fetch(ixnew, lowc, c - 1, f2, ' ');
-			fetch(ixnew, c, d, f2, '+');
-			break;
-		}
-#else
 		if (ch == 'c' || ch == 'd') {
 			fetch(ixold, lowa, a - 1, f1, ' ');
 			fetch(ixold, a, b, f1, '-');
@@ -745,7 +728,6 @@ static void dump_unified_vec(FILE * f1, FILE * f2)
 			fetch(ixnew, lowc, c - 1, f2, ' ');
 		if (ch == 'c' || ch == 'a')
 			fetch(ixnew, c, d, f2, '+');
-#endif
 		lowa = b + 1;
 		lowc = d + 1;
 	}

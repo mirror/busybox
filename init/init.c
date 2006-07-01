@@ -312,15 +312,6 @@ static void console_init(void)
 
 	if ((s = getenv("CONSOLE")) != NULL || (s = getenv("console")) != NULL) {
 		safe_strncpy(console, s, sizeof(console));
-#if 0 /* #cpu(sparc) */
-	/* sparc kernel supports console=tty[ab] parameter which is also
-	 * passed to init, so catch it here */
-		/* remap tty[ab] to /dev/ttyS[01] */
-		if (strcmp(s, "ttya") == 0)
-			safe_strncpy(console, SC_0, sizeof(console));
-		else if (strcmp(s, "ttyb") == 0)
-			safe_strncpy(console, SC_1, sizeof(console));
-#endif
 	} else {
 		/* 2.2 kernels: identify the real console backend and try to use it */
 		if (ioctl(0, TIOCGSERIAL, &sr) == 0) {
@@ -842,9 +833,6 @@ static void new_init_action(int action, const char *command, const char *cons)
 	strcpy(new_action->command, command);
 	new_action->action = action;
 	strcpy(new_action->terminal, cons);
-#if 0   /* calloc zeroed always */
-	new_action->pid = 0;
-#endif
 	messageD(LOG|CONSOLE, "command='%s' action='%d' terminal='%s'\n",
 		new_action->command, new_action->action, new_action->terminal);
 }

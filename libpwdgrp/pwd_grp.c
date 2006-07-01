@@ -988,19 +988,6 @@ int __parsespent(void *data, char * line)
 				break;
 			}
 		} else {
-#if 0
-			if (i==5) {			/* Support for old format. */
-				while (isspace(*line)) ++line; /* glibc eats space here. */
-				if (!*line) {
-					((struct spwd *) data)->sp_warn = -1;
-					((struct spwd *) data)->sp_inact = -1;
-					((struct spwd *) data)->sp_expire = -1;
-					((struct spwd *) data)->sp_flag = ~0UL;
-					return 0;
-				}
-			}
-#endif
-
 			*((long *) p) = (long) strtoul(line, &endptr, 10);
 
 			if (endptr == line) {

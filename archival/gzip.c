@@ -144,15 +144,6 @@ typedef int file_t;		/* Do not use stdio */
 #define put_byte(c) {outbuf[outcnt++]=(uch)(c); if (outcnt==OUTBUFSIZ)\
    flush_outbuf();}
 
-
-/* Output a 32 bit value to the bit stream, lsb first */
-#if 0
-#define put_long(n) { \
-    put_short((n) & 0xffff); \
-    put_short(((ulg)(n)) >> 16); \
-}
-#endif
-
 #define seekable()    0	/* force sequential output */
 #define translate_eol 0	/* no option -a yet */
 

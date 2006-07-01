@@ -133,9 +133,6 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 
 	if ((ad & (~netmask)) != 0 || (numeric & 0x4000))
 		host = 1;
-#if 0
-	INET_nn = NULL;
-#endif
 	pn = INET_nn;
 	while (pn != NULL) {
 		if (pn->addr.sin_addr.s_addr == ad && pn->host == host) {
