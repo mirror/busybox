@@ -291,6 +291,8 @@ Minor stuff:
   unify itoa: netstat.c, hush.c, lash.c, msh.c
   Put one single, robust version into e.g. safe_strtol.c
 ---
+  Move __get_hz() to a better place and (re)use it in route.c, ash.c, msh.c
+---
 
 
 Code cleanup:
