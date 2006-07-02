@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * cmp_bitmaps.c --- routines to compare inode and block bitmaps.
  *

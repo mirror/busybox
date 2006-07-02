@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #ifndef _IP_COMMON_H
 #define _IP_COMMON_H 1
 

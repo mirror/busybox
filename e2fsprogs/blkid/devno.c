@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * devno.c - find a particular device by its device number (major/minor)
  *

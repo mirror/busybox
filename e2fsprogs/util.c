@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * util.c --- helper functions used by tune2fs and mke2fs
  *

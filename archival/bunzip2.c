@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  Modified for busybox by Glenn McGrath <bug1@iinet.net.au>
  *  Added support output to stdout by Thomas Lundquist <thomasez@zelow.no>
@@ -64,4 +65,3 @@ int bunzip2_main(int argc, char **argv)
 
 	return status;
 }
-/* vi:set ts=4: */

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  Copyright 2003, Glenn McGrath <bug1@iinet.net.au>
  *

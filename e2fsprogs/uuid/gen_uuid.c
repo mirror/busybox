@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * gen_uuid.c --- generate a DCE-compatible uuid
  *

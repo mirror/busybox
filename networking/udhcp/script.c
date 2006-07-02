@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* script.c
  *
  * Functions to call the DHCP client notification scripts

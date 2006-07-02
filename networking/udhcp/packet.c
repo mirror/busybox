@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #include <unistd.h>
 #include <string.h>
 #include <netinet/in.h>

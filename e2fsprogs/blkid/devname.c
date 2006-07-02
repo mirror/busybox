@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * devname.c - get a dev by its device inode name
  *

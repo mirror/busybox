@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * gen_bitmap.c --- Generic bitmap routines that used to be inlined.
  *

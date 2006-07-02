@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #include "libbb.h"
 
 /* uncompress for busybox -- (c) 2002 Robert Griebl

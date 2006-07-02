@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * bitops.c --- Bitmap frobbing code.  See bitops.h for the inlined
  *	routines.

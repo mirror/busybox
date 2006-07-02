@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #ifndef __LINUX_PKT_SCHED_H
 #define __LINUX_PKT_SCHED_H
 

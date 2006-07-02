@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * iod.c		- Iterate a function on each entry of a directory
  *

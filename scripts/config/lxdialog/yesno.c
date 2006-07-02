@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  yesno.c -- implements the yes/no box
  *

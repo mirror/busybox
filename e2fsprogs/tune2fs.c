@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * tune2fs.c - Change the file system parameters on an ext2 file system
  *

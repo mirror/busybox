@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * parse_num.c		- Parse the number of blocks
  *

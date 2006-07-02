@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * tag.c - allocation/initialization/free routines for tag structs
  *

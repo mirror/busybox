@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * alloc_stats.c --- Update allocation statistics for ext2fs
  *

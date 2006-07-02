@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * dirhash.c -- Calculate the hash of a directory entry
  *

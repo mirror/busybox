@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
   File: linux/ext2_ext_attr.h
 

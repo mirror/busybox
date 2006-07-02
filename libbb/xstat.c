@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * xstat.c - a stat() which dies on failure with meaningful error message
  */

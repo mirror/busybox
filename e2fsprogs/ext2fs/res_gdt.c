@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * res_gdt.c --- reserve blocks for growing the group descriptor table
  *               during online resizing.

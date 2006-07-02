@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* files.h */
 #ifndef _FILES_H
 #define _FILES_H

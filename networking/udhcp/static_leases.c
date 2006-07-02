@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * static_leases.c -- Couple of functions to assist with storing and
  * retrieving data for static leases

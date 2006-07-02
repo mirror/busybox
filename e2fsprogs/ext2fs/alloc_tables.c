@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * alloc_tables.c --- Allocate tables for a newly initialized
  * filesystem.  Used by mke2fs when initializing a filesystem

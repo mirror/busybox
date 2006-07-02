@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * read_bb_file.c --- read a list of bad blocks from a FILE *
  *

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * e2image.h --- header file describing the ext2 image format
  *

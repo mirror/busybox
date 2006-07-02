@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* signalpipe.c
  *
  * Signal pipe infrastructure. A reliable way of delivering signals.

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Small lzma deflate implementation.
  * Copyright (C) 2006  Aurelien Jacobs <aurel@gnuage.org>
@@ -64,4 +65,3 @@ int unlzma_main(int argc, char **argv)
 	return status;
 }
 
-/* vi:set ts=4: */

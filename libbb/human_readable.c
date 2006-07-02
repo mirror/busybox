@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * June 30, 2001                 Manuel Novoa III
  *

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * bb_inode.c --- routines to update the bad block inode.
  *

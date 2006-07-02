@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Small lzma deflate implementation.
  * Copyright (C) 2006  Aurelien Jacobs <aurel@gnuage.org>
@@ -20,4 +21,3 @@ char get_header_tar_lzma(archive_handle_t * archive_handle)
 	return EXIT_FAILURE;
 }
 
-/* vi:set ts=4: */

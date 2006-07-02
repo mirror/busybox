@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * valid_blk.c --- does the inode have valid blocks?
  *

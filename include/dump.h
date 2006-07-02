@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #define	F_IGNORE	0x01		/* %_A */
 #define	F_SETREP	0x02		/* rep count set, not default */
 #define	F_ADDRESS	0x001		/* print offset */

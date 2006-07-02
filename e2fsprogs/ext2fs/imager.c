@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * image.c --- writes out the critical parts of the filesystem as a
  *	flat file.

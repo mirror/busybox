@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* fold -- wrap each input line to fit in specified width.
 
    Written by David MacKenzie, djm@gnu.ai.mit.edu.
@@ -158,4 +159,3 @@ rescan:
 
 	bb_fflush_stdout_and_exit(errs);
 }
-/* vi: set sw=4 ts=4: */

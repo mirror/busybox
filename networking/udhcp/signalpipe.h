@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* signalpipe.h
  *
  * Russ Dill <Russ.Dill@asu.edu> December 2003

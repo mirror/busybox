@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * uuid_time.c --- Interpret the time field from a uuid.  This program
  *	violates the UUID abstraction barrier by reaching into the guts

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>

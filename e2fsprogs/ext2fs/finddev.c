@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * finddev.c -- this routine attempts to find a particular device in
  *	/dev

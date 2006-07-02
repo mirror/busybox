@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * nameif.c - Naming Interfaces based on MAC address for busybox.
  *

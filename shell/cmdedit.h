@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #ifndef CMDEDIT_H
 #define CMDEDIT_H
 

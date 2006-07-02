@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * check_desc.c --- Check the group descriptors of an ext2 filesystem
  *

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #ifndef __LIBNETLINK_H__
 #define __LIBNETLINK_H__ 1
 

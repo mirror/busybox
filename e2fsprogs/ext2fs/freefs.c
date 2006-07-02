@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * freefs.c --- free an ext2 filesystem
  *

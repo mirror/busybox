@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * ipcrm.c -- utility to allow removal of IPC objects and data structures.
  *

@@ -1,4 +1,4 @@
-/* vi: set sw=4 ts=4 ai: */
+/* vi: set sw=4 ts=4: */
 /*
  * Mini ipcalc implementation for busybox
  *

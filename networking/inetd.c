@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*      $Slackware: inetd.c 1.79s 2001/02/06 13:18:00 volkerdi Exp $    */
 /*      $OpenBSD: inetd.c,v 1.79 2001/01/30 08:30:57 deraadt Exp $      */
 /*      $NetBSD: inetd.c,v 1.11 1996/02/22 11:14:41 mycroft Exp $       */
@@ -1801,4 +1802,3 @@ daytime_dg (int s, servtab_t *sep ATTRIBUTE_UNUSED)
   (void) sendto (s, buffer, strlen (buffer), 0, &sa, sizeof (sa));
 }
 #endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME */
-/* vi: set sw=4 ts=4: */

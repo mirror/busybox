@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Another fast dependencies generator for Makefiles, Version 4.2
  *

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * mkdir.c --- make a directory in the filesystem
  *

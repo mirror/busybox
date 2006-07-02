@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# vi: set ts=4:
+# vi: set sw=4 ts=4:
 # Copyright (c) 2001 David Schleef <ds@schleef.org>
 # Copyright (c) 2001 Erik Andersen <andersen@codepoet.org>
 # Copyright (c) 2001 Stuart Hughes <seh@zee2.com>

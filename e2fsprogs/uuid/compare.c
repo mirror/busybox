@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * compare.c --- compare whether or not two UUID's are the same
  *

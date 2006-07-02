@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * fileio.c --- Simple file I/O routines
  *

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  msgbox.c -- implements the message box and info box
  *

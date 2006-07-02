@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #ifndef __RTM_MAP_H__
 #define __RTM_MAP_H__ 1
 

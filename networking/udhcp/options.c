@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * options.c -- DHCP server option packet tools
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001

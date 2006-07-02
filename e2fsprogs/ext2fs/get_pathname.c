@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * get_pathname.c --- do directry/inode -> name translation
  *

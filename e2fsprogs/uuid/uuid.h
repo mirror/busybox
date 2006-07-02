@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Public include file for the UUID library
  *

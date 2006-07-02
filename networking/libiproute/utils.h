@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #ifndef __UTILS_H__
 #define __UTILS_H__ 1
 

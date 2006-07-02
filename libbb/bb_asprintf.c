@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
    Copyright (C) 2002,2005 Vladimir Oleynik <dzo@simtreas.ru>
 */

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #ifndef _CLIENTPACKET_H
 #define _CLIENTPACKET_H
 

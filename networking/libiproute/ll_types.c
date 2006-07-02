@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * ll_types.c
  *

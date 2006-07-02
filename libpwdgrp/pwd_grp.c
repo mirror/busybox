@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*  Copyright (C) 2003     Manuel Novoa III
  *
  *  Licensed under GPL v2, or later.  See file LICENSE in this tarball.

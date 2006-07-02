@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * blkid.h - Interface for libblkid, a library to identify block devices
  *

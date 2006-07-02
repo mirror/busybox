@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* static_leases.h */
 #ifndef _STATIC_LEASES_H
 #define _STATIC_LEASES_H

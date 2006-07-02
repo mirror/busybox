@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  Based on shasum from http://www.netsw.org/crypto/hash/
  *  Majorly hacked up to use Dr Brian Gladman's sha1 code

@@ -1,4 +1,4 @@
-/* vi:set ts=4:*/
+/* vi: set sw=4 ts=4: */
 /*
  * stat -- display file or file system status
  *

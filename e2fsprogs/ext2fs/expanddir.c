@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * expand.c --- expand an ext2fs directory
  *

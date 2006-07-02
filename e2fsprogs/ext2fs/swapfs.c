@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * swapfs.c --- swap ext2 filesystem data structures
  *

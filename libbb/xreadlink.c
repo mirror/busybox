@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  xreadlink.c - safe implementation of readlink.
  *  Returns a NULL on failure...

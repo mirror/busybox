@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * probe.h - constants and on-disk structures for extracting device data
  *

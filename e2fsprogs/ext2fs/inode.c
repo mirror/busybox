@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * inode.c --- utility routines to read and write inodes
  *

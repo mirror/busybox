@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * fgetversion.c	- Get a file version on an ext2 file system
  * fsetversion.c	- Set a file version on an ext2 file system

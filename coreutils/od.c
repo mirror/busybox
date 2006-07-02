@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * od implementation for busybox
  * Based on code from util-linux v 2.11l

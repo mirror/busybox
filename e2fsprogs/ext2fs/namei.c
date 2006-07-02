@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * namei.c --- ext2fs directory lookup operations
  *

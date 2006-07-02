@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * stolen from net-tools-1.59 and stripped down for busybox by
  *			Erik Andersen <andersen@codepoet.org>

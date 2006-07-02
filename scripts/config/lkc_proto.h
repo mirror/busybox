@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 
 /* confdata.c */
 P(conf_parse,void,(const char *name));

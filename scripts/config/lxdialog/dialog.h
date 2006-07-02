@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 
 /*
  *  dialog.h -- common declarations for all dialog modules

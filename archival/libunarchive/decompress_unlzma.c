@@ -1,4 +1,4 @@
-/* vi:set ts=4: */
+/* vi: set sw=4 ts=4: */
 /*
  * Small lzma deflate implementation.
  * Copyright (C) 2006  Aurelien Jacobs <aurel@gnuage.org>
@@ -468,4 +468,3 @@ int unlzma(int src_fd, int dst_fd)
 	return 0;
 }
 
-/* vi:set ts=4: */

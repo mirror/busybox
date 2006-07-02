@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * closefs.c --- close an ext2 filesystem
  *

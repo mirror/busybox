@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
    Copyright (C) 2002 Tim Riker <Tim@Rikers.org>
    everyone seems to claim it someplace. ;-)

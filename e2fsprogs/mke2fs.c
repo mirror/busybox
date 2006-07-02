@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * mke2fs.c - Make a ext2fs filesystem.
  *

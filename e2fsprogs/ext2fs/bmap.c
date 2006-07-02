@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * bmap.c --- logical to physical block mapping
  *

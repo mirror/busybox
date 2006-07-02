@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * ls.c			- List the contents of an ext2fs superblock
  *

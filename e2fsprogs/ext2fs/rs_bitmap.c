@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * rs_bitmap.c --- routine for changing the size of a bitmap
  *

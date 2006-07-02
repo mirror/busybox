@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * pfsck --- A generic, parallelizing front-end for the fsck program.
  * It will automatically try to run fsck programs in parallel if the

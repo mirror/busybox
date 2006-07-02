@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * leases.c -- tools to manage DHCP leases
  * Russ Dill <Russ.Dill@asu.edu> July 2001

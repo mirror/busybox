@@ -1,4 +1,4 @@
-/* vi: set sw=8 ts=8: */
+/* vi: set sw=4 ts=4: */
 /*
  * cut.c - minimalist version of cut
  *

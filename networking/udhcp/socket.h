@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* socket.h */
 #ifndef _SOCKET_H
 #define _SOCKET_H

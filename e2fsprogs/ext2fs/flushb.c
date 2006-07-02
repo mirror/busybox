@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * flushb.c --- Hides system-dependent information for both syncing a
  *	device to disk and to flush any buffers from disk cache.

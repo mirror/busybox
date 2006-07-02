@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * util.h --- header file defining prototypes for helper functions
  * used by tune2fs and mke2fs

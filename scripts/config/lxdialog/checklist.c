@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  checklist.c -- implements the checklist box
  *

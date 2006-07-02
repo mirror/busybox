@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * xgetcwd.c -- return current directory with unlimited length
  * Copyright (C) 1992, 1996 Free Software Foundation, Inc.

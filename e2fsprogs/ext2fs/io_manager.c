@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * io_manager.c --- the I/O manager abstraction
  */

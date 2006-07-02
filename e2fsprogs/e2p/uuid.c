@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * uuid.c -- utility routines for manipulating UUID's.
  */

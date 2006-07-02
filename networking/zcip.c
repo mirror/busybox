@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * RFC3927 ZeroConf IPv4 Link-Local addressing
  * (see <http://www.zeroconf.org/>)

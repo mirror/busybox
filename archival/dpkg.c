@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  Mini dpkg implementation for busybox.
  *  This is not meant as a replacement for dpkg

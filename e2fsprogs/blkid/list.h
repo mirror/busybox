@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #if !defined(_BLKID_LIST_H) && !defined(LIST_HEAD)
 #define _BLKID_LIST_H
 

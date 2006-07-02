@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * test_io.c --- This is the Test I/O interface.
  *

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * block.c --- iterate over all blocks in an inode
  *

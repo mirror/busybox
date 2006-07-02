@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* libbb_udhcp.h - busybox compatibility wrapper */
 
 /* bit of a hack, do this no matter what the order of the includes.

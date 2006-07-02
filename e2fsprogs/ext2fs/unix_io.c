@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * unix_io.c --- This is the Unix (well, really POSIX) implementation
  *	of the I/O manager.

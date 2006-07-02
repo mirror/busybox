@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * fgetflags.c		- Get a file flags on an ext2 file system
  * fsetflags.c		- Set a file flags on an ext2 file system

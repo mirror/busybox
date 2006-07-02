@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* clientpacket.c
  *
  * Packet generation and dispatching functions for the DHCP client.

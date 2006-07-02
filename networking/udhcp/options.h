@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* options.h */
 #ifndef _OPTIONS_H
 #define _OPTIONS_H

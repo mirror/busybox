@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * ismounted.c --- Check to see if the filesystem was mounted
  *

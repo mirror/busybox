@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * resolve.c - resolve names and tags into specific devices
  *

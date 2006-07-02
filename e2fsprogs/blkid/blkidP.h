@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * blkidP.h - Internal interfaces for libblkid
  *

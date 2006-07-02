@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* fdisk.c -- Partition table manipulator for Linux.
  *
  * Copyright (C) 1992  A. V. Le Blanc (LeBlanc@mcc.ac.uk)

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * initialize.c --- initialize a filesystem handle given superblock
  *	parameters.  Used by mke2fs when initializing a filesystem.

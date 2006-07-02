@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * read_bb --- read the bad blocks inode
  *

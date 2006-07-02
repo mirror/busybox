@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* fdformat.c  -  Low-level formats a floppy disk - Werner Almesberger */
 
 /* 1999-02-22 Arkadiusz Mi¶kiewicz <misiek@pld.ORG.PL>

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * bitops.h --- Bitmap frobbing code.  The byte swapping routines are
  *	also included here.

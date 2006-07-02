@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* pidfile.c
  *
  * Functions to assist in the writing and removing of pidfiles.

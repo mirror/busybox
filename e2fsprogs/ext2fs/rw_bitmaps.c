@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * rw_bitmaps.c --- routines to read and write the  inode and block bitmaps.
  *

@@ -13,7 +13,6 @@
  *	add magic to search	/foo.*bar
  *	add :help command
  *	:map macros
- *	how about mode lines:   vi: set sw=8 ts=8:
  *	if mark[] values were line numbers rather than pointers
  *	   it would be easier to change the mark when add/delete lines
  *	More intelligence in refresh()

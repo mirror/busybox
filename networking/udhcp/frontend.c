@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 #include <string.h>
 
 extern int udhcpd_main(int argc, char *argv[]);

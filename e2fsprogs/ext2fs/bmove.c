@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * bmove.c --- Move blocks around to make way for a particular
  *	filesystem structure.

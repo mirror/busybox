@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  md5.c - Compute MD5 checksum of strings according to the
  *          definition of MD5 in RFC 1321 from April 1992.

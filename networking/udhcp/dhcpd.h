@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /* dhcpd.h */
 #ifndef _DHCPD_H
 #define _DHCPD_H

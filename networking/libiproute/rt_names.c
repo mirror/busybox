@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * rt_names.c		rtnetlink names DB.
  *

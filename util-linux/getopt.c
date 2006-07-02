@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * getopt.c - Enhanced implementation of BSD getopt(1)
  *   Copyright (c) 1997, 1998, 1999, 2000  Frodo Looijaard <frodol@dds.nl>

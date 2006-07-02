@@ -1,4 +1,5 @@
-/* vi:set ts=4:
+/* vi: set sw=4 ts=4: */
+/*
  *
  * mdev - Mini udev for busybox
  *

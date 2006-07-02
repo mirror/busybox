@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * sparse.c --- find the groups in an ext2 filesystem with metadata backups
  *

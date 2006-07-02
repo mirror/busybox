@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * files.c -- DHCP server file manipulation *
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001

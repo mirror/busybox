@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * mountopts.c --- convert between default mount options and strings
  *

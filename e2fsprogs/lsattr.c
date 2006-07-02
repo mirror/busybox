@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * lsattr.c		- List file attributes on an ext2 file system
  *

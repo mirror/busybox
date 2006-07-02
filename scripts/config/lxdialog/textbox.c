@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  textbox.c -- implements the text box
  *

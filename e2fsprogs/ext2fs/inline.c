@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * inline.c --- Includes the inlined functions defined in the header
  *	files as standalone functions, in case the application program

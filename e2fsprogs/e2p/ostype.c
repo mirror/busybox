@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * getostype.c          - Get the Filesystem OS type
  *

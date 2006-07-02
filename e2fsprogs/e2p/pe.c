@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * pe.c			- Print a second extended filesystem errors behavior
  *

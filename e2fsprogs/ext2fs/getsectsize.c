@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * getsectsize.c --- get the sector size of a device.
  *

@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * unlink.c --- delete links in a ext2fs directory
  *

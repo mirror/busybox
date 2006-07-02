@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * pf.c			- Print file attributes on an ext2 file system
  *

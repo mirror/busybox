@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * ext_attr.c --- extended attribute blocks
  *

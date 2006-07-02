@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  *  menubox.c -- implements the menu box
  *

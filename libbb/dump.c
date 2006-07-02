@@ -1,3 +1,4 @@
+/* vi: set sw=4 ts=4: */
 /*
  * Support code for the hexdump and od applets,
  * based on code from util-linux v 2.11l
