@@ -95,7 +95,7 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 	int c;
 	int length;
 	int mixed = 0;
-	/* Add 1 for each type of characters to the minlen of password */
+	/* Add 2 for each type of characters to the minlen of password */
 	int size = CONFIG_PASSWORD_MINLEN + 8;
 	const char *p;
 	char hostname[255];
