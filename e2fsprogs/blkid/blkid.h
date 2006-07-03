@@ -98,11 +98,6 @@ extern blkid_dev blkid_find_dev_with_tag(blkid_cache cache,
 extern int blkid_parse_tag_string(const char *token, char **ret_type,
 				  char **ret_val);
 
-/* version.c */
-extern int blkid_parse_version_string(const char *ver_string);
-extern int blkid_get_library_version(const char **ver_string,
-				     const char **date_string);
-
 #ifdef __cplusplus
 }
 #endif
