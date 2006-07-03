@@ -42,7 +42,7 @@
 #include <signal.h>
 #include <limits.h>
 
-#include "../shell/cmdedit.h"
+#include "cmdedit.h"
 
 
 #ifdef CONFIG_LOCALE_SUPPORT
