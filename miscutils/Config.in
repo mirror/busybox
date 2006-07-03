@@ -309,13 +309,7 @@ config CONFIG_TASKSET
 	bool "taskset"
 	default n
 	help
-	  Retrieve or set a processes's CPU affinity
-
-config CONFIG_TASKSET
-	bool "taskset"
-	default n
-	help
-	  Retrieve or set a processes's CPU affinity (on linux)
+	  Retrieve or set a processes's CPU affinity.
 
 config CONFIG_TIME
 	bool "time"
