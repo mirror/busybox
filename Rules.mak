@@ -24,22 +24,20 @@ BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 # With a modern GNU make(1) (highly recommended, that's what all the
 # developers use), all of the following configuration values can be
 # overridden at the command line.  For example:
-#   make CROSS=powerpc-linux- top_srcdir="$HOME/busybox" PREFIX=/mnt/app
+#   make CROSS_COMPILE=powerpc-linux- top_srcdir="$HOME/busybox" PREFIX=/mnt/app
 #--------------------------------------------------------
 
-# If you are running a cross compiler, you will want to set 'CROSS'
+# If you are running a cross compiler, you will want to set CROSS_COMPILE
 # to something more interesting...  Target architecture is determined
 # by asking the CC compiler what arch it compiles things for, so unless
 # your compiler is broken, you should not need to specify TARGET_ARCH
-CROSS          =$(strip $(subst ",, $(strip $(CROSS_COMPILER_PREFIX))))
-# be gentle to vi coloring.. "))
-CC             = $(CROSS)gcc
-AR             = $(CROSS)ar
-AS             = $(CROSS)as
-LD             = $(CROSS)ld
-NM             = $(CROSS)nm
-STRIP          = $(CROSS)strip
-ELF2FLT        = $(CROSS)elf2flt
+CC             = $(CROSS_COMPILE)gcc
+AR             = $(CROSS_COMPILE)ar
+AS             = $(CROSS_COMPILE)as
+LD             = $(CROSS_COMPILE)ld
+NM             = $(CROSS_COMPILE)nm
+STRIP          = $(CROSS_COMPILE)strip
+ELF2FLT        = $(CROSS_COMPILE)elf2flt
 CPP            = $(CC) -E
 SED           ?= sed
 BZIP2         ?= bzip2
@@ -64,7 +62,7 @@ CC_MAJOR:=$(shell printf "%02d" $(shell echo __GNUC__ | $(CC) -E -xc - | tail -n
 CC_MINOR:=$(shell printf "%02d" $(shell echo __GNUC_MINOR__ | $(CC) -E -xc - | tail -n 1))
 
 #--------------------------------------------------------
-export VERSION BUILDTIME HOSTCC HOSTCFLAGS CROSS CC AR AS LD NM STRIP CPP
+export VERSION BUILDTIME HOSTCC HOSTCFLAGS CROSS_COMPILE CC AR AS LD NM STRIP CPP
 ifeq ($(strip $(TARGET_ARCH)),)
 TARGET_ARCH:=$(shell $(CC) -dumpmachine | $(SED) -e s'/-.*//' \
 		-e 's/i.86/i386/' \

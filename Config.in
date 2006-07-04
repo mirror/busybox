@@ -289,24 +289,6 @@ config CONFIG_LFS
 	  cp, mount, tar, and many others.  If you want to access files larger
 	  than 2 Gigabytes, enable this option.  Otherwise, leave it set to 'N'.
 
-config USING_CROSS_COMPILER
-	bool "Do you want to build BusyBox with a Cross Compiler?"
-	default n
-	help
-	  Do you want to build BusyBox with a Cross Compiler?  If so,
-	  then enable this option.  Otherwise leave it set to 'N'.
-
-config CROSS_COMPILER_PREFIX
-	string "Cross Compiler prefix"
-	default "/usr/i386-linux-uclibc/bin/i386-uclibc-"
-	depends on USING_CROSS_COMPILER
-	help
-	  If you want to build BusyBox with a cross compiler, then you
-	  will need to set this to the cross-compiler prefix.  For example,
-	  if my cross-compiler is /usr/i386-linux-uclibc/bin/i386-uclibc-gcc
-	  then I would enter '/usr/i386-linux-uclibc/bin/i386-uclibc-' here,
-	  which will ensure the correct compiler is used.
-
 config CONFIG_BUILD_AT_ONCE
 	bool "Compile all sources at once"
 	default n

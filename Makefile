@@ -216,8 +216,6 @@ randconfig: scripts/config/conf
 
 allyesconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN) > /dev/null
-	@$(SED) -i -r -e "s/^(USING_CROSS_COMPILER)=.*/# \1 is not set/" .config
-	@./scripts/config/conf -o $(CONFIG_CONFIG_IN) > /dev/null
 
 allnoconfig: scripts/config/conf
 	@./scripts/config/conf -n $(CONFIG_CONFIG_IN) > /dev/null
@@ -228,13 +226,13 @@ allnoconfig: scripts/config/conf
 
 defconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN) > /dev/null
-	@$(SED) -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG.*|STATIC|SELINUX|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP|UDHCP_DEBUG)|INSTALL_NO_USR))=.*/# \1 is not set/" .config
+	@$(SED) -i -r -e "s/^(CONFIG_(DEBUG.*|STATIC|SELINUX|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP|UDHCP_DEBUG)|INSTALL_NO_USR))=.*/# \1 is not set/" .config
 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN) > /dev/null
 
 
 allbareconfig: scripts/config/conf
 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN) > /dev/null
-	@$(SED) -i -r -e "s/^(USING_CROSS_COMPILER|CONFIG_(DEBUG|STATIC|SELINUX|DEVFSD|NC_GAPING_SECURITY_HOLE|BUILD_AT_ONCE)).*/# \1 is not set/" .config
+	@$(SED) -i -r -e "s/^(CONFIG_(DEBUG|STATIC|SELINUX|DEVFSD|NC_GAPING_SECURITY_HOLE|BUILD_AT_ONCE)).*/# \1 is not set/" .config
 	@$(SED) -i -e "/FEATURE/s/=.*//;/^[^#]/s/.*FEATURE.*/# \0 is not set/;" .config
 	@echo "CONFIG_FEATURE_BUFFERS_GO_ON_STACK=y" >> .config
 	@yes n | ./scripts/config/conf -o $(CONFIG_CONFIG_IN) > /dev/null
