@@ -51,13 +51,13 @@ indentation style in the Apache and Postfix source does this sort of thing:
 \s\s\s\sif (expr) {\n\tstmt; --ick.) The only exception to this rule is
 multi-line comments that use an asterisk at the beginning of each line, i.e.:
 
-	/t/*
-	/t * This is a block comment.
-	/t * Note that it has multiple lines
-	/t * and that the beginning of each line has a tab plus a space
-	/t * except for the opening '/*' line where the slash
-	/t * is used instead of a space.
-	/t */
+	\t/*
+	\t * This is a block comment.
+	\t * Note that it has multiple lines
+	\t * and that the beginning of each line has a tab plus a space
+	\t * except for the opening '/*' line where the slash
+	\t * is used instead of a space.
+	\t */
 
 Furthermore, The preference is that tabs be set to display at four spaces
 wide, but the beauty of using only tabs (and not spaces) at the beginning of
@@ -619,7 +619,7 @@ begin with a C keyword, but not always.
 
 Furthermore, you should put a single comment (not necessarily one line, just
 one comment) before the block, rather than commenting each and every line.
-There is an optimal ammount of commenting that a program can have; you can
+There is an optimal amount of commenting that a program can have; you can
 comment too much as well as too little.
 
 A picture is really worth a thousand words here, the following example
