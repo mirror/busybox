@@ -436,13 +436,16 @@ endif
 
 ifeq ($(strip $(CONFIG_FEATURE_COMPRESS_USAGE)),y)
 USAGE_BIN:=scripts/usage
-$(USAGE_BIN): $(top_srcdir)/scripts/usage.c .config
+$(USAGE_BIN): $(top_srcdir)/scripts/usage.c .config \
+		$(top_srcdir)/include/usage.h
 	$(do_link.h)
 
 DEP_INCLUDES += include/usage_compressed.h
 
-include/usage_compressed.h: .config $(USAGE_BIN) $(top_srcdir)/scripts/usage_compressed
-	$(Q)SED="$(SED)" $(SHELL) $(top_srcdir)/scripts/usage_compressed "$(top_builddir)/scripts" > $@
+include/usage_compressed.h: .config $(USAGE_BIN) \
+		$(top_srcdir)/scripts/usage_compressed
+	$(Q)SED="$(SED)" $(SHELL) $(top_srcdir)/scripts/usage_compressed \
+	"$(top_builddir)/scripts" > $@
 endif # CONFIG_FEATURE_COMPRESS_USAGE
 
 # workaround alleged bug in make-3.80, make-3.81
@@ -470,7 +473,8 @@ clean:
 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
 	    docs/busybox.net/BusyBox.html busybox.links \
 	    libbusybox.so* \
-	    .config.old busybox busybox_unstripped
+	    .config.old busybox busybox_unstripped \
+	    include/usage_compressed.h scripts/usage
 	- rm -r -f _install testsuite/links
 	- find . -name .\*.flags -o -name \*.o  -o -name \*.om -o -name \*.syn \
 	    -o -name \*.os -o -name \*.osm -o -name \*.a | xargs rm -f
