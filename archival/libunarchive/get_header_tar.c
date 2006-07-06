@@ -137,10 +137,6 @@ char get_header_tar(archive_handle_t *archive_handle)
 	case '1':
 		file_header->mode |= S_IFREG;
 		break;
-	case 'x':
-	case 'g':
-		bb_error_msg_and_die("pax is not tar");
-		break;
 	case '7':
 		/* Reserved for high performance files, treat as normal file */
 	case 0:
@@ -188,8 +184,11 @@ char get_header_tar(archive_handle_t *archive_handle)
 	case 'N':	/* Old GNU for names > 100 characters */
 	case 'S':	/* Sparse file */
 	case 'V':	/* Volume header */
-		bb_error_msg("Ignoring GNU extension type %c", tar.formated.typeflag);
 #endif
+	case 'g':	/* pax global header */
+	case 'x':	/* pax extended header */
+		bb_error_msg("Ignoring extension type %c", tar.formated.typeflag);
+		break;
 	default:
 		bb_error_msg("Unknown typeflag: 0x%x", tar.formated.typeflag);
 	}
