@@ -174,6 +174,7 @@ CHECKED_CFLAGS+=$(call check_cc,$(CC),-Wshadow,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-funsigned-char,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-mmax-stack-frame=256,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-fno-builtin-strlen)
+CHECKED_CFLAGS+=$(call check_cc,$(CC),-finline-limit=0)
 
 # Preemptively pin this too.
 PROG_CFLAGS:=

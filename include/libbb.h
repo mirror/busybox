@@ -551,4 +551,19 @@ extern uint32_t *bb_crc32_filltable (int endian);
 
 extern const char BB_BANNER[];
 
+// Make sure we call functions instead of macros.
+#undef isalnum
+#undef isalpha
+#undef isascii
+#undef isblank
+#undef iscntrl
+#undef isdigit
+#undef isgraph
+#undef islower
+#undef isprint
+#undef ispunct
+#undef isspace
+#undef isupper
+#undef isxdigit
+
 #endif /* __LIBBUSYBOX_H__ */
