@@ -10,34 +10,18 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <paths.h>
 #include <signal.h>
-#include <stdarg.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
-#include <limits.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/reboot.h>
 
 #include "init_shared.h"
 
-
 #ifdef CONFIG_SYSLOGD
 # include <sys/syslog.h>
 #endif
-
-
-#ifdef CONFIG_SELINUX
-# include <selinux/selinux.h>
-#endif /* CONFIG_SELINUX */
-
 
 #define INIT_BUFFS_SIZE 256
 
@@ -72,7 +56,6 @@ struct serial_struct {
 	int	reserved[1];
 };
 
-
 #ifndef _PATH_STDPATH
 #define _PATH_STDPATH	"/usr/bin:/bin:/usr/sbin:/sbin"
 #endif
@@ -87,8 +70,6 @@ struct serial_struct {
 #define CORE_ENABLE_FLAG_FILE "/.init_enable_core"
 #include <sys/resource.h>
 #endif
-
-#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 
 #define INITTAB      "/etc/inittab"	/* inittab file location */
 #ifndef INIT_SCRIPT
@@ -1046,6 +1027,9 @@ int init_main(int argc, char **argv)
 		for(e = environment; *e; e++)
 			putenv((char *) *e);
 	}
+
+	if (argc > 1) setenv("RUNLEVEL", argv[1], 1);
+
 	/* Hello world */
 	message(MAYBE_CONSOLE | LOG, "init started:  %s", bb_msg_full_version);
 
