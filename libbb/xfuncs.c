@@ -229,4 +229,53 @@ int wait4pid(int pid)
 	if (WIFSIGNALED(status)) return WTERMSIG(status);
 	return 0;
 }
-#endif	
+#endif
+
+#ifdef L_itoa
+// Largest 32 bit integer is -2 billion plus null terminator.
+// Int should always be 32 bits on a Unix-oid system, see
+// http://www.unix.org/whitepapers/64bit.html
+static char local_buf[12];
+
+void utoa_to_buf(unsigned n, char *buf, int buflen)
+{
+	int i, out = 0;
+	for (i=1000000000; i; i/=10) {
+		int res = n/i;
+
+		if (res || out || i == 1) {
+			out++;
+			n -= res*i;
+			*buf++ = '0' + res;
+		}
+	}
+	*buf = 0;
+}
+
+// Note: uses static buffer, calling it twice in a row will overwrite.
+
+char *utoa(unsigned n)
+{
+	utoa_to_buf(n, local_buf, sizeof(local_buf));
+
+	return local_buf;
+}
+
+void itoa_to_buf(int n, char *buf, int buflen)
+{
+	if (n<0) {
+		n = -n;
+		*buf++ = '-';
+	}
+	utoa_to_buf((unsigned)n, buf, buflen);
+}
+
+// Note: uses static buffer, calling it twice in a row will overwrite.
+
+char *itoa(int n)
+{
+	itoa_to_buf(n, local_buf, sizeof(local_buf));
+
+	return local_buf;
+}
+#endif
