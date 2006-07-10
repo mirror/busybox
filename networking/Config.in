@@ -446,13 +446,21 @@ config CONFIG_NC
 	  A simple Unix utility which reads and writes data across network
 	  connections.
 
-config CONFIG_NC_GAPING_SECURITY_HOLE
-	bool "gaping security hole"
+config CONFIG_NC_SERVER
+	bool "Netcat server options (-lp)"
 	default n
 	depends on CONFIG_NC
 	help
-	  Add support for executing a program after making or receiving a
-	  successful connection (-e option).
+	  Allow netcat to act as a server.
+
+config CONFIG_NC_EXTRA
+	bool "Netcat extensions (-eiw and filename)"
+	default n
+	depends on CONFIG_NC
+	help
+	  Add -e (support for executing the rest of the command line after
+	  making or receiving a successful connection), -i (delay interval for
+	  lines sent), -w (timeout for initial connection).
 
 config CONFIG_NETSTAT
 	bool "netstat"

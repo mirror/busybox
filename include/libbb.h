@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

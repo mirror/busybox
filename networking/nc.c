@@ -1,31 +1,15 @@
 /* vi: set sw=4 ts=4: */
 /*  nc: mini-netcat - built from the ground up for LRP
-    Copyright (C) 1998  Charles P. Wright
+ *  
+ *  Copyright (C) 1998, 1999  Charles P. Wright
+ *  Copyright (C) 1998  Dave Cinege
+ *  
+ *  Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ */
 
-    0.0.1   6K      It works.
-    0.0.2   5K      Smaller and you can also check the exit condition if you wish.
-    0.0.3           Uses select()
-
-    19980918 Busy Boxed! Dave Cinege
-    19990512 Uses Select. Charles P. Wright
-    19990513 Fixes stdin stupidity and uses buffers.  Charles P. Wright
-
-    Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
-*/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <signal.h>
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/ioctl.h>
 #include "busybox.h"
+
+#define xread bb_xread
 
 static void timeout(int signum)
 {
@@ -34,79 +18,87 @@ static void timeout(int signum)
 
 int nc_main(int argc, char **argv)
 {
-	int do_listen = 0, lport = 0, delay = 0, wsecs = 0, tmpfd, opt, sfd, x;
-
-#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
-	char *pr00gie = NULL;
-#endif
-
+	int do_listen = 0, lport = 0, delay = 0, wsecs = 0, execflag = 0, opt,
+	   	sfd = 0, cfd;
 	struct sockaddr_in address;
 	struct hostent *hostinfo;
-
 	fd_set readfds, testfds;
+	char *infile = NULL;
 
-	while ((opt = getopt(argc, argv, "lp:i:e:w:")) > 0) {
-		switch (opt) {
-			case 'l':
-				do_listen++;
-				break;
-			case 'p':
+	memset(&address, 0, sizeof(address));
+
+	if (ENABLE_NC_SERVER || ENABLE_NC_EXTRA) { 
+		while ((opt = getopt(argc, argv, "lp:" USE_NC_EXTRA("i:ew:f:"))) > 0) {
+			if (ENABLE_NC_SERVER && opt=='l') do_listen++;
+			else if (ENABLE_NC_SERVER && opt=='p')
 				lport = bb_lookup_port(optarg, "tcp", 0);
+			else if (ENABLE_NC_EXTRA && opt=='w') wsecs = atoi(optarg);
+			else if (ENABLE_NC_EXTRA && opt=='i') delay = atoi(optarg);
+			else if (ENABLE_NC_EXTRA && opt=='f') infile = optarg;
+			else if (ENABLE_NC_EXTRA && opt=='e' && optind!=argc) {
+				execflag++;
 				break;
-			case 'i':
-				delay = atoi(optarg);
-				break;
-#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
-			case 'e':
-				pr00gie = optarg;
-				break;
-#endif
-			case 'w':
-				wsecs = atoi(optarg);
-				break;
-			default:
-				bb_show_usage();
+			} else bb_show_usage();
 		}
 	}
 
-	if ((do_listen && optind != argc) || (!do_listen && optind + 2 != argc))
-		bb_show_usage();
+	
+	// For listen or file we need zero arguments, dialout is 2.
+	// For exec we need at least one more argument at the end, more ok
 
-	sfd = bb_xsocket(AF_INET, SOCK_STREAM, 0);
-	x = 1;
-	if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &x, sizeof (x)) == -1)
-		bb_perror_msg_and_die("reuseaddr");
-	address.sin_family = AF_INET;
+	opt = (do_listen  || infile) ? 0 : 2 + execflag;
+	if (execflag ? argc-optind < opt : argc-optind!=opt ||
+		(infile && do_listen))
+			bb_show_usage();
 
 	if (wsecs) {
 		signal(SIGALRM, timeout);
 		alarm(wsecs);
 	}
+	
+	if (infile) cfd = bb_xopen(infile, O_RDWR);
+	else {
+		opt = 1;
+		sfd = bb_xsocket(AF_INET, SOCK_STREAM, 0);
+		fcntl(sfd, F_SETFD, FD_CLOEXEC);
+		setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt));
+		address.sin_family = AF_INET;
 
-	if (lport != 0) {
-		memset(&address.sin_addr, 0, sizeof(address.sin_addr));
-		address.sin_port = lport;
+		// Set local port.
 
-		bb_xbind(sfd, (struct sockaddr *) &address, sizeof(address));
-	}
+		if (lport != 0) {
+			address.sin_port = lport;
 
-	if (do_listen) {
-		socklen_t addrlen = sizeof(address);
+			bb_xbind(sfd, (struct sockaddr *) &address, sizeof(address));
+		}
 
-		bb_xlisten(sfd, 1);
-		if ((tmpfd = accept(sfd, (struct sockaddr *) &address, &addrlen)) < 0)
-			bb_perror_msg_and_die("accept");
+		if (do_listen) {
+			socklen_t addrlen = sizeof(address);
 
-		close(sfd);
-		sfd = tmpfd;
-	} else {
-		hostinfo = xgethostbyname(argv[optind]);
+			bb_xlisten(sfd, do_listen);
 
-		address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
-		address.sin_port = bb_lookup_port(argv[optind+1], "tcp", 0);
+			// If we didn't specify a port number, query and print it to stderr.
 
-		if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
-			bb_perror_msg_and_die("connect");
+			if (!lport) {
+				socklen_t len = sizeof(address);
+				getsockname(sfd, &address, &len);
+				fdprintf(2, "%d\n", SWAP_BE16(address.sin_port));
+			}
+repeatyness:
+			if ((cfd = accept(sfd, (struct sockaddr *) &address, &addrlen)) < 0)
+				bb_perror_msg_and_die("accept");
+
+			if (!execflag) close(sfd);
+		} else {
+			hostinfo = xgethostbyname(argv[optind]);
+
+			address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
+			address.sin_port = bb_lookup_port(argv[optind+1], "tcp", 0);
+
+			if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
+				bb_perror_msg_and_die("connect");
+			cfd = sfd;
+		}
 	}
 
 	if (wsecs) {
@@ -114,24 +106,40 @@ int nc_main(int argc, char **argv)
 		signal(SIGALRM, SIG_DFL);
 	}
 
-#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
 	/* -e given? */
-	if (pr00gie) {
-		dup2(sfd, 0);
-		close(sfd);
+	if (execflag) {
+		if(cfd) {
+			signal(SIGCHLD, SIG_IGN);
+			dup2(cfd, 0);
+			close(cfd);
+		}
 		dup2(0, 1);
 		dup2(0, 2);
-		execl(pr00gie, pr00gie, NULL);
-		/* Don't print stuff or it will go over the wire.... */
-		_exit(-1);
-	}
-#endif /* CONFIG_NC_GAPING_SECURITY_HOLE */
 
+		// With more than one -l, repeatedly act as server.
+
+		if (do_listen>1 && vfork()) {
+			// This is a bit weird as cleanup goes, since we wind up with no
+			// stdin/stdout/stderr.  But it's small and shouldn't hurt anything.
+			// We check for cfd == 0 above.
+			close(0);
+			close(1);
+			close(2);
+
+			goto repeatyness;
+		}
+		execvp(argv[optind], argv+optind);
+		/* Don't print stuff or it will go over the wire.... */
+		_exit(127);
+	}
+
+	// Select loop copying stdin to cfd, and cfd to stdout.
+	
 	FD_ZERO(&readfds);
-	FD_SET(sfd, &readfds);
+	FD_SET(cfd, &readfds);
 	FD_SET(STDIN_FILENO, &readfds);
 
-	while (1) {
+	for (;;) {
 		int fd;
 		int ofd;
 		int nread;
@@ -143,30 +151,24 @@ int nc_main(int argc, char **argv)
 
 		for (fd = 0; fd < FD_SETSIZE; fd++) {
 			if (FD_ISSET(fd, &testfds)) {
-				if ((nread = safe_read(fd, bb_common_bufsiz1,
-					sizeof(bb_common_bufsiz1))) < 0)
-				{
-					bb_perror_msg_and_die(bb_msg_read_error);
-				}
+				nread = xread(fd, bb_common_bufsiz1, sizeof(bb_common_bufsiz1));
 
-				if (fd == sfd) {
-					if (nread == 0)
-						exit(0);
+				if (fd == cfd) {
+					if (!nread) exit(0);
 					ofd = STDOUT_FILENO;
 				} else {
-					if (nread <= 0) {
-						shutdown(sfd, 1 /* send */ );
-						close(STDIN_FILENO);
+					if (!nread) {
+						// Close outgoing half-connection so they get EOF, but
+						// leave incoming alone so we can see response.
+						shutdown(cfd, 1);
 						FD_CLR(STDIN_FILENO, &readfds);
 					}
-					ofd = sfd;
+					ofd = cfd;
 				}
 
 				if (bb_full_write(ofd, bb_common_bufsiz1, nread) < 0)
 					bb_perror_msg_and_die(bb_msg_write_error);
-				if (delay > 0) {
-					sleep(delay);
-				}
+				if (delay > 0) sleep(delay);
 			}
 		}
 	}

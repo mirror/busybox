@@ -2105,23 +2105,41 @@ USE_FEATURE_MDEV_CONFIG( \
 	" or\n" \
 	"$ nameif -c /etc/my_mactab_file\n" \
 
-#ifdef CONFIG_NC_GAPING_SECURITY_HOLE
-#  define USAGE_NC_EXEC(a) a
+#if ENABLE_NC_SERVER || ENABLE_NC_EXTRA
+#define NC_BR1 "["
+#define NC_BR2 "]"
 #else
-#  define USAGE_NC_EXEC(a)
+#define NC_BR1
+#define NC_BR2
 #endif
+
 #define nc_trivial_usage \
-	"[OPTIONS] [IP] [port]"
+	"[" \
+	NC_BR1 USE_NC_SERVER("-lp")USE_NC_EXTRA("iwf") NC_BR2 \
+	" ["USE_NC_EXTRA("FILENAME|")"{IPADDR PORTNUM}]"USE_NC_EXTRA(" [-e COMMAND]")
 #define nc_full_usage \
-	"Netcat opens a pipe to IP:port\n\n" \
-	"Options:\n" \
-	"\t-l\t\tlisten mode, for inbound connects\n" \
-	"\t-p PORT\t\tlocal port number\n" \
-	"\t-i SECS\t\tdelay interval for lines sent\n" \
-	USAGE_NC_EXEC( \
-	"\t-e PROG\t\tprogram to exec after connect (dangerous!)\n" \
+	"Netcat opens a pipe, either to IP:port\n\n" \
+	"Options:" \
+	USE_NC_EXTRA( \
+		"\n\t-e\t\texec rest of command line after connect\n" \
+		"\t-i SECS\t\tdelay interval for lines sent\n" \
+		"\t-w SECS\t\ttimeout for connect\n" \
+		"\t-f filename\tuse file (ala /dev/ttyS0) instead of network" \
 	) \
-	"\t-w SECS\t\ttimeout for connects and final net reads"
+	USE_NC_SERVER( \
+		"\n\t-l\t\tlisten mode, for inbound connects\n" \
+		USE_NC_EXTRA("\t\t\t(use -l twice with -e for persistent server)\n") \
+		"\t-p PORT\t\tlocal port number" \
+	)
+
+
+#define nc_notes_usage "" \
+	USE_NC_EXTRA( \
+		"To use netcat as a terminal emulator on a serial port:\n\n" \
+		"$ stty 115200 -F /dev/ttyS0\n" \
+		"$ stty raw -echo -ctlecho && nc -f /dev/ttyS0\n" \
+	) ""
+
 #define nc_example_usage \
 	"$ nc foobar.somedomain.com 25\n" \
 	"220 foobar ESMTP Exim 3.12 #1 Sat, 15 Apr 2000 00:03:02 -0600\n" \
