@@ -7,7 +7,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-
 #include <features.h>
 #include <stdio.h>
 #include <errno.h>

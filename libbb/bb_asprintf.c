@@ -1,7 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*
-   Copyright (C) 2002,2005 Vladimir Oleynik <dzo@simtreas.ru>
-*/
+ * Copyright (C) 2002,2005 Vladimir Oleynik <dzo@simtreas.ru>
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
