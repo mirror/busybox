@@ -237,19 +237,21 @@ int wait4pid(int pid)
 // http://www.unix.org/whitepapers/64bit.html
 static char local_buf[12];
 
-void utoa_to_buf(unsigned n, char *buf, int buflen)
+void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {
 	int i, out = 0;
-	for (i=1000000000; i; i/=10) {
-		int res = n/i;
+	if (buflen) {
+		for (i=1000000000; i; i/=10) {
+			int res = n/i;
 
-		if (res || out || i == 1) {
-			out++;
-			n -= res*i;
-			*buf++ = '0' + res;
+			if ((res || out || i == 1) && --buflen>0) {
+				out++;
+				n -= res*i;
+				*buf++ = '0' + res;
+			}
 		}
+		*buf = 0;
 	}
-	*buf = 0;
 }
 
 // Note: uses static buffer, calling it twice in a row will overwrite.
@@ -261,11 +263,12 @@ char *utoa(unsigned n)
 	return local_buf;
 }
 
-void itoa_to_buf(int n, char *buf, int buflen)
+void itoa_to_buf(int n, char *buf, unsigned buflen)
 {
-	if (n<0) {
+	if (buflen && n<0) {
 		n = -n;
 		*buf++ = '-';
+		buflen--;
 	}
 	utoa_to_buf((unsigned)n, buf, buflen);
 }
