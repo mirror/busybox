@@ -38,12 +38,7 @@
 
 #include "pwd_.h"
 #include "grp_.h"
-#ifdef CONFIG_FEATURE_SHADOWPASSWDS
 #include "shadow_.h"
-#endif
-#ifdef CONFIG_FEATURE_SHA1_PASSWORDS
-# include "sha1.h"
-#endif
 
 /* Try to pull in PATH_MAX */
 #include <limits.h>
@@ -467,7 +462,6 @@ extern int restricted_shell ( const char *shell );
 extern void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw );
 extern int correct_password ( const struct passwd *pw );
 extern char *pw_encrypt(const char *clear, const char *salt);
-extern struct spwd *pwd_to_spwd(const struct passwd *pw);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 
 extern int bb_xopen(const char *pathname, int flags);
