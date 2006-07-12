@@ -20,14 +20,8 @@ long bb_xgetlarg(const char *arg, int base, long lower, long upper)
 	char *endptr;
 	int errno_save = errno;
 
-	assert(arg!=NULL);
-
-	/* Don't allow leading whitespace.
-	 * Wrap isspace in () to make sure we call the
-	 * function rather than the macro. */
-	if ((isspace)(*arg)) {
-		bb_show_usage();
-	}
+	if (ENABLE_DEBUG && arg==NULL)
+		bb_error_msg_and_die("Null in xgetlarg.");
 
 	errno = 0;
 	result = strtol(arg, &endptr, base);

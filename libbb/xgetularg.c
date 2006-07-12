@@ -89,9 +89,7 @@ long bb_xgetlarg_bnd_sfx(const char *arg, int base,
 
 	if ((*p == '-') && (p[1] != '+')) {
 		++p;
-#if LONG_MAX == (-(LONG_MIN + 1))
 		++u;	/* two's complement */
-#endif
 	}
 
 	r = bb_xgetularg_bnd_sfx(p, base, 0, u, suffixes);
