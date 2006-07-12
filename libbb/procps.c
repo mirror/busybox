@@ -26,7 +26,7 @@ static int read_to_buf(const char *filename, void *buf)
 	ssize_t ret;
 
 	fd = open(filename, O_RDONLY);
-	if(fd < 0)
+	if (fd < 0)
 		return -1;
 	ret = read(fd, buf, PROCPS_BUFSIZE-1);
 	((char *)buf)[ret > 0 ? ret : 0] = 0;
@@ -53,8 +53,8 @@ procps_status_t * procps_scan(int save_user_arg0)
 	if (!dir) {
 		dir = bb_xopendir("/proc");
 	}
-	for(;;) {
-		if((entry = readdir(dir)) == NULL) {
+	for (;;) {
+		if ((entry = readdir(dir)) == NULL) {
 			closedir(dir);
 			dir = 0;
 			return 0;
@@ -68,17 +68,17 @@ procps_status_t * procps_scan(int save_user_arg0)
 		curstatus.pid = pid;
 
 		status_tail = status + sprintf(status, "/proc/%d", pid);
-		if(stat(status, &sb))
+		if (stat(status, &sb))
 			continue;
 		bb_getpwuid(curstatus.user, sb.st_uid, sizeof(curstatus.user));
 
 		/* see proc(5) for some details on this */
 		strcpy(status_tail, "/stat");
 		n = read_to_buf(status, buf);
-		if(n < 0)
+		if (n < 0)
 			continue;
 		name = strrchr(buf, ')'); /* split into "PID (cmd" and "<rest>" */
-		if(name == 0 || name[1] != ' ')
+		if (name == 0 || name[1] != ' ')
 			continue;
 		*name = 0;
 		sscanf(buf, "%*s (%15c", curstatus.short_cmd);
@@ -103,9 +103,9 @@ procps_status_t * procps_scan(int save_user_arg0)
 		&tasknice,
 		&curstatus.rss);
 #ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-		if(n != 6)
+		if (n != 6)
 #else
-		if(n != 4)
+		if (n != 4)
 #endif
 			continue;
 
@@ -126,21 +126,21 @@ procps_status_t * procps_scan(int save_user_arg0)
 		curstatus.rss *= (getpagesize() >> 10);     /* 2**10 = 1kb */
 #endif
 
-		if(save_user_arg0) {
+		if (save_user_arg0) {
 			strcpy(status_tail, "/cmdline");
 			n = read_to_buf(status, buf);
-			if(n > 0) {
-				if(buf[n-1]=='\n')
+			if (n > 0) {
+				if (buf[n-1]=='\n')
 					buf[--n] = 0;
 				name = buf;
-				while(n) {
-					if(((unsigned char)*name) < ' ')
+				while (n) {
+					if (((unsigned char)*name) < ' ')
 						*name = ' ';
 					name++;
 					n--;
 				}
 				*name = 0;
-				if(buf[0])
+				if (buf[0])
 					curstatus.cmd = strdup(buf);
 				/* if NULL it work true also */
 			}
