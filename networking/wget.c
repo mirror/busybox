@@ -697,12 +697,11 @@ updateprogressmeter(int ignore)
 	errno = save_errno;
 }
 
-static void
-alarmtimer(int wait)
+static void alarmtimer(int iwait)
 {
 	struct itimerval itv;
 
-	itv.it_value.tv_sec = wait;
+	itv.it_value.tv_sec = iwait;
 	itv.it_value.tv_usec = 0;
 	itv.it_interval = itv.it_value;
 	setitimer(ITIMER_REAL, &itv, NULL);
@@ -715,7 +714,7 @@ progressmeter(int flag)
 	static struct timeval lastupdate;
 	static off_t lastsize, totalsize;
 
-	struct timeval now, td, wait;
+	struct timeval now, td, tvwait;
 	off_t abbrevsize;
 	int elapsed, ratio, barlength, i;
 	char buf[256];
@@ -753,18 +752,18 @@ progressmeter(int flag)
 	/* See http://en.wikipedia.org/wiki/Tera */
 	fprintf(stderr, "%6d %c%c ", (int)abbrevsize, " KMGTPEZY"[i], i?'B':' ');
 
-	timersub(&now, &lastupdate, &wait);
+	timersub(&now, &lastupdate, &tvwait);
 	if (transferred > lastsize) {
 		lastupdate = now;
 		lastsize = transferred;
-		if (wait.tv_sec >= STALLTIME)
-			timeradd(&start, &wait, &start);
-		wait.tv_sec = 0;
+		if (tvwait.tv_sec >= STALLTIME)
+			timeradd(&start, &tvwait, &start);
+		tvwait.tv_sec = 0;
 	}
 	timersub(&now, &start, &td);
 	elapsed = td.tv_sec;
 
-	if (wait.tv_sec >= STALLTIME) {
+	if (tvwait.tv_sec >= STALLTIME) {
 		fprintf(stderr, " - stalled -");
 	} else if (transferred <= 0 || elapsed <= 0 || transferred > totalsize || chunked) {
 		fprintf(stderr, "--:--:-- ETA");

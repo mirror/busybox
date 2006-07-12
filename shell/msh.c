@@ -10,41 +10,12 @@
  *   Robert Schwebel <r.schwebel@pengutronix.de>
  *   Erik Andersen <andersen@codepoet.org>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
- * Original copyright notice is retained at the end of this file.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "busybox.h"
-#include <ctype.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <limits.h>
 #include <setjmp.h>
-#include <signal.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <sys/stat.h>
 #include <sys/times.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 
 #include "cmdedit.h"
 
@@ -293,7 +264,6 @@ static char *space(int n);
 static char *strsave(char *s, int a);
 static char *evalstr(char *cp, int f);
 static char *putn(int n);
-static char *itoa(int n);
 static char *unquote(char *as);
 static struct var *lookup(char *n);
 static int rlookup(char *n);
@@ -1251,15 +1221,6 @@ static char *putn(int n)
 {
 	return (itoa(n));
 }
-
-static char *itoa(int n)
-{
-	static char s[20];
-
-	snprintf(s, sizeof(s), "%u", n);
-	return (s);
-}
-
 
 static void next(int f)
 {

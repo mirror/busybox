@@ -9,18 +9,6 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <limits.h>
-#include <dirent.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/sysmacros.h>
 
 #define FUSER_PROC_DIR "/proc"
 #define FUSER_MAX_LINE 255
@@ -335,7 +323,7 @@ int fuser_main(int argc, char **argv)
 		optn = fuser_option(argv[i]);
 		if(optn) opt |= optn;
 		else if(argv[i][0] == '-') {
-			if(!(u_signal_names(argv[i]+1, &killsig, 0)))
+			if(0>(killsig = get_signum(argv[i]+1)))
 				killsig = SIGTERM;
 		}
 		else {
@@ -345,7 +333,6 @@ int fuser_main(int argc, char **argv)
 	}
 	if(!fnic) return 1;
 
-	pids = xmalloc(sizeof(pid_list));
 	inodes = xmalloc(sizeof(inode_list));
 	for(i=0;i<fnic;i++) {
 		if(fuser_parse_net_arg(argv[fni[i]], &proto, &port)) {
@@ -354,14 +341,13 @@ int fuser_main(int argc, char **argv)
 		else {
 			if(!fuser_file_to_dev_inode(
 				argv[fni[i]], &dev, &inode)) {
-				free(pids);
-				free(inodes);
-				bb_perror_msg_and_die(
-					"Could not open '%s'", argv[fni[i]]);
+				if (ENABLE_FEATURE_CLEAN_UP) free(inodes);
+				bb_perror_msg_and_die("Could not open '%s'", argv[fni[i]]);
 			}
 			fuser_add_inode(inodes, dev, inode);
 		}
 	}
+	pids = xmalloc(sizeof(pid_list));
 	success = fuser_scan_proc_pids(opt, inodes, pids);
 	/* if the first pid in the list is 0, none have been found */
 	if(pids->pid == 0) success = 0;

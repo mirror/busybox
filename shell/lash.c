@@ -22,18 +22,7 @@
 
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/wait.h>
-#include <unistd.h>
 #include <getopt.h>
-#include <termios.h>
 #include "cmdedit.h"
 
 #ifdef CONFIG_LOCALE_SUPPORT
@@ -695,26 +684,6 @@ static int get_command(FILE * source, char *command)
 	}
 
 	return 0;
-}
-
-static char* itoa(int i)
-{
-	static char a[7]; /* Max 7 ints */
-	char *b = a + sizeof(a) - 1;
-	int   sign = (i < 0);
-
-	if (sign)
-		i = -i;
-	*b = 0;
-	do
-	{
-		*--b = '0' + (i % 10);
-		i /= 10;
-	}
-	while (i);
-	if (sign)
-		*--b = '-';
-	return b;
 }
 
 static char * strsep_space( char *string, int * ix)

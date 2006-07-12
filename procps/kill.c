@@ -18,22 +18,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#define KILL 0
-#define KILLALL 1
-
 int kill_main(int argc, char **argv)
 {
-	int whichApp, signo = SIGTERM;
-	const char *name;
-	int errors = 0;
+	int killall, signo = SIGTERM, errors = 0, quiet=0;
 
-#ifdef CONFIG_KILLALL
-	int quiet=0;
-	/* Figure out what we are trying to do here */
-	whichApp = (strcmp(bb_applet_name, "killall") == 0)? KILLALL : KILL;
-#else
-	whichApp = KILL;
-#endif
+	killall = (ENABLE_KILLALL && bb_applet_name[4]=='a') ? 1 : 0;
 
 	/* Parse any options */
 	if (argc < 2)
@@ -50,32 +39,38 @@ int kill_main(int argc, char **argv)
 		if(argc==2) {
 			/* Print the whole signal list */
 			int col = 0;
-			for(signo=1; signo < NSIG; signo++) {
-				name = u_signal_names(0, &signo, 1);
-				if(name==NULL)  /* unnamed */
-					continue;
-				col += printf("%2d) %-16s", signo, name);
+
+			for(signo = 0;;) {
+				char *name = get_signame(++signo);
+				if (isdigit(*name)) break;
+
 				if (col > 60) {
 					printf("\n");
 					col = 0;
 				}
+				col += printf("%2d) %-16s", signo, name);
 			}
 			printf("\n");
-
 		} else {
 			for(argv++; *argv; argv++) {
-				name = u_signal_names(*argv, &signo, -1);
-				if(name!=NULL)
-					printf("%s\n", name);
+				char *name;
+
+				if (isdigit(**argv)) name = get_signame(atoi(*argv));
+				else {
+					int temp = get_signum(*argv);
+					if (temp<0)
+						bb_error_msg_and_die("unknown signal %s", *argv);
+					name = get_signame(temp);
+				}
+				puts(name);
 			}
 		}
 		/* If they specified -l, were all done */
 		return EXIT_SUCCESS;
 	}
 
-#ifdef CONFIG_KILLALL
 	/* The -q quiet option */
-	if(whichApp != KILL && argv[1][1]=='q' && argv[1][2]=='\0'){
+	if(killall && argv[1][1]=='q' && argv[1][2]=='\0'){
 		quiet++;
 		argv++;
 		argc--;
@@ -83,9 +78,8 @@ int kill_main(int argc, char **argv)
 			goto do_it_now;
 		}
 	}
-#endif
 
-	if(!u_signal_names(argv[1]+1, &signo, 0))
+	if(0>(signo = get_signum(argv[1]+1)))
 		bb_error_msg_and_die( "bad signal name '%s'", argv[1]+1);
 	argv+=2;
 	argc-=2;
@@ -96,7 +90,7 @@ do_it_now:
 	if (argc <= 0)
 		bb_show_usage();
 
-	if (whichApp == KILL) {
+	if (!killall) {
 		/* Looks like they want to do a kill. Do that */
 		while (--argc >= 0) {
 			int pid;
@@ -111,10 +105,9 @@ do_it_now:
 			argv++;
 		}
 
-	}
-#ifdef CONFIG_KILLALL
-	else {
+	} else {
 		pid_t myPid=getpid();
+
 		/* Looks like they want to do a killall.  Do that */
 		while (--argc >= 0) {
 			long* pidList;
@@ -141,6 +134,6 @@ do_it_now:
 			argv++;
 		}
 	}
-#endif
+
 	return errors;
 }

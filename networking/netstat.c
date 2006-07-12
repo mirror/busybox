@@ -11,18 +11,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <unistd.h>
-#include "inet_common.h"
 #include "busybox.h"
-#include "pwd_.h"
+#include "inet_common.h"
 
 #ifdef CONFIG_ROUTE
 extern void displayroutes(int noresolve, int netstatfmt);
@@ -86,19 +76,6 @@ typedef enum {
 #define SO_ACCEPTCON    (1<<16)	/* performed a listen           */
 #define SO_WAITDATA     (1<<17)	/* wait data to read            */
 #define SO_NOSPACE      (1<<18)	/* no space to write            */
-
-static char *itoa(unsigned int i)
-{
-	/* 21 digits plus null terminator, good for 64-bit or smaller ints */
-	static char local[22];
-	char *p = &local[21];
-	*p-- = '\0';
-	do {
-		*p-- = '0' + i % 10;
-		i /= 10;
-	} while (i > 0);
-	return p + 1;
-}
 
 static char *get_sname(int port, const char *proto, int num)
 {

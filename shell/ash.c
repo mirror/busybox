@@ -2035,7 +2035,6 @@ static void onsig(int);
 static int dotrap(void);
 static void setinteractive(int);
 static void exitshell(void) ATTRIBUTE_NORETURN;
-static int decode_signal(const char *, int);
 
 /*
  * This routine is called when an error or an interrupt occurs in an
@@ -6548,7 +6547,7 @@ usage:
 	}
 
 	if (**++argv == '-') {
-		signo = decode_signal(*argv + 1, 1);
+		signo = get_signum(*argv + 1);
 		if (signo < 0) {
 			int c;
 
@@ -6562,7 +6561,7 @@ usage:
 					list = 1;
 					break;
 				case 's':
-					signo = decode_signal(optionarg, 1);
+					signo = get_signum(optionarg);
 					if (signo < 0) {
 						sh_error(
 							"invalid signal number or name: %s",
@@ -6588,14 +6587,14 @@ usage:
 
 		if (!*argv) {
 			for (i = 1; i < NSIG; i++) {
-				name = u_signal_names(0, &i, 1);
-				if (name)
+				name = get_signame(i);
+				if (isdigit(*name))
 					out1fmt(snlfmt, name);
 			}
 			return 0;
 		}
-		name = u_signal_names(*argptr, &signo, -1);
-		if (name)
+		name = get_signame(signo);
+		if (isdigit(*name))
 			out1fmt(snlfmt, name);
 		else
 			sh_error("invalid signal number or exit status: %s", *argptr);
@@ -11617,9 +11616,7 @@ trapcmd(int argc, char **argv)
 			if (trap[signo] != NULL) {
 				const char *sn;
 
-				sn = u_signal_names(0, &signo, 0);
-				if (sn == NULL)
-					sn = "???";
+				sn = get_signame(signo);
 				out1fmt("trap -- %s %s\n",
 					single_quote(trap[signo]), sn);
 			}
@@ -11631,7 +11628,7 @@ trapcmd(int argc, char **argv)
 	else
 		action = *ap++;
 	while (*ap) {
-		if ((signo = decode_signal(*ap, 0)) < 0)
+		if ((signo = get_signum(*ap)) < 0)
 			sh_error("%s: bad trap", *ap);
 		INTOFF;
 		if (action) {
@@ -11932,14 +11929,6 @@ exitshell(void)
 out:
 	_exit(status);
 	/* NOTREACHED */
-}
-
-static int decode_signal(const char *string, int minsig)
-{
-	int signo;
-	const char *name = u_signal_names(string, &signo, minsig);
-
-	return name ? signo : -1;
 }
 
 /*      var.c     */

@@ -16,6 +16,7 @@
 
 #include <ctype.h>
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <netdb.h>
@@ -25,10 +26,12 @@
 #include <stdarg.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -178,6 +181,10 @@ extern void bb_xdaemon(int nochdir, int noclose);
 extern void bb_xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
 extern void bb_xlisten(int s, int backlog);
 extern void bb_xchdir(const char *path);
+extern void utoa_to_buf(unsigned n, char *buf, unsigned buflen);
+extern char *utoa(unsigned n);
+extern void itoa_to_buf(int n, char *buf, unsigned buflen);
+extern char *itoa(int n);
 
 #define BB_GETOPT_ERROR 0x80000000UL
 extern const char *bb_opt_complementally;
@@ -331,7 +338,9 @@ char *dirname (char *path);
 
 int bb_make_directory (char *path, long mode, int flags);
 
-const char *u_signal_names(const char *str_sig, int *signo, int startnum);
+int get_signum(char *name);
+char *get_signame(int number);
+
 char *bb_simplify_path(const char *path);
 
 enum {	/* DO NOT CHANGE THESE VALUES!  cp.c depends on them. */
