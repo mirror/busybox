@@ -1,5 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ */
+
+/*
 	devfsd implementation for busybox
 
 	Copyright (C) 2003 by Tito Ragusa <farmatito@tiscali.it>

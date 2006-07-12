@@ -1,18 +1,20 @@
 /* vi: set sw=4 ts=4: */
 /* agetty.c - another getty program for Linux. By W. Z. Venema 1989
-   Ported to Linux by Peter Orbaek <poe@daimi.aau.dk>
-   This program is freely distributable. The entire man-page used to
-   be here. Now read the real man-page agetty.8 instead.
+ * Ported to Linux by Peter Orbaek <poe@daimi.aau.dk>
+ * This program is freely distributable. The entire man-page used to
+ * be here. Now read the real man-page agetty.8 instead.
+ *
+ * option added by Eric Rasmussen <ear@usfirst.org> - 12/28/95
+ *
+ * 1999-02-22 Arkadiusz Mi¶kiewicz <misiek@misiek.eu.org>
+ * - added Native Language Support
 
-   -f option added by Eric Rasmussen <ear@usfirst.org> - 12/28/95
-
-   1999-02-22 Arkadiusz Mi¶kiewicz <misiek@misiek.eu.org>
-   - added Native Language Support
-
-   1999-05-05 Thorsten Kranzkowski <dl8bcu@gmx.net>
-   - enable hardware flow control before displaying /etc/issue
-
-*/
+ * 1999-05-05 Thorsten Kranzkowski <dl8bcu@gmx.net>
+ * - enable hardware flow control before displaying /etc/issue
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ *
+ */
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,4 +1,5 @@
 /* vi: set sw=4 ts=4: */
+
 /*
  * vlock implementation for busybox
  *
