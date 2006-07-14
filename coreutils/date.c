@@ -9,14 +9,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
 */
 
-#include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
-#include <time.h>
-#include <stdio.h>
-#include <string.h>
-#include "busybox.h"
-
 /* This 'date' command supports only 2 time setting formats,
    all the GNU strftime stuff (its in libc, lets use it),
    setting time using UTC and displaying int, as well as
@@ -27,6 +19,23 @@
    much as possible, missed out a lot of bounds checking */
 
 /* Default input handling to save surprising some people */
+
+#include <stdlib.h>
+#include <errno.h>
+#include <unistd.h>
+#include <time.h>
+#include <stdio.h>
+#include <string.h>
+#include "busybox.h"
+
+#define DATE_OPT_RFC2822	0x01
+#define DATE_OPT_SET		0x02
+#define DATE_OPT_UTC		0x04
+#define DATE_OPT_DATE		0x08
+#define DATE_OPT_REFERENCE	0x10
+#define DATE_OPT_TIMESPEC	0x20
+#define DATE_OPT_HINT		0x40
+
 
 static struct tm *date_conv_time(struct tm *tm_time, const char *t_string)
 {
@@ -102,14 +111,6 @@ static struct tm *date_conv_ftime(struct tm *tm_time, const char *t_string)
 	*tm_time = t;
 	return (tm_time);
 }
-
-#define DATE_OPT_RFC2822	0x01
-#define DATE_OPT_SET		0x02
-#define DATE_OPT_UTC		0x04
-#define DATE_OPT_DATE		0x08
-#define DATE_OPT_REFERENCE	0x10
-#define DATE_OPT_TIMESPEC	0x20
-#define DATE_OPT_HINT		0x40
 
 int date_main(int argc, char **argv)
 {
