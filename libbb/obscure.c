@@ -109,7 +109,7 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 		return "similar to username";
 	}
 	/* no gecos as-is, as sub-string, reversed, capitalized, doubled */
-	if (string_checker(new_p, pw->pw_gecos)) {
+	if (*pw->pw_gecos && string_checker(new_p, pw->pw_gecos)) {
 		return "similar to gecos";
 	}
 	/* hostname as-is, as sub-string, reversed, capitalized, doubled */
