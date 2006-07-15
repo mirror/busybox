@@ -185,6 +185,8 @@ extern void utoa_to_buf(unsigned n, char *buf, unsigned buflen);
 extern char *utoa(unsigned n);
 extern void itoa_to_buf(int n, char *buf, unsigned buflen);
 extern char *itoa(int n);
+extern void xsetgid(gid_t gid);
+extern void xsetuid(uid_t uid);
 
 #define BB_GETOPT_ERROR 0x80000000UL
 extern const char *bb_opt_complementally;

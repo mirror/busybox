@@ -282,3 +282,15 @@ char *itoa(int n)
 	return local_buf;
 }
 #endif
+
+#ifdef L_setuid
+void xsetgid(gid_t gid)
+{
+	if (setgid(gid)) bb_error_msg_and_die("setgid");
+}
+
+void xsetuid(uid_t uid)
+{
+	if (setuid(uid)) bb_error_msg_and_die("setuid");
+}
+#endif
