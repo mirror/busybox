@@ -87,7 +87,7 @@ int su_main ( int argc, char **argv )
 	setup_environment(opt_shell, flags & SU_OPT_l, !(flags & SU_OPT_mp), pw);
     USE_SELINUX(set_current_security_context(NULL);)
 
-	/* Returns only on error */
+	/* Never returns */
 	run_shell(opt_shell, flags & SU_OPT_l, opt_command, (const char**)opt_args);
 
 	return EXIT_FAILURE;
