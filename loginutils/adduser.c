@@ -96,6 +96,7 @@ static void passwd_wrapper(const char *login)
 static int adduser(struct passwd *p, unsigned long flags)
 {
 	FILE *file;
+	int addgroup = !p->pw_gid;
 
 	/* make sure everything is kosher and setup uid && gid */
 	file = bb_xfopen(bb_path_passwd_file, "a");
@@ -132,9 +133,8 @@ static int adduser(struct passwd *p, unsigned long flags)
 	/* add to group */
 	/* addgroup should be responsible for dealing w/ gshadow */
 	/* if using a pre-existing group, don't create one */
-	if (p->pw_gid == 0) {
-		addgroup_wrapper(p);
-	}
+	if (addgroup) addgroup_wrapper(p);
+
 	/* Clear the umask for this process so it doesn't
 	 * * screw up the permissions on the mkdir and chown. */
 	umask(0);
