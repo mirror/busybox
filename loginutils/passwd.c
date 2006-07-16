@@ -227,10 +227,7 @@ int passwd_main(int argc, char **argv)
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);
 	umask(077);
-	if (setuid(0)) {
-		syslog(LOG_ERR, "can't setuid(0)");
-		bb_error_msg_and_die( "Cannot change ID to root.\n");
-	}
+	xsetuid(0);
 	if (!update_passwd(pw, crypt_passwd)) {
 		syslog(LOG_INFO, "password for `%s' changed by user `%s'", name,
 			   myname);

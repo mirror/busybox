@@ -159,8 +159,8 @@ static int godaemon(void)
 
 		close(0);
 		inetbind();
-		if (setgid(nogrp))   bb_error_msg_and_die("Could not setgid()");
-		if (setuid(nobody))  bb_error_msg_and_die("Could not setuid()");
+		xsetgid(nogrp);
+		xsetuid(nobody);
 		close(1);
 		close(2);
 

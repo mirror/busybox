@@ -145,7 +145,7 @@ int etherwake_main(int argc, char *argv[])
 	s = make_socket();
 
 	/* now that we have a raw socket we can drop root */
-	setuid(getuid());
+	xsetuid(getuid());
 
 	/* look up the dest mac address */
 	get_dest_addr(argv[optind], &eaddr);

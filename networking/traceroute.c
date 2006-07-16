@@ -941,7 +941,6 @@ traceroute_main(int argc, char *argv[])
 #endif
 	u_short off = 0;
 	struct IFADDRLIST *al;
-	int uid = getuid();
 	char *device = NULL;
 	int max_ttl = 30;
 	char *max_ttl_str = NULL;
@@ -1010,8 +1009,7 @@ traceroute_main(int argc, char *argv[])
 	     * set the ip source address of the outbound
 	     * probe (e.g., on a multi-homed host).
 	     */
-	     if (uid)
-		bb_error_msg_and_die("-s %s: Permission denied", source);
+	     if (getuid()) bb_error_msg_and_die("-s %s: Permission denied", source);
 	}
 	if(waittime_str)
 		waittime = str2val(waittime_str, "wait time", 2, 24 * 60 * 60);
@@ -1160,8 +1158,8 @@ traceroute_main(int argc, char *argv[])
 		    sizeof(on));
 
 	/* Revert to non-privileged user after opening sockets */
-	setgid(getgid());
-	setuid(uid);
+	xsetgid(getgid());
+	xsetuid(getuid());
 
 	outip = (struct ip *)xcalloc(1, (unsigned)packlen);
 

@@ -1513,11 +1513,11 @@ inetd_main (int argc, char *argv[])
 			  if (sep->se_group) {
 				pwd->pw_gid = grp->gr_gid;
 			  }
-			  setgid ((gid_t) pwd->pw_gid);
+			  xsetgid ((gid_t) pwd->pw_gid);
 			  initgroups (pwd->pw_name, pwd->pw_gid);
-			  setuid ((uid_t) pwd->pw_uid);
+			  xsetuid((uid_t) pwd->pw_uid);
 			} else if (sep->se_group) {
-			  setgid (grp->gr_gid);
+			  xsetgid(grp->gr_gid);
 			  setgroups (1, &grp->gr_gid);
 			}
 			dup2 (ctrl, 0);

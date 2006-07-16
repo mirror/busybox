@@ -262,7 +262,8 @@ int arping_main(int argc, char **argv)
 	s = socket(PF_PACKET, SOCK_DGRAM, 0);
 	ifindex = errno;
 
-	setuid(getuid());
+	// Drop suid root privileges
+	xsetuid(getuid());
 
 	{
 		unsigned long opt;
