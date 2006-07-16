@@ -16,7 +16,7 @@
  * This does multiple writes as necessary.
  * Returns the amount written, or -1 on an error.
  */
-ssize_t bb_full_write(int fd, const void *buf, size_t len)
+ssize_t full_write(int fd, const void *buf, size_t len)
 {
 	ssize_t cc;
 	ssize_t total;

@@ -3322,7 +3322,7 @@ evalcommand(union node *cmd, int flags)
 			}
 			sp = arglist.list;
 		}
-		bb_full_write(preverrout_fd, "\n", 1);
+		full_write(preverrout_fd, "\n", 1);
 	}
 
 	cmd_is_exec = 0;
@@ -4559,7 +4559,7 @@ expandhere(union node *arg, int fd)
 {
 	herefd = fd;
 	expandarg(arg, (struct arglist *)NULL, 0);
-	bb_full_write(fd, stackblock(), expdest - (char *)stackblock());
+	full_write(fd, stackblock(), expdest - (char *)stackblock());
 }
 
 
@@ -8378,7 +8378,7 @@ growstackstr(void)
 {
 	size_t len = stackblocksize();
 	if (herefd >= 0 && len >= 1024) {
-		bb_full_write(herefd, stackblock(), len);
+		full_write(herefd, stackblock(), len);
 		return stackblock();
 	}
 	growstackblock();
@@ -10973,7 +10973,7 @@ openhere(union node *redir)
 	if (redir->type == NHERE) {
 		len = strlen(redir->nhere.doc->narg.text);
 		if (len <= PIPESIZE) {
-			bb_full_write(pip[1], redir->nhere.doc->narg.text, len);
+			full_write(pip[1], redir->nhere.doc->narg.text, len);
 			goto out;
 		}
 	}
@@ -10987,7 +10987,7 @@ openhere(union node *redir)
 #endif
 		signal(SIGPIPE, SIG_DFL);
 		if (redir->type == NHERE)
-			bb_full_write(pip[1], redir->nhere.doc->narg.text, len);
+			full_write(pip[1], redir->nhere.doc->narg.text, len);
 		else
 			expandhere(redir->nhere.doc, pip[1]);
 		_exit(0);

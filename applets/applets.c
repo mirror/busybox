@@ -343,22 +343,15 @@ static void check_suid (struct BB_applet *applet)
 		bb_error_msg_and_die ("You have no permission to run this applet!");
 
 	  if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {     /* *both* have to be set for sgid */
-		if (setegid (sct->m_gid))
-		  bb_error_msg_and_die
-			("BusyBox binary has insufficient rights to set proper GID for applet!");
-	  } else
-		setgid (rgid);                  /* no sgid -> drop */
+		xsetgid(sct->m_gid);
+	  } else xsetgid(rgid);                /* no sgid -> drop */
 
-	  if (sct->m_mode & S_ISUID) {
-		if (seteuid (sct->m_uid))
-		  bb_error_msg_and_die
-			("BusyBox binary has insufficient rights to set proper UID for applet!");
-	  } else
-		setuid (ruid);                  /* no suid -> drop */
+	  if (sct->m_mode & S_ISUID) xsetuid(sct->m_uid);
+	  else xsetuid(ruid);                  /* no suid -> drop */
 	} else {
 		/* default: drop all privileges */
-	  setgid (rgid);
-	  setuid (ruid);
+	  xsetgid(rgid);
+	  xsetuid(ruid);
 	}
 	return;
   } else {
@@ -374,11 +367,10 @@ static void check_suid (struct BB_applet *applet)
 #endif
 
   if (applet->need_suid == _BB_SUID_ALWAYS) {
-	if (geteuid () != 0)
-	  bb_error_msg_and_die ("This applet requires root privileges!");
+	if (geteuid()) bb_error_msg_and_die("Applet requires root privileges!");
   } else if (applet->need_suid == _BB_SUID_NEVER) {
-	setgid (rgid);                          /* drop all privileges */
-	setuid (ruid);
+	xsetgid(rgid);                          /* drop all privileges */
+	xsetuid(ruid);
   }
 }
 #else
@@ -419,14 +411,14 @@ static const char *unpack_usage_messages(void)
 	case -1: /* error */
 		exit(1);
 	case 0: /* child */
-		bb_full_write(input[1], packed_usage, sizeof(packed_usage));
+		full_write(input[1], packed_usage, sizeof(packed_usage));
 		exit(0);
 	}
 	/* parent */
 	close(input[1]);
 
 	buf = xmalloc(SIZEOF_usage_messages);
-	bb_full_read(output[0], buf, SIZEOF_usage_messages);
+	full_read(output[0], buf, SIZEOF_usage_messages);
 	return buf;
 }
 
@@ -454,33 +446,32 @@ void bb_show_usage (void)
   exit (bb_default_error_retval);
 }
 
-static int applet_name_compare (const void *x, const void *y)
+static int applet_name_compare(const void *name, const void *vapplet)
 {
-  const char *name = x;
-  const struct BB_applet *applet = y;
+  const struct BB_applet *applet = vapplet;
 
-  return strcmp (name, applet->name);
+  return strcmp(name, applet->name);
 }
 
 extern const size_t NUM_APPLETS;
 
-struct BB_applet *find_applet_by_name (const char *name)
+struct BB_applet *find_applet_by_name(const char *name)
 {
-  return bsearch (name, applets, NUM_APPLETS, sizeof (struct BB_applet),
+  return bsearch(name, applets, NUM_APPLETS, sizeof(struct BB_applet),
 				  applet_name_compare);
 }
 
-void run_applet_by_name (const char *name, int argc, char **argv)
+void run_applet_by_name(const char *name, int argc, char **argv)
 {
-	if(ENABLE_FEATURE_SUID_CONFIG) parse_config_file ();
+	if (ENABLE_FEATURE_SUID_CONFIG) parse_config_file();
 
-	if(!strncmp(name, "busybox", 7)) busybox_main(argc, argv);
+	if (!strncmp(name, "busybox", 7)) busybox_main(argc, argv);
 	/* Do a binary search to find the applet entry given the name. */
 	applet_using = find_applet_by_name(name);
-	if(applet_using) {
+	if (applet_using) {
 		bb_applet_name = applet_using->name;
-		if(argc==2 && !strcmp(argv[1], "--help")) bb_show_usage ();
-		if(ENABLE_FEATURE_SUID) check_suid (applet_using);
-		exit ((*(applet_using->main)) (argc, argv));
+		if(argc==2 && !strcmp(argv[1], "--help")) bb_show_usage();
+		if(ENABLE_FEATURE_SUID) check_suid(applet_using);
+		exit((*(applet_using->main))(argc, argv));
 	}
 }

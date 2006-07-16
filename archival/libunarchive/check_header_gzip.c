@@ -20,7 +20,7 @@ void check_header_gzip(int src_fd)
 		} formated;
 	} header;
 
-	bb_xread_all(src_fd, header.raw, 8);
+	xread(src_fd, header.raw, 8);
 
 	/* Check the compression method */
 	if (header.formated.method != 8) {
@@ -32,10 +32,10 @@ void check_header_gzip(int src_fd)
 		/* bit 2 set: extra field present */
 		unsigned char extra_short;
 
-		extra_short = bb_xread_char(src_fd) + (bb_xread_char(src_fd) << 8);
+		extra_short = xread_char(src_fd) + (xread_char(src_fd) << 8);
 		while (extra_short > 0) {
 			/* Ignore extra field */
-			bb_xread_char(src_fd);
+			xread_char(src_fd);
 			extra_short--;
 		}
 	}
@@ -43,19 +43,19 @@ void check_header_gzip(int src_fd)
 	/* Discard original name if any */
 	if (header.formated.flags & 0x08) {
 		/* bit 3 set: original file name present */
-		while(bb_xread_char(src_fd) != 0);
+		while(xread_char(src_fd) != 0);
 	}
 
 	/* Discard file comment if any */
 	if (header.formated.flags & 0x10) {
 		/* bit 4 set: file comment present */
-		while(bb_xread_char(src_fd) != 0);
+		while(xread_char(src_fd) != 0);
 	}
 
 	/* Read the header checksum */
 	if (header.formated.flags & 0x02) {
-		bb_xread_char(src_fd);
-		bb_xread_char(src_fd);
+		xread_char(src_fd);
+		xread_char(src_fd);
 	}
 
 	return;

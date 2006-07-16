@@ -43,7 +43,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 	if (ar.raw[0] == '\n') {
 		/* fix up the header, we started reading 1 byte too early */
 		memmove(ar.raw, &ar.raw[1], 59);
-		ar.raw[59] = bb_xread_char(archive_handle->src_fd);
+		ar.raw[59] = xread_char(archive_handle->src_fd);
 		archive_handle->offset++;
 	}
 	archive_handle->offset += 60;
@@ -68,7 +68,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 			 * in static variable long_names for use in future entries */
 			ar_long_name_size = typed->size;
 			ar_long_names = xmalloc(ar_long_name_size);
-			bb_xread_all(archive_handle->src_fd, ar_long_names, ar_long_name_size);
+			xread(archive_handle->src_fd, ar_long_names, ar_long_name_size);
 			archive_handle->offset += ar_long_name_size;
 			/* This ar entries data section only contained filenames for other records
 			 * they are stored in the static ar_long_names for future reference */

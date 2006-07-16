@@ -3,6 +3,7 @@
  * Utility routines.
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2005 by Rob Landley <rob@landley.net>
  *
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */

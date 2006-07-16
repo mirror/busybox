@@ -32,28 +32,10 @@
 #include "unarchive.h"
 #include "busybox.h"
 
-#if BB_BIG_ENDIAN
-static inline unsigned short
-__swap16(unsigned short x) {
-	return (((uint16_t)(x) & 0xFF) << 8) | (((uint16_t)(x) & 0xFF00) >> 8);
-}
-
-static inline uint32_t
-__swap32(uint32_t x) {
-	 return (((x & 0xFF) << 24) |
-		((x & 0xFF00) << 8) |
-		((x & 0xFF0000) >> 8) |
-		((x & 0xFF000000) >> 24));
-}
-#else /* it's little-endian */
-# define __swap16(x) (x)
-# define __swap32(x) (x)
-#endif /* BB_BIG_ENDIAN */
-
-#define ZIP_FILEHEADER_MAGIC		__swap32(0x04034b50)
-#define ZIP_CDS_MAGIC			__swap32(0x02014b50)
-#define ZIP_CDS_END_MAGIC		__swap32(0x06054b50)
-#define ZIP_DD_MAGIC			__swap32(0x08074b50)
+#define ZIP_FILEHEADER_MAGIC		SWAP_LE32(0x04034b50)
+#define ZIP_CDS_MAGIC			SWAP_LE32(0x02014b50)
+#define ZIP_CDS_END_MAGIC		SWAP_LE32(0x06054b50)
+#define ZIP_DD_MAGIC			SWAP_LE32(0x08074b50)
 
 extern unsigned int gunzip_crc;
 extern unsigned int gunzip_bytes_out;
@@ -80,13 +62,6 @@ static void unzip_skip(int fd, off_t skip)
 		if ((errno != ESPIPE) || (bb_copyfd_size(fd, -1, skip) != skip)) {
 			bb_error_msg_and_die("Seek failure");
 		}
-	}
-}
-
-static void unzip_read(int fd, void *buf, size_t count)
-{
-	if (bb_xread(fd, buf, count) != count) {
-		bb_error_msg_and_die(bb_msg_read_error);
 	}
 }
 
@@ -248,7 +223,7 @@ int unzip_main(int argc, char **argv)
 		unsigned int magic;
 
 		/* Check magic number */
-		unzip_read(src_fd, &magic, 4);
+		xread(src_fd, &magic, 4);
 		if (magic == ZIP_CDS_MAGIC) {
 			break;
 		} else if (magic != ZIP_FILEHEADER_MAGIC) {
@@ -256,19 +231,17 @@ int unzip_main(int argc, char **argv)
 		}
 
 		/* Read the file header */
-		unzip_read(src_fd, zip_header.raw, 26);
-#if BB_BIG_ENDIAN
-		zip_header.formated.version = __swap16(zip_header.formated.version);
-		zip_header.formated.flags = __swap16(zip_header.formated.flags);
-		zip_header.formated.method = __swap16(zip_header.formated.method);
-		zip_header.formated.modtime = __swap16(zip_header.formated.modtime);
-		zip_header.formated.moddate = __swap16(zip_header.formated.moddate);
-		zip_header.formated.crc32 = __swap32(zip_header.formated.crc32);
-		zip_header.formated.cmpsize = __swap32(zip_header.formated.cmpsize);
-		zip_header.formated.ucmpsize = __swap32(zip_header.formated.ucmpsize);
-		zip_header.formated.filename_len = __swap16(zip_header.formated.filename_len);
-		zip_header.formated.extra_len = __swap16(zip_header.formated.extra_len);
-#endif /* BB_BIG_ENDIAN */
+		xread(src_fd, zip_header.raw, 26);
+		zip_header.formated.version = SWAP_LE32(zip_header.formated.version);
+		zip_header.formated.flags = SWAP_LE32(zip_header.formated.flags);
+		zip_header.formated.method = SWAP_LE32(zip_header.formated.method);
+		zip_header.formated.modtime = SWAP_LE32(zip_header.formated.modtime);
+		zip_header.formated.moddate = SWAP_LE32(zip_header.formated.moddate);
+		zip_header.formated.crc32 = SWAP_LE32(zip_header.formated.crc32);
+		zip_header.formated.cmpsize = SWAP_LE32(zip_header.formated.cmpsize);
+		zip_header.formated.ucmpsize = SWAP_LE32(zip_header.formated.ucmpsize);
+		zip_header.formated.filename_len = SWAP_LE32(zip_header.formated.filename_len);
+		zip_header.formated.extra_len = SWAP_LE32(zip_header.formated.extra_len);
 		if ((zip_header.formated.method != 0) && (zip_header.formated.method != 8)) {
 			bb_error_msg_and_die("Unsupported compression method %d", zip_header.formated.method);
 		}
@@ -276,7 +249,7 @@ int unzip_main(int argc, char **argv)
 		/* Read filename */
 		free(dst_fn);
 		dst_fn = xzalloc(zip_header.formated.filename_len + 1);
-		unzip_read(src_fd, dst_fn, zip_header.formated.filename_len);
+		xread(src_fd, dst_fn, zip_header.formated.filename_len);
 
 		/* Skip extra header bytes */
 		unzip_skip(src_fd, zip_header.formated.extra_len);

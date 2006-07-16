@@ -193,7 +193,7 @@ void extract_cpio_gz(int fd) {
 	archive_handle->src_fd = fd;
 	archive_handle->offset = 0;
 
-	bb_xread_all(archive_handle->src_fd, &magic, 2);
+	xread(archive_handle->src_fd, &magic, 2);
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
 		bb_error_msg_and_die("Invalid gzip magic");
 	}

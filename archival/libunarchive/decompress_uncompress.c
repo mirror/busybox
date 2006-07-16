@@ -116,7 +116,7 @@ int uncompress(int fd_in, int fd_out)
 
 	insize = 0;
 
-	inbuf[0] = bb_xread_char(fd_in);
+	inbuf[0] = xread_char(fd_in);
 
 	maxbits = inbuf[0] & BIT_MASK;
 	block_mode = inbuf[0] & BLOCK_MODE;

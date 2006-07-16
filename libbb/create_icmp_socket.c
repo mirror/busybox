@@ -31,7 +31,7 @@ int create_icmp_socket(void)
 	}
 
 	/* drop root privs if running setuid */
-	setuid(getuid());
+	xsetuid(getuid());
 
 	return sock;
 }

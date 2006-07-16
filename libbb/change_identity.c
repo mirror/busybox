@@ -46,10 +46,8 @@ const char *change_identity_e2str ( const struct passwd *pw )
 		return "cannot set groups";
 	endgrent ( );
 
-	if ( setgid ( pw-> pw_gid ))
-		return "cannot set group id";
-	if ( setuid ( pw->pw_uid ))
-		return "cannot set user id";
+	xsetgid(pw-> pw_gid);
+	xsetuid(pw->pw_uid);
 	return NULL;
 }
 

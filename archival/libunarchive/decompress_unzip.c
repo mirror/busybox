@@ -116,9 +116,8 @@ static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current
 			/* Leave the first 4 bytes empty so we can always unwind the bitbuffer
 			 * to the front of the bytebuffer, leave 4 bytes free at end of tail
 			 * so we can easily top up buffer in check_trailer_gzip() */
-			if (!(bytebuffer_size = bb_xread(gunzip_src_fd, &bytebuffer[4], bytebuffer_max - 8))) {
+			if (1 > (bytebuffer_size = safe_read(gunzip_src_fd, &bytebuffer[4], bytebuffer_max - 8)))
 				bb_error_msg_and_die("unexpected end of file");
-			}
 			bytebuffer_size += 4;
 			bytebuffer_offset = 4;
 		}
@@ -862,7 +861,7 @@ int inflate_unzip(int in, int out)
 
 	while(1) {
 		int ret = inflate_get_next_window();
-		nwrote = bb_full_write(out, gunzip_window, gunzip_outbuf_count);
+		nwrote = full_write(out, gunzip_window, gunzip_outbuf_count);
 		if (nwrote == -1) {
 			bb_perror_msg("write");
 			return -1;
@@ -896,7 +895,7 @@ int inflate_gunzip(int in, int out)
 	/* top up the input buffer with the rest of the trailer */
 	count = bytebuffer_size - bytebuffer_offset;
 	if (count < 8) {
-		bb_xread_all(in, &bytebuffer[bytebuffer_size], 8 - count);
+		xread(in, &bytebuffer[bytebuffer_size], 8 - count);
 		bytebuffer_size += 8 - count;
 	}
 	for (count = 0; count != 4; count++) {

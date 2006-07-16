@@ -249,7 +249,7 @@ static int tftp(const int cmd, const struct hostent *host,
 			block_nr++;
 
 			if ((cmd & tftp_cmd_put) && (opcode == TFTP_DATA)) {
-				len = bb_full_read(localfd, cp, tftp_bufsize - 4);
+				len = full_read(localfd, cp, tftp_bufsize - 4);
 
 				if (len < 0) {
 					bb_perror_msg(bb_msg_read_error);
@@ -420,7 +420,7 @@ static int tftp(const int cmd, const struct hostent *host,
 
 			if (tmp == block_nr) {
 
-				len = bb_full_write(localfd, &buf[4], len - 4);
+				len = full_write(localfd, &buf[4], len - 4);
 
 				if (len < 0) {
 					bb_perror_msg(bb_msg_write_error);

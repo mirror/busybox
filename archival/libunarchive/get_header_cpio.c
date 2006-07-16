@@ -76,7 +76,8 @@ char get_header_cpio(archive_handle_t *archive_handle)
 	}
 
 	file_header->name = (char *) xzalloc(namesize + 1);
-	archive_xread_all(archive_handle, file_header->name, namesize); /* Read in filename */
+	/* Read in filename */
+	xread(archive_handle->src_fd, file_header->name, namesize);
 	archive_handle->offset += namesize;
 
 	/* Update offset amount and skip padding before file contents */
@@ -103,7 +104,7 @@ char get_header_cpio(archive_handle_t *archive_handle)
 
 	if (S_ISLNK(file_header->mode)) {
 		file_header->link_name = (char *) xzalloc(file_header->size + 1);
-		archive_xread_all(archive_handle, file_header->link_name, file_header->size);
+		xread(archive_handle->src_fd, file_header->link_name, file_header->size);
 		archive_handle->offset += file_header->size;
 		file_header->size = 0; /* Stop possible seeks in future */
 	} else {

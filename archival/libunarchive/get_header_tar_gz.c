@@ -15,7 +15,7 @@ char get_header_tar_gz(archive_handle_t *archive_handle)
 	/* Cant lseek over pipe's */
 	archive_handle->seek = seek_by_char;
 
-	archive_xread_all(archive_handle, &magic, 2);
+	xread(archive_handle->src_fd, &magic, 2);
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
 		bb_error_msg_and_die("Invalid gzip magic");
 	}

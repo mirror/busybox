@@ -269,9 +269,9 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 	putOctal(header.chksum, 7, chksum);
 
 	/* Now write the header out to disk */
-	if ((size =
-		 bb_full_write(tbInfo->tarFd, (char *) &header,
-					sizeof(struct TarHeader))) < 0) {
+	if ((size = full_write(tbInfo->tarFd, (char *) &header,
+					sizeof(struct TarHeader))) < 0)
+	{
 		bb_error_msg(bb_msg_io_error, real_name);
 		return (FALSE);
 	}
@@ -475,7 +475,7 @@ static inline int writeTarFile(const int tar_fd, const int verboseFlag,
 			while (1) {
 				char buf;
 
-				int n = bb_full_read(gzipStatusPipe[0], &buf, 1);
+				int n = full_read(gzipStatusPipe[0], &buf, 1);
 
 				if (n == 0 && vfork_exec_errno != 0) {
 					errno = vfork_exec_errno;
@@ -562,8 +562,8 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 	archive_handle->seek = seek_by_char;
 
 	/* do the decompression, and cleanup */
-	if (bb_xread_char(archive_handle->src_fd) != 0x1f ||
-		bb_xread_char(archive_handle->src_fd) != 0x9d)
+	if (xread_char(archive_handle->src_fd) != 0x1f ||
+		xread_char(archive_handle->src_fd) != 0x9d)
 	{
 		bb_error_msg_and_die("Invalid magic");
 	}

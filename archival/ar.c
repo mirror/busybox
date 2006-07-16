@@ -88,7 +88,7 @@ int ar_main(int argc, char **argv)
 		llist_add_to(&(archive_handle->accept), argv[optind++]);
 	}
 
-	archive_xread_all(archive_handle, magic, 7);
+	xread(archive_handle->src_fd, magic, 7);
 	if (strncmp(magic, "!<arch>", 7) != 0) {
 		bb_error_msg_and_die("Invalid ar magic");
 	}

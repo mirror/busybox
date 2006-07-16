@@ -30,24 +30,24 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 	if (src_fd < 0) goto out;
 	while (!size || total < size)
 	{
-		ssize_t wrote, xread;
+		ssize_t wr, rd;
 
-		xread = safe_read(src_fd, buffer,
+		rd = safe_read(src_fd, buffer,
 				(!size || size - total > BUFSIZ) ? BUFSIZ : size - total);
 
-		if (xread > 0) {
+		if (rd > 0) {
 			/* A -1 dst_fd means we need to fake it... */
-			wrote = (dst_fd < 0) ? xread : bb_full_write(dst_fd, buffer, xread);
-			if (wrote < xread) {
+			wr = (dst_fd < 0) ? rd : full_write(dst_fd, buffer, rd);
+			if (wr < rd) {
 				bb_perror_msg(bb_msg_write_error);
 				break;
 			}
-			total += wrote;
+			total += wr;
 			if (total == size) status = 0;
-		} else if (xread < 0) {
+		} else if (rd < 0) {
 			bb_perror_msg(bb_msg_read_error);
 			break;
-		} else if (xread == 0) {
+		} else if (rd == 0) {
 			/* All done. */
 			status = 0;
 			break;

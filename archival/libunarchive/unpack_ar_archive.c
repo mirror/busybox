@@ -12,7 +12,7 @@ void unpack_ar_archive(archive_handle_t *ar_archive)
 {
 	char magic[7];
 
-	archive_xread_all(ar_archive, magic, 7);
+	xread(ar_archive->src_fd, magic, 7);
 	if (strncmp(magic, "!<arch>", 7) != 0) {
 		bb_error_msg_and_die("Invalid ar magic");
 	}

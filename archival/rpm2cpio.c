@@ -40,7 +40,7 @@ static void skip_header(int rpm_fd)
 {
 	struct rpm_header header;
 
-	bb_xread_all(rpm_fd, &header, sizeof(struct rpm_header));
+	xread(rpm_fd, &header, sizeof(struct rpm_header));
 	if (strncmp((char *) &header.magic, RPM_HEADER_MAGIC, 3) != 0) {
 		bb_error_msg_and_die("Invalid RPM header magic"); /* Invalid magic */
 	}
@@ -66,7 +66,7 @@ int rpm2cpio_main(int argc, char **argv)
 		rpm_fd = bb_xopen(argv[1], O_RDONLY);
 	}
 
-	bb_xread_all(rpm_fd, &lead, sizeof(struct rpm_lead));
+	xread(rpm_fd, &lead, sizeof(struct rpm_lead));
 	if (strncmp((char *) &lead.magic, RPM_MAGIC, 4) != 0) {
 		bb_error_msg_and_die("Invalid RPM magic"); /* Just check the magic, the rest is irrelevant */
 	}
@@ -78,7 +78,7 @@ int rpm2cpio_main(int argc, char **argv)
 	/* Skip the main header */
 	skip_header(rpm_fd);
 
-	bb_xread_all(rpm_fd, &magic, 2);
+	xread(rpm_fd, &magic, 2);
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
 		bb_error_msg_and_die("Invalid gzip magic");
 	}

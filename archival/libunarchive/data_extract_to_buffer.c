@@ -14,5 +14,5 @@ void data_extract_to_buffer(archive_handle_t *archive_handle)
 
 	archive_handle->buffer = xzalloc(size + 1);
 
-	archive_xread_all(archive_handle, archive_handle->buffer, size);
+	xread(archive_handle->src_fd, archive_handle->buffer, size);
 }

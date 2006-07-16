@@ -9,8 +9,6 @@
 
 #include "busybox.h"
 
-#define xread bb_xread
-
 static void timeout(int signum)
 {
 	bb_error_msg_and_die("Timed out");
@@ -151,13 +149,14 @@ repeatyness:
 
 		for (fd = 0; fd < FD_SETSIZE; fd++) {
 			if (FD_ISSET(fd, &testfds)) {
-				nread = xread(fd, bb_common_bufsiz1, sizeof(bb_common_bufsiz1));
+				nread = safe_read(fd, bb_common_bufsiz1,
+							sizeof(bb_common_bufsiz1));
 
 				if (fd == cfd) {
-					if (!nread) exit(0);
+					if (nread<1) exit(0);
 					ofd = STDOUT_FILENO;
 				} else {
-					if (!nread) {
+					if (nread<1) {
 						// Close outgoing half-connection so they get EOF, but
 						// leave incoming alone so we can see response.
 						shutdown(cfd, 1);
@@ -166,8 +165,7 @@ repeatyness:
 					ofd = cfd;
 				}
 
-				if (bb_full_write(ofd, bb_common_bufsiz1, nread) < 0)
-					bb_perror_msg_and_die(bb_msg_write_error);
+				xwrite(ofd, bb_common_bufsiz1, nread);
 				if (delay > 0) sleep(delay);
 			}
 		}

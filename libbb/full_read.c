@@ -17,7 +17,7 @@
  * Returns the amount read, or -1 on an error.
  * A short read is returned on an end of file.
  */
-ssize_t bb_full_read(int fd, void *buf, size_t len)
+ssize_t full_read(int fd, void *buf, size_t len)
 {
 	ssize_t cc;
 	ssize_t total;

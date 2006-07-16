@@ -70,7 +70,7 @@ int uncompress_main(int argc, char **argv)
 		}
 
 		/* do the decompression, and cleanup */
-		if ((bb_xread_char(src_fd) != 0x1f) || (bb_xread_char(src_fd) != 0x9d)) {
+		if ((xread_char(src_fd) != 0x1f) || (xread_char(src_fd) != 0x9d)) {
 			bb_error_msg_and_die("Invalid magic");
 		}
 

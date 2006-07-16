@@ -196,26 +196,20 @@ int dd_main(int argc, char **argv)
 				tmp += d;
 				oc += d;
 				if (oc == obs) {
-					if (bb_full_write(ofd, obuf, obs) < 0) {
-						bb_perror_msg_and_die("%s", outfile);
-					}
+					xwrite(ofd, obuf, obs);
 					out_full++;
 					oc = 0;
 				}
 			}
 		} else {
-			if ((n = bb_full_write(ofd, ibuf, n)) < 0) {
-				bb_perror_msg_and_die("%s", outfile);
-			}
+			xwrite(ofd, ibuf, n);
 			if (n == ibs) out_full++;
 			else out_part++;
 		}
 	}
 	
 	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {
-		if (bb_full_write(ofd, obuf, oc) < 0) {
-			bb_perror_msg_and_die("%s", outfile);
-		}
+		xwrite(ofd, obuf, oc);
 		out_part++;
 	}
 	if (close (ifd) < 0) {

@@ -54,9 +54,8 @@ static void tail_xprint_header(const char *fmt, const char *filename)
 static void tail_xbb_full_write(const char *buf, size_t len)
 {
 	/* If we get a write error, there is really no sense in continuing. */
-	if (bb_full_write(STDOUT_FILENO, buf, len) < 0) {
+	if (full_write(STDOUT_FILENO, buf, len) < 0)
 		bb_perror_nomsg_and_die();
-	}
 }
 
 static ssize_t tail_read(int fd, char *buf, size_t count)

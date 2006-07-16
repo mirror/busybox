@@ -221,7 +221,7 @@ static void message(int device, const char *fmt, ...)
 		}
 	}
 	if ((device & LOG) && (log_fd >= 0)) {
-		bb_full_write(log_fd, msg, l);
+		full_write(log_fd, msg, l);
 	}
 #endif
 
@@ -230,7 +230,7 @@ static void message(int device, const char *fmt, ...)
 					O_WRONLY | O_NOCTTY | O_NONBLOCK);
 		/* Always send console messages to /dev/console so people will see them. */
 		if (fd >= 0) {
-			bb_full_write(fd, msg, l);
+			full_write(fd, msg, l);
 			close(fd);
 #if ENABLE_DEBUG_INIT
 		/* all descriptors may be closed */
@@ -536,7 +536,7 @@ static pid_t run(const struct init_action *a)
 			messageD(LOG, "Waiting for enter to start '%s'"
 						"(pid %d, terminal %s)\n",
 					  cmdpath, getpid(), a->terminal);
-			bb_full_write(1, press_enter, sizeof(press_enter) - 1);
+			full_write(1, press_enter, sizeof(press_enter) - 1);
 			while(read(0, &c, 1) == 1 && c != '\n')
 				;
 		}

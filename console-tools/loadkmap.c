@@ -45,15 +45,15 @@ int loadkmap_main(int argc, char **argv)
 
 	fd = bb_xopen(CURRENT_VC, O_RDWR);
 
-	if ((bb_full_read(0, buff, 7) != 7) || (strncmp(buff, BINARY_KEYMAP_MAGIC, 7) != 0))
+	xread(0, buff, 7);
+	if (strncmp(buff, BINARY_KEYMAP_MAGIC, 7))
 		bb_error_msg_and_die("This is not a valid binary keymap.");
 
-	if (bb_full_read(0, flags, MAX_NR_KEYMAPS) != MAX_NR_KEYMAPS)
-		bb_perror_msg_and_die("Error reading keymap flags");
+	xread(0, flags, MAX_NR_KEYMAPS);
 
 	for (i = 0; i < MAX_NR_KEYMAPS; i++) {
 		if (flags[i] == 1) {
-			bb_full_read(0, ibuff, NR_KEYS * sizeof(u_short));
+			xread(0, ibuff, NR_KEYS * sizeof(u_short));
 			for (j = 0; j < NR_KEYS; j++) {
 				ke.kb_index = j;
 				ke.kb_table = i;
@@ -63,8 +63,6 @@ int loadkmap_main(int argc, char **argv)
 		}
 	}
 
-	/* Don't bother to close files.  Exit does that
-	 * automagically, so we can save a few bytes */
-	/* close(fd); */
-	return EXIT_SUCCESS;
+	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
+	return 0;
 }

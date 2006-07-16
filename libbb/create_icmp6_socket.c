@@ -32,7 +32,7 @@ int create_icmp6_socket(void)
 	}
 
 	/* drop root privs if running setuid */
-	setuid(getuid());
+	xsetuid(getuid());
 
 	return sock;
 }

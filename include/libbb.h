@@ -133,9 +133,9 @@ extern DIR *bb_xopendir(const char *path);
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
 extern ssize_t safe_read(int fd, void *buf, size_t count);
-extern ssize_t bb_full_read(int fd, void *buf, size_t len);
+extern ssize_t full_read(int fd, void *buf, size_t len);
 extern ssize_t safe_write(int fd, const void *buf, size_t count);
-extern ssize_t bb_full_write(int fd, const void *buf, size_t len);
+extern ssize_t full_write(int fd, const void *buf, size_t len);
 extern int recursive_action(const char *fileName, int recurse,
 	  int followLinks, int depthFirst,
 	  int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData),
@@ -187,6 +187,7 @@ extern void itoa_to_buf(int n, char *buf, unsigned buflen);
 extern char *itoa(int n);
 extern void xsetgid(gid_t gid);
 extern void xsetuid(uid_t uid);
+extern off_t fdlength(int fd);
 
 #define BB_GETOPT_ERROR 0x80000000UL
 extern const char *bb_opt_complementally;
@@ -477,9 +478,10 @@ extern int obscure(const char *old, const char *newval, const struct passwd *pwd
 
 extern int bb_xopen(const char *pathname, int flags);
 extern int bb_xopen3(const char *pathname, int flags, int mode);
-extern ssize_t bb_xread(int fd, void *buf, size_t count);
-extern void bb_xread_all(int fd, void *buf, size_t count);
-extern unsigned char bb_xread_char(int fd);
+extern void xread(int fd, void *buf, size_t count);
+extern unsigned char xread_char(int fd);
+extern void xlseek(int fd, off_t offset, int whence);
+extern void xwrite(int fd, void *buf, size_t count);
 
 #ifndef COMM_LEN
 #ifdef TASK_COMM_LEN

@@ -212,7 +212,7 @@ static int receive(char *error_buf, size_t error_buf_size,
 		wantBlockNo++;
 		length += blockLength;
 
-		if (bb_full_write(filefd, blockBuf, blockLength) < 0) {
+		if (full_write(filefd, blockBuf, blockLength) < 0) {
 			note_error("write to file failed: %m");
 			goto fatal;
 		}

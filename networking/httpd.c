@@ -961,7 +961,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 #if DEBUG
   fprintf(stderr, "Headers: '%s'", buf);
 #endif
-  return bb_full_write(a_c_w, buf, len);
+  return full_write(a_c_w, buf, len);
 }
 
 /****************************************************************************
@@ -1222,7 +1222,7 @@ static int sendCgi(const char *url,
 	  break;
 	}
       } else if(post_readed_size > 0 && FD_ISSET(outFd, &writeSet)) {
-		count = bb_full_write(outFd, wbuf + post_readed_idx, post_readed_size);
+		count = full_write(outFd, wbuf + post_readed_idx, post_readed_size);
 		if(count > 0) {
 			post_readed_size -= count;
 			post_readed_idx += count;
@@ -1263,14 +1263,14 @@ static int sendCgi(const char *url,
 	    rbuf[count] = 0;
 	    /* check to see if the user script added headers */
 	    if(strncmp(rbuf, "HTTP/1.0 200 OK\r\n", 4) != 0) {
-	      bb_full_write(s, "HTTP/1.0 200 OK\r\n", 17);
+	      full_write(s, "HTTP/1.0 200 OK\r\n", 17);
 	    }
 	    if (strstr(rbuf, "ontent-") == 0) {
-	      bb_full_write(s, "Content-type: text/plain\r\n\r\n", 28);
+	      full_write(s, "Content-type: text/plain\r\n\r\n", 28);
 	    }
 	    firstLine = 0;
 	  }
-	  if (bb_full_write(s, rbuf, count) != count)
+	  if (full_write(s, rbuf, count) != count)
 	      break;
 
 #if DEBUG
@@ -1337,8 +1337,8 @@ static int sendFile(const char *url)
 	char *buf = config->buf;
 
 	sendHeaders(HTTP_OK);
-	while ((count = bb_full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
-		if (bb_full_write(a_c_w, buf, count) != count)
+	while ((count = full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
+		if (full_write(a_c_w, buf, count) != count)
 			break;
 	}
 	close(f);
@@ -2000,7 +2000,7 @@ int httpd_main(int argc, char *argv[])
 # ifdef CONFIG_FEATURE_HTTPD_SETUID
   /* drop privileges */
   if(uid > 0)
-	setuid(uid);
+	xsetuid(uid);
 # endif
 #endif
 
