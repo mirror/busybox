@@ -169,6 +169,7 @@ CHECKED_LDFLAGS := $(call check_ld,$(LD),--warn-common,)
 
 # Pin CHECKED_CFLAGS with := so it's only evaluated once.
 CHECKED_CFLAGS:=$(call check_cc,$(CC),-Wall,)
+CHECKED_CFLAGS+=$(call check_cc,$(HOSTCC),-Werror,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-Wstrict-prototypes,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-Wshadow,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-funsigned-char,)
