@@ -24,6 +24,7 @@ static int signal_nr = 15;
 static int user_id = -1;
 static int quiet;
 static char *userspec = NULL;
+static char *chuid = NULL;
 static char *cmdname = NULL;
 static char *execname = NULL;
 static char *pidfile = NULL;
@@ -211,6 +212,7 @@ static const struct option ssd_long_options[] = {
 	{ "name",			1,		NULL,		'n' },
 	{ "signal",			1,		NULL,		's' },
 	{ "user",			1,		NULL,		'u' },
+	{ "chuid", 			1,		NULL,		'c' },
 	{ "exec",			1,		NULL,		'x' },
 	{ "pidfile",		1,		NULL,		'p' },
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
@@ -249,9 +251,9 @@ int start_stop_daemon_main(int argc, char **argv)
 	opt = bb_getopt_ulflags(argc, argv, "KSbqm"
 //		USE_FEATURE_START_STOP_DAEMON_FANCY("ovR:")
 		USE_FEATURE_START_STOP_DAEMON_FANCY("ov")
-		"a:n:s:u:x:p:"
+		"a:n:s:u:c:x:p:"
 //		USE_FEATURE_START_STOP_DAEMON_FANCY(,&retry_arg)
-		,&startas, &cmdname, &signame, &userspec, &execname, &pidfile);
+		,&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile);
 
 	quiet = (opt & SSD_OPT_QUIET)
 			USE_FEATURE_START_STOP_DAEMON_FANCY(&& !(opt & SSD_OPT_VERBOSE));
@@ -300,6 +302,11 @@ int start_stop_daemon_main(int argc, char **argv)
 		pid_t pidt = getpid();
 		fprintf(pidf, "%d\n", pidt);
 		fclose(pidf);
+	}
+	if(chuid) {
+		if(sscanf(chuid, "%d", &user_id) != 1)
+			user_id = bb_xgetpwnam(chuid);
+		setuid(user_id);
 	}
 	execv(startas, argv);
 	bb_perror_msg_and_die ("unable to start %s", startas);

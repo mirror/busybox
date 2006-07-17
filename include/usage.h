@@ -2712,7 +2712,8 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\n\t-o|--oknodo\t\t\texit status 0 if nothing done" \
 	"\n\t-v|--verbose\t\t\tbe verbose" \
 ) \
-	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)"
+	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)" \
+	"\n\t-U|--chuid <username>|<uid>\tstart process with this name"
 
 #ifdef CONFIG_FEATURE_STAT_FORMAT
 #  define USAGE_STAT_FORMAT(a) a
