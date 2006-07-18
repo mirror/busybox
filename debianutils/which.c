@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 
 
-static int is_executable_file(const char const * a, struct stat *b)
+static int is_executable_file(const char * const a, struct stat *b)
 {
 	return (!access(a,X_OK) && !stat(a, b) && S_ISREG(b->st_mode));
 }
