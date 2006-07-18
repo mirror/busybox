@@ -1284,7 +1284,7 @@ static int run_pipe_real(struct pipe *pi)
 	int i;
 	int nextin, nextout;
 	int pipefds[2];				/* pipefds[0] is for reading */
-	struct child_prog *child;
+	struct child_prog *child = NULL;
 	const struct built_in_command *x;
 	char *p;
 
