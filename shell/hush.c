@@ -1284,7 +1284,7 @@ static int run_pipe_real(struct pipe *pi)
 	int i;
 	int nextin, nextout;
 	int pipefds[2];				/* pipefds[0] is for reading */
-	struct child_prog *child = NULL;
+	struct child_prog *child;
 	const struct built_in_command *x;
 	char *p;
 
@@ -1295,7 +1295,7 @@ static int run_pipe_real(struct pipe *pi)
 	 * Builtins within pipes have to fork anyway, and are handled in
 	 * pseudo_exec.  "echo foo | read bar" doesn't work on bash, either.
 	 */
-	if (pi->num_progs == 1) child = & (pi->progs[0]);
+	child = & (pi->progs[0]);
 	if (pi->num_progs == 1 && child->group && child->subshell == 0) {
 		int squirrel[] = {-1, -1, -1};
 		int rcode;
