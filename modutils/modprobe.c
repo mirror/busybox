@@ -545,28 +545,36 @@ static struct dep_t *build_dep ( void )
 	}
 	close ( fd );
 
+	/*
+	 * First parse system-specific options and aliases
+	 * as they take precedence over the kernel ones.
+	 */
 	if (!ENABLE_FEATURE_2_6_MODULES
 			|| ( fd = open ( "/etc/modprobe.conf", O_RDONLY )) < 0 )
 		if (( fd = open ( "/etc/modules.conf", O_RDONLY )) < 0 )
-			if (( fd = open ( "/etc/conf.modules", O_RDONLY )) < 0 )
-				return first;
+			fd = open ( "/etc/conf.modules", O_RDONLY );
 
-	include_conf (&first, &current, buffer, sizeof(buffer), fd);
-	close(fd);
-
-	filename = bb_xasprintf("/lib/modules/%s/modules.alias", un.release);
-	fd = open ( filename, O_RDONLY );
-	if (ENABLE_FEATURE_CLEAN_UP)
-		free(filename);
-	if (fd < 0) {
-		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
-		if (( fd = open ( "/lib/modules/modules.alias", O_RDONLY )) < 0 ) {
-			return first;
-		}
+	if (fd >= 0) {
+		include_conf (&first, &current, buffer, sizeof(buffer), fd);
+		close(fd);
 	}
 
-	include_conf (&first, &current, buffer, sizeof(buffer), fd);
-	close(fd);
+	/* Only 2.6 has a modules.alias file */
+	if (ENABLE_FEATURE_2_6_MODULES) {
+		/* Parse kernel-declared aliases */
+		filename = bb_xasprintf("/lib/modules/%s/modules.alias", un.release);
+		if ((fd = open ( filename, O_RDONLY )) < 0) {
+			/* Ok, that didn't work.  Fall back to looking in /lib/modules */
+			fd = open ( "/lib/modules/modules.alias", O_RDONLY );
+		}
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(filename);
+
+		if (fd >= 0) {
+			include_conf (&first, &current, buffer, sizeof(buffer), fd);
+			close(fd);
+		}
+	}
 
 	return first;
 }
