@@ -1783,7 +1783,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-c\tcheck MD5 sums against given list\n" \
 	"\nThe following two options are useful only when verifying checksums:\n" \
 	"\t-s\tdon't output anything, status code shows success\n" \
-	"\t-w\twarn about improperly formated MD5 checksum lines")
+	"\t-w\twarn about improperly formatted MD5 checksum lines")
 #define md5sum_example_usage \
 	"$ md5sum < busybox\n" \
 	"6fd11e98b98a58f64ff3398d7b324003\n" \
@@ -2621,7 +2621,7 @@ USE_FEATURE_MDEV_CONFIG( \
 	"\t-c\tcheck SHA1 sums against given list\n" \
 	"\nThe following two options are useful only when verifying checksums:\n" \
 	"\t-s\tdon't output anything, status code shows success\n" \
-	"\t-w\twarn about improperly formated SHA1 checksum lines")
+	"\t-w\twarn about improperly formatted SHA1 checksum lines")
 
 #ifdef CONFIG_FEATURE_FANCY_SLEEP
 #  define USAGE_FANCY_SLEEP(a) a

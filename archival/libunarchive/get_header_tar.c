@@ -47,7 +47,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 			char devminor[8];	/* 337-344 */
 			char prefix[155];	/* 345-499 */
 			char padding[12];	/* 500-512 */
-		} formated;
+		} formatted;
 	} tar;
 	long sum = 0;
 	long i;
@@ -60,7 +60,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	archive_handle->offset += 512;
 
 	/* If there is no filename its an empty header */
-	if (tar.formated.name[0] == 0) {
+	if (tar.formatted.name[0] == 0) {
 		if (end) {
 			/* This is the second consecutive empty header! End of archive!
 			 * Read until the end to empty the pipe from gz or bz2
@@ -76,9 +76,9 @@ char get_header_tar(archive_handle_t *archive_handle)
 	/* Check header has valid magic, "ustar" is for the proper tar
 	 * 0's are for the old tar format
 	 */
-	if (strncmp(tar.formated.magic, "ustar", 5) != 0) {
+	if (strncmp(tar.formatted.magic, "ustar", 5) != 0) {
 #ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY
-		if (strncmp(tar.formated.magic, "\0\0\0\0\0", 5) != 0)
+		if (strncmp(tar.formatted.magic, "\0\0\0\0\0", 5) != 0)
 #endif
 			bb_error_msg_and_die("Invalid tar magic");
 	}
@@ -90,7 +90,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	for (i =  156; i < 512 ; i++) {
 		sum += tar.raw[i];
 	}
-	if (sum != strtol(tar.formated.chksum, NULL, 8)) {
+	if (sum != strtol(tar.formatted.chksum, NULL, 8)) {
 		bb_error_msg("Invalid tar header checksum");
 		return(EXIT_FAILURE);
 	}
@@ -106,29 +106,29 @@ char get_header_tar(archive_handle_t *archive_handle)
 	} else
 #endif
 	{
-		file_header->name = bb_xstrndup(tar.formated.name,100);
+		file_header->name = bb_xstrndup(tar.formatted.name,100);
 
-		if (tar.formated.prefix[0]) {
+		if (tar.formatted.prefix[0]) {
 			char *temp = file_header->name;
-			file_header->name = concat_path_file(tar.formated.prefix, temp);
+			file_header->name = concat_path_file(tar.formatted.prefix, temp);
 			free(temp);
 		}
 	}
 
-	file_header->uid = strtol(tar.formated.uid, NULL, 8);
-	file_header->gid = strtol(tar.formated.gid, NULL, 8);
-	file_header->size = strtol(tar.formated.size, NULL, 8);
-	file_header->mtime = strtol(tar.formated.mtime, NULL, 8);
-	file_header->link_name = (tar.formated.linkname[0] != '\0') ?
-	    bb_xstrdup(tar.formated.linkname) : NULL;
-	file_header->device = makedev(strtol(tar.formated.devmajor, NULL, 8),
-		strtol(tar.formated.devminor, NULL, 8));
+	file_header->uid = strtol(tar.formatted.uid, NULL, 8);
+	file_header->gid = strtol(tar.formatted.gid, NULL, 8);
+	file_header->size = strtol(tar.formatted.size, NULL, 8);
+	file_header->mtime = strtol(tar.formatted.mtime, NULL, 8);
+	file_header->link_name = (tar.formatted.linkname[0] != '\0') ?
+	    bb_xstrdup(tar.formatted.linkname) : NULL;
+	file_header->device = makedev(strtol(tar.formatted.devmajor, NULL, 8),
+		strtol(tar.formatted.devminor, NULL, 8));
 
 	/* Set bits 0-11 of the files mode */
-	file_header->mode = 07777 & strtol(tar.formated.mode, NULL, 8);
+	file_header->mode = 07777 & strtol(tar.formatted.mode, NULL, 8);
 
 	/* Set bits 12-15 of the files mode */
-	switch (tar.formated.typeflag) {
+	switch (tar.formatted.typeflag) {
 	/* busybox identifies hard links as being regular files with 0 size and a link name */
 	case '1':
 		file_header->mode |= S_IFREG;
@@ -183,10 +183,10 @@ char get_header_tar(archive_handle_t *archive_handle)
 #endif
 	case 'g':	/* pax global header */
 	case 'x':	/* pax extended header */
-		bb_error_msg("Ignoring extension type %c", tar.formated.typeflag);
+		bb_error_msg("Ignoring extension type %c", tar.formatted.typeflag);
 		break;
 	default:
-		bb_error_msg("Unknown typeflag: 0x%x", tar.formated.typeflag);
+		bb_error_msg("Unknown typeflag: 0x%x", tar.formatted.typeflag);
 	}
 	{	/* Strip trailing '/' in directories */
 		/* Must be done after mode is set as '/' is used to check if its a directory */

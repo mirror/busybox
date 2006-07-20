@@ -53,7 +53,7 @@ typedef union {
 		unsigned int ucmpsize ATTRIBUTE_PACKED;	/* 18-21 */
 		unsigned short filename_len;	/* 22-23 */
 		unsigned short extra_len;		/* 24-25 */
-	} formated ATTRIBUTE_PACKED;
+	} formatted ATTRIBUTE_PACKED;
 } zip_header_t;
 
 static void unzip_skip(int fd, off_t skip)
@@ -77,25 +77,25 @@ static void unzip_create_leading_dirs(char *fn)
 
 static int unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 {
-	if (zip_header->formated.method == 0) {
+	if (zip_header->formatted.method == 0) {
 		/* Method 0 - stored (not compressed) */
-		int size = zip_header->formated.ucmpsize;
+		int size = zip_header->formatted.ucmpsize;
 		if (size && (bb_copyfd_size(src_fd, dst_fd, size) != size)) {
 			bb_error_msg_and_die("Cannot complete extraction");
 		}
 
 	} else {
 		/* Method 8 - inflate */
-		inflate_init(zip_header->formated.cmpsize);
+		inflate_init(zip_header->formatted.cmpsize);
 		inflate_unzip(src_fd, dst_fd);
 		inflate_cleanup();
 		/* Validate decompression - crc */
-		if (zip_header->formated.crc32 != (gunzip_crc ^ 0xffffffffL)) {
+		if (zip_header->formatted.crc32 != (gunzip_crc ^ 0xffffffffL)) {
 			bb_error_msg("Invalid compressed data--crc error");
 			return 1;
 		}
 		/* Validate decompression - size */
-		if (zip_header->formated.ucmpsize != gunzip_bytes_out) {
+		if (zip_header->formatted.ucmpsize != gunzip_bytes_out) {
 			bb_error_msg("Invalid compressed data--length error");
 			return 1;
 		}
@@ -232,27 +232,27 @@ int unzip_main(int argc, char **argv)
 
 		/* Read the file header */
 		xread(src_fd, zip_header.raw, 26);
-		zip_header.formated.version = SWAP_LE32(zip_header.formated.version);
-		zip_header.formated.flags = SWAP_LE32(zip_header.formated.flags);
-		zip_header.formated.method = SWAP_LE32(zip_header.formated.method);
-		zip_header.formated.modtime = SWAP_LE32(zip_header.formated.modtime);
-		zip_header.formated.moddate = SWAP_LE32(zip_header.formated.moddate);
-		zip_header.formated.crc32 = SWAP_LE32(zip_header.formated.crc32);
-		zip_header.formated.cmpsize = SWAP_LE32(zip_header.formated.cmpsize);
-		zip_header.formated.ucmpsize = SWAP_LE32(zip_header.formated.ucmpsize);
-		zip_header.formated.filename_len = SWAP_LE32(zip_header.formated.filename_len);
-		zip_header.formated.extra_len = SWAP_LE32(zip_header.formated.extra_len);
-		if ((zip_header.formated.method != 0) && (zip_header.formated.method != 8)) {
-			bb_error_msg_and_die("Unsupported compression method %d", zip_header.formated.method);
+		zip_header.formatted.version = SWAP_LE32(zip_header.formatted.version);
+		zip_header.formatted.flags = SWAP_LE32(zip_header.formatted.flags);
+		zip_header.formatted.method = SWAP_LE32(zip_header.formatted.method);
+		zip_header.formatted.modtime = SWAP_LE32(zip_header.formatted.modtime);
+		zip_header.formatted.moddate = SWAP_LE32(zip_header.formatted.moddate);
+		zip_header.formatted.crc32 = SWAP_LE32(zip_header.formatted.crc32);
+		zip_header.formatted.cmpsize = SWAP_LE32(zip_header.formatted.cmpsize);
+		zip_header.formatted.ucmpsize = SWAP_LE32(zip_header.formatted.ucmpsize);
+		zip_header.formatted.filename_len = SWAP_LE32(zip_header.formatted.filename_len);
+		zip_header.formatted.extra_len = SWAP_LE32(zip_header.formatted.extra_len);
+		if ((zip_header.formatted.method != 0) && (zip_header.formatted.method != 8)) {
+			bb_error_msg_and_die("Unsupported compression method %d", zip_header.formatted.method);
 		}
 
 		/* Read filename */
 		free(dst_fn);
-		dst_fn = xzalloc(zip_header.formated.filename_len + 1);
-		xread(src_fd, dst_fn, zip_header.formated.filename_len);
+		dst_fn = xzalloc(zip_header.formatted.filename_len + 1);
+		xread(src_fd, dst_fn, zip_header.formatted.filename_len);
 
 		/* Skip extra header bytes */
-		unzip_skip(src_fd, zip_header.formated.extra_len);
+		unzip_skip(src_fd, zip_header.formatted.extra_len);
 
 		if ((verbosity == v_list) && !list_header_done){
 			printf("  Length     Date   Time    Name\n"
@@ -266,12 +266,12 @@ int unzip_main(int argc, char **argv)
 			i = 'n';
 
 		} else { /* Extract entry */
-			total_size += zip_header.formated.ucmpsize;
+			total_size += zip_header.formatted.ucmpsize;
 
 			if (verbosity == v_list) { /* List entry */
-				unsigned int dostime = zip_header.formated.modtime | (zip_header.formated.moddate << 16);
+				unsigned int dostime = zip_header.formatted.modtime | (zip_header.formatted.moddate << 16);
 				printf("%9u  %02u-%02u-%02u %02u:%02u   %s\n",
-					   zip_header.formated.ucmpsize,
+					   zip_header.formatted.ucmpsize,
 					   (dostime & 0x01e00000) >> 21,
 					   (dostime & 0x001f0000) >> 16,
 					   (((dostime & 0xfe000000) >> 25) + 1980) % 100,
@@ -356,7 +356,7 @@ int unzip_main(int argc, char **argv)
 			overwrite = o_never;
 		case 'n':
 			/* Skip entry data */
-			unzip_skip(src_fd, zip_header.formated.cmpsize);
+			unzip_skip(src_fd, zip_header.formatted.cmpsize);
 			break;
 
 		case 'r':
@@ -376,7 +376,7 @@ int unzip_main(int argc, char **argv)
 		}
 
 		/* Data descriptor section */
-		if (zip_header.formated.flags & 4) {
+		if (zip_header.formatted.flags & 4) {
 			/* skip over duplicate crc, compressed size and uncompressed size */
 			unzip_skip(src_fd, 12);
 		}

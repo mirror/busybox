@@ -24,7 +24,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 			char mode[8];
 			char size[10];
 			char magic[2];
-		} formated;
+		} formatted;
 	} ar;
 #ifdef CONFIG_FEATURE_AR_LONG_FILENAMES
 	static char *ar_long_names;
@@ -49,20 +49,20 @@ char get_header_ar(archive_handle_t *archive_handle)
 	archive_handle->offset += 60;
 
 	/* align the headers based on the header magic */
-	if ((ar.formated.magic[0] != '`') || (ar.formated.magic[1] != '\n')) {
+	if ((ar.formatted.magic[0] != '`') || (ar.formatted.magic[1] != '\n')) {
 		bb_error_msg_and_die("Invalid ar header");
 	}
 
-	typed->mode = strtol(ar.formated.mode, NULL, 8);
-	typed->mtime = atoi(ar.formated.date);
-	typed->uid = atoi(ar.formated.uid);
-	typed->gid = atoi(ar.formated.gid);
-	typed->size = atoi(ar.formated.size);
+	typed->mode = strtol(ar.formatted.mode, NULL, 8);
+	typed->mtime = atoi(ar.formatted.date);
+	typed->uid = atoi(ar.formatted.uid);
+	typed->gid = atoi(ar.formatted.gid);
+	typed->size = atoi(ar.formatted.size);
 
 	/* long filenames have '/' as the first character */
-	if (ar.formated.name[0] == '/') {
+	if (ar.formatted.name[0] == '/') {
 #ifdef CONFIG_FEATURE_AR_LONG_FILENAMES
-		if (ar.formated.name[1] == '/') {
+		if (ar.formatted.name[1] == '/') {
 			/* If the second char is a '/' then this entries data section
 			 * stores long filename for multiple entries, they are stored
 			 * in static variable long_names for use in future entries */
@@ -73,7 +73,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 			/* This ar entries data section only contained filenames for other records
 			 * they are stored in the static ar_long_names for future reference */
 			return (get_header_ar(archive_handle)); /* Return next header */
-		} else if (ar.formated.name[1] == ' ') {
+		} else if (ar.formatted.name[1] == ' ') {
 			/* This is the index of symbols in the file for compilers */
 			data_skip(archive_handle);
 			archive_handle->offset += typed->size;
@@ -81,7 +81,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 		} else {
 			/* The number after the '/' indicates the offset in the ar data section
 			(saved in variable long_name) that conatains the real filename */
-			const unsigned int long_offset = atoi(&ar.formated.name[1]);
+			const unsigned int long_offset = atoi(&ar.formatted.name[1]);
 			if (long_offset >= ar_long_name_size) {
 				bb_error_msg_and_die("Cant resolve long filename");
 			}
@@ -92,7 +92,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 #endif
 	} else {
 		/* short filenames */
-	       typed->name = bb_xstrndup(ar.formated.name, 16);
+	       typed->name = bb_xstrndup(ar.formatted.name, 16);
 	}
 
 	typed->name[strcspn(typed->name, " /")] = '\0';
