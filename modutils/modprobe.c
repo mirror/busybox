@@ -713,6 +713,37 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 }
 
 /*
+ * Check the matching between a pattern and a module name.
+ * We need this as *_* is equivalent to *-*, even in pattern matching.
+ */
+static int check_pattern( const char* pat_src, const char* mod_src ) {
+	int ret;
+
+	if (ENABLE_FEATURE_MODPROBE_FANCY_ALIAS) {
+		char* pat;
+		char* mod;
+		char* p;
+
+		pat = bb_xstrdup (pat_src);
+		mod = bb_xstrdup (mod_src);
+
+		for (p = pat; (p = strchr(p, '-')); *p++ = '_' );
+		for (p = mod; (p = strchr(p, '-')); *p++ = '_' );
+
+		ret = fnmatch ( pat, mod, 0 );
+
+		if (ENABLE_FEATURE_CLEAN_UP) {
+			free (pat);
+			free (mod);
+		}
+
+		return ret;
+	} else {
+		return fnmatch ( pat_src, mod_src, 0 );
+	}
+}
+
+/*
  * Builds the dependency list (aka stack) of a module.
  * head: the highest module in the stack (last to insmod, first to rmmod)
  * tail: the lowest module in the stack (first to insmod, last to rmmod)
@@ -730,7 +761,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 	 * Of course if the name in the dependency rule is a plain string,
 	 * then we consider it a pattern, and matching will still work. */
 	for ( dt = depend; dt; dt = dt-> m_next ) {
-		if ( fnmatch ( dt-> m_name, mod, 0 ) == 0) {
+		if ( check_pattern ( dt-> m_name, mod ) == 0) {
 			break;
 		}
 	}
@@ -746,7 +777,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 			struct dep_t *adt;
 
 			for ( adt = depend; adt; adt = adt-> m_next ) {
-				if ( strcmp ( adt-> m_name, dt-> m_deparr [0] ) == 0 )
+				if ( check_pattern ( adt-> m_name, dt-> m_deparr [0] ) == 0 )
 					break;
 			}
 			if ( adt ) {

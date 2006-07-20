@@ -91,7 +91,8 @@ config CONFIG_MODPROBE
 	  module options from the configuration file. See option below.
 
 config CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS
-	bool "Multiple options parsing"
+	bool
+	prompt "Multiple options parsing" if CONFIG_NITPICK
 	default y
 	depends on CONFIG_MODPROBE
 	help
@@ -105,6 +106,16 @@ config CONFIG_FEATURE_MODPROBE_MULTIPLE_OPTIONS
 
 	  Saying Y here is not a bad idea if you're not that short
 	  on storage capacity.
+
+config CONFIG_FEATURE_MODPROBE_FANCY_ALIAS
+	bool
+	prompt "Fancy alias parsing" if CONFIG_NITPICK
+	default y
+	depends on CONFIG_MODPROBE && CONFIG_FEATURE_2_6_MODULES
+	help
+	  Say 'y' here to enable parsing of aliases with underscore/dash
+	  mismatch between module name and file name, along with bus-specific
+	  aliases (such as pci:... or usb:... aliases).
 
 comment "Options common to multiple modutils"
 	depends on CONFIG_INSMOD || CONFIG_RMMOD || CONFIG_MODPROBE || CONFIG_LSMOD
