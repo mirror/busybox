@@ -171,7 +171,7 @@ typedef unsigned long long int  uintmax_t;
 #endif
 #endif
 
-/* uclibc does not implement daemon for no-mmu systems.
+/* uclibc does not implement daemon() for no-mmu systems.
  * For 0.9.29 and svn, __ARCH_USE_MMU__ indicates no-mmu reliably.
  * For earlier versions there is no reliable way to check if we are building
  * for a mmu-less system; the user should pass EXTRA_CFLAGS="-DBB_NOMMU"
@@ -186,6 +186,12 @@ typedef unsigned long long int  uintmax_t;
  * libbb.  This would require a platform.c.  It's not going to be cleaned
  * out of the tree, so stop saying it should be. */
 #define fdprintf dprintf
+
+/* Don't use lchown with glibc older then 2.1.x ... uC-libc lacks it */
+#if (defined __GLIBC__ && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 1) || \
+    defined __UC_LIBC__
+# define lchown chown
+#endif
 
 /* THIS SHOULD BE CLEANED OUT OF THE TREE ENTIRELY */
 /* FIXME: fix tar.c! */

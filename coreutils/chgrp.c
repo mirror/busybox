@@ -16,11 +16,6 @@
 #include <unistd.h>
 #include "busybox.h"
 
-/* Don't use lchown glibc older then 2.1.x */
-#if (__GLIBC__ <= 2) && (__GLIBC_MINOR__ < 1)
-#define lchown	chown
-#endif
-
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
 	if (lchown(fileName, statbuf->st_uid, *((long *) junk)) == 0) {
