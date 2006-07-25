@@ -349,8 +349,6 @@ extern int insmod_ng_main( int argc, char **argv);
 #ifndef MODUTILS_MODULE_H
 /* Why? static const int MODUTILS_MODULE_H = 1;*/
 
-#ident "$Id: insmod.c,v 1.126 2004/12/26 09:13:32 vapier Exp $"
-
 /*======================================================================*/
 /* For sizeof() which are related to the module platform and not to the
    environment isnmod is running in, use sizeof_xx instead of sizeof(xx).  */
@@ -511,8 +509,6 @@ int delete_module(const char *);
 
 #ifndef MODUTILS_OBJ_H
 /* Why? static const int MODUTILS_OBJ_H = 1; */
-
-#ident "$Id: insmod.c,v 1.126 2004/12/26 09:13:32 vapier Exp $"
 
 /* The relocatable object is manipulated using elfin types.  */
 
