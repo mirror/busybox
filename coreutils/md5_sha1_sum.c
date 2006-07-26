@@ -98,6 +98,7 @@ static int hash_files(int argc, char **argv, hash_algo_t hash_algo)
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK)
 		flags = bb_getopt_ulflags(argc, argv, "scw");
+	else optind = 1;
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && !(flags & FLAG_CHECK)) {
 		if (flags & FLAG_SILENT) {
