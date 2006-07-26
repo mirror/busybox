@@ -58,12 +58,6 @@
 	Reference http://www.opengroup.org/onlinepubs/007904975/utilities/sed.html
 */
 
-#include <stdio.h>
-#include <unistd.h>		/* for getopt() */
-#include <errno.h>
-#include <ctype.h>		/* for isspace() */
-#include <stdlib.h>
-#include <string.h>
 #include "busybox.h"
 #include "xregex.h"
 
@@ -94,8 +88,6 @@ typedef struct sed_cmd_s {
     struct sed_cmd_s *next;	/* Next command (linked list, NULL terminated) */
 } sed_cmd_t;
 
-static const char bad_format_in_subst[] =
-	"bad format in substitution expression";
 static const char *const semicolon_whitespace = "; \n\r\t\v";
 
 struct sed_globals
@@ -175,7 +167,7 @@ static void cleanup_outname(void)
 
 /* strdup, replacing "\n" with '\n', and "\delimiter" with 'delimiter' */
 
-static void parse_escapes(char *dest, const char *string, int len, char from, char to)
+static void parse_escapes(char *dest, char *string, int len, char from, char to)
 {
 	int i=0;
 
@@ -192,7 +184,7 @@ static void parse_escapes(char *dest, const char *string, int len, char from, ch
 	*dest=0;
 }
 
-static char *copy_parsing_escapes(const char *string, int len)
+static char *copy_parsing_escapes(char *string, int len)
 {
 	char *dest=xmalloc(len+1);
 
@@ -205,18 +197,22 @@ static char *copy_parsing_escapes(const char *string, int len)
  * index_of_next_unescaped_regexp_delim - walks left to right through a string
  * beginning at a specified index and returns the index of the next regular
  * expression delimiter (typically a forward * slash ('/')) not preceded by
- * a backslash ('\').
+ * a backslash ('\').  A negative delimiter disables square bracket checking.
  */
-static int index_of_next_unescaped_regexp_delim(const char delimiter,
-	const char *str)
+static int index_of_next_unescaped_regexp_delim(int delimiter, char *str)
 {
 	int bracket = -1;
 	int escaped = 0;
 	int idx = 0;
 	char ch;
 
+	if (delimiter < 0) {
+		bracket--;
+		delimiter *= -1;
+	}
+
 	for (; (ch = str[idx]); idx++) {
-		if (bracket != -1) {
+		if (bracket >= 0) {
 			if (ch == ']' && !(bracket == idx - 1 || (bracket == idx - 2
 					&& str[idx - 1] == '^')))
 				bracket = -1;
@@ -224,43 +220,38 @@ static int index_of_next_unescaped_regexp_delim(const char delimiter,
 			escaped = 0;
 		else if (ch == '\\')
 			escaped = 1;
-		else if (ch == '[')
+		else if (bracket == -1 && ch == '[')
 			bracket = idx;
 		else if (ch == delimiter)
 			return idx;
 	}
 
 	/* if we make it to here, we've hit the end of the string */
-	return -1;
+	bb_error_msg_and_die("unmatched '%c'",delimiter);
 }
 
 /*
  *  Returns the index of the third delimiter
  */
-static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
+static int parse_regex_delim(char *cmdstr, char **match, char **replace)
 {
-	const char *cmdstr_ptr = cmdstr;
+	char *cmdstr_ptr = cmdstr;
 	char delimiter;
 	int idx = 0;
 
 	/* verify that the 's' or 'y' is followed by something.  That something
 	 * (typically a 'slash') is now our regexp delimiter... */
-	if (*cmdstr == '\0') bb_error_msg_and_die(bad_format_in_subst);
+	if (*cmdstr == '\0')
+		bb_error_msg_and_die("bad format in substitution expression");
 	delimiter = *(cmdstr_ptr++);
 
 	/* save the match string */
 	idx = index_of_next_unescaped_regexp_delim(delimiter, cmdstr_ptr);
-	if (idx == -1) {
-		bb_error_msg_and_die(bad_format_in_subst);
-	}
 	*match = copy_parsing_escapes(cmdstr_ptr, idx);
 
 	/* save the replacement string */
 	cmdstr_ptr += idx + 1;
-	idx = index_of_next_unescaped_regexp_delim(delimiter, cmdstr_ptr);
-	if (idx == -1) {
-		bb_error_msg_and_die(bad_format_in_subst);
-	}
+	idx = index_of_next_unescaped_regexp_delim(-delimiter, cmdstr_ptr);
 	*replace = copy_parsing_escapes(cmdstr_ptr, idx);
 
 	return ((cmdstr_ptr - cmdstr) + idx);
@@ -287,21 +278,18 @@ static int get_address(char *my_str, int *linenum, regex_t ** regex)
 		if (*my_str == '\\') delimiter = *(++pos);
 		else delimiter = '/';
 		next = index_of_next_unescaped_regexp_delim(delimiter, ++pos);
-		if (next == -1)
-			bb_error_msg_and_die("unterminated match expression");
-
-		temp=copy_parsing_escapes(pos,next);
+		temp = copy_parsing_escapes(pos,next);
 		*regex = (regex_t *) xmalloc(sizeof(regex_t));
 		xregcomp(*regex, temp, bbg.regex_type|REG_NEWLINE);
 		free(temp);
 		/* Move position to next character after last delimiter */
-		pos+=(next+1);
+		pos += (next+1);
 	}
 	return pos - my_str;
 }
 
 /* Grab a filename.  Whitespace at start is skipped, then goes to EOL. */
-static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr, char **retval)
+static int parse_file_cmd(sed_cmd_t *sed_cmd, char *filecmdstr, char **retval)
 {
 	int start = 0, idx, hack=0;
 
@@ -318,7 +306,7 @@ static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr, char **ret
 	return idx;
 }
 
-static int parse_subst_cmd(sed_cmd_t *const sed_cmd, char *substr)
+static int parse_subst_cmd(sed_cmd_t *sed_cmd, char *substr)
 {
 	int cflags = bbg.regex_type;
 	char *match;
@@ -569,7 +557,7 @@ static void pipe_putc(char c)
 	bbg.pipeline.buf[bbg.pipeline.idx++] = c;
 }
 
-static void do_subst_w_backrefs(const char *line, const char *replace)
+static void do_subst_w_backrefs(char *line, char *replace)
 {
 	int i,j;
 
@@ -669,7 +657,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 }
 
 /* Set command pointer to point to this label.  (Does not handle null label.) */
-static sed_cmd_t *branch_to(const char *label)
+static sed_cmd_t *branch_to(char *label)
 {
 	sed_cmd_t *sed_cmd;
 
