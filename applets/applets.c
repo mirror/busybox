@@ -379,7 +379,7 @@ static void check_suid (struct BB_applet *applet)
 
 
 
-#if ENABLE_FEATURE_COMPRESS_USAGE
+#ifdef CONFIG_FEATURE_COMPRESS_USAGE
 
 #include "usage_compressed.h"
 #include "unarchive.h"
