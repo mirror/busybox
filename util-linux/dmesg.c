@@ -3,7 +3,8 @@
  * 
  * dmesg - display/control kernel ring buffer.
  *
- * Copyring 2006 Rob Landley <rob@landley.net>
+ * Copyright 2006 Rob Landley <rob@landley.net>
+ * Copyright 2006 Bernhard Fischer <rep.nop@aon.at>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
@@ -28,8 +29,24 @@ int dmesg_main(int argc, char *argv[])
 		buf = xmalloc(len);
 		if (0 > (len = klogctl(3 + (flags & 1), buf, len)))
 			bb_perror_msg_and_die("klogctl");
-		write(1,buf,len);
-		if (len && buf[len-1]!='\n') putchar('\n');
+
+		// Skip <#> at the start of lines, and make sure we end with a newline. 
+
+		if (ENABLE_FEATURE_DMESG_PRETTY) {
+			int last = '\n';
+			int in;
+
+			for (in = 0; in<len;) {
+				if (last == '\n' && buf[in] == '<') in += 3;
+				else putchar(last = buf[in++]);
+			}
+			if (last != '\n') putchar('\n');
+		} else {
+			write(1,buf,len);
+			if (len && buf[len-1]!='\n') putchar('\n');
+		}
+
+		if (ENABLE_FEATURE_CLEAN_UP) free(buf);
 	}
 
 	return 0;

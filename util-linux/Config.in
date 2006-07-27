@@ -17,6 +17,26 @@ config CONFIG_DMESG
 	  are also logged to the system console.  Enable this option if you
 	  wish to enable the 'dmesg' utility.
 
+config CONFIG_FEATURE_DMESG_PRETTY
+	bool "pretty dmesg output"
+	default y
+	depends on CONFIG_DMESG
+	help
+	  If you wish to scrub the syslog level from the output, say 'Y' here.
+	  The syslog level is a string prefixed to every line with the form "<#>".
+
+	  With this option you will see:
+	    # dmesg
+	    Linux version 2.6.17.4 .....
+	    BIOS-provided physical RAM map:
+	     BIOS-e820: 0000000000000000 - 000000000009f000 (usable)
+
+	  Without this option you will see:
+	    # dmesg
+	    <5>Linux version 2.6.17.4 .....
+	    <6>BIOS-provided physical RAM map:
+	    <6> BIOS-e820: 0000000000000000 - 000000000009f000 (usable)
+
 config CONFIG_FBSET
 	bool "fbset"
 	default n
