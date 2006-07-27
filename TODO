@@ -135,10 +135,10 @@ diff
   Make sure we handle empty files properly:
     From the patch man page:
 
-   you can remove a file by sending out a context diff that compares
-   the file to be deleted with an empty file dated the Epoch.  The
-   file will be removed unless patch is conforming to POSIX and the
-   -E or --remove-empty-files option is not given.
+    you can remove a file by sending out a context diff that compares
+    the file to be deleted with an empty file dated the Epoch.  The
+    file will be removed unless patch is conforming to POSIX and the
+    -E or --remove-empty-files option is not given.
 ---
 patch
   Should have simple fuzz factor support to apply patches at an offset which
