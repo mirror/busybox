@@ -21,8 +21,8 @@ sub continuation {
 # regex && eval away unwanted strings from documentation
 sub beautify {
 	my $text = shift;
-	$text =~ s/USAGE_NOT\w+\(.*?"\s*\)//sxg;
-	$text =~ s/USAGE_\w+\(\s*?(.*?)"\s*\)/$1"/sxg;
+	$text =~ s/SKIP_\w+\(.*?"\s*\)//sxg;
+	$text =~ s/USE_\w+\(\s*?(.*?)"\s*\)/$1"/sxg;
 	$text =~ s/"\s*"//sg;
 	my @line = split("\n", $text);
 	$text = join('',
