@@ -1,9 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*
+ * 
  * dmesg - display/control kernel ring buffer.
  *
- * Copyright 2006 Rob Landley <rob@landley.net>
- * Copyright 2006 Erik Andersen <andersen@codepoet.org>
+ * Copyring 2006 Rob Landley <rob@landley.net>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
@@ -28,24 +28,8 @@ int dmesg_main(int argc, char *argv[])
 		buf = xmalloc(len);
 		if (0 > (len = klogctl(3 + (flags & 1), buf, len)))
 			bb_perror_msg_and_die("klogctl");
-
-#ifdef CONFIG_FEATURE_DMESG_PRETTY
-		{
-			char newline = '\n';
-			int i;
-			for (i=0; i<len; ++i) {
-				if (newline == '\n' && buf[i] == '<')
-					i += 3; /* skip <#> */
-				putchar(newline=buf[i]);
-			}
-			if (newline != '\n') putchar('\n');
-		}
-#else
-		write(1, buf, len);
+		write(1,buf,len);
 		if (len && buf[len-1]!='\n') putchar('\n');
-#endif
-
-		if (ENABLE_FEATURE_CLEAN_UP) free(buf);
 	}
 
 	return 0;
