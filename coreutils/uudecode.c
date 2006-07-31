@@ -150,9 +150,7 @@ int uudecode_main(int argc, char **argv)
 	while ((line = bb_get_chomped_line_from_file(src_stream)) != NULL) {
 		char *line_ptr = NULL;
 
-		if (line == NULL) {
-			break;
-		} else if (strncmp(line, "begin-base64 ", 13) == 0) {
+		if (strncmp(line, "begin-base64 ", 13) == 0) {
 			line_ptr = line + 13;
 			decode_fn_ptr = read_base64;
 		} else if (strncmp(line, "begin ", 6) == 0) {
