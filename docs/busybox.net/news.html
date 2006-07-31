@@ -2,6 +2,31 @@
 
 
 <ul>
+  <li><b>31 July 2006 -- BusyBox 1.2.1 (stable)</b>
+    <p>Since nobody seems to have objected too loudly over the weekend, I
+    might as well point you all at
+    <a href="http://busybox.net/downloads/busybox-1.2.1.tar.bz2">Busybox
+    1.2.1</a>, a bugfix-only release with no new features.</p>
+
+    <p>It has three shell fixes (two to lash: going "var=value" without
+    saying "export" should now work, plus a missing null pointer check, and
+    one to ash when redirecting output to a file that fills up.)  Fix three
+    embarassing thinkos in the new dmesg command.  Two build tweaks
+    (dependencies for the compressed usage messages and running make in the
+    libbb subdirectory).  One fix to tar so it can extract git-generated
+    tarballs (rather than barfing on the pax extensions).  And a partridge
+    in a pear...  Ahem.</p>
+
+    <p>But wait, there's more!  A passwd changing fix so an empty
+    gecos field doesn't trigger a false objection that the new passwd contains
+    the gecos field.  Make all our setuid() and setgid() calls check the return
+    value in case somebody's using per-process resource limits that prevent
+    a user from having too many processes (and thus prevent a process from
+    switching away from root, in which case the process will now _die_ rather
+    than continue with root privileges).  A fix to adduser to make sure that
+    /etc/group gets updated.  And a fix to modprobe to look for modules.conf
+    in the right place on 2.6 kernels.</p>
+
   <li><b>30 June 2006 -- BusyBox 1.2.0</b>
     <p>The -devel branch has been stabilized and the result is
     <a href="http://busybox.net/downloads/busybox-1.2.0.tar.bz2">Busybox
