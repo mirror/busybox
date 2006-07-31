@@ -166,16 +166,17 @@ LD_END_GROUP:= -Wl,--end-group
 endif
 
 CHECKED_LDFLAGS := $(call check_ld,$(LD),--warn-common,)
+#CHECKED_LDFLAGS := $(call check_ld,$(LD),-static-libgcc,)
 
 # Pin CHECKED_CFLAGS with := so it's only evaluated once.
 CHECKED_CFLAGS:=$(call check_cc,$(CC),-Wall,)
-CHECKED_CFLAGS+=$(call check_cc,$(HOSTCC),-Werror,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-Wstrict-prototypes,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-Wshadow,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-funsigned-char,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-mmax-stack-frame=256,)
-CHECKED_CFLAGS+=$(call check_cc,$(CC),-fno-builtin-strlen)
-CHECKED_CFLAGS+=$(call check_cc,$(CC),-finline-limit=0)
+CHECKED_CFLAGS+=$(call check_cc,$(CC),-fno-builtin-strlen,)
+CHECKED_CFLAGS+=$(call check_cc,$(CC),-finline-limit=0,)
+CHECKED_CFLAGS+=$(call check_cc,$(CC),-static-libgcc,)
 
 # Preemptively pin this too.
 PROG_CFLAGS:=
@@ -216,11 +217,13 @@ endif
 ifeq ($(strip $(TARGET_ARCH)),i386)
 	OPTIMIZATION+=$(call check_cc,$(CC),-march=i386,)
 # gcc-4.0 and older seem to benefit from these
-#ifneq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
+ifneq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
 	OPTIMIZATION+=$(call check_cc,$(CC),-mpreferred-stack-boundary=2,)
-	OPTIMIZATION+=$(call check_cc,$(CC),-falign-functions=1 -falign-jumps=1 -falign-loops=1,\
-		-malign-functions=0 -malign-jumps=0 -malign-loops=0)
-#endif # gcc-4.0 and older
+	OPTIMIZATION+=$(call check_cc,$(CC),-falign-functions=1 -falign-jumps=1 -falign-loops=1, -malign-functions=0 -malign-jumps=0 -malign-loops=0,)
+
+	# gcc 4.1 produces many broken, totally invalid warnings
+	CHECKED_CFLAGS+=$(call check_cc,$(CC),-Werror,)
+endif # gcc-4.0 and older
 
 # gcc-4.1 and beyond seem to benefit from these
 ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 4 -a $(CC_MINOR) -ge 1 ] ; echo $$?)),0)
