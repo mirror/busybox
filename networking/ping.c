@@ -211,7 +211,7 @@ static void sendping(int junk)
 	pkt->icmp_type = ICMP_ECHO;
 	pkt->icmp_code = 0;
 	pkt->icmp_cksum = 0;
-	pkt->icmp_seq = htons(ntransmitted++);
+	pkt->icmp_seq = SWAP_BE16(ntransmitted++);
 	pkt->icmp_id = myid;
 	CLR(ntohs(pkt->icmp_seq) % MAX_DUP_CHK);
 
