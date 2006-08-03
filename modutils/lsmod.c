@@ -93,8 +93,7 @@ int lsmod_main(int argc, char **argv)
 	size_t bufsize, depsize, nmod, count, i, j;
 
 	module_names = xmalloc(bufsize = 256);
-	if (my_query_module(NULL, QM_MODULES, (void **)&module_names, &bufsize,
-				&nmod)) {
+	if (my_query_module(NULL, QM_MODULES, &module_names, &bufsize, &nmod)) {
 		bb_perror_msg_and_die("QM_MODULES");
 	}
 
@@ -111,7 +110,7 @@ int lsmod_main(int argc, char **argv)
 			/* else choke */
 			bb_perror_msg_and_die("module %s: QM_INFO", mn);
 		}
-		if (my_query_module(mn, QM_REFS, (void **)&deps, &depsize, &count)) {
+		if (my_query_module(mn, QM_REFS, &deps, &depsize, &count)) {
 			if (errno == ENOENT) {
 				/* The module was removed out from underneath us. */
 				continue;
