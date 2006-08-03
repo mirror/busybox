@@ -5162,7 +5162,7 @@ add_partition(int n, int sys)
 		ext_index = n;
 		pen->ext_pointer = p;
 		pe4->offset = extended_offset = start;
-		pe4->sectorbuffer = xcalloc(1, sector_size);
+		pe4->sectorbuffer = xzalloc(sector_size);
 		pe4->part_table = pt_offset(pe4->sectorbuffer, 0);
 		pe4->ext_pointer = pe4->part_table + 1;
 		pe4->changed = 1;
@@ -5176,7 +5176,7 @@ add_logical(void)
 	if (partitions > 5 || ptes[4].part_table->sys_ind) {
 		struct pte *pe = &ptes[partitions];
 
-		pe->sectorbuffer = xcalloc(1, sector_size);
+		pe->sectorbuffer = xzalloc(sector_size);
 		pe->part_table = pt_offset(pe->sectorbuffer, 0);
 		pe->ext_pointer = pe->part_table + 1;
 		pe->offset = 0;

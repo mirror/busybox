@@ -503,7 +503,7 @@ int xargs_main(int argc, char **argv)
 
 		/* allocating pointers for execvp:
 		   a*arg, n*arg from stdin, NULL */
-		args = xcalloc(n + a + 1, sizeof(char *));
+		args = xzalloc((n + a + 1) * sizeof(char *));
 
 		/* Store the command to be executed
 		   (taken from the command line) */

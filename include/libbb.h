@@ -230,7 +230,6 @@ void run_applet_by_name(const char *name, int argc, char **argv);
 extern void *xmalloc(size_t size);
 extern void *xrealloc(void *old, size_t size);
 extern void *xzalloc(size_t size);
-extern void *xcalloc(size_t nmemb, size_t size);
 
 extern char *xstrdup (const char *s);
 extern char *xstrndup (const char *s, int n);

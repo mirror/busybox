@@ -401,7 +401,7 @@ static errcode_t zero_blocks(ext2_filsys fs, blk_t blk, int num,
 	}
 	/* Allocate the zeroizing buffer if necessary */
 	if (!buf) {
-		buf = xcalloc(fs->blocksize, STRIDE_LENGTH);
+		buf = xzalloc(fs->blocksize * STRIDE_LENGTH);
 	}
 	/* OK, do the write loop */
 	next_update = 0;

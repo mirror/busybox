@@ -135,7 +135,7 @@ static void cut_line_by_chars(const char *line)
 {
 	int c, l;
 	/* set up a list so we can keep track of what's been printed */
-	char *printed = xcalloc(strlen(line), sizeof(char));
+	char *printed = xzalloc(strlen(line));
 
 	/* print the chars specified in each cut list */
 	for (c = 0; c < nlists; c++) {
@@ -172,7 +172,7 @@ static void cut_line_by_fields(char *line)
 	}
 
 	/* set up a list so we can keep track of what's been printed */
-	printed = xcalloc(strlen(line), sizeof(char));
+	printed = xzalloc(strlen(line));
 
 	/* process each list on this line, for as long as we've got a line to process */
 	for (c = 0; c < nlists && line; c++) {

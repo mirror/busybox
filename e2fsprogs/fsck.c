@@ -877,8 +877,8 @@ static void compile_fs_type(char *fs_type, struct fs_type_compile *cmp)
 		}
 	}
 
-	cmp->list = xcalloc(num, sizeof(char *));
-	cmp->type = xcalloc(num, sizeof(int));
+	cmp->list = xzalloc(num * sizeof(char *));
+	cmp->type = xzalloc(num * sizeof(int));
 	cmp->negate = 0;
 
 	if (!fs_type)

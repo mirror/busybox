@@ -3490,7 +3490,7 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits)
 
 					/* Allocate space for a table of local symbols.  */
 					j = f->local_symtab_size = sec->header.sh_info;
-					f->local_symtab = xcalloc(j, sizeof(struct obj_symbol *));
+					f->local_symtab = xzalloc(j * sizeof(struct obj_symbol *));
 
 					/* Insert all symbols into the hash table.  */
 					for (j = 1, ++sym; j < nsym; ++j, ++sym) {

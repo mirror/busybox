@@ -120,7 +120,7 @@ static struct sort_key *add_key(void)
 {
 	struct sort_key **pkey=&key_list;
 	while(*pkey) pkey=&((*pkey)->next_key);
-	return *pkey=xcalloc(1,sizeof(struct sort_key));
+	return *pkey = xzalloc(sizeof(struct sort_key));
 }
 
 #define GET_LINE(fp) (global_flags&FLAG_z) ? bb_get_chunk_from_file(fp,NULL) \

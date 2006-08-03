@@ -1929,7 +1929,7 @@ int httpd_main(int argc, char *argv[])
 
   USE_FEATURE_HTTPD_AUTH_MD5(const char *pass;)
 
-  config = xcalloc(1, sizeof(*config));
+  config = xzalloc(sizeof(*config));
 #ifdef CONFIG_FEATURE_HTTPD_BASIC_AUTH
   config->realm = "Web Server Authentication";
 #endif

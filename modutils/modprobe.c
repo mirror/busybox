@@ -294,10 +294,10 @@ static void include_conf ( struct dep_t **first, struct dep_t **current, char *b
 				if ( parse_tag_value ( buffer + 6, &alias, &mod )) {
 					/* handle alias as a module dependent on the aliased module */
 					if ( !*current ) {
-						(*first) = (*current) = (struct dep_t *) xcalloc ( 1, sizeof ( struct dep_t ));
+						(*first) = (*current) = (struct dep_t *) xzalloc (sizeof ( struct dep_t ));
 					}
 					else {
-						(*current)-> m_next = (struct dep_t *) xcalloc ( 1, sizeof ( struct dep_t ));
+						(*current)-> m_next = (struct dep_t *) xzalloc (sizeof ( struct dep_t ));
 						(*current) = (*current)-> m_next;
 					}
 					(*current)-> m_name  = xstrdup ( alias );

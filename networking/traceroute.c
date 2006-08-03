@@ -375,7 +375,7 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 	ifend = (struct ifreq *)((char *)ibuf + ifc.ifc_len);
 
 	nipaddr = 1 + (ifc.ifc_len / sizeof(struct ifreq));
-	st_ifaddrlist = xcalloc(nipaddr, sizeof(struct IFADDRLIST));
+	st_ifaddrlist = xzalloc(nipaddr * sizeof(struct IFADDRLIST));
 	al = st_ifaddrlist;
 	nipaddr = 0;
 
@@ -872,12 +872,12 @@ gethostinfo(const char *host)
 	char **p;
 	u_int32_t addr, *ap;
 
-	hi = xcalloc(1, sizeof(*hi));
+	hi = xzalloc(sizeof(*hi));
 	addr = inet_addr(host);
 	if ((int32_t)addr != -1) {
 		hi->name = xstrdup(host);
 		hi->n = 1;
-		hi->addrs = xcalloc(1, sizeof(hi->addrs[0]));
+		hi->addrs = xzalloc(sizeof(hi->addrs[0]));
 		hi->addrs[0] = addr;
 		return hi;
 	}
@@ -889,7 +889,7 @@ gethostinfo(const char *host)
 	for (n = 0, p = hp->h_addr_list; *p != NULL; ++n, ++p)
 		continue;
 	hi->n = n;
-	hi->addrs = xcalloc(n, sizeof(hi->addrs[0]));
+	hi->addrs = xzalloc(n * sizeof(hi->addrs[0]));
 	for (ap = hi->addrs, p = hp->h_addr_list; *p != NULL; ++ap, ++p)
 		memcpy(ap, *p, sizeof(*ap));
 	return hi;
@@ -1161,7 +1161,7 @@ traceroute_main(int argc, char *argv[])
 	xsetgid(getgid());
 	xsetuid(getuid());
 
-	outip = (struct ip *)xcalloc(1, (unsigned)packlen);
+	outip = (struct ip *)xzalloc(packlen);
 
 	outip->ip_v = IPVERSION;
 	if (tos_str)

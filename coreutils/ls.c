@@ -300,7 +300,7 @@ static struct dnode **dnalloc(int num)
 	if (num < 1)
 		return (NULL);
 
-	p = (struct dnode **) xcalloc((size_t) num, (size_t) (sizeof(struct dnode *)));
+	p = (struct dnode **) xzalloc(num * sizeof(struct dnode *));
 	return (p);
 }
 

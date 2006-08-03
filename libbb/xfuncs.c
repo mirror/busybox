@@ -41,15 +41,6 @@ void *xzalloc(size_t size)
 }
 #endif
 
-#ifdef L_xcalloc
-void *xcalloc(size_t nmemb, size_t size)
-{
-	void *ptr = calloc(nmemb, size);
-	if (ptr == NULL && nmemb != 0 && size != 0)
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
-	return ptr;
-}
-#endif
 #endif /* DMALLOC */
 
 #ifdef L_xstrdup

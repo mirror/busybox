@@ -311,7 +311,7 @@ static void parse_prompt(const char *prmt_ptr)
 	int prmt_len = 0;
 	size_t cur_prmt_len = 0;
 	char  flg_not_length = '[';
-	char *prmt_mem_ptr = xcalloc(1, 1);
+	char *prmt_mem_ptr = xzalloc(1);
 	char *pwd_buf = xgetcwd(0);
 	char  buf2[PATH_MAX + 1];
 	char  buf[2];
@@ -344,7 +344,7 @@ static void parse_prompt(const char *prmt_ptr)
 			  case 'h':
 				pbuf = hostname_buf;
 				if (pbuf == 0) {
-					pbuf = xcalloc(256, 1);
+					pbuf = xzalloc(256);
 					if (gethostname(pbuf, 255) < 0) {
 						strcpy(pbuf, "?");
 					} else {

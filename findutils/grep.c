@@ -321,7 +321,7 @@ int grep_main(int argc, char **argv)
 		lines_before = 0;
 		lines_after = 0;
 	} else if(lines_before > 0)
-		before_buf = (char **)xcalloc(lines_before, sizeof(char *));
+		before_buf = (char **)xzalloc(lines_before * sizeof(char *));
   }
 #else
 	/* with auto sanity checks */
