@@ -13,18 +13,15 @@
 
 #include "busybox.h"
 #include <mntent.h>
-#include <errno.h>
-#include <string.h>
 #include <getopt.h>
 
-#define OPTION_STRING		"flDnrvad"
+#define OPTION_STRING		"flDnravd"
 #define OPT_FORCE			1
 #define OPT_LAZY			2
 #define OPT_DONTFREELOOP	4
 #define OPT_NO_MTAB			8
 #define OPT_REMOUNT			16
-#define OPT_IGNORED			32	// -v is ignored
-#define OPT_ALL				(ENABLE_FEATURE_UMOUNT_ALL ? 64 : 0)
+#define OPT_ALL				(ENABLE_FEATURE_UMOUNT_ALL ? 32 : 0)
 
 int umount_main(int argc, char **argv)
 {
@@ -77,8 +74,6 @@ int umount_main(int argc, char **argv)
 		m = 0;
 		if (!argc) bb_show_usage();
 	}
-
-
 	
 	// Loop through everything we're supposed to umount, and do so.
 	for (;;) {
@@ -114,19 +109,20 @@ int umount_main(int argc, char **argv)
 						 "%s busy - remounted read-only", m->device);
 		}
 
-		/* De-allocate the loop device.  This ioctl should be ignored on any
-		 * non-loop block devices. */
-		if (ENABLE_FEATURE_MOUNT_LOOP && !(opt & OPT_DONTFREELOOP) && m)
-			del_loop(m->device);
-
 		if (curstat) {
-			/* Yes, the ENABLE is redundant here, but the optimizer for ARM
-			 * can't do simple constant propagation in local variables... */
-			if(ENABLE_FEATURE_MTAB_SUPPORT && !(opt & OPT_NO_MTAB) && m)
-				erase_mtab(m->dir);
 			status = EXIT_FAILURE;
 			bb_perror_msg("Couldn't umount %s", path);
+		} else {
+			/* De-allocate the loop device.  This ioctl should be ignored on
+			 * any non-loop block devices. */
+			if (ENABLE_FEATURE_MOUNT_LOOP && !(opt & OPT_DONTFREELOOP) && m)
+				del_loop(m->device);
+			if (ENABLE_FEATURE_MTAB_SUPPORT && !(opt & OPT_NO_MTAB) && m)
+				erase_mtab(m->dir);
 		}
+
+
+
 		// Find next matching mtab entry for -a or umount /dev
 		while (m && (m = m->next))
 			if ((opt & OPT_ALL) || !strcmp(path,m->device))
