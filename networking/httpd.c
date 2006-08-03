@@ -89,19 +89,6 @@
 */
 
 
-#include <stdio.h>
-#include <ctype.h>         /* for isspace           */
-#include <string.h>
-#include <stdlib.h>        /* for malloc            */
-#include <time.h>
-#include <unistd.h>        /* for close             */
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>    /* for connect and socket*/
-#include <netinet/in.h>    /* for sockaddr_in       */
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <fcntl.h>         /* for open modes        */
 #include "busybox.h"
 
 
@@ -871,7 +858,7 @@ static int openServer(void)
   lsocket.sin_family = AF_INET;
   lsocket.sin_addr.s_addr = INADDR_ANY;
   lsocket.sin_port = htons(config->port);
-  fd = bb_xsocket(AF_INET, SOCK_STREAM, 0);
+  fd = xsocket(AF_INET, SOCK_STREAM, 0);
   /* tell the OS it's OK to reuse a previous address even though */
   /* it may still be in a close down state.  Allows bind to succeed. */
 #ifdef SO_REUSEPORT
@@ -879,8 +866,8 @@ static int openServer(void)
 #else
   setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) ;
 #endif
-  bb_xbind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket));
-  listen(fd, 9); /* bb_xlisten? */
+  xbind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket));
+  xlisten(fd, 9);
   signal(SIGCHLD, SIG_IGN);   /* prevent zombie (defunct) processes */
   return fd;
 }
@@ -1994,7 +1981,7 @@ int httpd_main(int argc, char *argv[])
 #endif
 #endif
 
-  bb_xchdir(home_httpd);
+  xchdir(home_httpd);
 #ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
   server = openServer();
 # ifdef CONFIG_FEATURE_HTTPD_SETUID
@@ -2008,7 +1995,7 @@ int httpd_main(int argc, char *argv[])
    {
 	char *p = getenv("PATH");
 	if(p) {
-		p = bb_xstrdup(p);
+		p = xstrdup(p);
 	}
 	clearenv();
 	if(p)
@@ -2027,7 +2014,7 @@ int httpd_main(int argc, char *argv[])
 
 #ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
 # if !DEBUG
-  bb_xdaemon(1, 0);     /* don`t change curent directory */
+  xdaemon(1, 0);     /* don`t change curent directory */
 # endif
   return miniHttpd(server);
 #else
