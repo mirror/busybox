@@ -1481,7 +1481,7 @@ static void interpret_standby(unsigned int standby)
 {
 	unsigned int t;
 
-
+	printf(" (");
 	if (standby == 0)
 		printf("off");
 	else if (standby == 252)
@@ -2082,7 +2082,7 @@ static const char hdparm_options[]=	"gfu::n::p:r::m::c::k::a::B:tTh"\
 	USE_FEATURE_HDPARM_GET_IDENTITY("iI")
 	USE_FEATURE_HDPARM_HDIO_GETSET_DMA("d::")
 #ifdef HDIO_DRIVE_CMD
-									"S::D::P::X::K::A::L::W::CyYzZ"
+									"S:D:P:X:K:A:L:W:CyYzZ"
 #endif
 	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF("U:")
 #ifdef HDIO_GET_QDMA
