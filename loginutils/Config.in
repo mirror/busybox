@@ -14,7 +14,7 @@ config CONFIG_FEATURE_SHADOWPASSWDS
 	  publicly readable.
 
 config CONFIG_USE_BB_SHADOW
-	bool #"  Use busybox shadow password functions"
+	bool "  Use busybox shadow password functions"
 	default y
 	depends on CONFIG_USE_BB_PWD_GRP && CONFIG_FEATURE_SHADOWPASSWDS
 	help
