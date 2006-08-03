@@ -83,7 +83,7 @@ static int fuser_parse_net_arg(const char *filename,
 	if((sscanf(filename, "%d/%4s", port, tproto)) != 2) return 0;
 	sprintf(path, "%s/net/%s", FUSER_PROC_DIR, tproto);
 	if((access(path, R_OK)) != 0) return 0;
-	*proto = bb_xstrdup(tproto);
+	*proto = xstrdup(tproto);
 	return 1;
 }
 

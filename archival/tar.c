@@ -541,7 +541,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 	llist_t *newlist = NULL;
 
 	while (cur) {
-		src_stream = bb_xfopen(cur->data, "r");
+		src_stream = xfopen(cur->data, "r");
 		tmp = cur;
 		cur = cur->link;
 		free(tmp);
@@ -824,12 +824,12 @@ int tar_main(int argc, char **argv)
 			tar_handle->src_fd = fileno(tar_stream);
 			tar_handle->seek = seek_by_char;
 		} else {
-			tar_handle->src_fd = bb_xopen(tar_filename, flags);
+			tar_handle->src_fd = xopen(tar_filename, flags);
 		}
 	}
 
 	if (base_dir)
-		bb_xchdir(base_dir);
+		xchdir(base_dir);
 
 	/* create an archive */
 	if (ENABLE_FEATURE_TAR_CREATE && (opt & CTX_CREATE)) {

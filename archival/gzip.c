@@ -1187,7 +1187,7 @@ int gzip_main(int argc, char **argv)
 	ALLOC(ush, tab_prefix, 1L << BITS);
 
 	/* Initialise the CRC32 table */
-	crc_32_tab = bb_crc32_filltable(0);
+	crc_32_tab = crc32_filltable(0);
 	
 	clear_bufs();
 	part_nb = 0;
@@ -1209,7 +1209,7 @@ int gzip_main(int argc, char **argv)
 				inFileNum = STDIN_FILENO;
 				outFileNum = STDOUT_FILENO;
 			} else {
-				inFileNum = bb_xopen3(argv[i], O_RDONLY, 0);
+				inFileNum = xopen3(argv[i], O_RDONLY, 0);
 				if (fstat(inFileNum, &statBuf) < 0)
 					bb_perror_msg_and_die("%s", argv[i]);
 				time_stamp = statBuf.st_ctime;

@@ -67,7 +67,7 @@ int cpio_main(int argc, char **argv)
 		}
 	}
 	if (cpio_filename) { /* CPIO_OPT_FILE */
-		archive_handle->src_fd = bb_xopen(cpio_filename, O_RDONLY);
+		archive_handle->src_fd = xopen(cpio_filename, O_RDONLY);
 		archive_handle->seek = seek_by_jump;
 	}
 	if (opt & CPIO_OPT_CREATE_LEADING_DIR) {

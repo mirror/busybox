@@ -17,12 +17,6 @@
  * the first porting of oao' scdns to busybox also.
  */
 
-#include <unistd.h>
-#include <string.h>
-#include <signal.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <ctype.h>
 #include "busybox.h"
 
 static char *fileconf = "/etc/dnsd.conf";
@@ -170,7 +164,7 @@ static void dnsentryinit(int verb)
 	struct dns_entry *m, *prev;
 	prev = dnsentry = NULL;
 
-	fp = bb_xfopen(fileconf, "r");
+	fp = xfopen(fileconf, "r");
 
 	while (1) {
 		m = xmalloc(sizeof(struct dns_entry));
@@ -198,7 +192,7 @@ static int listen_socket(char *iface_addr, int listen_port)
 	char msg[100];
 	int s;
 	int yes = 1;
-	s = bb_xsocket(PF_INET, SOCK_DGRAM, 0);
+	s = xsocket(PF_INET, SOCK_DGRAM, 0);
 #ifdef SO_REUSEADDR
 	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&yes, sizeof(yes)) < 0)
 		bb_perror_msg_and_die("setsockopt() failed");
@@ -208,8 +202,8 @@ static int listen_socket(char *iface_addr, int listen_port)
 	a.sin_family = AF_INET;
 	if (!inet_aton(iface_addr, &a.sin_addr))
 		bb_perror_msg_and_die("bad iface address");
-	bb_xbind(s, (struct sockaddr *)&a, sizeof(a));
-	listen(s, 50); /* bb_xlisten? */
+	xbind(s, (struct sockaddr *)&a, sizeof(a));
+	xlisten(s, 50); /* xlisten? */
 	sprintf(msg, "accepting UDP packets on addr:port %s:%d\n",
 		iface_addr, (int)listen_port);
 	log_message(LOG_FILE, msg);
@@ -397,7 +391,7 @@ int dnsd_main(int argc, char **argv)
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(1, 0, argc, argv, "-d");
 #else
-		bb_xdaemon(1, 0);
+		xdaemon(1, 0);
 #endif
 
 	dnsentryinit(is_verbose());

@@ -14,9 +14,6 @@
  */
 
 #include "busybox.h"
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 #include <mntent.h>
 
 /* various defines swiped from linux/cdrom.h */
@@ -40,7 +37,7 @@ int eject_main(int argc, char **argv)
 			erase_mtab(m->mnt_fsname);
 		}
 	}
-	if (ioctl(bb_xopen(device, (O_RDONLY | O_NONBLOCK)),
+	if (ioctl(xopen(device, (O_RDONLY | O_NONBLOCK)),
 				(flags ? CDROMCLOSETRAY : CDROMEJECT))) {
 		bb_perror_msg_and_die("%s", device);
 	}

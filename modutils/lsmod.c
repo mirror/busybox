@@ -12,18 +12,18 @@
  */
 
 #include "busybox.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stddef.h>
-#include <errno.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <ctype.h>
-#include <assert.h>
-#include <getopt.h>
-#include <sys/utsname.h>
-#include <sys/file.h>
+//#include <stdlib.h>
+//#include <stdio.h>
+//#include <string.h>
+//#include <stddef.h>
+//#include <errno.h>
+//#include <unistd.h>
+//#include <dirent.h>
+//#include <ctype.h>
+//#include <assert.h>
+//#include <getopt.h>
+//#include <sys/utsname.h>
+//#include <sys/file.h>
 
 
 #ifndef CONFIG_FEATURE_CHECK_TAINTED_MODULE
@@ -151,14 +151,13 @@ int lsmod_main(int argc, char **argv)
 
 int lsmod_main(int argc, char **argv)
 {
+	FILE *file = xfopen("/proc/modules", "r");
+
 	printf("Module                  Size  Used by");
 	check_tainted();
 #if defined(CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT)
 	{
-	  FILE *file;
 	  char line[4096];
-
-	  file = bb_xfopen("/proc/modules", "r");
 
 	  while (fgets(line, sizeof(line), file)) {
 	    char *tok;
@@ -190,13 +189,10 @@ int lsmod_main(int argc, char **argv)
 	  }
 	  fclose(file);
 	}
-	return EXIT_SUCCESS;
 #else
-	if (bb_xprint_file_by_name("/proc/modules") == 0)
-		return EXIT_SUCCESS;
+	xprint_and_close_file(file);
 #endif  /*  CONFIG_FEATURE_2_6_MODULES  */
-
-	return EXIT_FAILURE;
+	return EXIT_SUCCESS;
 }
 
 #endif /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */

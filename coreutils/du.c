@@ -121,7 +121,7 @@ static long du(char *filename)
 		struct dirent *entry;
 		char *newfile;
 
-		dir = bb_opendir(filename);
+		dir = warn_opendir(filename);
 		if (!dir) {
 			status = EXIT_FAILURE;
 			return sum;
