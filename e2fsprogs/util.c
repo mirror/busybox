@@ -111,7 +111,7 @@ void parse_journal_opts(char **journal_device, int *journal_flags,
 {
 	char *buf, *token, *next, *p, *arg;
 	int journal_usage = 0;
-	buf = bb_xstrdup(opts);
+	buf = xstrdup(opts);
 	for (token = buf; token && *token; token = next) {
 		p = strchr(token, ',');
 		next = 0;
@@ -264,7 +264,7 @@ char *e2fs_set_sbin_path(void)
 	/* Update our PATH to include /sbin  */
 #define PATH_SET "/sbin"
 	if (oldpath)
-		oldpath = bb_xasprintf("%s:%s", PATH_SET, oldpath);
+		oldpath = xasprintf("%s:%s", PATH_SET, oldpath);
 	 else
 		oldpath = PATH_SET;
 	putenv (oldpath);

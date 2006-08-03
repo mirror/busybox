@@ -23,18 +23,6 @@
 
 
 #include "busybox.h"
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <time.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <setjmp.h>
-#include <regex.h>
-#include <ctype.h>
-#include <errno.h>
-#define vi_Version BB_VER " " BB_BT
 
 #ifdef CONFIG_LOCALE_SUPPORT
 #define Isprint(c) isprint((c))
@@ -349,7 +337,7 @@ int vi_main(int argc, char **argv)
 		for (; optind < argc; optind++) {
 			editing = 1;	// 0=exit, 1=one file, 2+ =many files
 			free(cfn);
-			cfn = (Byte *) bb_xstrdup(argv[optind]);
+			cfn = (Byte *) xstrdup(argv[optind]);
 			edit_file(cfn);
 		}
 	}
@@ -522,7 +510,7 @@ static Byte *get_one_address(Byte * p, int *addr)	// get colon addr, if present
 			*q++ = *p;
 			*q = '\0';
 		}
-		pat = (Byte *) bb_xstrdup((char *) buf);	// save copy of pattern
+		pat = (Byte *) xstrdup((char *) buf);	// save copy of pattern
 		if (*p == '/')
 			p++;
 		q = char_search(dot, pat, FORWARD, FULL);
@@ -736,7 +724,7 @@ static void colon(Byte * buf)
 
 		// There is a read-able regular file
 		// make this the current file
-		q = (Byte *) bb_xstrdup((char *) fn);	// save the cfn
+		q = (Byte *) xstrdup((char *) fn);	// save the cfn
 		free(cfn);		// free the old name
 		cfn = q;			// remember new cfn
 
@@ -788,7 +776,7 @@ static void colon(Byte * buf)
 		if (strlen((char *) args) > 0) {
 			// user wants a new filename
 			free(cfn);
-			cfn = (Byte *) bb_xstrdup((char *) args);
+			cfn = (Byte *) xstrdup((char *) args);
 		} else {
 			// user wants file status info
 			last_status_cksum = 0;	// force status update
@@ -996,7 +984,7 @@ static void colon(Byte * buf)
 		}
 #endif							/* CONFIG_FEATURE_VI_SEARCH */
 	} else if (strncasecmp((char *) cmd, "version", i) == 0) {	// show software version
-		psb("%s", vi_Version);
+		psb("%s", BB_VER " " BB_BT);
 	} else if (strncasecmp((char *) cmd, "write", i) == 0		// write text to file
 			|| strncasecmp((char *) cmd, "wq", i) == 0
 			|| strncasecmp((char *) cmd, "wn", i) == 0
@@ -2313,7 +2301,7 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 	}
 	refresh(FALSE);
 	free(obufp);
-	obufp = (Byte *) bb_xstrdup((char *) buf);
+	obufp = (Byte *) xstrdup((char *) buf);
 	return (obufp);
 }
 
@@ -3199,7 +3187,7 @@ key_cmd_mode:
 		// Stuff the last_modifying_cmd back into stdin
 		// and let it be re-executed.
 		if (last_modifying_cmd != 0) {
-			ioq = ioq_start = (Byte *) bb_xstrdup((char *) last_modifying_cmd);
+			ioq = ioq_start = (Byte *) xstrdup((char *) last_modifying_cmd);
 		}
 		break;
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
@@ -3214,7 +3202,7 @@ key_cmd_mode:
 		if (strlen((char *) q) > 1) {	// new pat- save it and find
 			// there is a new pat
 			free(last_search_pattern);
-			last_search_pattern = (Byte *) bb_xstrdup((char *) q);
+			last_search_pattern = (Byte *) xstrdup((char *) q);
 			goto dc3;	// now find the pattern
 		}
 		// user changed mind and erased the "/"-  do nothing

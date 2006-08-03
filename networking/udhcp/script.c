@@ -149,10 +149,10 @@ static char **fill_envp(struct dhcpMessage *packet)
 
 	envp = xzalloc(sizeof(char *) * (num_options + 5));
 	j = 0;
-	envp[j++] = bb_xasprintf("interface=%s", client_config.interface);
-	envp[j++] = bb_xasprintf("PATH=%s",
+	envp[j++] = xasprintf("interface=%s", client_config.interface);
+	envp[j++] = xasprintf("PATH=%s",
 		getenv("PATH") ? : "/bin:/usr/bin:/sbin:/usr/sbin");
-	envp[j++] = bb_xasprintf("HOME=%s", getenv("HOME") ? : "/");
+	envp[j++] = xasprintf("HOME=%s", getenv("HOME") ? : "/");
 
 	if (packet == NULL) return envp;
 
@@ -170,7 +170,7 @@ static char **fill_envp(struct dhcpMessage *packet)
 		/* Fill in a subnet bits option for things like /24 */
 		if (dhcp_options[i].code == DHCP_SUBNET) {
 			memcpy(&subnet, temp, 4);
-			envp[j++] = bb_xasprintf("mask=%d", mton(&subnet));
+			envp[j++] = xasprintf("mask=%d", mton(&subnet));
 		}
 	}
 	if (packet->siaddr) {
@@ -180,12 +180,12 @@ static char **fill_envp(struct dhcpMessage *packet)
 	if (!(over & FILE_FIELD) && packet->file[0]) {
 		/* watch out for invalid packets */
 		packet->file[sizeof(packet->file) - 1] = '\0';
-		envp[j++] = bb_xasprintf("boot_file=%s", packet->file);
+		envp[j++] = xasprintf("boot_file=%s", packet->file);
 	}
 	if (!(over & SNAME_FIELD) && packet->sname[0]) {
 		/* watch out for invalid packets */
 		packet->sname[sizeof(packet->sname) - 1] = '\0';
-		envp[j++] = bb_xasprintf("sname=%s", packet->sname);
+		envp[j++] = xasprintf("sname=%s", packet->sname);
 	}
 	return envp;
 }

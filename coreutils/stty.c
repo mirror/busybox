@@ -21,31 +21,7 @@
 
    */
 
-//#define TEST
-
 #include "busybox.h"
-#include <stddef.h>
-#include <termios.h>
-#include <sys/ioctl.h>
-
-#include <sys/param.h>
-#include <unistd.h>
-
-#ifndef STDIN_FILENO
-# define STDIN_FILENO 0
-#endif
-
-#ifndef STDOUT_FILENO
-# define STDOUT_FILENO 1
-#endif
-
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <limits.h>
-#include <fcntl.h>
 
 #define STREQ(a, b) (strcmp ((a), (b)) == 0)
 
@@ -469,11 +445,7 @@ static const struct suffix_mult stty_suffixes[] = {
 	{NULL, 0   }
 };
 
-#ifndef TEST
 int stty_main(int argc, char **argv)
-#else
-int main(int argc, char **argv)
-#endif
 {
 	struct termios mode;
 	void (*output_func)(struct termios *);
@@ -541,7 +513,7 @@ int main(int argc, char **argv)
 
 		device_name = file_name;
 		fclose(stdin);
-		bb_xopen(device_name, O_RDONLY | O_NONBLOCK);
+		xopen(device_name, O_RDONLY | O_NONBLOCK);
 		if ((fdflags = fcntl(STDIN_FILENO, F_GETFL)) == -1
 			|| fcntl(STDIN_FILENO, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
 			perror_on_device("%s: couldn't reset non-blocking mode");
@@ -1299,9 +1271,3 @@ static const char *visible(unsigned int ch)
 	*bpout = '\0';
 	return (const char *) buf;
 }
-
-#ifdef TEST
-
-const char *bb_applet_name = "stty";
-
-#endif

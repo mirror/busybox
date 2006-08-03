@@ -14,16 +14,8 @@
  * http://www.unix-systems.org/single_unix_specification_v2/xcu/ar.html
  */
 
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <utime.h>
-#include <unistd.h>
-
-#include "unarchive.h"
 #include "busybox.h"
+#include "unarchive.h"
 
 static void header_verbose_list_ar(const file_header_t *file_header)
 {
@@ -81,7 +73,7 @@ int ar_main(int argc, char **argv)
 		bb_error_msg_and_die(msg_unsupported_err, "insertion");
 	}
 
-	archive_handle->src_fd = bb_xopen(argv[optind++], O_RDONLY);
+	archive_handle->src_fd = xopen(argv[optind++], O_RDONLY);
 
 	while (optind < argc) {
 		archive_handle->filter = filter_accept_list;

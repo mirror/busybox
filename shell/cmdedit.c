@@ -216,7 +216,7 @@ static void cmdedit_set_out_char(int next_char)
 		printf("\033[7m%c\033[0m", c);
 	} else
 #endif
-		putchar(c);
+		if (initial_settings.c_lflag & ECHO) putchar(c);
 	if (++cmdedit_x >= cmdedit_termw) {
 		/* terminal is scrolled down */
 		cmdedit_y++;
@@ -546,8 +546,8 @@ static void cmdedit_init(void)
 		my_euid = geteuid();
 		entry = getpwuid(my_euid);
 		if (entry) {
-			user_buf = bb_xstrdup(entry->pw_name);
-			home_pwd_buf = bb_xstrdup(entry->pw_dir);
+			user_buf = xstrdup(entry->pw_name);
+			home_pwd_buf = xstrdup(entry->pw_dir);
 		}
 #endif
 
@@ -634,7 +634,7 @@ static void username_tab_completion(char *ud, char *with_shash_flg)
 		while ((entry = getpwent()) != NULL) {
 			/* Null usernames should result in all users as possible completions. */
 			if ( /*!userlen || */ !strncmp(ud, entry->pw_name, userlen)) {
-				add_match(bb_xasprintf("~%s", entry->pw_name), '/');
+				add_match(xasprintf("~%s", entry->pw_name), '/');
 			}
 		}
 
@@ -684,7 +684,7 @@ static int path_parse(char ***p, int flags)
 	*p = xmalloc(npth * sizeof(char *));
 
 	tmp = pth;
-	(*p)[0] = bb_xstrdup(tmp);
+	(*p)[0] = xstrdup(tmp);
 	npth = 1;                       /* count words is + 1 count ':' */
 
 	for (;;) {
@@ -1114,7 +1114,7 @@ static void input_tab(int *lastWasTab)
 			if (!matches)
 				return;         /* not found */
 			/* find minimal match */
-			tmp1 = bb_xstrdup(matches[0]);
+			tmp1 = xstrdup(matches[0]);
 			for (tmp = tmp1; *tmp; tmp++)
 				for (len_found = 1; len_found < num_matches; len_found++)
 					if (matches[len_found][(tmp - tmp1)] != *tmp) {
@@ -1175,7 +1175,7 @@ static void get_previous_history(void)
 {
 	if(command_ps[0] != 0 || history[cur_history] == 0) {
 		free(history[cur_history]);
-		history[cur_history] = bb_xstrdup(command_ps);
+		history[cur_history] = xstrdup(command_ps);
 	}
 	cur_history--;
 }
@@ -1856,7 +1856,7 @@ rewrite_line:
 			for(i = 0; i < (MAX_HISTORY-1); i++)
 				history[i] = history[i+1];
 		}
-		history[i++] = bb_xstrdup(command);
+		history[i++] = xstrdup(command);
 		cur_history = i;
 		n_history = i;
 #if defined(CONFIG_FEATURE_SH_FANCY_PROMPT)

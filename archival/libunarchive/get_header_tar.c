@@ -11,12 +11,8 @@
  *	http://www.opengroup.org/onlinepubs/007904975/utilities/pax.html
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/sysmacros.h>	/* For makedev */
-#include "unarchive.h"
 #include "libbb.h"
+#include "unarchive.h"
 
 #ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 static char *longname = NULL;
@@ -106,7 +102,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	} else
 #endif
 	{
-		file_header->name = bb_xstrndup(tar.formatted.name,100);
+		file_header->name = xstrndup(tar.formatted.name,100);
 
 		if (tar.formatted.prefix[0]) {
 			char *temp = file_header->name;
@@ -120,7 +116,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	file_header->size = strtol(tar.formatted.size, NULL, 8);
 	file_header->mtime = strtol(tar.formatted.mtime, NULL, 8);
 	file_header->link_name = (tar.formatted.linkname[0] != '\0') ?
-	    bb_xstrdup(tar.formatted.linkname) : NULL;
+	    xstrdup(tar.formatted.linkname) : NULL;
 	file_header->device = makedev(strtol(tar.formatted.devmajor, NULL, 8),
 		strtol(tar.formatted.devminor, NULL, 8));
 

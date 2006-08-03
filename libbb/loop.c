@@ -8,13 +8,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include <features.h>
-#include <stdio.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
 #include "libbb.h"
 
 /* For 2.6, use the cleaned up header to get the 64 bit API. */
@@ -59,7 +52,7 @@ char *query_loop(const char *device)
 
 	if ((fd = open(device, O_RDONLY)) < 0) return 0;
 	if (!ioctl(fd, BB_LOOP_GET_STATUS, &loopinfo))
-		dev=bb_xasprintf("%ld %s", (long) loopinfo.lo_offset,
+		dev=xasprintf("%ld %s", (long) loopinfo.lo_offset,
 				(char *)loopinfo.lo_file_name);
 	close(fd);
 

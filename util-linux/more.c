@@ -11,28 +11,9 @@
  *
  * Termios corrects by Vladimir Oleynik <dzo@simtreas.ru>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
+ * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 
-#include <stdio.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
 #include "busybox.h"
 
 
@@ -76,7 +57,7 @@ int more_main(int argc, char **argv)
 	if(isatty(STDOUT_FILENO)) {
 		cin = fopen(CURRENT_TTY, "r");
 		if (!cin)
-			cin = bb_xfopen(CONSOLE_DEV, "r");
+			cin = xfopen(CONSOLE_DEV, "r");
 		please_display_more_prompt = 2;
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 		cin_fileno = fileno(cin);

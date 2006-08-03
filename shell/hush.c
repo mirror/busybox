@@ -1320,7 +1320,7 @@ static int run_pipe_real(struct pipe *pi)
 				 * variable. */
 				int export_me=0;
 				char *name, *value;
-				name = bb_xstrdup(child->argv[i]);
+				name = xstrdup(child->argv[i]);
 				debug_printf("Local environment set: %s\n", name);
 				value = strchr(name, '=');
 				if (value)
@@ -2753,7 +2753,7 @@ int hush_main(int argc, char **argv)
 	debug_printf("\nrunning script '%s'\n", argv[optind]);
 	global_argv = argv+optind;
 	global_argc = argc-optind;
-	input = bb_xfopen(argv[optind], "r");
+	input = xfopen(argv[optind], "r");
 	opt = parse_file_outer(input);
 
 #ifdef CONFIG_FEATURE_CLEAN_UP

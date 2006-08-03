@@ -7,16 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <netinet/in.h> /* For ntohl & htonl function */
-#include <string.h> /* For strncmp */
-#include <sys/mman.h> /* For mmap */
-#include <time.h> /* For ctime */
-
 #include "busybox.h"
 #include "unarchive.h"
 
@@ -127,7 +117,7 @@ int rpm_main(int argc, char **argv)
 
 	if (optind == argc) bb_show_usage();
 	while (optind < argc) {
-		rpm_fd = bb_xopen(argv[optind], O_RDONLY);
+		rpm_fd = xopen(argv[optind], O_RDONLY);
 		mytags = rpm_gettags(rpm_fd, (int *) &tagcount);
 		offset = lseek(rpm_fd, 0, SEEK_CUR);
 		if (!mytags) { printf("Error reading rpm header\n"); exit(-1); }
@@ -198,7 +188,7 @@ void extract_cpio_gz(int fd) {
 		bb_error_msg_and_die("Invalid gzip magic");
 	}
 	check_header_gzip(archive_handle->src_fd);
-	bb_xchdir("/"); // Install RPM's to root
+	xchdir("/"); // Install RPM's to root
 
 	archive_handle->src_fd = open_transformer(archive_handle->src_fd, inflate_gunzip);
 	archive_handle->offset = 0;
@@ -302,7 +292,7 @@ void fileaction_dobackup(char *filename, int fileref)
 	if (rpm_getint(RPMTAG_FILEFLAGS, fileref) & RPMFILE_CONFIG) { /* Only need to backup config files */
 		stat_res = lstat (filename, &oldfile);
 		if (stat_res == 0 && S_ISREG(oldfile.st_mode)) { /* File already exists  - really should check MD5's etc to see if different */
-			newname = bb_xstrdup(filename);
+			newname = xstrdup(filename);
 			newname = strcat(newname, ".rpmorig");
 			copy_file(filename, newname, FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS);
 			remove_file(filename, FILEUTILS_RECUR | FILEUTILS_FORCE);
@@ -328,7 +318,7 @@ void loop_through_files(int filetag, void (*fileaction)(char *filename, int file
 {
 	int count = 0;
 	while (rpm_getstring(filetag, count)) {
-		char * filename = bb_xasprintf("%s%s",
+		char * filename = xasprintf("%s%s",
 			rpm_getstring(RPMTAG_DIRNAMES, rpm_getint(RPMTAG_DIRINDEXES,
 			count)), rpm_getstring(RPMTAG_BASENAMES, count));
 		fileaction(filename, count++);

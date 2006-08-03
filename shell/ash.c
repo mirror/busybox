@@ -6011,7 +6011,7 @@ static inline void putprompt(const char *s)
 {
 #ifdef CONFIG_ASH_EXPAND_PRMT
 	free(cmdedit_prompt);
-	cmdedit_prompt = bb_xstrdup(s);
+	cmdedit_prompt = xstrdup(s);
 #else
 	cmdedit_prompt = s;
 #endif
@@ -8105,7 +8105,7 @@ static int dotcmd(int argc, char **argv)
 	int status = 0;
 
 	for (sp = cmdenviron; sp; sp = sp->next)
-		setvareq(bb_xstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
+		setvareq(xstrdup(sp->text), VSTRFIXED | VTEXTFIXED);
 
 	if (argc >= 2) {        /* That's what SVR2 does */
 		char *fullname;

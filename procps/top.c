@@ -29,21 +29,8 @@
  */
 
 #include "busybox.h"
-#include <sys/types.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/ioctl.h>
 
 //#define CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE  /* + 2k */
-
-#ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-#include <time.h>
-#include <fcntl.h>
-#include <netinet/in.h>  /* htons */
-#endif
-
 
 typedef int (*cmp_t)(procps_status_t *P, procps_status_t *Q);
 
@@ -116,7 +103,7 @@ static struct jiffy_counts jif, prev_jif;
 
 static void get_jiffy_counts(void)
 {
-	FILE* fp = bb_xfopen("stat", "r");
+	FILE* fp = xfopen("stat", "r");
 	prev_jif = jif;
 	if (fscanf(fp, "cpu  %lld %lld %lld %lld %lld %lld %lld %lld",
 			&jif.usr,&jif.nic,&jif.sys,&jif.idle,
@@ -196,7 +183,7 @@ static unsigned long display_generic(int scr_width)
 	unsigned int needs_conversion = 1;
 
 	/* read memory info */
-	fp = bb_xfopen("meminfo", "r");
+	fp = xfopen("meminfo", "r");
 
 	/*
 	 * Old kernels (such as 2.4.x) had a nice summary of memory info that
@@ -238,7 +225,7 @@ static unsigned long display_generic(int scr_width)
 	fclose(fp);
 
 	/* read load average as a string */
-	fp = bb_xfopen("loadavg", "r");
+	fp = xfopen("loadavg", "r");
 	buf[0] = '\0';
 	fgets(buf, sizeof(buf), fp);
 	end = strchr(buf, ' ');
@@ -414,7 +401,7 @@ int top_main(int argc, char **argv)
 	}
 
 	/* change to /proc */
-	bb_xchdir("/proc");
+	xchdir("/proc");
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 	tcgetattr(0, (void *) &initial_settings);
 	memcpy(&new_settings, &initial_settings, sizeof(struct termios));

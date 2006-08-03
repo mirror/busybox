@@ -39,11 +39,6 @@
 	of crypt do not truncate passwords.
 */
 
-#include <ctype.h>
-#include <unistd.h>
-#include <string.h>
-#include <strings.h>
-
 #include "libbb.h"
 
 static int string_checker_helper(const char *p1, const char *p2) __attribute__ ((__pure__));
@@ -66,7 +61,7 @@ static int string_checker(const char *p1, const char *p2)
 	/* check string */
 	int ret = string_checker_helper(p1, p2);
 	/* Make our own copy */
-	char *p = bb_xstrdup(p1);
+	char *p = xstrdup(p1);
 	/* reverse string */
 	size = strlen(p);
 

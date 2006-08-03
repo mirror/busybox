@@ -82,10 +82,10 @@ void run_shell ( const char *shell, int loginshell, const char *command, const c
 
 		args = (const char **) xmalloc (sizeof (char *) * ( 4  + additional_args_cnt ));
 
-	args [0] = bb_get_last_path_component ( bb_xstrdup ( shell ));
+	args [0] = bb_get_last_path_component ( xstrdup ( shell ));
 
 	if ( loginshell )
-		args [0] = bb_xasprintf ("-%s", args [0]);
+		args [0] = xasprintf ("-%s", args [0]);
 
 	if ( command ) {
 		args [argno++] = "-c";

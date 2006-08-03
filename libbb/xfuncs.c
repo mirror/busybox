@@ -3,18 +3,12 @@
  * Utility routines.
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+ * Copyright (C) 2006 Rob Landley
+ * Copyright (C) 2006 Denis Vlasenko
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include "busybox.h"
 
 #ifndef DMALLOC
@@ -59,7 +53,7 @@ void *xcalloc(size_t nmemb, size_t size)
 #endif /* DMALLOC */
 
 #ifdef L_xstrdup
-char * bb_xstrdup (const char *s)
+char * xstrdup (const char *s)
 {
 	char *t;
 
@@ -76,12 +70,12 @@ char * bb_xstrdup (const char *s)
 #endif
 
 #ifdef L_xstrndup
-char * bb_xstrndup (const char *s, int n)
+char * xstrndup (const char *s, int n)
 {
 	char *t;
 
 	if (ENABLE_DEBUG && s == NULL)
-		bb_error_msg_and_die("bb_xstrndup bug");
+		bb_error_msg_and_die("xstrndup bug");
 
 	t = xmalloc(++n);
 
@@ -90,7 +84,7 @@ char * bb_xstrndup (const char *s, int n)
 #endif
 
 #ifdef L_xfopen
-FILE *bb_xfopen(const char *path, const char *mode)
+FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp;
 	if ((fp = fopen(path, mode)) == NULL)
@@ -100,14 +94,14 @@ FILE *bb_xfopen(const char *path, const char *mode)
 #endif
 
 #ifdef L_xopen
-int bb_xopen(const char *pathname, int flags)
+int xopen(const char *pathname, int flags)
 {
-	return bb_xopen3(pathname, flags, 0777);
+	return xopen3(pathname, flags, 0777);
 }
 #endif
 
 #ifdef L_xopen3
-int bb_xopen3(const char *pathname, int flags, int mode)
+int xopen3(const char *pathname, int flags, int mode)
 {
 	int ret;
 
@@ -175,7 +169,7 @@ unsigned char xread_char(int fd)
 #endif
 
 #ifdef L_xferror
-void bb_xferror(FILE *fp, const char *fn)
+void xferror(FILE *fp, const char *fn)
 {
 	if (ferror(fp)) {
 		bb_error_msg_and_die("%s", fn);
@@ -184,14 +178,14 @@ void bb_xferror(FILE *fp, const char *fn)
 #endif
 
 #ifdef L_xferror_stdout
-void bb_xferror_stdout(void)
+void xferror_stdout(void)
 {
-	bb_xferror(stdout, bb_msg_standard_output);
+	xferror(stdout, bb_msg_standard_output);
 }
 #endif
 
 #ifdef L_xfflush_stdout
-void bb_xfflush_stdout(void)
+void xfflush_stdout(void)
 {
 	if (fflush(stdout)) {
 		bb_perror_msg_and_die(bb_msg_standard_output);
@@ -201,7 +195,7 @@ void bb_xfflush_stdout(void)
 
 #ifdef L_spawn
 // This does a fork/exec in one call, using vfork().
-pid_t bb_spawn(char **argv)
+pid_t spawn(char **argv)
 {
 	static int failed;
 	pid_t pid;
@@ -226,9 +220,9 @@ pid_t bb_spawn(char **argv)
 #endif
 
 #ifdef L_xspawn
-pid_t bb_xspawn(char **argv)
+pid_t xspawn(char **argv)
 {
-	pid_t pid = bb_spawn(argv);
+	pid_t pid = spawn(argv);
 	if (pid < 0) bb_perror_msg_and_die("%s", *argv);
 	return pid;
 }
@@ -345,5 +339,109 @@ off_t fdlength(int fd)
 	} while (bottom + 1 != top);
 
 	return pos + 1;
+}
+#endif
+
+#ifdef L_xasprintf
+char *xasprintf(const char *format, ...)
+{
+	va_list p;
+	int r;
+	char *string_ptr;
+
+#if 1
+	// GNU extension
+	va_start(p, format);
+	r = vasprintf(&string_ptr, format, p);
+	va_end(p);
+#else
+	// Bloat for systems that haven't got the GNU extension.
+	va_start(p, format);
+	r = vsnprintf(NULL, 0, format, p);
+	va_end(p);
+	string_ptr = xmalloc(r+1);
+	va_start(p, format);
+	r = vsnprintf(string_ptr, r+1, format, p);
+	va_end(p);
+#endif
+
+	if (r < 0) bb_perror_msg_and_die("xasprintf");
+	return string_ptr;
+}
+#endif
+
+#ifdef L_xprint_and_close_file
+void xprint_and_close_file(FILE *file)
+{
+	// copyfd outputs error messages for us.
+	if (bb_copyfd_eof(fileno(file), 1) == -1) exit(bb_default_error_retval);
+
+	fclose(file);
+}
+#endif
+
+#ifdef L_xchdir
+void xchdir(const char *path)
+{
+	if (chdir(path))
+		bb_perror_msg_and_die("chdir(%s)", path);
+}
+#endif
+
+#ifdef L_warn_opendir
+DIR *warn_opendir(const char *path)
+{
+	DIR *dp;
+
+	if ((dp = opendir(path)) == NULL) {
+		bb_perror_msg("unable to open `%s'", path);
+		return NULL;
+	}
+	return dp;
+}
+#endif
+
+#ifdef L_xopendir
+DIR *xopendir(const char *path)
+{
+	DIR *dp;
+
+	if ((dp = opendir(path)) == NULL)
+		bb_perror_msg_and_die("unable to open `%s'", path);
+	return dp;
+}
+#endif
+
+#ifdef L_xdaemon
+#ifndef BB_NOMMU
+void xdaemon(int nochdir, int noclose)
+{
+	    if (daemon(nochdir, noclose)) bb_perror_msg_and_die("daemon");
+}
+#endif
+#endif
+
+#ifdef L_xbind
+void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen)
+{
+	if (bind(sockfd, my_addr, addrlen)) bb_perror_msg_and_die("bind");
+}
+#endif
+
+#ifdef L_xsocket
+int xsocket(int domain, int type, int protocol)
+{
+	int r = socket(domain, type, protocol);
+
+	if (r < 0) bb_perror_msg_and_die("socket");
+
+	return r;
+}
+#endif
+
+#ifdef L_xlisten
+void xlisten(int s, int backlog)
+{
+	if (listen(s, backlog)) bb_perror_msg_and_die("listen");
 }
 #endif

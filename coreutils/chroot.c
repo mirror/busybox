@@ -9,10 +9,6 @@
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
 #include "busybox.h"
 
 int chroot_main(int argc, char **argv)
@@ -25,7 +21,7 @@ int chroot_main(int argc, char **argv)
 	if (chroot(*argv)) {
 		bb_perror_msg_and_die("cannot change root directory to %s", *argv);
 	}
-	bb_xchdir("/");
+	xchdir("/");
 
 	++argv;
 	if (argc == 2) {

@@ -3,31 +3,22 @@
  * Mini start-stop-daemon implementation(s) for busybox
  *
  * Written by Marek Michalkiewicz <marekm@i17linuxb.ists.pwr.wroc.pl>,
- * public domain.
  * Adapted for busybox David Kimdon <dwhedon@gordian.com>
+ *
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <getopt.h> /* struct option */
-#include "pwd_.h"
+#include <getopt.h>
 
 static int signal_nr = 15;
 static int user_id = -1;
 static int quiet;
-static char *userspec = NULL;
-static char *chuid = NULL;
-static char *cmdname = NULL;
-static char *execname = NULL;
-static char *pidfile = NULL;
+static char *userspec;
+static char *chuid;
+static char *cmdname;
+static char *execname;
+static char *pidfile;
 
 struct pid_list {
 	struct pid_list *next;
@@ -136,7 +127,7 @@ static void do_procinit(void)
 		return;
 	}
 
-	procdir = bb_xopendir("/proc");
+	procdir = xopendir("/proc");
 
 	foundany = 0;
 	while ((entry = readdir(procdir)) != NULL) {
@@ -292,12 +283,12 @@ int start_stop_daemon_main(int argc, char **argv)
 	}
 	*--argv = startas;
 	if (opt & SSD_OPT_BACKGROUND) {
-		bb_xdaemon(0, 0);
+		xdaemon(0, 0);
 		setsid();
 	}
 	if (opt & SSD_OPT_MAKEPID) {
 		/* user wants _us_ to make the pidfile */
-		FILE *pidf = bb_xfopen(pidfile, "w");
+		FILE *pidf = xfopen(pidfile, "w");
 
 		pid_t pidt = getpid();
 		fprintf(pidf, "%d\n", pidt);

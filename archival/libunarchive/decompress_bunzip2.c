@@ -28,15 +28,7 @@
 	Manuel
  */
 
-#include <setjmp.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <limits.h>
-
 #include "libbb.h"
-
 #include "unarchive.h"
 
 /* Constants for Huffman coding */
@@ -655,7 +647,7 @@ static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
 
 	/* Init the CRC32 table (big endian) */
 
-	bd->crc32Table = bb_crc32_filltable(1);
+	bd->crc32Table = crc32_filltable(1);
 
 	/* Setup for I/O error handling via longjmp */
 

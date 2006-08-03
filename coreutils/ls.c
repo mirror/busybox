@@ -37,15 +37,7 @@ enum {
 /************************************************************************/
 
 #include "busybox.h"
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <getopt.h> /* struct option */
-#include <sys/ioctl.h>
-#include <sys/sysmacros.h>     /* major() and minor() */
-#include <time.h>
+#include <getopt.h>
 
 /* what is the overall style of the listing */
 #define STYLE_COLUMNS   (1U<<21)	/* fill columns */
@@ -535,7 +527,7 @@ static struct dnode **list_dir(const char *path)
 
 	dn = NULL;
 	nfiles = 0;
-	dir = bb_opendir(path);
+	dir = warn_opendir(path);
 	if (dir == NULL) {
 		status = EXIT_FAILURE;
 		return (NULL);	/* could not open the dir */

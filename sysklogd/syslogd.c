@@ -14,24 +14,9 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <netdb.h>
 #include <paths.h>
-#include <signal.h>
-#include <stdarg.h>
 #include <stdbool.h>
-#include <time.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <sys/un.h>
-#include <sys/param.h>
 
 /* SYSLOG_NAMES defined to pull some extra junk from syslog.h */
 #define SYSLOG_NAMES
@@ -368,7 +353,7 @@ static void message(char *fmt, ...)
 static void init_RemoteLog(void)
 {
 	memset(&remoteaddr, 0, sizeof(remoteaddr));
-	remotefd = bb_xsocket(AF_INET, SOCK_DGRAM, 0);
+	remotefd = xsocket(AF_INET, SOCK_DGRAM, 0);
 	remoteaddr.sin_family = AF_INET;
 	remoteaddr.sin_addr = *(struct in_addr *) *(xgethostbyname(RemoteHost))->h_addr_list;
 	remoteaddr.sin_port = htons(RemotePort);
@@ -537,7 +522,7 @@ static void doSyslogd(void)
 	memset(&sunx, 0, sizeof(sunx));
 	sunx.sun_family = AF_UNIX;
 	strncpy(sunx.sun_path, lfile, sizeof(sunx.sun_path));
-	sock_fd = bb_xsocket(AF_UNIX, SOCK_DGRAM, 0);
+	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
 	addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
 	if (bind(sock_fd, (struct sockaddr *) &sunx, addrLength) < 0) {
 		bb_perror_msg_and_die("Could not connect to socket " _PATH_LOG);
@@ -623,7 +608,7 @@ int syslogd_main(int argc, char **argv)
 #endif
 #ifdef CONFIG_FEATURE_REMOTE_LOG
 		case 'R':
-			RemoteHost = bb_xstrdup(optarg);
+			RemoteHost = xstrdup(optarg);
 			if ((p = strchr(RemoteHost, ':'))) {
 				RemotePort = atoi(p + 1);
 				*p = '\0';
@@ -672,7 +657,7 @@ int syslogd_main(int argc, char **argv)
 #ifdef BB_NOMMU
 		vfork_daemon_rexec(0, 1, argc, argv, "-n");
 #else
-		bb_xdaemon(0, 1);
+		xdaemon(0, 1);
 #endif
 	}
 	doSyslogd();

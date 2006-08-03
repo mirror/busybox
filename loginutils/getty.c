@@ -16,19 +16,6 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <stdarg.h>
-#include <ctype.h>
-#include <getopt.h>
-#include <termios.h>
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_UTMP
@@ -324,7 +311,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 		const char *p = op->initstring;
 		char *q;
 
-		q = op->initstring = bb_xstrdup(op->initstring);
+		q = op->initstring = xstrdup(op->initstring);
 		/* copy optarg into op->initstring decoding \ddd
 		   octal codes into chars */
 		while (*p) {
@@ -858,7 +845,7 @@ int getty_main(int argc, char **argv)
 	};
 
 #ifdef DEBUGGING
-	dbf = bb_xfopen(DEBUGTERM, "w");
+	dbf = xfopen(DEBUGTERM, "w");
 
 	{
 		int i;

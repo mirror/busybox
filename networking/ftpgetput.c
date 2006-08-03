@@ -13,19 +13,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <sys/ioctl.h>
-
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <signal.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <sys/socket.h>
-
 #include "busybox.h"
+#include <getopt.h>
 
 typedef struct ftp_host_info_s {
 	char *user;
@@ -175,9 +164,9 @@ static int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 	/* only make a local file if we know that one exists on the remote server */
 	if (fd_local == -1) {
 		if (do_continue) {
-			fd_local = bb_xopen(local_path, O_APPEND | O_WRONLY);
+			fd_local = xopen(local_path, O_APPEND | O_WRONLY);
 		} else {
-			fd_local = bb_xopen(local_path, O_CREAT | O_TRUNC | O_WRONLY);
+			fd_local = xopen(local_path, O_CREAT | O_TRUNC | O_WRONLY);
 		}
 	}
 
@@ -223,7 +212,7 @@ static int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 	if ((local_path[0] == '-') && (local_path[1] == '\0')) {
 		fd_local = STDIN_FILENO;
 	} else {
-		fd_local = bb_xopen(local_path, O_RDONLY);
+		fd_local = xopen(local_path, O_RDONLY);
 		fstat(fd_local, &sbuf);
 
 		sprintf(buf, "ALLO %lu", (unsigned long)sbuf.st_size);

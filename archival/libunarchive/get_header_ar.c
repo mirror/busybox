@@ -4,12 +4,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include "unarchive.h"
 #include "libbb.h"
+#include "unarchive.h"
 
 char get_header_ar(archive_handle_t *archive_handle)
 {
@@ -31,7 +27,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 	static unsigned int ar_long_name_size;
 #endif
 
-	/* dont use bb_xread as we want to handle the error ourself */
+	/* dont use xread as we want to handle the error ourself */
 	if (read(archive_handle->src_fd, ar.raw, 60) != 60) {
 		/* End Of File */
 		return(EXIT_FAILURE);
@@ -85,14 +81,14 @@ char get_header_ar(archive_handle_t *archive_handle)
 			if (long_offset >= ar_long_name_size) {
 				bb_error_msg_and_die("Cant resolve long filename");
 			}
-			typed->name = bb_xstrdup(ar_long_names + long_offset);
+			typed->name = xstrdup(ar_long_names + long_offset);
 		}
 #else
 		bb_error_msg_and_die("long filenames not supported");
 #endif
 	} else {
 		/* short filenames */
-	       typed->name = bb_xstrndup(ar.formatted.name, 16);
+	       typed->name = xstrndup(ar.formatted.name, 16);
 	}
 
 	typed->name[strcspn(typed->name, " /")] = '\0';

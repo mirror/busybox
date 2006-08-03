@@ -12,11 +12,6 @@
  */
 
 
-#include <stdio.h>
-#include <errno.h>
-#include <getopt.h> /* optind */
-#include <string.h>
-#include <stdlib.h>
 #include "busybox.h"
 
 static int read_stduu(FILE *src_stream, FILE *dst_stream)
@@ -141,7 +136,7 @@ int uudecode_main(int argc, char **argv)
 	if (optind == argc) {
 		src_stream = stdin;
 	} else if (optind + 1 == argc) {
-		src_stream = bb_xfopen(argv[optind], "r");
+		src_stream = xfopen(argv[optind], "r");
 	} else {
 		bb_show_usage();
 	}
@@ -174,7 +169,7 @@ int uudecode_main(int argc, char **argv)
 			if (strcmp(outname, "-") == 0) {
 				dst_stream = stdout;
 			} else {
-				dst_stream = bb_xfopen(outname, "w");
+				dst_stream = xfopen(outname, "w");
 				chmod(outname, mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 			}
 			free(line);

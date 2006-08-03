@@ -3,16 +3,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <sys/types.h>
-
-#include <errno.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <utime.h>
-#include <unistd.h>
-#include <stdlib.h>
-
 #include "libbb.h"
 #include "unarchive.h"
 
@@ -23,7 +13,7 @@ void data_extract_all(archive_handle_t *archive_handle)
 	int res;
 
 	if (archive_handle->flags & ARCHIVE_CREATE_LEADING_DIRS) {
-		char *name = bb_xstrdup(file_header->name);
+		char *name = xstrdup(file_header->name);
 		bb_make_directory (dirname(name), -1, FILEUTILS_RECUR);
 		free(name);
 	}
@@ -68,7 +58,7 @@ void data_extract_all(archive_handle_t *archive_handle)
 		switch(file_header->mode & S_IFMT) {
 			case S_IFREG: {
 				/* Regular file */
-				dst_fd = bb_xopen(file_header->name, O_WRONLY | O_CREAT | O_EXCL);
+				dst_fd = xopen(file_header->name, O_WRONLY | O_CREAT | O_EXCL);
 				bb_copyfd_size(archive_handle->src_fd, dst_fd, file_header->size);
 				close(dst_fd);
 				break;

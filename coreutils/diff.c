@@ -12,23 +12,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <time.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/stat.h>
-#include <ctype.h>
-#include <errno.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <fcntl.h>
-#include <stddef.h>
-#include <paths.h>
-#include <dirent.h>
 #include "busybox.h"
 
 #define FSIZE_MAX 32768
@@ -917,21 +900,21 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 		goto closem;
 
 	if (flags & D_EMPTY1)
-		f1 = bb_xfopen(bb_dev_null, "r");
+		f1 = xfopen(bb_dev_null, "r");
 	else {
 		if (strcmp(file1, "-") == 0)
 			f1 = stdin;
 		else
-			f1 = bb_xfopen(file1, "r");
+			f1 = xfopen(file1, "r");
 	}
 
 	if (flags & D_EMPTY2)
-		f2 = bb_xfopen(bb_dev_null, "r");
+		f2 = xfopen(bb_dev_null, "r");
 	else {
 		if (strcmp(file2, "-") == 0)
 			f2 = stdin;
 		else
-			f2 = bb_xfopen(file2, "r");
+			f2 = xfopen(file2, "r");
 	}
 
 	if ((i = files_differ(f1, f2, flags)) == 0)
@@ -1004,19 +987,19 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 	int flags = D_HEADER;
 	int val;
 
-	char *fullpath1 = bb_xasprintf("%s/%s", dir1, path1);
-	char *fullpath2 = bb_xasprintf("%s/%s", dir2, path2);
+	char *fullpath1 = xasprintf("%s/%s", dir1, path1);
+	char *fullpath2 = xasprintf("%s/%s", dir2, path2);
 
 	if (stat(fullpath1, &stb1) != 0) {
 		flags |= D_EMPTY1;
 		memset(&stb1, 0, sizeof(stb1));
-		fullpath1 = bb_xasprintf("%s/%s", dir1, path2);
+		fullpath1 = xasprintf("%s/%s", dir1, path2);
 	}
 	if (stat(fullpath2, &stb2) != 0) {
 		flags |= D_EMPTY2;
 		memset(&stb2, 0, sizeof(stb2));
 		stb2.st_mode = stb1.st_mode;
-		fullpath2 = bb_xasprintf("%s/%s", dir2, path1);
+		fullpath2 = xasprintf("%s/%s", dir2, path1);
 	}
 
 	if (stb1.st_mode == 0)
@@ -1051,7 +1034,7 @@ static int add_to_dirlist(const char *filename,
 {
 	dl_count++;
 	dl = xrealloc(dl, dl_count * sizeof(char *));
-	dl[dl_count - 1] = bb_xstrdup(filename);
+	dl[dl_count - 1] = xstrdup(filename);
 	if (cmd_flags & FLAG_r) {
 		int *pp = (int *) userdata;
 		int path_len = *pp + 1;
@@ -1077,7 +1060,7 @@ static char **get_dir(char *path)
 	int path_len = strlen(path);
 	void *userdata = &path_len;
 
-	/* Reset dl_count - there's no need to free dl as bb_xrealloc does
+	/* Reset dl_count - there's no need to free dl as xrealloc does
 	 * the job nicely. */
 	dl_count = 0;
 
@@ -1089,7 +1072,7 @@ static char **get_dir(char *path)
 		DIR *dp;
 		struct dirent *ep;
 
-		dp = bb_opendir(path);
+		dp = warn_opendir(path);
 		while ((ep = readdir(dp))) {
 			if ((!strcmp(ep->d_name, "..")) || (!strcmp(ep->d_name, ".")))
 				continue;
@@ -1104,7 +1087,7 @@ static char **get_dir(char *path)
 	/* Copy dl so that we can return it. */
 	retval = xmalloc(dl_count * sizeof(char *));
 	for (i = 0; i < dl_count; i++)
-		retval[i] = bb_xstrdup(dl[i]);
+		retval[i] = xstrdup(dl[i]);
 
 	return retval;
 }

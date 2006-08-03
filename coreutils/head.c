@@ -11,11 +11,6 @@
 /* BB_AUDIT GNU compatible -c, -q, and -v options in 'fancy' configuration. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/head.html */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <ctype.h>
-#include <unistd.h>
 #include "busybox.h"
 
 static const char head_opts[] =
@@ -137,7 +132,7 @@ int head_main(int argc, char **argv)
 				bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
 				retval = EXIT_FAILURE;
 			}
-			bb_xferror_stdout();
+			xferror_stdout();
 		}
 		fmt = header_fmt_str;
 	} while (*++argv);

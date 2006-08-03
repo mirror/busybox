@@ -6,14 +6,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include <fcntl.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "busybox.h"
 
 typedef enum { HASH_SHA1, HASH_MD5 } hash_algo_t;
@@ -129,7 +121,7 @@ static int hash_files(int argc, char **argv, hash_algo_t hash_algo)
 		if (strcmp(file_ptr, "-") == 0) {
 			pre_computed_stream = stdin;
 		} else {
-			pre_computed_stream = bb_xfopen(file_ptr, "r");
+			pre_computed_stream = xfopen(file_ptr, "r");
 		}
 
 		while ((line = bb_get_chomped_line_from_file(pre_computed_stream)) != NULL) {

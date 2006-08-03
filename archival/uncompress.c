@@ -5,13 +5,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
 #include "busybox.h"
 #include "unarchive.h"
 
@@ -36,7 +29,7 @@ int uncompress_main(int argc, char **argv)
 			src_fd = STDIN_FILENO;
 			flags |= GUNZIP_TO_STDOUT;
 		} else {
-			src_fd = bb_xopen(compressed_file, O_RDONLY);
+			src_fd = xopen(compressed_file, O_RDONLY);
 		}
 
 		/* Check that the input is sane.  */
@@ -52,7 +45,7 @@ int uncompress_main(int argc, char **argv)
 			struct stat stat_buf;
 			char *extension;
 
-			uncompressed_file = bb_xstrdup(compressed_file);
+			uncompressed_file = xstrdup(compressed_file);
 
 			extension = strrchr(uncompressed_file, '.');
 			if (!extension || (strcmp(extension, ".Z") != 0)) {
@@ -62,7 +55,7 @@ int uncompress_main(int argc, char **argv)
 
 			/* Open output file */
 			xstat(compressed_file, &stat_buf);
-			dst_fd = bb_xopen3(uncompressed_file, O_WRONLY | O_CREAT,
+			dst_fd = xopen3(uncompressed_file, O_WRONLY | O_CREAT,
 					stat_buf.st_mode);
 
 			/* If unzip succeeds remove the old file */

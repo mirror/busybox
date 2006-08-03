@@ -6,11 +6,6 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-#include <sys/types.h>
-#include <netinet/in.h> /* For ntohl & htonl function */
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
 #include "busybox.h"
 #include "unarchive.h"
 
@@ -63,7 +58,7 @@ int rpm2cpio_main(int argc, char **argv)
 	if (argc == 1) {
 		rpm_fd = STDIN_FILENO;
 	} else {
-		rpm_fd = bb_xopen(argv[1], O_RDONLY);
+		rpm_fd = xopen(argv[1], O_RDONLY);
 	}
 
 	xread(rpm_fd, &lead, sizeof(struct rpm_lead));

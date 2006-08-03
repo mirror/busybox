@@ -17,19 +17,7 @@
  * Major size reduction... over 50% (>1.5k) on i386.
  */
 
-#include <sys/types.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
 #include "busybox.h"
-
-#ifdef CONFIG_LOCALE_SUPPORT
-#include <locale.h>
-#endif
 
 #define	THURSDAY		4		/* for reformation */
 #define	SATURDAY		6		/* 1 Jan 1 was a Saturday */
@@ -135,7 +123,7 @@ int cal_main(int argc, char **argv)
 	do {
 		zero_tm.tm_mon = i;
 		strftime(buf, sizeof(buf), "%B", &zero_tm);
-		month_names[i] = bb_xstrdup(buf);
+		month_names[i] = xstrdup(buf);
 
 		if (i < 7) {
 			zero_tm.tm_wday = i;

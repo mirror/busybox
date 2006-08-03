@@ -7,7 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdlib.h>
 #include "libbb.h"
 
 char *bb_simplify_path(const char *path)
@@ -15,7 +14,7 @@ char *bb_simplify_path(const char *path)
 	char *s, *start, *p;
 
 	if (path[0] == '/')
-		start = bb_xstrdup(path);
+		start = xstrdup(path);
 	else {
 		s = xgetcwd(NULL);
 		start = concat_path_file(s, path);

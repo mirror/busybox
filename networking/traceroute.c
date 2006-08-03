@@ -357,7 +357,7 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 	struct ifreq ibuf[(32 * 1024) / sizeof(struct ifreq)], ifr;
 	struct IFADDRLIST *st_ifaddrlist;
 
-	fd = bb_xsocket(AF_INET, SOCK_DGRAM, 0);
+	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
 	ifc.ifc_len = sizeof(ibuf);
 	ifc.ifc_buf = (caddr_t)ibuf;
@@ -457,7 +457,7 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 	struct IFADDRLIST *al;
 	char buf[256], tdevice[256], device[256];
 
-	f = bb_xfopen(route, "r");
+	f = xfopen(route, "r");
 
 	/* Find the appropriate interface */
 	n = 0;
@@ -875,7 +875,7 @@ gethostinfo(const char *host)
 	hi = xcalloc(1, sizeof(*hi));
 	addr = inet_addr(host);
 	if ((int32_t)addr != -1) {
-		hi->name = bb_xstrdup(host);
+		hi->name = xstrdup(host);
 		hi->n = 1;
 		hi->addrs = xcalloc(1, sizeof(hi->addrs[0]));
 		hi->addrs[0] = addr;
@@ -885,7 +885,7 @@ gethostinfo(const char *host)
 	hp = xgethostbyname(host);
 	if (hp->h_addrtype != AF_INET || hp->h_length != 4)
 		bb_perror_msg_and_die("bad host %s", host);
-	hi->name = bb_xstrdup(hp->h_name);
+	hi->name = xstrdup(hp->h_name);
 	for (n = 0, p = hp->h_addr_list; *p != NULL; ++n, ++p)
 		continue;
 	hi->n = n;
@@ -1081,11 +1081,11 @@ traceroute_main(int argc, char *argv[])
 		bb_perror_msg_and_die("unknown protocol %s", cp);
 
 	/* Insure the socket fds won't be 0, 1 or 2 */
-	do n = bb_xopen(bb_dev_null, O_RDONLY); while (n < 2);
+	do n = xopen(bb_dev_null, O_RDONLY); while (n < 2);
 	if (n > 2)
 		close(n);
 
-	s = bb_xsocket(AF_INET, SOCK_RAW, pe->p_proto);
+	s = xsocket(AF_INET, SOCK_RAW, pe->p_proto);
 
 #ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	if (op & USAGE_OP_DEBUG)
@@ -1096,7 +1096,7 @@ traceroute_main(int argc, char *argv[])
 		(void)setsockopt(s, SOL_SOCKET, SO_DONTROUTE, (char *)&on,
 		    sizeof(on));
 
-	sndsock = bb_xsocket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+	sndsock = xsocket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 
 #ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
 #if defined(IP_OPTIONS)
@@ -1248,7 +1248,7 @@ traceroute_main(int argc, char *argv[])
 
 	outip->ip_src = from->sin_addr;
 #ifndef IP_HDRINCL
-	bb_xbind(sndsock, (struct sockaddr *)from, sizeof(*from));
+	xbind(sndsock, (struct sockaddr *)from, sizeof(*from));
 #endif
 
 	fprintf(stderr, "traceroute to %s (%s)", hostname, inet_ntoa(to->sin_addr));

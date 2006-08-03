@@ -20,7 +20,7 @@ int mkswap_main(int argc, char *argv[])
 
 	// Figure out how big the device is and announce our intentions.
 	
-	fd = bb_xopen(argv[1],O_RDWR);
+	fd = xopen(argv[1],O_RDWR);
 	len = fdlength(fd);
 	pagesize = getpagesize();
 	printf("Setting up swapspace version 1, size = %ld bytes\n", (long)(len-pagesize));

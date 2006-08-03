@@ -4,13 +4,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/sysmacros.h>     /* major() and minor() */
-#include "unarchive.h"
 #include "libbb.h"
+#include "unarchive.h"
 
 typedef struct hardlinks_s {
 	file_header_t *entry;
@@ -123,7 +118,7 @@ char get_header_cpio(archive_handle_t *archive_handle)
 			pending_hardlinks = 1;
 			while (tmp) {
 				if (tmp->inode == inode) {
-					tmp->entry->link_name = bb_xstrdup(file_header->name);
+					tmp->entry->link_name = xstrdup(file_header->name);
 					nlink--;
 				}
 				tmp = tmp->next;

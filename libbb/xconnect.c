@@ -6,16 +6,6 @@
  *
  */
 
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <errno.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include "libbb.h"
 
 /* Return network byte ordered port number for a service.
@@ -61,7 +51,7 @@ void bb_lookup_host(struct sockaddr_in *s_in, const char *host)
 
 int xconnect(struct sockaddr_in *s_addr)
 {
-	int s = bb_xsocket(AF_INET, SOCK_STREAM, 0);
+	int s = xsocket(AF_INET, SOCK_STREAM, 0);
 	if (connect(s, (struct sockaddr *)s_addr, sizeof(struct sockaddr_in)) < 0)
 	{
 		if (ENABLE_FEATURE_CLEAN_UP) close(s);

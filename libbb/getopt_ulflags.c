@@ -7,11 +7,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <getopt.h>
-#include <string.h>
-#include <assert.h>
-#include <stdlib.h>
 #include "libbb.h"
+#include <getopt.h>
 
 /*                  Documentation
 
@@ -438,7 +435,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 #if defined(CONFIG_AR) || defined(CONFIG_TAR)
 	if((spec_flgs & FIRST_ARGV_IS_OPT)) {
 		if(argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {
-			argv[1] = bb_xasprintf("-%s", argv[1]);
+			argv[1] = xasprintf("-%s", argv[1]);
 			if(ENABLE_FEATURE_CLEAN_UP)
 				spec_flgs |= FREE_FIRST_ARGV_IS_OPT;
 		}

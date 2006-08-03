@@ -24,13 +24,8 @@
  * - central directory
  */
 
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include "unarchive.h"
 #include "busybox.h"
+#include "unarchive.h"
 
 #define ZIP_FILEHEADER_MAGIC		SWAP_LE32(0x04034b50)
 #define ZIP_CDS_MAGIC			SWAP_LE32(0x02014b50)
@@ -68,7 +63,7 @@ static void unzip_skip(int fd, off_t skip)
 static void unzip_create_leading_dirs(char *fn)
 {
 	/* Create all leading directories */
-	char *name = bb_xstrdup(fn);
+	char *name = xstrdup(fn);
 	if (bb_make_directory(dirname(name), 0777, FILEUTILS_RECUR)) {
 		bb_error_msg_and_die("Exiting"); /* bb_make_directory is noisy */
 	}
@@ -143,7 +138,7 @@ int unzip_main(int argc, char **argv)
 				break;
 
 			case 1 : /* The zip file */
-				src_fn = bb_xstrndup(optarg, strlen(optarg)+4);
+				src_fn = xstrndup(optarg, strlen(optarg)+4);
 				opt_range++;
 				break;
 
@@ -212,7 +207,7 @@ int unzip_main(int argc, char **argv)
 
 	/* Change dir if necessary */
 	if (base_dir)
-		bb_xchdir(base_dir);
+		xchdir(base_dir);
 
 	if (verbosity != v_silent)
 		printf("Archive:  %s\n", src_fn);
@@ -338,7 +333,7 @@ int unzip_main(int argc, char **argv)
 			overwrite = o_always;
 		case 'y': /* Open file and fall into unzip */
 			unzip_create_leading_dirs(dst_fn);
-			dst_fd = bb_xopen(dst_fn, O_WRONLY | O_CREAT);
+			dst_fd = xopen(dst_fn, O_WRONLY | O_CREAT);
 		case -1: /* Unzip */
 			if (verbosity == v_normal) {
 				printf("  inflating: %s\n", dst_fn);
@@ -366,7 +361,7 @@ int unzip_main(int argc, char **argv)
 				bb_perror_msg_and_die("Cannot read input");
 			}
 			free(dst_fn);
-			dst_fn = bb_xstrdup(key_buf);
+			dst_fn = xstrdup(key_buf);
 			chomp(dst_fn);
 			goto _check_file;
 

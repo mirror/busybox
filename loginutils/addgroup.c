@@ -9,11 +9,6 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 #include "busybox.h"
 
 /* make sure gr_name isn't taken, make sure gid is kosher
@@ -26,7 +21,7 @@ static int group_study(struct group *g)
 	struct group *grp;
 	const int max = 65000;
 
-	etc_group = bb_xfopen(bb_path_group_file, "r");
+	etc_group = xfopen(bb_path_group_file, "r");
 
 	/* make sure gr_name isn't taken, make sure gid is kosher */
 	desired = g->gr_gid;
@@ -67,13 +62,13 @@ static int addgroup(char *group, gid_t gid, const char *user)
 		return 1;
 
 	/* add entry to group */
-	file = bb_xfopen(bb_path_group_file, "a");
+	file = xfopen(bb_path_group_file, "a");
 	/* group:passwd:gid:userlist */
 	fprintf(file, "%s:%s:%d:%s\n", group, "x", gr.gr_gid, user);
 	fclose(file);
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
-	file = bb_xfopen(bb_path_gshadow_file, "a");
+	file = xfopen(bb_path_gshadow_file, "a");
 	fprintf(file, "%s:!::\n", group);
 	fclose(file);
 #endif

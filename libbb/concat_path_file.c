@@ -12,7 +12,6 @@
  * not addition '/' if path name already have '/'
 */
 
-#include <string.h>
 #include "libbb.h"
 
 char *concat_path_file(const char *path, const char *filename)
@@ -24,5 +23,5 @@ char *concat_path_file(const char *path, const char *filename)
 	lc = last_char_is(path, '/');
 	while (*filename == '/')
 		filename++;
-	return bb_xasprintf("%s%s%s", path, (lc==NULL ? "/" : ""), filename);
+	return xasprintf("%s%s%s", path, (lc==NULL ? "/" : ""), filename);
 }

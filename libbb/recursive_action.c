@@ -7,11 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <stdlib.h>	/* free() */
 #include "libbb.h"
 
 #undef DEBUG_RECURS_ACTION
@@ -82,7 +77,7 @@ int recursive_action(const char *fileName,
 			} else if (status == SKIP)
 				return TRUE;
 		}
-		dir = bb_opendir(fileName);
+		dir = opendir(fileName);
 		if (!dir) {
 			return FALSE;
 		}

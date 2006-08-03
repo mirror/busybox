@@ -7,18 +7,8 @@
  * Loads the console font, and possibly the corresponding screen map(s).
  * (Adapted for busybox by Matej Vela.)
  */
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <errno.h>
-#include <sys/ioctl.h>
-#include <sys/kd.h>
-#include <endian.h>
 #include "busybox.h"
+#include <sys/kd.h>
 
 enum{
 	PSF_MAGIC1 = 0x36,
@@ -47,7 +37,7 @@ int loadfont_main(int argc, char **argv)
 	if (argc != 1)
 		bb_show_usage();
 
-	fd = bb_xopen(CURRENT_VC, O_RDWR);
+	fd = xopen(CURRENT_VC, O_RDWR);
 	loadnewfont(fd);
 
 	return EXIT_SUCCESS;

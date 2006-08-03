@@ -19,7 +19,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <malloc.h>
 #include <netdb.h>
+#include <setjmp.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,16 +29,24 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/statfs.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
+#include <utime.h>
 
 #ifdef CONFIG_SELINUX
 #include <selinux/selinux.h>
+#endif
+
+#ifdef CONFIG_LOCALE_SUPPORT
+#include <locale.h>
 #endif
 
 #include "pwd_.h"
@@ -127,8 +137,8 @@ extern int bb_test(int argc, char** argv);
 
 extern const char *bb_mode_string(int mode);
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
-extern DIR *bb_opendir(const char *path);
-extern DIR *bb_xopendir(const char *path);
+extern DIR *warn_opendir(const char *path);
+extern DIR *xopendir(const char *path);
 
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
@@ -161,26 +171,24 @@ extern char *bb_get_chomped_line_from_file(FILE *file);
 extern char *bb_get_chunk_from_file(FILE *file, int *end);
 extern int bb_copyfd_size(int fd1, int fd2, const off_t size);
 extern int bb_copyfd_eof(int fd1, int fd2);
-extern void  bb_xprint_and_close_file(FILE *file);
-extern int   bb_xprint_file_by_name(const char *filename);
 extern char  bb_process_escape_sequence(const char **ptr);
 extern char *bb_get_last_path_component(char *path);
 extern FILE *bb_wfopen(const char *path, const char *mode);
 extern FILE *bb_wfopen_input(const char *filename);
-extern FILE *bb_xfopen(const char *path, const char *mode);
+extern FILE *xfopen(const char *path, const char *mode);
 
 extern int   bb_fclose_nonstdin(FILE *f);
 extern void  bb_fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
 
 extern void xstat(const char *filename, struct stat *buf);
-extern int  bb_xsocket(int domain, int type, int protocol);
-extern pid_t bb_spawn(char **argv);
-extern pid_t bb_xspawn(char **argv);
+extern int  xsocket(int domain, int type, int protocol);
+extern pid_t spawn(char **argv);
+extern pid_t xspawn(char **argv);
 extern int wait4pid(int pid);
-extern void bb_xdaemon(int nochdir, int noclose);
-extern void bb_xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
-extern void bb_xlisten(int s, int backlog);
-extern void bb_xchdir(const char *path);
+extern void xdaemon(int nochdir, int noclose);
+extern void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
+extern void xlisten(int s, int backlog);
+extern void xchdir(const char *path);
 extern void utoa_to_buf(unsigned n, char *buf, unsigned buflen);
 extern char *utoa(unsigned n);
 extern void itoa_to_buf(int n, char *buf, unsigned buflen);
@@ -204,9 +212,9 @@ extern int bb_printf(const char * __restrict format, ...)
 	__attribute__ ((format (printf, 1, 2)));
 
 //#warning rename to xferror_filename?
-extern void bb_xferror(FILE *fp, const char *fn);
-extern void bb_xferror_stdout(void);
-extern void bb_xfflush_stdout(void);
+extern void xferror(FILE *fp, const char *fn);
+extern void xferror_stdout(void);
+extern void xfflush_stdout(void);
 
 extern void bb_warn_ignoring_args(int n);
 
@@ -224,8 +232,8 @@ extern void *xrealloc(void *old, size_t size);
 extern void *xzalloc(size_t size);
 extern void *xcalloc(size_t nmemb, size_t size);
 
-extern char *bb_xstrdup (const char *s);
-extern char *bb_xstrndup (const char *s, int n);
+extern char *xstrdup (const char *s);
+extern char *xstrndup (const char *s, int n);
 extern char *safe_strncpy(char *dst, const char *src, size_t size);
 extern int safe_strtoi(char *arg, int* value);
 extern int safe_strtod(char *arg, double* value);
@@ -321,7 +329,6 @@ char *concat_path_file(const char *path, const char *filename);
 char *concat_subpath_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
-int read_package_field(const char *package_buffer, char **field_name, char **field_value);
 //#warning yuk!
 char *fgets_str(FILE *file, const char *terminating_string);
 
@@ -458,7 +465,8 @@ int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 
-char *bb_xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+void xprint_and_close_file(FILE *file);
 
 #define FAIL_DELAY    3
 extern void bb_do_delay(int seconds);
@@ -476,8 +484,8 @@ extern int correct_password ( const struct passwd *pw );
 extern char *pw_encrypt(const char *clear, const char *salt);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 
-extern int bb_xopen(const char *pathname, int flags);
-extern int bb_xopen3(const char *pathname, int flags, int mode);
+extern int xopen(const char *pathname, int flags);
+extern int xopen3(const char *pathname, int flags, int mode);
 extern void xread(int fd, void *buf, size_t count);
 extern unsigned char xread_char(int fd);
 extern void xlseek(int fd, off_t offset, int whence);
@@ -550,7 +558,7 @@ void md5_begin(md5_ctx_t *ctx);
 void md5_hash(const void *data, size_t length, md5_ctx_t *ctx);
 void *md5_end(void *resbuf, md5_ctx_t *ctx);
 
-extern uint32_t *bb_crc32_filltable (int endian);
+extern uint32_t *crc32_filltable (int endian);
 
 #ifndef RB_POWER_OFF
 /* Stop system and switch power off if possible.  */

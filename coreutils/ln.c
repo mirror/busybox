@@ -11,10 +11,6 @@
 /* BB_AUDIT GNU options missing: -d, -F, -i, and -v. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/ln.html */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
 #include "busybox.h"
 
 #define LN_SYMLINK          1
@@ -45,7 +41,7 @@ int ln_main(int argc, char **argv)
 
 	if (argc == optind + 1) {
 		*--argv = last;
-		last = bb_get_last_path_component(bb_xstrdup(last));
+		last = bb_get_last_path_component(xstrdup(last));
 	}
 
 	do {
@@ -55,7 +51,7 @@ int ln_main(int argc, char **argv)
 		if (is_directory(src,
 						 (flag & LN_NODEREFERENCE) ^ LN_NODEREFERENCE,
 						 NULL)) {
-			src_name = bb_xstrdup(*argv);
+			src_name = xstrdup(*argv);
 			src = concat_path_file(src, bb_get_last_path_component(src_name));
 			free(src_name);
 			src_name = src;
@@ -69,7 +65,7 @@ int ln_main(int argc, char **argv)
 
 		if (flag & LN_BACKUP) {
 				char *backup;
-				backup = bb_xasprintf("%s%s", src, suffix);
+				backup = xasprintf("%s%s", src, suffix);
 				if (rename(src, backup) < 0 && errno != ENOENT) {
 						bb_perror_msg("%s", src);
 						status = EXIT_FAILURE;

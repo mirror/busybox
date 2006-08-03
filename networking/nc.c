@@ -54,10 +54,10 @@ int nc_main(int argc, char **argv)
 		alarm(wsecs);
 	}
 	
-	if (infile) cfd = bb_xopen(infile, O_RDWR);
+	if (infile) cfd = xopen(infile, O_RDWR);
 	else {
 		opt = 1;
-		sfd = bb_xsocket(AF_INET, SOCK_STREAM, 0);
+		sfd = xsocket(AF_INET, SOCK_STREAM, 0);
 		fcntl(sfd, F_SETFD, FD_CLOEXEC);
 		setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt));
 		address.sin_family = AF_INET;
@@ -67,13 +67,13 @@ int nc_main(int argc, char **argv)
 		if (lport != 0) {
 			address.sin_port = lport;
 
-			bb_xbind(sfd, (struct sockaddr *) &address, sizeof(address));
+			xbind(sfd, (struct sockaddr *) &address, sizeof(address));
 		}
 
 		if (do_listen) {
 			socklen_t addrlen = sizeof(address);
 
-			bb_xlisten(sfd, do_listen);
+			xlisten(sfd, do_listen);
 
 			// If we didn't specify a port number, query and print it to stderr.
 

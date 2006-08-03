@@ -7,9 +7,6 @@
  */
 
 #include "busybox.h"
-#include <errno.h>
-#include <signal.h>
-#include <sys/ioctl.h>
 #include <getopt.h>
 
 
@@ -221,7 +218,7 @@ int wget_main(int argc, char **argv)
 	if (use_proxy) {
 		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
 		if (proxy && *proxy) {
-			parse_url(bb_xstrdup(proxy), &server);
+			parse_url(xstrdup(proxy), &server);
 		} else {
 			use_proxy = 0;
 		}
@@ -263,7 +260,7 @@ int wget_main(int argc, char **argv)
 		output = stdout;
 		quiet_flag = TRUE;
 	} else {
-		output = bb_xfopen(fname_out, (do_continue ? "a" : "w"));
+		output = xfopen(fname_out, (do_continue ? "a" : "w"));
 	}
 
 	/*
@@ -396,9 +393,9 @@ read_response:
 				}
 				if (strcasecmp(buf, "location") == 0) {
 					if (s[0] == '/')
-						target.path = bb_xstrdup(s+1);
+						target.path = xstrdup(s+1);
 					else {
-						parse_url(bb_xstrdup(s), &target);
+						parse_url(xstrdup(s), &target);
 						if (use_proxy == 0) {
 							server.host = target.host;
 							server.port = target.port;
@@ -419,7 +416,7 @@ read_response:
 		 *  FTP session
 		 */
 		if (! target.user)
-			target.user = bb_xstrdup("anonymous:busybox@");
+			target.user = xstrdup("anonymous:busybox@");
 
 		sfp = open_socket(&s_in);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 220)
@@ -556,7 +553,7 @@ void parse_url(char *url, struct host_info *h)
 		*sp++ = '\0';
 		h->path = sp;
 	} else
-		h->path = bb_xstrdup("");
+		h->path = xstrdup("");
 
 	up = strrchr(h->host, '@');
 	if (up != NULL) {

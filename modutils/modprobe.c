@@ -13,15 +13,6 @@
 
 #include "busybox.h"
 #include <sys/utsname.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <getopt.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <string.h>
-#include <ctype.h>
-#include <fcntl.h>
 #include <fnmatch.h>
 
 struct mod_opt_t {	/* one-way list of options to pass to a module */
@@ -148,7 +139,7 @@ static struct mod_opt_t *append_option( struct mod_opt_t *opt_list, char *opt )
 		ol = opt_list = xmalloc( sizeof( struct mod_opt_t ) );
 	}
 
-	ol-> m_opt_val = bb_xstrdup( opt );
+	ol-> m_opt_val = xstrdup( opt );
 	ol-> m_next = NULL;
 
 	return opt_list;
@@ -160,7 +151,7 @@ static struct mod_opt_t *append_option( struct mod_opt_t *opt_list, char *opt )
  *   dst: pointer to where to store the parsed argument
  *   return value: the pointer to the first char after the parsed argument,
  *                 NULL if there was no argument parsed (only trailing spaces).
- *   Note that memory is allocated with bb_xstrdup when a new argument was
+ *   Note that memory is allocated with xstrdup when a new argument was
  *   parsed. Don't forget to free it!
  */
 #define ARG_EMPTY      0x00
@@ -185,7 +176,7 @@ static char *parse_command_string( char *src, char **dst )
 	/* Reached the start of an argument
 	 * By the way, we duplicate a little too much
 	 * here but what is too much is freed later. */
-	*dst = tmp_str = bb_xstrdup( src );
+	*dst = tmp_str = xstrdup( src );
 	/* Get to the end of that argument */
 	while(    ( *tmp_str != '\0' )
 	       && (    ( *tmp_str != ' ' )
@@ -309,7 +300,7 @@ static void include_conf ( struct dep_t **first, struct dep_t **current, char *b
 						(*current)-> m_next = (struct dep_t *) xcalloc ( 1, sizeof ( struct dep_t ));
 						(*current) = (*current)-> m_next;
 					}
-					(*current)-> m_name  = bb_xstrdup ( alias );
+					(*current)-> m_name  = xstrdup ( alias );
 					(*current)-> m_isalias = 1;
 
 					if (( strcmp ( mod, "off" ) == 0 ) || ( strcmp ( mod, "null" ) == 0 )) {
@@ -319,7 +310,7 @@ static void include_conf ( struct dep_t **first, struct dep_t **current, char *b
 					else {
 						(*current)-> m_depcnt  = 1;
 						(*current)-> m_deparr  = xmalloc ( 1 * sizeof( char * ));
-						(*current)-> m_deparr[0] = bb_xstrdup ( mod );
+						(*current)-> m_deparr[0] = xstrdup ( mod );
 					}
 					(*current)-> m_next    = 0;
 				}
@@ -388,7 +379,7 @@ static struct dep_t *build_dep ( void )
 		k_version = un.release[2] - '0';
 	}
 
-	filename = bb_xasprintf("/lib/modules/%s/modules.dep", un.release );
+	filename = xasprintf("/lib/modules/%s/modules.dep", un.release );
 	fd = open ( filename, O_RDONLY );
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(filename);
@@ -447,7 +438,7 @@ static struct dep_t *build_dep ( void )
 					if (( *(col-2) == '.' ) && ( *(col-1) == 'o' ))
 						dot = col - 2;
 
-				mod = bb_xstrndup ( mods, dot - mods );
+				mod = xstrndup ( mods, dot - mods );
 
 				/* enqueue new module */
 				if ( !current ) {
@@ -458,7 +449,7 @@ static struct dep_t *build_dep ( void )
 					current = current-> m_next;
 				}
 				current-> m_name  = mod;
-				current-> m_path  = bb_xstrdup(modpath);
+				current-> m_path  = xstrdup(modpath);
 				current-> m_options = NULL;
 				current-> m_isalias = 0;
 				current-> m_depcnt  = 0;
@@ -525,7 +516,7 @@ static struct dep_t *build_dep ( void )
 				/* Cope with blank lines */
 				if ((next-deps-ext+1) <= 0)
 					continue;
-				dep = bb_xstrndup ( deps, next - deps - ext + 1 );
+				dep = xstrndup ( deps, next - deps - ext + 1 );
 
 				/* Add the new dependable module name */
 				current-> m_depcnt++;
@@ -562,7 +553,7 @@ static struct dep_t *build_dep ( void )
 	/* Only 2.6 has a modules.alias file */
 	if (ENABLE_FEATURE_2_6_MODULES) {
 		/* Parse kernel-declared aliases */
-		filename = bb_xasprintf("/lib/modules/%s/modules.alias", un.release);
+		filename = xasprintf("/lib/modules/%s/modules.alias", un.release);
 		if ((fd = open ( filename, O_RDONLY )) < 0) {
 			/* Ok, that didn't work.  Fall back to looking in /lib/modules */
 			fd = open ( "/lib/modules/modules.alias", O_RDONLY );
@@ -687,7 +678,7 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 				printf("%s module %s\n", do_insert?"Loading":"Unloading", list-> m_name );
 			}
 			if (!show_only) {
-				int rc2 = wait4pid(bb_spawn(argv));
+				int rc2 = wait4pid(spawn(argv));
 				
 				if (do_insert) {
 					rc = rc2; /* only last module matters */
@@ -724,8 +715,8 @@ static int check_pattern( const char* pat_src, const char* mod_src ) {
 		char* mod;
 		char* p;
 
-		pat = bb_xstrdup (pat_src);
-		mod = bb_xstrdup (mod_src);
+		pat = xstrdup (pat_src);
+		mod = xstrdup (mod_src);
 
 		for (p = pat; (p = strchr(p, '-')); *p++ = '_' );
 		for (p = mod; (p = strchr(p, '-')); *p++ = '_' );

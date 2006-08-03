@@ -19,18 +19,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  * ------------------------------------------------------------------------- */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h>
-
 #include "busybox.h"
 
 
@@ -159,7 +147,7 @@ static int tftp(const int cmd, const struct hostent *host,
 	char *buf=xmalloc(tftp_bufsize += 4);
 
 	if ((socketfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-		/* need to unlink the localfile, so don't use bb_xsocket here. */
+		/* need to unlink the localfile, so don't use xsocket here. */
 		bb_perror_msg("socket");
 		return EXIT_FAILURE;
 	}
@@ -167,7 +155,7 @@ static int tftp(const int cmd, const struct hostent *host,
 	len = sizeof(sa);
 
 	memset(&sa, 0, len);
-	bb_xbind(socketfd, (struct sockaddr *)&sa, len);
+	xbind(socketfd, (struct sockaddr *)&sa, len);
 
 	sa.sin_family = host->h_addrtype;
 	sa.sin_port = port;

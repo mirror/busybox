@@ -11,9 +11,6 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/uniq.html */
 
 #include "busybox.h"
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
 
 static const char uniq_opts[] = "f:s:" "cdu\0\1\2\4";
 
@@ -23,7 +20,7 @@ static FILE *xgetoptfile_uniq_s(char **argv, int read0write2)
 
 	if ((n = *argv) != NULL) {
 		if ((*n != '-') || n[1]) {
-			return bb_xfopen(n, "r\0w" + read0write2);
+			return xfopen(n, "r\0w" + read0write2);
 		}
 	}
 	return (read0write2) ? stdout : stdin;
@@ -100,7 +97,7 @@ int uniq_main(int argc, char **argv)
 		}
 	} while (s1);
 
-	bb_xferror(in, input_filename);
+	xferror(in, input_filename);
 
 	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }

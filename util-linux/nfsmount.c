@@ -26,10 +26,6 @@
  */
 
 #include "busybox.h"
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
 #include <sys/utsname.h>
 #undef TRUE
 #undef FALSE
@@ -391,7 +387,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	}
 	sprintf(new_opts, "%s%saddr=%s",
 		old_opts, *old_opts ? "," : "", s);
-	*mount_opts = bb_xstrdup(new_opts);
+	*mount_opts = xstrdup(new_opts);
 
 	/* Set default options.
 	 * rsize/wsize (and bsize, for ver >= 3) are left 0 in order to
@@ -459,7 +455,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			else if (!strcmp(opt, "mountport"))
 			        mountport = val;
 			else if (!strcmp(opt, "mounthost"))
-			        mounthost=bb_xstrndup(opteq+1,
+			        mounthost=xstrndup(opteq+1,
 						  strcspn(opteq+1," \t\n\r,"));
 			else if (!strcmp(opt, "mountprog"))
 				mountprog = val;
@@ -729,7 +725,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		if (!bg)
 		        goto fail;
 		if (!running_bg) {
-			prev_bg_host = bb_xstrdup(hostname);
+			prev_bg_host = xstrdup(hostname);
 			if (retry > 0)
 				retval = EX_BG;
 			goto fail;

@@ -8,13 +8,6 @@
  *
  */
 
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
 #include "busybox.h"
 
 #define BINARY_KEYMAP_MAGIC "bkeymap"
@@ -43,7 +36,7 @@ int loadkmap_main(int argc, char **argv)
 	if (argc != 1)
 		bb_show_usage();
 
-	fd = bb_xopen(CURRENT_VC, O_RDWR);
+	fd = xopen(CURRENT_VC, O_RDWR);
 
 	xread(0, buff, 7);
 	if (strncmp(buff, BINARY_KEYMAP_MAGIC, 7))

@@ -8,14 +8,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
-#include <signal.h>  // For FEATURE_DD_SIGNAL_HANDLING
 #include "busybox.h"
 
 static const struct suffix_mult dd_suffixes[] = {
@@ -110,7 +102,7 @@ int dd_main(int argc, char **argv)
 	else obuf = ibuf;
 
 	if (infile != NULL) {
-		ifd = bb_xopen(infile, O_RDONLY);
+		ifd = xopen(infile, O_RDONLY);
 	} else {
 		ifd = STDIN_FILENO;
 		infile = bb_msg_standard_input;
@@ -123,7 +115,7 @@ int dd_main(int argc, char **argv)
 			oflag |= O_TRUNC;
 		}
 
-		ofd = bb_xopen3(outfile, oflag, 0666);
+		ofd = xopen3(outfile, oflag, 0666);
 
 		if (seek && trunc_flag) {
 			if (ftruncate(ofd, seek * obs) < 0) {

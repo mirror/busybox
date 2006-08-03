@@ -67,7 +67,7 @@ static char *extract_filename(char *line, int patch_level)
 		filename_start_ptr = temp + 1;
 	}
 
-	return(bb_xstrdup(filename_start_ptr));
+	return(xstrdup(filename_start_ptr));
 }
 
 static int file_doesnt_exist(const char *filename)
@@ -89,7 +89,7 @@ int patch_main(int argc, char **argv)
 		if (ret & 1)
 			patch_level = bb_xgetlarg(p, 10, -1, USHRT_MAX);
 		if (ret & 2) {
-			patch_file = bb_xfopen(i, "r");
+			patch_file = xfopen(i, "r");
 		} else {
 			patch_file = stdin;
 		}
@@ -140,7 +140,7 @@ int patch_main(int argc, char **argv)
 				bb_make_directory(new_filename, -1, FILEUTILS_RECUR);
 				*line_ptr = '/';
 			}
-			dst_stream = bb_xfopen(new_filename, "w+");
+			dst_stream = xfopen(new_filename, "w+");
 			backup_filename = NULL;
 		} else {
 			backup_filename = xmalloc(strlen(new_filename) + 6);
@@ -150,16 +150,16 @@ int patch_main(int argc, char **argv)
 				bb_perror_msg_and_die("Couldnt create file %s",
 						backup_filename);
 			}
-			dst_stream = bb_xfopen(new_filename, "w");
+			dst_stream = xfopen(new_filename, "w");
 		}
 
 		if ((backup_filename == NULL) || file_doesnt_exist(original_filename)) {
 			src_stream = NULL;
 		} else {
 			if (strcmp(original_filename, new_filename) == 0) {
-				src_stream = bb_xfopen(backup_filename, "r");
+				src_stream = xfopen(backup_filename, "r");
 			} else {
-				src_stream = bb_xfopen(original_filename, "r");
+				src_stream = xfopen(original_filename, "r");
 			}
 		}
 

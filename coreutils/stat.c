@@ -12,18 +12,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <sys/types.h>
-#include <pwd.h>
-#include <grp.h>
-#include <sys/vfs.h>
-#include <time.h>
-#include <getopt.h> /* optind */
-#include <sys/stat.h>
-#include <sys/statfs.h>
-#include <sys/statvfs.h>
-#include <string.h>
 #include "busybox.h"
 
 /* vars to control behavior */
@@ -321,7 +309,7 @@ static void print_it(char const *masterformat, char const *filename,
 	char *b;
 
 	/* create a working copy of the format string */
-	char *format = bb_xstrdup(masterformat);
+	char *format = xstrdup(masterformat);
 
 	/* Add 2 to accommodate our conversion of the stat `%s' format string
 	 * to the printf `%llu' one.  */

@@ -7,12 +7,7 @@
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
+
 #include "busybox.h"
 
 /* Conversion table.  for base 64 */
@@ -92,7 +87,7 @@ int uuencode_main(int argc, char **argv)
 
 	switch (argc - optind) {
 		case 2:
-			src_stream = bb_xfopen(argv[optind], "r");
+			src_stream = xfopen(argv[optind], "r");
 			xstat(argv[optind], &stat_buf);
 			mode = stat_buf.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
 			if (src_stream == stdout) {
@@ -128,7 +123,7 @@ int uuencode_main(int argc, char **argv)
 	}
 	bb_printf(tbl == tbl_std ? "\n`\nend\n" : "\n====\n");
 
-	bb_xferror(src_stream, "source");	/* TODO - Fix this! */
+	xferror(src_stream, "source");	/* TODO - Fix this! */
 
 	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }

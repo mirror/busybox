@@ -21,9 +21,6 @@
  *    in the '-l' case.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include "busybox.h"
 
 static FILE *cmp_xfopen_input(const char *filename)
@@ -105,12 +102,12 @@ int cmp_main(int argc, char **argv)
 				c1 = c2;
 			}
 			if (c1 == EOF) {
-				bb_xferror(fp1, filename1);
+				xferror(fp1, filename1);
 				fmt = fmt_eof;	/* Well, no error, so it must really be EOF. */
 				outfile = stderr;
 				/* There may have been output to stdout (option -l), so
 				 * make sure we fflush before writing to stderr. */
-				bb_xfflush_stdout();
+				xfflush_stdout();
 			}
 			if (opt_flags != OPT_s) {
 				if (opt_flags == OPT_l) {
@@ -129,8 +126,8 @@ int cmp_main(int argc, char **argv)
 		}
 	} while (c1 != EOF);
 
-	bb_xferror(fp1, filename1);
-	bb_xferror(fp2, filename2);
+	xferror(fp1, filename1);
+	xferror(fp2, filename2);
 
 	bb_fflush_stdout_and_exit(exit_val);
 }

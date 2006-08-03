@@ -17,22 +17,10 @@
 
 /* TODO: standardise execute() return codes to return 0 for success and 1 for failure */
 
-#include <sys/stat.h>
+#include "busybox.h"
 #include <sys/utsname.h>
-#include <sys/wait.h>
-
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <fnmatch.h>
 #include <getopt.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include "busybox.h"
 
 #define MAX_OPT_DEPTH 10
 #define EUNBALBRACK 10001
@@ -628,7 +616,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 
 	defn = xzalloc(sizeof(struct interfaces_file_t));
 
-	f = bb_xfopen(filename, "r");
+	f = xfopen(filename, "r");
 
 	while ((buf = bb_get_chomped_line_from_file(f)) != NULL) {
 		char *buf_ptr = buf;
@@ -649,7 +637,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 					currmap->match = xrealloc(currmap->match, sizeof(currmap->match) * currmap->max_matches);
 				}
 
-				currmap->match[currmap->n_matches++] = bb_xstrdup(firstword);
+				currmap->match[currmap->n_matches++] = xstrdup(firstword);
 			}
 			currmap->max_mappings = 0;
 			currmap->n_mappings = 0;
@@ -701,7 +689,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 					return NULL;
 				}
 
-				currif->iface = bb_xstrdup(iface_name);
+				currif->iface = xstrdup(iface_name);
 
 				currif->address_family = get_address_family(addr_fams, address_family_name);
 				if (!currif->address_family) {
@@ -741,7 +729,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 				}
 
 				/* Add the interface to the list */
-				llist_add_to_end(&(defn->autointerfaces), bb_xstrdup(firstword));
+				llist_add_to_end(&(defn->autointerfaces), xstrdup(firstword));
 				debug_noise("\nauto %s\n", firstword);
 			}
 			currently_processing = NONE;
@@ -775,8 +763,8 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 						opt = xrealloc(currif->option, sizeof(*opt) * currif->max_options);
 						currif->option = opt;
 					}
-					currif->option[currif->n_options].name = bb_xstrdup(firstword);
-					currif->option[currif->n_options].value = bb_xstrdup(buf_ptr);
+					currif->option[currif->n_options].name = xstrdup(firstword);
+					currif->option[currif->n_options].value = xstrdup(buf_ptr);
 					if (!currif->option[currif->n_options].name) {
 						perror(filename);
 						return NULL;
@@ -796,14 +784,14 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 							bb_error_msg("duplicate script in mapping \"%s\"", buf);
 							return NULL;
 						} else {
-							currmap->script = bb_xstrdup(next_word(&buf_ptr));
+							currmap->script = xstrdup(next_word(&buf_ptr));
 						}
 					} else if (strcmp(firstword, "map") == 0) {
 						if (currmap->max_mappings == currmap->n_mappings) {
 							currmap->max_mappings = currmap->max_mappings * 2 + 1;
 							currmap->mapping = xrealloc(currmap->mapping, sizeof(char *) * currmap->max_mappings);
 						}
-						currmap->mapping[currmap->n_mappings] = bb_xstrdup(next_word(&buf_ptr));
+						currmap->mapping[currmap->n_mappings] = xstrdup(next_word(&buf_ptr));
 						currmap->n_mappings++;
 					} else {
 						bb_error_msg("misplaced option \"%s\"", buf);
@@ -833,7 +821,7 @@ static char *setlocalenv(char *format, const char *name, const char *value)
 	char *here;
 	char *there;
 
-	result = bb_xasprintf(format, name, value);
+	result = xasprintf(format, name, value);
 
 	for (here = there = result; *there != '=' && *there; there++) {
 		if (*there == '-')
@@ -922,7 +910,7 @@ static int execute_all(struct interface_defn_t *ifd, const char *opt)
 		}
 	}
 
-	buf = bb_xasprintf("run-parts /etc/network/if-%s.d", opt);
+	buf = xasprintf("run-parts /etc/network/if-%s.d", opt);
 	if (doit(buf) != 1) {
 		return 0;
 	}
@@ -1013,7 +1001,7 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 	int i, status;
 	pid_t pid;
 
-	char *logical = bb_xstrdup(physical);
+	char *logical = xstrdup(physical);
 
 	/* Run the mapping script. */
 	pid = popen2(&in, &out, map->script, physical, NULL);
@@ -1158,7 +1146,7 @@ int ifupdown_main(int argc, char **argv)
 			/* iface_down */
 			const llist_t *list = state_list;
 			while (list) {
-				llist_add_to_end(&target_list, bb_xstrdup(list->data));
+				llist_add_to_end(&target_list, xstrdup(list->data));
 				list = list->link;
 			}
 			target_list = defn->autointerfaces;
@@ -1178,15 +1166,15 @@ int ifupdown_main(int argc, char **argv)
 		int okay = 0;
 		int cmds_ret;
 
-		iface = bb_xstrdup(target_list->data);
+		iface = xstrdup(target_list->data);
 		target_list = target_list->link;
 
 		pch = strchr(iface, '=');
 		if (pch) {
 			*pch = '\0';
-			liface = bb_xstrdup(pch + 1);
+			liface = xstrdup(pch + 1);
 		} else {
-			liface = bb_xstrdup(iface);
+			liface = xstrdup(iface);
 		}
 
 		if (!force) {
@@ -1263,7 +1251,7 @@ int ifupdown_main(int argc, char **argv)
 			llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
-				char *newiface = bb_xasprintf("%s=%s", iface, liface);
+				char *newiface = xasprintf("%s=%s", iface, liface);
 				if (iface_state == NULL) {
 					llist_add_to_end(&state_list, newiface);
 				} else {
@@ -1281,7 +1269,7 @@ int ifupdown_main(int argc, char **argv)
 	if (!no_act) {
 		FILE *state_fp = NULL;
 
-		state_fp = bb_xfopen(statefile, "w");
+		state_fp = xfopen(statefile, "w");
 		while (state_list) {
 			if (state_list->data) {
 				fputs(state_list->data, state_fp);

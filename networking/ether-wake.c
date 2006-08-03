@@ -65,25 +65,10 @@
 */
 
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <ctype.h>
-#include <string.h>
-
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <features.h>
 #include <netpacket/packet.h>
 #include <net/ethernet.h>
-#include <netdb.h>
 #include <netinet/ether.h>
-
-#ifdef __linux__
 #include <linux/if.h>
-#endif
 
 #include "busybox.h"
 
@@ -93,10 +78,10 @@
  */
 #ifdef PF_PACKET
 # define whereto_t sockaddr_ll
-# define make_socket() bb_xsocket(PF_PACKET, SOCK_RAW, 0)
+# define make_socket() xsocket(PF_PACKET, SOCK_RAW, 0)
 #else
 # define whereto_t sockaddr
-# define make_socket() bb_xsocket(AF_INET, SOCK_PACKET, SOCK_PACKET)
+# define make_socket() xsocket(AF_INET, SOCK_PACKET, SOCK_PACKET)
 #endif
 
 #ifdef DEBUG

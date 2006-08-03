@@ -25,14 +25,8 @@
 
 /* no getopt needed */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <regex.h>
-#include <sys/types.h>
-#include <errno.h>
 #include "busybox.h"
-
+#include "xregex.h"
 
 /* The kinds of value we can have.  */
 enum valtype {
@@ -116,9 +110,9 @@ static VALUE *str_value (char *s)
 {
 	VALUE *v;
 
-	v = xmalloc (sizeof(VALUE));
+	v = xmalloc(sizeof(VALUE));
 	v->type = string;
-	v->u.s = bb_xstrdup (s);
+	v->u.s = xstrdup(s);
 	return v;
 }
 
@@ -148,7 +142,7 @@ static int null (VALUE *v)
 static void tostring (VALUE *v)
 {
 	if (v->type == integer) {
-		v->u.s = bb_xasprintf ("%" PF_REZ "d", PF_REZ_TYPE v->u.i);
+		v->u.s = xasprintf("%" PF_REZ "d", PF_REZ_TYPE v->u.i);
 		v->type = string;
 	}
 }
@@ -366,7 +360,7 @@ static VALUE *eval6 (void)
 		else {
 			v = xmalloc (sizeof(VALUE));
 			v->type = string;
-			v->u.s = bb_xstrndup(l->u.s + i1->u.i - 1, i2->u.i);
+			v->u.s = xstrndup(l->u.s + i1->u.i - 1, i2->u.i);
 		}
 		freev (l);
 		freev (i1);

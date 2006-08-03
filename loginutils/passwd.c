@@ -3,20 +3,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <fcntl.h>
-#include <stdio.h>
-#include <string.h>
-#include <signal.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <utime.h>
-#include <syslog.h>
-#include <time.h>
-#include <sys/resource.h>
-#include <errno.h>
-
 #include "busybox.h"
+#include <syslog.h>
 
 static char crypt_passwd[128];
 
@@ -170,7 +158,7 @@ int passwd_main(int argc, char **argv)
 			bb_show_usage();
 		}
 	}
-	myname = (char *) bb_xstrdup(bb_getpwuid(NULL, getuid(), -1));
+	myname = (char *) xstrdup(bb_getpwuid(NULL, getuid(), -1));
 	/* exits on error */
 	if (optind < argc) {
 		name = argv[optind];

@@ -10,13 +10,7 @@
  */
 
 #include "busybox.h"
-
-#include <sys/syslog.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
+#include <syslog.h>
 #include <net/if.h>
 #include <netinet/ether.h>
 
@@ -107,7 +101,7 @@ int nameif_main(int argc, char **argv)
 			if (strlen(*a) > IF_NAMESIZE)
 				serror("interface name `%s' too long", *a);
 			ch = xzalloc(sizeof(mactable_t));
-			ch->ifname = bb_xstrdup(*a++);
+			ch->ifname = xstrdup(*a++);
 			ch->mac = cc_macaddr(*a++);
 			if (clist)
 				clist->prev = ch;
@@ -115,7 +109,7 @@ int nameif_main(int argc, char **argv)
 			clist = ch;
 		}
 	} else {
-		ifh = bb_xfopen(fname, "r");
+		ifh = xfopen(fname, "r");
 
 		while ((line = bb_get_line_from_file(ifh)) != NULL) {
 			char *line_ptr;
@@ -128,7 +122,7 @@ int nameif_main(int argc, char **argv)
 			}
 			name_length = strcspn(line_ptr, " \t");
 			ch = xzalloc(sizeof(mactable_t));
-			ch->ifname = bb_xstrndup(line_ptr, name_length);
+			ch->ifname = xstrndup(line_ptr, name_length);
 			if (name_length > IF_NAMESIZE)
 				serror("interface name `%s' too long", ch->ifname);
 			line_ptr += name_length;

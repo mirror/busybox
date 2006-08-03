@@ -10,10 +10,6 @@
  */
 
 #include "busybox.h"
-#include <ctype.h>
-#include <errno.h>
-#include <sys/mman.h>
-#include <sys/sysmacros.h>
 #include "xregex.h"
 
 #define DEV_PATH	"/dev"
@@ -146,7 +142,7 @@ static void make_device(char *path, int delete)
 								break;
 							}
 							if ((s2-s+1) & (1<<delete))
-								command = bb_xstrndup(pos, end-pos);
+								command = xstrndup(pos, end-pos);
 						}
 
 						pos = end2;
@@ -180,7 +176,7 @@ static void make_device(char *path, int delete)
 		int rc;
 		char *s;
 		
-		s=bb_xasprintf("MDEV=%s",device_name);
+		s=xasprintf("MDEV=%s",device_name);
 		putenv(s);
 		rc = system(command);
 		s[4]=0;
@@ -232,7 +228,7 @@ int mdev_main(int argc, char *argv[])
 	char *env_path;
 	RESERVE_CONFIG_BUFFER(temp,PATH_MAX);
 
-	bb_xchdir(DEV_PATH);
+	xchdir(DEV_PATH);
 
 	/* Scan */
 

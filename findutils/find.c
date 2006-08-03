@@ -11,14 +11,7 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <string.h>
-#include <stdlib.h>
 #include <fnmatch.h>
-#include <time.h>
-#include <ctype.h>
 
 static char *pattern;
 #ifdef CONFIG_FEATURE_FIND_PRINT0
@@ -138,8 +131,8 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 		int i;
 		char *cmd_string = "";
 		for (i = 0; i < num_matches; i++)
-			cmd_string = bb_xasprintf("%s%s%s", cmd_string, exec_str[i], fileName);
-		cmd_string = bb_xasprintf("%s%s", cmd_string, exec_str[num_matches]);
+			cmd_string = xasprintf("%s%s%s", cmd_string, exec_str[i], fileName);
+		cmd_string = xasprintf("%s%s", cmd_string, exec_str[num_matches]);
 		system(cmd_string);
 		goto no_match;
 	}
@@ -300,7 +293,7 @@ int find_main(int argc, char **argv)
 					bb_error_msg_and_die(bb_msg_requires_arg, "-exec");
 				if (*argv[i] == ';')
 					break;
-				cmd_string = bb_xasprintf("%s %s", cmd_string, argv[i]);
+				cmd_string = xasprintf("%s %s", cmd_string, argv[i]);
 			}
 
 			if (*cmd_string == 0)
@@ -311,10 +304,10 @@ int find_main(int argc, char **argv)
 			while ((b_pos = strstr(cmd_string, "{}") - cmd_string), (b_pos >= 0)) {
 				num_matches++;
 				exec_str = xrealloc(exec_str, (num_matches + 1) * sizeof(char *));
-				exec_str[num_matches - 1] = bb_xstrndup(cmd_string, b_pos);
+				exec_str[num_matches - 1] = xstrndup(cmd_string, b_pos);
 				cmd_string += b_pos + 2;
 			}
-			exec_str[num_matches] = bb_xstrdup(cmd_string);
+			exec_str[num_matches] = xstrdup(cmd_string);
 			exec_opt = 1;
 #endif
 		} else

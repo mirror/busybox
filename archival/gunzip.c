@@ -27,13 +27,6 @@
  * See the file algorithm.doc for the compression algorithms and file formats.
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
 #include "busybox.h"
 #include "unarchive.h"
 
@@ -67,7 +60,7 @@ int gunzip_main(int argc, char **argv)
 			src_fd = STDIN_FILENO;
 			opt |= GUNZIP_OPT_STDOUT;
 		} else {
-			src_fd = bb_xopen(old_path, O_RDONLY);
+			src_fd = xopen(old_path, O_RDONLY);
 
 			/* Get the time stamp on the input file. */
 			xstat(old_path, &stat_buf);
@@ -81,13 +74,13 @@ int gunzip_main(int argc, char **argv)
 
 		/* Set output filename and number */
 		if (opt & GUNZIP_OPT_TEST) {
-			dst_fd = bb_xopen(bb_dev_null, O_WRONLY);	/* why does test use filenum 2 ? */
+			dst_fd = xopen(bb_dev_null, O_WRONLY);	/* why does test use filenum 2 ? */
 		} else if (opt & GUNZIP_OPT_STDOUT) {
 			dst_fd = STDOUT_FILENO;
 		} else {
 			char *extension;
 
-			new_path = bb_xstrdup(old_path);
+			new_path = xstrdup(old_path);
 
 			extension = strrchr(new_path, '.');
 #ifdef CONFIG_FEATURE_GUNZIP_UNCOMPRESS
@@ -105,7 +98,7 @@ int gunzip_main(int argc, char **argv)
 			}
 
 			/* Open output file (with correct permissions) */
-			dst_fd = bb_xopen3(new_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
+			dst_fd = xopen3(new_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
 
 			/* If unzip succeeds remove the old file */
 			delete_path = old_path;

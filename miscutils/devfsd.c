@@ -475,7 +475,7 @@ int devfsd_main (int argc, char **argv)
 	if (chdir (mount_point) != 0)
 		devfsd_perror_msg_and_die(mount_point);
 
-	fd = bb_xopen (".devfsd", O_RDONLY);
+	fd = xopen (".devfsd", O_RDONLY);
 
 	if (fcntl (fd, F_SETFD, FD_CLOEXEC) != 0)
 		devfsd_perror_msg_and_die("FD_CLOEXEC");
@@ -704,7 +704,7 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 			num_args -= 3;
 
 			for (count = 0; count < num_args; ++count)
-				new->u.execute.argv[count] = bb_xstrdup (p[count]);
+				new->u.execute.argv[count] = xstrdup (p[count]);
 
 			new->u.execute.argv[num_args] = NULL;
 			break;
@@ -714,8 +714,8 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 			if (num_args != 2)
 				goto process_config_line_err; /* missing path and function in line */
 
-			new->u.copy.source = bb_xstrdup (p[0]);
-			new->u.copy.destination = bb_xstrdup (p[1]);
+			new->u.copy.source = xstrdup (p[0]);
+			new->u.copy.destination = xstrdup (p[1]);
 			break;
 		case 8: /* IGNORE */
 		/* FALLTROUGH */

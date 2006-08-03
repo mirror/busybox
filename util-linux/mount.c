@@ -23,13 +23,7 @@
 */
 
 #include "busybox.h"
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
 #include <mntent.h>
-#include <ctype.h>
-#include <fcntl.h>		// for CONFIG_FEATURE_MOUNT_LOOP
-#include <sys/ioctl.h>  // for CONFIG_FEATURE_MOUNT_LOOP
 
 // These two aren't always defined in old headers
 #ifndef MS_BIND
@@ -89,12 +83,12 @@ struct {
 static void append_mount_options(char **oldopts, char *newopts)
 {
 	if(*oldopts && **oldopts) {
-		char *temp=bb_xasprintf("%s,%s",*oldopts,newopts);
+		char *temp=xasprintf("%s,%s",*oldopts,newopts);
 		free(*oldopts);
 		*oldopts=temp;
 	} else {
 		if (ENABLE_FEATURE_CLEAN_UP) free(*oldopts);
-		*oldopts = bb_xstrdup(newopts);
+		*oldopts = xstrdup(newopts);
 	}
 }
 
@@ -165,7 +159,7 @@ static llist_t *get_block_backed_filesystems(void)
 			if(*fs=='#' || *fs=='*') continue;
 			if(!*fs) continue;
 
-			llist_add_to_end(&list,bb_xstrdup(fs));
+			llist_add_to_end(&list,xstrdup(fs));
 		}
 		if (ENABLE_FEATURE_CLEAN_UP) fclose(f);
 	}
@@ -367,7 +361,7 @@ report_error:
 
 int mount_main(int argc, char **argv)
 {
-	char *cmdopts = bb_xstrdup(""), *fstabname, *fstype=0, *storage_path=0;
+	char *cmdopts = xstrdup(""), *fstabname, *fstype=0, *storage_path=0;
 	FILE *fstab;
 	int i, opt, all = FALSE, rc = 0;
 	struct mntent mtpair[2], *mtcur = mtpair;
@@ -493,7 +487,7 @@ int mount_main(int argc, char **argv)
 				// Mount the last thing we found.
 
 				mtcur = mtnext;
-				mtcur->mnt_opts=bb_xstrdup(mtcur->mnt_opts);
+				mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
 				append_mount_options(&(mtcur->mnt_opts),cmdopts);
 				rc = singlemount(mtcur, 0);
 				free(mtcur->mnt_opts);

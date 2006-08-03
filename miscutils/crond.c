@@ -13,22 +13,7 @@
 #define VERSION "2.3.2"
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <signal.h>
-#include <getopt.h>
-#include <sys/ioctl.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <sys/resource.h>
+#include <sys/syslog.h>
 
 #define arysize(ary)    (sizeof(ary)/sizeof((ary)[0]))
 
@@ -193,7 +178,7 @@ int crond_main(int ac, char **av)
 	 * change directory
 	 */
 
-	bb_xchdir(CDir);
+	xchdir(CDir);
 	signal(SIGHUP, SIG_IGN);	/* hmm.. but, if kill -HUP original
 								 * version - his died. ;(
 								 */
@@ -208,7 +193,7 @@ int crond_main(int ac, char **av)
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(1, 0, ac, av, "-f");
 #else
-		bb_xdaemon(1, 0);
+		xdaemon(1, 0);
 #endif
 	}
 

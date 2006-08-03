@@ -9,11 +9,6 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <signal.h>
 
 #define OPT_FOREGROUND 0x01
 #define OPT_TIMER      0x02
@@ -47,13 +42,13 @@ int watchdog_main(int argc, char **argv)
 	if (!(opts & OPT_FOREGROUND))
 		vfork_daemon_rexec(0, 1, argc, argv, "-F");
 #else
-	bb_xdaemon(0, 1);
+	xdaemon(0, 1);
 #endif
 
 	signal(SIGHUP, watchdog_shutdown);
 	signal(SIGINT, watchdog_shutdown);
 
-	fd = bb_xopen(argv[argc - 1], O_WRONLY);
+	fd = xopen(argv[argc - 1], O_WRONLY);
 
 	while (1) {
 		/*

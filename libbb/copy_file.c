@@ -9,8 +9,6 @@
  */
 
 #include "libbb.h"
-#include <utime.h>
-#include <errno.h>
 
 int copy_file(const char *source, const char *dest, int flags)
 {
@@ -77,7 +75,7 @@ int copy_file(const char *source, const char *dest, int flags)
 		}
 
 		/* Recursively copy files in SOURCE.  */
-		if ((dp = bb_opendir(source)) == NULL) {
+		if ((dp = opendir(source)) == NULL) {
 			status = -1;
 			goto preserve_status;
 		}

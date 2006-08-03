@@ -9,13 +9,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include "busybox.h"
 
 /* From <linux/fd.h> */
@@ -28,7 +21,7 @@ int freeramdisk_main(int argc, char **argv)
 
 	if (argc != 2) bb_show_usage();
 
-	fd = bb_xopen(argv[1], O_RDWR);
+	fd = xopen(argv[1], O_RDWR);
 
 	// Act like freeramdisk, fdflush, or both depending on configuration.
 	result = ioctl(fd, (ENABLE_FREERAMDISK && bb_applet_name[1]=='r')

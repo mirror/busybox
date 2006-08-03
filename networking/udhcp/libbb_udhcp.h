@@ -20,8 +20,6 @@
 
 #define COMBINED_BINARY
 
-#define xfopen bb_xfopen
-
 void udhcp_background(const char *pidfile);
 void udhcp_start_log_and_pid(const char *client_server, const char *pidfile);
 void udhcp_logging(int level, const char *fmt, ...);

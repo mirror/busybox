@@ -12,13 +12,6 @@
  * http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
  */
 
-#include <ctype.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
 #include "busybox.h"
 
 static int global_flags;
@@ -104,7 +97,7 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 	}
 	/* Make the copy */
 	if(end<start) end=start;
-	str=bb_xstrndup(str+start,end-start);
+	str=xstrndup(str+start,end-start);
 	/* Handle -d */
 	if(flags&FLAG_d) {
 		for(start=end=0;str[end];end++)
@@ -222,7 +215,6 @@ static int compare_keys(const void *xarg, const void *yarg)
 	/* Perform fallback sort if necessary */
 	if(!retval && !(global_flags&FLAG_s))
 			retval=strcmp(*(char **)xarg, *(char **)yarg);
-//dprintf(2,"reverse=%d\n",flags&FLAG_r);
 	return ((flags&FLAG_r)?-1:1)*retval;
 }
 
@@ -242,7 +234,7 @@ int sort_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_SORT_BIG
 			case 'o':
 				if(outfile) bb_error_msg_and_die("Too many -o.");
-				outfile=bb_xfopen(optarg,"w");
+				outfile=xfopen(optarg,"w");
 				break;
 			case 't':
 				if(key_separator || optarg[1])
@@ -289,7 +281,7 @@ int sort_main(int argc, char **argv)
 	/* Open input files and read data */
 	for(i=argv[optind] ? optind : optind-1;argv[i];i++) {
 		if(i<optind || (*argv[i]=='-' && !argv[i][1])) fp=stdin;
-		else fp=bb_xfopen(argv[i],"r");
+		else fp=xfopen(argv[i],"r");
 		for(;;) {
 			line=GET_LINE(fp);
 			if(!line) break;

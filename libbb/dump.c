@@ -12,9 +12,6 @@
  */
 
 #include "libbb.h"
-#include <string.h>
-#include <unistd.h>
-#include <ctype.h>		/* for isdigit() */
 #include "dump.h"
 
 enum _vflag bb_dump_vflag = FIRST;
@@ -232,7 +229,7 @@ static void rewrite(FS * fs)
 			 */
 			savech = *p2;
 			p1[1] = '\0';
-			pr->fmt = bb_xstrdup(fmtp);
+			pr->fmt = xstrdup(fmtp);
 			*p2 = savech;
 			pr->cchar = pr->fmt + (p1 - fmtp);
 

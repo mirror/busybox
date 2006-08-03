@@ -59,7 +59,7 @@ int remove_file(const char *path, int flags)
 				return 0;
 		}
 
-		if ((dp = bb_opendir(path)) == NULL) {
+		if ((dp = opendir(path)) == NULL) {
 			return -1;
 		}
 

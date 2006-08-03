@@ -7,10 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include "busybox.h"
 
 #define COMM_OPT_1 0x01
@@ -57,7 +53,7 @@ static void cmp_files(char **infiles)
 	int i;
 
 	for (i = 0; i < 2; ++i) {
-		streams[i] = ((infiles[i][0] == '=' && infiles[i][1]) ? stdin : bb_xfopen(infiles[i], "r"));
+		streams[i] = ((infiles[i][0] == '=' && infiles[i][1]) ? stdin : xfopen(infiles[i], "r"));
 		fgets(thisline[i], LINE_LEN, streams[i]);
 	}
 

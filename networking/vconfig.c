@@ -9,14 +9,8 @@
 
 /* BB_AUDIT SUSv3 N/A */
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
-#include <string.h>
-#include <limits.h>
 #include "busybox.h"
+#include <net/if.h>
 
 /* Stuff from linux/if_vlan.h, kernel version 2.4.23 */
 enum vlan_ioctl_cmds {
@@ -124,7 +118,7 @@ int vconfig_main(int argc, char **argv)
 
 	/* Don't bother closing the filedes.  It will be closed on cleanup. */
 	/* Will die if 802.1q is not present */
-	bb_xopen3(conf_file_name, O_RDONLY, 0);
+	xopen3(conf_file_name, O_RDONLY, 0);
 
 	memset(&ifr, 0, sizeof(struct vlan_ioctl_args));
 
@@ -159,7 +153,7 @@ int vconfig_main(int argc, char **argv)
 		}
 	}
 
-	fd = bb_xsocket(AF_INET, SOCK_STREAM, 0);
+	fd = xsocket(AF_INET, SOCK_STREAM, 0);
 	if (ioctl(fd, SIOCSIFVLAN, &ifr) < 0) {
 		bb_perror_msg_and_die("ioctl error for %s", *argv);
 	}

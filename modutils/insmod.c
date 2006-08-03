@@ -59,17 +59,6 @@
  */
 
 #include "busybox.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <errno.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <ctype.h>
-#include <assert.h>
-#include <string.h>
-#include <getopt.h>
-#include <fcntl.h>
 #include <sys/utsname.h>
 
 #if !defined(CONFIG_FEATURE_2_4_MODULES) && \
@@ -804,12 +793,12 @@ static int check_module_name_match(const char *filename, struct stat *statbuf,
 	if (fullname[0] == '\0')
 		return (FALSE);
 	else {
-		char *tmp, *tmp1 = bb_xstrdup(filename);
+		char *tmp, *tmp1 = xstrdup(filename);
 		tmp = bb_get_last_path_component(tmp1);
 		if (strcmp(tmp, fullname) == 0) {
 			free(tmp1);
 			/* Stop searching if we find a match */
-			m_filename = bb_xstrdup(filename);
+			m_filename = xstrdup(filename);
 			return (FALSE);
 		}
 		free(tmp1);
@@ -893,7 +882,6 @@ arch_apply_relocation(struct obj_file *f,
 			 * (which is .got) similar to branch,
 			 * but is full 32 bits relative */
 
-			assert(got != 0);
 			*loc += got - dot;
 			break;
 
@@ -902,7 +890,6 @@ arch_apply_relocation(struct obj_file *f,
 			goto bb_use_plt;
 
 		case R_ARM_GOTOFF: /* address relative to the got */
-			assert(got != 0);
 			*loc += v - got;
 			break;
 
@@ -972,7 +959,6 @@ arch_apply_relocation(struct obj_file *f,
 			break;
 
 		case R_386_GOTPC:
-			assert(got != 0);
 			*loc += got - dot;
 			break;
 
@@ -980,7 +966,6 @@ arch_apply_relocation(struct obj_file *f,
 			goto bb_use_got;
 
 		case R_386_GOTOFF:
-			assert(got != 0);
 			*loc += v - got;
 			break;
 
@@ -1102,7 +1087,6 @@ arch_apply_relocation(struct obj_file *f,
 
 # ifdef R_68K_GOTOFF
 		case R_68K_GOTOFF:
-			assert(got != 0);
 			*loc += v - got;
 			break;
 # endif
@@ -1156,9 +1140,6 @@ arch_apply_relocation(struct obj_file *f,
 					while (l != NULL) {
 						struct mips_hi16 *next;
 						unsigned long insn;
-
-						/* The value for the HI16 had best be the same. */
-						assert(v == l->value);
 
 						/* Do the HI16 relocation.  Note that we actually don't
 						   need to know anything about the LO16 itself, except where
@@ -1408,9 +1389,7 @@ arch_apply_relocation(struct obj_file *f,
 		case R_390_PLT32:
 		case R_390_PLT16DBL:
 			/* find the plt entry and initialize it.  */
-			assert(isym != NULL);
 			pe = (struct arch_single_entry *) &isym->pltent;
-			assert(pe->allocated);
 			if (pe->inited == 0) {
 				ip = (unsigned long *)(ifile->plt->contents + pe->offset);
 				ip[0] = 0x0d105810; /* basr 1,0; lg 1,10(1); br 1 */
@@ -1440,15 +1419,12 @@ arch_apply_relocation(struct obj_file *f,
 			break;
 
 		case R_390_GOTPC:
-			assert(got != 0);
 			*(unsigned long *) loc += got - dot;
 			break;
 
 		case R_390_GOT12:
 		case R_390_GOT16:
 		case R_390_GOT32:
-			assert(isym != NULL);
-			assert(got != 0);
 			if (!isym->gotent.inited)
 			{
 				isym->gotent.inited = 1;
@@ -1466,7 +1442,6 @@ arch_apply_relocation(struct obj_file *f,
 #  define R_390_GOTOFF32 R_390_GOTOFF
 # endif
 		case R_390_GOTOFF32:
-			assert(got != 0);
 			*loc += v - got;
 			break;
 
@@ -1497,7 +1472,6 @@ arch_apply_relocation(struct obj_file *f,
 			break;
 
 		case R_SH_GOTPC:
-			assert(got != 0);
 			*loc = got - dot + rel->r_addend;
 			break;
 
@@ -1505,7 +1479,6 @@ arch_apply_relocation(struct obj_file *f,
 			goto bb_use_got;
 
 		case R_SH_GOTOFF:
-			assert(got != 0);
 			*loc = v - got;
 			break;
 
@@ -1627,7 +1600,6 @@ arch_apply_relocation(struct obj_file *f,
 		case R_X86_64_GOTPCREL:
 			goto bb_use_got;
 # if 0
-			assert(isym != NULL);
 			if (!isym->gotent.reloc_done)
 			{
 				isym->gotent.reloc_done = 1;
@@ -1655,12 +1627,10 @@ arch_apply_relocation(struct obj_file *f,
 bb_use_plt:
 
 			/* find the plt entry and initialize it if necessary */
-			assert(isym != NULL);
 
 #if defined(CONFIG_USE_PLT_LIST)
 			for (pe = isym->pltent; pe != NULL && pe->addend != rel->r_addend;)
 				pe = pe->next;
-			assert(pe != NULL);
 #else
 			pe = &isym->pltent;
 #endif
@@ -1734,7 +1704,6 @@ bb_use_plt:
 #if defined(CONFIG_USE_GOT_ENTRIES)
 bb_use_got:
 
-			assert(isym != NULL);
 			/* needs an entry in the .got: set it, once */
 			if (!isym->gotent.inited) {
 				isym->gotent.inited = 1;
@@ -1814,7 +1783,6 @@ static struct obj_section *arch_xsect_init(struct obj_file *f, char *name,
 	} else {
 		myrelsec = obj_create_alloced_section(f, name,
 				size, offset);
-		assert(myrelsec);
 	}
 
 	return myrelsec;
@@ -3778,14 +3746,14 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 	};
 
 	if (realpath(filename, real)) {
-		absolute_filename = bb_xstrdup(real);
+		absolute_filename = xstrdup(real);
 	}
 	else {
 		int save_errno = errno;
 		bb_error_msg("cannot get realpath for %s", filename);
 		errno = save_errno;
 		perror("");
-		absolute_filename = bb_xstrdup(filename);
+		absolute_filename = xstrdup(filename);
 	}
 
 	lm_name = strlen(m_name);
@@ -4022,7 +3990,7 @@ int insmod_main( int argc, char **argv)
 					break;
 				case 'o':			/* name the output module */
 					free(m_name);
-					m_name = bb_xstrdup(optarg);
+					m_name = xstrdup(optarg);
 					break;
 				case 'L':			/* Stub warning */
 					/* This is needed for compatibility with modprobe.
@@ -4045,7 +4013,7 @@ int insmod_main( int argc, char **argv)
 	}
 
 	/* Grab the module name */
-	tmp1 = bb_xstrdup(argv[optind]);
+	tmp1 = xstrdup(argv[optind]);
 	tmp = basename(tmp1);
 	len = strlen(tmp);
 
@@ -4071,10 +4039,10 @@ int insmod_main( int argc, char **argv)
 
 #if defined(CONFIG_FEATURE_2_6_MODULES)
 	if (k_version > 4)
-		m_fullName = bb_xasprintf("%s.ko", tmp);
+		m_fullName = xasprintf("%s.ko", tmp);
 	else
 #endif
-		m_fullName = bb_xasprintf("%s.o", tmp);
+		m_fullName = xasprintf("%s.o", tmp);
 
 	if (!m_name) {
 		m_name = tmp;
@@ -4132,7 +4100,7 @@ int insmod_main( int argc, char **argv)
 				bb_error_msg_and_die("%s: no module by that name found", m_fullName);
 		}
 	} else
-		m_filename = bb_xstrdup(argv[optind]);
+		m_filename = xstrdup(argv[optind]);
 
 	if (flag_verbose)
 		printf("Using %s\n", m_filename);
@@ -4334,7 +4302,7 @@ int insmod_ng_main( int argc, char **argv)
 	struct stat st;
 	unsigned long len;
 	void *map;
-	char *filename, *options = bb_xstrdup("");
+	char *filename, *options = xstrdup("");
 
 	filename = argv[1];
 	if (!filename) {
@@ -4356,7 +4324,7 @@ int insmod_ng_main( int argc, char **argv)
 		strcat(options, " ");
 	}
 
-	fd = bb_xopen3(filename, O_RDONLY, 0);
+	fd = xopen3(filename, O_RDONLY, 0);
 
 	fstat(fd, &st);
 	len = st.st_size;

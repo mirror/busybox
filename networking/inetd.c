@@ -128,31 +128,8 @@
  *
  */
 
-#include <sys/param.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/file.h>
-#include <sys/wait.h>
-#include <sys/resource.h>
-
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <errno.h>
-#include <signal.h>
-#include <netdb.h>
-#include <syslog.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <ctype.h>
-#include <time.h>
-
 #include "busybox.h"
+#include <syslog.h>
 
 //#define CONFIG_FEATURE_INETD_RPC
 //#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
@@ -1314,7 +1291,7 @@ inetd_main (int argc, char *argv[])
 	/* reexec for vfork() do continue parent */
 	vfork_daemon_rexec (0, 0, argc, argv, "-f");
 #else
-	bb_xdaemon (0, 0);
+	xdaemon (0, 0);
 #endif
   } else {
 	setsid ();

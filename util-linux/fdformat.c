@@ -9,14 +9,6 @@
  * 5 July 2003 -- modified for Busybox by Erik Andersen
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
 #include "busybox.h"
 
 
@@ -60,10 +52,10 @@ static void print_and_flush(const char * __restrict format, ...)
 	va_start(arg, format);
 	bb_vfprintf(stdout, format, arg);
 	va_end(arg);
-	bb_xfflush_stdout();
+	xfflush_stdout();
 }
 
-static void bb_xioctl(int fd, int request, void *argp, const char *string)
+static void xioctl(int fd, int request, void *argp, const char *string)
 {
 	if (ioctl (fd, request, argp) < 0) {
 		bb_perror_msg_and_die(string);
@@ -95,9 +87,9 @@ int fdformat_main(int argc,char **argv)
 
 
 	/* O_RDWR for formatting and verifying */
-	fd = bb_xopen(*argv,O_RDWR );
+	fd = xopen(*argv,O_RDWR );
 
-	bb_xioctl(fd, FDGETPRM, &param, "FDGETPRM");/*original message was: "Could not determine current format type" */
+	xioctl(fd, FDGETPRM, &param, "FDGETPRM");/*original message was: "Could not determine current format type" */
 
 	print_and_flush("%s-sided, %d tracks, %d sec/track. Total capacity %d kB.\n",
 		(param.head == 2) ? "Double" : "Single",
@@ -105,22 +97,22 @@ int fdformat_main(int argc,char **argv)
 
 	/* FORMAT */
 	print_and_flush("Formatting ... ", NULL);
-	bb_xioctl(fd, FDFMTBEG,NULL,"FDFMTBEG");
+	xioctl(fd, FDFMTBEG,NULL,"FDFMTBEG");
 
 	/* n == track */
 	for (n = 0; n < param.track; n++)
 	{
 	    descr.head = 0;
 	    descr.track = n;
-	    bb_xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
+	    xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
 	    print_and_flush("%3d\b\b\b", n);
 	    if (param.head == 2) {
 		descr.head = 1;
-		bb_xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
+		xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
 	    }
 	}
 
-	bb_xioctl(fd,FDFMTEND,NULL,"FDFMTEND");
+	xioctl(fd,FDFMTEND,NULL,"FDFMTEND");
 	print_and_flush("done\n", NULL);
 
 	/* VERIFY */

@@ -26,14 +26,6 @@
  * IPV6 support added by Bart Visscher <magick@linux-fan.com>
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>		/* strcmp and friends */
-#include <ctype.h>		/* isdigit and friends */
-#include <stddef.h>		/* offsetof */
-#include <unistd.h>
-#include <netdb.h>
-#include <sys/ioctl.h>
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -329,7 +321,7 @@ int ifconfig_main(int argc, char **argv)
 	}
 
 	/* Create a channel to the NET kernel. */
-	sockfd = bb_xsocket(AF_INET, SOCK_DGRAM, 0);
+	sockfd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
 	/* get interface name */
 	safe_strncpy(ifr.ifr_name, *argv, IFNAMSIZ);

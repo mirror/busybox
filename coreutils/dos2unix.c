@@ -12,10 +12,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 */
 
-#include <string.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <fcntl.h>
 #include "busybox.h"
 
 enum ConvType {
@@ -30,7 +26,7 @@ static int convert(char *fn)
 	int i;
 
 	if (fn != NULL) {
-		in = bb_xfopen(fn, "rw");
+		in = xfopen(fn, "rw");
 		/*
 		   The file is then created with mode read/write and
 		   permissions 0666 for glibc 2.0.6 and earlier or

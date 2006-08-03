@@ -33,7 +33,7 @@ char *e2p_os2string(int os_type)
 	else
 		os = "(unknown os)";
 
-	ret = bb_xstrdup(os);
+	ret = xstrdup(os);
 	return ret;
 }
 

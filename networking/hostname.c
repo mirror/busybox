@@ -13,15 +13,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <errno.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
 #include "busybox.h"
+#include <getopt.h>
 
 extern char *optarg; /* in unistd.h */
 extern int  optind, opterr, optopt; /* in unistd.h */
@@ -41,7 +34,7 @@ static void do_sethostname(char *s, int isfile)
 				bb_perror_msg_and_die("sethostname");
 		}
 	} else {
-		f = bb_xfopen(s, "r");
+		f = xfopen(s, "r");
 		while (fgets(buf, 255, f) != NULL) {
 			if (buf[0] =='#') {
 				continue;

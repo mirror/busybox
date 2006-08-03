@@ -11,22 +11,6 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <signal.h>
-#include <getopt.h>
-#include <sys/ioctl.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <sys/resource.h>
 
 #ifndef CRONTABS
 #define CRONTABS        "/var/spool/cron/crontabs"
@@ -47,8 +31,7 @@ static void EditFile(const char *user, const char *file);
 static int GetReplaceStream(const char *user, const char *file);
 static int  ChangeUser(const char *user, short dochdir);
 
-int
-crontab_main(int ac, char **av)
+int crontab_main(int ac, char **av)
 {
     enum { NONE, EDIT, LIST, REPLACE, DELETE } option = NONE;
     const struct passwd *pas;
@@ -147,7 +130,7 @@ crontab_main(int ac, char **av)
      * Change directory to our crontab directory
      */
 
-    bb_xchdir(CDir);
+    xchdir(CDir);
 
     /*
      * Handle options as appropriate
@@ -177,7 +160,7 @@ crontab_main(int ac, char **av)
 	    char buf[1024];
 
 	    snprintf(tmp, sizeof(tmp), TMPDIR "/crontab.%d", getpid());
-	    fd = bb_xopen3(tmp, O_RDWR|O_CREAT|O_TRUNC|O_EXCL, 0600);
+	    fd = xopen3(tmp, O_RDWR|O_CREAT|O_TRUNC|O_EXCL, 0600);
 	    chown(tmp, getuid(), getgid());
 	    if ((fi = fopen(pas->pw_name, "r"))) {
 		while ((n = fread(buf, 1, sizeof(buf), fi)) > 0)
@@ -244,8 +227,7 @@ crontab_main(int ac, char **av)
     return 0;
 }
 
-static int
-GetReplaceStream(const char *user, const char *file)
+static int GetReplaceStream(const char *user, const char *file)
 {
     int filedes[2];
     int pid;
@@ -284,7 +266,7 @@ GetReplaceStream(const char *user, const char *file)
 	exit(0);
 
     bb_default_error_retval = 0;
-    fd = bb_xopen3(file, O_RDONLY, 0);
+    fd = xopen3(file, O_RDONLY, 0);
     buf[0] = 0;
     write(filedes[1], buf, 1);
     while ((n = read(fd, buf, sizeof(buf))) > 0) {
@@ -293,8 +275,7 @@ GetReplaceStream(const char *user, const char *file)
     exit(0);
 }
 
-static void
-EditFile(const char *user, const char *file)
+static void EditFile(const char *user, const char *file)
 {
     int pid;
 
@@ -324,8 +305,7 @@ EditFile(const char *user, const char *file)
     wait4(pid, NULL, 0, NULL);
 }
 
-static int
-ChangeUser(const char *user, short dochdir)
+static int ChangeUser(const char *user, short dochdir)
 {
     struct passwd *pas;
 
@@ -349,7 +329,7 @@ ChangeUser(const char *user, short dochdir)
     if (dochdir) {
 	if (chdir(pas->pw_dir) < 0) {
 	    bb_perror_msg("chdir failed: %s %s", user, pas->pw_dir);
-	    bb_xchdir(TMPDIR);
+	    xchdir(TMPDIR);
 	}
     }
     return(pas->pw_uid);

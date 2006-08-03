@@ -4,19 +4,7 @@
  *
  *  Copyright (C) 1994,1996 Alessandro Rubini (rubini@ipvvis.unipv.it)
  *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation; either version 2 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
 /*
@@ -44,17 +32,8 @@
  * Paul Mundt <lethal@linux-sh.org>.
  */
 
-#include <errno.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/utsname.h>
-
 #include "busybox.h"
+#include <sys/utsname.h>
 
 #define S_LEN 128
 
@@ -138,7 +117,7 @@ int readprofile_main(int argc, char **argv)
 			to_write = 1;	/* sth different from sizeof(int) */
 		}
 
-		fd = bb_xopen(defaultpro,O_WRONLY);
+		fd = xopen(defaultpro,O_WRONLY);
 
 		if (write(fd, &multiplier, to_write) != to_write)
 			bb_perror_msg_and_die("error writing %s", defaultpro);
@@ -151,7 +130,7 @@ int readprofile_main(int argc, char **argv)
 	 * Use an fd for the profiling buffer, to skip stdio overhead
 	 */
 
-	proFd = bb_xopen(proFile,O_RDONLY);
+	proFd = xopen(proFile,O_RDONLY);
 
 	if (((int)(len=lseek(proFd,0,SEEK_END)) < 0)
 	    || (lseek(proFd,0,SEEK_SET) < 0))
@@ -198,7 +177,7 @@ int readprofile_main(int argc, char **argv)
 
 	total = 0;
 
-	map = bb_xfopen(mapFile, "r");
+	map = xfopen(mapFile, "r");
 
 	while (fgets(mapline,S_LEN,map)) {
 		if (sscanf(mapline,"%llx %s %s",&fn_add,mode,fn_name) != 3)

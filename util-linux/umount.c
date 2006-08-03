@@ -66,8 +66,8 @@ int umount_main(int argc, char **argv)
 	} else while (getmntent_r(fp,&me,path,sizeof(path))) {
 		m = xmalloc(sizeof(struct mtab_list));
 		m->next = mtl;
-		m->device = bb_xstrdup(me.mnt_fsname);
-		m->dir = bb_xstrdup(me.mnt_dir);
+		m->device = xstrdup(me.mnt_fsname);
+		m->dir = xstrdup(me.mnt_dir);
 		mtl = m;
 	}
 	endmntent(fp);

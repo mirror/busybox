@@ -10,19 +10,7 @@
  */
 
 #include "busybox.h"
-
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
-#include <signal.h>
 #include <sys/syslog.h>
-
-#include <pwd.h>
-
-#include <sys/syslog.h>
-#include <time.h>
-#include <sys/socket.h>
-#include <errno.h>
 #include <sys/uio.h>
 
 
@@ -97,7 +85,7 @@ static void inetbind(void)
 	else
 		port = se->s_port;
 
-	s = bb_xsocket(AF_INET, SOCK_STREAM, 0);
+	s = xsocket(AF_INET, SOCK_STREAM, 0);
 
 	setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 
@@ -106,8 +94,8 @@ static void inetbind(void)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 
-	bb_xbind(s, (struct sockaddr *)&addr, len);
-	bb_xlisten(s, 5);
+	xbind(s, (struct sockaddr *)&addr, len);
+	xlisten(s, 5);
 
 	movefd(s, 0);
 }

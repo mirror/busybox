@@ -12,15 +12,6 @@
  *     Geert Uytterhoeven (Geert.Uytterhoeven@cs.kuleuven.ac.be)
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdint.h>
-#include <sys/ioctl.h>
 #include "busybox.h"
 
 #define DEFAULTFBDEV  FB_0
@@ -186,7 +177,7 @@ static int readmode(struct fb_var_screeninfo *base, const char *fn,
 	char buf[256];
 	char *p = buf;
 
-	f = bb_xfopen(fn, "r");
+	f = xfopen(fn, "r");
 	while (!feof(f)) {
 		fgets(buf, sizeof(buf), f);
 		if ((p = strstr(buf, "mode ")) || (p = strstr(buf, "mode\t"))) {
@@ -396,7 +387,7 @@ int fbset_main(int argc, char **argv)
 		}
 	}
 
-	fh = bb_xopen(fbdev, O_RDONLY);
+	fh = xopen(fbdev, O_RDONLY);
 	if (ioctl(fh, FBIOGET_VSCREENINFO, &var))
 		bb_perror_msg_and_die("fbset(ioctl)");
 	if (g_options & OPT_READMODE) {

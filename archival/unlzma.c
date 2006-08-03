@@ -8,12 +8,6 @@
  * Licensed under GPL v2, see file LICENSE in this tarball for details.
  */
 
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "busybox.h"
 #include "unarchive.h"
 
@@ -31,7 +25,7 @@ int unlzma_main(int argc, char **argv)
 	filename = argv[optind];
 	if ((filename) && (filename[0] != '-') && (filename[1] != '\0')) {
 		/* Open input file */
-		src_fd = bb_xopen(filename, O_RDONLY);
+		src_fd = xopen(filename, O_RDONLY);
 	} else {
 		src_fd = STDIN_FILENO;
 		filename = 0;
@@ -50,7 +44,7 @@ int unlzma_main(int argc, char **argv)
 		}
 		xstat(filename, &stat_buf);
 		*extension = 0;
-		dst_fd = bb_xopen3(filename, O_WRONLY | O_CREAT, stat_buf.st_mode);
+		dst_fd = xopen3(filename, O_WRONLY | O_CREAT, stat_buf.st_mode);
 	} else
 		dst_fd = STDOUT_FILENO;
 	status = unlzma(src_fd, dst_fd);

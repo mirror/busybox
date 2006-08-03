@@ -1,44 +1,39 @@
 /* vi: set sw=4 ts=4: */
 /*
- *  Mini dpkg implementation for busybox.
- *  This is not meant as a replacement for dpkg
+ *  mini dpkg implementation for busybox.
+ *  this is not meant as a replacement for dpkg
  *
- *  Written By Glenn McGrath with the help of others
- *  Copyright (C) 2001 by Glenn McGrath
+ *  written by glenn mcgrath with the help of others
+ *  copyright (c) 2001 by glenn mcgrath
  *
- *  Started life as a busybox implementation of udpkg
+ *  started life as a busybox implementation of udpkg
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * licensed under gplv2 or later, see file license in this tarball for details.
  */
 
 /*
- * Known difference between busybox dpkg and the official dpkg that i don't
+ * known difference between busybox dpkg and the official dpkg that i don't
  * consider important, its worth keeping a note of differences anyway, just to
  * make it easier to maintain.
- *  - The first value for the Confflile: field isnt placed on a new line.
- *  - When installing a package the Status: field is placed at the end of the
- *      section, rather than just after the Package: field.
+ *  - the first value for the confflile: field isnt placed on a new line.
+ *  - when installing a package the status: field is placed at the end of the
+ *      section, rather than just after the package: field.
  *
- * Bugs that need to be fixed
+ * bugs that need to be fixed
  *  - (unknown, please let me know when you find any)
  *
  */
 
-#include <fcntl.h>
-#include <getopt.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include "unarchive.h"
 #include "busybox.h"
+#include "unarchive.h"
 
-/* NOTE: If you vary HASH_PRIME sizes be aware,
- * 1) Tweaking these will have a big effect on how much memory this program uses.
- * 2) For computational efficiency these hash tables should be at least 20%
+/* note: if you vary hash_prime sizes be aware,
+ * 1) tweaking these will have a big effect on how much memory this program uses.
+ * 2) for computational efficiency these hash tables should be at least 20%
  *    larger than the maximum number of elements stored in it.
- * 3) All _HASH_PRIME's must be a prime number or chaos is assured, if your looking
+ * 3) all _hash_prime's must be a prime number or chaos is assured, if your looking
  *    for a prime, try http://www.utm.edu/research/primes/lists/small/10000.txt
- * 4) If you go bigger than 15 bits you may get into trouble (untested) as its
+ * 4) if you go bigger than 15 bits you may get into trouble (untested) as its
  *    sometimes cast to an unsigned int, if you go to 16 bit you will overlap
  *    int's and chaos is assured, 16381 is the max prime for 14 bit field
  */
@@ -163,7 +158,7 @@ static int search_name_hashtable(const char *key)
 			}
 		}
 	}
-	name_hashtable[probe_address] = bb_xstrdup(key);
+	name_hashtable[probe_address] = xstrdup(key);
 	return(probe_address);
 }
 
@@ -204,10 +199,10 @@ static int version_compare_part(const char *version1, const char *version2)
 	int ret;
 
 	if (version1 == NULL) {
-		version1 = bb_xstrdup("");
+		version1 = xstrdup("");
 	}
 	if (version2 == NULL) {
-		version2 = bb_xstrdup("");
+		version2 = xstrdup("");
 	}
 	upstream_len1 = strlen(version1);
 	upstream_len2 = strlen(version2);
@@ -215,10 +210,10 @@ static int version_compare_part(const char *version1, const char *version2)
 	while ((len1 < upstream_len1) || (len2 < upstream_len2)) {
 		/* Compare non-digit section */
 		tmp_int = strcspn(&version1[len1], "0123456789");
-		name1_char = bb_xstrndup(&version1[len1], tmp_int);
+		name1_char = xstrndup(&version1[len1], tmp_int);
 		len1 += tmp_int;
 		tmp_int = strcspn(&version2[len2], "0123456789");
-		name2_char = bb_xstrndup(&version2[len2], tmp_int);
+		name2_char = xstrndup(&version2[len2], tmp_int);
 		len2 += tmp_int;
 		tmp_int = strcmp(name1_char, name2_char);
 		free(name1_char);
@@ -230,10 +225,10 @@ static int version_compare_part(const char *version1, const char *version2)
 
 		/* Compare digits */
 		tmp_int = strspn(&version1[len1], "0123456789");
-		name1_char = bb_xstrndup(&version1[len1], tmp_int);
+		name1_char = xstrndup(&version1[len1], tmp_int);
 		len1 += tmp_int;
 		tmp_int = strspn(&version2[len2], "0123456789");
-		name2_char = bb_xstrndup(&version2[len2], tmp_int);
+		name2_char = xstrndup(&version2[len2], tmp_int);
 		len2 += tmp_int;
 		ver_num1 = atoi(name1_char);
 		ver_num2 = atoi(name2_char);
@@ -292,8 +287,8 @@ static int version_compare(const unsigned int ver1, const unsigned int ver2)
 	}
 
 	/* Compare upstream version */
-	upstream_ver1 = bb_xstrdup(ver1_ptr);
-	upstream_ver2 = bb_xstrdup(ver2_ptr);
+	upstream_ver1 = xstrdup(ver1_ptr);
+	upstream_ver2 = xstrdup(ver2_ptr);
 
 	/* Chop off debian version, and store for later use */
 	deb_ver1 = strrchr(upstream_ver1, '-');
@@ -429,7 +424,7 @@ static void add_edge_to_node(common_node_t *node, edge_t *edge)
  */
 static void add_split_dependencies(common_node_t *parent_node, const char *whole_line, unsigned int edge_type)
 {
-	char *line = bb_xstrdup(whole_line);
+	char *line = xstrdup(whole_line);
 	char *line2;
 	char *line_ptr1 = NULL;
 	char *line_ptr2 = NULL;
@@ -444,7 +439,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 	do {
 		/* skip leading spaces */
 		field += strspn(field, " ");
-		line2 = bb_xstrdup(field);
+		line2 = xstrdup(field);
 		field2 = strtok_r(line2, "|", &line_ptr2);
 		if ( (edge_type == EDGE_DEPENDS || edge_type == EDGE_PRE_DEPENDS) &&
 		     (strcmp(field, field2) != 0)) {
@@ -536,6 +531,93 @@ static void free_package(common_node_t *node)
 		free(node->edge);
 		free(node);
 	}
+}
+
+/*
+ * Gets the next package field from package_buffer, seperated into the field name
+ * and field value, it returns the int offset to the first character of the next field
+ */
+static int read_package_field(const char *package_buffer, char **field_name, char **field_value)
+{
+	int offset_name_start = 0;
+	int offset_name_end = 0;
+	int offset_value_start = 0;
+	int offset_value_end = 0;
+	int offset = 0;
+	int next_offset;
+	int name_length;
+	int value_length;
+	int exit_flag = FALSE;
+
+	if (package_buffer == NULL) {
+		*field_name = NULL;
+		*field_value = NULL;
+		return(-1);
+	}
+	while (1) {
+		next_offset = offset + 1;
+		switch (package_buffer[offset]) {
+			case('\0'):
+				exit_flag = TRUE;
+				break;
+			case(':'):
+				if (offset_name_end == 0) {
+					offset_name_end = offset;
+					offset_value_start = next_offset;
+				}
+				/* TODO: Name might still have trailing spaces if ':' isnt
+				 * immediately after name */
+				break;
+			case('\n'):
+				/* TODO: The char next_offset may be out of bounds */
+				if (package_buffer[next_offset] != ' ') {
+					exit_flag = TRUE;
+					break;
+				}
+			case('\t'):
+			case(' '):
+				/* increment the value start point if its a just filler */
+				if (offset_name_start == offset) {
+					offset_name_start++;
+				}
+				if (offset_value_start == offset) {
+					offset_value_start++;
+				}
+				break;
+		}
+		if (exit_flag) {
+			/* Check that the names are valid */
+			offset_value_end = offset;
+			name_length = offset_name_end - offset_name_start;
+			value_length = offset_value_end - offset_value_start;
+			if (name_length == 0) {
+				break;
+			}
+			if ((name_length > 0) && (value_length > 0)) {
+				break;
+			}
+
+			/* If not valid, start fresh with next field */
+			exit_flag = FALSE;
+			offset_name_start = offset + 1;
+			offset_name_end = 0;
+			offset_value_start = offset + 1;
+			offset_value_end = offset + 1;
+			offset++;
+		}
+		offset++;
+	}
+	if (name_length == 0) {
+		*field_name = NULL;
+	} else {
+		*field_name = xstrndup(&package_buffer[offset_name_start], name_length);
+	}
+	if (value_length > 0) {
+		*field_value = xstrndup(&package_buffer[offset_value_start], value_length);
+	} else {
+		*field_value = NULL;
+	}
+	return(next_offset);
 }
 
 static unsigned int fill_package_struct(char *control_buffer)
@@ -631,7 +713,7 @@ static unsigned int get_status(const unsigned int status_node, const int num)
 		status_string += strspn(status_string, " ");
 	}
 	len = strcspn(status_string, " \n\0");
-	state_sub_string = bb_xstrndup(status_string, len);
+	state_sub_string = xstrndup(status_string, len);
 	state_sub_num = search_name_hashtable(state_sub_string);
 	free(state_sub_string);
 	return(state_sub_num);
@@ -666,7 +748,7 @@ static void set_status(const unsigned int status_node_num, const char *new_value
 			bb_error_msg_and_die("DEBUG ONLY: this shouldnt happen");
 	}
 
-	new_status = bb_xasprintf("%s %s %s", name_hashtable[want], name_hashtable[flag], name_hashtable[status]);
+	new_status = xasprintf("%s %s %s", name_hashtable[want], name_hashtable[flag], name_hashtable[status]);
 	status_hashtable[status_node_num]->status = search_name_hashtable(new_status);
 	free(new_status);
 	return;
@@ -705,7 +787,7 @@ static void index_status_file(const char *filename)
 	status_node_t *status_node = NULL;
 	unsigned int status_num;
 
-	status_file = bb_xfopen(filename, "r");
+	status_file = xfopen(filename, "r");
 	while ((control_buffer = fgets_str(status_file, "\n\n")) != NULL) {
 		const unsigned int package_num = fill_package_struct(control_buffer);
 		if (package_num != -1) {
@@ -715,7 +797,7 @@ static void index_status_file(const char *filename)
 			if (status_line != NULL) {
 				status_line += 7;
 				status_line += strspn(status_line, " \n\t");
-				status_line = bb_xstrndup(status_line, strcspn(status_line, "\n\0"));
+				status_line = xstrndup(status_line, strcspn(status_line, "\n\0"));
 				status_node->status = search_name_hashtable(status_line);
 				free(status_line);
 			}
@@ -749,8 +831,8 @@ static void write_buffer_no_status(FILE *new_status_file, const char *control_bu
 /* This could do with a cleanup */
 static void write_status_file(deb_file_t **deb_file)
 {
-	FILE *old_status_file = bb_xfopen("/var/lib/dpkg/status", "r");
-	FILE *new_status_file = bb_xfopen("/var/lib/dpkg/status.udeb", "w");
+	FILE *old_status_file = xfopen("/var/lib/dpkg/status", "r");
+	FILE *new_status_file = xfopen("/var/lib/dpkg/status.udeb", "w");
 	char *package_name;
 	char *status_from_file;
 	char *control_buffer = NULL;
@@ -768,14 +850,14 @@ static void write_status_file(deb_file_t **deb_file)
 
 		tmp_string += 8;
 		tmp_string += strspn(tmp_string, " \n\t");
-		package_name = bb_xstrndup(tmp_string, strcspn(tmp_string, "\n\0"));
+		package_name = xstrndup(tmp_string, strcspn(tmp_string, "\n\0"));
 		write_flag = FALSE;
 		tmp_string = strstr(control_buffer, "Status:");
 		if (tmp_string != NULL) {
 			/* Seperate the status value from the control buffer */
 			tmp_string += 7;
 			tmp_string += strspn(tmp_string, " \n\t");
-			status_from_file = bb_xstrndup(tmp_string, strcspn(tmp_string, "\n"));
+			status_from_file = xstrndup(tmp_string, strcspn(tmp_string, "\n"));
 		} else {
 			status_from_file = NULL;
 		}
@@ -1181,7 +1263,7 @@ static int run_package_script(const char *package_name, const char *script_type)
 	char *script_path;
 	int result;
 
-	script_path = bb_xasprintf("/var/lib/dpkg/info/%s.%s", package_name, script_type);
+	script_path = xasprintf("/var/lib/dpkg/info/%s.%s", package_name, script_type);
 
 	/* If the file doesnt exist is isnt a fatal */
 	result = lstat(script_path, &path_stat) < 0 ? EXIT_SUCCESS : system(script_path);
@@ -1200,7 +1282,7 @@ static char **all_control_list(const char *package_name)
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
 	remove_files = xzalloc(sizeof(all_control_files));
 	while (all_control_files[i]) {
-		remove_files[i] = bb_xasprintf("/var/lib/dpkg/info/%s.%s", package_name, all_control_files[i]);
+		remove_files[i] = xasprintf("/var/lib/dpkg/info/%s.%s", package_name, all_control_files[i]);
 		i++;
 	}
 
@@ -1296,8 +1378,8 @@ static void remove_package(const unsigned int package_num, int noisy)
 
 	/* Create a list of files in /var/lib/dpkg/info/<package>.* to keep  */
 	exclude_files = xzalloc(sizeof(char*) * 3);
-	exclude_files[0] = bb_xstrdup(conffile_name);
-	exclude_files[1] = bb_xasprintf("/var/lib/dpkg/info/%s.postrm", package_name);
+	exclude_files[0] = xstrdup(conffile_name);
+	exclude_files[1] = xasprintf("/var/lib/dpkg/info/%s.postrm", package_name);
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
 	remove_files = all_control_list(package_name);
@@ -1361,7 +1443,7 @@ static archive_handle_t *init_archive_deb_ar(const char *filename)
 	/* Setup an ar archive handle that refers to the gzip sub archive */
 	ar_handle = init_handle();
 	ar_handle->filter = filter_accept_list_reassign;
-	ar_handle->src_fd = bb_xopen(filename, O_RDONLY);
+	ar_handle->src_fd = xopen(filename, O_RDONLY);
 
 	return(ar_handle);
 }
@@ -1428,7 +1510,7 @@ static void data_extract_all_prefix(archive_handle_t *archive_handle)
 
 	name_ptr += strspn(name_ptr, "./");
 	if (name_ptr[0] != '\0') {
-		archive_handle->file_header->name = bb_xasprintf("%s%s", archive_handle->buffer, name_ptr);
+		archive_handle->file_header->name = xasprintf("%s%s", archive_handle->buffer, name_ptr);
 		data_extract_all(archive_handle);
 	}
 	return;
@@ -1457,12 +1539,12 @@ static void unpack_package(deb_file_t *deb_file)
 	}
 
 	/* Extract control.tar.gz to /var/lib/dpkg/info/<package>.filename */
-	info_prefix = bb_xasprintf("/var/lib/dpkg/info/%s.", package_name);
+	info_prefix = xasprintf("/var/lib/dpkg/info/%s.", package_name);
 	archive_handle = init_archive_deb_ar(deb_file->filename);
 	init_archive_deb_control(archive_handle);
 
 	while(all_control_files[i]) {
-		char *c = bb_xasprintf("./%s", all_control_files[i]);
+		char *c = xasprintf("./%s", all_control_files[i]);
 		llist_add_to(&accept_list, c);
 		i++;
 	}
@@ -1489,7 +1571,7 @@ static void unpack_package(deb_file_t *deb_file)
 
 	/* Create the list file */
 	strcat(info_prefix, "list");
-	out_stream = bb_xfopen(info_prefix, "w");
+	out_stream = xfopen(info_prefix, "w");
 	while (archive_handle->sub_archive->passed) {
 		/* the leading . has been stripped by data_extract_all_prefix already */
 		fputs(archive_handle->sub_archive->passed->data, out_stream);
@@ -1600,7 +1682,7 @@ int dpkg_main(int argc, char **argv)
 			if (deb_file[deb_count]->control_file == NULL) {
 				bb_error_msg_and_die("Couldnt extract control file");
 			}
-			deb_file[deb_count]->filename = bb_xstrdup(argv[optind]);
+			deb_file[deb_count]->filename = xstrdup(argv[optind]);
 			package_num = fill_package_struct(deb_file[deb_count]->control_file);
 
 			if (package_num == -1) {

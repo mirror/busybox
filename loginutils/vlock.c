@@ -16,18 +16,8 @@
 /* Fixed by Erik Andersen to do passwords the tinylogin way...
  * It now works with md5, sha1, etc passwords. */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/vt.h>
-#include <signal.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/ioctl.h>
-#include <termios.h>
-
 #include "busybox.h"
+#include <sys/vt.h>
 
 static struct passwd *pw;
 static struct vt_mode ovtm;
@@ -71,7 +61,7 @@ int vlock_main(int argc, char **argv)
 		bb_error_msg_and_die("Unknown uid %d", getuid());
 	}
 
-	vfd = bb_xopen(CURRENT_TTY, O_RDWR);
+	vfd = xopen(CURRENT_TTY, O_RDWR);
 
 	if (ioctl(vfd, VT_GETMODE, &vtm) < 0) {
 		bb_perror_msg_and_die("VT_GETMODE");

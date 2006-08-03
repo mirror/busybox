@@ -26,20 +26,12 @@
  * remove ridiculous amounts of bloat.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <assert.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <net/route.h>
-#include <net/if.h>
 #include "busybox.h"
 #include "inet_common.h"
+#include <getopt.h>
+#include <net/route.h>
+#include <net/if.h>
+
 
 #ifndef RTF_UP
 /* Keep this in sync with /usr/src/linux/include/linux/route.h */
@@ -165,8 +157,6 @@ static void INET_setroute(int action, char **args)
 	struct rtentry rt;
 	const char *netmask = NULL;
 	int skfd, isnet, xflag;
-
-	assert((action == RTACTION_ADD) || (action == RTACTION_DEL));
 
 	/* Grab the -net or -host options.  Remember they were transformed. */
 	xflag = kw_lookup(tbl_hash_net_host, &args);
@@ -335,7 +325,7 @@ static void INET_setroute(int action, char **args)
 	}
 
 	/* Create a socket to the INET kernel. */
-	skfd = bb_xsocket(AF_INET, SOCK_DGRAM, 0);
+	skfd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
 	if (ioctl(skfd, ((action==RTACTION_ADD) ? SIOCADDRT : SIOCDELRT), &rt)<0) {
 		bb_perror_msg_and_die("SIOC[ADD|DEL]RT");
@@ -353,9 +343,6 @@ static void INET6_setroute(int action, char **args)
 	int prefix_len, skfd;
 	const char *devname;
 
-	assert((action == RTACTION_ADD) || (action == RTACTION_DEL));
-
-	{
 		/* We know args isn't NULL from the check in route_main. */
 		const char *target = *args++;
 
@@ -374,7 +361,6 @@ static void INET6_setroute(int action, char **args)
 				bb_error_msg_and_die("resolving %s", target);
 			}
 		}
-	}
 
 	/* Clean out the RTREQ structure. */
 	memset((char *) &rt, 0, sizeof(struct in6_rtmsg));
@@ -429,7 +415,7 @@ static void INET6_setroute(int action, char **args)
 	}
 
 	/* Create a socket to the INET6 kernel. */
-	skfd = bb_xsocket(AF_INET6, SOCK_DGRAM, 0);
+	skfd = xsocket(AF_INET6, SOCK_DGRAM, 0);
 
 	rt.rtmsg_ifindex = 0;
 
@@ -503,7 +489,7 @@ void displayroutes(int noresolve, int netstatfmt)
 	struct sockaddr_in s_addr;
 	struct in_addr mask;
 
-	FILE *fp = bb_xfopen("/proc/net/route", "r");
+	FILE *fp = xfopen("/proc/net/route", "r");
 
 	bb_printf("Kernel IP routing table\n"
 			  "Destination     Gateway         Genmask"
@@ -573,7 +559,7 @@ static void INET6_displayroutes(int noresolve)
 	int iflags, metric, refcnt, use, prefix_len, slen;
 	struct sockaddr_in6 snaddr6;
 
-	FILE *fp = bb_xfopen("/proc/net/ipv6_route", "r");
+	FILE *fp = xfopen("/proc/net/ipv6_route", "r");
 
 	bb_printf("Kernel IPv6 routing table\n%-44s%-40s"
 			  "Flags Metric Ref    Use Iface\n",
@@ -699,7 +685,7 @@ int route_main(int argc, char **argv)
 #endif
 			displayroutes(noresolve, opt & ROUTE_OPT_e);
 
-		bb_xferror_stdout();
+		xferror_stdout();
 		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 

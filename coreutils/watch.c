@@ -16,14 +16,6 @@
  * reduced size.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <limits.h>
-#include <time.h>
-#include <assert.h>
-#include <unistd.h>
-#include <sys/wait.h>
 #include "busybox.h"
 
 int watch_main(int argc, char **argv)
@@ -62,7 +54,7 @@ int watch_main(int argc, char **argv)
 		
 		printf("\033[H\033[J%s %s\n", header, thyme);
 
-		waitpid(bb_xspawn(watched_argv),0,0);
+		waitpid(xspawn(watched_argv),0,0);
 		sleep(period);
 	}
 }

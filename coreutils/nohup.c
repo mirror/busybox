@@ -9,9 +9,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <fcntl.h>
-#include <signal.h>
-#include <unistd.h>
 #include "busybox.h"
 
 int nohup_main(int argc, char *argv[])
@@ -25,7 +22,7 @@ int nohup_main(int argc, char *argv[])
 
 	if (argc<2) bb_show_usage();
 
-	nullfd = bb_xopen(bb_dev_null, O_WRONLY|O_APPEND);
+	nullfd = xopen(bb_dev_null, O_WRONLY|O_APPEND);
 	// If stdin is a tty, detach from it.
 
 	if (isatty(0)) dup2(nullfd, 0);
@@ -38,7 +35,7 @@ int nohup_main(int argc, char *argv[])
 			home = getenv("HOME");
 			if (home) {
 				home = concat_path_file(home, nohupout);
-				bb_xopen3(nohupout, O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);
+				xopen3(nohupout, O_CREAT|O_WRONLY|O_APPEND, S_IRUSR|S_IWUSR);
 			}
 		}
 	} else dup2(nullfd, 1);

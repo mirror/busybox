@@ -31,12 +31,6 @@
 */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <termios.h>
-#include <unistd.h>
-#include <ctype.h>
 
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 #include "xregex.h"
@@ -196,7 +190,7 @@ static void add_linenumbers(void)
 
 	for (i = 0; i <= num_flines; i++) {
 		safe_strncpy(current_line, flines[i], 256);
-		flines[i] = bb_xasprintf("%5d %s", i + 1, current_line);
+		flines[i] = xasprintf("%5d %s", i + 1, current_line);
 	}
 }
 
@@ -206,15 +200,15 @@ static void data_readlines(void)
 	char current_line[256];
 	FILE *fp;
 
-	fp = (inp_stdin) ? stdin : bb_xfopen(filename, "r");
+	fp = (inp_stdin) ? stdin : xfopen(filename, "r");
 	flines = NULL;
 	for (i = 0; (feof(fp)==0) && (i <= MAXLINES); i++) {
 		strcpy(current_line, "");
 		fgets(current_line, 256, fp);
 		if (fp != stdin)
-			bb_xferror(fp, filename);
+			xferror(fp, filename);
 		flines = xrealloc(flines, (i+1) * sizeof(char *));
-		flines[i] = bb_xstrdup(current_line);
+		flines[i] = xstrdup(current_line);
 	}
 	num_flines = i - 2;
 
@@ -226,7 +220,7 @@ static void data_readlines(void)
 	fclose(fp);
 
 	if (inp == NULL)
-		inp = (inp_stdin) ? bb_xfopen(CURRENT_TTY, "r") : stdin;
+		inp = (inp_stdin) ? xfopen(CURRENT_TTY, "r") : stdin;
 
 	if (flags & FLAG_N)
 		add_linenumbers();
@@ -357,12 +351,12 @@ static void buffer_init(void)
 	/* Fill the buffer until the end of the file or the
 	   end of the buffer is reached */
 	for (i = 0; (i < (height - 1)) && (i <= num_flines); i++) {
-		buffer[i] = bb_xstrdup(flines[i]);
+		buffer[i] = xstrdup(flines[i]);
 	}
 
 	/* If the buffer still isn't full, fill it with blank lines */
 	for (; i < (height - 1); i++) {
-		buffer[i] = bb_xstrdup("");
+		buffer[i] = xstrdup("");
 	}
 }
 
@@ -376,7 +370,7 @@ static void buffer_down(int nlines)
 			line_pos += nlines;
 			for (i = 0; i < (height - 1); i++) {
 				free(buffer[i]);
-				buffer[i] = bb_xstrdup(flines[line_pos + i]);
+				buffer[i] = xstrdup(flines[line_pos + i]);
 			}
 		}
 		else {
@@ -386,7 +380,7 @@ static void buffer_down(int nlines)
 				line_pos += 1;
 				for (i = 0; i < (height - 1); i++) {
 					free(buffer[i]);
-					buffer[i] = bb_xstrdup(flines[line_pos + i]);
+					buffer[i] = xstrdup(flines[line_pos + i]);
 				}
 			}
 		}
@@ -407,7 +401,7 @@ static void buffer_up(int nlines)
 			line_pos -= nlines;
 			for (i = 0; i < (height - 1); i++) {
 				free(buffer[i]);
-				buffer[i] = bb_xstrdup(flines[line_pos + i]);
+				buffer[i] = xstrdup(flines[line_pos + i]);
 			}
 		}
 		else {
@@ -417,7 +411,7 @@ static void buffer_up(int nlines)
 				line_pos -= 1;
 				for (i = 0; i < (height - 1); i++) {
 					free(buffer[i]);
-					buffer[i] = bb_xstrdup(flines[line_pos + i]);
+					buffer[i] = xstrdup(flines[line_pos + i]);
 				}
 			}
 		}
@@ -439,10 +433,10 @@ static void buffer_up(int nlines)
 			for (i = 0; i < (height - 1); i++) {
 				free(buffer[i]);
 				if (i < tilde_line - nlines + 1)
-					buffer[i] = bb_xstrdup(flines[line_pos + i]);
+					buffer[i] = xstrdup(flines[line_pos + i]);
 				else {
 					if (line_pos >= num_flines - height + 2)
-						buffer[i] = bb_xstrdup("~\n");
+						buffer[i] = xstrdup("~\n");
 				}
 			}
 		}
@@ -461,7 +455,7 @@ static void buffer_line(int linenum)
 	else if (linenum < (num_flines - height - 2)) {
 		for (i = 0; i < (height - 1); i++) {
 			free(buffer[i]);
-			buffer[i] = bb_xstrdup(flines[linenum + i]);
+			buffer[i] = xstrdup(flines[linenum + i]);
 		}
 		line_pos = linenum;
 		buffer_print();
@@ -470,9 +464,9 @@ static void buffer_line(int linenum)
 		for (i = 0; i < (height - 1); i++) {
 			free(buffer[i]);
 			if (linenum + i < num_flines + 2)
-				buffer[i] = bb_xstrdup(flines[linenum + i]);
+				buffer[i] = xstrdup(flines[linenum + i]);
 			else
-				buffer[i] = bb_xstrdup((flags & FLAG_TILDE) ? "\n" : "~\n");
+				buffer[i] = xstrdup((flags & FLAG_TILDE) ? "\n" : "~\n");
 		}
 		line_pos = linenum;
 		/* Set past_eof so buffer_down and buffer_up act differently */
@@ -508,7 +502,7 @@ static void examine_file(void)
 	newline_offset = strlen(filename) - 1;
 	filename[newline_offset] = '\0';
 
-	files[num_files] = bb_xstrdup(filename);
+	files[num_files] = xstrdup(filename);
 	current_file = num_files + 1;
 	num_files++;
 
@@ -612,7 +606,7 @@ static char *process_regex_on_line(char *line, regex_t *pattern, int action)
 	char *growline = "";
 	regmatch_t match_structs;
 
-	line2 = bb_xstrdup(line);
+	line2 = xstrdup(line);
 
 	match_found = 0;
 	match_status = regexec(pattern, line2, 1, &match_structs, 0);
@@ -622,17 +616,17 @@ static char *process_regex_on_line(char *line, regex_t *pattern, int action)
 			match_found = 1;
 		
 		if (action) {
-			growline = bb_xasprintf("%s%.*s%s%.*s%s", growline, match_structs.rm_so, line2, HIGHLIGHT, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so, NORMAL); 
+			growline = xasprintf("%s%.*s%s%.*s%s", growline, match_structs.rm_so, line2, HIGHLIGHT, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so, NORMAL); 
 		}
 		else {
-			growline = bb_xasprintf("%s%.*s%.*s", growline, match_structs.rm_so - 4, line2, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so);
+			growline = xasprintf("%s%.*s%.*s", growline, match_structs.rm_so - 4, line2, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so);
 		}
 		
 		line2 += match_structs.rm_eo;
 		match_status = regexec(pattern, line2, 1, &match_structs, REG_NOTBOL);
 	}
 	
-	growline = bb_xasprintf("%s%s", growline, line2);
+	growline = xasprintf("%s%s", growline, line2);
 	
 	return (match_found ? growline : line);
 	
@@ -679,7 +673,7 @@ static void regex_process(void)
 		/* Get rid of all the highlights we added previously */
 		for (i = 0; i <= num_flines; i++) {
 			current_line = process_regex_on_line(flines[i], &old_pattern, 0);
-			flines[i] = bb_xstrdup(current_line);
+			flines[i] = xstrdup(current_line);
 		}
 	}
 	old_pattern = pattern;
@@ -693,7 +687,7 @@ static void regex_process(void)
 	/* Run the regex on each line of the current file here */
 	for (i = 0; i <= num_flines; i++) {
 		current_line = process_regex_on_line(flines[i], &pattern, 1);
-		flines[i] = bb_xstrdup(current_line);
+		flines[i] = xstrdup(current_line);
 		if (match_found) {
 			match_lines = xrealloc(match_lines, (j + 1) * sizeof(int));
 			match_lines[j] = i;
@@ -864,7 +858,7 @@ static void save_input_to_file(void)
 	fgets(current_line, 256, inp);
 	current_line[strlen(current_line) - 1] = '\0';
 	if (strlen(current_line) > 1) {
-		fp = bb_xfopen(current_line, "w");
+		fp = xfopen(current_line, "w");
 		for (i = 0; i < num_flines; i++)
 			fprintf(fp, "%s", flines[i]);
 		fclose(fp);

@@ -11,7 +11,6 @@
 
 #include "busybox.h"
 #include <getopt.h>
-#include <string.h>
 #include "dump.h"
 
 static void bb_dump_addfile(char *name)
@@ -20,7 +19,7 @@ static void bb_dump_addfile(char *name)
 	FILE *fp;
 	char *buf;
 
-	fp = bb_xfopen(name, "r");
+	fp = xfopen(name, "r");
 
 	while ((buf = bb_get_chomped_line_from_file(fp)) != NULL) {
 		p = skip_whitespace(buf);

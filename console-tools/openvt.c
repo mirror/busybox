@@ -40,7 +40,7 @@ int openvt_main(int argc, char **argv)
 		close(0);			/* so that new vt becomes stdin */
 
 		/* and grab new one */
-		fd = bb_xopen(vtname, O_RDWR);
+		fd = xopen(vtname, O_RDWR);
 
 		/* Reassign stdout and sterr */
 		dup2(fd, STDOUT_FILENO);

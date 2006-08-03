@@ -6,11 +6,7 @@
  */
 
 #include "busybox.h"
-#include <signal.h>
 #include <syslog.h>
-#include <sys/resource.h>
-#include <time.h>
-
 
 int su_main ( int argc, char **argv )
 {
@@ -43,7 +39,7 @@ int su_main ( int argc, char **argv )
 		the user, especially if someone su's from a su-shell.
 		But getlogin can fail -- usually due to lack of utmp entry.
 		in this case resort to getpwuid.  */
-		old_user = bb_xstrdup(USE_FEATURE_UTMP(getlogin() ? : ) (pw = getpwuid(cur_uid)) ? pw->pw_name : "");
+		old_user = xstrdup(USE_FEATURE_UTMP(getlogin() ? : ) (pw = getpwuid(cur_uid)) ? pw->pw_name : "");
 		tty = ttyname(2) ? : "none";
 		openlog(bb_applet_name, 0, LOG_AUTH);
 	}

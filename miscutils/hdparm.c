@@ -13,21 +13,7 @@
  */
 
 #include "busybox.h"
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <ctype.h>
-#include <sys/ioctl.h>
-#include <sys/sysmacros.h>
-#include <sys/times.h>
-#include <sys/mman.h>
-#include <linux/types.h>
 #include <linux/hdreg.h>
-
-#if BB_BIG_ENDIAN && !defined(__USE_XOPEN)
-# define __USE_XOPEN
-#endif
-#include <unistd.h>
 
 /* device types */
 /* ------------ */
@@ -1619,7 +1605,7 @@ static void process_dev(char *devname)
 	unsigned char args[4] = {WIN_SETFEATURES,0,0,0};
 	const char *fmt = " %s\t= %2ld";
 
-	fd = bb_xopen(devname, O_RDONLY|O_NONBLOCK);
+	fd = xopen(devname, O_RDONLY|O_NONBLOCK);
 	printf("\n%s:\n", devname);
 
 	if (set_readahead)

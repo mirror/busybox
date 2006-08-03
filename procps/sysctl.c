@@ -15,15 +15,6 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
 
 /*
  *    Function Prototypes
@@ -202,8 +193,8 @@ int sysctl_write_setting(const char *setting, int output)
 		return -2;
 	}
 
-	tmpname = bb_xasprintf("%s%.*s", PROC_PATH, (int)(equals - name), name);
-	outname = bb_xstrdup(tmpname + strlen(PROC_PATH));
+	tmpname = xasprintf("%s%.*s", PROC_PATH, (int)(equals - name), name);
+	outname = xstrdup(tmpname + strlen(PROC_PATH));
 
 	while ((cptr = strchr(tmpname, '.')) != NULL)
 		*cptr = '/';
@@ -258,7 +249,7 @@ int sysctl_read_setting(const char *setting, int output)
 		bb_error_msg(ERR_INVALID_KEY, setting);
 
 	tmpname = concat_path_file(PROC_PATH, name);
-	outname = bb_xstrdup(tmpname + strlen(PROC_PATH));
+	outname = xstrdup(tmpname + strlen(PROC_PATH));
 
 	while ((cptr = strchr(tmpname, '.')) != NULL)
 		*cptr = '/';
@@ -309,7 +300,7 @@ int sysctl_display_all(const char *path, int output, int show_table)
 	char *tmpdir;
 	struct stat ts;
 
-	if (!(dp = bb_opendir(path))) {
+	if (!(dp = opendir(path))) {
 		retval = -1;
 	} else {
 		while ((de = readdir(dp)) != NULL) {

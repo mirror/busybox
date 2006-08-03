@@ -4,11 +4,7 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/mtio.h>
-#include <fcntl.h>
 
 struct mt_opcodes {
 	char *name;
@@ -105,7 +101,7 @@ int mt_main(int argc, char **argv)
 			break;
 	}
 
-	fd = bb_xopen3(file, mode, 0);
+	fd = xopen3(file, mode, 0);
 
 	switch (code->value) {
 		case MTTELL:

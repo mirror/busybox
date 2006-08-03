@@ -7,11 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <limits.h>
-#include <stdio.h>
-#include <string.h>
-#include <dirent.h>
-#include <stdlib.h>
 #include "libbb.h"
 
 char *find_block_device(char *path)
@@ -28,7 +23,7 @@ char *find_block_device(char *path)
 		char devpath[PATH_MAX];
 		sprintf(devpath,"/dev/%s", entry->d_name);
 		if(!stat(devpath, &st) && S_ISBLK(st.st_mode) && st.st_rdev == dev) {
-			retpath = bb_xstrdup(devpath);
+			retpath = xstrdup(devpath);
 			break;
 		}
 	}

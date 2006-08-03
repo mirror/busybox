@@ -11,16 +11,6 @@
 
 #include "libbb.h"
 #include "inet_common.h"
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#ifdef DEBUG
-# include <resolv.h>
-#endif
-
 
 const char bb_INET_default[] = "default";
 
@@ -174,7 +164,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	pn->addr = *s_in;
 	pn->next = INET_nn;
 	pn->host = host;
-	pn->name = bb_xstrdup(name);
+	pn->name = xstrdup(name);
 	INET_nn = pn;
 
 	return (0);

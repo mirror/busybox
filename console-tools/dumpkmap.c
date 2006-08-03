@@ -8,13 +8,6 @@
  *
  */
 
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/ioctl.h>
 #include "busybox.h"
 
 /* From <linux/kd.h> */
@@ -38,7 +31,7 @@ int dumpkmap_main(int argc, char **argv)
 	if (argc >= 2 && *argv[1] == '-')
 		bb_show_usage();
 
-	fd = bb_xopen(CURRENT_VC, O_RDWR);
+	fd = xopen(CURRENT_VC, O_RDWR);
 
 	write(1, magic, 7);
 

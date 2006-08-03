@@ -10,10 +10,6 @@
 /* BB_AUDIT SUSv3 compliant */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/tee.html */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <unistd.h>
 #include "busybox.h"
 
 int tee_main(int argc, char **argv)
@@ -96,7 +92,7 @@ int tee_main(int argc, char **argv)
 	do {		/* Now check for (input and) output errors. */
 		/* Checking ferror should be sufficient, but we may want to fclose.
 		 * If we do, remember not to close stdin! */
-		bb_xferror(*p, filenames[(int)(p - files)]);
+		xferror(*p, filenames[(int)(p - files)]);
 	} while (*++p);
 
 	bb_fflush_stdout_and_exit(retval);

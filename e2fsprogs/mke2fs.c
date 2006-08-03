@@ -226,7 +226,7 @@ static void read_bb_file(ext2_filsys fs, badblocks_list *bb_list,
 	FILE		*f;
 	errcode_t	retval;
 
-	f = bb_xfopen(bad_blocks_file, "r");
+	f = xfopen(bad_blocks_file, "r");
 	retval = ext2fs_read_bb_FILE(fs, f, bb_list, invalid_block);
 	fclose (f);
 	mke2fs_error_msg_and_die(retval, "read bad blocks from list");
@@ -692,7 +692,7 @@ static void parse_extended_opts(struct ext2_super_block *sb_param,
 	char	*buf, *token, *next, *p, *arg;
 	int	r_usage = 0;
 
-	buf = bb_xstrdup(opts);
+	buf = xstrdup(opts);
 	for (token = buf; token && *token; token = next) {
 		p = strchr(token, ',');
 		next = 0;

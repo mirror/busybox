@@ -18,15 +18,6 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <getopt.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 
 /* COMPAT:  SYSV version defaults size (and has a max value of) to 470.
    We try to make it as large as possible. */
@@ -300,7 +291,7 @@ static int xargs_ask_confirmation(void)
 	int c, savec;
 
 	if (!tty_stream) {
-		tty_stream = bb_xfopen(CURRENT_TTY, "r");
+		tty_stream = xfopen(CURRENT_TTY, "r");
 		/* pranoidal security by vodz */
 		fcntl(fileno(tty_stream), F_SETFD, FD_CLOEXEC);
 	}

@@ -11,8 +11,6 @@
  * http://cm.bell-labs.com/cm/cs/doc/84/kp.ps.gz */
 
 #include "busybox.h"
-#include <unistd.h>
-#include <fcntl.h>
 
 int catv_main(int argc, char **argv)
 {
@@ -28,7 +26,7 @@ int catv_main(int argc, char **argv)
 		// Read from stdin if there's nothing else to do.
 
 		fd = 0;
-		if (*argv && 0>(fd = bb_xopen(*argv, O_RDONLY))) retval = EXIT_FAILURE;
+		if (*argv && 0>(fd = xopen(*argv, O_RDONLY))) retval = EXIT_FAILURE;
 		else for(;;) {
 			int i, res;
 

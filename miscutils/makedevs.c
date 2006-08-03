@@ -8,15 +8,6 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <time.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/sysmacros.h>     /* major() and minor() */
 
 #ifdef CONFIG_FEATURE_MAKEDEVS_LEAF
 int makedevs_main(int argc, char **argv)
@@ -88,13 +79,13 @@ int makedevs_main(int argc, char **argv)
 	unsigned long flags;
 	flags = bb_getopt_ulflags(argc, argv, "d:", &line);
 	if (line)
-		table = bb_xfopen(line, "r");
+		table = xfopen(line, "r");
 
 	if (optind >= argc || (rootdir=argv[optind])==NULL) {
 		bb_error_msg_and_die("root directory not specified");
 	}
 
-	bb_xchdir(rootdir);
+	xchdir(rootdir);
 
 	umask(0);
 

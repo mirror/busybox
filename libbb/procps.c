@@ -51,7 +51,7 @@ procps_status_t * procps_scan(int save_user_arg0)
 	struct stat sb;
 
 	if (!dir) {
-		dir = bb_xopendir("/proc");
+		dir = xopendir("/proc");
 	}
 	for (;;) {
 		if ((entry = readdir(dir)) == NULL) {

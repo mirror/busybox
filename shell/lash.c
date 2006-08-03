@@ -710,7 +710,7 @@ static char * strsep_space( char *string, int * ix)
 		return NULL;
 	}
 
-	token = bb_xstrndup(string, *ix);
+	token = xstrndup(string, *ix);
 
 	return token;
 }
@@ -751,7 +751,7 @@ static int expand_arguments(char *command)
 
 	/* We need a clean copy, so strsep can mess up the copy while
 	 * we write stuff into the original (in a minute) */
-	cmd = cmd_copy = bb_xstrdup(command);
+	cmd = cmd_copy = xstrdup(command);
 	*command = '\0';
 	for (ix = 0, tmpcmd = cmd;
 			(tmpcmd = strsep_space(cmd, &ix)) != NULL; cmd += ix, ix=0) {
@@ -1123,10 +1123,10 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	prog->argv[argc_l] = NULL;
 
 	if (!return_command) {
-		job->text = bb_xstrdup(*command_ptr);
+		job->text = xstrdup(*command_ptr);
 	} else {
 		/* This leaves any trailing spaces, which is a bit sloppy */
-		job->text = bb_xstrndup(*command_ptr, return_command - *command_ptr);
+		job->text = xstrndup(*command_ptr, return_command - *command_ptr);
 	}
 
 	*command_ptr = return_command;
@@ -1543,7 +1543,7 @@ int lash_main(int argc_l, char **argv_l)
 				input = NULL;
 				if (local_pending_command != 0)
 					bb_error_msg_and_die("multiple -c arguments");
-				local_pending_command = bb_xstrdup(argv[optind]);
+				local_pending_command = xstrdup(argv[optind]);
 				optind++;
 				argv = argv+optind;
 				break;
@@ -1575,7 +1575,7 @@ int lash_main(int argc_l, char **argv_l)
 		}
 	} else if (!local_pending_command && argv[optind]) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
-		input = bb_xfopen(argv[optind], "r");
+		input = xfopen(argv[optind], "r");
 		/* be lazy, never mark this closed */
 		llist_add_to(&close_me_list, (void *)(long)fileno(input));
 	}

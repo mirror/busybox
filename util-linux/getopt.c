@@ -31,14 +31,8 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <getopt.h>
-
 #include "busybox.h"
+#include <getopt.h>
 
 /* NON_OPT is the code that is returned when a non-option is found in '+'
    mode */
@@ -86,7 +80,7 @@ const char *normalize(const char *arg)
 	free(BUFFER);
 
 	if (!quote) { /* Just copy arg */
-	       BUFFER=bb_xstrdup(arg);
+	       BUFFER=xstrdup(arg);
 		return BUFFER;
 	}
 
@@ -215,7 +209,7 @@ void add_longopt(const char *name,int has_arg)
 		long_options[long_options_nr-1].has_arg=has_arg;
 		long_options[long_options_nr-1].flag=NULL;
 		long_options[long_options_nr-1].val=LONG_OPT;
-	       long_options[long_options_nr-1].name=bb_xstrdup(name);
+	       long_options[long_options_nr-1].name=xstrdup(name);
 	}
 	long_options_nr++;
 }

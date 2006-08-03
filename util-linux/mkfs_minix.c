@@ -62,20 +62,8 @@
  *	removed getopt based parser and added a hand rolled one.
  */
 
-#include <stdio.h>
-#include <time.h>
-#include <unistd.h>
-#include <string.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <termios.h>
-#include <sys/ioctl.h>
-#include <sys/param.h>
-#include <mntent.h>
 #include "busybox.h"
+#include <mntent.h>
 
 #define MINIX_ROOT_INO 1
 #define MINIX_LINK_MAX	250
@@ -304,7 +292,7 @@ static inline int get_size(const char *file)
 	int fd;
 	long size;
 
-	fd = bb_xopen3(file, O_RDWR, 0);
+	fd = xopen3(file, O_RDWR, 0);
 	if (ioctl(fd, BLKGETSIZE, &size) >= 0) {
 		close(fd);
 		return (size * 512);
@@ -678,7 +666,7 @@ static void get_list_blocks(char *filename)
 	FILE *listfile;
 	unsigned long blockno;
 
-	listfile = bb_xfopen(filename, "r");
+	listfile = xfopen(filename, "r");
 	while (!feof(listfile)) {
 		fscanf(listfile, "%ld\n", &blockno);
 		mark_zone(blockno);
@@ -817,7 +805,7 @@ goodbye:
 	tmp += dirsize;
 	*(short *) tmp = 2;
 	strcpy(tmp + 2, ".badblocks");
-	DEV = bb_xopen3(device_name, O_RDWR, 0);
+	DEV = xopen3(device_name, O_RDWR, 0);
 	if (fstat(DEV, &statbuf) < 0)
 		bb_error_msg_and_die("unable to stat %s", device_name);
 	if (!S_ISBLK(statbuf.st_mode))

@@ -8,14 +8,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include <getopt.h>
-#include <sys/stat.h>
-
 #include "busybox.h"
 
 #define DONT_SET_PASS			(1 << 4)
@@ -32,7 +24,7 @@ static int passwd_study(const char *filename, struct passwd *p)
 	const int min = 500;
 	const int max = 65000;
 
-	passwd = bb_xfopen(filename, "r");
+	passwd = xfopen(filename, "r");
 
 	/* EDR if uid is out of bounds, set to min */
 	if ((p->pw_uid > max) || (p->pw_uid < min))
@@ -78,7 +70,7 @@ static void addgroup_wrapper(struct passwd *p)
 {
 	char *cmd;
 
-	cmd = bb_xasprintf("addgroup -g %d \"%s\"", p->pw_gid, p->pw_name);
+	cmd = xasprintf("addgroup -g %d \"%s\"", p->pw_gid, p->pw_name);
 	system(cmd);
 	free(cmd);
 }
@@ -99,7 +91,7 @@ static int adduser(struct passwd *p, unsigned long flags)
 	int addgroup = !p->pw_gid;
 
 	/* make sure everything is kosher and setup uid && gid */
-	file = bb_xfopen(bb_path_passwd_file, "a");
+	file = xfopen(bb_path_passwd_file, "a");
 	fseek(file, 0, SEEK_END);
 
 	switch (passwd_study(bb_path_passwd_file, p)) {
@@ -119,7 +111,7 @@ static int adduser(struct passwd *p, unsigned long flags)
 
 #if ENABLE_FEATURE_SHADOWPASSWDS
 	/* add to shadow if necessary */
-	file = bb_xfopen(bb_path_shadow_file, "a");
+	file = xfopen(bb_path_shadow_file, "a");
 	fseek(file, 0, SEEK_END);
 	fprintf(file, "%s:!:%ld:%d:%d:%d:::\n",
 					p->pw_name,				/* username */

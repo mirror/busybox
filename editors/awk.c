@@ -7,19 +7,9 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <strings.h>
-#include <time.h>
-#include <math.h>
-#include <ctype.h>
-#include <getopt.h>
-
-#include "xregex.h"
 #include "busybox.h"
+#include "xregex.h"
+#include <math.h>
 
 
 #define	MAXVARFMT	240
@@ -610,7 +600,7 @@ static inline int isalnum_(int c)
 
 static FILE *afopen(const char *path, const char *mode)
 {
-	return (*path == '-' && *(path+1) == '\0') ? stdin : bb_xfopen(path, mode);
+	return (*path == '-' && *(path+1) == '\0') ? stdin : xfopen(path, mode);
 }
 
 /* -------- working with variables (set/get/copy/etc) -------- */
@@ -672,7 +662,7 @@ static var *setvar_p(var *v, char *value)
 /* same as setvar_p but make a copy of string */
 static var *setvar_s(var *v, const char *value)
 {
-	return setvar_p(v, (value && *value) ? bb_xstrdup(value) : NULL);
+	return setvar_p(v, (value && *value) ? xstrdup(value) : NULL);
 }
 
 /* same as setvar_s but set USER flag */
@@ -709,7 +699,7 @@ static char *getvar_s(var *v)
 	/* if v is numeric and has no cached string, convert it to string */
 	if ((v->type & (VF_NUMBER | VF_CACHED)) == VF_NUMBER) {
 		fmt_num(buf, MAXVARFMT, getvar_s(V[CONVFMT]), v->number, TRUE);
-		v->string = bb_xstrdup(buf);
+		v->string = xstrdup(buf);
 		v->type |= VF_CACHED;
 	}
 	return (v->string == NULL) ? "" : v->string;
@@ -744,7 +734,7 @@ static var *copyvar(var *dest, const var *src)
 		dest->type |= (src->type & ~VF_DONTTOUCH);
 		dest->number = src->number;
 		if (src->string)
-			dest->string = bb_xstrdup(src->string);
+			dest->string = xstrdup(src->string);
 	}
 	handle_special(dest);
 	return dest;
@@ -1144,7 +1134,7 @@ static node *chain_node(uint32_t info)
 	if (seq->programname != programname) {
 		seq->programname = programname;
 		n = chain_node(OC_NEWSOURCE);
-		n->l.s = bb_xstrdup(programname);
+		n->l.s = xstrdup(programname);
 	}
 
 	n = seq->last;
@@ -1433,7 +1423,7 @@ static int awk_split(char *s, node *spl, char **slist)
 	regmatch_t pmatch[2];
 
 	/* in worst case, each char would be a separate field */
-	*slist = s1 = bb_xstrndup(s, strlen(s) * 2 + 3);
+	*slist = s1 = xstrndup(s, strlen(s) * 2 + 3);
 
 	c[0] = c[1] = (char)spl->info;
 	c[2] = c[3] = '\0';
@@ -1747,7 +1737,7 @@ static char *awk_printf(node *n)
 	var *v, *arg;
 
 	v = nvalloc(1);
-	fmt = f = bb_xstrdup(getvar_s(evaluate(nextarg(&n), v)));
+	fmt = f = xstrdup(getvar_s(evaluate(nextarg(&n), v)));
 
 	i = 0;
 	while (*f) {
@@ -1941,7 +1931,7 @@ static var *exec_builtin(node *op, var *res)
 	  case B_up:
 		to_xxx = toupper;
 lo_cont:
-		s1 = s = bb_xstrdup(as[0]);
+		s1 = s = xstrdup(as[0]);
 		while (*s1) {
 			*s1 = (*to_xxx)(*s1);
 			s1++;
@@ -2118,7 +2108,7 @@ static var *evaluate(node *op, var *res)
 							bb_perror_msg_and_die("popen");
 						X.rsm->is_pipe = 1;
 					} else {
-						X.rsm->F = bb_xfopen(R.s, opn=='w' ? "w" : "a");
+						X.rsm->F = xfopen(R.s, opn=='w' ? "w" : "a");
 					}
 				}
 				X.F = X.rsm->F;
@@ -2272,7 +2262,7 @@ re_cont:
 						X.rsm->F = popen(L.s, "r");
 						X.rsm->is_pipe = TRUE;
 					} else {
-						X.rsm->F = fopen(L.s, "r");		/* not bb_xfopen! */
+						X.rsm->F = fopen(L.s, "r");		/* not xfopen! */
 					}
 				}
 			} else {
@@ -2564,7 +2554,7 @@ static int is_assignment(const char *expr)
 {
 	char *exprc, *s, *s0, *s1;
 
-	exprc = bb_xstrdup(expr);
+	exprc = xstrdup(expr);
 	if (!isalnum_(*exprc) || (s = strchr(exprc, '=')) == NULL) {
 		free(exprc);
 		return FALSE;
@@ -2659,7 +2649,7 @@ int awk_main(int argc, char **argv)
 	}
 
 	for (envp=environ; *envp; envp++) {
-		s = bb_xstrdup(*envp);
+		s = xstrdup(*envp);
 		s1 = strchr(s, '=');
 		if (!s1) {
 			goto keep_going;

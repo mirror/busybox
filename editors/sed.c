@@ -132,7 +132,7 @@ void sed_free_and_close_stuff(void)
 		sed_cmd_t *sed_cmd_next = sed_cmd->next;
 
 		if(sed_cmd->file)
-			bb_xprint_and_close_file(sed_cmd->file);
+			xprint_and_close_file(sed_cmd->file);
 
 		if (sed_cmd->beg_match) {
 			regfree(sed_cmd->beg_match);
@@ -300,7 +300,7 @@ static int parse_file_cmd(sed_cmd_t *sed_cmd, char *filecmdstr, char **retval)
 	/* If lines glued together, put backslash back. */
 	if(filecmdstr[idx]=='\n') hack=1;
 	if(idx==start) bb_error_msg_and_die("Empty filename");
-	*retval = bb_xstrndup(filecmdstr+start, idx-start+hack+1);
+	*retval = xstrndup(filecmdstr+start, idx-start+hack+1);
 	if(hack) *(idx+*retval)='\\';
 
 	return idx;
@@ -406,7 +406,7 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 			} else if(isspace(*cmdstr)) cmdstr++;
 			else break;
 		}
-		sed_cmd->string = bb_xstrdup(cmdstr);
+		sed_cmd->string = xstrdup(cmdstr);
 		parse_escapes(sed_cmd->string,sed_cmd->string,strlen(cmdstr),0,0);
 		cmdstr += strlen(cmdstr);
 	/* handle file cmds: (r)ead */
@@ -415,7 +415,7 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 			bb_error_msg_and_die("Command only uses one address");
 		cmdstr += parse_file_cmd(sed_cmd, cmdstr, &sed_cmd->string);
 		if(sed_cmd->cmd=='w')
-			sed_cmd->file=bb_xfopen(sed_cmd->string,"w");
+			sed_cmd->file=xfopen(sed_cmd->string,"w");
 	/* handle branch commands */
 	} else if (strchr(":btT", sed_cmd->cmd)) {
 		int length;
@@ -423,7 +423,7 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 		while(isspace(*cmdstr)) cmdstr++;
 		length = strcspn(cmdstr, semicolon_whitespace);
 		if (length) {
-			sed_cmd->string = bb_xstrndup(cmdstr, length);
+			sed_cmd->string = xstrndup(cmdstr, length);
 			cmdstr += length;
 		}
 	}
@@ -466,7 +466,7 @@ static void add_cmd(char *cmdstr)
 
 	/* Append this line to any unfinished line from last time. */
 	if (bbg.add_cmd_line) {
-		cmdstr = bb_xasprintf("%s\n%s", bbg.add_cmd_line, cmdstr);
+		cmdstr = xasprintf("%s\n%s", bbg.add_cmd_line, cmdstr);
 		free(bbg.add_cmd_line);
 		bbg.add_cmd_line = cmdstr;
 	}
@@ -474,7 +474,7 @@ static void add_cmd(char *cmdstr)
 	/* If this line ends with backslash, request next line. */
 	temp=strlen(cmdstr);
 	if(temp && cmdstr[temp-1]=='\\') {
-		if (!bbg.add_cmd_line) bbg.add_cmd_line = bb_xstrdup(cmdstr);
+		if (!bbg.add_cmd_line) bbg.add_cmd_line = xstrdup(cmdstr);
 		bbg.add_cmd_line[temp-1] = 0;
 		return;
 	}
@@ -671,7 +671,7 @@ static sed_cmd_t *branch_to(char *label)
 
 static void append(char *s)
 {
-	llist_add_to_end(&bbg.append_head, bb_xstrdup(s));
+	llist_add_to_end(&bbg.append_head, xstrdup(s));
 }
 
 static void flush_append(void)
@@ -852,7 +852,7 @@ restart:
 						char *tmp = strchr(pattern_space,'\n');
 
 						if(tmp) {
-							tmp=bb_xstrdup(tmp+1);
+							tmp=xstrdup(tmp+1);
 							free(pattern_space);
 							pattern_space=tmp;
 							goto restart;
@@ -907,7 +907,7 @@ restart:
 							while ((line = bb_get_chomped_line_from_file(rfile))
 									!= NULL)
 								append(line);
-							bb_xprint_and_close_file(rfile);
+							xprint_and_close_file(rfile);
 						}
 
 						break;
@@ -996,7 +996,7 @@ restart:
 					}
 					case 'g':	/* Replace pattern space with hold space */
 						free(pattern_space);
-						pattern_space = bb_xstrdup(bbg.hold_space ? bbg.hold_space : "");
+						pattern_space = xstrdup(bbg.hold_space ? bbg.hold_space : "");
 						break;
 					case 'G':	/* Append newline and hold space to pattern space */
 					{
@@ -1019,7 +1019,7 @@ restart:
 					}
 					case 'h':	/* Replace hold space with pattern space */
 						free(bbg.hold_space);
-						bbg.hold_space = bb_xstrdup(pattern_space);
+						bbg.hold_space = xstrdup(pattern_space);
 						break;
 					case 'H':	/* Append newline and pattern space to hold space */
 					{
@@ -1072,7 +1072,7 @@ discard_line:
 static void add_cmd_block(char *cmdstr)
 {
 	int go=1;
-	char *temp=bb_xstrdup(cmdstr),*temp2=temp;
+	char *temp=xstrdup(cmdstr),*temp2=temp;
 
 	while(go) {
 		int len=strcspn(temp2,"\n");
@@ -1121,14 +1121,14 @@ int sed_main(int argc, char **argv)
 			FILE *cmdfile;
 			char *line;
 
-			cmdfile = bb_xfopen(optarg, "r");
+			cmdfile = xfopen(optarg, "r");
 
 			while ((line = bb_get_chomped_line_from_file(cmdfile)) != NULL) {
 				add_cmd(line);
 				getpat=0;
 				free(line);
 			}
-			bb_xprint_and_close_file(cmdfile);
+			xprint_and_close_file(cmdfile);
 
 			break;
 		}
@@ -1172,7 +1172,7 @@ int sed_main(int argc, char **argv)
 						struct stat statbuf;
 						int nonstdoutfd;
 
-						bbg.outname=bb_xstrndup(argv[i],strlen(argv[i])+6);
+						bbg.outname=xstrndup(argv[i],strlen(argv[i])+6);
 						strcat(bbg.outname,"XXXXXX");
 						if(-1==(nonstdoutfd=mkstemp(bbg.outname)))
 							bb_error_msg_and_die("no temp file");

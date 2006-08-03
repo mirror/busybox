@@ -129,7 +129,7 @@ static char *base_device(const char *device)
 	int len;
 #endif
 
-	cp = str = bb_xstrdup(device);
+	cp = str = xstrdup(device);
 
 	/* Skip over /dev/; if it's not present, give up. */
 	if (strncmp(cp, "/dev/", 5) != 0)
@@ -544,7 +544,7 @@ static char *find_fsck(char *type)
   tpl = (strncmp(type, "fsck.", 5) ? "%s/fsck.%s" : "%s/%s");
 
   for(s = strtok(p, ":"); s; s = strtok(NULL, ":")) {
-	s = bb_xasprintf(tpl, s, type);
+	s = xasprintf(tpl, s, type);
 	if (stat(s, &st) == 0) break;
 	free(s);
   }
@@ -583,7 +583,7 @@ static int execute(const char *type, const char *device, const char *mntpt,
 		return ENOMEM;
 	memset(inst, 0, sizeof(struct fsck_instance));
 
-	prog = bb_xasprintf("fsck.%s", type);
+	prog = xasprintf("fsck.%s", type);
 	argv[0] = prog;
 	argc = 1;
 

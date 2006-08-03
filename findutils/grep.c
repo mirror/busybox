@@ -17,11 +17,6 @@
 */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <string.h>
-#include <errno.h>
 #include "xregex.h"
 
 
@@ -203,7 +198,7 @@ static int grep_file(FILE *file)
 				/* Add the line to the circular 'before' buffer */
 				if(lines_before) {
 					free(before_buf[curpos]);
-					before_buf[curpos] = bb_xstrdup(line);
+					before_buf[curpos] = xstrdup(line);
 					curpos = (curpos + 1) % lines_before;
 				}
 			}
@@ -271,7 +266,7 @@ static void load_regexes_from_file(llist_t *fopt)
 
 		fopt = cur->link;
 		free(cur);
-		f = bb_xfopen(ffile, "r");
+		f = xfopen(ffile, "r");
 		while ((line = bb_get_chomped_line_from_file(f)) != NULL) {
 			llist_add_to(&pattern_head,
 				new_grep_list_data(line, PATTERN_MEM_A));

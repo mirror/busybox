@@ -10,13 +10,6 @@
    Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
 */
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include "busybox.h"
 
 static unsigned long flags;
@@ -61,7 +54,7 @@ int fold_main(int argc, char **argv)
 				if (*a == '-' && !a[1])
 					break;
 				if (isdigit(*a)) {
-					argv[i] = bb_xasprintf("-w%s", a);
+					argv[i] = xasprintf("-w%s", a);
 				}
 			}
 		}
