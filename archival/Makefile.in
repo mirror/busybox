@@ -11,7 +11,6 @@ endif
 srcdir=$(top_srcdir)/archival
 
 ARCHIVAL-y:=
-ARCHIVAL-$(CONFIG_APT_GET)	+=
 ARCHIVAL-$(CONFIG_AR)		+= ar.o
 ARCHIVAL-$(CONFIG_BUNZIP2)	+= bunzip2.o
 ARCHIVAL-$(CONFIG_UNLZMA)	+= unlzma.o
