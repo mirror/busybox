@@ -11,8 +11,13 @@
 
 #include "busybox.h"
 
+/* All the functions starting with "x" call bb_error_msg_and_die() if they
+ * fail, so callers never need to check for errors.  If it returned, it
+ * succeeded. */
+
 #ifndef DMALLOC
 #ifdef L_xmalloc
+// Die if we can't allocate size bytes of memory.
 void *xmalloc(size_t size)
 {
 	void *ptr = malloc(size);
@@ -23,6 +28,9 @@ void *xmalloc(size_t size)
 #endif
 
 #ifdef L_xrealloc
+// Die if we can't resize previously allocated memory.  (This returns a pointer
+// to the new memory, which may or may not be the same as the old memory.
+// It'll copy the contents to a new chunk and free the old one if necessary.)
 void *xrealloc(void *ptr, size_t size)
 {
 	ptr = realloc(ptr, size);
@@ -33,6 +41,7 @@ void *xrealloc(void *ptr, size_t size)
 #endif
 
 #ifdef L_xzalloc
+// Die if we can't allocate and zero size bytes of memory.
 void *xzalloc(size_t size)
 {
 	void *ptr = xmalloc(size);
@@ -44,7 +53,8 @@ void *xzalloc(size_t size)
 #endif /* DMALLOC */
 
 #ifdef L_xstrdup
-char * xstrdup (const char *s)
+// Die if we can't copy a string to freshly allocated memory.
+char * xstrdup(const char *s)
 {
 	char *t;
 
@@ -61,7 +71,9 @@ char * xstrdup (const char *s)
 #endif
 
 #ifdef L_xstrndup
-char * xstrndup (const char *s, int n)
+// Die if we can't allocate n+1 bytes (space for the null terminator) and copy
+// the (possibly truncated to length n) string into it.
+char * xstrndup(const char *s, int n)
 {
 	char *t;
 
@@ -75,6 +87,8 @@ char * xstrndup (const char *s, int n)
 #endif
 
 #ifdef L_xfopen
+// Die if we can't open a file and return a FILE * to it.
+// Notice we haven't got xfread(), This is for use with fscanf() and friends.
 FILE *xfopen(const char *path, const char *mode)
 {
 	FILE *fp;
@@ -85,13 +99,18 @@ FILE *xfopen(const char *path, const char *mode)
 #endif
 
 #ifdef L_xopen
+// Die if we can't open an existing file and return an fd.
 int xopen(const char *pathname, int flags)
 {
+	if (ENABLE_DEBUG && (flags && O_CREAT))
+		bb_error_msg_and_die("xopen() with O_CREAT\n");
+
 	return xopen3(pathname, flags, 0777);
 }
 #endif
 
 #ifdef L_xopen3
+// Die if we can't open a new file and return an fd.
 int xopen3(const char *pathname, int flags, int mode)
 {
 	int ret;
@@ -105,9 +124,7 @@ int xopen3(const char *pathname, int flags, int mode)
 #endif
 
 #ifdef L_xread
-
 // Die with an error message if we can't read the entire buffer.
-
 void xread(int fd, void *buf, size_t count)
 {
 	while (count) {
@@ -122,9 +139,7 @@ void xread(int fd, void *buf, size_t count)
 #endif
 
 #ifdef L_xwrite
-
 // Die with an error message if we can't write the entire buffer.
-
 void xwrite(int fd, void *buf, size_t count)
 {
 	while (count) {
@@ -139,9 +154,7 @@ void xwrite(int fd, void *buf, size_t count)
 #endif
 
 #ifdef L_xlseek
-
-// Die if we can't lseek to the right spot.
-
+// Die with an error message if we can't lseek to the right spot.
 void xlseek(int fd, off_t offset, int whence)
 {
 	if (offset != lseek(fd, offset, whence)) bb_error_msg_and_die("lseek");
@@ -149,6 +162,7 @@ void xlseek(int fd, off_t offset, int whence)
 #endif
 
 #ifdef L_xread_char
+// Die with an error message if we can't read one character.
 unsigned char xread_char(int fd)
 {
 	char tmp;
@@ -160,6 +174,7 @@ unsigned char xread_char(int fd)
 #endif
 
 #ifdef L_xferror
+// Die with supplied error message if this FILE * has ferror set.
 void xferror(FILE *fp, const char *fn)
 {
 	if (ferror(fp)) {
@@ -169,6 +184,7 @@ void xferror(FILE *fp, const char *fn)
 #endif
 
 #ifdef L_xferror_stdout
+// Die with an error message if stdout has ferror set.
 void xferror_stdout(void)
 {
 	xferror(stdout, bb_msg_standard_output);
@@ -176,6 +192,7 @@ void xferror_stdout(void)
 #endif
 
 #ifdef L_xfflush_stdout
+// Die with an error message if we have trouble flushing stdout.
 void xfflush_stdout(void)
 {
 	if (fflush(stdout)) {
@@ -185,7 +202,8 @@ void xfflush_stdout(void)
 #endif
 
 #ifdef L_spawn
-// This does a fork/exec in one call, using vfork().
+// This does a fork/exec in one call, using vfork().  Return PID of new child,
+// -1 for failure.  Runs argv[0], searching path if that has no / in it.
 pid_t spawn(char **argv)
 {
 	static int failed;
@@ -211,6 +229,7 @@ pid_t spawn(char **argv)
 #endif
 
 #ifdef L_xspawn
+// Die with an error message if we can't spawn a child process.
 pid_t xspawn(char **argv)
 {
 	pid_t pid = spawn(argv);
@@ -220,6 +239,7 @@ pid_t xspawn(char **argv)
 #endif
 
 #ifdef L_wait4
+// Wait for the specified child PID to exit, returning child's error return.
 int wait4pid(int pid)
 {
 	int status;
@@ -232,11 +252,9 @@ int wait4pid(int pid)
 #endif
 
 #ifdef L_itoa
-// Largest 32 bit integer is -2 billion plus null terminator.
-// Int should always be 32 bits on a Unix-oid system, see
-// http://www.unix.org/whitepapers/64bit.html
-static char local_buf[12];
-
+// Convert unsigned integer to ascii, writing into supplied buffer.  A
+// truncated result is always null terminated (unless buflen is 0), and
+// contains the first few digits of the result ala strncpy.
 void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 {
 	int i, out = 0;
@@ -254,15 +272,7 @@ void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
 	}
 }
 
-// Note: uses static buffer, calling it twice in a row will overwrite.
-
-char *utoa(unsigned n)
-{
-	utoa_to_buf(n, local_buf, sizeof(local_buf));
-
-	return local_buf;
-}
-
+// Convert signed integer to ascii, like utoa_to_buf()
 void itoa_to_buf(int n, char *buf, unsigned buflen)
 {
 	if (buflen && n<0) {
@@ -273,8 +283,24 @@ void itoa_to_buf(int n, char *buf, unsigned buflen)
 	utoa_to_buf((unsigned)n, buf, buflen);
 }
 
-// Note: uses static buffer, calling it twice in a row will overwrite.
+// The following two functions use a static buffer, so calling either one a
+// second time will overwrite previous results.
+//
+// The largest 32 bit integer is -2 billion plus null terminator, or 12 bytes.
+// Int should always be 32 bits on any remotely Unix-like system, see
+// http://www.unix.org/whitepapers/64bit.html for the reasons why.
 
+static char local_buf[12];
+
+// Convert unsigned integer to ascii using a static buffer (returned).
+char *utoa(unsigned n)
+{
+	utoa_to_buf(n, local_buf, sizeof(local_buf));
+
+	return local_buf;
+}
+
+// Convert signed integer to ascii using a static buffer (returned).
 char *itoa(int n)
 {
 	itoa_to_buf(n, local_buf, sizeof(local_buf));
@@ -284,11 +310,15 @@ char *itoa(int n)
 #endif
 
 #ifdef L_setuid
+// Die with an error message if we can't set gid.  (Because resource limits may
+// limit this user to a given number of processes, and if that fills up the
+// setgid() will fail and we'll _still_be_root_, which is bad.)
 void xsetgid(gid_t gid)
 {
 	if (setgid(gid)) bb_error_msg_and_die("setgid");
 }
 
+// Die with an error message if we cant' set uid.  (See xsetgid() for why.)
 void xsetuid(uid_t uid)
 {
 	if (setuid(uid)) bb_error_msg_and_die("setuid");
@@ -296,6 +326,7 @@ void xsetuid(uid_t uid)
 #endif
 
 #ifdef L_fdlength
+// Return how long the file at fd is, if there's any way to determine it.
 off_t fdlength(int fd)
 {
 	off_t bottom = 0, top = 0, pos;
@@ -305,7 +336,8 @@ off_t fdlength(int fd)
 
 	if (ioctl(fd, BLKGETSIZE, &size) >= 0) return size*512;
 
-	// If not, do a binary search for the last location we can read.
+	// If not, do a binary search for the last location we can read.  (Some
+	// block devices don't do BLKGETSIZE right.)
 
 	do {
 		char temp;
@@ -334,6 +366,8 @@ off_t fdlength(int fd)
 #endif
 
 #ifdef L_xasprintf
+// Die with an error message if we can't malloc() enough space and do an
+// sprintf() into that space.
 char *xasprintf(const char *format, ...)
 {
 	va_list p;
@@ -362,6 +396,8 @@ char *xasprintf(const char *format, ...)
 #endif
 
 #ifdef L_xprint_and_close_file
+// Die with an error message if we can't copy an entire FILE * to stdout, then
+// close that file.
 void xprint_and_close_file(FILE *file)
 {
 	// copyfd outputs error messages for us.
@@ -372,6 +408,7 @@ void xprint_and_close_file(FILE *file)
 #endif
 
 #ifdef L_xchdir
+// Die if we can't chdir to a new path.
 void xchdir(const char *path)
 {
 	if (chdir(path))
@@ -380,6 +417,7 @@ void xchdir(const char *path)
 #endif
 
 #ifdef L_warn_opendir
+// Print a warning message if opendir() fails, but don't die.
 DIR *warn_opendir(const char *path)
 {
 	DIR *dp;
@@ -393,6 +431,7 @@ DIR *warn_opendir(const char *path)
 #endif
 
 #ifdef L_xopendir
+// Die with an error message if opendir() fails.
 DIR *xopendir(const char *path)
 {
 	DIR *dp;
@@ -405,6 +444,7 @@ DIR *xopendir(const char *path)
 
 #ifdef L_xdaemon
 #ifndef BB_NOMMU
+// Die with an error message if we can't daemonize.
 void xdaemon(int nochdir, int noclose)
 {
 	    if (daemon(nochdir, noclose)) bb_perror_msg_and_die("daemon");
@@ -412,14 +452,8 @@ void xdaemon(int nochdir, int noclose)
 #endif
 #endif
 
-#ifdef L_xbind
-void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen)
-{
-	if (bind(sockfd, my_addr, addrlen)) bb_perror_msg_and_die("bind");
-}
-#endif
-
 #ifdef L_xsocket
+// Die with an error message if we can't open a new socket.
 int xsocket(int domain, int type, int protocol)
 {
 	int r = socket(domain, type, protocol);
@@ -430,7 +464,16 @@ int xsocket(int domain, int type, int protocol)
 }
 #endif
 
+#ifdef L_xbind
+// Die with an error message if we can't bind a socket to an address.
+void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen)
+{
+	if (bind(sockfd, my_addr, addrlen)) bb_perror_msg_and_die("bind");
+}
+#endif
+
 #ifdef L_xlisten
+// Die with an error message if we can't listen for connections on a socket.
 void xlisten(int s, int backlog)
 {
 	if (listen(s, backlog)) bb_perror_msg_and_die("listen");
