@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Make our prerequisites.
+
+make busybox.links include/bb_config.h
+
+# Adding "libbb/libbb.a" to the previous line doesn't work, nor does going
+# "make libbb.a" in the libb directory.  The busybox makefile has layers and
+# layers of overcomplicated brokenness...
+
+cd libbb
+make
+cd ..
+
+# Here are a few that build in a standard way.  Others are easy to get to
+# build, for example miscutils/dc needs -lm and most of loginutils/* needs
+# -lcrypt...
+
+rm -rf build
+mkdir build
+for APPLET in `sed 's .*/  ' busybox.links`
+do
+  j=`find . -name "$APPLET.c"`
+  if [ -z "$j" ]
+  then
+    echo no file for $APPLET
+  else
+    echo "Building $APPLET..."
+    gcc -Os -o build/$APPLET applets/individual.c $j libbb/libbb.a -Iinclude -DAPPLET_main=${APPLET}_main -DAPPLET_full_usage=${APPLET}_full_usage
+    if [ $? -ne 0 ];
+    then
+      echo "Failed."
+    fi
+  fi
+done
+
+strip build/*
