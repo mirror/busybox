@@ -58,7 +58,8 @@ void data_extract_all(archive_handle_t *archive_handle)
 		switch(file_header->mode & S_IFMT) {
 			case S_IFREG: {
 				/* Regular file */
-				dst_fd = xopen(file_header->name, O_WRONLY | O_CREAT | O_EXCL);
+				dst_fd = xopen3(file_header->name, O_WRONLY | O_CREAT | O_EXCL,
+								file_header->mode);
 				bb_copyfd_size(archive_handle->src_fd, dst_fd, file_header->size);
 				close(dst_fd);
 				break;
@@ -92,11 +93,6 @@ void data_extract_all(archive_handle_t *archive_handle)
 
 	if (!(archive_handle->flags & ARCHIVE_NOPRESERVE_OWN)) {
 		lchown(file_header->name, file_header->uid, file_header->gid);
-	}
-	if (!(archive_handle->flags & ARCHIVE_NOPRESERVE_PERM) &&
-		 (file_header->mode & S_IFMT) != S_IFLNK)
-	{
-		chmod(file_header->name, file_header->mode);
 	}
 
 	if (archive_handle->flags & ARCHIVE_PRESERVE_DATE) {
