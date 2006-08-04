@@ -45,16 +45,6 @@ struct format_descr {
 #define FDGETPRM _IOR(2, 0x04, struct floppy_struct)
 #define FD_FILL_BYTE 0xF6 /* format fill byte. */
 
-static void print_and_flush(const char * __restrict format, ...)
-{
-	va_list arg;
-
-	va_start(arg, format);
-	bb_vfprintf(stdout, format, arg);
-	va_end(arg);
-	xfflush_stdout();
-}
-
 static void xioctl(int fd, int request, void *argp, const char *string)
 {
 	if (ioctl (fd, request, argp) < 0) {
@@ -91,12 +81,12 @@ int fdformat_main(int argc,char **argv)
 
 	xioctl(fd, FDGETPRM, &param, "FDGETPRM");/*original message was: "Could not determine current format type" */
 
-	print_and_flush("%s-sided, %d tracks, %d sec/track. Total capacity %d kB.\n",
+	printf("%s-sided, %d tracks, %d sec/track. Total capacity %d kB.\n",
 		(param.head == 2) ? "Double" : "Single",
 		param.track, param.sect, param.size >> 1);
 
 	/* FORMAT */
-	print_and_flush("Formatting ... ", NULL);
+	printf("Formatting ... ");
 	xioctl(fd, FDFMTBEG,NULL,"FDFMTBEG");
 
 	/* n == track */
@@ -105,7 +95,7 @@ int fdformat_main(int argc,char **argv)
 	    descr.head = 0;
 	    descr.track = n;
 	    xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
-	    print_and_flush("%3d\b\b\b", n);
+	    printf("%3d\b\b\b", n);
 	    if (param.head == 2) {
 		descr.head = 1;
 		xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
@@ -113,7 +103,7 @@ int fdformat_main(int argc,char **argv)
 	}
 
 	xioctl(fd,FDFMTEND,NULL,"FDFMTEND");
-	print_and_flush("done\n", NULL);
+	printf("done\n");
 
 	/* VERIFY */
 	if(verify) {
@@ -121,9 +111,9 @@ int fdformat_main(int argc,char **argv)
 		n = param.sect*param.head*512;
 
 		data = xmalloc(n);
-		print_and_flush("Verifying ... ", NULL);
+		printf("Verifying ... ");
 		for (cyl = 0; cyl < param.track; cyl++) {
-			print_and_flush("%3d\b\b\b", cyl);
+			printf("%3d\b\b\b", cyl);
 			if((read_bytes = safe_read(fd,data,n))!= n ) {
 				if(read_bytes < 0) {
 					bb_perror_msg(bb_msg_read_error);
@@ -133,7 +123,7 @@ int fdformat_main(int argc,char **argv)
 			/* Check backwards so we don't need a counter */
 			while(--read_bytes>=0) {
 				if( data[read_bytes] != FD_FILL_BYTE) {
-					 print_and_flush("bad data in cyl %d\nContinuing ... ",cyl);
+					 printf("bad data in cyl %d\nContinuing ... ",cyl);
 				}
 			}
 		}
@@ -143,7 +133,7 @@ int fdformat_main(int argc,char **argv)
 
 		if (ENABLE_FEATURE_CLEAN_UP) free(data);
 
-		print_and_flush("done\n", NULL);
+		printf("done\n");
 	}
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(fd);
