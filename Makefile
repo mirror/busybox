@@ -484,8 +484,7 @@ distclean: clean
 	rm -r -f include/config include/config.h $(DEP_INCLUDES)
 	find . -name .depend'*' -print0 | xargs -0 rm -f
 	find . -name '*.rej' -print0 | xargs -0 rm -f
-	rm -f .hdepend
-	rm -f .config .config.old .config.cmd
+	rm -f .hdepend busybox_old .config .config.old .config.cmd
 
 release: distclean #doc
 	cd ..; \
