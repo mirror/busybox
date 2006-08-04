@@ -144,7 +144,7 @@ void xwrite(int fd, void *buf, size_t count)
 
 void xlseek(int fd, off_t offset, int whence)
 {
-	if (whence != lseek(fd, offset, whence)) bb_error_msg_and_die("lseek");
+	if (offset != lseek(fd, offset, whence)) bb_error_msg_and_die("lseek");
 }
 #endif
 
