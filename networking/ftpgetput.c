@@ -166,7 +166,7 @@ static int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 		if (do_continue) {
 			fd_local = xopen(local_path, O_APPEND | O_WRONLY);
 		} else {
-			fd_local = xopen3(local_path, O_CREAT | O_TRUNC | O_WRONLY, 777);
+			fd_local = xopen3(local_path, O_CREAT | O_TRUNC | O_WRONLY, 0777);
 		}
 	}
 
