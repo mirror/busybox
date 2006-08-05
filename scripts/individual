@@ -12,21 +12,47 @@ cd libbb
 make
 cd ..
 
+cd archival/libunarchive
+make
+cd ../..
+
+# 146 applets build without any extra stuff.  The applet is one C file with
+# the same name as the corresponding applet, and all it needs to link against
+# is libbb.a.  However, 104 of them need more than that.
+
+# dpkg_deb gzip
+function extra_libraries()
+{
+  archival="ar bunzip2 unlzma cpio dpkg gunzip rpm2cpio rpm tar uncompress unzip dpkg_deb gzip "
+  if [ "${archival/$1 //}" != "${archival}" ]
+  then
+    echo "archival/libunarchive/libunarchive.a"
+  fi
+}
+    
+  
+
 # Here are a few that build in a standard way.  Others are easy to get to
 # build, for example miscutils/dc needs -lm and most of loginutils/* needs
 # -lcrypt...
 
 rm -rf build
 mkdir build
+
 for APPLET in `sed 's .*/  ' busybox.links`
 do
-  j=`find . -name "$APPLET.c"`
+  APPFILT=${APPLET/-/_}
+  j=`find . -name "${APPLET/-/?}.c"`  # Because ether-wake.c is broken.
   if [ -z "$j" ]
   then
     echo no file for $APPLET
   else
     echo "Building $APPLET..."
-    gcc -Os -o build/$APPLET applets/individual.c $j libbb/libbb.a -Iinclude -DAPPLET_main=${APPLET}_main -DAPPLET_full_usage=${APPLET}_full_usage
+    gcc -Os -o build/$APPLET applets/individual.c $j \
+	`extra_libraries $APPFILT` libbb/libbb.a -Iinclude \
+	-DBUILD_INDIVIDUAL \
+	"-Drun_applet_by_name(...)" "-Dfind_applet_by_name(...) 0" \
+	-DAPPLET_main=${APPFILT}_main -DAPPLET_full_usage=${APPFILT}_full_usage
     if [ $? -ne 0 ];
     then
       echo "Failed."
