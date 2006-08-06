@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# Clear out the build directory.  (Make clean should do this instead of here.)
+
+rm -rf build
+mkdir build
+
 # Make our prerequisites.
 
 make busybox.links include/bb_config.h
@@ -12,15 +17,18 @@ cd libbb
 make
 cd ..
 
+# Same problem.
+
 cd archival/libunarchive
 make
 cd ../..
 
-# 146 applets build without any extra stuff.  The applet is one C file with
-# the same name as the corresponding applet, and all it needs to link against
-# is libbb.a.  However, 104 of them need more than that.
+# About 3/5 of the applets build from one .c file (with the same name as the
+# corresponding applet), and all it needs to link against.  However, to build
+# them all we need more than that.
 
-# dpkg_deb gzip
+# Figure out which applets need extra libraries added to their command line.
+
 function extra_libraries()
 {
   archival="ar bunzip2 unlzma cpio dpkg gunzip rpm2cpio rpm tar uncompress unzip dpkg_deb gzip "
@@ -28,34 +36,61 @@ function extra_libraries()
   then
     echo "archival/libunarchive/libunarchive.a"
   fi
+
+  # What needs -libm?
+
+  libm="awk dc "
+  if [ "${libm/$1 //}" != "${libm}" ]
+  then
+    echo "-lm"
+  fi
 }
-    
-  
 
-# Here are a few that build in a standard way.  Others are easy to get to
-# build, for example miscutils/dc needs -lm and most of loginutils/* needs
-# -lcrypt...
+# Query applets.h to figure out which need something funky
 
-rm -rf build
-mkdir build
+strange_names=`sed -rn -e 's/\#.*//' -e 's/.*APPLET_NOUSAGE\(([^,]*),([^,]*),.*/\1 \2/p' -e 's/.*APPLET_ODDNAME\(([^,]*),([^,]*),.*, *([^)]*).*/\1 \2@\3/p' include/applets.h`
+
+function bonkname()
+{
+  while [ $# -gt 0 ]
+  do
+    if [ "$APPLET" == "$1" ]
+    then
+      APPFILT="${2/@*/}"
+      if [ "${APPFILT}" == "$2" ]
+      then
+        HELPNAME='"nousage\n"'
+      else
+        HELPNAME="${2/*@/}"_full_usage
+      fi
+      break
+    fi
+    shift 2
+  done
+#echo APPLET=${APPLET} APPFILT=${APPFILT} HELPNAME=${HELPNAME} 2=${2}
+}
 
 for APPLET in `sed 's .*/  ' busybox.links`
 do
-  APPFILT=${APPLET/-/_}
-  j=`find . -name "${APPLET/-/?}.c"`  # Because ether-wake.c is broken.
+  export APPLET
+  export APPFILT=${APPLET}
+  export HELPNAME=${APPLET}_full_usage
+  bonkname $strange_names
+
+  j=`find . -name "${APPFILT}.c"`
   if [ -z "$j" ]
   then
     echo no file for $APPLET
   else
-    echo "Building $APPLET..."
+    echo "Building $APPLET"
     gcc -Os -o build/$APPLET applets/individual.c $j \
 	`extra_libraries $APPFILT` libbb/libbb.a -Iinclude \
 	-DBUILD_INDIVIDUAL \
 	"-Drun_applet_by_name(...)" "-Dfind_applet_by_name(...) 0" \
-	-DAPPLET_main=${APPFILT}_main -DAPPLET_full_usage=${APPFILT}_full_usage
+	-DAPPLET_main=${APPFILT}_main -DAPPLET_full_usage=${HELPNAME}
     if [ $? -ne 0 ];
     then
-      echo "Failed."
+      echo "Failed $APPLET"
     fi
   fi
 done

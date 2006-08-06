@@ -81,12 +81,16 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 	return hash_value;
 }
 
-/* This could become a common function for md5 as well, by using md5_stream */
-static int hash_files(int argc, char **argv, hash_algo_t hash_algo)
+int md5_sha1_sum_main(int argc, char **argv)
 {
 	int return_value = EXIT_SUCCESS;
 	uint8_t *hash_value;
 	unsigned int flags;
+	hash_algo_t hash_algo = ENABLE_MD5SUM ?
+								(ENABLE_SHA1SUM ?
+									(**argv=='m' ? HASH_MD5 : HASH_SHA1)
+								: HASH_MD5)
+							: HASH_SHA1;
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK)
 		flags = bb_getopt_ulflags(argc, argv, "scw");
@@ -178,17 +182,3 @@ static int hash_files(int argc, char **argv, hash_algo_t hash_algo)
 	}
 	return (return_value);
 }
-
-#ifdef CONFIG_MD5SUM
-int md5sum_main(int argc, char **argv)
-{
-	return (hash_files(argc, argv, HASH_MD5));
-}
-#endif
-
-#ifdef CONFIG_SHA1SUM
-int sha1sum_main(int argc, char **argv)
-{
-	return (hash_files(argc, argv, HASH_SHA1));
-}
-#endif
