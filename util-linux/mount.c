@@ -25,17 +25,6 @@
 #include "busybox.h"
 #include <mntent.h>
 
-// These two aren't always defined in old headers
-#ifndef MS_BIND
-#define MS_BIND		4096
-#endif
-#ifndef MS_MOVE
-#define MS_MOVE		8192
-#endif
-#ifndef MS_SILENT
-#define MS_SILENT	32768
-#endif
-
 // Not real flags, but we want to be able to check for this.
 #define MOUNT_NOAUTO    (1<<29)
 #define MOUNT_SWAP      (1<<30)
@@ -43,40 +32,59 @@
  * flags */
 
 struct {
-	const char *name;
+	char *name;
 	long flags;
-} static const mount_options[] = {
-	// NOP flags.
+} static mount_options[] = {
+	// MS_FLAGS set a bit.  ~MS_FLAGS disable that bit.  0 flags are NOPs.
 
-	{"loop", 0},
-	{"defaults", 0},
-	{"quiet", 0},
+	USE_FEATURE_MOUNT_LOOP(
+		{"loop", 0},
+	)
 
-	// vfs flags
+	USE_FEATURE_MOUNT_FSTAB(
+		{"defaults", 0},
+		{"quiet", 0},
+		{"noauto",MOUNT_NOAUTO},
+		{"swap",MOUNT_SWAP},
+	)
 
-	{"ro", MS_RDONLY},
-	{"rw", ~MS_RDONLY},
-	{"nosuid", MS_NOSUID},
-	{"suid", ~MS_NOSUID},
-	{"dev", ~MS_NODEV},
-	{"nodev", MS_NODEV},
-	{"exec", ~MS_NOEXEC},
-	{"noexec", MS_NOEXEC},
-	{"sync", MS_SYNCHRONOUS},
-	{"async", ~MS_SYNCHRONOUS},
-	{"atime", ~MS_NOATIME},
-	{"noatime", MS_NOATIME},
-	{"diratime", ~MS_NODIRATIME},
-	{"nodiratime", MS_NODIRATIME},
-	{"loud", ~MS_SILENT},
+	USE_FEATURE_MOUNT_FLAGS(
+		// vfs flags
+		{"nosuid", MS_NOSUID},
+		{"suid", ~MS_NOSUID},
+		{"dev", ~MS_NODEV},
+		{"nodev", MS_NODEV},
+		{"exec", ~MS_NOEXEC},
+		{"noexec", MS_NOEXEC},
+		{"sync", MS_SYNCHRONOUS},
+		{"async", ~MS_SYNCHRONOUS},
+		{"atime", ~MS_NOATIME},
+		{"noatime", MS_NOATIME},
+		{"diratime", ~MS_NODIRATIME},
+		{"nodiratime", MS_NODIRATIME},
+		{"loud", ~MS_SILENT},
 
-	// action flags
+		// action flags
 
-	{"remount", MS_REMOUNT},
-	{"bind", MS_BIND},
-	{"move", MS_MOVE},
-	{"noauto",MOUNT_NOAUTO},
-	{"swap",MOUNT_SWAP}
+		{"bind", MS_BIND},
+		{"move", MS_MOVE},
+		{"shared", MS_SHARED},
+		{"slave", MS_SLAVE},
+		{"private", MS_PRIVATE},
+		{"unbindable", MS_UNBINDABLE},
+		{"rshared", MS_SHARED|MS_RECURSIVE},
+		{"rslave", MS_SLAVE|MS_RECURSIVE},
+		{"rprivate", MS_SLAVE|MS_RECURSIVE},
+		{"runbindable", MS_UNBINDABLE|MS_RECURSIVE},
+	)
+
+	// Always understood.
+
+	{"ro", MS_RDONLY},        // vfs flag
+	{"rw", ~MS_RDONLY},       // vfs flag
+	{"remount", MS_REMOUNT},  // action flag
+
+
 };
 
 /* Append mount options to string */
@@ -225,9 +233,8 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 
 		for(i=0; mount_options[i].flags != MS_REMOUNT; i++)
 			if (mount_options[i].flags > 0)
-				append_mount_options(&(mp->mnt_opts),
-// Shut up about the darn const.  It's not important.  I don't care.
-						(char *)mount_options[i].name);
+// Shut up about the darn const.  It's not important.  I don't care.  (char *)
+				append_mount_options(&(mp->mnt_opts), mount_options[i].name);
 
 		// Remove trailing / (if any) from directory we mounted on
 
@@ -285,8 +292,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// Look at the file.  (Not found isn't a failure for remount, or for
 	// a synthetic filesystem like proc or sysfs.)
 
-	if (stat(mp->mnt_fsname, &st));
-	else if (!(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))) {
+	if (!lstat(mp->mnt_fsname, &st) && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE | MS_SHARED | MS_PRIVATE || MS_SLAVE | MS_UNBINDABLE)))
+	{
 		// Do we need to allocate a loopback device for it?
 
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
@@ -456,7 +463,7 @@ int mount_main(int argc, char **argv)
 	// Open either fstab or mtab
 
 	if (parse_mount_options(cmdopts,0) & MS_REMOUNT)
-		fstabname = (char *)bb_path_mtab_file;  // Again with the evil const.
+		fstabname = bb_path_mtab_file;  // Again with the evil const (char *).
 	else fstabname="/etc/fstab";
 
 	if (!(fstab=setmntent(fstabname,"r")))

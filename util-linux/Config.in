@@ -370,7 +370,24 @@ config CONFIG_FEATURE_MOUNT_NFS
 	default n
 	depends on CONFIG_MOUNT
 	help
-	 Enable mounting of NFS file systems.
+	  Enable mounting of NFS file systems.
+
+config CONFIG_FEATURE_MOUNT_FLAGS
+	depends on CONFIG_MOUNT
+	bool "Support lots of -o flags in mount."
+	default y
+	help
+	  Without this, mount only supports ro/rw/remount.  With this, it
+	  supports nosuid, suid, dev, nodev, exec, noexec, sync, async, atime,
+	  noatime, diratime, nodiratime, loud, bind, move, shared, slave,
+	  private, unbindable, rshared, rslave, rprivate, and runbindable.
+
+config CONFIG_FEATURE_MOUNT_FSTAB
+	depends on CONFIG_MOUNT
+	bool "Support /etc/fstab and -a"
+	default y
+	help
+	  Support mount all and looking for files in /etc/fstab.
 
 config CONFIG_PIVOT_ROOT
 	bool "pivot_root"
