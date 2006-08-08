@@ -233,7 +233,6 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 
 		for(i=0; mount_options[i].flags != MS_REMOUNT; i++)
 			if (mount_options[i].flags > 0)
-// Shut up about the darn const.  It's not important.  I don't care.  (char *)
 				append_mount_options(&(mp->mnt_opts), mount_options[i].name);
 
 		// Remove trailing / (if any) from directory we mounted on
@@ -292,7 +291,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// Look at the file.  (Not found isn't a failure for remount, or for
 	// a synthetic filesystem like proc or sysfs.)
 
-	if (!lstat(mp->mnt_fsname, &st) && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE | MS_SHARED | MS_PRIVATE || MS_SLAVE | MS_UNBINDABLE)))
+	if (!lstat(mp->mnt_fsname, &st) && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE | MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE)))
 	{
 		// Do we need to allocate a loopback device for it?
 
@@ -463,7 +462,7 @@ int mount_main(int argc, char **argv)
 	// Open either fstab or mtab
 
 	if (parse_mount_options(cmdopts,0) & MS_REMOUNT)
-		fstabname = bb_path_mtab_file;  // Again with the evil const (char *).
+		fstabname = bb_path_mtab_file;
 	else fstabname="/etc/fstab";
 
 	if (!(fstab=setmntent(fstabname,"r")))
