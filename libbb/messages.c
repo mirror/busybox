@@ -9,12 +9,14 @@
 
 #ifdef L_full_version
 #ifndef BB_EXTRA_VERSION
-#define LIBBB_BANNER "BusyBox's library v" BB_VER " (" BB_BT ")"
+#define BANNER "BusyBox v" BB_VER " (" BB_BT ")"
 #else
-#define LIBBB_BANNER "BusyBox's library v" BB_VER " (" BB_EXTRA_VERSION ")"
+#define BANNER "BusyBox v" BB_VER " (" BB_EXTRA_VERSION ")"
 #endif
-	const char * const libbb_msg_full_version = LIBBB_BANNER;
+const char BB_BANNER[]=BANNER;
+const char * const bb_msg_full_version = BANNER " multi-call binary";
 #endif
+
 #ifdef L_memory_exhausted
 	const char * const bb_msg_memory_exhausted = "memory exhausted";
 #endif

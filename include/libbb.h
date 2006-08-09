@@ -222,8 +222,10 @@ extern void chomp(char *s);
 extern void trim(char *s);
 extern char *skip_whitespace(const char *);
 
+#ifndef BUILD_INDIVIDUAL
 extern struct BB_applet *find_applet_by_name(const char *name);
 void run_applet_by_name(const char *name, int argc, char **argv);
+#endif
 
 /* dmalloc will redefine these to it's own implementation. It is safe
  * to have the prototypes here unconditionally.  */

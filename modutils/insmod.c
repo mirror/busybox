@@ -59,6 +59,7 @@
  */
 
 #include "busybox.h"
+#include <libgen.h>
 #include <sys/utsname.h>
 
 #if !defined(CONFIG_FEATURE_2_4_MODULES) && \

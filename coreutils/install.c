@@ -8,16 +8,10 @@
  *           owner/group, will probably modify bb_make_directory(...)
  */
 
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <getopt.h> /* struct option */
-
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
+#include <libgen.h>
+#include <getopt.h> /* struct option */
 
 #define INSTALL_OPT_CMD	1
 #define INSTALL_OPT_DIRECTORY	2

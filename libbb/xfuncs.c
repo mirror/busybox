@@ -208,7 +208,7 @@ pid_t spawn(char **argv)
 {
 	static int failed;
 	pid_t pid;
-	void *app = find_applet_by_name(argv[0]);
+	void *app = ENABLE_FEATURE_SH_STANDALONE_SHELL ? find_applet_by_name(argv[0]) : 0;
 
 	// Be nice to nommu machines.
 	failed = 0;
