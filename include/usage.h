@@ -2006,25 +2006,15 @@ USE_FEATURE_MDEV_CONFIG( \
 #define more_example_usage \
 	"$ dmesg | more\n"
 
-#ifdef CONFIG_FEATURE_MOUNT_LOOP
-#  define USAGE_MOUNT_LOOP(a) a
-#else
-#  define USAGE_MOUNT_LOOP(a)
-#endif
-#ifdef CONFIG_FEATURE_MTAB_SUPPORT
-#  define USAGE_MTAB(a) a
-#else
-#  define USAGE_MTAB(a)
-#endif
 #define mount_trivial_usage \
 	"[flags] DEVICE NODE [-o options,more-options]"
 #define mount_full_usage \
 	"Mount a filesystem.  Filesystem autodetection requires /proc be mounted.\n\n" \
 	"Flags:\n"  \
 	"\t-a:\t\tMount all filesystems in fstab\n" \
-	USAGE_MTAB( \
-	"\t-f:\t\t\"Fake\" Add entry to mount table but don't mount it\n" \
-	"\t-n:\t\tDon't write a mount table entry\n" \
+	USE_FEATURE_MTAB_SUPPORT( \
+		"\t-f:\t\t\"Fake\" Add entry to mount table but don't mount it\n" \
+		"\t-n:\t\tDon't write a mount table entry\n" \
 	) \
 	"\t-o option:\tOne of many filesystem options, listed below\n" \
 	"\t-r:\t\tMount the filesystem read-only\n" \
@@ -2032,18 +2022,25 @@ USE_FEATURE_MDEV_CONFIG( \
 	"\t-w:\t\tMount for reading and writing (default)\n" \
 	"\n" \
 	"Options for use with the \"-o\" flag:\n" \
-	"\tasync/sync:\tWrites are asynchronous / synchronous\n" \
-	"\tatime/noatime:\tEnable / disable updates to inode access times\n" \
-	"\tdev/nodev:\tAllow use of special device files / disallow them\n" \
-	"\texec/noexec:\tAllow use of executable files / disallow them\n" \
-	USAGE_MOUNT_LOOP( \
-	"\tloop:\t\t Ignored (loop devices are autodetected)\n" \
+	USE_FEATURE_MOUNT_LOOP( \
+		"\tloop:\t\tIgnored (loop devices are autodetected)\n" \
 	) \
-	"\tsuid/nosuid:\tAllow set-user-id-root programs / disallow them\n" \
+	USE_FEATURE_MOUNT_FLAGS( \
+		"\t[a]sync:\tWrites are asynchronous / synchronous\n" \
+		"\t[no]atime:\tDisable / enable updates to inode access times\n" \
+		"\t[no]diratime:\tDisable / enable atime updates to directories\n" \
+		"\t[no]dev:\tAllow use of special device files / disallow them\n" \
+		"\t[no]exec:\tAllow use of executable files / disallow them\n" \
+		"\t[no]suid:\tAllow set-user-id-root programs / disallow them\n" \
+		"\t[r]shared:\tConvert [recursively] to a shared subtree.\n" \
+		"\t[r]slave:\tConvert [recursively] to a slave subtree.\n" \
+		"\t[r]private:\tConvert [recursively] to a private subtree\n" \
+		"\t[un]bindable:\tMake mount point [un]able to be bind mounted.\n" \
+		"\tbind:\t\tBind a directory to an additional location\n" \
+		"\tmove:\t\tRelocate an existing mount point.\n" \
+	) \
 	"\tremount:\tRe-mount a mounted filesystem, changing its flags\n" \
 	"\tro/rw:\t\tMount for read-only / read-write\n" \
-	"\tbind:\t\tBind a directory to an additional location\n" \
-	"\tmove:\t\tRelocate an existing mount point.\n" \
 	"\nThere are EVEN MORE flags that are specific to each filesystem\n" \
 	"You'll have to see the written documentation for those filesystems"
 #define mount_example_usage \
@@ -3214,21 +3211,16 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 #define udhcpd_full_usage \
 	""
 
-#ifdef CONFIG_FEATURE_MOUNT_FORCE
-#  define USAGE_MOUNT_FORCE(a) a
-#else
-#  define USAGE_MOUNT_FORCE(a)
-#endif
 #define umount_trivial_usage \
 	"[flags] FILESYSTEM|DIRECTORY"
 #define umount_full_usage \
 	"Unmount file systems\n" \
 	"\nFlags:\n" "\t-a\tUnmount all file systems" \
-	USAGE_MTAB(" in /etc/mtab\n\t-n\tDon't erase /etc/mtab entries") \
+	USE_FEATURE_MTAB_SUPPORT(" in /etc/mtab\n\t-n\tDon't erase /etc/mtab entries") \
 	"\n\t-r\tTry to remount devices as read-only if mount is busy" \
 	"\n\t-l\tLazy umount (detach filesystem)" \
 	"\n\t-f\tForce umount (i.e., unreachable NFS server)" \
-	USAGE_MOUNT_LOOP("\n\t-D\tDo not free loop device (if a loop device has been used)")
+	USE_FEATURE_MOUNT_LOOP("\n\t-D\tDo not free loop device (if a loop device has been used)")
 #define umount_example_usage \
 	"$ umount /dev/hdc1 \n"
 
