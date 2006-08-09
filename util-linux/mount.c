@@ -28,6 +28,7 @@
 // Not real flags, but we want to be able to check for this.
 #define MOUNT_NOAUTO    (1<<29)
 #define MOUNT_SWAP      (1<<30)
+
 /* Standard mount options (from -o options or --options), with corresponding
  * flags */
 
@@ -291,7 +292,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// Look at the file.  (Not found isn't a failure for remount, or for
 	// a synthetic filesystem like proc or sysfs.)
 
-	if (!lstat(mp->mnt_fsname, &st) && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE | MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE)))
+	if (!lstat(mp->mnt_fsname, &st) && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE)))
 	{
 		// Do we need to allocate a loopback device for it?
 
@@ -455,15 +456,23 @@ int mount_main(int argc, char **argv)
 		goto clean_up;
 	}
 
-	// If we have at least one argument, it's the storage location
-
-	if (optind < argc) storage_path = bb_simplify_path(argv[optind]);
-
+	// If we have a shared subtree flag, don't worry about fstab or mtab.
+	i = parse_mount_options(cmdopts,0);
+	if (ENABLE_FEATURE_MOUNT_FLAGS &&
+			(i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE )))
+	{
+		rc = mount("", argv[optind], "", i, "");
+		if (rc) bb_perror_msg_and_die("%s", argv[optind]);
+		goto clean_up;
+	}
+	
 	// Open either fstab or mtab
 
 	if (parse_mount_options(cmdopts,0) & MS_REMOUNT)
 		fstabname = bb_path_mtab_file;
 	else fstabname="/etc/fstab";
+
+	storage_path = bb_simplify_path(argv[optind]);
 
 	if (!(fstab=setmntent(fstabname,"r")))
 		bb_perror_msg_and_die("Cannot read %s",fstabname);
