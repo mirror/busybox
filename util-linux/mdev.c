@@ -37,18 +37,19 @@ static void make_device(char *path, int delete)
 	 * because sscanf() will stop at the first nondigit, which \n is.  We
 	 * also depend on path having writeable space after it. */
 
-	strcat(path, "/dev");
-	fd = open(path, O_RDONLY);
-	len = read(fd, temp + 1, 64);
-	*temp++ = 0;
-	close(fd);
-	if (len < 1) return;
+	if (!delete) {
+		strcat(path, "/dev");
+		fd = open(path, O_RDONLY);
+		len = read(fd, temp + 1, 64);
+		*temp++ = 0;
+		close(fd);
+		if (len < 1) return;
+	}
 
 	/* Determine device name, type, major and minor */
 
 	device_name = strrchr(path, '/') + 1;
 	type = path[5]=='c' ? S_IFCHR : S_IFBLK;
-	if (sscanf(temp, "%d:%d", &major, &minor) != 2) return;
 
 	/* If we have a config file, look up permissions for this device */
 
@@ -164,6 +165,7 @@ static void make_device(char *path, int delete)
 
 	umask(0);
 	if (!delete) {
+		if (sscanf(temp, "%d:%d", &major, &minor) != 2) return;
 		if (mknod(device_name, mode | type, makedev(major, minor)) && errno != EEXIST)
 			bb_perror_msg_and_die("mknod %s failed", device_name);
 
