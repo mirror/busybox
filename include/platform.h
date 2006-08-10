@@ -154,7 +154,6 @@ __extension__ typedef unsigned long long __u64;
 
 #if defined __GLIBC__ || defined __UCLIBC__ \
 	|| defined __dietlibc__ || defined _NEWLIB_VERSION
-#define _XOPEN_SOURCE
 #include <features.h>
 #define HAVE_FEATURES_H
 #include <stdint.h>
