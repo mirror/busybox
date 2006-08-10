@@ -3126,18 +3126,17 @@ static char *rexecve(char *c, char **v, char **envp)
 	int i;
 	char *sp, *tp;
 	int eacces = 0, asis = 0;
-
-#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	char *name = c;
 
-	optind = 1;
-	if (find_applet_by_name(name)) {
-		/* We have to exec here since we vforked.  Running
-		 * run_applet_by_name() won't work and bad things
-		 * will happen. */
-		execve(CONFIG_BUSYBOX_EXEC_PATH, v, envp);
+	if (ENABLE_FEATURE_SH_STANDALONE_SHELL) {
+		optind = 1;
+		if (find_applet_by_name(name)) {
+			/* We have to exec here since we vforked.  Running
+			 * run_applet_by_name() won't work and bad things
+			 * will happen. */
+			execve(CONFIG_BUSYBOX_EXEC_PATH, v, envp);
+		}
 	}
-#endif
 
 	DBGPRINTF(("REXECVE: c=%p, v=%p, envp=%p\n", c, v, envp));
 
