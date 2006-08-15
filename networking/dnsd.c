@@ -203,7 +203,7 @@ static int listen_socket(char *iface_addr, int listen_port)
 	if (!inet_aton(iface_addr, &a.sin_addr))
 		bb_perror_msg_and_die("bad iface address");
 	xbind(s, (struct sockaddr *)&a, sizeof(a));
-	xlisten(s, 50); /* xlisten? */
+	xlisten(s, 50);
 	sprintf(msg, "accepting UDP packets on addr:port %s:%d\n",
 		iface_addr, (int)listen_port);
 	log_message(LOG_FILE, msg);

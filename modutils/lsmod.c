@@ -12,18 +12,6 @@
  */
 
 #include "busybox.h"
-//#include <stdlib.h>
-//#include <stdio.h>
-//#include <string.h>
-//#include <stddef.h>
-//#include <errno.h>
-//#include <unistd.h>
-//#include <dirent.h>
-//#include <ctype.h>
-//#include <assert.h>
-//#include <getopt.h>
-//#include <sys/utsname.h>
-//#include <sys/file.h>
 
 
 #ifndef CONFIG_FEATURE_CHECK_TAINTED_MODULE
