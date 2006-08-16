@@ -17,7 +17,10 @@ dev mailing list.
 
 <tr>
  <td>SSH</td>
- <td><a href="http://matt.ucc.asn.au/dropbear/">Dropbear</a> has both an ssh server and an ssh client.</td>
+ <td><a href="http://matt.ucc.asn.au/dropbear/">Dropbear</a> has both an ssh server and an ssh client that together come in around 100k.  It has no external
+dependencies (I.E. it does not depend on OpenSSL, using a built-in copy of
+LibTomCrypt instead).  It's actively maintained, with a quiet but responsive
+mailing list.</td>
 </tr>
 
 <tr>
@@ -25,6 +28,12 @@ dev mailing list.
  <td><a href="ftp://ftp.debian.org/debian/pool/main/s/ssmtp/">ssmtp</a> is an extremely simple MTA.</td>
 </tr>
 
+<tr>
+ <td>Microperl</td>
+ <td><a href=http://www.foo.be/docs/tpj/issues/vol5_3/tpj0503-0003.html>microperl</a> is a small standalone perl interpreter that can be built from the perl sources via "make -f Makefile.micro".  If you really feel the need for perl on an embedded system, this is where to start.  (If you just want a small embedded
+scripting language to write _new_ code in,
+<a href=http://www.lua.org/pil/>Lua</a> seems popular for this purpose</a>.</td>
+</tr>
 </table>
 
 <p>In a gui environment, you'll probably want a web browser.
@@ -32,6 +41,11 @@ dev mailing list.
 (or QT Embedded), but not KDE.  The <a href="http://www.dillo.org/">Dillo</a>
 requires GTK+, but not Gnome.  Or you can try the <a href="http://links.twibright.com/">graphical
 version of links</a>.</p>
+
+<p>For more information, you probably want to look at
+<a href=http://buildroot.uclibc.org>buildroot</a> and
+<a href=http://gentoo-wiki.com/TinyGentoo>TinyGentoo</a>, which
+build and use tiny utilities for all sorts of things.</p>
 
 <!--#include file="footer.html" -->
 
