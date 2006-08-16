@@ -24,6 +24,7 @@ have additions to this FAQ document, we would love to add them,
 <h2>Troubleshooting</h2>
 <ol>
 <li><a href="#bugs">I think I found a bug in BusyBox!  What should I do?!</a></li>
+<li><a href="#backporting">I'm using an ancient version from the dawn of time and something's broken.  Can you backport fixes for free?</a></li>
 <li><a href="#init">Busybox init isn't working!</a></li>
 <li><a href="#sed">I can't configure busybox on my system.</a></li>
 <li><a href="#job_control">Why do I keep getting "sh: can't access tty; job control turned off" errors?  Why doesn't Control-C work within my shell?</a></li>
@@ -336,14 +337,65 @@ within each applet.  More build coverage testing.</p></li>
 </p>
 
 <p>
-    The developers of BusyBox are busy people, and have only so much they can
-    keep in their brains at a time.  As a result, bug reports and new feature
-    patches sometimes get lost when posted to the mailing list.  To prevent
-    your bug report from getting lost, if you find a bug in BusyBox that isn't
-    immediately addressed, please use the <a
-    href="http://bugs.busybox.net/">BusyBox Bug and Patch Tracking System</a>
-    to submit a detailed explanation and we'll get to it as soon as we can.
+    Bug reports and new feature patches sometimes get lost when posted to the
+    mailing list, because the developers of BusyBox are busy people and have
+    only so much they can keep in their brains at a time.   You can post a
+    polite reminder after 2-3 days without offending anybody.  If that doesn't
+    result in a solution, please use the
+    <a href="http://bugs.busybox.net/">BusyBox Bug
+    and Patch Tracking System</a> to submit a detailed explanation and we'll
+    get to it as soon as we can.
 </p>
+
+<p>
+    Note that bugs entered into the bug system without being mentioned on the
+    mailing list first may languish there for months before anyone even notices
+    them.  We generally go through the bug system when preparing for new
+    development releases, to see what fell through the cracks while we were
+    off writing new features.  (It's a fast/unreliable vs slow/reliable thing.
+    Saves retransits, but the latency sucks.)
+</p>
+
+<hr />
+<p></p>
+<h2><a name="backporting">I'm using an ancient version from the dawn of time and something's broken.  Can you backport fixes for free?</h2>
+
+<p>Variants of this one get asked a lot.</p>
+
+<p>The purpose of the BusyBox mailing list is to develop and improve BusyBox,
+and we're happy to respond to our users' needs.  But if you're coming to the
+list for free tech support we're going to ask you to upgrade to a current
+version before we try to diagnose your problem.</p>
+
+<p>If you're building BusyBox 0.50 with uClibc 0.9.19 and gcc 0.9.26 there's a
+fairly large chance that whatever problem you're seeing has already been fixed.
+To get that fix, all you have to do is upgrade to a newer version.  If you
+don't at least _try_ that, you're wasting our time.</p>
+
+<p>The volunteers are happy to fix any bugs you point out in the current
+versions because doing so helps everybody and makes the project better.  We
+want to make the current version work for you.  But diagnosing, debugging, and
+backporting fixes to old versions isn't something we do for free, because it
+doesn't help anybody but you.  The cost of volunteer tech support is using a
+reasonably current version of the project.</p>
+
+<p>If you don't want to upgrade, you have the complete source code and thus
+the ability to fix it yourself, or hire a consultant to do it for you.  If you
+got your version from a vendor who still supports the older version, they can
+help you.  But there are limits as to what the volunteers will feel obliged to
+do for you.</p>
+
+<p>As a rule of thumb, volunteers will generally answer polite questions about
+a given version for about three years after its release before it's so old
+we don't remember the answer off the top of our head.  And if you want us to
+put any _effort_ into tracking it down, we want you to put in a little effort
+of your own by confirming it's still a problem with the current version.  It's
+also hard for us to fix a problem of yours if we can't reproduce it because
+we don't have any systems running an environment that old.</p>
+
+<p>A consultant will happily set up a special environment just to reproduce
+your problem, and you can always ask on the list if any of the developers
+have consulting rates.</p>
 
 <hr />
 <p>
