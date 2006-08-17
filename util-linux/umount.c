@@ -78,6 +78,7 @@ int umount_main(int argc, char **argv)
 	// Loop through everything we're supposed to umount, and do so.
 	for (;;) {
 		int curstat;
+		char *zapit = *argv;
 
 		// Do we already know what to umount this time through the loop?
 		if (m) safe_strncpy(path, m->dir, PATH_MAX);
@@ -86,32 +87,37 @@ int umount_main(int argc, char **argv)
 		// Get next command line argument (and look it up in mtab list)
 		else if (!argc--) break;
 		else {
-			realpath(*argv++, path);
+			argv++;
+			realpath(zapit, path);
 			for (m = mtl; m; m = m->next)
 				if (!strcmp(path, m->dir) || !strcmp(path, m->device))
 					break;
 		}
+		// If we couldn't find this sucker in /etc/mtab, punt by passing our
+		// command line argument straight to the umount syscall.  Otherwise,
+		// umount the directory even if we were given the block device.
+		if (m) zapit = m->dir;
 
 		// Let's ask the thing nicely to unmount.
-		curstat = umount(path);
+		curstat = umount(zapit);
 
 		// Force the unmount, if necessary.
 		if (curstat && doForce) {
-			curstat = umount2(path, doForce);
+			curstat = umount2(zapit, doForce);
 			if (curstat)
-				bb_error_msg_and_die("forced umount of %s failed!", path);
+				bb_error_msg_and_die("forced umount of %s failed!", zapit);
 		}
 
 		// If still can't umount, maybe remount read-only?
 		if (curstat && (opt & OPT_REMOUNT) && errno == EBUSY && m) {
-			curstat = mount(m->device, path, NULL, MS_REMOUNT|MS_RDONLY, NULL);
+			curstat = mount(m->device, zapit, NULL, MS_REMOUNT|MS_RDONLY, NULL);
 			bb_error_msg(curstat ? "Cannot remount %s read-only" :
 						 "%s busy - remounted read-only", m->device);
 		}
 
 		if (curstat) {
 			status = EXIT_FAILURE;
-			bb_perror_msg("Couldn't umount %s", path);
+			bb_perror_msg("Couldn't umount %s", zapit);
 		} else {
 			/* De-allocate the loop device.  This ioctl should be ignored on
 			 * any non-loop block devices. */
@@ -121,9 +127,9 @@ int umount_main(int argc, char **argv)
 				erase_mtab(m->dir);
 		}
 
-
-
 		// Find next matching mtab entry for -a or umount /dev
+		// Note this means that "umount /dev/blah" will unmount all instances
+		// of /dev/blah, not just the most recent.
 		while (m && (m = m->next))
 			if ((opt & OPT_ALL) || !strcmp(path,m->device))
 				break;
