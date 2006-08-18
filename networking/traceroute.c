@@ -1003,7 +1003,7 @@ traceroute_main(int argc, char *argv[])
 	if(port_str)
 		port = (u_short)str2val(port_str, "port", 1, (1 << 16) - 1);
 	if(nprobes_str)
-		nprobes = str2val(optarg, "nprobes", 1, -1);
+		nprobes = str2val(nprobes_str, "nprobes", 1, -1);
 	if(source) {
 	    /*
 	     * set the ip source address of the outbound
