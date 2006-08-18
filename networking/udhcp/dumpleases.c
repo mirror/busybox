@@ -23,27 +23,7 @@
 #define REMAINING 0
 #define ABSOLUTE 1
 
-
-#ifndef IN_BUSYBOX
-static void ATTRIBUTE_NORETURN show_usage(void)
-{
-	printf(
-"Usage: dumpleases -f <file> -[r|a]\n\n"
-"  -f, --file=FILENAME             Leases file to load\n"
-"  -r, --remaining                 Interepret lease times as time remaining\n"
-"  -a, --absolute                  Interepret lease times as expire time\n");
-	exit(0);
-}
-#else
-#define show_usage bb_show_usage
-#endif
-
-
-#ifdef IN_BUSYBOX
 int dumpleases_main(int argc, char *argv[])
-#else
-int main(int argc, char *argv[])
-#endif
 {
 	FILE *fp;
 	int i, c, mode = REMAINING;
@@ -71,7 +51,7 @@ int main(int argc, char *argv[])
 			file = optarg;
 			break;
 		default:
-			show_usage();
+			bb_show_usage();
 		}
 	}
 
