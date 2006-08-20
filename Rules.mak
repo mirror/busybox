@@ -267,7 +267,7 @@ ifeq ($(strip $(CONFIG_DEBUG)),y)
 else
     CFLAGS +=-DNDEBUG
     CHECKED_LDFLAGS += $(call check_ld,$(LD),--sort-common,)
-    CHECKED_LDFLAGS += $(call check_ld,--gc-sections,)
+    CHECKED_LDFLAGS += $(call check_ld,$(LD),--gc-sections,)
 endif
 
 ifneq ($(strip $(CONFIG_DEBUG_PESSIMIZE)),y)
