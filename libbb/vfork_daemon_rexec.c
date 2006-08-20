@@ -33,7 +33,7 @@ void vfork_daemon_rexec(int nochdir, int noclose,
 	setsid();
 
 	if (!nochdir)
-		chdir("/");
+		xchdir("/");
 
 	if (!noclose && (fd = open(bb_dev_null, O_RDWR, 0)) != -1) {
 		dup2(fd, STDIN_FILENO);
@@ -44,7 +44,7 @@ void vfork_daemon_rexec(int nochdir, int noclose,
 	}
 
 	vfork_args = xcalloc(sizeof(char *), argc + 3);
-	vfork_args[a++] = "/bin/busybox";
+	vfork_args[a++] = CONFIG_BUSYBOX_EXEC_PATH;
 	while(*argv) {
 	    vfork_args[a++] = *argv;
 	    argv++;

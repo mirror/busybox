@@ -76,8 +76,7 @@ int makedevs_main(int argc, char **argv)
 	int linenum = 0;
 	int ret = EXIT_SUCCESS;
 
-	unsigned long flags;
-	flags = bb_getopt_ulflags(argc, argv, "d:", &line);
+	bb_getopt_ulflags(argc, argv, "d:", &line);
 	if (line)
 		table = xfopen(line, "r");
 

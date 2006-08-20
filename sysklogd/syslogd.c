@@ -57,14 +57,14 @@ static char *RemoteHost;
 /* what port to log to? */
 static int RemotePort = 514;
 
-/* To remote log or not to remote log, that is the question. */
-static int doRemoteLog = FALSE;
-static int local_logging = FALSE;
 #endif
 
-/* Make loging output smaller. */
-static bool small = false;
-
+/* options */
+static unsigned opts;
+#define SYSLOG_OPT_small     (1)
+#define SYSLOG_OPT_remotelog (2)
+#define SYSLOG_OPT_locallog  (4)
+#define SYSLOG_OPT_circularlog (8)
 
 #define MAXLINE         1024	/* maximum line length */
 
@@ -98,28 +98,6 @@ static struct sembuf SMwdn[3] = { {0, 0}, {1, 0}, {1, +1} };	// set SMwdn
 static int shmid = -1;	// ipc shared memory id
 static int s_semid = -1;	// ipc semaphore id
 static int shm_size = ((CONFIG_FEATURE_IPC_SYSLOG_BUFFER_SIZE)*1024);	// default shm size
-static int circular_logging = FALSE;
-
-/*
- * sem_up - up()'s a semaphore.
- */
-static inline void sem_up(int semid)
-{
-	if (semop(semid, SMwup, 1) == -1) {
-		bb_perror_msg_and_die("semop[SMwup]");
-	}
-}
-
-/*
- * sem_down - down()'s a semaphore
- */
-static inline void sem_down(int semid)
-{
-	if (semop(semid, SMwdn, 3) == -1) {
-		bb_perror_msg_and_die("semop[SMwdn]");
-	}
-}
-
 
 static void ipcsyslog_cleanup(void)
 {
@@ -169,8 +147,11 @@ static void ipcsyslog_init(void)
 static void circ_message(const char *msg)
 {
 	int l = strlen(msg) + 1;	/* count the whole message w/ '\0' included */
+	const char * const fail_msg = "Can't find the terminator token%s?\n";
 
-	sem_down(s_semid);
+	if (semop(s_semid, SMwdn, 3) == -1) {
+		bb_perror_msg_and_die("SMwdn");
+	}
 
 	/*
 	 * Circular Buffer Algorithm:
@@ -220,7 +201,7 @@ static void circ_message(const char *msg)
 					/* Note: HEAD is only used to "retrieve" messages, it's not used
 					   when writing messages into our buffer */
 				} else {	/* show an error message to know we messed up? */
-					printf("Weird! Can't find the terminator token?\n");
+					printf(fail_msg,"");
 					buf->head = 0;
 				}
 			}
@@ -256,13 +237,15 @@ static void circ_message(const char *msg)
 			/* we need to place the TAIL at the end of the message */
 			buf->tail = k + 1;
 		} else {
-			printf
-				("Weird! Can't find the terminator token from the beginning?\n");
+			printf(fail_msg, " from the beginning");
 			buf->head = buf->tail = 0;	/* reset buffer, since it's probably corrupted */
 		}
 
 	}
-	sem_up(s_semid);
+	if (semop(s_semid, SMwup, 1) == -1) {
+		bb_perror_msg_and_die("SMwup");
+	}
+
 }
 #endif							/* CONFIG_FEATURE_IPC_SYSLOG */
 
@@ -280,7 +263,7 @@ static void message(char *fmt, ...)
 	fl.l_len = 1;
 
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-	if ((circular_logging == TRUE) && (buf != NULL)) {
+	if ((opts & SYSLOG_OPT_circularlog) && (buf != NULL)) {
 		char b[1024];
 
 		va_start(arguments, fmt);
@@ -295,8 +278,8 @@ static void message(char *fmt, ...)
 							 O_NONBLOCK)) >= 0) {
 		fl.l_type = F_WRLCK;
 		fcntl(fd, F_SETLKW, &fl);
-#ifdef CONFIG_FEATURE_ROTATE_LOGFILE
-		if ( logFileSize > 0 ) {
+
+		if (ENABLE_FEATURE_ROTATE_LOGFILE && logFileSize > 0 ) {
 			struct stat statf;
 			int r = fstat(fd, &statf);
 			if( !r && (statf.st_mode & S_IFREG)
@@ -324,7 +307,7 @@ static void message(char *fmt, ...)
 				}
 			}
 		}
-#endif
+
 		va_start(arguments, fmt);
 		vdprintf(fd, fmt, arguments);
 		va_end(arguments);
@@ -364,10 +347,7 @@ static void logMessage(int pri, char *msg)
 {
 	time_t now;
 	char *timestamp;
-	static char res[20];
-#ifdef CONFIG_FEATURE_REMOTE_LOG
-	static char line[MAXLINE + 1];
-#endif
+	char res[20];
 	CODE *c_pri, *c_fac;
 
 	if (pri != 0) {
@@ -396,7 +376,8 @@ static void logMessage(int pri, char *msg)
 	/* todo: supress duplicates */
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
-	if (doRemoteLog == TRUE) {
+	if (opts & SYSLOG_OPT_remotelog) {
+		char line[MAXLINE + 1];
 		/* trying connect the socket */
 		if (-1 == remotefd) {
 			init_RemoteLog();
@@ -407,7 +388,7 @@ static void logMessage(int pri, char *msg)
 			now = 1;
 			snprintf(line, sizeof(line), "<%d>%s", pri, msg);
 
-		retry:
+retry:
 			/* send message to remote logger */
 			if(( -1 == sendto(remotefd, line, strlen(line), 0,
 							(struct sockaddr *) &remoteaddr,
@@ -420,11 +401,11 @@ static void logMessage(int pri, char *msg)
 		}
 	}
 
-	if (local_logging == TRUE)
+	if (opts & SYSLOG_OPT_locallog)
 #endif
 	{
 		/* now spew out the message to wherever it is supposed to go */
-		if (small)
+		if (opts & SYSLOG_OPT_small)
 			message("%s %s\n", timestamp, msg);
 		else
 			message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
@@ -435,9 +416,8 @@ static void quit_signal(int sig)
 {
 	logMessage(LOG_SYSLOG | LOG_INFO, "System log daemon exiting.");
 	unlink(lfile);
-#ifdef CONFIG_FEATURE_IPC_SYSLOG
-	ipcsyslog_cleanup();
-#endif
+	if (ENABLE_FEATURE_IPC_SYSLOG)
+		ipcsyslog_cleanup();
 
 	exit(TRUE);
 }
@@ -531,17 +511,13 @@ static void doSyslogd(void)
 	if (chmod(lfile, 0666) < 0) {
 		bb_perror_msg_and_die("Could not set permission on " _PATH_LOG);
 	}
-#ifdef CONFIG_FEATURE_IPC_SYSLOG
-	if (circular_logging == TRUE) {
+	if (ENABLE_FEATURE_IPC_SYSLOG && opts & SYSLOG_OPT_circularlog) {
 		ipcsyslog_init();
 	}
-#endif
 
-#ifdef CONFIG_FEATURE_REMOTE_LOG
-	if (doRemoteLog == TRUE) {
+	if (ENABLE_FEATURE_REMOTE_LOG && opts & SYSLOG_OPT_remotelog) {
 		init_RemoteLog();
 	}
-#endif
 
 	logMessage(LOG_SYSLOG | LOG_INFO, "syslogd started: " "BusyBox v" BB_VER );
 
@@ -613,10 +589,10 @@ int syslogd_main(int argc, char **argv)
 				RemotePort = atoi(p + 1);
 				*p = '\0';
 			}
-			doRemoteLog = TRUE;
+			opts |= SYSLOG_OPT_remotelog;
 			break;
 		case 'L':
-			local_logging = TRUE;
+			opts |= SYSLOG_OPT_locallog;
 			break;
 #endif
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
@@ -627,22 +603,20 @@ int syslogd_main(int argc, char **argv)
 					shm_size = buf_size * 1024;
 				}
 			}
-			circular_logging = TRUE;
+			opts |= SYSLOG_OPT_circularlog;
 			break;
 #endif
 		case 'S':
-			small = true;
+			opts |= SYSLOG_OPT_small;
 			break;
 		default:
 			bb_show_usage();
 		}
 	}
 
-#ifdef CONFIG_FEATURE_REMOTE_LOG
 	/* If they have not specified remote logging, then log locally */
-	if (doRemoteLog == FALSE)
-		local_logging = TRUE;
-#endif
+	if (ENABLE_FEATURE_REMOTE_LOG && !(opts & SYSLOG_OPT_remotelog))
+		opts |= SYSLOG_OPT_locallog;
 
 
 	/* Store away localhost's name before the fork */

@@ -29,14 +29,9 @@
  * - use bb_default_error_retval
  */
 
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
-#include <getopt.h> /* struct option */
 #include "busybox.h"
+#include <errno.h>
+#include <getopt.h> /* struct option */
 
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
 static const struct option env_long_options[] = {
@@ -50,7 +45,7 @@ int env_main(int argc, char** argv)
 {
 	static char *cleanenv[1] = { NULL };
 
-	char **ep, *p;
+	char **ep;
 	unsigned long opt;
 	llist_t *unset_env = NULL;
 	extern char **environ;
@@ -77,7 +72,7 @@ int env_main(int argc, char** argv)
 		}
 	}
 
-	while (*argv && ((p = strchr(*argv, '=')) != NULL)) {
+	while (*argv && (strchr(*argv, '=') != NULL)) {
 		if (putenv(*argv) < 0) {
 			bb_perror_msg_and_die("putenv");
 		}

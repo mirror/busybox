@@ -908,7 +908,6 @@ static void config (int sig ATTRIBUTE_UNUSED)
 {
   servtab_t *sep, *cp, **sepp;
   sigset_t omask;
-  int add;
   size_t n;
   char protoname[10];
 
@@ -923,7 +922,7 @@ static void config (int sig ATTRIBUTE_UNUSED)
 	for (sep = servtab; sep; sep = sep->se_next)
 	  if (matchconf (sep, cp))
 		break;
-	add = 0;
+
 	if (sep != 0) {
 	  int i;
 
@@ -958,7 +957,6 @@ static void config (int sig ATTRIBUTE_UNUSED)
 #endif
 	  sigprocmask(SIG_UNBLOCK, &omask, NULL);
 	  freeconfig (cp);
-	  add = 1;
 	} else {
 	  sep = enter (cp);
 	}

@@ -116,7 +116,7 @@ static Byte *status_buffer;	// mesages to the user
 static int have_status_msg;     // is default edit status needed?
 static int last_status_cksum;   // hash of current status line
 static Byte *cfn;		// previous, current, and next file name
-static Byte *text, *end, *textend;	// pointers to the user data in memory
+static Byte *text, *end;	// pointers to the user data in memory
 static Byte *screen;		// pointer to the virtual screen buffer
 static int screensize;		//            and its size
 static Byte *screenbegin;	// index into text[], of top line on the screen
@@ -582,7 +582,7 @@ static void colon(Byte * buf)
 {
 	Byte c, *orig_buf, *buf1, *q, *r;
 	Byte *fn, cmd[BUFSIZ], args[BUFSIZ];
-	int i, l, li, ch, st, b, e;
+	int i, l, li, ch, b, e;
 	int useforce = FALSE, forced = FALSE;
 	struct stat st_buf;
 
@@ -606,7 +606,7 @@ static void colon(Byte * buf)
 	if (*buf == ':')
 		buf++;			// move past the ':'
 
-	li = st = ch = i = 0;
+	li = ch = i = 0;
 	b = e = -1;
 	q = text;			// assume 1,$ for the range
 	r = end - 1;
@@ -1075,14 +1075,13 @@ static void Hit_Return(void)
 //----- Synchronize the cursor to Dot --------------------------
 static void sync_cursor(Byte * d, int *row, int *col)
 {
-	Byte *beg_cur;				// begin and end of "d" line
-	Byte *beg_scr, *end_scr;	// begin and end of screen
+	Byte *beg_cur;	// begin and end of "d" line
+	Byte *end_scr;	// begin and end of screen
 	Byte *tp;
 	int cnt, ro, co;
 
 	beg_cur = begin_line(d);	// first char of cur line
 
-	beg_scr = end_scr = screenbegin;	// first char of screen
 	end_scr = end_screen();	// last char of screen
 
 	if (beg_cur < screenbegin) {
@@ -1385,8 +1384,6 @@ static Byte *new_text(int size)
 	text = (Byte *) xmalloc(size + 8);
 	memset(text, '\0', size);	// clear new text[]
 	//text += 4;		// leave some room for "oops"
-	textend = text + size - 1;
-	//textend -= 4;		// leave some root for "oops"
 	return (text);
 }
 
@@ -1963,9 +1960,7 @@ static Byte *text_yank(Byte * p, Byte * q, int dest)	// copy text into a registe
 static Byte what_reg(void)
 {
 	Byte c;
-	int i;
 
-	i = 0;
 	c = 'D';			// default to D-reg
 	if (0 <= YDreg && YDreg <= 25)
 		c = 'a' + (Byte) YDreg;

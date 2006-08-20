@@ -88,9 +88,13 @@ have additions to this FAQ document, we would love to add them,
     the command line "PATH= ./busybox ash".  This will blank your command path
     and run busybox as your command shell, so the only commands it can find
     (without an explicit path such as /bin/ls) are the built-in busybox ones.
-    This is another good way to see what's built into busybox.  (Note that the
-    standalone shell is dependent on the existence of /proc/self/exe, so before
-    using it in a chroot environment you must mount /proc.)
+    This is another good way to see what's built into busybox.
+    Note that the standalone shell requires CONFIG_BUSYBOX_EXEC_PATH
+    to be set appropriately, depending on whether or not /proc/self/exe is
+    available or not. If you do not have /proc, then point that config option
+    to the location of your busybox binary, usually /bin/busybox.
+    (So if you set it to /proc/self/exe, and happen to be able to chroot into
+    your rootfs, you must mount /proc beforehand.)
 </p>
 
 <hr />

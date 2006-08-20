@@ -129,9 +129,8 @@ int uudecode_main(int argc, char **argv)
 	FILE *src_stream;
 	char *outname = NULL;
 	char *line;
-	int opt;
 
-	opt = bb_getopt_ulflags(argc, argv, "o:", &outname);
+	bb_getopt_ulflags(argc, argv, "o:", &outname);
 
 	if (optind == argc) {
 		src_stream = stdin;

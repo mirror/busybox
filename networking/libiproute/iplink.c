@@ -29,8 +29,6 @@
 /* take from linux/sockios.h */
 #define SIOCSIFNAME	0x8923		/* set interface name */
 
-static int do_link;
-
 static int on_off(char *msg)
 {
 	bb_error_msg("Error: argument of \"%s\" must be \"on\" or \"off\"", msg);
@@ -336,7 +334,6 @@ static int do_set(int argc, char **argv)
 static int ipaddr_list_link(int argc, char **argv)
 {
 	preferred_family = AF_PACKET;
-	do_link = 1;
 	return ipaddr_list_or_flush(argc, argv, 0);
 }
 

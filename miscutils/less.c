@@ -872,14 +872,12 @@ static void save_input_to_file(void)
 static void add_mark(void)
 {
 	int letter;
-	int mark_line;
 
 	clear_line();
 	printf("Mark: ");
 	letter = tless_getch();
 
 	if (isalpha(letter)) {
-		mark_line = line_pos;
 
 		/* If we exceed 15 marks, start overwriting previous ones */
 		if (num_marks == 14)
@@ -927,19 +925,14 @@ static char opp_bracket(char bracket)
 	switch (bracket) {
 		case '{': case '[':
 			return bracket + 2;
-			break;
 		case '(':
 			return ')';
-			break;
 		case '}': case ']':
 			return bracket - 2;
-			break;
 		case ')':
 			return '(';
-			break;
 		default:
 			return 0;
-			break;
 	}
 }
 

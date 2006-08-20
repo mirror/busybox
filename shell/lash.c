@@ -54,6 +54,9 @@ enum {
 	ELSE_EXP_CONTEXT = 0x10
 };
 
+#define LASH_OPT_DONE (1)
+#define LASH_OPT_SAW_QUOTE (2)
+
 #ifdef CONFIG_LASH_PIPE_N_REDIRECTS
 struct redir_struct {
 	enum redir_type type;	/* type of redirection */
@@ -154,7 +157,7 @@ static int shell_context;  /* Type prompt trigger (PS1 or PS2) */
 
 /* Globals that are static to this file */
 static const char *cwd;
-static char *local_pending_command = NULL;
+static char *local_pending_command;
 static struct jobset job_list = { NULL, NULL };
 static int argc;
 static char **argv;
@@ -176,7 +179,7 @@ static inline void debug_printf(const char *format, ...)
 	va_end(args);
 }
 #else
-static inline void debug_printf(const char *format, ...) { }
+static inline void debug_printf(const char ATTRIBUTE_UNUSED *format, ...) { }
 #endif
 
 /*
@@ -304,12 +307,12 @@ static int builtin_fg_bg(struct child_prog *child)
 }
 
 /* built-in 'help' handler */
-static int builtin_help(struct child_prog *dummy)
+static int builtin_help(struct child_prog ATTRIBUTE_UNUSED *dummy)
 {
 	struct built_in_command *x;
 
-	printf("\nBuilt-in commands:\n");
-	printf("-------------------\n");
+	printf("\nBuilt-in commands:\n"
+		   "-------------------\n");
 	for (x = bltins; x->cmd; x++) {
 		if (x->descr==NULL)
 			continue;
@@ -320,7 +323,7 @@ static int builtin_help(struct child_prog *dummy)
 			continue;
 		printf("%s\t%s\n", x->cmd, x->descr);
 	}
-	printf("\n\n");
+	putchar('\n');
 	return EXIT_SUCCESS;
 }
 
@@ -343,7 +346,7 @@ static int builtin_jobs(struct child_prog *child)
 
 
 /* built-in 'pwd' handler */
-static int builtin_pwd(struct child_prog *dummy)
+static int builtin_pwd(struct child_prog ATTRIBUTE_UNUSED *dummy)
 {
 	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
@@ -386,7 +389,7 @@ static int builtin_export(struct child_prog *child)
 /* built-in 'read VAR' handler */
 static int builtin_read(struct child_prog *child)
 {
-	int res = 0, len, newlen;
+	int res = 0, len;
 	char *s;
 	char string[MAX_READ];
 
@@ -397,16 +400,16 @@ static int builtin_read(struct child_prog *child)
 		string[len++] = '=';
 		string[len]   = '\0';
 		fgets(&string[len], sizeof(string) - len, stdin);	/* read string */
-		newlen = strlen(string);
-		if(newlen > len)
-			string[--newlen] = '\0';	/* chomp trailing newline */
+		res = strlen(string);
+		if (res > len)
+			string[--res] = '\0';	/* chomp trailing newline */
 		/*
 		** string should now contain "VAR=<value>"
 		** copy it (putenv() won't do that, so we must make sure
 		** the string resides in a static buffer!)
 		*/
 		res = -1;
-		if((s = strdup(string)))
+		if ((s = strdup(string)))
 			res = putenv(s);
 		if (res)
 			bb_perror_msg("read");
@@ -423,12 +426,8 @@ static int builtin_source(struct child_prog *child)
 	FILE *input;
 	int status;
 
-	if (child->argv[1] == NULL)
-		return EXIT_FAILURE;
-
-	input = fopen(child->argv[1], "r");
+	input = bb_wfopen(child->argv[1], "r");
 	if (!input) {
-		printf( "Couldn't open file '%s'\n", child->argv[1]);
 		return EXIT_FAILURE;
 	}
 
@@ -635,7 +634,7 @@ static inline void setup_prompt_string(char **prompt_str)
 	if (shell_context == 0) {
 		free(PS1);
 		PS1=xmalloc(strlen(cwd)+4);
-		sprintf(PS1, "%s %s", cwd, ( geteuid() != 0 ) ?  "$ ":"# ");
+		sprintf(PS1, "%s %c ", cwd, ( geteuid() != 0 ) ? '$': '#');
 		*prompt_str = PS1;
 	} else {
 		*prompt_str = PS2;
@@ -688,20 +687,18 @@ static int get_command(FILE * source, char *command)
 
 static char * strsep_space( char *string, int * ix)
 {
-	char *token;
-
 	/* Short circuit the trivial case */
 	if ( !string || ! string[*ix])
 		return NULL;
 
 	/* Find the end of the token. */
-	while( string[*ix] && !isspace(string[*ix]) ) {
+	while (string[*ix] && !isspace(string[*ix]) ) {
 		(*ix)++;
 	}
 
 	/* Find the end of any whitespace trailing behind
 	 * the token and let that be part of the token */
-	while( string[*ix] && isspace(string[*ix]) ) {
+	while (string[*ix] && (isspace)(string[*ix]) ) {
 		(*ix)++;
 	}
 
@@ -710,9 +707,7 @@ static char * strsep_space( char *string, int * ix)
 		return NULL;
 	}
 
-	token = xstrndup(string, *ix);
-
-	return token;
+	return xstrndup(string, *ix);
 }
 
 static int expand_arguments(char *command)
@@ -721,7 +716,7 @@ static int expand_arguments(char *command)
 	expand_t expand_result;
 	char *tmpcmd, *cmd, *cmd_copy;
 	char *src, *dst, *var;
-	const char *out_of_space = "out of space during expansion";
+	const char * const out_of_space = "out of space during expansion";
 	int flags = GLOB_NOCHECK
 #ifdef GLOB_BRACE
 		| GLOB_BRACE
@@ -846,7 +841,7 @@ static int expand_arguments(char *command)
 				num_skip_chars=1;
 			} else {
 				src=dst+1;
-				while(isalnum(*src) || *src=='_') src++;
+				while((isalnum)(*src) || *src=='_') src++;
 			}
 			if (src == NULL) {
 				src = dst+dstlen;
@@ -890,10 +885,9 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	char *command;
 	char *return_command = NULL;
 	char *src, *buf;
-	int argc_l = 0;
-	int done = 0;
+	int argc_l;
+	int flag;
 	int argv_alloced;
-	int saw_quote = 0;
 	char quote = '\0';
 	struct child_prog *prog;
 #ifdef CONFIG_LASH_PIPE_N_REDIRECTS
@@ -902,8 +896,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 #endif
 
 	/* skip leading white space */
-	while (**command_ptr && isspace(**command_ptr))
-		(*command_ptr)++;
+	*command_ptr = skip_whitespace(*command_ptr);
 
 	/* this handles empty lines or leading '#' characters */
 	if (!**command_ptr || (**command_ptr == '#')) {
@@ -937,9 +930,10 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 	prog->argv = xmalloc(sizeof(*prog->argv) * argv_alloced);
 	prog->argv[0] = job->cmdbuf;
 
+	flag = argc_l = 0;
 	buf = command;
 	src = *command_ptr;
-	while (*src && !done) {
+	while (*src && !(flag & LASH_OPT_DONE)) {
 		if (quote == *src) {
 			quote = '\0';
 		} else if (quote) {
@@ -960,7 +954,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 					   *src == ']') *buf++ = '\\';
 			*buf++ = *src;
 		} else if (isspace(*src)) {
-			if (*prog->argv[argc_l] || saw_quote) {
+			if (*prog->argv[argc_l] || flag & LASH_OPT_SAW_QUOTE) {
 				buf++, argc_l++;
 				/* +1 here leaves room for the NULL which ends argv */
 				if ((argc_l + 1) == argv_alloced) {
@@ -970,21 +964,21 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 										  argv_alloced);
 				}
 				prog->argv[argc_l] = buf;
-				saw_quote = 0;
+				flag ^= LASH_OPT_SAW_QUOTE;
 			}
 		} else
 			switch (*src) {
 			case '"':
 			case '\'':
 				quote = *src;
-				saw_quote = 1;
+				flag |= LASH_OPT_SAW_QUOTE;
 				break;
 
 			case '#':			/* comment */
 				if (*(src-1)== '$')
 					*buf++ = *src;
 				else
-					done = 1;
+					flag |= LASH_OPT_DONE;
 				break;
 
 #ifdef CONFIG_LASH_PIPE_N_REDIRECTS
@@ -1027,8 +1021,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 
 				/* This isn't POSIX sh compliant. Oh well. */
 				chptr = src;
-				while (isspace(*chptr))
-					chptr++;
+				chptr = skip_whitespace(chptr);
 
 				if (!*chptr) {
 					bb_error_msg("file name expected after %c", *(src-1));
@@ -1047,13 +1040,10 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 
 			case '|':			/* pipe */
 				/* finish this command */
-				if (*prog->argv[argc_l] || saw_quote)
+				if (*prog->argv[argc_l] || flag & LASH_OPT_SAW_QUOTE)
 					argc_l++;
 				if (!argc_l) {
-					bb_error_msg("empty command in pipe");
-					free_job(job);
-					job->num_progs=0;
-					return 1;
+					goto empty_command_in_pipe;
 				}
 				prog->argv[argc_l] = NULL;
 
@@ -1073,10 +1063,10 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 				prog->argv[0] = ++buf;
 
 				src++;
-				while (*src && isspace(*src))
-					src++;
+				src = skip_whitespace(src);
 
 				if (!*src) {
+empty_command_in_pipe:
 					bb_error_msg("empty command in pipe");
 					free_job(job);
 					job->num_progs=0;
@@ -1090,9 +1080,10 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 #ifdef CONFIG_LASH_JOB_CONTROL
 			case '&':			/* background */
 				*inbg = 1;
+				/* fallthrough */
 #endif
 			case ';':			/* multiple commands */
-				done = 1;
+				flag |= LASH_OPT_DONE;
 				return_command = *command_ptr + (src - *command_ptr) + 1;
 				break;
 
@@ -1113,7 +1104,7 @@ static int parse_command(char **command_ptr, struct job *job, int *inbg)
 		src++;
 	}
 
-	if (*prog->argv[argc_l] || saw_quote) {
+	if (*prog->argv[argc_l] || flag & LASH_OPT_SAW_QUOTE) {
 		argc_l++;
 	}
 	if (!argc_l) {
@@ -1295,7 +1286,7 @@ static int run_command(struct job *newjob, int inbg, int outpipe[2])
 			signal(SIGTTOU, SIG_DFL);
 			signal(SIGCHLD, SIG_DFL);
 
-			// Close all open filehandles.
+			/* Close all open filehandles. */
 			while(close_me_list) close((long)llist_pop(&close_me_list));
 
 			if (outpipe[1]!=-1) {
@@ -1512,14 +1503,13 @@ static inline void setup_job_control(void)
 
 int lash_main(int argc_l, char **argv_l)
 {
-	int opt, interactive=FALSE;
+	unsigned long opt;
 	FILE *input = stdin;
 	argc = argc_l;
 	argv = argv_l;
 
 	/* These variables need re-initializing when recursing */
 	last_jobid = 0;
-	local_pending_command = NULL;
 	close_me_list = NULL;
 	job_list.head = NULL;
 	job_list.fg = NULL;
@@ -1532,27 +1522,18 @@ int lash_main(int argc_l, char **argv_l)
 			llist_add_to(&close_me_list, (void *)(long)fileno(prof_input));
 			/* Now run the file */
 			busy_loop(prof_input);
-			fclose(prof_input);
+			bb_fclose_nonstdin(prof_input);
 			llist_pop(&close_me_list);
 		}
 	}
 
-	while ((opt = getopt(argc_l, argv_l, "cxi")) > 0) {
-		switch (opt) {
-			case 'c':
-				input = NULL;
-				if (local_pending_command != 0)
-					bb_error_msg_and_die("multiple -c arguments");
-				local_pending_command = xstrdup(argv[optind]);
-				optind++;
-				argv = argv+optind;
-				break;
-			case 'i':
-				interactive++;
-				break;
-			default:
-				bb_show_usage();
-		}
+	opt = bb_getopt_ulflags(argc_l, argv_l, "+ic:", &local_pending_command);
+#define LASH_OPT_i (1<<0)
+#define LASH_OPT_c (1<<2)
+	if (opt & LASH_OPT_c) {
+		input = NULL;
+		optind++;
+		argv += optind;
 	}
 	/* A shell is interactive if the `-i' flag was given, or if all of
 	 * the following conditions are met:
@@ -1564,14 +1545,15 @@ int lash_main(int argc_l, char **argv_l)
 	if (argv[optind]==NULL && input==stdin &&
 			isatty(STDIN_FILENO) && isatty(STDOUT_FILENO))
 	{
-		interactive++;
+		opt |= LASH_OPT_i;
 	}
 	setup_job_control();
-	if (interactive) {
+	if (opt & LASH_OPT_i) {
 		/* Looks like they want an interactive shell */
 		if (!ENABLE_FEATURE_SH_EXTRA_QUIET) {
-			printf( "\n\n%s Built-in shell (lash)\n", BB_BANNER);
-			printf( "Enter 'help' for a list of built-in commands.\n\n");
+			printf("\n\n%s Built-in shell (lash)\n"
+					"Enter 'help' for a list of built-in commands.\n\n",
+					BB_BANNER);
 		}
 	} else if (!local_pending_command && argv[optind]) {
 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);

@@ -263,15 +263,14 @@ DECLARE(ush, tab_prefix, 1L << BITS);
 static int foreground;	/* set if program run in foreground */
 static int method = DEFLATED;	/* compression method */
 static int exit_code = OK;	/* program exit code */
-static int part_nb;		/* number of parts in .gz file */
 static long time_stamp;	/* original time stamp (modification time) */
-static long ifile_size;	/* input file size, -1 for devices (debug only) */
 static char z_suffix[MAX_SUFFIX + 1];	/* default suffix (can be set with --suffix) */
-static int z_len;		/* strlen(z_suffix) */
 
 static int ifd;			/* input file descriptor */
 static int ofd;			/* output file descriptor */
+#ifdef DEBUG
 static unsigned insize;	/* valid bytes in inbuf */
+#endif
 static unsigned outcnt;	/* bytes in output buffer */
 
 static uint32_t *crc_32_tab;
@@ -302,7 +301,9 @@ static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
 static void clear_bufs(void)
 {
 	outcnt = 0;
+#ifdef DEBUG
 	insize = 0;
+#endif
 	bytes_in = 0L;
 }
 
@@ -1177,7 +1178,6 @@ int gzip_main(int argc, char **argv)
 #endif
 
 	strncpy(z_suffix, Z_SUFFIX, sizeof(z_suffix) - 1);
-	z_len = strlen(z_suffix);
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	ALLOC(uch, inbuf, INBUFSIZ + INBUF_EXTRA);
@@ -1188,13 +1188,11 @@ int gzip_main(int argc, char **argv)
 
 	/* Initialise the CRC32 table */
 	crc_32_tab = crc32_filltable(0);
-	
+
 	clear_bufs();
-	part_nb = 0;
 
 	if (optind == argc) {
 		time_stamp = 0;
-		ifile_size = -1L;
 		zip(STDIN_FILENO, STDOUT_FILENO);
 	} else {
 		int i;
@@ -1205,7 +1203,6 @@ int gzip_main(int argc, char **argv)
 			clear_bufs();
 			if (strcmp(argv[i], "-") == 0) {
 				time_stamp = 0;
-				ifile_size = -1L;
 				inFileNum = STDIN_FILENO;
 				outFileNum = STDOUT_FILENO;
 			} else {
@@ -1213,7 +1210,6 @@ int gzip_main(int argc, char **argv)
 				if (fstat(inFileNum, &statBuf) < 0)
 					bb_perror_msg_and_die("%s", argv[i]);
 				time_stamp = statBuf.st_ctime;
-				ifile_size = statBuf.st_size;
 
 				if (!tostdout) {
 					path = xmalloc(strlen(argv[i]) + 4);

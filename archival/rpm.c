@@ -70,17 +70,15 @@ static void *map;
 static rpm_index **mytags;
 static int tagcount;
 
-void extract_cpio_gz(int fd);
-rpm_index **rpm_gettags(int fd, int *num_tags);
-int bsearch_rpmtag(const void *key, const void *item);
-char *rpm_getstring(int tag, int itemindex);
-int rpm_getint(int tag, int itemindex);
-int rpm_getcount(int tag);
-void exec_script(int progtag, int datatag, char *prefix);
-void fileaction_dobackup(char *filename, int fileref);
-void fileaction_setowngrp(char *filename, int fileref);
-void fileaction_list(char *filename, int itemno);
-void loop_through_files(int filetag, void (*fileaction)(char *filename, int fileref));
+static void extract_cpio_gz(int fd);
+static rpm_index **rpm_gettags(int fd, int *num_tags);
+static int bsearch_rpmtag(const void *key, const void *item);
+static char *rpm_getstring(int tag, int itemindex);
+static int rpm_getint(int tag, int itemindex);
+static int rpm_getcount(int tag);
+static void fileaction_dobackup(char *filename, int fileref);
+static void fileaction_setowngrp(char *filename, int fileref);
+static void loop_through_files(int filetag, void (*fileaction)(char *filename, int fileref));
 
 int rpm_main(int argc, char **argv)
 {
@@ -169,7 +167,7 @@ int rpm_main(int argc, char **argv)
 	return 0;
 }
 
-void extract_cpio_gz(int fd) {
+static void extract_cpio_gz(int fd) {
 	archive_handle_t *archive_handle;
 	unsigned char magic[2];
 
@@ -196,7 +194,7 @@ void extract_cpio_gz(int fd) {
 }
 
 
-rpm_index **rpm_gettags(int fd, int *num_tags)
+static rpm_index **rpm_gettags(int fd, int *num_tags)
 {
 	rpm_index **tags = xzalloc(200 * sizeof(struct rpmtag *)); /* We should never need mode than 200, and realloc later */
 	int pass, tagindex = 0;
@@ -235,14 +233,14 @@ rpm_index **rpm_gettags(int fd, int *num_tags)
 	return tags; /* All done, leave the file at the start of the gzipped cpio archive */
 }
 
-int bsearch_rpmtag(const void *key, const void *item)
+static int bsearch_rpmtag(const void *key, const void *item)
 {
 	int *tag = (int *)key;
 	rpm_index **tmp = (rpm_index **) item;
 	return (*tag - tmp[0]->tag);
 }
 
-int rpm_getcount(int tag)
+static int rpm_getcount(int tag)
 {
 	rpm_index **found;
 	found = bsearch(&tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
@@ -250,7 +248,7 @@ int rpm_getcount(int tag)
 	else return found[0]->count;
 }
 
-char *rpm_getstring(int tag, int itemindex)
+static char *rpm_getstring(int tag, int itemindex)
 {
 	rpm_index **found;
 	found = bsearch(&tag, mytags, tagcount, sizeof(struct rpmtag *), bsearch_rpmtag);
@@ -263,7 +261,7 @@ char *rpm_getstring(int tag, int itemindex)
 	} else return NULL;
 }
 
-int rpm_getint(int tag, int itemindex)
+static int rpm_getint(int tag, int itemindex)
 {
 	rpm_index **found;
 	int n, *tmpint;
@@ -284,7 +282,7 @@ int rpm_getint(int tag, int itemindex)
 	} else return -1;
 }
 
-void fileaction_dobackup(char *filename, int fileref)
+static void fileaction_dobackup(char *filename, int fileref)
 {
 	struct stat oldfile;
 	int stat_res;
@@ -301,7 +299,7 @@ void fileaction_dobackup(char *filename, int fileref)
 	}
 }
 
-void fileaction_setowngrp(char *filename, int fileref)
+static void fileaction_setowngrp(char *filename, int fileref)
 {
 	int uid, gid;
 	uid = bb_xgetpwnam(rpm_getstring(RPMTAG_FILEUSERNAME, fileref));
@@ -309,12 +307,7 @@ void fileaction_setowngrp(char *filename, int fileref)
 	chown (filename, uid, gid);
 }
 
-void fileaction_list(char *filename, int ATTRIBUTE_UNUSED fileref)
-{
-	printf("%s\n", filename);
-}
-
-void loop_through_files(int filetag, void (*fileaction)(char *filename, int fileref))
+static void loop_through_files(int filetag, void (*fileaction)(char *filename, int fileref))
 {
 	int count = 0;
 	while (rpm_getstring(filetag, count)) {
