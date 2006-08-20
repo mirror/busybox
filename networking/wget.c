@@ -133,7 +133,7 @@ static char *base64enc(unsigned char *p, char *buf, int len) {
 #define WGET_OPT_PREFIX	32
 #define WGET_OPT_PROXY	64
 
-#if ENABLE_WGET_LONG_OPTIONS
+#if ENABLE_FEATURE_WGET_LONG_OPTIONS
 static const struct option wget_long_options[] = {
 	{ "continue",        0, NULL, 'c' },
 	{ "quiet",           0, NULL, 'q' },
@@ -177,7 +177,7 @@ int wget_main(int argc, char **argv)
 	 * Crack command line.
 	 */
 	bb_opt_complementally = "-1:\203::";
-#if ENABLE_WGET_LONG_OPTIONS
+#if ENABLE_FEATURE_WGET_LONG_OPTIONS
 	bb_applet_long_options = wget_long_options;
 #endif
 	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:",
