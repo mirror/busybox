@@ -276,6 +276,22 @@ config CONFIG_MT
 	  to advance or rewind a tape past a specified number of archive
 	  files on the tape.
 
+config CONFIG_READAHEAD
+        bool "readahead"
+	default n
+	help
+ 	  Preload the files listed on the command line into RAM cache so that
+	  subsequent reads on these files will not block on disk I/O.
+
+	  This applet just calls the readahead(2) system call on each file.
+	  It is mainly useful in system startup scripts to preload files
+	  or executables before they are used.  When used at the right time
+	  (in particular when a CPU boundprocess is running) it can
+	  significantly speed up system startup.
+
+	  As readahead(2) blocks until each file has been read, it is best to
+	  run this applet as a background job. 
+
 config CONFIG_RUNLEVEL
         bool "runlevel"
 	default n

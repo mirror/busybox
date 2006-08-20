@@ -2385,6 +2385,12 @@ USE_FEATURE_MDEV_CONFIG( \
 	"\t-s\tSet the system date and time (default)\n" \
 	"\t-p\tPrint the date and time"
 
+#define readahead_trivial_usage \
+	"[FILE]..."
+#define readahead_full_usage \
+	"Preloads FILE(s) in RAM cache so that subsequent reads for those" \
+	"files do not block on disk I/O."
+
 #ifdef CONFIG_FEATURE_READLINK_FOLLOW
 #define USAGE_READLINK_FOLLOW(a) a
 #else
