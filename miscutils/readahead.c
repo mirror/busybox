@@ -15,7 +15,6 @@
 int readahead_main(int argc, char **argv)
 {
 	FILE *f;
-	struct stat stat_buf;
 	int retval = EXIT_SUCCESS;
 
 	if (argc == 1) bb_show_usage();
@@ -24,7 +23,6 @@ int readahead_main(int argc, char **argv)
 		if ((f = bb_wfopen(*argv, "r")) != NULL) {
 			int r, fd=fileno(f);
 			
-			xstat(*argv, &stat_buf);
 			r = readahead(fd, 0, fdlength(fd));
 			fclose(f);
 			if (r >= 0) continue;
