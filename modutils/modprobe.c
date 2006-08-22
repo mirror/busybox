@@ -679,7 +679,7 @@ static int mod_process ( struct mod_list_t *list, int do_insert )
 			}
 			if (!show_only) {
 				int rc2 = wait4pid(spawn(argv));
-				
+
 				if (do_insert) {
 					rc = rc2; /* only last module matters */
 				}
@@ -859,7 +859,16 @@ static int mod_insert ( char *mod, int argc, char **argv )
 		}
 
 		// process tail ---> head
-		rc = mod_process ( tail, 1 );
+		if ((rc = mod_process ( tail, 1 )) != 0) {
+			/*
+			 * In case of using udev, multiple instances of modprobe can be
+			 * spawned to load the same module (think of two same usb devices,
+			 * for example; or cold-plugging at boot time). Thus we shouldn't
+			 * fail if the module was loaded, and not by us.
+			 */
+			if (already_loaded (mod) )
+				rc = 0;
+		}
 	}
 	else
 		rc = 1;
