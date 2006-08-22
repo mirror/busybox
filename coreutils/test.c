@@ -151,7 +151,7 @@ typedef int arith_t;
 
 static char **t_wp;
 static struct t_op const *t_wp_op;
-static gid_t *group_array = NULL;
+static gid_t *group_array;
 static int ngroups;
 
 static enum token t_lex(char *s);
@@ -547,8 +547,10 @@ static int test_eaccess(char *path, int mode)
 static void initialize_group_array(void)
 {
 	ngroups = getgroups(0, NULL);
-	group_array = xrealloc(group_array, ngroups * sizeof(gid_t));
-	getgroups(ngroups, group_array);
+	if (ngroups > 0) {
+		group_array = xmalloc(ngroups * sizeof(gid_t));
+		getgroups(ngroups, group_array);
+	}
 }
 
 /* Return non-zero if GID is one that we have in our groups list. */
