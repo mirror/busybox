@@ -16,22 +16,18 @@
 
 #include <ctype.h>
 #include <dirent.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <netdb.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -41,7 +37,12 @@
 
 #include "pwd_.h"
 #include "grp_.h"
+#ifdef CONFIG_FEATURE_SHADOWPASSWDS
 #include "shadow_.h"
+#endif
+#ifdef CONFIG_FEATURE_SHA1_PASSWORDS
+# include "sha1.h"
+#endif
 
 /* Try to pull in PATH_MAX */
 #include <limits.h>
@@ -133,9 +134,9 @@ extern DIR *bb_xopendir(const char *path);
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
 extern ssize_t safe_read(int fd, void *buf, size_t count);
-extern ssize_t full_read(int fd, void *buf, size_t len);
+extern ssize_t bb_full_read(int fd, void *buf, size_t len);
 extern ssize_t safe_write(int fd, const void *buf, size_t count);
-extern ssize_t full_write(int fd, const void *buf, size_t len);
+extern ssize_t bb_full_write(int fd, const void *buf, size_t len);
 extern int recursive_action(const char *fileName, int recurse,
 	  int followLinks, int depthFirst,
 	  int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData),
@@ -181,13 +182,8 @@ extern void bb_xdaemon(int nochdir, int noclose);
 extern void bb_xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
 extern void bb_xlisten(int s, int backlog);
 extern void bb_xchdir(const char *path);
-extern void utoa_to_buf(unsigned n, char *buf, unsigned buflen);
-extern char *utoa(unsigned n);
-extern void itoa_to_buf(int n, char *buf, unsigned buflen);
-extern char *itoa(int n);
 extern void xsetgid(gid_t gid);
 extern void xsetuid(uid_t uid);
-extern off_t fdlength(int fd);
 
 #define BB_GETOPT_ERROR 0x80000000UL
 extern const char *bb_opt_complementally;
@@ -341,9 +337,7 @@ char *dirname (char *path);
 
 int bb_make_directory (char *path, long mode, int flags);
 
-int get_signum(char *name);
-char *get_signame(int number);
-
+const char *u_signal_names(const char *str_sig, int *signo, int startnum);
 char *bb_simplify_path(const char *path);
 
 enum {	/* DO NOT CHANGE THESE VALUES!  cp.c depends on them. */
@@ -474,14 +468,14 @@ extern int restricted_shell ( const char *shell );
 extern void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw );
 extern int correct_password ( const struct passwd *pw );
 extern char *pw_encrypt(const char *clear, const char *salt);
+extern struct spwd *pwd_to_spwd(const struct passwd *pw);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 
 extern int bb_xopen(const char *pathname, int flags);
 extern int bb_xopen3(const char *pathname, int flags, int mode);
-extern void xread(int fd, void *buf, size_t count);
-extern unsigned char xread_char(int fd);
-extern void xlseek(int fd, off_t offset, int whence);
-extern void xwrite(int fd, void *buf, size_t count);
+extern ssize_t bb_xread(int fd, void *buf, size_t count);
+extern void bb_xread_all(int fd, void *buf, size_t count);
+extern unsigned char bb_xread_char(int fd);
 
 #ifndef COMM_LEN
 #ifdef TASK_COMM_LEN
@@ -558,20 +552,5 @@ extern uint32_t *bb_crc32_filltable (int endian);
 #endif
 
 extern const char BB_BANNER[];
-
-// Make sure we call functions instead of macros.
-#undef isalnum
-#undef isalpha
-#undef isascii
-#undef isblank
-#undef iscntrl
-#undef isdigit
-#undef isgraph
-#undef islower
-#undef isprint
-#undef ispunct
-#undef isspace
-#undef isupper
-#undef isxdigit
 
 #endif /* __LIBBUSYBOX_H__ */

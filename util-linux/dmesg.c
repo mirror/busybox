@@ -1,5 +1,4 @@
-/* vi: set sw=4 ts=4: */
-/*
+/* vi: set ts=4:
  * 
  * dmesg - display/control kernel ring buffer.
  *

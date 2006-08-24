@@ -1,4 +1,3 @@
-/* vi: set sw=4 ts=4: */
 /* Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  *  FIXME:
@@ -56,7 +55,11 @@ char get_header_tar(archive_handle_t *archive_handle)
 	/* Align header */
 	data_align(archive_handle, 512);
 
-	xread(archive_handle->src_fd, tar.raw, 512);
+	if (bb_full_read(archive_handle->src_fd, tar.raw, 512) != 512) {
+		/* Assume end of file */
+		bb_error_msg_and_die("Short header");
+		//return(EXIT_FAILURE);
+	}
 	archive_handle->offset += 512;
 
 	/* If there is no filename its an empty header */
@@ -65,7 +68,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 			/* This is the second consecutive empty header! End of archive!
 			 * Read until the end to empty the pipe from gz or bz2
 			 */
-			while (full_read(archive_handle->src_fd, tar.raw, 512) == 512);
+			while (bb_full_read(archive_handle->src_fd, tar.raw, 512) == 512);
 			return(EXIT_FAILURE);
 		}
 		end = 1;
@@ -162,14 +165,14 @@ char get_header_tar(archive_handle_t *archive_handle)
 #ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L': {
 			longname = xzalloc(file_header->size + 1);
-			xread(archive_handle->src_fd, longname, file_header->size);
+			archive_xread_all(archive_handle, longname, file_header->size);
 			archive_handle->offset += file_header->size;
 
 			return(get_header_tar(archive_handle));
 		}
 	case 'K': {
 			linkname = xzalloc(file_header->size + 1);
-			xread(archive_handle->src_fd, linkname, file_header->size);
+			archive_xread_all(archive_handle, linkname, file_header->size);
 			archive_handle->offset += file_header->size;
 
 			file_header->name = linkname;

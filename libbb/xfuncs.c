@@ -120,55 +120,40 @@ int bb_xopen3(const char *pathname, int flags, int mode)
 #endif
 
 #ifdef L_xread
-
-// Die with an error message if we can't read the entire buffer.
-
-void xread(int fd, void *buf, size_t count)
+ssize_t bb_xread(int fd, void *buf, size_t count)
 {
-	while (count) {
-		ssize_t size;
+	ssize_t size;
 
-		if ((size = safe_read(fd, buf, count)) < 1)
+	size = read(fd, buf, count);
+	if (size < 0) {
+		bb_perror_msg_and_die(bb_msg_read_error);
+	}
+	return(size);
+}
+#endif
+
+#ifdef L_xread_all
+void bb_xread_all(int fd, void *buf, size_t count)
+{
+	ssize_t size;
+
+	while (count) {
+		if ((size = bb_xread(fd, buf, count)) == 0) {	/* EOF */
 			bb_error_msg_and_die("Short read");
+		}
 		count -= size;
 		buf = ((char *) buf) + size;
 	}
-}
-#endif
-
-#ifdef L_xwrite
-
-// Die with an error message if we can't write the entire buffer.
-
-void xwrite(int fd, void *buf, size_t count)
-{
-	while (count) {
-		ssize_t size;
-
-		if ((size = safe_write(fd, buf, count)) < 1)
-			bb_error_msg_and_die("Short write");
-		count -= size;
-		buf = ((char *) buf) + size;
-	}
-}
-#endif
-
-#ifdef L_xlseek
-
-// Die if we can't lseek to the right spot.
-
-void xlseek(int fd, off_t offset, int whence)
-{
-	if (whence != lseek(fd, offset, whence)) bb_error_msg_and_die("lseek");
+	return;
 }
 #endif
 
 #ifdef L_xread_char
-unsigned char xread_char(int fd)
+unsigned char bb_xread_char(int fd)
 {
 	char tmp;
 
-	xread(fd, &tmp, 1);
+	bb_xread_all(fd, &tmp, 1);
 
 	return(tmp);
 }
@@ -244,59 +229,7 @@ int wait4pid(int pid)
 	if (WIFSIGNALED(status)) return WTERMSIG(status);
 	return 0;
 }
-#endif
-
-#ifdef L_itoa
-// Largest 32 bit integer is -2 billion plus null terminator.
-// Int should always be 32 bits on a Unix-oid system, see
-// http://www.unix.org/whitepapers/64bit.html
-static char local_buf[12];
-
-void utoa_to_buf(unsigned n, char *buf, unsigned buflen)
-{
-	int i, out = 0;
-	if (buflen) {
-		for (i=1000000000; i; i/=10) {
-			int res = n/i;
-
-			if ((res || out || i == 1) && --buflen>0) {
-				out++;
-				n -= res*i;
-				*buf++ = '0' + res;
-			}
-		}
-		*buf = 0;
-	}
-}
-
-// Note: uses static buffer, calling it twice in a row will overwrite.
-
-char *utoa(unsigned n)
-{
-	utoa_to_buf(n, local_buf, sizeof(local_buf));
-
-	return local_buf;
-}
-
-void itoa_to_buf(int n, char *buf, unsigned buflen)
-{
-	if (buflen && n<0) {
-		n = -n;
-		*buf++ = '-';
-		buflen--;
-	}
-	utoa_to_buf((unsigned)n, buf, buflen);
-}
-
-// Note: uses static buffer, calling it twice in a row will overwrite.
-
-char *itoa(int n)
-{
-	itoa_to_buf(n, local_buf, sizeof(local_buf));
-
-	return local_buf;
-}
-#endif
+#endif	
 
 #ifdef L_setuid
 void xsetgid(gid_t gid)
@@ -307,43 +240,5 @@ void xsetgid(gid_t gid)
 void xsetuid(uid_t uid)
 {
 	if (setuid(uid)) bb_error_msg_and_die("setuid");
-}
-#endif
-
-#ifdef L_fdlength
-off_t fdlength(int fd)
-{
-	off_t bottom = 0, top = 0, pos;
-	long size;
-
-	// If the ioctl works for this, return it.
-
-	if (ioctl(fd, BLKGETSIZE, &size) >= 0) return size*512;
-
-	// If not, do a binary search for the last location we can read.
-
-	do {
-		char temp;
-
-		pos = bottom + (top - bottom) / 2;;
-
-		// If we can read from the current location, it's bigger.
-
-		if (lseek(fd, pos, 0)>=0 && safe_read(fd, &temp, 1)==1) {
-			if (bottom == top) bottom = top = (top+1) * 2;
-			else bottom = pos;
-
-		// If we can't, it's smaller.
-
-		} else {
-			if (bottom == top) {
-				if (!top) return 0;
-				bottom = top/2;
-			}
-			else top = pos;
-		}
-	} while (bottom + 1 != top);
-
-	return pos + 1;
 }
 #endif

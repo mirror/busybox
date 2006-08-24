@@ -46,6 +46,11 @@
 
 #include "libbb.h"
 
+
+/* passwords should consist of 6 (to 8 characters) */
+#define MINLEN 6
+
+
 static int string_checker_helper(const char *p1, const char *p2) __attribute__ ((__pure__));
 
 static int string_checker_helper(const char *p1, const char *p2)
@@ -95,13 +100,13 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 	int c;
 	int length;
 	int mixed = 0;
-	/* Add 2 for each type of characters to the minlen of password */
-	int size = CONFIG_PASSWORD_MINLEN + 8;
+	/* Add 1 for each type of characters to the minlen of password */
+	int size = MINLEN + 8;
 	const char *p;
 	char hostname[255];
 
 	/* size */
-	if (!new_p || (length = strlen(new_p)) < CONFIG_PASSWORD_MINLEN)
+	if (!new_p || (length = strlen(new_p)) < MINLEN)
 		return("too short");
 
 	/* no username as-is, as sub-string, reversed, capitalized, doubled */

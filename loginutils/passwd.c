@@ -1,8 +1,4 @@
 /* vi: set sw=4 ts=4: */
-/*
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
- */
-
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -150,6 +146,9 @@ int passwd_main(int argc, char **argv)
 	int dflg = 0;				/* -d - delete password */
 	const struct passwd *pw;
 
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	const struct spwd *sp;
+#endif
 	amroot = (getuid() == 0);
 	openlog("passwd", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 	while ((flag = getopt(argc, argv, "a:dlu")) != EOF) {
@@ -188,13 +187,18 @@ int passwd_main(int argc, char **argv)
 		syslog(LOG_WARNING, "can't change pwd for `%s'", name);
 		bb_error_msg_and_die("Permission denied.\n");
 	}
-	if (ENABLE_FEATURE_SHADOWPASSWDS) {
-		struct spwd *sp = getspnam(name);
-		if (!sp) bb_error_msg_and_die("Unknown user %s", name);
-		cp = sp->sp_pwdp;
-	} else cp = pw->pw_passwd;
-
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	sp = getspnam(name);
+	if (!sp) {
+		sp = (struct spwd *) pwd_to_spwd(pw);
+	}
+	cp = sp->sp_pwdp;
+	np = sp->sp_namp;
+#else
+	cp = pw->pw_passwd;
 	np = name;
+#endif
+
 	safe_strncpy(crypt_passwd, cp, sizeof(crypt_passwd));
 	if (!(dflg || lflg || uflg)) {
 		if (!amroot) {
@@ -236,7 +240,6 @@ int passwd_main(int argc, char **argv)
 		syslog(LOG_WARNING, "an error occurred updating the password file");
 		bb_error_msg_and_die("An error occurred updating the password file.\n");
 	}
-	if (ENABLE_FEATURE_CLEAN_UP) free(myname);
 	return (0);
 }
 

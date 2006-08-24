@@ -2035,6 +2035,7 @@ static void onsig(int);
 static int dotrap(void);
 static void setinteractive(int);
 static void exitshell(void) ATTRIBUTE_NORETURN;
+static int decode_signal(const char *, int);
 
 /*
  * This routine is called when an error or an interrupt occurs in an
@@ -2546,6 +2547,11 @@ onint(void) {
 	int i;
 
 	intpending = 0;
+#if 0
+	/* comment by vodz: its strange for me, this programm don`t use other
+	   signal block */
+	sigsetmask(0);
+#endif
 	i = EXSIG;
 	if (gotsig[SIGINT - 1] && !trap[SIGINT]) {
 		if (!(rootshell && iflag)) {
@@ -3322,7 +3328,7 @@ evalcommand(union node *cmd, int flags)
 			}
 			sp = arglist.list;
 		}
-		full_write(preverrout_fd, "\n", 1);
+		bb_full_write(preverrout_fd, "\n", 1);
 	}
 
 	cmd_is_exec = 0;
@@ -4559,7 +4565,7 @@ expandhere(union node *arg, int fd)
 {
 	herefd = fd;
 	expandarg(arg, (struct arglist *)NULL, 0);
-	full_write(fd, stackblock(), expdest - (char *)stackblock());
+	bb_full_write(fd, stackblock(), expdest - (char *)stackblock());
 }
 
 
@@ -6547,7 +6553,7 @@ usage:
 	}
 
 	if (**++argv == '-') {
-		signo = get_signum(*argv + 1);
+		signo = decode_signal(*argv + 1, 1);
 		if (signo < 0) {
 			int c;
 
@@ -6561,7 +6567,7 @@ usage:
 					list = 1;
 					break;
 				case 's':
-					signo = get_signum(optionarg);
+					signo = decode_signal(optionarg, 1);
 					if (signo < 0) {
 						sh_error(
 							"invalid signal number or name: %s",
@@ -6587,14 +6593,14 @@ usage:
 
 		if (!*argv) {
 			for (i = 1; i < NSIG; i++) {
-				name = get_signame(i);
-				if (isdigit(*name))
+				name = u_signal_names(0, &i, 1);
+				if (name)
 					out1fmt(snlfmt, name);
 			}
 			return 0;
 		}
-		name = get_signame(signo);
-		if (isdigit(*name))
+		name = u_signal_names(*argptr, &signo, -1);
+		if (name)
 			out1fmt(snlfmt, name);
 		else
 			sh_error("invalid signal number or exit status: %s", *argptr);
@@ -8378,7 +8384,7 @@ growstackstr(void)
 {
 	size_t len = stackblocksize();
 	if (herefd >= 0 && len >= 1024) {
-		full_write(herefd, stackblock(), len);
+		bb_full_write(herefd, stackblock(), len);
 		return stackblock();
 	}
 	growstackblock();
@@ -10973,7 +10979,7 @@ openhere(union node *redir)
 	if (redir->type == NHERE) {
 		len = strlen(redir->nhere.doc->narg.text);
 		if (len <= PIPESIZE) {
-			full_write(pip[1], redir->nhere.doc->narg.text, len);
+			bb_full_write(pip[1], redir->nhere.doc->narg.text, len);
 			goto out;
 		}
 	}
@@ -10987,7 +10993,7 @@ openhere(union node *redir)
 #endif
 		signal(SIGPIPE, SIG_DFL);
 		if (redir->type == NHERE)
-			full_write(pip[1], redir->nhere.doc->narg.text, len);
+			bb_full_write(pip[1], redir->nhere.doc->narg.text, len);
 		else
 			expandhere(redir->nhere.doc, pip[1]);
 		_exit(0);
@@ -11616,7 +11622,9 @@ trapcmd(int argc, char **argv)
 			if (trap[signo] != NULL) {
 				const char *sn;
 
-				sn = get_signame(signo);
+				sn = u_signal_names(0, &signo, 0);
+				if (sn == NULL)
+					sn = "???";
 				out1fmt("trap -- %s %s\n",
 					single_quote(trap[signo]), sn);
 			}
@@ -11628,7 +11636,7 @@ trapcmd(int argc, char **argv)
 	else
 		action = *ap++;
 	while (*ap) {
-		if ((signo = get_signum(*ap)) < 0)
+		if ((signo = decode_signal(*ap, 0)) < 0)
 			sh_error("%s: bad trap", *ap);
 		INTOFF;
 		if (action) {
@@ -11929,6 +11937,14 @@ exitshell(void)
 out:
 	_exit(status);
 	/* NOTREACHED */
+}
+
+static int decode_signal(const char *string, int minsig)
+{
+	int signo;
+	const char *name = u_signal_names(string, &signo, minsig);
+
+	return name ? signo : -1;
 }
 
 /*      var.c     */
@@ -13457,7 +13473,7 @@ static const char op_tokens[] = {
 
 static arith_t arith (const char *expr, int *perrcode)
 {
-    char arithval; /* Current character under analysis */
+    register char arithval; /* Current character under analysis */
     operator lasttok, op;
     operator prec;
 

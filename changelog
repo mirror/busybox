@@ -1,0 +1,598 @@
+Various bug fixes that apply to busybox 1.2.0, cherry-picked from the
+ongoing development branch.  This will form the basis for busybox 1.2.1.
+
+I'll append fixes to this as they come up.  (Check the file date, or the bug
+list below.)  This file is basically a concatenation of the following:
+
+http://busybox.net/downloads/patches/svn-15575.patch
+http://busybox.net/downloads/patches/svn-15653.patch
+http://busybox.net/downloads/patches/svn-15656.patch
+http://busybox.net/downloads/patches/svn-15658.patch
+http://busybox.net/downloads/patches/svn-15659.patch
+http://busybox.net/downloads/patches/svn-15660.patch
+http://busybox.net/downloads/patches/svn-15670.patch
+http://busybox.net/downloads/patches/svn-15698.patch
+http://busybox.net/downloads/patches/svn-15700.patch
+http://busybox.net/downloads/patches/svn-15702.patch
+http://busybox.net/downloads/patches/svn-15705.patch
+http://busybox.net/downloads/patches/svn-15727.patch
+
+ ------------------------------------------------------------------------
+r15575 | landley | 2006-07-01 13:19:02 -0400 (Sat, 01 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/busybox/shell/lash.c
+
+Patch from Shaun Jackman moving the var=value logic to where it can do some
+good.
+
+ ------------------------------------------------------------------------
+Index: shell/lash.c
+===================================================================
+--- shell/lash.c	(revision 15574)
++++ shell/lash.c	(revision 15575)
+@@ -1171,12 +1171,6 @@
+ {
+ 	struct built_in_command *x;
+ 
+-	/* Check if the command sets an environment variable. */
+-	if( strchr(child->argv[0], '=') != NULL ) {
+-		child->argv[1] = child->argv[0];
+-		_exit(builtin_export(child));
+-	}
+-
+ 	/* Check if the command matches any of the non-forking builtins.
+ 	 * Depending on context, this might be redundant.  But it's
+ 	 * easier to waste a few CPU cycles than it is to figure out
+@@ -1300,6 +1294,12 @@
+ 		 * is doomed to failure, and doesn't work on bash, either.
+ 		 */
+ 		if (newjob->num_progs == 1) {
++			/* Check if the command sets an environment variable. */
++			if (strchr(child->argv[0], '=') != NULL) {
++				child->argv[1] = child->argv[0];
++				return builtin_export(child);
++			}
++
+ 			for (x = bltins; x->cmd; x++) {
+ 				if (strcmp(child->argv[0], x->cmd) == 0 ) {
+ 					int rcode;
+ ------------------------------------------------------------------------
+r15653 | landley | 2006-07-05 21:09:21 -0400 (Wed, 05 Jul 2006) | 6 lines
+Changed paths:
+   M /trunk/busybox/shell/ash.c
+
+Bug fix from Vladimir Oleynic via Paul Fox for:
+echo "+bond0" > /sys/class/net/bonding_masters
+while true; do
+  echo hello
+done  
+
+ ------------------------------------------------------------------------
+Index: shell/ash.c
+===================================================================
+--- shell/ash.c	(revision 15652)
++++ shell/ash.c	(revision 15653)
+@@ -3469,6 +3469,7 @@
+ 	flushall();
+ cmddone:
+ 	exitstatus |= ferror(stdout);
++	clearerr(stdout);
+ 	commandname = savecmdname;
+ 	exsig = 0;
+ 	handler = savehandler;
+ ------------------------------------------------------------------------
+r15656 | landley | 2006-07-06 12:41:56 -0400 (Thu, 06 Jul 2006) | 5 lines
+Changed paths:
+   M /trunk/busybox/util-linux/dmesg.c
+
+Fix three embarassing thinkos in the new dmesg.c:
+1) the c argument shouldn't have had a : after that, dunno how that got there.
+2) the xgetlarg for level was using size
+3) because xgetlarg's error message _SUCKS_ (it does a show_usage() rather than giving any specific info about the range that was violated) I dropped the range down to 2 bytes.  (Which works fine, I dunno why we were nit-picking about that...)
+
+ ------------------------------------------------------------------------
+Index: util-linux/dmesg.c
+===================================================================
+--- util-linux/dmesg.c	(revision 15655)
++++ util-linux/dmesg.c	(revision 15656)
+@@ -15,16 +15,16 @@
+ int dmesg_main(int argc, char *argv[])
+ {
+ 	char *size, *level;
+-	int flags = bb_getopt_ulflags(argc, argv, "c:s:n:", &size, &level);
++	int flags = bb_getopt_ulflags(argc, argv, "cs:n:", &size, &level);
+ 
+ 	if (flags & 4) {
+-		if(klogctl(8, NULL, bb_xgetlarg(size, 10, 0, 10)))
++		if(klogctl(8, NULL, bb_xgetlarg(level, 10, 0, 10)))
+ 			bb_perror_msg_and_die("klogctl");
+ 	} else {
+ 		int len;
+ 		char *buf;
+ 
+-		len = (flags & 2) ? bb_xgetlarg(size, 10, 4096, INT_MAX) : 16384;
++		len = (flags & 2) ? bb_xgetlarg(size, 10, 2, INT_MAX) : 16384;
+ 		buf = xmalloc(len);
+ 		if (0 > (len = klogctl(3 + (flags & 1), buf, len)))
+ 			bb_perror_msg_and_die("klogctl");
+ ------------------------------------------------------------------------
+r15658 | pgf | 2006-07-06 16:00:43 -0400 (Thu, 06 Jul 2006) | 4 lines
+Changed paths:
+   M /trunk/busybox/Makefile
+
+fix dependencies so that compressed usage gets rebuilt if
+    a) include/usage.h is changed, and 
+    b) after "make clean".
+
+ ------------------------------------------------------------------------
+Index: Makefile
+===================================================================
+--- Makefile	(revision 15657)
++++ Makefile	(revision 15658)
+@@ -436,13 +436,16 @@
+ 
+ ifeq ($(strip $(CONFIG_FEATURE_COMPRESS_USAGE)),y)
+ USAGE_BIN:=scripts/usage
+-$(USAGE_BIN): $(top_srcdir)/scripts/usage.c .config
++$(USAGE_BIN): $(top_srcdir)/scripts/usage.c .config \
++		$(top_srcdir)/include/usage.h
+ 	$(do_link.h)
+ 
+ DEP_INCLUDES += include/usage_compressed.h
+ 
+-include/usage_compressed.h: .config $(USAGE_BIN) $(top_srcdir)/scripts/usage_compressed
+-	$(Q)SED="$(SED)" $(SHELL) $(top_srcdir)/scripts/usage_compressed "$(top_builddir)/scripts" > $@
++include/usage_compressed.h: .config $(USAGE_BIN) \
++		$(top_srcdir)/scripts/usage_compressed
++	$(Q)SED="$(SED)" $(SHELL) $(top_srcdir)/scripts/usage_compressed \
++	"$(top_builddir)/scripts" > $@
+ endif # CONFIG_FEATURE_COMPRESS_USAGE
+ 
+ # workaround alleged bug in make-3.80, make-3.81
+@@ -470,7 +473,8 @@
+ 	    docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html \
+ 	    docs/busybox.net/BusyBox.html busybox.links \
+ 	    libbusybox.so* \
+-	    .config.old busybox busybox_unstripped
++	    .config.old busybox busybox_unstripped \
++	    include/usage_compressed.h scripts/usage
+ 	- rm -r -f _install testsuite/links
+ 	- find . -name .\*.flags -o -name \*.o  -o -name \*.om -o -name \*.syn \
+ 	    -o -name \*.os -o -name \*.osm -o -name \*.a | xargs rm -f
+ ------------------------------------------------------------------------
+r15659 | landley | 2006-07-06 16:02:47 -0400 (Thu, 06 Jul 2006) | 3 lines
+Changed paths:
+   M /trunk/busybox/libbb/Makefile
+
+Attempt to address Shaun Jackman's problem adding "busybox: busybox.bflt" to
+.config.mak.
+
+ ------------------------------------------------------------------------
+Index: libbb/Makefile
+===================================================================
+--- libbb/Makefile	(revision 15658)
++++ libbb/Makefile	(revision 15659)
+@@ -12,6 +12,12 @@
+ endif
+ srcdir=$(top_srcdir)/libbb
+ LIBBB_DIR:=./
++
++# Ensure "all" is still the default target when make is run by itself in
++# libbb, even if the files we include define rules for targets.
++
++all:
++
+ include $(top_srcdir)/Rules.mak
+ include $(top_builddir)/.config
+ include Makefile.in
+ ------------------------------------------------------------------------
+r15660 | landley | 2006-07-06 16:30:19 -0400 (Thu, 06 Jul 2006) | 3 lines
+Changed paths:
+   M /trunk/busybox/archival/libunarchive/get_header_tar.c
+
+Fix tar so it can extract git-generated tarballs, based on a suggestion
+from Erik Frederiksen.
+
+ ------------------------------------------------------------------------
+Index: archival/libunarchive/get_header_tar.c
+===================================================================
+--- archival/libunarchive/get_header_tar.c	(revision 15659)
++++ archival/libunarchive/get_header_tar.c	(revision 15660)
+@@ -137,10 +137,6 @@
+ 	case '1':
+ 		file_header->mode |= S_IFREG;
+ 		break;
+-	case 'x':
+-	case 'g':
+-		bb_error_msg_and_die("pax is not tar");
+-		break;
+ 	case '7':
+ 		/* Reserved for high performance files, treat as normal file */
+ 	case 0:
+@@ -188,8 +184,11 @@
+ 	case 'N':	/* Old GNU for names > 100 characters */
+ 	case 'S':	/* Sparse file */
+ 	case 'V':	/* Volume header */
+-		bb_error_msg("Ignoring GNU extension type %c", tar.formated.typeflag);
+ #endif
++	case 'g':	/* pax global header */
++	case 'x':	/* pax extended header */
++		bb_error_msg("Ignoring extension type %c", tar.formated.typeflag);
++		break;
+ 	default:
+ 		bb_error_msg("Unknown typeflag: 0x%x", tar.formated.typeflag);
+ 	}
+ ------------------------------------------------------------------------
+r15670 | landley | 2006-07-09 13:03:07 -0400 (Sun, 09 Jul 2006) | 3 lines
+Changed paths:
+   M /trunk/busybox/shell/lash.c
+
+Bugfix from Shaun Jackman (check that argv[optind] isn't null before
+dereferencing it) plus a bunch of tweaks from me.
+
+ ------------------------------------------------------------------------
+Index: shell/lash.c
+===================================================================
+--- shell/lash.c	(revision 15669)
++++ shell/lash.c	(revision 15670)
+@@ -1498,6 +1498,8 @@
+ 		remove_job(&job_list, job_list.fg);
+ 	}
+ }
++#else
++void free_memory(void);
+ #endif
+ 
+ #ifdef CONFIG_LASH_JOB_CONTROL
+@@ -1528,7 +1530,7 @@
+ 	/* Put ourselves in our own process group.  */
+ 	setsid();
+ 	shell_pgrp = getpid ();
+-	setpgid (shell_pgrp, shell_pgrp);
++	setpgid(shell_pgrp, shell_pgrp);
+ 
+ 	/* Grab control of the terminal.  */
+ 	tcsetpgrp(shell_terminal, shell_pgrp);
+@@ -1577,7 +1579,7 @@
+ 				argv = argv+optind;
+ 				break;
+ 			case 'i':
+-				interactive = TRUE;
++				interactive++;
+ 				break;
+ 			default:
+ 				bb_show_usage();
+@@ -1591,18 +1593,18 @@
+ 	 *    standard output is a terminal
+ 	 *    Refer to Posix.2, the description of the `sh' utility. */
+ 	if (argv[optind]==NULL && input==stdin &&
+-			isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
+-		interactive=TRUE;
++			isatty(STDIN_FILENO) && isatty(STDOUT_FILENO))
++	{
++		interactive++;
+ 	}
+ 	setup_job_control();
+-	if (interactive==TRUE) {
+-		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
++	if (interactive) {
+ 		/* Looks like they want an interactive shell */
+-#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
+-		printf( "\n\n%s Built-in shell (lash)\n", BB_BANNER);
+-		printf( "Enter 'help' for a list of built-in commands.\n\n");
+-#endif
+-	} else if (local_pending_command==NULL) {
++		if (!ENABLE_FEATURE_SH_EXTRA_QUIET) {
++			printf( "\n\n%s Built-in shell (lash)\n", BB_BANNER);
++			printf( "Enter 'help' for a list of built-in commands.\n\n");
++		}
++	} else if (!local_pending_command && argv[optind]) {
+ 		//printf( "optind=%d  argv[optind]='%s'\n", optind, argv[optind]);
+ 		input = bb_xfopen(argv[optind], "r");
+ 		/* be lazy, never mark this closed */
+@@ -1614,15 +1616,10 @@
+ 	if (!cwd)
+ 		cwd = bb_msg_unknown;
+ 
+-#ifdef CONFIG_FEATURE_CLEAN_UP
+-	atexit(free_memory);
+-#endif
++	if (ENABLE_FEATURE_CLEAN_UP) atexit(free_memory);
+ 
+-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+-	cmdedit_set_initial_prompt();
+-#else
+-	PS1 = NULL;
+-#endif
++	if (ENABLE_FEATURE_COMMAND_EDITING) cmdedit_set_initial_prompt();
++	else PS1 = NULL;
+ 
+ 	return (busy_loop(input));
+ }
+ ------------------------------------------------------------------------
+r15698 | vapier | 2006-07-14 23:59:00 -0400 (Fri, 14 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/busybox/libbb/obscure.c
+
+Tito writes: If the gecos field of an user is empty, obscure reports a false "similar to gecos" error.
+
+ ------------------------------------------------------------------------
+Index: libbb/obscure.c
+===================================================================
+--- libbb/obscure.c	(revision 15697)
++++ libbb/obscure.c	(revision 15698)
+@@ -109,7 +109,7 @@
+ 		return "similar to username";
+ 	}
+ 	/* no gecos as-is, as sub-string, reversed, capitalized, doubled */
+-	if (string_checker(new_p, pw->pw_gecos)) {
++	if (*pw->pw_gecos && string_checker(new_p, pw->pw_gecos)) {
+ 		return "similar to gecos";
+ 	}
+ 	/* hostname as-is, as sub-string, reversed, capitalized, doubled */
+ ------------------------------------------------------------------------
+r15700 | landley | 2006-07-15 19:00:46 -0400 (Sat, 15 Jul 2006) | 4 lines
+Changed paths:
+   M /trunk/busybox/include/libbb.h
+   M /trunk/busybox/libbb/xfuncs.c
+
+We need xsetuid() and xsetgid() because per-user process resource limits can
+prevent a process from switching to a user that has too many processes, and
+when that happens WE'RE STILL ROOT.  See http://lwn.net/Articles/190331/
+
+ ------------------------------------------------------------------------
+Index: libbb/xfuncs.c
+===================================================================
+--- libbb/xfuncs.c	(revision 15699)
++++ libbb/xfuncs.c	(revision 15700)
+@@ -232,3 +232,15 @@
+  	return 0;
+ }
+ #endif	
++
++#ifdef L_setuid
++void xsetgid(gid_t gid)
++{
++	if (setgid(gid)) bb_error_msg_and_die("setgid");
++}
++
++void xsetuid(uid_t uid)
++{
++	if (setuid(uid)) bb_error_msg_and_die("setuid");
++}
++#endif
+Index: include/libbb.h
+===================================================================
+--- include/libbb.h	(revision 15699)
++++ include/libbb.h	(revision 15700)
+@@ -185,6 +185,8 @@
+ extern bb_xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
+ extern void bb_xlisten(int s, int backlog);
+ extern void bb_xchdir(const char *path);
++extern void xsetgid(gid_t gid);
++extern void xsetuid(uid_t uid);
+ 
+ #define BB_GETOPT_ERROR 0x80000000UL
+ extern const char *bb_opt_complementally;
+ ------------------------------------------------------------------------
+r15702 | landley | 2006-07-16 04:06:34 -0400 (Sun, 16 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/busybox/loginutils/passwd.c
+   M /trunk/busybox/networking/arping.c
+   M /trunk/busybox/networking/ether-wake.c
+   M /trunk/busybox/networking/fakeidentd.c
+   M /trunk/busybox/networking/inetd.c
+   M /trunk/busybox/networking/traceroute.c
+
+Convert setuid/setgid users to xsetuid/xsetgid.
+
+ ------------------------------------------------------------------------
+Index: networking/fakeidentd.c
+===================================================================
+--- networking/fakeidentd.c	(revision 15701)
++++ networking/fakeidentd.c	(revision 15702)
+@@ -159,8 +159,8 @@
+ 
+ 		close(0);
+ 		inetbind();
+-		if (setgid(nogrp))   bb_error_msg_and_die("Could not setgid()");
+-		if (setuid(nobody))  bb_error_msg_and_die("Could not setuid()");
++		xsetgid(nogrp);
++		xsetuid(nobody);
+ 		close(1);
+ 		close(2);
+ 
+Index: networking/ether-wake.c
+===================================================================
+--- networking/ether-wake.c	(revision 15701)
++++ networking/ether-wake.c	(revision 15702)
+@@ -145,7 +145,7 @@
+ 	s = make_socket();
+ 
+ 	/* now that we have a raw socket we can drop root */
+-	setuid(getuid());
++	xsetuid(getuid());
+ 
+ 	/* look up the dest mac address */
+ 	get_dest_addr(argv[optind], &eaddr);
+Index: networking/inetd.c
+===================================================================
+--- networking/inetd.c	(revision 15701)
++++ networking/inetd.c	(revision 15702)
+@@ -1513,11 +1513,11 @@
+ 			  if (sep->se_group) {
+ 				pwd->pw_gid = grp->gr_gid;
+ 			  }
+-			  setgid ((gid_t) pwd->pw_gid);
++			  xsetgid ((gid_t) pwd->pw_gid);
+ 			  initgroups (pwd->pw_name, pwd->pw_gid);
+-			  setuid ((uid_t) pwd->pw_uid);
++			  xsetuid((uid_t) pwd->pw_uid);
+ 			} else if (sep->se_group) {
+-			  setgid (grp->gr_gid);
++			  xsetgid(grp->gr_gid);
+ 			  setgroups (1, &grp->gr_gid);
+ 			}
+ 			dup2 (ctrl, 0);
+Index: networking/traceroute.c
+===================================================================
+--- networking/traceroute.c	(revision 15701)
++++ networking/traceroute.c	(revision 15702)
+@@ -941,7 +941,6 @@
+ #endif
+ 	u_short off = 0;
+ 	struct IFADDRLIST *al;
+-	int uid = getuid();
+ 	char *device = NULL;
+ 	int max_ttl = 30;
+ 	char *max_ttl_str = NULL;
+@@ -1010,8 +1009,7 @@
+ 	     * set the ip source address of the outbound
+ 	     * probe (e.g., on a multi-homed host).
+ 	     */
+-	     if (uid)
+-		bb_error_msg_and_die("-s %s: Permission denied", source);
++	     if (getuid()) bb_error_msg_and_die("-s %s: Permission denied", source);
+ 	}
+ 	if(waittime_str)
+ 		waittime = str2val(waittime_str, "wait time", 2, 24 * 60 * 60);
+@@ -1160,8 +1158,8 @@
+ 		    sizeof(on));
+ 
+ 	/* Revert to non-privileged user after opening sockets */
+-	setgid(getgid());
+-	setuid(uid);
++	xsetgid(getgid());
++	xsetuid(getuid());
+ 
+ 	outip = (struct ip *)xcalloc(1, (unsigned)packlen);
+ 
+Index: networking/arping.c
+===================================================================
+--- networking/arping.c	(revision 15701)
++++ networking/arping.c	(revision 15702)
+@@ -262,7 +262,8 @@
+ 	s = socket(PF_PACKET, SOCK_DGRAM, 0);
+ 	ifindex = errno;
+ 
+-	setuid(getuid());
++	// Drop suid root privileges
++	xsetuid(getuid());
+ 
+ 	{
+ 		unsigned long opt;
+Index: loginutils/passwd.c
+===================================================================
+--- loginutils/passwd.c	(revision 15701)
++++ loginutils/passwd.c	(revision 15702)
+@@ -227,10 +227,7 @@
+ 	signal(SIGINT, SIG_IGN);
+ 	signal(SIGQUIT, SIG_IGN);
+ 	umask(077);
+-	if (setuid(0)) {
+-		syslog(LOG_ERR, "can't setuid(0)");
+-		bb_error_msg_and_die( "Cannot change ID to root.\n");
+-	}
++	xsetuid(0);
+ 	if (!update_passwd(pw, crypt_passwd)) {
+ 		syslog(LOG_INFO, "password for `%s' changed by user `%s'", name,
+ 			   myname);
+ ------------------------------------------------------------------------
+r15705 | landley | 2006-07-16 14:58:18 -0400 (Sun, 16 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/busybox/loginutils/adduser.c
+
+Bugfix from Tito to make sure /etc/group gets updated.
+
+ ------------------------------------------------------------------------
+Index: loginutils/adduser.c
+===================================================================
+--- loginutils/adduser.c	(revision 15704)
++++ loginutils/adduser.c	(revision 15705)
+@@ -96,6 +96,7 @@
+ static int adduser(struct passwd *p, unsigned long flags)
+ {
+ 	FILE *file;
++	int addgroup = !p->pw_gid;
+ 
+ 	/* make sure everything is kosher and setup uid && gid */
+ 	file = bb_xfopen(bb_path_passwd_file, "a");
+@@ -132,9 +133,8 @@
+ 	/* add to group */
+ 	/* addgroup should be responsible for dealing w/ gshadow */
+ 	/* if using a pre-existing group, don't create one */
+-	if (p->pw_gid == 0) {
+-		addgroup_wrapper(p);
+-	}
++	if (addgroup) addgroup_wrapper(p);
++
+ 	/* Clear the umask for this process so it doesn't
+ 	 * * screw up the permissions on the mkdir and chown. */
+ 	umask(0);
+ ------------------------------------------------------------------------
+r15727 | landley | 2006-07-19 17:33:42 -0400 (Wed, 19 Jul 2006) | 4 lines
+Changed paths:
+   M /trunk/busybox/modutils/modprobe.c
+
+Patch from Yann Morin to look for modules.conf in the right place on 2.6.
+Fixes http://bugs.busybox.net/view.php?id=942
+
+
+ ------------------------------------------------------------------------
+Index: modutils/modprobe.c
+===================================================================
+--- modutils/modprobe.c	(revision 15726)
++++ modutils/modprobe.c	(revision 15727)
+@@ -545,29 +545,37 @@
+ 	}
+ 	close ( fd );
+ 
++	/*
++	 * First parse system-specific options and aliases
++	 * as they take precedence over the kernel ones.
++	 */
+ 	if (!ENABLE_FEATURE_2_6_MODULES
+ 			|| ( fd = open ( "/etc/modprobe.conf", O_RDONLY )) < 0 )
+ 		if (( fd = open ( "/etc/modules.conf", O_RDONLY )) < 0 )
+-			if (( fd = open ( "/etc/conf.modules", O_RDONLY )) < 0 )
+-				return first;
++			fd = open ( "/etc/conf.modules", O_RDONLY );
+ 
+-	include_conf (&first, &current, buffer, sizeof(buffer), fd);
+-	close(fd);
++	if (fd >= 0) {
++		include_conf (&first, &current, buffer, sizeof(buffer), fd);
++		close(fd);
++	}
+ 
+-	filename = bb_xasprintf("/lib/modules/%s/modules.alias", un.release);
+-	fd = open ( filename, O_RDONLY );
+-	if (ENABLE_FEATURE_CLEAN_UP)
+-		free(filename);
+-	if (fd < 0) {
+-		/* Ok, that didn't work.  Fall back to looking in /lib/modules */
+-		if (( fd = open ( "/lib/modules/modules.alias", O_RDONLY )) < 0 ) {
+-			return first;
++	/* Only 2.6 has a modules.alias file */
++	if (ENABLE_FEATURE_2_6_MODULES) {
++		/* Parse kernel-declared aliases */
++		filename = bb_xasprintf("/lib/modules/%s/modules.alias", un.release);
++		if ((fd = open ( filename, O_RDONLY )) < 0) {
++			/* Ok, that didn't work.  Fall back to looking in /lib/modules */
++			fd = open ( "/lib/modules/modules.alias", O_RDONLY );
+ 		}
++		if (ENABLE_FEATURE_CLEAN_UP)
++			free(filename);
++
++		if (fd >= 0) {
++			include_conf (&first, &current, buffer, sizeof(buffer), fd);
++			close(fd);
++		}
+ 	}
+ 
+-	include_conf (&first, &current, buffer, sizeof(buffer), fd);
+-	close(fd);
+-
+ 	return first;
+ }
+ 

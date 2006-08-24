@@ -52,6 +52,18 @@ static int req_recv;
 
 #define MS_TDIFF(tv1,tv2) ( ((tv1).tv_sec-(tv2).tv_sec)*1000 + \
 			   ((tv1).tv_usec-(tv2).tv_usec)/1000 )
+#if 0
+static void set_signal(int signo, void (*handler) (void))
+{
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = (void (*)(int)) handler;
+	sa.sa_flags = SA_RESTART;
+	sigaction(signo, &sa, NULL);
+}
+#endif
+
 static int send_pack(int sock, struct in_addr *src_addr,
 					 struct in_addr *dst_addr, struct sockaddr_ll *ME,
 					 struct sockaddr_ll *HE)

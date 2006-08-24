@@ -548,7 +548,7 @@ static int
 wait_for_reply(int sock, struct sockaddr_in *fromp, const struct timeval *tp)
 {
 	fd_set fds;
-	struct timeval now, tvwait;
+	struct timeval now, wait;
 	struct timezone tz;
 	int cc = 0;
 	socklen_t fromlen = sizeof(*fromp);
@@ -556,12 +556,12 @@ wait_for_reply(int sock, struct sockaddr_in *fromp, const struct timeval *tp)
 	FD_ZERO(&fds);
 	FD_SET(sock, &fds);
 
-	tvwait.tv_sec = tp->tv_sec + waittime;
-	tvwait.tv_usec = tp->tv_usec;
+	wait.tv_sec = tp->tv_sec + waittime;
+	wait.tv_usec = tp->tv_usec;
 	(void)gettimeofday(&now, &tz);
-	tvsub(&tvwait, &now);
+	tvsub(&wait, &now);
 
-	if (select(sock + 1, &fds, NULL, NULL, &tvwait) > 0)
+	if (select(sock + 1, &fds, NULL, NULL, &wait) > 0)
 		cc = recvfrom(sock, (char *)packet, sizeof(packet), 0,
 			    (struct sockaddr *)fromp, &fromlen);
 
