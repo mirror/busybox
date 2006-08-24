@@ -474,7 +474,8 @@ static void termio_init(struct termio *tp, int speed, struct options *op)
 		tp->c_cflag |= CLOCAL;
 	}
 
-	tp->c_iflag = tp->c_lflag = tp->c_oflag = tp->c_line = 0;
+	tp->c_iflag = tp->c_lflag = tp->c_line = 0;
+	tp->c_oflag = OPOST | ONLCR;
 	tp->c_cc[VMIN] = 1;
 	tp->c_cc[VTIME] = 0;
 
