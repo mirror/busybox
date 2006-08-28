@@ -250,7 +250,8 @@ int start_stop_daemon_main(int argc, char **argv)
 			USE_FEATURE_START_STOP_DAEMON_FANCY(&& !(opt & SSD_OPT_VERBOSE));
 
 	if (signame) {
-		signal_nr = bb_xgetlarg(signame, 10, 0, NSIG);
+		signal_nr = get_signum(signame);
+		if (signal_nr < 0) bb_show_usage();
 	}
 
 	if (!startas)
