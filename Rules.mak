@@ -13,9 +13,9 @@ endif
 #--------------------------------------------------------
 PROG      := busybox
 MAJOR_VERSION   :=1
-MINOR_VERSION   :=2
+MINOR_VERSION   :=3
 SUBLEVEL_VERSION:=0
-EXTRAVERSION    :=
+EXTRAVERSION    :=-pre0
 VERSION   :=$(MAJOR_VERSION).$(MINOR_VERSION).$(SUBLEVEL_VERSION)$(EXTRAVERSION)
 BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 
@@ -175,6 +175,7 @@ CHECKED_CFLAGS+=$(call check_cc,$(CC),-Wshadow,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-funsigned-char,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-fno-builtin-strlen,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-finline-limit=0,)
+CHECKED_CFLAGS+=$(call check_cc,$(CC),-Winline,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-static-libgcc,)
 
 # Preemptively pin this too.
@@ -361,36 +362,36 @@ endif
 endif
 
 show_objs = $(subst $(top_builddir)/,,$(subst ../,,$@))
-pur_disp_compile.c = echo "  "CC $(show_objs)
-pur_disp_compile.h = echo "  "HOSTCC $(show_objs)
-pur_disp_strip     = echo "  "STRIP $(show_objs)
-pur_disp_link      = echo "  "LINK $(show_objs)
-pur_disp_link.h    = echo "  "HOSTLINK $(show_objs)
-pur_disp_ar        = echo "  "AR $(ARFLAGS) $(show_objs)
-pur_disp_elf2flt   = echo "  "ELF2FLT $(ELF2FLTFLAGS) $(show_objs)
-sil_disp_compile.c = true
-sil_disp_compile.h = true
-sil_disp_strip     = true
-sil_disp_link      = true
-sil_disp_link.h    = true
-sil_disp_ar        = true
-sil_disp_elf2flt   = true
-ver_disp_compile.c = echo $(cmd_compile.c)
-ver_disp_compile.h = echo $(cmd_compile.h)
-ver_disp_strip     = echo $(cmd_strip)
-ver_disp_link      = echo $(cmd_link)
-ver_disp_link.h    = echo $(cmd_link.h)
-ver_disp_ar        = echo $(cmd_ar)
-ver_disp_elf2flt   = echo $(cmd_elf2flt)
-disp_compile.c     = $($(DISP)_disp_compile.c)
-disp_compile.h     = $($(DISP)_disp_compile.h)
-disp_strip         = $($(DISP)_disp_strip)
-disp_link          = $($(DISP)_disp_link)
-disp_link.h        = $($(DISP)_disp_link.h)
-disp_ar            = $($(DISP)_disp_ar)
+pur_disp_compile.c = echo "  "CC $(show_objs) ;
+pur_disp_compile.h = echo "  "HOSTCC $(show_objs) ;
+pur_disp_strip     = echo "  "STRIP $(show_objs) ;
+pur_disp_link      = echo "  "LINK $(show_objs) ;
+pur_disp_link.h    = echo "  "HOSTLINK $(show_objs) ;
+pur_disp_ar        = echo "  "AR $(ARFLAGS) $(show_objs) ;
+pur_disp_elf2flt   = echo "  "ELF2FLT $(ELF2FLTFLAGS) $(show_objs) ;
+sil_disp_compile.c = 
+sil_disp_compile.h = 
+sil_disp_strip     = 
+sil_disp_link      = 
+sil_disp_link.h    = 
+sil_disp_ar        = 
+sil_disp_elf2flt   = 
+ver_disp_compile.c = 
+ver_disp_compile.h = 
+ver_disp_strip     = 
+ver_disp_link      = 
+ver_disp_link.h    = 
+ver_disp_ar        = 
+ver_disp_elf2flt   = 
+disp_compile.c     = $(Q)$($(DISP)_disp_compile.c)
+disp_compile.h     = $(Q)$($(DISP)_disp_compile.h)
+disp_strip         = $(Q)$($(DISP)_disp_strip)
+disp_link          = $(Q)$($(DISP)_disp_link)
+disp_link.h        = $(Q)$($(DISP)_disp_link.h)
+disp_ar            = $(Q)$($(DISP)_disp_ar)
+disp_elf2flt       = $(Q)$($(DISP)_disp_elf2flt)
 disp_gen           = $(SECHO) "  "GEN $@ ; true
 disp_doc           = $(SECHO) "  "DOC $(subst docs/,,$@) ; true
-disp_elf2flt       = $($(DISP)_disp_elf2flt)
 cmd_compile.c      = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 cmd_compile.h      = $(HOSTCC) $(HOSTCFLAGS) $(INCS) -c -o $@ $<
 cmd_strip          = $(STRIPCMD) $@
@@ -409,14 +410,14 @@ cmd_link.so        = $(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) \
 cmd_link.h         = $(HOSTCC) $(HOSTCFLAGS) $(INCS) $< -o $@
 cmd_ar             = $(AR) $(ARFLAGS) $@ $^
 cmd_elf2flt        = $(ELF2FLT) $(ELF2FLTFLAGS) $< -o $@
-compile.c          = @$(disp_compile.c) ; $(cmd_compile.c)
-compile.h          = @$(disp_compile.h) ; $(cmd_compile.h)
-do_strip           = @$(disp_strip)     ; $(cmd_strip)
-do_link            = @$(disp_link)      ; $(cmd_link)
-do_link.so         = @$(disp_link)      ; $(cmd_link.so)
-do_link.h          = @$(disp_link.h)    ; $(cmd_link.h)
-do_ar              = @$(disp_ar)        ; $(cmd_ar)
-do_elf2flt         = @$(disp_elf2flt)   ; $(cmd_elf2flt)
+compile.c          = $(disp_compile.c) $(cmd_compile.c)
+compile.h          = $(disp_compile.h) $(cmd_compile.h)
+do_strip           = $(disp_strip)     $(cmd_strip)
+do_link            = $(disp_link)      $(cmd_link)
+do_link.so         = $(disp_link)      $(cmd_link.so)
+do_link.h          = $(disp_link.h)    $(cmd_link.h)
+do_ar              = $(disp_ar)        $(cmd_ar)
+do_elf2flt         = $(disp_elf2flt)   $(cmd_elf2flt)
 
 uppercase = $(shell echo $1 | $(SED) -e "y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/")
 %.a:
