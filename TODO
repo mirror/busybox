@@ -255,7 +255,7 @@ FEATURE_CLEAN_UP
   jumps out of the normal flow control and bypasses any cleanup code we
   put at the end of our applets.
 
-  It's possible to add hooks to libbb functions like xmalloc() and bb_xopen()
+  It's possible to add hooks to libbb functions like xmalloc() and xopen()
   to add their entries to a linked list, which could be traversed and
   freed/closed automatically.  (This would need to be able to free just the
   entries after a checkpoint to be usable for a forkless standalone shell.

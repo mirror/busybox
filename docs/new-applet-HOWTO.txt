@@ -40,7 +40,7 @@ int mu_main(int argc, char **argv)
 	int fd;
 	char mu;
 
-	fd = bb_xopen("/dev/random", O_RDONLY);
+	fd = xopen("/dev/random", O_RDONLY);
 
 	if ((n = safe_read(fd, &mu, 1)) < 1)
 		bb_perror_msg_and_die("/dev/random");
