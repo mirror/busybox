@@ -298,7 +298,7 @@ ifeq ($(strip $(CONFIG_BUILD_LIBBUSYBOX)),y)
 endif
 
 ifeq ($(strip $(CONFIG_SELINUX)),y)
-    LIBRARIES += -lselinux
+    LIBRARIES += -lselinux -lsepol
 endif
 
 ifeq ($(strip $(PREFIX)),)
