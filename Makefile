@@ -448,9 +448,6 @@ include/usage_compressed.h: .config $(USAGE_BIN) \
 	"$(top_builddir)/scripts" > $@
 endif # CONFIG_FEATURE_COMPRESS_USAGE
 
-# workaround alleged bug in make-3.80, make-3.81
-.NOTPARALLEL: .depend
-
 depend dep: .depend
 .depend: scripts/bb_mkdep $(USAGE_BIN) $(DEP_INCLUDES)
 	$(disp_gen)
