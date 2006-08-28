@@ -247,6 +247,10 @@ static void circ_message(const char *msg)
 	}
 
 }
+#else
+void ipcsyslog_cleanup(void);
+void ipcsyslog_init(void);
+void circ_message(const char *msg);
 #endif							/* CONFIG_FEATURE_IPC_SYSLOG */
 
 /* Note: There is also a function called "message()" in init.c */
@@ -279,6 +283,7 @@ static void message(char *fmt, ...)
 		fl.l_type = F_WRLCK;
 		fcntl(fd, F_SETLKW, &fl);
 
+#ifdef CONFIG_FEATURE_ROTATE_LOGFILE
 		if (ENABLE_FEATURE_ROTATE_LOGFILE && logFileSize > 0 ) {
 			struct stat statf;
 			int r = fstat(fd, &statf);
@@ -307,7 +312,7 @@ static void message(char *fmt, ...)
 				}
 			}
 		}
-
+#endif
 		va_start(arguments, fmt);
 		vdprintf(fd, fmt, arguments);
 		va_end(arguments);
@@ -341,6 +346,8 @@ static void init_RemoteLog(void)
 	remoteaddr.sin_addr = *(struct in_addr *) *(xgethostbyname(RemoteHost))->h_addr_list;
 	remoteaddr.sin_port = htons(RemotePort);
 }
+#else
+void init_RemoteLog(void);
 #endif
 
 static void logMessage(int pri, char *msg)
