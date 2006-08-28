@@ -24,28 +24,15 @@
 /*#define DEBUG 1 */
 #undef DEBUG
 
-#include <sys/socket.h>
-#include <sys/wait.h>
-#include <sys/ioctl.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <signal.h>
-#include <termios.h>
+#include "busybox.h"
+
 #ifdef DEBUG
 #define TELCMDS
 #define TELOPTS
 #endif
 #include <arpa/telnet.h>
-#include <ctype.h>
 #include <sys/syslog.h>
 
-#include "busybox.h"
 
 #define BUFSIZE 4000
 
@@ -443,7 +430,7 @@ telnetd_main(int argc, char **argv)
 
 	/* Grab a TCP socket.  */
 
-	master_fd = bb_xsocket(SOCKET_TYPE, SOCK_STREAM, 0);
+	master_fd = xsocket(SOCKET_TYPE, SOCK_STREAM, 0);
 	(void)setsockopt(master_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
 	/* Set it to listen to specified port.  */
@@ -459,9 +446,9 @@ telnetd_main(int argc, char **argv)
 	sa.sin_addr = bind_addr;
 #endif
 
-	bb_xbind(master_fd, (struct sockaddr *) &sa, sizeof(sa));
-	bb_xlisten(master_fd, 1);
-	bb_xdaemon(0, 0);
+	xbind(master_fd, (struct sockaddr *) &sa, sizeof(sa));
+	xlisten(master_fd, 1);
+	xdaemon(0, 0);
 
 	maxfd = master_fd;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */

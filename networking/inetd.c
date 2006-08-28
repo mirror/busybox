@@ -130,6 +130,7 @@
 
 #include "busybox.h"
 #include <syslog.h>
+#include <sys/un.h>
 
 //#define CONFIG_FEATURE_INETD_RPC
 //#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
