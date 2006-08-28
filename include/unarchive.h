@@ -10,8 +10,6 @@
 #define ARCHIVE_NOPRESERVE_OWN          32
 #define ARCHIVE_NOPRESERVE_PERM         64
 
-#include <sys/types.h>
-#include <stdio.h>
 #include "libbb.h"
 
 typedef struct file_headers_s {

@@ -11,6 +11,7 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/tee.html */
 
 #include "busybox.h"
+#include <signal.h>
 
 int tee_main(int argc, char **argv)
 {
@@ -37,7 +38,7 @@ int tee_main(int argc, char **argv)
 
 	/* gnu tee ignores SIGPIPE in case one of the output files is a pipe
 	 * that doesn't consume all its input.  Good idea... */
-	signal(SIGPIPE, SIG_IGN);		/* TODO - switch to sigaction.*/
+	signal(SIGPIPE, SIG_IGN);	/* TODO - switch to sigaction.*/
 
 	/* Allocate an array of FILE *'s, with one extra for a sentinal. */
 	p = files = (FILE **)xmalloc(sizeof(FILE *) * (argc - optind + 2));

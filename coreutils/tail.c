@@ -42,20 +42,25 @@ static const struct suffix_mult tail_suffixes[] = {
 
 static int status;
 
-static void tail_xprint_header(const char *fmt, const char *filename)
-{
-	/* If we get an output error, there is really no sense in continuing. */
-	if (dprintf(STDOUT_FILENO, fmt, filename) < 0) {
-		bb_perror_nomsg_and_die();
-	}
-}
-
-/* len should probably be size_t */
 static void tail_xbb_full_write(const char *buf, size_t len)
 {
 	/* If we get a write error, there is really no sense in continuing. */
 	if (full_write(STDOUT_FILENO, buf, len) < 0)
 		bb_perror_nomsg_and_die();
+}
+
+static void tail_xprint_header(const char *fmt, const char *filename)
+{
+#if defined __GLIBC__
+	if (dprintf(STDOUT_FILENO, fmt, filename) < 0) {
+		bb_perror_nomsg_and_die();
+	}
+#else
+	int hdr_len = strlen(fmt) + strlen(filename);
+	char *hdr = xzalloc(hdr_len);
+	sprintf(hdr, filename, filename);
+	tail_xbb_full_write(hdr, hdr_len);
+#endif
 }
 
 static ssize_t tail_read(int fd, char *buf, size_t count)

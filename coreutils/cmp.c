@@ -23,7 +23,7 @@
 
 #include "busybox.h"
 
-static FILE *cmp_xfopen_input(const char *filename)
+static FILE *cmp_xfopen_input(const char * const filename)
 {
 	FILE *fp;
 
@@ -40,32 +40,28 @@ static const char fmt_differ[] = "%s %s differ: char %d, line %d\n";
 static const char fmt_l_opt[] = "%.0s%.0s%d %3o %3o\n";
 
 static const char opt_chars[] = "sl";
-
-enum {
-	OPT_s = 1,
-	OPT_l = 2
-};
+#define CMP_OPT_s (1<<0)
+#define CMP_OPT_l (1<<1)
 
 int cmp_main(int argc, char **argv)
 {
 	FILE *fp1, *fp2, *outfile = stdout;
-	const char *filename1, *filename2;
+	const char *filename1, *filename2 = "-";
 	const char *fmt;
-	int c1, c2, char_pos, line_pos;
-	int opt_flags;
-	int exit_val = 0;
+	int c1, c2, char_pos = 0, line_pos = 1;
+	unsigned opt;
+	int retval = 0;
 
 	bb_default_error_retval = 2;	/* 1 is returned if files are different. */
 
-	opt_flags = bb_getopt_ulflags(argc, argv, opt_chars);
+	opt = bb_getopt_ulflags(argc, argv, opt_chars);
 
-	if ((opt_flags == 3) || (((unsigned int)(--argc - optind)) > 1)) {
+	if ((opt & (CMP_OPT_s|CMP_OPT_l))
+			|| (((unsigned int)(--argc - optind)) > 1))
 		bb_show_usage();
-	}
 
 	fp1 = cmp_xfopen_input(filename1 = *(argv += optind));
 
-	filename2 = "-";
 	if (*++argv) {
 		filename2 = *argv;
 	}
@@ -79,19 +75,17 @@ int cmp_main(int argc, char **argv)
 		return 0;
 	}
 
-	fmt = fmt_differ;
-	if (opt_flags == OPT_l) {
+	if (opt & CMP_OPT_l)
 		fmt = fmt_l_opt;
-	}
+	else
+		fmt = fmt_differ;
 
-	char_pos = 0;
-	line_pos = 1;
 	do {
 		c1 = getc(fp1);
 		c2 = getc(fp2);
 		++char_pos;
-		if (c1 != c2) {			/* Remember -- a read error may have occurred. */
-			exit_val = 1;		/* But assume the files are different for now. */
+		if (c1 != c2) {			/* Remember: a read error may have occurred. */
+			retval = 1;		/* But assume the files are different for now. */
 			if (c2 == EOF) {
 				/* We know that fp1 isn't at EOF or in an error state.  But to
 				 * save space below, things are setup to expect an EOF in fp1
@@ -109,13 +103,14 @@ int cmp_main(int argc, char **argv)
 				 * make sure we fflush before writing to stderr. */
 				xfflush_stdout();
 			}
-			if (opt_flags != OPT_s) {
-				if (opt_flags == OPT_l) {
+			if (!opt & CMP_OPT_s) {
+				if (opt & CMP_OPT_l) {
 					line_pos = c1;	/* line_pos is unused in the -l case. */
 				}
 				bb_fprintf(outfile, fmt, filename1, filename2, char_pos, line_pos, c2);
-				if (opt_flags) {	/* This must be -l since not -s. */
-					/* If we encountered and EOF, the while check will catch it. */
+				if (opt) {	/* This must be -l since not -s. */
+					/* If we encountered an EOF,
+					 * the while check will catch it. */
 					continue;
 				}
 			}
@@ -129,5 +124,5 @@ int cmp_main(int argc, char **argv)
 	xferror(fp1, filename1);
 	xferror(fp2, filename2);
 
-	bb_fflush_stdout_and_exit(exit_val);
+	bb_fflush_stdout_and_exit(retval);
 }

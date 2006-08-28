@@ -1,55 +1,21 @@
 /* vi: set sw=4 ts=4: */
 /*
- * ipcrm.c -- utility to allow removal of IPC objects and data structures.
+ * ipcrm.c - utility to allow removal of IPC objects and data structures.
  *
  * 01 Sept 2004 - Rodney Radford <rradford@mindspring.com>
  * Adapted for busybox from util-linux-2.12a.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
- *
- * --- Pre-busybox history from util-linux-2.12a ------------------------
- *
- * 1999-04-02 frank zago
- * - can now remove several id's in the same call
- *
- * 1999-02-22 Arkadiusz Miÿkiewicz <misiek@pld.ORG.PL>
- * - added Native Language Support
- *
- * Original author - krishna balasubramanian 1993
+ * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include "busybox.h"
 
-#include <sys/types.h>
+/* X/OPEN tells us to use <sys/{types,ipc,sem}.h> for semctl() */
+/* X/OPEN tells us to use <sys/{types,ipc,msg}.h> for msgctl() */
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/msg.h>
 #include <sys/sem.h>
-
-/* X/OPEN tells us to use <sys/{types,ipc,sem}.h> for semctl() */
-/* X/OPEN tells us to use <sys/{types,ipc,msg}.h> for msgctl() */
-/* for getopt */
-#include <unistd.h>
-
-/* for tolower and isupper */
-#include <ctype.h>
-
-#include "busybox.h"
 
 #if defined (__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
 /* union semun is defined by including <sys/sem.h> */
@@ -63,164 +29,149 @@ union semun {
 };
 #endif
 
+#ifndef CONFIG_IPCRM_DROP_LEGACY
+
 typedef enum type_id {
 	SHM,
 	SEM,
 	MSG
 } type_id;
 
-static int
-remove_ids(type_id type, int argc, char **argv) {
+static int remove_ids(type_id type, int argc, char **argv)
+{
 	int id;
-	int ret = 0;		/* for gcc */
+	int ret = 0;		/* silence gcc */
 	char *end;
 	int nb_errors = 0;
 	union semun arg;
 
 	arg.val = 0;
 
-	while(argc) {
+	while (argc) {
 
 		id = strtoul(argv[0], &end, 10);
 
 		if (*end != 0) {
-			bb_printf ("invalid id: %s\n", argv[0]);
-			nb_errors ++;
+			bb_error_msg("invalid id: %s", argv[0]);
+			nb_errors++;
 		} else {
-			switch(type) {
-			case SEM:
-				ret = semctl (id, 0, IPC_RMID, arg);
-				break;
-
-			case MSG:
-				ret = msgctl (id, IPC_RMID, NULL);
-				break;
-
-			case SHM:
-				ret = shmctl (id, IPC_RMID, NULL);
-				break;
-			}
+			if (type == SEM)
+				ret = semctl(id, 0, IPC_RMID, arg);
+			else if (type == MSG)
+				ret = msgctl(id, IPC_RMID, NULL);
+			else if (type ==  SHM)
+				ret = shmctl(id, IPC_RMID, NULL);
 
 			if (ret) {
-				bb_printf ("cannot remove id %s (%s)\n",
-					argv[0], strerror(errno));
-				nb_errors ++;
+				bb_perror_msg("cannot remove id %s", argv[0]);
+				nb_errors++;
 			}
 		}
 		argc--;
 		argv++;
 	}
 
-	return(nb_errors);
+	return (nb_errors);
 }
-
-static int deprecated_main(int argc, char **argv)
-{
-	if (argc < 3) {
-		bb_show_usage();
-		bb_fflush_stdout_and_exit(1);
-	}
-
-	if (!strcmp(argv[1], "shm")) {
-		if (remove_ids(SHM, argc-2, &argv[2]))
-			bb_fflush_stdout_and_exit(1);
-	}
-	else if (!strcmp(argv[1], "msg")) {
-		if (remove_ids(MSG, argc-2, &argv[2]))
-			bb_fflush_stdout_and_exit(1);
-	}
-	else if (!strcmp(argv[1], "sem")) {
-		if (remove_ids(SEM, argc-2, &argv[2]))
-			bb_fflush_stdout_and_exit(1);
-	}
-	else {
-		bb_printf ("unknown resource type: %s\n", argv[1]);
-		bb_show_usage();
-		bb_fflush_stdout_and_exit(1);
-	}
-
-	bb_printf ("resource(s) deleted\n");
-	return 0;
-}
+#endif /* #ifndef CONFIG_IPCRM_DROP_LEGACY */
 
 
 int ipcrm_main(int argc, char **argv)
 {
-	int   c;
-	int   error = 0;
-	char *prog = argv[0];
+	int c;
+	int error = 0;
 
 	/* if the command is executed without parameters, do nothing */
 	if (argc == 1)
 		return 0;
-
+#ifndef CONFIG_IPCRM_DROP_LEGACY
 	/* check to see if the command is being invoked in the old way if so
-	   then run the old code */
-	if (strcmp(argv[1], "shm") == 0 ||
-		strcmp(argv[1], "msg") == 0 ||
-		strcmp(argv[1], "sem") == 0)
-		return deprecated_main(argc, argv);
+	   then run the old code. Valid commands are msg, shm, sem. */
+	{
+		type_id what = 0; /* silence gcc */
+		char w;
+
+		if ((((w=argv[1][0]) == 'm' && argv[1][1] == 's' && argv[1][2] == 'g')
+				|| (argv[1][0] == 's'
+					&& ((w=argv[1][1]) == 'h' || w == 'e')
+					&& argv[1][2] == 'm'))
+			&& argv[1][3] == '\0')	{
+
+			if (argc < 3)
+				bb_show_usage();
+
+			if (w == 'h')
+				what = SHM;
+			else if (w == 'm')
+				what = MSG;
+			else if (w == 'e')
+				what = SEM;
+
+			if (remove_ids(what, argc-2, &argv[2]))
+				bb_fflush_stdout_and_exit(1);
+			bb_printf("resource(s) deleted\n");
+			return 0;
+		}
+	}
+#endif /* #ifndef CONFIG_IPCRM_DROP_LEGACY */
 
 	/* process new syntax to conform with SYSV ipcrm */
 	while ((c = getopt(argc, argv, "q:m:s:Q:M:S:h?")) != -1) {
 		int result;
 		int id = 0;
-		int iskey = isupper(c);
+		int iskey = (isupper)(c);
 
 		/* needed to delete semaphores */
 		union semun arg;
+
 		arg.val = 0;
 
-		if ((c == '?') || (c == 'h'))
-		{
+		if ((c == '?') || (c == 'h')) {
 			bb_show_usage();
-			return 0;
 		}
 
 		/* we don't need case information any more */
 		c = tolower(c);
 
-		/* make sure the option is in range */
+		/* make sure the option is in range: allowed are q, m, s */
 		if (c != 'q' && c != 'm' && c != 's') {
 			bb_show_usage();
-			error++;
-			return error;
 		}
 
 		if (iskey) {
 			/* keys are in hex or decimal */
 			key_t key = strtoul(optarg, NULL, 0);
+
 			if (key == IPC_PRIVATE) {
 				error++;
-				bb_fprintf(stderr, "%s: illegal key (%s)\n",
-					prog, optarg);
+				bb_error_msg("illegal key (%s)", optarg);
 				continue;
 			}
 
 			/* convert key to id */
 			id = ((c == 'q') ? msgget(key, 0) :
-				  (c == 'm') ? shmget(key, 0, 0) :
-				  semget(key, 0, 0));
+				  (c == 'm') ? shmget(key, 0, 0) : semget(key, 0, 0));
 
 			if (id < 0) {
 				char *errmsg;
+				const char * const what = "key";
+
 				error++;
-				switch(errno) {
+				switch (errno) {
 				case EACCES:
-					errmsg = "permission denied for key";
+					errmsg = "permission denied for";
 					break;
 				case EIDRM:
-					errmsg = "already removed key";
+					errmsg = "already removed";
 					break;
 				case ENOENT:
-					errmsg = "invalid key";
+					errmsg = "invalid";
 					break;
 				default:
-					errmsg = "unknown error in key";
+					errmsg = "unknown error in";
 					break;
 				}
-				bb_fprintf(stderr, "%s: %s (%s)\n",
-					prog, errmsg, optarg);
+				bb_error_msg("%s %s (%s)",  errmsg, what, optarg);
 				continue;
 			}
 		} else {
@@ -229,37 +180,30 @@ int ipcrm_main(int argc, char **argv)
 		}
 
 		result = ((c == 'q') ? msgctl(id, IPC_RMID, NULL) :
-			  (c == 'm') ? shmctl(id, IPC_RMID, NULL) :
-			  semctl(id, 0, IPC_RMID, arg));
+				  (c == 'm') ? shmctl(id, IPC_RMID, NULL) :
+				  semctl(id, 0, IPC_RMID, arg));
 
-		if (result < 0) {
+		if (result) {
 			char *errmsg;
+			const char * const what = iskey ? "key" : "id";
+
 			error++;
-			switch(errno) {
+			switch (errno) {
 			case EACCES:
 			case EPERM:
-				errmsg = iskey
-					? "permission denied for key"
-					: "permission denied for id";
+				errmsg = "permission denied for";
 				break;
 			case EINVAL:
-				errmsg = iskey
-					? "invalid key"
-					: "invalid id";
+				errmsg = "invalid";
 				break;
 			case EIDRM:
-				errmsg = iskey
-					? "already removed key"
-					: "already removed id";
+				errmsg = "already removed";
 				break;
 			default:
-				errmsg = iskey
-					? "unknown error in key"
-					: "unknown error in id";
+				errmsg = "unknown error in";
 				break;
 			}
-			bb_fprintf(stderr, "%s: %s (%s)\n",
-				prog, errmsg, optarg);
+			bb_error_msg("%s %s (%s)", errmsg, what, optarg);
 			continue;
 		}
 	}

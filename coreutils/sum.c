@@ -13,12 +13,6 @@
  * Licensed under the GPL v2, see the file LICENSE in this tarball.
  */
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-
 #include "busybox.h"
 
 /* 1 if any of the files read were the standard input */
@@ -38,14 +32,15 @@ static int bsd_sum_file(const char *file, int print_name)
 	int checksum = 0;          /* The checksum mod 2^16. */
 	uintmax_t total_bytes = 0; /* The number of bytes. */
 	int ch;                    /* Each character read. */
+	int ret = 0;
 
 	if (IS_STDIN(file)) {
 		fp = stdin;
-		have_read_stdin = 1;
+		have_read_stdin++;
 	} else {
 		fp = bb_wfopen(file, "r");
 		if (fp == NULL)
-			return 0;
+			goto out;
 	}
 
 	while ((ch = getc(fp)) != EOF) {
@@ -58,21 +53,21 @@ static int bsd_sum_file(const char *file, int print_name)
 	if (ferror(fp)) {
 		bb_perror_msg(file);
 		bb_fclose_nonstdin(fp);
-		return 0;
+		goto out;
 	}
 
 	if (bb_fclose_nonstdin(fp) == EOF) {
 		bb_perror_msg(file);
-		return 0;
+		goto out;
 	}
-
+	ret++;
 	printf("%05d %5ju ", checksum, (total_bytes+1023)/1024);
 	if (print_name > 1)
 		puts(file);
 	else
 		printf("\n");
-
-	return 1;
+out:
+	return ret;
 }
 
 /* Calculate and print the checksum and the size in 512-byte blocks

@@ -1426,12 +1426,12 @@ USE_FEATURE_DATE_ISOFMT( \
 #define ipcrm_trivial_usage \
 	"[-[MQS] key] [-[mqs] id]"
 #define ipcrm_full_usage \
-	"The upper-case options MQS are used to remove a shared memory\n" \
-	"segment by an shmkey value. The lower-case options mqs are used\n" \
+	"The upper-case options MQS are used to remove a shared memory segment by a\n" \
+	"segment by a shmkey value. The lower-case options mqs are used\n" \
 	"to remove a segment by shmid value.\n" \
-	"\t-m | -M\tRemove the memory segment after the last detach\n" \
-	"\t-q | -Q\tRemove the message queue\n" \
-	"\t-s | -S\tRemove the semaphore"
+	"\t-[mM]\tRemove the memory segment after the last detach\n" \
+	"\t-[qQ]\tRemove the message queue\n" \
+	"\t-[sS]\tRemove the semaphore"
 
 #define ipcs_trivial_usage \
 	"[[-smq] -i shmid] | [[-asmq] [-tclup]]"

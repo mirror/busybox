@@ -3,6 +3,7 @@
  * Mini watch implementation for busybox
  *
  * Copyright (C) 2001 by Michael Habermann <mhabermann@gmx.de>
+ * Copyrigjt (C) Mar 16, 2003 Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
@@ -10,13 +11,8 @@
 /* BB_AUDIT SUSv3 N/A */
 /* BB_AUDIT GNU defects -- only option -n is supported. */
 
-/* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
- *
- * Removed dependency on date_main(), added proper error checking, and
- * reduced size.
- */
-
 #include "busybox.h"
+
 
 int watch_main(int argc, char **argv)
 {
@@ -26,19 +22,18 @@ int watch_main(int argc, char **argv)
 
 	if (argc < 2) bb_show_usage();
 
-	get_terminal_width_height(1, &width, 0);
+	get_terminal_width_height(STDOUT_FILENO, &width, 0);
 	header = xzalloc(width--);
 
 	/* don't use getopt, because it permutes the arguments */
 	++argv;
-	if ((argc > 3) && !strcmp(*argv, "-n")) {
+	if ((argc > 3) && argv[0][0] == '-' && argv[0][1] == 'n') {
 		period = bb_xgetularg10_bnd(argv[1], 1, UINT_MAX);
 		argv += 2;
 	}
 	watched_argv = argv;
 
 	/* create header */
-
 	len = snprintf(header, width, "Every %ds:", period);
 	while (*argv && len<width)
 		snprintf(header+len, width-len, " %s", *(argv++));
@@ -50,11 +45,13 @@ int watch_main(int argc, char **argv)
 		time(&t);
 		thyme = ctime(&t);
 		len = strlen(thyme);
-		if (len < width) header[width-len] = 0;
-		
-		printf("\033[H\033[J%s %s\n", header, thyme);
+		if (len < width)
+			header[width-len] = 0;
+		bb_printf("\033[H\033[J%s %s\n", header, thyme);
 
 		waitpid(xspawn(watched_argv),0,0);
 		sleep(period);
 	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(header);
 }

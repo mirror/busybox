@@ -278,6 +278,7 @@ endif # CONFIG_FEATURE_FULL_LIBBUSYBOX
 APPLET_SRC:=$(APPLET_SRC-y)
 APPLETS_DEFINE:=$(APPLETS_DEFINE-y)
 else  # CONFIG_BUILD_AT_ONCE
+APPLET_SRC:=
 # no --combine, build archives out of the individual .o
 # This was the old way the binary was built.
 libbusybox-obj:=archival/libunarchive/libunarchive.a \

@@ -23,11 +23,6 @@
  * 4) Fixed busybox bug #1284 involving long overflow with human_readable.
  */
 
-#include <stdlib.h>
-#include <limits.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
@@ -57,7 +52,7 @@ static int one_file_system;
 static dev_t dir_dev;
 
 
-static void print(long size, char *filename)
+static void print(long size, const char * const filename)
 {
 	/* TODO - May not want to defer error checking here. */
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
@@ -73,7 +68,7 @@ static void print(long size, char *filename)
 }
 
 /* tiny recursive du */
-static long du(char *filename)
+static long du(const char * const filename)
 {
 	struct stat statbuf;
 	long sum;

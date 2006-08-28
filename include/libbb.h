@@ -60,10 +60,6 @@
 #define  PATH_MAX         256
 #endif
 
-#ifdef DMALLOC
-#include <dmalloc.h>
-#endif
-
 /* Some useful definitions */
 #undef FALSE
 #define FALSE   ((int) 0)
@@ -211,7 +207,9 @@ extern int bb_fprintf(FILE * __restrict stream, const char * __restrict format, 
 extern int bb_printf(const char * __restrict format, ...)
 	__attribute__ ((format (printf, 1, 2)));
 
-//#warning rename to xferror_filename?
+#if ENABLE_NITPICK
+#warning rename to xferror_filename?
+#endif
 extern void xferror(FILE *fp, const char *fn);
 extern void xferror_stdout(void);
 extern void xfflush_stdout(void);
@@ -265,7 +263,9 @@ extern long bb_xgetlarg_bnd_sfx(const char *arg, int base,
 extern long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes);
 
 
-//#warning pitchable now?
+#if ENABLE_NITPICK
+#warning pitchable now?
+#endif
 extern unsigned long bb_xparse_number(const char *numstr,
 		const struct suffix_mult *suffixes);
 
@@ -330,7 +330,9 @@ char *concat_path_file(const char *path, const char *filename);
 char *concat_subpath_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
-//#warning yuk!
+#if ENABLE_NITPICK
+#warning yuk!
+#endif
 char *fgets_str(FILE *file, const char *terminating_string);
 
 extern int uncompress(int fd_in, int fd_out);
@@ -344,7 +346,9 @@ extern int xconnect(struct sockaddr_in *s_addr);
 extern unsigned short bb_lookup_port(const char *port, const char *protocol, unsigned short default_port);
 extern void bb_lookup_host(struct sockaddr_in *s_in, const char *host);
 
-//#warning wrap this?
+#if ENABLE_NITPICK
+#warning wrap this?
+#endif
 char *dirname (char *path);
 
 int bb_make_directory (char *path, long mode, int flags);
@@ -456,8 +460,10 @@ extern int bb_default_error_retval;
 # define FB_0 "/dev/fb0"
 #endif
 
-//#warning put these in .o files
 
+#if ENABLE_NITPICK
+#warning put these in .o files
+#endif
 /* The following devices are the same on devfs and non-devfs systems.  */
 #define CURRENT_TTY "/dev/tty"
 #define CONSOLE_DEV "/dev/console"
@@ -580,5 +586,9 @@ extern const char BB_BANNER[];
 #undef isspace
 #undef isupper
 #undef isxdigit
+
+#ifdef DMALLOC
+#include <dmalloc.h>
+#endif
 
 #endif /* __LIBBUSYBOX_H__ */
