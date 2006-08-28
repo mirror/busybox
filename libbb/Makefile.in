@@ -23,7 +23,7 @@ LIBBB-y:= \
 	make_directory.c md5.c mode_string.c mtab_file.c \
 	obscure.c parse_mode.c parse_number.c perror_msg.c \
 	perror_msg_and_die.c get_console.c \
-	process_escape_sequence.c procps.c qmodule.c \
+	process_escape_sequence.c procps.c \
 	recursive_action.c remove_file.c \
 	restricted_shell.c run_parts.c run_shell.c safe_read.c safe_write.c \
 	safe_strncpy.c setup_environment.c sha1.c simplify_path.c \

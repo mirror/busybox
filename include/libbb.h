@@ -521,8 +521,6 @@ typedef struct {
 extern procps_status_t * procps_scan(int save_user_arg0);
 extern int compare_string_array(const char * const string_array[], const char *key);
 
-extern int my_query_module(const char *name, int which, void **buf, size_t *bufsize, size_t *ret);
-
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 

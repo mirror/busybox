@@ -8,28 +8,17 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <fcntl.h>
-#include <string.h>
-#include <sys/utsname.h>
 #include <sys/syscall.h>
 
 #ifdef CONFIG_FEATURE_2_6_MODULES
 static inline void filename2modname(char *modname, const char *afterslash)
 {
 	unsigned int i;
-
-#if ENABLE_FEATURE_2_4_MODULES
 	int kr_chk = 1;
-	if (get_linux_version_code() <= KERNEL_VERSION(2,6,0))
-		kr_chk = 0;
-#else
-#define kr_chk 1
-#endif
+
+	if (ENABLE_FEATURE_2_4_MODULES
+			&& get_linux_version_code() <= KERNEL_VERSION(2,6,0))
+				kr_chk = 0;
 
 	/* Convert to underscores, stop at first . */
 	for (i = 0; afterslash[i] && afterslash[i] != '.'; i++) {
@@ -40,17 +29,19 @@ static inline void filename2modname(char *modname, const char *afterslash)
 	}
 	modname[i] = '\0';
 }
+#else
+void filename2modname(char *modname, const char *afterslash);
 #endif
+
+// There really should be a header file for this...
+
+int query_module(const char *name, int which, void *buf,
+		        size_t bufsize, size_t *ret);
 
 int rmmod_main(int argc, char **argv)
 {
 	int n, ret = EXIT_SUCCESS;
 	unsigned int flags = O_NONBLOCK|O_EXCL;
-#ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
-	/* bb_common_bufsiz1 hold the module names which we ignore
-	   but must get */
-	size_t bufsize = sizeof(bb_common_bufsiz1);
-#endif
 
 	/* Parse command line. */
 	n = bb_getopt_ulflags(argc, argv, "wfa");
@@ -71,12 +62,13 @@ int rmmod_main(int argc, char **argv)
 				bb_perror_msg_and_die("rmmod");
 			}
 			pnmod = nmod;
-#ifdef CONFIG_FEATURE_QUERY_MODULE_INTERFACE
-			/* 1 == QM_MODULES */
-			if (my_query_module(NULL, 1, &bb_common_bufsiz1, &bufsize, &nmod)) {
+			// the 1 here is QM_MODULES.
+			if (ENABLE_FEATURE_QUERY_MODULE_INTERFACE && query_module(NULL,
+					1, bb_common_bufsiz1, sizeof(bb_common_bufsiz1),
+					&nmod))
+			{
 				bb_perror_msg_and_die("QM_MODULES");
 			}
-#endif
 		}
 		return EXIT_SUCCESS;
 	}
@@ -85,21 +77,16 @@ int rmmod_main(int argc, char **argv)
 		bb_show_usage();
 
 	for (n = optind; n < argc; n++) {
-#ifdef CONFIG_FEATURE_2_6_MODULES
-		const char *afterslash;
-		char *module_name;
+		if (ENABLE_FEATURE_2_6_MODULES) {
+			const char *afterslash;
 
-		afterslash = strrchr(argv[n], '/');
-		if (!afterslash)
-			afterslash = argv[n];
-		else
-			afterslash++;
-		module_name = alloca(strlen(afterslash) + 1);
-		filename2modname(module_name, afterslash);
-#else
-#define module_name		argv[n]
-#endif
-		if (syscall(__NR_delete_module, module_name, flags) != 0) {
+			afterslash = strrchr(argv[n], '/');
+			if (!afterslash) afterslash = argv[n];
+			else afterslash++;
+			filename2modname(bb_common_bufsiz1, afterslash);
+		}
+
+		if (syscall(__NR_delete_module, ENABLE_FEATURE_2_6_MODULES ? bb_common_bufsiz1 : argv[n], flags)) {
 			bb_perror_msg("%s", argv[n]);
 			ret = EXIT_FAILURE;
 		}

@@ -15,7 +15,7 @@
 
 
 #ifndef CONFIG_FEATURE_CHECK_TAINTED_MODULE
-static inline void check_tainted(void) { printf("\n"); }
+static void check_tainted(void) { printf("\n"); }
 #else
 #define TAINT_FILENAME                  "/proc/sys/kernel/tainted"
 #define TAINT_PROPRIETORY_MODULE        (1<<0)
@@ -80,13 +80,15 @@ int lsmod_main(int argc, char **argv)
 	char *module_names, *mn, *deps, *dn;
 	size_t bufsize, depsize, nmod, count, i, j;
 
-	module_names = xmalloc(bufsize = 256);
-	if (my_query_module(NULL, QM_MODULES, &module_names, &bufsize, &nmod)) {
-		bb_perror_msg_and_die("QM_MODULES");
+	module_names = deps = NULL;
+	bufsize = depsize = 0;
+	while(query_module(NULL, QM_MODULES, module_names, bufsize, &nmod)) {
+		if (errno != ENOSPC) bb_perror_msg_and_die("QM_MODULES");
+		module_names = xmalloc(bufsize = nmod);
 	}
 
 	deps = xmalloc(depsize = 256);
-	printf("Module                  Size  Used by");
+	printf("Module\t\t\tSize  Used by");
 	check_tainted();
 
 	for (i = 0, mn = module_names; i < nmod; mn += strlen(mn) + 1, i++) {
@@ -98,12 +100,13 @@ int lsmod_main(int argc, char **argv)
 			/* else choke */
 			bb_perror_msg_and_die("module %s: QM_INFO", mn);
 		}
-		if (my_query_module(mn, QM_REFS, &deps, &depsize, &count)) {
+		while (query_module(mn, QM_REFS, deps, depsize, &count)) {
 			if (errno == ENOENT) {
 				/* The module was removed out from underneath us. */
 				continue;
-			}
-			bb_perror_msg_and_die("module %s: QM_REFS", mn);
+			} else if (errno != ENOSPC) 
+				bb_perror_msg_and_die("module %s: QM_REFS", mn);
+			deps = xrealloc(deps, count);
 		}
 		printf("%-20s%8lu%4ld", mn, info.size, info.usecount);
 		if (info.flags & NEW_MOD_DELETED)
