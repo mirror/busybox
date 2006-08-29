@@ -13,9 +13,9 @@ endif
 #--------------------------------------------------------
 PROG      := busybox
 MAJOR_VERSION   :=1
-MINOR_VERSION   :=3
+MINOR_VERSION   :=2
 SUBLEVEL_VERSION:=0
-EXTRAVERSION    :=-pre0
+EXTRAVERSION    :=-svn
 VERSION   :=$(MAJOR_VERSION).$(MINOR_VERSION).$(SUBLEVEL_VERSION)$(EXTRAVERSION)
 BUILDTIME := $(shell TZ=UTC date -u "+%Y.%m.%d-%H:%M%z")
 
