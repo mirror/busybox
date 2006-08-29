@@ -267,8 +267,6 @@ ifeq ($(strip $(CONFIG_DEBUG)),y)
     CFLAGS +=-g
 else
     CFLAGS +=-DNDEBUG
-    CHECKED_LDFLAGS += $(call check_ld,$(LD),--sort-common,)
-    CHECKED_LDFLAGS += $(call check_ld,$(LD),--gc-sections,)
 endif
 
 ifneq ($(strip $(CONFIG_DEBUG_PESSIMIZE)),y)
@@ -288,6 +286,11 @@ endif
 STRIPCMD:=$(call check_strip,$(STRIP),-s --remove-section=.note --remove-section=.comment,$(STRIP))
 ifeq ($(strip $(CONFIG_STATIC)),y)
     PROG_CFLAGS += $(call check_cc,$(CC),-static,)
+else
+    ifneq ($(strip $(CONFIG_DEBUG)),y)
+        CHECKED_LDFLAGS += $(call check_ld,$(LD),--sort-common,)
+        CHECKED_LDFLAGS += $(call check_ld,$(LD),--gc-sections,)
+    endif
 endif
 CFLAGS_SHARED := $(call check_cc,$(CC),-shared,)
 LIB_CFLAGS+=$(CFLAGS_SHARED)
