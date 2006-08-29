@@ -1591,7 +1591,7 @@ static int varcmp(const char *, const char *);
 static struct var **hashvar(const char *);
 
 
-static inline int varequal(const char *a, const char *b) {
+static int varequal(const char *a, const char *b) {
 	return !varcmp(a, b);
 }
 
@@ -1649,8 +1649,7 @@ static void out2str(const char *p)
  * This routine initializes the builtin variables.
  */
 
-static inline void
-initvar(void)
+static void initvar(void)
 {
 	struct var *vp;
 	struct var *end;
@@ -1674,8 +1673,7 @@ initvar(void)
 	} while (++vp < end);
 }
 
-static inline void
-init(void)
+static void init(void)
 {
 
       /* from input.c: */
@@ -1860,7 +1858,7 @@ static char *stnputs(const char *, size_t, char *);
 static char *stputs(const char *, char *);
 
 
-static inline char *_STPUTC(int c, char *p) {
+static char *_STPUTC(int c, char *p) {
 	if (p == sstrend)
 		p = growstackstr();
 	*p++ = c;
@@ -2354,8 +2352,7 @@ out:
  * cd command.
  */
 
-static inline const char *
-updatepwd(const char *dir)
+static const char * updatepwd(const char *dir)
 {
 	char *new;
 	char *p;
@@ -2444,8 +2441,7 @@ out:
  * Find out what the current directory is. If we already know the current
  * directory, this routine returns immediately.
  */
-static inline char *
-getpwd(void)
+static char * getpwd(void)
 {
 	char *dir = getcwd(0, 0);
 	return dir ? dir : nullstr;
@@ -3167,8 +3163,7 @@ out:
 }
 
 #ifdef CONFIG_ASH_CMDCMD
-static inline char **
-parse_command_args(char **argv, const char **path)
+static char ** parse_command_args(char **argv, const char **path)
 {
 	char *cp, c;
 
@@ -3199,8 +3194,7 @@ parse_command_args(char **argv, const char **path)
 }
 #endif
 
-static inline int
-isassignment(const char *p)
+static int isassignment(const char *p)
 {
 	const char *q = endofname(p);
 	if (p == q)
@@ -3520,8 +3514,7 @@ funcdone:
 }
 
 
-static inline int
-goodname(const char *p)
+static int goodname(const char *p)
 {
 	return !*endofname(p);
 }
@@ -4245,8 +4238,7 @@ delete_cmd_entry(void)
  * the same name - except special builtins.
  */
 
-static inline void
-addcmdentry(char *name, struct cmdentry *entry)
+static void addcmdentry(char *name, struct cmdentry *entry)
 {
 	struct tblentry *cmdp;
 
@@ -4263,8 +4255,7 @@ addcmdentry(char *name, struct cmdentry *entry)
  * Make a copy of a parse tree.
  */
 
-static inline struct funcnode *
-copyfunc(union node *n)
+static struct funcnode * copyfunc(union node *n)
 {
 	struct funcnode *f;
 	size_t blocksize;
@@ -4529,8 +4520,7 @@ static void varunset(const char *, const char *, const char *, int)
  * Returns an stalloced string.
  */
 
-static inline char *
-preglob(const char *pattern, int quoted, int flag) {
+static char * preglob(const char *pattern, int quoted, int flag) {
 	flag |= RMESCAPE_GLOB;
 	if (quoted) {
 		flag |= RMESCAPE_QUOTED;
@@ -4554,8 +4544,7 @@ esclen(const char *start, const char *p) {
  * Expand shell variables and backquotes inside a here document.
  */
 
-static inline void
-expandhere(union node *arg, int fd)
+static void expandhere(union node *arg, int fd)
 {
 	herefd = fd;
 	expandarg(arg, (struct arglist *)NULL, 0);
@@ -5783,8 +5772,7 @@ msort(struct strlist *list, int len)
  * Returns true if the pattern matches the string.
  */
 
-static inline int
-patmatch(char *pattern, const char *string)
+static int patmatch(char *pattern, const char *string)
 {
 	return pmatch(preglob(pattern, 0, 0), string);
 }
@@ -5967,7 +5955,7 @@ static int pgetc2(void)
 	return c;
 }
 #else
-static inline int pgetc2(void)
+static int pgetc2(void)
 {
 	return pgetc_macro();
 }
@@ -5977,8 +5965,7 @@ static inline int pgetc2(void)
  * Read a line from the script.
  */
 
-static inline char *
-pfgets(char *line, int len)
+static char * pfgets(char *line, int len)
 {
 	char *p = line;
 	int nleft = len;
@@ -6007,7 +5994,7 @@ static char *cmdedit_prompt;
 #else
 static const char *cmdedit_prompt;
 #endif
-static inline void putprompt(const char *s)
+static void putprompt(const char *s)
 {
 #ifdef CONFIG_ASH_EXPAND_PRMT
 	free(cmdedit_prompt);
@@ -6017,14 +6004,13 @@ static inline void putprompt(const char *s)
 #endif
 }
 #else
-static inline void putprompt(const char *s)
+static void putprompt(const char *s)
 {
 	out2str(s);
 }
 #endif
 
-static inline int
-preadfd(void)
+static int preadfd(void)
 {
 	int nr;
 	char *buf =  parsefile->buf;
@@ -7120,8 +7106,7 @@ growjobtab(void)
  * Called with interrupts off.
  */
 
-static inline void
-forkchild(struct job *jp, union node *n, int mode)
+static void forkchild(struct job *jp, union node *n, int mode)
 {
 	int oldlvl;
 
@@ -7168,8 +7153,7 @@ forkchild(struct job *jp, union node *n, int mode)
 	jobless = 0;
 }
 
-static inline void
-forkparent(struct job *jp, union node *n, int mode, pid_t pid)
+static void forkparent(struct job *jp, union node *n, int mode, pid_t pid)
 {
 	TRACE(("In parent shell:  child = %d\n", pid));
 	if (!jp) {
@@ -7306,8 +7290,7 @@ waitforjob(struct job *jp)
  * and the jobs command may give out of date information.
  */
 
-static inline int
-waitproc(int block, int *status)
+static int waitproc(int block, int *status)
 {
 	int flags = 0;
 
@@ -8071,8 +8054,7 @@ readcmdfile(char *name)
  * search for the file, which is necessary to find sub-commands.
  */
 
-static inline char *
-find_dot_file(char *name)
+static char * find_dot_file(char *name)
 {
 	char *fullname;
 	const char *path = pathval();
@@ -8347,8 +8329,7 @@ growstackblock(void)
 	}
 }
 
-static inline void
-grabstackblock(size_t len)
+static void grabstackblock(size_t len)
 {
 	len = SHELL_ALIGN(len);
 	stacknxt += len;
@@ -8830,8 +8811,7 @@ optschanged(void)
 	setvimode(viflag);
 }
 
-static inline void
-minus_o(char *name, int val)
+static void minus_o(char *name, int val)
 {
 	int i;
 
@@ -10902,8 +10882,7 @@ static const char *const *findkwd(const char *s)
  * Open a file in noclobber mode.
  * The code was copied from bash.
  */
-static inline int
-noclobberopen(const char *fname)
+static int noclobberopen(const char *fname)
 {
 	int r, fd;
 	struct stat finfo, finfo2;
@@ -10962,8 +10941,7 @@ noclobberopen(const char *fname)
  * the pipe without forking.
  */
 
-static inline int
-openhere(union node *redir)
+static int openhere(union node *redir)
 {
 	int pip[2];
 	size_t len = 0;
@@ -11055,8 +11033,7 @@ eopen:
 	sh_error("cannot open %s: %s", fname, errmsg(errno, E_OPEN));
 }
 
-static inline void
-dupredirect(union node *redir, int f)
+static void dupredirect(union node *redir, int f)
 {
 	int fd = redir->nfile.fd;
 
@@ -12231,8 +12208,7 @@ exportcmd(int argc, char **argv)
  * "-" as a special case.
  */
 
-static inline void
-mklocal(char *name)
+static void mklocal(char *name)
 {
 	struct localvar *lvp;
 	struct var **vpp;
@@ -13186,7 +13162,7 @@ typedef unsigned char operator;
 
 #define NUMPTR (*numstackptr)
 
-static inline int tok_have_assign(operator op)
+static int tok_have_assign(operator op)
 {
 	operator prec = PREC(op);
 
@@ -13195,7 +13171,7 @@ static inline int tok_have_assign(operator op)
 			prec == PREC_PRE || prec == PREC_POST);
 }
 
-static inline int is_right_associativity(operator prec)
+static int is_right_associativity(operator prec)
 {
     return (prec == PREC(TOK_ASSIGN) || prec == PREC(TOK_EXPONENT) ||
 	    prec == PREC(TOK_CONDITIONAL));
@@ -13258,8 +13234,7 @@ static int arith_lookup_val(v_n_t *t)
 /* "applying" a token means performing it on the top elements on the integer
  * stack. For a unary operator it will only change the top element, but a
  * binary operator will pop two arguments and push a result */
-static inline int
-arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
+static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 {
 	v_n_t *numptr_m1;
 	arith_t numptr_val, rez;

@@ -285,7 +285,7 @@ struct built_in_command {
 };
 
 /* belongs in busybox.h */
-static inline int max(int a, int b) {
+static int max(int a, int b) {
 	return (a>b)?a:b;
 }
 
@@ -298,8 +298,14 @@ static void debug_printf(const char *format, ...)
 	vfprintf(stderr, format, args);
 	va_end(args);
 }
+/* broken, of course, but OK for testing */
+static char *indenter(int i)
+{
+	static char blanks[]="                                    ";
+	return &blanks[sizeof(blanks)-i-1];
+}
 #else
-static inline void debug_printf(const char *format ATTRIBUTE_UNUSED, ...) { }
+#define debug_printf(...) do {;} while(0);
 #endif
 #define final_printf debug_printf
 
@@ -345,7 +351,6 @@ static void mark_open(int fd);
 static void mark_closed(int fd);
 static void close_all(void);
 /*  "run" the final data structures: */
-static char *indenter(int i);
 static int free_pipe_list(struct pipe *head, int indent);
 static int free_pipe(struct pipe *pi, int indent);
 /*  really run the final data structures: */
@@ -847,7 +852,7 @@ static int static_peek(struct in_str *i)
 	return *i->p;
 }
 
-static inline void cmdedit_set_initial_prompt(void)
+static void cmdedit_set_initial_prompt(void)
 {
 #ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
 	PS1 = NULL;
@@ -858,7 +863,7 @@ static inline void cmdedit_set_initial_prompt(void)
 #endif
 }
 
-static inline void setup_prompt_string(int promptmode, char **prompt_str)
+static void setup_prompt_string(int promptmode, char **prompt_str)
 {
 	debug_printf("setup_prompt_string %d ",promptmode);
 #ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
@@ -1591,13 +1596,6 @@ static int run_list_real(struct pipe *pi)
 	return rcode;
 }
 
-/* broken, of course, but OK for testing */
-static char *indenter(int i)
-{
-	static char blanks[]="                                    ";
-	return &blanks[sizeof(blanks)-i-1];
-}
-
 /* return code is the exit status of the pipe */
 static int free_pipe(struct pipe *pi, int indent)
 {
@@ -1605,29 +1603,28 @@ static int free_pipe(struct pipe *pi, int indent)
 	struct child_prog *child;
 	struct redir_struct *r, *rnext;
 	int a, i, ret_code=0;
-	char *ind = indenter(indent);
 
 	if (pi->stopped_progs > 0)
 		return ret_code;
-	final_printf("%s run pipe: (pid %d)\n",ind,getpid());
+	final_printf("%s run pipe: (pid %d)\n",indenter(indent),getpid());
 	for (i=0; i<pi->num_progs; i++) {
 		child = &pi->progs[i];
-		final_printf("%s  command %d:\n",ind,i);
+		final_printf("%s  command %d:\n",indenter(indent),i);
 		if (child->argv) {
 			for (a=0,p=child->argv; *p; a++,p++) {
-				final_printf("%s   argv[%d] = %s\n",ind,a,*p);
+				final_printf("%s   argv[%d] = %s\n",indenter(indent),a,*p);
 			}
 			globfree(&child->glob_result);
 			child->argv=NULL;
 		} else if (child->group) {
-			final_printf("%s   begin group (subshell:%d)\n",ind, child->subshell);
+			final_printf("%s   begin group (subshell:%d)\n",indenter(indent), child->subshell);
 			ret_code = free_pipe_list(child->group,indent+3);
-			final_printf("%s   end group\n",ind);
+			final_printf("%s   end group\n",indenter(indent));
 		} else {
-			final_printf("%s   (nil)\n",ind);
+			final_printf("%s   (nil)\n",indenter(indent));
 		}
 		for (r=child->redirects; r; r=rnext) {
-			final_printf("%s   redirect %d%s", ind, r->fd, redir_table[r->type].descrip);
+			final_printf("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->type].descrip);
 			if (r->dup == -1) {
 				/* guard against the case >$FOO, where foo is unset or blank */
 				if (r->word.gl_pathv) {
@@ -1651,11 +1648,10 @@ static int free_pipe_list(struct pipe *head, int indent)
 {
 	int rcode=0;   /* if list has no members */
 	struct pipe *pi, *next;
-	char *ind = indenter(indent);
 	for (pi=head; pi; pi=next) {
-		final_printf("%s pipe reserved mode %d\n", ind, pi->r_mode);
+		final_printf("%s pipe reserved mode %d\n", indenter(indent), pi->r_mode);
 		rcode = free_pipe(pi, indent);
-		final_printf("%s pipe followup code %d\n", ind, pi->followup);
+		final_printf("%s pipe followup code %d\n", indenter(indent), pi->followup);
 		next=pi->next;
 		pi->next=NULL;
 		free(pi);

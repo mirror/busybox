@@ -88,7 +88,7 @@ struct Globalvars * Gptr;
 #define G (*Gptr)
 #endif
 
-static inline void iacflush(void)
+static void iacflush(void)
 {
 	write(G.netfd, G.iacbuf, G.iaclen);
 	G.iaclen = 0;
@@ -291,7 +291,7 @@ static void handlenetinput(int len)
 
 /* ******************************* */
 
-static inline void putiac(int c)
+static void putiac(int c)
 {
 	G.iacbuf[G.iaclen++] = c;
 }
@@ -428,13 +428,13 @@ static void do_linemode(void)
 
 /* ******************************* */
 
-static inline void to_notsup(char c)
+static void to_notsup(char c)
 {
 	if      (G.telwish == WILL)	putiac2(DONT, c);
 	else if (G.telwish == DO)	putiac2(WONT, c);
 }
 
-static inline void to_echo(void)
+static void to_echo(void)
 {
 	/* if server requests ECHO, don't agree */
 	if      (G.telwish == DO) {	putiac2(WONT, TELOPT_ECHO);	return; }
@@ -461,7 +461,7 @@ static inline void to_echo(void)
 	WriteCS(1, "\r\n");  /* sudden modec */
 }
 
-static inline void to_sga(void)
+static void to_sga(void)
 {
 	/* daemon always sends will/wont, client do/dont */
 
@@ -483,7 +483,7 @@ static inline void to_sga(void)
 }
 
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
-static inline void to_ttype(void)
+static void to_ttype(void)
 {
 	/* Tell server we will (or won't) do TTYPE */
 
@@ -497,7 +497,7 @@ static inline void to_ttype(void)
 #endif
 
 #ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
-static inline void to_new_environ(void)
+static void to_new_environ(void)
 {
 	/* Tell server we will (or will not) do AUTOLOGIN */
 
@@ -511,7 +511,7 @@ static inline void to_new_environ(void)
 #endif
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-static inline void to_naws(void)
+static void to_naws(void)
 {
 	/* Tell server we will do NAWS */
 	putiac2(WILL, TELOPT_NAWS);

@@ -115,7 +115,7 @@ enum TarFileType {
 typedef enum TarFileType TarFileType;
 
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
-static inline void addHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr,
+static void addHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr,
 					struct stat *statbuf,
 					const char *name)
 {
@@ -149,7 +149,7 @@ static void freeHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr)
 }
 
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
-static inline HardLinkInfo *findHardLinkInfo(HardLinkInfo * hlInfo, struct stat *statbuf)
+static HardLinkInfo *findHardLinkInfo(HardLinkInfo * hlInfo, struct stat *statbuf)
 {
 	while (hlInfo) {
 		if ((statbuf->st_ino == hlInfo->ino) && (statbuf->st_dev == hlInfo->dev))
@@ -194,7 +194,7 @@ static int putOctal(char *cp, int len, long value)
 }
 
 /* Write out a tar header for the specified file/directory/whatever */
-static inline int writeTarHeader(struct TarBallInfo *tbInfo,
+static int writeTarHeader(struct TarBallInfo *tbInfo,
 		const char *header_name, const char *real_name, struct stat *statbuf)
 {
 	long chksum = 0;
@@ -294,7 +294,7 @@ static inline int writeTarHeader(struct TarBallInfo *tbInfo,
 }
 
 # ifdef CONFIG_FEATURE_TAR_FROM
-static inline int exclude_file(const llist_t *excluded_files, const char *file)
+static int exclude_file(const llist_t *excluded_files, const char *file)
 {
 	while (excluded_files) {
 		if (excluded_files->data[0] == '/') {
@@ -411,7 +411,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	return (TRUE);
 }
 
-static inline int writeTarFile(const int tar_fd, const int verboseFlag,
+static int writeTarFile(const int tar_fd, const int verboseFlag,
 	const unsigned long dereferenceFlag, const llist_t *include,
 	const llist_t *exclude, const int gzip)
 {

@@ -1945,7 +1945,7 @@ static void arch_create_got(struct obj_file *f)
 /*======================================================================*/
 
 /* Standard ELF hash function.  */
-static inline unsigned long obj_elf_hash_n(const char *name, unsigned long n)
+static unsigned long obj_elf_hash_n(const char *name, unsigned long n)
 {
 	unsigned long h = 0;
 	unsigned long g;

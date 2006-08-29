@@ -247,13 +247,13 @@ static void goto_new_line(void)
 }
 
 
-static inline void out1str(const char *s)
+static void out1str(const char *s)
 {
 	if ( s )
 		fputs(s, stdout);
 }
 
-static inline void beep(void)
+static void beep(void)
 {
 	putchar('\007');
 }

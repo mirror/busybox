@@ -222,7 +222,7 @@ static unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
 static int used_good_blocks;
 static unsigned long req_nr_inodes;
 
-static inline int bit(char * a,unsigned int i)
+static int bit(char * a,unsigned int i)
 {
 	  return (a[i >> 3] & (1<<(i & 7))) != 0;
 }
@@ -240,7 +240,7 @@ static inline int bit(char * a,unsigned int i)
  * an already mounted partition.  Code adapted from mke2fs, Copyright
  * (C) 1994 Theodore Ts'o.  Also licensed under GPL.
  */
-static inline void check_mount(void)
+static void check_mount(void)
 {
 	FILE *f;
 	struct mntent *mnt;
@@ -268,7 +268,7 @@ static long valid_offset(int fd, int offset)
 	return 1;
 }
 
-static inline int count_blocks(int fd)
+static int count_blocks(int fd)
 {
 	int high, low;
 
@@ -287,7 +287,7 @@ static inline int count_blocks(int fd)
 	return (low + 1);
 }
 
-static inline int get_size(const char *file)
+static int get_size(const char *file)
 {
 	int fd;
 	long size;
@@ -303,7 +303,7 @@ static inline int get_size(const char *file)
 	return size;
 }
 
-static inline void write_tables(void)
+static void write_tables(void)
 {
 	/* Mark the super block valid. */
 	Super.s_state |= MINIX_VALID_FS;
@@ -353,7 +353,7 @@ static int get_free_block(void)
 	return blk;
 }
 
-static inline void mark_good_blocks(void)
+static void mark_good_blocks(void)
 {
 	int blk;
 
@@ -371,7 +371,7 @@ static int next(int zone)
 	return 0;
 }
 
-static inline void make_bad_inode(void)
+static void make_bad_inode(void)
 {
 	struct minix_inode *inode = &Inode[MINIX_BAD_INO];
 	int i, j, zone;
@@ -422,7 +422,7 @@ static inline void make_bad_inode(void)
 }
 
 #ifdef CONFIG_FEATURE_MINIX2
-static inline void make_bad_inode2(void)
+static void make_bad_inode2(void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_BAD_INO];
 	int i, j, zone;
@@ -472,7 +472,7 @@ static inline void make_bad_inode2(void)
 }
 #endif
 
-static inline void make_root_inode(void)
+static void make_root_inode(void)
 {
 	struct minix_inode *inode = &Inode[MINIX_ROOT_INO];
 
@@ -495,7 +495,7 @@ static inline void make_root_inode(void)
 }
 
 #ifdef CONFIG_FEATURE_MINIX2
-static inline void make_root_inode2(void)
+static void make_root_inode2(void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_ROOT_INO];
 
@@ -518,7 +518,7 @@ static inline void make_root_inode2(void)
 }
 #endif
 
-static inline void setup_tables(void)
+static void setup_tables(void)
 {
 	int i;
 	unsigned long inodes;
@@ -594,7 +594,7 @@ static inline void setup_tables(void)
  * Perform a test of a block; return the number of
  * blocks readable/writable.
  */
-static inline long do_check(char *buffer, int try, unsigned int current_block)
+static long do_check(char *buffer, int try, unsigned int current_block)
 {
 	long got;
 

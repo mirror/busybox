@@ -64,7 +64,7 @@ static void replyError(int s, char *buf);
 static const char *nobodystr = "nobody"; /* this needs to be declared like this */
 static char *bind_ip_address = "0.0.0.0";
 
-static inline void movefd(int from, int to)
+static void movefd(int from, int to)
 {
 	if (from != to) {
 		dup2(from, to);
@@ -108,7 +108,7 @@ static void handlexitsigs(int signum)
 }
 
 /* May succeed. If not, won't care. */
-static inline void writepid(uid_t nobody, uid_t nogrp)
+static void writepid(uid_t nobody, uid_t nogrp)
 {
 	char buf[24];
 	int fd = open(PIDFILE, O_WRONLY|O_CREAT|O_TRUNC, 0664);

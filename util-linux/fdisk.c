@@ -1631,13 +1631,13 @@ alpha_bootblock_checksum(char *boot)
 #endif /* OSF_LABEL */
 
 #if defined(CONFIG_FEATURE_SGI_LABEL) || defined(CONFIG_FEATURE_SUN_LABEL)
-static inline unsigned short
+static unsigned short
 __swap16(unsigned short x)
 {
 	return (((uint16_t)(x) & 0xFF) << 8) | (((uint16_t)(x) & 0xFF00) >> 8);
 }
 
-static inline uint32_t
+static uint32_t
 __swap32(uint32_t x)
 {
 	return (((x & 0xFF) << 24) |
@@ -3919,7 +3919,7 @@ get_sectorsize(void)
 	}
 }
 
-static inline void
+static void
 get_kernel_geometry(void)
 {
 	struct hd_geometry geometry;

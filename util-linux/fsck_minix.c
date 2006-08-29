@@ -247,7 +247,7 @@ static void recursive_check(unsigned int ino);
 static void recursive_check2(unsigned int ino);
 #endif
 
-static inline int bit(char *a, unsigned int i)
+static int bit(char *a, unsigned int i)
 {
 	  return (a[i >> 3] & (1<<(i & 7))) != 0;
 }
@@ -282,7 +282,7 @@ static char *name_component[MAX_DEPTH+1];
 
 /* Wed Feb  9 15:17:06 MST 2000 */
 /* dynamically allocate name_list (instead of making it static) */
-static inline void alloc_current_name(void)
+static void alloc_current_name(void)
 {
 	current_name = xmalloc(MAX_DEPTH * (BUFSIZ + 1));
 	current_name[0] = '/';
@@ -293,7 +293,7 @@ static inline void alloc_current_name(void)
 #ifdef CONFIG_FEATURE_CLEAN_UP
 /* execute this atexit() to deallocate name_list[] */
 /* piptigger was here */
-static inline void free_current_name(void)
+static void free_current_name(void)
 {
 	free(current_name);
 }

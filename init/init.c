@@ -173,10 +173,7 @@ static void loop_forever(void)
 #if ENABLE_DEBUG_INIT
 #define messageD message
 #else
-static inline void messageD(int ATTRIBUTE_UNUSED device,
-				const char ATTRIBUTE_UNUSED *fmt, ...)
-{
-}
+#define messageD(...)  do {;} while(0);
 #endif
 static void message(int device, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
