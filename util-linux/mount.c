@@ -253,8 +253,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	return rc;
 }
 
-
-// Mount one directory.  Handles NFS, loopback, autobind, and filesystem type
+// Mount one directory.  Handles CIFS, NFS, loopback, autobind, and filesystem type
 // detection.  Returns 0 for success, nonzero for failure.
 
 static int singlemount(struct mntent *mp, int ignore_busy)
@@ -270,6 +269,50 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 	if (mp->mnt_type && !strcmp(mp->mnt_type,"auto")) mp->mnt_type = 0;
 
+	// Might this be an CIFS filesystem?
+
+	if(ENABLE_FEATURE_MOUNT_CIFS &&
+		(!mp->mnt_type || !strcmp(mp->mnt_type,"cifs")) &&
+		(mp->mnt_fsname[0]==mp->mnt_fsname[1] && (mp->mnt_fsname[0]=='/' || mp->mnt_fsname[0]=='\\')))
+	{
+		struct hostent *he;
+		char ip[32], *s;
+
+		rc = 1;
+		// Replace '/' with '\' and verify that unc points to "//server/share".
+
+		for (s = mp->mnt_fsname; *s; ++s)
+			if (*s == '/') *s = '\\';
+
+		// get server IP
+
+		s = strrchr(mp->mnt_fsname, '\\');
+		if (s == mp->mnt_fsname+1) goto report_error;
+		*s = 0;
+	   	he = gethostbyname(mp->mnt_fsname+2);
+		*s = '\\';
+		if (!he) goto report_error;
+
+		// Insert ip=... option into string flags.  (NOTE: Add IPv6 support.)
+
+		sprintf(ip, "ip=%d.%d.%d.%d", he->h_addr[0], he->h_addr[1],
+				he->h_addr[2], he->h_addr[3]);
+		parse_mount_options(ip, &filteropts);
+
+		// compose new unc '\\server-ip\share'
+
+		s = xasprintf("\\\\%s\\%s",ip+3,strchr(mp->mnt_fsname+2,'\\'));
+		if (ENABLE_FEATURE_CLEAN_UP) free(mp->mnt_fsname);
+		mp->mnt_fsname = s;
+
+		// lock is required
+		vfsflags |= MS_MANDLOCK;
+
+		mp->mnt_type = "cifs";
+		rc = mount_it_now(mp, vfsflags, filteropts);
+		goto report_error;
+	}
+
 	// Might this be an NFS filesystem?
 
 	if (ENABLE_FEATURE_MOUNT_NFS &&
@@ -278,15 +321,12 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	{
 		if (nfsmount(mp->mnt_fsname, mp->mnt_dir, &vfsflags, &filteropts, 1)) {
 			bb_perror_msg("nfsmount failed");
-			goto report_error;
 		} else {
 			// Strangely enough, nfsmount() doesn't actually mount() anything.
 			mp->mnt_type = "nfs";
 			rc = mount_it_now(mp, vfsflags, filteropts);
-			if (ENABLE_FEATURE_CLEAN_UP) free(filteropts);
-			
-			goto report_error;
 		}
+		goto report_error;
 	}
 
 	// Look at the file.  (Not found isn't a failure for remount, or for
@@ -344,8 +384,6 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		}
 	}
 
-	if (ENABLE_FEATURE_CLEAN_UP) free(filteropts);
-
 	// If mount failed, clean up loop file (if any).
 
 	if (ENABLE_FEATURE_MOUNT_LOOP && rc && loopFile) {
@@ -355,7 +393,10 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 			free(mp->mnt_fsname);
 		}
 	}
+
 report_error:
+	if (ENABLE_FEATURE_CLEAN_UP) free(filteropts);
+
 	if (rc && errno == EBUSY && ignore_busy) rc = 0;
 	if (rc < 0)
 		bb_perror_msg("Mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);

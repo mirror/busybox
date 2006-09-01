@@ -372,6 +372,12 @@ config CONFIG_FEATURE_MOUNT_NFS
 	help
 	  Enable mounting of NFS file systems.
 
+config CONFIG_FEATURE_MOUNT_CIFS
+	bool "Support mounting CIFS/SMB file systems"
+	default n
+	depends on CONFIG_MOUNT
+	help
+	  Enable support for samba mounts.
 config CONFIG_FEATURE_MOUNT_FLAGS
 	depends on CONFIG_MOUNT
 	bool "Support lots of -o flags in mount."
