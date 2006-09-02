@@ -2272,6 +2272,7 @@ USE_FEATURE_MDEV_CONFIG( \
 	"Options:\n" \
 	"\t-c COUNT\tSend only COUNT pings\n" \
 	"\t-s SIZE\t\tSend SIZE data bytes in packets (default=56)\n" \
+	"\t-I IPADDR\tUse IPADDR as source address\n" \
 	"\t-q\t\tQuiet mode, only displays output at start\n" \
 	"\t\t\tand when finished"
 #endif

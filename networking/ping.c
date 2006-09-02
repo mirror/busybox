@@ -155,6 +155,7 @@ int ping_main(int argc, char **argv)
 #else /* ! CONFIG_FEATURE_FANCY_PING */
 /* full(er) version */
 static struct sockaddr_in pingaddr;
+static struct sockaddr_in sourceaddr;
 static int pingsock = -1;
 static int datalen; /* intentionally uninitialized to work around gcc bug */
 
@@ -264,16 +265,15 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 
 	gettimeofday(&tv, NULL);
 
-	/* check IP header */
-	iphdr = (struct iphdr *) buf;
-	hlen = iphdr->ihl << 2;
 	/* discard if too short */
 	if (sz < (datalen + ICMP_MINLEN))
 		return;
 
+	/* check IP header */
+	iphdr = (struct iphdr *) buf;
+	hlen = iphdr->ihl << 2;
 	sz -= hlen;
 	icmppkt = (struct icmp *) (buf + hlen);
-
 	if (icmppkt->icmp_id != myid)
 		return;				/* not our ping */
 
@@ -329,12 +329,17 @@ static void ping(const char *host)
 
 	pingsock = create_icmp_socket();
 
+	if (sourceaddr.sin_addr.s_addr) {
+		if (bind(pingsock, (struct sockaddr*)&sourceaddr, sizeof(sourceaddr)) == -1)
+			bb_error_msg_and_die("could not bind to address");
+	}
+
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
 
 	pingaddr.sin_family = AF_INET;
 	hostent = xgethostbyname(host);
 	if (hostent->h_addrtype != AF_INET)
-		bb_error_msg_and_die("unknown address type; only AF_INET is currently supported.");
+		bb_error_msg_and_die("unknown address type; only AF_INET is currently supported");
 
 	memcpy(&pingaddr.sin_addr, hostent->h_addr, sizeof(pingaddr.sin_addr));
 
@@ -348,10 +353,14 @@ static void ping(const char *host)
 	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, (char *) &sockopt,
 			   sizeof(sockopt));
 
-	printf("PING %s (%s): %d data bytes\n",
-		   hostent->h_name,
-		   inet_ntoa(*(struct in_addr *) &pingaddr.sin_addr.s_addr),
-		   datalen);
+	printf("PING %s (%s)",
+			hostent->h_name,
+			inet_ntoa(*(struct in_addr *) &pingaddr.sin_addr.s_addr));
+	if (sourceaddr.sin_addr.s_addr) {
+		printf(" from %s",
+			inet_ntoa(*(struct in_addr *) &sourceaddr.sin_addr.s_addr));
+	}
+	printf(": %d data bytes\n", datalen);
 
 	signal(SIGINT, pingstats);
 
@@ -378,6 +387,27 @@ static void ping(const char *host)
 	pingstats(0);
 }
 
+/* TODO: consolidate ether-wake.c, dnsd.c, ifupdown.c, nslookup.c
+ * versions of below thing. BTW we have far too many "%u.%u.%u.%u" too...
+*/
+static int parse_nipquad(const char *str, struct sockaddr_in* addr)
+{
+	char dummy;
+	unsigned i1, i2, i3, i4;
+	if (sscanf(str, "%u.%u.%u.%u%c",
+			   &i1, &i2, &i3, &i4, &dummy) == 4
+	&& ( (i1|i2|i3|i4) <= 0xff )
+	) {
+		uint8_t* ptr = (uint8_t*)&addr->sin_addr;
+		ptr[0] = i1;
+		ptr[1] = i2;
+		ptr[2] = i3;
+		ptr[3] = i4;
+		return 0;
+	}
+	return 1; /* error */
+}
+
 int ping_main(int argc, char **argv)
 {
 	char *thisarg;
@@ -386,7 +416,6 @@ int ping_main(int argc, char **argv)
 
 	argc--;
 	argv++;
-	options = 0;
 	/* Parse any options */
 	while (argc >= 1 && **argv == '-') {
 		thisarg = *argv;
@@ -406,6 +435,18 @@ int ping_main(int argc, char **argv)
 				bb_show_usage();
 			argv++;
 			datalen = atoi(*argv);
+			break;
+		case 'I':
+			if (--argc <= 0)
+				bb_show_usage();
+			argv++;
+/* ping6 accepts iface too:
+			if_index = if_nametoindex(*argv);
+			if (!if_index) ...
+   make it true for ping too. TODO.
+*/
+			if (parse_nipquad(*argv, &sourceaddr))
+				bb_show_usage();
 			break;
 		default:
 			bb_show_usage();

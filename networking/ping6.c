@@ -265,7 +265,6 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 		return;
 
 	icmppkt = (struct icmp6_hdr *) packet;
-
 	if (icmppkt->icmp6_id != myid)
 		return;				/* not our ping */
 
@@ -423,7 +422,6 @@ int ping6_main(int argc, char **argv)
 
 	argc--;
 	argv++;
-	options = 0;
 	/* Parse any options */
 	while (argc >= 1 && **argv == '-') {
 		thisarg = *argv;
