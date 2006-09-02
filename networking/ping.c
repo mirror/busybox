@@ -330,8 +330,7 @@ static void ping(const char *host)
 	pingsock = create_icmp_socket();
 
 	if (sourceaddr.sin_addr.s_addr) {
-		if (bind(pingsock, (struct sockaddr*)&sourceaddr, sizeof(sourceaddr)) == -1)
-			bb_error_msg_and_die("could not bind to address");
+		xbind(pingsock, (struct sockaddr*)&sourceaddr, sizeof(sourceaddr));
 	}
 
 	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
