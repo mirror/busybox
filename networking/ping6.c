@@ -198,7 +198,7 @@ static void sendping(int junk)
 	pkt->icmp6_type = ICMP6_ECHO_REQUEST;
 	pkt->icmp6_code = 0;
 	pkt->icmp6_cksum = 0;
-	pkt->icmp6_seq = ntransmitted++;
+	pkt->icmp6_seq = SWAP_BE16(ntransmitted++);
 	pkt->icmp6_id = myid;
 	CLR(pkt->icmp6_seq % MAX_DUP_CHK);
 
