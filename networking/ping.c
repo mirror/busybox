@@ -416,7 +416,7 @@ int ping_main(int argc, char **argv)
 	if (argc < 1)
 		bb_show_usage();
 
-	myid = getpid() & 0xFFFF;
+	myid = (int16_t) getpid();
 	ping(*argv);
 	return EXIT_SUCCESS;
 }

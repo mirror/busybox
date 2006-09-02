@@ -146,7 +146,7 @@ int ping6_main(int argc, char **argv)
 static struct sockaddr_in6 pingaddr;
 static int pingsock = -1;
 static int datalen; /* intentionally uninitialized to work around gcc bug */
-static char* ifname;
+static int if_index;
 
 static long ntransmitted, nreceived, nrepeats, pingcount;
 static int myid, options;
@@ -367,10 +367,8 @@ static void ping(const char *host)
 	setsockopt(pingsock, SOL_IPV6, IPV6_HOPLIMIT, (char *) &sockopt,
 			   sizeof(sockopt));
 
-	if (ifname) {
-		if ((pingaddr.sin6_scope_id = if_nametoindex(ifname)) == 0)
-			bb_error_msg_and_die("%s: invalid interface name", ifname);
-	}
+	if (if_index)
+		pingaddr.sin6_scope_id = if_index;
 
 	printf("PING %s (%s): %d data bytes\n",
 	           hostent->h_name,
@@ -455,7 +453,10 @@ int ping6_main(int argc, char **argv)
 			if (--argc <= 0)
 				bb_show_usage();
 			argv++;
-			ifname = *argv;
+			if_index = if_nametoindex(*argv);
+			if (!if_index)
+				bb_error_msg_and_die(
+					"%s: invalid interface name", *argv);
 			break;
 		default:
 			bb_show_usage();
@@ -466,7 +467,7 @@ int ping6_main(int argc, char **argv)
 	if (argc < 1)
 		bb_show_usage();
 
-	myid = getpid() & 0xFFFF;
+	myid = (int16_t) getpid();
 	ping(*argv);
 	return EXIT_SUCCESS;
 }
