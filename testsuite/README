@@ -1,3 +1,6 @@
+Update: doesn't work as described. Try "make check" from parent dir...
+* * *
+
 To run the test suite, change to this directory and run "./runtest".  It will
 run all of the test cases, and list those with unexpected outcomes.  Adding the
 -v option will cause it to show expected outcomes as well.  To only run the test

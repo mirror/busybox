@@ -13,7 +13,7 @@
 const llist_t *find_list_entry(const llist_t *list, const char *filename)
 {
 	while (list) {
-		if (fnmatch(list->data, filename, 0) == 0) {
+		if (fnmatch(list->data, filename, FNM_LEADING_DIR) == 0) {
 			return (list);
 		}
 		list = list->link;
