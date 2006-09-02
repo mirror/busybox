@@ -68,7 +68,7 @@ static void ping(const char *host);
 #ifndef CONFIG_FEATURE_FANCY_PING6
 static struct hostent *h;
 
-void noresp(int ign)
+static void noresp(int ign)
 {
 	printf("No response from %s\n", h->h_name);
 	exit(EXIT_FAILURE);
@@ -101,8 +101,10 @@ static void ping(const char *host)
 	c = sendto(pingsock, packet, DEFDATALEN + sizeof (struct icmp6_hdr), 0,
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in6));
 
-	if (c < 0 || c != sizeof(packet))
+	if (c < 0 || c != sizeof(packet)) {
+		if (ENABLE_FEATURE_CLEAN_UP) close(pingsock);
 		bb_perror_msg_and_die("sendto");
+	}
 
 	signal(SIGALRM, noresp);
 	alarm(5);					/* give the host 5000ms to respond */
@@ -124,6 +126,7 @@ static void ping(const char *host)
 				break;
 		}
 	}
+	if (ENABLE_FEATURE_CLEAN_UP) close(pingsock);
 	printf("%s is alive!\n", h->h_name);
 	return;
 }
@@ -150,10 +153,7 @@ static int myid, options;
 static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
-# ifdef CONFIG_FEATURE_FANCY_PING
-extern
-# endif
-	struct hostent *hostent;
+static struct hostent *hostent;
 
 static void sendping(int);
 static void pingstats(int);
@@ -267,10 +267,10 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 	icmppkt = (struct icmp6_hdr *) packet;
 
 	if (icmppkt->icmp6_id != myid)
-	    return;				/* not our ping */
+		return;				/* not our ping */
 
 	if (icmppkt->icmp6_type == ICMP6_ECHO_REPLY) {
-	    ++nreceived;
+		++nreceived;
 		tp = (struct timeval *) &icmppkt->icmp6_data8[4];
 
 		if ((tv.tv_usec -= tp->tv_usec) < 0) {
@@ -339,7 +339,7 @@ static void ping(const char *host)
 		struct icmp6_filter filt;
 		if (!(options & O_VERBOSE)) {
 			ICMP6_FILTER_SETBLOCKALL(&filt);
-				ICMP6_FILTER_SETPASS(ICMP6_ECHO_REPLY, &filt);
+			ICMP6_FILTER_SETPASS(ICMP6_ECHO_REPLY, &filt);
 		} else {
 			ICMP6_FILTER_SETPASSALL(&filt);
 		}
@@ -374,8 +374,8 @@ static void ping(const char *host)
 
 	printf("PING %s (%s): %d data bytes\n",
 	           hostent->h_name,
-			   inet_ntop(AF_INET6, &pingaddr.sin6_addr,
-						 buf, sizeof(buf)),
+		   inet_ntop(AF_INET6, &pingaddr.sin6_addr,
+			buf, sizeof(buf)),
 		   datalen);
 
 	signal(SIGINT, pingstats);
@@ -384,18 +384,18 @@ static void ping(const char *host)
 	sendping(0);
 
 	/* listen for replies */
-	msg.msg_name=&from;
-	msg.msg_namelen=sizeof(from);
-	msg.msg_iov=&iov;
-	msg.msg_iovlen=1;
-	msg.msg_control=control_buf;
-	iov.iov_base=packet;
-	iov.iov_len=sizeof(packet);
+	msg.msg_name = &from;
+	msg.msg_namelen = sizeof(from);
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	msg.msg_control = control_buf;
+	iov.iov_base = packet;
+	iov.iov_len = sizeof(packet);
 	while (1) {
 		int c;
 		struct cmsghdr *cmsgptr = NULL;
-		int hoplimit=-1;
-		msg.msg_controllen=sizeof(control_buf);
+		int hoplimit = -1;
+		msg.msg_controllen = sizeof(control_buf);
 
 		if ((c = recvmsg(pingsock, &msg, 0)) < 0) {
 			if (errno == EINTR)
@@ -407,7 +407,7 @@ static void ping(const char *host)
 			 cmsgptr = CMSG_NXTHDR(&msg, cmsgptr)) {
 			if (cmsgptr->cmsg_level == SOL_IPV6 &&
 				cmsgptr->cmsg_type == IPV6_HOPLIMIT ) {
-				hoplimit=*(int*)CMSG_DATA(cmsgptr);
+				hoplimit = *(int*)CMSG_DATA(cmsgptr);
 			}
 		}
 		unpack(packet, c, &from, hoplimit);
@@ -441,19 +441,19 @@ int ping6_main(int argc, char **argv)
 			break;
 		case 'c':
 			if (--argc <= 0)
-			        bb_show_usage();
+				bb_show_usage();
 			argv++;
 			pingcount = atoi(*argv);
 			break;
 		case 's':
 			if (--argc <= 0)
-			        bb_show_usage();
+				bb_show_usage();
 			argv++;
 			datalen = atoi(*argv);
 			break;
 		case 'I':
 			if (--argc <= 0)
-			        bb_show_usage();
+				bb_show_usage();
 			argv++;
 			ifname = *argv;
 			break;

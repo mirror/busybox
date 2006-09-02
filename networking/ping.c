@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-
 enum {
 	DEFDATALEN = 56,
 	MAXIPLEN = 60,
@@ -78,7 +77,8 @@ static int in_cksum(unsigned short *buf, int sz)
 
 /* simple version */
 #ifndef CONFIG_FEATURE_FANCY_PING
-static char *hostname = NULL;
+static char *hostname;
+
 static void noresp(int ign)
 {
 	printf("No response from %s\n", hostname);
@@ -163,10 +163,7 @@ static int myid, options;
 static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
-#ifndef CONFIG_FEATURE_FANCY_PING6
-static
-#endif
-	struct hostent *hostent;
+static struct hostent *hostent;
 
 static void sendping(int);
 static void pingstats(int);
@@ -278,11 +275,11 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 	icmppkt = (struct icmp *) (buf + hlen);
 
 	if (icmppkt->icmp_id != myid)
-	    return;				/* not our ping */
+		return;				/* not our ping */
 
 	if (icmppkt->icmp_type == ICMP_ECHOREPLY) {
 		u_int16_t recv_seq = ntohs(icmppkt->icmp_seq);
-	    ++nreceived;
+		++nreceived;
 		tp = (struct timeval *) icmppkt->icmp_data;
 
 		if ((tv.tv_usec -= tp->tv_usec) < 0) {
@@ -352,7 +349,7 @@ static void ping(const char *host)
 			   sizeof(sockopt));
 
 	printf("PING %s (%s): %d data bytes\n",
-	           hostent->h_name,
+		   hostent->h_name,
 		   inet_ntoa(*(struct in_addr *) &pingaddr.sin_addr.s_addr),
 		   datalen);
 
@@ -400,13 +397,13 @@ int ping_main(int argc, char **argv)
 			break;
 		case 'c':
 			if (--argc <= 0)
-			        bb_show_usage();
+				bb_show_usage();
 			argv++;
 			pingcount = atoi(*argv);
 			break;
 		case 's':
 			if (--argc <= 0)
-			        bb_show_usage();
+				bb_show_usage();
 			argv++;
 			datalen = atoi(*argv);
 			break;
