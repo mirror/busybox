@@ -198,7 +198,7 @@ static void sendping(int junk)
 	pkt->icmp6_type = ICMP6_ECHO_REQUEST;
 	pkt->icmp6_code = 0;
 	pkt->icmp6_cksum = 0;
-	pkt->icmp6_seq = SWAP_BE16(ntransmitted++);
+	pkt->icmp6_seq = htons(ntransmitted++);
 	pkt->icmp6_id = myid;
 	CLR(pkt->icmp6_seq % MAX_DUP_CHK);
 
@@ -234,7 +234,7 @@ static void sendping(int junk)
 #ifndef MLD_LISTENER_REDUCTION
 # define MLD_LISTENER_REDUCTION ICMP6_MEMBERSHIP_REDUCTION
 #endif
-static char *icmp6_type_name (int id)
+static char *icmp6_type_name(int id)
 {
 	switch (id) {
 	case ICMP6_DST_UNREACH:				return "Destination Unreachable";
@@ -309,7 +309,7 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 	} else
 		if (icmppkt->icmp6_type != ICMP6_ECHO_REQUEST)
 			bb_error_msg("Warning: Got ICMP %d (%s)",
-					icmppkt->icmp6_type, icmp6_type_name (icmppkt->icmp6_type));
+					icmppkt->icmp6_type, icmp6_type_name(icmppkt->icmp6_type));
 }
 
 static void ping(const char *host)

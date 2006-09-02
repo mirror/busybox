@@ -209,7 +209,7 @@ static void sendping(int junk)
 	pkt->icmp_type = ICMP_ECHO;
 	pkt->icmp_code = 0;
 	pkt->icmp_cksum = 0;
-	pkt->icmp_seq = SWAP_BE16(ntransmitted++);
+	pkt->icmp_seq = htons(ntransmitted++);
 	pkt->icmp_id = myid;
 	CLR(ntohs(pkt->icmp_seq) % MAX_DUP_CHK);
 
@@ -235,7 +235,7 @@ static void sendping(int junk)
 	}
 }
 
-static char *icmp_type_name (int id)
+static char *icmp_type_name(int id)
 {
 	switch (id) {
 	case ICMP_ECHOREPLY:		return "Echo Reply";
@@ -318,7 +318,7 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 	} else
 		if (icmppkt->icmp_type != ICMP_ECHO)
 			bb_error_msg("Warning: Got ICMP %d (%s)",
-					icmppkt->icmp_type, icmp_type_name (icmppkt->icmp_type));
+					icmppkt->icmp_type, icmp_type_name(icmppkt->icmp_type));
 	fflush(stdout);
 }
 
