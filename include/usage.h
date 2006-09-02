@@ -3396,7 +3396,8 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 
 #define wget_trivial_usage \
 	"[-c|--continue] [-q|--quiet] [-O|--output-document file]\n" \
-	"\t\t[--header 'header: value'] [-Y|--proxy on/off] [-P DIR] url"
+	"\t\t[--header 'header: value'] [-Y|--proxy on/off] [-P DIR]\n" \
+	"\t\t[-U|--user-agent agent] url"
 #define wget_full_usage \
 	"wget retrieves files via HTTP or FTP\n\n" \
 	"Options:\n" \
@@ -3404,6 +3405,7 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\t-q\tquiet mode - do not print\n" \
 	"\t-P\tSet directory prefix to DIR\n" \
 	"\t-O\tsave to filename ('-' for stdout)\n" \
+	"\t-U\tadjust 'User-Agent' field\n" \
 	"\t-Y\tuse proxy ('on' or 'off')"
 
 #define which_trivial_usage \

@@ -132,6 +132,7 @@ static char *base64enc(unsigned char *p, char *buf, int len) {
 #define WGET_OPT_HEADER	16
 #define WGET_OPT_PREFIX	32
 #define WGET_OPT_PROXY	64
+#define WGET_OPT_USER_AGENT	128
 
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 static const struct option wget_long_options[] = {
@@ -142,6 +143,7 @@ static const struct option wget_long_options[] = {
 	{ "header",          1, NULL, 131 },
 	{ "directory-prefix",1, NULL, 'P' },
 	{ "proxy",           1, NULL, 'Y' },
+	{ "user-agent",      1, NULL, 'U' },
 	{ 0,                 0, 0, 0 }
 };
 #endif
@@ -172,6 +174,7 @@ int wget_main(int argc, char **argv)
 	int quiet_flag = FALSE;		/* Be verry, verry quiet...	    */
 	int use_proxy = 1;		/* Use proxies if env vars are set  */
 	char *proxy_flag = "on";	/* Use proxies if env vars are set  */
+	char *user_agent = "Wget"; /* Content of the "User-Agent" header field */
 
 	/*
 	 * Crack command line.
@@ -180,9 +183,9 @@ int wget_main(int argc, char **argv)
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 	bb_applet_long_options = wget_long_options;
 #endif
-	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:",
+	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:U:",
 					&fname_out, &headers_llist,
-					&dir_prefix, &proxy_flag);
+					&dir_prefix, &proxy_flag, &user_agent);
 	if (opt & WGET_OPT_CONTINUE) {
 		++do_continue;
 	}
@@ -317,7 +320,8 @@ int wget_main(int argc, char **argv)
 				fprintf(sfp, "GET /%s HTTP/1.1\r\n", target.path);
 			}
 
-			fprintf(sfp, "Host: %s\r\nUser-Agent: Wget\r\n", target.host);
+			fprintf(sfp, "Host: %s\r\nUser-Agent: %s\r\n", target.host,
+			        user_agent);
 
 #ifdef CONFIG_FEATURE_WGET_AUTHENTICATION
 			if (target.user) {
