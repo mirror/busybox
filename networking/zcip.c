@@ -72,9 +72,8 @@ enum {
 	DEFEND
 };
 
-#define DBG(fmt,args...) \
+#define VDBG(fmt,args...) \
 	do { } while (0)
-#define VDBG	DBG
 
 static unsigned long opts;
 #define FOREGROUND (opts & 1)
@@ -86,7 +85,7 @@ static unsigned long opts;
  */
 static void pick(struct in_addr *ip)
 {
-	unsigned	tmp;
+	unsigned tmp;
 
 	/* use cheaper math than lrand48() mod N */
 	do {
@@ -95,10 +94,12 @@ static void pick(struct in_addr *ip)
 	ip->s_addr = htonl((LINKLOCAL_ADDR + 0x0100) + tmp);
 }
 
+/* TODO: we need a flag to direct bb_[p]error_msg output to stderr. */
+
 /**
  * Broadcast an ARP packet.
  */
-static int arp(int fd, struct sockaddr *saddr, int op,
+static void arp(int fd, struct sockaddr *saddr, int op,
 	const struct ether_addr *source_addr, struct in_addr source_ip,
 	const struct ether_addr *target_addr, struct in_addr target_ip)
 {
@@ -127,14 +128,15 @@ static int arp(int fd, struct sockaddr *saddr, int op,
 			perror("sendto");
 		else
 			syslog(LOG_ERR, "sendto: %s", strerror(errno));
-		return -errno;
+		//return -errno;
 	}
-	return 0;
+	// Currently all callers ignore errors, that's why returns are
+	// commented out...
+	//return 0;
 }
 
 /**
  * Run a script.
- * TODO: we need a flag to direct bb_[p]error_msg output to stderr.
  */
 static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 {
@@ -233,22 +235,20 @@ int zcip_main(int argc, char *argv[])
 	char *r_opt;
 	bb_opt_complementally = "vv"; // -v options accumulate
 	opts = bb_getopt_ulflags(argc, argv, "fqr:v", &r_opt, &verbose);
-	if (opts & 4) {
+	if (opts & 4) { // -r n.n.n.n
 		if (inet_aton(r_opt, &ip) == 0
 		|| (ntohl(ip.s_addr) & IN_CLASSB_NET) != LINKLOCAL_ADDR) {
 			bb_error_msg_and_die("invalid link address");
 		}
 	}
-	if (verbose) opts |= 1;
+	if (verbose) opts |= 1; // -v implies -f
 	argc -= optind;
 	argv += optind;
 	if (argc != 2)
 		bb_show_usage();
-
 	intf = argv[0];
 	script = argv[1];
 	setenv("interface", intf, 1);
-	openlog(bb_applet_name, 0, LOG_DAEMON);
 
 	// initialize the interface (modprobe, ifup, etc)
 	if (run(script, "init", intf, NULL) < 0)
@@ -287,6 +287,7 @@ int zcip_main(int argc, char *argv[])
 	// daemonize now; don't delay system startup
 	if (!FOREGROUND) {
 		xdaemon(0, verbose);
+		openlog(bb_applet_name, 0, LOG_DAEMON);
 		syslog(LOG_INFO, "start, interface %s", intf);
 	}
 
@@ -335,13 +336,13 @@ int zcip_main(int argc, char *argv[])
 			VDBG("state = %d\n", state);
 			switch (state) {
 			case PROBE:
-				// timeouts in the PROBE state means no conflicting ARP packets
+				// timeouts in the PROBE state mean no conflicting ARP packets
 				// have been received, so we can progress through the states
 				if (nprobes < PROBE_NUM) {
 					nprobes++;
 					VDBG("probe/%d %s@%s\n",
 							nprobes, intf, inet_ntoa(ip));
-					(void)arp(fd, &saddr, ARPOP_REQUEST,
+					arp(fd, &saddr, ARPOP_REQUEST,
 							&eth_addr, null_ip,
 							&null_addr, ip);
 					timeout = PROBE_MIN * 1000;
@@ -354,32 +355,32 @@ int zcip_main(int argc, char *argv[])
 					nclaims = 0;
 					VDBG("announce/%d %s@%s\n",
 							nclaims, intf, inet_ntoa(ip));
-					(void)arp(fd, &saddr, ARPOP_REQUEST,
+					arp(fd, &saddr, ARPOP_REQUEST,
 							&eth_addr, ip,
 							&eth_addr, ip);
 					timeout = ANNOUNCE_INTERVAL * 1000;
 				}
 				break;
 			case RATE_LIMIT_PROBE:
-				// timeouts in the RATE_LIMIT_PROBE state means no conflicting ARP packets
+				// timeouts in the RATE_LIMIT_PROBE state mean no conflicting ARP packets
 				// have been received, so we can move immediately to the announce state
 				state = ANNOUNCE;
 				nclaims = 0;
 				VDBG("announce/%d %s@%s\n",
 						nclaims, intf, inet_ntoa(ip));
-				(void)arp(fd, &saddr, ARPOP_REQUEST,
+				arp(fd, &saddr, ARPOP_REQUEST,
 						&eth_addr, ip,
 						&eth_addr, ip);
 				timeout = ANNOUNCE_INTERVAL * 1000;
 				break;
 			case ANNOUNCE:
-				// timeouts in the ANNOUNCE state means no conflicting ARP packets
+				// timeouts in the ANNOUNCE state mean no conflicting ARP packets
 				// have been received, so we can progress through the states
 				if (nclaims < ANNOUNCE_NUM) {
 					nclaims++;
 					VDBG("announce/%d %s@%s\n",
 							nclaims, intf, inet_ntoa(ip));
-					(void)arp(fd, &saddr, ARPOP_REQUEST,
+					arp(fd, &saddr, ARPOP_REQUEST,
 							&eth_addr, ip,
 							&eth_addr, ip);
 					timeout = ANNOUNCE_INTERVAL * 1000;
@@ -394,7 +395,7 @@ int zcip_main(int argc, char *argv[])
 					conflicts = 0;
 					timeout = -1; // Never timeout in the monitor state.
 
-					// NOTE:  all other exit paths
+					// NOTE: all other exit paths
 					// should deconfig ...
 					if (QUIT)
 						return EXIT_SUCCESS;
@@ -518,7 +519,7 @@ int zcip_main(int argc, char *argv[])
 					VDBG("monitor conflict -- defending\n");
 					state = DEFEND;
 					timeout = DEFEND_INTERVAL * 1000;
-					(void)arp(fd, &saddr,
+					arp(fd, &saddr,
 							ARPOP_REQUEST,
 							&eth_addr, ip,
 							&eth_addr, ip);
