@@ -1522,6 +1522,7 @@ static void unpack_package(deb_file_t *deb_file)
 	const unsigned int status_num = search_status_hashtable(package_name);
 	const unsigned int status_package_num = status_hashtable[status_num]->package;
 	char *info_prefix;
+	char *list_filename;
 	archive_handle_t *archive_handle;
 	FILE *out_stream;
 	llist_t *accept_list = NULL;
@@ -1570,8 +1571,8 @@ static void unpack_package(deb_file_t *deb_file)
 	unpack_ar_archive(archive_handle);
 
 	/* Create the list file */
-	strcat(info_prefix, "list");
-	out_stream = xfopen(info_prefix, "w");
+	list_filename = bb_xasprintf("/var/lib/dpkg/info/%s.list", package_name);
+	out_stream = bb_xfopen(list_filename, "w");
 	while (archive_handle->sub_archive->passed) {
 		/* the leading . has been stripped by data_extract_all_prefix already */
 		fputs(archive_handle->sub_archive->passed->data, out_stream);
@@ -1585,6 +1586,7 @@ static void unpack_package(deb_file_t *deb_file)
 	set_status(status_num, "unpacked", 3);
 
 	free(info_prefix);
+	free(list_filename);
 }
 
 static void configure_package(deb_file_t *deb_file)
