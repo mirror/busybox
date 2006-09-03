@@ -15,7 +15,7 @@
  * certainly be used.  Its naming is built over multicast DNS.
  */
 
-// #define      DEBUG
+//#define DEBUG
 
 // TODO:
 // - more real-world usage/testing, especially daemon mode
@@ -43,12 +43,7 @@
 
 struct arp_packet {
 	struct ether_header hdr;
-	// FIXME this part is netinet/if_ether.h "struct ether_arp"
-	struct arphdr arp;
-	struct ether_addr source_addr;
-	struct in_addr source_ip;
-	struct ether_addr target_addr;
-	struct in_addr target_ip;
+	struct ether_arp arp;
 } ATTRIBUTE_PACKED;
 
 enum {
@@ -68,10 +63,19 @@ enum {
 	DEFEND_INTERVAL = 10
 };
 
-static const struct in_addr null_ip = { 0 };
-static const struct ether_addr null_addr = { {0, 0, 0, 0, 0, 0} };
+/* States during the configuration process. */
+enum {
+	PROBE = 0,
+	RATE_LIMIT_PROBE,
+	ANNOUNCE,
+	MONITOR,
+	DEFEND
+};
 
-static int verbose = 0;
+/* Implicitly zero-initialized */
+static const struct in_addr null_ip;
+static const struct ether_addr null_addr;
+static int verbose;
 
 #define DBG(fmt,args...) \
 	do { } while (0)
@@ -100,6 +104,7 @@ static int arp(int fd, struct sockaddr *saddr, int op,
 	const struct ether_addr *target_addr, struct in_addr target_ip)
 {
 	struct arp_packet p;
+	memset(&p, 0, sizeof(p));
 
 	// ether header
 	p.hdr.ether_type = htons(ETHERTYPE_ARP);
@@ -107,15 +112,15 @@ static int arp(int fd, struct sockaddr *saddr, int op,
 	memset(p.hdr.ether_dhost, 0xff, ETH_ALEN);
 
 	// arp request
-	p.arp.ar_hrd = htons(ARPHRD_ETHER);
-	p.arp.ar_pro = htons(ETHERTYPE_IP);
-	p.arp.ar_hln = ETH_ALEN;
-	p.arp.ar_pln = 4;
-	p.arp.ar_op = htons(op);
-	memcpy(&p.source_addr, source_addr, ETH_ALEN);
-	memcpy(&p.source_ip, &source_ip, sizeof (p.source_ip));
-	memcpy(&p.target_addr, target_addr, ETH_ALEN);
-	memcpy(&p.target_ip, &target_ip, sizeof (p.target_ip));
+	p.arp.arp_hrd = htons(ARPHRD_ETHER);
+	p.arp.arp_pro = htons(ETHERTYPE_IP);
+	p.arp.arp_hln = ETH_ALEN;
+	p.arp.arp_pln = 4;
+	p.arp.arp_op = htons(op);
+	memcpy(&p.arp.arp_sha, source_addr, ETH_ALEN);
+	memcpy(&p.arp.arp_spa, &source_ip, sizeof (p.arp.arp_spa));
+	memcpy(&p.arp.arp_tha, target_addr, ETH_ALEN);
+	memcpy(&p.arp.arp_tpa, &target_ip, sizeof (p.arp.arp_tpa));
 
 	// send it
 	if (sendto(fd, &p, sizeof (p), 0, saddr, sizeof (*saddr)) < 0) {
@@ -196,11 +201,11 @@ int zcip_main(int argc, char *argv[])
 	int fd;
 	int ready = 0;
 	suseconds_t timeout = 0;	// milliseconds
-	time_t defend = 0;
 	unsigned conflicts = 0;
 	unsigned nprobes = 0;
 	unsigned nclaims = 0;
 	int t;
+	int state = PROBE;
 
 	// parse commandline: prog [options] ifname script
 	while ((t = getopt(argc, argv, "fqr:v")) != EOF) {
@@ -307,6 +312,9 @@ fail:
 		fds[0].events = POLLIN;
 		fds[0].revents = 0;
 
+		int source_ip_conflict = 0;
+		int target_ip_conflict = 0;
+
 		// poll, being ready to adjust current timeout
 		if (!timeout) {
 			timeout = ms_rdelay(PROBE_WAIT);
@@ -314,6 +322,7 @@ fail:
 			// make the kernel filter out all packets except
 			// ones we'd care about.
 		}
+		// set tv1 to the point in time when we timeout
 		gettimeofday(&tv1, NULL);
 		tv1.tv_usec += (timeout % 1000) * 1000;
 		while (tv1.tv_usec > 1000000) {
@@ -326,64 +335,113 @@ fail:
 				timeout, intf, nprobes, nclaims);
 		switch (poll(fds, 1, timeout)) {
 
-		// timeouts trigger protocol transitions
+		// timeout
 		case 0:
-			// probes
-			if (nprobes < PROBE_NUM) {
-				nprobes++;
-				VDBG("probe/%d %s@%s\n",
-						nprobes, intf, inet_ntoa(ip));
-				(void)arp(fd, &saddr, ARPOP_REQUEST,
-						&addr, null_ip,
-						&null_addr, ip);
+			VDBG("state = %d\n", state);
+			switch (state) {
+			case PROBE:
+				// timeouts in the PROBE state means no conflicting ARP packets
+				// have been received, so we can progress through the states
 				if (nprobes < PROBE_NUM) {
+					nprobes++;
+					VDBG("probe/%d %s@%s\n",
+							nprobes, intf, inet_ntoa(ip));
+					(void)arp(fd, &saddr, ARPOP_REQUEST,
+							&addr, null_ip,
+							&null_addr, ip);
 					timeout = PROBE_MIN * 1000;
 					timeout += ms_rdelay(PROBE_MAX
 							- PROBE_MIN);
-				} else
-					timeout = ANNOUNCE_WAIT * 1000;
-			}
-			// then announcements
-			else if (nclaims < ANNOUNCE_NUM) {
-				nclaims++;
+				}
+				else {
+					// Switch to announce state.
+					state = ANNOUNCE;
+					nclaims = 0;
+					VDBG("announce/%d %s@%s\n",
+							nclaims, intf, inet_ntoa(ip));
+					(void)arp(fd, &saddr, ARPOP_REQUEST,
+							&addr, ip,
+							&addr, ip);
+					timeout = ANNOUNCE_INTERVAL * 1000;
+				}
+				break;
+			case RATE_LIMIT_PROBE:
+				// timeouts in the RATE_LIMIT_PROBE state means no conflicting ARP packets
+				// have been received, so we can move immediately to the announce state
+				state = ANNOUNCE;
+				nclaims = 0;
 				VDBG("announce/%d %s@%s\n",
 						nclaims, intf, inet_ntoa(ip));
 				(void)arp(fd, &saddr, ARPOP_REQUEST,
 						&addr, ip,
 						&addr, ip);
+				timeout = ANNOUNCE_INTERVAL * 1000;
+				break;
+			case ANNOUNCE:
+				// timeouts in the ANNOUNCE state means no conflicting ARP packets
+				// have been received, so we can progress through the states
 				if (nclaims < ANNOUNCE_NUM) {
+					nclaims++;
+					VDBG("announce/%d %s@%s\n",
+							nclaims, intf, inet_ntoa(ip));
+					(void)arp(fd, &saddr, ARPOP_REQUEST,
+							&addr, ip,
+							&addr, ip);
 					timeout = ANNOUNCE_INTERVAL * 1000;
-				} else {
+				}
+				else {
+					// Switch to monitor state.
+					state = MONITOR;
 					// link is ok to use earlier
+					// FIXME update filters
 					run(script, "config", intf, &ip);
 					ready = 1;
 					conflicts = 0;
-					timeout = -1;
+					timeout = -1; // Never timeout in the monitor state.
 
 					// NOTE:  all other exit paths
 					// should deconfig ...
 					if (quit)
 						return EXIT_SUCCESS;
-					// FIXME update filters
 				}
-			}
-			break;
-
+				break;
+			case DEFEND:
+				// We won!  No ARP replies, so just go back to monitor.
+				state = MONITOR;
+				timeout = -1;
+				conflicts = 0;
+				break;
+			default:
+				// Invalid, should never happen.  Restart the whole protocol.
+				state = PROBE;
+				pick(&ip);
+				timeout = 0;
+				nprobes = 0;
+				nclaims = 0;
+				break;
+			} // switch (state)
+			break; // case 0 (timeout)
 		// packets arriving
 		case 1:
-			// maybe adjust timeout
+			// We need to adjust the timeout in case we didn't receive
+			// a conflicting packet.
 			if (timeout > 0) {
 				struct timeval tv2;
 
 				gettimeofday(&tv2, NULL);
 				if (timercmp(&tv1, &tv2, <)) {
+					// Current time is greater than the expected timeout time.
+					// Should never happen.
+					VDBG("missed an expected timeout\n");
 					timeout = 0;
 				} else {
+					VDBG("adjusting timeout\n");
 					timersub(&tv1, &tv2, &tv1);
 					timeout = 1000 * tv1.tv_sec
 							+ tv1.tv_usec / 1000;
 				}
 			}
+
 			if ((fds[0].revents & POLLIN) == 0) {
 				if (fds[0].revents & POLLERR) {
 					// FIXME: links routinely go down;
@@ -397,6 +455,7 @@ fail:
 				}
 				continue;
 			}
+
 			// read ARP packet
 			if (recv(fd, &p, sizeof (p), 0) < 0) {
 				why = "recv";
@@ -405,71 +464,102 @@ fail:
 			if (p.hdr.ether_type != htons(ETHERTYPE_ARP))
 				continue;
 
-			VDBG("%s recv arp type=%d, op=%d,\n",
+#ifdef DEBUG
+			{
+				struct ether_addr * sha = (struct ether_addr *) p.arp.arp_sha;
+				struct ether_addr * tha = (struct ether_addr *) p.arp.arp_tha;
+				struct in_addr * spa = (struct in_addr *) p.arp.arp_spa;
+				struct in_addr * tpa = (struct in_addr *) p.arp.arp_tpa;
+				VDBG("%s recv arp type=%d, op=%d,\n",
 					intf, ntohs(p.hdr.ether_type),
-					ntohs(p.arp.ar_op));
-			VDBG("\tsource=%s %s\n",
-					ether_ntoa(&p.source_addr),
-					inet_ntoa(p.source_ip));
-			VDBG("\ttarget=%s %s\n",
-					ether_ntoa(&p.target_addr),
-					inet_ntoa(p.target_ip));
-			if (p.arp.ar_op != htons(ARPOP_REQUEST)
-					&& p.arp.ar_op != htons(ARPOP_REPLY))
+					ntohs(p.arp.arp_op));
+				VDBG("\tsource=%s %s\n",
+					ether_ntoa(sha),
+					inet_ntoa(*spa));
+				VDBG("\ttarget=%s %s\n",
+					ether_ntoa(tha),
+					inet_ntoa(*tpa));
+			}
+#endif
+			if (p.arp.arp_op != htons(ARPOP_REQUEST)
+					&& p.arp.arp_op != htons(ARPOP_REPLY))
 				continue;
 
-			// some cases are always conflicts
-			if ((p.source_ip.s_addr == ip.s_addr)
-					&& (memcmp(&addr, &p.source_addr,
-							ETH_ALEN) != 0)) {
-collision:
-				VDBG("%s ARP conflict from %s\n", intf,
-						ether_ntoa(&p.source_addr));
-				if (ready) {
-					time_t now = time(0);
+			if (memcmp(p.arp.arp_spa, &ip.s_addr, sizeof(struct in_addr)) == 0 &&
+				memcmp(&addr, &p.arp.arp_sha, ETH_ALEN) != 0) {
+				source_ip_conflict = 1;
+			}
+			if (memcmp(p.arp.arp_tpa, &ip.s_addr, sizeof(struct in_addr)) == 0 &&
+				p.arp.arp_op == htons(ARPOP_REQUEST) &&
+				memcmp(&addr, &p.arp.arp_tha, ETH_ALEN) != 0) {
+				target_ip_conflict = 1;
+			}
 
-					if ((defend + DEFEND_INTERVAL)
-							< now) {
-						defend = now;
-						(void)arp(fd, &saddr,
-								ARPOP_REQUEST,
-								&addr, ip,
-								&addr, ip);
-						VDBG("%s defend\n", intf);
-						timeout = -1;
-						continue;
+			VDBG("state = %d, source ip conflict = %d, target ip conflict = %d\n", 
+				state, source_ip_conflict, target_ip_conflict);
+			switch (state) {
+			case PROBE:
+			case ANNOUNCE:
+				// When probing or announcing, check for source IP conflicts
+				// and other hosts doing ARP probes (target IP conflicts).
+				if (source_ip_conflict || target_ip_conflict) {
+					conflicts++;
+					if (conflicts >= MAX_CONFLICTS) {
+						VDBG("%s ratelimit\n", intf);
+						timeout = RATE_LIMIT_INTERVAL * 1000;
+						state = RATE_LIMIT_PROBE;
 					}
-					defend = now;
+
+					// restart the whole protocol
+					pick(&ip);
+					timeout = 0;
+					nprobes = 0;
+					nclaims = 0;
+				}
+				break;
+			case MONITOR:
+				// If a conflict, we try to defend with a single ARP probe.
+				if (source_ip_conflict) {
+					VDBG("monitor conflict -- defending\n");
+					state = DEFEND;
+					timeout = DEFEND_INTERVAL * 1000;
+					(void)arp(fd, &saddr,
+							ARPOP_REQUEST,
+							&addr, ip,
+							&addr, ip);
+				}
+				break;
+			case DEFEND:
+				// Well, we tried.  Start over (on conflict).
+				if (source_ip_conflict) {
+					state = PROBE;
+					VDBG("defend conflict -- starting over\n");
 					ready = 0;
 					run(script, "deconfig", intf, &ip);
-					// FIXME rm filters: setsockopt(fd,
-					// SO_DETACH_FILTER, ...)
+
+					// restart the whole protocol
+					pick(&ip);
+					timeout = 0;
+					nprobes = 0;
+					nclaims = 0;
 				}
-				conflicts++;
-				if (conflicts >= MAX_CONFLICTS) {
-					VDBG("%s ratelimit\n", intf);
-					sleep(RATE_LIMIT_INTERVAL);
-				}
-				// restart the whole protocol
+				break;
+			default:
+				// Invalid, should never happen.  Restart the whole protocol.
+				VDBG("invalid state -- starting over\n");
+				state = PROBE;
 				pick(&ip);
 				timeout = 0;
 				nprobes = 0;
 				nclaims = 0;
-			}
-			// two hosts probing one address is a collision too
-			else if (p.target_ip.s_addr == ip.s_addr
-					&& nclaims == 0
-					&& p.arp.ar_op == htons(ARPOP_REQUEST)
-					&& memcmp(&addr, &p.target_addr,
-							ETH_ALEN) != 0) {
-				goto collision;
-			}
-			break;
+				break;
+			} // switch state
 
+			break; // case 1 (packets arriving)
 		default:
 			why = "poll";
 			goto bad;
-		}
+		} // switch poll
 	}
 bad:
 	if (foreground)
