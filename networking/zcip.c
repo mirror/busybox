@@ -76,6 +76,10 @@ enum {
 	do { } while (0)
 #define VDBG	DBG
 
+static unsigned long opts;
+#define FOREGROUND (opts & 1)
+#define QUIT (opts & 2)
+
 /**
  * Pick a random link local IP address on 169.254/16, except that
  * the first and last 256 addresses are reserved.
@@ -119,7 +123,10 @@ static int arp(int fd, struct sockaddr *saddr, int op,
 
 	// send it
 	if (sendto(fd, &p, sizeof (p), 0, saddr, sizeof (*saddr)) < 0) {
-		perror("sendto");
+		if (FOREGROUND)
+			perror("sendto");
+		else
+			syslog(LOG_ERR, "sendto: %s", strerror(errno));
 		return -errno;
 	}
 	return 0;
@@ -127,19 +134,20 @@ static int arp(int fd, struct sockaddr *saddr, int op,
 
 /**
  * Run a script.
- * TODO: sort out stderr/syslog reporting.
+ * TODO: we need a flag to direct bb_[p]error_msg output to stderr.
  */
 static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 {
 	int pid, status;
 	char *why;
 
-	if (script != NULL) {
+	if(1) { //always true: if (script != NULL)
 		VDBG("%s run %s %s\n", intf, script, arg);
 		if (ip != NULL) {
 			char *addr = inet_ntoa(*ip);
 			setenv("ip", addr, 1);
-			syslog(LOG_INFO, "%s %s %s", arg, intf, addr);
+			if (!FOREGROUND)
+				syslog(LOG_INFO, "%s %s %s", arg, intf, addr);
 		}
 
 		pid = vfork();
@@ -148,7 +156,10 @@ static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 			goto bad;
 		} else if (pid == 0) {		// child
 			execl(script, script, arg, NULL);
-			perror("execl");
+			if (FOREGROUND)
+				perror("execl");
+			else
+				syslog(LOG_ERR, "execl: %s", strerror(errno));
 			_exit(EXIT_FAILURE);
 		}
 
@@ -157,7 +168,11 @@ static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 			goto bad;
 		}
 		if (WEXITSTATUS(status) != 0) {
-			bb_error_msg("script %s failed, exit=%d\n",
+			if (FOREGROUND)
+				bb_error_msg("script %s failed, exit=%d\n",
+					script, WEXITSTATUS(status));
+			else
+				syslog(LOG_ERR, "script %s failed, exit=%d",
 					script, WEXITSTATUS(status));
 			return -errno;
 		}
@@ -165,8 +180,12 @@ static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 	return 0;
 bad:
 	status = -errno;
-	syslog(LOG_ERR, "%s %s, %s error: %s",
-		arg, intf, why, strerror(errno));
+	if (FOREGROUND)
+		bb_perror_msg("%s %s, %s",
+			arg, intf, why);
+	else
+		syslog(LOG_ERR, "%s %s, %s: %s",
+			arg, intf, why, strerror(errno));
 	return status;
 }
 
@@ -211,11 +230,7 @@ int zcip_main(int argc, char *argv[])
 	int fd;
 
 	// parse commandline: prog [options] ifname script
-#define FOREGROUND (opts & 1)
-#define QUIT (opts & 2)
 	char *r_opt;
-	unsigned long opts;
-
 	bb_opt_complementally = "vv"; // -v options accumulate
 	opts = bb_getopt_ulflags(argc, argv, "fqr:v", &r_opt, &verbose);
 	if (opts & 4) {
