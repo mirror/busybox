@@ -37,14 +37,15 @@ int unlzma_main(int argc, char **argv)
 
 	if (filename) {
 		struct stat stat_buf;
-		char *extension = filename + strlen(filename) - 5;
-
-		if (strcmp(extension, ".lzma") != 0) {
+		/* bug: char *extension = filename + strlen(filename) - 5; */
+		char *extension = strrchr(filename, '.');
+		if (!extension || strcmp(extension, ".lzma") != 0) {
 			bb_error_msg_and_die("Invalid extension");
 		}
 		xstat(filename, &stat_buf);
-		*extension = 0;
-		dst_fd = xopen3(filename, O_WRONLY | O_CREAT, stat_buf.st_mode);
+		*extension = '\0';
+		dst_fd = xopen3(filename, O_WRONLY | O_CREAT | O_TRUNC,
+				stat_buf.st_mode);
 	} else
 		dst_fd = STDOUT_FILENO;
 	status = unlzma(src_fd, dst_fd);

@@ -41,17 +41,20 @@ int bunzip2_main(int argc, char **argv)
 
 	if (filename) {
 		struct stat stat_buf;
-		char *extension=filename+strlen(filename)-4;
-		if (strcmp(extension, ".bz2") != 0) {
+		/* extension = filename+strlen(filename)-4 is buggy:
+		 * strlen may be less than 4 */
+		char *extension = strrchr(filename, '.');
+		if (!extension || strcmp(extension, ".bz2") != 0) {
 			bb_error_msg_and_die("Invalid extension");
 		}
 		xstat(filename, &stat_buf);
-		*extension=0;
-		dst_fd = xopen3(filename, O_WRONLY | O_CREAT, stat_buf.st_mode);
+		*extension = '\0';
+		dst_fd = xopen3(filename, O_WRONLY | O_CREAT | O_TRUNC,
+				stat_buf.st_mode);
 	} else dst_fd = STDOUT_FILENO;
 	status = uncompressStream(src_fd, dst_fd);
 	if(filename) {
-		if (!status) filename[strlen(filename)]='.';
+		if (!status) filename[strlen(filename)] = '.';
 		if (unlink(filename) < 0) {
 			bb_error_msg_and_die("Couldn't remove %s", filename);
 		}

@@ -333,7 +333,7 @@ int unzip_main(int argc, char **argv)
 			overwrite = o_always;
 		case 'y': /* Open file and fall into unzip */
 			unzip_create_leading_dirs(dst_fn);
-			dst_fd = xopen3(dst_fn, O_WRONLY | O_CREAT, 0777);
+			dst_fd = xopen3(dst_fn, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 		case -1: /* Unzip */
 			if (verbosity == v_normal) {
 				printf("  inflating: %s\n", dst_fn);

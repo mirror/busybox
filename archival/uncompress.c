@@ -55,7 +55,8 @@ int uncompress_main(int argc, char **argv)
 
 			/* Open output file */
 			xstat(compressed_file, &stat_buf);
-			dst_fd = xopen3(uncompressed_file, O_WRONLY | O_CREAT,
+			dst_fd = xopen3(uncompressed_file,
+					O_WRONLY | O_CREAT | O_TRUNC,
 					stat_buf.st_mode);
 
 			/* If unzip succeeds remove the old file */

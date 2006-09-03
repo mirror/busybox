@@ -98,7 +98,8 @@ int gunzip_main(int argc, char **argv)
 			}
 
 			/* Open output file (with correct permissions) */
-			dst_fd = xopen3(new_path, O_WRONLY | O_CREAT, stat_buf.st_mode);
+			dst_fd = xopen3(new_path, O_WRONLY | O_CREAT | O_TRUNC,
+					stat_buf.st_mode);
 
 			/* If unzip succeeds remove the old file */
 			delete_path = old_path;
