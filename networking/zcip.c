@@ -171,7 +171,7 @@ static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 		}
 		if (WEXITSTATUS(status) != 0) {
 			if (FOREGROUND)
-				bb_error_msg("script %s failed, exit=%d\n",
+				bb_error_msg("script %s failed, exit=%d",
 					script, WEXITSTATUS(status));
 			else
 				syslog(LOG_ERR, "script %s failed, exit=%d",
@@ -233,7 +233,7 @@ int zcip_main(int argc, char *argv[])
 
 	// parse commandline: prog [options] ifname script
 	char *r_opt;
-	bb_opt_complementally = "vv"; // -v options accumulate
+	bb_opt_complementally = "vv:vf"; // -v accumulates and implies -f
 	opts = bb_getopt_ulflags(argc, argv, "fqr:v", &r_opt, &verbose);
 	if (opts & 4) { // -r n.n.n.n
 		if (inet_aton(r_opt, &ip) == 0
@@ -241,7 +241,6 @@ int zcip_main(int argc, char *argv[])
 			bb_error_msg_and_die("invalid link address");
 		}
 	}
-	if (verbose) opts |= 1; // -v implies -f
 	argc -= optind;
 	argv += optind;
 	if (argc != 2)
@@ -442,7 +441,7 @@ int zcip_main(int argc, char *argv[])
 				if (fds[0].revents & POLLERR) {
 					// FIXME: links routinely go down;
 					// this shouldn't necessarily exit.
-					bb_error_msg("%s: poll error\n", intf);
+					bb_error_msg("%s: poll error", intf);
 					if (ready) {
 						run(script, "deconfig",
 								intf, &ip);
