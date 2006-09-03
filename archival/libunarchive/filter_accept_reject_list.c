@@ -14,14 +14,14 @@
 char filter_accept_reject_list(archive_handle_t *archive_handle)
 {
 	const char *key = archive_handle->file_header->name;
-	const llist_t *reject_entry = find_list_entry(archive_handle->reject, key);
+	const llist_t *reject_entry = find_list_entry2(archive_handle->reject, key);
 	const llist_t *accept_entry;
 
 	/* If the key is in a reject list fail */
 	if (reject_entry) {
 		return(EXIT_FAILURE);
 	}
-	accept_entry = find_list_entry(archive_handle->accept, key);
+	accept_entry = find_list_entry2(archive_handle->accept, key);
 
 	/* Fail if an accept list was specified and the key wasnt in there */
 	if ((accept_entry == NULL) && archive_handle->accept) {

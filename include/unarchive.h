@@ -98,6 +98,7 @@ extern ssize_t archive_xread_all_eof(archive_handle_t *archive_handle, unsigned 
 
 extern void data_align(archive_handle_t *archive_handle, const unsigned short boundary);
 extern const llist_t *find_list_entry(const llist_t *list, const char *filename);
+extern const llist_t *find_list_entry2(const llist_t *list, const char *filename);
 
 extern int uncompressStream(int src_fd, int dst_fd);
 extern void inflate_init(unsigned int bufsize);
