@@ -36,6 +36,13 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	and so on.  You can also look at the return value as a bit
 	field and each option sets one bit.
 
+	On exit, global variable optind is set so that if you
+	will do argc -= optind; argv += optind; then
+	argc will be equal to number of remaining non-option
+	arguments, first one would be in argv[0], next in argv[1] and so on
+	(options and their parameters will be moved into argv[]
+	positions prior to argv[optind]).
+
  ":"    If one of the options requires an argument, then add a ":"
 	after the char in applet_opts and provide a pointer to store
 	the argument.  For example:

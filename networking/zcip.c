@@ -201,8 +201,6 @@ static	unsigned conflicts; // = 0;
 static	unsigned nprobes; // = 0;
 static	unsigned nclaims; // = 0;
 static	int ready; // = 0;
-static	int quit; // = 0;
-static	int foreground; // = 0;
 static	int verbose; // = 0;
 static	int state = PROBE;
 
@@ -211,39 +209,30 @@ int zcip_main(int argc, char *argv[])
 	struct ether_addr eth_addr;
 	char *why;
 	int fd;
-	int t;
 
 	// parse commandline: prog [options] ifname script
-	while ((t = getopt(argc, argv, "fqr:v")) != EOF) {
-		switch (t) {
-		case 'f':
-			foreground = 1;
-			continue;
-		case 'q':
-			quit = 1;
-			continue;
-		case 'r':
-			if (inet_aton(optarg, &ip) == 0
-					|| (ntohl(ip.s_addr) & IN_CLASSB_NET)
-						!= LINKLOCAL_ADDR) {
-				bb_error_msg_and_die("invalid link address");
-			}
-			continue;
-		case 'v':
-			verbose++;
-			foreground = 1;
-			continue;
-		default:
-			bb_error_msg_and_die("bad option");
+#define FOREGROUND (opts & 1)
+#define QUIT (opts & 2)
+	char *r_opt;
+	unsigned long opts;
+
+	bb_opt_complementally = "vv"; // -v options accumulate
+	opts = bb_getopt_ulflags(argc, argv, "fqr:v", &r_opt, &verbose);
+	if (opts & 4) {
+		if (inet_aton(r_opt, &ip) == 0
+		|| (ntohl(ip.s_addr) & IN_CLASSB_NET) != LINKLOCAL_ADDR) {
+			bb_error_msg_and_die("invalid link address");
 		}
 	}
-	if (optind < argc - 1) {
-		intf = argv[optind++];
-		setenv("interface", intf, 1);
-		script = argv[optind++];
-	}
-	if (optind != argc || !intf)
+	if (verbose) opts |= 1;
+	argc -= optind;
+	argv += optind;
+	if (argc != 2)
 		bb_show_usage();
+
+	intf = argv[0];
+	script = argv[1];
+	setenv("interface", intf, 1);
 	openlog(bb_applet_name, 0, LOG_DAEMON);
 
 	// initialize the interface (modprobe, ifup, etc)
@@ -257,15 +246,13 @@ int zcip_main(int argc, char *argv[])
 	// open an ARP socket
 	fd = xsocket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP));
 	// bind to the interface's ARP socket
-	xbind(fd, &saddr, sizeof (saddr);
+	xbind(fd, &saddr, sizeof (saddr));
 
 	// get the interface's ethernet address
 	//memset(&ifr, 0, sizeof (ifr));
 	strncpy(ifr.ifr_name, intf, sizeof (ifr.ifr_name));
 	if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
-		foreground = 1;
-		why = "get ethernet address";
-		goto bad;
+		bb_perror_msg_and_die("get ethernet address");
 	}
 	memcpy(&eth_addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
 
@@ -283,7 +270,7 @@ int zcip_main(int argc, char *argv[])
 	//  - link already has local address... just defend/update
 
 	// daemonize now; don't delay system startup
-	if (!foreground) {
+	if (!FOREGROUND) {
 		xdaemon(0, verbose);
 		syslog(LOG_INFO, "start, interface %s", intf);
 	}
@@ -394,7 +381,7 @@ int zcip_main(int argc, char *argv[])
 
 					// NOTE:  all other exit paths
 					// should deconfig ...
-					if (quit)
+					if (QUIT)
 						return EXIT_SUCCESS;
 				}
 				break;
@@ -555,7 +542,7 @@ int zcip_main(int argc, char *argv[])
 		} // switch poll
 	}
 bad:
-	if (foreground)
+	if (FOREGROUND)
 		perror(why);
 	else
 		syslog(LOG_ERR, "%s %s, %s error: %s",
