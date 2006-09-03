@@ -132,6 +132,7 @@ static int arp(int fd, struct sockaddr *saddr, int op,
 
 /**
  * Run a script.
+ * TODO: sort out stderr/syslog reporting.
  */
 static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 {
@@ -207,6 +208,9 @@ int zcip_main(int argc, char *argv[])
 	int t;
 	int state = PROBE;
 
+	struct ifreq ifr;
+	unsigned short seed[3];
+
 	// parse commandline: prog [options] ifname script
 	while ((t = getopt(argc, argv, "fqr:v")) != EOF) {
 		switch (t) {
@@ -249,38 +253,28 @@ int zcip_main(int argc, char *argv[])
 	safe_strncpy(saddr.sa_data, intf, sizeof (saddr.sa_data));
 
 	// open an ARP socket
-	if ((fd = socket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP))) < 0) {
-		why = "open";
-fail:
+	fd = xsocket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP));
+	// bind to the interface's ARP socket
+	xbind(fd, &saddr, sizeof (saddr);
+
+	// get the interface's ethernet address
+	memset(&ifr, 0, sizeof (ifr));
+	strncpy(ifr.ifr_name, intf, sizeof (ifr.ifr_name));
+	if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
 		foreground = 1;
+		why = "get ethernet address";
 		goto bad;
 	}
-	// bind to the interface's ARP socket
-	if (bind(fd, &saddr, sizeof (saddr)) < 0) {
-		why = "bind";
-		goto fail;
-	} else {
-		struct ifreq ifr;
-		unsigned short seed[3];
+	memcpy(&addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
 
-		// get the interface's ethernet address
-		memset(&ifr, 0, sizeof (ifr));
-		strncpy(ifr.ifr_name, intf, sizeof (ifr.ifr_name));
-		if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
-			why = "get ethernet address";
-			goto fail;
-		}
-		memcpy(&addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-
-		// start with some stable ip address, either a function of
-		// the hardware address or else the last address we used.
-		// NOTE: the sequence of addresses we try changes only
-		// depending on when we detect conflicts.
-		memcpy(seed, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-		seed48(seed);
-		if (ip.s_addr == 0)
-			pick(&ip);
-	}
+	// start with some stable ip address, either a function of
+	// the hardware address or else the last address we used.
+	// NOTE: the sequence of addresses we try changes only
+	// depending on when we detect conflicts.
+	memcpy(seed, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+	seed48(seed);
+	if (ip.s_addr == 0)
+		pick(&ip);
 
 	// FIXME cases to handle:
 	//  - zcip already running!
