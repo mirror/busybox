@@ -52,7 +52,7 @@ static void catchalarm(int ATTRIBUTE_UNUSED junk)
 int sulogin_main(int argc, char **argv)
 {
 	char *cp;
-	char *device = (char *) 0;
+	char *device = NULL;
 	const char *name = "root";
 	int timeout = 0;
 
@@ -68,14 +68,15 @@ int sulogin_main(int argc, char **argv)
 	openlog("sulogin", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 	if (argc > 1) {
 		if (strncmp(argv[1], "-t", 2) == 0) {
-			if (strcmp(argv[1], "-t") == 0) {
+			if (argv[1][2] == '\0') { /* -t NN */
 				if (argc > 2) {
 					timeout = atoi(argv[2]);
 					if (argc > 3) {
 						device = argv[3];
 					}
 				}
-			} else {
+			} else { /* -tNNN */
+				timeout = atoi(&argv[1][2]);
 				if (argc > 2) {
 					device = argv[2];
 				}
@@ -87,7 +88,7 @@ int sulogin_main(int argc, char **argv)
 			close(0);
 			close(1);
 			close(2);
-			if (open(device, O_RDWR) >= 0) {
+			if (open(device, O_RDWR) == 0) {
 				dup(0);
 				dup(0);
 			} else {
