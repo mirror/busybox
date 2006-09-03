@@ -259,7 +259,7 @@ int arping_main(int argc, char **argv)
 	char *source = NULL;
 	char *target;
 
-	s = socket(PF_PACKET, SOCK_DGRAM, 0);
+	s = xsocket(PF_PACKET, SOCK_DGRAM, 0);
 	ifindex = errno;
 
 	// Drop suid root privileges
@@ -346,11 +346,8 @@ int arping_main(int argc, char **argv)
 
 	if (!(cfg&dad) || src.s_addr) {
 		struct sockaddr_in saddr;
-		int probe_fd = socket(AF_INET, SOCK_DGRAM, 0); /* maybe use bb_xsocket? */
+		int probe_fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 
-		if (probe_fd < 0) {
-			bb_error_msg_and_die("socket");
-		}
 		if (device) {
 			if (setsockopt
 				(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device,

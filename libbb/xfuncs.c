@@ -454,7 +454,7 @@ DIR *xopendir(const char *path)
 /* Die with an error message if we can't daemonize. */
 void xdaemon(int nochdir, int noclose)
 {
-	    if (daemon(nochdir, noclose)) bb_perror_msg_and_die("daemon");
+	if (daemon(nochdir, noclose)) bb_perror_msg_and_die("daemon");
 }
 #endif
 #endif

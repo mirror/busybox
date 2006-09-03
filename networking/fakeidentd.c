@@ -135,7 +135,7 @@ static int godaemon(void)
 
 	switch (fork()) {
 	case -1:
-		bb_perror_msg_and_die("Could not fork");
+		bb_perror_msg_and_die("fork");
 
 	case 0:
 		pw = getpwnam(nobodystr);

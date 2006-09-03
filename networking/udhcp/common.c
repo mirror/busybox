@@ -59,10 +59,7 @@ void udhcp_background(const char *pidfile)
 
 	/* hold lock during fork. */
 	pid_fd = pidfile_acquire(pidfile);
-	if (daemon(0, 0) == -1) { /* bb_xdaemon? */
-		perror("fork");
-		exit(1);
-	}
+	xdaemon(0, 0);
 	daemonized++;
 	pidfile_write_release(pid_fd);
 #endif /* __uClinux__ */

@@ -288,10 +288,7 @@ fail:
 
 	// daemonize now; don't delay system startup
 	if (!foreground) {
-		if (daemon(0, verbose) < 0) {
-			why = "daemon";
-			goto bad;
-		}
+		xdaemon(0, verbose);
 		syslog(LOG_INFO, "start, interface %s", intf);
 	}
 
