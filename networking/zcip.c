@@ -72,11 +72,6 @@ enum {
 	DEFEND
 };
 
-/* Implicitly zero-initialized */
-static const struct in_addr null_ip;
-static const struct ether_addr null_addr;
-static int verbose;
-
 #define DBG(fmt,args...) \
 	do { } while (0)
 #define VDBG	DBG
@@ -188,28 +183,35 @@ static unsigned ATTRIBUTE_ALWAYS_INLINE ms_rdelay(unsigned secs)
  * main program
  */
 
+/* Used to be auto variables on main() stack, but
+ * most of them were zero-inited. Moving them to bss
+ * is more space-efficient.
+ */
+static	const struct in_addr null_ip; // = { 0 };
+static	const struct ether_addr null_addr; // = { {0, 0, 0, 0, 0, 0} };
+
+static	struct sockaddr saddr; // memset(0);
+static	struct in_addr ip; // = { 0 };
+static	struct ifreq ifr; //memset(0);
+
+static	char *intf; // = NULL;
+static	char *script; // = NULL;
+static	suseconds_t timeout; // = 0;	// milliseconds
+static	unsigned conflicts; // = 0;
+static	unsigned nprobes; // = 0;
+static	unsigned nclaims; // = 0;
+static	int ready; // = 0;
+static	int quit; // = 0;
+static	int foreground; // = 0;
+static	int verbose; // = 0;
+static	int state = PROBE;
+
 int zcip_main(int argc, char *argv[])
 {
-	char *intf = NULL;
-	char *script = NULL;
-	int quit = 0;
-	int foreground = 0;
-
+	struct ether_addr eth_addr;
 	char *why;
-	struct sockaddr saddr;
-	struct ether_addr addr;
-	struct in_addr ip = { 0 };
 	int fd;
-	int ready = 0;
-	suseconds_t timeout = 0;	// milliseconds
-	unsigned conflicts = 0;
-	unsigned nprobes = 0;
-	unsigned nclaims = 0;
 	int t;
-	int state = PROBE;
-
-	struct ifreq ifr;
-	unsigned short seed[3];
 
 	// parse commandline: prog [options] ifname script
 	while ((t = getopt(argc, argv, "fqr:v")) != EOF) {
@@ -249,7 +251,7 @@ int zcip_main(int argc, char *argv[])
 		return EXIT_FAILURE;
 
 	// initialize saddr
-	memset(&saddr, 0, sizeof (saddr));
+	//memset(&saddr, 0, sizeof (saddr));
 	safe_strncpy(saddr.sa_data, intf, sizeof (saddr.sa_data));
 
 	// open an ARP socket
@@ -258,21 +260,21 @@ int zcip_main(int argc, char *argv[])
 	xbind(fd, &saddr, sizeof (saddr);
 
 	// get the interface's ethernet address
-	memset(&ifr, 0, sizeof (ifr));
+	//memset(&ifr, 0, sizeof (ifr));
 	strncpy(ifr.ifr_name, intf, sizeof (ifr.ifr_name));
 	if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
 		foreground = 1;
 		why = "get ethernet address";
 		goto bad;
 	}
-	memcpy(&addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
+	memcpy(&eth_addr, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
 
 	// start with some stable ip address, either a function of
 	// the hardware address or else the last address we used.
 	// NOTE: the sequence of addresses we try changes only
 	// depending on when we detect conflicts.
-	memcpy(seed, &ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-	seed48(seed);
+	// (SVID 3 bogon: who says that "short" is always 16 bits?)
+	seed48( (unsigned short*)&ifr.ifr_hwaddr.sa_data );
 	if (ip.s_addr == 0)
 		pick(&ip);
 
@@ -299,12 +301,12 @@ int zcip_main(int argc, char *argv[])
 		struct timeval tv1;
 		struct arp_packet p;
 
+		int source_ip_conflict = 0;
+		int target_ip_conflict = 0;
+
 		fds[0].fd = fd;
 		fds[0].events = POLLIN;
 		fds[0].revents = 0;
-
-		int source_ip_conflict = 0;
-		int target_ip_conflict = 0;
 
 		// poll, being ready to adjust current timeout
 		if (!timeout) {
@@ -338,7 +340,7 @@ int zcip_main(int argc, char *argv[])
 					VDBG("probe/%d %s@%s\n",
 							nprobes, intf, inet_ntoa(ip));
 					(void)arp(fd, &saddr, ARPOP_REQUEST,
-							&addr, null_ip,
+							&eth_addr, null_ip,
 							&null_addr, ip);
 					timeout = PROBE_MIN * 1000;
 					timeout += ms_rdelay(PROBE_MAX
@@ -351,8 +353,8 @@ int zcip_main(int argc, char *argv[])
 					VDBG("announce/%d %s@%s\n",
 							nclaims, intf, inet_ntoa(ip));
 					(void)arp(fd, &saddr, ARPOP_REQUEST,
-							&addr, ip,
-							&addr, ip);
+							&eth_addr, ip,
+							&eth_addr, ip);
 					timeout = ANNOUNCE_INTERVAL * 1000;
 				}
 				break;
@@ -364,8 +366,8 @@ int zcip_main(int argc, char *argv[])
 				VDBG("announce/%d %s@%s\n",
 						nclaims, intf, inet_ntoa(ip));
 				(void)arp(fd, &saddr, ARPOP_REQUEST,
-						&addr, ip,
-						&addr, ip);
+						&eth_addr, ip,
+						&eth_addr, ip);
 				timeout = ANNOUNCE_INTERVAL * 1000;
 				break;
 			case ANNOUNCE:
@@ -376,8 +378,8 @@ int zcip_main(int argc, char *argv[])
 					VDBG("announce/%d %s@%s\n",
 							nclaims, intf, inet_ntoa(ip));
 					(void)arp(fd, &saddr, ARPOP_REQUEST,
-							&addr, ip,
-							&addr, ip);
+							&eth_addr, ip,
+							&eth_addr, ip);
 					timeout = ANNOUNCE_INTERVAL * 1000;
 				}
 				else {
@@ -477,12 +479,12 @@ int zcip_main(int argc, char *argv[])
 				continue;
 
 			if (memcmp(p.arp.arp_spa, &ip.s_addr, sizeof(struct in_addr)) == 0 &&
-				memcmp(&addr, &p.arp.arp_sha, ETH_ALEN) != 0) {
+				memcmp(&eth_addr, &p.arp.arp_sha, ETH_ALEN) != 0) {
 				source_ip_conflict = 1;
 			}
 			if (memcmp(p.arp.arp_tpa, &ip.s_addr, sizeof(struct in_addr)) == 0 &&
 				p.arp.arp_op == htons(ARPOP_REQUEST) &&
-				memcmp(&addr, &p.arp.arp_tha, ETH_ALEN) != 0) {
+				memcmp(&eth_addr, &p.arp.arp_tha, ETH_ALEN) != 0) {
 				target_ip_conflict = 1;
 			}
 
@@ -516,8 +518,8 @@ int zcip_main(int argc, char *argv[])
 					timeout = DEFEND_INTERVAL * 1000;
 					(void)arp(fd, &saddr,
 							ARPOP_REQUEST,
-							&addr, ip,
-							&addr, ip);
+							&eth_addr, ip,
+							&eth_addr, ip);
 				}
 				break;
 			case DEFEND:
