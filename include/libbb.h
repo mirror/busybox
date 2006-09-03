@@ -498,6 +498,10 @@ extern unsigned char xread_char(int fd);
 extern void xlseek(int fd, off_t offset, int whence);
 extern void xwrite(int fd, void *buf, size_t count);
 
+extern const char bb_uuenc_tbl_base64[];
+extern const char bb_uuenc_tbl_std[];
+extern void bb_uuencode(const unsigned char *s, char *store, const int length, const char *tbl);
+
 #ifndef COMM_LEN
 #ifdef TASK_COMM_LEN
 #define COMM_LEN TASK_COMM_LEN

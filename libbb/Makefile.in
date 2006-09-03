@@ -48,6 +48,8 @@ LIBBB-$(CONFIG_SU)+= correct_password.c
 LIBBB-$(CONFIG_LOGIN)+= correct_password.c
 LIBBB-$(CONFIG_DF)+= find_mount_point.c
 LIBBB-$(CONFIG_EJECT)+= find_mount_point.c
+LIBBB-$(CONFIG_UUENCODE)+= uuencode.c
+LIBBB-$(CONFIG_WGET)+= uuencode.c
 
 # We shouldn't build xregcomp.c if we don't need it - this ensures we don't
 # require regex.h to be in the include dir even if we don't need it thereby

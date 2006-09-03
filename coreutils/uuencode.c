@@ -10,60 +10,6 @@
 
 #include "busybox.h"
 
-/* Conversion table.  for base 64 */
-static const char tbl_base64[65] = {
-	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-	'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-	'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-	'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-	'w', 'x', 'y', 'z', '0', '1', '2', '3',
-	'4', '5', '6', '7', '8', '9', '+', '/',
-	'=' /* termination character */
-};
-
-static const char tbl_std[65] = {
-	'`', '!', '"', '#', '$', '%', '&', '\'',
-	'(', ')', '*', '+', ',', '-', '.', '/',
-	'0', '1', '2', '3', '4', '5', '6', '7',
-	'8', '9', ':', ';', '<', '=', '>', '?',
-	'@', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
-	'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
-	'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-	'X', 'Y', 'Z', '[', '\\', ']', '^', '_',
-	'`' /* termination character */
-};
-
-/*
- * Encode the string S of length LENGTH to base64 format and place it
- * to STORE.  STORE will be 0-terminated, and must point to a writable
- * buffer of at least 1+BASE64_LENGTH(length) bytes.
- * where BASE64_LENGTH(len) = (4 * ((LENGTH + 2) / 3))
- */
-static void uuencode (const unsigned char *s, char *store, const int length, const char *tbl)
-{
-	int i;
-	char *p = store;
-
-	/* Transform the 3x8 bits to 4x6 bits, as required by base64.  */
-	for (i = 0; i < length; i += 3) {
-		*p++ = tbl[s[0] >> 2];
-		*p++ = tbl[((s[0] & 3) << 4) + (s[1] >> 4)];
-		*p++ = tbl[((s[1] & 0xf) << 2) + (s[2] >> 6)];
-		*p++ = tbl[s[2] & 0x3f];
-		s += 3;
-	}
-	/* Pad the result if necessary...  */
-	if (i == length + 1) {
-		*(p - 1) = tbl[64];
-	}
-	else if (i == length + 2) {
-		*(p - 1) = *(p - 2) = tbl[64];
-	}
-	/* ...and zero-terminate it.  */
-	*p = '\0';
-}
 
 #define SRC_BUF_SIZE	45  // This *MUST* be a multiple of 3
 #define DST_BUF_SIZE    4 * ((SRC_BUF_SIZE + 2) / 3)
@@ -80,9 +26,9 @@ int uuencode_main(int argc, char **argv)
 	RESERVE_CONFIG_BUFFER(src_buf, SRC_BUF_SIZE + 1);
 	RESERVE_CONFIG_BUFFER(dst_buf, DST_BUF_SIZE + 1);
 
-	tbl = tbl_std;
+	tbl = bb_uuenc_tbl_std;
 	if (bb_getopt_ulflags(argc, argv, "m") & 1) {
-		tbl = tbl_base64;
+		tbl = bb_uuenc_tbl_base64;
 	}
 
 	switch (argc - optind) {
@@ -101,7 +47,7 @@ int uuencode_main(int argc, char **argv)
 			bb_show_usage();
 	}
 
-	bb_printf("begin%s %o %s", tbl == tbl_std ? "" : "-base64", mode, argv[argc - 1]);
+	bb_printf("begin%s %o %s", tbl == bb_uuenc_tbl_std ? "" : "-base64", mode, argv[argc - 1]);
 
 	while ((size = fread(src_buf, 1, src_buf_size, src_stream)) > 0) {
 		if (size != src_buf_size) {
@@ -111,17 +57,17 @@ int uuencode_main(int argc, char **argv)
 			memset(&src_buf[size], 0, src_buf_size - size);
 		}
 		/* Encode the buffer we just read in */
-		uuencode((unsigned char*)src_buf, dst_buf, size, tbl);
+		bb_uuencode((unsigned char*)src_buf, dst_buf, size, tbl);
 
 		putchar('\n');
-		if (tbl == tbl_std) {
+		if (tbl == bb_uuenc_tbl_std) {
 			putchar(tbl[size]);
 		}
 		if (fwrite(dst_buf, 1, write_size, stdout) != write_size) {
 			bb_perror_msg_and_die(bb_msg_write_error);
 		}
 	}
-	bb_printf(tbl == tbl_std ? "\n`\nend\n" : "\n====\n");
+	bb_printf(tbl == bb_uuenc_tbl_std ? "\n`\nend\n" : "\n====\n");
 
 	xferror(src_stream, "source");	/* TODO - Fix this! */
 

@@ -98,29 +98,11 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 
 #ifdef CONFIG_FEATURE_WGET_AUTHENTICATION
 /*
- *  Base64-encode character string
- *  oops... isn't something similar in uuencode.c?
- *  XXX: It would be better to use already existing code
+ *  Base64-encode character string and return the string.
  */
 static char *base64enc(unsigned char *p, char *buf, int len) {
 
-	char al[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-		    "0123456789+/";
-	char *s = buf;
-
-	while(*p) {
-		if (s >= buf+len-4)
-			bb_error_msg_and_die("buffer overflow");
-		*(s++) = al[(*p >> 2) & 0x3F];
-		*(s++) = al[((*p << 4) & 0x30) | ((*(p+1) >> 4) & 0x0F)];
-		*s = *(s+1) = '=';
-		*(s+2) = 0;
-		if (! *(++p)) break;
-		*(s++) = al[((*p << 2) & 0x3C) | ((*(p+1) >> 6) & 0x03)];
-		if (! *(++p)) break;
-		*(s++) = al[*(p++) & 0x3F];
-	}
-
+	bb_uuencode(p, buf, len, bb_uuenc_tbl_base64);
 	return buf;
 }
 #endif
