@@ -39,16 +39,17 @@ static inline void push(pid_t pid)
 
 static int pid_is_exec(pid_t pid, const char *name)
 {
-	char buf[32];
-	struct stat sb, exec_stat;
-
-	if (name)
-		xstat(name, &exec_stat);
+	char buf[32], *execbuf;
+	int equal;
 
 	sprintf(buf, "/proc/%d/exe", pid);
-	if (stat(buf, &sb) != 0)
-		return 0;
-	return (sb.st_dev == exec_stat.st_dev && sb.st_ino == exec_stat.st_ino);
+	execbuf = xstrdup(name);
+	readlink(buf, execbuf, strlen(name)+1);
+	
+	equal = ! strcmp(execbuf, name);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		free(execbuf);
+	return equal;
 }
 
 static int pid_is_user(int pid, int uid)
