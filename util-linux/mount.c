@@ -482,7 +482,7 @@ int mount_main(int argc, char **argv)
 			if (ENABLE_FEATURE_CLEAN_UP) endmntent(mountTable);
 			return EXIT_SUCCESS;
 		}
-	}
+	} else storage_path = bb_simplify_path(argv[optind]);
 
 	// When we have two arguments, the second is the directory and we can
 	// skip looking at fstab entirely.  We can always abspath() the directory
@@ -512,8 +512,6 @@ int mount_main(int argc, char **argv)
 	if (parse_mount_options(cmdopts,0) & MS_REMOUNT)
 		fstabname = bb_path_mtab_file;
 	else fstabname="/etc/fstab";
-
-	storage_path = bb_simplify_path(argv[optind]);
 
 	if (!(fstab=setmntent(fstabname,"r")))
 		bb_perror_msg_and_die("Cannot read %s",fstabname);
