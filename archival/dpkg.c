@@ -1571,8 +1571,8 @@ static void unpack_package(deb_file_t *deb_file)
 	unpack_ar_archive(archive_handle);
 
 	/* Create the list file */
-	list_filename = bb_xasprintf("/var/lib/dpkg/info/%s.list", package_name);
-	out_stream = bb_xfopen(list_filename, "w");
+	list_filename = xasprintf("/var/lib/dpkg/info/%s.list", package_name);
+	out_stream = xfopen(list_filename, "w");
 	while (archive_handle->sub_archive->passed) {
 		/* the leading . has been stripped by data_extract_all_prefix already */
 		fputs(archive_handle->sub_archive->passed->data, out_stream);
