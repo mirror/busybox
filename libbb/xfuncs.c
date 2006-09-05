@@ -108,7 +108,7 @@ FILE *xfopen(const char *path, const char *mode)
 /* Die if we can't open an existing file and return an fd. */
 int xopen(const char *pathname, int flags)
 {
-	if (ENABLE_DEBUG && (flags && O_CREAT))
+	if (ENABLE_DEBUG && (flags & O_CREAT))
 		bb_error_msg_and_die("xopen() with O_CREAT\n");
 
 	return xopen3(pathname, flags, 0777);
@@ -349,7 +349,7 @@ off_t fdlength(int fd)
 	do {
 		char temp;
 
-		pos = bottom + (top - bottom) / 2;;
+		pos = bottom + (top - bottom) / 2;
 
 		/* If we can read from the current location, it's bigger. */
 
