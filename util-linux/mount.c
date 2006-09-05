@@ -253,8 +253,8 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	return rc;
 }
 
-// Mount one directory.  Handles CIFS, NFS, loopback, autobind, and filesystem type
-// detection.  Returns 0 for success, nonzero for failure.
+// Mount one directory.  Handles CIFS, NFS, loopback, autobind, and filesystem
+// type detection.  Returns 0 for success, nonzero for failure.
 
 static int singlemount(struct mntent *mp, int ignore_busy)
 {
@@ -301,7 +301,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 		// compose new unc '\\server-ip\share'
 
-		s = xasprintf("\\\\%s\\%s",ip+3,strchr(mp->mnt_fsname+2,'\\'));
+		s = xasprintf("\\\\%s%s",ip+3,strchr(mp->mnt_fsname+2,'\\'));
 		if (ENABLE_FEATURE_CLEAN_UP) free(mp->mnt_fsname);
 		mp->mnt_fsname = s;
 
