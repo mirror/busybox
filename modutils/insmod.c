@@ -3562,7 +3562,7 @@ static int obj_load_progbits(FILE * fp, struct obj_file* f, char* imagebase)
 		sec->contents = imagebase + (sec->header.sh_addr - base);
 		fseek(fp, sec->header.sh_offset, SEEK_SET);
 		if (fread(sec->contents, sec->header.sh_size, 1, fp) != 1) {
-			bb_error_msg("error reading ELF section data: %s\n", strerror(errno));
+			bb_perror_msg("error reading ELF section data");
 			return 0;
 		}
 

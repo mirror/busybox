@@ -663,7 +663,7 @@ int tune2fs_main(int argc, char **argv)
 	if (s_flag == 1) {
 		if (sb->s_feature_ro_compat &
 		    EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER)
-			bb_error_msg("\nThe filesystem already has sparse superblocks\n");
+			bb_error_msg("\nThe filesystem already has sparse superblocks");
 		else {
 			sb->s_feature_ro_compat |=
 				EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER;
@@ -675,7 +675,7 @@ int tune2fs_main(int argc, char **argv)
 	if (s_flag == 0) {
 		if (!(sb->s_feature_ro_compat &
 		      EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER))
-			bb_error_msg("\nThe filesystem already has sparse superblocks disabled\n");
+			bb_error_msg("\nThe filesystem already has sparse superblocks disabled");
 		else {
 			sb->s_feature_ro_compat &=
 				~EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER;
@@ -698,7 +698,7 @@ int tune2fs_main(int argc, char **argv)
 	}
 	if (L_flag) {
 		if (strlen(new_label) > sizeof(sb->s_volume_name))
-			bb_error_msg("Warning: label too long, truncating\n");
+			bb_error_msg("Warning: label too long, truncating");
 		memset(sb->s_volume_name, 0, sizeof(sb->s_volume_name));
 		safe_strncpy(sb->s_volume_name, new_label,
 			sizeof(sb->s_volume_name));

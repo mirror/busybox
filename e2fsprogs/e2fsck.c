@@ -1469,7 +1469,7 @@ static void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 						     bh->b_blocknr,
 						     1, bh->b_data);
 			if (retval) {
-				bb_error_msg("while reading block %lu\n",
+				bb_error_msg("while reading block %lu",
 					(unsigned long) bh->b_blocknr);
 				bh->b_err = retval;
 				continue;
@@ -1480,7 +1480,7 @@ static void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 						      bh->b_blocknr,
 						      1, bh->b_data);
 			if (retval) {
-				bb_error_msg("while writing block %lu\n",
+				bb_error_msg("while writing block %lu",
 					(unsigned long) bh->b_blocknr);
 				bh->b_err = retval;
 				continue;
@@ -1796,7 +1796,7 @@ static errcode_t e2fsck_journal_load(journal_t *journal)
 
 	ll_rw_block(READ, 1, &jbh);
 	if (jbh->b_err) {
-		bb_error_msg(_("reading journal superblock\n"));
+		bb_error_msg(_("reading journal superblock"));
 		return jbh->b_err;
 	}
 
@@ -1852,7 +1852,7 @@ static errcode_t e2fsck_journal_load(journal_t *journal)
 	 * format to be able to proceed safely, so any other checks that
 	 * fail we should attempt to recover from. */
 	if (jsb->s_blocksize != htonl(journal->j_blocksize)) {
-		bb_error_msg(_("%s: no valid journal superblock found\n"),
+		bb_error_msg(_("%s: no valid journal superblock found"),
 			ctx->device_name);
 		return EXT2_ET_CORRUPT_SUPERBLOCK;
 	}
@@ -1860,7 +1860,7 @@ static errcode_t e2fsck_journal_load(journal_t *journal)
 	if (ntohl(jsb->s_maxlen) < journal->j_maxlen)
 		journal->j_maxlen = ntohl(jsb->s_maxlen);
 	else if (ntohl(jsb->s_maxlen) > journal->j_maxlen) {
-		bb_error_msg(_("%s: journal too short\n"),
+		bb_error_msg(_("%s: journal too short"),
 			ctx->device_name);
 		return EXT2_ET_CORRUPT_SUPERBLOCK;
 	}
@@ -5108,7 +5108,7 @@ static int delete_file_block(ext2_filsys fs,
 			p = (struct dup_block *) dnode_get(n);
 			decrement_badcount(ctx, *block_nr, p);
 		} else
-			bb_error_msg(_("internal error; can't find dup_blk for %d\n"),
+			bb_error_msg(_("internal error; can't find dup_blk for %d"),
 				*block_nr);
 	} else {
 		ext2fs_unmark_block_bitmap(ctx->block_found_map, *block_nr);
@@ -5241,7 +5241,7 @@ static int clone_file_block(ext2_filsys fs,
 			ext2fs_mark_block_bitmap(fs->block_map, new_block);
 			return BLOCK_CHANGED;
 		} else
-			bb_error_msg(_("internal error; can't find dup_blk for %d\n"),
+			bb_error_msg(_("internal error; can't find dup_blk for %d"),
 				*block_nr);
 	}
 	return 0;
@@ -12657,7 +12657,7 @@ static void check_mount(e2fsck_t ctx)
 
 	printf(_("%s is mounted.  "), ctx->filesystem_name);
 	if (!ctx->interactive)
-		bb_error_msg_and_die(_("Cannot continue, aborting.\n\n"));
+		bb_error_msg_and_die(_("Cannot continue, aborting."));
 	printf(_("\n\n\007\007\007\007WARNING!!!  "
 	       "Running e2fsck on a mounted filesystem may cause\n"
 	       "SEVERE filesystem damage.\007\007\007\n\n"));
@@ -13377,7 +13377,7 @@ restart:
 				 * happen, unless the hardware or
 				 * device driver is being bogus.
 				 */
-				bb_error_msg(_("unable to set superblock flags on %s\n"), ctx->device_name);
+				bb_error_msg(_("unable to set superblock flags on %s"), ctx->device_name);
 				bb_error_msg_and_die(0);
 			}
 			retval = e2fsck_run_ext3_journal(ctx);
@@ -13409,12 +13409,12 @@ restart:
 #ifdef ENABLE_COMPRESSION
 	/* FIXME - do we support this at all? */
 	if (sb->s_feature_incompat & EXT2_FEATURE_INCOMPAT_COMPRESSION)
-		bb_error_msg(_("Warning: compression support is experimental.\n"));
+		bb_error_msg(_("Warning: compression support is experimental."));
 #endif
 #ifndef ENABLE_HTREE
 	if (sb->s_feature_compat & EXT2_FEATURE_COMPAT_DIR_INDEX) {
 		bb_error_msg(_("E2fsck not compiled with HTREE support,\n\t"
-			  "but filesystem %s has HTREE directories.\n"),
+			  "but filesystem %s has HTREE directories."),
 			ctx->device_name);
 		goto get_newer;
 	}

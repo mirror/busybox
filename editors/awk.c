@@ -2691,7 +2691,7 @@ keep_going:
 				free(s);
 				break;
 			case 'W':
-				bb_error_msg("Warning: unrecognized option '-W %s' ignored\n", optarg);
+				bb_error_msg("Warning: unrecognized option '-W %s' ignored", optarg);
 				break;
 
 			default:

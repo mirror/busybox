@@ -512,7 +512,7 @@ static void add_cmd(char *cmdstr)
 
 			cmdstr++;
 			idx = get_address(cmdstr, &sed_cmd->end_line, &sed_cmd->end_match);
-			if (!idx) bb_error_msg_and_die("no address after comma\n");
+			if (!idx) bb_error_msg_and_die("no address after comma");
 			cmdstr += idx;
 		}
 

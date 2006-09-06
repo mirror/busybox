@@ -228,7 +228,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 		int i;
 
 		if(!mountTable)
-			bb_error_msg("No %s\n",bb_path_mtab_file);
+			bb_error_msg("No %s",bb_path_mtab_file);
 
 		// Add vfs string flags
 

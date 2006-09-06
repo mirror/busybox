@@ -770,7 +770,7 @@ static int inflate_block(int *e)
 	}
 	default:
 		/* bad block type */
-		bb_error_msg_and_die("bad block type %d\n", t);
+		bb_error_msg_and_die("bad block type %d", t);
 	}
 }
 

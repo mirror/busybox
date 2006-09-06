@@ -109,7 +109,7 @@ FILE *xfopen(const char *path, const char *mode)
 int xopen(const char *pathname, int flags)
 {
 	if (ENABLE_DEBUG && (flags & O_CREAT))
-		bb_error_msg_and_die("xopen() with O_CREAT\n");
+		bb_error_msg_and_die("xopen() with O_CREAT");
 
 	return xopen3(pathname, flags, 0777);
 }

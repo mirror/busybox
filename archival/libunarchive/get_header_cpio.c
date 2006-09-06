@@ -31,7 +31,7 @@ char get_header_cpio(archive_handle_t *archive_handle)
 		oldtmp = NULL;
 
 		while (tmp) {
-			bb_error_msg_and_die("need to fix this\n");
+			bb_error_msg_and_die("need to fix this");
 			if (tmp->entry->link_name) { /* Found a hardlink ready to be extracted */
 				file_header = tmp->entry;
 				if (oldtmp) {

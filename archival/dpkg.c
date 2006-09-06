@@ -492,7 +492,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 					else if (strncmp(version, ">=", offset_ch) == 0) {
 						edge->operator = VER_MORE_EQUAL;
 					} else {
-						bb_error_msg_and_die("Illegal operator\n");
+						bb_error_msg_and_die("Illegal operator");
 					}
 				}
 				/* skip to start of version numbers */
@@ -1136,7 +1136,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 				 * EDGE_PRE_DEPENDS == OR_PRE_DEPENDS -1
 				 */
 				if ( root_of_alternatives && package_edge->type != root_of_alternatives->type - 1)
-					bb_error_msg_and_die("Fatal error. Package dependencies corrupt: %d != %d - 1 \n",
+					bb_error_msg_and_die("Fatal error. Package dependencies corrupt: %d != %d - 1",
 							     package_edge->type, root_of_alternatives->type);
 
 				if (package_hashtable[package_num] != NULL)
@@ -1718,7 +1718,7 @@ int dpkg_main(int argc, char **argv)
 				search_name_hashtable(argv[optind]),
 				search_name_hashtable("ANY"), VER_ANY);
 			if (package_hashtable[deb_file[deb_count]->package] == NULL) {
-				bb_error_msg_and_die("Package %s is uninstalled or unknown\n", argv[optind]);
+				bb_error_msg_and_die("Package %s is uninstalled or unknown", argv[optind]);
 			}
 			package_num = deb_file[deb_count]->package;
 			status_num = search_status_hashtable(name_hashtable[package_hashtable[package_num]->name]);

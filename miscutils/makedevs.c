@@ -119,7 +119,7 @@ int makedevs_main(int argc, char **argv)
 		{
 			if (*line=='\0' || *line=='#' || isspace(*line))
 				continue;
-			bb_error_msg("line %d invalid: '%s'\n", linenum, line);
+			bb_error_msg("line %d invalid: '%s'", linenum, line);
 			ret = EXIT_FAILURE;
 			continue;
 		}
