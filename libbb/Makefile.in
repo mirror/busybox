@@ -56,11 +56,12 @@ LIBBB-$(CONFIG_WGET)+= uuencode.c
 # allowing us to build busybox even if uclibc regex support is disabled.
 
 regex-y:=
-
 regex-$(CONFIG_AWK) += xregcomp.c
 regex-$(CONFIG_SED) += xregcomp.c
 regex-$(CONFIG_LESS) += xregcomp.c
 regex-$(CONFIG_DEVFSD) += xregcomp.c
+regex-$(CONFIG_MDEV) += xregcomp.c
+regex-$(CONFIG_GREP) += xregcomp.c
 
 # Sort has the happy side efect of returning a unique list
 LIBBB-y += $(sort $(regex-y))
