@@ -44,7 +44,8 @@ unsigned long random_xid(void)
 
 		fd = open("/dev/urandom", 0);
 		if (fd < 0 || read(fd, &seed, sizeof(seed)) < 0) {
-			LOG(LOG_WARNING, "Could not load seed from /dev/urandom: %m");
+			bb_info_msg("Could not load seed "
+				"from /dev/urandom: %s", strerror(errno));
 			seed = time(0);
 		}
 		if (fd >= 0) close(fd);
@@ -97,7 +98,7 @@ int send_discover(unsigned long xid, unsigned long requested)
 		add_simple_option(packet.options, DHCP_REQUESTED_IP, requested);
 
 	add_requests(&packet);
-	LOG(LOG_DEBUG, "Sending discover...");
+	bb_info_msg("Sending discover...");
 	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
@@ -117,7 +118,7 @@ int send_selecting(unsigned long xid, unsigned long server, unsigned long reques
 
 	add_requests(&packet);
 	addr.s_addr = requested;
-	LOG(LOG_DEBUG, "Sending select for %s...", inet_ntoa(addr));
+	bb_info_msg("Sending select for %s...", inet_ntoa(addr));
 	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
 				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
@@ -134,7 +135,7 @@ int send_renew(unsigned long xid, unsigned long server, unsigned long ciaddr)
 	packet.ciaddr = ciaddr;
 
 	add_requests(&packet);
-	LOG(LOG_DEBUG, "Sending renew...");
+	bb_info_msg("Sending renew...");
 	if (server)
 		ret = udhcp_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
 	else ret = udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
@@ -155,7 +156,7 @@ int send_release(unsigned long server, unsigned long ciaddr)
 	add_simple_option(packet.options, DHCP_REQUESTED_IP, ciaddr);
 	add_simple_option(packet.options, DHCP_SERVER_ID, server);
 
-	LOG(LOG_DEBUG, "Sending release...");
+	bb_info_msg("Sending release...");
 	return udhcp_kernel_packet(&packet, ciaddr, CLIENT_PORT, server, SERVER_PORT);
 }
 
@@ -171,18 +172,18 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	memset(&packet, 0, sizeof(struct udp_dhcp_packet));
 	bytes = read(fd, &packet, sizeof(struct udp_dhcp_packet));
 	if (bytes < 0) {
-		DEBUG(LOG_INFO, "couldn't read on raw listening socket -- ignoring");
+		DEBUG("Couldn't read on raw listening socket - ignoring");
 		usleep(500000); /* possible down interface, looping condition */
 		return -1;
 	}
 
 	if (bytes < (int) (sizeof(struct iphdr) + sizeof(struct udphdr))) {
-		DEBUG(LOG_INFO, "message too short, ignoring");
+		DEBUG("Message too short, ignoring");
 		return -2;
 	}
 
 	if (bytes < ntohs(packet.ip.tot_len)) {
-		DEBUG(LOG_INFO, "Truncated packet");
+		DEBUG("Truncated packet");
 		return -2;
 	}
 
@@ -194,7 +195,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	    packet.ip.ihl != sizeof(packet.ip) >> 2 || packet.udp.dest != htons(CLIENT_PORT) ||
 	    bytes > (int) sizeof(struct udp_dhcp_packet) ||
 	    ntohs(packet.udp.len) != (uint16_t) (bytes - sizeof(packet.ip))) {
-		DEBUG(LOG_INFO, "unrelated/bogus packet");
+		DEBUG("Unrelated/bogus packet");
 		return -2;
 	}
 
@@ -202,7 +203,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	check = packet.ip.check;
 	packet.ip.check = 0;
 	if (check != udhcp_checksum(&(packet.ip), sizeof(packet.ip))) {
-		DEBUG(LOG_INFO, "bad IP header checksum, ignoring");
+		DEBUG("bad IP header checksum, ignoring");
 		return -1;
 	}
 
@@ -218,17 +219,17 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	packet.ip.daddr = dest;
 	packet.ip.tot_len = packet.udp.len; /* cheat on the psuedo-header */
 	if (check && check != udhcp_checksum(&packet, bytes)) {
-		DEBUG(LOG_ERR, "packet with bad UDP checksum received, ignoring");
+		bb_error_msg("Packet with bad UDP checksum received, ignoring");
 		return -2;
 	}
 
 	memcpy(payload, &(packet.data), bytes - (sizeof(packet.ip) + sizeof(packet.udp)));
 
 	if (ntohl(payload->cookie) != DHCP_MAGIC) {
-		LOG(LOG_ERR, "received bogus message (bad magic) -- ignoring");
+		bb_error_msg("Received bogus message (bad magic) - ignoring");
 		return -2;
 	}
-	DEBUG(LOG_INFO, "oooooh!!! got some!");
+	DEBUG("oooooh!!! got some!");
 	return bytes - (sizeof(packet.ip) + sizeof(packet.udp));
 
 }

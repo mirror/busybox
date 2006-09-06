@@ -15,9 +15,5 @@
 
 void bb_vperror_msg(const char *s, va_list p)
 {
-	int err=errno;
-	if(s == 0) s = "";
-	bb_verror_msg(s, p);
-	if (*s) s = ": ";
-	fprintf(stderr, "%s%s\n", s, strerror(err));
+	bb_verror_msg(s, p, strerror(errno));
 }

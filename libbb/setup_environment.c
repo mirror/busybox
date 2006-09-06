@@ -60,10 +60,7 @@ void setup_environment ( const char *shell, int loginshell, int changeenv, const
 		 * Some systems default to HOME=/
 		 */
 		if ( chdir ( pw-> pw_dir )) {
-			if ( chdir ( "/" )) {
-				syslog ( LOG_WARNING, "unable to cd to %s' for user %s'\n", pw-> pw_dir, pw-> pw_name );
-				bb_error_msg_and_die ( "cannot cd to home directory or /" );
-			}
+			xchdir ( "/" );
 			fputs ( "warning: cannot change to home directory\n", stderr );
 		}
 

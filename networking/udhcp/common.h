@@ -12,26 +12,12 @@
 
 #include "libbb_udhcp.h"
 
-
-enum syslog_levels {
-	LOG_EMERG = 0,
-	LOG_ALERT,
-	LOG_CRIT,
-	LOG_WARNING,
-	LOG_ERR,
-	LOG_INFO,
-	LOG_DEBUG
-};
-#include <syslog.h>
-
 long uptime(void);
 
-#define LOG(level, str, args...) udhcp_logging(level, str, ## args)
-
 #if ENABLE_FEATURE_UDHCP_DEBUG
-# define DEBUG(level, str, args...) LOG(level, str, ## args)
+# define DEBUG(str, args...) bb_info_msg(str, ## args)
 #else
-# define DEBUG(level, str, args...) do {;} while(0)
+# define DEBUG(str, args...) do {;} while(0)
 #endif
 
 #endif

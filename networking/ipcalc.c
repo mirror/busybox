@@ -119,7 +119,7 @@ int ipcalc_main(int argc, char **argv)
 					unsigned int msk;
 
 					if (safe_strtoul(prefixstr, &netprefix) || netprefix > 32) {
-						IPCALC_MSG(bb_error_msg_and_die("bad IP prefix: %s\n", prefixstr),
+						IPCALC_MSG(bb_error_msg_and_die("bad IP prefix: %s", prefixstr),
 								exit(EXIT_FAILURE));
 					}
 					netmask = 0;
@@ -149,7 +149,7 @@ int ipcalc_main(int argc, char **argv)
 
 	if (argc == 2) {
 		if (ENABLE_FEATURE_IPCALC_FANCY && have_netmask) {
-			IPCALC_MSG(bb_error_msg_and_die("Use prefix or netmask, not both.\n"),
+			IPCALC_MSG(bb_error_msg_and_die("Use prefix or netmask, not both"),
 					exit(EXIT_FAILURE));
 		}
 

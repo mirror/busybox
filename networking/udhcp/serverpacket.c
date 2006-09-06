@@ -35,7 +35,7 @@
 /* send a packet to giaddr using the kernel ip stack */
 static int send_packet_to_relay(struct dhcpMessage *payload)
 {
-	DEBUG(LOG_INFO, "Forwarding packet to relay");
+	DEBUG("Forwarding packet to relay");
 
 	return udhcp_kernel_packet(payload, server_config.server, SERVER_PORT,
 			payload->giaddr, SERVER_PORT);
@@ -49,19 +49,19 @@ static int send_packet_to_client(struct dhcpMessage *payload, int force_broadcas
 	uint32_t ciaddr;
 
 	if (force_broadcast) {
-		DEBUG(LOG_INFO, "broadcasting packet to client (NAK)");
+		DEBUG("broadcasting packet to client (NAK)");
 		ciaddr = INADDR_BROADCAST;
 		chaddr = MAC_BCAST_ADDR;
 	} else if (payload->ciaddr) {
-		DEBUG(LOG_INFO, "unicasting packet to client ciaddr");
+		DEBUG("unicasting packet to client ciaddr");
 		ciaddr = payload->ciaddr;
 		chaddr = payload->chaddr;
 	} else if (ntohs(payload->flags) & BROADCAST_FLAG) {
-		DEBUG(LOG_INFO, "broadcasting packet to client (requested)");
+		DEBUG("broadcasting packet to client (requested)");
 		ciaddr = INADDR_BROADCAST;
 		chaddr = MAC_BCAST_ADDR;
 	} else {
-		DEBUG(LOG_INFO, "unicasting packet to client yiaddr");
+		DEBUG("unicasting packet to client yiaddr");
 		ciaddr = payload->yiaddr;
 		chaddr = payload->chaddr;
 	}
@@ -158,12 +158,12 @@ int sendOffer(struct dhcpMessage *oldpacket)
 	}
 
 	if(!packet.yiaddr) {
-		LOG(LOG_WARNING, "no IP addresses to give -- OFFER abandoned");
+		bb_error_msg("No IP addresses to give - OFFER abandoned");
 		return -1;
 	}
 
 	if (!add_lease(packet.chaddr, packet.yiaddr, server_config.offer_time)) {
-		LOG(LOG_WARNING, "lease pool is full -- OFFER abandoned");
+		bb_error_msg("Lease pool is full - OFFER abandoned");
 		return -1;
 	}
 
@@ -197,7 +197,7 @@ int sendOffer(struct dhcpMessage *oldpacket)
 	add_bootp_options(&packet);
 
 	addr.s_addr = packet.yiaddr;
-	LOG(LOG_INFO, "sending OFFER of %s", inet_ntoa(addr));
+	bb_info_msg("Sending OFFER of %s", inet_ntoa(addr));
 	return send_packet(&packet, 0);
 }
 
@@ -208,7 +208,7 @@ int sendNAK(struct dhcpMessage *oldpacket)
 
 	init_packet(&packet, oldpacket, DHCPNAK);
 
-	DEBUG(LOG_INFO, "sending NAK");
+	DEBUG("Sending NAK");
 	return send_packet(&packet, 1);
 }
 
@@ -245,7 +245,7 @@ int sendACK(struct dhcpMessage *oldpacket, uint32_t yiaddr)
 	add_bootp_options(&packet);
 
 	addr.s_addr = packet.yiaddr;
-	LOG(LOG_INFO, "sending ACK to %s", inet_ntoa(addr));
+	bb_info_msg("Sending ACK to %s", inet_ntoa(addr));
 
 	if (send_packet(&packet, 0) < 0)
 		return -1;

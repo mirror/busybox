@@ -157,7 +157,6 @@ static int godaemon(void)
 
 		setsid();
 
-		openlog(bb_applet_name, 0, LOG_DAEMON);
 		return 1;
 	}
 
@@ -219,6 +218,10 @@ static int checkInput(char *buf, int len, int l)
 
 int fakeidentd_main(int argc, char **argv)
 {
+	/* This applet is an inetd-style daemon */
+	openlog(bb_applet_name, 0, LOG_DAEMON);
+	logmode = LOGMODE_SYSLOG;
+
 	memset(conns, 0, sizeof(conns));
 	memset(&G, 0, sizeof(G));
 	FD_ZERO(&G.readfds);
@@ -286,7 +289,7 @@ deleteconn:
 
 		if (s < 0) {
 			if (errno != EINTR) /* EINTR */
-				syslog(LOG_ERR, "accept: %s", strerror(errno));
+				bb_perror_msg("accept");
 		} else {
 			if (G.conncnt == MAXCONNS)
 				i = closeOldest();

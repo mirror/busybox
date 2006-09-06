@@ -66,7 +66,7 @@ int udhcpd_main(int argc, char *argv[])
 	/* Sanity check */
 	num_ips = ntohl(server_config.end) - ntohl(server_config.start) + 1;
 	if (server_config.max_leases > num_ips) {
-		LOG(LOG_ERR, "max_leases value (%lu) not sane, "
+		bb_error_msg("max_leases value (%lu) not sane, "
 			"setting to %lu instead",
 			server_config.max_leases, num_ips);
 		server_config.max_leases = num_ips;
@@ -90,7 +90,7 @@ int udhcpd_main(int argc, char *argv[])
 
 		if (server_socket < 0)
 			if ((server_socket = listen_socket(INADDR_ANY, SERVER_PORT, server_config.interface)) < 0) {
-				LOG(LOG_ERR, "FATAL: couldn't create server socket, %m");
+				bb_perror_msg("FATAL: couldn't create server socket");
 				return 2;
 			}
 
@@ -109,19 +109,19 @@ int udhcpd_main(int argc, char *argv[])
 			timeout_end = time(0) + server_config.auto_time;
 			continue;
 		} else if (retval < 0 && errno != EINTR) {
-			DEBUG(LOG_INFO, "error on select");
+			DEBUG("error on select");
 			continue;
 		}
 
 		switch (udhcp_sp_read(&rfds)) {
 		case SIGUSR1:
-			LOG(LOG_INFO, "Received a SIGUSR1");
+			bb_info_msg("Received a SIGUSR1");
 			write_leases();
 			/* why not just reset the timeout, eh */
 			timeout_end = time(0) + server_config.auto_time;
 			continue;
 		case SIGTERM:
-			LOG(LOG_INFO, "Received a SIGTERM");
+			bb_info_msg("Received a SIGTERM");
 			return 0;
 		case 0: break;		/* no signal */
 		default: continue;	/* signal or error (probably EINTR) */
@@ -129,7 +129,7 @@ int udhcpd_main(int argc, char *argv[])
 
 		if ((bytes = udhcp_get_packet(&packet, server_socket)) < 0) { /* this waits for a packet - idle */
 			if (bytes == -1 && errno != EINTR) {
-				DEBUG(LOG_INFO, "error on read, %m, reopening socket");
+				DEBUG("error on read, %s, reopening socket", strerror(errno));
 				close(server_socket);
 				server_socket = -1;
 			}
@@ -137,7 +137,7 @@ int udhcpd_main(int argc, char *argv[])
 		}
 
 		if ((state = get_option(&packet, DHCP_MESSAGE_TYPE)) == NULL) {
-			DEBUG(LOG_ERR, "couldn't get option from packet, ignoring");
+			bb_error_msg("Couldn't get option from packet, ignoring");
 			continue;
 		}
 
@@ -146,7 +146,7 @@ int udhcpd_main(int argc, char *argv[])
 
 		if(static_lease_ip)
 		{
-			printf("Found static lease: %x\n", static_lease_ip);
+			bb_info_msg("Found static lease: %x", static_lease_ip);
 
 			memcpy(&static_lease.chaddr, &packet.chaddr, 16);
 			static_lease.yiaddr = static_lease_ip;
@@ -162,14 +162,14 @@ int udhcpd_main(int argc, char *argv[])
 
 		switch (state[0]) {
 		case DHCPDISCOVER:
-			DEBUG(LOG_INFO,"received DISCOVER");
+			DEBUG("Received DISCOVER");
 
 			if (sendOffer(&packet) < 0) {
-				LOG(LOG_ERR, "send OFFER failed");
+				bb_error_msg("Send OFFER failed");
 			}
 			break;
 		case DHCPREQUEST:
-			DEBUG(LOG_INFO, "received REQUEST");
+			DEBUG("received REQUEST");
 
 			requested = get_option(&packet, DHCP_REQUESTED_IP);
 			server_id = get_option(&packet, DHCP_SERVER_ID);
@@ -180,7 +180,7 @@ int udhcpd_main(int argc, char *argv[])
 			if (lease) {
 				if (server_id) {
 					/* SELECTING State */
-					DEBUG(LOG_INFO, "server_id = %08x", ntohl(server_id_align));
+					DEBUG("server_id = %08x", ntohl(server_id_align));
 					if (server_id_align == server_config.server && requested &&
 					    requested_align == lease->yiaddr) {
 						sendACK(&packet, lease->yiaddr);
@@ -224,22 +224,22 @@ int udhcpd_main(int argc, char *argv[])
 			}
 			break;
 		case DHCPDECLINE:
-			DEBUG(LOG_INFO,"received DECLINE");
+			DEBUG("Received DECLINE");
 			if (lease) {
 				memset(lease->chaddr, 0, 16);
 				lease->expires = time(0) + server_config.decline_time;
 			}
 			break;
 		case DHCPRELEASE:
-			DEBUG(LOG_INFO,"received RELEASE");
+			DEBUG("Received RELEASE");
 			if (lease) lease->expires = time(0);
 			break;
 		case DHCPINFORM:
-			DEBUG(LOG_INFO,"received INFORM");
+			DEBUG("Received INFORM");
 			send_inform(&packet);
 			break;
 		default:
-			LOG(LOG_WARNING, "unsupported DHCP message (%02x) -- ignoring", state[0]);
+			bb_info_msg("Unsupported DHCP message (%02x) - ignoring", state[0]);
 		}
 	}
 

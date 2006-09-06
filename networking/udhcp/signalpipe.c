@@ -36,7 +36,7 @@ static int signal_pipe[2];
 static void signal_handler(int sig)
 {
 	if (send(signal_pipe[1], &sig, sizeof(sig), MSG_DONTWAIT) < 0)
-		DEBUG(LOG_ERR, "Could not send signal: %m");
+		bb_perror_msg("Could not send signal");
 }
 
 

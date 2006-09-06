@@ -205,7 +205,7 @@ int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6,
 	/* Grmpf. -FvK */
 	if (sin6->sin6_family != AF_INET6) {
 #ifdef DEBUG
-		bb_error_msg(_("rresolve: unsupport address family %d !\n"),
+		bb_error_msg(_("rresolve: unsupport address family %d!"),
 				  sin6->sin6_family);
 #endif
 		errno = EAFNOSUPPORT;

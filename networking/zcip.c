@@ -124,10 +124,7 @@ static void arp(int fd, struct sockaddr *saddr, int op,
 
 	// send it
 	if (sendto(fd, &p, sizeof (p), 0, saddr, sizeof (*saddr)) < 0) {
-		if (FOREGROUND)
-			perror("sendto");
-		else
-			syslog(LOG_ERR, "sendto: %s", strerror(errno));
+		bb_perror_msg("sendto");
 		//return -errno;
 	}
 	// Currently all callers ignore errors, that's why returns are
@@ -148,8 +145,7 @@ static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 		if (ip != NULL) {
 			char *addr = inet_ntoa(*ip);
 			setenv("ip", addr, 1);
-			if (!FOREGROUND)
-				syslog(LOG_INFO, "%s %s %s", arg, intf, addr);
+			bb_info_msg("%s %s %s", arg, intf, addr);
 		}
 
 		pid = vfork();
@@ -158,10 +154,7 @@ static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 			goto bad;
 		} else if (pid == 0) {		// child
 			execl(script, script, arg, NULL);
-			if (FOREGROUND)
-				perror("execl");
-			else
-				syslog(LOG_ERR, "execl: %s", strerror(errno));
+			bb_perror_msg("execl");
 			_exit(EXIT_FAILURE);
 		}
 
@@ -170,24 +163,15 @@ static int run(char *script, char *arg, char *intf, struct in_addr *ip)
 			goto bad;
 		}
 		if (WEXITSTATUS(status) != 0) {
-			if (FOREGROUND)
-				bb_error_msg("script %s failed, exit=%d",
-					script, WEXITSTATUS(status));
-			else
-				syslog(LOG_ERR, "script %s failed, exit=%d",
-					script, WEXITSTATUS(status));
+			bb_error_msg("script %s failed, exit=%d",
+				script, WEXITSTATUS(status));
 			return -errno;
 		}
 	}
 	return 0;
 bad:
 	status = -errno;
-	if (FOREGROUND)
-		bb_perror_msg("%s %s, %s",
-			arg, intf, why);
-	else
-		syslog(LOG_ERR, "%s %s, %s: %s",
-			arg, intf, why, strerror(errno));
+	bb_perror_msg("%s %s, %s", arg, intf, why);
 	return status;
 }
 
@@ -235,6 +219,11 @@ int zcip_main(int argc, char *argv[])
 	char *r_opt;
 	bb_opt_complementally = "vv:vf"; // -v accumulates and implies -f
 	opts = bb_getopt_ulflags(argc, argv, "fqr:v", &r_opt, &verbose);
+	if (!FOREGROUND) {
+		/* Do it early, before all bb_xx_msg calls */
+		logmode = LOGMODE_SYSLOG;
+		openlog(bb_applet_name, 0, LOG_DAEMON);
+	}
 	if (opts & 4) { // -r n.n.n.n
 		if (inet_aton(r_opt, &ip) == 0
 		|| (ntohl(ip.s_addr) & IN_CLASSB_NET) != LINKLOCAL_ADDR) {
@@ -285,9 +274,9 @@ int zcip_main(int argc, char *argv[])
 
 	// daemonize now; don't delay system startup
 	if (!FOREGROUND) {
-		xdaemon(0, verbose);
-		openlog(bb_applet_name, 0, LOG_DAEMON);
-		syslog(LOG_INFO, "start, interface %s", intf);
+		setsid();
+		xdaemon(0, 0);
+		bb_info_msg("start, interface %s", intf);
 	}
 
 	// run the dynamic address negotiation protocol,
@@ -557,10 +546,6 @@ int zcip_main(int argc, char *argv[])
 		} // switch poll
 	}
 bad:
-	if (FOREGROUND)
-		perror(why);
-	else
-		syslog(LOG_ERR, "%s %s, %s error: %s",
-			bb_applet_name, intf, why, strerror(errno));
+	bb_perror_msg("%s, %s", intf, why);
 	return EXIT_FAILURE;
 }

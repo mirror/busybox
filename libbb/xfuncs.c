@@ -397,7 +397,7 @@ char *xasprintf(const char *format, ...)
 	va_end(p);
 #endif
 
-	if (r < 0) bb_perror_msg_and_die("xasprintf");
+	if (r < 0) bb_error_msg_and_die(bb_msg_memory_exhausted);
 	return string_ptr;
 }
 #endif

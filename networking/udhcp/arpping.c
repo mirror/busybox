@@ -43,13 +43,13 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 	time_t		prevTime;
 
 
-	if ((s = socket (PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP))) == -1) {
-		LOG(LOG_ERR, bb_msg_can_not_create_raw_socket);
+	if ((s = socket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP))) == -1) {
+		bb_perror_msg(bb_msg_can_not_create_raw_socket);
 		return -1;
 	}
 
 	if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) == -1) {
-		LOG(LOG_ERR, "Could not setsocketopt on raw socket");
+		bb_perror_msg("Could not setsocketopt on raw socket");
 		close(s);
 		return -1;
 	}
@@ -81,14 +81,14 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 		FD_SET(s, &fdset);
 		tm.tv_sec = timeout;
 		if (select(s + 1, &fdset, (fd_set *) NULL, (fd_set *) NULL, &tm) < 0) {
-			DEBUG(LOG_ERR, "Error on ARPING request: %m");
+			bb_perror_msg("Error on ARPING request");
 			if (errno != EINTR) rv = 0;
 		} else if (FD_ISSET(s, &fdset)) {
 			if (recv(s, &arp, sizeof(arp), 0) < 0 ) rv = 0;
 			if (arp.operation == htons(ARPOP_REPLY) &&
 			    memcmp(arp.tHaddr, mac, 6) == 0 &&
 			    *((uint32_t *) arp.sInaddr) == yiaddr) {
-				DEBUG(LOG_INFO, "Valid arp reply receved for this address");
+				DEBUG("Valid arp reply received for this address");
 				rv = 0;
 				break;
 			}
@@ -97,6 +97,6 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 		prevTime = uptime();
 	}
 	close(s);
-	DEBUG(LOG_INFO, "%salid arp replies for this address", rv ? "No v" : "V");
+	DEBUG("%salid arp replies for this address", rv ? "No v" : "V");
 	return rv;
 }

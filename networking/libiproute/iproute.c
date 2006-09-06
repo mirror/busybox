@@ -608,7 +608,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 			}
 			filter.flushed = 0;
 			if (rtnl_dump_filter(&rth, print_route, stdout, NULL, NULL) < 0) {
-				bb_error_msg("Flush terminated\n");
+				bb_error_msg("Flush terminated");
 				return -1;
 			}
 			if (filter.flushed == 0) {

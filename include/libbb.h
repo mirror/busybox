@@ -112,6 +112,14 @@ extern void *llist_pop(llist_t **elm);
 extern void llist_free(llist_t *elm, void (*freeit)(void *data));
 
 
+enum {
+	LOGMODE_NONE = 0,
+	LOGMODE_STDIO = 1<<0,
+	LOGMODE_SYSLOG = 1<<1,
+	LOGMODE_BOTH = LOGMODE_SYSLOG + LOGMODE_STDIO,
+};
+extern int logmode;
+
 extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
@@ -124,9 +132,12 @@ extern void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, 
 extern void bb_perror_nomsg_and_die(void) ATTRIBUTE_NORETURN;
 extern void bb_perror_nomsg(void);
 
+extern void bb_info_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
+
 /* These two are used internally -- you shouldn't need to use them */
-extern void bb_verror_msg(const char *s, va_list p) __attribute__ ((format (printf, 1, 0)));
+extern void bb_verror_msg(const char *s, va_list p, const char *strerr) __attribute__ ((format (printf, 1, 0)));
 extern void bb_vperror_msg(const char *s, va_list p)  __attribute__ ((format (printf, 1, 0)));
+extern void bb_vinfo_msg(const char *s, va_list p) __attribute__ ((format (printf, 1, 0)));
 
 extern int bb_echo(int argc, char** argv);
 extern int bb_test(int argc, char** argv);

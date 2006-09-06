@@ -113,7 +113,7 @@ static int check_ip(uint32_t addr)
 
 	if (arpping(addr, server_config.server, server_config.arp, server_config.interface) == 0) {
 		temp.s_addr = addr;
-		LOG(LOG_INFO, "%s belongs to someone, reserving it for %ld seconds",
+		bb_info_msg("%s belongs to someone, reserving it for %ld seconds",
 			inet_ntoa(temp), server_config.conflict_time);
 		add_lease(blank_chaddr, addr, server_config.conflict_time);
 		return 1;

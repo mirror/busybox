@@ -60,33 +60,33 @@ int read_interface(char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
 			if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) {
 				our_ip = (struct sockaddr_in *) &ifr.ifr_addr;
 				*addr = our_ip->sin_addr.s_addr;
-				DEBUG(LOG_INFO, "%s (our ip) = %s", ifr.ifr_name, inet_ntoa(our_ip->sin_addr));
+				DEBUG("%s (our ip) = %s", ifr.ifr_name, inet_ntoa(our_ip->sin_addr));
 			} else {
-				LOG(LOG_ERR, "SIOCGIFADDR failed, is the interface up and configured?: %m");
+				bb_perror_msg("SIOCGIFADDR failed, is the interface up and configured?");
 				close(fd);
 				return -1;
 			}
 		}
 
 		if (ioctl(fd, SIOCGIFINDEX, &ifr) == 0) {
-			DEBUG(LOG_INFO, "adapter index %d", ifr.ifr_ifindex);
+			DEBUG("adapter index %d", ifr.ifr_ifindex);
 			*ifindex = ifr.ifr_ifindex;
 		} else {
-			LOG(LOG_ERR, "SIOCGIFINDEX failed!: %m");
+			bb_perror_msg("SIOCGIFINDEX failed");
 			close(fd);
 			return -1;
 		}
 		if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0) {
 			memcpy(arp, ifr.ifr_hwaddr.sa_data, 6);
-			DEBUG(LOG_INFO, "adapter hardware address %02x:%02x:%02x:%02x:%02x:%02x",
+			DEBUG("adapter hardware address %02x:%02x:%02x:%02x:%02x:%02x",
 				arp[0], arp[1], arp[2], arp[3], arp[4], arp[5]);
 		} else {
-			LOG(LOG_ERR, "SIOCGIFHWADDR failed!: %m");
+			bb_perror_msg("SIOCGIFHWADDR failed");
 			close(fd);
 			return -1;
 		}
 	} else {
-		LOG(LOG_ERR, "socket failed!: %m");
+		bb_perror_msg("socket failed");
 		return -1;
 	}
 	close(fd);
@@ -101,9 +101,9 @@ int listen_socket(uint32_t ip, int port, char *inf)
 	struct sockaddr_in addr;
 	int n = 1;
 
-	DEBUG(LOG_INFO, "Opening listen socket on 0x%08x:%d %s", ip, port, inf);
+	DEBUG("Opening listen socket on 0x%08x:%d %s", ip, port, inf);
 	if ((fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
-		DEBUG(LOG_ERR, "socket call failed: %m");
+		bb_perror_msg("socket");
 		return -1;
 	}
 

@@ -58,21 +58,21 @@ int udhcp_get_packet(struct dhcpMessage *packet, int fd)
 	memset(packet, 0, sizeof(struct dhcpMessage));
 	bytes = read(fd, packet, sizeof(struct dhcpMessage));
 	if (bytes < 0) {
-		DEBUG(LOG_INFO, "couldn't read on listening socket, ignoring");
+		DEBUG("couldn't read on listening socket, ignoring");
 		return -1;
 	}
 
 	if (ntohl(packet->cookie) != DHCP_MAGIC) {
-		LOG(LOG_ERR, "received bogus message, ignoring");
+		bb_error_msg("Received bogus message, ignoring");
 		return -2;
 	}
-	DEBUG(LOG_INFO, "Received a packet");
+	DEBUG("Received a packet");
 
 	if (packet->op == BOOTREQUEST && (vendor = get_option(packet, DHCP_VENDOR))) {
 		for (i = 0; broken_vendors[i][0]; i++) {
 			if (vendor[OPT_LEN - 2] == (uint8_t) strlen(broken_vendors[i]) &&
 			    !strncmp((char*)vendor, broken_vendors[i], vendor[OPT_LEN - 2])) {
-				DEBUG(LOG_INFO, "broken client (%s), forcing broadcast",
+				DEBUG("broken client (%s), forcing broadcast",
 					broken_vendors[i]);
 				packet->flags |= htons(BROADCAST_FLAG);
 			}
@@ -123,7 +123,7 @@ int udhcp_raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source
 	struct udp_dhcp_packet packet;
 
 	if ((fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) < 0) {
-		DEBUG(LOG_ERR, "socket call failed: %m");
+		bb_perror_msg("socket");
 		return -1;
 	}
 
@@ -136,7 +136,7 @@ int udhcp_raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source
 	dest.sll_halen = 6;
 	memcpy(dest.sll_addr, dest_arp, 6);
 	if (bind(fd, (struct sockaddr *)&dest, sizeof(struct sockaddr_ll)) < 0) {
-		DEBUG(LOG_ERR, "bind call failed: %m");
+		bb_perror_msg("bind");
 		close(fd);
 		return -1;
 	}
@@ -159,7 +159,7 @@ int udhcp_raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source
 
 	result = sendto(fd, &packet, sizeof(struct udp_dhcp_packet), 0, (struct sockaddr *) &dest, sizeof(dest));
 	if (result <= 0) {
-		DEBUG(LOG_ERR, "write on socket failed: %m");
+		bb_perror_msg("sendto");
 	}
 	close(fd);
 	return result;

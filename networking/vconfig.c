@@ -133,7 +133,7 @@ int vconfig_main(int argc, char **argv)
 		ifr.u.name_type = *xfind_str(name_types+1, argv[1]);
 	} else {
 		if (strlen(argv[1]) >= IF_NAMESIZE) {
-			bb_error_msg_and_die("if_name >= %d chars\n", IF_NAMESIZE);
+			bb_error_msg_and_die("if_name >= %d chars", IF_NAMESIZE);
 		}
 		strcpy(ifr.device1, argv[1]);
 		p = argv[2];

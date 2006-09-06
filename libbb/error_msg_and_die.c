@@ -18,8 +18,7 @@ void bb_error_msg_and_die(const char *s, ...)
 	va_list p;
 
 	va_start(p, s);
-	bb_verror_msg(s, p);
+	bb_verror_msg(s, p, NULL);
 	va_end(p);
-	putc('\n', stderr);
 	exit(bb_default_error_retval);
 }

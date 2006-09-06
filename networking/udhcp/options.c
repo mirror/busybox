@@ -73,12 +73,12 @@ uint8_t *get_option(struct dhcpMessage *packet, int code)
 	length = 308;
 	while (!done) {
 		if (i >= length) {
-			LOG(LOG_WARNING, "bogus packet, option fields too long.");
+			bb_error_msg("Bogus packet, option fields too long");
 			return NULL;
 		}
 		if (optionptr[i + OPT_CODE] == code) {
 			if (i + 1 + optionptr[i + OPT_LEN] >= length) {
-				LOG(LOG_WARNING, "bogus packet, option fields too long.");
+				bb_error_msg("Bogus packet, option fields too long");
 				return NULL;
 			}
 			return optionptr + i + 2;
@@ -89,7 +89,7 @@ uint8_t *get_option(struct dhcpMessage *packet, int code)
 			break;
 		case DHCP_OPTION_OVER:
 			if (i + 1 + optionptr[i + OPT_LEN] >= length) {
-				LOG(LOG_WARNING, "bogus packet, option fields too long.");
+				bb_error_msg("Bogus packet, option fields too long");
 				return NULL;
 			}
 			over = optionptr[i + 3];
@@ -137,10 +137,11 @@ int add_option_string(uint8_t *optionptr, uint8_t *string)
 
 	/* end position + string length + option code/length + end option */
 	if (end + string[OPT_LEN] + 2 + 1 >= 308) {
-		LOG(LOG_ERR, "Option 0x%02x did not fit into the packet!", string[OPT_CODE]);
+		bb_error_msg("Option 0x%02x did not fit into the packet",
+				string[OPT_CODE]);
 		return 0;
 	}
-	DEBUG(LOG_INFO, "adding option 0x%02x", string[OPT_CODE]);
+	DEBUG("adding option 0x%02x", string[OPT_CODE]);
 	memcpy(optionptr + end, string, string[OPT_LEN] + 2);
 	optionptr[end + string[OPT_LEN] + 2] = DHCP_END;
 	return string[OPT_LEN] + 2;
@@ -167,6 +168,6 @@ int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 		}
 	}
 
-	DEBUG(LOG_ERR, "Could not add option 0x%02x", code);
+	bb_error_msg("Could not add option 0x%02x", code);
 	return 0;
 }

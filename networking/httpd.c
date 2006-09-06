@@ -1809,7 +1809,7 @@ static int miniHttpd(int server)
 				config->rmt_ip & 0xff);
 	config->port = ntohs(fromAddr.sin_port);
 #if DEBUG
-	bb_error_msg("connection from IP=%s, port %u\n",
+	bb_error_msg("connection from IP=%s, port %u",
 					config->rmt_ip_str, config->port);
 #endif
 #endif /* CONFIG_FEATURE_HTTPD_CGI */

@@ -45,7 +45,7 @@ int pidfile_acquire(const char *pidfile)
 
 	pid_fd = open(pidfile, O_CREAT | O_WRONLY, 0644);
 	if (pid_fd < 0) {
-		LOG(LOG_ERR, "Unable to open pidfile %s: %m\n", pidfile);
+		bb_perror_msg("Unable to open pidfile %s", pidfile);
 	} else {
 		lockf(pid_fd, F_LOCK, 0);
 		if (!saved_pidfile)

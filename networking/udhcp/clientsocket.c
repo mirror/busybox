@@ -44,9 +44,9 @@ int raw_socket(int ifindex)
 	int fd;
 	struct sockaddr_ll sock;
 
-	DEBUG(LOG_INFO, "Opening raw socket on ifindex %d", ifindex);
+	DEBUG("Opening raw socket on ifindex %d", ifindex);
 	if ((fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) < 0) {
-		DEBUG(LOG_ERR, "socket call failed: %m");
+		bb_perror_msg("socket");
 		return -1;
 	}
 
@@ -54,7 +54,7 @@ int raw_socket(int ifindex)
 	sock.sll_protocol = htons(ETH_P_IP);
 	sock.sll_ifindex = ifindex;
 	if (bind(fd, (struct sockaddr *) &sock, sizeof(sock)) < 0) {
-		DEBUG(LOG_ERR, "bind call failed: %m");
+		bb_perror_msg("bind:");
 		close(fd);
 		return -1;
 	}

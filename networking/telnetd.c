@@ -263,7 +263,7 @@ make_new_session(int sockfd)
 	pty = getpty(tty_name);
 
 	if (pty < 0) {
-		syslog(LOG_ERR, "All terminals in use!");
+		bb_error_msg("all terminals in use");
 		return 0;
 	}
 
@@ -285,7 +285,7 @@ make_new_session(int sockfd)
 	send_iac(ts, WILL, TELOPT_SGA);
 
 	if ((pid = fork()) < 0) {
-		syslog(LOG_ERR, "Could not fork");
+		bb_perror_msg("fork");
 	}
 	if (pid == 0) {
 		/* In child, open the child's side of the tty.  */
@@ -296,10 +296,7 @@ make_new_session(int sockfd)
 		/* make new process group */
 		setsid();
 
-		if (open(tty_name, O_RDWR /*| O_NOCTTY*/) < 0) {
-			syslog(LOG_ERR, "Could not open tty");
-			exit(1);
-		}
+		xopen(tty_name, O_RDWR /*| O_NOCTTY*/);
 		dup(0);
 		dup(0);
 
@@ -323,8 +320,7 @@ make_new_session(int sockfd)
 		execv(loginpath, (char *const *)argv_init);
 
 		/* NOT REACHED */
-		syslog(LOG_ERR, "execv error");
-		exit(1);
+		bb_perror_msg_and_die("execv");
 	}
 
 	ts->shell_pid = pid;
@@ -390,6 +386,14 @@ telnetd_main(int argc, char **argv)
 	loginpath = DEFAULT_SHELL;
 #endif
 
+	/* We use inetd-style operation unconditionally
+	 * (no --foreground option), user most likely will
+	 * look into syslog for all errors, even early ones.
+	 * Direct all output to syslog at once.
+	 */
+	openlog(bb_applet_name, 0, LOG_USER);
+	logmode = LOGMODE_SYSLOG;
+
 	for (;;) {
 		c = getopt( argc, argv, options);
 		if (c == EOF) break;
@@ -415,12 +419,10 @@ telnetd_main(int argc, char **argv)
 	}
 
 	if (access(loginpath, X_OK) < 0) {
-		bb_error_msg_and_die ("'%s' unavailable.", loginpath);
+		bb_error_msg_and_die("'%s' unavailable", loginpath);
 	}
 
 	argv_init[0] = loginpath;
-
-	openlog(bb_applet_name, 0, LOG_USER);
 
 #ifdef CONFIG_FEATURE_TELNETD_INETD
 	maxfd = 1;

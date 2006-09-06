@@ -16,10 +16,5 @@
 
 void bb_vherror_msg(const char *s, va_list p)
 {
-	if(s == 0)
-		s = "";
-	bb_verror_msg(s, p);
-	if (*s)
-		fputs(": ", stderr);
-	herror("");
+	bb_verror_msg(s, p, hstrerror(h_errno));
 }

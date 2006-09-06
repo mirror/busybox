@@ -515,16 +515,16 @@ str2val(const char *str, const char *what, int mi, int ma)
 	} else
 		val = (int)strtol(str, &ep, 10);
 	if (*ep != '\0') {
-		bb_error_msg_and_die("\"%s\" bad value for %s \n", str, what);
+		bb_error_msg_and_die("\"%s\" bad value for %s", str, what);
 	}
 	if (val < mi && mi >= 0) {
 		if (mi == 0)
-			bb_error_msg_and_die("%s must be >= %d\n", what, mi);
+			bb_error_msg_and_die("%s must be >= %d", what, mi);
 		else
-			bb_error_msg_and_die("%s must be > %d\n", what, mi - 1);
+			bb_error_msg_and_die("%s must be > %d", what, mi - 1);
 	}
 	if (val > ma && ma >= 0)
-		bb_error_msg_and_die("%s must be <= %d\n", what, ma);
+		bb_error_msg_and_die("%s must be <= %d", what, ma);
 	return val;
 }
 

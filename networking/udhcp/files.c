@@ -112,7 +112,7 @@ static void attach_option(struct option_set **opt_list, struct dhcp_option *opti
 
 	/* add it to an existing option */
 	if ((existing = find_option(*opt_list, option->code))) {
-		DEBUG(LOG_INFO, "Attaching option %s to existing member of list", option->name);
+		DEBUG("Attaching option %s to existing member of list", option->name);
 		if (option->flags & OPTION_LIST) {
 			if (existing->data[OPT_LEN] + length <= 255) {
 				existing->data = realloc(existing->data,
@@ -122,7 +122,7 @@ static void attach_option(struct option_set **opt_list, struct dhcp_option *opti
 			} /* else, ignore the data, we could put this in a second option in the future */
 		} /* else, ignore the new data */
 	} else {
-		DEBUG(LOG_INFO, "Attaching option %s to list", option->name);
+		DEBUG("Attaching option %s to list", option->name);
 
 		/* make a new option */
 		new = xmalloc(sizeof(struct option_set));
@@ -286,7 +286,7 @@ int read_config(const char *file)
 			keywords[i].handler(keywords[i].def, keywords[i].var);
 
 	if (!(in = fopen(file, "r"))) {
-		LOG(LOG_ERR, "unable to open config file: %s", file);
+		bb_error_msg("Unable to open config file: %s", file);
 		return 0;
 	}
 
@@ -310,8 +310,9 @@ int read_config(const char *file)
 		for (i = 0; keywords[i].keyword[0]; i++)
 			if (!strcasecmp(token, keywords[i].keyword))
 				if (!keywords[i].handler(line, keywords[i].var)) {
-					LOG(LOG_ERR, "Failure parsing line %d of %s", lm, file);
-					DEBUG(LOG_ERR, "unable to parse '%s'", debug_orig);
+					bb_error_msg("Failure parsing line %d of %s", lm, file);
+					if (ENABLE_FEATURE_UDHCP_DEBUG)
+						bb_error_msg("unable to parse '%s'", debug_orig);
 					/* reset back to the default value */
 					keywords[i].handler(keywords[i].def, keywords[i].var);
 				}
@@ -330,7 +331,7 @@ void write_leases(void)
 	unsigned long tmp_time;
 
 	if (!(fp = fopen(server_config.lease_file, "w"))) {
-		LOG(LOG_ERR, "Unable to open %s for writing", server_config.lease_file);
+		bb_error_msg("Unable to open %s for writing", server_config.lease_file);
 		return;
 	}
 
@@ -368,7 +369,7 @@ void read_leases(const char *file)
 	struct dhcpOfferedAddr lease;
 
 	if (!(fp = fopen(file, "r"))) {
-		LOG(LOG_ERR, "Unable to open %s for reading", file);
+		bb_error_msg("Unable to open %s for reading", file);
 		return;
 	}
 
@@ -378,12 +379,12 @@ void read_leases(const char *file)
 			lease.expires = ntohl(lease.expires);
 			if (!server_config.remaining) lease.expires -= time(0);
 			if (!(add_lease(lease.chaddr, lease.yiaddr, lease.expires))) {
-				LOG(LOG_WARNING, "Too many leases while loading %s\n", file);
+				bb_error_msg("Too many leases while loading %s", file);
 				break;
 			}
 			i++;
 		}
 	}
-	DEBUG(LOG_INFO, "Read %d leases", i);
+	DEBUG("Read %d leases", i);
 	fclose(fp);
 }

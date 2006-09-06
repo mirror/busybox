@@ -65,7 +65,7 @@ struct client_config_t client_config = {
 /* just a little helper */
 static void change_mode(int new_mode)
 {
-	DEBUG(LOG_INFO, "entering %s listen mode",
+	DEBUG("entering %s listen mode",
 		new_mode ? (new_mode == 1 ? "kernel" : "raw") : "none");
 	if (fd >= 0) close(fd);
 	fd = -1;
@@ -76,7 +76,7 @@ static void change_mode(int new_mode)
 /* perform a renew */
 static void perform_renew(void)
 {
-	LOG(LOG_INFO, "Performing a DHCP renew");
+	bb_info_msg("Performing a DHCP renew");
 	switch (state) {
 	case BOUND:
 		change_mode(LISTEN_KERNEL);
@@ -114,12 +114,12 @@ static void perform_release(void)
 		temp_addr.s_addr = server_addr;
 		sprintf(buffer, "%s", inet_ntoa(temp_addr));
 		temp_addr.s_addr = requested_ip;
-		LOG(LOG_INFO, "Unicasting a release of %s to %s",
+		bb_info_msg("Unicasting a release of %s to %s",
 				inet_ntoa(temp_addr), buffer);
 		send_release(server_addr, requested_ip); /* unicast */
 		udhcp_run_script(NULL, "deconfig");
 	}
-	LOG(LOG_INFO, "Entering released state");
+	bb_info_msg("Entering released state");
 
 	change_mode(LISTEN_NONE);
 	state = RELEASED;
@@ -310,14 +310,14 @@ int udhcpc_main(int argc, char *argv[])
 			else
 				fd = raw_socket(client_config.ifindex);
 			if (fd < 0) {
-				LOG(LOG_ERR, "FATAL: couldn't listen on socket, %m");
+				bb_perror_msg("FATAL: couldn't listen on socket");
 				return 0;
 			}
 		}
 		max_fd = udhcp_sp_fd_set(&rfds, fd);
 
 		if (tv.tv_sec > 0) {
-			DEBUG(LOG_INFO, "Waiting on select...");
+			DEBUG("Waiting on select...");
 			retval = select(max_fd + 1, &rfds, NULL, NULL, &tv);
 		} else retval = 0; /* If we already timed out, fall through */
 
@@ -338,10 +338,10 @@ int udhcpc_main(int argc, char *argv[])
 				} else {
 					udhcp_run_script(NULL, "leasefail");
 					if (client_config.background_if_no_lease) {
-						LOG(LOG_INFO, "No lease, forking to background.");
+						bb_info_msg("No lease, forking to background");
 						client_background();
 					} else if (client_config.abort_if_no_lease) {
-						LOG(LOG_INFO, "No lease, failing.");
+						bb_info_msg("No lease, failing");
 						return 1;
 					}
 					/* wait to try again */
@@ -372,7 +372,7 @@ int udhcpc_main(int argc, char *argv[])
 				/* Lease is starting to run out, time to enter renewing state */
 				state = RENEWING;
 				change_mode(LISTEN_KERNEL);
-				DEBUG(LOG_INFO, "Entering renew state");
+				DEBUG("Entering renew state");
 				/* fall right through */
 			case RENEWING:
 				/* Either set a new T1, or enter REBINDING state */
@@ -380,7 +380,7 @@ int udhcpc_main(int argc, char *argv[])
 					/* timed out, enter rebinding state */
 					state = REBINDING;
 					timeout = now + (t2 - t1);
-					DEBUG(LOG_INFO, "Entering rebinding state");
+					DEBUG("Entering rebinding state");
 				} else {
 					/* send a request packet */
 					send_renew(xid, server_addr, requested_ip); /* unicast */
@@ -394,7 +394,7 @@ int udhcpc_main(int argc, char *argv[])
 				if ((lease - t2) <= (lease / 14400 + 1)) {
 					/* timed out, enter init state */
 					state = INIT_SELECTING;
-					LOG(LOG_INFO, "Lease lost, entering init state");
+					bb_info_msg("Lease lost, entering init state");
 					udhcp_run_script(NULL, "deconfig");
 					timeout = now;
 					packet_num = 0;
@@ -420,25 +420,25 @@ int udhcpc_main(int argc, char *argv[])
 			else len = get_raw_packet(&packet, fd);
 
 			if (len == -1 && errno != EINTR) {
-				DEBUG(LOG_INFO, "error on read, %m, reopening socket");
+				DEBUG("error on read, %s, reopening socket", strerror(errno));
 				change_mode(listen_mode); /* just close and reopen */
 			}
 			if (len < 0) continue;
 
 			if (packet.xid != xid) {
-				DEBUG(LOG_INFO, "Ignoring XID %lx (our xid is %lx)",
+				DEBUG("Ignoring XID %lx (our xid is %lx)",
 					(unsigned long) packet.xid, xid);
 				continue;
 			}
 
 			/* Ignore packets that aren't for us */
 			if (memcmp(packet.chaddr, client_config.arp, 6)) {
-				DEBUG(LOG_INFO, "packet does not have our chaddr -- ignoring");
+				DEBUG("Packet does not have our chaddr - ignoring");
 				continue;
 			}
 
 			if ((message = get_option(&packet, DHCP_MESSAGE_TYPE)) == NULL) {
-				DEBUG(LOG_ERR, "couldnt get option from packet -- ignoring");
+				bb_error_msg("Couldnt get option from packet - ignoring");
 				continue;
 			}
 
@@ -456,7 +456,7 @@ int udhcpc_main(int argc, char *argv[])
 						timeout = now;
 						packet_num = 0;
 					} else {
-						DEBUG(LOG_ERR, "No server ID in message");
+						bb_error_msg("No server ID in message");
 					}
 				}
 				break;
@@ -466,7 +466,7 @@ int udhcpc_main(int argc, char *argv[])
 			case REBINDING:
 				if (*message == DHCPACK) {
 					if (!(temp = get_option(&packet, DHCP_LEASE_TIME))) {
-						LOG(LOG_ERR, "No lease time with ACK, using 1 hour lease");
+						bb_error_msg("No lease time with ACK, using 1 hour lease");
 						lease = 60 * 60;
 					} else {
 						memcpy(&lease, temp, 4);
@@ -479,7 +479,7 @@ int udhcpc_main(int argc, char *argv[])
 					/* little fixed point for n * .875 */
 					t2 = (lease * 0x7) >> 3;
 					temp_addr.s_addr = packet.yiaddr;
-					LOG(LOG_INFO, "Lease of %s obtained, lease time %ld",
+					bb_info_msg("Lease of %s obtained, lease time %ld",
 						inet_ntoa(temp_addr), lease);
 					start = now;
 					timeout = t1 + start;
@@ -496,7 +496,7 @@ int udhcpc_main(int argc, char *argv[])
 
 				} else if (*message == DHCPNAK) {
 					/* return to init state */
-					LOG(LOG_INFO, "Received DHCP NAK");
+					bb_info_msg("Received DHCP NAK");
 					udhcp_run_script(&packet, "nak");
 					if (state != REQUESTING)
 						udhcp_run_script(NULL, "deconfig");
@@ -519,14 +519,14 @@ int udhcpc_main(int argc, char *argv[])
 				perform_release();
 				break;
 			case SIGTERM:
-				LOG(LOG_INFO, "Received SIGTERM");
+				bb_info_msg("Received SIGTERM");
 				return 0;
 			}
 		} else if (retval == -1 && errno == EINTR) {
 			/* a signal was caught */
 		} else {
 			/* An error occured */
-			DEBUG(LOG_ERR, "Error on select");
+			bb_perror_msg("select");
 		}
 
 	}

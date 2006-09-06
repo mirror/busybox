@@ -11,11 +11,37 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <syslog.h>
 #include "libbb.h"
 
-void bb_verror_msg(const char *s, va_list p)
+int logmode = LOGMODE_STDIO;
+
+void bb_verror_msg(const char *s, va_list p, const char* strerr)
 {
-	fflush(stdout);
-	fprintf(stderr, "%s: ", bb_applet_name);
-	vfprintf(stderr, s, p);
+	/* va_copy is used because it is not portable
+	 * to use va_list p twice */
+	va_list p2;
+	va_copy(p2, p);
+
+	if (logmode & LOGMODE_STDIO) {
+		fflush(stdout);
+		fprintf(stderr, "%s: ", bb_applet_name);
+		vfprintf(stderr, s, p);
+		if (!strerr)
+			fputc('\n', stderr);
+		else
+			fprintf(stderr, ": %s\n", strerr);
+	}
+	if (logmode & LOGMODE_SYSLOG) {
+		if (!strerr)
+			vsyslog(LOG_ERR, s, p2);
+		else  {
+			char *msg;
+			if (vasprintf(&msg, s, p2) < 0)
+				bb_error_msg_and_die(bb_msg_memory_exhausted);
+			syslog(LOG_ERR, "%s: %s", msg, strerr);
+			free(msg);
+		}
+	}
+	va_end(p2);
 }

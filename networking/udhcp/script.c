@@ -200,7 +200,7 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name)
 	if (client_config.script == NULL)
 		return;
 
-	DEBUG(LOG_INFO, "vforking and execle'ing %s", client_config.script);
+	DEBUG("vfork'ing and execle'ing %s", client_config.script);
 
 	envp = fill_envp(packet);
 	/* call script */
@@ -216,7 +216,7 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name)
 		/* exec script */
 		execle(client_config.script, client_config.script,
 		       name, NULL, envp);
-		LOG(LOG_ERR, "script %s failed: %m", client_config.script);
+		bb_perror_msg("script %s failed", client_config.script);
 		exit(1);
 	}
 }

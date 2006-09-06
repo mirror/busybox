@@ -220,7 +220,7 @@ static void rewrite(FS * fs)
 				}
 			} else {
 			DO_BAD_CONV_CHAR:
-				bb_error_msg_and_die("bad conversion character %%%s.\n", p1);
+				bb_error_msg_and_die("bad conversion character %%%s.", p1);
 			}
 
 			/*
@@ -253,7 +253,7 @@ static void rewrite(FS * fs)
 
 			/* only one conversion character if byte count */
 			if (!(pr->flags & F_ADDRESS) && fu->bcnt && nconv++) {
-				bb_error_msg_and_die("byte count with multiple conversion characters.\n");
+				bb_error_msg_and_die("byte count with multiple conversion characters.");
 			}
 		}
 		/*
