@@ -76,7 +76,7 @@ config CONFIG_FEATURE_VERBOSE_USAGE
 config CONFIG_FEATURE_COMPRESS_USAGE
 	bool "Store applet usage messages in compressed form"
 	default y
-	depends on CONFIG_SHOW_USAGE && CONFIG_NITPICK
+	depends on CONFIG_SHOW_USAGE
 	help
 	  Store usage messages in compressed form, uncompress them on-the-fly
 	  when <applet> --help is called.
