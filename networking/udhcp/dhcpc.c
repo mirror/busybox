@@ -32,6 +32,11 @@
 #include "signalpipe.h"
 
 static int state;
+/* Something is definitely wrong here. IPv4 addresses
+ * in variables of type long?? BTW, we use inet_ntoa()
+ * in the code. Manpage says that struct in_addr has a member of type long (!)
+ * which holds IPv4 address, and the struct is passed by value (!!)
+ */
 static unsigned long requested_ip; /* = 0 */
 static unsigned long server_addr;
 static unsigned long timeout;
@@ -267,7 +272,7 @@ int udhcpc_main(int argc, char *argv[])
 	}
 
 	/* Start the log, sanitize fd's, and write a pid file */
-	udhcp_start_log_and_pid("udhcpc", client_config.pidfile);
+	udhcp_start_log_and_pid(client_config.pidfile);
 
 	if (read_interface(client_config.interface, &client_config.ifindex,
 			   NULL, client_config.arp) < 0)
@@ -446,8 +451,9 @@ int udhcpc_main(int argc, char *argv[])
 			case INIT_SELECTING:
 				/* Must be a DHCPOFFER to one of our xid's */
 				if (*message == DHCPOFFER) {
-					if ((temp = get_option(&packet, DHCP_SERVER_ID))) {
-						memcpy(&server_addr, temp, 4);
+					temp = get_option(&packet, DHCP_SERVER_ID);
+					if (temp) {
+						server_addr = *(uint32_t*)temp;
 						xid = packet.xid;
 						requested_ip = packet.yiaddr;
 
@@ -465,12 +471,12 @@ int udhcpc_main(int argc, char *argv[])
 			case RENEWING:
 			case REBINDING:
 				if (*message == DHCPACK) {
-					if (!(temp = get_option(&packet, DHCP_LEASE_TIME))) {
+					temp = get_option(&packet, DHCP_LEASE_TIME);
+					if (!temp) {
 						bb_error_msg("No lease time with ACK, using 1 hour lease");
 						lease = 60 * 60;
 					} else {
-						memcpy(&lease, temp, 4);
-						lease = ntohl(lease);
+						lease = ntohl(*(uint32_t*)temp);
 					}
 
 					/* enter bound state */

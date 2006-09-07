@@ -21,7 +21,7 @@
 #define COMBINED_BINARY
 
 void udhcp_background(const char *pidfile);
-void udhcp_start_log_and_pid(const char *client_server, const char *pidfile);
+void udhcp_start_log_and_pid(const char *pidfile);
 
 void udhcp_run_script(struct dhcpMessage *packet, const char *name);
 

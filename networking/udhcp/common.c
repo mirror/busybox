@@ -67,7 +67,7 @@ void udhcp_background(const char *pidfile)
 #endif /* __uClinux__ */
 }
 
-void udhcp_start_log_and_pid(const char *client_server, const char *pidfile)
+void udhcp_start_log_and_pid(const char *pidfile)
 {
 	int pid_fd;
 
@@ -82,9 +82,9 @@ void udhcp_start_log_and_pid(const char *client_server, const char *pidfile)
 	setlinebuf(stdout);
 
 	if (ENABLE_FEATURE_UDHCP_SYSLOG) {
-		openlog(client_server, LOG_PID, LOG_LOCAL0);
+		openlog(bb_applet_name, LOG_PID, LOG_LOCAL0);
 		logmode |= LOGMODE_SYSLOG;
 	}
 
-	bb_info_msg("%s (v%s) started", client_server, BB_VER);
+	bb_info_msg("%s (v%s) started", bb_applet_name, BB_VER);
 }

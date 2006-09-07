@@ -55,7 +55,7 @@ int udhcpd_main(int argc, char *argv[])
 	read_config(argc < 2 ? DHCPD_CONF_FILE : argv[1]);
 
 	/* Start the log, sanitize fd's, and write a pid file */
-	udhcp_start_log_and_pid("udhcpd", server_config.pidfile);
+	udhcp_start_log_and_pid(server_config.pidfile);
 
 	if ((option = find_option(server_config.options, DHCP_LEASE_TIME))) {
 		memcpy(&server_config.lease, option->data + 2, 4);

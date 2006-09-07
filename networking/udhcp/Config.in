@@ -37,6 +37,16 @@ config CONFIG_APP_UDHCPC
 
 	  See http://udhcp.busybox.net for further details.
 
+config CONFIG_FEATURE_UDHCP_SYSLOG
+	bool "Log udhcp messages to syslog"
+	default n
+	depends on CONFIG_APP_UDHCPD || CONFIG_APP_UDHCPC
+	help
+	  If not daemonized, udhcpd prints its messages to stdout/stderr.
+	  If this option is selected, it will also log them to syslog.
+
+	  See http://udhcp.busybox.net for further details.
+
 config CONFIG_FEATURE_UDHCP_DEBUG
 	bool "Compile udhcp with noisy debugging messages"
 	default n
