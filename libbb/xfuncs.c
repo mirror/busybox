@@ -408,7 +408,8 @@ char *xasprintf(const char *format, ...)
 void xprint_and_close_file(FILE *file)
 {
 	// copyfd outputs error messages for us.
-	if (bb_copyfd_eof(fileno(file), 1) == -1) exit(bb_default_error_retval);
+	if (bb_copyfd_eof(fileno(file), 1) == -1)
+		exit(bb_default_error_retval);
 
 	fclose(file);
 }

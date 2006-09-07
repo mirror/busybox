@@ -223,51 +223,6 @@ FILE *dbf;
 #endif
 
 
-/*
- * output error messages
- */
-static void error(const char *fmt, ...) ATTRIBUTE_NORETURN;
-static void error(const char *fmt, ...)
-{
-	va_list va_alist;
-	char buf[256];
-
-#ifdef CONFIG_SYSLOGD
-	va_start(va_alist, fmt);
-	vsnprintf(buf, sizeof(buf), fmt, va_alist);
-	openlog(bb_applet_name, 0, LOG_AUTH);
-	syslog(LOG_ERR, "%s", buf);
-	closelog();
-#else
-	int fd;
-	size_t l;
-
-	snprintf(buf, sizeof(buf), "%s: ", bb_applet_name);
-	l = strlen(buf);
-	va_start(va_alist, fmt);
-	vsnprintf(buf + l, sizeof(buf) - l, fmt, va_alist);
-	l = strlen(buf);
-	/* truncate if need */
-	if((l + 3) > sizeof(buf))
-		l = sizeof(buf) - 3;
-	/* add \r\n always */
-	buf[l++] = '\r';
-	buf[l++] = '\n';
-	buf[l] = 0;
-	if ((fd = open("/dev/console", 1)) >= 0) {
-		write(fd, buf, l);
-		close(fd);
-	}
-#endif
-
-	va_end(va_alist);
-
-	(void) sleep((unsigned) 10);    /* be kind to init(8) */
-	exit(1);
-}
-
-
-
 /* bcode - convert speed string to speed code; return 0 on failure */
 static int bcode(const char *s)
 {
@@ -291,15 +246,15 @@ static void parse_speeds(struct options *op, char *arg)
 	debug("entered parse_speeds\n");
 	for (cp = strtok(arg, ","); cp != 0; cp = strtok((char *) 0, ",")) {
 		if ((op->speeds[op->numspeed++] = bcode(cp)) <= 0)
-			error("bad speed: %s", cp);
+			bb_error_msg_and_die("bad speed: %s", cp);
 		if (op->numspeed > MAX_SPEED)
-			error("too many alternate speeds");
+			bb_error_msg_and_die("too many alternate speeds");
 	}
 	debug("exiting parsespeeds\n");
 }
 
 
-/* parse-args - parse command-line arguments */
+/* parse_args - parse command-line arguments */
 static void parse_args(int argc, char **argv, struct options *op)
 {
 	char *ts;
@@ -327,7 +282,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 	op->flags ^= F_ISSUE;           /* revert flag show /etc/issue */
 	if(op->flags & F_TIMEOUT) {
 		if ((op->timeout = atoi(ts)) <= 0)
-			error("bad timeout value: %s", ts);
+			bb_error_msg_and_die("bad timeout value: %s", ts);
 	}
 	debug("after getopt loop\n");
 	if (argc < optind + 2)          /* check parameter count */
@@ -350,6 +305,12 @@ static void parse_args(int argc, char **argv, struct options *op)
 	debug("exiting parseargs\n");
 }
 
+static void xdup2(int srcfd, int dstfd, const char *tty)
+{
+	if(dup2(srcfd, dstfd) == -1)
+		bb_perror_msg_and_die("%s: dup", tty);
+}
+
 /* open_tty - set up tty as standard { input, output, error } */
 static void open_tty(char *tty, struct termio *tp, int local)
 {
@@ -363,37 +324,34 @@ static void open_tty(char *tty, struct termio *tp, int local)
 
 		/* Sanity checks... */
 
-		if (chdir("/dev"))
-			error("/dev: chdir() failed: %m");
+		xchdir("/dev");
 		chdir_to_root = 1;
-		if (stat(tty, &st) < 0)
-			error("/dev/%s: %m", tty);
+		xstat(tty, &st);
 		if ((st.st_mode & S_IFMT) != S_IFCHR)
-			error("/dev/%s: not a character device", tty);
+			bb_error_msg_and_die("%s: not a character device", tty);
 
 		/* Open the tty as standard input. */
 
-		close(0);
 		debug("open(2)\n");
-		fd = open(tty, O_RDWR | O_NONBLOCK, 0);
-		if (fd != 0)
-			error("/dev/%s: cannot open as standard input: %m", tty);
+		fd = xopen(tty, O_RDWR | O_NONBLOCK);
+		if(fd) {
+			xdup2(fd, 0, tty);
+			close(fd);
+		}		
 	} else {
-
 		/*
 		 * Standard input should already be connected to an open port. Make
 		 * sure it is open for read/write.
 		 */
 
 		if ((fcntl(0, F_GETFL, 0) & O_RDWR) != O_RDWR)
-			error("%s: not open for read/write", tty);
+			bb_error_msg_and_die("%s: not open for read/write", tty);
 	}
 
 	/* Replace current standard output/error fd's with new ones */
 	debug("duping\n");
-	if (dup2(STDIN_FILENO, STDOUT_FILENO) == -1 ||
-	    dup2(STDIN_FILENO, STDERR_FILENO) == -1)
-		error("%s: dup problem: %m", tty);      /* we have a problem */
+	xdup2(0, 1, tty);
+	xdup2(0, 2, tty);
 
 	/*
 	 * The following ioctl will fail if stdin is not a tty, but also when
@@ -405,7 +363,7 @@ static void open_tty(char *tty, struct termio *tp, int local)
 	 */
 
 	if (ioctl(0, TCGETA, tp) < 0)
-		error("%s: ioctl: %m", tty);
+		bb_perror_msg_and_die("%s: ioctl(TCGETA)", tty);
 
 	/*
 	 * It seems to be a terminal. Set proper protections and ownership. Mode
@@ -428,10 +386,8 @@ static void open_tty(char *tty, struct termio *tp, int local)
 		if (!strncmp(tty, "tty", 3) && isdigit(tty[3])) {
 			char *vcs, *vcsa;
 
-			if (!(vcs = strdup(tty)))
-				error("Can't malloc for vcs");
-			if (!(vcsa = malloc(strlen(tty) + 2)))
-				error("Can't malloc for vcsa");
+			vcs = xstrdup(tty);
+			vcsa = xmalloc(strlen(tty) + 2);
 			strcpy(vcs, "vcs");
 			strcpy(vcs + 3, tty + 3);
 			strcpy(vcsa, "vcsa");
@@ -451,8 +407,8 @@ static void open_tty(char *tty, struct termio *tp, int local)
 	(void) chown(tty, 0, 0);        /* root, sys */
 	(void) chmod(tty, 0622);        /* crw--w--w- */
 #endif
-	if(chdir_to_root && chdir("/"))
-		error("chdir to / failed: %m");
+	if (chdir_to_root)
+		xchdir("/");
 }
 
 /* termio_init - initialize termio settings */
@@ -634,7 +590,7 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 			if (read(0, &c, 1) < 1) {
 				if (errno == EINTR || errno == EIO)
 					exit(0);
-				error("%s: read: %m", op->tty);
+				bb_perror_msg_and_die("%s: read", op->tty);
 			}
 			/* Do BREAK handling elsewhere. */
 
@@ -681,7 +637,7 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 				if (!isascii(ascval) || !isprint(ascval)) {
 					/* ignore garbage characters */ ;
 				} else if (bp - logname >= sizeof(logname) - 1) {
-					error("%s: input overrun", op->tty);
+					bb_error_msg_and_die("%s: input overrun", op->tty);
 				} else {
 					(void) write(1, &c, 1); /* echo the character */
 					*bp++ = ascval; /* and store it */
@@ -759,7 +715,7 @@ static void termio_final(struct options *op, struct termio *tp, struct chardata 
 	/* Finally, make the new settings effective */
 
 	if (ioctl(0, TCSETA, tp) < 0)
-		error("%s: ioctl: TCSETA: %m", op->tty);
+		bb_perror_msg_and_die("%s: ioctl(TCSETA)", op->tty);
 }
 
 
@@ -828,6 +784,7 @@ static void update_utmp(char *line)
 #undef logname
 int getty_main(int argc, char **argv)
 {
+	int nullfd;
 	char *logname = NULL;           /* login name, given to /bin/login */
 	struct chardata chardata;       /* set by get_logname() */
 	struct termio termio;           /* terminal mode bits */
@@ -845,6 +802,29 @@ int getty_main(int argc, char **argv)
 		0,                      /* no baud rates known yet */
 	};
 
+	/* Already too late because of theoretical
+	 * possibility of getty --help somehow triggered
+	 * inadvertently before we reach this. Oh well. */
+	close(0);
+	close(1);
+	close(2);
+#ifdef __linux__
+	setsid();
+#endif
+	/* We want special flavor of error_msg_and_die */
+	die_sleep = 10;		
+	msg_eol = "\r\n";
+	/* Was "/dev/console". Why should we spam *system console*
+	 * if there is a problem with getty on /dev/ttyS15?... */
+	nullfd = xopen(bb_dev_null, O_RDWR); 
+	dup2(nullfd, 0);
+	dup2(nullfd, 1);
+	dup2(nullfd, 2);
+	if(nullfd > 2)
+		close(nullfd);
+	openlog(bb_applet_name, LOG_PID, LOG_AUTH);
+	logmode = LOGMODE_BOTH;
+
 #ifdef DEBUGGING
 	dbf = xfopen(DEBUGTERM, "w");
 
@@ -859,18 +839,11 @@ int getty_main(int argc, char **argv)
 #endif
 
 	/* Parse command-line arguments. */
-
 	parse_args(argc, argv, &options);
 
-#ifdef __linux__
-	setsid();
-#endif
-
-	/* Update the utmp file. */
-
-
-#ifdef  SYSV_STYLE
+#ifdef SYSV_STYLE
 #ifdef CONFIG_FEATURE_UTMP
+	/* Update the utmp file. */
 	update_utmp(options.tty);
 #endif
 #endif
@@ -931,8 +904,9 @@ int getty_main(int argc, char **argv)
 		/* Read the login name. */
 		debug("reading login name\n");
 		/* while ((logname = get_logname(&options, &chardata, &termio)) == 0) */
-		while ((logname = get_logname(&options, &chardata, &termio)) ==
-			   NULL) next_speed(&termio, &options);
+		logname = get_logname(&options, &chardata, &termio);
+		while (logname == NULL)
+			next_speed(&termio, &options);
 	}
 
 	/* Disable timer. */
@@ -951,6 +925,6 @@ int getty_main(int argc, char **argv)
 	/* Let the login program take care of password validation. */
 
 	(void) execl(options.login, options.login, "--", logname, (char *) 0);
-	error("%s: can't exec %s: %m", options.tty, options.login);
+	bb_error_msg_and_die("%s: can't exec %s", options.tty, options.login);
 }
 

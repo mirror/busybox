@@ -444,7 +444,7 @@ static void checkutmp(int picky)
 		}
 		if (strncmp(line, "/dev/", 5) == 0)
 			line += 5;
-		memset((void *) &utent, 0, sizeof utent);
+		memset(&utent, 0, sizeof utent);
 		utent.ut_type = LOGIN_PROCESS;
 		utent.ut_pid = pid;
 		strncpy(utent.ut_line, line, sizeof utent.ut_line);

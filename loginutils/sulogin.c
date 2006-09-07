@@ -65,7 +65,8 @@ int sulogin_main(int argc, char **argv)
 	struct spwd *spwd = NULL;
 #endif
 
-	openlog("sulogin", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
+	openlog("sulogin", LOG_PID | LOG_NOWAIT, LOG_AUTH);
+	logmode = LOGMODE_BOTH;
 	if (argc > 1) {
 		if (strncmp(argv[1], "-t", 2) == 0) {
 			if (argv[1][2] == '\0') { /* -t NN */
@@ -92,28 +93,24 @@ int sulogin_main(int argc, char **argv)
 				dup(0);
 				dup(0);
 			} else {
-				syslog(LOG_WARNING, "cannot open %s\n", device);
-				exit(EXIT_FAILURE);
+				/* Well, it will go only to syslog :) */
+				bb_perror_msg_and_die("Cannot open %s", device);
 			}
 		}
-	}
-	if (access(bb_path_passwd_file, 0) == -1) {
-		syslog(LOG_WARNING, "No password file\n");
-		bb_error_msg_and_die("No password file");
 	}
 	if (!isatty(0) || !isatty(1) || !isatty(2)) {
 		exit(EXIT_FAILURE);
 	}
-
+	if (access(bb_path_passwd_file, 0) == -1) {
+		bb_error_msg_and_die("No password file");
+	}
 
 	/* Clear out anything dangerous from the environment */
 	for (p = forbid; *p; p++)
 		unsetenv(*p);
 
-
 	signal(SIGALRM, catchalarm);
 	if (!(pwd = getpwnam(name))) {
-		syslog(LOG_WARNING, "No password entry for `root'");
 		bb_error_msg_and_die("No password entry for `root'");
 	}
 	pwent = *pwd;
@@ -131,9 +128,10 @@ int sulogin_main(int argc, char **argv)
 	while (1) {
 		cp = bb_askpass(timeout, SULOGIN_PROMPT);
 		if (!cp || !*cp) {
-			puts("\n");
+			puts("\n"); /* Why only on error path? */
 			fflush(stdout);
-			syslog(LOG_INFO, "Normal startup\n");
+			/* Why only to syslog? */
+			syslog(LOG_INFO, "Normal startup");
 			exit(EXIT_SUCCESS);
 		} else {
 			safe_strncpy(pass, cp, sizeof(pass));
@@ -143,15 +141,11 @@ int sulogin_main(int argc, char **argv)
 			break;
 		}
 		bb_do_delay(FAIL_DELAY);
-		puts("Login incorrect");
-		fflush(stdout);
-		syslog(LOG_WARNING, "Incorrect root password\n");
+		bb_error_msg("Incorrect root password");
 	}
 	memset(pass, 0, strlen(pass));
 	signal(SIGALRM, SIG_DFL);
-	puts("Entering System Maintenance Mode\n");
-	fflush(stdout);
-	syslog(LOG_INFO, "System Maintenance Mode\n");
+	bb_info_msg("Entering System Maintenance Mode");
 
 #if ENABLE_SELINUX
 	renew_current_security_context();
@@ -159,5 +153,5 @@ int sulogin_main(int argc, char **argv)
 
 	run_shell(pwent.pw_shell, 1, 0, 0);
 
-	return (0);
+	return 0;
 }

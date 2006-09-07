@@ -118,7 +118,9 @@ enum {
 	LOGMODE_SYSLOG = 1<<1,
 	LOGMODE_BOTH = LOGMODE_SYSLOG + LOGMODE_STDIO,
 };
+extern const char *msg_eol;
 extern int logmode;
+extern int die_sleep;
 
 extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));

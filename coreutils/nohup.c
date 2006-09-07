@@ -47,7 +47,7 @@ int nohup_main(int argc, char *argv[])
 	if (temp) fdprintf(2,"Writing to %s\n", home ? home : nohupout);
 	dup2(temp ? 1 : nullfd, 2);
 	close(nullfd);
-	signal (SIGHUP, SIG_IGN);
+	signal(SIGHUP, SIG_IGN);
 
 	// Exec our new program.
 

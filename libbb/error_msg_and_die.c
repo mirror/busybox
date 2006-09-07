@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include "libbb.h"
 
+int die_sleep;
+
 void bb_error_msg_and_die(const char *s, ...)
 {
 	va_list p;
@@ -20,5 +22,7 @@ void bb_error_msg_and_die(const char *s, ...)
 	va_start(p, s);
 	bb_verror_msg(s, p, NULL);
 	va_end(p);
+	if (die_sleep)
+		sleep(die_sleep);
 	exit(bb_default_error_retval);
 }

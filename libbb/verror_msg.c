@@ -15,6 +15,7 @@
 #include "libbb.h"
 
 int logmode = LOGMODE_STDIO;
+const char *msg_eol = "\n";
 
 void bb_verror_msg(const char *s, va_list p, const char* strerr)
 {
@@ -28,9 +29,9 @@ void bb_verror_msg(const char *s, va_list p, const char* strerr)
 		fprintf(stderr, "%s: ", bb_applet_name);
 		vfprintf(stderr, s, p);
 		if (!strerr)
-			fputc('\n', stderr);
+			fputs(msg_eol, stderr);
 		else
-			fprintf(stderr, ": %s\n", strerr);
+			fprintf(stderr, ": %s%s", strerr, msg_eol);
 	}
 	if (ENABLE_FEATURE_SYSLOG && (logmode & LOGMODE_SYSLOG)) {
 		if (!strerr)

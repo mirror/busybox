@@ -22,7 +22,7 @@ void bb_vinfo_msg(const char *s, va_list p)
 	va_copy(p2, p);
 	if (logmode & LOGMODE_STDIO) {
 		vprintf(s, p);
-		putchar('\n');
+		fputs(msg_eol, stdout);
 	}
 	if (ENABLE_FEATURE_SYSLOG && (logmode & LOGMODE_SYSLOG))
 		vsyslog(LOG_INFO, s, p2);

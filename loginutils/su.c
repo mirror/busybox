@@ -8,7 +8,7 @@
 #include "busybox.h"
 #include <syslog.h>
 
-int su_main ( int argc, char **argv )
+int su_main(int argc, char **argv)
 {
 	unsigned long flags;
 	char *opt_shell = 0;
@@ -27,7 +27,7 @@ int su_main ( int argc, char **argv )
 	if (optind < argc  && argv[optind][0] == '-' && argv[optind][1] == 0) {
 		flags |= SU_OPT_l;
 		++optind;
-    }
+	}
 
 	/* get user if specified */
 	if (optind < argc) opt_username = argv [optind++];
@@ -81,7 +81,7 @@ int su_main ( int argc, char **argv )
 
 	change_identity(pw);
 	setup_environment(opt_shell, flags & SU_OPT_l, !(flags & SU_OPT_mp), pw);
-    USE_SELINUX(set_current_security_context(NULL);)
+	USE_SELINUX(set_current_security_context(NULL);)
 
 	/* Never returns */
 	run_shell(opt_shell, flags & SU_OPT_l, opt_command, (const char**)opt_args);
