@@ -24,7 +24,7 @@ void bb_vinfo_msg(const char *s, va_list p)
 		vprintf(s, p);
 		putchar('\n');
 	}
-	if (ENABLE_FEATURE_SYSLOG & (logmode & LOGMODE_SYSLOG))
+	if (ENABLE_FEATURE_SYSLOG && (logmode & LOGMODE_SYSLOG))
 		vsyslog(LOG_INFO, s, p2);
 	va_end(p2);
 }
