@@ -33,6 +33,7 @@ config CONFIG_ETHER_WAKE
 config CONFIG_FAKEIDENTD
 	bool "fakeidentd"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  fakeidentd listens on the ident port and returns a predefined
 	  fake value on any query.
@@ -288,6 +289,7 @@ config CONFIG_FEATURE_IFUPDOWN_MAPPING
 config CONFIG_INETD
 	bool "inetd"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  Internet superserver daemon
 
@@ -428,6 +430,7 @@ config CONFIG_FEATURE_IPCALC_LONG_OPTIONS
 config CONFIG_NAMEIF
 	bool "nameif"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  nameif is used to rename network interface by its MAC address.
 	  Renamed interfaces MUST be in the down state.
@@ -539,6 +542,7 @@ config CONFIG_FEATURE_TELNET_AUTOLOGIN
 config CONFIG_TELNETD
 	bool "telnetd"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  A daemon for the TELNET protocol, allowing you to log onto the host
 	  running the daemon.  Please keep in mind that the TELNET protocol
@@ -701,6 +705,7 @@ config CONFIG_FEATURE_WGET_LONG_OPTIONS
 config CONFIG_ZCIP
 	bool "zcip"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  ZCIP provides ZeroConf IPv4 address selection, according to RFC 3927.
 	  It's a daemon that allocates and defends a dynamically assigned

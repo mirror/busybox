@@ -80,6 +80,7 @@ config CONFIG_DELUSER
 config CONFIG_GETTY
 	bool "getty"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  getty lets you log in on a tty, it is normally invoked by init.
 
@@ -103,6 +104,7 @@ config CONFIG_LOGIN
 	bool "login"
 	default n
 	select CONFIG_FEATURE_SUID
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  login is used when signing onto a system.
 
@@ -122,6 +124,7 @@ config CONFIG_PASSWD
 	bool "passwd"
 	default n
 	select CONFIG_FEATURE_SUID
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  passwd changes passwords for user and group accounts.  A normal user
 	  may only change the password for his/her own account, the super user
@@ -135,6 +138,7 @@ config CONFIG_SU
 	bool "su"
 	default n
 	select CONFIG_FEATURE_SUID
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  su is used to become another user during a login session.
 	  Invoked without a username, su defaults to becoming the super user.
@@ -152,6 +156,7 @@ config CONFIG_SU_SYSLOG
 config CONFIG_SULOGIN
 	bool "sulogin"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  sulogin is invoked when the system goes into single user
 	  mode (this is done through an entry in inittab).

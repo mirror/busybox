@@ -89,6 +89,7 @@ config CONFIG_KLOGD
 	bool "klogd"
 	default n
 	depends on CONFIG_SYSLOGD
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  klogd is a utility which intercepts and logs all
 	  messages from the Linux kernel and sends the messages
@@ -99,6 +100,7 @@ config CONFIG_KLOGD
 config CONFIG_LOGGER
 	bool "logger"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	    The logger utility allows you to send arbitrary text
 	    messages to the system log (i.e. the 'syslogd' utility) so

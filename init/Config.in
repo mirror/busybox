@@ -8,6 +8,7 @@ menu "Init Utilities"
 config CONFIG_INIT
 	bool "init"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  init is the first program run when the system boots.
 

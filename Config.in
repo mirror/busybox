@@ -150,6 +150,13 @@ config CONFIG_FEATURE_SUID
 	  are login, passwd, su, ping, traceroute, crontab, dnsd, ipcrm, ipcs,
 	  and vlock.
 
+config CONFIG_FEATURE_SYSLOG
+	bool "Support for syslog"
+	default n
+	help
+	  This option is auto-selected when you select any applet which may
+	  send its output to syslog. You do not need to select it manually.
+
 config CONFIG_FEATURE_SUID_CONFIG
 	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
 	default n if CONFIG_FEATURE_SUID

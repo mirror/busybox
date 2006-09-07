@@ -32,7 +32,7 @@ void bb_verror_msg(const char *s, va_list p, const char* strerr)
 		else
 			fprintf(stderr, ": %s\n", strerr);
 	}
-	if (logmode & LOGMODE_SYSLOG) {
+	if (ENABLE_FEATURE_SYSLOG & (logmode & LOGMODE_SYSLOG)) {
 		if (!strerr)
 			vsyslog(LOG_ERR, s, p2);
 		else  {

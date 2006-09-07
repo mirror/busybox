@@ -6,6 +6,7 @@
 config CONFIG_APP_UDHCPD
 	bool "udhcp Server (udhcpd)"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  uDHCPd is a DHCP server geared primarily toward embedded systems,
 	  while striving to be fully functional and RFC compliant.
@@ -26,22 +27,13 @@ config CONFIG_APP_DUMPLEASES
 config CONFIG_APP_UDHCPC
 	bool "udhcp Client (udhcpc)"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  uDHCPc is a DHCP client geared primarily toward embedded systems,
 	  while striving to be fully functional and RFC compliant.
 
 	  The udhcp client negotiates a lease with the DHCP server and
 	  notifies a set of scripts when a lease is obtained or lost.
-
-	  See http://udhcp.busybox.net for further details.
-
-config CONFIG_FEATURE_UDHCP_SYSLOG
-	bool "Log udhcp messages to syslog (instead of stdout)"
-	default n
-	depends on CONFIG_APP_UDHCPD || CONFIG_APP_UDHCPC
-	help
-	  If selected, udhcpd will log all its messages to syslog, otherwise,
-	  it will attempt to log them to stdout.
 
 	  See http://udhcp.busybox.net for further details.
 

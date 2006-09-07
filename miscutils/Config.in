@@ -23,6 +23,7 @@ config CONFIG_CROND
 	bool "crond"
 	default n
 	select CONFIG_FEATURE_SUID
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  Crond is a background daemon that parses individual crontab
 	  files and executes commands on behalf of the users in question.
@@ -66,6 +67,7 @@ config CONFIG_DC
 config CONFIG_DEVFSD
 	bool "devfsd (obsolete)"
 	default n
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  This is deprecated, and will be removed at the end of 2008.
 
