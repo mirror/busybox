@@ -111,6 +111,14 @@ config CONFIG_LOGIN
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
+config CONFIG_LOGIN_SCRIPTS
+	bool "Support for login scripts"
+	depends on CONFIG_LOGIN
+	default n
+	help
+	  Enable this if you want login to execute $LOGIN_PRE_SUID_SCRIPT
+	  just prior to swithching from root to logged-in user.
+
 config CONFIG_FEATURE_SECURETTY
 	bool "Support for /etc/securetty"
 	default y

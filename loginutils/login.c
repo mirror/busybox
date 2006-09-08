@@ -15,6 +15,7 @@
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <ctype.h>
 #include <time.h>
 
@@ -257,6 +258,27 @@ auth_ok:
 	 * (for example when the root fs is read only) */
 	chown ( full_tty, pw-> pw_uid, pw-> pw_gid );
 	chmod ( full_tty, 0600 );
+
+	if (ENABLE_LOGIN_SCRIPTS) {
+		char *script = getenv("LOGIN_PRE_SUID_SCRIPT");
+		if (script) {
+			char *t_argv[2] = { script, NULL };
+			switch(fork()) {
+			case -1: break;
+			case 0: /* child */
+				xchdir("/");
+				setenv("LOGIN_TTY", full_tty, 1);
+				setenv("LOGIN_USER", pw->pw_name, 1);
+				setenv("LOGIN_UID", utoa(pw->pw_uid), 1);
+				setenv("LOGIN_GID", utoa(pw->pw_gid), 1);
+				setenv("LOGIN_SHELL", pw->pw_shell, 1);
+				execvp(script, t_argv);
+				exit(1);
+			default: /* parent */
+				wait(NULL);
+			}
+		}
+	}
 
 	change_identity ( pw );
 	tmp = pw-> pw_shell;
