@@ -51,14 +51,22 @@ static inline int check_securetty(void) { return 1; }
 
 #endif
 
-static int is_my_tty(void);
 static void get_username_or_die(char *buf, int size_buf);
 static void motd(void);
 
+static void nonblock(int fd)
+{
+	fcntl(fd, F_SETFL, O_NONBLOCK | fcntl(fd, F_GETFL));
+}
 
 static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 {
-	fprintf(stderr, "\r\nLogin timed out after %d seconds\r\n", TIMEOUT);
+	/* This is the escape hatch!  Poor serial line users and the like
+	 * arrive here when their connection is broken.
+	 * We don't want to block here */
+	nonblock(1);
+	nonblock(2);
+	bb_info_msg("\r\nLogin timed out after %d seconds\r", TIMEOUT);
 	exit(EXIT_SUCCESS);
 }
 
@@ -218,13 +226,10 @@ auth_failed:
 		}
 	}
 #endif
-	if (!is_my_tty())
-		syslog(LOG_ERR, "unable to determine TTY name, got %s", full_tty);
-
-	/* Try these, but don't complain if they fail
-	 * (for example when the root fs is read only) */
-	chown(full_tty, pw->pw_uid, pw->pw_gid);
-	chmod(full_tty, 0600);
+	/* Try these, but don't complain if they fail.
+	 * _f_chown is safe wrt race t=ttyname(0);...;chown(t); */
+	fchown(0, pw->pw_uid, pw->pw_gid);
+	fchmod(0, 0600);
 
 	if (ENABLE_LOGIN_SCRIPTS) {
 		char *script = getenv("LOGIN_PRE_SUID_SCRIPT");
@@ -257,7 +262,7 @@ auth_failed:
 	signal(SIGALRM, SIG_DFL);	/* default alarm signal */
 
 	if (pw->pw_uid == 0)
-		syslog(LOG_INFO, "root login %s", fromhost);
+		syslog(LOG_INFO, "root login%s", fromhost);
 #ifdef CONFIG_SELINUX
 	/* well, a simple setexeccon() here would do the job as well,
 	 * but let's play the game for now */
@@ -347,21 +352,6 @@ static int check_securetty(void)
 }
 
 #endif
-
-/* returns 1 if true */
-static int is_my_tty(void)
-{
-	struct stat by_name, by_fd;
-
-	if (stat(full_tty, &by_name) || fstat(0, &by_fd))
-		return 0;
-
-	if (by_name.st_rdev != by_fd.st_rdev)
-		return 0;
-	else
-		return 1;
-}
-
 
 static void motd(void)
 {
