@@ -514,8 +514,8 @@ int stty_main(int argc, char **argv)
 		device_name = file_name;
 		fclose(stdin);
 		xopen(device_name, O_RDONLY | O_NONBLOCK);
-		if ((fdflags = fcntl(STDIN_FILENO, F_GETFL)) == -1
-			|| fcntl(STDIN_FILENO, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
+		fdflags = fcntl(STDIN_FILENO, F_GETFL);
+		if (fdflags == -1 || fcntl(STDIN_FILENO, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
 			perror_on_device("%s: couldn't reset non-blocking mode");
 	} else {
 		device_name = bb_msg_standard_input;

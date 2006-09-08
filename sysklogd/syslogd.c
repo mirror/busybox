@@ -277,9 +277,9 @@ static void message(char *fmt, ...)
 
 	} else
 #endif
-	if ((fd = device_open(logFilePath,
-					O_WRONLY | O_CREAT | O_NOCTTY | O_APPEND |
-							 O_NONBLOCK)) >= 0) {
+	fd = device_open(logFilePath, O_WRONLY | O_CREAT
+					| O_NOCTTY | O_APPEND | O_NONBLOCK);
+	if (fd >= 0) {
 		fl.l_type = F_WRLCK;
 		fcntl(fd, F_SETLKW, &fl);
 
@@ -291,7 +291,8 @@ static void message(char *fmt, ...)
 				&& (lseek(fd,0,SEEK_END) > logFileSize) ) {
 				if(logFileRotate > 0) {
 					int i;
-					char oldFile[(strlen(logFilePath)+4)], newFile[(strlen(logFilePath)+4)];
+					char oldFile[(strlen(logFilePath)+4)];
+					char newFile[(strlen(logFilePath)+4)];
 					for(i=logFileRotate-1;i>0;i--) {
 						sprintf(oldFile, "%s.%d", logFilePath, i-1);
 						sprintf(newFile, "%s.%d", logFilePath, i);
@@ -321,8 +322,8 @@ static void message(char *fmt, ...)
 		close(fd);
 	} else {
 		/* Always send console messages to /dev/console so people will see them. */
-		if ((fd = device_open(_PATH_CONSOLE,
-						 O_WRONLY | O_NOCTTY | O_NONBLOCK)) >= 0) {
+		fd = device_open(_PATH_CONSOLE, O_WRONLY | O_NOCTTY | O_NONBLOCK);
+		if (fd >= 0) {
 			va_start(arguments, fmt);
 			vdprintf(fd, fmt, arguments);
 			va_end(arguments);

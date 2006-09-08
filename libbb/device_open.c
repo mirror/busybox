@@ -20,6 +20,7 @@ int device_open(const char *device, int mode)
 	m = mode | O_NONBLOCK;
 
 	/* Retry up to 5 times */
+	/* TODO: explain why it can't be considered insane */
 	for (f = 0; f < 5; f++)
 		if ((fd = open(device, m, 0600)) >= 0)
 			break;
