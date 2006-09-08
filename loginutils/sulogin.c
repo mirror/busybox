@@ -1,26 +1,16 @@
 /* vi: set sw=4 ts=4: */
 /*
+ * Mini sulogin implementation for busybox
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <fcntl.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <syslog.h>
-#include <unistd.h>
-#include <utmp.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <ctype.h>
-#include <time.h>
 
 #include "busybox.h"
 
 
-#define SULOGIN_PROMPT "\nGive root password for system maintenance\n" \
+#define SULOGIN_PROMPT "Give root password for system maintenance\n" \
 	"(or type Control-D for normal startup):"
 
 static const char * const forbid[] = {
@@ -52,57 +42,33 @@ static void catchalarm(int ATTRIBUTE_UNUSED junk)
 int sulogin_main(int argc, char **argv)
 {
 	char *cp;
-	char *device = NULL;
-	const char *name = "root";
 	int timeout = 0;
-
-#define pass bb_common_bufsiz1
-
-	struct passwd pwent;
-	struct passwd *pwd;
+	char *timeout_arg;
 	const char * const *p;
-#if ENABLE_FEATURE_SHADOWPASSWDS
-	struct spwd *spwd = NULL;
-#endif
+	struct passwd *pwd;
+	struct spwd *spwd;
 
-	openlog("sulogin", LOG_PID | LOG_NOWAIT, LOG_AUTH);
-	logmode = LOGMODE_BOTH;
-	if (argc > 1) {
-		if (strncmp(argv[1], "-t", 2) == 0) {
-			if (argv[1][2] == '\0') { /* -t NN */
-				if (argc > 2) {
-					timeout = atoi(argv[2]);
-					if (argc > 3) {
-						device = argv[3];
-					}
-				}
-			} else { /* -tNNN */
-				timeout = atoi(&argv[1][2]);
-				if (argc > 2) {
-					device = argv[2];
-				}
-			}
-		} else {
-			device = argv[1];
-		}
-		if (device) {
-			close(0);
-			close(1);
-			close(2);
-			if (open(device, O_RDWR) == 0) {
-				dup(0);
-				dup(0);
-			} else {
-				/* Well, it will go only to syslog :) */
-				bb_perror_msg_and_die("Cannot open %s", device);
-			}
+	if (ENABLE_FEATURE_SYSLOG) {
+		logmode = LOGMODE_BOTH;
+		openlog(bb_applet_name, LOG_CONS | LOG_NOWAIT, LOG_AUTH);
+	}
+
+	if (bb_getopt_ulflags (argc, argv, "t:", &timeout_arg)) {
+		if (safe_strtoi(timeout_arg, &timeout)) {
+			timeout = 0;
 		}
 	}
+
+	if (argv[optind]) {
+		close(0);
+		close(1);
+		close(2);
+		dup(xopen(argv[optind], O_RDWR));
+		dup(0);
+	}
+
 	if (!isatty(0) || !isatty(1) || !isatty(2)) {
-		exit(EXIT_FAILURE);
-	}
-	if (access(bb_path_passwd_file, 0) == -1) {
-		bb_error_msg_and_die("No password file");
+		bb_error_msg_and_die("Not a tty");
 	}
 
 	/* Clear out anything dangerous from the environment */
@@ -110,48 +76,40 @@ int sulogin_main(int argc, char **argv)
 		unsetenv(*p);
 
 	signal(SIGALRM, catchalarm);
-	if (!(pwd = getpwnam(name))) {
-		bb_error_msg_and_die("No password entry for `root'");
-	}
-	pwent = *pwd;
-#if ENABLE_FEATURE_SHADOWPASSWDS
-	spwd = NULL;
-	if (pwd && ((strcmp(pwd->pw_passwd, "x") == 0)
-				|| (strcmp(pwd->pw_passwd, "*") == 0))) {
-		endspent();
-		spwd = getspnam(name);
-		if (spwd) {
-			pwent.pw_passwd = spwd->sp_pwdp;
+
+	if (!(pwd = getpwuid(0))) {
+		goto AUTH_ERROR;
+	} 
+
+	if (ENABLE_FEATURE_SHADOWPASSWDS) {
+		if (!(spwd = getspnam(pwd->pw_name))) {
+			goto AUTH_ERROR;
 		}
+		pwd->pw_passwd = spwd->sp_pwdp;
 	}
-#endif
+
 	while (1) {
+		/* cp points to a static buffer that is zeroed every time */
 		cp = bb_askpass(timeout, SULOGIN_PROMPT);
 		if (!cp || !*cp) {
-			puts("\n"); /* Why only on error path? */
-			fflush(stdout);
-			/* Why only to syslog? */
-			syslog(LOG_INFO, "Normal startup");
+			bb_info_msg("Normal startup");
 			exit(EXIT_SUCCESS);
-		} else {
-			safe_strncpy(pass, cp, sizeof(pass));
-			memset(cp, 0, strlen(cp));
 		}
-		if (strcmp(pw_encrypt(pass, pwent.pw_passwd), pwent.pw_passwd) == 0) {
+		if (strcmp(pw_encrypt(cp, pwd->pw_passwd), pwd->pw_passwd) == 0) {
 			break;
 		}
 		bb_do_delay(FAIL_DELAY);
-		bb_error_msg("Incorrect root password");
+		bb_error_msg("Login incorrect");
 	}
-	memset(pass, 0, strlen(pass));
+	memset(cp, 0, strlen(cp));
 	signal(SIGALRM, SIG_DFL);
-	bb_info_msg("Entering System Maintenance Mode");
 
-#if ENABLE_SELINUX
-	renew_current_security_context();
-#endif
+	bb_info_msg("System Maintenance Mode");
 
-	run_shell(pwent.pw_shell, 1, 0, 0);
+	USE_SELINUX(renew_current_security_context());
 
-	return 0;
+	run_shell(pwd->pw_shell, 1, 0, 0);
+	/* never returns */
+AUTH_ERROR:	
+	bb_error_msg_and_die("No password entry for `root'");
 }
