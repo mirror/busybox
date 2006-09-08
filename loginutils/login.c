@@ -35,31 +35,31 @@ static void setutmp(const char *name, const char *line);
 static struct utmp utent;
 #endif
 
-// login defines
-#define TIMEOUT       60
-#define EMPTY_USERNAME_COUNT    10
-#define USERNAME_SIZE 32
+enum {
+	TIMEOUT = 60,
+	EMPTY_USERNAME_COUNT = 10,
+	USERNAME_SIZE = 32,
+};
 
-
-static int check_nologin ( int amroot );
+static int check_nologin(int amroot);
 
 #if defined CONFIG_FEATURE_SECURETTY
-static int check_tty ( const char *tty );
+static int check_tty(const char *tty);
 
 #else
-static inline int check_tty ( const char *tty )  { return 1; }
+static inline int check_tty(const char *tty) { return 1; }
 
 #endif
 
-static int is_my_tty ( const char *tty );
-static int login_prompt ( char *buf_name );
-static void motd ( void );
+static int is_my_tty(const char *tty);
+static int login_prompt(char *buf_name);
+static void motd(void);
 
 
-static void alarm_handler ( int sig ATTRIBUTE_UNUSED)
+static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 {
-	fprintf (stderr, "\nLogin timed out after %d seconds.\n", TIMEOUT );
-	exit ( EXIT_SUCCESS );
+	fprintf(stderr, "\nLogin timed out after %d seconds.\n", TIMEOUT);
+	exit(EXIT_SUCCESS);
 }
 
 
@@ -73,7 +73,7 @@ int login_main(int argc, char **argv)
 	int amroot;
 	int flag;
 	int failed;
-	int count=0;
+	int count = 0;
 	struct passwd *pw, pw_copy;
 #ifdef CONFIG_WHEEL_GROUP
 	struct group *grp;
@@ -86,14 +86,14 @@ int login_main(int argc, char **argv)
 	security_context_t user_sid = NULL;
 #endif
 
-	username[0]=0;
-	amroot = ( getuid ( ) == 0 );
-	signal ( SIGALRM, alarm_handler );
-	alarm ( TIMEOUT );
+	username[0] = '\0';
+	amroot = (getuid() == 0);
+	signal(SIGALRM, alarm_handler);
+	alarm(TIMEOUT);
 	alarmstarted = 1;
 
-	while (( flag = getopt(argc, argv, "f:h:p")) != EOF ) {
-		switch ( flag ) {
+	while ((flag = getopt(argc, argv, "f:h:p")) != EOF) {
+		switch (flag) {
 		case 'p':
 			opt_preserve = 1;
 			break;
@@ -102,11 +102,11 @@ int login_main(int argc, char **argv)
 			 * username must be a separate token
 			 * (-f root, *NOT* -froot). --marekm
 			 */
-			if ( optarg != argv[optind-1] )
-				bb_show_usage( );
+			if (optarg != argv[optind-1])
+				bb_show_usage();
 
-			if ( !amroot )		/* Auth bypass only if real UID is zero */
-				bb_error_msg_and_die ( "-f permission denied" );
+			if (!amroot)		/* Auth bypass only if real UID is zero */
+				bb_error_msg_and_die("-f permission denied");
 
 			safe_strncpy(username, optarg, USERNAME_SIZE);
 			opt_fflag = 1;
@@ -115,59 +115,60 @@ int login_main(int argc, char **argv)
 			opt_host = optarg;
 			break;
 		default:
-			bb_show_usage( );
+			bb_show_usage();
 		}
 	}
 
-	if (optind < argc)             // user from command line (getty)
+	if (optind < argc)             /* user from command line (getty) */
 		safe_strncpy(username, argv[optind], USERNAME_SIZE);
 
-	if ( !isatty ( 0 ) || !isatty ( 1 ) || !isatty ( 2 ))
+	if (!isatty(0) || !isatty(1) || !isatty(2))
 		return EXIT_FAILURE;		/* Must be a terminal */
 
 #ifdef CONFIG_FEATURE_UTMP
-	checkutmp ( !amroot );
+	checkutmp(!amroot);
 #endif
 
-	tmp = ttyname ( 0 );
-	if ( tmp && ( strncmp ( tmp, "/dev/", 5 ) == 0 ))
-		safe_strncpy ( tty, tmp + 5, sizeof( tty ));
-	else if ( tmp && *tmp == '/' )
-		safe_strncpy ( tty, tmp, sizeof( tty ));
+	tmp = ttyname(0);
+	if (tmp && (strncmp(tmp, "/dev/", 5) == 0))
+		safe_strncpy(tty, tmp + 5, sizeof(tty));
+	else if (tmp && *tmp == '/')
+		safe_strncpy(tty, tmp, sizeof(tty));
 	else
-		safe_strncpy ( tty, "UNKNOWN", sizeof( tty ));
+		safe_strncpy(tty, "UNKNOWN", sizeof(tty));
 
 #ifdef CONFIG_FEATURE_UTMP
-	if ( amroot )
-		memset ( utent.ut_host, 0, sizeof utent.ut_host );
+	if (amroot)
+		memset(utent.ut_host, 0, sizeof(utent.ut_host));
 #endif
 
-	if ( opt_host ) {
+	if (opt_host) {
 #ifdef CONFIG_FEATURE_UTMP
-		safe_strncpy ( utent.ut_host, opt_host, sizeof( utent. ut_host ));
+		safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
 #endif
-		snprintf ( fromhost, sizeof( fromhost ) - 1, " on `%.100s' from `%.200s'", tty, opt_host );
+		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s' from `%.200s'", tty, opt_host);
 	}
 	else
-		snprintf ( fromhost, sizeof( fromhost ) - 1, " on `%.100s'", tty );
+		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s'", tty);
 
 	bb_setpgrp;
 
-	openlog ( "login", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH );
+	openlog("login", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 
-	while ( 1 ) {
+	while (1) {
 		failed = 0;
 
-		if ( !username[0] )
-			if(!login_prompt ( username ))
+		if (!username[0])
+			if (!login_prompt(username))
 				return EXIT_FAILURE;
 
-		if ( !alarmstarted && ( TIMEOUT > 0 )) {
-			alarm ( TIMEOUT );
+		if (!alarmstarted && (TIMEOUT > 0)) {
+			alarm(TIMEOUT);
 			alarmstarted = 1;
 		}
 
-		if (!( pw = getpwnam ( username ))) {
+		pw = getpwnam(username);
+		if (!pw) {
 			pw_copy.pw_name   = "UNKNOWN";
 			pw_copy.pw_passwd = "!";
 			opt_fflag = 0;
@@ -177,93 +178,92 @@ int login_main(int argc, char **argv)
 
 		pw = &pw_copy;
 
-		if (( pw-> pw_passwd [0] == '!' ) || ( pw-> pw_passwd[0] == '*' ))
+		if ((pw->pw_passwd[0] == '!') || (pw->pw_passwd[0] == '*'))
 			failed = 1;
 
-		if ( opt_fflag ) {
+		if (opt_fflag) {
 			opt_fflag = 0;
 			goto auth_ok;
 		}
 
-		if (!failed && ( pw-> pw_uid == 0 ) && ( !check_tty ( tty )))
+		if (!failed && (pw->pw_uid == 0) && (!check_tty(tty)))
 			failed = 1;
 
 		/* Don't check the password if password entry is empty (!) */
-		if ( !pw-> pw_passwd[0] )
+		if (!pw->pw_passwd[0])
 			goto auth_ok;
 
 		/* authorization takes place here */
-		if ( correct_password ( pw ))
+		if (correct_password(pw))
 			goto auth_ok;
 
 		failed = 1;
 
 auth_ok:
-		if ( !failed)
+		if (!failed)
 			break;
 
 		bb_do_delay(FAIL_DELAY);
 		puts("Login incorrect");
 		username[0] = 0;
-		if ( ++count == 3 ) {
-			syslog ( LOG_WARNING, "invalid password for `%s'%s\n", pw->pw_name, fromhost);
+		if (++count == 3) {
+			syslog(LOG_WARNING, "invalid password for `%s'%s'\n", pw->pw_name, fromhost);
 			return EXIT_FAILURE;
-	}
+		}
 	}
 
-	alarm ( 0 );
-	if ( check_nologin ( pw-> pw_uid == 0 ))
+	alarm(0);
+	if (check_nologin(pw->pw_uid == 0))
 		return EXIT_FAILURE;
 
 #ifdef CONFIG_FEATURE_UTMP
-	setutmp ( username, tty );
+	setutmp(username, tty);
 #endif
 
-	if ( *tty != '/' )
-		snprintf ( full_tty, sizeof( full_tty ) - 1, "/dev/%s", tty);
+	if (*tty != '/')
+		snprintf(full_tty, sizeof(full_tty)-1, "/dev/%s", tty);
 	else
-		safe_strncpy ( full_tty, tty, sizeof( full_tty ) - 1 );
+		safe_strncpy(full_tty, tty, sizeof(full_tty)-1);
 
 #ifdef CONFIG_SELINUX
-	if (is_selinux_enabled())
-	{
+	if (is_selinux_enabled()) {
 		security_context_t old_tty_sid, new_tty_sid;
 
-		if (get_default_context(username, NULL, &user_sid))
-		{
+		if (get_default_context(username, NULL, &user_sid)) {
 			fprintf(stderr, "Unable to get SID for %s\n", username);
 			exit(1);
 		}
-		if (getfilecon(full_tty, &old_tty_sid) < 0)
-		{
-			fprintf(stderr, "getfilecon(%.100s) failed: %.100s\n", full_tty, strerror(errno));
+		if (getfilecon(full_tty, &old_tty_sid) < 0) {
+			fprintf(stderr, "getfilecon(%.100s) failed: "
+					"%.100s\n", full_tty, strerror(errno));
 			return EXIT_FAILURE;
 		}
-		if (security_compute_relabel(user_sid, old_tty_sid, SECCLASS_CHR_FILE, &new_tty_sid) != 0)
-		{
-			fprintf(stderr, "security_change_sid(%.100s) failed: %.100s\n", full_tty, strerror(errno));
+		if (security_compute_relabel(user_sid, old_tty_sid, SECCLASS_CHR_FILE, 
+							&new_tty_sid) != 0) {
+			fprintf(stderr, "security_change_sid(%.100s) failed: "
+					"%.100s\n", full_tty, strerror(errno));
 			return EXIT_FAILURE;
 		}
-		if(setfilecon(full_tty, new_tty_sid) != 0)
-		{
-			fprintf(stderr, "chsid(%.100s, %s) failed: %.100s\n", full_tty, new_tty_sid, strerror(errno));
+		if (setfilecon(full_tty, new_tty_sid) != 0) {
+			fprintf(stderr, "chsid(%.100s, %s) failed: "
+				"%.100s\n", full_tty, new_tty_sid, strerror(errno));
 			return EXIT_FAILURE;
 		}
 	}
 #endif
-	if ( !is_my_tty ( full_tty ))
-		syslog ( LOG_ERR, "unable to determine TTY name, got %s\n", full_tty );
+	if (!is_my_tty(full_tty))
+		syslog(LOG_ERR, "unable to determine TTY name, got %s\n", full_tty);
 
 	/* Try these, but don't complain if they fail
 	 * (for example when the root fs is read only) */
-	chown ( full_tty, pw-> pw_uid, pw-> pw_gid );
-	chmod ( full_tty, 0600 );
+	chown(full_tty, pw->pw_uid, pw->pw_gid);
+	chmod(full_tty, 0600);
 
 	if (ENABLE_LOGIN_SCRIPTS) {
 		char *script = getenv("LOGIN_PRE_SUID_SCRIPT");
 		if (script) {
 			char *t_argv[2] = { script, NULL };
-			switch(fork()) {
+			switch (fork()) {
 			case -1: break;
 			case 0: /* child */
 				xchdir("/");
@@ -280,99 +280,100 @@ auth_ok:
 		}
 	}
 
-	change_identity ( pw );
-	tmp = pw-> pw_shell;
-	if(!tmp || !*tmp)
+	change_identity(pw);
+	tmp = pw->pw_shell;
+	if (!tmp || !*tmp)
 		tmp = DEFAULT_SHELL;
-	setup_environment ( tmp, 1, !opt_preserve, pw );
+	setup_environment(tmp, 1, !opt_preserve, pw);
 
-	motd ( );
-	signal ( SIGALRM, SIG_DFL );	/* default alarm signal */
+	motd();
+	signal(SIGALRM, SIG_DFL);	/* default alarm signal */
 
-	if ( pw-> pw_uid == 0 )
-		syslog ( LOG_INFO, "root login %s\n", fromhost );
+	if (pw->pw_uid == 0)
+		syslog(LOG_INFO, "root login %s\n", fromhost);
 #ifdef CONFIG_SELINUX
 	/* well, a simple setexeccon() here would do the job as well,
 	 * but let's play the game for now */
 	set_current_security_context(user_sid);
 #endif
-	run_shell ( tmp, 1, 0, 0);	/* exec the shell finally. */
+	run_shell(tmp, 1, 0, 0);	/* exec the shell finally. */
 
 	return EXIT_FAILURE;
 }
 
 
-
-static int login_prompt ( char *buf_name )
+static int login_prompt(char *buf_name)
 {
-	char buf [1024];
+	char buf[1024];
 	char *sp, *ep;
 	int i;
 
-	for(i=0; i<EMPTY_USERNAME_COUNT; i++) {
+	for (i=0; i<EMPTY_USERNAME_COUNT; i++) {
 		print_login_prompt();
 
-		if ( !fgets ( buf, sizeof( buf ) - 1, stdin ))
+		if (!fgets(buf, sizeof(buf)-1, stdin))
 			return 0;
 
-		if ( !strchr ( buf, '\n' ))
+		if (!strchr(buf, '\n'))
 			return 0;
 
-		for ( sp = buf; isspace ( *sp ); sp++ ) { }
-		for ( ep = sp; isgraph ( *ep ); ep++ ) { }
+		for (sp = buf; isspace(*sp); sp++) { }
+		for (ep = sp; isgraph(*ep); ep++) { }
 
-		*ep = 0;
+		*ep = '\0';
 		safe_strncpy(buf_name, sp, USERNAME_SIZE);
-		if(buf_name[0])
+		if (buf_name[0])
 			return 1;
 	}
 	return 0;
 }
 
 
-static int check_nologin ( int amroot )
+static int check_nologin(int amroot)
 {
-	if ( access ( bb_path_nologin_file, F_OK ) == 0 ) {
+	if (access(bb_path_nologin_file, F_OK) == 0) {
 		FILE *fp;
 		int c;
 
-		if (( fp = fopen ( bb_path_nologin_file, "r" ))) {
-			while (( c = getc ( fp )) != EOF )
-				putchar (( c == '\n' ) ? '\r' : c );
+		fp = fopen(bb_path_nologin_file, "r");
+		if (fp) {
+			while ((c = getc(fp)) != EOF)
+				putchar((c=='\n') ? '\r' : c);
 
-			fflush ( stdout );
-			fclose ( fp );
+			fflush(stdout);
+			fclose(fp);
 		} else {
-			puts ( "\r\nSystem closed for routine maintenance.\r" );
+			puts("\r\nSystem closed for routine maintenance.\r");
 		}
-		if ( !amroot )
+		if (!amroot)
 			return 1;
 
-		puts ( "\r\n[Disconnect bypassed -- root login allowed.]\r" );
+		puts("\r\n[Disconnect bypassed -- root login allowed.]\r");
 	}
 	return 0;
 }
 
 #ifdef CONFIG_FEATURE_SECURETTY
 
-static int check_tty ( const char *tty )
+static int check_tty(const char *tty)
 {
 	FILE *fp;
 	int i;
 	char buf[BUFSIZ];
 
-	if (( fp = fopen ( bb_path_securetty_file, "r" ))) {
-		while ( fgets ( buf, sizeof( buf ) - 1, fp )) {
-			for ( i = strlen( buf ) - 1; i >= 0; --i ) {
-				if ( !isspace ( buf[i] ))
+	fp = fopen(bb_path_securetty_file, "r");
+	if (fp) {
+		while (fgets(buf, sizeof(buf)-1, fp)) {
+			for(i = strlen(buf)-1; i>=0; --i) {
+				if (!isspace(buf[i]))
 					break;
 			}
 			buf[++i] = '\0';
-			if (( buf [0] == '\0' ) || ( buf [0] == '#' ))
+			if ((buf[0]=='\0') || (buf[0]=='#'))
 				continue;
 
-			if ( strcmp ( buf, tty ) == 0 ) {
-				fclose ( fp );
+			if (strcmp(buf, tty)== 0) {
+				fclose(fp);
 				return 1;
 			}
 		}
@@ -386,29 +387,30 @@ static int check_tty ( const char *tty )
 #endif
 
 /* returns 1 if true */
-static int is_my_tty ( const char *tty )
+static int is_my_tty(const char *tty)
 {
 	struct stat by_name, by_fd;
 
-	if ( stat ( tty, &by_name ) || fstat ( 0, &by_fd ))
+	if (stat(tty, &by_name) || fstat(0, &by_fd))
 		return 0;
 
-	if ( by_name. st_rdev != by_fd. st_rdev )
+	if (by_name.st_rdev != by_fd.st_rdev)
 		return 0;
 	else
 		return 1;
 }
 
 
-static void motd (void)
+static void motd(void)
 {
 	FILE *fp;
 	int c;
 
-	if (( fp = fopen ( bb_path_motd_file, "r" ))) {
-		while (( c = getc ( fp )) != EOF )
-			putchar ( c );
-		fclose ( fp );
+	fp = fopen(bb_path_motd_file, "r");
+	if (fp) {
+		while ((c = getc(fp)) != EOF)
+			putchar(c);
+		fclose(fp);
 	}
 }
 
@@ -466,13 +468,13 @@ static void checkutmp(int picky)
 		}
 		if (strncmp(line, "/dev/", 5) == 0)
 			line += 5;
-		memset(&utent, 0, sizeof utent);
+		memset(&utent, 0, sizeof(utent));
 		utent.ut_type = LOGIN_PROCESS;
 		utent.ut_pid = pid;
-		strncpy(utent.ut_line, line, sizeof utent.ut_line);
+		strncpy(utent.ut_line, line, sizeof(utent.ut_line));
 		/* XXX - assumes /dev/tty?? */
-		strncpy(utent.ut_id, utent.ut_line + 3, sizeof utent.ut_id);
-		strncpy(utent.ut_user, "LOGIN", sizeof utent.ut_user);
+		strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
+		strncpy(utent.ut_user, "LOGIN", sizeof(utent.ut_user));
 		t_tmp = (time_t)utent.ut_time;
 		time(&t_tmp);
 	}
@@ -490,7 +492,7 @@ static void setutmp(const char *name, const char *line ATTRIBUTE_UNUSED)
 	time_t t_tmp = (time_t)utent.ut_time;
 
 	utent.ut_type = USER_PROCESS;
-	strncpy(utent.ut_user, name, sizeof utent.ut_user);
+	strncpy(utent.ut_user, name, sizeof(utent.ut_user));
 	time(&t_tmp);
 	/* other fields already filled in by checkutmp above */
 	setutent();
