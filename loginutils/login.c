@@ -58,7 +58,7 @@ static void motd(void);
 
 static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 {
-	fprintf(stderr, "\nLogin timed out after %d seconds.\n", TIMEOUT);
+	fprintf(stderr, "\r\nLogin timed out after %s seconds\r\n", TIMEOUT);
 	exit(EXIT_SUCCESS);
 }
 
@@ -146,14 +146,15 @@ int login_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_UTMP
 		safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
 #endif
-		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s' from `%.200s'", tty, opt_host);
+		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s' from "
+					"`%.200s'", tty, opt_host);
 	}
 	else
 		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s'", tty);
 
 	bb_setpgrp;
 
-	openlog("login", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
+	openlog(bb_applet_name, LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 
 	while (1) {
 		failed = 0;
@@ -207,7 +208,7 @@ auth_ok:
 		puts("Login incorrect");
 		username[0] = 0;
 		if (++count == 3) {
-			syslog(LOG_WARNING, "invalid password for `%s'%s'\n", pw->pw_name, fromhost);
+			syslog(LOG_WARNING, "invalid password for `%s'%s", pw->pw_name, fromhost);
 			return EXIT_FAILURE;
 		}
 	}
@@ -230,29 +231,26 @@ auth_ok:
 		security_context_t old_tty_sid, new_tty_sid;
 
 		if (get_default_context(username, NULL, &user_sid)) {
-			fprintf(stderr, "Unable to get SID for %s\n", username);
-			exit(1);
+			bb_error_msg_and_die("unable to get SID for %s",
+					username);
 		}
 		if (getfilecon(full_tty, &old_tty_sid) < 0) {
-			fprintf(stderr, "getfilecon(%.100s) failed: "
-					"%.100s\n", full_tty, strerror(errno));
-			return EXIT_FAILURE;
+			bb_perror_msg_and_die("getfilecon(%.100s) failed",
+					full_tty);
 		}
-		if (security_compute_relabel(user_sid, old_tty_sid, SECCLASS_CHR_FILE, 
-							&new_tty_sid) != 0) {
-			fprintf(stderr, "security_change_sid(%.100s) failed: "
-					"%.100s\n", full_tty, strerror(errno));
-			return EXIT_FAILURE;
+		if (security_compute_relabel(user_sid, old_tty_sid,
+					SECCLASS_CHR_FILE, &new_tty_sid) != 0) {
+			bb_perror_msg_and_die("security_change_sid(%.100s) failed",
+					full_tty);
 		}
 		if (setfilecon(full_tty, new_tty_sid) != 0) {
-			fprintf(stderr, "chsid(%.100s, %s) failed: "
-				"%.100s\n", full_tty, new_tty_sid, strerror(errno));
-			return EXIT_FAILURE;
+			bb_perror_msg_and_die("chsid(%.100s, %s) failed",
+					full_tty, new_tty_sid);
 		}
 	}
 #endif
 	if (!is_my_tty(full_tty))
-		syslog(LOG_ERR, "unable to determine TTY name, got %s\n", full_tty);
+		syslog(LOG_ERR, "unable to determine TTY name, got %s", full_tty);
 
 	/* Try these, but don't complain if they fail
 	 * (for example when the root fs is read only) */
@@ -290,7 +288,7 @@ auth_ok:
 	signal(SIGALRM, SIG_DFL);	/* default alarm signal */
 
 	if (pw->pw_uid == 0)
-		syslog(LOG_INFO, "root login %s\n", fromhost);
+		syslog(LOG_INFO, "root login %s", fromhost);
 #ifdef CONFIG_SELINUX
 	/* well, a simple setexeccon() here would do the job as well,
 	 * but let's play the game for now */
