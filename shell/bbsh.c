@@ -105,14 +105,14 @@ static char *parse_word(char *start, struct command **cmd)
 // Parse a line of text into a pipeline.
 // Returns a pointer to the next line.
 
-static char *parse_pipeline(char *cmdline, struct pipeline *pipe)
+static char *parse_pipeline(char *cmdline, struct pipeline *line)
 {
-	struct command **cmd = &(pipe->cmd);
-	char *start = pipe->cmdline = cmdline;
+	struct command **cmd = &(line->cmd);
+	char *start = line->cmdline = cmdline;
 
 	if (!cmdline) return 0;
 
-	if (ENABLE_BBSH_JOBCTL) pipe->cmdline = cmdline;
+	if (ENABLE_BBSH_JOBCTL) line->cmdline = cmdline;
 
 	// Parse command into argv[]
 	for (;;) {
@@ -121,7 +121,7 @@ static char *parse_pipeline(char *cmdline, struct pipeline *pipe)
 		// Skip leading whitespace and detect end of line.
 		while (isspace(*start)) start++;
 		if (!*start || *start=='#') {
-			if (ENABLE_BBSH_JOBCTL) pipe->cmdlinelen = start-cmdline;
+			if (ENABLE_BBSH_JOBCTL) line->cmdlinelen = start-cmdline;
 			return 0;
 		}
 
@@ -145,15 +145,15 @@ static char *parse_pipeline(char *cmdline, struct pipeline *pipe)
 		start = end;
 	}
 
-	if (ENABLE_BBSH_JOBCTL) pipe->cmdlinelen = start-cmdline;
+	if (ENABLE_BBSH_JOBCTL) line->cmdlinelen = start-cmdline;
 
 	return start;
 }
 
 // Execute the commands in a pipeline
-static int run_pipeline(struct pipeline *pipe)
+static int run_pipeline(struct pipeline *line)
 {
-	struct command *cmd = pipe->cmd;
+	struct command *cmd = line->cmd;
 	if (!cmd || !cmd->argc) return 0;
 
 	// Handle local commands.  This is totally fake and plastic.
@@ -185,16 +185,16 @@ static void free_cmd(void *data)
 
 static void handle(char *command)
 {
-	struct pipeline pipe;
+	struct pipeline line;
 	char *start = command;
 
 	for (;;) {
-		memset(&pipe,0,sizeof(struct pipeline));
-		start = parse_pipeline(start, &pipe);
-		if (!pipe.cmd) break;
+		memset(&line,0,sizeof(struct pipeline));
+		start = parse_pipeline(start, &line);
+		if (!line.cmd) break;
 
-		run_pipeline(&pipe);
-		free_list(pipe.cmd, free_cmd);
+		run_pipeline(&line);
+		free_list(line.cmd, free_cmd);
 	}
 }
 
@@ -210,8 +210,6 @@ int bbsh_main(int argc, char *argv[])
 	else {
 		unsigned cmdlen=0;
 		for (;;) {
-			struct pipeline pipe;
-
 			if(!f) putchar('$');
 			if(1 > getline(&command, &cmdlen,f ? : stdin)) break;
 
