@@ -29,59 +29,59 @@
 
 #ifdef CONFIG_FEATURE_UTMP
 // import from utmp.c
-static void checkutmp(int picky);
-static void setutmp(const char *name, const char *line);
-/* Stuff global to this file */
 static struct utmp utent;
+static void read_or_build_utent(int picky);
+static void write_utent(const char *username);
 #endif
 
 enum {
 	TIMEOUT = 60,
 	EMPTY_USERNAME_COUNT = 10,
 	USERNAME_SIZE = 32,
+	TTYNAME_SIZE = 32,
 };
 
-static int check_nologin(int amroot);
+static void die_if_nologin_and_non_root(int amroot);
 
 #if defined CONFIG_FEATURE_SECURETTY
-static int check_tty(const char *tty);
+static int check_securetty(void);
 
 #else
-static inline int check_tty(const char *tty) { return 1; }
+static inline int check_securetty(void) { return 1; }
 
 #endif
 
-static int is_my_tty(const char *tty);
-static int login_prompt(char *buf_name);
+static int is_my_tty(void);
+static void get_username_or_die(char *buf, int size_buf);
 static void motd(void);
 
 
 static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 {
-	fprintf(stderr, "\r\nLogin timed out after %s seconds\r\n", TIMEOUT);
+	fprintf(stderr, "\r\nLogin timed out after %d seconds\r\n", TIMEOUT);
 	exit(EXIT_SUCCESS);
 }
 
 
+static char full_tty[TTYNAME_SIZE];
+static char* short_tty = full_tty;
+
+
 int login_main(int argc, char **argv)
 {
-	char tty[BUFSIZ];
-	char full_tty[200];
 	char fromhost[512];
 	char username[USERNAME_SIZE];
 	const char *tmp;
 	int amroot;
 	int flag;
-	int failed;
 	int count = 0;
-	struct passwd *pw, pw_copy;
+	struct passwd *pw;
 #ifdef CONFIG_WHEEL_GROUP
 	struct group *grp;
 #endif
 	int opt_preserve = 0;
 	int opt_fflag = 0;
 	char *opt_host = 0;
-	int alarmstarted = 0;
 #ifdef CONFIG_SELINUX
 	security_context_t user_sid = NULL;
 #endif
@@ -90,7 +90,6 @@ int login_main(int argc, char **argv)
 	amroot = (getuid() == 0);
 	signal(SIGALRM, alarm_handler);
 	alarm(TIMEOUT);
-	alarmstarted = 1;
 
 	while ((flag = getopt(argc, argv, "f:h:p")) != EOF) {
 		switch (flag) {
@@ -105,10 +104,10 @@ int login_main(int argc, char **argv)
 			if (optarg != argv[optind-1])
 				bb_show_usage();
 
-			if (!amroot)		/* Auth bypass only if real UID is zero */
-				bb_error_msg_and_die("-f permission denied");
+			if (!amroot)	/* Auth bypass only if real UID is zero */
+				bb_error_msg_and_die("-f is for root only");
 
-			safe_strncpy(username, optarg, USERNAME_SIZE);
+			safe_strncpy(username, optarg, sizeof(username));
 			opt_fflag = 1;
 			break;
 		case 'h':
@@ -118,113 +117,83 @@ int login_main(int argc, char **argv)
 			bb_show_usage();
 		}
 	}
-
 	if (optind < argc)             /* user from command line (getty) */
-		safe_strncpy(username, argv[optind], USERNAME_SIZE);
+		safe_strncpy(username, argv[optind], sizeof(username));
 
+	/* Let's find out and memorize our tty */
 	if (!isatty(0) || !isatty(1) || !isatty(2))
 		return EXIT_FAILURE;		/* Must be a terminal */
-
-#ifdef CONFIG_FEATURE_UTMP
-	checkutmp(!amroot);
-#endif
-
+	safe_strncpy(full_tty, "UNKNOWN", sizeof(full_tty));
 	tmp = ttyname(0);
-	if (tmp && (strncmp(tmp, "/dev/", 5) == 0))
-		safe_strncpy(tty, tmp + 5, sizeof(tty));
-	else if (tmp && *tmp == '/')
-		safe_strncpy(tty, tmp, sizeof(tty));
-	else
-		safe_strncpy(tty, "UNKNOWN", sizeof(tty));
+	if (tmp) {
+		safe_strncpy(full_tty, tmp, sizeof(full_tty));
+		if (strncmp(full_tty, "/dev/", 5) == 0)
+			short_tty = full_tty + 5;
+	}
 
-#ifdef CONFIG_FEATURE_UTMP
-	if (amroot)
-		memset(utent.ut_host, 0, sizeof(utent.ut_host));
-#endif
+	if (ENABLE_FEATURE_UTMP) {
+		read_or_build_utent(!amroot);
+		if (amroot)
+			memset(utent.ut_host, 0, sizeof(utent.ut_host));
+	}
 
 	if (opt_host) {
-#ifdef CONFIG_FEATURE_UTMP
-		safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
-#endif
+		if (ENABLE_FEATURE_UTMP)
+			safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
 		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s' from "
-					"`%.200s'", tty, opt_host);
+					"`%.200s'", short_tty, opt_host);
 	}
 	else
-		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s'", tty);
+		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s'", short_tty);
 
 	bb_setpgrp;
 
 	openlog(bb_applet_name, LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 
 	while (1) {
-		failed = 0;
-
 		if (!username[0])
-			if (!login_prompt(username))
-				return EXIT_FAILURE;
-
-		if (!alarmstarted && (TIMEOUT > 0)) {
-			alarm(TIMEOUT);
-			alarmstarted = 1;
-		}
+			get_username_or_die(username, sizeof(username));
 
 		pw = getpwnam(username);
 		if (!pw) {
-			pw_copy.pw_name   = "UNKNOWN";
-			pw_copy.pw_passwd = "!";
-			opt_fflag = 0;
-			failed = 1;
-		} else
-			pw_copy = *pw;
-
-		pw = &pw_copy;
-
-		if ((pw->pw_passwd[0] == '!') || (pw->pw_passwd[0] == '*'))
-			failed = 1;
-
-		if (opt_fflag) {
-			opt_fflag = 0;
-			goto auth_ok;
+			safe_strncpy(username, "UNKNOWN", sizeof(username));
+			goto auth_failed;
 		}
 
-		if (!failed && (pw->pw_uid == 0) && (!check_tty(tty)))
-			failed = 1;
+		if (pw->pw_passwd[0] == '!' || pw->pw_passwd[0] == '*')
+			goto auth_failed;
+
+		if (opt_fflag)
+			break; /* -f USER: success without asking passwd */
+
+		if (pw->pw_uid == 0 && !check_securetty())
+			goto auth_failed;
 
 		/* Don't check the password if password entry is empty (!) */
 		if (!pw->pw_passwd[0])
-			goto auth_ok;
+			break; 
 
 		/* authorization takes place here */
 		if (correct_password(pw))
-			goto auth_ok;
+			break; 
 
-		failed = 1;
-
-auth_ok:
-		if (!failed)
-			break;
-
+auth_failed:
+		opt_fflag = 0;
 		bb_do_delay(FAIL_DELAY);
 		puts("Login incorrect");
-		username[0] = 0;
 		if (++count == 3) {
-			syslog(LOG_WARNING, "invalid password for `%s'%s", pw->pw_name, fromhost);
+			syslog(LOG_WARNING, "invalid password for `%s'%s",
+						username, fromhost);
 			return EXIT_FAILURE;
 		}
+		username[0] = '\0';
 	}
 
 	alarm(0);
-	if (check_nologin(pw->pw_uid == 0))
-		return EXIT_FAILURE;
+	die_if_nologin_and_non_root(pw->pw_uid == 0);
 
-#ifdef CONFIG_FEATURE_UTMP
-	setutmp(username, tty);
-#endif
-
-	if (*tty != '/')
-		snprintf(full_tty, sizeof(full_tty)-1, "/dev/%s", tty);
-	else
-		safe_strncpy(full_tty, tty, sizeof(full_tty)-1);
+	if (ENABLE_FEATURE_UTMP)
+		write_utent(username);
 
 #ifdef CONFIG_SELINUX
 	if (is_selinux_enabled()) {
@@ -249,7 +218,7 @@ auth_ok:
 		}
 	}
 #endif
-	if (!is_my_tty(full_tty))
+	if (!is_my_tty())
 		syslog(LOG_ERR, "unable to determine TTY name, got %s", full_tty);
 
 	/* Try these, but don't complain if they fail
@@ -300,96 +269,91 @@ auth_ok:
 }
 
 
-static int login_prompt(char *buf_name)
+static void get_username_or_die(char *buf, int size_buf)
 {
-	char buf[1024];
-	char *sp, *ep;
-	int i;
+	int c, cntdown;
+	cntdown = EMPTY_USERNAME_COUNT;
+prompt:
+	/* skip whitespace */
+	print_login_prompt();
+	do {
+		c = getchar();
+		if (c == EOF) exit(1);
+		if (c == '\n') {
+			if (!--cntdown) exit(1);
+			goto prompt;
+		}
+	} while (isspace(c));
 
-	for (i=0; i<EMPTY_USERNAME_COUNT; i++) {
-		print_login_prompt();
-
-		if (!fgets(buf, sizeof(buf)-1, stdin))
-			return 0;
-
-		if (!strchr(buf, '\n'))
-			return 0;
-
-		for (sp = buf; isspace(*sp); sp++) { }
-		for (ep = sp; isgraph(*ep); ep++) { }
-
-		*ep = '\0';
-		safe_strncpy(buf_name, sp, USERNAME_SIZE);
-		if (buf_name[0])
-			return 1;
-	}
-	return 0;
+	*buf++ = c;
+	if (!fgets(buf, size_buf-2, stdin))
+		exit(1);
+	if (!strchr(buf, '\n'))
+		exit(1);
+	while (isgraph(*buf)) buf++;
+	*buf = '\0';
 }
 
 
-static int check_nologin(int amroot)
+static void die_if_nologin_and_non_root(int amroot)
 {
-	if (access(bb_path_nologin_file, F_OK) == 0) {
-		FILE *fp;
-		int c;
+	FILE *fp;
+	int c;
 
-		fp = fopen(bb_path_nologin_file, "r");
-		if (fp) {
-			while ((c = getc(fp)) != EOF)
-				putchar((c=='\n') ? '\r' : c);
+	if (access(bb_path_nologin_file, F_OK))
+		return;
 
-			fflush(stdout);
-			fclose(fp);
-		} else {
-			puts("\r\nSystem closed for routine maintenance.\r");
-		}
-		if (!amroot)
-			return 1;
-
-		puts("\r\n[Disconnect bypassed -- root login allowed.]\r");
-	}
-	return 0;
+	fp = fopen(bb_path_nologin_file, "r");
+	if (fp) {
+		while ((c = getc(fp)) != EOF)
+			putchar((c=='\n') ? '\r' : c);
+		fflush(stdout);
+		fclose(fp);
+	} else
+		puts("\r\nSystem closed for routine maintenance\r");
+	if (!amroot)
+		exit(1);
+	puts("\r\n[Disconnect bypassed -- root login allowed.]\r");
 }
 
 #ifdef CONFIG_FEATURE_SECURETTY
 
-static int check_tty(const char *tty)
+static int check_securetty(void)
 {
 	FILE *fp;
 	int i;
 	char buf[BUFSIZ];
 
 	fp = fopen(bb_path_securetty_file, "r");
-	if (fp) {
-		while (fgets(buf, sizeof(buf)-1, fp)) {
-			for(i = strlen(buf)-1; i>=0; --i) {
-				if (!isspace(buf[i]))
-					break;
-			}
-			buf[++i] = '\0';
-			if ((buf[0]=='\0') || (buf[0]=='#'))
-				continue;
-
-			if (strcmp(buf, tty)== 0) {
-				fclose(fp);
-				return 1;
-			}
-		}
-		fclose(fp);
-		return 0;
+	if (!fp) {
+		/* A missing securetty file is not an error. */
+		return 1;
 	}
-	/* A missing securetty file is not an error. */
-	return 1;
+	while (fgets(buf, sizeof(buf)-1, fp)) {
+		for(i = strlen(buf)-1; i>=0; --i) {
+			if (!isspace(buf[i]))
+				break;
+		}
+		buf[++i] = '\0';
+		if ((buf[0]=='\0') || (buf[0]=='#'))
+			continue;
+		if (strcmp(buf, short_tty) == 0) {
+			fclose(fp);
+			return 1;
+		}
+	}
+	fclose(fp);
+	return 0;
 }
 
 #endif
 
 /* returns 1 if true */
-static int is_my_tty(const char *tty)
+static int is_my_tty(void)
 {
 	struct stat by_name, by_fd;
 
-	if (stat(tty, &by_name) || fstat(0, &by_fd))
+	if (stat(full_tty, &by_name) || fstat(0, &by_fd))
 		return 0;
 
 	if (by_name.st_rdev != by_fd.st_rdev)
@@ -414,15 +378,10 @@ static void motd(void)
 
 
 #ifdef CONFIG_FEATURE_UTMP
-// vv  Taken from tinylogin utmp.c  vv
-
-#define	NO_UTENT \
-	"No utmp entry.  You must exec \"login\" from the lowest level \"sh\""
-#define	NO_TTY \
-	"Unable to determine your tty name."
+/* vv  Taken from tinylogin utmp.c  vv */
 
 /*
- * checkutmp - see if utmp file is correct for this process
+ * read_or_build_utent - see if utmp file is correct for this process
  *
  *	System V is very picky about the contents of the utmp file
  *	and requires that a slot for the current process exist.
@@ -435,9 +394,8 @@ static void motd(void)
  *	command line flags.
  */
 
-static void checkutmp(int picky)
+static void read_or_build_utent(int picky)
 {
-	char *line;
 	struct utmp *ut;
 	pid_t pid = getpid();
 
@@ -446,53 +404,41 @@ static void checkutmp(int picky)
 	/* First, try to find a valid utmp entry for this process.  */
 	while ((ut = getutent()))
 		if (ut->ut_pid == pid && ut->ut_line[0] && ut->ut_id[0] &&
-			(ut->ut_type == LOGIN_PROCESS || ut->ut_type == USER_PROCESS))
+		(ut->ut_type == LOGIN_PROCESS || ut->ut_type == USER_PROCESS))
 			break;
 
 	/* If there is one, just use it, otherwise create a new one.  */
 	if (ut) {
 		utent = *ut;
 	} else {
-		time_t t_tmp;
-		
-		if (picky) {
-			puts(NO_UTENT);
-			exit(1);
-		}
-		line = ttyname(0);
-		if (!line) {
-			puts(NO_TTY);
-			exit(1);
-		}
-		if (strncmp(line, "/dev/", 5) == 0)
-			line += 5;
+		if (picky)
+			bb_error_msg_and_die("no utmp entry found");
+
 		memset(&utent, 0, sizeof(utent));
 		utent.ut_type = LOGIN_PROCESS;
 		utent.ut_pid = pid;
-		strncpy(utent.ut_line, line, sizeof(utent.ut_line));
-		/* XXX - assumes /dev/tty?? */
-		strncpy(utent.ut_id, utent.ut_line + 3, sizeof(utent.ut_id));
+		strncpy(utent.ut_line, short_tty, sizeof(utent.ut_line));
+		/* This one is only 4 chars wide. Try to fit something
+		 * remotely meaningful by skipping "tty"... */
+		strncpy(utent.ut_id, short_tty + 3, sizeof(utent.ut_id));
 		strncpy(utent.ut_user, "LOGIN", sizeof(utent.ut_user));
-		t_tmp = (time_t)utent.ut_time;
-		time(&t_tmp);
+		utent.ut_time = time(NULL);
 	}
 }
 
 /*
- * setutmp - put a USER_PROCESS entry in the utmp file
+ * write_utent - put a USER_PROCESS entry in the utmp file
  *
- *	setutmp changes the type of the current utmp entry to
+ *	write_utent changes the type of the current utmp entry to
  *	USER_PROCESS.  the wtmp file will be updated as well.
  */
 
-static void setutmp(const char *name, const char *line ATTRIBUTE_UNUSED)
+static void write_utent(const char *username)
 {
-	time_t t_tmp = (time_t)utent.ut_time;
-
 	utent.ut_type = USER_PROCESS;
-	strncpy(utent.ut_user, name, sizeof(utent.ut_user));
-	time(&t_tmp);
-	/* other fields already filled in by checkutmp above */
+	strncpy(utent.ut_user, username, sizeof(utent.ut_user));
+	utent.ut_time = time(NULL);
+	/* other fields already filled in by read_or_build_utent above */
 	setutent();
 	pututline(&utent);
 	endutent();
