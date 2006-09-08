@@ -41,50 +41,6 @@
 #endif
 
 
-/*
- * NFS stats. The good thing with these values is that NFSv3 errors are
- * a superset of NFSv2 errors (with the exception of NFSERR_WFLUSH which
- * no-one uses anyway), so we can happily mix code as long as we make sure
- * no NFSv3 errors are returned to NFSv2 clients.
- * Error codes that have a `--' in the v2 column are not part of the
- * standard, but seem to be widely used nevertheless.
- */
-enum nfs_stat {
-	NFS_OK = 0,			/* v2 v3 */
-	NFSERR_PERM = 1,		/* v2 v3 */
-	NFSERR_NOENT = 2,		/* v2 v3 */
-	NFSERR_IO = 5,			/* v2 v3 */
-	NFSERR_NXIO = 6,		/* v2 v3 */
-	NFSERR_EAGAIN = 11,		/* v2 v3 */
-	NFSERR_ACCES = 13,		/* v2 v3 */
-	NFSERR_EXIST = 17,		/* v2 v3 */
-	NFSERR_XDEV = 18,		/*    v3 */
-	NFSERR_NODEV = 19,		/* v2 v3 */
-	NFSERR_NOTDIR = 20,		/* v2 v3 */
-	NFSERR_ISDIR = 21,		/* v2 v3 */
-	NFSERR_INVAL = 22,		/* v2 v3 that Sun forgot */
-	NFSERR_FBIG = 27,		/* v2 v3 */
-	NFSERR_NOSPC = 28,		/* v2 v3 */
-	NFSERR_ROFS = 30,		/* v2 v3 */
-	NFSERR_MLINK = 31,		/*    v3 */
-	NFSERR_OPNOTSUPP = 45,		/* v2 v3 */
-	NFSERR_NAMETOOLONG = 63,	/* v2 v3 */
-	NFSERR_NOTEMPTY = 66,		/* v2 v3 */
-	NFSERR_DQUOT = 69,		/* v2 v3 */
-	NFSERR_STALE = 70,		/* v2 v3 */
-	NFSERR_REMOTE = 71,		/* v2 v3 */
-	NFSERR_WFLUSH = 99,		/* v2    */
-	NFSERR_BADHANDLE = 10001,	/*    v3 */
-	NFSERR_NOT_SYNC = 10002,	/*    v3 */
-	NFSERR_BAD_COOKIE = 10003,	/*    v3 */
-	NFSERR_NOTSUPP = 10004,		/*    v3 */
-	NFSERR_TOOSMALL = 10005,	/*    v3 */
-	NFSERR_SERVERFAULT = 10006,	/*    v3 */
-	NFSERR_BADTYPE = 10007,		/*    v3 */
-	NFSERR_JUKEBOX = 10008		/*    v3 */
-};
-
-#define NFS_PROGRAM	100003
 
 
 enum {
@@ -97,14 +53,14 @@ enum {
 };
 
 /* Disable the nls stuff */
-# undef bindtextdomain
-# define bindtextdomain(Domain, Directory) /* empty */
-# undef textdomain
-# define textdomain(Domain) /* empty */
+//# undef bindtextdomain
+//# define bindtextdomain(Domain, Directory) /* empty */
+//# undef textdomain
+//# define textdomain(Domain) /* empty */
 
-enum {
-	S_QUOTA = 128,     /* Quota initialized for file/directory/symlink */
-};
+//enum {
+//	S_QUOTA = 128,     /* Quota initialized for file/directory/symlink */
+//};
 
 
 /*
@@ -116,10 +72,6 @@ enum {
  * Moreover, the new kernel includes conflict with glibc includes
  * so it is easiest to ignore the kernel altogether (at compile time).
  */
-
-/* NOTE: Do not make this into a 'static const int' because the pre-processor
- * needs to test this value in some #if statements. */
-#define NFS_MOUNT_VERSION 4
 
 struct nfs2_fh {
 	char                    data[32];
@@ -216,7 +168,7 @@ find_kernel_nfs_mount_version(void)
 	if (kernel_version)
 		return;
 
-	nfs_mount_version = NFS_MOUNT_VERSION; /* default */
+	nfs_mount_version = 4; /* default */
 
 	kernel_version = get_linux_version_code();
 	if (kernel_version) {
@@ -229,8 +181,8 @@ find_kernel_nfs_mount_version(void)
 		else
 			nfs_mount_version = 4; /* since 2.3.99pre4 */
 	}
-	if (nfs_mount_version > NFS_MOUNT_VERSION)
-		nfs_mount_version = NFS_MOUNT_VERSION;
+	if (nfs_mount_version > 4)
+		nfs_mount_version = 4;
 }
 
 static struct pmap *
@@ -399,9 +351,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	data.acregmax	= 60;
 	data.acdirmin	= 30;
 	data.acdirmax	= 60;
-#if NFS_MOUNT_VERSION >= 2
 	data.namlen	= NAME_MAX;
-#endif
 
 	bg = 0;
 	soft = 0;
@@ -417,7 +367,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	mountvers = 0;
 	port = 0;
 	mountport = 0;
-	nfsprog = NFS_PROGRAM;
+	nfsprog = 100003;
 	nfsvers = 0;
 
 	/* parse options */
@@ -474,11 +424,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				else
 					printf("Warning: Unrecognized proto= option.\n");
 			} else if (!strcmp(opt, "namlen")) {
-#if NFS_MOUNT_VERSION >= 2
 				if (nfs_mount_version >= 2)
 					data.namlen = val;
 				else
-#endif
 				printf("Warning: Option namlen is not supported.\n");
 			} else if (!strcmp(opt, "addr"))
 				/* ignore */;
@@ -531,14 +479,10 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		| (posix ? NFS_MOUNT_POSIX : 0)
 		| (nocto ? NFS_MOUNT_NOCTO : 0)
 		| (noac ? NFS_MOUNT_NOAC : 0);
-#if NFS_MOUNT_VERSION >= 2
 	if (nfs_mount_version >= 2)
 		data.flags |= (tcp ? NFS_MOUNT_TCP : 0);
-#endif
-#if NFS_MOUNT_VERSION >= 3
 	if (nfs_mount_version >= 3)
 		data.flags |= (nolock ? NFS_MOUNT_NONLM : 0);
-#endif
 	if (nfsvers > MAX_NFSPROT || mountvers > MAX_NFSPROT) {
 		bb_error_msg("NFSv%d not supported!", nfsvers);
 		return 1;
@@ -568,10 +512,8 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		(data.flags & NFS_MOUNT_POSIX) != 0,
 		(data.flags & NFS_MOUNT_NOCTO) != 0,
 		(data.flags & NFS_MOUNT_NOAC) != 0);
-#if NFS_MOUNT_VERSION >= 2
 	printf("tcp = %d\n",
 		(data.flags & NFS_MOUNT_TCP) != 0);
-#endif
 #endif
 
 	data.version = nfs_mount_version;
@@ -746,14 +688,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		memcpy(data.root.data,
 		       (char *) status.nfsv2.fhstatus_u.fhs_fhandle,
 		       NFS_FHSIZE);
-#if NFS_MOUNT_VERSION >= 4
 		data.root.size = NFS_FHSIZE;
 		memcpy(data.old_root.data,
 		       (char *) status.nfsv2.fhstatus_u.fhs_fhandle,
 		       NFS_FHSIZE);
-#endif
 	} else {
-#if NFS_MOUNT_VERSION >= 4
 		fhandle3 *my_fhandle;
 		if (status.nfsv3.fhs_status != 0) {
 			bb_error_msg("%s:%s failed, reason given by server: %s",
@@ -770,7 +709,6 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		       my_fhandle->fhandle3_len);
 
 		data.flags |= NFS_MOUNT_VER3;
-#endif
 	}
 
 	/* create nfs socket for kernel */
@@ -862,38 +800,18 @@ fail:
 #define EDQUOT	ENOSPC
 #endif
 
+// Convert each NFSERR_BLAH into EBLAH
+
 static const struct {
-	enum nfs_stat stat;
+	int stat;
 	int errnum;
 } nfs_errtbl[] = {
-	{ NFS_OK,		0		},
-	{ NFSERR_PERM,		EPERM		},
-	{ NFSERR_NOENT,		ENOENT		},
-	{ NFSERR_IO,		EIO		},
-	{ NFSERR_NXIO,		ENXIO		},
-	{ NFSERR_ACCES,		EACCES		},
-	{ NFSERR_EXIST,		EEXIST		},
-	{ NFSERR_NODEV,		ENODEV		},
-	{ NFSERR_NOTDIR,	ENOTDIR		},
-	{ NFSERR_ISDIR,		EISDIR		},
-#ifdef NFSERR_INVAL
-	{ NFSERR_INVAL,		EINVAL		},	/* that Sun forgot */
-#endif
-	{ NFSERR_FBIG,		EFBIG		},
-	{ NFSERR_NOSPC,		ENOSPC		},
-	{ NFSERR_ROFS,		EROFS		},
-	{ NFSERR_NAMETOOLONG,	ENAMETOOLONG	},
-	{ NFSERR_NOTEMPTY,	ENOTEMPTY	},
-	{ NFSERR_DQUOT,		EDQUOT		},
-	{ NFSERR_STALE,		ESTALE		},
-#ifdef EWFLUSH
-	{ NFSERR_WFLUSH,	EWFLUSH		},
-#endif
-	/* Throw in some NFSv3 values for even more fun (HP returns these) */
-	{ 71,			EREMOTE		},
-
-	{ -1,			EIO		}
+	{0,0}, {1,EPERM}, {2,ENOENT}, {5,EIO}, {6,ENXIO}, {13,EACCES}, {17,EEXIST},
+	{19,ENODEV}, {20,ENOTDIR}, {21,EISDIR}, {22,EINVAL}, {27,EFBIG},
+	{28,ENOSPC}, {30,EROFS}, {63,ENAMETOOLONG}, {66,ENOTEMPTY}, {69,EDQUOT},
+	{70,ESTALE}, {71,EREMOTE}, {-1,EIO}
 };
+
 
 static char *nfs_strerror(int status)
 {
@@ -908,16 +826,14 @@ static char *nfs_strerror(int status)
 	return buf;
 }
 
-static bool_t
-xdr_fhandle (XDR *xdrs, fhandle objp)
+static bool_t xdr_fhandle (XDR *xdrs, fhandle objp)
 {
 	 if (!xdr_opaque (xdrs, objp, FHSIZE))
 		 return FALSE;
 	return TRUE;
 }
 
-bool_t
-xdr_fhstatus (XDR *xdrs, fhstatus *objp)
+bool_t xdr_fhstatus (XDR *xdrs, fhstatus *objp)
 {
 	 if (!xdr_u_int (xdrs, &objp->fhs_status))
 		 return FALSE;
@@ -932,24 +848,21 @@ xdr_fhstatus (XDR *xdrs, fhstatus *objp)
 	return TRUE;
 }
 
-bool_t
-xdr_dirpath (XDR *xdrs, dirpath *objp)
+bool_t xdr_dirpath (XDR *xdrs, dirpath *objp)
 {
 	 if (!xdr_string (xdrs, objp, MNTPATHLEN))
 		 return FALSE;
 	return TRUE;
 }
 
-bool_t
-xdr_fhandle3 (XDR *xdrs, fhandle3 *objp)
+bool_t xdr_fhandle3 (XDR *xdrs, fhandle3 *objp)
 {
 	 if (!xdr_bytes (xdrs, (char **)&objp->fhandle3_val, (unsigned int *) &objp->fhandle3_len, FHSIZE3))
 		 return FALSE;
 	return TRUE;
 }
 
-bool_t
-xdr_mountres3_ok (XDR *xdrs, mountres3_ok *objp)
+bool_t xdr_mountres3_ok (XDR *xdrs, mountres3_ok *objp)
 {
 	 if (!xdr_fhandle3 (xdrs, &objp->fhandle))
 		 return FALSE;
@@ -959,16 +872,14 @@ xdr_mountres3_ok (XDR *xdrs, mountres3_ok *objp)
 	return TRUE;
 }
 
-bool_t
-xdr_mountstat3 (XDR *xdrs, mountstat3 *objp)
+bool_t xdr_mountstat3 (XDR *xdrs, mountstat3 *objp)
 {
 	 if (!xdr_enum (xdrs, (enum_t *) objp))
 		 return FALSE;
 	return TRUE;
 }
 
-bool_t
-xdr_mountres3 (XDR *xdrs, mountres3 *objp)
+bool_t xdr_mountres3 (XDR *xdrs, mountres3 *objp)
 {
 	 if (!xdr_mountstat3 (xdrs, &objp->fhs_status))
 		 return FALSE;
