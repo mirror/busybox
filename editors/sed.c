@@ -627,7 +627,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 		   end of match and continue */
 		if(sed_cmd->which_match && sed_cmd->which_match!=match_count) {
 			for(i=0;i<bbg.regmatch[0].rm_eo;i++)
-				pipe_putc(oldline[i]);
+				pipe_putc(*(oldline++));
 			continue;
 		}
 
