@@ -9,10 +9,6 @@
 
 #include "busybox.h"
 
-
-#define SULOGIN_PROMPT "Give root password for system maintenance\n" \
-	"(or type Control-D for normal startup):"
-
 static const char * const forbid[] = {
 	"ENV",
 	"BASH_ENV",
@@ -32,7 +28,6 @@ static const char * const forbid[] = {
 };
 
 
-
 static void catchalarm(int ATTRIBUTE_UNUSED junk)
 {
 	exit(EXIT_FAILURE);
@@ -48,10 +43,8 @@ int sulogin_main(int argc, char **argv)
 	struct passwd *pwd;
 	struct spwd *spwd;
 
-	if (ENABLE_FEATURE_SYSLOG) {
-		logmode = LOGMODE_BOTH;
-		openlog(bb_applet_name, LOG_CONS | LOG_NOWAIT, LOG_AUTH);
-	}
+	logmode = LOGMODE_BOTH;
+	openlog(bb_applet_name, 0, LOG_AUTH);
 
 	if (bb_getopt_ulflags (argc, argv, "t:", &timeout_arg)) {
 		if (safe_strtoi(timeout_arg, &timeout)) {
@@ -68,7 +61,8 @@ int sulogin_main(int argc, char **argv)
 	}
 
 	if (!isatty(0) || !isatty(1) || !isatty(2)) {
-		bb_error_msg_and_die("Not a tty");
+		logmode = LOGMODE_SYSLOG;
+		bb_error_msg_and_die("not a tty");
 	}
 
 	/* Clear out anything dangerous from the environment */
@@ -78,28 +72,31 @@ int sulogin_main(int argc, char **argv)
 	signal(SIGALRM, catchalarm);
 
 	if (!(pwd = getpwuid(0))) {
-		goto AUTH_ERROR;
+		goto auth_error;
 	} 
 
 	if (ENABLE_FEATURE_SHADOWPASSWDS) {
 		if (!(spwd = getspnam(pwd->pw_name))) {
-			goto AUTH_ERROR;
+			goto auth_error;
 		}
 		pwd->pw_passwd = spwd->sp_pwdp;
 	}
 
 	while (1) {
 		/* cp points to a static buffer that is zeroed every time */
-		cp = bb_askpass(timeout, SULOGIN_PROMPT);
+		cp = bb_askpass(timeout,
+				"Give root password for system maintenance\n"
+				"(or type Control-D for normal startup):");
+
 		if (!cp || !*cp) {
 			bb_info_msg("Normal startup");
-			exit(EXIT_SUCCESS);
+			return 0;
 		}
 		if (strcmp(pw_encrypt(cp, pwd->pw_passwd), pwd->pw_passwd) == 0) {
 			break;
 		}
 		bb_do_delay(FAIL_DELAY);
-		bb_error_msg("Login incorrect");
+		bb_error_msg("login incorrect");
 	}
 	memset(cp, 0, strlen(cp));
 	signal(SIGALRM, SIG_DFL);
@@ -110,6 +107,7 @@ int sulogin_main(int argc, char **argv)
 
 	run_shell(pwd->pw_shell, 1, 0, 0);
 	/* never returns */
-AUTH_ERROR:	
-	bb_error_msg_and_die("No password entry for `root'");
+
+auth_error:	
+	bb_error_msg_and_die("no password entry for `root'");
 }
