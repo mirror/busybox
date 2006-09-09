@@ -84,7 +84,6 @@ struct HardLinkInfo {
 
 /* Some info to be carried along when creating a new tarball */
 struct TarBallInfo {
-	char *fileName;			/* File name of the tarball */
 	int tarFd;				/* Open-for-write file descriptor
 							   for the tarball */
 	struct stat statBuf;	/* Stat info for the tarball, letting
@@ -117,18 +116,18 @@ typedef enum TarFileType TarFileType;
 /* Might be faster (and bigger) if the dev/ino were stored in numeric order;) */
 static void addHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr,
 					struct stat *statbuf,
-					const char *name)
+					const char *fileName)
 {
 	/* Note: hlInfoHeadPtr can never be NULL! */
 	HardLinkInfo *hlInfo;
 
-	hlInfo = (HardLinkInfo *) xmalloc(sizeof(HardLinkInfo) + strlen(name));
+	hlInfo = xmalloc(sizeof(HardLinkInfo) + strlen(fileName));
 	hlInfo->next = *hlInfoHeadPtr;
 	*hlInfoHeadPtr = hlInfo;
 	hlInfo->dev = statbuf->st_dev;
 	hlInfo->ino = statbuf->st_ino;
 	hlInfo->linkCount = statbuf->st_nlink;
-	strcpy(hlInfo->name, name);
+	strcpy(hlInfo->name, fileName);
 }
 
 static void freeHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr)
@@ -156,7 +155,7 @@ static HardLinkInfo *findHardLinkInfo(HardLinkInfo * hlInfo, struct stat *statbu
 			break;
 		hlInfo = hlInfo->next;
 	}
-	return (hlInfo);
+	return hlInfo;
 }
 
 /* Put an octal string into the specified buffer.
@@ -193,9 +192,29 @@ static int putOctal(char *cp, int len, long value)
 	return TRUE;
 }
 
+/* Pad file to TAR_BLOCK_SIZE with zeros */
+static void block_write_zeroes(int fd, size_t size)
+{
+	char zerobuf[TAR_BLOCK_SIZE];
+	memset(zerobuf, 0, size);
+	/* No point in trying to continue on error */
+	if (full_write(fd, zerobuf, size) < 0)
+		bb_perror_msg_and_die("write");
+}
+
+static size_t pad_block_write(int fd, size_t size)
+{
+	size_t rem = (TAR_BLOCK_SIZE - size) & (TAR_BLOCK_SIZE-1);
+	if (rem) {
+		block_write_zeroes(fd, rem);
+		size += rem;
+	}
+	return size;
+}
+
 /* Write out a tar header for the specified file/directory/whatever */
 static int writeTarHeader(struct TarBallInfo *tbInfo,
-		const char *header_name, const char *real_name, struct stat *statbuf)
+		const char *header_name, const char *fileName, struct stat *statbuf)
 {
 	long chksum = 0;
 	struct TarHeader header;
@@ -225,10 +244,10 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		strncpy(header.linkname, tbInfo->hlInfo->name,
 				sizeof(header.linkname));
 	} else if (S_ISLNK(statbuf->st_mode)) {
-		char *lpath = xreadlink(real_name);
+		char *lpath = xreadlink(fileName);
 
 		if (!lpath)		/* Already printed err msg inside xreadlink() */
-			return (FALSE);
+			return FALSE;
 		header.typeflag = SYMTYPE;
 		strncpy(header.linkname, lpath, sizeof(header.linkname));
 		free(lpath);
@@ -253,8 +272,8 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		header.typeflag = REGTYPE;
 		putOctal(header.size, sizeof(header.size), statbuf->st_size);
 	} else {
-		bb_error_msg("%s: Unknown file type", real_name);
-		return (FALSE);
+		bb_error_msg("%s: unknown file type", fileName);
+		return FALSE;
 	}
 
 	/* Calculate and store the checksum (i.e., the sum of all of the bytes of
@@ -269,16 +288,15 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	putOctal(header.chksum, 7, chksum);
 
 	/* Now write the header out to disk */
-	if ((size = full_write(tbInfo->tarFd, (char *) &header,
-					sizeof(struct TarHeader))) < 0)
-	{
-		bb_error_msg(bb_msg_io_error, real_name);
-		return (FALSE);
+	size = full_write(tbInfo->tarFd, (char *) &header,
+					sizeof(struct TarHeader));
+	if (size < 0) {
+		bb_error_msg(bb_msg_io_error, fileName);
+		return FALSE;
 	}
 	/* Pad the header up to the tar block size */
-	for (; size < TAR_BLOCK_SIZE; size++) {
-		write(tbInfo->tarFd, "\0", 1);
-	}
+	size = pad_block_write(tbInfo->tarFd, size);
+
 	/* Now do the verbose thing (or not) */
 
 	if (tbInfo->verboseFlag) {
@@ -290,7 +308,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		fprintf(vbFd, "%s\n", header.name);
 	}
 
-	return (TRUE);
+	return TRUE;
 }
 
 # ifdef CONFIG_FEATURE_TAR_FROM
@@ -328,11 +346,11 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	int inputFileFd = -1;
 
 	/*
-	   ** Check to see if we are dealing with a hard link.
-	   ** If so -
-	   ** Treat the first occurance of a given dev/inode as a file while
-	   ** treating any additional occurances as hard links.  This is done
-	   ** by adding the file information to the HardLinkInfo linked list.
+	 * Check to see if we are dealing with a hard link.
+	 * If so -
+	 * Treat the first occurance of a given dev/inode as a file while
+	 * treating any additional occurances as hard links.  This is done
+	 * by adding the file information to the HardLinkInfo linked list.
 	 */
 	tbInfo->hlInfo = NULL;
 	if (statbuf->st_nlink > 1) {
@@ -344,7 +362,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	/* It is against the rules to archive a socket */
 	if (S_ISSOCK(statbuf->st_mode)) {
 		bb_error_msg("%s: socket ignored", fileName);
-		return (TRUE);
+		return TRUE;
 	}
 
 	/* It is a bad idea to store the archive we are in the process of creating,
@@ -353,7 +371,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	if (tbInfo->statBuf.st_dev == statbuf->st_dev &&
 		tbInfo->statBuf.st_ino == statbuf->st_ino) {
 		bb_error_msg("%s: file is the archive; skipping", fileName);
-		return (TRUE);
+		return TRUE;
 	}
 
 	header_name = fileName;
@@ -361,7 +379,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		static int alreadyWarned = FALSE;
 
 		if (alreadyWarned == FALSE) {
-			bb_error_msg("Removing leading '/' from member names");
+			bb_error_msg("removing leading '/' from member names");
 			alreadyWarned = TRUE;
 		}
 		header_name++;
@@ -369,7 +387,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 
 	if (strlen(fileName) >= NAME_SIZE) {
 		bb_error_msg(bb_msg_name_longer_than_foo, NAME_SIZE);
-		return (TRUE);
+		return TRUE;
 	}
 
 	if (header_name[0] == '\0')
@@ -382,21 +400,20 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 
 	/* Is this a regular file? */
 	if ((tbInfo->hlInfo == NULL) && (S_ISREG(statbuf->st_mode))) {
-
 		/* open the file we want to archive, and make sure all is well */
 		if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
-			bb_perror_msg("%s: Cannot open", fileName);
-			return (FALSE);
+			bb_perror_msg("%s: cannot open", fileName);
+			return FALSE;
 		}
 	}
 
 	/* Add an entry to the tarball */
 	if (writeTarHeader(tbInfo, header_name, fileName, statbuf) == FALSE) {
-		return (FALSE);
+		return FALSE;
 	}
 
 	/* If it was a regular file, write out the body */
-	if (inputFileFd >= 0 ) {
+	if (inputFileFd >= 0) {
 		ssize_t readSize = 0;
 
 		/* write the file to the archive */
@@ -404,11 +421,10 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		close(inputFileFd);
 
 		/* Pad the file up to the tar block size */
-		for (; (readSize % TAR_BLOCK_SIZE) != 0; readSize++)
-			write(tbInfo->tarFd, "\0", 1);
+		readSize = pad_block_write(tbInfo->tarFd, readSize);
 	}
 
-	return (TRUE);
+	return TRUE;
 }
 
 static int writeTarFile(const int tar_fd, const int verboseFlag,
@@ -416,9 +432,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 	const llist_t *exclude, const int gzip)
 {
 	pid_t gzipPid = 0;
-
 	int errorFlag = FALSE;
-	ssize_t size;
 	struct TarBallInfo tbInfo;
 
 	tbInfo.hlInfoHead = NULL;
@@ -430,7 +444,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 	/* Store the stat info for the tarball's file, so
 	 * can avoid including the tarball into itself....  */
 	if (fstat(tbInfo.tarFd, &tbInfo.statBuf) < 0)
-		bb_perror_msg_and_die("Couldnt stat tar file");
+		bb_perror_msg_and_die("cannot stat tar file");
 
 	if ((ENABLE_FEATURE_TAR_GZIP || ENABLE_FEATURE_TAR_BZIP2) && gzip) {
 		int gzipDataPipe[2] = { -1, -1 };
@@ -440,7 +454,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 
 
 		if (pipe(gzipDataPipe) < 0 || pipe(gzipStatusPipe) < 0)
-			bb_perror_msg_and_die("create pipe");
+			bb_perror_msg_and_die("pipe");
 
 		signal(SIGPIPE, SIG_IGN);	/* we only want EPIPE on errors */
 
@@ -502,8 +516,8 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		include = include->link;
 	}
 	/* Write two empty blocks to the end of the archive */
-	for (size = 0; size < (2 * TAR_BLOCK_SIZE); size++)
-		write(tbInfo.tarFd, "\0", 1);
+	block_write_zeroes(tbInfo.tarFd, TAR_BLOCK_SIZE);
+	block_write_zeroes(tbInfo.tarFd, TAR_BLOCK_SIZE);
 
 	/* To be pedantically correct, we would check if the tarball
 	 * is smaller than 20 tar blocks, and pad it if it was smaller,
@@ -546,10 +560,10 @@ static llist_t *append_file_list_to_list(llist_t *list)
 		cur = cur->link;
 		free(tmp);
 		while ((line = bb_get_chomped_line_from_file(src_stream)) != NULL) {
-				char *filename_ptr = last_char_is(line, '/');
-				if (filename_ptr > line)
-					*filename_ptr = '\0';
-				llist_add_to(&newlist, line);
+			char *filename_ptr = last_char_is(line, '/');
+			if (filename_ptr > line)
+				*filename_ptr = '\0';
+			llist_add_to(&newlist, line);
 		}
 		fclose(src_stream);
 	}
@@ -569,12 +583,13 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 	if (xread_char(archive_handle->src_fd) != 0x1f ||
 		xread_char(archive_handle->src_fd) != 0x9d)
 	{
-		bb_error_msg_and_die("Invalid magic");
+		bb_error_msg_and_die("invalid magic");
 	}
 
 	archive_handle->src_fd = open_transformer(archive_handle->src_fd, uncompress);
 	archive_handle->offset = 0;
-	while (get_header_tar(archive_handle) == EXIT_SUCCESS);
+	while (get_header_tar(archive_handle) == EXIT_SUCCESS)
+		/* nothing */;
 
 	/* Can only do one file at a time */
 	return(EXIT_FAILURE);
@@ -828,7 +843,7 @@ int tar_main(int argc, char **argv)
 			tar_handle->src_fd = fileno(tar_stream);
 			tar_handle->seek = seek_by_char;
 		} else {
-			tar_handle->src_fd = xopen(tar_filename, flags);
+			tar_handle->src_fd = xopen3(tar_filename, flags, 0666);
 		}
 	}
 
@@ -854,14 +869,15 @@ int tar_main(int argc, char **argv)
 				tar_handle->accept,
 			tar_handle->reject, zipMode);
 	} else {
-		while (get_header_ptr(tar_handle) == EXIT_SUCCESS);
+		while (get_header_ptr(tar_handle) == EXIT_SUCCESS)
+			/* nothing */;
 
 		/* Check that every file that should have been extracted was */
 		while (tar_handle->accept) {
 			if (!find_list_entry(tar_handle->reject, tar_handle->accept->data)
 				&& !find_list_entry(tar_handle->passed, tar_handle->accept->data))
 			{
-				bb_error_msg_and_die("%s: Not found in archive", tar_handle->accept->data);
+				bb_error_msg_and_die("%s: not found in archive", tar_handle->accept->data);
 			}
 			tar_handle->accept = tar_handle->accept->link;
 		}

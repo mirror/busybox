@@ -23,14 +23,10 @@
  * is so stinking huge.
  */
 int recursive_action(const char *fileName,
-					int recurse, int followLinks, int depthFirst,
-					int (*fileAction) (const char *fileName,
-									   struct stat * statbuf,
-									   void* userData),
-					int (*dirAction) (const char *fileName,
-									  struct stat * statbuf,
-									  void* userData),
-					void* userData)
+		int recurse, int followLinks, int depthFirst,
+		int (*fileAction) (const char *fileName, struct stat * statbuf, void* userData),
+		int (*dirAction) (const char *fileName, struct stat * statbuf, void* userData),
+		void* userData)
 {
 	int status;
 	struct stat statbuf;
