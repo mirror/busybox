@@ -6,7 +6,6 @@
 config CONFIG_APP_UDHCPD
 	bool "udhcp Server (udhcpd)"
 	default n
-	select CONFIG_FEATURE_SYSLOG
 	help
 	  uDHCPd is a DHCP server geared primarily toward embedded systems,
 	  while striving to be fully functional and RFC compliant.
@@ -27,7 +26,6 @@ config CONFIG_APP_DUMPLEASES
 config CONFIG_APP_UDHCPC
 	bool "udhcp Client (udhcpc)"
 	default n
-	select CONFIG_FEATURE_SYSLOG
 	help
 	  uDHCPc is a DHCP client geared primarily toward embedded systems,
 	  while striving to be fully functional and RFC compliant.
@@ -41,6 +39,7 @@ config CONFIG_FEATURE_UDHCP_SYSLOG
 	bool "Log udhcp messages to syslog"
 	default n
 	depends on CONFIG_APP_UDHCPD || CONFIG_APP_UDHCPC
+	select CONFIG_FEATURE_SYSLOG
 	help
 	  If not daemonized, udhcpd prints its messages to stdout/stderr.
 	  If this option is selected, it will also log them to syslog.
