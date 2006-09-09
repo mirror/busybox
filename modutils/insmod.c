@@ -4325,7 +4325,7 @@ int insmod_ng_main( int argc, char **argv)
 		strcat(options, " ");
 	}
 
-	fd = xopen3(filename, O_RDONLY, 0);
+	fd = xopen(filename, O_RDONLY);
 
 	fstat(fd, &st);
 	len = st.st_size;
