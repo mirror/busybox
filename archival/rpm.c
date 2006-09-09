@@ -290,8 +290,7 @@ static void fileaction_dobackup(char *filename, int fileref)
 	if (rpm_getint(RPMTAG_FILEFLAGS, fileref) & RPMFILE_CONFIG) { /* Only need to backup config files */
 		stat_res = lstat (filename, &oldfile);
 		if (stat_res == 0 && S_ISREG(oldfile.st_mode)) { /* File already exists  - really should check MD5's etc to see if different */
-			newname = xstrdup(filename);
-			newname = strcat(newname, ".rpmorig");
+			newname = xasprintf("%s.rpmorig", filename);
 			copy_file(filename, newname, FILEUTILS_RECUR | FILEUTILS_PRESERVE_STATUS);
 			remove_file(filename, FILEUTILS_RECUR | FILEUTILS_FORCE);
 			free(newname);

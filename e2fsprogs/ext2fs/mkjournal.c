@@ -322,8 +322,9 @@ errcode_t ext2fs_add_journal_inode(ext2_filsys fs, blk_t size, int flags)
 	char			jfile[1024];
 	int			fd, mount_flags, f;
 
-	if ((retval = ext2fs_check_mount_point(fs->device_name, &mount_flags,
-					       jfile, sizeof(jfile)-10)))
+	retval = ext2fs_check_mount_point(fs->device_name, &mount_flags,
+					       jfile, sizeof(jfile)-10);
+	if (retval)
 		return retval;
 
 	if (mount_flags & EXT2_MF_MOUNTED) {

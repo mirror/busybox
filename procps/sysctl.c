@@ -129,7 +129,7 @@ int sysctl_preload_file(const char *filename, int output)
 	}
 
 	while (fgets(oneline, sizeof(oneline) - 1, fp)) {
-		oneline[sizeof(oneline) - 1] = 0;
+		oneline[sizeof(oneline) - 1] = '\0';
 		lineno++;
 		trim(oneline);
 		ptr = (char *) oneline;
@@ -156,9 +156,8 @@ int sysctl_preload_file(const char *filename, int output)
 
 		while ((*value == ' ' || *value == '\t') && *value != 0)
 			value++;
-		strcpy(buffer, name);
-		strcat(buffer, "=");
-		strcat(buffer, value);
+		/* safe because sizeof(oneline) == sizeof(buffer) */
+		sprintf(buffer, "%s=%s", name, value);
 		sysctl_write_setting(buffer, output);
 	}
 	fclose(fp);

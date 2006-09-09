@@ -128,7 +128,7 @@ static unsigned int expand(const char *arg, char *buffer)
 					for (i = 'A'; i <= 'Z'; i++)
 						*buffer++ = i;
 				else if (strncmp(arg, "space", 5) == 0) {
-				    const char s[] = "\t\n\v\f\r ";
+					const char s[] = "\t\n\v\f\r ";
 					strcat((char*)buffer, s);
 					buffer += sizeof(s) - 1;
 				}

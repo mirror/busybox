@@ -138,7 +138,7 @@ int logger_main(int argc, char **argv)
 			len += strlen(*argv);
 			message = xrealloc(message, len);
 			if(!i)
-				message[0] = 0;
+				message[0] = '\0';
 			else
 				strcat(message, " ");
 			strcat(message, *argv);

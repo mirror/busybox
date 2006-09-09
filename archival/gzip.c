@@ -1212,9 +1212,7 @@ int gzip_main(int argc, char **argv)
 				time_stamp = statBuf.st_ctime;
 
 				if (!tostdout) {
-					path = xmalloc(strlen(argv[i]) + 4);
-					strcpy(path, argv[i]);
-					strcat(path, ".gz");
+					path = xasprintf("%s.gz", argv[i]);
 
 					/* Open output file */
 #if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1) && defined O_NOFOLLOW
