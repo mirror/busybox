@@ -27,35 +27,34 @@ enum {
 extern int
 setkeycodes_main(int argc, char** argv)
 {
-    char *ep;
-    int fd, sc;
-    struct kbkeycode a;
+	char *ep;
+	int fd, sc;
+	struct kbkeycode a;
 
-    if (argc % 2 != 1 || argc < 2) {
-      bb_show_usage();
+	if (argc % 2 != 1 || argc < 2) {
+		bb_show_usage();
 	}
 
 	fd = get_console_fd();
 
-    while (argc > 2) {
-	a.keycode = atoi(argv[2]);
-	a.scancode = sc = strtol(argv[1], &ep, 16);
-	if (*ep) {
-      bb_error_msg_and_die("error reading SCANCODE: '%s'", argv[1]);
+	while (argc > 2) {
+		a.keycode = atoi(argv[2]);
+		a.scancode = sc = strtol(argv[1], &ep, 16);
+		if (*ep) {
+			bb_error_msg_and_die("error reading SCANCODE: '%s'", argv[1]);
+		}
+		if (a.scancode > 127) {
+			a.scancode -= 0xe000;
+			a.scancode += 128;
+		}
+		if (a.scancode > 255 || a.keycode > 127) {
+			bb_error_msg_and_die("SCANCODE or KEYCODE outside bounds");
+		}
+		if (ioctl(fd,KDSETKEYCODE,&a)) {
+			bb_perror_msg_and_die("failed to set SCANCODE %x to KEYCODE %d", sc, a.keycode);
+		}
+		argc -= 2;
+		argv += 2;
 	}
-	if (a.scancode > 127) {
-	    a.scancode -= 0xe000;
-	    a.scancode += 128;
-	}
-	if (a.scancode > 255 || a.keycode > 127) {
-      bb_error_msg_and_die("SCANCODE or KEYCODE outside bounds");
-	}
-	if (ioctl(fd,KDSETKEYCODE,&a)) {
-	    perror("KDSETKEYCODE");
-		bb_error_msg_and_die("failed to set SCANCODE %x to KEYCODE %d", sc, a.keycode);
-	}
-	argc -= 2;
-	argv += 2;
-    }
 	return EXIT_SUCCESS;
 }
