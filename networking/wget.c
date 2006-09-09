@@ -41,7 +41,7 @@ static inline void progressmeter(int flag) {}
 
 static void close_and_delete_outfile(FILE* output, char *fname_out, int do_continue)
 {
-	if (output != stdout && do_continue==0) {
+	if (output != stdout && do_continue == 0) {
 		fclose(output);
 		unlink(fname_out);
 	}
@@ -100,8 +100,8 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 /*
  *  Base64-encode character string and return the string.
  */
-static char *base64enc(unsigned char *p, char *buf, int len) {
-
+static char *base64enc(unsigned char *p, char *buf, int len)
+{
 	bb_uuencode(p, buf, len, bb_uuenc_tbl_base64);
 	return buf;
 }
@@ -182,7 +182,8 @@ int wget_main(int argc, char **argv)
 		while (headers_llist) {
 			int arglen = strlen(headers_llist->data);
 			if (extra_headers_left - arglen - 2 <= 0)
-				bb_error_msg_and_die("extra_headers buffer too small(need %i)", extra_headers_left - arglen);
+				bb_error_msg_and_die("extra_headers buffer too small "
+					"(need %i)", extra_headers_left - arglen);
 			strcpy(extra_headers_ptr, headers_llist->data);
 			extra_headers_ptr += arglen;
 			extra_headers_left -= ( arglen + 2 );
@@ -213,14 +214,14 @@ int wget_main(int argc, char **argv)
 	if (!fname_out) {
 		// Dirty hack. Needed because bb_get_last_path_component
 		// will destroy trailing / by storing '\0' in last byte!
-		if(*target.path && target.path[strlen(target.path)-1]!='/') {
+		if (*target.path && target.path[strlen(target.path)-1] != '/') {
 			fname_out =
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 				curfile =
 #endif
 				bb_get_last_path_component(target.path);
 		}
-		if (fname_out==NULL || strlen(fname_out)<1) {
+		if (fname_out == NULL || strlen(fname_out) < 1) {
 			fname_out =
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 				curfile =
@@ -253,7 +254,7 @@ int wget_main(int argc, char **argv)
 	 */
 	if (do_continue) {
 		if (fstat(fileno(output), &sbuf) < 0)
-			bb_perror_msg_and_die("fstat()");
+			bb_perror_msg_and_die("fstat");
 		if (sbuf.st_size > 0)
 			beg_range = sbuf.st_size;
 		else
@@ -265,8 +266,8 @@ int wget_main(int argc, char **argv)
 	 * and we want to connect to only one IP... */
 	bb_lookup_host(&s_in, server.host);
 	s_in.sin_port = server.port;
-	if (quiet_flag==FALSE) {
-		fprintf(stdout, "Connecting to %s[%s]:%d\n",
+	if (quiet_flag == FALSE) {
+		printf("Connecting to %s[%s]:%d\n",
 				server.host, inet_ntoa(s_in.sin_addr), ntohs(server.port));
 	}
 
@@ -277,7 +278,7 @@ int wget_main(int argc, char **argv)
 		do {
 			got_clen = chunked = 0;
 
-			if (! --try)
+			if (!--try)
 				close_delete_and_die("too many redirections");
 
 			/*
@@ -401,7 +402,7 @@ read_response:
 		/*
 		 *  FTP session
 		 */
-		if (! target.user)
+		if (!target.user)
 			target.user = xstrdup("anonymous:busybox@");
 
 		sfp = open_socket(&s_in);
@@ -476,11 +477,17 @@ read_response:
 		filesize = strtol(buf, (char **) NULL, 16);
 	}
 
-	if (quiet_flag==FALSE)
+	if (quiet_flag == FALSE)
 		progressmeter(-1);
 
 	do {
-		while ((filesize > 0 || !got_clen) && (n = safe_fread(buf, 1, ((chunked || got_clen) && (filesize < sizeof(buf)) ? filesize : sizeof(buf)), dfp)) > 0) {
+		while (filesize > 0 || !got_clen) {
+			unsigned rdsz = sizeof(buf);
+			if (filesize < sizeof(buf) && (chunked || got_clen)) 
+				rdsz = filesize;
+			n = safe_fread(buf, 1, rdsz, dfp);
+			if (n <= 0)
+				break;
 			if (safe_fwrite(buf, 1, n, output) != n) {
 				bb_perror_msg_and_die(bb_msg_write_error);
 			}
@@ -496,7 +503,7 @@ read_response:
 			safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
 			safe_fgets(buf, sizeof(buf), dfp);
 			filesize = strtol(buf, (char **) NULL, 16);
-			if (filesize==0) {
+			if (filesize == 0) {
 				chunked = 0; /* all done! */
 			}
 		}
@@ -506,7 +513,7 @@ read_response:
 		}
 	} while (chunked);
 
-	if (quiet_flag==FALSE)
+	if (quiet_flag == FALSE)
 		progressmeter(1);
 
 	if ((use_proxy == 0) && target.is_ftp) {
@@ -580,7 +587,7 @@ FILE *open_socket(struct sockaddr_in *s_in)
 
 	fp = fdopen(xconnect(s_in), "r+");
 	if (fp == NULL)
-		bb_perror_msg_and_die("fdopen()");
+		bb_perror_msg_and_die("fdopen");
 
 	return fp;
 }
@@ -645,13 +652,13 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 		char *buf_ptr;
 
 		if (fgets(buf, 510, fp) == NULL) {
-			bb_perror_msg_and_die("fgets()");
+			bb_perror_msg_and_die("fgets");
 		}
 		buf_ptr = strstr(buf, "\r\n");
 		if (buf_ptr) {
 			*buf_ptr = '\0';
 		}
-	} while (! isdigit(buf[0]) || buf[3] != ' ');
+	} while (!isdigit(buf[0]) || buf[3] != ' ');
 
 	return atoi(buf);
 }
