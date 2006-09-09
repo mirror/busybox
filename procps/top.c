@@ -76,7 +76,7 @@ static int mult_lvl_cmp(void* a, void* b) {
 }
 
 /* This structure stores some critical information from one frame to
-   the next. mostly used for sorting. Added cumulative and resident fields. */
+   the next. Mostly used for sorting. */
 struct save_hist {
 	int ticks;
 	int pid;
@@ -108,7 +108,7 @@ static void get_jiffy_counts(void)
 	if (fscanf(fp, "cpu  %lld %lld %lld %lld %lld %lld %lld %lld",
 			&jif.usr,&jif.nic,&jif.sys,&jif.idle,
 			&jif.iowait,&jif.irq,&jif.softirq,&jif.steal) < 4) {
-		bb_error_msg_and_die("failed to read 'stat'");
+		bb_error_msg_and_die("failed to read /proc/stat");
 	}
 	fclose(fp);
 	jif.total = jif.usr + jif.nic + jif.sys + jif.idle
@@ -392,22 +392,18 @@ int top_main(int argc, char **argv)
 #endif /* CONFIG_FEATURE_USE_TERMIOS */
 
 	/* do normal option parsing */
+	interval = 5;
 	opt = bb_getopt_ulflags(argc, argv, "d:", &sinterval);
-	if ((opt & 1)) {
+	if (opt & 1)
 		interval = atoi(sinterval);
-	} else {
-		/* Default update rate is 5 seconds */
-		interval = 5;
-	}
 
 	/* change to /proc */
 	xchdir("/proc");
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 	tcgetattr(0, (void *) &initial_settings);
 	memcpy(&new_settings, &initial_settings, sizeof(struct termios));
-	new_settings.c_lflag &= ~(ISIG | ICANON); /* unbuffered input */
-	/* Turn off echoing */
-	new_settings.c_lflag &= ~(ECHO | ECHONL);
+	/* unbuffered input, turn off echo */
+	new_settings.c_lflag &= ~(ISIG | ICANON | ECHO | ECHONL);
 
 	signal(SIGTERM, sig_catcher);
 	signal(SIGINT, sig_catcher);
