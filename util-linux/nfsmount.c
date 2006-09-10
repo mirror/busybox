@@ -345,6 +345,7 @@ enum {
  * nfs_mount_version according to the sources seen at compile time.
  */
 static int nfs_mount_version;
+static int kernel_version;
 
 /*
  * Unfortunately, the kernel prints annoying console messages
@@ -360,8 +361,6 @@ static int nfs_mount_version;
 static void
 find_kernel_nfs_mount_version(void)
 {
-	static int kernel_version = 0;
-
 	if (kernel_version)
 		return;
 
@@ -372,14 +371,11 @@ find_kernel_nfs_mount_version(void)
 		if (kernel_version < KERNEL_VERSION(2,1,32))
 			nfs_mount_version = 1;
 		else if (kernel_version < KERNEL_VERSION(2,2,18) ||
-				(kernel_version >=   KERNEL_VERSION(2,3,0) &&
+				(kernel_version >= KERNEL_VERSION(2,3,0) &&
 				 kernel_version < KERNEL_VERSION(2,3,99)))
 			nfs_mount_version = 3;
-		else
-			nfs_mount_version = 4; /* since 2.3.99pre4 */
+		/* else v4 since 2.3.99pre4 */
 	}
-	if (nfs_mount_version > 4)
-		nfs_mount_version = 4;
 }
 
 static struct pmap *
@@ -433,14 +429,31 @@ next:
 int nfsmount(const char *spec, const char *node, int *flags,
 	     char **mount_opts, int running_bg)
 {
+	/* prev_bg_host is a -o bg support:
+	 * "bg: if the first NFS mount attempt times out,
+	 * retry the mount in the background.
+	 * After a mount operation is backgrounded,
+	 * all subsequent mounts on the same NFS server
+	 * will be backgrounded immediately, without first
+	 * attempting the mount. A missing mount point is treated
+	 * as a timeout, to allow for nested NFS mounts."
+	 *
+	 * But current implementation is a dirty hack -
+	 * it works only if all mounts are to one host!
+	 * IOW: think what will happen if you have this sequence:
+	 * mount a.a.a.a:/dir /mnt/a -o bg
+	 * mount b.b.b.b:/dir /mnt/b -o bg
+	 * mount a.a.a.a:/dir /mnt/a -o bg
+	 * mount b.b.b.b:/dir /mnt/b -o bg
+	 */
+
 	static char *prev_bg_host;
-	char hostdir[1024];
+	char *hostdir;
 	CLIENT *mclient;
 	char *hostname;
 	char *pathname;
 	char *old_opts;
-	char *mounthost = NULL;
-	char new_opts[1024];
+	char *mounthost;
 	struct timeval total_timeout;
 	enum clnt_stat clnt_stat;
 	struct nfs_mount_data data;
@@ -481,27 +494,26 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	find_kernel_nfs_mount_version();
 
+	/* NB: old_opts and hostdir must be free()d prior to return! */
+
+	old_opts = NULL;
+	mounthost = NULL;
 	retval = EX_FAIL;
 	msock = fsock = -1;
 	mclient = NULL;
-	if (strlen(spec) >= sizeof(hostdir)) {
-		bb_error_msg("excessively long host:dir argument");
-		goto fail;
-	}
-	strcpy(hostdir, spec);
-	if ((s = strchr(hostdir, ':'))) {
-		hostname = hostdir;
-		pathname = s + 1;
+
+	hostdir = xstrdup(spec);
+	/* mount_main() guarantees that ':' is there */
+	s = strchr(hostdir, ':');
+	hostname = hostdir;
+	pathname = s + 1;
+	*s = '\0';
+	/* Ignore all but first hostname in replicated mounts
+	   until they can be fully supported. (mack@sgi.com) */
+	s = strchr(hostdir, ',');
+	if (s) {
 		*s = '\0';
-		/* Ignore all but first hostname in replicated mounts
-		   until they can be fully supported. (mack@sgi.com) */
-		if ((s = strchr(hostdir, ','))) {
-			*s = '\0';
-			bb_error_msg("warning: multiple hostnames not supported");
-		}
-	} else {
-		bb_error_msg("directory to mount not in host:dir format");
-		goto fail;
+		bb_error_msg("warning: multiple hostnames not supported");
 	}
 
 	server_addr.sin_family = AF_INET;
@@ -509,34 +521,29 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	if (!inet_aton(hostname, &server_addr.sin_addr))
 #endif
 	{
-		if ((hp = gethostbyname(hostname)) == NULL) {
+		hp = gethostbyname(hostname);
+		if (hp == NULL) {
 			bb_herror_msg("%s", hostname);
 			goto fail;
-		} else {
-			if (hp->h_length > sizeof(struct in_addr)) {
-				bb_error_msg("got bad hp->h_length");
-				hp->h_length = sizeof(struct in_addr);
-			}
-			memcpy(&server_addr.sin_addr,
-					hp->h_addr, hp->h_length);
 		}
+		if (hp->h_length > sizeof(struct in_addr)) {
+			bb_error_msg("got bad hp->h_length");
+			hp->h_length = sizeof(struct in_addr);
+		}
+		memcpy(&server_addr.sin_addr,
+				hp->h_addr, hp->h_length);
 	}
 
-	memcpy(&mount_server_addr, &server_addr, sizeof (mount_server_addr));
+	memcpy(&mount_server_addr, &server_addr, sizeof(mount_server_addr));
 
 	/* add IP address to mtab options for use when unmounting */
 
 	s = inet_ntoa(server_addr.sin_addr);
 	old_opts = *mount_opts;
 	if (!old_opts)
-		old_opts = "";
-	if (strlen(old_opts) + strlen(s) + 10 >= sizeof(new_opts)) {
-		bb_error_msg("excessively long option argument");
-		goto fail;
-	}
-	sprintf(new_opts, "%s%saddr=%s",
-		old_opts, *old_opts ? "," : "", s);
-	*mount_opts = xstrdup(new_opts);
+		old_opts = xstrdup("");
+	*mount_opts = xasprintf("%s%saddr=%s",
+				old_opts, *old_opts ? "," : "", s);
 
 	/* Set default options.
 	 * rsize/wsize (and bsize, for ver >= 3) are left 0 in order to
@@ -570,7 +577,8 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	/* parse options */
 
 	for (opt = strtok(old_opts, ","); opt; opt = strtok(NULL, ",")) {
-		if ((opteq = strchr(opt, '='))) {
+		opteq = strchr(opt, '=');
+		if (opteq) {
 			val = atoi(opteq + 1);
 			*opteq = '\0';
 			if (!strcmp(opt, "rsize"))
@@ -681,8 +689,8 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	if (nfs_mount_version >= 3)
 		data.flags |= (nolock ? NFS_MOUNT_NONLM : 0);
 	if (nfsvers > MAX_NFSPROT || mountvers > MAX_NFSPROT) {
-		bb_error_msg("NFSv%d not supported!", nfsvers);
-		return 1;
+		bb_error_msg("NFSv%d not supported", nfsvers);
+		goto fail;
 	}
 	if (nfsvers && !mountvers)
 		mountvers = (nfsvers < 3) ? 1 : nfsvers;
@@ -727,7 +735,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	    prev_bg_host && strcmp(hostname, prev_bg_host) == 0) {
 		if (retry > 0)
 			retval = EX_BG;
-		return retval;
+		goto ret;
 	}
 
 	/* create mount daemon client */
@@ -941,17 +949,6 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	printf("using port %d for nfs daemon\n", port);
 #endif
 	server_addr.sin_port = htons(port);
-	/*
-	 * connect() the socket for kernels 1.3.10 and below only,
-	 * to avoid problems with multihomed hosts.
-	 * --Swen
-	 */
-	if (get_linux_version_code() <= KERNEL_VERSION(2,3,10)
-	    && connect(fsock, (struct sockaddr *) &server_addr,
-				sizeof (server_addr)) < 0) {
-		perror("nfs connect");
-		goto fail;
-	}
 
 	/* prepare data structure for kernel */
 
@@ -967,7 +964,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 copy_data_and_return:
 	*mount_opts = xrealloc(*mount_opts, sizeof(data));
 	memcpy(*mount_opts, &data, sizeof(data));
-	return 0;
+
+	retval = 0;
+	goto ret;
 
 	/* abort */
 
@@ -981,5 +980,9 @@ fail:
 	}
 	if (fsock != -1)
 		close(fsock);
+
+ret:
+	free(hostdir);
+	free(old_opts);
 	return retval;
 }
