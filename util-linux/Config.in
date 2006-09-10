@@ -378,9 +378,10 @@ config CONFIG_FEATURE_MOUNT_CIFS
 	depends on CONFIG_MOUNT
 	help
 	  Enable support for samba mounts.
+
 config CONFIG_FEATURE_MOUNT_FLAGS
 	depends on CONFIG_MOUNT
-	bool "Support lots of -o flags in mount."
+	bool "Support lots of -o flags in mount"
 	default y
 	help
 	  Without this, mount only supports ro/rw/remount.  With this, it

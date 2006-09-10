@@ -21,10 +21,6 @@
  * plus NFSv3 stuff.
  */
 
-/*
- * nfsmount.c,v 1.1.1.1 1993/11/18 08:40:51 jrs Exp
- */
-
 #include "busybox.h"
 #include <sys/utsname.h>
 #undef TRUE
@@ -32,7 +28,6 @@
 #include <rpc/rpc.h>
 #include <rpc/pmap_prot.h>
 #include <rpc/pmap_clnt.h>
-#include "nfsmount.h"
 
 /* This is just a warning of a common mistake.  Possibly this should be a
  * uclibc faq entry rather than in busybox... */
@@ -40,8 +35,128 @@
 #error "You need to build uClibc with UCLIBC_HAS_RPC for NFS support."
 #endif
 
+/* former nfsmount.h */
 
+#define MOUNTPORT 635
+#define MNTPATHLEN 1024
+#define MNTNAMLEN 255
+#define FHSIZE 32
+#define FHSIZE3 64
 
+typedef char fhandle[FHSIZE];
+
+typedef struct {
+	unsigned int fhandle3_len;
+	char *fhandle3_val;
+} fhandle3;
+
+enum mountstat3 {
+	MNT_OK = 0,
+	MNT3ERR_PERM = 1,
+	MNT3ERR_NOENT = 2,
+	MNT3ERR_IO = 5,
+	MNT3ERR_ACCES = 13,
+	MNT3ERR_NOTDIR = 20,
+	MNT3ERR_INVAL = 22,
+	MNT3ERR_NAMETOOLONG = 63,
+	MNT3ERR_NOTSUPP = 10004,
+	MNT3ERR_SERVERFAULT = 10006,
+};
+typedef enum mountstat3 mountstat3;
+
+struct fhstatus {
+	unsigned int fhs_status;
+	union {
+		fhandle fhs_fhandle;
+	} fhstatus_u;
+};
+typedef struct fhstatus fhstatus;
+
+struct mountres3_ok {
+	fhandle3 fhandle;
+	struct {
+		unsigned int auth_flavours_len;
+		char *auth_flavours_val;
+	} auth_flavours;
+};
+typedef struct mountres3_ok mountres3_ok;
+
+struct mountres3 {
+	mountstat3 fhs_status;
+	union {
+		mountres3_ok mountinfo;
+	} mountres3_u;
+};
+typedef struct mountres3 mountres3;
+
+typedef char *dirpath;
+
+typedef char *name;
+
+typedef struct mountbody *mountlist;
+
+struct mountbody {
+	name ml_hostname;
+	dirpath ml_directory;
+	mountlist ml_next;
+};
+typedef struct mountbody mountbody;
+
+typedef struct groupnode *groups;
+
+struct groupnode {
+	name gr_name;
+	groups gr_next;
+};
+typedef struct groupnode groupnode;
+
+typedef struct exportnode *exports;
+
+struct exportnode {
+	dirpath ex_dir;
+	groups ex_groups;
+	exports ex_next;
+};
+typedef struct exportnode exportnode;
+
+struct ppathcnf {
+	int pc_link_max;
+	short pc_max_canon;
+	short pc_max_input;
+	short pc_name_max;
+	short pc_path_max;
+	short pc_pipe_buf;
+	u_char pc_vdisable;
+	char pc_xxx;
+	short pc_mask[2];
+};
+typedef struct ppathcnf ppathcnf;
+
+#define MOUNTPROG 100005
+#define MOUNTVERS 1
+
+#define MOUNTPROC_NULL 0
+#define MOUNTPROC_MNT 1
+#define MOUNTPROC_DUMP 2
+#define MOUNTPROC_UMNT 3
+#define MOUNTPROC_UMNTALL 4
+#define MOUNTPROC_EXPORT 5
+#define MOUNTPROC_EXPORTALL 6
+
+#define MOUNTVERS_POSIX 2
+
+#define MOUNTPROC_PATHCONF 7
+
+#define MOUNT_V3 3
+
+#define MOUNTPROC3_NULL 0
+#define MOUNTPROC3_MNT 1
+#define MOUNTPROC3_DUMP 2
+#define MOUNTPROC3_UMNT 3
+#define MOUNTPROC3_UMNTALL 4
+#define MOUNTPROC3_EXPORT 5
+
+/* former nfsmount.h ends */
 
 enum {
 #ifndef NFS_FHSIZE
@@ -51,12 +166,6 @@ enum {
 	NFS_PORT = 2049
 #endif
 };
-
-/* Disable the nls stuff */
-//# undef bindtextdomain
-//# define bindtextdomain(Domain, Directory) /* empty */
-//# undef textdomain
-//# define textdomain(Domain) /* empty */
 
 //enum {
 //	S_QUOTA = 128,     /* Quota initialized for file/directory/symlink */
@@ -115,26 +224,114 @@ enum {
 	NFS_MOUNT_NONLM = 0x0200	/* 3 */
 };
 
-
-#define UTIL_LINUX_VERSION "2.10m"
-#define util_linux_version "util-linux-2.10m"
-
 #define HAVE_inet_aton
-#define HAVE_scsi_h
-#define HAVE_blkpg_h
-#define HAVE_kd_h
-#define HAVE_termcap
-#define HAVE_locale_h
-#define HAVE_libintl_h
-#define ENABLE_NLS
-#define HAVE_langinfo_h
-#define HAVE_progname
-#define HAVE_openpty
-#define HAVE_nanosleep
-#define HAVE_personality
-#define HAVE_tm_gmtoff
 
-static char *nfs_strerror(int status);
+/*
+ * We need to translate between nfs status return values and
+ * the local errno values which may not be the same.
+ *
+ * Andreas Schwab <schwab@LS5.informatik.uni-dortmund.de>: change errno:
+ * "after #include <errno.h> the symbol errno is reserved for any use,
+ *  it cannot even be used as a struct tag or field name".
+ */
+
+#ifndef EDQUOT
+#define EDQUOT	ENOSPC
+#endif
+
+// Convert each NFSERR_BLAH into EBLAH
+
+static const struct {
+	int stat;
+	int errnum;
+} nfs_errtbl[] = {
+	{0,0}, {1,EPERM}, {2,ENOENT}, {5,EIO}, {6,ENXIO}, {13,EACCES}, {17,EEXIST},
+	{19,ENODEV}, {20,ENOTDIR}, {21,EISDIR}, {22,EINVAL}, {27,EFBIG},
+	{28,ENOSPC}, {30,EROFS}, {63,ENAMETOOLONG}, {66,ENOTEMPTY}, {69,EDQUOT},
+	{70,ESTALE}, {71,EREMOTE}, {-1,EIO}
+};
+
+static char *nfs_strerror(int status)
+{
+	int i;
+	static char buf[256];
+
+	for (i = 0; nfs_errtbl[i].stat != -1; i++) {
+		if (nfs_errtbl[i].stat == status)
+			return strerror(nfs_errtbl[i].errnum);
+	}
+	sprintf(buf, "unknown nfs status return value: %d", status);
+	return buf;
+}
+
+static bool_t xdr_fhandle(XDR *xdrs, fhandle objp)
+{
+	if (!xdr_opaque(xdrs, objp, FHSIZE))
+		 return FALSE;
+	return TRUE;
+}
+
+static bool_t xdr_fhstatus(XDR *xdrs, fhstatus *objp)
+{
+	if (!xdr_u_int(xdrs, &objp->fhs_status))
+		 return FALSE;
+	switch (objp->fhs_status) {
+	case 0:
+		if (!xdr_fhandle(xdrs, objp->fhstatus_u.fhs_fhandle))
+			 return FALSE;
+		break;
+	default:
+		break;
+	}
+	return TRUE;
+}
+
+static bool_t xdr_dirpath(XDR *xdrs, dirpath *objp)
+{
+	if (!xdr_string(xdrs, objp, MNTPATHLEN))
+		 return FALSE;
+	return TRUE;
+}
+
+static bool_t xdr_fhandle3(XDR *xdrs, fhandle3 *objp)
+{
+	if (!xdr_bytes(xdrs, (char **)&objp->fhandle3_val, (unsigned int *) &objp->fhandle3_len, FHSIZE3))
+		 return FALSE;
+	return TRUE;
+}
+
+static bool_t xdr_mountres3_ok(XDR *xdrs, mountres3_ok *objp)
+{
+	if (!xdr_fhandle3(xdrs, &objp->fhandle))
+		return FALSE;
+	if (!xdr_array(xdrs, &(objp->auth_flavours.auth_flavours_val), &(objp->auth_flavours.auth_flavours_len), ~0,
+				sizeof (int), (xdrproc_t) xdr_int))
+		return FALSE;
+	return TRUE;
+}
+
+static bool_t xdr_mountstat3(XDR *xdrs, mountstat3 *objp)
+{
+	if (!xdr_enum(xdrs, (enum_t *) objp))
+		 return FALSE;
+	return TRUE;
+}
+
+static bool_t xdr_mountres3(XDR *xdrs, mountres3 *objp)
+{
+	if (!xdr_mountstat3(xdrs, &objp->fhs_status))
+		return FALSE;
+	switch (objp->fhs_status) {
+	case MNT_OK:
+		if (!xdr_mountres3_ok(xdrs, &objp->mountres3_u.mountinfo))
+			 return FALSE;
+		break;
+	default:
+		break;
+	}
+	return TRUE;
+}
+
 
 #define MAX_NFSPROT ((nfs_mount_version >= 4) ? 3 : 2)
 
@@ -187,10 +384,10 @@ find_kernel_nfs_mount_version(void)
 
 static struct pmap *
 get_mountport(struct sockaddr_in *server_addr,
-      long unsigned prog,
-      long unsigned version,
-      long unsigned proto,
-      long unsigned port)
+	long unsigned prog,
+	long unsigned version,
+	long unsigned proto,
+	long unsigned port)
 {
 	struct pmaplist *pmap;
 	static struct pmap p = {0, 0, 0, 0};
@@ -422,16 +619,16 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				else if (!strncmp(opteq+1, "udp", 3))
 					tcp = 0;
 				else
-					printf("Warning: Unrecognized proto= option.\n");
+					bb_error_msg("warning: unrecognized proto= option");
 			} else if (!strcmp(opt, "namlen")) {
 				if (nfs_mount_version >= 2)
 					data.namlen = val;
 				else
-				printf("Warning: Option namlen is not supported.\n");
+					bb_error_msg("warning: option namlen is not supported\n");
 			} else if (!strcmp(opt, "addr"))
 				/* ignore */;
 			else {
-				printf("unknown nfs mount parameter: %s=%d\n", opt, val);
+				bb_error_msg("unknown nfs mount parameter: %s=%d", opt, val);
 				goto fail;
 			}
 		}
@@ -465,9 +662,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				if (nfs_mount_version >= 3)
 					nolock = !val;
 				else
-					printf("Warning: option nolock is not supported.\n");
+					bb_error_msg("warning: option nolock is not supported");
 			} else {
-				printf("unknown nfs mount option: %s%s\n", val ? "" : "no", opt);
+				bb_error_msg("unknown nfs mount option: %s%s", val ? "" : "no", opt);
 				goto fail;
 			}
 		}
@@ -626,20 +823,20 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				/* try to mount hostname:pathname */
 				mclient->cl_auth = authunix_create_default();
 
-			/* make pointers in xdr_mountres3 NULL so
-			 * that xdr_array allocates memory for us
-			 */
-			memset(&status, 0, sizeof(status));
+				/* make pointers in xdr_mountres3 NULL so
+				 * that xdr_array allocates memory for us
+				 */
+				memset(&status, 0, sizeof(status));
 
-			if (pm_mnt->pm_vers == 3)
-				clnt_stat = clnt_call(mclient, MOUNTPROC3_MNT,
+				if (pm_mnt->pm_vers == 3)
+					clnt_stat = clnt_call(mclient, MOUNTPROC3_MNT,
 						      (xdrproc_t) xdr_dirpath,
 						      (caddr_t) &pathname,
 						      (xdrproc_t) xdr_mountres3,
 						      (caddr_t) &status,
 						      total_timeout);
-			else
-				clnt_stat = clnt_call(mclient, MOUNTPROC_MNT,
+				else
+					clnt_stat = clnt_call(mclient, MOUNTPROC_MNT,
 						      (xdrproc_t) xdr_dirpath,
 						      (caddr_t) &pathname,
 						      (xdrproc_t) xdr_fhstatus,
@@ -715,7 +912,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	if (tcp) {
 		if (nfs_mount_version < 3) {
-			printf("NFS over TCP is not supported.\n");
+			bb_error_msg("NFS over TCP is not supported");
 			goto fail;
 		}
 		fsock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -744,11 +941,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	printf("using port %d for nfs daemon\n", port);
 #endif
 	server_addr.sin_port = htons(port);
-	 /*
-	  * connect() the socket for kernels 1.3.10 and below only,
-	  * to avoid problems with multihomed hosts.
-	  * --Swen
-	  */
+	/*
+	 * connect() the socket for kernels 1.3.10 and below only,
+	 * to avoid problems with multihomed hosts.
+	 * --Swen
+	 */
 	if (get_linux_version_code() <= KERNEL_VERSION(2,3,10)
 	    && connect(fsock, (struct sockaddr *) &server_addr,
 				sizeof (server_addr)) < 0) {
@@ -785,111 +982,4 @@ fail:
 	if (fsock != -1)
 		close(fsock);
 	return retval;
-}
-
-/*
- * We need to translate between nfs status return values and
- * the local errno values which may not be the same.
- *
- * Andreas Schwab <schwab@LS5.informatik.uni-dortmund.de>: change errno:
- * "after #include <errno.h> the symbol errno is reserved for any use,
- *  it cannot even be used as a struct tag or field name".
- */
-
-#ifndef EDQUOT
-#define EDQUOT	ENOSPC
-#endif
-
-// Convert each NFSERR_BLAH into EBLAH
-
-static const struct {
-	int stat;
-	int errnum;
-} nfs_errtbl[] = {
-	{0,0}, {1,EPERM}, {2,ENOENT}, {5,EIO}, {6,ENXIO}, {13,EACCES}, {17,EEXIST},
-	{19,ENODEV}, {20,ENOTDIR}, {21,EISDIR}, {22,EINVAL}, {27,EFBIG},
-	{28,ENOSPC}, {30,EROFS}, {63,ENAMETOOLONG}, {66,ENOTEMPTY}, {69,EDQUOT},
-	{70,ESTALE}, {71,EREMOTE}, {-1,EIO}
-};
-
-
-static char *nfs_strerror(int status)
-{
-	int i;
-	static char buf[256];
-
-	for (i = 0; nfs_errtbl[i].stat != -1; i++) {
-		if (nfs_errtbl[i].stat == status)
-			return strerror(nfs_errtbl[i].errnum);
-	}
-	sprintf(buf, "unknown nfs status return value: %d", status);
-	return buf;
-}
-
-static bool_t xdr_fhandle(XDR *xdrs, fhandle objp)
-{
-	if (!xdr_opaque(xdrs, objp, FHSIZE))
-		 return FALSE;
-	return TRUE;
-}
-
-bool_t xdr_fhstatus(XDR *xdrs, fhstatus *objp)
-{
-	if (!xdr_u_int(xdrs, &objp->fhs_status))
-		 return FALSE;
-	switch (objp->fhs_status) {
-	case 0:
-		 if (!xdr_fhandle(xdrs, objp->fhstatus_u.fhs_fhandle))
-			 return FALSE;
-		break;
-	default:
-		break;
-	}
-	return TRUE;
-}
-
-bool_t xdr_dirpath(XDR *xdrs, dirpath *objp)
-{
-	if (!xdr_string(xdrs, objp, MNTPATHLEN))
-		 return FALSE;
-	return TRUE;
-}
-
-bool_t xdr_fhandle3(XDR *xdrs, fhandle3 *objp)
-{
-	if (!xdr_bytes(xdrs, (char **)&objp->fhandle3_val, (unsigned int *) &objp->fhandle3_len, FHSIZE3))
-		 return FALSE;
-	return TRUE;
-}
-
-bool_t xdr_mountres3_ok(XDR *xdrs, mountres3_ok *objp)
-{
-	if (!xdr_fhandle3(xdrs, &objp->fhandle))
-		return FALSE;
-	if (!xdr_array(xdrs, &(objp->auth_flavours.auth_flavours_val), &(objp->auth_flavours.auth_flavours_len), ~0,
-				sizeof (int), (xdrproc_t) xdr_int))
-		return FALSE;
-	return TRUE;
-}
-
-bool_t xdr_mountstat3(XDR *xdrs, mountstat3 *objp)
-{
-	if (!xdr_enum(xdrs, (enum_t *) objp))
-		 return FALSE;
-	return TRUE;
-}
-
-bool_t xdr_mountres3(XDR *xdrs, mountres3 *objp)
-{
-	if (!xdr_mountstat3(xdrs, &objp->fhs_status))
-		return FALSE;
-	switch (objp->fhs_status) {
-	case MNT_OK:
-		if (!xdr_mountres3_ok(xdrs, &objp->mountres3_u.mountinfo))
-			 return FALSE;
-		break;
-	default:
-		break;
-	}
-	return TRUE;
 }

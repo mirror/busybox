@@ -92,9 +92,9 @@ struct {
 static void append_mount_options(char **oldopts, char *newopts)
 {
 	if(*oldopts && **oldopts) {
-		char *temp=xasprintf("%s,%s",*oldopts,newopts);
+		char *temp = xasprintf("%s,%s",*oldopts,newopts);
 		free(*oldopts);
-		*oldopts=temp;
+		*oldopts = temp;
 	} else {
 		if (ENABLE_FEATURE_CLEAN_UP) free(*oldopts);
 		*oldopts = xstrdup(newopts);
@@ -346,13 +346,14 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 				default:
 					bb_error_msg( errno == EPERM || errno == EACCES
 						? bb_msg_perm_denied_are_you_root
-					   	: "Couldn't setup loop device");
+						: "cannot setup loop device");
 					return errno;
 			}
 
 		// Autodetect bind mounts
 
-		} else if (S_ISDIR(st.st_mode) && !mp->mnt_type) vfsflags |= MS_BIND;
+		} else if (S_ISDIR(st.st_mode) && !mp->mnt_type)
+			vfsflags |= MS_BIND;
 	}
 
 	/* If we know the fstype (or don't need to), jump straight
@@ -399,7 +400,7 @@ report_error:
 
 	if (rc && errno == EBUSY && ignore_busy) rc = 0;
 	if (rc < 0)
-		bb_perror_msg("Mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);
+		bb_perror_msg("mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);
 
 	return rc;
 }
@@ -466,7 +467,7 @@ int mount_main(int argc, char **argv)
 		if (!all) {
 			FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 
-			if(!mountTable) bb_error_msg_and_die("No %s",bb_path_mtab_file);
+			if(!mountTable) bb_error_msg_and_die("no %s",bb_path_mtab_file);
 
 			while (getmntent_r(mountTable,mtpair,bb_common_bufsiz1,
 								sizeof(bb_common_bufsiz1)))
@@ -514,7 +515,7 @@ int mount_main(int argc, char **argv)
 	else fstabname="/etc/fstab";
 
 	if (!(fstab=setmntent(fstabname,"r")))
-		bb_perror_msg_and_die("Cannot read %s",fstabname);
+		bb_perror_msg_and_die("cannot read %s",fstabname);
 
 	// Loop through entries until we find what we're looking for.
 
@@ -535,7 +536,7 @@ int mount_main(int argc, char **argv)
 				// If we didn't find anything, complain.
 
 				if (!mtnext->mnt_fsname)
-					bb_error_msg_and_die("Can't find %s in %s",
+					bb_error_msg_and_die("can't find %s in %s",
 						argv[optind], fstabname);
 
 				// Mount the last thing we found.
