@@ -23,21 +23,10 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <fcntl.h>
-#include <getopt.h>
-#include <search.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fnmatch.h>
-#include <string.h>
-#include <errno.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <sys/socket.h>
-#include <sys/sysmacros.h>     /* major() and minor() */
-#include "unarchive.h"
 #include "busybox.h"
+#include "unarchive.h"
+#include <fnmatch.h>
+#include <getopt.h>
 
 #ifdef CONFIG_FEATURE_TAR_CREATE
 
@@ -192,26 +181,6 @@ static int putOctal(char *cp, int len, long value)
 	return TRUE;
 }
 
-/* Pad file to TAR_BLOCK_SIZE with zeros */
-static void block_write_zeroes(int fd, size_t size)
-{
-	char zerobuf[TAR_BLOCK_SIZE];
-	memset(zerobuf, 0, size);
-	/* No point in trying to continue on error */
-	if (full_write(fd, zerobuf, size) < 0)
-		bb_perror_msg_and_die("write");
-}
-
-static size_t pad_block_write(int fd, size_t size)
-{
-	size_t rem = (TAR_BLOCK_SIZE - size) & (TAR_BLOCK_SIZE-1);
-	if (rem) {
-		block_write_zeroes(fd, rem);
-		size += rem;
-	}
-	return size;
-}
-
 /* Write out a tar header for the specified file/directory/whatever */
 static int writeTarHeader(struct TarBallInfo *tbInfo,
 		const char *header_name, const char *fileName, struct stat *statbuf)
@@ -221,7 +190,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	const unsigned char *cp = (const unsigned char *) &header;
 	ssize_t size = sizeof(struct TarHeader);
 
-	memset(&header, 0, size);
+	bzero(&header, size);
 
 	safe_strncpy(header.name, header_name, sizeof(header.name));
 
@@ -288,14 +257,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	putOctal(header.chksum, 7, chksum);
 
 	/* Now write the header out to disk */
-	size = full_write(tbInfo->tarFd, (char *) &header,
-					sizeof(struct TarHeader));
-	if (size < 0) {
-		bb_error_msg(bb_msg_io_error, fileName);
-		return FALSE;
-	}
-	/* Pad the header up to the tar block size */
-	size = pad_block_write(tbInfo->tarFd, size);
+	xwrite(tbInfo->tarFd, &header, sizeof(struct TarHeader));
 
 	/* Now do the verbose thing (or not) */
 
@@ -421,7 +383,9 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		close(inputFileFd);
 
 		/* Pad the file up to the tar block size */
-		readSize = pad_block_write(tbInfo->tarFd, readSize);
+		readSize = (TAR_BLOCK_SIZE - readSize) & (TAR_BLOCK_SIZE-1);
+		bzero(bb_common_bufsiz1, readSize);
+		xwrite(tbInfo->tarFd, bb_common_bufsiz1, readSize);
 	}
 
 	return TRUE;
@@ -516,8 +480,8 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		include = include->link;
 	}
 	/* Write two empty blocks to the end of the archive */
-	block_write_zeroes(tbInfo.tarFd, TAR_BLOCK_SIZE);
-	block_write_zeroes(tbInfo.tarFd, TAR_BLOCK_SIZE);
+	bzero(bb_common_bufsiz1, 2*TAR_BLOCK_SIZE);
+	xwrite(tbInfo.tarFd, bb_common_bufsiz1, 2*TAR_BLOCK_SIZE);
 
 	/* To be pedantically correct, we would check if the tarball
 	 * is smaller than 20 tar blocks, and pad it if it was smaller,
