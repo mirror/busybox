@@ -136,13 +136,13 @@ static void do_shm(void)
 
 	maxid = shmctl(0, SHM_INFO, (struct shmid_ds *) (void *) &shm_info);
 	if (maxid < 0) {
-		bb_printf("kernel not configured for shared memory\n");
+		bb_printf("kernel not configured for %s\n", "shared memory");
 		return;
 	}
 
 	switch (format) {
 	case LIMITS:
-		bb_printf("------ Shared Memory Limits --------\n");
+		bb_printf("------ Shared Memory %s --------\n", "Limits");
 		if ((shmctl(0, IPC_INFO, (struct shmid_ds *) (void *) &shminfo)) < 0)
 			return;
 		/* glibc 2.1.3 and all earlier libc's have ints as fields
@@ -158,12 +158,12 @@ static void do_shm(void)
 		return;
 
 	case STATUS:
-		bb_printf("------ Shared Memory Status --------\n"
-				  "segments allocated %d\n"
+		bb_printf("------ Shared Memory %s --------\n", "Status");
+		bb_printf(	  "segments allocated %d\n"
 				  "pages allocated %ld\n"
 				  "pages resident  %ld\n"
 				  "pages swapped   %ld\n"
-				  "Swap performance: %ld attempts\t %ld successes\n",
+				  "Swap performance: %ld attempts\t%ld successes\n",
 				  shm_info.used_ids,
 				  shm_info.shm_tot,
 				  shm_info.shm_rss,
@@ -172,26 +172,26 @@ static void do_shm(void)
 		return;
 
 	case CREATOR:
-		bb_printf("------ Shared Memory Segment Creators/Owners --------\n"
-				  "%-10s %-10s %-10s %-10s %-10s %-10s\n",
+		bb_printf("------ Shared Memory %s --------\n", "Segment Creators/Owners");
+		bb_printf(	  "%-10s %-10s %-10s %-10s %-10s %-10s\n",
 				  "shmid", "perms", "cuid", "cgid", "uid", "gid");
 		break;
 
 	case TIME:
-		bb_printf("------ Shared Memory Attach/Detach/Change Times --------\n"
-				  "%-10s %-10s %-20s %-20s %-20s\n",
+		bb_printf("------ Shared Memory %s --------\n", "Attach/Detach/Change Times");
+		bb_printf(	  "%-10s %-10s %-20s %-20s %-20s\n",
 				  "shmid", "owner", "attached", "detached", "changed");
 		break;
 
 	case PID:
-		bb_printf("------ Shared Memory Creator/Last-op --------\n"
-				  "%-10s %-10s %-10s %-10s\n",
+		bb_printf("------ Shared Memory %s --------\n", "Creator/Last-op");
+		bb_printf(	  "%-10s %-10s %-10s %-10s\n",
 				  "shmid", "owner", "cpid", "lpid");
 		break;
 
 	default:
-		bb_printf("------ Shared Memory Segments --------\n"
-				  "%-10s %-10s %-10s %-10s %-10s %-10s %-12s\n",
+		bb_printf("------ Shared Memory %s --------\n", "Segments");
+		bb_printf(	  "%-10s %-10s %-10s %-10s %-10s %-10s %-12s\n",
 				  "key", "shmid", "owner", "perms", "bytes", "nattch",
 				  "status");
 		break;
@@ -264,13 +264,13 @@ static void do_sem(void)
 	arg.array = (ushort *) (void *) &seminfo;
 	maxid = semctl(0, 0, SEM_INFO, arg);
 	if (maxid < 0) {
-		bb_printf("kernel not configured for semaphores\n");
+		bb_printf("kernel not configured for %s\n", "semaphores");
 		return;
 	}
 
 	switch (format) {
 	case LIMITS:
-		bb_printf("------ Semaphore Limits --------\n");
+		bb_printf("------ Semaphore %s --------\n", "Limits");
 		arg.array = (ushort *) (void *) &seminfo;	/* damn union */
 		if ((semctl(0, 0, IPC_INFO, arg)) < 0)
 			return;
@@ -285,21 +285,21 @@ static void do_sem(void)
 		return;
 
 	case STATUS:
-		bb_printf("------ Semaphore Status --------\n"
-				  "used arrays = %d\n"
+		bb_printf("------ Semaphore %s --------\n", "Status");
+		bb_printf(	  "used arrays = %d\n"
 				  "allocated semaphores = %d\n",
 				  seminfo.semusz, seminfo.semaem);
 		return;
 
 	case CREATOR:
-		bb_printf("------ Semaphore Arrays Creators/Owners --------\n"
-				  "%-10s %-10s %-10s %-10s %-10s %-10s\n",
+		bb_printf("------ Semaphore %s --------\n", "Arrays Creators/Owners");
+		bb_printf(	  "%-10s %-10s %-10s %-10s %-10s %-10s\n",
 				  "semid", "perms", "cuid", "cgid", "uid", "gid");
 		break;
 
 	case TIME:
-		bb_printf("------ Shared Memory Operation/Change Times --------\n"
-				  "%-8s %-10s %-26.24s %-26.24s\n",
+		bb_printf("------ Shared Memory %s --------\n", "Operation/Change Times");
+		bb_printf(	  "%-8s %-10s %-26.24s %-26.24s\n",
 				  "shmid", "owner", "last-op", "last-changed");
 		break;
 
@@ -307,8 +307,8 @@ static void do_sem(void)
 		break;
 
 	default:
-		bb_printf("------ Semaphore Arrays --------\n"
-				  "%-10s %-10s %-10s %-10s %-10s\n",
+		bb_printf("------ Semaphore %s --------\n", "Arrays");
+		bb_printf(	  "%-10s %-10s %-10s %-10s %-10s\n",
 				  "key", "semid", "owner", "perms", "nsems");
 		break;
 	}
@@ -368,7 +368,7 @@ static void do_msg(void)
 
 	maxid = msgctl(0, MSG_INFO, (struct msqid_ds *) (void *) &msginfo);
 	if (maxid < 0) {
-		bb_printf("kernel not configured for message queues\n");
+		bb_printf("kernel not configured for %s\n", "message queues");
 		return;
 	}
 
@@ -376,42 +376,42 @@ static void do_msg(void)
 	case LIMITS:
 		if ((msgctl(0, IPC_INFO, (struct msqid_ds *) (void *) &msginfo)) < 0)
 			return;
-		bb_printf("------ Messages: Limits --------\n"
-				  "max queues system wide = %d\n"
+		bb_printf("------ Message%s --------\n", "s: Limits");
+		bb_printf(	  "max queues system wide = %d\n"
 				  "max size of message (bytes) = %d\n"
 				  "default max size of queue (bytes) = %d\n",
 				  msginfo.msgmni, msginfo.msgmax, msginfo.msgmnb);
 		return;
 
 	case STATUS:
-		bb_printf("------ Messages: Status --------\n"
-				  "allocated queues = %d\n"
+		bb_printf("------ Message%s --------\n", "s: Status");
+		bb_printf(	  "allocated queues = %d\n"
 				  "used headers = %d\n"
 				  "used space = %d bytes\n",
 				  msginfo.msgpool, msginfo.msgmap, msginfo.msgtql);
 		return;
 
 	case CREATOR:
-		bb_printf("------ Message Queues: Creators/Owners --------\n"
-				  "%-10s %-10s %-10s %-10s %-10s %-10s\n",
+		bb_printf("------ Message%s --------\n", " Queues: Creators/Owners");
+		bb_printf(	  "%-10s %-10s %-10s %-10s %-10s %-10s\n",
 				  "msqid", "perms", "cuid", "cgid", "uid", "gid");
 		break;
 
 	case TIME:
-		bb_printf("------ Message Queues Send/Recv/Change Times --------\n"
-				  "%-8s %-10s %-20s %-20s %-20s\n",
+		bb_printf("------ Message%s --------\n", " Queues Send/Recv/Change Times");
+		bb_printf(	  "%-8s %-10s %-20s %-20s %-20s\n",
 				  "msqid", "owner", "send", "recv", "change");
 		break;
 
 	case PID:
-		bb_printf("------ Message Queues PIDs --------\n"
-				  "%-10s %-10s %-10s %-10s\n",
+		bb_printf("------ Message%s --------\n", " Queues PIDs");
+		bb_printf(	  "%-10s %-10s %-10s %-10s\n",
 				  "msqid", "owner", "lspid", "lrpid");
 		break;
 
 	default:
-		bb_printf("------ Message Queues --------\n"
-				  "%-10s %-10s %-10s %-10s %-12s %-12s\n",
+		bb_printf("------ Message%s --------\n", " Queues");
+		bb_printf(	  "%-10s %-10s %-10s %-10s %-12s %-12s\n",
 				  "key", "msqid", "owner", "perms", "used-bytes", "messages");
 		break;
 	}
