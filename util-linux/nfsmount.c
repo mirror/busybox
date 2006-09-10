@@ -192,45 +192,45 @@ get_mountport(struct sockaddr_in *server_addr,
       long unsigned proto,
       long unsigned port)
 {
-struct pmaplist *pmap;
-static struct pmap p = {0, 0, 0, 0};
+	struct pmaplist *pmap;
+	static struct pmap p = {0, 0, 0, 0};
 
-server_addr->sin_port = PMAPPORT;
-pmap = pmap_getmaps(server_addr);
+	server_addr->sin_port = PMAPPORT;
+	pmap = pmap_getmaps(server_addr);
 
-if (version > MAX_NFSPROT)
-	version = MAX_NFSPROT;
-if (!prog)
-	prog = MOUNTPROG;
-p.pm_prog = prog;
-p.pm_vers = version;
-p.pm_prot = proto;
-p.pm_port = port;
-
-while (pmap) {
-	if (pmap->pml_map.pm_prog != prog)
-		goto next;
-	if (!version && p.pm_vers > pmap->pml_map.pm_vers)
-		goto next;
-	if (version > 2 && pmap->pml_map.pm_vers != version)
-		goto next;
-	if (version && version <= 2 && pmap->pml_map.pm_vers > 2)
-		goto next;
-	if (pmap->pml_map.pm_vers > MAX_NFSPROT ||
-	    (proto && p.pm_prot && pmap->pml_map.pm_prot != proto) ||
-	    (port && pmap->pml_map.pm_port != port))
-		goto next;
-	memcpy(&p, &pmap->pml_map, sizeof(p));
+	if (version > MAX_NFSPROT)
+		version = MAX_NFSPROT;
+	if (!prog)
+		prog = MOUNTPROG;
+	p.pm_prog = prog;
+	p.pm_vers = version;
+	p.pm_prot = proto;
+	p.pm_port = port;
+	
+	while (pmap) {
+		if (pmap->pml_map.pm_prog != prog)
+			goto next;
+		if (!version && p.pm_vers > pmap->pml_map.pm_vers)
+			goto next;
+		if (version > 2 && pmap->pml_map.pm_vers != version)
+			goto next;
+		if (version && version <= 2 && pmap->pml_map.pm_vers > 2)
+			goto next;
+		if (pmap->pml_map.pm_vers > MAX_NFSPROT ||
+		    (proto && p.pm_prot && pmap->pml_map.pm_prot != proto) ||
+		    (port && pmap->pml_map.pm_port != port))
+			goto next;
+		memcpy(&p, &pmap->pml_map, sizeof(p));
 next:
-	pmap = pmap->pml_next;
-}
-if (!p.pm_vers)
-	p.pm_vers = MOUNTVERS;
-if (!p.pm_port)
-	p.pm_port = MOUNTPORT;
-if (!p.pm_prot)
-	p.pm_prot = IPPROTO_TCP;
-return &p;
+		pmap = pmap->pml_next;
+	}
+	if (!p.pm_vers)
+		p.pm_vers = MOUNTVERS;
+	if (!p.pm_port)
+		p.pm_port = MOUNTPORT;
+	if (!p.pm_prot)
+		p.pm_prot = IPPROTO_TCP;
+	return &p;
 }
 
 int nfsmount(const char *spec, const char *node, int *flags,
@@ -242,7 +242,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	char *hostname;
 	char *pathname;
 	char *old_opts;
-	char *mounthost=NULL;
+	char *mounthost = NULL;
 	char new_opts[1024];
 	struct timeval total_timeout;
 	enum clnt_stat clnt_stat;
@@ -321,11 +321,11 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				hp->h_length = sizeof(struct in_addr);
 			}
 			memcpy(&server_addr.sin_addr,
-			       hp->h_addr, hp->h_length);
+					hp->h_addr, hp->h_length);
 		}
 	}
 
-	memcpy (&mount_server_addr, &server_addr, sizeof (mount_server_addr));
+	memcpy(&mount_server_addr, &server_addr, sizeof (mount_server_addr));
 
 	/* add IP address to mtab options for use when unmounting */
 
@@ -403,9 +403,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			else if (!strcmp(opt, "port"))
 				port = val;
 			else if (!strcmp(opt, "mountport"))
-			        mountport = val;
+				mountport = val;
 			else if (!strcmp(opt, "mounthost"))
-			        mounthost=xstrndup(opteq+1,
+				mounthost = xstrndup(opteq+1,
 						  strcspn(opteq+1," \t\n\r,"));
 			else if (!strcmp(opt, "mountprog"))
 				mountprog = val;
@@ -536,23 +536,23 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	/* create mount daemon client */
 	/* See if the nfs host = mount host. */
 	if (mounthost) {
-	  if (mounthost[0] >= '0' && mounthost[0] <= '9') {
-	    mount_server_addr.sin_family = AF_INET;
-	    mount_server_addr.sin_addr.s_addr = inet_addr(hostname);
-	  } else {
-		  if ((hp = gethostbyname(mounthost)) == NULL) {
-			  bb_herror_msg("%s", mounthost);
-			  goto fail;
-		  } else {
-			  if (hp->h_length > sizeof(struct in_addr)) {
-				  bb_error_msg("got bad hp->h_length?");
-				  hp->h_length = sizeof(struct in_addr);
-			  }
-			  mount_server_addr.sin_family = AF_INET;
-			  memcpy(&mount_server_addr.sin_addr,
-				 hp->h_addr, hp->h_length);
-		  }
-	  }
+		if (mounthost[0] >= '0' && mounthost[0] <= '9') {
+			mount_server_addr.sin_family = AF_INET;
+			mount_server_addr.sin_addr.s_addr = inet_addr(hostname);
+		} else {
+			if ((hp = gethostbyname(mounthost)) == NULL) {
+				bb_herror_msg("%s", mounthost);
+				goto fail;
+			} else {
+				if (hp->h_length > sizeof(struct in_addr)) {
+					bb_error_msg("got bad hp->h_length?");
+					hp->h_length = sizeof(struct in_addr);
+				}
+				mount_server_addr.sin_family = AF_INET;
+				memcpy(&mount_server_addr.sin_addr,
+						hp->h_addr, hp->h_length);
+			}
+		}
 	}
 
 	/*
@@ -593,10 +593,10 @@ int nfsmount(const char *spec, const char *node, int *flags,
 				sleep(30);
 
 			pm_mnt = get_mountport(&mount_server_addr,
-				       mountprog,
-				       mountvers,
-				       proto,
-				       mountport);
+					mountprog,
+					mountvers,
+					proto,
+					mountport);
 
 			/* contact the mount daemon via TCP */
 			mount_server_addr.sin_port = htons(pm_mnt->pm_port);
@@ -609,18 +609,18 @@ int nfsmount(const char *spec, const char *node, int *flags,
 						 pm_mnt->pm_vers,
 						 retry_timeout,
 						 &msock);
-		  if (mclient)
-			  break;
-		  mount_server_addr.sin_port = htons(pm_mnt->pm_port);
-		  msock = RPC_ANYSOCK;
-		case IPPROTO_TCP:
-			mclient = clnttcp_create(&mount_server_addr,
+				if (mclient)
+					break;
+				mount_server_addr.sin_port = htons(pm_mnt->pm_port);
+				msock = RPC_ANYSOCK;
+			case IPPROTO_TCP:
+				mclient = clnttcp_create(&mount_server_addr,
 						 pm_mnt->pm_prog,
 						 pm_mnt->pm_vers,
 						 &msock, 0, 0);
-			break;
-		default:
-			mclient = 0;
+				break;
+			default:
+				mclient = 0;
 			}
 			if (mclient) {
 				/* try to mount hostname:pathname */
@@ -637,7 +637,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 						      (caddr_t) &pathname,
 						      (xdrproc_t) xdr_mountres3,
 						      (caddr_t) &status,
-					total_timeout);
+						      total_timeout);
 			else
 				clnt_stat = clnt_call(mclient, MOUNTPROC_MNT,
 						      (xdrproc_t) xdr_dirpath,
@@ -665,7 +665,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			prevt = t;
 		}
 		if (!bg)
-		        goto fail;
+			goto fail;
 		if (!running_bg) {
 			prev_bg_host = xstrdup(hostname);
 			if (retry > 0)
@@ -686,12 +686,12 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			goto fail;
 		}
 		memcpy(data.root.data,
-		       (char *) status.nfsv2.fhstatus_u.fhs_fhandle,
-		       NFS_FHSIZE);
+				(char *) status.nfsv2.fhstatus_u.fhs_fhandle,
+				NFS_FHSIZE);
 		data.root.size = NFS_FHSIZE;
 		memcpy(data.old_root.data,
-		       (char *) status.nfsv2.fhstatus_u.fhs_fhandle,
-		       NFS_FHSIZE);
+				(char *) status.nfsv2.fhstatus_u.fhs_fhandle,
+				NFS_FHSIZE);
 	} else {
 		fhandle3 *my_fhandle;
 		if (status.nfsv3.fhs_status != 0) {
@@ -705,8 +705,8 @@ int nfsmount(const char *spec, const char *node, int *flags,
 		memset(&data.root, 0, sizeof(data.root));
 		data.root.size = my_fhandle->fhandle3_len;
 		memcpy(data.root.data,
-		       (char *) my_fhandle->fhandle3_val,
-		       my_fhandle->fhandle3_len);
+				(char *) my_fhandle->fhandle3_val,
+				my_fhandle->fhandle3_len);
 
 		data.flags |= NFS_MOUNT_VER3;
 	}
@@ -751,7 +751,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	  */
 	if (get_linux_version_code() <= KERNEL_VERSION(2,3,10)
 	    && connect(fsock, (struct sockaddr *) &server_addr,
-		       sizeof (server_addr)) < 0) {
+				sizeof (server_addr)) < 0) {
 		perror("nfs connect");
 		goto fail;
 	}
@@ -826,20 +826,20 @@ static char *nfs_strerror(int status)
 	return buf;
 }
 
-static bool_t xdr_fhandle (XDR *xdrs, fhandle objp)
+static bool_t xdr_fhandle(XDR *xdrs, fhandle objp)
 {
-	 if (!xdr_opaque (xdrs, objp, FHSIZE))
+	if (!xdr_opaque(xdrs, objp, FHSIZE))
 		 return FALSE;
 	return TRUE;
 }
 
-bool_t xdr_fhstatus (XDR *xdrs, fhstatus *objp)
+bool_t xdr_fhstatus(XDR *xdrs, fhstatus *objp)
 {
-	 if (!xdr_u_int (xdrs, &objp->fhs_status))
+	if (!xdr_u_int(xdrs, &objp->fhs_status))
 		 return FALSE;
 	switch (objp->fhs_status) {
 	case 0:
-		 if (!xdr_fhandle (xdrs, objp->fhstatus_u.fhs_fhandle))
+		 if (!xdr_fhandle(xdrs, objp->fhstatus_u.fhs_fhandle))
 			 return FALSE;
 		break;
 	default:
@@ -848,44 +848,44 @@ bool_t xdr_fhstatus (XDR *xdrs, fhstatus *objp)
 	return TRUE;
 }
 
-bool_t xdr_dirpath (XDR *xdrs, dirpath *objp)
+bool_t xdr_dirpath(XDR *xdrs, dirpath *objp)
 {
-	 if (!xdr_string (xdrs, objp, MNTPATHLEN))
+	if (!xdr_string(xdrs, objp, MNTPATHLEN))
 		 return FALSE;
 	return TRUE;
 }
 
-bool_t xdr_fhandle3 (XDR *xdrs, fhandle3 *objp)
+bool_t xdr_fhandle3(XDR *xdrs, fhandle3 *objp)
 {
-	 if (!xdr_bytes (xdrs, (char **)&objp->fhandle3_val, (unsigned int *) &objp->fhandle3_len, FHSIZE3))
+	if (!xdr_bytes(xdrs, (char **)&objp->fhandle3_val, (unsigned int *) &objp->fhandle3_len, FHSIZE3))
 		 return FALSE;
 	return TRUE;
 }
 
-bool_t xdr_mountres3_ok (XDR *xdrs, mountres3_ok *objp)
+bool_t xdr_mountres3_ok(XDR *xdrs, mountres3_ok *objp)
 {
-	 if (!xdr_fhandle3 (xdrs, &objp->fhandle))
-		 return FALSE;
-	 if (!xdr_array (xdrs, &(objp->auth_flavours.auth_flavours_val), &(objp->auth_flavours.auth_flavours_len), ~0,
-		sizeof (int), (xdrproc_t) xdr_int))
+	if (!xdr_fhandle3(xdrs, &objp->fhandle))
+		return FALSE;
+	if (!xdr_array(xdrs, &(objp->auth_flavours.auth_flavours_val), &(objp->auth_flavours.auth_flavours_len), ~0,
+				sizeof (int), (xdrproc_t) xdr_int))
+		return FALSE;
+	return TRUE;
+}
+
+bool_t xdr_mountstat3(XDR *xdrs, mountstat3 *objp)
+{
+	if (!xdr_enum(xdrs, (enum_t *) objp))
 		 return FALSE;
 	return TRUE;
 }
 
-bool_t xdr_mountstat3 (XDR *xdrs, mountstat3 *objp)
+bool_t xdr_mountres3(XDR *xdrs, mountres3 *objp)
 {
-	 if (!xdr_enum (xdrs, (enum_t *) objp))
-		 return FALSE;
-	return TRUE;
-}
-
-bool_t xdr_mountres3 (XDR *xdrs, mountres3 *objp)
-{
-	 if (!xdr_mountstat3 (xdrs, &objp->fhs_status))
-		 return FALSE;
+	if (!xdr_mountstat3(xdrs, &objp->fhs_status))
+		return FALSE;
 	switch (objp->fhs_status) {
 	case MNT_OK:
-		 if (!xdr_mountres3_ok (xdrs, &objp->mountres3_u.mountinfo))
+		if (!xdr_mountres3_ok(xdrs, &objp->mountres3_u.mountinfo))
 			 return FALSE;
 		break;
 	default:
@@ -893,4 +893,3 @@ bool_t xdr_mountres3 (XDR *xdrs, mountres3 *objp)
 	}
 	return TRUE;
 }
-
