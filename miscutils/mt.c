@@ -101,7 +101,7 @@ int mt_main(int argc, char **argv)
 			break;
 	}
 
-	fd = xopen3(file, mode, 0);
+	fd = xopen(file, mode);
 
 	switch (code->value) {
 		case MTTELL:

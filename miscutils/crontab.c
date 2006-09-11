@@ -266,7 +266,7 @@ static int GetReplaceStream(const char *user, const char *file)
 	exit(0);
 
     bb_default_error_retval = 0;
-    fd = xopen3(file, O_RDONLY, 0);
+    fd = xopen(file, O_RDONLY);
     buf[0] = 0;
     write(filedes[1], buf, 1);
     while ((n = read(fd, buf, sizeof(buf))) > 0) {

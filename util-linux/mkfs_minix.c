@@ -292,7 +292,7 @@ static int get_size(const char *file)
 	int fd;
 	long size;
 
-	fd = xopen3(file, O_RDWR, 0);
+	fd = xopen(file, O_RDWR);
 	if (ioctl(fd, BLKGETSIZE, &size) >= 0) {
 		close(fd);
 		return (size * 512);
@@ -805,7 +805,7 @@ goodbye:
 	tmp += dirsize;
 	*(short *) tmp = 2;
 	strcpy(tmp + 2, ".badblocks");
-	DEV = xopen3(device_name, O_RDWR, 0);
+	DEV = xopen(device_name, O_RDWR);
 	if (fstat(DEV, &statbuf) < 0)
 		bb_error_msg_and_die("unable to stat %s", device_name);
 	if (!S_ISBLK(statbuf.st_mode))
