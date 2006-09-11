@@ -265,6 +265,12 @@
 #define bbconfig_full_usage \
 	"Print the config file which built busybox"
 
+#define bbsh_trivial_usage \
+	"[FILE]...\n" \
+	"or: bbsh -c command [args]..."
+#define bbsh_full_usage \
+	"The bbsh shell (command interpreter)"
+
 #define cp_trivial_usage \
 	"[OPTION]... SOURCE DEST"
 #define cp_full_usage \
@@ -2811,9 +2817,7 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 #define sulogin_full_usage \
 	"Single user login\n" \
 	"Options:\n" \
-	"\t-f\tDo not authenticate (user already authenticated)\n" \
-	"\t-h\tName of the remote host for this login\n" \
-	"\t-p\tPreserve environment"
+	"\t-t\tTimeout"
 
 #define sum_trivial_usage \
 	"[rs] [files...]"

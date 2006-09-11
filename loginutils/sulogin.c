@@ -55,8 +55,8 @@ int sulogin_main(int argc, char **argv)
 	if (argv[optind]) {
 		close(0);
 		close(1);
-		close(2);
 		dup(xopen(argv[optind], O_RDWR));
+		close(2);
 		dup(0);
 	}
 
