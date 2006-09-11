@@ -258,7 +258,7 @@ void circ_message(const char *msg);
 static void message(char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
 static void message(char *fmt, ...)
 {
-	int fd;
+	int fd = -1;
 	struct flock fl;
 	va_list arguments;
 

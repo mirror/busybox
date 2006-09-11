@@ -726,7 +726,7 @@ static void e2fsck_free_dir_info(e2fsck_t ctx)
 /*
  * Return the count of number of directories in the dir_info structure
  */
-static inline int e2fsck_get_num_dirinfo(e2fsck_t ctx)
+static int e2fsck_get_num_dirinfo(e2fsck_t ctx)
 {
 	return ctx->dir_info_count;
 }
@@ -1363,7 +1363,7 @@ e2fsck_handle_write_error(io_channel channel, unsigned long block, int count,
 	return error;
 }
 
-static inline const char *ehandler_operation(const char *op)
+static const char *ehandler_operation(const char *op)
 {
 	const char *ret = operation;
 
@@ -1491,7 +1491,7 @@ static void ll_rw_block(int rw, int nr, struct buffer_head *bhp[])
 	}
 }
 
-static inline void mark_buffer_dirty(struct buffer_head *bh)
+static void mark_buffer_dirty(struct buffer_head *bh)
 {
 	bh->b_dirty = 1;
 }
@@ -1508,7 +1508,7 @@ static void brelse(struct buffer_head *bh)
 	ext2fs_free_mem(&bh);
 }
 
-static inline int buffer_uptodate(struct buffer_head *bh)
+static int buffer_uptodate(struct buffer_head *bh)
 {
 	return bh->b_uptodate;
 }
@@ -11074,7 +11074,7 @@ struct jbd_revoke_table_s
 /* Utility functions to maintain the revoke table */
 
 /* Borrowed from buffer.c: this is a tried and tested block hash function */
-static inline int hash(journal_t *journal, unsigned long block)
+static int hash(journal_t *journal, unsigned long block)
 {
 	struct jbd_revoke_table_s *table = journal->j_revoke;
 	int hash_shift = table->hash_shift;

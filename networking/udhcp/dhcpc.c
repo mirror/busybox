@@ -144,7 +144,7 @@ int udhcpc_main(int argc, char *argv[])
 {
 	uint8_t *temp, *message;
 	unsigned long t1 = 0, t2 = 0, xid = 0;
-	unsigned long start = 0, lease;
+	unsigned long start = 0, lease = 0;
 	fd_set rfds;
 	int retval;
 	struct timeval tv;

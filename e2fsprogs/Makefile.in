@@ -12,7 +12,7 @@ E2FSPROGS_SRC:=$(top_srcdir)/e2fsprogs
 E2FSPROGS_CFLAGS := -include $(E2FSPROGS_SRC)/e2fsbb.h
 
 BLKID_SRC   := cache.c dev.c devname.c devno.c blkid_getsize.c \
-               probe.c read.c resolve.c save.c tag.c
+               probe.c read.c resolve.c save.c tag.c list.c
 BLKID_SRCS  := $(patsubst %,blkid/%, $(BLKID_SRC))
 BLKID_OBJS  := $(patsubst %.c,%.o, $(BLKID_SRCS))
 
