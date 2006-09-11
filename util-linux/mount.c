@@ -102,7 +102,7 @@ static void append_mount_options(char **oldopts, char *newopts)
 }
 
 /* Use the mount_options list to parse options into flags.
- * Return list of unrecognized options in *strflags if strflags!=NULL */
+ * Also return list of unrecognized options if unrecognized!=NULL */
 static int parse_mount_options(char *options, char **unrecognized)
 {
 	int flags = MS_SILENT;
@@ -188,7 +188,7 @@ void delete_block_backed_filesystems(void);
 #endif
 
 #if ENABLE_FEATURE_MTAB_SUPPORT
-static int useMtab;
+static int useMtab = 1;
 static int fakeIt;
 #else
 #define useMtab 0
@@ -196,8 +196,7 @@ static int fakeIt;
 #endif
 
 // Perform actual mount of specific filesystem at specific location.
-
-static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
+int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 {
 	int rc;
 
@@ -228,7 +227,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 		int i;
 
 		if(!mountTable)
-			bb_error_msg("No %s",bb_path_mtab_file);
+			bb_error_msg("no %s",bb_path_mtab_file);
 
 		// Add vfs string flags
 
@@ -244,7 +243,13 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 		// Write and close.
 
 		if(!mp->mnt_type || !*mp->mnt_type) mp->mnt_type="--bind";
-		addmntent(mountTable, mp);
+//		addmntent(mountTable, mp);
+if(0) bb_error_msg("buggy: addmntent(fsname='%s' dir='%s' type='%s' opts='%s')",
+mp->mnt_fsname,
+mp->mnt_dir,
+mp->mnt_type,
+mp->mnt_opts
+);
 		endmntent(mountTable);
 		if (ENABLE_FEATURE_CLEAN_UP)
 			if(strcmp(mp->mnt_type,"--bind")) mp->mnt_type = 0;
@@ -319,13 +324,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		(!mp->mnt_type || !strcmp(mp->mnt_type,"nfs")) &&
 		strchr(mp->mnt_fsname, ':') != NULL)
 	{
-		if (nfsmount(mp->mnt_fsname, mp->mnt_dir, &vfsflags, &filteropts, 1)) {
-			bb_perror_msg("nfsmount failed");
-		} else {
-			// Strangely enough, nfsmount() doesn't actually mount() anything.
-			mp->mnt_type = "nfs";
-			rc = mount_it_now(mp, vfsflags, filteropts);
-		}
+		rc = nfsmount(mp, vfsflags, filteropts);
 		goto report_error;
 	}
 
@@ -400,7 +399,8 @@ report_error:
 
 	if (rc && errno == EBUSY && ignore_busy) rc = 0;
 	if (rc < 0)
-		bb_perror_msg("mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);
+		/* perror here sometimes says "mounting ... on ... failed: Success" */
+		bb_error_msg("mounting %s on %s failed", mp->mnt_fsname, mp->mnt_dir);
 
 	return rc;
 }

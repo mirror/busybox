@@ -22,6 +22,8 @@
  */
 
 #include "busybox.h"
+#include <syslog.h>
+#include <mntent.h>
 #include <sys/utsname.h>
 #undef TRUE
 #undef FALSE
@@ -332,14 +334,7 @@ static bool_t xdr_mountres3(XDR *xdrs, mountres3 *objp)
 	return TRUE;
 }
 
-
 #define MAX_NFSPROT ((nfs_mount_version >= 4) ? 3 : 2)
-
-enum {
-	EX_FAIL = 32,       /* mount failure */
-	EX_BG = 256        /* retry in background (internal only) */
-};
-
 
 /*
  * nfs_mount_version according to the sources seen at compile time.
@@ -426,50 +421,62 @@ next:
 	return &p;
 }
 
-int nfsmount(const char *spec, const char *node, int *flags,
-	     char **mount_opts, int running_bg)
+static int daemonize(void)
 {
-	/* prev_bg_host is a -o bg support:
-	 * "bg: if the first NFS mount attempt times out,
-	 * retry the mount in the background.
-	 * After a mount operation is backgrounded,
-	 * all subsequent mounts on the same NFS server
-	 * will be backgrounded immediately, without first
-	 * attempting the mount. A missing mount point is treated
-	 * as a timeout, to allow for nested NFS mounts."
-	 *
-	 * But current implementation is a dirty hack -
-	 * it works only if all mounts are to one host!
-	 * IOW: think what will happen if you have this sequence:
-	 * mount a.a.a.a:/dir /mnt/a -o bg
-	 * mount b.b.b.b:/dir /mnt/b -o bg
-	 * mount a.a.a.a:/dir /mnt/a -o bg
-	 * mount b.b.b.b:/dir /mnt/b -o bg
-	 */
+	int fd;
+	int pid = fork();
+	if (pid < 0) /* error */
+		return -errno;
+	if (pid > 0) /* parent */
+		return 0;
+	/* child */
+	fd = xopen(bb_dev_null, O_RDWR);
+	dup2(fd, 0);
+	dup2(fd, 1);
+	dup2(fd, 2);
+	if (fd > 2) close(fd);
+	setsid();
+	openlog(bb_applet_name, LOG_PID, LOG_DAEMON);
+	logmode = LOGMODE_SYSLOG;
+	return 1;
+}
 
-	static char *prev_bg_host;
-	char *hostdir;
+// TODO
+static inline int we_saw_this_host_before(const char *hostname)
+{
+	return 0;
+}
+
+/* RPC strerror analogs are terminally idiotic:
+ * *mandatory* prefix and \n at end.
+ * This hopefully helps. Usage:
+ * error_msg_rpc(clnt_*error*(" ")) */
+static void error_msg_rpc(const char *msg)
+{
+	size_t len;
+	while (msg[0] == ' ' || msg[0] == ':') msg++;
+	len = strlen(msg);
+	while (len && msg[len-1] == '\n') len--;
+	bb_error_msg("%.*s", len, msg);
+}
+
+int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
+{
 	CLIENT *mclient;
 	char *hostname;
 	char *pathname;
-	char *old_opts;
 	char *mounthost;
-	struct timeval total_timeout;
-	enum clnt_stat clnt_stat;
 	struct nfs_mount_data data;
-	char *opt, *opteq;
-	int val;
+	char *opt;
 	struct hostent *hp;
 	struct sockaddr_in server_addr;
 	struct sockaddr_in mount_server_addr;
-	struct pmap* pm_mnt;
 	int msock, fsock;
-	struct timeval retry_timeout;
 	union {
 		struct fhstatus nfsv2;
 		struct mountres3 nfsv3;
 	} status;
-	struct stat statbuf;
+	int daemonized;
 	char *s;
 	int port;
 	int mountport;
@@ -488,29 +495,27 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	int nfsprog;
 	int nfsvers;
 	int retval;
-	time_t t;
-	time_t prevt;
-	time_t timeout;
 
 	find_kernel_nfs_mount_version();
 
-	/* NB: old_opts and hostdir must be free()d prior to return! */
-
-	old_opts = NULL;
+	daemonized = 0;
 	mounthost = NULL;
-	retval = EX_FAIL;
+	retval = ETIMEDOUT;
 	msock = fsock = -1;
 	mclient = NULL;
 
-	hostdir = xstrdup(spec);
+	/* NB: hostname, mounthost, filteropts must be free()d prior to return */
+
+	filteropts = xstrdup(filteropts); /* going to trash it later... */
+
+	hostname = xstrdup(mp->mnt_fsname);
 	/* mount_main() guarantees that ':' is there */
-	s = strchr(hostdir, ':');
-	hostname = hostdir;
+	s = strchr(hostname, ':');
 	pathname = s + 1;
 	*s = '\0';
 	/* Ignore all but first hostname in replicated mounts
 	   until they can be fully supported. (mack@sgi.com) */
-	s = strchr(hostdir, ',');
+	s = strchr(hostname, ',');
 	if (s) {
 		*s = '\0';
 		bb_error_msg("warning: multiple hostnames not supported");
@@ -538,12 +543,15 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	/* add IP address to mtab options for use when unmounting */
 
-	s = inet_ntoa(server_addr.sin_addr);
-	old_opts = *mount_opts;
-	if (!old_opts)
-		old_opts = xstrdup("");
-	*mount_opts = xasprintf("%s%saddr=%s",
-				old_opts, *old_opts ? "," : "", s);
+	if (!mp->mnt_opts) { /* TODO: actually mp->mnt_opts is never NULL */
+		mp->mnt_opts = xasprintf("addr=%s", inet_ntoa(server_addr.sin_addr));
+	} else {
+		char *tmp = xasprintf("%s%saddr=%s", mp->mnt_opts,
+					mp->mnt_opts[0] ? "," : "",
+					inet_ntoa(server_addr.sin_addr));
+		free(mp->mnt_opts);
+		mp->mnt_opts = tmp;
+	}
 
 	/* Set default options.
 	 * rsize/wsize (and bsize, for ver >= 3) are left 0 in order to
@@ -576,10 +584,10 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	/* parse options */
 
-	for (opt = strtok(old_opts, ","); opt; opt = strtok(NULL, ",")) {
-		opteq = strchr(opt, '=');
+	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
+		char *opteq = strchr(opt, '=');
 		if (opteq) {
-			val = atoi(opteq + 1);
+			int val = atoi(opteq + 1);
 			*opteq = '\0';
 			if (!strcmp(opt, "rsize"))
 				data.rsize = val;
@@ -641,7 +649,7 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			}
 		}
 		else {
-			val = 1;
+			int val = 1;
 			if (!strncmp(opt, "no", 2)) {
 				val = 0;
 				opt += 2;
@@ -723,19 +731,20 @@ int nfsmount(const char *spec, const char *node, int *flags,
 
 	data.version = nfs_mount_version;
 
-	if (*flags & MS_REMOUNT)
-		goto copy_data_and_return;
+	if (vfsflags & MS_REMOUNT)
+		goto do_mount;
 
 	/*
 	 * If the previous mount operation on the same host was
 	 * backgrounded, and the "bg" for this mount is also set,
 	 * give up immediately, to avoid the initial timeout.
 	 */
-	if (bg && !running_bg &&
-	    prev_bg_host && strcmp(hostname, prev_bg_host) == 0) {
-		if (retry > 0)
-			retval = EX_BG;
-		goto ret;
+	if (bg && we_saw_this_host_before(hostname)) {
+		daemonized = daemonize(); /* parent or error */
+		if (daemonized <= 0) { /* parent or error */
+			retval = -daemonized;
+			goto ret;
+		}
 	}
 
 	/* create mount daemon client */
@@ -745,7 +754,8 @@ int nfsmount(const char *spec, const char *node, int *flags,
 			mount_server_addr.sin_family = AF_INET;
 			mount_server_addr.sin_addr.s_addr = inet_addr(hostname);
 		} else {
-			if ((hp = gethostbyname(mounthost)) == NULL) {
+			hp = gethostbyname(mounthost);
+			if (hp == NULL) {
 				bb_herror_msg("%s", mounthost);
 				goto fail;
 			} else {
@@ -761,11 +771,9 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	}
 
 	/*
-	 * The following loop implements the mount retries. On the first
-	 * call, "running_bg" is 0. When the mount times out, and the
-	 * "bg" option is set, the exit status EX_BG will be returned.
-	 * For a backgrounded mount, there will be a second call by the
-	 * child process with "running_bg" set to 1.
+	 * The following loop implements the mount retries. When the mount
+	 * times out, and the "bg" option is set, we background ourself
+	 * and continue trying.
 	 *
 	 * The case where the mount point is not present and the "bg"
 	 * option is set, is treated as a timeout. This is done to
@@ -773,115 +781,122 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	 *
 	 * The "retry" count specified by the user is the number of
 	 * minutes to retry before giving up.
-	 *
-	 * Only the first error message will be displayed.
 	 */
-	retry_timeout.tv_sec = 3;
-	retry_timeout.tv_usec = 0;
-	total_timeout.tv_sec = 20;
-	total_timeout.tv_usec = 0;
-	timeout = time(NULL) + 60 * retry;
-	prevt = 0;
-	t = 30;
-	val = 1;
-	for (;;) {
-		if (bg && stat(node, &statbuf) == -1) {
-			if (running_bg) {
-				sleep(val);	/* 1, 2, 4, 8, 16, 30, ... */
-				val *= 2;
-				if (val > 30)
-					val = 30;
-			}
-		} else {
-			/* be careful not to use too many CPU cycles */
-			if (t - prevt < 30)
-				sleep(30);
+	{
+		struct timeval total_timeout;
+		struct timeval retry_timeout;
+		struct pmap* pm_mnt;
+		time_t t;
+		time_t prevt;
+		time_t timeout;
 
-			pm_mnt = get_mountport(&mount_server_addr,
-					mountprog,
-					mountvers,
-					proto,
-					mountport);
+		retry_timeout.tv_sec = 3;
+		retry_timeout.tv_usec = 0;
+		total_timeout.tv_sec = 20;
+		total_timeout.tv_usec = 0;
+		timeout = time(NULL) + 60 * retry;
+		prevt = 0;
+		t = 30;
+retry:
+		/* be careful not to use too many CPU cycles */
+		if (t - prevt < 30)
+			sleep(30);
 
-			/* contact the mount daemon via TCP */
-			mount_server_addr.sin_port = htons(pm_mnt->pm_port);
-			msock = RPC_ANYSOCK;
+		pm_mnt = get_mountport(&mount_server_addr,
+				mountprog,
+				mountvers,
+				proto,
+				mountport);
+		nfsvers = (pm_mnt->pm_vers < 2) ? 2 : pm_mnt->pm_vers;
 
-			switch (pm_mnt->pm_prot) {
-			case IPPROTO_UDP:
-				mclient = clntudp_create(&mount_server_addr,
+		/* contact the mount daemon via TCP */
+		mount_server_addr.sin_port = htons(pm_mnt->pm_port);
+		msock = RPC_ANYSOCK;
+
+		switch (pm_mnt->pm_prot) {
+		case IPPROTO_UDP:
+			mclient = clntudp_create(&mount_server_addr,
 						 pm_mnt->pm_prog,
 						 pm_mnt->pm_vers,
 						 retry_timeout,
 						 &msock);
-				if (mclient)
-					break;
-				mount_server_addr.sin_port = htons(pm_mnt->pm_port);
-				msock = RPC_ANYSOCK;
-			case IPPROTO_TCP:
-				mclient = clnttcp_create(&mount_server_addr,
+			if (mclient)
+				break;
+			mount_server_addr.sin_port = htons(pm_mnt->pm_port);
+			msock = RPC_ANYSOCK;
+		case IPPROTO_TCP:
+			mclient = clnttcp_create(&mount_server_addr,
 						 pm_mnt->pm_prog,
 						 pm_mnt->pm_vers,
 						 &msock, 0, 0);
-				break;
-			default:
-				mclient = 0;
-			}
-			if (mclient) {
-				/* try to mount hostname:pathname */
-				mclient->cl_auth = authunix_create_default();
-
-				/* make pointers in xdr_mountres3 NULL so
-				 * that xdr_array allocates memory for us
-				 */
-				memset(&status, 0, sizeof(status));
-
-				if (pm_mnt->pm_vers == 3)
-					clnt_stat = clnt_call(mclient, MOUNTPROC3_MNT,
-						      (xdrproc_t) xdr_dirpath,
-						      (caddr_t) &pathname,
-						      (xdrproc_t) xdr_mountres3,
-						      (caddr_t) &status,
-						      total_timeout);
-				else
-					clnt_stat = clnt_call(mclient, MOUNTPROC_MNT,
-						      (xdrproc_t) xdr_dirpath,
-						      (caddr_t) &pathname,
-						      (xdrproc_t) xdr_fhstatus,
-						      (caddr_t) &status,
-						      total_timeout);
-
-				if (clnt_stat == RPC_SUCCESS)
-					break;		/* we're done */
-				if (errno != ECONNREFUSED) {
-					clnt_perror(mclient, "mount");
-					goto fail;	/* don't retry */
-				}
-				if (!running_bg && prevt == 0)
-					clnt_perror(mclient, "mount");
-				auth_destroy(mclient->cl_auth);
-				clnt_destroy(mclient);
-				mclient = 0;
-				close(msock);
-			} else {
-				if (!running_bg && prevt == 0)
-					clnt_pcreateerror("mount");
-			}
-			prevt = t;
+			break;
+		default:
+			mclient = 0;
 		}
+		if (!mclient) {
+			if (!daemonized && prevt == 0)
+				error_msg_rpc(clnt_spcreateerror(" "));
+		} else {
+			enum clnt_stat clnt_stat;
+			/* try to mount hostname:pathname */
+			mclient->cl_auth = authunix_create_default();
+
+			/* make pointers in xdr_mountres3 NULL so
+			 * that xdr_array allocates memory for us
+			 */
+			memset(&status, 0, sizeof(status));
+
+			if (pm_mnt->pm_vers == 3)
+				clnt_stat = clnt_call(mclient, MOUNTPROC3_MNT,
+					      (xdrproc_t) xdr_dirpath,
+					      (caddr_t) &pathname,
+					      (xdrproc_t) xdr_mountres3,
+					      (caddr_t) &status,
+					      total_timeout);
+			else
+				clnt_stat = clnt_call(mclient, MOUNTPROC_MNT,
+					      (xdrproc_t) xdr_dirpath,
+					      (caddr_t) &pathname,
+					      (xdrproc_t) xdr_fhstatus,
+					      (caddr_t) &status,
+					      total_timeout);
+
+			if (clnt_stat == RPC_SUCCESS)
+				goto prepare_kernel_data; /* we're done */
+			if (errno != ECONNREFUSED) {
+				error_msg_rpc(clnt_sperror(mclient, " "));
+				goto fail;	/* don't retry */
+			}
+			/* Connection refused */
+			if (!daemonized && prevt == 0) /* print just once */
+				error_msg_rpc(clnt_sperror(mclient, " "));
+			auth_destroy(mclient->cl_auth);
+			clnt_destroy(mclient);
+			mclient = 0;
+			close(msock);
+		}
+
+		/* Timeout. We are going to retry... maybe */
+
 		if (!bg)
 			goto fail;
-		if (!running_bg) {
-			prev_bg_host = xstrdup(hostname);
-			if (retry > 0)
-				retval = EX_BG;
-			goto fail;
+		if (!daemonized) {
+			daemonized = daemonize();
+			if (daemonized <= 0) { /* parent or error */
+				retval = -daemonized;
+				goto ret;
+			}
 		}
+		prevt = t;
 		t = time(NULL);
 		if (t >= timeout)
+			/* TODO error message */
 			goto fail;
+
+		goto retry;
 	}
-	nfsvers = (pm_mnt->pm_vers < 2) ? 2 : pm_mnt->pm_vers;
+
+prepare_kernel_data:
 
 	if (nfsvers == 2) {
 		if (status.nfsv2.fhs_status != 0) {
@@ -927,17 +942,17 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	} else
 		fsock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fsock < 0) {
-		perror("nfs socket");
+		bb_perror_msg("nfs socket");
 		goto fail;
 	}
 	if (bindresvport(fsock, 0) < 0) {
-		perror("nfs bindresvport");
+		bb_perror_msg("nfs bindresvport");
 		goto fail;
 	}
 	if (port == 0) {
 		server_addr.sin_port = PMAPPORT;
 		port = pmap_getport(&server_addr, nfsprog, nfsvers,
-			tcp ? IPPROTO_TCP : IPPROTO_UDP);
+					tcp ? IPPROTO_TCP : IPPROTO_UDP);
 		if (port == 0)
 			port = NFS_PORT;
 #ifdef NFS_MOUNT_DEBUG
@@ -961,16 +976,34 @@ int nfsmount(const char *spec, const char *node, int *flags,
 	auth_destroy(mclient->cl_auth);
 	clnt_destroy(mclient);
 	close(msock);
-copy_data_and_return:
-	*mount_opts = xrealloc(*mount_opts, sizeof(data));
-	memcpy(*mount_opts, &data, sizeof(data));
 
-	retval = 0;
+	if (bg) {
+		/* We must wait until mount directory is available */
+		struct stat statbuf;
+		int delay = 1;
+		while (stat(mp->mnt_dir, &statbuf) == -1) {
+			if (!daemonized) {
+				daemonized = daemonize();
+				if (daemonized <= 0) { /* parent or error */
+					retval = -daemonized;
+					goto ret;
+				}
+			}
+			sleep(delay);	/* 1, 2, 4, 8, 16, 30, ... */
+			delay *= 2;
+			if (delay > 30)
+				delay = 30;
+		}
+	}
+
+do_mount: /* perform actual mount */
+
+	mp->mnt_type = "nfs";
+	retval = mount_it_now(mp, vfsflags, (char*)&data);
 	goto ret;
 
-	/* abort */
+fail:	/* abort */
 
-fail:
 	if (msock != -1) {
 		if (mclient) {
 			auth_destroy(mclient->cl_auth);
@@ -982,7 +1015,8 @@ fail:
 		close(fsock);
 
 ret:
-	free(hostdir);
-	free(old_opts);
+	free(hostname);
+	free(mounthost);
+	free(filteropts);
 	return retval;
 }

@@ -303,8 +303,8 @@ extern int set_loop(char **device, const char *file, int offset);
 extern int vdprintf(int d, const char *format, va_list ap);
 #endif
 
-int nfsmount(const char *spec, const char *node, int *flags,
-	     char **mount_opts, int running_bg);
+int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts);
+int nfsmount(struct mntent *mp, int vfsflags, char *filteropts);
 
 /* Include our own copy of struct sysinfo to avoid binary compatibility
  * problems with Linux 2.4, which changed things.  Grumble, grumble. */
