@@ -189,7 +189,7 @@ extern FILE *xfopen(const char *path, const char *mode);
 extern int   bb_fclose_nonstdin(FILE *f);
 extern void  bb_fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
 
-extern void xstat(const char *filename, struct stat *buf);
+extern void xstat(const char * const filename, struct stat *buf);
 extern int  xsocket(int domain, int type, int protocol);
 extern pid_t spawn(char **argv);
 extern pid_t xspawn(char **argv);
