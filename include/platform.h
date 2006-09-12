@@ -75,6 +75,14 @@
 # endif
 #endif
 
+/* gcc-2.95 had no va_copy but only __va_copy. */
+#if !__GNUC_PREREQ (3,0)
+# include <stdarg.h>
+# if !defined va_copy && defined __va_copy
+#  define va_copy(d,s) __va_copy((d),(s))
+# endif
+#endif
+
 /* ---- Endian Detection ------------------------------------ */
 
 #if (defined __digital__ && defined __unix__)

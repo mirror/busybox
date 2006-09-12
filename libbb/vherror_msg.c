@@ -7,12 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdarg.h>
-#include <netdb.h>
-#include <stdio.h>
-
 #include "libbb.h"
-
 
 void bb_vherror_msg(const char *s, va_list p)
 {

@@ -7,12 +7,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <syslog.h>
 #include "libbb.h"
+#include <syslog.h>
 
 void bb_vinfo_msg(const char *s, va_list p)
 {
