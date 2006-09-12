@@ -27,7 +27,7 @@
  */
 static int valid_name(const struct dirent *d)
 {
-	char *c = d->d_name;
+	const char *c = d->d_name;
 
 	while (*c) {
 		if (!isalnum(*c) && (*c != '_') && (*c != '-')) {
