@@ -15,7 +15,7 @@
 #include <sys/swap.h>
 
 
-static int swap_enable_disable(const char *device)
+static int swap_enable_disable(char *device)
 {
 	int status;
 	struct stat st;

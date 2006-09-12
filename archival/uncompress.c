@@ -19,8 +19,8 @@ int uncompress_main(int argc, char **argv)
 	flags = bb_getopt_ulflags(argc, argv, "cf");
 
 	while (optind < argc) {
-		const char *compressed_file = argv[optind++];
-		const char *delete_path = NULL;
+		char *compressed_file = argv[optind++];
+		char *delete_path = NULL;
 		char *uncompressed_file = NULL;
 		int src_fd;
 		int dst_fd;

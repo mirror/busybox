@@ -48,8 +48,8 @@ int gunzip_main(int argc, char **argv)
 
 	do {
 		struct stat stat_buf;
-		const char *old_path = argv[optind];
-		const char *delete_path = NULL;
+		char *old_path = argv[optind];
+		char *delete_path = NULL;
 		char *new_path = NULL;
 		int src_fd;
 		int dst_fd;

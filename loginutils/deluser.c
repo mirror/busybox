@@ -60,7 +60,8 @@ static void del_line_matching(const char *login, const char *filename)
 
 
 	if ((passwd = bb_wfopen(filename, "r"))) {
-		xstat(filename, &statbuf);
+		// Remove pointless const.
+		xstat((char *)filename, &statbuf);
 		buffer = (char *) xmalloc(statbuf.st_size * sizeof(char));
 		fread(buffer, statbuf.st_size, sizeof(char), passwd);
 		fclose(passwd);

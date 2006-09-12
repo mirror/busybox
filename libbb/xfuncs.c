@@ -490,7 +490,7 @@ void xlisten(int s, int backlog)
 
 #ifdef L_xstat
 /* xstat() - a stat() which dies on failure with meaningful error message */
-void xstat(const char * const name, struct stat *stat_buf)
+void xstat(char *name, struct stat *stat_buf)
 {
         if (stat(name, stat_buf))
                 bb_perror_msg_and_die("Can't stat '%s'", name);
