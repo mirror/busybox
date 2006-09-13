@@ -3,23 +3,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <fcntl.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <syslog.h>
-#include <termios.h>
-#include <unistd.h>
+#include "busybox.h"
 #include <utmp.h>
 #include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <ctype.h>
-#include <time.h>
+#include <syslog.h>
 
-#include "busybox.h"
 #ifdef CONFIG_SELINUX
 #include <selinux/selinux.h>  /* for is_selinux_enabled()  */
 #include <selinux/get_context_list.h> /* for get_default_context() */
@@ -27,12 +15,12 @@
 #include <errno.h>
 #endif
 
-#ifdef CONFIG_FEATURE_UTMP
-// import from utmp.c
+/* import from utmp.c
+ * XXX: FIXME: provide empty bodies if ENABLE_FEATURE_UTMP == 0
+ */
 static struct utmp utent;
-static void read_or_build_utent(int picky);
-static void write_utent(const char *username);
-#endif
+static void read_or_build_utent(int);
+static void write_utent(const char *);
 
 enum {
 	TIMEOUT = 60,
@@ -43,12 +31,10 @@ enum {
 
 static void die_if_nologin_and_non_root(int amroot);
 
-#if defined CONFIG_FEATURE_SECURETTY
+#if ENABLE_FEATURE_SECURETTY
 static int check_securetty(void);
-
 #else
 static inline int check_securetty(void) { return 1; }
-
 #endif
 
 static void get_username_or_die(char *buf, int size_buf);
@@ -84,9 +70,6 @@ int login_main(int argc, char **argv)
 	int flag;
 	int count = 0;
 	struct passwd *pw;
-#ifdef CONFIG_WHEEL_GROUP
-	struct group *grp;
-#endif
 	int opt_preserve = 0;
 	int opt_fflag = 0;
 	char *opt_host = 0;
@@ -321,7 +304,7 @@ static void die_if_nologin_and_non_root(int amroot)
 	puts("\r\n[Disconnect bypassed -- root login allowed.]\r");
 }
 
-#ifdef CONFIG_FEATURE_SECURETTY
+#if ENABLE_FEATURE_SECURETTY
 
 static int check_securetty(void)
 {
@@ -367,7 +350,7 @@ static void motd(void)
 }
 
 
-#ifdef CONFIG_FEATURE_UTMP
+#if ENABLE_FEATURE_UTMP
 /* vv  Taken from tinylogin utmp.c  vv */
 
 /*
@@ -432,7 +415,7 @@ static void write_utent(const char *username)
 	setutent();
 	pututline(&utent);
 	endutent();
-#ifdef CONFIG_FEATURE_WTMP
+#if ENABLE_FEATURE_WTMP
 	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {
 		close(creat(bb_path_wtmp_file, 0664));
 	}
