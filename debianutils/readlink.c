@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2000,2001 Matt Kraai <kraai@alumni.carnegiemellon.edu>
  *
- * Licensed under GPL v2, see file LICENSE in this tarball for details.
+ * Licensed under GPL v2 or later, see file LICENSE in this tarball for details.
  */
 
 #include "busybox.h"

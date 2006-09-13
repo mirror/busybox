@@ -7,7 +7,7 @@
  * Copyright (C) 2005 Bernhard Fischer
  * Copyright (C) 2006 Rob Landley <rob@landley.net>
  *
- * Licensed under the GPL v2, see the file LICENSE in this tarball.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include <stdlib.h>

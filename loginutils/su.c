@@ -2,7 +2,7 @@
 /*
  *  Mini su implementation for busybox
  *
- *  Licensed under the GPL v2, see the file LICENSE in this tarball.
+ *  Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
 #include "busybox.h"

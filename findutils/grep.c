@@ -5,7 +5,7 @@
  * Copyright (C) 1999,2000,2001 by Lineo, inc. and Mark Whitley
  * Copyright (C) 1999,2000,2001 by Mark Whitley <markw@codepoet.org>
  *
- * Licensed under the GPL v2, see the file LICENSE in this tarball.
+ * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 /* BB_AUDIT SUSv3 defects - unsupported option -x.  */
 /* BB_AUDIT GNU defects - always acts as -a.  */

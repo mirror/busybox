@@ -10,7 +10,7 @@
  *   Copyright (C) 1996-1999 Guy Maor <maor@debian.org>
  *
  *
- * Licensed under GPL v2, see file LICENSE in this tarball for details.
+ * Licensed under GPL v2 or later, see file LICENSE in this tarball for details.
  */
 
 /* This is my first attempt to write a program in C (well, this is my first
