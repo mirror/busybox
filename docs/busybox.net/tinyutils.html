@@ -9,7 +9,7 @@ dev mailing list.
 
 <br><br>
 
-<table>
+<table border=1>
 <tr>
  <th>Feature</th>
  <th>Utilities</th>
@@ -25,8 +25,14 @@ mailing list.</td>
 
 <tr>
  <td>SMTP</td>
- <td><a href="ftp://ftp.debian.org/debian/pool/main/s/ssmtp/">ssmtp</a> is an extremely simple MTA.</td>
+ <td><a href="ftp://ftp.debian.org/debian/pool/main/s/ssmtp/">ssmtp</a> is an extremely simple Mail Transfer Agent.</td>
 </tr>
+
+<tr>
+  <td>ntp</td>
+  <td><a href="http://doolittle.icarus.com/ntpclient/">ntpclient</a> is a
+tiny ntp client.  BusyBox has rdate to set the date from a remote server, but
+if you want a daemon to repeatedly adjust the clock over time, try that.</td>
 </table>
 
 <p>In a gui environment, you'll probably want a web browser.
@@ -38,7 +44,7 @@ version of links</a>.</p>
 <h3>SCRIPTING LANGUAGES</h3>
 <p>Although busybox has built-in support for shell scripts, plenty of other
 small scripting languages are available on the net.  A few examples:</p>
-<table>
+<table border=1>
 <tr>
 <th><language></th>
 <th><description></th>
