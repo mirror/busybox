@@ -15,13 +15,6 @@
 #include <errno.h>
 #endif
 
-/* import from utmp.c
- * XXX: FIXME: provide empty bodies if ENABLE_FEATURE_UTMP == 0
- */
-static struct utmp utent;
-static void read_or_build_utent(int);
-static void write_utent(const char *);
-
 enum {
 	TIMEOUT = 60,
 	EMPTY_USERNAME_COUNT = 10,
@@ -29,16 +22,176 @@ enum {
 	TTYNAME_SIZE = 32,
 };
 
-static void die_if_nologin_and_non_root(int amroot);
+static char full_tty[TTYNAME_SIZE];
+static char* short_tty = full_tty;
+
+#if ENABLE_FEATURE_UTMP
+/* vv  Taken from tinylogin utmp.c  vv */
+/*
+ * read_or_build_utent - see if utmp file is correct for this process
+ *
+ *	System V is very picky about the contents of the utmp file
+ *	and requires that a slot for the current process exist.
+ *	The utmp file is scanned for an entry with the same process
+ *	ID.  If no entry exists the process exits with a message.
+ *
+ *	The "picky" flag is for network and other logins that may
+ *	use special flags.  It allows the pid checks to be overridden.
+ *	This means that getty should never invoke login with any
+ *	command line flags.
+ */
+static struct utmp utent;
+static void read_or_build_utent(int picky)
+{
+	struct utmp *ut;
+	pid_t pid = getpid();
+
+	setutent();
+
+	/* First, try to find a valid utmp entry for this process.  */
+	while ((ut = getutent()))
+		if (ut->ut_pid == pid && ut->ut_line[0] && ut->ut_id[0] &&
+		(ut->ut_type == LOGIN_PROCESS || ut->ut_type == USER_PROCESS))
+			break;
+
+	/* If there is one, just use it, otherwise create a new one.  */
+	if (ut) {
+		utent = *ut;
+	} else {
+		if (picky)
+			bb_error_msg_and_die("no utmp entry found");
+
+		memset(&utent, 0, sizeof(utent));
+		utent.ut_type = LOGIN_PROCESS;
+		utent.ut_pid = pid;
+		strncpy(utent.ut_line, short_tty, sizeof(utent.ut_line));
+		/* This one is only 4 chars wide. Try to fit something
+		 * remotely meaningful by skipping "tty"... */
+		strncpy(utent.ut_id, short_tty + 3, sizeof(utent.ut_id));
+		strncpy(utent.ut_user, "LOGIN", sizeof(utent.ut_user));
+		utent.ut_time = time(NULL);
+	}
+	if (!picky)	/* root login */
+		memset(utent.ut_host, 0, sizeof(utent.ut_host));
+}
+
+/*
+ * write_utent - put a USER_PROCESS entry in the utmp file
+ *
+ *	write_utent changes the type of the current utmp entry to
+ *	USER_PROCESS.  the wtmp file will be updated as well.
+ */
+static void write_utent(const char *username)
+{
+	utent.ut_type = USER_PROCESS;
+	strncpy(utent.ut_user, username, sizeof(utent.ut_user));
+	utent.ut_time = time(NULL);
+	/* other fields already filled in by read_or_build_utent above */
+	setutent();
+	pututline(&utent);
+	endutent();
+#if ENABLE_FEATURE_WTMP
+	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {
+		close(creat(bb_path_wtmp_file, 0664));
+	}
+	updwtmp(bb_path_wtmp_file, &utent);
+#endif
+}
+#else /* !CONFIG_FEATURE_UTMP */
+static inline void read_or_build_utent(int) {}
+static inline void write_utent(const char *) {}
+#endif /* !CONFIG_FEATURE_UTMP */
+
+static void die_if_nologin_and_non_root(int amroot)
+{
+	FILE *fp;
+	int c;
+
+	if (access(bb_path_nologin_file, F_OK))
+		return;
+
+	fp = fopen(bb_path_nologin_file, "r");
+	if (fp) {
+		while ((c = getc(fp)) != EOF)
+			putchar((c=='\n') ? '\r' : c);
+		fflush(stdout);
+		fclose(fp);
+	} else
+		puts("\r\nSystem closed for routine maintenance\r");
+	if (!amroot)
+		exit(1);
+	puts("\r\n[Disconnect bypassed -- root login allowed.]\r");
+}
 
 #if ENABLE_FEATURE_SECURETTY
-static int check_securetty(void);
+static int check_securetty(void)
+{
+	FILE *fp;
+	int i;
+	char buf[BUFSIZ];
+
+	fp = fopen(bb_path_securetty_file, "r");
+	if (!fp) {
+		/* A missing securetty file is not an error. */
+		return 1;
+	}
+	while (fgets(buf, sizeof(buf)-1, fp)) {
+		for(i = strlen(buf)-1; i>=0; --i) {
+			if (!isspace(buf[i]))
+				break;
+		}
+		buf[++i] = '\0';
+		if ((buf[0]=='\0') || (buf[0]=='#'))
+			continue;
+		if (strcmp(buf, short_tty) == 0) {
+			fclose(fp);
+			return 1;
+		}
+	}
+	fclose(fp);
+	return 0;
+}
 #else
 static inline int check_securetty(void) { return 1; }
 #endif
 
-static void get_username_or_die(char *buf, int size_buf);
-static void motd(void);
+static void get_username_or_die(char *buf, int size_buf)
+{
+	int c, cntdown;
+	cntdown = EMPTY_USERNAME_COUNT;
+prompt:
+	/* skip whitespace */
+	print_login_prompt();
+	do {
+		c = getchar();
+		if (c == EOF) exit(1);
+		if (c == '\n') {
+			if (!--cntdown) exit(1);
+			goto prompt;
+		}
+	} while (isspace(c));
+
+	*buf++ = c;
+	if (!fgets(buf, size_buf-2, stdin))
+		exit(1);
+	if (!strchr(buf, '\n'))
+		exit(1);
+	while (isgraph(*buf)) buf++;
+	*buf = '\0';
+}
+
+static void motd(void)
+{
+	FILE *fp;
+	int c;
+
+	fp = fopen(bb_path_motd_file, "r");
+	if (fp) {
+		while ((c = getc(fp)) != EOF)
+			putchar(c);
+		fclose(fp);
+	}
+}
 
 static void nonblock(int fd)
 {
@@ -55,11 +208,6 @@ static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 	bb_info_msg("\r\nLogin timed out after %d seconds\r", TIMEOUT);
 	exit(EXIT_SUCCESS);
 }
-
-
-static char full_tty[TTYNAME_SIZE];
-static char* short_tty = full_tty;
-
 
 int login_main(int argc, char **argv)
 {
@@ -122,11 +270,7 @@ int login_main(int argc, char **argv)
 			short_tty = full_tty + 5;
 	}
 
-	if (ENABLE_FEATURE_UTMP) {
-		read_or_build_utent(!amroot);
-		if (amroot)
-			memset(utent.ut_host, 0, sizeof(utent.ut_host));
-	}
+	read_or_build_utent(!amroot);
 
 	if (opt_host) {
 		if (ENABLE_FEATURE_UTMP)
@@ -183,8 +327,7 @@ auth_failed:
 	alarm(0);
 	die_if_nologin_and_non_root(pw->pw_uid == 0);
 
-	if (ENABLE_FEATURE_UTMP)
-		write_utent(username);
+	write_utent(username);
 
 #ifdef CONFIG_SELINUX
 	if (is_selinux_enabled()) {
@@ -255,171 +398,3 @@ auth_failed:
 
 	return EXIT_FAILURE;
 }
-
-
-static void get_username_or_die(char *buf, int size_buf)
-{
-	int c, cntdown;
-	cntdown = EMPTY_USERNAME_COUNT;
-prompt:
-	/* skip whitespace */
-	print_login_prompt();
-	do {
-		c = getchar();
-		if (c == EOF) exit(1);
-		if (c == '\n') {
-			if (!--cntdown) exit(1);
-			goto prompt;
-		}
-	} while (isspace(c));
-
-	*buf++ = c;
-	if (!fgets(buf, size_buf-2, stdin))
-		exit(1);
-	if (!strchr(buf, '\n'))
-		exit(1);
-	while (isgraph(*buf)) buf++;
-	*buf = '\0';
-}
-
-
-static void die_if_nologin_and_non_root(int amroot)
-{
-	FILE *fp;
-	int c;
-
-	if (access(bb_path_nologin_file, F_OK))
-		return;
-
-	fp = fopen(bb_path_nologin_file, "r");
-	if (fp) {
-		while ((c = getc(fp)) != EOF)
-			putchar((c=='\n') ? '\r' : c);
-		fflush(stdout);
-		fclose(fp);
-	} else
-		puts("\r\nSystem closed for routine maintenance\r");
-	if (!amroot)
-		exit(1);
-	puts("\r\n[Disconnect bypassed -- root login allowed.]\r");
-}
-
-#if ENABLE_FEATURE_SECURETTY
-
-static int check_securetty(void)
-{
-	FILE *fp;
-	int i;
-	char buf[BUFSIZ];
-
-	fp = fopen(bb_path_securetty_file, "r");
-	if (!fp) {
-		/* A missing securetty file is not an error. */
-		return 1;
-	}
-	while (fgets(buf, sizeof(buf)-1, fp)) {
-		for(i = strlen(buf)-1; i>=0; --i) {
-			if (!isspace(buf[i]))
-				break;
-		}
-		buf[++i] = '\0';
-		if ((buf[0]=='\0') || (buf[0]=='#'))
-			continue;
-		if (strcmp(buf, short_tty) == 0) {
-			fclose(fp);
-			return 1;
-		}
-	}
-	fclose(fp);
-	return 0;
-}
-
-#endif
-
-static void motd(void)
-{
-	FILE *fp;
-	int c;
-
-	fp = fopen(bb_path_motd_file, "r");
-	if (fp) {
-		while ((c = getc(fp)) != EOF)
-			putchar(c);
-		fclose(fp);
-	}
-}
-
-
-#if ENABLE_FEATURE_UTMP
-/* vv  Taken from tinylogin utmp.c  vv */
-
-/*
- * read_or_build_utent - see if utmp file is correct for this process
- *
- *	System V is very picky about the contents of the utmp file
- *	and requires that a slot for the current process exist.
- *	The utmp file is scanned for an entry with the same process
- *	ID.  If no entry exists the process exits with a message.
- *
- *	The "picky" flag is for network and other logins that may
- *	use special flags.  It allows the pid checks to be overridden.
- *	This means that getty should never invoke login with any
- *	command line flags.
- */
-
-static void read_or_build_utent(int picky)
-{
-	struct utmp *ut;
-	pid_t pid = getpid();
-
-	setutent();
-
-	/* First, try to find a valid utmp entry for this process.  */
-	while ((ut = getutent()))
-		if (ut->ut_pid == pid && ut->ut_line[0] && ut->ut_id[0] &&
-		(ut->ut_type == LOGIN_PROCESS || ut->ut_type == USER_PROCESS))
-			break;
-
-	/* If there is one, just use it, otherwise create a new one.  */
-	if (ut) {
-		utent = *ut;
-	} else {
-		if (picky)
-			bb_error_msg_and_die("no utmp entry found");
-
-		memset(&utent, 0, sizeof(utent));
-		utent.ut_type = LOGIN_PROCESS;
-		utent.ut_pid = pid;
-		strncpy(utent.ut_line, short_tty, sizeof(utent.ut_line));
-		/* This one is only 4 chars wide. Try to fit something
-		 * remotely meaningful by skipping "tty"... */
-		strncpy(utent.ut_id, short_tty + 3, sizeof(utent.ut_id));
-		strncpy(utent.ut_user, "LOGIN", sizeof(utent.ut_user));
-		utent.ut_time = time(NULL);
-	}
-}
-
-/*
- * write_utent - put a USER_PROCESS entry in the utmp file
- *
- *	write_utent changes the type of the current utmp entry to
- *	USER_PROCESS.  the wtmp file will be updated as well.
- */
-
-static void write_utent(const char *username)
-{
-	utent.ut_type = USER_PROCESS;
-	strncpy(utent.ut_user, username, sizeof(utent.ut_user));
-	utent.ut_time = time(NULL);
-	/* other fields already filled in by read_or_build_utent above */
-	setutent();
-	pututline(&utent);
-	endutent();
-#if ENABLE_FEATURE_WTMP
-	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1) {
-		close(creat(bb_path_wtmp_file, 0664));
-	}
-	updwtmp(bb_path_wtmp_file, &utent);
-#endif
-}
-#endif /* CONFIG_FEATURE_UTMP */
