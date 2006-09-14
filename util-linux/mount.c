@@ -223,6 +223,8 @@ int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	 * mtab file by hand, add the new entry to it now. */
 
 	if(ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc) {
+		char dirbuf[PATH_MAX];
+		char srcbuf[PATH_MAX];
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
 		int i;
 
@@ -232,27 +234,39 @@ int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 		// Add vfs string flags
 
 		for(i=0; mount_options[i].flags != MS_REMOUNT; i++)
-			if (mount_options[i].flags > 0)
+			if (mount_options[i].flags > 0 && (mount_options[i].flags&vfsflags))
 				append_mount_options(&(mp->mnt_opts), mount_options[i].name);
 
 		// Remove trailing / (if any) from directory we mounted on
 
-		i = strlen(mp->mnt_dir);
-		if(i>1 && mp->mnt_dir[i-1] == '/') mp->mnt_dir[i-1] = 0;
+		i = strlen(mp->mnt_dir) - 1;
+		if(i > 0 && mp->mnt_dir[i] == '/') mp->mnt_dir[i] = 0;
+
+		// Add full pathnames as needed
+
+		if (mp->mnt_dir[0] != '/') {
+			getcwd(dirbuf, sizeof(dirbuf));
+			i = strlen(dirbuf);
+			/* strcat() would be unsafe here */
+			snprintf(dirbuf+i, sizeof(dirbuf)-i, "/%s", mp->mnt_dir);
+			mp->mnt_dir = dirbuf;
+		}
+		if (!mp->mnt_type || !*mp->mnt_type) { /* bind mount */
+			if (mp->mnt_fsname[0] != '/') {
+				getcwd(srcbuf, sizeof(srcbuf));
+				i = strlen(srcbuf);
+				snprintf(srcbuf+i, sizeof(srcbuf)-i, "/%s",
+						mp->mnt_fsname);
+				mp->mnt_fsname = srcbuf;
+			}
+			mp->mnt_type = "none";
+			mp->mnt_freq = mp->mnt_passno = 0;
+		}
 
 		// Write and close.
 
-		if(!mp->mnt_type || !*mp->mnt_type) mp->mnt_type="--bind";
-//		addmntent(mountTable, mp);
-if(0) bb_error_msg("buggy: addmntent(fsname='%s' dir='%s' type='%s' opts='%s')",
-mp->mnt_fsname,
-mp->mnt_dir,
-mp->mnt_type,
-mp->mnt_opts
-);
+		addmntent(mountTable, mp);
 		endmntent(mountTable);
-		if (ENABLE_FEATURE_CLEAN_UP)
-			if(strcmp(mp->mnt_type,"--bind")) mp->mnt_type = 0;
 	}
 
 	return rc;
