@@ -59,15 +59,17 @@ int umount_main(int argc, char **argv)
 
 	if (!(fp = setmntent(bb_path_mtab_file, "r"))) {
 		if (opt & OPT_ALL)
-			bb_error_msg_and_die("Cannot open %s", bb_path_mtab_file);
-	} else while (getmntent_r(fp,&me,path,sizeof(path))) {
-		m = xmalloc(sizeof(struct mtab_list));
-		m->next = mtl;
-		m->device = xstrdup(me.mnt_fsname);
-		m->dir = xstrdup(me.mnt_dir);
-		mtl = m;
+			bb_error_msg_and_die("cannot open %s", bb_path_mtab_file);
+	} else {
+		while (getmntent_r(fp,&me,path,sizeof(path))) {
+			m = xmalloc(sizeof(struct mtab_list));
+			m->next = mtl;
+			m->device = xstrdup(me.mnt_fsname);
+			m->dir = xstrdup(me.mnt_dir);
+			mtl = m;
+		}
+		endmntent(fp);
 	}
-	endmntent(fp);
 
 	/* If we're not mounting all, we need at least one argument. */
 	if (!(opt & OPT_ALL)) {
@@ -111,13 +113,13 @@ int umount_main(int argc, char **argv)
 		// If still can't umount, maybe remount read-only?
 		if (curstat && (opt & OPT_REMOUNT) && errno == EBUSY && m) {
 			curstat = mount(m->device, zapit, NULL, MS_REMOUNT|MS_RDONLY, NULL);
-			bb_error_msg(curstat ? "Cannot remount %s read-only" :
+			bb_error_msg(curstat ? "cannot remount %s read-only" :
 						 "%s busy - remounted read-only", m->device);
 		}
 
 		if (curstat) {
 			status = EXIT_FAILURE;
-			bb_perror_msg("Couldn't umount %s", zapit);
+			bb_perror_msg("cannot umount %s", zapit);
 		} else {
 			/* De-allocate the loop device.  This ioctl should be ignored on
 			 * any non-loop block devices. */
@@ -143,7 +145,7 @@ int umount_main(int argc, char **argv)
 			free(mtl->device);
 			free(mtl->dir);
 			free(mtl);
-			mtl=m;
+			mtl = m;
 		}
 	}
 
