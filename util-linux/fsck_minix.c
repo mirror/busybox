@@ -2,8 +2,9 @@
 /*
  * fsck.c - a file system consistency checker for Linux.
  *
- * (C) 1991, 1992 Linus Torvalds. This file may be redistributed
- * as per the GNU copyleft.
+ * (C) 1991, 1992 Linus Torvalds.
+ *
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 
 /*
@@ -86,17 +87,8 @@
  * enforced (but it's not much fun on a character device :-).
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <termios.h>
-#include <mntent.h>
-#include <sys/param.h>
 #include "busybox.h"
+#include <mntent.h>
 
 /*
  * This is the original minix inode layout on disk.
