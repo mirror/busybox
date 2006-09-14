@@ -222,7 +222,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	/* If the mount was successful, and we're maintaining an old-style
 	 * mtab file by hand, add the new entry to it now. */
 
-	if(ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc) {
+	if(ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
 		char dirbuf[PATH_MAX];
 		char srcbuf[PATH_MAX];
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
