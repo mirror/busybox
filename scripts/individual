@@ -12,34 +12,7 @@ mkdir build
 
 # Make our prerequisites.
 
-make busybox.links include/bb_config.h
-
-# Adding "libbb/libbb.a" to the previous line doesn't work, nor does going
-# "make libbb.a" in the libb directory.  The busybox makefile has layers and
-# layers of overcomplicated brokenness...
-
-cd libbb
-make
-cd ..
-
-# Same problem.
-
-cd archival/libunarchive
-make
-cd ../..
-
-# And again
-
-cd coreutils/libcoreutils
-make
-cd ../..
-
-# Sensing a pattern here?
-
-#cd networking/libiproute
-#make
-#cd ../..
-
+make busybox.links include/bb_config.h $(pwd)/{libbb/libbb.a,archival/libunarchive/libunarchive.a,coreutils/libcoreutils/libcoreutils.a,networking/libiproute/libiproute.a}
 fi
 
 # About 3/5 of the applets build from one .c file (with the same name as the
