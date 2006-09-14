@@ -13,6 +13,13 @@ mkdir build
 # Make our prerequisites.
 
 make busybox.links include/bb_config.h $(pwd)/{libbb/libbb.a,archival/libunarchive/libunarchive.a,coreutils/libcoreutils/libcoreutils.a,networking/libiproute/libiproute.a}
+
+else
+# Could very well be that we want to build an individual applet but have no
+# 'build' dir yet..
+
+test -d ./build || mkdir build
+
 fi
 
 # About 3/5 of the applets build from one .c file (with the same name as the
