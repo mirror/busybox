@@ -2664,11 +2664,8 @@ int hush_main(int argc, char **argv)
 
 	/* Initialize some more globals to non-zero values */
 	set_cwd();
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
-	cmdedit_set_initial_prompt();
-#else
-	PS1 = NULL;
-#endif
+    if (ENABLE_FEATURE_COMMAND_EDITING) cmdedit_set_initial_prompt();
+	else PS1 = NULL;
 	PS2 = "> ";
 
 	/* initialize our shell local variables with the values
