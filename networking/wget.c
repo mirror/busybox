@@ -36,7 +36,7 @@ enum {
 	STALLTIME = 5
 };
 #else
-static inline void progressmeter(int flag) {}
+static void progressmeter(int flag) {}
 #endif
 
 static void close_and_delete_outfile(FILE* output, char *fname_out, int do_continue)
