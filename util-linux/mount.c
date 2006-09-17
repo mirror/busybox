@@ -277,7 +277,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 		fsname = 0;
 		if (!mp->mnt_type || !*mp->mnt_type) { /* bind mount */
 			mp->mnt_fsname = fsname = bb_simplify_path(mp->mnt_fsname);
-			mp->mnt_type = "none";
+			mp->mnt_type = "bind";
 		}
 		mp->mnt_freq = mp->mnt_passno = 0;
 
