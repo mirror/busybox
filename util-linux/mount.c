@@ -101,7 +101,7 @@ struct {
 /* Append mount options to string */
 static void append_mount_options(char **oldopts, char *newopts)
 {
-	if(*oldopts && **oldopts) {
+	if (*oldopts && **oldopts) {
 		char *temp = xasprintf("%s,%s",*oldopts,newopts);
 		free(*oldopts);
 		*oldopts = temp;
@@ -128,7 +128,7 @@ static int parse_mount_options(char *options, char **unrecognized)
 		for (i = 0; i < (sizeof(mount_options) / sizeof(*mount_options)); i++) {
 			if (!strcasecmp(mount_options[i].name, options)) {
 				long fl = mount_options[i].flags;
-				if(fl < 0) flags &= fl;
+				if (fl < 0) flags &= fl;
 				else flags |= fl;
 				break;
 			}
@@ -147,7 +147,7 @@ static int parse_mount_options(char *options, char **unrecognized)
 		}
 
 		// Advance to next option, or finish
-		if(comma) {
+		if (comma) {
 			*comma = ',';
 			options = ++comma;
 		} else break;
@@ -166,17 +166,18 @@ static llist_t *get_block_backed_filesystems(void)
 	int i;
 	FILE *f;
 
-	for(i = 0; filesystems[i]; i++) {
-		if(!(f = fopen(filesystems[i], "r"))) continue;
+	for (i = 0; filesystems[i]; i++) {
+		f = fopen(filesystems[i], "r");
+		if (!f) continue;
 
-		for(fs = buf = 0; (fs = buf = bb_get_chomped_line_from_file(f));
+		for (fs = buf = 0; (fs = buf = bb_get_chomped_line_from_file(f));
 			free(buf))
 		{
-			if(!strncmp(buf,"nodev",5) && isspace(buf[5])) continue;
+			if (!strncmp(buf,"nodev",5) && isspace(buf[5])) continue;
 
-			while(isspace(*fs)) fs++;
-			if(*fs=='#' || *fs=='*') continue;
-			if(!*fs) continue;
+			while (isspace(*fs)) fs++;
+			if (*fs=='#' || *fs=='*') continue;
+			if (!*fs) continue;
 
 			llist_add_to_end(&list,xstrdup(fs));
 		}
@@ -206,18 +207,19 @@ static int fakeIt;
 #endif
 
 // Perform actual mount of specific filesystem at specific location.
+// NB: mp->xxx fields may be trashed on exit
 static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 {
 	int rc;
 
-	if (fakeIt) { return 0; }
+	if (fakeIt) return 0;
 
 	// Mount, with fallback to read-only if necessary.
 
-	for(;;) {
+	for (;;) {
 		rc = mount(mp->mnt_fsname, mp->mnt_dir, mp->mnt_type,
 				vfsflags, filteropts);
-		if(!rc || (vfsflags&MS_RDONLY) || (errno!=EACCES && errno!=EROFS))
+		if (!rc || (vfsflags&MS_RDONLY) || (errno!=EACCES && errno!=EROFS))
 			break;
 		bb_error_msg("%s is write-protected, mounting read-only",
 				mp->mnt_fsname);
@@ -439,7 +441,6 @@ enum {
 	NFS_PORT = 2049
 #endif
 };
-
 
 /*
  * We want to be able to compile mount on old kernels in such a way
@@ -1283,7 +1284,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 	// Might this be an CIFS filesystem?
 
-	if(ENABLE_FEATURE_MOUNT_CIFS &&
+	if (ENABLE_FEATURE_MOUNT_CIFS &&
 		(!mp->mnt_type || !strcmp(mp->mnt_type,"cifs")) &&
 		(mp->mnt_fsname[0]==mp->mnt_fsname[1] && (mp->mnt_fsname[0]=='/' || mp->mnt_fsname[0]=='\\')))
 	{
@@ -1345,7 +1346,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
 			loopFile = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_fsname = 0;
-			switch(set_loop(&(mp->mnt_fsname), loopFile, 0)) {
+			switch (set_loop(&(mp->mnt_fsname), loopFile, 0)) {
 				case 0:
 				case 1:
 					break;
@@ -1385,7 +1386,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		for (fl = fslist; fl; fl = fl->link) {
 			mp->mnt_type = fl->data;
 
-			if (!(rc = mount_it_now(mp,vfsflags, filteropts))) break;
+			rc = mount_it_now(mp,vfsflags, filteropts);
+			if (!rc) break;
 
 			mp->mnt_type = 0;
 		}
@@ -1474,7 +1476,7 @@ int mount_main(int argc, char **argv)
 		if (!all) {
 			FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 
-			if(!mountTable) bb_error_msg_and_die("no %s",bb_path_mtab_file);
+			if (!mountTable) bb_error_msg_and_die("no %s",bb_path_mtab_file);
 
 			while (getmntent_r(mountTable,mtpair,bb_common_bufsiz1,
 								sizeof(bb_common_bufsiz1)))
@@ -1521,14 +1523,15 @@ int mount_main(int argc, char **argv)
 		fstabname = bb_path_mtab_file;
 	else fstabname="/etc/fstab";
 
-	if (!(fstab=setmntent(fstabname,"r")))
+	fstab = setmntent(fstabname,"r");
+	if (!fstab)
 		bb_perror_msg_and_die("cannot read %s",fstabname);
 
 	// Loop through entries until we find what we're looking for.
 
 	memset(mtpair,0,sizeof(mtpair));
 	for (;;) {
-		struct mntent *mtnext = mtpair + (mtcur==mtpair ? 1 : 0);
+		struct mntent *mtnext = (mtcur==mtpair ? mtpair+1 : mtpair);
 
 		// Get next fstab entry
 
@@ -1565,7 +1568,7 @@ int mount_main(int argc, char **argv)
 
 			// Is this what we're looking for?
 
-			if(strcmp(argv[optind],mtcur->mnt_fsname) &&
+			if (strcmp(argv[optind],mtcur->mnt_fsname) &&
 			   strcmp(storage_path,mtcur->mnt_fsname) &&
 			   strcmp(argv[optind],mtcur->mnt_dir) &&
 			   strcmp(storage_path,mtcur->mnt_dir)) continue;
