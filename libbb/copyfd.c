@@ -28,8 +28,7 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 	RESERVE_CONFIG_BUFFER(buffer,BUFSIZ);
 
 	if (src_fd < 0) goto out;
-	while (!size || total < size)
-	{
+	while (!size || total < size) {
 		ssize_t wr, rd;
 
 		rd = safe_read(src_fd, buffer,
@@ -64,12 +63,12 @@ out:
 int bb_copyfd_size(int fd1, int fd2, const off_t size)
 {
 	if (size) {
-		return(bb_full_fd_action(fd1, fd2, size));
+		return bb_full_fd_action(fd1, fd2, size);
 	}
-	return(0);
+	return 0;
 }
 
 int bb_copyfd_eof(int fd1, int fd2)
 {
-	return(bb_full_fd_action(fd1, fd2, 0));
+	return bb_full_fd_action(fd1, fd2, 0);
 }
