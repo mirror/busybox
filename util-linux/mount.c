@@ -253,7 +253,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	 * mtab file by hand, add the new entry to it now. */
 
 	if (ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
-		char *dir,*fsname;
+		char *fsname;
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
 		int i;
 
@@ -273,7 +273,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 
 		// Convert to canonical pathnames as needed
 
-		mp->mnt_dir = dir = bb_simplify_path(mp->mnt_dir);
+		mp->mnt_dir = bb_simplify_path(mp->mnt_dir);
 		fsname = 0;
 		if (!mp->mnt_type || !*mp->mnt_type) { /* bind mount */
 			mp->mnt_fsname = fsname = bb_simplify_path(mp->mnt_fsname);
@@ -286,7 +286,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 		addmntent(mountTable, mp);
 		endmntent(mountTable);
 		if (ENABLE_FEATURE_CLEAN_UP) {
-			free(dir);
+			free(mp->mnt_dir);
 			free(fsname);
 		}
 	}
