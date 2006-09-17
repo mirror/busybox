@@ -515,7 +515,7 @@ static const struct {
 static char *nfs_strerror(int status)
 {
 	int i;
-	static char buf[256];
+	static char buf[sizeof("unknown nfs status return value: ") + sizeof(int)*3];
 
 	for (i = 0; nfs_errtbl[i].stat != -1; i++) {
 		if (nfs_errtbl[i].stat == status)
