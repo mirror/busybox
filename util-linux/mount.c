@@ -234,43 +234,31 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 	/* If the mount was successful, and we're maintaining an old-style
 	 * mtab file by hand, add the new entry to it now. */
 
-	if(ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
-		char dirbuf[PATH_MAX];
-		char srcbuf[PATH_MAX];
+	if (ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
+		char *dir,*fsname;
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
 		int i;
 
-		if(!mountTable)
+		if (!mountTable)
 			bb_error_msg("no %s",bb_path_mtab_file);
 
 		// Add vfs string flags
 
-		for(i=0; mount_options[i].flags != MS_REMOUNT; i++)
+		for (i=0; mount_options[i].flags != MS_REMOUNT; i++)
 			if (mount_options[i].flags > 0 && (mount_options[i].flags & vfsflags))
 				append_mount_options(&(mp->mnt_opts), mount_options[i].name);
 
 		// Remove trailing / (if any) from directory we mounted on
 
 		i = strlen(mp->mnt_dir) - 1;
-		if(i > 0 && mp->mnt_dir[i] == '/') mp->mnt_dir[i] = 0;
+		if (i > 0 && mp->mnt_dir[i] == '/') mp->mnt_dir[i] = 0;
 
-		// Add full pathnames as needed
+		// Convert to canonical pathnames as needed
 
-		if (mp->mnt_dir[0] != '/') {
-			getcwd(dirbuf, sizeof(dirbuf));
-			i = strlen(dirbuf);
-			/* strcat() would be unsafe here */
-			snprintf(dirbuf+i, sizeof(dirbuf)-i, "/%s", mp->mnt_dir);
-			mp->mnt_dir = dirbuf;
-		}
+		mp->mnt_dir = dir = bb_simplify_path(mp->mnt_dir);
+		fsname = 0;
 		if (!mp->mnt_type || !*mp->mnt_type) { /* bind mount */
-			if (mp->mnt_fsname[0] != '/') {
-				getcwd(srcbuf, sizeof(srcbuf));
-				i = strlen(srcbuf);
-				snprintf(srcbuf+i, sizeof(srcbuf)-i, "/%s",
-						mp->mnt_fsname);
-				mp->mnt_fsname = srcbuf;
-			}
+			mp->mnt_fsname = fsname = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_type = "none";
 		}
 		mp->mnt_freq = mp->mnt_passno = 0;
@@ -279,6 +267,10 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 
 		addmntent(mountTable, mp);
 		endmntent(mountTable);
+		if (ENABLE_FEATURE_CLEAN_UP) {
+			free(dir);
+			free(fsname);
+		}
 	}
 
 	return rc;
