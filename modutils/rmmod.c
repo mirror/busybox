@@ -36,7 +36,7 @@ void filename2modname(char *modname, const char *afterslash);
 // There really should be a header file for this...
 
 int query_module(const char *name, int which, void *buf,
-		        size_t bufsize, size_t *ret);
+			size_t bufsize, size_t *ret);
 
 int rmmod_main(int argc, char **argv)
 {

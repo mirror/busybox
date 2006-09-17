@@ -40,7 +40,7 @@ testing "uniq input - (specify stdout)" "uniq input -" \
 #-s skip chars
 #-c occurrences
 #-d dups only
-#-u 
+#-u
 
 # Test various command line options
 

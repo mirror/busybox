@@ -45,7 +45,7 @@ static int pid_is_exec(pid_t pid, const char *name)
 	sprintf(buf, "/proc/%d/exe", pid);
 	execbuf = xstrdup(name);
 	readlink(buf, execbuf, strlen(name)+1);
-	
+
 	equal = ! strcmp(execbuf, name);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(execbuf);

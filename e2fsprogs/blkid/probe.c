@@ -99,7 +99,7 @@ static void get_ext2_info(blkid_dev dev, unsigned char *buf)
 static int probe_ext3(int fd __BLKID_ATTR((unused)),
 		      blkid_cache cache __BLKID_ATTR((unused)),
 		      blkid_dev dev,
-		      const struct blkid_magic *id __BLKID_ATTR((unused)), 
+		      const struct blkid_magic *id __BLKID_ATTR((unused)),
 		      unsigned char *buf)
 {
 	struct ext2_super_block *es;
@@ -126,7 +126,7 @@ static int probe_ext3(int fd __BLKID_ATTR((unused)),
 static int probe_ext2(int fd __BLKID_ATTR((unused)),
 		      blkid_cache cache __BLKID_ATTR((unused)),
 		      blkid_dev dev,
-		      const struct blkid_magic *id __BLKID_ATTR((unused)), 
+		      const struct blkid_magic *id __BLKID_ATTR((unused)),
 		      unsigned char *buf)
 {
 	struct ext2_super_block *es;
@@ -305,10 +305,10 @@ static int probe_romfs(int fd __BLKID_ATTR((unused)),
 	return 0;
 }
 
-static int probe_cramfs(int fd __BLKID_ATTR((unused)), 
-		       blkid_cache cache __BLKID_ATTR((unused)), 
+static int probe_cramfs(int fd __BLKID_ATTR((unused)),
+		       blkid_cache cache __BLKID_ATTR((unused)),
 		       blkid_dev dev,
-		       const struct blkid_magic *id __BLKID_ATTR((unused)), 
+		       const struct blkid_magic *id __BLKID_ATTR((unused)),
 		       unsigned char *buf)
 {
 	struct cramfs_super_block *csb;

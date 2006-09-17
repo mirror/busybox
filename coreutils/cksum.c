@@ -10,7 +10,7 @@
 
 int cksum_main(int argc, char **argv)
 {
-	
+
 	uint32_t *crc32_table = crc32_filltable(1);
 
 	FILE *fp;

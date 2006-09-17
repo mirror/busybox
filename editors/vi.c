@@ -3923,4 +3923,4 @@ static void crash_test()
 	}
 	return;
 }
-#endif					          /* CONFIG_FEATURE_VI_CRASHME */
+#endif						/* CONFIG_FEATURE_VI_CRASHME */

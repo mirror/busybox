@@ -1,9 +1,9 @@
 /* vi: set sw=4 ts=4: */
 /*  nc: mini-netcat - built from the ground up for LRP
- *  
+ *
  *  Copyright (C) 1998, 1999  Charles P. Wright
  *  Copyright (C) 1998  Dave Cinege
- *  
+ *
  *  Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
@@ -25,7 +25,7 @@ int nc_main(int argc, char **argv)
 
 	memset(&address, 0, sizeof(address));
 
-	if (ENABLE_NC_SERVER || ENABLE_NC_EXTRA) { 
+	if (ENABLE_NC_SERVER || ENABLE_NC_EXTRA) {
 		while ((opt = getopt(argc, argv, "lp:" USE_NC_EXTRA("i:ew:f:"))) > 0) {
 			if (ENABLE_NC_SERVER && opt=='l') do_listen++;
 			else if (ENABLE_NC_SERVER && opt=='p')
@@ -40,7 +40,7 @@ int nc_main(int argc, char **argv)
 		}
 	}
 
-	
+
 	// For listen or file we need zero arguments, dialout is 2.
 	// For exec we need at least one more argument at the end, more ok
 
@@ -53,7 +53,7 @@ int nc_main(int argc, char **argv)
 		signal(SIGALRM, timeout);
 		alarm(wsecs);
 	}
-	
+
 	if (infile) cfd = xopen(infile, O_RDWR);
 	else {
 		opt = 1;
@@ -132,7 +132,7 @@ repeatyness:
 	}
 
 	// Select loop copying stdin to cfd, and cfd to stdout.
-	
+
 	FD_ZERO(&readfds);
 	FD_SET(cfd, &readfds);
 	FD_SET(STDIN_FILENO, &readfds);

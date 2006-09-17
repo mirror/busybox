@@ -981,7 +981,7 @@ arch_apply_relocation(struct obj_file *f,
 			/* dot is the address of the current instruction.
 			 * v is the target symbol address.
 			 * So we need to extract the offset in the code,
-			 * adding v, then subtrating the current address 
+			 * adding v, then subtrating the current address
 			 * of this instruction.
 			 * Ex: "IMM 0xFFFE  bralid 0x0000" = "bralid 0xFFFE0000"
 			 */
@@ -990,7 +990,7 @@ arch_apply_relocation(struct obj_file *f,
 			unsigned int temp = (loc[0] & 0xFFFF) << 16 |
 						(loc[1] & 0xFFFF);
 
-			/* Adjust relative offset. -4 adjustment required 
+			/* Adjust relative offset. -4 adjustment required
 			 * because dot points to the IMM insn, but branch
 			 * is computed relative to the branch instruction itself.
 			 */

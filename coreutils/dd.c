@@ -200,7 +200,7 @@ int dd_main(int argc, char **argv)
 				out_part++;
 		}
 	}
-	
+
 	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {
 		xwrite(ofd, obuf, oc);
 		out_part++;

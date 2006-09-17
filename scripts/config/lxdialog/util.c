@@ -224,7 +224,7 @@ print_autowrap (WINDOW * win, const char *prompt, int width, int y, int x)
 	while (word && *word) {
 	    sp = strchr(word, ' ');
 	    if (sp)
-	        *sp++ = 0;
+		*sp++ = 0;
 
 	    /* Wrap to next line if either the word does not fit,
 	       or it is the first word of a new sentence, and it is
@@ -242,11 +242,11 @@ print_autowrap (WINDOW * win, const char *prompt, int width, int y, int x)
 	    getyx (win, cur_y, cur_x);
 	    cur_x++;
 	    if (sp && *sp == ' ') {
-	        cur_x++;	/* double space */
+		cur_x++;	/* double space */
 		while (*++sp == ' ');
 		newl = 1;
 	    } else
-	        newl = 0;
+		newl = 0;
 	    word = sp;
 	}
     }

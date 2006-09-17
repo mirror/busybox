@@ -408,7 +408,7 @@ static void get_symbol_str(struct gstr *r, struct symbol *sym)
 	struct property *prop;
 
 	str_printf(r, "Symbol: %s [=%s]\n", sym->name,
-	                               sym_get_string_value(sym));
+				       sym_get_string_value(sym));
 	for_all_prompts(sym, prop)
 		get_prompt_str(r, prop);
 	hit = false;

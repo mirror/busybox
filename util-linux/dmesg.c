@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * 
+ *
  * dmesg - display/control kernel ring buffer.
  *
  * Copyright 2006 Rob Landley <rob@landley.net>
@@ -30,7 +30,7 @@ int dmesg_main(int argc, char *argv[])
 		if (0 > (len = klogctl(3 + (flags & 1), buf, len)))
 			bb_perror_msg_and_die("klogctl");
 
-		// Skip <#> at the start of lines, and make sure we end with a newline. 
+		// Skip <#> at the start of lines, and make sure we end with a newline.
 
 		if (ENABLE_FEATURE_DMESG_PRETTY) {
 			int last = '\n';

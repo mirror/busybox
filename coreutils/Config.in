@@ -120,11 +120,11 @@ config CONFIG_FEATURE_DD_SIGNAL_HANDLING
 	default y
 	depends on CONFIG_DD
 	help
-	  sending a SIGUSR1 signal to a running `dd' process makes it 
-	  print to standard error the number of records read and written 
+	  sending a SIGUSR1 signal to a running `dd' process makes it
+	  print to standard error the number of records read and written
 	  so far, then to resume copying.
 
-	  $ dd if=/dev/zero of=/dev/null& pid=$! $ kill -USR1 $pid; sleep 1; kill $pid 
+	  $ dd if=/dev/zero of=/dev/null& pid=$! $ kill -USR1 $pid; sleep 1; kill $pid
 	  10899206+0 records in 10899206+0 records out
 
 config CONFIG_FEATURE_DD_IBS_OBS
@@ -744,9 +744,9 @@ config CONFIG_FEATURE_AUTOWIDTH
 	depends on CONFIG_LS || CONFIG_MORE || CONFIG_TELNET
 	help
 	  This option allows utilities such as 'ls', 'more' and 'telnet'
-	  to determine the width of the screen, which can allow them to 
+	  to determine the width of the screen, which can allow them to
 	  display additional text or avoid wrapping text onto the next line.
-	  If you leave this disabled, your utilities will be especially 
+	  If you leave this disabled, your utilities will be especially
 	  primitive and will be unable to determine the current screen width.
 
 comment "Common options for df, du, ls"

@@ -56,7 +56,7 @@ testing "sort key range with numeric option and global reverse" \
 7	3	42	soup
 " "$data" ""
 
-# 
+#
 
 testing "sort key range with multiple options" "sort -k2,3rn input" \
 "7	3	42	soup
@@ -67,7 +67,7 @@ egg	1	2	papyrus
 " "$data" ""
 
 testing "sort key doesn't strip leading blanks, disables fallback global sort" \
-"sort -n -k2 -t ' '" " a \n 1 \n 2 \n" "" " 2 \n 1 \n a \n" 
+"sort -n -k2 -t ' '" " a \n 1 \n 2 \n" "" " 2 \n 1 \n a \n"
 
 testing "sort key edge case with -t" "sort -n -k4 -t/" \
 "/usr/lib/finish-install.d/1

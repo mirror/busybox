@@ -314,7 +314,7 @@ int zcip_main(int argc, char *argv[])
 			tv1.tv_sec++;
 		}
 		tv1.tv_sec += timeout / 1000;
-	
+
 		VDBG("...wait %ld %s nprobes=%d, nclaims=%d\n",
 				timeout, intf, nprobes, nclaims);
 		switch (poll(fds, 1, timeout)) {
@@ -479,7 +479,7 @@ int zcip_main(int argc, char *argv[])
 				target_ip_conflict = 1;
 			}
 
-			VDBG("state = %d, source ip conflict = %d, target ip conflict = %d\n", 
+			VDBG("state = %d, source ip conflict = %d, target ip conflict = %d\n",
 				state, source_ip_conflict, target_ip_conflict);
 			switch (state) {
 			case PROBE:

@@ -755,7 +755,7 @@ static void identify(uint16_t *id_supplied)
 			strng = "<=10ms with INTRQ";
 		else if ((val[GEN_CONFIG] & DRQ_RESPONSE_TIME) ==  DRQ_50US_VAL)
 			strng ="50us";
-		else 
+		else
 			strng = "Unknown";
 		printf("\tDRQ response: %s\n\tPacket size: ", strng); /* Data Request (DRQ) */
 
@@ -817,7 +817,7 @@ static void identify(uint16_t *id_supplied)
 
 		if (bbbig > 1000)
 			printf("(%"PRIu64" GB)\n", bbbig/1000);
-		else 
+		else
 			printf("\n");
 	}
 
@@ -833,8 +833,8 @@ static void identify(uint16_t *id_supplied)
 
 	if (like_std != 1)
 	{
-		printf("IORDY%s(can%s be disabled)\n", 
-				!(val[CAPAB_0] & IORDY_SUP) ? "(may be)" : "", 
+		printf("IORDY%s(can%s be disabled)\n",
+				!(val[CAPAB_0] & IORDY_SUP) ? "(may be)" : "",
 				(val[CAPAB_0] & IORDY_OFF) ? "" :"not");
 	}
 	else
@@ -843,7 +843,7 @@ static void identify(uint16_t *id_supplied)
 	if ((like_std == 1) && val[BUF_TYPE])
 	{
 		printf("\tBuffer type: %04x: %s%s\n", val[BUF_TYPE],
-				(val[BUF_TYPE] < 2) ? "single port, single-sector" : "dual port, multi-sector", 
+				(val[BUF_TYPE] < 2) ? "single port, single-sector" : "dual port, multi-sector",
 				(val[BUF_TYPE] > 2) ? " with read caching ability" : "");
 	}
 
@@ -1063,9 +1063,9 @@ static void identify(uint16_t *id_supplied)
 			strng = " determined by the jumper";
 		else if ((jj & DEV_DET) == CSEL_VAL)
 			strng = " determined by CSEL";
-		else 
+		else
 			strng = "";
-		printf("HW reset results:\n\tCBLID- %s Vih\n\tDevice num = %i%s\n", 
+		printf("HW reset results:\n\tCBLID- %s Vih\n\tDevice num = %i%s\n",
 				(val[HWRST_RSLT] & CBLID) ? "above" : "below", !(oo), strng);
 	}
 
@@ -1200,8 +1200,8 @@ static void dump_identity(const struct hd_driveid *id)
 		printf(" (maybe):");
 
 	printf(" CurCHS=%u/%u/%u, CurSects=%lu, LBA=%s",id->cur_cyls, id->cur_heads,
-													id->cur_sectors, 
- 													(BB_BIG_ENDIAN) ? 
+													id->cur_sectors,
+													(BB_BIG_ENDIAN) ?
 													(long unsigned int)(id->cur_capacity0 << 16) | id->cur_capacity1 :
 													(long unsigned int)(id->cur_capacity1 << 16) | id->cur_capacity0,
 													((id->capability&2) == 0) ? "no" : "yes");
@@ -1213,7 +1213,7 @@ static void dump_identity(const struct hd_driveid *id)
 
 	if (((id->capability&8) || (id->field_valid&2)) && id->field_valid&2)
 		printf(", tPIO={min:%u,w/IORDY:%u}", id->eide_pio, id->eide_pio_iordy);
-	
+
 	if ((id->capability&1) && (id->field_valid&2))
 		printf(", tDMA={min:%u,rec:%u}", id->eide_dma_min, id->eide_dma_time);
 
@@ -1254,7 +1254,7 @@ static void dump_identity(const struct hd_driveid *id)
 		}
 	}
 	if (((id->capability&8) || (id->field_valid&2))	&& id->field_valid&4)
-	{	
+	{
 		printf("\n UDMA modes: ");
 		if (id->dma_ultra & 0x100) printf("*");
 		if (id->dma_ultra & 0x001) printf("udma0 ");
@@ -1399,7 +1399,7 @@ static void do_time(int flag, int fd)
 		if (read_big_block (fd, buf)) return;
 		printf(" Timing cached reads:   ");
 		fflush(stdout);
-	
+
 		/* Now do the timing */
 		iterations = 0;
 		getitimer(ITIMER_REAL, &e1);
@@ -1422,9 +1422,9 @@ static void do_time(int flag, int fd)
 			elapsed2 = (e1.it_value.tv_sec - e2.it_value.tv_sec)
 			+ ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
 		} while (--iterations);
-	
+
 		elapsed -= elapsed2;
-		print_timing(BUFCACHE_FACTOR * total_MB, elapsed);	
+		print_timing(BUFCACHE_FACTOR * total_MB, elapsed);
 		flush_buffer_cache(fd);
 		sleep(1);
 	}
@@ -1447,7 +1447,7 @@ static void do_time(int flag, int fd)
 			elapsed = (e1.it_value.tv_sec - e2.it_value.tv_sec)
 			+ ((e1.it_value.tv_usec - e2.it_value.tv_usec) / 1000000.0);
 		} while (elapsed < 3.0 && iterations < max_iterations);
-	
+
 		total_MB = iterations * TIMING_BUF_MB;
 		print_timing(total_MB, elapsed);
 	}
@@ -2124,7 +2124,7 @@ int hdparm_main(int argc, char **argv)
 		do_flush |= do_timings |= (c == 't');
 		do_flush |= do_ctimings |= (c == 'T');
 #ifdef HDIO_DRIVE_CMD
-		if (c == 'S') parse_opts(&get_standby, &set_standby, &standby_requested, 0, INT_MAX);	
+		if (c == 'S') parse_opts(&get_standby, &set_standby, &standby_requested, 0, INT_MAX);
 		if (c == 'D') parse_opts(&get_defects, &set_defects, &defects, 0, INT_MAX);
 		if (c == 'P') parse_opts(&get_prefetch, &set_prefetch, &prefetch, 0, INT_MAX);
 		parse_xfermode((c == 'X'), &get_xfermode, &set_xfermode, &xfermode_requested);
@@ -2138,22 +2138,22 @@ int hdparm_main(int argc, char **argv)
 		reread_partn |= (c == 'z');
 		get_seagate = set_seagate |= (c == 'Z');
 #endif
-		USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(if (c == 'U') parse_opts(NULL, &unregister_hwif, &hwif, 0, INT_MAX));	
+		USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF(if (c == 'U') parse_opts(NULL, &unregister_hwif, &hwif, 0, INT_MAX));
 #ifdef HDIO_GET_QDMA
 		if (c == 'Q') {
 #ifdef HDIO_SET_QDMA
 			parse_opts(&get_dma_q, &set_dma_q, &dma_q, 0, INT_MAX);
 #else
-			parse_opts(&get_dma_q, NULL, NULL, 0, 0);	
+			parse_opts(&get_dma_q, NULL, NULL, 0, 0);
 #endif
 		}
-#endif		
+#endif
 		USE_FEATURE_HDPARM_HDIO_DRIVE_RESET(perform_reset = (c == 'r'));
-		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'x') parse_opts(NULL, &perform_tristate, &tristate, 0, 1));	
-		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'b') parse_opts(&get_busstate, &set_busstate, &busstate, 0, 2));	
+		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'x') parse_opts(NULL, &perform_tristate, &tristate, 0, 1));
+		USE_FEATURE_HDPARM_HDIO_TRISTATE_HWIF(if (c == 'b') parse_opts(&get_busstate, &set_busstate, &busstate, 0, 2));
 #if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
 		if (c == 'R') {
-			parse_opts(NULL, &scan_hwif, &hwif_data, 0, INT_MAX);	
+			parse_opts(NULL, &scan_hwif, &hwif_data, 0, INT_MAX);
 			hwif_ctrl =  bb_xgetlarg((argv[optind]) ? argv[optind] : "", 10, 0, INT_MAX);
 			hwif_irq  =  bb_xgetlarg((argv[optind+1]) ? argv[optind+1] : "", 10, 0, INT_MAX);
 			/* Move past the 2 additional arguments */

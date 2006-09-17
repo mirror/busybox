@@ -1,7 +1,7 @@
 /* Minimal wrapper to build an individual busybox applet.
  *
  * Copyright 2005 Rob Landley <rob@landley.net
- * 
+ *
  * Licensed under GPLv2 or later, see file License in this tarball for details
  */
 

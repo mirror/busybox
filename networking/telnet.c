@@ -185,9 +185,9 @@ static void handlenetoutput(int len)
 	 *	I don't agree.
 	 *	first - I cannot use programs like sz/rz
 	 *	second - the 0x0D is sent as one character and if the next
-	 *	         char is 0x0A then it's eaten by a server side.
+	 *		 char is 0x0A then it's eaten by a server side.
 	 *	third - whay doy you have to make 'many write()s'?
-	 *	        I don't understand.
+	 *		I don't understand.
 	 *	So I implemented it. It's realy useful for me. I hope that
 	 *	others people will find it interesting to.
 	 */

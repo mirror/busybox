@@ -76,7 +76,7 @@ testing ()
   echo -ne "$5" | eval "$2" > actual
   RETVAL=$?
 
-  cmp expected actual > /dev/null 
+  cmp expected actual > /dev/null
   if [ $? -ne 0 ]
   then
     FAILCOUNT=$[$FAILCOUNT+1]

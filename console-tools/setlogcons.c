@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * setlogcons: Send kernel messages to the current console or to console N 
+ * setlogcons: Send kernel messages to the current console or to console N
  *
  * Copyright (C) 2006 by Jan Kiszka <jan.kiszka@web.de>
  *

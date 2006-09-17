@@ -483,7 +483,7 @@ read_response:
 	do {
 		while (filesize > 0 || !got_clen) {
 			unsigned rdsz = sizeof(buf);
-			if (filesize < sizeof(buf) && (chunked || got_clen)) 
+			if (filesize < sizeof(buf) && (chunked || got_clen))
 				rdsz = filesize;
 			n = safe_fread(buf, 1, rdsz, dfp);
 			if (n <= 0)

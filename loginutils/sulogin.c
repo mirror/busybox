@@ -73,7 +73,7 @@ int sulogin_main(int argc, char **argv)
 
 	if (!(pwd = getpwuid(0))) {
 		goto auth_error;
-	} 
+	}
 
 	if (ENABLE_FEATURE_SHADOWPASSWDS) {
 		if (!(spwd = getspnam(pwd->pw_name))) {
@@ -108,6 +108,6 @@ int sulogin_main(int argc, char **argv)
 	run_shell(pwd->pw_shell, 1, 0, 0);
 	/* never returns */
 
-auth_error:	
+auth_error:
 	bb_error_msg_and_die("no password entry for `root'");
 }

@@ -76,8 +76,8 @@ void blkid_debug_dump_dev(blkid_dev dev)
 
 	list_for_each(p, &dev->bid_tags) {
 		blkid_tag tag = list_entry(p, struct blkid_struct_tag, bit_tags);
-		if (tag)   
-			printf("    tag: %s=\"%s\"\n", tag->bit_name, 
+		if (tag)
+			printf("    tag: %s=\"%s\"\n", tag->bit_name,
 			       tag->bit_val);
 		else
 			printf("    tag: NULL\n");
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
 		case 'm':
 			blkid_debug_mask = strtoul (optarg, &tmp, 0);
 			if (*tmp) {
-				fprintf(stderr, "Invalid debug mask: %d\n", 
+				fprintf(stderr, "Invalid debug mask: %d\n",
 					optarg);
 				exit(1);
 			}

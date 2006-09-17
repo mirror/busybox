@@ -1316,8 +1316,8 @@ static void list_packages(void)
 	/* go through status hash, dereference package hash and finally strings */
 	for (i=0; i<STATUS_HASH_PRIME+1; i++) {
 
-	        if (status_hashtable[i]) {
-		        const char *stat_str;  /* status string */
+		if (status_hashtable[i]) {
+			const char *stat_str;  /* status string */
 			const char *name_str;  /* package name */
 			const char *vers_str;  /* version */
 			char  s1, s2;          /* status abbreviations */
@@ -1333,7 +1333,7 @@ static void list_packages(void)
 
 			/* get abbreviation for status field 2 */
 			for (j=0, spccnt=0; stat_str[j] && spccnt<2; j++) {
-			        if (stat_str[j] == ' ') spccnt++;
+				if (stat_str[j] == ' ') spccnt++;
 			}
 			s2 = stat_str[j];
 

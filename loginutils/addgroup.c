@@ -88,7 +88,7 @@ int addgroup_main(int argc, char **argv)
 {
 	char *group;
 	gid_t gid = 0;
-	
+
 	/* check for min, max and missing args and exit on error */
 	bb_opt_complementally = "-1:?2:?";
 

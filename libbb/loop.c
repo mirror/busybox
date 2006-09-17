@@ -83,7 +83,7 @@ int set_loop(char **device, const char *file, int offset)
 	bb_loop_info loopinfo;
 	struct stat statbuf;
 	int i, dfd, ffd, mode, rc=-1;
-	
+
 	/* Open the file.  Barf if this doesn't work.  */
 	if((ffd = open(file, mode=O_RDWR))<0 && (ffd = open(file,mode=O_RDONLY))<0)
 		return -errno;

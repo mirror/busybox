@@ -116,7 +116,7 @@ testing "sed leave off trailing newline" "sed -e 's/woo/bang/' input -" \
 testing "sed autoinsert newline" "sed -e 's/woo/bang/' input -" "bang\nbang" \
 	"woo" "woo"
 testing "sed empty file plus cat" "sed -e 's/nohit//' input -" "one\ntwo" \
-	"" "one\ntwo" 
+	"" "one\ntwo"
 testing "sed cat plus empty file" "sed -e 's/nohit//' input -" "one\ntwo" \
 	"one\ntwo" ""
 testing "sed append autoinserts newline" "sed -e '/woot/a woo' -" \
@@ -138,7 +138,7 @@ testing "sed selective matches noinsert newline" \
 	"c no\nd no"
 testing "sed clusternewline" \
 	"sed -e '/one/a 111' -e '/two/i 222' -e p input -" \
-	"one\none\n111\n222\ntwo\ntwo" "one" "two" 
+	"one\none\n111\n222\ntwo\ntwo" "one" "two"
 
 # Test end-of-file matching behavior
 

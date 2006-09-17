@@ -21,6 +21,6 @@ libraries-y+=$(APPLETS_DIR)$(APPLETS_AR)
 $(APPLETS_DIR)$(APPLETS_AR): $(APPLET_OBJ)
 	$(do_ar)
 
-$(APPLET_OBJ): $(top_builddir)/.config 
+$(APPLET_OBJ): $(top_builddir)/.config
 $(APPLET_OBJ): $(APPLETS_DIR)%.o: $(srcdir)/%.c
 	$(compile.c)

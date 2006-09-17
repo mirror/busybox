@@ -28,5 +28,5 @@ testing "readlink -f on a wierd dir" "readlink -f $TESTDIR/../$TESTFILE" "$PWD/$
 
 
 # clean up
-rm -r "$TESTLINK" "$TESTDIR" 
+rm -r "$TESTLINK" "$TESTDIR"
 

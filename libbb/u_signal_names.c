@@ -16,12 +16,12 @@ static struct signal_name {
 	// SUSv3 says kill must support these, and specifies the numerical values,
 	// http://www.opengroup.org/onlinepubs/009695399/utilities/kill.html
 	{"0", 0}, {"HUP", 1}, {"INT", 2}, {"QUIT", 3}, {"ABRT", 6}, {"KILL", 9},
-   	{"ALRM", 14}, {"TERM", 15},
+	{"ALRM", 14}, {"TERM", 15},
 	// And Posix adds the following:
 	{"ILL", SIGILL}, {"TRAP", SIGTRAP}, {"FPE", SIGFPE}, {"USR1", SIGUSR1},
-   	{"SEGV", SIGSEGV}, {"USR2", SIGUSR2}, {"PIPE", SIGPIPE}, {"CHLD", SIGCHLD},
-   	{"CONT", SIGCONT}, {"STOP", SIGSTOP}, {"TSTP", SIGTSTP}, {"TTIN", SIGTTIN},
-   	{"TTOU", SIGTTOU}
+	{"SEGV", SIGSEGV}, {"USR2", SIGUSR2}, {"PIPE", SIGPIPE}, {"CHLD", SIGCHLD},
+	{"CONT", SIGCONT}, {"STOP", SIGSTOP}, {"TSTP", SIGTSTP}, {"TTIN", SIGTTIN},
+	{"TTOU", SIGTTOU}
 };
 
 // Convert signal name to number.

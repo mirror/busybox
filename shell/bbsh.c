@@ -1,5 +1,5 @@
 /* vi: set ts=4 :
- * 
+ *
  * bbsh - busybox shell
  *
  * Copyright 2006 Rob Landley <rob@landley.net>
@@ -51,7 +51,7 @@
 // What we know about a single process.
 struct command {
 	struct command *next;
-	int flags;		// exit, suspend, && || 
+	int flags;		// exit, suspend, && ||
 	int pid;		// pid (or exit code)
 	int argc;
 	char *argv[0];
@@ -125,9 +125,9 @@ static char *parse_pipeline(char *cmdline, struct pipeline *line)
 			return 0;
 		}
 
-		// Allocate next command structure if necessary		
+		// Allocate next command structure if necessary
 		if (!*cmd) *cmd = xzalloc(sizeof(struct command)+8*sizeof(char *));
-		
+
 		// Parse next argument and add the results to argv[]
 		end = parse_word(start, cmd);
 
@@ -138,7 +138,7 @@ static char *parse_pipeline(char *cmdline, struct pipeline *line)
 					start++;
 					break;
 				}
-				// handle | & < > >> << || && 
+				// handle | & < > >> << || &&
 			}
 			break;
 		}
@@ -160,7 +160,7 @@ static int run_pipeline(struct pipeline *line)
 	if (cmd->argc==2 && !strcmp(cmd->argv[0],"cd"))
 		chdir(cmd->argv[1]);
 	else if(!strcmp(cmd->argv[0],"exit"))
-		exit(cmd->argc>1 ? atoi(cmd->argv[1]) : 0); 
+		exit(cmd->argc>1 ? atoi(cmd->argv[1]) : 0);
 	else {
 		int status;
 		pid_t pid=fork();
@@ -217,6 +217,6 @@ int bbsh_main(int argc, char *argv[])
 		}
 		if (ENABLE_FEATURE_CLEAN_UP) free(command);
 	}
-		
+
 	return 1;
 }

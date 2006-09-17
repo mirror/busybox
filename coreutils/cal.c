@@ -33,7 +33,7 @@ static const char days_in_month[] = {
 };
 
 static const char sep1752[] = {
-	         1,	2,	14,	15,	16,
+		 1,	2,	14,	15,	16,
 	17,	18,	19,	20,	21,	22,	23,
 	24,	25,	26,	27,	28,	29,	30
 };
@@ -207,7 +207,7 @@ static void day_array(int month, int year, int *days)
 
 	if ((month == 9) && (year == 1752)) {
 		size_t oday = 0;
-		
+
 		j_offset = julian * 244;
 		do {
 			days[oday+2] = sep1752[oday] + j_offset;

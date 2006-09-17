@@ -113,7 +113,7 @@ Manuel Novoa III <mjn3@codepoet.org>
 
 Vladimir Oleynik <dzo@simtreas.ru>
     cmdedit; bb_mkdep, xargs(current), httpd(current);
-    ports: ash, crond, fdisk (initial, unmaintained now), inetd, stty, traceroute, 
+    ports: ash, crond, fdisk (initial, unmaintained now), inetd, stty, traceroute,
     top;
     locale, various fixes
     and irreconcilable critic of everything not perfect.

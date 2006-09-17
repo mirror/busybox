@@ -196,7 +196,7 @@ static struct dnode *my_stat(char *fullname, char *name)
 #endif
 	{
 #ifdef CONFIG_SELINUX
-	        if  (is_selinux_enabled())  {
+		if  (is_selinux_enabled()) {
 		  lgetfilecon(fullname,&sid);
 		}
 #endif

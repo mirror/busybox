@@ -737,7 +737,7 @@ static void parse_extended_opts(struct ext2_super_block *sb_param,
 			}
 			if (resize <= sb_param->s_blocks_count) {
 				bb_error_msg("The resize maximum must be greater "
-				             "than the filesystem size");
+						"than the filesystem size");
 				r_usage++;
 				continue;
 			}

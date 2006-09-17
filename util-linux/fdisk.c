@@ -1914,9 +1914,9 @@ sgi_set_swappartition(int i)
 static int
 sgi_check_bootfile(const char* aFile)
 {
- 	if (strlen(aFile) < 3) /* "/a\n" is minimum */ {
- 		printf(_("\nInvalid Bootfile!\n"
- 			"\tThe bootfile must be an absolute non-zero pathname,\n"
+	if (strlen(aFile) < 3) /* "/a\n" is minimum */ {
+		printf(_("\nInvalid Bootfile!\n"
+			"\tThe bootfile must be an absolute non-zero pathname,\n"
 			"\te.g. \"/unix\" or \"/unix.save\".\n"));
 		return 0;
 	} else {
@@ -1931,7 +1931,7 @@ sgi_check_bootfile(const char* aFile)
 				return 0;
 			}
 		}
- 	}
+	}
 	if (strncmp(aFile, (char*)sgilabel->boot_file, 16)) {
 		printf(_("\n\tBe aware, that the bootfile is not checked for existence.\n\t"
 			 "SGI's default is \"/unix\" and for backup \"/unix.save\".\n"));
@@ -2505,7 +2505,7 @@ static const struct systypes sun_sys_types[] = {
 	{ "\x83" "Linux native" }, /* LINUX_NATIVE */
 	{ "\x8e" "Linux LVM"    }, /* 0x8e         */
 /* New (2.2.x) raid partition with autodetect using persistent superblock */
-	{ "\xfd" "Linux raid autodetect" }, /* 0xfd         */  
+	{ "\xfd" "Linux raid autodetect" }, /* 0xfd         */
 	{ NULL }
 };
 
@@ -3080,14 +3080,14 @@ sun_list_table(int xtra)
 			uint32_t start = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * heads * sectors;
 			uint32_t len = SUN_SSWAP32(sunlabel->partitions[i].num_sectors);
 			printf("%s %c%c %9ld %9ld %9ld%c  %2x  %s\n",
-				partname(disk_device, i+1, w),			/* device */            
-				(sunlabel->infos[i].flags & 0x01) ? 'u' : ' ',  /* flags */             
-				(sunlabel->infos[i].flags & 0x10) ? 'r' : ' ',  			
-				(long) scround(start),                          /* start */             
-				(long) scround(start+len),                      /* end */               
-				(long) len / 2, len & 1 ? '+' : ' ',            /* odd flag on end */   
-				sunlabel->infos[i].id,                          /* type id */           
-				partition_type(sunlabel->infos[i].id));         /* type name */         
+				partname(disk_device, i+1, w),			/* device */
+				(sunlabel->infos[i].flags & 0x01) ? 'u' : ' ',  /* flags */
+				(sunlabel->infos[i].flags & 0x10) ? 'r' : ' ',
+				(long) scround(start),                          /* start */
+				(long) scround(start+len),                      /* end */
+				(long) len / 2, len & 1 ? '+' : ' ',            /* odd flag on end */
+				sunlabel->infos[i].id,                          /* type id */
+				partition_type(sunlabel->infos[i].id));         /* type name */
 		}
 	}
 }
@@ -4280,8 +4280,8 @@ get_partition(int warn, int max)
 	if (warn) {
 		if (
 			(
-				label_sun != current_label_type && 
-				label_sgi != current_label_type && 
+				label_sun != current_label_type &&
+				label_sgi != current_label_type &&
 				!pe->part_table->sys_ind
 			)
 #ifdef CONFIG_FEATURE_SUN_LABEL

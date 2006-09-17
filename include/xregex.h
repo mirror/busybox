@@ -5,7 +5,7 @@
  *
  * Based in part on code from sash, Copyright (c) 1999 by David I. Bell
  * Permission has been granted to redistribute this code under the GPL.
- * 
+ *
  * Licensed under GPLv2 or later, see file License in this tarball for details.
  */
 #ifndef __BB_REGEX__

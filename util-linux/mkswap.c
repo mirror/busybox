@@ -19,7 +19,7 @@ int mkswap_main(int argc, char *argv[])
 	if (argc!=2) bb_show_usage();
 
 	// Figure out how big the device is and announce our intentions.
-	
+
 	fd = xopen(argv[1],O_RDWR);
 	len = fdlength(fd);
 	pagesize = getpagesize();

@@ -138,7 +138,7 @@ static void make_device(char *path, int delete)
 							// Command to run
 							char *s = "@$*", *s2;
 							if (!(s2 = strchr(s, *pos++))) {
-							  	// Force error
+								// Force error
 								field = 1;
 								break;
 							}
@@ -171,13 +171,13 @@ static void make_device(char *path, int delete)
 
 		if (major == bbg.root_major && minor == bbg.root_minor)
 			symlink(device_name, "root");
-	
+
 		if (ENABLE_FEATURE_MDEV_CONF) chown(device_name, uid, gid);
 	}
 	if (command) {
 		int rc;
 		char *s;
-		
+
 		s=xasprintf("MDEV=%s",device_name);
 		putenv(s);
 		rc = system(command);

@@ -104,7 +104,7 @@ int lsmod_main(int argc, char **argv)
 			if (errno == ENOENT) {
 				/* The module was removed out from underneath us. */
 				continue;
-			} else if (errno != ENOSPC) 
+			} else if (errno != ENOSPC)
 				bb_perror_msg_and_die("module %s: QM_REFS", mn);
 			deps = xrealloc(deps, count);
 		}

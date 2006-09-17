@@ -370,7 +370,7 @@ static void ping(const char *host)
 		pingaddr.sin6_scope_id = if_index;
 
 	printf("PING %s (%s): %d data bytes\n",
-	           hostent->h_name,
+		   hostent->h_name,
 		   inet_ntop(AF_INET6, &pingaddr.sin6_addr,
 			buf, sizeof(buf)),
 		   datalen);

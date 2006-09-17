@@ -185,7 +185,7 @@ void sym_check_prop(struct symbol *sym)
 		case P_RANGE:
 			if (sym->type != S_INT && sym->type != S_HEX)
 				prop_warn(prop, "range is only allowed "
-				                "for int or hex symbols");
+						"for int or hex symbols");
 			if (!sym_string_valid(sym, prop->expr->left.sym->name) ||
 			    !sym_string_valid(sym, prop->expr->right.sym->name))
 				prop_warn(prop, "range is invalid");

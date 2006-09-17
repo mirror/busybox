@@ -499,9 +499,9 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-s SIZE\t\tUse a buffer of size SIZE"
 
 #define dnsd_trivial_usage \
-        "[-c config] [-t seconds] [-p port] [-i iface-ip] [-d]"
+	"[-c config] [-t seconds] [-p port] [-i iface-ip] [-d]"
 #define dnsd_full_usage \
-        "Small and static DNS server daemon\n\n" \
+	"Small and static DNS server daemon\n\n" \
 	"Options:\n" \
 	"\t-c\t\tconfig filename\n" \
 	"\t-t\t\tTTL in seconds\n" \
@@ -2058,7 +2058,7 @@ USE_FEATURE_MDEV_CONFIG( \
 	"$ mount /tmp/diskimage /opt -t ext2 -o loop\n" \
 	"$ mount cd_image.iso mydir\n"
 #define mount_notes_usage \
-	"Returns 0 for success, number of failed mounts for -a, or errno for one mount." 
+	"Returns 0 for success, number of failed mounts for -a, or errno for one mount."
 
 #define mountpoint_trivial_usage \
 	"[-q] <[-d] DIR | -x DEVICE>"

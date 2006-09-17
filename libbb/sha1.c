@@ -6,7 +6,7 @@
  *  Copyright (C) 2002 Dr Brian Gladman <brg@gladman.me.uk>, Worcester, UK.
  *  Copyright (C) 2003 Glenn L. McGrath
  *  Copyright (C) 2003 Erik Andersen
- *  
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  *  ---------------------------------------------------------------------------
@@ -172,7 +172,7 @@ void *sha1_end(void *resbuf, sha1_ctx_t *ctx)
 
 	for (i = 0; i < SHA1_DIGEST_SIZE; ++i)
 		hval[i] = (unsigned char) (ctx->hash[i >> 2] >> 8 * (~i & 3));
-	
+
 	return resbuf;
 }
 

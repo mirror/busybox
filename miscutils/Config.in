@@ -292,7 +292,7 @@ config CONFIG_READAHEAD
 	  significantly speed up system startup.
 
 	  As readahead(2) blocks until each file has been read, it is best to
-	  run this applet as a background job. 
+	  run this applet as a background job.
 
 config CONFIG_RUNLEVEL
         bool "runlevel"

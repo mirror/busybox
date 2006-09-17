@@ -137,8 +137,8 @@ static int adduser(struct passwd *p, unsigned long flags)
 		if (mkdir(p->pw_dir, 0755)
 		|| chown(p->pw_dir, p->pw_uid, p->pw_gid)
 		|| chmod(p->pw_dir, 02755)) {
- 			bb_perror_msg("%s", p->pw_dir);
- 		}
+			bb_perror_msg("%s", p->pw_dir);
+		}
 	}
 
 	if (!(flags & DONT_SET_PASS)) {
@@ -175,7 +175,7 @@ int adduser_main(int argc, char **argv)
 	/* got root? */
 	if(geteuid()) {
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
- 	}
+	}
 
 	/* create string for $HOME if not specified already */
 	if (!pw.pw_dir) {

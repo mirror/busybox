@@ -86,7 +86,7 @@ testing "mount remount nonexistent directory" \
 
 # Fun with mount -a
 
-testing "mount -a no fstab" "mount -a 2>/dev/null || echo yes" "yes\n" "" "" 
+testing "mount -a no fstab" "mount -a 2>/dev/null || echo yes" "yes\n" "" ""
 
 umount /proc
 

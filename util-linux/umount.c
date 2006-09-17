@@ -76,7 +76,7 @@ int umount_main(int argc, char **argv)
 		m = 0;
 		if (!argc) bb_show_usage();
 	}
-	
+
 	// Loop through everything we're supposed to umount, and do so.
 	for (;;) {
 		int curstat;

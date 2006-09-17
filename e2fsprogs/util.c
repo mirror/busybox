@@ -99,7 +99,7 @@ force_check:
 			bb_error_msg_and_die("it's not safe to run badblocks!");
 	}
 
-	if (mount_flags & EXT2_MF_BUSY) {  
+	if (mount_flags & EXT2_MF_BUSY) {
 		bb_error_msg("%s is apparently in use by the system", device);
 		goto force_check;
 	}

@@ -24,7 +24,7 @@
 static const char * idle_string (time_t t)
 {
 	static char str[6];
-	
+
 	time_t s = time(NULL) - t;
 
 	if (s < 60)
@@ -43,11 +43,11 @@ int who_main(int argc, char **argv)
 	struct utmp *ut;
 	struct stat st;
 	char *name;
-	
+
 	if (argc > 1) {
 		bb_show_usage();
 	}
-	
+
 	setutent();
 	printf("USER       TTY      IDLE      TIME           HOST\n");
 	while ((ut = getutent()) != NULL) {

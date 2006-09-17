@@ -820,8 +820,8 @@ static void output(char *file1, FILE * f1, char *file2, FILE * f2)
 }
 
 /*
- *      The following code uses an algorithm due to Harold Stone, 
- *      which finds a pair of longest identical subsequences in 
+ *      The following code uses an algorithm due to Harold Stone,
+ *      which finds a pair of longest identical subsequences in
  *      the two files.
  *
  *      The major goal is to generate the match vector J.

@@ -103,7 +103,7 @@ struct sed_globals
 
 	regmatch_t regmatch[10];
 	regex_t *previous_regex_ptr;
-	
+
 	/* linked list of sed commands */
 	sed_cmd_t sed_cmd_head, *sed_cmd_tail;
 
@@ -780,7 +780,7 @@ restart:
 				|| (sed_cmd->beg_line > 0 && (sed_cmd->beg_line == linenum))
 
 			/* Or does this line match our begin address regex? */
-			        || (sed_cmd->beg_match &&
+				|| (sed_cmd->beg_match &&
 				    !regexec(sed_cmd->beg_match, pattern_space, 0, NULL, 0))
 
 			/* Or did we match last line of input? */

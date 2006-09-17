@@ -29,7 +29,7 @@
  * Ken Turkowski, Dave Mack and Peter Jannesen.
  *
  * See the file algorithm.doc for the compression algorithms and file formats.
- * 
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
@@ -853,7 +853,7 @@ int inflate_unzip(int in, int out)
 	/* Create the crc table */
 	gunzip_crc_table = crc32_filltable(0);
 	gunzip_crc = ~0;
-	
+
 	/* Allocate space for buffer */
 	bytebuffer = xmalloc(bytebuffer_max);
 

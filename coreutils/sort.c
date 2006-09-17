@@ -5,7 +5,7 @@
  * Copyright (C) 2004 by Rob Landley <rob@landley.net>
  *
  * MAINTAINER: Rob Landley <rob@landley.net>
- * 
+ *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  *
  * See SuS3 sort standard at:

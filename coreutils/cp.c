@@ -77,7 +77,7 @@ int cp_main(int argc, char **argv)
 	/* If there are only two arguments and...  */
 	if (optind + 2 == argc) {
 		s_flags = cp_mv_stat2(*argv, &source_stat,
-		                      (flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
+				      (flags & FILEUTILS_DEREFERENCE) ? stat : lstat);
 		if ((s_flags < 0) || ((d_flags = cp_mv_stat(last, &dest_stat)) < 0)) {
 			exit(EXIT_FAILURE);
 		}

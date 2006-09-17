@@ -305,7 +305,7 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
 
 	    if (key == KEY_UP || key == '-') {
 		if (choice < 2 && scroll) {
-	            /* Scroll menu down */
+		    /* Scroll menu down */
 		    scrollok (menu, TRUE);
 		    wscrl (menu, -1);
 		    scrollok (menu, FALSE);
@@ -339,7 +339,7 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
 		    choice = MIN(choice+1, max_choice-1);
 
 	    } else if (key == KEY_PPAGE) {
-	        scrollok (menu, TRUE);
+		scrollok (menu, TRUE);
 		for (i=0; (i < max_choice); i++) {
 		    if (scroll > 0) {
 			wscrl (menu, -1);
@@ -361,8 +361,8 @@ dialog_menu (const char *title, const char *prompt, int height, int width,
 			scrollok (menu, FALSE);
 			scroll++;
 			print_item (menu, items[scroll + max_choice - 1]->name,
-			            max_choice-1, FALSE,
-			            (items[scroll + max_choice - 1]->tag[0] != ':'));
+				    max_choice-1, FALSE,
+				    (items[scroll + max_choice - 1]->tag[0] != ':'));
 		    } else {
 			if (choice+1 < max_choice)
 			    choice++;

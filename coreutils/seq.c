@@ -14,7 +14,7 @@
 int seq_main(int argc, char **argv)
 {
 	double last, first, increment, i;
-	
+
 	first = increment = 1;
 	switch (argc) {
 		case 4:

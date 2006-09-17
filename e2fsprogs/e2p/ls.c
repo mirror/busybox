@@ -26,14 +26,14 @@ static void print_user(unsigned short uid, FILE *f)
 {
 	struct passwd *pw = getpwuid(uid);
 	fprintf(f, "%u (user %s)\n", uid,
-	        (pw == NULL ? "unknown" : pw->pw_name));
+			(pw == NULL ? "unknown" : pw->pw_name));
 }
 
 static void print_group(unsigned short gid, FILE *f)
 {
 	struct group *gr = getgrgid(gid);
 	fprintf(f, "%u (group %s)\n", gid,
-	        (gr == NULL ? "unknown" : gr->gr_name));
+			(gr == NULL ? "unknown" : gr->gr_name));
 }
 
 #define MONTH_INT (86400 * 30)

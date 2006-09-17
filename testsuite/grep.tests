@@ -4,7 +4,7 @@
 # Copyright 2005 by Rob Landley <rob@landley.net>
 # Licensed under GPL v2, see file LICENSE for details.
 
-# AUDIT: 
+# AUDIT:
 
 . testing.sh
 

@@ -22,7 +22,7 @@ int readahead_main(int argc, char **argv)
 	while (*++argv) {
 		if ((f = bb_wfopen(*argv, "r")) != NULL) {
 			int r, fd=fileno(f);
-			
+
 			r = readahead(fd, 0, fdlength(fd));
 			fclose(f);
 			if (r >= 0) continue;

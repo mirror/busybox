@@ -72,7 +72,7 @@ void print_login_issue(const char *issue_file, const char *tty)
 					case 'D':
 					case 'o':
 						c = getdomainname(buf, sizeof(buf) - 1);
-						buf[c >= 0 ? c : 0] = '\0'; 
+						buf[c >= 0 ? c : 0] = '\0';
 						break;
 
 					case 'd':

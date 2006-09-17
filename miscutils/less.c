@@ -610,26 +610,26 @@ static char *process_regex_on_line(char *line, regex_t *pattern, int action)
 
 	match_found = 0;
 	match_status = regexec(pattern, line2, 1, &match_structs, 0);
-	
+
 	while (match_status == 0) {
 		if (match_found == 0)
 			match_found = 1;
-		
+
 		if (action) {
-			growline = xasprintf("%s%.*s%s%.*s%s", growline, match_structs.rm_so, line2, HIGHLIGHT, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so, NORMAL); 
+			growline = xasprintf("%s%.*s%s%.*s%s", growline, match_structs.rm_so, line2, HIGHLIGHT, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so, NORMAL);
 		}
 		else {
 			growline = xasprintf("%s%.*s%.*s", growline, match_structs.rm_so - 4, line2, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so);
 		}
-		
+
 		line2 += match_structs.rm_eo;
 		match_status = regexec(pattern, line2, 1, &match_structs, REG_NOTBOL);
 	}
-	
+
 	growline = xasprintf("%s%s", growline, line2);
-	
+
 	return (match_found ? growline : line);
-	
+
 	free(growline);
 	free(line2);
 }
@@ -656,7 +656,7 @@ static void regex_process(void)
 	putchar((match_backwards) ? '?' : '/');
 	uncomp_regex[0] = 0;
 	fgets(uncomp_regex, sizeof(uncomp_regex), inp);
-	
+
 	if (strlen(uncomp_regex) == 1) {
 		if (num_matches)
 			goto_match(match_backwards ? match_pos - 1 : match_pos + 1);
@@ -665,7 +665,7 @@ static void regex_process(void)
 		return;
 	}
 	uncomp_regex[strlen(uncomp_regex) - 1] = '\0';
-	
+
 	/* Compile the regex and check for errors */
 	xregcomp(&pattern, uncomp_regex, 0);
 
@@ -677,7 +677,7 @@ static void regex_process(void)
 		}
 	}
 	old_pattern = pattern;
-	
+
 	/* Reset variables */
 	match_lines = xrealloc(match_lines, sizeof(int));
 	match_lines[0] = -1;
@@ -694,7 +694,7 @@ static void regex_process(void)
 			j++;
 		}
 	}
-	
+
 	num_matches = j;
 	if ((match_lines[0] != -1) && (num_flines > height - 2)) {
 		if (match_backwards) {

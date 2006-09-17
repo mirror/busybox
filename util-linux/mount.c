@@ -673,7 +673,7 @@ get_mountport(struct sockaddr_in *server_addr,
 	p.pm_vers = version;
 	p.pm_prot = proto;
 	p.pm_port = port;
-	
+
 	while (pmap) {
 		if (pmap->pml_map.pm_prog != prog)
 			goto next;
@@ -1315,7 +1315,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		s = strrchr(mp->mnt_fsname, '\\');
 		if (s == mp->mnt_fsname+1) goto report_error;
 		*s = 0;
-	   	he = gethostbyname(mp->mnt_fsname+2);
+		he = gethostbyname(mp->mnt_fsname+2);
 		*s = '\\';
 		if (!he) goto report_error;
 
@@ -1517,7 +1517,7 @@ int mount_main(int argc, char **argv)
 		if (rc) bb_perror_msg_and_die("%s", argv[0]);
 		goto clean_up;
 	}
-	
+
 	// Open either fstab or mtab
 
 	if (parse_mount_options(cmdopts,0) & MS_REMOUNT)

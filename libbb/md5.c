@@ -440,7 +440,7 @@ void *md5_end(void *resbuf, md5_ctx_t *ctx)
 	/* Process last bytes.  */
 	if (buf != ctx->buffer) md5_hash_block(ctx->buffer, ctx);
 	md5_hash_block(buf, ctx);
-	
+
 	/* Put result from CTX in first 16 bytes following RESBUF.  The result is
 	 * always in little endian byte order, so that a byte-wise output yields
 	 * to the wanted ASCII representation of the message digest.

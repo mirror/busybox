@@ -337,7 +337,7 @@ static void open_tty(char *tty, struct termio *tp, int local)
 		if(fd) {
 			xdup2(fd, 0, tty);
 			close(fd);
-		}		
+		}
 	} else {
 		/*
 		 * Standard input should already be connected to an open port. Make
@@ -812,11 +812,11 @@ int getty_main(int argc, char **argv)
 	setsid();
 #endif
 	/* We want special flavor of error_msg_and_die */
-	die_sleep = 10;		
+	die_sleep = 10;
 	msg_eol = "\r\n";
 	/* Was "/dev/console". Why should we spam *system console*
 	 * if there is a problem with getty on /dev/ttyS15?... */
-	nullfd = xopen(bb_dev_null, O_RDWR); 
+	nullfd = xopen(bb_dev_null, O_RDWR);
 	dup2(nullfd, 0);
 	dup2(nullfd, 1);
 	dup2(nullfd, 2);

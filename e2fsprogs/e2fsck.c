@@ -3661,7 +3661,7 @@ static void e2fsck_pass1(e2fsck_t ctx)
 		e2fsck_read_inode(ctx, EXT2_RESIZE_INO, inode,
 				  "recreate inode");
 		inode->i_mtime = time(0);
-		e2fsck_write_inode(ctx, EXT2_RESIZE_INO, inode, 
+		e2fsck_write_inode(ctx, EXT2_RESIZE_INO, inode,
 				  "recreate inode");
 		fs->block_map = save_bmap;
 		ctx->flags &= ~E2F_FLAG_RESIZE_INODE;

@@ -29,7 +29,7 @@ struct client_config_t {
 	uint8_t *hostname;		/* Optional hostname to use */
 	uint8_t *fqdn;			/* Optional fully qualified domain name to use */
 	int ifindex;			/* Index number of the interface to use */
-	int retries;			/* Max number of request packets */        
+	int retries;			/* Max number of request packets */
 	int timeout;			/* Number of seconds to try to get a lease */
 	uint8_t arp[6];			/* Our arp address */
 };
