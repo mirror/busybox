@@ -1340,14 +1340,14 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 			loopFile = bb_simplify_path(mp->mnt_fsname);
 			mp->mnt_fsname = 0;
 			switch (set_loop(&(mp->mnt_fsname), loopFile, 0)) {
-				case 0:
-				case 1:
-					break;
-				default:
-					bb_error_msg( errno == EPERM || errno == EACCES
-						? bb_msg_perm_denied_are_you_root
-						: "cannot setup loop device");
-					return errno;
+			case 0:
+			case 1:
+				break;
+			default:
+				bb_error_msg( errno == EPERM || errno == EACCES
+					? bb_msg_perm_denied_are_you_root
+					: "cannot setup loop device");
+				return errno;
 			}
 
 		// Autodetect bind mounts
@@ -1379,7 +1379,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		for (fl = fslist; fl; fl = fl->link) {
 			mp->mnt_type = fl->data;
 
-			rc = mount_it_now(mp,vfsflags, filteropts);
+			rc = mount_it_now(mp, vfsflags, filteropts);
 			if (!rc) break;
 
 			mp->mnt_type = 0;
@@ -1431,31 +1431,31 @@ int mount_main(int argc, char **argv)
 
 	while ((opt = getopt(argc, argv, "o:t:rwavnf")) > 0) {
 		switch (opt) {
-			case 'o':
-				append_mount_options(&cmdopts, optarg);
-				break;
-			case 't':
-				fstype = optarg;
-				break;
-			case 'r':
-				append_mount_options(&cmdopts, "ro");
-				break;
-			case 'w':
-				append_mount_options(&cmdopts, "rw");
-				break;
-			case 'a':
-				all = TRUE;
-				break;
-			case 'n':
-				USE_FEATURE_MTAB_SUPPORT(useMtab = FALSE;)
-				break;
-			case 'f':
-				USE_FEATURE_MTAB_SUPPORT(fakeIt = FALSE;)
-				break;
-			case 'v':
-				break;		// ignore -v
-			default:
-				bb_show_usage();
+		case 'o':
+			append_mount_options(&cmdopts, optarg);
+			break;
+		case 't':
+			fstype = optarg;
+			break;
+		case 'r':
+			append_mount_options(&cmdopts, "ro");
+			break;
+		case 'w':
+			append_mount_options(&cmdopts, "rw");
+			break;
+		case 'a':
+			all = TRUE;
+			break;
+		case 'n':
+			USE_FEATURE_MTAB_SUPPORT(useMtab = FALSE;)
+			break;
+		case 'f':
+			USE_FEATURE_MTAB_SUPPORT(fakeIt = FALSE;)
+			break;
+		case 'v':
+			break;		// ignore -v
+		default:
+			bb_show_usage();
 		}
 	}
 	argv += optind;
