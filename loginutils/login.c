@@ -40,7 +40,9 @@ static char* short_tty = full_tty;
  *	This means that getty should never invoke login with any
  *	command line flags.
  */
+
 static struct utmp utent;
+
 static void read_or_build_utent(int picky)
 {
 	struct utmp *ut;
@@ -97,10 +99,10 @@ static void write_utent(const char *username)
 	updwtmp(bb_path_wtmp_file, &utent);
 #endif
 }
-#else /* !CONFIG_FEATURE_UTMP */
-static inline void read_or_build_utent(int) {}
-static inline void write_utent(const char *) {}
-#endif /* !CONFIG_FEATURE_UTMP */
+#else /* !ENABLE_FEATURE_UTMP */
+static inline void read_or_build_utent(int ATTRIBUTE_UNUSED picky) {}
+static inline void write_utent(const char ATTRIBUTE_UNUSED *username) {}
+#endif /* !ENABLE_FEATURE_UTMP */
 
 static void die_if_nologin_and_non_root(int amroot)
 {
@@ -211,53 +213,35 @@ static void alarm_handler(int sig ATTRIBUTE_UNUSED)
 
 int login_main(int argc, char **argv)
 {
+	enum {
+		LOGIN_OPT_f = (1<<0),
+		LOGIN_OPT_h = (1<<1),
+		LOGIN_OPT_p = (1<<2),
+	};
 	char fromhost[512];
 	char username[USERNAME_SIZE];
 	const char *tmp;
 	int amroot;
-	int flag;
+	unsigned long opt;
 	int count = 0;
 	struct passwd *pw;
-	int opt_preserve = 0;
-	int opt_fflag = 0;
-	char *opt_host = 0;
-#ifdef CONFIG_SELINUX
-	security_context_t user_sid = NULL;
-#endif
+	char *opt_host = NULL;
+	char *opt_user = NULL;
+	USE_SELINUX(security_context_t user_sid = NULL;)
 
 	username[0] = '\0';
 	amroot = (getuid() == 0);
 	signal(SIGALRM, alarm_handler);
 	alarm(TIMEOUT);
 
-	while ((flag = getopt(argc, argv, "f:h:p")) != EOF) {
-		switch (flag) {
-		case 'p':
-			opt_preserve = 1;
-			break;
-		case 'f':
-			/*
-			 * username must be a separate token
-			 * (-f root, *NOT* -froot). --marekm
-			 */
-			if (optarg != argv[optind-1])
-				bb_show_usage();
+	opt = bb_getopt_ulflags(argc, argv, "f:h:p", &opt_user, &opt_host);
 
-			if (!amroot)	/* Auth bypass only if real UID is zero */
-				bb_error_msg_and_die("-f is for root only");
-
-			safe_strncpy(username, optarg, sizeof(username));
-			opt_fflag = 1;
-			break;
-		case 'h':
-			opt_host = optarg;
-			break;
-		default:
-			bb_show_usage();
-		}
+	if (opt & LOGIN_OPT_f) {
+		if (!amroot)
+			bb_error_msg_and_die("-f is for root only");
+		safe_strncpy(username, opt_user, strlen(opt_user));
 	}
-	if (optind < argc)             /* user from command line (getty) */
-		safe_strncpy(username, argv[optind], sizeof(username));
+	username[USERNAME_SIZE] = 0;
 
 	/* Let's find out and memorize our tty */
 	if (!isatty(0) || !isatty(1) || !isatty(2))
@@ -273,8 +257,9 @@ int login_main(int argc, char **argv)
 	read_or_build_utent(!amroot);
 
 	if (opt_host) {
-		if (ENABLE_FEATURE_UTMP)
+		USE_FEATURE_UTMP(
 			safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
+		)
 		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s' from "
 					"`%.200s'", short_tty, opt_host);
 	}
@@ -298,7 +283,7 @@ int login_main(int argc, char **argv)
 		if (pw->pw_passwd[0] == '!' || pw->pw_passwd[0] == '*')
 			goto auth_failed;
 
-		if (opt_fflag)
+		if (opt & LOGIN_OPT_f)
 			break; /* -f USER: success without asking passwd */
 
 		if (pw->pw_uid == 0 && !check_securetty())
@@ -306,14 +291,14 @@ int login_main(int argc, char **argv)
 
 		/* Don't check the password if password entry is empty (!) */
 		if (!pw->pw_passwd[0])
-			break; 
+			break;
 
 		/* authorization takes place here */
 		if (correct_password(pw))
-			break; 
+			break;
 
 auth_failed:
-		opt_fflag = 0;
+		opt &= ~LOGIN_OPT_f;
 		bb_do_delay(FAIL_DELAY);
 		puts("Login incorrect");
 		if (++count == 3) {
@@ -382,7 +367,7 @@ auth_failed:
 	tmp = pw->pw_shell;
 	if (!tmp || !*tmp)
 		tmp = DEFAULT_SHELL;
-	setup_environment(tmp, 1, !opt_preserve, pw);
+	setup_environment(tmp, 1, !(opt & LOGIN_OPT_p), pw);
 
 	motd();
 	signal(SIGALRM, SIG_DFL);	/* default alarm signal */
