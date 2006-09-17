@@ -719,6 +719,7 @@ static void error_msg_rpc(const char *msg)
 	bb_error_msg("%.*s", len, msg);
 }
 
+// NB: mp->xxx fields may be trashed on exit
 static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 {
 	CLIENT *mclient;
@@ -1260,7 +1261,7 @@ int nfsmount(struct mntent *mp, int vfsflags, char *filteropts);
 
 // Mount one directory.  Handles CIFS, NFS, loopback, autobind, and filesystem
 // type detection.  Returns 0 for success, nonzero for failure.
-
+// NB: mp->xxx fields may be trashed on exit
 static int singlemount(struct mntent *mp, int ignore_busy)
 {
 	int rc = -1, vfsflags;
@@ -1306,15 +1307,15 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 		// compose new unc '\\server-ip\share'
 
-		s = xasprintf("\\\\%s%s",ip+3,strchr(mp->mnt_fsname+2,'\\'));
-		if (ENABLE_FEATURE_CLEAN_UP) free(mp->mnt_fsname);
-		mp->mnt_fsname = s;
+		mp->mnt_fsname = xasprintf("\\\\%s%s", ip+3,
+					strchr(mp->mnt_fsname+2,'\\'));
 
 		// lock is required
 		vfsflags |= MS_MANDLOCK;
 
 		mp->mnt_type = "cifs";
 		rc = mount_it_now(mp, vfsflags, filteropts);
+		if (ENABLE_FEATURE_CLEAN_UP) free(mp->mnt_fsname);
 		goto report_error;
 	}
 
@@ -1457,14 +1458,16 @@ int mount_main(int argc, char **argv)
 				bb_show_usage();
 		}
 	}
+	argv += optind;
+	argc -= optind;
 
 	// Three or more non-option arguments?  Die with a usage message.
 
-	if (optind-argc>2) bb_show_usage();
+	if (argc > 2) bb_show_usage();
 
 	// If we have no arguments, show currently mounted filesystems
 
-	if (optind == argc) {
+	if (!argc) {
 		if (!all) {
 			FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 
@@ -1484,15 +1487,15 @@ int mount_main(int argc, char **argv)
 			if (ENABLE_FEATURE_CLEAN_UP) endmntent(mountTable);
 			return EXIT_SUCCESS;
 		}
-	} else storage_path = bb_simplify_path(argv[optind]);
+	} else storage_path = bb_simplify_path(argv[0]);
 
 	// When we have two arguments, the second is the directory and we can
 	// skip looking at fstab entirely.  We can always abspath() the directory
 	// argument when we get it.
 
-	if (optind+2 == argc) {
-		mtpair->mnt_fsname = argv[optind];
-		mtpair->mnt_dir = argv[optind+1];
+	if (argc == 2) {
+		mtpair->mnt_fsname = argv[0];
+		mtpair->mnt_dir = argv[1];
 		mtpair->mnt_type = fstype;
 		mtpair->mnt_opts = cmdopts;
 		rc = singlemount(mtpair, 0);
@@ -1504,8 +1507,8 @@ int mount_main(int argc, char **argv)
 	if (ENABLE_FEATURE_MOUNT_FLAGS &&
 			(i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE )))
 	{
-		rc = mount("", argv[optind], "", i, "");
-		if (rc) bb_perror_msg_and_die("%s", argv[optind]);
+		rc = mount("", argv[0], "", i, "");
+		if (rc) bb_perror_msg_and_die("%s", argv[0]);
 		goto clean_up;
 	}
 	
@@ -1533,13 +1536,13 @@ int mount_main(int argc, char **argv)
 		{
 			// Were we looking for something specific?
 
-			if (optind != argc) {
+			if (argc) {
 
 				// If we didn't find anything, complain.
 
 				if (!mtnext->mnt_fsname)
 					bb_error_msg_and_die("can't find %s in %s",
-						argv[optind], fstabname);
+						argv[0], fstabname);
 
 				// Mount the last thing we found.
 
@@ -1556,13 +1559,13 @@ int mount_main(int argc, char **argv)
 		 * skip it.  Note we must match both the exact text in fstab (ala
 		 * "proc") or a full path from root */
 
-		if (optind != argc) {
+		if (argc) {
 
 			// Is this what we're looking for?
 
-			if (strcmp(argv[optind],mtcur->mnt_fsname) &&
+			if (strcmp(argv[0],mtcur->mnt_fsname) &&
 			   strcmp(storage_path,mtcur->mnt_fsname) &&
-			   strcmp(argv[optind],mtcur->mnt_dir) &&
+			   strcmp(argv[0],mtcur->mnt_dir) &&
 			   strcmp(storage_path,mtcur->mnt_dir)) continue;
 
 			// Remember this entry.  Something later may have overmounted
