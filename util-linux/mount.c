@@ -1378,11 +1378,8 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 		for (fl = fslist; fl; fl = fl->link) {
 			mp->mnt_type = fl->data;
-
 			rc = mount_it_now(mp, vfsflags, filteropts);
 			if (!rc) break;
-
-			mp->mnt_type = 0;
 		}
 	}
 
@@ -1412,52 +1409,41 @@ report_error:
 
 int mount_main(int argc, char **argv)
 {
-	char *cmdopts = xstrdup(""), *fstabname, *fstype=0, *storage_path=0;
+	enum { OPT_ALL = 0x8 };
+
+	char *cmdopts = xstrdup(""), *fstype=0, *storage_path=0;
+	char *opt_o, *fstabname;
 	FILE *fstab;
-	int i, opt, all = FALSE, rc = 0;
+	int i, j, rc = 0;
+	unsigned long opt;
 	struct mntent mtpair[2], *mtcur = mtpair;
 
 	/* parse long options, like --bind and --move.  Note that -o option
 	 * and --option are synonymous.  Yes, this means --remount,rw works. */
 
-	for (i = opt = 0; i < argc; i++) {
+	for (i = j = 0; i < argc; i++) {
 		if (argv[i][0] == '-' && argv[i][1] == '-') {
 			append_mount_options(&cmdopts,argv[i]+2);
-		} else argv[opt++] = argv[i];
+		} else argv[j++] = argv[i];
 	}
-	argc = opt;
+	argc = j;
 
 	// Parse remaining options
 
-	while ((opt = getopt(argc, argv, "o:t:rwavnf")) > 0) {
-		switch (opt) {
-		case 'o':
-			append_mount_options(&cmdopts, optarg);
-			break;
-		case 't':
-			fstype = optarg;
-			break;
-		case 'r':
-			append_mount_options(&cmdopts, "ro");
-			break;
-		case 'w':
-			append_mount_options(&cmdopts, "rw");
-			break;
-		case 'a':
-			all = TRUE;
-			break;
-		case 'n':
-			USE_FEATURE_MTAB_SUPPORT(useMtab = FALSE;)
-			break;
-		case 'f':
-			USE_FEATURE_MTAB_SUPPORT(fakeIt = FALSE;)
-			break;
-		case 'v':
-			break;		// ignore -v
-		default:
-			bb_show_usage();
-		}
-	}
+	opt = bb_getopt_ulflags(argc, argv, "o:t:rwavnf", &opt_o, &fstype);
+	if (opt & 1) // -o
+		append_mount_options(&cmdopts, opt_o);
+	//if (opt & 1) // -t
+	if (opt & 2) // -r
+		append_mount_options(&cmdopts, "ro");
+	if (opt & 4) // -w
+		append_mount_options(&cmdopts, "rw");
+	//if (opt & 8) // -a
+	if (opt & 0x10) // -n
+		USE_FEATURE_MTAB_SUPPORT(useMtab = FALSE);
+	if (opt & 0x20) // -f
+		USE_FEATURE_MTAB_SUPPORT(fakeIt = FALSE);
+	//if (opt & 0x40) // ignore -v
 	argv += optind;
 	argc -= optind;
 
@@ -1468,7 +1454,7 @@ int mount_main(int argc, char **argv)
 	// If we have no arguments, show currently mounted filesystems
 
 	if (!argc) {
-		if (!all) {
+		if (!(opt & OPT_ALL)) {
 			FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 
 			if (!mountTable) bb_error_msg_and_die("no %s",bb_path_mtab_file);
