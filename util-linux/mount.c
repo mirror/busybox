@@ -102,9 +102,27 @@ struct {
 static void append_mount_options(char **oldopts, char *newopts)
 {
 	if (*oldopts && **oldopts) {
-		char *temp = xasprintf("%s,%s",*oldopts,newopts);
-		free(*oldopts);
-		*oldopts = temp;
+		/* do not insert options which are already there */
+		while (newopts[0]) {
+			char *p;
+			int len = strlen(newopts);
+			p = strchr(newopts, ',');
+			if (p) len = p - newopts;
+			p = *oldopts;
+			while (1) {
+				if (!strncmp(p,newopts,len) && (p[len]==',' || p[len]==0))
+					goto skip;
+				p = strchr(p,',');
+				if(!p) break;
+				p++;
+			}
+			p = xasprintf("%s,%.*s", *oldopts, len, newopts);
+			free(*oldopts);
+			*oldopts = p;
+skip:
+			newopts += len;
+			while (newopts[0] == ',') newopts++;
+		}
 	} else {
 		if (ENABLE_FEATURE_CLEAN_UP) free(*oldopts);
 		*oldopts = xstrdup(newopts);
