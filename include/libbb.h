@@ -369,30 +369,30 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c depends on them. */
 
 extern const char *bb_applet_name;
 
-extern const char * const bb_msg_full_version;
-extern const char * const bb_msg_memory_exhausted;
-extern const char * const bb_msg_invalid_date;
-extern const char * const bb_msg_io_error;
-extern const char * const bb_msg_read_error;
-extern const char * const bb_msg_write_error;
-extern const char * const bb_msg_name_longer_than_foo;
-extern const char * const bb_msg_unknown;
-extern const char * const bb_msg_can_not_create_raw_socket;
-extern const char * const bb_msg_perm_denied_are_you_root;
-extern const char * const bb_msg_requires_arg;
-extern const char * const bb_msg_invalid_arg;
-extern const char * const bb_msg_standard_input;
-extern const char * const bb_msg_standard_output;
+extern const char bb_msg_full_version[];
+extern const char bb_msg_memory_exhausted[];
+extern const char bb_msg_invalid_date[];
+extern const char bb_msg_io_error[];
+extern const char bb_msg_read_error[];
+extern const char bb_msg_write_error[];
+extern const char bb_msg_name_longer_than_foo[];
+extern const char bb_msg_unknown[];
+extern const char bb_msg_can_not_create_raw_socket[];
+extern const char bb_msg_perm_denied_are_you_root[];
+extern const char bb_msg_requires_arg[];
+extern const char bb_msg_invalid_arg[];
+extern const char bb_msg_standard_input[];
+extern const char bb_msg_standard_output[];
 
-extern const char * const bb_path_nologin_file;
-extern const char * const bb_path_passwd_file;
-extern const char * const bb_path_shadow_file;
-extern const char * const bb_path_gshadow_file;
-extern const char * const bb_path_group_file;
-extern const char * const bb_path_securetty_file;
-extern const char * const bb_path_motd_file;
-extern const char * const bb_path_wtmp_file;
-extern const char * const bb_dev_null;
+extern const char bb_path_nologin_file[];
+extern const char bb_path_passwd_file[];
+extern const char bb_path_shadow_file[];
+extern const char bb_path_gshadow_file[];
+extern const char bb_path_group_file[];
+extern const char bb_path_securetty_file[];
+extern const char bb_path_motd_file[];
+extern const char bb_path_wtmp_file[];
+extern const char bb_dev_null[];
 
 #ifndef BUFSIZ
 #define BUFSIZ 4096
@@ -407,14 +407,14 @@ extern char bb_common_bufsiz1[BUFSIZ+1];
  */
 #define LIBBB_DEFAULT_LOGIN_SHELL      "-/bin/sh"
 
-extern const char * const bb_default_login_shell;
+extern const char bb_default_login_shell[];
 /* "/bin/sh" */
 #define DEFAULT_SHELL     (bb_default_login_shell+1)
 /* "sh" */
 #define DEFAULT_SHELL_SHORT_NAME     (bb_default_login_shell+6)
 
 
-extern char bb_path_mtab_file[];
+extern const char bb_path_mtab_file[];
 
 extern int bb_default_error_retval;
 
