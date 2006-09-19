@@ -1432,7 +1432,8 @@ int mount_main(int argc, char **argv)
 	enum { OPT_ALL = 0x8 };
 
 	char *cmdopts = xstrdup(""), *fstype=0, *storage_path=0;
-	char *opt_o, *fstabname;
+	char *opt_o;
+	const char *fstabname;
 	FILE *fstab;
 	int i, j, rc = 0;
 	unsigned long opt;
@@ -1526,7 +1527,7 @@ int mount_main(int argc, char **argv)
 
 	fstab = setmntent(fstabname,"r");
 	if (!fstab)
-		bb_perror_msg_and_die("cannot read %s",fstabname);
+		bb_perror_msg_and_die("cannot read %s", fstabname);
 
 	// Loop through entries until we find what we're looking for.
 
