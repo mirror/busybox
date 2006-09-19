@@ -765,6 +765,40 @@ end_option:
 	return EXIT_SUCCESS;
 }
 
+/* Save set_mode from #ifdef forest plague */
+#ifndef ONLCR
+#define ONLCR 0
+#endif
+#ifndef OCRNL
+#define OCRNL 0
+#endif
+#ifndef ONLRET
+#define ONLRET 0
+#endif
+#ifndef XCASE
+#define XCASE 0
+#endif
+#ifndef IXANY
+#define IXANY 0
+#endif
+#ifndef TABDLY
+#define TABDLY 0
+#endif
+#ifndef OXTABS
+#define OXTABS 0
+#endif
+#ifndef IUCLC
+#define IUCLC 0
+#endif
+#ifndef OLCUC
+#define OLCUC 0
+#endif
+#ifndef ECHOCTL
+#define ECHOCTL 0
+#endif
+#ifndef ECHOKE
+#define ECHOKE 0
+#endif
 
 static void
 set_mode(const struct mode_info *info, int reversed, struct termios *mode)
@@ -790,23 +824,10 @@ set_mode(const struct mode_info *info, int reversed, struct termios *mode)
 		} else if (info->name == stty_nl) {
 			if (reversed) {
 				mode->c_iflag = (mode->c_iflag | ICRNL) & ~INLCR & ~IGNCR;
-				mode->c_oflag = (mode->c_oflag
-#ifdef ONLCR
-								 | ONLCR
-#endif
-					)
-#ifdef OCRNL
-					& ~OCRNL
-#endif
-#ifdef ONLRET
-					& ~ONLRET
-#endif
-					;
+				mode->c_oflag = (mode->c_oflag | ONLCR)	& ~OCRNL & ~ONLRET;
 			} else {
 				mode->c_iflag = mode->c_iflag & ~ICRNL;
-#ifdef ONLCR
-				mode->c_oflag = mode->c_oflag & ~ONLCR;
-#endif
+				if (ONLCR) mode->c_oflag = mode->c_oflag & ~ONLCR;
 			}
 		} else if (info->name == stty_ek) {
 			mode->c_cc[VERASE] = CERASE;
@@ -853,42 +874,31 @@ set_mode(const struct mode_info *info, int reversed, struct termios *mode)
 				/* Raw mode */
 				mode->c_iflag = 0;
 				mode->c_oflag &= ~OPOST;
-				mode->c_lflag &= ~(ISIG | ICANON
-#ifdef XCASE
-								   | XCASE
-#endif
-					);
+				mode->c_lflag &= ~(ISIG | ICANON | XCASE);
 				mode->c_cc[VMIN] = 1;
 				mode->c_cc[VTIME] = 0;
 			}
 		}
-#ifdef IXANY
-		else if (info->name == decctlq) {
+		else if (IXANY && info->name == decctlq) {
 			if (reversed)
 				mode->c_iflag |= IXANY;
 			else
 				mode->c_iflag &= ~IXANY;
 		}
-#endif
-#ifdef TABDLY
-		else if (info->name == stty_tabs) {
+		else if (TABDLY && info->name == stty_tabs) {
 			if (reversed)
 				mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB3;
 			else
 				mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB0;
 		}
-#else
-# ifdef OXTABS
-		else if (info->name == stty_tabs) {
+		else if (OXTABS && info->name == stty_tabs) {
 			if (reversed)
 				mode->c_oflag = mode->c_oflag | OXTABS;
 			else
 				mode->c_oflag = mode->c_oflag & ~OXTABS;
 		}
-# endif
-#endif
-#if defined(XCASE) && defined(IUCLC) && defined(OLCUC)
-		else if (info->name == stty_lcase || info->name == stty_LCASE) {
+		else if (XCASE && IUCLC && OLCUC
+		&& (info->name == stty_lcase || info->name == stty_LCASE)) {
 			if (reversed) {
 				mode->c_lflag &= ~XCASE;
 				mode->c_iflag &= ~IUCLC;
@@ -899,31 +909,14 @@ set_mode(const struct mode_info *info, int reversed, struct termios *mode)
 				mode->c_oflag |= OLCUC;
 			}
 		}
-#endif
 		else if (info->name == stty_crt)
-			mode->c_lflag |= ECHOE
-#ifdef ECHOCTL
-				| ECHOCTL
-#endif
-#ifdef ECHOKE
-				| ECHOKE
-#endif
-				;
+			mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
 		else if (info->name == stty_dec) {
 			mode->c_cc[VINTR] = 3;  /* ^C */
 			mode->c_cc[VERASE] = 127;       /* DEL */
 			mode->c_cc[VKILL] = 21; /* ^U */
-			mode->c_lflag |= ECHOE
-#ifdef ECHOCTL
-				| ECHOCTL
-#endif
-#ifdef ECHOKE
-				| ECHOKE
-#endif
-				;
-#ifdef IXANY
-			mode->c_iflag &= ~IXANY;
-#endif
+			mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
+			if (IXANY) mode->c_iflag &= ~IXANY;
 		}
 	} else if (reversed)
 		*bitsp = *bitsp & ~((unsigned long)info->mask) & ~info->bits;
