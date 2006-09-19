@@ -17,6 +17,7 @@
  */
 
 #include "busybox.h"
+#include <syslog.h>
 
 #ifdef CONFIG_FEATURE_UTMP
 #include <utmp.h>
