@@ -371,30 +371,74 @@ enum {
 
 /* The width of the screen, for output wrapping */
 static int max_col;
-
 /* Current position, to know when to wrap */
 static int current_col;
-
-static const char *  visible(unsigned int ch);
-static int           recover_mode(const char *arg, struct termios *mode);
-static int           screen_columns(void);
-static void          set_mode(const struct mode_info *info,
-					int reversed, struct termios *mode);
-static speed_t       string_to_baud(const char *arg);
-static tcflag_t*     mode_type_flag(unsigned type, const struct termios *mode);
-static void          display_all(const struct termios *mode);
-static void          display_changed(const struct termios *mode);
-static void          display_recoverable(const struct termios *mode);
-static void          display_speed(const struct termios *mode, int fancy);
-static void          display_window_size(int fancy);
-static void          sane_mode(struct termios *mode);
-static void          set_control_char_or_die(const struct control_info *info,
-					const char *arg, struct termios *mode);
-static void          set_speed(enum speed_setting type,
-					const char *arg, struct termios *mode);
-static void          set_window_size(int rows, int cols);
-
 static const char *device_name = bb_msg_standard_input;
+
+/* Return a string that is the printable representation of character CH */
+/* Adapted from `cat' by Torbjorn Granlund */
+static const char *visible(unsigned int ch)
+{
+	static char buf[10];
+	char *bpout = buf;
+
+	if (ch == _POSIX_VDISABLE)
+		return "<undef>";
+
+	if (ch >= 128) {
+		ch -= 128;
+		*bpout++ = 'M';
+		*bpout++ = '-';
+	}
+
+	if (ch < 32) {
+		*bpout++ = '^';
+		*bpout++ = ch + 64;
+	} else if (ch < 127) {
+		*bpout++ = ch;
+	} else {
+		*bpout++ = '^';
+		*bpout++ = '?';
+	}
+
+	*bpout = '\0';
+	return buf;
+}
+
+static tcflag_t *mode_type_flag(unsigned type, const struct termios *mode)
+{
+	static const unsigned char tcflag_offsets[] = {
+		offsetof(struct termios, c_cflag), /* control */
+		offsetof(struct termios, c_iflag), /* input */
+		offsetof(struct termios, c_oflag), /* output */
+		offsetof(struct termios, c_lflag), /* local */
+	};
+
+	if (type <= local) {
+		return (tcflag_t*) (((char*)mode) + tcflag_offsets[type]);
+	}
+	return NULL;
+}
+
+static speed_t string_to_baud_or_die(const char *arg)
+{
+	return tty_value_to_baud(bb_xparse_number(arg, 0));
+}
+
+static void set_speed_or_die(enum speed_setting type, const char *arg,
+					struct termios *mode)
+{
+	speed_t baud;
+
+	baud = string_to_baud_or_die(arg);
+
+	if (type != output_speed) {     /* either input or both */
+		cfsetispeed(mode, baud);
+	}
+	if (type != input_speed) {      /* either output or both */
+		cfsetospeed(mode, baud);
+	}
+}
 
 static ATTRIBUTE_NORETURN void perror_on_device_and_die(const char *fmt)
 {
@@ -438,6 +482,103 @@ static void wrapf(const char *message, ...)
 		current_col = 0;
 }
 
+#ifdef TIOCGWINSZ
+
+static int get_win_size(struct winsize *win)
+{
+	return ioctl(STDIN_FILENO, TIOCGWINSZ, (char *) win);
+}
+
+static void set_window_size(int rows, int cols)
+{
+	struct winsize win;
+
+	if (get_win_size(&win)) {
+		if (errno != EINVAL) {
+			perror_on_device("%s");
+			return;
+		}
+		memset(&win, 0, sizeof(win));
+	}
+
+	if (rows >= 0)
+		win.ws_row = rows;
+	if (cols >= 0)
+		win.ws_col = cols;
+
+# ifdef TIOCSSIZE
+	/* Alexander Dupuy <dupuy@cs.columbia.edu> wrote:
+	   The following code deals with a bug in the SunOS 4.x (and 3.x?) kernel.
+	   This comment from sys/ttold.h describes Sun's twisted logic - a better
+	   test would have been (ts_lines > 64k || ts_cols > 64k || ts_cols == 0).
+	   At any rate, the problem is gone in Solaris 2.x */
+
+	if (win.ws_row == 0 || win.ws_col == 0) {
+		struct ttysize ttysz;
+
+		ttysz.ts_lines = win.ws_row;
+		ttysz.ts_cols = win.ws_col;
+
+		win.ws_row = win.ws_col = 1;
+
+		if ((ioctl(STDIN_FILENO, TIOCSWINSZ, (char *) &win) != 0)
+		|| (ioctl(STDIN_FILENO, TIOCSSIZE, (char *) &ttysz) != 0)) {
+			perror_on_device("%s");
+		}
+		return;
+	}
+# endif
+
+	if (ioctl(STDIN_FILENO, TIOCSWINSZ, (char *) &win))
+		perror_on_device("%s");
+}
+
+static void display_window_size(int fancy)
+{
+	const char *fmt_str = "%s\0%s: no size information for this device";
+	struct winsize win;
+
+	if (get_win_size(&win)) {
+		if ((errno != EINVAL) || ((fmt_str += 2), !fancy)) {
+			perror_on_device(fmt_str);
+		}
+	} else {
+		wrapf(fancy ? "rows %d; columns %d;" : "%d %d\n",
+				win.ws_row, win.ws_col);
+	}
+}
+
+#else /* !TIOCGWINSZ */
+
+static inline void display_window_size(int fancy) {}
+
+#endif /* !TIOCGWINSZ */
+
+static int screen_columns(void)
+{
+	int columns;
+	const char *s;
+
+#ifdef TIOCGWINSZ
+	struct winsize win;
+
+	/* With Solaris 2.[123], this ioctl fails and errno is set to
+	   EINVAL for telnet (but not rlogin) sessions.
+	   On ISC 3.0, it fails for the console and the serial port
+	   (but it works for ptys).
+	   It can also fail on any system when stdout isn't a tty.
+	   In case of any failure, just use the default */
+	if (get_win_size(&win) == 0 && win.ws_col > 0)
+		return win.ws_col;
+#endif
+
+	columns = 80;
+	if ((s = getenv("COLUMNS"))) {
+		columns = atoi(s);
+	}
+	return columns;
+}
+
 static const struct suffix_mult stty_suffixes[] = {
 	{"b",  512 },
 	{"k",  1024},
@@ -469,9 +610,9 @@ enum {
 	param_rows   = 2 | 0x80,
 	param_cols   = 3 | 0x80,
 	param_size   = 4,
-	param_ispeed = 5 | 0x80,
-	param_ospeed = 6 | 0x80,
-	param_speed  = 7,
+	param_speed  = 5,
+	param_ispeed = 6 | 0x80,
+	param_ospeed = 7 | 0x80,
 };
 
 static int find_param(const char *name)
@@ -485,12 +626,23 @@ static int find_param(const char *name)
 	if (streq(name, "columns")) return param_cols;
 	if (streq(name, "size")) return param_size;
 #endif
+	if (streq(name, "speed")) return param_speed;
 	if (streq(name, "ispeed")) return param_ispeed;
 	if (streq(name, "ospeed")) return param_ospeed;
-	if (streq(name, "speed")) return param_speed;
 	return 0;
 }
 
+
+static int recover_mode(const char *arg, struct termios *mode);
+static void set_mode(const struct mode_info *info,
+				int reversed, struct termios *mode);
+static void display_all(const struct termios *mode);
+static void display_changed(const struct termios *mode);
+static void display_recoverable(const struct termios *mode);
+static void display_speed(const struct termios *mode, int fancy);
+static void sane_mode(struct termios *mode);
+static void set_control_char_or_die(const struct control_info *info,
+				const char *arg, struct termios *mode);
 
 int stty_main(int argc, char **argv)
 {
@@ -602,13 +754,19 @@ end_option:
 			break;
 		case param_size:
 #endif
-		case param_ispeed:
-		case param_ospeed:
 		case param_speed:
+			break;
+		case param_ispeed:
+			/* called for the side effect of xfunc death only */
+			set_speed_or_die(input_speed, argnext, &mode);
+			break;
+		case param_ospeed:
+			/* called for the side effect of xfunc death only */
+			set_speed_or_die(output_speed, argnext, &mode);
 			break;
 		default:
 			if (recover_mode(arg, &mode) == 1) break;
-			if (string_to_baud(arg) != (speed_t) -1) break;
+			if (string_to_baud_or_die(arg) != (speed_t) -1) break;
 			bb_error_msg_and_die("invalid argument '%s'", arg);
 		}
 		noargs = 0;
@@ -643,7 +801,6 @@ end_option:
 
 	if (verbose_output || recoverable_output || noargs) {
 		max_col = screen_columns();
-		current_col = 0;
 		output_func(&mode);
 		return EXIT_SUCCESS;
 	}
@@ -697,32 +854,31 @@ end_option:
 			break;
 		case param_size:
 			max_col = screen_columns();
-			current_col = 0;
 			display_window_size(0);
 			break;
 		case param_rows:
 			set_window_size((int) bb_xparse_number(argnext, stty_suffixes), -1);
 			break;
 #endif
-		case param_ispeed:
-			set_speed(input_speed, argnext, &mode);
-			speed_was_set = 1;
-			require_set_attr = 1;
-			break;
-		case param_ospeed:
-			set_speed(output_speed, argnext, &mode);
-			speed_was_set = 1;
-			require_set_attr = 1;
-			break;
 		case param_speed:
 			max_col = screen_columns();
 			display_speed(&mode, 0);
 			break;
+		case param_ispeed:
+			set_speed_or_die(input_speed, argnext, &mode);
+			speed_was_set = 1;
+			require_set_attr = 1;
+			break;
+		case param_ospeed:
+			set_speed_or_die(output_speed, argnext, &mode);
+			speed_was_set = 1;
+			require_set_attr = 1;
+			break;
 		default:
 			if (recover_mode(arg, &mode) == 1)
 				require_set_attr = 1;
-			else /* true: if (string_to_baud(arg) != (speed_t) -1) */ {
-				set_speed(both_speeds, arg, &mode);
+			else /* true: if (string_to_baud_or_die(arg) != (speed_t) -1) */ {
+				set_speed_or_die(both_speeds, arg, &mode);
 				speed_was_set = 1;
 				require_set_attr = 1;
 			} /* else - impossible (caught in the first pass):
@@ -805,8 +961,8 @@ end_option:
 #define ECHOKE 0
 #endif
 
-static void
-set_mode(const struct mode_info *info, int reversed, struct termios *mode)
+static void set_mode(const struct mode_info *info, int reversed,
+					struct termios *mode)
 {
 	tcflag_t *bitsp;
 
@@ -932,9 +1088,8 @@ set_mode(const struct mode_info *info, int reversed, struct termios *mode)
 	}
 }
 
-static void
-set_control_char_or_die(const struct control_info *info, const char *arg,
-				 struct termios *mode)
+static void set_control_char_or_die(const struct control_info *info,
+			const char *arg, struct termios *mode)
 {
 	unsigned char value;
 
@@ -945,141 +1100,12 @@ set_control_char_or_die(const struct control_info *info, const char *arg,
 	else if (streq(arg, "^-") || streq(arg, "undef"))
 		value = _POSIX_VDISABLE;
 	else if (arg[0] == '^') { /* Ignore any trailing junk (^Cjunk) */
+		value = arg[1] & 0x1f; /* Non-letters get weird results */
 		if (arg[1] == '?')
 			value = 127;
-		else
-			value = arg[1] & 0x1f; /* Non-letters get weird results */
 	} else
 		value = bb_xparse_number(arg, stty_suffixes);
 	mode->c_cc[info->offset] = value;
-}
-
-static void
-set_speed(enum speed_setting type, const char *arg, struct termios *mode)
-{
-	speed_t baud;
-
-	baud = string_to_baud(arg);
-
-	if (type != output_speed) {     /* either input or both */
-		cfsetispeed(mode, baud);
-	}
-	if (type != input_speed) {      /* either output or both */
-		cfsetospeed(mode, baud);
-	}
-}
-
-#ifdef TIOCGWINSZ
-
-static int get_win_size(struct winsize *win)
-{
-	return ioctl(STDIN_FILENO, TIOCGWINSZ, (char *) win);
-}
-
-static void
-set_window_size(int rows, int cols)
-{
-	struct winsize win;
-
-	if (get_win_size(&win)) {
-		if (errno != EINVAL) {
-			perror_on_device("%s");
-			return;
-		}
-		memset(&win, 0, sizeof(win));
-	}
-
-	if (rows >= 0)
-		win.ws_row = rows;
-	if (cols >= 0)
-		win.ws_col = cols;
-
-# ifdef TIOCSSIZE
-	/* Alexander Dupuy <dupuy@cs.columbia.edu> wrote:
-	   The following code deals with a bug in the SunOS 4.x (and 3.x?) kernel.
-	   This comment from sys/ttold.h describes Sun's twisted logic - a better
-	   test would have been (ts_lines > 64k || ts_cols > 64k || ts_cols == 0).
-	   At any rate, the problem is gone in Solaris 2.x */
-
-	if (win.ws_row == 0 || win.ws_col == 0) {
-		struct ttysize ttysz;
-
-		ttysz.ts_lines = win.ws_row;
-		ttysz.ts_cols = win.ws_col;
-
-		win.ws_row = win.ws_col = 1;
-
-		if ((ioctl(STDIN_FILENO, TIOCSWINSZ, (char *) &win) != 0)
-		|| (ioctl(STDIN_FILENO, TIOCSSIZE, (char *) &ttysz) != 0)) {
-			perror_on_device("%s");
-		}
-		return;
-	}
-# endif
-
-	if (ioctl(STDIN_FILENO, TIOCSWINSZ, (char *) &win))
-		perror_on_device("%s");
-}
-
-static void display_window_size(int fancy)
-{
-	const char *fmt_str = "%s\0%s: no size information for this device";
-	struct winsize win;
-
-	if (get_win_size(&win)) {
-		if ((errno != EINVAL) || ((fmt_str += 2), !fancy)) {
-			perror_on_device(fmt_str);
-		}
-	} else {
-		wrapf(fancy ? "rows %d; columns %d;" : "%d %d\n",
-				win.ws_row, win.ws_col);
-	}
-}
-
-#else /* !TIOCGWINSZ */
-
-static inline void display_window_size(int fancy) {}
-
-#endif /* !TIOCGWINSZ */
-
-static int screen_columns(void)
-{
-	int columns;
-	const char *s;
-
-#ifdef TIOCGWINSZ
-	struct winsize win;
-
-	/* With Solaris 2.[123], this ioctl fails and errno is set to
-	   EINVAL for telnet (but not rlogin) sessions.
-	   On ISC 3.0, it fails for the console and the serial port
-	   (but it works for ptys).
-	   It can also fail on any system when stdout isn't a tty.
-	   In case of any failure, just use the default */
-	if (get_win_size(&win) == 0 && win.ws_col > 0)
-		return win.ws_col;
-#endif
-
-	columns = 80;
-	if ((s = getenv("COLUMNS"))) {
-		columns = atoi(s);
-	}
-	return columns;
-}
-
-static tcflag_t *mode_type_flag(unsigned type, const struct termios *mode)
-{
-	static const unsigned char tcflag_offsets[] = {
-		offsetof(struct termios, c_cflag), /* control */
-		offsetof(struct termios, c_iflag), /* input */
-		offsetof(struct termios, c_oflag), /* output */
-		offsetof(struct termios, c_lflag), /* local */
-	};
-
-	if (type <= local) {
-		return (tcflag_t*) (((char*)mode) + tcflag_offsets[type]);
-	}
-	return NULL;
 }
 
 static void display_changed(const struct termios *mode)
@@ -1140,8 +1166,7 @@ static void display_changed(const struct termios *mode)
 	if (current_col) wrapf("\n");
 }
 
-static void
-display_all(const struct termios *mode)
+static void display_all(const struct termios *mode)
 {
 	int i;
 	tcflag_t *bitsp;
@@ -1214,7 +1239,6 @@ static void display_speed(const struct termios *mode, int fancy)
 static void display_recoverable(const struct termios *mode)
 {
 	int i;
-
 	printf("%lx:%lx:%lx:%lx",
 		   (unsigned long) mode->c_iflag, (unsigned long) mode->c_oflag,
 		   (unsigned long) mode->c_cflag, (unsigned long) mode->c_lflag);
@@ -1253,11 +1277,6 @@ static int recover_mode(const char *arg, struct termios *mode)
 	return 1;
 }
 
-static speed_t string_to_baud(const char *arg)
-{
-	return tty_value_to_baud(bb_xparse_number(arg, 0));
-}
-
 static void sane_mode(struct termios *mode)
 {
 	int i;
@@ -1282,36 +1301,4 @@ static void sane_mode(struct termios *mode)
 				& ~mode_info[i].bits;
 		}
 	}
-}
-
-/* Return a string that is the printable representation of character CH */
-/* Adapted from `cat' by Torbjorn Granlund */
-
-static const char *visible(unsigned int ch)
-{
-	static char buf[10];
-	char *bpout = buf;
-
-	if (ch == _POSIX_VDISABLE) {
-		return "<undef>";
-	}
-
-	if (ch >= 128) {
-		ch -= 128;
-		*bpout++ = 'M';
-		*bpout++ = '-';
-	}
-
-	if (ch < 32) {
-		*bpout++ = '^';
-		*bpout++ = ch + 64;
-	} else if (ch < 127) {
-		*bpout++ = ch;
-	} else {
-		*bpout++ = '^';
-		*bpout++ = '?';
-	}
-
-	*bpout = '\0';
-	return buf;
 }
