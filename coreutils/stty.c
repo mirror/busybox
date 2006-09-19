@@ -68,8 +68,8 @@
 # define CSWTCH _POSIX_VDISABLE
 #endif
 
-/* SunOS 5.3 loses (^Z doesn't work) if `swtch' is the same as `susp'.
-   So the default is to disable `swtch.'  */
+/* SunOS 5.3 loses (^Z doesn't work) if 'swtch' is the same as 'susp'.
+   So the default is to disable 'swtch.'  */
 #if defined (__sparc__) && defined (__svr4__)
 # undef CSWTCH
 # define CSWTCH _POSIX_VDISABLE
@@ -120,7 +120,7 @@ enum speed_setting {
 	input_speed, output_speed, both_speeds
 };
 
-/* Which member(s) of `struct termios' a mode uses */
+/* Which member(s) of 'struct termios' a mode uses */
 enum {
 	/* Do NOT change the order or values, as mode_type_flag()
 	 * depends on them */
@@ -150,10 +150,10 @@ static const char stty_LCASE[] = "LCASE";
 static const char stty_crt  [] = "crt";
 static const char stty_dec  [] = "dec";
 
-/* Flags for `struct mode_info' */
-#define SANE_SET 1              /* Set in `sane' mode                  */
-#define SANE_UNSET 2            /* Unset in `sane' mode                */
-#define REV 4                   /* Can be turned off by prepending `-' */
+/* Flags for 'struct mode_info' */
+#define SANE_SET 1              /* Set in 'sane' mode                  */
+#define SANE_UNSET 2            /* Unset in 'sane' mode                */
+#define REV 4                   /* Can be turned off by prepending '-' */
 #define OMIT 8                  /* Don't display value                 */
 
 /* Each mode */
@@ -161,7 +161,7 @@ struct mode_info {
 	const char *name;       /* Name given on command line            */
 	char type;              /* Which structure element to change     */
 	char flags;             /* Setting and display options           */
-	unsigned short mask;     /* Other bits to turn off for this mode */
+	unsigned short mask;    /* Other bits to turn off for this mode */
 	unsigned long bits;     /* Bits to set for this mode             */
 };
 
@@ -320,7 +320,7 @@ enum {
 /* Control character settings */
 struct control_info {
 	const char *name;                       /* Name given on command line */
-	unsigned char saneval;          /* Value to set for `stty sane' */
+	unsigned char saneval;          /* Value to set for 'stty sane' */
 	unsigned char offset;                           /* Offset in c_cc */
 };
 
@@ -376,7 +376,7 @@ static int current_col;
 static const char *device_name = bb_msg_standard_input;
 
 /* Return a string that is the printable representation of character CH */
-/* Adapted from `cat' by Torbjorn Granlund */
+/* Adapted from 'cat' by Torbjorn Granlund */
 static const char *visible(unsigned int ch)
 {
 	static char buf[10];
@@ -470,11 +470,13 @@ static void wrapf(const char *message, ...)
 
 	if (current_col > 0) {
 		current_col++;
-		if (current_col + buflen >= max_col) {
-			putchar('\n');
-			current_col = 0;
-		} else
-			if (buf[0] != '\n') putchar(' ');
+		if (buf[0] != '\n') {
+			if (current_col + buflen >= max_col) {
+				putchar('\n');
+				current_col = 0;
+			} else
+				putchar(' ');
+		}
 	}
 	fputs(buf, stdout);
 	current_col += buflen;
@@ -484,16 +486,16 @@ static void wrapf(const char *message, ...)
 
 #ifdef TIOCGWINSZ
 
-static int get_win_size(struct winsize *win)
+static int get_win_size(int fd, struct winsize *win)
 {
-	return ioctl(STDIN_FILENO, TIOCGWINSZ, (char *) win);
+	return ioctl(fd, TIOCGWINSZ, (char *) win);
 }
 
 static void set_window_size(int rows, int cols)
 {
 	struct winsize win;
 
-	if (get_win_size(&win)) {
+	if (get_win_size(STDIN_FILENO, &win)) {
 		if (errno != EINVAL) {
 			perror_on_device("%s");
 			return;
@@ -538,7 +540,7 @@ static void display_window_size(int fancy)
 	const char *fmt_str = "%s\0%s: no size information for this device";
 	struct winsize win;
 
-	if (get_win_size(&win)) {
+	if (get_win_size(STDIN_FILENO, &win)) {
 		if ((errno != EINVAL) || ((fmt_str += 2), !fancy)) {
 			perror_on_device(fmt_str);
 		}
@@ -568,7 +570,7 @@ static int screen_columns(void)
 	   (but it works for ptys).
 	   It can also fail on any system when stdout isn't a tty.
 	   In case of any failure, just use the default */
-	if (get_win_size(&win) == 0 && win.ws_col > 0)
+	if (get_win_size(STDOUT_FILENO, &win) == 0 && win.ws_col > 0)
 		return win.ws_col;
 #endif
 
@@ -704,7 +706,7 @@ int stty_main(int argc, char **argv)
 							bb_error_msg_and_die(bb_msg_requires_arg, "-F");
 						/* remove -F param from arg[vc] */
 						--argc;
-						while (argv[p+1]) { argv[p] = argv[p+1]; ++p; }
+						while (argv[p]) { argv[p] = argv[p+1]; ++p; }
 					}
 					goto end_option;
 				default:
@@ -784,8 +786,8 @@ end_option:
 		int fd, fdflags;
 		device_name = file_name;
 		fd = xopen(device_name, O_RDONLY | O_NONBLOCK);
-		if (fd != 0) {
-			dup2(fd, 0);
+		if (fd != STDIN_FILENO) {
+			dup2(fd, STDIN_FILENO);
 			close(fd);
 		}
 		fdflags = fcntl(STDIN_FILENO, F_GETFL);
@@ -894,7 +896,7 @@ end_option:
 
 		/* POSIX (according to Zlotnick's book) tcsetattr returns zero if
 		   it performs *any* of the requested operations.  This means it
-		   can report `success' when it has actually failed to perform
+		   can report 'success' when it has actually failed to perform
 		   some proper subset of the requested operations.  To detect
 		   this partial failure, get the current terminal attributes and
 		   compare them to the requested ones */
@@ -1254,7 +1256,7 @@ static int recover_mode(const char *arg, struct termios *mode)
 	unsigned long iflag, oflag, cflag, lflag;
 
 	/* Scan into temporaries since it is too much trouble to figure out
-	   the right format for `tcflag_t' */
+	   the right format for 'tcflag_t' */
 	if (sscanf(arg, "%lx:%lx:%lx:%lx%n",
 			   &iflag, &oflag, &cflag, &lflag, &n) != 4)
 		return 0;
