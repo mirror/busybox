@@ -403,35 +403,36 @@ static ATTRIBUTE_NORETURN void perror_on_device(const char *fmt)
 	bb_perror_msg_and_die(fmt, device_name);
 }
 
-static ATTRIBUTE_ALWAYS_INLINE int streq(const char *a, const char *b)
-{
-	return strcmp(a, b) == 0;
-}
+/* No, inline won't be as efficient (gcc 3.4.3) */
+#define streq(a,b) (!strcmp((a),(b)))
 
 /* Print format string MESSAGE and optional args.
    Wrap to next line first if it won't fit.
    Print a space first unless MESSAGE will start a new line */
-
 static void wrapf(const char *message, ...)
 {
+	char buf[128];
 	va_list args;
-	char buf[1024];                 /* Plenty long for our needs */
 	int buflen;
 
 	va_start(args, message);
-	vsprintf(buf, message, args);
+	vsnprintf(buf, sizeof(buf), message, args);
 	va_end(args);
 	buflen = strlen(buf);
-	if (current_col + (current_col > 0) + buflen >= max_col) {
-		putchar('\n');
-		current_col = 0;
-	}
+	if (!buflen) return;
+
 	if (current_col > 0) {
-		putchar(' ');
 		current_col++;
+		if (current_col + buflen >= max_col) {
+			putchar('\n');
+			current_col = 0;
+		} else
+			if (buf[0] != '\n') putchar(' ');
 	}
 	fputs(buf, stdout);
 	current_col += buflen;
+	if (buf[buflen-1] == '\n')
+		current_col = 0;
 }
 
 static const struct suffix_mult stty_suffixes[] = {
@@ -584,13 +585,13 @@ end_option:
 		switch (param) {
 #ifdef HAVE_C_LINE
 		case param_line:
+# ifndef TIOCGWINSZ
 			bb_xparse_number(argnext, stty_suffixes);
 			break;
+# endif /* else fall-through */
 #endif
 #ifdef TIOCGWINSZ
 		case param_rows:
-			bb_xparse_number(argnext, stty_suffixes);
-			break;
 		case param_cols:
 			bb_xparse_number(argnext, stty_suffixes);
 			break;
@@ -1029,8 +1030,6 @@ static void display_window_size(int fancy)
 	} else {
 		wrapf(fancy ? "rows %d; columns %d;" : "%d %d\n",
 			  win.ws_row, win.ws_col);
-		if (!fancy)
-			current_col = 0;
 	}
 }
 #endif
@@ -1078,19 +1077,17 @@ static tcflag_t *mode_type_flag(enum mode_type type, const struct termios *mode)
 static void display_changed(const struct termios *mode)
 {
 	int i;
-	int empty_line;
 	tcflag_t *bitsp;
 	unsigned long mask;
 	enum mode_type prev_type = control;
 
 	display_speed(mode, 1);
 #ifdef HAVE_C_LINE
-	wrapf("line = %d;", mode->c_line);
+	wrapf("line = %d;\n", mode->c_line);
+#else
+	wrapf("\n");
 #endif
-	putchar('\n');
-	current_col = 0;
 
-	empty_line = 1;
 	for (i = 0; control_info[i].name != stty_min; ++i) {
 		if (mode->c_cc[control_info[i].offset] == control_info[i].saneval)
 			continue;
@@ -1105,28 +1102,20 @@ static void display_changed(const struct termios *mode)
 			&& (control_info[i].name == stty_eof
 				|| control_info[i].name == stty_eol)) continue;
 #endif
-
-		empty_line = 0;
 		wrapf("%s = %s;", control_info[i].name,
 			  visible(mode->c_cc[control_info[i].offset]));
 	}
 	if ((mode->c_lflag & ICANON) == 0) {
-		wrapf("min = %d; time = %d;\n", (int) mode->c_cc[VMIN],
+		wrapf("min = %d; time = %d;", (int) mode->c_cc[VMIN],
 			  (int) mode->c_cc[VTIME]);
-	} else if (empty_line == 0)
-		putchar('\n');
-	current_col = 0;
+	}
+	if (current_col) wrapf("\n");
 
-	empty_line = 1;
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & OMIT)
 			continue;
 		if (EMT(mode_info[i].type) != prev_type) {
-			if (empty_line == 0) {
-				putchar('\n');
-				current_col = 0;
-				empty_line = 1;
-			}
+			if (current_col) wrapf("\n");
 			prev_type = EMT(mode_info[i].type);
 		}
 
@@ -1135,16 +1124,12 @@ static void display_changed(const struct termios *mode)
 		if ((*bitsp & mask) == mode_info[i].bits) {
 			if (mode_info[i].flags & SANE_UNSET) {
 				wrapf("%s", mode_info[i].name);
-				empty_line = 0;
 			}
 		} else if ((mode_info[i].flags & (SANE_SET | REV)) == (SANE_SET | REV)) {
 			wrapf("-%s", mode_info[i].name);
-			empty_line = 0;
 		}
 	}
-	if (empty_line == 0)
-		putchar('\n');
-	current_col = 0;
+	if (current_col) wrapf("\n");
 }
 
 static void
@@ -1160,10 +1145,10 @@ display_all(const struct termios *mode)
 	display_window_size(1);
 #endif
 #ifdef HAVE_C_LINE
-	wrapf("line = %d;", mode->c_line);
+	wrapf("line = %d;\n", mode->c_line);
+#else
+	wrapf("\n");
 #endif
-	putchar('\n');
-	current_col = 0;
 
 	for (i = 0; control_info[i].name != stty_min; ++i) {
 		/* If swtch is the same as susp, don't print both */
@@ -1184,9 +1169,7 @@ display_all(const struct termios *mode)
 	if ((mode->c_lflag & ICANON) == 0)
 #endif
 		wrapf("min = %d; time = %d;", mode->c_cc[VMIN], mode->c_cc[VTIME]);
-	if (current_col != 0)
-		putchar('\n');
-	current_col = 0;
+	if (current_col) wrapf("\n");
 
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & OMIT)
@@ -1204,28 +1187,23 @@ display_all(const struct termios *mode)
 		else if (mode_info[i].flags & REV)
 			wrapf("-%s", mode_info[i].name);
 	}
-	putchar('\n');
-	current_col = 0;
+	if (current_col) wrapf("\n");
 }
 
 static void display_speed(const struct termios *mode, int fancy)
 {
+	                     //12345678 9 10
+	const char *fmt_str = "%lu %lu\n\0ispeed %lu baud; ospeed %lu baud;";
 	unsigned long ispeed, ospeed;
-	const char *fmt_str =
-		"%lu %lu\n\0"        "ispeed %lu baud; ospeed %lu baud;\0"
-		"%lu\n\0" "\0\0\0\0" "speed %lu baud;";
 
 	ospeed = ispeed = cfgetispeed(mode);
 	if (ispeed == 0 || ispeed == (ospeed = cfgetospeed(mode))) {
 		ispeed = ospeed;                /* in case ispeed was 0 */
-		fmt_str += 43;
+	                 //1234 5 6 7 8 9 10
+		fmt_str = "%lu\n\0\0\0\0\0speed %lu baud;";
 	}
-	if (fancy) {
-		fmt_str += 9;
-	}
+	if (fancy) fmt_str += 9;
 	wrapf(fmt_str, tty_baud_to_value(ispeed), tty_baud_to_value(ospeed));
-	if (!fancy)
-		current_col = 0;
 }
 
 static void display_recoverable(const struct termios *mode)
