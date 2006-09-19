@@ -25,10 +25,8 @@
 
 #define _PATH_LOGIN     "/bin/login"
 
- /* If USE_SYSLOG is undefined all diagnostics go directly to /dev/console. */
 #ifdef CONFIG_SYSLOGD
 #include <sys/param.h>
-#include <syslog.h>
 #endif
 
 
