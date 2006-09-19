@@ -121,7 +121,7 @@ enum speed_setting {
 };
 
 /* Which member(s) of `struct termios' a mode uses */
-enum mode_type {
+enum {
 	/* Do NOT change the order or values, as mode_type_flag()
 	 * depends on them */
 	control, input, output, local, combination
@@ -159,13 +159,11 @@ static const char stty_dec  [] = "dec";
 /* Each mode */
 struct mode_info {
 	const char *name;       /* Name given on command line            */
-	/* enum mode_type type; */
 	char type;              /* Which structure element to change     */
 	char flags;             /* Setting and display options           */
 	unsigned short mask;     /* Other bits to turn off for this mode */
 	unsigned long bits;     /* Bits to set for this mode             */
 };
-#define EMT(t) ((enum mode_type)(t))
 
 #define MI_ENTRY(N,T,F,B,M) { N, T, F, M, B }
 
@@ -383,14 +381,14 @@ static int           screen_columns(void);
 static void          set_mode(const struct mode_info *info,
 					int reversed, struct termios *mode);
 static speed_t       string_to_baud(const char *arg);
-static tcflag_t*     mode_type_flag(enum mode_type type, const struct termios *mode);
+static tcflag_t*     mode_type_flag(unsigned type, const struct termios *mode);
 static void          display_all(const struct termios *mode);
 static void          display_changed(const struct termios *mode);
 static void          display_recoverable(const struct termios *mode);
 static void          display_speed(const struct termios *mode, int fancy);
 static void          display_window_size(int fancy);
 static void          sane_mode(struct termios *mode);
-static void          set_control_char(const struct control_info *info,
+static void          set_control_char_or_die(const struct control_info *info,
 					const char *arg, struct termios *mode);
 static void          set_speed(enum speed_setting type,
 					const char *arg, struct termios *mode);
@@ -398,9 +396,14 @@ static void          set_window_size(int rows, int cols);
 
 static const char *device_name = bb_msg_standard_input;
 
-static ATTRIBUTE_NORETURN void perror_on_device(const char *fmt)
+static ATTRIBUTE_NORETURN void perror_on_device_and_die(const char *fmt)
 {
 	bb_perror_msg_and_die(fmt, device_name);
+}
+
+static void perror_on_device(const char *fmt)
+{
+	bb_perror_msg(fmt, device_name);
 }
 
 /* No, inline won't be as efficient (gcc 3.4.3) */
@@ -570,6 +573,8 @@ end_option:
 		if (cp) {
 			if (!argnext)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
+			/* called for the side effect of xfunc death only */
+			set_control_char_or_die(cp, argnext, &mode);
 			noargs = 0;
 			++k;
 			continue;
@@ -627,14 +632,14 @@ end_option:
 		}
 		fdflags = fcntl(STDIN_FILENO, F_GETFL);
 		if (fdflags == -1 || fcntl(STDIN_FILENO, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
-			perror_on_device("%s: couldn't reset non-blocking mode");
+			perror_on_device_and_die("%s: couldn't reset non-blocking mode");
 	}
 
 	/* Initialize to all zeroes so there is no risk memcmp will report a
 	   spurious difference in an uninitialized portion of the structure */
 	memset(&mode, 0, sizeof(mode));
 	if (tcgetattr(STDIN_FILENO, &mode))
-		perror_on_device("%s");
+		perror_on_device_and_die("%s");
 
 	if (verbose_output || recoverable_output || noargs) {
 		max_col = screen_columns();
@@ -670,7 +675,7 @@ end_option:
 		cp = find_control(arg);
 		if (cp) {
 			++k;
-			set_control_char(cp, argnext, &mode);
+			set_control_char_or_die(cp, argnext, &mode);
 			continue;
 		}
 
@@ -729,7 +734,7 @@ end_option:
 		struct termios new_mode;
 
 		if (tcsetattr(STDIN_FILENO, TCSADRAIN, &mode))
-			perror_on_device("%s");
+			perror_on_device_and_die("%s");
 
 		/* POSIX (according to Zlotnick's book) tcsetattr returns zero if
 		   it performs *any* of the requested operations.  This means it
@@ -742,7 +747,7 @@ end_option:
 		   spurious difference in an uninitialized portion of the structure */
 		memset(&new_mode, 0, sizeof(new_mode));
 		if (tcgetattr(STDIN_FILENO, &new_mode))
-			perror_on_device("%s");
+			perror_on_device_and_die("%s");
 
 		if (memcmp(&mode, &new_mode, sizeof(mode)) != 0) {
 #ifdef CIBAUD
@@ -758,7 +763,7 @@ end_option:
 			new_mode.c_cflag &= (~CIBAUD);
 			if (speed_was_set || memcmp(&mode, &new_mode, sizeof(mode)) != 0)
 #endif
-				perror_on_device ("%s: unable to perform all requested operations");
+				perror_on_device_and_die ("%s: unable to perform all requested operations");
 		}
 	}
 
@@ -805,127 +810,130 @@ set_mode(const struct mode_info *info, int reversed, struct termios *mode)
 {
 	tcflag_t *bitsp;
 
-	bitsp = mode_type_flag(EMT(info->type), mode);
+	bitsp = mode_type_flag(info->type, mode);
 
-	if (bitsp == NULL) {
-		/* Combination mode */
-		if (info->name == evenp || info->name == parity) {
-			if (reversed)
-				mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
-			else
-				mode->c_cflag =
-					(mode->c_cflag & ~PARODD & ~CSIZE) | PARENB | CS7;
-		} else if (info->name == stty_oddp) {
-			if (reversed)
-				mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
-			else
-				mode->c_cflag =
-					(mode->c_cflag & ~CSIZE) | CS7 | PARODD | PARENB;
-		} else if (info->name == stty_nl) {
-			if (reversed) {
-				mode->c_iflag = (mode->c_iflag | ICRNL) & ~INLCR & ~IGNCR;
-				mode->c_oflag = (mode->c_oflag | ONLCR)	& ~OCRNL & ~ONLRET;
-			} else {
-				mode->c_iflag = mode->c_iflag & ~ICRNL;
-				if (ONLCR) mode->c_oflag = mode->c_oflag & ~ONLCR;
-			}
-		} else if (info->name == stty_ek) {
-			mode->c_cc[VERASE] = CERASE;
-			mode->c_cc[VKILL] = CKILL;
-		} else if (info->name == stty_sane)
-			sane_mode(mode);
-		else if (info->name == cbreak) {
-			if (reversed)
-				mode->c_lflag |= ICANON;
-			else
-				mode->c_lflag &= ~ICANON;
-		} else if (info->name == stty_pass8) {
-			if (reversed) {
-				mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
-				mode->c_iflag |= ISTRIP;
-			} else {
-				mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
-				mode->c_iflag &= ~ISTRIP;
-			}
-		} else if (info->name == litout) {
-			if (reversed) {
-				mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
-				mode->c_iflag |= ISTRIP;
-				mode->c_oflag |= OPOST;
-			} else {
-				mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
-				mode->c_iflag &= ~ISTRIP;
-				mode->c_oflag &= ~OPOST;
-			}
-		} else if (info->name == raw || info->name == cooked) {
-			if ((info->name[0] == 'r' && reversed)
-				|| (info->name[0] == 'c' && !reversed)) {
-				/* Cooked mode */
-				mode->c_iflag |= BRKINT | IGNPAR | ISTRIP | ICRNL | IXON;
-				mode->c_oflag |= OPOST;
-				mode->c_lflag |= ISIG | ICANON;
+	if (bitsp) {
+		if (reversed)
+			*bitsp = *bitsp & ~((unsigned long)info->mask) & ~info->bits;
+		else
+			*bitsp = (*bitsp & ~((unsigned long)info->mask)) | info->bits;
+		return;
+	}
+
+	/* Combination mode */
+	if (info->name == evenp || info->name == parity) {
+		if (reversed)
+			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
+		else
+			mode->c_cflag =	(mode->c_cflag & ~PARODD & ~CSIZE) | PARENB | CS7;
+	} else if (info->name == stty_oddp) {
+		if (reversed)
+			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
+		else
+			mode->c_cflag =	(mode->c_cflag & ~CSIZE) | CS7 | PARODD | PARENB;
+	} else if (info->name == stty_nl) {
+		if (reversed) {
+			mode->c_iflag = (mode->c_iflag | ICRNL) & ~INLCR & ~IGNCR;
+			mode->c_oflag = (mode->c_oflag | ONLCR)	& ~OCRNL & ~ONLRET;
+		} else {
+			mode->c_iflag = mode->c_iflag & ~ICRNL;
+			if (ONLCR) mode->c_oflag = mode->c_oflag & ~ONLCR;
+		}
+	} else if (info->name == stty_ek) {
+		mode->c_cc[VERASE] = CERASE;
+		mode->c_cc[VKILL] = CKILL;
+	} else if (info->name == stty_sane) {
+		sane_mode(mode);
+	}
+	else if (info->name == cbreak) {
+		if (reversed)
+			mode->c_lflag |= ICANON;
+		else
+			mode->c_lflag &= ~ICANON;
+	} else if (info->name == stty_pass8) {
+		if (reversed) {
+			mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
+			mode->c_iflag |= ISTRIP;
+		} else {
+			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
+			mode->c_iflag &= ~ISTRIP;
+		}
+	} else if (info->name == litout) {
+		if (reversed) {
+			mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
+			mode->c_iflag |= ISTRIP;
+			mode->c_oflag |= OPOST;
+		} else {
+			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
+			mode->c_iflag &= ~ISTRIP;
+			mode->c_oflag &= ~OPOST;
+		}
+	} else if (info->name == raw || info->name == cooked) {
+		if ((info->name[0] == 'r' && reversed)
+			|| (info->name[0] == 'c' && !reversed)) {
+			/* Cooked mode */
+			mode->c_iflag |= BRKINT | IGNPAR | ISTRIP | ICRNL | IXON;
+			mode->c_oflag |= OPOST;
+			mode->c_lflag |= ISIG | ICANON;
 #if VMIN == VEOF
-				mode->c_cc[VEOF] = CEOF;
+			mode->c_cc[VEOF] = CEOF;
 #endif
 #if VTIME == VEOL
-				mode->c_cc[VEOL] = CEOL;
+			mode->c_cc[VEOL] = CEOL;
 #endif
-			} else {
-				/* Raw mode */
-				mode->c_iflag = 0;
-				mode->c_oflag &= ~OPOST;
-				mode->c_lflag &= ~(ISIG | ICANON | XCASE);
-				mode->c_cc[VMIN] = 1;
-				mode->c_cc[VTIME] = 0;
-			}
+		} else {
+			/* Raw mode */
+			mode->c_iflag = 0;
+			mode->c_oflag &= ~OPOST;
+			mode->c_lflag &= ~(ISIG | ICANON | XCASE);
+			mode->c_cc[VMIN] = 1;
+			mode->c_cc[VTIME] = 0;
 		}
-		else if (IXANY && info->name == decctlq) {
-			if (reversed)
-				mode->c_iflag |= IXANY;
-			else
-				mode->c_iflag &= ~IXANY;
+	}
+	else if (IXANY && info->name == decctlq) {
+		if (reversed)
+			mode->c_iflag |= IXANY;
+		else
+			mode->c_iflag &= ~IXANY;
+	}
+	else if (TABDLY && info->name == stty_tabs) {
+		if (reversed)
+			mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB3;
+		else
+			mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB0;
+	}
+	else if (OXTABS && info->name == stty_tabs) {
+		if (reversed)
+			mode->c_oflag |= OXTABS;
+		else
+			mode->c_oflag &= ~OXTABS;
+	}
+	else if (XCASE && IUCLC && OLCUC
+	&& (info->name == stty_lcase || info->name == stty_LCASE)) {
+		if (reversed) {
+			mode->c_lflag &= ~XCASE;
+			mode->c_iflag &= ~IUCLC;
+			mode->c_oflag &= ~OLCUC;
+		} else {
+			mode->c_lflag |= XCASE;
+			mode->c_iflag |= IUCLC;
+			mode->c_oflag |= OLCUC;
 		}
-		else if (TABDLY && info->name == stty_tabs) {
-			if (reversed)
-				mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB3;
-			else
-				mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB0;
-		}
-		else if (OXTABS && info->name == stty_tabs) {
-			if (reversed)
-				mode->c_oflag = mode->c_oflag | OXTABS;
-			else
-				mode->c_oflag = mode->c_oflag & ~OXTABS;
-		}
-		else if (XCASE && IUCLC && OLCUC
-		&& (info->name == stty_lcase || info->name == stty_LCASE)) {
-			if (reversed) {
-				mode->c_lflag &= ~XCASE;
-				mode->c_iflag &= ~IUCLC;
-				mode->c_oflag &= ~OLCUC;
-			} else {
-				mode->c_lflag |= XCASE;
-				mode->c_iflag |= IUCLC;
-				mode->c_oflag |= OLCUC;
-			}
-		}
-		else if (info->name == stty_crt)
-			mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
-		else if (info->name == stty_dec) {
-			mode->c_cc[VINTR] = 3;  /* ^C */
-			mode->c_cc[VERASE] = 127;       /* DEL */
-			mode->c_cc[VKILL] = 21; /* ^U */
-			mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
-			if (IXANY) mode->c_iflag &= ~IXANY;
-		}
-	} else if (reversed)
-		*bitsp = *bitsp & ~((unsigned long)info->mask) & ~info->bits;
-	else
-		*bitsp = (*bitsp & ~((unsigned long)info->mask)) | info->bits;
+	}
+	else if (info->name == stty_crt) {
+		mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
+	}
+	else if (info->name == stty_dec) {
+		mode->c_cc[VINTR] = 3; /* ^C */
+		mode->c_cc[VERASE] = 127; /* DEL */
+		mode->c_cc[VKILL] = 21; /* ^U */
+		mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
+		if (IXANY) mode->c_iflag &= ~IXANY;
+	}
 }
 
 static void
-set_control_char(const struct control_info *info, const char *arg,
+set_control_char_or_die(const struct control_info *info, const char *arg,
 				 struct termios *mode)
 {
 	unsigned char value;
@@ -936,11 +944,11 @@ set_control_char(const struct control_info *info, const char *arg,
 		value = arg[0];
 	else if (streq(arg, "^-") || streq(arg, "undef"))
 		value = _POSIX_VDISABLE;
-	else if (arg[0] == '^' && arg[1] != '\0') {     /* Ignore any trailing junk */
+	else if (arg[0] == '^') { /* Ignore any trailing junk (^Cjunk) */
 		if (arg[1] == '?')
 			value = 127;
 		else
-			value = arg[1] & ~0140; /* Non-letters get weird results */
+			value = arg[1] & 0x1f; /* Non-letters get weird results */
 	} else
 		value = bb_xparse_number(arg, stty_suffixes);
 	mode->c_cc[info->offset] = value;
@@ -963,9 +971,9 @@ set_speed(enum speed_setting type, const char *arg, struct termios *mode)
 
 #ifdef TIOCGWINSZ
 
-static int get_win_size(int fd, struct winsize *win)
+static int get_win_size(struct winsize *win)
 {
-	return ioctl(fd, TIOCGWINSZ, (char *) win);
+	return ioctl(STDIN_FILENO, TIOCGWINSZ, (char *) win);
 }
 
 static void
@@ -973,9 +981,11 @@ set_window_size(int rows, int cols)
 {
 	struct winsize win;
 
-	if (get_win_size(STDIN_FILENO, &win)) {
-		if (errno != EINVAL)
+	if (get_win_size(&win)) {
+		if (errno != EINVAL) {
 			perror_on_device("%s");
+			return;
+		}
 		memset(&win, 0, sizeof(win));
 	}
 
@@ -1000,7 +1010,7 @@ set_window_size(int rows, int cols)
 		win.ws_row = win.ws_col = 1;
 
 		if ((ioctl(STDIN_FILENO, TIOCSWINSZ, (char *) &win) != 0)
-			|| (ioctl(STDIN_FILENO, TIOCSSIZE, (char *) &ttysz) != 0)) {
+		|| (ioctl(STDIN_FILENO, TIOCSSIZE, (char *) &ttysz) != 0)) {
 			perror_on_device("%s");
 		}
 		return;
@@ -1013,19 +1023,24 @@ set_window_size(int rows, int cols)
 
 static void display_window_size(int fancy)
 {
-	const char *fmt_str = "%s" "\0" "%s: no size information for this device";
+	const char *fmt_str = "%s\0%s: no size information for this device";
 	struct winsize win;
 
-	if (get_win_size(STDIN_FILENO, &win)) {
+	if (get_win_size(&win)) {
 		if ((errno != EINVAL) || ((fmt_str += 2), !fancy)) {
 			perror_on_device(fmt_str);
 		}
 	} else {
 		wrapf(fancy ? "rows %d; columns %d;" : "%d %d\n",
-			  win.ws_row, win.ws_col);
+				win.ws_row, win.ws_col);
 	}
 }
-#endif
+
+#else /* !TIOCGWINSZ */
+
+static inline void display_window_size(int fancy) {}
+
+#endif /* !TIOCGWINSZ */
 
 static int screen_columns(void)
 {
@@ -1041,7 +1056,7 @@ static int screen_columns(void)
 	   (but it works for ptys).
 	   It can also fail on any system when stdout isn't a tty.
 	   In case of any failure, just use the default */
-	if (get_win_size(STDOUT_FILENO, &win) == 0 && win.ws_col > 0)
+	if (get_win_size(&win) == 0 && win.ws_col > 0)
 		return win.ws_col;
 #endif
 
@@ -1052,17 +1067,17 @@ static int screen_columns(void)
 	return columns;
 }
 
-static tcflag_t *mode_type_flag(enum mode_type type, const struct termios *mode)
+static tcflag_t *mode_type_flag(unsigned type, const struct termios *mode)
 {
 	static const unsigned char tcflag_offsets[] = {
 		offsetof(struct termios, c_cflag), /* control */
 		offsetof(struct termios, c_iflag), /* input */
 		offsetof(struct termios, c_oflag), /* output */
-		offsetof(struct termios, c_lflag) /* local */
+		offsetof(struct termios, c_lflag), /* local */
 	};
 
-	if (((unsigned int) type) <= local) {
-		return (tcflag_t *)(((char *) mode) + tcflag_offsets[(int)type]);
+	if (type <= local) {
+		return (tcflag_t*) (((char*)mode) + tcflag_offsets[type]);
 	}
 	return NULL;
 }
@@ -1072,7 +1087,7 @@ static void display_changed(const struct termios *mode)
 	int i;
 	tcflag_t *bitsp;
 	unsigned long mask;
-	enum mode_type prev_type = control;
+	int prev_type = control;
 
 	display_speed(mode, 1);
 #ifdef HAVE_C_LINE
@@ -1107,12 +1122,12 @@ static void display_changed(const struct termios *mode)
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & OMIT)
 			continue;
-		if (EMT(mode_info[i].type) != prev_type) {
+		if (mode_info[i].type != prev_type) {
 			if (current_col) wrapf("\n");
-			prev_type = EMT(mode_info[i].type);
+			prev_type = mode_info[i].type;
 		}
 
-		bitsp = mode_type_flag(EMT(mode_info[i].type), mode);
+		bitsp = mode_type_flag(mode_info[i].type, mode);
 		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
 		if ((*bitsp & mask) == mode_info[i].bits) {
 			if (mode_info[i].flags & SANE_UNSET) {
@@ -1131,12 +1146,10 @@ display_all(const struct termios *mode)
 	int i;
 	tcflag_t *bitsp;
 	unsigned long mask;
-	enum mode_type prev_type = control;
+	int prev_type = control;
 
 	display_speed(mode, 1);
-#ifdef TIOCGWINSZ
 	display_window_size(1);
-#endif
 #ifdef HAVE_C_LINE
 	wrapf("line = %d;\n", mode->c_line);
 #else
@@ -1167,13 +1180,12 @@ display_all(const struct termios *mode)
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & OMIT)
 			continue;
-		if (EMT(mode_info[i].type) != prev_type) {
-			putchar('\n');
-			current_col = 0;
-			prev_type = EMT(mode_info[i].type);
+		if (mode_info[i].type != prev_type) {
+			wrapf("\n");
+			prev_type = mode_info[i].type;
 		}
 
-		bitsp = mode_type_flag(EMT(mode_info[i].type), mode);
+		bitsp = mode_type_flag(mode_info[i].type, mode);
 		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
 		if ((*bitsp & mask) == mode_info[i].bits)
 			wrapf("%s", mode_info[i].name);
@@ -1185,14 +1197,14 @@ display_all(const struct termios *mode)
 
 static void display_speed(const struct termios *mode, int fancy)
 {
-	                     //12345678 9 10
+	                     //01234567 8 9
 	const char *fmt_str = "%lu %lu\n\0ispeed %lu baud; ospeed %lu baud;";
 	unsigned long ispeed, ospeed;
 
 	ospeed = ispeed = cfgetispeed(mode);
 	if (ispeed == 0 || ispeed == (ospeed = cfgetospeed(mode))) {
 		ispeed = ospeed;                /* in case ispeed was 0 */
-	                 //1234 5 6 7 8 9 10
+	                 //0123 4 5 6 7 8 9
 		fmt_str = "%lu\n\0\0\0\0\0speed %lu baud;";
 	}
 	if (fancy) fmt_str += 9;
@@ -1261,11 +1273,11 @@ static void sane_mode(struct termios *mode)
 
 	for (i = 0; i < NUM_mode_info; ++i) {
 		if (mode_info[i].flags & SANE_SET) {
-			bitsp = mode_type_flag(EMT(mode_info[i].type), mode);
+			bitsp = mode_type_flag(mode_info[i].type, mode);
 			*bitsp = (*bitsp & ~((unsigned long)mode_info[i].mask))
 				| mode_info[i].bits;
 		} else if (mode_info[i].flags & SANE_UNSET) {
-			bitsp = mode_type_flag(EMT(mode_info[i].type), mode);
+			bitsp = mode_type_flag(mode_info[i].type, mode);
 			*bitsp = *bitsp & ~((unsigned long)mode_info[i].mask)
 				& ~mode_info[i].bits;
 		}
