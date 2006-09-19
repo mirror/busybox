@@ -23,17 +23,14 @@
 
 #include "busybox.h"
 
-#define STREQ(a, b) (strcmp ((a), (b)) == 0)
-
-
 #ifndef _POSIX_VDISABLE
 # define _POSIX_VDISABLE ((unsigned char) 0)
 #endif
 
 #define Control(c) ((c) & 0x1f)
-/* Canonical values for control characters. */
+/* Canonical values for control characters */
 #ifndef CINTR
-# define CINTR Control ('c')
+# define CINTR Control('c')
 #endif
 #ifndef CQUIT
 # define CQUIT 28
@@ -42,27 +39,27 @@
 # define CERASE 127
 #endif
 #ifndef CKILL
-# define CKILL Control ('u')
+# define CKILL Control('u')
 #endif
 #ifndef CEOF
-# define CEOF Control ('d')
+# define CEOF Control('d')
 #endif
 #ifndef CEOL
 # define CEOL _POSIX_VDISABLE
 #endif
 #ifndef CSTART
-# define CSTART Control ('q')
+# define CSTART Control('q')
 #endif
 #ifndef CSTOP
-# define CSTOP Control ('s')
+# define CSTOP Control('s')
 #endif
 #ifndef CSUSP
-# define CSUSP Control ('z')
+# define CSUSP Control('z')
 #endif
 #if defined(VEOL2) && !defined(CEOL2)
 # define CEOL2 _POSIX_VDISABLE
 #endif
-/* ISC renamed swtch to susp for termios, but we'll accept either name.  */
+/* ISC renamed swtch to susp for termios, but we'll accept either name */
 #if defined(VSUSP) && !defined(VSWTCH)
 # define VSWTCH VSUSP
 # define CSWTCH CSUSP
@@ -82,19 +79,19 @@
 # define VWERASE VWERSE
 #endif
 #if defined(VDSUSP) && !defined (CDSUSP)
-# define CDSUSP Control ('y')
+# define CDSUSP Control('y')
 #endif
 #if !defined(VREPRINT) && defined(VRPRNT)       /* Irix 4.0.5 */
 # define VREPRINT VRPRNT
 #endif
 #if defined(VREPRINT) && !defined(CRPRNT)
-# define CRPRNT Control ('r')
+# define CRPRNT Control('r')
 #endif
 #if defined(VWERASE) && !defined(CWERASE)
-# define CWERASE Control ('w')
+# define CWERASE Control('w')
 #endif
 #if defined(VLNEXT) && !defined(CLNEXT)
-# define CLNEXT Control ('v')
+# define CLNEXT Control('v')
 #endif
 #if defined(VDISCARD) && !defined(VFLUSHO)
 # define VFLUSHO VDISCARD
@@ -112,24 +109,23 @@
 # define ECHOKE CRTKIL
 #endif
 #if defined(VFLUSHO) && !defined(CFLUSHO)
-# define CFLUSHO Control ('o')
+# define CFLUSHO Control('o')
 #endif
 #if defined(VSTATUS) && !defined(CSTATUS)
-# define CSTATUS Control ('t')
+# define CSTATUS Control('t')
 #endif
 
-/* Which speeds to set.  */
+/* Which speeds to set */
 enum speed_setting {
 	input_speed, output_speed, both_speeds
 };
 
-/* Which member(s) of `struct termios' a mode uses.  */
+/* Which member(s) of `struct termios' a mode uses */
 enum mode_type {
 	/* Do NOT change the order or values, as mode_type_flag()
-	 * depends on them. */
+	 * depends on them */
 	control, input, output, local, combination
 };
-
 
 static const char evenp     [] = "evenp";
 static const char raw       [] = "raw";
@@ -154,22 +150,22 @@ static const char stty_LCASE[] = "LCASE";
 static const char stty_crt  [] = "crt";
 static const char stty_dec  [] = "dec";
 
+/* Flags for `struct mode_info' */
+#define SANE_SET 1              /* Set in `sane' mode                  */
+#define SANE_UNSET 2            /* Unset in `sane' mode                */
+#define REV 4                   /* Can be turned off by prepending `-' */
+#define OMIT 8                  /* Don't display value                 */
 
-/* Flags for `struct mode_info'. */
-#define SANE_SET 1              /* Set in `sane' mode.                  */
-#define SANE_UNSET 2            /* Unset in `sane' mode.                */
-#define REV 4                   /* Can be turned off by prepending `-'. */
-#define OMIT 8                  /* Don't display value.                 */
-
-/* Each mode.  */
+/* Each mode */
 struct mode_info {
-	const char *name;       /* Name given on command line.           */
+	const char *name;       /* Name given on command line            */
 	/* enum mode_type type; */
-	char type;              /* Which structure element to change.    */
-	char flags;             /* Setting and display options.          */
-	unsigned short mask;     /* Other bits to turn off for this mode. */
-	unsigned long bits;     /* Bits to set for this mode.            */
+	char type;              /* Which structure element to change     */
+	char flags;             /* Setting and display options           */
+	unsigned short mask;     /* Other bits to turn off for this mode */
+	unsigned long bits;     /* Bits to set for this mode             */
 };
+#define EMT(t) ((enum mode_type)(t))
 
 #define MI_ENTRY(N,T,F,B,M) { N, T, F, M, B }
 
@@ -308,7 +304,7 @@ static const struct mode_info mode_info[] = {
 #ifdef IXANY
 	MI_ENTRY(decctlq,    combination, REV        | OMIT, 0,          0 ),
 #endif
-#if defined (TABDLY) || defined (OXTABS)
+#if defined(TABDLY) || defined(OXTABS)
 	MI_ENTRY(stty_tabs,  combination, REV        | OMIT, 0,          0 ),
 #endif
 #if defined(XCASE) && defined(IUCLC) && defined(OLCUC)
@@ -320,18 +316,17 @@ static const struct mode_info mode_info[] = {
 };
 
 enum {
-	NUM_mode_info =
-	(sizeof(mode_info) / sizeof(struct mode_info))
+	NUM_mode_info = (sizeof(mode_info) / sizeof(mode_info[0]))
 };
 
-/* Control character settings.  */
+/* Control character settings */
 struct control_info {
-	const char *name;                       /* Name given on command line.  */
-	unsigned char saneval;          /* Value to set for `stty sane'.  */
-	unsigned char offset;                           /* Offset in c_cc.  */
+	const char *name;                       /* Name given on command line */
+	unsigned char saneval;          /* Value to set for `stty sane' */
+	unsigned char offset;                           /* Offset in c_cc */
 };
 
-/* Control characters. */
+/* Control characters */
 
 static const struct control_info control_info[] = {
 	{"intr",     CINTR,   VINTR},
@@ -367,17 +362,20 @@ static const struct control_info control_info[] = {
 #ifdef VSTATUS
 	{"status",   CSTATUS, VSTATUS},
 #endif
-	/* These must be last because of the display routines. */
+	/* These must be last because of the display routines */
 	{stty_min,   1,       VMIN},
 	{stty_time,  0,       VTIME},
 };
 
 enum {
-	NUM_control_info =
-	(sizeof(control_info) / sizeof(struct control_info))
+	NUM_control_info = (sizeof(control_info) / sizeof(control_info[0]))
 };
 
-#define EMT(t) ((enum mode_type)(t))
+/* The width of the screen, for output wrapping */
+static int max_col;
+
+/* Current position, to know when to wrap */
+static int current_col;
 
 static const char *  visible(unsigned int ch);
 static int           recover_mode(const char *arg, struct termios *mode);
@@ -385,11 +383,11 @@ static int           screen_columns(void);
 static void          set_mode(const struct mode_info *info,
 					int reversed, struct termios *mode);
 static speed_t       string_to_baud(const char *arg);
-static tcflag_t*     mode_type_flag(enum mode_type type, struct termios *mode);
-static void          display_all(struct termios *mode);
-static void          display_changed(struct termios *mode);
-static void          display_recoverable(struct termios *mode);
-static void          display_speed(struct termios *mode, int fancy);
+static tcflag_t*     mode_type_flag(enum mode_type type, const struct termios *mode);
+static void          display_all(const struct termios *mode);
+static void          display_changed(const struct termios *mode);
+static void          display_recoverable(const struct termios *mode);
+static void          display_speed(const struct termios *mode, int fancy);
 static void          display_window_size(int fancy);
 static void          sane_mode(struct termios *mode);
 static void          set_control_char(const struct control_info *info,
@@ -405,21 +403,19 @@ static ATTRIBUTE_NORETURN void perror_on_device(const char *fmt)
 	bb_perror_msg_and_die(fmt, device_name);
 }
 
-
-/* The width of the screen, for output wrapping. */
-static int max_col;
-
-/* Current position, to know when to wrap. */
-static int current_col;
+static ATTRIBUTE_ALWAYS_INLINE int streq(const char *a, const char *b)
+{
+	return strcmp(a, b) == 0;
+}
 
 /* Print format string MESSAGE and optional args.
    Wrap to next line first if it won't fit.
-   Print a space first unless MESSAGE will start a new line. */
+   Print a space first unless MESSAGE will start a new line */
 
 static void wrapf(const char *message, ...)
 {
 	va_list args;
-	char buf[1024];                 /* Plenty long for our needs. */
+	char buf[1024];                 /* Plenty long for our needs */
 	int buflen;
 
 	va_start(args, message);
@@ -449,7 +445,7 @@ static const struct mode_info *find_mode(const char *name)
 {
 	int i;
 	for (i = 0; i < NUM_mode_info; ++i)
-		if (STREQ(name, mode_info[i].name))
+		if (streq(name, mode_info[i].name))
 			return &mode_info[i];
 	return 0;
 }
@@ -458,7 +454,7 @@ static const struct control_info *find_control(const char *name)
 {
 	int i;
 	for (i = 0; i < NUM_control_info; ++i)
-		if (STREQ(name, control_info[i].name))
+		if (streq(name, control_info[i].name))
 			return &control_info[i];
 	return 0;
 }
@@ -477,17 +473,17 @@ enum {
 static int find_param(const char *name)
 {
 #ifdef HAVE_C_LINE
-	if (STREQ(name, "line")) return param_line;
+	if (streq(name, "line")) return param_line;
 #endif
 #ifdef TIOCGWINSZ
-	if (STREQ(name, "rows")) return param_rows;
-	if (STREQ(name, "cols")) return param_cols;
-	if (STREQ(name, "columns")) return param_cols;
-	if (STREQ(name, "size")) return param_size;
+	if (streq(name, "rows")) return param_rows;
+	if (streq(name, "cols")) return param_cols;
+	if (streq(name, "columns")) return param_cols;
+	if (streq(name, "size")) return param_size;
 #endif
-	if (STREQ(name, "ispeed")) return param_ispeed;
-	if (STREQ(name, "ospeed")) return param_ospeed;
-	if (STREQ(name, "speed")) return param_speed;
+	if (streq(name, "ispeed")) return param_ispeed;
+	if (streq(name, "ospeed")) return param_ospeed;
+	if (streq(name, "speed")) return param_speed;
 	return 0;
 }
 
@@ -495,7 +491,7 @@ static int find_param(const char *name)
 int stty_main(int argc, char **argv)
 {
 	struct termios mode;
-	void (*output_func)(struct termios *);
+	void (*output_func)(const struct termios *);
 	const char *file_name = NULL;
 	int require_set_attr;
 	int speed_was_set;
@@ -634,7 +630,7 @@ end_option:
 	}
 
 	/* Initialize to all zeroes so there is no risk memcmp will report a
-	   spurious difference in an uninitialized portion of the structure.  */
+	   spurious difference in an uninitialized portion of the structure */
 	memset(&mode, 0, sizeof(mode));
 	if (tcgetattr(STDIN_FILENO, &mode))
 		perror_on_device("%s");
@@ -739,10 +735,10 @@ end_option:
 		   can report `success' when it has actually failed to perform
 		   some proper subset of the requested operations.  To detect
 		   this partial failure, get the current terminal attributes and
-		   compare them to the requested ones.  */
+		   compare them to the requested ones */
 
 		/* Initialize to all zeroes so there is no risk memcmp will report a
-		   spurious difference in an uninitialized portion of the structure.  */
+		   spurious difference in an uninitialized portion of the structure */
 		memset(&new_mode, 0, sizeof(new_mode));
 		if (tcgetattr(STDIN_FILENO, &new_mode))
 			perror_on_device("%s");
@@ -756,7 +752,7 @@ end_option:
 			   Sun users a little confusion, don't report an error if this
 			   happens.  But suppress the error only if we haven't tried to
 			   set the baud rate explicitly -- otherwise we'd never give an
-			   error for a true failure to set the baud rate.  */
+			   error for a true failure to set the baud rate */
 
 			new_mode.c_cflag &= (~CIBAUD);
 			if (speed_was_set || memcmp(&mode, &new_mode, sizeof(mode)) != 0)
@@ -768,7 +764,6 @@ end_option:
 	return EXIT_SUCCESS;
 }
 
-/* Return 0 if not applied because not reversible; otherwise return 1.  */
 
 static void
 set_mode(const struct mode_info *info, int reversed, struct termios *mode)
@@ -778,7 +773,7 @@ set_mode(const struct mode_info *info, int reversed, struct termios *mode)
 	bitsp = mode_type_flag(EMT(info->type), mode);
 
 	if (bitsp == NULL) {
-		/* Combination mode. */
+		/* Combination mode */
 		if (info->name == evenp || info->name == parity) {
 			if (reversed)
 				mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
@@ -843,7 +838,7 @@ set_mode(const struct mode_info *info, int reversed, struct termios *mode)
 		} else if (info->name == raw || info->name == cooked) {
 			if ((info->name[0] == 'r' && reversed)
 				|| (info->name[0] == 'c' && !reversed)) {
-				/* Cooked mode. */
+				/* Cooked mode */
 				mode->c_iflag |= BRKINT | IGNPAR | ISTRIP | ICRNL | IXON;
 				mode->c_oflag |= OPOST;
 				mode->c_lflag |= ISIG | ICANON;
@@ -854,7 +849,7 @@ set_mode(const struct mode_info *info, int reversed, struct termios *mode)
 				mode->c_cc[VEOL] = CEOL;
 #endif
 			} else {
-				/* Raw mode. */
+				/* Raw mode */
 				mode->c_iflag = 0;
 				mode->c_oflag &= ~OPOST;
 				mode->c_lflag &= ~(ISIG | ICANON
@@ -945,13 +940,13 @@ set_control_char(const struct control_info *info, const char *arg,
 		value = bb_xparse_number(arg, stty_suffixes);
 	else if (arg[0] == '\0' || arg[1] == '\0')
 		value = arg[0];
-	else if (STREQ(arg, "^-") || STREQ(arg, "undef"))
+	else if (streq(arg, "^-") || streq(arg, "undef"))
 		value = _POSIX_VDISABLE;
-	else if (arg[0] == '^' && arg[1] != '\0') {     /* Ignore any trailing junk. */
+	else if (arg[0] == '^' && arg[1] != '\0') {     /* Ignore any trailing junk */
 		if (arg[1] == '?')
 			value = 127;
 		else
-			value = arg[1] & ~0140; /* Non-letters get weird results. */
+			value = arg[1] & ~0140; /* Non-letters get weird results */
 	} else
 		value = bb_xparse_number(arg, stty_suffixes);
 	mode->c_cc[info->offset] = value;
@@ -976,9 +971,7 @@ set_speed(enum speed_setting type, const char *arg, struct termios *mode)
 
 static int get_win_size(int fd, struct winsize *win)
 {
-	int err = ioctl(fd, TIOCGWINSZ, (char *) win);
-
-	return err;
+	return ioctl(fd, TIOCGWINSZ, (char *) win);
 }
 
 static void
@@ -1002,7 +995,7 @@ set_window_size(int rows, int cols)
 	   The following code deals with a bug in the SunOS 4.x (and 3.x?) kernel.
 	   This comment from sys/ttold.h describes Sun's twisted logic - a better
 	   test would have been (ts_lines > 64k || ts_cols > 64k || ts_cols == 0).
-	   At any rate, the problem is gone in Solaris 2.x. */
+	   At any rate, the problem is gone in Solaris 2.x */
 
 	if (win.ws_row == 0 || win.ws_col == 0) {
 		struct ttysize ttysz;
@@ -1055,7 +1048,7 @@ static int screen_columns(void)
 	   On ISC 3.0, it fails for the console and the serial port
 	   (but it works for ptys).
 	   It can also fail on any system when stdout isn't a tty.
-	   In case of any failure, just use the default.  */
+	   In case of any failure, just use the default */
 	if (get_win_size(STDOUT_FILENO, &win) == 0 && win.ws_col > 0)
 		return win.ws_col;
 #endif
@@ -1067,7 +1060,7 @@ static int screen_columns(void)
 	return columns;
 }
 
-static tcflag_t *mode_type_flag(enum mode_type type, struct termios *mode)
+static tcflag_t *mode_type_flag(enum mode_type type, const struct termios *mode)
 {
 	static const unsigned char tcflag_offsets[] = {
 		offsetof(struct termios, c_cflag), /* control */
@@ -1082,7 +1075,7 @@ static tcflag_t *mode_type_flag(enum mode_type type, struct termios *mode)
 	return NULL;
 }
 
-static void display_changed(struct termios *mode)
+static void display_changed(const struct termios *mode)
 {
 	int i;
 	int empty_line;
@@ -1101,12 +1094,12 @@ static void display_changed(struct termios *mode)
 	for (i = 0; control_info[i].name != stty_min; ++i) {
 		if (mode->c_cc[control_info[i].offset] == control_info[i].saneval)
 			continue;
-		/* If swtch is the same as susp, don't print both.  */
+		/* If swtch is the same as susp, don't print both */
 #if VSWTCH == VSUSP
 		if (control_info[i].name == stty_swtch)
 			continue;
 #endif
-		/* If eof uses the same slot as min, only print whichever applies.  */
+		/* If eof uses the same slot as min, only print whichever applies */
 #if VEOF == VMIN
 		if ((mode->c_lflag & ICANON) == 0
 			&& (control_info[i].name == stty_eof
@@ -1144,9 +1137,7 @@ static void display_changed(struct termios *mode)
 				wrapf("%s", mode_info[i].name);
 				empty_line = 0;
 			}
-		}
-			else if ((mode_info[i].flags & (SANE_SET | REV)) ==
-					 (SANE_SET | REV)) {
+		} else if ((mode_info[i].flags & (SANE_SET | REV)) == (SANE_SET | REV)) {
 			wrapf("-%s", mode_info[i].name);
 			empty_line = 0;
 		}
@@ -1157,7 +1148,7 @@ static void display_changed(struct termios *mode)
 }
 
 static void
-display_all(struct termios *mode)
+display_all(const struct termios *mode)
 {
 	int i;
 	tcflag_t *bitsp;
@@ -1175,12 +1166,12 @@ display_all(struct termios *mode)
 	current_col = 0;
 
 	for (i = 0; control_info[i].name != stty_min; ++i) {
-		/* If swtch is the same as susp, don't print both.  */
+		/* If swtch is the same as susp, don't print both */
 #if VSWTCH == VSUSP
 		if (control_info[i].name == stty_swtch)
 			continue;
 #endif
-		/* If eof uses the same slot as min, only print whichever applies.  */
+		/* If eof uses the same slot as min, only print whichever applies */
 #if VEOF == VMIN
 		if ((mode->c_lflag & ICANON) == 0
 			&& (control_info[i].name == stty_eof
@@ -1217,7 +1208,7 @@ display_all(struct termios *mode)
 	current_col = 0;
 }
 
-static void display_speed(struct termios *mode, int fancy)
+static void display_speed(const struct termios *mode, int fancy)
 {
 	unsigned long ispeed, ospeed;
 	const char *fmt_str =
@@ -1237,7 +1228,7 @@ static void display_speed(struct termios *mode, int fancy)
 		current_col = 0;
 }
 
-static void display_recoverable(struct termios *mode)
+static void display_recoverable(const struct termios *mode)
 {
 	int i;
 
@@ -1256,7 +1247,7 @@ static int recover_mode(const char *arg, struct termios *mode)
 	unsigned long iflag, oflag, cflag, lflag;
 
 	/* Scan into temporaries since it is too much trouble to figure out
-	   the right format for `tcflag_t'.  */
+	   the right format for `tcflag_t' */
 	if (sscanf(arg, "%lx:%lx:%lx:%lx%n",
 			   &iflag, &oflag, &cflag, &lflag, &n) != 4)
 		return 0;
@@ -1272,7 +1263,7 @@ static int recover_mode(const char *arg, struct termios *mode)
 		arg += n;
 	}
 
-	/* Fail if there are too many fields.  */
+	/* Fail if there are too many fields */
 	if (*arg != '\0')
 		return 0;
 
@@ -1310,8 +1301,8 @@ static void sane_mode(struct termios *mode)
 	}
 }
 
-/* Return a string that is the printable representation of character CH.  */
-/* Adapted from `cat' by Torbjorn Granlund.  */
+/* Return a string that is the printable representation of character CH */
+/* Adapted from `cat' by Torbjorn Granlund */
 
 static const char *visible(unsigned int ch)
 {
