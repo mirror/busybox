@@ -732,7 +732,7 @@ static inline int we_saw_this_host_before(const char *hostname)
  * error_msg_rpc(clnt_*error*(" ")) */
 static void error_msg_rpc(const char *msg)
 {
-	size_t len;
+	int len;
 	while (msg[0] == ' ' || msg[0] == ':') msg++;
 	len = strlen(msg);
 	while (len && msg[len-1] == '\n') len--;
