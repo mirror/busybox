@@ -570,52 +570,29 @@ static void print_sem(int semid)
 
 int ipcs_main(int argc, char **argv)
 {
-	int opt, id = 0;
+	int id = 0;
 	unsigned flags = 0;
+	unsigned long opt;
+	char *opt_i;
 #define flag_print	(1<<0)
 #define flag_msg	(1<<1)
 #define flag_sem	(1<<2)
 #define flag_shm	(1<<3)
-	const char *const options = "atclupsmqi:ih?";
 
-	while ((opt = getopt(argc, argv, options)) != -1) {
-		switch (opt) {
-		case 'i':
-			id = atoi(optarg);
-			flags |= flag_print;
-			break;
-		case 'a':
-			flags |= flag_msg | flag_sem | flag_shm;
-			break;
-		case 'q':
-			flags |= flag_msg;
-			break;
-		case 's':
-			flags |= flag_sem;
-			break;
-		case 'm':
-			flags |= flag_shm;
-			break;
-		case 't':
-			format = TIME;
-			break;
-		case 'c':
-			format = CREATOR;
-			break;
-		case 'p':
-			format = PID;
-			break;
-		case 'l':
-			format = LIMITS;
-			break;
-		case 'u':
-			format = STATUS;
-			break;
-		case 'h':
-		case '?':
-			bb_show_usage();
-		}
+	opt = bb_getopt_ulflags(argc, argv, "i:aqsmtcplu", &opt_i);
+	if (opt & 0x1) { // -i
+		id = atoi(optarg);
+		flags |= flag_print;
 	}
+	if (opt & 0x2) flags |= flag_msg | flag_sem | flag_shm; // -a
+	if (opt & 0x4) flags |= flag_msg; // -q
+	if (opt & 0x8) flags |= flag_sem; // -s
+	if (opt & 0x10) flags |= flag_shm; // -m
+	if (opt & 0x20) format = TIME; // -t
+	if (opt & 0x40) format = CREATOR; // -c
+	if (opt & 0x80) format = PID; // -p
+	if (opt & 0x100) format = LIMITS; // -l
+	if (opt & 0x200) format = STATUS; // -u
 
 	if (flags & flag_print) {
 		if (flags & flag_shm) {
