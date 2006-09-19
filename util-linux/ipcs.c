@@ -234,7 +234,7 @@ static void do_shm(void)
 				bb_printf("%-10d %-10.10s", shmid, pw->pw_name);
 			else
 				bb_printf("%-10d %-10d", shmid, ipcp->uid);
-			bb_printf("%-10o %-10lu %-10ld %-6s %-6s\n", ipcp->mode & 0777,
+			bb_printf(" %-10o %-10lu %-10ld %-6s %-6s\n", ipcp->mode & 0777,
 					  /*
 					   * earlier: int, Austin has size_t
 					   */
@@ -344,7 +344,7 @@ static void do_sem(void)
 				bb_printf("%-10d %-10.9s", semid, pw->pw_name);
 			else
 				bb_printf("%-10d %-9d", semid, ipcp->uid);
-			bb_printf("%-10o %-10ld\n", ipcp->mode & 0777,
+			bb_printf(" %-10o %-10ld\n", ipcp->mode & 0777,
 					  /*
 					   * glibc-2.1.3 and earlier has unsigned short;
 					   * glibc-2.1.91 has variation between
