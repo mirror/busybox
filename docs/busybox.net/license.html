@@ -1,12 +1,15 @@
 <!--#include file="header.html" -->
 
 <p>
-<h3>BusyBox is licensed under the GNU General Public License</h3>
+<h3>BusyBox is licensed under the GNU General Public License, version 2</h3>
 
 <p>BusyBox is licensed under <a href="http://www.gnu.org/licenses/gpl.html#SEC1">the
-GNU General Public License</a> version 2, which is generally
-abbreviated as the GPL.  (This is the same license the Linux kernel is under,
-so you may be somewhat familiar with it by now.)</p>
+GNU General Public License</a> version 2, which is often abbreviated as GPLv2.
+(This is the same license the Linux kernel is under, so you may be somewhat
+familiar with it by now.)</p>
+
+<p>A complete copy of the license text is included in the file LICENSE in
+the BusyBox source code.</p>
 
 <p><a href="/products.html">Anyone thinking of shipping BusyBox as part of a
 product</a> should be familiar with the licensing terms under which they are
@@ -21,6 +24,42 @@ BusyBox without making the source code to the version you distribute available,
 you violate the license terms, and thus infringe on the copyrights of BusyBox.
 (This requirement applies whether or not you modified BusyBox; either way the
 license terms still apply to you.)  Read the license text for the details.</p>
+
+<h3>A note on GPL versions</h3>
+
+<p>Version 2 of the GPL is the only version of the GPL which current versions
+of BusyBox may be distributed under.  New code added to the tree is licensed
+GPL version 2, and the project's license is GPL version 2.</p>
+
+<p>Older versions of BusyBox (versions 1.2.2 and earlier, up through about svn
+16112) included variants of the recommended "GPL version 2 or (at your option)
+later versions" boilerplate permission grant.  Ancient versions of BusyBox
+(before svn 49) did not specify any version at all, and section 9 of GPLv2
+(the most recent version at the time) says those old versions may be
+redistributed under any version of GPL (including the obsolete V1).  This was
+conceptually similar to a dual license, except that the different licenses were
+different versions of the GPL.</p>
+
+<p>However, BusyBox has apparently always contained chunks of code that were
+licensed under GPL version 2 only.  Examples include applets written by Linus
+Torvalds (util-linux/mkfs_minix.c and util_linux/mkswap.c) which stated they
+"may be redistributed as per the Linux copyright" (which Linus clarified in the
+2.4.0-pre8 release announcement in 2000 was GPLv2 only), and Linux kernel code
+copied into libbb/loop.c (after Linus's announcement).  There are probably
+more, because all we used to check was that the code was GPL, not which
+version.  (Before the GPLv3 draft proceedings in 2006, it was a purely
+theoretical issue that didn't come up much.)</p>
+
+<p>To summarize: every version of BusyBox may be distributed under the terms of
+GPL version 2.  New versions (after 1.2.2) may <b>only</b> be distributed under
+GPLv2, not under other versions of the GPL.  Older versions of BusyBox might
+(or might not) be distributable under other versions of the GPL.  If you
+want to use a GPL version other than 2, you should start with one of the old
+versions such as release 1.2.2 or SVN 16112, and do your own homework to
+identify and remove any code that can't be licensed under the GPL version you
+want to use.  New development is all GPLv2.</p>
+
+<h3>License enforcement</h3>
 
 <p>BusyBox's copyrights are enforced by the <a
 href="http://www.softwarefreedom.org">Software Freedom Law Center</a>, which
