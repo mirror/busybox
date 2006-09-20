@@ -56,7 +56,7 @@ int cmp_main(int argc, char **argv)
 
 	opt = bb_getopt_ulflags(argc, argv, opt_chars);
 
-	if ((opt & (CMP_OPT_s|CMP_OPT_l))
+	if (((opt & (CMP_OPT_s|CMP_OPT_l)) == (CMP_OPT_s|CMP_OPT_l))
 			|| (((unsigned int)(--argc - optind)) > 1))
 		bb_show_usage();
 
@@ -103,7 +103,7 @@ int cmp_main(int argc, char **argv)
 				 * make sure we fflush before writing to stderr. */
 				xfflush_stdout();
 			}
-			if (!opt & CMP_OPT_s) {
+			if (!(opt & CMP_OPT_s)) {
 				if (opt & CMP_OPT_l) {
 					line_pos = c1;	/* line_pos is unused in the -l case. */
 				}
