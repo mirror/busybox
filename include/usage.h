@@ -1440,7 +1440,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-[sS]\tRemove the semaphore"
 
 #define ipcs_trivial_usage \
-	"[[-smq] -i shmid] | [[-asmq] [-tclup]]"
+	"[[-smq] -i shmid] | [[-asmq] [-tcplu]]"
 #define ipcs_full_usage \
 	"\t-i\tspecify a specific resource id\n" \
 	"Resource specification:\n" \
@@ -1450,10 +1450,10 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-a\tall (default)\n" \
 	"Output format:\n" \
 	"\t-t\ttime\n" \
+	"\t-c\tcreator\n" \
 	"\t-p\tpid\n" \
-	"\t-s\tcreator\n" \
-	"\t-a\tlimits\n" \
-	"\t-i\tsummary"
+	"\t-l\tlimits\n" \
+	"\t-u\tsummary"
 
 #define iplink_trivial_usage \
 	"{ set DEVICE { up | down | arp { on | off } | show [ DEVICE ] }"
