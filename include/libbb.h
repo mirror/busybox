@@ -2,11 +2,10 @@
 /*
  * Busybox main internal header file
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
- *
  * Based in part on code from sash, Copyright (c) 1999 by David I. Bell
  * Permission has been granted to redistribute this code under the GPL.
- *
+ * 
+ * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
 #ifndef	__LIBBUSYBOX_H__
 #define	__LIBBUSYBOX_H__    1
@@ -47,6 +46,8 @@
 
 #ifdef CONFIG_LOCALE_SUPPORT
 #include <locale.h>
+#else
+#define setlocale(x,y)
 #endif
 
 #include "pwd_.h"

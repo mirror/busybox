@@ -2,19 +2,9 @@
 /*
  * BusyBox' main applet dispatcher.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPLv2, see file LICENSE in this tarball for details.
  */
 #include "busybox.h"
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <stdlib.h>
-#if ENABLE_LOCALE_SUPPORT
-#include <locale.h>
-#else
-#define setlocale(x,y)
-#endif
 
 const char *bb_applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 
@@ -128,7 +118,9 @@ int busybox_main(int argc, char **argv)
 				output_width -= 20;
 			} else output_width = 60;
 
-			printf("%s\n\n"
+			printf("%s\n"
+				   "Copyright (C) 1998-2006  Erik Andersen, Rob Landley, and others.\n"
+				   "Licensed under GPLv2.  See source distribution for full notice.\n\n"
 			       "Usage: busybox [function] [arguments]...\n"
 			       "   or: [function] [arguments]...\n\n"
 			       "\tBusyBox is a multi-call binary that combines many common Unix\n"
