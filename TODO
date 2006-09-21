@@ -117,13 +117,21 @@ Rob Landley <rob@landley.net>:
     This one's open to everybody, but I'll wind up doing it...
 
 
-Bernhard Fischer <rep.nop@anon.at>:
+Bernhard Fischer <busybox@busybox.net> suggests to look at these:
   Makefile stuff:
-    make -j is broken, -j1 is forced atm
+    make -j is broken. klibc make infrastructure (vda?)
   New debug options:
     -Wlarger-than-127
+    Cleanup any big users
+    -Wunused-parameter
+    Facilitate applet PROTOTYPES to provide means for having applets that
+    do a) not take any arguments b) need only one of argc or argv c) need
+    both argc and argv. All of these three options should go for the most
+    feature complete denominator.
   Collate BUFSIZ IOBUF_SIZE MY_BUF_SIZE PIPE_PROGRESS_SIZE BUFSIZE PIPESIZE
-    Use bb_common_bufsiz1?
+    make bb_common_bufsiz1 configurable, size wise.
+    make pipesize configurable, size wise.
+    Use bb_common_bufsiz1 throughout applets!
 
 As yet unclaimed:
 
