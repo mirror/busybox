@@ -220,10 +220,8 @@ void delete_block_backed_filesystems(void);
 static int useMtab = 1;
 static int fakeIt;
 #else
-enum {
-	useMtab = 0,
-	fakeIt = 0,
-};
+#define useMtab 0
+#define fakeIt 0
 #endif
 
 // Perform actual mount of specific filesystem at specific location.
