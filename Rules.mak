@@ -175,8 +175,11 @@ CHECKED_CFLAGS+=$(call check_cc,$(CC),-Wshadow,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-funsigned-char,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-fno-builtin-strlen,)
 CHECKED_CFLAGS+=$(call check_cc,$(CC),-finline-limit=0,)
-CHECKED_CFLAGS+=$(call check_cc,$(CC),-Winline,)
-CHECKED_CFLAGS+=$(call check_cc,$(CC),-static-libgcc,)
+
+# gcc 2.95 exits with 0 for "unrecognized option"
+ifeq ($(strip $(shell [ $(CC_MAJOR) -ge 3 ] ; echo $$?)),0)
+  CHECKED_CFLAGS+=$(call check_cc,$(CC),-static-libgcc,)
+endif
 
 # Preemptively pin this too.
 PROG_CFLAGS:=
