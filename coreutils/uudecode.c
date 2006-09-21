@@ -36,7 +36,7 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 		}
 
 		line_ptr++;
-		/* Tolerate an overly long line to acomadate a possible exta '`' */
+		/* Tolerate an overly long line to accomodate a possible exta '`' */
 		if (strlen(line_ptr) < (size_t)length) {
 			bb_error_msg_and_die("Short file");
 		}
@@ -125,7 +125,7 @@ static int read_base64(FILE *src_stream, FILE *dst_stream)
 
 int uudecode_main(int argc, char **argv)
 {
-	int (*decode_fn_ptr) (FILE * src, FILE * dst);
+	int (*decode_fn_ptr)(FILE * src, FILE * dst) = read_stduu; /* silence gcc */
 	FILE *src_stream;
 	char *outname = NULL;
 	char *line;
