@@ -581,7 +581,7 @@ int ipcs_main(int argc, char **argv)
 
 	opt = bb_getopt_ulflags(argc, argv, "i:aqsmtcplu", &opt_i);
 	if (opt & 0x1) { // -i
-		id = atoi(optarg);
+		id = atoi(opt_i);
 		flags |= flag_print;
 	}
 	if (opt & 0x2) flags |= flag_msg | flag_sem | flag_shm; // -a
