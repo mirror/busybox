@@ -5,10 +5,7 @@
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  * Copyright (C) 2005 by Rob Landley <rob@landley.net>
  *
- * This program is licensed under the GNU General Public license (GPL)
- * version 2 or later, see http://www.fsf.org/licensing/licenses/gpl.html
- * or the file "LICENSE" in the busybox source tarball for the full text.
- *
+ * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 
 #include "busybox.h"

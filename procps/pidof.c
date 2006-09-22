@@ -4,19 +4,10 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
-#include <signal.h>
-#include <ctype.h>
-#include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #if ENABLE_FEATURE_PIDOF_SINGLE
 #define _SINGLE_COMPL(a) a

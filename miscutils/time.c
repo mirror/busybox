@@ -2,7 +2,7 @@
 /* `time' utility to display resource usage of processes.
    Copyright (C) 1990, 91, 92, 93, 96 Free Software Foundation, Inc.
 
-   Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+   Licensed under GPL version 2, see file LICENSE in this tarball for details.
 */
 /* Originally written by David Keppel <pardo@cs.washington.edu>.
    Heavily modified by David MacKenzie <djm@gnu.ai.mit.edu>.
@@ -10,20 +10,8 @@
 */
 
 #include "busybox.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <signal.h>
-#include <errno.h>
-#include <getopt.h>
-#include <string.h>
-#include <limits.h>
-#include <unistd.h>
-#include <sys/types.h>	/* For pid_t. */
-#include <sys/wait.h>
-#include <sys/param.h>	/* For getpagesize, maybe.  */
 
 #define TV_MSEC tv_usec / 1000
-#include <sys/resource.h>
 
 /* Information on the resources used by a child process.  */
 typedef struct {

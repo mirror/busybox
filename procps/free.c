@@ -4,15 +4,12 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
 
 /* getopt not needed */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
 
 int free_main(int argc, char **argv)
 {

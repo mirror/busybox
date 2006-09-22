@@ -6,11 +6,8 @@
  * pivot_root syscall stubbed by Erik Andersen, so it will compile
  *     regardless of the kernel being used.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
 #include "busybox.h"
 
 extern int pivot_root(const char * new_root,const char * put_old);

@@ -4,23 +4,10 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <string.h>
-#include <termios.h>
-#include <sys/ioctl.h>
-#if ENABLE_SELINUX
-#include <selinux/selinux.h>  /* for is_selinux_enabled()  */
-#endif
 
 int ps_main(int argc, char **argv)
 {

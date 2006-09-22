@@ -4,7 +4,7 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
 
 /* This version of uptime doesn't display the number of users on the system,
@@ -16,10 +16,6 @@
 /* getopt not needed */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <time.h>
-#include <errno.h>
-#include <stdlib.h>
 
 #ifndef FSHIFT
 # define FSHIFT 16              /* nr of bits of precision */

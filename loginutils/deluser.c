@@ -6,15 +6,10 @@
  * Copyright (C) 1999,2000,2001 by John Beppu <beppu@codepoet.org>
  * Unified with delgroup by Tito Ragusa <farmatito@tiscali.it>
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  *
  */
 
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "busybox.h"
 
 /* where to start and stop deletion */

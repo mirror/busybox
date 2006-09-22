@@ -3,14 +3,11 @@
  *
  * Switch from rootfs to another filesystem as the root of the mount tree.
  *
- * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
+ * Licensed under GPL version 2, see file LICENSE in this tarball for details.
  */
 
 #include "busybox.h"
-#include <fcntl.h>
-#include <string.h>
 #include <sys/vfs.h>
-#include <unistd.h>
 
 
 // Make up for header deficiencies.

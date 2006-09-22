@@ -4,14 +4,11 @@
  *
  * Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
 
 #include "busybox.h"
 #include <mntent.h>
-#include <dirent.h>
-#include <errno.h>
-#include <string.h>
 #include <sys/swap.h>
 
 

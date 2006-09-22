@@ -7,7 +7,7 @@
  * Reworked by David Douthitt <n9ubh@callsign.net> and
  *  Matt Kraai <kraai@alumni.carnegiemellon.edu>.
  *
- * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+ * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
 
 #include "busybox.h"
