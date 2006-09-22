@@ -27,7 +27,9 @@ void bb_verror_msg(const char *s, va_list p, const char* strerr)
 		if (!strerr)
 			fputs(msg_eol, stderr);
 		else
-			fprintf(stderr, ": %s%s", strerr, msg_eol);
+			fprintf(stderr, "%s%s%s",
+					s ? ": " : "",
+					strerr, msg_eol);
 	}
 	if (ENABLE_FEATURE_SYSLOG && (logmode & LOGMODE_SYSLOG)) {
 		if (!strerr)
