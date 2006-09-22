@@ -362,23 +362,16 @@ free_session(struct tsession *ts)
 int
 telnetd_main(int argc, char **argv)
 {
-#ifndef CONFIG_FEATURE_TELNETD_INETD
-	sockaddr_type sa;
-	int master_fd;
-#endif /* CONFIG_FEATURE_TELNETD_INETD */
+	unsigned long opt;
 	fd_set rdfdset, wrfdset;
 	int selret;
 #ifndef CONFIG_FEATURE_TELNETD_INETD
+	sockaddr_type sa;
+	int master_fd;
 	int on = 1;
 	int portnbr = 23;
 	struct in_addr bind_addr = { .s_addr = 0x0 };
-#endif /* CONFIG_FEATURE_TELNETD_INETD */
-	int c;
-	static const char options[] =
-#ifdef CONFIG_FEATURE_TELNETD_INETD
-		"f:l:";
-#else /* CONFIG_EATURE_TELNETD_INETD */
-		"f:l:p:b:";
+	char *opt_portnbr, *opt_bindaddr;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
 	int maxlen, w, r;
 
@@ -394,29 +387,16 @@ telnetd_main(int argc, char **argv)
 	openlog(bb_applet_name, 0, LOG_USER);
 	logmode = LOGMODE_SYSLOG;
 
-	for (;;) {
-		c = getopt( argc, argv, options);
-		if (c == EOF) break;
-		switch (c) {
-			case 'f':
-				issuefile = optarg;
-				break;
-			case 'l':
-				loginpath = optarg;
-				break;
+	opt = bb_getopt_ulflags(argc, argv, "f:l:" USE_FEATURE_TELNETD_INETD("p:b:"),
+			&issuefile, &loginpath
+			SKIP_FEATURE_TELNETD_INETD(, &opt_portnbr, &opt_bindaddr));
+	//if (opt & 1) // -f
+	//if (opt & 2) // -l
 #ifndef CONFIG_FEATURE_TELNETD_INETD
-			case 'p':
-				portnbr = atoi(optarg);
-				break;
-			case 'b':
-				if (inet_aton(optarg, &bind_addr) == 0)
-					bb_show_usage();
-				break;
+	if (opt & 4) portnbr = atoi(opt_portnbr); // -p
+	if (opt & 8) // -b
+		if (inet_aton(opt_bindaddr, &bind_addr) == 0) bb_show_usage();
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
-			default:
-				bb_show_usage();
-		}
-	}
 
 	if (access(loginpath, X_OK) < 0) {
 		bb_error_msg_and_die("'%s' unavailable", loginpath);
