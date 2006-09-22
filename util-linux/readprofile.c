@@ -50,10 +50,9 @@ int readprofile_main(int argc, char **argv)
 	uint64_t add0=0;
 	unsigned int step;
 	unsigned int *buf, total, fn_len;
-	unsigned long long fn_add, next_add;          /* current and next address */
+	unsigned long long fn_add, next_add;     /* current and next address */
 	char fn_name[S_LEN], next_name[S_LEN];   /* current and next name */
 	char mode[8];
-	int c;
 	int optAll=0, optInfo=0, optReset=0, optVerbose=0, optNative=0;
 	int optBins=0, optSub=0;
 	char mapline[S_LEN];
@@ -65,42 +64,11 @@ int readprofile_main(int argc, char **argv)
 	proFile = defaultpro;
 	mapFile = defaultmap;
 
-	while ((c = getopt(argc, argv, "M:m:np:itvarVbs")) != -1) {
-		switch(c) {
-		case 'm':
-			mapFile = optarg;
-			break;
-		case 'n':
-			optNative++;
-			break;
-		case 'p':
-			proFile = optarg;
-			break;
-		case 'a':
-			optAll++;
-			break;
-		case 'b':
-			optBins++;
-			break;
-		case 's':
-			optSub++;
-			break;
-		case 'i':
-			optInfo++;
-			break;
-		case 'M':
-			mult = optarg;
-			break;
-		case 'r':
-			optReset++;
-			break;
-		case 'v':
-			optVerbose++;
-			break;
-		default:
-			bb_show_usage();
-		}
-	}
+	bb_opt_complementally = "nn:aa:bb:ss:ii:rr:vv";
+	bb_getopt_ulflags(argc, argv, "M:m:p:nabsirv",
+			&mult, &mapFile, &proFile,
+			&optNative, &optAll, &optBins, &optSub,
+			&optInfo, &optReset, &optVerbose);
 
 	if (optReset || mult) {
 		int multiplier, fd, to_write;
