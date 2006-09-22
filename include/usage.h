@@ -2455,11 +2455,6 @@ USE_FEATURE_MDEV_CONFIG( \
 #define reset_full_usage \
 	"Resets the screen."
 
-#define resize_trivial_usage \
-	""
-#define resize_full_usage \
-	"Resizes the screen."
-
 #define rm_trivial_usage \
 	"[OPTION]... FILE..."
 #define rm_full_usage \
