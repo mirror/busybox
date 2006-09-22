@@ -1122,44 +1122,36 @@ typedef struct dirent dir_type;
 /* ======================================================================== */
 int gzip_main(int argc, char **argv)
 {
+	enum {
+		OPT_tostdout = 0x1,
+		OPT_force = 0x2,
+	};
+
+	unsigned long opt;
 	int result;
 	int inFileNum;
 	int outFileNum;
 	struct stat statBuf;
 	char *delFileName;
-	int tostdout = 0;
-	int force = 0;
-	int opt;
 
-	while ((opt = getopt(argc, argv, "cf123456789dq")) != -1) {
-		switch (opt) {
-		case 'c':
-			tostdout = 1;
-			break;
-		case 'f':
-			force = 1;
-			break;
-			/* Ignore 1-9 (compression level) options */
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			break;
-		case 'q':
-			break;
-#ifdef CONFIG_GUNZIP
-		case 'd':
-			optind = 1;
-			return gunzip_main(argc, argv);
-#endif
-		default:
-			bb_show_usage();
-		}
+	opt = bb_getopt_ulflags(argc, argv, "cf123456789q" USE_GUNZIP("d"));
+	//if (opt & 0x1) // -c
+	//if (opt & 0x2) // -f
+	/* Ignore 1-9 (compression level) options */
+	//if (opt & 0x4) // -1
+	//if (opt & 0x8) // -2
+	//if (opt & 0x10) // -3
+	//if (opt & 0x20) // -4
+	//if (opt & 0x40) // -5
+	//if (opt & 0x80) // -6
+	//if (opt & 0x100) // -7
+	//if (opt & 0x200) // -8
+	//if (opt & 0x400) // -9
+	//if (opt & 0x800) // -q
+	if (ENABLE_GUNZIP && (opt & 0x1000)) { // -d
+		/* FIXME: bb_getopt_ulflags should not depend on optind */
+		optind = 1;
+		return gunzip_main(argc, argv);
 	}
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
@@ -1211,7 +1203,7 @@ int gzip_main(int argc, char **argv)
 					bb_perror_msg_and_die("%s", argv[i]);
 				time_stamp = statBuf.st_ctime;
 
-				if (!tostdout) {
+				if (!(opt & OPT_tostdout)) {
 					path = xasprintf("%s.gz", argv[i]);
 
 					/* Open output file */
@@ -1233,7 +1225,7 @@ int gzip_main(int argc, char **argv)
 					outFileNum = STDOUT_FILENO;
 			}
 
-			if (path == NULL && isatty(outFileNum) && force == 0) {
+			if (path == NULL && isatty(outFileNum) && !(opt & OPT_force)) {
 				bb_error_msg
 					("compressed data not written to a terminal. Use -f to force compression.");
 				free(path);
