@@ -56,7 +56,7 @@ static int alternative; /* 0 is getopt_long, 1 is getopt_long_only */
 /* Function prototypes */
 static const char *normalize(const char *arg);
 static int generate_output(char * argv[],int argc,const char *optstr,
-		    const struct option *longopts);
+		const struct option *longopts);
 static void add_long_options(char *options);
 static void add_longopt(const char *name,int has_arg);
 static void set_shell(const char *new_shell);
@@ -80,7 +80,7 @@ const char *normalize(const char *arg)
 	free(BUFFER);
 
 	if (!quote) { /* Just copy arg */
-	       BUFFER=xstrdup(arg);
+		BUFFER=xstrdup(arg);
 		return BUFFER;
 	}
 
@@ -134,7 +134,7 @@ const char *normalize(const char *arg)
  * Other settings are found in global variables.
  */
 int generate_output(char * argv[],int argc,const char *optstr,
-		    const struct option *longopts)
+		const struct option *longopts)
 {
 	int exit_code = 0; /* We assume everything will be OK */
 	int opt;
@@ -146,8 +146,8 @@ int generate_output(char * argv[],int argc,const char *optstr,
 	optind=0; /* Reset getopt(3) */
 
 	while ((opt = (alternative?
-		       getopt_long_only(argc,argv,optstr,longopts,&longindex):
-		       getopt_long(argc,argv,optstr,longopts,&longindex)))
+			getopt_long_only(argc,argv,optstr,longopts,&longindex):
+			getopt_long(argc,argv,optstr,longopts,&longindex)))
 	       != EOF)
 		if (opt == '?' || opt == ':' )
 			exit_code = 1;
@@ -156,7 +156,7 @@ int generate_output(char * argv[],int argc,const char *optstr,
 				printf(" --%s",longopts[longindex].name);
 				if (longopts[longindex].has_arg)
 					printf(" %s",
-					       normalize(optarg?optarg:""));
+						normalize(optarg?optarg:""));
 			} else if (opt == NON_OPT)
 				printf(" %s",normalize(optarg));
 			else {
@@ -164,7 +164,7 @@ int generate_output(char * argv[],int argc,const char *optstr,
 				charptr = strchr(optstr,opt);
 				if (charptr != NULL && *++charptr == ':')
 					printf(" %s",
-					       normalize(optarg?optarg:""));
+						normalize(optarg?optarg:""));
 			}
 		}
 
@@ -209,7 +209,7 @@ void add_longopt(const char *name,int has_arg)
 		long_options[long_options_nr-1].has_arg=has_arg;
 		long_options[long_options_nr-1].flag=NULL;
 		long_options[long_options_nr-1].val=LONG_OPT;
-	       long_options[long_options_nr-1].name=xstrdup(name);
+		long_options[long_options_nr-1].name=xstrdup(name);
 	}
 	long_options_nr++;
 }
@@ -305,7 +305,7 @@ int getopt_main(int argc, char *argv[])
 			/* For some reason, the original getopt gave no error
 			   when there were no arguments. */
 			printf(" --\n");
-		       return 0;
+			return 0;
 		} else
 			bb_error_msg_and_die("missing optstring argument");
 	}
@@ -317,7 +317,7 @@ int getopt_main(int argc, char *argv[])
 		s=xmalloc(strlen(argv[1])+1);
 		strcpy(s,argv[1]+strspn(argv[1],"-+"));
 		argv[1]=argv[0];
-	       return (generate_output(argv+1,argc-1,s,long_options));
+		return (generate_output(argv+1,argc-1,s,long_options));
 	}
 
 	while ((opt=getopt_long(argc,argv,shortopts,longopts,NULL)) != EOF)
@@ -326,13 +326,13 @@ int getopt_main(int argc, char *argv[])
 			alternative=1;
 			break;
 		case 'o':
-		       optstr = optarg;
+			optstr = optarg;
 			break;
 		case 'l':
 			add_long_options(optarg);
 			break;
 		case 'n':
-		       name = optarg;
+			name = optarg;
 			break;
 		case 'q':
 			quiet_errors=1;
@@ -344,7 +344,7 @@ int getopt_main(int argc, char *argv[])
 			set_shell(optarg);
 			break;
 		case 'T':
-		       return 4;
+			return 4;
 		case 'u':
 			quote=0;
 			break;
@@ -361,5 +361,5 @@ int getopt_main(int argc, char *argv[])
 		argv[optind-1]=name;
 	else
 		argv[optind-1]=argv[0];
-       return (generate_output(argv+optind-1,argc-optind+1,optstr,long_options));
+	return generate_output(argv+optind-1,argc-optind+1,optstr,long_options);
 }
