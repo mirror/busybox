@@ -44,49 +44,44 @@ static const char * const ret_code_descript[] = {
 
 int adjtimex_main(int argc, char **argv)
 {
+	enum {
+		OPT_quiet = 0x1
+	};
+	unsigned long opt;
+	char *opt_o, *opt_f, *opt_p, *opt_t;
 	struct timex txc;
-	int quiet=0;
-	int c, i, ret, sep;
+	int i, ret, sep;
 	const char *descript;
 	txc.modes=0;
-	for (;;) {
-		c = getopt( argc, argv, "qo:f:p:t:");
-		if (c == EOF) break;
-		switch (c) {
-			case 'q':
-				quiet=1;
-				break;
-			case 'o':
-				txc.offset = atoi(optarg);
-				txc.modes |= ADJ_OFFSET_SINGLESHOT;
-				break;
-			case 'f':
-				txc.freq = atoi(optarg);
-				txc.modes |= ADJ_FREQUENCY;
-				break;
-			case 'p':
-				txc.constant = atoi(optarg);
-				txc.modes |= ADJ_TIMECONST;
-				break;
-			case 't':
-				txc.tick = atoi(optarg);
-				txc.modes |= ADJ_TICK;
-				break;
-			default:
-				bb_show_usage();
-				exit(1);
-		}
+
+	opt = bb_getopt_ulflags(argc, argv, "qo:f:p:t:",
+			&opt_o, &opt_f, &opt_p, &opt_t);
+	//if (opt & 0x1) // -q
+	if (opt & 0x2) { // -o
+		txc.offset = atoi(opt_o);
+		txc.modes |= ADJ_OFFSET_SINGLESHOT;
+	}
+	if (opt & 0x4) { // -f
+		txc.freq = atoi(opt_f);
+		txc.modes |= ADJ_FREQUENCY;
+	}
+	if (opt & 0x8) { // -p
+		txc.constant = atoi(opt_p);
+		txc.modes |= ADJ_TIMECONST;
+	}
+	if (opt & 0x10) { // -t
+		txc.tick = atoi(opt_t);
+		txc.modes |= ADJ_TICK;
 	}
 	if (argc != optind) { /* no valid non-option parameters */
 		bb_show_usage();
-		exit(1);
 	}
 
 	ret = adjtimex(&txc);
 
 	if (ret < 0) perror("adjtimex");
 
-	if (!quiet && ret>=0) {
+	if (!(opt & OPT_quiet) && ret>=0) {
 		printf(
 			"    mode:         %d\n"
 			"-o  offset:       %ld\n"
