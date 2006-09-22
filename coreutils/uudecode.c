@@ -125,7 +125,6 @@ static int read_base64(FILE *src_stream, FILE *dst_stream)
 
 int uudecode_main(int argc, char **argv)
 {
-	int (*decode_fn_ptr)(FILE * src, FILE * dst) = read_stduu; /* silence gcc */
 	FILE *src_stream;
 	char *outname = NULL;
 	char *line;
@@ -142,6 +141,7 @@ int uudecode_main(int argc, char **argv)
 
 	/* Search for the start of the encoding */
 	while ((line = bb_get_chomped_line_from_file(src_stream)) != NULL) {
+		int (*decode_fn_ptr)(FILE * src, FILE * dst);
 		char *line_ptr = NULL;
 
 		if (strncmp(line, "begin-base64 ", 13) == 0) {
