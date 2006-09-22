@@ -14,15 +14,11 @@
  */
 
 #include "busybox.h"
-#include <getopt.h>
-
-extern char *optarg; /* in unistd.h */
-extern int  optind, opterr, optopt; /* in unistd.h */
 
 static void do_sethostname(char *s, int isfile)
 {
 	FILE *f;
-	char buf[255];
+	char buf[256];
 
 	if (!s)
 		return;
@@ -35,7 +31,7 @@ static void do_sethostname(char *s, int isfile)
 		}
 	} else {
 		f = xfopen(s, "r");
-		while (fgets(buf, 255, f) != NULL) {
+		while (fgets(buf, sizeof(buf), f) != NULL) {
 			if (buf[0] =='#') {
 				continue;
 			}
@@ -50,64 +46,57 @@ static void do_sethostname(char *s, int isfile)
 
 int hostname_main(int argc, char **argv)
 {
-	int opt;
-	int type = 0;
-	struct hostent *hp;
-	char *filename = NULL;
-	char buf[255];
-	char *p = NULL;
+	enum {
+		OPT_d = 0x1,
+		OPT_f = 0x2,
+		OPT_i = 0x4,
+		OPT_s = 0x8,
+		OPT_dfis = 0xf,
+	};
+
+	char buf[256];
+	unsigned long opt;
+	char *hostname_str = NULL;
 
 	if (argc < 1)
 		bb_show_usage();
 
-	while ((opt = getopt(argc, argv, "dfisF:")) > 0) {
-		switch (opt) {
-		case 'd':
-		case 'f':
-		case 'i':
-		case 's':
-			type = opt;
-			break;
-		case 'F':
-			filename = optarg;
-			break;
-		default:
-			bb_show_usage();
-		}
-	}
+	opt = bb_getopt_ulflags(argc, argv, "dfisF:", &hostname_str);
 
 	/* Output in desired format */
-	if (type != 0) {
-		gethostname(buf, 255);
+	if (opt & OPT_dfis) {
+		struct hostent *hp;
+		char *p;
+		gethostname(buf, sizeof(buf));
 		hp = xgethostbyname(buf);
 		p = strchr(hp->h_name, '.');
-		if (type == 'f') {
+		if (opt & OPT_f) {
 			puts(hp->h_name);
-		} else if (type == 's') {
+		} else if (opt & OPT_s) {
 			if (p != NULL) {
 				*p = 0;
 			}
 			puts(hp->h_name);
-		} else if (type == 'd') {
+		} else if (opt & OPT_d) {
 			if (p) puts(p + 1);
-		} else if (type == 'i') {
+		} else if (opt & OPT_i) {
 			while (hp->h_addr_list[0]) {
 				printf("%s ", inet_ntoa(*(struct in_addr *) (*hp->h_addr_list++)));
 			}
-			printf("\n");
+			puts("");
 		}
 	}
 	/* Set the hostname */
-	else if (filename != NULL) {
-		do_sethostname(filename, 1);
+	else if (hostname_str != NULL) {
+		do_sethostname(hostname_str, 1);
 	} else if (optind < argc) {
 		do_sethostname(argv[optind], 0);
 	}
 	/* Or if all else fails,
 	 * just print the current hostname */
-	 else {
-		gethostname(buf, 255);
+	else {
+		gethostname(buf, sizeof(buf));
 		puts(buf);
 	}
-	return(0);
+	return 0;
 }
