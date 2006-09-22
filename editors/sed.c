@@ -1086,7 +1086,9 @@ static void add_cmd_block(char *cmdstr)
 
 int sed_main(int argc, char **argv)
 {
-	int status = EXIT_SUCCESS, opt, getpat = 1;
+	unsigned long opt;
+	char *opt_e, *opt_f;
+	int status = EXIT_SUCCESS, getpat = 1;
 
 	bbg.sed_cmd_tail=&bbg.sed_cmd_head;
 
@@ -1100,41 +1102,27 @@ int sed_main(int argc, char **argv)
 	}
 
 	/* do normal option parsing */
-	while ((opt = getopt(argc, argv, "irne:f:")) > 0) {
-		switch (opt) {
-		case 'i':
-			bbg.in_place++;
-			atexit(cleanup_outname);
-			break;
-		case 'r':
-			bbg.regex_type|=REG_EXTENDED;
-			break;
-		case 'n':
-			bbg.be_quiet++;
-			break;
-		case 'e':
-			add_cmd_block(optarg);
+	opt = bb_getopt_ulflags(argc, argv, "irne:f:", &opt_e, &opt_f);
+	if (opt & 0x1) { // -i
+		bbg.in_place++;
+		atexit(cleanup_outname);
+	}
+	if (opt & 0x2) bbg.regex_type|=REG_EXTENDED; // -r
+	if (opt & 0x4) bbg.be_quiet++; // -n
+	if (opt & 0x8) { // -e
+		add_cmd_block(opt_e);
+		getpat=0;
+	}
+	if (opt & 0x10) { // -f
+		FILE *cmdfile;
+		char *line;
+		cmdfile = xfopen(opt_f, "r");
+		while ((line = bb_get_chomped_line_from_file(cmdfile)) != NULL) {
+			add_cmd(line);
 			getpat=0;
-			break;
-		case 'f':
-		{
-			FILE *cmdfile;
-			char *line;
-
-			cmdfile = xfopen(optarg, "r");
-
-			while ((line = bb_get_chomped_line_from_file(cmdfile)) != NULL) {
-				add_cmd(line);
-				getpat=0;
-				free(line);
-			}
-			xprint_and_close_file(cmdfile);
-
-			break;
+			free(line);
 		}
-		default:
-			bb_show_usage();
-		}
+		xprint_and_close_file(cmdfile);
 	}
 
 	/* if we didn't get a pattern from -e or -f, use argv[optind] */
