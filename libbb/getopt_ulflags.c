@@ -104,7 +104,6 @@ const char *bb_opt_complementally
 	if they are not specifed on the command line.  For example:
 
 	bb_opt_complementally = "abc";
-
 	flags = bb_getopt_ulflags(argc, argv, "abcd")
 
 	If getopt() finds "-a" on the command line, then
@@ -120,7 +119,6 @@ const char *bb_opt_complementally
 	int w_counter = 0;
 	bb_opt_complementally = "ww";
 	bb_getopt_ulflags(argc, argv, "w", &w_counter);
-
 	if(w_counter)
 		width = (w_counter == 1) ? 132 : INT_MAX;
 	else
@@ -128,6 +126,7 @@ const char *bb_opt_complementally
 
 	w_counter is a pointer to an integer. It has to be passed to
 	bb_getopt_ulflags() after all other option argument sinks.
+
 	For example: accept multiple -v to indicate the level of verbosity
 	and for each -b optarg, add optarg to my_b. Finally, if b is given,
 	turn off c and vice versa:
@@ -136,8 +135,8 @@ const char *bb_opt_complementally
 	int verbose_level = 0;
 	bb_opt_complementally = "vv:b::b-c:c-b";
 	f = bb_getopt_ulflags(argc, argv, "vb:c", &my_b, &verbose_level);
-	if((f & 2))     // -c after -b unsets -b flag
-		while(my_b) { dosomething_with(my_b->data) ; my_b = my_b->link; }
+	if(f & 2)       // -c after -b unsets -b flag
+		while(my_b) { dosomething_with(my_b->data); my_b = my_b->link; }
 	if(my_b)        // but llist is stored if -b is specified
 		free_llist(my_b);
 	if(verbose_level) bb_printf("verbose level is %d\n", verbose_level);
@@ -237,7 +236,7 @@ Special characters:
 
  "--"   A double dash at the beginning of bb_opt_complementally means the
 	argv[1] string should always be treated as options, even if it isn't
-	prefixed with a "-".  This is to support the special syntax in applets
+	prefixed with a "-".  This is useful for special syntax in applets
 	such as "ar" and "tar":
 	tar xvf foo.tar
 

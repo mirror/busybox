@@ -2058,13 +2058,13 @@ static void identify_from_stdin(void)
 /* busybox specific stuff */
 static void parse_opts(unsigned long *get, unsigned long *set, unsigned long *value, int min, int max)
 {
-		if (get) {
-			*get = 1;
-		}
-		if (optarg) {
-			*set = 1;
-			*value = bb_xgetlarg(optarg, 10, min, max);
-		}
+	if (get) {
+		*get = 1;
+	}
+	if (optarg) {
+		*set = 1;
+		*value = bb_xgetlarg(optarg, 10, min, max);
+	}
 }
 
 static void parse_xfermode(int flag, unsigned long *get, unsigned long *set, int *value)

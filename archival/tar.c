@@ -715,7 +715,7 @@ int tar_main(int argc, char **argv)
 		if ((tar_handle->action_header == header_list) ||
 			(tar_handle->action_header == header_verbose_list))
 		{
-				tar_handle->action_header = header_verbose_list;
+			tar_handle->action_header = header_verbose_list;
 		} else tar_handle->action_header = header_list;
 	}
 	if((opt & CTX_EXTRACT) && tar_handle->action_data != data_extract_to_stdout)
