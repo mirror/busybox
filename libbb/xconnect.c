@@ -55,7 +55,7 @@ int xconnect(struct sockaddr_in *s_addr)
 	if (connect(s, (struct sockaddr *)s_addr, sizeof(struct sockaddr_in)) < 0)
 	{
 		if (ENABLE_FEATURE_CLEAN_UP) close(s);
-		bb_perror_msg_and_die("Unable to connect to remote host (%s)",
+		bb_perror_msg_and_die("unable to connect to remote host (%s)",
 				inet_ntoa(s_addr->sin_addr));
 	}
 	return s;

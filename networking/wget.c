@@ -9,7 +9,6 @@
 #include "busybox.h"
 #include <getopt.h>
 
-
 struct host_info {
 	char *host;
 	int port;
@@ -39,14 +38,6 @@ enum {
 static void progressmeter(int flag) {}
 #endif
 
-static void close_and_delete_outfile(FILE* output, char *fname_out, int do_continue)
-{
-	if (output != stdout && do_continue == 0) {
-		fclose(output);
-		unlink(fname_out);
-	}
-}
-
 /* Read NMEMB elements of SIZE bytes into PTR from STREAM.  Returns the
  * number of elements read, and a short count if an eof or non-interrupt
  * error is encountered.  */
@@ -57,21 +48,6 @@ static size_t safe_fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	do {
 		clearerr(stream);
 		ret += fread((char *)ptr + (ret * size), size, nmemb - ret, stream);
-	} while (ret < nmemb && ferror(stream) && errno == EINTR);
-
-	return ret;
-}
-
-/* Write NMEMB elements of SIZE bytes from PTR to STREAM.  Returns the
- * number of elements written, and a short count if an eof or non-interrupt
- * error is encountered.  */
-static size_t safe_fwrite(void *ptr, size_t size, size_t nmemb, FILE *stream)
-{
-	size_t ret = 0;
-
-	do {
-		clearerr(stream);
-		ret += fwrite((char *)ptr + (ret * size), size, nmemb - ret, stream);
 	} while (ret < nmemb && ferror(stream) && errno == EINTR);
 
 	return ret;
@@ -90,11 +66,6 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 
 	return ret;
 }
-
-#define close_delete_and_die(s...) { \
-	close_and_delete_outfile(output, fname_out, do_continue); \
-	bb_error_msg_and_die(s); }
-
 
 #ifdef CONFIG_FEATURE_WGET_AUTHENTICATION
 /*
@@ -138,7 +109,6 @@ int wget_main(int argc, char **argv)
 	char *proxy = 0;
 	char *dir_prefix=NULL;
 	char *s, buf[512];
-	struct stat sbuf;
 	char extra_headers[1024];
 	char *extra_headers_ptr = extra_headers;
 	int extra_headers_left = sizeof(extra_headers);
@@ -150,9 +120,9 @@ int wget_main(int argc, char **argv)
 	FILE *dfp = NULL;		/* socket to ftp server (data)	    */
 	char *fname_out = NULL;		/* where to direct output (-O)	    */
 	int do_continue = 0;		/* continue a prev transfer (-c)    */
-	long beg_range = 0L;		/*   range at which continue begins */
+	off64_t beg_range = 0;		/*   range at which continue begins */
 	int got_clen = 0;		/* got content-length: from server  */
-	FILE *output;			/* socket to web server		    */
+	int output_fd = -1;
 	int quiet_flag = FALSE;		/* Be verry, verry quiet...	    */
 	int use_proxy = 1;		/* Use proxies if env vars are set  */
 	char *proxy_flag = "on";	/* Use proxies if env vars are set  */
@@ -221,7 +191,7 @@ int wget_main(int argc, char **argv)
 #endif
 				bb_get_last_path_component(target.path);
 		}
-		if (fname_out == NULL || strlen(fname_out) < 1) {
+		if (!fname_out || !fname_out[0]) {
 			fname_out =
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 				curfile =
@@ -238,27 +208,22 @@ int wget_main(int argc, char **argv)
 	if (do_continue && !fname_out)
 		bb_error_msg_and_die("cannot specify continue (-c) without a filename (-O)");
 
-
-	/*
-	 * Open the output file stream.
-	 */
-	if (strcmp(fname_out, "-") == 0) {
-		output = stdout;
-		quiet_flag = TRUE;
-	} else {
-		output = xfopen(fname_out, (do_continue ? "a" : "w"));
-	}
-
 	/*
 	 * Determine where to start transfer.
 	 */
-	if (do_continue) {
-		if (fstat(fileno(output), &sbuf) < 0)
-			bb_perror_msg_and_die("fstat");
-		if (sbuf.st_size > 0)
-			beg_range = sbuf.st_size;
-		else
-			do_continue = 0;
+	if (!strcmp(fname_out, "-")) {
+		output_fd = 1;
+		quiet_flag = TRUE;
+		do_continue = 0;
+	} else if (do_continue) {
+		output_fd = open(fname_out, O_WRONLY|O_LARGEFILE);
+		if (output_fd >= 0) {
+			beg_range = lseek64(output_fd, 0, SEEK_END);
+			if (beg_range == (off64_t)-1)
+				bb_perror_msg_and_die("lseek64");
+		}
+		/* File doesn't exist. We do not create file here yet.
+		   We are not sure it exists on remove side */
 	}
 
 	/* We want to do exactly _one_ DNS lookup, since some
@@ -279,7 +244,7 @@ int wget_main(int argc, char **argv)
 			got_clen = chunked = 0;
 
 			if (!--try)
-				close_delete_and_die("too many redirections");
+				bb_error_msg_and_die("too many redirections");
 
 			/*
 			 * Open socket to http server
@@ -317,8 +282,8 @@ int wget_main(int argc, char **argv)
 			}
 #endif
 
-			if (do_continue)
-				fprintf(sfp, "Range: bytes=%ld-\r\n", beg_range);
+			if (beg_range)
+				fprintf(sfp, "Range: bytes=%lld-\r\n", (long long)beg_range);
 			if(extra_headers_left < sizeof(extra_headers))
 				fputs(extra_headers,sfp);
 			fprintf(sfp,"Connection: close\r\n\r\n");
@@ -328,7 +293,7 @@ int wget_main(int argc, char **argv)
 			*/
 read_response:
 			if (fgets(buf, sizeof(buf), sfp) == NULL)
-				close_delete_and_die("no response from server");
+				bb_error_msg_and_die("no response from server");
 
 			for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
 				;
@@ -340,9 +305,6 @@ read_response:
 					while (gethdr(buf, sizeof(buf), sfp, &n) != NULL);
 					goto read_response;
 				case 200:
-					if (do_continue && output != stdout)
-						output = freopen(fname_out, "w", output);
-					do_continue = 0;
 					break;
 				case 300:	/* redirection */
 				case 301:
@@ -350,12 +312,12 @@ read_response:
 				case 303:
 					break;
 				case 206:
-					if (do_continue)
+					if (beg_range)
 						break;
 					/*FALLTHRU*/
 				default:
 					chomp(buf);
-					close_delete_and_die("server returned error %d: %s", atoi(s), buf);
+					bb_error_msg_and_die("server returned error %d: %s", atoi(s), buf);
 			}
 
 			/*
@@ -365,7 +327,7 @@ read_response:
 				if (strcasecmp(buf, "content-length") == 0) {
 					unsigned long value;
 					if (safe_strtoul(s, &value)) {
-						close_delete_and_die("content-length %s is garbage", s);
+						bb_error_msg_and_die("content-length %s is garbage", s);
 					}
 					filesize = value;
 					got_clen = 1;
@@ -375,7 +337,7 @@ read_response:
 					if (strcasecmp(s, "chunked") == 0) {
 						chunked = got_clen = 1;
 					} else {
-						close_delete_and_die("server wants to do %s transfer encoding", s);
+						bb_error_msg_and_die("server wants to do %s transfer encoding", s);
 					}
 				}
 				if (strcasecmp(buf, "location") == 0) {
@@ -407,7 +369,7 @@ read_response:
 
 		sfp = open_socket(&s_in);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 220)
-			close_delete_and_die("%s", buf+4);
+			bb_error_msg_and_die("%s", buf+4);
 
 		/*
 		 * Splitting username:password pair,
@@ -424,7 +386,7 @@ read_response:
 					break;
 				/* FALLTHRU (failed login) */
 			default:
-				close_delete_and_die("ftp login: %s", buf+4);
+				bb_error_msg_and_die("ftp login: %s", buf+4);
 		}
 
 		ftpcmd("TYPE I", NULL, sfp, buf);
@@ -435,7 +397,7 @@ read_response:
 		if (ftpcmd("SIZE ", target.path, sfp, buf) == 213) {
 			unsigned long value;
 			if (safe_strtoul(buf+4, &value)) {
-				close_delete_and_die("SIZE value is garbage");
+				bb_error_msg_and_die("SIZE value is garbage");
 			}
 			filesize = value;
 			got_clen = 1;
@@ -445,7 +407,7 @@ read_response:
 		 * Entering passive mode
 		 */
 		if (ftpcmd("PASV", NULL, sfp, buf) !=  227)
-			close_delete_and_die("PASV: %s", buf+4);
+			bb_error_msg_and_die("PASV: %s", buf+4);
 		s = strrchr(buf, ',');
 		*s = 0;
 		port = atoi(s+1);
@@ -454,18 +416,14 @@ read_response:
 		s_in.sin_port = htons(port);
 		dfp = open_socket(&s_in);
 
-		if (do_continue) {
-			sprintf(buf, "REST %ld", beg_range);
-			if (ftpcmd(buf, NULL, sfp, buf) != 350) {
-				if (output != stdout)
-					output = freopen(fname_out, "w", output);
-				do_continue = 0;
-			} else
+		if (beg_range) {
+			sprintf(buf, "REST %lld", (long long)beg_range);
+			if (ftpcmd(buf, NULL, sfp, buf) == 350)
 				filesize -= beg_range;
 		}
 
 		if (ftpcmd("RETR ", target.path, sfp, buf) > 150)
-			close_delete_and_die("RETR: %s", buf+4);
+			bb_error_msg_and_die("RETR: %s", buf+4);
 	}
 
 
@@ -488,7 +446,9 @@ read_response:
 			n = safe_fread(buf, 1, rdsz, dfp);
 			if (n <= 0)
 				break;
-			if (safe_fwrite(buf, 1, n, output) != n) {
+			if (output_fd < 0)
+				output_fd = xopen3(fname_out, O_WRONLY|O_CREAT|O_EXCL|O_TRUNC|O_LARGEFILE, 0666);
+			if (full_write(output_fd, buf, n) != n) {
 				bb_perror_msg_and_die(bb_msg_write_error);
 			}
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
@@ -526,7 +486,7 @@ read_response:
 }
 
 
-void parse_url(char *url, struct host_info *h)
+static void parse_url(char *url, struct host_info *h)
 {
 	char *cp, *sp, *up, *pp;
 
@@ -581,7 +541,7 @@ void parse_url(char *url, struct host_info *h)
 }
 
 
-FILE *open_socket(struct sockaddr_in *s_in)
+static FILE *open_socket(struct sockaddr_in *s_in)
 {
 	FILE *fp;
 
@@ -593,7 +553,7 @@ FILE *open_socket(struct sockaddr_in *s_in)
 }
 
 
-char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
+static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 {
 	char *s, *hdrval;
 	int c;
