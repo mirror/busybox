@@ -45,7 +45,7 @@ int su_main(int argc, char **argv)
 	}
 
 	pw = getpwnam(opt_username);
-	if (!pw) bb_error_msg_and_die("Unknown id: %s", opt_username);
+	if (!pw) bb_error_msg_and_die("unknown id: %s", opt_username);
 
 	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
 	   is a username that is retrieved via NIS (YP), but that doesn't have
