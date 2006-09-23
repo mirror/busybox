@@ -183,8 +183,7 @@ static struct rlimit rlim_ofile;
 # define INETD_SETPROCTITLE
 #endif
 
-typedef struct servtab
-{
+typedef struct servtab {
 	char *se_hostaddr;                    /* host address to listen on */
 	char *se_service;                     /* name of service */
 	int se_socktype;                      /* type of socket to use */
@@ -209,8 +208,7 @@ typedef struct servtab
 #define MAXARGV 20
 	char *se_argv[MAXARGV + 1];           /* program arguments */
 	int se_fd;                            /* open descriptor */
-	union
-	{
+	union {
 		struct sockaddr se_un_ctrladdr;
 		struct sockaddr_in se_un_ctrladdr_in;
 #ifdef CONFIG_FEATURE_IPV6
@@ -232,8 +230,7 @@ typedef struct servtab
 static servtab_t *servtab;
 
 #ifdef INETD_FEATURE_ENABLED
-struct builtin
-{
+struct builtin {
 	const char *bi_service;               /* internally provided service name */
 	int bi_socktype;                      /* type of socket supported */
 	short bi_fork;                        /* 1 if should fork before call */
@@ -427,7 +424,8 @@ static void setup(servtab_t *sep)
 	int on = 1;
 	int r;
 
-	if ((sep->se_fd = socket(sep->se_family, sep->se_socktype, 0)) < 0) {
+	sep->se_fd = socket(sep->se_family, sep->se_socktype, 0);
+	if (sep->se_fd < 0) {
 		bb_perror_msg("%s/%s: socket", sep->se_service, sep->se_proto);
 		return;
 	}
@@ -1355,7 +1353,7 @@ inetd_main(int argc, char *argv[])
 		}
 
 		readable = allsock;
-		n = select(maxsock + 1, &readable, NULL, NULL, NULL)
+		n = select(maxsock + 1, &readable, NULL, NULL, NULL);
 		if (n <= 0) {
 			if (n < 0 && errno != EINTR) {
 				bb_perror_msg("select");
@@ -1363,154 +1361,154 @@ inetd_main(int argc, char *argv[])
 			}
 			continue;
 		}
+
 		for (sep = servtab; n && sep; sep = sep->se_next) {
-			// TODO: undo this unholy mess
-			if (sep->se_fd != -1 && FD_ISSET(sep->se_fd, &readable)) {
-				n--;
-				if (!sep->se_wait && sep->se_socktype == SOCK_STREAM) {
-					ctrl = accept(sep->se_fd, NULL, NULL);
-					if (ctrl < 0) {
-						if (errno == EINTR)
-							continue;
-						bb_perror_msg("accept (for %s)", sep->se_service);
+			if (sep->se_fd == -1 || !FD_ISSET(sep->se_fd, &readable))
+				continue;
+
+			n--;
+			if (!sep->se_wait && sep->se_socktype == SOCK_STREAM) {
+				ctrl = accept(sep->se_fd, NULL, NULL);
+				if (ctrl < 0) {
+					if (errno == EINTR)
 						continue;
-					}
-					if (sep->se_family == AF_INET && sep->se_socktype == SOCK_STREAM) {
-						struct sockaddr_in peer;
-						socklen_t plen = sizeof(peer);
-
-						if (getpeername(ctrl, (struct sockaddr *) &peer, &plen) < 0) {
-							bb_error_msg("could not getpeername");
-							close(ctrl);
-							continue;
-						}
-						if (ntohs(peer.sin_port) == 20) {
-							/* XXX ftp bounce */
-							close(ctrl);
-							continue;
-						}
-					}
-				} else
-					ctrl = sep->se_fd;
-				Block_Using_Signals(omask);
-				pid = 0;
-#ifdef INETD_FEATURE_ENABLED
-				if (sep->se_bi == 0 || sep->se_bi->bi_fork)
-#endif
-				{
-					if (sep->se_count++ == 0)
-						(void) gettimeofday(&sep->se_time, NULL);
-					else if (toomany > 0 && sep->se_count >= sep->se_max) {
-						struct timeval now;
-
-						(void) gettimeofday(&now, NULL);
-						if (now.tv_sec - sep->se_time.tv_sec > CNT_INTVL) {
-							sep->se_time = now;
-							sep->se_count = 1;
-						} else {
-							if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
-								close(ctrl);
-							if (sep->se_family == AF_INET &&
-								  ntohs(sep->se_ctrladdr_in.sin_port) >= IPPORT_RESERVED) {
-								/*
-								 * Cannot close it -- there are
-								 * thieves on the system.
-								 * Simply ignore the connection.
-								 */
-								--sep->se_count;
-								continue;
-							}
-							bb_error_msg("%s/%s server failing (looping), service terminated",
-								      sep->se_service, sep->se_proto);
-							if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
-								close(ctrl);
-							FD_CLR(sep->se_fd, &allsock);
-							(void) close(sep->se_fd);
-							sep->se_fd = -1;
-							sep->se_count = 0;
-							nsock--;
-							sigprocmask(SIG_UNBLOCK, &omask, NULL);
-							if (!timingout) {
-								timingout = 1;
-								alarm(RETRYTIME);
-							}
-							continue;
-						}
-					}
-					pid = fork();
-				}
-				if (pid < 0) {
-					bb_perror_msg("fork");
-					if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
-						close(ctrl);
-					sigprocmask(SIG_UNBLOCK, &omask, NULL);
-					sleep(1);
+					bb_perror_msg("accept (for %s)", sep->se_service);
 					continue;
 				}
-				if (pid && sep->se_wait) {
-					sep->se_wait = pid;
-					FD_CLR(sep->se_fd, &allsock);
-					nsock--;
-				}
-				sigprocmask(SIG_UNBLOCK, &omask, NULL);
-				if (pid == 0) {
-#ifdef INETD_FEATURE_ENABLED
-					if (sep->se_bi) {
-						(*sep->se_bi->bi_fn)(ctrl, sep);
-					} else
-#endif
-						{
-						if ((pwd = getpwnam(sep->se_user)) == NULL) {
-							bb_error_msg("getpwnam: %s: no such user", sep->se_user);
-							if (sep->se_socktype != SOCK_STREAM)
-								recv(0, buf, sizeof(buf), 0);
-							_exit(1);
-						}
-						if (setsid() < 0)
-							bb_perror_msg("%s: setsid", sep->se_service);
-						if (sep->se_group && (grp = getgrnam(sep->se_group)) == NULL) {
-							bb_error_msg("getgrnam: %s: no such group", sep->se_group);
-							if (sep->se_socktype != SOCK_STREAM)
-								recv(0, buf, sizeof(buf), 0);
-							_exit(1);
-						}
-						if (uid != 0) {
-							/* a user running private inetd */
-							if (uid != pwd->pw_uid)
-								_exit(1);
-						} else if (pwd->pw_uid) {
-							if (sep->se_group)
-								pwd->pw_gid = grp->gr_gid;
-							xsetgid((gid_t) pwd->pw_gid);
-							initgroups(pwd->pw_name, pwd->pw_gid);
-							xsetuid((uid_t) pwd->pw_uid);
-						} else if (sep->se_group) {
-							xsetgid(grp->gr_gid);
-							setgroups(1, &grp->gr_gid);
-						}
-						dup2(ctrl, 0);
+				if (sep->se_family == AF_INET && sep->se_socktype == SOCK_STREAM) {
+					struct sockaddr_in peer;
+					socklen_t plen = sizeof(peer);
+
+					if (getpeername(ctrl, (struct sockaddr *) &peer, &plen) < 0) {
+						bb_error_msg("could not getpeername");
 						close(ctrl);
-						dup2(0, 1);
-						dup2(0, 2);
-						if (rlim_ofile.rlim_cur != rlim_ofile_cur)
-							if (setrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0)
-								bb_perror_msg("setrlimit");
-						closelog();
-						for (tmpint = rlim_ofile_cur - 1; --tmpint > 2;)
-							(void) close(tmpint);
-						sigaction(SIGPIPE, &sapipe, NULL);
-						execv(sep->se_server, sep->se_argv);
-						if (sep->se_socktype != SOCK_STREAM)
-							recv(0, buf, sizeof(buf), 0);
-						bb_perror_msg("execv %s", sep->se_server);
-						_exit(1);
+						continue;
+					}
+					if (ntohs(peer.sin_port) == 20) {
+						/* XXX ftp bounce */
+						close(ctrl);
+						continue;
 					}
 				}
+			} else
+				ctrl = sep->se_fd;
+
+			Block_Using_Signals(omask);
+			pid = 0;
+#ifdef INETD_FEATURE_ENABLED
+			if (sep->se_bi == 0 || sep->se_bi->bi_fork)
+#endif
+			{
+				if (sep->se_count++ == 0)
+					(void) gettimeofday(&sep->se_time, NULL);
+				else if (toomany > 0 && sep->se_count >= sep->se_max) {
+					struct timeval now;
+
+					(void) gettimeofday(&now, NULL);
+					if (now.tv_sec - sep->se_time.tv_sec > CNT_INTVL) {
+						sep->se_time = now;
+						sep->se_count = 1;
+					} else {
+						if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
+							close(ctrl);
+						if (sep->se_family == AF_INET &&
+							  ntohs(sep->se_ctrladdr_in.sin_port) >= IPPORT_RESERVED) {
+							/*
+							 * Cannot close it -- there are
+							 * thieves on the system.
+							 * Simply ignore the connection.
+							 */
+							--sep->se_count;
+							continue;
+						}
+						bb_error_msg("%s/%s server failing (looping), service terminated",
+							      sep->se_service, sep->se_proto);
+						if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
+							close(ctrl);
+						FD_CLR(sep->se_fd, &allsock);
+						(void) close(sep->se_fd);
+						sep->se_fd = -1;
+						sep->se_count = 0;
+						nsock--;
+						sigprocmask(SIG_UNBLOCK, &omask, NULL);
+						if (!timingout) {
+							timingout = 1;
+							alarm(RETRYTIME);
+						}
+						continue;
+					}
+				}
+				pid = fork();
+			}
+			if (pid < 0) {
+				bb_perror_msg("fork");
 				if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
 					close(ctrl);
+				sigprocmask(SIG_UNBLOCK, &omask, NULL);
+				sleep(1);
+				continue;
 			}
-		}
-	}
+			if (pid && sep->se_wait) {
+				sep->se_wait = pid;
+				FD_CLR(sep->se_fd, &allsock);
+				nsock--;
+			}
+			sigprocmask(SIG_UNBLOCK, &omask, NULL);
+			if (pid == 0) {
+#ifdef INETD_FEATURE_ENABLED
+				if (sep->se_bi) {
+					(*sep->se_bi->bi_fn)(ctrl, sep);
+				} else
+#endif
+					{
+					pwd = getpwnam(sep->se_user);
+					if (pwd == NULL) {
+						bb_error_msg("getpwnam: %s: no such user", sep->se_user);
+						goto do_exit1;
+					}
+					if (setsid() < 0)
+						bb_perror_msg("%s: setsid", sep->se_service);
+					if (sep->se_group && (grp = getgrnam(sep->se_group)) == NULL) {
+						bb_error_msg("getgrnam: %s: no such group", sep->se_group);
+						goto do_exit1;
+					}
+					if (uid != 0) {
+						/* a user running private inetd */
+						if (uid != pwd->pw_uid)
+							_exit(1);
+					} else if (pwd->pw_uid) {
+						if (sep->se_group)
+							pwd->pw_gid = grp->gr_gid;
+						xsetgid((gid_t) pwd->pw_gid);
+						initgroups(pwd->pw_name, pwd->pw_gid);
+						xsetuid((uid_t) pwd->pw_uid);
+					} else if (sep->se_group) {
+						xsetgid(grp->gr_gid);
+						setgroups(1, &grp->gr_gid);
+					}
+					dup2(ctrl, 0);
+					if (ctrl) close(ctrl);
+					dup2(0, 1);
+					dup2(0, 2);
+					if (rlim_ofile.rlim_cur != rlim_ofile_cur)
+						if (setrlimit(RLIMIT_NOFILE, &rlim_ofile) < 0)
+							bb_perror_msg("setrlimit");
+					closelog();
+					for (tmpint = rlim_ofile_cur - 1; --tmpint > 2;)
+						(void) close(tmpint);
+					sigaction(SIGPIPE, &sapipe, NULL);
+					execv(sep->se_server, sep->se_argv);
+					bb_perror_msg("execv %s", sep->se_server);
+do_exit1:
+					if (sep->se_socktype != SOCK_STREAM)
+						recv(0, buf, sizeof(buf), 0);
+					_exit(1);
+				}
+			}
+			if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
+				close(ctrl);
+		} /* for (sep = servtab...) */
+	} /* for(;;) */
 }
 
 /*
@@ -1542,8 +1540,12 @@ echo_stream(int s, servtab_t *sep)
 	int i;
 
 	inetd_setproctitle(sep->se_service, s);
-	while ((i = read(s, buffer, sizeof(buffer))) > 0 &&
-				 write(s, buffer, i) > 0);
+	while (1) {
+		i = read(s, buffer, sizeof(buffer));
+		if (i <= 0) break;
+		/* FIXME: this isnt correct - safe_write()? */
+		if (write(s, buffer, i) <= 0) break;
+	}
 	exit(0);
 }
 
@@ -1577,9 +1579,11 @@ discard_stream(int s, servtab_t *sep)
 	char buffer[BUFSIZE];
 
 	inetd_setproctitle(sep->se_service, s);
-	while ((errno = 0, read(s, buffer, sizeof(buffer)) > 0) ||
-				 errno == EINTR);
-	exit(0);
+	while (1) {
+		errno = 0;
+		if (read(s, buffer, sizeof(buffer)) <= 0 && errno != EINTR)
+			exit(0);
+	}
 }
 
 /* Discard service -- ignore data */
@@ -1629,8 +1633,10 @@ chargen_stream(int s, servtab_t *sep)
 
 	text[LINESIZ] = '\r';
 	text[LINESIZ + 1] = '\n';
-	for (rs = ring;;) {
-		if ((len = endring - rs) >= LINESIZ)
+	rs = ring;
+	for (;;) {
+		len = endring - rs;
+		if (len >= LINESIZ)
 			memmove(text, rs, LINESIZ);
 		else {
 			memmove(text, rs, len);
