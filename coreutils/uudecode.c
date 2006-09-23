@@ -142,41 +142,40 @@ int uudecode_main(int argc, char **argv)
 	/* Search for the start of the encoding */
 	while ((line = bb_get_chomped_line_from_file(src_stream)) != NULL) {
 		int (*decode_fn_ptr)(FILE * src, FILE * dst);
-		char *line_ptr = NULL;
-
+		char *line_ptr;
+		FILE *dst_stream;
+		int mode;
+		int ret;
+		
 		if (strncmp(line, "begin-base64 ", 13) == 0) {
 			line_ptr = line + 13;
 			decode_fn_ptr = read_base64;
 		} else if (strncmp(line, "begin ", 6) == 0) {
 			line_ptr = line + 6;
 			decode_fn_ptr = read_stduu;
+		} else {
+			free(line);
+			continue;
 		}
 
-		if (line_ptr) {
-			FILE *dst_stream;
-			int mode;
-			int ret;
-
-			mode = strtoul(line_ptr, NULL, 8);
-			if (outname == NULL) {
-				outname = strchr(line_ptr, ' ');
-				if ((outname == NULL) || (*outname == '\0')) {
-					break;
-				}
-				outname++;
+		mode = strtoul(line_ptr, NULL, 8);
+		if (outname == NULL) {
+			outname = strchr(line_ptr, ' ');
+			if ((outname == NULL) || (*outname == '\0')) {
+				break;
 			}
-			if (strcmp(outname, "-") == 0) {
-				dst_stream = stdout;
-			} else {
-				dst_stream = xfopen(outname, "w");
-				chmod(outname, mode & (S_IRWXU | S_IRWXG | S_IRWXO));
-			}
-			free(line);
-			ret = decode_fn_ptr(src_stream, dst_stream);
-			bb_fclose_nonstdin(src_stream);
-			return(ret);
+			outname++;
+		}
+		if (strcmp(outname, "-") == 0) {
+			dst_stream = stdout;
+		} else {
+			dst_stream = xfopen(outname, "w");
+			chmod(outname, mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 		}
 		free(line);
+		ret = decode_fn_ptr(src_stream, dst_stream);
+		bb_fclose_nonstdin(src_stream);
+		return(ret);
 	}
 	bb_error_msg_and_die("No `begin' line");
 }
