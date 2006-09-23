@@ -7,11 +7,6 @@
  * Special function for busybox written by Vladimir Oleynik <dzo@simtreas.ru>
 */
 
-#include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
-#include <limits.h>
-#include <sys/param.h>
 #include "libbb.h"
 
 /* Amount to increase buffer size by in each try. */
@@ -23,27 +18,27 @@
 */
 
 char *
-xgetcwd (char *cwd)
+xgetcwd(char *cwd)
 {
-  char *ret;
-  unsigned path_max;
+	char *ret;
+	unsigned path_max;
 
-  path_max = (unsigned) PATH_MAX;
-  path_max += 2;                /* The getcwd docs say to do this. */
+	path_max = (unsigned) PATH_MAX;
+	path_max += 2;                /* The getcwd docs say to do this. */
 
-  if(cwd==0)
-	cwd = xmalloc (path_max);
+	if (cwd==0)
+		cwd = xmalloc(path_max);
 
-  while ((ret = getcwd (cwd, path_max)) == NULL && errno == ERANGE) {
-      path_max += PATH_INCR;
-      cwd = xrealloc (cwd, path_max);
-  }
+	while ((ret = getcwd(cwd, path_max)) == NULL && errno == ERANGE) {
+		path_max += PATH_INCR;
+		cwd = xrealloc(cwd, path_max);
+	}
 
-  if (ret == NULL) {
-      free (cwd);
-      bb_perror_msg("getcwd()");
-      return NULL;
-  }
+	if (ret == NULL) {
+		free(cwd);
+		bb_perror_msg("getcwd");
+		return NULL;
+	}
 
-  return cwd;
+	return cwd;
 }

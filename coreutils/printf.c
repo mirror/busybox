@@ -38,37 +38,30 @@
 
 //   19990508 Busy Boxed! Dave Cinege
 
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <string.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <assert.h>
 #include "busybox.h"
 
-static int print_formatted (char *format, int argc, char **argv);
-static void print_direc (char *start, size_t length,
+static int print_formatted(char *format, int argc, char **argv);
+static void print_direc(char *start, size_t length,
 			int field_width, int precision, char *argument);
 
 typedef int (*converter)(char *arg, void *result);
+
 static void multiconvert(char *arg, void *result, converter convert)
 {
 	char s[16];
 	if (*arg == '"' || *arg == '\'') {
-		sprintf(s,"%d",(unsigned)*(++arg));
-		arg=s;
+		sprintf(s, "%d", (unsigned)arg[1]);
+		arg = s;
 	}
-	if(convert(arg,result)) fprintf(stderr, "%s", arg);
+	if (convert(arg, result))
+		fputs(arg, stderr);
 }
 
 static unsigned long xstrtoul(char *arg)
 {
 	unsigned long result;
 
-	multiconvert(arg,&result, (converter)safe_strtoul);
+	multiconvert(arg, &result, (converter)safe_strtoul);
 	return result;
 }
 
@@ -104,7 +97,7 @@ int printf_main(int argc, char **argv)
 	char *format;
 	int args_used;
 
-	if (argc <= 1 || **(argv + 1) == '-') {
+	if (argc <= 1 || argv[1][0] == '-') {
 		bb_show_usage();
 	}
 
@@ -119,9 +112,8 @@ int printf_main(int argc, char **argv)
 	}
 	while (args_used > 0 && argc > 0);
 
-/*
-  if (argc > 0)
-    fprintf(stderr, "excess args ignored");
+/*	if (argc > 0)
+		fprintf(stderr, "excess args ignored");
 */
 
 	return EXIT_SUCCESS;
@@ -199,9 +191,9 @@ static int print_formatted(char *format, int argc, char **argv)
 				++direc_length;
 			}
 			/*
-			   if (!strchr ("diouxXfeEgGcs", *f))
-			   fprintf(stderr, "%%%c: invalid directive", *f);
-			 */
+			if (!strchr ("diouxXfeEgGcs", *f))
+			fprintf(stderr, "%%%c: invalid directive", *f);
+			*/
 			++direc_length;
 			if (argc > 0) {
 				print_direc(direc_start, direc_length, field_width,
@@ -232,7 +224,7 @@ static void
 print_direc(char *start, size_t length, int field_width, int precision,
 			char *argument)
 {
-	char *p;					/* Null-terminated copy of % directive. */
+	char *p;		/* Null-terminated copy of % directive. */
 
 	p = xmalloc((unsigned) (length + 1));
 	strncpy(p, start, length);
