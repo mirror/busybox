@@ -693,12 +693,36 @@ enum { STRVERSIONLEN = 32 };
 
 /*======================================================================*/
 
-static int flag_force_load = 0;
-static int flag_autoclean = 0;
-static int flag_verbose = 0;
-static int flag_quiet = 0;
-static int flag_export = 1;
-
+static unsigned option_mask;
+#define OPTION_STR "sLo:fkvqx" USE_FEATURE_INSMOD_LOAD_MAP("m")
+enum {
+	OPT_s = 0x1, // -s /* log to syslog */
+		/* Not supported but kernel needs this for request_module(),
+		   as this calls: modprobe -k -s -- <module>
+		   so silently ignore this flag */
+	OPT_L = 0x2, // -L /* Stub warning */
+		/* Compatibility with modprobe.
+		   In theory, this does locking, but we don't do
+		   that.  So be careful and plan your life around not
+		   loading the same module 50 times concurrently. */
+	OPT_o = 0x4, // -o /* name the output module */
+	OPT_f = 0x8, // -f /* force loading */
+	OPT_k = 0x10, // -k /* module loaded by kerneld, auto-cleanable */
+	OPT_v = 0x20, // -v /* verbose output */
+	OPT_q = 0x40, // -q /* silent */
+	OPT_x = 0x80, // -x /* do not export externs */
+	OPT_m = 0x100, // -m /* print module load map */
+};
+#define flag_force_load (option_mask & OPT_f)
+#define flag_autoclean (option_mask & OPT_k)
+#define flag_verbose (option_mask & OPT_v)
+#define flag_quiet (option_mask & OPT_q)
+#define flag_noexport (option_mask & OPT_x)
+#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
+#define flag_print_load_map (option_mask & OPT_m)
+#else
+#define flag_print_load_map 0
+#endif
 
 /*======================================================================*/
 
@@ -2851,7 +2875,7 @@ static int new_create_module_ksymtab(struct obj_file *f)
 			}
 	}
 
-	if (flag_export && !obj_find_section(f, "__ksymtab")) {
+	if (!flag_noexport && !obj_find_section(f, "__ksymtab")) {
 		size_t nsyms;
 		int *loaded;
 
@@ -3764,7 +3788,7 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 	 * are not to be exported.  otherwise leave ksymtab alone for now, the
 	 * "export all symbols" compatibility code will export these symbols later.
 	 */
-	use_ksymtab =  obj_find_section(f, "__ksymtab") || !flag_export;
+	use_ksymtab = obj_find_section(f, "__ksymtab") || flag_noexport;
 
 	if ((sec = obj_find_section(f, ".this"))) {
 		/* tag the module header with the object name, last modified
@@ -3928,12 +3952,13 @@ static void print_load_map(struct obj_file *f)
 	}
 #endif
 }
-
+#else /* !CONFIG_FEATURE_INSMOD_LOAD_MAP */
+void print_load_map(struct obj_file *f);
 #endif
 
 int insmod_main( int argc, char **argv)
 {
-	int opt;
+	char *opt_o;
 	int len;
 	int k_crcs;
 	char *tmp, *tmp1;
@@ -3954,60 +3979,15 @@ int insmod_main( int argc, char **argv)
 #else
 	FILE *fp;
 #endif
-#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
-	int flag_print_load_map = 0;
-#endif
 	int k_version = 0;
 	struct utsname myuname;
 
 	/* Parse any options */
-#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
-	while ((opt = getopt(argc, argv, "fkqsvxmLo:")) > 0)
-#else
-	while ((opt = getopt(argc, argv, "fkqsvxLo:")) > 0)
-#endif
-		{
-			switch (opt) {
-				case 'f':			/* force loading */
-					flag_force_load = 1;
-					break;
-				case 'k':			/* module loaded by kerneld, auto-cleanable */
-					flag_autoclean = 1;
-					break;
-				case 's':			/* log to syslog */
-					/* log to syslog -- not supported              */
-					/* but kernel needs this for request_module(), */
-					/* as this calls: modprobe -k -s -- <module>   */
-					/* so silently ignore this flag                */
-					break;
-				case 'v':			/* verbose output */
-					flag_verbose = 1;
-					break;
-				case 'q':			/* silent */
-					flag_quiet = 1;
-					break;
-				case 'x':			/* do not export externs */
-					flag_export = 0;
-					break;
-				case 'o':			/* name the output module */
-					free(m_name);
-					m_name = xstrdup(optarg);
-					break;
-				case 'L':			/* Stub warning */
-					/* This is needed for compatibility with modprobe.
-					 * In theory, this does locking, but we don't do
-					 * that.  So be careful and plan your life around not
-					 * loading the same module 50 times concurrently. */
-					break;
-#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
-				case 'm':			/* print module load map */
-					flag_print_load_map = 1;
-					break;
-#endif
-				default:
-					bb_show_usage();
-			}
-		}
+	option_mask = bb_getopt_ulflags(argc, argv, OPTION_STR,	&opt_o);
+	if (option_mask & OPT_o) { // -o /* name the output module */
+		free(m_name);
+		m_name = xstrdup(opt_o);
+	}
 
 	if (argv[optind] == NULL) {
 		bb_show_usage();
@@ -4248,10 +4228,8 @@ int insmod_main( int argc, char **argv)
 		goto out;
 	}
 
-#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
 	if(flag_print_load_map)
 		print_load_map(f);
-#endif
 
 	exit_status = EXIT_SUCCESS;
 
