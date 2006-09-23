@@ -91,8 +91,21 @@ struct interfaces_file_t
 	struct mapping_defn_t *mappings;
 };
 
-static char no_act = 0;
-static char verbose = 0;
+static unsigned option_mask;
+#define OPTION_STR "anvf" USE_FEATURE_IFUPDOWN_MAPPING("m") "i:"
+enum {
+	OPT_do_all = 0x1,
+	OPT_no_act = 0x2,
+	OPT_verbose = 0x4,
+	OPT_force = 0x8,
+	OPT_no_mappings = 0x10,
+};
+#define DO_ALL (option_mask & OPT_do_all)
+#define NO_ACT (option_mask & OPT_no_act)
+#define VERBOSE (option_mask & OPT_verbose)
+#define FORCE (option_mask & OPT_force)
+#define NO_MAPPINGS (option_mask & OPT_no_mappings)
+
 static char **__myenviron = NULL;
 
 #if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6
@@ -875,10 +888,10 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
 
 static int doit(char *str)
 {
-	if (verbose || no_act) {
+	if (option_mask & (OPT_no_act|OPT_verbose)) {
 		printf("%s\n", str);
 	}
-	if (!no_act) {
+	if (!(option_mask & OPT_no_act)) {
 		pid_t child;
 		int status;
 
@@ -895,7 +908,7 @@ static int doit(char *str)
 			return 0;
 		}
 	}
-	return (1);
+	return 1;
 }
 
 static int execute_all(struct interface_defn_t *ifd, const char *opt)
@@ -1070,12 +1083,6 @@ int ifupdown_main(int argc, char **argv)
 	llist_t *target_list = NULL;
 	const char *interfaces = "/etc/network/interfaces";
 	const char *statefile = "/var/run/ifstate";
-
-#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
-	int run_mappings = 1;
-#endif
-	int do_all = 0;
-	int force = 0;
 	int any_failures = 0;
 	int i;
 
@@ -1087,48 +1094,11 @@ int ifupdown_main(int argc, char **argv)
 		cmds = iface_down;
 	}
 
-#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
-	while ((i = getopt(argc, argv, "i:hvnamf")) != -1)
-#else
-		while ((i = getopt(argc, argv, "i:hvnaf")) != -1)
-#endif
-		{
-			switch (i) {
-				case 'i':	/* interfaces */
-					interfaces = optarg;
-					break;
-				case 'v':	/* verbose */
-					verbose = 1;
-					break;
-				case 'a':	/* all */
-					do_all = 1;
-					break;
-				case 'n':	/* no-act */
-					no_act = 1;
-					break;
-#ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
-				case 'm':	/* no-mappings */
-					run_mappings = 0;
-					break;
-#endif
-				case 'f':	/* force */
-					force = 1;
-					break;
-				default:
-					bb_show_usage();
-					break;
-			}
-		}
-
+	option_mask = bb_getopt_ulflags(argc, argv, OPTION_STR, &interfaces);
 	if (argc - optind > 0) {
-		if (do_all) {
-			bb_show_usage();
-		}
-	} else {
-		if (!do_all) {
-			bb_show_usage();
-		}
-	}
+		if (DO_ALL) bb_show_usage();
+	} else
+		if (!DO_ALL) bb_show_usage();
 
 	debug_noise("reading %s file:\n", interfaces);
 	defn = read_interfaces(interfaces);
@@ -1139,7 +1109,7 @@ int ifupdown_main(int argc, char **argv)
 	}
 
 	/* Create a list of interfaces to work on */
-	if (do_all) {
+	if (DO_ALL) {
 		if (cmds == iface_up) {
 			target_list = defn->autointerfaces;
 		} else {
@@ -1177,7 +1147,7 @@ int ifupdown_main(int argc, char **argv)
 			liface = xstrdup(iface);
 		}
 
-		if (!force) {
+		if (!FORCE) {
 			const llist_t *iface_state = find_iface_state(state_list, iface);
 
 			if (cmds == iface_up) {
@@ -1196,7 +1166,7 @@ int ifupdown_main(int argc, char **argv)
 		}
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
-		if ((cmds == iface_up) && run_mappings) {
+		if ((cmds == iface_up) && !NO_MAPPINGS) {
 			struct mapping_defn_t *currmap;
 
 			for (currmap = defn->mappings; currmap; currmap = currmap->next) {
@@ -1204,7 +1174,7 @@ int ifupdown_main(int argc, char **argv)
 				for (i = 0; i < currmap->n_matches; i++) {
 					if (fnmatch(currmap->match[i], liface, 0) != 0)
 						continue;
-					if (verbose) {
+					if (VERBOSE) {
 						printf("Running mapping script %s on %s\n", currmap->script, liface);
 					}
 					liface = run_mapping(iface, currmap);
@@ -1240,11 +1210,11 @@ int ifupdown_main(int argc, char **argv)
 			}
 			iface_list = iface_list->link;
 		}
-		if (verbose) {
+		if (VERBOSE) {
 			printf("\n");
 		}
 
-		if (!okay && !force) {
+		if (!okay && !FORCE) {
 			bb_error_msg("Ignoring unknown interface %s", liface);
 			any_failures += 1;
 		} else {
@@ -1266,7 +1236,7 @@ int ifupdown_main(int argc, char **argv)
 	}
 
 	/* Actually write the new state */
-	if (!no_act) {
+	if (!NO_ACT) {
 		FILE *state_fp = NULL;
 
 		state_fp = xfopen(statefile, "w");
