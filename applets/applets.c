@@ -50,33 +50,33 @@ const size_t NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);
 /* applets [] is const, so we have to define this "override" structure */
 static struct BB_suid_config
 {
-  struct BB_applet *m_applet;
+	struct BB_applet *m_applet;
 
-  uid_t m_uid;
-  gid_t m_gid;
-  mode_t m_mode;
+	uid_t m_uid;
+	gid_t m_gid;
+	mode_t m_mode;
 
-  struct BB_suid_config *m_next;
+	struct BB_suid_config *m_next;
 } *suid_config;
 
 static int suid_cfg_readable;
 
 /* check if u is member of group g */
-static int ingroup (uid_t u, gid_t g)
+static int ingroup(uid_t u, gid_t g)
 {
-  struct group *grp = getgrgid (g);
+	struct group *grp = getgrgid(g);
 
-  if (grp) {
-	char **mem;
+	if (grp) {
+		char **mem;
 
-	for (mem = grp->gr_mem; *mem; mem++) {
-	  struct passwd *pwd = getpwnam (*mem);
+		for (mem = grp->gr_mem; *mem; mem++) {
+			struct passwd *pwd = getpwnam(*mem);
 
-	  if (pwd && (pwd->pw_uid == u))
-		return 1;
+			if (pwd && (pwd->pw_uid == u))
+				return 1;
+		}
 	}
-  }
-  return 0;
+	return 0;
 }
 
 /* This should probably be a libbb routine.  In that case,
@@ -320,58 +320,58 @@ static void parse_config_file(void)
 #ifdef CONFIG_FEATURE_SUID
 static void check_suid (struct BB_applet *applet)
 {
-  uid_t ruid = getuid ();               /* real [ug]id */
-  uid_t rgid = getgid ();
+	uid_t ruid = getuid ();               /* real [ug]id */
+	uid_t rgid = getgid ();
 
 #ifdef CONFIG_FEATURE_SUID_CONFIG
-  if (suid_cfg_readable) {
-	struct BB_suid_config *sct;
+	if (suid_cfg_readable) {
+		struct BB_suid_config *sct;
 
-	for (sct = suid_config; sct; sct = sct->m_next) {
-	  if (sct->m_applet == applet)
-		break;
-	}
-	if (sct) {
-	  mode_t m = sct->m_mode;
+		for (sct = suid_config; sct; sct = sct->m_next) {
+			if (sct->m_applet == applet)
+				break;
+		}
+		if (sct) {
+			mode_t m = sct->m_mode;
 
-	  if (sct->m_uid == ruid)       /* same uid */
-		m >>= 6;
-	  else if ((sct->m_gid == rgid) || ingroup (ruid, sct->m_gid))  /* same group / in group */
-		m >>= 3;
+			if (sct->m_uid == ruid)       /* same uid */
+				m >>= 6;
+			else if ((sct->m_gid == rgid) || ingroup (ruid, sct->m_gid))  /* same group / in group */
+				m >>= 3;
 
-	  if (!(m & S_IXOTH))           /* is x bit not set ? */
-		bb_error_msg_and_die ("You have no permission to run this applet!");
+			if (!(m & S_IXOTH))           /* is x bit not set ? */
+				bb_error_msg_and_die ("You have no permission to run this applet!");
 
-	  if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {     /* *both* have to be set for sgid */
-		xsetgid(sct->m_gid);
-	  } else xsetgid(rgid);                /* no sgid -> drop */
+			if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {     /* *both* have to be set for sgid */
+				xsetgid(sct->m_gid);
+			} else xsetgid(rgid);                /* no sgid -> drop */
 
-	  if (sct->m_mode & S_ISUID) xsetuid(sct->m_uid);
-	  else xsetuid(ruid);                  /* no suid -> drop */
+			if (sct->m_mode & S_ISUID) xsetuid(sct->m_uid);
+			else xsetuid(ruid);                  /* no suid -> drop */
+		} else {
+			/* default: drop all privileges */
+			xsetgid(rgid);
+			xsetuid(ruid);
+		}
+		return;
 	} else {
-		/* default: drop all privileges */
-	  xsetgid(rgid);
-	  xsetuid(ruid);
-	}
-	return;
-  } else {
 #ifndef CONFIG_FEATURE_SUID_CONFIG_QUIET
-	static int onetime = 0;
+		static int onetime = 0;
 
-	if (!onetime) {
-	  onetime = 1;
-	  fprintf (stderr, "Using fallback suid method\n");
+		if (!onetime) {
+			onetime = 1;
+			fprintf (stderr, "Using fallback suid method\n");
+		}
+#endif
 	}
 #endif
-  }
-#endif
 
-  if (applet->need_suid == _BB_SUID_ALWAYS) {
-	if (geteuid()) bb_error_msg_and_die("Applet requires root privileges!");
-  } else if (applet->need_suid == _BB_SUID_NEVER) {
-	xsetgid(rgid);                          /* drop all privileges */
-	xsetuid(ruid);
-  }
+	if (applet->need_suid == _BB_SUID_ALWAYS) {
+		if (geteuid()) bb_error_msg_and_die("Applet requires root privileges!");
+	} else if (applet->need_suid == _BB_SUID_NEVER) {
+		xsetgid(rgid);                          /* drop all privileges */
+		xsetuid(ruid);
+	}
 }
 #else
 #define check_suid(x)
@@ -426,7 +426,7 @@ static const char *unpack_usage_messages(void)
 #define unpack_usage_messages() usage_messages
 #endif /* ENABLE_FEATURE_COMPRESS_USAGE */
 
-void bb_show_usage (void)
+void bb_show_usage(void)
 {
 	if (ENABLE_SHOW_USAGE) {
 		const char *format_string;
@@ -443,22 +443,22 @@ void bb_show_usage (void)
 			applet_using->name, usage_string);
 	}
 
-  exit (bb_default_error_retval);
+	exit (bb_default_error_retval);
 }
 
 static int applet_name_compare(const void *name, const void *vapplet)
 {
-  const struct BB_applet *applet = vapplet;
+	const struct BB_applet *applet = vapplet;
 
-  return strcmp(name, applet->name);
+	return strcmp(name, applet->name);
 }
 
 extern const size_t NUM_APPLETS;
 
 struct BB_applet *find_applet_by_name(const char *name)
 {
-  return bsearch(name, applets, NUM_APPLETS, sizeof(struct BB_applet),
-				  applet_name_compare);
+	return bsearch(name, applets, NUM_APPLETS, sizeof(struct BB_applet),
+				applet_name_compare);
 }
 
 void run_applet_by_name(const char *name, int argc, char **argv)
