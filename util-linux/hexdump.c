@@ -60,7 +60,7 @@ int hexdump_main(int argc, char **argv)
 	bb_dump_length = -1;
 
 	while ((ch = getopt(argc, argv, hexdump_opts)) > 0) {
-		p = strchr(hexdump_opts, ch)
+		p = strchr(hexdump_opts, ch);
 		if (!p)
 			bb_show_usage();
 		if ((p - hexdump_opts) < 5) {
