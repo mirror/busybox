@@ -108,7 +108,7 @@ int vlock_main(int argc, char **argv)
 	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 
 	do {
-		printf("Virtual Console%s locked. Enter %s's password to unlock\n", (o_lock_all) ? "s" : "", pw->pw_name);
+		printf("Virtual Console%s locked by %s.\n", (o_lock_all) ? "s" : "", pw->pw_name);
 		if (correct_password(pw)) {
 			break;
 		}
