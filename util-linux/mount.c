@@ -9,10 +9,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* todo:
- * bb_getopt_ulflags();
- */
-
 /* Design notes: There is no spec for mount.  Remind me to write one.
 
    mount_main() calls singlemount() which calls mount_it_now().
@@ -1427,7 +1423,7 @@ report_error:
 
 int mount_main(int argc, char **argv)
 {
-	enum { OPT_ALL = 0x8 };
+	enum { OPT_ALL = 0x10 };
 
 	char *cmdopts = xstrdup(""), *fstype=0, *storage_path=0;
 	char *opt_o;
@@ -1445,24 +1441,20 @@ int mount_main(int argc, char **argv)
 			append_mount_options(&cmdopts,argv[i]+2);
 		} else argv[j++] = argv[i];
 	}
+	argv[j] = 0;
 	argc = j;
 
 	// Parse remaining options
 
-	opt = bb_getopt_ulflags(argc, argv, "o:t:rwavnf", &opt_o, &fstype);
-	if (opt & 1) // -o
-		append_mount_options(&cmdopts, opt_o);
-	//if (opt & 1) // -t
-	if (opt & 2) // -r
-		append_mount_options(&cmdopts, "ro");
-	if (opt & 4) // -w
-		append_mount_options(&cmdopts, "rw");
-	//if (opt & 8) // -a
-	if (opt & 0x10) // -n
-		USE_FEATURE_MTAB_SUPPORT(useMtab = FALSE);
-	if (opt & 0x20) // -f
-		USE_FEATURE_MTAB_SUPPORT(fakeIt = FALSE);
-	//if (opt & 0x40) // ignore -v
+	opt = bb_getopt_ulflags(argc, argv, "o:t:rwanfv", &opt_o, &fstype);
+	if (opt & 0x1) append_mount_options(&cmdopts, opt_o); // -o
+	//if (opt & 0x2) // -t
+	if (opt & 0x4) append_mount_options(&cmdopts, "ro"); // -r
+	if (opt & 0x8) append_mount_options(&cmdopts, "rw"); // -w
+	//if (opt & 0x10) // -a
+	if (opt & 0x20) USE_FEATURE_MTAB_SUPPORT(useMtab = FALSE); // -n
+	if (opt & 0x40) USE_FEATURE_MTAB_SUPPORT(fakeIt = FALSE); // -f
+	//if (opt & 0x80) // -v: ignore
 	argv += optind;
 	argc -= optind;
 
