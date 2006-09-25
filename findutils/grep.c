@@ -51,7 +51,7 @@ static invert_search_t invert_search;
 #define GREP_OPT_L (1<<12)
 #define PRINT_FILES_WITHOUT_MATCHES ((opt & GREP_OPT_L) != 0)
 #if ENABLE_FEATURE_GREP_CONTEXT
-#define GREP_OPT_CONTEXT "A:B:C"
+#define GREP_OPT_CONTEXT "A:B:C:"
 #define GREP_OPT_A (1<<13)
 #define GREP_OPT_B (1<<14)
 #define GREP_OPT_C (1<<15)
