@@ -235,13 +235,13 @@ int login_main(int argc, char **argv)
 	alarm(TIMEOUT);
 
 	opt = bb_getopt_ulflags(argc, argv, "f:h:p", &opt_user, &opt_host);
-
 	if (opt & LOGIN_OPT_f) {
 		if (!amroot)
 			bb_error_msg_and_die("-f is for root only");
-		safe_strncpy(username, opt_user, strlen(opt_user));
+		safe_strncpy(username, opt_user, sizeof(username));
 	}
-	username[USERNAME_SIZE] = 0;
+	if (optind < argc) /* user from command line (getty) */
+		safe_strncpy(username, argv[optind], sizeof(username));
 
 	/* Let's find out and memorize our tty */
 	if (!isatty(0) || !isatty(1) || !isatty(2))
