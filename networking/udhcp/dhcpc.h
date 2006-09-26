@@ -19,6 +19,7 @@
 struct client_config_t {
 	char foreground;		/* Do not fork */
 	char quit_after_lease;		/* Quit after obtaining lease */
+	char release_on_quit;		/* perform release on quit */
 	char abort_if_no_lease;		/* Abort if no lease */
 	char background_if_no_lease;	/* Fork to background if no lease */
 	char *interface;		/* The name of the interface to use */

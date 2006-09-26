@@ -23,7 +23,7 @@ enum {
 #define OPTION_LIST	0x20 /* There can be a list of 1 or more of these */
 
 struct dhcp_option {
-	char name[10];
+	char name[12];
 	char flags;
 	uint8_t code;
 };

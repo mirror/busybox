@@ -53,6 +53,7 @@ struct client_config_t client_config = {
 	.abort_if_no_lease = 0,
 	.foreground = 0,
 	.quit_after_lease = 0,
+	.release_on_quit = 0,
 	.background_if_no_lease = 0,
 	.interface = "eth0",
 	.pidfile = NULL,
@@ -169,6 +170,7 @@ int udhcpc_main(int argc, char *argv[])
 		{"now",		no_argument,		0, 'n'},
 		{"pidfile",	required_argument,	0, 'p'},
 		{"quit",	no_argument,		0, 'q'},
+		{"release",	no_argument,		0, 'R'},
 		{"request",	required_argument,	0, 'r'},
 		{"script",	required_argument,	0, 's'},
 		{"timeout",	required_argument,	0, 'T'},
@@ -180,7 +182,7 @@ int udhcpc_main(int argc, char *argv[])
 	/* get options */
 	while (1) {
 		int option_index = 0;
-		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qr:s:T:t:v", arg_options, &option_index);
+		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:v", arg_options, &option_index);
 		if (c == -1) break;
 
 		switch (c) {
@@ -249,6 +251,9 @@ int udhcpc_main(int argc, char *argv[])
 			break;
 		case 'q':
 			client_config.quit_after_lease = 1;
+			break;
+		case 'R':
+			client_config.release_on_quit = 1;
 			break;
 		case 'r':
 			requested_ip = inet_addr(optarg);
@@ -495,8 +500,11 @@ int udhcpc_main(int argc, char *argv[])
 
 					state = BOUND;
 					change_mode(LISTEN_NONE);
-					if (client_config.quit_after_lease)
+					if (client_config.quit_after_lease) {
+						if (client_config.release_on_quit)
+							perform_release();
 						return 0;
+					}
 					if (!client_config.foreground)
 						client_background();
 
@@ -526,6 +534,8 @@ int udhcpc_main(int argc, char *argv[])
 				break;
 			case SIGTERM:
 				bb_info_msg("Received SIGTERM");
+				if (client_config.release_on_quit)
+					perform_release();
 				return 0;
 			}
 		} else if (retval == -1 && errno == EINTR) {

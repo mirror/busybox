@@ -1384,6 +1384,13 @@ static const struct builtincmd builtincmd[] = {
 
 #define NUMBUILTINS  (sizeof (builtincmd) / sizeof (struct builtincmd) )
 
+static const char *safe_applets[] = { 
+	"[", "test", "echo", "cat",
+	"ln", "cp", "touch", "mkdir", "rm",
+	"cut", "hexdump", "awk", "sort",
+	"find", "xargs", "ls", "dd",
+	"chown", "chmod"
+};
 
 
 struct cmdentry {
@@ -2033,6 +2040,19 @@ static void onsig(int);
 static int dotrap(void);
 static void setinteractive(int);
 static void exitshell(void) ATTRIBUTE_NORETURN;
+
+
+static int is_safe_applet(char *name)
+{
+	int n = sizeof(safe_applets) / sizeof(char *);
+	int i;
+	for (i = 0; i < n; i++)
+		if (strcmp(safe_applets[i], name) == 0)
+			return 1;
+
+	return 0;
+}
+
 
 /*
  * This routine is called when an error or an interrupt occurs in an
@@ -3681,6 +3701,7 @@ shellexec(char **argv, const char *path, int idx)
 	clearredir(1);
 	envp = environment();
 	if (strchr(argv[0], '/') != NULL
+		|| is_safe_applet(argv[0])
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 		|| find_applet_by_name(argv[0])
 #endif
@@ -3723,6 +3744,18 @@ static void
 tryexec(char *cmd, char **argv, char **envp)
 {
 	int repeated = 0;
+	struct BB_applet *a;
+	int argc = 0;
+	char **c;
+	
+	if(strchr(cmd, '/') == NULL && is_safe_applet(cmd) && (a = find_applet_by_name(cmd)) != NULL) {
+		c = argv;
+		while (*c != NULL) {
+			c++; argc++;
+		}
+		bb_applet_name = cmd;
+		exit(a->main(argc, argv));
+	}
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	if(find_applet_by_name(cmd) != NULL) {
 		/* re-exec ourselves with the new arguments */
@@ -3904,6 +3937,12 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 		return;
 	}
 #endif
+
+	if (is_safe_applet(name)) {
+		entry->cmdtype = CMDNORMAL;
+		entry->u.index = -1;
+		return;
+	}
 
 	updatetbl = (path == pathval());
 	if (!updatetbl) {

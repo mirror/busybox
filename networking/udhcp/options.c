@@ -42,8 +42,11 @@ struct dhcp_option dhcp_options[] = {
 	{"dhcptype",	OPTION_U8,				0x35},
 	{"serverid",	OPTION_IP,				0x36},
 	{"message",	OPTION_STRING,				0x38},
+	{"vendorclass", OPTION_STRING,                          0x3C},
+	{"clientid",    OPTION_STRING,                          0x3D},
 	{"tftp",	OPTION_STRING,				0x42},
 	{"bootfile",	OPTION_STRING,				0x43},
+	{"userclass",   OPTION_STRING,                          0x4D},
 	{"",		0x00,				0x00}
 };
 

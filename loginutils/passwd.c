@@ -318,7 +318,7 @@ static int new_password(const struct passwd *pw, int amroot, int algo)
 	} else {
 		orig[0] = '\0';
 	}
-	cp = bb_askpass(0, "Enter the new password (minimum of 5, maximum of 8 characters).\n"
+	cp = bb_askpass(0, "Enter the new password (minimum of 5 characters).\n"
 	                   "Please use a combination of upper and lower case letters and numbers.\n"
 	                   "Enter new password: ");
 	if (!cp ) {

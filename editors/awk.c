@@ -249,7 +249,8 @@ enum {
 /* builtins */
 enum {
 	B_a2=0,	B_ix,	B_ma,	B_sp,	B_ss,	B_ti,	B_lo,	B_up,
-	B_ge,	B_gs,	B_su
+	B_ge,	B_gs,	B_su,
+	B_an,	B_co,	B_ls,	B_or,	B_rs,	B_xo,
 };
 
 /* tokens and their corresponding info values */
@@ -289,6 +290,8 @@ static char * const tokenlist =
 	"\5while"	NTC
 	"\4else"	NTC
 
+	"\3and"		"\5compl"	"\6lshift"	"\2or"
+	"\6rshift"	"\3xor"
 	"\5close"	"\6system"	"\6fflush"	"\5atan2"	/* BUILTIN */
 	"\3cos"		"\3exp"		"\3int"		"\3log"
 	"\4rand"	"\3sin"		"\4sqrt"	"\5srand"
@@ -342,6 +345,8 @@ static const uint32_t tokeninfo[] = {
 	ST_WHILE,
 	0,
 
+	OC_B|B_an|P(0x83), OC_B|B_co|P(0x41), OC_B|B_ls|P(0x83), OC_B|B_or|P(0x83),
+	OC_B|B_rs|P(0x83), OC_B|B_xo|P(0x83),
 	OC_FBLTIN|Sx|F_cl, OC_FBLTIN|Sx|F_sy, OC_FBLTIN|Sx|F_ff, OC_B|B_a2|P(0x83),
 	OC_FBLTIN|Nx|F_co, OC_FBLTIN|Nx|F_ex, OC_FBLTIN|Nx|F_in, OC_FBLTIN|Nx|F_lg,
 	OC_FBLTIN|F_rn,    OC_FBLTIN|Nx|F_si, OC_FBLTIN|Nx|F_sq, OC_FBLTIN|Nx|F_sr,
@@ -1922,6 +1927,30 @@ static var *exec_builtin(node *op, var *res)
 		strncpy(s, as[0]+i, n);
 		s[n] = '\0';
 		setvar_p(res, s);
+		break;
+		
+	 case B_an:
+		setvar_i(res, (long)getvar_i(av[0]) & (long)getvar_i(av[1]));
+		break;
+		
+	 case B_co:
+		setvar_i(res, ~(long)getvar_i(av[0]));
+		break;
+
+	 case B_ls:
+		setvar_i(res, (long)getvar_i(av[0]) << (long)getvar_i(av[1]));
+		break;
+
+	 case B_or:
+		setvar_i(res, (long)getvar_i(av[0]) | (long)getvar_i(av[1]));
+		break;
+
+	 case B_rs:
+		setvar_i(res, (long)((unsigned long)getvar_i(av[0]) >> (unsigned long)getvar_i(av[1])));
+		break;
+
+	 case B_xo:
+		setvar_i(res, (long)getvar_i(av[0]) ^ (long)getvar_i(av[1]));
 		break;
 
 	  case B_lo:

@@ -3211,6 +3211,7 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\t-n,\t--now\tExit with failure if lease cannot be immediately negotiated\n" \
 	"\t-p,\t--pidfile=file\tStore process ID of daemon in file\n" \
 	"\t-q,\t--quit\tQuit after obtaining lease\n" \
+	"\t-R,\t--release\tRelease IP on quit\n" \
 	"\t-r,\t--request=IP\tIP address to request (default: none)\n" \
 	"\t-s,\t--script=file\tRun file at dhcp events (default: /usr/share/udhcpc/default.script)\n" \
 	"\t-t,\t--retries=NUM\tSend up to NUM request packets\n"\
