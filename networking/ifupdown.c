@@ -15,8 +15,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-/* TODO: standardise execute() return codes to return 0 for success and 1 for failure */
-
 #include "busybox.h"
 #include <sys/utsname.h>
 #include <fnmatch.h>
@@ -49,7 +47,7 @@ struct address_family_t
 {
 	char *name;
 	int n_methods;
-	struct method_t *method;
+	const struct method_t *method;
 };
 
 struct mapping_defn_t
@@ -75,8 +73,8 @@ struct variable_t
 
 struct interface_defn_t
 {
-	struct address_family_t *address_family;
-	struct method_t *method;
+	const struct address_family_t *address_family;
+	const struct method_t *method;
 
 	char *iface;
 	int max_options;
@@ -106,7 +104,7 @@ enum {
 #define FORCE (option_mask & OPT_force)
 #define NO_MAPPINGS (option_mask & OPT_no_mappings)
 
-static char **__myenviron = NULL;
+static char **__myenviron;
 
 #if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6
 
@@ -117,7 +115,7 @@ static unsigned int count_bits(unsigned int a)
 	unsigned int result;
 	result = (a & 0x55) + ((a >> 1) & 0x55);
 	result = (result & 0x33) + ((result >> 2) & 0x33);
-	return((result & 0x0F) + ((result >> 4) & 0x0F));
+	return ((result & 0x0F) + ((result >> 4) & 0x0F));
 }
 
 static int count_netmask_bits(char *dotted_quad)
@@ -130,7 +128,7 @@ static int count_netmask_bits(char *dotted_quad)
 	result += count_bits(b);
 	result += count_bits(c);
 	result += count_bits(d);
-	return ((int)result);
+	return (int)result;
 }
 #endif
 
@@ -156,9 +154,9 @@ static int strncmpz(char *l, char *r, size_t llen)
 	int i = strncmp(l, r, llen);
 
 	if (i == 0) {
-		return(-r[llen]);
+		return -r[llen];
 	} else {
-		return(i);
+		return i;
 	}
 }
 
@@ -175,18 +173,18 @@ static char *get_var(char *id, size_t idlen, struct interface_defn_t *ifd)
 		if (result) {
 			*result=0;
 		}
-		return( label_buf);
+		return label_buf;
 	} else if (strncmpz(id, "label", idlen) == 0) {
-		return (ifd->iface);
+		return ifd->iface;
 	} else {
 		for (i = 0; i < ifd->n_options; i++) {
 			if (strncmpz(id, ifd->option[i].name, idlen) == 0) {
-				return (ifd->option[i].value);
+				return ifd->option[i].value;
 			}
 		}
 	}
 
-	return(NULL);
+	return NULL;
 }
 
 static char *parse(char *command, struct interface_defn_t *ifd)
@@ -200,101 +198,101 @@ static char *parse(char *command, struct interface_defn_t *ifd)
 
 	while (*command) {
 		switch (*command) {
-
-			default:
+		default:
+			addstr(&result, &len, &pos, command, 1);
+			command++;
+			break;
+		case '\\':
+			if (command[1]) {
+				addstr(&result, &len, &pos, command + 1, 1);
+				command += 2;
+			} else {
 				addstr(&result, &len, &pos, command, 1);
 				command++;
-				break;
-			case '\\':
-				if (command[1]) {
-					addstr(&result, &len, &pos, command + 1, 1);
-					command += 2;
-				} else {
-					addstr(&result, &len, &pos, command, 1);
-					command++;
+			}
+			break;
+		case '[':
+			if (command[1] == '[' && opt_depth < MAX_OPT_DEPTH) {
+				old_pos[opt_depth] = pos;
+				okay[opt_depth] = 1;
+				opt_depth++;
+				command += 2;
+			} else {
+				addstr(&result, &len, &pos, "[", 1);
+				command++;
+			}
+			break;
+		case ']':
+			if (command[1] == ']' && opt_depth > 1) {
+				opt_depth--;
+				if (!okay[opt_depth]) {
+					pos = old_pos[opt_depth];
+					result[pos] = '\0';
 				}
-				break;
-			case '[':
-				if (command[1] == '[' && opt_depth < MAX_OPT_DEPTH) {
-					old_pos[opt_depth] = pos;
-					okay[opt_depth] = 1;
-					opt_depth++;
-					command += 2;
-				} else {
-					addstr(&result, &len, &pos, "[", 1);
-					command++;
+				command += 2;
+			} else {
+				addstr(&result, &len, &pos, "]", 1);
+				command++;
+			}
+			break;
+		case '%':
+			{
+				char *nextpercent;
+				char *varvalue;
+
+				command++;
+				nextpercent = strchr(command, '%');
+				if (!nextpercent) {
+					errno = EUNBALPER;
+					free(result);
+					return NULL;
 				}
-				break;
-			case ']':
-				if (command[1] == ']' && opt_depth > 1) {
-					opt_depth--;
-					if (!okay[opt_depth]) {
-						pos = old_pos[opt_depth];
-						result[pos] = '\0';
-					}
-					command += 2;
+
+				varvalue = get_var(command, nextpercent - command, ifd);
+
+				if (varvalue) {
+					addstr(&result, &len, &pos, varvalue, strlen(varvalue));
 				} else {
-					addstr(&result, &len, &pos, "]", 1);
-					command++;
-				}
-				break;
-			case '%':
-				{
-					char *nextpercent;
-					char *varvalue;
-
-					command++;
-					nextpercent = strchr(command, '%');
-					if (!nextpercent) {
-						errno = EUNBALPER;
-						free(result);
-						return (NULL);
-					}
-
-					varvalue = get_var(command, nextpercent - command, ifd);
-
-					if (varvalue) {
-						addstr(&result, &len, &pos, varvalue, strlen(varvalue));
-					} else {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
-						/* Sigh...  Add a special case for 'ip' to convert from
-						 * dotted quad to bit count style netmasks.  */
-						if (strncmp(command, "bnmask", 6)==0) {
-							int res;
-							varvalue = get_var("netmask", 7, ifd);
-							if (varvalue && (res=count_netmask_bits(varvalue)) > 0) {
-								char argument[255];
-								sprintf(argument, "%d", res);
-								addstr(&result, &len, &pos, argument, strlen(argument));
-								command = nextpercent + 1;
-								break;
-							}
+					/* Sigh...  Add a special case for 'ip' to convert from
+					 * dotted quad to bit count style netmasks.  */
+					if (strncmp(command, "bnmask", 6)==0) {
+						int res;
+						varvalue = get_var("netmask", 7, ifd);
+						if (varvalue && (res=count_netmask_bits(varvalue)) > 0) {
+							char argument[255];
+							sprintf(argument, "%d", res);
+							addstr(&result, &len, &pos, argument, strlen(argument));
+							command = nextpercent + 1;
+							break;
 						}
-#endif
-						okay[opt_depth - 1] = 0;
 					}
-
-					command = nextpercent + 1;
+#endif
+					okay[opt_depth - 1] = 0;
 				}
-				break;
+
+				command = nextpercent + 1;
+			}
+			break;
 		}
 	}
 
 	if (opt_depth > 1) {
 		errno = EUNBALBRACK;
 		free(result);
-		return(NULL);
+		return NULL;
 	}
 
 	if (!okay[0]) {
 		errno = EUNDEFVAR;
 		free(result);
-		return(NULL);
+		return NULL;
 	}
 
-	return(result);
+	return result;
 }
 
+/* execute() returns 1 for success and 0 for failure */
 static int execute(char *command, struct interface_defn_t *ifd, execfn *exec)
 {
 	char *out;
@@ -302,15 +300,15 @@ static int execute(char *command, struct interface_defn_t *ifd, execfn *exec)
 
 	out = parse(command, ifd);
 	if (!out) {
-		return(0);
+		return 0;
 	}
-	ret = (*exec) (out);
+	ret = (*exec)(out);
 
 	free(out);
 	if (ret != 1) {
-		return(0);
+		return 0;
 	}
-	return(1);
+	return 1;
 }
 #endif
 
@@ -319,20 +317,20 @@ static int loopback_up6(struct interface_defn_t *ifd, execfn *exec)
 {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 	int result;
-	result =execute("ip addr add ::1 dev %iface%", ifd, exec);
+	result = execute("ip addr add ::1 dev %iface%", ifd, exec);
 	result += execute("ip link set %iface% up", ifd, exec);
 	return ((result == 2) ? 2 : 0);
 #else
-	return( execute("ifconfig %iface% add ::1", ifd, exec));
+	return execute("ifconfig %iface% add ::1", ifd, exec);
 #endif
 }
 
 static int loopback_down6(struct interface_defn_t *ifd, execfn *exec)
 {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
-	return(execute("ip link set %iface% down", ifd, exec));
+	return execute("ip link set %iface% down", ifd, exec);
 #else
-	return(execute("ifconfig %iface% del ::1", ifd, exec));
+	return execute("ifconfig %iface% del ::1", ifd, exec);
 #endif
 }
 
@@ -354,9 +352,9 @@ static int static_up6(struct interface_defn_t *ifd, execfn *exec)
 static int static_down6(struct interface_defn_t *ifd, execfn *exec)
 {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
-	return(execute("ip link set %iface% down", ifd, exec));
+	return execute("ip link set %iface% down", ifd, exec);
 #else
-	return(execute("ifconfig %iface% down", ifd, exec));
+	return execute("ifconfig %iface% down", ifd, exec);
 #endif
 }
 
@@ -365,7 +363,7 @@ static int v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
 {
 	int result;
 	result = execute("ip tunnel add %iface% mode sit remote "
-				"%endpoint% [[local %local%]] [[ttl %ttl%]]", ifd, exec);
+			"%endpoint% [[local %local%]] [[ttl %ttl%]]", ifd, exec);
 	result += execute("ip link set %iface% up", ifd, exec);
 	result += execute("ip addr add %address%/%netmask% dev %iface%", ifd, exec);
 	result += execute("[[ ip route add ::/0 via %gateway% ]]", ifd, exec);
@@ -374,11 +372,11 @@ static int v4tunnel_up(struct interface_defn_t *ifd, execfn *exec)
 
 static int v4tunnel_down(struct interface_defn_t * ifd, execfn * exec)
 {
-	return( execute("ip tunnel del %iface%", ifd, exec));
+	return execute("ip tunnel del %iface%", ifd, exec);
 }
 #endif
 
-static struct method_t methods6[] = {
+static const struct method_t methods6[] = {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 	{ "v4tunnel", v4tunnel_up, v4tunnel_down, },
 #endif
@@ -386,7 +384,7 @@ static struct method_t methods6[] = {
 	{ "loopback", loopback_up6, loopback_down6, },
 };
 
-static struct address_family_t addr_inet6 = {
+static const struct address_family_t addr_inet6 = {
 	"inet6",
 	sizeof(methods6) / sizeof(struct method_t),
 	methods6
@@ -402,7 +400,7 @@ static int loopback_up(struct interface_defn_t *ifd, execfn *exec)
 	result += execute("ip link set %iface% up", ifd, exec);
 	return ((result == 2) ? 2 : 0);
 #else
-	return( execute("ifconfig %iface% 127.0.0.1 up", ifd, exec));
+	return execute("ifconfig %iface% 127.0.0.1 up", ifd, exec);
 #endif
 }
 
@@ -414,7 +412,7 @@ static int loopback_down(struct interface_defn_t *ifd, execfn *exec)
 	result += execute("ip link set %iface% down", ifd, exec);
 	return ((result == 2) ? 2 : 0);
 #else
-	return( execute("ifconfig %iface% 127.0.0.1 down", ifd, exec));
+	return execute("ifconfig %iface% 127.0.0.1 down", ifd, exec);
 #endif
 }
 
@@ -429,9 +427,9 @@ static int static_up(struct interface_defn_t *ifd, execfn *exec)
 	return ((result == 3) ? 3 : 0);
 #else
 	result = execute("ifconfig %iface% %address% netmask %netmask% "
-				"[[broadcast %broadcast%]] [[pointopoint %pointopoint%]] "
-				"[[media %media%]] [[mtu %mtu%]] [[hw %hwaddress%]] up",
-				ifd, exec);
+			"[[broadcast %broadcast%]] [[pointopoint %pointopoint%]] "
+			"[[media %media%]] [[mtu %mtu%]] [[hw %hwaddress%]] up",
+			ifd, exec);
 	result += execute("[[ route add default gw %gateway% %iface% ]]", ifd, exec);
 	return ((result == 2) ? 2 : 0);
 #endif
@@ -498,35 +496,34 @@ static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 
 static int bootp_up(struct interface_defn_t *ifd, execfn *exec)
 {
-	return( execute("bootpc [[--bootfile %bootfile%]] --dev %iface% "
-				"[[--server %server%]] [[--hwaddr %hwaddr%]] "
-				"--returniffail --serverbcast", ifd, exec));
+	return execute("bootpc [[--bootfile %bootfile%]] --dev %iface% "
+			"[[--server %server%]] [[--hwaddr %hwaddr%]] "
+			"--returniffail --serverbcast", ifd, exec);
 }
 
 static int ppp_up(struct interface_defn_t *ifd, execfn *exec)
 {
-	return( execute("pon [[%provider%]]", ifd, exec));
+	return execute("pon [[%provider%]]", ifd, exec);
 }
 
 static int ppp_down(struct interface_defn_t *ifd, execfn *exec)
 {
-	return( execute("poff [[%provider%]]", ifd, exec));
+	return execute("poff [[%provider%]]", ifd, exec);
 }
 
 static int wvdial_up(struct interface_defn_t *ifd, execfn *exec)
 {
-	return( execute("/sbin/start-stop-daemon --start -x /usr/bin/wvdial "
-				"-p /var/run/wvdial.%iface% -b -m -- [[ %provider% ]]", ifd, exec));
+	return execute("/sbin/start-stop-daemon --start -x /usr/bin/wvdial "
+		"-p /var/run/wvdial.%iface% -b -m -- [[ %provider% ]]", ifd, exec);
 }
 
 static int wvdial_down(struct interface_defn_t *ifd, execfn *exec)
 {
-	return( execute("/sbin/start-stop-daemon --stop -x /usr/bin/wvdial "
-				"-p /var/run/wvdial.%iface% -s 2", ifd, exec));
+	return execute("/sbin/start-stop-daemon --stop -x /usr/bin/wvdial "
+			"-p /var/run/wvdial.%iface% -s 2", ifd, exec);
 }
 
-static struct method_t methods[] =
-{
+static const struct method_t methods[] = {
 	{ "wvdial", wvdial_up, wvdial_down, },
 	{ "ppp", ppp_up, ppp_down, },
 	{ "static", static_up, static_down, },
@@ -535,8 +532,7 @@ static struct method_t methods[] =
 	{ "loopback", loopback_up, loopback_down, },
 };
 
-static struct address_family_t addr_inet =
-{
+static const struct address_family_t addr_inet = {
 	"inet",
 	sizeof(methods) / sizeof(struct method_t),
 	methods
@@ -561,13 +557,13 @@ static char *next_word(char **buf)
 
 	/* Skip over comments */
 	if (*word == '#') {
-		return(NULL);
+		return NULL;
 	}
 
 	/* Find the length of this word */
 	length = strcspn(word, " \t\n");
 	if (length == 0) {
-		return(NULL);
+		return NULL;
 	}
 	*buf = word + length;
 	/*DBU:[dave@cray.com] if we are already at EOL dont't increment beyond it */
@@ -579,7 +575,7 @@ static char *next_word(char **buf)
 	return word;
 }
 
-static struct address_family_t *get_address_family(struct address_family_t *af[], char *name)
+static const struct address_family_t *get_address_family(const struct address_family_t *const af[], char *name)
 {
 	int i;
 
@@ -591,7 +587,7 @@ static struct address_family_t *get_address_family(struct address_family_t *af[]
 	return NULL;
 }
 
-static struct method_t *get_method(struct address_family_t *af, char *name)
+static const struct method_t *get_method(const struct address_family_t *af, char *name)
 {
 	int i;
 
@@ -600,18 +596,18 @@ static struct method_t *get_method(struct address_family_t *af, char *name)
 			return &af->method[i];
 		}
 	}
-	return(NULL);
+	return NULL;
 }
 
 static const llist_t *find_list_string(const llist_t *list, const char *string)
 {
 	while (list) {
 		if (strcmp(list->data, string) == 0) {
-			return(list);
+			return list;
 		}
 		list = list->link;
 	}
-	return(NULL);
+	return NULL;
 }
 
 static struct interfaces_file_t *read_interfaces(const char *filename)
@@ -668,70 +664,66 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 #endif
 			currently_processing = MAPPING;
 		} else if (strcmp(firstword, "iface") == 0) {
-			{
-				char *iface_name;
-				char *address_family_name;
-				char *method_name;
-				struct address_family_t *addr_fams[] = {
+			static const struct address_family_t *const addr_fams[] = {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IPV4
-					&addr_inet,
+				&addr_inet,
 #endif
 #ifdef CONFIG_FEATURE_IFUPDOWN_IPV6
-					&addr_inet6,
+				&addr_inet6,
 #endif
-					NULL
-				};
+				NULL
+			};
 
-				currif = xzalloc(sizeof(struct interface_defn_t));
-				iface_name = next_word(&buf_ptr);
-				address_family_name = next_word(&buf_ptr);
-				method_name = next_word(&buf_ptr);
+			char *iface_name;
+			char *address_family_name;
+			char *method_name;
+			llist_t *iface_list;
 
-				if (buf_ptr == NULL) {
-					bb_error_msg("too few parameters for line \"%s\"", buf);
-					return NULL;
-				}
+			currif = xzalloc(sizeof(struct interface_defn_t));
+			iface_name = next_word(&buf_ptr);
+			address_family_name = next_word(&buf_ptr);
+			method_name = next_word(&buf_ptr);
 
-				/* ship any trailing whitespace */
-				while (isspace(*buf_ptr)) {
-					++buf_ptr;
-				}
-
-				if (buf_ptr[0] != '\0') {
-					bb_error_msg("too many parameters \"%s\"", buf);
-					return NULL;
-				}
-
-				currif->iface = xstrdup(iface_name);
-
-				currif->address_family = get_address_family(addr_fams, address_family_name);
-				if (!currif->address_family) {
-					bb_error_msg("unknown address type \"%s\"", address_family_name);
-					return NULL;
-				}
-
-				currif->method = get_method(currif->address_family, method_name);
-				if (!currif->method) {
-					bb_error_msg("unknown method \"%s\"", method_name);
-					return NULL;
-				}
-
-
-				{
-					llist_t *iface_list;
-					for (iface_list = defn->ifaces; iface_list; iface_list = iface_list->link) {
-						struct interface_defn_t *tmp = (struct interface_defn_t *) iface_list->data;
-						if ((strcmp(tmp->iface, currif->iface) == 0) &&
-							(tmp->address_family == currif->address_family)) {
-							bb_error_msg("duplicate interface \"%s\"", tmp->iface);
-							return NULL;
-						}
-					}
-
-					llist_add_to_end(&(defn->ifaces), (char*)currif);
-				}
-				debug_noise("iface %s %s %s\n", currif->iface, address_family_name, method_name);
+			if (buf_ptr == NULL) {
+				bb_error_msg("too few parameters for line \"%s\"", buf);
+				return NULL;
 			}
+
+			/* ship any trailing whitespace */
+			while (isspace(*buf_ptr)) {
+				++buf_ptr;
+			}
+
+			if (buf_ptr[0] != '\0') {
+				bb_error_msg("too many parameters \"%s\"", buf);
+				return NULL;
+			}
+
+			currif->iface = xstrdup(iface_name);
+
+			currif->address_family = get_address_family(addr_fams, address_family_name);
+			if (!currif->address_family) {
+				bb_error_msg("unknown address type \"%s\"", address_family_name);
+				return NULL;
+			}
+
+			currif->method = get_method(currif->address_family, method_name);
+			if (!currif->method) {
+				bb_error_msg("unknown method \"%s\"", method_name);
+				return NULL;
+			}
+
+			for (iface_list = defn->ifaces; iface_list; iface_list = iface_list->link) {
+				struct interface_defn_t *tmp = (struct interface_defn_t *) iface_list->data;
+				if ((strcmp(tmp->iface, currif->iface) == 0) &&
+					(tmp->address_family == currif->address_family)) {
+					bb_error_msg("duplicate interface \"%s\"", tmp->iface);
+					return NULL;
+				}
+			}
+			llist_add_to_end(&(defn->ifaces), (char*)currif);
+
+			debug_noise("iface %s %s %s\n", currif->iface, address_family_name, method_name);
 			currently_processing = IFACE;
 		} else if (strcmp(firstword, "auto") == 0) {
 			while ((firstword = next_word(&buf_ptr)) != NULL) {
@@ -748,74 +740,74 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 			currently_processing = NONE;
 		} else {
 			switch (currently_processing) {
-				case IFACE:
-					{
-						int i;
+			case IFACE:
+				{
+					int i;
 
-						if (strlen(buf_ptr) == 0) {
-							bb_error_msg("option with empty value \"%s\"", buf);
-							return NULL;
-						}
+					if (strlen(buf_ptr) == 0) {
+						bb_error_msg("option with empty value \"%s\"", buf);
+						return NULL;
+					}
 
-						if (strcmp(firstword, "up") != 0
-								&& strcmp(firstword, "down") != 0
-								&& strcmp(firstword, "pre-up") != 0
-								&& strcmp(firstword, "post-down") != 0) {
-							for (i = 0; i < currif->n_options; i++) {
-								if (strcmp(currif->option[i].name, firstword) == 0) {
-									bb_error_msg("duplicate option \"%s\"", buf);
-									return NULL;
-								}
+					if (strcmp(firstword, "up") != 0
+							&& strcmp(firstword, "down") != 0
+							&& strcmp(firstword, "pre-up") != 0
+							&& strcmp(firstword, "post-down") != 0) {
+						for (i = 0; i < currif->n_options; i++) {
+							if (strcmp(currif->option[i].name, firstword) == 0) {
+								bb_error_msg("duplicate option \"%s\"", buf);
+								return NULL;
 							}
 						}
 					}
-					if (currif->n_options >= currif->max_options) {
-						struct variable_t *opt;
+				}
+				if (currif->n_options >= currif->max_options) {
+					struct variable_t *opt;
 
-						currif->max_options = currif->max_options + 10;
-						opt = xrealloc(currif->option, sizeof(*opt) * currif->max_options);
-						currif->option = opt;
-					}
-					currif->option[currif->n_options].name = xstrdup(firstword);
-					currif->option[currif->n_options].value = xstrdup(buf_ptr);
-					if (!currif->option[currif->n_options].name) {
-						perror(filename);
-						return NULL;
-					}
-					if (!currif->option[currif->n_options].value) {
-						perror(filename);
-						return NULL;
-					}
-					debug_noise("\t%s=%s\n", currif->option[currif->n_options].name,
-							currif->option[currif->n_options].value);
-					currif->n_options++;
-					break;
-				case MAPPING:
+					currif->max_options = currif->max_options + 10;
+					opt = xrealloc(currif->option, sizeof(*opt) * currif->max_options);
+					currif->option = opt;
+				}
+				currif->option[currif->n_options].name = xstrdup(firstword);
+				currif->option[currif->n_options].value = xstrdup(buf_ptr);
+				if (!currif->option[currif->n_options].name) {
+					perror(filename);
+					return NULL;
+				}
+				if (!currif->option[currif->n_options].value) {
+					perror(filename);
+					return NULL;
+				}
+				debug_noise("\t%s=%s\n", currif->option[currif->n_options].name,
+						currif->option[currif->n_options].value);
+				currif->n_options++;
+				break;
+			case MAPPING:
 #ifdef CONFIG_FEATURE_IFUPDOWN_MAPPING
-					if (strcmp(firstword, "script") == 0) {
-						if (currmap->script != NULL) {
-							bb_error_msg("duplicate script in mapping \"%s\"", buf);
-							return NULL;
-						} else {
-							currmap->script = xstrdup(next_word(&buf_ptr));
-						}
-					} else if (strcmp(firstword, "map") == 0) {
-						if (currmap->max_mappings == currmap->n_mappings) {
-							currmap->max_mappings = currmap->max_mappings * 2 + 1;
-							currmap->mapping = xrealloc(currmap->mapping, sizeof(char *) * currmap->max_mappings);
-						}
-						currmap->mapping[currmap->n_mappings] = xstrdup(next_word(&buf_ptr));
-						currmap->n_mappings++;
-					} else {
-						bb_error_msg("misplaced option \"%s\"", buf);
+				if (strcmp(firstword, "script") == 0) {
+					if (currmap->script != NULL) {
+						bb_error_msg("duplicate script in mapping \"%s\"", buf);
 						return NULL;
+					} else {
+						currmap->script = xstrdup(next_word(&buf_ptr));
 					}
-#endif
-					break;
-				case NONE:
-				default:
+				} else if (strcmp(firstword, "map") == 0) {
+					if (currmap->max_mappings == currmap->n_mappings) {
+						currmap->max_mappings = currmap->max_mappings * 2 + 1;
+						currmap->mapping = xrealloc(currmap->mapping, sizeof(char *) * currmap->max_mappings);
+					}
+					currmap->mapping[currmap->n_mappings] = xstrdup(next_word(&buf_ptr));
+					currmap->n_mappings++;
+				} else {
 					bb_error_msg("misplaced option \"%s\"", buf);
 					return NULL;
+				}
+#endif
+				break;
+			case NONE:
+			default:
+				bb_error_msg("misplaced option \"%s\"", buf);
+				return NULL;
 			}
 		}
 		free(buf);
@@ -883,13 +875,15 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
 	*(environend++) = setlocalenv("%s=%s", "ADDRFAM", iface->address_family->name);
 	*(environend++) = setlocalenv("%s=%s", "METHOD", iface->method->name);
 	*(environend++) = setlocalenv("%s=%s", "MODE", mode);
+	/* FIXME: we must not impose our own PATH, it is admin's job!
+	   Use PATH from parent env */
 	*(environend++) = setlocalenv("%s=%s", "PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
 }
 
 static int doit(char *str)
 {
 	if (option_mask & (OPT_no_act|OPT_verbose)) {
-		printf("%s\n", str);
+		puts(str);
 	}
 	if (!(option_mask & OPT_no_act)) {
 		pid_t child;
@@ -897,11 +891,11 @@ static int doit(char *str)
 
 		fflush(NULL);
 		switch (child = fork()) {
-			case -1:		/* failure */
-				return 0;
-			case 0:		/* child */
-				execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, __myenviron);
-				exit(127);
+		case -1:		/* failure */
+			return 0;
+		case 0:		/* child */
+			execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, __myenviron);
+			exit(127);
 		}
 		waitpid(child, &status, 0);
 		if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
@@ -983,27 +977,27 @@ static int popen2(FILE **in, FILE **out, char *command, ...)
 
 	fflush(NULL);
 	switch (pid = fork()) {
-		case -1:			/* failure */
-			close(infd[0]);
-			close(infd[1]);
-			close(outfd[0]);
-			close(outfd[1]);
-			return 0;
-		case 0:			/* child */
-			dup2(infd[0], 0);
-			dup2(outfd[1], 1);
-			close(infd[0]);
-			close(infd[1]);
-			close(outfd[0]);
-			close(outfd[1]);
-			execvp(command, argv);
-			exit(127);
-		default:			/* parent */
-			*in = fdopen(infd[1], "w");
-			*out = fdopen(outfd[0], "r");
-			close(infd[0]);
-			close(outfd[1]);
-			return pid;
+	case -1:			/* failure */
+		close(infd[0]);
+		close(infd[1]);
+		close(outfd[0]);
+		close(outfd[1]);
+		return 0;
+	case 0:			/* child */
+		dup2(infd[0], 0);
+		dup2(outfd[1], 1);
+		close(infd[0]);
+		close(infd[1]);
+		close(outfd[0]);
+		close(outfd[1]);
+		execvp(command, argv);
+		exit(127);
+	default:			/* parent */
+		*in = fdopen(infd[1], "w");
+		*out = fdopen(outfd[0], "r");
+		close(infd[0]);
+		close(outfd[1]);
+		return pid;
 	}
 	/* unreached */
 }
@@ -1068,21 +1062,22 @@ static llist_t *find_iface_state(llist_t *state_list, const char *iface)
 	while (search) {
 		if ((strncmp(search->data, iface, iface_len) == 0) &&
 				(search->data[iface_len] == '=')) {
-			return(search);
+			return search;
 		}
 		search = search->link;
 	}
-	return(NULL);
+	return NULL;
 }
 
 int ifupdown_main(int argc, char **argv)
 {
-	int (*cmds) (struct interface_defn_t *) = NULL;
+	static const char statefile[] = "/var/run/ifstate";
+
+	int (*cmds)(struct interface_defn_t *) = NULL;
 	struct interfaces_file_t *defn;
 	llist_t *state_list = NULL;
 	llist_t *target_list = NULL;
 	const char *interfaces = "/etc/network/interfaces";
-	const char *statefile = "/var/run/ifstate";
 	int any_failures = 0;
 	int i;
 
@@ -1170,7 +1165,6 @@ int ifupdown_main(int argc, char **argv)
 			struct mapping_defn_t *currmap;
 
 			for (currmap = defn->mappings; currmap; currmap = currmap->next) {
-
 				for (i = 0; i < currmap->n_matches; i++) {
 					if (fnmatch(currmap->match[i], liface, 0) != 0)
 						continue;
@@ -1199,7 +1193,7 @@ int ifupdown_main(int argc, char **argv)
 				/* Call the cmds function pointer, does either iface_up() or iface_down() */
 				cmds_ret = cmds(currif);
 				if (cmds_ret == -1) {
-					bb_error_msg("Don't seem to have all the variables for %s/%s.",
+					bb_error_msg("don't seem to have all the variables for %s/%s",
 							liface, currif->address_family->name);
 					any_failures += 1;
 				} else if (cmds_ret == 0) {
@@ -1211,11 +1205,11 @@ int ifupdown_main(int argc, char **argv)
 			iface_list = iface_list->link;
 		}
 		if (VERBOSE) {
-			printf("\n");
+			puts("");
 		}
 
 		if (!okay && !FORCE) {
-			bb_error_msg("Ignoring unknown interface %s", liface);
+			bb_error_msg("ignoring unknown interface %s", liface);
 			any_failures += 1;
 		} else {
 			llist_t *iface_state = find_iface_state(state_list, iface);
