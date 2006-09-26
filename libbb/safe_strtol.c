@@ -74,3 +74,37 @@ int safe_strtoul(char *arg, unsigned long* value)
 }
 #endif
 
+#ifdef L_safe_strtoll
+int safe_strtoll(char *arg, long long* value)
+{
+	char *endptr;
+	int errno_save = errno;
+
+	assert(arg!=NULL);
+	errno = 0;
+	*value = strtoll(arg, &endptr, 0);
+	if (errno != 0 || *endptr!='\0' || endptr==arg) {
+		return 1;
+	}
+	errno = errno_save;
+	return 0;
+}
+#endif
+
+#ifdef L_safe_strtoull
+int safe_strtoull(char *arg, unsigned long long* value)
+{
+	char *endptr;
+	int errno_save = errno;
+
+	assert(arg!=NULL);
+	errno = 0;
+	*value = strtoull(arg, &endptr, 0);
+	if (errno != 0 || *endptr!='\0' || endptr==arg) {
+		return 1;
+	}
+	errno = errno_save;
+	return 0;
+}
+#endif
+

@@ -6,8 +6,28 @@
  *
  */
 
+/* We want libc to give us xxx64 functions also */
+/* http://www.unix.org/version2/whatsnew/lfs20mar.html */
+#define _LARGEFILE64_SOURCE 1
+
 #include "busybox.h"
-#include <getopt.h>
+#include <getopt.h>	/* for struct option */
+
+#ifdef CONFIG_LFS
+# define FILEOFF_TYPE off64_t
+# define FILEOFF_FMT "%lld"
+# define LSEEK lseek64
+# define STRTOOFF strtoll
+# define SAFE_STRTOOFF safe_strtoll
+/* stat64 etc as needed...  */
+#else
+# define FILEOFF_TYPE off_t
+# define FILEOFF_FMT "%ld"
+# define LSEEK lseek
+# define STRTOOFF strtol
+# define SAFE_STRTOOFF safe_strtol
+/* Do we need to undefine O_LARGEFILE? */
+#endif
 
 struct host_info {
 	char *host;
@@ -23,13 +43,13 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
 static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 
 /* Globals (can be accessed from signal handlers */
-static off_t filesize;		/* content-length of the file */
-static int chunked;		/* chunked transfer encoding */
+static FILEOFF_TYPE filesize;           /* content-length of the file */
+static int chunked;                     /* chunked transfer encoding */
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);
-static char *curfile;		/* Name of current file being transferred. */
-static struct timeval start;	/* Time a transfer started. */
-static off_t transferred;	/* Number of bytes transferred so far. */
+static char *curfile;                   /* Name of current file being transferred. */
+static struct timeval start;            /* Time a transfer started. */
+static FILEOFF_TYPE transferred;        /* Number of bytes transferred so far. */
 /* For progressmeter() -- number of seconds before xfer considered "stalled" */
 enum {
 	STALLTIME = 5
@@ -78,20 +98,20 @@ static char *base64enc(unsigned char *p, char *buf, int len)
 }
 #endif
 
-#define WGET_OPT_CONTINUE	1
-#define WGET_OPT_QUIET	2
-#define WGET_OPT_PASSIVE	4
-#define WGET_OPT_OUTNAME	8
-#define WGET_OPT_HEADER	16
-#define WGET_OPT_PREFIX	32
-#define WGET_OPT_PROXY	64
-#define WGET_OPT_USER_AGENT	128
+#define WGET_OPT_CONTINUE     1
+#define WGET_OPT_QUIET        2
+#define WGET_OPT_PASSIVE      4
+#define WGET_OPT_OUTNAME      8
+#define WGET_OPT_HEADER      16
+#define WGET_OPT_PREFIX      32
+#define WGET_OPT_PROXY       64
+#define WGET_OPT_USER_AGENT 128
 
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 static const struct option wget_long_options[] = {
 	{ "continue",        0, NULL, 'c' },
 	{ "quiet",           0, NULL, 'q' },
-	{ "passive-ftp",     0, NULL, 139 },
+	{ "passive-ftp",     0, NULL, 139 }, /* FIXME: what is this - 139?? */
 	{ "output-document", 1, NULL, 'O' },
 	{ "header",          1, NULL, 131 },
 	{ "directory-prefix",1, NULL, 'P' },
@@ -116,17 +136,15 @@ int wget_main(int argc, char **argv)
 	struct sockaddr_in s_in;
 	llist_t *headers_llist = NULL;
 
-	FILE *sfp = NULL;		/* socket to web/ftp server	    */
-	FILE *dfp = NULL;		/* socket to ftp server (data)	    */
-	char *fname_out = NULL;		/* where to direct output (-O)	    */
-	int do_continue = 0;		/* continue a prev transfer (-c)    */
-	off64_t beg_range = 0;		/*   range at which continue begins */
-	int got_clen = 0;		/* got content-length: from server  */
+	FILE *sfp = NULL;               /* socket to web/ftp server         */
+	FILE *dfp = NULL;               /* socket to ftp server (data)      */
+	char *fname_out = NULL;         /* where to direct output (-O)      */
+	FILEOFF_TYPE beg_range = 0;     /*   range at which continue begins */
+	int got_clen = 0;               /* got content-length: from server  */
 	int output_fd = -1;
-	int quiet_flag = FALSE;		/* Be verry, verry quiet...	    */
-	int use_proxy = 1;		/* Use proxies if env vars are set  */
-	char *proxy_flag = "on";	/* Use proxies if env vars are set  */
-	char *user_agent = "Wget"; /* Content of the "User-Agent" header field */
+	int use_proxy = 1;              /* Use proxies if env vars are set  */
+	char *proxy_flag = "on";        /* Use proxies if env vars are set  */
+	char *user_agent = "Wget";      /* Content of the "User-Agent" header field */
 
 	/*
 	 * Crack command line.
@@ -138,12 +156,6 @@ int wget_main(int argc, char **argv)
 	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:U:",
 					&fname_out, &headers_llist,
 					&dir_prefix, &proxy_flag, &user_agent);
-	if (opt & WGET_OPT_CONTINUE) {
-		++do_continue;
-	}
-	if (opt & WGET_OPT_QUIET) {
-		quiet_flag = TRUE;
-	}
 	if (strcmp(proxy_flag, "off") == 0) {
 		/* Use the proxy if necessary. */
 		use_proxy = 0;
@@ -205,7 +217,7 @@ int wget_main(int argc, char **argv)
 		curfile = bb_get_last_path_component(fname_out);
 #endif
 	}
-	if (do_continue && !fname_out)
+	if ((opt & WGET_OPT_CONTINUE) && !fname_out)
 		bb_error_msg_and_die("cannot specify continue (-c) without a filename (-O)");
 
 	/*
@@ -213,13 +225,13 @@ int wget_main(int argc, char **argv)
 	 */
 	if (!strcmp(fname_out, "-")) {
 		output_fd = 1;
-		quiet_flag = TRUE;
-		do_continue = 0;
-	} else if (do_continue) {
+		opt |= WGET_OPT_QUIET;
+		opt &= ~WGET_OPT_CONTINUE;
+	} else if (opt & WGET_OPT_CONTINUE) {
 		output_fd = open(fname_out, O_WRONLY|O_LARGEFILE);
 		if (output_fd >= 0) {
-			beg_range = lseek64(output_fd, 0, SEEK_END);
-			if (beg_range == (off64_t)-1)
+			beg_range = LSEEK(output_fd, 0, SEEK_END);
+			if (beg_range == (FILEOFF_TYPE)-1)
 				bb_perror_msg_and_die("lseek64");
 		}
 		/* File doesn't exist. We do not create file here yet.
@@ -231,7 +243,7 @@ int wget_main(int argc, char **argv)
 	 * and we want to connect to only one IP... */
 	bb_lookup_host(&s_in, server.host);
 	s_in.sin_port = server.port;
-	if (quiet_flag == FALSE) {
+	if (!(opt & WGET_OPT_QUIET)) {
 		printf("Connecting to %s[%s]:%d\n",
 				server.host, inet_ntoa(s_in.sin_addr), ntohs(server.port));
 	}
@@ -283,7 +295,7 @@ int wget_main(int argc, char **argv)
 #endif
 
 			if (beg_range)
-				fprintf(sfp, "Range: bytes=%lld-\r\n", (long long)beg_range);
+				fprintf(sfp, "Range: bytes="FILEOFF_FMT"-\r\n", beg_range);
 			if(extra_headers_left < sizeof(extra_headers))
 				fputs(extra_headers,sfp);
 			fprintf(sfp,"Connection: close\r\n\r\n");
@@ -325,11 +337,9 @@ read_response:
 			 */
 			while ((s = gethdr(buf, sizeof(buf), sfp, &n)) != NULL) {
 				if (strcasecmp(buf, "content-length") == 0) {
-					unsigned long value;
-					if (safe_strtoul(s, &value)) {
+					if (SAFE_STRTOOFF(s, &filesize) || filesize < 0) {
 						bb_error_msg_and_die("content-length %s is garbage", s);
 					}
-					filesize = value;
 					got_clen = 1;
 					continue;
 				}
@@ -395,11 +405,9 @@ read_response:
 		 * Querying file size
 		 */
 		if (ftpcmd("SIZE ", target.path, sfp, buf) == 213) {
-			unsigned long value;
-			if (safe_strtoul(buf+4, &value)) {
+			if (SAFE_STRTOOFF(buf+4, &filesize) || filesize < 0) {
 				bb_error_msg_and_die("SIZE value is garbage");
 			}
-			filesize = value;
 			got_clen = 1;
 		}
 
@@ -417,7 +425,7 @@ read_response:
 		dfp = open_socket(&s_in);
 
 		if (beg_range) {
-			sprintf(buf, "REST %lld", (long long)beg_range);
+			sprintf(buf, "REST "FILEOFF_FMT, beg_range);
 			if (ftpcmd(buf, NULL, sfp, buf) == 350)
 				filesize -= beg_range;
 		}
@@ -432,17 +440,18 @@ read_response:
 	 */
 	if (chunked) {
 		fgets(buf, sizeof(buf), dfp);
-		filesize = strtol(buf, (char **) NULL, 16);
+		filesize = STRTOOFF(buf, (char **) NULL, 16);
+		/* FIXME: error check?? */
 	}
 
-	if (quiet_flag == FALSE)
+	if (!(opt & WGET_OPT_QUIET))
 		progressmeter(-1);
 
 	do {
 		while (filesize > 0 || !got_clen) {
 			unsigned rdsz = sizeof(buf);
 			if (filesize < sizeof(buf) && (chunked || got_clen))
-				rdsz = filesize;
+				rdsz = (unsigned)filesize;
 			n = safe_fread(buf, 1, rdsz, dfp);
 			if (n <= 0)
 				break;
@@ -462,7 +471,8 @@ read_response:
 		if (chunked) {
 			safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
 			safe_fgets(buf, sizeof(buf), dfp);
-			filesize = strtol(buf, (char **) NULL, 16);
+			filesize = STRTOOFF(buf, (char **) NULL, 16);
+			/* FIXME: error check? */
 			if (filesize == 0) {
 				chunked = 0; /* all done! */
 			}
@@ -473,7 +483,7 @@ read_response:
 		}
 	} while (chunked);
 
-	if (quiet_flag == FALSE)
+	if (!(opt & WGET_OPT_QUIET))
 		progressmeter(1);
 
 	if ((use_proxy == 0) && target.is_ftp) {
@@ -662,10 +672,10 @@ static void
 progressmeter(int flag)
 {
 	static struct timeval lastupdate;
-	static off_t lastsize, totalsize;
+	static FILEOFF_TYPE lastsize, totalsize;
 
 	struct timeval now, td, tvwait;
-	off_t abbrevsize;
+	FILEOFF_TYPE abbrevsize;
 	int elapsed, ratio, barlength, i;
 	char buf[256];
 

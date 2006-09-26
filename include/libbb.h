@@ -248,7 +248,9 @@ extern char *safe_strncpy(char *dst, const char *src, size_t size);
 extern int safe_strtoi(char *arg, int* value);
 extern int safe_strtod(char *arg, double* value);
 extern int safe_strtol(char *arg, long* value);
+extern int safe_strtoll(char *arg, long long* value);
 extern int safe_strtoul(char *arg, unsigned long* value);
+extern int safe_strtoull(char *arg, unsigned long long* value);
 
 struct suffix_mult {
 	const char *suffix;
