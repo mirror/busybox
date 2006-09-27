@@ -23,18 +23,17 @@
  *  Returns a list of all matching PIDs
  *  It is the caller's duty to free the returned pidlist.
  */
-long* find_pid_by_name( const char* pidName)
+long* find_pid_by_name(const char* pidName)
 {
 	long* pidList;
-	int i=0;
-	procps_status_t * p;
+	int i = 0;
+	procps_status_t* p;
 
 	pidList = xmalloc(sizeof(long));
-	while ((p = procps_scan(0)) != 0)
-	{
+	while ((p = procps_scan(0)) != 0) {
 		if (strncmp(p->short_cmd, pidName, COMM_LEN-1) == 0) {
-			pidList=xrealloc( pidList, sizeof(long) * (i+2));
-			pidList[i++]=p->pid;
+			pidList = xrealloc( pidList, sizeof(long) * (i+2));
+			pidList[i++] = p->pid;
 		}
 	}
 
@@ -44,9 +43,9 @@ long* find_pid_by_name( const char* pidName)
 
 long *pidlist_reverse(long *pidList)
 {
-	int i=0;
+	int i = 0;
 	while (pidList[i] > 0 && ++i);
-	if ( i-- > 0) {
+	if (i-- > 0) {
 		long k;
 		int j;
 		for (j = 0; i > j; i--, j++) {

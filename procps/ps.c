@@ -57,41 +57,40 @@ int ps_main(int argc, char **argv)
 
 #if ENABLE_SELINUX
 	if (use_selinux)
-	  printf("  PID Context                          Stat Command\n");
+		puts("  PID Context                          Stat Command");
 	else
 #endif
-	  printf("  PID  Uid     VmSize Stat Command\n");
+		puts("  PID  Uid     VmSize Stat Command");
 
 	while ((p = procps_scan(1)) != 0)  {
 		char *namecmd = p->cmd;
 #if ENABLE_SELINUX
-		if (use_selinux)
-		  {
+		if (use_selinux) {
 			char sbuf[128];
 			len = sizeof(sbuf);
 
 			if (is_selinux_enabled()) {
-			  if (getpidcon(p->pid,&sid)<0)
-			    sid=NULL;
+				if (getpidcon(p->pid,&sid) < 0)
+					sid = NULL;
 			}
 
 			if (sid) {
-			  /*  I assume sid initilized with NULL  */
-			  len = strlen(sid)+1;
-			  safe_strncpy(sbuf, sid, len);
-			  freecon(sid);
-			  sid=NULL;
-			}else {
-			  safe_strncpy(sbuf, "unknown",7);
+				/*  I assume sid initilized with NULL  */
+				len = strlen(sid)+1;
+				safe_strncpy(sbuf, sid, len);
+				freecon(sid);
+				sid = NULL;
+			} else {
+				safe_strncpy(sbuf, "unknown", 7);
 			}
 			len = printf("%5d %-32s %s ", p->pid, sbuf, p->state);
 		}
 		else
 #endif
-		  if(p->rss == 0)
-		    len = printf("%5d %-8s        %s ", p->pid, p->user, p->state);
-		  else
-		    len = printf("%5d %-8s %6ld %s ", p->pid, p->user, p->rss, p->state);
+			if(p->rss == 0)
+				len = printf("%5d %-8s        %s ", p->pid, p->user, p->state);
+			else
+				len = printf("%5d %-8s %6ld %s ", p->pid, p->user, p->rss, p->state);
 
 		i = terminal_width-len;
 
