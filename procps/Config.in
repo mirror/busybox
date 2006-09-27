@@ -38,6 +38,11 @@ config CONFIG_KILLALL
 	  specified commands.  If no signal name is specified, SIGTERM is
 	  sent.
 
+config CONFIG_KILLALL5
+	bool "killall5"
+	default n
+	depends on CONFIG_KILL
+	
 config CONFIG_PIDOF
 	bool "pidof"
 	default n

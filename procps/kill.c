@@ -13,17 +13,18 @@
 int kill_main(int argc, char **argv)
 {
 	char *arg;
-	int killall, signo = SIGTERM, errors = 0, quiet = 0;
-
-	killall = (ENABLE_KILLALL && bb_applet_name[4]=='a') ? 1 : 0;
+	pid_t pid;
+	int signo = SIGTERM, errors = 0, quiet = 0;
+	const int killall = (ENABLE_KILLALL && bb_applet_name[4]=='a'
+	               && (!ENABLE_KILLALL5 || bb_applet_name[7]!='5'));
+	const int killall5 = (ENABLE_KILLALL5 && bb_applet_name[4]=='a'
+	                  && (!ENABLE_KILLALL || bb_applet_name[7]=='5'));
 
 	/* Parse any options */
 	argc--;
 	arg = *++argv;
-	if (argc<1)
-		bb_show_usage();
 
-	if (arg[0]!='-') {
+	if (argc<1 || arg[0]!='-') {
 		goto do_it_now;
 	}
 
@@ -79,42 +80,48 @@ int kill_main(int argc, char **argv)
 
 do_it_now:
 
-	/* Pid or name required */
+	if (killall5) {
+		pid_t sid;
+		procps_status_t* p;
+
+		/* kill(-1, sig) on Linux (at least 2.1.x)
+		 * might send signal to the calling process too */
+		signal(SIGTERM, SIG_IGN);
+		/* Now stop all processes */
+		kill(-1, SIGSTOP);
+		/* Find out our own session id */
+		pid = getpid();
+		sid = getsid(pid);
+		/* Now kill all processes except our session */
+        	while ((p = procps_scan(0))!=0) {
+			if (getsid(p->pid)!=sid && p->pid!=pid && p->pid!=1)
+				kill(p->pid, signo);
+		}
+		/* And let them continue */
+		kill(-1, SIGCONT);
+		return 0;
+	}
+
+	/* Pid or name required for kill/killall */
 	if (argc<1)
 		bb_show_usage();
 
-	if (!killall) {
-		/* Looks like they want to do a kill. Do that */
-		while (arg) {
-			int pid;
-
-			if (!isdigit(arg[0]) && arg[0]!='-')
-				bb_error_msg_and_die("bad pid '%s'", arg);
-			pid = strtol(arg, NULL, 0);
-			if (kill(pid, signo)!=0) {
-				bb_perror_msg("cannot kill pid %d", pid);
-				errors++;
-			}
-			arg = *++argv;
-		}
-
-	} else {
-		pid_t myPid = getpid();
-
+	if (killall) {
 		/* Looks like they want to do a killall.  Do that */
+		pid = getpid();
 		while (arg) {
 			long* pidList;
 
 			pidList = find_pid_by_name(arg);
 			if (!pidList || *pidList<=0) {
 				errors++;
-				if (quiet==0)
+				if (!quiet)
 					bb_error_msg("%s: no process killed", arg);
 			} else {
 				long *pl;
 
-				for (pl = pidList; *pl!=0 ; pl++) {
-					if (*pl==myPid)
+				for (pl = pidList; *pl!=0; pl++) {
+					if (*pl==pid)
 						continue;
 					if (kill(*pl, signo)!=0) {
 						errors++;
@@ -126,7 +133,20 @@ do_it_now:
 			free(pidList);
 			arg = *++argv;
 		}
+		return errors;
 	}
 
+	/* Looks like they want to do a kill. Do that */
+	while (arg) {
+		if (!isdigit(arg[0]) && arg[0]!='-')
+			bb_error_msg_and_die("bad pid '%s'", arg);
+		pid = strtol(arg, NULL, 0);
+		/* FIXME: better overflow check? */
+		if (kill(pid, signo)!=0) {
+			bb_perror_msg("cannot kill pid %ld", (long)pid);
+			errors++;
+		}
+		arg = *++argv;
+	}
 	return errors;
 }

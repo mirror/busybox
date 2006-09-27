@@ -1485,9 +1485,9 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t\t\t[ ttl TTL ] [ tos TOS ] [ [no]pmtudisc ] [ dev PHYS_DEV ]"
 
 #define kill_trivial_usage \
-	"[-signal] process-id [process-id ...]"
+	"[-l] [-signal] process-id [process-id ...]"
 #define kill_full_usage \
-	"Send a signal (default is SIGTERM) to the specified process(es).\n\n" \
+	"Send a signal (default is TERM) to the specified process(es).\n\n" \
 	"Options:\n" \
 	"\t-l\tList all signal names and numbers"
 #define kill_example_usage \
@@ -1501,14 +1501,21 @@ USE_FEATURE_DATE_ISOFMT( \
 	"$ kill 252\n"
 
 #define killall_trivial_usage \
-	"[-q] [-signal] process-name [process-name ...]"
+	"[-l] [-q] [-signal] process-name [process-name ...]"
 #define killall_full_usage \
-	"Send a signal (default is SIGTERM) to the specified process(es).\n\n" \
+	"Send a signal (default is TERM) to the specified process(es).\n\n" \
 	"Options:\n" \
 	"\t-l\tList all signal names and numbers\n" \
 	"\t-q\tDo not complain if no processes were killed"
 #define killall_example_usage \
 	"$ killall apache\n"
+
+#define killall5_trivial_usage \
+	"[-l] [-signal]"
+#define killall5_full_usage \
+	"Send a signal (default is TERM) to all processes outside current session.\n\n" \
+	"Options:\n" \
+	"\t-l\tList all signal names and numbers\n" \
 
 #define klogd_trivial_usage \
 	"[-c n] [-n]"
