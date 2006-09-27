@@ -106,6 +106,8 @@ enum {
 
 static char **__myenviron;
 
+static char *startup_PATH;
+
 #if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
@@ -448,50 +450,29 @@ static int static_down(struct interface_defn_t *ifd, execfn *exec)
 	return ((result == 2) ? 2 : 0);
 }
 
-static int execable(char *program)
-{
-	struct stat buf;
-	if (0 == stat(program, &buf)) {
-		if (S_ISREG(buf.st_mode) && (S_IXUSR & buf.st_mode)) {
-			return(1);
-		}
-	}
-	return(0);
-}
-
 static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
-	if (execable("/sbin/udhcpc")) {
-		return( execute("udhcpc -n -p /var/run/udhcpc.%iface%.pid -i "
-					"%iface% [[-H %hostname%]] [[-c %clientid%]]", ifd, exec));
-	} else if (execable("/sbin/pump")) {
-		return( execute("pump -i %iface% [[-h %hostname%]] [[-l %leasehours%]]", ifd, exec));
-	} else if (execable("/sbin/dhclient")) {
-		return( execute("dhclient -pf /var/run/dhclient.%iface%.pid %iface%", ifd, exec));
-	} else if (execable("/sbin/dhcpcd")) {
-		return( execute("dhcpcd [[-h %hostname%]] [[-i %vendor%]] [[-I %clientid%]] "
-					"[[-l %leasetime%]] %iface%", ifd, exec));
-	}
-	return(0);
+	if (execute("udhcpc -n -p /var/run/udhcpc.%iface%.pid -i "
+			"%iface% [[-H %hostname%]] [[-c %clientid%]]", ifd, exec)) return 1;
+	if (execute("pump -i %iface% [[-h %hostname%]] [[-l %leasehours%]]", ifd, exec)) return 1;
+	if (execute("dhclient -pf /var/run/dhclient.%iface%.pid %iface%", ifd, exec)) return 1;
+	if (execute("dhcpcd [[-h %hostname%]] [[-i %vendor%]] [[-I %clientid%]] "
+			"[[-l %leasetime%]] %iface%", ifd, exec)) return 1;
+	return 0;
 }
 
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
-	int result = 0;
-	if (execable("/sbin/udhcpc")) {
-		/* SIGUSR2 forces udhcpc to release the current lease and go inactive,
-		 * and SIGTERM causes udhcpc to exit.  Signals are queued and processed
-		 * sequentially so we don't need to sleep */
-		result = execute("kill -USR2 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
-		result += execute("kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
-	} else if (execable("/sbin/pump")) {
-		result = execute("pump -i %iface% -k", ifd, exec);
-	} else if (execable("/sbin/dhclient")) {
-		result = execute("kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null", ifd, exec);
-	} else if (execable("/sbin/dhcpcd")) {
-		result = execute("dhcpcd -k %iface%", ifd, exec);
-	}
-	return (result || static_down(ifd, exec));
+	/* SIGUSR2 forces udhcpc to release the current lease and go inactive,
+	 * and SIGTERM causes udhcpc to exit.  Signals are queued and processed
+	 * sequentially so we don't need to sleep */
+	if (execute("kill -USR2 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec)
+	 || execute("kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec))
+		return 1;
+	if (execute("pump -i %iface% -k", ifd, exec)) return 1;
+	if (execute("kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null", ifd, exec)) return 1;
+	if (execute("dhcpcd -k %iface%", ifd, exec)) return 1;
+	return static_down(ifd, exec);
 }
 
 static int bootp_up(struct interface_defn_t *ifd, execfn *exec)
@@ -875,9 +856,7 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
 	*(environend++) = setlocalenv("%s=%s", "ADDRFAM", iface->address_family->name);
 	*(environend++) = setlocalenv("%s=%s", "METHOD", iface->method->name);
 	*(environend++) = setlocalenv("%s=%s", "MODE", mode);
-	/* FIXME: we must not impose our own PATH, it is admin's job!
-	   Use PATH from parent env */
-	*(environend++) = setlocalenv("%s=%s", "PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+	*(environend++) = setlocalenv("%s=%s", "PATH", startup_PATH);
 }
 
 static int doit(char *str)
@@ -1102,6 +1081,9 @@ int ifupdown_main(int argc, char **argv)
 	if (!defn) {
 		exit(EXIT_FAILURE);
 	}
+
+	startup_PATH = getenv("PATH");
+	if (!startup_PATH) startup_PATH = "";
 
 	/* Create a list of interfaces to work on */
 	if (DO_ALL) {
