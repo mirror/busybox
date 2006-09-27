@@ -18,11 +18,11 @@ int seq_main(int argc, char **argv)
 	first = increment = 1;
 	switch (argc) {
 		case 4:
-			increment=atof(argv[2]);
+			increment = atof(argv[2]);
 		case 3:
-			first=atof(argv[1]);
+			first = atof(argv[1]);
 		case 2:
-			last=atof(argv[argc -1]);
+			last = atof(argv[argc-1]);
 			break;
 		default:
 			bb_show_usage();
@@ -30,8 +30,8 @@ int seq_main(int argc, char **argv)
 
 	/* You should note that this is pos-5.0.91 semantics, -- FK. */
 	for (i = first;
-         (increment > 0 && i <= last) || (increment < 0 && i >=last);
-		 i += increment)
+		(increment > 0 && i <= last) || (increment < 0 && i >=last);
+		i += increment)
 	{
 		printf("%g\n", i);
 	}

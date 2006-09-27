@@ -1129,18 +1129,12 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-u\tthe hardware clock is kept in coordinated universal time\n" \
 	"\t-l\tthe hardware clock is kept in local time"
 
-#ifdef CONFIG_SELINUX
-#  define USAGE_SELINUX(a) a
-#else
-#  define USAGE_SELINUX(a)
-#endif
-
 #define id_trivial_usage \
 	"[OPTIONS]... [USERNAME]"
 #define id_full_usage \
 	"Print information for USERNAME or the current user\n\n" \
 	"Options:\n" \
-	USAGE_SELINUX("\t-c\tprints only the security context\n") \
+	USE_SELINUX("\t-c\tprints only the security context\n") \
 	"\t-g\tprints only the group ID\n" \
 	"\t-u\tprints only the user ID\n" \
 	"\t-n\tprint a name instead of a number\n" \
@@ -1149,47 +1143,21 @@ USE_FEATURE_DATE_ISOFMT( \
 	"$ id\n" \
 	"uid=1000(andersen) gid=1000(andersen)\n"
 
-#ifdef CONFIG_FEATURE_IFCONFIG_SLIP
-#  define USAGE_SIOCSKEEPALIVE(a) a
-#else
-#  define USAGE_SIOCSKEEPALIVE(a)
-#endif
-#ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
-#  define USAGE_IFCONFIG_MII(a) a
-#else
-#  define USAGE_IFCONFIG_MII(a)
-#endif
-#ifdef CONFIG_FEATURE_IFCONFIG_HW
-#  define USAGE_IFCONFIG_HW(a) a
-#else
-#  define USAGE_IFCONFIG_HW(a)
-#endif
-#ifdef CONFIG_FEATURE_IFCONFIG_STATUS
-#  define USAGE_IFCONFIG_OPT_A(a) a
-#else
-#  define USAGE_IFCONFIG_OPT_A(a)
-#endif
-#ifdef CONFIG_FEATURE_IPV6
-#  define USAGE_IPV6(a) a
-#else
-#  define USAGE_IPV6(a)
-#endif
-
 #define ifconfig_trivial_usage \
-	USAGE_IFCONFIG_OPT_A("[-a]") " <interface> [<address>]"
+	USE_FEATURE_IFCONFIG_STATUS("[-a]") " <interface> [<address>]"
 #define ifconfig_full_usage \
 	"configure a network interface\n\n" \
 	"Options:\n" \
-	USAGE_IPV6("\t[add <address>[/<prefixlen>]]\n") \
-	USAGE_IPV6("\t[del <address>[/<prefixlen>]]\n") \
+	USE_FEATURE_IPV6("\t[add <address>[/<prefixlen>]]\n") \
+	USE_FEATURE_IPV6("\t[del <address>[/<prefixlen>]]\n") \
 	"\t[[-]broadcast [<address>]]  [[-]pointopoint [<address>]]\n" \
 	"\t[netmask <address>]  [dstaddr <address>]\n" \
-	USAGE_SIOCSKEEPALIVE("\t[outfill <NN>] [keepalive <NN>]\n") \
-	"\t" USAGE_IFCONFIG_HW("[hw ether <address>]  ") \
+	USE_FEATURE_IFCONFIG_SLIP("\t[outfill <NN>] [keepalive <NN>]\n") \
+	"\t" USE_FEATURE_IFCONFIG_HW("[hw ether <address>]  ") \
 	"[metric <NN>]  [mtu <NN>]\n" \
 	"\t[[-]trailers]  [[-]arp]  [[-]allmulti]\n" \
 	"\t[multicast]  [[-]promisc]  [txqueuelen <NN>]  [[-]dynamic]\n" \
-	USAGE_IFCONFIG_MII("\t[mem_start <NN>]  [io_addr <NN>]  [irq <NN>]\n") \
+	USE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ("\t[mem_start <NN>]  [io_addr <NN>]  [irq <NN>]\n") \
 	"\t[up|down] ..."
 
 #define ifup_trivial_usage \
@@ -1360,11 +1328,6 @@ USE_FEATURE_DATE_ISOFMT( \
 "	::shutdown:/bin/umount -a -r\n" \
 "	::shutdown:/sbin/swapoff -a\n"
 
-#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
-#  define USAGE_INSMOD_MAP(a) a
-#else
-#  define USAGE_INSMOD_MAP(a)
-#endif
 #define insmod_trivial_usage \
 	"[OPTION]... MODULE [symbol=value]..."
 #define insmod_full_usage \
@@ -1375,7 +1338,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-v\tverbose output\n"  \
 	"\t-q\tquiet output\n" \
 	"\t-L\tLock to prevent simultaneous loads of a module\n" \
-	USAGE_INSMOD_MAP("\t-m\tOutput load map to stdout\n") \
+	USE_FEATURE_INSMOD_LOAD_MAP("\t-m\tOutput load map to stdout\n") \
 	"\t-o NAME\tSet internal module name to NAME\n" \
 	"\t-x\tdo not export externs"
 
@@ -1411,11 +1374,6 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t\t\t[ label STRING ] [ scope SCOPE-ID ]\n" \
 	"\t\t\tSCOPE-ID := [ host | link | global | NUMBER ]"
 
-#ifdef CONFIG_FEATURE_IPCALC_FANCY
-#  define XUSAGE_IPCALC_FANCY(a) a
-#else
-#  define XUSAGE_IPCALC_FANCY(a)
-#endif
 #define ipcalc_trivial_usage \
 	"[OPTION]... <ADDRESS>[[/]<NETMASK>] [NETMASK]"
 #define ipcalc_full_usage \
@@ -1424,7 +1382,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-b\t--broadcast\tDisplay calculated broadcast address\n" \
 	"\t-n\t--network\tDisplay calculated network address\n" \
 	"\t-m\t--netmask\tDisplay default netmask for IP" \
-	XUSAGE_IPCALC_FANCY( \
+	USE_FEATURE_IPCALC_FANCY( \
 	"\n\t-p\t--prefix\tDisplay the prefix for IP/NETMASK\n" \
 	"\t-h\t--hostname\tDisplay first resolved host name\n" \
 	"\t-s\t--silent\tDon't ever display error messages")
@@ -1637,44 +1595,15 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Two arguments (losetup /dev/loop1 file.img) create a new association,\n" \
 	"with an optional offset (-o 12345).  Encryption is not yet supported.\n\n"
 
-#ifdef CONFIG_FEATURE_LS_TIMESTAMPS
-#  define USAGE_LS_TIMESTAMPS(a) a
-#else
-#  define USAGE_LS_TIMESTAMPS(a)
-#endif
-#ifdef CONFIG_FEATURE_LS_FILETYPES
-#  define USAGE_LS_FILETYPES(a) a
-#else
-#  define USAGE_LS_FILETYPES(a)
-#endif
-#ifdef CONFIG_FEATURE_LS_FOLLOWLINKS
-#  define USAGE_LS_FOLLOWLINKS(a) a
-#else
-#  define USAGE_LS_FOLLOWLINKS(a)
-#endif
-#ifdef CONFIG_FEATURE_LS_RECURSIVE
-#  define USAGE_LS_RECURSIVE(a) a
-#else
-#  define USAGE_LS_RECURSIVE(a)
-#endif
-#ifdef CONFIG_FEATURE_LS_SORTFILES
-#  define USAGE_LS_SORTFILES(a) a
-#else
-#  define USAGE_LS_SORTFILES(a)
-#endif
-#ifdef CONFIG_FEATURE_AUTOWIDTH
-#  define USAGE_AUTOWIDTH(a) a
-#else
-#  define USAGE_AUTOWIDTH(a)
-#endif
-#ifdef CONFIG_FEATURE_LS_COLOR
-  #define USAGE_LS_COLOR(a) a
-#else
-  #define USAGE_LS_COLOR(a)
-#endif
-
 #define ls_trivial_usage \
-	"[-1Aa" USAGE_LS_TIMESTAMPS("c") "Cd" USAGE_LS_TIMESTAMPS("e") USAGE_LS_FILETYPES("F") "iln" USAGE_LS_FILETYPES("p") USAGE_LS_FOLLOWLINKS("L") USAGE_LS_RECURSIVE("R") USAGE_LS_SORTFILES("rS") "s" USAGE_AUTOWIDTH("T") USAGE_LS_TIMESTAMPS("tu") USAGE_LS_SORTFILES("v") USAGE_AUTOWIDTH("w") "x" USAGE_LS_SORTFILES("X") USE_FEATURE_HUMAN_READABLE("h") "k" USAGE_SELINUX("K") "] [filenames...]"
+	"[-1Aa" USE_FEATURE_LS_TIMESTAMPS("c") "Cd" \
+	USE_FEATURE_LS_TIMESTAMPS("e") 	USE_FEATURE_LS_FILETYPES("F") "iln" \
+	USE_FEATURE_LS_FILETYPES("p") USE_FEATURE_LS_FOLLOWLINKS("L") \
+	USE_FEATURE_LS_RECURSIVE("R") USE_FEATURE_LS_SORTFILES("rS") "s" \
+	USE_FEATURE_AUTOWIDTH("T") USE_FEATURE_LS_TIMESTAMPS("tu") \
+	USE_FEATURE_LS_SORTFILES("v") USE_FEATURE_AUTOWIDTH("w") "x" \
+	USE_FEATURE_LS_SORTFILES("X") USE_FEATURE_HUMAN_READABLE("h") "k" \
+	USE_SELINUX("K") "] [filenames...]"
 #define ls_full_usage \
 	"List directory contents\n\n" \
 	"Options:\n" \
@@ -1682,31 +1611,31 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-A\tdo not list implied . and ..\n" \
 	"\t-a\tdo not hide entries starting with .\n" \
 	"\t-C\tlist entries by columns\n" \
-	USAGE_LS_TIMESTAMPS("\t-c\twith -l: show ctime\n") \
-	USAGE_LS_COLOR("\t--color[={always,never,auto}]\tto control coloring\n") \
+	USE_FEATURE_LS_TIMESTAMPS("\t-c\twith -l: show ctime\n") \
+	USE_FEATURE_LS_COLOR("\t--color[={always,never,auto}]\tto control coloring\n") \
 	"\t-d\tlist directory entries instead of contents\n" \
-	USAGE_LS_TIMESTAMPS("\t-e\tlist both full date and full time\n") \
-	USAGE_LS_FILETYPES("\t-F\tappend indicator (one of */=@|) to entries\n") \
+	USE_FEATURE_LS_TIMESTAMPS("\t-e\tlist both full date and full time\n") \
+	USE_FEATURE_LS_FILETYPES("\t-F\tappend indicator (one of */=@|) to entries\n") \
 	"\t-i\tlist the i-node for each file\n" \
 	"\t-l\tuse a long listing format\n" \
 	"\t-n\tlist numeric UIDs and GIDs instead of names\n" \
-	USAGE_LS_FILETYPES("\t-p\tappend indicator (one of /=@|) to entries\n") \
-	USAGE_LS_FOLLOWLINKS("\t-L\tlist entries pointed to by symbolic links\n") \
-	USAGE_LS_RECURSIVE("\t-R\tlist subdirectories recursively\n") \
-	USAGE_LS_SORTFILES("\t-r\tsort the listing in reverse order\n") \
-	USAGE_LS_SORTFILES("\t-S\tsort the listing by file size\n") \
+	USE_FEATURE_LS_FILETYPES("\t-p\tappend indicator (one of /=@|) to entries\n") \
+	USE_FEATURE_LS_FOLLOWLINKS("\t-L\tlist entries pointed to by symbolic links\n") \
+	USE_FEATURE_LS_RECURSIVE("\t-R\tlist subdirectories recursively\n") \
+	USE_FEATURE_LS_SORTFILES("\t-r\tsort the listing in reverse order\n") \
+	USE_FEATURE_LS_SORTFILES("\t-S\tsort the listing by file size\n") \
 	"\t-s\tlist the size of each file, in blocks\n" \
-	USAGE_AUTOWIDTH("\t-T NUM\tassume Tabstop every NUM columns\n") \
-	USAGE_LS_TIMESTAMPS("\t-t\twith -l: show modification time\n") \
-	USAGE_LS_TIMESTAMPS("\t-u\twith -l: show access time\n") \
-	USAGE_LS_SORTFILES("\t-v\tsort the listing by version\n") \
-	USAGE_AUTOWIDTH("\t-w NUM\tassume the terminal is NUM columns wide\n") \
+	USE_FEATURE_AUTOWIDTH("\t-T NUM\tassume Tabstop every NUM columns\n") \
+	USE_FEATURE_LS_TIMESTAMPS("\t-t\twith -l: show modification time\n") \
+	USE_FEATURE_LS_TIMESTAMPS("\t-u\twith -l: show access time\n") \
+	USE_FEATURE_LS_SORTFILES("\t-v\tsort the listing by version\n") \
+	USE_FEATURE_AUTOWIDTH("\t-w NUM\tassume the terminal is NUM columns wide\n") \
 	"\t-x\tlist entries by lines instead of by columns\n" \
-	USAGE_LS_SORTFILES("\t-X\tsort the listing by extension\n") \
+	USE_FEATURE_LS_SORTFILES("\t-X\tsort the listing by extension\n") \
 	USE_FEATURE_HUMAN_READABLE( \
 	"\t-h\tprint sizes in human readable format (e.g., 1K 243M 2G )\n") \
-	USAGE_SELINUX("\t-k\tprint security context\n") \
-	USAGE_SELINUX("\t-K\tprint security context in long format\n")
+	USE_SELINUX("\t-k\tprint security context\n") \
+	USE_SELINUX("\t-K\tprint security context in long format\n")
 
 #define lsattr_trivial_usage \
 	"[-Radlv] [files...]"
@@ -1780,20 +1709,14 @@ USE_FEATURE_DATE_ISOFMT( \
 	"/dev/hda[0-15]\n"
 #endif
 
-#ifdef CONFIG_FEATURE_MD5_SHA1_SUM_CHECK
-#define USAGE_MD5_SHA1_SUM_CHECK(a) a
-#else
-#define USAGE_MD5_SHA1_SUM_CHECK(a)
-#endif
-
 #define md5sum_trivial_usage \
 	"[OPTION] [FILEs...]" \
-	USAGE_MD5_SHA1_SUM_CHECK("\n   or: md5sum [OPTION] -c [FILE]")
+	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: md5sum [OPTION] -c [FILE]")
 #define md5sum_full_usage \
-	"Print" USAGE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums.\n\n" \
+	"Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " MD5 checksums.\n\n" \
 	"Options:\n" \
 	"With no FILE, or when FILE is -, read standard input." \
-	USAGE_MD5_SHA1_SUM_CHECK("\n\n" \
+	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n\n" \
 	"\t-c\tcheck MD5 sums against given list\n" \
 	"\nThe following two options are useful only when verifying checksums:\n" \
 	"\t-s\tdon't output anything, status code shows success\n" \
@@ -2216,11 +2139,6 @@ USE_FEATURE_MDEV_CONFIG( \
 #define openvt_example_usage \
 	"openvt 2 /bin/ash\n"
 
-#ifdef CONFIG_FEATURE_SHA1_PASSWORDS
-#  define PASSWORD_ALG_TYPES(a) a
-#else
-#  define PASSWORD_ALG_TYPES(a)
-#endif
 #define passwd_trivial_usage \
 	"[OPTION] [name]"
 #define passwd_full_usage \
@@ -2229,8 +2147,8 @@ USE_FEATURE_MDEV_CONFIG( \
 	"Options:\n" \
 	"\t-a\tDefine which algorithm shall be used for the password\n" \
 	"\t\t\t(Choices: des, md5" \
-	PASSWORD_ALG_TYPES(", sha1") \
-	")\n\t-d\tDelete the password for the specified user account\n" \
+	USE_FEATURE_SHA1_PASSWORDS(", sha1") ")\n" \
+	"\t-d\tDelete the password for the specified user account\n" \
 	"\t-l\tLocks (disables) the specified user account\n" \
 	"\t-u\tUnlocks (re-enables) the specified user account"
 
@@ -2368,7 +2286,7 @@ USE_FEATURE_MDEV_CONFIG( \
 #define ps_full_usage \
 	"Report process status\n" \
 	USAGE_PS \
-	USAGE_SELINUX("\n\t-c\tshow SE Linux context") \
+	USE_SELINUX("\n\t-c\tshow SE Linux context") \
 	USAGE_PS_WIDE("\n\tw\twide output")
 
 #define ps_example_usage \
@@ -2406,17 +2324,11 @@ USE_FEATURE_MDEV_CONFIG( \
 	"Preloads FILE(s) in RAM cache so that subsequent reads for those" \
 	"files do not block on disk I/O."
 
-#ifdef CONFIG_FEATURE_READLINK_FOLLOW
-#define USAGE_READLINK_FOLLOW(a) a
-#else
-#define USAGE_READLINK_FOLLOW(a)
-#endif
-
 #define readlink_trivial_usage \
-	USAGE_READLINK_FOLLOW("[-f] ") "FILE"
+	USE_FEATURE_READLINK_FOLLOW("[-f] ") "FILE"
 #define readlink_full_usage \
 	"Displays the value of a symbolic link." \
-	USAGE_READLINK_FOLLOW("\n\nOptions:\n" \
+	USE_FEATURE_READLINK_FOLLOW("\n\nOptions:\n" \
 	"\t-f\tcanonicalize by following all symlinks")
 
 #define readprofile_trivial_usage \
@@ -2491,13 +2403,6 @@ USE_FEATURE_MDEV_CONFIG( \
 #define rmmod_example_usage \
 	"$ rmmod tulip\n"
 
-#ifdef CONFIG_FEATURE_IPV6
-#  define USAGE_ROUTE_IPV6(a) a
-#else
-#  define USAGE_ROUTE_IPV6(a) "\t"
-#endif
-
-
 #define route_trivial_usage \
 	"[{add|del|delete}]"
 #define route_full_usage \
@@ -2505,7 +2410,7 @@ USE_FEATURE_MDEV_CONFIG( \
 	"Options:\n" \
 	"\t-n\t\tDont resolve names\n" \
 	"\t-e\t\tDisplay other/more information\n" \
-	"\t-A inet" USAGE_ROUTE_IPV6("{6}") "\tSelect address family"
+	"\t-A inet" USE_FEATURE_ROUTE_IPV6("{6}") "\tSelect address family"
 
 #define rpm_trivial_usage \
 	"-i -q[ildc]p package.rpm"
@@ -2630,36 +2535,28 @@ USE_FEATURE_MDEV_CONFIG( \
 
 #define sha1sum_trivial_usage \
 	"[OPTION] [FILEs...]" \
-	USAGE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum [OPTION] -c [FILE]")
+	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n   or: sha1sum [OPTION] -c [FILE]")
 #define sha1sum_full_usage \
-	"Print" USAGE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums.\n\n" \
+	"Print" USE_FEATURE_MD5_SHA1_SUM_CHECK(" or check") " SHA1 checksums.\n\n" \
 	"Options:\n" \
 	"With no FILE, or when FILE is -, read standard input." \
-	USAGE_MD5_SHA1_SUM_CHECK("\n\n" \
+	USE_FEATURE_MD5_SHA1_SUM_CHECK("\n\n" \
 	"\t-c\tcheck SHA1 sums against given list\n" \
 	"\nThe following two options are useful only when verifying checksums:\n" \
 	"\t-s\tdon't output anything, status code shows success\n" \
 	"\t-w\twarn about improperly formatted SHA1 checksum lines")
 
-#ifdef CONFIG_FEATURE_FANCY_SLEEP
-#  define USAGE_FANCY_SLEEP(a) a
-#  define USAGE_NOT_FANCY_SLEEP(a)
-#else
-#  define USAGE_FANCY_SLEEP(a)
-#  define USAGE_NOT_FANCY_SLEEP(a) a
-#endif
-
 #define sleep_trivial_usage \
-	USAGE_FANCY_SLEEP("[") "N" USAGE_FANCY_SLEEP("]...")
+	USE_FEATURE_FANCY_SLEEP("[") "N" USE_FEATURE_FANCY_SLEEP("]...")
 #define sleep_full_usage \
-	USAGE_NOT_FANCY_SLEEP("Pause for N seconds.") \
-	USAGE_FANCY_SLEEP( \
+	SKIP_FEATURE_FANCY_SLEEP("Pause for N seconds.") \
+	USE_FEATURE_FANCY_SLEEP( \
 	"Pause for a time equal to the total of the args given, where each arg can\n" \
 	"\t\thave an optional suffix of (s)econds, (m)inutes, (h)ours, or (d)ays.")
 #define sleep_example_usage \
 	"$ sleep 2\n" \
 	"[2 second delay results]\n" \
-	USAGE_FANCY_SLEEP("$ sleep 1d 3h 22m 8s\n" \
+	USE_FEATURE_FANCY_SLEEP("$ sleep 1d 3h 22m 8s\n" \
 	"[98528 second delay results]\n")
 
 #if ENABLE_FEATURE_SORT_BIG
@@ -2733,21 +2630,16 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)" \
 	"\n\t-U|--chuid <username>|<uid>\tstart process with this name"
 
-#ifdef CONFIG_FEATURE_STAT_FORMAT
-#  define USAGE_STAT_FORMAT(a) a
-#else
-#  define USAGE_STAT_FORMAT(a)
-#endif
 #define stat_trivial_usage \
 	"[OPTION] FILE..."
 #define stat_full_usage \
 	"display file (default) or filesystem status.\n\n" \
 	"Options:\n" \
-	USAGE_STAT_FORMAT("\t-c fmt\tuse the specified format\n") \
+	USE_FEATURE_STAT_FORMAT("\t-c fmt\tuse the specified format\n") \
 	"\t-f\tdisplay filesystem status\n" \
 	"\t-L,-l\tdereference links\n" \
 	"\t-t\tdisplay info in terse form\n" \
-	USAGE_STAT_FORMAT( \
+	USE_FEATURE_STAT_FORMAT( \
 	"\nValid format sequences for files:\n" \
 	"  %a   Access rights in octal\n" \
 	"  %A   Access rights in human readable form\n" \
@@ -2862,23 +2754,6 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 #define sync_full_usage \
 	"Write all buffered filesystem blocks to disk."
 
-
-#ifdef CONFIG_FEATURE_ROTATE_LOGFILE
-#  define USAGE_ROTATE_LOGFILE(a) a
-#else
-#  define USAGE_ROTATE_LOGFILE(a)
-#endif
-#ifdef CONFIG_FEATURE_REMOTE_LOG
-#  define USAGE_REMOTE_LOG(a) a
-#else
-#  define USAGE_REMOTE_LOG(a)
-#endif
-#ifdef CONFIG_FEATURE_IPC_SYSLOG
-#  define USAGE_IPC_LOG(a) a
-#else
-#  define USAGE_IPC_LOG(a)
-#endif
-
 #define sysctl_trivial_usage \
 	"[OPTIONS]... [VALUE]..."
 #define sysctl_full_usage \
@@ -2906,24 +2781,18 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\t-n\t\tRun as a foreground process\n" \
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)\n" \
 	"\t-S\t\tMake logging output smaller." \
-	USAGE_ROTATE_LOGFILE( \
+	USE_FEATURE_ROTATE_LOGFILE( \
 	"\n\t-s SIZE\t\tMax size (KB) before rotate (default=200KB, 0=off)\n" \
 	"\t-b NUM\t\tNumber of rotated logs to keep (default=1, max=99, 0=purge)") \
-	USAGE_REMOTE_LOG( \
+	USE_FEATURE_REMOTE_LOG( \
 	"\n\t-R HOST[:PORT]\tLog to IP or hostname on PORT (default PORT=514/UDP)\n" \
 	"\t-L\t\tLog locally and via network logging (default is network only)") \
-	USAGE_IPC_LOG( \
+	USE_FEATURE_IPC_SYSLOG( \
 	"\n\t-C [size(KiB)]\tLog to a circular buffer (read the buffer using logread)")
 #define syslogd_example_usage \
 	"$ syslogd -R masterlog:514\n" \
 	"$ syslogd -R 192.168.1.1:601\n"
 
-
-#ifndef CONFIG_FEATURE_FANCY_TAIL
-#  define USAGE_UNSIMPLE_TAIL(a)
-#else
-#  define USAGE_UNSIMPLE_TAIL(a) a
-#endif
 #define tail_trivial_usage \
 	"[OPTION]... [FILE]..."
 #define tail_full_usage \
@@ -2931,10 +2800,10 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"With more than one FILE, precede each with a header giving the\n" \
 	"file name. With no FILE, or when FILE is -, read standard input.\n\n" \
 	"Options:\n" \
-	USAGE_UNSIMPLE_TAIL("\t-c N[kbm]\toutput the last N bytes\n") \
+	USE_FEATURE_FANCY_TAIL("\t-c N[kbm]\toutput the last N bytes\n") \
 	"\t-n N[kbm]\tprint last N lines instead of last 10\n" \
 	"\t-f\t\toutput data as the file grows" \
-	USAGE_UNSIMPLE_TAIL( "\n\t-q\t\tnever output headers giving file names\n" \
+	USE_FEATURE_FANCY_TAIL( "\n\t-q\t\tnever output headers giving file names\n" \
 	"\t-s SEC\t\twait SEC seconds between reads with -f\n" \
 	"\t-v\t\talways output headers giving file names\n\n" \
 	"If the first character of N (bytes or lines) is a '+', output begins with \n" \
@@ -2944,58 +2813,29 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"$ tail -n 1 /etc/resolv.conf\n" \
 	"nameserver 10.0.0.1\n"
 
-#ifdef CONFIG_FEATURE_TAR_CREATE
-#  define USAGE_TAR_CREATE(a) a
-#else
-#  define USAGE_TAR_CREATE(a)
-#endif
-#ifdef CONFIG_FEATURE_TAR_EXCLUDE
-#  define USAGE_TAR_EXCLUDE(a) a
-#else
-#  define USAGE_TAR_EXCLUDE(a)
-#endif
-#ifdef CONFIG_FEATURE_TAR_GZIP
-#  define USAGE_TAR_GZIP(a) a
-#else
-#  define USAGE_TAR_GZIP(a)
-#endif
-#ifdef CONFIG_FEATURE_TAR_BZIP2
-#  define USAGE_TAR_BZIP2(a) a
-#else
-#  define USAGE_TAR_BZIP2(a)
-#endif
-#ifdef CONFIG_FEATURE_TAR_LZMA
-#  define USAGE_TAR_LZMA(a) a
-#else
-#  define USAGE_TAR_LZMA(a)
-#endif
-#ifdef CONFIG_FEATURE_TAR_COMPRESS
-#  define USAGE_TAR_COMPRESS(a) a
-#else
-#  define USAGE_TAR_COMPRESS(a)
-#endif
-
 #define tar_trivial_usage \
-	"-[" USAGE_TAR_CREATE("c") USAGE_TAR_GZIP("z") USAGE_TAR_BZIP2("j") USAGE_TAR_LZMA("a") USAGE_TAR_COMPRESS("Z") "xtvO] " \
-	USAGE_TAR_EXCLUDE("[-X FILE]") \
+	"-[" USE_FEATURE_TAR_CREATE("c") USE_FEATURE_TAR_GZIP("z") \
+	USE_FEATURE_TAR_BZIP2("j") USE_FEATURE_TAR_LZMA("a") \
+	USE_FEATURE_TAR_COMPRESS("Z") "xtvO] " \
+	USE_FEATURE_TAR_FROM("[-X FILE]") \
 	"[-f TARFILE] [-C DIR] [FILE(s)] ..."
 #define tar_full_usage \
 	"Create, extract, or list files from a tar file.\n\n" \
 	"Options:\n" \
-	USAGE_TAR_CREATE("\tc\t\tcreate\n") \
+	USE_FEATURE_TAR_CREATE("\tc\t\tcreate\n") \
 	"\tx\t\textract\n" \
 	"\tt\t\tlist\n" \
 	"\nArchive format selection:\n" \
-	USAGE_TAR_GZIP("\tz\t\tFilter the archive through gzip\n") \
-	USAGE_TAR_BZIP2("\tj\t\tFilter the archive through bzip2\n") \
-	USAGE_TAR_LZMA("\ta\t\tFilter the archive through lzma\n") \
-	USAGE_TAR_COMPRESS("\tZ\t\tFilter the archive through compress\n") \
+	USE_FEATURE_TAR_GZIP("\tz\t\tFilter the archive through gzip\n") \
+	USE_FEATURE_TAR_BZIP2("\tj\t\tFilter the archive through bzip2\n") \
+	USE_FEATURE_TAR_LZMA("\ta\t\tFilter the archive through lzma\n") \
+	USE_FEATURE_TAR_COMPRESS("\tZ\t\tFilter the archive through compress\n") \
 	"\nFile selection:\n" \
 	"\tf\t\tname of TARFILE or \"-\" for stdin\n" \
 	"\tO\t\textract to stdout\n" \
-	USAGE_TAR_EXCLUDE( \
+	USE_FEATURE_TAR_FROM( \
 	"\texclude\t\tfile to exclude\n" \
-	 "\tX\t\tfile with names to exclude\n" \
+	"\tX\t\tfile with names to exclude\n" \
 	) \
 	"\tC\t\tchange to directory DIR before operation\n" \
 	"\tv\t\tverbosely list files processed"
@@ -3074,22 +2914,6 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"$ echo $?\n" \
 	"1\n"
 
-#ifdef CONFIG_FEATURE_TFTP_GET
-#  define USAGE_TFTP_GET(a) a
-#else
-#  define USAGE_TFTP_GET(a)
-#endif
-#ifdef CONFIG_FEATURE_TFTP_PUT
-#  define USAGE_TFTP_PUT(a) a
-#else
-#  define USAGE_TFTP_PUT(a)
-#endif
-#ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
-#  define USAGE_TFTP_BS(a) a
-#else
-#  define USAGE_TFTP_BS(a)
-#endif
-
 #define tftp_trivial_usage \
 	"[OPTION]... HOST [PORT]"
 #define tftp_full_usage \
@@ -3097,13 +2921,13 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"Options:\n" \
 	"\t-l FILE\tLocal FILE\n" \
 	"\t-r FILE\tRemote FILE" \
-	USAGE_TFTP_GET( \
+	USE_FEATURE_TFTP_GET( \
 	"\n\t-g\tGet file" \
 	) \
-	USAGE_TFTP_PUT( \
+	USE_FEATURE_TFTP_PUT( \
 	"\n\t-p\tPut file" \
 	) \
-	USAGE_TFTP_BS( \
+	USE_FEATURE_TFTP_BLOCKSIZE( \
 	"\n\t-b SIZE\tTransfer blocks of SIZE octets" \
 	)
 #define time_trivial_usage \
@@ -3440,32 +3264,15 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 #define whoami_full_usage \
 	"Prints the user name associated with the current effective user id."
 
-#ifdef CONFIG_FEATURE_XARGS_SUPPORT_CONFIRMATION
-#define USAGE_XARGS_CONFIRMATION(a) a
-#else
-#define USAGE_XARGS_CONFIRMATION(a)
-#endif
-#ifdef CONFIG_FEATURE_XARGS_SUPPORT_TERMOPT
-#define USAGE_XARGS_TERMOPT(a) a
-#else
-#define USAGE_XARGS_TERMOPT(a)
-#endif
-#ifdef CONFIG_FEATURE_XARGS_SUPPORT_ZERO_TERM
-#define USAGE_XARGS_ZERO_TERM(a) a
-#else
-#define USAGE_XARGS_ZERO_TERM(a)
-#endif
-
-
 #define xargs_trivial_usage \
-	"[COMMAND] [OPTIONS] [ARGS...]"
+	"[OPTIONS] [COMMAND] [ARGS...]"
 #define xargs_full_usage \
 	"Executes COMMAND on every item given by standard input.\n\n" \
 	"Options:\n" \
-	USAGE_XARGS_CONFIRMATION("\t-p\tPrompt the user about whether to run each command\n") \
+	USE_FEATURE_XARGS_SUPPORT_CONFIRMATION("\t-p\tPrompt the user about whether to run each command\n") \
 	"\t-r\tDo not run command for empty read lines\n" \
-	USAGE_XARGS_TERMOPT("\t-x\tExit if the size is exceeded\n") \
-	USAGE_XARGS_ZERO_TERM("\t-0\tInput filenames are terminated by a null character\n") \
+	USE_FEATURE_XARGS_SUPPORT_TERMOPT("\t-x\tExit if the size is exceeded\n") \
+	USE_FEATURE_XARGS_SUPPORT_ZERO_TERM("\t-0\tInput filenames are terminated by a null character\n") \
 	"\t-t\tPrint the command line on stderr before executing it"
 #define xargs_example_usage \
 	"$ ls | xargs gzip\n" \

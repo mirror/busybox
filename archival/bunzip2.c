@@ -36,7 +36,8 @@ int bunzip2_main(int argc, char **argv)
 
 	/* Check that the input is sane.  */
 	if (isatty(src_fd) && (opt & BUNZIP2_OPT_FORCE) == 0) {
-		bb_error_msg_and_die("Compressed data not read from terminal.  Use -f to force it.");
+		bb_error_msg_and_die("Compressed data not read from terminal.  "
+				"Use -f to force it.");
 	}
 
 	if (filename) {
@@ -45,7 +46,7 @@ int bunzip2_main(int argc, char **argv)
 		 * strlen may be less than 4 */
 		char *extension = strrchr(filename, '.');
 		if (!extension || strcmp(extension, ".bz2") != 0) {
-			bb_error_msg_and_die("Invalid extension");
+			bb_error_msg_and_die("invalid extension");
 		}
 		xstat(filename, &stat_buf);
 		*extension = '\0';
@@ -53,10 +54,10 @@ int bunzip2_main(int argc, char **argv)
 				stat_buf.st_mode);
 	} else dst_fd = STDOUT_FILENO;
 	status = uncompressStream(src_fd, dst_fd);
-	if(filename) {
+	if (filename) {
 		if (!status) filename[strlen(filename)] = '.';
 		if (unlink(filename) < 0) {
-			bb_error_msg_and_die("Couldn't remove %s", filename);
+			bb_error_msg_and_die("cannot remove %s", filename);
 		}
 	}
 

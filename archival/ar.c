@@ -26,7 +26,8 @@ static void header_verbose_list_ar(const file_header_t *file_header)
 	mtime[16] = ' ';
 	memmove(&mtime[17], &mtime[20], 4);
 	mtime[21] = '\0';
-	printf("%s %d/%d%7d %s %s\n", &mode[1], file_header->uid, file_header->gid, (int) file_header->size, &mtime[4], file_header->name);
+	printf("%s %d/%d%7d %s %s\n", &mode[1], file_header->uid, file_header->gid,
+			(int) file_header->size, &mtime[4], file_header->name);
 }
 
 #define AR_CTX_PRINT		0x01

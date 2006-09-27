@@ -1125,7 +1125,7 @@ int init_main(int argc, char **argv)
 				}
 			}
 			/* see if anyone else is waiting to be reaped */
-			wpid = waitpid (-1, NULL, WNOHANG);
+			wpid = waitpid(-1, NULL, WNOHANG);
 		}
 	}
 }
