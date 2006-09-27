@@ -388,7 +388,7 @@ read_response:
 		s = strchr(target.user, ':');
 		if (s)
 			*(s++) = '\0';
-		switch(ftpcmd("USER ", target.user, sfp, buf)) {
+		switch (ftpcmd("USER ", target.user, sfp, buf)) {
 			case 230:
 				break;
 			case 331:

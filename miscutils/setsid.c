@@ -25,7 +25,7 @@ int setsid_main(int argc, char *argv[])
 		bb_show_usage();
 
 	if (getpgrp() == getpid()) {
-		switch(fork()){
+		switch (fork()){
 		case -1:
 			bb_perror_msg_and_die("fork");
 		case 0:

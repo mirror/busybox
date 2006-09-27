@@ -293,7 +293,7 @@ int sort_main(int argc, char **argv)
 	}
 #ifdef CONFIG_FEATURE_SORT_BIG
 	/* if no key, perform alphabetic sort */
-    if(!key_list) add_key()->range[0]=1;
+	if(!key_list) add_key()->range[0]=1;
 	/* handle -c */
 	if(global_flags&FLAG_c) {
 		int j=(global_flags&FLAG_u) ? -1 : 0;

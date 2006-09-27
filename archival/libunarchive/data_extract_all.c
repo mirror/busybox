@@ -55,7 +55,7 @@ void data_extract_all(archive_handle_t *archive_handle)
 		}
 	} else {
 		/* Create the filesystem entry */
-		switch(file_header->mode & S_IFMT) {
+		switch (file_header->mode & S_IFMT) {
 			case S_IFREG: {
 				/* Regular file */
 				dst_fd = xopen3(file_header->name, O_WRONLY | O_CREAT | O_EXCL,

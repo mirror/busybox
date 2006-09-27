@@ -115,9 +115,9 @@ int unzip_main(int argc, char **argv)
 	struct stat stat_buf;
 
 	while((opt = getopt(argc, argv, "-d:lnopqx")) != -1) {
-		switch(opt_range) {
+		switch (opt_range) {
 		case 0: /* Options */
-			switch(opt) {
+			switch (opt) {
 			case 'l': /* List */
 				verbosity = v_list;
 				break;

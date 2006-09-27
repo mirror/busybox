@@ -62,7 +62,7 @@ int head_main(int argc, char **argv)
 
 	/* No size benefit in converting this to bb_getopt_ulflags */
 	while ((opt = getopt(argc, argv, head_opts)) > 0) {
-		switch(opt) {
+		switch (opt) {
 #if ENABLE_FEATURE_FANCY_HEAD
 			case 'q':
 				header_threshhold = INT_MAX;

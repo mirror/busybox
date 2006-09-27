@@ -317,7 +317,7 @@ static int version_compare(const unsigned int ver1, const unsigned int ver2)
 static int test_version(const unsigned int version1, const unsigned int version2, const unsigned int operator)
 {
 	const int version_result = version_compare(version1, version2);
-	switch(operator) {
+	switch (operator) {
 		case (VER_ANY):
 			return(TRUE);
 		case (VER_EQUAL):
@@ -646,7 +646,7 @@ static unsigned int fill_package_struct(char *control_buffer)
 		}
 
 		field_num = compare_string_array(field_names, field_name);
-		switch(field_num) {
+		switch (field_num) {
 			case 0: /* Package */
 				new_node->name = search_name_hashtable(field_value);
 				break;

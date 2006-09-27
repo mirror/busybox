@@ -820,7 +820,7 @@ int do_iproute(int argc, char **argv)
 	if (*argv) {
 		command_num = compare_string_array(ip_route_commands, *argv);
 	}
-	switch(command_num) {
+	switch (command_num) {
 		case 0: /* add*/
 			flags = NLM_F_CREATE|NLM_F_EXCL;
 			break;
