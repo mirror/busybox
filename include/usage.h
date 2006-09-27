@@ -1623,13 +1623,14 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-f\t\toutput data as the log grows"
 
 #define losetup_trivial_usage \
-	"[-od] LOOPDEVICE [FILE]"
+	"[-o OFFSET] [-d] LOOPDEVICE [FILE]]"
 #define losetup_full_usage \
-	"Associate LOOPDEVICE with FILE, or display current association.\n\n" \
+	"(Dis)associate LOOPDEVICE with FILE, or display current associations.\n\n" \
 	"Options:\n" \
 	"\t-d\t\tDisassociate LOOPDEVICE\n" \
 	"\t-o OFFSET\tStart OFFSET bytes into FILE"
 #define losetup_notes_usage \
+	"No arguments will display all current associations.\n" \
 	"One argument (losetup /dev/loop1) will display the current association\n" \
 	"(if any), or disassociate it (with -d).  The display shows the offset\n" \
 	"and filename of the file the loop device is currently bound to.\n\n" \

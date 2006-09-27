@@ -22,7 +22,8 @@ int losetup_main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (opt == 0x3) bb_show_usage(); // -d and -o (illegal)
+	if (opt == 0x3) // -d + -o (illegal)
+		bb_show_usage();
 
 	if (opt == 0x1) { // -d
 		/* detach takes exactly one argument */
@@ -46,7 +47,18 @@ int losetup_main(int argc, char **argv)
 		if (!s) bb_perror_nomsg_and_die();
 		printf("%s: %s\n", argv[0], s);
 		if (ENABLE_FEATURE_CLEAN_UP) free(s);
-	} else
-		bb_show_usage();
+	} else {
+		char dev[11] = "/dev/loop0";
+		char c;
+		for (c = '0'; c <= '9'; ++c) {
+			char *s;
+			dev[9] = c;
+			s = query_loop(dev);
+			if (s) {
+				printf("%s: %s\n", dev, s);
+				if (ENABLE_FEATURE_CLEAN_UP) free(s);
+			}
+		}
+	}
 	return EXIT_SUCCESS;
 }
