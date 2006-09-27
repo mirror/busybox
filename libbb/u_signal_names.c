@@ -9,8 +9,8 @@
 
 #include "libbb.h"
 
-static struct signal_name {
-	char *name;
+static const struct signal_name {
+	char name[5];
 	int number;
 } signals[] = {
 	// SUSv3 says kill must support these, and specifies the numerical values,
@@ -26,7 +26,7 @@ static struct signal_name {
 
 // Convert signal name to number.
 
-int get_signum(char *name)
+int get_signum(const char *name)
 {
 	int i;
 
@@ -42,18 +42,17 @@ int get_signum(char *name)
 
 // Convert signal number to name
 
-char *get_signame(int number)
+const char *get_signame(int number)
 {
 	int i;
 	static char buf[8];
 
-	itoa_to_buf(number, buf, 8);
 	for (i=0; i < sizeof(signals) / sizeof(struct signal_name); i++) {
 		if (number == signals[i].number) {
-			sprintf("SIG%s", signals[i].name);
-			break;
+			return signals[i].name;
 		}
 	}
 
+	itoa_to_buf(number, buf, 8);
 	return buf;
 }

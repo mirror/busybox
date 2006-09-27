@@ -357,8 +357,8 @@ char *dirname (char *path);
 
 int bb_make_directory (char *path, long mode, int flags);
 
-int get_signum(char *name);
-char *get_signame(int number);
+int get_signum(const char *name);
+const char *get_signame(int number);
 
 char *bb_simplify_path(const char *path);
 
