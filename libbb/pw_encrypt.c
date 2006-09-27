@@ -11,13 +11,12 @@
 #include <string.h>
 #include <crypt.h>
 
-
 char *pw_encrypt(const char *clear, const char *salt)
 {
 	static char cipher[128];
 	char *cp;
 
-#ifdef CONFIG_FEATURE_SHA1_PASSWORDS
+#if 0 /* was CONFIG_FEATURE_SHA1_PASSWORDS, but there is no such thing??? */
 	if (strncmp(salt, "$2$", 3) == 0) {
 		return sha1_crypt(clear);
 	}
@@ -29,4 +28,3 @@ char *pw_encrypt(const char *clear, const char *salt)
 	safe_strncpy(cipher, cp, sizeof(cipher));
 	return cipher;
 }
-

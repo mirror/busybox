@@ -412,17 +412,17 @@ USE_FEATURE_DATE_ISOFMT( \
 #define deallocvt_trivial_usage \
 	"[N]"
 #define deallocvt_full_usage \
-	 "Deallocate unused virtual terminal /dev/ttyN"
+	"Deallocate unused virtual terminal /dev/ttyN"
 
 #define delgroup_trivial_usage \
 	"GROUP"
 #define delgroup_full_usage \
-	 "Deletes group GROUP from the system"
+	"Deletes group GROUP from the system"
 
 #define deluser_trivial_usage \
 	"USER"
 #define deluser_full_usage \
-	 "Deletes user USER from the system"
+	"Deletes user USER from the system"
 
 #define devfsd_trivial_usage \
 	"mntpnt [-v]" \
@@ -2146,8 +2146,7 @@ USE_FEATURE_MDEV_CONFIG( \
 	"changes the password for the current user.\n" \
 	"Options:\n" \
 	"\t-a\tDefine which algorithm shall be used for the password\n" \
-	"\t\t\t(Choices: des, md5" \
-	USE_FEATURE_SHA1_PASSWORDS(", sha1") ")\n" \
+	"\t\t\t(Choices: des, md5, sha1)\n" \
 	"\t-d\tDelete the password for the specified user account\n" \
 	"\t-l\tLocks (disables) the specified user account\n" \
 	"\t-u\tUnlocks (re-enables) the specified user account"
@@ -2408,9 +2407,9 @@ USE_FEATURE_MDEV_CONFIG( \
 #define route_full_usage \
 	"Edit the kernel's routing tables.\n\n" \
 	"Options:\n" \
-	"\t-n\t\tDont resolve names\n" \
-	"\t-e\t\tDisplay other/more information\n" \
-	"\t-A inet" USE_FEATURE_ROUTE_IPV6("{6}") "\tSelect address family"
+	"\t-n\tDont resolve names\n" \
+	"\t-e\tDisplay other/more information\n" \
+	"\t-A inet" USE_FEATURE_IPV6("{6}") "\tSelect address family"
 
 #define rpm_trivial_usage \
 	"-i -q[ildc]p package.rpm"
