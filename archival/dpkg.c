@@ -42,7 +42,6 @@
  * I estimate it should be at least 50% bigger than PACKAGE_HASH_PRIME,
  * as there a lot of duplicate version numbers */
 #define NAME_HASH_PRIME 16381
-static char *name_hashtable[NAME_HASH_PRIME + 1];
 
 /* PACKAGE_HASH_PRIME, Maximum number of unique packages,
  * It must not be smaller than STATUS_HASH_PRIME,
@@ -66,7 +65,6 @@ typedef struct common_node_s {
 	unsigned int num_of_edges:14;
 	edge_t **edge;
 } common_node_t;
-static common_node_t *package_hashtable[PACKAGE_HASH_PRIME + 1];
 
 /* Currently it doesnt store packages that have state-status of not-installed
  * So it only really has to be the size of the maximum number of packages
@@ -76,7 +74,11 @@ typedef struct status_node_s {
 	unsigned int package:14;	/* has to fit PACKAGE_HASH_PRIME */
 	unsigned int status:14;		/* has to fit STATUS_HASH_PRIME */
 } status_node_t;
-static status_node_t *status_hashtable[STATUS_HASH_PRIME + 1];
+
+/* Were statically declared here, but such a big bss is nommu-unfriendly */
+static char **name_hashtable;             /* [NAME_HASH_PRIME + 1] */
+static common_node_t **package_hashtable; /* [PACKAGE_HASH_PRIME + 1] */
+static status_node_t **status_hashtable;  /* [STATUS_HASH_PRIME + 1] */
 
 /* Even numbers are for 'extras', like ored dependencies or null */
 enum edge_type_e {
@@ -129,7 +131,7 @@ static void make_hash(const char *key, unsigned int *start, unsigned int *decrem
 
 	/* Maybe i should have uses a "proper" hashing algorithm here instead
 	 * of making one up myself, seems to be working ok though. */
-	for(i = 1; i < len; i++) {
+	for (i = 1; i < len; i++) {
 		/* shifts the ascii based value and adds it to previous value
 		 * shift amount is mod 24 because long int is 32 bit and data
 		 * to be shifted is 8, don't want to shift data to where it has
@@ -148,7 +150,7 @@ static int search_name_hashtable(const char *key)
 //	char *temp;
 
 	make_hash(key, &probe_address, &probe_decrement, NAME_HASH_PRIME);
-	while(name_hashtable[probe_address] != NULL) {
+	while (name_hashtable[probe_address] != NULL) {
 		if (strcmp(name_hashtable[probe_address], key) == 0) {
 			return(probe_address);
 		} else {
@@ -171,7 +173,7 @@ static unsigned int search_status_hashtable(const char *key)
 	unsigned int probe_decrement = 0;
 
 	make_hash(key, &probe_address, &probe_decrement, STATUS_HASH_PRIME);
-	while(status_hashtable[probe_address] != NULL) {
+	while (status_hashtable[probe_address] != NULL) {
 		if (strcmp(key, name_hashtable[package_hashtable[status_hashtable[probe_address]->package]->name]) == 0) {
 			break;
 		} else {
@@ -356,7 +358,7 @@ static int search_package_hashtable(const unsigned int name, const unsigned int 
 	unsigned int probe_decrement = 0;
 
 	make_hash(name_hashtable[name], &probe_address, &probe_decrement, PACKAGE_HASH_PRIME);
-	while(package_hashtable[probe_address] != NULL) {
+	while (package_hashtable[probe_address] != NULL) {
 		if (package_hashtable[probe_address]->name == name) {
 			if (operator == VER_ANY) {
 				return(probe_address);
@@ -394,9 +396,9 @@ static int search_for_provides(int needle, int start_at) {
 	common_node_t *p;
 	for (i = start_at + 1; i < PACKAGE_HASH_PRIME; i++) {
 		p = package_hashtable[i];
-		if ( p == NULL ) continue;
-		for(j = 0; j < p->num_of_edges; j++)
-			if ( p->edge[j]->type == EDGE_PROVIDES && p->edge[j]->name == needle )
+		if (p == NULL) continue;
+		for (j = 0; j < p->num_of_edges; j++)
+			if (p->edge[j]->type == EDGE_PROVIDES && p->edge[j]->name == needle)
 				return i;
 	}
 	return -1;
@@ -441,15 +443,15 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 		field += strspn(field, " ");
 		line2 = xstrdup(field);
 		field2 = strtok_r(line2, "|", &line_ptr2);
-		if ( (edge_type == EDGE_DEPENDS || edge_type == EDGE_PRE_DEPENDS) &&
-		     (strcmp(field, field2) != 0)) {
+		if ((edge_type == EDGE_DEPENDS || edge_type == EDGE_PRE_DEPENDS) &&
+		    (strcmp(field, field2) != 0)) {
 			or_edge = (edge_t *)xmalloc(sizeof(edge_t));
 			or_edge->type = edge_type + 1;
 		} else {
 			or_edge = NULL;
 		}
 
-		if ( or_edge ) {
+		if (or_edge) {
 			or_edge->name = search_name_hashtable(field);
 			or_edge->version = 0; // tracks the number of altenatives
 
@@ -492,7 +494,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 					else if (strncmp(version, ">=", offset_ch) == 0) {
 						edge->operator = VER_MORE_EQUAL;
 					} else {
-						bb_error_msg_and_die("Illegal operator");
+						bb_error_msg_and_die("illegal operator");
 					}
 				}
 				/* skip to start of version numbers */
@@ -509,7 +511,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 			field2[strcspn(field2, " (")] = '\0';
 			edge->name = search_name_hashtable(field2);
 
-			if ( or_edge )
+			if (or_edge)
 				or_edge->version++;
 
 			add_edge_to_node(parent_node, edge);
@@ -756,23 +758,23 @@ static void set_status(const unsigned int status_node_num, const char *new_value
 
 static const char *describe_status(int status_num) {
 	int status_want, status_state ;
-	if ( status_hashtable[status_num] == NULL || status_hashtable[status_num]->status == 0 )
+	if (status_hashtable[status_num] == NULL || status_hashtable[status_num]->status == 0)
 		return "is not installed or flagged to be installed\n";
 
 	status_want = get_status(status_num, 1);
 	status_state = get_status(status_num, 3);
 
-	if ( status_state == search_name_hashtable("installed") ) {
-		if ( status_want == search_name_hashtable("install") )
+	if (status_state == search_name_hashtable("installed")) {
+		if (status_want == search_name_hashtable("install"))
 			return "is installed";
-		if ( status_want == search_name_hashtable("deinstall") )
+		if (status_want == search_name_hashtable("deinstall"))
 			return "is marked to be removed";
-		if ( status_want == search_name_hashtable("purge") )
+		if (status_want == search_name_hashtable("purge"))
 			return "is marked to be purged";
 	}
-	if ( status_want ==  search_name_hashtable("unknown") )
+	if (status_want ==  search_name_hashtable("unknown"))
 		return "is in an indeterminate state";
-	if ( status_want == search_name_hashtable("install") )
+	if (status_want == search_name_hashtable("install"))
 		return "is marked to be installed";
 
 	return "is not installed or flagged to be installed";
@@ -873,7 +875,7 @@ static void write_status_file(deb_file_t **deb_file)
 					(strcmp("unpacked", name_hashtable[state_status]) == 0)) {
 					/* We need to add the control file from the package */
 					i = 0;
-					while(deb_file[i] != NULL) {
+					while (deb_file[i] != NULL) {
 						if (strcmp(package_name, name_hashtable[package_hashtable[deb_file[i]->package]->name]) == 0) {
 							/* Write a status file entry with a modified status */
 							/* remove trailing \n's */
@@ -942,7 +944,7 @@ static void write_status_file(deb_file_t **deb_file)
 	}
 
 	/* Write any new packages */
-	for(i = 0; deb_file[i] != NULL; i++) {
+	for (i = 0; deb_file[i] != NULL; i++) {
 		status_num = search_status_hashtable(name_hashtable[package_hashtable[deb_file[i]->package]->name]);
 		if (strcmp("reinstreq", name_hashtable[get_status(status_num, 2)]) == 0) {
 			write_buffer_no_status(new_status_file, deb_file[i]->control_file);
@@ -960,11 +962,11 @@ static void write_status_file(deb_file_t **deb_file)
 		xstat("/var/lib/dpkg/status", &stat_buf);
 		/* Its ok if renaming the status file fails because status
 		 * file doesnt exist, maybe we are starting from scratch */
-		bb_error_msg("No status file found, creating new one");
+		bb_error_msg("no status file found, creating new one");
 	}
 
 	if (rename("/var/lib/dpkg/status.udeb", "/var/lib/dpkg/status") == -1) {
-		bb_error_msg_and_die("DANGER: Couldnt create status file, you need to manually repair your status file");
+		bb_error_msg_and_die("DANGER: Cannot create status file, you need to manually repair your status file");
 	}
 }
 
@@ -982,7 +984,7 @@ static int package_satisfies_dependency(int package, int depend_type)
 	/* status could be unknown if package is a pure virtual
 	 * provides which cannot satisfy any dependency by itself.
 	 */
-	if ( status_hashtable[status_num] == NULL )
+	if (status_hashtable[status_num] == NULL)
 		return 0;
 
 	switch (depend_type) {
@@ -1066,7 +1068,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 				}
 
 				if (result) {
-					bb_error_msg_and_die("Package %s conflicts with %s",
+					bb_error_msg_and_die("package %s conflicts with %s",
 						name_hashtable[package_node->name],
 						name_hashtable[package_edge->name]);
 				}
@@ -1087,7 +1089,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 		 * package is a virtual one. In which case there are
 		 * no dependencies to check.
 		 */
-		if ( package_node == NULL ) continue;
+		if (package_node == NULL) continue;
 
 		status_num = search_status_hashtable(name_hashtable[package_node->name]);
 
@@ -1095,7 +1097,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 		 * virtual one provided by something else. In which
 		 * case there are no dependencies to check.
 		 */
-		if ( status_hashtable[status_num] == NULL ) continue;
+		if (status_hashtable[status_num] == NULL) continue;
 
 		/* If we don't want this package installed then we may
 		 * as well ignore it's dependencies.
@@ -1112,12 +1114,12 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 			const edge_t *package_edge = package_node->edge[j];
 			unsigned int package_num;
 
-			if ( package_edge->type == EDGE_OR_PRE_DEPENDS ||
-			     package_edge->type == EDGE_OR_DEPENDS ) {	/* start an EDGE_OR_ list */
+			if (package_edge->type == EDGE_OR_PRE_DEPENDS ||
+			    package_edge->type == EDGE_OR_DEPENDS) {	/* start an EDGE_OR_ list */
 				number_of_alternatives = package_edge->version;
 				root_of_alternatives = package_edge;
 				continue;
-			} else if ( number_of_alternatives == 0 ) {	/* not in the middle of an EDGE_OR_ list */
+			} else if (number_of_alternatives == 0) {	/* not in the middle of an EDGE_OR_ list */
 				number_of_alternatives = 1;
 				root_of_alternatives = NULL;
 			}
@@ -1125,7 +1127,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 			package_num = search_package_hashtable(package_edge->name, package_edge->version, package_edge->operator);
 
 			if (package_edge->type == EDGE_PRE_DEPENDS ||
-			    package_edge->type == EDGE_DEPENDS ) {
+			    package_edge->type == EDGE_DEPENDS) {
 				int result=1;
 				status_num = 0;
 
@@ -1135,8 +1137,8 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 				 * EDGE_DEPENDS == OR_DEPENDS -1
 				 * EDGE_PRE_DEPENDS == OR_PRE_DEPENDS -1
 				 */
-				if ( root_of_alternatives && package_edge->type != root_of_alternatives->type - 1)
-					bb_error_msg_and_die("Fatal error. Package dependencies corrupt: %d != %d - 1",
+				if (root_of_alternatives && package_edge->type != root_of_alternatives->type - 1)
+					bb_error_msg_and_die("fatal error, package dependencies corrupt: %d != %d - 1",
 							     package_edge->type, root_of_alternatives->type);
 
 				if (package_hashtable[package_num] != NULL)
@@ -1145,14 +1147,14 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 				if (result) { /* check for other package which provide what we are looking for */
 					int provider = -1;
 
-					while ( (provider = search_for_provides(package_edge->name, provider) ) > -1 ) {
-						if ( package_hashtable[provider] == NULL ) {
-							printf("Have a provider but no package information for it\n");
+					while ((provider = search_for_provides(package_edge->name, provider)) > -1) {
+						if (package_hashtable[provider] == NULL) {
+							puts("Have a provider but no package information for it");
 							continue;
 						}
 						result = !package_satisfies_dependency(provider, package_edge->type);
 
-						if ( result == 0 )
+						if (result == 0)
 							break;
 					}
 				}
@@ -1160,21 +1162,21 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 				/* It must be already installed, or to be installed */
 				number_of_alternatives--;
 				if (result && number_of_alternatives == 0) {
-					if ( root_of_alternatives )
+					if (root_of_alternatives)
 						bb_error_msg_and_die(
-							"Package %s %sdepends on %s, "
+							"package %s %sdepends on %s, "
 							"which cannot be satisfied",
 							name_hashtable[package_node->name],
 							package_edge->type == EDGE_PRE_DEPENDS ? "pre-" : "",
 							name_hashtable[root_of_alternatives->name]);
 					else
 						bb_error_msg_and_die(
-							"Package %s %sdepends on %s, which %s\n",
+							"package %s %sdepends on %s, which %s\n",
 							name_hashtable[package_node->name],
 							package_edge->type == EDGE_PRE_DEPENDS ? "pre-" : "",
 							name_hashtable[package_edge->name],
 							describe_status(status_num));
-				} else if ( result == 0 && number_of_alternatives ) {
+				} else if (result == 0 && number_of_alternatives) {
 					/* we've found a package which
 					 * satisfies the dependency,
 					 * so skip over the rest of
@@ -1310,8 +1312,8 @@ static void list_packages(void)
 {
 	int i;
 
-	printf("    Name           Version\n");
-	printf("+++-==============-==============\n");
+	puts("    Name           Version");
+	puts("+++-==============-==============");
 
 	/* go through status hash, dereference package hash and finally strings */
 	for (i=0; i<STATUS_HASH_PRIME+1; i++) {
@@ -1355,8 +1357,8 @@ static void remove_package(const unsigned int package_num, int noisy)
 	char conffile_name[package_name_length + 30];
 	int return_value;
 
-	if ( noisy )
-		printf("Removing %s (%s) ...\n", package_name, package_version);
+	if (noisy)
+		printf("Removing %s (%s)...\n", package_name, package_version);
 
 	/* run prerm script */
 	return_value = run_package_script(package_name, "prerm");
@@ -1404,7 +1406,7 @@ static void purge_package(const unsigned int package_num)
 	char **exclude_files;
 	char list_name[strlen(package_name) + 25];
 
-	printf("Purging %s (%s) ...\n", package_name, package_version);
+	printf("Purging %s (%s)...\n", package_name, package_version);
 
 	/* run prerm script */
 	if (run_package_script(package_name, "prerm") != 0) {
@@ -1531,12 +1533,12 @@ static void unpack_package(deb_file_t *deb_file)
 	/* If existing version, remove it first */
 	if (strcmp(name_hashtable[get_status(status_num, 3)], "installed") == 0) {
 		/* Package is already installed, remove old version first */
-		printf("Preparing to replace %s %s (using %s) ...\n", package_name,
+		printf("Preparing to replace %s %s (using %s)...\n", package_name,
 			name_hashtable[package_hashtable[status_package_num]->version],
 			deb_file->filename);
 		remove_package(status_package_num, 0);
 	} else {
-		printf("Unpacking %s (from %s) ...\n", package_name, deb_file->filename);
+		printf("Unpacking %s (from %s)...\n", package_name, deb_file->filename);
 	}
 
 	/* Extract control.tar.gz to /var/lib/dpkg/info/<package>.filename */
@@ -1544,7 +1546,7 @@ static void unpack_package(deb_file_t *deb_file)
 	archive_handle = init_archive_deb_ar(deb_file->filename);
 	init_archive_deb_control(archive_handle);
 
-	while(all_control_files[i]) {
+	while (all_control_files[i]) {
 		char *c = xasprintf("./%s", all_control_files[i]);
 		llist_add_to(&accept_list, c);
 		i++;
@@ -1559,7 +1561,7 @@ static void unpack_package(deb_file_t *deb_file)
 	/* Run the preinst prior to extracting */
 	if (run_package_script(package_name, "preinst") != 0) {
 		/* when preinst returns exit code != 0 then quit installation process */
-		bb_error_msg_and_die("subprocess pre-installation script returned error.");
+		bb_error_msg_and_die("subprocess pre-installation script returned error");
 	}
 
 	/* Extract data.tar.gz to the root directory */
@@ -1595,7 +1597,7 @@ static void configure_package(deb_file_t *deb_file)
 	const char *package_version = name_hashtable[package_hashtable[deb_file->package]->version];
 	const int status_num = search_status_hashtable(package_name);
 
-	printf("Setting up %s (%s) ...\n", package_name, package_version);
+	printf("Setting up %s (%s)...\n", package_name, package_version);
 
 	/* Run the postinst script */
 	if (run_package_script(package_name, "postinst") != 0) {
@@ -1618,6 +1620,10 @@ int dpkg_main(int argc, char **argv)
 	int state_status;
 	int status_num;
 	int i;
+
+	name_hashtable = xzalloc(sizeof(name_hashtable[0]) * (NAME_HASH_PRIME + 1));
+	package_hashtable = xzalloc(sizeof(package_hashtable[0]) * (PACKAGE_HASH_PRIME + 1));
+	status_hashtable = xzalloc(sizeof(status_hashtable[0]) * (STATUS_HASH_PRIME + 1));
 
 	while ((opt = getopt(argc, argv, "CF:ilPru")) != -1) {
 		switch (opt) {
@@ -1682,13 +1688,13 @@ int dpkg_main(int argc, char **argv)
 			init_archive_deb_control(archive_handle);
 			deb_file[deb_count]->control_file = deb_extract_control_file_to_buffer(archive_handle, control_list);
 			if (deb_file[deb_count]->control_file == NULL) {
-				bb_error_msg_and_die("Couldnt extract control file");
+				bb_error_msg_and_die("cannot extract control file");
 			}
 			deb_file[deb_count]->filename = xstrdup(argv[optind]);
 			package_num = fill_package_struct(deb_file[deb_count]->control_file);
 
 			if (package_num == -1) {
-				bb_error_msg("Invalid control file in %s", argv[optind]);
+				bb_error_msg("invalid control file in %s", argv[optind]);
 				optind++;
 				continue;
 			}
@@ -1718,7 +1724,7 @@ int dpkg_main(int argc, char **argv)
 				search_name_hashtable(argv[optind]),
 				search_name_hashtable("ANY"), VER_ANY);
 			if (package_hashtable[deb_file[deb_count]->package] == NULL) {
-				bb_error_msg_and_die("Package %s is uninstalled or unknown", argv[optind]);
+				bb_error_msg_and_die("package %s is uninstalled or unknown", argv[optind]);
 			}
 			package_num = deb_file[deb_count]->package;
 			status_num = search_status_hashtable(name_hashtable[package_hashtable[package_num]->name]);
@@ -1728,14 +1734,14 @@ int dpkg_main(int argc, char **argv)
 			if (dpkg_opt & dpkg_opt_remove) {
 				if ((strcmp(name_hashtable[state_status], "not-installed") == 0) ||
 					(strcmp(name_hashtable[state_status], "config-files") == 0)) {
-					bb_error_msg_and_die("%s is already removed.", name_hashtable[package_hashtable[package_num]->name]);
+					bb_error_msg_and_die("%s is already removed", name_hashtable[package_hashtable[package_num]->name]);
 				}
 				set_status(status_num, "deinstall", 1);
 			}
 			else if (dpkg_opt & dpkg_opt_purge) {
 				/* if package status is "conf-files" then its ok */
 				if (strcmp(name_hashtable[state_status], "not-installed") == 0) {
-					bb_error_msg_and_die("%s is already purged.", name_hashtable[package_hashtable[package_num]->name]);
+					bb_error_msg_and_die("%s is already purged", name_hashtable[package_hashtable[package_num]->name]);
 				}
 				set_status(status_num, "purge", 1);
 			}
@@ -1748,7 +1754,7 @@ int dpkg_main(int argc, char **argv)
 	/* Check that the deb file arguments are installable */
 	if ((dpkg_opt & dpkg_opt_force_ignore_depends) != dpkg_opt_force_ignore_depends) {
 		if (!check_deps(deb_file, 0, deb_count)) {
-			bb_error_msg_and_die("Dependency check failed");
+			bb_error_msg_and_die("dependency check failed");
 		}
 	}
 
@@ -1780,28 +1786,33 @@ int dpkg_main(int argc, char **argv)
 
 	write_status_file(deb_file);
 
-	for (i = 0; i < deb_count; i++) {
-		free(deb_file[i]->control_file);
-		free(deb_file[i]->filename);
-		free(deb_file[i]);
-	}
-
-	free(deb_file);
-
-	for (i = 0; i < NAME_HASH_PRIME; i++) {
-		free(name_hashtable[i]);
-	}
-
-	for (i = 0; i < PACKAGE_HASH_PRIME; i++) {
-		if (package_hashtable[i] != NULL) {
-			free_package(package_hashtable[i]);
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		for (i = 0; i < deb_count; i++) {
+			free(deb_file[i]->control_file);
+			free(deb_file[i]->filename);
+			free(deb_file[i]);
 		}
-	}
 
-	for (i = 0; i < STATUS_HASH_PRIME; i++) {
-		free(status_hashtable[i]);
+		free(deb_file);
+
+		for (i = 0; i < NAME_HASH_PRIME; i++) {
+			free(name_hashtable[i]);
+		}
+
+		for (i = 0; i < PACKAGE_HASH_PRIME; i++) {
+			if (package_hashtable[i] != NULL) {
+				free_package(package_hashtable[i]);
+			}
+		}
+
+		for (i = 0; i < STATUS_HASH_PRIME; i++) {
+			free(status_hashtable[i]);
+		}
+
+		free(status_hashtable);
+		free(package_hashtable);
+		free(name_hashtable);
 	}
 
 	return(EXIT_SUCCESS);
 }
-
