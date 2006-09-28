@@ -16,7 +16,7 @@ typedef enum { HASH_SHA1, HASH_MD5 } hash_algo_t;
 
 /* This might be useful elsewhere */
 static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
-									  unsigned char hash_length)
+				unsigned char hash_length)
 {
 	int x, len, max;
 	unsigned char *hex_value;
@@ -86,11 +86,9 @@ int md5_sha1_sum_main(int argc, char **argv)
 	int return_value = EXIT_SUCCESS;
 	uint8_t *hash_value;
 	unsigned int flags;
-	hash_algo_t hash_algo = ENABLE_MD5SUM ?
-								(ENABLE_SHA1SUM ?
-									(**argv=='m' ? HASH_MD5 : HASH_SHA1)
-								: HASH_MD5)
-							: HASH_SHA1;
+	hash_algo_t hash_algo = ENABLE_MD5SUM
+		? (ENABLE_SHA1SUM ? (**argv=='m' ? HASH_MD5 : HASH_SHA1) : HASH_MD5)
+		: HASH_SHA1;
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK)
 		flags = bb_getopt_ulflags(argc, argv, "scw");
@@ -99,10 +97,10 @@ int md5_sha1_sum_main(int argc, char **argv)
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && !(flags & FLAG_CHECK)) {
 		if (flags & FLAG_SILENT) {
 			bb_error_msg_and_die
-				("the -s option is meaningful only when verifying checksums");
+				("-%c is meaningful only when verifying checksums", 's');
 		} else if (flags & FLAG_WARN) {
 			bb_error_msg_and_die
-				("the -w option is meaningful only when verifying checksums");
+				("-%c is meaningful only when verifying checksums", 'w');
 		}
 	}
 
@@ -135,7 +133,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 			filename_ptr = strstr(line, "  ");
 			if (filename_ptr == NULL) {
 				if (flags & FLAG_WARN) {
-					bb_error_msg("Invalid format");
+					bb_error_msg("invalid format");
 				}
 				count_failed++;
 				return_value = EXIT_FAILURE;
@@ -165,7 +163,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 						 count_failed, count_total);
 		}
 		if (bb_fclose_nonstdin(pre_computed_stream) == EOF) {
-			bb_perror_msg_and_die("Couldnt close file %s", file_ptr);
+			bb_perror_msg_and_die("cannot close file %s", file_ptr);
 		}
 	} else {
 		while (optind < argc) {
@@ -180,5 +178,5 @@ int md5_sha1_sum_main(int argc, char **argv)
 			}
 		}
 	}
-	return (return_value);
+	return return_value;
 }

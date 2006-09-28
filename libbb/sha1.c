@@ -26,27 +26,28 @@
 
 #include "libbb.h"
 
-# define SHA1_BLOCK_SIZE  64
-# define SHA1_DIGEST_SIZE 20
-# define SHA1_HASH_SIZE   SHA1_DIGEST_SIZE
-# define SHA2_GOOD        0
-# define SHA2_BAD         1
+#define SHA1_BLOCK_SIZE  64
+#define SHA1_DIGEST_SIZE 20
+#define SHA1_HASH_SIZE   SHA1_DIGEST_SIZE
+#define SHA2_GOOD        0
+#define SHA2_BAD         1
 
-# define rotl32(x,n) (((x) << n) | ((x) >> (32 - n)))
+#define rotl32(x,n)      (((x) << n) | ((x) >> (32 - n)))
 
-# define SHA1_MASK   (SHA1_BLOCK_SIZE - 1)
+#define SHA1_MASK        (SHA1_BLOCK_SIZE - 1)
 
 /* reverse byte order in 32-bit words   */
-#define ch(x,y,z)       ((z) ^ ((x) & ((y) ^ (z))))
-#define parity(x,y,z)   ((x) ^ (y) ^ (z))
-#define maj(x,y,z)      (((x) & (y)) | ((z) & ((x) | (y))))
+#define ch(x,y,z)        ((z) ^ ((x) & ((y) ^ (z))))
+#define parity(x,y,z)    ((x) ^ (y) ^ (z))
+#define maj(x,y,z)       (((x) & (y)) | ((z) & ((x) | (y))))
 
 /* A normal version as set out in the FIPS. This version uses   */
 /* partial loop unrolling and is optimised for the Pentium 4    */
-# define rnd(f,k)    \
-    t = a; a = rotl32(a,5) + f(b,c,d) + e + k + w[i]; \
-    e = d; d = c; c = rotl32(b, 30); b = t
-
+#define rnd(f,k) \
+	do { \
+		t = a; a = rotl32(a,5) + f(b,c,d) + e + k + w[i]; \
+		e = d; d = c; c = rotl32(b, 30); b = t; \
+	} while(0)
 
 static void sha1_compile(sha1_ctx_t *ctx)
 {
@@ -160,7 +161,7 @@ void *sha1_end(void *resbuf, sha1_ctx_t *ctx)
 		ctx->wbuf[cnt++] = 0;
 
 	/* assemble the eight byte counter in the buffer in big-endian  */
-	/* format					               */
+	/* format					                */
 
 	ctx->wbuf[14] = htonl((ctx->count[1] << 3) | (ctx->count[0] >> 29));
 	ctx->wbuf[15] = htonl(ctx->count[0] << 3);
@@ -175,5 +176,3 @@ void *sha1_end(void *resbuf, sha1_ctx_t *ctx)
 
 	return resbuf;
 }
-
-
