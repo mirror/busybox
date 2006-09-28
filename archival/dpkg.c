@@ -152,7 +152,7 @@ static int search_name_hashtable(const char *key)
 	make_hash(key, &probe_address, &probe_decrement, NAME_HASH_PRIME);
 	while (name_hashtable[probe_address] != NULL) {
 		if (strcmp(name_hashtable[probe_address], key) == 0) {
-			return(probe_address);
+			return probe_address;
 		} else {
 			probe_address -= probe_decrement;
 			if ((int)probe_address < 0) {
@@ -161,7 +161,7 @@ static int search_name_hashtable(const char *key)
 		}
 	}
 	name_hashtable[probe_address] = xstrdup(key);
-	return(probe_address);
+	return probe_address;
 }
 
 /* this DOESNT add the key to the hashtable
@@ -183,7 +183,7 @@ static unsigned int search_status_hashtable(const char *key)
 			}
 		}
 	}
-	return(probe_address);
+	return probe_address;
 }
 
 /* Need to rethink version comparison, maybe the official dpkg has something i can use ? */
@@ -247,7 +247,7 @@ static int version_compare_part(const char *version1, const char *version2)
 	}
 	ret = 0;
 cleanup_version_compare_part:
-	return(ret);
+	return ret;
 }
 
 /* if ver1 < ver2 return -1,
@@ -282,10 +282,10 @@ static int version_compare(const unsigned int ver1, const unsigned int ver2)
 		ver2_ptr = ch_ver2;
 	}
 	if (epoch1 < epoch2) {
-		return(-1);
+		return -1;
 	}
 	else if (epoch1 > epoch2) {
-		return(1);
+		return 1;
 	}
 
 	/* Compare upstream version */
@@ -309,46 +309,46 @@ static int version_compare(const unsigned int ver1, const unsigned int ver2)
 	free(upstream_ver2);
 
 	if (result != 0) {
-		return(result);
+		return result;
 	}
 
 	/* Compare debian versions */
-	return(version_compare_part(deb_ver1, deb_ver2));
+	return version_compare_part(deb_ver1, deb_ver2);
 }
 
 static int test_version(const unsigned int version1, const unsigned int version2, const unsigned int operator)
 {
 	const int version_result = version_compare(version1, version2);
 	switch (operator) {
-		case (VER_ANY):
-			return(TRUE);
-		case (VER_EQUAL):
+		case VER_ANY:
+			return TRUE;
+		case VER_EQUAL:
 			if (version_result == 0) {
-				return(TRUE);
+				return TRUE;
 			}
 			break;
-		case (VER_LESS):
+		case VER_LESS:
 			if (version_result < 0) {
-				return(TRUE);
+				return TRUE;
 			}
 			break;
-		case (VER_LESS_EQUAL):
+		case VER_LESS_EQUAL:
 			if (version_result <= 0) {
-				return(TRUE);
+				return TRUE;
 			}
 			break;
-		case (VER_MORE):
+		case VER_MORE:
 			if (version_result > 0) {
-				return(TRUE);
+				return TRUE;
 			}
 			break;
-		case (VER_MORE_EQUAL):
+		case VER_MORE_EQUAL:
 			if (version_result >= 0) {
-				return(TRUE);
+				return TRUE;
 			}
 			break;
 	}
-	return(FALSE);
+	return FALSE;
 }
 
 
@@ -361,10 +361,10 @@ static int search_package_hashtable(const unsigned int name, const unsigned int 
 	while (package_hashtable[probe_address] != NULL) {
 		if (package_hashtable[probe_address]->name == name) {
 			if (operator == VER_ANY) {
-				return(probe_address);
+				return probe_address;
 			}
 			if (test_version(package_hashtable[probe_address]->version, version, operator)) {
-				return(probe_address);
+				return probe_address;
 			}
 		}
 		probe_address -= probe_decrement;
@@ -372,7 +372,7 @@ static int search_package_hashtable(const unsigned int name, const unsigned int 
 			probe_address += PACKAGE_HASH_PRIME;
 		}
 	}
-	return(probe_address);
+	return probe_address;
 }
 
 /*
@@ -525,7 +525,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 
 static void free_package(common_node_t *node)
 {
-	unsigned short i;
+	unsigned i;
 	if (node) {
 		for (i = 0; i < node->num_of_edges; i++) {
 			free(node->edge[i]);
@@ -554,15 +554,15 @@ static int read_package_field(const char *package_buffer, char **field_name, cha
 	if (package_buffer == NULL) {
 		*field_name = NULL;
 		*field_value = NULL;
-		return(-1);
+		return -1;
 	}
 	while (1) {
 		next_offset = offset + 1;
 		switch (package_buffer[offset]) {
-			case('\0'):
+			case '\0':
 				exit_flag = TRUE;
 				break;
-			case(':'):
+			case ':':
 				if (offset_name_end == 0) {
 					offset_name_end = offset;
 					offset_value_start = next_offset;
@@ -570,14 +570,14 @@ static int read_package_field(const char *package_buffer, char **field_name, cha
 				/* TODO: Name might still have trailing spaces if ':' isnt
 				 * immediately after name */
 				break;
-			case('\n'):
+			case '\n':
 				/* TODO: The char next_offset may be out of bounds */
 				if (package_buffer[next_offset] != ' ') {
 					exit_flag = TRUE;
 					break;
 				}
-			case('\t'):
-			case(' '):
+			case '\t':
+			case ' ':
 				/* increment the value start point if its a just filler */
 				if (offset_name_start == offset) {
 					offset_name_start++;
@@ -619,7 +619,7 @@ static int read_package_field(const char *package_buffer, char **field_name, cha
 	} else {
 		*field_value = NULL;
 	}
-	return(next_offset);
+	return next_offset;
 }
 
 static unsigned int fill_package_struct(char *control_buffer)
@@ -638,7 +638,7 @@ static unsigned int fill_package_struct(char *control_buffer)
 
 	new_node->version = search_name_hashtable("unknown");
 	while (field_start < buffer_length) {
-		unsigned short field_num;
+		unsigned field_num;
 
 		field_start += read_package_field(&control_buffer[field_start],
 				&field_name, &field_value);
@@ -687,7 +687,7 @@ fill_package_struct_cleanup:
 
 	if (new_node->version == search_name_hashtable("unknown")) {
 		free_package(new_node);
-		return(-1);
+		return -1;
 	}
 	num = search_package_hashtable(new_node->name, new_node->version, VER_EQUAL);
 	if (package_hashtable[num] == NULL) {
@@ -695,7 +695,7 @@ fill_package_struct_cleanup:
 	} else {
 		free_package(new_node);
 	}
-	return(num);
+	return num;
 }
 
 /* if num = 1, it returns the want status, 2 returns flag, 3 returns status */
@@ -718,7 +718,7 @@ static unsigned int get_status(const unsigned int status_node, const int num)
 	state_sub_string = xstrndup(status_string, len);
 	state_sub_num = search_name_hashtable(state_sub_string);
 	free(state_sub_string);
-	return(state_sub_num);
+	return state_sub_num;
 }
 
 static void set_status(const unsigned int status_node_num, const char *new_value, const int position)
@@ -734,15 +734,15 @@ static void set_status(const unsigned int status_node_num, const char *new_value
 	char *new_status;
 
 	switch (position) {
-		case (1):
+		case 1:
 			want = new_value_num;
 			want_len = new_value_len;
 			break;
-		case (2):
+		case 2:
 			flag = new_value_num;
 			flag_len = new_value_len;
 			break;
-		case (3):
+		case 3:
 			status = new_value_num;
 			status_len = new_value_len;
 			break;
@@ -1189,7 +1189,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 		}
 	}
 	free(conflicts);
-	return(TRUE);
+	return TRUE;
 }
 
 static char **create_list(const char *filename)
@@ -1202,7 +1202,7 @@ static char **create_list(const char *filename)
 	/* don't use [xw]fopen here, handle error ourself */
 	list_stream = fopen(filename, "r");
 	if (list_stream == NULL) {
-		return(NULL);
+		return NULL;
 	}
 
 	while ((line = bb_get_chomped_line_from_file(list_stream)) != NULL) {
@@ -1213,10 +1213,10 @@ static char **create_list(const char *filename)
 	fclose(list_stream);
 
 	if (count == 0) {
-		return(NULL);
+		return NULL;
 	} else {
 		file_list[count] = NULL;
-		return(file_list);
+		return file_list;
 	}
 }
 
@@ -1229,7 +1229,7 @@ static int remove_file_array(char **remove_names, char **exclude_names)
 	int i,j;
 
 	if (remove_names == NULL) {
-		return(FALSE);
+		return FALSE;
 	}
 	for (i = 0; remove_names[i] != NULL; i++) {
 		match_flag = FALSE;
@@ -1256,7 +1256,7 @@ static int remove_file_array(char **remove_names, char **exclude_names)
 			}
 		}
 	}
-	return(remove_flag);
+	return remove_flag;
 }
 
 static int run_package_script(const char *package_name, const char *script_type)
@@ -1270,7 +1270,7 @@ static int run_package_script(const char *package_name, const char *script_type)
 	/* If the file doesnt exist is isnt a fatal */
 	result = lstat(script_path, &path_stat) < 0 ? EXIT_SUCCESS : system(script_path);
 	free(script_path);
-	return(result);
+	return result;
 }
 
 static const char *all_control_files[] = {"preinst", "postinst", "prerm", "postrm",
@@ -1278,7 +1278,7 @@ static const char *all_control_files[] = {"preinst", "postinst", "prerm", "postr
 
 static char **all_control_list(const char *package_name)
 {
-	unsigned short i = 0;
+	unsigned i = 0;
 	char **remove_files;
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */
@@ -1288,14 +1288,14 @@ static char **all_control_list(const char *package_name)
 		i++;
 	}
 
-	return(remove_files);
+	return remove_files;
 }
 
 static void free_array(char **array)
 {
 
 	if (array) {
-		unsigned short i = 0;
+		unsigned i = 0;
 		while (array[i]) {
 			free(array[i]);
 			i++;
@@ -1447,7 +1447,7 @@ static archive_handle_t *init_archive_deb_ar(const char *filename)
 	ar_handle->filter = filter_accept_list_reassign;
 	ar_handle->src_fd = xopen(filename, O_RDONLY);
 
-	return(ar_handle);
+	return ar_handle;
 }
 
 static void init_archive_deb_control(archive_handle_t *ar_handle)
@@ -1503,7 +1503,7 @@ static char *deb_extract_control_file_to_buffer(archive_handle_t *ar_handle, lli
 	unpack_ar_archive(ar_handle);
 	close(ar_handle->src_fd);
 
-	return(ar_handle->sub_archive->buffer);
+	return ar_handle->sub_archive->buffer;
 }
 
 static void data_extract_all_prefix(archive_handle_t *archive_handle)
@@ -1659,7 +1659,7 @@ int dpkg_main(int argc, char **argv)
 				bb_show_usage();
 		}
 	}
-	/* check for non-otion argument if expected  */
+	/* check for non-option argument if expected  */
 	if ((dpkg_opt == 0) || ((argc == optind) && !(dpkg_opt && dpkg_opt_list_installed))) {
 		bb_show_usage();
 	}
@@ -1670,7 +1670,7 @@ int dpkg_main(int argc, char **argv)
 	/* if the list action was given print the installed packages and exit */
 	if (dpkg_opt & dpkg_opt_list_installed) {
 		list_packages();
-		return(EXIT_SUCCESS);
+		return EXIT_SUCCESS;
 	}
 
 	/* Read arguments and store relevant info in structs */
@@ -1814,5 +1814,5 @@ int dpkg_main(int argc, char **argv)
 		free(name_hashtable);
 	}
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
