@@ -452,6 +452,14 @@ static int static_down(struct interface_defn_t *ifd, execfn *exec)
 
 static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
+	int i;
+
+	for (i = 0; i < ifd->n_options; i++) {
+		if (strcmp(ifd->option[i].name, "dhcp-start-cmd") == 0) {
+			return execute(ifd->option[i].value, ifd, exec);
+		}
+	}
+
 	if (execute("udhcpc -n -p /var/run/udhcpc.%iface%.pid -i "
 			"%iface% [[-H %hostname%]] [[-c %clientid%]]", ifd, exec)) return 1;
 	if (execute("pump -i %iface% [[-h %hostname%]] [[-l %leasehours%]]", ifd, exec)) return 1;
@@ -463,6 +471,14 @@ static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
+	int i;
+
+	for (i = 0; i < ifd->n_options; i++) {
+		if (strcmp(ifd->option[i].name, "dhcp-stop-cmd") == 0) {
+			return execute(ifd->option[i].value, ifd, exec);
+		}
+	}
+
 	/* SIGUSR2 forces udhcpc to release the current lease and go inactive,
 	 * and SIGTERM causes udhcpc to exit.  Signals are queued and processed
 	 * sequentially so we don't need to sleep */
