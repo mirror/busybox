@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include "rt_names.h"
 
-static void rtnl_tab_initialize(char *file, char **tab, int size)
+static void rtnl_tab_initialize(char *file, const char **tab, int size)
 {
 	char buf[512];
 	FILE *fp;
@@ -51,7 +51,7 @@ static void rtnl_tab_initialize(char *file, char **tab, int size)
 }
 
 
-static char * rtnl_rtprot_tab[256] = {
+static const char * rtnl_rtprot_tab[256] = {
 	"none",
 	"redirect",
 	"kernel",
@@ -96,7 +96,7 @@ const char * rtnl_rtprot_n2a(int id, char *buf, int len)
 
 int rtnl_rtprot_a2n(uint32_t *id, char *arg)
 {
-	static char *cache = NULL;
+	static const char *cache = NULL;
 	static unsigned long res;
 	char *end;
 	int i;
@@ -128,7 +128,7 @@ int rtnl_rtprot_a2n(uint32_t *id, char *arg)
 
 
 
-static char * rtnl_rtscope_tab[256] = {
+static const char * rtnl_rtscope_tab[256] = {
 	"global",
 };
 
@@ -163,7 +163,7 @@ const char * rtnl_rtscope_n2a(int id, char *buf, int len)
 
 int rtnl_rtscope_a2n(uint32_t *id, char *arg)
 {
-	static char *cache = NULL;
+	static const char *cache = NULL;
 	static unsigned long res;
 	char *end;
 	int i;
@@ -195,7 +195,7 @@ int rtnl_rtscope_a2n(uint32_t *id, char *arg)
 
 
 
-static char * rtnl_rtrealm_tab[256] = {
+static const char * rtnl_rtrealm_tab[256] = {
 	"unknown",
 };
 
@@ -210,7 +210,7 @@ static void rtnl_rtrealm_initialize(void)
 
 int rtnl_rtrealm_a2n(uint32_t *id, char *arg)
 {
-	static char *cache = NULL;
+	static const char *cache = NULL;
 	static unsigned long res;
 	char *end;
 	int i;
@@ -242,7 +242,7 @@ int rtnl_rtrealm_a2n(uint32_t *id, char *arg)
 
 
 
-static char * rtnl_rtdsfield_tab[256] = {
+static const char * rtnl_rtdsfield_tab[256] = {
 	"0",
 };
 
@@ -274,7 +274,7 @@ const char * rtnl_dsfield_n2a(int id, char *buf, int len)
 
 int rtnl_dsfield_a2n(uint32_t *id, char *arg)
 {
-	static char *cache = NULL;
+	static const char *cache = NULL;
 	static unsigned long res;
 	char *end;
 	int i;
@@ -303,4 +303,3 @@ int rtnl_dsfield_a2n(uint32_t *id, char *arg)
 	*id = res;
 	return 0;
 }
-
