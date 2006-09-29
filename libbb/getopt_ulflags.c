@@ -13,7 +13,7 @@
 /*                  Documentation
 
 unsigned long
-bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
+bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 
 	The command line options must be declared in const char
 	*applet_opts as a string of chars, for example:
@@ -74,6 +74,7 @@ const struct option *bb_applet_long_options
 	(see getopt(3))
 
 	static const struct option applet_long_options[] = {
+		//name,has_arg,flag,val 
 		{ "verbose", 0, 0, 'v' },
 		{ 0, 0, 0, 0 }
 	};
@@ -120,7 +121,7 @@ const char *bb_opt_complementally
 	int w_counter = 0;
 	bb_opt_complementally = "ww";
 	bb_getopt_ulflags(argc, argv, "w", &w_counter);
-	if(w_counter)
+	if (w_counter)
 		width = (w_counter == 1) ? 132 : INT_MAX;
 	else
 		get_terminal_width(...&width...);
@@ -136,11 +137,11 @@ const char *bb_opt_complementally
 	int verbose_level = 0;
 	bb_opt_complementally = "vv:b::b-c:c-b";
 	f = bb_getopt_ulflags(argc, argv, "vb:c", &my_b, &verbose_level);
-	if(f & 2)       // -c after -b unsets -b flag
-		while(my_b) { dosomething_with(my_b->data); my_b = my_b->link; }
-	if(my_b)        // but llist is stored if -b is specified
+	if (f & 2)       // -c after -b unsets -b flag
+		while (my_b) { dosomething_with(my_b->data); my_b = my_b->link; }
+	if (my_b)        // but llist is stored if -b is specified
 		free_llist(my_b);
-	if(verbose_level) bb_printf("verbose level is %d\n", verbose_level);
+	if (verbose_level) bb_printf("verbose level is %d\n", verbose_level);
 
 Special characters:
 
@@ -207,6 +208,9 @@ Special characters:
 	if (flags & BB_GETOPT_ERROR)
 		bb_show_usage();
 
+ "x--x" Variation of the above, it means that -x option should occur
+	at most once.
+
  "?"    A "?" as the first char in a bb_opt_complementally group means:
 	if BB_GETOPT_ERROR is detected, don't return, call bb_show_usage
 	and exit instead. Next char after '?' can't be a digit.
@@ -255,16 +259,13 @@ Special characters:
 	$ id; id -u; id -g; id -ru; id -nu; id -rg; id -ng; id -rnu; id -rng
 
  "X"    A bb_opt_complementally group with just a single letter means
-	that this this option is required. If more than one such group exists,
+	that this option is required. If more than one such group exists,
 	at least one option is required to occur (not all of them).
 	For example from "start-stop-daemon" applet:
 
 	// Don't allow -KS -SK, but -S or -K is required
 	bb_opt_complementally = "K:S:?K--S:S--K";
 	flags = bb_getopt_ulflags(argc, argv, "KS...);
-
-
- "x--x" give error if double or more used -x option
 
  Don't forget to use ':'. For example "?322-22-23X-x-a" is interpreted as
  "?3:22:-2:2-2:2-3Xa:2--x": max 3 args; count uses of '-2'; min 2 args;
@@ -299,7 +300,7 @@ const struct option *bb_applet_long_options = bb_default_long_options;
 #endif
 
 unsigned long
-bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
+bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 {
 	unsigned long flags = 0;
 	unsigned long requires = 0;
@@ -324,7 +325,7 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 #define FREE_FIRST_ARGV_IS_OPT  8
 	int spec_flgs = 0;
 
-	va_start (p, applet_opts);
+	va_start(p, applet_opts);
 
 	c = 0;
 	on_off = complementally;
@@ -332,15 +333,15 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 
 	/* skip GNU extension */
 	s = (const unsigned char *)applet_opts;
-	if(*s == '+' || *s == '-')
+	if (*s == '+' || *s == '-')
 		s++;
 	for (; *s; s++) {
-		if(c >= (int)(sizeof(flags)*8))
+		if (c >= (int)(sizeof(flags)*8))
 			break;
 		on_off->opt = *s;
 		on_off->switch_on = (1 << c);
 		if (s[1] == ':') {
-			on_off->optarg = va_arg (p, void **);
+			on_off->optarg = va_arg(p, void **);
 			do
 				s++;
 			while (s[1] == ':');
@@ -350,19 +351,19 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 	}
 
 #if ENABLE_GETOPT_LONG
-	for(l_o = bb_applet_long_options; l_o->name; l_o++) {
-		if(l_o->flag)
+	for (l_o = bb_applet_long_options; l_o->name; l_o++) {
+		if (l_o->flag)
 			continue;
-		for(on_off = complementally; on_off->opt != 0; on_off++)
-			if(on_off->opt == l_o->val)
+		for (on_off = complementally; on_off->opt != 0; on_off++)
+			if (on_off->opt == l_o->val)
 				break;
-		if(on_off->opt == 0) {
-			if(c >= (int)(sizeof(flags)*8))
+		if (on_off->opt == 0) {
+			if (c >= (int)(sizeof(flags)*8))
 				break;
 			on_off->opt = l_o->val;
 			on_off->switch_on = (1 << c);
-			if(l_o->has_arg != no_argument)
-				on_off->optarg = va_arg (p, void **);
+			if (l_o->has_arg != no_argument)
+				on_off->optarg = va_arg(p, void **);
 			c++;
 		}
 	}
@@ -374,8 +375,8 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 		if (*s == ':')
 			continue;
 		c = s[1];
-		if(*s == '?') {
-			if(c < '0' || c > '9') {
+		if (*s == '?') {
+			if (c < '0' || c > '9') {
 				spec_flgs |= SHOW_USAGE_IF_ERROR;
 			} else {
 				max_arg = c - '0';
@@ -383,9 +384,9 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 			}
 			continue;
 		}
-		if(*s == '-') {
-			if(c < '0' || c > '9') {
-				if(c == '-') {
+		if (*s == '-') {
+			if (c < '0' || c > '9') {
+				if (c == '-') {
 					spec_flgs |= FIRST_ARGV_IS_OPT;
 					s++;
 				} else
@@ -399,99 +400,99 @@ bb_getopt_ulflags (int argc, char **argv, const char *applet_opts, ...)
 		for (on_off = complementally; on_off->opt; on_off++)
 			if (on_off->opt == *s)
 				break;
-		if(c == ':' && s[2] == ':') {
+		if (c == ':' && s[2] == ':') {
 			on_off->list_flg++;
 			continue;
 		}
-		if(c == ':' || c == '\0') {
+		if (c == ':' || c == '\0') {
 			requires |= on_off->switch_on;
 			continue;
 		}
-		if(c == '-' && (s[2] == ':' || s[2] == '\0')) {
+		if (c == '-' && (s[2] == ':' || s[2] == '\0')) {
 			flags |= on_off->switch_on;
 			on_off->incongruously |= on_off->switch_on;
 			s++;
 			continue;
 		}
-		if(c == *s) {
-			on_off->counter = va_arg (p, int *);
+		if (c == *s) {
+			on_off->counter = va_arg(p, int *);
 			s++;
 		}
 		pair = on_off;
 		pair_switch = &(pair->switch_on);
-		for(s++; *s && *s != ':'; s++) {
-			if(*s == '?') {
+		for (s++; *s && *s != ':'; s++) {
+			if (*s == '?') {
 				pair_switch = &(pair->requires);
 			} else if (*s == '-') {
-				if(pair_switch == &(pair->switch_off))
+				if (pair_switch == &(pair->switch_off))
 					pair_switch = &(pair->incongruously);
 				else
 					pair_switch = &(pair->switch_off);
 			} else {
-			    for (on_off = complementally; on_off->opt; on_off++)
-				if (on_off->opt == *s) {
-				    *pair_switch |= on_off->switch_on;
-				    break;
-				}
+				for (on_off = complementally; on_off->opt; on_off++)
+					if (on_off->opt == *s) {
+						*pair_switch |= on_off->switch_on;
+						break;
+					}
 			}
 		}
 		s--;
 	}
 	va_end (p);
 
-#if defined(CONFIG_AR) || defined(CONFIG_TAR)
-	if((spec_flgs & FIRST_ARGV_IS_OPT)) {
-		if(argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {
+#if ENABLE_AR || ENABLE_TAR
+	if (spec_flgs & FIRST_ARGV_IS_OPT) {
+		if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {
 			argv[1] = xasprintf("-%s", argv[1]);
-			if(ENABLE_FEATURE_CLEAN_UP)
+			if (ENABLE_FEATURE_CLEAN_UP)
 				spec_flgs |= FREE_FIRST_ARGV_IS_OPT;
 		}
 	}
 #endif
 #if ENABLE_GETOPT_LONG
-	while ((c = getopt_long (argc, argv, applet_opts,
+	while ((c = getopt_long(argc, argv, applet_opts,
 				 bb_applet_long_options, NULL)) >= 0) {
 #else
-	while ((c = getopt (argc, argv, applet_opts)) >= 0) {
+	while ((c = getopt(argc, argv, applet_opts)) >= 0) {
 #endif /* ENABLE_GETOPT_LONG */
-#ifdef CONFIG_PS
+#if ENABLE_PS
 loop_arg_is_opt:
 #endif
 		for (on_off = complementally; on_off->opt != c; on_off++) {
 			/* c==0 if long opt have non NULL flag */
-			if(on_off->opt == 0 && c != 0)
-				bb_show_usage ();
+			if (on_off->opt == 0 && c != 0)
+				bb_show_usage();
 		}
-		if(flags & on_off->incongruously) {
-			if((spec_flgs & SHOW_USAGE_IF_ERROR))
-				bb_show_usage ();
+		if (flags & on_off->incongruously) {
+			if ((spec_flgs & SHOW_USAGE_IF_ERROR))
+				bb_show_usage();
 			flags |= BB_GETOPT_ERROR;
 		}
 		trigger = on_off->switch_on & on_off->switch_off;
 		flags &= ~(on_off->switch_off ^ trigger);
 		flags |= on_off->switch_on ^ trigger;
 		flags ^= trigger;
-		if(on_off->counter)
+		if (on_off->counter)
 			(*(on_off->counter))++;
-		if(on_off->list_flg) {
+		if (on_off->list_flg) {
 			llist_add_to((llist_t **)(on_off->optarg), optarg);
 		} else if (on_off->optarg) {
 			*(char **)(on_off->optarg) = optarg;
 		}
-#ifdef CONFIG_PS
-		if(pargv != NULL)
+#if ENABLE_PS
+		if (pargv != NULL)
 			break;
 #endif
 	}
 
-#ifdef CONFIG_PS
-	if((spec_flgs & ALL_ARGV_IS_OPTS)) {
+#if ENABLE_PS
+	if (spec_flgs & ALL_ARGV_IS_OPTS) {
 		/* process argv is option, for example "ps" applet */
-		if(pargv == NULL)
+		if (pargv == NULL)
 			pargv = argv + optind;
-		while(*pargv) {
+		while (*pargv) {
 			c = **pargv;
-			if(c == '\0') {
+			if (c == '\0') {
 				pargv++;
 			} else {
 				(*pargv)++;
@@ -501,21 +502,20 @@ loop_arg_is_opt:
 	}
 #endif
 
-#if (defined(CONFIG_AR) || defined(CONFIG_TAR)) && \
-				defined(CONFIG_FEATURE_CLEAN_UP)
-	if((spec_flgs & FREE_FIRST_ARGV_IS_OPT))
+#if (ENABLE_AR || ENABLE_TAR) && ENABLE_FEATURE_CLEAN_UP
+	if (spec_flgs & FREE_FIRST_ARGV_IS_OPT)
 		free(argv[1]);
 #endif
 	/* check depending requires for given options */
 	for (on_off = complementally; on_off->opt; on_off++) {
-		if(on_off->requires && (flags & on_off->switch_on) &&
+		if (on_off->requires && (flags & on_off->switch_on) &&
 					(flags & on_off->requires) == 0)
-			bb_show_usage ();
+			bb_show_usage();
 	}
-	if(requires && (flags & requires) == 0)
-		bb_show_usage ();
+	if (requires && (flags & requires) == 0)
+		bb_show_usage();
 	argc -= optind;
-	if(argc < min_arg || (max_arg >= 0 && argc > max_arg))
-		bb_show_usage ();
+	if (argc < min_arg || (max_arg >= 0 && argc > max_arg))
+		bb_show_usage();
 	return flags;
 }
