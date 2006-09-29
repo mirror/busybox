@@ -397,7 +397,7 @@ static time_t parse_time(char *str)
 		ts.tm_mday = 0;
 #endif
 	if (ts.tm_mday == 0) {
-		bb_error_msg_and_die("Couldn't parse date/time specifier: %s", str);
+		bb_error_msg_and_die("Cannot parse date/time specifier: %s", str);
 	}
 	return (mktime(&ts));
 }

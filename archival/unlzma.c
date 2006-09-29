@@ -40,7 +40,7 @@ int unlzma_main(int argc, char **argv)
 		/* bug: char *extension = filename + strlen(filename) - 5; */
 		char *extension = strrchr(filename, '.');
 		if (!extension || strcmp(extension, ".lzma") != 0) {
-			bb_error_msg_and_die("Invalid extension");
+			bb_error_msg_and_die("invalid extension");
 		}
 		xstat(filename, &stat_buf);
 		*extension = '\0';
@@ -53,7 +53,7 @@ int unlzma_main(int argc, char **argv)
 		if (!status)
 			filename[strlen(filename)] = '.';
 		if (unlink(filename) < 0) {
-			bb_error_msg_and_die("Couldn't remove %s", filename);
+			bb_error_msg_and_die("cannot remove %s", filename);
 		}
 	}
 

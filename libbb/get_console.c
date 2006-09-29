@@ -72,6 +72,6 @@ int get_console_fd(void)
 		}
 	}
 
-	bb_error_msg("Couldn't get a file descriptor referring to the console");
+	bb_error_msg("cannot get file descriptor referring to console");
 	return fd;                      /* total failure */
 }

@@ -84,7 +84,7 @@ int uncompress_main(int argc, char **argv)
 
 		/* delete_path will be NULL if in test mode or from stdin */
 		if (delete_path && (unlink(delete_path) == -1)) {
-			bb_error_msg_and_die("Couldn't remove %s", delete_path);
+			bb_error_msg_and_die("cannot remove %s", delete_path);
 		}
 
 		free(uncompressed_file);

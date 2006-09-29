@@ -320,7 +320,7 @@ int udhcpc_main(int argc, char *argv[])
 			else
 				fd = raw_socket(client_config.ifindex);
 			if (fd < 0) {
-				bb_perror_msg("FATAL: couldn't listen on socket");
+				bb_perror_msg("FATAL: cannot listen on socket");
 				return 0;
 			}
 		}

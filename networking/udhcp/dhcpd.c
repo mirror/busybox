@@ -90,7 +90,7 @@ int udhcpd_main(int argc, char *argv[])
 
 		if (server_socket < 0)
 			if ((server_socket = listen_socket(INADDR_ANY, SERVER_PORT, server_config.interface)) < 0) {
-				bb_perror_msg("FATAL: couldn't create server socket");
+				bb_perror_msg("FATAL: cannot create server socket");
 				return 2;
 			}
 
@@ -137,7 +137,7 @@ int udhcpd_main(int argc, char *argv[])
 		}
 
 		if ((state = get_option(&packet, DHCP_MESSAGE_TYPE)) == NULL) {
-			bb_error_msg("Couldn't get option from packet, ignoring");
+			bb_error_msg("cannot get option from packet, ignoring");
 			continue;
 		}
 
@@ -165,7 +165,7 @@ int udhcpd_main(int argc, char *argv[])
 			DEBUG("Received DISCOVER");
 
 			if (sendOffer(&packet) < 0) {
-				bb_error_msg("Send OFFER failed");
+				bb_error_msg("send OFFER failed");
 			}
 			break;
 		case DHCPREQUEST:

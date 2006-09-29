@@ -119,13 +119,13 @@ int gunzip_main(int argc, char **argv)
 					check_header_gzip(src_fd);
 					status = inflate_gunzip(src_fd, dst_fd);
 					if (status != 0) {
-						bb_error_msg_and_die("Error inflating");
+						bb_error_msg_and_die("error inflating");
 					}
 				} else {
-					bb_error_msg_and_die("Invalid magic");
+					bb_error_msg_and_die("invalid magic");
 				}
 		} else {
-			bb_error_msg_and_die("Invalid magic");
+			bb_error_msg_and_die("invalid magic");
 		}
 
 		if ((status != EXIT_SUCCESS) && (new_path)) {
@@ -142,7 +142,7 @@ int gunzip_main(int argc, char **argv)
 
 		/* delete_path will be NULL if in test mode or from stdin */
 		if (delete_path && (unlink(delete_path) == -1)) {
-			bb_error_msg_and_die("Couldn't remove %s", delete_path);
+			bb_error_msg_and_die("cannot remove %s", delete_path);
 		}
 
 		free(new_path);

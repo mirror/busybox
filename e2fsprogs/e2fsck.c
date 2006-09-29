@@ -9132,7 +9132,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Internal error: couldn't find dir_info */
 	{ PR_2_NO_DIRINFO,
-	  N_("Internal error: couldn't find dir_info for %i.\n"),
+	  N_("Internal error: cannot find dir_info for %i.\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Final rec_len is wrong */
@@ -9408,7 +9408,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Internal error: couldn't find dir_info */
 	{ PR_3_NO_DIRINFO,
-	  N_("Internal error: couldn't find dir_info for %i.\n"),
+	  N_("Internal error: cannot find dir_info for %i.\n"),
 	  PROMPT_NONE, PR_FATAL },
 
 	/* Lost+found not a directory */
@@ -12915,7 +12915,7 @@ static void reserve_stdio_fds(void)
 		if (fd > 2)
 			break;
 		if (fd < 0) {
-			fprintf(stderr, _("ERROR: Couldn't open "
+			fprintf(stderr, _("ERROR: Cannot open "
 				"/dev/null (%s)\n"),
 				strerror(errno));
 			break;

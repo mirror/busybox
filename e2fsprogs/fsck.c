@@ -479,7 +479,7 @@ static void load_fs_info(const char *filename)
 	struct fs_info *fs;
 
 	if ((f = fopen(filename, "r")) == NULL) {
-		bb_perror_msg("WARNING: couldn't open %s", filename);
+		bb_perror_msg("WARNING: cannot open %s", filename);
 		return;
 	}
 	while (!feof(f)) {
@@ -717,7 +717,7 @@ static struct fsck_instance *wait_one(int flags)
 			if ((errno == EINTR) || (errno == EAGAIN))
 				continue;
 			if (errno == ECHILD) {
-				bb_error_msg("wait: No more child process?!?");
+				bb_error_msg("wait: no more child process?!?");
 				return NULL;
 			}
 			perror("wait");
@@ -840,7 +840,7 @@ static void fsck_device(struct fs_info *fs, int interactive)
 	num_running++;
 	retval = execute(type, fs->device, fs->mountpt, interactive);
 	if (retval) {
-		bb_error_msg("Error %d while executing fsck.%s for %s",
+		bb_error_msg("error %d while executing fsck.%s for %s",
 						retval, type, fs->device);
 		num_running--;
 	}
@@ -1208,8 +1208,8 @@ static void PRS(int argc, char *argv[])
 				 * /proc/partitions isn't found.
 				 */
 				if (access("/proc/partitions", R_OK) < 0) {
-					bb_error_msg_and_die("Couldn't open /proc/partitions: %m\n"
-							"Is /proc mounted?");
+					bb_perror_msg_and_die("cannot open /proc/partitions "
+							"(is /proc mounted?)");
 				}
 				/*
 				 * Check to see if this is because
@@ -1217,10 +1217,10 @@ static void PRS(int argc, char *argv[])
 				 */
 				if (geteuid())
 					bb_error_msg_and_die(
-		"Must be root to scan for matching filesystems: %s\n", arg);
+		"must be root to scan for matching filesystems: %s\n", arg);
 				else
 					bb_error_msg_and_die(
-		"Couldn't find matching filesystem: %s", arg);
+		"cannot find matching filesystem: %s", arg);
 			}
 			devices[num_devices++] = dev ? dev : string_copy(arg);
 			continue;

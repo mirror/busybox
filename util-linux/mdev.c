@@ -185,7 +185,7 @@ static void make_device(char *path, int delete)
 		putenv(s);
 		free(s);
 		free(command);
-		if (rc == -1) bb_perror_msg_and_die("Couldn't run %s", command);
+		if (rc == -1) bb_perror_msg_and_die("cannot run %s", command);
 	}
 	if (delete) unlink(device_name);
 }

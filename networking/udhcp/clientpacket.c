@@ -172,7 +172,7 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	memset(&packet, 0, sizeof(struct udp_dhcp_packet));
 	bytes = read(fd, &packet, sizeof(struct udp_dhcp_packet));
 	if (bytes < 0) {
-		DEBUG("Couldn't read on raw listening socket - ignoring");
+		DEBUG("Cannot read on raw listening socket - ignoring");
 		usleep(500000); /* possible down interface, looping condition */
 		return -1;
 	}

@@ -158,7 +158,7 @@ int main(int argc, char** argv)
 	char	*devname, *tmp;
 	int	major, minor;
 	dev_t	device;
-	const char *errmsg = "Couldn't parse %s: %s\n";
+	const char *errmsg = "Cannot parse %s: %s\n";
 
 	if ((argc != 2) && (argc != 3)) {
 		fprintf(stderr, "Usage: %s device_number\n", argv[0]);
@@ -191,7 +191,7 @@ int main(int argc, char** argv)
 		printf("Found device!  %s\n", devname);
 		free(devname);
 	} else {
-		printf("Couldn't find device.\n");
+		printf("Cannot find device.\n");
 	}
 	return 0;
 }

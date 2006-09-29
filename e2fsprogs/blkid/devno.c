@@ -189,7 +189,7 @@ int main(int argc, char** argv)
 	char	*devname, *tmp;
 	int	major, minor;
 	dev_t	devno;
-	const char *errmsg = "Couldn't parse %s: %s\n";
+	const char *errmsg = "Cannot parse %s: %s\n";
 
 	blkid_debug_mask = DEBUG_ALL;
 	if ((argc != 2) && (argc != 3)) {

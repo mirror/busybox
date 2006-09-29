@@ -4111,7 +4111,7 @@ int insmod_main( int argc, char **argv)
 		if (m_has_modinfo) {
 			m_version = new_get_module_version(f, m_strversion);
 			if (m_version == -1) {
-				bb_error_msg("couldn't find the kernel version the module was "
+				bb_error_msg("cannot find the kernel version the module was "
 						"compiled for");
 				goto out;
 			}

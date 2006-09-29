@@ -717,7 +717,7 @@ static int builtin_source(struct child_prog *child)
 	/* XXX search through $PATH is missing */
 	input = fopen(child->argv[1], "r");
 	if (!input) {
-		bb_error_msg("Couldn't open file '%s'", child->argv[1]);
+		bb_error_msg("cannot open '%s'", child->argv[1]);
 		return EXIT_FAILURE;
 	}
 
@@ -1120,7 +1120,7 @@ static void pseudo_exec(struct child_prog *child)
 #endif
 		debug_printf("exec of %s\n",child->argv[0]);
 		execvp(child->argv[0],child->argv);
-		bb_perror_msg("couldn't exec: %s",child->argv[0]);
+		bb_perror_msg("cannot exec: %s",child->argv[0]);
 		_exit(1);
 	} else if (child->group) {
 		debug_printf("runtime nesting to group\n");
