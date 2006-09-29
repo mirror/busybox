@@ -55,10 +55,13 @@
 #define isspace_given_isprint(c) ((c) == ' ')
 #endif
 
-//#define COUNT_T unsigned long long
-//#define COUNT_FMT "llu"
+#if ENABLE_FEATURE_WC_LARGE
+#define COUNT_T unsigned long long
+#define COUNT_FMT "llu"
+#else
 #define COUNT_T unsigned
 #define COUNT_FMT "u"
+#endif
 
 enum {
 	WC_LINES	= 0,
@@ -82,7 +85,7 @@ int wc_main(int argc, char **argv)
 	int c;
 	char status = EXIT_SUCCESS;
 	char in_word;
-	char print_type;
+	unsigned print_type;
 
 	print_type = bb_getopt_ulflags(argc, argv, "lwcL");
 
@@ -115,6 +118,8 @@ int wc_main(int argc, char **argv)
 		in_word = 0;
 
 		do {
+			/* Our -w doesn't match GNU wc exactly... oh well */
+
 			++counts[WC_CHARS];
 			c = getc(fp);
 			if (isprint(c)) {

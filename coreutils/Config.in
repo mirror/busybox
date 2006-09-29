@@ -704,6 +704,13 @@ config CONFIG_WC
 	  wc is used to print the number of bytes, words, and lines,
 	  in specified files.
 
+config CONFIG_FEATURE_WC_LARGE
+	bool "Support very large files in wc"
+	default n
+	depends on CONFIG_WC
+	help
+	  Use "unsigned long long" in wc for count variables
+
 config CONFIG_WHO
 	bool "who"
 	default n
