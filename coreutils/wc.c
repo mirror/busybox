@@ -41,10 +41,6 @@
  * for which 'wc -c' should output '0'.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include "busybox.h"
 
 #ifdef CONFIG_LOCALE_SUPPORT
@@ -59,6 +55,11 @@
 #define isspace_given_isprint(c) ((c) == ' ')
 #endif
 
+//#define COUNT_T unsigned long long
+//#define COUNT_FMT "llu"
+#define COUNT_T unsigned
+#define COUNT_FMT "u"
+
 enum {
 	WC_LINES	= 0,
 	WC_WORDS	= 1,
@@ -66,56 +67,45 @@ enum {
 	WC_LENGTH	= 3
 };
 
-/* Note: If this changes, remember to change the initialization of
- *       'name' in wc_main.  It needs to point to the terminating nul. */
-static const char wc_opts[] = "lwcL";	/* READ THE WARNING ABOVE! */
-
-enum {
-	OP_INC_LINE	= 1, /* OP_INC_LINE must be 1. */
-	OP_SPACE	= 2,
-	OP_NEWLINE	= 4,
-	OP_TAB		= 8,
-	OP_NUL		= 16,
-};
-
-/* Note: If fmt_str changes, the offsets to 's' in the OUTPUT section
- *       will need to be updated. */
-static const char fmt_str[] = " %7u\0 %s\n";
-static const char total_str[] = "total";
-
 int wc_main(int argc, char **argv)
 {
 	FILE *fp;
-	const char *s;
-	unsigned int *pcounts;
-	unsigned int counts[4];
-	unsigned int totals[4];
-	unsigned int linepos;
-	unsigned int u;
+	const char *s, *arg;
+	const char *start_fmt = "%9"COUNT_FMT;
+	const char *fname_fmt = " %s\n";
+	COUNT_T *pcounts;
+	COUNT_T counts[4];
+	COUNT_T totals[4];
+	unsigned linepos;
+	unsigned u;
 	int num_files = 0;
 	int c;
 	char status = EXIT_SUCCESS;
 	char in_word;
 	char print_type;
 
-	print_type = bb_getopt_ulflags(argc, argv, wc_opts);
+	print_type = bb_getopt_ulflags(argc, argv, "lwcL");
 
 	if (print_type == 0) {
 		print_type = (1 << WC_LINES) | (1 << WC_WORDS) | (1 << WC_CHARS);
 	}
 
 	argv += optind;
-	if (!*argv) {
+	if (!argv[0]) {
 		*--argv = (char *) bb_msg_standard_input;
+		fname_fmt = "\n";
+		if (!((print_type-1) & print_type)) /* exactly one option? */
+			start_fmt = "%"COUNT_FMT;
 	}
 
 	memset(totals, 0, sizeof(totals));
 
 	pcounts = counts;
 
-	do {
+	while ((arg = *argv++) != 0) {
 		++num_files;
-		if (!(fp = bb_wfopen_input(*argv))) {
+		fp = bb_wfopen_input(arg);
+		if (!fp) {
 			status = EXIT_FAILURE;
 			continue;
 		}
@@ -156,7 +146,7 @@ int wc_main(int argc, char **argv)
 				}
 			} else if (c == EOF) {
 				if (ferror(fp)) {
-					bb_perror_msg("%s", *argv);
+					bb_perror_msg("%s", arg);
 					status = EXIT_FAILURE;
 				}
 				--counts[WC_CHARS];
@@ -180,24 +170,20 @@ int wc_main(int argc, char **argv)
 		bb_fclose_nonstdin(fp);
 
 	OUTPUT:
-		s = fmt_str + 1;			/* Skip the leading space on 1st pass. */
+		/* coreutils wc tries hard to print pretty columns
+		 * (saves results for all files, find max col len etc...)
+		 * we won't try that hard, it will bloat us too much */
+		s = start_fmt;
 		u = 0;
 		do {
 			if (print_type & (1 << u)) {
 				bb_printf(s, pcounts[u]);
-				s = fmt_str;		/* Ok... restore the leading space. */
+				s = " %9"COUNT_FMT; /* Ok... restore the leading space. */
 			}
 			totals[u] += pcounts[u];
 		} while (++u < 4);
-
-		s += 8;						/* Set the format to the empty string. */
-
-		if (*argv != bb_msg_standard_input) {
-			s -= 3;					/* We have a name, so do %s conversion. */
-		}
-		bb_printf(s, *argv);
-
-	} while (*++argv);
+		bb_printf(fname_fmt, arg);
+	}
 
 	/* If more than one file was processed, we want the totals.  To save some
 	 * space, we set the pcounts ptr to the totals array.  This has the side
@@ -205,8 +191,9 @@ int wc_main(int argc, char **argv)
 	 * irrelavent since we no longer need it. */
 	if (num_files > 1) {
 		num_files = 0;				/* Make sure we don't get here again. */
-		*--argv = (char *) total_str;
+		arg = "total";
 		pcounts = totals;
+		--argv;
 		goto OUTPUT;
 	}
 
