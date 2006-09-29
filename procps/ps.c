@@ -16,14 +16,14 @@ int ps_main(int argc, char **argv)
 
 #if ENABLE_SELINUX
 	int use_selinux = 0;
-	security_context_t sid=NULL;
+	security_context_t sid = NULL;
 #endif
 
 #if ENABLE_FEATURE_PS_WIDE
 	int terminal_width;
 	int w_count = 0;
 
-	bb_opt_complementally="-:ww";
+	bb_opt_complementally = "-:ww";
 #else
 # define terminal_width 79
 #endif

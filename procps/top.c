@@ -30,12 +30,12 @@
 
 #include "busybox.h"
 
-//#define CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE  /* + 2k */
-
 typedef int (*cmp_t)(procps_status_t *P, procps_status_t *Q);
 
 static procps_status_t *top;   /* Hehe */
 static int ntop;
+static unsigned option_mask;
+#define OPT_BATCH_MODE (option_mask & 0x4)
 
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 static int pid_sort(procps_status_t *P, procps_status_t *Q)
@@ -251,9 +251,11 @@ static unsigned long display_generic(int scr_width)
 	snprintf(scrbuf, scr_width,
 		"Mem: %ldK used, %ldK free, %ldK shrd, %ldK buff, %ldK cached",
 		used, mfree, shared, buffers, cached);
-	printf("\e[H\e[J%s\n", scrbuf);
+
+	printf(OPT_BATCH_MODE ? "%s\n" : "\e[H\e[J%s\n", scrbuf);
+    
 	snprintf(scrbuf, scr_width,
-		"Load average: %s  (Status: S=sleeping R=running, W=waiting)", buf);
+		"Load average: %s", buf);
 	printf("%s\n", scrbuf);
 
 	return total;
@@ -276,12 +278,12 @@ static void display_status(int count, int scr_width)
 	unsigned pcpu_shift, pcpu_scale;
 
 	/* what info of the processes is shown */
-	printf("\e[7m%.*s\e[0m", scr_width,
+	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width,
 		"  PID USER     STATUS   RSS  PPID %CPU %MEM COMMAND");
 #define MIN_WIDTH \
 	sizeof( "  PID USER     STATUS   RSS  PPID %CPU %MEM C")
 #else
-	printf("\e[7m%.*s\e[0m", scr_width,
+	printf(OPT_BATCH_MODE ? "%.*s" : "\e[7m%.*s\e[0m", scr_width,
 		"  PID USER     STATUS   RSS  PPID %MEM COMMAND");
 #define MIN_WIDTH \
 	sizeof( "  PID USER     STATUS   RSS  PPID %MEM C")
@@ -320,9 +322,9 @@ static void display_status(int count, int scr_width)
 	}
 	/* printf(" pmem_scale=%u pcpu_scale=%u ", pmem_scale, pcpu_scale); */
 #endif
-
-	while (count--) {
-		div_t pmem = div( (s->rss*pmem_scale) >> pmem_shift, 10);
+	if (OPT_BATCH_MODE) count--;
+	while (count-- > 0) {
+		div_t pmem = div((s->rss*pmem_scale) >> pmem_shift, 10);
 		int col = scr_width+1;
 		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(div_t pcpu;)
 
@@ -343,7 +345,7 @@ static void display_status(int count, int scr_width)
 		s++;
 	}
 	/* printf(" %d", hist_iterations); */
-	putchar('\r');
+	putchar(OPT_BATCH_MODE ? '\n' : '\r');
 	fflush(stdout);
 }
 
@@ -382,8 +384,10 @@ static void sig_catcher(int sig ATTRIBUTE_UNUSED)
 
 int top_main(int argc, char **argv)
 {
-	int opt, interval, lines, col;
-	char *sinterval;
+	int count, lines, col;
+	int interval = 5; /* default update rate is 5 seconds */
+	int iterations = -1; /* 2^32 iterations by default :) */
+	char *sinterval, *siterations;
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 	struct termios new_settings;
 	struct timeval tv;
@@ -393,9 +397,12 @@ int top_main(int argc, char **argv)
 
 	/* do normal option parsing */
 	interval = 5;
-	opt = bb_getopt_ulflags(argc, argv, "d:", &sinterval);
-	if (opt & 1)
-		interval = atoi(sinterval);
+	bb_opt_complementally = "-";
+	option_mask = bb_getopt_ulflags(argc, argv, "d:n:b", 
+		&sinterval, &siterations);
+	if (option_mask & 0x1) interval = atoi(sinterval); // -d
+	if (option_mask & 0x2) iterations = atoi(siterations); // -n
+	//if (option_mask & 0x4) // -b
 
 	/* change to /proc */
 	xchdir("/proc");
@@ -456,12 +463,12 @@ int top_main(int argc, char **argv)
 #else
 		qsort(top, ntop, sizeof(procps_status_t), (void*)sort_function);
 #endif /* CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE */
-		opt = lines;
-		if (opt > ntop) {
-			opt = ntop;
+		count = lines;
+		if (count > ntop) {
+			count = ntop;
 		}
 		/* show status for each of the processes */
-		display_status(opt, col);
+		display_status(count, col);
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 		tv.tv_sec = interval;
 		tv.tv_usec = 0;
@@ -503,6 +510,8 @@ int top_main(int argc, char **argv)
 #endif
 			}
 		}
+		if (!--iterations)
+			break;
 #else
 		sleep(interval);
 #endif /* CONFIG_FEATURE_USE_TERMIOS */

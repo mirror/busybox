@@ -319,9 +319,7 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 	const struct option *l_o;
 #endif
 	unsigned long trigger;
-#ifdef CONFIG_PS
 	char **pargv = NULL;
-#endif
 	int min_arg = 0;
 	int max_arg = -1;
 
@@ -461,9 +459,7 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 #else
 	while ((c = getopt(argc, argv, applet_opts)) >= 0) {
 #endif /* ENABLE_GETOPT_LONG */
-#if ENABLE_PS
 loop_arg_is_opt:
-#endif
 		for (on_off = complementally; on_off->opt != c; on_off++) {
 			/* c==0 if long opt have non NULL flag */
 			if (on_off->opt == 0 && c != 0)
@@ -485,13 +481,10 @@ loop_arg_is_opt:
 		} else if (on_off->optarg) {
 			*(char **)(on_off->optarg) = optarg;
 		}
-#if ENABLE_PS
 		if (pargv != NULL)
 			break;
-#endif
 	}
 
-#if ENABLE_PS
 	if (spec_flgs & ALL_ARGV_IS_OPTS) {
 		/* process argv is option, for example "ps" applet */
 		if (pargv == NULL)
@@ -506,7 +499,6 @@ loop_arg_is_opt:
 			}
 		}
 	}
-#endif
 
 #if (ENABLE_AR || ENABLE_TAR) && ENABLE_FEATURE_CLEAN_UP
 	if (spec_flgs & FREE_FIRST_ARGV_IS_OPT)

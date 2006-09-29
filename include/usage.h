@@ -2938,13 +2938,11 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\t-v\tDisplays verbose resource usage information"
 
 #define top_trivial_usage \
-	"[-d <seconds>]"
+	"[-b] [-n count] [-d seconds]"
 #define top_full_usage \
-	"top provides an view of processor activity in real time.\n" \
-	"This utility reads the status for all processes in /proc each <seconds>\n" \
-	"and shows the status for however many processes will fit on the screen.\n" \
-	"This utility will not show processes that are started after program startup,\n" \
-	"but it will show the EXIT status for and PIDs that exit while it is running."
+	"top provides a view of process activity in real time.\n" \
+	"It reads the status of all processes from /proc each <seconds>\n" \
+	"and shows the status for however many processes will fit on the screen."
 
 #define touch_trivial_usage \
 	"[-c] FILE [FILE ...]"
