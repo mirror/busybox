@@ -48,11 +48,11 @@ int losetup_main(int argc, char **argv)
 		printf("%s: %s\n", argv[0], s);
 		if (ENABLE_FEATURE_CLEAN_UP) free(s);
 	} else {
-		char dev[11] = "/dev/loop0";
+		char dev[sizeof(LOOP_NAME"0")] = LOOP_NAME"0";
 		char c;
 		for (c = '0'; c <= '9'; ++c) {
 			char *s;
-			dev[9] = c;
+			dev[sizeof(LOOP_NAME"0")-2] = c;
 			s = query_loop(dev);
 			if (s) {
 				printf("%s: %s\n", dev, s);
