@@ -224,9 +224,9 @@ static int fakeIt;
 // NB: mp->xxx fields may be trashed on exit
 static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 {
-	int rc;
+	int rc = 0;
 
-	if (fakeIt) return 0;
+	if (fakeIt) goto mtab;
 
 	// Mount, with fallback to read-only if necessary.
 
@@ -247,7 +247,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 
 	/* If the mount was successful, and we're maintaining an old-style
 	 * mtab file by hand, add the new entry to it now. */
-
+mtab:
 	if (ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
 		char *fsname;
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
@@ -1452,8 +1452,8 @@ int mount_main(int argc, char **argv)
 	if (opt & 0x4) append_mount_options(&cmdopts, "ro"); // -r
 	if (opt & 0x8) append_mount_options(&cmdopts, "rw"); // -w
 	//if (opt & 0x10) // -a
-	if (opt & 0x20) USE_FEATURE_MTAB_SUPPORT(useMtab = FALSE); // -n
-	if (opt & 0x40) USE_FEATURE_MTAB_SUPPORT(fakeIt = FALSE); // -f
+	if (opt & 0x20) USE_FEATURE_MTAB_SUPPORT(useMtab = 0); // -n
+	if (opt & 0x40) USE_FEATURE_MTAB_SUPPORT(fakeIt = 1); // -f
 	//if (opt & 0x80) // -v: ignore
 	argv += optind;
 	argc -= optind;
@@ -1513,7 +1513,7 @@ int mount_main(int argc, char **argv)
 
 	if (parse_mount_options(cmdopts,0) & MS_REMOUNT)
 		fstabname = bb_path_mtab_file;
-	else fstabname="/etc/fstab";
+	else fstabname = "/etc/fstab";
 
 	fstab = setmntent(fstabname,"r");
 	if (!fstab)
