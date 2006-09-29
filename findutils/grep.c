@@ -14,7 +14,10 @@
  * 2004,2006 (C) Vladimir Oleynik <dzo@simtreas.ru> -
  * correction "-e pattern1 -e pattern2" logic and more optimizations.
  * precompiled regex
-*/
+ */
+/*
+ * (C) 2006 Jac Goudsmit added -o option
+ */
 
 #include "busybox.h"
 #include "xregex.h"
@@ -22,7 +25,7 @@
 
 /* options */
 static unsigned long opt;
-#define GREP_OPTS "lnqvscFiHhe:f:L"
+#define GREP_OPTS "lnqvscFiHhe:f:Lo"
 #define GREP_OPT_l (1<<0)
 #define PRINT_FILES_WITH_MATCHES (opt & GREP_OPT_l)
 #define GREP_OPT_n (1<<1)
@@ -44,19 +47,20 @@ static invert_search_t invert_search;
 #define GREP_OPT_e (1<<10)
 #define GREP_OPT_f (1<<11)
 #define GREP_OPT_L (1<<12)
-#define PRINT_FILES_WITHOUT_MATCHES ((opt & GREP_OPT_L) != 0)
+#define PRINT_FILES_WITHOUT_MATCHES (opt & GREP_OPT_L)
+#define GREP_OPT_o (1<<13)
 #if ENABLE_FEATURE_GREP_CONTEXT
 #define GREP_OPT_CONTEXT "A:B:C:"
-#define GREP_OPT_A (1<<13)
-#define GREP_OPT_B (1<<14)
-#define GREP_OPT_C (1<<15)
-#define GREP_OPT_E (1<<16)
+#define GREP_OPT_A (1<<14)
+#define GREP_OPT_B (1<<15)
+#define GREP_OPT_C (1<<16)
+#define GREP_OPT_E (1<<17)
 #else
 #define GREP_OPT_CONTEXT ""
-#define GREP_OPT_A (0)
-#define GREP_OPT_B (0)
-#define GREP_OPT_C (0)
-#define GREP_OPT_E (1<<13)
+#define GREP_OPT_A 0
+#define GREP_OPT_B 0
+#define GREP_OPT_C 0
+#define GREP_OPT_E (1<<14)
 #endif
 #if ENABLE_FEATURE_GREP_EGREP_ALIAS
 # define OPT_EGREP "E"
@@ -100,7 +104,9 @@ static void print_line(const char *line, int linenum, char decoration)
 		printf("%s%c", cur_file, decoration);
 	if (PRINT_LINE_NUM)
 		printf("%i%c", linenum, decoration);
-	puts(line);
+	/* Emulate weird GNU grep behavior with -ov */
+	if ((opt & (GREP_OPT_v+GREP_OPT_o)) != (GREP_OPT_v+GREP_OPT_o))
+		puts(line);
 }
 
 
@@ -110,6 +116,7 @@ static int grep_file(FILE *file)
 	invert_search_t ret;
 	int linenum = 0;
 	int nmatches = 0;
+	regmatch_t regmatch;
 #if ENABLE_FEATURE_GREP_CONTEXT
 	int print_n_lines_after = 0;
 	int curpos = 0; /* track where we are in the circular 'before' buffer */
@@ -137,12 +144,14 @@ static int grep_file(FILE *file)
 					gl->flg_mem_alocated_compiled |= COMPILED;
 					xregcomp(&(gl->preg), gl->pattern, reflags);
 				}
-				ret |= regexec(&(gl->preg), line, 0, NULL, 0) == 0;
+				regmatch.rm_so = 0;
+				regmatch.rm_eo = 0;
+				ret |= regexec(&(gl->preg), line, 1, &regmatch, 0) == 0;
 			}
 			pattern_ptr = pattern_ptr->link;
 		} /* while (pattern_ptr) */
 
-		if ((ret ^ invert_search)) {
+		if (ret ^ invert_search) {
 
 			if (PRINT_FILES_WITH_MATCHES || BE_QUIET)
 				free(line);
@@ -190,7 +199,12 @@ static int grep_file(FILE *file)
 					/* make a note that we need to print 'after' lines */
 					print_n_lines_after = lines_after;
 #endif
-					print_line(line, linenum, ':');
+					if (opt & GREP_OPT_o) {
+						line[regmatch.rm_eo] = '\0';
+						print_line(line + regmatch.rm_so, linenum, ':');
+					} else {
+						print_line(line, linenum, ':');
+					}
 				}
 			}
 #if ENABLE_FEATURE_GREP_CONTEXT
@@ -211,7 +225,6 @@ static int grep_file(FILE *file)
 #endif /* ENABLE_FEATURE_GREP_CONTEXT */
 		free(line);
 	}
-
 
 	/* special-case file post-processing for options where we don't print line
 	 * matches, just filenames and possibly match counts */
@@ -284,7 +297,6 @@ int grep_main(int argc, char **argv)
 
 	/* do normal option parsing */
 #if ENABLE_FEATURE_GREP_CONTEXT
-  {
 	char *junk;
 	char *slines_after;
 	char *slines_before;
@@ -316,13 +328,12 @@ int grep_main(int argc, char **argv)
 			bb_error_msg_and_die(bb_msg_invalid_arg, slines_before, "-B");
 	}
 	/* sanity checks after parse may be invalid numbers ;-) */
-	if ((opt & (GREP_OPT_c|GREP_OPT_q|GREP_OPT_l|GREP_OPT_L))) {
+	if (opt & (GREP_OPT_c|GREP_OPT_q|GREP_OPT_l|GREP_OPT_L)) {
 		opt &= ~GREP_OPT_n;
 		lines_before = 0;
 		lines_after = 0;
 	} else if(lines_before > 0)
 		before_buf = (char **)xzalloc(lines_before * sizeof(char *));
-  }
 #else
 	/* with auto sanity checks */
 	bb_opt_complementally = "H-h:e::f::c-n:q-n:l-n";
@@ -348,11 +359,12 @@ int grep_main(int argc, char **argv)
 	if(ENABLE_FEATURE_GREP_FGREP_ALIAS && bb_applet_name[0] == 'f')
 		opt |= GREP_OPT_F;
 
+	if(!(opt & GREP_OPT_o))
+		reflags = REG_NOSUB;
+
 	if(ENABLE_FEATURE_GREP_EGREP_ALIAS &&
 			(bb_applet_name[0] == 'e' || (opt & GREP_OPT_E)))
-		reflags = REG_EXTENDED | REG_NOSUB;
-	else
-		reflags = REG_NOSUB;
+		reflags |= REG_EXTENDED;
 
 	if(opt & GREP_OPT_i)
 		reflags |= REG_ICASE;
