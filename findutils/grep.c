@@ -140,7 +140,7 @@ static int grep_file(FILE *file)
 				 * match (regexec returns failure (REG_NOMATCH) and the user specified
 				 * invert search)
 				 */
-				if(!(gl->flg_mem_alocated_compiled & COMPILED)) {
+				if (!(gl->flg_mem_alocated_compiled & COMPILED)) {
 					gl->flg_mem_alocated_compiled |= COMPILED;
 					xregcomp(&(gl->preg), gl->pattern, reflags);
 				}
@@ -210,7 +210,7 @@ static int grep_file(FILE *file)
 #if ENABLE_FEATURE_GREP_CONTEXT
 			else { /* no match */
 				/* Add the line to the circular 'before' buffer */
-				if(lines_before) {
+				if (lines_before) {
 					free(before_buf[curpos]);
 					before_buf[curpos] = xstrdup(line);
 					curpos = (curpos + 1) % lines_before;
@@ -273,7 +273,7 @@ static void load_regexes_from_file(llist_t *fopt)
 	char *line;
 	FILE *f;
 
-	while(fopt) {
+	while (fopt) {
 		llist_t *cur = fopt;
 		char *ffile = cur->data;
 
@@ -308,23 +308,23 @@ int grep_main(int argc, char **argv)
 		&pattern_head, &fopt,
 		&slines_after, &slines_before, &Copt);
 
-	if(opt & GREP_OPT_C) {
+	if (opt & GREP_OPT_C) {
 		/* C option unseted A and B options, but next -A or -B
 		   may be ovewrite own option */
-		if(!(opt & GREP_OPT_A))         /* not overwtited */
+		if (!(opt & GREP_OPT_A))         /* not overwtited */
 			slines_after = Copt;
-		if(!(opt & GREP_OPT_B))         /* not overwtited */
+		if (!(opt & GREP_OPT_B))         /* not overwtited */
 			slines_before = Copt;
 		opt |= GREP_OPT_A|GREP_OPT_B;   /* set for parse now */
 	}
-	if(opt & GREP_OPT_A) {
+	if (opt & GREP_OPT_A) {
 		lines_after = strtoul(slines_after, &junk, 10);
-		if(*junk != '\0')
+		if (*junk != '\0')
 			bb_error_msg_and_die(bb_msg_invalid_arg, slines_after, "-A");
 	}
-	if(opt & GREP_OPT_B) {
+	if (opt & GREP_OPT_B) {
 		lines_before = strtoul(slines_before, &junk, 10);
-		if(*junk != '\0')
+		if (*junk != '\0')
 			bb_error_msg_and_die(bb_msg_invalid_arg, slines_before, "-B");
 	}
 	/* sanity checks after parse may be invalid numbers ;-) */
@@ -332,7 +332,7 @@ int grep_main(int argc, char **argv)
 		opt &= ~GREP_OPT_n;
 		lines_before = 0;
 		lines_after = 0;
-	} else if(lines_before > 0)
+	} else if (lines_before > 0)
 		before_buf = (char **)xzalloc(lines_before * sizeof(char *));
 #else
 	/* with auto sanity checks */
@@ -342,31 +342,31 @@ int grep_main(int argc, char **argv)
 #endif
 	invert_search = (opt & GREP_OPT_v) != 0;        /* 0 | 1 */
 
-	if(opt & GREP_OPT_H)
+	if (opt & GREP_OPT_H)
 		print_filename++;
-	if(opt & GREP_OPT_h)
+	if (opt & GREP_OPT_h)
 		print_filename--;
 	if (pattern_head != NULL) {
 		/* convert char *argv[] to grep_list_data_t */
 		llist_t *cur;
 
-		for(cur = pattern_head; cur; cur = cur->link)
+		for (cur = pattern_head; cur; cur = cur->link)
 			cur->data = new_grep_list_data(cur->data, 0);
 	}
-	if(opt & GREP_OPT_f)
+	if (opt & GREP_OPT_f)
 		load_regexes_from_file(fopt);
 
-	if(ENABLE_FEATURE_GREP_FGREP_ALIAS && bb_applet_name[0] == 'f')
+	if (ENABLE_FEATURE_GREP_FGREP_ALIAS && bb_applet_name[0] == 'f')
 		opt |= GREP_OPT_F;
 
-	if(!(opt & GREP_OPT_o))
+	if (!(opt & GREP_OPT_o))
 		reflags = REG_NOSUB;
 
-	if(ENABLE_FEATURE_GREP_EGREP_ALIAS &&
+	if (ENABLE_FEATURE_GREP_EGREP_ALIAS &&
 			(bb_applet_name[0] == 'e' || (opt & GREP_OPT_E)))
 		reflags |= REG_EXTENDED;
 
-	if(opt & GREP_OPT_i)
+	if (opt & GREP_OPT_i)
 		reflags |= REG_ICASE;
 
 	argv += optind;
@@ -398,7 +398,7 @@ int grep_main(int argc, char **argv)
 	matched = 0;
 	while (argc--) {
 		cur_file = *argv++;
-		if(!cur_file || (*cur_file == '-' && !cur_file[1])) {
+		if (!cur_file || (*cur_file == '-' && !cur_file[1])) {
 			cur_file = "(standard input)";
 			file = stdin;
 		} else {
@@ -410,7 +410,7 @@ int grep_main(int argc, char **argv)
 			error_open_count++;
 		} else {
 			matched += grep_file(file);
-			if(matched < 0) {
+			if (matched < 0) {
 				/* we found a match but were told to be quiet, stop here and
 				* return success */
 				break;
@@ -427,9 +427,9 @@ int grep_main(int argc, char **argv)
 				(grep_list_data_t *)pattern_head_ptr->data;
 
 			pattern_head = pattern_head->link;
-			if((gl->flg_mem_alocated_compiled & PATTERN_MEM_A))
+			if ((gl->flg_mem_alocated_compiled & PATTERN_MEM_A))
 				free(gl->pattern);
-			if((gl->flg_mem_alocated_compiled & COMPILED))
+			if ((gl->flg_mem_alocated_compiled & COMPILED))
 				regfree(&(gl->preg));
 			free(pattern_head_ptr);
 		}
@@ -437,9 +437,9 @@ int grep_main(int argc, char **argv)
 	/* 0 = success, 1 = failed, 2 = error */
 	/* If the -q option is specified, the exit status shall be zero
 	 * if an input line is selected, even if an error was detected.  */
-	if(BE_QUIET && matched)
+	if (BE_QUIET && matched)
 		return 0;
-	if(error_open_count)
+	if (error_open_count)
 		return 2;
 	return !matched; /* invert return value 0 = success, 1 = failed */
 }

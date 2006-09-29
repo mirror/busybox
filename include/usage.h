@@ -927,7 +927,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-H login_host\tLog login_host into the utmp file as the hostname"
 
 #define grep_trivial_usage \
-	"[-ihHnqvs" \
+	"[-ihHnqvso" \
 	USE_FEATURE_GREP_EGREP_ALIAS("E") \
 	USE_FEATURE_GREP_CONTEXT("ABC") \
 	"] PATTERN [FILEs...]"
@@ -945,6 +945,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-s\tsuppress file open/read error messages\n" \
 	"\t-c\tonly print count of matching lines\n" \
 	"\t-f\tread PATTERN from file\n" \
+	"\t-o\tshow only the part of a line that matches PATTERN\n" \
 	"\t-e\tPATTERN is a regular expression\n" \
 	"\t-F\tPATTERN is a set of newline-separated strings" \
 	USE_FEATURE_GREP_EGREP_ALIAS("\n\t-E\tPATTERN is an extended regular expression") \
