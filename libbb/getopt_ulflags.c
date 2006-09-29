@@ -91,6 +91,7 @@ const struct option *bb_applet_long_options
 	is to name the config option CONFIG_FEATURE_<applet>_LONG_OPTIONS.
 
 const char *bb_opt_complementally
+
 	this should be bb_opt_complementary, but we'll just keep it as
 	bb_opt_complementally due to the Russian origins
 
