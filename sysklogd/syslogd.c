@@ -52,12 +52,6 @@ static char LocalHostName[64];
 static int remotefd = -1;
 static struct sockaddr_in remoteaddr;
 
-/* where do we log? */
-static char *RemoteHost;
-
-/* what port to log to? */
-static int RemotePort = 514;
-
 #endif
 
 /* options */
@@ -375,19 +369,6 @@ static void message(char *fmt, ...)
 	}
 }
 
-#ifdef CONFIG_FEATURE_REMOTE_LOG
-static void init_RemoteLog(void)
-{
-	memset(&remoteaddr, 0, sizeof(remoteaddr));
-	remotefd = xsocket(AF_INET, SOCK_DGRAM, 0);
-	remoteaddr.sin_family = AF_INET;
-	remoteaddr.sin_addr = *(struct in_addr *) *(xgethostbyname(RemoteHost))->h_addr_list;
-	remoteaddr.sin_port = htons(RemotePort);
-}
-#else
-void init_RemoteLog(void);
-#endif
-
 static void logMessage(int pri, char *msg)
 {
 	time_t now;
@@ -427,24 +408,14 @@ static void logMessage(int pri, char *msg)
 		char line[MAXLINE + 1];
 		/* trying connect the socket */
 		if (-1 == remotefd) {
-			init_RemoteLog();
+			remotefd = socket(AF_INET, SOCK_DGRAM, 0);
 		}
-
 		/* if we have a valid socket, send the message */
 		if (-1 != remotefd) {
-			now = 1;
 			snprintf(line, sizeof(line), "<%d>%s", pri, msg);
-
-retry:
-			/* send message to remote logger */
-			if ((-1 == sendto(remotefd, line, strlen(line), 0,
-							(struct sockaddr *) &remoteaddr,
-							sizeof(remoteaddr))) && (errno == EINTR)) {
-				/* sleep now seconds and retry (with now * 2) */
-				sleep(now);
-				now *= 2;
-				goto retry;
-			}
+			/* send message to remote logger, ignore possible error */
+			sendto(remotefd, line, strlen(line), 0,
+					(struct sockaddr *) &remoteaddr, sizeof(remoteaddr));
 		}
 	}
 
@@ -468,7 +439,7 @@ static void quit_signal(int sig)
 	if (ENABLE_FEATURE_IPC_SYSLOG)
 		ipcsyslog_cleanup();
 
-	exit(TRUE);
+	exit(1);
 }
 
 static void domark(int sig)
@@ -564,10 +535,6 @@ static void doSyslogd(void)
 		ipcsyslog_init();
 	}
 
-	if (ENABLE_FEATURE_REMOTE_LOG && (option_mask & OPT_remotelog)) {
-		init_RemoteLog();
-	}
-
 	logMessage(LOG_SYSLOG | LOG_INFO, "syslogd started: " "BusyBox v" BB_VER );
 
 	for (;;) {
@@ -628,12 +595,18 @@ int syslogd_main(int argc, char **argv)
 #endif
 #if ENABLE_FEATURE_REMOTE_LOG
 	if (option_mask & OPT_remotelog) { // -R
-		RemoteHost = xstrdup(opt_R);
-		p = strchr(RemoteHost, ':');
+		int port = 514;
+		char *host = xstrdup(opt_R);
+		p = strchr(host, ':');
 		if (p) {
-			RemotePort = atoi(p + 1);
+			port = atoi(p + 1);
 			*p = '\0';
 		}
+		remoteaddr.sin_family = AF_INET;
+		/* FIXME: looks ip4-specific. need to do better */
+		remoteaddr.sin_addr = *(struct in_addr *) *(xgethostbyname(host)->h_addr_list);
+		remoteaddr.sin_port = htons(port);
+		free(host);
 	}
 	//if (option_mask & OPT_locallog) // -L
 #endif
