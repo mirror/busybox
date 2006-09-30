@@ -806,11 +806,11 @@ static int inflate_get_next_window(void)
 		}
 
 		switch (method) {
-			case -1:	ret = inflate_stored(0,0,0,0);
-					break;
-			case -2:	ret = inflate_codes(0,0,0,0,0);
-					break;
-			default:	bb_error_msg_and_die("inflate error %d", method);
+		case -1:	ret = inflate_stored(0,0,0,0);
+				break;
+		case -2:	ret = inflate_codes(0,0,0,0,0);
+				break;
+		default:	bb_error_msg_and_die("inflate error %d", method);
 		}
 
 		if (ret == 1) {
@@ -911,7 +911,7 @@ int inflate_gunzip(int in, int out)
 	if (gunzip_bytes_out !=
 		(bytebuffer[bytebuffer_offset] | (bytebuffer[bytebuffer_offset+1] << 8) |
 		(bytebuffer[bytebuffer_offset+2] << 16) | (bytebuffer[bytebuffer_offset+3] << 24))) {
-		bb_error_msg("Incorrect length");
+		bb_error_msg("incorrect length");
 		return -1;
 	}
 

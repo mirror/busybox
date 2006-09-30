@@ -72,7 +72,7 @@ static const char cmds[] = {
 	's', 'e', 't', '_',
 	'n', 'a', 'm', 'e', '_',
 	't', 'y', 'p', 'e', 0,
-	4, SET_VLAN_FLAG_CMD, 12,
+	5, SET_VLAN_FLAG_CMD, 12,
 	's', 'e', 't', '_',
 	'f', 'l', 'a', 'g', 0,
 	5, SET_VLAN_EGRESS_PRIORITY_CMD, 18,
@@ -145,6 +145,8 @@ int vconfig_main(int argc, char **argv)
 		 * more of a pain. */
 		if (ifr.cmd == SET_VLAN_FLAG_CMD) { /* set_flag */
 			ifr.u.flag = bb_xgetularg10_bnd(p, 0, 1);
+			/* DM: in order to set reorder header, qos must be set */
+			ifr.vlan_qos = bb_xgetularg10_bnd(argv[3], 0, 7);
 		} else if (ifr.cmd == ADD_VLAN_CMD) { /* add */
 			ifr.u.VID = bb_xgetularg10_bnd(p, 0, VLAN_GROUP_ARRAY_LEN-1);
 		} else if (ifr.cmd != DEL_VLAN_CMD) { /* set_{egress|ingress}_map */
@@ -160,4 +162,3 @@ int vconfig_main(int argc, char **argv)
 
 	return 0;
 }
-
