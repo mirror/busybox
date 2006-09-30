@@ -46,8 +46,8 @@ void vfork_daemon_rexec(int nochdir, int noclose,
 	vfork_args = xcalloc(sizeof(char *), argc + 3);
 	vfork_args[a++] = CONFIG_BUSYBOX_EXEC_PATH;
 	while(*argv) {
-	    vfork_args[a++] = *argv;
-	    argv++;
+		vfork_args[a++] = *argv;
+		argv++;
 	}
 	vfork_args[a] = foreground_opt;
 	switch (vfork()) {

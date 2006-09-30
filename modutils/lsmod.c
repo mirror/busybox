@@ -147,37 +147,37 @@ int lsmod_main(int argc, char **argv)
 	check_tainted();
 #if defined(CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT)
 	{
-	  char line[4096];
+		char line[4096];
 
-	  while (fgets(line, sizeof(line), file)) {
-	    char *tok;
+		while (fgets(line, sizeof(line), file)) {
+			char *tok;
 
-	    tok = strtok(line, " \t");
-	    printf("%-19s", tok);
-	    tok = strtok(NULL, " \t\n");
-	    printf(" %8s", tok);
-	    tok = strtok(NULL, " \t\n");
-	    /* Null if no module unloading support. */
-	    if (tok) {
-	      printf("  %s", tok);
-	      tok = strtok(NULL, "\n");
-	      if (!tok)
-		tok = "";
-	      /* New-style has commas, or -.  If so,
-		 truncate (other fields might follow). */
-	      else if (strchr(tok, ',')) {
-		tok = strtok(tok, "\t ");
-		/* Strip trailing comma. */
-		if (tok[strlen(tok)-1] == ',')
-		  tok[strlen(tok)-1] = '\0';
-	      } else if (tok[0] == '-'
-			 && (tok[1] == '\0' || isspace(tok[1])))
-		tok = "";
-	      printf(" %s", tok);
-	    }
-	    printf("\n");
-	  }
-	  fclose(file);
+			tok = strtok(line, " \t");
+			printf("%-19s", tok);
+			tok = strtok(NULL, " \t\n");
+			printf(" %8s", tok);
+			tok = strtok(NULL, " \t\n");
+			/* Null if no module unloading support. */
+			if (tok) {
+				printf("  %s", tok);
+				tok = strtok(NULL, "\n");
+				if (!tok)
+					tok = "";
+				/* New-style has commas, or -.  If so,
+				truncate (other fields might follow). */
+				else if (strchr(tok, ',')) {
+					tok = strtok(tok, "\t ");
+					/* Strip trailing comma. */
+					if (tok[strlen(tok)-1] == ',')
+						tok[strlen(tok)-1] = '\0';
+				} else if (tok[0] == '-'
+						&& (tok[1] == '\0' || isspace(tok[1])))
+					tok = "";
+					printf(" %s", tok);
+			}
+			printf("\n");
+		}
+		fclose(file);
 	}
 #else
 	xprint_and_close_file(file);
