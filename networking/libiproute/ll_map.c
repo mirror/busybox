@@ -17,8 +17,11 @@
 #include "libnetlink.h"
 #include "ll_map.h"
 
-struct idxmap
-{
+#include <sys/socket.h>	/* socket() */
+#include <net/if.h>	/* struct ifreq and co. */
+#include <sys/ioctl.h>	/* ioctl() & SIOCGIFINDEX */
+
+struct idxmap {
 	struct idxmap * next;
 	int		index;
 	int		type;
@@ -129,6 +132,7 @@ int ll_name_to_index(char *name)
 	static char ncache[16];
 	static int icache;
 	struct idxmap *im;
+	int sock_fd;
 	int i;
 
 	if (name == NULL)
@@ -144,19 +148,39 @@ int ll_name_to_index(char *name)
 			}
 		}
 	}
+	/* We have not found the interface in our cache, but the kernel
+	 * may still know about it. One reason is that we may be using
+	 * module on-demand loading, which means that the kernel will
+	 * load the module and make the interface exist only when
+	 * we explicitely request it (check for dev_load() in net/core/dev.c).
+	 * I can think of other similar scenario, but they are less common...
+	 * Jean II */
+	sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock_fd) {
+		struct ifreq ifr;
+		int ret;
+		strncpy(ifr.ifr_name, name, IFNAMSIZ);
+		ifr.ifr_ifindex = -1;
+		ret = ioctl(sock_fd, SIOCGIFINDEX, &ifr);
+		close(sock_fd);
+		if (ret >= 0)
+			/* In theory, we should redump the interface list
+			 * to update our cache, this is left as an exercise
+			 * to the reader... Jean II */
+			return ifr.ifr_ifindex;
+	}
+	
 	return 0;
 }
 
 int ll_init_map(struct rtnl_handle *rth)
 {
 	if (rtnl_wilddump_request(rth, AF_UNSPEC, RTM_GETLINK) < 0) {
-		perror("Cannot send dump request");
-		exit(1);
+		bb_perror_msg_and_die("cannot send dump request");
 	}
 
 	if (rtnl_dump_filter(rth, ll_remember_index, &idxmap, NULL, NULL) < 0) {
-		fprintf(stderr, "Dump terminated\n");
-		exit(1);
+		bb_error_msg_and_die("dump terminated");
 	}
 	return 0;
 }
