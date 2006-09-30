@@ -21,6 +21,7 @@ enum {
 	OPT_CHANGE   = (1 << 0),
 	OPT_INFO     = (1 << 1),
 	OPT_READMODE = (1 << 2),
+	OPT_ALL      = (1 << 9),
 
 	CMD_FB = 1,
 	CMD_DB = 2,
@@ -63,6 +64,7 @@ enum {
 static unsigned int g_options = 0;
 
 /* Stuff stolen from the kernel's fb.h */
+#define FB_ACTIVATE_ALL 64
 enum {
 	FBIOGET_VSCREENINFO = 0x4600,
 	FBIOPUT_VSCREENINFO = 0x4601
@@ -357,9 +359,12 @@ int fbset_main(int argc, char **argv)
 					varset.hsync_len = strtoul(argv[6], 0, 0);
 					varset.vsync_len = strtoul(argv[7], 0, 0);
 					break;
-		case CMD_CHANGE:
-		    g_options |= OPT_CHANGE;
-		    break;
+				case CMD_ALL:
+					g_options |= OPT_ALL;
+					break;
+				case CMD_CHANGE:
+					g_options |= OPT_CHANGE;
+					break;
 #ifdef CONFIG_FEATURE_FBSET_FANCY
 				case CMD_XRES:
 					varset.xres = strtoul(argv[1], 0, 0);
@@ -367,7 +372,7 @@ int fbset_main(int argc, char **argv)
 				case CMD_YRES:
 					varset.yres = strtoul(argv[1], 0, 0);
 					break;
-			   case CMD_DEPTH:
+				case CMD_DEPTH:
 					varset.bits_per_pixel = strtoul(argv[1], 0, 0);
 					break;
 #endif
@@ -392,15 +397,18 @@ int fbset_main(int argc, char **argv)
 		bb_perror_msg_and_die("fbset(ioctl)");
 	if (g_options & OPT_READMODE) {
 		if (!readmode(&var, modefile, mode)) {
-			bb_error_msg("Unknown video mode `%s'", mode);
+			bb_error_msg("unknown video mode '%s'", mode);
 			return EXIT_FAILURE;
 		}
 	}
 
 	setmode(&var, &varset);
-	if (g_options & OPT_CHANGE)
+	if (g_options & OPT_CHANGE) {
+		if (g_options & OPT_ALL)
+			var.activate = FB_ACTIVATE_ALL;
 		if (ioctl(fh, FBIOPUT_VSCREENINFO, &var))
 			bb_perror_msg_and_die("fbset(ioctl)");
+	}
 	showmode(&var);
 	/* Don't close the file, as exiting will take care of that */
 	/* close(fh); */
