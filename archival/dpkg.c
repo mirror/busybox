@@ -304,16 +304,13 @@ static int version_compare(const unsigned int ver1, const unsigned int ver2)
 		deb_ver2++;
 	}
 	result = version_compare_part(upstream_ver1, upstream_ver2);
+	if (!result)
+		/* Compare debian versions */
+		result = version_compare_part(deb_ver1, deb_ver2);
 
 	free(upstream_ver1);
 	free(upstream_ver2);
-
-	if (result != 0) {
-		return result;
-	}
-
-	/* Compare debian versions */
-	return version_compare_part(deb_ver1, deb_ver2);
+	return result;
 }
 
 static int test_version(const unsigned int version1, const unsigned int version2, const unsigned int operator)
