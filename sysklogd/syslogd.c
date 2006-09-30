@@ -42,6 +42,9 @@ static int logFileRotate = 1;
 /* interval between marks in seconds */
 static int MarkInterval = 20 * 60;
 
+/* level of messages to be locally logged */
+static int logLevel = 8;
+
 /* localhost's name */
 static char LocalHostName[64];
 
@@ -413,10 +416,12 @@ retry:
 #endif
 	{
 		/* now spew out the message to wherever it is supposed to go */
-		if (opts & SYSLOG_OPT_small)
-			message("%s %s\n", timestamp, msg);
-		else
-			message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
+		if (pri == 0 || LOG_PRI(pri) < logLevel) {
+			if (opts & SYSLOG_OPT_small)
+				message("%s %s\n", timestamp, msg);
+			else
+				message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
+		}
 	}
 }
 
@@ -580,6 +585,13 @@ int syslogd_main(int argc, char **argv)
 			break;
 		case 'O':
 			logFilePath = optarg;
+			break;
+		case 'l':
+			logLevel = atoi(optarg);
+			/* Valid levels are between 1 and 8 */
+			if (logLevel < 1 || logLevel > 8) {
+				bb_show_usage();
+			}
 			break;
 #ifdef CONFIG_FEATURE_ROTATE_LOGFILE
 		case 's':

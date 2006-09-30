@@ -2780,7 +2780,8 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\t-m MIN\t\tMinutes between MARK lines (default=20, 0=off)\n" \
 	"\t-n\t\tRun as a foreground process\n" \
 	"\t-O FILE\t\tUse an alternate log file (default=/var/log/messages)\n" \
-	"\t-S\t\tMake logging output smaller." \
+	"\t-l n\tSets the local log level of messages to n\n" \
+	"\t-S\t\tMake logging output smaller" \
 	USE_FEATURE_ROTATE_LOGFILE( \
 	"\n\t-s SIZE\t\tMax size (KB) before rotate (default=200KB, 0=off)\n" \
 	"\t-b NUM\t\tNumber of rotated logs to keep (default=1, max=99, 0=purge)") \
