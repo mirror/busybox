@@ -1087,8 +1087,8 @@ static void add_cmd_block(char *cmdstr)
 int sed_main(int argc, char **argv)
 {
 	unsigned long opt;
-	char *opt_e, *opt_f;
-	int status = EXIT_SUCCESS, getpat = 1;
+	llist_t *opt_e, *opt_f;
+	int status = EXIT_SUCCESS;
 
 	bbg.sed_cmd_tail=&bbg.sed_cmd_head;
 
@@ -1102,6 +1102,8 @@ int sed_main(int argc, char **argv)
 	}
 
 	/* do normal option parsing */
+	opt_e = opt_f = NULL;
+	bb_opt_complementally = "e::f::"; /* can occur multiple times */
 	opt = bb_getopt_ulflags(argc, argv, "irne:f:", &opt_e, &opt_f);
 	if (opt & 0x1) { // -i
 		bbg.in_place++;
@@ -1110,23 +1112,30 @@ int sed_main(int argc, char **argv)
 	if (opt & 0x2) bbg.regex_type|=REG_EXTENDED; // -r
 	if (opt & 0x4) bbg.be_quiet++; // -n
 	if (opt & 0x8) { // -e
-		add_cmd_block(opt_e);
-		getpat=0;
+		while (opt_e) {
+			llist_t *cur = opt_e;
+			add_cmd_block(cur->data);
+			opt_e = cur->link;
+			free(cur);
+		}
 	}
 	if (opt & 0x10) { // -f
-		FILE *cmdfile;
-		char *line;
-		cmdfile = xfopen(opt_f, "r");
-		while ((line = bb_get_chomped_line_from_file(cmdfile)) != NULL) {
-			add_cmd(line);
-			getpat=0;
-			free(line);
+		while (opt_f) {
+			llist_t *cur = opt_f;
+			FILE *cmdfile;
+			char *line;
+			cmdfile = xfopen(cur->data, "r");
+			while ((line = bb_get_chomped_line_from_file(cmdfile)) != NULL) {
+				add_cmd(line);
+				free(line);
+			}
+			xprint_and_close_file(cmdfile);
+			opt_f = cur->link;
+			free(cur);
 		}
-		xprint_and_close_file(cmdfile);
 	}
-
 	/* if we didn't get a pattern from -e or -f, use argv[optind] */
-	if(getpat) {
+	if(!(opt & 0x18)) {
 		if (argv[optind] == NULL)
 			bb_show_usage();
 		else
@@ -1136,7 +1145,7 @@ int sed_main(int argc, char **argv)
 	add_cmd("");
 
 	/* By default, we write to stdout */
-	bbg.nonstdout=stdout;
+	bbg.nonstdout = stdout;
 
 	/* argv[(optind)..(argc-1)] should be names of file to process. If no
 	 * files were specified or '-' was specified, take input from stdin.

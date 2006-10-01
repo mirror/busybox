@@ -16,7 +16,7 @@
 /* get_line_from_file() - This function reads an entire line from a text file,
  * up to a newline or NUL byte.  It returns a malloc'ed char * which must be
  * stored and free'ed  by the caller.  If end is null '\n' isn't considered
- * and of line.  If end isn't null, length of the chunk read is stored in it. */
+ * end of line.  If end isn't null, length of the chunk read is stored in it. */
 
 char *bb_get_chunk_from_file(FILE * file, int *end)
 {
@@ -46,7 +46,7 @@ char *bb_get_chunk_from_file(FILE * file, int *end)
 	return linebuf;
 }
 
-/* Get line, including trailing /n if any */
+/* Get line, including trailing \n if any */
 char *bb_get_line_from_file(FILE * file)
 {
 	int i;
@@ -54,7 +54,7 @@ char *bb_get_line_from_file(FILE * file)
 	return bb_get_chunk_from_file(file, &i);
 }
 
-/* Get line.  Remove trailing /n */
+/* Get line.  Remove trailing \n */
 char *bb_get_chomped_line_from_file(FILE * file)
 {
 	int i;

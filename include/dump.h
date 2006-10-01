@@ -40,7 +40,7 @@ typedef struct _fs {			/* format strings */
 } FS;
 
 extern void bb_dump_add(const char *fmt);
-extern int bb_dump_dump (char **argv);
+extern int bb_dump_dump(char **argv);
 extern int bb_dump_size(FS * fs);
 
 extern FS *bb_dump_fshead;		/* head of format strings */

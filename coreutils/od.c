@@ -189,7 +189,7 @@ int od_main(int argc, char **argv)
 
 	odoffset(argc, &argv);
 
-	return(bb_dump_dump(argv));
+	return bb_dump_dump(argv);
 }
 
 /*-
