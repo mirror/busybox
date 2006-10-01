@@ -16,7 +16,12 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-// TODO: full support for -v for DESKTOP
+/* TODO: full support for -v for DESKTOP
+/usr/bin/gzip -v a bogus aa
+a:       85.1% -- replaced with a.gz
+gzip: bogus: No such file or directory
+aa:      85.1% -- replaced with aa.gz
+*/
 
 #define SMALL_MEM
 
@@ -125,8 +130,8 @@ typedef int file_t;		/* Do not use stdio */
 #define ASCII   1
 
 #ifndef WSIZE
-#  define WSIZE 0x8000	/* window size--must be a power of two, and */
-#endif							/*  at least 32K for zip's deflate method */
+#  define WSIZE 0x8000  /* window size--must be a power of two, and */
+#endif                  /*  at least 32K for zip's deflate method */
 
 #define MIN_MATCH  3
 #define MAX_MATCH  258
@@ -2401,7 +2406,6 @@ static int zip(int in, int out)
 	outcnt = 0;
 
 	/* Write the header to the gzip file. See algorithm.doc for the format */
-
 
 	method = DEFLATED;
 	put_header_byte(GZIP_MAGIC[0]);	/* magic header */
