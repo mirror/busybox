@@ -339,7 +339,7 @@ char *last_char_is(const char *s, int c);
 
 char *fgets_str(FILE *file, const char *terminating_string);
 
-extern int uncompress(int fd_in, int fd_out);
+extern USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out);
 extern int inflate(int in, int out);
 
 extern struct hostent *xgethostbyname(const char *name);
@@ -353,9 +353,9 @@ extern void bb_lookup_host(struct sockaddr_in *s_in, const char *host);
 // This is declared here rather than #including <libgen.h> in order to avoid
 // confusing the two versions of basename.  See the dirname/basename man page
 // for details.
-char *dirname (char *path);
+char *dirname(char *path);
 
-int bb_make_directory (char *path, long mode, int flags);
+int bb_make_directory(char *path, long mode, int flags);
 
 int get_signum(const char *name);
 const char *get_signame(int number);

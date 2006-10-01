@@ -11,6 +11,8 @@
  * Original copyright notice is retained at the end of this file.
  */
 
+// TODO: -t. busybox's own build script needs it
+
 #include <ctype.h>
 #include <string.h>
 #include <getopt.h>

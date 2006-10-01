@@ -835,8 +835,10 @@ void inflate_cleanup(void)
 	free(bytebuffer);
 }
 
-int inflate_unzip(int in, int out)
+USE_DESKTOP(long long) int
+inflate_unzip(int in, int out)
 {
+	USE_DESKTOP(long long total = 0;)
 	ssize_t nwrote;
 	typedef void (*sig_type) (int);
 
@@ -864,6 +866,7 @@ int inflate_unzip(int in, int out)
 			bb_perror_msg("write");
 			return -1;
 		}
+		USE_DESKTOP(total += nwrote;)
 		if (ret == 0) break;
 	}
 
@@ -880,15 +883,17 @@ int inflate_unzip(int in, int out)
 		gunzip_bb >>= 8;
 		gunzip_bk -= 8;
 	}
-	return 0;
+	return USE_DESKTOP(total) + 0;
 }
 
-int inflate_gunzip(int in, int out)
+USE_DESKTOP(long long) int
+inflate_gunzip(int in, int out)
 {
 	uint32_t stored_crc = 0;
 	unsigned int count;
+	USE_DESKTOP(long long total = )inflate_unzip(in, out);
 
-	inflate_unzip(in, out);
+	USE_DESKTOP(if (total < 0) return total;)
 
 	/* top up the input buffer with the rest of the trailer */
 	count = bytebuffer_size - bytebuffer_offset;
@@ -915,5 +920,5 @@ int inflate_gunzip(int in, int out)
 		return -1;
 	}
 
-	return 0;
+	return USE_DESKTOP(total) + 0;
 }

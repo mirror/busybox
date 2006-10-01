@@ -63,7 +63,7 @@ int rpm2cpio_main(int argc, char **argv)
 
 	xread(rpm_fd, &lead, sizeof(struct rpm_lead));
 	if (strncmp((char *) &lead.magic, RPM_MAGIC, 4) != 0) {
-		bb_error_msg_and_die("Invalid RPM magic"); /* Just check the magic, the rest is irrelevant */
+		bb_error_msg_and_die("invalid RPM magic"); /* Just check the magic, the rest is irrelevant */
 	}
 
 	/* Skip the signature header */
@@ -75,12 +75,12 @@ int rpm2cpio_main(int argc, char **argv)
 
 	xread(rpm_fd, &magic, 2);
 	if ((magic[0] != 0x1f) || (magic[1] != 0x8b)) {
-		bb_error_msg_and_die("Invalid gzip magic");
+		bb_error_msg_and_die("invalid gzip magic");
 	}
 
 	check_header_gzip(rpm_fd);
-	if (inflate_gunzip(rpm_fd, STDOUT_FILENO) != 0) {
-		bb_error_msg("Error inflating");
+	if (inflate_gunzip(rpm_fd, STDOUT_FILENO) < 0) {
+		bb_error_msg("error inflating");
 	}
 
 	close(rpm_fd);

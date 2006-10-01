@@ -14,9 +14,10 @@
 
 int bunzip2_main(int argc, char **argv)
 {
+	USE_DESKTOP(long long) int status;
 	char *filename;
 	unsigned long opt;
-	int status, src_fd, dst_fd;
+	int src_fd, dst_fd;
 
 	opt = bb_getopt_ulflags(argc, argv, "cf");
 
@@ -55,7 +56,7 @@ int bunzip2_main(int argc, char **argv)
 	} else dst_fd = STDOUT_FILENO;
 	status = uncompressStream(src_fd, dst_fd);
 	if (filename) {
-		if (!status) filename[strlen(filename)] = '.';
+		if (status >= 0) filename[strlen(filename)] = '.';
 		if (unlink(filename) < 0) {
 			bb_error_msg_and_die("cannot remove %s", filename);
 		}

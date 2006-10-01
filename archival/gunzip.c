@@ -34,13 +34,15 @@
 #define GUNZIP_OPT_FORCE	2
 #define GUNZIP_OPT_TEST		4
 #define GUNZIP_OPT_DECOMPRESS	8
+#define GUNZIP_OPT_VERBOSE	0x10
 
 int gunzip_main(int argc, char **argv)
 {
-	char status = EXIT_SUCCESS;
+	USE_DESKTOP(long long) int status;
+	int exitcode = 0;
 	unsigned long opt;
 
-	opt = bb_getopt_ulflags(argc, argv, "cftd");
+	opt = bb_getopt_ulflags(argc, argv, "cftdv");
 	/* if called as zcat */
 	if (strcmp(bb_applet_name, "zcat") == 0) {
 		opt |= GUNZIP_OPT_STDOUT;
@@ -59,6 +61,8 @@ int gunzip_main(int argc, char **argv)
 		if (old_path == NULL || strcmp(old_path, "-") == 0) {
 			src_fd = STDIN_FILENO;
 			opt |= GUNZIP_OPT_STDOUT;
+			USE_DESKTOP(opt &= ~GUNZIP_OPT_VERBOSE;)
+			optind = argc; /* we don't handle "gunzip - a.gz b.gz" */
 		} else {
 			src_fd = xopen(old_path, O_RDONLY);
 
@@ -67,9 +71,9 @@ int gunzip_main(int argc, char **argv)
 		}
 
 		/* Check that the input is sane.  */
-		if (isatty(src_fd) && ((opt & GUNZIP_OPT_FORCE) == 0)) {
+		if (isatty(src_fd) && !(opt & GUNZIP_OPT_FORCE)) {
 			bb_error_msg_and_die
-				("compressed data not read from terminal.  Use -f to force it.");
+				("compressed data not read from terminal, use -f to force it");
 		}
 
 		/* Set output filename and number */
@@ -94,7 +98,8 @@ int gunzip_main(int argc, char **argv)
 				extension[2] = 'a';
 				extension[3] = 'r';
 			} else {
-				bb_error_msg_and_die("Invalid extension");
+				// FIXME: should we die or just skip to next?
+				bb_error_msg_and_die("invalid extension");
 			}
 
 			/* Open output file (with correct permissions) */
@@ -105,30 +110,34 @@ int gunzip_main(int argc, char **argv)
 			delete_path = old_path;
 		}
 
+		status = -1;
 		/* do the decompression, and cleanup */
 		if (xread_char(src_fd) == 0x1f) {
 			unsigned char magic2;
 
 			magic2 = xread_char(src_fd);
-#ifdef CONFIG_FEATURE_GUNZIP_UNCOMPRESS
-			if (magic2 == 0x9d) {
+			if (ENABLE_FEATURE_GUNZIP_UNCOMPRESS && magic2 == 0x9d) {
 				status = uncompress(src_fd, dst_fd);
-			} else
-#endif
-				if (magic2 == 0x8b) {
-					check_header_gzip(src_fd);
-					status = inflate_gunzip(src_fd, dst_fd);
-					if (status != 0) {
-						bb_error_msg_and_die("error inflating");
-					}
-				} else {
-					bb_error_msg_and_die("invalid magic");
-				}
+			} else if (magic2 == 0x8b) {
+				check_header_gzip(src_fd); // FIXME: xfunc? _or_die?
+				status = inflate_gunzip(src_fd, dst_fd);
+			} else {
+				bb_error_msg("invalid magic");
+				exitcode = 1;
+			}
+			if (status < 0) {
+				bb_error_msg("error inflating");
+				exitcode = 1;
+			}
+			else if (ENABLE_DESKTOP && (opt & GUNZIP_OPT_VERBOSE)) {
+				fprintf(stderr, "%s: %u%% - replaced with %s\n",
+					// TODO: LARGEFILE support for stat_buf.st_size?
+					old_path, (unsigned)(stat_buf.st_size*100 / (status+1)), new_path);
+			}
 		} else {
-			bb_error_msg_and_die("invalid magic");
+			bb_error_msg("invalid magic"); exitcode = 1;
 		}
-
-		if ((status != EXIT_SUCCESS) && (new_path)) {
+		if (status < 0 && new_path) {
 			/* Unzip failed, remove new path instead of old path */
 			delete_path = new_path;
 		}
@@ -142,12 +151,13 @@ int gunzip_main(int argc, char **argv)
 
 		/* delete_path will be NULL if in test mode or from stdin */
 		if (delete_path && (unlink(delete_path) == -1)) {
-			bb_error_msg_and_die("cannot remove %s", delete_path);
+			bb_error_msg("cannot remove %s", delete_path);
+			exitcode = 1;
 		}
 
 		free(new_path);
 
 	} while (optind < argc);
 
-	return status;
+	return exitcode;
 }

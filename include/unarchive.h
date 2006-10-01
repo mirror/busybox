@@ -100,14 +100,15 @@ extern void data_align(archive_handle_t *archive_handle, const unsigned short bo
 extern const llist_t *find_list_entry(const llist_t *list, const char *filename);
 extern const llist_t *find_list_entry2(const llist_t *list, const char *filename);
 
-extern int uncompressStream(int src_fd, int dst_fd);
+extern USE_DESKTOP(long long) int uncompressStream(int src_fd, int dst_fd);
 extern void inflate_init(unsigned int bufsize);
 extern void inflate_cleanup(void);
-extern int inflate_unzip(int in, int out);
-extern int inflate_gunzip(int in, int out);
-extern int unlzma(int src_fd, int dst_fd);
+extern USE_DESKTOP(long long) int inflate_unzip(int in, int out);
+extern USE_DESKTOP(long long) int inflate_gunzip(int in, int out);
+extern USE_DESKTOP(long long) int unlzma(int src_fd, int dst_fd);
 
-extern int open_transformer(int src_fd, int (*transformer)(int src_fd, int dst_fd));
+extern int open_transformer(int src_fd,
+	USE_DESKTOP(long long) int (*transformer)(int src_fd, int dst_fd));
 
 
 #endif

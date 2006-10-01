@@ -11,7 +11,8 @@
 #include "unarchive.h"
 
 /* transformer(), more than meets the eye */
-int open_transformer(int src_fd, int (*transformer)(int src_fd, int dst_fd))
+int open_transformer(int src_fd,
+	USE_DESKTOP(long long) int (*transformer)(int src_fd, int dst_fd))
 {
 	int fd_pipe[2];
 	int pid;
@@ -28,6 +29,7 @@ int open_transformer(int src_fd, int (*transformer)(int src_fd, int dst_fd))
 	if (pid == 0) {
 		/* child process */
 	    close(fd_pipe[0]); /* We don't wan't to read from the parent */
+	    // FIXME: error check?
 	    transformer(src_fd, fd_pipe[1]);
 	    close(fd_pipe[1]); /* Send EOF */
 		close(src_fd);
@@ -38,5 +40,5 @@ int open_transformer(int src_fd, int (*transformer)(int src_fd, int dst_fd))
 	/* parent process */
 	close(fd_pipe[1]); /* Don't want to write to the child */
 
-	return(fd_pipe[0]);
+	return fd_pipe[0];
 }

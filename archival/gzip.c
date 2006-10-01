@@ -16,6 +16,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+// TODO: full support for -v for DESKTOP
+
 #define SMALL_MEM
 
 #include <stdlib.h>
@@ -1134,7 +1136,7 @@ int gzip_main(int argc, char **argv)
 	struct stat statBuf;
 	char *delFileName;
 
-	opt = bb_getopt_ulflags(argc, argv, "cf123456789q" USE_GUNZIP("d"));
+	opt = bb_getopt_ulflags(argc, argv, "cf123456789qv" USE_GUNZIP("d"));
 	//if (opt & 0x1) // -c
 	//if (opt & 0x2) // -f
 	/* Ignore 1-9 (compression level) options */
@@ -1148,7 +1150,8 @@ int gzip_main(int argc, char **argv)
 	//if (opt & 0x200) // -8
 	//if (opt & 0x400) // -9
 	//if (opt & 0x800) // -q
-	if (ENABLE_GUNZIP && (opt & 0x1000)) { // -d
+	//if (opt & 0x1000) // -v
+	if (ENABLE_GUNZIP && (opt & 0x2000)) { // -d
 		/* FIXME: bb_getopt_ulflags should not depend on optind */
 		optind = 1;
 		return gunzip_main(argc, argv);

@@ -671,20 +671,24 @@ static int start_bunzip(bunzip_data **bdp, int in_fd, unsigned char *inbuf,
 /* Example usage: decompress src_fd to dst_fd.  (Stops at end of bzip data,
    not end of file.) */
 
-int uncompressStream(int src_fd, int dst_fd)
+USE_DESKTOP(long long) int
+uncompressStream(int src_fd, int dst_fd)
 {
+	USE_DESKTOP(long long total_written = 0;)
 	char *outbuf;
 	bunzip_data *bd;
 	int i;
 
 	outbuf=xmalloc(IOBUF_SIZE);
-	if(!(i=start_bunzip(&bd,src_fd,0,0))) {
+	i=start_bunzip(&bd,src_fd,0,0);
+	if(!i) {
 		for(;;) {
 			if((i=read_bunzip(bd,outbuf,IOBUF_SIZE)) <= 0) break;
 			if(i!=write(dst_fd,outbuf,i)) {
 				i=RETVAL_UNEXPECTED_OUTPUT_EOF;
 				break;
 			}
+			USE_DESKTOP(total_written += i;)
 		}
 	}
 
@@ -692,27 +696,27 @@ int uncompressStream(int src_fd, int dst_fd)
 
 	if(i==RETVAL_LAST_BLOCK) {
 		if (bd->headerCRC!=bd->totalCRC) {
-			bb_error_msg("Data integrity error when decompressing.");
+			bb_error_msg("data integrity error when decompressing");
 		} else {
 			i=RETVAL_OK;
 		}
 	} else if (i==RETVAL_UNEXPECTED_OUTPUT_EOF) {
-		bb_error_msg("Compressed file ends unexpectedly");
+		bb_error_msg("compressed file ends unexpectedly");
 	} else {
-		bb_error_msg("Decompression failed");
+		bb_error_msg("decompression failed");
 	}
 	free(bd->dbuf);
 	free(bd);
 	free(outbuf);
 
-	return i;
+	return i ? i : USE_DESKTOP(total_written) + 0;
 }
 
 #ifdef TESTING
 
 static char * const bunzip_errors[]={NULL,"Bad file checksum","Not bzip data",
 		"Unexpected input EOF","Unexpected output EOF","Data error",
-		 "Out of memory","Obsolete (pre 0.9.5) bzip format not supported."};
+		"Out of memory","Obsolete (pre 0.9.5) bzip format not supported."};
 
 /* Dumb little test thing, decompress stdin to stdout */
 int main(int argc, char *argv[])
@@ -720,8 +724,8 @@ int main(int argc, char *argv[])
 	int i=uncompressStream(0,1);
 	char c;
 
-	if(i) fprintf(stderr,"%s\n", bunzip_errors[-i]);
-    else if(read(0,&c,1)) fprintf(stderr,"Trailing garbage ignored\n");
+	if(i<0) fprintf(stderr,"%s\n", bunzip_errors[-i]);
+	else if(read(0,&c,1)) fprintf(stderr,"Trailing garbage ignored\n");
 	return -i;
 }
 #endif

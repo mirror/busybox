@@ -29,6 +29,14 @@ config CONFIG_NITPICK
 
 	  You have been warned.
 
+config CONFIG_DESKTOP
+	bool "Enable options for full-blown desktop systems."
+	default n
+	help
+	  Enable options and features which are not essential.
+	  Select this only if you plan to use busybox on full-blown
+	  desktop machine with common Linux distro, not on an ebmbedded box.
+
 choice
 	prompt "Buffer allocation policy"
 	default CONFIG_FEATURE_BUFFERS_USE_MALLOC

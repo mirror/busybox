@@ -8,6 +8,8 @@
  * Licensed under GPL v2, see file LICENSE in this tarball for details.
  */
 
+/* Why our g[un]zip/bunzip2 are so ugly compared to this beauty? */
+
 #include "busybox.h"
 #include "unarchive.h"
 
@@ -15,15 +17,16 @@
 
 int unlzma_main(int argc, char **argv)
 {
+	USE_DESKTOP(long long) int status;
 	char *filename;
 	unsigned long opt;
-	int status, src_fd, dst_fd;
+	int src_fd, dst_fd;
 
 	opt = bb_getopt_ulflags(argc, argv, "c");
 
 	/* Set input filename and number */
 	filename = argv[optind];
-	if ((filename) && (filename[0] != '-') && (filename[1] != '\0')) {
+	if (filename && (filename[0] != '-') && (filename[1] != '\0')) {
 		/* Open input file */
 		src_fd = xopen(filename, O_RDONLY);
 	} else {
@@ -50,13 +53,12 @@ int unlzma_main(int argc, char **argv)
 		dst_fd = STDOUT_FILENO;
 	status = unlzma(src_fd, dst_fd);
 	if (filename) {
-		if (!status)
+		if (status >= 0) /* if success delete src, else delete dst */
 			filename[strlen(filename)] = '.';
 		if (unlink(filename) < 0) {
 			bb_error_msg_and_die("cannot remove %s", filename);
 		}
 	}
 
-	return status;
+	return (status < 0);
 }
-

@@ -86,8 +86,10 @@ static int maxbits = BITS;
  * with those of the compress() routine.  See the definitions above.
  */
 
-int uncompress(int fd_in, int fd_out)
+USE_DESKTOP(long long) int
+uncompress(int fd_in, int fd_out)
 {
+	USE_DESKTOP(long long total_written = 0;)
 	unsigned char *stackp;
 	long int code;
 	int finchar;
@@ -182,16 +184,16 @@ int uncompress(int fd_in, int fd_out)
 			{
 				unsigned char *p = &inbuf[posbits >> 3];
 
-				code =
-					((((long) (p[0])) | ((long) (p[1]) << 8) |
-					  ((long) (p[2]) << 16)) >> (posbits & 0x7)) & bitmask;
+				code =	((((long) (p[0])) | ((long) (p[1]) << 8) |
+				          ((long) (p[2]) << 16)) >> (posbits & 0x7)) & bitmask;
 			}
 			posbits += n_bits;
 
 
 			if (oldcode == -1) {
-				outbuf[outpos++] = (unsigned char) (finchar =
-												(int) (oldcode = code));
+				oldcode = code;
+				finchar = (int) oldcode;
+				outbuf[outpos++] = (unsigned char) finchar;
 				continue;
 			}
 
@@ -255,6 +257,7 @@ int uncompress(int fd_in, int fd_out)
 
 						if (outpos >= OBUFSIZ) {
 							write(fd_out, outbuf, outpos);
+							USE_DESKTOP(total_written += outpos;)
 							outpos = 0;
 						}
 						stackp += i;
@@ -280,9 +283,10 @@ int uncompress(int fd_in, int fd_out)
 
 	if (outpos > 0) {
 		write(fd_out, outbuf, outpos);
+		USE_DESKTOP(total_written += outpos;)
 	}
 
 	RELEASE_CONFIG_BUFFER(inbuf);
 	RELEASE_CONFIG_BUFFER(outbuf);
-	return 0;
+	return USE_DESKTOP(total_written) + 0;
 }
