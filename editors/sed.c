@@ -1084,6 +1084,29 @@ static void add_cmd_block(char *cmdstr)
 	free(temp);
 }
 
+static void add_cmds_link(llist_t *opt_e)
+{
+	if (!opt_e) return;
+	add_cmds_link(opt_e->link);
+	add_cmd_block(opt_e->data);
+	free(opt_e);
+}
+
+static void add_files_link(llist_t *opt_f)
+{
+	char *line;
+	FILE *cmdfile;
+	if (!opt_f) return;
+	add_files_link(opt_f->link);
+	cmdfile = xfopen(opt_f->data, "r");
+	while ((line = bb_get_chomped_line_from_file(cmdfile)) != NULL) {
+		add_cmd(line);
+		free(line);
+	}
+	xprint_and_close_file(cmdfile);
+	free(opt_f);
+}
+
 int sed_main(int argc, char **argv)
 {
 	unsigned long opt;
@@ -1112,27 +1135,12 @@ int sed_main(int argc, char **argv)
 	if (opt & 0x2) bbg.regex_type|=REG_EXTENDED; // -r
 	if (opt & 0x4) bbg.be_quiet++; // -n
 	if (opt & 0x8) { // -e
-		while (opt_e) {
-			llist_t *cur = opt_e;
-			add_cmd_block(cur->data);
-			opt_e = cur->link;
-			free(cur);
-		}
+		/* getopt_ulflags reverses order of arguments, handle it */
+		add_cmds_link(opt_e);
 	}
 	if (opt & 0x10) { // -f
-		while (opt_f) {
-			llist_t *cur = opt_f;
-			FILE *cmdfile;
-			char *line;
-			cmdfile = xfopen(cur->data, "r");
-			while ((line = bb_get_chomped_line_from_file(cmdfile)) != NULL) {
-				add_cmd(line);
-				free(line);
-			}
-			xprint_and_close_file(cmdfile);
-			opt_f = cur->link;
-			free(cur);
-		}
+		/* getopt_ulflags reverses order of arguments, handle it */
+		add_files_link(opt_f);
 	}
 	/* if we didn't get a pattern from -e or -f, use argv[optind] */
 	if(!(opt & 0x18)) {
