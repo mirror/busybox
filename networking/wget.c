@@ -43,16 +43,16 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
 static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 
 /* Globals (can be accessed from signal handlers */
-static FILEOFF_TYPE filesize;           /* content-length of the file */
+static FILEOFF_TYPE content_len;        /* Content-length of the file */
+static FILEOFF_TYPE beg_range;          /* Range at which continue begins */
+static FILEOFF_TYPE transferred;        /* Number of bytes transferred so far */
 static int chunked;                     /* chunked transfer encoding */
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);
-static char *curfile;                   /* Name of current file being transferred. */
-static struct timeval start;            /* Time a transfer started. */
-static FILEOFF_TYPE transferred;        /* Number of bytes transferred so far. */
-/* For progressmeter() -- number of seconds before xfer considered "stalled" */
+static char *curfile;                   /* Name of current file being transferred */
+static struct timeval start;            /* Time a transfer started */
 enum {
-	STALLTIME = 5
+	STALLTIME = 5                   /* Seconds when xfer considered "stalled" */
 };
 #else
 static void progressmeter(int flag) {}
@@ -139,7 +139,6 @@ int wget_main(int argc, char **argv)
 	FILE *sfp = NULL;               /* socket to web/ftp server         */
 	FILE *dfp = NULL;               /* socket to ftp server (data)      */
 	char *fname_out = NULL;         /* where to direct output (-O)      */
-	FILEOFF_TYPE beg_range = 0;     /*   range at which continue begins */
 	int got_clen = 0;               /* got content-length: from server  */
 	int output_fd = -1;
 	int use_proxy = 1;              /* Use proxies if env vars are set  */
@@ -232,7 +231,7 @@ int wget_main(int argc, char **argv)
 		if (output_fd >= 0) {
 			beg_range = LSEEK(output_fd, 0, SEEK_END);
 			if (beg_range == (FILEOFF_TYPE)-1)
-				bb_perror_msg_and_die("lseek64");
+				bb_perror_msg_and_die("lseek");
 		}
 		/* File doesn't exist. We do not create file here yet.
 		   We are not sure it exists on remove side */
@@ -337,7 +336,7 @@ read_response:
 			 */
 			while ((s = gethdr(buf, sizeof(buf), sfp, &n)) != NULL) {
 				if (strcasecmp(buf, "content-length") == 0) {
-					if (SAFE_STRTOOFF(s, &filesize) || filesize < 0) {
+					if (SAFE_STRTOOFF(s, &content_len) || content_len < 0) {
 						bb_error_msg_and_die("content-length %s is garbage", s);
 					}
 					got_clen = 1;
@@ -405,7 +404,7 @@ read_response:
 		 * Querying file size
 		 */
 		if (ftpcmd("SIZE ", target.path, sfp, buf) == 213) {
-			if (SAFE_STRTOOFF(buf+4, &filesize) || filesize < 0) {
+			if (SAFE_STRTOOFF(buf+4, &content_len) || content_len < 0) {
 				bb_error_msg_and_die("SIZE value is garbage");
 			}
 			got_clen = 1;
@@ -427,7 +426,7 @@ read_response:
 		if (beg_range) {
 			sprintf(buf, "REST "FILEOFF_FMT, beg_range);
 			if (ftpcmd(buf, NULL, sfp, buf) == 350)
-				filesize -= beg_range;
+				content_len -= beg_range;
 		}
 
 		if (ftpcmd("RETR ", target.path, sfp, buf) > 150)
@@ -440,23 +439,26 @@ read_response:
 	 */
 	if (chunked) {
 		fgets(buf, sizeof(buf), dfp);
-		filesize = STRTOOFF(buf, (char **) NULL, 16);
+		content_len = STRTOOFF(buf, (char **) NULL, 16);
 		/* FIXME: error check?? */
 	}
+
+	/* Do it before progressmeter (want to have nice error message) */
+	if (output_fd < 0)
+		output_fd = xopen3(fname_out,
+			O_WRONLY|O_CREAT|O_EXCL|O_TRUNC|O_LARGEFILE, 0666);
 
 	if (!(opt & WGET_OPT_QUIET))
 		progressmeter(-1);
 
 	do {
-		while (filesize > 0 || !got_clen) {
+		while (content_len > 0 || !got_clen) {
 			unsigned rdsz = sizeof(buf);
-			if (filesize < sizeof(buf) && (chunked || got_clen))
-				rdsz = (unsigned)filesize;
+			if (content_len < sizeof(buf) && (chunked || got_clen))
+				rdsz = (unsigned)content_len;
 			n = safe_fread(buf, 1, rdsz, dfp);
 			if (n <= 0)
 				break;
-			if (output_fd < 0)
-				output_fd = xopen3(fname_out, O_WRONLY|O_CREAT|O_EXCL|O_TRUNC|O_LARGEFILE, 0666);
 			if (full_write(output_fd, buf, n) != n) {
 				bb_perror_msg_and_die(bb_msg_write_error);
 			}
@@ -464,16 +466,16 @@ read_response:
 			transferred += n;
 #endif
 			if (got_clen) {
-				filesize -= n;
+				content_len -= n;
 			}
 		}
 
 		if (chunked) {
 			safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
 			safe_fgets(buf, sizeof(buf), dfp);
-			filesize = STRTOOFF(buf, (char **) NULL, 16);
+			content_len = STRTOOFF(buf, (char **) NULL, 16);
 			/* FIXME: error check? */
-			if (filesize == 0) {
+			if (content_len == 0) {
 				chunked = 0; /* all done! */
 			}
 		}
@@ -636,10 +638,7 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 /* Stuff below is from BSD rcp util.c, as added to openshh.
  * Original copyright notice is retained at the end of this file.
- *
  */
-
-
 static int
 getttywidth(void)
 {
@@ -679,17 +678,17 @@ progressmeter(int flag)
 	int elapsed, ratio, barlength, i;
 	char buf[256];
 
-	if (flag == -1) {
+	if (flag == -1) { /* first call to progressmeter */
 		(void) gettimeofday(&start, (struct timezone *) 0);
 		lastupdate = start;
 		lastsize = 0;
-		totalsize = filesize; /* as filesize changes.. */
+		totalsize = content_len + beg_range; /* as content_len changes.. */
 	}
 
 	(void) gettimeofday(&now, (struct timezone *) 0);
 	ratio = 100;
 	if (totalsize != 0 && !chunked) {
-		ratio = (int) (100 * transferred / totalsize);
+		ratio = (int) (100 * (transferred+beg_range) / totalsize);
 		ratio = MIN(ratio, 100);
 	}
 
@@ -704,7 +703,7 @@ progressmeter(int flag)
 		fprintf(stderr, "|%s|", buf);
 	}
 	i = 0;
-	abbrevsize = transferred;
+	abbrevsize = transferred + beg_range;
 	while (abbrevsize >= 100000) {
 		i++;
 		abbrevsize >>= 10;
@@ -725,23 +724,26 @@ progressmeter(int flag)
 
 	if (tvwait.tv_sec >= STALLTIME) {
 		fprintf(stderr, " - stalled -");
-	} else if (transferred <= 0 || elapsed <= 0 || transferred > totalsize || chunked) {
-		fprintf(stderr, "--:--:-- ETA");
 	} else {
-		/* totalsize / (transferred/elapsed) - elapsed: */
-		int eta = (int) (totalsize*elapsed/transferred - elapsed);
-		i = eta % 3600;
-		fprintf(stderr, "%02d:%02d:%02d ETA", eta / 3600, i / 60, i % 60);
+		FILEOFF_TYPE to_download = totalsize - beg_range;
+		if (transferred <= 0 || elapsed <= 0 || transferred > to_download || chunked) {
+			fprintf(stderr, "--:--:-- ETA");
+		} else {
+			/* to_download / (transferred/elapsed) - elapsed: */
+			int eta = (int) (to_download*elapsed/transferred - elapsed);
+			i = eta % 3600;
+			fprintf(stderr, "%02d:%02d:%02d ETA", eta / 3600, i / 60, i % 60);
+		}
 	}
 
-	if (flag == -1) {
+	if (flag == -1) { /* first call to progressmeter */
 		struct sigaction sa;
 		sa.sa_handler = updateprogressmeter;
 		sigemptyset(&sa.sa_mask);
 		sa.sa_flags = SA_RESTART;
 		sigaction(SIGALRM, &sa, NULL);
 		alarmtimer(1);
-	} else if (flag == 1) {
+	} else if (flag == 1) { /* last call to progressmeter */
 		alarmtimer(0);
 		transferred = 0;
 		putc('\n', stderr);
