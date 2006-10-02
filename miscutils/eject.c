@@ -21,25 +21,40 @@
 #define CDROMEJECT                0x5309  /* Ejects the cdrom media */
 #define DEFAULT_CDROM             "/dev/cdrom"
 
+#define FLAG_CLOSE  1
+#define FLAG_SMART  2
+
 int eject_main(int argc, char **argv)
 {
 	unsigned long flags;
 	char *device;
 	struct mntent *m;
+	int dev;
 
-	flags = bb_getopt_ulflags(argc, argv, "t");
+	/*bb_opt_complementally = "t--T:T--t";*/
+	flags = bb_getopt_ulflags(argc, argv, "tT");
 	device = argv[optind] ? : DEFAULT_CDROM;
 
-	if ((m = find_mount_point(device, bb_path_mtab_file))) {
+	m = find_mount_point(device, bb_path_mtab_file);
+	if (m) {
 		if (umount(m->mnt_dir)) {
-			bb_error_msg_and_die("Can't umount");
+			bb_error_msg_and_die("can't umount");
 		} else if (ENABLE_FEATURE_MTAB_SUPPORT) {
 			erase_mtab(m->mnt_fsname);
 		}
 	}
-	if (ioctl(xopen(device, (O_RDONLY | O_NONBLOCK)),
-				(flags ? CDROMCLOSETRAY : CDROMEJECT))) {
-		bb_perror_msg_and_die("%s", device);
+
+	dev = xopen(device, O_RDONLY|O_NONBLOCK);
+
+	if (flags & FLAG_CLOSE) goto close_tray;
+
+	if (ioctl(dev, CDROMEJECT)) {
+close_tray:
+		if (ioctl(dev, CDROMCLOSETRAY))
+			bb_perror_msg_and_die("%s", device);
 	}
-	return (EXIT_SUCCESS);
+
+	if (ENABLE_FEATURE_CLEAN_UP) close(dev);
+
+	return EXIT_SUCCESS;
 }

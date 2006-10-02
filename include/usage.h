@@ -638,11 +638,12 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Erik\\nis\\ncool\n")
 
 #define eject_trivial_usage \
-	"[-t] [DEVICE]"
+	"[-t] [-T] [DEVICE]"
 #define eject_full_usage \
 	"Eject specified DEVICE (or default /dev/cdrom).\n\n" \
 	"Options:\n" \
-	"\t-t\tclose tray"
+	"\t-t\tclose tray\n" \
+	"\t-T\topen/close tray (toggle)"
 
 #define ed_trivial_usage ""
 #define ed_full_usage ""
