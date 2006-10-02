@@ -452,43 +452,46 @@ static int static_down(struct interface_defn_t *ifd, execfn *exec)
 
 static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
-	int i;
+	if (execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid -i %iface% "
+			"[[-H %hostname%]] [[-c %clientid%]] [[-s %script%]]", ifd, exec))
+		return 1;
 
-	for (i = 0; i < ifd->n_options; i++) {
-		if (strcmp(ifd->option[i].name, "dhcp-start-cmd") == 0) {
-			return execute(ifd->option[i].value, ifd, exec);
-		}
-	}
+	/* 2006-09-30: The following are deprecated, and should eventually be
+	 * removed. For non-busybox (i.e., other than udhcpc) clients, use
+	 * 'iface foo inet manual' in /etc/network/interfaces, and supply
+	 * start/stop commands explicitly via up/down. */
 
-	if (execute("udhcpc -n -p /var/run/udhcpc.%iface%.pid -i "
-			"%iface% [[-H %hostname%]] [[-c %clientid%]]", ifd, exec)) return 1;
-	if (execute("pump -i %iface% [[-h %hostname%]] [[-l %leasehours%]]", ifd, exec)) return 1;
-	if (execute("dhclient -pf /var/run/dhclient.%iface%.pid %iface%", ifd, exec)) return 1;
+	if (execute("pump -i %iface% [[-h %hostname%]] [[-l %leasehours%]]",
+			ifd, exec)) return 1;
+	if (execute("dhclient -pf /var/run/dhclient.%iface%.pid %iface%",
+			ifd, exec)) return 1;
 	if (execute("dhcpcd [[-h %hostname%]] [[-i %vendor%]] [[-I %clientid%]] "
 			"[[-l %leasetime%]] %iface%", ifd, exec)) return 1;
+
 	return 0;
 }
 
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
-	int i;
+	if (execute("kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
+			ifd, exec)) return 1;
 
-	for (i = 0; i < ifd->n_options; i++) {
-		if (strcmp(ifd->option[i].name, "dhcp-stop-cmd") == 0) {
-			return execute(ifd->option[i].value, ifd, exec);
-		}
-	}
+	/* 2006-09-30: The following are deprecated, and should eventually be
+	 * removed. For non-busybox (i.e., other than udhcpc) clients, use
+	 * 'iface foo inet manual' in /etc/network/interfaces, and supply
+	 * start/stop commands explicitly via up/down. */
 
-	/* SIGUSR2 forces udhcpc to release the current lease and go inactive,
-	 * and SIGTERM causes udhcpc to exit.  Signals are queued and processed
-	 * sequentially so we don't need to sleep */
-	if (execute("kill -USR2 `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec)
-	 || execute("kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec))
-		return 1;
 	if (execute("pump -i %iface% -k", ifd, exec)) return 1;
-	if (execute("kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null", ifd, exec)) return 1;
+	if (execute("kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null",
+			ifd, exec)) return 1;
 	if (execute("dhcpcd -k %iface%", ifd, exec)) return 1;
+
 	return static_down(ifd, exec);
+}
+
+static int manual_up_down(struct interface_defn_t *ifd, execfn *exec)
+{
+	return 1;
 }
 
 static int bootp_up(struct interface_defn_t *ifd, execfn *exec)
@@ -521,6 +524,7 @@ static int wvdial_down(struct interface_defn_t *ifd, execfn *exec)
 }
 
 static const struct method_t methods[] = {
+	{ "manual", manual_up_down, manual_up_down, },
 	{ "wvdial", wvdial_up, wvdial_down, },
 	{ "ppp", ppp_up, ppp_down, },
 	{ "static", static_up, static_down, },
