@@ -92,7 +92,7 @@ struct {
 	{"remount", MS_REMOUNT},  // action flag
 };
 
-
+#define VECTOR_SIZE(v) (sizeof(v) / sizeof((v)[0]))
 
 /* Append mount options to string */
 static void append_mount_options(char **oldopts, char *newopts)
@@ -139,7 +139,7 @@ static int parse_mount_options(char *options, char **unrecognized)
 		if (comma) *comma = 0;
 
 		// Find this option in mount_options
-		for (i = 0; i < (sizeof(mount_options) / sizeof(*mount_options)); i++) {
+		for (i = 0; i < VECTOR_SIZE(mount_options); i++) {
 			if (!strcasecmp(mount_options[i].name, options)) {
 				long fl = mount_options[i].flags;
 				if (fl < 0) flags &= fl;
@@ -148,9 +148,7 @@ static int parse_mount_options(char *options, char **unrecognized)
 			}
 		}
 		// If unrecognized not NULL, append unrecognized mount options */
-		if (unrecognized
-				&& i == (sizeof(mount_options) / sizeof(*mount_options)))
-		{
+		if (unrecognized && i == VECTOR_SIZE(mount_options)) {
 			// Add it to strflags, to pass on to kernel
 			i = *unrecognized ? strlen(*unrecognized) : 0;
 			*unrecognized = xrealloc(*unrecognized, i+strlen(options)+2);
@@ -1446,7 +1444,7 @@ int mount_main(int argc, char **argv)
 
 	// Parse remaining options
 
-	opt = bb_getopt_ulflags(argc, argv, "o:t:rwanfv", &opt_o, &fstype);
+	opt = bb_getopt_ulflags(argc, argv, "o:t:rwanfvs", &opt_o, &fstype);
 	if (opt & 0x1) append_mount_options(&cmdopts, opt_o); // -o
 	//if (opt & 0x2) // -t
 	if (opt & 0x4) append_mount_options(&cmdopts, "ro"); // -r
@@ -1454,7 +1452,8 @@ int mount_main(int argc, char **argv)
 	//if (opt & 0x10) // -a
 	if (opt & 0x20) USE_FEATURE_MTAB_SUPPORT(useMtab = 0); // -n
 	if (opt & 0x40) USE_FEATURE_MTAB_SUPPORT(fakeIt = 1); // -f
-	//if (opt & 0x80) // -v: ignore
+	//if (opt & 0x80) // -v: verbose (ignore)
+	//if (opt & 0x100) // -s: sloppy (ignore)
 	argv += optind;
 	argc -= optind;
 
@@ -1499,8 +1498,10 @@ int mount_main(int argc, char **argv)
 		goto clean_up;
 	}
 
+	i = parse_mount_options(cmdopts, 0);
+
 	// If we have a shared subtree flag, don't worry about fstab or mtab.
-	i = parse_mount_options(cmdopts,0);
+
 	if (ENABLE_FEATURE_MOUNT_FLAGS &&
 			(i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE )))
 	{
@@ -1511,17 +1512,16 @@ int mount_main(int argc, char **argv)
 
 	// Open either fstab or mtab
 
-	if (parse_mount_options(cmdopts,0) & MS_REMOUNT)
+	if (i & MS_REMOUNT)
 		fstabname = bb_path_mtab_file;
 	else fstabname = "/etc/fstab";
-
 	fstab = setmntent(fstabname,"r");
 	if (!fstab)
 		bb_perror_msg_and_die("cannot read %s", fstabname);
 
 	// Loop through entries until we find what we're looking for.
 
-	memset(mtpair,0,sizeof(mtpair));
+	memset(mtpair, 0, sizeof(mtpair));
 	for (;;) {
 		struct mntent *mtnext = (mtcur==mtpair ? mtpair+1 : mtpair);
 
