@@ -1,0 +1,42 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2005 by Erik Andersen <andersen@codepoet.org>
+#
+# Licensed under the GPL v2, see the file LICENSE in this tarball.
+
+RUNIT_AR:=runit.a
+ifndef RUNIT_DIR
+RUNIT_DIR:=$(top_builddir)/runit/
+endif
+srcdir=$(top_srcdir)/runit
+
+#unix_a:=buffer.o \
+#buffer_get.o buffer_put.o buffer_read.o buffer_write.o coe.o \
+#fd_copy.o fd_move.o fifo.o lock_ex.o lock_exnb.o \
+#ndelay_off.o ndelay_on.o open_append.o open_read.o \
+#open_trunc.o open_write.o openreadclose.o pathexec_env.o \
+#pathexec_run.o prot.o readclose.o seek_set.o sig.o \
+#sig_block.o sig_catch.o sig_pause.o stralloc_cat.o stralloc_catb.o \
+#stralloc_cats.o stralloc_eady.o stralloc_opyb.o stralloc_opys.o \
+#stralloc_pend.o wait_nohang.o \
+#wait_pid.o
+
+RUNIT-y:=
+RUNIT-$(CONFIG_CHPST) += chpst.o uidgid.o
+
+RUNIT-y:=$(sort $(RUNIT-y))
+
+ifneq ($(strip $(RUNIT-y)),)
+libraries-y+=$(RUNIT_DIR)$(RUNIT_AR)
+endif
+
+RUNIT_SRC-y:=$(patsubst %.o,$(srcdir)/%.c,$(RUNIT-y))
+RUNIT_SRC-a:=$(wildcard $(srcdir)/*.c)
+APPLET_SRC-y+=$(RUNIT_SRC-y)
+APPLET_SRC-a+=$(RUNIT_SRC-a)
+
+$(RUNIT_DIR)$(RUNIT_AR): $(patsubst %,$(RUNIT_DIR)%, $(RUNIT-y))
+	$(do_ar)
+
+$(RUNIT_DIR)%.o: $(srcdir)/%.c
+	$(compile.c)
