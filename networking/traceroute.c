@@ -204,27 +204,11 @@
 #undef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 //#define CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <endian.h>
-#include <getopt.h>
-
-#include <sys/param.h>
-#include <sys/file.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/select.h>
 #include "inet_common.h"
 
 #include <net/if.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <netinet/protocols.h>
+#include <netinet/in.h>
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
@@ -236,7 +220,15 @@
  * Definitions for internet protocol version 4.
  * Per RFC 791, September 1981.
  */
-#define IPVERSION       4
+#define IPVERSION 4
+
+#ifndef IPPROTO_ICMP
+/* Grrrr.... */
+#define IPPROTO_ICMP 1
+#endif
+#ifndef IPPROTO_IP
+#define IPPROTO_IP 0
+#endif
 
 /*
  * Overlay for ip header used by other protocols (tcp, udp).
@@ -1080,7 +1072,7 @@ traceroute_main(int argc, char *argv[])
 	if (n > 2)
 		close(n);
 
-	s = xsocket(AF_INET, SOCK_RAW, IP_ICMP);
+	s = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
 #ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	if (op & USAGE_OP_DEBUG)
@@ -1098,10 +1090,6 @@ traceroute_main(int argc, char *argv[])
 	if (lsrr > 0) {
 		unsigned char optlist[MAX_IPOPTLEN];
 
-		cp = "ip";
-		if ((pe = getprotobyname(cp)) == NULL)
-			bb_perror_msg_and_die("unknown protocol");
-
 		/* final hop */
 		gwlist[lsrr] = to->sin_addr.s_addr;
 		++lsrr;
@@ -1116,10 +1104,10 @@ traceroute_main(int argc, char *argv[])
 		optlist[3] = IPOPT_MINOFF;
 		memcpy(optlist + 4, gwlist, i);
 
-		if ((setsockopt(sndsock, pe->p_proto, IP_OPTIONS,
+		if ((setsockopt(sndsock, IPPROTO_IP, IP_OPTIONS,
 		    (char *)optlist, i + sizeof(gwlist[0]))) < 0) {
 			bb_perror_msg_and_die("IP_OPTIONS");
-		    }
+		}
 	}
 #endif /* IP_OPTIONS */
 #endif /* CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE */
