@@ -1251,7 +1251,7 @@ inetd_main(int argc, char *argv[])
 	LastArg = envp[-1] + strlen(envp[-1]);
 #endif
 
-	openlog(bb_applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
+	openlog(applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
 
 	opt = getopt32(argc, argv, "R:f", &stoomany);
 	if(opt & 1) {

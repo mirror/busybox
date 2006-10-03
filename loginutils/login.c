@@ -268,7 +268,7 @@ int login_main(int argc, char **argv)
 
 	bb_setpgrp;
 
-	openlog(bb_applet_name, LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
+	openlog(applet_name, LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
 
 	while (1) {
 		if (!username[0])

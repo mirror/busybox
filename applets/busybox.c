@@ -6,7 +6,7 @@
  */
 #include "busybox.h"
 
-const char *bb_applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
+const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
 
 #ifdef CONFIG_FEATURE_INSTALLER
 /*
@@ -59,16 +59,16 @@ int main(int argc, char **argv)
 {
 	const char *s;
 
-	bb_applet_name=argv[0];
-	if (*bb_applet_name == '-') bb_applet_name++;
-	for (s = bb_applet_name; *s ;)
-		if (*(s++) == '/') bb_applet_name = s;
+	applet_name=argv[0];
+	if (*applet_name == '-') applet_name++;
+	for (s = applet_name; *s ;)
+		if (*(s++) == '/') applet_name = s;
 
 	/* Set locale for everybody except `init' */
 	if(ENABLE_LOCALE_SUPPORT && getpid() != 1)
 		setlocale(LC_ALL, "");
 
-	run_applet_by_name(bb_applet_name, argc, argv);
+	run_applet_by_name(applet_name, argc, argv);
 	bb_error_msg_and_die("applet not found");
 }
 
@@ -106,7 +106,8 @@ int busybox_main(int argc, char **argv)
 
 	if (argc==1 || !strcmp(argv[1],"--help") ) {
 		if (argc>2) {
-			run_applet_by_name(bb_applet_name=argv[2], 2, argv);
+			applet_name = argv[2];
+			run_applet_by_name(applet_name, 2, argv);
 		} else {
 			const struct BB_applet *a;
 			int col, output_width;

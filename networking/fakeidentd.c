@@ -219,7 +219,7 @@ static int checkInput(char *buf, int len, int l)
 int fakeidentd_main(int argc, char **argv)
 {
 	/* This applet is an inetd-style daemon */
-	openlog(bb_applet_name, 0, LOG_DAEMON);
+	openlog(applet_name, 0, LOG_DAEMON);
 	logmode = LOGMODE_SYSLOG;
 
 	memset(conns, 0, sizeof(conns));

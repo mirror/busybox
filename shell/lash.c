@@ -1145,7 +1145,7 @@ static int pseudo_exec(struct child_prog *child)
 	/* Check if the command matches any of the forking builtins. */
 	for (x = bltins_forking; x->cmd; x++) {
 		if (strcmp(child->argv[0], x->cmd) == 0) {
-			bb_applet_name=x->cmd;
+			applet_name=x->cmd;
 			_exit (x->function(child));
 		}
 	}

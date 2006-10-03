@@ -31,7 +31,7 @@ RB_AUTOBOOT
 	int which, flags, rc = 1;
 
 	/* Figure out which applet we're running */
-	for(which=0;delay[which]!=*bb_applet_name;which++);
+	for(which=0;delay[which]!=*applet_name;which++);
 
 	/* Parse and handle arguments */
 	flags = getopt32(argc, argv, "d:nf", &delay);

@@ -44,7 +44,7 @@ int sulogin_main(int argc, char **argv)
 	struct spwd *spwd;
 
 	logmode = LOGMODE_BOTH;
-	openlog(bb_applet_name, 0, LOG_AUTH);
+	openlog(applet_name, 0, LOG_AUTH);
 
 	if (getopt32 (argc, argv, "t:", &timeout_arg)) {
 		if (safe_strtoi(timeout_arg, &timeout)) {

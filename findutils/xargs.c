@@ -523,12 +523,12 @@ int xargs_main(int argc, char **argv)
 
 #ifdef TEST
 
-const char *bb_applet_name = "debug stuff usage";
+const char *applet_name = "debug stuff usage";
 
 void bb_show_usage(void)
 {
 	fprintf(stderr, "Usage: %s [-p] [-r] [-t] -[x] [-n max_arg] [-s max_chars]\n",
-		bb_applet_name);
+		applet_name);
 	exit(1);
 }
 

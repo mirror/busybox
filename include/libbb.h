@@ -372,7 +372,7 @@ enum {	/* DO NOT CHANGE THESE VALUES!  cp.c depends on them. */
 	FILEUTILS_INTERACTIVE = 16
 };
 
-extern const char *bb_applet_name;
+extern const char *applet_name;
 
 extern const char bb_msg_full_version[];
 extern const char bb_msg_memory_exhausted[];

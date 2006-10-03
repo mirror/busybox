@@ -15,10 +15,10 @@ int kill_main(int argc, char **argv)
 	char *arg;
 	pid_t pid;
 	int signo = SIGTERM, errors = 0, quiet = 0;
-	const int killall = (ENABLE_KILLALL && bb_applet_name[4]=='a'
-	               && (!ENABLE_KILLALL5 || bb_applet_name[7]!='5'));
-	const int killall5 = (ENABLE_KILLALL5 && bb_applet_name[4]=='a'
-	                  && (!ENABLE_KILLALL || bb_applet_name[7]=='5'));
+	const int killall = (ENABLE_KILLALL && applet_name[4]=='a'
+	               && (!ENABLE_KILLALL5 || applet_name[7]!='5'));
+	const int killall5 = (ENABLE_KILLALL5 && applet_name[4]=='a'
+	                  && (!ENABLE_KILLALL || applet_name[7]=='5'));
 
 	/* Parse any options */
 	argc--;

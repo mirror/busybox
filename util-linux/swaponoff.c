@@ -24,7 +24,7 @@ static int swap_enable_disable(char *device)
 		if (st.st_blocks * 512 < st.st_size)
 			bb_error_msg_and_die("swap file has holes");
 
-	if (bb_applet_name[5] == 'n')
+	if (applet_name[5] == 'n')
 		status = swapon(device, 0);
 	else
 		status = swapoff(device);

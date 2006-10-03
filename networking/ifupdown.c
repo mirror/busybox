@@ -1080,7 +1080,7 @@ int ifupdown_main(int argc, char **argv)
 	int any_failures = 0;
 	int i;
 
-	if (bb_applet_name[2] == 'u') {
+	if (applet_name[2] == 'u') {
 		/* ifup command */
 		cmds = iface_up;
 	} else {

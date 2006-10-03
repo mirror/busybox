@@ -82,9 +82,9 @@ void udhcp_start_log_and_pid(const char *pidfile)
 	setlinebuf(stdout);
 
 	if (ENABLE_FEATURE_UDHCP_SYSLOG) {
-		openlog(bb_applet_name, LOG_PID, LOG_LOCAL0);
+		openlog(applet_name, LOG_PID, LOG_LOCAL0);
 		logmode |= LOGMODE_SYSLOG;
 	}
 
-	bb_info_msg("%s (v%s) started", bb_applet_name, BB_VER);
+	bb_info_msg("%s (v%s) started", applet_name, BB_VER);
 }

@@ -22,7 +22,7 @@ void bb_verror_msg(const char *s, va_list p, const char* strerr)
 
 	if (logmode & LOGMODE_STDIO) {
 		fflush(stdout);
-		fprintf(stderr, "%s: ", bb_applet_name);
+		fprintf(stderr, "%s: ", applet_name);
 		vfprintf(stderr, s, p);
 		if (!strerr)
 			fputs(msg_eol, stderr);

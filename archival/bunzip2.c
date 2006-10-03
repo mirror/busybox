@@ -32,7 +32,7 @@ int bunzip2_main(int argc, char **argv)
 	}
 
 	/* if called as bzcat force the stdout flag */
-	if ((opt & BUNZIP2_OPT_STDOUT) || bb_applet_name[2] == 'c')
+	if ((opt & BUNZIP2_OPT_STDOUT) || applet_name[2] == 'c')
 		filename = 0;
 
 	/* Check that the input is sane.  */

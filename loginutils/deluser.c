@@ -81,7 +81,7 @@ int deluser_main(int argc, char **argv)
 	if (argc != 2) {
 		bb_show_usage();
 	} else {
-		if (ENABLE_DELUSER && bb_applet_name[3] == 'u') {
+		if (ENABLE_DELUSER && applet_name[3] == 'u') {
 			del_line_matching(argv[1], bb_path_passwd_file);
 			if (ENABLE_FEATURE_SHADOWPASSWDS)
 				del_line_matching(argv[1], bb_path_shadow_file);

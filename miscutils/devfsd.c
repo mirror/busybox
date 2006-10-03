@@ -306,7 +306,7 @@ static void msg_logger(int pri, const char * fmt, ... )
 	va_start(ap, fmt);
 	ret = access ("/dev/log", F_OK);
 	if (ret == 0) {
-		openlog(bb_applet_name, 0, LOG_DAEMON);
+		openlog(applet_name, 0, LOG_DAEMON);
 		vsyslog( pri , fmt, ap);
 		/* Man: A trailing newline is added when needed. */
 		closelog();
@@ -492,7 +492,7 @@ int devfsd_main (int argc, char **argv)
 	if ( print_version  || (DEVFSD_PROTOCOL_REVISION_DAEMON != proto_rev) )
 	{
 		bb_printf( "%s v%s\nDaemon %s:\t%d\nKernel-side %s:\t%d\n",
-					 bb_applet_name,DEVFSD_VERSION,bb_msg_proto_rev,
+					 applet_name,DEVFSD_VERSION,bb_msg_proto_rev,
 					 DEVFSD_PROTOCOL_REVISION_DAEMON,bb_msg_proto_rev, proto_rev);
 		if (DEVFSD_PROTOCOL_REVISION_DAEMON != proto_rev)
 			bb_error_msg_and_die( "%s mismatch!",bb_msg_proto_rev);
@@ -509,7 +509,7 @@ int devfsd_main (int argc, char **argv)
 	if (sigaction (SIGHUP, &new_action, NULL) != 0 || sigaction (SIGUSR1, &new_action, NULL) != 0 )
 		devfsd_error_msg_and_die( "sigaction");
 
-	bb_printf("%s v%s  started for %s\n",bb_applet_name, DEVFSD_VERSION, mount_point);
+	bb_printf("%s v%s  started for %s\n",applet_name, DEVFSD_VERSION, mount_point);
 
 	/*  Set umask so that mknod(2), open(2) and mkdir(2) have complete control over permissions  */
 	umask (0);

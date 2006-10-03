@@ -3753,7 +3753,7 @@ tryexec(char *cmd, char **argv, char **envp)
 		while (*c != NULL) {
 			c++; argc++;
 		}
-		bb_applet_name = cmd;
+		applet_name = cmd;
 		exit(a->main(argc, argv));
 	}
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
@@ -13658,7 +13658,7 @@ static arith_t arith (const char *expr, int *perrcode)
 
 
 #ifdef DEBUG
-const char *bb_applet_name = "debug stuff usage";
+const char *applet_name = "debug stuff usage";
 int main(int argc, char **argv)
 {
 	return ash_main(argc, argv);

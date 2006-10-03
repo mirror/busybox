@@ -31,7 +31,7 @@ int bb_shutdown_system(unsigned long magic)
 #endif
 	reboot(RB_ENABLE_CAD);
 
-	openlog(bb_applet_name, 0, pri);
+	openlog(applet_name, 0, pri);
 
 	message = "\nThe system is going down NOW !!";
 	syslog(pri, "%s", message);

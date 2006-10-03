@@ -195,7 +195,7 @@ static void message(int device, const char *fmt, ...)
 	/* Log the message to syslogd */
 	if (device & LOG) {
 		/* don`t out "\r\n" */
-		openlog(bb_applet_name, 0, LOG_DAEMON);
+		openlog(applet_name, 0, LOG_DAEMON);
 		syslog(LOG_INFO, "%s", msg + 1);
 		closelog();
 	}
@@ -982,7 +982,7 @@ int init_main(int argc, char **argv)
 #if !ENABLE_DEBUG_INIT
 	/* Expect to be invoked as init with PID=1 or be invoked as linuxrc */
 	if (getpid() != 1 &&
-		(!ENABLE_FEATURE_INITRD || !strstr(bb_applet_name, "linuxrc")))
+		(!ENABLE_FEATURE_INITRD || !strstr(applet_name, "linuxrc")))
 	{
 		bb_show_usage();
 	}

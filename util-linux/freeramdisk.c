@@ -24,7 +24,7 @@ int freeramdisk_main(int argc, char **argv)
 	fd = xopen(argv[1], O_RDWR);
 
 	// Act like freeramdisk, fdflush, or both depending on configuration.
-	result = ioctl(fd, (ENABLE_FREERAMDISK && bb_applet_name[1]=='r')
+	result = ioctl(fd, (ENABLE_FREERAMDISK && applet_name[1]=='r')
 			|| !ENABLE_FDFLUSH ? BLKFLSBUF : FDFLUSH);
 
 	if (ENABLE_FEATURE_CLEAN_UP) close(fd);

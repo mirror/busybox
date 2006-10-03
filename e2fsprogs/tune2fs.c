@@ -596,9 +596,9 @@ int tune2fs_main(int argc, char **argv)
 	if (ENABLE_FEATURE_CLEAN_UP)
 		atexit(tune2fs_clean_up);
 
-	if (ENABLE_FINDFS && (bb_applet_name[0] == 'f')) /* findfs */
+	if (ENABLE_FINDFS && (applet_name[0] == 'f')) /* findfs */
 		do_findfs(argc, argv);  /* no return */
-	else if (ENABLE_E2LABEL && (bb_applet_name[0] == 'e')) /* e2label */
+	else if (ENABLE_E2LABEL && (applet_name[0] == 'e')) /* e2label */
 		parse_e2label_options(argc, argv);
 	else
 		parse_tune2fs_options(argc, argv);  /* tune2fs */

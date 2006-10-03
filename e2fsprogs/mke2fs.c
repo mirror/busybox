@@ -841,7 +841,7 @@ static int PRS(int argc, char *argv[])
 #endif
 
 	/* If called as mkfs.ext3, create a journal inode */
-	if (last_char_is(bb_applet_name, '3'))
+	if (last_char_is(applet_name, '3'))
 		journal_size = -1;
 
 	while ((c = getopt (argc, argv,

@@ -1892,7 +1892,7 @@ rewrite_line:
 
 #ifdef TEST
 
-const char *bb_applet_name = "debug stuff usage";
+const char *applet_name = "debug stuff usage";
 
 #ifdef CONFIG_FEATURE_NONPRINTABLE_INVERSE_PUT
 #include <locale.h>

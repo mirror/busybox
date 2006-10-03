@@ -41,7 +41,7 @@ int su_main(int argc, char **argv)
 		in this case resort to getpwuid.  */
 		old_user = xstrdup(USE_FEATURE_UTMP(getlogin() ? : ) (pw = getpwuid(cur_uid)) ? pw->pw_name : "");
 		tty = ttyname(2) ? : "none";
-		openlog(bb_applet_name, 0, LOG_AUTH);
+		openlog(applet_name, 0, LOG_AUTH);
 	}
 
 	pw = getpwnam(opt_username);

@@ -205,7 +205,7 @@ int crond_main(int ac, char **av)
 	 */
 
 	crondlog("\011%s " VERSION " dillon, started, log level %d\n",
-			 bb_applet_name, LogLevel);
+			 applet_name, LogLevel);
 
 	SynchronizeDir();
 
@@ -305,7 +305,7 @@ static int ChangeUser(const char *user)
 static void startlogger(void)
 {
 	if (LogFile == 0) {
-		openlog(bb_applet_name, LOG_CONS | LOG_PID, LOG_CRON);
+		openlog(applet_name, LOG_CONS | LOG_PID, LOG_CRON);
 	}
 #if ENABLE_DEBUG_CROND_OPTION
 	else {				/* test logfile */

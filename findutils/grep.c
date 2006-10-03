@@ -356,14 +356,14 @@ int grep_main(int argc, char **argv)
 	if (opt & GREP_OPT_f)
 		load_regexes_from_file(fopt);
 
-	if (ENABLE_FEATURE_GREP_FGREP_ALIAS && bb_applet_name[0] == 'f')
+	if (ENABLE_FEATURE_GREP_FGREP_ALIAS && applet_name[0] == 'f')
 		opt |= GREP_OPT_F;
 
 	if (!(opt & GREP_OPT_o))
 		reflags = REG_NOSUB;
 
 	if (ENABLE_FEATURE_GREP_EGREP_ALIAS &&
-			(bb_applet_name[0] == 'e' || (opt & GREP_OPT_E)))
+			(applet_name[0] == 'e' || (opt & GREP_OPT_E)))
 		reflags |= REG_EXTENDED;
 
 	if (opt & GREP_OPT_i)

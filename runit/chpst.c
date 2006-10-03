@@ -230,10 +230,10 @@ static void softlimit(int, char **);
 
 int chpst_main(int argc, char **argv)
 {
-	if (bb_applet_name[3] == 'd') envdir(argc, argv);
-	if (bb_applet_name[1] == 'o') softlimit(argc, argv);
-	if (bb_applet_name[0] == 's') setuidgid(argc, argv);
-	if (bb_applet_name[0] == 'e') envuidgid(argc, argv);
+	if (applet_name[3] == 'd') envdir(argc, argv);
+	if (applet_name[1] == 'o') softlimit(argc, argv);
+	if (applet_name[0] == 's') setuidgid(argc, argv);
+	if (applet_name[0] == 'e') envuidgid(argc, argv);
         // otherwise we are.......... chpst
 
 	{

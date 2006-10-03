@@ -13,6 +13,7 @@
 
 /* option vars */
 static const char optstring[] = "b:c:f:d:sn";
+
 #define CUT_OPT_BYTE_FLGS	(1<<0)
 #define CUT_OPT_CHAR_FLGS	(1<<1)
 #define CUT_OPT_FIELDS_FLGS	(1<<2)

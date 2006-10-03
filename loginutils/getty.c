@@ -821,7 +821,7 @@ int getty_main(int argc, char **argv)
 	dup2(nullfd, 2);
 	if(nullfd > 2)
 		close(nullfd);
-	openlog(bb_applet_name, LOG_PID, LOG_AUTH);
+	openlog(applet_name, LOG_PID, LOG_AUTH);
 	logmode = LOGMODE_BOTH;
 
 #ifdef DEBUGGING

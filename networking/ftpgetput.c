@@ -288,10 +288,10 @@ int ftpgetput_main(int argc, char **argv)
 	int (*ftp_action)(ftp_host_info_t *, FILE *, const char *, char *) = NULL;
 
 	/* Check to see if the command is ftpget or ftput */
-	if (ENABLE_FTPPUT && (!ENABLE_FTPGET || bb_applet_name[3] == 'p')) {
+	if (ENABLE_FTPPUT && (!ENABLE_FTPGET || applet_name[3] == 'p')) {
 		ftp_action = ftp_send;
 	}
-	if (ENABLE_FTPGET && (!ENABLE_FTPPUT || bb_applet_name[3] == 'g')) {
+	if (ENABLE_FTPGET && (!ENABLE_FTPPUT || applet_name[3] == 'g')) {
 		ftp_action = ftp_receive;
 	}
 

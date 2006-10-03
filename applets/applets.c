@@ -469,7 +469,7 @@ void run_applet_by_name(const char *name, int argc, char **argv)
 	/* Do a binary search to find the applet entry given the name. */
 	applet_using = find_applet_by_name(name);
 	if (applet_using) {
-		bb_applet_name = applet_using->name;
+		applet_name = applet_using->name;
 		if(argc==2 && !strcmp(argv[1], "--help")) bb_show_usage();
 		if(ENABLE_FEATURE_SUID) check_suid(applet_using);
 		exit((*(applet_using->main))(argc, argv));

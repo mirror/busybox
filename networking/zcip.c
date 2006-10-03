@@ -222,7 +222,7 @@ int zcip_main(int argc, char *argv[])
 	if (!FOREGROUND) {
 		/* Do it early, before all bb_xx_msg calls */
 		logmode = LOGMODE_SYSLOG;
-		openlog(bb_applet_name, 0, LOG_DAEMON);
+		openlog(applet_name, 0, LOG_DAEMON);
 	}
 	if (opts & 4) { // -r n.n.n.n
 		if (inet_aton(r_opt, &ip) == 0

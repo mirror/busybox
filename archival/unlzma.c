@@ -35,7 +35,7 @@ int unlzma_main(int argc, char **argv)
 	}
 
 	/* if called as lzmacat force the stdout flag */
-	if ((opt & UNLZMA_OPT_STDOUT) || bb_applet_name[4] == 'c')
+	if ((opt & UNLZMA_OPT_STDOUT) || applet_name[4] == 'c')
 		filename = 0;
 
 	if (filename) {

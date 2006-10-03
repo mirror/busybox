@@ -87,7 +87,7 @@ int dos2unix_main(int argc, char *argv[])
 	int o;
 
 	/* See if we are supposed to be doing dos2unix or unix2dos */
-	if (bb_applet_name[0] == 'd') {
+	if (applet_name[0] == 'd') {
 		ConvType = CT_DOS2UNIX;	/*2 */
 	} else {
 		ConvType = CT_UNIX2DOS;	/*1 */

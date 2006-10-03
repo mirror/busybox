@@ -66,7 +66,7 @@ int nameif_main(int argc, char **argv)
 	mactable_t *ch;
 
 	if (1 & getopt32(argc, argv, "sc:", &fname)) {
-		openlog(bb_applet_name, 0, LOG_LOCAL0);
+		openlog(applet_name, 0, LOG_LOCAL0);
 		logmode = LOGMODE_SYSLOG;
 	}
 

@@ -5,7 +5,7 @@
  * Licensed under GPL version 2, see file LICENSE in this tarball for details
  */
 
-const char *bb_applet_name;
+const char *applet_name;
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +14,7 @@ const char *bb_applet_name;
 
 int main(int argc, char *argv[])
 {
-	bb_applet_name=argv[0];
+	applet_name=argv[0];
 
 	return APPLET_main(argc,argv);
 }

@@ -697,7 +697,7 @@ send_probe(int seq, int ttl, struct timeval *tp)
 		if (cc < 0)
 			bb_perror_msg_and_die("sendto");
 		printf("%s: wrote %s %d chars, ret=%d\n",
-		    bb_applet_name, hostname, packlen, cc);
+		    applet_name, hostname, packlen, cc);
 		(void)fflush(stdout);
 	}
 }

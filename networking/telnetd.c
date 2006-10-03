@@ -384,7 +384,7 @@ telnetd_main(int argc, char **argv)
 	 * look into syslog for all errors, even early ones.
 	 * Direct all output to syslog at once.
 	 */
-	openlog(bb_applet_name, 0, LOG_USER);
+	openlog(applet_name, 0, LOG_USER);
 	logmode = LOGMODE_SYSLOG;
 
 	opt = getopt32(argc, argv, "f:l:" USE_FEATURE_TELNETD_INETD("p:b:"),

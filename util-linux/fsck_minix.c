@@ -1343,7 +1343,7 @@ int fsck_minix_main(int argc, char **argv)
 	 * flags and whether or not the -f switch was specified on the
 	 * command line.
 	 */
-	printf("%s, %s\n", bb_applet_name, program_version);
+	printf("%s, %s\n", applet_name, program_version);
 	if (!(Super.s_state & MINIX_ERROR_FS) &&
 		(Super.s_state & MINIX_VALID_FS) && !force) {
 		if (repair)

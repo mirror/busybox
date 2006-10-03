@@ -44,7 +44,7 @@ int gunzip_main(int argc, char **argv)
 
 	opt = getopt32(argc, argv, "cftdv");
 	/* if called as zcat */
-	if (strcmp(bb_applet_name, "zcat") == 0) {
+	if (strcmp(applet_name, "zcat") == 0) {
 		opt |= GUNZIP_OPT_STDOUT;
 	}
 

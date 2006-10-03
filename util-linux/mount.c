@@ -707,7 +707,7 @@ static int daemonize(void)
 	dup2(fd, 2);
 	if (fd > 2) close(fd);
 	setsid();
-	openlog(bb_applet_name, LOG_PID, LOG_DAEMON);
+	openlog(applet_name, LOG_PID, LOG_DAEMON);
 	logmode = LOGMODE_SYSLOG;
 	return 1;
 }
