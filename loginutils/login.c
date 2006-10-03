@@ -222,7 +222,7 @@ int login_main(int argc, char **argv)
 	char username[USERNAME_SIZE];
 	const char *tmp;
 	int amroot;
-	unsigned long opt;
+	unsigned opt;
 	int count = 0;
 	struct passwd *pw;
 	char *opt_host = NULL;
@@ -234,7 +234,7 @@ int login_main(int argc, char **argv)
 	signal(SIGALRM, alarm_handler);
 	alarm(TIMEOUT);
 
-	opt = bb_getopt_ulflags(argc, argv, "f:h:p", &opt_user, &opt_host);
+	opt = getopt32(argc, argv, "f:h:p", &opt_user, &opt_host);
 	if (opt & LOGIN_OPT_f) {
 		if (!amroot)
 			bb_error_msg_and_die("-f is for root only");

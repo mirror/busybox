@@ -90,9 +90,9 @@ int addgroup_main(int argc, char **argv)
 	gid_t gid = 0;
 
 	/* check for min, max and missing args and exit on error */
-	bb_opt_complementally = "-1:?2:?";
+	opt_complementary = "-1:?2:?";
 
-	if (bb_getopt_ulflags(argc, argv, "g:", &group)) {
+	if (getopt32(argc, argv, "g:", &group)) {
 		gid = bb_xgetlarg(group, 10, 0, LONG_MAX);
 	}
 	/* move past the commandline options */

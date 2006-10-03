@@ -17,7 +17,7 @@ int catv_main(int argc, char **argv)
 	int retval = EXIT_SUCCESS, fd;
 	unsigned long flags;
 
-	flags = bb_getopt_ulflags(argc, argv, "etv");
+	flags = getopt32(argc, argv, "etv");
 #define CATV_OPT_e (1<<0)
 #define CATV_OPT_t (1<<1)
 #define CATV_OPT_v (1<<2)

@@ -227,7 +227,7 @@ static const struct option ssd_long_options[] = {
 
 int start_stop_daemon_main(int argc, char **argv)
 {
-	unsigned long opt;
+	unsigned opt;
 	char *signame = NULL;
 	char *startas = NULL;
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
@@ -235,12 +235,12 @@ int start_stop_daemon_main(int argc, char **argv)
 //	int retries = -1;
 #endif
 #if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
-	bb_applet_long_options = ssd_long_options;
+	applet_long_options = ssd_long_options;
 #endif
 
 	/* Check required one context option was given */
-	bb_opt_complementally = "K:S:?:K--S:S--K:m?p:K?xpun:S?xa";
-	opt = bb_getopt_ulflags(argc, argv, "KSbqm"
+	opt_complementary = "K:S:?:K--S:S--K:m?p:K?xpun:S?xa";
+	opt = getopt32(argc, argv, "KSbqm"
 //		USE_FEATURE_START_STOP_DAEMON_FANCY("ovR:")
 		USE_FEATURE_START_STOP_DAEMON_FANCY("ov")
 		"a:n:s:u:c:x:p:"

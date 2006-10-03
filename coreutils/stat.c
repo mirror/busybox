@@ -516,7 +516,7 @@ int stat_main(int argc, char **argv)
 	int ok = 1;
 	int (*statfunc)(char const *, char const *) = do_stat;
 
-	flags = bb_getopt_ulflags(argc, argv, "ftL"
+	flags = getopt32(argc, argv, "ftL"
 	USE_FEATURE_STAT_FORMAT("c:", &format)
 	);
 

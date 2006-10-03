@@ -14,11 +14,11 @@
 
 int losetup_main(int argc, char **argv)
 {
-	unsigned long opt;
+	unsigned opt;
 	char *opt_o;
 	int offset = 0;
 
-	opt = bb_getopt_ulflags(argc, argv, "do:", &opt_o);
+	opt = getopt32(argc, argv, "do:", &opt_o);
 	argc -= optind;
 	argv += optind;
 

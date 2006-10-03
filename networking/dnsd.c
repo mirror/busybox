@@ -372,7 +372,7 @@ int dnsd_main(int argc, char **argv)
 	char *sttl=NULL, *sport=NULL;
 
 	if(argc > 1)
-		flags = bb_getopt_ulflags(argc, argv, "i:c:t:p:dv", &listen_interface, &fileconf, &sttl, &sport);
+		flags = getopt32(argc, argv, "i:c:t:p:dv", &listen_interface, &fileconf, &sttl, &sport);
 	if(sttl)
 		if(!(ttl = atol(sttl)))
 			bb_show_usage();

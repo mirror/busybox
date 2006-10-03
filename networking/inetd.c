@@ -1253,7 +1253,7 @@ inetd_main(int argc, char *argv[])
 
 	openlog(bb_applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
 
-	opt = bb_getopt_ulflags(argc, argv, "R:f", &stoomany);
+	opt = getopt32(argc, argv, "R:f", &stoomany);
 	if(opt & 1) {
 		char *e;
 

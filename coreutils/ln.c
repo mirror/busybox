@@ -30,7 +30,7 @@ int ln_main(int argc, char **argv)
 	struct stat statbuf;
 	int (*link_func)(const char *, const char *);
 
-	flag = bb_getopt_ulflags(argc, argv, "sfnbS:", &suffix);
+	flag = getopt32(argc, argv, "sfnbS:", &suffix);
 
 	if (argc == optind) {
 		bb_show_usage();

@@ -16,7 +16,7 @@
 int dmesg_main(int argc, char *argv[])
 {
 	char *size, *level;
-	int flags = bb_getopt_ulflags(argc, argv, "cs:n:", &size, &level);
+	int flags = getopt32(argc, argv, "cs:n:", &size, &level);
 
 	if (flags & 4) {
 		if (klogctl(8, NULL, bb_xgetlarg(level, 10, 0, 10)))

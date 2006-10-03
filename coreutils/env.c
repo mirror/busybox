@@ -46,16 +46,16 @@ int env_main(int argc, char** argv)
 	static char *cleanenv[1] = { NULL };
 
 	char **ep;
-	unsigned long opt;
+	unsigned opt;
 	llist_t *unset_env = NULL;
 	extern char **environ;
 
-	bb_opt_complementally = "u::";
+	opt_complementary = "u::";
 #if ENABLE_FEATURE_ENV_LONG_OPTIONS
-	bb_applet_long_options = env_long_options;
+	applet_long_options = env_long_options;
 #endif
 
-	opt = bb_getopt_ulflags(argc, argv, "+iu:", &unset_env);
+	opt = getopt32(argc, argv, "+iu:", &unset_env);
 
 	argv += optind;
 	if (*argv && (argv[0][0] == '-') && !argv[0][1]) {

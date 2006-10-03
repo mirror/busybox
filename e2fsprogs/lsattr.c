@@ -124,7 +124,7 @@ int lsattr_main(int argc, char **argv)
 {
 	int i;
 
-	flags = bb_getopt_ulflags(argc, argv, "Radlv");
+	flags = getopt32(argc, argv, "Radlv");
 
 	if (optind > argc - 1)
 		lsattr_args(".");

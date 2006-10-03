@@ -55,13 +55,13 @@ int hostname_main(int argc, char **argv)
 	};
 
 	char buf[256];
-	unsigned long opt;
+	unsigned opt;
 	char *hostname_str = NULL;
 
 	if (argc < 1)
 		bb_show_usage();
 
-	opt = bb_getopt_ulflags(argc, argv, "dfisF:", &hostname_str);
+	opt = getopt32(argc, argv, "dfisF:", &hostname_str);
 
 	/* Output in desired format */
 	if (opt & OPT_dfis) {

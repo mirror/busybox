@@ -203,7 +203,7 @@ int bbsh_main(int argc, char *argv[])
 	char *command=NULL;
 	FILE *f;
 
-	bb_getopt_ulflags(argc, argv, "c:", &command);
+	getopt32(argc, argv, "c:", &command);
 
 	f = argv[optind] ? xfopen(argv[optind],"r") : NULL;
 	if (command) handle(command);

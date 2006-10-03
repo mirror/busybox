@@ -34,13 +34,13 @@ int mkdir_main (int argc, char **argv)
 	mode_t mode = (mode_t)(-1);
 	int status = EXIT_SUCCESS;
 	int flags = 0;
-	unsigned long opt;
+	unsigned opt;
 	char *smode;
 
 #if ENABLE_FEATURE_MKDIR_LONG_OPTIONS
-	bb_applet_long_options = mkdir_long_options;
+	applet_long_options = mkdir_long_options;
 #endif
-	opt = bb_getopt_ulflags(argc, argv, "m:p", &smode);
+	opt = getopt32(argc, argv, "m:p", &smode);
 	if(opt & 1) {
 			mode = 0777;
 		if (!bb_parse_mode (smode, &mode)) {

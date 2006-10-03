@@ -16,7 +16,7 @@ int uncompress_main(int argc, char **argv)
 	int status = EXIT_SUCCESS;
 	unsigned long flags;
 
-	flags = bb_getopt_ulflags(argc, argv, "cf");
+	flags = getopt32(argc, argv, "cf");
 
 	while (optind < argc) {
 		char *compressed_file = argv[optind++];

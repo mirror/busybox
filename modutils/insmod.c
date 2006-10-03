@@ -3983,7 +3983,7 @@ int insmod_main( int argc, char **argv)
 	struct utsname myuname;
 
 	/* Parse any options */
-	option_mask = bb_getopt_ulflags(argc, argv, OPTION_STR,	&opt_o);
+	option_mask = getopt32(argc, argv, OPTION_STR,	&opt_o);
 	if (option_mask & OPT_o) { // -o /* name the output module */
 		free(m_name);
 		m_name = xstrdup(opt_o);

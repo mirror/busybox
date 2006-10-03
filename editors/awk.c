@@ -2634,7 +2634,7 @@ static rstream *next_input_file(void)
 
 int awk_main(int argc, char **argv)
 {
-	unsigned long opt;
+	unsigned opt;
 	char *opt_F, *opt_v, *opt_W;
 	char *s, *s1;
 	int i, j, c, flen;
@@ -2691,7 +2691,7 @@ keep_going:
 		free(s);
 	}
 
-	opt = bb_getopt_ulflags(argc, argv, "F:v:f:W:", &opt_F, &opt_v, &programname, &opt_W);
+	opt = getopt32(argc, argv, "F:v:f:W:", &opt_F, &opt_v, &programname, &opt_W);
 	if (opt & 0x1) setvar_s(V[FS], opt_F); // -F
 	if (opt & 0x2) if (!is_assignment(opt_v)) bb_show_usage(); // -v
 	if (opt & 0x4) { // -f

@@ -45,10 +45,10 @@ int mv_main(int argc, char **argv)
 	int status = 0;
 
 #if ENABLE_FEATURE_MV_LONG_OPTIONS
-	bb_applet_long_options = mv_long_options;
+	applet_long_options = mv_long_options;
 #endif
-	bb_opt_complementally = "f-i:i-f";
-	flags = bb_getopt_ulflags(argc, argv, "fi");
+	opt_complementary = "f-i:i-f";
+	flags = getopt32(argc, argv, "fi");
 	if (optind + 2 > argc) {
 		bb_show_usage();
 	}

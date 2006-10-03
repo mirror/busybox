@@ -20,7 +20,7 @@ int su_main(int argc, char **argv)
 	const char *tty;
 	char *old_user;
 
-	flags = bb_getopt_ulflags(argc, argv, "mplc:s:", &opt_command, &opt_shell);
+	flags = getopt32(argc, argv, "mplc:s:", &opt_command, &opt_shell);
 #define SU_OPT_mp (3)
 #define SU_OPT_l (4)
 

@@ -76,7 +76,7 @@ int makedevs_main(int argc, char **argv)
 	int linenum = 0;
 	int ret = EXIT_SUCCESS;
 
-	bb_getopt_ulflags(argc, argv, "d:", &line);
+	getopt32(argc, argv, "d:", &line);
 	if (line)
 		table = xfopen(line, "r");
 

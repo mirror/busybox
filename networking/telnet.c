@@ -623,7 +623,7 @@ int telnet_main(int argc, char** argv)
 		bb_show_usage();
 
 #ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
-	if (1 & bb_getopt_ulflags(argc, argv, "al:", &autologin))
+	if (1 & getopt32(argc, argv, "al:", &autologin))
 		autologin = getenv("USER");
 
 	if (optind < argc) {

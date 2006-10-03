@@ -54,7 +54,7 @@ int cmp_main(int argc, char **argv)
 
 	xfunc_error_retval = 2;	/* 1 is returned if files are different. */
 
-	opt = bb_getopt_ulflags(argc, argv, opt_chars);
+	opt = getopt32(argc, argv, opt_chars);
 
 	if (((opt & (CMP_OPT_s|CMP_OPT_l)) == (CMP_OPT_s|CMP_OPT_l))
 			|| (((unsigned int)(--argc - optind)) > 1))

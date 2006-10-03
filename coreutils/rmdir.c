@@ -22,7 +22,7 @@ int rmdir_main(int argc, char **argv)
 	int do_dot;
 	char *path;
 
-	flags = bb_getopt_ulflags(argc, argv, "p");
+	flags = getopt32(argc, argv, "p");
 
 	argv += optind;
 

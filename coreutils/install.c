@@ -45,11 +45,11 @@ int install_main(int argc, char **argv)
 	int ret = EXIT_SUCCESS, flags, i, isdir;
 
 #if ENABLE_FEATURE_INSTALL_LONG_OPTIONS
-	bb_applet_long_options = install_long_options;
+	applet_long_options = install_long_options;
 #endif
-	bb_opt_complementally = "?:s--d:d--s";
+	opt_complementary = "?:s--d:d--s";
 	/* -c exists for backwards compatibility, its needed */
-	flags = bb_getopt_ulflags(argc, argv, "cdpsg:m:o:", &gid_str, &mode_str, &uid_str);	/* 'a' must be 2nd */
+	flags = getopt32(argc, argv, "cdpsg:m:o:", &gid_str, &mode_str, &uid_str);	/* 'a' must be 2nd */
 
 	/* preserve access and modification time, this is GNU behaviour, BSD only preserves modification time */
 	if (flags & INSTALL_OPT_PRESERVE_TIME) {

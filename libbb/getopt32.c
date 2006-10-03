@@ -1,6 +1,6 @@
 /* vi: set sw=4 ts=4: */
 /*
- * universal getopt_ulflags implementation for busybox
+ * universal getopt32 implementation for busybox
  *
  * Copyright (C) 2003-2005  Vladimir Oleynik  <dzo@simtreas.ru>
  *
@@ -12,13 +12,13 @@
 
 /*      Documentation
 
-unsigned long
-bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
+uint32_t
+getopt32(int argc, char **argv, const char *applet_opts, ...)
 
         The command line options must be declared in const char
         *applet_opts as a string of chars, for example:
 
-        flags = bb_getopt_ulflags(argc, argv, "rnug");
+        flags = getopt32(argc, argv, "rnug");
 
         If one of the given options is found, a flag value is added to
         the return value (an unsigned long).
@@ -26,7 +26,7 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
         The flag value is determined by the position of the char in
         applet_opts string.  For example, in the above case:
 
-        flags = bb_getopt_ulflags(argc, argv, "rnug");
+        flags = getopt32(argc, argv, "rnug");
 
         "r" will add 1    (bit 0)
         "n" will add 2    (bit 1)
@@ -52,13 +52,13 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
         char *pointer_to_arg_for_c;
         char *pointer_to_arg_for_d;
 
-        flags = bb_getopt_ulflags(argc, argv, "a:b:c:d:",
+        flags = getopt32(argc, argv, "a:b:c:d:",
         		&pointer_to_arg_for_a, &pointer_to_arg_for_b,
         		&pointer_to_arg_for_c, &pointer_to_arg_for_d);
 
         The type of the pointer (char* or llist_t*) may be controlled
         by the "::" special separator that is set in the external string
-        bb_opt_complementally (see below for more info).
+        opt_complementary (see below for more info).
 
  "::"   If option can have an *optional* argument, then add a "::"
         after its char in applet_opts and provide a pointer to store
@@ -72,7 +72,7 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
         env -i ls -d /
         Here we want env to process just the '-i', not the '-d'.
 
-const struct option *bb_applet_long_options
+const struct option *applet_long_options
 
         This struct allows you to define long options.  The syntax for
         declaring the array is just like that of getopt's longopts.
@@ -83,23 +83,20 @@ const struct option *bb_applet_long_options
         	{ "verbose", 0, 0, 'v' },
         	{ 0, 0, 0, 0 }
         };
-        bb_applet_long_options = applet_long_options;
+        applet_long_options = applet_long_options;
 
         The last member of struct option (val) typically is set to
         matching short option from applet_opts. If there is no matching
         char in applet_opts, then:
         - return bit have next position after short options
         - if has_arg is not "no_argument", use ptr for arg also
-        - bb_opt_complementally affects it too
+        - opt_complementary affects it too
 
         Note: a good applet will make long options configurable via the
         config process and not a required feature.  The current standard
         is to name the config option CONFIG_FEATURE_<applet>_LONG_OPTIONS.
 
-const char *bb_opt_complementally
-
-        this should be bb_opt_complementary, but we'll just keep it as
-        bb_opt_complementally due to the Russian origins
+const char *opt_complementary
 
  ":"    The colon (":") is used to separate groups of two or more chars
         and/or groups of chars and special characters (stating some
@@ -110,11 +107,11 @@ const char *bb_opt_complementally
         Their flags will be turned on if the main option is found even
         if they are not specifed on the command line.  For example:
 
-        bb_opt_complementally = "abc";
-        flags = bb_getopt_ulflags(argc, argv, "abcd")
+        opt_complementary = "abc";
+        flags = getopt32(argc, argv, "abcd")
 
         If getopt() finds "-a" on the command line, then
-        bb_getopt_ulflags's return value will be as if "-a -b -c" were
+        getopt32's return value will be as if "-a -b -c" were
         found.
 
  "ww"   Adjacent double options have a counter associated which indicates
@@ -124,15 +121,15 @@ const char *bb_opt_complementally
         if w is given more than once, it is "unlimited"
 
         int w_counter = 0;
-        bb_opt_complementally = "ww";
-        bb_getopt_ulflags(argc, argv, "w", &w_counter);
+        opt_complementary = "ww";
+        getopt32(argc, argv, "w", &w_counter);
         if (w_counter)
         	width = (w_counter == 1) ? 132 : INT_MAX;
         else
         	get_terminal_width(...&width...);
 
         w_counter is a pointer to an integer. It has to be passed to
-        bb_getopt_ulflags() after all other option argument sinks.
+        getopt32() after all other option argument sinks.
 
         For example: accept multiple -v to indicate the level of verbosity
         and for each -b optarg, add optarg to my_b. Finally, if b is given,
@@ -140,8 +137,8 @@ const char *bb_opt_complementally
 
         llist_t *my_b = NULL;
         int verbose_level = 0;
-        bb_opt_complementally = "vv:b::b-c:c-b";
-        f = bb_getopt_ulflags(argc, argv, "vb:c", &my_b, &verbose_level);
+        opt_complementary = "vv:b::b-c:c-b";
+        f = getopt32(argc, argv, "vb:c", &my_b, &verbose_level);
         if (f & 2)       // -c after -b unsets -b flag
         	while (my_b) { dosomething_with(my_b->data); my_b = my_b->link; }
         if (my_b)        // but llist is stored if -b is specified
@@ -157,37 +154,37 @@ Special characters:
 
         For example:
         The du applet has the options "-s" and "-d depth".  If
-        bb_getopt_ulflags finds -s, then -d is unset or if it finds -d
+        getopt32 finds -s, then -d is unset or if it finds -d
         then -s is unset.  (Note:  busybox implements the GNU
         "--max-depth" option as "-d".)  To obtain this behavior, you
-        set bb_opt_complementally = "s-d:d-s".  Only one flag value is
-        added to bb_getopt_ulflags's return value depending on the
+        set opt_complementary = "s-d:d-s".  Only one flag value is
+        added to getopt32's return value depending on the
         position of the options on the command line.  If one of the
         two options requires an argument pointer (":" in applet_opts
         as in "d:") optarg is set accordingly.
 
         char *smax_print_depth;
 
-        bb_opt_complementally = "s-d:d-s:x-x";
-        opt = bb_getopt_ulflags(argc, argv, "sd:x", &smax_print_depth);
+        opt_complementary = "s-d:d-s:x-x";
+        opt = getopt32(argc, argv, "sd:x", &smax_print_depth);
 
         if (opt & 2)
         	max_print_depth = atoi(smax_print_depth);
         if (opt & 4)
         	printf("Detected odd -x usage\n");
 
- "-"    A dash as the first char in a bb_opt_complementally group forces
+ "-"    A dash as the first char in a opt_complementary group forces
         all arguments to be treated as options, even if they have
         no leading dashes. Next char in this case can't be a digit (0-9),
         use ':' or end of line. For example:
 
-        bb_opt_complementally = "-:w-x:x-w";
-        bb_getopt_ulflags(argc, argv, "wx");
+        opt_complementary = "-:w-x:x-w";
+        getopt32(argc, argv, "wx");
 
         Allows any arguments to be given without a dash (./program w x)
         as well as with a dash (./program -x).
 
- "-N"   A dash as the first char in a bb_opt_complementally group followed
+ "-N"   A dash as the first char in a opt_complementary group followed
         by a single digit (0-9) means that at least N non-option
         arguments must be present on the command line
 
@@ -205,8 +202,8 @@ Special characters:
         The cut applet must have only one type of list specified, so
         -b, -c and -f are mutally exclusive and should raise an error
         if specified together.  In this case you must set
-        bb_opt_complementally = "b--cf:c--bf:f--bc".  If two of the
-        mutually exclusive options are found, bb_getopt_ulflags's
+        opt_complementary = "b--cf:c--bf:f--bc".  If two of the
+        mutually exclusive options are found, getopt32's
         return value will have the error flag set (BB_GETOPT_ERROR) so
         that we can check for it:
 
@@ -216,35 +213,35 @@ Special characters:
  "x--x" Variation of the above, it means that -x option should occur
         at most once.
 
- "?"    A "?" as the first char in a bb_opt_complementally group means:
+ "?"    A "?" as the first char in a opt_complementary group means:
         if BB_GETOPT_ERROR is detected, don't return, call bb_show_usage
         and exit instead. Next char after '?' can't be a digit.
 
- "?N"   A "?" as the first char in a bb_opt_complementally group followed
+ "?N"   A "?" as the first char in a opt_complementary group followed
         by a single digit (0-9) means that at most N arguments must be present
         on the command line.
 
- "::"   A double colon after a char in bb_opt_complementally means that the
+ "::"   A double colon after a char in opt_complementary means that the
         option can occur multiple times. Each occurrence will be saved as
         a llist_t element instead of char*.
 
         For example:
         The grep applet can have one or more "-e pattern" arguments.
-        In this case you should use bb_getopt_ulflags() as follows:
+        In this case you should use getopt32() as follows:
 
         llist_t *patterns = NULL;
 
         (this pointer must be initializated to NULL if the list is empty
         as required by *llist_add_to(llist_t *old_head, char *new_item).)
 
-        bb_opt_complementally = "e::";
+        opt_complementary = "e::";
 
-        bb_getopt_ulflags(argc, argv, "e:", &patterns);
+        getopt32(argc, argv, "e:", &patterns);
         $ grep -e user -e root /etc/passwd
         root:x:0:0:root:/root:/bin/bash
         user:x:500:500::/home/user:/bin/bash
 
- "--"   A double dash at the beginning of bb_opt_complementally means the
+ "--"   A double dash at the beginning of opt_complementary means the
         argv[1] string should always be treated as options, even if it isn't
         prefixed with a "-".  This is useful for special syntax in applets
         such as "ar" and "tar":
@@ -257,20 +254,20 @@ Special characters:
         For example from "id" applet:
 
         // Don't allow -n -r -rn -ug -rug -nug -rnug
-        bb_opt_complementally = "r?ug:n?ug:?u--g:g--u";
-        flags = bb_getopt_ulflags(argc, argv, "rnug");
+        opt_complementary = "r?ug:n?ug:?u--g:g--u";
+        flags = getopt32(argc, argv, "rnug");
 
         This example allowed only:
         $ id; id -u; id -g; id -ru; id -nu; id -rg; id -ng; id -rnu; id -rng
 
- "X"    A bb_opt_complementally group with just a single letter means
+ "X"    A opt_complementary group with just a single letter means
         that this option is required. If more than one such group exists,
         at least one option is required to occur (not all of them).
         For example from "start-stop-daemon" applet:
 
         // Don't allow -KS -SK, but -S or -K is required
-        bb_opt_complementally = "K:S:?K--S:S--K";
-        flags = bb_getopt_ulflags(argc, argv, "KS...);
+        opt_complementary = "K:S:?K--S:S--K";
+        flags = getopt32(argc, argv, "KS...);
 
 
         Don't forget to use ':'. For example, "?322-22-23X-x-a"
@@ -280,45 +277,45 @@ Special characters:
         a '-2' and after it a '-x' then error out.
 */
 
-/* this should be bb_opt_complementary, but we'll just keep it as
-   bb_opt_complementally due to the Russian origins */
-const char *bb_opt_complementally;
+/* Code here assumes that 'unsigned' is at least 32 bits wide */
+
+const char *opt_complementary;
 
 typedef struct {
 	int opt;
 	int list_flg;
-	unsigned long switch_on;
-	unsigned long switch_off;
-	unsigned long incongruously;
-	unsigned long requires;
+	unsigned switch_on;
+	unsigned switch_off;
+	unsigned incongruously;
+	unsigned requires;
 	void **optarg;               /* char **optarg or llist_t **optarg */
 	int *counter;
-} t_complementally;
+} t_complementary;
 
-/* You can set bb_applet_long_options for parse called long options */
+/* You can set applet_long_options for parse called long options */
 #if ENABLE_GETOPT_LONG
 static const struct option bb_default_long_options[] = {
 /*      { "help", 0, NULL, '?' }, */
 	{ 0, 0, 0, 0 }
 };
 
-const struct option *bb_applet_long_options = bb_default_long_options;
+const struct option *applet_long_options = bb_default_long_options;
 #endif
 
-unsigned long
-bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
+uint32_t
+getopt32(int argc, char **argv, const char *applet_opts, ...)
 {
-	unsigned long flags = 0;
-	unsigned long requires = 0;
-	t_complementally complementally[sizeof(flags) * 8 + 1];
+	unsigned flags = 0;
+	unsigned requires = 0;
+	t_complementary complementary[sizeof(flags) * 8 + 1];
 	int c;
 	const unsigned char *s;
-	t_complementally *on_off;
+	t_complementary *on_off;
 	va_list p;
 #if ENABLE_GETOPT_LONG
 	const struct option *l_o;
 #endif
-	unsigned long trigger;
+	unsigned trigger;
 	char **pargv = NULL;
 	int min_arg = 0;
 	int max_arg = -1;
@@ -332,8 +329,8 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 	va_start(p, applet_opts);
 
 	c = 0;
-	on_off = complementally;
-	memset(on_off, 0, sizeof(complementally));
+	on_off = complementary;
+	memset(on_off, 0, sizeof(complementary));
 
 	/* skip GNU extension */
 	s = (const unsigned char *)applet_opts;
@@ -355,10 +352,10 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 	}
 
 #if ENABLE_GETOPT_LONG
-	for (l_o = bb_applet_long_options; l_o->name; l_o++) {
+	for (l_o = applet_long_options; l_o->name; l_o++) {
 		if (l_o->flag)
 			continue;
-		for (on_off = complementally; on_off->opt != 0; on_off++)
+		for (on_off = complementary; on_off->opt != 0; on_off++)
 			if (on_off->opt == l_o->val)
 				break;
 		if (on_off->opt == 0) {
@@ -372,9 +369,9 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 		}
 	}
 #endif /* ENABLE_GETOPT_LONG */
-	for (s = (const unsigned char *)bb_opt_complementally; s && *s; s++) {
-		t_complementally *pair;
-		unsigned long *pair_switch;
+	for (s = (const unsigned char *)opt_complementary; s && *s; s++) {
+		t_complementary *pair;
+		unsigned *pair_switch;
 
 		if (*s == ':')
 			continue;
@@ -401,7 +398,7 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 			}
 			continue;
 		}
-		for (on_off = complementally; on_off->opt; on_off++)
+		for (on_off = complementary; on_off->opt; on_off++)
 			if (on_off->opt == *s)
 				break;
 		if (c == ':' && s[2] == ':') {
@@ -433,7 +430,7 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 				else
 					pair_switch = &(pair->switch_off);
 			} else {
-				for (on_off = complementally; on_off->opt; on_off++)
+				for (on_off = complementary; on_off->opt; on_off++)
 					if (on_off->opt == *s) {
 						*pair_switch |= on_off->switch_on;
 						break;
@@ -455,12 +452,12 @@ bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...)
 #endif
 #if ENABLE_GETOPT_LONG
 	while ((c = getopt_long(argc, argv, applet_opts,
-				 bb_applet_long_options, NULL)) >= 0) {
+				 applet_long_options, NULL)) >= 0) {
 #else
 	while ((c = getopt(argc, argv, applet_opts)) >= 0) {
 #endif /* ENABLE_GETOPT_LONG */
 loop_arg_is_opt:
-		for (on_off = complementally; on_off->opt != c; on_off++) {
+		for (on_off = complementary; on_off->opt != c; on_off++) {
 			/* c==0 if long opt have non NULL flag */
 			if (on_off->opt == 0 && c != 0)
 				bb_show_usage();
@@ -505,7 +502,7 @@ loop_arg_is_opt:
 		free(argv[1]);
 #endif
 	/* check depending requires for given options */
-	for (on_off = complementally; on_off->opt; on_off++) {
+	for (on_off = complementary; on_off->opt; on_off++) {
 		if (on_off->requires && (flags & on_off->switch_on) &&
 					(flags & on_off->requires) == 0)
 			bb_show_usage();

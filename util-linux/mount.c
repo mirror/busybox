@@ -1428,7 +1428,7 @@ int mount_main(int argc, char **argv)
 	const char *fstabname;
 	FILE *fstab;
 	int i, j, rc = 0;
-	unsigned long opt;
+	unsigned opt;
 	struct mntent mtpair[2], *mtcur = mtpair;
 
 	/* parse long options, like --bind and --move.  Note that -o option
@@ -1444,7 +1444,7 @@ int mount_main(int argc, char **argv)
 
 	// Parse remaining options
 
-	opt = bb_getopt_ulflags(argc, argv, "o:t:rwanfvs", &opt_o, &fstype);
+	opt = getopt32(argc, argv, "o:t:rwanfvs", &opt_o, &fstype);
 	if (opt & 0x1) append_mount_options(&cmdopts, opt_o); // -o
 	//if (opt & 0x2) // -t
 	if (opt & 0x4) append_mount_options(&cmdopts, "ro"); // -r

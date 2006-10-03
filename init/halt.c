@@ -34,7 +34,7 @@ RB_AUTOBOOT
 	for(which=0;delay[which]!=*bb_applet_name;which++);
 
 	/* Parse and handle arguments */
-	flags = bb_getopt_ulflags(argc, argv, "d:nf", &delay);
+	flags = getopt32(argc, argv, "d:nf", &delay);
 	if (flags&1) sleep(atoi(delay));
 	if (!(flags&2)) sync();
 

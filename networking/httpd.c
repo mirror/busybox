@@ -1909,7 +1909,7 @@ static const char httpd_opts[] = "c:d:h:"
 
 int httpd_main(int argc, char *argv[])
 {
-	unsigned long opt;
+	unsigned opt;
 	const char *home_httpd = home;
 	char *url_for_decode;
 	USE_FEATURE_HTTPD_ENCODE_URL_STR(const char *url_for_encode;)
@@ -1932,7 +1932,7 @@ int httpd_main(int argc, char *argv[])
 
 	config->ContentLength = -1;
 
-	opt = bb_getopt_ulflags(argc, argv, httpd_opts,
+	opt = getopt32(argc, argv, httpd_opts,
 			&(config->configFile), &url_for_decode, &home_httpd
 			USE_FEATURE_HTTPD_ENCODE_URL_STR(, &url_for_encode)
 			USE_FEATURE_HTTPD_BASIC_AUTH(, &(config->realm))

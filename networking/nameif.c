@@ -65,7 +65,7 @@ int nameif_main(int argc, char **argv)
 	int if_index = 1;
 	mactable_t *ch;
 
-	if (1 & bb_getopt_ulflags(argc, argv, "sc:", &fname)) {
+	if (1 & getopt32(argc, argv, "sc:", &fname)) {
 		openlog(bb_applet_name, 0, LOG_LOCAL0);
 		logmode = LOGMODE_SYSLOG;
 	}

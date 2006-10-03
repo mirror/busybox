@@ -169,8 +169,8 @@ int adduser_main(int argc, char **argv)
 	pw.pw_dir = NULL;
 
 	/* check for min, max and missing args and exit on error */
-	bb_opt_complementally = "-1:?1:?";
-	flags = bb_getopt_ulflags(argc, argv, "h:g:s:G:DSH", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup);
+	opt_complementary = "-1:?1:?";
+	flags = getopt32(argc, argv, "h:g:s:G:DSH", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup);
 
 	/* got root? */
 	if(geteuid()) {

@@ -93,11 +93,11 @@ int dos2unix_main(int argc, char *argv[])
 		ConvType = CT_UNIX2DOS;	/*1 */
 	}
 	/* -u and -d are mutally exclusive */
-	bb_opt_complementally = "?:u--d:d--u";
+	opt_complementary = "?:u--d:d--u";
 	/* process parameters */
 	/* -u convert to unix */
 	/* -d convert to dos  */
-	o = bb_getopt_ulflags(argc, argv, "du");
+	o = getopt32(argc, argv, "du");
 
 	/* Do the conversion requested by an argument else do the default
 	 * conversion depending on our name.  */

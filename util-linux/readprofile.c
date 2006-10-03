@@ -64,8 +64,8 @@ int readprofile_main(int argc, char **argv)
 	proFile = defaultpro;
 	mapFile = defaultmap;
 
-	bb_opt_complementally = "nn:aa:bb:ss:ii:rr:vv";
-	bb_getopt_ulflags(argc, argv, "M:m:p:nabsirv",
+	opt_complementary = "nn:aa:bb:ss:ii:rr:vv";
+	getopt32(argc, argv, "M:m:p:nabsirv",
 			&mult, &mapFile, &proFile,
 			&optNative, &optAll, &optBins, &optSub,
 			&optInfo, &optReset, &optVerbose);

@@ -21,14 +21,14 @@
 int strings_main(int argc, char **argv)
 {
 	int n, c, i = 0, status = EXIT_SUCCESS;
-	unsigned long opt;
+	unsigned opt;
 	unsigned long count;
 	FILE *file = stdin;
 	char *string;
 	const char *fmt = "%s: ";
 	char *n_arg = "4";
 
-	opt = bb_getopt_ulflags(argc, argv, "afon:", &n_arg);
+	opt = getopt32(argc, argv, "afon:", &n_arg);
 	/* -a is our default behaviour */
 
 	argc -= optind;

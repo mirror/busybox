@@ -89,7 +89,7 @@ static int pencode(char *s)
 
 int logger_main(int argc, char **argv)
 {
-	unsigned long opt;
+	unsigned opt;
 	char *opt_p, *opt_t;
 	int pri = LOG_USER | LOG_NOTICE;
 	int option = 0;
@@ -100,7 +100,7 @@ int logger_main(int argc, char **argv)
 	bb_getpwuid(name, geteuid(), sizeof(name));
 
 	/* Parse any options */
-	opt = bb_getopt_ulflags(argc, argv, "p:st:", &opt_p, &opt_t);
+	opt = getopt32(argc, argv, "p:st:", &opt_p, &opt_t);
 	if (opt & 0x1) pri = pencode(opt_p); // -p
 	if (opt & 0x2) option |= LOG_PERROR; // -s
 	if (opt & 0x4) safe_strncpy(name, opt_t, sizeof(name)); // -t

@@ -12,14 +12,13 @@
 #include "busybox.h"
 
 /* option vars */
-static const char *const optstring = "b:c:f:d:sn";
-
+static const char optstring[] = "b:c:f:d:sn";
 #define CUT_OPT_BYTE_FLGS	(1<<0)
 #define CUT_OPT_CHAR_FLGS	(1<<1)
 #define CUT_OPT_FIELDS_FLGS	(1<<2)
 #define CUT_OPT_DELIM_FLGS	(1<<3)
 #define CUT_OPT_SUPPRESS_FLGS (1<<4)
-static unsigned long opt;
+static unsigned opt;
 
 static char delim = '\t';	/* delimiter, default is tab */
 
@@ -179,9 +178,8 @@ int cut_main(int argc, char **argv)
 {
 	char *sopt, *ltok;
 
-	bb_opt_complementally = "b--bcf:c--bcf:f--bcf";
-	opt =
-		bb_getopt_ulflags(argc, argv, optstring, &sopt, &sopt, &sopt, &ltok);
+	opt_complementary = "b--bcf:c--bcf:f--bcf";
+	opt = getopt32(argc, argv, optstring, &sopt, &sopt, &sopt, &ltok);
 	if (!(opt & (CUT_OPT_BYTE_FLGS | CUT_OPT_CHAR_FLGS | CUT_OPT_FIELDS_FLGS)))
 		bb_error_msg_and_die
 			("expected a list of bytes, characters, or fields");

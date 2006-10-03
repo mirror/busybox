@@ -91,7 +91,7 @@ int cal_main(int argc, char **argv)
 	setlocale(LC_TIME, "");
 #endif
 
-	flags = bb_getopt_ulflags(argc, argv, "jy");
+	flags = getopt32(argc, argv, "jy");
 
 	julian = flags & 1;
 

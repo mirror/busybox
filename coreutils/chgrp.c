@@ -31,7 +31,7 @@ int chgrp_main(int argc, char **argv)
 	int recursiveFlag;
 	int retval = EXIT_SUCCESS;
 
-	recursiveFlag = bb_getopt_ulflags(argc, argv, "R");
+	recursiveFlag = getopt32(argc, argv, "R");
 
 	if (argc - optind < 2) {
 		bb_show_usage();

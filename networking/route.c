@@ -647,7 +647,7 @@ static const char tbl_verb[] =	/* 2nd byte matches RTACTION_* code */
 
 int route_main(int argc, char **argv)
 {
-	unsigned long opt;
+	unsigned opt;
 	int what;
 	char *family;
 
@@ -662,7 +662,7 @@ int route_main(int argc, char **argv)
 		}
 	}
 
-	opt = bb_getopt_ulflags(argc, argv, "A:ne", &family);
+	opt = getopt32(argc, argv, "A:ne", &family);
 
 	if ((opt & ROUTE_OPT_A) && strcmp(family, "inet")) {
 #ifdef CONFIG_FEATURE_IPV6

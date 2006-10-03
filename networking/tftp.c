@@ -497,13 +497,13 @@ int tftp_main(int argc, char **argv)
 #endif
 
 #if defined(CONFIG_FEATURE_TFTP_GET) && defined(CONFIG_FEATURE_TFTP_PUT)
-	bb_opt_complementally = GET_COMPL PUT_COMPL ":?g--p:p--g";
+	opt_complementary = GET_COMPL PUT_COMPL ":?g--p:p--g";
 #elif defined(CONFIG_FEATURE_TFTP_GET) || defined(CONFIG_FEATURE_TFTP_PUT)
-	bb_opt_complementally = GET_COMPL PUT_COMPL;
+	opt_complementary = GET_COMPL PUT_COMPL;
 #endif
 
 
-	cmd = bb_getopt_ulflags(argc, argv, GET PUT "l:r:" BS,
+	cmd = getopt32(argc, argv, GET PUT "l:r:" BS,
 							&localfile, &remotefile BS_ARG);
 
 	cmd &= (tftp_cmd_get | tftp_cmd_put);

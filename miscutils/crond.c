@@ -133,19 +133,19 @@ static void crondlog(const char *ctl, ...)
 
 int crond_main(int ac, char **av)
 {
-	unsigned long opt;
+	unsigned opt;
 	char *lopt, *Lopt, *copt;
 
 #if ENABLE_DEBUG_CROND_OPTION
 	char *dopt;
 
-	bb_opt_complementally = "f-b:b-f:S-L:L-S:d-l";
+	opt_complementary = "f-b:b-f:S-L:L-S:d-l";
 #else
-	bb_opt_complementally = "f-b:b-f:S-L:L-S";
+	opt_complementary = "f-b:b-f:S-L:L-S";
 #endif
 
 	opterr = 0;			/* disable getopt 'errors' message. */
-	opt = bb_getopt_ulflags(ac, av, "l:L:fbSc:"
+	opt = getopt32(ac, av, "l:L:fbSc:"
 #if ENABLE_DEBUG_CROND_OPTION
 							"d:"
 #endif

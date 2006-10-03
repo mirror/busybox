@@ -43,7 +43,7 @@ int chown_main(int argc, char **argv)
 	int retval = EXIT_SUCCESS;
 	char *groupName;
 
-	flags = bb_getopt_ulflags(argc, argv, "Rh");
+	flags = getopt32(argc, argv, "Rh");
 
 	if (flags & FLAG_h) chown_func = lchown;
 

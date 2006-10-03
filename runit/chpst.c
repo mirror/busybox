@@ -238,7 +238,7 @@ int chpst_main(int argc, char **argv)
 
 	{
 		char *m,*d,*o,*p,*f,*c,*r,*t,*n;
-		option_mask = bb_getopt_ulflags(argc, argv, "u:U:e:m:d:o:p:f:c:r:t:/:n:vP012",
+		option_mask = getopt32(argc, argv, "u:U:e:m:d:o:p:f:c:r:t:/:n:vP012",
 				&set_user,&env_user,&env_dir,
 				&m,&d,&o,&p,&f,&c,&r,&t,&root,&n);
 		// if (option_mask & 0x1) // -u
@@ -324,7 +324,7 @@ static void envdir(int argc, char **argv)
 static void softlimit(int argc, char **argv)
 {
 	char *a,*c,*d,*f,*l,*m,*o,*p,*r,*s,*t;
-	option_mask = bb_getopt_ulflags(argc, argv, "a:c:d:f:l:m:o:p:r:s:t:",
+	option_mask = getopt32(argc, argv, "a:c:d:f:l:m:o:p:r:s:t:",
 			&a,&c,&d,&f,&l,&m,&o,&p,&r,&s,&t);
 	if (option_mask & 0x001) limita = bb_xgetularg10(a); // -a
 	if (option_mask & 0x002) limitc = bb_xgetularg10(c); // -c

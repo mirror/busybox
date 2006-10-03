@@ -182,7 +182,7 @@ static int check_utc(void)
 
 int hwclock_main ( int argc, char **argv )
 {
-	unsigned long opt;
+	unsigned opt;
 	int utc;
 
 #if ENABLE_FEATURE_HWCLOCK_LONG_OPTIONS
@@ -194,11 +194,11 @@ static const struct option hwclock_long_options[] = {
 		{ "systohc",   0, 0, 'w' },
 		{ 0,           0, 0, 0 }
 	};
-	bb_applet_long_options = hwclock_long_options;
+	applet_long_options = hwclock_long_options;
 #endif
 
-	bb_opt_complementally = "?:r--ws:w--rs:s--wr:l--u:u--l";
-	opt = bb_getopt_ulflags(argc, argv, "lursw");
+	opt_complementary = "?:r--ws:w--rs:s--wr:l--u:u--l";
+	opt = getopt32(argc, argv, "lursw");
 
 	/* If -u or -l wasn't given check if we are using utc */
 	if (opt & (HWCLOCK_OPT_UTC | HWCLOCK_OPT_LOCALTIME))

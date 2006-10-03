@@ -40,9 +40,9 @@ int gunzip_main(int argc, char **argv)
 {
 	USE_DESKTOP(long long) int status;
 	int exitcode = 0;
-	unsigned long opt;
+	unsigned opt;
 
-	opt = bb_getopt_ulflags(argc, argv, "cftdv");
+	opt = getopt32(argc, argv, "cftdv");
 	/* if called as zcat */
 	if (strcmp(bb_applet_name, "zcat") == 0) {
 		opt |= GUNZIP_OPT_STDOUT;

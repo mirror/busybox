@@ -63,7 +63,7 @@ int uname_main(int argc, char **argv)
 	const unsigned short int *delta;
 	char toprint;
 
-	toprint = bb_getopt_ulflags(argc, argv, options);
+	toprint = getopt32(argc, argv, options);
 
 	if (argc != optind) {
 		bb_show_usage();

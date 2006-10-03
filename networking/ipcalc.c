@@ -90,9 +90,9 @@ int ipcalc_main(int argc, char **argv)
 	char *ipstr;
 
 	if (ENABLE_FEATURE_IPCALC_LONG_OPTIONS)
-		bb_applet_long_options = long_options;
+		applet_long_options = long_options;
 
-	mode = bb_getopt_ulflags(argc, argv, "mbn" USE_FEATURE_IPCALC_FANCY("phs"));
+	mode = getopt32(argc, argv, "mbn" USE_FEATURE_IPCALC_FANCY("phs"));
 
 	argc -= optind;
 	argv += optind;

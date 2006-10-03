@@ -87,7 +87,7 @@ int wc_main(int argc, char **argv)
 	char in_word;
 	unsigned print_type;
 
-	print_type = bb_getopt_ulflags(argc, argv, "lwcL");
+	print_type = getopt32(argc, argv, "lwcL");
 
 	if (print_type == 0) {
 		print_type = (1 << WC_LINES) | (1 << WC_WORDS) | (1 << WC_CHARS);

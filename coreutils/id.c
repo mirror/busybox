@@ -50,8 +50,8 @@ int id_main(int argc, char **argv)
 
 	/* Don't allow -n -r -nr -ug -rug -nug -rnug */
 	/* Don't allow more than one username */
-	bb_opt_complementally = "?1:?:u--g:g--u:r?ug:n?ug";
-	flags = bb_getopt_ulflags(argc, argv, "rnug");
+	opt_complementary = "?1:?:u--g:g--u:r?ug:n?ug";
+	flags = getopt32(argc, argv, "rnug");
 
 	/* This values could be overwritten later */
 	uid = geteuid();

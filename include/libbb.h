@@ -207,9 +207,9 @@ extern void xsetuid(uid_t uid);
 extern off_t fdlength(int fd);
 
 #define BB_GETOPT_ERROR 0x80000000UL
-extern const char *bb_opt_complementally;
-extern const struct option *bb_applet_long_options;
-extern unsigned long bb_getopt_ulflags(int argc, char **argv, const char *applet_opts, ...);
+extern const char *opt_complementary;
+extern const struct option *applet_long_options;
+extern uint32_t getopt32(int argc, char **argv, const char *applet_opts, ...);
 
 extern int bb_vfprintf(FILE * __restrict stream, const char * __restrict format,
 					   va_list arg) __attribute__ ((format (printf, 2, 0)));
@@ -232,7 +232,7 @@ extern char *skip_whitespace(const char *);
 
 #ifndef BUILD_INDIVIDUAL
 extern struct BB_applet *find_applet_by_name(const char *name);
-void run_applet_by_name(const char *name, int argc, char **argv);
+extern void run_applet_by_name(const char *name, int argc, char **argv);
 #endif
 
 /* dmalloc will redefine these to it's own implementation. It is safe

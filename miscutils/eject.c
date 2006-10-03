@@ -31,8 +31,8 @@ int eject_main(int argc, char **argv)
 	struct mntent *m;
 	int dev;
 
-	/*bb_opt_complementally = "t--T:T--t";*/
-	flags = bb_getopt_ulflags(argc, argv, "tT");
+	/*opt_complementary = "t--T:T--t";*/
+	flags = getopt32(argc, argv, "tT");
 	device = argv[optind] ? : DEFAULT_CDROM;
 
 	m = find_mount_point(device, bb_path_mtab_file);

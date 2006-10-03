@@ -1109,7 +1109,7 @@ static void add_files_link(llist_t *opt_f)
 
 int sed_main(int argc, char **argv)
 {
-	unsigned long opt;
+	unsigned opt;
 	llist_t *opt_e, *opt_f;
 	int status = EXIT_SUCCESS;
 
@@ -1126,8 +1126,8 @@ int sed_main(int argc, char **argv)
 
 	/* do normal option parsing */
 	opt_e = opt_f = NULL;
-	bb_opt_complementally = "e::f::"; /* can occur multiple times */
-	opt = bb_getopt_ulflags(argc, argv, "irne:f:", &opt_e, &opt_f);
+	opt_complementary = "e::f::"; /* can occur multiple times */
+	opt = getopt32(argc, argv, "irne:f:", &opt_e, &opt_f);
 	if (opt & 0x1) { // -i
 		bbg.in_place++;
 		atexit(cleanup_outname);
@@ -1135,11 +1135,11 @@ int sed_main(int argc, char **argv)
 	if (opt & 0x2) bbg.regex_type|=REG_EXTENDED; // -r
 	if (opt & 0x4) bbg.be_quiet++; // -n
 	if (opt & 0x8) { // -e
-		/* getopt_ulflags reverses order of arguments, handle it */
+		/* getopt32 reverses order of arguments, handle it */
 		add_cmds_link(opt_e);
 	}
 	if (opt & 0x10) { // -f
-		/* getopt_ulflags reverses order of arguments, handle it */
+		/* getopt32 reverses order of arguments, handle it */
 		add_files_link(opt_f);
 	}
 	/* if we didn't get a pattern from -e or -f, use argv[optind] */

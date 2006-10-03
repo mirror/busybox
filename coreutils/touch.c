@@ -32,7 +32,7 @@ int touch_main(int argc, char **argv)
 	int flags;
 	int status = EXIT_SUCCESS;
 
-	flags = bb_getopt_ulflags(argc, argv, "c");
+	flags = getopt32(argc, argv, "c");
 
 	argv += optind;
 

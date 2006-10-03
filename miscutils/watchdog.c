@@ -25,11 +25,11 @@ static void watchdog_shutdown(int ATTRIBUTE_UNUSED unused)
 
 int watchdog_main(int argc, char **argv)
 {
-	unsigned long opts;
+	unsigned opts;
 	unsigned long timer_duration = 30; /* Userspace timer duration, in seconds */
 	char *t_arg;
 
-	opts = bb_getopt_ulflags(argc, argv, "Ft:", &t_arg);
+	opts = getopt32(argc, argv, "Ft:", &t_arg);
 
 	if (opts & OPT_TIMER)
 		timer_duration = bb_xgetlarg(t_arg, 10, 0, INT_MAX);

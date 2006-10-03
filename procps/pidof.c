@@ -39,11 +39,11 @@ int pidof_main(int argc, char **argv)
 	unsigned long int opt;
 #if ENABLE_FEATURE_PIDOF_OMIT
 	llist_t *omits = NULL; /* list of pids to omit */
-	bb_opt_complementally = _OMIT_COMPL("o::");
+	opt_complementary = _OMIT_COMPL("o::");
 #endif
 
 	/* do unconditional option parsing */
-	opt = bb_getopt_ulflags(argc, argv,
+	opt = getopt32(argc, argv,
 					_SINGLE_COMPL("s") _OMIT_COMPL("o:")
 					_OMIT(&omits));
 

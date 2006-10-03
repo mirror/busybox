@@ -21,7 +21,7 @@ extern void displayroutes(int noresolve, int netstatfmt);
 #define NETSTAT_CONNECTED       0x01
 #define NETSTAT_LISTENING       0x02
 #define NETSTAT_NUMERIC         0x04
-/* Must match getopt_ulflags option string */
+/* Must match getopt32 option string */
 #define NETSTAT_TCP             0x10
 #define NETSTAT_UDP             0x20
 #define NETSTAT_RAW             0x40
@@ -526,7 +526,7 @@ int netstat_main(int argc, char **argv)
 		OPT_extended = 0x4,
 		OPT_showroute = 0x100,
 	};
-	unsigned long opt;
+	unsigned opt;
 #ifdef CONFIG_FEATURE_IPV6
 	int inet = 1;
 	int inet6 = 1;
@@ -536,7 +536,7 @@ int netstat_main(int argc, char **argv)
 #endif
 
 	/* Option string must match NETSTAT_xxx constants */
-	opt = bb_getopt_ulflags(argc, argv, "laentuwxr");
+	opt = getopt32(argc, argv, "laentuwxr");
 	if (opt & 0x1) { // -l
 		flags &= ~NETSTAT_CONNECTED;
 		flags |= NETSTAT_LISTENING;

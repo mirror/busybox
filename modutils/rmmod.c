@@ -44,7 +44,7 @@ int rmmod_main(int argc, char **argv)
 	unsigned int flags = O_NONBLOCK|O_EXCL;
 
 	/* Parse command line. */
-	n = bb_getopt_ulflags(argc, argv, "wfa");
+	n = getopt32(argc, argv, "wfa");
 	if((n & 1))	// --wait
 		flags &= ~O_NONBLOCK;
 	if((n & 2))	// --force

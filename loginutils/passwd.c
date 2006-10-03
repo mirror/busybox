@@ -134,7 +134,7 @@ int passwd_main(int argc, char **argv)
 		OPT_delete = 0x8, /* -d - delete password */
 		OPT_lud = 0xe,
 	};
-	unsigned long opt;
+	unsigned opt;
 	char *opt_a;
 	int amroot;
 	char *cp;
@@ -146,7 +146,7 @@ int passwd_main(int argc, char **argv)
 
 	amroot = (getuid() == 0);
 	openlog("passwd", LOG_PID | LOG_CONS | LOG_NOWAIT, LOG_AUTH);
-	opt = bb_getopt_ulflags(argc, argv, "a:lud", &opt_a);
+	opt = getopt32(argc, argv, "a:lud", &opt_a);
 	argc -= optind;
 	argv += optind;
 	if (opt & OPT_algo) algo = get_algo(opt_a); // -a

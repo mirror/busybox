@@ -877,7 +877,7 @@ int ls_main(int argc, char **argv)
 	struct dnode **dnp;
 	struct dnode *dn;
 	struct dnode *cur;
-	long opt;
+	unsigned opt;
 	int nfiles = 0;
 	int dnfiles;
 	int dndirs;
@@ -904,12 +904,12 @@ int ls_main(int argc, char **argv)
 #endif
 
 #ifdef CONFIG_FEATURE_LS_COLOR
-	bb_applet_long_options = ls_color_opt;
+	applet_long_options = ls_color_opt;
 #endif
 
 	/* process options */
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-	opt = bb_getopt_ulflags(argc, argv, ls_options, &tabstops_str, &terminal_width_str
+	opt = getopt32(argc, argv, ls_options, &tabstops_str, &terminal_width_str
 #ifdef CONFIG_FEATURE_LS_COLOR
 		, &color_opt
 #endif
@@ -921,7 +921,7 @@ int ls_main(int argc, char **argv)
 		terminal_width = atoi(terminal_width_str);
 	}
 #else
-	opt = bb_getopt_ulflags(argc, argv, ls_options
+	opt = getopt32(argc, argv, ls_options
 #ifdef CONFIG_FEATURE_LS_COLOR
 		, &color_opt
 #endif

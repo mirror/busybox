@@ -153,7 +153,7 @@ int du_main(int argc, char **argv)
 	int slink_depth_save;
 	int print_final_total;
 	char *smax_print_depth;
-	unsigned long opt;
+	unsigned opt;
 
 #ifdef CONFIG_FEATURE_DU_DEFUALT_BLOCKSIZE_1K
 	if (getenv("POSIXLY_CORRECT")) {	/* TODO - a new libbb function? */
@@ -172,8 +172,8 @@ int du_main(int argc, char **argv)
 	 * ignore -a.  This is consistent with -s being equivalent to -d 0.
 	 */
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-	bb_opt_complementally = "h-km:k-hm:m-hk:H-L:L-H:s-d:d-s";
-	opt = bb_getopt_ulflags(argc, argv, "aHkLsx" "d:" "lc" "hm", &smax_print_depth);
+	opt_complementary = "h-km:k-hm:m-hk:H-L:L-H:s-d:d-s";
+	opt = getopt32(argc, argv, "aHkLsx" "d:" "lc" "hm", &smax_print_depth);
 	if((opt & (1 << 9))) {
 		/* -h opt */
 		disp_hr = 0;
@@ -187,8 +187,8 @@ int du_main(int argc, char **argv)
 			disp_hr = KILOBYTE;
 	}
 #else
-	bb_opt_complementally = "H-L:L-H:s-d:d-s";
-	opt = bb_getopt_ulflags(argc, argv, "aHkLsx" "d:" "lc", &smax_print_depth);
+	opt_complementary = "H-L:L-H:s-d:d-s";
+	opt = getopt32(argc, argv, "aHkLsx" "d:" "lc", &smax_print_depth);
 #if !defined CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
 	if((opt & (1 << 2))) {
 		/* -k opt */

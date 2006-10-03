@@ -28,7 +28,7 @@ int tee_main(int argc, char **argv)
 	int c;
 #endif
 
-	flags = bb_getopt_ulflags(argc, argv, "ia");	/* 'a' must be 2nd */
+	flags = getopt32(argc, argv, "ia");	/* 'a' must be 2nd */
 
 	mode += (flags & 2);	/* Since 'a' is the 2nd option... */
 

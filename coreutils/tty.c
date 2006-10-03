@@ -23,7 +23,7 @@ int tty_main(int argc, char **argv)
 
 	xfunc_error_retval = 2;	/* SUSv3 requires > 1 for error. */
 
-	silent = bb_getopt_ulflags(argc, argv, "s");
+	silent = getopt32(argc, argv, "s");
 
 	/* gnu tty outputs a warning that it is ignoring all args. */
 	bb_warn_ignoring_args(argc - optind);

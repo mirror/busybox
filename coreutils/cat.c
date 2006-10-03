@@ -18,7 +18,7 @@ int cat_main(int argc, char **argv)
 	FILE *f;
 	int retval = EXIT_SUCCESS;
 
-	bb_getopt_ulflags(argc, argv, "u");
+	getopt32(argc, argv, "u");
 
 	argv += optind;
 	if (!*argv) {

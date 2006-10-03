@@ -31,7 +31,7 @@ mode_t getopt_mk_fifo_nod(int argc, char **argv)
 	mode_t mode = 0666;
 	char *smode = NULL;
 
-	bb_getopt_ulflags(argc, argv, "m:", &smode);
+	getopt32(argc, argv, "m:", &smode);
 	if(smode) {
 		if (bb_parse_mode(smode, &mode))
 			umask(0);

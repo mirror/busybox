@@ -13,7 +13,7 @@
 
 int mountpoint_main(int argc, char **argv)
 {
-	int opt = bb_getopt_ulflags(argc, argv, "qdx");
+	int opt = getopt32(argc, argv, "qdx");
 #define OPT_q (1)
 #define OPT_d (2)
 #define OPT_x (4)

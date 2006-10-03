@@ -1134,14 +1134,14 @@ int gzip_main(int argc, char **argv)
 		OPT_force = 0x2,
 	};
 
-	unsigned long opt;
+	unsigned opt;
 	int result;
 	int inFileNum;
 	int outFileNum;
 	struct stat statBuf;
 	char *delFileName;
 
-	opt = bb_getopt_ulflags(argc, argv, "cf123456789qv" USE_GUNZIP("d"));
+	opt = getopt32(argc, argv, "cf123456789qv" USE_GUNZIP("d"));
 	//if (opt & 0x1) // -c
 	//if (opt & 0x2) // -f
 	/* Ignore 1-9 (compression level) options */
@@ -1157,7 +1157,7 @@ int gzip_main(int argc, char **argv)
 	//if (opt & 0x800) // -q
 	//if (opt & 0x1000) // -v
 	if (ENABLE_GUNZIP && (opt & 0x2000)) { // -d
-		/* FIXME: bb_getopt_ulflags should not depend on optind */
+		/* FIXME: getopt32 should not depend on optind */
 		optind = 1;
 		return gunzip_main(argc, argv);
 	}

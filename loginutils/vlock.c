@@ -55,7 +55,7 @@ int vlock_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	o_lock_all = bb_getopt_ulflags (argc, argv, "a");
+	o_lock_all = getopt32 (argc, argv, "a");
 
 	if((pw = getpwuid(getuid())) == NULL) {
 		bb_error_msg_and_die("Unknown uid %d", getuid());

@@ -1088,7 +1088,7 @@ int ifupdown_main(int argc, char **argv)
 		cmds = iface_down;
 	}
 
-	option_mask = bb_getopt_ulflags(argc, argv, OPTION_STR, &interfaces);
+	option_mask = getopt32(argc, argv, OPTION_STR, &interfaces);
 	if (argc - optind > 0) {
 		if (DO_ALL) bb_show_usage();
 	} else

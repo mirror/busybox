@@ -1102,7 +1102,7 @@ int less_main(int argc, char **argv) {
 
 	int keypress;
 
-	flags = bb_getopt_ulflags(argc, argv, "EMmN~");
+	flags = getopt32(argc, argv, "EMmN~");
 
 	argc -= optind;
 	argv += optind;

@@ -27,7 +27,7 @@ int umount_main(int argc, char **argv)
 	struct mntent me;
 	FILE *fp;
 	int status = EXIT_SUCCESS;
-	unsigned long opt;
+	unsigned opt;
 	struct mtab_list {
 		char *dir;
 		char *device;
@@ -36,7 +36,7 @@ int umount_main(int argc, char **argv)
 
 	/* Parse any options */
 
-	opt = bb_getopt_ulflags(argc, argv, OPTION_STRING);
+	opt = getopt32(argc, argv, OPTION_STRING);
 
 	argc -= optind;
 	argv += optind;

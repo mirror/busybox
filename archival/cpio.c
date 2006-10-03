@@ -30,7 +30,7 @@ int cpio_main(int argc, char **argv)
 {
 	archive_handle_t *archive_handle;
 	char *cpio_filename = NULL;
-	unsigned long opt;
+	unsigned opt;
 
 	/* Initialise */
 	archive_handle = init_handle();
@@ -38,7 +38,7 @@ int cpio_main(int argc, char **argv)
 	archive_handle->seek = seek_by_char;
 	archive_handle->flags = ARCHIVE_EXTRACT_NEWER | ARCHIVE_PRESERVE_DATE;
 
-	opt = bb_getopt_ulflags(argc, argv, "ituvF:dm", &cpio_filename);
+	opt = getopt32(argc, argv, "ituvF:dm", &cpio_filename);
 
 	/* One of either extract or test options must be given */
 	if ((opt & (CPIO_OPT_TEST | CPIO_OPT_EXTRACT)) == 0) {

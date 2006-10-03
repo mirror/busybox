@@ -129,7 +129,7 @@ int uudecode_main(int argc, char **argv)
 	char *outname = NULL;
 	char *line;
 
-	bb_getopt_ulflags(argc, argv, "o:", &outname);
+	getopt32(argc, argv, "o:", &outname);
 
 	if (optind == argc) {
 		src_stream = stdin;

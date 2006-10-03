@@ -575,18 +575,18 @@ static void identify(uint16_t *id_supplied)
 
 	/* check if we recognise the device type */
 	printf("\n");
-	if(!(val[GEN_CONFIG] & NOT_ATA))
+	if (!(val[GEN_CONFIG] & NOT_ATA))
 	{
 		dev = ATA_DEV;
 		printf("ATA device, with ");
 	}
-	else if(val[GEN_CONFIG]==CFA_SUPPORT_VAL)
+	else if (val[GEN_CONFIG]==CFA_SUPPORT_VAL)
 	{
 		dev = ATA_DEV;
 		like_std = 4;
 		printf("CompactFlash ATA device, with ");
 	}
-	else if(!(val[GEN_CONFIG] & NOT_ATAPI))
+	else if (!(val[GEN_CONFIG] & NOT_ATAPI))
 	{
 		dev = ATAPI_DEV;
 		eqpt = (val[GEN_CONFIG] & EQPT_TYPE) >> SHIFT_EQPT;
@@ -609,9 +609,9 @@ static void identify(uint16_t *id_supplied)
 	   (val[CONFIG]==PWRD_NID_VAL) || (val[CONFIG]==PWRD_ID_VAL) )
 	{
 		like_std = 5;
-		if((val[CONFIG]==STBY_NID_VAL) || (val[CONFIG]==STBY_ID_VAL))
+		if ((val[CONFIG]==STBY_NID_VAL) || (val[CONFIG]==STBY_ID_VAL))
 			printf("powers-up in standby; SET FEATURES subcmd spins-up.\n");
-		if(((val[CONFIG]==STBY_NID_VAL) || (val[CONFIG]==PWRD_NID_VAL)) && (val[GEN_CONFIG] & INCOMPLETE))
+		if (((val[CONFIG]==STBY_NID_VAL) || (val[CONFIG]==PWRD_NID_VAL)) && (val[GEN_CONFIG] & INCOMPLETE))
 			printf("\n\tWARNING: ID response incomplete.\n\tFollowing data may be incorrect.\n\n");
 	}
 
@@ -629,9 +629,9 @@ static void identify(uint16_t *id_supplied)
 	{
 		if (val[MINOR] && (val[MINOR] <= MINOR_MAX))
 		{
-			if(like_std < 3) like_std = 3;
+			if (like_std < 3) like_std = 3;
 			std = actual_ver[val[MINOR]];
-			if(std) printf("\n\tUsed: %s ",minor_str[val[MINOR]]);
+			if (std) printf("\n\tUsed: %s ",minor_str[val[MINOR]]);
 
 		}
 		/* looks like when they up-issue the std, they obsolete one;
@@ -652,17 +652,17 @@ static void identify(uint16_t *id_supplied)
 						like_std = ii;
 						kk = like_std >4 ? like_std-4: 0;
 					}
-					if(min_std > ii) min_std = ii;
+					if (min_std > ii) min_std = ii;
 				}
 				jj <<= 1;
 			}
-			if(like_std < 3) like_std = 3;
+			if (like_std < 3) like_std = 3;
 		}
 		/* Figure out what standard the device is using if it hasn't told
 		 * us.  If we know the std, check if the device is using any of
 		 * the words from the next level up.  It happens.
 		 */
-		if(like_std < std) like_std = std;
+		if (like_std < std) like_std = std;
 
 		if (((std == 5) || (!std && (like_std < 6))) &&
 			((((val[CMDS_SUPP_1] & VALID) == VALID_VAL) &&
@@ -724,7 +724,7 @@ static void identify(uint16_t *id_supplied)
 			jj = val[CDR_MAJOR] >> 1;
 			for (ii = 1; ii <15; ii++)
 			{
-				if(jj & 0x0001) printf("-%u ", ii);
+				if (jj & 0x0001) printf("-%u ", ii);
 				jj >>= 1;
 			}
 		}
@@ -743,7 +743,7 @@ static void identify(uint16_t *id_supplied)
 		jj = val[GEN_CONFIG] >> 1;
 		for (ii = 1; ii < 15; ii++)
 		{
-			if(jj & 0x0001) printf("\t%s\n",ata1_cfg_str[ii]);
+			if (jj & 0x0001) printf("\t%s\n",ata1_cfg_str[ii]);
 			jj >>=1;
 		}
 	}
@@ -1018,7 +1018,7 @@ static void identify(uint16_t *id_supplied)
 		}
 	}
 	/* Removable Media Status Notification feature set */
-	if((val[RM_STAT] & RM_STAT_BITS) == RM_STAT_SUP)
+	if ((val[RM_STAT] & RM_STAT_BITS) == RM_STAT_SUP)
 		printf("\t%s supported\n", cmd_feat_str[27]);
 
 
@@ -1196,7 +1196,7 @@ static void dump_identity(const struct hd_driveid *id)
 	}
 	printf("\n");
 
-	if(!(id->field_valid&1))
+	if (!(id->field_valid&1))
 		printf(" (maybe):");
 
 	printf(" CurCHS=%u/%u/%u, CurSects=%lu, LBA=%s",id->cur_cyls, id->cur_heads,
@@ -1589,7 +1589,7 @@ static void interpret_xfermode(unsigned int xfermode)
 
 static void print_flag(unsigned long flag, char *s, unsigned long value)
 {
-	if(flag)
+	if (flag)
 		printf(" setting %s to %ld\n", s, value);
 }
 
@@ -2078,18 +2078,18 @@ static void parse_xfermode(int flag, unsigned long *get, unsigned long *set, int
 }
 
 /*------- getopt short options --------*/
-static const char hdparm_options[]=	"gfu::n::p:r::m::c::k::a::B:tTh"\
+static const char hdparm_options[] = "gfu::n::p:r::m::c::k::a::B:tTh"
 	USE_FEATURE_HDPARM_GET_IDENTITY("iI")
 	USE_FEATURE_HDPARM_HDIO_GETSET_DMA("d::")
 #ifdef HDIO_DRIVE_CMD
-									"S:D:P:X:K:A:L:W:CyYzZ"
+	"S:D:P:X:K:A:L:W:CyYzZ"
 #endif
 	USE_FEATURE_HDPARM_HDIO_UNREGISTER_HWIF("U:")
 #ifdef HDIO_GET_QDMA
 #ifdef HDIO_SET_QDMA
-									"Q:"
+	"Q:"
 #else
-									"Q"
+	"Q"
 #endif
 #endif
 	USE_FEATURE_HDPARM_HDIO_DRIVE_RESET("w")
@@ -2154,8 +2154,8 @@ int hdparm_main(int argc, char **argv)
 #if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
 		if (c == 'R') {
 			parse_opts(NULL, &scan_hwif, &hwif_data, 0, INT_MAX);
-			hwif_ctrl =  bb_xgetlarg((argv[optind]) ? argv[optind] : "", 10, 0, INT_MAX);
-			hwif_irq  =  bb_xgetlarg((argv[optind+1]) ? argv[optind+1] : "", 10, 0, INT_MAX);
+			hwif_ctrl = bb_xgetlarg((argv[optind]) ? argv[optind] : "", 10, 0, INT_MAX);
+			hwif_irq  = bb_xgetlarg((argv[optind+1]) ? argv[optind+1] : "", 10, 0, INT_MAX);
 			/* Move past the 2 additional arguments */
 			argv += 2;
 			argc -= 2;
@@ -2163,7 +2163,7 @@ int hdparm_main(int argc, char **argv)
 #endif
 	}
 	/* When no flags are given (flagcount = 0), -acdgkmnru is assumed. */
-	if (!flagcount){
+	if (!flagcount) {
 		get_mult = get_io32bit = get_unmask = get_keep = get_readonly = get_readahead = get_geom = 1;
 		USE_FEATURE_HDPARM_HDIO_GETSET_DMA(get_dma = 1);
 	}

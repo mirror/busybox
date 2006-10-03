@@ -258,7 +258,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 {
 	char *ts;
 
-	op->flags = bb_getopt_ulflags(argc, argv, opt_string,
+	op->flags = getopt32(argc, argv, opt_string,
 		&(op->initstring), &fakehost, &(op->issue),
 		&(op->login), &ts);
 	if(op->flags & F_INITSTRING) {

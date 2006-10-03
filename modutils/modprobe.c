@@ -902,8 +902,8 @@ int modprobe_main(int argc, char** argv)
 	int rc = EXIT_SUCCESS;
 	char *unused;
 
-	bb_opt_complementally = "?V-:q-v:v-q";
-	main_opts = bb_getopt_ulflags(argc, argv, "acdklnqrst:vVC:",
+	opt_complementary = "?V-:q-v:v-q";
+	main_opts = getopt32(argc, argv, "acdklnqrst:vVC:",
 							&unused, &unused);
 	if((main_opts & (DUMP_CONF_EXIT | LIST_ALL)))
 				return EXIT_SUCCESS;

@@ -60,7 +60,7 @@ int fold_main(int argc, char **argv)
 		}
 	}
 
-	flags = bb_getopt_ulflags(argc, argv, "bsw:", &w_opt);
+	flags = getopt32(argc, argv, "bsw:", &w_opt);
 	if (flags & FLAG_WIDTH)
 		width = bb_xgetlarg(w_opt, 10, 1, 10000);
 

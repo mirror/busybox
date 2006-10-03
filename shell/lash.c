@@ -1503,7 +1503,7 @@ static inline void setup_job_control(void)
 
 int lash_main(int argc_l, char **argv_l)
 {
-	unsigned long opt;
+	unsigned opt;
 	FILE *input = stdin;
 	argc = argc_l;
 	argv = argv_l;
@@ -1527,7 +1527,7 @@ int lash_main(int argc_l, char **argv_l)
 		}
 	}
 
-	opt = bb_getopt_ulflags(argc_l, argv_l, "+ic:", &local_pending_command);
+	opt = getopt32(argc_l, argv_l, "+ic:", &local_pending_command);
 #define LASH_OPT_i (1<<0)
 #define LASH_OPT_c (1<<2)
 	if (opt & LASH_OPT_c) {

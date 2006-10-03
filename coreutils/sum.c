@@ -136,7 +136,7 @@ int sum_main(int argc, char **argv)
 	int (*sum_func)(const char *, int) = bsd_sum_file;
 
 	/* give the bsd func priority over sysv func */
-	flags = bb_getopt_ulflags(argc, argv, "sr");
+	flags = getopt32(argc, argv, "sr");
 	if (flags & 1)
 		sum_func = sysv_sum_file;
 	if (flags & 2)

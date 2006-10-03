@@ -71,8 +71,8 @@ int switch_root_main(int argc, char *argv[])
 
 	// Parse args (-c console)
 
-	bb_opt_complementally="-2";
-	bb_getopt_ulflags(argc,argv,"c:",&console);
+	opt_complementary="-2";
+	getopt32(argc,argv,"c:",&console);
 
 	// Change to new root directory and verify it's a different fs.
 

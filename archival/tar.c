@@ -688,7 +688,7 @@ int tar_main(int argc, char **argv)
 	archive_handle_t *tar_handle;
 	char *base_dir = NULL;
 	const char *tar_filename = "-";
-	unsigned long opt;
+	unsigned opt;
 	llist_t *excludes = NULL;
 
 	/* Initialise default values */
@@ -696,12 +696,12 @@ int tar_main(int argc, char **argv)
 	tar_handle->flags = ARCHIVE_CREATE_LEADING_DIRS | ARCHIVE_PRESERVE_DATE | ARCHIVE_EXTRACT_UNCONDITIONAL;
 
 	/* Prepend '-' to the first argument if required */
-	bb_opt_complementally = ENABLE_FEATURE_TAR_CREATE ?
+	opt_complementary = ENABLE_FEATURE_TAR_CREATE ?
 		"--:X::T::\n::c:t:x:?:c--tx:t--cx:x--ct" :
 		"--:X::T::\n::t:x:?:t--x:x--t";
 	if (ENABLE_FEATURE_TAR_LONG_OPTIONS)
-		bb_applet_long_options = tar_long_options;
-	opt = bb_getopt_ulflags(argc, argv, tar_options,
+		applet_long_options = tar_long_options;
+	opt = getopt32(argc, argv, tar_options,
 				&base_dir,      /* Change to dir <optarg> */
 				&tar_filename /* archive filename */
 #ifdef CONFIG_FEATURE_TAR_FROM

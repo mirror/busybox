@@ -47,14 +47,14 @@ int adjtimex_main(int argc, char **argv)
 	enum {
 		OPT_quiet = 0x1
 	};
-	unsigned long opt;
+	unsigned opt;
 	char *opt_o, *opt_f, *opt_p, *opt_t;
 	struct timex txc;
 	int i, ret, sep;
 	const char *descript;
 	txc.modes=0;
 
-	opt = bb_getopt_ulflags(argc, argv, "qo:f:p:t:",
+	opt = getopt32(argc, argv, "qo:f:p:t:",
 			&opt_o, &opt_f, &opt_p, &opt_t);
 	//if (opt & 0x1) // -q
 	if (opt & 0x2) { // -o

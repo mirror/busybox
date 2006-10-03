@@ -362,7 +362,7 @@ free_session(struct tsession *ts)
 int
 telnetd_main(int argc, char **argv)
 {
-	unsigned long opt;
+	unsigned opt;
 	fd_set rdfdset, wrfdset;
 	int selret;
 #ifndef CONFIG_FEATURE_TELNETD_INETD
@@ -387,7 +387,7 @@ telnetd_main(int argc, char **argv)
 	openlog(bb_applet_name, 0, LOG_USER);
 	logmode = LOGMODE_SYSLOG;
 
-	opt = bb_getopt_ulflags(argc, argv, "f:l:" USE_FEATURE_TELNETD_INETD("p:b:"),
+	opt = getopt32(argc, argv, "f:l:" USE_FEATURE_TELNETD_INETD("p:b:"),
 			&issuefile, &loginpath
 			SKIP_FEATURE_TELNETD_INETD(, &opt_portnbr, &opt_bindaddr));
 	//if (opt & 1) // -f

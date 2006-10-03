@@ -397,8 +397,8 @@ int top_main(int argc, char **argv)
 
 	/* do normal option parsing */
 	interval = 5;
-	bb_opt_complementally = "-";
-	option_mask = bb_getopt_ulflags(argc, argv, "d:n:b", 
+	opt_complementary = "-";
+	option_mask = getopt32(argc, argv, "d:n:b", 
 		&sinterval, &siterations);
 	if (option_mask & 0x1) interval = atoi(sinterval); // -d
 	if (option_mask & 0x2) iterations = atoi(siterations); // -n

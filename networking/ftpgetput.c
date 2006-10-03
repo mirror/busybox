@@ -275,7 +275,7 @@ static const struct option ftpgetput_long_options[] = {
 int ftpgetput_main(int argc, char **argv)
 {
 	/* content-length of the file */
-	unsigned long opt;
+	unsigned opt;
 	char *port = "ftp";
 
 	/* socket to ftp server */
@@ -305,9 +305,9 @@ int ftpgetput_main(int argc, char **argv)
 	 * Decipher the command line
 	 */
 	if (ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS)
-		bb_applet_long_options = ftpgetput_long_options;
+		applet_long_options = ftpgetput_long_options;
 
-	opt = bb_getopt_ulflags(argc, argv, "cvu:p:P:", &server->user, &server->password, &port);
+	opt = getopt32(argc, argv, "cvu:p:P:", &server->user, &server->password, &port);
 
 	/* Process the non-option command line arguments */
 	if (argc - optind != 3) {

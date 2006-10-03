@@ -228,7 +228,7 @@ int fakeidentd_main(int argc, char **argv)
 	FD_SET(0, &G.readfds);
 
 	/* handle -b <ip> parameter */
-	bb_getopt_ulflags(argc, argv, "b:", &bind_ip_address);
+	getopt32(argc, argv, "b:", &bind_ip_address);
 	/* handle optional REPLY STRING */
 	if (optind < argc)
 		G.identuser = argv[optind];

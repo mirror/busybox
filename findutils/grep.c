@@ -24,7 +24,7 @@
 
 
 /* options */
-static unsigned long opt;
+static unsigned opt;
 #define GREP_OPTS "lnqvscFiHhe:f:Lo"
 #define GREP_OPT_l (1<<0)
 #define PRINT_FILES_WITH_MATCHES (opt & GREP_OPT_l)
@@ -302,8 +302,8 @@ int grep_main(int argc, char **argv)
 	char *slines_before;
 	char *Copt;
 
-	bb_opt_complementally = "H-h:e::f::C-AB";
-	opt = bb_getopt_ulflags(argc, argv,
+	opt_complementary = "H-h:e::f::C-AB";
+	opt = getopt32(argc, argv,
 		GREP_OPTS GREP_OPT_CONTEXT OPT_EGREP,
 		&pattern_head, &fopt,
 		&slines_after, &slines_before, &Copt);
@@ -336,8 +336,8 @@ int grep_main(int argc, char **argv)
 		before_buf = (char **)xzalloc(lines_before * sizeof(char *));
 #else
 	/* with auto sanity checks */
-	bb_opt_complementally = "H-h:e::f::c-n:q-n:l-n";
-	opt = bb_getopt_ulflags(argc, argv, GREP_OPTS OPT_EGREP,
+	opt_complementary = "H-h:e::f::c-n:q-n:l-n";
+	opt = getopt32(argc, argv, GREP_OPTS OPT_EGREP,
 		&pattern_head, &fopt);
 #endif
 	invert_search = (opt & GREP_OPT_v) != 0;        /* 0 | 1 */

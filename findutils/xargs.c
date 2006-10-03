@@ -399,7 +399,7 @@ int xargs_main(int argc, char **argv)
 	size_t n_chars = 0;
 	long orig_arg_max;
 	const char *eof_str = "_";
-	unsigned long opt;
+	unsigned opt;
 	size_t n_max_chars;
 #if ENABLE_FEATURE_XARGS_SUPPORT_ZERO_TERM
 	xlist_t* (*read_args)(xlist_t*, const char*, size_t, char*) = process_stdin;
@@ -407,7 +407,7 @@ int xargs_main(int argc, char **argv)
 #define read_args process_stdin
 #endif
 
-	opt = bb_getopt_ulflags(argc, argv, OPTION_STR, &max_args, &max_chars, &eof_str);
+	opt = getopt32(argc, argv, OPTION_STR, &max_args, &max_chars, &eof_str);
 
 	if (opt & OPT_ZEROTERM)
 		USE_FEATURE_XARGS_SUPPORT_ZERO_TERM(read_args = process0_stdin);

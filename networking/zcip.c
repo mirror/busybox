@@ -75,7 +75,7 @@ enum {
 #define VDBG(fmt,args...) \
 	do { } while (0)
 
-static unsigned long opts;
+static unsigned opts;
 #define FOREGROUND (opts & 1)
 #define QUIT (opts & 2)
 
@@ -217,8 +217,8 @@ int zcip_main(int argc, char *argv[])
 
 	// parse commandline: prog [options] ifname script
 	char *r_opt;
-	bb_opt_complementally = "vv:vf"; // -v accumulates and implies -f
-	opts = bb_getopt_ulflags(argc, argv, "fqr:v", &r_opt, &verbose);
+	opt_complementary = "vv:vf"; // -v accumulates and implies -f
+	opts = getopt32(argc, argv, "fqr:v", &r_opt, &verbose);
 	if (!FOREGROUND) {
 		/* Do it early, before all bb_xx_msg calls */
 		logmode = LOGMODE_SYSLOG;

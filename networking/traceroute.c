@@ -949,12 +949,12 @@ traceroute_main(int argc, char *argv[])
 
 	opterr = 0;
 #ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
-	bb_opt_complementally = "x-x:g::";
+	opt_complementary = "x-x:g::";
 #else
-	bb_opt_complementally = "x-x";
+	opt_complementary = "x-x";
 #endif
 
-	op = bb_getopt_ulflags(argc, argv, "FIlnrdvxt:i:m:p:q:s:w:z:f:"
+	op = getopt32(argc, argv, "FIlnrdvxt:i:m:p:q:s:w:z:f:"
 #define USAGE_OP_DONT_FRAGMNT (1<<0)    /* F  */
 #define USAGE_OP_USE_ICMP     (1<<1)    /* I  */
 #define USAGE_OP_TTL_FLAG     (1<<2)    /* l  */

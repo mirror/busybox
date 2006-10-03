@@ -572,14 +572,14 @@ int ipcs_main(int argc, char **argv)
 {
 	int id = 0;
 	unsigned flags = 0;
-	unsigned long opt;
+	unsigned opt;
 	char *opt_i;
 #define flag_print	(1<<0)
 #define flag_msg	(1<<1)
 #define flag_sem	(1<<2)
 #define flag_shm	(1<<3)
 
-	opt = bb_getopt_ulflags(argc, argv, "i:aqsmtcplu", &opt_i);
+	opt = getopt32(argc, argv, "i:aqsmtcplu", &opt_i);
 	if (opt & 0x1) { // -i
 		id = atoi(opt_i);
 		flags |= flag_print;

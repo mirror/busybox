@@ -265,14 +265,14 @@ int arping_main(int argc, char **argv)
 	xsetuid(getuid());
 
 	{
-		unsigned long opt;
+		unsigned opt;
 		char *_count, *_timeout;
 
 		/* Dad also sets quit_on_reply.
 		 * Advert also sets unsolicited.
 		 */
-		bb_opt_complementally = "Df:AU";
-		opt = bb_getopt_ulflags(argc, argv, "DUAqfbc:w:i:s:",
+		opt_complementary = "Df:AU";
+		opt = getopt32(argc, argv, "DUAqfbc:w:i:s:",
 					&_count, &_timeout, &device, &source);
 		cfg |= opt & 0x3f; /* set respective flags */
 		if (opt & 0x40) /* -c: count */

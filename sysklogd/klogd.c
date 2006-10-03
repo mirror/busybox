@@ -45,10 +45,10 @@ int klogd_main(int argc, char **argv)
 
 
 	{
-		unsigned long opt;
+		unsigned opt;
 
 		/* do normal option parsing */
-		opt = bb_getopt_ulflags(argc, argv, "c:n", &start);
+		opt = getopt32(argc, argv, "c:n", &start);
 
 		if (opt & OPT_LEVEL) {
 			/* Valid levels are between 1 and 8 */

@@ -18,8 +18,8 @@
 int readlink_main(int argc, char **argv)
 {
 	char *buf;
-	unsigned long opt = ENABLE_FEATURE_READLINK_FOLLOW ?
-							bb_getopt_ulflags(argc, argv, "f") : 0;
+	unsigned opt = ENABLE_FEATURE_READLINK_FOLLOW ?
+			getopt32(argc, argv, "f") : 0;
 
 	if (argc != (ENABLE_FEATURE_READLINK_FOLLOW ? optind + 1 : 2))
 			bb_show_usage();

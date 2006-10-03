@@ -575,7 +575,7 @@ int syslogd_main(int argc, char **argv)
 	char *p;
 
 	/* do normal option parsing */
-	option_mask = bb_getopt_ulflags(argc, argv, OPTION_STR, OPTION_PARAM);
+	option_mask = getopt32(argc, argv, OPTION_STR, OPTION_PARAM);
 	if (option_mask & OPT_mark) MarkInterval = atoi(opt_m) * 60; // -m
 	//if (option_mask & OPT_nofork) // -n
 	//if (option_mask & OPT_outfile) // -O

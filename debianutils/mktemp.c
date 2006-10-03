@@ -18,7 +18,7 @@
 
 int mktemp_main(int argc, char **argv)
 {
-	unsigned long flags = bb_getopt_ulflags(argc, argv, "dq");
+	unsigned long flags = getopt32(argc, argv, "dq");
 
 	if (optind + 1 != argc)
 		bb_show_usage();

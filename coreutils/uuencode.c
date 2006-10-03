@@ -27,7 +27,7 @@ int uuencode_main(int argc, char **argv)
 	RESERVE_CONFIG_BUFFER(dst_buf, DST_BUF_SIZE + 1);
 
 	tbl = bb_uuenc_tbl_std;
-	if (bb_getopt_ulflags(argc, argv, "m") & 1) {
+	if (getopt32(argc, argv, "m") & 1) {
 		tbl = bb_uuenc_tbl_base64;
 	}
 

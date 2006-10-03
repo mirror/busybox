@@ -22,10 +22,10 @@ int rm_main(int argc, char **argv)
 {
 	int status = 0;
 	int flags = 0;
-	unsigned long opt;
+	unsigned opt;
 
-	bb_opt_complementally = "f-i:i-f";
-	opt = bb_getopt_ulflags(argc, argv, "fiRr");
+	opt_complementary = "f-i:i-f";
+	opt = getopt32(argc, argv, "fiRr");
 	if(opt & 1)
 				flags |= FILEUTILS_FORCE;
 	if(opt & 2)

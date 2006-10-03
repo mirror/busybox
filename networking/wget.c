@@ -124,7 +124,7 @@ static const struct option wget_long_options[] = {
 int wget_main(int argc, char **argv)
 {
 	int n, try=5, status;
-	unsigned long opt;
+	unsigned opt;
 	int port;
 	char *proxy = 0;
 	char *dir_prefix=NULL;
@@ -148,11 +148,11 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Crack command line.
 	 */
-	bb_opt_complementally = "-1:\203::";
+	opt_complementary = "-1:\203::";
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
-	bb_applet_long_options = wget_long_options;
+	applet_long_options = wget_long_options;
 #endif
-	opt = bb_getopt_ulflags(argc, argv, "cq\213O:\203:P:Y:U:",
+	opt = getopt32(argc, argv, "cq\213O:\203:P:Y:U:",
 					&fname_out, &headers_llist,
 					&dir_prefix, &proxy_flag, &user_agent);
 	if (strcmp(proxy_flag, "off") == 0) {

@@ -23,7 +23,7 @@ int ps_main(int argc, char **argv)
 	int terminal_width;
 	int w_count = 0;
 
-	bb_opt_complementally = "-:ww";
+	opt_complementary = "-:ww";
 #else
 # define terminal_width 79
 #endif
@@ -31,11 +31,11 @@ int ps_main(int argc, char **argv)
 #if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
 	/* handle arguments */
 #if ENABLE_FEATURE_PS_WIDE && ENABLE_SELINUX
-	i = bb_getopt_ulflags(argc, argv, "wc", &w_count);
+	i = getopt32(argc, argv, "wc", &w_count);
 #elif ENABLE_FEATURE_PS_WIDE && !ENABLE_SELINUX
-	bb_getopt_ulflags(argc, argv, "w", &w_count);
+	getopt32(argc, argv, "w", &w_count);
 #else /* !ENABLE_FEATURE_PS_WIDE && ENABLE_SELINUX */
-	i = bb_getopt_ulflags(argc, argv, "c");
+	i = getopt32(argc, argv, "c");
 #endif
 #if ENABLE_FEATURE_PS_WIDE
 	/* if w is given once, GNU ps sets the width to 132,

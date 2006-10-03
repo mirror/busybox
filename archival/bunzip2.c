@@ -16,10 +16,10 @@ int bunzip2_main(int argc, char **argv)
 {
 	USE_DESKTOP(long long) int status;
 	char *filename;
-	unsigned long opt;
+	unsigned opt;
 	int src_fd, dst_fd;
 
-	opt = bb_getopt_ulflags(argc, argv, "cf");
+	opt = getopt32(argc, argv, "cf");
 
 	/* Set input filename and number */
 	filename = argv[optind];

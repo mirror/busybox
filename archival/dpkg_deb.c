@@ -18,7 +18,7 @@ int dpkg_deb_main(int argc, char **argv)
 	archive_handle_t *ar_archive;
 	archive_handle_t *tar_archive;
 	llist_t *control_tar_llist = NULL;
-	unsigned long opt;
+	unsigned opt;
 	char *extract_dir = NULL;
 	short argcount = 1;
 
@@ -40,8 +40,8 @@ int dpkg_deb_main(int argc, char **argv)
 	llist_add_to(&control_tar_llist, "control.tar.bz2");
 #endif
 
-	bb_opt_complementally = "?c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";
-	opt = bb_getopt_ulflags(argc, argv, "cefXx");
+	opt_complementary = "?c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";
+	opt = getopt32(argc, argv, "cefXx");
 
 	if (opt & DPKG_DEB_OPT_CONTENTS) {
 		tar_archive->action_header = header_verbose_list;

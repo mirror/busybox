@@ -112,7 +112,7 @@ int comm_main(int argc, char **argv)
 {
 	unsigned long flags;
 
-	flags = bb_getopt_ulflags(argc, argv, "123");
+	flags = getopt32(argc, argv, "123");
 
 	if (optind + 2 != argc)
 		bb_show_usage();

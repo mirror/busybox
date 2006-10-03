@@ -1164,9 +1164,9 @@ int diff_main(int argc, char **argv)
 	char *U_opt;
 	llist_t *L_arg = NULL;
 
-	bb_opt_complementally = "L::";
+	opt_complementary = "L::";
 	cmd_flags =
-		bb_getopt_ulflags(argc, argv, "abdiL:NqrsS:tTU:wu", &L_arg, &start,
+		getopt32(argc, argv, "abdiL:NqrsS:tTU:wu", &L_arg, &start,
 						  &U_opt);
 
 	if (cmd_flags & FLAG_L) {

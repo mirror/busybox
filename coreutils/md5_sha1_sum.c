@@ -91,7 +91,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 		: HASH_SHA1;
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK)
-		flags = bb_getopt_ulflags(argc, argv, "scw");
+		flags = getopt32(argc, argv, "scw");
 	else optind = 1;
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && !(flags & FLAG_CHECK)) {

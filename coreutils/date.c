@@ -42,7 +42,7 @@ int date_main(int argc, char **argv)
 {
 	time_t tm;
 	struct tm tm_time;
-	unsigned long opt;
+	unsigned opt;
 	int ifmt = -1;
 	char *date_str = NULL;
 	char *date_fmt = NULL;
@@ -50,9 +50,9 @@ int date_main(int argc, char **argv)
 	char *isofmt_arg;
 	char *hintfmt_arg;
 
-	bb_opt_complementally = "?:d--s:s--d"
+	opt_complementary = "?:d--s:s--d"
 		USE_FEATURE_DATE_ISOFMT(":R--I:I--R");
-	opt = bb_getopt_ulflags(argc, argv, "Rs:ud:r:"
+	opt = getopt32(argc, argv, "Rs:ud:r:"
 					USE_FEATURE_DATE_ISOFMT("I::D:"),
 					&date_str, &date_str, &filename
 					USE_FEATURE_DATE_ISOFMT(, &isofmt_arg, &hintfmt_arg));

@@ -41,7 +41,7 @@ int df_main(int argc, char **argv)
 	unsigned long df_disp_hr = KILOBYTE;
 #endif
 	int status = EXIT_SUCCESS;
-	unsigned long opt;
+	unsigned opt;
 	FILE *mount_table;
 	struct mntent *mount_entry;
 	struct statfs s;
@@ -49,8 +49,8 @@ int df_main(int argc, char **argv)
 	const char *disp_units_hdr = hdr_1k;
 
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-	bb_opt_complementally = "h-km:k-hm:m-hk";
-	opt = bb_getopt_ulflags(argc, argv, "hmk");
+	opt_complementary = "h-km:k-hm:m-hk";
+	opt = getopt32(argc, argv, "hmk");
 	if(opt & 1) {
 				df_disp_hr = 0;
 				disp_units_hdr = "     Size";
@@ -60,7 +60,7 @@ int df_main(int argc, char **argv)
 				disp_units_hdr = "1M-blocks";
 	}
 #else
-	opt = bb_getopt_ulflags(argc, argv, "k");
+	opt = getopt32(argc, argv, "k");
 #endif
 
 	bb_printf("Filesystem%11s%-15sUsed Available Use%% Mounted on\n",

@@ -39,7 +39,7 @@ int cp_main(int argc, char **argv)
 	int flags;
 	int status = 0;
 
-	flags = bb_getopt_ulflags(argc, argv, "pdRfiarPHL");
+	flags = getopt32(argc, argv, "pdRfiarPHL");
 
 	if (flags & 32) {
 		flags |= (FILEUTILS_PRESERVE_STATUS | FILEUTILS_RECUR | FILEUTILS_DEREFERENCE);

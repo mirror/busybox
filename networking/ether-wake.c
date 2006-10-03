@@ -120,7 +120,7 @@ int ether_wake_main(int argc, char *argv[])
 	struct whereto_t whereto;	/* who to wake up */
 
 	/* handle misc user options */
-	flags = bb_getopt_ulflags(argc, argv, "bi:p:", &ifname, &pass);
+	flags = getopt32(argc, argv, "bi:p:", &ifname, &pass);
 	if (optind == argc)
 		bb_show_usage();
 	if (pass)

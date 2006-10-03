@@ -184,7 +184,7 @@ enum { LONG_OPTIONS_INCR = 10 };
 #define init_longopt() add_longopt(NULL,0)
 
 /* Register a long option. The contents of name is copied. */
-void add_longopt(const char *name,int has_arg)
+void add_longopt(const char *name, int has_arg)
 {
 	if (!name) { /* init */
 		free(long_options);
