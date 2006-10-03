@@ -34,7 +34,7 @@ char * bb_getgrgid(char *group, long gid, int bufsize)
 {
 	struct group *mygroup = getgrgid(gid);
 
-	return  bb_getug(group, (mygroup) ?
+	return bb_getug(group, (mygroup) ?
 			mygroup->gr_name : (char *)mygroup, gid, bufsize, 'g');
 }
 #endif /* L_bb_getgrgid */

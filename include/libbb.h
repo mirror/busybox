@@ -163,7 +163,6 @@ extern int recursive_action(const char *fileName, int recurse,
 	  void* userData);
 
 extern int bb_parse_mode( const char* s, mode_t* theMode);
-extern long bb_xgetlarg(const char *arg, int base, long lower, long upper);
 
 extern unsigned int tty_baud_to_value(speed_t speed);
 extern speed_t tty_value_to_baud(unsigned int value);
@@ -258,21 +257,24 @@ struct suffix_mult {
 };
 
 extern unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
-										  unsigned long lower,
-										  unsigned long upper,
-										  const struct suffix_mult *suffixes);
+		unsigned long lower,
+		unsigned long upper,
+		const struct suffix_mult *suffixes);
 extern unsigned long bb_xgetularg_bnd(const char *arg, int base,
-									  unsigned long lower,
-									  unsigned long upper);
+		unsigned long lower,
+		unsigned long upper);
 extern unsigned long bb_xgetularg10_bnd(const char *arg,
-										unsigned long lower,
-										unsigned long upper);
+		unsigned long lower,
+		unsigned long upper);
 extern unsigned long bb_xgetularg10(const char *arg);
 
+extern long bb_xgetlarg(const char *arg, int base,
+		long lower,
+		long upper);
 extern long bb_xgetlarg_bnd_sfx(const char *arg, int base,
-								long lower,
-								long upper,
-								const struct suffix_mult *suffixes);
+		long lower,
+		long upper,
+		const struct suffix_mult *suffixes);
 extern long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes);
 
 
@@ -285,9 +287,9 @@ extern unsigned long bb_xparse_number(const char *numstr,
  * increases target size and is often not needed on embedded systems.  */
 extern long bb_xgetpwnam(const char *name);
 extern long bb_xgetgrnam(const char *name);
-extern char * bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);
-extern char * bb_getpwuid(char *name, long uid, int bufsize);
-extern char * bb_getgrgid(char *group, long gid, int bufsize);
+extern char *bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);
+extern char *bb_getpwuid(char *name, long uid, int bufsize);
+extern char *bb_getgrgid(char *group, long gid, int bufsize);
 extern char *bb_askpass(int timeout, const char * prompt);
 
 extern int device_open(const char *device, int mode);

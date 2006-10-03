@@ -15,7 +15,7 @@
 #include "libbb.h"
 
 unsigned long bb_xparse_number(const char *numstr,
-							   const struct suffix_mult *suffixes)
+		const struct suffix_mult *suffixes)
 {
 	unsigned long int r;
 	char *e;
@@ -46,5 +46,5 @@ unsigned long bb_xparse_number(const char *numstr,
 			} while (suffixes->suffix);
 		}
 	}
-	bb_error_msg_and_die("invalid number `%s'", numstr);
+	bb_error_msg_and_die("invalid number '%s'", numstr);
 }

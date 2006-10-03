@@ -303,7 +303,7 @@ static void fileaction_setowngrp(char *filename, int fileref)
 	int uid, gid;
 	uid = bb_xgetpwnam(rpm_getstring(RPMTAG_FILEUSERNAME, fileref));
 	gid = bb_xgetgrnam(rpm_getstring(RPMTAG_FILEGROUPNAME, fileref));
-	chown (filename, uid, gid);
+	chown(filename, uid, gid);
 }
 
 static void loop_through_files(int filetag, void (*fileaction)(char *filename, int fileref))
