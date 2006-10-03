@@ -63,10 +63,10 @@ int env_main(int argc, char** argv)
 		++argv;
 	}
 
-	if(opt & 1)
+	if (opt & 1)
 		environ = cleanenv;
-	else if(opt & 2) {
-		while(unset_env) {
+	else if (opt & 2) {
+		while (unset_env) {
 			unsetenv(unset_env->data);
 			unset_env = unset_env->link;
 		}

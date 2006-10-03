@@ -470,3 +470,4 @@ source networking/Config.in
 source procps/Config.in
 source shell/Config.in
 source sysklogd/Config.in
+source runit/Config.in

@@ -255,6 +255,14 @@ int wait4pid(int pid)
 }
 #endif
 
+#ifdef L_xsetenv
+void xsetenv(const char *key, const char *value)
+{
+	if(setenv(key, value, 1))
+		bb_error_msg_and_die(bb_msg_memory_exhausted);
+}
+#endif
+
 #ifdef L_itoa
 // Convert unsigned integer to ascii, writing into supplied buffer.  A
 // truncated result is always null terminated (unless buflen is 0), and

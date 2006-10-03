@@ -215,6 +215,70 @@
 	"ls -l /tmp/foo\n" \
 	"-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n"
 
+#define chpst_trivial_usage \
+	"[-vP012] [-u user[:group]] [-U user[:group]] [-e dir] " \
+	"[-/ dir] [-n nice] [-m bytes] [-d bytes] [-o files] " \
+	"[-p processes] [-f bytes] [-c bytes] prog args"
+#define chpst_full_usage \
+       "Change the process state and run specified program.\n\n" \
+       "-u user[:grp]	set uid and gid\n" \
+       "-U user[:grp] 	set environment variables UID and GID\n" \
+       "-e dir		set environment variables as specified by files\n" \
+       "		in the directory: file=1st_line_of_file\n" \
+       "-/ dir		chroot to dir\n" \
+       "-n inc		add inc to nice value\n" \
+       "-m bytes	limit data segment, stack segment, locked physical pages,\n" \
+       "		and total of all segment per process to bytes bytes each\n" \
+       "-d bytes	limit data segment\n" \
+       "-o n		limit the number of open file descriptors per process to n\n" \
+       "-p n		limit number of processes per uid to n\n" \
+       "-f bytes	limit output file size to bytes bytes\n" \
+       "-c bytes	limit core file size to bytes bytes\n" \
+       "-v		verbose\n" \
+       "-P		run prog in a new process group\n" \
+       "-0		close standard input\n" \
+       "-1		close standard output\n" \
+       "-2		close standard error"
+#define setuidgid_trivial_usage \
+	"account prog args"
+#define setuidgid_full_usage \
+	"Sets uid and gid to account's uid and gid, removing all supplementary\n" \
+	"groups, then runs prog"
+#define envuidgid_trivial_usage \
+	"account prog args"
+#define envuidgid_full_usage \
+	"Sets $UID to account's uid and $GID to account's gid, then runs prog"
+#define envdir_trivial_usage \
+	"dir prog args"
+#define envdir_full_usage \
+	"Sets various environment variables as specified by files\n" \
+	"in the directory dir, then runs prog"
+#define softlimit_trivial_usage \
+	"[-a allbytes] [-c corebytes] [-d databytes] [-f filebytes] " \
+	"[-l lockbytes] [-m membytes] [-o openfiles] [-p processes] " \
+	"[-r residentbytes] [-s stackbytes] [-t cpusecs] prog args"
+#define softlimit_full_usage \
+	"Sets soft resource limits as specified by options, then runs prog\n" \
+	"\n" \
+	"-m n	Same as -d n -s n -l n -a n\n" \
+	"-d n	Limit the data segment per process to n bytes\n" \
+	"-s n	Limit the stack segment per process to n bytes\n" \
+	"-l n	Limit the locked physical pages per process to n bytes\n" \
+	"-a n	Limit the total of all segments per process to n bytes\n" \
+	"-o n	Limit  the number of open file descriptors per process to n\n" \
+	"-p n	Limit the number of processes per uid to n\n" \
+	"Options controlling file sizes:\n" \
+	"-f n	Limit output file sizes to n bytes\n" \
+	"-c n	Limit core file sizes to n bytes\n" \
+	"Efficiency opts:\n" \
+	"-r n	Limit the resident set size to n bytes. This limit is not\n" \
+	"	enforced unless physical memory is full\n" \
+	"-t n	Limit the CPU time to n seconds. This limit is not enforced\n" \
+	"	except that the process receives a SIGXCPU signal after n seconds\n" \
+	"\n" \
+	"Some options may have no effect on some operating systems\n" \
+	"n may be =, indicating that soft limit should be set equal to hard limit"
+
 #define chroot_trivial_usage \
 	"NEWROOT [COMMAND...]"
 #define chroot_full_usage \

@@ -488,12 +488,13 @@ extern void renew_current_security_context(void);
 extern void set_current_security_context(security_context_t sid);
 #endif
 extern int run_parts(char **args, const unsigned char test_mode, char **env);
-extern int restricted_shell ( const char *shell );
-extern void setup_environment ( const char *shell, int loginshell, int changeenv, const struct passwd *pw );
-extern int correct_password ( const struct passwd *pw );
+extern int restricted_shell(const char *shell);
+extern void setup_environment(const char *shell, int loginshell, int changeenv, const struct passwd *pw);
+extern int correct_password(const struct passwd *pw);
 extern char *pw_encrypt(const char *clear, const char *salt);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
 
+extern void xsetenv(const char *key, const char *value);
 extern int xopen(const char *pathname, int flags);
 extern int xopen3(const char *pathname, int flags, int mode);
 extern void xread(int fd, void *buf, size_t count);
