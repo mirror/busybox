@@ -21,5 +21,5 @@ void bb_herror_msg_and_die(const char *s, ...)
 	va_end(p);
 	if (die_sleep)
 		sleep(die_sleep);
-	exit(bb_default_error_retval);
+	exit(xfunc_error_retval);
 }

@@ -67,6 +67,6 @@ int nice_main(int argc, char **argv)
 	execvp(*argv, argv);		/* Now exec the desired program. */
 
 	/* The exec failed... */
-	bb_default_error_retval = (errno == ENOENT) ? 127 : 126; /* SUSv3 */
+	xfunc_error_retval = (errno == ENOENT) ? 127 : 126; /* SUSv3 */
 	bb_perror_msg_and_die("%s", *argv);
 }

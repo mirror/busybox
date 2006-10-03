@@ -26,7 +26,7 @@
  * - correct "-" option usage
  * - multiple "-u unsetenv" support
  * - GNU long option support
- * - use bb_default_error_retval
+ * - use xfunc_error_retval
  */
 
 #include "busybox.h"
@@ -82,7 +82,7 @@ int env_main(int argc, char** argv)
 	if (*argv) {
 		execvp(*argv, argv);
 		/* SUSv3-mandated exit codes. */
-		bb_default_error_retval = (errno == ENOENT) ? 127 : 126;
+		xfunc_error_retval = (errno == ENOENT) ? 127 : 126;
 		bb_perror_msg_and_die("%s", *argv);
 	}
 

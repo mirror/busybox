@@ -21,7 +21,7 @@ int tty_main(int argc, char **argv)
 	int silent;		/* Note: No longer relevant in SUSv3. */
 	int retval;
 
-	bb_default_error_retval = 2;	/* SUSv3 requires > 1 for error. */
+	xfunc_error_retval = 2;	/* SUSv3 requires > 1 for error. */
 
 	silent = bb_getopt_ulflags(argc, argv, "s");
 

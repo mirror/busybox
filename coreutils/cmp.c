@@ -31,7 +31,7 @@ static FILE *cmp_xfopen_input(const char * const filename)
 		return fp;
 	}
 
-	exit(bb_default_error_retval);	/* We already output an error message. */
+	exit(xfunc_error_retval);	/* We already output an error message. */
 }
 
 static const char fmt_eof[] = "cmp: EOF on %s\n";
@@ -52,7 +52,7 @@ int cmp_main(int argc, char **argv)
 	unsigned opt;
 	int retval = 0;
 
-	bb_default_error_retval = 2;	/* 1 is returned if files are different. */
+	xfunc_error_retval = 2;	/* 1 is returned if files are different. */
 
 	opt = bb_getopt_ulflags(argc, argv, opt_chars);
 

@@ -16,4 +16,4 @@
 #include <stdlib.h>
 #include "libbb.h"
 
-int bb_default_error_retval = EXIT_FAILURE;
+int xfunc_error_retval = EXIT_FAILURE;

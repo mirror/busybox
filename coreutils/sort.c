@@ -225,7 +225,7 @@ int sort_main(int argc, char **argv)
 	char *line,**lines=NULL,*optlist="ngMucszbrdfimS:T:o:k:t:";
 	int c;
 
-	bb_default_error_retval = 2;
+	xfunc_error_retval = 2;
 	/* Parse command line options */
 	while((c=getopt(argc,argv,optlist))>0) {
 		line=strchr(optlist,c);

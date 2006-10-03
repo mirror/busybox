@@ -421,7 +421,7 @@ extern const char bb_default_login_shell[];
 
 extern const char bb_path_mtab_file[];
 
-extern int bb_default_error_retval;
+extern int xfunc_error_retval;
 
 #ifdef CONFIG_FEATURE_DEVFS
 # define CURRENT_VC "/dev/vc/0"

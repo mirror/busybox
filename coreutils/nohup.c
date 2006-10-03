@@ -17,7 +17,7 @@ int nohup_main(int argc, char **argv)
 	int temp, nullfd;
 	char *nohupout, *home = NULL;
 
-	bb_default_error_retval = 127;
+	xfunc_error_retval = 127;
 
 	if (argc<2) bb_show_usage();
 

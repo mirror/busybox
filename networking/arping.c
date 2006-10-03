@@ -295,7 +295,7 @@ int arping_main(int argc, char **argv)
 
 	target = *argv;
 
-	bb_default_error_retval = 2;
+	xfunc_error_retval = 2;
 
 	{
 		struct ifreq ifr;

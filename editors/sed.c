@@ -725,7 +725,7 @@ static int puts_maybe_newline(char *s, FILE *file, int missing_newline, int no_n
 	if(!no_newline) fputc('\n',file);
 
     if(ferror(file)) {
-		bb_default_error_retval = 4;  /* It's what gnu sed exits with... */
+		xfunc_error_retval = 4;  /* It's what gnu sed exits with... */
 		bb_error_msg_and_die(bb_msg_write_error);
 	}
 

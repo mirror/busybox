@@ -18,7 +18,7 @@
 void bb_fflush_stdout_and_exit(int retval)
 {
 	if (fflush(stdout)) {
-		retval = bb_default_error_retval;
+		retval = xfunc_error_retval;
 	}
 	if (die_sleep)
 		sleep(die_sleep);

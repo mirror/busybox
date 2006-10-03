@@ -443,7 +443,7 @@ void bb_show_usage(void)
 			applet_using->name, usage_string);
 	}
 
-	exit (bb_default_error_retval);
+	exit(xfunc_error_retval);
 }
 
 static int applet_name_compare(const void *name, const void *vapplet)
