@@ -498,7 +498,7 @@ void xlisten(int s, int backlog)
 void xstat(char *name, struct stat *stat_buf)
 {
 	if (stat(name, stat_buf))
-		bb_perror_msg_and_die("Can't stat '%s'", name);
+		bb_perror_msg_and_die("can't stat '%s'", name);
 }
 #endif
 

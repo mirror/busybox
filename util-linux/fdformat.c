@@ -66,10 +66,7 @@ int fdformat_main(int argc,char **argv)
 	verify = !bb_getopt_ulflags(argc, argv, "n");
 	argv += optind;
 
-	/* R_OK is needed for verifying */
-	if (stat(*argv, &st) < 0 || access(*argv, W_OK | R_OK ) < 0) {
-		bb_perror_msg_and_die("%s", *argv);
-	}
+	xstat(*argv, &st);
 	if (!S_ISBLK(st.st_mode)) {
 		bb_error_msg_and_die("%s: not a block device", *argv);
 		/* do not test major - perhaps this was an USB floppy */
@@ -78,9 +75,10 @@ int fdformat_main(int argc,char **argv)
 	/* O_RDWR for formatting and verifying */
 	fd = xopen(*argv, O_RDWR);
 
-	xioctl(fd, FDGETPRM, &param, "FDGETPRM");/*original message was: "Could not determine current format type" */
+	/* original message was: "Could not determine current format type" */
+	xioctl(fd, FDGETPRM, &param, "FDGETPRM");
 
-	printf("%s-sided, %d tracks, %d sec/track. Total capacity %d kB.\n",
+	printf("%s-sided, %d tracks, %d sec/track. Total capacity %d kB\n",
 		(param.head == 2) ? "Double" : "Single",
 		param.track, param.sect, param.size >> 1);
 
@@ -117,7 +115,8 @@ int fdformat_main(int argc,char **argv)
 				if (read_bytes < 0) {
 					bb_perror_msg(bb_msg_read_error);
 				}
-				bb_error_msg_and_die("problem reading cylinder %d, expected %d, read %d", cyl, n, read_bytes);
+				bb_error_msg_and_die("problem reading cylinder %d, "
+					"expected %d, read %d", cyl, n, read_bytes);
 				// FIXME: maybe better seek & continue??
 			}
 			/* Check backwards so we don't need a counter */
