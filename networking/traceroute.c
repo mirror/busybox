@@ -224,6 +224,7 @@
 #include <net/if.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/protocols.h>
 #include <netinet/udp.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
@@ -921,14 +922,12 @@ int
 traceroute_main(int argc, char *argv[])
 {
 	int code, n;
-	char *cp;
 	unsigned char *outp;
 	u_int32_t *ap;
 	struct sockaddr_in *from = (struct sockaddr_in *)&wherefrom;
 	struct sockaddr_in *to = (struct sockaddr_in *)&whereto;
 	struct hostinfo *hi;
 	int on = 1;
-	struct protoent *pe;
 	int ttl, probe, i;
 	int seq = 0;
 	int tos = 0;
@@ -1076,16 +1075,12 @@ traceroute_main(int argc, char *argv[])
 		bb_show_usage();
 	}
 
-	cp = "icmp";
-	if ((pe = getprotobyname(cp)) == NULL)
-		bb_perror_msg_and_die("unknown protocol %s", cp);
-
 	/* Insure the socket fds won't be 0, 1 or 2 */
 	do n = xopen(bb_dev_null, O_RDONLY); while (n < 2);
 	if (n > 2)
 		close(n);
 
-	s = xsocket(AF_INET, SOCK_RAW, pe->p_proto);
+	s = xsocket(AF_INET, SOCK_RAW, IP_ICMP);
 
 #ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
 	if (op & USAGE_OP_DEBUG)
