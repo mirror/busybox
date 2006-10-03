@@ -641,7 +641,7 @@ send_probe(int seq, int ttl, struct timeval *tp)
 			outicmp->icmp_cksum = 0xffff;
 	} else
 #endif
-	       if (doipcksum) {
+	if (doipcksum) {
 		/* Checksum (we must save and restore ip header) */
 		tip = *outip;
 		ui = (struct udpiphdr *)outip;
@@ -788,7 +788,7 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 				return (type == ICMP_TIMXCEED ? -1 : code + 1);
 		} else
 #endif
-		      {
+		{
 			up = (struct udphdr *)((unsigned char *)hip + hlen);
 			/* XXX 8 is a magic number */
 			if (hlen + 12 <= cc &&
@@ -996,11 +996,11 @@ traceroute_main(int argc, char *argv[])
 	if(nprobes_str)
 		nprobes = str2val(nprobes_str, "nprobes", 1, -1);
 	if(source) {
-	    /*
-	     * set the ip source address of the outbound
-	     * probe (e.g., on a multi-homed host).
-	     */
-	     if (getuid()) bb_error_msg_and_die("-s %s: Permission denied", source);
+		/*
+		 * set the ip source address of the outbound
+		 * probe (e.g., on a multi-homed host).
+		 */
+		if (getuid()) bb_error_msg_and_die("-s %s: permission denied", source);
 	}
 	if(waittime_str)
 		waittime = str2val(waittime_str, "wait time", 2, 24 * 60 * 60);
@@ -1015,7 +1015,7 @@ traceroute_main(int argc, char *argv[])
 
 		for(l_sr = sourse_route_list; l_sr; ) {
 			if (lsrr >= NGATEWAYS)
-				bb_error_msg_and_die("No more than %d gateways", NGATEWAYS);
+				bb_error_msg_and_die("no more than %d gateways", NGATEWAYS);
 			getaddr(gwlist + lsrr, l_sr->data);
 			++lsrr;
 			l_sr = l_sr->link;

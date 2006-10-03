@@ -47,7 +47,7 @@ struct format_descr {
 
 static void xioctl(int fd, int request, void *argp, const char *string)
 {
-	if (ioctl (fd, request, argp) < 0) {
+	if (ioctl(fd, request, argp) < 0) {
 		bb_perror_msg_and_die(string);
 	}
 }
@@ -67,17 +67,16 @@ int fdformat_main(int argc,char **argv)
 	argv += optind;
 
 	/* R_OK is needed for verifying */
-	if (stat(*argv,&st) < 0 || access(*argv,W_OK | R_OK ) < 0) {
-		bb_perror_msg_and_die("%s",*argv);
+	if (stat(*argv, &st) < 0 || access(*argv, W_OK | R_OK ) < 0) {
+		bb_perror_msg_and_die("%s", *argv);
 	}
 	if (!S_ISBLK(st.st_mode)) {
-		bb_error_msg_and_die("%s: not a block device",*argv);
+		bb_error_msg_and_die("%s: not a block device", *argv);
 		/* do not test major - perhaps this was an USB floppy */
 	}
 
-
 	/* O_RDWR for formatting and verifying */
-	fd = xopen(*argv,O_RDWR );
+	fd = xopen(*argv, O_RDWR);
 
 	xioctl(fd, FDGETPRM, &param, "FDGETPRM");/*original message was: "Could not determine current format type" */
 
@@ -86,44 +85,45 @@ int fdformat_main(int argc,char **argv)
 		param.track, param.sect, param.size >> 1);
 
 	/* FORMAT */
-	printf("Formatting ... ");
-	xioctl(fd, FDFMTBEG,NULL,"FDFMTBEG");
+	printf("Formatting... ");
+	xioctl(fd, FDFMTBEG, NULL, "FDFMTBEG");
 
 	/* n == track */
-	for (n = 0; n < param.track; n++)
-	{
-	    descr.head = 0;
-	    descr.track = n;
-	    xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
-	    printf("%3d\b\b\b", n);
-	    if (param.head == 2) {
-		descr.head = 1;
-		xioctl(fd, FDFMTTRK,&descr,"FDFMTTRK");
-	    }
+	for (n = 0; n < param.track; n++) {
+		descr.head = 0;
+		descr.track = n;
+		xioctl(fd, FDFMTTRK, &descr, "FDFMTTRK");
+		printf("%3d\b\b\b", n);
+		if (param.head == 2) {
+			descr.head = 1;
+			xioctl(fd, FDFMTTRK, &descr, "FDFMTTRK");
+		}
 	}
 
-	xioctl(fd,FDFMTEND,NULL,"FDFMTEND");
+	xioctl(fd, FDFMTEND, NULL, "FDFMTEND");
 	printf("done\n");
 
 	/* VERIFY */
-	if(verify) {
+	if (verify) {
 		/* n == cyl_size */
 		n = param.sect*param.head*512;
 
 		data = xmalloc(n);
-		printf("Verifying ... ");
+		printf("Verifying... ");
 		for (cyl = 0; cyl < param.track; cyl++) {
 			printf("%3d\b\b\b", cyl);
-			if((read_bytes = safe_read(fd,data,n))!= n ) {
-				if(read_bytes < 0) {
+			read_bytes = safe_read(fd, data, n);
+			if (read_bytes != n) {
+				if (read_bytes < 0) {
 					bb_perror_msg(bb_msg_read_error);
 				}
-				bb_error_msg_and_die("Problem reading cylinder %d, expected %d, read %d", cyl, n, read_bytes);
+				bb_error_msg_and_die("problem reading cylinder %d, expected %d, read %d", cyl, n, read_bytes);
+				// FIXME: maybe better seek & continue??
 			}
 			/* Check backwards so we don't need a counter */
-			while(--read_bytes>=0) {
-				if( data[read_bytes] != FD_FILL_BYTE) {
-					 printf("bad data in cyl %d\nContinuing ... ",cyl);
+			while (--read_bytes >= 0) {
+				if (data[read_bytes] != FD_FILL_BYTE) {
+					 printf("bad data in cyl %d\nContinuing... ",cyl);
 				}
 			}
 		}

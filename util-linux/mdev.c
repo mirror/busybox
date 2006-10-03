@@ -250,7 +250,7 @@ int mdev_main(int argc, char *argv[])
 	} else {
 		action = getenv("ACTION");
 		env_path = getenv("DEVPATH");
-	    if (!action || !env_path)
+		if (!action || !env_path)
 			bb_show_usage();
 
 		sprintf(temp, "/sys%s", env_path);

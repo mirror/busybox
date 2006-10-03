@@ -205,12 +205,12 @@ static void handlenetoutput(int len)
 		}
 		outbuf[j++] = *p;
 		if (*p == 0xff)
-		    outbuf[j++] = 0xff;
+			outbuf[j++] = 0xff;
 		else if (*p == 0x0d)
-		    outbuf[j++] = 0x00;
+			outbuf[j++] = 0x00;
 	}
 	if (j > 0 )
-	    write(G.netfd, outbuf, j);
+		write(G.netfd, outbuf, j);
 }
 
 

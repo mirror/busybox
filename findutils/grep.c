@@ -233,7 +233,7 @@ static int grep_file(FILE *file)
 	if (PRINT_MATCH_COUNTS) {
 		if (print_filename > 0)
 			printf("%s:", cur_file);
-		    printf("%d\n", nmatches);
+		printf("%d\n", nmatches);
 	}
 
 	/* grep -l: print just the filename, but only if we grepped the line in the file  */

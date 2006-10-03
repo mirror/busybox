@@ -325,20 +325,20 @@ static int scan_ip_mask(const char *ipm, unsigned int *ip, unsigned int *mask)
 
 		i = 0;
 		while (*p) {
-				if (*p < '0' || *p > '9') {
-						if (*p == '.') {
-						    i = scan_ip(&ipm, mask, 0);
-						    return i != 32;
-						}
-						return -1;
+			if (*p < '0' || *p > '9') {
+				if (*p == '.') {
+					i = scan_ip(&ipm, mask, 0);
+					return i != 32;
 				}
-				i *= 10;
-				i += *p - '0';
-				p++;
+				return -1;
+			}
+			i *= 10;
+			i += *p - '0';
+			p++;
 		}
 	}
 	if (i > 32 || i < 0)
-			return -1;
+		return -1;
 	msk = 0x80000000;
 	*mask = 0;
 	while (i > 0) {
@@ -553,7 +553,7 @@ static void parse_conf(const char *path, int flag)
 						} else if ((cf[1] == '.') && (cf[2] == '/' || cf[2] == 0)) {
 							++cf;
 							if (p > p0) {
-						        	while (*--p != '/');    /* omit previous dir */
+								while (*--p != '/') /* omit previous dir */;
 							}
 							continue;
 						}
@@ -1571,8 +1571,8 @@ BAD_REQUEST:
 							/* protect out root */
 							goto BAD_REQUEST;
 						}
-						while (*--purl != '/');    /* omit previous dir */
-							continue;
+						while (*--purl != '/') /* omit previous dir */;
+						continue;
 					}
 				}
 			}

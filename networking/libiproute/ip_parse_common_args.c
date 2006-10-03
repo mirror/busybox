@@ -48,8 +48,8 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 		if (matches(opt, "-family") == 0) {
 			argc--;
 			argv++;
-			if (! argv[1])
-			    bb_show_usage();
+			if (!argv[1])
+				bb_show_usage();
 			if (strcmp(argv[1], "inet") == 0)
 				preferred_family = AF_INET;
 			else if (strcmp(argv[1], "inet6") == 0)

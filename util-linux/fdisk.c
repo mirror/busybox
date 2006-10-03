@@ -4506,8 +4506,7 @@ change_sysid(void)
 		label_sun != current_label_type && !get_nr_sects(p))
 	{
 		printf(_("Partition %d does not exist yet!\n"), i + 1);
-	}else{
-	    while (1) {
+	} else while (1) {
 		sys = read_hex (get_sys_types());
 
 		if (!sys && label_sgi != current_label_type &&
@@ -4573,7 +4572,6 @@ change_sysid(void)
 				dos_changed = 1;
 			break;
 		}
-	    }
 	}
 }
 #endif /* CONFIG_FEATURE_FDISK_WRITABLE */

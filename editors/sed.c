@@ -153,7 +153,7 @@ void sed_free_and_close_stuff(void)
 
 	if(bbg.hold_space) free(bbg.hold_space);
 
-    while(bbg.current_input_file<bbg.input_file_count)
+	while(bbg.current_input_file<bbg.input_file_count)
 		fclose(bbg.input_file_list[bbg.current_input_file++]);
 }
 #endif

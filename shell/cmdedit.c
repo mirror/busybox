@@ -271,7 +271,6 @@ static void input_backward(int num)
 		if (num < 4)
 			while (num-- > 0)
 				putchar('\b');
-
 		else
 			printf("\033[%dD", num);
 	} else {
@@ -370,7 +369,7 @@ static void parse_prompt(const char *prmt_ptr)
 					pbuf = buf2;
 					*pbuf = '~';
 					strcpy(pbuf+1, pwd_buf+l);
-					}
+				}
 				break;
 #endif
 			  case 'W':
@@ -712,7 +711,7 @@ static char *add_quote_for_spec_chars(char *found, int add)
 		s[l++] = *found++;
 	}
 	if(add)
-	    s[l++] = (char)add;
+		s[l++] = (char)add;
 	s[l] = 0;
 	return s;
 }
@@ -995,7 +994,7 @@ static void showfiles(void)
 	for (row = 0; row < nrows; row++) {
 		l = strlen(matches[row]);
 		if(add_char_to_match[row])
-		    l++;
+			l++;
 		if (column_width < l)
 			column_width = l;
 	}
@@ -1021,8 +1020,8 @@ static void showfiles(void)
 			printf("%s%s", matches[n], str_add_chr);
 			l = strlen(matches[n]);
 			while(l < acol) {
-			    putchar(' ');
-			    l++;
+				putchar(' ');
+				l++;
 			}
 		}
 		str_add_chr[0] = add_char_to_match[n];
@@ -1081,30 +1080,32 @@ static void input_tab(int *lastWasTab)
 			int i, j, n, srt;
 			/* bubble */
 			n = num_matches;
-			for(i=0; i<(n-1); i++)
-			    for(j=i+1; j<n; j++)
-				if(matches[i]!=NULL && matches[j]!=NULL) {
-				    srt = strcmp(matches[i], matches[j]);
-				    if(srt == 0) {
-					free(matches[j]);
-					matches[j]=0;
-				    } else if(srt > 0) {
-					tmp1 = matches[i];
-					matches[i] = matches[j];
-					matches[j] = tmp1;
-					srt = add_char_to_match[i];
-					add_char_to_match[i] = add_char_to_match[j];
-					add_char_to_match[j] = srt;
-				    }
+			for(i=0; i<(n-1); i++) {
+				for(j=i+1; j<n; j++) {
+					if(matches[i]!=NULL && matches[j]!=NULL) {
+						srt = strcmp(matches[i], matches[j]);
+						if(srt == 0) {
+							free(matches[j]);
+							matches[j]=0;
+						} else if(srt > 0) {
+							tmp1 = matches[i];
+							matches[i] = matches[j];
+							matches[j] = tmp1;
+							srt = add_char_to_match[i];
+							add_char_to_match[i] = add_char_to_match[j];
+							add_char_to_match[j] = srt;
+						}
+					}
 				}
+			}
 			j = n;
 			n = 0;
 			for(i=0; i<j; i++)
-			    if(matches[i]) {
-				matches[n]=matches[i];
-				add_char_to_match[n]=add_char_to_match[i];
-				n++;
-			    }
+				if(matches[i]) {
+					matches[n]=matches[i];
+					add_char_to_match[n]=add_char_to_match[i];
+					n++;
+				}
 			num_matches = n;
 		}
 		/* Did we find exactly one match? */
@@ -1623,61 +1624,61 @@ prepare_to_die:
 			/* fall through */
 		case 'd'|vbit:
 			{
-			int nc, sc;
-			sc = cursor;
-			prevc = ic;
-			if (safe_read(0, &c, 1) < 1)
-				goto prepare_to_die;
-			if (c == (prevc & 0xff)) {
-			    /* "cc", "dd" */
-			    input_backward(cursor);
-			    goto clear_to_eol;
-			    break;
-			}
-			switch(c) {
-			case 'w':
-			case 'W':
-			case 'e':
-			case 'E':
-			    switch (c) {
-			    case 'w':   /* "dw", "cw" */
-				    vi_word_motion(command, vi_cmdmode);
-				    break;
-			    case 'W':   /* 'dW', 'cW' */
-				    vi_Word_motion(command, vi_cmdmode);
-				    break;
-			    case 'e':   /* 'de', 'ce' */
-				    vi_end_motion(command);
-				    input_forward();
-				    break;
-			    case 'E':   /* 'dE', 'cE' */
-				    vi_End_motion(command);
-				    input_forward();
-				    break;
-			    }
-			    nc = cursor;
-			    input_backward(cursor - sc);
-			    while (nc-- > cursor)
-				    input_delete(1);
-			    break;
-			case 'b':  /* "db", "cb" */
-			case 'B':  /* implemented as B */
-			    if (c == 'b')
-				    vi_back_motion(command);
-			    else
-				    vi_Back_motion(command);
-			    while (sc-- > cursor)
-				    input_delete(1);
-			    break;
-			case ' ':  /* "d ", "c " */
-			    input_delete(1);
-			    break;
-			case '$':  /* "d$", "c$" */
-			clear_to_eol:
-			    while (cursor < len)
-				    input_delete(1);
-			    break;
-			}
+				int nc, sc;
+				sc = cursor;
+				prevc = ic;
+				if (safe_read(0, &c, 1) < 1)
+					goto prepare_to_die;
+				if (c == (prevc & 0xff)) {
+					/* "cc", "dd" */
+					input_backward(cursor);
+					goto clear_to_eol;
+					break;
+				}
+				switch(c) {
+				case 'w':
+				case 'W':
+				case 'e':
+				case 'E':
+					switch (c) {
+					case 'w':   /* "dw", "cw" */
+						vi_word_motion(command, vi_cmdmode);
+						break;
+					case 'W':   /* 'dW', 'cW' */
+						vi_Word_motion(command, vi_cmdmode);
+						break;
+					case 'e':   /* 'de', 'ce' */
+						vi_end_motion(command);
+						input_forward();
+						break;
+					case 'E':   /* 'dE', 'cE' */
+						vi_End_motion(command);
+						input_forward();
+						break;
+					}
+					nc = cursor;
+					input_backward(cursor - sc);
+					while (nc-- > cursor)
+						input_delete(1);
+					break;
+				case 'b':  /* "db", "cb" */
+				case 'B':  /* implemented as B */
+					if (c == 'b')
+						vi_back_motion(command);
+					else
+						vi_Back_motion(command);
+					while (sc-- > cursor)
+						input_delete(1);
+					break;
+				case ' ':  /* "d ", "c " */
+					input_delete(1);
+					break;
+				case '$':  /* "d$", "c$" */
+				clear_to_eol:
+					while (cursor < len)
+						input_delete(1);
+					break;
+				}
 			}
 			break;
 		case 'p'|vbit:

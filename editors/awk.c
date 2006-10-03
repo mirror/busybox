@@ -1764,7 +1764,7 @@ static char *awk_printf(node *n)
 					is_numeric(arg) ? (char)getvar_i(arg) : *getvar_s(arg));
 
 		} else if (c == 's') {
-		    s1 = getvar_s(arg);
+			s1 = getvar_s(arg);
 			qrealloc(&b, incr+i+strlen(s1), &bsize);
 			i += sprintf(b+i, s, s1);
 
@@ -2434,7 +2434,7 @@ re_cont:
 				R.d--;
 				goto r_op_change;
 			  case '!':
-			    L.d = istrue(X.v) ? 0 : 1;
+				L.d = istrue(X.v) ? 0 : 1;
 				break;
 			  case '-':
 				L.d = -R.d;

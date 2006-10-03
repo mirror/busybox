@@ -3501,8 +3501,8 @@ key_cmd_mode:
 		if (file_modified) {
 #ifdef CONFIG_FEATURE_VI_READONLY
 			if (vi_readonly || readonly) {
-			    psbs("\"%s\" File is read only", cfn);
-			    break;
+				psbs("\"%s\" File is read only", cfn);
+				break;
 			}
 #endif		/* CONFIG_FEATURE_VI_READONLY */
 			cnt = file_write(cfn, text, end - 1);
