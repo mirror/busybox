@@ -19,7 +19,9 @@
 /* various defines swiped from linux/cdrom.h */
 #define CDROMCLOSETRAY            0x5319  /* pendant of CDROMEJECT  */
 #define CDROMEJECT                0x5309  /* Ejects the cdrom media */
-#define DEFAULT_CDROM             "/dev/cdrom"
+#define CDROM_DRIVE_STATUS        0x5326  /* Get tray position, etc. */
+/* drive status possibilities returned by CDROM_DRIVE_STATUS ioctl */
+#define CDS_TRAY_OPEN        2
 
 #define FLAG_CLOSE  1
 #define FLAG_SMART  2
@@ -29,32 +31,34 @@ int eject_main(int argc, char **argv)
 	unsigned long flags;
 	char *device;
 	struct mntent *m;
-	int dev;
+	int dev, cmd;
 
-	/*opt_complementary = "t--T:T--t";*/
+	opt_complementary = "?:?1:t--T:T--t";
 	flags = getopt32(argc, argv, "tT");
-	device = argv[optind] ? : DEFAULT_CDROM;
+	device = argv[optind] ? : "/dev/cdrom";
 
+	// FIXME: what if something is mounted OVER our cdrom?
+	// We will unmount something else??!
+	// What if cdrom is mounted many times?
 	m = find_mount_point(device, bb_path_mtab_file);
 	if (m) {
-		if (umount(m->mnt_dir)) {
-			bb_error_msg_and_die("can't umount");
-		} else if (ENABLE_FEATURE_MTAB_SUPPORT) {
+		if (umount(m->mnt_dir))
+			bb_error_msg_and_die("can't umount %s", device);
+		if (ENABLE_FEATURE_MTAB_SUPPORT)
 			erase_mtab(m->mnt_fsname);
-		}
 	}
 
 	dev = xopen(device, O_RDONLY|O_NONBLOCK);
-
-	if (flags & FLAG_CLOSE) goto close_tray;
-
-	if (ioctl(dev, CDROMEJECT)) {
-close_tray:
-		if (ioctl(dev, CDROMCLOSETRAY))
-			bb_perror_msg_and_die("%s", device);
+	cmd = CDROMEJECT;
+	if (flags & FLAG_CLOSE
+	 || (flags & FLAG_SMART && ioctl(dev, CDROM_DRIVE_STATUS) == CDS_TRAY_OPEN))
+		cmd = CDROMCLOSETRAY;
+	if (ioctl(dev, cmd)) {
+		bb_perror_msg_and_die("%s", device);
 	}
 
-	if (ENABLE_FEATURE_CLEAN_UP) close(dev);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(dev);
 
 	return EXIT_SUCCESS;
 }

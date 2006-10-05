@@ -502,9 +502,7 @@ int tftp_main(int argc, char **argv)
 	opt_complementary = GET_COMPL PUT_COMPL;
 #endif
 
-
-	cmd = getopt32(argc, argv, GET PUT "l:r:" BS,
-							&localfile, &remotefile BS_ARG);
+	cmd = getopt32(argc, argv, GET PUT "l:r:" BS, &localfile, &remotefile BS_ARG);
 
 	cmd &= (tftp_cmd_get | tftp_cmd_put);
 #ifdef CONFIG_FEATURE_TFTP_GET
@@ -559,5 +557,5 @@ int tftp_main(int argc, char **argv)
 		if (cmd == tftp_cmd_get && result != EXIT_SUCCESS)
 			unlink(localfile);
 	}
-	return (result);
+	return result;
 }
