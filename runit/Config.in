@@ -5,30 +5,30 @@
 
 menu "Runit Utilities"
 
-config CONFIG_CHPST
+config CHPST
 	bool "chpst"
 	default n
 	help
 	  chpst changes the process state according to the given options, and
 	  execs specified program.
 
-config CONFIG_SETUIDGID
+config SETUIDGID
 	bool "setuidgid"
 	help
 	  Sets soft resource limits as specified by options
 
-config CONFIG_ENVUIDGID
+config ENVUIDGID
 	bool "envuidgid"
 	help
 	  Sets $UID to account's uid and $GID to account's gid
 
-config CONFIG_ENVDIR
+config ENVDIR
 	bool "envdir"
 	help
 	  Sets various environment variables as specified by files
 	  in the given directory
 
-config CONFIG_SOFTLIMIT
+config SOFTLIMIT
 	bool "softlimit"
 	help
 	  Sets soft resource limits as specified by options

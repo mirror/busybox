@@ -1,13 +1,19 @@
 #!/bin/sh
 
-loc="$1"
+target="$1"
+loc="$2"
 
+test "$target" || exit 1
 test "$loc" || loc=.
 test -x "$loc/usage" || exit 1
+test "$SED" || SED=sed
+
+sz=`"$loc/usage" | wc -c` || exit 1
+
+exec >"$target"
 
 echo 'static const char packed_usage[] = '
-"$loc"/usage | bzip2 -1 | od -v -t x1 \
-| $SED -e 's/^[^ ]*//' -e 's/ \(..\)/\\x\1/g' -e 's/^\(.*\)$/"\1"/' || exit 1
+"$loc/usage" | bzip2 -1 | od -v -t x1 \
+| $SED -e 's/^[^ ]*//' -e 's/ \(..\)/\\x\1/g' -e 's/^\(.*\)$/"\1"/'
 echo ';'
-sz=`"$loc"/usage | wc -c` || exit 1
 echo '#define SIZEOF_usage_messages' `expr 0 + $sz`

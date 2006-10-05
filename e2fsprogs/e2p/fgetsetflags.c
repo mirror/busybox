@@ -63,8 +63,8 @@ int fgetsetflags (const char * name, unsigned long * get_flags, unsigned long se
 	if (save_errno)
 		errno = save_errno;
 	return r;
-#endif /* HAVE_EXT2_IOCTLS */
 notsupp:
+#endif /* HAVE_EXT2_IOCTLS */
 	errno = EOPNOTSUPP;
 	return -1;
 }

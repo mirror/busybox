@@ -5,7 +5,7 @@
 
 menu "Archival Utilities"
 
-config CONFIG_AR
+config AR
 	bool "ar"
 	default n
 	help
@@ -28,17 +28,17 @@ config CONFIG_AR
 	  Unless you have a specific application which requires ar, you should
 	  probably say N here.
 
-config CONFIG_FEATURE_AR_LONG_FILENAMES
+config FEATURE_AR_LONG_FILENAMES
 	bool "Enable support for long filenames (not need for debs)"
 	default n
-	depends on CONFIG_AR
+	depends on AR
 	help
 	  By default the ar format can only store the first 15 characters of the
 	  filename, this option removes that limitation.
 	  It supports the GNU ar long filename method which moves multiple long
 	  filenames into a the data section of a new ar entry.
 
-config CONFIG_BUNZIP2
+config BUNZIP2
 	bool "bunzip2"
 	default n
 	help
@@ -54,7 +54,7 @@ config CONFIG_BUNZIP2
 	  Unless you have a specific application which requires bunzip2, you
 	  should probably say N here.
 
-config CONFIG_CPIO
+config CPIO
 	bool "cpio"
 	default n
 	help
@@ -68,7 +68,7 @@ config CONFIG_CPIO
 	  Unless you have a specific application which requires cpio, you should
 	  probably say N here.
 
-config CONFIG_DPKG
+config DPKG
 	bool "dpkg"
 	default n
 	help
@@ -77,7 +77,7 @@ config CONFIG_DPKG
 	  This implementation of dpkg has a number of limitations, you should use the
 	  official dpkg if possible.
 
-config CONFIG_DPKG_DEB
+config DPKG_DEB
 	bool "dpkg_deb"
 	default n
 	help
@@ -88,16 +88,16 @@ config CONFIG_DPKG_DEB
 	  Unless you have a specific application which requires dpkg-deb, you should
 	  probably say N here.
 
-config CONFIG_FEATURE_DPKG_DEB_EXTRACT_ONLY
+config FEATURE_DPKG_DEB_EXTRACT_ONLY
 	bool "extract only (-x)"
 	default n
-	depends on CONFIG_DPKG_DEB
+	depends on DPKG_DEB
 	help
 	  This reduces dpkg-deb to the equivalent of "ar -p <deb> data.tar.gz | tar -zx".
 	  However it saves space as none of the extra dpkg-deb, ar or tar options are
 	  needed, they are linked to internally.
 
-config CONFIG_GUNZIP
+config GUNZIP
 	bool "gunzip"
 	default n
 	help
@@ -105,35 +105,35 @@ config CONFIG_GUNZIP
 	  You can use the `-t' option to test the integrity of
 	  an archive, without decompressing it.
 
-config CONFIG_FEATURE_GUNZIP_UNCOMPRESS
+config FEATURE_GUNZIP_UNCOMPRESS
 	bool "Uncompress support"
 	default n
-	depends on CONFIG_GUNZIP
+	depends on GUNZIP
 	help
 	  Enable if you want gunzip to have the ability to decompress
 	  archives created by the program compress (not much
 	  used anymore).
 
-config CONFIG_GZIP
+config GZIP
 	bool "gzip"
 	default n
 	help
 	  gzip is used to compress files.
 	  It's probably the most widely used UNIX compression program.
 
-config CONFIG_RPM2CPIO
+config RPM2CPIO
 	bool "rpm2cpio"
 	default n
 	help
 	  Converts an RPM file into a CPIO archive.
 
-config CONFIG_RPM
+config RPM
 	bool "rpm"
 	default n
 	help
 	  Mini RPM applet - queries and extracts
 
-config CONFIG_TAR
+config TAR
 	bool "tar"
 	default n
 	help
@@ -141,86 +141,86 @@ config CONFIG_TAR
 	  create compressed archives. It's probably the most widely used
 	  UNIX archive program.
 
-config CONFIG_FEATURE_TAR_CREATE
+config FEATURE_TAR_CREATE
 	bool "Enable archive creation"
 	default y
-	depends on CONFIG_TAR
+	depends on TAR
 	help
 	  If you enable this option you'll be able to create
 	  tar archives using the `-c' option.
 
-config CONFIG_FEATURE_TAR_BZIP2
+config FEATURE_TAR_BZIP2
 	bool "Enable -j option to handle .tar.bz2 files"
 	default n
-	depends on CONFIG_TAR
+	depends on TAR
 	help
 	  If you enable this option you'll be able to extract
 	  archives compressed with bzip2.
 
-config CONFIG_FEATURE_TAR_LZMA
+config FEATURE_TAR_LZMA
 	bool "Enable -a option to handle .tar.lzma files"
 	default n
-	depends on CONFIG_TAR
+	depends on TAR
 	help
 	  If you enable this option you'll be able to extract
 	  archives compressed with lzma.
 
-config CONFIG_FEATURE_TAR_FROM
+config FEATURE_TAR_FROM
 	bool "Enable -X (exclude from) and -T (include from) options)"
 	default n
-	depends on CONFIG_TAR
+	depends on TAR
 	help
 	  If you enable this option you'll be able to specify
 	  a list of files to include or exclude from an archive.
 
-config CONFIG_FEATURE_TAR_GZIP
+config FEATURE_TAR_GZIP
 	bool "Enable -z option"
 	default y
-	depends on CONFIG_TAR
+	depends on TAR
 	help
 	  If you enable this option tar will be able to call gzip,
 	  when creating or extracting tar gziped archives.
 
-config CONFIG_FEATURE_TAR_COMPRESS
+config FEATURE_TAR_COMPRESS
 	bool "Enable -Z option"
 	default n
-	depends on CONFIG_TAR
+	depends on TAR
 	help
 	  If you enable this option tar will be able to call uncompress,
 	  when extracting .tar.Z archives.
 
-config CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY
+config FEATURE_TAR_OLDGNU_COMPATIBILITY
 	bool "Enable support for old tar header format"
 	default N
-	depends on CONFIG_TAR
+	depends on TAR
 	help
 	  This option is required to unpack archives created in
 	  the old GNU format; help to kill this old format by
 	  repacking your ancient archives with the new format.
 
-config CONFIG_FEATURE_TAR_GNU_EXTENSIONS
+config FEATURE_TAR_GNU_EXTENSIONS
 	bool "Enable support for some GNU tar extensions"
 	default y
-	depends on CONFIG_TAR
+	depends on TAR
 	help
 	  With this option busybox supports GNU long filenames and
 	  linknames.
 
-config CONFIG_FEATURE_TAR_LONG_OPTIONS
+config FEATURE_TAR_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on CONFIG_TAR && CONFIG_GETOPT_LONG
+	depends on TAR && GETOPT_LONG
 	help
 		Enable use of long options, increases size by about 400 Bytes
 
-config CONFIG_UNCOMPRESS
+config UNCOMPRESS
 	bool "uncompress"
 	default n
 	help
 	  uncompress is used to decompress archives created by compress.
 	  Not much used anymore, replaced by gzip/gunzip.
 
-config CONFIG_UNLZMA
+config UNLZMA
 	bool "unlzma"
 	default n
 	help
@@ -235,15 +235,15 @@ config CONFIG_UNLZMA
 	  Unless you have a specific application which requires unlzma, you
 	  should probably say N here.
 
-config CONFIG_FEATURE_LZMA_FAST
+config FEATURE_LZMA_FAST
 	bool "Optimze unlzma for speed"
 	default n
-	depends on CONFIG_UNLZMA
+	depends on UNLZMA
 	help
 	  This option reduces decompression time by about 33% at the cost of
 	  a 2K bigger binary.
 
-config CONFIG_UNZIP
+config UNZIP
 	bool "unzip"
 	default n
 	help
@@ -254,31 +254,31 @@ config CONFIG_UNZIP
 	  directory of your choice.
 
 comment "Common options for cpio and tar"
-	depends on CONFIG_CPIO || CONFIG_TAR
+	depends on CPIO || TAR
 
-config CONFIG_FEATURE_UNARCHIVE_TAPE
+config FEATURE_UNARCHIVE_TAPE
 	bool "Enable tape drive support"
 	default n
-	depends on CONFIG_CPIO || CONFIG_TAR
+	depends on CPIO || TAR
 	help
 	  I don't think this is needed anymore.
 
 comment "Common options for dpkg and dpkg_deb"
-	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+	depends on DPKG || DPKG_DEB
 
-config CONFIG_FEATURE_DEB_TAR_GZ
+config FEATURE_DEB_TAR_GZ
 	bool "gzip debian packages (normal)"
-	default y if CONFIG_DPKG || CONFIG_DPKG_DEB
-	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+	default y if DPKG || DPKG_DEB
+	depends on DPKG || DPKG_DEB
 	help
 	  This is the default compression method inside the debian ar file.
 
 	  If you want compatibility with standard .deb's you should say yes here.
 
-config CONFIG_FEATURE_DEB_TAR_BZ2
+config FEATURE_DEB_TAR_BZ2
 	bool "bzip2 debian packages"
 	default n
-	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+	depends on DPKG || DPKG_DEB
 	help
 	  This allows dpkg and dpkg-deb to extract deb's that are compressed internally
 	  with bzip2 instead of gzip.
@@ -286,10 +286,10 @@ config CONFIG_FEATURE_DEB_TAR_BZ2
 	  You only want this if you are creating your own custom debian packages that
 	  use an internal control.tar.bz2 or data.tar.bz2.
 
-config CONFIG_FEATURE_DEB_TAR_LZMA
+config FEATURE_DEB_TAR_LZMA
 	bool "lzma debian packages"
 	default n
-	depends on CONFIG_DPKG || CONFIG_DPKG_DEB
+	depends on DPKG || DPKG_DEB
 	help
 	  This allows dpkg and dpkg-deb to extract deb's that are compressed
           internally with lzma instead of gzip.

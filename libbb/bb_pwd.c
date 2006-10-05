@@ -7,8 +7,11 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#include "libbb.h"
 
-#ifdef L_bb_getgrgid
   /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
   * flexible :
   *
@@ -26,9 +29,6 @@
   *                   the program exits.
   */
 
-#include "libbb.h"
-#include "grp_.h"
-
 /* gets a groupname given a gid */
 char * bb_getgrgid(char *group, long gid, int bufsize)
 {
@@ -37,15 +37,6 @@ char * bb_getgrgid(char *group, long gid, int bufsize)
 	return bb_getug(group, (mygroup) ?
 			mygroup->gr_name : (char *)mygroup, gid, bufsize, 'g');
 }
-#endif /* L_bb_getgrgid */
-
-#ifdef L_bb_xgetgrnam
-#include <stdio.h>
-#include <string.h>
-#include "libbb.h"
-#include "pwd_.h"
-#include "grp_.h"
-
 
 /* returns a gid given a group name */
 long bb_xgetgrnam(const char *name)
@@ -58,15 +49,6 @@ long bb_xgetgrnam(const char *name)
 
 	return (mygroup->gr_gid);
 }
-#endif /* L_bb_xgetgrnam */
-
-#ifdef L_bb_xgetpwnam
-#include <stdio.h>
-#include <string.h>
-#include "libbb.h"
-#include "pwd_.h"
-#include "grp_.h"
-
 
 /* returns a uid given a username */
 long bb_xgetpwnam(const char *name)
@@ -79,9 +61,7 @@ long bb_xgetpwnam(const char *name)
 
 	return myuser->pw_uid;
 }
-#endif /* L_bb_xgetpwnam */
 
-#ifdef L_bb_getpwuid
  /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
   * flexible :
   *
@@ -99,9 +79,6 @@ long bb_xgetpwnam(const char *name)
   *                   the program exits.
   */
 
-#include "libbb.h"
-#include "pwd_.h"
-
 /* gets a username given a uid */
 char * bb_getpwuid(char *name, long uid, int bufsize)
 {
@@ -110,9 +87,7 @@ char * bb_getpwuid(char *name, long uid, int bufsize)
 	return  bb_getug(name, (myuser) ?
 			myuser->pw_name : (char *)myuser , uid, bufsize, 'u');
 }
-#endif /* L_bb_getpwuid */
 
-#ifdef L_bb_getug
  /*
   * if bufsize is > 0 char *buffer can not be set to NULL.
   *                   If idname is not NULL it is written on the static
@@ -126,11 +101,6 @@ char * bb_getpwuid(char *name, long uid, int bufsize)
   *                   If idname exists a pointer to it is returned,
   *                   else an error message is printed and the program exits.
   */
-
-#include <stdio.h>
-#include <assert.h>
-#include "libbb.h"
-
 
 /* internal function for bb_getpwuid and bb_getgrgid */
 char * bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix)
@@ -146,13 +116,6 @@ char * bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix)
 	}
 	return idname;
 }
-#endif /* L_bb_getug */
-
-
-#ifdef L_get_ug_id
-/* indirect dispatcher for pwd helpers.  */
-#include <stdlib.h>
-#include "libbb.h"
 
 unsigned long get_ug_id(const char *s,
 		long (*__bb_getxxnam)(const char *))
@@ -167,4 +130,3 @@ unsigned long get_ug_id(const char *s,
 
 	return r;
 }
-#endif /* L_get_ug_id */

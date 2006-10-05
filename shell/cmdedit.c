@@ -79,11 +79,6 @@
 #define CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
 #endif
 
-#ifdef CONFIG_FEATURE_GETUSERNAME_AND_HOMEDIR
-#include "pwd_.h"
-#endif  /* advanced FEATURES */
-
-
 /* Maximum length of the linked list for the command line history */
 #ifndef CONFIG_FEATURE_COMMAND_HISTORY
 #define MAX_HISTORY   15

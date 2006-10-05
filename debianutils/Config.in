@@ -5,33 +5,33 @@
 
 menu "Debian Utilities"
 
-config CONFIG_MKTEMP
+config MKTEMP
 	bool "mktemp"
 	default n
 	help
 	  mktemp is used to create unique temporary files
 
-config CONFIG_PIPE_PROGRESS
+config PIPE_PROGRESS
 	bool "pipe_progress"
 	default n
 	help
 	  Display a dot to indicate pipe activity.
 
-config CONFIG_READLINK
+config READLINK
 	bool "readlink"
 	default n
 	help
 	  This program reads a symbolic link and returns the name
 	  of the file it points to
 
-config CONFIG_FEATURE_READLINK_FOLLOW
+config FEATURE_READLINK_FOLLOW
 	bool "Enable canonicalization by following all symlinks (-f)"
 	default n
-	depends on CONFIG_READLINK
+	depends on READLINK
 	help
 	  Enable the readlink option (-f).
 
-config CONFIG_RUN_PARTS
+config RUN_PARTS
 	bool "run-parts"
 	default n
 	help
@@ -46,14 +46,14 @@ config CONFIG_RUN_PARTS
 	  Unless you know that run-parts is used in some of your scripts
 	  you can safely say N here.
 
-config CONFIG_FEATURE_RUN_PARTS_LONG_OPTIONS
+config FEATURE_RUN_PARTS_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on CONFIG_RUN_PARTS && CONFIG_GETOPT_LONG
+	depends on RUN_PARTS && GETOPT_LONG
 	help
 	  Support long options for the run-parts applet.
 
-config CONFIG_START_STOP_DAEMON
+config START_STOP_DAEMON
 	bool "start-stop-daemon"
 	default y
 	help
@@ -61,23 +61,23 @@ config CONFIG_START_STOP_DAEMON
 	  termination of system-level processes, usually the ones
 	  started during the startup of the system.
 
-config CONFIG_FEATURE_START_STOP_DAEMON_FANCY
+config FEATURE_START_STOP_DAEMON_FANCY
 	bool "Support additional arguments"
 	default y
-	depends on CONFIG_START_STOP_DAEMON
+	depends on START_STOP_DAEMON
 	help
 	  Support additional arguments.
 	  -o|--oknodo ignored since we exit with 0 anyway
 	  -v|--verbose
 
-config CONFIG_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
+config FEATURE_START_STOP_DAEMON_LONG_OPTIONS
 	bool "Enable long options"
 	default n
-	depends on CONFIG_START_STOP_DAEMON && CONFIG_GETOPT_LONG
+	depends on START_STOP_DAEMON && GETOPT_LONG
 	help
 	  Support long options for the start-stop-daemon applet.
 
-config CONFIG_WHICH
+config WHICH
 	bool "which"
 	default n
 	help

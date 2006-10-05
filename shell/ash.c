@@ -81,8 +81,6 @@
 #include <time.h>
 #include <fnmatch.h>
 
-#include "pwd_.h"
-
 #ifdef CONFIG_ASH_JOB_CONTROL
 #define JOBS 1
 #else

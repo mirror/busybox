@@ -13,7 +13,7 @@ menu "Busybox Settings"
 
 menu "General Configuration"
 
-config CONFIG_NITPICK
+config NITPICK
 	bool "See lots more (probably unnecessary) configuration options."
 	default n
 	help
@@ -29,7 +29,7 @@ config CONFIG_NITPICK
 
 	  You have been warned.
 
-config CONFIG_DESKTOP
+config DESKTOP
 	bool "Enable options for full-blown desktop systems."
 	default n
 	help
@@ -39,8 +39,8 @@ config CONFIG_DESKTOP
 
 choice
 	prompt "Buffer allocation policy"
-	default CONFIG_FEATURE_BUFFERS_USE_MALLOC
-	depends on CONFIG_NITPICK
+	default FEATURE_BUFFERS_USE_MALLOC
+	depends on NITPICK
 	help
 	  There are 3 ways BusyBox can handle buffer allocations:
 	  - Use malloc. This costs code size for the call to xmalloc.
@@ -51,18 +51,18 @@ choice
 	    behavior was the only one available for BusyBox versions 0.48 and
 	    earlier.
 
-config CONFIG_FEATURE_BUFFERS_USE_MALLOC
+config FEATURE_BUFFERS_USE_MALLOC
 	bool "Allocate with Malloc"
 
-config CONFIG_FEATURE_BUFFERS_GO_ON_STACK
+config FEATURE_BUFFERS_GO_ON_STACK
 	bool "Allocate on the Stack"
 
-config CONFIG_FEATURE_BUFFERS_GO_IN_BSS
+config FEATURE_BUFFERS_GO_IN_BSS
 	bool "Allocate in the .bss section"
 
 endchoice
 
-config CONFIG_SHOW_USAGE
+config SHOW_USAGE
 	bool "Show terse applet usage messages"
 	default y
 	help
@@ -71,20 +71,20 @@ config CONFIG_SHOW_USAGE
 	  messages if you say no here.
 	  This will save you up to 7k.
 
-config CONFIG_FEATURE_VERBOSE_USAGE
+config FEATURE_VERBOSE_USAGE
 	bool "Show verbose applet usage messages"
 	default n
-	select CONFIG_SHOW_USAGE
+	select SHOW_USAGE
 	help
 	  All BusyBox applets will show more verbose help messages when
 	  busybox is invoked with --help.  This will add a lot of text to the
 	  busybox binary.  In the default configuration, this will add about
 	  13k, but it can add much more depending on your configuration.
 
-config CONFIG_FEATURE_COMPRESS_USAGE
+config FEATURE_COMPRESS_USAGE
 	bool "Store applet usage messages in compressed form"
 	default y
-	depends on CONFIG_SHOW_USAGE
+	depends on SHOW_USAGE
 	help
 	  Store usage messages in compressed form, uncompress them on-the-fly
 	  when <applet> --help is called.
@@ -95,7 +95,7 @@ config CONFIG_FEATURE_COMPRESS_USAGE
 	  and have very little memory, this might not be a win.  Otherwise,
 	  you probably want this.
 
-config CONFIG_FEATURE_INSTALLER
+config FEATURE_INSTALLER
 	bool "Support --install [-s] to install applet links at runtime"
 	default n
 	help
@@ -104,14 +104,14 @@ config CONFIG_FEATURE_INSTALLER
 	  applets that are compiled into busybox.  This feature requires the
 	  /proc filesystem.
 
-config CONFIG_LOCALE_SUPPORT
+config LOCALE_SUPPORT
 	bool "Enable locale support (system needs locale for this to work)"
 	default n
 	help
 	  Enable this if your system has locale support and you would like
 	  busybox to support locale settings.
 
-config CONFIG_GETOPT_LONG
+config GETOPT_LONG
 	bool
 	default y
 #	bool "Enable support for --long-options"
@@ -120,7 +120,7 @@ config CONFIG_GETOPT_LONG
 #	  Enable this if you want busybox applets to use the gnu --long-option
 #	  style, in addition to single character -a -b -c style options.
 
-config CONFIG_FEATURE_DEVPTS
+config FEATURE_DEVPTS
 	bool "Use the devpts filesystem for Unix98 PTYs"
 	default y
 	help
@@ -130,10 +130,10 @@ config CONFIG_FEATURE_DEVPTS
 	  /dev/ttyp<number> will be used. To use this option, you should have
 	  devpts mounted.
 
-config CONFIG_FEATURE_CLEAN_UP
+config FEATURE_CLEAN_UP
 	bool "Clean up all memory before exiting (usually not needed)"
 	default n
-	depends on CONFIG_NITPICK
+	depends on NITPICK
 	help
 	  As a size optimization, busybox normally exits without explicitly
 	  freeing dynamically allocated memory or closing files.  This saves
@@ -143,7 +143,7 @@ config CONFIG_FEATURE_CLEAN_UP
 	  Don't enable this unless you have a really good reason to clean
 	  things up manually.
 
-config CONFIG_FEATURE_SUID
+config FEATURE_SUID
 	bool "Support for SUID/SGID handling"
 	default n
 	help
@@ -158,17 +158,17 @@ config CONFIG_FEATURE_SUID
 	  are login, passwd, su, ping, traceroute, crontab, dnsd, ipcrm, ipcs,
 	  and vlock.
 
-config CONFIG_FEATURE_SYSLOG
+config FEATURE_SYSLOG
 	bool "Support for syslog"
 	default n
 	help
 	  This option is auto-selected when you select any applet which may
 	  send its output to syslog. You do not need to select it manually.
 
-config CONFIG_FEATURE_SUID_CONFIG
+config FEATURE_SUID_CONFIG
 	bool "Runtime SUID/SGID configuration via /etc/busybox.conf"
-	default n if CONFIG_FEATURE_SUID
-	depends on CONFIG_FEATURE_SUID
+	default n if FEATURE_SUID
+	depends on FEATURE_SUID
 	help
 	  Allow the SUID / SGID state of an applet to be determined at runtime
 	  by checking /etc/busybox.conf.  (This is sort of a poor man's sudo.)
@@ -197,15 +197,15 @@ config CONFIG_FEATURE_SUID_CONFIG
 	  Robert 'sandman' Griebl has more information here:
 	  <url: http://www.softforge.de/bb/suid.html >.
 
-config CONFIG_FEATURE_SUID_CONFIG_QUIET
+config FEATURE_SUID_CONFIG_QUIET
 	bool "Suppress warning message if /etc/busybox.conf is not readable"
 	default y
-	depends on CONFIG_FEATURE_SUID_CONFIG
+	depends on FEATURE_SUID_CONFIG
 	help
 	  /etc/busybox.conf should be readable by the user needing the SUID, check
 	  this option to avoid users to be notified about missing permissions.
 
-config CONFIG_SELINUX
+config SELINUX
 	bool "Support NSA Security Enhanced Linux"
 	default n
 	help
@@ -225,7 +225,7 @@ config CONFIG_SELINUX
 
 	  Most people will leave this set to 'N'.
 
-config CONFIG_BUSYBOX_EXEC_PATH
+config BUSYBOX_EXEC_PATH
 	string "Path to BusyBox executable"
 	default "/proc/self/exe"
 	help
@@ -239,7 +239,7 @@ endmenu
 
 menu 'Build Options'
 
-config CONFIG_STATIC
+config STATIC
 	bool "Build BusyBox as a static binary (no shared libs)"
 	default n
 	help
@@ -253,7 +253,7 @@ config CONFIG_STATIC
 
 	  Most people will leave this set to 'N'.
 
-config CONFIG_BUILD_LIBBUSYBOX
+config BUILD_LIBBUSYBOX
 	bool "Build shared libbusybox"
 	default n
 	help
@@ -265,10 +265,10 @@ config CONFIG_BUILD_LIBBUSYBOX
 	  binary serves no purpose (and increases the size).  You should
 	  almost certainly say "no" to this right now.
 
-config CONFIG_FEATURE_FULL_LIBBUSYBOX
+config FEATURE_FULL_LIBBUSYBOX
 	bool "Feature-complete libbusybox"
-	default n if !CONFIG_FEATURE_SHARED_BUSYBOX
-	depends on CONFIG_BUILD_LIBBUSYBOX
+	default n if !FEATURE_SHARED_BUSYBOX
+	depends on BUILD_LIBBUSYBOX
 	help
 	  Build a libbusybox with the complete feature-set, disregarding
 	  the actually selected config.
@@ -284,15 +284,15 @@ config CONFIG_FEATURE_FULL_LIBBUSYBOX
 
 	  Say 'N' if in doubt.
 
-config CONFIG_FEATURE_SHARED_BUSYBOX
+config FEATURE_SHARED_BUSYBOX
 	bool "Use shared libbusybox for busybox"
-	default y if CONFIG_BUILD_LIBBUSYBOX
-	depends on !CONFIG_STATIC && CONFIG_BUILD_LIBBUSYBOX
+	default y if BUILD_LIBBUSYBOX
+	depends on !STATIC && BUILD_LIBBUSYBOX
 	help
 	  Use libbusybox.so also for busybox itself.
 	  You need to have a working dynamic linker to use this variant.
 
-config CONFIG_LFS
+config LFS
 	bool "Build with Large File Support (for accessing files > 2 GB)"
 	default n
 	select FDISK_SUPPORT_LARGE_DISKS
@@ -304,7 +304,7 @@ config CONFIG_LFS
 	  cp, mount, tar, and many others.  If you want to access files larger
 	  than 2 Gigabytes, enable this option.  Otherwise, leave it set to 'N'.
 
-config CONFIG_BUILD_AT_ONCE
+config BUILD_AT_ONCE
 	bool "Compile all sources at once"
 	default n
 	help
@@ -327,7 +327,7 @@ endmenu
 
 menu 'Debugging Options'
 
-config CONFIG_DEBUG
+config DEBUG
 	bool "Build BusyBox with extra Debugging symbols"
 	default n
 	help
@@ -338,10 +338,10 @@ config CONFIG_DEBUG
 
 	  Most people should answer N.
 
-config CONFIG_DEBUG_PESSIMIZE
+config DEBUG_PESSIMIZE
 	bool "Disable compiler optimizations."
 	default n
-	depends on CONFIG_DEBUG
+	depends on DEBUG
 	help
 	  The compiler's optimization of source code can eliminate and reorder
 	  code, resulting in an executable that's hard to understand when
@@ -351,8 +351,8 @@ config CONFIG_DEBUG_PESSIMIZE
 
 choice
 	prompt "Additional debugging library"
-	default CONFIG_NO_DEBUG_LIB
-	depends on CONFIG_DEBUG
+	default NO_DEBUG_LIB
+	depends on DEBUG
 	help
 	  Using an additional debugging library will make BusyBox become
 	  considerable larger and will cause it to run more slowly.  You
@@ -380,18 +380,18 @@ choice
 	  you are hunting a hard to find memory problem.
 
 
-config CONFIG_NO_DEBUG_LIB
+config NO_DEBUG_LIB
 	bool "None"
 
-config CONFIG_DMALLOC
+config DMALLOC
 	bool "Dmalloc"
 
-config CONFIG_EFENCE
+config EFENCE
 	bool "Electric-fence"
 
 endchoice
 
-config CONFIG_DEBUG_YANK_SUSv2
+config DEBUG_YANK_SUSv2
 	bool "Disable obsolete features removed before SUSv3?"
 	default y
 	help
@@ -404,7 +404,7 @@ endmenu
 
 menu 'Installation Options'
 
-config CONFIG_INSTALL_NO_USR
+config INSTALL_NO_USR
 	bool "Don't use /usr"
 	default n
 	help
@@ -413,27 +413,27 @@ config CONFIG_INSTALL_NO_USR
 
 choice
        prompt "Applets links"
-       default CONFIG_INSTALL_APPLET_SYMLINKS
+       default INSTALL_APPLET_SYMLINKS
        help
          Choose how you install applets links.
 
-config CONFIG_INSTALL_APPLET_SYMLINKS
+config INSTALL_APPLET_SYMLINKS
        bool "as soft-links"
        help
          Install applets as soft-links to the busybox binary. This needs some
          free inodes on the filesystem, but might help with filesystem
          generators that can't cope with hard-links.
 
-config CONFIG_INSTALL_APPLET_HARDLINKS
+config INSTALL_APPLET_HARDLINKS
        bool "as hard-links"
        help
          Install applets as hard-links to the busybox binary. This might count
          on a filesystem with few inodes.
 
-config CONFIG_INSTALL_APPLET_DONT
+config INSTALL_APPLET_DONT
        bool
        prompt "not installed"
-       depends on CONFIG_FEATURE_INSTALLER || CONFIG_FEATURE_SH_STANDALONE_SHELL
+       depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE_SHELL
        help
          Do not install applets links. Usefull when using the -install feature
          or a standalone shell for rescue pruposes.

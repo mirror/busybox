@@ -5,7 +5,7 @@
 
 menu "Login/Password Management Utilities"
 
-config CONFIG_FEATURE_SHADOWPASSWDS
+config FEATURE_SHADOWPASSWDS
 	bool "Support for shadow passwords"
 	default n
 	help
@@ -13,10 +13,10 @@ config CONFIG_FEATURE_SHADOWPASSWDS
 	  readable by root and thus the encrypted passwords are no longer
 	  publicly readable.
 
-config CONFIG_USE_BB_SHADOW
+config USE_BB_SHADOW
 	bool "  Use busybox shadow password functions"
 	default y
-	depends on CONFIG_USE_BB_PWD_GRP && CONFIG_FEATURE_SHADOWPASSWDS
+	depends on USE_BB_PWD_GRP && FEATURE_SHADOWPASSWDS
 	help
 	    If you leave this disabled, busybox will use the system's shadow
 	    password handling functions.  And if you are using the GNU C library
@@ -32,7 +32,7 @@ config CONFIG_USE_BB_SHADOW
 	    able to use PAM to access shadow passwords from remote LDAP
 	    password servers and whatnot.
 
-config CONFIG_USE_BB_PWD_GRP
+config USE_BB_PWD_GRP
 	bool "Use internal password and group functions rather than system functions"
 	default n
 	help
@@ -53,86 +53,86 @@ config CONFIG_USE_BB_PWD_GRP
 
 	    If you enable this option, it will add about 1.5k to busybox.
 
-config CONFIG_ADDGROUP
+config ADDGROUP
 	bool "addgroup"
 	default n
 	help
 	  Utility for creating a new group account.
 
-config CONFIG_DELGROUP
+config DELGROUP
 	bool "delgroup"
 	default n
 	help
 	  Utility for deleting a group account.
 
-config CONFIG_ADDUSER
+config ADDUSER
 	bool "adduser"
 	default n
 	help
 	  Utility for creating a new user account.
 
-config CONFIG_DELUSER
+config DELUSER
 	bool "deluser"
 	default n
 	help
 	  Utility for deleting a user account.
 
-config CONFIG_GETTY
+config GETTY
 	bool "getty"
 	default n
-	select CONFIG_FEATURE_SYSLOG
+	select FEATURE_SYSLOG
 	help
 	  getty lets you log in on a tty, it is normally invoked by init.
 
-config CONFIG_FEATURE_UTMP
+config FEATURE_UTMP
 	bool "Support utmp file"
-	depends on CONFIG_GETTY || CONFIG_LOGIN || CONFIG_SU || CONFIG_WHO
+	depends on GETTY || LOGIN || SU || WHO
 	default n
 	help
 	  The file /var/run/utmp is used to track who is currently logged in.
 
-config CONFIG_FEATURE_WTMP
+config FEATURE_WTMP
 	bool "Support wtmp file"
-	depends on CONFIG_GETTY || CONFIG_LOGIN || CONFIG_SU || CONFIG_LAST
+	depends on GETTY || LOGIN || SU || LAST
 	default n
-	select CONFIG_FEATURE_UTMP
+	select FEATURE_UTMP
 	help
 	  The file /var/run/wtmp is used to track when user's have logged into
 	  and logged out of the system.
 
-config CONFIG_LOGIN
+config LOGIN
 	bool "login"
 	default n
-	select CONFIG_FEATURE_SUID
-	select CONFIG_FEATURE_SYSLOG
+	select FEATURE_SUID
+	select FEATURE_SYSLOG
 	help
 	  login is used when signing onto a system.
 
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
-config CONFIG_LOGIN_SCRIPTS
+config LOGIN_SCRIPTS
 	bool "Support for login scripts"
-	depends on CONFIG_LOGIN
+	depends on LOGIN
 	default n
 	help
 	  Enable this if you want login to execute $LOGIN_PRE_SUID_SCRIPT
 	  just prior to swithching from root to logged-in user.
 
-config CONFIG_FEATURE_SECURETTY
+config FEATURE_SECURETTY
 	bool "Support for /etc/securetty"
 	default y
-	depends on CONFIG_LOGIN
+	depends on LOGIN
 	help
 	  The file  /etc/securetty  is used by (some versions of) login(1).
 	  The file contains the device names of tty lines (one per line,
 	  without leading /dev/) on which root is allowed to login.
 
-config CONFIG_PASSWD
+config PASSWD
 	bool "passwd"
 	default n
-	select CONFIG_FEATURE_SUID
-	select CONFIG_FEATURE_SYSLOG
+	select FEATURE_SUID
+	select FEATURE_SYSLOG
 	help
 	  passwd changes passwords for user and group accounts.  A normal user
 	  may only change the password for his/her own account, the super user
@@ -142,11 +142,11 @@ config CONFIG_PASSWD
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
-config CONFIG_SU
+config SU
 	bool "su"
 	default n
-	select CONFIG_FEATURE_SUID
-	select CONFIG_FEATURE_SYSLOG
+	select FEATURE_SUID
+	select FEATURE_SYSLOG
 	help
 	  su is used to become another user during a login session.
 	  Invoked without a username, su defaults to becoming the super user.
@@ -154,25 +154,25 @@ config CONFIG_SU
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
-config CONFIG_SU_SYSLOG
+config SU_SYSLOG
 	bool "Support for syslog in su"
 	default y
-	depends on CONFIG_SU
+	depends on SU
 	help
 	  Enables support for syslog in su.
 
-config CONFIG_SULOGIN
+config SULOGIN
 	bool "sulogin"
 	default n
-	select CONFIG_FEATURE_SYSLOG
+	select FEATURE_SYSLOG
 	help
 	  sulogin is invoked when the system goes into single user
 	  mode (this is done through an entry in inittab).
 
-config CONFIG_VLOCK
+config VLOCK
 	bool "vlock"
 	default n
-	select CONFIG_FEATURE_SUID
+	select FEATURE_SUID
 	help
 	  Build the "vlock" applet which allows you to lock (virtual) terminals.
 

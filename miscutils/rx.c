@@ -266,7 +266,7 @@ int rx_main(int argc, char **argv)
 	filefd = xopen3(fn, O_RDWR|O_CREAT|O_TRUNC, 0666);
 
 	if (tcgetattr(ttyfd, &tty) < 0)
-			bb_perror_msg_and_die("%s: tcgetattr failed", argv[0]);
+			bb_perror_msg_and_die("tcgetattr");
 
 	orig_tty = tty;
 
@@ -284,8 +284,7 @@ int rx_main(int argc, char **argv)
 	tcsetattr(ttyfd, TCSAFLUSH, &orig_tty);
 
 	if (n < 0)
-		bb_error_msg_and_die("\n%s: receive failed:\n  %s",
-							   argv[0], error_buf);
+		bb_error_msg_and_die("\nreceive failed:\n  %s", error_buf);
 
 	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }

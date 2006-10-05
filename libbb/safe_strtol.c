@@ -12,7 +12,6 @@
 #include <assert.h>
 #include "libbb.h"
 
-#ifdef L_safe_strtoi
 int safe_strtoi(char *arg, int* value)
 {
 	int error;
@@ -21,9 +20,7 @@ int safe_strtoi(char *arg, int* value)
 	*value = (int) lvalue;
 	return error;
 }
-#endif
 
-#ifdef L_safe_strtod
 int safe_strtod(char *arg, double* value)
 {
 	char *endptr;
@@ -38,9 +35,7 @@ int safe_strtod(char *arg, double* value)
 	errno = errno_save;
 	return 0;
 }
-#endif
 
-#ifdef L_safe_strtol
 int safe_strtol(char *arg, long* value)
 {
 	char *endptr;
@@ -55,9 +50,7 @@ int safe_strtol(char *arg, long* value)
 	errno = errno_save;
 	return 0;
 }
-#endif
 
-#ifdef L_safe_strtoul
 int safe_strtoul(char *arg, unsigned long* value)
 {
 	char *endptr;
@@ -72,9 +65,7 @@ int safe_strtoul(char *arg, unsigned long* value)
 	errno = errno_save;
 	return 0;
 }
-#endif
 
-#ifdef L_safe_strtoll
 int safe_strtoll(char *arg, long long* value)
 {
 	char *endptr;
@@ -89,9 +80,7 @@ int safe_strtoll(char *arg, long long* value)
 	errno = errno_save;
 	return 0;
 }
-#endif
 
-#ifdef L_safe_strtoull
 int safe_strtoull(char *arg, unsigned long long* value)
 {
 	char *endptr;
@@ -106,5 +95,3 @@ int safe_strtoull(char *arg, unsigned long long* value)
 	errno = errno_save;
 	return 0;
 }
-#endif
-

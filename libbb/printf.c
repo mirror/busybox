@@ -37,7 +37,6 @@
 #include <errno.h>
 #include "libbb.h"
 
-#ifdef L_bb_vfprintf
 int bb_vfprintf(FILE * __restrict stream,
 					   const char * __restrict format,
 					   va_list arg)
@@ -65,16 +64,12 @@ int bb_vfprintf(FILE * __restrict stream,
 
 	return rv;
 }
-#endif
 
-#ifdef L_bb_vprintf
 int bb_vprintf(const char * __restrict format, va_list arg)
 {
 	return bb_vfprintf(stdout, format, arg);
 }
-#endif
 
-#ifdef L_bb_fprintf
 int bb_fprintf(FILE * __restrict stream,
 					  const char * __restrict format, ...)
 {
@@ -87,9 +82,7 @@ int bb_fprintf(FILE * __restrict stream,
 
 	return rv;
 }
-#endif
 
-#ifdef L_bb_printf
 int bb_printf(const char * __restrict format, ...)
 {
 	va_list arg;
@@ -101,4 +94,3 @@ int bb_printf(const char * __restrict format, ...)
 
 	return rv;
 }
-#endif

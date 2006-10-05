@@ -1,11 +1,13 @@
 /* vi: set sw=4 ts=4: */
 #include <unistd.h>
-#include "busybox.h"
+
+#include "../include/autoconf.h"
+#include "../include/busybox.h"
 
 static const char usage_messages[] =
 #define MAKE_USAGE
-#include "usage.h"
-#include "applets.h"
+#include "../include/usage.h"
+#include "../include/applets.h"
 ;
 
 int main(void)

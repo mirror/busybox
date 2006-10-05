@@ -7,36 +7,36 @@ menu "Shells"
 
 choice
 	prompt "Choose your default shell"
-	default CONFIG_FEATURE_SH_IS_NONE
+	default FEATURE_SH_IS_NONE
 	help
 	  Choose a shell. The ash shell is the most bash compatible
 	  and full featured one.
 
-config CONFIG_FEATURE_SH_IS_ASH
-	select CONFIG_ASH
+config FEATURE_SH_IS_ASH
+	select ASH
 	bool "ash"
 
-config CONFIG_FEATURE_SH_IS_HUSH
-	select CONFIG_HUSH
+config FEATURE_SH_IS_HUSH
+	select HUSH
 	bool "hush"
 
-config CONFIG_FEATURE_SH_IS_LASH
-	select CONFIG_LASH
+config FEATURE_SH_IS_LASH
+	select LASH
 	bool "lash"
 
-config CONFIG_FEATURE_SH_IS_MSH
-	select CONFIG_MSH
+config FEATURE_SH_IS_MSH
+	select MSH
 	bool "msh"
 
-config CONFIG_FEATURE_SH_IS_NONE
+config FEATURE_SH_IS_NONE
 	bool "none"
 
 endchoice
 
-config CONFIG_ASH
+config ASH
 	bool "ash"
 	default n
-	select CONFIG_TEST
+	select TEST
 	help
 	  Tha 'ash' shell adds about 60k in the default configuration and is
 	  the most complete and most pedantically correct shell included with
@@ -45,105 +45,105 @@ config CONFIG_ASH
 	  (written by Kenneth Almquist) from NetBSD.
 
 comment "Ash Shell Options"
-	depends on CONFIG_ASH
+	depends on ASH
 
-config CONFIG_ASH_JOB_CONTROL
+config ASH_JOB_CONTROL
 	bool "Job control"
 	default y
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  Enable job control in the ash shell.
 
-config CONFIG_ASH_READ_NCHARS
+config ASH_READ_NCHARS
 	bool "'read -n N' and 'read -s' support"
 	default n
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  'read -n N' will return a value after N characters have been read.
 	  'read -s' will read without echoing the user's input.
 
-config CONFIG_ASH_READ_TIMEOUT
+config ASH_READ_TIMEOUT
 	bool "'read -t S' support."
 	default n
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  'read -t S' will return a value after S seconds have passed.
 	  This implementation will allow fractional seconds, expressed
 	  as a decimal fraction, e.g. 'read -t 2.5 foo'.
 
-config CONFIG_ASH_ALIAS
+config ASH_ALIAS
 	bool "alias support"
 	default y
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  Enable alias support in the ash shell.
 
-config CONFIG_ASH_MATH_SUPPORT
+config ASH_MATH_SUPPORT
 	bool "Posix math support"
 	default y
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  Enable math support in the ash shell.
 
-config CONFIG_ASH_MATH_SUPPORT_64
+config ASH_MATH_SUPPORT_64
 	bool "Extend Posix math support to 64 bit"
 	default n
-	depends on CONFIG_ASH_MATH_SUPPORT
+	depends on ASH_MATH_SUPPORT
 	help
 	  Enable 64-bit math support in the ash shell.  This will make
 	  the shell slightly larger, but will allow computation with very
 	  large numbers.
 
-config CONFIG_ASH_GETOPTS
+config ASH_GETOPTS
 	bool "Builtin getopt to parse positional parameters"
 	default n
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  Enable getopts builtin in the ash shell.
 
-config CONFIG_ASH_BUILTIN_ECHO
+config ASH_BUILTIN_ECHO
 	bool "Builtin version of 'echo'"
 	default y
-	select CONFIG_ECHO
-	depends on CONFIG_ASH
+	select ECHO
+	depends on ASH
 	help
 	  Enable support for echo, built in to ash.
 
-config CONFIG_ASH_BUILTIN_TEST
+config ASH_BUILTIN_TEST
 	bool "Builtin version of 'test'"
 	default y
-	select CONFIG_TEST
-	depends on CONFIG_ASH
+	select TEST
+	depends on ASH
 	help
 	  Enable support for test, built in to ash.
 
-config CONFIG_ASH_CMDCMD
+config ASH_CMDCMD
 	bool "'command' command to override shell builtins"
 	default n
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  Enable support for the ash 'command' builtin, which allows
 	  you to run the specified command with the specified arguments,
 	  even when there is an ash builtin command with the same name.
 
-config CONFIG_ASH_MAIL
+config ASH_MAIL
 	bool "Check for new mail on interactive shells"
 	default y
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  Enable "check for new mail" in the ash shell.
 
-config CONFIG_ASH_OPTIMIZE_FOR_SIZE
+config ASH_OPTIMIZE_FOR_SIZE
 	bool "Optimize for size instead of speed"
 	default y
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  Compile ash for reduced size at the price of speed.
 
-config CONFIG_ASH_RANDOM_SUPPORT
+config ASH_RANDOM_SUPPORT
 	bool "Pseudorandom generator and variable $RANDOM"
 	default n
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  Enable pseudorandom generator and dynamic variable "$RANDOM".
 	  Each read of "$RANDOM" will generate a new pseudorandom value.
@@ -151,21 +151,21 @@ config CONFIG_ASH_RANDOM_SUPPORT
 	  After "unset RANDOM" then generator will switch off and this
 	  variable will no longer have special treatment.
 
-config CONFIG_ASH_EXPAND_PRMT
+config ASH_EXPAND_PRMT
 	bool "Expand prompt string"
 	default n
-	depends on CONFIG_ASH
+	depends on ASH
 	help
 	  "PS#" may be contain volatile content, such as backquote commands.
 	  This option recreates the prompt string from the environment
 	  variable each time it is displayed.
 
-config CONFIG_HUSH
+config HUSH
 	bool "hush"
 	default n
-	select CONFIG_TRUE
-	select CONFIG_FALSE
-	select CONFIG_TEST
+	select TRUE
+	select FALSE
+	select TEST
 	help
 	  hush is a very small shell (just 18k) and it has fairly complete
 	  Bourne shell grammar.  It even handles all the normal flow control
@@ -177,12 +177,12 @@ config CONFIG_HUSH
 	  expansion, &> and >& redirection of stdout+stderr, etc.
 
 
-config CONFIG_LASH
+config LASH
 	bool "lash"
 	default n
-	select CONFIG_TRUE
-	select CONFIG_FALSE
-	select CONFIG_TEST
+	select TRUE
+	select FALSE
+	select TEST
 	help
 	  lash is the very smallest shell (adds just 10k) and it is quite
 	  usable as a command prompt, but it is not suitable for any but the
@@ -192,12 +192,12 @@ config CONFIG_LASH
 	  command editing makes it a very nice lightweight command prompt.
 
 
-config CONFIG_MSH
+config MSH
 	bool "msh"
 	default n
-	select CONFIG_TRUE
-	select CONFIG_FALSE
-	select CONFIG_TEST
+	select TRUE
+	select FALSE
+	select TEST
 	help
 	  The minix shell (adds just 30k) is quite complete and handles things
 	  like for/do/done, case/esac and all the things you expect a Bourne
@@ -207,19 +207,19 @@ config CONFIG_MSH
 	  It also uses only vfork, so it can be used on uClinux systems.
 
 comment "Bourne Shell Options"
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	depends on MSH || LASH || HUSH || ASH
 
-config CONFIG_FEATURE_SH_EXTRA_QUIET
+config FEATURE_SH_EXTRA_QUIET
 	bool "Hide message on interactive shell startup"
 	default n
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	depends on MSH || LASH || HUSH || ASH
 	help
 	  Remove the busybox introduction when starting a shell.
 
-config CONFIG_FEATURE_SH_STANDALONE_SHELL
+config FEATURE_SH_STANDALONE_SHELL
 	bool "Standalone shell"
 	default n
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	depends on MSH || LASH || HUSH || ASH
 	help
 	  This option causes the selected busybox shell to use busybox applets
 	  in preference to executables in the PATH whenever possible.  For
@@ -240,53 +240,53 @@ config CONFIG_FEATURE_SH_STANDALONE_SHELL
 	  that exact location with that exact name, this option will not work at
 	  all.
 
-config CONFIG_FEATURE_COMMAND_EDITING
+config FEATURE_COMMAND_EDITING
 	bool "Command line editing"
 	default n
-	depends on CONFIG_MSH || CONFIG_LASH || CONFIG_HUSH || CONFIG_ASH
+	depends on MSH || LASH || HUSH || ASH
 	help
 	  Enable command editing in shell.
 
-config CONFIG_FEATURE_COMMAND_EDITING_VI
+config FEATURE_COMMAND_EDITING_VI
 	bool "vi-style line editing commands"
 	default n
-	depends on CONFIG_FEATURE_COMMAND_EDITING
+	depends on FEATURE_COMMAND_EDITING
 	help
 	  Enable vi-style line editing in the shell.  This mode can be
 	  turned on and off with "set -o vi" and "set +o vi".
 
-config CONFIG_FEATURE_COMMAND_HISTORY
+config FEATURE_COMMAND_HISTORY
 	int "History size"
 	default 15
-	depends on CONFIG_FEATURE_COMMAND_EDITING
+	depends on FEATURE_COMMAND_EDITING
 	help
 	  Specify command history size in shell.
 
-config CONFIG_FEATURE_COMMAND_SAVEHISTORY
+config FEATURE_COMMAND_SAVEHISTORY
 	bool "History saving"
 	default n
-	depends on CONFIG_ASH && CONFIG_FEATURE_COMMAND_EDITING
+	depends on ASH && FEATURE_COMMAND_EDITING
 	help
 	  Enable history saving in ash shell.
 
-config CONFIG_FEATURE_COMMAND_TAB_COMPLETION
+config FEATURE_COMMAND_TAB_COMPLETION
 	bool "Tab completion"
 	default n
-	depends on CONFIG_FEATURE_COMMAND_EDITING
+	depends on FEATURE_COMMAND_EDITING
 	help
 	  Enable tab completion in shell.
 
-config CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION
+config FEATURE_COMMAND_USERNAME_COMPLETION
 	bool "Username completion"
 	default n
-	depends on CONFIG_FEATURE_COMMAND_TAB_COMPLETION
+	depends on FEATURE_COMMAND_TAB_COMPLETION
 	help
 	  Enable username completion in shell.
 
-config CONFIG_FEATURE_SH_FANCY_PROMPT
+config FEATURE_SH_FANCY_PROMPT
 	bool "Fancy shell prompts"
 	default n
-	depends on CONFIG_FEATURE_COMMAND_EDITING
+	depends on FEATURE_COMMAND_EDITING
 	help
 	  Setting this option allows for prompts to use things like \w and
 	  \$ and also using escape codes.

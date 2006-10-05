@@ -45,8 +45,6 @@
 #include "blkid/blkid.h"
 
 #include "busybox.h"
-#include "grp_.h"
-#include "pwd_.h"
 
 static char * device_name = NULL;
 static char * new_label, *new_last_mounted, *new_UUID;

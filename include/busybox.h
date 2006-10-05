@@ -7,8 +7,6 @@
 #ifndef	_BB_INTERNAL_H_
 #define	_BB_INTERNAL_H_    1
 
-#include "bb_config.h"
-
 #include "libbb.h"
 
 /* order matters:  used as index into "install_dir[]" in busybox.c */

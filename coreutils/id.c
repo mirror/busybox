@@ -13,7 +13,6 @@
  */
 
 #include "busybox.h"
-#include "pwd_.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>

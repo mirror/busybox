@@ -5,7 +5,7 @@
 
 menu "Process Utilities"
 
-config CONFIG_FREE
+config FREE
 	bool "free"
 	default n
 	help
@@ -13,7 +13,7 @@ config CONFIG_FREE
 	  memory in the system, as well as the buffers used by the kernel.
 	  The shared memory column should be ignored; it is obsolete.
 
-config CONFIG_FUSER
+config FUSER
 	bool "fuser"
 	default n
 	help
@@ -21,7 +21,7 @@ config CONFIG_FUSER
 	  file open.  fuser can also list all PIDs that have a given network
 	  (TCP or UDP) port open.
 
-config CONFIG_KILL
+config KILL
 	bool "kill"
 	default n
 	help
@@ -29,86 +29,86 @@ config CONFIG_KILL
 	  process or process group.  If no signal is specified, the TERM
 	  signal is sent.
 
-config CONFIG_KILLALL
+config KILLALL
 	bool "killall"
 	default n
-	depends on CONFIG_KILL
+	depends on KILL
 	help
 	  killall sends a signal to all processes running any of the
 	  specified commands.  If no signal name is specified, SIGTERM is
 	  sent.
 
-config CONFIG_KILLALL5
+config KILLALL5
 	bool "killall5"
 	default n
-	depends on CONFIG_KILL
+	depends on KILL
 	
-config CONFIG_PIDOF
+config PIDOF
 	bool "pidof"
 	default n
 	help
 	  Pidof finds the process id's (pids) of the named programs. It prints
 	  those id's on the standard output.
 
-config CONFIG_FEATURE_PIDOF_SINGLE
+config FEATURE_PIDOF_SINGLE
 	bool "Enable argument for single shot (-s)"
 	default n
-	depends on CONFIG_PIDOF
+	depends on PIDOF
 	help
 	  Support argument '-s' for returning only the first pid found.
 
-config CONFIG_FEATURE_PIDOF_OMIT
+config FEATURE_PIDOF_OMIT
 	bool "Enable argument for omitting pids (-o)"
 	default n
-	depends on CONFIG_PIDOF
+	depends on PIDOF
 	help
 	  Support argument '-o' for omitting the given pids in output.
 	  The special pid %PPID can be used to name the parent process
 	  of the pidof, in other words the calling shell or shell script.
 
-config CONFIG_PS
+config PS
 	bool "ps"
 	default n
 	help
 	  ps gives a snapshot of the current processes.
 
-config CONFIG_FEATURE_PS_WIDE
+config FEATURE_PS_WIDE
 	bool "Enable argument for wide output (-w)"
 	default n
-	depends on CONFIG_PS
+	depends on PS
 	help
 	  Support argument 'w' for wide output.
 	  If given once, 132 chars are printed and given more than
 	  one, the length is unlimited.
 
-config CONFIG_RENICE
+config RENICE
 	bool "renice"
 	default n
 	help
 	  Renice alters the scheduling priority of one or more running
 	  processes.
 
-config CONFIG_BB_SYSCTL
+config BB_SYSCTL
 	bool "sysctl"
 	default n
 	help
 	  Configure kernel parameters at runtime.
 
-config CONFIG_TOP
+config TOP
 	bool "top"
 	default n
 	help
 	  The top program provides a dynamic real-time view of a running
 	  system.
 
-config CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
+config FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	bool "Support showing CPU usage percentage (add 2k bytes)"
 	default y
-	depends on CONFIG_TOP
+	depends on TOP
 	help
 	  Make top display CPU usage.
 
-config CONFIG_UPTIME
+config UPTIME
 	bool "uptime"
 	default n
 	help

@@ -3,7 +3,7 @@
 # see scripts/kbuild/config-language.txt.
 #
 
-config CONFIG_APP_UDHCPD
+config APP_UDHCPD
 	bool "udhcp Server (udhcpd)"
 	default n
 	help
@@ -12,10 +12,10 @@ config CONFIG_APP_UDHCPD
 
 	  See http://udhcp.busybox.net for further details.
 
-config CONFIG_APP_DUMPLEASES
+config APP_DUMPLEASES
 	bool "Lease display utility (dumpleases)"
 	default n
-	depends on CONFIG_APP_UDHCPD
+	depends on APP_UDHCPD
 	help
 	  dumpleases displays the leases written out by the udhcpd server.
 	  Lease times are stored in the file by time remaining in lease, or
@@ -23,7 +23,7 @@ config CONFIG_APP_DUMPLEASES
 
 	  See http://udhcp.busybox.net for further details.
 
-config CONFIG_APP_UDHCPC
+config APP_UDHCPC
 	bool "udhcp Client (udhcpc)"
 	default n
 	help
@@ -35,21 +35,21 @@ config CONFIG_APP_UDHCPC
 
 	  See http://udhcp.busybox.net for further details.
 
-config CONFIG_FEATURE_UDHCP_SYSLOG
+config FEATURE_UDHCP_SYSLOG
 	bool "Log udhcp messages to syslog"
 	default n
-	depends on CONFIG_APP_UDHCPD || CONFIG_APP_UDHCPC
-	select CONFIG_FEATURE_SYSLOG
+	depends on APP_UDHCPD || APP_UDHCPC
+	select FEATURE_SYSLOG
 	help
 	  If not daemonized, udhcpd prints its messages to stdout/stderr.
 	  If this option is selected, it will also log them to syslog.
 
 	  See http://udhcp.busybox.net for further details.
 
-config CONFIG_FEATURE_UDHCP_DEBUG
+config FEATURE_UDHCP_DEBUG
 	bool "Compile udhcp with noisy debugging messages"
 	default n
-	depends on CONFIG_APP_UDHCPD || CONFIG_APP_UDHCPC
+	depends on APP_UDHCPD || APP_UDHCPC
 	help
 	  If selected, udhcpd will output extra debugging output.  If using
 	  this option, compile uDHCP with "-g", and do not fork the daemon to

@@ -5,7 +5,7 @@
 
 menu "Linux System Utilities"
 
-config CONFIG_DMESG
+config DMESG
 	bool "dmesg"
 	default n
 	help
@@ -17,10 +17,10 @@ config CONFIG_DMESG
 	  are also logged to the system console.  Enable this option if you
 	  wish to enable the 'dmesg' utility.
 
-config CONFIG_FEATURE_DMESG_PRETTY
+config FEATURE_DMESG_PRETTY
 	bool "pretty dmesg output"
 	default y
-	depends on CONFIG_DMESG
+	depends on DMESG
 	help
 	  If you wish to scrub the syslog level from the output, say 'Y' here.
 	  The syslog level is a string prefixed to every line with the form "<#>".
@@ -37,7 +37,7 @@ config CONFIG_FEATURE_DMESG_PRETTY
 	    <6>BIOS-provided physical RAM map:
 	    <6> BIOS-e820: 0000000000000000 - 000000000009f000 (usable)
 
-config CONFIG_FBSET
+config FBSET
 	bool "fbset"
 	default n
 	help
@@ -46,26 +46,26 @@ config CONFIG_FBSET
 	  interface to access a graphics display.  Enable this option
 	  if you wish to enable the 'fbset' utility.
 
-config CONFIG_FEATURE_FBSET_FANCY
+config FEATURE_FBSET_FANCY
 	bool "Turn on extra fbset options"
 	default n
-	depends on CONFIG_FBSET
+	depends on FBSET
 	help
 	  This option enables extended fbset options, allowing one to set the
 	  framebuffer size, color depth, etc.  interface to access a graphics
 	  display.  Enable this option if you wish to enable extended fbset
 	  options.
 
-config CONFIG_FEATURE_FBSET_READMODE
+config FEATURE_FBSET_READMODE
 	bool "Turn on fbset readmode support"
 	default n
-	depends on CONFIG_FBSET
+	depends on FBSET
 	help
 	  This option allows fbset to read the video mode database stored by
 	  default as /etc/fb.modes, which can be used to set frame buffer
 	  device to pre-defined video modes.
 
-config CONFIG_FDFLUSH
+config FDFLUSH
 	bool "fdflush"
 	default n
 	help
@@ -77,13 +77,13 @@ config CONFIG_FDFLUSH
 	  you change a disk.  Most people have working hardware and can safely
 	  leave this disabled.
 
-config CONFIG_FDFORMAT
+config FDFORMAT
 	bool "fdformat"
 	default n
 	help
 	  fdformat is used to low-level format a floppy disk.
 
-config CONFIG_FDISK
+config FDISK
 	bool "fdisk"
 	default n
 	help
@@ -95,62 +95,62 @@ config CONFIG_FDISK
 config FDISK_SUPPORT_LARGE_DISKS
 	bool "support over 4GB disks"
 	default y
-	depends on CONFIG_FDISK
+	depends on FDISK
 	help
 	  Enable this option to support large disks > 4GB.
 
-config CONFIG_FEATURE_FDISK_WRITABLE
+config FEATURE_FDISK_WRITABLE
 	bool "Write support"
 	default y
-	depends on CONFIG_FDISK
+	depends on FDISK
 	help
 	  Enabling this option allows you to create or change a partition table
 	  and write those changes out to disk.  If you leave this option
 	  disabled, you will only be able to view the partition table.
 
-config CONFIG_FEATURE_AIX_LABEL
+config FEATURE_AIX_LABEL
 	bool "Support AIX disklabels"
 	default n
-	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
+	depends on FDISK && FEATURE_FDISK_WRITABLE
 	help
 	  Enabling this option allows you to create or change AIX disklabels.
 	  Most people can safely leave this option disabled.
 
-config CONFIG_FEATURE_SGI_LABEL
+config FEATURE_SGI_LABEL
 	bool "Support SGI disklabels"
 	default n
-	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
+	depends on FDISK && FEATURE_FDISK_WRITABLE
 	help
 	  Enabling this option allows you to create or change SGI disklabels.
 	  Most people can safely leave this option disabled.
 
-config CONFIG_FEATURE_SUN_LABEL
+config FEATURE_SUN_LABEL
 	bool "Support SUN disklabels"
 	default n
- 	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
+ 	depends on FDISK && FEATURE_FDISK_WRITABLE
 	help
 	  Enabling this option allows you to create or change SUN disklabels.
 	  Most people can safely leave this option disabled.
 
-config CONFIG_FEATURE_OSF_LABEL
+config FEATURE_OSF_LABEL
 	bool "Support BSD disklabels"
 	default n
-	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
+	depends on FDISK && FEATURE_FDISK_WRITABLE
 	help
 	  Enabling this option allows you to create or change BSD disklabels
 	  and define and edit BSD disk slices.
 
-config CONFIG_FEATURE_FDISK_ADVANCED
+config FEATURE_FDISK_ADVANCED
 	bool "Support expert mode"
 	default n
-	depends on CONFIG_FDISK && CONFIG_FEATURE_FDISK_WRITABLE
+	depends on FDISK && FEATURE_FDISK_WRITABLE
 	help
 	  Enabling this option allows you to do terribly unsafe things like
 	  define arbitrary drive geometry, move the beginning of data in a
 	  partition, and similarly evil things.  Unless you have a very good
 	  reason you would be wise to leave this disabled.
 
-config CONFIG_FREERAMDISK
+config FREERAMDISK
 	bool "freeramdisk"
 	default n
 	help
@@ -161,7 +161,7 @@ config CONFIG_FREERAMDISK
 	  ramdisk.  If you have no use for freeing memory from a ramdisk, leave
 	  this disabled.
 
-config CONFIG_FSCK_MINIX
+config FSCK_MINIX
 	bool "fsck_minix"
 	default n
 	help
@@ -172,7 +172,7 @@ config CONFIG_FSCK_MINIX
 	  check for and attempt to repair any corruption that occurs to a minix
 	  filesystem.
 
-config CONFIG_MKFS_MINIX
+config MKFS_MINIX
 	bool "mkfs_minix"
 	default n
 	help
@@ -181,18 +181,18 @@ config CONFIG_MKFS_MINIX
 	  this utility will do the job for you.
 
 comment "Minix filesystem support"
-    depends on CONFIG_FSCK_MINIX || CONFIG_MKFS_MINIX
+    depends on FSCK_MINIX || MKFS_MINIX
 
-config CONFIG_FEATURE_MINIX2
+config FEATURE_MINIX2
 	bool "Support Minix fs v2 (fsck_minix/mkfs_minix)"
 	default y
-	depends on CONFIG_FSCK_MINIX || CONFIG_MKFS_MINIX
+	depends on FSCK_MINIX || MKFS_MINIX
 	help
 	  If you wish to be able to create version 2 minix filesystems, enable this.
 	  If you enabled 'mkfs_minix' then you almost certainly want to be using the
 	  version 2 filesystem support.
 
-config CONFIG_GETOPT
+config GETOPT
 	bool "getopt"
 	default n
 	help
@@ -203,14 +203,14 @@ config CONFIG_GETOPT
 	  written by others, this utility may be for you.  Most people will
 	  wisely leave this disabled.
 
-config CONFIG_HEXDUMP
+config HEXDUMP
 	bool "hexdump"
 	default n
 	help
 	  The hexdump utility is used to display binary data in a readable
 	  way that is comparable to the output from most hex editors.
 
-config CONFIG_HWCLOCK
+config HWCLOCK
 	bool "hwclock"
 	default n
 	help
@@ -219,19 +219,19 @@ config CONFIG_HWCLOCK
 	  shutdown in the hardware clock, so the hardware will keep the
 	  correct time when Linux is _not_ running.
 
-config CONFIG_FEATURE_HWCLOCK_LONG_OPTIONS
+config FEATURE_HWCLOCK_LONG_OPTIONS
 	bool "Support long options (--hctosys,...)"
 	default n
-	depends on CONFIG_HWCLOCK && CONFIG_GETOPT_LONG
+	depends on HWCLOCK && GETOPT_LONG
 	help
 	  By default, the hwclock utility only uses short options.  If you
 	  are overly fond of its long options, such as --hctosys, --utc, etc)
 	  then enable this option.
 
-config CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS
+config FEATURE_HWCLOCK_ADJTIME_FHS
 	bool "Use FHS /var/lib/hwclock/adjtime"
 	default y
-	depends on CONFIG_HWCLOCK
+	depends on HWCLOCK
 	help
 	  Starting with FHS 2.3, the adjtime state file is supposed to exist
 	  at /var/lib/hwclock/adjtime instead of /etc/adjtime.  If you wish
@@ -240,24 +240,24 @@ config CONFIG_FEATURE_HWCLOCK_ADJTIME_FHS
 
 	  http://www.pathname.com/fhs/pub/fhs-2.3.html#VARLIBHWCLOCKSTATEDIRECTORYFORHWCLO
 
-config CONFIG_IPCRM
+config IPCRM
 	bool "ipcrm"
 	default n
-	select CONFIG_FEATURE_SUID
+	select FEATURE_SUID
 	help
 	  The ipcrm utility allows the removal of System V interprocess
 	  communication (IPC) objects and the associated data structures
 	  from the system.
 
-config CONFIG_IPCS
+config IPCS
 	bool "ipcs"
 	default n
-	select CONFIG_FEATURE_SUID
+	select FEATURE_SUID
 	help
 	  The ipcs utility is used to provide information on the currently
 	  allocated System V interprocess (IPC) objects in the system.
 
-config CONFIG_LOSETUP
+config LOSETUP
 	bool "losetup"
 	default n
 	help
@@ -265,7 +265,7 @@ config CONFIG_LOSETUP
 	  file or block device, and to query the status of a loop device.  This
 	  version does not currently support enabling data encryption.
 
-config CONFIG_MDEV
+config MDEV
 	bool "mdev"
 	default n
 	help
@@ -274,10 +274,10 @@ config CONFIG_MDEV
 	  have it handle hotplug events afterwards.  Device names are taken
 	  from sysfs.
 
-config CONFIG_FEATURE_MDEV_CONF
+config FEATURE_MDEV_CONF
 	bool "Support /etc/mdev.conf"
 	default n
-	depends on CONFIG_MDEV
+	depends on MDEV
 	help
 	  The mdev config file contains lines that look like:
 
@@ -289,10 +289,10 @@ config CONFIG_FEATURE_MDEV_CONF
 	  entry is matched, devices are created with default 0:0 660.  (Make
 	  the last line match .* to override this.)
 
-config CONFIG_FEATURE_MDEV_EXEC
+config FEATURE_MDEV_EXEC
 	bool "Support command execution at device addition/removal"
 	default n
-	depends on CONFIG_FEATURE_MDEV_CONF
+	depends on FEATURE_MDEV_CONF
 	help
 	  This adds support for an optional field to /etc/mdev.conf, consisting
 	  of a special character and a command line to run after creating the
@@ -310,7 +310,7 @@ config CONFIG_FEATURE_MDEV_EXEC
 	  Commands are executed via system() so you need /bin/sh, meaning you
 	  probably want to select a default shell in the Shells menu.
 
-config CONFIG_MKSWAP
+config MKSWAP
 	bool "mkswap"
 	default n
 	help
@@ -323,17 +323,17 @@ config CONFIG_MKSWAP
 	  Once you have created swap space using 'mkswap' you need to enable
 	  the swap space using the 'swapon' utility.
 
-config CONFIG_FEATURE_MKSWAP_V0
+config FEATURE_MKSWAP_V0
 	bool "version 0 support"
 	default n
-	depends on CONFIG_MKSWAP
-#	depends on CONFIG_MKSWAP && CONFIG_DEPRECATED
+	depends on MKSWAP
+#	depends on MKSWAP && DEPRECATED
 	help
 	  Enable support for the old v0 style.
 	  If your kernel is older than 2.1.117, then v0 support is the
 	  only option.
 
-config CONFIG_MORE
+config MORE
 	bool "more"
 	default n
 	help
@@ -343,10 +343,10 @@ config CONFIG_MORE
 	  you will probably find this utility very helpful.  If you don't have
 	  any need to reading text files, you can leave this disabled.
 
-config CONFIG_FEATURE_USE_TERMIOS
+config FEATURE_USE_TERMIOS
 	bool "Use termios to manipulate the screen"
 	default y
-	depends on CONFIG_MORE
+	depends on MORE
 	help
 	  This option allows utilities such as 'more' and 'top' to determine
 	  the size of the screen.  If you leave this disabled, your utilities
@@ -354,7 +354,7 @@ config CONFIG_FEATURE_USE_TERMIOS
 	  will be unable to determine the current screen size, and will be
 	  unable to move the cursor.
 
-config CONFIG_MOUNT
+config MOUNT
 	bool "mount"
 	default n
 	help
@@ -365,23 +365,23 @@ config CONFIG_MOUNT
 	  NFS filesystems.  Most people using BusyBox will also want to enable
 	  the 'mount' utility.
 
-config CONFIG_FEATURE_MOUNT_NFS
+config FEATURE_MOUNT_NFS
 	bool "Support mounting NFS file systems"
 	default n
-	depends on CONFIG_MOUNT
-	select CONFIG_FEATURE_SYSLOG
+	depends on MOUNT
+	select FEATURE_SYSLOG
 	help
 	  Enable mounting of NFS file systems.
 
-config CONFIG_FEATURE_MOUNT_CIFS
+config FEATURE_MOUNT_CIFS
 	bool "Support mounting CIFS/SMB file systems"
 	default n
-	depends on CONFIG_MOUNT
+	depends on MOUNT
 	help
 	  Enable support for samba mounts.
 
-config CONFIG_FEATURE_MOUNT_FLAGS
-	depends on CONFIG_MOUNT
+config FEATURE_MOUNT_FLAGS
+	depends on MOUNT
 	bool "Support lots of -o flags in mount"
 	default y
 	help
@@ -390,14 +390,14 @@ config CONFIG_FEATURE_MOUNT_FLAGS
 	  noatime, diratime, nodiratime, loud, bind, move, shared, slave,
 	  private, unbindable, rshared, rslave, rprivate, and runbindable.
 
-config CONFIG_FEATURE_MOUNT_FSTAB
-	depends on CONFIG_MOUNT
+config FEATURE_MOUNT_FSTAB
+	depends on MOUNT
 	bool "Support /etc/fstab and -a"
 	default y
 	help
 	  Support mount all and looking for files in /etc/fstab.
 
-config CONFIG_PIVOT_ROOT
+config PIVOT_ROOT
 	bool "pivot_root"
 	default n
 	help
@@ -409,7 +409,7 @@ config CONFIG_PIVOT_ROOT
 	  Note: This is for initrd in linux 2.4.  Under initramfs (introduced
 	  in linux 2.6) use switch_root instead.
 
-config CONFIG_RDATE
+config RDATE
 	bool "rdate"
 	default n
 	help
@@ -418,13 +418,13 @@ config CONFIG_RDATE
 	  the RFC868 protocol, which is built into the inetd daemon on most
 	  systems.
 
-config CONFIG_READPROFILE
+config READPROFILE
 	bool "readprofile"
 	default n
 	help
 	  This allows you to parse /proc/profile for basic profiling.
 
-config CONFIG_SETARCH
+config SETARCH
 	bool "setarch"
 	default n
 	help
@@ -433,7 +433,7 @@ config CONFIG_SETARCH
 	  this util on a system that supports both 64bit and 32bit userland
 	  (like amd64/x86, ppc64/ppc, sparc64/sparc, etc...).
 
-config CONFIG_SWAPONOFF
+config SWAPONOFF
 	bool "swaponoff"
 	default n
 	help
@@ -444,7 +444,7 @@ config CONFIG_SWAPONOFF
 	  space.  If you are not using any swap space, you can leave this
 	  option disabled.
 
-config CONFIG_SWITCH_ROOT
+config SWITCH_ROOT
 	bool "switch_root"
 	default n
 	help
@@ -463,7 +463,7 @@ config CONFIG_SWITCH_ROOT
 	  and ending point for searching through the kernel's doubly linked
 	  list of active mount points.  That's why.
 
-config CONFIG_UMOUNT
+config UMOUNT
 	bool "umount"
 	default n
 	help
@@ -472,20 +472,20 @@ config CONFIG_UMOUNT
 	  the tool to use.  If you enabled the 'mount' utility, you almost certainly
 	  also want to enable 'umount'.
 
-config CONFIG_FEATURE_UMOUNT_ALL
+config FEATURE_UMOUNT_ALL
 	bool "umount -a option"
 	default n
-	depends on CONFIG_UMOUNT
+	depends on UMOUNT
 	help
 	  Support -a option to unmount all currently mounted filesystems.
 
 comment "Common options for mount/umount"
-	depends on CONFIG_MOUNT || CONFIG_UMOUNT
+	depends on MOUNT || UMOUNT
 
-config CONFIG_FEATURE_MOUNT_LOOP
+config FEATURE_MOUNT_LOOP
 	bool "Support loopback mounts"
 	default n
-	depends on CONFIG_MOUNT || CONFIG_UMOUNT
+	depends on MOUNT || UMOUNT
 	help
 	  Enabling this feature allows automatic mounting of files (containing
 	  filesystem images) via the linux kernel's loopback devices.  The mount
@@ -498,10 +498,10 @@ config CONFIG_FEATURE_MOUNT_LOOP
 	  specify an offset or cryptographic options to the loopback device.
 	  (If you don't want umount to free the loop device, use "umount -D".)
 
-config CONFIG_FEATURE_MTAB_SUPPORT
+config FEATURE_MTAB_SUPPORT
 	bool "Support for the old /etc/mtab file"
 	default n
-	depends on CONFIG_MOUNT || CONFIG_UMOUNT
+	depends on MOUNT || UMOUNT
 	help
 	  Historically, Unix systems kept track of the currently mounted
 	  partitions in the file "/etc/mtab".  These days, the kernel exports

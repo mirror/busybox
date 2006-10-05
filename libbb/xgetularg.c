@@ -15,7 +15,6 @@
 #include <assert.h>
 #include "libbb.h"
 
-#ifdef L_xgetularg_bnd_sfx
 unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
 								   unsigned long lower,
 								   unsigned long upper,
@@ -75,9 +74,7 @@ unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
 
 	return r;
 }
-#endif
 
-#ifdef L_xgetlarg_bnd_sfx
 long bb_xgetlarg_bnd_sfx(const char *arg, int base,
 						 long lower,
 						 long upper,
@@ -104,36 +101,27 @@ long bb_xgetlarg_bnd_sfx(const char *arg, int base,
 
 	return r;
 }
-#endif
 
-#ifdef L_getlarg10_sfx
 long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes)
 {
 	return bb_xgetlarg_bnd_sfx(arg, 10, LONG_MIN, LONG_MAX, suffixes);
 }
-#endif
 
-#ifdef L_xgetularg_bnd
 unsigned long bb_xgetularg_bnd(const char *arg, int base,
 							   unsigned long lower,
 							   unsigned long upper)
 {
 	return bb_xgetularg_bnd_sfx(arg, base, lower, upper, NULL);
 }
-#endif
 
-#ifdef L_xgetularg10_bnd
 unsigned long bb_xgetularg10_bnd(const char *arg,
 								 unsigned long lower,
 								 unsigned long upper)
 {
 	return bb_xgetularg_bnd(arg, 10, lower, upper);
 }
-#endif
 
-#ifdef L_xgetularg10
 unsigned long bb_xgetularg10(const char *arg)
 {
 	return bb_xgetularg10_bnd(arg, 0, ULONG_MAX);
 }
-#endif

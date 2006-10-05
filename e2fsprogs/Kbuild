@@ -1,0 +1,27 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2005 by Erik Andersen <andersen@codepoet.org>
+#
+# Licensed under the GPL v2, see the file LICENSE in this tarball.
+
+lib-y:=
+
+lib-$(CONFIG_CHATTR)     += chattr.o
+libs-$(CONFIG_CHATTR)    += e2p/
+
+lib-$(CONFIG_E2FSCK)     += e2fsck.o util.o
+libs-$(CONFIG_E2FSCK)    += blkid/ ext2fs/ uuid/
+
+lib-$(CONFIG_FSCK)       += fsck.o util.o
+libs-$(CONFIG_FSCK)      += blkid/ ext2fs/ uuid/
+
+lib-$(CONFIG_LSATTR)     += lsattr.o
+libs-$(CONFIG_LSATTR)    += e2p/
+
+lib-$(CONFIG_MKE2FS)     += mke2fs.o util.o
+libs-$(CONFIG_MKE2FS)    += e2p/ blkid/ ext2fs/ uuid/
+
+lib-$(CONFIG_TUNE2FS)    += tune2fs.o util.o
+libs-$(CONFIG_TUNE2FS)   += e2p/ blkid/ ext2fs/ uuid/
+
+CFLAGS += -include e2fsprogs/e2fsbb.h

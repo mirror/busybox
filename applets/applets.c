@@ -42,8 +42,6 @@ const size_t NUM_APPLETS = (sizeof (applets) / sizeof (struct BB_applet) - 1);
 #ifdef CONFIG_FEATURE_SUID_CONFIG
 
 #include <ctype.h>
-#include "pwd_.h"
-#include "grp_.h"
 
 #define CONFIG_FILE "/etc/busybox.conf"
 

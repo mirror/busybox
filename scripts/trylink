@@ -1,0 +1,18 @@
+#!/bin/sh
+
+debug=false
+
+function try {
+    added="$1"
+    shift
+    $debug && echo "Trying: $* $added"
+    "$@" $added >/dev/null 2>&1 \
+    && exit 0
+}
+
+try "" "$@"
+try "-lm" "$@"
+try "-lcrypt" "$@"
+try "-Wl,--start-group -lcrypt -lm -Wl,--end-group" "$@"
+# It failed. Rerun & let people see the error messages
+"$@" $added

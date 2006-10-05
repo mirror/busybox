@@ -1,0 +1,18 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2005 by Erik Andersen <andersen@codepoet.org>
+#
+# Licensed under the GPL v2, see the file LICENSE in this tarball.
+
+lib-y:=
+lib-y	+= cache.o dev.o devname.o devno.o blkid_getsize.o \
+	   probe.o read.o resolve.o save.o tag.o list.o
+
+CFLAGS_dev.o := -include include/busybox.h
+CFLAGS_devname.o := -include include/busybox.h
+CFLAGS_devno.o := -include include/busybox.h
+CFLAGS_blkid_getsize.o := -include include/busybox.h
+CFLAGS_probe.o := -include include/busybox.h
+CFLAGS_save.o := -include include/busybox.h
+CFLAGS_tag.o := -include include/busybox.h
+CFLAGS_list.o := -include include/busybox.h

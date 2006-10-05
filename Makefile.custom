@@ -1,0 +1,131 @@
+### # defconfig is allyesconfig minus any features that are specialized enough
+### # or cause enough behavior change that the user really should switch them on
+### # manually if that's what they want.  Sort of "maximum sane config".
+
+### defconfig: scripts/config/conf
+### 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN) > /dev/null
+### 	@$(SED) -i -r -e "s/^(CONFIG_(DEBUG.*|STATIC|SELINUX|NITPICK|BUILD_(AT_ONCE|LIBBUSYBOX)|FEATURE_(DEVFS|FULL_LIBBUSYBOX|SHARED_BUSYBOX|MTAB_SUPPORT|CLEAN_UP|UDHCP_DEBUG)|INSTALL_NO_USR))=.*/# \1 is not set/" .config
+### 	@./scripts/config/conf -o $(CONFIG_CONFIG_IN) > /dev/null
+
+### allbareconfig: scripts/config/conf
+### 	@./scripts/config/conf -y $(CONFIG_CONFIG_IN) > /dev/null
+### 	@$(SED) -i -r -e "s/^(CONFIG_(DEBUG|STATIC|SELINUX|DEVFSD|NC_GAPING_SECURITY_HOLE|BUILD_AT_ONCE)).*/# \1 is not set/" .config
+### 	@$(SED) -i -e "/FEATURE/s/=.*//;/^[^#]/s/.*FEATURE.*/# \0 is not set/;" .config
+### 	@echo "CONFIG_FEATURE_BUFFERS_GO_ON_STACK=y" >> .config
+### 	@yes n | ./scripts/config/conf -o $(CONFIG_CONFIG_IN) > /dev/null
+
+### hosttools:
+### 	$(Q)cp .config .config.bak || noold=yea
+### 	$(Q)$(MAKE) CC="$(HOSTCC)" CFLAGS="$(HOSTCFLAGS) $(INCS)" allnoconfig
+### 	$(Q)mv .config .config.in
+### 	$(Q)(grep -v CONFIG_SED .config.in ; \
+### 	 echo "CONFIG_SED=y" ; ) > .config
+### 	$(Q)$(MAKE) CC="$(HOSTCC)" CFLAGS="$(HOSTCFLAGS) $(INCS)" oldconfig include/bb_config.h
+### 	$(Q)$(MAKE) CC="$(HOSTCC)" CFLAGS="$(HOSTCFLAGS) $(INCS)" busybox
+### 	$(Q)[ -f .config.bak ] && mv .config.bak .config || rm .config
+### 	mv busybox sed
+### 	@echo "Now do: $(MAKE) SED=$(objtree)/sed <target>"
+
+%.bflt: %_unstripped
+	$(CROSS_COMPILE)elf2flt $(ELF2FLTFLAGS) $< -o $@
+
+busybox.links: $(srctree)/applets/busybox.mkll include/bb_config.h $(srctree)/include/applets.h
+	$(Q)-$(SHELL) $^ >$@
+
+.PHONY: install
+install: $(srctree)/applets/install.sh busybox busybox.links
+	$(Q)DO_INSTALL_LIBS="$(strip $(LIBBUSYBOX_SONAME) $(DO_INSTALL_LIBS))" \
+		$(SHELL) $< $(CONFIG_PREFIX) $(INSTALL_OPTS)
+ifeq ($(strip $(CONFIG_FEATURE_SUID)),y)
+	@echo
+	@echo
+	@echo --------------------------------------------------
+	@echo You will probably need to make your busybox binary
+	@echo setuid root to ensure all configured applets will
+	@echo work properly.
+	@echo --------------------------------------------------
+	@echo
+endif
+
+uninstall: busybox.links
+	rm -f $(CONFIG_PREFIX)/bin/busybox
+	for i in `cat busybox.links` ; do rm -f $(CONFIG_PREFIX)$$i; done
+ifneq ($(strip $(DO_INSTALL_LIBS)),n)
+	for i in $(LIBBUSYBOX_SONAME) $(DO_INSTALL_LIBS); do \
+		rm -f $(CONFIG_PREFIX)$$i; \
+	done
+endif
+
+check test: busybox
+	bindir=$(objtree) srcdir=$(srctree)/testsuite SED="$(SED)" \
+	$(SHELL) $(srctree)/testsuite/runtest $(if $(KBUILD_VERBOSE:1=),-v)
+
+### checkhelp:
+### 	$(Q)$(srctree)/scripts/checkhelp.awk \
+### 		$(wildcard $(patsubst %,%/Config.in,$(SRC_DIRS) ./))
+
+.PHONY: sizes
+sizes: busybox_unstripped
+	$(NM) --size-sort $(<)
+
+.PHONY: bloatcheck
+bloatcheck: busybox_old busybox_unstripped
+	@$(srctree)/scripts/bloat-o-meter busybox_old busybox_unstripped
+
+.PHONY: baseline
+baseline: busybox_unstripped
+	@mv busybox_unstripped busybox_old
+
+.PHONY: objsizes
+objsizes: busybox_unstripped
+	$(SHELL) $(srctree)/scripts/objsizes
+
+# Documentation Targets
+.PHONY: doc
+doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html
+
+docs/busybox.pod: $(srctree)/docs/busybox_header.pod \
+		$(srctree)/include/usage.h \
+		$(srctree)/docs/busybox_footer.pod \
+		$(srctree)/docs/autodocifier.pl
+	$(disp_doc)
+	$(Q)-mkdir -p docs
+	$(Q)-( cat $(srctree)/docs/busybox_header.pod ; \
+	    $(srctree)/docs/autodocifier.pl $(srctree)/include/usage.h ; \
+	    cat $(srctree)/docs/busybox_footer.pod ; ) > docs/busybox.pod
+
+docs/BusyBox.txt: docs/busybox.pod
+	$(disp_doc)
+	$(Q)-mkdir -p docs
+	$(Q)-pod2text $< > $@
+
+docs/BusyBox.1: docs/busybox.pod
+	$(disp_doc)
+	$(Q)-mkdir -p docs
+	$(Q)-pod2man --center=BusyBox --release="version $(VERSION)" \
+		$< > $@
+
+docs/BusyBox.html: docs/busybox.net/BusyBox.html
+	$(disp_doc)
+	$(Q)-mkdir -p docs
+	$(Q)-rm -f docs/BusyBox.html
+	$(Q)-cp docs/busybox.net/BusyBox.html docs/BusyBox.html
+
+docs/busybox.net/BusyBox.html: docs/busybox.pod
+	$(Q)-mkdir -p docs/busybox.net
+	$(Q)-pod2html --noindex $< > \
+	    docs/busybox.net/BusyBox.html
+	$(Q)-rm -f pod2htm*
+
+# documentation, cross-reference
+# Modern distributions already ship synopsis packages (e.g. debian)
+# If you have an old distribution go to http://synopsis.fresco.org/
+syn_tgt := $(wildcard $(patsubst %,%/*.c,$(SRC_DIRS)))
+syn     := $(patsubst %.c, %.syn, $(syn_tgt))
+
+%.syn: %.c
+	synopsis -p C -l Comments.SSDFilter,Comments.Previous $(INCS) -Wp,verbose,debug,preprocess,cppflags="'$(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) $(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) $(APPLETS_DEFINE) $(BUSYBOX_DEFINE)'" -o $@ $<
+
+.PHONY: html
+html: $(syn)
+	synopsis -f HTML -Wf,title="'BusyBox Documentation'" -o $@ $^

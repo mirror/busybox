@@ -30,11 +30,9 @@
 #ifndef	_GRP_H
 #define	_GRP_H	1
 
-
 #include <sys/types.h>
 #include <features.h>
 #include <stdio.h>
-
 
 /* The group structure.	 */
 struct group

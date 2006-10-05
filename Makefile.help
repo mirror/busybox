@@ -1,0 +1,88 @@
+### Kernel's one:
+### help:
+### 	@echo  'Cleaning targets:'
+### 	@echo  '  clean		  - remove most generated files but keep the config'
+### 	@echo  '  mrproper	  - remove all generated files + config + various backup files'
+### 	@echo  ''
+### 	@echo  'Configuration targets:'
+### 	@$(MAKE) -f $(srctree)/scripts/kconfig/Makefile help
+### 	@echo  ''
+### 	@echo  'Other generic targets:'
+### 	@echo  '  all		  - Build all targets marked with [*]'
+### 	@echo  '* busybox	  - Build the bare kernel'
+### 	@echo  '* modules	  - Build all modules'
+### 	@echo  '  modules_install - Install all modules to INSTALL_MOD_PATH (default: /)'
+### 	@echo  '  dir/            - Build all files in dir and below'
+### 	@echo  '  dir/file.[ois]  - Build specified target only'
+### 	@echo  '  dir/file.ko     - Build module including final link'
+### 	@echo  '  rpm		  - Build a kernel as an RPM package'
+### 	@echo  '  tags/TAGS	  - Generate tags file for editors'
+### 	@echo  '  cscope	  - Generate cscope index'
+### 	@echo  '  kernelrelease	  - Output the release version string'
+### 	@echo  '  kernelversion	  - Output the version stored in Makefile'
+### 	@echo  ''
+### 	@echo  'Static analysers'
+### 	@echo  '  checkstack      - Generate a list of stack hogs'
+### 	@echo  '  namespacecheck  - Name space analysis on compiled kernel'
+### 	@echo  ''
+### 	@echo  'Kernel packaging:'
+### 	@$(MAKE) $(build)=$(package-dir) help
+### 	@echo  ''
+### 	@echo  'Documentation targets:'
+### 	@$(MAKE) -f $(srctree)/Documentation/DocBook/Makefile dochelp
+### 	@echo  ''
+### 	@echo  'Architecture specific targets ($(ARCH)):'
+### 	@$(if $(archhelp),$(archhelp),\
+### 		echo '  No architecture specific help defined for $(ARCH)')
+### 	@echo  ''
+### 	@$(if $(boards), \
+### 		$(foreach b, $(boards), \
+### 		printf "  %-24s - Build for %s\\n" $(b) $(subst _defconfig,,$(b));) \
+### 		echo '')
+### 
+### 	@echo  '  make V=0|1 [targets] 0 => quiet build (default), 1 => verbose build'
+### 	@echo  '  make O=dir [targets] Locate all output files in "dir", including .config'
+### 	@echo  '  make C=1   [targets] Check all c source with $$CHECK (sparse)'
+### 	@echo  '  make C=2   [targets] Force check of all c source with $$CHECK (sparse)'
+### 	@echo  ''
+### 	@echo  'Execute "make" or "make all" to build all targets marked with [*] '
+### 	@echo  'For further info see the ./README file'
+
+help:
+	@echo 'Cleaning:'
+	@echo '  clean			- delete temporary files created by build'
+	@echo '  distclean		- delete all non-source files (including .config)'
+	@echo
+	@echo 'Build:'
+	@echo '  all			- Executable and documentation'
+	@echo '  busybox		- the swiss-army executable'
+	@echo '  doc			- docs/BusyBox.{txt,html,1}'
+	@echo '  html			- create html-based cross-reference'
+	@echo
+	@echo 'Configuration:'
+	@echo '  allnoconfig		- disable all symbols in .config'
+	@echo '  allyesconfig		- enable all symbols in .config (see defconfig)'
+	@echo '  allbareconfig		- enable all applets without any sub-features'
+	@echo '  config		- text based configurator (of last resort)'
+	@echo '  defconfig		- set .config to largest generic configuration'
+	@echo '  menuconfig		- interactive curses-based configurator'
+	@echo '  oldconfig		- resolve any unresolved symbols in .config'
+	@echo '  hosttools  		- build sed for the host.'
+	@echo '  			  You can use these commands if the commands on the host'
+	@echo '  			  is unusable. Afterwards use it like:'
+	@echo '			  make SED="$(objtree)/sed"'
+	@echo
+	@echo 'Installation:'
+	@echo '  install		- install busybox into $(PREFIX)'
+	@echo '  uninstall'
+	@echo
+	@echo 'Development:'
+	@echo '  baseline		- create busybox_old for bloatcheck.'
+	@echo '  bloatcheck		- show size difference between old and new versions'
+	@echo '  check			- run the test suite for all applets'
+	@echo '  checkhelp		- check for missing help-entries in Config.in'
+	@echo '  randconfig		- generate a random configuration'
+	@echo '  release		- create a distribution tarball'
+	@echo '  sizes			- show size of all enabled busybox symbols'
+	@echo '  objsizes		- show size of each .o object built'
+	@echo
