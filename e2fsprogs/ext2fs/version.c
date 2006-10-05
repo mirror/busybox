@@ -20,8 +20,6 @@
 #include "ext2_fs.h"
 #include "ext2fs.h"
 
-//#include "../../version.h"
-
 static const char *lib_version = E2FSPROGS_VERSION;
 static const char *lib_date = E2FSPROGS_DATE;
 

@@ -291,6 +291,13 @@ extern char *bb_getug(char *buffer, char *idname, long id, int bufsize, char pre
 extern char *bb_getpwuid(char *name, long uid, int bufsize);
 extern char *bb_getgrgid(char *group, long gid, int bufsize);
 extern char *bb_askpass(int timeout, const char * prompt);
+/* from chpst */
+struct bb_uidgid_t {
+        uid_t uid;
+        gid_t gid;
+};
+extern unsigned uidgid_get(struct bb_uidgid_t*, const char* /*, unsigned*/);
+
 
 extern int device_open(const char *device, int mode);
 

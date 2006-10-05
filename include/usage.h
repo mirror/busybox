@@ -1167,7 +1167,7 @@ USE_FEATURE_DATE_ISOFMT( \
 #define httpd_trivial_usage \
 	"[-c <conf file>]" \
 	USE_FEATURE_HTTPD_WITHOUT_INETD(" [-p <port>]") \
-	USE_FEATURE_HTTPD_SETUID(" [-u user]") \
+	USE_FEATURE_HTTPD_SETUID(" [-u user[:grp]]") \
 	USE_FEATURE_HTTPD_BASIC_AUTH(" [-r <realm>]") \
 	USE_FEATURE_HTTPD_AUTH_MD5(" [-m pass]") \
 	" [-h home]" \
@@ -1176,12 +1176,12 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Listens for incoming http server requests.\n\n" \
 	"Options:\n" \
 	"\t-c FILE\t\tSpecifies configuration file. (default httpd.conf)\n" \
-	USE_FEATURE_HTTPD_WITHOUT_INETD("\t-p PORT\tServer port (default 80)\n") \
-	USE_FEATURE_HTTPD_SETUID("\t-u USER\tSet uid to USER after listening privileges port\n") \
+	USE_FEATURE_HTTPD_WITHOUT_INETD("\t-p PORT\t\tServer port (default 80)\n") \
+	USE_FEATURE_HTTPD_SETUID("\t-u USER[:GRP]\tSet uid/gid after binding to port\n") \
 	USE_FEATURE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
 	USE_FEATURE_HTTPD_AUTH_MD5("\t-m PASS\t\tCrypt PASS with md5 algorithm\n") \
-	"\t-h HOME  \tSpecifies http HOME directory (default ./)\n" \
-	"\t-e STRING\tHtml encode STRING\n" \
+	"\t-h HOME\t\tSpecifies http HOME directory (default ./)\n" \
+	"\t-e STRING\tHTML encode STRING\n" \
 	"\t-d STRING\tURL decode STRING"
 
 #define hwclock_trivial_usage \

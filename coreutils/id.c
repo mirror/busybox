@@ -29,11 +29,11 @@
 static short printf_full(unsigned int id, const char *arg, const char prefix)
 {
 	const char *fmt = "%cid=%u";
-	short status=EXIT_FAILURE;
+	short status = EXIT_FAILURE;
 
-	if(arg) {
+	if (arg) {
 		fmt = "%cid=%u(%s)";
-		status=EXIT_SUCCESS;
+		status = EXIT_SUCCESS;
 	}
 	bb_printf(fmt, prefix, id, arg);
 	return status;
@@ -60,21 +60,21 @@ int id_main(int argc, char **argv)
 		gid = getgid();
 	}
 
-	if(argv[optind]) {
-		p=getpwnam(argv[optind]);
+	if (argv[optind]) {
+		p = getpwnam(argv[optind]);
 		/* bb_xgetpwnam is needed because it exits on failure */
 		uid = bb_xgetpwnam(argv[optind]);
 		gid = p->pw_gid;
 		/* in this case PRINT_REAL is the same */
 	}
 
-	if(flags & (JUST_GROUP | JUST_USER)) {
+	if (flags & (JUST_GROUP | JUST_USER)) {
 		/* JUST_GROUP and JUST_USER are mutually exclusive */
-		if(flags & NAME_NOT_NUMBER) {
+		if (flags & NAME_NOT_NUMBER) {
 			/* bb_getpwuid and bb_getgrgid exit on failure so puts cannot segfault */
 			puts((flags & JUST_USER) ? bb_getpwuid(NULL, uid, -1 ) : bb_getgrgid(NULL, gid, -1 ));
 		} else {
-			bb_printf("%u\n",(flags & JUST_USER) ? uid : gid);
+			bb_printf("%u\n", (flags & JUST_USER) ? uid : gid);
 		}
 		/* exit */
 		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
@@ -82,13 +82,13 @@ int id_main(int argc, char **argv)
 
 	/* Print full info like GNU id */
 	/* bb_getpwuid doesn't exit on failure here */
-	status=printf_full(uid, bb_getpwuid(NULL, uid, 0), 'u');
+	status = printf_full(uid, bb_getpwuid(NULL, uid, 0), 'u');
 	putchar(' ');
 	/* bb_getgrgid doesn't exit on failure here */
-	status|=printf_full(gid, bb_getgrgid(NULL, gid, 0), 'g');
+	status |= printf_full(gid, bb_getgrgid(NULL, gid, 0), 'g');
 
 #ifdef CONFIG_SELINUX
-	if ( is_selinux_enabled() ) {
+	if (is_selinux_enabled()) {
 			security_context_t mysid;
 			char context[80];
 			int len = sizeof(context);
@@ -99,8 +99,8 @@ int id_main(int argc, char **argv)
 					len = strlen(mysid)+1;
 					safe_strncpy(context, mysid, len);
 					freecon(mysid);
-			}else{
-					safe_strncpy(context, "unknown",8);
+			} else {
+					safe_strncpy(context, "unknown", 8);
 			}
 		bb_printf(" context=%s", context);
 	}

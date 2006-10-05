@@ -1,16 +1,9 @@
 #include "busybox.h"
 
-#include <sys/types.h>
-#include <sys/resource.h>
-#include <grp.h>
-
-#include "uidgid.h"
-
-#include <sys/types.h>
 #include <dirent.h>
 
 static unsigned option_mask;
-// Must meatch constants in chpst_main!
+// Must match constants in chpst_main!
 #define OPT_verbose  (option_mask & 0x2000)
 #define OPT_pgrp     (option_mask & 0x4000)
 #define OPT_nostdin  (option_mask & 0x8000)
@@ -33,34 +26,27 @@ static long limitt = -2;
 static long nicelvl;
 static const char *root;
 
-static void suidgid(char *user, unsigned dogrp)
+static void suidgid(char *user)
 {
-	struct uidgid ugid;
+	struct bb_uidgid_t ugid;
 
-	if (!uidgid_get(&ugid, user, dogrp)) {
-		if (dogrp)
-			bb_error_msg_and_die("unknown user/group: %s", user);
-		else
-			bb_error_msg_and_die("unknown account: %s", user);
+	if (!uidgid_get(&ugid, user)) {
+		bb_error_msg_and_die("unknown user/group: %s", user);
 	}
-	if (setgroups(ugid.gids, ugid.gid) == -1)
+	if (setgroups(1, &ugid.gid) == -1)
 		bb_perror_msg_and_die("setgroups");
-	xsetgid(*ugid.gid);
+	xsetgid(ugid.gid);
 	xsetuid(ugid.uid);
 }
 
-static void euidgid(char *user, unsigned dogrp)
+static void euidgid(char *user)
 {
-	struct uidgid ugid;
+	struct bb_uidgid_t ugid;
 
-	if (!uidgid_get(&ugid, user, dogrp)) {
-		if (dogrp)
-			bb_error_msg_and_die("unknown user/group: %s", user);
-		else
-			bb_error_msg_and_die("unknown account: %s", user);
+	if (!uidgid_get(&ugid, user)) {
+		bb_error_msg_and_die("unknown user/group: %s", user);
 	}
-	//FIXME: ultoa needed here!
-	xsetenv("GID", utoa(*ugid.gid));
+	xsetenv("GID", utoa(ugid.gid));
 	xsetenv("UID", utoa(ugid.uid));
 }
 
@@ -276,8 +262,8 @@ int chpst_main(int argc, char **argv)
 		if (nice(nicelvl) == -1)
 			bb_perror_msg_and_die("nice");
 	}
-	if (env_user) euidgid(env_user, 1);
-	if (set_user) suidgid(set_user, 1);
+	if (env_user) euidgid(env_user);
+	if (set_user) suidgid(set_user);
 	if (OPT_nostdin) close(0);
 	if (OPT_nostdout) close(1);
 	if (OPT_nostderr) close(2);
@@ -292,7 +278,7 @@ static void setuidgid(int argc, char **argv)
 	account = *++argv;
 	if (!account) bb_show_usage();
 	if (!*++argv) bb_show_usage();
-	suidgid((char*)account, 0);
+	suidgid((char*)account);
 	execvp(argv[0], argv);
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }
@@ -304,7 +290,7 @@ static void envuidgid(int argc, char **argv)
 	account = *++argv;
 	if (!account) bb_show_usage();
 	if (!*++argv) bb_show_usage();
-	euidgid((char*)account, 0);
+	euidgid((char*)account);
 	execvp(argv[0], argv);
 	bb_perror_msg_and_die("exec %s", argv[0]);
 }

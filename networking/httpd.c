@@ -1916,8 +1916,8 @@ int httpd_main(int argc, char *argv[])
 	USE_FEATURE_HTTPD_WITHOUT_INETD(const char *s_port;)
 	USE_FEATURE_HTTPD_WITHOUT_INETD(int server;)
 
-	USE_FEATURE_HTTPD_SETUID(const char *s_uid;)
-	USE_FEATURE_HTTPD_SETUID(long uid = -1;)
+	USE_FEATURE_HTTPD_SETUID(const char *s_ugid = NULL;)
+	USE_FEATURE_HTTPD_SETUID(struct bb_uidgid_t ugid;)
 
 	USE_FEATURE_HTTPD_AUTH_MD5(const char *pass;)
 
@@ -1937,7 +1937,7 @@ int httpd_main(int argc, char *argv[])
 			USE_FEATURE_HTTPD_ENCODE_URL_STR(, &url_for_encode)
 			USE_FEATURE_HTTPD_BASIC_AUTH(, &(config->realm))
 			USE_FEATURE_HTTPD_AUTH_MD5(, &pass)
-			USE_FEATURE_HTTPD_SETUID(, &s_uid)
+			USE_FEATURE_HTTPD_SETUID(, &s_ugid)
 			USE_FEATURE_HTTPD_WITHOUT_INETD(, &s_port)
 		);
 
@@ -1963,11 +1963,18 @@ int httpd_main(int argc, char *argv[])
 #if ENABLE_FEATURE_HTTPD_SETUID
 	if (opt & OPT_SETUID) {
 		char *e;
-
-		uid = strtol(s_uid, &e, 0);
+		// FIXME: what the default group should be?
+		ugid.gid = -1;
+		ugid.uid = strtoul(s_ugid, &e, 0);
+		if (*e == ':') {
+			e++;
+			ugid.gid = strtoul(e, &e, 0);
+		}
 		if (*e != '\0') {
 			/* not integer */
-			uid = bb_xgetpwnam(s_uid);
+			if (!uidgid_get(&ugid, s_ugid))
+				bb_error_msg_and_die("unrecognized user[:group] "
+						"name '%s'", s_ugid);
 		}
 	}
 #endif
@@ -1978,8 +1985,15 @@ int httpd_main(int argc, char *argv[])
 	server = openServer();
 # ifdef CONFIG_FEATURE_HTTPD_SETUID
 	/* drop privileges */
-	if (uid > 0)
-		xsetuid(uid);
+	if (opt & OPT_SETUID) {
+		if (ugid.gid != (gid_t)-1) {
+			// FIXME: needed?
+			//if (setgroups(1, &ugid.gid) == -1)
+            		//	bb_perror_msg_and_die("setgroups");
+			xsetgid(ugid.gid);
+		}
+		xsetuid(ugid.uid);
+	}
 # endif
 #endif
 
