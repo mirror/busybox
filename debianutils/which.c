@@ -26,43 +26,20 @@ int which_main(int argc, char **argv)
 {
 	int status;
 	size_t i, count;
-	char *path_list;
+	char *path_list, *p;
 
-	if (argc <= 1 || **(argv + 1) == '-') {
+	if (argc <= 1 || argv[1][0] == '-') {
 		bb_show_usage();
 	}
 	argc--;
 
 	path_list = getenv("PATH");
 	if (path_list != NULL) {
-		size_t path_len = strlen(path_list);
-		char *new_list = NULL;
 		count = 1;
-
-		for (i = 0; i <= path_len; i++) {
-			char *this_i = &path_list[i];
-			if (*this_i == ':') {
-				/* ^::[^:] == \.: */
-				if (!i && (*(this_i + 1) == ':')) {
-					*this_i = '.';
-					continue;
-				}
-				*this_i = 0;
-				count++;
-				/* ^:[^:] == \.0 and [^:]::[^:] == 0\.0 and [^:]:$ == 0\.0 */
-				if (!i || (*(this_i + 1) == ':') || (i == path_len-1)) {
-					new_list = xrealloc(new_list, path_len += 1);
-					if (i) {
-						memmove(&new_list[i+2], &path_list[i+1], path_len-i);
-						new_list[i+1] = '.';
-						memmove(new_list, path_list, i);
-					} else {
-						memmove(&new_list[i+1], &path_list[i], path_len-i);
-						new_list[i] = '.';
-					}
-					path_list = new_list;
-				}
-			}
+		p = path_list;
+		while ((p = strchr(p, ':')) != NULL) {
+			*p++ = 0;
+			count++;
 		}
 	} else {
 		path_list = "/bin\0/sbin\0/usr/bin\0/usr/sbin\0/usr/local/bin";
@@ -73,34 +50,34 @@ int which_main(int argc, char **argv)
 	while (argc-- > 0) {
 		struct stat stat_b;
 		char *buf;
-		char *path_n;
-		int found = 0;
 
 		argv++;
-		path_n = path_list;
-		buf = *argv;
+		buf = argv[0];
 
-		/* if filename is either absolute or contains slashes,
+		/* If filename is either absolute or contains slashes,
 		 * stat it */
-		if (strchr(buf, '/') != NULL && is_executable_file(buf, &stat_b)) {
-			found++;
+		if (strchr(buf, '/')) {
+			if (is_executable_file(buf, &stat_b)) {
+				puts(buf);
+				goto next;
+			}
 		} else {
-			/* Couldn't access file and file doesn't contain slashes */
+			/* File doesn't contain slashes */
+			p = path_list;
 			for (i = 0; i < count; i++) {
-				buf = concat_path_file(path_n, *argv);
+				/* Empty component in PATH is treated as . */
+				buf = concat_path_file(p[0] ? p : ".", argv[0]);
 				if (is_executable_file(buf, &stat_b)) {
-					found++;
-					break;
+					puts(buf);
+					free(buf);
+					goto next;
 				}
 				free(buf);
-				path_n += (strlen(path_n) + 1);
+				p += strlen(p) + 1;
 			}
 		}
-		if (found) {
-			puts(buf);
-		} else {
-			status = EXIT_FAILURE;
-		}
+		status = EXIT_FAILURE;
+ next:		/* nothing */;
 	}
 	bb_fflush_stdout_and_exit(status);
 }
