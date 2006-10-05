@@ -78,7 +78,7 @@ baseline: busybox_unstripped
 
 .PHONY: objsizes
 objsizes: busybox_unstripped
-	$(SHELL) $(srctree)/scripts/objsizes
+	$(srctree)/scripts/objsizes
 
 # Documentation Targets
 .PHONY: doc

@@ -565,7 +565,7 @@ busybox-all  := $(core-y) $(libs-y)
 # Rule to link busybox - also used during CONFIG_KALLSYMS
 # May be overridden by arch/$(ARCH)/Makefile
 quiet_cmd_busybox__ ?= LINK    $@
-      cmd_busybox__ ?= scripts/trylink $(CC) -o $@ \
+      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) -o $@ \
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
       -Wl,--start-group $(busybox-all) -Wl,--end-group \
 
@@ -798,10 +798,10 @@ include/config/MARKER: scripts/basic/split-include include/autoconf.h
 	@echo '  SPLIT   include/autoconf.h -> include/config/*'
 	@scripts/basic/split-include include/autoconf.h include/config
 	@echo '  GEN     include/bbconfigopts.h'
-	@scripts/mkconfigs >include/bbconfigopts.h
+	@$(srctree)/scripts/mkconfigs >include/bbconfigopts.h
 	@$(MAKE) $(build)=scripts
 	@echo '  GEN     include/usage_compressed.h'
-	@scripts/usage_compressed include/usage_compressed.h scripts
+	@$(srctree)/scripts/usage_compressed include/usage_compressed.h scripts
 	@touch $@
 
 # Generate some files

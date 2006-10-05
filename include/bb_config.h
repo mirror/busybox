@@ -2,6 +2,12 @@
  * which depend on other symbols, which themself are off.
  * Provide them here by hand. Need a better idea. */
 
+#ifndef ENABLE_FEATURE_GUNZIP_UNCOMPRESS
+#define ENABLE_FEATURE_GUNZIP_UNCOMPRESS 0
+#define    USE_FEATURE_GUNZIP_UNCOMPRESS(...)
+#define   SKIP_FEATURE_GUNZIP_UNCOMPRESS(...) __VA_ARGS__
+#endif
+
 #ifndef ENABLE_KILLALL5
 #define ENABLE_KILLALL5 0
 #define    USE_KILLALL5(...)
