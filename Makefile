@@ -460,7 +460,7 @@ ifeq ($(dot-config),1)
 # oldconfig if changes are detected.
 -include .kconfig.d
 
-include .config
+-include .config
 
 # If .config needs to be updated, it will be done via the dependency
 # that autoconf has on .config.
@@ -909,13 +909,15 @@ endif # CONFIG_MODULES
 
 # Directories & files removed with 'make clean'
 CLEAN_DIRS  += $(MODVERDIR)
-CLEAN_FILES +=	busybox System.map \
+CLEAN_FILES +=	busybox* System.map \
                 .tmp_kallsyms* .tmp_version .tmp_busybox* .tmp_System.map
 
 # Directories & files removed with 'make mrproper'
 MRPROPER_DIRS  += include/config include2
 MRPROPER_FILES += .config .config.old include/asm .version .old_version \
-                  include/autoconf.h \
+		  include/autoconf.h \
+		  include/bbconfigopts.h \
+		  include/usage_compressed.h \
 		  .kernelrelease Module.symvers tags TAGS cscope*
 
 # clean - Delete most, but leave enough to build external modules
@@ -940,7 +942,7 @@ clean: archclean $(clean-dirs)
 #
 mrproper: rm-dirs  := $(wildcard $(MRPROPER_DIRS))
 mrproper: rm-files := $(wildcard $(MRPROPER_FILES))
-mrproper-dirs      := $(addprefix _mrproper_,Documentation/DocBook scripts)
+mrproper-dirs      := $(addprefix _mrproper_,scripts)
 
 PHONY += $(mrproper-dirs) mrproper archmrproper
 $(mrproper-dirs):
