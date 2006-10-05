@@ -4,7 +4,12 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
+NEEDED-$(CONFIG_CHATTR) = y
+NEEDED-$(LSATTR) = y
+NEEDED-$(MKE2FS) = y
+NEEDED-$(TUNE2FS) = y
+
 lib-y:=
-lib-y	+= fgetsetflags.o fgetsetversion.o pf.o iod.o mntopts.o \
+lib-$(NEEDED-y) += fgetsetflags.o fgetsetversion.o pf.o iod.o mntopts.o \
            feature.o ls.o uuid.o pe.o ostype.o ps.o hashstr.o \
            parse_num.o
