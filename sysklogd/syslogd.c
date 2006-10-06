@@ -55,7 +55,6 @@ static struct sockaddr_in remoteaddr;
 #endif
 
 /* options */
-static unsigned option_mask;
 /* Correct regardless of combination of CONFIG_xxx */
 enum {
 	OPTBIT_mark = 0, // -m
@@ -298,7 +297,7 @@ static void message(char *fmt, ...)
 	fl.l_len = 1;
 
 #ifdef CONFIG_FEATURE_IPC_SYSLOG
-	if ((option_mask & OPT_circularlog) && shbuf) {
+	if ((option_mask32 & OPT_circularlog) && shbuf) {
 		char b[1024];
 
 		va_start(arguments, fmt);
@@ -404,7 +403,7 @@ static void logMessage(int pri, char *msg)
 	/* todo: supress duplicates */
 
 #ifdef CONFIG_FEATURE_REMOTE_LOG
-	if (option_mask & OPT_remotelog) {
+	if (option_mask32 & OPT_remotelog) {
 		char line[MAXLINE + 1];
 		/* trying connect the socket */
 		if (-1 == remotefd) {
@@ -419,12 +418,12 @@ static void logMessage(int pri, char *msg)
 		}
 	}
 
-	if (option_mask & OPT_locallog)
+	if (option_mask32 & OPT_locallog)
 #endif
 	{
 		/* now spew out the message to wherever it is supposed to go */
 		if (pri == 0 || LOG_PRI(pri) < logLevel) {
-			if (option_mask & OPT_small)
+			if (option_mask32 & OPT_small)
 				message("%s %s\n", timestamp, msg);
 			else
 				message("%s %s %s %s\n", timestamp, LocalHostName, res, msg);
@@ -531,7 +530,7 @@ static void doSyslogd(void)
 	if (chmod(lfile, 0666) < 0) {
 		bb_perror_msg_and_die("cannot set permission on %s", lfile);
 	}
-	if (ENABLE_FEATURE_IPC_SYSLOG && (option_mask & OPT_circularlog)) {
+	if (ENABLE_FEATURE_IPC_SYSLOG && (option_mask32 & OPT_circularlog)) {
 		ipcsyslog_init();
 	}
 
@@ -575,26 +574,26 @@ int syslogd_main(int argc, char **argv)
 	char *p;
 
 	/* do normal option parsing */
-	option_mask = getopt32(argc, argv, OPTION_STR, OPTION_PARAM);
-	if (option_mask & OPT_mark) MarkInterval = atoi(opt_m) * 60; // -m
-	//if (option_mask & OPT_nofork) // -n
-	//if (option_mask & OPT_outfile) // -O
-	if (option_mask & OPT_loglevel) { // -l
+	getopt32(argc, argv, OPTION_STR, OPTION_PARAM);
+	if (option_mask32 & OPT_mark) MarkInterval = atoi(opt_m) * 60; // -m
+	//if (option_mask32 & OPT_nofork) // -n
+	//if (option_mask32 & OPT_outfile) // -O
+	if (option_mask32 & OPT_loglevel) { // -l
 		logLevel = atoi(opt_l);
 		/* Valid levels are between 1 and 8 */
 		if (logLevel < 1 || logLevel > 8)
 			bb_show_usage();
 	}
-	//if (option_mask & OPT_small) // -S
+	//if (option_mask32 & OPT_small) // -S
 #if ENABLE_FEATURE_ROTATE_LOGFILE
-	if (option_mask & OPT_filesize) logFileSize = atoi(opt_s) * 1024; // -s
-	if (option_mask & OPT_rotatecnt) { // -b
+	if (option_mask32 & OPT_filesize) logFileSize = atoi(opt_s) * 1024; // -s
+	if (option_mask32 & OPT_rotatecnt) { // -b
 		logFileRotate = atoi(opt_b);
 		if (logFileRotate > 99) logFileRotate = 99; 
 	}
 #endif
 #if ENABLE_FEATURE_REMOTE_LOG
-	if (option_mask & OPT_remotelog) { // -R
+	if (option_mask32 & OPT_remotelog) { // -R
 		int port = 514;
 		char *host = xstrdup(opt_R);
 		p = strchr(host, ':');
@@ -608,10 +607,10 @@ int syslogd_main(int argc, char **argv)
 		remoteaddr.sin_port = htons(port);
 		free(host);
 	}
-	//if (option_mask & OPT_locallog) // -L
+	//if (option_mask32 & OPT_locallog) // -L
 #endif
 #if ENABLE_FEATURE_IPC_SYSLOG
-	if (option_mask & OPT_circularlog) { // -C
+	if (option_mask32 & OPT_circularlog) { // -C
 		if (opt_C) {
 			int buf_size = atoi(opt_C);
 			if (buf_size >= 4)
@@ -621,8 +620,8 @@ int syslogd_main(int argc, char **argv)
 #endif
 
 	/* If they have not specified remote logging, then log locally */
-	if (ENABLE_FEATURE_REMOTE_LOG && !(option_mask & OPT_remotelog))
-		option_mask |= OPT_locallog;
+	if (ENABLE_FEATURE_REMOTE_LOG && !(option_mask32 & OPT_remotelog))
+		option_mask32 |= OPT_locallog;
 
 	/* Store away localhost's name before the fork */
 	gethostname(LocalHostName, sizeof(LocalHostName));
@@ -633,7 +632,7 @@ int syslogd_main(int argc, char **argv)
 
 	umask(0);
 
-	if (!(option_mask & OPT_nofork)) {
+	if (!(option_mask32 & OPT_nofork)) {
 #ifdef BB_NOMMU
 		vfork_daemon_rexec(0, 1, argc, argv, "-n");
 #else

@@ -2,13 +2,12 @@
 
 #include <dirent.h>
 
-static unsigned option_mask;
 // Must match constants in chpst_main!
-#define OPT_verbose  (option_mask & 0x2000)
-#define OPT_pgrp     (option_mask & 0x4000)
-#define OPT_nostdin  (option_mask & 0x8000)
-#define OPT_nostdout (option_mask & 0x10000)
-#define OPT_nostderr (option_mask & 0x20000)
+#define OPT_verbose  (option_mask32 & 0x2000)
+#define OPT_pgrp     (option_mask32 & 0x4000)
+#define OPT_nostdin  (option_mask32 & 0x8000)
+#define OPT_nostdout (option_mask32 & 0x10000)
+#define OPT_nostderr (option_mask32 & 0x20000)
 
 static char *set_user;
 static char *env_user;
@@ -224,28 +223,28 @@ int chpst_main(int argc, char **argv)
 
 	{
 		char *m,*d,*o,*p,*f,*c,*r,*t,*n;
-		option_mask = getopt32(argc, argv, "u:U:e:m:d:o:p:f:c:r:t:/:n:vP012",
+		getopt32(argc, argv, "u:U:e:m:d:o:p:f:c:r:t:/:n:vP012",
 				&set_user,&env_user,&env_dir,
 				&m,&d,&o,&p,&f,&c,&r,&t,&root,&n);
-		// if (option_mask & 0x1) // -u
-		// if (option_mask & 0x2) // -U
-		// if (option_mask & 0x4) // -e
-		if (option_mask & 0x8) limits = limitl = limita = limitd = bb_xgetularg10(m); // -m
-		if (option_mask & 0x10) limitd = bb_xgetularg10(d); // -d
-		if (option_mask & 0x20) limito = bb_xgetularg10(o); // -o
-		if (option_mask & 0x40) limitp = bb_xgetularg10(p); // -p
-		if (option_mask & 0x80) limitf = bb_xgetularg10(f); // -f
-		if (option_mask & 0x100) limitc = bb_xgetularg10(c); // -c
-		if (option_mask & 0x200) limitr = bb_xgetularg10(r); // -r
-		if (option_mask & 0x400) limitt = bb_xgetularg10(t); // -t
-		// if (option_mask & 0x800) // -/
-		if (option_mask & 0x1000) nicelvl = bb_xgetlarg_bnd_sfx(n, 10, -20, 20, NULL); // -n
+		// if (option_mask32 & 0x1) // -u
+		// if (option_mask32 & 0x2) // -U
+		// if (option_mask32 & 0x4) // -e
+		if (option_mask32 & 0x8) limits = limitl = limita = limitd = bb_xgetularg10(m); // -m
+		if (option_mask32 & 0x10) limitd = bb_xgetularg10(d); // -d
+		if (option_mask32 & 0x20) limito = bb_xgetularg10(o); // -o
+		if (option_mask32 & 0x40) limitp = bb_xgetularg10(p); // -p
+		if (option_mask32 & 0x80) limitf = bb_xgetularg10(f); // -f
+		if (option_mask32 & 0x100) limitc = bb_xgetularg10(c); // -c
+		if (option_mask32 & 0x200) limitr = bb_xgetularg10(r); // -r
+		if (option_mask32 & 0x400) limitt = bb_xgetularg10(t); // -t
+		// if (option_mask32 & 0x800) // -/
+		if (option_mask32 & 0x1000) nicelvl = bb_xgetlarg_bnd_sfx(n, 10, -20, 20, NULL); // -n
 		// The below consts should match #defines at top!
-		//if (option_mask & 0x2000) OPT_verbose = 1; // -v
-		//if (option_mask & 0x4000) OPT_pgrp = 1; // -P
-		//if (option_mask & 0x8000) OPT_nostdin = 1; // -0
-		//if (option_mask & 0x10000) OPT_nostdout = 1; // -1
-		//if (option_mask & 0x20000) OPT_nostderr = 1; // -2
+		//if (option_mask32 & 0x2000) OPT_verbose = 1; // -v
+		//if (option_mask32 & 0x4000) OPT_pgrp = 1; // -P
+		//if (option_mask32 & 0x8000) OPT_nostdin = 1; // -0
+		//if (option_mask32 & 0x10000) OPT_nostdout = 1; // -1
+		//if (option_mask32 & 0x20000) OPT_nostderr = 1; // -2
 	}
 	argv += optind;
 	if (!argv || !*argv) bb_show_usage();
@@ -311,19 +310,19 @@ static void envdir(int argc, char **argv)
 static void softlimit(int argc, char **argv)
 {
 	char *a,*c,*d,*f,*l,*m,*o,*p,*r,*s,*t;
-	option_mask = getopt32(argc, argv, "a:c:d:f:l:m:o:p:r:s:t:",
+	getopt32(argc, argv, "a:c:d:f:l:m:o:p:r:s:t:",
 			&a,&c,&d,&f,&l,&m,&o,&p,&r,&s,&t);
-	if (option_mask & 0x001) limita = bb_xgetularg10(a); // -a
-	if (option_mask & 0x002) limitc = bb_xgetularg10(c); // -c
-	if (option_mask & 0x004) limitd = bb_xgetularg10(d); // -d
-	if (option_mask & 0x008) limitf = bb_xgetularg10(f); // -f
-	if (option_mask & 0x010) limitl = bb_xgetularg10(l); // -l
-	if (option_mask & 0x020) limits = limitl = limita = limitd = bb_xgetularg10(m); // -m
-	if (option_mask & 0x040) limito = bb_xgetularg10(o); // -o
-	if (option_mask & 0x080) limitp = bb_xgetularg10(p); // -p
-	if (option_mask & 0x100) limitr = bb_xgetularg10(r); // -r
-	if (option_mask & 0x200) limits = bb_xgetularg10(s); // -s
-	if (option_mask & 0x400) limitt = bb_xgetularg10(t); // -t
+	if (option_mask32 & 0x001) limita = bb_xgetularg10(a); // -a
+	if (option_mask32 & 0x002) limitc = bb_xgetularg10(c); // -c
+	if (option_mask32 & 0x004) limitd = bb_xgetularg10(d); // -d
+	if (option_mask32 & 0x008) limitf = bb_xgetularg10(f); // -f
+	if (option_mask32 & 0x010) limitl = bb_xgetularg10(l); // -l
+	if (option_mask32 & 0x020) limits = limitl = limita = limitd = bb_xgetularg10(m); // -m
+	if (option_mask32 & 0x040) limito = bb_xgetularg10(o); // -o
+	if (option_mask32 & 0x080) limitp = bb_xgetularg10(p); // -p
+	if (option_mask32 & 0x100) limitr = bb_xgetularg10(r); // -r
+	if (option_mask32 & 0x200) limits = bb_xgetularg10(s); // -s
+	if (option_mask32 & 0x400) limitt = bb_xgetularg10(t); // -t
 	argv += optind;
 	if (!argv[0]) bb_show_usage();
 	slimit();

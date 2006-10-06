@@ -34,8 +34,7 @@ typedef int (*cmp_t)(procps_status_t *P, procps_status_t *Q);
 
 static procps_status_t *top;   /* Hehe */
 static int ntop;
-static unsigned option_mask;
-#define OPT_BATCH_MODE (option_mask & 0x4)
+#define OPT_BATCH_MODE (option_mask32 & 0x4)
 
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 static int pid_sort(procps_status_t *P, procps_status_t *Q)
@@ -398,11 +397,11 @@ int top_main(int argc, char **argv)
 	/* do normal option parsing */
 	interval = 5;
 	opt_complementary = "-";
-	option_mask = getopt32(argc, argv, "d:n:b", 
+	getopt32(argc, argv, "d:n:b", 
 		&sinterval, &siterations);
-	if (option_mask & 0x1) interval = atoi(sinterval); // -d
-	if (option_mask & 0x2) iterations = atoi(siterations); // -n
-	//if (option_mask & 0x4) // -b
+	if (option_mask32 & 0x1) interval = atoi(sinterval); // -d
+	if (option_mask32 & 0x2) iterations = atoi(siterations); // -n
+	//if (option_mask32 & 0x4) // -b
 
 	/* change to /proc */
 	xchdir("/proc");

@@ -23,6 +23,12 @@ static char *fileconf = "/etc/dnsd.conf";
 #define LOCK_FILE       "/var/run/dnsd.lock"
 #define LOG_FILE        "/var/log/dnsd.log"
 
+// Must matct getopt32 call
+#define OPT_daemon  (option_mask32 & 0x10)
+#define OPT_verbose (option_mask32 & 0x20)
+
+//#define DEBUG 1
+
 enum {
 	MAX_HOST_LEN = 16,      // longest host name allowed is 15
 	IP_STRING_LEN = 18,     // .xxx.xxx.xxx.xxx\0
@@ -70,7 +76,8 @@ struct dns_entry {		// element of known name, ip address and reversed ip address
 };
 
 static struct dns_entry *dnsentry = NULL;
-static int daemonmode = 0;
+// FIXME! unused! :(
+static int daemonmode;
 static uint32_t ttl = DEFAULT_TTL;
 
 /*
@@ -79,7 +86,7 @@ static uint32_t ttl = DEFAULT_TTL;
 static void convname(char *a, uint8_t *q)
 {
 	int i = (q[0] == '.') ? 0 : 1;
-	for(; i < MAX_HOST_LEN-1 && *q; i++, q++)
+	for (; i < MAX_HOST_LEN-1 && *q; i++, q++)
 		a[i] = tolower(*q);
 	a[0] = i - 1;
 	a[i] = 0;
@@ -91,9 +98,10 @@ static void convname(char *a, uint8_t *q)
 static void undot(uint8_t * rip)
 {
 	int i = 0, s = 0;
-	while(rip[i]) i++;
-	for(--i; i >= 0; i--) {
-		if(rip[i] == '.') {
+	while (rip[i])
+		i++;
+	for (--i; i >= 0; i--) {
+		if (rip[i] == '.') {
 			rip[i] = s;
 			s = 0;
 		} else s++;
@@ -124,41 +132,42 @@ static void log_message(char *filename, char *message)
  * converting to a length/string substring for that label.
  */
 
-static int getfileentry(FILE * fp, struct dns_entry *s, int verb)
+static int getfileentry(FILE * fp, struct dns_entry *s)
 {
 	unsigned int a,b,c,d;
 	char *r, *name;
 
-restart:
-	if(!(r = bb_get_line_from_file(fp)))
+ restart:
+	r = bb_get_line_from_file(fp);
+	if (!r)
 		return -1;
-	while(*r == ' ' || *r == '\t') {
+	while (*r == ' ' || *r == '\t') {
 		r++;
-		if(!*r || *r == '#' || *r == '\n')
+		if (!*r || *r == '#' || *r == '\n')
 			goto restart; /* skipping empty/blank and commented lines  */
 	}
 	name = r;
-	while(*r != ' ' && *r != '\t')
+	while (*r != ' ' && *r != '\t')
 		r++;
 	*r++ = 0;
-	if(sscanf(r,"%u.%u.%u.%u",&a,&b,&c,&d) != 4)
-			goto restart; /* skipping wrong lines */
+	if (sscanf(r, "%u.%u.%u.%u", &a, &b, &c, &d) != 4)
+		goto restart; /* skipping wrong lines */
 
-	sprintf(s->ip,"%u.%u.%u.%u",a,b,c,d);
-	sprintf(s->rip,".%u.%u.%u.%u",d,c,b,a);
+	sprintf(s->ip, "%u.%u.%u.%u", a, b, c, d);
+	sprintf(s->rip, ".%u.%u.%u.%u", d, c, b, a);
 	undot((uint8_t*)s->rip);
 	convname(s->name,(uint8_t*)name);
 
-	if(verb)
-		fprintf(stderr,"\tname:%s, ip:%s\n",&(s->name[1]),s->ip);
+	if (OPT_verbose)
+		fprintf(stderr, "\tname:%s, ip:%s\n", &(s->name[1]),s->ip);
 
-	return 0; /* warningkiller */
+	return 0;
 }
 
 /*
  * Read hostname/IP records from file
  */
-static void dnsentryinit(int verb)
+static void dnsentryinit(void)
 {
 	FILE *fp;
 	struct dns_entry *m, *prev;
@@ -170,7 +179,7 @@ static void dnsentryinit(int verb)
 		m = xmalloc(sizeof(struct dns_entry));
 
 		m->next = NULL;
-		if (getfileentry(fp, m, verb))
+		if (getfileentry(fp, m))
 			break;
 
 		if (prev == NULL)
@@ -224,28 +233,32 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 		char *p,*q;
 		q = (char *)&(qs[1]);
 		p = &(d->name[1]);
-		fprintf(stderr, "\ntest: %d <%s> <%s> %d", strlen(p), p, q, strlen(q));
+		fprintf(stderr, "\n%s: %d/%d p:%s q:%s %d", 
+			__FUNCTION__, strlen(p), (int)(d->name[0]), p, q, strlen(q));
 #endif
 		if (type == REQ_A) { /* search by host name */
-			for(i = 1; i <= (int)(d->name[0]); i++)
-				if(tolower(qs[i]) != d->name[i])
-					continue;
+			for (i = 1; i <= (int)(d->name[0]); i++)
+				if (tolower(qs[i]) != d->name[i])
+					break;
+			if (i > (int)(d->name[0])) {
 #ifdef DEBUG
-			fprintf(stderr, " OK");
+				fprintf(stderr, " OK");
 #endif
-			strcpy((char *)as, d->ip);
+				strcpy((char *)as, d->ip);
 #ifdef DEBUG
-			fprintf(stderr, " %s ", as);
+				fprintf(stderr, " as:%s\n", as);
 #endif
 					return 0;
-				}
-		else if (type == REQ_PTR) { /* search by IP-address */
+			}
+		} else 
+		if (type == REQ_PTR) { /* search by IP-address */
 			if (!strncmp((char*)&d->rip[1], (char*)&qs[1], strlen(d->rip)-1)) {
 				strcpy((char *)as, d->name);
 				return 0;
 			}
 		}
-	} while ((d = d->next) != NULL);
+		d = d->next;
+	} while (d);
 	return -1;
 }
 
@@ -253,7 +266,7 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 /*
  * Decode message and generate answer
  */
-#define eret(s) do { fprintf (stderr, "%s\n", s); return -1; } while (0)
+#define eret(s) do { fputs(s, stderr); return -1; } while (0)
 static int process_packet(uint8_t * buf)
 {
 	struct dns_head *head;
@@ -269,13 +282,13 @@ static int process_packet(uint8_t * buf)
 
 	head = (struct dns_head *)buf;
 	if (head->nquer == 0)
-		eret("no queries");
+		eret("no queries\n");
 
-	if ((head->flags & 0x8000))
-		eret("ignoring response packet");
+	if (head->flags & 0x8000)
+		eret("ignoring response packet\n");
 
 	from = (void *)&head[1];	//  start of query string
-	next = answb = from + strlen((char *)&head[1]) + 1 + sizeof(struct dns_prop);   // where to append answer block
+	next = answb = from + strlen((char *)from) + 1 + sizeof(struct dns_prop);   // where to append answer block
 
 	outr.rlen = 0;			// may change later
 	outr.r = NULL;
@@ -299,9 +312,8 @@ static int process_packet(uint8_t * buf)
 		goto empty_packet;
 
 	// We have a standard query
-
-	log_message(LOG_FILE, (char *)head);
-	lookup_result = table_lookup(type, answstr, (uint8_t*)(&head[1]));
+	log_message(LOG_FILE, (char *)from);
+	lookup_result = table_lookup(type, answstr, (uint8_t*)from);
 	if (lookup_result != 0) {
 		outr.flags = 3 | 0x0400;	//name do not exist and auth
 		goto empty_packet;
@@ -335,7 +347,7 @@ static int process_packet(uint8_t * buf)
 	memcpy(next, (void *)answstr, outr.rlen);
 	next += outr.rlen;
 
-      empty_packet:
+ empty_packet:
 
 	flags = ntohs(head->flags);
 	// clear rcode and RA, set responsebit and our new flags
@@ -358,35 +370,31 @@ static void interrupt(int x)
 	exit(2);
 }
 
-#define is_daemon()  (flags&16)
-#define is_verbose() (flags&32)
-//#define DEBUG 1
-
 int dnsd_main(int argc, char **argv)
 {
 	int udps;
 	uint16_t port = 53;
 	uint8_t buf[MAX_PACK_LEN];
-	unsigned long flags = 0;
 	char *listen_interface = "0.0.0.0";
-	char *sttl=NULL, *sport=NULL;
+	char *sttl, *sport;
 
-	if(argc > 1)
-		flags = getopt32(argc, argv, "i:c:t:p:dv", &listen_interface, &fileconf, &sttl, &sport);
-	if(sttl)
-		if(!(ttl = atol(sttl)))
+	getopt32(argc, argv, "i:c:t:p:dv", &listen_interface, &fileconf, &sttl, &sport);
+	//if (option_mask32 & 0x1) // -i
+	//if (option_mask32 & 0x2) // -c
+	if (option_mask32 & 0x4) // -t
+		if (!(ttl = atol(sttl)))
 			bb_show_usage();
-	if(sport)
-		if(!(port = atol(sport)))
+	if (option_mask32 & 0x8) // -p
+		if (!(port = atol(sport)))
 			bb_show_usage();
 
-	if(is_verbose()) {
-		fprintf(stderr,"listen_interface: %s\n", listen_interface);
-		fprintf(stderr,"ttl: %d, port: %d\n", ttl, port);
-		fprintf(stderr,"fileconf: %s\n", fileconf);
+	if (OPT_verbose) {
+		bb_info_msg("listen_interface: %s", listen_interface);
+		bb_info_msg("ttl: %d, port: %d", ttl, port);
+		bb_info_msg("fileconf: %s", fileconf);
 	}
 
-	if(is_daemon())
+	if (OPT_daemon)
 #ifdef BB_NOMMU
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(1, 0, argc, argv, "-d");
@@ -394,7 +402,7 @@ int dnsd_main(int argc, char **argv)
 		xdaemon(1, 0);
 #endif
 
-	dnsentryinit(is_verbose());
+	dnsentryinit();
 
 	signal(SIGINT, interrupt);
 	signal(SIGPIPE, SIG_IGN);
@@ -417,20 +425,20 @@ int dnsd_main(int argc, char **argv)
 		FD_ZERO(&fdset);
 		FD_SET(udps, &fdset);
 		// Block until a message arrives
-		if((r = select(udps + 1, &fdset, NULL, NULL, NULL)) < 0)
+		r = select(udps + 1, &fdset, NULL, NULL, NULL);
+		if (r < 0)
 			bb_perror_msg_and_die("select error");
-		else
-		if(r == 0)
+		if (r == 0)
 			bb_perror_msg_and_die("select spurious return");
 
-		/* Can this test ever be false? */
+		/* Can this test ever be false? - yes */
 		if (FD_ISSET(udps, &fdset)) {
 			struct sockaddr_in from;
 			int fromlen = sizeof(from);
 			r = recvfrom(udps, buf, sizeof(buf), 0,
 				     (struct sockaddr *)&from,
 				     (void *)&fromlen);
-			if(is_verbose())
+			if (OPT_verbose)
 				fprintf(stderr, "\n--- Got UDP  ");
 			log_message(LOG_FILE, "\n--- Got UDP  ");
 
@@ -445,9 +453,7 @@ int dnsd_main(int argc, char **argv)
 					       r, 0, (struct sockaddr *)&from,
 					       fromlen);
 			}
-		}		// end if
-	}			// end while
+		} // end if
+	} // end while
 	return 0;
 }
-
-

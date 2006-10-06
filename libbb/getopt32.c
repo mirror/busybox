@@ -302,6 +302,8 @@ static const struct option bb_default_long_options[] = {
 const struct option *applet_long_options = bb_default_long_options;
 #endif
 
+uint32_t option_mask32;
+
 uint32_t
 getopt32(int argc, char **argv, const char *applet_opts, ...)
 {
@@ -512,5 +514,7 @@ loop_arg_is_opt:
 	argc -= optind;
 	if (argc < min_arg || (max_arg >= 0 && argc > max_arg))
 		bb_show_usage();
+
+	option_mask32 = flags;
 	return flags;
 }

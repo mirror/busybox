@@ -89,7 +89,6 @@ struct interfaces_file_t
 	struct mapping_defn_t *mappings;
 };
 
-static unsigned option_mask;
 #define OPTION_STR "anvf" USE_FEATURE_IFUPDOWN_MAPPING("m") "i:"
 enum {
 	OPT_do_all = 0x1,
@@ -98,11 +97,11 @@ enum {
 	OPT_force = 0x8,
 	OPT_no_mappings = 0x10,
 };
-#define DO_ALL (option_mask & OPT_do_all)
-#define NO_ACT (option_mask & OPT_no_act)
-#define VERBOSE (option_mask & OPT_verbose)
-#define FORCE (option_mask & OPT_force)
-#define NO_MAPPINGS (option_mask & OPT_no_mappings)
+#define DO_ALL (option_mask32 & OPT_do_all)
+#define NO_ACT (option_mask32 & OPT_no_act)
+#define VERBOSE (option_mask32 & OPT_verbose)
+#define FORCE (option_mask32 & OPT_force)
+#define NO_MAPPINGS (option_mask32 & OPT_no_mappings)
 
 static char **__myenviron;
 
@@ -881,10 +880,10 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
 
 static int doit(char *str)
 {
-	if (option_mask & (OPT_no_act|OPT_verbose)) {
+	if (option_mask32 & (OPT_no_act|OPT_verbose)) {
 		puts(str);
 	}
-	if (!(option_mask & OPT_no_act)) {
+	if (!(option_mask32 & OPT_no_act)) {
 		pid_t child;
 		int status;
 
@@ -1088,7 +1087,7 @@ int ifupdown_main(int argc, char **argv)
 		cmds = iface_down;
 	}
 
-	option_mask = getopt32(argc, argv, OPTION_STR, &interfaces);
+	getopt32(argc, argv, OPTION_STR, &interfaces);
 	if (argc - optind > 0) {
 		if (DO_ALL) bb_show_usage();
 	} else

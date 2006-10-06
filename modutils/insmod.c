@@ -693,7 +693,6 @@ enum { STRVERSIONLEN = 32 };
 
 /*======================================================================*/
 
-static unsigned option_mask;
 #define OPTION_STR "sLo:fkvqx" USE_FEATURE_INSMOD_LOAD_MAP("m")
 enum {
 	OPT_s = 0x1, // -s /* log to syslog */
@@ -713,13 +712,13 @@ enum {
 	OPT_x = 0x80, // -x /* do not export externs */
 	OPT_m = 0x100, // -m /* print module load map */
 };
-#define flag_force_load (option_mask & OPT_f)
-#define flag_autoclean (option_mask & OPT_k)
-#define flag_verbose (option_mask & OPT_v)
-#define flag_quiet (option_mask & OPT_q)
-#define flag_noexport (option_mask & OPT_x)
+#define flag_force_load (option_mask32 & OPT_f)
+#define flag_autoclean (option_mask32 & OPT_k)
+#define flag_verbose (option_mask32 & OPT_v)
+#define flag_quiet (option_mask32 & OPT_q)
+#define flag_noexport (option_mask32 & OPT_x)
 #ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
-#define flag_print_load_map (option_mask & OPT_m)
+#define flag_print_load_map (option_mask32 & OPT_m)
 #else
 #define flag_print_load_map 0
 #endif
@@ -3983,8 +3982,8 @@ int insmod_main( int argc, char **argv)
 	struct utsname myuname;
 
 	/* Parse any options */
-	option_mask = getopt32(argc, argv, OPTION_STR,	&opt_o);
-	if (option_mask & OPT_o) { // -o /* name the output module */
+	getopt32(argc, argv, OPTION_STR, &opt_o);
+	if (option_mask32 & OPT_o) { // -o /* name the output module */
 		free(m_name);
 		m_name = xstrdup(opt_o);
 	}

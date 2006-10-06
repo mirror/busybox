@@ -206,9 +206,10 @@ extern void xsetgid(gid_t gid);
 extern void xsetuid(uid_t uid);
 extern off_t fdlength(int fd);
 
-#define BB_GETOPT_ERROR 0x80000000UL
+enum { BB_GETOPT_ERROR = 0x80000000 };
 extern const char *opt_complementary;
 extern const struct option *applet_long_options;
+extern uint32_t option_mask32;
 extern uint32_t getopt32(int argc, char **argv, const char *applet_opts, ...);
 
 extern int bb_vfprintf(FILE * __restrict stream, const char * __restrict format,
