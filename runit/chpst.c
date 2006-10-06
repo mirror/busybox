@@ -91,7 +91,7 @@ static void edir(const char *directory_name)
 				bb_perror_msg_and_die("read %s/%s", directory_name, /* was exiting 111 */
 						d->d_name);
 			if (size == 0) {
-				xsetenv(d->d_name, "");
+				unsetenv(d->d_name);
 				continue;
 			}
 			buf[size] = '\n';
@@ -247,6 +247,7 @@ int chpst_main(int argc, char **argv)
 		//if (option_mask & 0x10000) OPT_nostdout = 1; // -1
 		//if (option_mask & 0x20000) OPT_nostderr = 1; // -2
 	}
+	argv += optind;
 	if (!argv || !*argv) bb_show_usage();
 	
 	if (OPT_pgrp) setsid();
