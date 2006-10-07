@@ -1356,7 +1356,7 @@ static node *mk_splitter(char *s, tsplitter *spl)
 	re = &spl->re[0];
 	ire = &spl->re[1];
 	n = &spl->n;
-	if ((n->info && OPCLSMASK) == OC_REGEXP) {
+	if ((n->info & OPCLSMASK) == OC_REGEXP) {
 		regfree(re);
 		regfree(ire);
 	}
