@@ -30,6 +30,8 @@
 #endif
 
 struct host_info {
+	// May be used if we ever will want to free() all xstrdup()s...
+	/* char *allocated; */
 	char *host;
 	int port;
 	char *path;
@@ -136,14 +138,16 @@ int wget_main(int argc, char **argv)
 	struct sockaddr_in s_in;
 	llist_t *headers_llist = NULL;
 
+	/* server.allocated = target.allocated = NULL; */
+
 	FILE *sfp = NULL;               /* socket to web/ftp server         */
 	FILE *dfp = NULL;               /* socket to ftp server (data)      */
 	char *fname_out = NULL;         /* where to direct output (-O)      */
 	int got_clen = 0;               /* got content-length: from server  */
 	int output_fd = -1;
 	int use_proxy = 1;              /* Use proxies if env vars are set  */
-	char *proxy_flag = "on";        /* Use proxies if env vars are set  */
-	char *user_agent = "Wget";      /* Content of the "User-Agent" header field */
+	const char *proxy_flag = "on";  /* Use proxies if env vars are set  */
+	const char *user_agent = "Wget";/* Content of the "User-Agent" header field */
 
 	/*
 	 * Crack command line.
@@ -185,7 +189,7 @@ int wget_main(int argc, char **argv)
 	if (use_proxy) {
 		proxy = getenv(target.is_ftp ? "ftp_proxy" : "http_proxy");
 		if (proxy && *proxy) {
-			parse_url(xstrdup(proxy), &server);
+			parse_url(proxy, &server);
 		} else {
 			use_proxy = 0;
 		}
@@ -306,14 +310,14 @@ read_response:
 			if (fgets(buf, sizeof(buf), sfp) == NULL)
 				bb_error_msg_and_die("no response from server");
 
-			for (s = buf ; *s != '\0' && !isspace(*s) ; ++s)
-				;
-			for ( ; isspace(*s) ; ++s)
-				;
+			s = buf;
+			while (*s != '\0' && !isspace(*s)) ++s;
+			while (isspace(*s)) ++s;
 			switch (status = atoi(s)) {
 				case 0:
 				case 100:
-					while (gethdr(buf, sizeof(buf), sfp, &n) != NULL);
+					while (gethdr(buf, sizeof(buf), sfp, &n) != NULL)
+						/* eat all remaining headers */;
 					goto read_response;
 				case 200:
 					break;
@@ -328,7 +332,7 @@ read_response:
 					/*FALLTHRU*/
 				default:
 					chomp(buf);
-					bb_error_msg_and_die("server returned error %d: %s", atoi(s), buf);
+					bb_error_msg_and_die("server returned error %s: %s", s, buf);
 			}
 
 			/*
@@ -351,10 +355,10 @@ read_response:
 				}
 				if (strcasecmp(buf, "location") == 0) {
 					if (s[0] == '/')
-						// FIXME: this is dirty
-						target.path = xstrdup(s+1);
+						/* free(target.allocated); */
+						target.path = /* target.allocated = */ xstrdup(s+1);
 					else {
-						parse_url(xstrdup(s), &target);
+						parse_url(s, &target);
 						if (use_proxy == 0) {
 							server.host = target.host;
 							server.port = target.port;
@@ -368,9 +372,9 @@ read_response:
 		} while(status >= 300);
 
 		dfp = sfp;
-	}
-	else
-	{
+
+	} else {
+
 		/*
 		 *  FTP session
 		 */
@@ -499,9 +503,11 @@ read_response:
 }
 
 
-static void parse_url(char *url, struct host_info *h)
+static void parse_url(char *src_url, struct host_info *h)
 {
-	char *p, *cp, *sp, *up, *pp;
+	char *url, *p, *cp, *sp, *up, *pp;
+
+	/* h->allocated = */ url = xstrdup(src_url);
 
 	if (strncmp(url, "http://", 7) == 0) {
 		h->port = bb_lookup_port("http", "tcp", 80);
@@ -517,7 +523,7 @@ static void parse_url(char *url, struct host_info *h)
 	// FYI:
 	// "Real" wget 'http://busybox.net?var=a/b' sends this request:
 	//   'GET /?var=a/b HTTP 1.0'
-	//   and saves 'index.html?var=a%2Fb'
+	//   and saves 'index.html?var=a%2Fb' (we save 'b')
 	// wget 'http://busybox.net?login=john@doe':
 	//   request: 'GET /?login=john@doe HTTP/1.0'
 	//   saves: 'index.html?login=john@doe' (we save ?login=john@doe)
