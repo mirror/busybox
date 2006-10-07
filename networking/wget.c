@@ -13,22 +13,6 @@
 #include "busybox.h"
 #include <getopt.h>	/* for struct option */
 
-#ifdef CONFIG_LFS
-# define FILEOFF_TYPE off64_t
-# define FILEOFF_FMT "%lld"
-# define LSEEK lseek64
-# define STRTOOFF strtoll
-# define SAFE_STRTOOFF safe_strtoll
-/* stat64 etc as needed...  */
-#else
-# define FILEOFF_TYPE off_t
-# define FILEOFF_FMT "%ld"
-# define LSEEK lseek
-# define STRTOOFF strtol
-# define SAFE_STRTOOFF safe_strtol
-/* Do we need to undefine O_LARGEFILE? */
-#endif
-
 struct host_info {
 	// May be used if we ever will want to free() all xstrdup()s...
 	/* char *allocated; */

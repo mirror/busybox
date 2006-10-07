@@ -17,6 +17,7 @@ static const struct suffix_mult dd_suffixes[] = {
 	{ "b", 512 },
 	{ "kD", 1000 },
 	{ "k", 1024 },
+	{ "K", 1024 },	// compat with coreutils dd
 	{ "MD", 1000000 },
 	{ "M", 1048576 },
 	{ "GD", 1000000000 },
@@ -24,25 +25,26 @@ static const struct suffix_mult dd_suffixes[] = {
 	{ NULL, 0 }
 };
 
-static size_t out_full, out_part, in_full, in_part;
+static FILEOFF_TYPE out_full, out_part, in_full, in_part;
 
 static void dd_output_status(int ATTRIBUTE_UNUSED cur_signal)
 {
-	bb_fprintf(stderr, "%ld+%ld records in\n%ld+%ld records out\n",
-			(long)in_full, (long)in_part,
-			(long)out_full, (long)out_part);
+	bb_fprintf(stderr, FILEOFF_FMT"+"FILEOFF_FMT" records in\n"
+			FILEOFF_FMT"+"FILEOFF_FMT" records out\n",
+			in_full, in_part,
+			out_full, out_part);
 }
 
 int dd_main(int argc, char **argv)
 {
-#define sync_flag	(1<<0)
-#define noerror		(1<<1)
-#define trunc_flag	(1<<2)
+#define sync_flag    (1<<0)
+#define noerror      (1<<1)
+#define trunc_flag   (1<<2)
 #define twobufs_flag (1<<3)
 	int flags = trunc_flag;
-	size_t count = -1, oc = 0, ibs = 512, obs = 512;
+	size_t oc = 0, ibs = 512, obs = 512;
 	ssize_t n;
-	off_t seek = 0, skip = 0;
+	FILEOFF_TYPE seek = 0, skip = 0, count = MAX_FILEOFF_TYPE;
 	int oflag, ifd, ofd;
 	const char *infile = NULL, *outfile = NULL;
 	char *ibuf, *obuf;
@@ -58,6 +60,7 @@ int dd_main(int argc, char **argv)
 	}
 
 	for (n = 1; n < argc; n++) {
+		// FIXME: make them capable of eating LARGE numbers
 		if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("ibs=", argv[n], 4)) {
 			ibs = bb_xparse_number(argv[n]+4, dd_suffixes);
 			flags |= twobufs_flag;
@@ -80,7 +83,7 @@ int dd_main(int argc, char **argv)
 			ibuf = argv[n]+5;
 			while (1) {
 				if (!strncmp("notrunc", ibuf, 7)) {
-					flags ^= trunc_flag;
+					flags &= ~trunc_flag;
 					ibuf += 7;
 				} else if (!strncmp("sync", ibuf, 4)) {
 					flags |= sync_flag;
@@ -105,14 +108,14 @@ int dd_main(int argc, char **argv)
 		obuf = ibuf;
 
 	if (infile != NULL)
-		ifd = xopen(infile, O_RDONLY);
+		ifd = xopen(infile, O_RDONLY | (O_LARGEFILE * ENABLE_LFS));
 	else {
 		ifd = STDIN_FILENO;
 		infile = bb_msg_standard_input;
 	}
 
 	if (outfile != NULL) {
-		oflag = O_WRONLY | O_CREAT;
+		oflag = O_WRONLY | O_CREAT | (O_LARGEFILE * ENABLE_LFS);
 
 		if (!seek && (flags & trunc_flag))
 			oflag |= O_TRUNC;
@@ -134,7 +137,7 @@ int dd_main(int argc, char **argv)
 	}
 
 	if (skip) {
-		if (lseek(ifd, skip * ibs, SEEK_CUR) < 0) {
+		if (LSEEK(ifd, skip * ibs, SEEK_CUR) < 0) {
 			while (skip-- > 0) {
 				n = safe_read(ifd, ibuf, ibs);
 				if (n < 0)
@@ -146,7 +149,7 @@ int dd_main(int argc, char **argv)
 	}
 
 	if (seek) {
-		if (lseek(ofd, seek * obs, SEEK_CUR) < 0)
+		if (LSEEK(ofd, seek * obs, SEEK_CUR) < 0)
 			goto die_outfile;
 	}
 

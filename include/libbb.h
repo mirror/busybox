@@ -61,6 +61,31 @@
 #define  PATH_MAX         256
 #endif
 
+/* Large file support */
+#ifdef CONFIG_LFS
+# define FILEOFF_TYPE off64_t
+# define FILEOFF_FMT "%lld"
+# define LSEEK lseek64
+# define STAT stat64
+# define LSTAT lstat64
+# define STRUCT_STAT struct stat64
+# define STRTOOFF strtoll
+# define SAFE_STRTOOFF safe_strtoll
+#else
+# define FILEOFF_TYPE off_t
+# define FILEOFF_FMT "%ld"
+# define LSEEK lseek
+# define STAT stat
+# define LSTAT lstat
+# define STRUCT_STAT struct stat
+# define STRTOOFF strtol
+# define SAFE_STRTOOFF safe_strtol
+/* Do we need to undefine O_LARGEFILE? */
+#endif
+/* scary. better ideas? (but do *test* them first!) */
+#define MAX_FILEOFF_TYPE \
+	((FILEOFF_TYPE)~((FILEOFF_TYPE)1 << (sizeof(FILEOFF_TYPE)*8-1)))
+
 /* Some useful definitions */
 #undef FALSE
 #define FALSE   ((int) 0)

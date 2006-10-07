@@ -97,14 +97,6 @@ static const char default_path_httpd_conf[] = "/etc";
 static const char httpd_conf[] = "httpd.conf";
 static const char home[] = "./";
 
-#if ENABLE_LFS
-# define cont_l_fmt "%lld"
-# define cont_l_type (long long)
-#else
-# define cont_l_fmt "%ld"
-# define cont_l_type (long)
-#endif
-
 #define TIMEOUT 60
 
 // Note: busybox xfuncs are not used because we want the server to keep running
@@ -927,8 +919,8 @@ static int sendHeaders(HttpResponseNum responseNum)
 
 	if (config->ContentLength != -1) {    /* file */
 		strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&config->last_mod));
-		len += sprintf(buf+len, "Last-Modified: %s\r\n%s " cont_l_fmt "\r\n",
-						      timeStr, Content_length, cont_l_type config->ContentLength);
+		len += sprintf(buf+len, "Last-Modified: %s\r\n%s "FILEOFF_FMT"\r\n",
+				timeStr, Content_length, (FILEOFF_TYPE) config->ContentLength);
 	}
 	strcat(buf, "\r\n");
 	len += 2;

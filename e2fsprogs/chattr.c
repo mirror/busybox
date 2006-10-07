@@ -53,14 +53,6 @@ static unsigned long af;
 static unsigned long rf;
 static unsigned long sf;
 
-#ifdef CONFIG_LFS
-# define LSTAT lstat64
-# define STRUCT_STAT struct stat64
-#else
-# define LSTAT lstat
-# define STRUCT_STAT struct stat
-#endif
-
 struct flags_char {
 	unsigned long flag;
 	char optchar;

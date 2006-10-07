@@ -41,14 +41,6 @@
 #define OPT_GENERATION 16
 static int flags;
 
-#ifdef CONFIG_LFS
-# define LSTAT lstat64
-# define STRUCT_STAT struct stat64
-#else
-# define LSTAT lstat
-# define STRUCT_STAT struct stat
-#endif
-
 static void list_attributes(const char *name)
 {
 	unsigned long fsflags;
