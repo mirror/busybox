@@ -351,6 +351,7 @@ read_response:
 				}
 				if (strcasecmp(buf, "location") == 0) {
 					if (s[0] == '/')
+						// FIXME: this is dirty
 						target.path = xstrdup(s+1);
 					else {
 						parse_url(xstrdup(s), &target);
@@ -500,25 +501,48 @@ read_response:
 
 static void parse_url(char *url, struct host_info *h)
 {
-	char *cp, *sp, *up, *pp;
+	char *p, *cp, *sp, *up, *pp;
 
 	if (strncmp(url, "http://", 7) == 0) {
 		h->port = bb_lookup_port("http", "tcp", 80);
 		h->host = url + 7;
 		h->is_ftp = 0;
 	} else if (strncmp(url, "ftp://", 6) == 0) {
-		h->port = bb_lookup_port("ftp", "tfp", 21);
+		h->port = bb_lookup_port("ftp", "tcp", 21);
 		h->host = url + 6;
 		h->is_ftp = 1;
 	} else
 		bb_error_msg_and_die("not an http or ftp url: %s", url);
 
+	// FYI:
+	// "Real" wget 'http://busybox.net?var=a/b' sends this request:
+	//   'GET /?var=a/b HTTP 1.0'
+	//   and saves 'index.html?var=a%2Fb'
+	// wget 'http://busybox.net?login=john@doe':
+	//   request: 'GET /?login=john@doe HTTP/1.0'
+	//   saves: 'index.html?login=john@doe' (we save ?login=john@doe)
+	// wget 'http://busybox.net#test/test':
+	//   request: 'GET / HTTP/1.0'
+	//   saves: 'index.html' (we save 'test')
+	//
+	// We also don't add unique .N suffix if file exists...
 	sp = strchr(h->host, '/');
-	if (sp) {
+	p = strchr(h->host, '?'); if (!sp || (p && sp > p)) sp = p;
+	p = strchr(h->host, '#'); if (!sp || (p && sp > p)) sp = p;
+	if (!sp) {
+		h->path = "";
+	} else if (*sp == '/') {
 		*sp++ = '\0';
 		h->path = sp;
-	} else
-		h->path = xstrdup("");
+	} else { // '#' or '?'
+		// http://busybox.net?login=john@doe is a valid URL
+		// memmove converts to:
+		// http:/busybox.nett?login=john@doe...
+		memmove(h->host-1, h->host, sp - h->host);
+		h->host--;
+		sp[-1] = '\0';
+		h->path = sp;
+	}
 
 	up = strrchr(h->host, '@');
 	if (up != NULL) {
@@ -535,7 +559,7 @@ static void parse_url(char *url, struct host_info *h)
 		char *ep;
 
 		ep = h->host + 1;
-		while (*ep == ':' || isxdigit (*ep))
+		while (*ep == ':' || isxdigit(*ep))
 			ep++;
 		if (*ep == ']') {
 			h->host++;
