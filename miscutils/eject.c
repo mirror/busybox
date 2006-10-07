@@ -14,7 +14,6 @@
  */
 
 #include "busybox.h"
-#include <mntent.h>
 
 /* various defines swiped from linux/cdrom.h */
 #define CDROMCLOSETRAY            0x5319  /* pendant of CDROMEJECT  */
@@ -30,23 +29,20 @@ int eject_main(int argc, char **argv)
 {
 	unsigned long flags;
 	char *device;
-	struct mntent *m;
 	int dev, cmd;
 
 	opt_complementary = "?:?1:t--T:T--t";
 	flags = getopt32(argc, argv, "tT");
 	device = argv[optind] ? : "/dev/cdrom";
 
-	// FIXME: what if something is mounted OVER our cdrom?
-	// We will unmount something else??!
-	// What if cdrom is mounted many times?
-	m = find_mount_point(device, bb_path_mtab_file);
-	if (m) {
-		if (umount(m->mnt_dir))
-			bb_error_msg_and_die("can't umount %s", device);
-		if (ENABLE_FEATURE_MTAB_SUPPORT)
-			erase_mtab(m->mnt_fsname);
-	}
+	// We used to do "umount <device>" here, but it was buggy
+	// if something was mounted OVER cdrom and
+	// if cdrom is mounted many times.
+	//
+	// This works equally well (or better):
+	// #!/bin/sh
+	// umount /dev/cdrom
+	// eject
 
 	dev = xopen(device, O_RDONLY|O_NONBLOCK);
 	cmd = CDROMEJECT;
