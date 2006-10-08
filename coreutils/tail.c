@@ -132,7 +132,7 @@ int tail_main(int argc, char **argv)
 #if !ENABLE_DEBUG_YANK_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
 			GET_COUNT:
 #endif
-				count = bb_xgetlarg10_sfx(optarg, tail_suffixes);
+				count = xatol_sfx(optarg, tail_suffixes);
 				/* Note: Leading whitespace is an error trapped above. */
 				if (*optarg == '+') {
 					from_top = 1;
@@ -148,7 +148,7 @@ int tail_main(int argc, char **argv)
 				header_threshhold = INT_MAX;
 				break;
 			case 's':
-				sleep_period =bb_xgetularg10_bnd(optarg, 0, UINT_MAX);
+				sleep_period = xatou(optarg);
 				break;
 			case 'v':
 				header_threshhold = 0;

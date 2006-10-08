@@ -42,15 +42,15 @@ static int ftpcmd(const char *s1, const char *s2, FILE *stream, char *buf)
 		char *buf_ptr;
 
 		if (fgets(buf, 510, stream) == NULL) {
-			bb_perror_msg_and_die("fgets()");
+			bb_perror_msg_and_die("fgets");
 		}
 		buf_ptr = strstr(buf, "\r\n");
 		if (buf_ptr) {
 			*buf_ptr = '\0';
 		}
-	} while (! isdigit(buf[0]) || buf[3] != ' ');
+	} while (!isdigit(buf[0]) || buf[3] != ' ');
 
-	return atoi(buf);
+	return xatou(buf);
 }
 
 static int xconnect_ftpdata(ftp_host_info_t *server, const char *buf)
@@ -60,14 +60,14 @@ static int xconnect_ftpdata(ftp_host_info_t *server, const char *buf)
 
 	buf_ptr = strrchr(buf, ',');
 	*buf_ptr = '\0';
-	port_num = atoi(buf_ptr + 1);
+	port_num = xatoul_range(buf_ptr + 1, 0, 255);
 
 	buf_ptr = strrchr(buf, ',');
 	*buf_ptr = '\0';
-	port_num += atoi(buf_ptr + 1) * 256;
+	port_num += xatoul_range(buf_ptr + 1, 0, 255) * 256;
 
-	server->s_in->sin_port=htons(port_num);
-	return(xconnect(server->s_in));
+	server->s_in->sin_port = htons(port_num);
+	return xconnect(server->s_in);
 }
 
 static FILE *ftp_login(ftp_host_info_t *server)

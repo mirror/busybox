@@ -16,7 +16,7 @@ int losetup_main(int argc, char **argv)
 {
 	unsigned opt;
 	char *opt_o;
-	int offset = 0;
+	unsigned long long offset = 0;
 
 	opt = getopt32(argc, argv, "do:", &opt_o);
 	argc -= optind;
@@ -35,7 +35,7 @@ int losetup_main(int argc, char **argv)
 	}
 
 	if (opt == 0x2) // -o
-		offset = bb_xparse_number(opt_o, NULL);
+		offset = xatoull(opt_o);
 
 	/* -o or no option */
 

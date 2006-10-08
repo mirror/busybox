@@ -53,13 +53,13 @@ static inline int int_add_no_wrap(int a, int b)
 
 int renice_main(int argc, char **argv)
 {
-	static const char Xetpriority_msg[] = "%d : %cetpriority";
+	static const char Xetpriority_msg[] = "%d: %cetpriority";
 
 	int retval = EXIT_SUCCESS;
 	int which = PRIO_PROCESS;	/* Default 'which' value. */
 	int use_relative = 0;
 	int adjustment, new_priority;
-	id_t who;
+	unsigned who;
 
 	++argv;
 
@@ -74,15 +74,15 @@ int renice_main(int argc, char **argv)
 	}
 
 	/* Get the priority adjustment (absolute or relative). */
-	adjustment = bb_xgetlarg(*argv, 10, INT_MIN, INT_MAX);
+	adjustment = xatoi(*argv);
 
 	while (*++argv) {
 		/* Check for a mode switch. */
 		if ((argv[0][0] == '-') && argv[0][1] && !argv[0][2]) {
 			static const char opts[]
 				= { 'p', 'g', 'u', 0, PRIO_PROCESS, PRIO_PGRP, PRIO_USER };
-			const char *p;
-			if ((p = strchr(opts, argv[0][1]))) {
+			const char *p = strchr(opts, argv[0][1]);
+			if (p) {
 				which = p[4];
 				continue;
 			}
@@ -91,16 +91,14 @@ int renice_main(int argc, char **argv)
 		/* Process an ID arg. */
 		if (which == PRIO_USER) {
 			struct passwd *p;
-			if (!(p = getpwnam(*argv))) {
+			p = getpwnam(*argv);
+			if (!p) {
 				bb_error_msg("unknown user: %s", *argv);
 				goto HAD_ERROR;
 			}
 			who = p->pw_uid;
 		} else {
-			char *e;
-			errno = 0;
-			who = strtoul(*argv, &e, 10);
-			if (*e || (*argv == e) || errno) {
+			if (safe_strtou(*argv, &who)) {
 				bb_error_msg("bad value: %s", *argv);
 				goto HAD_ERROR;
 			}

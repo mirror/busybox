@@ -38,8 +38,8 @@
 #define S_LEN 128
 
 /* These are the defaults */
-static const char defaultmap[]="/boot/System.map";
-static const char defaultpro[]="/proc/profile";
+static const char defaultmap[] = "/boot/System.map";
+static const char defaultpro[] = "/proc/profile";
 
 int readprofile_main(int argc, char **argv)
 {
@@ -78,7 +78,7 @@ int readprofile_main(int argc, char **argv)
 		 * not sizeof(int), the multiplier is not changed
 		 */
 		if (mult) {
-			multiplier = strtoul(mult, 0, 10);
+			multiplier = xatoi_u(mult);
 			to_write = sizeof(int);
 		} else {
 			multiplier = 0;

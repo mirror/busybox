@@ -47,7 +47,7 @@ int kill_main(int argc, char **argv)
 		} else { /* -l <sig list> */
 			while ((arg = *++argv)!=NULL) {
 				if (isdigit(arg[0])) {
-					signo = atoi(arg);
+					signo = xatoi_u(arg);
 					name = get_signame(signo);
 				} else {
 					signo = get_signum(arg);
@@ -140,7 +140,7 @@ do_it_now:
 	while (arg) {
 		if (!isdigit(arg[0]) && arg[0]!='-')
 			bb_error_msg_and_die("bad pid '%s'", arg);
-		pid = strtol(arg, NULL, 0);
+		pid = xatou(arg);
 		/* FIXME: better overflow check? */
 		if (kill(pid, signo)!=0) {
 			bb_perror_msg("cannot kill pid %ld", (long)pid);

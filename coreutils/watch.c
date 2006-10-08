@@ -28,7 +28,7 @@ int watch_main(int argc, char **argv)
 	/* don't use getopt, because it permutes the arguments */
 	++argv;
 	if ((argc > 3) && argv[0][0] == '-' && argv[0][1] == 'n') {
-		period = bb_xgetularg10_bnd(argv[1], 1, UINT_MAX);
+		period = xatou(argv[1]);
 		argv += 2;
 	}
 	watched_argv = argv;

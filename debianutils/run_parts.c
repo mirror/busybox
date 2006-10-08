@@ -60,31 +60,31 @@ int run_parts_main(int argc, char **argv)
 
 	umask(022);
 
-	while ((opt = getopt_long (argc, argv, "tu:a:",
+	while ((opt = getopt_long(argc, argv, "tu:a:",
 					runparts_long_options, NULL)) > 0)
 	{
 		switch (opt) {
-			/* Enable test mode */
-			case 't':
-				test_mode++;
-				break;
-			/* Set the umask of the programs executed */
-			case 'u':
-				/* Check and set the umask of the program executed. As stated in the original
-				 * run-parts, the octal conversion in libc is not foolproof; it will take the
-				 * 8 and 9 digits under some circumstances. We'll just have to live with it.
-				 */
-				umask(bb_xgetlarg(optarg, 8, 0, 07777));
-				break;
-			/* Pass an argument to the programs */
-			case 'a':
-				/* Add an argument to the commands that we will call.
-				 * Called once for every argument. */
-				args = xrealloc(args, (argcount + 2) * (sizeof(char *)));
-				args[argcount++] = optarg;
-				break;
-			default:
-				bb_show_usage();
+		/* Enable test mode */
+		case 't':
+			test_mode++;
+			break;
+		/* Set the umask of the programs executed */
+		case 'u':
+			/* Check and set the umask of the program executed. As stated in the original
+			 * run-parts, the octal conversion in libc is not foolproof; it will take the
+			 * 8 and 9 digits under some circumstances. We'll just have to live with it.
+			 */
+			umask(xstrtoul_range(optarg, 8, 0, 07777));
+			break;
+		/* Pass an argument to the programs */
+		case 'a':
+			/* Add an argument to the commands that we will call.
+			 * Called once for every argument. */
+			args = xrealloc(args, (argcount + 2) * (sizeof(char *)));
+			args[argcount++] = optarg;
+			break;
+		default:
+			bb_show_usage();
 		}
 	}
 

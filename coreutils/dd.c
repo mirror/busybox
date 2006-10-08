@@ -62,19 +62,19 @@ int dd_main(int argc, char **argv)
 	for (n = 1; n < argc; n++) {
 		// FIXME: make them capable of eating LARGE numbers
 		if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("ibs=", argv[n], 4)) {
-			ibs = bb_xparse_number(argv[n]+4, dd_suffixes);
+			ibs = xatoul_sfx(argv[n]+4, dd_suffixes);
 			flags |= twobufs_flag;
 		} else if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("obs=", argv[n], 4)) {
-			obs = bb_xparse_number(argv[n]+4, dd_suffixes);
+			obs = xatoul_sfx(argv[n]+4, dd_suffixes);
 			flags |= twobufs_flag;
 		} else if (!strncmp("bs=", argv[n], 3))
-			ibs = obs = bb_xparse_number(argv[n]+3, dd_suffixes);
+			ibs = obs = xatoul_sfx(argv[n]+3, dd_suffixes);
 		else if (!strncmp("count=", argv[n], 6))
-			count = bb_xparse_number(argv[n]+6, dd_suffixes);
+			count = xatoul_sfx(argv[n]+6, dd_suffixes);
 		else if (!strncmp("seek=", argv[n], 5))
-			seek = bb_xparse_number(argv[n]+5, dd_suffixes);
+			seek = xatoul_sfx(argv[n]+5, dd_suffixes);
 		else if (!strncmp("skip=", argv[n], 5))
-			skip = bb_xparse_number(argv[n]+5, dd_suffixes);
+			skip = xatoul_sfx(argv[n]+5, dd_suffixes);
 		else if (!strncmp("if=", argv[n], 3))
 			infile = argv[n]+3;
 		else if (!strncmp("of=", argv[n], 3))

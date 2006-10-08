@@ -30,7 +30,7 @@
 
    %b = print an argument string, interpreting backslash escapes
 
-   The `format' argument is re-used as many times as necessary
+   The 'format' argument is re-used as many times as necessary
    to convert all of the given arguments.
 
    David MacKenzie <djm@gnu.ai.mit.edu> */
@@ -57,7 +57,7 @@ static void multiconvert(char *arg, void *result, converter convert)
 		fputs(arg, stderr);
 }
 
-static unsigned long xstrtoul(char *arg)
+static unsigned long my_xstrtoul(char *arg)
 {
 	unsigned long result;
 
@@ -65,14 +65,14 @@ static unsigned long xstrtoul(char *arg)
 	return result;
 }
 
-static long xstrtol(char *arg)
+static long my_xstrtol(char *arg)
 {
 	long result;
 	multiconvert(arg, &result, (converter)safe_strtol);
 	return result;
 }
 
-static double xstrtod(char *arg)
+static double my_xstrtod(char *arg)
 {
 	double result;
 	multiconvert(arg, &result, (converter)safe_strtod);
@@ -120,13 +120,13 @@ int printf_main(int argc, char **argv)
 }
 
 /* Print the text in FORMAT, using ARGV (with ARGC elements) for
-   arguments to any `%' directives.
+   arguments to any '%' directives.
    Return the number of elements of ARGV used.  */
 
 static int print_formatted(char *format, int argc, char **argv)
 {
 	int save_argc = argc;		/* Preserve original value.  */
-	char *f;					/* Pointer into `format'.  */
+	char *f;					/* Pointer into 'format'.  */
 	char *direc_start;			/* Start of % directive.  */
 	size_t direc_length;		/* Length of % directive.  */
 	int field_width;			/* Arg to first '*', or -1 if none.  */
@@ -158,7 +158,7 @@ static int print_formatted(char *format, int argc, char **argv)
 				++f;
 				++direc_length;
 				if (argc > 0) {
-					field_width = xstrtoul(*argv);
+					field_width = my_xstrtoul(*argv);
 					++argv;
 					--argc;
 				} else
@@ -175,7 +175,7 @@ static int print_formatted(char *format, int argc, char **argv)
 					++f;
 					++direc_length;
 					if (argc > 0) {
-						precision = xstrtoul(*argv);
+						precision = my_xstrtoul(*argv);
 						++argv;
 						--argc;
 					} else
@@ -235,14 +235,14 @@ print_direc(char *start, size_t length, int field_width, int precision,
 	case 'i':
 		if (field_width < 0) {
 			if (precision < 0)
-				printf(p, xstrtol(argument));
+				printf(p, my_xstrtol(argument));
 			else
-				printf(p, precision, xstrtol(argument));
+				printf(p, precision, my_xstrtol(argument));
 		} else {
 			if (precision < 0)
-				printf(p, field_width, xstrtol(argument));
+				printf(p, field_width, my_xstrtol(argument));
 			else
-				printf(p, field_width, precision, xstrtol(argument));
+				printf(p, field_width, precision, my_xstrtol(argument));
 		}
 		break;
 
@@ -252,14 +252,14 @@ print_direc(char *start, size_t length, int field_width, int precision,
 	case 'X':
 		if (field_width < 0) {
 			if (precision < 0)
-				printf(p, xstrtoul(argument));
+				printf(p, my_xstrtoul(argument));
 			else
-				printf(p, precision, xstrtoul(argument));
+				printf(p, precision, my_xstrtoul(argument));
 		} else {
 			if (precision < 0)
-				printf(p, field_width, xstrtoul(argument));
+				printf(p, field_width, my_xstrtoul(argument));
 			else
-				printf(p, field_width, precision, xstrtoul(argument));
+				printf(p, field_width, precision, my_xstrtoul(argument));
 		}
 		break;
 
@@ -270,14 +270,14 @@ print_direc(char *start, size_t length, int field_width, int precision,
 	case 'G':
 		if (field_width < 0) {
 			if (precision < 0)
-				printf(p, xstrtod(argument));
+				printf(p, my_xstrtod(argument));
 			else
-				printf(p, precision, xstrtod(argument));
+				printf(p, precision, my_xstrtod(argument));
 		} else {
 			if (precision < 0)
-				printf(p, field_width, xstrtod(argument));
+				printf(p, field_width, my_xstrtod(argument));
 			else
-				printf(p, field_width, precision, xstrtod(argument));
+				printf(p, field_width, precision, my_xstrtod(argument));
 		}
 		break;
 

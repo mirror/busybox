@@ -35,7 +35,8 @@ static int read_ip(const char *line, void *arg)
 	int retval = 1;
 
 	if (!inet_aton(line, addr)) {
-		if ((host = gethostbyname(line)))
+		host = gethostbyname(line);
+		if (host)
 			addr->s_addr = *((unsigned long *) host->h_addr_list[0]);
 		else retval = 0;
 	}
@@ -72,10 +73,7 @@ static int read_str(const char *line, void *arg)
 
 static int read_u32(const char *line, void *arg)
 {
-	uint32_t *dest = arg;
-	char *endptr;
-	*dest = strtoul(line, &endptr, 0);
-	return endptr[0] == '\0';
+	return safe_strtou32(line, (uint32_t*)arg) == 0;
 }
 
 

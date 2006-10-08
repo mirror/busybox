@@ -149,8 +149,6 @@
 #define _PATH_INETDPID  "/var/run/inetd.pid"
 
 
-#define TOOMANY         0               /* don't start more than TOOMANY */
-
 #define CNT_INTVL       60              /* servers in CNT_INTVL sec. */
 #define RETRYTIME       (60*10)         /* retry after bind or server fail */
 
@@ -297,7 +295,7 @@ static const struct builtin builtins[] = {
 static int global_queuelen = 128;
 static int nsock, maxsock;
 static fd_set allsock;
-static int toomany = TOOMANY;
+static int toomany;
 static int timingout;
 static struct servent *sp;
 static uid_t uid;
@@ -588,10 +586,10 @@ static servtab_t *getconfigent(void)
 	sep = new_servtab();
 
 	/* memset(sep, 0, sizeof *sep); */
-more:
+ more:
 	/* freeconfig(sep); */
 
-	while ((cp = nextline()) && *cp == '#');
+	while ((cp = nextline()) && *cp == '#') /* skip comment line */;
 	if (cp == NULL) {
 		/* free(sep); */
 		return NULL;
@@ -680,7 +678,7 @@ more:
 			} else if (*ccp != '\0')
 				goto badafterall;
 #else
-		bb_error_msg("%s: rpc services not supported", sep->se_service);
+			bb_error_msg("%s: rpc services not supported", sep->se_service);
 #endif
 		}
 	}
@@ -692,7 +690,7 @@ more:
 		char *s = strchr(arg, '.');
 		if (s) {
 			*s++ = '\0';
-			sep->se_max = atoi(s);
+			sep->se_max = xatoi(s);
 		} else
 			sep->se_max = toomany;
 	}
@@ -928,7 +926,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 			 */
 			if (
 #ifdef INETD_FEATURE_ENABLED
-					 cp->se_bi == 0 &&
+				cp->se_bi == 0 &&
 #endif
 				(sep->se_wait == 1 || cp->se_wait == 0))
 				sep->se_wait = cp->se_wait;
@@ -974,7 +972,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 #ifdef CONFIG_FEATURE_INETD_RPC
 			if (isrpcservice(sep)) {
 				struct rpcent *rp;
-
+				// FIXME: atoi_or_else(str, 0) would be handy here
 				sep->se_rpcprog = atoi(sep->se_service);
 				if (sep->se_rpcprog == 0) {
 					rp = getrpcbyname(sep->se_service);
@@ -990,9 +988,9 @@ static void config(int sig ATTRIBUTE_UNUSED)
 					register_rpc(sep);
 			} else
 #endif
-				 {
+			{
 				u_short port = htons(atoi(sep->se_service));
-
+				// FIXME: atoi_or_else(str, 0) would be handy here
 				if (!port) {
 					 /*XXX*/ strncpy(protoname, sep->se_proto, sizeof(protoname));
 					if (isdigit(protoname[strlen(protoname) - 1]))
@@ -1255,13 +1253,7 @@ inetd_main(int argc, char *argv[])
 
 	opt = getopt32(argc, argv, "R:f", &stoomany);
 	if(opt & 1) {
-		char *e;
-
-		toomany = strtoul(stoomany, &e, 0);
-		if (!(toomany >= 0 && *e == '\0')) {
-				toomany = TOOMANY;
-				bb_perror_msg("-R %s: bad value for service invocation rate", stoomany);
-		}
+		toomany = xatoi_u(stoomany);
 	}
 	argc -= optind;
 	argv += optind;
@@ -1317,7 +1309,6 @@ inetd_main(int argc, char *argv[])
 	sigaddset(&sa.sa_mask, SIGHUP);
 	sa.sa_handler = retry;
 	sigaction(SIGALRM, &sa, NULL);
-	/* doconfig(); */
 	config(SIGHUP);
 	sa.sa_handler = config;
 	sigaction(SIGHUP, &sa, NULL);

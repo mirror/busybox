@@ -62,7 +62,7 @@ int fold_main(int argc, char **argv)
 
 	flags = getopt32(argc, argv, "bsw:", &w_opt);
 	if (flags & FLAG_WIDTH)
-		width = bb_xgetlarg(w_opt, 10, 1, 10000);
+		width = xatoul_range(w_opt, 1, 10000);
 
 	argv += optind;
 	if (!*argv) {

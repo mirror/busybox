@@ -35,7 +35,7 @@ int cpio_main(int argc, char **argv)
 	/* Initialise */
 	archive_handle = init_handle();
 	archive_handle->src_fd = STDIN_FILENO;
-	archive_handle->seek = seek_by_char;
+	archive_handle->seek = seek_by_read;
 	archive_handle->flags = ARCHIVE_EXTRACT_NEWER | ARCHIVE_PRESERVE_DATE;
 
 	opt = getopt32(argc, argv, "ituvF:dm", &cpio_filename);

@@ -575,20 +575,20 @@ int syslogd_main(int argc, char **argv)
 
 	/* do normal option parsing */
 	getopt32(argc, argv, OPTION_STR, OPTION_PARAM);
-	if (option_mask32 & OPT_mark) MarkInterval = atoi(opt_m) * 60; // -m
+	if (option_mask32 & OPT_mark) MarkInterval = xatoul_range(opt_m, 0, INT_MAX/60) * 60; // -m
 	//if (option_mask32 & OPT_nofork) // -n
 	//if (option_mask32 & OPT_outfile) // -O
 	if (option_mask32 & OPT_loglevel) { // -l
-		logLevel = atoi(opt_l);
+		logLevel = xatoi_u(opt_l);
 		/* Valid levels are between 1 and 8 */
 		if (logLevel < 1 || logLevel > 8)
 			bb_show_usage();
 	}
 	//if (option_mask32 & OPT_small) // -S
 #if ENABLE_FEATURE_ROTATE_LOGFILE
-	if (option_mask32 & OPT_filesize) logFileSize = atoi(opt_s) * 1024; // -s
+	if (option_mask32 & OPT_filesize) logFileSize = xatoul_range(opt_s, 0, INT_MAX/1024) * 1024; // -s
 	if (option_mask32 & OPT_rotatecnt) { // -b
-		logFileRotate = atoi(opt_b);
+		logFileRotate = xatoi_u(opt_b);
 		if (logFileRotate > 99) logFileRotate = 99; 
 	}
 #endif
@@ -598,7 +598,7 @@ int syslogd_main(int argc, char **argv)
 		char *host = xstrdup(opt_R);
 		p = strchr(host, ':');
 		if (p) {
-			port = atoi(p + 1);
+			port = xatou16(p + 1);
 			*p = '\0';
 		}
 		remoteaddr.sin_family = AF_INET;
@@ -612,9 +612,7 @@ int syslogd_main(int argc, char **argv)
 #if ENABLE_FEATURE_IPC_SYSLOG
 	if (option_mask32 & OPT_circularlog) { // -C
 		if (opt_C) {
-			int buf_size = atoi(opt_C);
-			if (buf_size >= 4)
-				shm_size = buf_size * 1024;
+			shm_size = xatoul_range(opt_C, 4, INT_MAX/1024) * 1024;
 		}
 	}
 #endif

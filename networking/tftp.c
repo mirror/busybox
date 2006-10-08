@@ -373,7 +373,7 @@ static int tftp(const int cmd, const struct hostent *host,
 				res = tftp_option_get(&buf[2], len - 2, OPTION_BLOCKSIZE);
 
 				if (res) {
-					int blksize = atoi(res);
+					int blksize = xatoi_u(res);
 
 					if (tftp_blocksize_check(blksize, tftp_bufsize - 4)) {
 
@@ -516,7 +516,7 @@ int tftp_main(int argc, char **argv)
 
 #ifdef CONFIG_FEATURE_TFTP_BLOCKSIZE
 	if (sblocksize) {
-		blocksize = atoi(sblocksize);
+		blocksize = xatoi_u(sblocksize);
 		if (!tftp_blocksize_check(blocksize, 0)) {
 			return EXIT_FAILURE;
 		}

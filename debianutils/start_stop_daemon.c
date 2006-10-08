@@ -260,7 +260,7 @@ int start_stop_daemon_main(int argc, char **argv)
 
 //	USE_FEATURE_START_STOP_DAEMON_FANCY(
 //		if (retry_arg)
-//			retries = bb_xgetlarg(retry_arg, 10, 0, INT_MAX);
+//			retries = xatoi_u(retry_arg);
 //	)
 	argc -= optind;
 	argv += optind;

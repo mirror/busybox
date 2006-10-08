@@ -297,7 +297,7 @@ read_response:
 			s = buf;
 			while (*s != '\0' && !isspace(*s)) ++s;
 			while (isspace(*s)) ++s;
-			switch (status = atoi(s)) {
+			switch (status = xatoi(s)) {
 				case 0:
 				case 100:
 					while (gethdr(buf, sizeof(buf), sfp, &n) != NULL)
@@ -406,9 +406,9 @@ read_response:
 			bb_error_msg_and_die("PASV: %s", buf+4);
 		s = strrchr(buf, ',');
 		*s = 0;
-		port = atoi(s+1);
+		port = xatol_range(s+1, 0, 255);
 		s = strrchr(buf, ',');
-		port += atoi(s+1) * 256;
+		port += xatol_range(s+1, 0, 255) * 256;
 		s_in.sin_port = htons(port);
 		dfp = open_socket(&s_in);
 
@@ -562,7 +562,7 @@ static void parse_url(char *src_url, struct host_info *h)
 	cp = strchr(pp, ':');
 	if (cp != NULL) {
 		*cp++ = '\0';
-		h->port = htons(atoi(cp));
+		h->port = htons(xatou16(cp));
 	}
 }
 
@@ -646,7 +646,7 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 		}
 	} while (!isdigit(buf[0]) || buf[3] != ' ');
 
-	return atoi(buf);
+	return xatoi(buf);
 }
 
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR

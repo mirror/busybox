@@ -15,7 +15,7 @@ lib-y:= \
 	human_readable.o inet_common.o inode_hash.o isdirectory.o \
 	kernel_version.o last_char_is.o login.o \
 	make_directory.o md5.o mode_string.o mtab_file.o \
-	obscure.o parse_mode.o parse_number.o perror_msg.o \
+	obscure.o parse_mode.o perror_msg.o \
 	perror_msg_and_die.o get_console.o \
 	process_escape_sequence.o procps.o \
 	recursive_action.o remove_file.o \
@@ -23,7 +23,7 @@ lib-y:= \
 	safe_strncpy.o setup_environment.o sha1.o simplify_path.o \
 	trim.o u_signal_names.o vdprintf.o verror_msg.o \
 	vherror_msg.o vperror_msg.o wfopen.o xconnect.o xgetcwd.o \
-	xgethostbyname.o xgethostbyname2.o xreadlink.o xgetlarg.o \
+	xgethostbyname.o xgethostbyname2.o xreadlink.o \
 	fclose_nonstdin.o fflush_stdout_and_exit.o \
 	getopt32.o default_error_retval.o wfopen_input.o speed_table.o \
 	perror_nomsg_and_die.o perror_nomsg.o skip_whitespace.o bb_askpass.o \
@@ -55,7 +55,7 @@ lib-$(CONFIG_DEVFSD) += xregcomp.o
 lib-y += messages.o
 lib-y += xfuncs.o
 lib-y += printf.o
-lib-y += xgetularg.o
+lib-y += xatol.o
 lib-y += safe_strtol.o
 lib-y += bb_pwd.o
 lib-y += llist.o

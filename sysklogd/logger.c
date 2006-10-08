@@ -48,14 +48,14 @@ static int decode(char *name, CODE * codetab)
 	CODE *c;
 
 	if (isdigit(*name))
-		return (atoi(name));
+		return atoi(name);
 	for (c = codetab; c->c_name; c++) {
 		if (!strcasecmp(name, c->c_name)) {
-			return (c->c_val);
+			return c->c_val;
 		}
 	}
 
-	return (-1);
+	return -1;
 }
 
 /* Decode a symbolic name to a numeric value
@@ -177,6 +177,3 @@ int logger_main(int argc, char **argv)
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-
-
-

@@ -112,9 +112,9 @@ int cal_main(int argc, char **argv)
 		}
 	} else {
 		if (argc == 2) {
-			month = bb_xgetularg10_bnd(*argv++, 1, 12);
+			month = xatoul_range(*argv++, 1, 12);
 		}
-		year = bb_xgetularg10_bnd(*argv, 1, 9999);
+		year = xatoul_range(*argv, 1, 9999);
 	}
 
 	blank_string(day_headings, sizeof(day_headings) - 7 +  7*julian);

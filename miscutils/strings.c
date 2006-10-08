@@ -34,7 +34,7 @@ int strings_main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	n = bb_xgetlarg(n_arg, 10, 1, INT_MAX);
+	n = xatoul_range(n_arg, 1, INT_MAX);
 	string = xzalloc(n + 1);
 	n--;
 
@@ -45,7 +45,8 @@ int strings_main(int argc, char **argv)
 	}
 
 	do {
-		if ((file = bb_wfopen(*argv, "r"))) {
+		file = bb_wfopen(*argv, "r");
+		if (file) {
 PIPE:
 			count = 0;
 			do {

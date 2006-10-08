@@ -2063,7 +2063,7 @@ static void parse_opts(unsigned long *get, unsigned long *set, unsigned long *va
 	}
 	if (optarg) {
 		*set = 1;
-		*value = bb_xgetlarg(optarg, 10, min, max);
+		*value = xatol_range(optarg, min, max);
 	}
 }
 
@@ -2154,8 +2154,8 @@ int hdparm_main(int argc, char **argv)
 #if ENABLE_FEATURE_HDPARM_HDIO_SCAN_HWIF
 		if (c == 'R') {
 			parse_opts(NULL, &scan_hwif, &hwif_data, 0, INT_MAX);
-			hwif_ctrl = bb_xgetlarg((argv[optind]) ? argv[optind] : "", 10, 0, INT_MAX);
-			hwif_irq  = bb_xgetlarg((argv[optind+1]) ? argv[optind+1] : "", 10, 0, INT_MAX);
+			hwif_ctrl = xatoi_u((argv[optind]) ? argv[optind] : "");
+			hwif_irq  = xatoi_u((argv[optind+1]) ? argv[optind+1] : "");
 			/* Move past the 2 additional arguments */
 			argv += 2;
 			argc -= 2;

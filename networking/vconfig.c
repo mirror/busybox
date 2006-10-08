@@ -144,14 +144,14 @@ int vconfig_main(int argc, char **argv)
 		 * doing so wouldn't save that much space and would also make maintainence
 		 * more of a pain. */
 		if (ifr.cmd == SET_VLAN_FLAG_CMD) { /* set_flag */
-			ifr.u.flag = bb_xgetularg10_bnd(p, 0, 1);
+			ifr.u.flag = xatoul_range(p, 0, 1);
 			/* DM: in order to set reorder header, qos must be set */
-			ifr.vlan_qos = bb_xgetularg10_bnd(argv[3], 0, 7);
+			ifr.vlan_qos = xatoul_range(argv[3], 0, 7);
 		} else if (ifr.cmd == ADD_VLAN_CMD) { /* add */
-			ifr.u.VID = bb_xgetularg10_bnd(p, 0, VLAN_GROUP_ARRAY_LEN-1);
+			ifr.u.VID = xatoul_range(p, 0, VLAN_GROUP_ARRAY_LEN-1);
 		} else if (ifr.cmd != DEL_VLAN_CMD) { /* set_{egress|ingress}_map */
-			ifr.u.skb_priority = bb_xgetularg10_bnd(p, 0, ULONG_MAX);
-			ifr.vlan_qos = bb_xgetularg10_bnd(argv[3], 0, 7);
+			ifr.u.skb_priority = xatou(p);
+			ifr.vlan_qos = xatoul_range(argv[3], 0, 7);
 		}
 	}
 

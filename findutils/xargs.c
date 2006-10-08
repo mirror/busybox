@@ -426,7 +426,7 @@ int xargs_main(int argc, char **argv)
 	orig_arg_max -= 2048;   /* POSIX.2 requires subtracting 2048 */
 
 	if (opt & OPT_UPTO_SIZE) {
-		n_max_chars = bb_xgetularg10_bnd(max_chars, 1, orig_arg_max);
+		n_max_chars = xatoul_range(max_chars, 1, orig_arg_max);
 		for (i = 0; i < argc; i++) {
 			n_chars += strlen(*argv) + 1;
 		}
@@ -446,7 +446,7 @@ int xargs_main(int argc, char **argv)
 	max_chars = xmalloc(n_max_chars);
 
 	if (opt & OPT_UPTO_NUMBER) {
-		n_max_arg = bb_xgetularg10_bnd(max_args, 1, INT_MAX);
+		n_max_arg = xatoul_range(max_args, 1, INT_MAX);
 	} else {
 		n_max_arg = n_max_chars;
 	}

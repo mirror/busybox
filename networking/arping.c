@@ -41,8 +41,8 @@ enum cfg_e {
 static int cfg;
 
 static int s;
-static int count = -1;
-static int timeout;
+static unsigned count = UINT_MAX;
+static unsigned timeout;
 static int sent;
 static int brd_sent;
 static int received;
@@ -276,9 +276,9 @@ int arping_main(int argc, char **argv)
 					&_count, &_timeout, &device, &source);
 		cfg |= opt & 0x3f; /* set respective flags */
 		if (opt & 0x40) /* -c: count */
-			count = atoi(_count);
+			count = xatou(_count);
 		if (opt & 0x80) /* -w: timeout */
-			timeout = atoi(_timeout);
+			timeout = xatoul_range(_timeout, 0, INT_MAX/2000);
 		if (opt & 0x100) { /* -i: interface */
 			if (strlen(device) > IF_NAMESIZE) {
 				bb_error_msg_and_die("interface name '%s' is too long",

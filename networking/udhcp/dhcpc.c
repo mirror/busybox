@@ -262,10 +262,10 @@ int udhcpc_main(int argc, char *argv[])
 			client_config.script = optarg;
 			break;
 		case 'T':
-			client_config.timeout = atoi(optarg);
+			client_config.timeout = xatoi_u(optarg);
 			break;
 		case 't':
-			client_config.retries = atoi(optarg);
+			client_config.retries = xatoi_u(optarg);
 			break;
 		case 'v':
 			printf("version %s\n\n", BB_VER);

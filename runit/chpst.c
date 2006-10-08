@@ -22,7 +22,7 @@ static long limitf = -2;
 static long limitc = -2;
 static long limitr = -2;
 static long limitt = -2;
-static long nicelvl;
+static int nicelvl;
 static const char *root;
 
 static void suidgid(char *user)
@@ -229,16 +229,16 @@ int chpst_main(int argc, char **argv)
 		// if (option_mask32 & 0x1) // -u
 		// if (option_mask32 & 0x2) // -U
 		// if (option_mask32 & 0x4) // -e
-		if (option_mask32 & 0x8) limits = limitl = limita = limitd = bb_xgetularg10(m); // -m
-		if (option_mask32 & 0x10) limitd = bb_xgetularg10(d); // -d
-		if (option_mask32 & 0x20) limito = bb_xgetularg10(o); // -o
-		if (option_mask32 & 0x40) limitp = bb_xgetularg10(p); // -p
-		if (option_mask32 & 0x80) limitf = bb_xgetularg10(f); // -f
-		if (option_mask32 & 0x100) limitc = bb_xgetularg10(c); // -c
-		if (option_mask32 & 0x200) limitr = bb_xgetularg10(r); // -r
-		if (option_mask32 & 0x400) limitt = bb_xgetularg10(t); // -t
+		if (option_mask32 & 0x8) limits = limitl = limita = limitd = xatoul(m); // -m
+		if (option_mask32 & 0x10) limitd = xatoul(d); // -d
+		if (option_mask32 & 0x20) limito = xatoul(o); // -o
+		if (option_mask32 & 0x40) limitp = xatoul(p); // -p
+		if (option_mask32 & 0x80) limitf = xatoul(f); // -f
+		if (option_mask32 & 0x100) limitc = xatoul(c); // -c
+		if (option_mask32 & 0x200) limitr = xatoul(r); // -r
+		if (option_mask32 & 0x400) limitt = xatoul(t); // -t
 		// if (option_mask32 & 0x800) // -/
-		if (option_mask32 & 0x1000) nicelvl = bb_xgetlarg_bnd_sfx(n, 10, -20, 20, NULL); // -n
+		if (option_mask32 & 0x1000) nicelvl = xatoi(n); // -n
 		// The below consts should match #defines at top!
 		//if (option_mask32 & 0x2000) OPT_verbose = 1; // -v
 		//if (option_mask32 & 0x4000) OPT_pgrp = 1; // -P
@@ -312,17 +312,17 @@ static void softlimit(int argc, char **argv)
 	char *a,*c,*d,*f,*l,*m,*o,*p,*r,*s,*t;
 	getopt32(argc, argv, "a:c:d:f:l:m:o:p:r:s:t:",
 			&a,&c,&d,&f,&l,&m,&o,&p,&r,&s,&t);
-	if (option_mask32 & 0x001) limita = bb_xgetularg10(a); // -a
-	if (option_mask32 & 0x002) limitc = bb_xgetularg10(c); // -c
-	if (option_mask32 & 0x004) limitd = bb_xgetularg10(d); // -d
-	if (option_mask32 & 0x008) limitf = bb_xgetularg10(f); // -f
-	if (option_mask32 & 0x010) limitl = bb_xgetularg10(l); // -l
-	if (option_mask32 & 0x020) limits = limitl = limita = limitd = bb_xgetularg10(m); // -m
-	if (option_mask32 & 0x040) limito = bb_xgetularg10(o); // -o
-	if (option_mask32 & 0x080) limitp = bb_xgetularg10(p); // -p
-	if (option_mask32 & 0x100) limitr = bb_xgetularg10(r); // -r
-	if (option_mask32 & 0x200) limits = bb_xgetularg10(s); // -s
-	if (option_mask32 & 0x400) limitt = bb_xgetularg10(t); // -t
+	if (option_mask32 & 0x001) limita = xatoul(a); // -a
+	if (option_mask32 & 0x002) limitc = xatoul(c); // -c
+	if (option_mask32 & 0x004) limitd = xatoul(d); // -d
+	if (option_mask32 & 0x008) limitf = xatoul(f); // -f
+	if (option_mask32 & 0x010) limitl = xatoul(l); // -l
+	if (option_mask32 & 0x020) limits = limitl = limita = limitd = xatoul(m); // -m
+	if (option_mask32 & 0x040) limito = xatoul(o); // -o
+	if (option_mask32 & 0x080) limitp = xatoul(p); // -p
+	if (option_mask32 & 0x100) limitr = xatoul(r); // -r
+	if (option_mask32 & 0x200) limits = xatoul(s); // -s
+	if (option_mask32 & 0x400) limitt = xatoul(t); // -t
 	argv += optind;
 	if (!argv[0]) bb_show_usage();
 	slimit();

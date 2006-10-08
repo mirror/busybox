@@ -8,14 +8,10 @@
 #include "unarchive.h"
 #include "libbb.h"
 
-
-
-/*	If we are reading through a pipe(), or from stdin then we cant lseek,
+/*  If we are reading through a pipe(), or from stdin then we cant lseek,
  *  we must read and discard the data to skip over it.
- *
- *  TODO: rename to seek_by_read
  */
-void seek_by_char(const archive_handle_t *archive_handle, const unsigned int jump_size)
+void seek_by_read(const archive_handle_t *archive_handle, const unsigned int jump_size)
 {
 	if (jump_size) {
 		bb_copyfd_size(archive_handle->src_fd, -1, jump_size);

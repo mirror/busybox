@@ -52,7 +52,7 @@ int nice_main(int argc, char **argv)
 		if (argc < 4) {			/* Missing priority and/or utility! */
 			bb_show_usage();
 		}
-		adjustment = bb_xgetlarg(argv[1], 10, INT_MIN, INT_MAX);
+		adjustment = xatoi(argv[1]);
 		argv += 2;
 	}
 

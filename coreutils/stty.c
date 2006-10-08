@@ -370,9 +370,9 @@ enum {
 };
 
 /* The width of the screen, for output wrapping */
-static int max_col;
+static unsigned max_col = 80; /* default */
 /* Current position, to know when to wrap */
-static int current_col;
+static unsigned current_col;
 static const char *device_name = bb_msg_standard_input;
 
 /* Return a string that is the printable representation of character CH */
@@ -422,7 +422,7 @@ static tcflag_t *mode_type_flag(unsigned type, const struct termios *mode)
 
 static speed_t string_to_baud_or_die(const char *arg)
 {
-	return tty_value_to_baud(bb_xparse_number(arg, 0));
+	return tty_value_to_baud(xatou(arg));
 }
 
 static void set_speed_or_die(enum speed_setting type, const char *arg,
@@ -556,9 +556,8 @@ static inline void display_window_size(int fancy) {}
 
 #endif /* !TIOCGWINSZ */
 
-static int screen_columns(void)
+static int screen_columns_or_die(void)
 {
-	int columns;
 	const char *s;
 
 #ifdef TIOCGWINSZ
@@ -574,11 +573,10 @@ static int screen_columns(void)
 		return win.ws_col;
 #endif
 
-	columns = 80;
-	if ((s = getenv("COLUMNS"))) {
-		columns = atoi(s);
-	}
-	return columns;
+	s = getenv("COLUMNS");
+	if (s)
+		return xatoi_u(s);
+	return 80;
 }
 
 static const struct suffix_mult stty_suffixes[] = {
@@ -745,14 +743,14 @@ end_option:
 #ifdef HAVE_C_LINE
 		case param_line:
 # ifndef TIOCGWINSZ
-			bb_xparse_number(argnext, stty_suffixes);
+			xatoul_range_sfx(argnext, 1, INT_MAX, stty_suffixes);
 			break;
 # endif /* else fall-through */
 #endif
 #ifdef TIOCGWINSZ
 		case param_rows:
 		case param_cols:
-			bb_xparse_number(argnext, stty_suffixes);
+			xatoul_range_sfx(argnext, 1, INT_MAX, stty_suffixes);
 			break;
 		case param_size:
 #endif
@@ -802,7 +800,7 @@ end_option:
 		perror_on_device_and_die("%s");
 
 	if (verbose_output || recoverable_output || noargs) {
-		max_col = screen_columns();
+		max_col = screen_columns_or_die();
 		output_func(&mode);
 		return EXIT_SUCCESS;
 	}
@@ -846,24 +844,22 @@ end_option:
 		switch (param) {
 #ifdef HAVE_C_LINE
 		case param_line:
-			mode.c_line = bb_xparse_number(argnext, stty_suffixes);
+			mode.c_line = xatoul_sfx(argnext, stty_suffixes);
 			require_set_attr = 1;
 			break;
 #endif
 #ifdef TIOCGWINSZ
 		case param_cols:
-			set_window_size(-1, (int) bb_xparse_number(argnext, stty_suffixes));
+			set_window_size(-1, xatoul_sfx(argnext, stty_suffixes));
 			break;
 		case param_size:
-			max_col = screen_columns();
 			display_window_size(0);
 			break;
 		case param_rows:
-			set_window_size((int) bb_xparse_number(argnext, stty_suffixes), -1);
+			set_window_size(xatoul_sfx(argnext, stty_suffixes), -1);
 			break;
 #endif
 		case param_speed:
-			max_col = screen_columns();
 			display_speed(&mode, 0);
 			break;
 		case param_ispeed:
@@ -1096,7 +1092,7 @@ static void set_control_char_or_die(const struct control_info *info,
 	unsigned char value;
 
 	if (info->name == stty_min || info->name == stty_time)
-		value = bb_xparse_number(arg, stty_suffixes);
+		value = xatoul_range_sfx(arg, 0, 0xff, stty_suffixes);
 	else if (arg[0] == '\0' || arg[1] == '\0')
 		value = arg[0];
 	else if (streq(arg, "^-") || streq(arg, "undef"))
@@ -1106,7 +1102,7 @@ static void set_control_char_or_die(const struct control_info *info,
 		if (arg[1] == '?')
 			value = 127;
 	} else
-		value = bb_xparse_number(arg, stty_suffixes);
+		value = xatoul_range_sfx(arg, 0, 0xff, stty_suffixes);
 	mode->c_cc[info->offset] = value;
 }
 

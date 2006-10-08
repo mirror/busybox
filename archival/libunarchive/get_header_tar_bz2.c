@@ -16,12 +16,12 @@
 char get_header_tar_bz2(archive_handle_t *archive_handle)
 {
 	/* Cant lseek over pipe's */
-	archive_handle->seek = seek_by_char;
+	archive_handle->seek = seek_by_read;
 
 	archive_handle->src_fd = open_transformer(archive_handle->src_fd, uncompressStream);
 	archive_handle->offset = 0;
-	while (get_header_tar(archive_handle) == EXIT_SUCCESS);
+	while (get_header_tar(archive_handle) == EXIT_SUCCESS) /**/;
 
 	/* Can only do one file at a time */
-	return(EXIT_FAILURE);
+	return EXIT_FAILURE;
 }

@@ -113,7 +113,7 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 
 struct options {
 	int flags;                      /* toggle switches, see below */
-	int timeout;                    /* time-out period */
+	unsigned timeout;               /* time-out period */
 	char *login;                    /* login program */
 	char *tty;                      /* name of tty */
 	char *initstring;               /* modem init string */
@@ -226,11 +226,12 @@ FILE *dbf;
 static int bcode(const char *s)
 {
 	int r;
-	unsigned long value;
-	if (safe_strtoul((char *)s, &value)) {
+	unsigned value;
+	if (safe_strtou((char *)s, &value)) {
 		return -1;
 	}
-	if ((r = tty_value_to_baud(value)) > 0) {
+	r = tty_value_to_baud(value);
+	if (r > 0) {
 		return r;
 	}
 	return 0;
@@ -280,8 +281,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 	}
 	op->flags ^= F_ISSUE;           /* revert flag show /etc/issue */
 	if(op->flags & F_TIMEOUT) {
-		if ((op->timeout = atoi(ts)) <= 0)
-			bb_error_msg_and_die("bad timeout value: %s", ts);
+		op->timeout = xatoul_range(ts, 1, INT_MAX);
 	}
 	debug("after getopt loop\n");
 	if (argc < optind + 2)          /* check parameter count */
@@ -495,7 +495,8 @@ static void auto_baud(struct termio *tp)
 		buf[nread] = '\0';
 		for (bp = buf; bp < buf + nread; bp++) {
 			if (isascii(*bp) && isdigit(*bp)) {
-				if ((speed = bcode(bp))) {
+				speed = bcode(bp);
+				if (speed) {
 					tp->c_cflag &= ~CBAUD;
 					tp->c_cflag |= speed;
 				}
@@ -881,7 +882,7 @@ int getty_main(int argc, char **argv)
 
 	/* Set the optional timer. */
 	if (options.timeout)
-		(void) alarm((unsigned) options.timeout);
+		(void) alarm(options.timeout);
 
 	/* optionally wait for CR or LF before writing /etc/issue */
 	if (options.flags & F_WAITCRLF) {

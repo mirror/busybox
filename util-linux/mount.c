@@ -856,7 +856,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
 		char *opteq = strchr(opt, '=');
 		if (opteq) {
-			int val = atoi(opteq + 1);
+			int val = xatoi_u(opteq + 1);
 			*opteq = '\0';
 			if (!strcmp(opt, "rsize"))
 				data.rsize = val;

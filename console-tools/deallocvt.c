@@ -10,11 +10,6 @@
 
 /* no options, no getopt */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
 #include "busybox.h"
 
 /* From <linux/vt.h> */
@@ -26,15 +21,13 @@ int deallocvt_main(int argc, char *argv[])
 	int num = 0;
 
 	switch (argc) {
-		case 2:
-			if ((num = bb_xgetlarg(argv[1], 10, 0, INT_MAX)) == 0) {
-				bb_error_msg_and_die("0: illegal VT number");
-			}
+	case 2:
+		num = xatoul_range(argv[1], 1, 63);
 		/* Fallthrough */
-		case 1:
-			break;
-		default:
-			bb_show_usage();
+	case 1:
+		break;
+	default:
+		bb_show_usage();
 	}
 
 	if (-1 == ioctl(get_console_fd(), VT_DISALLOCATE, num)) {

@@ -178,7 +178,7 @@ static void INET_setroute(int action, char **args)
 		if(prefix) {
 			int prefix_len;
 
-			prefix_len = bb_xgetularg10_bnd(prefix+1, 0, 32);
+			prefix_len = xatoul_range(prefix+1, 0, 32);
 			mask_in_addr(rt) = htonl( ~ (0xffffffffUL >> prefix_len));
 			*prefix = '\0';
 #if HAVE_NEW_ADDRT
@@ -218,7 +218,7 @@ static void INET_setroute(int action, char **args)
 
 #if HAVE_NEW_ADDRT
 		if (k == KW_IPVx_METRIC) {
-			rt.rt_metric = bb_xgetularg10(args_m1) + 1;
+			rt.rt_metric = xatoul(args_m1) + 1;
 			continue;
 		}
 #endif
@@ -259,20 +259,20 @@ static void INET_setroute(int action, char **args)
 
 		if (k == KW_IPVx_MSS) {	/* Check valid MSS bounds. */
 			rt.rt_flags |= RTF_MSS;
-			rt.rt_mss = bb_xgetularg10_bnd(args_m1, 64, 32768);
+			rt.rt_mss = xatoul_range(args_m1, 64, 32768);
 			continue;
 		}
 
 		if (k == KW_IPVx_WINDOW) {	/* Check valid window bounds. */
 			rt.rt_flags |= RTF_WINDOW;
-			rt.rt_window = bb_xgetularg10_bnd(args_m1, 128, INT_MAX);
+			rt.rt_window = xatoul_range(args_m1, 128, INT_MAX);
 			continue;
 		}
 
 #ifdef RTF_IRTT
 		if (k == KW_IPVx_IRTT) {
 			rt.rt_flags |= RTF_IRTT;
-			rt.rt_irtt = bb_xgetularg10(args_m1);
+			rt.rt_irtt = xatoul(args_m1);
 			rt.rt_irtt *= (sysconf(_SC_CLK_TCK) / 100);	/* FIXME */
 #if 0					/* FIXME: do we need to check anything of this? */
 			if (rt.rt_irtt < 1 || rt.rt_irtt > (120 * HZ)) {
@@ -353,7 +353,7 @@ static void INET6_setroute(int action, char **args)
 			char *cp;
 			if ((cp = strchr(target, '/'))) { /* Yes... const to non is ok. */
 				*cp = 0;
-				prefix_len = bb_xgetularg10_bnd(cp+1, 0, 128);
+				prefix_len = xatoul_range(cp+1, 0, 128);
 			} else {
 				prefix_len = 128;
 			}
@@ -384,7 +384,7 @@ static void INET6_setroute(int action, char **args)
 		}
 
 		if (k == KW_IPVx_METRIC) {
-			rt.rtmsg_metric = bb_xgetularg10(args_m1);
+			rt.rtmsg_metric = xatoul(args_m1);
 			continue;
 		}
 

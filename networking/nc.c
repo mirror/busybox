@@ -11,13 +11,15 @@
 
 static void timeout(int signum)
 {
-	bb_error_msg_and_die("Timed out");
+	bb_error_msg_and_die("timed out");
 }
 
 int nc_main(int argc, char **argv)
 {
-	int do_listen = 0, lport = 0, delay = 0, wsecs = 0, execflag = 0, opt,
-	   	sfd = 0, cfd;
+	int sfd = 0, cfd;
+	unsigned opt;
+	unsigned lport = 0, wsecs = 0, delay = 0;
+	unsigned do_listen = 0, execflag = 0;
 	struct sockaddr_in address;
 	struct hostent *hostinfo;
 	fd_set readfds, testfds;
@@ -30,8 +32,8 @@ int nc_main(int argc, char **argv)
 			if (ENABLE_NC_SERVER && opt=='l') do_listen++;
 			else if (ENABLE_NC_SERVER && opt=='p')
 				lport = bb_lookup_port(optarg, "tcp", 0);
-			else if (ENABLE_NC_EXTRA && opt=='w') wsecs = atoi(optarg);
-			else if (ENABLE_NC_EXTRA && opt=='i') delay = atoi(optarg);
+			else if (ENABLE_NC_EXTRA && opt=='w') wsecs = xatou(optarg);
+			else if (ENABLE_NC_EXTRA && opt=='i') delay = xatou(optarg);
 			else if (ENABLE_NC_EXTRA && opt=='f') infile = optarg;
 			else if (ENABLE_NC_EXTRA && opt=='e' && optind!=argc) {
 				execflag++;
@@ -40,11 +42,10 @@ int nc_main(int argc, char **argv)
 		}
 	}
 
-
 	// For listen or file we need zero arguments, dialout is 2.
 	// For exec we need at least one more argument at the end, more ok
 
-	opt = (do_listen  || infile) ? 0 : 2 + execflag;
+	opt = (do_listen || infile) ? 0 : 2 + execflag;
 	if (execflag ? argc-optind < opt : argc-optind!=opt ||
 		(infile && do_listen))
 			bb_show_usage();
@@ -66,7 +67,6 @@ int nc_main(int argc, char **argv)
 
 		if (lport != 0) {
 			address.sin_port = lport;
-
 			xbind(sfd, (struct sockaddr *) &address, sizeof(address));
 		}
 
@@ -83,7 +83,8 @@ int nc_main(int argc, char **argv)
 				fdprintf(2, "%d\n", SWAP_BE16(address.sin_port));
 			}
 repeatyness:
-			if ((cfd = accept(sfd, (struct sockaddr *) &address, &addrlen)) < 0)
+			cfd = accept(sfd, (struct sockaddr *) &address, &addrlen);
+			if (cfd < 0)
 				bb_perror_msg_and_die("accept");
 
 			if (!execflag) close(sfd);
@@ -116,10 +117,11 @@ repeatyness:
 
 		// With more than one -l, repeatedly act as server.
 
-		if (do_listen>1 && vfork()) {
+		if (do_listen > 1 && vfork()) {
 			// This is a bit weird as cleanup goes, since we wind up with no
 			// stdin/stdout/stderr.  But it's small and shouldn't hurt anything.
 			// We check for cfd == 0 above.
+			logmode = LOGMODE_NONE;
 			close(0);
 			close(1);
 			close(2);

@@ -21,10 +21,10 @@ int makedevs_main(int argc, char **argv)
 
 	basedev = argv[1];
 	type = argv[2];
-	Smajor = atoi(argv[3]);
-	Sminor = atoi(argv[4]);
-	S = atoi(argv[5]);
-	E = atoi(argv[6]);
+	Smajor = xatoi_u(argv[3]);
+	Sminor = xatoi_u(argv[4]);
+	S = xatoi_u(argv[5]);
+	E = xatoi_u(argv[6]);
 	nodname = argc == 8 ? basedev : buf;
 
 	mode = 0660;

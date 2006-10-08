@@ -18,8 +18,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#define IPCALC_MSG(CMD,ALTCMD) if (mode & SILENT) {ALTCMD;} else {CMD;}
-
 #define CLASS_A_NETMASK	ntohl(0xFF000000)
 #define CLASS_B_NETMASK	ntohl(0xFFFF0000)
 #define CLASS_C_NETMASK	ntohl(0xFFFFFF00)
@@ -56,6 +54,7 @@ static int get_prefix(unsigned long netmask)
 int get_prefix(unsigned long netmask);
 #endif
 
+
 #define NETMASK   0x01
 #define BROADCAST 0x02
 #define NETWORK   0x04
@@ -78,12 +77,9 @@ int get_prefix(unsigned long netmask);
 #else
 #define long_options 0
 #endif
-
-
-
 int ipcalc_main(int argc, char **argv)
 {
-	unsigned long mode;
+	unsigned opt;
 	int have_netmask = 0;
 	in_addr_t netmask, broadcast, network, ipaddr;
 	struct in_addr a;
@@ -92,17 +88,18 @@ int ipcalc_main(int argc, char **argv)
 	if (ENABLE_FEATURE_IPCALC_LONG_OPTIONS)
 		applet_long_options = long_options;
 
-	mode = getopt32(argc, argv, "mbn" USE_FEATURE_IPCALC_FANCY("phs"));
-
+	opt = getopt32(argc, argv, "mbn" USE_FEATURE_IPCALC_FANCY("phs"));
 	argc -= optind;
 	argv += optind;
-	if (mode & (BROADCAST | NETWORK | NETPREFIX)) {
+	if (opt & (BROADCAST | NETWORK | NETPREFIX)) {
 		if (argc > 2 || argc <= 0)
 			bb_show_usage();
 	} else {
 		if (argc != 1)
 			bb_show_usage();
 	}
+	if (opt & SILENT)
+		logmode = LOGMODE_NONE; /* Suppress error_msg() output */
 
 	ipstr = argv[0];
 	if (ENABLE_FEATURE_IPCALC_FANCY) {
@@ -111,17 +108,13 @@ int ipcalc_main(int argc, char **argv)
 
 		prefixstr = ipstr;
 
-		while(*prefixstr) {
+		while (*prefixstr) {
 			if (*prefixstr == '/') {
 				*prefixstr = (char)0;
 				prefixstr++;
 				if (*prefixstr) {
-					unsigned int msk;
-
-					if (safe_strtoul(prefixstr, &netprefix) || netprefix > 32) {
-						IPCALC_MSG(bb_error_msg_and_die("bad IP prefix: %s", prefixstr),
-								exit(EXIT_FAILURE));
-					}
+					unsigned msk;
+					netprefix = xatoul_range(prefixstr, 0, 32);
 					netmask = 0;
 					msk = 0x80000000;
 					while (netprefix > 0) {
@@ -142,21 +135,18 @@ int ipcalc_main(int argc, char **argv)
 	ipaddr = inet_aton(ipstr, &a);
 
 	if (ipaddr == 0) {
-		IPCALC_MSG(bb_error_msg_and_die("bad IP address: %s", argv[0]),
-				exit(EXIT_FAILURE));
+		bb_error_msg_and_die("bad IP address: %s", argv[0]);
 	}
 	ipaddr = a.s_addr;
 
 	if (argc == 2) {
 		if (ENABLE_FEATURE_IPCALC_FANCY && have_netmask) {
-			IPCALC_MSG(bb_error_msg_and_die("Use prefix or netmask, not both"),
-					exit(EXIT_FAILURE));
+			bb_error_msg_and_die("use prefix or netmask, not both");
 		}
 
 		netmask = inet_aton(argv[1], &a);
 		if (netmask == 0) {
-			IPCALC_MSG(bb_error_msg_and_die("bad netmask: %s", argv[1]),
-					exit(EXIT_FAILURE));
+			bb_error_msg_and_die("bad netmask: %s", argv[1]);
 		}
 		netmask = a.s_addr;
 	} else {
@@ -166,34 +156,32 @@ int ipcalc_main(int argc, char **argv)
 			netmask = get_netmask(ipaddr);
 	}
 
-	if (mode & NETMASK) {
+	if (opt & NETMASK) {
 		printf("NETMASK=%s\n", inet_ntoa((*(struct in_addr *) &netmask)));
 	}
 
-	if (mode & BROADCAST) {
+	if (opt & BROADCAST) {
 		broadcast = (ipaddr & netmask) | ~netmask;
 		printf("BROADCAST=%s\n", inet_ntoa((*(struct in_addr *) &broadcast)));
 	}
 
-	if (mode & NETWORK) {
+	if (opt & NETWORK) {
 		network = ipaddr & netmask;
 		printf("NETWORK=%s\n", inet_ntoa((*(struct in_addr *) &network)));
 	}
 
 	if (ENABLE_FEATURE_IPCALC_FANCY) {
-		if (mode & NETPREFIX) {
+		if (opt & NETPREFIX) {
 			printf("PREFIX=%i\n", get_prefix(netmask));
 		}
 
-		if (mode & HOSTNAME) {
+		if (opt & HOSTNAME) {
 			struct hostent *hostinfo;
 			int x;
 
 			hostinfo = gethostbyaddr((char *) &ipaddr, sizeof(ipaddr), AF_INET);
 			if (!hostinfo) {
-				IPCALC_MSG(bb_herror_msg_and_die(
-							"cannot find hostname for %s", argv[0]),);
-				exit(EXIT_FAILURE);
+				bb_herror_msg_and_die("cannot find hostname for %s", argv[0]);
 			}
 			for (x = 0; hostinfo->h_name[x]; x++) {
 				hostinfo->h_name[x] = tolower(hostinfo->h_name[x]);

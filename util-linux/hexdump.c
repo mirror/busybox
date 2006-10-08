@@ -79,10 +79,10 @@ int hexdump_main(int argc, char **argv)
 				bb_dump_addfile(optarg);
 			} /* else */
 			if (ch == 'n') {
-				bb_dump_length = bb_xgetularg10_bnd(optarg, 0, INT_MAX);
+				bb_dump_length = xatoi_u(optarg);
 			} /* else */
 			if (ch == 's') {
-				bb_dump_skip = bb_xgetularg_bnd_sfx(optarg, 10, 0, LONG_MAX, suffixes);
+				bb_dump_skip = xatoul_range_sfx(optarg, 0, LONG_MAX, suffixes);
 			} /* else */
 			if (ch == 'v') {
 				bb_dump_vflag = ALL;

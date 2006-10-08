@@ -171,7 +171,7 @@ static void stack_machine(const char *argument)
 		}
 		o++;
 	}
-	bb_error_msg_and_die("%s: syntax error.", argument);
+	bb_error_msg_and_die("%s: syntax error", argument);
 }
 
 /* return pointer to next token in buffer and set *buffer to one char

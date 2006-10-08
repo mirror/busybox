@@ -369,7 +369,7 @@ telnetd_main(int argc, char **argv)
 	sockaddr_type sa;
 	int master_fd;
 	int on = 1;
-	int portnbr = 23;
+	unsigned portnbr = 23;
 	struct in_addr bind_addr = { .s_addr = 0x0 };
 	char *opt_portnbr, *opt_bindaddr;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
@@ -393,7 +393,7 @@ telnetd_main(int argc, char **argv)
 	//if (opt & 1) // -f
 	//if (opt & 2) // -l
 #ifndef CONFIG_FEATURE_TELNETD_INETD
-	if (opt & 4) portnbr = atoi(opt_portnbr); // -p
+	if (opt & 4) portnbr = xatou16(opt_portnbr); // -p
 	if (opt & 8) // -b
 		if (inet_aton(opt_bindaddr, &bind_addr) == 0) bb_show_usage();
 #endif /* CONFIG_FEATURE_TELNETD_INETD */

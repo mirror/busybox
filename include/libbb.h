@@ -267,46 +267,68 @@ extern void *xmalloc(size_t size);
 extern void *xrealloc(void *old, size_t size);
 extern void *xzalloc(size_t size);
 
-extern char *xstrdup (const char *s);
-extern char *xstrndup (const char *s, int n);
+extern char *xstrdup(const char *s);
+extern char *xstrndup(const char *s, int n);
 extern char *safe_strncpy(char *dst, const char *src, size_t size);
-extern int safe_strtoi(char *arg, int* value);
-extern int safe_strtod(char *arg, double* value);
-extern int safe_strtol(char *arg, long* value);
-extern int safe_strtoll(char *arg, long long* value);
-extern int safe_strtoul(char *arg, unsigned long* value);
-extern int safe_strtoull(char *arg, unsigned long long* value);
+// FIXME: the prototype doesn't match libc strtoXX -> confusion
+// FIXME: alot of unchecked strtoXXX are still in tree
+// FIXME: atoi_or_else(str, N)?
+extern int safe_strtoi(const char *arg, int* value);
+extern int safe_strtou(const char *arg, unsigned* value);
+extern int safe_strtod(const char *arg, double* value);
+extern int safe_strtol(const char *arg, long* value);
+extern int safe_strtoll(const char *arg, long long* value);
+extern int safe_strtoul(const char *arg, unsigned long* value);
+extern int safe_strtoull(const char *arg, unsigned long long* value);
+extern int safe_strtou32(const char *arg, uint32_t* value);
 
 struct suffix_mult {
 	const char *suffix;
 	unsigned int mult;
 };
 
-extern unsigned long bb_xgetularg_bnd_sfx(const char *arg, int base,
+unsigned long xstrtoul_range_sfx(const char *numstr, int base,
 		unsigned long lower,
 		unsigned long upper,
 		const struct suffix_mult *suffixes);
-extern unsigned long bb_xgetularg_bnd(const char *arg, int base,
+unsigned long xstrtoul_range(const char *numstr, int base,
 		unsigned long lower,
 		unsigned long upper);
-extern unsigned long bb_xgetularg10_bnd(const char *arg,
+unsigned long xstrtoul(const char *numstr, int base);
+unsigned long xatoul_range_sfx(const char *numstr,
+		unsigned long lower,
+		unsigned long upper,
+		const struct suffix_mult *suffixes);
+unsigned long xatoul_sfx(const char *numstr,
+		const struct suffix_mult *suffixes);
+unsigned long xatoul_range(const char *numstr,
 		unsigned long lower,
 		unsigned long upper);
-extern unsigned long bb_xgetularg10(const char *arg);
-
-extern long bb_xgetlarg(const char *arg, int base,
-		long lower,
-		long upper);
-extern long bb_xgetlarg_bnd_sfx(const char *arg, int base,
+unsigned long xatoul(const char *numstr);
+unsigned long long xatoull(const char *numstr);
+long xstrtol_range_sfx(const char *numstr, int base,
 		long lower,
 		long upper,
 		const struct suffix_mult *suffixes);
-extern long bb_xgetlarg10_sfx(const char *arg, const struct suffix_mult *suffixes);
-
-
-extern unsigned long bb_xparse_number(const char *numstr,
+long xstrtol_range(const char *numstr, int base, long lower, long upper);
+long xatol_range_sfx(const char *numstr,
+		long lower,
+		long upper,
 		const struct suffix_mult *suffixes);
-
+long xatol_range(const char *numstr, long lower, long upper);
+long xatol_sfx(const char *numstr, const struct suffix_mult *suffixes);
+long xatol(const char *numstr);
+/* Specialized: */
+unsigned xatou(const char *numstr);
+int xatoi(const char *numstr);
+/* Using xatoi() instead of naive atoi() is not always convenient -
+ * in many places people want *non-negative* values, but store them
+ * in signed int. Therefore we need this one:
+ * dies if input is not in [0, INT_MAX] range. Also will reject '-0' etc */
+int xatoi_u(const char *numstr);
+uint32_t xatou32(const char *numstr);
+/* Useful for reading port numbers */
+uint16_t xatou16(const char *numstr);
 
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which
@@ -329,7 +351,7 @@ extern int device_open(const char *device, int mode);
 
 extern char *query_loop(const char *device);
 extern int del_loop(const char *device);
-extern int set_loop(char **device, const char *file, int offset);
+extern int set_loop(char **device, const char *file, unsigned long long offset);
 
 #if (__GLIBC__ < 2)
 extern int vdprintf(int d, const char *format, va_list ap);

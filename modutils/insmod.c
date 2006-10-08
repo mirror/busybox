@@ -2652,7 +2652,7 @@ static int new_is_module_checksummed(struct obj_file *f)
 {
 	const char *p = get_modinfo_value(f, "using_checksums");
 	if (p)
-		return atoi(p);
+		return xatoi(p);
 	else
 		return 0;
 }

@@ -62,10 +62,10 @@ char get_header_tar(archive_handle_t *archive_handle)
 			 * Read until the end to empty the pipe from gz or bz2
 			 */
 			while (full_read(archive_handle->src_fd, tar.raw, 512) == 512);
-			return(EXIT_FAILURE);
+			return EXIT_FAILURE;
 		}
 		end = 1;
-		return(EXIT_SUCCESS);
+		return EXIT_SUCCESS;
 	}
 	end = 0;
 
@@ -76,19 +76,18 @@ char get_header_tar(archive_handle_t *archive_handle)
 #ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY
 		if (strncmp(tar.formatted.magic, "\0\0\0\0\0", 5) != 0)
 #endif
-			bb_error_msg_and_die("Invalid tar magic");
+			bb_error_msg_and_die("invalid tar magic");
 	}
 	/* Do checksum on headers */
 	for (i =  0; i < 148 ; i++) {
 		sum += tar.raw[i];
 	}
 	sum += ' ' * 8;
-	for (i =  156; i < 512 ; i++) {
+	for (i = 156; i < 512 ; i++) {
 		sum += tar.raw[i];
 	}
-	if (sum != strtol(tar.formatted.chksum, NULL, 8)) {
-		bb_error_msg("Invalid tar header checksum");
-		return(EXIT_FAILURE);
+	if (sum != xstrtoul(tar.formatted.chksum, 8)) {
+		bb_error_msg_and_die("invalid tar header checksum");
 	}
 
 #ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
@@ -102,8 +101,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	} else
 #endif
 	{
-		file_header->name = xstrndup(tar.formatted.name,100);
-
+		file_header->name = xstrndup(tar.formatted.name, 100);
 		if (tar.formatted.prefix[0]) {
 			char *temp = file_header->name;
 			file_header->name = concat_path_file(tar.formatted.prefix, temp);
@@ -111,17 +109,18 @@ char get_header_tar(archive_handle_t *archive_handle)
 		}
 	}
 
-	file_header->uid = strtol(tar.formatted.uid, NULL, 8);
-	file_header->gid = strtol(tar.formatted.gid, NULL, 8);
-	file_header->size = strtol(tar.formatted.size, NULL, 8);
-	file_header->mtime = strtol(tar.formatted.mtime, NULL, 8);
-	file_header->link_name = (tar.formatted.linkname[0] != '\0') ?
-	    xstrdup(tar.formatted.linkname) : NULL;
-	file_header->device = makedev(strtol(tar.formatted.devmajor, NULL, 8),
-		strtol(tar.formatted.devminor, NULL, 8));
+	file_header->uid = xstrtoul(tar.formatted.uid, 8);
+	file_header->gid = xstrtoul(tar.formatted.gid, 8);
+	// TODO: LFS support
+	file_header->size = xstrtoul(tar.formatted.size, 8);
+	file_header->mtime = xstrtoul(tar.formatted.mtime, 8);
+	file_header->link_name = tar.formatted.linkname[0] ?
+	                         xstrdup(tar.formatted.linkname) : NULL;
+	file_header->device = makedev(xstrtoul(tar.formatted.devmajor, 8),
+	                              xstrtoul(tar.formatted.devminor, 8));
 
 	/* Set bits 0-11 of the files mode */
-	file_header->mode = 07777 & strtol(tar.formatted.mode, NULL, 8);
+	file_header->mode = 07777 & xstrtoul(tar.formatted.mode, 8);
 
 	/* Set bits 12-15 of the files mode */
 	switch (tar.formatted.typeflag) {
@@ -161,7 +160,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 			xread(archive_handle->src_fd, longname, file_header->size);
 			archive_handle->offset += file_header->size;
 
-			return(get_header_tar(archive_handle));
+			return get_header_tar(archive_handle);
 		}
 	case 'K': {
 			linkname = xzalloc(file_header->size + 1);
@@ -169,7 +168,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 			archive_handle->offset += file_header->size;
 
 			file_header->name = linkname;
-			return(get_header_tar(archive_handle));
+			return get_header_tar(archive_handle);
 		}
 	case 'D':	/* GNU dump dir */
 	case 'M':	/* Continuation of multi volume archive*/
@@ -179,10 +178,10 @@ char get_header_tar(archive_handle_t *archive_handle)
 #endif
 	case 'g':	/* pax global header */
 	case 'x':	/* pax extended header */
-		bb_error_msg("Ignoring extension type %c", tar.formatted.typeflag);
+		bb_error_msg("ignoring extension type %c", tar.formatted.typeflag);
 		break;
 	default:
-		bb_error_msg("Unknown typeflag: 0x%x", tar.formatted.typeflag);
+		bb_error_msg("unknown typeflag: 0x%x", tar.formatted.typeflag);
 	}
 	{	/* Strip trailing '/' in directories */
 		/* Must be done after mode is set as '/' is used to check if its a directory */
@@ -204,5 +203,5 @@ char get_header_tar(archive_handle_t *archive_handle)
 
 	free(file_header->link_name);
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

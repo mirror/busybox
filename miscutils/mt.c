@@ -84,7 +84,7 @@ int mt_main(int argc, char **argv)
 
 	op.mt_op = code->value;
 	if (argc >= 3)
-		op.mt_count = atoi(argv[2]);
+		op.mt_count = xatoi_u(argv[2]);
 	else
 		op.mt_count = 1;		/* One, not zero, right? */
 

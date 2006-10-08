@@ -46,10 +46,8 @@ int sulogin_main(int argc, char **argv)
 	logmode = LOGMODE_BOTH;
 	openlog(applet_name, 0, LOG_AUTH);
 
-	if (getopt32 (argc, argv, "t:", &timeout_arg)) {
-		if (safe_strtoi(timeout_arg, &timeout)) {
-			timeout = 0;
-		}
+	if (getopt32(argc, argv, "t:", &timeout_arg)) {
+		timeout = xatoi_u(timeout_arg);
 	}
 
 	if (argv[optind]) {

@@ -14,7 +14,7 @@
 #define SINGLE (1<<0)
 #else
 #define _SINGLE_COMPL(a)
-#define SINGLE (0)
+#define SINGLE 0
 #endif
 
 #if ENABLE_FEATURE_PIDOF_OMIT
@@ -56,7 +56,7 @@ int pidof_main(int argc, char **argv)
 			/* are we asked to exclude the parent's process ID?  */
 			if (!strncmp(omits_p->data, "%PPID", 5)) {
 				llist_pop(&omits_p);
-				snprintf(getppid_str, sizeof(getppid_str), "%d", getppid());
+				snprintf(getppid_str, sizeof(getppid_str), "%ld", (long)getppid());
 				llist_add_to(&omits_p, getppid_str);
 			}
 			omits_p = omits_p->link;
@@ -64,19 +64,19 @@ int pidof_main(int argc, char **argv)
 	}
 #endif
 	/* Looks like everything is set to go.  */
-	while(optind < argc) {
+	while (optind < argc) {
 		long *pidList;
 		long *pl;
 
 		/* reverse the pidlist like GNU pidof does.  */
 		pidList = pidlist_reverse(find_pid_by_name(argv[optind]));
-		for(pl = pidList; *pl > 0; pl++) {
+		for (pl = pidList; *pl > 0; pl++) {
 #if ENABLE_FEATURE_PIDOF_OMIT
 			unsigned omitted = 0;
 			if (opt & OMIT) {
 				llist_t *omits_p = omits;
 				while (omits_p)
-					if (strtol(omits_p->data, NULL, 10) == *pl) {
+					if (xatoul(omits_p->data) == *pl) {
 						omitted = 1; break;
 					} else
 						omits_p = omits_p->link;

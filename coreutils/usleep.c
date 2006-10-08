@@ -20,7 +20,7 @@ int usleep_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-	if (usleep(bb_xgetularg10_bnd(argv[1], 0, UINT_MAX))) {
+	if (usleep(xatou(argv[1]))) {
 		bb_perror_nomsg_and_die();
 	}
 

@@ -416,7 +416,7 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 		++al;
 		++nipaddr;
 	}
-	if(nipaddr == 0)
+	if (nipaddr == 0)
 	    bb_error_msg_and_die ("Can't find any network interfaces");
 	(void)close(fd);
 
@@ -493,34 +493,6 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 "\t[-w waittime] [-z pausemsecs] host [packetlen]"
 
 */
-
-/* String to value with optional min and max. Handles decimal and hex. */
-static int
-str2val(const char *str, const char *what, int mi, int ma)
-{
-	const char *cp;
-	int val;
-	char *ep;
-
-	if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
-		cp = str + 2;
-		val = (int)strtol(cp, &ep, 16);
-	} else
-		val = (int)strtol(str, &ep, 10);
-	if (*ep != '\0') {
-		bb_error_msg_and_die("\"%s\" bad value for %s", str, what);
-	}
-	if (val < mi && mi >= 0) {
-		if (mi == 0)
-			bb_error_msg_and_die("%s must be >= %d", what, mi);
-		else
-			bb_error_msg_and_die("%s must be > %d", what, mi - 1);
-	}
-	if (val > ma && ma >= 0)
-		bb_error_msg_and_die("%s must be <= %d", what, ma);
-	return val;
-}
-
 
 /*
  * Subtract 2 timeval structs:  out = out - in.
@@ -828,7 +800,7 @@ inetname(struct sockaddr_in *from)
 	char name[257];
 
 	if (!nflag && from->sin_addr.s_addr != INADDR_ANY) {
-		if(INET_rresolve(name, sizeof(name), from, 0x4000, 0xffffffff) >= 0)
+		if (INET_rresolve(name, sizeof(name), from, 0x4000, 0xffffffff) >= 0)
 			n = name;
 	}
 	ina = inet_ntoa(from->sin_addr);
@@ -974,7 +946,7 @@ traceroute_main(int argc, char *argv[])
 #endif
 	);
 
-	if(op & USAGE_OP_DONT_FRAGMNT)
+	if (op & USAGE_OP_DONT_FRAGMNT)
 		off = IP_DF;
 #ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 	useicmp = op & USAGE_OP_USE_ICMP;
@@ -983,34 +955,34 @@ traceroute_main(int argc, char *argv[])
 #ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
 	verbose = op &  USAGE_OP_VERBOSE;
 #endif
-	if(op & USAGE_OP_IP_CHKSUM) {
+	if (op & USAGE_OP_IP_CHKSUM) {
 		doipcksum = 0;
-		bb_error_msg("Warning: ip checksums disabled");
+		bb_error_msg("warning: ip checksums disabled");
 	}
 	if (tos_str)
-		tos = str2val(tos_str, "tos", 0, 255);
-	if(max_ttl_str)
-		max_ttl = str2val(max_ttl_str, "max ttl", 1, 255);
-	if(port_str)
-		port = (u_short)str2val(port_str, "port", 1, (1 << 16) - 1);
-	if(nprobes_str)
-		nprobes = str2val(nprobes_str, "nprobes", 1, -1);
-	if(source) {
+		tos = xatoul_range(tos_str, 0, 255);
+	if (max_ttl_str)
+		max_ttl = xatoul_range(max_ttl_str, 1, 255);
+	if (port_str)
+		port = xatou16(port_str);
+	if (nprobes_str)
+		nprobes = xatoul_range(nprobes_str, 1, INT_MAX);
+	if (source) {
 		/*
 		 * set the ip source address of the outbound
 		 * probe (e.g., on a multi-homed host).
 		 */
 		if (getuid()) bb_error_msg_and_die("-s %s: permission denied", source);
 	}
-	if(waittime_str)
-		waittime = str2val(waittime_str, "wait time", 2, 24 * 60 * 60);
-	if(pausemsecs_str)
-		pausemsecs = str2val(pausemsecs_str, "pause msecs", 0, 60 * 60 * 1000);
-	if(first_ttl_str)
-		first_ttl = str2val(first_ttl_str, "first ttl", 1, 255);
+	if (waittime_str)
+		waittime = xatoul_range(waittime_str, 2, 24 * 60 * 60);
+	if (pausemsecs_str)
+		pausemsecs = xatoul_range(pausemsecs_str, 0, 60 * 60 * 1000);
+	if (first_ttl_str)
+		first_ttl = xatoul_range(first_ttl_str, 1, 255);
 
 #ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
-	if(sourse_route_list) {
+	if (sourse_route_list) {
 		llist_t *l_sr;
 
 		for(l_sr = sourse_route_list; l_sr; ) {
@@ -1046,8 +1018,7 @@ traceroute_main(int argc, char *argv[])
 	switch (argc - optind) {
 
 	case 2:
-		packlen = str2val(argv[optind + 1],
-		    "packet length", minpacket, maxpacket);
+		packlen = xatoul_range(argv[optind + 1], minpacket, maxpacket);
 		/* Fall through */
 
 	case 1:
@@ -1055,8 +1026,7 @@ traceroute_main(int argc, char *argv[])
 		hi = gethostinfo(hostname);
 		setsin(to, hi->addrs[0]);
 		if (hi->n > 1)
-			bb_error_msg(
-		    "Warning: %s has multiple addresses; using %s",
+			bb_error_msg("warning: %s has multiple addresses; using %s",
 				hostname, inet_ntoa(to->sin_addr));
 		hostname = hi->name;
 		hi->name = NULL;

@@ -163,17 +163,7 @@ static void cut_file(FILE * file)
 	}
 }
 
-static int getval(char *ntok)
-{
-	char *junk;
-	int i = strtoul(ntok, &junk, 10);
-
-	if (*junk != '\0' || i < 0)
-		bb_error_msg_and_die("invalid byte or field list");
-	return i;
-}
-
-static const char * const _op_on_field = " only when operating on fields";
+static const char _op_on_field[] = " only when operating on fields";
 
 int cut_main(int argc, char **argv)
 {
@@ -231,7 +221,7 @@ int cut_main(int argc, char **argv)
 			} else if (strlen(ntok) == 0) {
 				s = BOL;
 			} else {
-				s = getval(ntok);
+				s = xatoi_u(ntok);
 				/* account for the fact that arrays are zero based, while
 				 * the user expects the first char on the line to be char #1 */
 				if (s != 0)
@@ -245,7 +235,7 @@ int cut_main(int argc, char **argv)
 			} else if (strlen(ntok) == 0) {
 				e = EOL;
 			} else {
-				e = getval(ntok);
+				e = xatoi_u(ntok);
 				/* if the user specified and end position of 0, that means "til the
 				 * end of the line */
 				if (e == 0)

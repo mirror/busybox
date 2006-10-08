@@ -1222,8 +1222,7 @@ edit_int(int def, char *mesg)
 		printf(" (%d): ", def);
 		if (!read_line())
 			return def;
-	}
-	while (!isdigit(*line_ptr));	/* FIXME: ?!! */
+	} while (!isdigit(*line_ptr));
 	return atoi(line_ptr);
 }
 
@@ -5664,14 +5663,14 @@ int fdisk_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_FDISK_BLKSIZE
 					"s"
 #endif
-						)) != -1) {
+					)) != -1) {
 		switch (c) {
 		case 'b':
 			/* Ugly: this sector size is really per device,
 			   so cannot be combined with multiple disks,
 			   and te same goes for the C/H/S options.
 			*/
-			sector_size = atoi(optarg);
+			sector_size = xatoi_u(optarg);
 			if (sector_size != 512 && sector_size != 1024 &&
 				sector_size != 2048)
 				bb_show_usage();
@@ -5679,15 +5678,15 @@ int fdisk_main(int argc, char **argv)
 			user_set_sector_size = 1;
 			break;
 		case 'C':
-			user_cylinders = atoi(optarg);
+			user_cylinders = xatoi_u(optarg);
 			break;
 		case 'H':
-			user_heads = atoi(optarg);
+			user_heads = xatoi_u(optarg);
 			if (user_heads <= 0 || user_heads >= 256)
 				user_heads = 0;
 			break;
 		case 'S':
-			user_sectors = atoi(optarg);
+			user_sectors = xatoi_u(optarg);
 			if (user_sectors <= 0 || user_sectors >= 64)
 				user_sectors = 0;
 			break;

@@ -216,53 +216,47 @@ int find_main(int argc, char **argv)
 #endif
 #ifdef CONFIG_FEATURE_FIND_PERM
 		} else if (strcmp(argv[i], "-perm") == 0) {
-			char *end;
 			if (++i == argc)
 				bb_error_msg_and_die(bb_msg_requires_arg, "-perm");
-			perm_mask = strtol(argv[i], &end, 8);
-			if ((end[0] != '\0') || (perm_mask > 07777))
-				bb_error_msg_and_die(bb_msg_invalid_arg, argv[i], "-perm");
-			if ((perm_char = argv[i][0]) == '-')
+			perm_mask = xstrtol_range(argv[i], 8, 0, 07777);
+			perm_char = argv[i][0];
+			if (perm_char == '-')
 				perm_mask = -perm_mask;
 #endif
 #ifdef CONFIG_FEATURE_FIND_MTIME
 		} else if (strcmp(argv[i], "-mtime") == 0) {
-			char *end;
 			if (++i == argc)
 				bb_error_msg_and_die(bb_msg_requires_arg, "-mtime");
-			mtime_days = strtol(argv[i], &end, 10);
-			if (end[0] != '\0')
-				bb_error_msg_and_die(bb_msg_invalid_arg, argv[i], "-mtime");
-			if ((mtime_char = argv[i][0]) == '-')
+			mtime_days = xatol(argv[i]);
+			mtime_char = argv[i][0];
+			if (mtime_char == '-')
 				mtime_days = -mtime_days;
 #endif
 #ifdef CONFIG_FEATURE_FIND_MMIN
 		} else if (strcmp(argv[i], "-mmin") == 0) {
-			char *end;
 			if (++i == argc)
 				bb_error_msg_and_die(bb_msg_requires_arg, "-mmin");
-			mmin_mins = strtol(argv[i], &end, 10);
-			if (end[0] != '\0')
-				bb_error_msg_and_die(bb_msg_invalid_arg, argv[i], "-mmin");
-			if ((mmin_char = argv[i][0]) == '-')
+			mmin_mins = xatol(argv[i]);
+			mmin_char = argv[i][0];
+			if (mmin_char == '-')
 				mmin_mins = -mmin_mins;
 #endif
 #ifdef CONFIG_FEATURE_FIND_XDEV
 		} else if (strcmp(argv[i], "-xdev") == 0) {
 			struct stat stbuf;
 
-			xdev_count = ( firstopt - 1 ) ? ( firstopt - 1 ) : 1;
-			xdev_dev = xmalloc ( xdev_count * sizeof( dev_t ));
+			xdev_count = (firstopt - 1) ? (firstopt - 1) : 1;
+			xdev_dev = xmalloc(xdev_count * sizeof(dev_t));
 
-			if ( firstopt == 1 ) {
-				xstat ( ".", &stbuf );
-				xdev_dev [0] = stbuf. st_dev;
+			if (firstopt == 1) {
+				xstat(".", &stbuf);
+				xdev_dev[0] = stbuf.st_dev;
 			}
 			else {
 
 				for (i = 1; i < firstopt; i++) {
-					xstat ( argv [i], &stbuf );
-					xdev_dev [i-1] = stbuf. st_dev;
+					xstat(argv[i], &stbuf);
+					xdev_dev[i-1] = stbuf.st_dev;
 				}
 			}
 #endif
@@ -271,17 +265,14 @@ int find_main(int argc, char **argv)
 			struct stat stat_newer;
 			if (++i == argc)
 				bb_error_msg_and_die(bb_msg_requires_arg, "-newer");
-			xstat (argv[i], &stat_newer);
+			xstat(argv[i], &stat_newer);
 			newer_mtime = stat_newer.st_mtime;
 #endif
 #ifdef CONFIG_FEATURE_FIND_INUM
 		} else if (strcmp(argv[i], "-inum") == 0) {
-			char *end;
 			if (++i == argc)
 				bb_error_msg_and_die(bb_msg_requires_arg, "-inum");
-			inode_num = strtol(argv[i], &end, 10);
-			if (end[0] != '\0')
-				bb_error_msg_and_die(bb_msg_invalid_arg, argv[i], "-inum");
+			inode_num = xatoul(argv[i]);
 #endif
 #ifdef CONFIG_FEATURE_FIND_EXEC
 		} else if (strcmp(argv[i], "-exec") == 0) {

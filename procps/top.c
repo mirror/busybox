@@ -384,8 +384,8 @@ static void sig_catcher(int sig ATTRIBUTE_UNUSED)
 int top_main(int argc, char **argv)
 {
 	int count, lines, col;
-	int interval = 5; /* default update rate is 5 seconds */
-	int iterations = -1; /* 2^32 iterations by default :) */
+	unsigned interval = 5; /* default update rate is 5 seconds */
+	unsigned iterations = UINT_MAX; /* 2^32 iterations by default :) */
 	char *sinterval, *siterations;
 #ifdef CONFIG_FEATURE_USE_TERMIOS
 	struct termios new_settings;
@@ -399,8 +399,8 @@ int top_main(int argc, char **argv)
 	opt_complementary = "-";
 	getopt32(argc, argv, "d:n:b", 
 		&sinterval, &siterations);
-	if (option_mask32 & 0x1) interval = atoi(sinterval); // -d
-	if (option_mask32 & 0x2) iterations = atoi(siterations); // -n
+	if (option_mask32 & 0x1) interval = xatou(sinterval); // -d
+	if (option_mask32 & 0x2) iterations = xatou(siterations); // -n
 	//if (option_mask32 & 0x4) // -b
 
 	/* change to /proc */

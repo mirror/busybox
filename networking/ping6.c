@@ -145,10 +145,10 @@ int ping6_main(int argc, char **argv)
 /* full(er) version */
 static struct sockaddr_in6 pingaddr;
 static int pingsock = -1;
-static int datalen; /* intentionally uninitialized to work around gcc bug */
+static unsigned datalen; /* intentionally uninitialized to work around gcc bug */
 static int if_index;
 
-static long ntransmitted, nreceived, nrepeats, pingcount;
+static unsigned long ntransmitted, nreceived, nrepeats, pingcount;
 static int myid, options;
 static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
@@ -168,12 +168,12 @@ static void pingstats(int junk)
 	signal(SIGINT, SIG_IGN);
 
 	printf("\n--- %s ping statistics ---\n", hostent->h_name);
-	printf("%ld packets transmitted, ", ntransmitted);
-	printf("%ld packets received, ", nreceived);
+	printf("%lu packets transmitted, ", ntransmitted);
+	printf("%lu packets received, ", nreceived);
 	if (nrepeats)
-		printf("%ld duplicates, ", nrepeats);
+		printf("%lu duplicates, ", nrepeats);
 	if (ntransmitted)
-		printf("%ld%% packet loss\n",
+		printf("%lu%% packet loss\n",
 			   (ntransmitted - nreceived) * 100 / ntransmitted);
 	if (nreceived)
 		printf("round-trip min/avg/max = %lu.%lu/%lu.%lu/%lu.%lu ms\n",
@@ -439,13 +439,13 @@ int ping6_main(int argc, char **argv)
 			if (--argc <= 0)
 				bb_show_usage();
 			argv++;
-			pingcount = atoi(*argv);
+			pingcount = xatoul(*argv);
 			break;
 		case 's':
 			if (--argc <= 0)
 				bb_show_usage();
 			argv++;
-			datalen = atoi(*argv);
+			datalen = xatou16(*argv);
 			break;
 		case 'I':
 			if (--argc <= 0)

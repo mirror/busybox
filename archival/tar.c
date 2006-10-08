@@ -541,7 +541,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 static char get_header_tar_Z(archive_handle_t *archive_handle)
 {
 	/* Cant lseek over pipe's */
-	archive_handle->seek = seek_by_char;
+	archive_handle->seek = seek_by_read;
 
 	/* do the decompression, and cleanup */
 	if (xread_char(archive_handle->src_fd) != 0x1f ||
@@ -805,7 +805,7 @@ int tar_main(int argc, char **argv)
 
 		if ((tar_filename[0] == '-') && (tar_filename[1] == '\0')) {
 			tar_handle->src_fd = fileno(tar_stream);
-			tar_handle->seek = seek_by_char;
+			tar_handle->seek = seek_by_read;
 		} else {
 			tar_handle->src_fd = xopen3(tar_filename, flags, 0666);
 		}

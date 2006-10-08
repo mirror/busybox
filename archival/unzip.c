@@ -51,11 +51,12 @@ typedef union {
 	} formatted ATTRIBUTE_PACKED;
 } zip_header_t;
 
+/* This one never works with LARGEFILE-sized skips */
 static void unzip_skip(int fd, off_t skip)
 {
 	if (lseek(fd, skip, SEEK_CUR) == (off_t)-1) {
 		if ((errno != ESPIPE) || (bb_copyfd_size(fd, -1, skip) != skip)) {
-			bb_error_msg_and_die("Seek failure");
+			bb_error_msg_and_die("seek failure");
 		}
 	}
 }
@@ -65,7 +66,7 @@ static void unzip_create_leading_dirs(char *fn)
 	/* Create all leading directories */
 	char *name = xstrdup(fn);
 	if (bb_make_directory(dirname(name), 0777, FILEUTILS_RECUR)) {
-		bb_error_msg_and_die("Exiting"); /* bb_make_directory is noisy */
+		bb_error_msg_and_die("exiting"); /* bb_make_directory is noisy */
 	}
 	free(name);
 }
@@ -76,7 +77,7 @@ static int unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 		/* Method 0 - stored (not compressed) */
 		int size = zip_header->formatted.ucmpsize;
 		if (size && (bb_copyfd_size(src_fd, dst_fd, size) != size)) {
-			bb_error_msg_and_die("Cannot complete extraction");
+			bb_error_msg_and_die("cannot complete extraction");
 		}
 
 	} else {
@@ -86,12 +87,12 @@ static int unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 		inflate_cleanup();
 		/* Validate decompression - crc */
 		if (zip_header->formatted.crc32 != (gunzip_crc ^ 0xffffffffL)) {
-			bb_error_msg("Invalid compressed data--crc error");
+			bb_error_msg("invalid compressed data--%s error", "crc");
 			return 1;
 		}
 		/* Validate decompression - size */
 		if (zip_header->formatted.ucmpsize != gunzip_bytes_out) {
-			bb_error_msg("Invalid compressed data--length error");
+			bb_error_msg("invalid compressed data--%s error", "length");
 			return 1;
 		}
 	}

@@ -1951,7 +1951,7 @@ int httpd_main(int argc, char *argv[])
 #endif
 #if ENABLE_FEATURE_HTTPD_WITHOUT_INETD
 	if (opt & OPT_PORT)
-		config->port = bb_xgetlarg(s_port, 10, 1, 0xffff);
+		config->port = xatou16(s_port);
 #if ENABLE_FEATURE_HTTPD_SETUID
 	if (opt & OPT_SETUID) {
 		char *e;

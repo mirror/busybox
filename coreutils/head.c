@@ -64,32 +64,30 @@ int head_main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, head_opts)) > 0) {
 		switch (opt) {
 #if ENABLE_FEATURE_FANCY_HEAD
-			case 'q':
-				header_threshhold = INT_MAX;
-				break;
-			case 'v':
-				header_threshhold = -1;
-				break;
-			case 'c':
-				count_bytes = 1;
-				/* fall through */
+		case 'q':
+			header_threshhold = INT_MAX;
+			break;
+		case 'v':
+			header_threshhold = -1;
+			break;
+		case 'c':
+			count_bytes = 1;
+			/* fall through */
 #endif
-			case 'n':
-				p = optarg;
+		case 'n':
+			p = optarg;
 #if !ENABLE_DEBUG_YANK_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
-			GET_COUNT:
+		GET_COUNT:
 #endif
 
 #if !ENABLE_FEATURE_FANCY_HEAD
-				count = bb_xgetularg10(p);
+			count = xatoul(p);
 #else
-				count = bb_xgetularg_bnd_sfx(p, 10,
-								0, ULONG_MAX,
-								head_suffixes);
+			count = xatoul_sfx(p, head_suffixes);
 #endif
-				break;
-			default:
-				bb_show_usage();
+			break;
+		default:
+			bb_show_usage();
 		}
 	}
 

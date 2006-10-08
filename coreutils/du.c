@@ -215,7 +215,7 @@ int du_main(int argc, char **argv)
 	one_file_system = opt & (1 << 5); /* -x opt */
 	if((opt & (1 << 6))) {
 		/* -d opt */
-		max_print_depth = bb_xgetularg10_bnd(smax_print_depth, 0, INT_MAX);
+		max_print_depth = xatoi_u(smax_print_depth);
 	}
 	if((opt & (1 << 7))) {
 		/* -l opt */

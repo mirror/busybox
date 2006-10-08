@@ -264,8 +264,8 @@ static void parse_config_file(void)
 
 					sct->m_uid = strtoul(s, &e2, 10);
 					if (*e2 || (s == e2)) {
-						struct passwd *pwd;
-						if (!(pwd = getpwnam(s))) {
+						struct passwd *pwd = getpwnam(s);
+						if (!pwd) {
 							parse_error("user");
 						}
 						sct->m_uid = pwd->pw_uid;

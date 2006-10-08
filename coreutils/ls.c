@@ -163,8 +163,8 @@ static int list_single(struct dnode *);
 static unsigned int all_fmt;
 
 #ifdef CONFIG_FEATURE_AUTOWIDTH
-static int terminal_width = TERMINAL_WIDTH;
-static unsigned short tabstops = COLUMN_GAP;
+static unsigned terminal_width = TERMINAL_WIDTH;
+static unsigned tabstops = COLUMN_GAP;
 #else
 #define tabstops COLUMN_GAP
 #define terminal_width TERMINAL_WIDTH
@@ -915,10 +915,10 @@ int ls_main(int argc, char **argv)
 #endif
 		);
 	if (tabstops_str) {
-		tabstops = atoi(tabstops_str);
+		tabstops = xatou(tabstops_str);
 	}
 	if (terminal_width_str) {
-		terminal_width = atoi(terminal_width_str);
+		terminal_width = xatou(terminal_width_str);
 	}
 #else
 	opt = getopt32(argc, argv, ls_options

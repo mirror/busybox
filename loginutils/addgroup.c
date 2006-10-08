@@ -91,15 +91,14 @@ int addgroup_main(int argc, char **argv)
 
 	/* check for min, max and missing args and exit on error */
 	opt_complementary = "-1:?2:?";
-
 	if (getopt32(argc, argv, "g:", &group)) {
-		gid = bb_xgetlarg(group, 10, 0, LONG_MAX);
+		gid = xatoul_range(group, 0, (gid_t)ULONG_MAX);
 	}
 	/* move past the commandline options */
 	argv += optind;
 
 	/* need to be root */
-	if(geteuid()) {
+	if (geteuid()) {
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
 

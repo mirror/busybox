@@ -379,7 +379,8 @@ int ifconfig_main(int argc, char **argv)
 
 						safe_strncpy(host, *argv, (sizeof host));
 #ifdef CONFIG_FEATURE_IPV6
-						if ((prefix = strchr(host, '/'))) {
+						prefix = strchr(host, '/');
+						if (prefix) {
 							if (safe_strtoi(prefix + 1, &prefix_len) ||
 								(prefix_len < 0) || (prefix_len > 128))
 							{

@@ -48,11 +48,12 @@ char *query_loop(const char *device)
 {
 	int fd;
 	bb_loop_info loopinfo;
-	char *dev=0;
+	char *dev = 0;
 
-	if ((fd = open(device, O_RDONLY)) < 0) return 0;
+	fd = open(device, O_RDONLY);
+	if (fd < 0) return 0;
 	if (!ioctl(fd, BB_LOOP_GET_STATUS, &loopinfo))
-		dev=xasprintf("%ld %s", (long) loopinfo.lo_offset,
+		dev = xasprintf("%ld %s", (long) loopinfo.lo_offset,
 				(char *)loopinfo.lo_file_name);
 	close(fd);
 
@@ -64,8 +65,9 @@ int del_loop(const char *device)
 {
 	int fd, rc;
 
-	if ((fd = open(device, O_RDONLY)) < 0) return 1;
-	rc=ioctl(fd, LOOP_CLR_FD, 0);
+	fd = open(device, O_RDONLY);
+	if (fd < 0) return 1;
+	rc = ioctl(fd, LOOP_CLR_FD, 0);
 	close(fd);
 
 	return rc;
@@ -77,7 +79,7 @@ int del_loop(const char *device)
    search will re-use an existing loop device already bound to that
    file/offset if it finds one.
  */
-int set_loop(char **device, const char *file, int offset)
+int set_loop(char **device, const char *file, unsigned long long offset)
 {
 	char dev[20], *try;
 	bb_loop_info loopinfo;
@@ -85,34 +87,43 @@ int set_loop(char **device, const char *file, int offset)
 	int i, dfd, ffd, mode, rc=-1;
 
 	/* Open the file.  Barf if this doesn't work.  */
-	if((ffd = open(file, mode=O_RDWR))<0 && (ffd = open(file,mode=O_RDONLY))<0)
-		return -errno;
+	mode = O_RDWR;
+	ffd = open(file, mode);
+	if (ffd < 0) {
+		mode = O_RDONLY;
+		ffd = open(file, mode);
+		if (ffd < 0)
+			return -errno;
+	}
 
 	/* Find a loop device.  */
-	try=*device ? : dev;
-	for(i=0;rc;i++) {
+	try = *device ? : dev;
+	for (i=0;rc;i++) {
 		sprintf(dev, LOOP_FORMAT, i);
 
 		/* Ran out of block devices, return failure.  */
-		if(stat(try, &statbuf) || !S_ISBLK(statbuf.st_mode)) {
+		if (stat(try, &statbuf) || !S_ISBLK(statbuf.st_mode)) {
 			rc=-ENOENT;
 			break;
 		}
 		/* Open the sucker and check its loopiness.  */
-		if((dfd=open(try, mode))<0 && errno==EROFS)
-			dfd=open(try, mode = O_RDONLY);
-		if(dfd<0) goto try_again;
+		dfd = open(try, mode);
+		if (dfd < 0 && errno == EROFS) {
+			mode = O_RDONLY;
+			dfd = open(try, mode);
+		}
+		if (dfd < 0) goto try_again;
 
-		rc=ioctl(dfd, BB_LOOP_GET_STATUS, &loopinfo);
+		rc = ioctl(dfd, BB_LOOP_GET_STATUS, &loopinfo);
 
 		/* If device free, claim it.  */
-		if(rc && errno==ENXIO) {
+		if (rc && errno == ENXIO) {
 			memset(&loopinfo, 0, sizeof(loopinfo));
 			safe_strncpy((char *)loopinfo.lo_file_name, file, LO_NAME_SIZE);
 			loopinfo.lo_offset = offset;
 			/* Associate free loop device with file.  */
-			if(!ioctl(dfd, LOOP_SET_FD, ffd)) {
-				if (!ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo)) rc=0;
+			if (!ioctl(dfd, LOOP_SET_FD, ffd)) {
+				if (!ioctl(dfd, BB_LOOP_SET_STATUS, &loopinfo)) rc = 0;
 				else ioctl(dfd, LOOP_CLR_FD, 0);
 			}
 
@@ -121,15 +132,16 @@ int set_loop(char **device, const char *file, int offset)
 		   file isn't pretty either.  In general, mounting the same file twice
 		   without using losetup manually is problematic.)
 		 */
-		} else if(strcmp(file,(char *)loopinfo.lo_file_name)
-					|| offset!=loopinfo.lo_offset) rc=-1;
+		} else if (strcmp(file,(char *)loopinfo.lo_file_name)
+					|| offset!=loopinfo.lo_offset) rc = -1;
 		close(dfd);
 try_again:
-		if(*device) break;
+		if (*device) break;
 	}
 	close(ffd);
-	if(!rc) {
-		if(!*device) *device=strdup(dev);
+	if (!rc) {
+		if (!*device) *device = strdup(dev);
 		return mode==O_RDONLY ? 1 : 0;
-	} else return rc;
+	}
+	return rc;
 }

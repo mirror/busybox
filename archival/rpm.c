@@ -173,7 +173,7 @@ static void extract_cpio_gz(int fd) {
 
 	/* Initialise */
 	archive_handle = init_handle();
-	archive_handle->seek = seek_by_char;
+	archive_handle->seek = seek_by_read;
 	//archive_handle->action_header = header_list;
 	archive_handle->action_data = data_extract_all;
 	archive_handle->flags |= ARCHIVE_PRESERVE_DATE;

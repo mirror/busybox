@@ -35,7 +35,7 @@ RB_AUTOBOOT
 
 	/* Parse and handle arguments */
 	flags = getopt32(argc, argv, "d:nf", &delay);
-	if (flags&1) sleep(atoi(delay));
+	if (flags&1) sleep(xatou(delay));
 	if (!(flags&2)) sync();
 
 	/* Perform action. */

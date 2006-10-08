@@ -27,7 +27,6 @@ enum {
 extern int
 setkeycodes_main(int argc, char** argv)
 {
-	char *ep;
 	int fd, sc;
 	struct kbkeycode a;
 
@@ -38,19 +37,13 @@ setkeycodes_main(int argc, char** argv)
 	fd = get_console_fd();
 
 	while (argc > 2) {
-		a.keycode = atoi(argv[2]);
-		a.scancode = sc = strtol(argv[1], &ep, 16);
-		if (*ep) {
-			bb_error_msg_and_die("error reading SCANCODE: '%s'", argv[1]);
-		}
+		a.keycode = xatoul_range(argv[2], 0, 127);
+		a.scancode = sc = xstrtoul_range(argv[1], 16, 0, 255);
 		if (a.scancode > 127) {
 			a.scancode -= 0xe000;
 			a.scancode += 128;
 		}
-		if (a.scancode > 255 || a.keycode > 127) {
-			bb_error_msg_and_die("SCANCODE or KEYCODE outside bounds");
-		}
-		if (ioctl(fd,KDSETKEYCODE,&a)) {
+		if (ioctl(fd, KDSETKEYCODE, &a)) {
 			bb_perror_msg_and_die("failed to set SCANCODE %x to KEYCODE %d", sc, a.keycode);
 		}
 		argc -= 2;

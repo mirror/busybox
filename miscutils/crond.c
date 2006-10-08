@@ -65,10 +65,10 @@ typedef struct CronLine {
 #define DaemonUid 0
 
 #if ENABLE_DEBUG_CROND_OPTION
-static short DebugOpt;
+static unsigned DebugOpt;
 #endif
 
-static short LogLevel = 8;
+static unsigned LogLevel = 8;
 static const char *LogFile;
 static const char *CDir = CRONTABS;
 
@@ -155,7 +155,7 @@ int crond_main(int ac, char **av)
 #endif
 		);
 	if (opt & 1) {
-		LogLevel = atoi(lopt);
+		LogLevel = xatou(lopt);
 	}
 	if (opt & 2) {
 		if (*Lopt != 0) {
@@ -169,7 +169,7 @@ int crond_main(int ac, char **av)
 	}
 #if ENABLE_DEBUG_CROND_OPTION
 	if (opt & 64) {
-		DebugOpt = atoi(dopt);
+		DebugOpt = xatou(dopt);
 		LogLevel = 0;
 	}
 #endif

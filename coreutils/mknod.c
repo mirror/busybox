@@ -9,11 +9,8 @@
 
 /* BB_AUDIT SUSv3 N/A -- Matches GNU behavior. */
 
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
 #include <sys/sysmacros.h>  // For makedev
-#include <unistd.h>
+
 #include "busybox.h"
 #include "libcoreutils/coreutils.h"
 
@@ -37,8 +34,8 @@ int mknod_main(int argc, char **argv)
 		if ((*name != 'p') && ((argc -= 2) == 2)) {
 			/* Autodetect what the system supports; thexe macros should
 			 * optimize out to two constants. */
-			dev = makedev(bb_xgetularg10_bnd(argv[2], 0, major(UINT_MAX)),
-						  bb_xgetularg10_bnd(argv[3], 0, minor(UINT_MAX)));
+			dev = makedev(xatoul_range(argv[2], 0, major(UINT_MAX)),
+			              xatoul_range(argv[3], 0, minor(UINT_MAX)));
 		}
 
 		if (argc == 2) {

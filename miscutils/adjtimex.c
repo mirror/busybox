@@ -12,10 +12,6 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <sys/types.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <sys/timex.h>
 
 static const struct {int bit; const char *name;} statlist[] = {
@@ -58,19 +54,19 @@ int adjtimex_main(int argc, char **argv)
 			&opt_o, &opt_f, &opt_p, &opt_t);
 	//if (opt & 0x1) // -q
 	if (opt & 0x2) { // -o
-		txc.offset = atoi(opt_o);
+		txc.offset = xatoi(opt_o);
 		txc.modes |= ADJ_OFFSET_SINGLESHOT;
 	}
 	if (opt & 0x4) { // -f
-		txc.freq = atoi(opt_f);
+		txc.freq = xatou(opt_f);
 		txc.modes |= ADJ_FREQUENCY;
 	}
 	if (opt & 0x8) { // -p
-		txc.constant = atoi(opt_p);
+		txc.constant = xatoi(opt_p);
 		txc.modes |= ADJ_TIMECONST;
 	}
 	if (opt & 0x10) { // -t
-		txc.tick = atoi(opt_t);
+		txc.tick = xatoi(opt_t);
 		txc.modes |= ADJ_TICK;
 	}
 	if (argc != optind) { /* no valid non-option parameters */

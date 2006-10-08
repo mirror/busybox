@@ -24,7 +24,7 @@
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_FANCY_SLEEP
-static const struct suffix_mult sleep_suffixes[] = {
+static const struct suffix_mult sfx[] = {
 	{ "s", 1 },
 	{ "m", 60 },
 	{ "h", 60*60 },
@@ -46,9 +46,7 @@ int sleep_main(int argc, char **argv)
 	++argv;
 	duration = 0;
 	do {
-		duration += bb_xgetularg_bnd_sfx(*argv, 10,
-										 0, UINT_MAX-duration,
-										 sleep_suffixes);
+		duration += xatoul_range_sfx(*argv, 0, UINT_MAX-duration, sfx);
 	} while (*++argv);
 
 #else  /* CONFIG_FEATURE_FANCY_SLEEP */
@@ -57,11 +55,7 @@ int sleep_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-#if UINT_MAX == ULONG_MAX
-	duration = bb_xgetularg10(argv[1]);
-#else
-	duration = bb_xgetularg10_bnd(argv[1], 0, UINT_MAX);
-#endif
+	duration = xatou(argv[1]);
 
 #endif /* CONFIG_FEATURE_FANCY_SLEEP */
 

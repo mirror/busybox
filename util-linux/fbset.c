@@ -338,20 +338,20 @@ int fbset_main(int argc, char **argv)
 				modefile = argv[1];
 				break;
 			case CMD_GEOMETRY:
-				varset.xres = strtoul(argv[1], 0, 0);
-				varset.yres = strtoul(argv[2], 0, 0);
-				varset.xres_virtual = strtoul(argv[3], 0, 0);
-				varset.yres_virtual = strtoul(argv[4], 0, 0);
-				varset.bits_per_pixel = strtoul(argv[5], 0, 0);
+				varset.xres = xatou32(argv[1]);
+				varset.yres = xatou32(argv[2]);
+				varset.xres_virtual = xatou32(argv[3]);
+				varset.yres_virtual = xatou32(argv[4]);
+				varset.bits_per_pixel = xatou32(argv[5]);
 				break;
 			case CMD_TIMING:
-				varset.pixclock = strtoul(argv[1], 0, 0);
-				varset.left_margin = strtoul(argv[2], 0, 0);
-				varset.right_margin = strtoul(argv[3], 0, 0);
-				varset.upper_margin = strtoul(argv[4], 0, 0);
-				varset.lower_margin = strtoul(argv[5], 0, 0);
-				varset.hsync_len = strtoul(argv[6], 0, 0);
-				varset.vsync_len = strtoul(argv[7], 0, 0);
+				varset.pixclock = xatou32(argv[1]);
+				varset.left_margin = xatou32(argv[2]);
+				varset.right_margin = xatou32(argv[3]);
+				varset.upper_margin = xatou32(argv[4]);
+				varset.lower_margin = xatou32(argv[5]);
+				varset.hsync_len = xatou32(argv[6]);
+				varset.vsync_len = xatou32(argv[7]);
 				break;
 			case CMD_ALL:
 				g_options |= OPT_ALL;
@@ -361,13 +361,13 @@ int fbset_main(int argc, char **argv)
 				break;
 #ifdef CONFIG_FEATURE_FBSET_FANCY
 			case CMD_XRES:
-				varset.xres = strtoul(argv[1], 0, 0);
+				varset.xres = xatou32(argv[1]);
 				break;
 			case CMD_YRES:
-				varset.yres = strtoul(argv[1], 0, 0);
+				varset.yres = xatou32(argv[1]);
 				break;
 			case CMD_DEPTH:
-				varset.bits_per_pixel = strtoul(argv[1], 0, 0);
+				varset.bits_per_pixel = xatou32(argv[1]);
 				break;
 #endif
 			}

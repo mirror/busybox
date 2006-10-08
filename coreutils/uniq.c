@@ -37,7 +37,7 @@ int uniq_main(int argc, char **argv)
 
 	while ((opt = getopt(argc, argv, uniq_opts)) > 0) {
 		if ((opt == 'f') || (opt == 's')) {
-			int t = bb_xgetularg10(optarg);
+			int t = xatoul(optarg);
 			if (opt == 'f') {
 				skip_fields = t;
 			} else {

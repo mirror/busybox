@@ -363,7 +363,7 @@ static int nstrcmp(const char *a, const char *b)
 	}
 
 	if (isdigit(*a) && isdigit(*b)) {
-		return atoi(a_ptr) > atoi(b_ptr) ? 1 : -1;
+		return xatoul(a_ptr) > xatoul(b_ptr) ? 1 : -1;
 	}
 	return *a - *b;
 }

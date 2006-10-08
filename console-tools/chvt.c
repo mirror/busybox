@@ -7,11 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
 #include "busybox.h"
 
 /* From <linux/vt.h> */
@@ -29,7 +24,7 @@ int chvt_main(int argc, char **argv)
 	}
 
 	fd = get_console_fd();
-	num =  bb_xgetlarg(argv[1], 10, 0, INT_MAX);
+	num = xatoul_range(argv[1], 1, 63);
 	if ((-1 == ioctl(fd, VT_ACTIVATE, num))
 	|| (-1 == ioctl(fd, VT_WAITACTIVE, num))) {
 		bb_perror_msg_and_die("ioctl");

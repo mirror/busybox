@@ -43,7 +43,6 @@ int klogd_main(int argc, char **argv)
 	int i, n, lastc;
 	char *start;
 
-
 	{
 		unsigned opt;
 
@@ -52,7 +51,7 @@ int klogd_main(int argc, char **argv)
 
 		if (opt & OPT_LEVEL) {
 			/* Valid levels are between 1 and 8 */
-			console_log_level = bb_xgetlarg(start, 10, 1, 8);
+			console_log_level = xatoul_range(start, 1, 8);
 		}
 
 		if (!(opt & OPT_FOREGROUND)) {

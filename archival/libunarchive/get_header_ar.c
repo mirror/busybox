@@ -46,14 +46,14 @@ char get_header_ar(archive_handle_t *archive_handle)
 
 	/* align the headers based on the header magic */
 	if ((ar.formatted.magic[0] != '`') || (ar.formatted.magic[1] != '\n')) {
-		bb_error_msg_and_die("Invalid ar header");
+		bb_error_msg_and_die("invalid ar header");
 	}
 
-	typed->mode = strtol(ar.formatted.mode, NULL, 8);
-	typed->mtime = atoi(ar.formatted.date);
-	typed->uid = atoi(ar.formatted.uid);
-	typed->gid = atoi(ar.formatted.gid);
-	typed->size = atoi(ar.formatted.size);
+	typed->mode = xstrtoul(ar.formatted.mode, 8);
+	typed->mtime = xatou(ar.formatted.date);
+	typed->uid = xatou(ar.formatted.uid);
+	typed->gid = xatou(ar.formatted.gid);
+	typed->size = xatoul(ar.formatted.size);
 
 	/* long filenames have '/' as the first character */
 	if (ar.formatted.name[0] == '/') {
