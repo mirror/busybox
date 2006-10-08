@@ -38,68 +38,61 @@
 #error Assumption violated : PRIO_USER value
 #endif
 
-static inline int int_add_no_wrap(int a, int b)
-{
-	int s = a + b;
-
-	if (b < 0) {
-		if (s > a) s = INT_MIN;
-	} else {
-		if (s < a) s = INT_MAX;
-	}
-
-	return s;
-}
-
 int renice_main(int argc, char **argv)
 {
-	static const char Xetpriority_msg[] = "%d: %cetpriority";
+	static const char Xetpriority_msg[] = "%cetpriority";
 
 	int retval = EXIT_SUCCESS;
 	int which = PRIO_PROCESS;	/* Default 'which' value. */
 	int use_relative = 0;
 	int adjustment, new_priority;
 	unsigned who;
+	char *arg;
 
-	++argv;
+	arg = *++argv;
 
 	/* Check if we are using a relative adjustment. */
-	if (argv[0] && (argv[0][0] == '-') && (argv[0][1] == 'n') && !argv[0][2]) {
+	if (arg && arg[0] == '-' && arg[1] == 'n') {
 		use_relative = 1;
-		++argv;
+		if (!arg[2])
+			arg = *++argv;
+		else
+			arg += 2;
 	}
 
-	if (!*argv) {				/* No args?  Then show usage. */
+	if (!arg) {				/* No args?  Then show usage. */
 		bb_show_usage();
 	}
 
 	/* Get the priority adjustment (absolute or relative). */
-	adjustment = xatoi(*argv);
+	adjustment = xatoi_range(arg, INT_MIN/2, INT_MAX/2);
 
-	while (*++argv) {
+	while ((arg = *++argv) != NULL) {
 		/* Check for a mode switch. */
-		if ((argv[0][0] == '-') && argv[0][1] && !argv[0][2]) {
+		if (arg[0] == '-' && arg[1]) {
 			static const char opts[]
 				= { 'p', 'g', 'u', 0, PRIO_PROCESS, PRIO_PGRP, PRIO_USER };
-			const char *p = strchr(opts, argv[0][1]);
+			const char *p = strchr(opts, arg[1]);
 			if (p) {
 				which = p[4];
-				continue;
+				if (!arg[2])
+					continue;
+				arg += 2;
 			}
 		}
 
 		/* Process an ID arg. */
 		if (which == PRIO_USER) {
 			struct passwd *p;
-			p = getpwnam(*argv);
+			p = getpwnam(arg);
 			if (!p) {
-				bb_error_msg("unknown user: %s", *argv);
+				bb_error_msg("unknown user: %s", arg);
 				goto HAD_ERROR;
 			}
 			who = p->pw_uid;
 		} else {
-			if (safe_strtou(*argv, &who)) {
-				bb_error_msg("bad value: %s", *argv);
+			if (safe_strtou(arg, &who)) {
+				bb_error_msg("bad value: %s", arg);
 				goto HAD_ERROR;
 			}
 		}
@@ -111,11 +104,11 @@ int renice_main(int argc, char **argv)
 			errno = 0;	 /* Needed for getpriority error detection. */
 			old_priority = getpriority(which, who);
 			if (errno) {
-				bb_perror_msg(Xetpriority_msg, who, 'g');
+				bb_perror_msg(Xetpriority_msg, 'g');
 				goto HAD_ERROR;
 			}
 
-			new_priority = int_add_no_wrap(old_priority, adjustment);
+			new_priority = old_priority + adjustment;
 		} else {
 			new_priority = adjustment;
 		}
@@ -124,8 +117,8 @@ int renice_main(int argc, char **argv)
 			continue;
 		}
 
-		bb_perror_msg(Xetpriority_msg, who, 's');
-	HAD_ERROR:
+		bb_perror_msg(Xetpriority_msg, 's');
+ HAD_ERROR:
 		retval = EXIT_FAILURE;
 	}
 

@@ -10,6 +10,7 @@
 
 #include "busybox.h"
 #include <getopt.h>
+#include <sys/resource.h>
 
 static int signal_nr = 15;
 static int user_id = -1;
@@ -191,38 +192,39 @@ static int do_stop(void)
 
 #if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
 static const struct option ssd_long_options[] = {
-	{ "stop",			0,		NULL,		'K' },
-	{ "start",			0,		NULL,		'S' },
-	{ "background",		0,		NULL,		'b' },
-	{ "quiet",			0,		NULL,		'q' },
-	{ "make-pidfile",	0,		NULL,		'm' },
+	{ "stop",               0,      NULL,   'K' },
+	{ "start",              0,      NULL,   'S' },
+	{ "background",         0,      NULL,   'b' },
+	{ "quiet",              0,      NULL,   'q' },
+	{ "make-pidfile",       0,      NULL,   'm' },
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
-	{ "oknodo",			0,		NULL,		'o' },
-	{ "verbose",		0,		NULL,		'v' },
+	{ "oknodo",             0,      NULL,   'o' },
+	{ "verbose",            0,      NULL,   'v' },
+	{ "nicelevel",          1,      NULL,   'N' },
 #endif
-	{ "startas",		1,		NULL,		'a' },
-	{ "name",			1,		NULL,		'n' },
-	{ "signal",			1,		NULL,		's' },
-	{ "user",			1,		NULL,		'u' },
-	{ "chuid", 			1,		NULL,		'c' },
-	{ "exec",			1,		NULL,		'x' },
-	{ "pidfile",		1,		NULL,		'p' },
+	{ "startas",            1,      NULL,   'a' },
+	{ "name",               1,      NULL,   'n' },
+	{ "signal",             1,      NULL,   's' },
+	{ "user",               1,      NULL,   'u' },
+	{ "chuid",              1,      NULL,   'c' },
+	{ "exec",               1,      NULL,   'x' },
+	{ "pidfile",            1,      NULL,   'p' },
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
-	{ "retry",			1,		NULL,		'R' },
+	{ "retry",              1,      NULL,   'R' },
 #endif
-	{ 0,				0,		0,		0 }
+	{ 0,                    0,      0,      0 }
 };
 #endif
 
-#define SSD_CTX_STOP		1
-#define SSD_CTX_START		2
-#define SSD_OPT_BACKGROUND	4
-#define SSD_OPT_QUIET		8
-#define SSD_OPT_MAKEPID		16
+#define SSD_CTX_STOP            0x1
+#define SSD_CTX_START           0x2
+#define SSD_OPT_BACKGROUND      0x4
+#define SSD_OPT_QUIET           0x8
+#define SSD_OPT_MAKEPID         0x10
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
-#define SSD_OPT_OKNODO		32
-#define SSD_OPT_VERBOSE		64
-
+#define SSD_OPT_OKNODO          0x20
+#define SSD_OPT_VERBOSE         0x40
+#define SSD_OPT_NICELEVEL       0x80
 #endif
 
 int start_stop_daemon_main(int argc, char **argv)
@@ -233,6 +235,7 @@ int start_stop_daemon_main(int argc, char **argv)
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
 //	char *retry_arg = NULL;
 //	int retries = -1;
+	char *opt_N;
 #endif
 #if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
 	applet_long_options = ssd_long_options;
@@ -241,9 +244,10 @@ int start_stop_daemon_main(int argc, char **argv)
 	/* Check required one context option was given */
 	opt_complementary = "K:S:?:K--S:S--K:m?p:K?xpun:S?xa";
 	opt = getopt32(argc, argv, "KSbqm"
-//		USE_FEATURE_START_STOP_DAEMON_FANCY("ovR:")
-		USE_FEATURE_START_STOP_DAEMON_FANCY("ov")
+//		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:R:")
+		USE_FEATURE_START_STOP_DAEMON_FANCY("ovN:")
 		"a:n:s:u:c:x:p:"
+		USE_FEATURE_START_STOP_DAEMON_FANCY(,&opt_N)
 //		USE_FEATURE_START_STOP_DAEMON_FANCY(,&retry_arg)
 		,&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile);
 
@@ -279,7 +283,7 @@ int start_stop_daemon_main(int argc, char **argv)
 
 	if (found) {
 		if (!quiet)
-			printf("%s already running.\n%d\n", execname ,found->pid);
+			printf("%s already running\n%d\n", execname, found->pid);
 		USE_FEATURE_START_STOP_DAEMON_FANCY(return !(opt & SSD_OPT_OKNODO);)
 		SKIP_FEATURE_START_STOP_DAEMON_FANCY(return EXIT_FAILURE;)
 	}
@@ -296,11 +300,20 @@ int start_stop_daemon_main(int argc, char **argv)
 		fprintf(pidf, "%d\n", pidt);
 		fclose(pidf);
 	}
-	if(chuid) {
-		if(sscanf(chuid, "%d", &user_id) != 1)
+	if (chuid) {
+		if (sscanf(chuid, "%d", &user_id) != 1)
 			user_id = bb_xgetpwnam(chuid);
-		setuid(user_id);
+		xsetuid(user_id);
 	}
+#if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
+	if (opt & SSD_OPT_NICELEVEL) {
+		/* Set process priority */
+		int prio = getpriority(PRIO_PROCESS, 0) + xatoi_range(opt_N, INT_MIN/2, INT_MAX/2);
+		if (setpriority(PRIO_PROCESS, 0, prio) < 0) {
+			bb_perror_msg_and_die("setpriority(%d)", prio);
+		}
+	}
+#endif
 	execv(startas, argv);
 	bb_perror_msg_and_die ("unable to start %s", startas);
 }

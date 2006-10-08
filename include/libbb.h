@@ -346,6 +346,7 @@ long xatol_sfx(const char *numstr, const struct suffix_mult *suffixes);
 long xatol(const char *numstr);
 /* Specialized: */
 unsigned xatou(const char *numstr);
+int xatoi_range(const char *numstr, int lower, int upper);
 int xatoi(const char *numstr);
 /* Using xatoi() instead of naive atoi() is not always convenient -
  * in many places people want *non-negative* values, but store them

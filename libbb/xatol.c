@@ -189,6 +189,11 @@ unsigned xatou(const char *numstr)
 	return xatoul_range(numstr, 0, UINT_MAX);
 }
 
+int xatoi_range(const char *numstr, int lower, int upper)
+{
+	return xatol_range(numstr, lower, upper);
+}
+
 int xatoi(const char *numstr)
 {
 	return xatol_range(numstr, INT_MIN, INT_MAX);

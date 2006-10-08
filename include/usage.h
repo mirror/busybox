@@ -2691,6 +2691,7 @@ USE_FEATURE_MDEV_CONFIG( \
 USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\n\t-o|--oknodo\t\t\texit status 0 if nothing done" \
 	"\n\t-v|--verbose\t\t\tbe verbose" \
+	"\n\t-N|--nicelevel <N>\t\tadd N to process's nice level" \
 ) \
 	"\n\t-s|--signal <signal>\t\tsignal to send (default TERM)" \
 	"\n\t-U|--chuid <username>|<uid>\tstart process with this name"

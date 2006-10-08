@@ -7,39 +7,14 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <limits.h>
-#include <errno.h>
-#include <unistd.h>
 #include <sys/resource.h>
 #include "busybox.h"
 
-static inline int int_add_no_wrap(int a, int b)
-{
-	int s = a + b;
-
-	if (b < 0) {
-		if (s > a) s = INT_MIN;
-	} else {
-		if (s < a) s = INT_MAX;
-	}
-
-	return s;
-}
-
 int nice_main(int argc, char **argv)
 {
-	static const char Xetpriority_msg[] = "cannot %cet priority";
-
 	int old_priority, adjustment;
 
-	errno = 0;			 /* Needed for getpriority error detection. */
 	old_priority = getpriority(PRIO_PROCESS, 0);
-	if (errno) {
-		bb_perror_msg_and_die(Xetpriority_msg, 'g');
-	}
 
 	if (!*++argv) {	/* No args, so (GNU) output current nice value. */
 		bb_printf("%d\n", old_priority);
@@ -48,19 +23,26 @@ int nice_main(int argc, char **argv)
 
 	adjustment = 10;			/* Set default adjustment. */
 
-	if ((argv[0][0] == '-') && (argv[0][1] == 'n') && !argv[0][2]) { /* "-n" */
+	if (argv[0][0] == '-') {
+		if (argv[0][1] == 'n') { /* -n */
+			if (argv[0][2]) { /* -nNNNN (w/o space) */
+				argv[0] += 2; argv--; argc++;
+			}
+		} else { /* -NNN (NNN may be negative) == -n NNN */
+			argv[0] += 1; argv--; argc++;
+		}
 		if (argc < 4) {			/* Missing priority and/or utility! */
 			bb_show_usage();
 		}
-		adjustment = xatoi(argv[1]);
+		adjustment = xatoi_range(argv[1], INT_MIN/2, INT_MAX/2);
 		argv += 2;
 	}
 
-	{  /* Set our priority.  Handle integer wrapping for old + adjust. */
-		int new_priority = int_add_no_wrap(old_priority, adjustment);
+	{  /* Set our priority. */
+		int prio = old_priority + adjustment;
 
-		if (setpriority(PRIO_PROCESS, 0, new_priority) < 0) {
-			bb_perror_msg_and_die(Xetpriority_msg, 's');
+		if (setpriority(PRIO_PROCESS, 0, prio) < 0) {
+			bb_perror_msg_and_die("setpriority(%d)", prio);
 		}
 	}
 
