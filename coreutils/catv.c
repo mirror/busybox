@@ -15,7 +15,7 @@
 int catv_main(int argc, char **argv)
 {
 	int retval = EXIT_SUCCESS, fd;
-	unsigned long flags;
+	unsigned flags;
 
 	flags = getopt32(argc, argv, "etv");
 #define CATV_OPT_e (1<<0)
@@ -51,8 +51,8 @@ int catv_main(int argc, char **argv)
 				}
 				if (c < 32) {
 					if (c == 10) {
-					   if (flags & CATV_OPT_e)
-						   putchar('$');
+						if (flags & CATV_OPT_e)
+							putchar('$');
 					} else if (flags & (c==9 ? CATV_OPT_t : CATV_OPT_v)) {
 						bb_printf("^%c", c+'@');
 						continue;

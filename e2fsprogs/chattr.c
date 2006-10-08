@@ -112,9 +112,9 @@ static int chattr_dir_proc(const char *, struct dirent *, void *);
 static void change_attributes(const char * name)
 {
 	unsigned long fsflags;
-	STRUCT_STAT	st;
+	struct stat st;
 
-	if (LSTAT(name, &st) == -1) {
+	if (lstat(name, &st) == -1) {
 		bb_error_msg("stat %s failed", name);
 		return;
 	}

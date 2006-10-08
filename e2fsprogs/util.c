@@ -33,12 +33,12 @@ void proceed_question(void)
 void check_plausibility(const char *device, int force)
 {
 	int val;
-	STRUCT_STAT s;
-	val = STAT(device, &s);
+	struct stat s;
+	val = stat(device, &s);
 	if (force)
 		return;
 	if(val == -1)
-		bb_perror_msg_and_die("Could not stat %s", device);
+		bb_perror_msg_and_die("cannot stat %s", device);
 	if (!S_ISBLK(s.st_mode)) {
 		printf("%s is not a block special device.\n", device);
 		proceed_question();

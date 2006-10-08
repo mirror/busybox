@@ -72,9 +72,9 @@ static int lsattr_dir_proc(const char *, struct dirent *, void *);
 
 static void lsattr_args(const char *name)
 {
-	STRUCT_STAT	st;
+	struct stat st;
 
-	if (LSTAT(name, &st) == -1) {
+	if (lstat(name, &st) == -1) {
 		bb_perror_msg("stating %s", name);
 	} else {
 		if (S_ISDIR(st.st_mode) && !(flags & OPT_DIRS_OPT))
@@ -87,12 +87,12 @@ static void lsattr_args(const char *name)
 static int lsattr_dir_proc(const char *dir_name, struct dirent *de,
 			   void *private)
 {
-	STRUCT_STAT	st;
+	struct stat st;
 	char *path;
 
 	path = concat_path_file(dir_name, de->d_name);
 
-	if (LSTAT(path, &st) == -1)
+	if (lstat(path, &st) == -1)
 		bb_perror_msg(path);
 	else {
 		if (de->d_name[0] != '.' || (flags & OPT_ALL)) {

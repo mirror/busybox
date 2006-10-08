@@ -61,30 +61,56 @@
 #define  PATH_MAX         256
 #endif
 
+/* Not (yet) used, but tested to work correctly
+#define MAXINT(T) (T)( \
+	((T)-1) > 0 \
+	? (T)-1 \
+	: (T)~((T)1 << (sizeof(T)*8-1)) \
+	)
+
+#define MININT(T) (T)( \
+	((T)-1) > 0 \
+	? (T)0 \
+	: ((T)1 << (sizeof(T)*8-1)) \
+	)
+*/
+
 /* Large file support */
-#ifdef CONFIG_LFS
-# define FILEOFF_TYPE off64_t
-# define FILEOFF_FMT "%lld"
-# define LSEEK lseek64
-# define STAT stat64
-# define LSTAT lstat64
-# define STRUCT_STAT struct stat64
-# define STRTOOFF strtoll
-# define SAFE_STRTOOFF safe_strtoll
+/* Note that CONFIG_LFS forces bbox to be built with all common ops
+ * (stat, lseek etc) mapped to "largefile" variants by libc.
+ * Practically it means that open() automatically has O_LARGEFILE added
+ * and all filesize/file_offset parameters and struct members are "large"
+ * (in today's world - signed 64bit). For full support of large files,
+ * we need a few helper #defines (below) and careful use of off_t
+ * instead of int/ssize_t. No lseek64(), O_LARGEFILE etc necessary */
+#if ENBALE_LFS
+/* CONFIG_LFS is on */
+# if ULONG_MAX > 0xffffffff
+/* "long" is long enough on this system */
+#  define STRTOOFF strtol
+#  define SAFE_STRTOOFF safe_strtol
+#  define OFF_FMT "%ld"
+# else
+/* "long" is too short, need "lomg long" */
+#  define STRTOOFF strtoll
+#  define SAFE_STRTOOFF safe_strtoll
+#  define OFF_FMT "%lld"
+# endif
 #else
-# define FILEOFF_TYPE off_t
-# define FILEOFF_FMT "%ld"
-# define LSEEK lseek
-# define STAT stat
-# define LSTAT lstat
-# define STRUCT_STAT struct stat
-# define STRTOOFF strtol
-# define SAFE_STRTOOFF safe_strtol
-/* Do we need to undefine O_LARGEFILE? */
+# if 0 /* UINT_MAX == 0xffffffff */
+/* Doesn't work. off_t is a long. gcc will throw warnings on printf("%d", off_t)
+ * even if long==int on this arch. Crap... */
+#  define STRTOOFF strtol
+#  define SAFE_STRTOOFF safe_strtoi
+#  define OFF_FMT "%d"
+# else
+#  define STRTOOFF strtol
+#  define SAFE_STRTOOFF safe_strtol
+#  define OFF_FMT "%ld"
+# endif
 #endif
 /* scary. better ideas? (but do *test* them first!) */
-#define MAX_FILEOFF_TYPE \
-	((FILEOFF_TYPE)~((FILEOFF_TYPE)1 << (sizeof(FILEOFF_TYPE)*8-1)))
+#define OFF_T_MAX  ((off_t)~((off_t)1 << (sizeof(off_t)*8-1)))
 
 /* Some useful definitions */
 #undef FALSE
@@ -203,8 +229,8 @@ extern char *find_block_device(char *path);
 extern char *bb_get_line_from_file(FILE *file);
 extern char *bb_get_chomped_line_from_file(FILE *file);
 extern char *bb_get_chunk_from_file(FILE *file, int *end);
-extern int bb_copyfd_size(int fd1, int fd2, const off_t size);
-extern int bb_copyfd_eof(int fd1, int fd2);
+extern off_t bb_copyfd_size(int fd1, int fd2, off_t size);
+extern off_t bb_copyfd_eof(int fd1, int fd2);
 extern char  bb_process_escape_sequence(const char **ptr);
 extern char *bb_get_last_path_component(char *path);
 extern FILE *bb_wfopen(const char *path, const char *mode);

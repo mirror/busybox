@@ -376,7 +376,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 
 	/* If it was a regular file, write out the body */
 	if (inputFileFd >= 0) {
-		ssize_t readSize = 0;
+		off_t readSize = 0;
 
 		/* write the file to the archive */
 		readSize = bb_copyfd_eof(inputFileFd, tbInfo->tarFd);

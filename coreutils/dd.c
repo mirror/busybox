@@ -25,12 +25,12 @@ static const struct suffix_mult dd_suffixes[] = {
 	{ NULL, 0 }
 };
 
-static FILEOFF_TYPE out_full, out_part, in_full, in_part;
+static off_t out_full, out_part, in_full, in_part;
 
 static void dd_output_status(int ATTRIBUTE_UNUSED cur_signal)
 {
-	bb_fprintf(stderr, FILEOFF_FMT"+"FILEOFF_FMT" records in\n"
-			FILEOFF_FMT"+"FILEOFF_FMT" records out\n",
+	bb_fprintf(stderr, OFF_FMT"+"OFF_FMT" records in\n"
+			OFF_FMT"+"OFF_FMT" records out\n",
 			in_full, in_part,
 			out_full, out_part);
 }
@@ -44,7 +44,7 @@ int dd_main(int argc, char **argv)
 	int flags = trunc_flag;
 	size_t oc = 0, ibs = 512, obs = 512;
 	ssize_t n;
-	FILEOFF_TYPE seek = 0, skip = 0, count = MAX_FILEOFF_TYPE;
+	off_t seek = 0, skip = 0, count = OFF_T_MAX;
 	int oflag, ifd, ofd;
 	const char *infile = NULL, *outfile = NULL;
 	char *ibuf, *obuf;
@@ -108,14 +108,14 @@ int dd_main(int argc, char **argv)
 		obuf = ibuf;
 
 	if (infile != NULL)
-		ifd = xopen(infile, O_RDONLY | (O_LARGEFILE * ENABLE_LFS));
+		ifd = xopen(infile, O_RDONLY);
 	else {
 		ifd = STDIN_FILENO;
 		infile = bb_msg_standard_input;
 	}
 
 	if (outfile != NULL) {
-		oflag = O_WRONLY | O_CREAT | (O_LARGEFILE * ENABLE_LFS);
+		oflag = O_WRONLY | O_CREAT;
 
 		if (!seek && (flags & trunc_flag))
 			oflag |= O_TRUNC;
@@ -137,7 +137,7 @@ int dd_main(int argc, char **argv)
 	}
 
 	if (skip) {
-		if (LSEEK(ifd, skip * ibs, SEEK_CUR) < 0) {
+		if (lseek(ifd, skip * ibs, SEEK_CUR) < 0) {
 			while (skip-- > 0) {
 				n = safe_read(ifd, ibuf, ibs);
 				if (n < 0)
@@ -149,7 +149,7 @@ int dd_main(int argc, char **argv)
 	}
 
 	if (seek) {
-		if (LSEEK(ofd, seek * obs, SEEK_CUR) < 0)
+		if (lseek(ofd, seek * obs, SEEK_CUR) < 0)
 			goto die_outfile;
 	}
 

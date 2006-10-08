@@ -51,7 +51,6 @@ typedef union {
 	} formatted ATTRIBUTE_PACKED;
 } zip_header_t;
 
-/* This one never works with LARGEFILE-sized skips */
 static void unzip_skip(int fd, off_t skip)
 {
 	if (lseek(fd, skip, SEEK_CUR) == (off_t)-1) {
@@ -75,7 +74,7 @@ static int unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 {
 	if (zip_header->formatted.method == 0) {
 		/* Method 0 - stored (not compressed) */
-		int size = zip_header->formatted.ucmpsize;
+		off_t size = zip_header->formatted.ucmpsize;
 		if (size && (bb_copyfd_size(src_fd, dst_fd, size) != size)) {
 			bb_error_msg_and_die("cannot complete extraction");
 		}
@@ -202,7 +201,7 @@ int unzip_main(int argc, char **argv)
 		}
 		if (src_fd == -1) {
 			src_fn[orig_src_fn_len] = 0;
-			bb_error_msg_and_die("Cannot open %s, %s.zip, %s.ZIP", src_fn, src_fn, src_fn);
+			bb_error_msg_and_die("cannot open %s, %s.zip, %s.ZIP", src_fn, src_fn, src_fn);
 		}
 	}
 

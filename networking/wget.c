@@ -29,9 +29,9 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
 static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 
 /* Globals (can be accessed from signal handlers */
-static FILEOFF_TYPE content_len;        /* Content-length of the file */
-static FILEOFF_TYPE beg_range;          /* Range at which continue begins */
-static FILEOFF_TYPE transferred;        /* Number of bytes transferred so far */
+static off_t content_len;        /* Content-length of the file */
+static off_t beg_range;          /* Range at which continue begins */
+static off_t transferred;        /* Number of bytes transferred so far */
 static int chunked;                     /* chunked transfer encoding */
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);
@@ -215,10 +215,10 @@ int wget_main(int argc, char **argv)
 		opt |= WGET_OPT_QUIET;
 		opt &= ~WGET_OPT_CONTINUE;
 	} else if (opt & WGET_OPT_CONTINUE) {
-		output_fd = open(fname_out, O_WRONLY|O_LARGEFILE);
+		output_fd = open(fname_out, O_WRONLY);
 		if (output_fd >= 0) {
-			beg_range = LSEEK(output_fd, 0, SEEK_END);
-			if (beg_range == (FILEOFF_TYPE)-1)
+			beg_range = lseek(output_fd, 0, SEEK_END);
+			if (beg_range == (off_t)-1)
 				bb_perror_msg_and_die("lseek");
 		}
 		/* File doesn't exist. We do not create file here yet.
@@ -282,7 +282,7 @@ int wget_main(int argc, char **argv)
 #endif
 
 			if (beg_range)
-				fprintf(sfp, "Range: bytes="FILEOFF_FMT"-\r\n", beg_range);
+				fprintf(sfp, "Range: bytes="OFF_FMT"-\r\n", beg_range);
 			if(extra_headers_left < sizeof(extra_headers))
 				fputs(extra_headers,sfp);
 			fprintf(sfp,"Connection: close\r\n\r\n");
@@ -413,7 +413,7 @@ read_response:
 		dfp = open_socket(&s_in);
 
 		if (beg_range) {
-			sprintf(buf, "REST "FILEOFF_FMT, beg_range);
+			sprintf(buf, "REST "OFF_FMT, beg_range);
 			if (ftpcmd(buf, NULL, sfp, buf) == 350)
 				content_len -= beg_range;
 		}
@@ -435,7 +435,7 @@ read_response:
 	/* Do it before progressmeter (want to have nice error message) */
 	if (output_fd < 0)
 		output_fd = xopen3(fname_out,
-			O_WRONLY|O_CREAT|O_EXCL|O_TRUNC|O_LARGEFILE, 0666);
+			O_WRONLY|O_CREAT|O_EXCL|O_TRUNC, 0666);
 
 	if (!(opt & WGET_OPT_QUIET))
 		progressmeter(-1);
@@ -685,10 +685,10 @@ static void
 progressmeter(int flag)
 {
 	static struct timeval lastupdate;
-	static FILEOFF_TYPE lastsize, totalsize;
+	static off_t lastsize, totalsize;
 
 	struct timeval now, td, tvwait;
-	FILEOFF_TYPE abbrevsize;
+	off_t abbrevsize;
 	int elapsed, ratio, barlength, i;
 	char buf[256];
 
@@ -739,7 +739,7 @@ progressmeter(int flag)
 	if (tvwait.tv_sec >= STALLTIME) {
 		fprintf(stderr, " - stalled -");
 	} else {
-		FILEOFF_TYPE to_download = totalsize - beg_range;
+		off_t to_download = totalsize - beg_range;
 		if (transferred <= 0 || elapsed <= 0 || transferred > to_download || chunked) {
 			fprintf(stderr, "--:--:-- ETA");
 		} else {

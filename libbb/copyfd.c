@@ -21,10 +21,10 @@
 #endif
 
 
-static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
+static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 {
 	int status = -1;
-	size_t total = 0;
+	off_t total = 0;
 	RESERVE_CONFIG_BUFFER(buffer,BUFSIZ);
 
 	if (src_fd < 0) goto out;
@@ -56,11 +56,11 @@ static ssize_t bb_full_fd_action(int src_fd, int dst_fd, size_t size)
 out:
 	RELEASE_CONFIG_BUFFER(buffer);
 
-	return status ? status : (ssize_t)total;
+	return status ? status : total;
 }
 
 
-int bb_copyfd_size(int fd1, int fd2, const off_t size)
+off_t bb_copyfd_size(int fd1, int fd2, off_t size)
 {
 	if (size) {
 		return bb_full_fd_action(fd1, fd2, size);
@@ -68,7 +68,7 @@ int bb_copyfd_size(int fd1, int fd2, const off_t size)
 	return 0;
 }
 
-int bb_copyfd_eof(int fd1, int fd2)
+off_t bb_copyfd_eof(int fd1, int fd2)
 {
 	return bb_full_fd_action(fd1, fd2, 0);
 }

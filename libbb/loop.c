@@ -133,7 +133,9 @@ int set_loop(char **device, const char *file, unsigned long long offset)
 		   without using losetup manually is problematic.)
 		 */
 		} else if (strcmp(file,(char *)loopinfo.lo_file_name)
-					|| offset!=loopinfo.lo_offset) rc = -1;
+		|| offset != loopinfo.lo_offset) {
+			rc = -1;
+		}
 		close(dfd);
 try_again:
 		if (*device) break;

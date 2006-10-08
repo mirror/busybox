@@ -104,9 +104,11 @@ static FILE *ftp_login(ftp_host_info_t *server)
 }
 
 #if !ENABLE_FTPGET
-#define ftp_receive 0
+int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
+		const char *local_path, char *server_path);
 #else
-static int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
+static
+int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 		const char *local_path, char *server_path)
 {
 	char buf[512];
@@ -122,10 +124,8 @@ static int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 	fd_data = xconnect_ftpdata(server, buf);
 
 	if (ftpcmd("SIZE ", server_path, control_stream, buf) == 213) {
-		unsigned long value=filesize;
-		if (safe_strtoul(buf + 4, &value))
+		if (SAFE_STRTOOFF(buf + 4, &filesize))
 			bb_error_msg_and_die("SIZE error: %s", buf + 4);
-		filesize = value;
 	} else {
 		filesize = -1;
 		do_continue = 0;
@@ -139,7 +139,7 @@ static int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 	if (do_continue) {
 		struct stat sbuf;
 		if (lstat(local_path, &sbuf) < 0) {
-			bb_perror_msg_and_die("fstat()");
+			bb_perror_msg_and_die("lstat");
 		}
 		if (sbuf.st_size > 0) {
 			beg_range = sbuf.st_size;
@@ -149,7 +149,7 @@ static int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 	}
 
 	if (do_continue) {
-		sprintf(buf, "REST %ld", (long)beg_range);
+		sprintf(buf, "REST "OFF_FMT, beg_range);
 		if (ftpcmd(buf, NULL, control_stream, buf) != 350) {
 			do_continue = 0;
 		} else {
@@ -191,9 +191,11 @@ static int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 #endif
 
 #if !ENABLE_FTPPUT
-#define ftp_send 0
+int ftp_send(ftp_host_info_t *server, FILE *control_stream,
+		const char *server_path, char *local_path);
 #else
-static int ftp_send(ftp_host_info_t *server, FILE *control_stream,
+static
+int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 		const char *server_path, char *local_path)
 {
 	struct stat sbuf;

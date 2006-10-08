@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2003  Manuel Novoa III  <mjn3@codepoet.org>
  *
- * Licensed under GPLv2 or later, see file License in this tarball for details.
+ * Licensed under GPLv2, see file License in this tarball for details.
  */
 
 /* BB_AUDIT SUSv3 compliant */
@@ -26,8 +26,9 @@ int cat_main(int argc, char **argv)
 	}
 
 	do {
-		if ((f = bb_wfopen_input(*argv)) != NULL) {
-			int r = bb_copyfd_eof(fileno(f), STDOUT_FILENO);
+		f = bb_wfopen_input(*argv);
+		if (f) {
+			off_t r = bb_copyfd_eof(fileno(f), STDOUT_FILENO);
 			bb_fclose_nonstdin(f);
 			if (r >= 0) {
 				continue;
