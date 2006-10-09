@@ -2,7 +2,7 @@ VERSION = 1
 PATCHLEVEL = 2
 SUBLEVEL = 1
 EXTRAVERSION = .svn
-NAME=Unnamed
+NAME = Unnamed
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"

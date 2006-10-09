@@ -1,5 +1,5 @@
 # ==========================================================================
-# Building
+# Build system
 # ==========================================================================
 
 BB_VER = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
@@ -13,7 +13,7 @@ CPPFLAGS += \
 	-D"BB_VER=KBUILD_STR($(BB_VER))" -DBB_BT=AUTOCONF_TIMESTAMP \
 	-Wall -Wstrict-prototypes -Wshadow -Werror \
 	-funsigned-char -fno-builtin-strlen -finline-limit=0 -static-libgcc \
-	-Os -march=i386 -mpreferred-stack-boundary=2 \
+	-Os -mpreferred-stack-boundary=2 \
 	-falign-functions=1 -falign-jumps=1 -falign-loops=1 \
 	-fomit-frame-pointer -ffunction-sections -fdata-sections \
 	-funsigned-char -fno-builtin-strlen \

@@ -1,52 +1,6 @@
-### Kernel's one:
-### help:
-### 	@echo  'Cleaning targets:'
-### 	@echo  '  clean		  - remove most generated files but keep the config'
-### 	@echo  '  mrproper	  - remove all generated files + config + various backup files'
-### 	@echo  ''
-### 	@echo  'Configuration targets:'
-### 	@$(MAKE) -f $(srctree)/scripts/kconfig/Makefile help
-### 	@echo  ''
-### 	@echo  'Other generic targets:'
-### 	@echo  '  all		  - Build all targets marked with [*]'
-### 	@echo  '* busybox	  - Build the bare kernel'
-### 	@echo  '* modules	  - Build all modules'
-### 	@echo  '  modules_install - Install all modules to INSTALL_MOD_PATH (default: /)'
-### 	@echo  '  dir/            - Build all files in dir and below'
-### 	@echo  '  dir/file.[ois]  - Build specified target only'
-### 	@echo  '  dir/file.ko     - Build module including final link'
-### 	@echo  '  rpm		  - Build a kernel as an RPM package'
-### 	@echo  '  tags/TAGS	  - Generate tags file for editors'
-### 	@echo  '  cscope	  - Generate cscope index'
-### 	@echo  '  kernelrelease	  - Output the release version string'
-### 	@echo  '  kernelversion	  - Output the version stored in Makefile'
-### 	@echo  ''
-### 	@echo  'Static analysers'
-### 	@echo  '  checkstack      - Generate a list of stack hogs'
-### 	@echo  '  namespacecheck  - Name space analysis on compiled kernel'
-### 	@echo  ''
-### 	@echo  'Kernel packaging:'
-### 	@$(MAKE) $(build)=$(package-dir) help
-### 	@echo  ''
-### 	@echo  'Documentation targets:'
-### 	@$(MAKE) -f $(srctree)/Documentation/DocBook/Makefile dochelp
-### 	@echo  ''
-### 	@echo  'Architecture specific targets ($(ARCH)):'
-### 	@$(if $(archhelp),$(archhelp),\
-### 		echo '  No architecture specific help defined for $(ARCH)')
-### 	@echo  ''
-### 	@$(if $(boards), \
-### 		$(foreach b, $(boards), \
-### 		printf "  %-24s - Build for %s\\n" $(b) $(subst _defconfig,,$(b));) \
-### 		echo '')
-### 
-### 	@echo  '  make V=0|1 [targets] 0 => quiet build (default), 1 => verbose build'
-### 	@echo  '  make O=dir [targets] Locate all output files in "dir", including .config'
-### 	@echo  '  make C=1   [targets] Check all c source with $$CHECK (sparse)'
-### 	@echo  '  make C=2   [targets] Force check of all c source with $$CHECK (sparse)'
-### 	@echo  ''
-### 	@echo  'Execute "make" or "make all" to build all targets marked with [*] '
-### 	@echo  'For further info see the ./README file'
+# ==========================================================================
+# Build system
+# ==========================================================================
 
 help:
 	@echo 'Cleaning:'
