@@ -18,21 +18,31 @@
 
 int mktemp_main(int argc, char **argv)
 {
-	unsigned long flags = getopt32(argc, argv, "dq");
+	unsigned long flags = getopt32(argc, argv, "dqt");
+	char *chp;
 
 	if (optind + 1 != argc)
 		bb_show_usage();
 
-	if (flags & 1) {
-		if (mkdtemp(argv[optind]) == NULL)
-			return EXIT_FAILURE;
+	chp = argv[optind];
+
+	if (flags & 4) {
+		char *dir = getenv("TMPDIR");
+		if (dir && *dir != '\0')
+			chp = concat_path_file(dir, chp);
+		else
+			chp = concat_path_file("/tmp/", chp);
 	}
-	else {
-		if (mkstemp(argv[optind]) < 0)
+
+	if (flags & 1) {
+		if (mkdtemp(chp) == NULL)
+			return EXIT_FAILURE;
+	} else {
+		if (mkstemp(chp) < 0)
 			return EXIT_FAILURE;
 	}
 
-	puts(argv[optind]);
+	puts(chp);
 
 	return EXIT_SUCCESS;
 }
