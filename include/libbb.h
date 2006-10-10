@@ -326,6 +326,8 @@ unsigned long xstrtoul_range_sfx(const char *numstr, int base,
 unsigned long xstrtoul_range(const char *numstr, int base,
 		unsigned long lower,
 		unsigned long upper);
+unsigned long xstrtoul_sfx(const char *numstr, int base,
+		const struct suffix_mult *suffixes);
 unsigned long xstrtoul(const char *numstr, int base);
 unsigned long xatoul_range_sfx(const char *numstr,
 		unsigned long lower,

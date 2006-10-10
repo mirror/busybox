@@ -11,12 +11,13 @@
  * Original copyright notice is retained at the end of this file.
  */
 
-// TODO: -t. busybox's own build script needs it
 
-#include <ctype.h>
-#include <string.h>
+#if ENABLE_DESKTOP
+/* This one provides -t (busybox's own build script needs it) */
+#include "od_bloaty.c"
+#else
+
 #include <getopt.h>
-#include <stdlib.h>
 #include "busybox.h"
 #include "dump.h"
 
@@ -191,6 +192,7 @@ int od_main(int argc, char **argv)
 
 	return bb_dump_dump(argv);
 }
+#endif /* ENABLE_DESKTOP */
 
 /*-
  * Copyright (c) 1990 The Regents of the University of California.

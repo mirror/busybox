@@ -98,6 +98,12 @@ unsigned long xstrtoul_range(const char *numstr, int base,
 	return xstrtoul_range_sfx(numstr, base, lower, upper, NULL);
 }
 
+unsigned long xstrtoul_sfx(const char *numstr, int base,
+		const struct suffix_mult *suffixes)
+{
+	return xstrtoul_range_sfx(numstr, base, 0, ULONG_MAX, suffixes);
+}
+
 unsigned long xstrtoul(const char *numstr, int base)
 {
 	return xstrtoul_range_sfx(numstr, base, 0, ULONG_MAX, NULL);
