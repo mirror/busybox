@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-unsigned long long xatoull(const char *numstr)
+unsigned long long xstrtoull(const char *numstr, int base)
 {
 	unsigned long long r;
 	int old_errno;
@@ -18,13 +18,18 @@ unsigned long long xatoull(const char *numstr)
 		bb_error_msg_and_die("invalid number '%s'", numstr);
 	old_errno = errno;
 	errno = 0;
-	r = strtoull(numstr, &e, 10);
+	r = strtoull(numstr, &e, base);
 	if (errno || (numstr == e) || *e)
 		/* Error / no digits / illegal trailing chars */
 		bb_error_msg_and_die("invalid number '%s'", numstr);
 	/* No error. So restore errno. */
 	errno = old_errno;
 	return r;
+}
+
+unsigned long long xatoull(const char *numstr)
+{
+	return xstrtoull(numstr, 10);
 }
 
 unsigned long xstrtoul_range_sfx(const char *numstr, int base,

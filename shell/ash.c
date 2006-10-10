@@ -12542,7 +12542,7 @@ static int
 letcmd(int argc, char **argv)
 {
 	char **ap;
-	arith_t i;
+	arith_t i = 0;
 
 	ap = argv + 1;
 	if(!*ap)

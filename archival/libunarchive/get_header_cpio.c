@@ -61,13 +61,13 @@ char get_header_cpio(archive_handle_t *archive_handle)
 	}
 
 	{
-	    unsigned long tmpsize;
-	    sscanf(cpio_header, "%6c%8x%8x%8x%8x%8x%8lx%8lx%16c%8x%8x%8x%8c",
+		unsigned long tmpsize;
+		sscanf(cpio_header, "%6c%8x%8x%8x%8x%8x%8lx%8lx%16c%8x%8x%8x%8c",
 		    dummy, &inode, (unsigned int*)&file_header->mode,
 		    (unsigned int*)&file_header->uid, (unsigned int*)&file_header->gid,
 		    &nlink, &file_header->mtime, &tmpsize,
 		    dummy, &major, &minor, &namesize, dummy);
-	    file_header->size = tmpsize;
+		file_header->size = tmpsize;
 	}
 
 	file_header->name = (char *) xzalloc(namesize + 1);

@@ -43,7 +43,7 @@ config FEATURE_INSMOD_LOADINKMEM
 config FEATURE_INSMOD_LOAD_MAP
 	bool "Enable load map (-m) option"
 	default n
-	depends on INSMOD && FEATURE_2_4_MODULES
+	depends on INSMOD && ( FEATURE_2_4_MODULES || FEATURE_2_6_MODULES )
 	help
 	  Enabling this, one would be able to get a load map
 	  output on stdout. This makes kernel module debugging

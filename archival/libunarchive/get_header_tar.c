@@ -74,12 +74,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 	 */
 	if (strncmp(tar.formatted.magic, "ustar", 5) != 0) {
 #ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY
-		if (strncmp(tar.formatted.magic, "\0\0\0\0\0", 5) != 0)
+		if (memcmp(tar.formatted.magic, "\0\0\0\0", 5) != 0)
 #endif
 			bb_error_msg_and_die("invalid tar magic");
 	}
 	/* Do checksum on headers */
-	for (i =  0; i < 148 ; i++) {
+	for (i = 0; i < 148 ; i++) {
 		sum += tar.raw[i];
 	}
 	sum += ' ' * 8;
@@ -111,13 +111,14 @@ char get_header_tar(archive_handle_t *archive_handle)
 
 	file_header->uid = xstrtoul(tar.formatted.uid, 8);
 	file_header->gid = xstrtoul(tar.formatted.gid, 8);
-	// TODO: LFS support
-	file_header->size = xstrtoul(tar.formatted.size, 8);
+	file_header->size = XSTRTOUOFF(tar.formatted.size, 8);
 	file_header->mtime = xstrtoul(tar.formatted.mtime, 8);
 	file_header->link_name = tar.formatted.linkname[0] ?
 	                         xstrdup(tar.formatted.linkname) : NULL;
-	file_header->device = makedev(xstrtoul(tar.formatted.devmajor, 8),
-	                              xstrtoul(tar.formatted.devminor, 8));
+	if (tar.formatted.devmajor[0]) {
+		file_header->device = makedev(xstrtoul(tar.formatted.devmajor, 8),
+	                                      xstrtoul(tar.formatted.devminor, 8));
+	}
 
 	/* Set bits 0-11 of the files mode */
 	file_header->mode = 07777 & xstrtoul(tar.formatted.mode, 8);

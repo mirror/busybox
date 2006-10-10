@@ -89,23 +89,27 @@
 /* "long" is long enough on this system */
 #  define STRTOOFF strtol
 #  define SAFE_STRTOOFF safe_strtol
+#  define XSTRTOUOFF xstrtoul
 #  define OFF_FMT "%ld"
 # else
-/* "long" is too short, need "lomg long" */
+/* "long" is too short, need "long long" */
 #  define STRTOOFF strtoll
 #  define SAFE_STRTOOFF safe_strtoll
+#  define XSTRTOUOFF xstrtoull
 #  define OFF_FMT "%lld"
 # endif
 #else
-# if 0 /* UINT_MAX == 0xffffffff */
+# if 0 /* #if UINT_MAX == 0xffffffff */
 /* Doesn't work. off_t is a long. gcc will throw warnings on printf("%d", off_t)
  * even if long==int on this arch. Crap... */
 #  define STRTOOFF strtol
 #  define SAFE_STRTOOFF safe_strtoi
+#  define XSTRTOUOFF xstrtou
 #  define OFF_FMT "%d"
 # else
 #  define STRTOOFF strtol
 #  define SAFE_STRTOOFF safe_strtol
+#  define XSTRTOUOFF xstrtoul
 #  define OFF_FMT "%ld"
 # endif
 #endif
@@ -313,6 +317,8 @@ struct suffix_mult {
 	unsigned int mult;
 };
 
+unsigned long long xstrtoull(const char *numstr, int base);
+unsigned long long xatoull(const char *numstr);
 unsigned long xstrtoul_range_sfx(const char *numstr, int base,
 		unsigned long lower,
 		unsigned long upper,
@@ -331,7 +337,6 @@ unsigned long xatoul_range(const char *numstr,
 		unsigned long lower,
 		unsigned long upper);
 unsigned long xatoul(const char *numstr);
-unsigned long long xatoull(const char *numstr);
 long xstrtol_range_sfx(const char *numstr, int base,
 		long lower,
 		long upper,

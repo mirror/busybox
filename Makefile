@@ -563,9 +563,17 @@ busybox-all  := $(core-y) $(libs-y)
 # Rule to link busybox - also used during CONFIG_KALLSYMS
 # May be overridden by arch/$(ARCH)/Makefile
 quiet_cmd_busybox__ ?= LINK    $@
+ifdef CONFIG_STATIC
+      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) \
+      -static \
+      -o $@ \
+      -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
+      -Wl,--start-group $(busybox-all) -Wl,--end-group
+else
       cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) -o $@ \
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
-      -Wl,--start-group $(busybox-all) -Wl,--end-group \
+      -Wl,--start-group $(busybox-all) -Wl,--end-group
+endif
 
 # Generate System.map
 quiet_cmd_sysmap = SYSMAP 

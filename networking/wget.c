@@ -31,7 +31,9 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 /* Globals (can be accessed from signal handlers */
 static off_t content_len;        /* Content-length of the file */
 static off_t beg_range;          /* Range at which continue begins */
+#ifdef CONFIG_FEATURE_WGET_STATUSBAR
 static off_t transferred;        /* Number of bytes transferred so far */
+#endif
 static int chunked;                     /* chunked transfer encoding */
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);

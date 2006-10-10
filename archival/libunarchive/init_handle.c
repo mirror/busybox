@@ -3,8 +3,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <unistd.h>
-#include <string.h>
+//#include <unistd.h>
+//#include <string.h>
 #include "libbb.h"
 #include "unarchive.h"
 
@@ -12,7 +12,7 @@ archive_handle_t *init_handle(void)
 {
 	archive_handle_t *archive_handle;
 
-	/* Initialise default values */
+	/* Initialize default values */
 	archive_handle = xzalloc(sizeof(archive_handle_t));
 	archive_handle->file_header = xmalloc(sizeof(file_header_t));
 	archive_handle->action_header = header_skip;
@@ -20,5 +20,5 @@ archive_handle_t *init_handle(void)
 	archive_handle->filter = filter_accept_all;
 	archive_handle->seek = seek_by_jump;
 
-	return(archive_handle);
+	return archive_handle;
 }
