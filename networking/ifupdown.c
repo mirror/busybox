@@ -133,7 +133,7 @@ static int count_netmask_bits(char *dotted_quad)
 }
 #endif
 
-static void addstr(char **buf, size_t *len, size_t *pos, char *str, size_t str_length)
+static void addstr(char **buf, size_t *len, size_t *pos, const char *str, size_t str_length)
 {
 	if (*pos + str_length >= *len) {
 		char *newbuf;
@@ -150,7 +150,7 @@ static void addstr(char **buf, size_t *len, size_t *pos, char *str, size_t str_l
 	(*buf)[*pos] = '\0';
 }
 
-static int strncmpz(char *l, char *r, size_t llen)
+static int strncmpz(const char *l, const char *r, size_t llen)
 {
 	int i = strncmp(l, r, llen);
 
@@ -161,7 +161,7 @@ static int strncmpz(char *l, char *r, size_t llen)
 	}
 }
 
-static char *get_var(char *id, size_t idlen, struct interface_defn_t *ifd)
+static char *get_var(const char *id, size_t idlen, struct interface_defn_t *ifd)
 {
 	int i;
 
@@ -188,7 +188,7 @@ static char *get_var(char *id, size_t idlen, struct interface_defn_t *ifd)
 	return NULL;
 }
 
-static char *parse(char *command, struct interface_defn_t *ifd)
+static char *parse(const char *command, struct interface_defn_t *ifd)
 {
 
 	char *result = NULL;
@@ -294,7 +294,7 @@ static char *parse(char *command, struct interface_defn_t *ifd)
 }
 
 /* execute() returns 1 for success and 0 for failure */
-static int execute(char *command, struct interface_defn_t *ifd, execfn *exec)
+static int execute(const char *command, struct interface_defn_t *ifd, execfn *exec)
 {
 	char *out;
 	int ret;
@@ -449,43 +449,65 @@ static int static_down(struct interface_defn_t *ifd, execfn *exec)
 	return ((result == 2) ? 2 : 0);
 }
 
+#ifndef CONFIG_APP_UDHCPC
+struct dhcp_client_t
+{
+	const char *name;
+	const char *startcmd;
+	const char *stopcmd;
+};
+
+static const struct dhcp_client_t ext_dhcp_clients[] = {
+	{ "udhcpc",
+		"udhcpc -R -n -p /var/run/udhcpc.%iface%.pid -i %iface% [[-H %hostname%]] [[-c %clientid%]] [[-s %script%]]",
+		"kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
+	},
+	{ "pump",
+		"pump -i %iface% [[-h %hostname%]] [[-l %leasehours%]]",
+		"pump -i %iface% -k",
+	},
+	{ "dhclient",
+		"dhclient -pf /var/run/dhclient.%iface%.pid %iface%",
+		"kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null",
+	},
+	{ "dhcpcd",
+		"dhcpcd [[-h %hostname%]] [[-i %vendor%]] [[-I %clientid%]] [[-l %leasetime%]] %iface%",
+		"dhcpcd -k %iface%",
+	},
+};
+#endif
+
 static int dhcp_up(struct interface_defn_t *ifd, execfn *exec)
 {
-	if (execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid -i %iface% "
-			"[[-H %hostname%]] [[-c %clientid%]] [[-s %script%]]", ifd, exec))
-		return 1;
-
-	/* 2006-09-30: The following are deprecated, and should eventually be
-	 * removed. For non-busybox (i.e., other than udhcpc) clients, use
-	 * 'iface foo inet manual' in /etc/network/interfaces, and supply
-	 * start/stop commands explicitly via up/down. */
-
-	if (execute("pump -i %iface% [[-h %hostname%]] [[-l %leasehours%]]",
-			ifd, exec)) return 1;
-	if (execute("dhclient -pf /var/run/dhclient.%iface%.pid %iface%",
-			ifd, exec)) return 1;
-	if (execute("dhcpcd [[-h %hostname%]] [[-i %vendor%]] [[-I %clientid%]] "
-			"[[-l %leasetime%]] %iface%", ifd, exec)) return 1;
-
+#ifdef CONFIG_APP_UDHCPC
+	return execute("udhcpc -R -n -p /var/run/udhcpc.%iface%.pid "
+			"-i %iface% [[-H %hostname%]] [[-c %clientid%]] [[-s %script%]]",
+			ifd, exec);
+#else
+	int i, nclients = sizeof(ext_dhcp_clients) / sizeof(ext_dhcp_clients[0]);
+	for (i = 0; i < nclients; i++) {
+		if (exists_execable(ext_dhcp_clients[i].name))
+			return execute(ext_dhcp_clients[i].startcmd, ifd, exec);
+	}
+	bb_error_msg("no dhcp clients found");
 	return 0;
+#endif
 }
 
 static int dhcp_down(struct interface_defn_t *ifd, execfn *exec)
 {
-	if (execute("kill -TERM `cat /var/run/udhcpc.%iface%.pid` 2>/dev/null",
-			ifd, exec)) return 1;
-
-	/* 2006-09-30: The following are deprecated, and should eventually be
-	 * removed. For non-busybox (i.e., other than udhcpc) clients, use
-	 * 'iface foo inet manual' in /etc/network/interfaces, and supply
-	 * start/stop commands explicitly via up/down. */
-
-	if (execute("pump -i %iface% -k", ifd, exec)) return 1;
-	if (execute("kill -9 `cat /var/run/dhclient.%iface%.pid` 2>/dev/null",
-			ifd, exec)) return 1;
-	if (execute("dhcpcd -k %iface%", ifd, exec)) return 1;
-
+#ifdef CONFIG_APP_UDHCPC
+	return execute("kill -TERM "
+	               "`cat /var/run/udhcpc.%iface%.pid` 2>/dev/null", ifd, exec);
+#else
+	int i, nclients = sizeof(ext_dhcp_clients) / sizeof(ext_dhcp_clients[0]);
+	for (i = 0; i < nclients; i++) {
+		if (exists_execable(ext_dhcp_clients[i].name))
+			return execute(ext_dhcp_clients[i].stopcmd, ifd, exec);
+	}
+	bb_error_msg("no dhcp clients found, using static interface shutdown");
 	return static_down(ifd, exec);
+#endif
 }
 
 static int manual_up_down(struct interface_defn_t *ifd, execfn *exec)

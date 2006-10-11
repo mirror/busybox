@@ -430,6 +430,10 @@ char *last_char_is(const char *s, int c);
 
 char *fgets_str(FILE *file, const char *terminating_string);
 
+int execable_file(const char *name);
+char *find_execable(const char *filename);
+int exists_execable(const char *filename);
+
 extern USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out);
 extern int inflate(int in, int out);
 

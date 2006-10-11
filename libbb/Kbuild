@@ -28,7 +28,7 @@ lib-y:= \
 	getopt32.o default_error_retval.o wfopen_input.o speed_table.o \
 	perror_nomsg_and_die.o perror_nomsg.o skip_whitespace.o bb_askpass.o \
 	warn_ignoring_args.o concat_subpath_file.o vfork_daemon_rexec.o \
-	bb_do_delay.o uuencode.o info_msg.o vinfo_msg.o
+	bb_do_delay.o uuencode.o info_msg.o vinfo_msg.o execable.o
 
 # conditionally compiled objects:
 lib-$(CONFIG_FEATURE_MOUNT_LOOP) += loop.o
