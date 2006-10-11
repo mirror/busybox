@@ -278,6 +278,12 @@ config MT
 	  to advance or rewind a tape past a specified number of archive
 	  files on the tape.
 
+config NMETER
+	bool "nmeter"
+	default n
+	help
+	  nmeter prints various system parameters continuously.
+
 config READAHEAD
         bool "readahead"
 	default n

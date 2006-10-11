@@ -114,10 +114,9 @@ int xopen3(const char *pathname, int flags, int mode)
 void xread(int fd, void *buf, size_t count)
 {
 	while (count) {
-		ssize_t size;
-
-		if ((size = safe_read(fd, buf, count)) < 1)
-			bb_error_msg_and_die("Short read");
+		ssize_t size = safe_read(fd, buf, count);
+		if (size < 1)
+			bb_error_msg_and_die("short read");
 		count -= size;
 		buf = ((char *) buf) + size;
 	}
@@ -127,10 +126,9 @@ void xread(int fd, void *buf, size_t count)
 void xwrite(int fd, void *buf, size_t count)
 {
 	while (count) {
-		ssize_t size;
-
-		if ((size = safe_write(fd, buf, count)) < 1)
-			bb_error_msg_and_die("Short write");
+		ssize_t size = safe_write(fd, buf, count);
+		if (size < 1)
+			bb_error_msg_and_die("short write");
 		count -= size;
 		buf = ((char *) buf) + size;
 	}
@@ -149,7 +147,7 @@ unsigned char xread_char(int fd)
 
 	xread(fd, &tmp, 1);
 
-	return(tmp);
+	return tmp;
 }
 
 // Die with supplied error message if this FILE * has ferror set.
@@ -220,7 +218,7 @@ int wait4pid(int pid)
 
 void xsetenv(const char *key, const char *value)
 {
-	if(setenv(key, value, 1))
+	if (setenv(key, value, 1))
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
 }
 

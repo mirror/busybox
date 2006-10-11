@@ -2,4 +2,4 @@
 # Build system
 # ==========================================================================
 
-CPPFLAGS += -march=i386
+CPPFLAGS += -march=i386 -mpreferred-stack-boundary=2

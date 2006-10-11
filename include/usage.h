@@ -2172,6 +2172,30 @@ USE_FEATURE_MDEV_CONFIG( \
 	"Options:\n" \
 	"\t-n ADJUST\tAdjust the scheduling priority by ADJUST"
 
+#define nmeter_trivial_usage \
+	"format_string"
+#define nmeter_full_usage \
+	"Nmeter monitors your system in real time.\n\n" \
+	"Format specifiers:\n" \
+	"%Nc or %[cN]	monitor CPU. N - bar size, default 10\n" \
+	"		(displays: S:system U:user N:niced D:iowait I:irq i:softirq)\n" \
+	"%[niface]	monitor network interface 'iface'\n" \
+	"%m		monitor allocated memory\n" \
+	"%[mf]		monitor free memory\n" \
+	"%[mt]		monitor total memory\n" \
+	"%s		monitor allocated swap\n" \
+	"%f		monitor number of used file descriptors\n" \
+	"%Ni		monitor total/specific IRQ rate\n" \
+	"%x		monitor context switch rate\n" \
+	"%p		monitor forks\n" \
+	"%[pn]		monitor # of processes\n" \
+	"%b		monitor block io\n" \
+	"%Nt		show time (with N decimal points)\n" \
+	"%Nd		milliseconds between updates (default=1000)\n" \
+	"%r		print <cr> instead of <lf> at EOL"
+#define nmeter_example_usage \
+	"nmeter '%250d%t %20c int %i bio %b mem %m forks%p'"
+
 #define nohup_trivial_usage \
 	"COMMAND [ARGS]"
 #define nohup_full_usage \
