@@ -20,4 +20,4 @@ lib-$(NEEDED-y) += gen_bitmap.o bitops.o ismounted.o mkjournal.o unix_io.o \
                    dirhash.o version.o flushb.o unlink.o check_desc.o valid_blk.o \
                    ext_attr.o bmap.o dblist_dir.o ext2fs_inline.o swapfs.o
 
-CFLAGS += -include e2fsprogs/e2fsbb.h
+CFLAGS += -include $(srctree)/e2fsprogs/e2fsbb.h

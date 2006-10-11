@@ -13,11 +13,11 @@ lib-y:=
 lib-$(NEEDED-y) += cache.o dev.o devname.o devno.o blkid_getsize.o \
                    probe.o read.o resolve.o save.o tag.o list.o
 
-CFLAGS_dev.o := -include include/busybox.h
-CFLAGS_devname.o := -include include/busybox.h
-CFLAGS_devno.o := -include include/busybox.h
-CFLAGS_blkid_getsize.o := -include include/busybox.h
-CFLAGS_probe.o := -include include/busybox.h
-CFLAGS_save.o := -include include/busybox.h
-CFLAGS_tag.o := -include include/busybox.h
-CFLAGS_list.o := -include include/busybox.h
+CFLAGS_dev.o     := -include $(srctree)/include/busybox.h
+CFLAGS_devname.o := -include $(srctree)/include/busybox.h
+CFLAGS_devno.o   := -include $(srctree)/include/busybox.h
+CFLAGS_blkid_getsize.o := -include $(srctree)/include/busybox.h
+CFLAGS_probe.o   := -include $(srctree)/include/busybox.h
+CFLAGS_save.o    := -include $(srctree)/include/busybox.h
+CFLAGS_tag.o     := -include $(srctree)/include/busybox.h
+CFLAGS_list.o    := -include $(srctree)/include/busybox.h

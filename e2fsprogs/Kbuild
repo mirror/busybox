@@ -13,4 +13,4 @@ lib-$(CONFIG_LSATTR)     += lsattr.o
 lib-$(CONFIG_MKE2FS)     += mke2fs.o util.o
 lib-$(CONFIG_TUNE2FS)    += tune2fs.o util.o
 
-CFLAGS += -include e2fsprogs/e2fsbb.h
+CFLAGS += -include $(srctree)/e2fsprogs/e2fsbb.h
