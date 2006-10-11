@@ -312,7 +312,8 @@ static char *indenter(int i)
 static void __syntax(char *file, int line) {
 	bb_error_msg("syntax error %s:%d", file, line);
 }
-#define syntax() __syntax(__FILE__, __LINE__)
+// NB: was __FILE__, but that produces full path sometimess, so...
+#define syntax() __syntax("hush.c", __LINE__)
 
 /* Index of subroutines: */
 /*   function prototypes for builtins */
