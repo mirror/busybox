@@ -448,7 +448,7 @@ int udhcpc_main(int argc, char *argv[])
 			}
 
 			if ((message = get_option(&packet, DHCP_MESSAGE_TYPE)) == NULL) {
-				bb_error_msg("Couldnt get option from packet - ignoring");
+				bb_error_msg("cannot get option from packet - ignoring");
 				continue;
 			}
 
@@ -467,7 +467,7 @@ int udhcpc_main(int argc, char *argv[])
 						timeout = now;
 						packet_num = 0;
 					} else {
-						bb_error_msg("No server ID in message");
+						bb_error_msg("no server ID in message");
 					}
 				}
 				break;
@@ -478,7 +478,7 @@ int udhcpc_main(int argc, char *argv[])
 				if (*message == DHCPACK) {
 					temp = get_option(&packet, DHCP_LEASE_TIME);
 					if (!temp) {
-						bb_error_msg("No lease time with ACK, using 1 hour lease");
+						bb_error_msg("no lease time with ACK, using 1 hour lease");
 						lease = 60 * 60;
 					} else {
 						lease = ntohl(*(uint32_t*)temp);

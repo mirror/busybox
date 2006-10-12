@@ -78,7 +78,7 @@ static FILE *ftp_login(ftp_host_info_t *server)
 	/* Connect to the command socket */
 	control_stream = fdopen(xconnect(server->s_in), "r+");
 	if (control_stream == NULL) {
-		bb_perror_msg_and_die("Couldnt open control stream");
+		bb_perror_msg_and_die("cannot open control stream");
 	}
 
 	if (ftpcmd(NULL, NULL, control_stream, buf) != 220) {

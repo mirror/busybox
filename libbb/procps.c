@@ -54,7 +54,8 @@ procps_status_t * procps_scan(int save_user_arg0)
 		dir = xopendir("/proc");
 	}
 	for (;;) {
-		if ((entry = readdir(dir)) == NULL) {
+		entry = readdir(dir);
+		if (entry == NULL) {
 			closedir(dir);
 			dir = 0;
 			return 0;

@@ -499,7 +499,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		bb_error_msg("Error exit delayed from previous errors");
 
 	if (gzipPid && waitpid(gzipPid, NULL, 0)==-1)
-		bb_error_msg("Couldnt wait");
+		bb_error_msg("cannot wait");
 
 	return !errorFlag;
 }

@@ -44,12 +44,14 @@ char *fgets_str(FILE *file, const char *terminating_string)
 
 		/* Check for terminating string */
 		end_string_offset = idx - term_length;
-		if ((end_string_offset > 0) && (memcmp(&linebuf[end_string_offset], terminating_string, term_length) == 0)) {
+		if (end_string_offset > 0
+		 && memcmp(&linebuf[end_string_offset], terminating_string, term_length) == 0
+		) {
 			idx -= term_length;
 			break;
 		}
 	}
+	linebuf = xrealloc(linebuf, idx + 1);
 	linebuf[idx] = '\0';
-	return(linebuf);
+	return linebuf;
 }
-

@@ -878,7 +878,8 @@ static void write_status_file(deb_file_t **deb_file)
 							/* remove trailing \n's */
 							write_buffer_no_status(new_status_file, deb_file[i]->control_file);
 							set_status(status_num, "ok", 2);
-							fprintf(new_status_file, "Status: %s\n\n", name_hashtable[status_hashtable[status_num]->status]);
+							fprintf(new_status_file, "Status: %s\n\n",
+									name_hashtable[status_hashtable[status_num]->status]);
 							write_flag = TRUE;
 							break;
 						}
@@ -886,7 +887,9 @@ static void write_status_file(deb_file_t **deb_file)
 					}
 					/* This is temperary, debugging only */
 					if (deb_file[i] == NULL) {
-						bb_error_msg_and_die("ALERT: Couldnt find a control file, your status file may be broken, status may be incorrect for %s", package_name);
+						bb_error_msg_and_die("ALERT: cannot find a control file, "
+							"your status file may be broken, status may be "
+							"incorrect for %s", package_name);
 					}
 				}
 				else if (strcmp("not-installed", name_hashtable[state_status]) == 0) {
@@ -963,7 +966,8 @@ static void write_status_file(deb_file_t **deb_file)
 	}
 
 	if (rename("/var/lib/dpkg/status.udeb", "/var/lib/dpkg/status") == -1) {
-		bb_error_msg_and_die("DANGER: Cannot create status file, you need to manually repair your status file");
+		bb_error_msg_and_die("DANGER: cannot create status file, "
+			"you need to manually repair your status file");
 	}
 }
 
