@@ -172,8 +172,12 @@ static int parse_mount_options(char *options, char **unrecognized)
 
 static llist_t *get_block_backed_filesystems(void)
 {
-	char *fs, *buf,
-		 *filesystems[] = {"/etc/filesystems", "/proc/filesystems", 0};
+	static const char *const filesystems[] = {
+		"/etc/filesystems",
+		"/proc/filesystems",
+		0
+	};
+	char *fs, *buf;
 	llist_t *list = 0;
 	int i;
 	FILE *f;
@@ -182,16 +186,15 @@ static llist_t *get_block_backed_filesystems(void)
 		f = fopen(filesystems[i], "r");
 		if (!f) continue;
 
-		for (fs = buf = 0; (fs = buf = bb_get_chomped_line_from_file(f));
-			free(buf))
-		{
-			if (!strncmp(buf,"nodev",5) && isspace(buf[5])) continue;
-
+		while ((buf = bb_get_chomped_line_from_file(f)) != 0) {
+			if (!strncmp(buf, "nodev", 5) && isspace(buf[5]))
+				continue;
+			fs = buf;
 			while (isspace(*fs)) fs++;
-			if (*fs=='#' || *fs=='*') continue;
-			if (!*fs) continue;
+			if (*fs=='#' || *fs=='*' || !*fs) continue;
 
-			llist_add_to_end(&list,xstrdup(fs));
+			llist_add_to_end(&list, xstrdup(fs));
+			free(buf);
 		}
 		if (ENABLE_FEATURE_CLEAN_UP) fclose(f);
 	}

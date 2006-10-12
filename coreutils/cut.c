@@ -13,13 +13,11 @@
 
 /* option vars */
 static const char optstring[] = "b:c:f:d:sn";
-
 #define CUT_OPT_BYTE_FLGS	(1<<0)
 #define CUT_OPT_CHAR_FLGS	(1<<1)
 #define CUT_OPT_FIELDS_FLGS	(1<<2)
 #define CUT_OPT_DELIM_FLGS	(1<<3)
 #define CUT_OPT_SUPPRESS_FLGS (1<<4)
-static unsigned opt;
 
 static char delim = '\t';	/* delimiter, default is tab */
 
@@ -61,7 +59,7 @@ static void cut_file(FILE * file)
 		int spos;
 
 		/* cut based on chars/bytes XXX: only works when sizeof(char) == byte */
-		if ((opt & (CUT_OPT_CHAR_FLGS | CUT_OPT_BYTE_FLGS))) {
+		if (option_mask32 & (CUT_OPT_CHAR_FLGS | CUT_OPT_BYTE_FLGS)) {
 			/* print the chars specified in each cut list */
 			for (; cl_pos < nlists; cl_pos++) {
 				spos = cut_lists[cl_pos].startpos;
@@ -115,7 +113,7 @@ static void cut_file(FILE * file)
 
 			/* does this line contain any delimiters? */
 			if (strchr(line, delim) == NULL) {
-				if (!(opt & CUT_OPT_SUPPRESS_FLGS))
+				if (!(option_mask32 & CUT_OPT_SUPPRESS_FLGS))
 					puts(line);
 				goto next_line;
 			}
@@ -125,7 +123,6 @@ static void cut_file(FILE * file)
 			for (; cl_pos < nlists && line; cl_pos++) {
 				spos = cut_lists[cl_pos].startpos;
 				do {
-
 					/* find the field we're looking for */
 					while (line && ndelim < spos) {
 						field = strsep(&line, delimiter);
@@ -156,7 +153,7 @@ static void cut_file(FILE * file)
 		/* if we printed anything at all, we need to finish it with a
 		 * newline cuz we were handed a chomped line */
 		putchar('\n');
-	  next_line:
+ next_line:
 		linenum++;
 		free(printed);
 		free(orig_line);
@@ -170,14 +167,13 @@ int cut_main(int argc, char **argv)
 	char *sopt, *ltok;
 
 	opt_complementary = "b--bcf:c--bcf:f--bcf";
-	opt = getopt32(argc, argv, optstring, &sopt, &sopt, &sopt, &ltok);
-	if (!(opt & (CUT_OPT_BYTE_FLGS | CUT_OPT_CHAR_FLGS | CUT_OPT_FIELDS_FLGS)))
-		bb_error_msg_and_die
-			("expected a list of bytes, characters, or fields");
-	if (opt & BB_GETOPT_ERROR)
+	getopt32(argc, argv, optstring, &sopt, &sopt, &sopt, &ltok);
+	if (!(option_mask32 & (CUT_OPT_BYTE_FLGS | CUT_OPT_CHAR_FLGS | CUT_OPT_FIELDS_FLGS)))
+		bb_error_msg_and_die("expected a list of bytes, characters, or fields");
+	if (option_mask32 & BB_GETOPT_ERROR)
 		bb_error_msg_and_die("only one type of list may be specified");
 
-	if ((opt & (CUT_OPT_DELIM_FLGS))) {
+	if (option_mask32 & CUT_OPT_DELIM_FLGS) {
 		if (strlen(ltok) > 1) {
 			bb_error_msg_and_die("the delimiter must be a single character");
 		}
@@ -185,8 +181,8 @@ int cut_main(int argc, char **argv)
 	}
 
 	/*  non-field (char or byte) cutting has some special handling */
-	if (!(opt & CUT_OPT_FIELDS_FLGS)) {
-		if (opt & CUT_OPT_SUPPRESS_FLGS) {
+	if (!(option_mask32 & CUT_OPT_FIELDS_FLGS)) {
+		if (option_mask32 & CUT_OPT_SUPPRESS_FLGS) {
 			bb_error_msg_and_die
 				("suppressing non-delimited lines makes sense%s",
 				 _op_on_field);
@@ -251,10 +247,9 @@ int cut_main(int argc, char **argv)
 				bb_error_msg_and_die("invalid byte or field list");
 
 			/* add the new list */
-			cut_lists =
-				xrealloc(cut_lists, sizeof(struct cut_list) * (++nlists));
-			cut_lists[nlists - 1].startpos = s;
-			cut_lists[nlists - 1].endpos = e;
+			cut_lists = xrealloc(cut_lists, sizeof(struct cut_list) * (++nlists));
+			cut_lists[nlists-1].startpos = s;
+			cut_lists[nlists-1].endpos = e;
 		}
 
 		/* make sure we got some cut positions out of all that */
