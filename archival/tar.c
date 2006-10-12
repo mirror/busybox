@@ -523,7 +523,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 		tmp = cur;
 		cur = cur->link;
 		free(tmp);
-		while ((line = bb_get_chomped_line_from_file(src_stream)) != NULL) {
+		while ((line = xmalloc_getline(src_stream)) != NULL) {
 			char *filename_ptr = last_char_is(line, '/');
 			if (filename_ptr > line)
 				*filename_ptr = '\0';

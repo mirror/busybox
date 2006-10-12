@@ -91,7 +91,7 @@ int nameif_main(int argc, char **argv)
 	} else {
 		ifh = xfopen(fname, "r");
 
-		while ((line = bb_get_line_from_file(ifh)) != NULL) {
+		while ((line = xmalloc_fgets(ifh)) != NULL) {
 			char *line_ptr;
 			size_t name_length;
 

@@ -123,7 +123,7 @@ static int grep_file(FILE *file)
 	int idx = 0; /* used for iteration through the circular buffer */
 #endif /* ENABLE_FEATURE_GREP_CONTEXT */
 
-	while ((line = bb_get_chomped_line_from_file(file)) != NULL) {
+	while ((line = xmalloc_getline(file)) != NULL) {
 		llist_t *pattern_ptr = pattern_head;
 		grep_list_data_t * gl;
 
@@ -280,7 +280,7 @@ static void load_regexes_from_file(llist_t *fopt)
 		fopt = cur->link;
 		free(cur);
 		f = xfopen(ffile, "r");
-		while ((line = bb_get_chomped_line_from_file(f)) != NULL) {
+		while ((line = xmalloc_getline(f)) != NULL) {
 			llist_add_to(&pattern_head,
 				new_grep_list_data(line, PATTERN_MEM_A));
 		}

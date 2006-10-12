@@ -21,7 +21,7 @@ static void bb_dump_addfile(char *name)
 
 	fp = xfopen(name, "r");
 
-	while ((buf = bb_get_chomped_line_from_file(fp)) != NULL) {
+	while ((buf = xmalloc_getline(fp)) != NULL) {
 		p = skip_whitespace(buf);
 
 		if (*p && (*p != '#')) {

@@ -230,8 +230,9 @@ extern void erase_mtab(const char * name);
 extern long *find_pid_by_name( const char* pidName);
 extern long *pidlist_reverse(long *pidList);
 extern char *find_block_device(char *path);
-extern char *bb_get_line_from_file(FILE *file);
-extern char *bb_get_chomped_line_from_file(FILE *file);
+extern char *xmalloc_fgets(FILE *file);
+/* Chops off '\n' from the end, unlike fgets: */
+extern char *xmalloc_getline(FILE *file);
 extern char *bb_get_chunk_from_file(FILE *file, int *end);
 extern off_t bb_copyfd_size(int fd1, int fd2, off_t size);
 extern off_t bb_copyfd_eof(int fd1, int fd2);

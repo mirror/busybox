@@ -1205,7 +1205,7 @@ void load_history ( const char *fromfile )
 	if (( fp = fopen ( fromfile, "r" ))) {
 
 		for ( hi = 0; hi < MAX_HISTORY; ) {
-			char * hl = bb_get_chomped_line_from_file(fp);
+			char * hl = xmalloc_getline(fp);
 			int l;
 
 			if(!hl)

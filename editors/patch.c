@@ -32,7 +32,7 @@ static unsigned int copy_lines(FILE *src_stream, FILE *dest_stream, const unsign
 
 	while (src_stream && (i < lines_count)) {
 		char *line;
-		line = bb_get_line_from_file(src_stream);
+		line = xmalloc_fgets(src_stream);
 		if (line == NULL) {
 			break;
 		}
@@ -96,7 +96,7 @@ int patch_main(int argc, char **argv)
 		ret = 0;
 	}
 
-	patch_line = bb_get_line_from_file(patch_file);
+	patch_line = xmalloc_fgets(patch_file);
 	while (patch_line) {
 		FILE *src_stream;
 		FILE *dst_stream;
@@ -115,14 +115,14 @@ int patch_main(int argc, char **argv)
 		 */
 		while (patch_line && strncmp(patch_line, "--- ", 4) != 0) {
 			free(patch_line);
-			patch_line = bb_get_line_from_file(patch_file);
+			patch_line = xmalloc_fgets(patch_file);
 		}
 
 		/* Extract the filename used before the patch was generated */
 		original_filename = extract_filename(patch_line, patch_level);
 		free(patch_line);
 
-		patch_line = bb_get_line_from_file(patch_file);
+		patch_line = xmalloc_fgets(patch_file);
 		if (strncmp(patch_line, "+++ ", 4) != 0) {
 			ret = 2;
 			bb_error_msg("Invalid patch");
@@ -166,7 +166,7 @@ int patch_main(int argc, char **argv)
 		printf("patching file %s\n", new_filename);
 
 		/* Handle each hunk */
-		patch_line = bb_get_line_from_file(patch_file);
+		patch_line = xmalloc_fgets(patch_file);
 		while (patch_line) {
 			unsigned int count;
 			unsigned int src_beg_line;
@@ -197,11 +197,11 @@ int patch_main(int argc, char **argv)
 			}
 			hunk_offset_start = src_cur_line;
 
-			while ((patch_line = bb_get_line_from_file(patch_file)) != NULL) {
+			while ((patch_line = xmalloc_fgets(patch_file)) != NULL) {
 				if ((*patch_line == '-') || (*patch_line == ' ')) {
 					char *src_line = NULL;
 					if (src_stream) {
-						src_line = bb_get_line_from_file(src_stream);
+						src_line = xmalloc_fgets(src_stream);
 						if (!src_line) {
 							hunk_error++;
 							break;

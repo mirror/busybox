@@ -138,7 +138,7 @@ static int getfileentry(FILE * fp, struct dns_entry *s)
 	char *r, *name;
 
  restart:
-	r = bb_get_line_from_file(fp);
+	r = xmalloc_fgets(fp);
 	if (!r)
 		return -1;
 	while (*r == ' ' || *r == '\t') {

@@ -126,7 +126,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 			pre_computed_stream = xfopen(file_ptr, "r");
 		}
 
-		while ((line = bb_get_chomped_line_from_file(pre_computed_stream)) != NULL) {
+		while ((line = xmalloc_getline(pre_computed_stream)) != NULL) {
 			char *filename_ptr;
 
 			count_total++;

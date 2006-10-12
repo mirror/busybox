@@ -18,7 +18,7 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 {
 	char *line;
 
-	while ((line = bb_get_chomped_line_from_file(src_stream)) != NULL) {
+	while ((line = xmalloc_getline(src_stream)) != NULL) {
 		int length;
 		char *line_ptr = line;
 
@@ -140,7 +140,7 @@ int uudecode_main(int argc, char **argv)
 	}
 
 	/* Search for the start of the encoding */
-	while ((line = bb_get_chomped_line_from_file(src_stream)) != NULL) {
+	while ((line = xmalloc_getline(src_stream)) != NULL) {
 		int (*decode_fn_ptr)(FILE * src, FILE * dst);
 		char *line_ptr;
 		FILE *dst_stream;

@@ -1206,7 +1206,7 @@ static char **create_list(const char *filename)
 		return NULL;
 	}
 
-	while ((line = bb_get_chomped_line_from_file(list_stream)) != NULL) {
+	while ((line = xmalloc_getline(list_stream)) != NULL) {
 		file_list = xrealloc(file_list, sizeof(char *) * (count + 2));
 		file_list[count] = line;
 		count++;

@@ -50,7 +50,7 @@ static void cut_file(FILE * file)
 	unsigned int linenum = 0;	/* keep these zero-based to be consistent */
 
 	/* go through every line in the file */
-	while ((line = bb_get_chomped_line_from_file(file)) != NULL) {
+	while ((line = xmalloc_getline(file)) != NULL) {
 
 		/* set up a list so we can keep track of what's been printed */
 		char * printed = xzalloc(strlen(line) * sizeof(char));

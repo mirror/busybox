@@ -124,9 +124,9 @@ static struct sort_key *add_key(void)
 }
 
 #define GET_LINE(fp) (global_flags&FLAG_z) ? bb_get_chunk_from_file(fp,NULL) \
-		: bb_get_chomped_line_from_file(fp)
+		: xmalloc_getline(fp)
 #else
-#define GET_LINE(fp)	bb_get_chomped_line_from_file(fp)
+#define GET_LINE(fp)	xmalloc_getline(fp)
 #endif
 
 /* Iterate through keys list and perform comparisons */

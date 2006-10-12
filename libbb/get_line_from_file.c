@@ -48,7 +48,7 @@ char *bb_get_chunk_from_file(FILE * file, int *end)
 }
 
 /* Get line, including trailing \n if any */
-char *bb_get_line_from_file(FILE * file)
+char *xmalloc_fgets(FILE * file)
 {
 	int i;
 
@@ -56,7 +56,7 @@ char *bb_get_line_from_file(FILE * file)
 }
 
 /* Get line.  Remove trailing \n */
-char *bb_get_chomped_line_from_file(FILE * file)
+char *xmalloc_getline(FILE * file)
 {
 	int i;
 	char *c = bb_get_chunk_from_file(file, &i);

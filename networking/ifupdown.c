@@ -649,7 +649,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 
 	f = xfopen(filename, "r");
 
-	while ((buf = bb_get_chomped_line_from_file(f)) != NULL) {
+	while ((buf = xmalloc_getline(f)) != NULL) {
 		char *buf_ptr = buf;
 
 		firstword = next_word(&buf_ptr);

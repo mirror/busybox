@@ -904,7 +904,7 @@ restart:
 						if (rfile) {
 							char *line;
 
-							while ((line = bb_get_chomped_line_from_file(rfile))
+							while ((line = xmalloc_getline(rfile))
 									!= NULL)
 								append(line);
 							xprint_and_close_file(rfile);
@@ -1099,7 +1099,7 @@ static void add_files_link(llist_t *opt_f)
 	if (!opt_f) return;
 	add_files_link(opt_f->link);
 	cmdfile = xfopen(opt_f->data, "r");
-	while ((line = bb_get_chomped_line_from_file(cmdfile)) != NULL) {
+	while ((line = xmalloc_getline(cmdfile)) != NULL) {
 		add_cmd(line);
 		free(line);
 	}
