@@ -27,7 +27,7 @@ char *find_execable(const char *filename)
 {
 	char *path, *p, *n;
 
-	p = path = xstrdup(getenv("PATH") ? : "");
+	p = path = xstrdup(getenv("PATH"));
 	while (p) {
 		n = strchr(p, ':');
 		if (n)
@@ -59,4 +59,3 @@ int exists_execable(const char *filename)
 	}
 	return 0;
 }
-
