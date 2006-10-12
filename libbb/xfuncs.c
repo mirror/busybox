@@ -113,24 +113,20 @@ int xopen3(const char *pathname, int flags, int mode)
 // Die with an error message if we can't read the entire buffer.
 void xread(int fd, void *buf, size_t count)
 {
-	while (count) {
-		ssize_t size = safe_read(fd, buf, count);
-		if (size < 1)
+	if (count) {
+		ssize_t size = full_read(fd, buf, count);
+		if (size != count)
 			bb_error_msg_and_die("short read");
-		count -= size;
-		buf = ((char *) buf) + size;
 	}
 }
 
 // Die with an error message if we can't write the entire buffer.
 void xwrite(int fd, void *buf, size_t count)
 {
-	while (count) {
-		ssize_t size = safe_write(fd, buf, count);
-		if (size < 1)
+	if (count) {
+		ssize_t size = full_write(fd, buf, count);
+		if (size != count)
 			bb_error_msg_and_die("short write");
-		count -= size;
-		buf = ((char *) buf) + size;
 	}
 }
 

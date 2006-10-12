@@ -24,7 +24,7 @@ ssize_t full_read(int fd, void *buf, size_t len)
 
 	total = 0;
 
-	while (len > 0) {
+	while (len) {
 		cc = safe_read(fd, buf, len);
 
 		if (cc < 0)
