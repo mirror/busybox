@@ -65,9 +65,8 @@ int gunzip_main(int argc, char **argv)
 			optind = argc; /* we don't handle "gunzip - a.gz b.gz" */
 		} else {
 			src_fd = xopen(old_path, O_RDONLY);
-
 			/* Get the time stamp on the input file. */
-			xstat(old_path, &stat_buf);
+			fstat(src_fd, &stat_buf);
 		}
 
 		/* Check that the input is sane.  */
@@ -131,11 +130,11 @@ int gunzip_main(int argc, char **argv)
 			}
 			else if (ENABLE_DESKTOP && (opt & GUNZIP_OPT_VERBOSE)) {
 				fprintf(stderr, "%s: %u%% - replaced with %s\n",
-					// TODO: LARGEFILE support for stat_buf.st_size?
 					old_path, (unsigned)(stat_buf.st_size*100 / (status+1)), new_path);
 			}
 		} else {
-			bb_error_msg("invalid magic"); exitcode = 1;
+			bb_error_msg("invalid magic");
+			exitcode = 1;
 		}
 		if (status < 0 && new_path) {
 			/* Unzip failed, remove new path instead of old path */

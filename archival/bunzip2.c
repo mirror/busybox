@@ -37,8 +37,8 @@ int bunzip2_main(int argc, char **argv)
 
 	/* Check that the input is sane.  */
 	if (isatty(src_fd) && (opt & BUNZIP2_OPT_FORCE) == 0) {
-		bb_error_msg_and_die("Compressed data not read from terminal.  "
-				"Use -f to force it.");
+		bb_error_msg_and_die("compressed data not read from terminal, "
+				"use -f to force it");
 	}
 
 	if (filename) {
