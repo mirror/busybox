@@ -140,7 +140,7 @@ static int godaemon(void)
 	case 0:
 		pw = getpwnam(nobodystr);
 		if (pw == NULL)
-			bb_error_msg_and_die("Cannot find uid/gid of user '%s'", nobodystr);
+			bb_error_msg_and_die("cannot find uid/gid of user '%s'", nobodystr);
 		nobody = pw->pw_uid;
 		nogrp = pw->pw_gid;
 		writepid(nobody, nogrp);

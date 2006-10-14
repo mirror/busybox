@@ -1202,7 +1202,7 @@ int diff_main(int argc, char **argv)
 	 * driver routine.  Both drivers use the contents of stb1 and stb2.
 	 */
 	if (argc < 2) {
-		bb_error_msg("Missing filename");
+		bb_error_msg("missing filename");
 		bb_show_usage();
 	}
 	if (strcmp(argv[0], "-") == 0) {
@@ -1216,12 +1216,12 @@ int diff_main(int argc, char **argv)
 	} else
 		xstat(argv[1], &stb2);
 	if (gotstdin && (S_ISDIR(stb1.st_mode) || S_ISDIR(stb2.st_mode)))
-		bb_error_msg_and_die("Can't compare - to a directory");
+		bb_error_msg_and_die("can't compare - to a directory");
 	if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
 #if ENABLE_FEATURE_DIFF_DIR
 		diffdir(argv[0], argv[1]);
 #else
-		bb_error_msg_and_die("Directory comparison not supported");
+		bb_error_msg_and_die("directory comparison not supported");
 #endif
 	} else {
 		if (S_ISDIR(stb1.st_mode)) {

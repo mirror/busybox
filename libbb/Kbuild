@@ -9,7 +9,7 @@ lib-y:= \
 	compare_string_array.o concat_path_file.o copy_file.o copyfd.o \
 	crc32.o create_icmp_socket.o create_icmp6_socket.o \
 	device_open.o dump.o error_msg.o error_msg_and_die.o \
-	find_pid_by_name.o find_root_device.o fgets_str.o full_read.o \
+	find_pid_by_name.o find_root_device.o fgets_str.o \
 	full_write.o get_last_path_component.o get_line_from_file.o \
 	herror_msg.o herror_msg_and_die.o \
 	human_readable.o inet_common.o inode_hash.o isdirectory.o \
@@ -19,7 +19,7 @@ lib-y:= \
 	perror_msg_and_die.o get_console.o \
 	process_escape_sequence.o procps.o \
 	recursive_action.o remove_file.o \
-	restricted_shell.o run_parts.o run_shell.o safe_read.o safe_write.o \
+	restricted_shell.o run_parts.o run_shell.o read.o safe_write.o \
 	safe_strncpy.o setup_environment.o sha1.o simplify_path.o \
 	trim.o u_signal_names.o vdprintf.o verror_msg.o \
 	vherror_msg.o vperror_msg.o wfopen.o xconnect.o xgetcwd.o \

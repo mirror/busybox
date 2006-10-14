@@ -561,7 +561,7 @@ static pid_t run(const struct init_action *a)
 		execv(cmdpath, cmd);
 
 		/* We're still here?  Some error happened. */
-		message(LOG | CONSOLE, "Bummer, could not run '%s': %m", cmdpath);
+		message(LOG | CONSOLE, "Bummer, cannot run '%s': %m", cmdpath);
 		_exit(-1);
 	}
 	sigprocmask(SIG_SETMASK, &omask, NULL);

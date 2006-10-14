@@ -39,10 +39,8 @@ static void make_device(char *path, int delete)
 
 	if (!delete) {
 		strcat(path, "/dev");
-		fd = open(path, O_RDONLY);
-		len = read(fd, temp + 1, 64);
+		len = open_read_close(path, temp + 1, 64);
 		*temp++ = 0;
-		close(fd);
 		if (len < 1) return;
 	}
 

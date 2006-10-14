@@ -51,11 +51,11 @@ static time_t read_rtc(int utc)
 
 	if (( rtc = open ( "/dev/rtc", O_RDONLY )) < 0 ) {
 		if (( rtc = open ( "/dev/misc/rtc", O_RDONLY )) < 0 )
-			bb_perror_msg_and_die ( "Could not access RTC" );
+			bb_perror_msg_and_die ( "cannot access RTC" );
 	}
 	memset ( &tm, 0, sizeof( struct tm ));
 	if ( ioctl ( rtc, RTC_RD_TIME, &tm ) < 0 )
-		bb_perror_msg_and_die ( "Could not read time from RTC" );
+		bb_perror_msg_and_die ( "cannot read time from RTC" );
 	tm.tm_isdst = -1; /* not known */
 
 	close ( rtc );
@@ -85,14 +85,14 @@ static void write_rtc(time_t t, int utc)
 
 	if (( rtc = open ( "/dev/rtc", O_WRONLY )) < 0 ) {
 		if (( rtc = open ( "/dev/misc/rtc", O_WRONLY )) < 0 )
-			bb_perror_msg_and_die ( "Could not access RTC" );
+			bb_perror_msg_and_die ( "cannot access RTC" );
 	}
 
 	tm = *( utc ? gmtime ( &t ) : localtime ( &t ));
 	tm.tm_isdst = 0;
 
 	if ( ioctl ( rtc, RTC_SET_TIME, &tm ) < 0 )
-		bb_perror_msg_and_die ( "Could not set the RTC time" );
+		bb_perror_msg_and_die ( "cannot set the RTC time" );
 
 	close ( rtc );
 }

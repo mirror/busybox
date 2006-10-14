@@ -22,15 +22,9 @@
 
 static int read_to_buf(const char *filename, void *buf)
 {
-	int fd;
 	ssize_t ret;
-
-	fd = open(filename, O_RDONLY);
-	if (fd < 0)
-		return -1;
-	ret = read(fd, buf, PROCPS_BUFSIZE-1);
-	((char *)buf)[ret > 0 ? ret : 0] = 0;
-	close(fd);
+	ret = open_read_close(filename, buf, PROCPS_BUFSIZE-1);
+	((char *)buf)[ret > 0 ? ret : 0] = '\0';
 	return ret;
 }
 

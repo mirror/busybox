@@ -219,9 +219,7 @@ int wget_main(int argc, char **argv)
 	} else if (opt & WGET_OPT_CONTINUE) {
 		output_fd = open(fname_out, O_WRONLY);
 		if (output_fd >= 0) {
-			beg_range = lseek(output_fd, 0, SEEK_END);
-			if (beg_range == (off_t)-1)
-				bb_perror_msg_and_die("lseek");
+			beg_range = xlseek(output_fd, 0, SEEK_END);
 		}
 		/* File doesn't exist. We do not create file here yet.
 		   We are not sure it exists on remove side */

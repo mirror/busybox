@@ -2954,7 +2954,7 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 
 	case IOWRITE | IOCAT:
 		if ((u = open(cp, 1)) >= 0) {
-			lseek(u, (long) 0, 2);
+			lseek(u, (long) 0, SEEK_END);
 			break;
 		}
 	case IOWRITE:
@@ -4686,7 +4686,7 @@ static void pushio(struct ioarg *argp, int (*fn) (struct ioarg *))
 		/* This line appears to be active when running scripts from command line */
 		if ((isatty(e.iop->argp->afile) == 0)
 			&& (e.iop == &iostack[0]
-				|| lseek(e.iop->argp->afile, 0L, 1) != -1)) {
+				|| lseek(e.iop->argp->afile, 0L, SEEK_CUR) != -1)) {
 			if (++bufid == AFID_NOBUF)	/* counter rollover check, AFID_NOBUF = 11111111  */
 				bufid = AFID_ID;	/* AFID_ID = 0 */
 
@@ -4831,7 +4831,7 @@ static int filechar(struct ioarg *ap)
 		if ((i = ap->afid != bp->id) || bp->bufp == bp->ebufp) {
 
 			if (i)
-				lseek(ap->afile, ap->afpos, 0);
+				lseek(ap->afile, ap->afpos, SEEK_SET);
 
 			i = safe_read(ap->afile, bp->buf, sizeof(bp->buf));
 

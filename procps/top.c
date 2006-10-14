@@ -448,7 +448,7 @@ int top_main(int argc, char **argv)
 			memcpy(top + n, p, sizeof(procps_status_t));
 		}
 		if (ntop == 0) {
-			bb_error_msg_and_die("Can't find process info in /proc");
+			bb_error_msg_and_die("can't find process info in /proc");
 		}
 #ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 		if (!prev_hist_count) {

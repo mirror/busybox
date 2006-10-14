@@ -147,9 +147,8 @@ int lsmod_main(int argc, char **argv)
 	check_tainted();
 #if defined(CONFIG_FEATURE_LSMOD_PRETTY_2_6_OUTPUT)
 	{
-		char line[4096];
-
-		while (fgets(line, sizeof(line), file)) {
+		char *line;
+		while ((line = xmalloc_fgets(file)) != NULL) {
 			char *tok;
 
 			tok = strtok(line, " \t");
@@ -175,7 +174,8 @@ int lsmod_main(int argc, char **argv)
 					tok = "";
 					printf(" %s", tok);
 			}
-			printf("\n");
+			puts("");
+			free(line);
 		}
 		fclose(file);
 	}

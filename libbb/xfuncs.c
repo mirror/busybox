@@ -95,7 +95,7 @@ int xopen(const char *pathname, int flags)
 	if (ENABLE_DEBUG && (flags & O_CREAT))
 		bb_error_msg_and_die("xopen() with O_CREAT");
 
-	return xopen3(pathname, flags, 0777);
+	return xopen3(pathname, flags, 0666);
 }
 
 // Die if we can't open a new file and return an fd.
@@ -110,16 +110,6 @@ int xopen3(const char *pathname, int flags, int mode)
 	return ret;
 }
 
-// Die with an error message if we can't read the entire buffer.
-void xread(int fd, void *buf, size_t count)
-{
-	if (count) {
-		ssize_t size = full_read(fd, buf, count);
-		if (size != count)
-			bb_error_msg_and_die("short read");
-	}
-}
-
 // Die with an error message if we can't write the entire buffer.
 void xwrite(int fd, void *buf, size_t count)
 {
@@ -131,20 +121,12 @@ void xwrite(int fd, void *buf, size_t count)
 }
 
 // Die with an error message if we can't lseek to the right spot.
-void xlseek(int fd, off_t offset, int whence)
+off_t xlseek(int fd, off_t offset, int whence)
 {
-	if (offset != lseek(fd, offset, whence))
-		bb_error_msg_and_die("lseek");
-}
-
-// Die with an error message if we can't read one character.
-unsigned char xread_char(int fd)
-{
-	char tmp;
-
-	xread(fd, &tmp, 1);
-
-	return tmp;
+	off_t off = lseek(fd, offset, whence);
+	if (off == (off_t)-1)
+		bb_perror_msg_and_die("lseek");
+	return off;
 }
 
 // Die with supplied error message if this FILE * has ferror set.
@@ -309,7 +291,7 @@ off_t fdlength(int fd)
 
 		// If we can read from the current location, it's bigger.
 
-		if (lseek(fd, pos, 0)>=0 && safe_read(fd, &temp, 1)==1) {
+		if (lseek(fd, pos, SEEK_SET)>=0 && safe_read(fd, &temp, 1)==1) {
 			if (bottom == top) bottom = top = (top+1) * 2;
 			else bottom = pos;
 

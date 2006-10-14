@@ -292,7 +292,7 @@ static int fuser_kill_pid_list(pid_list *plist, int sig)
 		if(curr->pid > 0 && curr->pid != mypid) {
 			if (kill(curr->pid, sig) != 0) {
 				bb_perror_msg(
-					"Could not kill pid '%d'", curr->pid);
+					"cannot kill pid '%d'", curr->pid);
 				success = 0;
 			}
 		}
@@ -342,7 +342,7 @@ int fuser_main(int argc, char **argv)
 			if(!fuser_file_to_dev_inode(
 				argv[fni[i]], &dev, &inode)) {
 				if (ENABLE_FEATURE_CLEAN_UP) free(inodes);
-				bb_perror_msg_and_die("Could not open '%s'", argv[fni[i]]);
+				bb_perror_msg_and_die("cannot open '%s'", argv[fni[i]]);
 			}
 			fuser_add_inode(inodes, dev, inode);
 		}

@@ -171,7 +171,7 @@ int crontab_main(int ac, char **av)
 			}
 			EditFile(caller, tmp);
 			remove(tmp);
-			lseek(fd, 0L, 0);
+			lseek(fd, 0L, SEEK_SET);
 			repFd = fd;
 		}
 		option = REPLACE;

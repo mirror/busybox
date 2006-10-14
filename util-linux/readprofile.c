@@ -44,9 +44,9 @@ static const char defaultpro[] = "/proc/profile";
 int readprofile_main(int argc, char **argv)
 {
 	FILE *map;
-	int proFd;
 	const char *mapFile, *proFile, *mult=0;
-	unsigned long len=0, indx=1;
+	unsigned long indx=1;
+	size_t len;
 	uint64_t add0=0;
 	unsigned int step;
 	unsigned int *buf, total, fn_len;
@@ -97,20 +97,8 @@ int readprofile_main(int argc, char **argv)
 	/*
 	 * Use an fd for the profiling buffer, to skip stdio overhead
 	 */
-
-	proFd = xopen(proFile,O_RDONLY);
-
-	if (((int)(len=lseek(proFd,0,SEEK_END)) < 0)
-	    || (lseek(proFd,0,SEEK_SET) < 0))
-		bb_perror_msg_and_die(proFile);
-
-	buf = xmalloc(len);
-
-	if (read(proFd,buf,len) != len)
-		bb_perror_msg_and_die(proFile);
-
-	close(proFd);
-
+	len = INT_MAX;
+	buf = xmalloc_open_read_close(proFile, &len);
 	if (!optNative) {
 		int entries = len/sizeof(*buf);
 		int big = 0,small = 0,i;
@@ -123,8 +111,8 @@ int readprofile_main(int argc, char **argv)
 				small++;
 		}
 		if (big > small) {
-			bb_error_msg("Assuming reversed byte order. "
-				"Use -n to force native byte order.");
+			bb_error_msg("assuming reversed byte order, "
+				"use -n to force native byte order");
 			for (p = buf; p < buf+entries; p++)
 				for (i = 0; i < sizeof(*buf)/2; i++) {
 					unsigned char *b = (unsigned char *) p;

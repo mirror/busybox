@@ -496,7 +496,6 @@ static void unix_do_one(int nr, const char *line)
 
 static void do_info(const char *file, const char *name, void (*proc)(int, const char *))
 {
-	char buffer[8192];
 	int lnr = 0;
 	FILE *procinfo;
 
@@ -505,12 +504,15 @@ static void do_info(const char *file, const char *name, void (*proc)(int, const 
 		if (errno != ENOENT) {
 			perror(file);
 		} else {
-		bb_error_msg("no support for `%s' on this system", name);
+			bb_error_msg("no support for '%s' on this system", name);
 		}
 	} else {
 		do {
-			if (fgets(buffer, sizeof(buffer), procinfo))
+			char *buffer = xmalloc_fgets(procinfo);
+			if (buffer) {
 				(proc)(lnr++, buffer);
+				free(buffer);
+			}
 		} while (!feof(procinfo));
 		fclose(procinfo);
 	}

@@ -4186,10 +4186,10 @@ int insmod_main( int argc, char **argv)
 	m_addr = create_module(m_name, m_size);
 	if (m_addr == -1) switch (errno) {
 		case EEXIST:
-			bb_error_msg("A module named %s already exists", m_name);
+			bb_error_msg("a module named %s already exists", m_name);
 			goto out;
 		case ENOMEM:
-			bb_error_msg("Can't allocate kernel memory for module; needed %lu bytes",
+			bb_error_msg("can't allocate kernel memory for module; needed %lu bytes",
 					m_size);
 			goto out;
 		default:

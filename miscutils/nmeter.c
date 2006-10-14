@@ -88,12 +88,7 @@ static void put_question_marks(int count)
 
 static int readfile_z(char *buf, int sz, const char* fname)
 {
-	int fd;
-	fd = xopen(fname, O_RDONLY);
-	// We are not checking for short reads (valid only because
-	// we are reading /proc files)
-	sz = read(fd, buf, sz-1);
-	close(fd);
+	sz = open_read_close(fname, buf, sz-1);
 	if (sz < 0) {
 		buf[0] = '\0';
 		return 1;
@@ -776,15 +771,12 @@ int nmeter_main(int argc, char* argv[])
 	s_stat *last = NULL;
 	s_stat *s;
 	char *cur, *prev;
-	int fd;
 
 	if (argc != 2)
 		bb_show_usage();
 
-	fd = xopen("/proc/version", O_RDONLY);
-	if (read(fd, buf, sizeof(buf)) > 0)
-		is26 = (strstr(buf, "Linux version 2.4.")==NULL);
-	close(fd);
+	if (open_read_close("/proc/version", buf, sizeof(buf)) > 0)
+		is26 = (strstr(buf, " 2.4.")==NULL);
 
 	// Can use argv[1] directly, but this will mess up
 	// parameters as seen by e.g. ps. Making a copy...

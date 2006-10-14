@@ -187,7 +187,7 @@ int makedevs_main(int argc, char **argv)
 					sprintf(full_name_inc, "%s%d", full_name, i);
 					rdev = (major << 8) + minor + (i * increment - start);
 					if (mknod(full_name_inc, mode, rdev) == -1) {
-						bb_perror_msg("line %d: could not create node %s", linenum, full_name_inc);
+						bb_perror_msg("line %d: cannot create node %s", linenum, full_name_inc);
 						ret = EXIT_FAILURE;
 					}
 					else if (chown(full_name_inc, uid, gid) == -1) {
@@ -203,7 +203,7 @@ int makedevs_main(int argc, char **argv)
 			} else {
 				rdev = (major << 8) + minor;
 				if (mknod(full_name, mode, rdev) == -1) {
-					bb_perror_msg("line %d: could not create node %s", linenum, full_name);
+					bb_perror_msg("line %d: cannot create node %s", linenum, full_name);
 					ret = EXIT_FAILURE;
 				}
 				else if (chown(full_name, uid, gid) == -1) {

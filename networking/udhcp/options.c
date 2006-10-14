@@ -171,6 +171,6 @@ int add_simple_option(uint8_t *optionptr, uint8_t code, uint32_t data)
 		}
 	}
 
-	bb_error_msg("Could not add option 0x%02x", code);
+	bb_error_msg("cannot add option 0x%02x", code);
 	return 0;
 }

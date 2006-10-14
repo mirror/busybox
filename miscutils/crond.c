@@ -120,7 +120,7 @@ static void crondlog(const char *ctl, ...)
 				close(logfd);
 #if ENABLE_DEBUG_CROND_OPTION
 			} else {
-				bb_perror_msg("Can't open log file");
+				bb_perror_msg("can't open log file");
 #endif
 			}
 		}
@@ -924,7 +924,7 @@ static void RunJob(const char *user, CronLine * line)
 		line->cl_MailFlag = 1;
 		fdprintf(mailFd, "To: %s\nSubject: cron: %s\n\n", user,
 			line->cl_Shell);
-		line->cl_MailPos = lseek(mailFd, 0, 1);
+		line->cl_MailPos = lseek(mailFd, 0, SEEK_CUR);
 	} else {
 		crondlog("\024unable to create mail file user %s file %s, output to /dev/null\n", user, mailFile);
 	}

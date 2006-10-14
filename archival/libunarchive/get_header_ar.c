@@ -79,7 +79,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 			(saved in variable long_name) that conatains the real filename */
 			const unsigned int long_offset = atoi(&ar.formatted.name[1]);
 			if (long_offset >= ar_long_name_size) {
-				bb_error_msg_and_die("Cant resolve long filename");
+				bb_error_msg_and_die("can't resolve long filename");
 			}
 			typed->name = xstrdup(ar_long_names + long_offset);
 		}

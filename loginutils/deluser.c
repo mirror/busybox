@@ -70,7 +70,7 @@ static void del_line_matching(const char *login, const char *filename)
 				fclose(passwd);
 			}
 		} else {
-			bb_error_msg("Can't find '%s' in '%s'", login, filename);
+			bb_error_msg("can't find '%s' in '%s'", login, filename);
 		}
 		free(buffer);
 	}

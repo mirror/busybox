@@ -93,35 +93,6 @@ static int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
 	return 1;
 }
 
-/* Jump through hoops to simulate how fgets() grabs just one line at a
- * time... Don't use any stdio since modprobe gets called from a kernel
- * thread and stdio junk can overflow the limited stack...
- */
-static char *reads ( int fd, char *buffer, size_t len )
-{
-	int n = read ( fd, buffer, len );
-
-	if ( n > 0 ) {
-		char *p;
-
-		buffer [len-1] = 0;
-		p = strchr ( buffer, '\n' );
-
-		if ( p ) {
-			off_t offset;
-
-			offset = lseek ( fd, 0L, SEEK_CUR );               // Get the current file descriptor offset
-			lseek ( fd, offset-n + (p-buffer) + 1, SEEK_SET ); // Set the file descriptor offset to right after the \n
-
-			p[1] = 0;
-		}
-		return buffer;
-	}
-
-	else
-		return 0;
-}
-
 /*
  * This function appends an option to a list
  */
@@ -913,7 +884,7 @@ int modprobe_main(int argc, char** argv)
 	depend = build_dep ( );
 
 	if ( !depend )
-		bb_error_msg_and_die ( "could not parse modules.dep" );
+		bb_error_msg_and_die ( "cannot parse modules.dep" );
 
 	if (remove_opt) {
 		do {

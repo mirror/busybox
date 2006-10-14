@@ -2353,7 +2353,7 @@ static int file_insert(Byte * fn, Byte * p, int size)
 #endif
 		fd = open((char *) fn, O_RDONLY);	// try read-only
 		if (fd < 0) {
-			psbs("\"%s\" %s", fn, "could not open file");
+			psbs("\"%s\" %s", fn, "cannot open file");
 			goto fi0;
 		}
 #ifdef CONFIG_FEATURE_VI_READONLY
@@ -2367,11 +2367,11 @@ static int file_insert(Byte * fn, Byte * p, int size)
 	if (cnt < 0) {
 		cnt = -1;
 		p = text_hole_delete(p, p + size - 1);	// un-do buffer insert
-		psbs("could not read file \"%s\"", fn);
+		psbs("cannot read file \"%s\"", fn);
 	} else if (cnt < size) {
 		// There was a partial read, shrink unused space text[]
 		p = text_hole_delete(p + cnt, p + (size - cnt) - 1);	// un-do buffer insert
-		psbs("could not read all of file \"%s\"", fn);
+		psbs("cannot read all of file \"%s\"", fn);
 	}
 	if (cnt >= size)
 		file_modified++;

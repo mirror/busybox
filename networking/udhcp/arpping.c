@@ -49,7 +49,7 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 	}
 
 	if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) == -1) {
-		bb_perror_msg("Could not setsocketopt on raw socket");
+		bb_perror_msg("cannot setsocketopt on raw socket");
 		close(s);
 		return -1;
 	}

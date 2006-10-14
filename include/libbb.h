@@ -205,12 +205,22 @@ extern int is_directory(const char *name, int followLinks, struct stat *statBuf)
 extern DIR *warn_opendir(const char *path);
 extern DIR *xopendir(const char *path);
 
+extern ssize_t safe_read(int fd, void *buf, size_t count);
+extern ssize_t full_read(int fd, void *buf, size_t count);
+extern void xread(int fd, void *buf, size_t count);
+extern unsigned char xread_char(int fd);
+extern char *reads(int fd, char *buf, size_t count);
+ssize_t read_close(int fd, void *buf, size_t count);
+ssize_t open_read_close(const char *filename, void *buf, size_t count);
+void *xmalloc_open_read_close(const char *filename, size_t *sizep);
+
+extern ssize_t safe_write(int fd, const void *buf, size_t count);
+extern ssize_t full_write(int fd, const void *buf, size_t count);
+extern void xwrite(int fd, void *buf, size_t count);
+
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
-extern ssize_t safe_read(int fd, void *buf, size_t count);
-extern ssize_t full_read(int fd, void *buf, size_t len);
-extern ssize_t safe_write(int fd, const void *buf, size_t count);
-extern ssize_t full_write(int fd, const void *buf, size_t len);
+
 extern int recursive_action(const char *fileName, int recurse,
 	  int followLinks, int depthFirst,
 	  int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData),
@@ -592,10 +602,7 @@ extern int obscure(const char *old, const char *newval, const struct passwd *pwd
 extern void xsetenv(const char *key, const char *value);
 extern int xopen(const char *pathname, int flags);
 extern int xopen3(const char *pathname, int flags, int mode);
-extern void xread(int fd, void *buf, size_t count);
-extern unsigned char xread_char(int fd);
-extern void xlseek(int fd, off_t offset, int whence);
-extern void xwrite(int fd, void *buf, size_t count);
+extern off_t xlseek(int fd, off_t offset, int whence);
 
 extern const char bb_uuenc_tbl_base64[];
 extern const char bb_uuenc_tbl_std[];

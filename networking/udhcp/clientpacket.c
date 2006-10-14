@@ -39,16 +39,13 @@ unsigned long random_xid(void)
 {
 	static int initialized;
 	if (!initialized) {
-		int fd;
 		unsigned long seed;
 
-		fd = open("/dev/urandom", 0);
-		if (fd < 0 || read(fd, &seed, sizeof(seed)) < 0) {
-			bb_info_msg("Could not load seed "
+		if (open_read_close("/dev/urandom", &seed, sizeof(seed)) < 0) {
+			bb_info_msg("Cannot load seed "
 				"from /dev/urandom: %s", strerror(errno));
 			seed = time(0);
 		}
-		if (fd >= 0) close(fd);
 		srand(seed);
 		initialized++;
 	}

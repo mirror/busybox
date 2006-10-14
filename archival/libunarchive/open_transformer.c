@@ -18,23 +18,23 @@ int open_transformer(int src_fd,
 	int pid;
 
 	if (pipe(fd_pipe) != 0) {
-		bb_perror_msg_and_die("Can't create pipe");
+		bb_perror_msg_and_die("can't create pipe");
 	}
 
 	pid = fork();
 	if (pid == -1) {
-		bb_perror_msg_and_die("Fork failed");
+		bb_perror_msg_and_die("fork failed");
 	}
 
 	if (pid == 0) {
 		/* child process */
-	    close(fd_pipe[0]); /* We don't wan't to read from the parent */
-	    // FIXME: error check?
-	    transformer(src_fd, fd_pipe[1]);
-	    close(fd_pipe[1]); /* Send EOF */
+		close(fd_pipe[0]); /* We don't wan't to read from the parent */
+		// FIXME: error check?
+		transformer(src_fd, fd_pipe[1]);
+		close(fd_pipe[1]); /* Send EOF */
 		close(src_fd);
-	    exit(0);
-	    /* notreached */
+		exit(0);
+		/* notreached */
 	}
 
 	/* parent process */

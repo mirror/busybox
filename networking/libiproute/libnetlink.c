@@ -126,7 +126,7 @@ int rtnl_dump_filter(struct rtnl_handle *rth,
 		     int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
 		     void *arg2)
 {
-	char	buf[8192];
+	char buf[8192];
 	struct sockaddr_nl nladdr;
 	struct iovec iov = { buf, sizeof(buf) };
 

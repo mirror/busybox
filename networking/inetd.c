@@ -1371,7 +1371,7 @@ inetd_main(int argc, char *argv[])
 					socklen_t plen = sizeof(peer);
 
 					if (getpeername(ctrl, (struct sockaddr *) &peer, &plen) < 0) {
-						bb_error_msg("could not getpeername");
+						bb_error_msg("cannot getpeername");
 						close(ctrl);
 						continue;
 					}

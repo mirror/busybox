@@ -417,7 +417,7 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 		++nipaddr;
 	}
 	if (nipaddr == 0)
-	    bb_error_msg_and_die ("Can't find any network interfaces");
+		bb_error_msg_and_die ("can't find any network interfaces");
 	(void)close(fd);
 
 	*ipaddrp = st_ifaddrlist;
@@ -472,7 +472,7 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 	fclose(f);
 
 	if (device[0] == '\0')
-		bb_error_msg_and_die ("Can't find interface");
+		bb_error_msg_and_die ("can't find interface");
 
 	/* Get the interface address list */
 	n = ifaddrlist(&al);
@@ -482,7 +482,7 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 		if (strcmp(device, al->device) == 0)
 			break;
 	if (i <= 0)
-		bb_error_msg_and_die("Can't find interface %s", device);
+		bb_error_msg_and_die("can't find interface %s", device);
 
 	setsin(from, al->addr);
 }
@@ -1156,7 +1156,7 @@ traceroute_main(int argc, char *argv[])
 			if (strcmp(device, al->device) == 0)
 				break;
 		if (i <= 0) {
-			bb_error_msg_and_die("Can't find interface %s", device);
+			bb_error_msg_and_die("can't find interface %s", device);
 		}
 	}
 

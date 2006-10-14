@@ -457,7 +457,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 
 				if (n == 0 && vfork_exec_errno != 0) {
 					errno = vfork_exec_errno;
-					bb_perror_msg_and_die("Could not exec %s", zip_exec);
+					bb_perror_msg_and_die("cannot exec %s", zip_exec);
 				} else if ((n < 0) && (errno == EAGAIN || errno == EINTR))
 					continue;	/* try it again */
 				break;
