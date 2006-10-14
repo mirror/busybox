@@ -345,7 +345,7 @@ is_bsd_partition_type(int type)
 #endif
 
 static void
-bselect(void)
+bsd_select(void)
 {
 #if !defined (__alpha__)
 	int t, ss;

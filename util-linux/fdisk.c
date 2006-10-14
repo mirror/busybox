@@ -131,25 +131,37 @@ enum label_type {
 	label_dos, label_sun, label_sgi, label_aix, label_osf
 };
 #define LABEL_IS_DOS	(label_dos == current_label_type)
+
 #ifdef CONFIG_FEATURE_SUN_LABEL
 #define LABEL_IS_SUN	(label_sun == current_label_type)
+#define STATIC_SUN static
 #else
 #define LABEL_IS_SUN	0
+#define STATIC_SUN extern
 #endif
+
 #ifdef CONFIG_FEATURE_SGI_LABEL
 #define LABEL_IS_SGI	(label_sgi == current_label_type)
+#define STATIC_SGI static
 #else
 #define LABEL_IS_SGI	0
+#define STATIC_SGI extern
 #endif
+
 #ifdef CONFIG_FEATURE_AIX_LABEL
 #define LABEL_IS_AIX	(label_aix == current_label_type)
+#define STATIC_AIX static
 #else
 #define LABEL_IS_AIX	0
+#define STATIC_AIX extern
 #endif
+
 #ifdef CONFIG_FEATURE_OSF_LABEL
 #define LABEL_IS_OSF	(label_osf == current_label_type)
+#define STATIC_OSF static
 #else
 #define LABEL_IS_OSF	0
+#define STATIC_OSF extern
 #endif
 
 enum action { fdisk, require, try_only, create_empty_dos, create_empty_sun };
@@ -317,21 +329,6 @@ read_hex(const struct systypes *sys)
 }
 #endif /* CONFIG_FEATURE_FDISK_WRITABLE */
 
-static const struct systypes sgi_sys_types[];
-static unsigned int sgi_get_num_sectors(int i);
-static int sgi_get_sysid(int i);
-static void sgi_delete_partition(int i);
-static void sgi_change_sysid(int i, int sys);
-static void sgi_list_table(int xtra);
-static void sgi_set_xcyl(void);
-static int verify_sgi(int verbose);
-static void sgi_add_partition(int n, int sys);
-static void sgi_set_swappartition(int i);
-static const char *sgi_get_bootfile(void);
-static void sgi_set_bootfile(const char* aFile);
-static void create_sgiinfo(void);
-static void sgi_write_table(void);
-static void sgi_set_bootpartition(int i);
 #include "fdisk_aix.c"
 
 typedef struct {
@@ -364,8 +361,8 @@ typedef struct {
 #define sunlabel ((sun_partition *)MBRbuffer)
 #define SUNOS_SWAP 3
 #define SUN_WHOLE_DISK 5
-static void bselect(void);
-static void xbsd_print_disklabel(int);
+STATIC_OSF void bsd_select(void);
+STATIC_OSF void xbsd_print_disklabel(int);
 #include "fdisk_osf.c"
 
 #define SGI_VOLHDR      0x00
@@ -398,23 +395,39 @@ __swap32(uint32_t x)
 }
 #endif
 
+STATIC_SGI const struct systypes sgi_sys_types[];
+STATIC_SGI unsigned int sgi_get_num_sectors(int i);
+STATIC_SGI int sgi_get_sysid(int i);
+STATIC_SGI void sgi_delete_partition(int i);
+STATIC_SGI void sgi_change_sysid(int i, int sys);
+STATIC_SGI void sgi_list_table(int xtra);
+STATIC_SGI void sgi_set_xcyl(void);
+STATIC_SGI int verify_sgi(int verbose);
+STATIC_SGI void sgi_add_partition(int n, int sys);
+STATIC_SGI void sgi_set_swappartition(int i);
+STATIC_SGI const char *sgi_get_bootfile(void);
+STATIC_SGI void sgi_set_bootfile(const char* aFile);
+STATIC_SGI void create_sgiinfo(void);
+STATIC_SGI void sgi_write_table(void);
+STATIC_SGI void sgi_set_bootpartition(int i);
+
 #include "fdisk_sgi.c"
 
-static const struct systypes sun_sys_types[];
-static void sun_delete_partition(int i);
-static void sun_change_sysid(int i, int sys);
-static void sun_list_table(int xtra);
-static void sun_set_xcyl(void);
-static void add_sun_partition(int n, int sys);
-static void sun_set_alt_cyl(void);
-static void sun_set_ncyl(int cyl);
-static void sun_set_xcyl(void);
-static void sun_set_ilfact(void);
-static void sun_set_rspeed(void);
-static void sun_set_pcylcount(void);
-static void toggle_sunflags(int i, unsigned char mask);
-static void verify_sun(void);
-static void sun_write_table(void);
+STATIC_SUN const struct systypes sun_sys_types[];
+STATIC_SUN void sun_delete_partition(int i);
+STATIC_SUN void sun_change_sysid(int i, int sys);
+STATIC_SUN void sun_list_table(int xtra);
+STATIC_SUN void sun_set_xcyl(void);
+STATIC_SUN void add_sun_partition(int n, int sys);
+STATIC_SUN void sun_set_alt_cyl(void);
+STATIC_SUN void sun_set_ncyl(int cyl);
+STATIC_SUN void sun_set_xcyl(void);
+STATIC_SUN void sun_set_ilfact(void);
+STATIC_SUN void sun_set_rspeed(void);
+STATIC_SUN void sun_set_pcylcount(void);
+STATIC_SUN void toggle_sunflags(int i, unsigned char mask);
+STATIC_SUN void verify_sun(void);
+STATIC_SUN void sun_write_table(void);
 #include "fdisk_sun.c"
 
 /* DOS partition types */
@@ -521,7 +534,6 @@ static const struct systypes i386_sys_types[] = {
 #endif
 	{ 0 }
 };
-
 
 
 /* A valid partition table sector ends in 0x55 0xaa */
@@ -2921,7 +2933,7 @@ int fdisk_main(int argc, char **argv)
 		/* OSF label, and no DOS label */
 		printf(_("Detected an OSF/1 disklabel on %s, entering "
 			"disklabel mode.\n"), disk_device);
-		bselect();
+		bsd_select();
 		/*Why do we do this?  It seems to be counter-intuitive*/
 		current_label_type = label_dos;
 		/* If we return we may want to make an empty DOS label? */
@@ -2954,7 +2966,7 @@ int fdisk_main(int argc, char **argv)
 					sgi_set_bootfile(line_ptr);
 			} else
 #ifdef CONFIG_FEATURE_OSF_LABEL
-				bselect();
+				bsd_select();
 #endif
 
 /* BUG!? Think what will happen if !CONFIG_FEATURE_OSF_LABEL !!! */

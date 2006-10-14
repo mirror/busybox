@@ -180,7 +180,7 @@ static const struct systypes sgi_sys_types[] = {
 /* LINUX_NATIVE */	{ "\x83" "Linux native" },
 /* LINUX_LVM    */	{ "\x8d" "Linux LVM"    },
 /* LINUX_RAID   */	{ "\xfd" "Linux RAID"   },
-			{ NULL             }
+			{ NULL                  }
 };
 
 
