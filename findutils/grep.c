@@ -430,7 +430,8 @@ int grep_main(int argc, char **argv)
 			if (option_mask32 & GREP_OPT_r) {
 				struct stat st;
 				if (stat(cur_file, &st) == 0 && S_ISDIR(st.st_mode)) {
-					print_filename = 1;
+					if (!(option_mask32 & GREP_OPT_h))
+						print_filename = 1;
 					matched += grep_dir(cur_file);
 					goto grep_done;
 				}
