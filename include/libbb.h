@@ -252,8 +252,8 @@ extern FILE *bb_wfopen(const char *path, const char *mode);
 extern FILE *bb_wfopen_input(const char *filename);
 extern FILE *xfopen(const char *path, const char *mode);
 
-extern int   bb_fclose_nonstdin(FILE *f);
-extern void  bb_fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
+extern int bb_fclose_nonstdin(FILE *f);
+extern void bb_fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
 
 extern void xstat(char *filename, struct stat *buf);
 extern int  xsocket(int domain, int type, int protocol);

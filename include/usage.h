@@ -992,7 +992,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-H login_host\tLog login_host into the utmp file as the hostname"
 
 #define grep_trivial_usage \
-	"[-ihHnqvso" \
+	"[-rihHnqvso" \
 	USE_FEATURE_GREP_EGREP_ALIAS("E") \
 	USE_FEATURE_GREP_CONTEXT("ABC") \
 	"] PATTERN [FILEs...]"
@@ -1001,6 +1001,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Options:\n" \
 	"\t-H\tprefix output lines with filename where match was found\n" \
 	"\t-h\tsuppress the prefixing filename on output\n" \
+	"\t-r\trecurse subdirectories\n" \
 	"\t-i\tignore case distinctions\n" \
 	"\t-l\tlist names of files that match\n" \
 	"\t-L\tlist names of files that do not match\n" \

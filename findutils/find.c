@@ -74,7 +74,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 			tmp = fileName;
 		else
 			tmp++;
-		if (!(fnmatch(pattern, tmp, FNM_PERIOD) == 0))
+		if (fnmatch(pattern, tmp, FNM_PERIOD) != 0)
 			goto no_match;
 	}
 #ifdef CONFIG_FEATURE_FIND_TYPE
@@ -143,8 +143,8 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 #else
 	puts(fileName);
 #endif
-no_match:
-	return (TRUE);
+ no_match:
+	return TRUE;
 }
 
 #ifdef CONFIG_FEATURE_FIND_TYPE
@@ -153,27 +153,27 @@ static int find_type(char *type)
 	int mask = 0;
 
 	switch (type[0]) {
-		case 'b':
-			mask = S_IFBLK;
-			break;
-		case 'c':
-			mask = S_IFCHR;
-			break;
-		case 'd':
-			mask = S_IFDIR;
-			break;
-		case 'p':
-			mask = S_IFIFO;
-			break;
-		case 'f':
-			mask = S_IFREG;
-			break;
-		case 'l':
-			mask = S_IFLNK;
-			break;
-		case 's':
-			mask = S_IFSOCK;
-			break;
+	case 'b':
+		mask = S_IFBLK;
+		break;
+	case 'c':
+		mask = S_IFCHR;
+		break;
+	case 'd':
+		mask = S_IFDIR;
+		break;
+	case 'p':
+		mask = S_IFIFO;
+		break;
+	case 'f':
+		mask = S_IFREG;
+		break;
+	case 'l':
+		mask = S_IFLNK;
+		break;
+	case 's':
+		mask = S_IFSOCK;
+		break;
 	}
 
 	if (mask == 0 || type[1] != '\0')
@@ -306,12 +306,12 @@ int find_main(int argc, char **argv)
 	}
 
 	if (firstopt == 1) {
-		if (! recursive_action(".", TRUE, dereference, FALSE, fileAction,
+		if (!recursive_action(".", TRUE, dereference, FALSE, fileAction,
 					fileAction, NULL))
 			status = EXIT_FAILURE;
 	} else {
 		for (i = 1; i < firstopt; i++) {
-			if (! recursive_action(argv[i], TRUE, dereference, FALSE, fileAction,
+			if (!recursive_action(argv[i], TRUE, dereference, FALSE, fileAction,
 						fileAction, NULL))
 				status = EXIT_FAILURE;
 		}

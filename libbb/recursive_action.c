@@ -46,14 +46,14 @@ int recursive_action(const char *fileName,
 		return FALSE;
 	}
 
-	if (! followLinks && (S_ISLNK(statbuf.st_mode))) {
+	if (!followLinks && (S_ISLNK(statbuf.st_mode))) {
 		if (fileAction == NULL)
 			return TRUE;
 		else
 			return fileAction(fileName, &statbuf, userData);
 	}
 
-	if (! recurse) {
+	if (!recurse) {
 		if (S_ISDIR(statbuf.st_mode)) {
 			if (dirAction != NULL)
 				return (dirAction(fileName, &statbuf, userData));
@@ -65,9 +65,9 @@ int recursive_action(const char *fileName,
 	if (S_ISDIR(statbuf.st_mode)) {
 		DIR *dir;
 
-		if (dirAction != NULL && ! depthFirst) {
+		if (dirAction != NULL && !depthFirst) {
 			status = dirAction(fileName, &statbuf, userData);
-			if (! status) {
+			if (!status) {
 				bb_perror_msg("%s", fileName);
 				return FALSE;
 			} else if (status == SKIP)
@@ -84,7 +84,7 @@ int recursive_action(const char *fileName,
 			nextFile = concat_subpath_file(fileName, next->d_name);
 			if(nextFile == NULL)
 				continue;
-			if (! recursive_action(nextFile, TRUE, followLinks, depthFirst,
+			if (!recursive_action(nextFile, TRUE, followLinks, depthFirst,
 						fileAction, dirAction, userData)) {
 				status = FALSE;
 			}
@@ -92,12 +92,12 @@ int recursive_action(const char *fileName,
 		}
 		closedir(dir);
 		if (dirAction != NULL && depthFirst) {
-			if (! dirAction(fileName, &statbuf, userData)) {
+			if (!dirAction(fileName, &statbuf, userData)) {
 				bb_perror_msg("%s", fileName);
 				return FALSE;
 			}
 		}
-		if (! status)
+		if (!status)
 			return FALSE;
 	} else {
 		if (fileAction == NULL)

@@ -24,43 +24,41 @@
 
 
 /* options */
-static unsigned opt;
-#define GREP_OPTS "lnqvscFiHhe:f:Lo"
+#define GREP_OPTS "lnqvscFiHhe:f:Lor"
 #define GREP_OPT_l (1<<0)
-#define PRINT_FILES_WITH_MATCHES (opt & GREP_OPT_l)
+#define PRINT_FILES_WITH_MATCHES (option_mask32 & GREP_OPT_l)
 #define GREP_OPT_n (1<<1)
-#define PRINT_LINE_NUM (opt & GREP_OPT_n)
+#define PRINT_LINE_NUM (option_mask32 & GREP_OPT_n)
 #define GREP_OPT_q (1<<2)
-#define BE_QUIET (opt & GREP_OPT_q)
+#define BE_QUIET (option_mask32 & GREP_OPT_q)
 #define GREP_OPT_v (1<<3)
-typedef char invert_search_t;
-static invert_search_t invert_search;
 #define GREP_OPT_s (1<<4)
-#define SUPPRESS_ERR_MSGS (opt & GREP_OPT_s)
+#define SUPPRESS_ERR_MSGS (option_mask32 & GREP_OPT_s)
 #define GREP_OPT_c (1<<5)
-#define PRINT_MATCH_COUNTS (opt & GREP_OPT_c)
+#define PRINT_MATCH_COUNTS (option_mask32 & GREP_OPT_c)
 #define GREP_OPT_F (1<<6)
-#define FGREP_FLAG (opt & GREP_OPT_F)
+#define FGREP_FLAG (option_mask32 & GREP_OPT_F)
 #define GREP_OPT_i (1<<7)
 #define GREP_OPT_H (1<<8)
 #define GREP_OPT_h (1<<9)
 #define GREP_OPT_e (1<<10)
 #define GREP_OPT_f (1<<11)
 #define GREP_OPT_L (1<<12)
-#define PRINT_FILES_WITHOUT_MATCHES (opt & GREP_OPT_L)
+#define PRINT_FILES_WITHOUT_MATCHES (option_mask32 & GREP_OPT_L)
 #define GREP_OPT_o (1<<13)
+#define GREP_OPT_r (1<<14)
 #if ENABLE_FEATURE_GREP_CONTEXT
-#define GREP_OPT_CONTEXT "A:B:C:"
-#define GREP_OPT_A (1<<14)
-#define GREP_OPT_B (1<<15)
-#define GREP_OPT_C (1<<16)
-#define GREP_OPT_E (1<<17)
+# define GREP_OPT_CONTEXT "A:B:C:"
+# define GREP_OPT_A (1<<15)
+# define GREP_OPT_B (1<<16)
+# define GREP_OPT_C (1<<17)
+# define GREP_OPT_E (1<<18)
 #else
-#define GREP_OPT_CONTEXT ""
-#define GREP_OPT_A 0
-#define GREP_OPT_B 0
-#define GREP_OPT_C 0
-#define GREP_OPT_E (1<<14)
+# define GREP_OPT_CONTEXT ""
+# define GREP_OPT_A 0
+# define GREP_OPT_B 0
+# define GREP_OPT_C 0
+# define GREP_OPT_E (1<<15)
 #endif
 #if ENABLE_FEATURE_GREP_EGREP_ALIAS
 # define OPT_EGREP "E"
@@ -68,8 +66,12 @@ static invert_search_t invert_search;
 # define OPT_EGREP ""
 #endif
 
+typedef unsigned char byte_t;
+
 static int reflags;
-static int print_filename;
+static byte_t invert_search;
+static byte_t print_filename;
+static byte_t open_errors;
 
 #if ENABLE_FEATURE_GREP_CONTEXT
 static int lines_before;
@@ -80,7 +82,7 @@ static int last_line_printed;
 
 /* globals used internally */
 static llist_t *pattern_head;   /* growable list of patterns to match */
-static char *cur_file;          /* the current file we are reading */
+static const char *cur_file;    /* the current file we are reading */
 
 typedef struct GREP_LIST_DATA {
 	char *pattern;
@@ -100,12 +102,12 @@ static void print_line(const char *line, int linenum, char decoration)
 	}
 	last_line_printed = linenum;
 #endif
-	if (print_filename > 0)
+	if (print_filename)
 		printf("%s%c", cur_file, decoration);
 	if (PRINT_LINE_NUM)
 		printf("%i%c", linenum, decoration);
 	/* Emulate weird GNU grep behavior with -ov */
-	if ((opt & (GREP_OPT_v+GREP_OPT_o)) != (GREP_OPT_v+GREP_OPT_o))
+	if ((option_mask32 & (GREP_OPT_v+GREP_OPT_o)) != (GREP_OPT_v+GREP_OPT_o))
 		puts(line);
 }
 
@@ -113,7 +115,7 @@ static void print_line(const char *line, int linenum, char decoration)
 static int grep_file(FILE *file)
 {
 	char *line;
-	invert_search_t ret;
+	byte_t ret;
 	int linenum = 0;
 	int nmatches = 0;
 	regmatch_t regmatch;
@@ -199,7 +201,7 @@ static int grep_file(FILE *file)
 					/* make a note that we need to print 'after' lines */
 					print_n_lines_after = lines_after;
 #endif
-					if (opt & GREP_OPT_o) {
+					if (option_mask32 & GREP_OPT_o) {
 						line[regmatch.rm_eo] = '\0';
 						print_line(line + regmatch.rm_so, linenum, ':');
 					} else {
@@ -231,7 +233,7 @@ static int grep_file(FILE *file)
 
 	/* grep -c: print [filename:]count, even if count is zero */
 	if (PRINT_MATCH_COUNTS) {
-		if (print_filename > 0)
+		if (print_filename)
 			printf("%s:", cur_file);
 		printf("%d\n", nmatches);
 	}
@@ -288,48 +290,71 @@ static void load_regexes_from_file(llist_t *fopt)
 }
 
 
+static int file_action_grep(const char *filename, struct stat *statbuf, void* matched)
+{
+	FILE *file = fopen(filename, "r");
+	if (file == NULL) {
+		if (!SUPPRESS_ERR_MSGS)
+			bb_perror_msg("%s", cur_file);
+		open_errors = 1;
+		return 0;
+	}
+	cur_file = filename;
+	*(int*)matched += grep_file(file);
+	return 1;
+}
+
+
+static int grep_dir(const char *dir)
+{
+	int matched = 0;
+	recursive_action(dir,
+		/* recurse= */ 1,
+		/* followLinks= */ 0,
+		/* depthFirst= */ 1,
+		/* fileAction= */ file_action_grep,
+		/* dirAction= */ NULL,
+		/* userData= */ &matched);
+	return matched;
+}
+
+
 int grep_main(int argc, char **argv)
 {
 	FILE *file;
 	int matched;
 	llist_t *fopt = NULL;
-	int error_open_count = 0;
 
 	/* do normal option parsing */
 #if ENABLE_FEATURE_GREP_CONTEXT
-	char *junk;
 	char *slines_after;
 	char *slines_before;
 	char *Copt;
 
 	opt_complementary = "H-h:e::f::C-AB";
-	opt = getopt32(argc, argv,
+	getopt32(argc, argv,
 		GREP_OPTS GREP_OPT_CONTEXT OPT_EGREP,
 		&pattern_head, &fopt,
 		&slines_after, &slines_before, &Copt);
 
-	if (opt & GREP_OPT_C) {
+	if (option_mask32 & GREP_OPT_C) {
 		/* C option unseted A and B options, but next -A or -B
 		   may be ovewrite own option */
-		if (!(opt & GREP_OPT_A))         /* not overwtited */
+		if (!(option_mask32 & GREP_OPT_A))         /* not overwtited */
 			slines_after = Copt;
-		if (!(opt & GREP_OPT_B))         /* not overwtited */
+		if (!(option_mask32 & GREP_OPT_B))         /* not overwtited */
 			slines_before = Copt;
-		opt |= GREP_OPT_A|GREP_OPT_B;   /* set for parse now */
+		option_mask32 |= GREP_OPT_A|GREP_OPT_B;   /* set for parse now */
 	}
-	if (opt & GREP_OPT_A) {
-		lines_after = strtoul(slines_after, &junk, 10);
-		if (*junk != '\0')
-			bb_error_msg_and_die(bb_msg_invalid_arg, slines_after, "-A");
+	if (option_mask32 & GREP_OPT_A) {
+		lines_after = xatoi_u(slines_after);
 	}
-	if (opt & GREP_OPT_B) {
-		lines_before = strtoul(slines_before, &junk, 10);
-		if (*junk != '\0')
-			bb_error_msg_and_die(bb_msg_invalid_arg, slines_before, "-B");
+	if (option_mask32 & GREP_OPT_B) {
+		lines_before = xatoi_u(slines_before);
 	}
 	/* sanity checks after parse may be invalid numbers ;-) */
-	if (opt & (GREP_OPT_c|GREP_OPT_q|GREP_OPT_l|GREP_OPT_L)) {
-		opt &= ~GREP_OPT_n;
+	if (option_mask32 & (GREP_OPT_c|GREP_OPT_q|GREP_OPT_l|GREP_OPT_L)) {
+		option_mask32 &= ~GREP_OPT_n;
 		lines_before = 0;
 		lines_after = 0;
 	} else if (lines_before > 0)
@@ -337,15 +362,15 @@ int grep_main(int argc, char **argv)
 #else
 	/* with auto sanity checks */
 	opt_complementary = "H-h:e::f::c-n:q-n:l-n";
-	opt = getopt32(argc, argv, GREP_OPTS OPT_EGREP,
+	getopt32(argc, argv, GREP_OPTS OPT_EGREP,
 		&pattern_head, &fopt);
 #endif
-	invert_search = (opt & GREP_OPT_v) != 0;        /* 0 | 1 */
+	invert_search = (option_mask32 & GREP_OPT_v) != 0;        /* 0 | 1 */
 
-	if (opt & GREP_OPT_H)
-		print_filename++;
-	if (opt & GREP_OPT_h)
-		print_filename--;
+	if (option_mask32 & GREP_OPT_H)
+		print_filename = 1;
+	if (option_mask32 & GREP_OPT_h)
+		print_filename = 0;
 	if (pattern_head != NULL) {
 		/* convert char *argv[] to grep_list_data_t */
 		llist_t *cur;
@@ -353,20 +378,20 @@ int grep_main(int argc, char **argv)
 		for (cur = pattern_head; cur; cur = cur->link)
 			cur->data = new_grep_list_data(cur->data, 0);
 	}
-	if (opt & GREP_OPT_f)
+	if (option_mask32 & GREP_OPT_f)
 		load_regexes_from_file(fopt);
 
 	if (ENABLE_FEATURE_GREP_FGREP_ALIAS && applet_name[0] == 'f')
-		opt |= GREP_OPT_F;
+		option_mask32 |= GREP_OPT_F;
 
-	if (!(opt & GREP_OPT_o))
+	if (!(option_mask32 & GREP_OPT_o))
 		reflags = REG_NOSUB;
 
 	if (ENABLE_FEATURE_GREP_EGREP_ALIAS &&
-			(applet_name[0] == 'e' || (opt & GREP_OPT_E)))
+			(applet_name[0] == 'e' || (option_mask32 & GREP_OPT_E)))
 		reflags |= REG_EXTENDED;
 
-	if (opt & GREP_OPT_i)
+	if (option_mask32 & GREP_OPT_i)
 		reflags |= REG_ICASE;
 
 	argv += optind;
@@ -386,9 +411,9 @@ int grep_main(int argc, char **argv)
 	}
 
 	/* argv[(optind)..(argc-1)] should be names of file to grep through. If
-	 * there is more than one file to grep, we will print the filenames */
+	 * there is more than one file to grep, we will print the filenames. */
 	if (argc > 1) {
-		print_filename++;
+		print_filename = 1;
 
 	/* If no files were specified, or '-' was specified, take input from
 	 * stdin. Otherwise, we grep through all the files specified. */
@@ -398,25 +423,35 @@ int grep_main(int argc, char **argv)
 	matched = 0;
 	while (argc--) {
 		cur_file = *argv++;
+		file = stdin;
 		if (!cur_file || (*cur_file == '-' && !cur_file[1])) {
 			cur_file = "(standard input)";
-			file = stdin;
 		} else {
-			file = fopen(cur_file, "r");
-		}
-		if (file == NULL) {
-			if (!SUPPRESS_ERR_MSGS)
-				bb_perror_msg("%s", cur_file);
-			error_open_count++;
-		} else {
-			matched += grep_file(file);
-			if (matched < 0) {
-				/* we found a match but were told to be quiet, stop here and
-				* return success */
-				break;
+			if (option_mask32 & GREP_OPT_r) {
+				struct stat st;
+				if (stat(cur_file, &st) == 0 && S_ISDIR(st.st_mode)) {
+					print_filename = 1;
+					matched += grep_dir(cur_file);
+					goto grep_done;
+				}
 			}
-			fclose(file);
+			/* else: fopen(dir) will succeed, but reading won't */
+			file = fopen(cur_file, "r");
+			if (file == NULL) {
+				if (!SUPPRESS_ERR_MSGS)
+					bb_perror_msg("%s", cur_file);
+				open_errors = 1;
+				continue;
+			}
 		}
+		matched += grep_file(file);
+ grep_done:
+		if (matched < 0) {
+			/* we found a match but were told to be quiet, stop here and
+			* return success */
+			break;
+		}
+		bb_fclose_nonstdin(file);
 	}
 
 	/* destroy all the elments in the pattern list */
@@ -439,7 +474,7 @@ int grep_main(int argc, char **argv)
 	 * if an input line is selected, even if an error was detected.  */
 	if (BE_QUIET && matched)
 		return 0;
-	if (error_open_count)
+	if (open_errors)
 		return 2;
 	return !matched; /* invert return value 0 = success, 1 = failed */
 }
