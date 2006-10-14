@@ -135,7 +135,7 @@ config FEATURE_2_4_MODULES
 	# Simulate indentation
 	bool "Support version 2.2.x to 2.4.x Linux kernels"
 	default y
-	depends on INSMOD || RMMOD
+	depends on INSMOD || RMMOD || MODPROBE
 	help
 	  Support module loading for 2.2.x and 2.4.x Linux kernels.
 
