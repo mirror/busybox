@@ -42,6 +42,7 @@ int sulogin_main(int argc, char **argv)
 	const char * const *p;
 	struct passwd *pwd;
 	struct spwd *spwd;
+	const char *shell;
 
 	logmode = LOGMODE_BOTH;
 	openlog(applet_name, 0, LOG_AUTH);
@@ -69,12 +70,14 @@ int sulogin_main(int argc, char **argv)
 
 	signal(SIGALRM, catchalarm);
 
-	if (!(pwd = getpwuid(0))) {
+	pwd = getpwuid(0);
+	if (!pwd) {
 		goto auth_error;
 	}
 
 	if (ENABLE_FEATURE_SHADOWPASSWDS) {
-		if (!(spwd = getspnam(pwd->pw_name))) {
+		spwd = getspnam(pwd->pw_name);
+		if (!spwd) {
 			goto auth_error;
 		}
 		pwd->pw_passwd = spwd->sp_pwdp;
@@ -103,9 +106,16 @@ int sulogin_main(int argc, char **argv)
 
 	USE_SELINUX(renew_current_security_context());
 
-	run_shell(pwd->pw_shell, 1, 0, 0);
+	shell = getenv("SUSHELL");
+	if (!shell) shell = getenv("sushell");
+	if (!shell) {
+		shell = "/bin/sh";
+		if (pwd->pw_shell[0])
+			shell = pwd->pw_shell;
+	}
+	run_shell(shell, 1, 0, 0);
 	/* never returns */
 
 auth_error:
-	bb_error_msg_and_die("no password entry for `root'");
+	bb_error_msg_and_die("no password entry for 'root'");
 }

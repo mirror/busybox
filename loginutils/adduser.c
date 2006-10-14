@@ -114,11 +114,11 @@ static int adduser(struct passwd *p, unsigned long flags)
 	file = xfopen(bb_path_shadow_file, "a");
 	fseek(file, 0, SEEK_END);
 	fprintf(file, "%s:!:%ld:%d:%d:%d:::\n",
-					p->pw_name,				/* username */
-					time(NULL) / 86400,		/* sp->sp_lstchg */ 
-					0,						/* sp->sp_min */
-					99999,					/* sp->sp_max */
-					7);						/* sp->sp_warn */
+			p->pw_name,             /* username */
+			time(NULL) / 86400,     /* sp->sp_lstchg */ 
+			0,                      /* sp->sp_min */
+			99999,                  /* sp->sp_max */
+			7);                     /* sp->sp_warn */
 	fclose(file);
 #endif
 
