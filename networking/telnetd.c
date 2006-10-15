@@ -188,12 +188,18 @@ getpty(char *line)
 {
 	int p;
 #ifdef CONFIG_FEATURE_DEVPTS
-	p = open("/dev/ptmx", 2);
+	p = open("/dev/ptmx", O_RDWR);
 	if (p > 0) {
+		const char *name;
 		grantpt(p);
 		unlockpt(p);
-		strcpy(line, ptsname(p));
-		return(p);
+		name = ptsname(p);
+		if (!name) {
+			bb_perror_msg("ptsname error (is /dev/pts mounted?)");
+			return -1;
+		}
+		strcpy(line, name);
+		return p;
 	}
 #else
 	struct stat stb;
@@ -213,7 +219,8 @@ getpty(char *line)
 #ifdef DEBUG
 			fprintf(stderr, "Trying to open device: %s\n", line);
 #endif
-			if ((p = open(line, O_RDWR | O_NOCTTY)) >= 0) {
+			p = open(line, O_RDWR | O_NOCTTY);
+			if (p >= 0) {
 				line[5] = 't';
 				return p;
 			}
@@ -387,7 +394,7 @@ telnetd_main(int argc, char **argv)
 	openlog(applet_name, 0, LOG_USER);
 	logmode = LOGMODE_SYSLOG;
 
-	opt = getopt32(argc, argv, "f:l:" USE_FEATURE_TELNETD_INETD("p:b:"),
+	opt = getopt32(argc, argv, "f:l:" SKIP_FEATURE_TELNETD_INETD("p:b:"),
 			&issuefile, &loginpath
 			SKIP_FEATURE_TELNETD_INETD(, &opt_portnbr, &opt_bindaddr));
 	//if (opt & 1) // -f
@@ -435,7 +442,7 @@ telnetd_main(int argc, char **argv)
 	maxfd = master_fd;
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
 
-	do {
+	while(1) {
 		struct tsession *ts;
 
 		FD_ZERO(&rdfdset);
@@ -493,8 +500,8 @@ telnetd_main(int argc, char **argv)
 			socklen_t salen;
 
 			salen = sizeof(sa);
-			if ((fd = accept(master_fd, (struct sockaddr *)&sa,
-						&salen)) < 0) {
+			fd = accept(master_fd, (struct sockaddr *)&sa, &salen);
+			if (fd < 0) {
 				continue;
 			} else {
 				/* Create a new session and link it into
@@ -632,7 +639,7 @@ telnetd_main(int argc, char **argv)
 		}
 #endif /* CONFIG_FEATURE_TELNETD_INETD */
 
-	} while (1);
+	} /* while(1) */
 
 	return 0;
 }
