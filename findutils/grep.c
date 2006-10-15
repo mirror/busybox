@@ -301,6 +301,7 @@ static int file_action_grep(const char *filename, struct stat *statbuf, void* ma
 	}
 	cur_file = filename;
 	*(int*)matched += grep_file(file);
+	fclose(file);
 	return 1;
 }
 
@@ -446,13 +447,13 @@ int grep_main(int argc, char **argv)
 			}
 		}
 		matched += grep_file(file);
+		bb_fclose_nonstdin(file);
  grep_done:
 		if (matched < 0) {
 			/* we found a match but were told to be quiet, stop here and
 			* return success */
 			break;
 		}
-		bb_fclose_nonstdin(file);
 	}
 
 	/* destroy all the elments in the pattern list */
