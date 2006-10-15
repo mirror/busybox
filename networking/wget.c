@@ -290,33 +290,36 @@ int wget_main(int argc, char **argv)
 			/*
 			* Retrieve HTTP response line and check for "200" status code.
 			*/
-read_response:
+ read_response:
 			if (fgets(buf, sizeof(buf), sfp) == NULL)
 				bb_error_msg_and_die("no response from server");
 
 			s = buf;
 			while (*s != '\0' && !isspace(*s)) ++s;
 			while (isspace(*s)) ++s;
-			switch (status = xatoi(s)) {
-				case 0:
-				case 100:
-					while (gethdr(buf, sizeof(buf), sfp, &n) != NULL)
-						/* eat all remaining headers */;
-					goto read_response;
-				case 200:
+			// FIXME: no error check
+			// xatou wouldn't work: "200 OK"
+			status = atoi(s);
+			switch (status) {
+			case 0:
+			case 100:
+				while (gethdr(buf, sizeof(buf), sfp, &n) != NULL)
+					/* eat all remaining headers */;
+				goto read_response;
+			case 200:
+				break;
+			case 300:	/* redirection */
+			case 301:
+			case 302:
+			case 303:
+				break;
+			case 206:
+				if (beg_range)
 					break;
-				case 300:	/* redirection */
-				case 301:
-				case 302:
-				case 303:
-					break;
-				case 206:
-					if (beg_range)
-						break;
-					/*FALLTHRU*/
-				default:
-					chomp(buf);
-					bb_error_msg_and_die("server returned error %s: %s", s, buf);
+				/*FALLTHRU*/
+			default:
+				chomp(buf);
+				bb_error_msg_and_die("server returned error %s: %s", s, buf);
 			}
 
 			/*
@@ -331,11 +334,9 @@ read_response:
 					continue;
 				}
 				if (strcasecmp(buf, "transfer-encoding") == 0) {
-					if (strcasecmp(s, "chunked") == 0) {
-						chunked = got_clen = 1;
-					} else {
+					if (strcasecmp(s, "chunked") != 0)
 						bb_error_msg_and_die("server wants to do %s transfer encoding", s);
-					}
+					chunked = got_clen = 1;
 				}
 				if (strcasecmp(buf, "location") == 0) {
 					if (s[0] == '/')
@@ -377,14 +378,14 @@ read_response:
 		if (s)
 			*(s++) = '\0';
 		switch (ftpcmd("USER ", target.user, sfp, buf)) {
-			case 230:
+		case 230:
+			break;
+		case 331:
+			if (ftpcmd("PASS ", s, sfp, buf) == 230)
 				break;
-			case 331:
-				if (ftpcmd("PASS ", s, sfp, buf) == 230)
-					break;
-				/* FALLTHRU (failed login) */
-			default:
-				bb_error_msg_and_die("ftp login: %s", buf+4);
+			/* FALLTHRU (failed login) */
+		default:
+			bb_error_msg_and_die("ftp login: %s", buf+4);
 		}
 
 		ftpcmd("TYPE I", NULL, sfp, buf);
@@ -402,12 +403,19 @@ read_response:
 		/*
 		 * Entering passive mode
 		 */
-		if (ftpcmd("PASV", NULL, sfp, buf) !=  227)
-			bb_error_msg_and_die("PASV: %s", buf+4);
+		if (ftpcmd("PASV", NULL, sfp, buf) != 227) {
+ pasv_error:
+			bb_error_msg_and_die("bad response to %s: %s", "PASV", buf);
+		}
+		// Response is "227 garbageN1,N2,N3,N4,P1,P2
+		// Server's IP is N1.N2.N3.N4 (we ignore it)
+		// Server's port for data connection is P1*256+P2
 		s = strrchr(buf, ',');
-		*s = 0;
+		if (!s) goto pasv_error;
 		port = xatol_range(s+1, 0, 255);
+		*s = '\0';
 		s = strrchr(buf, ',');
+		if (!s) goto pasv_error;
 		port += xatol_range(s+1, 0, 255) * 256;
 		s_in.sin_port = htons(port);
 		dfp = open_socket(&s_in);
@@ -419,7 +427,7 @@ read_response:
 		}
 
 		if (ftpcmd("RETR ", target.path, sfp, buf) > 150)
-			bb_error_msg_and_die("RETR: %s", buf+4);
+			bb_error_msg_and_die("bad response to %s: %s", "RETR", buf);
 	}
 
 
@@ -510,7 +518,7 @@ static void parse_url(char *src_url, struct host_info *h)
 	//   and saves 'index.html?var=a%2Fb' (we save 'b')
 	// wget 'http://busybox.net?login=john@doe':
 	//   request: 'GET /?login=john@doe HTTP/1.0'
-	//   saves: 'index.html?login=john@doe' (we save ?login=john@doe)
+	//   saves: 'index.html?login=john@doe' (we save '?login=john@doe')
 	// wget 'http://busybox.net#test/test':
 	//   request: 'GET / HTTP/1.0'
 	//   saves: 'index.html' (we save 'test')
@@ -628,8 +636,9 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 
 static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 {
+	int result;
 	if (s1) {
-		if (!s2) s2="";
+		if (!s2) s2 = "";
 		fprintf(fp, "%s%s\r\n", s1, s2);
 		fflush(fp);
 	}
@@ -638,7 +647,7 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 		char *buf_ptr;
 
 		if (fgets(buf, 510, fp) == NULL) {
-			bb_perror_msg_and_die("fgets");
+			bb_perror_msg_and_die("error getting response");
 		}
 		buf_ptr = strstr(buf, "\r\n");
 		if (buf_ptr) {
@@ -646,7 +655,10 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 		}
 	} while (!isdigit(buf[0]) || buf[3] != ' ');
 
-	return xatoi(buf);
+	buf[3] = '\0';
+	result = xatoi_u(buf);
+	buf[3] = ' ';
+	return result;
 }
 
 #ifdef CONFIG_FEATURE_WGET_STATUSBAR
