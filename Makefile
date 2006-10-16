@@ -681,7 +681,7 @@ busybox_unstripped: $(busybox-all) FORCE
 	$(Q)rm -f .old_version
 
 busybox: busybox_unstripped
-	$(Q)strip -s --remove-section=.note --remove-section=.comment \
+	$(Q)$(STRIP) -s --remove-section=.note --remove-section=.comment \
 		busybox_unstripped -o $@
 
 # The actual objects are generated when descending, 

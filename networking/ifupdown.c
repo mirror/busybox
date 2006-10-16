@@ -1099,7 +1099,6 @@ int ifupdown_main(int argc, char **argv)
 	llist_t *target_list = NULL;
 	const char *interfaces = "/etc/network/interfaces";
 	int any_failures = 0;
-	int i;
 
 	if (applet_name[2] == 'u') {
 		/* ifup command */
@@ -1188,6 +1187,7 @@ int ifupdown_main(int argc, char **argv)
 			struct mapping_defn_t *currmap;
 
 			for (currmap = defn->mappings; currmap; currmap = currmap->next) {
+				int i;
 				for (i = 0; i < currmap->n_matches; i++) {
 					if (fnmatch(currmap->match[i], liface, 0) != 0)
 						continue;
