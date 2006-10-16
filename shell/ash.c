@@ -3042,6 +3042,7 @@ expredir(union node *n)
 
 	for (redir = n ; redir ; redir = redir->nfile.next) {
 		struct arglist fn;
+		memset(&fn, 0, sizeof(struct arglist));
 		fn.lastp = &fn.list;
 		switch (redir->type) {
 		case NFROMTO:
@@ -3056,7 +3057,10 @@ expredir(union node *n)
 		case NTOFD:
 			if (redir->ndup.vname) {
 				expandarg(redir->ndup.vname, &fn, EXP_FULL | EXP_TILDE);
-				fixredir(redir, fn.list->text, 1);
+				if (fn.list != NULL)
+					fixredir(redir, fn.list->text, 1);
+				else
+					sh_error("redir error");
 			}
 			break;
 		}
