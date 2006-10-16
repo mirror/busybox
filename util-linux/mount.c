@@ -32,8 +32,19 @@
 
 
 // Not real flags, but we want to be able to check for this.
-#define MOUNT_NOAUTO    (1<<29)
-#define MOUNT_SWAP      (1<<30)
+enum {
+	MOUNT_USERS  = (1<<28)*ENABLE_DESKTOP,
+	MOUNT_NOAUTO = (1<<29),
+	MOUNT_SWAP   = (1<<30),
+};
+// TODO: more "user" flag compatibility.
+// "user" option (from mount manpage):
+// Only the user that mounted a filesystem can unmount it again.
+// If any user should be able to unmount, then use users instead of user
+// in the fstab line.  The owner option is similar to the user option,
+// with the restriction that the user must be the owner of the special file.
+// This may be useful e.g. for /dev/fd if a login script makes
+// the console user owner of this device.
 
 /* Standard mount options (from -o options or --options), with corresponding
  * flags */
@@ -51,8 +62,10 @@ struct {
 	USE_FEATURE_MOUNT_FSTAB(
 		{"defaults", 0},
 		{"quiet", 0},
-		{"noauto",MOUNT_NOAUTO},
-		{"swap",MOUNT_SWAP},
+		{"noauto", MOUNT_NOAUTO},
+		{"swap", MOUNT_SWAP},
+		USE_DESKTOP({"user",  MOUNT_USERS},)
+		USE_DESKTOP({"users", MOUNT_USERS},)
 	)
 
 	USE_FEATURE_MOUNT_FLAGS(
@@ -106,7 +119,8 @@ static void append_mount_options(char **oldopts, char *newopts)
 			if (p) len = p - newopts;
 			p = *oldopts;
 			while (1) {
-				if (!strncmp(p,newopts,len) && (p[len]==',' || p[len]==0))
+				if (!strncmp(p, newopts, len)
+				 && (p[len]==',' || p[len]==0))
 					goto skip;
 				p = strchr(p,',');
 				if(!p) break;
@@ -1422,6 +1436,8 @@ report_error:
 // Parse options, if necessary parse fstab/mtab, and call singlemount for
 // each directory to be mounted.
 
+const char must_be_root[] = "you must be root";
+
 int mount_main(int argc, char **argv)
 {
 	enum { OPT_ALL = 0x10 };
@@ -1433,13 +1449,15 @@ int mount_main(int argc, char **argv)
 	int i, j, rc = 0;
 	unsigned opt;
 	struct mntent mtpair[2], *mtcur = mtpair;
+	SKIP_DESKTOP(const int nonroot = 0;)
+	USE_DESKTOP( int nonroot = (getuid() != 0);)
 
 	/* parse long options, like --bind and --move.  Note that -o option
 	 * and --option are synonymous.  Yes, this means --remount,rw works. */
 
 	for (i = j = 0; i < argc; i++) {
 		if (argv[i][0] == '-' && argv[i][1] == '-') {
-			append_mount_options(&cmdopts,argv[i]+2);
+			append_mount_options(&cmdopts, argv[i]+2);
 		} else argv[j++] = argv[i];
 	}
 	argv[j] = 0;
@@ -1470,12 +1488,12 @@ int mount_main(int argc, char **argv)
 		if (!(opt & OPT_ALL)) {
 			FILE *mountTable = setmntent(bb_path_mtab_file, "r");
 
-			if (!mountTable) bb_error_msg_and_die("no %s",bb_path_mtab_file);
+			if (!mountTable) bb_error_msg_and_die("no %s", bb_path_mtab_file);
 
-			while (getmntent_r(mountTable,mtpair,bb_common_bufsiz1,
+			while (getmntent_r(mountTable, mtpair, bb_common_bufsiz1,
 								sizeof(bb_common_bufsiz1)))
 			{
-				// Don't show rootfs.
+				// Don't show rootfs. FIXME: why??
 				if (!strcmp(mtpair->mnt_fsname, "rootfs")) continue;
 
 				if (!fstype || !strcmp(mtpair->mnt_type, fstype))
@@ -1493,6 +1511,8 @@ int mount_main(int argc, char **argv)
 	// argument when we get it.
 
 	if (argc == 2) {
+		if (nonroot)
+			bb_error_msg_and_die(must_be_root);
 		mtpair->mnt_fsname = argv[0];
 		mtpair->mnt_dir = argv[1];
 		mtpair->mnt_type = fstype;
@@ -1502,11 +1522,13 @@ int mount_main(int argc, char **argv)
 	}
 
 	i = parse_mount_options(cmdopts, 0);
+	if (nonroot && (i & ~MS_SILENT)) // Non-root users cannot specify flags
+		bb_error_msg_and_die(must_be_root);
 
 	// If we have a shared subtree flag, don't worry about fstab or mtab.
 
 	if (ENABLE_FEATURE_MOUNT_FLAGS &&
-			(i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE )))
+			(i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE)))
 	{
 		rc = mount("", argv[0], "", i, "");
 		if (rc) bb_perror_msg_and_die("%s", argv[0]);
@@ -1515,10 +1537,11 @@ int mount_main(int argc, char **argv)
 
 	// Open either fstab or mtab
 
-	if (i & MS_REMOUNT)
+	fstabname = "/etc/fstab";
+	if (i & MS_REMOUNT) {
 		fstabname = bb_path_mtab_file;
-	else fstabname = "/etc/fstab";
-	fstab = setmntent(fstabname,"r");
+	}
+	fstab = setmntent(fstabname, "r");
 	if (!fstab)
 		bb_perror_msg_and_die("cannot read %s", fstabname);
 
@@ -1544,11 +1567,17 @@ int mount_main(int argc, char **argv)
 					bb_error_msg_and_die("can't find %s in %s",
 						argv[0], fstabname);
 
+				mtcur = mtnext;
+				if (nonroot) {
+					// fstab must have "users" or "user"
+					if (!(parse_mount_options(mtcur->mnt_opts, 0) & MOUNT_USERS))
+						bb_error_msg_and_die(must_be_root);
+				}
+
 				// Mount the last thing we found.
 
-				mtcur = mtnext;
 				mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
-				append_mount_options(&(mtcur->mnt_opts),cmdopts);
+				append_mount_options(&(mtcur->mnt_opts), cmdopts);
 				rc = singlemount(mtcur, 0);
 				free(mtcur->mnt_opts);
 			}
@@ -1563,10 +1592,10 @@ int mount_main(int argc, char **argv)
 
 			// Is this what we're looking for?
 
-			if (strcmp(argv[0],mtcur->mnt_fsname) &&
-			   strcmp(storage_path,mtcur->mnt_fsname) &&
-			   strcmp(argv[0],mtcur->mnt_dir) &&
-			   strcmp(storage_path,mtcur->mnt_dir)) continue;
+			if (strcmp(argv[0], mtcur->mnt_fsname) &&
+			   strcmp(storage_path, mtcur->mnt_fsname) &&
+			   strcmp(argv[0], mtcur->mnt_dir) &&
+			   strcmp(storage_path, mtcur->mnt_dir)) continue;
 
 			// Remember this entry.  Something later may have overmounted
 			// it, and we want the _last_ match.
@@ -1576,14 +1605,21 @@ int mount_main(int argc, char **argv)
 		// If we're mounting all.
 
 		} else {
-
 			// Do we need to match a filesystem type?
-			if (fstype && strcmp(mtcur->mnt_type,fstype)) continue;
+			// TODO: support "-t type1,type2"; "-t notype1,type2"
+
+			if (fstype && strcmp(mtcur->mnt_type, fstype)) continue;
 
 			// Skip noauto and swap anyway.
 
-			if (parse_mount_options(mtcur->mnt_opts,0)
+			if (parse_mount_options(mtcur->mnt_opts, 0)
 				& (MOUNT_NOAUTO | MOUNT_SWAP)) continue;
+
+			// No, mount -a won't mount anything,
+			// even user mounts, for mere humans.
+
+			if (nonroot)
+				bb_error_msg_and_die(must_be_root);
 
 			// Mount this thing.
 

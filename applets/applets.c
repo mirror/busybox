@@ -316,10 +316,10 @@ static void parse_config_file(void)
 #endif /* CONFIG_FEATURE_SUID_CONFIG */
 
 #ifdef CONFIG_FEATURE_SUID
-static void check_suid (struct BB_applet *applet)
+static void check_suid(struct BB_applet *applet)
 {
-	uid_t ruid = getuid ();               /* real [ug]id */
-	uid_t rgid = getgid ();
+	uid_t ruid = getuid();               /* real [ug]id */
+	uid_t rgid = getgid();
 
 #ifdef CONFIG_FEATURE_SUID_CONFIG
 	if (suid_cfg_readable) {
@@ -334,7 +334,7 @@ static void check_suid (struct BB_applet *applet)
 
 			if (sct->m_uid == ruid)       /* same uid */
 				m >>= 6;
-			else if ((sct->m_gid == rgid) || ingroup (ruid, sct->m_gid))  /* same group / in group */
+			else if ((sct->m_gid == rgid) || ingroup(ruid, sct->m_gid))  /* same group / in group */
 				m >>= 3;
 
 			if (!(m & S_IXOTH))           /* is x bit not set ? */
@@ -358,7 +358,7 @@ static void check_suid (struct BB_applet *applet)
 
 		if (!onetime) {
 			onetime = 1;
-			fprintf (stderr, "Using fallback suid method\n");
+			fprintf(stderr, "Using fallback suid method\n");
 		}
 #endif
 	}

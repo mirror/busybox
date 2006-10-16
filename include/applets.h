@@ -46,6 +46,10 @@
 # define _BB_DIR_USR_SBIN _BB_DIR_SBIN
 #endif
 
+// _BB_SUID_ALWAYS: will complain if busybox isn't suid
+// and is run by non-root (applet_main() will not be called at all)
+// _BB_SUID_NEVER: will drop suid prior to applet_main()
+// _BB_SUID_MAYBE: neither of the above
 
 USE_TEST(APPLET_NOUSAGE([, test, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
 USE_TEST(APPLET_NOUSAGE([[, test, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
@@ -198,7 +202,7 @@ USE_MKSWAP(APPLET(mkswap, _BB_DIR_SBIN, _BB_SUID_NEVER))
 USE_MKTEMP(APPLET(mktemp, _BB_DIR_BIN, _BB_SUID_NEVER))
 USE_MODPROBE(APPLET(modprobe, _BB_DIR_SBIN, _BB_SUID_NEVER))
 USE_MORE(APPLET(more, _BB_DIR_BIN, _BB_SUID_NEVER))
-USE_MOUNT(APPLET(mount, _BB_DIR_BIN, _BB_SUID_NEVER))
+USE_MOUNT(APPLET(mount, _BB_DIR_BIN, USE_DESKTOP(_BB_SUID_MAYBE) SKIP_DESKTOP(_BB_SUID_NEVER)))
 USE_MOUNTPOINT(APPLET(mountpoint, _BB_DIR_BIN, _BB_SUID_NEVER))
 USE_MSH(APPLET_NOUSAGE(msh, msh, _BB_DIR_BIN, _BB_SUID_NEVER))
 USE_MT(APPLET(mt, _BB_DIR_BIN, _BB_SUID_NEVER))
