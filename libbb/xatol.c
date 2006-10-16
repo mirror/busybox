@@ -127,7 +127,7 @@ unsigned long xatoul_range(const char *numstr,
 		unsigned long lower,
 		unsigned long upper)
 {
-	return xstrtol_range_sfx(numstr, 10, lower, upper, NULL);
+	return xstrtoul_range_sfx(numstr, 10, lower, upper, NULL);
 }
 
 unsigned long xatoul(const char *numstr)

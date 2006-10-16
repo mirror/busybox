@@ -2109,30 +2109,30 @@ USE_FEATURE_MDEV_CONFIG( \
 #if ENABLE_NC_SERVER || ENABLE_NC_EXTRA
 #define NC_BR1 "["
 #define NC_BR2 "]"
+#define NC_OPTIONS_STR "\n\nOptions:"
 #else
 #define NC_BR1
 #define NC_BR2
+#define NC_OPTIONS_STR
 #endif
 
 #define nc_trivial_usage \
-	"[" \
-	NC_BR1 USE_NC_SERVER("-lp")USE_NC_EXTRA("iwf") NC_BR2 \
-	" ["USE_NC_EXTRA("FILENAME|")"{IPADDR PORTNUM}]"USE_NC_EXTRA(" [-e COMMAND]")
+	NC_BR1 USE_NC_EXTRA("iw")USE_NC_SERVER("-l") NC_BR2 USE_NC_SERVER(" [-p PORT]") \
+	" [" USE_NC_EXTRA("-f FILENAME|") "{IPADDR PORTNUM}]" USE_NC_EXTRA(" [-e COMMAND]")
 #define nc_full_usage \
-	"Netcat opens a pipe, either to IP:port\n\n" \
-	"Options:" \
+	"Netcat opens a pipe to IP:port" USE_NC_EXTRA(" or file") \
+	NC_OPTIONS_STR \
 	USE_NC_EXTRA( \
-		"\n\t-e\t\texec rest of command line after connect\n" \
-		"\t-i SECS\t\tdelay interval for lines sent\n" \
-		"\t-w SECS\t\ttimeout for connect\n" \
-		"\t-f filename\tuse file (ala /dev/ttyS0) instead of network" \
+		"\n\t-e\texec rest of command line after connect\n" \
+		"\t-i SECS\tdelay interval for lines sent\n" \
+		"\t-w SECS\ttimeout for connect\n" \
+		"\t-f file\tuse file (ala /dev/ttyS0) instead of network" \
 	) \
 	USE_NC_SERVER( \
-		"\n\t-l\t\tlisten mode, for inbound connects\n" \
-		USE_NC_EXTRA("\t\t\t(use -l twice with -e for persistent server)\n") \
-		"\t-p PORT\t\tlocal port number" \
+		"\n\t-l\tlisten mode, for inbound connects\n" \
+		USE_NC_EXTRA("\t\t(use -l twice with -e for persistent server)\n") \
+		"\t-p PORT\tlocal port number" \
 	)
-
 
 #define nc_notes_usage "" \
 	USE_NC_EXTRA( \

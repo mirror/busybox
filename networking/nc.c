@@ -16,51 +16,78 @@ static void timeout(int signum)
 
 int nc_main(int argc, char **argv)
 {
-	int sfd = 0, cfd;
-	unsigned opt;
-	unsigned lport = 0, wsecs = 0, delay = 0;
-	unsigned do_listen = 0, execflag = 0;
+	int sfd = 0;
+	int cfd = 0;
+	SKIP_NC_SERVER(const) unsigned do_listen = 0;
+	SKIP_NC_SERVER(const) unsigned lport = 0;
+	SKIP_NC_EXTRA (const) unsigned wsecs = 0;
+	SKIP_NC_EXTRA (const) unsigned delay = 0;
+	SKIP_NC_EXTRA (const int execparam = 0;)
+	USE_NC_EXTRA  (char **execparam = NULL;)
 	struct sockaddr_in address;
 	struct hostent *hostinfo;
 	fd_set readfds, testfds;
-	char *infile = NULL;
+	int opt; /* must be signed (getopt returns -1) */
 
 	memset(&address, 0, sizeof(address));
 
 	if (ENABLE_NC_SERVER || ENABLE_NC_EXTRA) {
-		while ((opt = getopt(argc, argv, "lp:" USE_NC_EXTRA("i:ew:f:"))) > 0) {
-			if (ENABLE_NC_SERVER && opt=='l') do_listen++;
-			else if (ENABLE_NC_SERVER && opt=='p')
-				lport = bb_lookup_port(optarg, "tcp", 0);
-			else if (ENABLE_NC_EXTRA && opt=='w') wsecs = xatou(optarg);
-			else if (ENABLE_NC_EXTRA && opt=='i') delay = xatou(optarg);
-			else if (ENABLE_NC_EXTRA && opt=='f') infile = optarg;
-			else if (ENABLE_NC_EXTRA && opt=='e' && optind!=argc) {
-				execflag++;
-				break;
+		/* getopt32 is _almost_ usable:
+		** it cannot handle "... -e prog -prog-opt" */
+		while ((opt = getopt(argc, argv,
+		        "" USE_NC_SERVER("lp:") USE_NC_EXTRA("w:i:f:e:") )) > 0
+		) {
+			if (ENABLE_NC_SERVER && opt=='l')      USE_NC_SERVER(do_listen++);
+			else if (ENABLE_NC_SERVER && opt=='p') USE_NC_SERVER(lport = bb_lookup_port(optarg, "tcp", 0));
+			else if (ENABLE_NC_EXTRA  && opt=='w') USE_NC_EXTRA( wsecs = xatou(optarg));
+			else if (ENABLE_NC_EXTRA  && opt=='i') USE_NC_EXTRA( delay = xatou(optarg));
+			else if (ENABLE_NC_EXTRA  && opt=='f') USE_NC_EXTRA( cfd = xopen(optarg, O_RDWR));
+			else if (ENABLE_NC_EXTRA  && opt=='e' && optind<=argc) {
+				/* We cannot just 'break'. We should let getopt finish.
+				** Or else we won't be able to find where
+				** 'host' and 'port' params are
+				** (think "nc -w 60 host port -e prog"). */
+				USE_NC_EXTRA(
+					char **p;
+					// +2: one for progname (optarg) and one for NULL
+					execparam = xzalloc(sizeof(char*) * (argc - optind + 2));
+					p = execparam;
+					*p++ = optarg;
+					while (optind < argc) {
+						*p++ = argv[optind++];
+					}
+				)
+				/* optind points to argv[arvc] (NULL) now.
+				** FIXME: we assume that getopt will not count options
+				** possibly present on "-e prog args" and will not
+				** include them into final value of optind
+				** which is to be used ...  */
 			} else bb_show_usage();
 		}
-	}
-
-	// For listen or file we need zero arguments, dialout is 2.
-	// For exec we need at least one more argument at the end, more ok
-
-	opt = (do_listen || infile) ? 0 : 2 + execflag;
-	if (execflag ? argc-optind < opt : argc-optind!=opt ||
-		(infile && do_listen))
+		argv += optind; /* ... here! */
+		argc -= optind;
+		// -l and -f don't mix
+		if (do_listen && cfd) bb_show_usage();
+		// Listen or file modes need zero arguments, client mode needs 2
+		opt = ((do_listen || cfd) ? 0 : 2);
+		if (argc != opt)
 			bb_show_usage();
+	} else {
+		if (argc != 3) bb_show_usage();
+		argc--;
+		argv++;
+	}
 
 	if (wsecs) {
 		signal(SIGALRM, timeout);
 		alarm(wsecs);
 	}
 
-	if (infile) cfd = xopen(infile, O_RDWR);
-	else {
-		opt = 1;
+	if (!cfd) {
 		sfd = xsocket(AF_INET, SOCK_STREAM, 0);
 		fcntl(sfd, F_SETFD, FD_CLOEXEC);
-		setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt));
+		opt = 1;
+		setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 		address.sin_family = AF_INET;
 
 		// Set local port.
@@ -82,17 +109,17 @@ int nc_main(int argc, char **argv)
 				getsockname(sfd, &address, &len);
 				fdprintf(2, "%d\n", SWAP_BE16(address.sin_port));
 			}
-repeatyness:
+ repeatyness:
 			cfd = accept(sfd, (struct sockaddr *) &address, &addrlen);
 			if (cfd < 0)
 				bb_perror_msg_and_die("accept");
 
-			if (!execflag) close(sfd);
+			if (!execparam) close(sfd);
 		} else {
-			hostinfo = xgethostbyname(argv[optind]);
+			hostinfo = xgethostbyname(argv[0]);
 
 			address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
-			address.sin_port = bb_lookup_port(argv[optind+1], "tcp", 0);
+			address.sin_port = bb_lookup_port(argv[1], "tcp", 0);
 
 			if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
 				bb_perror_msg_and_die("connect");
@@ -106,8 +133,8 @@ repeatyness:
 	}
 
 	/* -e given? */
-	if (execflag) {
-		if(cfd) {
+	if (execparam) {
+		if (cfd) {
 			signal(SIGCHLD, SIG_IGN);
 			dup2(cfd, 0);
 			close(cfd);
@@ -128,7 +155,7 @@ repeatyness:
 
 			goto repeatyness;
 		}
-		execvp(argv[optind], argv+optind);
+		USE_NC_EXTRA(execvp(execparam[0], execparam);)
 		/* Don't print stuff or it will go over the wire.... */
 		_exit(127);
 	}
