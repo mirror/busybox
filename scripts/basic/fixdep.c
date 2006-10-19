@@ -114,10 +114,12 @@
 #include <ctype.h>
 #include <arpa/inet.h>
 
+/* bbox: not needed
 #define INT_CONF ntohl(0x434f4e46)
 #define INT_ONFI ntohl(0x4f4e4649)
 #define INT_NFIG ntohl(0x4e464947)
 #define INT_FIG_ ntohl(0x4649475f)
+*/
 
 char *target;
 char *depfile;
@@ -222,30 +224,32 @@ void use_config(char *m, int slen)
 
 void parse_config_file(char *map, size_t len)
 {
-	int *end = (int *) (map + len);
-	/* start at +1, so that p can never be < map */
-	int *m   = (int *) map + 1;
-	char *p, *q;
+	/* modified for bbox */
+	char *end = map + len;
+	char *p = map;
+	char *q;
+	int off;
 
-	for (; m < end; m++) {
-		if (*m == INT_CONF) { p = (char *) m  ; goto conf; }
-		if (*m == INT_ONFI) { p = (char *) m-1; goto conf; }
-		if (*m == INT_NFIG) { p = (char *) m-2; goto conf; }
-		if (*m == INT_FIG_) { p = (char *) m-3; goto conf; }
+	for (; p < end; p++) {
+		if (!memcmp(p, "CONFIG_", 7)) goto conf7;
+		if (!memcmp(p, "ENABLE_", 7)) goto conf7;
+		if (!memcmp(p, "USE_", 4)) goto conf4;
+		if (!memcmp(p, "SKIP_", 5)) goto conf5;
 		continue;
+	conf4:	off = 4; goto conf;
+	conf5:	off = 5; goto conf;
+	conf7:	off = 7;
 	conf:
-		if (p > map + len - 7)
+		if (p > map + len - off)
 			continue;
-		if (memcmp(p, "CONFIG_", 7))
-			continue;
-		for (q = p + 7; q < map + len; q++) {
+		for (q = p + off; q < map + len; q++) {
 			if (!(isalnum(*q) || *q == '_'))
 				goto found;
 		}
 		continue;
 
 	found:
-		use_config(p+7, q-p-7);
+		use_config(p+off, q-p-off);
 	}
 }
 
@@ -366,6 +370,7 @@ void print_deps(void)
 
 void traps(void)
 {
+/* bbox: not needed
 	static char test[] __attribute__((aligned(sizeof(int)))) = "CONF";
 
 	if (*(int *)test != INT_CONF) {
@@ -373,6 +378,7 @@ void traps(void)
 			*(int *)test);
 		exit(2);
 	}
+*/
 }
 
 int main(int argc, char *argv[])

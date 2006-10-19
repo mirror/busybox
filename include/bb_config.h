@@ -2,6 +2,9 @@
  * which depend on other symbols, which themself are off.
  * Provide them here by hand. Need a better idea. */
 
+/* This is especially bad because it forces rebuild of
+ * everything whenever any of these options change */
+
 #ifndef ENABLE_FEATURE_GUNZIP_UNCOMPRESS
 #define ENABLE_FEATURE_GUNZIP_UNCOMPRESS 0
 #define    USE_FEATURE_GUNZIP_UNCOMPRESS(...)
