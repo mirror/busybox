@@ -6,8 +6,8 @@
 
 static const char usage_messages[] =
 #define MAKE_USAGE
-#include "../include/usage.h"
-#include "../include/applets.h"
+#include "usage.h"
+#include "applets.h"
 ;
 
 int main(void)
