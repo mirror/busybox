@@ -12,7 +12,10 @@ obj-y	+= busybox.o
 
 applets/applets.o: include/usage_compressed.h
 
-include/usage_compressed.h: $(srctree)/include/usage.h
-	@$(MAKE) $(build)=scripts
+hostprogs-y += usage
+always := $(hostprogs-y)
+HOSTCFLAGS_usage.o = -I$(srctree)/include
+
+include/usage_compressed.h: $(srctree)/include/usage.h applets/usage
 	@echo '  GEN     include/usage_compressed.h'
-	@$(srctree)/scripts/usage_compressed include/usage_compressed.h scripts
+	@$(srctree)/applets/usage_compressed include/usage_compressed.h applets

@@ -3,11 +3,5 @@
 # the kernel for the build process.
 # ---------------------------------------------------------------------------
 
-hostprogs-y += usage
-
-always := $(hostprogs-y)
-
 # Let clean descend into subdirs
 subdir- += basic kconfig
-
-HOSTCFLAGS_usage.o = -I$(srctree)/include
