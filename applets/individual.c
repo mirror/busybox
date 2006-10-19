@@ -9,7 +9,7 @@ const char *applet_name;
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "bb_config.h"
+//Ok to remove? #include "bb_config.h"
 #include "usage.h"
 
 int main(int argc, char *argv[])

@@ -428,8 +428,10 @@ int conf_write(const char *name)
 					       " */\n", str);
 		} else if (!(sym->flags & SYMBOL_CHOICE)) {
 			sym_calc_value(sym);
+/* bbox: we want to all syms
 			if (!(sym->flags & SYMBOL_WRITE))
 				goto next;
+*/
 			sym->flags &= ~SYMBOL_WRITE;
 			type = sym->type;
 			if (type == S_TRISTATE) {

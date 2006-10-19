@@ -10,7 +10,7 @@
 #ifndef	__LIBBUSYBOX_H__
 #define	__LIBBUSYBOX_H__    1
 
-#include "bb_config.h"
+//Ok to remove? #include "bb_config.h"
 #include "platform.h"
 
 #include <ctype.h>
