@@ -7,3 +7,12 @@
 obj-y:=
 obj-y	+= applets.o
 obj-y	+= busybox.o
+
+# Generated file needs additional love
+
+applets/applets.o: include/usage_compressed.h
+
+include/usage_compressed.h: $(srctree)/include/usage.h
+	@$(MAKE) $(build)=scripts
+	@echo '  GEN     include/usage_compressed.h'
+	@$(srctree)/scripts/usage_compressed include/usage_compressed.h scripts

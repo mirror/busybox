@@ -806,9 +806,6 @@ include/config/MARKER: scripts/basic/split-include include/autoconf.h
 	@scripts/basic/split-include include/autoconf.h include/config
 	@echo '  GEN     include/bbconfigopts.h'
 	@$(srctree)/scripts/mkconfigs >include/bbconfigopts.h
-	@$(MAKE) $(build)=scripts
-	@echo '  GEN     include/usage_compressed.h'
-	@$(srctree)/scripts/usage_compressed include/usage_compressed.h scripts
 	@touch $@
 
 # Generate some files
