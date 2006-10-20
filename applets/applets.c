@@ -17,6 +17,13 @@
 #include <string.h>
 #include <assert.h>
 
+#if ENABLE_STATIC && __GLIBC__
+#warning Static linking against glibc produces buggy executables
+#warning (glibc doesn't cope well with ld --gc-sections).
+#warning See http://sources.redhat.com/bugzilla/show_bug.cgi?id=3400
+#warning Note that glibc is utterly unsuitable for static linking anyway.
+#endif
+
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE
 static const char usage_messages[] =
 #define MAKE_USAGE
