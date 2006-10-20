@@ -284,6 +284,13 @@ config NMETER
 	help
 	  nmeter prints various system parameters continuously.
 
+config RAIDAUTORUN
+	bool "raidautorun"
+	default n
+	help
+	  raidautorun tells the kernel md driver to
+	  search and start RAID arrays.
+
 config READAHEAD
         bool "readahead"
 	default n

@@ -2400,6 +2400,13 @@ USE_FEATURE_MDEV_CONFIG( \
 	"$ pwd\n" \
 	"/root\n"
 
+#define raidautorun_trivial_usage \
+	"DEVICE"
+#define raidautorun_full_usage \
+	"Tells the kernel to automatically search and start RAID arrays"
+#define raidautorun_example_usage \
+	"$ raidautorun /dev/md0"
+
 #define rdate_trivial_usage \
 	"[-sp] HOST"
 #define rdate_full_usage \
