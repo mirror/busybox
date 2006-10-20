@@ -3296,11 +3296,12 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\t-a\tLock all VTs"
 
 #define watch_trivial_usage \
-	"[-n <seconds>] COMMAND..."
+	"[-n <seconds>] [-t] COMMAND..."
 #define watch_full_usage \
-	"Executes a program periodically.\n" \
+	"Executes a program periodically\n\n" \
 	"Options:\n" \
-	"\t-n\tLoop period in seconds - default is 2"
+	"\t-n\tLoop period in seconds - default is 2\n"
+	"\t-t\tDon't print header"
 #define watch_example_usage \
 	"$ watch date\n" \
 	"Mon Dec 17 10:31:40 GMT 2000\n" \
