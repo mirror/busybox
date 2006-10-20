@@ -188,6 +188,10 @@ Special characters:
         by a single digit (0-9) means that at least N non-option
         arguments must be present on the command line
 
+ "=N"   An equal sign as the first char in a opt_complementary group followed
+        by a single digit (0-9) means that exactly N non-option
+        arguments must be present on the command line
+
  "V-"   An option with dash before colon or end-of-line results in
         bb_show_usage being called if this option is encountered.
         This is typically used to implement "print verbose usage message
@@ -398,6 +402,11 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 				min_arg = c - '0';
 				s++;
 			}
+			continue;
+		}
+		if (*s == '=') {
+			min_arg = max_arg = c - '0';
+			s++;
 			continue;
 		}
 		for (on_off = complementary; on_off->opt; on_off++)

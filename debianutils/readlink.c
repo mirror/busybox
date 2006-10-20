@@ -13,21 +13,32 @@
 #include <stdlib.h>
 #include <getopt.h>
 
-#define READLINK_FLAG_f	(1 << 0)
-
 int readlink_main(int argc, char **argv)
 {
 	char *buf;
-	unsigned opt = ENABLE_FEATURE_READLINK_FOLLOW ?
-			getopt32(argc, argv, "f") : 0;
+	char *fname;
 
-	if (argc != (ENABLE_FEATURE_READLINK_FOLLOW ? optind + 1 : 2))
-			bb_show_usage();
+	USE_FEATURE_READLINK_FOLLOW(
+		unsigned opt;
+		/* We need exactly one non-option argument.  */
+		opt_complementary = "=1";
+		opt = getopt32(argc, argv, "f");
+		fname = argv[optind];
+	)
+	SKIP_FEATURE_READLINK_FOLLOW(
+		const unsigned opt = 0;
+		if (argc != 2) bb_show_usage();
+		fname = argv[1];
+	)
 
-	if (opt & READLINK_FLAG_f)
-		buf = realpath(argv[optind], bb_common_bufsiz1);
-	else
-		buf = xreadlink(argv[ENABLE_FEATURE_READLINK_FOLLOW ? optind : 1]);
+	/* compat: coreutils readlink reports errors silently via exit code */
+	logmode = LOGMODE_NONE;
+
+	if (opt) {
+		buf = realpath(fname, bb_common_bufsiz1);
+	} else {
+		buf = xreadlink(fname);
+	}
 
 	if (!buf)
 		return EXIT_FAILURE;
@@ -36,5 +47,5 @@ int readlink_main(int argc, char **argv)
 	if (ENABLE_FEATURE_CLEAN_UP && buf != bb_common_bufsiz1)
 		free(buf);
 
-	return EXIT_SUCCESS;
+	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
 }
