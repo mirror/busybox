@@ -1802,7 +1802,7 @@ static Byte *yank_delete(Byte * start, Byte * stop, int dist, int yf)
 		stop = p;
 	}
 	if (dist <= 0) {
-		// we can not cross NL boundaries
+		// we cannot cross NL boundaries
 		p = start;
 		if (*p == '\n')
 			return (p);

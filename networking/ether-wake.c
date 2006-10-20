@@ -270,7 +270,7 @@ static inline int get_wol_pw(const char *ethoptarg, unsigned char *wol_passwd)
 		byte_cnt = sscanf(ethoptarg, "%d.%d.%d.%d",
 		                  &passwd[0], &passwd[1], &passwd[2], &passwd[3]);
 	if (byte_cnt < 4) {
-		bb_error_msg("Unable to read the Wake-On-LAN pass");
+		bb_error_msg("unable to read the Wake-On-LAN pass");
 		return 0;
 	}
 

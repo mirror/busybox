@@ -247,7 +247,7 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 	mke2fs_verbose("Running command: %s\n", buf);
 	f = popen(buf, "r");
 	if (!f) {
-		bb_perror_msg_and_die("Could not run '%s'", buf);
+		bb_perror_msg_and_die("cannot run '%s'", buf);
 	}
 	retval = ext2fs_read_bb_FILE(fs, f, bb_list, invalid_block);
 	pclose(f);
@@ -1332,7 +1332,7 @@ int mke2fs_main (int argc, char *argv[])
 			retval = zero_blocks(fs, start, blocks - start,
 					     NULL, &ret_blk, NULL);
 
-		mke2fs_warning_msg(retval, "could not zero block %u at end of filesystem", ret_blk);
+		mke2fs_warning_msg(retval, "cannot zero block %u at end of filesystem", ret_blk);
 		write_inode_tables(fs);
 		create_root_dir(fs);
 		create_lost_and_found(fs);

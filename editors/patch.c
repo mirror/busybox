@@ -37,7 +37,7 @@ static unsigned int copy_lines(FILE *src_stream, FILE *dest_stream, const unsign
 			break;
 		}
 		if (fputs(line, dest_stream) == EOF) {
-			bb_perror_msg_and_die("Error writing to new file");
+			bb_perror_msg_and_die("error writing to new file");
 		}
 		free(line);
 
@@ -125,7 +125,7 @@ int patch_main(int argc, char **argv)
 		patch_line = xmalloc_fgets(patch_file);
 		if (strncmp(patch_line, "+++ ", 4) != 0) {
 			ret = 2;
-			bb_error_msg("Invalid patch");
+			bb_error_msg("invalid patch");
 			continue;
 		}
 		new_filename = extract_filename(patch_line, patch_level);
@@ -189,7 +189,7 @@ int patch_main(int argc, char **argv)
 				/* src_beg_line will be 0 if its a new file */
 				count = src_beg_line - src_cur_line;
 				if (copy_lines(src_stream, dst_stream, count) != count) {
-					bb_error_msg_and_die("Bad src file");
+					bb_error_msg_and_die("bad src file");
 				}
 				src_cur_line += count;
 				dest_cur_line += count;
@@ -209,7 +209,7 @@ int patch_main(int argc, char **argv)
 							src_cur_line++;
 						}
 						if (strcmp(src_line, patch_line + 1) != 0) {
-							bb_error_msg("Hunk #%d FAILED at %d.", hunk_count, hunk_offset_start);
+							bb_error_msg("hunk #%d FAILED at %d", hunk_count, hunk_offset_start);
 							hunk_error++;
 							free(patch_line);
 							break;

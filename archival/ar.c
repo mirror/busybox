@@ -83,7 +83,7 @@ int ar_main(int argc, char **argv)
 
 	xread(archive_handle->src_fd, magic, 7);
 	if (strncmp(magic, "!<arch>", 7) != 0) {
-		bb_error_msg_and_die("Invalid ar magic");
+		bb_error_msg_and_die("invalid ar magic");
 	}
 	archive_handle->offset += 7;
 

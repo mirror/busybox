@@ -30,7 +30,7 @@ static int fileAction(const char *fileName, struct stat *statbuf,
 				(gid == (gid_t)-1) ? statbuf->st_gid : gid)) {
 		return TRUE;
 	}
-	bb_perror_msg("%s", fileName);	/* A filename could have % in it... */
+	bb_perror_msg("%s", fileName);	/* A filename can have % in it... */
 	return FALSE;
 }
 

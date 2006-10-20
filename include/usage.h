@@ -762,8 +762,8 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t( EXPRESSION )              value of EXPRESSION\n\n" \
 	"Beware that many operators need to be escaped or quoted for shells.\n" \
 	"Comparisons are arithmetic if both ARGs are numbers, else\n" \
-	"lexicographical.  Pattern matches return the string matched between \n" \
-	"\\( and \\) or null; if \\( and \\) are not used, they return the number \n" \
+	"lexicographical.  Pattern matches return the string matched between\n" \
+	"\\( and \\) or null; if \\( and \\) are not used, they return the number\n" \
 	"of characters matched or 0."
 
 #define fakeidentd_trivial_usage \
@@ -1272,10 +1272,10 @@ USE_FEATURE_DATE_ISOFMT( \
 "This version of init is designed to be run only by the kernel.\n" \
 "\n" \
 "BusyBox init doesn't support multiple runlevels.  The runlevels field of\n" \
-"the /etc/inittab file is completely ignored by BusyBox init. If you want \n" \
+"the /etc/inittab file is completely ignored by BusyBox init. If you want\n" \
 "runlevels, use sysvinit.\n" \
 "\n" \
-"BusyBox init works just fine without an inittab.  If no inittab is found, \n" \
+"BusyBox init works just fine without an inittab.  If no inittab is found,\n" \
 "it has the following default behavior:\n" \
 "\n" \
 "	::sysinit:/etc/init.d/rcS\n" \
@@ -2898,7 +2898,7 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	USE_FEATURE_FANCY_TAIL( "\n\t-q\t\tnever output headers giving file names\n" \
 	"\t-s SEC\t\twait SEC seconds between reads with -f\n" \
 	"\t-v\t\talways output headers giving file names\n\n" \
-	"If the first character of N (bytes or lines) is a '+', output begins with \n" \
+	"If the first character of N (bytes or lines) is a '+', output begins with\n" \
 	"the Nth item from the start of each file, otherwise, print the last N items\n" \
 	"in the file. N bytes may be suffixed by k (x1024), b (x512), or m (1024^2)." )
 #define tail_example_usage \
@@ -3156,7 +3156,7 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\n\t-f\tForce umount (i.e., unreachable NFS server)" \
 	USE_FEATURE_MOUNT_LOOP("\n\t-D\tDo not free loop device (if a loop device has been used)")
 #define umount_example_usage \
-	"$ umount /dev/hdc1 \n"
+	"$ umount /dev/hdc1\n"
 
 #define uname_trivial_usage \
 	"[OPTION]..."

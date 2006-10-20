@@ -496,7 +496,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		freeHardLinkInfo(&tbInfo.hlInfoHead);
 
 	if (errorFlag)
-		bb_error_msg("Error exit delayed from previous errors");
+		bb_error_msg("error exit delayed from previous errors");
 
 	if (gzipPid && waitpid(gzipPid, NULL, 0)==-1)
 		bb_error_msg("cannot wait");
@@ -540,7 +540,7 @@ static llist_t *append_file_list_to_list(llist_t *list)
 #ifdef CONFIG_FEATURE_TAR_COMPRESS
 static char get_header_tar_Z(archive_handle_t *archive_handle)
 {
-	/* Cant lseek over pipe's */
+	/* Can't lseek over pipes */
 	archive_handle->seek = seek_by_read;
 
 	/* do the decompression, and cleanup */
@@ -556,7 +556,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 		/* nothing */;
 
 	/* Can only do one file at a time */
-	return(EXIT_FAILURE);
+	return EXIT_FAILURE;
 }
 #else
 #define get_header_tar_Z	0

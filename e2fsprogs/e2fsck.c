@@ -6721,7 +6721,7 @@ static int update_dir_block(ext2_filsys fs FSCK_ATTR((unused)),
  * Then, pass3 interates over all directory inodes; for each directory
  * it attempts to trace up the filesystem tree, using dirinfo.parent
  * until it reaches a directory which has been marked "done".  If it
- * can not do so, then the directory must be disconnected, and e2fsck
+ * cannot do so, then the directory must be disconnected, and e2fsck
  * will offer to reconnect it to /lost+found.  While it is chasing
  * parent pointers up the filesystem tree, if pass3 sees a directory
  * twice, then it has detected a filesystem loop, and it will again
@@ -8587,7 +8587,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* Bad primary block */
 	{ PR_1_BAD_PRIMARY_BLOCK,
-	  N_("\nIf the @b is really bad, the @f can not be fixed.\n"),
+	  N_("\nIf the @b is really bad, the @f cannot be fixed.\n"),
 	  PROMPT_NONE, PR_AFTER_CODE, PR_1_BAD_PRIMARY_BLOCK_PROMPT },
 
 	/* Bad primary block prompt */
@@ -8952,7 +8952,7 @@ static const struct e2fsck_problem problem_table[] = {
 
 	/* File has duplicate blocks */
 	{ PR_1D_DUP_FILE,
-	  N_("File %Q (@i #%i, mod time %IM) \n"
+	  N_("File %Q (@i #%i, mod time %IM)\n"
 	  "  has %B @m @b(s), shared with %N file(s):\n"),
 	  PROMPT_NONE, 0 },
 

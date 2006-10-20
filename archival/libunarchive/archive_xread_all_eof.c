@@ -15,7 +15,7 @@ ssize_t archive_xread_all_eof(archive_handle_t *archive_handle, unsigned char *b
 
 	size = full_read(archive_handle->src_fd, buf, count);
 	if ((size != 0) && (size != count)) {
-		bb_perror_msg_and_die("Short read, read %ld of %ld", (long)size, (long)count);
+		bb_perror_msg_and_die("short read, read %ld of %ld", (long)size, (long)count);
 	}
 	return(size);
 }

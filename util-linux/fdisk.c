@@ -1371,7 +1371,7 @@ get_boot(enum action what)
 #endif
 			break;
 		default:
-			bb_error_msg_and_die(_("Internal error"));
+			bb_error_msg_and_die(_("internal error"));
 		}
 #endif /* CONFIG_FEATURE_FDISK_WRITABLE */
 	}

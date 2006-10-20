@@ -37,10 +37,10 @@ static void skip_header(int rpm_fd)
 
 	xread(rpm_fd, &header, sizeof(struct rpm_header));
 	if (strncmp((char *) &header.magic, RPM_HEADER_MAGIC, 3) != 0) {
-		bb_error_msg_and_die("Invalid RPM header magic"); /* Invalid magic */
+		bb_error_msg_and_die("invalid RPM header magic"); /* Invalid magic */
 	}
 	if (header.version != 1) {
-		bb_error_msg_and_die("Unsupported RPM header version"); /* This program only supports v1 headers */
+		bb_error_msg_and_die("unsupported RPM header version"); /* This program only supports v1 headers */
 	}
 	header.entries = ntohl(header.entries);
 	header.size = ntohl(header.size);

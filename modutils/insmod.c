@@ -4113,7 +4113,7 @@ int insmod_main( int argc, char **argv)
 
 		if (strncmp(uts_info.release, m_strversion, STRVERSIONLEN) != 0) {
 			if (flag_force_load) {
-				bb_error_msg("Warning: kernel-module version mismatch\n"
+				bb_error_msg("warning: kernel-module version mismatch\n"
 						"\t%s was compiled for kernel version %s\n"
 						"\twhile this kernel is version %s",
 						m_filename, m_strversion, uts_info.release);
@@ -4134,7 +4134,7 @@ int insmod_main( int argc, char **argv)
 			goto out;
 		k_crcs = new_is_kernel_checksummed();
 	} else {
-		bb_error_msg("Not configured to support old kernels");
+		bb_error_msg("not configured to support old kernels");
 		goto out;
 	}
 

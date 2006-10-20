@@ -308,7 +308,7 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 		printf("\n");
 	} else
 		if (icmppkt->icmp6_type != ICMP6_ECHO_REQUEST)
-			bb_error_msg("Warning: Got ICMP %d (%s)",
+			bb_error_msg("warning: got ICMP %d (%s)",
 					icmppkt->icmp6_type, icmp6_type_name(icmppkt->icmp6_type));
 }
 

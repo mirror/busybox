@@ -265,7 +265,7 @@ void xsetgid(gid_t gid)
 	if (setgid(gid)) bb_error_msg_and_die("setgid");
 }
 
-// Die with an error message if we cant' set uid.  (See xsetgid() for why.)
+// Die with an error message if we can't set uid.  (See xsetgid() for why.)
 void xsetuid(uid_t uid)
 {
 	if (setuid(uid)) bb_error_msg_and_die("setuid");

@@ -206,10 +206,10 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 int get_addr(inet_prefix * dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
-		bb_error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context.", arg);
+		bb_error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context", arg);
 	}
 	if (get_addr_1(dst, arg, family)) {
-		bb_error_msg_and_die("an inet address is expected rather than \"%s\".", arg);
+		bb_error_msg_and_die("an inet address is expected rather than \"%s\"", arg);
 	}
 	return 0;
 }
@@ -217,10 +217,10 @@ int get_addr(inet_prefix * dst, char *arg, int family)
 int get_prefix(inet_prefix * dst, char *arg, int family)
 {
 	if (family == AF_PACKET) {
-		bb_error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context.", arg);
+		bb_error_msg_and_die("\"%s\" may be inet address, but it is not allowed in this context", arg);
 	}
 	if (get_prefix_1(dst, arg, family)) {
-		bb_error_msg_and_die("an inet address is expected rather than \"%s\".", arg);
+		bb_error_msg_and_die("an inet address is expected rather than \"%s\"", arg);
 	}
 	return 0;
 }
@@ -237,7 +237,7 @@ __u32 get_addr32(char *name)
 
 void incomplete_command(void)
 {
-	bb_error_msg("Command line is not complete. Try option \"help\"");
+	bb_error_msg("command line is not complete, try option \"help\"");
 	exit(-1);
 }
 
@@ -249,13 +249,13 @@ void invarg(const char * const arg, const char * const opt)
 
 void duparg(char *key, char *arg)
 {
-	bb_error_msg("duplicate \"%s\": \"%s\" is the second value.", key, arg);
+	bb_error_msg("duplicate \"%s\": \"%s\" is the second value", key, arg);
 	exit(-1);
 }
 
 void duparg2(char *key, char *arg)
 {
-	bb_error_msg("either \"%s\" is duplicate, or \"%s\" is a garbage.", key, arg);
+	bb_error_msg("either \"%s\" is duplicate, or \"%s\" is a garbage", key, arg);
 	exit(-1);
 }
 

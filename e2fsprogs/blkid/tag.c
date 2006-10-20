@@ -408,7 +408,7 @@ int main(int argc, char **argv)
 
 	dev = blkid_get_dev(cache, devname, flags);
 	if (!dev) {
-		fprintf(stderr, "%s: Can not find device in blkid cache\n");
+		fprintf(stderr, "%s: cannot find device in blkid cache\n");
 		exit(1);
 	}
 	if (search_type) {

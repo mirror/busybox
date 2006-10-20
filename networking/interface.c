@@ -325,7 +325,7 @@ static int sockets_open(int family)
 			sfd = af->fd;
 	}
 	if (sfd < 0) {
-		bb_error_msg("No usable address families found.");
+		bb_error_msg("no usable address families found");
 	}
 	return sfd;
 }
@@ -557,7 +557,7 @@ static int if_readlist_proc(char *target)
 
 	fh = fopen(_PATH_PROCNET_DEV, "r");
 	if (!fh) {
-		bb_perror_msg("Warning: cannot open %s. Limited output.", _PATH_PROCNET_DEV);
+		bb_perror_msg("warning: cannot open %s, limiting output", _PATH_PROCNET_DEV);
 		return if_readconf();
 	}
 	fgets(buf, sizeof buf, fh);	/* eat line */

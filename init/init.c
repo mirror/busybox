@@ -211,7 +211,7 @@ static void message(int device, const char *fmt, ...)
 	if (log_fd < 0) {
 		if ((log_fd = device_open(log_console, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
 			log_fd = -2;
-			bb_error_msg("Bummer, can't write to log on %s!", log_console);
+			bb_error_msg("bummer, can't write to log on %s!", log_console);
 			device = CONSOLE;
 		} else {
 			fcntl(log_fd, F_SETFD, FD_CLOEXEC);
@@ -232,7 +232,7 @@ static void message(int device, const char *fmt, ...)
 #if ENABLE_DEBUG_INIT
 		/* all descriptors may be closed */
 		} else {
-			bb_error_msg("Bummer, can't print: ");
+			bb_error_msg("bummer, can't print: ");
 			va_start(arguments, fmt);
 			vfprintf(stderr, fmt, arguments);
 			va_end(arguments);

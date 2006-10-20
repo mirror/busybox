@@ -81,7 +81,7 @@ static void passwd_wrapper(const char *login)
 {
 	static const char prog[] = "passwd";
 	execlp(prog, prog, login, NULL);
-	bb_error_msg_and_die("Failed to execute '%s', you must set the password for '%s' manually", prog, login);
+	bb_error_msg_and_die("failed to execute '%s', you must set the password for '%s' manually", prog, login);
 }
 
 /* putpwent(3) remix */

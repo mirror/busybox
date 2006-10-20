@@ -595,7 +595,7 @@ static void identify(uint16_t *id_supplied)
 	}
 	else
 		/*"Unknown device type:\n\tbits 15&14 of general configuration word 0 both set to 1.\n"*/
-		bb_error_msg_and_die("Unknown device type");
+		bb_error_msg_and_die("unknown device type");
 
 	printf("%sremovable media\n", !(val[GEN_CONFIG] & MEDIA_REMOVABLE) ? "non-" : "");
 	/* Info from the specific configuration word says whether or not the

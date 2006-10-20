@@ -14,7 +14,7 @@ void unpack_ar_archive(archive_handle_t *ar_archive)
 
 	xread(ar_archive->src_fd, magic, 7);
 	if (strncmp(magic, "!<arch>", 7) != 0) {
-		bb_error_msg_and_die("Invalid ar magic");
+		bb_error_msg_and_die("invalid ar magic");
 	}
 	ar_archive->offset += 7;
 

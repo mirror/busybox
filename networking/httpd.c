@@ -1317,7 +1317,7 @@ static int sendFile(const char *url)
 		close(f);
 	} else {
 #if DEBUG
-		bb_perror_msg("Unable to open '%s'", url);
+		bb_perror_msg("unable to open '%s'", url);
 #endif
 		sendHeaders(HTTP_NOT_FOUND);
 	}

@@ -42,12 +42,12 @@ int nohup_main(int argc, char **argv)
 	 * Else redirect to /dev/null.
 	 */
 	temp = isatty(STDERR_FILENO);
-	if (temp) bb_error_msg("Appending to %s", nohupout);
+	if (temp) bb_error_msg("appending to %s", nohupout);
 	dup2(temp ? STDOUT_FILENO : nullfd, STDERR_FILENO);
 	close(nullfd);
 	signal (SIGHUP, SIG_IGN);
 
 	execvp(argv[1],argv+1);
 	if (00 && ENABLE_FEATURE_CLEAN_UP && home) free(nohupout);
-	bb_perror_msg_and_die("%s",argv[1]);
+	bb_perror_msg_and_die("%s", argv[1]);
 }

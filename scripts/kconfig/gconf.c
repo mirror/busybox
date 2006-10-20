@@ -755,7 +755,7 @@ void on_introduction1_activate(GtkMenuItem * menuitem, gpointer user_data)
 	    "are interested in, you can still view the help of a grayed-out\n"
 	    "option.\n"
 	    "\n"
-	    "Toggling Show Debug Info under the Options menu will show \n"
+	    "Toggling Show Debug Info under the Options menu will show\n"
 	    "the dependencies, which you can then match by examining other options.");
 
 	dialog = gtk_message_dialog_new(GTK_WINDOW(main_wnd),

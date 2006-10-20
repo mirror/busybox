@@ -15,7 +15,7 @@
 
 char get_header_tar_bz2(archive_handle_t *archive_handle)
 {
-	/* Cant lseek over pipe's */
+	/* Can't lseek over pipes */
 	archive_handle->seek = seek_by_read;
 
 	archive_handle->src_fd = open_transformer(archive_handle->src_fd, uncompressStream);

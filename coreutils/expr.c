@@ -250,7 +250,7 @@ of a basic regular expression is not portable; it is being ignored", pv->u.s);
 	memset(&re_buffer, 0, sizeof(re_buffer));
 	memset(re_regs, 0, sizeof(*re_regs));
 	if (regcomp(&re_buffer, pv->u.s, 0) != 0)
-		bb_error_msg_and_die("Invalid regular expression");
+		bb_error_msg_and_die("invalid regular expression");
 
 	/* expr uses an anchored pattern match, so check that there was a
 	 * match and that the match starts at offset 0. */

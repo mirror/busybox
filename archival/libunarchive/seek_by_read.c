@@ -8,7 +8,7 @@
 #include "unarchive.h"
 #include "libbb.h"
 
-/*  If we are reading through a pipe(), or from stdin then we cant lseek,
+/*  If we are reading through a pipe(), or from stdin then we can't lseek,
  *  we must read and discard the data to skip over it.
  */
 void seek_by_read(const archive_handle_t *archive_handle, const unsigned int jump_size)

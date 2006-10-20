@@ -49,7 +49,7 @@ int uncompress_main(int argc, char **argv)
 
 			extension = strrchr(uncompressed_file, '.');
 			if (!extension || (strcmp(extension, ".Z") != 0)) {
-				bb_error_msg_and_die("Invalid extension");
+				bb_error_msg_and_die("invalid extension");
 			}
 			*extension = '\0';
 
@@ -65,7 +65,7 @@ int uncompress_main(int argc, char **argv)
 
 		/* do the decompression, and cleanup */
 		if ((xread_char(src_fd) != 0x1f) || (xread_char(src_fd) != 0x9d)) {
-			bb_error_msg_and_die("Invalid magic");
+			bb_error_msg_and_die("invalid magic");
 		}
 
 		status = uncompress(src_fd, dst_fd);

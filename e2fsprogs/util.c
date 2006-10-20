@@ -82,7 +82,7 @@ void check_mount(const char *device, int force, const char *type)
 
 	retval = ext2fs_check_if_mounted(device, &mount_flags);
 	if (retval) {
-		bb_error_msg("Could not determine if %s is mounted", device);
+		bb_error_msg("cannot determine if %s is mounted", device);
 		return;
 	}
 	if (mount_flags & EXT2_MF_MOUNTED) {
@@ -219,7 +219,7 @@ void make_journal_device(char *journal_device, ext2_filsys fs, int quiet, int fo
 					EXT2_FLAG_JOURNAL_DEV_OK, 0,
 					fs->blocksize, io_ptr, &jfs);
 	if (retval)
-		bb_error_msg_and_die("Could not journal device %s", journal_device);
+		bb_error_msg_and_die("cannot journal device %s", journal_device);
 	if(!quiet)
 		printf("Adding journal to device %s: ", journal_device);
 	fflush(stdout);
@@ -248,7 +248,7 @@ void make_journal_blocks(ext2_filsys fs, int journal_size, int journal_flags, in
 	retval = ext2fs_add_journal_inode(fs, journal_blocks,
 						  journal_flags);
 	if(retval)
-		bb_error_msg_and_die("Could not create journal");
+		bb_error_msg_and_die("cannot create journal");
 	if(!quiet)
 		puts("done");
 }

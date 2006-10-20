@@ -745,7 +745,7 @@ static int inflate_block(int *e)
 
 		if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl)) != 0) {
 			if (i == 1) {
-				bb_error_msg_and_die("Incomplete literal tree");
+				bb_error_msg_and_die("incomplete literal tree");
 				huft_free(tl);
 			}
 			return i;	/* incomplete code set */

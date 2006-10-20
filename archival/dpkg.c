@@ -711,7 +711,7 @@ static unsigned int get_status(const unsigned int status_node, const int num)
 		/* skip past the separating spaces */
 		status_string += strspn(status_string, " ");
 	}
-	len = strcspn(status_string, " \n\0");
+	len = strcspn(status_string, " \n");
 	state_sub_string = xstrndup(status_string, len);
 	state_sub_num = search_name_hashtable(state_sub_string);
 	free(state_sub_string);
@@ -796,7 +796,7 @@ static void index_status_file(const char *filename)
 			if (status_line != NULL) {
 				status_line += 7;
 				status_line += strspn(status_line, " \n\t");
-				status_line = xstrndup(status_line, strcspn(status_line, "\n\0"));
+				status_line = xstrndup(status_line, strcspn(status_line, "\n"));
 				status_node->status = search_name_hashtable(status_line);
 				free(status_line);
 			}
@@ -849,7 +849,7 @@ static void write_status_file(deb_file_t **deb_file)
 
 		tmp_string += 8;
 		tmp_string += strspn(tmp_string, " \n\t");
-		package_name = xstrndup(tmp_string, strcspn(tmp_string, "\n\0"));
+		package_name = xstrndup(tmp_string, strcspn(tmp_string, "\n"));
 		write_flag = FALSE;
 		tmp_string = strstr(control_buffer, "Status:");
 		if (tmp_string != NULL) {
@@ -1374,8 +1374,8 @@ static void remove_package(const unsigned int package_num, int noisy)
 	sprintf(conffile_name, "/var/lib/dpkg/info/%s.conffiles", package_name);
 	exclude_files = create_list(conffile_name);
 
-	/* Some directories cant be removed straight away, so do multiple passes */
-	while (remove_file_array(remove_files, exclude_files));
+	/* Some directories can't be removed straight away, so do multiple passes */
+	while (remove_file_array(remove_files, exclude_files)) /*repeat */;
 	free_array(exclude_files);
 	free_array(remove_files);
 
@@ -1421,7 +1421,7 @@ static void purge_package(const unsigned int package_num)
 	exclude_files = xzalloc(sizeof(char*));
 
 	/* Some directories cant be removed straight away, so do multiple passes */
-	while (remove_file_array(remove_files, exclude_files));
+	while (remove_file_array(remove_files, exclude_files)) /* repeat */;
 	free_array(remove_files);
 
 	/* Create a list of all /var/lib/dpkg/info/<package> files */

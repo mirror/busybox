@@ -135,7 +135,7 @@ static void parse_config_file(void)
 		|| !S_ISREG(st.st_mode)					/* Not a regular file? */
 		|| (st.st_uid != 0)						/* Not owned by root? */
 		|| (st.st_mode & (S_IWGRP | S_IWOTH))	/* Writable by non-root? */
-		|| !(f = fopen(config_file, "r"))		/* Can not open? */
+		|| !(f = fopen(config_file, "r"))		/* Cannot open? */
 		) {
 		return;
 	}
@@ -338,7 +338,7 @@ static void check_suid(struct BB_applet *applet)
 				m >>= 3;
 
 			if (!(m & S_IXOTH))           /* is x bit not set ? */
-				bb_error_msg_and_die ("You have no permission to run this applet!");
+				bb_error_msg_and_die("you have no permission to run this applet!");
 
 			if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {     /* *both* have to be set for sgid */
 				xsetgid(sct->m_gid);
@@ -365,7 +365,7 @@ static void check_suid(struct BB_applet *applet)
 #endif
 
 	if (applet->need_suid == _BB_SUID_ALWAYS) {
-		if (geteuid()) bb_error_msg_and_die("Applet requires root privileges!");
+		if (geteuid()) bb_error_msg_and_die("applet requires root privileges!");
 	} else if (applet->need_suid == _BB_SUID_NEVER) {
 		xsetgid(rgid);                          /* drop all privileges */
 		xsetuid(ruid);

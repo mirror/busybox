@@ -65,7 +65,7 @@ long bb_xgetpwnam(const char *name)
  /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
   * flexible :
   *
-  * if bufsize is > 0 char *name can not be set to NULL.
+  * if bufsize is > 0 char *name cannot be set to NULL.
   *                   On success username is written on the static allocated
   *                   buffer name (and a pointer to it is returned).
   *                   On failure uid as string is written to the static
@@ -89,7 +89,7 @@ char * bb_getpwuid(char *name, long uid, int bufsize)
 }
 
  /*
-  * if bufsize is > 0 char *buffer can not be set to NULL.
+  * if bufsize is > 0 char *buffer cannot be set to NULL.
   *                   If idname is not NULL it is written on the static
   *                   allocated buffer (and a pointer to it is returned).
   *                   if idname is NULL, id as string is written to the static

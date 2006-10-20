@@ -314,7 +314,7 @@ static void startlogger(void)
 		if ((logfd = open(LogFile, O_WRONLY | O_CREAT | O_APPEND, 0600)) >= 0) {
 			close(logfd);
 		} else {
-			bb_perror_msg("Failed to open log file '%s' reason", LogFile);
+			bb_perror_msg("failed to open log file '%s': ", LogFile);
 		}
 	}
 #endif
@@ -883,7 +883,7 @@ ForkJob(const char *user, CronLine * line, int mailFd,
 		exit(0);
 	} else if (pid < 0) {
 		/* FORK FAILED */
-		crondlog("\024couldn't fork, user %s\n", user);
+		crondlog("\024cannot fork, user %s\n", user);
 		line->cl_Pid = 0;
 		if (mailf) {
 			remove(mailf);
@@ -1008,7 +1008,7 @@ static void RunJob(const char *user, CronLine * line)
 		exit(0);
 	} else if (pid < 0) {
 		/* FORK FAILED */
-		crondlog("\024couldn't fork, user %s\n", user);
+		crondlog("\024cannot, user %s\n", user);
 		pid = 0;
 	}
 	line->cl_Pid = pid;

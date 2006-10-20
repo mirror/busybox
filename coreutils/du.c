@@ -165,7 +165,7 @@ int du_main(int argc, char **argv)
 	}
 #endif
 
-	/* Note: SUSv3 specifies that -a and -s options can not be used together
+	/* Note: SUSv3 specifies that -a and -s options cannot be used together
 	 * in strictly conforming applications.  However, it also says that some
 	 * du implementations may produce output when -a and -s are used together.
 	 * gnu du exits with an error code in this case.  We choose to simply

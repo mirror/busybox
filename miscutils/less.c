@@ -1113,7 +1113,7 @@ int less_main(int argc, char **argv) {
 		if (ttyname(STDIN_FILENO) == NULL)
 			inp_stdin = 1;
 		else {
-			bb_error_msg("Missing filename");
+			bb_error_msg("missing filename");
 			bb_show_usage();
 		}
 	}

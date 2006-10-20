@@ -19,6 +19,6 @@ void seek_by_jump(const archive_handle_t *archive_handle, const unsigned int amo
 			seek_by_read(archive_handle, amount);
 		} else
 #endif
-			bb_perror_msg_and_die("Seek failure");
+			bb_perror_msg_and_die("seek failure");
 	}
 }

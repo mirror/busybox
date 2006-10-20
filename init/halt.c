@@ -48,6 +48,6 @@ RB_AUTOBOOT
 		if (rc) rc = kill(1,signals[which]);
 	} else rc = reboot(magic[which]);
 
-	if (rc) bb_error_msg("No.");
+	if (rc) bb_error_msg("no");
 	return rc;
 }

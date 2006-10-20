@@ -12,7 +12,7 @@ char get_header_tar_gz(archive_handle_t *archive_handle)
 {
 	unsigned char magic[2];
 
-	/* Cant lseek over pipe's */
+	/* Can't lseek over pipes */
 	archive_handle->seek = seek_by_read;
 
 	xread(archive_handle->src_fd, &magic, 2);

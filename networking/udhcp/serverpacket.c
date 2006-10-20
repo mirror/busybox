@@ -158,12 +158,12 @@ int sendOffer(struct dhcpMessage *oldpacket)
 	}
 
 	if(!packet.yiaddr) {
-		bb_error_msg("No IP addresses to give - OFFER abandoned");
+		bb_error_msg("no IP addresses to give - OFFER abandoned");
 		return -1;
 	}
 
 	if (!add_lease(packet.chaddr, packet.yiaddr, server_config.offer_time)) {
-		bb_error_msg("Lease pool is full - OFFER abandoned");
+		bb_error_msg("lease pool is full - OFFER abandoned");
 		return -1;
 	}
 

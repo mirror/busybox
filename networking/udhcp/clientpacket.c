@@ -216,14 +216,14 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	packet.ip.daddr = dest;
 	packet.ip.tot_len = packet.udp.len; /* cheat on the psuedo-header */
 	if (check && check != udhcp_checksum(&packet, bytes)) {
-		bb_error_msg("Packet with bad UDP checksum received, ignoring");
+		bb_error_msg("packet with bad UDP checksum received, ignoring");
 		return -2;
 	}
 
 	memcpy(payload, &(packet.data), bytes - (sizeof(packet.ip) + sizeof(packet.udp)));
 
 	if (ntohl(payload->cookie) != DHCP_MAGIC) {
-		bb_error_msg("Received bogus message (bad magic) - ignoring");
+		bb_error_msg("received bogus message (bad magic) - ignoring");
 		return -2;
 	}
 	DEBUG("oooooh!!! got some!");

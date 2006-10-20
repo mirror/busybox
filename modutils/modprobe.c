@@ -758,7 +758,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 			}
 		}
 		else {
-			bb_error_msg ("Bad alias %s", dt-> m_name);
+			bb_error_msg ("bad alias %s", dt-> m_name);
 			return;
 		}
 	}
@@ -897,7 +897,7 @@ int modprobe_main(int argc, char** argv)
 		} while ( ++optind < argc );
 	} else {
 		if (optind >= argc)
-			bb_error_msg_and_die ( "No module or pattern provided" );
+			bb_error_msg_and_die ( "no module or pattern provided" );
 
 		if ( mod_insert ( argv [optind], argc - optind - 1, argv + optind + 1 ))
 			bb_error_msg_and_die ( "failed to load module %s", argv [optind] );

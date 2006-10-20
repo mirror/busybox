@@ -53,7 +53,7 @@ static inline void sanitize_fds(void)
 void udhcp_background(const char *pidfile)
 {
 #ifdef __uClinux__
-	bb_error_msg("Cannot background in uclinux (yet)");
+	bb_error_msg("cannot background in uclinux (yet)");
 #else /* __uClinux__ */
 	int pid_fd;
 

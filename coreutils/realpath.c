@@ -5,7 +5,7 @@
 /* Mar 16, 2003      Manuel Novoa III   (mjn3@codepoet.org)
  *
  * Now does proper error checking on output and returns a failure exit code
- * if one or more paths can not be resolved.
+ * if one or more paths cannot be resolved.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */

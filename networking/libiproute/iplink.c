@@ -1,8 +1,8 @@
 /* vi: set sw=4 ts=4: */
 /*
- * iplink.c		"ip link".
+ * iplink.c "ip link".
  *
- * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
+ * Authors: Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
@@ -31,7 +31,7 @@
 
 static int on_off(char *msg)
 {
-	bb_error_msg("Error: argument of \"%s\" must be \"on\" or \"off\"", msg);
+	bb_error_msg("error: argument of \"%s\" must be \"on\" or \"off\"", msg);
 	return -1;
 }
 
@@ -200,7 +200,7 @@ static int parse_address(char *dev, int hatype, int halen, char *lla, struct ifr
 	if (alen < 0)
 		return -1;
 	if (alen != halen) {
-		bb_error_msg("Wrong address (%s) length: expected %d bytes", lla, halen);
+		bb_error_msg("wrong address (%s) length: expected %d bytes", lla, halen);
 		return -1;
 	}
 	return 0;
@@ -349,6 +349,6 @@ int do_iplink(int argc, char **argv)
 	} else
 		return ipaddr_list_link(0, NULL);
 
-	bb_error_msg("Command \"%s\" is unknown.", *argv);
+	bb_error_msg("command \"%s\" is unknown", *argv);
 	exit(-1);
 }

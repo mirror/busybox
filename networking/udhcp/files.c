@@ -284,7 +284,7 @@ int read_config(const char *file)
 			keywords[i].handler(keywords[i].def, keywords[i].var);
 
 	if (!(in = fopen(file, "r"))) {
-		bb_error_msg("Unable to open config file: %s", file);
+		bb_error_msg("unable to open config file: %s", file);
 		return 0;
 	}
 
@@ -308,7 +308,7 @@ int read_config(const char *file)
 		for (i = 0; keywords[i].keyword[0]; i++)
 			if (!strcasecmp(token, keywords[i].keyword))
 				if (!keywords[i].handler(line, keywords[i].var)) {
-					bb_error_msg("Failure parsing line %d of %s", lm, file);
+					bb_error_msg("failure parsing line %d of %s", lm, file);
 					if (ENABLE_FEATURE_UDHCP_DEBUG)
 						bb_error_msg("unable to parse '%s'", debug_orig);
 					/* reset back to the default value */
@@ -329,7 +329,7 @@ void write_leases(void)
 	unsigned long tmp_time;
 
 	if (!(fp = fopen(server_config.lease_file, "w"))) {
-		bb_error_msg("Unable to open %s for writing", server_config.lease_file);
+		bb_error_msg("unable to open %s for writing", server_config.lease_file);
 		return;
 	}
 
@@ -367,7 +367,7 @@ void read_leases(const char *file)
 	struct dhcpOfferedAddr lease;
 
 	if (!(fp = fopen(file, "r"))) {
-		bb_error_msg("Unable to open %s for reading", file);
+		bb_error_msg("unable to open %s for reading", file);
 		return;
 	}
 
@@ -377,7 +377,7 @@ void read_leases(const char *file)
 			lease.expires = ntohl(lease.expires);
 			if (!server_config.remaining) lease.expires -= time(0);
 			if (!(add_lease(lease.chaddr, lease.yiaddr, lease.expires))) {
-				bb_error_msg("Too many leases while loading %s", file);
+				bb_error_msg("too many leases while loading %s", file);
 				break;
 			}
 			i++;

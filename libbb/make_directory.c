@@ -99,6 +99,6 @@ int bb_make_directory (char *path, long mode, int flags)
 
 	} while (1);
 
-	bb_perror_msg ("Cannot %s directory `%s'", fail_msg, path);
+	bb_perror_msg ("cannot %s directory '%s'", fail_msg, path);
 	return -1;
 }

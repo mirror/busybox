@@ -399,7 +399,7 @@ static int set_local_var(const char *s, int flg_export);
 /* Table of built-in functions.  They can be forked or not, depending on
  * context: within pipes, they fork.  As simple commands, they do not.
  * When used in non-forking context, they can change global variables
- * in the parent shell process.  If forked, of course they can not.
+ * in the parent shell process.  If forked, of course they cannot.
  * For example, 'unset foo | whatever' will parse and run, but foo will
  * still be set at the end. */
 static const struct built_in_command bltins[] = {

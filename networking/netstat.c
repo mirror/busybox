@@ -575,7 +575,7 @@ int netstat_main(int argc, char **argv)
 			else
 				printf("(w/o servers)");
 		}
-		printf("\nProto Recv-Q Send-Q Local Address           Foreign Address         State      \n");
+		printf("\nProto Recv-Q Send-Q Local Address           Foreign Address         State\n");
 	}
 	if (inet && flags&NETSTAT_TCP)
 		do_info(_PATH_PROCNET_TCP,"AF INET (tcp)",tcp_do_one);

@@ -24,7 +24,7 @@ void check_header_gzip(int src_fd)
 
 	/* Check the compression method */
 	if (header.formatted.method != 8) {
-		bb_error_msg_and_die("Unknown compression method %d",
+		bb_error_msg_and_die("unknown compression method %d",
 						  header.formatted.method);
 	}
 

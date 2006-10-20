@@ -392,7 +392,7 @@ int arping_main(int argc, char **argv)
 		}
 	}
 	if (me.sll_halen == 0) {
-		bb_error_msg("Interface \"%s\" is not ARPable (no ll address)", device);
+		bb_error_msg("interface \"%s\" is not ARPable (no ll address)", device);
 		exit(cfg&dad ? 0 : 2);
 	}
 	he = me;

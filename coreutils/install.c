@@ -61,7 +61,7 @@ int install_main(int argc, char **argv)
 	umask(0);
 
 	/* Create directories
-	 * dont use bb_make_directory() as it cant change uid or gid
+	 * don't use bb_make_directory() as it can't change uid or gid
 	 * perhaps bb_make_directory() should be improved.
 	 */
 	if (flags & INSTALL_OPT_DIRECTORY) {
@@ -77,7 +77,7 @@ int install_main(int argc, char **argv)
 				}
 				if (mkdir(*argv, mode) == -1) {
 					if (errno != EEXIST) {
-						bb_perror_msg("coulnt create %s", *argv);
+						bb_perror_msg("cannot create %s", *argv);
 						ret = EXIT_FAILURE;
 						break;
 					}

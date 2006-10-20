@@ -58,12 +58,12 @@ int udhcp_get_packet(struct dhcpMessage *packet, int fd)
 	memset(packet, 0, sizeof(struct dhcpMessage));
 	bytes = read(fd, packet, sizeof(struct dhcpMessage));
 	if (bytes < 0) {
-		DEBUG("couldn't read on listening socket, ignoring");
+		DEBUG("cannot read on listening socket, ignoring");
 		return -1;
 	}
 
 	if (ntohl(packet->cookie) != DHCP_MAGIC) {
-		bb_error_msg("Received bogus message, ignoring");
+		bb_error_msg("received bogus message, ignoring");
 		return -2;
 	}
 	DEBUG("Received a packet");

@@ -40,7 +40,7 @@ int loadkmap_main(int argc, char **argv)
 
 	xread(0, buff, 7);
 	if (strncmp(buff, BINARY_KEYMAP_MAGIC, 7))
-		bb_error_msg_and_die("This is not a valid binary keymap.");
+		bb_error_msg_and_die("this is not a valid binary keymap");
 
 	xread(0, flags, MAX_NR_KEYMAPS);
 

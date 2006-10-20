@@ -2716,7 +2716,7 @@ keep_going:
 		free(s);
 	}
 	if (opt & 0x8) // -W
-		bb_error_msg("Warning: unrecognized option '-W %s' ignored", opt_W);
+		bb_error_msg("warning: unrecognized option '-W %s' ignored", opt_W);
 
 	if (!from_file) {
 		if (argc == optind)
