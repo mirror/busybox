@@ -20,8 +20,6 @@
  *
  */
 
-#include <errno.h>
-#include <sys/stat.h>
 #include "libbb.h"
 #include "coreutils.h"
 
@@ -29,7 +27,7 @@ int cp_mv_stat2(const char *fn, struct stat *fn_stat, stat_func sf)
 {
 	if (sf(fn, fn_stat) < 0) {
 		if (errno != ENOENT) {
-			bb_perror_msg("unable to stat `%s'", fn);
+			bb_perror_msg("unable to stat '%s'", fn);
 			return -1;
 		}
 		return 0;

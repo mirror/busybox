@@ -57,7 +57,8 @@ int mv_main(int argc, char **argv)
 	argv += optind;
 
 	if (optind + 2 == argc) {
-		if ((dest_exists = cp_mv_stat(last, &dest_stat)) < 0) {
+		dest_exists = cp_mv_stat(last, &dest_stat);
+		if (dest_exists < 0) {
 			return 1;
 		}
 
@@ -69,8 +70,8 @@ int mv_main(int argc, char **argv)
 
 	do {
 		dest = concat_path_file(last, bb_get_last_path_component(*argv));
-
-		if ((dest_exists = cp_mv_stat(dest, &dest_stat)) < 0) {
+		dest_exists = cp_mv_stat(dest, &dest_stat);
+		if (dest_exists < 0) {
 			goto RET_1;
 		}
 
@@ -79,7 +80,7 @@ DO_MOVE:
 		if (dest_exists && !(flags & OPT_FILEUTILS_FORCE) &&
 			((access(dest, W_OK) < 0 && isatty(0)) ||
 			(flags & OPT_FILEUTILS_INTERACTIVE))) {
-			if (fprintf(stderr, "mv: overwrite `%s'? ", dest) < 0) {
+			if (fprintf(stderr, "mv: overwrite '%s'? ", dest) < 0) {
 				goto RET_1;	/* Ouch! fprintf failed! */
 			}
 			if (!bb_ask_confirmation()) {
@@ -92,7 +93,7 @@ DO_MOVE:
 
 			if (errno != EXDEV ||
 				(source_exists = cp_mv_stat(*argv, &source_stat)) < 1) {
-				bb_perror_msg("unable to rename `%s'", *argv);
+				bb_perror_msg("cannot rename '%s'", *argv);
 			} else {
 				if (dest_exists) {
 					if (dest_exists == 3) {
@@ -107,7 +108,7 @@ DO_MOVE:
 						}
 					}
 					if (unlink(dest) < 0) {
-						bb_perror_msg("cannot remove `%s'", dest);
+						bb_perror_msg("cannot remove '%s'", dest);
 						goto RET_1;
 					}
 				}

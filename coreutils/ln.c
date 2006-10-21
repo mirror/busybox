@@ -49,36 +49,39 @@ int ln_main(int argc, char **argv)
 		src = last;
 
 		if (is_directory(src,
-						 (flag & LN_NODEREFERENCE) ^ LN_NODEREFERENCE,
-						 NULL)) {
+		                (flag & LN_NODEREFERENCE) ^ LN_NODEREFERENCE,
+		            	NULL)) {
 			src_name = xstrdup(*argv);
 			src = concat_path_file(src, bb_get_last_path_component(src_name));
 			free(src_name);
 			src_name = src;
 		}
 		if (!(flag & LN_SYMLINK) && stat(*argv, &statbuf)) {
-			bb_perror_msg("%s", *argv);
-			status = EXIT_FAILURE;
-			free(src_name);
-			continue;
+			// coreutils: "ln dangling_symlink new_hardlink" works
+			if (lstat(*argv, &statbuf) || !S_ISLNK(statbuf.st_mode)) {
+				bb_perror_msg("%s", *argv);
+				status = EXIT_FAILURE;
+				free(src_name);
+				continue;
+			}
 		}
 
 		if (flag & LN_BACKUP) {
-				char *backup;
-				backup = xasprintf("%s%s", src, suffix);
-				if (rename(src, backup) < 0 && errno != ENOENT) {
-						bb_perror_msg("%s", src);
-						status = EXIT_FAILURE;
-						free(backup);
-						continue;
-				}
+			char *backup;
+			backup = xasprintf("%s%s", src, suffix);
+			if (rename(src, backup) < 0 && errno != ENOENT) {
+				bb_perror_msg("%s", src);
+				status = EXIT_FAILURE;
 				free(backup);
-				/*
-				 * When the source and dest are both hard links to the same
-				 * inode, a rename may succeed even though nothing happened.
-				 * Therefore, always unlink().
-				 */
-				unlink(src);
+				continue;
+			}
+			free(backup);
+			/*
+			 * When the source and dest are both hard links to the same
+			 * inode, a rename may succeed even though nothing happened.
+			 * Therefore, always unlink().
+			 */
+			unlink(src);
 		} else if (flag & LN_FORCE) {
 			unlink(src);
 		}
