@@ -341,12 +341,13 @@
 	"Copies SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY.\n" \
 	"\n" \
 	"\t-a\tSame as -dpR\n" \
-	"\t-d,-P\tPreserves links\n" \
+	"\t-d,-P\tPreserve links\n" \
 	"\t-H,-L\tDereference all symlinks (implied by default)\n" \
-	"\t-p\tPreserves file attributes if possible\n" \
-	"\t-f\tforce (implied; ignored) - always set\n" \
+	"\t-p\tPreserve file attributes if possible\n" \
+	"\t-f\tforce, overwrite\n" \
 	"\t-i\tinteractive, prompt before overwrite\n" \
-	"\t-R,-r\tCopies directories recursively"
+	"\t-R,-r\tCopy directories recursively\n" \
+	"\t-l,-s\tCreate (sym)links"
 
 #define cpio_trivial_usage \
 	"-[dimtuv][F cpiofile]"
