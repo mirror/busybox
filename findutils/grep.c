@@ -339,13 +339,13 @@ int grep_main(int argc, char **argv)
 		&slines_after, &slines_before, &Copt);
 
 	if (option_mask32 & GREP_OPT_C) {
-		/* C option unseted A and B options, but next -A or -B
-		   may be ovewrite own option */
-		if (!(option_mask32 & GREP_OPT_A))         /* not overwtited */
+		/* -C unsets prev -A and -B, but following -A or -B
+		   may override it */
+		if (!(option_mask32 & GREP_OPT_A)) /* not overridden */
 			slines_after = Copt;
-		if (!(option_mask32 & GREP_OPT_B))         /* not overwtited */
+		if (!(option_mask32 & GREP_OPT_B)) /* not overridden */
 			slines_before = Copt;
-		option_mask32 |= GREP_OPT_A|GREP_OPT_B;   /* set for parse now */
+		option_mask32 |= GREP_OPT_A|GREP_OPT_B; /* for parser */
 	}
 	if (option_mask32 & GREP_OPT_A) {
 		lines_after = xatoi_u(slines_after);
@@ -353,7 +353,7 @@ int grep_main(int argc, char **argv)
 	if (option_mask32 & GREP_OPT_B) {
 		lines_before = xatoi_u(slines_before);
 	}
-	/* sanity checks after parse may be invalid numbers ;-) */
+	/* sanity checks */
 	if (option_mask32 & (GREP_OPT_c|GREP_OPT_q|GREP_OPT_l|GREP_OPT_L)) {
 		option_mask32 &= ~GREP_OPT_n;
 		lines_before = 0;
@@ -366,12 +366,8 @@ int grep_main(int argc, char **argv)
 	getopt32(argc, argv, GREP_OPTS OPT_EGREP,
 		&pattern_head, &fopt);
 #endif
-	invert_search = (option_mask32 & GREP_OPT_v) != 0;        /* 0 | 1 */
+	invert_search = ((option_mask32 & GREP_OPT_v) != 0); /* 0 | 1 */
 
-	if (option_mask32 & GREP_OPT_H)
-		print_filename = 1;
-	if (option_mask32 & GREP_OPT_h)
-		print_filename = 0;
 	if (pattern_head != NULL) {
 		/* convert char *argv[] to grep_list_data_t */
 		llist_t *cur;
@@ -413,14 +409,18 @@ int grep_main(int argc, char **argv)
 
 	/* argv[(optind)..(argc-1)] should be names of file to grep through. If
 	 * there is more than one file to grep, we will print the filenames. */
-	if (argc > 1) {
+	if (argc > 1)
 		print_filename = 1;
+	/* -H / -h of course override */
+	if (option_mask32 & GREP_OPT_H)
+		print_filename = 1;
+	if (option_mask32 & GREP_OPT_h)
+		print_filename = 0;
 
 	/* If no files were specified, or '-' was specified, take input from
 	 * stdin. Otherwise, we grep through all the files specified. */
-	} else if (argc == 0) {
+	if (argc == 0)
 		argc++;
-	}
 	matched = 0;
 	while (argc--) {
 		cur_file = *argv++;
