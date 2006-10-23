@@ -17,7 +17,7 @@
 #include <string.h>
 #include <assert.h>
 
-#if ENABLE_STATIC && __GLIBC__
+#if ENABLE_STATIC && defined(__GLIBC__)
 #warning Static linking against glibc produces buggy executables
 #warning (glibc doesn't cope well with ld --gc-sections).
 #warning See http://sources.redhat.com/bugzilla/show_bug.cgi?id=3400
