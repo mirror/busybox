@@ -111,15 +111,14 @@ static const struct option wget_long_options[] = {
 
 int wget_main(int argc, char **argv)
 {
-	int n, try=5, status;
-	unsigned opt;
+	int n, status;
+	int try = 5;
 	int port;
+	unsigned opt;
 	char *proxy = 0;
-	char *dir_prefix=NULL;
+	char *dir_prefix = NULL;
 	char *s, buf[512];
-	char extra_headers[1024];
-	char *extra_headers_ptr = extra_headers;
-	int extra_headers_left = sizeof(extra_headers);
+	char *extra_headers = NULL;
 	struct host_info server, target;
 	struct sockaddr_in s_in;
 	llist_t *headers_llist = NULL;
@@ -149,18 +148,17 @@ int wget_main(int argc, char **argv)
 		/* Use the proxy if necessary. */
 		use_proxy = 0;
 	}
-	if (opt & WGET_OPT_HEADER) {
+	if (headers_llist) {
+		int size = 1;
+		char *cp;
+		llist_t *ll = headers_llist;
+		while (ll) {
+			size += strlen(ll->data) + 2;
+			ll = ll->link;
+		}
+		extra_headers = cp = xmalloc(size);
 		while (headers_llist) {
-			int arglen = strlen(headers_llist->data);
-			if (extra_headers_left - arglen - 2 <= 0)
-				bb_error_msg_and_die("extra_headers buffer too small "
-					"(need %i)", extra_headers_left - arglen);
-			strcpy(extra_headers_ptr, headers_llist->data);
-			extra_headers_ptr += arglen;
-			extra_headers_left -= ( arglen + 2 );
-			*extra_headers_ptr++ = '\r';
-			*extra_headers_ptr++ = '\n';
-			*(extra_headers_ptr + 1) = 0;
+			cp += sprintf(cp, "%s\r\n", headers_llist->data);
 			headers_llist = headers_llist->link;
 		}
 	}
@@ -283,9 +281,9 @@ int wget_main(int argc, char **argv)
 
 			if (beg_range)
 				fprintf(sfp, "Range: bytes="OFF_FMT"-\r\n", beg_range);
-			if(extra_headers_left < sizeof(extra_headers))
-				fputs(extra_headers,sfp);
-			fprintf(sfp,"Connection: close\r\n\r\n");
+			if (extra_headers)
+				fputs(extra_headers, sfp);
+			fprintf(sfp, "Connection: close\r\n\r\n");
 
 			/*
 			* Retrieve HTTP response line and check for "200" status code.
