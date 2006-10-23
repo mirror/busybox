@@ -48,6 +48,9 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
   * and for line editing at the same time.
   */
 
+/* I doubt there are systems which still need this */
+#undef HANDLE_ALLCAPS
+
 #define _PATH_LOGIN     "/bin/login"
 
  /* If ISSUE is not defined, agetty will never display the contents of the
@@ -133,11 +136,13 @@ static const char opt_string[] = "I:LH:f:hil:mt:wn";
 /* Storage for things detected while the login name was read. */
 
 struct chardata {
-	int erase;                      /* erase character */
-	int kill;                       /* kill character */
-	int eol;                        /* end-of-line character */
-	int parity;                     /* what parity did we see */
-	int capslock;                   /* upper case without lower case */
+	unsigned char erase;    /* erase character */
+	unsigned char kill;     /* kill character */
+	unsigned char eol;      /* end-of-line character */
+	unsigned char parity;   /* what parity did we see */
+#ifdef HANDLE_ALLCAPS
+	unsigned char capslock; /* upper case without lower case */
+#endif
 };
 
 /* Initial values for the above. */
@@ -147,54 +152,10 @@ static const struct chardata init_chardata = {
 	DEF_KILL,                               /* default kill character */
 	13,                                     /* default eol char */
 	0,                                      /* space parity */
+#ifdef HANDLE_ALLCAPS
 	0,                                      /* no capslock */
+#endif
 };
-
-#if 0
-struct Speedtab {
-	long speed;
-	int code;
-};
-
-static const struct Speedtab speedtab[] = {
-	{50, B50},
-	{75, B75},
-	{110, B110},
-	{134, B134},
-	{150, B150},
-	{200, B200},
-	{300, B300},
-	{600, B600},
-	{1200, B1200},
-	{1800, B1800},
-	{2400, B2400},
-	{4800, B4800},
-	{9600, B9600},
-#ifdef  B19200
-	{19200, B19200},
-#endif
-#ifdef  B38400
-	{38400, B38400},
-#endif
-#ifdef  EXTA
-	{19200, EXTA},
-#endif
-#ifdef  EXTB
-	{38400, EXTB},
-#endif
-#ifdef B57600
-	{57600, B57600},
-#endif
-#ifdef B115200
-	{115200, B115200},
-#endif
-#ifdef B230400
-	{230400, B230400},
-#endif
-	{0, 0},
-};
-#endif
-
 
 #ifdef SYSV_STYLE
 #ifdef CONFIG_FEATURE_UTMP
@@ -211,7 +172,7 @@ static char *fakehost = NULL;
 #ifdef DEBUGGING
 #define debug(s) fprintf(dbf,s); fflush(dbf)
 #define DEBUGTERM "/dev/ttyp0"
-FILE *dbf;
+static FILE *dbf;
 #else
 #define debug(s) /* nothing */
 #endif
@@ -415,7 +376,7 @@ static void termio_init(struct termio *tp, int speed, struct options *op)
 	 * Initial termio settings: 8-bit characters, raw-mode, blocking i/o.
 	 * Special characters are set after we have read the login name; all
 	 * reads will be done in raw mode anyway. Errors will be dealt with
-	 * lateron.
+	 * later on.
 	 */
 #ifdef __linux__
 	/* flush input and output queues, important for modems! */
@@ -474,7 +435,7 @@ static void auto_baud(struct termio *tp)
 
 	/*
 	 * Use 7-bit characters, don't block if input queue is empty. Errors will
-	 * be dealt with lateron.
+	 * be dealt with later on.
 	 */
 
 	iflag = tp->c_iflag;
@@ -503,7 +464,7 @@ static void auto_baud(struct termio *tp)
 			}
 		}
 	}
-	/* Restore terminal settings. Errors will be dealt with lateron. */
+	/* Restore terminal settings. Errors will be dealt with later on. */
 
 	tp->c_iflag = iflag;
 	tp->c_cc[VMIN] = vmin;
@@ -525,12 +486,13 @@ static void next_speed(struct termio *tp, struct options *op)
 /* do_prompt - show login prompt, optionally preceded by /etc/issue contents */
 static void do_prompt(struct options *op, struct termio *tp)
 {
-#ifdef  ISSUE                                   /* optional: show /etc/issue */
+#ifdef ISSUE
 	print_login_issue(op->issue, op->tty);
 #endif
 	print_login_prompt();
 }
 
+#ifdef HANDLE_ALLCAPS
 /* caps_lock - string contains upper case without lower case */
 /* returns 1 if true, 0 if false */
 static int caps_lock(const char *s)
@@ -540,6 +502,7 @@ static int caps_lock(const char *s)
 			return 0;
 	return 1;
 }
+#endif
 
 #define logname bb_common_bufsiz1
 /* get_logname - get user name, establish parity, speed, erase, kill, eol */
@@ -551,7 +514,7 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 	char ascval;                    /* low 7 bits of input character */
 	int bits;                       /* # of "1" bits per character */
 	int mask;                       /* mask with 1 bit up */
-	static const char *const erase[] = {    /* backspace-space-backspace */
+	static const char erase[][3] = {    /* backspace-space-backspace */
 		"\010\040\010",                 /* space parity */
 		"\010\040\010",                 /* odd parity */
 		"\210\240\210",                 /* even parity */
@@ -601,7 +564,8 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 				for (bits = 1, mask = 1; mask & 0177; mask <<= 1)
 					if (mask & ascval)
 						bits++; /* count "1" bits */
-				cp->parity |= ((bits & 1) ? 1 : 2);
+				/* ... |= 2 - even, 1 - odd */
+				cp->parity |= 2 - (bits & 1);
 			}
 			/* Do erase, kill and end-of-line processing. */
 
@@ -645,12 +609,14 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 	}
 	/* Handle names with upper case and no lower case. */
 
+#ifdef HANDLE_ALLCAPS
 	cp->capslock = caps_lock(logname);
 	if (cp->capslock) {
 		for (bp = logname; *bp; bp++)
 			if (isupper(*bp))
 				*bp = tolower(*bp);     /* map name to lower case */
 	}
+#endif
 	return logname;
 }
 
@@ -698,11 +664,13 @@ static void termio_final(struct options *op, struct termio *tp, struct chardata 
 	}
 	/* Account for upper case without lower case. */
 
+#ifdef HANDLE_ALLCAPS
 	if (cp->capslock) {
 		tp->c_iflag |= IUCLC;
 		tp->c_lflag |= XCASE;
 		tp->c_oflag |= OLCUC;
 	}
+#endif
 	/* Optionally enable hardware flow control */
 
 #ifdef  CRTSCTS
