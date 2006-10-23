@@ -23,13 +23,6 @@
 #include <utmp.h>
 #endif
 
-#define _PATH_LOGIN     "/bin/login"
-
-#ifdef CONFIG_SYSLOGD
-#include <sys/param.h>
-#endif
-
-
  /*
   * Some heuristics to find out what environment we are in: if it is not
   * System V, assume it is SunOS 4.
@@ -42,6 +35,11 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 #endif
 #endif  /* LOGIN_PROCESS */
 
+#ifdef SYSV_STYLE
+#include <sys/utsname.h>
+#include <time.h>
+#endif
+
  /*
   * Things you may want to modify.
   *
@@ -50,10 +48,7 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
   * and for line editing at the same time.
   */
 
-#ifdef SYSV_STYLE
-#include <sys/utsname.h>
-#include <time.h>
-#endif
+#define _PATH_LOGIN     "/bin/login"
 
  /* If ISSUE is not defined, agetty will never display the contents of the
   * /etc/issue file. You will not want to spit out large "issue" files at the
@@ -218,7 +213,7 @@ static char *fakehost = NULL;
 #define DEBUGTERM "/dev/ttyp0"
 FILE *dbf;
 #else
-#define debug(s)                                /* nothing */
+#define debug(s) /* nothing */
 #endif
 
 
@@ -299,7 +294,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 		parse_speeds(op, argv[1]); /* baud rate(s) */
 	}
 
-	if (argc > 2 && argv[2])
+	if (argv[2])
 		setenv("TERM", argv[2], 1);
 
 	debug("exiting parseargs\n");
@@ -406,8 +401,8 @@ static void open_tty(char *tty, struct termio *tp, int local)
 		}
 	}
 #else
-	(void) chown(tty, 0, 0);        /* root, sys */
-	(void) chmod(tty, 0622);        /* crw--w--w- */
+	chown(tty, 0, 0);        /* root, sys */
+	chmod(tty, 0622);        /* crw--w--w- */
 #endif
 	if (chdir_to_root)
 		xchdir("/");
@@ -424,7 +419,7 @@ static void termio_init(struct termio *tp, int speed, struct options *op)
 	 */
 #ifdef __linux__
 	/* flush input and output queues, important for modems! */
-	(void) ioctl(0, TCFLSH, TCIOFLUSH);
+	ioctl(0, TCFLSH, TCIOFLUSH);
 #endif
 
 	tp->c_cflag = CS8 | HUPCL | CREAD | speed;
@@ -444,7 +439,7 @@ static void termio_init(struct termio *tp, int speed, struct options *op)
 		tp->c_cflag |= CRTSCTS;
 #endif
 
-	(void) ioctl(0, TCSETA, tp);
+	ioctl(0, TCSETA, tp);
 
 	/* go to blocking input even in local mode */
 	fcntl(0, F_SETFL, fcntl(0, F_GETFL, 0) & ~O_NONBLOCK);
@@ -486,14 +481,14 @@ static void auto_baud(struct termio *tp)
 	tp->c_iflag |= ISTRIP;          /* enable 8th-bit stripping */
 	vmin = tp->c_cc[VMIN];
 	tp->c_cc[VMIN] = 0;                     /* don't block if queue empty */
-	(void) ioctl(0, TCSETA, tp);
+	ioctl(0, TCSETA, tp);
 
 	/*
 	 * Wait for a while, then read everything the modem has said so far and
 	 * try to extract the speed of the dial-in call.
 	 */
 
-	(void) sleep(1);
+	sleep(1);
 	nread = read(0, buf, sizeof(buf) - 1);
 	if (nread > 0) {
 		buf[nread] = '\0';
@@ -512,7 +507,7 @@ static void auto_baud(struct termio *tp)
 
 	tp->c_iflag = iflag;
 	tp->c_cc[VMIN] = vmin;
-	(void) ioctl(0, TCSETA, tp);
+	ioctl(0, TCSETA, tp);
 }
 
 /* next_speed - select next baud rate */
@@ -523,7 +518,7 @@ static void next_speed(struct termio *tp, struct options *op)
 	baud_index = (baud_index + 1) % op->numspeed;
 	tp->c_cflag &= ~CBAUD;
 	tp->c_cflag |= op->speeds[baud_index];
-	(void) ioctl(0, TCSETA, tp);
+	ioctl(0, TCSETA, tp);
 }
 
 
@@ -569,8 +564,8 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 
 	/* Flush pending input (esp. after parsing or switching the baud rate). */
 
-	(void) sleep(1);
-	(void) ioctl(0, TCFLSH, TCIFLUSH);
+	sleep(1);
+	ioctl(0, TCFLSH, TCIFLUSH);
 
 	/* Prompt for and read a login name. */
 
@@ -621,7 +616,7 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 			case '#':
 				cp->erase = ascval;     /* set erase character */
 				if (bp > logname) {
-					(void) write(1, erase[cp->parity], 3);
+					write(1, erase[cp->parity], 3);
 					bp--;
 				}
 				break;
@@ -629,7 +624,7 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 			case '@':
 				cp->kill = ascval;      /* set kill character */
 				while (bp > logname) {
-					(void) write(1, erase[cp->parity], 3);
+					write(1, erase[cp->parity], 3);
 					bp--;
 				}
 				break;
@@ -641,7 +636,7 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 				} else if (bp - logname >= sizeof(logname) - 1) {
 					bb_error_msg_and_die("%s: input overrun", op->tty);
 				} else {
-					(void) write(1, &c, 1); /* echo the character */
+					write(1, &c, 1); /* echo the character */
 					*bp++ = ascval; /* and store it */
 				}
 				break;
@@ -789,9 +784,11 @@ int getty_main(int argc, char **argv)
 {
 	int nullfd;
 	char *logname = NULL;           /* login name, given to /bin/login */
+	// TODO: we can merge these into "struct local"
+	// (will reduce parameter passing)
 	struct chardata chardata;       /* set by get_logname() */
 	struct termio termio;           /* terminal mode bits */
-	static struct options options = {
+	struct options options = {
 		0,                      /* show /etc/issue (SYSV_STYLE) */
 		0,                      /* no timeout */
 		_PATH_LOGIN,            /* default login program */
@@ -886,7 +883,7 @@ int getty_main(int argc, char **argv)
 
 	/* Set the optional timer. */
 	if (options.timeout)
-		(void) alarm(options.timeout);
+		alarm(options.timeout);
 
 	/* optionally wait for CR or LF before writing /etc/issue */
 	if (options.flags & F_WAITCRLF) {
@@ -916,7 +913,7 @@ int getty_main(int argc, char **argv)
 	/* Disable timer. */
 
 	if (options.timeout)
-		(void) alarm(0);
+		alarm(0);
 
 	/* Finalize the termio settings. */
 
@@ -924,10 +921,10 @@ int getty_main(int argc, char **argv)
 
 	/* Now the newline character should be properly written. */
 
-	(void) write(1, "\n", 1);
+	write(1, "\n", 1);
 
 	/* Let the login program take care of password validation. */
 
-	(void) execl(options.login, options.login, "--", logname, (char *) 0);
+	execl(options.login, options.login, "--", logname, (char *) 0);
 	bb_error_msg_and_die("%s: can't exec %s", options.tty, options.login);
 }
