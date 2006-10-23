@@ -409,12 +409,11 @@ static void termio_init(struct termio *tp, int speed, struct options *op)
 }
 
 /* auto_baud - extract baud rate from modem status message */
-static void auto_baud(struct termio *tp)
+static void auto_baud(char *buf, unsigned size_buf, struct termio *tp)
 {
 	int speed;
 	int vmin;
 	unsigned iflag;
-	char buf[BUFSIZ];
 	char *bp;
 	int nread;
 
@@ -450,7 +449,7 @@ static void auto_baud(struct termio *tp)
 	 */
 
 	sleep(1);
-	nread = read(0, buf, sizeof(buf) - 1);
+	nread = read(0, buf, size_buf - 1);
 	if (nread > 0) {
 		buf[nread] = '\0';
 		for (bp = buf; bp < buf + nread; bp++) {
@@ -504,10 +503,10 @@ static int caps_lock(const char *s)
 }
 #endif
 
-#define logname bb_common_bufsiz1
 /* get_logname - get user name, establish parity, speed, erase, kill, eol */
 /* return NULL on failure, logname on success */
-static char *get_logname(struct options *op, struct chardata *cp, struct termio *tp)
+static char *get_logname(char *logname, unsigned size_logname,
+		struct options *op, struct chardata *cp, struct termio *tp)
 {
 	char *bp;
 	char c;				/* input character, full eight bits */
@@ -532,8 +531,8 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 
 	/* Prompt for and read a login name. */
 
-	*logname = 0;
-	while (*logname) {
+	logname[0] = '\0';
+	while (!logname[0]) {
 
 		/* Write issue file and prompt, with "parity" bit == 0. */
 
@@ -542,37 +541,39 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 		/* Read name, watch for break, parity, erase, kill, end-of-line. */
 
 		bp = logname;
-		cp->eol = 0;
-		while (cp->eol == 0) {
+		cp->eol = '\0';
+		while (cp->eol == '\0') {
 
 			/* Do not report trivial EINTR/EIO errors. */
-
 			if (read(0, &c, 1) < 1) {
 				if (errno == EINTR || errno == EIO)
 					exit(0);
 				bb_perror_msg_and_die("%s: read", op->tty);
 			}
-			/* Do BREAK handling elsewhere. */
 
-			if (c == 0 && op->numspeed > 1)
+			/* Do BREAK handling elsewhere. */
+			if (c == '\0' && op->numspeed > 1)
 				return NULL;
 
 			/* Do parity bit handling. */
-
 			ascval = c & 0177;
 			if (c != ascval) {       /* "parity" bit on ? */
-				for (bits = 1, mask = 1; mask & 0177; mask <<= 1)
+				bits = 1;
+				mask = 1;
+				while (mask & 0177) {
 					if (mask & ascval)
 						bits++; /* count "1" bits */
+					mask <<= 1;
+				}
 				/* ... |= 2 - even, 1 - odd */
 				cp->parity |= 2 - (bits & 1);
 			}
-			/* Do erase, kill and end-of-line processing. */
 
+			/* Do erase, kill and end-of-line processing. */
 			switch (ascval) {
 			case CR:
 			case NL:
-				*bp = 0;                /* terminate logname */
+				*bp = '\0';             /* terminate logname */
 				cp->eol = ascval;       /* set end-of-line char */
 				break;
 			case BS:
@@ -596,8 +597,8 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 				exit(0);
 			default:
 				if (!isascii(ascval) || !isprint(ascval)) {
-					/* ignore garbage characters */ ;
-				} else if (bp - logname >= sizeof(logname) - 1) {
+					/* ignore garbage characters */
+				} else if (bp - logname >= size_logname - 1) {
 					bb_error_msg_and_die("%s: input overrun", op->tty);
 				} else {
 					write(1, &c, 1); /* echo the character */
@@ -747,7 +748,6 @@ static void update_utmp(char *line)
 #endif /* SYSV_STYLE */
 
 
-#undef logname
 int getty_main(int argc, char **argv)
 {
 	int nullfd;
@@ -847,7 +847,7 @@ int getty_main(int argc, char **argv)
 	/* Optionally detect the baud rate from the modem status message. */
 	debug("before autobaud\n");
 	if (options.flags & F_PARSE)
-		auto_baud(&termio);
+		auto_baud(bb_common_bufsiz1, sizeof(bb_common_bufsiz1), &termio);
 
 	/* Set the optional timer. */
 	if (options.timeout)
@@ -872,8 +872,8 @@ int getty_main(int argc, char **argv)
 	if (!(options.flags & F_NOPROMPT)) {
 		/* Read the login name. */
 		debug("reading login name\n");
-		/* while ((logname = get_logname(&options, &chardata, &termio)) == 0) */
-		logname = get_logname(&options, &chardata, &termio);
+		logname = get_logname(bb_common_bufsiz1, sizeof(bb_common_bufsiz1),
+				&options, &chardata, &termio);
 		while (logname == NULL)
 			next_speed(&termio, &options);
 	}
