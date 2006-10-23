@@ -50,7 +50,7 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
   * and for line editing at the same time.
   */
 
-#ifdef  SYSV_STYLE
+#ifdef SYSV_STYLE
 #include <sys/utsname.h>
 #include <time.h>
 #endif
@@ -147,7 +147,7 @@ struct chardata {
 
 /* Initial values for the above. */
 
-static struct chardata init_chardata = {
+static const struct chardata init_chardata = {
 	DEF_ERASE,                              /* default erase character */
 	DEF_KILL,                               /* default kill character */
 	13,                                     /* default eol char */
@@ -161,7 +161,7 @@ struct Speedtab {
 	int code;
 };
 
-static struct Speedtab speedtab[] = {
+static const struct Speedtab speedtab[] = {
 	{50, B50},
 	{75, B75},
 	{110, B110},
@@ -201,7 +201,7 @@ static struct Speedtab speedtab[] = {
 #endif
 
 
-#ifdef  SYSV_STYLE
+#ifdef SYSV_STYLE
 #ifdef CONFIG_FEATURE_UTMP
 static void update_utmp(char *line);
 #endif
@@ -262,7 +262,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 	op->flags = getopt32(argc, argv, opt_string,
 		&(op->initstring), &fakehost, &(op->issue),
 		&(op->login), &ts);
-	if(op->flags & F_INITSTRING) {
+	if (op->flags & F_INITSTRING) {
 		const char *p = op->initstring;
 		char *q;
 
@@ -280,33 +280,34 @@ static void parse_args(int argc, char **argv, struct options *op)
 		*q = '\0';
 	}
 	op->flags ^= F_ISSUE;           /* revert flag show /etc/issue */
-	if(op->flags & F_TIMEOUT) {
+	if (op->flags & F_TIMEOUT) {
 		op->timeout = xatoul_range(ts, 1, INT_MAX);
 	}
+	argv += optind;
+	argc -= optind;
 	debug("after getopt loop\n");
-	if (argc < optind + 2)          /* check parameter count */
+	if (argc < 2)          /* check parameter count */
 		bb_show_usage();
 
 	/* we loosen up a bit and accept both "baudrate tty" and "tty baudrate" */
-	if ('0' <= argv[optind][0] && argv[optind][0] <= '9') {
+	if ('0' <= argv[0][0] && argv[0][0] <= '9') {
 		/* a number first, assume it's a speed (BSD style) */
-		parse_speeds(op, argv[optind++]);       /* baud rate(s) */
-		op->tty = argv[optind]; /* tty name */
+		parse_speeds(op, argv[0]);       /* baud rate(s) */
+		op->tty = argv[1]; /* tty name */
 	} else {
-		op->tty = argv[optind++];       /* tty name */
-		parse_speeds(op, argv[optind]); /* baud rate(s) */
+		op->tty = argv[0];       /* tty name */
+		parse_speeds(op, argv[1]); /* baud rate(s) */
 	}
 
-	optind++;
-	if (argc > optind && argv[optind])
-		setenv("TERM", argv[optind], 1);
+	if (argc > 2 && argv[2])
+		setenv("TERM", argv[2], 1);
 
 	debug("exiting parseargs\n");
 }
 
 static void xdup2(int srcfd, int dstfd, const char *tty)
 {
-	if(dup2(srcfd, dstfd) == -1)
+	if (dup2(srcfd, dstfd) == -1)
 		bb_perror_msg_and_die("%s: dup", tty);
 }
 
@@ -333,7 +334,7 @@ static void open_tty(char *tty, struct termio *tp, int local)
 
 		debug("open(2)\n");
 		fd = xopen(tty, O_RDWR | O_NONBLOCK);
-		if(fd) {
+		if (fd) {
 			xdup2(fd, 0, tty);
 			close(fd);
 		}
@@ -372,12 +373,14 @@ static void open_tty(char *tty, struct termio *tp, int local)
 	 */
 
 #ifdef DEBIAN
+#warning Debian /dev/vcs[a]NN hack is deprecated and will be removed
 	{
 		/* tty to root.dialout 660 */
 		struct group *gr;
 		int id;
 
-		id = (gr = getgrnam("dialout")) ? gr->gr_gid : 0;
+		gr = getgrnam("dialout");
+		id = gr ? gr->gr_gid : 0;
 		chown(tty, 0, id);
 		chmod(tty, 0660);
 
@@ -491,7 +494,8 @@ static void auto_baud(struct termio *tp)
 	 */
 
 	(void) sleep(1);
-	if ((nread = read(0, buf, sizeof(buf) - 1)) > 0) {
+	nread = read(0, buf, sizeof(buf) - 1);
+	if (nread > 0) {
 		buf[nread] = '\0';
 		for (bp = buf; bp < buf + nread; bp++) {
 			if (isascii(*bp) && isdigit(*bp)) {
@@ -536,15 +540,10 @@ static void do_prompt(struct options *op, struct termio *tp)
 /* returns 1 if true, 0 if false */
 static int caps_lock(const char *s)
 {
-	int capslock;
-
-	for (capslock = 0; *s; s++) {
-		if (islower(*s))
-			return (0);
-		if (capslock == 0)
-			capslock = isupper(*s);
-	}
-	return (capslock);
+	while (*s)
+		if (islower(*s++))
+			return 0;
+	return 1;
 }
 
 #define logname bb_common_bufsiz1
@@ -557,7 +556,7 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 	char ascval;                    /* low 7 bits of input character */
 	int bits;                       /* # of "1" bits per character */
 	int mask;                       /* mask with 1 bit up */
-	static char *erase[] = {        /* backspace-space-backspace */
+	static const char *const erase[] = {    /* backspace-space-backspace */
 		"\010\040\010",                 /* space parity */
 		"\010\040\010",                 /* odd parity */
 		"\210\240\210",                 /* even parity */
@@ -575,7 +574,8 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 
 	/* Prompt for and read a login name. */
 
-	for (*logname = 0; *logname == 0; /* void */ ) {
+	*logname = 0;
+	while (*logname) {
 
 		/* Write issue file and prompt, with "parity" bit == 0. */
 
@@ -583,7 +583,9 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 
 		/* Read name, watch for break, parity, erase, kill, end-of-line. */
 
-		for (bp = logname, cp->eol = 0; cp->eol == 0; /* void */ ) {
+		bp = logname;
+		cp->eol = 0;
+		while (cp->eol == 0) {
 
 			/* Do not report trivial EINTR/EIO errors. */
 
@@ -594,13 +596,13 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 			}
 			/* Do BREAK handling elsewhere. */
 
-			if ((c == 0) && op->numspeed > 1)
-				/* return (0); */
+			if (c == 0 && op->numspeed > 1)
 				return NULL;
 
 			/* Do parity bit handling. */
 
-			if (c != (ascval = (c & 0177))) {       /* "parity" bit on ? */
+			ascval = c & 0177;
+			if (c != ascval) {       /* "parity" bit on ? */
 				for (bits = 1, mask = 1; mask & 0177; mask <<= 1)
 					if (mask & ascval)
 						bits++; /* count "1" bits */
@@ -648,12 +650,13 @@ static char *get_logname(struct options *op, struct chardata *cp, struct termio 
 	}
 	/* Handle names with upper case and no lower case. */
 
-	if ((cp->capslock = caps_lock(logname))) {
+	cp->capslock = caps_lock(logname);
+	if (cp->capslock) {
 		for (bp = logname; *bp; bp++)
 			if (isupper(*bp))
 				*bp = tolower(*bp);     /* map name to lower case */
 	}
-	return (logname);
+	return logname;
 }
 
 /* termio_final - set the final tty mode bits */
@@ -746,8 +749,8 @@ static void update_utmp(char *line)
 	utmpname(_PATH_UTMP);
 	setutent();
 	while ((utp = getutent())
-		   && !(utp->ut_type == INIT_PROCESS && utp->ut_pid == mypid))  /* nothing */
-		;
+		   && !(utp->ut_type == INIT_PROCESS && utp->ut_pid == mypid))
+		/* nothing */;
 
 	if (utp) {
 		memcpy(&ut, utp, sizeof(ut));
@@ -756,7 +759,7 @@ static void update_utmp(char *line)
 		memset(&ut, 0, sizeof(ut));
 		safe_strncpy(ut.ut_id, line + 3, sizeof(ut.ut_id));
 	}
-	/*endutent(); */
+	/* endutent(); */
 
 	strcpy(ut.ut_user, "LOGIN");
 	safe_strncpy(ut.ut_line, line, sizeof(ut.ut_line));
@@ -808,20 +811,21 @@ int getty_main(int argc, char **argv)
 	close(0);
 	close(1);
 	close(2);
+	logmode = LOGMODE_NONE;
 #ifdef __linux__
 	setsid();
 #endif
-	/* We want special flavor of error_msg_and_die */
-	die_sleep = 10;
-	msg_eol = "\r\n";
 	/* Was "/dev/console". Why should we spam *system console*
 	 * if there is a problem with getty on /dev/ttyS15?... */
 	nullfd = xopen(bb_dev_null, O_RDWR);
 	dup2(nullfd, 0);
 	dup2(nullfd, 1);
 	dup2(nullfd, 2);
-	if(nullfd > 2)
+	if (nullfd > 2)
 		close(nullfd);
+	/* We want special flavor of error_msg_and_die */
+	die_sleep = 10;
+	msg_eol = "\r\n";
 	openlog(applet_name, LOG_PID, LOG_AUTH);
 	logmode = LOGMODE_BOTH;
 
@@ -927,4 +931,3 @@ int getty_main(int argc, char **argv)
 	(void) execl(options.login, options.login, "--", logname, (char *) 0);
 	bb_error_msg_and_die("%s: can't exec %s", options.tty, options.login);
 }
-
