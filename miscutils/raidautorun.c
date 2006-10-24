@@ -15,6 +15,9 @@
 
 int raidautorun_main(int argc, char **argv)
 {
+	if (argc != 2)
+		bb_show_usage();
+
 	if (ioctl(xopen(argv[1], O_RDONLY), RAID_AUTORUN, NULL) != 0) {
 		bb_perror_msg_and_die("ioctl");
 	}
