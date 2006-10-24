@@ -2,7 +2,34 @@
 
 
 <ul>
-  <li><b>Sep 29, 2006 -- New license email address.</b>
+  <li><b>24 October, 2006 -- BusyBox 1.2.2 (stable)</b>
+    <p>It's a bit overdue, but
+    <a href=http://busybox.net/downloads/busybox-1.2.2.tar.bz2>here is
+    BusyBox 1.2.2</a>.</p>
+
+    <p>This release has dozens of fixes backported from the ongoing development
+    branch.  There are a couple of bugfixes to sed, two fixes to documentation
+    generation (BusyBox.html shouldn't have USE() macros in it anymore), fix
+    umount to report the right errno on failure and to umount block devices by
+    name with newer kernels, fix mount to handle symlinks properly, make mdev
+    delete device nodes when called for hotplug remove, fix a segfault
+    in traceroute, a minor portability fix to md5sum option parsing, a build
+    fix for httpd with old gccs, an options parsing tweak to hdparm, make test
+    fail gracefully when getgroups() returns -1, fix a race condition in
+    modprobe when two instances run at once (hotplug does this), make "tar xf
+    foo.tar dir/dir" extract all subdirectories, make our getty initialize the
+    terminal more like mingetty, an selinux build fix, an endianness fix in
+    ping6, fix for zcip defending addresses, clean up some global variables in
+    gzip to save memory, fix sulogin -tNNN, a help text tweak, several warning
+    fixes and build fixes, fixup dnsd a bit, and a partridge in a pear tree.</p>
+
+    <p>As <a href=http://lwn.net/Articles/202106/>Linux Weekly News noted</a>,
+    this is my (Rob's) last release of BusyBox.  The new maintainer is Denis
+    Vlasenko, I'm off to do <a href=http://landley.net/code>other things</a>.
+    </p>
+  </li>
+
+  <li><b>29 September, 2006 -- New license email address.</b>
     <p>The email address gpl@busybox.net is now the recommended way to contact
     the Software Freedom Law Center to report BusyBox license violations.</p>
 

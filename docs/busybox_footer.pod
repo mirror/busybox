@@ -25,7 +25,7 @@ use of any NSS support files or libraries.
 
 =head1 MAINTAINER
 
-Rob Landley <rob@landley.net>
+Denis Vlasenko <vda.linux@googlemail.com>
 
 =head1 AUTHORS
 
