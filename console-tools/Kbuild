@@ -14,5 +14,6 @@ lib-$(CONFIG_LOADFONT)		+= loadfont.o
 lib-$(CONFIG_LOADKMAP)		+= loadkmap.o
 lib-$(CONFIG_OPENVT)		+= openvt.o
 lib-$(CONFIG_RESET)		+= reset.o
+lib-$(CONFIG_RESIZE)		+= resize.o
 lib-$(CONFIG_SETKEYCODES)	+= setkeycodes.o
 lib-$(CONFIG_SETLOGCONS)	+= setlogcons.o
