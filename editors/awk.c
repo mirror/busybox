@@ -1470,7 +1470,7 @@ static int awk_split(char *s, node *spl, char **slist)
 		}
 	} else {				/* space split */
 		while (*s) {
-			while (isspace(*s)) s++;
+			s = skip_whitespace(s);
 			if (! *s) break;
 			n++;
 			while (*s && !isspace(*s))

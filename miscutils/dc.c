@@ -179,10 +179,10 @@ static void stack_machine(const char *argument)
  */
 static char *get_token(char **buffer)
 {
-	char *start   = NULL;
-	char *current = *buffer;
+	char *start = NULL;
+	char *current;
 
-	while (isspace(*current)) { current++; }
+	current = skip_whitespace(*buffer);
 	if (*current != 0) {
 		start = current;
 		while (!isspace(*current) && *current != 0) { current++; }

@@ -302,7 +302,7 @@ int wget_main(int argc, char **argv)
 
 			s = buf;
 			while (*s != '\0' && !isspace(*s)) ++s;
-			while (isspace(*s)) ++s;
+			s = skip_whitespace(s);
 			// FIXME: no error check
 			// xatou wouldn't work: "200 OK"
 			status = atoi(s);

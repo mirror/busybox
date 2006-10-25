@@ -63,29 +63,29 @@
 
 /* Each sed command turns into one of these structures. */
 typedef struct sed_cmd_s {
-    /* Ordered by alignment requirements: currently 36 bytes on x86 */
+	/* Ordered by alignment requirements: currently 36 bytes on x86 */
 
-    /* address storage */
-    regex_t *beg_match;	/* sed -e '/match/cmd' */
-    regex_t *end_match;	/* sed -e '/match/,/end_match/cmd' */
-    regex_t *sub_match;	/* For 's/sub_match/string/' */
-    int beg_line;		/* 'sed 1p'   0 == apply commands to all lines */
-    int end_line;		/* 'sed 1,3p' 0 == one line only. -1 = last line ($) */
+	/* address storage */
+	regex_t *beg_match;     /* sed -e '/match/cmd' */
+	regex_t *end_match;     /* sed -e '/match/,/end_match/cmd' */
+	regex_t *sub_match;     /* For 's/sub_match/string/' */
+	int beg_line;           /* 'sed 1p'   0 == apply commands to all lines */
+	int end_line;           /* 'sed 1,3p' 0 == one line only. -1 = last line ($) */
 
-    FILE *file;			/* File (sw) command writes to, -1 for none. */
-    char *string;		/* Data string for (saicytb) commands. */
+	FILE *file;             /* File (sw) command writes to, -1 for none. */
+	char *string;           /* Data string for (saicytb) commands. */
 
-    unsigned short which_match;		/* (s) Which match to replace (0 for all) */
+	unsigned short which_match;     /* (s) Which match to replace (0 for all) */
 
-    /* Bitfields (gcc won't group them if we don't) */
-    unsigned int invert:1;			/* the '!' after the address */
-    unsigned int in_match:1;		/* Next line also included in match? */
-    unsigned int no_newline:1;		/* Last line written by (sw) had no '\n' */
-    unsigned int sub_p:1;			/* (s) print option */
+	/* Bitfields (gcc won't group them if we don't) */
+	unsigned int invert:1;          /* the '!' after the address */
+	unsigned int in_match:1;        /* Next line also included in match? */
+	unsigned int no_newline:1;      /* Last line written by (sw) had no '\n' */
+	unsigned int sub_p:1;           /* (s) print option */
 
-    /* GENERAL FIELDS */
-    char cmd;				/* The command char: abcdDgGhHilnNpPqrstwxy:={} */
-    struct sed_cmd_s *next;	/* Next command (linked list, NULL terminated) */
+	/* GENERAL FIELDS */
+	char cmd;               /* The command char: abcdDgGhHilnNpPqrstwxy:={} */
+	struct sed_cmd_s *next; /* Next command (linked list, NULL terminated) */
 } sed_cmd_t;
 
 static const char *const semicolon_whitespace = "; \n\r\t\v";
@@ -162,7 +162,7 @@ void sed_free_and_close_stuff(void)
 
 static void cleanup_outname(void)
 {
-  if(bbg.outname) unlink(bbg.outname);
+	if(bbg.outname) unlink(bbg.outname);
 }
 
 /* strdup, replacing "\n" with '\n', and "\delimiter" with 'delimiter' */
@@ -343,36 +343,36 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, char *substr)
 		if(isspace(substr[idx])) continue;
 
 		switch (substr[idx]) {
-			/* Replace all occurrences */
-			case 'g':
-				if (match[0] != '^') sed_cmd->which_match = 0;
-				break;
-			/* Print pattern space */
-			case 'p':
-				sed_cmd->sub_p = 1;
-				break;
-			/* Write to file */
-			case 'w':
-			{
-				char *temp;
-				idx+=parse_file_cmd(sed_cmd,substr+idx,&temp);
+		/* Replace all occurrences */
+		case 'g':
+			if (match[0] != '^') sed_cmd->which_match = 0;
+			break;
+		/* Print pattern space */
+		case 'p':
+			sed_cmd->sub_p = 1;
+			break;
+		/* Write to file */
+		case 'w':
+		{
+			char *temp;
+			idx+=parse_file_cmd(sed_cmd,substr+idx,&temp);
 
-				break;
-			}
-			/* Ignore case (gnu exension) */
-			case 'I':
-				cflags |= REG_ICASE;
-				break;
-			/* Comment */
-			case '#':
-				while(substr[++idx]);
-				/* Fall through */
-			/* End of command */
-			case ';':
-			case '}':
-				goto out;
-			default:
-				bb_error_msg_and_die("bad option in substitution expression");
+			break;
+		}
+		/* Ignore case (gnu exension) */
+		case 'I':
+			cflags |= REG_ICASE;
+			break;
+		/* Comment */
+		case '#':
+			while(substr[++idx]);
+			/* Fall through */
+		/* End of command */
+		case ';':
+		case '}':
+			goto out;
+		default:
+			bb_error_msg_and_die("bad option in substitution expression");
 		}
 	}
 out:
@@ -420,7 +420,7 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 	} else if (strchr(":btT", sed_cmd->cmd)) {
 		int length;
 
-		while(isspace(*cmdstr)) cmdstr++;
+		cmdstr = skip_whitespace(cmdstr);
 		length = strcspn(cmdstr, semicolon_whitespace);
 		if (length) {
 			sed_cmd->string = xstrndup(cmdstr, length);
@@ -517,7 +517,7 @@ static void add_cmd(char *cmdstr)
 		}
 
 		/* skip whitespace before the command */
-		while (isspace(*cmdstr)) cmdstr++;
+		cmdstr = skip_whitespace(cmdstr);
 
 		/* Check for inversion flag */
 		if (*cmdstr == '!') {
@@ -525,7 +525,7 @@ static void add_cmd(char *cmdstr)
 			cmdstr++;
 
 			/* skip whitespace before the command */
-			while (isspace(*cmdstr)) cmdstr++;
+			cmdstr = skip_whitespace(cmdstr);
 		}
 
 		/* last part (mandatory) will be a command */
@@ -724,7 +724,7 @@ static int puts_maybe_newline(char *s, FILE *file, int missing_newline, int no_n
 	fputs(s,file);
 	if(!no_newline) fputc('\n',file);
 
-    if(ferror(file)) {
+	if(ferror(file)) {
 		xfunc_error_retval = 4;  /* It's what gnu sed exits with... */
 		bb_error_msg_and_die(bb_msg_write_error);
 	}
@@ -1167,40 +1167,43 @@ int sed_main(int argc, char **argv)
 		FILE *file;
 
 		for (i = optind; i < argc; i++) {
+			struct stat statbuf;
+			int nonstdoutfd;
+
 			if(!strcmp(argv[i], "-") && !bbg.in_place) {
 				add_input_file(stdin);
 				process_files();
-			} else {
-				file = bb_wfopen(argv[i], "r");
-				if (file) {
-					if(bbg.in_place) {
-						struct stat statbuf;
-						int nonstdoutfd;
-
-						bbg.outname=xstrndup(argv[i],strlen(argv[i])+6);
-						strcat(bbg.outname,"XXXXXX");
-						if(-1==(nonstdoutfd=mkstemp(bbg.outname)))
-							bb_error_msg_and_die("no temp file");
-						bbg.nonstdout=fdopen(nonstdoutfd,"w");
-
-						/* Set permissions of output file */
-
-						fstat(fileno(file),&statbuf);
-						fchmod(nonstdoutfd,statbuf.st_mode);
-						add_input_file(file);
-						process_files();
-						fclose(bbg.nonstdout);
-
-						bbg.nonstdout=stdout;
-						unlink(argv[i]);
-						rename(bbg.outname,argv[i]);
-						free(bbg.outname);
-						bbg.outname=0;
-					} else add_input_file(file);
-				} else {
-					status = EXIT_FAILURE;
-				}
+				continue;
 			}
+			file = bb_wfopen(argv[i], "r");
+			if (!file) {
+				status = EXIT_FAILURE;
+				continue;
+			}
+			if(!bbg.in_place) {
+				add_input_file(file);
+				continue;
+			}
+
+			bbg.outname=xstrndup(argv[i],strlen(argv[i])+6);
+			strcat(bbg.outname,"XXXXXX");
+			if(-1==(nonstdoutfd=mkstemp(bbg.outname)))
+				bb_error_msg_and_die("no temp file");
+			bbg.nonstdout=fdopen(nonstdoutfd,"w");
+
+			/* Set permissions of output file */
+
+			fstat(fileno(file),&statbuf);
+			fchmod(nonstdoutfd,statbuf.st_mode);
+			add_input_file(file);
+			process_files();
+			fclose(bbg.nonstdout);
+
+			bbg.nonstdout=stdout;
+			unlink(argv[i]);
+			rename(bbg.outname,argv[i]);
+			free(bbg.outname);
+			bbg.outname=0;
 		}
 		if(bbg.input_file_count>bbg.current_input_file) process_files();
 	}

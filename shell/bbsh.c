@@ -119,7 +119,7 @@ static char *parse_pipeline(char *cmdline, struct pipeline *line)
 		char *end;
 
 		// Skip leading whitespace and detect end of line.
-		while (isspace(*start)) start++;
+		start = skip_whitespace(start);
 		if (!*start || *start=='#') {
 			if (ENABLE_BBSH_JOBCTL) line->cmdlinelen = start-cmdline;
 			return 0;

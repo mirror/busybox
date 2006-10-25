@@ -76,15 +76,13 @@ static int parse_tag_value ( char *buffer, char **ptag, char **pvalue )
 {
 	char *tag, *value;
 
-	while ( isspace ( *buffer ))
-		buffer++;
+	buffer = skip_whitespace ( buffer );
 	tag = value = buffer;
 	while ( !isspace ( *value ))
 		if (!*value) return 0;
 		else value++;
 	*value++ = 0;
-	while ( isspace ( *value ))
-		value++;
+	value = skip_whitespace ( value );
 	if (!*value) return 0;
 
 	*ptag = tag;
@@ -311,11 +309,9 @@ static void include_conf ( struct dep_t **first, struct dep_t **current, char *b
 				}
 			}
 			else if (( strncmp ( buffer, "include", 7 ) == 0 ) && isspace ( buffer [7] )) {
+				int fdi; char *filename;
 
-				int fdi; char *filename = buffer + 8;
-
-				while ( isspace ( *filename ))
-					filename++;
+				filename = skip_whitespace ( buffer + 8 );
 
 				if (( fdi = open ( filename, O_RDONLY )) >= 0 ) {
 					include_conf(first, current, buffer, buflen, fdi);

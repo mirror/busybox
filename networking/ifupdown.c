@@ -572,10 +572,7 @@ static char *next_word(char **buf)
 	}
 
 	/* Skip over leading whitespace */
-	word = *buf;
-	while (isspace(*word)) {
-		++word;
-	}
+	word = skip_whitespace(*buf);
 
 	/* Skip over comments */
 	if (*word == '#') {
@@ -712,9 +709,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 			}
 
 			/* ship any trailing whitespace */
-			while (isspace(*buf_ptr)) {
-				++buf_ptr;
-			}
+			buf_ptr = skip_whitespace(buf_ptr);
 
 			if (buf_ptr[0] != '\0') {
 				bb_error_msg("too many parameters \"%s\"", buf);
