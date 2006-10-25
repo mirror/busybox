@@ -166,7 +166,7 @@ extern void llist_add_to(llist_t **old_head, void *data);
 extern void llist_add_to_end(llist_t **list_head, void *data);
 extern void *llist_pop(llist_t **elm);
 extern void llist_free(llist_t *elm, void (*freeit)(void *data));
-
+extern llist_t* rev_llist(llist_t *list);
 
 enum {
 	LOGMODE_NONE = 0,

@@ -62,3 +62,17 @@ void llist_free(llist_t *elm, void (*freeit)(void *data))
 		if (freeit) freeit(data);
 	}
 }
+
+/* Reverse list order. Useful since getopt32 saves option params
+ * in reverse order */
+llist_t* rev_llist(llist_t *list)
+{
+	llist_t *new = NULL;
+	while (list) {
+		llist_t *next = list->link;
+		list->link = new;
+		new = list;
+		list = next;
+	}
+	return new;
+}

@@ -86,42 +86,22 @@ static char *base64enc(unsigned char *p, char *buf, int len)
 }
 #endif
 
-#define WGET_OPT_CONTINUE     1
-#define WGET_OPT_QUIET        2
-#define WGET_OPT_PASSIVE      4
-#define WGET_OPT_OUTNAME      8
-#define WGET_OPT_HEADER      16
-#define WGET_OPT_PREFIX      32
-#define WGET_OPT_PROXY       64
-#define WGET_OPT_USER_AGENT 128
-
-#if ENABLE_FEATURE_WGET_LONG_OPTIONS
-static const struct option wget_long_options[] = {
-	{ "continue",        0, NULL, 'c' },
-	{ "quiet",           0, NULL, 'q' },
-	{ "passive-ftp",     0, NULL, 139 }, /* FIXME: what is this - 139?? */
-	{ "output-document", 1, NULL, 'O' },
-	{ "header",          1, NULL, 131 },
-	{ "directory-prefix",1, NULL, 'P' },
-	{ "proxy",           1, NULL, 'Y' },
-	{ "user-agent",      1, NULL, 'U' },
-	{ 0,                 0, 0, 0 }
-};
-#endif
-
 int wget_main(int argc, char **argv)
 {
-	int n, status;
-	int try = 5;
-	int port;
-	unsigned opt;
-	char *proxy = 0;
-	char *dir_prefix = NULL;
-	char *s, buf[512];
-	char *extra_headers = NULL;
+	char buf[512];
 	struct host_info server, target;
 	struct sockaddr_in s_in;
+	int n, status;
+	int port;
+	int try = 5;
+	unsigned opt;
+	char *s;
+	char *proxy = 0;
+	char *dir_prefix = NULL;
+#if ENABLE_FEATURE_WGET_LONG_OPTIONS
+	char *extra_headers = NULL;
 	llist_t *headers_llist = NULL;
+#endif
 
 	/* server.allocated = target.allocated = NULL; */
 
@@ -137,21 +117,46 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Crack command line.
 	 */
-	opt_complementary = "-1:\203::";
+	enum {
+		WGET_OPT_CONTINUE   = 0x1,
+		WGET_OPT_QUIET      = 0x2,
+		WGET_OPT_OUTNAME    = 0x4,
+		WGET_OPT_PREFIX     = 0x8,
+		WGET_OPT_PROXY      = 0x10,
+		WGET_OPT_USER_AGENT = 0x20,
+		WGET_OPT_PASSIVE    = 0x40,
+		WGET_OPT_HEADER     = 0x80,
+	};
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
+	static const struct option wget_long_options[] = {
+		// name, has_arg, flag, val
+		{ "continue",         no_argument, NULL, 'c' },
+		{ "quiet",            no_argument, NULL, 'q' },
+		{ "output-document",  required_argument, NULL, 'O' },
+		{ "directory-prefix", required_argument, NULL, 'P' },
+		{ "proxy",            required_argument, NULL, 'Y' },
+		{ "user-agent",       required_argument, NULL, 'U' },
+		{ "passive-ftp",      no_argument, NULL, 0xff },
+		{ "header",           required_argument, NULL, 0xfe },
+		{ 0, 0, 0, 0 }
+};
 	applet_long_options = wget_long_options;
 #endif
-	opt = getopt32(argc, argv, "cq\213O:\203:P:Y:U:",
-					&fname_out, &headers_llist,
-					&dir_prefix, &proxy_flag, &user_agent);
+	opt_complementary = "-1" USE_FEATURE_WGET_LONG_OPTIONS(":\xfe::");
+	opt = getopt32(argc, argv, "cqO:P:Y:U:",
+				&fname_out, &dir_prefix,
+				&proxy_flag, &user_agent
+				USE_FEATURE_WGET_LONG_OPTIONS(, &headers_llist)
+				);
 	if (strcmp(proxy_flag, "off") == 0) {
 		/* Use the proxy if necessary. */
 		use_proxy = 0;
 	}
+#if ENABLE_FEATURE_WGET_LONG_OPTIONS
 	if (headers_llist) {
 		int size = 1;
 		char *cp;
-		llist_t *ll = headers_llist;
+		llist_t *ll = headers_llist = rev_llist(headers_llist);
 		while (ll) {
 			size += strlen(ll->data) + 2;
 			ll = ll->link;
@@ -162,6 +167,7 @@ int wget_main(int argc, char **argv)
 			headers_llist = headers_llist->link;
 		}
 	}
+#endif
 
 	parse_url(argv[optind], &target);
 	server.host = target.host;
@@ -281,8 +287,10 @@ int wget_main(int argc, char **argv)
 
 			if (beg_range)
 				fprintf(sfp, "Range: bytes="OFF_FMT"-\r\n", beg_range);
+#if ENABLE_FEATURE_WGET_LONG_OPTIONS
 			if (extra_headers)
 				fputs(extra_headers, sfp);
+#endif
 			fprintf(sfp, "Connection: close\r\n\r\n");
 
 			/*

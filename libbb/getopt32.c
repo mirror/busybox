@@ -313,7 +313,7 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 {
 	unsigned flags = 0;
 	unsigned requires = 0;
-	t_complementary complementary[sizeof(flags) * 8 + 1];
+	t_complementary complementary[33];
 	int c;
 	const unsigned char *s;
 	t_complementary *on_off;
@@ -342,16 +342,13 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 	s = (const unsigned char *)applet_opts;
 	if (*s == '+' || *s == '-')
 		s++;
-	for (; *s; s++) {
-		if (c >= (int)(sizeof(flags)*8))
-			break;
+	while (*s) {
+		if (c >= 32) break;
 		on_off->opt = *s;
 		on_off->switch_on = (1 << c);
-		if (s[1] == ':') {
+		if (*++s == ':') {
 			on_off->optarg = va_arg(p, void **);
-			do
-				s++;
-			while (s[1] == ':');
+			while (*++s == ':') /* skip */;
 		}
 		on_off++;
 		c++;
@@ -363,16 +360,14 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 			continue;
 		for (on_off = complementary; on_off->opt != 0; on_off++)
 			if (on_off->opt == l_o->val)
-				break;
-		if (on_off->opt == 0) {
-			if (c >= (int)(sizeof(flags)*8))
-				break;
-			on_off->opt = l_o->val;
-			on_off->switch_on = (1 << c);
-			if (l_o->has_arg != no_argument)
-				on_off->optarg = va_arg(p, void **);
-			c++;
-		}
+				goto next_long;
+		if (c >= 32) break;
+		on_off->opt = l_o->val;
+		on_off->switch_on = (1 << c);
+		if (l_o->has_arg != no_argument)
+			on_off->optarg = va_arg(p, void **);
+		c++;
+ next_long: ;
 	}
 #endif /* ENABLE_GETOPT_LONG */
 	for (s = (const unsigned char *)opt_complementary; s && *s; s++) {
@@ -461,12 +456,17 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 		}
 	}
 #endif
+	/* Note: just "getopt() <= 0" will not work good for
+	 * "fake" short options, like this one:
+	 * wget $'-\203' "Test: test" http://kernel.org/
+	 * (supposed to act as --header, but doesn't) */
 #if ENABLE_GETOPT_LONG
 	while ((c = getopt_long(argc, argv, applet_opts,
-				 applet_long_options, NULL)) >= 0) {
+				 applet_long_options, NULL)) != -1) {
 #else
-	while ((c = getopt(argc, argv, applet_opts)) >= 0) {
+	while ((c = getopt(argc, argv, applet_opts)) != -1) {
 #endif /* ENABLE_GETOPT_LONG */
+		c &= 0xff; /* fight libc's sign extends */
 loop_arg_is_opt:
 		for (on_off = complementary; on_off->opt != c; on_off++) {
 			/* c==0 if long opt have non NULL flag */
