@@ -51,25 +51,26 @@ int df_main(int argc, char **argv)
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
 	opt_complementary = "h-km:k-hm:m-hk";
 	opt = getopt32(argc, argv, "hmk");
-	if(opt & 1) {
-				df_disp_hr = 0;
-				disp_units_hdr = "     Size";
+	if (opt & 1) {
+		df_disp_hr = 0;
+		disp_units_hdr = "     Size";
 	}
-	if(opt & 2) {
-				df_disp_hr = MEGABYTE;
-				disp_units_hdr = "1M-blocks";
+	if (opt & 2) {
+		df_disp_hr = MEGABYTE;
+		disp_units_hdr = "1M-blocks";
 	}
 #else
 	opt = getopt32(argc, argv, "k");
 #endif
 
-	bb_printf("Filesystem%11s%-15sUsed Available Use%% Mounted on\n",
+	printf("Filesystem%11s%-15sUsed Available Use%% Mounted on\n",
 			  "", disp_units_hdr);
 
 	mount_table = NULL;
 	argv += optind;
 	if (optind >= argc) {
-		if (!(mount_table = setmntent(bb_path_mtab_file, "r"))) {
+		mount_table = setmntent(bb_path_mtab_file, "r");
+		if (!mount_table) {
 			bb_perror_msg_and_die(bb_path_mtab_file);
 		}
 	}
@@ -79,16 +80,19 @@ int df_main(int argc, char **argv)
 		const char *mount_point;
 
 		if (mount_table) {
-			if (!(mount_entry = getmntent(mount_table))) {
+			mount_entry = getmntent(mount_table);
+			if (!mount_entry) {
 				endmntent(mount_table);
 				break;
 			}
 		} else {
-			if (!(mount_point = *argv++)) {
+			mount_point = *argv++;
+			if (!mount_point) {
 				break;
 			}
-			if (!(mount_entry = find_mount_point(mount_point, bb_path_mtab_file))) {
-				bb_error_msg("%s: can't find mount point.", mount_point);
+			mount_entry = find_mount_point(mount_point, bb_path_mtab_file);
+			if (!mount_entry) {
+				bb_error_msg("%s: can't find mount point", mount_point);
 			SET_ERROR:
 				status = EXIT_FAILURE;
 				continue;
@@ -108,8 +112,8 @@ int df_main(int argc, char **argv)
 			blocks_percent_used = 0;
 			if (blocks_used + s.f_bavail) {
 				blocks_percent_used = (((long long) blocks_used) * 100
-									   + (blocks_used + s.f_bavail)/2
-									   ) / (blocks_used + s.f_bavail);
+						+ (blocks_used + s.f_bavail)/2
+						) / (blocks_used + s.f_bavail);
 			}
 
 			if (strcmp(device, "rootfs") == 0) {
@@ -117,24 +121,25 @@ int df_main(int argc, char **argv)
 			} else if (strcmp(device, "/dev/root") == 0) {
 				/* Adjusts device to be the real root device,
 				* or leaves device alone if it can't find it */
-				if ((device = find_block_device("/")) == NULL) {
+				device = find_block_device("/");
+				if (!device) {
 					goto SET_ERROR;
 				}
 			}
 
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-			bb_printf("%-20s %9s ", device,
-					  make_human_readable_str(s.f_blocks, s.f_bsize, df_disp_hr));
+			printf("%-20s %9s ", device,
+				make_human_readable_str(s.f_blocks, s.f_bsize, df_disp_hr));
 
-			bb_printf("%9s ",
-					  make_human_readable_str( (s.f_blocks - s.f_bfree),
-											  s.f_bsize, df_disp_hr));
+			printf("%9s ",
+				make_human_readable_str( (s.f_blocks - s.f_bfree),
+						s.f_bsize, df_disp_hr));
 
-			bb_printf("%9s %3ld%% %s\n",
+			printf("%9s %3ld%% %s\n",
 					  make_human_readable_str(s.f_bavail, s.f_bsize, df_disp_hr),
 					  blocks_percent_used, mount_point);
 #else
-			bb_printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
+			printf("%-20s %9ld %9ld %9ld %3ld%% %s\n",
 					  device,
 					  kscale(s.f_blocks, s.f_bsize),
 					  kscale(s.f_blocks-s.f_bfree, s.f_bsize),
@@ -145,5 +150,5 @@ int df_main(int argc, char **argv)
 
 	} while (1);
 
-	bb_fflush_stdout_and_exit(status);
+	fflush_stdout_and_exit(status);
 }

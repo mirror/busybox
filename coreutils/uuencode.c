@@ -47,12 +47,12 @@ int uuencode_main(int argc, char **argv)
 			bb_show_usage();
 	}
 
-	bb_printf("begin%s %o %s", tbl == bb_uuenc_tbl_std ? "" : "-base64", mode, argv[argc - 1]);
+	printf("begin%s %o %s", tbl == bb_uuenc_tbl_std ? "" : "-base64", mode, argv[argc - 1]);
 
 	while ((size = fread(src_buf, 1, src_buf_size, src_stream)) > 0) {
 		if (size != src_buf_size) {
 			/* write_size is always 60 until the last line */
-			write_size=(4 * ((size + 2) / 3));
+			write_size = (4 * ((size + 2) / 3));
 			/* pad with 0s so we can just encode extra bits */
 			memset(&src_buf[size], 0, src_buf_size - size);
 		}
@@ -67,9 +67,9 @@ int uuencode_main(int argc, char **argv)
 			bb_perror_msg_and_die(bb_msg_write_error);
 		}
 	}
-	bb_printf(tbl == bb_uuenc_tbl_std ? "\n`\nend\n" : "\n====\n");
+	printf(tbl == bb_uuenc_tbl_std ? "\n`\nend\n" : "\n====\n");
 
-	xferror(src_stream, "source");	/* TODO - Fix this! */
+	die_if_ferror(src_stream, "source");	/* TODO - Fix this! */
 
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

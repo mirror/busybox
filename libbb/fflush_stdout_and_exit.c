@@ -11,11 +11,9 @@
  * in an error state.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <libbb.h>
+#include "libbb.h"
 
-void bb_fflush_stdout_and_exit(int retval)
+void fflush_stdout_and_exit(int retval)
 {
 	if (fflush(stdout)) {
 		retval = xfunc_error_retval;

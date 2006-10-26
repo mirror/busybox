@@ -35,7 +35,7 @@ static short printf_full(unsigned int id, const char *arg, const char prefix)
 		fmt = "%cid=%u(%s)";
 		status = EXIT_SUCCESS;
 	}
-	bb_printf(fmt, prefix, id, arg);
+	printf(fmt, prefix, id, arg);
 	return status;
 }
 
@@ -74,10 +74,10 @@ int id_main(int argc, char **argv)
 			/* bb_getpwuid and bb_getgrgid exit on failure so puts cannot segfault */
 			puts((flags & JUST_USER) ? bb_getpwuid(NULL, uid, -1 ) : bb_getgrgid(NULL, gid, -1 ));
 		} else {
-			bb_printf("%u\n", (flags & JUST_USER) ? uid : gid);
+			printf("%u\n", (flags & JUST_USER) ? uid : gid);
 		}
 		/* exit */
-		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 
 	/* Print full info like GNU id */
@@ -96,16 +96,16 @@ int id_main(int argc, char **argv)
 			getcon(&mysid);
 			context[0] = '\0';
 			if (mysid) {
-					len = strlen(mysid)+1;
-					safe_strncpy(context, mysid, len);
-					freecon(mysid);
+				len = strlen(mysid)+1;
+				safe_strncpy(context, mysid, len);
+				freecon(mysid);
 			} else {
-					safe_strncpy(context, "unknown", 8);
+				safe_strncpy(context, "unknown", 8);
 			}
-		bb_printf(" context=%s", context);
+		printf(" context=%s", context);
 	}
 #endif
 
 	putchar('\n');
-	bb_fflush_stdout_and_exit(status);
+	fflush_stdout_and_exit(status);
 }

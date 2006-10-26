@@ -96,7 +96,7 @@ int cmp_main(int argc, char **argv)
 				c1 = c2;
 			}
 			if (c1 == EOF) {
-				xferror(fp1, filename1);
+				die_if_ferror(fp1, filename1);
 				fmt = fmt_eof;	/* Well, no error, so it must really be EOF. */
 				outfile = stderr;
 				/* There may have been output to stdout (option -l), so
@@ -107,7 +107,7 @@ int cmp_main(int argc, char **argv)
 				if (opt & CMP_OPT_l) {
 					line_pos = c1;	/* line_pos is unused in the -l case. */
 				}
-				bb_fprintf(outfile, fmt, filename1, filename2, char_pos, line_pos, c2);
+				fprintf(outfile, fmt, filename1, filename2, char_pos, line_pos, c2);
 				if (opt) {	/* This must be -l since not -s. */
 					/* If we encountered an EOF,
 					 * the while check will catch it. */
@@ -121,8 +121,8 @@ int cmp_main(int argc, char **argv)
 		}
 	} while (c1 != EOF);
 
-	xferror(fp1, filename1);
-	xferror(fp2, filename2);
+	die_if_ferror(fp1, filename1);
+	die_if_ferror(fp2, filename2);
 
-	bb_fflush_stdout_and_exit(retval);
+	fflush_stdout_and_exit(retval);
 }

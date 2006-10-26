@@ -286,5 +286,5 @@ int rx_main(int argc, char **argv)
 	if (n < 0)
 		bb_error_msg_and_die("\nreceive failed:\n  %s", error_buf);
 
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

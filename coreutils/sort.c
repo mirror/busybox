@@ -318,5 +318,5 @@ int sort_main(int argc, char **argv)
 	/* Print it */
 	if(!outfile) outfile=stdout;
 	for(i=0;i<linecount;i++) fprintf(outfile,"%s\n",lines[i]);
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

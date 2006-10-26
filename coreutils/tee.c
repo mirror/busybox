@@ -85,7 +85,7 @@ int tee_main(int argc, char **argv)
 	 * output files.  Since we know that the first entry in the output
 	 * file table is stdout, we can save one "if ferror" test by
 	 * setting the first entry to stdin and checking stdout error
-	 * status with bb_fflush_stdout_and_exit()... although fflush()ing
+	 * status with fflush_stdout_and_exit()... although fflush()ing
 	 * is unnecessary here. */
 
 	p = files;
@@ -93,8 +93,8 @@ int tee_main(int argc, char **argv)
 	do {		/* Now check for (input and) output errors. */
 		/* Checking ferror should be sufficient, but we may want to fclose.
 		 * If we do, remember not to close stdin! */
-		xferror(*p, filenames[(int)(p - files)]);
+		die_if_ferror(*p, filenames[(int)(p - files)]);
 	} while (*++p);
 
-	bb_fflush_stdout_and_exit(retval);
+	fflush_stdout_and_exit(retval);
 }

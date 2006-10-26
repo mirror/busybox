@@ -182,12 +182,12 @@ int wc_main(int argc, char **argv)
 		u = 0;
 		do {
 			if (print_type & (1 << u)) {
-				bb_printf(s, pcounts[u]);
+				printf(s, pcounts[u]);
 				s = " %9"COUNT_FMT; /* Ok... restore the leading space. */
 			}
 			totals[u] += pcounts[u];
 		} while (++u < 4);
-		bb_printf(fname_fmt, arg);
+		printf(fname_fmt, arg);
 	}
 
 	/* If more than one file was processed, we want the totals.  To save some
@@ -202,5 +202,5 @@ int wc_main(int argc, char **argv)
 		goto OUTPUT;
 	}
 
-	bb_fflush_stdout_and_exit(status);
+	fflush_stdout_and_exit(status);
 }

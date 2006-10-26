@@ -139,7 +139,7 @@ int cal_main(int argc, char **argv)
 
 		day_array(month, year, dp);
 		len = sprintf(lineout, "%s %d", month_names[month - 1], year);
-		bb_printf("%*s%s\n%s\n",
+		printf("%*s%s\n%s\n",
 			   ((7*julian + WEEK_LEN) - len) / 2, "",
 			   lineout, day_headings);
 		for (row = 0; row < 6; row++) {
@@ -170,9 +170,9 @@ int cal_main(int argc, char **argv)
 				center(month_names[month + 1], week_len, HEAD_SEP);
 			}
 			center(month_names[month + 2 - julian], week_len, 0);
-			bb_printf("\n%s%*s%s", day_headings, HEAD_SEP, "", day_headings);
+			printf("\n%s%*s%s", day_headings, HEAD_SEP, "", day_headings);
 			if (!julian) {
-				bb_printf("%*s%s", HEAD_SEP, "", day_headings);
+				printf("%*s%s", HEAD_SEP, "", day_headings);
 			}
 			putchar('\n');
 			for (row = 0; row < (6*7); row += 7) {
@@ -186,7 +186,7 @@ int cal_main(int argc, char **argv)
 		}
 	}
 
-	bb_fflush_stdout_and_exit(0);
+	fflush_stdout_and_exit(0);
 }
 
 /*
@@ -281,7 +281,7 @@ static void center(char *str, int len, int separate)
 {
 	int n = strlen(str);
 	len -= n;
-	bb_printf("%*s%*s", (len/2) + n, str, (len/2) + (len % 2) + separate, "");
+	printf("%*s%*s", (len/2) + n, str, (len/2) + (len % 2) + separate, "");
 }
 
 static void blank_string(char *buf, size_t buflen)

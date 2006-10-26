@@ -491,7 +491,7 @@ void displayroutes(int noresolve, int netstatfmt)
 
 	FILE *fp = xfopen("/proc/net/route", "r");
 
-	bb_printf("Kernel IP routing table\n"
+	printf("Kernel IP routing table\n"
 			  "Destination     Gateway         Genmask"
 			  "         Flags %s Iface\n",
 			  netstatfmt ? "  MSS Window  irtt" : "Metric Ref    Use");
@@ -534,11 +534,11 @@ void displayroutes(int noresolve, int netstatfmt)
 					  (noresolve | 0x4000), m);	/* Host instead of net. */
 
 		mask.s_addr = m;
-		bb_printf("%-16s%-16s%-16s%-6s", sdest, sgw, inet_ntoa(mask), flags);
+		printf("%-16s%-16s%-16s%-6s", sdest, sgw, inet_ntoa(mask), flags);
 		if (netstatfmt) {
-			bb_printf("%5d %-5d %6d %s\n", mtu, win, ir, devname);
+			printf("%5d %-5d %6d %s\n", mtu, win, ir, devname);
 		} else {
-			bb_printf("%-6d %-2d %7d %s\n", metric, ref, use, devname);
+			printf("%-6d %-2d %7d %s\n", metric, ref, use, devname);
 		}
 	}
 }
@@ -561,7 +561,7 @@ static void INET6_displayroutes(int noresolve)
 
 	FILE *fp = xfopen("/proc/net/ipv6_route", "r");
 
-	bb_printf("Kernel IPv6 routing table\n%-44s%-40s"
+	printf("Kernel IPv6 routing table\n%-44s%-40s"
 			  "Flags Metric Ref    Use Iface\n",
 			  "Destination", "Next Hop");
 
@@ -622,7 +622,7 @@ static void INET6_displayroutes(int noresolve)
 				r += 40;
 			} else {			/* 2nd pass */
 				/* Print the info. */
-				bb_printf("%-43s %-39s %-5s %-6d %-2d %7d %-8s\n",
+				printf("%-43s %-39s %-5s %-6d %-2d %7d %-8s\n",
 						  addr6, naddr6, flags, metric, refcnt, use, iface);
 				break;
 			}
@@ -650,15 +650,13 @@ int route_main(int argc, char **argv)
 	unsigned opt;
 	int what;
 	char *family;
+	char **p;
 
 	/* First, remap '-net' and '-host' to avoid getopt problems. */
-	{
-		char **p = argv;
-
-		while (*++p) {
-			if ((strcmp(*p, "-net") == 0) || (strcmp(*p, "-host") == 0)) {
-				p[0][0] = '#';
-			}
+	p = argv;
+	while (*++p) {
+		if ((strcmp(*p, "-net") == 0) || (strcmp(*p, "-host") == 0)) {
+			p[0][0] = '#';
 		}
 	}
 
@@ -685,8 +683,7 @@ int route_main(int argc, char **argv)
 #endif
 			displayroutes(noresolve, opt & ROUTE_OPT_e);
 
-		xferror_stdout();
-		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 
 	/* Check verb.  At the moment, must be add, del, or delete. */

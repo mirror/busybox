@@ -17,7 +17,7 @@ int pwd_main(int argc, char **argv)
 
 	if ((buf = xgetcwd(NULL)) != NULL) {
 		puts(buf);
-		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 
 	return EXIT_FAILURE;

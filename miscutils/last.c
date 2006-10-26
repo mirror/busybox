@@ -87,5 +87,5 @@ int last_main(int argc, char **argv)
 				ctime(&t_tmp) + 4);
 	}
 
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

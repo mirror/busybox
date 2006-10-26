@@ -54,7 +54,6 @@ lib-$(CONFIG_DEVFSD) += xregcomp.o
 
 lib-y += messages.o
 lib-y += xfuncs.o
-lib-y += printf.o
 lib-y += xatol.o
 lib-y += safe_strtol.o
 lib-y += bb_pwd.o

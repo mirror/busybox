@@ -14,8 +14,6 @@
  * Size reductions and removed redundant applet name prefix from error messages.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "busybox.h"
 
 int yes_main(int argc, char **argv)
@@ -33,7 +31,7 @@ int yes_main(int argc, char **argv)
 	do {
 		fmt = fmt_str + 1;
 		do {
-			bb_printf(fmt, *argv);
+			printf(fmt, *argv);
 			fmt = fmt_str;
 		} while (*++argv);
 		argv = first_arg;

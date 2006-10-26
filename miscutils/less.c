@@ -76,7 +76,7 @@ static int num_files = 1;
 static int past_eof;
 
 /* Command line options */
-static unsigned long flags;
+static unsigned flags;
 #define FLAG_E 1
 #define FLAG_M (1<<1)
 #define FLAG_m (1<<2)
@@ -185,12 +185,12 @@ static void clear_line(void)
 /* This adds line numbers to every line, as the -N flag necessitates */
 static void add_linenumbers(void)
 {
-	char current_line[256];
 	int i;
 
 	for (i = 0; i <= num_flines; i++) {
-		safe_strncpy(current_line, flines[i], 256);
-		flines[i] = xasprintf("%5d %s", i + 1, current_line);
+		char *new = xasprintf("%5d %s", i + 1, flines[i]);
+		free(flines[i]);
+		flines[i] = new;
 	}
 }
 
@@ -206,7 +206,7 @@ static void data_readlines(void)
 		strcpy(current_line, "");
 		fgets(current_line, 256, fp);
 		if (fp != stdin)
-			xferror(fp, filename);
+			die_if_ferror(fp, filename);
 		flines = xrealloc(flines, (i+1) * sizeof(char *));
 		flines[i] = xstrdup(current_line);
 	}
@@ -243,13 +243,18 @@ static void m_status_print(void)
 	if (!past_eof) {
 		if (!line_pos) {
 			if (num_files > 1)
-				printf("%s%s %s%i%s%i%s%i-%i/%i ", HIGHLIGHT, filename, "(file ", current_file, " of ", num_files, ") lines ", line_pos + 1, line_pos + height - 1, num_flines + 1);
+				printf("%s%s %s%i%s%i%s%i-%i/%i ", HIGHLIGHT,
+					filename, "(file ", current_file, " of ", num_files, ") lines ",
+					line_pos + 1, line_pos + height - 1, num_flines + 1);
 			else {
-				printf("%s%s lines %i-%i/%i ", HIGHLIGHT, filename, line_pos + 1, line_pos + height - 1, num_flines + 1);
+				printf("%s%s lines %i-%i/%i ", HIGHLIGHT,
+					filename, line_pos + 1, line_pos + height - 1,
+					num_flines + 1);
 			}
 		}
 		else {
-			printf("%s %s lines %i-%i/%i ", HIGHLIGHT, filename, line_pos + 1, line_pos + height - 1, num_flines + 1);
+			printf("%s %s lines %i-%i/%i ", HIGHLIGHT, filename,
+				line_pos + 1, line_pos + height - 1, num_flines + 1);
 		}
 
 		if (line_pos == num_flines - height + 2) {
@@ -263,7 +268,8 @@ static void m_status_print(void)
 		}
 	}
 	else {
-		printf("%s%s lines %i-%i/%i (END) ", HIGHLIGHT, filename, line_pos + 1, num_flines + 1, num_flines + 1);
+		printf("%s%s lines %i-%i/%i (END) ", HIGHLIGHT, filename,
+				line_pos + 1, num_flines + 1, num_flines + 1);
 		if ((num_files > 1) && (current_file != num_files))
 			printf("- Next: %s", files[current_file]);
 		printf("%s", NORMAL);
@@ -300,7 +306,8 @@ static void status_print(void)
 		if (!line_pos) {
 			printf("%s%s %s", HIGHLIGHT, filename, NORMAL);
 			if (num_files > 1)
-				printf("%s%s%i%s%i%s%s", HIGHLIGHT, "(file ", current_file, " of ", num_files, ")", NORMAL);
+				printf("%s%s%i%s%i%s%s", HIGHLIGHT, "(file ",
+					current_file, " of ", num_files, ")", NORMAL);
 		}
 		else if (line_pos == num_flines - height + 2) {
 			printf("%s%s %s", HIGHLIGHT, "(END)", NORMAL);
@@ -602,7 +609,7 @@ static char *process_regex_on_line(char *line, regex_t *pattern, int action)
 	   insert_highlights if action = 1, or has the escape sequences
 	   removed if action = 0, and then the line is returned. */
 	int match_status;
-	char *line2 = (char *) xmalloc((sizeof(char) * (strlen(line) + 1)) + 64);
+	char *line2 = xmalloc((sizeof(char) * (strlen(line) + 1)) + 64);
 	char *growline = "";
 	regmatch_t match_structs;
 
@@ -616,10 +623,16 @@ static char *process_regex_on_line(char *line, regex_t *pattern, int action)
 			match_found = 1;
 
 		if (action) {
-			growline = xasprintf("%s%.*s%s%.*s%s", growline, match_structs.rm_so, line2, HIGHLIGHT, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so, NORMAL);
+			growline = xasprintf("%s%.*s%s%.*s%s", growline,
+				match_structs.rm_so, line2, HIGHLIGHT,
+				match_structs.rm_eo - match_structs.rm_so,
+				line2 + match_structs.rm_so, NORMAL);
 		}
 		else {
-			growline = xasprintf("%s%.*s%.*s", growline, match_structs.rm_so - 4, line2, match_structs.rm_eo - match_structs.rm_so, line2 + match_structs.rm_so);
+			growline = xasprintf("%s%.*s%.*s", growline,
+				match_structs.rm_so - 4, line2,
+				match_structs.rm_eo - match_structs.rm_so,
+				line2 + match_structs.rm_so);
 		}
 
 		line2 += match_structs.rm_eo;

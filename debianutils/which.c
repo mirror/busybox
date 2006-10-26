@@ -39,5 +39,5 @@ int which_main(int argc, char **argv)
 		status = EXIT_FAILURE;
 	}
 
-	bb_fflush_stdout_and_exit(status);
+	fflush_stdout_and_exit(status);
 }

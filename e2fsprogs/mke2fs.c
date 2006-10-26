@@ -177,9 +177,9 @@ static void mke2fs_error_msg_and_die(int retval, const char *fmt, ...)
 
 	if (retval) {
 		va_start(ap, fmt);
-		bb_fprintf(stderr,"\nCould not ");
-		bb_vfprintf(stderr, fmt, ap);
-		bb_fprintf(stderr, "\n");
+		fprintf(stderr,"\nCould not ");
+		vfprintf(stderr, fmt, ap);
+		fprintf(stderr, "\n");
 		va_end(ap);
 		exit(EXIT_FAILURE);
 	}
@@ -192,7 +192,7 @@ static void mke2fs_verbose(const char *fmt, ...)
 
 	if (!quiet) {
 		va_start(ap, fmt);
-		bb_vfprintf(stdout, fmt, ap);
+		vfprintf(stdout, fmt, ap);
 		fflush(stdout);
 		va_end(ap);
 	}
@@ -210,9 +210,9 @@ static void mke2fs_warning_msg(int retval, char *fmt, ... )
 
 	if (retval) {
 		va_start(ap, fmt);
-		bb_fprintf(stderr,"\nWarning: ");
-		bb_vfprintf(stderr, fmt, ap);
-		bb_fprintf(stderr, "\n");
+		fprintf(stderr,"\nWarning: ");
+		vfprintf(stderr, fmt, ap);
+		fprintf(stderr, "\n");
 		va_end(ap);
 	}
 }

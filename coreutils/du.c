@@ -56,14 +56,14 @@ static void print(long size, const char * const filename)
 {
 	/* TODO - May not want to defer error checking here. */
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-	bb_printf("%s\t%s\n", make_human_readable_str(size, 512, disp_hr),
+	printf("%s\t%s\n", make_human_readable_str(size, 512, disp_hr),
 		   filename);
 #else
 	if (disp_k) {
 		size++;
 		size >>= 1;
 	}
-	bb_printf("%ld\t%s\n", size, filename);
+	printf("%ld\t%s\n", size, filename);
 #endif
 }
 
@@ -246,5 +246,5 @@ int du_main(int argc, char **argv)
 		print(total, "total");
 	}
 
-	bb_fflush_stdout_and_exit(status);
+	fflush_stdout_and_exit(status);
 }

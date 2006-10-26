@@ -91,10 +91,10 @@ int uname_main(int argc, char **argv)
 
 	strcpy(uname_info.processor, "unknown");
 
-	delta=utsname_offset;
+	delta = utsname_offset;
 	do {
 		if (toprint & 1) {
-			bb_printf(((char *)(&uname_info)) + *delta);
+			printf(((char *)(&uname_info)) + *delta);
 			if (toprint > 1) {
 				putchar(' ');
 			}
@@ -103,5 +103,5 @@ int uname_main(int argc, char **argv)
 	} while (toprint >>= 1);
 	putchar('\n');
 
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

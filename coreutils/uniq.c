@@ -37,7 +37,7 @@ int uniq_main(int argc, char **argv)
 
 	while ((opt = getopt(argc, argv, uniq_opts)) > 0) {
 		if ((opt == 'f') || (opt == 's')) {
-			int t = xatoul(optarg);
+			unsigned long t = xatoul(optarg);
 			if (opt == 'f') {
 				skip_fields = t;
 			} else {
@@ -71,13 +71,13 @@ int uniq_main(int argc, char **argv)
 		/* gnu uniq ignores newlines */
 		while ((s1 = xmalloc_getline(in)) != NULL) {
 			e1 = s1;
-			for (i=skip_fields ; i ; i--) {
+			for (i = skip_fields; i; i--) {
 				e1 = skip_whitespace(e1);
 				while (*e1 && !isspace(*e1)) {
 					++e1;
 				}
 			}
-			for (i = skip_chars ; *e1 && i ; i--) {
+			for (i = skip_chars; *e1 && i; i--) {
 				++e1;
 			}
 
@@ -90,14 +90,14 @@ int uniq_main(int argc, char **argv)
 
 		if (s0) {
 			if (!(uniq_flags & (2 << !!dups))) {
-				bb_fprintf(out, "\0%d " + (uniq_flags & 1), dups + 1);
-				bb_fprintf(out, "%s\n", s0);
+				fprintf(out, "\0%d " + (uniq_flags & 1), dups + 1);
+				fprintf(out, "%s\n", s0);
 			}
 			free((void *)s0);
 		}
 	} while (s1);
 
-	xferror(in, input_filename);
+	die_if_ferror(in, input_filename);
 
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

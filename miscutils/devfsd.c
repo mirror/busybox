@@ -491,9 +491,9 @@ int devfsd_main (int argc, char **argv)
 
 	if ( print_version  || (DEVFSD_PROTOCOL_REVISION_DAEMON != proto_rev) )
 	{
-		bb_printf( "%s v%s\nDaemon %s:\t%d\nKernel-side %s:\t%d\n",
-					 applet_name,DEVFSD_VERSION,bb_msg_proto_rev,
-					 DEVFSD_PROTOCOL_REVISION_DAEMON,bb_msg_proto_rev, proto_rev);
+		printf( "%s v%s\nDaemon %s:\t%d\nKernel-side %s:\t%d\n",
+				applet_name,DEVFSD_VERSION,bb_msg_proto_rev,
+				DEVFSD_PROTOCOL_REVISION_DAEMON,bb_msg_proto_rev, proto_rev);
 		if (DEVFSD_PROTOCOL_REVISION_DAEMON != proto_rev)
 			bb_error_msg_and_die( "%s mismatch!",bb_msg_proto_rev);
 		exit(EXIT_SUCCESS); /* -v */
@@ -509,7 +509,7 @@ int devfsd_main (int argc, char **argv)
 	if (sigaction (SIGHUP, &new_action, NULL) != 0 || sigaction (SIGUSR1, &new_action, NULL) != 0 )
 		devfsd_error_msg_and_die( "sigaction");
 
-	bb_printf("%s v%s  started for %s\n",applet_name, DEVFSD_VERSION, mount_point);
+	printf("%s v%s  started for %s\n",applet_name, DEVFSD_VERSION, mount_point);
 
 	/*  Set umask so that mknod(2), open(2) and mkdir(2) have complete control over permissions  */
 	umask (0);

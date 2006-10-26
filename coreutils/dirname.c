@@ -22,5 +22,5 @@ int dirname_main(int argc, char **argv)
 
 	puts(dirname(argv[1]));
 
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

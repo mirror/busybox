@@ -41,5 +41,5 @@ int tty_main(int argc, char **argv)
 		puts(s);
 	}
 
-	bb_fflush_stdout_and_exit(retval);
+	fflush_stdout_and_exit(retval);
 }

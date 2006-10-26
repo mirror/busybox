@@ -17,8 +17,8 @@ int nice_main(int argc, char **argv)
 	old_priority = getpriority(PRIO_PROCESS, 0);
 
 	if (!*++argv) {	/* No args, so (GNU) output current nice value. */
-		bb_printf("%d\n", old_priority);
-		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+		printf("%d\n", old_priority);
+		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 
 	adjustment = 10;			/* Set default adjustment. */

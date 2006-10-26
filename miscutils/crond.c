@@ -264,7 +264,7 @@ int crond_main(int ac, char **av)
 			}
 		}
 	}
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS); /* not reached */
+	return 0; /* not reached */
 }
 
 static int ChangeUser(const char *user)
@@ -278,7 +278,7 @@ static int ChangeUser(const char *user)
 	pas = getpwnam(user);
 	if (pas == 0) {
 		crondlog("\011failed to get uid for %s", user);
-		return (-1);
+		return -1;
 	}
 	setenv("USER", pas->pw_name, 1);
 	setenv("HOME", pas->pw_dir, 1);
@@ -290,16 +290,16 @@ static int ChangeUser(const char *user)
 	err_msg = change_identity_e2str(pas);
 	if (err_msg) {
 		crondlog("\011%s for user %s", err_msg, user);
-		return (-1);
+		return -1;
 	}
 	if (chdir(pas->pw_dir) < 0) {
 		crondlog("\011chdir failed: %s: %m", pas->pw_dir);
 		if (chdir(TMPDIR) < 0) {
 			crondlog("\011chdir failed: %s: %m", TMPDIR);
-			return (-1);
+			return -1;
 		}
 	}
-	return (pas->pw_uid);
+	return pas->pw_uid;
 }
 
 static void startlogger(void)
@@ -377,7 +377,7 @@ static char *ParseField(char *user, char *ary, int modvalue, int off,
 	int n2 = -1;
 
 	if (base == NULL) {
-		return (NULL);
+		return NULL;
 	}
 
 	while (*ptr != ' ' && *ptr != '\t' && *ptr != '\n') {
@@ -420,7 +420,7 @@ static char *ParseField(char *user, char *ary, int modvalue, int off,
 
 		if (skip == 0) {
 			crondlog("\111failed user %s parsing %s\n", user, base);
-			return (NULL);
+			return NULL;
 		}
 		if (*ptr == '-' && n2 < 0) {
 			++ptr;
@@ -460,7 +460,7 @@ static char *ParseField(char *user, char *ary, int modvalue, int off,
 
 			if (failsafe == 0) {
 				crondlog("\111failed user %s parsing %s\n", user, base);
-				return (NULL);
+				return NULL;
 			}
 		}
 		if (*ptr != ',') {
@@ -473,7 +473,7 @@ static char *ParseField(char *user, char *ary, int modvalue, int off,
 
 	if (*ptr != ' ' && *ptr != '\t' && *ptr != '\n') {
 		crondlog("\111failed user %s parsing %s\n", user, base);
-		return (NULL);
+		return NULL;
 	}
 
 	while (*ptr == ' ' || *ptr == '\t' || *ptr == '\n') {
@@ -490,7 +490,7 @@ static char *ParseField(char *user, char *ary, int modvalue, int off,
 	}
 #endif
 
-	return (ptr);
+	return ptr;
 }
 
 static void FixDayDow(CronLine * line)
@@ -777,7 +777,7 @@ static int TestJobs(time_t t1, time_t t2)
 			}
 		}
 	}
-	return (nJobs);
+	return nJobs;
 }
 
 static void RunJobs(void)
@@ -843,7 +843,7 @@ static int CheckJobs(void)
 		}
 		nStillRunning += file->cf_Running;
 	}
-	return (nStillRunning);
+	return nStillRunning;
 }
 
 

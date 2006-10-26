@@ -227,7 +227,7 @@ extern int recursive_action(const char *fileName, int recurse,
 	  int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData),
 	  void* userData);
 
-extern int bb_parse_mode( const char* s, mode_t* theMode);
+extern int bb_parse_mode(const char* s, mode_t* theMode);
 
 extern unsigned int tty_baud_to_value(speed_t speed);
 extern speed_t tty_value_to_baud(unsigned int value);
@@ -253,7 +253,7 @@ extern FILE *bb_wfopen_input(const char *filename);
 extern FILE *xfopen(const char *path, const char *mode);
 
 extern int bb_fclose_nonstdin(FILE *f);
-extern void bb_fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
+extern void fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
 
 extern void xstat(char *filename, struct stat *buf);
 extern int  xsocket(int domain, int type, int protocol);
@@ -278,17 +278,8 @@ extern const struct option *applet_long_options;
 extern uint32_t option_mask32;
 extern uint32_t getopt32(int argc, char **argv, const char *applet_opts, ...);
 
-extern int bb_vfprintf(FILE * __restrict stream, const char * __restrict format,
-					   va_list arg) __attribute__ ((format (printf, 2, 0)));
-extern int bb_vprintf(const char * __restrict format, va_list arg)
-	__attribute__ ((format (printf, 1, 0)));
-extern int bb_fprintf(FILE * __restrict stream, const char * __restrict format, ...)
-	__attribute__ ((format (printf, 2, 3)));
-extern int bb_printf(const char * __restrict format, ...)
-	__attribute__ ((format (printf, 1, 2)));
-
-extern void xferror(FILE *fp, const char *fn);
-extern void xferror_stdout(void);
+extern void die_if_ferror(FILE *fp, const char *fn);
+extern void die_if_ferror_stdout(void);
 extern void xfflush_stdout(void);
 
 extern void bb_warn_ignoring_args(int n);

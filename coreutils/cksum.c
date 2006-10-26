@@ -41,13 +41,13 @@ int cksum_main(int argc, char **argv)
 		crc ^= 0xffffffffL;
 
 		if (inp_stdin) {
-			bb_printf("%" PRIu32 " %li\n", crc, filesize);
+			printf("%" PRIu32 " %li\n", crc, filesize);
 			break;
 		}
 
-		bb_printf("%" PRIu32 " %li %s\n", crc, filesize, *argv);
+		printf("%" PRIu32 " %li %s\n", crc, filesize, *argv);
 		fclose(fp);
 	} while (*(argv + 1));
 
-	return EXIT_SUCCESS;
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

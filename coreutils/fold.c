@@ -150,5 +150,5 @@ rescan:
 		}
 	} while (*++argv);
 
-	bb_fflush_stdout_and_exit(errs);
+	fflush_stdout_and_exit(errs);
 }

@@ -87,11 +87,11 @@ int expr_main(int argc, char **argv)
 		bb_error_msg_and_die("syntax error");
 
 	if (v->type == integer)
-		bb_printf("%" PF_REZ "d\n", PF_REZ_TYPE v->u.i);
+		printf("%" PF_REZ "d\n", PF_REZ_TYPE v->u.i);
 	else
 		puts(v->u.s);
 
-	exit(null(v));
+	fflush_stdout_and_exit(null(v));
 }
 
 /* Return a VALUE for I.  */

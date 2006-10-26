@@ -44,5 +44,5 @@ int realpath_main(int argc, char **argv)
 	RELEASE_CONFIG_BUFFER(resolved_path);
 #endif
 
-	bb_fflush_stdout_and_exit(retval);
+	fflush_stdout_and_exit(retval);
 }

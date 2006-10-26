@@ -130,7 +130,7 @@ off_t xlseek(int fd, off_t offset, int whence)
 }
 
 // Die with supplied error message if this FILE * has ferror set.
-void xferror(FILE *fp, const char *fn)
+void die_if_ferror(FILE *fp, const char *fn)
 {
 	if (ferror(fp)) {
 		bb_error_msg_and_die("%s", fn);
@@ -138,9 +138,9 @@ void xferror(FILE *fp, const char *fn)
 }
 
 // Die with an error message if stdout has ferror set.
-void xferror_stdout(void)
+void die_if_ferror_stdout(void)
 {
-	xferror(stdout, bb_msg_standard_output);
+	die_if_ferror(stdout, bb_msg_standard_output);
 }
 
 // Die with an error message if we have trouble flushing stdout.

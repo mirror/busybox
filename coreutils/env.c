@@ -90,7 +90,7 @@ int env_main(int argc, char** argv)
 		puts(*ep);
 	}
 
-	bb_fflush_stdout_and_exit(0);
+	fflush_stdout_and_exit(0);
 }
 
 /*

@@ -35,7 +35,7 @@ int logname_main(int argc, char ATTRIBUTE_UNUSED **argv)
 
 	if ((p = getlogin()) != NULL) {
 		puts(p);
-		bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
 
 	bb_perror_msg_and_die("getlogin");

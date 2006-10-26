@@ -19,7 +19,7 @@ int hostid_main(int argc, char ATTRIBUTE_UNUSED **argv)
 		bb_show_usage();
 	}
 
-	bb_printf("%lx\n", gethostid());
+	printf("%lx\n", gethostid());
 
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

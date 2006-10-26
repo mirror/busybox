@@ -143,7 +143,7 @@ const char *opt_complementary
         	while (my_b) { dosomething_with(my_b->data); my_b = my_b->link; }
         if (my_b)        // but llist is stored if -b is specified
         	free_llist(my_b);
-        if (verbose_level) bb_printf("verbose level is %d\n", verbose_level);
+        if (verbose_level) printf("verbose level is %d\n", verbose_level);
 
 Special characters:
 

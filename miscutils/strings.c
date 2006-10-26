@@ -84,5 +84,5 @@ PIPE:
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(string);
 
-	bb_fflush_stdout_and_exit(status);
+	fflush_stdout_and_exit(status);
 }

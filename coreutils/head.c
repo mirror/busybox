@@ -112,12 +112,13 @@ int head_main(int argc, char **argv)
 #endif
 
 	do {
-		if ((fp = bb_wfopen_input(*argv)) != NULL) {
+		fp = bb_wfopen_input(*argv);
+		if (fp) {
 			if (fp == stdin) {
 				*argv = (char *) bb_msg_standard_input;
 			}
 			if (header_threshhold) {
-				bb_printf(fmt, *argv);
+				printf(fmt, *argv);
 			}
 			i = count;
 			while (i && ((c = getc(fp)) != EOF)) {
@@ -130,10 +131,10 @@ int head_main(int argc, char **argv)
 				bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
 				retval = EXIT_FAILURE;
 			}
-			xferror_stdout();
+			die_if_ferror_stdout();
 		}
 		fmt = header_fmt_str;
 	} while (*++argv);
 
-	bb_fflush_stdout_and_exit(retval);
+	fflush_stdout_and_exit(retval);
 }

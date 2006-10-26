@@ -21,5 +21,5 @@ int whoami_main(int argc, char **argv)
 
 	puts(bb_getpwuid(NULL, geteuid(), -1));
 	/* exits on error */
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }

@@ -42,10 +42,10 @@ int catv_main(int argc, char **argv)
 
 				if (c > 126 && (flags & CATV_OPT_v)) {
 					if (c == 127) {
-						bb_printf("^?");
+						printf("^?");
 						continue;
 					} else {
-						bb_printf("M-");
+						printf("M-");
 						c -= 128;
 					}
 				}
@@ -54,7 +54,7 @@ int catv_main(int argc, char **argv)
 						if (flags & CATV_OPT_e)
 							putchar('$');
 					} else if (flags & (c==9 ? CATV_OPT_t : CATV_OPT_v)) {
-						bb_printf("^%c", c+'@');
+						printf("^%c", c+'@');
 						continue;
 					}
 				}
@@ -65,5 +65,5 @@ int catv_main(int argc, char **argv)
 			close(fd);
 	} while (*++argv);
 
-	return retval;
+	fflush_stdout_and_exit(retval);
 }
