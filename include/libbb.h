@@ -245,10 +245,10 @@ extern off_t bb_copyfd_eof(int fd1, int fd2);
 extern char  bb_process_escape_sequence(const char **ptr);
 extern char *bb_get_last_path_component(char *path);
 
-/* Prints to stdout closes entire FILE. Exits on error: */
+/* Reads and prints to stdout till eof, then closes FILE. Exits on error: */
 extern void xprint_and_close_file(FILE *file);
 extern char *xmalloc_fgets(FILE *file);
-/* /* Read up to (and including) TERMINATING_STRING: */
+/* Read up to (and including) TERMINATING_STRING: */
 extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string);
 /* Chops off '\n' from the end, unlike fgets: */
 extern char *xmalloc_getline(FILE *file);
