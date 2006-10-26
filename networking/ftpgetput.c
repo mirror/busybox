@@ -67,7 +67,7 @@ static int xconnect_ftpdata(ftp_host_info_t *server, const char *buf)
 	port_num += xatoul_range(buf_ptr + 1, 0, 255) * 256;
 
 	server->s_in->sin_port = htons(port_num);
-	return xconnect(server->s_in);
+	return xconnect_tcp_v4(server->s_in);
 }
 
 static FILE *ftp_login(ftp_host_info_t *server)
@@ -76,7 +76,7 @@ static FILE *ftp_login(ftp_host_info_t *server)
 	char buf[512];
 
 	/* Connect to the command socket */
-	control_stream = fdopen(xconnect(server->s_in), "r+");
+	control_stream = fdopen(xconnect_tcp_v4(server->s_in), "r+");
 	if (control_stream == NULL) {
 		bb_perror_msg_and_die("cannot open control stream");
 	}

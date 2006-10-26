@@ -49,14 +49,20 @@ void bb_lookup_host(struct sockaddr_in *s_in, const char *host)
 	memcpy(&(s_in->sin_addr), he->h_addr_list[0], he->h_length);
 }
 
-int xconnect(struct sockaddr_in *s_addr)
+void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)
+{
+	if (connect(s, s_addr, addrlen) < 0) {
+		if (ENABLE_FEATURE_CLEAN_UP) close(s);
+		if (s_addr->sa_family == AF_INET)
+			bb_perror_msg_and_die("unable to connect to remote host (%s)",
+				inet_ntoa(((struct sockaddr_in *)s_addr)->sin_addr));
+		bb_perror_msg_and_die("unable to connect to remote host");
+	}
+}
+
+int xconnect_tcp_v4(struct sockaddr_in *s_addr)
 {
 	int s = xsocket(AF_INET, SOCK_STREAM, 0);
-	if (connect(s, (struct sockaddr *)s_addr, sizeof(struct sockaddr_in)) < 0)
-	{
-		if (ENABLE_FEATURE_CLEAN_UP) close(s);
-		bb_perror_msg_and_die("unable to connect to remote host (%s)",
-				inet_ntoa(s_addr->sin_addr));
-	}
+	xconnect(s, (struct sockaddr*) s_addr, sizeof(*s_addr));
 	return s;
 }

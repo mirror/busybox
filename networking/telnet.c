@@ -639,7 +639,7 @@ int telnet_main(int argc, char** argv)
 	s_in.sin_port = bb_lookup_port((argc == 3) ? argv[2] : "telnet", "tcp", 23);
 #endif
 
-	G.netfd = xconnect(&s_in);
+	G.netfd = xconnect_tcp_v4(&s_in);
 
 	setsockopt(G.netfd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);
 

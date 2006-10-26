@@ -585,7 +585,7 @@ static FILE *open_socket(struct sockaddr_in *s_in)
 {
 	FILE *fp;
 
-	fp = fdopen(xconnect(s_in), "r+");
+	fp = fdopen(xconnect_tcp_v4(s_in), "r+");
 	if (fp == NULL)
 		bb_perror_msg_and_die("fdopen");
 
