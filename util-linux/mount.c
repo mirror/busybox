@@ -872,99 +872,168 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 	for (opt = strtok(filteropts, ","); opt; opt = strtok(NULL, ",")) {
 		char *opteq = strchr(opt, '=');
 		if (opteq) {
+			const char *const options[] = {
+				/* 0 */ "rsize",
+				/* 1 */ "wsize",
+				/* 2 */ "timeo",
+				/* 3 */ "retrans",
+				/* 4 */ "acregmin",
+				/* 5 */ "acregmax",
+				/* 6 */ "acdirmin",
+				/* 7 */ "acdirmax",
+				/* 8 */ "actimeo",
+				/* 9 */ "retry",
+				/* 10 */ "port",
+				/* 11 */ "mountport",
+				/* 12 */ "mounthost",
+				/* 13 */ "mountprog",
+				/* 14 */ "mountvers",
+				/* 15 */ "nfsprog",
+				/* 16 */ "nfsvers",
+				/* 17 */ "vers",
+				/* 18 */ "proto",
+				/* 19 */ "namlen",
+				/* 20 */ "addr",
+				NULL
+			};
 			int val = xatoi_u(opteq + 1);
 			*opteq = '\0';
-			if (!strcmp(opt, "rsize"))
+			switch (compare_string_array(options, opt)) {
+			case 0: // "rsize"
 				data.rsize = val;
-			else if (!strcmp(opt, "wsize"))
+				break;
+			case 1: // "wsize"
 				data.wsize = val;
-			else if (!strcmp(opt, "timeo"))
+				break;
+			case 2: // "timeo"
 				data.timeo = val;
-			else if (!strcmp(opt, "retrans"))
+				break;
+			case 3: // "retrans"
 				data.retrans = val;
-			else if (!strcmp(opt, "acregmin"))
+				break;
+			case 4: // "acregmin"
 				data.acregmin = val;
-			else if (!strcmp(opt, "acregmax"))
+				break;
+			case 5: // "acregmax"
 				data.acregmax = val;
-			else if (!strcmp(opt, "acdirmin"))
+				break;
+			case 6: // "acdirmin"
 				data.acdirmin = val;
-			else if (!strcmp(opt, "acdirmax"))
+				break;
+			case 7: // "acdirmax"
 				data.acdirmax = val;
-			else if (!strcmp(opt, "actimeo")) {
+				break;
+			case 8: // "actimeo"
 				data.acregmin = val;
 				data.acregmax = val;
 				data.acdirmin = val;
 				data.acdirmax = val;
-			}
-			else if (!strcmp(opt, "retry"))
+				break;
+			case 9: // "retry"
 				retry = val;
-			else if (!strcmp(opt, "port"))
+				break;
+			case 10: // "port"
 				port = val;
-			else if (!strcmp(opt, "mountport"))
+				break;
+			case 11: // "mountport"
 				mountport = val;
-			else if (!strcmp(opt, "mounthost"))
+				break;
+			case 12: // "mounthost"
 				mounthost = xstrndup(opteq+1,
 						  strcspn(opteq+1," \t\n\r,"));
-			else if (!strcmp(opt, "mountprog"))
+				break;
+			case 13: // "mountprog"
 				mountprog = val;
-			else if (!strcmp(opt, "mountvers"))
+				break;
+			case 14: // "mountvers"
 				mountvers = val;
-			else if (!strcmp(opt, "nfsprog"))
+				break;
+			case 15: // "nfsprog"
 				nfsprog = val;
-			else if (!strcmp(opt, "nfsvers") ||
-				 !strcmp(opt, "vers"))
+				break;
+			case 16: // "nfsvers"
+			case 17: // "vers"
 				nfsvers = val;
-			else if (!strcmp(opt, "proto")) {
+				break;
+			case 18: // "proto"
 				if (!strncmp(opteq+1, "tcp", 3))
 					tcp = 1;
 				else if (!strncmp(opteq+1, "udp", 3))
 					tcp = 0;
 				else
 					bb_error_msg("warning: unrecognized proto= option");
-			} else if (!strcmp(opt, "namlen")) {
+				break;
+			case 19: // "namlen"
 				if (nfs_mount_version >= 2)
 					data.namlen = val;
 				else
 					bb_error_msg("warning: option namlen is not supported\n");
-			} else if (!strcmp(opt, "addr"))
-				/* ignore */;
-			else {
+				break;
+			case 20: // "addr" - ignore
+				break;
+			default:
 				bb_error_msg("unknown nfs mount parameter: %s=%d", opt, val);
 				goto fail;
 			}
 		}
 		else {
+			const char *const options[] = {
+				"bg",
+				"fg",
+				"soft",
+				"hard",
+				"intr",
+				"posix",
+				"cto",
+				"ac",
+				"tcp",
+				"udp",
+				"lock",
+				NULL
+			};
 			int val = 1;
 			if (!strncmp(opt, "no", 2)) {
 				val = 0;
 				opt += 2;
 			}
-			if (!strcmp(opt, "bg"))
+			switch (compare_string_array(options, opt)) {
+			case 0: // "bg"
 				bg = val;
-			else if (!strcmp(opt, "fg"))
+				break;
+			case 1: // "fg"
 				bg = !val;
-			else if (!strcmp(opt, "soft"))
+				break;
+			case 2: // "soft"
 				soft = val;
-			else if (!strcmp(opt, "hard"))
+				break;
+			case 3: // "hard"
 				soft = !val;
-			else if (!strcmp(opt, "intr"))
+				break;
+			case 4: // "intr"
 				intr = val;
-			else if (!strcmp(opt, "posix"))
+				break;
+			case 5: // "posix"
 				posix = val;
-			else if (!strcmp(opt, "cto"))
+				break;
+			case 6: // "cto"
 				nocto = !val;
-			else if (!strcmp(opt, "ac"))
+				break;
+			case 7: // "ac"
 				noac = !val;
-			else if (!strcmp(opt, "tcp"))
+				break;
+			case 8: // "tcp"
 				tcp = val;
-			else if (!strcmp(opt, "udp"))
+				break;
+			case 9: // "udp"
 				tcp = !val;
-			else if (!strcmp(opt, "lock")) {
+				break;
+			case 10: // "lock"
 				if (nfs_mount_version >= 3)
 					nolock = !val;
 				else
 					bb_error_msg("warning: option nolock is not supported");
-			} else {
+				break;
+			default:
 				bb_error_msg("unknown nfs mount option: %s%s", val ? "" : "no", opt);
 				goto fail;
 			}
