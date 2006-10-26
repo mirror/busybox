@@ -9,7 +9,7 @@ lib-y:= \
 	compare_string_array.o concat_path_file.o copy_file.o copyfd.o \
 	crc32.o create_icmp_socket.o create_icmp6_socket.o \
 	device_open.o dump.o error_msg.o error_msg_and_die.o \
-	find_pid_by_name.o find_root_device.o xmalloc_fgets_str.o \
+	find_pid_by_name.o find_root_device.o fgets_str.o \
 	full_write.o get_last_path_component.o get_line_from_file.o \
 	herror_msg.o herror_msg_and_die.o \
 	human_readable.o inet_common.o inode_hash.o isdirectory.o \

@@ -13,7 +13,7 @@ int length_main(int argc, char **argv)
 	    bb_show_usage();
 	}
 
-	bb_printf("%lu\n", (unsigned long)strlen(*argv));
+	printf("%lu\n", (unsigned long)strlen(*argv));
 
-	bb_fflush_stdout_and_exit(EXIT_SUCCESS);
+	fflush_stdout_and_exit(EXIT_SUCCESS);
 }
