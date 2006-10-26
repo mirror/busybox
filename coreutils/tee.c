@@ -49,7 +49,7 @@ int tee_main(int argc, char **argv)
 	goto GOT_NEW_FILE;
 
 	do {
-		if ((*p = bb_wfopen(*argv, mode)) == NULL) {
+		if ((*p = fopen_or_warn(*argv, mode)) == NULL) {
 			retval = EXIT_FAILURE;
 			continue;
 		}

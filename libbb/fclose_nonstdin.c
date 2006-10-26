@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <libbb.h>
 
-int bb_fclose_nonstdin(FILE *f)
+int fclose_if_not_stdin(FILE *f)
 {
 	if (f != stdin) {
 		return fclose(f);

@@ -45,7 +45,7 @@ int strings_main(int argc, char **argv)
 	}
 
 	do {
-		file = bb_wfopen(*argv, "r");
+		file = fopen_or_warn(*argv, "r");
 		if (file) {
 PIPE:
 			count = 0;
@@ -75,7 +75,7 @@ PIPE:
 				}
 				count++;
 			} while (c != EOF);
-			bb_fclose_nonstdin(file);
+			fclose_if_not_stdin(file);
 		} else {
 			status = EXIT_FAILURE;
 		}

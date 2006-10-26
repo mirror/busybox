@@ -112,7 +112,7 @@ int head_main(int argc, char **argv)
 #endif
 
 	do {
-		fp = bb_wfopen_input(*argv);
+		fp = fopen_or_warn_stdin(*argv);
 		if (fp) {
 			if (fp == stdin) {
 				*argv = (char *) bb_msg_standard_input;
@@ -127,7 +127,7 @@ int head_main(int argc, char **argv)
 				}
 				putchar(c);
 			}
-			if (bb_fclose_nonstdin(fp)) {
+			if (fclose_if_not_stdin(fp)) {
 				bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
 				retval = EXIT_FAILURE;
 			}

@@ -20,7 +20,7 @@ int readahead_main(int argc, char **argv)
 	if (argc == 1) bb_show_usage();
 
 	while (*++argv) {
-		if ((f = bb_wfopen(*argv, "r")) != NULL) {
+		if ((f = fopen_or_warn(*argv, "r")) != NULL) {
 			int r, fd=fileno(f);
 
 			r = readahead(fd, 0, fdlength(fd));

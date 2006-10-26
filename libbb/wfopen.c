@@ -7,14 +7,12 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <errno.h>
 #include "libbb.h"
 
-FILE *bb_wfopen(const char *path, const char *mode)
+FILE *fopen_or_warn(const char *path, const char *mode)
 {
-	FILE *fp;
-	if ((fp = fopen(path, mode)) == NULL) {
+	FILE *fp = fopen(path, mode);
+	if (!fp) {
 		bb_perror_msg("%s", path);
 		errno = 0;
 	}

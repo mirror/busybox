@@ -14,18 +14,17 @@
  * Note: We also consider "" to main stdin (for 'cmp' at least).
  */
 
-#include <stdio.h>
-#include <sys/stat.h>
-#include <libbb.h>
+#include "libbb.h"
 
-FILE *bb_wfopen_input(const char *filename)
+FILE *fopen_or_warn_stdin(const char *filename)
 {
 	FILE *fp = stdin;
 
-	if ((filename != bb_msg_standard_input)
-		&& filename[0] && ((filename[0] != '-') || filename[1])
+	if (filename != bb_msg_standard_input
+	 && filename[0]
+	 && (filename[0] != '-' || filename[1])
 	) {
-		fp = bb_wfopen(filename, "r");
+		fp = fopen_or_warn(filename, "r");
 	}
 
 	return fp;

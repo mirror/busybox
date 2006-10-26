@@ -272,7 +272,7 @@ int cut_main(int argc, char **argv)
 		FILE *file;
 
 		for (; optind < argc; optind++) {
-			file = bb_wfopen(argv[optind], "r");
+			file = fopen_or_warn(argv[optind], "r");
 			if (file) {
 				cut_file(file);
 				fclose(file);

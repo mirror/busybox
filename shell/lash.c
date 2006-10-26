@@ -426,7 +426,7 @@ static int builtin_source(struct child_prog *child)
 	FILE *input;
 	int status;
 
-	input = bb_wfopen(child->argv[1], "r");
+	input = fopen_or_warn(child->argv[1], "r");
 	if (!input) {
 		return EXIT_FAILURE;
 	}
@@ -1522,7 +1522,7 @@ int lash_main(int argc_l, char **argv_l)
 			llist_add_to(&close_me_list, (void *)(long)fileno(prof_input));
 			/* Now run the file */
 			busy_loop(prof_input);
-			bb_fclose_nonstdin(prof_input);
+			fclose_if_not_stdin(prof_input);
 			llist_pop(&close_me_list);
 		}
 	}

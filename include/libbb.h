@@ -240,20 +240,29 @@ extern void erase_mtab(const char * name);
 extern long *find_pid_by_name( const char* pidName);
 extern long *pidlist_reverse(long *pidList);
 extern char *find_block_device(char *path);
-extern char *xmalloc_fgets(FILE *file);
-/* Chops off '\n' from the end, unlike fgets: */
-extern char *xmalloc_getline(FILE *file);
-extern char *bb_get_chunk_from_file(FILE *file, int *end);
 extern off_t bb_copyfd_size(int fd1, int fd2, off_t size);
 extern off_t bb_copyfd_eof(int fd1, int fd2);
 extern char  bb_process_escape_sequence(const char **ptr);
 extern char *bb_get_last_path_component(char *path);
-extern FILE *bb_wfopen(const char *path, const char *mode);
-extern FILE *bb_wfopen_input(const char *filename);
-extern FILE *xfopen(const char *path, const char *mode);
 
-extern int bb_fclose_nonstdin(FILE *f);
+/* Prints to stdout closes entire FILE. Exits on error: */
+extern void xprint_and_close_file(FILE *file);
+extern char *xmalloc_fgets(FILE *file);
+/* /* Read up to (and including) TERMINATING_STRING: */
+extern char *xmalloc_fgets_str(FILE *file, const char *terminating_string);
+/* Chops off '\n' from the end, unlike fgets: */
+extern char *xmalloc_getline(FILE *file);
+extern char *bb_get_chunk_from_file(FILE *file, int *end);
+extern void die_if_ferror(FILE *file, const char *msg);
+extern void die_if_ferror_stdout(void);
+extern void xfflush_stdout(void);
 extern void fflush_stdout_and_exit(int retval) ATTRIBUTE_NORETURN;
+extern int fclose_if_not_stdin(FILE *file);
+extern FILE *xfopen(const char *filename, const char *mode);
+/* Prints warning to stderr and returns NULL on failure: */
+extern FILE *fopen_or_warn(const char *filename, const char *mode);
+/* "Opens" stdin if filename is special, else just opens file: */
+extern FILE *fopen_or_warn_stdin(const char *filename);
 
 extern void xstat(char *filename, struct stat *buf);
 extern int  xsocket(int domain, int type, int protocol);
@@ -277,10 +286,6 @@ extern const char *opt_complementary;
 extern const struct option *applet_long_options;
 extern uint32_t option_mask32;
 extern uint32_t getopt32(int argc, char **argv, const char *applet_opts, ...);
-
-extern void die_if_ferror(FILE *fp, const char *fn);
-extern void die_if_ferror_stdout(void);
-extern void xfflush_stdout(void);
 
 extern void bb_warn_ignoring_args(int n);
 
@@ -430,8 +435,6 @@ char *concat_path_file(const char *path, const char *filename);
 char *concat_subpath_file(const char *path, const char *filename);
 char *last_char_is(const char *s, int c);
 
-char *fgets_str(FILE *file, const char *terminating_string);
-
 int execable_file(const char *name);
 char *find_execable(const char *filename);
 int exists_execable(const char *filename);
@@ -577,7 +580,6 @@ void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
 
 char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-void xprint_and_close_file(FILE *file);
 
 #define FAIL_DELAY    3
 extern void bb_do_delay(int seconds);

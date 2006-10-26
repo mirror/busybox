@@ -162,7 +162,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 			bb_error_msg("WARNING: %d of %d computed checksums did NOT match",
 						 count_failed, count_total);
 		}
-		if (bb_fclose_nonstdin(pre_computed_stream) == EOF) {
+		if (fclose_if_not_stdin(pre_computed_stream) == EOF) {
 			bb_perror_msg_and_die("cannot close file %s", file_ptr);
 		}
 	} else {

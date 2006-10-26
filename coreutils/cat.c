@@ -26,10 +26,10 @@ int cat_main(int argc, char **argv)
 	}
 
 	do {
-		f = bb_wfopen_input(*argv);
+		f = fopen_or_warn_stdin(*argv);
 		if (f) {
 			off_t r = bb_copyfd_eof(fileno(f), STDOUT_FILENO);
-			bb_fclose_nonstdin(f);
+			fclose_if_not_stdin(f);
 			if (r >= 0) {
 				continue;
 			}

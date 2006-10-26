@@ -2771,7 +2771,7 @@ tryprocpt(void)
 	char line[100], ptname[100], devname[120], *s;
 	int ma, mi, sz;
 
-	procpt = bb_wfopen("/proc/partitions", "r");
+	procpt = fopen_or_warn("/proc/partitions", "r");
 
 	while (fgets(line, sizeof(line), procpt)) {
 		if (sscanf(line, " %d %d %d %[^\n ]",

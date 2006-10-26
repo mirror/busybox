@@ -38,7 +38,7 @@ static int bsd_sum_file(const char *file, int print_name)
 		fp = stdin;
 		have_read_stdin++;
 	} else {
-		fp = bb_wfopen(file, "r");
+		fp = fopen_or_warn(file, "r");
 		if (fp == NULL)
 			goto out;
 	}
@@ -52,11 +52,11 @@ static int bsd_sum_file(const char *file, int print_name)
 
 	if (ferror(fp)) {
 		bb_perror_msg(file);
-		bb_fclose_nonstdin(fp);
+		fclose_if_not_stdin(fp);
 		goto out;
 	}
 
-	if (bb_fclose_nonstdin(fp) == EOF) {
+	if (fclose_if_not_stdin(fp) == EOF) {
 		bb_perror_msg(file);
 		goto out;
 	}

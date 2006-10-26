@@ -27,10 +27,9 @@ static FILE *cmp_xfopen_input(const char * const filename)
 {
 	FILE *fp;
 
-	if ((fp = bb_wfopen_input(filename)) != NULL) {
+	fp = fopen_or_warn_stdin(filename);
+	if (fp)
 		return fp;
-	}
-
 	exit(xfunc_error_retval);	/* We already output an error message. */
 }
 

@@ -8,17 +8,12 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "libbb.h"
 
 /* Read up to (and including) TERMINATING_STRING from FILE and return it.
  * Return NULL on EOF.  */
 
-char *fgets_str(FILE *file, const char *terminating_string)
+char *xmalloc_fgets_str(FILE *file, const char *terminating_string)
 {
 	char *linebuf = NULL;
 	const int term_length = strlen(terminating_string);
@@ -36,7 +31,8 @@ char *fgets_str(FILE *file, const char *terminating_string)
 
 		/* grow the line buffer as necessary */
 		while (idx > linebufsz - 2) {
-			linebuf = xrealloc(linebuf, linebufsz += 1000);
+			linebufsz += 200;
+			linebuf = xrealloc(linebuf, linebufsz);
 		}
 
 		linebuf[idx] = ch;

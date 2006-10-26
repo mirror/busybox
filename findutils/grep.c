@@ -447,7 +447,7 @@ int grep_main(int argc, char **argv)
 			}
 		}
 		matched += grep_file(file);
-		bb_fclose_nonstdin(file);
+		fclose_if_not_stdin(file);
  grep_done:
 		if (matched < 0) {
 			/* we found a match but were told to be quiet, stop here and

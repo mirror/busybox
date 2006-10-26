@@ -107,7 +107,7 @@ int wc_main(int argc, char **argv)
 
 	while ((arg = *argv++) != 0) {
 		++num_files;
-		fp = bb_wfopen_input(arg);
+		fp = fopen_or_warn_stdin(arg);
 		if (!fp) {
 			status = EXIT_FAILURE;
 			continue;
@@ -172,7 +172,7 @@ int wc_main(int argc, char **argv)
 		}
 		totals[WC_LENGTH] -= counts[WC_LENGTH];
 
-		bb_fclose_nonstdin(fp);
+		fclose_if_not_stdin(fp);
 
 	OUTPUT:
 		/* coreutils wc tries hard to print pretty columns

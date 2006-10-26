@@ -54,7 +54,7 @@ static void del_line_matching(const char *login, const char *filename)
 	struct stat statbuf;
 
 
-	if ((passwd = bb_wfopen(filename, "r"))) {
+	if ((passwd = fopen_or_warn(filename, "r"))) {
 		// Remove pointless const.
 		xstat((char *)filename, &statbuf);
 		buffer = (char *) xmalloc(statbuf.st_size * sizeof(char));
@@ -64,7 +64,7 @@ static void del_line_matching(const char *login, const char *filename)
 		b = boundary(buffer, login);
 		if (b.stop != 0) {
 			/* write the file w/o the user */
-			if ((passwd = bb_wfopen(filename, "w"))) {
+			if ((passwd = fopen_or_warn(filename, "w"))) {
 				fwrite(buffer, (b.start - 1), sizeof(char), passwd);
 				fwrite(&buffer[b.stop], (statbuf.st_size - b.stop), sizeof(char), passwd);
 				fclose(passwd);

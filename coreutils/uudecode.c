@@ -174,7 +174,7 @@ int uudecode_main(int argc, char **argv)
 		}
 		free(line);
 		ret = decode_fn_ptr(src_stream, dst_stream);
-		bb_fclose_nonstdin(src_stream);
+		fclose_if_not_stdin(src_stream);
 		return(ret);
 	}
 	bb_error_msg_and_die("No `begin' line");

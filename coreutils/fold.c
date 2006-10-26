@@ -70,7 +70,7 @@ int fold_main(int argc, char **argv)
 	}
 
 	do {
-		FILE *istream = bb_wfopen_input(*argv);
+		FILE *istream = fopen_or_warn_stdin(*argv);
 		int c;
 		int column = 0;		/* Screen column where next char will go. */
 		int offset_out = 0;	/* Index in `line_out' for next char. */
@@ -144,7 +144,7 @@ rescan:
 			fwrite(line_out, sizeof(char), (size_t) offset_out, stdout);
 		}
 
-		if (ferror(istream) || bb_fclose_nonstdin(istream)) {
+		if (ferror(istream) || fclose_if_not_stdin(istream)) {
 			bb_perror_msg("%s", *argv);	/* Avoid multibyte problems. */
 			errs |= EXIT_FAILURE;
 		}

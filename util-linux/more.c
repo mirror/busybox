@@ -81,7 +81,7 @@ int more_main(int argc, char **argv)
 		if (argc == 0) {
 			file = stdin;
 		} else
-			file = bb_wfopen(*argv, "r");
+			file = fopen_or_warn(*argv, "r");
 		if(file==0)
 			goto loop;
 

@@ -341,6 +341,7 @@ char *xasprintf(const char *format, ...)
 // close that file.
 void xprint_and_close_file(FILE *file)
 {
+	fflush(stdout);
 	// copyfd outputs error messages for us.
 	if (bb_copyfd_eof(fileno(file), 1) == -1)
 		exit(xfunc_error_retval);

@@ -787,7 +787,7 @@ static void index_status_file(const char *filename)
 	unsigned int status_num;
 
 	status_file = xfopen(filename, "r");
-	while ((control_buffer = fgets_str(status_file, "\n\n")) != NULL) {
+	while ((control_buffer = xmalloc_fgets_str(status_file, "\n\n")) != NULL) {
 		const unsigned int package_num = fill_package_struct(control_buffer);
 		if (package_num != -1) {
 			status_node = xmalloc(sizeof(status_node_t));
@@ -842,7 +842,7 @@ static void write_status_file(deb_file_t **deb_file)
 	int i = 0;
 
 	/* Update previously known packages */
-	while ((control_buffer = fgets_str(old_status_file, "\n\n")) != NULL) {
+	while ((control_buffer = xmalloc_fgets_str(old_status_file, "\n\n")) != NULL) {
 		if ((tmp_string = strstr(control_buffer, "Package:")) == NULL) {
 			continue;
 		}

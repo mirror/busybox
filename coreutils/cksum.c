@@ -22,7 +22,7 @@ int cksum_main(int argc, char **argv)
 	int inp_stdin = (argc == optind) ? 1 : 0;
 
 	do {
-		fp = bb_wfopen_input((inp_stdin) ? bb_msg_standard_input : *++argv);
+		fp = fopen_or_warn_stdin((inp_stdin) ? bb_msg_standard_input : *++argv);
 
 		crc = 0;
 		length = 0;

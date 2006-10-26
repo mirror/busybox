@@ -1194,7 +1194,7 @@ int sed_main(int argc, char **argv)
 				process_files();
 				continue;
 			}
-			file = bb_wfopen(argv[i], "r");
+			file = fopen_or_warn(argv[i], "r");
 			if (!file) {
 				status = EXIT_FAILURE;
 				continue;
