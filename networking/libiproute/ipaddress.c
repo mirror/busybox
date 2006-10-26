@@ -800,7 +800,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 int do_ipaddr(int argc, char **argv)
 {
 	static const char *const commands[] = {
-		"add", "delete", "list", "show", "lst", "flush", 0
+		"add", "del", "delete", "list", "show", "lst", "flush", 0
 	};
 
 	int command_num = 2;
@@ -811,14 +811,15 @@ int do_ipaddr(int argc, char **argv)
 	switch (command_num) {
 		case 0: /* add */
 			return ipaddr_modify(RTM_NEWADDR, argc-1, argv+1);
-		case 1: /* delete */
+		case 1: /* del */
+		case 2: /* delete */
 			return ipaddr_modify(RTM_DELADDR, argc-1, argv+1);
-		case 2: /* list */
-		case 3: /* show */
-		case 4: /* lst */
+		case 3: /* list */
+		case 4: /* show */
+		case 5: /* lst */
 			return ipaddr_list_or_flush(argc-1, argv+1, 0);
-		case 5: /* flush */
+		case 6: /* flush */
 			return ipaddr_list_or_flush(argc-1, argv+1, 1);
 	}
-	bb_error_msg_and_die("Unknown command %s", *argv);
+	bb_error_msg_and_die("unknown command %s", *argv);
 }
