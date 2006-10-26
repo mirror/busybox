@@ -11,152 +11,116 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-#include <stdint.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
 #include <resolv.h>
-#include <arpa/inet.h>
 #include "busybox.h"
 
 /*
- |  I'm only implementing non-interactive mode;
- |  I totally forgot nslookup even had an interactive mode.
+ *  I'm only implementing non-interactive mode;
+ *  I totally forgot nslookup even had an interactive mode.
  */
 
-/* only works for IPv4 */
-static int addr_fprint(char *addr)
-{
-	uint8_t split[4];
-	uint32_t ip;
-	uint32_t *x = (uint32_t *) addr;
+/* Examples of 'standard' nslookup output
+ * $ nslookup yahoo.com
+ * Server:         128.193.0.10
+ * Address:        128.193.0.10#53
+ * 
+ * Non-authoritative answer:
+ * Name:   yahoo.com
+ * Address: 216.109.112.135
+ * Name:   yahoo.com
+ * Address: 66.94.234.13
+ *
+ * $ nslookup 204.152.191.37
+ * Server:         128.193.4.20
+ * Address:        128.193.4.20#53
+ * 
+ * Non-authoritative answer:
+ * 37.191.152.204.in-addr.arpa     canonical name = 37.32-27.191.152.204.in-addr.arpa.
+ * 37.32-27.191.152.204.in-addr.arpa       name = zeus-pub2.kernel.org.
+ * 
+ * Authoritative answers can be found from:
+ * 32-27.191.152.204.in-addr.arpa  nameserver = ns1.kernel.org.
+ * 32-27.191.152.204.in-addr.arpa  nameserver = ns2.kernel.org.
+ * 32-27.191.152.204.in-addr.arpa  nameserver = ns3.kernel.org.
+ * ns1.kernel.org  internet address = 140.211.167.34
+ * ns2.kernel.org  internet address = 204.152.191.4
+ * ns3.kernel.org  internet address = 204.152.191.36
+ */
 
-	ip = ntohl(*x);
-	split[0] = (ip & 0xff000000) >> 24;
-	split[1] = (ip & 0x00ff0000) >> 16;
-	split[2] = (ip & 0x0000ff00) >> 8;
-	split[3] = (ip & 0x000000ff);
-	printf("%d.%d.%d.%d", split[0], split[1], split[2], split[3]);
-	return 0;
+static int sockaddr_to_dotted(struct sockaddr *saddr, char *buf, int buflen)
+{
+	if (buflen <= 0) return -1;
+	buf[0] = '\0';
+	if (saddr->sa_family == AF_INET) {
+		inet_ntop(AF_INET, &((struct sockaddr_in*)saddr)->sin_addr, buf, buflen);
+		return 0;
+	}
+	if (saddr->sa_family == AF_INET6) {
+		inet_ntop(AF_INET6, &((struct sockaddr_in6*)saddr)->sin6_addr, buf, buflen);
+		return 0;
+	}
+	return -1;
 }
 
-/* takes the NULL-terminated array h_addr_list, and
- * prints its contents appropriately
- */
-static int addr_list_fprint(char **h_addr_list)
+static int print_host(const char *hostname, const char *header)
 {
-	int i, j;
-	char *addr_string = (h_addr_list[1])
-		? "Addresses: " : "Address:   ";
+	char str[128];	/* IPv6 address will fit, hostnames hopefully too */
+	struct addrinfo *result = NULL;
+	int rc;
+	struct addrinfo hint;
 
-	printf("%s ", addr_string);
-	for (i = 0, j = 0; h_addr_list[i]; i++, j++) {
-		addr_fprint(h_addr_list[i]);
-
-		/* real nslookup does this */
-		if (j == 4) {
-			if (h_addr_list[i + 1]) {
-				printf("\n          ");
-			}
-			j = 0;
-		} else {
-			if (h_addr_list[i + 1]) {
-				printf(", ");
-			}
+	memset(&hint, 0 , sizeof(hint));
+	/* hint.ai_family = AF_UNSPEC; - zero anyway */
+	/* Needed. Or else we will get each address thrice (or more)
+	 * for each possible socket type (tcp,udp,raw...): */
+	hint.ai_socktype = SOCK_STREAM;
+	// hint.ai_flags = AI_CANONNAME;
+	rc = getaddrinfo(hostname, NULL /*service*/, &hint, &result);
+	if (!rc) {
+		struct addrinfo *cur = result;
+		// printf("%s\n", cur->ai_canonname); ?
+		while (cur) {
+			sockaddr_to_dotted(cur->ai_addr, str, sizeof(str));
+			printf("%s  %s\nAddress: %s", header, hostname, str);
+			if (getnameinfo(cur->ai_addr, cur->ai_addrlen, str, sizeof(str), NULL, 0, NI_NAMEREQD))
+				str[0] = '\0';
+			printf(" %s\n", str);
+			cur = cur->ai_next;
 		}
-
-	}
-	puts("");
-	return 0;
-}
-
-/* print the results as nslookup would */
-static struct hostent *hostent_fprint(struct hostent *host, const char *server_host)
-{
-	if (host) {
-		printf("%s     %s\n", server_host, host->h_name);
-		addr_list_fprint(host->h_addr_list);
 	} else {
-		printf("*** Unknown host\n");
+		bb_error_msg("getaddrinfo('%s') failed: %s", hostname, gai_strerror(rc));
 	}
-	return host;
+	freeaddrinfo(result);
+	return (rc != 0);
 }
 
-/* changes a c-string matching the perl regex \d+\.\d+\.\d+\.\d+
- * into a uint32_t
- */
-static uint32_t str_to_addr(const char *addr)
-{
-	uint32_t split[4];
-	uint32_t ip;
-
-	sscanf(addr, "%d.%d.%d.%d",
-		   &split[0], &split[1], &split[2], &split[3]);
-
-	/* assuming sscanf worked */
-	ip = (split[0] << 24) |
-		(split[1] << 16) | (split[2] << 8) | (split[3]);
-
-	return htonl(ip);
-}
-
-/* gethostbyaddr wrapper */
-static struct hostent *gethostbyaddr_wrapper(const char *address)
-{
-	struct in_addr addr;
-
-	addr.s_addr = str_to_addr(address);
-	return gethostbyaddr((char *) &addr, 4, AF_INET);	/* IPv4 only for now */
-}
-
-/* lookup the default nameserver and display it */
-static inline void server_print(void)
-{
-	struct sockaddr_in def = _res.nsaddr_list[0];
-	char *ip = inet_ntoa(def.sin_addr);
-
-	hostent_fprint(gethostbyaddr_wrapper(ip), "Server:");
-	puts("");
-}
 
 /* alter the global _res nameserver structure to use
    an explicit dns server instead of what is in /etc/resolv.h */
-static inline void set_default_dns(char *server)
+static void set_default_dns(char *server)
 {
 	struct in_addr server_in_addr;
 
-	if(inet_aton(server,&server_in_addr))
-	{
+	if (inet_pton(AF_INET, server, &server_in_addr) > 0) {
 		_res.nscount = 1;
 		_res.nsaddr_list[0].sin_addr = server_in_addr;
 	}
 }
 
-/* naive function to check whether char *s is an ip address */
-static int is_ip_address(const char *s)
+
+/* lookup the default nameserver and display it */
+static void server_print(void)
 {
-	while (*s) {
-		if ((isdigit(*s)) || (*s == '.')) {
-			s++;
-			continue;
-		}
-		return 0;
-	}
-	return 1;
+	char str[INET6_ADDRSTRLEN];
+
+	sockaddr_to_dotted((struct sockaddr*)&_res.nsaddr_list[0], str, sizeof(str));
+	print_host(str, "Server:");
+	puts("");
 }
 
-/* ________________________________________________________________________ */
+
 int nslookup_main(int argc, char **argv)
 {
-	struct hostent *host;
-
 	/*
 	* initialize DNS structure _res used in printing the default
 	* name server and in the explicit name server option feature.
@@ -172,22 +136,13 @@ int nslookup_main(int argc, char **argv)
 	* standard nslookup
 	*/
 
-	if (argc < 2 || *argv[1]=='-' || argc > 3)
+	if (argc < 2 || *argv[1] == '-' || argc > 3)
 		bb_show_usage();
 	else if(argc == 3)
 		set_default_dns(argv[2]);
 
 	server_print();
-	if (is_ip_address(argv[1])) {
-		host = gethostbyaddr_wrapper(argv[1]);
-	} else {
-		host = xgethostbyname(argv[1]);
-	}
-	hostent_fprint(host, "Name:  ");
-	if (host) {
-		return EXIT_SUCCESS;
-	}
-	return EXIT_FAILURE;
+	return print_host(argv[1], "Name:  ");
 }
 
 /* $Id: nslookup.c,v 1.33 2004/10/13 07:25:01 andersen Exp $ */

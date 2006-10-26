@@ -329,7 +329,7 @@ static void ping(const char *host)
 	pingaddr.sin6_family = AF_INET6;
 	hostent = xgethostbyname2(host, AF_INET6);
 	if (hostent->h_addrtype != AF_INET6)
-		bb_error_msg_and_die("unknown address type; only AF_INET6 is currently supported.");
+		bb_error_msg_and_die("unknown address type; only AF_INET6 is currently supported");
 
 	memcpy(&pingaddr.sin6_addr, hostent->h_addr, sizeof(pingaddr.sin6_addr));
 
