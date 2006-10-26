@@ -614,7 +614,7 @@ static int execute(const char *type, const char *device, const char *mntpt,
 		       mntpt ? mntpt : device);
 		for (i=0; i < argc; i++)
 			printf("%s ", argv[i]);
-		printf("\n");
+		puts("");
 	}
 
 	/* Fork and execute the correct program. */

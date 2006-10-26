@@ -512,7 +512,7 @@ xbsd_print_disklabel(int show_all)
 			printf(_(" ecc"));
 		if (lp->d_flags & BSD_D_BADSECT)
 			printf(_(" badsect"));
-		printf("\n");
+		puts("");
 		/* On various machines the fields of *lp are short/int/long */
 		/* In order to avoid problems, we cast them all to long. */
 		printf(_("bytes/sector: %ld\n"), (long) lp->d_secsize);
@@ -579,7 +579,7 @@ xbsd_print_disklabel(int show_all)
 				printf("%22.22s", "");
 				break;
 			}
-			printf("\n");
+			puts("");
 		}
 	}
 }

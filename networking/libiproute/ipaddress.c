@@ -435,7 +435,7 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 			return -1;
 		}
 		if (filter.family == AF_PACKET) {
-			bb_error_msg("Cannot flush link addresses.");
+			bb_error_msg("cannot flush link addresses");
 			return -1;
 		}
 	}
@@ -488,17 +488,17 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 		exit(1);
 
 	if (rtnl_wilddump_request(&rth, preferred_family, RTM_GETLINK) < 0) {
-		bb_perror_msg_and_die("Cannot send dump request");
+		bb_perror_msg_and_die("cannot send dump request");
 	}
 
 	if (rtnl_dump_filter(&rth, store_nlmsg, &linfo, NULL, NULL) < 0) {
-		bb_error_msg_and_die("Dump terminated");
+		bb_error_msg_and_die("dump terminated");
 	}
 
 	if (filter_dev) {
 		filter.ifindex = ll_name_to_index(filter_dev);
 		if (filter.ifindex <= 0) {
-			bb_error_msg("Device \"%s\" does not exist", filter_dev);
+			bb_error_msg("device \"%s\" does not exist", filter_dev);
 			return -1;
 		}
 	}
@@ -532,11 +532,11 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 
 	if (filter.family != AF_PACKET) {
 		if (rtnl_wilddump_request(&rth, filter.family, RTM_GETADDR) < 0) {
-			bb_perror_msg_and_die("Cannot send dump request");
+			bb_perror_msg_and_die("cannot send dump request");
 		}
 
 		if (rtnl_dump_filter(&rth, store_nlmsg, &ainfo, NULL, NULL) < 0) {
-			bb_error_msg_and_die("Dump terminated");
+			bb_error_msg_and_die("dump terminated");
 		}
 	}
 
@@ -763,7 +763,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 		inet_prefix brd;
 		int i;
 		if (req.ifa.ifa_family != AF_INET) {
-			bb_error_msg("Broadcast can be set only for IPv4 addresses");
+			bb_error_msg("broadcast can be set only for IPv4 addresses");
 			return -1;
 		}
 		brd = peer;
@@ -787,7 +787,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	ll_init_map(&rth);
 
 	if ((req.ifa.ifa_index = ll_name_to_index(d)) == 0) {
-		bb_error_msg("Cannot find device \"%s\"", d);
+		bb_error_msg("cannot find device \"%s\"", d);
 		return -1;
 	}
 

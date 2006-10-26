@@ -172,7 +172,7 @@ int generate_output(char * argv[],int argc,const char *optstr,
 		printf(" --");
 		while (optind < argc)
 			printf(" %s",normalize(argv[optind++]));
-		printf("\n");
+		puts("");
 	}
 	return exit_code;
 }

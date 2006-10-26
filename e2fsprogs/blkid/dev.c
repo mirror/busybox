@@ -82,7 +82,7 @@ void blkid_debug_dump_dev(blkid_dev dev)
 		else
 			printf("    tag: NULL\n");
 	}
-	printf("\n");
+	puts("");
 }
 #endif
 

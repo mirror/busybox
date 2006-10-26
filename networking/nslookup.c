@@ -73,7 +73,7 @@ static int addr_list_fprint(char **h_addr_list)
 		}
 
 	}
-	printf("\n");
+	puts("");
 	return 0;
 }
 
@@ -123,7 +123,7 @@ static inline void server_print(void)
 	char *ip = inet_ntoa(def.sin_addr);
 
 	hostent_fprint(gethostbyaddr_wrapper(ip), "Server:");
-	printf("\n");
+	puts("");
 }
 
 /* alter the global _res nameserver structure to use

@@ -314,7 +314,7 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 		printf(" time=%lu.%lu ms", triptime / 10, triptime % 10);
 		if (dupflag)
 			printf(" (DUP!)");
-		printf("\n");
+		puts("");
 	} else
 		if (icmppkt->icmp_type != ICMP_ECHO)
 			bb_error_msg("warning: got ICMP %d (%s)",

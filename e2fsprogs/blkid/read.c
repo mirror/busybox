@@ -437,7 +437,7 @@ static void debug_dump_dev(blkid_dev dev)
 		else
 			printf("    tag: NULL\n");
 	}
-	printf("\n");
+	puts("");
 }
 
 int main(int argc, char**argv)

@@ -322,12 +322,12 @@ static int ask(const char *string, int def)
 	int c;
 
 	if (!repair) {
-		printf("\n");
+		puts("");
 		errors_uncorrected = 1;
 		return 0;
 	}
 	if (automatic) {
-		printf("\n");
+		puts("");
 		if (!def)
 			errors_uncorrected = 1;
 		return def;

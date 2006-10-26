@@ -3250,7 +3250,7 @@ static int dohelp(struct op *t)
 			continue;
 		col += printf("%s%s", ((col == 0) ? "\t" : " "), x->name);
 		if (col > 60) {
-			printf("\n");
+			puts("");
 			col = 0;
 		}
 	}
@@ -3267,7 +3267,7 @@ static int dohelp(struct op *t)
 
 			col += printf("%s%s", ((col == 0) ? "\t" : " "), applet->name);
 			if (col > 60) {
-				printf("\n");
+				puts("");
 				col = 0;
 			}
 		}

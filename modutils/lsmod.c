@@ -15,7 +15,7 @@
 
 
 #ifndef CONFIG_FEATURE_CHECK_TAINTED_MODULE
-static void check_tainted(void) { printf("\n"); }
+static void check_tainted(void) { puts(""); }
 #else
 #define TAINT_FILENAME                  "/proc/sys/kernel/tainted"
 #define TAINT_PROPRIETORY_MODULE        (1<<0)
@@ -127,7 +127,7 @@ int lsmod_main(int argc, char **argv)
 		}
 		if (count) printf("]");
 
-		printf("\n");
+		puts("");
 	}
 
 #ifdef CONFIG_FEATURE_CLEAN_UP

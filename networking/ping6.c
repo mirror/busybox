@@ -305,7 +305,7 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 			   triptime / 10, triptime % 10);
 		if (dupflag)
 			printf(" (DUP!)");
-		printf("\n");
+		puts("");
 	} else
 		if (icmppkt->icmp6_type != ICMP6_ECHO_REQUEST)
 			bb_error_msg("warning: got ICMP %d (%s)",

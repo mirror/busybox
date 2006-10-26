@@ -2534,13 +2534,13 @@ print_buffer(char *pbuffer)
 			printf("0x%03X:", i);
 		printf(" %02X", (unsigned char) pbuffer[i]);
 		if (l == MAX_PER_LINE - 1) {
-			printf("\n");
+			puts("");
 			l = -1;
 		}
 	}
 	if (l > 0)
-		printf("\n");
-	printf("\n");
+		puts("");
+	puts("");
 }
 
 
@@ -2650,7 +2650,7 @@ xselect(void)
 			break;
 		case 'q':
 			close(fd);
-			printf("\n");
+			puts("");
 			exit(0);
 		case 'r':
 			return;
@@ -3022,7 +3022,7 @@ int fdisk_main(int argc, char **argv)
 			break;
 		case 'q':
 			close(fd);
-			printf("\n");
+			puts("");
 			return 0;
 		case 's':
 #ifdef CONFIG_FEATURE_SUN_LABEL

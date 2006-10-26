@@ -147,7 +147,7 @@ main(int argc, char **argv)
 		printf(" (random)\n");
 		break;
 	default:
-		printf("\n");
+		puts("");
 	}
 	if (type != 1) {
 		printf("Warning: not a time-based UUID, so UUID time "

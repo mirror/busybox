@@ -547,7 +547,7 @@ static void print_ascii(uint16_t *p, uint8_t length) {
 		printf("%c%c",(char)0x00ff&((*p)>>8),(char)(*p)&0x00ff);
 		p++;
 	}
-	printf("\n");
+	puts("");
 }
 
 // Parse 512 byte disk identification block and print much crap.
@@ -574,7 +574,7 @@ static void identify(uint16_t *id_supplied)
 	chksum &= 0xff;
 
 	/* check if we recognise the device type */
-	printf("\n");
+	puts("");
 	if (!(val[GEN_CONFIG] & NOT_ATA))
 	{
 		dev = ATA_DEV;
@@ -706,7 +706,7 @@ static void identify(uint16_t *id_supplied)
 		else if (like_std > std)
 			printf("& some of %u\n",like_std);
 		else
-			printf("\n");
+			puts("");
 	}
 	else
 	{
@@ -818,7 +818,7 @@ static void identify(uint16_t *id_supplied)
 		if (bbbig > 1000)
 			printf("(%"PRIu64" GB)\n", bbbig/1000);
 		else
-			printf("\n");
+			puts("");
 	}
 
 	/* hw support of commands (capabilities) */
@@ -870,7 +870,7 @@ static void identify(uint16_t *id_supplied)
 			if ((like_std > 3) && ((val[CAPAB_1] & VALID) == VALID_VAL))
 				printf(", %s device specific minimum\n",(val[CAPAB_1] & MIN_STANDBY_TIMER)?"with":"no");
 			else
-			  printf("\n");
+			  puts("");
 		}
 		printf("\tR/W multiple sector transfer: ");
 		if ((like_std < 3) && !(val[SECTOR_XFER_MAX] & SECTOR_XFER))
@@ -913,7 +913,7 @@ static void identify(uint16_t *id_supplied)
 			printf("\tOverlap support:");
 			if (val[PKT_REL]) printf(" %uus to release bus.",val[PKT_REL]);
 			if (val[SVC_NBSY]) printf(" %uus to clear BSY after SERVICE cmd.",val[SVC_NBSY]);
-			printf("\n");
+			puts("");
 		}
 	}
 
@@ -944,7 +944,7 @@ static void identify(uint16_t *id_supplied)
 			err_dma += mode_loop(jj,kk,'u',&have_mode);
 		}
 		if (err_dma || !have_mode) printf("(?)");
-		printf("\n");
+		puts("");
 
 		if ((dev == ATAPI_DEV) && (eqpt != CDROM) && (val[CAPAB_0] & DMA_IL_SUP))
 			printf("\t\tInterleaved DMA support\n");
@@ -955,7 +955,7 @@ static void identify(uint16_t *id_supplied)
 			printf("\t\tCycle time:");
 			if (val[DMA_TIME_MIN]) printf(" min=%uns",val[DMA_TIME_MIN]);
 			if (val[DMA_TIME_NORM]) printf(" recommended=%uns",val[DMA_TIME_NORM]);
-			printf("\n");
+			puts("");
 		}
 	}
 
@@ -971,13 +971,13 @@ static void identify(uint16_t *id_supplied)
 			if (jj & 0x0001) printf("pio%d ",ii);
 			jj >>=1;
 		}
-		printf("\n");
+		puts("");
 	}
 	else if (((min_std < 5) || (eqpt == CDROM)) && (val[PIO_MODE] & MODE) )
 	{
 		for (ii = 0; ii <= val[PIO_MODE]>>8; ii++)
 			printf("pio%d ",ii);
-		printf("\n");
+		puts("");
 	}
 	else
 		printf("unknown\n");
@@ -989,7 +989,7 @@ static void identify(uint16_t *id_supplied)
 			printf("\t\tCycle time:");
 			if (val[PIO_NO_FLOW]) printf(" no flow control=%uns", val[PIO_NO_FLOW]);
 			if (val[PIO_FLOW]) printf("  IORDY flow control=%uns", val[PIO_FLOW]);
-			printf("\n");
+			puts("");
 		}
 	}
 
@@ -1049,7 +1049,7 @@ static void identify(uint16_t *id_supplied)
 			printf("\t");
 			if (jj) printf("%umin for %sSECURITY ERASE UNIT. ", jj==ERASE_BITS ? 508 : jj<<1, "");
 			if (kk) printf("%umin for %sSECURITY ERASE UNIT. ", kk==ERASE_BITS ? 508 : kk<<1, "ENHANCED ");
-			printf("\n");
+			puts("");
 		}
 	}
 
@@ -1194,7 +1194,7 @@ static void dump_identity(const struct hd_driveid *id)
 		else
 			printf("off");
 	}
-	printf("\n");
+	puts("");
 
 	if (!(id->field_valid&1))
 		printf(" (maybe):");

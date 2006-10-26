@@ -678,7 +678,7 @@ static int get_command(FILE * source, char *command)
 
 	if (!fgets(command, BUFSIZ - 2, source)) {
 		if (source == stdin)
-			printf("\n");
+			puts("");
 		return 1;
 	}
 

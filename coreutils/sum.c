@@ -65,7 +65,7 @@ static int bsd_sum_file(const char *file, int print_name)
 	if (print_name > 1)
 		puts(file);
 	else
-		printf("\n");
+		puts("");
 out:
 	return ret;
 }

@@ -277,7 +277,7 @@ static int fuser_print_pid_list(pid_list *plist)
 		if(curr->pid > 0) printf("%d ", curr->pid);
 		curr = curr->next;
 	}
-	printf("\n");
+	puts("");
 	return 1;
 }
 

@@ -938,7 +938,7 @@ static void ife_print(struct interface *ptr)
 			printf("(auto)");
 	}
 #endif
-	printf("\n");
+	puts("");
 
 	if (ptr->has_ip) {
 		printf("          %s addr:%s ", ap->name,
@@ -1007,7 +1007,7 @@ static void ife_print(struct interface *ptr)
 				default:
 					printf("Unknown");
 				}
-				printf("\n");
+				puts("");
 			}
 		}
 		fclose(f);
@@ -1034,7 +1034,7 @@ static void ife_print(struct interface *ptr)
 	if (ptr->outfill || ptr->keepalive)
 		printf("  Outfill:%d  Keepalive:%d", ptr->outfill, ptr->keepalive);
 #endif
-	printf("\n");
+	puts("");
 
 	/* If needed, display the interface statistics. */
 
@@ -1083,9 +1083,9 @@ static void ife_print(struct interface *ptr)
 		}
 		if (ptr->map.dma)
 			printf("DMA chan:%x ", ptr->map.dma);
-		printf("\n");
+		puts("");
 	}
-	printf("\n");
+	puts("");
 }
 
 
