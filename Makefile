@@ -1,6 +1,6 @@
 VERSION = 1
 PATCHLEVEL = 2
-SUBLEVEL = 1
+SUBLEVEL = 2
 EXTRAVERSION = .svn
 NAME = Unnamed
 
@@ -302,7 +302,6 @@ AFLAGS_KERNEL	=
 CFLAGS		:=
 CPPFLAGS	:=
 AFLAGS		:=
-include $(srctree)/Makefile.flags
 
 # Read KERNELRELEASE from .kernelrelease (if it exists)
 KERNELRELEASE = $(shell cat .kernelrelease 2> /dev/null)
@@ -466,6 +465,9 @@ ifeq ($(dot-config),1)
 # that autoconf has on .config.
 # To avoid any implicit rule to kick in, define an empty command
 .config .kconfig.d: ;
+
+# Now we can define CFLAGS etc according to .config
+include $(srctree)/Makefile.flags
 
 # If .config is newer than include/autoconf.h, someone tinkered
 # with it and forgot to run make oldconfig.

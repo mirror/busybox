@@ -2151,7 +2151,7 @@ static var *evaluate(node *op, var *res)
 						L.v = evaluate(nextarg(&op1), v1);
 						if (L.v->type & VF_NUMBER) {
 							fmt_num(buf, MAXVARFMT, getvar_s(V[OFMT]),
-														getvar_i(L.v), TRUE);
+									getvar_i(L.v), TRUE);
 							fputs(buf, X.F);
 						} else {
 							fputs(getvar_s(L.v), X.F);
@@ -2767,4 +2767,3 @@ keep_going:
 
 	return 0;
 }
-
