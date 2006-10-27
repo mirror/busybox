@@ -58,7 +58,6 @@ int watch_main(int argc, char **argv)
 			time_t t;
 
 			get_terminal_width_height(STDOUT_FILENO, &width, 0);
-			if (width < 1) width = 1; // paranoia
 			header = xrealloc(header, width--);
 			// '%-*s' pads header with spaces to the full width
 			snprintf(header, width, "Every %ds: %-*s", period, width, cmd);

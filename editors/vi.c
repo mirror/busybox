@@ -2039,7 +2039,7 @@ static void winch_sig(int sig ATTRIBUTE_UNUSED)
 {
 	signal(SIGWINCH, winch_sig);
 	if (ENABLE_FEATURE_VI_WIN_RESIZE)
-	   get_terminal_width_height(0, &columns, &rows);
+		get_terminal_width_height(0, &columns, &rows);
 	new_screen(rows, columns);	// get memory for virtual screen
 	redraw(TRUE);		// re-draw the screen
 }

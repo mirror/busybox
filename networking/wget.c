@@ -676,7 +676,7 @@ getttywidth(void)
 {
 	int width=0;
 	get_terminal_width_height(0, &width, NULL);
-	return (width);
+	return width;
 }
 
 static void

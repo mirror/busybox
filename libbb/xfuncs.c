@@ -281,6 +281,8 @@ off_t fdlength(int fd)
 
 	if (ioctl(fd, BLKGETSIZE, &size) >= 0) return size*512;
 
+	// FIXME: explain why lseek(SEEK_END) is not used here!
+
 	// If not, do a binary search for the last location we can read.  (Some
 	// block devices don't do BLKGETSIZE right.)
 
@@ -382,7 +384,8 @@ DIR *xopendir(const char *path)
 // Die with an error message if we can't daemonize.
 void xdaemon(int nochdir, int noclose)
 {
-	if (daemon(nochdir, noclose)) bb_perror_msg_and_die("daemon");
+	if (daemon(nochdir, noclose))
+		bb_perror_msg_and_die("daemon");
 }
 #endif
 
@@ -416,23 +419,31 @@ void xstat(char *name, struct stat *stat_buf)
 }
 
 /* It is perfectly ok to pass in a NULL for either width or for
- *  * height, in which case that value will not be set.  */
+ * height, in which case that value will not be set.  */
 int get_terminal_width_height(int fd, int *width, int *height)
 {
 	struct winsize win = { 0, 0, 0, 0 };
 	int ret = ioctl(fd, TIOCGWINSZ, &win);
-	if (!win.ws_row) {
-		char *s = getenv("LINES");
-		if (s) win.ws_row = atoi(s);
+
+	if (height) {
+		if (!win.ws_row) {
+			char *s = getenv("LINES");
+			if (s) win.ws_row = atoi(s);
+		}
+		if (win.ws_row <= 1 || win.ws_row >= 30000)
+			win.ws_row = 24;
+		*height = (int) win.ws_row;
 	}
-	if (win.ws_row <= 1) win.ws_row = 24;
-	if (!win.ws_col) {
-		char *s = getenv("COLUMNS");
-		if (s) win.ws_col = atoi(s);
+
+	if (width) {
+		if (!win.ws_col) {
+			char *s = getenv("COLUMNS");
+			if (s) win.ws_col = atoi(s);
+		}
+		if (win.ws_col <= 1 || win.ws_col >= 30000)
+			win.ws_col = 80;
+		*width = (int) win.ws_col;
 	}
-	if (win.ws_col <= 1) win.ws_col = 80;
-	if (height) *height = (int) win.ws_row;
-	if (width) *width = (int) win.ws_col;
 
 	return ret;
 }

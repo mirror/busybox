@@ -607,7 +607,7 @@ int telnet_main(int argc, char** argv)
 #endif
 
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
-    ttype = getenv("TERM");
+	ttype = getenv("TERM");
 #endif
 
 	memset(&G, 0, sizeof G);

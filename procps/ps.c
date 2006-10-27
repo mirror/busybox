@@ -41,7 +41,7 @@ int ps_main(int argc, char **argv)
 	/* if w is given once, GNU ps sets the width to 132,
 	 * if w is given more than once, it is "unlimited"
 	 */
-	if(w_count) {
+	if (w_count) {
 		terminal_width = (w_count==1) ? 132 : INT_MAX;
 	} else {
 		get_terminal_width_height(1, &terminal_width, NULL);
@@ -87,24 +87,24 @@ int ps_main(int argc, char **argv)
 		}
 		else
 #endif
-			if(p->rss == 0)
+			if (p->rss == 0)
 				len = printf("%5d %-8s        %s ", p->pid, p->user, p->state);
 			else
 				len = printf("%5d %-8s %6ld %s ", p->pid, p->user, p->rss, p->state);
 
 		i = terminal_width-len;
 
-		if(namecmd && namecmd[0]) {
-			if(i < 0)
+		if (namecmd && namecmd[0]) {
+			if (i < 0)
 				i = 0;
-			if(strlen(namecmd) > (size_t)i)
+			if (strlen(namecmd) > (size_t)i)
 				namecmd[i] = 0;
 			printf("%s\n", namecmd);
 		} else {
 			namecmd = p->short_cmd;
-			if(i < 2)
+			if (i < 2)
 				i = 2;
-			if(strlen(namecmd) > ((size_t)i-2))
+			if (strlen(namecmd) > ((size_t)i-2))
 				namecmd[i-2] = 0;
 			printf("[%s]\n", namecmd);
 		}
