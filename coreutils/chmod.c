@@ -11,78 +11,69 @@
  */
 
 /* BB_AUDIT SUSv3 compliant */
-/* BB_AUDIT GNU defects - unsupported options -c, -f, -v, and long options. */
+/* BB_AUDIT GNU defects - unsupported long options. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/chmod.html */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/stat.h>
 #include "busybox.h"
+
+#define OPT_RECURSE (option_mask32 & 1)
+#define OPT_VERBOSE (USE_DESKTOP(option_mask32 & 2) SKIP_DESKTOP(0))
+#define OPT_CHANGED (USE_DESKTOP(option_mask32 & 4) SKIP_DESKTOP(0))
+#define OPT_QUIET   (USE_DESKTOP(option_mask32 & 8) SKIP_DESKTOP(0))
+#define OPT_STR     ("-R" USE_DESKTOP("vcf"))
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
 {
-	if (!bb_parse_mode((char *)junk, &(statbuf->st_mode)))
-		bb_error_msg_and_die( "invalid mode: %s", (char *)junk);
-	if (chmod(fileName, statbuf->st_mode) == 0)
-		return (TRUE);
-	bb_perror_msg("%s", fileName);	/* Avoid multibyte problems. */
-	return (FALSE);
+	mode_t newmode = statbuf->st_mode;
+	if (!bb_parse_mode((char *)junk, &newmode))
+		bb_error_msg_and_die("invalid mode: %s", (char *)junk);
+
+	if (chmod(fileName, statbuf->st_mode) == 0) {
+		if (OPT_VERBOSE /* -v verbose? or -c changed? */
+		 || (OPT_CHANGED && statbuf->st_mode != newmode)
+		) {
+			printf("mode of '%s' changed to %04o (%s)\n", fileName,
+				newmode & 7777, bb_mode_string(newmode)+1);
+		}
+		return TRUE;
+	}
+	if (!OPT_QUIET) /* not silent (-f)? */
+		bb_perror_msg("%s", fileName);
+	return FALSE;
 }
 
-int chmod_main(int ATTRIBUTE_UNUSED argc, char **argv)
+int chmod_main(int argc, char **argv)
 {
 	int retval = EXIT_SUCCESS;
-	int recursiveFlag = FALSE;
-	int count;
+	char *arg, **argp;
 	char *smode;
-	char **p;
-	char *p0;
-	char opt = '-';
 
-	++argv;
-	count = 0;
-
-	for (p = argv  ; *p ; p++) {
-		p0 = p[0];
-		if (p0[0] == opt) {
-			if ((p0[1] == '-') && !p0[2]) {
-				opt = 0;	/* Disable further option processing. */
-				continue;
-			}
-			if (p0[1] == 'R') {
-				char *s = p0 + 2;
-				while (*s == 'R') {
-					++s;
-				}
-				if (*s) {
-					bb_show_usage();
-				}
-				recursiveFlag = TRUE;
-				continue;
-			}
-			if (count) {
-				bb_show_usage();
-			}
+	/* Convert first encountered -r into a-r, etc */
+	argp = argv + 1;
+	while ((arg = *argp)) {
+		/* Protect against mishandling e.g. "chmod 644 -r" */
+		if (arg[0] != '-')
+			break;
+		/* An option. Not a -- or valid option? */
+		if (arg[1] && !strchr(OPT_STR, arg[1])) {
+			argp[0] = xasprintf("a%s", arg);
+			break;
 		}
-		argv[count] = p0;
-		++count;
+		argp++;
 	}
+	/* "chmod -rzzz abc" will say "invalid mode: a-rzzz"!
+	 * It is easily fixable, but deemed not worth the code */
 
-	argv[count] = NULL;
+	opt_complementary = "-2";
+	getopt32(argc, argv, OPT_STR + 1); /* Reuse string */
+	argv += optind;
 
-	if (count < 2) {
-		bb_show_usage();
-	}
-
-	smode = *argv;
-	++argv;
+	smode = *argv++;
 
 	/* Ok, ready to do the deed now */
 	do {
-		if (! recursive_action (*argv, recursiveFlag, TRUE, FALSE,
-								fileAction,	fileAction, smode)) {
+		if (!recursive_action(*argv, OPT_RECURSE, TRUE, FALSE,
+					fileAction, fileAction, smode)) {
 			retval = EXIT_FAILURE;
 		}
 	} while (*++argv);

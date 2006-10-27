@@ -182,12 +182,17 @@
 	"-r--r--r--    1 andersen root            0 Apr 12 18:25 /tmp/foo\n"
 
 #define chmod_trivial_usage \
-	"[-R] MODE[,MODE]... FILE..."
+	"[-R"USE_DESKTOP("cvf")"] MODE[,MODE]... FILE..."
 #define chmod_full_usage \
 	"Each MODE is one or more of the letters ugoa, one of the\n" \
 	"symbols +-= and one or more of the letters rwxst.\n\n" \
 	"Options:\n" \
-	"\t-R\tChanges files and directories recursively"
+	"\t-R\tChanges files and directories recursively" \
+	USE_DESKTOP( \
+	"\n\t-c\tList changed files" \
+	"\n\t-v\tList all files" \
+	"\n\t-f\tHide errors" \
+	)
 #define chmod_example_usage \
 	"$ ls -l /tmp/foo\n" \
 	"-rw-rw-r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n" \
