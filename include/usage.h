@@ -204,12 +204,17 @@
 	"-r--r--r--    1 root     root            0 Apr 12 18:25 /tmp/foo\n"
 
 #define chown_trivial_usage \
-	"[ -Rh ]...  OWNER[<.|:>[GROUP]] FILE..."
+	"[-Rh"USE_DESKTOP("cvf")"]...  OWNER[<.|:>[GROUP]] FILE..."
 #define chown_full_usage \
 	"Change the owner and/or group of each FILE to OWNER and/or GROUP.\n" \
 	"\nOptions:\n" \
 	"\t-R\tChanges files and directories recursively\n" \
-	"\t-h\tDo not dereference symbolic links"
+	"\t-h\tDo not dereference symbolic links" \
+	USE_DESKTOP( \
+	"\n\t-c\tList changed files" \
+	"\n\t-v\tList all files" \
+	"\n\t-f\tHide errors" \
+	)
 #define chown_example_usage \
 	"$ ls -l /tmp/foo\n" \
 	"-r--r--r--    1 andersen andersen        0 Apr 12 18:25 /tmp/foo\n" \
