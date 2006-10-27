@@ -7,49 +7,21 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-/* BB_AUDIT SUSv3 defects - unsupported options -h, -H, -L, and -P. */
-/* BB_AUDIT GNU defects - unsupported options -h, -c, -f, -v, and long options. */
-/* BB_AUDIT Note: gnu chgrp does not support -H, -L, or -P. */
+/* BB_AUDIT SUSv3 defects - unsupported options -H, -L, and -P. */
+/* BB_AUDIT GNU defects - unsupported long options. */
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/chgrp.html */
 
-#include <stdlib.h>
-#include <unistd.h>
 #include "busybox.h"
-
-static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
-{
-	if (lchown(fileName, statbuf->st_uid, *((long *) junk)) == 0) {
-		return (TRUE);
-	}
-	bb_perror_msg("%s", fileName);	/* Avoid multibyte problems. */
-	return (FALSE);
-}
 
 int chgrp_main(int argc, char **argv)
 {
-	long gid;
-	int recursiveFlag;
-	int retval = EXIT_SUCCESS;
-
-	recursiveFlag = getopt32(argc, argv, "R");
-
-	if (argc - optind < 2) {
-		bb_show_usage();
-	}
-
-	argv += optind;
-
-	/* Find the selected group */
-	gid = get_ug_id(*argv, bb_xgetgrnam);
-	++argv;
-
-	/* Ok, ready to do the deed now */
-	do {
-		if (! recursive_action (*argv, recursiveFlag, FALSE, FALSE,
-								fileAction, fileAction, &gid)) {
-			retval = EXIT_FAILURE;
+	/* "chgrp [opts] abc file(s)" == "chown [opts] :abc file(s)" */
+	char **p = argv;
+	while (*++p) {
+		if (p[0][0] != '-') {
+			p[0] = xasprintf(":%s", p[0]);
+			break;
 		}
-	} while (*++argv);
-
-	return retval;
+	}
+	return chown_main(argc, argv);
 }
