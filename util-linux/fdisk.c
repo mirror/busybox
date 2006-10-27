@@ -2277,7 +2277,7 @@ add_partition(int n, int sys)
 		if (start > limit)
 			break;
 		if (start >= temp+units_per_sector && num_read) {
-			printf(_("Sector "OFF_T_FMT" is already allocated\n"), temp);
+			printf(_("Sector "OFF_FMT" is already allocated\n"), temp);
 			temp = start;
 			num_read = 0;
 		}
