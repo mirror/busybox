@@ -194,10 +194,10 @@ extern int is_directory(const char *name, int followLinks, struct stat *statBuf)
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
 extern int recursive_action(const char *fileName, int recurse,
-	  int followLinks, int depthFirst,
-	  int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData),
-	  int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData),
-	  void* userData);
+	int followLinks, int depthFirst,
+	int (*fileAction) (const char *fileName, struct stat* statbuf, void* userData, int depth),
+	int (*dirAction) (const char *fileName, struct stat* statbuf, void* userData, int depth),
+	void* userData, int depth);
 extern int device_open(const char *device, int mode);
 extern int get_console_fd(void);
 extern char *find_block_device(char *path);

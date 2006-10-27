@@ -56,7 +56,7 @@ static int num_matches;
 static int exec_opt;
 #endif
 
-static int fileAction(const char *fileName, struct stat *statbuf, void* junk)
+static int fileAction(const char *fileName, struct stat *statbuf, void* junk, int depth)
 {
 #ifdef CONFIG_FEATURE_FIND_XDEV
 	if (S_ISDIR(statbuf->st_mode) && xdev_count) {
@@ -307,12 +307,12 @@ int find_main(int argc, char **argv)
 
 	if (firstopt == 1) {
 		if (!recursive_action(".", TRUE, dereference, FALSE, fileAction,
-					fileAction, NULL))
+					fileAction, NULL, 0))
 			status = EXIT_FAILURE;
 	} else {
 		for (i = 1; i < firstopt; i++) {
 			if (!recursive_action(argv[i], TRUE, dereference, FALSE, fileAction,
-						fileAction, NULL))
+						fileAction, NULL, 0))
 				status = EXIT_FAILURE;
 		}
 	}

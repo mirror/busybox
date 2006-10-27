@@ -290,7 +290,7 @@ static void load_regexes_from_file(llist_t *fopt)
 }
 
 
-static int file_action_grep(const char *filename, struct stat *statbuf, void* matched)
+static int file_action_grep(const char *filename, struct stat *statbuf, void* matched, int depth)
 {
 	FILE *file = fopen(filename, "r");
 	if (file == NULL) {
@@ -315,7 +315,8 @@ static int grep_dir(const char *dir)
 		/* depthFirst= */ 1,
 		/* fileAction= */ file_action_grep,
 		/* dirAction= */ NULL,
-		/* userData= */ &matched);
+		/* userData= */ &matched,
+		/* depth= */ 0);
 	return matched;
 }
 

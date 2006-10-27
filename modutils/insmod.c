@@ -801,7 +801,7 @@ static char *m_fullName;
 
 
 static int check_module_name_match(const char *filename, struct stat *statbuf,
-				void *userdata)
+				void *userdata, int depth)
 {
 	char *fullname = (char *) userdata;
 
@@ -4048,7 +4048,7 @@ int insmod_main( int argc, char **argv)
 			else
 				module_dir = real_module_dir;
 			recursive_action(module_dir, TRUE, FALSE, FALSE,
-					check_module_name_match, 0, m_fullName);
+					check_module_name_match, 0, m_fullName, 0);
 			free(tmdn);
 		}
 
@@ -4063,7 +4063,7 @@ int insmod_main( int argc, char **argv)
 			/* No module found under /lib/modules/`uname -r`, this
 			 * time cast the net a bit wider.  Search /lib/modules/ */
 			if (!recursive_action(module_dir, TRUE, FALSE, FALSE,
-						    check_module_name_match, 0, m_fullName)
+						    check_module_name_match, 0, m_fullName, 0)
 			) {
 				if (m_filename == 0
 				 || ((fp = fopen(m_filename, "r")) == NULL)

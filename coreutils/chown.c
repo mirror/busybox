@@ -32,7 +32,7 @@ static int (*chown_func)(const char *, uid_t, gid_t) = chown;
  */
 
 static int fileAction(const char *fileName, struct stat *statbuf,
-		void ATTRIBUTE_UNUSED *junk)
+		void ATTRIBUTE_UNUSED *junk, int depth)
 {
 	// TODO: -H/-L/-P
 	// if (depth ... && S_ISLNK(statbuf->st_mode)) ....
@@ -75,7 +75,8 @@ int chown_main(int argc, char **argv)
 		*groupName++ = '\0';
 		gid = get_ug_id(groupName, bb_xgetgrnam);
 	}
-	if (--groupName != *argv) uid = get_ug_id(*argv, bb_xgetpwnam);
+	if (--groupName != *argv)
+		uid = get_ug_id(*argv, bb_xgetpwnam);
 	++argv;
 
 	/* Ok, ready to do the deed now */
@@ -86,7 +87,8 @@ int chown_main(int argc, char **argv)
 				FALSE,          // depth first
 				fileAction,     // file action
 				fileAction,     // dir action
-				NULL)           // user data
+				NULL,           // user data
+				0)              // depth 
 		) {
 			retval = EXIT_FAILURE;
 		}

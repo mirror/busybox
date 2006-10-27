@@ -301,7 +301,7 @@ static int exclude_file(const llist_t *excluded_files, const char *file)
 # endif
 
 static int writeFileToTarball(const char *fileName, struct stat *statbuf,
-							  void *userData)
+			void *userData, int depth)
 {
 	struct TarBallInfo *tbInfo = (struct TarBallInfo *) userData;
 	const char *header_name;
@@ -473,7 +473,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 	/* Read the directory/files and iterate over them one at a time */
 	while (include) {
 		if (!recursive_action(include->data, TRUE, dereferenceFlag,
-				FALSE, writeFileToTarball, writeFileToTarball, &tbInfo))
+				FALSE, writeFileToTarball, writeFileToTarball, &tbInfo, 0))
 		{
 			errorFlag = TRUE;
 		}

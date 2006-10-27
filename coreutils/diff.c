@@ -1030,7 +1030,7 @@ static int dir_strcmp(const void *p1, const void *p2)
 /* This function adds a filename to dl, the directory listing. */
 
 static int add_to_dirlist(const char *filename,
-						  struct stat ATTRIBUTE_UNUSED * sb, void *userdata)
+		struct stat ATTRIBUTE_UNUSED * sb, void *userdata, int depth)
 {
 	dl_count++;
 	dl = xrealloc(dl, dl_count * sizeof(char *));
@@ -1067,7 +1067,7 @@ static char **get_dir(char *path)
 	/* Now fill dl with a listing. */
 	if (cmd_flags & FLAG_r)
 		recursive_action(path, TRUE, TRUE, FALSE, add_to_dirlist, NULL,
-						 userdata);
+						 userdata, 0);
 	else {
 		DIR *dp;
 		struct dirent *ep;
@@ -1076,7 +1076,7 @@ static char **get_dir(char *path)
 		while ((ep = readdir(dp))) {
 			if ((!strcmp(ep->d_name, "..")) || (!strcmp(ep->d_name, ".")))
 				continue;
-			add_to_dirlist(ep->d_name, NULL, NULL);
+			add_to_dirlist(ep->d_name, NULL, NULL, 0);
 		}
 		closedir(dp);
 	}
