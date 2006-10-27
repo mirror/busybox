@@ -224,14 +224,12 @@ static unsigned long display_generic(int scr_width)
 	fclose(fp);
 
 	/* read load average as a string */
-	fp = xfopen("loadavg", "r");
 	buf[0] = '\0';
-	fgets(buf, sizeof(buf), fp);
+	open_read_close("loadavg", buf, sizeof(buf));
 	end = strchr(buf, ' ');
 	if (end) end = strchr(end+1, ' ');
 	if (end) end = strchr(end+1, ' ');
 	if (end) *end = '\0';
-	fclose(fp);
 
 	if (needs_conversion) {
 		/* convert to kilobytes */
@@ -253,8 +251,7 @@ static unsigned long display_generic(int scr_width)
 
 	printf(OPT_BATCH_MODE ? "%s\n" : "\e[H\e[J%s\n", scrbuf);
     
-	snprintf(scrbuf, scr_width,
-		"Load average: %s", buf);
+	snprintf(scrbuf, scr_width, "Load average: %s", buf);
 	printf("%s\n", scrbuf);
 
 	return total;
@@ -321,7 +318,6 @@ static void display_status(int count, int scr_width)
 	}
 	/* printf(" pmem_scale=%u pcpu_scale=%u ", pmem_scale, pcpu_scale); */
 #endif
-	if (OPT_BATCH_MODE) count--;
 	while (count-- > 0) {
 		div_t pmem = div((s->rss*pmem_scale) >> pmem_shift, 10);
 		int col = scr_width+1;
@@ -337,7 +333,7 @@ static void display_status(int count, int scr_width)
 				s->pid, s->user, s->state, rss_str_buf, s->ppid,
 				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(pcpu.quot, '0'+pcpu.rem,)
 				pmem.quot, '0'+pmem.rem);
-		if (col>0)
+		if (col > 0)
 			printf("%.*s", col, s->short_cmd);
 		/* printf(" %d/%d %lld/%lld", s->pcpu, total_pcpu,
 			jif.busy - prev_jif.busy, jif.total - prev_jif.total); */
@@ -463,7 +459,7 @@ int top_main(int argc, char **argv)
 		qsort(top, ntop, sizeof(procps_status_t), (void*)sort_function);
 #endif /* CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE */
 		count = lines;
-		if (count > ntop) {
+		if (OPT_BATCH_MODE || count > ntop) {
 			count = ntop;
 		}
 		/* show status for each of the processes */
