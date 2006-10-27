@@ -153,7 +153,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 		/* Perform actual comparison */
 		switch(flags&7) {
 			default:
-				bb_error_msg_and_die("Unknown sort type.");
+				bb_error_msg_and_die("unknown sort type");
 				break;
 			/* Ascii sort */
 			case 0:
@@ -233,12 +233,12 @@ int sort_main(int argc, char **argv)
 		switch(*line) {
 #ifdef CONFIG_FEATURE_SORT_BIG
 			case 'o':
-				if(outfile) bb_error_msg_and_die("Too many -o.");
+				if(outfile) bb_error_msg_and_die("too many -o");
 				outfile=xfopen(optarg,"w");
 				break;
 			case 't':
 				if(key_separator || optarg[1])
-					bb_error_msg_and_die("Too many -t.");
+					bb_error_msg_and_die("too many -t");
 				key_separator=*optarg;
 				break;
 			/* parse sort key */
@@ -262,7 +262,7 @@ int sort_main(int argc, char **argv)
 						temp2=strchr(optlist,*temp);
 						flag=(1<<(temp2-optlist));
 						if(!temp2 || (flag>FLAG_M && flag<FLAG_b))
-							bb_error_msg_and_die("Unknown key option.");
+							bb_error_msg_and_die("unknown key option");
 						/* b after , means strip _trailing_ space */
 						if(i && flag==FLAG_b) flag=FLAG_bb;
 						key->flags|=flag;

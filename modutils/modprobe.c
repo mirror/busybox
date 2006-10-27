@@ -725,7 +725,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 	}
 
 	if( !dt ) {
-		bb_error_msg ("module %s not found.", mod);
+		bb_error_msg ("module %s not found", mod);
 		return;
 	}
 
@@ -749,7 +749,7 @@ static void check_dep ( char *mod, struct mod_list_t **head, struct mod_list_t *
 				dt = adt;
 			}
 			else {
-				bb_error_msg ("module %s not found.", mod);
+				bb_error_msg ("module %s not found", mod);
 				return;
 			}
 		}

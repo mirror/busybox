@@ -222,7 +222,7 @@ int unzip_main(int argc, char **argv)
 		if (magic == ZIP_CDS_MAGIC) {
 			break;
 		} else if (magic != ZIP_FILEHEADER_MAGIC) {
-			bb_error_msg_and_die("Invalid zip magic %08X", magic);
+			bb_error_msg_and_die("invalid zip magic %08X", magic);
 		}
 
 		/* Read the file header */
@@ -238,7 +238,7 @@ int unzip_main(int argc, char **argv)
 		zip_header.formatted.filename_len = SWAP_LE32(zip_header.formatted.filename_len);
 		zip_header.formatted.extra_len = SWAP_LE32(zip_header.formatted.extra_len);
 		if ((zip_header.formatted.method != 0) && (zip_header.formatted.method != 8)) {
-			bb_error_msg_and_die("Unsupported compression method %d", zip_header.formatted.method);
+			bb_error_msg_and_die("unsupported compression method %d", zip_header.formatted.method);
 		}
 
 		/* Read filename */
@@ -251,7 +251,7 @@ int unzip_main(int argc, char **argv)
 
 		if ((verbosity == v_list) && !list_header_done){
 			printf("  Length     Date   Time    Name\n"
-				   " --------    ----   ----    ----\n");
+			       " --------    ----   ----    ----\n");
 			list_header_done = 1;
 		}
 
@@ -282,14 +282,14 @@ int unzip_main(int argc, char **argv)
 			} else if (last_char_is(dst_fn, '/')) { /* Extract directory */
 				if (stat(dst_fn, &stat_buf) == -1) {
 					if (errno != ENOENT) {
-						bb_perror_msg_and_die("Cannot stat '%s'",dst_fn);
+						bb_perror_msg_and_die("cannot stat '%s'",dst_fn);
 					}
 					if (verbosity == v_normal) {
 						printf("   creating: %s\n", dst_fn);
 					}
 					unzip_create_leading_dirs(dst_fn);
 					if (bb_make_directory(dst_fn, 0777, 0)) {
-						bb_error_msg_and_die("Exiting");
+						bb_error_msg_and_die("exiting");
 					}
 				} else {
 					if (!S_ISDIR(stat_buf.st_mode)) {
@@ -302,7 +302,7 @@ int unzip_main(int argc, char **argv)
 			_check_file:
 				if (stat(dst_fn, &stat_buf) == -1) { /* File does not exist */
 					if (errno != ENOENT) {
-						bb_perror_msg_and_die("Cannot stat '%s'",dst_fn);
+						bb_perror_msg_and_die("cannot stat '%s'",dst_fn);
 					}
 					i = 'y';
 
@@ -316,7 +316,7 @@ int unzip_main(int argc, char **argv)
 						} else {
 							printf("replace %s? [y]es, [n]o, [A]ll, [N]one, [r]ename: ", dst_fn);
 							if (!fgets(key_buf, 512, stdin)) {
-								bb_perror_msg_and_die("Cannot read input");
+								bb_perror_msg_and_die("cannot read input");
 							}
 							i = key_buf[0];
 						}
@@ -358,7 +358,7 @@ int unzip_main(int argc, char **argv)
 			/* Prompt for new name */
 			printf("new name: ");
 			if (!fgets(key_buf, 512, stdin)) {
-				bb_perror_msg_and_die("Cannot read input");
+				bb_perror_msg_and_die("cannot read input");
 			}
 			free(dst_fn);
 			dst_fn = xstrdup(key_buf);

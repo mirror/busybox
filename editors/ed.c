@@ -57,7 +57,7 @@ int ed_main(int argc, char **argv)
 		fileName = strdup(argv[1]);
 
 		if (fileName == NULL) {
-			bb_error_msg("No memory");
+			bb_error_msg("no memory");
 			termEdit();
 			return EXIT_SUCCESS;
 		}
@@ -105,7 +105,7 @@ static void doCommands(void)
 
 		if (*endbuf != '\n')
 		{
-			bb_error_msg("Command line too long");
+			bb_error_msg("command line too long");
 
 			do
 			{
@@ -182,7 +182,7 @@ static void doCommands(void)
 			case 'f':
 				if (*cp && !isblank(*cp))
 				{
-					bb_error_msg("Bad file command");
+					bb_error_msg("bad file command");
 					break;
 				}
 
@@ -203,7 +203,7 @@ static void doCommands(void)
 
 				if (newname == NULL)
 				{
-					bb_error_msg("No memory for file name");
+					bb_error_msg("no memory for file name");
 					break;
 				}
 
@@ -223,7 +223,7 @@ static void doCommands(void)
 
 				if ((*cp < 'a') || (*cp > 'a') || cp[1])
 				{
-					bb_error_msg("Bad mark name");
+					bb_error_msg("bad mark name");
 					break;
 				}
 
@@ -244,7 +244,7 @@ static void doCommands(void)
 
 				if (have1 || *cp)
 				{
-					bb_error_msg("Bad quit command");
+					bb_error_msg("bad quit command");
 					break;
 				}
 
@@ -269,7 +269,7 @@ static void doCommands(void)
 			case 'r':
 				if (*cp && !isblank(*cp))
 				{
-					bb_error_msg("Bad read command");
+					bb_error_msg("bad read command");
 					break;
 				}
 
@@ -278,7 +278,7 @@ static void doCommands(void)
 
 				if (*cp == '\0')
 				{
-					bb_error_msg("No file name");
+					bb_error_msg("no file name");
 					break;
 				}
 
@@ -300,7 +300,7 @@ static void doCommands(void)
 			case 'w':
 				if (*cp && !isblank(*cp))
 				{
-					bb_error_msg("Bad write command");
+					bb_error_msg("bad write command");
 					break;
 				}
 
@@ -317,7 +317,7 @@ static void doCommands(void)
 
 				if (cp == NULL)
 				{
-					bb_error_msg("No file name specified");
+					bb_error_msg("no file name specified");
 					break;
 				}
 
@@ -342,7 +342,7 @@ static void doCommands(void)
 			case '.':
 				if (have1)
 				{
-					bb_error_msg("No arguments allowed");
+					bb_error_msg("no arguments allowed");
 					break;
 				}
 
@@ -372,7 +372,7 @@ static void doCommands(void)
 				break;
 
 			default:
-				bb_error_msg("Unimplemented command");
+				bb_error_msg("unimplemented command");
 				break;
 		}
 	}
@@ -392,7 +392,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 
 	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 	{
-		bb_error_msg("Bad line range for substitute");
+		bb_error_msg("bad line range for substitute");
 
 		return;
 	}
@@ -410,7 +410,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 
 	if (isblank(*cp) || (*cp == '\0'))
 	{
-		bb_error_msg("Bad delimiter for substitute");
+		bb_error_msg("bad delimiter for substitute");
 
 		return;
 	}
@@ -422,7 +422,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 
 	if (cp == NULL)
 	{
-		bb_error_msg("Missing 2nd delimiter for substitute");
+		bb_error_msg("missing 2nd delimiter for substitute");
 
 		return;
 	}
@@ -448,7 +448,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 			break;
 
 		default:
-			bb_error_msg("Unknown option for substitute");
+			bb_error_msg("unknown option for substitute");
 
 			return;
 	}
@@ -457,7 +457,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 	{
 		if (searchString[0] == '\0')
 		{
-			bb_error_msg("No previous search string");
+			bb_error_msg("no previous search string");
 
 			return;
 		}
@@ -545,7 +545,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 
 		if (nlp == NULL)
 		{
-			bb_error_msg("Cannot get memory for line");
+			bb_error_msg("cannot get memory for line");
 
 			return;
 		}
@@ -587,7 +587,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 	}
 
 	if (!didSub)
-		bb_error_msg("No substitutions found for \"%s\"", oldStr);
+		bb_error_msg("no substitutions found for \"%s\"", oldStr);
 }
 
 
@@ -651,7 +651,7 @@ static void addLines(int num)
 
 		if (buf[len - 1] != '\n')
 		{
-			bb_error_msg("Line too long");
+			bb_error_msg("line too long");
 
 			do
 			{
@@ -711,7 +711,7 @@ static int getNum(const char **retcp, int *retHaveNum, int *retNum)
 
 				if ((*cp < 'a') || (*cp > 'z'))
 				{
-					bb_error_msg("Bad mark name");
+					bb_error_msg("bad mark name");
 
 					return FALSE;
 				}
@@ -799,7 +799,7 @@ static int initEdit(void)
 
 	if (bufBase == NULL)
 	{
-		bb_error_msg("No memory for buffer");
+		bb_error_msg("no memory for buffer");
 
 		return FALSE;
 	}
@@ -865,7 +865,7 @@ static int readLines(const char * file, int num)
 
 	if ((num < 1) || (num > lastNum + 1))
 	{
-		bb_error_msg("Bad line for read");
+		bb_error_msg("bad line for read");
 
 		return FALSE;
 	}
@@ -925,7 +925,7 @@ static int readLines(const char * file, int num)
 
 			if (cp == NULL)
 			{
-				bb_error_msg("No memory for buffer");
+				bb_error_msg("no memory for buffer");
 				close(fd);
 
 				return FALSE;
@@ -984,7 +984,7 @@ static int writeLines(const char * file, int num1, int num2)
 
 	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 	{
-		bb_error_msg("Bad line range for write");
+		bb_error_msg("bad line range for write");
 
 		return FALSE;
 	}
@@ -1054,7 +1054,7 @@ static int printLines(int num1, int num2, int expandFlag)
 
 	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 	{
-		bb_error_msg("Bad line range for print");
+		bb_error_msg("bad line range for print");
 
 		return FALSE;
 	}
@@ -1133,7 +1133,7 @@ static int insertLine(int num, const char * data, int len)
 
 	if ((num < 1) || (num > lastNum + 1))
 	{
-		bb_error_msg("Inserting at bad line number");
+		bb_error_msg("inserting at bad line number");
 
 		return FALSE;
 	}
@@ -1142,7 +1142,7 @@ static int insertLine(int num, const char * data, int len)
 
 	if (newLp == NULL)
 	{
-		bb_error_msg("Failed to allocate memory for line");
+		bb_error_msg("failed to allocate memory for line");
 
 		return FALSE;
 	}
@@ -1186,7 +1186,7 @@ static int deleteLines(int num1, int num2)
 
 	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 	{
-		bb_error_msg("Bad line numbers for delete");
+		bb_error_msg("bad line numbers for delete");
 
 		return FALSE;
 	}
@@ -1246,7 +1246,7 @@ static int searchLines(const char *str, int num1, int num2)
 
 	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
 	{
-		bb_error_msg("Bad line numbers for search");
+		bb_error_msg("bad line numbers for search");
 
 		return 0;
 	}
@@ -1255,7 +1255,7 @@ static int searchLines(const char *str, int num1, int num2)
 	{
 		if (searchString[0] == '\0')
 		{
-			bb_error_msg("No previous search string");
+			bb_error_msg("no previous search string");
 
 			return 0;
 		}
@@ -1282,7 +1282,7 @@ static int searchLines(const char *str, int num1, int num2)
 		lp = lp->next;
 	}
 
-	bb_error_msg("Cannot find string \"%s\"", str);
+	bb_error_msg("cannot find string \"%s\"", str);
 
 	return 0;
 }
@@ -1298,7 +1298,7 @@ static LINE *findLine(int num)
 
 	if ((num < 1) || (num > lastNum))
 	{
-		bb_error_msg("Line number %d does not exist", num);
+		bb_error_msg("line number %d does not exist", num);
 
 		return NULL;
 	}

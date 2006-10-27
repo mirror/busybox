@@ -610,7 +610,7 @@ static int do_subst_command(sed_cmd_t *sed_cmd, char **line)
 	if (sed_cmd->sub_match == NULL) {
 		current_regex = bbg.previous_regex_ptr;
 		if (!current_regex)
-			bb_error_msg_and_die("No previous regexp.");
+			bb_error_msg_and_die("no previous regexp");
 	} else
 		bbg.previous_regex_ptr = current_regex = sed_cmd->sub_match;
 

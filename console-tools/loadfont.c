@@ -51,7 +51,7 @@ static void do_loadfont(int fd, unsigned char *inbuf, int unit, int fontsize)
 	memset(buf, 0, sizeof(buf));
 
 	if (unit < 1 || unit > 32)
-		bb_error_msg_and_die("Bad character size %d", unit);
+		bb_error_msg_and_die("bad character size %d", unit);
 
 	for (i = 0; i < fontsize; i++)
 		memcpy(buf + (32 * i), inbuf + (unit * i), unit);
@@ -108,8 +108,8 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	if (ioctl(fd, PIO_UNIMAPCLR, &advice)) {
 #ifdef ENOIOCTLCMD
 		if (errno == ENOIOCTLCMD) {
-			bb_error_msg("It seems this kernel is older than 1.1.92");
-			bb_error_msg_and_die("No Unicode mapping table loaded.");
+			bb_error_msg("it seems this kernel is older than 1.1.92");
+			bb_error_msg_and_die("no Unicode mapping table loaded");
 		} else
 #endif
 			bb_perror_msg_and_die("PIO_UNIMAPCLR");
@@ -134,13 +134,13 @@ static void loadnewfont(int fd)
 	 */
 	inputlth = fread(inbuf, 1, sizeof(inbuf), stdin);
 	if (ferror(stdin))
-		bb_perror_msg_and_die("Error reading input font");
+		bb_perror_msg_and_die("error reading input font");
 	/* use malloc/realloc in case of giant files;
 	   maybe these do not occur: 16kB for the font,
 	   and 16kB for the map leaves 32 unicode values
 	   for each font position */
 	if (!feof(stdin))
-		bb_perror_msg_and_die("Font too large");
+		bb_perror_msg_and_die("font too large");
 
 	/* test for psf first */
 	{
@@ -158,11 +158,11 @@ static void loadnewfont(int fd)
 			goto no_psf;
 
 		if (psfhdr.mode > PSF_MAXMODE)
-			bb_error_msg_and_die("Unsupported psf file mode");
+			bb_error_msg_and_die("unsupported psf file mode");
 		fontsize = ((psfhdr.mode & PSF_MODE512) ? 512 : 256);
 #if !defined( PIO_FONTX ) || defined( __sparc__ )
 		if (fontsize != 256)
-			bb_error_msg_and_die("Only fontsize 256 supported");
+			bb_error_msg_and_die("only fontsize 256 supported");
 #endif
 		hastable = (psfhdr.mode & PSF_MODEHASTAB);
 		unit = psfhdr.charsize;
@@ -170,7 +170,7 @@ static void loadnewfont(int fd)
 
 		head = head0 + fontsize * unit;
 		if (head > inputlth || (!hastable && head != inputlth))
-			bb_error_msg_and_die("Input file: bad length");
+			bb_error_msg_and_die("input file: bad length");
 		do_loadfont(fd, inbuf + head0, unit, fontsize);
 		if (hastable)
 			do_loadtable(fd, inbuf + head, inputlth - head, fontsize);
@@ -185,7 +185,7 @@ static void loadnewfont(int fd)
 	} else {
 		/* bare font */
 		if (inputlth & 0377)
-			bb_error_msg_and_die("Bad input file size");
+			bb_error_msg_and_die("bad input file size");
 		offset = 0;
 		unit = inputlth / 256;
 	}

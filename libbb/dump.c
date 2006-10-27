@@ -153,7 +153,7 @@ static void rewrite(FS * fs)
 				}
 				/* Unlike the original, output the remainder of the format string. */
 				if (!*byte_count_str) {
-					bb_error_msg_and_die("bad byte count for conversion character %s.", p1);
+					bb_error_msg_and_die("bad byte count for conversion character %s", p1);
 				}
 				pr->bcnt = *byte_count_str;
 			} else if (*p1 == 'l') {
@@ -186,7 +186,7 @@ static void rewrite(FS * fs)
 				} else if (sokay == USEPREC) {
 					pr->bcnt = prec;
 				} else {	/* NOTOKAY */
-					bb_error_msg_and_die("%%s requires a precision or a byte count.");
+					bb_error_msg_and_die("%%s requires a precision or a byte count");
 				}
 			} else if (*p1 == '_') {
 				++p2;
@@ -220,7 +220,7 @@ static void rewrite(FS * fs)
 				}
 			} else {
 			DO_BAD_CONV_CHAR:
-				bb_error_msg_and_die("bad conversion character %%%s.", p1);
+				bb_error_msg_and_die("bad conversion character %%%s", p1);
 			}
 
 			/*
@@ -253,7 +253,7 @@ static void rewrite(FS * fs)
 
 			/* only one conversion character if byte count */
 			if (!(pr->flags & F_ADDRESS) && fu->bcnt && nconv++) {
-				bb_error_msg_and_die("byte count with multiple conversion characters.");
+				bb_error_msg_and_die("byte count with multiple conversion characters");
 			}
 		}
 		/*

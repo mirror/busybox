@@ -287,7 +287,7 @@ read_line(void)
 	line_ptr = line_buffer;
 	if (!fgets(line_buffer, LINE_LENGTH, stdin)) {
 		/* error or eof */
-		bb_error_msg_and_die("\ngot EOF - exiting...");
+		bb_error_msg_and_die("\ngot EOF, exiting");
 	}
 	while (*line_ptr && !isgraph(*line_ptr))
 		line_ptr++;

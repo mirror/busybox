@@ -78,7 +78,7 @@ int mt_main(int argc, char **argv)
 	}
 
 	if (code->name == 0) {
-		bb_error_msg("unrecognized opcode %s.", argv[1]);
+		bb_error_msg("unrecognized opcode %s", argv[1]);
 		return EXIT_FAILURE;
 	}
 

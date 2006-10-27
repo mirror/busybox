@@ -23,7 +23,7 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 		char *line_ptr = line;
 
 		if (strcmp(line, "end") == 0) {
-			return(EXIT_SUCCESS);
+			return EXIT_SUCCESS;
 		}
 		length = ((*line_ptr - 0x20) & 0x3f)* 4 / 3;
 
@@ -32,13 +32,13 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 			continue;
 		}
 		if (length > 60) {
-			bb_error_msg_and_die("Line too long");
+			bb_error_msg_and_die("line too long");
 		}
 
 		line_ptr++;
 		/* Tolerate an overly long line to accomodate a possible exta '`' */
 		if (strlen(line_ptr) < (size_t)length) {
-			bb_error_msg_and_die("Short file");
+			bb_error_msg_and_die("short file");
 		}
 
 		while (length > 0) {
@@ -63,7 +63,7 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 		}
 		free(line);
 	}
-	bb_error_msg_and_die("Short file");
+	bb_error_msg_and_die("short file");
 }
 
 static int read_base64(FILE *src_stream, FILE *dst_stream)
@@ -84,7 +84,7 @@ static int read_base64(FILE *src_stream, FILE *dst_stream)
 			do {
 				ch = fgetc(src_stream);
 				if (ch == EOF) {
-					bb_error_msg_and_die("Short file");
+					bb_error_msg_and_die("short file");
 				}
 			} while ((table_ptr = strchr(base64_table, ch)) == NULL);
 
@@ -101,7 +101,7 @@ static int read_base64(FILE *src_stream, FILE *dst_stream)
 			else if (*table_ptr == '\n') {
 				/* Check for terminating line */
 				if (term_count == 5) {
-					return(EXIT_SUCCESS);
+					return EXIT_SUCCESS;
 				}
 				term_count = 1;
 				continue;
@@ -175,7 +175,7 @@ int uudecode_main(int argc, char **argv)
 		free(line);
 		ret = decode_fn_ptr(src_stream, dst_stream);
 		fclose_if_not_stdin(src_stream);
-		return(ret);
+		return ret;
 	}
-	bb_error_msg_and_die("No `begin' line");
+	bb_error_msg_and_die("no 'begin' line");
 }
