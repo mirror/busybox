@@ -58,12 +58,13 @@ const char *make_human_readable_str(unsigned long long size,
 		val /= display_unit;	/* Don't combine with the line above!!! */
 	} else {
 		++u;
-		while ((val >= KILOBYTE)
-			   && (u < zero_and_units + sizeof(zero_and_units) - 1)) {
+		while ((val >= 1024)
+		 && (u < zero_and_units + sizeof(zero_and_units) - 1)
+		) {
 			f = fmt_tenths;
 			++u;
-			frac = ((((int)(val % KILOBYTE)) * 10) + (KILOBYTE/2)) / KILOBYTE;
-			val /= KILOBYTE;
+			frac = (((int)(val % 1024)) * 10 + 1024/2) / 1024;
+			val /= 1024;
 		}
 		if (frac >= 10) {		/* We need to round up here. */
 			++val;

@@ -42,7 +42,7 @@ int mkdir_main (int argc, char **argv)
 #endif
 	opt = getopt32(argc, argv, "m:p", &smode);
 	if(opt & 1) {
-			mode = 0777;
+		mode = 0777;
 		if (!bb_parse_mode (smode, &mode)) {
 			bb_error_msg_and_die ("invalid mode `%s'", smode);
 		}

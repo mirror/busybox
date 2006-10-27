@@ -29,7 +29,7 @@
 #ifndef CONFIG_FEATURE_HUMAN_READABLE
 static long kscale(long b, long bs)
 {
-	return ( b * (long long) bs + KILOBYTE/2 ) / KILOBYTE;
+	return ( b * (long long) bs + 1024/2 ) / 1024;
 }
 #endif
 
@@ -38,7 +38,7 @@ int df_main(int argc, char **argv)
 	long blocks_used;
 	long blocks_percent_used;
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
-	unsigned long df_disp_hr = KILOBYTE;
+	unsigned long df_disp_hr = 1024;
 #endif
 	int status = EXIT_SUCCESS;
 	unsigned opt;
@@ -56,7 +56,7 @@ int df_main(int argc, char **argv)
 		disp_units_hdr = "     Size";
 	}
 	if (opt & 2) {
-		df_disp_hr = MEGABYTE;
+		df_disp_hr = 1024*1024;
 		disp_units_hdr = "1M-blocks";
 	}
 #else

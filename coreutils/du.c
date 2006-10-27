@@ -27,7 +27,7 @@
 
 #ifdef CONFIG_FEATURE_HUMAN_READABLE
 # ifdef CONFIG_FEATURE_DU_DEFAULT_BLOCKSIZE_1K
-static unsigned long disp_hr = KILOBYTE;
+static unsigned long disp_hr = 1024;
 # else
 static unsigned long disp_hr = 512;
 # endif
@@ -180,11 +180,11 @@ int du_main(int argc, char **argv)
 	}
 	if((opt & (1 << 10))) {
 		/* -m opt */
-		disp_hr = MEGABYTE;
+		disp_hr = 1024*1024;
 	}
 	if((opt & (1 << 2))) {
 		/* -k opt */
-			disp_hr = KILOBYTE;
+		disp_hr = 1024;
 	}
 #else
 	opt_complementary = "H-L:L-H:s-d:d-s";
