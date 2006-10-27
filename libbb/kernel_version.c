@@ -7,9 +7,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <sys/utsname.h>		/* for uname(2) */
 
 #include "libbb.h"
@@ -27,12 +24,12 @@ int get_linux_version_code(void)
 
 	if (uname(&name) == -1) {
 		bb_perror_msg("cannot get system information");
-		return (0);
+		return 0;
 	}
 
 	s = name.release;
 	r = 0;
-	for (i=0 ; i<3 ; i++) {
+	for (i = 0; i < 3; i++) {
 		r = r * 256 + atoi(strtok(s, "."));
 		s = NULL;
 	}
