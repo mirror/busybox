@@ -22,20 +22,27 @@
  * and so isn't sufficiently portable to take over since glibc2.1
  * is so stinking huge.
  */
+
+static int true_action(const char *fileName, struct stat *statbuf, void* userData)
+{
+	return TRUE;
+}
+
 int recursive_action(const char *fileName,
 		int recurse, int followLinks, int depthFirst,
 		int (*fileAction) (const char *fileName, struct stat * statbuf, void* userData),
 		int (*dirAction) (const char *fileName, struct stat * statbuf, void* userData),
 		void* userData)
 {
-	int status;
 	struct stat statbuf;
+	int status;
+	DIR *dir;
 	struct dirent *next;
 
-	if (followLinks)
-		status = stat(fileName, &statbuf);
-	else
-		status = lstat(fileName, &statbuf);
+	if (!fileAction) fileAction = true_action;
+	if (!dirAction) dirAction = true_action;
+
+	status = (followLinks ? stat : lstat)(fileName, &statbuf);
 
 	if (status < 0) {
 #ifdef DEBUG_RECURS_ACTION
@@ -47,63 +54,54 @@ int recursive_action(const char *fileName,
 	}
 
 	if (!followLinks && (S_ISLNK(statbuf.st_mode))) {
-		if (fileAction == NULL)
-			return TRUE;
-		else
-			return fileAction(fileName, &statbuf, userData);
+		return fileAction(fileName, &statbuf, userData);
 	}
 
 	if (!recurse) {
 		if (S_ISDIR(statbuf.st_mode)) {
-			if (dirAction != NULL)
-				return (dirAction(fileName, &statbuf, userData));
-			else
-				return TRUE;
+			return dirAction(fileName, &statbuf, userData);
 		}
 	}
 
-	if (S_ISDIR(statbuf.st_mode)) {
-		DIR *dir;
+	if (!S_ISDIR(statbuf.st_mode))
+		return fileAction(fileName, &statbuf, userData);
 
-		if (dirAction != NULL && !depthFirst) {
-			status = dirAction(fileName, &statbuf, userData);
-			if (!status) {
-				bb_perror_msg("%s", fileName);
-				return FALSE;
-			} else if (status == SKIP)
-				return TRUE;
-		}
-		dir = opendir(fileName);
-		if (!dir) {
+	if (!depthFirst) {
+		status = dirAction(fileName, &statbuf, userData);
+		if (!status) {
+			bb_perror_msg("%s", fileName);
 			return FALSE;
 		}
-		status = TRUE;
-		while ((next = readdir(dir)) != NULL) {
-			char *nextFile;
-
-			nextFile = concat_subpath_file(fileName, next->d_name);
-			if(nextFile == NULL)
-				continue;
-			if (!recursive_action(nextFile, TRUE, followLinks, depthFirst,
-						fileAction, dirAction, userData)) {
-				status = FALSE;
-			}
-			free(nextFile);
-		}
-		closedir(dir);
-		if (dirAction != NULL && depthFirst) {
-			if (!dirAction(fileName, &statbuf, userData)) {
-				bb_perror_msg("%s", fileName);
-				return FALSE;
-			}
-		}
-		if (!status)
-			return FALSE;
-	} else {
-		if (fileAction == NULL)
+		if (status == SKIP)
 			return TRUE;
-		else
-			return fileAction(fileName, &statbuf, userData);
 	}
+
+	dir = opendir(fileName);
+	if (!dir) {
+		return FALSE;
+	}
+	status = TRUE;
+	while ((next = readdir(dir)) != NULL) {
+		char *nextFile;
+
+		nextFile = concat_subpath_file(fileName, next->d_name);
+		if (nextFile == NULL)
+			continue;
+		if (!recursive_action(nextFile, TRUE, followLinks, depthFirst,
+					fileAction, dirAction, userData)) {
+			status = FALSE;
+		}
+		free(nextFile);
+	}
+	closedir(dir);
+	if (depthFirst) {
+		if (!dirAction(fileName, &statbuf, userData)) {
+			bb_perror_msg("%s", fileName);
+			return FALSE;
+		}
+	}
+
+	if (!status)
+		return FALSE;
 	return TRUE;
 }
