@@ -64,7 +64,7 @@ LIST_MASK       = (LIST_EXEC << 1) - 1,
 
 /* what files will be displayed */
 DISP_DIRNAME    = 1 << 15,      /* 2 or more items? label directories */
-DISP_HIDDEN     = 1 << 16,      /* show filenames starting with .  */
+DISP_HIDDEN     = 1 << 16,      /* show filenames starting with . */
 DISP_DOT        = 1 << 17,      /* show . and .. */
 DISP_NOLIST     = 1 << 18,      /* show directory as itself, not contents */
 DISP_RECURSIVE  = 1 << 19,      /* show directory and everything below it */
@@ -116,7 +116,7 @@ SPLIT_SUBDIR    = 2,
 #if ENABLE_FEATURE_LS_COLOR
 static int show_color;
 /* long option entry used only for --color, which has no short option
- * equivalent.  */
+ * equivalent */
 static const struct option ls_color_opt[] = {
 	{ "color", optional_argument, NULL, 1 },
 	{ NULL, 0, NULL, 0 }
@@ -523,7 +523,7 @@ static struct dnode **list_dir(const char *path)
 	closedir(dir);
 
 	/* now that we know how many files there are
-	   ** allocate memory for an array to hold dnode pointers
+	 * allocate memory for an array to hold dnode pointers
 	 */
 	if (dn == NULL)
 		return NULL;
@@ -634,8 +634,8 @@ static int list_single(struct dnode *dn)
 				int len = 0;
 
 				if (dn->sid) {
-					/*  I assume sid initilized with NULL  */
-					len = strlen(dn->sid)+1;
+					/* I assume sid initilized with NULL */
+					len = strlen(dn->sid) + 1;
 					safe_strncpy(context, dn->sid, len);
 					freecon(dn->sid);
 				} else {
@@ -760,7 +760,7 @@ static const unsigned opt_flags[] = {
 	LIST_MODEBITS|LIST_NLINKS|LIST_CONTEXT|LIST_SIZE|LIST_DATE_TIME, /* K */
 #endif
 #if ENABLE_FEATURE_AUTOWIDTH
-	0, 0,                    /* T, w - ignored */
+	0, 0,                       /* T, w - ignored */
 #endif
 	(1U<<31)
 };
@@ -789,7 +789,7 @@ int ls_main(int argc, char **argv)
 		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_FORWARD));
 
 #if ENABLE_FEATURE_AUTOWIDTH
-	/* Obtain the terminal width.  */
+	/* Obtain the terminal width */
 	get_terminal_width_height(STDOUT_FILENO, &terminal_width, NULL);
 	/* Go one less... */
 	terminal_width--;
@@ -900,8 +900,8 @@ int ls_main(int argc, char **argv)
 	}
 
 	/* now that we know how many files there are
-	** allocate memory for an array to hold dnode pointers
-	*/
+	 * allocate memory for an array to hold dnode pointers
+	 */
 	dnp = dnalloc(nfiles);
 	for (i = 0, cur = dn; i < nfiles; i++) {
 		dnp[i] = cur;	/* save pointer to node in array */
