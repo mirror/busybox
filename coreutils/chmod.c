@@ -87,7 +87,7 @@ int chmod_main(int argc, char **argv)
 		}
 	}
 
-	/* Paerse options */
+	/* Parse options */
 	opt_complementary = "-2";
 	getopt32(argc, argv, ("-"OPT_STR) + 1); /* Reuse string */
 	argv += optind;
@@ -99,13 +99,13 @@ int chmod_main(int argc, char **argv)
 	smode = *argv++;
 	do {
 		if (!recursive_action(*argv,
-				OPT_RECURSE,    // recurse
-				FALSE,          // follow links: GNU doesn't
-				FALSE,          // depth first
-				fileAction,     // file action
-				fileAction,     // dir action
-				smode,          // user data
-				0)              // depth
+			OPT_RECURSE,    // recurse
+			FALSE,          // follow links: coreutils doesn't
+			FALSE,          // depth first
+			fileAction,     // file action
+			fileAction,     // dir action
+			smode,          // user data
+			0)              // depth
 		) {
 			retval = EXIT_FAILURE;
 		}
