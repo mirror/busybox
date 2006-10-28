@@ -89,13 +89,13 @@
 #  define STRTOOFF strtol
 #  define SAFE_STRTOOFF safe_strtol
 #  define XSTRTOUOFF xstrtoul
-#  define OFF_FMT "%ld"
+#  define OFF_FMT "ld"
 # else
 /* "long" is too short, need "long long" */
 #  define STRTOOFF strtoll
 #  define SAFE_STRTOOFF safe_strtoll
 #  define XSTRTOUOFF xstrtoull
-#  define OFF_FMT "%lld"
+#  define OFF_FMT "lld"
 # endif
 #else
 # if 0 /* #if UINT_MAX == 0xffffffff */
@@ -104,12 +104,12 @@
 #  define STRTOOFF strtol
 #  define SAFE_STRTOOFF safe_strtoi
 #  define XSTRTOUOFF xstrtou
-#  define OFF_FMT "%d"
+#  define OFF_FMT "d"
 # else
 #  define STRTOOFF strtol
 #  define SAFE_STRTOOFF safe_strtol
 #  define XSTRTOUOFF xstrtoul
-#  define OFF_FMT "%ld"
+#  define OFF_FMT "ld"
 # endif
 #endif
 /* scary. better ideas? (but do *test* them first!) */

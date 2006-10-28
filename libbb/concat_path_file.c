@@ -9,7 +9,7 @@
  */
 
 /* concatenate path and file name to new allocation buffer,
- * not addition '/' if path name already have '/'
+ * not adding '/' if path name already has '/'
 */
 
 #include "libbb.h"

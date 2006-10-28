@@ -286,7 +286,7 @@ int wget_main(int argc, char **argv)
 #endif
 
 			if (beg_range)
-				fprintf(sfp, "Range: bytes="OFF_FMT"-\r\n", beg_range);
+				fprintf(sfp, "Range: bytes=%"OFF_FMT"-\r\n", beg_range);
 #if ENABLE_FEATURE_WGET_LONG_OPTIONS
 			if (extra_headers)
 				fputs(extra_headers, sfp);
@@ -427,7 +427,7 @@ int wget_main(int argc, char **argv)
 		dfp = open_socket(&s_in);
 
 		if (beg_range) {
-			sprintf(buf, "REST "OFF_FMT, beg_range);
+			sprintf(buf, "REST %"OFF_FMT, beg_range);
 			if (ftpcmd(buf, NULL, sfp, buf) == 350)
 				content_len -= beg_range;
 		}

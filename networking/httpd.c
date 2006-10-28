@@ -919,7 +919,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 
 	if (config->ContentLength != -1) {    /* file */
 		strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&config->last_mod));
-		len += sprintf(buf+len, "Last-Modified: %s\r\n%s "OFF_FMT"\r\n",
+		len += sprintf(buf+len, "Last-Modified: %s\r\n%s %"OFF_FMT"\r\n",
 				timeStr, Content_length, (off_t) config->ContentLength);
 	}
 	strcat(buf, "\r\n");
