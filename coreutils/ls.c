@@ -29,115 +29,98 @@
  * 1. requires lstat (BSD) - how do you do it without?
  */
 
-enum {
-	TERMINAL_WIDTH = 80,	/* use 79 if terminal has linefold bug */
-	COLUMN_GAP = 2,		/* includes the file type char */
-};
-
-/************************************************************************/
-
 #include "busybox.h"
 #include <getopt.h>
 
-/* what is the overall style of the listing */
-#define STYLE_COLUMNS   (1U<<21)	/* fill columns */
-#define STYLE_LONG      (2U<<21)	/* one record per line, extended info */
-#define STYLE_SINGLE    (3U<<21)	/* one record per line */
+enum {
 
-#define STYLE_MASK                 STYLE_SINGLE
-#define STYLE_ONE_RECORD_FLAG      STYLE_LONG
+TERMINAL_WIDTH  = 80,           /* use 79 if terminal has linefold bug */
+COLUMN_GAP      = 2,            /* includes the file type char */
+
+/* what is the overall style of the listing */
+STYLE_COLUMNS   = 1 << 21,      /* fill columns */
+STYLE_LONG      = 2 << 21,      /* one record per line, extended info */
+STYLE_SINGLE    = 3 << 21,      /* one record per line */
+STYLE_MASK      = STYLE_SINGLE,
 
 /* 51306 lrwxrwxrwx  1 root     root         2 May 11 01:43 /bin/view -> vi* */
 /* what file information will be listed */
-#define LIST_INO	(1U<<0)
-#define LIST_BLOCKS	(1U<<1)
-#define LIST_MODEBITS	(1U<<2)
-#define LIST_NLINKS	(1U<<3)
-#define LIST_ID_NAME	(1U<<4)
-#define LIST_ID_NUMERIC	(1U<<5)
-#define LIST_CONTEXT	(1U<<6)
-#define LIST_SIZE	(1U<<7)
-#define LIST_DEV	(1U<<8)
-#define LIST_DATE_TIME	(1U<<9)
-#define LIST_FULLTIME	(1U<<10)
-#define LIST_FILENAME	(1U<<11)
-#define LIST_SYMLINK	(1U<<12)
-#define LIST_FILETYPE	(1U<<13)
-#define LIST_EXEC	(1U<<14)
-
-#define LIST_MASK       ((LIST_EXEC << 1) - 1)
+LIST_INO        = 1 << 0,
+LIST_BLOCKS     = 1 << 1,
+LIST_MODEBITS   = 1 << 2,
+LIST_NLINKS     = 1 << 3,
+LIST_ID_NAME    = 1 << 4,
+LIST_ID_NUMERIC = 1 << 5,
+LIST_CONTEXT    = 1 << 6,
+LIST_SIZE       = 1 << 7,
+LIST_DEV        = 1 << 8,
+LIST_DATE_TIME  = 1 << 9,
+LIST_FULLTIME   = 1 << 10,
+LIST_FILENAME   = 1 << 11,
+LIST_SYMLINK    = 1 << 12,
+LIST_FILETYPE   = 1 << 13,
+LIST_EXEC       = 1 << 14,
+LIST_MASK       = (LIST_EXEC << 1) - 1,
 
 /* what files will be displayed */
-#define DISP_DIRNAME	(1U<<15)	/* 2 or more items? label directories */
-#define DISP_HIDDEN	(1U<<16)	/* show filenames starting with .  */
-#define DISP_DOT	(1U<<17)	/* show . and .. */
-#define DISP_NOLIST	(1U<<18)	/* show directory as itself, not contents */
-#define DISP_RECURSIVE	(1U<<19)	/* show directory and everything below it */
-#define DISP_ROWS	(1U<<20)	/* print across rows */
+DISP_DIRNAME    = 1 << 15,      /* 2 or more items? label directories */
+DISP_HIDDEN     = 1 << 16,      /* show filenames starting with .  */
+DISP_DOT        = 1 << 17,      /* show . and .. */
+DISP_NOLIST     = 1 << 18,      /* show directory as itself, not contents */
+DISP_RECURSIVE  = 1 << 19,      /* show directory and everything below it */
+DISP_ROWS       = 1 << 20,      /* print across rows */
+DISP_MASK       = ((DISP_ROWS << 1) - 1) & ~(DISP_DIRNAME - 1),
 
-#define DISP_MASK       (((DISP_ROWS << 1) - 1) & ~(DISP_DIRNAME - 1))
+/* how will the files be sorted (CONFIG_FEATURE_LS_SORTFILES) */
+SORT_FORWARD    = 0,            /* sort in reverse order */
+SORT_REVERSE    = 1 << 27,      /* sort in reverse order */
 
-// CONFIG_FEATURE_LS_SORTFILES
-/* how will the files be sorted */
-#define SORT_ORDER_FORWARD   0		/* sort in reverse order */
-#define SORT_ORDER_REVERSE   (1U<<27)	/* sort in reverse order */
-
-#define SORT_NAME      0		/* sort by file name */
-#define SORT_SIZE      (1U<<28)		/* sort by file size */
-#define SORT_ATIME     (2U<<28)		/* sort by last access time */
-#define SORT_CTIME     (3U<<28)		/* sort by last change time */
-#define SORT_MTIME     (4U<<28)		/* sort by last modification time */
-#define SORT_VERSION   (5U<<28)		/* sort by version */
-#define SORT_EXT       (6U<<28)		/* sort by file name extension */
-#define SORT_DIR       (7U<<28)		/* sort by file or directory */
-
-#define SORT_MASK      (7U<<28)
+SORT_NAME       = 0,            /* sort by file name */
+SORT_SIZE       = 1 << 28,      /* sort by file size */
+SORT_ATIME      = 2 << 28,      /* sort by last access time */
+SORT_CTIME      = 3 << 28,      /* sort by last change time */
+SORT_MTIME      = 4 << 28,      /* sort by last modification time */
+SORT_VERSION    = 5 << 28,      /* sort by version */
+SORT_EXT        = 6 << 28,      /* sort by file name extension */
+SORT_DIR        = 7 << 28,      /* sort by file or directory */
+SORT_MASK       = (7 << 28) * ENABLE_FEATURE_LS_SORTFILES,
 
 /* which of the three times will be used */
-#define TIME_CHANGE    ((1U<<23) * ENABLE_FEATURE_LS_TIMESTAMPS)
-#define TIME_ACCESS    ((1U<<24) * ENABLE_FEATURE_LS_TIMESTAMPS)
-#define TIME_MASK      ((3U<<23) * ENABLE_FEATURE_LS_TIMESTAMPS)
+TIME_CHANGE     = (1 << 23) * ENABLE_FEATURE_LS_TIMESTAMPS,
+TIME_ACCESS     = (1 << 24) * ENABLE_FEATURE_LS_TIMESTAMPS,
+TIME_MASK       = (3 << 23) * ENABLE_FEATURE_LS_TIMESTAMPS,
 
-#if ENABLE_FEATURE_LS_FOLLOWLINKS
-#define FOLLOW_LINKS   (1U<<25)
-#endif
-#if ENABLE_FEATURE_HUMAN_READABLE
-#define LS_DISP_HR     (1U<<26)
-#endif
+FOLLOW_LINKS    = (1 << 25) * ENABLE_FEATURE_LS_FOLLOWLINKS,
 
-#define LIST_SHORT	(LIST_FILENAME)
-//#define LIST_ISHORT	(LIST_INO | LIST_FILENAME)
-#define LIST_LONG	(LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
-						LIST_DATE_TIME | LIST_FILENAME | LIST_SYMLINK)
-//#define LIST_ILONG	(LIST_INO | LIST_LONG)
+LS_DISP_HR      = (1 << 26) * ENABLE_FEATURE_HUMAN_READABLE,
 
-#define SPLIT_DIR      1
-#define SPLIT_FILE     0
-#define SPLIT_SUBDIR   2
+LIST_SHORT      = LIST_FILENAME,
+LIST_LONG       = LIST_MODEBITS | LIST_NLINKS | LIST_ID_NAME | LIST_SIZE | \
+                  LIST_DATE_TIME | LIST_FILENAME | LIST_SYMLINK,
+
+SPLIT_DIR       = 1,
+SPLIT_FILE      = 0,
+SPLIT_SUBDIR    = 2,
+
+};
 
 #define TYPEINDEX(mode) (((mode) >> 12) & 0x0f)
 #define TYPECHAR(mode)  ("0pcCd?bB-?l?s???" [TYPEINDEX(mode)])
-
-#if defined(CONFIG_FEATURE_LS_FILETYPES) || defined(CONFIG_FEATURE_LS_COLOR)
-# define APPCHAR(mode)   ("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
-#endif
+#define APPCHAR(mode)   ("\0|\0\0/\0\0\0\0\0@\0=\0\0\0" [TYPEINDEX(mode)])
+#define COLOR(mode)	("\000\043\043\043\042\000\043\043"\
+			 "\000\000\044\000\043\000\000\040" [TYPEINDEX(mode)])
+#define ATTR(mode)	("\00\00\01\00\01\00\01\00"\
+			 "\00\00\01\00\01\00\00\01" [TYPEINDEX(mode)])
 
 /* colored LS support by JaWi, janwillem.janssen@lxtreme.nl */
 #if ENABLE_FEATURE_LS_COLOR
-
 static int show_color;
-
 /* long option entry used only for --color, which has no short option
  * equivalent.  */
 static const struct option ls_color_opt[] = {
 	{ "color", optional_argument, NULL, 1 },
 	{ NULL, 0, NULL, 0 }
 };
-
-#define COLOR(mode)	("\000\043\043\043\042\000\043\043"\
-			 "\000\000\044\000\043\000\000\040" [TYPEINDEX(mode)])
-#define ATTR(mode)	("\00\00\01\00\01\00\01\00"\
-			 "\00\00\01\00\01\00\00\01" [TYPEINDEX(mode)])
 #else
 enum { show_color = 0 };
 #endif
@@ -145,13 +128,13 @@ enum { show_color = 0 };
 /*
  * a directory entry and its stat info are stored here
  */
-struct dnode {			/* the basic node */
-	char *name;		/* the dir entry name */
-	char *fullname;		/* the dir entry name */
+struct dnode {                  /* the basic node */
+	char *name;             /* the dir entry name */
+	char *fullname;         /* the dir entry name */
 	int   allocated;
-	struct stat dstat;	/* the file stat info */
+	struct stat dstat;      /* the file stat info */
 	USE_SELINUX(security_context_t sid;)
-	struct dnode *next;	/* point at the next node */
+	struct dnode *next;     /* point at the next node */
 };
 typedef struct dnode dnode_t;
 
@@ -179,7 +162,7 @@ static struct dnode *my_stat(char *fullname, char *name)
 	struct dnode *cur;
 	USE_SELINUX(security_context_t sid = NULL;)
 
-	if (ENABLE_FEATURE_LS_FOLLOWLINKS && (all_fmt & FOLLOW_LINKS)) {
+	if (all_fmt & FOLLOW_LINKS) {
 #if ENABLE_SELINUX
 		if (is_selinux_enabled())  {
 			 getfilecon(fullname, &sid);
@@ -211,7 +194,6 @@ static struct dnode *my_stat(char *fullname, char *name)
 	return cur;
 }
 
-/*----------------------------------------------------------------------*/
 #if ENABLE_FEATURE_LS_COLOR
 static char fgcolor(mode_t mode)
 {
@@ -223,7 +205,6 @@ static char fgcolor(mode_t mode)
 	return COLOR(mode);
 }
 
-/*----------------------------------------------------------------------*/
 static char bgcolor(mode_t mode)
 {
 	if (S_ISREG(mode) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
@@ -232,7 +213,6 @@ static char bgcolor(mode_t mode)
 }
 #endif
 
-/*----------------------------------------------------------------------*/
 #if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
 static char append_char(mode_t mode)
 {
@@ -248,11 +228,8 @@ static char append_char(mode_t mode)
 }
 #endif
 
-/*----------------------------------------------------------------------*/
-
 #define countdirs(A, B) count_dirs((A), (B), 1)
 #define countsubdirs(A, B) count_dirs((A), (B), 0)
-
 static int count_dirs(struct dnode **dn, int nfiles, int notsubdirs)
 {
 	int i, dirs;
@@ -282,7 +259,7 @@ static int countfiles(struct dnode **dnp)
 	if (dnp == NULL)
 		return 0;
 	nfiles = 0;
-	for (cur = dnp[0]; cur->next != NULL; cur = cur->next)
+	for (cur = dnp[0]; cur->next; cur = cur->next)
 		nfiles++;
 	nfiles++;
 	return nfiles;
@@ -356,7 +333,6 @@ static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
 	return dnp;
 }
 
-/*----------------------------------------------------------------------*/
 #if ENABLE_FEATURE_LS_SORTFILES
 static int sortcmp(const void *a, const void *b)
 {
@@ -365,7 +341,9 @@ static int sortcmp(const void *a, const void *b)
 	unsigned sort_opts = all_fmt & SORT_MASK;
 	int dif;
 
-	dif = 0;			/* assume SORT_NAME */
+	dif = 0; /* assume SORT_NAME */
+	// TODO: use pre-initialized function pointer
+	// instead of branch forest
 	if (sort_opts == SORT_SIZE) {
 		dif = (int) (d2->dstat.st_size - d1->dstat.st_size);
 	} else if (sort_opts == SORT_ATIME) {
@@ -386,24 +364,21 @@ static int sortcmp(const void *a, const void *b)
 		else dif = strcmp(d1->name, d2->name);
 	}
 
-	if (all_fmt & SORT_ORDER_REVERSE) {
+	if (all_fmt & SORT_REVERSE) {
 		dif = -dif;
 	}
 	return dif;
 }
 
-/*----------------------------------------------------------------------*/
 static void dnsort(struct dnode **dn, int size)
 {
-	qsort(dn, size, sizeof *dn, sortcmp);
+	qsort(dn, size, sizeof(*dn), sortcmp);
 }
 #else
-#define sortcmp(a, b) 0
 #define dnsort(dn, size) do {} while(0)
 #endif
 
 
-/*----------------------------------------------------------------------*/
 static void showfiles(struct dnode **dn, int nfiles)
 {
 	int i, ncols, nrows, row, nc;
@@ -414,27 +389,25 @@ static void showfiles(struct dnode **dn, int nfiles)
 	if (dn == NULL || nfiles < 1)
 		return;
 
-	if (all_fmt & STYLE_ONE_RECORD_FLAG) {
+	if (all_fmt & STYLE_LONG) {
 		ncols = 1;
 	} else {
-		/* find the longest file name-  use that as the column width */
+		/* find the longest file name, use that as the column width */
 		for (i = 0; i < nfiles; i++) {
-			int len = strlen(dn[i]->name) +
-#if ENABLE_SELINUX
-			((all_fmt & LIST_CONTEXT) ? 33 : 0) +
-#endif
-			((all_fmt & LIST_INO) ? 8 : 0) +
-			((all_fmt & LIST_BLOCKS) ? 5 : 0);
+			int len = strlen(dn[i]->name);
 			if (column_width < len)
 				column_width = len;
 		}
-		column_width += tabstops;
+		column_width += tabstops +
+			USE_SELINUX( ((all_fmt & LIST_CONTEXT) ? 33 : 0) + )
+			             ((all_fmt & LIST_INO) ? 8 : 0) +
+			             ((all_fmt & LIST_BLOCKS) ? 5 : 0);
 		ncols = (int) (terminal_width / column_width);
 	}
 
 	if (ncols > 1) {
 		nrows = nfiles / ncols;
-		if ((nrows * ncols) < nfiles)
+		if (nrows * ncols < nfiles)
 			nrows++;                /* round up fractionals */
 	} else {
 		nrows = nfiles;
@@ -462,7 +435,7 @@ static void showfiles(struct dnode **dn, int nfiles)
 	}
 }
 
-/*----------------------------------------------------------------------*/
+
 static void showdirs(struct dnode **dn, int ndirs, int first)
 {
 	int i, nfiles;
@@ -484,7 +457,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 		nfiles = countfiles(subdnp);
 		if (nfiles > 0) {
 			/* list all files at this level */
-			if (ENABLE_FEATURE_LS_SORTFILES) dnsort(subdnp, nfiles);
+			dnsort(subdnp, nfiles);
 			showfiles(subdnp, nfiles);
 			if (ENABLE_FEATURE_LS_RECURSIVE) {
 				if (all_fmt & DISP_RECURSIVE) {
@@ -492,7 +465,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 					dnd = splitdnarray(subdnp, nfiles, SPLIT_SUBDIR);
 					dndirs = countsubdirs(subdnp, nfiles);
 					if (dndirs > 0) {
-						if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnd, dndirs);
+						dnsort(dnd, dndirs);
 						showdirs(dnd, dndirs, 0);
 						/* free the array of dnode pointers to the dirs */
 						free(dnd);
@@ -505,7 +478,7 @@ static void showdirs(struct dnode **dn, int ndirs, int first)
 	}
 }
 
-/*----------------------------------------------------------------------*/
+
 static struct dnode **list_dir(const char *path)
 {
 	struct dnode *dn, *cur, **dnp;
@@ -532,14 +505,14 @@ static struct dnode **list_dir(const char *path)
 				entry->d_name[1] == '.'
 				&& entry->d_name[2] == 0))
 					&& !(all_fmt & DISP_DOT))
-			continue;
+				continue;
 			if (!(all_fmt & DISP_HIDDEN))
-			continue;
+				continue;
 		}
 		fullname = concat_path_file(path, entry->d_name);
 		cur = my_stat(fullname, strrchr(fullname, '/') + 1);
 		if (!cur) {
-			// FIXME: free(fullname); ?
+			free(fullname);
 			continue;
 		}
 		cur->allocated = 1;
@@ -563,7 +536,7 @@ static struct dnode **list_dir(const char *path)
 	return dnp;
 }
 
-/*----------------------------------------------------------------------*/
+
 static int list_single(struct dnode *dn)
 {
 	int i, column = 0;
@@ -627,7 +600,7 @@ static int list_single(struct dnode *dn)
 				column += printf("%4d, %3d ", (int) major(dn->dstat.st_rdev),
 					   (int) minor(dn->dstat.st_rdev));
 			} else {
-				if (ENABLE_FEATURE_HUMAN_READABLE && (all_fmt & LS_DISP_HR)) {
+				if (all_fmt & LS_DISP_HR) {
 					column += printf("%9s ",
 						make_human_readable_str(dn->dstat.st_size, 1, 0));
 				} else {
@@ -661,12 +634,12 @@ static int list_single(struct dnode *dn)
 				int len = 0;
 
 				if (dn->sid) {
-				  /*  I assume sid initilized with NULL  */
-				  len = strlen(dn->sid)+1;
-				  safe_strncpy(context, dn->sid, len);
-				  freecon(dn->sid);
-				}else {
-				  safe_strncpy(context, "unknown", 8);
+					/*  I assume sid initilized with NULL  */
+					len = strlen(dn->sid)+1;
+					safe_strncpy(context, dn->sid, len);
+					freecon(dn->sid);
+				} else {
+					safe_strncpy(context, "unknown", 8);
 				}
 				printf("%-32s ", context);
 				column += MAX(33, len);
@@ -677,7 +650,7 @@ static int list_single(struct dnode *dn)
 			errno = 0;
 			if (show_color && !lstat(dn->fullname, &info)) {
 				printf("\033[%d;%dm", bgcolor(info.st_mode),
-					   fgcolor(info.st_mode));
+						fgcolor(info.st_mode));
 			}
 			column += printf("%s", dn->name);
 			if (show_color) {
@@ -687,31 +660,29 @@ static int list_single(struct dnode *dn)
 		case LIST_SYMLINK:
 			if (S_ISLNK(dn->dstat.st_mode)) {
 				char *lpath = xreadlink(dn->fullname);
-
-				if (lpath) {
-					printf(" -> ");
-#if defined(CONFIG_FEATURE_LS_FILETYPES) || defined (CONFIG_FEATURE_LS_COLOR)
-					if (!stat(dn->fullname, &info)) {
-						append = append_char(info.st_mode);
-					}
-#endif
-					if (show_color) {
-						errno = 0;
-						printf("\033[%d;%dm", bgcolor(info.st_mode),
-							   fgcolor(info.st_mode));
-					}
-					column += printf("%s", lpath) + 4;
-					if (show_color) {
-						printf("\033[0m");
-					}
-					free(lpath);
+				if (!lpath) break;
+				printf(" -> ");
+#if ENABLE_FEATURE_LS_FILETYPES || ENABLE_FEATURE_LS_COLOR
+				if (!stat(dn->fullname, &info)) {
+					append = append_char(info.st_mode);
 				}
+#endif
+				if (show_color) {
+					errno = 0;
+					printf("\033[%d;%dm", bgcolor(info.st_mode),
+						   fgcolor(info.st_mode));
+				}
+				column += printf("%s", lpath) + 4;
+				if (show_color) {
+					printf("\033[0m");
+				}
+				free(lpath);
 			}
 			break;
 #if ENABLE_FEATURE_LS_FILETYPES
 		case LIST_FILETYPE:
-			if (append != '\0') {
-				printf("%1c", append);
+			if (append) {
+				putchar(append);
 				column++;
 			}
 			break;
@@ -722,8 +693,6 @@ static int list_single(struct dnode *dn)
 	return column;
 }
 
-/*----------------------------------------------------------------------*/
-
 /* "[-]Cadil1", POSIX mandated options, busybox always supports */
 /* "[-]gnsx", POSIX non-mandated options, busybox always supports */
 /* "[-]Ak" GNU options, busybox always supports */
@@ -732,7 +701,6 @@ static int list_single(struct dnode *dn)
 /* "[-]SXvThw", GNU options, busybox optionally supports */
 /* "[-]K", SELinux mandated options, busybox optionally supports */
 /* "[-]e", I think we made this one up */
-
 static const char ls_options[] = "Cadil1gnsxAk"
 	USE_FEATURE_LS_TIMESTAMPS("cetu")
 	USE_FEATURE_LS_SORTFILES("SXrv")
@@ -743,10 +711,12 @@ static const char ls_options[] = "Cadil1gnsxAk"
 	USE_SELINUX("K")
 	USE_FEATURE_AUTOWIDTH("T:w:");
 
-#define LIST_MASK_TRIGGER	0
-#define STYLE_MASK_TRIGGER	STYLE_MASK
-#define SORT_MASK_TRIGGER	SORT_MASK
-#define DISP_MASK_TRIGGER	DISP_ROWS
+enum {
+	LIST_MASK_TRIGGER	= 0,
+	STYLE_MASK_TRIGGER	= STYLE_MASK,
+	DISP_MASK_TRIGGER	= DISP_ROWS,
+	SORT_MASK_TRIGGER	= SORT_MASK,
+};
 
 static const unsigned opt_flags[] = {
 	LIST_SHORT | STYLE_COLUMNS, /* C */
@@ -760,11 +730,7 @@ static const unsigned opt_flags[] = {
 	LIST_BLOCKS,                /* s */
 	DISP_ROWS,                  /* x */
 	DISP_HIDDEN,                /* A */
-#if ENABLE_SELINUX
-	LIST_CONTEXT,               /* k */
-#else
-	0,                          /* k - ingored */
-#endif
+	ENABLE_SELINUX * LIST_CONTEXT, /* k (ignored if !SELINUX) */
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	TIME_CHANGE | (ENABLE_FEATURE_LS_SORTFILES * SORT_CTIME),   /* c */
 	LIST_FULLTIME,              /* e */
@@ -774,7 +740,7 @@ static const unsigned opt_flags[] = {
 #if ENABLE_FEATURE_LS_SORTFILES
 	SORT_SIZE,                  /* S */
 	SORT_EXT,                   /* X */
-	SORT_ORDER_REVERSE,         /* r */
+	SORT_REVERSE,               /* r */
 	SORT_VERSION,               /* v */
 #endif
 #if ENABLE_FEATURE_LS_FILETYPES
@@ -800,8 +766,6 @@ static const unsigned opt_flags[] = {
 };
 
 
-/*----------------------------------------------------------------------*/
-
 int ls_main(int argc, char **argv)
 {
 	struct dnode **dnd;
@@ -817,16 +781,12 @@ int ls_main(int argc, char **argv)
 	int ac;
 	int i;
 	char **av;
-#if ENABLE_FEATURE_AUTOWIDTH
-	char *tabstops_str = NULL;
-	char *terminal_width_str = NULL;
-#endif
-#if ENABLE_FEATURE_LS_COLOR
-	char *color_opt;
-#endif
+	USE_FEATURE_AUTOWIDTH(char *tabstops_str = NULL;)
+	USE_FEATURE_AUTOWIDTH(char *terminal_width_str = NULL;)
+	USE_FEATURE_LS_COLOR(char *color_opt;)
 
 	all_fmt = LIST_SHORT |
-		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_ORDER_FORWARD));
+		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_FORWARD));
 
 #if ENABLE_FEATURE_AUTOWIDTH
 	/* Obtain the terminal width.  */
@@ -835,27 +795,17 @@ int ls_main(int argc, char **argv)
 	terminal_width--;
 #endif
 
-#if ENABLE_FEATURE_LS_COLOR
-	applet_long_options = ls_color_opt;
-#endif
-
 	/* process options */
+	USE_FEATURE_LS_COLOR(applet_long_options = ls_color_opt;)
 #if ENABLE_FEATURE_AUTOWIDTH
 	opt = getopt32(argc, argv, ls_options, &tabstops_str, &terminal_width_str
-#if ENABLE_FEATURE_LS_COLOR
-		, &color_opt
-#endif
-		);
+				USE_FEATURE_LS_COLOR(, &color_opt));
 	if (tabstops_str)
 		tabstops = xatou(tabstops_str);
 	if (terminal_width_str)
 		terminal_width = xatou(terminal_width_str);
 #else
-	opt = getopt32(argc, argv, ls_options
-#if ENABLE_FEATURE_LS_COLOR
-		, &color_opt
-#endif
-		);
+	opt = getopt32(argc, argv, ls_options  USE_FEATURE_LS_COLOR(, &color_opt));
 #endif
 	for (i = 0; opt_flags[i] != (1U<<31); i++) {
 		if (opt & (1 << i)) {
@@ -865,7 +815,7 @@ int ls_main(int argc, char **argv)
 				all_fmt &= ~LIST_MASK;
 			if (flags & STYLE_MASK_TRIGGER)
 				all_fmt &= ~STYLE_MASK;
-			if (ENABLE_FEATURE_LS_SORTFILES && (flags & SORT_MASK_TRIGGER))
+			if (flags & SORT_MASK_TRIGGER)
 				all_fmt &= ~SORT_MASK;
 			if (flags & DISP_MASK_TRIGGER)
 				all_fmt &= ~DISP_MASK;
@@ -873,7 +823,7 @@ int ls_main(int argc, char **argv)
 				all_fmt &= ~TIME_MASK;
 			if (flags & LIST_CONTEXT)
 				all_fmt |= STYLE_SINGLE;
-			if (ENABLE_FEATURE_HUMAN_READABLE && opt == 'l')
+			if (LS_DISP_HR && opt == 'l')
 				all_fmt &= ~LS_DISP_HR;
 			all_fmt |= flags;
 		}
@@ -959,7 +909,7 @@ int ls_main(int argc, char **argv)
 	}
 
 	if (all_fmt & DISP_NOLIST) {
-		if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnp, nfiles);
+		dnsort(dnp, nfiles);
 		if (nfiles > 0)
 			showfiles(dnp, nfiles);
 	} else {
@@ -968,13 +918,13 @@ int ls_main(int argc, char **argv)
 		dndirs = countdirs(dnp, nfiles);
 		dnfiles = nfiles - dndirs;
 		if (dnfiles > 0) {
-			if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnf, dnfiles);
+			dnsort(dnf, dnfiles);
 			showfiles(dnf, dnfiles);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(dnf);
 		}
 		if (dndirs > 0) {
-			if (ENABLE_FEATURE_LS_SORTFILES) dnsort(dnd, dndirs);
+			dnsort(dnd, dndirs);
 			showdirs(dnd, dndirs, dnfiles == 0);
 			if (ENABLE_FEATURE_CLEAN_UP)
 				free(dnd);

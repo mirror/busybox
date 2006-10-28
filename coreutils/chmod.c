@@ -133,7 +133,7 @@ function create() {
     ln -s ../up dir/up
     )
 }
-function test() {
+function tst() {
     (cd test1; $t1 $1)
     (cd test2; $t2 $1)
     (cd test1; ls -lR) >out1
@@ -145,13 +145,13 @@ function test() {
 t1="/tmp/busybox chmod"
 t2="/usr/bin/chmod"
 create test1; create test2
-test "a+w file"
-test "a-w dir"
-test "a+w linkfile"
-test "a-w linkdir"
-test "-R a+w file"
-test "-R a-w dir"
-test "-R a+w linkfile"
-test "-R a-w linkdir"
-test "a-r,a+x linkfile"
+tst "a+w file"
+tst "a-w dir"
+tst "a+w linkfile"
+tst "a-w linkdir"
+tst "-R a+w file"
+tst "-R a-w dir"
+tst "-R a+w linkfile"
+tst "-R a-w linkdir"
+tst "a-r,a+x linkfile"
 */
