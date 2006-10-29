@@ -30,6 +30,8 @@
  * file.txt  file.txt
  * file.txt
  * /tmp
+ * # find -name '*.c' -o -name '*.h'
+ * [shows files, *.c and *.h intermixed]
  */
 
 #include "busybox.h"
@@ -93,7 +95,6 @@ static char* subst(const char *src, int count, const char* filename)
 {
 	char *buf, *dst, *end;
 	int flen = strlen(filename);
-//puts(src);
 	/* we replace each '{}' with filename: growth by strlen-2 */
 	buf = dst = xmalloc(strlen(src) + count*(flen-2) + 1);
 	while ((end = strstr(src, "{}"))) {
@@ -104,7 +105,6 @@ static char* subst(const char *src, int count, const char* filename)
 		dst += flen;
 	}
 	strcpy(dst, src);
-//puts(buf);
 	return buf;
 }
 
@@ -363,16 +363,20 @@ int find_main(int argc, char **argv)
 	}
 
 	if (firstopt == 1) {
-		if (!recursive_action(".", TRUE, dereference, FALSE, fileAction,
-					fileAction, NULL, 0))
-			status = EXIT_FAILURE;
-	} else {
-		for (i = 1; i < firstopt; i++) {
-			if (!recursive_action(argv[i], TRUE, dereference, FALSE,
-					fileAction, fileAction, NULL, 0))
-				status = EXIT_FAILURE;
-		}
+		static const char *const dot[] = { ".", NULL };
+		firstopt++;
+		argv = (char**)dot - 1;
 	}
-
+	for (i = 1; i < firstopt; i++) {
+		if (!recursive_action(argv[i],
+				TRUE,           // recurse
+				dereference,    // follow links
+				FALSE,          // depth first
+				fileAction,     // file action
+				fileAction,     // dir action
+				NULL,           // user data
+				0))             // depth
+			status = EXIT_FAILURE;
+	}
 	return status;
 }
