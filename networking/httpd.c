@@ -391,7 +391,7 @@ static void parse_conf(const char *path, int flag)
 	FILE *f;
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	Htaccess *prev, *cur;
-#elif CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+#elif ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	Htaccess *cur;
 #endif
 

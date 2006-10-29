@@ -27,7 +27,14 @@ static int true_action(const char *fileName, struct stat *statbuf, void* userDat
 	return TRUE;
 }
 
-/*
+/* fileAction return value of 0 on any file in directory will make
+ * recursive_action() return 0, but it doesn't stop directory traversal
+ * (fileAction/dirAction will be called on each file).
+ *
+ * if !depthFirst, dirAction return value of 0 (FALSE) or 2 (SKIP)
+ * prevents recursion into that directory, instead
+ * recursive_action() returns 0 (if FALSE) or 1 (if SKIP). 
+ *
  * followLinks=0/1 differs mainly in handling of links to dirs.
  * 0: lstat(statbuf). Calls fileAction on link name even if points to dir.
  * 1: stat(statbuf). Calls dirAction and optionally recurse on link to dir.
