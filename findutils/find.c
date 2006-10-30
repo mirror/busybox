@@ -60,8 +60,15 @@ USE_FEATURE_FIND_MMIN(  SACT(mmin,  char mmin_char; int mmin_mins;))
 USE_FEATURE_FIND_NEWER( SACT(newer, time_t newer_mtime;))
 USE_FEATURE_FIND_INUM(  SACT(inum,  ino_t inode_num;))
 USE_FEATURE_FIND_EXEC(  SACT(exec,  char **exec_argv; int *subst_count; int exec_argc;))
+USE_DESKTOP(            SACT(paren, action ***subexpr;))
 
 static action ***actions;
+static int need_print = 1;
+
+static inline int one_char(const char* str, char c)
+{
+	return (str[0] == c && str[1] == '\0');
+}
 
 
 static int count_subst(const char *str)
@@ -90,6 +97,28 @@ static char* subst(const char *src, int count, const char* filename)
 	}
 	strcpy(dst, src);
 	return buf;
+}
+
+
+static int exec_actions(action ***appp, const char *fileName, struct stat *statbuf)
+{
+	int cur_group;
+	int cur_action;
+	int rc = TRUE;
+	action **app, *ap;
+
+	cur_group = -1;
+	while ((app = appp[++cur_group])) {
+		cur_action = -1;
+		do {
+			ap = app[++cur_action];
+		} while (ap && (rc = ap->f(fileName, statbuf, ap)));
+		if (!ap) {
+			/* all actions in group were successful */
+			break;
+		}
+	}
+	return rc;
 }
 
 
@@ -164,6 +193,7 @@ SFUNC(exec)
 		bb_perror_msg("%s", argv[0]);
 	for (i = 0; i < ap->exec_argc; i++)
 		free(argv[i]);
+	need_print = 0;
 	return rc == 0; /* return 1 if success */
 }
 #endif
@@ -172,33 +202,40 @@ SFUNC(exec)
 SFUNC(print0)
 {
 	printf("%s%c", fileName, '\0');
+	need_print = 0;
 	return TRUE;
 }
 #endif
+
 SFUNC(print)
 {
 	puts(fileName);
+	need_print = 0;
 	return TRUE;
 }
+
+#if ENABLE_DESKTOP
+SFUNC(paren)
+{
+	return exec_actions(ap->subexpr, fileName, statbuf);
+}
+#endif
 
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk, int depth)
 {
-	int cur_group;
-	int cur_action;
-	action **app, *ap;
-
-	cur_group = -1;
-	while ((app = actions[++cur_group])) {
-		cur_action = -1;
-		do {
-			ap = app[++cur_action];
-		} while (ap && ap->f(fileName, statbuf, ap));
-		if (!ap) {
-			/* all actions in group were successful */
-			break;
+#ifdef CONFIG_FEATURE_FIND_XDEV
+	if (S_ISDIR(statbuf->st_mode) && xdev_count) {
+		int i;
+		for (i = 0; i < xdev_count; i++) {
+			if (xdev_dev[i] != statbuf->st_dev)
+				return SKIP;
 		}
 	}
+#endif
+	/* had no explicit -print[0] or -exec? then print */
+	if (exec_actions(actions, fileName, statbuf) && need_print)
+		puts(fileName);
 	return TRUE;
 }
 
@@ -239,41 +276,24 @@ static int find_type(char *type)
 }
 #endif
 
-
-int find_main(int argc, char **argv)
+action*** parse_params(char **argv)
 {
-	int dereference = FALSE;
-	int i, j, firstopt, status = EXIT_SUCCESS;
-	int cur_group;
-	int cur_action;
-	int need_default = 1;
+	action*** appp;
+	int cur_group = 0;
+	int cur_action = 0;
 
 	action* alloc_action(int sizeof_struct, action_fp f)
 	{
 		action *ap;
-		actions[cur_group] = xrealloc(actions[cur_group], (cur_action+2) * sizeof(*actions));
-		actions[cur_group][cur_action++] = ap = xmalloc(sizeof_struct);
-		actions[cur_group][cur_action] = NULL;
+		appp[cur_group] = xrealloc(appp[cur_group], (cur_action+2) * sizeof(*appp));
+		appp[cur_group][cur_action++] = ap = xmalloc(sizeof_struct);
+		appp[cur_group][cur_action] = NULL;
 		ap->f = f;
 		return ap;
 	}
 #define ALLOC_ACTION(name) (action_##name*)alloc_action(sizeof(action_##name), (action_fp) func_##name)
 
-	for (firstopt = 1; firstopt < argc; firstopt++) {
-		if (argv[firstopt][0] == '-')
-			break;
-	}
-	if (firstopt == 1) {
-		argv[0] = ".";
-		argv--;
-		argc++;
-		firstopt++;
-	}
-
-// All options always return true. They always take effect,
-// rather than being processed only when their place in the
-// expression is reached
-// We implement: -follow, -xdev
+	appp = xzalloc(2 * sizeof(*appp)); /* appp[0],[1] == NULL */
 
 // Actions have side effects and return a true or false value
 // We implement: -print, -print0, -exec
@@ -287,67 +307,40 @@ int find_main(int argc, char **argv)
 // expr1 [-a[nd]] expr2  And; expr2 is not evaluated if expr1 is false
 // expr1 -o[r] expr2     Or; expr2 is not evaluated if expr1 is true
 // expr1 , expr2         List; both expr1 and expr2 are always evaluated
-// We implement: -a, -o
+// We implement: (), -a, -o
 
-	cur_group = 0;
-	cur_action = 0;
-	actions = xzalloc(sizeof(*actions)); /* actions[0] == NULL */
-
-	/* Parse any options */
-	for (i = firstopt; i < argc; i++) {
-		char *arg = argv[i];
-		char *arg1 = argv[i+1];
-
+	while (*argv) {
+		char *arg = argv[0];
+		char *arg1 = argv[1];
 	/* --- Operators --- */
-		if (ENABLE_DESKTOP
-		 && (strcmp(arg, "-a") == 0 || strcmp(arg, "-and") == 0)
+		if (strcmp(arg, "-a") == 0
+		    USE_DESKTOP(|| strcmp(arg, "-and") == 0)
 		) {
 			/* no special handling required */
 		}
 		else if (strcmp(arg, "-o") == 0
-			USE_DESKTOP(|| strcmp(arg, "-or") == 0)
+		         USE_DESKTOP(|| strcmp(arg, "-or") == 0)
 		) {
-			if (need_default)
-				(void) ALLOC_ACTION(print);
+			/* start new OR group */
 			cur_group++;
-			actions = xrealloc(actions, (cur_group+1) * sizeof(*actions));
-			actions[cur_group] = NULL;
-			actions[cur_group+1] = NULL;
+			appp = xrealloc(appp, (cur_group+2) * sizeof(*appp));
+			appp[cur_group] = NULL;
+			appp[cur_group+1] = NULL;
 			cur_action = 0;
-			need_default = 1;
 		}
 
-	/* --- Options --- */
-		else if (strcmp(arg, "-follow") == 0)
-			dereference = TRUE;
-#if ENABLE_FEATURE_FIND_XDEV
-		else if (strcmp(arg, "-xdev") == 0) {
-			struct stat stbuf;
-
-			xdev_count = firstopt - 1;
-			xdev_dev = xmalloc(xdev_count * sizeof(dev_t));
-			for (j = 1; j < firstopt; i++) {
-				/* not xstat(): shouldn't bomd out on
-				 * "find not_exist exist -xdev" */
-				if (stat(argv[j], &stbuf)) stbuf.st_dev = -1L;
-				xdev_dev[j-1] = stbuf.st_dev;
-			}
-		}
-#endif
 	/* --- Tests and actions --- */
 		else if (strcmp(arg, "-print") == 0) {
-			need_default = 0;
 			(void) ALLOC_ACTION(print);
 		}
 #if ENABLE_FEATURE_FIND_PRINT0
 		else if (strcmp(arg, "-print0") == 0) {
-			need_default = 0;
 			(void) ALLOC_ACTION(print0);
 		}
 #endif
 		else if (strcmp(arg, "-name") == 0) {
 			action_name *ap;
-			if (++i == argc)
+			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(name);
 			ap->pattern = arg1;
@@ -355,7 +348,7 @@ int find_main(int argc, char **argv)
 #if ENABLE_FEATURE_FIND_TYPE
 		else if (strcmp(arg, "-type") == 0) {
 			action_type *ap;
-			if (++i == argc)
+			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(type);
 			ap->type_mask = find_type(arg1);
@@ -370,7 +363,7 @@ int find_main(int argc, char **argv)
  */
 		else if (strcmp(arg, "-perm") == 0) {
 			action_perm *ap;
-			if (++i == argc)
+			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(perm);
 			ap->perm_mask = xstrtol_range(arg1, 8, 0, 07777);
@@ -382,7 +375,7 @@ int find_main(int argc, char **argv)
 #if ENABLE_FEATURE_FIND_MTIME
 		else if (strcmp(arg, "-mtime") == 0) {
 			action_mtime *ap;
-			if (++i == argc)
+			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(mtime);
 			ap->mtime_days = xatol(arg1);
@@ -394,7 +387,7 @@ int find_main(int argc, char **argv)
 #if ENABLE_FEATURE_FIND_MMIN
 		else if (strcmp(arg, "-mmin") == 0) {
 			action_mmin *ap;
-			if (++i == argc)
+			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(mmin);
 			ap->mmin_mins = xatol(arg1);
@@ -407,7 +400,7 @@ int find_main(int argc, char **argv)
 		else if (strcmp(arg, "-newer") == 0) {
 			action_newer *ap;
 			struct stat stat_newer;
-			if (++i == argc)
+			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			xstat(arg1, &stat_newer);
 			ap = ALLOC_ACTION(newer);
@@ -417,7 +410,7 @@ int find_main(int argc, char **argv)
 #if ENABLE_FEATURE_FIND_INUM
 		else if (strcmp(arg, "-inum") == 0) {
 			action_inum *ap;
-			if (++i == argc)
+			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(inum);
 			ap->inode_num = xatoul(arg1);
@@ -425,34 +418,114 @@ int find_main(int argc, char **argv)
 #endif
 #if ENABLE_FEATURE_FIND_EXEC
 		else if (strcmp(arg, "-exec") == 0) {
+			int i;
 			action_exec *ap;
-			need_default = 0;
 			ap = ALLOC_ACTION(exec);
-			i++; /* now: argv[i] is the first arg after -exec */
-			ap->exec_argv = &argv[i];
-			ap->exec_argc = i;
+			ap->exec_argv = ++argv; /* first arg after -exec */
+			ap->exec_argc = 0;
 			while (1) {
-				if (i == argc) /* did not see ';' till end */
+				if (!*argv) /* did not see ';' till end */
 					bb_error_msg_and_die(bb_msg_requires_arg, arg);
-				if (argv[i][0] == ';' && argv[i][1] == '\0')
+				if (one_char(argv[0], ';'))
 					break;
-				i++;
+				argv++;
+				ap->exec_argc++;
 			}
-			ap->exec_argc = i - ap->exec_argc; /* number of --exec arguments */
 			if (ap->exec_argc == 0)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap->subst_count = xmalloc(ap->exec_argc * sizeof(int));
-			j = ap->exec_argc;
-			while (j--)
-				ap->subst_count[j] = count_subst(ap->exec_argv[j]);
+			i = ap->exec_argc;
+			while (i--)
+				ap->subst_count[i] = count_subst(ap->exec_argv[i]);
+		}
+#endif
+#if ENABLE_DESKTOP
+		else if (one_char(arg, '(')) {
+			action_paren *ap;
+			char **endarg;
+			int nested = 1;
+
+			endarg = argv;
+			while (1) {
+				if (!*++endarg)
+					bb_error_msg_and_die("unpaired '('");
+				if (one_char(*endarg, '('))
+					nested++;
+				else if (one_char(*endarg, ')') && !--nested) {
+					*endarg = NULL;
+					break;
+				}
+			}
+			ap = ALLOC_ACTION(paren);
+			ap->subexpr = parse_params(argv + 1);
+			*endarg = ")"; /* restore NULLed parameter */
+			argv = endarg;
 		}
 #endif
 		else
 			bb_show_usage();
+		argv++;
 	}
 
-	if (need_default)
-		(void) ALLOC_ACTION(print);
+	return appp;
+#undef ALLOC_ACTION
+}
+
+
+int find_main(int argc, char **argv)
+{
+	int dereference = FALSE;
+	char **argp;
+	int i, firstopt, status = EXIT_SUCCESS;
+
+	for (firstopt = 1; firstopt < argc; firstopt++) {
+		if (argv[firstopt][0] == '-')
+			break;
+#if ENABLE_DESKTOP
+		if (one_char(argv[firstopt], '('))
+			break;
+#endif
+	}
+	if (firstopt == 1) {
+		argv[0] = ".";
+		argv--;
+		firstopt++;
+	}
+
+// All options always return true. They always take effect,
+// rather than being processed only when their place in the
+// expression is reached
+// We implement: -follow, -xdev
+
+	/* Process options, and replace then with -a */
+	/* (that will be ignored by recursive parser later) */
+	argp = &argv[firstopt];
+	while (*argp) {
+		char *arg = argp[0];
+		if (strcmp(arg, "-follow") == 0) {
+			dereference = TRUE;
+			argp[0] = "-a";
+		}
+#if ENABLE_FEATURE_FIND_XDEV
+		else if (strcmp(arg, "-xdev") == 0) {
+			struct stat stbuf;
+			if (!xdev_count) {
+				xdev_count = firstopt - 1;
+				xdev_dev = xmalloc(xdev_count * sizeof(dev_t));
+				for (i = 1; i < firstopt; i++) {
+					/* not xstat(): shouldn't bomb out on
+					 * "find not_exist exist -xdev" */
+					if (stat(argv[i], &stbuf)) stbuf.st_dev = -1L;
+					xdev_dev[i-1] = stbuf.st_dev;
+				}
+			}
+			argp[0] = "-a";
+		}
+		argp++;
+	}
+#endif
+
+	actions = parse_params(&argv[firstopt]);
 
 	for (i = 1; i < firstopt; i++) {
 		if (!recursive_action(argv[i],
