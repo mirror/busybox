@@ -143,7 +143,7 @@ SFUNC(name)
 #if ENABLE_FEATURE_FIND_TYPE
 SFUNC(type)
 {
-	return !((statbuf->st_mode & S_IFMT) == ap->type_mask);
+	return ((statbuf->st_mode & S_IFMT) == ap->type_mask);
 }
 #endif
 #if ENABLE_FEATURE_FIND_PERM
