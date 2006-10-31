@@ -386,7 +386,14 @@ auth_failed:
 	// /* TIOCSCTTY: steal tty from other process group */
 	// if (ioctl(0, TIOCSCTTY, 1)) error_msg...
 
-	signal(SIGALRM, SIG_DFL); /* set signals to defaults */
+	/* set signals to defaults */
+	signal(SIGALRM, SIG_DFL);
+	/* Is this correct? This way user can ctrl-c out of /etc/profile,
+	 * potentially creating security breach (tested with bash 3.0).
+	 * But without this, bash 3.0 will not enable ctrl-c either.
+	 * Maybe bash is buggy?
+	 * Need to find out what standards say about /bin/login -
+	 * should it leave SIGINT etc enabled or disabled? */
 	signal(SIGINT, SIG_DFL);
 
 	run_shell(tmp, 1, 0, 0);	/* exec the shell finally */
