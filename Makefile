@@ -263,7 +263,7 @@ export quiet Q KBUILD_VERBOSE
 MAKEFLAGS += --include-dir=$(srctree)
 
 # We need some generic definitions
-include  $(srctree)/scripts/Kbuild.include
+include $(srctree)/scripts/Kbuild.include
 
 # For maximum performance (+ possibly random breakage, uncomment
 # the following)
@@ -988,7 +988,7 @@ rpm: FORCE
 boards := $(wildcard $(srctree)/arch/$(ARCH)/configs/*_defconfig)
 boards := $(notdir $(boards))
 
--include Makefile.help
+-include $(srctree)/Makefile.help
 
 # Documentation targets
 # ---------------------------------------------------------------------------
@@ -1282,7 +1282,7 @@ endif	# skip-makefile
 PHONY += FORCE
 FORCE:
 
--include Makefile.custom
+-include $(srctree)/Makefile.custom
 
 # Declare the contents of the .PHONY variable as phony.  We keep that
 # information in a variable se we can use it in if_changed and friends.
