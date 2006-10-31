@@ -86,7 +86,8 @@ char *reads(int fd, char *buffer, size_t size)
 	if (p) {
 		off_t offset;
 		*p++ = '\0';
-		offset = (p-buffer) - size;
+		// avoid incorrect (unsigned) widening
+		offset = (off_t)(p-buffer) - (off_t)size;
 		// set fd position the right after the \n
 		if (offset && lseek(fd, offset, SEEK_CUR) == (off_t)-1)
 			return NULL;
