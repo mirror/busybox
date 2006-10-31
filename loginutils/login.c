@@ -342,6 +342,7 @@ auth_failed:
 	fchown(0, pw->pw_uid, pw->pw_gid);
 	fchmod(0, 0600);
 
+	/* TODO: be nommu-friendly, use spawn? */
 	if (ENABLE_LOGIN_SCRIPTS) {
 		char *script = getenv("LOGIN_PRE_SUID_SCRIPT");
 		if (script) {
@@ -370,7 +371,6 @@ auth_failed:
 	setup_environment(tmp, 1, !(opt & LOGIN_OPT_p), pw);
 
 	motd();
-	signal(SIGALRM, SIG_DFL);	/* default alarm signal */
 
 	if (pw->pw_uid == 0)
 		syslog(LOG_INFO, "root login%s", fromhost);
@@ -379,7 +379,17 @@ auth_failed:
 	 * but let's play the game for now */
 	set_current_security_context(user_sid);
 #endif
-	run_shell(tmp, 1, 0, 0);	/* exec the shell finally. */
+
+	// util-linux login also does:
+	// /* start new session */
+	// setsid();
+	// /* TIOCSCTTY: steal tty from other process group */
+	// if (ioctl(0, TIOCSCTTY, 1)) error_msg...
+
+	signal(SIGALRM, SIG_DFL); /* set signals to defaults */
+	signal(SIGINT, SIG_DFL);
+
+	run_shell(tmp, 1, 0, 0);	/* exec the shell finally */
 
 	return EXIT_FAILURE;
 }

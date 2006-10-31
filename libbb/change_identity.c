@@ -28,14 +28,6 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <syslog.h>
-#include <ctype.h>
-
 #include "libbb.h"
 
 
@@ -44,8 +36,7 @@ const char *change_identity_e2str(const struct passwd *pw)
 {
 	if (initgroups(pw->pw_name, pw->pw_gid) == -1)
 		return "cannot set groups";
-	endgrent();
-
+	endgrent(); /* ?? */
 	xsetgid(pw->pw_gid);
 	xsetuid(pw->pw_uid);
 	return NULL;
@@ -55,6 +46,6 @@ void change_identity(const struct passwd *pw)
 {
 	const char *err_msg = change_identity_e2str(pw);
 
-	if(err_msg)
+	if (err_msg)
 		bb_perror_msg_and_die("%s", err_msg);
 }
