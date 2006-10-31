@@ -69,6 +69,7 @@ USE_FEATURE_FIND_NEWER( SACT(newer, time_t newer_mtime;))
 USE_FEATURE_FIND_INUM(  SACT(inum,  ino_t inode_num;))
 USE_FEATURE_FIND_EXEC(  SACT(exec,  char **exec_argv; int *subst_count; int exec_argc;))
 USE_DESKTOP(            SACT(paren, action ***subexpr;))
+USE_DESKTOP(            SACT(prune))
 
 static action ***actions;
 static int need_print = 1;
@@ -224,11 +225,22 @@ SFUNC(paren)
 {
 	return exec_actions(ap->subexpr, fileName, statbuf);
 }
+/*
+ * -prune: if -depth is not given, return true and do not descend
+ * current dir; if -depth is given, return false with no effect.
+ * Example:
+ * find dir -name 'asm-*' -prune -o -name '*.[chS]' -print
+ */
+SFUNC(prune)
+{
+	return SKIP;
+}
 #endif
 
 
 static int fileAction(const char *fileName, struct stat *statbuf, void* junk, int depth)
 {
+	int rc;
 #ifdef CONFIG_FEATURE_FIND_XDEV
 	if (S_ISDIR(statbuf->st_mode) && xdev_count) {
 		int i;
@@ -238,10 +250,13 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk, in
 		}
 	}
 #endif
-	/* had no explicit -print[0] or -exec? then print */
-	if (exec_actions(actions, fileName, statbuf) && need_print)
+	rc = exec_actions(actions, fileName, statbuf);
+	/* Had no explicit -print[0] or -exec? then print */
+	if (rc && need_print)
 		puts(fileName);
-	return TRUE;
+	/* Cannot return 0: our caller, recursive_action(),
+	 * will perror() and skip dirs (if called on dir) */
+	return rc == 0 ? TRUE : rc;
 }
 
 
@@ -468,6 +483,9 @@ action*** parse_params(char **argv)
 			ap->subexpr = parse_params(argv + 1);
 			*endarg = ")"; /* restore NULLed parameter */
 			argv = endarg;
+		}
+		else if (strcmp(arg, "-prune") == 0) {
+			(void) ALLOC_ACTION(prune);
 		}
 #endif
 		else
