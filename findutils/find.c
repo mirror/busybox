@@ -35,6 +35,14 @@
  * file.txt
  * # find file.txt -name '*f*' -o -name '*z*'
  * file.txt
+ *
+ * # find t z -name '*t*' -print -o -name '*z*'
+ * t
+ * # find t z t z -name '*t*' -o -name '*z*' -print
+ * z
+ * z
+ * # find t z t z '(' -name '*t*' -o -name '*z*' ')' -o -print
+ * (no output)
  */
 
 #include "busybox.h"
@@ -193,7 +201,6 @@ SFUNC(exec)
 		bb_perror_msg("%s", argv[0]);
 	for (i = 0; i < ap->exec_argc; i++)
 		free(argv[i]);
-	need_print = 0;
 	return rc == 0; /* return 1 if success */
 }
 #endif
@@ -202,7 +209,6 @@ SFUNC(exec)
 SFUNC(print0)
 {
 	printf("%s%c", fileName, '\0');
-	need_print = 0;
 	return TRUE;
 }
 #endif
@@ -210,7 +216,6 @@ SFUNC(print0)
 SFUNC(print)
 {
 	puts(fileName);
-	need_print = 0;
 	return TRUE;
 }
 
@@ -331,10 +336,12 @@ action*** parse_params(char **argv)
 
 	/* --- Tests and actions --- */
 		else if (strcmp(arg, "-print") == 0) {
+			need_print = 0;
 			(void) ALLOC_ACTION(print);
 		}
 #if ENABLE_FEATURE_FIND_PRINT0
 		else if (strcmp(arg, "-print0") == 0) {
+			need_print = 0;
 			(void) ALLOC_ACTION(print0);
 		}
 #endif
@@ -420,6 +427,7 @@ action*** parse_params(char **argv)
 		else if (strcmp(arg, "-exec") == 0) {
 			int i;
 			action_exec *ap;
+			need_print = 0;
 			ap = ALLOC_ACTION(exec);
 			ap->exec_argv = ++argv; /* first arg after -exec */
 			ap->exec_argc = 0;
