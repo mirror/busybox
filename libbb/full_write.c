@@ -27,7 +27,7 @@ ssize_t full_write(int fd, const void *buf, size_t len)
 		cc = safe_write(fd, buf, len);
 
 		if (cc < 0)
-			return cc;		/* write() returns -1 on failure. */
+			return cc;	/* write() returns -1 on failure. */
 
 		total += cc;
 		buf = ((const char *)buf) + cc;

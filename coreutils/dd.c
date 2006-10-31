@@ -35,15 +35,26 @@ static void dd_output_status(int ATTRIBUTE_UNUSED cur_signal)
 			out_full, out_part);
 }
 
+static ssize_t full_write_or_warn(int fd, const void *buf, size_t len,
+		const char* filename)
+{
+	ssize_t n = full_write(fd, buf, len);
+	if (n < 0)
+		bb_perror_msg("writing '%s'", filename);
+	return n;
+}
+
 int dd_main(int argc, char **argv)
 {
-#define sync_flag    (1<<0)
-#define noerror      (1<<1)
-#define trunc_flag   (1<<2)
-#define twobufs_flag (1<<3)
+	enum {
+		sync_flag    = 1 << 0,
+		noerror      = 1 << 1,
+		trunc_flag   = 1 << 2,
+		twobufs_flag = 1 << 3,
+	};
 	int flags = trunc_flag;
 	size_t oc = 0, ibs = 512, obs = 512;
-	ssize_t n;
+	ssize_t n, w;
 	off_t seek = 0, skip = 0, count = OFF_T_MAX;
 	int oflag, ifd, ofd;
 	const char *infile = NULL, *outfile = NULL;
@@ -60,52 +71,53 @@ int dd_main(int argc, char **argv)
 	}
 
 	for (n = 1; n < argc; n++) {
+		char *arg = argv[n];
+		/* Must fit into positive ssize_t */
+		if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("ibs=", arg, 4))
+			ibs = xatoul_range_sfx(arg+4, 0, ((size_t)-1L)/2, dd_suffixes);
+		else if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("obs=", arg, 4))
+			obs = xatoul_range_sfx(arg+4, 0, ((size_t)-1L)/2, dd_suffixes);
+		else if (!strncmp("bs=", arg, 3))
+			ibs = obs = xatoul_range_sfx(arg+3, 0, ((size_t)-1L)/2, dd_suffixes);
 		// FIXME: make them capable of eating LARGE numbers
-		if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("ibs=", argv[n], 4)) {
-			ibs = xatoul_sfx(argv[n]+4, dd_suffixes);
-			flags |= twobufs_flag;
-		} else if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("obs=", argv[n], 4)) {
-			obs = xatoul_sfx(argv[n]+4, dd_suffixes);
-			flags |= twobufs_flag;
-		} else if (!strncmp("bs=", argv[n], 3))
-			ibs = obs = xatoul_sfx(argv[n]+3, dd_suffixes);
-		else if (!strncmp("count=", argv[n], 6))
-			count = xatoul_sfx(argv[n]+6, dd_suffixes);
-		else if (!strncmp("seek=", argv[n], 5))
-			seek = xatoul_sfx(argv[n]+5, dd_suffixes);
-		else if (!strncmp("skip=", argv[n], 5))
-			skip = xatoul_sfx(argv[n]+5, dd_suffixes);
-		else if (!strncmp("if=", argv[n], 3))
-			infile = argv[n]+3;
-		else if (!strncmp("of=", argv[n], 3))
-			outfile = argv[n]+3;
-		else if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("conv=", argv[n], 5)) {
-			ibuf = argv[n]+5;
+		else if (!strncmp("count=", arg, 6))
+			count = xatoul_sfx(arg+6, dd_suffixes);
+		else if (!strncmp("seek=", arg, 5))
+			seek = xatoul_sfx(arg+5, dd_suffixes);
+		else if (!strncmp("skip=", arg, 5))
+			skip = xatoul_sfx(arg+5, dd_suffixes);
+
+		else if (!strncmp("if=", arg, 3))
+			infile = arg+3;
+		else if (!strncmp("of=", arg, 3))
+			outfile = arg+3;
+		else if (ENABLE_FEATURE_DD_IBS_OBS && !strncmp("conv=", arg, 5)) {
+			arg += 5;
 			while (1) {
-				if (!strncmp("notrunc", ibuf, 7)) {
+				if (!strncmp("notrunc", arg, 7)) {
 					flags &= ~trunc_flag;
-					ibuf += 7;
-				} else if (!strncmp("sync", ibuf, 4)) {
+					arg += 7;
+				} else if (!strncmp("sync", arg, 4)) {
 					flags |= sync_flag;
-					ibuf += 4;
-				} else if (!strncmp("noerror", ibuf, 7)) {
+					arg += 4;
+				} else if (!strncmp("noerror", arg, 7)) {
 					flags |= noerror;
-					ibuf += 7;
+					arg += 7;
 				} else {
-					bb_error_msg_and_die(bb_msg_invalid_arg, argv[n]+5, "conv");
+					bb_error_msg_and_die(bb_msg_invalid_arg, arg, "conv");
 				}
-				if (ibuf[0] == '\0') break;
-				if (ibuf[0] == ',') ibuf++;
+				if (arg[0] == '\0') break;
+				if (*arg++ != ',') bb_show_usage();
 			}
 		} else
 			bb_show_usage();
 	}
-	ibuf = xmalloc(ibs);
 
-	if (flags & twobufs_flag)
+	ibuf = obuf = xmalloc(ibs);
+	if (ibs != obs) {
+		flags |= twobufs_flag;
 		obuf = xmalloc(obs);
-	else
-		obuf = ibuf;
+	}
 
 	if (infile != NULL)
 		ifd = xopen(infile, O_RDONLY);
@@ -173,7 +185,7 @@ int dd_main(int argc, char **argv)
 			in_full++;
 		else {
 			in_part++;
-			if (sync_flag) {
+			if (flags & sync_flag) {
 				memset(ibuf + n, '\0', ibs - n);
 				n = ibs;
 			}
@@ -190,33 +202,40 @@ int dd_main(int argc, char **argv)
 				tmp += d;
 				oc += d;
 				if (oc == obs) {
-					xwrite(ofd, obuf, obs);
-					out_full++;
+					w = full_write_or_warn(ofd, obuf, obs, outfile);
+					if (w < 0) goto out_status;
+					if (w == obs)
+						out_full++;
+					else if (w > 0)
+						out_part++;
 					oc = 0;
 				}
 			}
 		} else {
-			xwrite(ofd, ibuf, n);
-			if (n == ibs)
+			w = full_write_or_warn(ofd, ibuf, n, outfile);
+			if (w < 0) goto out_status;
+			if (w == obs)
 				out_full++;
-			else
+			else if (w > 0)
 				out_part++;
 		}
 	}
 
 	if (ENABLE_FEATURE_DD_IBS_OBS && oc) {
-		xwrite(ofd, obuf, oc);
-		out_part++;
+		w = full_write_or_warn(ofd, obuf, oc, outfile);
+		if (w < 0) goto out_status;
+		if (w > 0)
+			out_part++;
 	}
-	if (close (ifd) < 0) {
+	if (close(ifd) < 0) {
 		bb_perror_msg_and_die("%s", infile);
 	}
 
-	if (close (ofd) < 0) {
-die_outfile:
+	if (close(ofd) < 0) {
+ die_outfile:
 		bb_perror_msg_and_die("%s", outfile);
 	}
-
+ out_status:
 	dd_output_status(0);
 
 	return EXIT_SUCCESS;
