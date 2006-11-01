@@ -13,31 +13,19 @@ int ps_main(int argc, char **argv)
 {
 	procps_status_t * p;
 	int i, len;
-
-#if ENABLE_SELINUX
-	int use_selinux = 0;
-	security_context_t sid = NULL;
-#endif
-
-#if ENABLE_FEATURE_PS_WIDE
+	SKIP_SELINUX(const) int use_selinux = 0;
+	USE_SELINUX(security_context_t sid = NULL;)
+#if !ENABLE_FEATURE_PS_WIDE
+	enum { terminal_width = 79 };
+#else
 	int terminal_width;
 	int w_count = 0;
-
-	opt_complementary = "-:ww";
-#else
-# define terminal_width 79
 #endif
 
 #if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
-	/* handle arguments */
-#if ENABLE_FEATURE_PS_WIDE && ENABLE_SELINUX
-	i = getopt32(argc, argv, "wc", &w_count);
-#elif ENABLE_FEATURE_PS_WIDE && !ENABLE_SELINUX
-	getopt32(argc, argv, "w", &w_count);
-#else /* !ENABLE_FEATURE_PS_WIDE && ENABLE_SELINUX */
-	i = getopt32(argc, argv, "c");
-#endif
 #if ENABLE_FEATURE_PS_WIDE
+	opt_complementary = "-:ww";
+	USE_SELINUX(i =) getopt32(argc, argv, "w" USE_SELINUX("c"), &w_count);
 	/* if w is given once, GNU ps sets the width to 132,
 	 * if w is given more than once, it is "unlimited"
 	 */
@@ -48,18 +36,18 @@ int ps_main(int argc, char **argv)
 		/* Go one less... */
 		terminal_width--;
 	}
+#else /* only ENABLE_SELINUX */
+	i = getopt32(argc, argv, "c");
 #endif
 #if ENABLE_SELINUX
 	if ((i & (1+ENABLE_FEATURE_PS_WIDE)) && is_selinux_enabled())
 		use_selinux = 1;
 #endif
-#endif  /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */
+#endif /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */
 
-#if ENABLE_SELINUX
 	if (use_selinux)
 		puts("  PID Context                          Stat Command");
 	else
-#endif
 		puts("  PID  Uid     VmSize Stat Command");
 
 	while ((p = procps_scan(1)) != 0)  {
@@ -75,7 +63,7 @@ int ps_main(int argc, char **argv)
 			}
 
 			if (sid) {
-				/*  I assume sid initilized with NULL  */
+				/* I assume sid initialized with NULL */
 				len = strlen(sid)+1;
 				safe_strncpy(sbuf, sid, len);
 				freecon(sid);
@@ -99,7 +87,7 @@ int ps_main(int argc, char **argv)
 				i = 0;
 			if (strlen(namecmd) > (size_t)i)
 				namecmd[i] = 0;
-			printf("%s\n", namecmd);
+			puts(namecmd);
 		} else {
 			namecmd = p->short_cmd;
 			if (i < 2)
@@ -108,7 +96,7 @@ int ps_main(int argc, char **argv)
 				namecmd[i-2] = 0;
 			printf("[%s]\n", namecmd);
 		}
-		/* no check needed, but to make valgrind happy..  */
+		/* no check needed, but to make valgrind happy.. */
 		if (ENABLE_FEATURE_CLEAN_UP && p->cmd)
 			free(p->cmd);
 	}
