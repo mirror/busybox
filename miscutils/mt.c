@@ -107,7 +107,7 @@ int mt_main(int argc, char **argv)
 		case MTTELL:
 			if (ioctl(fd, MTIOCPOS, &position) < 0)
 				bb_perror_msg_and_die("%s", file);
-			printf ("At block %d.\n", (int) position.mt_blkno);
+			printf("At block %d.\n", (int) position.mt_blkno);
 			break;
 
 		default:

@@ -30,7 +30,7 @@ static const char * idle_string (time_t t)
 	if (s < 60)
 		return ".";
 	if (s < (24 * 60 * 60)) {
-		sprintf (str, "%02d:%02d",
+		sprintf(str, "%02d:%02d",
 				(int) (s / (60 * 60)),
 				(int) ((s % (60 * 60)) / 60));
 		return str;

@@ -56,20 +56,20 @@ typedef int (*action_fp)(const char *fileName, struct stat *statbuf, void *);
 typedef struct {
 	action_fp f;
 } action;
-#define SACT(name, arg...) typedef struct { action a; arg; } action_##name;
-#define SFUNC(name)        static int func_##name(const char *fileName, struct stat *statbuf, action_##name* ap)
-                        SACT(print)
-                        SACT(name,  char *pattern;)
-USE_FEATURE_FIND_PRINT0(SACT(print0))
-USE_FEATURE_FIND_TYPE(  SACT(type,  int type_mask;))
-USE_FEATURE_FIND_PERM(  SACT(perm,  char perm_char; int perm_mask;))
-USE_FEATURE_FIND_MTIME( SACT(mtime, char mtime_char; int mtime_days;))
-USE_FEATURE_FIND_MMIN(  SACT(mmin,  char mmin_char; int mmin_mins;))
-USE_FEATURE_FIND_NEWER( SACT(newer, time_t newer_mtime;))
-USE_FEATURE_FIND_INUM(  SACT(inum,  ino_t inode_num;))
-USE_FEATURE_FIND_EXEC(  SACT(exec,  char **exec_argv; int *subst_count; int exec_argc;))
-USE_DESKTOP(            SACT(paren, action ***subexpr;))
-USE_DESKTOP(            SACT(prune))
+#define ACTS(name, arg...) typedef struct { action a; arg; } action_##name;
+#define ACTF(name)         static int func_##name(const char *fileName, struct stat *statbuf, action_##name* ap)
+                        ACTS(print)
+                        ACTS(name,  char *pattern;)
+USE_FEATURE_FIND_PRINT0(ACTS(print0))
+USE_FEATURE_FIND_TYPE(  ACTS(type,  int type_mask;))
+USE_FEATURE_FIND_PERM(  ACTS(perm,  char perm_char; int perm_mask;))
+USE_FEATURE_FIND_MTIME( ACTS(mtime, char mtime_char; int mtime_days;))
+USE_FEATURE_FIND_MMIN(  ACTS(mmin,  char mmin_char; int mmin_mins;))
+USE_FEATURE_FIND_NEWER( ACTS(newer, time_t newer_mtime;))
+USE_FEATURE_FIND_INUM(  ACTS(inum,  ino_t inode_num;))
+USE_FEATURE_FIND_EXEC(  ACTS(exec,  char **exec_argv; int *subst_count; int exec_argc;))
+USE_DESKTOP(            ACTS(paren, action ***subexpr;))
+USE_DESKTOP(            ACTS(prune))
 
 static action ***actions;
 static int need_print = 1;
@@ -131,7 +131,7 @@ static int exec_actions(action ***appp, const char *fileName, struct stat *statb
 }
 
 
-SFUNC(name)
+ACTF(name)
 {
 	const char *tmp = strrchr(fileName, '/');
 	if (tmp == NULL)
@@ -141,13 +141,13 @@ SFUNC(name)
 	return fnmatch(ap->pattern, tmp, FNM_PERIOD) == 0;
 }
 #if ENABLE_FEATURE_FIND_TYPE
-SFUNC(type)
+ACTF(type)
 {
 	return ((statbuf->st_mode & S_IFMT) == ap->type_mask);
 }
 #endif
 #if ENABLE_FEATURE_FIND_PERM
-SFUNC(perm)
+ACTF(perm)
 {
 	return !((isdigit(ap->perm_char) && (statbuf->st_mode & 07777) == ap->perm_mask)
 	        || (ap->perm_char == '-' && (statbuf->st_mode & ap->perm_mask) == ap->perm_mask)
@@ -155,7 +155,7 @@ SFUNC(perm)
 }
 #endif
 #if ENABLE_FEATURE_FIND_MTIME
-SFUNC(mtime)
+ACTF(mtime)
 {
 	time_t file_age = time(NULL) - statbuf->st_mtime;
 	time_t mtime_secs = ap->mtime_days * 24 * 60 * 60;
@@ -166,7 +166,7 @@ SFUNC(mtime)
 }
 #endif
 #if ENABLE_FEATURE_FIND_MMIN
-SFUNC(mmin)
+ACTF(mmin)
 {
 	time_t file_age = time(NULL) - statbuf->st_mtime;
 	time_t mmin_secs = ap->mmin_mins * 60;
@@ -177,19 +177,19 @@ SFUNC(mmin)
 }
 #endif
 #if ENABLE_FEATURE_FIND_NEWER
-SFUNC(newer)
+ACTF(newer)
 {
 	return (ap->newer_mtime >= statbuf->st_mtime);
 }
 #endif
 #if ENABLE_FEATURE_FIND_INUM
-SFUNC(inum)
+ACTF(inum)
 {
 	return (statbuf->st_ino != ap->inode_num);
 }
 #endif
 #if ENABLE_FEATURE_FIND_EXEC
-SFUNC(exec)
+ACTF(exec)
 {
 	int i, rc;
 	char *argv[ap->exec_argc+1];
@@ -207,21 +207,21 @@ SFUNC(exec)
 #endif
 
 #if ENABLE_FEATURE_FIND_PRINT0
-SFUNC(print0)
+ACTF(print0)
 {
 	printf("%s%c", fileName, '\0');
 	return TRUE;
 }
 #endif
 
-SFUNC(print)
+ACTF(print)
 {
 	puts(fileName);
 	return TRUE;
 }
 
 #if ENABLE_DESKTOP
-SFUNC(paren)
+ACTF(paren)
 {
 	return exec_actions(ap->subexpr, fileName, statbuf);
 }
@@ -231,7 +231,7 @@ SFUNC(paren)
  * Example:
  * find dir -name 'asm-*' -prune -o -name '*.[chS]' -print
  */
-SFUNC(prune)
+ACTF(prune)
 {
 	return SKIP;
 }
@@ -501,6 +501,7 @@ action*** parse_params(char **argv)
 int find_main(int argc, char **argv)
 {
 	int dereference = FALSE;
+	char *arg;
 	char **argp;
 	int i, firstopt, status = EXIT_SUCCESS;
 
@@ -524,10 +525,9 @@ int find_main(int argc, char **argv)
 // We implement: -follow, -xdev
 
 	/* Process options, and replace then with -a */
-	/* (that will be ignored by recursive parser later) */
+	/* (-a will be ignored by recursive parser later) */
 	argp = &argv[firstopt];
-	while (*argp) {
-		char *arg = argp[0];
+	while ((arg = argp[0])) {
 		if (strcmp(arg, "-follow") == 0) {
 			dereference = TRUE;
 			argp[0] = "-a";

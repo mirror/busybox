@@ -444,7 +444,7 @@ void bb_show_usage(void)
 		format_string = "%s\n\nUsage: %s %s\n\n";
 		if (*usage_string == '\b')
 			format_string = "%s\n\nNo help available.\n\n";
-		fprintf (stderr, format_string, bb_msg_full_version,
+		fprintf(stderr, format_string, bb_msg_full_version,
 			applet_using->name, usage_string);
 	}
 

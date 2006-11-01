@@ -72,8 +72,7 @@ int ps_main(int argc, char **argv)
 				safe_strncpy(sbuf, "unknown", 7);
 			}
 			len = printf("%5u %-32s %s ", (unsigned)p->pid, sbuf, p->state);
-		}
-		else
+		} else
 #endif
 			if (p->rss == 0)
 				len = printf("%5u %-8s        %s ", (unsigned)p->pid, p->user, p->state);

@@ -23,5 +23,5 @@ void print_fs_state(FILE *f, unsigned short state)
 {
 	fprintf(f, (state & EXT2_VALID_FS ? " clean" : " not clean"));
 	if (state & EXT2_ERROR_FS)
-		fprintf (f, " with errors");
+		fprintf(f, " with errors");
 }

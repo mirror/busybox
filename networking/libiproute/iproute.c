@@ -455,14 +455,14 @@ static int iproute_flush_cache(void)
 	char *buffer = "-1";
 
 	if (flush_fd < 0) {
-		fprintf (stderr, "Cannot open \"%s\"\n", ROUTE_FLUSH_PATH);
+		fprintf(stderr, "Cannot open \"%s\"\n", ROUTE_FLUSH_PATH);
 		return -1;
 	}
 
 	len = strlen (buffer);
 
 	if ((write (flush_fd, (void *)buffer, len)) < len) {
-		fprintf (stderr, "Cannot flush routing cache\n");
+		fprintf(stderr, "Cannot flush routing cache\n");
 		return -1;
 	}
 	close(flush_fd);

@@ -9818,7 +9818,7 @@ static int jread(struct buffer_head **bhp, journal_t *journal,
 	err = journal_bmap(journal, offset, &blocknr);
 
 	if (err) {
-		printf ("JBD: bad block at offset %u\n", offset);
+		printf("JBD: bad block at offset %u\n", offset);
 		return err;
 	}
 
@@ -9835,7 +9835,7 @@ static int jread(struct buffer_head **bhp, journal_t *journal,
 	}
 
 	if (!buffer_uptodate(bh)) {
-		printf ("JBD: Failed to read block at offset %u\n", offset);
+		printf("JBD: Failed to read block at offset %u\n", offset);
 		brelse(bh);
 		return -EIO;
 	}
@@ -10049,7 +10049,7 @@ static int do_one_pass(journal_t *journal,
 					/* Recover what we can, but
 					 * report failure at the end. */
 					success = err;
-					printf ("JBD: IO error %d recovering "
+					printf("JBD: IO error %d recovering "
 						"block %ld in log\n",
 						err, io_block);
 				} else {
@@ -10074,7 +10074,7 @@ static int do_one_pass(journal_t *journal,
 						       blocknr,
 						     journal->j_blocksize);
 					if (nbh == NULL) {
-						printf ("JBD: Out of memory "
+						printf("JBD: Out of memory "
 						       "during recovery.\n");
 						err = -ENOMEM;
 						brelse(bh);
@@ -10153,7 +10153,7 @@ static int do_one_pass(journal_t *journal,
 		/* It's really bad news if different passes end up at
 		 * different places (but possible due to IO errors). */
 		if (info->end_transaction != next_commit_ID) {
-			printf ("JBD: recovery pass %d ended at "
+			printf("JBD: recovery pass %d ended at "
 				"transaction %u, expected %u\n",
 				pass, next_commit_ID, info->end_transaction);
 			if (!success)
@@ -12335,15 +12335,15 @@ static int ask_yn(const char * string, int def)
 int ask (e2fsck_t ctx, const char * string, int def)
 {
 	if (ctx->options & E2F_OPT_NO) {
-		printf (_("%s? no\n\n"), string);
+		printf(_("%s? no\n\n"), string);
 		return 0;
 	}
 	if (ctx->options & E2F_OPT_YES) {
-		printf (_("%s? yes\n\n"), string);
+		printf(_("%s? yes\n\n"), string);
 		return 1;
 	}
 	if (ctx->options & E2F_OPT_PREEN) {
-		printf ("%s? %s\n\n", string, def ? _("yes") : _("no"));
+		printf("%s? %s\n\n", string, def ? _("yes") : _("no"));
 		return def;
 	}
 	return ask_yn(string, def);
@@ -12606,26 +12606,26 @@ static void show_stats(e2fsck_t ctx)
 		       blocks_used, blocks);
 		return;
 	}
-	printf ("\n%8d inode%s used (%d%%)\n", P_E2("", "s", inodes_used),
+	printf("\n%8d inode%s used (%d%%)\n", P_E2("", "s", inodes_used),
 		100 * inodes_used / inodes);
-	printf ("%8d non-contiguous inode%s (%0d.%d%%)\n",
+	printf("%8d non-contiguous inode%s (%0d.%d%%)\n",
 		P_E2("", "s", ctx->fs_fragmented),
 		frag_percent / 10, frag_percent % 10);
-	printf (_("         # of inodes with ind/dind/tind blocks: %d/%d/%d\n"),
+	printf(_("         # of inodes with ind/dind/tind blocks: %d/%d/%d\n"),
 		ctx->fs_ind_count, ctx->fs_dind_count, ctx->fs_tind_count);
-	printf ("%8d block%s used (%d%%)\n", P_E2("", "s", blocks_used),
+	printf("%8d block%s used (%d%%)\n", P_E2("", "s", blocks_used),
 		(int) ((long long) 100 * blocks_used / blocks));
-	printf ("%8d large file%s\n", P_E2("", "s", ctx->large_files));
-	printf ("\n%8d regular file%s\n", P_E2("", "s", ctx->fs_regular_count));
-	printf ("%8d director%s\n", P_E2("y", "ies", ctx->fs_directory_count));
-	printf ("%8d character device file%s\n", P_E2("", "s", ctx->fs_chardev_count));
-	printf ("%8d block device file%s\n", P_E2("", "s", ctx->fs_blockdev_count));
-	printf ("%8d fifo%s\n", P_E2("", "s", ctx->fs_fifo_count));
-	printf ("%8d link%s\n", P_E2("", "s", ctx->fs_links_count - dir_links));
-	printf ("%8d symbolic link%s", P_E2("", "s", ctx->fs_symlinks_count));
-	printf (" (%d fast symbolic link%s)\n", P_E2("", "s", ctx->fs_fast_symlinks_count));
-	printf ("%8d socket%s--------\n\n", P_E2("", "s", ctx->fs_sockets_count));
-	printf ("%8d file%s\n", P_E2("", "s", ctx->fs_total_count - dir_links));
+	printf("%8d large file%s\n", P_E2("", "s", ctx->large_files));
+	printf("\n%8d regular file%s\n", P_E2("", "s", ctx->fs_regular_count));
+	printf("%8d director%s\n", P_E2("y", "ies", ctx->fs_directory_count));
+	printf("%8d character device file%s\n", P_E2("", "s", ctx->fs_chardev_count));
+	printf("%8d block device file%s\n", P_E2("", "s", ctx->fs_blockdev_count));
+	printf("%8d fifo%s\n", P_E2("", "s", ctx->fs_fifo_count));
+	printf("%8d link%s\n", P_E2("", "s", ctx->fs_links_count - dir_links));
+	printf("%8d symbolic link%s", P_E2("", "s", ctx->fs_symlinks_count));
+	printf(" (%d fast symbolic link%s)\n", P_E2("", "s", ctx->fs_fast_symlinks_count));
+	printf("%8d socket%s--------\n\n", P_E2("", "s", ctx->fs_sockets_count));
+	printf("%8d file%s\n", P_E2("", "s", ctx->fs_total_count - dir_links));
 }
 
 static void check_mount(e2fsck_t ctx)
@@ -12663,7 +12663,7 @@ static void check_mount(e2fsck_t ctx)
 	       "SEVERE filesystem damage.\007\007\007\n\n"));
 	cont = ask_yn(_("Do you really want to continue"), -1);
 	if (!cont) {
-		printf (_("check aborted.\n"));
+		printf(_("check aborted.\n"));
 		exit (0);
 	}
 	return;

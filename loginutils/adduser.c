@@ -180,7 +180,7 @@ int adduser_main(int argc, char **argv)
 	/* create string for $HOME if not specified already */
 	if (!pw.pw_dir) {
 		snprintf(bb_common_bufsiz1, BUFSIZ, "/home/%s", argv[optind]);
-		pw.pw_dir =  &bb_common_bufsiz1[0];
+		pw.pw_dir = &bb_common_bufsiz1[0];
 	}
 
 	/* create a passwd struct */

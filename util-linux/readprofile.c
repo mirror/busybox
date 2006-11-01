@@ -44,19 +44,20 @@ static const char defaultpro[] = "/proc/profile";
 int readprofile_main(int argc, char **argv)
 {
 	FILE *map;
-	const char *mapFile, *proFile, *mult=0;
-	unsigned long indx=1;
+	const char *mapFile, *proFile, *mult = 0;
+	unsigned long indx = 1;
 	size_t len;
-	uint64_t add0=0;
+	uint64_t add0 = 0;
 	unsigned int step;
 	unsigned int *buf, total, fn_len;
 	unsigned long long fn_add, next_add;     /* current and next address */
 	char fn_name[S_LEN], next_name[S_LEN];   /* current and next name */
-	char mode[8];
-	int optAll=0, optInfo=0, optReset=0, optVerbose=0, optNative=0;
-	int optBins=0, optSub=0;
 	char mapline[S_LEN];
-	int maplineno=1;
+	char mode[8];
+	int optAll = 0, optInfo = 0, optReset = 0;
+	int optVerbose = 0, optNative = 0;
+	int optBins = 0, optSub = 0;
+	int maplineno = 1;
 	int header_printed;
 
 #define next (current^1)
@@ -85,9 +86,9 @@ int readprofile_main(int argc, char **argv)
 			to_write = 1;	/* sth different from sizeof(int) */
 		}
 
-		fd = xopen(defaultpro,O_WRONLY);
+		fd = xopen(defaultpro, O_WRONLY);
 
-		if (write(fd, &multiplier, to_write) != to_write)
+		if (full_write(fd, &multiplier, to_write) != to_write)
 			bb_perror_msg_and_die("error writing %s", defaultpro);
 
 		close(fd);
@@ -101,7 +102,7 @@ int readprofile_main(int argc, char **argv)
 	buf = xmalloc_open_read_close(proFile, &len);
 	if (!optNative) {
 		int entries = len/sizeof(*buf);
-		int big = 0,small = 0,i;
+		int big = 0, small = 0, i;
 		unsigned *p;
 
 		for (p = buf+1; p < buf+entries; p++) {
@@ -135,12 +136,12 @@ int readprofile_main(int argc, char **argv)
 
 	map = xfopen(mapFile, "r");
 
-	while (fgets(mapline,S_LEN,map)) {
-		if (sscanf(mapline,"%llx %s %s",&fn_add,mode,fn_name) != 3)
+	while (fgets(mapline, S_LEN, map)) {
+		if (sscanf(mapline, "%llx %s %s", &fn_add, mode, fn_name) != 3)
 			bb_error_msg_and_die("%s(%i): wrong map line",
 					     mapFile, maplineno);
 
-		if (!strcmp(fn_name,"_stext")) /* only elf works like this */ {
+		if (!strcmp(fn_name, "_stext")) /* only elf works like this */ {
 			add0 = fn_add;
 			break;
 		}
@@ -153,12 +154,12 @@ int readprofile_main(int argc, char **argv)
 	/*
 	 * Main loop.
 	 */
-	while (fgets(mapline,S_LEN,map)) {
+	while (fgets(mapline, S_LEN, map)) {
 		unsigned int this = 0;
 
-		if (sscanf(mapline,"%llx %s %s",&next_add,mode,next_name) != 3)
+		if (sscanf(mapline, "%llx %s %s", &next_add, mode, next_name) != 3)
 			bb_error_msg_and_die("%s(%i): wrong map line",
-					     mapFile, maplineno);
+					mapFile, maplineno);
 
 		header_printed = 0;
 
@@ -176,10 +177,10 @@ int readprofile_main(int argc, char **argv)
 		while (indx < (next_add-add0)/step) {
 			if (optBins && (buf[indx] || optAll)) {
 				if (!header_printed) {
-					printf ("%s:\n", fn_name);
+					printf("%s:\n", fn_name);
 					header_printed = 1;
 				}
-				printf ("\t%"PRIx64"\t%u\n", (indx - 1)*step + add0, buf[indx]);
+				printf("\t%"PRIx64"\t%u\n", (indx - 1)*step + add0, buf[indx]);
 			}
 			this += buf[indx++];
 		}
@@ -187,15 +188,15 @@ int readprofile_main(int argc, char **argv)
 
 		if (optBins) {
 			if (optVerbose || this > 0)
-				printf ("  total\t\t\t\t%u\n", this);
+				printf("  total\t\t\t\t%u\n", this);
 		} else if ((this || optAll) &&
 			   (fn_len = next_add-fn_add) != 0) {
 			if (optVerbose)
 				printf("%016llx %-40s %6i %8.4f\n", fn_add,
-				       fn_name,this,this/(double)fn_len);
+				       fn_name, this, this/(double)fn_len);
 			else
 				printf("%6i %-40s %8.4f\n",
-				       this,fn_name,this/(double)fn_len);
+				       this, fn_name, this/(double)fn_len);
 			if (optSub) {
 				unsigned long long scan;
 
@@ -212,7 +213,7 @@ int readprofile_main(int argc, char **argv)
 		}
 
 		fn_add = next_add;
-		strcpy(fn_name,next_name);
+		strcpy(fn_name, next_name);
 
 		maplineno++;
 	}
@@ -223,10 +224,10 @@ int readprofile_main(int argc, char **argv)
 	/* trailer */
 	if (optVerbose)
 		printf("%016x %-40s %6i %8.4f\n",
-		       0,"total",total,total/(double)(fn_add-add0));
+		       0, "total", total, total/(double)(fn_add-add0));
 	else
 		printf("%6i %-40s %8.4f\n",
-		       total,"total",total/(double)(fn_add-add0));
+		       total, "total", total/(double)(fn_add-add0));
 
 	fclose(map);
 	free(buf);
