@@ -36,13 +36,13 @@ procps_status_t * procps_scan(int save_user_arg0)
 
 	struct dirent *entry;
 	char *name;
-	int n;
-	char status[32];
-	char *status_tail;
 	char buf[PROCPS_BUFSIZE];
+	char status[sizeof("/proc//cmdline") + sizeof(int)*3];
+	char *status_tail;
 	procps_status_t curstatus;
-	int pid;
 	long tasknice;
+	int pid;
+	int n;
 	struct stat sb;
 
 	if (!dir) {

@@ -501,13 +501,12 @@ void reset_ino_dev_hashtable(void);
 #endif
 #endif
 typedef struct {
-	pid_t pid, ppid;
+	int pid, ppid;
 	char user[9];
 	char state[4];
 	unsigned long rss;
 #ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	unsigned pcpu;
-	unsigned pscpu;
 	unsigned long stime, utime;
 #endif
 	char *cmd;
@@ -525,7 +524,7 @@ extern const char bb_uuenc_tbl_base64[];
 extern const char bb_uuenc_tbl_std[];
 void bb_uuencode(const unsigned char *s, char *store, const int length, const char *tbl);
 
-typedef struct _sha1_ctx_t_ {
+typedef struct sha1_ctx_t {
 	uint32_t count[2];
 	uint32_t hash[5];
 	uint32_t wbuf[16];
@@ -534,7 +533,7 @@ void sha1_begin(sha1_ctx_t *ctx);
 void sha1_hash(const void *data, size_t length, sha1_ctx_t *ctx);
 void *sha1_end(void *resbuf, sha1_ctx_t *ctx);
 
-typedef struct _md5_ctx_t_ {
+typedef struct md5_ctx_t {
 	uint32_t A;
 	uint32_t B;
 	uint32_t C;

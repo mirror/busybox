@@ -84,9 +84,10 @@ do_it_now:
 		pid_t sid;
 		procps_status_t* p;
 
-		/* kill(-1, sig) on Linux (at least 2.1.x)
-		 * might send signal to the calling process too */
-		signal(SIGTERM, SIG_IGN);
+// Cannot happen anyway? We don't TERM ourself, we STOP
+//		/* kill(-1, sig) on Linux (at least 2.1.x)
+//		 * might send signal to the calling process too */
+//		signal(SIGTERM, SIG_IGN);
 		/* Now stop all processes */
 		kill(-1, SIGSTOP);
 		/* Find out our own session id */

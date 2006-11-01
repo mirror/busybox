@@ -25,7 +25,7 @@ int ps_main(int argc, char **argv)
 #if ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX
 #if ENABLE_FEATURE_PS_WIDE
 	opt_complementary = "-:ww";
-	USE_SELINUX(i =) getopt32(argc, argv, "w" USE_SELINUX("c"), &w_count);
+	USE_SELINUX(i =) getopt32(argc, argv, USE_SELINUX("c") "w", &w_count);
 	/* if w is given once, GNU ps sets the width to 132,
 	 * if w is given more than once, it is "unlimited"
 	 */
@@ -40,7 +40,7 @@ int ps_main(int argc, char **argv)
 	i = getopt32(argc, argv, "c");
 #endif
 #if ENABLE_SELINUX
-	if ((i & (1+ENABLE_FEATURE_PS_WIDE)) && is_selinux_enabled())
+	if ((i & 1) && is_selinux_enabled())
 		use_selinux = 1;
 #endif
 #endif /* ENABLE_FEATURE_PS_WIDE || ENABLE_SELINUX */

@@ -106,7 +106,7 @@ static int show_clock(int utc)
 	if (buffer[0])
 		buffer[strlen(buffer) - 1] = 0;
 
-	//printf("%s  %.6f seconds %s\n", buffer, 0.0, utc ? "" : (ptm->tm_isdst ? tzname [1] : tzname [0]));
+	//printf("%s  %.6f seconds %s\n", buffer, 0.0, utc ? "" : (ptm->tm_isdst ? tzname[1] : tzname[0]));
 	printf( "%s  %.6f seconds\n", buffer, 0.0);
 	RELEASE_CONFIG_BUFFER(buffer);
 
