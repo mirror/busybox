@@ -78,7 +78,7 @@ static int mult_lvl_cmp(void* a, void* b) {
    the next. Mostly used for sorting. */
 struct save_hist {
 	int ticks;
-	int pid;
+	pid_t pid;
 };
 
 /*
@@ -119,7 +119,8 @@ static void get_jiffy_counts(void)
 static void do_stats(void)
 {
 	procps_status_t *cur;
-	int pid, total_time, i, last_i, n;
+	pid_t pid;
+	int total_time, i, last_i, n;
 	struct save_hist *new_hist;
 
 	get_jiffy_counts();
@@ -328,9 +329,9 @@ static void display_status(int count, int scr_width)
 		else
 			sprintf(rss_str_buf, "%7ld", s->rss);
 		USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(pcpu = div((s->pcpu*pcpu_scale) >> pcpu_shift, 10);)
-		col -= printf("\n%5d %-8s %s  %s%6d%3u.%c" \
+		col -= printf("\n%5u %-8s %s  %s%6u%3u.%c" \
 				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE("%3u.%c") " ",
-				s->pid, s->user, s->state, rss_str_buf, s->ppid,
+				(unsigned)s->pid, s->user, s->state, rss_str_buf, (unsigned)s->ppid,
 				USE_FEATURE_TOP_CPU_USAGE_PERCENTAGE(pcpu.quot, '0'+pcpu.rem,)
 				pmem.quot, '0'+pmem.rem);
 		if (col > 0)

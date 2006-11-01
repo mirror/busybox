@@ -32,8 +32,9 @@ static int read_to_buf(const char *filename, void *buf)
 procps_status_t * procps_scan(int save_user_arg0)
 {
 	static DIR *dir;
-	struct dirent *entry;
 	static procps_status_t ret_status;
+
+	struct dirent *entry;
 	char *name;
 	int n;
 	char status[32];

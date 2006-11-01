@@ -18,18 +18,18 @@
 #endif
 
 #if ENABLE_FEATURE_PIDOF_OMIT
-#define _OMIT_COMPL(a) a
-#define _OMIT(a) ,a
-#if ENABLE_FEATURE_PIDOF_SINGLE
-#define OMIT (1<<1)
+# define _OMIT_COMPL(a) a
+# define _OMIT(a) ,a
+# if ENABLE_FEATURE_PIDOF_SINGLE
+#  define OMIT (1<<1)
+# else
+#  define OMIT (1<<0)
+# endif
 #else
-#define OMIT (1<<0)
-#endif
-#else
-#define _OMIT_COMPL(a) ""
-#define _OMIT(a)
-#define OMIT (0)
-#define omitted (0)
+# define _OMIT_COMPL(a) ""
+# define _OMIT(a)
+# define OMIT (0)
+# define omitted (0)
 #endif
 
 int pidof_main(int argc, char **argv)
@@ -65,21 +65,23 @@ int pidof_main(int argc, char **argv)
 #endif
 	/* Looks like everything is set to go.  */
 	while (optind < argc) {
-		long *pidList;
-		long *pl;
+		pid_t *pidList;
+		pid_t *pl;
 
 		/* reverse the pidlist like GNU pidof does.  */
 		pidList = pidlist_reverse(find_pid_by_name(argv[optind]));
-		for (pl = pidList; *pl > 0; pl++) {
+		for (pl = pidList; *pl; pl++) {
 #if ENABLE_FEATURE_PIDOF_OMIT
 			unsigned omitted = 0;
 			if (opt & OMIT) {
 				llist_t *omits_p = omits;
-				while (omits_p)
+				while (omits_p) {
 					if (xatoul(omits_p->data) == *pl) {
-						omitted = 1; break;
+						omitted = 1;
+						break;
 					} else
 						omits_p = omits_p->link;
+				}
 			}
 #endif
 			if (!omitted) {
@@ -88,7 +90,7 @@ int pidof_main(int argc, char **argv)
 				} else {
 					n = 1;
 				}
-				printf("%ld", *pl);
+				printf("%u", (unsigned)*pl);
 			}
 			fail = (!ENABLE_FEATURE_PIDOF_OMIT && omitted);
 

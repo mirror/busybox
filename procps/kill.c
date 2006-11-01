@@ -103,31 +103,31 @@ do_it_now:
 	}
 
 	/* Pid or name required for kill/killall */
-	if (argc<1)
+	if (argc < 1)
 		bb_show_usage();
 
 	if (killall) {
 		/* Looks like they want to do a killall.  Do that */
 		pid = getpid();
 		while (arg) {
-			long* pidList;
+			pid_t* pidList;
 
 			pidList = find_pid_by_name(arg);
-			if (!pidList || *pidList<=0) {
+			if (*pidList == 0) {
 				errors++;
 				if (!quiet)
 					bb_error_msg("%s: no process killed", arg);
 			} else {
-				long *pl;
+				pid_t *pl;
 
-				for (pl = pidList; *pl!=0; pl++) {
-					if (*pl==pid)
+				for (pl = pidList; *pl; pl++) {
+					if (*pl == pid)
 						continue;
-					if (kill(*pl, signo)!=0) {
-						errors++;
-						if (!quiet)
-							bb_perror_msg("cannot kill pid %ld", *pl);
-					}
+					if (kill(*pl, signo) == 0)
+						continue;
+					errors++;
+					if (!quiet)
+						bb_perror_msg("cannot kill pid %u", (unsigned)*pl);
 				}
 			}
 			free(pidList);
@@ -138,12 +138,14 @@ do_it_now:
 
 	/* Looks like they want to do a kill. Do that */
 	while (arg) {
-		if (!isdigit(arg[0]) && arg[0]!='-')
+		/* Huh?
+		if (!isdigit(arg[0]) && arg[0] != '-')
 			bb_error_msg_and_die("bad pid '%s'", arg);
+		*/
 		pid = xatou(arg);
 		/* FIXME: better overflow check? */
-		if (kill(pid, signo)!=0) {
-			bb_perror_msg("cannot kill pid %ld", (long)pid);
+		if (kill(pid, signo) != 0) {
+			bb_perror_msg("cannot kill pid %u", (unsigned)pid);
 			errors++;
 		}
 		arg = *++argv;

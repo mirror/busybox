@@ -7,10 +7,6 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
 #include "libbb.h"
 
 /* find_pid_by_name()
@@ -23,30 +19,31 @@
  *  Returns a list of all matching PIDs
  *  It is the caller's duty to free the returned pidlist.
  */
-long* find_pid_by_name(const char* pidName)
+pid_t* find_pid_by_name(const char* procName)
 {
-	long* pidList;
+	pid_t* pidList;
 	int i = 0;
 	procps_status_t* p;
 
-	pidList = xmalloc(sizeof(long));
+	pidList = xmalloc(sizeof(*pidList));
 	while ((p = procps_scan(0)) != 0) {
-		if (strncmp(p->short_cmd, pidName, COMM_LEN-1) == 0) {
-			pidList = xrealloc( pidList, sizeof(long) * (i+2));
+		if (strncmp(p->short_cmd, procName, COMM_LEN-1) == 0) {
+			pidList = xrealloc(pidList, sizeof(*pidList) * (i+2));
 			pidList[i++] = p->pid;
 		}
 	}
 
-	pidList[i] = i==0 ? -1 : 0;
+	pidList[i] = 0;
 	return pidList;
 }
 
-long *pidlist_reverse(long *pidList)
+pid_t *pidlist_reverse(pid_t *pidList)
 {
 	int i = 0;
-	while (pidList[i] > 0 && ++i);
-	if (i-- > 0) {
-		long k;
+	while (pidList[i])
+		i++;
+	if (--i >= 0) {
+		pid_t k;
 		int j;
 		for (j = 0; i > j; i--, j++) {
 			k = pidList[i];

@@ -501,11 +501,10 @@ void reset_ino_dev_hashtable(void);
 #endif
 #endif
 typedef struct {
-	int pid;
+	pid_t pid, ppid;
 	char user[9];
 	char state[4];
 	unsigned long rss;
-	int ppid;
 #ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 	unsigned pcpu;
 	unsigned pscpu;
@@ -518,8 +517,8 @@ typedef struct {
 	char short_cmd[COMM_LEN];
 } procps_status_t;
 procps_status_t* procps_scan(int save_user_arg0);
-long *find_pid_by_name( const char* pidName);
-long *pidlist_reverse(long *pidList);
+pid_t *find_pid_by_name(const char* procName);
+pid_t *pidlist_reverse(pid_t *pidList);
 
 
 extern const char bb_uuenc_tbl_base64[];

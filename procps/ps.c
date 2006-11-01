@@ -58,7 +58,7 @@ int ps_main(int argc, char **argv)
 			len = sizeof(sbuf);
 
 			if (is_selinux_enabled()) {
-				if (getpidcon(p->pid,&sid) < 0)
+				if (getpidcon(p->pid, &sid) < 0)
 					sid = NULL;
 			}
 
@@ -71,14 +71,14 @@ int ps_main(int argc, char **argv)
 			} else {
 				safe_strncpy(sbuf, "unknown", 7);
 			}
-			len = printf("%5d %-32s %s ", p->pid, sbuf, p->state);
+			len = printf("%5u %-32s %s ", (unsigned)p->pid, sbuf, p->state);
 		}
 		else
 #endif
 			if (p->rss == 0)
-				len = printf("%5d %-8s        %s ", p->pid, p->user, p->state);
+				len = printf("%5u %-8s        %s ", (unsigned)p->pid, p->user, p->state);
 			else
-				len = printf("%5d %-8s %6ld %s ", p->pid, p->user, p->rss, p->state);
+				len = printf("%5u %-8s %6ld %s ", (unsigned)p->pid, p->user, p->rss, p->state);
 
 		i = terminal_width-len;
 
