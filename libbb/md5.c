@@ -13,21 +13,13 @@
  *  Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include <fcntl.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "libbb.h"
 
-# if CONFIG_MD5_SIZE_VS_SPEED < 0 || CONFIG_MD5_SIZE_VS_SPEED > 3
+#if CONFIG_MD5_SIZE_VS_SPEED < 0 || CONFIG_MD5_SIZE_VS_SPEED > 3
 # define MD5_SIZE_VS_SPEED 2
-# else
+#else
 # define MD5_SIZE_VS_SPEED CONFIG_MD5_SIZE_VS_SPEED
-# endif
+#endif
 
 /* Initialize structure containing state of computation.
  * (RFC 1321, 3.3: Step 3)

@@ -1565,7 +1565,7 @@ prepare_to_die:
 			while (cursor > 0 &&!isspace(command[cursor-1]))
 				input_backspace();
 			break;
-#if CONFIG_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_COMMAND_EDITING_VI
 		case 'i'|vbit:
 			vi_cmdmode = 0;
 			break;
@@ -1697,7 +1697,7 @@ prepare_to_die:
 
 		case ESC:
 
-#if CONFIG_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_COMMAND_EDITING_VI
 			if (vi_mode) {
 				/* ESC: insert mode --> command mode */
 				vi_cmdmode = 1;
@@ -1749,7 +1749,7 @@ rewrite_line:
 				/* change command */
 				len = strlen(strcpy(command, history[cur_history]));
 				/* redraw and go to eol (bol, in vi */
-#if CONFIG_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_COMMAND_EDITING_VI
 				redraw(cmdedit_y, vi_mode ? 9999:0);
 #else
 				redraw(cmdedit_y, 0);
@@ -1797,7 +1797,7 @@ rewrite_line:
 			} else
 #endif
 			{
-#if CONFIG_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_COMMAND_EDITING_VI
 				if (vi_cmdmode)  /* don't self-insert */
 					break;
 #endif
