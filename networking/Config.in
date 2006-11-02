@@ -53,7 +53,7 @@ config FTPPUT
 config FEATURE_FTPGETPUT_LONG_OPTIONS
 	bool "Enable long options in ftpget/ftpput"
 	default n
-	depends on GETOPT_LONG && (CONFIG_FTPGET || FTPPUT)
+	depends on GETOPT_LONG && (FTPGET || FTPPUT)
 	help
 	  Support long options for the ftpget/ftpput applet.
 
@@ -239,20 +239,20 @@ config FEATURE_IFUPDOWN_IP_BUILTIN
 	help
 	  Use the busybox iproute "ip" applet to implement "ifupdown".
 
-	  If leave this disabled, you must install the full-blown iproute2
+	  If left disabled, you must install the full-blown iproute2
 	  utility or the  "ifup" and "ifdown" applets will not work.
 
-config FEATURE_IFUPDOWN_IP_BUILTIN
+config FEATURE_IFUPDOWN_IFCONFIG_BUILTIN
 	bool "Use busybox ifconfig and route applets"
 	default y
-	depends on IFUPDOWN && !CONFIG_FEATURE_IFUPDOWN_IP
+	depends on IFUPDOWN && !FEATURE_IFUPDOWN_IP
 	select IFCONFIG
 	select ROUTE
 	help
 	  Use the busybox iproute "ifconfig" and "route" applets to
 	  implement the "ifup" and "ifdown" utilities.
 
-	  If leave this disabled, you must install the full-blown ifconfig
+	  If left disabled, you must install the full-blown ifconfig
 	  and route utilities, or the  "ifup" and "ifdown" applets will not
 	  work.
 

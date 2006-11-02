@@ -83,12 +83,10 @@
 #ifndef CONFIG_FEATURE_COMMAND_HISTORY
 #define MAX_HISTORY   15
 #else
-#define MAX_HISTORY   CONFIG_FEATURE_COMMAND_HISTORY
+#define MAX_HISTORY   (CONFIG_FEATURE_COMMAND_HISTORY + 0)
 #endif
 
-#if MAX_HISTORY < 1
-#warning cmdedit: You set MAX_HISTORY < 1. The history algorithm switched off.
-#else
+#if MAX_HISTORY > 0
 static char *history[MAX_HISTORY+1]; /* history + current */
 /* saved history lines */
 static int n_history;
@@ -1166,7 +1164,7 @@ static void input_tab(int *lastWasTab)
 }
 #endif  /* CONFIG_FEATURE_COMMAND_TAB_COMPLETION */
 
-#if MAX_HISTORY >= 1
+#if MAX_HISTORY > 0
 static void get_previous_history(void)
 {
 	if(command_ps[0] != 0 || history[cur_history] == 0) {
@@ -1529,7 +1527,7 @@ prepare_to_die:
 			printf("\033[H");
 			redraw(0, len-cursor);
 			break;
-#if MAX_HISTORY >= 1
+#if MAX_HISTORY > 0
 		case CNTRL('N'):
 		vi_case( case CNTRL('N')|vbit: )
 		vi_case( case 'j'|vbit: )
@@ -1730,7 +1728,7 @@ prepare_to_die:
 				input_tab(&lastWasTab);
 				break;
 #endif
-#if MAX_HISTORY >= 1
+#if MAX_HISTORY > 0
 			case 'A':
 				/* Up Arrow -- Get previous command from history */
 				if (cur_history > 0) {
@@ -1838,7 +1836,7 @@ rewrite_line:
 	setTermSettings(0, (void *) &initial_settings);
 	handlers_sets &= ~SET_RESET_TERM;
 
-#if MAX_HISTORY >= 1
+#if MAX_HISTORY > 0
 	/* Handle command history log */
 	/* cleanup may be saved current command line */
 	if (len> 0) {                                      /* no put empty line */
@@ -1859,13 +1857,13 @@ rewrite_line:
 		num_ok_lines++;
 #endif
 	}
-#else  /* MAX_HISTORY < 1 */
+#else  /* MAX_HISTORY == 0 */
 #if defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
 	if (len > 0) {              /* no put empty line */
 		num_ok_lines++;
 	}
 #endif
-#endif  /* MAX_HISTORY >= 1 */
+#endif  /* MAX_HISTORY > 0 */
 	if (break_out > 0) {
 		command[len++] = '\n';          /* set '\n' */
 		command[len] = 0;
