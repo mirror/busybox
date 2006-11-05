@@ -2377,6 +2377,18 @@ USE_FEATURE_MDEV_CONFIG( \
 	"$ printf \"Val=%d\\n\" 5\n" \
 	"Val=5\n"
 
+
+#if ENABLE_DESKTOP
+
+#define ps_trivial_usage \
+	""
+#define ps_full_usage \
+	"Report process status\n" \
+	"\nOptions:" \
+	"\n\t-o col1,col2=header\tSelect columns for display" \
+
+#else /* !ENABLE_DESKTOP */
+
 #if !defined CONFIG_SELINUX && !ENABLE_FEATURE_PS_WIDE
 #define USAGE_PS "\n\tThis version of ps accepts no options."
 #else
@@ -2396,6 +2408,8 @@ USE_FEATURE_MDEV_CONFIG( \
 	USE_SELINUX("\n\t-c\tshow SE Linux context") \
 	USAGE_PS_WIDE("\n\tw\twide output")
 
+#endif /* ENABLE_DESKTOP */
+
 #define ps_example_usage \
 	"$ ps\n" \
 	"  PID  Uid      Gid State Command\n" \
@@ -2408,6 +2422,7 @@ USE_FEATURE_MDEV_CONFIG( \
 	"  743 andersen andersen S -bash\n" \
 	"  745 root     root     S [getty]\n" \
 	" 2990 andersen andersen R ps\n"
+
 
 #define pwd_trivial_usage \
 	""
