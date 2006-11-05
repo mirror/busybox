@@ -385,4 +385,4 @@ int ps_main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-#endif
+#endif /* ENABLE_DESKTOP */
