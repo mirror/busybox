@@ -64,7 +64,7 @@ int ps_main(int argc, char **argv)
 
 			if (sid) {
 				/* I assume sid initialized with NULL */
-				len = strlen(sid)+1;
+				len = strlen(sid) + 1;
 				safe_strncpy(sbuf, sid, len);
 				freecon(sid);
 				sid = NULL;

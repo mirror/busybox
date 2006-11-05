@@ -494,10 +494,10 @@ void reset_ino_dev_hashtable(void);
 
 #ifndef COMM_LEN
 #ifdef TASK_COMM_LEN
-#define COMM_LEN TASK_COMM_LEN
+enum { COMM_LEN = TASK_COMM_LEN };
 #else
 /* synchronize with sizeof(task_struct.comm) in /usr/include/linux/sched.h */
-#define COMM_LEN 16
+enum { COMM_LEN = 16 };
 #endif
 #endif
 typedef struct {

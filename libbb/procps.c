@@ -8,13 +8,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <dirent.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/param.h>
-#include <unistd.h>
-#include <fcntl.h>
-
 #include "libbb.h"
 
 

@@ -15,26 +15,26 @@ int kill_main(int argc, char **argv)
 	char *arg;
 	pid_t pid;
 	int signo = SIGTERM, errors = 0, quiet = 0;
-	const int killall = (ENABLE_KILLALL && applet_name[4]=='a'
-	               && (!ENABLE_KILLALL5 || applet_name[7]!='5'));
-	const int killall5 = (ENABLE_KILLALL5 && applet_name[4]=='a'
-	                  && (!ENABLE_KILLALL || applet_name[7]=='5'));
+	const int killall = (ENABLE_KILLALL && applet_name[4] == 'a'
+	               && (!ENABLE_KILLALL5 || applet_name[7] != '5'));
+	const int killall5 = (ENABLE_KILLALL5 && applet_name[4] == 'a'
+	                  && (!ENABLE_KILLALL || applet_name[7] == '5'));
 
 	/* Parse any options */
 	argc--;
 	arg = *++argv;
 
-	if (argc<1 || arg[0]!='-') {
+	if (argc < 1 || arg[0] != '-') {
 		goto do_it_now;
 	}
 
 	/* The -l option, which prints out signal names. */
-	if (arg[1]=='l' && arg[2]=='\0') {
+	if (arg[1] == 'l' && arg[2] == '\0') {
 		const char *name;
-		if (argc==1) {
+		if (argc == 1) {
 			/* Print the whole signal list */
 			int col = 0;
-			for (signo = 1; signo<32; signo++) {
+			for (signo = 1; signo < 32; signo++) {
 				name = get_signame(signo);
 				if (isdigit(name[0])) continue;
 				if (col > 66) {
@@ -45,13 +45,13 @@ int kill_main(int argc, char **argv)
 			}
 			puts("");
 		} else { /* -l <sig list> */
-			while ((arg = *++argv)!=NULL) {
+			while ((arg = *++argv)) {
 				if (isdigit(arg[0])) {
 					signo = xatoi_u(arg);
 					name = get_signame(signo);
 				} else {
 					signo = get_signum(arg);
-					if (signo<0)
+					if (signo < 0)
 						bb_error_msg_and_die("unknown signal '%s'", arg);
 					name = get_signame(signo);
 				}
@@ -63,17 +63,17 @@ int kill_main(int argc, char **argv)
 	}
 
 	/* The -q quiet option */
-	if (killall && arg[1]=='q' && arg[2]=='\0') {
+	if (killall && arg[1] == 'q' && arg[2] == '\0') {
 		quiet = 1;
 		arg = *++argv;
 		argc--;
-		if (argc<1) bb_show_usage();
-		if (arg[0]!='-') goto do_it_now;
+		if (argc < 1) bb_show_usage();
+		if (arg[0] != '-') goto do_it_now;
 	}
 
 	/* -SIG */
 	signo = get_signum(&arg[1]);
-	if (signo<0)
+	if (signo < 0)
 		bb_error_msg_and_die("bad signal name '%s'", &arg[1]);
 	arg = *++argv;
 	argc--;
