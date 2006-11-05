@@ -898,7 +898,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 			};
 			int val = xatoi_u(opteq + 1);
 			*opteq = '\0';
-			switch (compare_string_array(options, opt)) {
+			switch (index_in_str_array(options, opt)) {
 			case 0: // "rsize"
 				data.rsize = val;
 				break;
@@ -940,7 +940,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 				break;
 			case 12: // "mounthost"
 				mounthost = xstrndup(opteq+1,
-						  strcspn(opteq+1," \t\n\r,"));
+						strcspn(opteq+1," \t\n\r,"));
 				break;
 			case 13: // "mountprog"
 				mountprog = val;
@@ -996,7 +996,7 @@ static int nfsmount(struct mntent *mp, int vfsflags, char *filteropts)
 				val = 0;
 				opt += 2;
 			}
-			switch (compare_string_array(options, opt)) {
+			switch (index_in_str_array(options, opt)) {
 			case 0: // "bg"
 				bg = val;
 				break;

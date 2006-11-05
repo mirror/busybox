@@ -670,7 +670,7 @@ static int iproute_get(int argc, char **argv)
 	req.r.rtm_tos = 0;
 
 	while (argc > 0) {
-		switch (compare_string_array(options, *argv)) {
+		switch (index_in_str_array(options, *argv)) {
 			case 0: /* from */
 			{
 				inet_prefix addr;
@@ -811,14 +811,16 @@ static int iproute_get(int argc, char **argv)
 int do_iproute(int argc, char **argv)
 {
 	static const char * const ip_route_commands[] =
-		{ "add", "append", "change", "chg", "delete", "del", "get",
+		{ "add", "append", "change", "chg", "delete", "get",
 		"list", "show", "prepend", "replace", "test", "flush", 0 };
-	int command_num = 7;
+	int command_num = 6;
 	unsigned int flags = 0;
 	int cmd = RTM_NEWROUTE;
 
+	/* "Standard" 'ip r a' treats 'a' as 'add', not 'append' */
+	/* It probably means that it is using "first match" rule */
 	if (*argv) {
-		command_num = compare_string_array(ip_route_commands, *argv);
+		command_num = index_in_substr_array(ip_route_commands, *argv);
 	}
 	switch (command_num) {
 		case 0: /* add*/

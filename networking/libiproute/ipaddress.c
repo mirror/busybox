@@ -441,7 +441,7 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 	}
 
 	while (argc > 0) {
-		const int option_num = compare_string_array(option, *argv);
+		const int option_num = index_in_str_array(option, *argv);
 		switch (option_num) {
 			case 0: /* to */
 				NEXT_ARG();
@@ -653,7 +653,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 	req.ifa.ifa_family = preferred_family;
 
 	while (argc > 0) {
-		const int option_num = compare_string_array(option, *argv);
+		const int option_num = index_in_str_array(option, *argv);
 		switch (option_num) {
 			case 0: /* peer */
 			case 1: /* remote */
@@ -800,25 +800,24 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 int do_ipaddr(int argc, char **argv)
 {
 	static const char *const commands[] = {
-		"add", "del", "delete", "list", "show", "lst", "flush", 0
+		"add", "delete", "list", "show", "lst", "flush", 0
 	};
 
 	int command_num = 2;
 
 	if (*argv) {
-		command_num = compare_string_array(commands, *argv);
+		command_num = index_in_substr_array(commands, *argv);
 	}
 	switch (command_num) {
 		case 0: /* add */
 			return ipaddr_modify(RTM_NEWADDR, argc-1, argv+1);
-		case 1: /* del */
-		case 2: /* delete */
+		case 1: /* delete */
 			return ipaddr_modify(RTM_DELADDR, argc-1, argv+1);
-		case 3: /* list */
-		case 4: /* show */
-		case 5: /* lst */
+		case 2: /* list */
+		case 3: /* show */
+		case 4: /* lst */
 			return ipaddr_list_or_flush(argc-1, argv+1, 0);
-		case 6: /* flush */
+		case 5: /* flush */
 			return ipaddr_list_or_flush(argc-1, argv+1, 1);
 	}
 	bb_error_msg_and_die("unknown command %s", *argv);

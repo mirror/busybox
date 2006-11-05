@@ -627,7 +627,7 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 			when, name, what,
 			p[0], p[1], p[2], p[3], p[4], p[5], p[6]);
 
-	i = compare_string_array(options, when );
+	i = index_in_str_array(options, when );
 
 	/*"CLEAR_CONFIG"*/
 	if( i == 0)
@@ -673,7 +673,7 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 		goto process_config_line_err;
 	}
 
-	i = compare_string_array(options, what );
+	i = index_in_str_array(options, what );
 
 	switch(i)
 	{
@@ -1313,8 +1313,8 @@ static const char *get_variable (const char *variable, void *info)
 		/* Here on error we should do exit(RV_SYS_ERROR), instead we do exit(EXIT_FAILURE) */
 		hostname[STRING_LENGTH - 1] = '\0';
 
-	/* compare_string_array returns i>=0  */
-	i=compare_string_array(field_names, variable);
+	/* index_in_str_array returns i>=0  */
+	i=index_in_str_array(field_names, variable);
 
 	if ( i > 6 || i < 0 || (i > 1 && gv_info == NULL))
 			return (NULL);

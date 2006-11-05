@@ -477,7 +477,8 @@ extern void setup_environment(const char *shell, int loginshell, int changeenv, 
 extern int correct_password(const struct passwd *pw);
 extern char *pw_encrypt(const char *clear, const char *salt);
 extern int obscure(const char *old, const char *newval, const struct passwd *pwdp);
-extern int compare_string_array(const char * const string_array[], const char *key);
+extern int index_in_str_array(const char * const string_array[], const char *key);
+extern int index_in_substr_array(const char * const string_array[], const char *key);
 extern void print_login_issue(const char *issue_file, const char *tty);
 extern void print_login_prompt(void);
 #ifdef BB_NOMMU

@@ -263,10 +263,7 @@ int matches(char *cmd, char *pattern)
 {
 	int len = strlen(cmd);
 
-	if (len > strlen(pattern)) {
-		return -1;
-	}
-	return memcmp(pattern, cmd, len);
+	return strncmp(pattern, cmd, len);
 }
 
 int inet_addr_match(inet_prefix * a, inet_prefix * b, int bits)

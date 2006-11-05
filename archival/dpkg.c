@@ -644,7 +644,7 @@ static unsigned int fill_package_struct(char *control_buffer)
 			goto fill_package_struct_cleanup; /* Oh no, the dreaded goto statement ! */
 		}
 
-		field_num = compare_string_array(field_names, field_name);
+		field_num = index_in_str_array(field_names, field_name);
 		switch (field_num) {
 			case 0: /* Package */
 				new_node->name = search_name_hashtable(field_value);
