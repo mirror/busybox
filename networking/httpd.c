@@ -161,6 +161,7 @@ typedef struct {
 #endif
 
 #if ENABLE_FEATURE_HTTPD_WITHOUT_INETD
+	int server_socket;
 	int accepted_socket;
 # define a_c_r config->accepted_socket
 # define a_c_w config->accepted_socket
@@ -1038,6 +1039,9 @@ static int sendCgi(const char *url,
 			close(fromCgi[0]);
 			close(fromCgi[1]);
 
+			close(config->accepted_socket);
+			close(config->server_socket);
+
 			/*
 			 * Find PATH_INFO.
 			 */
@@ -1861,15 +1865,23 @@ static void sighup_handler(int sig)
 }
 #endif
 
-enum httpd_opts_nums {
+enum {
 	c_opt_config_file = 0,
 	d_opt_decode_url,
 	h_opt_home_httpd,
 	USE_FEATURE_HTTPD_ENCODE_URL_STR(e_opt_encode_url,)
-	USE_FEATURE_HTTPD_BASIC_AUTH(r_opt_realm,)
-	USE_FEATURE_HTTPD_AUTH_MD5(m_opt_md5,)
-	USE_FEATURE_HTTPD_SETUID(u_opt_setuid,)
-	USE_FEATURE_HTTPD_WITHOUT_INETD(p_opt_port,)
+	USE_FEATURE_HTTPD_BASIC_AUTH(    r_opt_realm     ,)
+	USE_FEATURE_HTTPD_AUTH_MD5(      m_opt_md5       ,)
+	USE_FEATURE_HTTPD_SETUID(        u_opt_setuid    ,)
+	USE_FEATURE_HTTPD_WITHOUT_INETD( p_opt_port      ,)
+	OPT_CONFIG_FILE = 1 << c_opt_config_file,
+	OPT_DECODE_URL  = 1 << d_opt_decode_url,
+	OPT_HOME_HTTPD  = 1 << h_opt_home_httpd,
+	OPT_ENCODE_URL  = USE_FEATURE_HTTPD_ENCODE_URL_STR((1 << e_opt_encode_url)) + 0,
+	OPT_REALM       = USE_FEATURE_HTTPD_BASIC_AUTH(    (1 << r_opt_realm     )) + 0,
+	OPT_MD5         = USE_FEATURE_HTTPD_AUTH_MD5(      (1 << m_opt_md5       )) + 0,
+	OPT_SETUID      = USE_FEATURE_HTTPD_SETUID(        (1 << u_opt_setuid    )) + 0,
+	OPT_PORT        = USE_FEATURE_HTTPD_WITHOUT_INETD( (1 << p_opt_port      )) + 0,
 };
 
 static const char httpd_opts[] = "c:d:h:"
@@ -1879,25 +1891,6 @@ static const char httpd_opts[] = "c:d:h:"
 	USE_FEATURE_HTTPD_SETUID("u:")
 	USE_FEATURE_HTTPD_WITHOUT_INETD("p:");
 
-#define OPT_CONFIG_FILE (1<<c_opt_config_file)
-#define OPT_DECODE_URL  (1<<d_opt_decode_url)
-#define OPT_HOME_HTTPD  (1<<h_opt_home_httpd)
-
-#define OPT_ENCODE_URL  USE_FEATURE_HTTPD_ENCODE_URL_STR((1<<e_opt_encode_url)) \
-						SKIP_FEATURE_HTTPD_ENCODE_URL_STR(0)
-
-#define OPT_REALM       USE_FEATURE_HTTPD_BASIC_AUTH((1<<r_opt_realm)) \
-						SKIP_FEATURE_HTTPD_BASIC_AUTH(0)
-
-#define OPT_MD5         USE_FEATURE_HTTPD_AUTH_MD5((1<<m_opt_md5)) \
-						SKIP_FEATURE_HTTPD_AUTH_MD5(0)
-
-#define OPT_SETUID      USE_FEATURE_HTTPD_SETUID((1<<u_opt_setuid)) \
-						SKIP_FEATURE_HTTPD_SETUID(0)
-
-#define OPT_PORT        USE_FEATURE_HTTPD_WITHOUT_INETD((1<<p_opt_port)) \
-						SKIP_FEATURE_HTTPD_WITHOUT_INETD(0)
-
 
 int httpd_main(int argc, char *argv[])
 {
@@ -1906,7 +1899,6 @@ int httpd_main(int argc, char *argv[])
 	char *url_for_decode;
 	USE_FEATURE_HTTPD_ENCODE_URL_STR(const char *url_for_encode;)
 	USE_FEATURE_HTTPD_WITHOUT_INETD(const char *s_port;)
-	USE_FEATURE_HTTPD_WITHOUT_INETD(int server;)
 
 	USE_FEATURE_HTTPD_SETUID(const char *s_ugid = NULL;)
 	USE_FEATURE_HTTPD_SETUID(struct bb_uidgid_t ugid;)
@@ -1974,7 +1966,7 @@ int httpd_main(int argc, char *argv[])
 
 	xchdir(home_httpd);
 #if ENABLE_FEATURE_HTTPD_WITHOUT_INETD
-	server = openServer();
+	config->server_socket = openServer();
 # ifdef CONFIG_FEATURE_HTTPD_SETUID
 	/* drop privileges */
 	if (opt & OPT_SETUID) {
@@ -2012,9 +2004,9 @@ int httpd_main(int argc, char *argv[])
 
 #if ENABLE_FEATURE_HTTPD_WITHOUT_INETD
 # if !DEBUG
-	xdaemon(1, 0);     /* don't change curent directory */
+	xdaemon(1, 0);     /* don't change current directory */
 # endif
-	return miniHttpd(server);
+	return miniHttpd(config->server_socket);
 #else
 	return miniHttpd();
 #endif
