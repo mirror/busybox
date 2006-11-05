@@ -2268,16 +2268,6 @@ USE_FEATURE_MDEV_CONFIG( \
 	"$ patch -p1 < example.diff\n" \
 	"$ patch -p0 -i example.diff"
 
-#if ENABLE_FEATURE_PIDOF_SINGLE
-#define USAGE_FEATURE_PIDOF_SINGLE(a) a
-#else
-#define USAGE_FEATURE_PIDOF_SINGLE(a)
-#endif
-#if ENABLE_FEATURE_PIDOF_OMIT
-#define USAGE_FEATURE_PIDOF_OMIT(a) a
-#else
-#define USAGE_FEATURE_PIDOF_OMIT(a)
-#endif
 #if (ENABLE_FEATURE_PIDOF_SINGLE || ENABLE_FEATURE_PIDOF_OMIT)
 #define USAGE_PIDOF "Options:"
 #else
@@ -2291,14 +2281,14 @@ USE_FEATURE_MDEV_CONFIG( \
 	"Lists the PIDs of all processes with names that match the\n" \
 	"names on the command line.\n" \
 	USAGE_PIDOF \
-	USAGE_FEATURE_PIDOF_SINGLE("\n\t-s\t\tdisplay only a single PID") \
-	USAGE_FEATURE_PIDOF_OMIT("\n\t-o\t\tomit given pid.") \
-	USAGE_FEATURE_PIDOF_OMIT("\n\t\t\tUse %PPID to omit the parent pid of pidof itself")
+	USE_FEATURE_PIDOF_SINGLE("\n\t-s\t\tdisplay only a single PID") \
+	USE_FEATURE_PIDOF_OMIT("\n\t-o\t\tomit given pid.") \
+	USE_FEATURE_PIDOF_OMIT("\n\t\t\tUse %PPID to omit the parent pid of pidof itself")
 #define pidof_example_usage \
 	"$ pidof init\n" \
 	"1\n" \
-	USAGE_FEATURE_PIDOF_OMIT("$ pidof /bin/sh\n20351 5973 5950\n") \
-	USAGE_FEATURE_PIDOF_OMIT("$ pidof /bin/sh -o %PPID\n20351 5950")
+	USE_FEATURE_PIDOF_OMIT("$ pidof /bin/sh\n20351 5973 5950\n") \
+	USE_FEATURE_PIDOF_OMIT("$ pidof /bin/sh -o %PPID\n20351 5950")
 
 #ifndef CONFIG_FEATURE_FANCY_PING
 #define ping_trivial_usage "host"
@@ -2394,11 +2384,6 @@ USE_FEATURE_MDEV_CONFIG( \
 #else
 #define USAGE_PS "\nOptions:"
 #endif
-#if ENABLE_FEATURE_PS_WIDE
-#define USAGE_PS_WIDE(a) a
-#else
-#define USAGE_PS_WIDE(a)
-#endif
 
 #define ps_trivial_usage \
 	""
@@ -2406,7 +2391,7 @@ USE_FEATURE_MDEV_CONFIG( \
 	"Report process status\n" \
 	USAGE_PS \
 	USE_SELINUX("\n\t-c\tshow SE Linux context") \
-	USAGE_PS_WIDE("\n\tw\twide output")
+	USE_FEATURE_PS_WIDE("\n\tw\twide output")
 
 #endif /* ENABLE_DESKTOP */
 
@@ -2693,18 +2678,12 @@ USE_FEATURE_MDEV_CONFIG( \
 	USE_FEATURE_FANCY_SLEEP("$ sleep 1d 3h 22m 8s\n" \
 	"[98528 second delay results]\n")
 
-#if ENABLE_FEATURE_SORT_BIG
-#  define USAGE_SORT_BIG(a) a
-#else
-#  define USAGE_SORT_BIG(a)
-#endif
-
 #define sort_trivial_usage \
-	"[-nru" USAGE_SORT_BIG("gMcszbdfimSTokt] [-o outfile] [-k start[.offset][opts][,end[.offset][opts]] [-t char") "] [FILE]..."
+	"[-nru" USE_FEATURE_SORT_BIG("gMcszbdfimSTokt] [-o outfile] [-k start[.offset][opts][,end[.offset][opts]] [-t char") "] [FILE]..."
 #define sort_full_usage \
 	"Sorts lines of text in the specified files\n\n" \
 	"Options:\n" \
-	USAGE_SORT_BIG( \
+	USE_FEATURE_SORT_BIG( \
 		"\t-b\tignore leading blanks\n" \
 		"\t-c\tcheck whether input is sorted\n" \
 		"\t-d\tdictionary order (blank or alphanumeric only)\n" \
@@ -2715,16 +2694,16 @@ USE_FEATURE_MDEV_CONFIG( \
 		"\t-M\tsort month\n" \
 	) \
 	"\t-n\tsort numbers\n" \
-	USAGE_SORT_BIG( \
+	USE_FEATURE_SORT_BIG( \
 		"\t-o\toutput to file\n" \
 		"\t-k\tsort by key\n" \
 		"\t-t\tuse key separator other than whitespace\n" \
 	) \
 	"\t-r\treverse sort order\n" \
-	USAGE_SORT_BIG("\t-s\tstable (don't sort ties alphabetically)\n") \
+	USE_FEATURE_SORT_BIG("\t-s\tstable (don't sort ties alphabetically)\n") \
 	"\t-u\tsuppress duplicate lines" \
-	USAGE_SORT_BIG("\n\t-z\tinput terminated by nulls, not newlines\n") \
-	USAGE_SORT_BIG("\t-mST\tignored for GNU compatibility") \
+	USE_FEATURE_SORT_BIG("\n\t-z\tinput terminated by nulls, not newlines\n") \
+	USE_FEATURE_SORT_BIG("\t-mST\tignored for GNU compatibility") \
 	""
 #define sort_example_usage \
 	"$ echo -e \"e\\nf\\nb\\nd\\nc\\na\" | sort\n" \
@@ -2734,7 +2713,7 @@ USE_FEATURE_MDEV_CONFIG( \
 	"d\n" \
 	"e\n" \
 	"f\n" \
-	USAGE_SORT_BIG( \
+	USE_FEATURE_SORT_BIG( \
 		"$ echo -e \"c 3\\nb 2\\nd 2\" | $SORT -k 2,2n -k 1,1r\n" \
 		"d 2\n" \
 		"b 2\n" \
