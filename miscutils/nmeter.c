@@ -214,42 +214,8 @@ static int rdval_diskstats(const char* p, ullong *vec)
 
 static void scale(ullong ul)
 {
-	char *fmt;
 	char buf[5];
-	char c;
-	unsigned v,idx = 0;
-	ul *= 10;
-	if (ul > 9999*10) { // do not scale if 9999 or less
-		while (ul >= 10000) {
-			ul /= 1024;
-			idx++;
-		}
-	}
-	v = ul; // ullong divisions are expensive, avoid them
-
-	fmt = " 123456789";
-	if (!idx) {		// 9999 or less: use 1234 format
-		c = buf[0] = " 123456789"[v/10000];
-		if (c!=' ') fmt = "0123456789";
-		c = buf[1] = fmt[v/1000%10];
-		if (c!=' ') fmt = "0123456789";
-		buf[2] = fmt[v/100%10];
-		buf[3] = "0123456789"[v/10%10];
-	} else {
-		if (v>=10*10) {	// scaled value is >=10: use 123M format
-			c = buf[0] = " 123456789"[v/1000];
-			if (c!=' ') fmt = "0123456789";
-			buf[1] = fmt[v/100%10];
-			buf[2] = "0123456789"[v/10%10];
-		} else {	// scaled value is <10: use 1.2M format
-			buf[0] = "0123456789"[v/10];
-			buf[1] = '.';
-			buf[2] = "0123456789"[v%10];
-		}
-		// see http://en.wikipedia.org/wiki/Tera
-		buf[3] = " kMGTPEZY"[idx];
-	}
-	buf[4] = '\0';
+	smart_ulltoa5(ul, buf);
 	put(buf);
 }
 

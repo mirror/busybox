@@ -278,6 +278,7 @@ extern FILE *fopen_or_warn(const char *filename, const char *mode);
 extern FILE *fopen_or_warn_stdin(const char *filename);
 
 
+extern void smart_ulltoa5(unsigned long long ul, char buf[5]);
 extern void utoa_to_buf(unsigned n, char *buf, unsigned buflen);
 extern char *utoa(unsigned n);
 extern void itoa_to_buf(int n, char *buf, unsigned buflen);
