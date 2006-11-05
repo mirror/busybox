@@ -23,11 +23,11 @@ pid_t* find_pid_by_name(const char* procName)
 {
 	pid_t* pidList;
 	int i = 0;
-	procps_status_t* p;
+	procps_status_t* p = NULL;
 
 	pidList = xmalloc(sizeof(*pidList));
-	while ((p = procps_scan(0)) != 0) {
-		if (strncmp(p->short_cmd, procName, COMM_LEN-1) == 0) {
+	while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_COMM))) {
+		if (strncmp(p->comm, procName, sizeof(p->comm)-1) == 0) {
 			pidList = xrealloc(pidList, sizeof(*pidList) * (i+2));
 			pidList[i++] = p->pid;
 		}

@@ -82,7 +82,7 @@ do_it_now:
 
 	if (killall5) {
 		pid_t sid;
-		procps_status_t* p;
+		procps_status_t* p = NULL;
 
 // Cannot happen anyway? We don't TERM ourself, we STOP
 //		/* kill(-1, sig) on Linux (at least 2.1.x)
@@ -94,8 +94,8 @@ do_it_now:
 		pid = getpid();
 		sid = getsid(pid);
 		/* Now kill all processes except our session */
-        	while ((p = procps_scan(0))!=0) {
-			if (getsid(p->pid)!=sid && p->pid!=pid && p->pid!=1)
+        	while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_SID))) {
+			if (p->sid != sid && p->pid != pid && p->pid != 1)
 				kill(p->pid, signo);
 		}
 		/* And let them continue */

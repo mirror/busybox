@@ -11,7 +11,7 @@
 
 int ps_main(int argc, char **argv)
 {
-	procps_status_t * p;
+	procps_status_t *p = NULL;
 	int i, len;
 	SKIP_SELINUX(const) int use_selinux = 0;
 	USE_SELINUX(security_context_t sid = NULL;)
@@ -50,7 +50,13 @@ int ps_main(int argc, char **argv)
 	else
 		puts("  PID  Uid     VmSize Stat Command");
 
-	while ((p = procps_scan(1)) != 0)  {
+	while ((p = procps_scan(p, 0
+			| PSSCAN_PID
+			| PSSCAN_UIDGID
+			| PSSCAN_STATE
+			| PSSCAN_RSS
+			| PSSCAN_CMD
+	))) {
 		char *namecmd = p->cmd;
 #if ENABLE_SELINUX
 		if (use_selinux) {
@@ -71,13 +77,18 @@ int ps_main(int argc, char **argv)
 			} else {
 				safe_strncpy(sbuf, "unknown", 7);
 			}
-			len = printf("%5u %-32s %s ", (unsigned)p->pid, sbuf, p->state);
+			len = printf("%5u %-32s %s ", p->pid, sbuf, p->state);
 		} else
 #endif
+		{
+			const char *user = get_cached_username(p->uid);
 			if (p->rss == 0)
-				len = printf("%5u %-8s        %s ", (unsigned)p->pid, p->user, p->state);
+				len = printf("%5u %-8s        %s ",
+					p->pid, user, p->state);
 			else
-				len = printf("%5u %-8s %6ld %s ", (unsigned)p->pid, p->user, p->rss, p->state);
+				len = printf("%5u %-8s %6ld %s ",
+					p->pid, user, p->rss, p->state);
+		}
 
 		i = terminal_width-len;
 
@@ -88,16 +99,15 @@ int ps_main(int argc, char **argv)
 				namecmd[i] = 0;
 			puts(namecmd);
 		} else {
-			namecmd = p->short_cmd;
+			namecmd = p->comm;
 			if (i < 2)
 				i = 2;
 			if (strlen(namecmd) > ((size_t)i-2))
 				namecmd[i-2] = 0;
 			printf("[%s]\n", namecmd);
 		}
-		/* no check needed, but to make valgrind happy.. */
-		if (ENABLE_FEATURE_CLEAN_UP && p->cmd)
-			free(p->cmd);
 	}
+	if (ENABLE_FEATURE_CLEAN_UP)
+		clear_username_cache();
 	return EXIT_SUCCESS;
 }

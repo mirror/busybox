@@ -501,23 +501,47 @@ enum { COMM_LEN = 16 };
 #endif
 #endif
 typedef struct {
-	int pid, ppid;
-	char user[9];
-	char state[4];
-	unsigned long rss;
-#ifdef CONFIG_FEATURE_TOP_CPU_USAGE_PERCENTAGE
-	unsigned pcpu;
-	unsigned long stime, utime;
-#endif
+	DIR *dir;
+/* Fields are set to 0/NULL if failed to determine (or not requested) */
 	char *cmd;
-
-	/* basename of executable file in call to exec(2),
-		size from kernel headers */
-	char short_cmd[COMM_LEN];
+	unsigned long rss;
+	unsigned long stime, utime;
+	unsigned pid;
+	unsigned ppid;
+	unsigned pgid;
+	unsigned sid;
+	unsigned uid;
+	unsigned gid;
+	/* basename of executable file in call to exec(2), size from */
+	/* sizeof(task_struct.comm) in /usr/include/linux/sched.h */
+	char state[4];
+	char comm[COMM_LEN];
+//	user/group? - use passwd/group parsing functions
 } procps_status_t;
-procps_status_t* procps_scan(int save_user_arg0);
+enum {
+	PSSCAN_PID      = 1 << 0,
+	PSSCAN_PPID     = 1 << 1,
+	PSSCAN_PGID     = 1 << 2,
+	PSSCAN_SID      = 1 << 3,
+	PSSCAN_UIDGID   = 1 << 4,
+	PSSCAN_COMM     = 1 << 5,
+	PSSCAN_CMD      = 1 << 6,
+	PSSCAN_STATE    = 1 << 7,
+	PSSCAN_RSS      = 1 << 8,
+	PSSCAN_STIME    = 1 << 9,
+	PSSCAN_UTIME    = 1 << 10,
+	/* These are all retrieved from proc/NN/stat in one go: */
+	PSSCAN_STAT     = PSSCAN_PPID | PSSCAN_PGID | PSSCAN_SID
+	                | PSSCAN_COMM | PSSCAN_STATE
+	                | PSSCAN_RSS | PSSCAN_STIME | PSSCAN_UTIME,
+};
+procps_status_t* alloc_procps_scan(int flags);
+void free_procps_scan(procps_status_t* sp);
+procps_status_t* procps_scan(procps_status_t* sp, int flags);
 pid_t *find_pid_by_name(const char* procName);
 pid_t *pidlist_reverse(pid_t *pidList);
+void clear_username_cache(void);
+const char* get_cached_username(uid_t uid);
 
 
 extern const char bb_uuenc_tbl_base64[];
