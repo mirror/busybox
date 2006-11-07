@@ -25,7 +25,6 @@ int nc_main(int argc, char **argv)
 	SKIP_NC_EXTRA (const int execparam = 0;)
 	USE_NC_EXTRA  (char **execparam = NULL;)
 	struct sockaddr_in address;
-	struct hostent *hostinfo;
 	fd_set readfds, testfds;
 	int opt; /* must be signed (getopt returns -1) */
 
@@ -116,6 +115,7 @@ int nc_main(int argc, char **argv)
 
 			if (!execparam) close(sfd);
 		} else {
+			struct hostent *hostinfo;
 			hostinfo = xgethostbyname(argv[0]);
 
 			address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;

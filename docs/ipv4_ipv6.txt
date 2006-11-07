@@ -212,7 +212,8 @@ structure the code differently.
 Here's the corresponding server C code for a dual-stack platform:
 
     int ServSock, csock;
-    struct sockaddr addr, from;
+    /* struct sockaddr is too small! */
+    struct sockaddr_storage addr, from;
     ...
     ServSock = socket(AF_INET6, SOCK_STREAM, PF_INET6);
     bind(ServSock, &addr, sizeof(addr));
