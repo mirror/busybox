@@ -19,48 +19,44 @@
 #include "busybox.h"
 #include <syslog.h>
 
-#ifdef CONFIG_FEATURE_UTMP
+#if ENABLE_FEATURE_UTMP
 #include <utmp.h>
 #endif
 
- /*
-  * Some heuristics to find out what environment we are in: if it is not
-  * System V, assume it is SunOS 4.
-  */
-
+/*
+ * Some heuristics to find out what environment we are in: if it is not
+ * System V, assume it is SunOS 4.
+ */
 #ifdef LOGIN_PROCESS                    /* defined in System V utmp.h */
 #define SYSV_STYLE                      /* select System V style getty */
-#ifdef CONFIG_FEATURE_WTMP
+#include <sys/utsname.h>
+#include <time.h>
+#if ENABLE_FEATURE_WTMP
 extern void updwtmp(const char *filename, const struct utmp *ut);
+static void update_utmp(char *line);
 #endif
 #endif  /* LOGIN_PROCESS */
 
-#ifdef SYSV_STYLE
-#include <sys/utsname.h>
-#include <time.h>
-#endif
-
- /*
-  * Things you may want to modify.
-  *
-  * You may disagree with the default line-editing etc. characters defined
-  * below. Note, however, that DEL cannot be used for interrupt generation
-  * and for line editing at the same time.
-  */
+/*
+ * Things you may want to modify.
+ *
+ * You may disagree with the default line-editing etc. characters defined
+ * below. Note, however, that DEL cannot be used for interrupt generation
+ * and for line editing at the same time.
+ */
 
 /* I doubt there are systems which still need this */
 #undef HANDLE_ALLCAPS
 
-#define _PATH_LOGIN     "/bin/login"
+#define _PATH_LOGIN "/bin/login"
 
- /* If ISSUE is not defined, agetty will never display the contents of the
-  * /etc/issue file. You will not want to spit out large "issue" files at the
-  * wrong baud rate.
-  */
+/* If ISSUE is not defined, getty will never display the contents of the
+ * /etc/issue file. You will not want to spit out large "issue" files at the
+ * wrong baud rate.
+ */
 #define ISSUE "/etc/issue"              /* displayed before the login prompt */
 
 /* Some shorthands for control characters. */
-
 #define CTL(x)          (x ^ 0100)      /* Assumes ASCII dialect */
 #define CR              CTL('M')        /* carriage return */
 #define NL              CTL('J')        /* line feed */
@@ -68,7 +64,6 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 #define DEL             CTL('?')        /* delete */
 
 /* Defaults for line-editing etc. characters; you may want to change this. */
-
 #define DEF_ERASE       DEL             /* default erase character */
 #define DEF_INTR        CTL('C')        /* default interrupt character */
 #define DEF_QUIT        CTL('\\')       /* default quit char */
@@ -77,32 +72,10 @@ extern void updwtmp(const char *filename, const struct utmp *ut);
 #define DEF_EOL         '\n'
 #define DEF_SWITCH      0               /* default switch char */
 
- /*
-  * SunOS 4.1.1 termio is broken. We must use the termios stuff instead,
-  * because the termio -> termios translation does not clear the termios
-  * CIBAUD bits. Therefore, the tty driver would sometimes report that input
-  * baud rate != output baud rate. I did not notice that problem with SunOS
-  * 4.1. We will use termios where available, and termio otherwise.
-  */
-
-/* linux 0.12 termio is broken too, if we use it c_cc[VERASE] isn't set
-   properly, but all is well if we use termios?! */
-
-#ifdef  TCGETS
-#undef  TCGETA
-#undef  TCSETA
-#undef  TCSETAW
-#define termio  termios
-#define TCGETA  TCGETS
-#define TCSETA  TCSETS
-#define TCSETAW TCSETSW
-#endif
-
- /*
-  * When multiple baud rates are specified on the command line, the first one
-  * we will try is the first one specified.
-  */
-
+/*
+ * When multiple baud rates are specified on the command line, the first one
+ * we will try is the first one specified.
+ */
 #define FIRST_SPEED     0
 
 /* Storage for command-line options. */
@@ -134,7 +107,6 @@ static const char opt_string[] = "I:LH:f:hil:mt:wn";
 #define F_NOPROMPT      (1<<10)         /* don't ask for login name! */
 
 /* Storage for things detected while the login name was read. */
-
 struct chardata {
 	unsigned char erase;    /* erase character */
 	unsigned char kill;     /* kill character */
@@ -146,7 +118,6 @@ struct chardata {
 };
 
 /* Initial values for the above. */
-
 static const struct chardata init_chardata = {
 	DEF_ERASE,                              /* default erase character */
 	DEF_KILL,                               /* default kill character */
@@ -156,12 +127,6 @@ static const struct chardata init_chardata = {
 	0,                                      /* no capslock */
 #endif
 };
-
-#ifdef SYSV_STYLE
-#ifdef CONFIG_FEATURE_UTMP
-static void update_utmp(char *line);
-#endif
-#endif
 
 /* The following is used for understandable diagnostics. */
 
@@ -268,7 +233,7 @@ static void xdup2(int srcfd, int dstfd, const char *tty)
 }
 
 /* open_tty - set up tty as standard { input, output, error } */
-static void open_tty(char *tty, struct termio *tp, int local)
+static void open_tty(char *tty, struct termios *tp, int local)
 {
 	int chdir_to_root = 0;
 
@@ -318,8 +283,8 @@ static void open_tty(char *tty, struct termio *tp, int local)
 	 * 5 seconds seems to be a good value.
 	 */
 
-	if (ioctl(0, TCGETA, tp) < 0)
-		bb_perror_msg_and_die("%s: ioctl(TCGETA)", tty);
+	if (ioctl(0, TCGETS, tp) < 0)
+		bb_perror_msg_and_die("%s: ioctl(TCGETS)", tty);
 
 	/*
 	 * It seems to be a terminal. Set proper protections and ownership. Mode
@@ -369,11 +334,11 @@ static void open_tty(char *tty, struct termio *tp, int local)
 		xchdir("/");
 }
 
-/* termio_init - initialize termio settings */
-static void termio_init(struct termio *tp, int speed, struct options *op)
+/* termios_init - initialize termios settings */
+static void termios_init(struct termios *tp, int speed, struct options *op)
 {
 	/*
-	 * Initial termio settings: 8-bit characters, raw-mode, blocking i/o.
+	 * Initial termios settings: 8-bit characters, raw-mode, blocking i/o.
 	 * Special characters are set after we have read the login name; all
 	 * reads will be done in raw mode anyway. Errors will be dealt with
 	 * later on.
@@ -400,7 +365,7 @@ static void termio_init(struct termio *tp, int speed, struct options *op)
 		tp->c_cflag |= CRTSCTS;
 #endif
 
-	ioctl(0, TCSETA, tp);
+	ioctl(0, TCSETS, tp);
 
 	/* go to blocking input even in local mode */
 	fcntl(0, F_SETFL, fcntl(0, F_GETFL, 0) & ~O_NONBLOCK);
@@ -409,7 +374,7 @@ static void termio_init(struct termio *tp, int speed, struct options *op)
 }
 
 /* auto_baud - extract baud rate from modem status message */
-static void auto_baud(char *buf, unsigned size_buf, struct termio *tp)
+static void auto_baud(char *buf, unsigned size_buf, struct termios *tp)
 {
 	int speed;
 	int vmin;
@@ -441,7 +406,7 @@ static void auto_baud(char *buf, unsigned size_buf, struct termio *tp)
 	tp->c_iflag |= ISTRIP;          /* enable 8th-bit stripping */
 	vmin = tp->c_cc[VMIN];
 	tp->c_cc[VMIN] = 0;                     /* don't block if queue empty */
-	ioctl(0, TCSETA, tp);
+	ioctl(0, TCSETS, tp);
 
 	/*
 	 * Wait for a while, then read everything the modem has said so far and
@@ -467,23 +432,23 @@ static void auto_baud(char *buf, unsigned size_buf, struct termio *tp)
 
 	tp->c_iflag = iflag;
 	tp->c_cc[VMIN] = vmin;
-	ioctl(0, TCSETA, tp);
+	ioctl(0, TCSETS, tp);
 }
 
 /* next_speed - select next baud rate */
-static void next_speed(struct termio *tp, struct options *op)
+static void next_speed(struct termios *tp, struct options *op)
 {
 	static int baud_index = FIRST_SPEED;    /* current speed index */
 
 	baud_index = (baud_index + 1) % op->numspeed;
 	tp->c_cflag &= ~CBAUD;
 	tp->c_cflag |= op->speeds[baud_index];
-	ioctl(0, TCSETA, tp);
+	ioctl(0, TCSETS, tp);
 }
 
 
 /* do_prompt - show login prompt, optionally preceded by /etc/issue contents */
-static void do_prompt(struct options *op, struct termio *tp)
+static void do_prompt(struct options *op, struct termios *tp)
 {
 #ifdef ISSUE
 	print_login_issue(op->issue, op->tty);
@@ -506,7 +471,7 @@ static int caps_lock(const char *s)
 /* get_logname - get user name, establish parity, speed, erase, kill, eol */
 /* return NULL on failure, logname on success */
 static char *get_logname(char *logname, unsigned size_logname,
-		struct options *op, struct chardata *cp, struct termio *tp)
+		struct options *op, struct chardata *cp, struct termios *tp)
 {
 	char *bp;
 	char c;				/* input character, full eight bits */
@@ -621,8 +586,8 @@ static char *get_logname(char *logname, unsigned size_logname,
 	return logname;
 }
 
-/* termio_final - set the final tty mode bits */
-static void termio_final(struct options *op, struct termio *tp, struct chardata *cp)
+/* termios_final - set the final tty mode bits */
+static void termios_final(struct options *op, struct termios *tp, struct chardata *cp)
 {
 	/* General terminal-independent stuff. */
 
@@ -681,13 +646,13 @@ static void termio_final(struct options *op, struct termio *tp, struct chardata 
 
 	/* Finally, make the new settings effective */
 
-	if (ioctl(0, TCSETA, tp) < 0)
-		bb_perror_msg_and_die("%s: ioctl(TCSETA)", op->tty);
+	if (ioctl(0, TCSETS, tp) < 0)
+		bb_perror_msg_and_die("%s: ioctl(TCSETS)", op->tty);
 }
 
 
-#ifdef  SYSV_STYLE
-#ifdef CONFIG_FEATURE_UTMP
+#ifdef SYSV_STYLE
+#if ENABLE_FEATURE_UTMP
 /* update_utmp - update our utmp entry */
 static void update_utmp(char *line)
 {
@@ -695,9 +660,6 @@ static void update_utmp(char *line)
 	struct utmp *utp;
 	time_t t;
 	int mypid = getpid();
-#if ! (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1))
-	struct flock lock;
-#endif
 
 	/*
 	 * The utmp file holds miscellaneous information about things started by
@@ -737,7 +699,7 @@ static void update_utmp(char *line)
 	pututline(&ut);
 	endutent();
 
-#ifdef CONFIG_FEATURE_WTMP
+#if ENABLE_FEATURE_WTMP
 	if (access(bb_path_wtmp_file, R_OK|W_OK) == -1)
 		close(creat(bb_path_wtmp_file, 0664));
 	updwtmp(bb_path_wtmp_file, &ut);
@@ -752,10 +714,11 @@ int getty_main(int argc, char **argv)
 {
 	int nullfd;
 	char *logname = NULL;           /* login name, given to /bin/login */
-	// TODO: we can merge these into "struct local"
-	// (will reduce parameter passing)
+	/* Merging these into "struct local" may _seem_ to reduce
+	 * parameter passing, but today's gcc will inline
+	 * statics which are called once anyway, so don't do that */
 	struct chardata chardata;       /* set by get_logname() */
-	struct termio termio;           /* terminal mode bits */
+	struct termios termios;           /* terminal mode bits */
 	struct options options = {
 		0,                      /* show /etc/issue (SYSV_STYLE) */
 		0,                      /* no timeout */
@@ -783,11 +746,12 @@ int getty_main(int argc, char **argv)
 	/* Was "/dev/console". Why should we spam *system console*
 	 * if there is a problem with getty on /dev/ttyS15?... */
 	nullfd = xopen(bb_dev_null, O_RDWR);
-	dup2(nullfd, 0);
-	dup2(nullfd, 1);
-	dup2(nullfd, 2);
-	if (nullfd > 2)
+	if (nullfd) {
+		dup2(nullfd, 0);
 		close(nullfd);
+	}
+	dup2(0, 1);
+	dup2(0, 2);
 	/* We want special flavor of error_msg_and_die */
 	die_sleep = 10;
 	msg_eol = "\r\n";
@@ -811,7 +775,7 @@ int getty_main(int argc, char **argv)
 	parse_args(argc, argv, &options);
 
 #ifdef SYSV_STYLE
-#ifdef CONFIG_FEATURE_UTMP
+#if ENABLE_FEATURE_UTMP
 	/* Update the utmp file. */
 	update_utmp(options.tty);
 #endif
@@ -819,7 +783,7 @@ int getty_main(int argc, char **argv)
 
 	debug("calling open_tty\n");
 	/* Open the tty as standard { input, output, error }. */
-	open_tty(options.tty, &termio, options.flags & F_LOCAL);
+	open_tty(options.tty, &termios, options.flags & F_LOCAL);
 
 #ifdef __linux__
 	{
@@ -829,9 +793,9 @@ int getty_main(int argc, char **argv)
 		ioctl(0, TIOCSPGRP, &iv);
 	}
 #endif
-	/* Initialize the termio settings (raw mode, eight-bit, blocking i/o). */
-	debug("calling termio_init\n");
-	termio_init(&termio, options.speeds[FIRST_SPEED], &options);
+	/* Initialize the termios settings (raw mode, eight-bit, blocking i/o). */
+	debug("calling termios_init\n");
+	termios_init(&termios, options.speeds[FIRST_SPEED], &options);
 
 	/* write the modem init string and DON'T flush the buffers */
 	if (options.flags & F_INITSTRING) {
@@ -847,7 +811,7 @@ int getty_main(int argc, char **argv)
 	/* Optionally detect the baud rate from the modem status message. */
 	debug("before autobaud\n");
 	if (options.flags & F_PARSE)
-		auto_baud(bb_common_bufsiz1, sizeof(bb_common_bufsiz1), &termio);
+		auto_baud(bb_common_bufsiz1, sizeof(bb_common_bufsiz1), &termios);
 
 	/* Set the optional timer. */
 	if (options.timeout)
@@ -873,9 +837,9 @@ int getty_main(int argc, char **argv)
 		/* Read the login name. */
 		debug("reading login name\n");
 		logname = get_logname(bb_common_bufsiz1, sizeof(bb_common_bufsiz1),
-				&options, &chardata, &termio);
+				&options, &chardata, &termios);
 		while (logname == NULL)
-			next_speed(&termio, &options);
+			next_speed(&termios, &options);
 	}
 
 	/* Disable timer. */
@@ -883,9 +847,9 @@ int getty_main(int argc, char **argv)
 	if (options.timeout)
 		alarm(0);
 
-	/* Finalize the termio settings. */
+	/* Finalize the termios settings. */
 
-	termio_final(&options, &termio, &chardata);
+	termios_final(&options, &termios, &chardata);
 
 	/* Now the newline character should be properly written. */
 
