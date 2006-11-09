@@ -17,7 +17,8 @@
 #include <string.h>
 #include <assert.h>
 
-#if ENABLE_STATIC && defined(__GLIBC__)
+/* Apparently uclibc defines __GLIBC__ (compat trick?). Oh well. */
+#if ENABLE_STATIC && defined(__GLIBC__) && !defined(__UCLIBC__)
 #warning Static linking against glibc produces buggy executables
 #warning (glibc doesn't cope well with ld --gc-sections).
 #warning See sources.redhat.com/bugzilla/show_bug.cgi?id=3400
