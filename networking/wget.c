@@ -324,8 +324,9 @@ int wget_main(int argc, char **argv)
 					break;
 				/*FALLTHRU*/
 			default:
-				chomp(buf);
-				bb_error_msg_and_die("server returned error %s: %s", s, buf);
+				/* Show first line only and kill any ESC tricks */
+				buf[strcspn(buf, "\n\r\x1b")] = '\0';
+				bb_error_msg_and_die("server returned error: %s", buf);
 			}
 
 			/*
@@ -585,6 +586,8 @@ static FILE *open_socket(struct sockaddr_in *s_in)
 {
 	FILE *fp;
 
+	/* glibc 2.4 seems to try seeking on it - ??! */
+	/* hopefully it understands what ESPIPE means... */
 	fp = fdopen(xconnect_tcp_v4(s_in), "r+");
 	if (fp == NULL)
 		bb_perror_msg_and_die("fdopen");

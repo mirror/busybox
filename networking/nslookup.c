@@ -82,7 +82,7 @@ static int print_host(const char *hostname, const char *header)
 		while (cur) {
 			sockaddr_to_dotted(cur->ai_addr, str, sizeof(str));
 			printf("%s  %s\nAddress: %s", header, hostname, str);
-			s[0] = ' ';
+			str[0] = ' ';
 			if (getnameinfo(cur->ai_addr, cur->ai_addrlen, str+1, sizeof(str)-1, NULL, 0, NI_NAMEREQD))
 				str[0] = '\0';
 			puts(str);
