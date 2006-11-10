@@ -951,7 +951,7 @@ static int sendHeaders(HttpResponseNum responseNum)
  ****************************************************************************/
 static int getLine(void)
 {
-	int  count = 0;
+	int count = 0;
 	char *buf = config->buf;
 
 	while (read(a_c_r, buf + count, 1) == 1) {
@@ -960,7 +960,7 @@ static int getLine(void)
 			buf[count] = 0;
 			return count;
 		}
-		if (count < (MAX_MEMORY_BUFF-1))      /* check owerflow */
+		if (count < (MAX_MEMORY_BUFF-1))      /* check overflow */
 			count++;
 	}
 	if (count) return count;
@@ -991,8 +991,8 @@ static int getLine(void)
  *
  ****************************************************************************/
 static int sendCgi(const char *url,
-					 const char *request, int bodyLen, const char *cookie,
-					 const char *content_type)
+		const char *request, int bodyLen, const char *cookie,
+		const char *content_type)
 {
 	int fromCgi[2];  /* pipe for reading data from CGI */
 	int toCgi[2];    /* pipe for sending data to CGI */
@@ -1265,7 +1265,7 @@ static int sendCgi(const char *url,
  *
  > $Function: sendFile()
  *
- * $Description: Send a file response to an HTTP request
+ * $Description: Send a file response to a HTTP request
  *
  * $Parameter:
  *      (const char *) url . . The URL requested.
@@ -1455,8 +1455,8 @@ set_remoteuser_var:
 
 static void handle_sigalrm(int sig)
 {
-		sendHeaders(HTTP_REQUEST_TIMEOUT);
-		config->alarm_signaled = sig;
+	sendHeaders(HTTP_REQUEST_TIMEOUT);
+	config->alarm_signaled = sig;
 }
 
 /****************************************************************************
@@ -1487,7 +1487,7 @@ static void handleIncoming(void)
 	struct sigaction sa;
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	int credentials = -1;  /* if not requred this is Ok */
+	int credentials = -1;  /* if not required this is Ok */
 #endif
 
 	sa.sa_handler = handle_sigalrm;
@@ -1530,7 +1530,7 @@ BAD_REQUEST:
 			/* Garbled request/URL */
 			goto BAD_REQUEST;
 		}
-		url = alloca(strlen(buf) + 12);      /* + sizeof("/index.html\0") */
+		url = alloca(strlen(buf) + sizeof("/index.html"));
 		if (url == NULL) {
 			sendHeaders(HTTP_INTERNAL_SERVER_ERROR);
 			break;
@@ -1707,21 +1707,18 @@ FORBIDDEN:      /* protect listing /cgi-bin */
 				/* unset if non inetd looped */
 				config->ContentLength = -1;
 #endif
-
 #if ENABLE_FEATURE_HTTPD_CGI
 			}
 		}
 #endif
-
 	} while (0);
-
 
 #if ENABLE_FEATURE_HTTPD_WITHOUT_INETD
 /* from inetd don't looping: freeing, closing automatic from exit always */
 # if DEBUG
 	fprintf(stderr, "closing socket\n");
 # endif
-# ifdef CONFIG_FEATURE_HTTPD_CGI
+# if ENABLE_FEATURE_HTTPD_CGI
 	free(cookie);
 	free(content_type);
 	free(config->referer);
@@ -1773,57 +1770,54 @@ static int miniHttpd(int server)
 
 	/* copy the ports we are watching to the readfd set */
 	while (1) {
-		readfd = portfd;
+		int on, s;
+		socklen_t fromAddrLen;
+		struct sockaddr_in fromAddr;
 
 		/* Now wait INDEFINITELY on the set of sockets! */
-		if (select(server + 1, &readfd, 0, 0, 0) > 0) {
-			if (FD_ISSET(server, &readfd)) {
-				int on;
-				struct sockaddr_in fromAddr;
+		readfd = portfd;
+		if (select(server + 1, &readfd, 0, 0, 0) <= 0)
+			continue;
+		if (!FD_ISSET(server, &readfd))
+			continue;
+		fromAddrLen = sizeof(fromAddr);
+		s = accept(server, (struct sockaddr *)&fromAddr, &fromAddrLen);
+		if (s < 0)
+			continue;
 
-				socklen_t fromAddrLen = sizeof(fromAddr);
-				int s = accept(server,
-					   (struct sockaddr *)&fromAddr, &fromAddrLen);
-
-				if (s < 0) {
-					continue;
-				}
-				config->accepted_socket = s;
-				config->rmt_ip = ntohl(fromAddr.sin_addr.s_addr);
+		config->accepted_socket = s;
+		config->rmt_ip = ntohl(fromAddr.sin_addr.s_addr);
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
-				sprintf(config->rmt_ip_str, "%u.%u.%u.%u",
-						(unsigned char)(config->rmt_ip >> 24),
-						(unsigned char)(config->rmt_ip >> 16),
-						(unsigned char)(config->rmt_ip >> 8),
-						    config->rmt_ip & 0xff);
-				config->port = ntohs(fromAddr.sin_port);
+		sprintf(config->rmt_ip_str, "%u.%u.%u.%u",
+				(unsigned char)(config->rmt_ip >> 24),
+				(unsigned char)(config->rmt_ip >> 16),
+				(unsigned char)(config->rmt_ip >> 8),
+				config->rmt_ip & 0xff);
+		config->port = ntohs(fromAddr.sin_port);
 #if DEBUG
-				bb_error_msg("connection from IP=%s, port %u",
-						config->rmt_ip_str, config->port);
+		bb_error_msg("connection from IP=%s, port %u",
+				config->rmt_ip_str, config->port);
 #endif
 #endif /* CONFIG_FEATURE_HTTPD_CGI */
 
-				/*  set the KEEPALIVE option to cull dead connections */
-				on = 1;
-				setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&on, sizeof(on));
-
+		/* set the KEEPALIVE option to cull dead connections */
+		on = 1;
+		setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&on, sizeof(on));
 #if !DEBUG
-				if (fork() == 0)
+		if (fork() == 0)
 #endif
-				{
-					/* This is the spawned thread */
+		{
+			/* This is the spawned thread */
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
-					/* protect reload config, may be confuse checking */
-					signal(SIGHUP, SIG_IGN);
+			/* protect reload config, may be confuse checking */
+			signal(SIGHUP, SIG_IGN);
 #endif
-					handleIncoming();
+			handleIncoming();
 #if !DEBUG
-					exit(0);
+			exit(0);
 #endif
-				}
-				close(s);
-			}
 		}
+		close(s);
 	} // while (1)
 	return 0;
 }
@@ -1967,7 +1961,7 @@ int httpd_main(int argc, char *argv[])
 	xchdir(home_httpd);
 #if ENABLE_FEATURE_HTTPD_WITHOUT_INETD
 	config->server_socket = openServer();
-# ifdef CONFIG_FEATURE_HTTPD_SETUID
+# if ENABLE_FEATURE_HTTPD_SETUID
 	/* drop privileges */
 	if (opt & OPT_SETUID) {
 		if (ugid.gid != (gid_t)-1) {
@@ -1990,7 +1984,7 @@ int httpd_main(int argc, char *argv[])
 		clearenv();
 		if (p)
 			setenv("PATH", p, 1);
-# ifdef CONFIG_FEATURE_HTTPD_WITHOUT_INETD
+# if ENABLE_FEATURE_HTTPD_WITHOUT_INETD
 		addEnvPort("SERVER");
 # endif
 	}
