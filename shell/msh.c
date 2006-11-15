@@ -237,7 +237,9 @@ static struct env {
  * -x: trace
  * -u: unset variables net diagnostic
  */
-static char *flag;
+static char flags['z' - 'a' + 1];
+/* this looks weird, but is OK ... we index flag with 'a'...'z' */
+static char *flag = flags - 'a';
 
 static char *null;				/* null value for variable */
 static int intr;				/* interrupt pending */
@@ -709,8 +711,6 @@ static struct var *ifs;			/* field separators */
 static int areanum;				/* current allocation area */
 static int intr;
 static int inparse;
-static char flags['z' - 'a' + 1];
-static char *flag = flags - 'a';
 static char *null = "";
 static int heedint = 1;
 static void (*qflag) (int) = SIG_IGN;
