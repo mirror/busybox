@@ -69,14 +69,6 @@ config HTTPD
 	help
 	  Serve web pages via an HTTP server.
 
-config FEATURE_HTTPD_WITHOUT_INETD
-	bool "Support using httpd as a daemon (not from inetd)"
-	default n
-	depends on HTTPD
-	help
-	  This option enables uid and port options for the httpd applet,
-	  and eliminates the need to be called from the inetd server daemon.
-
 config FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 	bool "Support reloading the global config file using hup signal"
 	default n

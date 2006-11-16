@@ -1184,7 +1184,8 @@ USE_FEATURE_DATE_ISOFMT( \
 
 #define httpd_trivial_usage \
 	"[-c <conf file>]" \
-	USE_FEATURE_HTTPD_WITHOUT_INETD(" [-p <port>]") \
+	" [-p <port>]" \
+	" [-i] [-f]" \
 	USE_FEATURE_HTTPD_SETUID(" [-u user[:grp]]") \
 	USE_FEATURE_HTTPD_BASIC_AUTH(" [-r <realm>]") \
 	USE_FEATURE_HTTPD_AUTH_MD5(" [-m pass]") \
@@ -1194,7 +1195,9 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Listens for incoming http server requests.\n\n" \
 	"Options:\n" \
 	"\t-c FILE\t\tSpecifies configuration file. (default httpd.conf)\n" \
-	USE_FEATURE_HTTPD_WITHOUT_INETD("\t-p PORT\t\tServer port (default 80)\n") \
+	"\t-p PORT\t\tServer port (default 80)\n" \
+	"\t-i\t\tAssume that we are started frim inetd\n" \
+	"\t-f\t\tDo not daemonize\n" \
 	USE_FEATURE_HTTPD_SETUID("\t-u USER[:GRP]\tSet uid/gid after binding to port\n") \
 	USE_FEATURE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
 	USE_FEATURE_HTTPD_AUTH_MD5("\t-m PASS\t\tCrypt PASS with md5 algorithm\n") \
