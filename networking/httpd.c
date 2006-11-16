@@ -716,51 +716,21 @@ static char *decodeString(char *orig, int flag_plus_to_space)
 
 #if ENABLE_FEATURE_HTTPD_CGI
 /****************************************************************************
- *
- > $Function: addEnv()
- *
- * $Description: Add an environment variable setting to the global list.
- *    A NAME=VALUE string is allocated, filled, and added to the list of
- *    environment settings passed to the cgi execution script.
- *
- * $Parameters:
- *  (char *) name_before_underline - The first part environment variable name.
- *  (char *) name_after_underline  - The second part environment variable name.
- *  (char *) value  . . The value to which the env variable is set.
- *
- * $Return: (void)
- *
- * $Errors: Silently returns if the env runs out of space to hold the new item
- *
+ * setenv helpers
  ****************************************************************************/
-static void addEnv(const char *name_before_underline,
-			const char *name_after_underline, const char *value)
+static void setenv1(const char *name, const char *value)
 {
-	char *s = NULL;
-	const char *underline;
-
 	if (!value)
 		value = "";
-	underline = *name_after_underline ? "_" : "";
-	asprintf(&s, "%s%s%s=%s", name_before_underline, underline,
-						      name_after_underline, value);
-	if (s) {
-		putenv(s);
-	}
+	setenv(name, value, 1);
 }
-
-#if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV || ENABLE_FEATURE_HTTPD_WITHOUT_INETD
-/* set environs SERVER_PORT and REMOTE_PORT */
-static void addEnvPort(const char *port_name)
+static void setenv_long(const char *name, long value)
 {
-	char buf[16];
-
-	sprintf(buf, "%u", config->port);
-	addEnv(port_name, "PORT", buf);
+	char buf[sizeof(value)*3 + 1];
+	sprintf(buf, "%ld", value);
+	setenv(name, buf, 1);
 }
 #endif
-#endif          /* CONFIG_FEATURE_HTTPD_CGI */
-
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 /****************************************************************************
@@ -1058,52 +1028,49 @@ static int sendCgi(const char *url,
 				}
 				*script = '/';          /* is directory, find next '/' */
 			}
-			addEnv("PATH", "INFO", script);   /* set /PATH_INFO or NULL */
-			addEnv("PATH",           "",         getenv("PATH"));
-			addEnv("REQUEST",        "METHOD",   request);
+			setenv1("PATH_INFO", script);   /* set /PATH_INFO or "" */
+			setenv1("PATH", getenv("PATH")); /* Huh?? */
+			setenv1("REQUEST_METHOD", request);
 			if (config->query) {
 				char *uri = alloca(strlen(purl) + 2 + strlen(config->query));
 				if (uri)
 					sprintf(uri, "%s?%s", purl, config->query);
-				addEnv("REQUEST",        "URI",   uri);
+				setenv1("REQUEST_URI", uri);
 			} else {
-				addEnv("REQUEST",        "URI",   purl);
+				setenv1("REQUEST_URI", purl);
 			}
 			if (script != NULL)
 				*script = '\0';         /* reduce /PATH_INFO */
 			 /* SCRIPT_FILENAME required by PHP in CGI mode */
 			if (realpath(purl + 1, realpath_buff))
-				addEnv("SCRIPT", "FILENAME", realpath_buff);
+				setenv1("SCRIPT_FILENAME", realpath_buff);
 			else
-				*realpath_buff = 0;
+				*realpath_buff = '\0';
 			/* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
-			addEnv("SCRIPT_NAME",    "",         purl);
-			addEnv("QUERY_STRING",   "",         config->query);
-			addEnv("SERVER",         "SOFTWARE", httpdVersion);
-			addEnv("SERVER",         "PROTOCOL", "HTTP/1.0");
-			addEnv("GATEWAY_INTERFACE", "",      "CGI/1.1");
-			addEnv("REMOTE",         "ADDR",     config->rmt_ip_str);
+			setenv1("SCRIPT_NAME", purl);
+			setenv1("QUERY_STRING", config->query);
+			setenv1("SERVER_SOFTWARE", httpdVersion);
+			putenv("SERVER_PROTOCOL=HTTP/1.0");
+			putenv("GATEWAY_INTERFACE=CGI/1.1");
+			setenv1("REMOTE_ADDR", config->rmt_ip_str);
 #if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-			addEnvPort("REMOTE");
+			setenv_long("REMOTE_PORT", config->port);
 #endif
 			if (bodyLen) {
-				char sbl[32];
-
-				sprintf(sbl, "%d", bodyLen);
-				addEnv("CONTENT", "LENGTH", sbl);
+				setenv_long("CONTENT_LENGTH", bodyLen);
 			}
 			if (cookie)
-				addEnv("HTTP", "COOKIE", cookie);
+				setenv1("HTTP_COOKIE", cookie);
 			if (content_type)
-				addEnv("CONTENT", "TYPE", content_type);
+				setenv1("CONTENT_TYPE", content_type);
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 			if (config->remoteuser) {
-				addEnv("REMOTE", "USER", config->remoteuser);
-				addEnv("AUTH_TYPE", "", "Basic");
+				setenv1("REMOTE_USER", config->remoteuser);
+				putenv("AUTH_TYPE=Basic");
 			}
 #endif
 			if (config->referer)
-				addEnv("HTTP", "REFERER", config->referer);
+				setenv1("HTTP_REFERER", config->referer);
 
 			/* set execve argp[0] without path */
 			argp[0] = strrchr(purl, '/') + 1;
@@ -1985,7 +1952,7 @@ int httpd_main(int argc, char *argv[])
 		if (p)
 			setenv("PATH", p, 1);
 # if ENABLE_FEATURE_HTTPD_WITHOUT_INETD
-		addEnvPort("SERVER");
+		setenv_long("SERVER_PORT", config->port);
 # endif
 	}
 #endif
