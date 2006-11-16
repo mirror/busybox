@@ -2841,6 +2841,13 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\t-r\tuse BSD sum algorithm (1K blocks)\n" \
 	"\t-s\tuse System V sum algorithm (512byte blocks)"
 
+#define svlogd_trivial_usage \
+	"[-ttv] [-r c] [-R abc] [-l len] [-b buflen] dir..."
+#define svlogd_full_usage \
+	"Continuously read log data from standard input, optionally " \
+	"filter log messages, and write the data to one or more automatically " \
+	"rotated logs."
+
 #define swapoff_trivial_usage \
 	"[-a] [DEVICE]"
 #define swapoff_full_usage \

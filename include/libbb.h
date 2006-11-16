@@ -335,6 +335,8 @@ long xatol_range(const char *numstr, long lower, long upper);
 long xatol_sfx(const char *numstr, const struct suffix_mult *suffixes);
 long xatol(const char *numstr);
 /* Specialized: */
+unsigned xatou_range(const char *numstr, unsigned lower, unsigned upper);
+unsigned xatou_sfx(const char *numstr, const struct suffix_mult *suffixes);
 unsigned xatou(const char *numstr);
 int xatoi_range(const char *numstr, int lower, int upper);
 int xatoi(const char *numstr);

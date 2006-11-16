@@ -195,6 +195,16 @@ long xatol(const char *numstr)
 
 /* Others */
 
+unsigned xatou_range(const char *numstr, unsigned lower, unsigned upper)
+{
+	return xstrtoul_range_sfx(numstr, 10, lower, upper, NULL);
+}
+
+unsigned xatou_sfx(const char *numstr, const struct suffix_mult *suffixes)
+{
+	return xstrtoul_range_sfx(numstr, 10, 0, UINT_MAX, suffixes);
+}
+
 unsigned xatou(const char *numstr)
 {
 	return xatoul_range(numstr, 0, UINT_MAX);

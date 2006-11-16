@@ -26,6 +26,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /* Busyboxed by Denis Vlasenko <vda.linux@googlemail.com> */
+/* Dependencies on runit_lib.c removed */
 
 #include "busybox.h"
 
@@ -94,7 +95,9 @@ static void edir(const char *directory_name)
 		errno = 0;
 		d = readdir(dir);
 		if (!d) {
-			if (errno) bb_perror_msg_and_die("readdir %s", directory_name);
+			if (errno)
+				bb_perror_msg_and_die("readdir %s",
+						directory_name);
 			break;
 		}
 		if (d->d_name[0] == '.') continue;
@@ -102,12 +105,12 @@ static void edir(const char *directory_name)
 		if (fd < 0) {
 			if ((errno == EISDIR) && env_dir) {
 				if (OPT_verbose)
-					bb_perror_msg("warning: %s/%s is a directory", directory_name,
-						d->d_name);
+					bb_perror_msg("warning: %s/%s is a directory",
+						directory_name,	d->d_name);
 				continue;
 			} else
-				bb_perror_msg_and_die("open %s/%s", directory_name, /* was exiting 111 */
-				                     d->d_name);
+				bb_perror_msg_and_die("open %s/%s",
+						directory_name, d->d_name);
 		}
 		if (fd >= 0) {
 			char buf[256];
@@ -116,8 +119,8 @@ static void edir(const char *directory_name)
 
 			size = safe_read(fd, buf, sizeof(buf)-1);
 			if (size < 0)
-				bb_perror_msg_and_die("read %s/%s", directory_name, /* was exiting 111 */
-						d->d_name);
+				bb_perror_msg_and_die("read %s/%s",
+						directory_name, d->d_name);
 			if (size == 0) {
 				unsetenv(d->d_name);
 				continue;
@@ -158,21 +161,24 @@ static void slimit(void)
 #ifdef RLIMIT_DATA
 		limit(RLIMIT_DATA, limitd);
 #else
-		if (OPT_verbose) bb_error_msg("system does not support %s", "RLIMIT_DATA");
+		if (OPT_verbose) bb_error_msg("system does not support %s",
+				"RLIMIT_DATA");
 #endif
 	}
 	if (limits >= -1) {
 #ifdef RLIMIT_STACK
 		limit(RLIMIT_STACK, limits);
 #else
-		if (OPT_verbose) bb_error_msg("system does not support %s", "RLIMIT_STACK");
+		if (OPT_verbose) bb_error_msg("system does not support %s",
+				"RLIMIT_STACK");
 #endif
 	}
 	if (limitl >= -1) {
 #ifdef RLIMIT_MEMLOCK
 		limit(RLIMIT_MEMLOCK, limitl);
 #else
-		if (OPT_verbose) bb_error_msg("system does not support %s", "RLIMIT_MEMLOCK");
+		if (OPT_verbose) bb_error_msg("system does not support %s",
+				"RLIMIT_MEMLOCK");
 #endif
 	}
 	if (limita >= -1) {
@@ -183,7 +189,8 @@ static void slimit(void)
 		limit(RLIMIT_AS, limita);
 #else
 		if (OPT_verbose)
-			bb_error_msg("system does not support %s", "RLIMIT_VMEM");
+			bb_error_msg("system does not support %s",
+				"RLIMIT_VMEM");
 #endif
 #endif
 	}
@@ -195,7 +202,8 @@ static void slimit(void)
 		limit(RLIMIT_OFILE, limito);
 #else
 		if (OPT_verbose)
-			bb_error_msg("system does not support %s", "RLIMIT_NOFILE");
+			bb_error_msg("system does not support %s",
+				"RLIMIT_NOFILE");
 #endif
 #endif
 	}
@@ -203,35 +211,40 @@ static void slimit(void)
 #ifdef RLIMIT_NPROC
 		limit(RLIMIT_NPROC, limitp);
 #else
-		if (OPT_verbose) bb_error_msg("system does not support %s", "RLIMIT_NPROC");
+		if (OPT_verbose) bb_error_msg("system does not support %s",
+				"RLIMIT_NPROC");
 #endif
 	}
 	if (limitf >= -1) {
 #ifdef RLIMIT_FSIZE
 		limit(RLIMIT_FSIZE, limitf);
 #else
-		if (OPT_verbose) bb_error_msg("system does not support %s", "RLIMIT_FSIZE");
+		if (OPT_verbose) bb_error_msg("system does not support %s",
+				"RLIMIT_FSIZE");
 #endif
 	}
 	if (limitc >= -1) {
 #ifdef RLIMIT_CORE
 		limit(RLIMIT_CORE, limitc);
 #else
-		if (OPT_verbose) bb_error_msg("system does not support %s", "RLIMIT_CORE");
+		if (OPT_verbose) bb_error_msg("system does not support %s",
+				"RLIMIT_CORE");
 #endif
 	}
 	if (limitr >= -1) {
 #ifdef RLIMIT_RSS
 		limit(RLIMIT_RSS, limitr);
 #else
-		if (OPT_verbose) bb_error_msg("system does not support %s", "RLIMIT_RSS");
+		if (OPT_verbose) bb_error_msg("system does not support %s",
+				"RLIMIT_RSS");
 #endif
 	}
 	if (limitt >= -1) {
 #ifdef RLIMIT_CPU
 		limit(RLIMIT_CPU, limitt);
 #else
-		if (OPT_verbose) bb_error_msg("system does not support %s", "RLIMIT_CPU");
+		if (OPT_verbose) bb_error_msg("system does not support %s",
+				"RLIMIT_CPU");
 #endif
 	}
 }

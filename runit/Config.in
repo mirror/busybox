@@ -5,6 +5,14 @@
 
 menu "Runit Utilities"
 
+config SVLOGD
+	bool "svlogd"
+	default n
+	help
+	  svlogd continuously reads log data from its standard input, optionally
+	  filters log messages, and writes the data to one or more automatically
+	  rotated logs.
+
 config CHPST
 	bool "chpst"
 	default n

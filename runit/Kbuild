@@ -6,3 +6,4 @@
 
 lib-y:=
 lib-$(CONFIG_CHPST) += chpst.o
+lib-$(CONFIG_SVLOGD) += svlogd.o runit_lib.o

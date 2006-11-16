@@ -10,7 +10,7 @@
 #include "busybox.h"
 #include <sys/kd.h>
 
-enum{
+enum {
 	PSF_MAGIC1 = 0x36,
 	PSF_MAGIC2 = 0x04,
 
