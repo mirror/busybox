@@ -143,10 +143,8 @@ typedef struct {
 #endif
 	unsigned port;           /* server initial port and for
 						      set env REMOTE_PORT */
-	union HTTPD_FOUND {
-		const char *found_mime_type;
-		const char *found_moved_temporarily;
-	} httpd_found;
+	const char *found_mime_type;
+	const char *found_moved_temporarily;
 
 	off_t ContentLength;          /* -1 - unknown */
 	time_t last_mod;
@@ -857,7 +855,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 	}
 	/* error message is HTML */
 	mime_type = responseNum == HTTP_OK ?
-				config->httpd_found.found_mime_type : "text/html";
+				config->found_mime_type : "text/html";
 
 	/* emit the current date */
 	strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&timer));
@@ -874,7 +872,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 #endif
 	if (responseNum == HTTP_MOVED_TEMPORARILY) {
 		len += sprintf(buf+len, "Location: %s/%s%s\r\n",
-				config->httpd_found.found_moved_temporarily,
+				config->found_moved_temporarily,
 				(config->query ? "?" : ""),
 				(config->query ? config->query : ""));
 	}
@@ -894,7 +892,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 				responseNum, responseString, infoString);
 	}
 #if DEBUG
-	fprintf(stderr, "Headers: '%s'", buf);
+	fprintf(stderr, "headers: '%s'\n", buf);
 #endif
 	return full_write(config->accepted_socket, buf, len);
 }
@@ -1246,14 +1244,14 @@ static int sendFile(const char *url)
 				break;
 		}
 	/* also, if not found, set default as "application/octet-stream";  */
-	config->httpd_found.found_mime_type = *(table+1);
+	config->found_mime_type = table[1];
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
 	if (suffix) {
 		Htaccess * cur;
 
 		for (cur = config->mime_a; cur; cur = cur->next) {
 			if (strcmp(cur->before_colon, suffix) == 0) {
-				config->httpd_found.found_mime_type = cur->after_colon;
+				config->found_mime_type = cur->after_colon;
 				break;
 			}
 		}
@@ -1261,8 +1259,8 @@ static int sendFile(const char *url)
 #endif  /* CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES */
 
 #if DEBUG
-	fprintf(stderr, "Sending file '%s' Content-type: %s\n",
-						url, config->httpd_found.found_mime_type);
+	fprintf(stderr, "sending file '%s' content-type: %s\n",
+			url, config->found_mime_type);
 #endif
 
 	f = open(url, O_RDONLY);
@@ -1278,7 +1276,7 @@ static int sendFile(const char *url)
 		close(f);
 	} else {
 #if DEBUG
-		bb_perror_msg("unable to open '%s'", url);
+		bb_perror_msg("cannot open '%s'", url);
 #endif
 		sendHeaders(HTTP_NOT_FOUND);
 	}
@@ -1434,7 +1432,7 @@ static void handleIncoming(void)
 	int ip_allowed;
 #if ENABLE_FEATURE_HTTPD_CGI
 	const char *prequest = request_GET;
-	long length=0;
+	long length = 0;
 	char *cookie = 0;
 	char *content_type = 0;
 #endif
@@ -1538,7 +1536,7 @@ BAD_REQUEST:
 		/* If URL is directory, adding '/' */
 		if (test[-1] != '/') {
 			if (is_directory(url + 1, 1, &sb)) {
-				config->httpd_found.found_moved_temporarily = url;
+				config->found_moved_temporarily = url;
 			}
 		}
 #if DEBUG
@@ -1628,12 +1626,10 @@ FORBIDDEN:      /* protect listing /cgi-bin */
 		}
 #endif
 
-		if (config->httpd_found.found_moved_temporarily) {
+		if (config->found_moved_temporarily) {
 			sendHeaders(HTTP_MOVED_TEMPORARILY);
-#if DEBUG
 			/* clear unforked memory flag */
-			config->httpd_found.found_moved_temporarily = NULL;
-#endif
+			config->found_moved_temporarily = NULL;
 			break;
 		}
 
@@ -1668,14 +1664,14 @@ FORBIDDEN:      /* protect listing /cgi-bin */
 	} while (0);
 
 # if DEBUG
-	fprintf(stderr, "closing socket\n");
+	fprintf(stderr, "closing socket\n\n");
 # endif
 # if ENABLE_FEATURE_HTTPD_CGI
 	free(cookie);
 	free(content_type);
-	free(config->referer);
+	free(config->referer); config->referer = NULL;
 #  if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	free(config->remoteuser);
+	free(config->remoteuser); config->remoteuser = NULL;
 #  endif
 # endif
 	shutdown(config->accepted_socket, SHUT_WR);
@@ -1733,7 +1729,6 @@ static int miniHttpd(int server)
 		s = accept(server, (struct sockaddr *)&fromAddr, &fromAddrLen);
 		if (s < 0)
 			continue;
-
 		config->accepted_socket = s;
 		config->rmt_ip = ntohl(fromAddr.sin_addr.s_addr);
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
