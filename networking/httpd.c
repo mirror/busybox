@@ -652,7 +652,7 @@ static char *encodeString(const char *string)
 	*p = 0;
 	return out;
 }
-#endif          /* CONFIG_FEATURE_HTTPD_ENCODE_URL_STR */
+#endif          /* FEATURE_HTTPD_ENCODE_URL_STR */
 
 /****************************************************************************
  *
@@ -1018,7 +1018,7 @@ static int sendCgi(const char *url,
 				*script = '/';          /* is directory, find next '/' */
 			}
 			setenv1("PATH_INFO", script);   /* set /PATH_INFO or "" */
-			setenv1("PATH", getenv("PATH")); /* Huh?? */
+			/* setenv1("PATH", getenv("PATH")); redundant */
 			setenv1("REQUEST_METHOD", request);
 			if (config->query) {
 				char *uri = alloca(strlen(purl) + 2 + strlen(config->query));
@@ -1145,12 +1145,10 @@ static int sendCgi(const char *url,
 			if (nfound <= 0) {
 				if (waitpid(pid, &status, WNOHANG) > 0) {
 					close(inFd);
-#if DEBUG
-					if (WIFEXITED(status))
+					if (DEBUG && WIFEXITED(status))
 						bb_error_msg("piped has exited with status=%d", WEXITSTATUS(status));
-					if (WIFSIGNALED(status))
+					if (DEBUG && WIFSIGNALED(status))
 						bb_error_msg("piped has exited with signal=%d", WTERMSIG(status));
-#endif
 					break;
 				}
 			} else if (post_readed_size > 0 && FD_ISSET(outFd, &writeSet)) {
@@ -1205,16 +1203,15 @@ static int sendCgi(const char *url,
 					if (full_write(s, rbuf, count) != count)
 						break;
 
-#if DEBUG
-					fprintf(stderr, "cgi read %d bytes\n", count);
-#endif
+					if (DEBUG)
+						fprintf(stderr, "cgi read %d bytes\n", count);
 				}
 			}
 		}
 	}
 	return 0;
 }
-#endif          /* CONFIG_FEATURE_HTTPD_CGI */
+#endif          /* FEATURE_HTTPD_CGI */
 
 /****************************************************************************
  *
@@ -1256,12 +1253,11 @@ static int sendFile(const char *url)
 			}
 		}
 	}
-#endif  /* CONFIG_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES */
+#endif  /* FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES */
 
-#if DEBUG
-	fprintf(stderr, "sending file '%s' content-type: %s\n",
+	if (DEBUG)
+		fprintf(stderr, "sending file '%s' content-type: %s\n",
 			url, config->found_mime_type);
-#endif
 
 	f = open(url, O_RDONLY);
 	if (f >= 0) {
@@ -1269,15 +1265,15 @@ static int sendFile(const char *url)
 		char *buf = config->buf;
 
 		sendHeaders(HTTP_OK);
+		/* TODO: sendfile() */
 		while ((count = full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
 			if (full_write(config->accepted_socket, buf, count) != count)
 				break;
 		}
 		close(f);
 	} else {
-#if DEBUG
-		bb_perror_msg("cannot open '%s'", url);
-#endif
+		if (DEBUG)
+			bb_perror_msg("cannot open '%s'", url);
 		sendHeaders(HTTP_NOT_FOUND);
 	}
 
@@ -1290,18 +1286,18 @@ static int checkPermIP(void)
 
 	/* This could stand some work */
 	for (cur = config->ip_a_d; cur; cur = cur->next) {
-#if DEBUG
-		fprintf(stderr, "checkPermIP: '%s' ? ", config->rmt_ip_str);
-		fprintf(stderr, "'%u.%u.%u.%u/%u.%u.%u.%u'\n",
+		if (DEBUG)
+			fprintf(stderr, "checkPermIP: '%s' ? ", config->rmt_ip_str);
+		if (DEBUG)
+			fprintf(stderr, "'%u.%u.%u.%u/%u.%u.%u.%u'\n",
 				(unsigned char)(cur->ip >> 24),
 				(unsigned char)(cur->ip >> 16),
 				(unsigned char)(cur->ip >> 8),
-						    cur->ip & 0xff,
+				                cur->ip & 0xff,
 				(unsigned char)(cur->mask >> 24),
 				(unsigned char)(cur->mask >> 16),
 				(unsigned char)(cur->mask >> 8),
-						    cur->mask & 0xff);
-#endif
+				                cur->mask & 0xff);
 		if ((config->rmt_ip & cur->mask) == cur->ip)
 			return cur->allow_deny == 'A';   /* Allow/Deny */
 	}
@@ -1338,67 +1334,64 @@ static int checkPerm(const char *path, const char *request)
 
 	/* This could stand some work */
 	for (cur = config->auth; cur; cur = cur->next) {
+		size_t l;
+
 		p0 = cur->before_colon;
 		if (prev != NULL && strcmp(prev, p0) != 0)
 			continue;       /* find next identical */
 		p = cur->after_colon;
-#if DEBUG
-		fprintf(stderr, "checkPerm: '%s' ? '%s'\n", p0, request);
-#endif
-		{
-			size_t l = strlen(p0);
+		if (DEBUG)
+			fprintf(stderr, "checkPerm: '%s' ? '%s'\n", p0, request);
 
-			if (strncmp(p0, path, l) == 0 &&
-					    (l == 1 || path[l] == '/' || path[l] == 0)) {
-				char *u;
-				/* path match found.  Check request */
-				/* for check next /path:user:password */
-				prev = p0;
-				u = strchr(request, ':');
-				if (u == NULL) {
-					/* bad request, ':' required */
-					break;
-				}
+		l = strlen(p0);
+		if (strncmp(p0, path, l) == 0
+		 && (l == 1 || path[l] == '/' || path[l] == '\0')
+		) {
+			char *u;
+			/* path match found.  Check request */
+			/* for check next /path:user:password */
+			prev = p0;
+			u = strchr(request, ':');
+			if (u == NULL) {
+				/* bad request, ':' required */
+				break;
+			}
 
-#if ENABLE_FEATURE_HTTPD_AUTH_MD5
-				{
-					char *cipher;
-					char *pp;
+			if (ENABLE_FEATURE_HTTPD_AUTH_MD5) {
+				char *cipher;
+				char *pp;
 
 				if (strncmp(p, request, u-request) != 0) {
-						/* user uncompared */
-						continue;
-					}
-					pp = strchr(p, ':');
-					if (pp && pp[1] == '$' && pp[2] == '1' &&
-							pp[3] == '$' && pp[4]) {
-						pp++;
-						cipher = pw_encrypt(u+1, pp);
-						if (strcmp(cipher, pp) == 0)
-							goto set_remoteuser_var;   /* Ok */
-						/* unauthorized */
-						continue;
-					}
+					/* user uncompared */
+					continue;
 				}
-#endif
-				if (strcmp(p, request) == 0) {
-#if ENABLE_FEATURE_HTTPD_AUTH_MD5
-set_remoteuser_var:
-#endif
-					config->remoteuser = strdup(request);
-					if (config->remoteuser)
-						config->remoteuser[(u - request)] = 0;
-					return 1;   /* Ok */
+				pp = strchr(p, ':');
+				if (pp && pp[1] == '$' && pp[2] == '1' &&
+						pp[3] == '$' && pp[4]) {
+					pp++;
+					cipher = pw_encrypt(u+1, pp);
+					if (strcmp(cipher, pp) == 0)
+						goto set_remoteuser_var;   /* Ok */
+					/* unauthorized */
+					continue;
 				}
-				/* unauthorized */
 			}
+
+			if (strcmp(p, request) == 0) {
+set_remoteuser_var:
+				config->remoteuser = strdup(request);
+				if (config->remoteuser)
+					config->remoteuser[(u - request)] = 0;
+				return 1;   /* Ok */
+			}
+			/* unauthorized */
 		}
 	}   /* for */
 
 	return prev == NULL;
 }
 
-#endif  /* CONFIG_FEATURE_HTTPD_BASIC_AUTH */
+#endif  /* FEATURE_HTTPD_BASIC_AUTH */
 
 /****************************************************************************
  *
@@ -1539,9 +1532,8 @@ BAD_REQUEST:
 				config->found_moved_temporarily = url;
 			}
 		}
-#if DEBUG
-		fprintf(stderr, "url='%s', args=%s\n", url, config->query);
-#endif
+		if (DEBUG)
+			fprintf(stderr, "url='%s', args=%s\n", url, config->query);
 
 		test = url;
 		ip_allowed = checkPermIP();
@@ -1563,9 +1555,8 @@ BAD_REQUEST:
 				if (count <= 0)
 					break;
 
-#if DEBUG
-				fprintf(stderr, "Header: '%s'\n", buf);
-#endif
+				if (DEBUG)
+					fprintf(stderr, "header: '%s'\n", buf);
 
 #if ENABLE_FEATURE_HTTPD_CGI
 				/* try and do our best to parse more lines */
@@ -1602,7 +1593,7 @@ BAD_REQUEST:
 					decodeBase64(test);
 					credentials = checkPerm(url, test);
 				}
-#endif          /* CONFIG_FEATURE_HTTPD_BASIC_AUTH */
+#endif          /* FEATURE_HTTPD_BASIC_AUTH */
 
 			} /* while extra header reading */
 		}
@@ -1611,9 +1602,9 @@ BAD_REQUEST:
 			break;
 
 		if (strcmp(strrchr(url, '/') + 1, httpd_conf) == 0 || ip_allowed == 0) {
-				/* protect listing [/path]/httpd_conf or IP deny */
+			/* protect listing [/path]/httpd_conf or IP deny */
 #if ENABLE_FEATURE_HTTPD_CGI
-FORBIDDEN:      /* protect listing /cgi-bin */
+FORBIDDEN:		/* protect listing /cgi-bin */
 #endif
 			sendHeaders(HTTP_FORBIDDEN);
 			break;
@@ -1648,7 +1639,7 @@ FORBIDDEN:      /* protect listing /cgi-bin */
 			if (prequest != request_GET)
 				sendHeaders(HTTP_NOT_IMPLEMENTED);
 			else {
-#endif  /* CONFIG_FEATURE_HTTPD_CGI */
+#endif  /* FEATURE_HTTPD_CGI */
 				if (purl[-1] == '/')
 					strcpy(purl, "index.html");
 				if (stat(test, &sb) == 0) {
@@ -1663,17 +1654,16 @@ FORBIDDEN:      /* protect listing /cgi-bin */
 #endif
 	} while (0);
 
-# if DEBUG
-	fprintf(stderr, "closing socket\n\n");
-# endif
-# if ENABLE_FEATURE_HTTPD_CGI
+	if (DEBUG)
+		fprintf(stderr, "closing socket\n\n");
+#if ENABLE_FEATURE_HTTPD_CGI
 	free(cookie);
 	free(content_type);
 	free(config->referer); config->referer = NULL;
-#  if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+# if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 	free(config->remoteuser); config->remoteuser = NULL;
-#  endif
 # endif
+#endif
 	shutdown(config->accepted_socket, SHUT_WR);
 
 	/* Properly wait for remote to closed */
@@ -1742,7 +1732,7 @@ static int miniHttpd(int server)
 		bb_error_msg("connection from IP=%s, port %u",
 				config->rmt_ip_str, config->port);
 #endif
-#endif /* CONFIG_FEATURE_HTTPD_CGI */
+#endif /* FEATURE_HTTPD_CGI */
 
 		/* set the KEEPALIVE option to cull dead connections */
 		on = 1;
@@ -1779,7 +1769,7 @@ static int miniHttpd_inetd(void)
 				(unsigned char)(config->rmt_ip >> 24),
 				(unsigned char)(config->rmt_ip >> 16),
 				(unsigned char)(config->rmt_ip >> 8),
-						    config->rmt_ip & 0xff);
+				                config->rmt_ip & 0xff);
 #endif
 	config->port = ntohs(fromAddrLen.sin_port);
 	handleIncoming();

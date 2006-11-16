@@ -1196,7 +1196,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Options:\n" \
 	"\t-c FILE\t\tSpecifies configuration file. (default httpd.conf)\n" \
 	"\t-p PORT\t\tServer port (default 80)\n" \
-	"\t-i\t\tAssume that we are started frim inetd\n" \
+	"\t-i\t\tAssume that we are started from inetd\n" \
 	"\t-f\t\tDo not daemonize\n" \
 	USE_FEATURE_HTTPD_SETUID("\t-u USER[:GRP]\tSet uid/gid after binding to port\n") \
 	USE_FEATURE_HTTPD_BASIC_AUTH("\t-r REALM\tAuthentication Realm for Basic Authentication\n") \
