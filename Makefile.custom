@@ -9,6 +9,12 @@ busybox.links: $(srctree)/applets/busybox.mkll $(objtree)/include/autoconf.h $(s
 	$(Q)-$(SHELL) $^ >$@
 
 .PHONY: install
+ifeq ($(CONFIG_INSTALL_APPLET_SYMLINKS),y)
+INSTALL_OPTS:= --symlinks
+endif
+ifeq ($(CONFIG_INSTALL_APPLET_HARDLINKS),y)
+INSTALL_OPTS:= --hardlinks
+endif
 install: $(srctree)/applets/install.sh busybox busybox.links
 	$(Q)DO_INSTALL_LIBS="$(strip $(LIBBUSYBOX_SONAME) $(DO_INSTALL_LIBS))" \
 		$(SHELL) $< $(CONFIG_PREFIX) $(INSTALL_OPTS)
