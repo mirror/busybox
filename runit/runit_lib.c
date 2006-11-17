@@ -519,6 +519,7 @@ void taia_uint(struct taia *t,unsigned s)
 
 
 /*** stralloc_cat.c ***/
+#if 0
 
 int stralloc_cat(stralloc *sato,const stralloc *safrom)
 {
@@ -577,6 +578,7 @@ int stralloc_copys(stralloc *sa,const char *s)
 
 GEN_ALLOC_append(stralloc,char,s,len,a,i,n,x,30,stralloc_readyplus,stralloc_append)
 
+#endif /* stralloc */
 
 /*** iopause.c ***/
 
@@ -643,7 +645,7 @@ int ndelay_on(int fd)
 
 int open_append(const char *fn)
 {
-	return open(fn,O_WRONLY | O_NDELAY | O_APPEND | O_CREAT,0600);
+	return open(fn, O_WRONLY|O_NDELAY|O_APPEND|O_CREAT, 0600);
 }
 
 
@@ -651,7 +653,7 @@ int open_append(const char *fn)
 
 int open_read(const char *fn)
 {
-	return open(fn,O_RDONLY | O_NDELAY);
+	return open(fn, O_RDONLY|O_NDELAY);
 }
 
 
@@ -667,12 +669,12 @@ int open_trunc(const char *fn)
 
 int open_write(const char *fn)
 {
-	return open(fn,O_WRONLY | O_NDELAY);
+	return open(fn, O_WRONLY|O_NDELAY);
 }
 
 
 /*** openreadclose.c ***/
-
+#if 0
 int openreadclose(const char *fn,stralloc *sa,unsigned bufsize)
 {
 	int fd;
@@ -684,10 +686,11 @@ int openreadclose(const char *fn,stralloc *sa,unsigned bufsize)
 	if (readclose(fd,sa,bufsize) == -1) return -1;
 	return 1;
 }
+#endif
 
 
 /*** pathexec_env.c ***/
-
+#if 0
 static stralloc plus;
 static stralloc tmp;
 
@@ -748,10 +751,10 @@ void pathexec(char **argv)
 	pathexec_run(*argv,argv,e);
 	free(e);
 }
-
+#endif
 
 /*** pathexec_run.c ***/
-
+#if 0
 static stralloc tmp;
 
 void pathexec_run(const char *file,char *const *argv,char *const *envp)
@@ -792,7 +795,7 @@ void pathexec_run(const char *file,char *const *argv,char *const *envp)
 		path += 1;
 	}
 }
-
+#endif
 
 /*** pmatch.c ***/
 
@@ -853,7 +856,7 @@ int prot_uid(int uid)
 
 
 /*** readclose.c ***/
-
+#if 0
 int readclose_append(int fd,stralloc *sa,unsigned bufsize)
 {
 	int r;
@@ -871,7 +874,7 @@ int readclose(int fd,stralloc *sa,unsigned bufsize)
 	if (!stralloc_copys(sa,"")) { close(fd); return -1; }
 	return readclose_append(fd,sa,bufsize);
 }
-
+#endif
 
 /*** scan_ulong.c ***/
 

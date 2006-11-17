@@ -5,5 +5,8 @@
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
 lib-y:=
-lib-$(CONFIG_CHPST) += chpst.o
+lib-$(CONFIG_RUNSV) += runsv.o runit_lib.o
+lib-$(CONFIG_RUNSVDIR) += runsvdir.o runit_lib.o
+lib-$(CONFIG_SV) += sv.o runit_lib.o
 lib-$(CONFIG_SVLOGD) += svlogd.o runit_lib.o
+lib-$(CONFIG_CHPST) += chpst.o

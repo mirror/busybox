@@ -2571,6 +2571,16 @@ USE_FEATURE_MDEV_CONFIG( \
 	"$ runlevel /var/run/utmp\n" \
 	"N 2"
 
+#define runsv_trivial_usage \
+	"dir"
+#define runsv_full_usage \
+	"Start and monitor a service and optionally an appendant log service."
+
+#define runsvdir_trivial_usage \
+	"[-P] dir"
+#define runsvdir_full_usage \
+	"Start a runsv process for each subdirectory."
+
 #define rx_trivial_usage \
 	"FILE"
 #define rx_full_usage \
@@ -2843,6 +2853,12 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"Options:\n" \
 	"\t-r\tuse BSD sum algorithm (1K blocks)\n" \
 	"\t-s\tuse System V sum algorithm (512byte blocks)"
+
+#define sv_trivial_usage \
+	"[-v] [-w sec] command service..."
+#define sv_full_usage \
+	"Report the current status and control the state of services " \
+	"monitored by the runsv supervisor."
 
 #define svlogd_trivial_usage \
 	"[-ttv] [-r c] [-R abc] [-l len] [-b buflen] dir..."

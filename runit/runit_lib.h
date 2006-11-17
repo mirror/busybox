@@ -233,7 +233,7 @@ int ta_append(ta *x,const type *i) \
 
 
 /*** stralloc.h ***/
-
+#if 0
 GEN_ALLOC_typedef(stralloc,char,s,len,a)
 
 extern int stralloc_ready(stralloc *,unsigned);
@@ -256,7 +256,7 @@ extern int stralloc_catlong0(stralloc *,long,unsigned);
 #define stralloc_catuint0(sa,i,n) (stralloc_catulong0((sa),(i),(n)))
 #define stralloc_catint0(sa,i,n) (stralloc_catlong0((sa),(i),(n)))
 #define stralloc_catint(sa,i) (stralloc_catlong0((sa),(i),0))
-
+#endif
 
 /*** iopause.h ***/
 
@@ -290,9 +290,9 @@ extern int open_write(const char *);
 
 
 /*** openreadclose.h ***/
-
+#if 0
 extern int openreadclose(const char *,stralloc *,unsigned);
-
+#endif
 
 /*** pathexec.h ***/
 
@@ -313,10 +313,10 @@ extern int prot_uid(int);
 
 
 /*** readclose.h ***/
-
+#if 0
 extern int readclose_append(int,stralloc *,unsigned);
 extern int readclose(int,stralloc *,unsigned);
-
+#endif
 
 /*** scan.h ***/
 

@@ -5,6 +5,28 @@
 
 menu "Runit Utilities"
 
+config RUNSV
+	bool "runsv"
+	default n
+	help
+	  runsv starts and monitors a service and optionally an appendant log
+	  service.
+
+config RUNSVDIR
+	bool "runsvdir"
+	default n
+	help
+	  runsvdir starts a runsv process for each subdirectory, or symlink to
+	  a directory, in the services directory dir, up to a limit of 1000
+	  subdirectories, and restarts a runsv process if it terminates.
+
+config SV
+	bool "sv"
+	default n
+	help
+	  sv reports the current status and controls the state of services
+	  monitored by the runsv supervisor.
+
 config SVLOGD
 	bool "svlogd"
 	default n
