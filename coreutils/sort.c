@@ -51,7 +51,7 @@ static struct sort_key
 
 static char *get_key(char *str, struct sort_key *key, int flags)
 {
-	int start=0,end,len,i,j;
+	int start = 0, end = 0, len, i, j;
 
 	/* Special case whole string, so we don't have to make a copy */
 	if(key->range[0]==1 && !key->range[1] && !key->range[2] && !key->range[3]
@@ -83,6 +83,7 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 	/* Key with explicit separator starts after separator */
 	if(key_separator && str[start]==key_separator) start++;
 	/* Strip leading whitespace if necessary */
+//XXX: skip_whitespace()
 	if(flags&FLAG_b) while(isspace(str[start])) start++;
 	/* Strip trailing whitespace if necessary */
 	if(flags&FLAG_bb) while(end>start && isspace(str[end-1])) end--;
