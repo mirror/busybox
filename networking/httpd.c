@@ -1659,9 +1659,11 @@ FORBIDDEN:		/* protect listing /cgi-bin */
 #if ENABLE_FEATURE_HTTPD_CGI
 	free(cookie);
 	free(content_type);
-	free(config->referer); config->referer = NULL;
+	free(config->referer);
+	config->referer = NULL;
 # if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	free(config->remoteuser); config->remoteuser = NULL;
+	free(config->remoteuser);
+	config->remoteuser = NULL;
 # endif
 #endif
 	shutdown(config->accepted_socket, SHUT_WR);
