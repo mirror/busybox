@@ -30,12 +30,12 @@ config NITPICK
 	  You have been warned.
 
 config DESKTOP
-	bool "Enable options for full-blown desktop systems."
+	bool "Enable options for full-blown desktop systems"
 	default n
 	help
 	  Enable options and features which are not essential.
 	  Select this only if you plan to use busybox on full-blown
-	  desktop machine with common Linux distro, not on an ebmbedded box.
+	  desktop machine with common Linux distro, not on an embedded box.
 
 choice
 	prompt "Buffer allocation policy"
