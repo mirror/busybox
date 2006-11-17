@@ -5,7 +5,7 @@
 %.bflt: %_unstripped
 	$(CROSS_COMPILE)elf2flt $(ELF2FLTFLAGS) $< -o $@
 
-busybox.links: $(srctree)/applets/busybox.mkll $(srctree)/include/applets.h
+busybox.links: $(srctree)/applets/busybox.mkll $(objtree)/include/autoconf.h $(srctree)/include/applets.h
 	$(Q)-$(SHELL) $^ >$@
 
 .PHONY: install
