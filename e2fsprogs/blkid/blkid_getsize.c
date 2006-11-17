@@ -15,7 +15,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#if HAVE_ERRNO_H
+#ifdef HAVE_ERRNO_H
 #include <errno.h>
 #endif
 #include <fcntl.h>

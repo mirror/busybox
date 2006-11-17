@@ -20,23 +20,11 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <limits.h>
-#include <errno.h>
-#include <unistd.h>
 #include <sys/resource.h>
 
-#if (PRIO_PROCESS < CHAR_MIN) || (PRIO_PROCESS > CHAR_MAX)
-#error Assumption violated : PRIO_PROCESS value
-#endif
-#if (PRIO_PGRP < CHAR_MIN) || (PRIO_PGRP > CHAR_MAX)
-#error Assumption violated : PRIO_PGRP value
-#endif
-#if (PRIO_USER < CHAR_MIN) || (PRIO_USER > CHAR_MAX)
-#error Assumption violated : PRIO_USER value
-#endif
+void BUG_bad_PRIO_PROCESS(void);
+void BUG_bad_PRIO_PGRP(void);
+void BUG_bad_PRIO_USER(void);
 
 int renice_main(int argc, char **argv)
 {
@@ -48,6 +36,14 @@ int renice_main(int argc, char **argv)
 	int adjustment, new_priority;
 	unsigned who;
 	char *arg;
+
+	/* Yes, they are not #defines in glibc 2.4! #if won't work */
+	if (PRIO_PROCESS < CHAR_MIN || PRIO_PROCESS > CHAR_MAX)
+		BUG_bad_PRIO_PROCESS();
+	if (PRIO_PGRP < CHAR_MIN || PRIO_PGRP > CHAR_MAX)
+		BUG_bad_PRIO_PGRP();
+	if (PRIO_USER < CHAR_MIN || PRIO_USER > CHAR_MAX)
+		BUG_bad_PRIO_USER();
 
 	arg = *++argv;
 

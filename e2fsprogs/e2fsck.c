@@ -4309,7 +4309,7 @@ static int process_block(ext2_filsys fs,
 			 * Should never happen, since only directories
 			 * get called with BLOCK_FLAG_HOLE
 			 */
-#if DEBUG_E2FSCK
+#ifdef DEBUG_E2FSCK
 			printf("process_block() called with blk == 0, "
 			       "blockcnt=%d, inode %lu???\n",
 			       blockcnt, p->ino);

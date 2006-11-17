@@ -16,15 +16,15 @@
  * 93/10/30	- Creation
  */
 
-#if HAVE_ERRNO_H
+#ifdef HAVE_ERRNO_H
 #include <errno.h>
 #endif
-#if HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#if HAVE_EXT2_IOCTLS
+#ifdef HAVE_EXT2_IOCTLS
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #endif
@@ -39,7 +39,7 @@
 
 int fgetsetflags (const char * name, unsigned long * get_flags, unsigned long set_flags)
 {
-#if HAVE_EXT2_IOCTLS
+#ifdef HAVE_EXT2_IOCTLS
 	struct stat buf;
 	int fd, r, f, save_errno = 0;
 

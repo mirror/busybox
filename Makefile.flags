@@ -11,7 +11,7 @@ CPPFLAGS += \
 	-D_GNU_SOURCE -DNDEBUG \
 	$(if $(CONFIG_LFS),-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64) \
 	-D"BB_VER=KBUILD_STR($(BB_VER))" -DBB_BT=AUTOCONF_TIMESTAMP \
-	-Wall -Wstrict-prototypes -Wshadow -Werror \
+	-Wall -Wstrict-prototypes -Wshadow -Werror -Wundef \
 	-funsigned-char -fno-builtin-strlen -finline-limit=0 -static-libgcc \
 	-Os -falign-functions=1 -falign-jumps=1 -falign-loops=1 \
 	-fomit-frame-pointer -ffunction-sections -fdata-sections

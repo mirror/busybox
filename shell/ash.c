@@ -42,6 +42,7 @@
  * When debugging is on, debugging info will be written to ./trace and
  * a quit signal will generate a core dump.
  */
+#define DEBUG 0
 
 
 #define IFS_BROKEN
@@ -50,7 +51,7 @@
 
 #include "busybox.h"
 
-#ifdef DEBUG
+#if DEBUG
 #define _GNU_SOURCE
 #endif
 
@@ -104,7 +105,7 @@ static int *dash_errno;
 #error "Do not even bother, ash will not run on uClinux"
 #endif
 
-#ifdef DEBUG
+#if DEBUG
 #define _DIAGASSERT(assert_expr) assert(assert_expr)
 #else
 #define _DIAGASSERT(assert_expr)
@@ -582,7 +583,7 @@ static const char dolatstr[] = { CTLVAR, VSNORMAL|VSQUOTE, '@', '=', '\0' };
 static const char illnum[] = "Illegal number: %s";
 static const char homestr[] = "HOME";
 
-#ifdef DEBUG
+#if DEBUG
 #define TRACE(param)    trace param
 #define TRACEV(param)   tracev param
 #else
@@ -1937,7 +1938,7 @@ struct shparam {
 #define uflag optlist[12]
 #define viflag optlist[13]
 
-#ifdef DEBUG
+#if DEBUG
 #define nolog optlist[14]
 #define debug optlist[15]
 #endif
@@ -1964,7 +1965,7 @@ static const char *const optletters_optnames[] = {
 	"b"   "notify",
 	"u"   "nounset",
 	"\0"  "vi",
-#ifdef DEBUG
+#if DEBUG
 	"\0"  "nolog",
 	"\0"  "debug",
 #endif
@@ -2011,7 +2012,7 @@ static int redirectsafe(union node *, int);
 /*      show.h     */
 
 
-#ifdef DEBUG
+#if DEBUG
 static void showtree(union node *);
 static void trace(const char *, ...);
 static void tracev(const char *, va_list);
@@ -2536,7 +2537,7 @@ static void exverror(int, const char *, va_list)
 static void
 exraise(int e)
 {
-#ifdef DEBUG
+#if DEBUG
 	if (handler == NULL)
 		abort();
 #endif
@@ -2596,7 +2597,7 @@ exvwarning(const char *msg, va_list ap)
 static void
 exverror(int cond, const char *msg, va_list ap)
 {
-#ifdef DEBUG
+#if DEBUG
 	if (msg) {
 		TRACE(("exverror(%d, \"", cond));
 		TRACEV((msg, ap));
@@ -2785,7 +2786,7 @@ evaltree(union node *n, int flags)
 	    getpid(), n, n->type, flags));
 	switch (n->type) {
 	default:
-#ifdef DEBUG
+#if DEBUG
 		out1fmt("Node type = %d\n", n->type);
 		fflush(stdout);
 		break;
@@ -4481,7 +4482,7 @@ commandcmd(int argc, char **argv)
 			verify |= VERIFY_VERBOSE;
 		else if (c == 'v')
 			verify |= VERIFY_BRIEF;
-#ifdef DEBUG
+#if DEBUG
 		else if (c != 'p')
 			abort();
 #endif
@@ -4907,7 +4908,7 @@ expari(int quotes)
 
 		while (*p != CTLARI) {
 			p--;
-#ifdef DEBUG
+#if DEBUG
 			if (p < start) {
 				sh_error("missing CTLARI (shouldn't happen)");
 			}
@@ -5100,7 +5101,7 @@ subevalvar(char *p, char *str, int strloc, int subtype, int startloc, int varfla
 	}
 
 	subtype -= VSTRIMRIGHT;
-#ifdef DEBUG
+#if DEBUG
 	if (subtype < 0 || subtype > 3)
 		abort();
 #endif
@@ -5223,7 +5224,7 @@ record:
 		goto end;
 	}
 
-#ifdef DEBUG
+#if DEBUG
 	switch (subtype) {
 	case VSTRIMLEFT:
 	case VSTRIMLEFTMAX:
@@ -6460,7 +6461,7 @@ set_curjob(struct job *jp, unsigned mode)
 	jpp = curp;
 	switch (mode) {
 	default:
-#ifdef DEBUG
+#if DEBUG
 		abort();
 #endif
 	case CUR_DELETE:
@@ -6581,7 +6582,7 @@ usage:
 			while ((c = nextopt("ls:")) != '\0')
 				switch (c) {
 				default:
-#ifdef DEBUG
+#if DEBUG
 					abort();
 #endif
 				case 'l':
@@ -6647,7 +6648,7 @@ usage:
 }
 #endif /* JOBS */
 
-#if defined(JOBS) || defined(DEBUG)
+#if defined(JOBS) || DEBUG
 static int
 jobno(const struct job *jp)
 {
@@ -7827,7 +7828,7 @@ chkmail(void)
 		if (*p == '\0')
 			continue;
 		for (q = p ; *q ; q++);
-#ifdef DEBUG
+#if DEBUG
 		if (q[-1] != '/')
 			abort();
 #endif
@@ -7921,7 +7922,7 @@ ash_main(int argc, char **argv)
 			goto state4;
 	}
 	handler = &jmploc;
-#ifdef DEBUG
+#if DEBUG
 	opentrace();
 	trputs("Shell args:  ");  trargs(argv);
 #endif
@@ -7988,7 +7989,7 @@ state4: /* XXX ??? - why isn't this before the "if" statement */
 #if PROFILE
 	monitor(0);
 #endif
-#if GPROF
+#ifdef GPROF
 	{
 		extern void _mcleanup(void);
 		_mcleanup();
@@ -8266,7 +8267,7 @@ stalloc(size_t nbytes)
 void
 stunalloc(pointer p)
 {
-#ifdef DEBUG
+#if DEBUG
 	if (!p || (stacknxt < (char *)p) || ((char *)p < stackp->space)) {
 		write(2, "stunalloc\n", 10);
 		abort();
@@ -8844,7 +8845,7 @@ setarg0:
 void
 optschanged(void)
 {
-#ifdef DEBUG
+#if DEBUG
 	opentrace();
 #endif
 	setinteractive(iflag);
@@ -9913,7 +9914,7 @@ static int
 readtoken(void)
 {
 	int t;
-#ifdef DEBUG
+#if DEBUG
 	int alreadyseen = tokpushback;
 #endif
 
@@ -9963,7 +9964,7 @@ top:
 	}
 out:
 	checkkwd = 0;
-#ifdef DEBUG
+#if DEBUG
 	if (!alreadyseen)
 	    TRACE(("token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
 	else
@@ -11053,7 +11054,7 @@ openredirect(union node *redir)
 			goto ecreate;
 		break;
 	default:
-#ifdef DEBUG
+#if DEBUG
 		abort();
 #endif
 		/* Fall through to eliminate warning. */
@@ -11255,7 +11256,7 @@ redirectsafe(union node *redir, int flags)
 
 /*      show.c    */
 
-#ifdef DEBUG
+#if DEBUG
 static void shtree(union node *, int, char *, FILE*);
 static void shcmd(union node *, FILE *);
 static void sharg(union node *, FILE *);
@@ -11714,7 +11715,7 @@ setsignal(int signo)
 				action = S_CATCH;
 			break;
 		case SIGQUIT:
-#ifdef DEBUG
+#if DEBUG
 			if (debug)
 				break;
 #endif
@@ -13659,7 +13660,7 @@ static arith_t arith (const char *expr, int *perrcode)
 #endif /* CONFIG_ASH_MATH_SUPPORT */
 
 
-#ifdef DEBUG
+#if DEBUG
 const char *applet_name = "debug stuff usage";
 int main(int argc, char **argv)
 {

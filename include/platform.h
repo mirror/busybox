@@ -34,7 +34,7 @@
 #endif
 
 #undef inline
-#if __STDC_VERSION__ > 199901L
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ > 199901L
 /* it's a keyword */
 #else
 # if __GNUC_PREREQ (2,7)

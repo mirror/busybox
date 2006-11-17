@@ -13,20 +13,20 @@
 
 #include <stdio.h>
 #include <string.h>
-#if HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #include <stdlib.h>
 #include <string.h>
-#if HAVE_SYS_TYPES_H
+#ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
 #include <sys/stat.h>
 #include <dirent.h>
-#if HAVE_ERRNO_H
+#ifdef HAVE_ERRNO_H
 #include <errno.h>
 #endif
-#if HAVE_SYS_MKDEV_H
+#ifdef HAVE_SYS_MKDEV_H
 #include <sys/mkdev.h>
 #endif
 
