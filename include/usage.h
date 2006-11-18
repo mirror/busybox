@@ -2127,18 +2127,14 @@ USE_FEATURE_MDEV_CONFIG( \
 	"$ nameif -c /etc/my_mactab_file\n" \
 
 #if ENABLE_NC_SERVER || ENABLE_NC_EXTRA
-#define NC_BR1 "["
-#define NC_BR2 "]"
 #define NC_OPTIONS_STR "\n\nOptions:"
 #else
-#define NC_BR1
-#define NC_BR2
 #define NC_OPTIONS_STR
 #endif
 
 #define nc_trivial_usage \
-	NC_BR1 USE_NC_EXTRA("iw")USE_NC_SERVER("-l") NC_BR2 USE_NC_SERVER(" [-p PORT]") \
-	" [" USE_NC_EXTRA("-f FILENAME|") "{IPADDR PORTNUM}]" USE_NC_EXTRA(" [-e COMMAND]")
+	USE_NC_EXTRA("[-iN] [-wN] ")USE_NC_SERVER("[-l] [-p PORT] ") \
+	"["USE_NC_EXTRA("-f FILENAME|")"IPADDR PORTNUM]"USE_NC_EXTRA(" [-e COMMAND]")
 #define nc_full_usage \
 	"Netcat opens a pipe to IP:port" USE_NC_EXTRA(" or file") \
 	NC_OPTIONS_STR \
