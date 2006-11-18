@@ -40,7 +40,8 @@ static inline void push(pid_t pid)
 
 static int pid_is_exec(pid_t pid, const char *name)
 {
-	char buf[32], *execbuf;
+	char buf[sizeof("/proc//exe") + sizeof(int)*3];
+	char *execbuf;
 	int equal;
 
 	sprintf(buf, "/proc/%d/exe", pid);
@@ -56,7 +57,7 @@ static int pid_is_exec(pid_t pid, const char *name)
 static int pid_is_user(int pid, int uid)
 {
 	struct stat sb;
-	char buf[32];
+	char buf[sizeof("/proc/") + sizeof(int)*3];
 
 	sprintf(buf, "/proc/%d", pid);
 	if (stat(buf, &sb) != 0)
@@ -66,7 +67,7 @@ static int pid_is_user(int pid, int uid)
 
 static int pid_is_cmd(pid_t pid, const char *name)
 {
-	char buf[32];
+	char buf[sizeof("/proc//stat") + sizeof(int)*3];
 	FILE *f;
 	int c;
 
@@ -115,7 +116,6 @@ static void do_pidfile(void)
 		fclose(f);
 	} else if (errno != ENOENT)
 		bb_perror_msg_and_die("open pidfile %s", pidfile);
-
 }
 
 static void do_procinit(void)
@@ -146,28 +146,28 @@ static void do_procinit(void)
 
 static int do_stop(void)
 {
-	RESERVE_CONFIG_BUFFER(what, 1024);
+	char *what;
 	struct pid_list *p;
 	int killed = 0;
 
 	do_procinit();
 
 	if (cmdname)
-		strcpy(what, cmdname);
+		what = xstrdup(cmdname);
 	else if (execname)
-		strcpy(what, execname);
+		what = xstrdup(execname);
 	else if (pidfile)
-		sprintf(what, "process in pidfile `%.200s'", pidfile);
+		what = xasprintf("process in pidfile '%s'", pidfile);
 	else if (userspec)
-		sprintf(what, "process(es) owned by `%s'", userspec);
+		what = xasprintf("process(es) owned by '%s'", userspec);
 	else
-		bb_error_msg_and_die ("internal error, please report");
+		bb_error_msg_and_die("internal error, please report");
 
 	if (!found) {
 		if (!quiet)
-			printf("no %s found; none killed.\n", what);
+			printf("no %s found; none killed\n", what);
 		if (ENABLE_FEATURE_CLEAN_UP)
-			RELEASE_CONFIG_BUFFER(what);
+			free(what);
 		return -1;
 	}
 	for (p = found; p; p = p->next) {
@@ -183,10 +183,10 @@ static int do_stop(void)
 		for (p = found; p; p = p->next)
 			if(p->pid < 0)
 				printf(" %d", -p->pid);
-		printf(").\n");
+		puts(")");
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
-		RELEASE_CONFIG_BUFFER(what);
+		free(what);
 	return killed;
 }
 

@@ -23,7 +23,7 @@
 #include "common.h"
 
 
-static char *saved_pidfile;
+static const char *saved_pidfile;
 
 static void pidfile_delete(void)
 {
@@ -36,14 +36,14 @@ int pidfile_acquire(const char *pidfile)
 	int pid_fd;
 	if (!pidfile) return -1;
 
-	pid_fd = open(pidfile, O_CREAT | O_WRONLY, 0644);
+	pid_fd = open(pidfile, O_CREAT|O_WRONLY|O_TRUNC, 0644);
 	if (pid_fd < 0) {
-		bb_perror_msg("unable to open pidfile %s", pidfile);
+		bb_perror_msg("cannot open pidfile %s", pidfile);
 	} else {
 		lockf(pid_fd, F_LOCK, 0);
 		if (!saved_pidfile)
 			atexit(pidfile_delete);
-		saved_pidfile = (char *) pidfile;
+		saved_pidfile = pidfile;
 	}
 
 	return pid_fd;

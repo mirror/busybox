@@ -272,27 +272,32 @@ int read_config(const char *file)
 		if (keywords[i].def[0])
 			keywords[i].handler(keywords[i].def, keywords[i].var);
 
-	if (!(in = fopen(file, "r"))) {
-		bb_error_msg("unable to open config file: %s", file);
+	in = fopen(file, "r");
+	if (!in) {
+		bb_error_msg("cannot open config file: %s", file);
 		return 0;
 	}
 
 	while (fgets(buffer, READ_CONFIG_BUF_SIZE, in)) {
 		char debug_orig[READ_CONFIG_BUF_SIZE];
+		char *p;
 
 		lm++;
-		if (strchr(buffer, '\n')) *(strchr(buffer, '\n')) = '\0';
+		p = strchr(buffer, '\n');
+		if (p) *p = '\0';
 		if (ENABLE_FEATURE_UDHCP_DEBUG) strcpy(debug_orig, buffer);
-		if (strchr(buffer, '#')) *(strchr(buffer, '#')) = '\0';
+		p = strchr(buffer, '#');
+		if (p) *p = '\0';
 
 		if (!(token = strtok(buffer, " \t"))) continue;
 		if (!(line = strtok(NULL, ""))) continue;
 
 		/* eat leading whitespace */
-		line = line + strspn(line, " \t=");
+		line = skip_whitespace(line);
 		/* eat trailing whitespace */
-		for (i = strlen(line); i > 0 && isspace(line[i - 1]); i--);
-		line[i] = '\0';
+		i = strlen(line) - 1;
+		while (i >= 0 && isspace(line[i]))
+			line[i--] = '\0';
 
 		for (i = 0; keywords[i].keyword[0]; i++)
 			if (!strcasecmp(token, keywords[i].keyword))
@@ -311,14 +316,14 @@ int read_config(const char *file)
 
 void write_leases(void)
 {
-	FILE *fp;
-	unsigned int i;
-	char buf[255];
+	int fp;
+	unsigned i;
 	time_t curr = time(0);
 	unsigned long tmp_time;
 
-	if (!(fp = fopen(server_config.lease_file, "w"))) {
-		bb_error_msg("unable to open %s for writing", server_config.lease_file);
+	fp = open(server_config.lease_file, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+	if (fp < 0) {
+		bb_error_msg("cannot open %s for writing", server_config.lease_file);
 		return;
 	}
 
@@ -334,33 +339,38 @@ void write_leases(void)
 				else leases[i].expires -= curr;
 			} /* else stick with the time we got */
 			leases[i].expires = htonl(leases[i].expires);
-			fwrite(&leases[i], sizeof(struct dhcpOfferedAddr), 1, fp);
+			// FIXME: error check??
+			full_write(fp, &leases[i], sizeof(leases[i]));
 
-			/* Then restore it when done. */
+			/* then restore it when done */
 			leases[i].expires = tmp_time;
 		}
 	}
-	fclose(fp);
+	close(fp);
 
 	if (server_config.notify_file) {
-		sprintf(buf, "%s %s", server_config.notify_file, server_config.lease_file);
-		system(buf);
+		char *cmd = xasprintf("%s %s", server_config.notify_file, server_config.lease_file);
+		system(cmd);
+		free(cmd);
 	}
 }
 
 
 void read_leases(const char *file)
 {
-	FILE *fp;
+	int fp;
 	unsigned int i = 0;
 	struct dhcpOfferedAddr lease;
 
-	if (!(fp = fopen(file, "r"))) {
-		bb_error_msg("unable to open %s for reading", file);
+	fp = open(file, O_RDONLY);
+	if (fp < 0) {
+		bb_error_msg("cannot open %s for reading", file);
 		return;
 	}
 
-	while (i < server_config.max_leases && (fread(&lease, sizeof lease, 1, fp) == 1)) {
+	while (i < server_config.max_leases
+	 && full_read(fp, &lease, sizeof(lease)) == sizeof(lease)
+	) {
 		/* ADDME: is it a static lease */
 		if (lease.yiaddr >= server_config.start && lease.yiaddr <= server_config.end) {
 			lease.expires = ntohl(lease.expires);
@@ -373,5 +383,5 @@ void read_leases(const char *file)
 		}
 	}
 	DEBUG("Read %d leases", i);
-	fclose(fp);
+	close(fp);
 }

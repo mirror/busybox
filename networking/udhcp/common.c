@@ -29,9 +29,7 @@ long uptime(void)
  */
 static inline void sanitize_fds(void)
 {
-	int fd = open(bb_dev_null, O_RDWR, 0);
-	if (fd < 0)
-		return;
+	int fd = xopen(bb_dev_null, O_RDWR);
 	while (fd < 3)
 		fd = dup(fd);
 	close(fd);
