@@ -64,7 +64,7 @@ int run_parts(char **args, const unsigned char test_mode, char **env)
 		if (test_mode & 2) {
 			return(2);
 		}
-		bb_perror_msg_and_die("unable to open `%s'", arg0);
+		bb_perror_msg_and_die("cannot open '%s'", arg0);
 	}
 
 	for (i = 0; i < entries; i++) {

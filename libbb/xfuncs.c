@@ -412,7 +412,7 @@ DIR *warn_opendir(const char *path)
 	DIR *dp;
 
 	if ((dp = opendir(path)) == NULL) {
-		bb_perror_msg("unable to open `%s'", path);
+		bb_perror_msg("cannot open '%s'", path);
 		return NULL;
 	}
 	return dp;
@@ -424,7 +424,7 @@ DIR *xopendir(const char *path)
 	DIR *dp;
 
 	if ((dp = opendir(path)) == NULL)
-		bb_perror_msg_and_die("unable to open `%s'", path);
+		bb_perror_msg_and_die("cannot open '%s'", path);
 	return dp;
 }
 

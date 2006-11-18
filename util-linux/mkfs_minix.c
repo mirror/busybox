@@ -312,17 +312,17 @@ static void write_tables(void)
 	if (lseek(DEV, 0, SEEK_SET))
 		bb_error_msg_and_die("seek to boot block failed in write_tables");
 	if (512 != write(DEV, boot_block_buffer, 512))
-		bb_error_msg_and_die("unable to clear boot sector");
+		bb_error_msg_and_die("cannot clear boot sector");
 	if (BLOCK_SIZE != lseek(DEV, BLOCK_SIZE, SEEK_SET))
 		bb_error_msg_and_die("seek failed in write_tables");
 	if (BLOCK_SIZE != write(DEV, super_block_buffer, BLOCK_SIZE))
-		bb_error_msg_and_die("unable to write super-block");
+		bb_error_msg_and_die("cannot write super-block");
 	if (IMAPS * BLOCK_SIZE != write(DEV, inode_map, IMAPS * BLOCK_SIZE))
-		bb_error_msg_and_die("unable to write inode map");
+		bb_error_msg_and_die("cannot write inode map");
 	if (ZMAPS * BLOCK_SIZE != write(DEV, zone_map, ZMAPS * BLOCK_SIZE))
-		bb_error_msg_and_die("unable to write zone map");
+		bb_error_msg_and_die("cannot write zone map");
 	if (INODE_BUFFER_SIZE != write(DEV, inode_buffer, INODE_BUFFER_SIZE))
-		bb_error_msg_and_die("unable to write inodes");
+		bb_error_msg_and_die("cannot write inodes");
 
 }
 
@@ -570,7 +570,7 @@ static void setup_tables(void)
 	 * /sbin/mkfs.minix -i 200 test.fs
 	 * */
 	if (i >= 999) {
-		bb_error_msg_and_die("unable to allocate buffers for maps");
+		bb_error_msg_and_die("cannot allocate buffers for maps");
 	}
 	FIRSTZONE = NORM_FIRSTZONE;
 	inode_map = xmalloc(IMAPS * BLOCK_SIZE);
@@ -807,7 +807,7 @@ goodbye:
 	strcpy(tmp + 2, ".badblocks");
 	DEV = xopen(device_name, O_RDWR);
 	if (fstat(DEV, &statbuf) < 0)
-		bb_error_msg_and_die("unable to stat %s", device_name);
+		bb_error_msg_and_die("cannot stat %s", device_name);
 	if (!S_ISBLK(statbuf.st_mode))
 		check = 0;
 	else if (statbuf.st_rdev == 0x0300 || statbuf.st_rdev == 0x0340)

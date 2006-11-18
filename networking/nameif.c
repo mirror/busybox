@@ -78,7 +78,7 @@ int nameif_main(int argc, char **argv)
 
 		while (*a) {
 			if (strlen(*a) > IF_NAMESIZE)
-				bb_error_msg_and_die("interface name `%s' "
+				bb_error_msg_and_die("interface name '%s' "
 					    "too long", *a);
 			ch = xzalloc(sizeof(mactable_t));
 			ch->ifname = xstrdup(*a++);
@@ -104,7 +104,7 @@ int nameif_main(int argc, char **argv)
 			ch = xzalloc(sizeof(mactable_t));
 			ch->ifname = xstrndup(line_ptr, name_length);
 			if (name_length > IF_NAMESIZE)
-				bb_error_msg_and_die("interface name `%s' "
+				bb_error_msg_and_die("interface name '%s' "
 						"too long", ch->ifname);
 			line_ptr += name_length;
 			line_ptr += strspn(line_ptr, " \t");

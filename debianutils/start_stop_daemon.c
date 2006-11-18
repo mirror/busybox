@@ -315,5 +315,5 @@ int start_stop_daemon_main(int argc, char **argv)
 	}
 #endif
 	execv(startas, argv);
-	bb_perror_msg_and_die ("unable to start %s", startas);
+	bb_perror_msg_and_die("cannot start %s", startas);
 }

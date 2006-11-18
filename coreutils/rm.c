@@ -38,7 +38,7 @@ int rm_main(int argc, char **argv)
 			const char *base = bb_get_last_path_component(*argv);
 
 			if ((base[0] == '.') && (!base[1] || ((base[1] == '.') && !base[2]))) {
-				bb_error_msg("cannot remove `.' or `..'");
+				bb_error_msg("cannot remove '.' or '..'");
 			} else if (remove_file(*argv, flags) >= 0) {
 				continue;
 			}

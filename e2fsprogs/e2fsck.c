@@ -13377,7 +13377,7 @@ restart:
 				 * happen, unless the hardware or
 				 * device driver is being bogus.
 				 */
-				bb_error_msg(_("unable to set superblock flags on %s"), ctx->device_name);
+				bb_error_msg(_("cannot set superblock flags on %s"), ctx->device_name);
 				bb_error_msg_and_die(0);
 			}
 			retval = e2fsck_run_ext3_journal(ctx);

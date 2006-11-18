@@ -917,7 +917,7 @@ end_option:
 			new_mode.c_cflag &= (~CIBAUD);
 			if (speed_was_set || memcmp(&mode, &new_mode, sizeof(mode)) != 0)
 #endif
-				perror_on_device_and_die ("%s: unable to perform all requested operations");
+				perror_on_device_and_die("%s: cannot perform all requested operations");
 		}
 	}
 

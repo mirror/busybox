@@ -126,7 +126,7 @@ int crontab_main(int ac, char **av)
 	if (repFile) {
 		repFd = GetReplaceStream(caller, repFile);
 		if (repFd < 0)
-			bb_error_msg_and_die("unable to read replacement file");
+			bb_error_msg_and_die("cannot read replacement file");
 	}
 
 	/*
@@ -191,7 +191,7 @@ int crontab_main(int ac, char **av)
 				close(fd);
 				rename(path, pas->pw_name);
 			} else {
-				bb_error_msg("unable to create %s/%s", CDir, path);
+				bb_error_msg("cannot create %s/%s", CDir, path);
 			}
 			close(repFd);
 		}
@@ -224,7 +224,7 @@ int crontab_main(int ac, char **av)
 			/* loop */
 		}
 		if (fo == NULL) {
-			bb_error_msg("unable to append to %s/%s", CDir, CRONUPDATE);
+			bb_error_msg("cannot append to %s/%s", CDir, CRONUPDATE);
 		}
 	}
 	return 0;

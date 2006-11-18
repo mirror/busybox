@@ -260,11 +260,11 @@ int login_main(int argc, char **argv)
 		USE_FEATURE_UTMP(
 			safe_strncpy(utent.ut_host, opt_host, sizeof(utent.ut_host));
 		)
-		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s' from "
-					"`%.200s'", short_tty, opt_host);
+		snprintf(fromhost, sizeof(fromhost)-1, " on '%.100s' from "
+					"'%.200s'", short_tty, opt_host);
 	}
 	else
-		snprintf(fromhost, sizeof(fromhost)-1, " on `%.100s'", short_tty);
+		snprintf(fromhost, sizeof(fromhost)-1, " on '%.100s'", short_tty);
 
 	bb_setpgrp;
 
@@ -302,7 +302,7 @@ auth_failed:
 		bb_do_delay(FAIL_DELAY);
 		puts("Login incorrect");
 		if (++count == 3) {
-			syslog(LOG_WARNING, "invalid password for `%s'%s",
+			syslog(LOG_WARNING, "invalid password for '%s'%s",
 						username, fromhost);
 			return EXIT_FAILURE;
 		}
@@ -319,7 +319,7 @@ auth_failed:
 		security_context_t old_tty_sid, new_tty_sid;
 
 		if (get_default_context(username, NULL, &user_sid)) {
-			bb_error_msg_and_die("unable to get SID for %s",
+			bb_error_msg_and_die("cannot get SID for %s",
 					username);
 		}
 		if (getfilecon(full_tty, &old_tty_sid) < 0) {

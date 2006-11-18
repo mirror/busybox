@@ -441,7 +441,7 @@ static const struct systypes i386_sys_types[] = {
 	{ "\x07" "HPFS/NTFS" },        /* OS/2 IFS, eg, HPFS or NTFS or QNX */
 	{ "\x0a" "OS/2 Boot Manager" },/* OS/2 Boot Manager */
 	{ "\x0b" "Win95 FAT32" },
-	{ "\x0c" "Win95 FAT32 (LBA)" },/* LBA really is `Extended Int 13h' */
+	{ "\x0c" "Win95 FAT32 (LBA)" },/* LBA really is 'Extended Int 13h' */
 	{ "\x0e" "Win95 FAT16 (LBA)" },
 	{ "\x0f" "Win95 Ext'd (LBA)" },
 	{ "\x11" "Hidden FAT12" },
@@ -1053,7 +1053,7 @@ read_extended(int ext)
 		if (partitions >= MAXIMUM_PARTS) {
 			/* This is not a Linux restriction, but
 			   this program uses arrays of size MAXIMUM_PARTS.
-			   Do not try to `improve' this test. */
+			   Do not try to 'improve' this test. */
 			struct pte *pre = &ptes[partitions-1];
 #ifdef CONFIG_FEATURE_FDISK_WRITABLE
 			printf(_("Warning: deleting partitions after %d\n"),
@@ -1716,7 +1716,7 @@ change_sysid(void)
 			printf(_("Type 0 means free space to many systems\n"
 				   "(but not to Linux). Having partitions of\n"
 				   "type 0 is probably unwise. You can delete\n"
-				   "a partition using the `d' command.\n"));
+				   "a partition using the 'd' command.\n"));
 			/* break; */
 		}
 
@@ -2434,7 +2434,7 @@ new_partition(void)
 			}
 			else
 				printf(_("Invalid partition number "
-					 "for type `%c'\n"), c);
+					 "for type '%c'\n"), c);
 		}
 	}
 }

@@ -720,7 +720,7 @@ sgi_add_partition(int n, int sys)
 			first = read_int(0, 0, last-1, 0, mesg);
 			if (first != 0) {
 				printf(_("It is highly recommended that eleventh partition\n"
-						"covers the entire disk and is of type `SGI volume'\n"));
+						"covers the entire disk and is of type 'SGI volume'\n"));
 			}
 		} else {
 			first = freelist[0].first;
@@ -749,7 +749,7 @@ sgi_add_partition(int n, int sys)
 		last = last; /* align to cylinder if You know how ... */
 	if ( (sys == SGI_VOLUME) && (first != 0 || last != sgi_get_lastblock() ) )
 		printf(_("It is highly recommended that eleventh partition\n"
-			"covers the entire disk and is of type `SGI volume'\n"));
+			"covers the entire disk and is of type 'SGI volume'\n"));
 	sgi_set_partition(n, first, last-first, sys);
 }
 

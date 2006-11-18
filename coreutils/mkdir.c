@@ -44,7 +44,7 @@ int mkdir_main (int argc, char **argv)
 	if(opt & 1) {
 		mode = 0777;
 		if (!bb_parse_mode (smode, &mode)) {
-			bb_error_msg_and_die ("invalid mode `%s'", smode);
+			bb_error_msg_and_die ("invalid mode '%s'", smode);
 		}
 	}
 	if(opt & 2)

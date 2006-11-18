@@ -4299,12 +4299,12 @@ int insmod_ng_main( int argc, char **argv)
 	len = st.st_size;
 	map = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (map == MAP_FAILED) {
-		bb_perror_msg_and_die("cannot mmap `%s'", filename);
+		bb_perror_msg_and_die("cannot mmap '%s'", filename);
 	}
 
 	ret = syscall(__NR_init_module, map, len, options);
 	if (ret != 0) {
-		bb_perror_msg_and_die("cannot insert `%s': %s (%li)",
+		bb_perror_msg_and_die("cannot insert '%s': %s (%li)",
 				filename, moderror(errno), ret);
 	}
 

@@ -2786,7 +2786,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 		newpid = vfork();
 
 		if (newpid == -1) {
-			DBGPRINTF(("FORKEXEC: ERROR, unable to vfork()!\n"));
+			DBGPRINTF(("FORKEXEC: ERROR, cannot vfork()!\n"));
 			return (-1);
 		}
 

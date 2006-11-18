@@ -43,7 +43,7 @@ static const char ERR_UNKNOWN_READING[] =
 static const char ERR_PERMISSION_DENIED[] =
 	"error: permission denied on key '%s'\n";
 static const char ERR_PRELOAD_FILE[] =
-	"error: unable to open preload file '%s'\n";
+	"error: cannot open preload file '%s'\n";
 static const char WARN_BAD_LINE[] =
 	"warning: %s(%d): invalid syntax, continuing...\n";
 

@@ -38,7 +38,7 @@ int rmdir_main(int argc, char **argv)
 
 		do {
 			if (rmdir(path) < 0) {
-				bb_perror_msg("`%s'", path);	/* Match gnu rmdir msg. */
+				bb_perror_msg("'%s'", path);	/* Match gnu rmdir msg. */
 				status = EXIT_FAILURE;
 			} else if (flags) {
 				/* Note: path was not empty or null since rmdir succeeded. */
@@ -46,7 +46,7 @@ int rmdir_main(int argc, char **argv)
 				/* Path is now just the parent component.  Note that dirname
 				 * returns "." if there are no parents.  We must distinguish
 				 * this from the case of the original path starting with '.'.
-		 */
+				 */
 				if (do_dot || (*path != '.') || path[1]) {
 					continue;
 				}

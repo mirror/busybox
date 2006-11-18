@@ -425,11 +425,11 @@
 	"Displays the current time in the given FORMAT, or sets the system date.\n" \
 	"\nOptions:\n" \
 	"\t-R\t\tOutputs RFC-822 compliant date string\n" \
-	"\t-d STRING\tDisplays time described by STRING, not `now'\n" \
+	"\t-d STRING\tDisplays time described by STRING, not 'now'\n" \
 USE_FEATURE_DATE_ISOFMT( \
 	"\t-I[TIMESPEC]\tOutputs an ISO-8601 compliant date/time string\n" \
-	"\t\t\tTIMESPEC=`date' (or missing) for date only,\n" \
-	"\t\t\t`hours', `minutes', or `seconds' for date and,\n" \
+	"\t\t\tTIMESPEC='date' (or missing) for date only,\n" \
+	"\t\t\t'hours', 'minutes', or 'seconds' for date and,\n" \
 	"\t\t\ttime to the indicated precision\n" \
 	"\t-D hint\t\tUse 'hint' as date format, via strptime()\n" \
 ) \
@@ -774,8 +774,8 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t                            or 0\n" \
 	"\tlength STRING               length of STRING\n" \
 	"\tquote TOKEN                 interpret TOKEN as a string, even if\n" \
-	"\t                            it is a keyword like `match' or an\n" \
-	"\t                            operator like `/'\n" \
+	"\t                            it is a keyword like 'match' or an\n" \
+	"\t                            operator like '/'\n" \
 	"\t( EXPRESSION )              value of EXPRESSION\n\n" \
 	"Beware that many operators need to be escaped or quoted for shells.\n" \
 	"Comparisons are arithmetic if both ARGs are numbers, else\n" \
@@ -980,11 +980,11 @@ USE_FEATURE_DATE_ISOFMT( \
 	"while true ; do\n" \
 	" case $1 in\n" \
 	"   -a|--a-long) echo \"Option a\" ; shift ;;\n" \
-	"   -b|--b-long) echo \"Option b, argument `$2'\" ; shift 2 ;;\n" \
+	"   -b|--b-long) echo \"Option b, argument '$2'\" ; shift 2 ;;\n" \
 	"   -c|--c-long)\n" \
 	"     case \"$2\" in\n" \
 	"       \"\") echo \"Option c, no argument\"; shift 2 ;;\n" \
-	"       *)  echo \"Option c, argument `$2'\" ; shift 2 ;;\n" \
+	"       *)  echo \"Option c, argument '$2'\" ; shift 2 ;;\n" \
 	"     esac ;;\n" \
 	"   --) shift ; break ;;\n" \
 	"   *) echo \"Internal error!\" ; exit 1 ;;\n" \
@@ -1639,7 +1639,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-s\tLog to stderr as well as the system log\n" \
 	"\t-t TAG\tLog using the specified tag (defaults to user name)\n" \
 	"\t-p PRIORITY\tEnter the message with the specified priority\n" \
-	"\t\tThis may be numerical or a ``facility.level'' pair"
+	"\t\tThis may be numerical or a 'facility.level' pair"
 #define logger_example_usage \
 	"$ logger \"hello\"\n"
 
@@ -1943,7 +1943,7 @@ USE_FEATURE_MDEV_CONFIG( \
 	"[-dq] TEMPLATE"
 #define mktemp_full_usage \
 	"Creates a temporary file with its name based on TEMPLATE.\n" \
-	"TEMPLATE is any name with six `Xs' (i.e., /tmp/temp.XXXXXX).\n\n" \
+	"TEMPLATE is any name with six 'Xs' (i.e., /tmp/temp.XXXXXX).\n\n" \
 	"Options:\n" \
 	"\t-d\t\tMake a directory instead of a file\n" \
 	"\t-q\t\tFail silently if an error occurs"
@@ -3125,7 +3125,7 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"\t-m max_ttl\tSet the max time-to-live (max number of hops)\n" \
 	"\t-p port#\tSet the base UDP port number used in probes\n" \
 	"\t\t(default is 33434)\n" \
-	"\t-q nqueries\tSet the number of probes per ``ttl'' to nqueries\n" \
+	"\t-q nqueries\tSet the number of probes per 'ttl' to nqueries\n" \
 	"\t\t(default is 3)\n" \
 	"\t-s src_addr\tUse the following IP address as the source address\n" \
 	"\t-t tos\tSet the type-of-service in probe packets to the following value\n" \

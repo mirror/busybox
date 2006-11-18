@@ -25,7 +25,7 @@ int remove_file(const char *path, int flags)
 
 	if (lstat(path, &path_stat) < 0) {
 		if (errno != ENOENT) {
-			bb_perror_msg("unable to stat `%s'", path);
+			bb_perror_msg("cannot stat '%s'", path);
 			return -1;
 		}
 
@@ -34,7 +34,7 @@ int remove_file(const char *path, int flags)
 
 	if (!path_exists) {
 		if (!(flags & FILEUTILS_FORCE)) {
-			bb_perror_msg("cannot remove `%s'", path);
+			bb_perror_msg("cannot remove '%s'", path);
 			return -1;
 		}
 		return 0;
@@ -53,7 +53,7 @@ int remove_file(const char *path, int flags)
 		if ((!(flags & FILEUTILS_FORCE) && access(path, W_OK) < 0 &&
 					isatty(0)) ||
 				(flags & FILEUTILS_INTERACTIVE)) {
-			fprintf(stderr, "%s: descend into directory `%s'? ", applet_name,
+			fprintf(stderr, "%s: descend into directory '%s'? ", applet_name,
 					path);
 			if (!bb_ask_confirmation())
 				return 0;
@@ -75,18 +75,18 @@ int remove_file(const char *path, int flags)
 		}
 
 		if (closedir(dp) < 0) {
-			bb_perror_msg("unable to close `%s'", path);
+			bb_perror_msg("cannot close '%s'", path);
 			return -1;
 		}
 
 		if (flags & FILEUTILS_INTERACTIVE) {
-			fprintf(stderr, "%s: remove directory `%s'? ", applet_name, path);
+			fprintf(stderr, "%s: remove directory '%s'? ", applet_name, path);
 			if (!bb_ask_confirmation())
 				return status;
 		}
 
 		if (rmdir(path) < 0) {
-			bb_perror_msg("unable to remove `%s'", path);
+			bb_perror_msg("cannot remove '%s'", path);
 			return -1;
 		}
 
@@ -96,13 +96,13 @@ int remove_file(const char *path, int flags)
 					!S_ISLNK(path_stat.st_mode) &&
 					isatty(0)) ||
 				(flags & FILEUTILS_INTERACTIVE)) {
-			fprintf(stderr, "%s: remove `%s'? ", applet_name, path);
+			fprintf(stderr, "%s: remove '%s'? ", applet_name, path);
 			if (!bb_ask_confirmation())
 				return 0;
 		}
 
 		if (unlink(path) < 0) {
-			bb_perror_msg("unable to remove `%s'", path);
+			bb_perror_msg("cannot remove '%s'", path);
 			return -1;
 		}
 

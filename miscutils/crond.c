@@ -654,7 +654,7 @@ static void SynchronizeDir(void)
 
 	remove(CRONUPDATE);
 	if (chdir(CDir) < 0) {
-		crondlog("\311unable to find %s\n", CDir);
+		crondlog("\311cannot find %s\n", CDir);
 	}
 	{
 		DIR *dir = opendir(".");
@@ -673,7 +673,7 @@ static void SynchronizeDir(void)
 			}
 			closedir(dir);
 		} else {
-			crondlog("\311Unable to open current dir!\n");
+			crondlog("\311cannot open current dir!\n");
 		}
 	}
 }
@@ -876,7 +876,7 @@ ForkJob(const char *user, CronLine * line, int mailFd,
 			close(mailFd);
 		}
 		execl(prog, prog, cmd, arg, NULL);
-		crondlog("\024unable to exec, user %s cmd %s %s %s\n", user, prog, cmd, arg);
+		crondlog("\024cannot exec, user %s cmd %s %s %s\n", user, prog, cmd, arg);
 		if (mailf) {
 			fdprintf(1, "Exec failed: %s -c %s\n", prog, arg);
 		}
@@ -926,7 +926,7 @@ static void RunJob(const char *user, CronLine * line)
 			line->cl_Shell);
 		line->cl_MailPos = lseek(mailFd, 0, SEEK_CUR);
 	} else {
-		crondlog("\024unable to create mail file user %s file %s, output to /dev/null\n", user, mailFile);
+		crondlog("\024cannot create mail file user %s file %s, output to /dev/null\n", user, mailFile);
 	}
 
 	ForkJob(user, line, mailFd, DEFAULT_SHELL, "-c", line->cl_Shell, mailFile);
@@ -1003,7 +1003,7 @@ static void RunJob(const char *user, CronLine * line)
 #endif
 
 		execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", line->cl_Shell, NULL);
-		crondlog("\024unable to exec, user %s cmd %s -c %s\n", user,
+		crondlog("\024cannot exec, user %s cmd %s -c %s\n", user,
 				 DEFAULT_SHELL, line->cl_Shell);
 		exit(0);
 	} else if (pid < 0) {

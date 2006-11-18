@@ -445,7 +445,7 @@ static void read_block(unsigned int nr, char *addr)
 		return;
 	}
 	if (BLOCK_SIZE * nr != lseek(IN, BLOCK_SIZE * nr, SEEK_SET)) {
-		printf("%s: unable to seek to block in file '%s'\n",
+		printf("%s: cannot seek to block in file '%s'\n",
 				bb_msg_read_error, current_name);
 		errors_uncorrected = 1;
 		memset(addr, 0, BLOCK_SIZE);
