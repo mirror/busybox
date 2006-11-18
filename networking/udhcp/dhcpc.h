@@ -3,9 +3,6 @@
 #ifndef _DHCPC_H
 #define _DHCPC_H
 
-/* grab define DEFAULT_SCRIPT */
-#include "libbb_udhcp.h"
-
 #define INIT_SELECTING	0
 #define REQUESTING	1
 #define BOUND		2
@@ -14,7 +11,6 @@
 #define INIT_REBOOT	5
 #define RENEW_REQUESTED 6
 #define RELEASED	7
-
 
 struct client_config_t {
 	char foreground;		/* Do not fork */
@@ -36,6 +32,17 @@ struct client_config_t {
 };
 
 extern struct client_config_t client_config;
+
+
+/*** clientpacket.h ***/
+
+unsigned long random_xid(void);
+int send_discover(unsigned long xid, unsigned long requested);
+int send_selecting(unsigned long xid, unsigned long server, unsigned long requested);
+int send_renew(unsigned long xid, unsigned long server, unsigned long ciaddr);
+int send_renew(unsigned long xid, unsigned long server, unsigned long ciaddr);
+int send_release(unsigned long server, unsigned long ciaddr);
+int get_raw_packet(struct dhcpMessage *payload, int fd);
 
 
 #endif

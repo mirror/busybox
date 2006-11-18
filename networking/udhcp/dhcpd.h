@@ -3,12 +3,6 @@
 #ifndef _DHCPD_H
 #define _DHCPD_H
 
-#include <netinet/ip.h>
-#include <netinet/udp.h>
-
-#include "libbb_udhcp.h"
-#include "leases.h"
-
 /************************************/
 /* Defaults _you_ may want to tweak */
 /************************************/
@@ -136,6 +130,61 @@ struct server_config_t {
 
 extern struct server_config_t server_config;
 extern struct dhcpOfferedAddr *leases;
+
+
+/*** leases.h ***/
+
+struct dhcpOfferedAddr {
+	uint8_t chaddr[16];
+	uint32_t yiaddr;	/* network order */
+	uint32_t expires;	/* host order */
+};
+
+extern uint8_t blank_chaddr[];
+
+void clear_lease(uint8_t *chaddr, uint32_t yiaddr);
+struct dhcpOfferedAddr *add_lease(uint8_t *chaddr, uint32_t yiaddr, unsigned long lease);
+int lease_expired(struct dhcpOfferedAddr *lease);
+struct dhcpOfferedAddr *oldest_expired_lease(void);
+struct dhcpOfferedAddr *find_lease_by_chaddr(uint8_t *chaddr);
+struct dhcpOfferedAddr *find_lease_by_yiaddr(uint32_t yiaddr);
+uint32_t find_address(int check_expired);
+
+
+/*** static_leases.h ***/
+
+/* Config file will pass static lease info to this function which will add it
+ * to a data structure that can be searched later */
+int addStaticLease(struct static_lease **lease_struct, uint8_t *mac, uint32_t *ip);
+/* Check to see if a mac has an associated static lease */
+uint32_t getIpByMac(struct static_lease *lease_struct, void *arg);
+/* Check to see if an ip is reserved as a static ip */
+uint32_t reservedIp(struct static_lease *lease_struct, uint32_t ip);
+/* Print out static leases just to check what's going on (debug code) */
+void printStaticLeases(struct static_lease **lease_struct);
+
+
+/*** serverpacket.h ***/
+
+int sendOffer(struct dhcpMessage *oldpacket);
+int sendNAK(struct dhcpMessage *oldpacket);
+int sendACK(struct dhcpMessage *oldpacket, uint32_t yiaddr);
+int send_inform(struct dhcpMessage *oldpacket);
+
+
+/*** files.h ***/
+
+struct config_keyword {
+	const char *keyword;
+	int (* const handler)(const char *line, void *var);
+	void *var;
+	const char *def;
+};
+
+int read_config(const char *file);
+void write_leases(void);
+void read_leases(const char *file);
+struct option_set *find_option(struct option_set *opt_list, char code);
 
 
 #endif

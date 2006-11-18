@@ -10,29 +10,9 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <fcntl.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/wait.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/ioctl.h>
-#include <time.h>
-
-#include "dhcpd.h"
-#include "arpping.h"
-#include "socket.h"
-#include "options.h"
-#include "files.h"
-#include "serverpacket.h"
 #include "common.h"
-#include "signalpipe.h"
-#include "static_leases.h"
+#include "dhcpd.h"
+#include "options.h"
 
 
 /* globals */
@@ -86,7 +66,7 @@ int udhcpd_main(int argc, char *argv[])
 	udhcp_sp_setup();
 
 	timeout_end = time(0) + server_config.auto_time;
-	while(1) { /* loop until universe collapses */
+	while (1) { /* loop until universe collapses */
 
 		if (server_socket < 0)
 			if ((server_socket = listen_socket(INADDR_ANY, SERVER_PORT, server_config.interface)) < 0) {
@@ -144,8 +124,7 @@ int udhcpd_main(int argc, char *argv[])
 		/* Look for a static lease */
 		static_lease_ip = getIpByMac(server_config.static_leases, &packet.chaddr);
 
-		if(static_lease_ip)
-		{
+		if (static_lease_ip) {
 			bb_info_msg("Found static lease: %x", static_lease_ip);
 
 			memcpy(&static_lease.chaddr, &packet.chaddr, 16);
@@ -154,10 +133,8 @@ int udhcpd_main(int argc, char *argv[])
 
 			lease = &static_lease;
 
-		}
-		else
-		{
-		lease = find_lease_by_chaddr(packet.chaddr);
+		} else {
+			lease = find_lease_by_chaddr(packet.chaddr);
 		}
 
 		switch (state[0]) {
@@ -245,4 +222,3 @@ int udhcpd_main(int argc, char *argv[])
 
 	return 0;
 }
-

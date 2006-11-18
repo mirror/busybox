@@ -1,10 +1,6 @@
 /* vi: set sw=4 ts=4: */
-#include <unistd.h>
-#include <string.h>
+
 #include <netinet/in.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <features.h>
 #if (__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined _NEWLIB_VERSION
 #include <netpacket/packet.h>
 #include <net/ethernet.h>
@@ -13,10 +9,8 @@
 #include <linux/if_packet.h>
 #include <linux/if_ether.h>
 #endif
-#include <errno.h>
 
 #include "common.h"
-#include "packet.h"
 #include "dhcpd.h"
 #include "options.h"
 
@@ -70,8 +64,9 @@ int udhcp_get_packet(struct dhcpMessage *packet, int fd)
 
 	if (packet->op == BOOTREQUEST && (vendor = get_option(packet, DHCP_VENDOR))) {
 		for (i = 0; broken_vendors[i][0]; i++) {
-			if (vendor[OPT_LEN - 2] == (uint8_t) strlen(broken_vendors[i]) &&
-			    !strncmp((char*)vendor, broken_vendors[i], vendor[OPT_LEN - 2])) {
+			if (vendor[OPT_LEN - 2] == (uint8_t)strlen(broken_vendors[i])
+			 && !strncmp((char*)vendor, broken_vendors[i], vendor[OPT_LEN - 2])
+			) {
 				DEBUG("broken client (%s), forcing broadcast",
 					broken_vendors[i]);
 				packet->flags |= htons(BROADCAST_FLAG);
@@ -114,15 +109,17 @@ uint16_t udhcp_checksum(void *addr, int count)
 
 
 /* Construct a ip/udp header for a packet, and specify the source and dest hardware address */
-int udhcp_raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_port,
-		   uint32_t dest_ip, int dest_port, uint8_t *dest_arp, int ifindex)
+int udhcp_raw_packet(struct dhcpMessage *payload,
+		uint32_t source_ip, int source_port,
+		uint32_t dest_ip, int dest_port, uint8_t *dest_arp, int ifindex)
 {
 	int fd;
 	int result;
 	struct sockaddr_ll dest;
 	struct udp_dhcp_packet packet;
 
-	if ((fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) < 0) {
+	fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
+	if (fd < 0) {
 		bb_perror_msg("socket");
 		return -1;
 	}
@@ -157,7 +154,8 @@ int udhcp_raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source
 	packet.ip.ttl = IPDEFTTL;
 	packet.ip.check = udhcp_checksum(&(packet.ip), sizeof(packet.ip));
 
-	result = sendto(fd, &packet, sizeof(struct udp_dhcp_packet), 0, (struct sockaddr *) &dest, sizeof(dest));
+	result = sendto(fd, &packet, sizeof(struct udp_dhcp_packet), 0,
+			(struct sockaddr *) &dest, sizeof(dest));
 	if (result <= 0) {
 		bb_perror_msg("sendto");
 	}
@@ -167,14 +165,16 @@ int udhcp_raw_packet(struct dhcpMessage *payload, uint32_t source_ip, int source
 
 
 /* Let the kernel do all the work for packet generation */
-int udhcp_kernel_packet(struct dhcpMessage *payload, uint32_t source_ip, int source_port,
-		   uint32_t dest_ip, int dest_port)
+int udhcp_kernel_packet(struct dhcpMessage *payload,
+		uint32_t source_ip, int source_port,
+		uint32_t dest_ip, int dest_port)
 {
 	int n = 1;
 	int fd, result;
 	struct sockaddr_in client;
 
-	if ((fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (fd < 0)
 		return -1;
 
 	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &n, sizeof(n)) == -1) {

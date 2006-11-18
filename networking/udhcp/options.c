@@ -4,13 +4,9 @@
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001
  */
 
-#include <stdlib.h>
-#include <string.h>
-
 #include "common.h"
 #include "dhcpd.h"
 #include "options.h"
-#include "files.h"
 
 
 /* supported options are easily added here */

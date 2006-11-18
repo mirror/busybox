@@ -4,21 +4,12 @@
  * Rewrite by Russ Dill <Russ.Dill@asu.edu> July 2001
  */
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <ctype.h>
-#include <netdb.h>
-
 #include <netinet/ether.h>
-#include "static_leases.h"
 
+#include "common.h"
 #include "dhcpd.h"
 #include "options.h"
-#include "files.h"
-#include "common.h"
+
 
 /*
  * Domain names may have 254 chars, and string options can be 254
@@ -51,7 +42,7 @@ static int read_mac(const char *line, void *arg)
 
 	temp_ether_addr = ether_aton(line);
 
-	if(temp_ether_addr == NULL)
+	if (temp_ether_addr == NULL)
 		retval = 0;
 	else
 		memcpy(mac_bytes, temp_ether_addr, 6);
@@ -217,7 +208,6 @@ static int read_opt(const char *const_line, void *arg)
 
 static int read_staticlease(const char *const_line, void *arg)
 {
-
 	char *line;
 	char *mac_string;
 	char *ip_string;
@@ -243,7 +233,6 @@ static int read_staticlease(const char *const_line, void *arg)
 	if (ENABLE_FEATURE_UDHCP_DEBUG) printStaticLeases(arg);
 
 	return 1;
-
 }
 
 
@@ -308,9 +297,9 @@ int read_config(const char *file)
 		for (i = 0; keywords[i].keyword[0]; i++)
 			if (!strcasecmp(token, keywords[i].keyword))
 				if (!keywords[i].handler(line, keywords[i].var)) {
-					bb_error_msg("failure parsing line %d of %s", lm, file);
+					bb_error_msg("cannot parse line %d of %s", lm, file);
 					if (ENABLE_FEATURE_UDHCP_DEBUG)
-						bb_error_msg("unable to parse '%s'", debug_orig);
+						bb_error_msg("cannot parse '%s'", debug_orig);
 					/* reset back to the default value */
 					keywords[i].handler(keywords[i].def, keywords[i].var);
 				}

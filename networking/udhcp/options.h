@@ -3,8 +3,6 @@
 #ifndef _OPTIONS_H
 #define _OPTIONS_H
 
-#include "packet.h"
-
 #define TYPE_MASK	0x0F
 
 enum {

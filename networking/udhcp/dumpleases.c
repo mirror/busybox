@@ -2,23 +2,11 @@
 /*
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
-#include <fcntl.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/wait.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <unistd.h>
 #include <getopt.h>
-#include <time.h>
 
+#include "common.h"
 #include "dhcpd.h"
-#include "leases.h"
-#include "libbb_udhcp.h"
+
 
 #define REMAINING 0
 #define ABSOLUTE 1
@@ -60,17 +48,16 @@ int dumpleases_main(int argc, char *argv[])
 	printf("Mac Address       IP-Address      Expires %s\n", mode == REMAINING ? "in" : "at");
 	/*     "00:00:00:00:00:00 255.255.255.255 Wed Jun 30 21:49:08 1993" */
 	while (fread(&lease, sizeof(lease), 1, fp)) {
-
-		for (i = 0; i < 6; i++) {
-			printf("%02x", lease.chaddr[i]);
-			if (i != 5) printf(":");
+		printf(":%02x"+1, lease.chaddr[0]);
+		for (i = 1; i < 6; i++) {
+			printf(":%02x", lease.chaddr[i]);
 		}
 		addr.s_addr = lease.yiaddr;
-		printf(" %-15s", inet_ntoa(addr));
+		printf(" %-15s ", inet_ntoa(addr));
 		expires = ntohl(lease.expires);
-		printf(" ");
 		if (mode == REMAINING) {
-			if (!expires) printf("expired\n");
+			if (!expires)
+				printf("expired\n");
 			else {
 				if (expires > 60*60*24) {
 					printf("%ld days, ", expires / (60*60*24));

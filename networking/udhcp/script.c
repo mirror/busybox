@@ -8,20 +8,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <string.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
 #include "common.h"
-#include "options.h"
 #include "dhcpd.h"
 #include "dhcpc.h"
+#include "options.h"
+
 
 /* get a rough idea of how long an option will be (rounding up...) */
 static const int max_option_length[] = {
@@ -76,7 +67,7 @@ static void fill_options(char *dest, uint8_t *option, struct dhcp_option *type_p
 
 	type = type_p->flags & TYPE_MASK;
 	optlen = option_lengths[type];
-	for(;;) {
+	for (;;) {
 		switch (type) {
 		case OPTION_IP_PAIR:
 			dest += sprintip(dest, "", option);

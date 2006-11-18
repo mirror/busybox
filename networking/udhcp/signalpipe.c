@@ -20,16 +20,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <unistd.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/select.h>
-
-
-#include "signalpipe.h"
 #include "common.h"
+
 
 static int signal_pipe[2];
 

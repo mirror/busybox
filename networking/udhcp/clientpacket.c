@@ -8,8 +8,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <string.h>
-#include <sys/socket.h>
 #include <features.h>
 #if (__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined _NEWLIB_VERSION
 #include <netpacket/packet.h>
@@ -19,19 +17,11 @@
 #include <linux/if_packet.h>
 #include <linux/if_ether.h>
 #endif
-#include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
 
-
-#include "dhcpd.h"
-#include "clientpacket.h"
-#include "options.h"
-#include "dhcpc.h"
 #include "common.h"
+#include "dhcpd.h"
+#include "dhcpc.h"
+#include "options.h"
 
 
 /* Create a random xid */
@@ -59,7 +49,7 @@ static void init_packet(struct dhcpMessage *packet, char type)
 	udhcp_init_header(packet, type);
 	memcpy(packet->chaddr, client_config.arp, 6);
 	if (client_config.clientid)
-	    add_option_string(packet->options, client_config.clientid);
+		add_option_string(packet->options, client_config.clientid);
 	if (client_config.hostname) add_option_string(packet->options, client_config.hostname);
 	if (client_config.fqdn) add_option_string(packet->options, client_config.fqdn);
 	add_option_string(packet->options, client_config.vendorclass);
@@ -97,7 +87,7 @@ int send_discover(unsigned long xid, unsigned long requested)
 	add_requests(&packet);
 	bb_info_msg("Sending discover...");
 	return udhcp_raw_packet(&packet, INADDR_ANY, CLIENT_PORT, INADDR_BROADCAST,
-				SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
+			SERVER_PORT, MAC_BCAST_ADDR, client_config.ifindex);
 }
 
 
@@ -188,10 +178,12 @@ int get_raw_packet(struct dhcpMessage *payload, int fd)
 	bytes = ntohs(packet.ip.tot_len);
 
 	/* Make sure its the right packet for us, and that it passes sanity checks */
-	if (packet.ip.protocol != IPPROTO_UDP || packet.ip.version != IPVERSION ||
-	    packet.ip.ihl != sizeof(packet.ip) >> 2 || packet.udp.dest != htons(CLIENT_PORT) ||
-	    bytes > (int) sizeof(struct udp_dhcp_packet) ||
-	    ntohs(packet.udp.len) != (uint16_t) (bytes - sizeof(packet.ip))) {
+	if (packet.ip.protocol != IPPROTO_UDP || packet.ip.version != IPVERSION
+	 || packet.ip.ihl != sizeof(packet.ip) >> 2
+	 || packet.udp.dest != htons(CLIENT_PORT)
+	 || bytes > (int) sizeof(struct udp_dhcp_packet)
+	 || ntohs(packet.udp.len) != (uint16_t)(bytes - sizeof(packet.ip))
+	) {
 		DEBUG("Unrelated/bogus packet");
 		return -2;
 	}

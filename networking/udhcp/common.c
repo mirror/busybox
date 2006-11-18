@@ -10,22 +10,10 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <paths.h>
-#include <sys/socket.h>
-#include <stdarg.h>
 #include <syslog.h>
 
 #include "common.h"
-#include "pidfile.h"
 
-
-static int daemonized;
 
 long uptime(void)
 {
@@ -61,7 +49,6 @@ void udhcp_background(const char *pidfile)
 	pid_fd = pidfile_acquire(pidfile);
 	setsid();
 	xdaemon(0, 0);
-	daemonized++;
 	logmode &= ~LOGMODE_STDIO;
 	pidfile_write_release(pid_fd);
 #endif /* __uClinux__ */

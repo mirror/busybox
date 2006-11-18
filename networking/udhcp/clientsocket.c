@@ -21,10 +21,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <netinet/in.h>
 #include <features.h>
 #if (__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1) || defined(_NEWLIB_VERSION)
 #include <netpacket/packet.h>
@@ -35,7 +31,6 @@
 #include <linux/if_ether.h>
 #endif
 
-#include "clientsocket.h"
 #include "common.h"
 
 
@@ -45,7 +40,8 @@ int raw_socket(int ifindex)
 	struct sockaddr_ll sock;
 
 	DEBUG("Opening raw socket on ifindex %d", ifindex);
-	if ((fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP))) < 0) {
+	fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
+	if (fd < 0) {
 		bb_perror_msg("socket");
 		return -1;
 	}
@@ -54,7 +50,7 @@ int raw_socket(int ifindex)
 	sock.sll_protocol = htons(ETH_P_IP);
 	sock.sll_ifindex = ifindex;
 	if (bind(fd, (struct sockaddr *) &sock, sizeof(sock)) < 0) {
-		bb_perror_msg("bind:");
+		bb_perror_msg("bind");
 		close(fd);
 		return -1;
 	}

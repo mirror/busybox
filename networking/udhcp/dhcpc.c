@@ -8,28 +8,13 @@
  * Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
  */
 
-#include <sys/file.h>
-#include <unistd.h>
 #include <getopt.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <signal.h>
-#include <time.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
-#include <errno.h>
 
 #include "common.h"
 #include "dhcpd.h"
 #include "dhcpc.h"
 #include "options.h"
-#include "clientpacket.h"
-#include "clientsocket.h"
-#include "socket.h"
-#include "signalpipe.h"
+
 
 static int state;
 /* Something is definitely wrong here. IPv4 addresses
