@@ -261,14 +261,16 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 
 	/* If the mount was successful, and we're maintaining an old-style
 	 * mtab file by hand, add the new entry to it now. */
-mtab:
+ mtab:
 	if (ENABLE_FEATURE_MTAB_SUPPORT && useMtab && !rc && !(vfsflags & MS_REMOUNT)) {
 		char *fsname;
 		FILE *mountTable = setmntent(bb_path_mtab_file, "a+");
 		int i;
 
-		if (!mountTable)
+		if (!mountTable) {
 			bb_error_msg("no %s",bb_path_mtab_file);
+			goto ret;
+		}
 
 		// Add vfs string flags
 
@@ -300,7 +302,7 @@ mtab:
 			free(fsname);
 		}
 	}
-
+ ret:
 	return rc;
 }
 
