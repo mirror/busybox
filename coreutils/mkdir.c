@@ -29,7 +29,7 @@ static const struct option mkdir_long_options[] = {
 };
 #endif
 
-int mkdir_main (int argc, char **argv)
+int mkdir_main(int argc, char **argv)
 {
 	mode_t mode = (mode_t)(-1);
 	int status = EXIT_SUCCESS;
@@ -41,13 +41,13 @@ int mkdir_main (int argc, char **argv)
 	applet_long_options = mkdir_long_options;
 #endif
 	opt = getopt32(argc, argv, "m:p", &smode);
-	if(opt & 1) {
+	if (opt & 1) {
 		mode = 0777;
-		if (!bb_parse_mode (smode, &mode)) {
-			bb_error_msg_and_die ("invalid mode '%s'", smode);
+		if (!bb_parse_mode(smode, &mode)) {
+			bb_error_msg_and_die("invalid mode '%s'", smode);
 		}
 	}
-	if(opt & 2)
+	if (opt & 2)
 		flags |= FILEUTILS_RECUR;
 
 	if (optind == argc) {
