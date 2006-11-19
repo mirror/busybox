@@ -830,12 +830,8 @@ int svlogd_main(int argc, char **argv)
 			if (ld->fddir == -1) continue;
 			if (ld->inst)
 				logmatch(ld);
-			if (ld->matcherr == 'e') {
-				fprintf(stderr, "%.*s%s",
-						printlen, line,
-						(ch != '\n') ? "...\n" : ""
-				);
-			}
+			if (ld->matcherr == 'e')
+				full_write(2, line, printlen);
 			if (ld->match != '+') continue;
 			buffer_pwrite(i, line, printlen);
 		}
@@ -859,6 +855,8 @@ int svlogd_main(int argc, char **argv)
 			/* linelen == no of chars incl. '\n' (or == stdin_cnt) */
 			for (i = 0; i < dirn; ++i) {
 				if (dir[i].fddir == -1) continue;
+				if (dir[i].matcherr == 'e')
+					full_write(2, lineptr, linelen);
 				if (dir[i].match != '+') continue;
 				buffer_pwrite(i, lineptr, linelen);
 			}
