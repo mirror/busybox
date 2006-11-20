@@ -539,6 +539,16 @@ USE_FEATURE_DATE_ISOFMT( \
 	"Filesystem           1k-blocks      Used Available Use% Mounted on\n" \
 	"/dev/sda3              8690864   8553540    137324  98% /\n"
 
+#define dhcprelay_trivial_usage \
+	"[client_device_list] [server_device]"
+#define dhcprelay_full_usage \
+	"Relays dhcp requests from client devices to server device"
+
+#define dhcprelay_trivial_usage \
+	"[client_device_list] [server_device]"
+#define dhcprelay_full_usage \
+	"Relays dhcp requests from client devices to server device"
+
 #define diff_trivial_usage \
 	"[-abdiNqrTstw] [-L LABEL] [-S FILE] [-U LINES] FILE1 FILE2"
 #define diff_full_usage \

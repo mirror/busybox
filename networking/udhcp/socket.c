@@ -63,23 +63,27 @@ int read_interface(char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
 		DEBUG("%s (our ip) = %s", ifr.ifr_name, inet_ntoa(our_ip->sin_addr));
 	}
 
-	if (ioctl(fd, SIOCGIFINDEX, &ifr) == 0) {
-		bb_perror_msg("SIOCGIFINDEX failed");
-		close(fd);
-		return -1;
+	if (ifindex) {
+		if (ioctl(fd, SIOCGIFINDEX, &ifr) == 0) {
+			bb_perror_msg("SIOCGIFINDEX failed");
+			close(fd);
+			return -1;
+		}
+		DEBUG("adapter index %d", ifr.ifr_ifindex);
+		*ifindex = ifr.ifr_ifindex;
 	}
 
-	DEBUG("adapter index %d", ifr.ifr_ifindex);
-	*ifindex = ifr.ifr_ifindex;
-	if (ioctl(fd, SIOCGIFHWADDR, &ifr) != 0) {
-		bb_perror_msg("SIOCGIFHWADDR failed");
-		close(fd);
-		return -1;
+	if (arp) {
+		if (ioctl(fd, SIOCGIFHWADDR, &ifr) != 0) {
+			bb_perror_msg("SIOCGIFHWADDR failed");
+			close(fd);
+			return -1;
+		}
+		memcpy(arp, ifr.ifr_hwaddr.sa_data, 6);
+		DEBUG("adapter hardware address %02x:%02x:%02x:%02x:%02x:%02x",
+			arp[0], arp[1], arp[2], arp[3], arp[4], arp[5]);
 	}
 
-	memcpy(arp, ifr.ifr_hwaddr.sa_data, 6);
-	DEBUG("adapter hardware address %02x:%02x:%02x:%02x:%02x:%02x",
-		arp[0], arp[1], arp[2], arp[3], arp[4], arp[5]);
 	return 0;
 }
 

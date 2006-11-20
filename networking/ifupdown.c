@@ -598,6 +598,9 @@ static const struct address_family_t *get_address_family(const struct address_fa
 {
 	int i;
 
+	if (!name)
+		return NULL;
+
 	for (i = 0; af[i]; i++) {
 		if (strcmp(af[i]->name, name) == 0) {
 			return af[i];
@@ -610,6 +613,9 @@ static const struct method_t *get_method(const struct address_family_t *af, char
 {
 	int i;
 
+	if (!name)
+		return NULL;
+
 	for (i = 0; i < af->n_methods; i++) {
 		if (strcmp(af->method[i].name, name) == 0) {
 			return &af->method[i];
@@ -620,6 +626,9 @@ static const struct method_t *get_method(const struct address_family_t *af, char
 
 static const llist_t *find_list_string(const llist_t *list, const char *string)
 {
+	if (string == NULL)
+		return NULL;
+
 	while (list) {
 		if (strcmp(list->data, string) == 0) {
 			return list;

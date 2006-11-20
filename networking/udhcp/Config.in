@@ -12,6 +12,15 @@ config APP_UDHCPD
 
 	  See http://udhcp.busybox.net for further details.
 
+config APP_DHCPRELAY
+	bool "dhcprelay"
+	default n
+	depends on APP_UDHCPD
+	help
+	  dhcprelay listens for dhcp requests on one or more interfaces
+	  and forwards these requests to a different interface or dhcp
+	  server.
+
 config APP_DUMPLEASES
 	bool "Lease display utility (dumpleases)"
 	default n
