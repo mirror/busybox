@@ -41,17 +41,10 @@ enum {
 	PINGINTERVAL = 1		/* second */
 };
 
-#define O_QUIET         (1 << 0)
-
-#define	A(bit)		rcvd_tbl[(bit)>>3]	/* identify byte in array */
-#define	B(bit)		(1 << ((bit) & 0x07))	/* identify bit in byte */
-#define	SET(bit)	(A(bit) |= B(bit))
-#define	CLR(bit)	(A(bit) &= (~B(bit)))
-#define	TST(bit)	(A(bit) & B(bit))
-
 static void ping(const char *host);
 
 /* common routines */
+
 static int in_cksum(unsigned short *buf, int sz)
 {
 	int nleft = sz;
@@ -75,8 +68,10 @@ static int in_cksum(unsigned short *buf, int sz)
 	return (ans);
 }
 
-/* simple version */
 #ifndef CONFIG_FEATURE_FANCY_PING
+
+/* simple version */
+
 static char *hostname;
 
 static void noresp(int ign)
@@ -153,14 +148,21 @@ int ping_main(int argc, char **argv)
 }
 
 #else /* ! CONFIG_FEATURE_FANCY_PING */
+
 /* full(er) version */
+
+#define OPT_STRING "qc:s:I:"
+enum {
+	OPT_QUIET = 1 << 0,
+};
+
 static struct sockaddr_in pingaddr;
 static struct sockaddr_in sourceaddr;
 static int pingsock = -1;
 static unsigned datalen; /* intentionally uninitialized to work around gcc bug */
 
 static unsigned long ntransmitted, nreceived, nrepeats, pingcount;
-static int myid, options;
+static int myid;
 static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
@@ -169,6 +171,12 @@ static struct hostent *hostent;
 static void sendping(int);
 static void pingstats(int);
 static void unpack(char *, int, struct sockaddr_in *);
+
+#define	A(bit)		rcvd_tbl[(bit)>>3]	/* identify byte in array */
+#define	B(bit)		(1 << ((bit) & 0x07))	/* identify bit in byte */
+#define	SET(bit)	(A(bit) |= B(bit))
+#define	CLR(bit)	(A(bit) &= (~B(bit)))
+#define	TST(bit)	(A(bit) & B(bit))
 
 /**************************************************************************/
 
@@ -304,7 +312,7 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 			dupflag = 0;
 		}
 
-		if (options & O_QUIET)
+		if (option_mask32 & OPT_QUIET)
 			return;
 
 		printf("%d bytes from %s: icmp_seq=%u", sz,
@@ -409,55 +417,26 @@ static int parse_nipquad(const char *str, struct sockaddr_in* addr)
 
 int ping_main(int argc, char **argv)
 {
-	char *thisarg;
+	char *opt_c, *opt_s, *opt_I;
 
 	datalen = DEFDATALEN; /* initialized here rather than in global scope to work around gcc bug */
 
-	argc--;
-	argv++;
-	/* Parse any options */
-	while (argc >= 1 && **argv == '-') {
-		thisarg = *argv;
-		thisarg++;
-		switch (*thisarg) {
-		case 'q':
-			options |= O_QUIET;
-			break;
-		case 'c':
-			if (--argc <= 0)
-				bb_show_usage();
-			argv++;
-			pingcount = xatoul(*argv);
-			break;
-		case 's':
-			if (--argc <= 0)
-				bb_show_usage();
-			argv++;
-			datalen = xatou16(*argv);
-			break;
-		case 'I':
-			if (--argc <= 0)
-				bb_show_usage();
-			argv++;
-/* ping6 accepts iface too:
-			if_index = if_nametoindex(*argv);
-			if (!if_index) ...
-   make it true for ping too. TODO.
-*/
-			if (parse_nipquad(*argv, &sourceaddr))
-				bb_show_usage();
-			break;
-		default:
+	/* exactly one argument needed */
+	opt_complementary = "=1";
+	getopt32(argc, argv, OPT_STRING, &opt_c, &opt_s, &opt_I);
+	if (option_mask32 & 2) pingcount = xatoul(opt_c); // -c
+	if (option_mask32 & 4) datalen = xatou16(opt_s); // -s
+	if (option_mask32 & 8) { // -I
+/* TODO: ping6 accepts iface too:
+		if_index = if_nametoindex(*argv);
+		if (!if_index) ...
+make it true for ping. */
+		if (parse_nipquad(opt_I, &sourceaddr))
 			bb_show_usage();
-		}
-		argc--;
-		argv++;
 	}
-	if (argc < 1)
-		bb_show_usage();
 
 	myid = (int16_t) getpid();
-	ping(*argv);
+	ping(argv[optind]);
 	return EXIT_SUCCESS;
 }
 #endif /* ! CONFIG_FEATURE_FANCY_PING */

@@ -53,19 +53,12 @@ enum {
 	PINGINTERVAL = 1		/* second */
 };
 
-#define O_QUIET         (1 << 0)
-#define O_VERBOSE       (1 << 1)
-
-#define	A(bit)		rcvd_tbl[(bit)>>3]	/* identify byte in array */
-#define	B(bit)		(1 << ((bit) & 0x07))	/* identify bit in byte */
-#define	SET(bit)	(A(bit) |= B(bit))
-#define	CLR(bit)	(A(bit) &= (~B(bit)))
-#define	TST(bit)	(A(bit) & B(bit))
-
 static void ping(const char *host);
 
-/* simple version */
 #ifndef CONFIG_FEATURE_FANCY_PING6
+
+/* simple version */
+
 static struct hostent *h;
 
 static void noresp(int ign)
@@ -142,14 +135,22 @@ int ping6_main(int argc, char **argv)
 }
 
 #else /* ! CONFIG_FEATURE_FANCY_PING6 */
+
 /* full(er) version */
+
+#define OPT_STRING "qvc:s:I:"
+enum {
+	OPT_QUIET = 1 << 0,
+	OPT_VERBOSE = 1 << 1,
+};
+
 static struct sockaddr_in6 pingaddr;
 static int pingsock = -1;
 static unsigned datalen; /* intentionally uninitialized to work around gcc bug */
 static int if_index;
 
 static unsigned long ntransmitted, nreceived, nrepeats, pingcount;
-static int myid, options;
+static int myid;
 static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
@@ -158,6 +159,12 @@ static struct hostent *hostent;
 static void sendping(int);
 static void pingstats(int);
 static void unpack(char *, int, struct sockaddr_in6 *, int);
+
+#define	A(bit)		rcvd_tbl[(bit)>>3]	/* identify byte in array */
+#define	B(bit)		(1 << ((bit) & 0x07))	/* identify bit in byte */
+#define	SET(bit)	(A(bit) |= B(bit))
+#define	CLR(bit)	(A(bit) &= (~B(bit)))
+#define	TST(bit)	(A(bit) & B(bit))
 
 /**************************************************************************/
 
@@ -294,7 +301,7 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 			dupflag = 0;
 		}
 
-		if (options & O_QUIET)
+		if (option_mask32 & OPT_QUIET)
 			return;
 
 		printf("%d bytes from %s: icmp6_seq=%u", sz,
@@ -336,7 +343,7 @@ static void ping(const char *host)
 #ifdef ICMP6_FILTER
 	{
 		struct icmp6_filter filt;
-		if (!(options & O_VERBOSE)) {
+		if (!(option_mask32 & OPT_VERBOSE)) {
 			ICMP6_FILTER_SETBLOCKALL(&filt);
 			ICMP6_FILTER_SETPASS(ICMP6_ECHO_REPLY, &filt);
 		} else {
@@ -416,57 +423,24 @@ static void ping(const char *host)
 
 int ping6_main(int argc, char **argv)
 {
-	char *thisarg;
+	char *opt_c, *opt_s, *opt_I;
 
 	datalen = DEFDATALEN; /* initialized here rather than in global scope to work around gcc bug */
 
-	argc--;
-	argv++;
-	/* Parse any options */
-	while (argc >= 1 && **argv == '-') {
-		thisarg = *argv;
-		thisarg++;
-		switch (*thisarg) {
-		case 'v':
-			options &= ~O_QUIET;
-			options |= O_VERBOSE;
-			break;
-		case 'q':
-			options &= ~O_VERBOSE;
-			options |= O_QUIET;
-			break;
-		case 'c':
-			if (--argc <= 0)
-				bb_show_usage();
-			argv++;
-			pingcount = xatoul(*argv);
-			break;
-		case 's':
-			if (--argc <= 0)
-				bb_show_usage();
-			argv++;
-			datalen = xatou16(*argv);
-			break;
-		case 'I':
-			if (--argc <= 0)
-				bb_show_usage();
-			argv++;
-			if_index = if_nametoindex(*argv);
-			if (!if_index)
-				bb_error_msg_and_die(
-					"%s: invalid interface name", *argv);
-			break;
-		default:
-			bb_show_usage();
-		}
-		argc--;
-		argv++;
+	/* exactly one argument needed, -v and -q don't mix */
+	opt_complementary = "=1:q--v:v--q"; 
+	getopt32(argc, argv, OPT_STRING, &opt_c, &opt_s, &opt_I);
+	if (option_mask32 & 4) pingcount = xatoul(opt_c); // -c
+	if (option_mask32 & 8) datalen = xatou16(opt_s); // -s
+	if (option_mask32 & 0x10) { // -I
+		if_index = if_nametoindex(opt_I);
+		if (!if_index)
+			bb_error_msg_and_die(
+				"%s: invalid interface name", opt_I);
 	}
-	if (argc < 1)
-		bb_show_usage();
 
-	myid = (int16_t) getpid();
-	ping(*argv);
+	myid = (int16_t)getpid();
+	ping(argv[optind]);
 	return EXIT_SUCCESS;
 }
 #endif /* ! CONFIG_FEATURE_FANCY_PING6 */
