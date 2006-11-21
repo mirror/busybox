@@ -1756,22 +1756,19 @@ static int miniHttpd(int server)
 		/* set the KEEPALIVE option to cull dead connections */
 		on = 1;
 		setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&on, sizeof(on));
-#if !DEBUG
-		if (fork() == 0)
-#endif
-		{
-			/* This is the spawned thread */
+
+		if (DEBUG || fork() == 0) {
+			/* child */
 #if ENABLE_FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 			/* protect reload config, may be confuse checking */
 			signal(SIGHUP, SIG_IGN);
 #endif
 			handleIncoming();
-#if !DEBUG
-			exit(0);
-#endif
+			if (!DEBUG)
+				exit(0);
 		}
 		close(s);
-	} // while (1)
+	} /* while (1) */
 	return 0;
 }
 

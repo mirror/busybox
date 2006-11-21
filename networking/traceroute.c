@@ -196,12 +196,15 @@
  *     Tue Dec 20 03:50:13 PST 1988
  */
 
-#undef CONFIG_FEATURE_TRACEROUTE_VERBOSE
+#define TRACEROUTE_SO_DEBUG 0
+
+/* TODO: undefs were uncommented - ??! we have config system for that! */
+/* probably ok to remove altogether */
+//#undef CONFIG_FEATURE_TRACEROUTE_VERBOSE
 //#define CONFIG_FEATURE_TRACEROUTE_VERBOSE
-#undef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG   /* not in documentation man */
-#undef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+//#undef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
 //#define CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
-#undef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+//#undef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 //#define CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 
 #include "inet_common.h"
@@ -284,17 +287,17 @@ struct IFADDRLIST {
 static const char route[] = "/proc/net/route";
 
 /* last inbound (icmp) packet */
-static unsigned char  packet[512] ATTRIBUTE_ALIGNED(32);
+static unsigned char packet[512] ATTRIBUTE_ALIGNED(32);
 
 static struct ip *outip;               /* last output (udp) packet */
 static struct udphdr *outudp;          /* last output (udp) packet */
 static struct outdata *outdata;        /* last output (udp) packet */
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 static struct icmp *outicmp;           /* last output (icmp) packet */
 #endif
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 /* Maximum number of gateways (include room for one noop) */
 #define NGATEWAYS ((int)((MAX_IPOPTLEN - IPOPT_MINOFF - 1) / sizeof(u_int32_t)))
 /* loose source route gateway list (including room for final destination) */
@@ -320,16 +323,16 @@ static int waittime = 5;               /* time to wait for response (in seconds)
 static int nflag;                      /* print addresses numerically */
 static int doipcksum = 1;              /* calculate ip checksums by default */
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 static int optlen;                     /* length of ip options */
 #else
 #define optlen 0
 #endif
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 static int useicmp;                    /* use icmp echo instead of udp packets */
 #endif
-#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 static int verbose;
 #endif
 
@@ -596,14 +599,14 @@ send_probe(int seq, int ttl, struct timeval *tp)
 	outdata->ttl = ttl;
 	memcpy(&outdata->tv, tp, sizeof(outdata->tv));
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 	if (useicmp)
 		outicmp->icmp_seq = htons(seq);
 	else
 #endif
 		outudp->dest = htons(port + seq);
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 	if (useicmp) {
 		/* Always calculate checksum for icmp packets */
 		outicmp->icmp_cksum = 0;
@@ -631,7 +634,7 @@ send_probe(int seq, int ttl, struct timeval *tp)
 		*outip = tip;
 	}
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	/* XXX undocumented debugging hack */
 	if (verbose > 1) {
 		const u_short *sp;
@@ -684,7 +687,7 @@ deltaT(struct timeval *t1p, struct timeval *t2p)
 	return dt;
 }
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 /*
  * Convert an ICMP "type" field to a printable string.
  */
@@ -717,7 +720,7 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 	ip = (struct ip *) buf;
 	hlen = ip->ip_hl << 2;
 	if (cc < hlen + ICMP_MINLEN) {
-#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 		if (verbose)
 			printf("packet too short (%d bytes) from %s\n", cc,
 				inet_ntoa(from->sin_addr));
@@ -741,7 +744,7 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 
 		hip = &icp->icmp_ip;
 		hlen = hip->ip_hl << 2;
-#ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 		if (useicmp) {
 			struct icmp *hicmp;
 
@@ -770,7 +773,7 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 				return (type == ICMP_TIMXCEED ? -1 : code + 1);
 		}
 	}
-#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose) {
 		int i;
 		u_int32_t *lp = (u_int32_t *)&icp->icmp_ip;
@@ -821,7 +824,7 @@ print(unsigned char *buf, int cc, struct sockaddr_in *from)
 	cc -= hlen;
 
 	inetname(from);
-#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose)
 		printf(" %d bytes to %s", cc, inet_ntoa (ip->ip_dst));
 #endif
@@ -869,7 +872,7 @@ freehostinfo(struct hostinfo *hi)
 	free((char *)hi);
 }
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 static void
 getaddr(u_int32_t *ap, const char *host)
 {
@@ -899,7 +902,7 @@ traceroute_main(int argc, char *argv[])
 	char *source = NULL;
 	unsigned long op;
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	int lsrr = 0;
 #endif
 	u_short off = 0;
@@ -915,12 +918,12 @@ traceroute_main(int argc, char *argv[])
 	char *pausemsecs_str = NULL;
 	int first_ttl = 1;
 	char *first_ttl_str = NULL;
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	llist_t *sourse_route_list = NULL;
 #endif
 
 	opterr = 0;
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	opt_complementary = "x-x:g::";
 #else
 	opt_complementary = "x-x";
@@ -936,23 +939,23 @@ traceroute_main(int argc, char *argv[])
 #define USAGE_OP_VERBOSE      (1<<6)    /* v */
 #define USAGE_OP_IP_CHKSUM    (1<<7)    /* x */
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 					"g:"
 #endif
 	, &tos_str, &device, &max_ttl_str, &port_str, &nprobes_str,
 	&source, &waittime_str, &pausemsecs_str, &first_ttl_str
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	, &sourse_route_list
 #endif
 	);
 
 	if (op & USAGE_OP_DONT_FRAGMNT)
 		off = IP_DF;
-#ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 	useicmp = op & USAGE_OP_USE_ICMP;
 #endif
 	nflag = op & USAGE_OP_ADDR_NUM;
-#ifdef CONFIG_FEATURE_TRACEROUTE_VERBOSE
+#if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	verbose = op &  USAGE_OP_VERBOSE;
 #endif
 	if (op & USAGE_OP_IP_CHKSUM) {
@@ -981,7 +984,7 @@ traceroute_main(int argc, char *argv[])
 	if (first_ttl_str)
 		first_ttl = xatoul_range(first_ttl_str, 1, 255);
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	if (sourse_route_list) {
 		llist_t *l_sr;
 
@@ -1006,7 +1009,7 @@ traceroute_main(int argc, char *argv[])
 
 	minpacket = sizeof(*outip) + sizeof(*outdata) + optlen;
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 	if (useicmp)
 		minpacket += 8;                 /* XXX magic number */
 	else
@@ -1044,7 +1047,7 @@ traceroute_main(int argc, char *argv[])
 
 	s = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
+#if TRACEROUTE_SO_DEBUG
 	if (op & USAGE_OP_DEBUG)
 		(void)setsockopt(s, SOL_SOCKET, SO_DEBUG, (char *)&on,
 		    sizeof(on));
@@ -1055,7 +1058,7 @@ traceroute_main(int argc, char *argv[])
 
 	sndsock = xsocket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 
-#ifdef CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE
+#if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 #if defined(IP_OPTIONS)
 	if (lsrr > 0) {
 		unsigned char optlist[MAX_IPOPTLEN];
@@ -1101,7 +1104,7 @@ traceroute_main(int argc, char *argv[])
 	}
 #endif
 #endif
-#ifdef CONFIG_FEATURE_TRACEROUTE_SO_DEBUG
+#if TRACEROUTE_SO_DEBUG
 	if (op & USAGE_OP_DEBUG)
 		(void)setsockopt(sndsock, SOL_SOCKET, SO_DEBUG, (char *)&on,
 		    sizeof(on));
@@ -1126,7 +1129,7 @@ traceroute_main(int argc, char *argv[])
 
 	outip->ip_hl = (outp - (unsigned char *)outip) >> 2;
 	ident = (getpid() & 0xffff) | 0x8000;
-#ifdef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
+#if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 	if (useicmp) {
 		outip->ip_p = IPPROTO_ICMP;
 

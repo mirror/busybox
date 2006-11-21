@@ -24,14 +24,9 @@
 // - link status monitoring (restart on link-up; stop on link-down)
 
 #include "busybox.h"
-#include <errno.h>
-#include <string.h>
 #include <syslog.h>
 #include <poll.h>
-#include <time.h>
-
 #include <sys/wait.h>
-
 #include <netinet/ether.h>
 #include <net/ethernet.h>
 #include <net/if.h>
