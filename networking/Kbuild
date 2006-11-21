@@ -21,6 +21,7 @@ lib-$(CONFIG_IPCALC)       += ipcalc.o
 lib-$(CONFIG_IPADDR)       += ipaddr.o
 lib-$(CONFIG_IPLINK)       += iplink.o
 lib-$(CONFIG_IPROUTE)      += iproute.o
+lib-$(CONFIG_IPRULE)       += iprule.o
 lib-$(CONFIG_IPTUNNEL)     += iptunnel.o
 lib-$(CONFIG_NAMEIF)       += nameif.o
 lib-$(CONFIG_NC)           += nc.o

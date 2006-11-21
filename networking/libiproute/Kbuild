@@ -12,6 +12,7 @@ lib-$(CONFIG_IP) += \
 	iplink.o \
 	iproute.o \
 	iptunnel.o \
+	iprule.o \
 	libnetlink.o \
 	ll_addr.o \
 	ll_map.o \
@@ -56,3 +57,10 @@ lib-$(CONFIG_IPTUNNEL) += \
 	iptunnel.o \
 	rt_names.o \
 	utils.o
+
+lib-$(CONFIG_IPRULE) += \
+	ip_parse_common_args.o \
+	iprule.o \
+	rt_names.o \
+	utils.o
+

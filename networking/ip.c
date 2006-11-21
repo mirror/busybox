@@ -24,26 +24,22 @@ int ip_main(int argc, char **argv)
 	ip_parse_common_args(&argc, &argv);
 
 	if (argc > 1) {
-#ifdef CONFIG_FEATURE_IP_ADDRESS
-		if (matches(argv[1], "address") == 0) {
+		if (ENABLE_FEATURE_IP_ADDRESS && matches(argv[1], "address") == 0) {
 			ret = do_ipaddr(argc-2, argv+2);
 		}
-#endif
-#ifdef CONFIG_FEATURE_IP_ROUTE
-		if (matches(argv[1], "route") == 0) {
+		if (ENABLE_FEATURE_IP_ROUTE && matches(argv[1], "route") == 0) {
 			ret = do_iproute(argc-2, argv+2);
 		}
-#endif
-#ifdef CONFIG_FEATURE_IP_LINK
-		if (matches(argv[1], "link") == 0) {
+		if (ENABLE_FEATURE_IP_LINK && matches(argv[1], "link") == 0) {
 			ret = do_iplink(argc-2, argv+2);
 		}
-#endif
-#ifdef CONFIG_FEATURE_IP_TUNNEL
-		if (matches(argv[1], "tunnel") == 0 || strcmp(argv[1], "tunl") == 0) {
+		if (ENABLE_FEATURE_IP_TUNNEL &&
+			(matches(argv[1], "tunnel") == 0 || strcmp(argv[1], "tunl") == 0)) {
 			ret = do_iptunnel(argc-2, argv+2);
 		}
-#endif
+		if (ENABLE_FEATURE_IP_RULE && matches(argv[1], "rule") == 0) {
+			ret = do_iprule(argc-2, argv+2);
+		}
 	}
 	if (ret) {
 		bb_show_usage();

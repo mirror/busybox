@@ -99,7 +99,7 @@ static void print_queuelen(char *name)
 }
 
 static int print_linkinfo(struct sockaddr_nl ATTRIBUTE_UNUSED *who,
-		struct nlmsghdr *n, void ATTRIBUTE_UNUSED *arg)
+		const struct nlmsghdr *n, void ATTRIBUTE_UNUSED *arg)
 {
 	FILE *fp = (FILE*)arg;
 	struct ifinfomsg *ifi = NLMSG_DATA(n);

@@ -364,6 +364,13 @@ config FEATURE_IP_TUNNEL
 	help
 	  Add support for tunneling commands to "ip".
 
+config FEATURE_IP_RULE
+	bool "ip rule"
+	default n
+	depends on IP
+	help
+	  Add support for rule commands to "ip".
+
 config FEATURE_IP_SHORT_FORMS
 	bool "Support short forms of ip commands."
 	default n
@@ -397,6 +404,11 @@ config IPTUNNEL
 	bool
 	default y
 	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_TUNNEL
+
+config IPRULE
+	bool
+	default y
+	depends on FEATURE_IP_SHORT_FORMS && FEATURE_IP_RULE
 
 config IPCALC
 	bool "ipcalc"

@@ -1453,10 +1453,10 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\t-s\tstrip symbol tables"
 
 #define ip_trivial_usage \
-	"[ OPTIONS ] { address | link | route | tunnel } { COMMAND | help }"
+	"[OPTIONS] {address | link | route | tunnel | rule} {COMMAND}"
 #define ip_full_usage \
-	"ip [ OPTIONS ] OBJECT { COMMAND | help }\n" \
-	"where  OBJECT := { link | addr | route | tunnel }\n" \
+	"ip [OPTIONS] OBJECT {COMMAND}\n" \
+	"where  OBJECT := {link | addr | route | tunnel |rule}\n" \
 	"OPTIONS := { -f[amily] { inet | inet6 | link } | -o[neline] }"
 
 #define ipaddr_trivial_usage \
@@ -1528,6 +1528,17 @@ USE_FEATURE_DATE_ISOFMT( \
 	"\tiproute { add | del | change | append | replace | monitor } ROUTE\n" \
 	"\t\t\tSELECTOR := [ root PREFIX ] [ match PREFIX ] [ proto RTPROTO ]\n" \
 	"\t\t\tROUTE := [ TYPE ] PREFIX [ tos TOS ] [ proto RTPROTO ]"
+
+#define iprule_trivial_usage \
+	"{[ list | add | del ] RULE}"
+#define iprule_full_usage \
+	"iprule [ list | add | del ] SELECTOR ACTION\n" \
+	"\tSELECTOR := [ from PREFIX ] [ to PREFIX ] [ tos TOS ] [ fwmark FWMARK ]\n" \
+	"\t\t\t[ dev STRING ] [ pref NUMBER ]\n" \
+	"\tACTION := [ table TABLE_ID ] [ nat ADDRESS ]\n" \
+	"\t\t\t[ prohibit | reject | unreachable ]\n" \
+	"\t\t\t[ realms [SRCREALM/]DSTREALM ]\n" \
+	"\tTABLE_ID := [ local | main | default | NUMBER ]"
 
 #define iptunnel_trivial_usage \
 	"{ add | change | del | show } [ NAME ]\n" \

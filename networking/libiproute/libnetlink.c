@@ -121,10 +121,10 @@ int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len)
 }
 
 int rtnl_dump_filter(struct rtnl_handle *rth,
-		     int (*filter)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
-		     void *arg1,
-		     int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
-		     void *arg2)
+		int (*filter)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
+		void *arg1,
+		int (*junk)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
+		void *arg2)
 {
 	char buf[8192];
 	struct sockaddr_nl nladdr;

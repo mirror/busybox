@@ -20,14 +20,14 @@ extern void rtnl_close(struct rtnl_handle *rth);
 extern int rtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type);
 extern int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len);
 extern int rtnl_dump_filter(struct rtnl_handle *rth,
-			    int (*filter)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
-			    void *arg1,
-			    int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
-			    void *arg2);
+			int (*filter)(struct sockaddr_nl*, struct nlmsghdr *n, void*),
+			void *arg1,
+			int (*junk)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
+			void *arg2);
 extern int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
-		     unsigned groups, struct nlmsghdr *answer,
-		     int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
-		     void *jarg);
+			unsigned groups, struct nlmsghdr *answer,
+			int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
+			void *jarg);
 extern int rtnl_send(struct rtnl_handle *rth, char *buf, int);
 
 
