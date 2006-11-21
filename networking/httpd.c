@@ -1036,6 +1036,9 @@ static int sendCgi(const char *url,
 		setenv1("SCRIPT_FILENAME", realpath_buff);
 		/* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
 		setenv1("SCRIPT_NAME", purl);
+		/* TODO: bug 996 says we need to decodeString(config->query)
+		 * before placing it into env. Is this true? Add example
+		 * in the comment please... */
 		setenv1("QUERY_STRING", config->query);
 		setenv1("SERVER_SOFTWARE", httpdVersion);
 		putenv("SERVER_PROTOCOL=HTTP/1.0");
