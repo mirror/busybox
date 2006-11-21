@@ -414,18 +414,18 @@ int wget_main(int argc, char **argv)
  pasv_error:
 			bb_error_msg_and_die("bad response to %s: %s", "PASV", buf);
 		}
-		// Response is "227 garbageN1,N2,N3,N4,P1,P2[)]
+		// Response is "227 garbageN1,N2,N3,N4,P1,P2[)garbage]
 		// Server's IP is N1.N2.N3.N4 (we ignore it)
 		// Server's port for data connection is P1*256+P2
 		s = strrchr(buf, ')');
-		if (s && !s[1]) s[0] = '\0';
+		if (s) s[0] = '\0';
 		s = strrchr(buf, ',');
 		if (!s) goto pasv_error;
-		port = xatol_range(s+1, 0, 255);
+		port = xatou_range(s+1, 0, 255);
 		*s = '\0';
 		s = strrchr(buf, ',');
 		if (!s) goto pasv_error;
-		port += xatol_range(s+1, 0, 255) * 256;
+		port += xatou_range(s+1, 0, 255) * 256;
 		s_in.sin_port = htons(port);
 		dfp = open_socket(&s_in);
 
