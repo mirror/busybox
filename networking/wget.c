@@ -414,9 +414,11 @@ int wget_main(int argc, char **argv)
  pasv_error:
 			bb_error_msg_and_die("bad response to %s: %s", "PASV", buf);
 		}
-		// Response is "227 garbageN1,N2,N3,N4,P1,P2
+		// Response is "227 garbageN1,N2,N3,N4,P1,P2[)]
 		// Server's IP is N1.N2.N3.N4 (we ignore it)
 		// Server's port for data connection is P1*256+P2
+		s = strrchr(buf, ')');
+		if (s && !s[1]) s[0] = '\0';
 		s = strrchr(buf, ',');
 		if (!s) goto pasv_error;
 		port = xatol_range(s+1, 0, 255);
@@ -608,13 +610,13 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 		return NULL;
 
 	/* see if we are at the end of the headers */
-	for (s = buf ; *s == '\r' ; ++s)
+	for (s = buf; *s == '\r'; ++s)
 		;
 	if (s[0] == '\n')
 		return NULL;
 
 	/* convert the header name to lower case */
-	for (s = buf ; isalnum(*s) || *s == '-' ; ++s)
+	for (s = buf; isalnum(*s) || *s == '-'; ++s)
 		*s = tolower(*s);
 
 	/* verify we are at the end of the header name */
@@ -622,7 +624,7 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 		bb_error_msg_and_die("bad header line: %s", buf);
 
 	/* locate the start of the header value */
-	for (*s++ = '\0' ; *s == ' ' || *s == '\t' ; ++s)
+	for (*s++ = '\0'; *s == ' ' || *s == '\t'; ++s)
 		;
 	hdrval = s;
 
