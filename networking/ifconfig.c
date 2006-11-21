@@ -290,7 +290,8 @@ int ifconfig_main(int argc, char **argv)
 	unsigned char did_flags;
 #endif
 	char *p;
-	char host[128];
+	/*char host[128];*/
+	const char *host = NULL; /* make gcc happy */
 
 	goterr = 0;
 	did_flags = 0;
@@ -376,8 +377,8 @@ int ifconfig_main(int argc, char **argv)
 						char *prefix;
 						int prefix_len = 0;
 #endif
-
-						safe_strncpy(host, *argv, (sizeof host));
+						/*safe_strncpy(host, *argv, (sizeof host));*/
+						host = *argv;
 #if ENABLE_FEATURE_IPV6
 						prefix = strchr(host, '/');
 						if (prefix) {
@@ -453,7 +454,8 @@ int ifconfig_main(int argc, char **argv)
 						if (strcmp("ether", *argv) || (*++argv == NULL)) {
 							bb_show_usage();
 						}
-						safe_strncpy(host, *argv, sizeof(host));
+						/*safe_strncpy(host, *argv, sizeof(host));*/
+						host = *argv;
 						if (in_ether(host, &sa)) {
 							bb_error_msg("invalid hw-addr %s", host);
 							++goterr;
