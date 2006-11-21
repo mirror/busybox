@@ -10,13 +10,10 @@
 #include <netdb.h>
 #include "libbb.h"
 
-
 struct hostent *xgethostbyname(const char *name)
 {
-	struct hostent *retval;
-
-	if ((retval = gethostbyname(name)) == NULL)
+	struct hostent *retval = gethostbyname(name);
+	if (!retval)
 		bb_herror_msg_and_die("%s", name);
-
 	return retval;
 }
