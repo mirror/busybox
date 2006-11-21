@@ -25,10 +25,6 @@
 #include <getopt.h>
 #include "cmdedit.h"
 
-#ifdef CONFIG_LOCALE_SUPPORT
-#include <locale.h>
-#endif
-
 #include <glob.h>
 #define expand_t	glob_t
 
@@ -377,6 +373,7 @@ static int builtin_export(struct child_prog *child)
 #endif
 
 #ifdef CONFIG_LOCALE_SUPPORT
+	// TODO: why getenv? "" would be just as good...
 	if(strncmp(v, "LC_ALL=", 7)==0)
 		setlocale(LC_ALL, getenv("LC_ALL"));
 	if(strncmp(v, "LC_CTYPE=", 9)==0)

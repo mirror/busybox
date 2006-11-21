@@ -44,8 +44,6 @@
 #include "busybox.h"
 
 #ifdef CONFIG_LOCALE_SUPPORT
-#include <locale.h>
-#include <ctype.h>
 #define isspace_given_isprint(c) isspace(c)
 #else
 #undef isspace

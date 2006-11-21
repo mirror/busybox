@@ -64,8 +64,8 @@ int main(int argc, char **argv)
 	for (s = applet_name; *s ;)
 		if (*(s++) == '/') applet_name = s;
 
-	/* Set locale for everybody except `init' */
-	if(ENABLE_LOCALE_SUPPORT && getpid() != 1)
+	/* Set locale for everybody except 'init' */
+	if (ENABLE_LOCALE_SUPPORT && getpid() != 1)
 		setlocale(LC_ALL, "");
 
 	run_applet_by_name(applet_name, argc, argv);

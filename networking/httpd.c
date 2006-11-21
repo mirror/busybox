@@ -846,9 +846,11 @@ static int sendHeaders(HttpResponseNum responseNum)
 	time_t timer = time(0);
 	char timeStr[80];
 	int len;
+	enum {
+		numNames = sizeof(httpResponseNames) / sizeof(httpResponseNames[0])
+	};
 
-	for (i = 0;
-		i < (sizeof(httpResponseNames)/sizeof(httpResponseNames[0])); i++) {
+	for (i = 0; i < numNames; i++) {
 		if (httpResponseNames[i].type == responseNum) {
 			responseString = httpResponseNames[i].name;
 			infoString = httpResponseNames[i].info;
@@ -1177,7 +1179,7 @@ static int sendCgi(const char *url,
 # error "PIPESIZE >= MAX_MEMORY_BUFF"
 #endif
 
-			// There is something to read
+			/* There is something to read */
 			count = safe_read(inFd, rbuf, PIPESIZE);
 			if (count == 0)
 				break;  /* closed */
@@ -1197,7 +1199,7 @@ static int sendCgi(const char *url,
 					break;
 
 				if (DEBUG)
-					fprintf(stderr, "cgi read %d bytes\n", count);
+					fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
 			}
 		}
 	}
@@ -1837,6 +1839,11 @@ int httpd_main(int argc, char *argv[])
 	USE_FEATURE_HTTPD_SETUID(const char *s_ugid = NULL;)
 	USE_FEATURE_HTTPD_SETUID(struct bb_uidgid_t ugid;)
 	USE_FEATURE_HTTPD_AUTH_MD5(const char *pass;)
+
+#if ENABLE_LOCALE_SUPPORT
+	/* Undo busybox.c: we want to speak English in http (dates etc) */
+	setlocale(LC_TIME, "C");
+#endif
 
 	config = xzalloc(sizeof(*config));
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH

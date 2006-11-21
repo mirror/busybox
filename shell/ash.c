@@ -1495,7 +1495,6 @@ static void getoptsreset(const char *);
 #endif
 
 #ifdef CONFIG_LOCALE_SUPPORT
-#include <locale.h>
 static void change_lc_all(const char *value);
 static void change_lc_ctype(const char *value);
 #endif

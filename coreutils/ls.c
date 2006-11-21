@@ -359,7 +359,7 @@ static int sortcmp(const void *a, const void *b)
 	}
 
 	if (dif == 0) {
-		/* sort by name- may be a tie_breaker for time or size cmp */
+		/* sort by name - may be a tie_breaker for time or size cmp */
 		if (ENABLE_LOCALE_SUPPORT) dif = strcoll(d1->name, d2->name);
 		else dif = strcmp(d1->name, d2->name);
 	}
