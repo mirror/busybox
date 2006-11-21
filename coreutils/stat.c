@@ -44,10 +44,16 @@ static char const *file_type(struct stat const *st)
 
 static char const *human_time(time_t t)
 {
+	/* Old
 	static char *str;
 	str = ctime(&t);
 	str[strlen(str)-1] = '\0';
 	return str;
+	*/
+	/* coreutils 6.3 compat: */
+	static char buf[sizeof("YYYY-MM-DD HH:MM:SS.000000000")];
+	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S.000000000", localtime(&t));
+	return buf;
 }
 
 /* Return the type of the specified file system.
@@ -311,41 +317,41 @@ static void print_it(char const *masterformat, char const *filename,
 	/* create a working copy of the format string */
 	char *format = xstrdup(masterformat);
 
-	/* Add 2 to accommodate our conversion of the stat `%s' format string
-	 * to the printf `%llu' one.  */
+	/* Add 2 to accomodate our conversion of the stat '%s' format string
+	 * to the printf '%llu' one.  */
 	size_t n_alloc = strlen(format) + 2 + 1;
 	char *dest = xmalloc(n_alloc);
 
 	b = format;
 	while (b) {
+		size_t len;
 		char *p = strchr(b, '%');
-		if (p != NULL) {
-			size_t len;
-			*p++ = '\0';
-			fputs(b, stdout);
+		if (!p) {
+			/* coreutils 6.3 always print <cr> at the end */
+			/*fputs(b, stdout);*/
+			puts(b);
+			break;
+		}
+		*p++ = '\0';
+		fputs(b, stdout);
 
-			len = strspn(p, "#-+.I 0123456789");
-			dest[0] = '%';
-			memcpy(dest + 1, p, len);
-			dest[1 + len] = 0;
-			p += len;
+		len = strspn(p, "#-+.I 0123456789");
+		dest[0] = '%';
+		memcpy(dest + 1, p, len);
+		dest[1 + len] = 0;
+		p += len;
 
-			b = p + 1;
-			switch (*p) {
-				case '\0':
-					b = NULL;
-					/* fall through */
-				case '%':
-					putchar('%');
-					break;
-				default:
-					print_func(dest, n_alloc, *p, filename, data);
-					break;
-			}
-
-		} else {
-			fputs(b, stdout);
+		b = p + 1;
+		switch (*p) {
+		case '\0':
 			b = NULL;
+			/* fall through */
+		case '%':
+			putchar('%');
+			break;
+		default:
+			print_func(dest, n_alloc, *p, filename, data);
+			break;
 		}
 	}
 
@@ -372,7 +378,7 @@ static int do_statfs(char const *filename, char const *format)
 			  "    ID: %-8i Namelen: %-7l Type: %T\n"
 			  "Block size: %-10s\n"
 			  "Blocks: Total: %-10b Free: %-10f Available: %a\n"
-			  "Inodes: Total: %-10c Free: %d\n");
+			  "Inodes: Total: %-10c Free: %d");
 	print_it(format, filename, print_statfs, &statfsbuf);
 #else
 
@@ -420,7 +426,7 @@ static int do_stat(char const *filename, char const *format)
 #ifdef CONFIG_FEATURE_STAT_FORMAT
 	if (format == NULL) {
 		if (flags & OPT_TERSE) {
-			format = "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o\n";
+			format = "%n %s %b %f %u %g %D %i %h %t %T %X %Y %Z %o";
 		} else {
 			if (S_ISBLK(statbuf.st_mode) || S_ISCHR(statbuf.st_mode)) {
 				format =
@@ -517,7 +523,7 @@ int stat_main(int argc, char **argv)
 	int (*statfunc)(char const *, char const *) = do_stat;
 
 	flags = getopt32(argc, argv, "ftL"
-	USE_FEATURE_STAT_FORMAT("c:", &format)
+		USE_FEATURE_STAT_FORMAT("c:", &format)
 	);
 
 	if (flags & 1)                /* -f */

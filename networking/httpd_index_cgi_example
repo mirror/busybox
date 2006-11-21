@@ -1,0 +1,55 @@
+#!/bin/sh
+# This CGI creates directory index.
+# Put it into cgi-bin/index.cgi and chmod 0755.
+#
+# Problems:
+# * Unsafe wrt weird filenames with <>"'& etc...
+# * Not efficient: calls stat (program, not syscall) for each file
+# * Probably requires bash
+#
+# If you want speed and safety, you need to code it in C
+
+# Must start with '/'
+test "${QUERY_STRING:0:1}" = "/" || exit 1
+# /../ is not allowed
+test "${QUERY_STRING%/../*}" = "$QUERY_STRING" || exit 1
+test "${QUERY_STRING%/..}" = "$QUERY_STRING" || exit 1
+
+# Outta cgi-bin...
+cd .. 2>/dev/null || exit 1
+# Strip leading '/', go to target dir
+cd "${QUERY_STRING:1}" 2>/dev/null || exit 1
+
+f=`dirname "$QUERY_STRING"`
+test "$f" = "/" && f=""
+
+# Pipe thru dd (need to write header as single write(),
+# or else httpd doesn't see "Content-type: text/html"
+# in first read() and decides that it is not html)
+{
+printf "%s" \
+$'HTTP/1.0 200 OK\r\n'\
+$'Content-type: text/html\r\n\r\n'\
+"<html><head><title>Index of $QUERY_STRING</title></head>"$'\r\n'\
+"<body><h1>Index of $QUERY_STRING</h1><pre>"$'\r\n'\
+$'<table width=100%>\r\n'\
+$'<col><col><col width=0*>\r\n'\
+$'<tr><th>Name<th align=right>Last modified<th align=right>Size\r\n'\
+\
+"<tr><td><a href='$f/'>..</a><td><td>"$'\r\n'
+
+IFS='#'
+for f in *; do
+    # Guard against empty dirs...
+    test -e "$f" && \
+    stat -c "%F#%s#%z" "$f" | {
+	read type size cdt junk
+	dir=''
+	test "$type" = "directory" && dir='/'
+	cdt="${cdt//.*}" # no fractional seconds
+	cdt="${cdt// /&nbsp;}" # prevent wrapping around space
+	printf "%s" "<tr><td><a href='$f$dir'>$f</a><td align=right>$cdt<td align=right>$size"$'\r\n'
+    }
+done
+printf "</table></pre><hr></body></html>"$'\r\n'
+} | dd bs=4k

@@ -1103,7 +1103,7 @@ static int sendCgi(const char *url,
 
 	post_readed_size = 0;
 	post_readed_idx = 0;
-	inFd  = fromCgi[0];
+	inFd = fromCgi[0];
 	outFd = toCgi[1];
 	close(fromCgi[1]);
 	close(toCgi[0]);
@@ -1190,6 +1190,10 @@ static int sendCgi(const char *url,
 					if (strncmp(rbuf, "HTTP/1.0 200 OK\r\n", 4) != 0) {
 						full_write(s, "HTTP/1.0 200 OK\r\n", 17);
 					}
+					/* Sometimes CGI is writing to pipe in small chunks
+					 * and we don't see Content-type (because the read
+					 * is too short) and we emit bogus "text/plain"!
+					 * Is it a bug or CGI *has to* write it in one piece? */
 					if (strstr(rbuf, "ontent-") == 0) {
 						full_write(s, "Content-type: text/plain\r\n\r\n", 28);
 					}
@@ -1480,6 +1484,7 @@ static void handleIncoming(void)
 		strcpy(url, buf);
 		/* extract url args if present */
 		test = strchr(url, '?');
+		config->query = NULL;
 		if (test) {
 			*test++ = '\0';
 			config->query = test;
@@ -1640,20 +1645,26 @@ static void handleIncoming(void)
 			sendHeaders(HTTP_NOT_IMPLEMENTED);
 			break;
 		}
-		if (purl[-1] == '/') {
-			if (access("cgi-bin/index.cgi", X_OK) == 0) {
+#endif  /* FEATURE_HTTPD_CGI */
+		if (purl[-1] == '/')
+			strcpy(purl, "index.html");
+		if (stat(test, &sb) == 0) {
+			/* It's a dir URL and there is index.html */
+			config->ContentLength = sb.st_size;
+			config->last_mod = sb.st_mtime;
+		}
+#if ENABLE_FEATURE_HTTPD_CGI
+		else if (purl[-1] == '/') {
+			/* It's a dir URL and there is no index.html
+			 * Try cgi-bin/index.cgi */
+			if (access("/cgi-bin/index.cgi"+1, X_OK) == 0) {
+				purl[0] = '\0';
 				config->query = url;
 				sendCgi("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
 				break;
 			}
 		}
 #endif  /* FEATURE_HTTPD_CGI */
-		if (purl[-1] == '/')
-			strcpy(purl, "index.html");
-		if (stat(test, &sb) == 0) {
-			config->ContentLength = sb.st_size;
-			config->last_mod = sb.st_mtime;
-		}
 		sendFile(test);
 		config->ContentLength = -1;
 	} while (0);
