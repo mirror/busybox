@@ -963,212 +963,211 @@ static int sendCgi(const char *url,
 	int inFd;
 	int outFd;
 	int firstLine = 1;
+	int status;
+	size_t post_readed_size, post_readed_idx;
 
 	if (pipe(fromCgi) != 0)
 		return 0;
 	if (pipe(toCgi) != 0)
 		return 0;
+
 	pid = fork();
 	if (pid < 0)
 		return 0;
+	
+	if (!pid) {
+		/* child process */
+		char *script;
+		char *purl = strdup(url);
+		char realpath_buff[MAXPATHLEN];
 
-	do {    
-		if (!pid) {
-			/* child process */
-			char *script;
-			char *purl = strdup(url);
-			char realpath_buff[MAXPATHLEN];
+		if (purl == NULL)
+			_exit(242);
 
-			if (purl == NULL)
-				_exit(242);
+		inFd  = toCgi[0];
+		outFd = fromCgi[1];
 
-			inFd  = toCgi[0];
-			outFd = fromCgi[1];
+		dup2(inFd, 0);  // replace stdin with the pipe
+		dup2(outFd, 1);  // replace stdout with the pipe
+		if (!DEBUG)
+			dup2(outFd, 2);  // replace stderr with the pipe
 
-			dup2(inFd, 0);  // replace stdin with the pipe
-			dup2(outFd, 1);  // replace stdout with the pipe
-			if (!DEBUG)
-				dup2(outFd, 2);  // replace stderr with the pipe
+		close(toCgi[0]);
+		close(toCgi[1]);
+		close(fromCgi[0]);
+		close(fromCgi[1]);
 
-			close(toCgi[0]);
-			close(toCgi[1]);
-			close(fromCgi[0]);
-			close(fromCgi[1]);
+		close(config->accepted_socket);
+		close(config->server_socket);
 
-			close(config->accepted_socket);
-			close(config->server_socket);
+		/*
+		 * Find PATH_INFO.
+		 */
+		script = purl;
+		while ((script = strchr(script + 1, '/')) != NULL) {
+			/* have script.cgi/PATH_INFO or dirs/script.cgi[/PATH_INFO] */
+			struct stat sb;
 
-			/*
-			 * Find PATH_INFO.
-			 */
-			script = purl;
-			while ((script = strchr(script + 1, '/')) != NULL) {
-				/* have script.cgi/PATH_INFO or dirs/script.cgi[/PATH_INFO] */
-				struct stat sb;
-
-				*script = '\0';
-				if (is_directory(purl + 1, 1, &sb) == 0) {
-					/* not directory, found script.cgi/PATH_INFO */
-					*script = '/';
-					break;
-				}
-				*script = '/';          /* is directory, find next '/' */
-			}
-			setenv1("PATH_INFO", script);   /* set /PATH_INFO or "" */
-			/* setenv1("PATH", getenv("PATH")); redundant */
-			setenv1("REQUEST_METHOD", request);
-			if (config->query) {
-				char *uri = alloca(strlen(purl) + 2 + strlen(config->query));
-				if (uri)
-					sprintf(uri, "%s?%s", purl, config->query);
-				setenv1("REQUEST_URI", uri);
-			} else {
-				setenv1("REQUEST_URI", purl);
-			}
-			if (script != NULL)
-				*script = '\0';         /* reduce /PATH_INFO */
-			 /* SCRIPT_FILENAME required by PHP in CGI mode */
-			if (!realpath(purl + 1, realpath_buff))
-				goto error_execing_cgi;
-			setenv1("SCRIPT_FILENAME", realpath_buff);
-			/* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
-			setenv1("SCRIPT_NAME", purl);
-			setenv1("QUERY_STRING", config->query);
-			setenv1("SERVER_SOFTWARE", httpdVersion);
-			putenv("SERVER_PROTOCOL=HTTP/1.0");
-			putenv("GATEWAY_INTERFACE=CGI/1.1");
-			setenv1("REMOTE_ADDR", config->rmt_ip_str);
-#if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
-			setenv_long("REMOTE_PORT", config->port);
-#endif
-			if (bodyLen)
-				setenv_long("CONTENT_LENGTH", bodyLen);
-			if (cookie)
-				setenv1("HTTP_COOKIE", cookie);
-			if (content_type)
-				setenv1("CONTENT_TYPE", content_type);
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-			if (config->remoteuser) {
-				setenv1("REMOTE_USER", config->remoteuser);
-				putenv("AUTH_TYPE=Basic");
-			}
-#endif
-			if (config->referer)
-				setenv1("HTTP_REFERER", config->referer);
-
-			/* set execve argp[0] without path */
-			argp[0] = strrchr(purl, '/') + 1;
-			/* but script argp[0] must have absolute path and chdiring to this */
-			script = strrchr(realpath_buff, '/');
-			if (!script)
-				goto error_execing_cgi;
 			*script = '\0';
-			if (chdir(realpath_buff) == 0) {
-				// now run the program.  If it fails,
-				// use _exit() so no destructors
-				// get called and make a mess.
-#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-				char *interpr = NULL;
-				char *suffix = strrchr(purl, '.');
+			if (is_directory(purl + 1, 1, &sb) == 0) {
+				/* not directory, found script.cgi/PATH_INFO */
+				*script = '/';
+				break;
+			}
+			*script = '/';          /* is directory, find next '/' */
+		}
+		setenv1("PATH_INFO", script);   /* set /PATH_INFO or "" */
+		/* setenv1("PATH", getenv("PATH")); redundant */
+		setenv1("REQUEST_METHOD", request);
+		if (config->query) {
+			char *uri = alloca(strlen(purl) + 2 + strlen(config->query));
+			if (uri)
+				sprintf(uri, "%s?%s", purl, config->query);
+			setenv1("REQUEST_URI", uri);
+		} else {
+			setenv1("REQUEST_URI", purl);
+		}
+		if (script != NULL)
+			*script = '\0';         /* reduce /PATH_INFO */
+		 /* SCRIPT_FILENAME required by PHP in CGI mode */
+		if (!realpath(purl + 1, realpath_buff))
+			goto error_execing_cgi;
+		setenv1("SCRIPT_FILENAME", realpath_buff);
+		/* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
+		setenv1("SCRIPT_NAME", purl);
+		setenv1("QUERY_STRING", config->query);
+		setenv1("SERVER_SOFTWARE", httpdVersion);
+		putenv("SERVER_PROTOCOL=HTTP/1.0");
+		putenv("GATEWAY_INTERFACE=CGI/1.1");
+		setenv1("REMOTE_ADDR", config->rmt_ip_str);
+#if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
+		setenv_long("REMOTE_PORT", config->port);
+#endif
+		if (bodyLen)
+			setenv_long("CONTENT_LENGTH", bodyLen);
+		if (cookie)
+			setenv1("HTTP_COOKIE", cookie);
+		if (content_type)
+			setenv1("CONTENT_TYPE", content_type);
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH
+		if (config->remoteuser) {
+			setenv1("REMOTE_USER", config->remoteuser);
+			putenv("AUTH_TYPE=Basic");
+		}
+#endif
+		if (config->referer)
+			setenv1("HTTP_REFERER", config->referer);
 
-				if (suffix) {
-					Htaccess *cur;
-					for (cur = config->script_i; cur; cur = cur->next) {
-						if (strcmp(cur->before_colon + 1, suffix) == 0) {
-							interpr = cur->after_colon;
-							break;
-						}
+		/* set execve argp[0] without path */
+		argp[0] = strrchr(purl, '/') + 1;
+		/* but script argp[0] must have absolute path and chdiring to this */
+		script = strrchr(realpath_buff, '/');
+		if (!script)
+			goto error_execing_cgi;
+		*script = '\0';
+		if (chdir(realpath_buff) == 0) {
+			// now run the program.  If it fails,
+			// use _exit() so no destructors
+			// get called and make a mess.
+#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+			char *interpr = NULL;
+			char *suffix = strrchr(purl, '.');
+
+			if (suffix) {
+				Htaccess *cur;
+				for (cur = config->script_i; cur; cur = cur->next) {
+					if (strcmp(cur->before_colon + 1, suffix) == 0) {
+						interpr = cur->after_colon;
+						break;
 					}
 				}
+			}
 #endif
-				*script = '/';
+			*script = '/';
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-				if (interpr)
-					execv(interpr, argp);
-				else
+			if (interpr)
+				execv(interpr, argp);
+			else
 #endif
-					execv(realpath_buff, argp);
-			}
+				execv(realpath_buff, argp);
+		}
  error_execing_cgi:
-			/* send to stdout (even if we are not from inetd) */
-			config->accepted_socket = 1;
-			sendHeaders(HTTP_NOT_FOUND);
-			_exit(242);
-		} /* end child */
+		/* send to stdout (even if we are not from inetd) */
+		config->accepted_socket = 1;
+		sendHeaders(HTTP_NOT_FOUND);
+		_exit(242);
+	} /* end child */
 
-	} while (0);
+	/* parent process */
 
-	if (pid > 0) {
-		/* parent process */
-		int status;
-		size_t post_readed_size = 0, post_readed_idx = 0;
+	post_readed_size = 0;
+	post_readed_idx = 0;
+	inFd  = fromCgi[0];
+	outFd = toCgi[1];
+	close(fromCgi[1]);
+	close(toCgi[0]);
+	signal(SIGPIPE, SIG_IGN);
 
-		inFd  = fromCgi[0];
-		outFd = toCgi[1];
-		close(fromCgi[1]);
-		close(toCgi[0]);
-		signal(SIGPIPE, SIG_IGN);
+	while (1) {
+		fd_set readSet;
+		fd_set writeSet;
+		char wbuf[128];
+		int nfound;
+		int count;
 
-		while (1) {
-			fd_set readSet;
-			fd_set writeSet;
-			char wbuf[128];
-			int nfound;
-			int count;
+		FD_ZERO(&readSet);
+		FD_ZERO(&writeSet);
+		FD_SET(inFd, &readSet);
+		if (bodyLen > 0 || post_readed_size > 0) {
+			FD_SET(outFd, &writeSet);
+			nfound = outFd > inFd ? outFd : inFd;
+			if (post_readed_size == 0) {
+				FD_SET(config->accepted_socket, &readSet);
+				if (nfound < config->accepted_socket)
+					nfound = config->accepted_socket;
+			}
+			/* Now wait on the set of sockets! */
+			nfound = select(nfound + 1, &readSet, &writeSet, 0, NULL);
+		} else {
+			if (!bodyLen) {
+				close(outFd);
+				bodyLen = -1;
+			}
+			nfound = select(inFd + 1, &readSet, 0, 0, NULL);
+		}
 
-			FD_ZERO(&readSet);
-			FD_ZERO(&writeSet);
-			FD_SET(inFd, &readSet);
-			if (bodyLen > 0 || post_readed_size > 0) {
-				FD_SET(outFd, &writeSet);
-				nfound = outFd > inFd ? outFd : inFd;
-				if (post_readed_size == 0) {
-					FD_SET(config->accepted_socket, &readSet);
-					if (nfound < config->accepted_socket)
-						nfound = config->accepted_socket;
-				}
-				/* Now wait on the set of sockets! */
-				nfound = select(nfound + 1, &readSet, &writeSet, 0, NULL);
+		if (nfound <= 0) {
+			if (waitpid(pid, &status, WNOHANG) > 0) {
+				close(inFd);
+				if (DEBUG && WIFEXITED(status))
+					bb_error_msg("piped has exited with status=%d", WEXITSTATUS(status));
+				if (DEBUG && WIFSIGNALED(status))
+					bb_error_msg("piped has exited with signal=%d", WTERMSIG(status));
+				break;
+			}
+		} else if (post_readed_size > 0 && FD_ISSET(outFd, &writeSet)) {
+			count = full_write(outFd, wbuf + post_readed_idx, post_readed_size);
+			if (count > 0) {
+				post_readed_size -= count;
+				post_readed_idx += count;
+				if (post_readed_size == 0)
+					post_readed_idx = 0;
 			} else {
-				if (!bodyLen) {
-					close(outFd);
-					bodyLen = -1;
-				}
-				nfound = select(inFd + 1, &readSet, 0, 0, NULL);
+				post_readed_size = post_readed_idx = bodyLen = 0; /* broken pipe to CGI */
 			}
-
-			if (nfound <= 0) {
-				if (waitpid(pid, &status, WNOHANG) > 0) {
-					close(inFd);
-					if (DEBUG && WIFEXITED(status))
-						bb_error_msg("piped has exited with status=%d", WEXITSTATUS(status));
-					if (DEBUG && WIFSIGNALED(status))
-						bb_error_msg("piped has exited with signal=%d", WTERMSIG(status));
-					break;
-				}
-			} else if (post_readed_size > 0 && FD_ISSET(outFd, &writeSet)) {
-				count = full_write(outFd, wbuf + post_readed_idx, post_readed_size);
-				if (count > 0) {
-					post_readed_size -= count;
-					post_readed_idx += count;
-					if (post_readed_size == 0)
-						post_readed_idx = 0;
-				} else {
-					post_readed_size = post_readed_idx = bodyLen = 0; /* broken pipe to CGI */
-				}
-			} else if (bodyLen > 0 && post_readed_size == 0 && FD_ISSET(config->accepted_socket, &readSet)) {
-				count = bodyLen > (int)sizeof(wbuf) ? (int)sizeof(wbuf) : bodyLen;
-				count = safe_read(config->accepted_socket, wbuf, count);
-				if (count > 0) {
-					post_readed_size += count;
-					bodyLen -= count;
-				} else {
-					bodyLen = 0;    /* closed */
-				}
+		} else if (bodyLen > 0 && post_readed_size == 0 && FD_ISSET(config->accepted_socket, &readSet)) {
+			count = bodyLen > (int)sizeof(wbuf) ? (int)sizeof(wbuf) : bodyLen;
+			count = safe_read(config->accepted_socket, wbuf, count);
+			if (count > 0) {
+				post_readed_size += count;
+				bodyLen -= count;
+			} else {
+				bodyLen = 0;    /* closed */
 			}
-			if (FD_ISSET(inFd, &readSet)) {
-				int s = config->accepted_socket;
-				char *rbuf = config->buf;
+		}
+		if (FD_ISSET(inFd, &readSet)) {
+			int s = config->accepted_socket;
+			char *rbuf = config->buf;
 
 #ifndef PIPE_BUF
 # define PIPESIZE 4096          /* amount of buffering in a pipe */
@@ -1179,28 +1178,27 @@ static int sendCgi(const char *url,
 # error "PIPESIZE >= MAX_MEMORY_BUFF"
 #endif
 
-				// There is something to read
-				count = safe_read(inFd, rbuf, PIPESIZE);
-				if (count == 0)
-					break;  /* closed */
-				if (count > 0) {
-					if (firstLine) {
-						rbuf[count] = 0;
-						/* check to see if the user script added headers */
-						if (strncmp(rbuf, "HTTP/1.0 200 OK\r\n", 4) != 0) {
-							full_write(s, "HTTP/1.0 200 OK\r\n", 17);
-						}
-						if (strstr(rbuf, "ontent-") == 0) {
-							full_write(s, "Content-type: text/plain\r\n\r\n", 28);
-						}
-						firstLine = 0;
+			// There is something to read
+			count = safe_read(inFd, rbuf, PIPESIZE);
+			if (count == 0)
+				break;  /* closed */
+			if (count > 0) {
+				if (firstLine) {
+					rbuf[count] = 0;
+					/* check to see if the user script added headers */
+					if (strncmp(rbuf, "HTTP/1.0 200 OK\r\n", 4) != 0) {
+						full_write(s, "HTTP/1.0 200 OK\r\n", 17);
 					}
-					if (full_write(s, rbuf, count) != count)
-						break;
-
-					if (DEBUG)
-						fprintf(stderr, "cgi read %d bytes\n", count);
+					if (strstr(rbuf, "ontent-") == 0) {
+						full_write(s, "Content-type: text/plain\r\n\r\n", 28);
+					}
+					firstLine = 0;
 				}
+				if (full_write(s, rbuf, count) != count)
+					break;
+
+				if (DEBUG)
+					fprintf(stderr, "cgi read %d bytes\n", count);
 			}
 		}
 	}
