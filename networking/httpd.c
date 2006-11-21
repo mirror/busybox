@@ -24,6 +24,9 @@
  * server changes directory to the location of the script and executes it
  * after setting QUERY_STRING and other environment variables.
  *
+ * Doc:
+ * "CGI Environment Variables": http://hoohoo.ncsa.uiuc.edu/cgi/env.html
+ *
  * The server can also be invoked as a url arg decoder and html text encoder
  * as follows:
  *  foo=`httpd -d $foo`           # decode "Hello%20World" as "Hello World"
