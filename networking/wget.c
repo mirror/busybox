@@ -31,11 +31,11 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 /* Globals (can be accessed from signal handlers */
 static off_t content_len;        /* Content-length of the file */
 static off_t beg_range;          /* Range at which continue begins */
-#ifdef CONFIG_FEATURE_WGET_STATUSBAR
+#if ENABLE_FEATURE_WGET_STATUSBAR
 static off_t transferred;        /* Number of bytes transferred so far */
 #endif
 static int chunked;                     /* chunked transfer encoding */
-#ifdef CONFIG_FEATURE_WGET_STATUSBAR
+#if ENABLE_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);
 static char *curfile;                   /* Name of current file being transferred */
 static struct timeval start;            /* Time a transfer started */
@@ -75,7 +75,7 @@ static char *safe_fgets(char *s, int size, FILE *stream)
 	return ret;
 }
 
-#ifdef CONFIG_FEATURE_WGET_AUTHENTICATION
+#if ENABLE_FEATURE_WGET_AUTHENTICATION
 /*
  *  Base64-encode character string and return the string.
  */
@@ -191,21 +191,21 @@ int wget_main(int argc, char **argv)
 		// will destroy trailing / by storing '\0' in last byte!
 		if (*target.path && target.path[strlen(target.path)-1] != '/') {
 			fname_out =
-#ifdef CONFIG_FEATURE_WGET_STATUSBAR
+#if ENABLE_FEATURE_WGET_STATUSBAR
 				curfile =
 #endif
 				bb_get_last_path_component(target.path);
 		}
 		if (!fname_out || !fname_out[0]) {
 			fname_out =
-#ifdef CONFIG_FEATURE_WGET_STATUSBAR
+#if ENABLE_FEATURE_WGET_STATUSBAR
 				curfile =
 #endif
 				"index.html";
 		}
 		if (dir_prefix != NULL)
 			fname_out = concat_path_file(dir_prefix, fname_out);
-#ifdef CONFIG_FEATURE_WGET_STATUSBAR
+#if ENABLE_FEATURE_WGET_STATUSBAR
 	} else {
 		curfile = bb_get_last_path_component(fname_out);
 #endif
@@ -260,7 +260,7 @@ int wget_main(int argc, char **argv)
 			 */
 			if (use_proxy) {
 				const char *format = "GET %stp://%s:%d/%s HTTP/1.1\r\n";
-#ifdef CONFIG_FEATURE_WGET_IP6_LITERAL
+#if ENABLE_FEATURE_WGET_IP6_LITERAL
 				if (strchr(target.host, ':'))
 					format = "GET %stp://[%s]:%d/%s HTTP/1.1\r\n";
 #endif
@@ -274,7 +274,7 @@ int wget_main(int argc, char **argv)
 			fprintf(sfp, "Host: %s\r\nUser-Agent: %s\r\n", target.host,
 			        user_agent);
 
-#ifdef CONFIG_FEATURE_WGET_AUTHENTICATION
+#if ENABLE_FEATURE_WGET_AUTHENTICATION
 			if (target.user) {
 				fprintf(sfp, "Authorization: Basic %s\r\n",
 					base64enc((unsigned char*)target.user, buf, sizeof(buf)));
@@ -466,7 +466,7 @@ int wget_main(int argc, char **argv)
 			if (full_write(output_fd, buf, n) != n) {
 				bb_perror_msg_and_die(bb_msg_write_error);
 			}
-#ifdef CONFIG_FEATURE_WGET_STATUSBAR
+#if ENABLE_FEATURE_WGET_STATUSBAR
 			transferred += n;
 #endif
 			if (got_clen) {
@@ -559,7 +559,7 @@ static void parse_url(char *src_url, struct host_info *h)
 
 	pp = h->host;
 
-#ifdef CONFIG_FEATURE_WGET_IP6_LITERAL
+#if ENABLE_FEATURE_WGET_IP6_LITERAL
 	if (h->host[0] == '[') {
 		char *ep;
 
@@ -670,14 +670,14 @@ static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
 	return result;
 }
 
-#ifdef CONFIG_FEATURE_WGET_STATUSBAR
+#if ENABLE_FEATURE_WGET_STATUSBAR
 /* Stuff below is from BSD rcp util.c, as added to openshh.
  * Original copyright notice is retained at the end of this file.
  */
 static int
 getttywidth(void)
 {
-	int width=0;
+	int width;
 	get_terminal_width_height(0, &width, NULL);
 	return width;
 }
@@ -714,16 +714,17 @@ progressmeter(int flag)
 	char buf[256];
 
 	if (flag == -1) { /* first call to progressmeter */
-		(void) gettimeofday(&start, (struct timezone *) 0);
+		gettimeofday(&start, (struct timezone *) 0);
 		lastupdate = start;
 		lastsize = 0;
 		totalsize = content_len + beg_range; /* as content_len changes.. */
 	}
 
-	(void) gettimeofday(&now, (struct timezone *) 0);
+	gettimeofday(&now, (struct timezone *) 0);
 	ratio = 100;
 	if (totalsize != 0 && !chunked) {
-		ratio = (int) (100 * (transferred+beg_range) / totalsize);
+		/* long long helps to have working ETA even if !LFS */
+		ratio = (int) (100 * (unsigned long long)(transferred+beg_range) / totalsize);
 		ratio = MIN(ratio, 100);
 	}
 
@@ -743,7 +744,7 @@ progressmeter(int flag)
 		i++;
 		abbrevsize >>= 10;
 	}
-	/* See http://en.wikipedia.org/wiki/Tera */
+	/* see http://en.wikipedia.org/wiki/Tera */
 	fprintf(stderr, "%6d %c%c ", (int)abbrevsize, " KMGTPEZY"[i], i?'B':' ');
 
 	timersub(&now, &lastupdate, &tvwait);
@@ -765,7 +766,8 @@ progressmeter(int flag)
 			fprintf(stderr, "--:--:-- ETA");
 		} else {
 			/* to_download / (transferred/elapsed) - elapsed: */
-			int eta = (int) (to_download*elapsed/transferred - elapsed);
+			int eta = (int) ((unsigned long long)to_download*elapsed/transferred - elapsed);
+			/* (long long helps to have working ETA even if !LFS) */
 			i = eta % 3600;
 			fprintf(stderr, "%02d:%02d:%02d ETA", eta / 3600, i / 60, i % 60);
 		}
