@@ -40,7 +40,7 @@
  *   PowerPC specific code stolen from modutils-2.3.16,
  *   written by Paul Mackerras, Copyright 1996, 1997 Linux International.
  *   I've only tested the code on mpc8xx platforms in big-endian mode.
- *   Did some cleanup and added CONFIG_USE_xxx_ENTRIES...
+ *   Did some cleanup and added USE_xxx_ENTRIES...
  *
  * Quinn Jensen <jensenq@lineo.com> added MIPS support 23-Feb-2001.
  *   based on modutils-2.4.2
@@ -62,24 +62,23 @@
 #include <libgen.h>
 #include <sys/utsname.h>
 
-#if !defined(CONFIG_FEATURE_2_4_MODULES) && \
-	!defined(CONFIG_FEATURE_2_6_MODULES)
-#define CONFIG_FEATURE_2_4_MODULES
+#if !ENABLE_FEATURE_2_4_MODULES && !ENABLE_FEATURE_2_6_MODULES
+#define ENABLE_FEATURE_2_4_MODULES 1
 #endif
 
-#if !defined(CONFIG_FEATURE_2_4_MODULES)
+#if !ENABLE_FEATURE_2_4_MODULES
 #define insmod_ng_main insmod_main
 #endif
 
-#if defined(CONFIG_FEATURE_2_6_MODULES)
+#if ENABLE_FEATURE_2_6_MODULES
 extern int insmod_ng_main( int argc, char **argv);
 #endif
 
 
-#if defined(CONFIG_FEATURE_2_4_MODULES)
+#if ENABLE_FEATURE_2_4_MODULES
 
 
-#ifdef CONFIG_FEATURE_INSMOD_LOADINKMEM
+#if ENABLE_FEATURE_INSMOD_LOADINKMEM
 #define LOADBITS 0
 #else
 #define LOADBITS 1
@@ -100,11 +99,11 @@ extern int insmod_ng_main( int argc, char **argv);
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
 #define ELFCLASSM	ELFCLASS32
-#define CONFIG_USE_PLT_ENTRIES
-#define CONFIG_PLT_ENTRY_SIZE 8
-#define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 8
-#define CONFIG_USE_SINGLE
+#define USE_PLT_ENTRIES
+#define PLT_ENTRY_SIZE 8
+#define USE_GOT_ENTRIES
+#define GOT_ENTRY_SIZE 8
+#define USE_SINGLE
 #endif
 
 /* blackfin */
@@ -134,7 +133,7 @@ extern int insmod_ng_main( int argc, char **argv);
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
-#define CONFIG_USE_SINGLE
+#define USE_SINGLE
 #define SYMBOL_PREFIX	"_"
 #endif
 
@@ -161,9 +160,9 @@ extern int insmod_ng_main( int argc, char **argv);
 #define SHT_RELM	SHT_REL
 #define Elf32_RelM	Elf32_Rel
 #define ELFCLASSM	ELFCLASS32
-#define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 4
-#define CONFIG_USE_SINGLE
+#define USE_GOT_ENTRIES
+#define GOT_ENTRY_SIZE 4
+#define USE_SINGLE
 #endif
 
 /* IA64, aka Itanium */
@@ -180,14 +179,14 @@ extern int insmod_ng_main( int argc, char **argv);
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
-#define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 4
-#define CONFIG_USE_SINGLE
+#define USE_GOT_ENTRIES
+#define GOT_ENTRY_SIZE 4
+#define USE_SINGLE
 #endif
 
 /* Microblaze */
 #if defined(__microblaze__)
-#define CONFIG_USE_SINGLE
+#define USE_SINGLE
 #define MATCH_MACHINE(x) (x == EM_XILINX_MICROBLAZE)
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
@@ -230,11 +229,11 @@ extern int insmod_ng_main( int argc, char **argv);
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
-#define CONFIG_USE_PLT_ENTRIES
-#define CONFIG_PLT_ENTRY_SIZE 16
-#define CONFIG_USE_PLT_LIST
-#define CONFIG_LIST_ARCHTYPE ElfW(Addr)
-#define CONFIG_USE_LIST
+#define USE_PLT_ENTRIES
+#define PLT_ENTRY_SIZE 16
+#define USE_PLT_LIST
+#define LIST_ARCHTYPE ElfW(Addr)
+#define USE_LIST
 #define ARCHDATAM       "__ftr_fixup"
 #endif
 
@@ -244,11 +243,11 @@ extern int insmod_ng_main( int argc, char **argv);
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
-#define CONFIG_USE_PLT_ENTRIES
-#define CONFIG_PLT_ENTRY_SIZE 8
-#define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 8
-#define CONFIG_USE_SINGLE
+#define USE_PLT_ENTRIES
+#define PLT_ENTRY_SIZE 8
+#define USE_GOT_ENTRIES
+#define GOT_ENTRY_SIZE 8
+#define USE_SINGLE
 #endif
 
 /* SuperH */
@@ -257,9 +256,9 @@ extern int insmod_ng_main( int argc, char **argv);
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
-#define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 4
-#define CONFIG_USE_SINGLE
+#define USE_GOT_ENTRIES
+#define GOT_ENTRY_SIZE 4
+#define USE_SINGLE
 /* the SH changes have only been tested in =little endian= mode */
 /* I'm not sure about big endian, so let's warn: */
 #if defined(__sh__) && BB_BIG_ENDIAN
@@ -285,9 +284,9 @@ extern int insmod_ng_main( int argc, char **argv);
 #define SHT_RELM	SHT_RELA
 #define Elf32_RelM	Elf32_Rela
 #define ELFCLASSM	ELFCLASS32
-#define CONFIG_USE_PLT_ENTRIES
-#define CONFIG_PLT_ENTRY_SIZE 8
-#define CONFIG_USE_SINGLE
+#define USE_PLT_ENTRIES
+#define PLT_ENTRY_SIZE 8
+#define USE_SINGLE
 #ifndef EM_CYGNUS_V850	/* grumble */
 #define EM_CYGNUS_V850	0x9080
 #endif
@@ -298,9 +297,9 @@ extern int insmod_ng_main( int argc, char **argv);
 #if defined(__x86_64__)
 #define MATCH_MACHINE(x) (x == EM_X86_64)
 #define SHT_RELM	SHT_RELA
-#define CONFIG_USE_GOT_ENTRIES
-#define CONFIG_GOT_ENTRY_SIZE 8
-#define CONFIG_USE_SINGLE
+#define USE_GOT_ENTRIES
+#define GOT_ENTRY_SIZE 8
+#define USE_SINGLE
 #define Elf64_RelM	Elf64_Rela
 #define ELFCLASSM	ELFCLASS64
 #endif
@@ -606,7 +605,7 @@ static struct obj_symbol *obj_find_symbol (struct obj_file *f,
 static ElfW(Addr) obj_symbol_final_value(struct obj_file *f,
 				  struct obj_symbol *sym);
 
-#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+#if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 static void obj_set_symbol_compare(struct obj_file *f,
 			    int (*cmp)(const char *, const char *),
 			    unsigned long (*hash)(const char *));
@@ -665,7 +664,7 @@ static enum obj_reloc arch_apply_relocation (struct obj_file *f,
 static void arch_create_got (struct obj_file *f);
 #if ENABLE_FEATURE_CHECK_TAINTED_MODULE
 static int obj_gpl_license(struct obj_file *f, const char **license);
-#endif /* ENABLE_FEATURE_CHECK_TAINTED_MODULE */
+#endif /* FEATURE_CHECK_TAINTED_MODULE */
 #endif /* obj.h */
 //----------------------------------------------------------------------------
 //--------end of modutils obj.h
@@ -681,7 +680,7 @@ static int obj_gpl_license(struct obj_file *f, const char **license);
 
 
 #define _PATH_MODULES	"/lib/modules"
-enum { STRVERSIONLEN = 32 };
+enum { STRVERSIONLEN = 64 };
 
 /*======================================================================*/
 
@@ -709,7 +708,7 @@ enum {
 #define flag_verbose (option_mask32 & OPT_v)
 #define flag_quiet (option_mask32 & OPT_q)
 #define flag_noexport (option_mask32 & OPT_x)
-#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
+#if ENABLE_FEATURE_INSMOD_LOAD_MAP
 #define flag_print_load_map (option_mask32 & OPT_m)
 #else
 #define flag_print_load_map 0
@@ -717,19 +716,19 @@ enum {
 
 /*======================================================================*/
 
-#if defined(CONFIG_USE_LIST)
+#if defined(USE_LIST)
 
 struct arch_list_entry
 {
 	struct arch_list_entry *next;
-	CONFIG_LIST_ARCHTYPE addend;
+	LIST_ARCHTYPE addend;
 	int offset;
 	int inited : 1;
 };
 
 #endif
 
-#if defined(CONFIG_USE_SINGLE)
+#if defined(USE_SINGLE)
 
 struct arch_single_entry
 {
@@ -751,10 +750,10 @@ struct mips_hi16
 
 struct arch_file {
 	struct obj_file root;
-#if defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_PLT_ENTRIES)
 	struct obj_section *plt;
 #endif
-#if defined(CONFIG_USE_GOT_ENTRIES)
+#if defined(USE_GOT_ENTRIES)
 	struct obj_section *got;
 #endif
 #if defined(__mips__)
@@ -764,14 +763,14 @@ struct arch_file {
 
 struct arch_symbol {
 	struct obj_symbol root;
-#if defined(CONFIG_USE_PLT_ENTRIES)
-#if defined(CONFIG_USE_PLT_LIST)
+#if defined(USE_PLT_ENTRIES)
+#if defined(USE_PLT_LIST)
 	struct arch_list_entry *pltent;
 #else
 	struct arch_single_entry pltent;
 #endif
 #endif
-#if defined(CONFIG_USE_GOT_ENTRIES)
+#if defined(USE_GOT_ENTRIES)
 	struct arch_single_entry gotent;
 #endif
 };
@@ -860,18 +859,18 @@ arch_apply_relocation(struct obj_file *f,
 	enum obj_reloc ret = obj_reloc_ok;
 	ElfW(Addr) *loc = (ElfW(Addr) *) (targsec->contents + rel->r_offset);
 	ElfW(Addr) dot = targsec->header.sh_addr + rel->r_offset;
-#if defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_GOT_ENTRIES) || defined(USE_PLT_ENTRIES)
 	struct arch_symbol *isym = (struct arch_symbol *) sym;
 #endif
 #if defined(__arm__) || defined(__i386__) || defined(__mc68000__) || defined(__sh__) || defined(__s390__)
-#if defined(CONFIG_USE_GOT_ENTRIES)
+#if defined(USE_GOT_ENTRIES)
 	ElfW(Addr) got = ifile->got ? ifile->got->header.sh_addr : 0;
 #endif
 #endif
-#if defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_PLT_ENTRIES)
 	ElfW(Addr) plt = ifile->plt ? ifile->plt->header.sh_addr : 0;
 	unsigned long *ip;
-# if defined(CONFIG_USE_PLT_LIST)
+# if defined(USE_PLT_LIST)
 	struct arch_list_entry *pe;
 # else
 	struct arch_single_entry *pe;
@@ -1637,13 +1636,13 @@ arch_apply_relocation(struct obj_file *f,
 			ret = obj_reloc_unhandled;
 			break;
 
-#if defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_PLT_ENTRIES)
 
 bb_use_plt:
 
 			/* find the plt entry and initialize it if necessary */
 
-#if defined(CONFIG_USE_PLT_LIST)
+#if defined(USE_PLT_LIST)
 			for (pe = isym->pltent; pe != NULL && pe->addend != rel->r_addend;)
 				pe = pe->next;
 #else
@@ -1714,9 +1713,9 @@ bb_use_plt:
 				(v & 0xffff);                    /* offs low part */
 #endif
 			break;
-#endif /* CONFIG_USE_PLT_ENTRIES */
+#endif /* USE_PLT_ENTRIES */
 
-#if defined(CONFIG_USE_GOT_ENTRIES)
+#if defined(USE_GOT_ENTRIES)
 bb_use_got:
 
 			/* needs an entry in the .got: set it, once */
@@ -1732,14 +1731,14 @@ bb_use_got:
 #endif
 			break;
 
-#endif /* CONFIG_USE_GOT_ENTRIES */
+#endif /* USE_GOT_ENTRIES */
 	}
 
 	return ret;
 }
 
 
-#if defined(CONFIG_USE_LIST)
+#if defined(USE_LIST)
 
 static int arch_list_add(ElfW(RelM) *rel, struct arch_list_entry **list,
 			  int offset, int size)
@@ -1766,7 +1765,7 @@ static int arch_list_add(ElfW(RelM) *rel, struct arch_list_entry **list,
 
 #endif
 
-#if defined(CONFIG_USE_SINGLE)
+#if defined(USE_SINGLE)
 
 static int arch_single_init(ElfW(RelM) *rel, struct arch_single_entry *single,
 			     int offset, int size)
@@ -1782,7 +1781,7 @@ static int arch_single_init(ElfW(RelM) *rel, struct arch_single_entry *single,
 
 #endif
 
-#if defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_GOT_ENTRIES) || defined(USE_PLT_ENTRIES)
 
 static struct obj_section *arch_xsect_init(struct obj_file *f, char *name,
 					   int offset, int size)
@@ -1807,13 +1806,13 @@ static struct obj_section *arch_xsect_init(struct obj_file *f, char *name,
 
 static void arch_create_got(struct obj_file *f)
 {
-#if defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_GOT_ENTRIES) || defined(USE_PLT_ENTRIES)
 	struct arch_file *ifile = (struct arch_file *) f;
 	int i;
-#if defined(CONFIG_USE_GOT_ENTRIES)
+#if defined(USE_GOT_ENTRIES)
 	int got_offset = 0, got_needed = 0, got_allocate;
 #endif
-#if defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_PLT_ENTRIES)
 	int plt_offset = 0, plt_needed = 0, plt_allocate;
 #endif
 	struct obj_section *relsec, *symsec, *strsec;
@@ -1838,10 +1837,10 @@ static void arch_create_got(struct obj_file *f)
 		for (; rel < relend; ++rel) {
 			extsym = &symtab[ELF_R_SYM(rel->r_info)];
 
-#if defined(CONFIG_USE_GOT_ENTRIES)
+#if defined(USE_GOT_ENTRIES)
 			got_allocate = 0;
 #endif
-#if defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_PLT_ENTRIES)
 			plt_allocate = 0;
 #endif
 
@@ -1913,25 +1912,25 @@ static void arch_create_got(struct obj_file *f)
 				name = f->sections[extsym->st_shndx]->name;
 			}
 			intsym = (struct arch_symbol *) obj_find_symbol(f, name);
-#if defined(CONFIG_USE_GOT_ENTRIES)
+#if defined(USE_GOT_ENTRIES)
 			if (got_allocate) {
 				got_offset += arch_single_init(
 						rel, &intsym->gotent,
-						got_offset, CONFIG_GOT_ENTRY_SIZE);
+						got_offset, GOT_ENTRY_SIZE);
 
 				got_needed = 1;
 			}
 #endif
-#if defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_PLT_ENTRIES)
 			if (plt_allocate) {
-#if defined(CONFIG_USE_PLT_LIST)
+#if defined(USE_PLT_LIST)
 				plt_offset += arch_list_add(
 						rel, &intsym->pltent,
-						plt_offset, CONFIG_PLT_ENTRY_SIZE);
+						plt_offset, PLT_ENTRY_SIZE);
 #else
 				plt_offset += arch_single_init(
 						rel, &intsym->pltent,
-						plt_offset, CONFIG_PLT_ENTRY_SIZE);
+						plt_offset, PLT_ENTRY_SIZE);
 #endif
 				plt_needed = 1;
 			}
@@ -1939,21 +1938,21 @@ static void arch_create_got(struct obj_file *f)
 		}
 	}
 
-#if defined(CONFIG_USE_GOT_ENTRIES)
+#if defined(USE_GOT_ENTRIES)
 	if (got_needed) {
 		ifile->got = arch_xsect_init(f, ".got", got_offset,
-				CONFIG_GOT_ENTRY_SIZE);
+				GOT_ENTRY_SIZE);
 	}
 #endif
 
-#if defined(CONFIG_USE_PLT_ENTRIES)
+#if defined(USE_PLT_ENTRIES)
 	if (plt_needed) {
 		ifile->plt = arch_xsect_init(f, ".plt", plt_offset,
-				CONFIG_PLT_ENTRY_SIZE);
+				PLT_ENTRY_SIZE);
 	}
 #endif
 
-#endif /* defined(CONFIG_USE_GOT_ENTRIES) || defined(CONFIG_USE_PLT_ENTRIES) */
+#endif /* defined(USE_GOT_ENTRIES) || defined(USE_PLT_ENTRIES) */
 }
 
 /*======================================================================*/
@@ -1982,7 +1981,7 @@ static unsigned long obj_elf_hash(const char *name)
 	return obj_elf_hash_n(name, strlen(name));
 }
 
-#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+#if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 /* String comparison for non-co-versioned kernel and module.  */
 
 static int ncv_strcmp(const char *a, const char *b)
@@ -2034,7 +2033,7 @@ obj_set_symbol_compare(struct obj_file *f,
 	}
 }
 
-#endif							/* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
+#endif /* FEATURE_INSMOD_VERSION_CHECKING */
 
 static struct obj_symbol *
 obj_add_symbol(struct obj_file *f, const char *name,
@@ -2281,7 +2280,7 @@ add_symbols_from( struct obj_file *f,
 	char *name_buf = 0;
 	size_t name_alloced_size = 0;
 #endif
-#ifdef CONFIG_FEATURE_CHECK_TAINTED_MODULE
+#if ENABLE_FEATURE_CHECK_TAINTED_MODULE
 	int gpl;
 
 	gpl = obj_gpl_license(f, NULL) == 0;
@@ -2301,7 +2300,7 @@ add_symbols_from( struct obj_file *f,
 		 * their references.
 		 */
 		if (strncmp((char *)s->name, "GPLONLY_", 8) == 0) {
-#ifdef CONFIG_FEATURE_CHECK_TAINTED_MODULE
+#if ENABLE_FEATURE_CHECK_TAINTED_MODULE
 			if (gpl)
 				s->name += 8;
 			else
@@ -2637,7 +2636,7 @@ end_of_arg:
 	return 1;
 }
 
-#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+#if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 static int new_is_module_checksummed(struct obj_file *f)
 {
 	const char *p = get_modinfo_value(f, "using_checksums");
@@ -2673,7 +2672,7 @@ new_get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 	return a << 16 | b << 8 | c;
 }
 
-#endif   /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
+#endif   /* FEATURE_INSMOD_VERSION_CHECKING */
 
 
 /* Fetch the loaded modules, and all currently exported symbols.  */
@@ -2803,7 +2802,7 @@ static int new_create_this_module(struct obj_file *f, const char *m_name)
 	return 1;
 }
 
-#ifdef CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
+#if ENABLE_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 /* add an entry to the __ksymtab section, creating it if necessary */
 static void new_add_ksymtab(struct obj_file *f, struct obj_symbol *sym)
 {
@@ -2826,14 +2825,14 @@ static void new_add_ksymtab(struct obj_file *f, struct obj_symbol *sym)
 	if (!sec)
 		return;
 	sec->header.sh_flags |= SHF_ALLOC;
-	sec->header.sh_addralign = tgt_sizeof_void_p;	/* Empty section might
-													   be byte-aligned */
+	/* Empty section might be byte-aligned */
+	sec->header.sh_addralign = tgt_sizeof_void_p;
 	ofs = sec->header.sh_size;
 	obj_symbol_patch(f, sec->idx, ofs, sym);
 	obj_string_patch(f, sec->idx, ofs + tgt_sizeof_void_p, sym->name);
 	obj_extend_section(sec, 2 * tgt_sizeof_char_p);
 }
-#endif /* CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
+#endif /* FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
 
 static int new_create_module_ksymtab(struct obj_file *f)
 {
@@ -3552,7 +3551,7 @@ static struct obj_file *obj_load(FILE * fp, int loadprogbits)
 	return f;
 }
 
-#ifdef CONFIG_FEATURE_INSMOD_LOADINKMEM
+#if ENABLE_FEATURE_INSMOD_LOADINKMEM
 /*
  * load the unloaded sections directly into the memory allocated by
  * kernel for the module
@@ -3604,7 +3603,7 @@ static void hide_special_symbols(struct obj_file *f)
 }
 
 
-#ifdef CONFIG_FEATURE_CHECK_TAINTED_MODULE
+#if ENABLE_FEATURE_CHECK_TAINTED_MODULE
 static int obj_gpl_license(struct obj_file *f, const char **license)
 {
 	struct obj_section *sec;
@@ -3719,11 +3718,11 @@ static void check_tainted_module(struct obj_file *f, char *m_name)
 	if (fd >= 0)
 		close(fd);
 }
-#else /* CONFIG_FEATURE_CHECK_TAINTED_MODULE */
+#else /* FEATURE_CHECK_TAINTED_MODULE */
 #define check_tainted_module(x, y) do { } while(0);
-#endif /* CONFIG_FEATURE_CHECK_TAINTED_MODULE */
+#endif /* FEATURE_CHECK_TAINTED_MODULE */
 
-#ifdef CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
+#if ENABLE_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 /* add module source, timestamp, kernel version and a symbol for the
  * start of some sections.  this info is used by ksymoops to do better
  * debugging.
@@ -3731,12 +3730,12 @@ static void check_tainted_module(struct obj_file *f, char *m_name)
 static int
 get_module_version(struct obj_file *f, char str[STRVERSIONLEN])
 {
-#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+#if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 	return new_get_module_version(f, str);
-#else  /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
+#else  /* FEATURE_INSMOD_VERSION_CHECKING */
 	strncpy(str, "???", sizeof(str));
 	return -1;
-#endif /* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
+#endif /* FEATURE_INSMOD_VERSION_CHECKING */
 }
 
 /* add module source, timestamp, kernel version and a symbol for the
@@ -3854,9 +3853,9 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 		}
 	}
 }
-#endif /* CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
+#endif /* FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
 
-#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP
+#if ENABLE_FEATURE_INSMOD_LOAD_MAP
 static void print_load_map(struct obj_file *f)
 {
 	struct obj_symbol *sym;
@@ -3885,7 +3884,7 @@ static void print_load_map(struct obj_file *f)
 				(long)sec->header.sh_addr,
 				a);
 	}
-#ifdef CONFIG_FEATURE_INSMOD_LOAD_MAP_FULL
+#if ENABLE_FEATURE_INSMOD_LOAD_MAP_FULL
 	/* Quick reference which section indicies are loaded.  */
 
 	loaded = alloca(sizeof(int) * (i = f->header.e_shnum));
@@ -3945,7 +3944,7 @@ static void print_load_map(struct obj_file *f)
 	}
 #endif
 }
-#else /* !CONFIG_FEATURE_INSMOD_LOAD_MAP */
+#else /* !FEATURE_INSMOD_LOAD_MAP */
 void print_load_map(struct obj_file *f);
 #endif
 
@@ -3962,12 +3961,12 @@ int insmod_main( int argc, char **argv)
 	char *m_name = 0;
 	int exit_status = EXIT_FAILURE;
 	int m_has_modinfo;
-#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+#if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 	struct utsname uts_info;
 	char m_strversion[STRVERSIONLEN];
 	int m_version, m_crcs;
 #endif
-#ifdef CONFIG_FEATURE_CLEAN_UP
+#if ENABLE_FEATURE_CLEAN_UP
 	FILE *fp = 0;
 #else
 	FILE *fp;
@@ -3998,7 +3997,7 @@ int insmod_main( int argc, char **argv)
 		}
 	}
 
-#if defined(CONFIG_FEATURE_2_6_MODULES)
+#if ENABLE_FEATURE_2_6_MODULES
 	if (k_version > 4 && len > 3 && tmp[len - 3] == '.'
 	 && tmp[len - 2] == 'k' && tmp[len - 1] == 'o'
 	) {
@@ -4012,7 +4011,7 @@ int insmod_main( int argc, char **argv)
 		}
 
 
-#if defined(CONFIG_FEATURE_2_6_MODULES)
+#if ENABLE_FEATURE_2_6_MODULES
 	if (k_version > 4)
 		m_fullName = xasprintf("%s.ko", tmp);
 	else
@@ -4080,7 +4079,7 @@ int insmod_main( int argc, char **argv)
 	if (flag_verbose)
 		printf("Using %s\n", m_filename);
 
-#ifdef CONFIG_FEATURE_2_6_MODULES
+#if ENABLE_FEATURE_2_6_MODULES
 	if (k_version > 4) {
 		argv[optind] = m_filename;
 		optind--;
@@ -4097,7 +4096,7 @@ int insmod_main( int argc, char **argv)
 	else
 		m_has_modinfo = 1;
 
-#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+#if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 	/* Version correspondence?  */
 	if (!flag_quiet) {
 		if (uname(&uts_info) < 0)
@@ -4127,7 +4126,7 @@ int insmod_main( int argc, char **argv)
 		}
 	}
 	k_crcs = 0;
-#endif							/* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
+#endif /* FEATURE_INSMOD_VERSION_CHECKING */
 
 	if (!query_module(NULL, 0, NULL, 0, NULL)) {
 		if (!new_get_kernel_symbols())
@@ -4138,14 +4137,14 @@ int insmod_main( int argc, char **argv)
 		goto out;
 	}
 
-#ifdef CONFIG_FEATURE_INSMOD_VERSION_CHECKING
+#if ENABLE_FEATURE_INSMOD_VERSION_CHECKING
 	m_crcs = 0;
 	if (m_has_modinfo)
 		m_crcs = new_is_module_checksummed(f);
 
 	if (m_crcs != k_crcs)
 		obj_set_symbol_compare(f, ncv_strcmp, ncv_symbol_hash);
-#endif							/* CONFIG_FEATURE_INSMOD_VERSION_CHECKING */
+#endif /* FEATURE_INSMOD_VERSION_CHECKING */
 
 	/* Let the module know about the kernel symbols.  */
 	add_kernel_symbols(f);
@@ -4173,9 +4172,9 @@ int insmod_main( int argc, char **argv)
 	arch_create_got(f);
 	hide_special_symbols(f);
 
-#ifdef CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
+#if ENABLE_FEATURE_INSMOD_KSYMOOPS_SYMBOLS
 	add_ksymoops_symbols(f, m_filename, m_name);
-#endif /* CONFIG_FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
+#endif /* FEATURE_INSMOD_KSYMOOPS_SYMBOLS */
 
 	new_create_module_ksymtab(f);
 
@@ -4224,7 +4223,7 @@ int insmod_main( int argc, char **argv)
 	exit_status = EXIT_SUCCESS;
 
 out:
-#ifdef CONFIG_FEATURE_CLEAN_UP
+#if ENABLE_FEATURE_CLEAN_UP
 	if(fp)
 		fclose(fp);
 	free(tmp1);
@@ -4240,7 +4239,7 @@ out:
 #endif
 
 
-#ifdef CONFIG_FEATURE_2_6_MODULES
+#if ENABLE_FEATURE_2_6_MODULES
 
 #include <sys/mman.h>
 #include <asm/unistd.h>
