@@ -893,9 +893,8 @@ static int sendHeaders(HttpResponseNum responseNum)
 				responseNum, responseString,
 				responseNum, responseString, infoString);
 	}
-#if DEBUG
-	fprintf(stderr, "headers: '%s'\n", buf);
-#endif
+	if (DEBUG)
+		fprintf(stderr, "headers: '%s'\n", buf);
 	return full_write(config->accepted_socket, buf, len);
 }
 
@@ -984,7 +983,7 @@ static int sendCgi(const char *url,
 		if (purl == NULL)
 			_exit(242);
 
-		inFd  = toCgi[0];
+		inFd = toCgi[0];
 		outFd = fromCgi[1];
 
 		dup2(inFd, 0);  // replace stdin with the pipe
@@ -1028,7 +1027,7 @@ static int sendCgi(const char *url,
 			setenv1("REQUEST_URI", purl);
 		}
 		if (script != NULL)
-			*script = '\0';         /* reduce /PATH_INFO */
+			*script = '\0';         /* cut off /PATH_INFO */
 		 /* SCRIPT_FILENAME required by PHP in CGI mode */
 		if (!realpath(purl + 1, realpath_buff))
 			goto error_execing_cgi;
@@ -1546,7 +1545,7 @@ static void handleIncoming(void)
 			*test = '/';
 		}
 		if (blank >= 0) {
-			// read until blank line for HTTP version specified, else parse immediate
+			/* read until blank line for HTTP version specified, else parse immediate */
 			while (1) {
 				alarm(TIMEOUT);
 				count = getLine();
@@ -1568,7 +1567,7 @@ static void handleIncoming(void)
 						length = strtol(test, &test, 10);
 						/* length is "ulong", but we need to pass it to int later */
 						/* so we check for negative or too large values in one go: */
-						/* (long -> ulong conv will cause negatives to be seen as > INT_MAX) */
+						/* (long -> ulong conv caused negatives to be seen as > INT_MAX) */
 						if (test[0] || errno || length > INT_MAX)
 							goto bail_out;
 					}
@@ -1599,14 +1598,14 @@ static void handleIncoming(void)
 
 			} /* while extra header reading */
 		}
-		(void) alarm(0);
+		alarm(0);
 		if (config->alarm_signaled)
 			break;
 
 		if (strcmp(strrchr(url, '/') + 1, httpd_conf) == 0 || ip_allowed == 0) {
 			/* protect listing [/path]/httpd_conf or IP deny */
 #if ENABLE_FEATURE_HTTPD_CGI
-FORBIDDEN:		/* protect listing /cgi-bin */
+ FORBIDDEN:		/* protect listing /cgi-bin */
 #endif
 			sendHeaders(HTTP_FORBIDDEN);
 			break;
@@ -1631,25 +1630,30 @@ FORBIDDEN:		/* protect listing /cgi-bin */
 #if ENABLE_FEATURE_HTTPD_CGI
 		if (strncmp(test, "cgi-bin", 7) == 0) {
 			if (test[7] == '/' && test[8] == 0)
-				goto FORBIDDEN;     // protect listing cgi-bin/
+				goto FORBIDDEN;     /* protect listing cgi-bin/ */
 			sendCgi(url, prequest, length, cookie, content_type);
-		} else {
-			if (prequest != request_GET)
-				sendHeaders(HTTP_NOT_IMPLEMENTED);
-			else {
-#endif  /* FEATURE_HTTPD_CGI */
-				if (purl[-1] == '/')
-					strcpy(purl, "index.html");
-				if (stat(test, &sb) == 0) {
-					config->ContentLength = sb.st_size;
-					config->last_mod = sb.st_mtime;
-				}
-				sendFile(test);
-				config->ContentLength = -1;
-#if ENABLE_FEATURE_HTTPD_CGI
+			break;
+		}
+		if (prequest != request_GET) {
+			sendHeaders(HTTP_NOT_IMPLEMENTED);
+			break;
+		}
+		if (purl[-1] == '/') {
+			if (access("cgi-bin/index.cgi", X_OK) == 0) {
+				config->query = url;
+				sendCgi("/cgi-bin/index.cgi", prequest, length, cookie, content_type);
+				break;
 			}
 		}
-#endif
+#endif  /* FEATURE_HTTPD_CGI */
+		if (purl[-1] == '/')
+			strcpy(purl, "index.html");
+		if (stat(test, &sb) == 0) {
+			config->ContentLength = sb.st_size;
+			config->last_mod = sb.st_mtime;
+		}
+		sendFile(test);
+		config->ContentLength = -1;
 	} while (0);
 
  bail_out:
