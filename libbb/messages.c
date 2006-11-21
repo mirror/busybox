@@ -28,6 +28,8 @@ const char bb_msg_invalid_arg[] = "invalid argument '%s' to '%s'";
 const char bb_msg_standard_input[] = "standard input";
 const char bb_msg_standard_output[] = "standard output";
 
+const char bb_str_default[] = "default";
+
 const char bb_path_passwd_file[] = "/etc/passwd";
 const char bb_path_shadow_file[] = "/etc/shadow";
 const char bb_path_group_file[] = "/etc/group";

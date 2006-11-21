@@ -12,8 +12,6 @@
 #include "libbb.h"
 #include "inet_common.h"
 
-const char bb_INET_default[] = "default";
-
 int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 {
 	struct hostent *hp;
@@ -24,9 +22,9 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 	s_in->sin_port = 0;
 
 	/* Default is special, meaning 0.0.0.0. */
-	if (!strcmp(name, bb_INET_default)) {
+	if (!strcmp(name, bb_str_default)) {
 		s_in->sin_addr.s_addr = INADDR_ANY;
-		return (1);
+		return 1;
 	}
 	/* Look to see if it's a dotted quad. */
 	if (inet_aton(name, &s_in->sin_addr)) {
@@ -102,7 +100,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 				  s_in->sin_family);
 #endif
 		errno = EAFNOSUPPORT;
-		return (-1);
+		return -1;
 	}
 	ad = (unsigned long) s_in->sin_addr.s_addr;
 #ifdef DEBUG
@@ -111,15 +109,15 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	if (ad == INADDR_ANY) {
 		if ((numeric & 0x0FFF) == 0) {
 			if (numeric & 0x8000)
-				safe_strncpy(name, bb_INET_default, len);
+				safe_strncpy(name, bb_str_default, len);
 			else
 				safe_strncpy(name, "*", len);
-			return (0);
+			return 0;
 		}
 	}
 	if (numeric & 0x0FFF) {
 		safe_strncpy(name, inet_ntoa(s_in->sin_addr), len);
-		return (0);
+		return 0;
 	}
 
 	if ((ad & (~netmask)) != 0 || (numeric & 0x4000))
@@ -132,7 +130,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 			bb_error_msg("rresolve: found %s %08lx in cache",
 					  (host ? "host" : "net"), ad);
 #endif
-			return (0);
+			return 0;
 		}
 		pn = pn->next;
 	}
@@ -167,7 +165,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	pn->name = xstrdup(name);
 	INET_nn = pn;
 
-	return (0);
+	return 0;
 }
 
 #ifdef CONFIG_FEATURE_IPV6
@@ -179,7 +177,8 @@ int INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
 
 	memset(&req, '\0', sizeof req);
 	req.ai_family = AF_INET6;
-	if ((s = getaddrinfo(name, NULL, &req, &ai))) {
+	s = getaddrinfo(name, NULL, &req, &ai);
+	if (s) {
 		bb_error_msg("getaddrinfo: %s: %d", name, s);
 		return -1;
 	}
@@ -187,7 +186,7 @@ int INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
 
 	freeaddrinfo(ai);
 
-	return (0);
+	return 0;
 }
 
 #ifndef IN6_IS_ADDR_UNSPECIFIED
@@ -205,23 +204,24 @@ int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6,
 	/* Grmpf. -FvK */
 	if (sin6->sin6_family != AF_INET6) {
 #ifdef DEBUG
-		bb_error_msg(_("rresolve: unsupport address family %d!"),
+		bb_error_msg("rresolve: unsupport address family %d!",
 				  sin6->sin6_family);
 #endif
 		errno = EAFNOSUPPORT;
-		return (-1);
+		return -1;
 	}
 	if (numeric & 0x7FFF) {
 		inet_ntop(AF_INET6, &sin6->sin6_addr, name, len);
-		return (0);
+		return 0;
 	}
 	if (IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr)) {
 		if (numeric & 0x8000) {
-			strcpy(name, "default");
+			strcpy(name, bb_str_default);
 		} else {
-			strcpy(name, "*");
+			name[0] = '*';
+			name[1] = '\0';
 		}
-		return (0);
+		return 0;
 	}
 
 	s = getnameinfo((struct sockaddr *) sin6, sizeof(struct sockaddr_in6), name, len, NULL, 0, 0);
@@ -229,7 +229,7 @@ int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6,
 		bb_error_msg("getnameinfo failed");
 		return -1;
 	}
-	return (0);
+	return 0;
 }
 
 #endif							/* CONFIG_FEATURE_IPV6 */

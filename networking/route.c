@@ -186,7 +186,7 @@ static void INET_setroute(int action, char **args)
 #endif
 		} else {
 			/* Default netmask. */
-			netmask = bb_INET_default;
+			netmask = bb_str_default;
 		}
 		/* Prefer hostname lookup is -host flag (xflag==1) was given. */
 		isnet = INET_resolve(target, (struct sockaddr_in *) &rt.rt_dst,
@@ -346,7 +346,7 @@ static void INET6_setroute(int action, char **args)
 		/* We know args isn't NULL from the check in route_main. */
 		const char *target = *args++;
 
-		if (strcmp(target, bb_INET_default) == 0) {
+		if (strcmp(target, bb_str_default) == 0) {
 			prefix_len = 0;
 			memset(&sa6, 0, sizeof(sa6));
 		} else {

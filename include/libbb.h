@@ -604,6 +604,8 @@ extern const char bb_msg_invalid_arg[];
 extern const char bb_msg_standard_input[];
 extern const char bb_msg_standard_output[];
 
+extern const char bb_str_default[];
+
 extern const char bb_path_mtab_file[];
 extern const char bb_path_nologin_file[];
 extern const char bb_path_passwd_file[];

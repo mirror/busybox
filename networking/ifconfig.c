@@ -394,7 +394,7 @@ int ifconfig_main(int argc, char **argv)
 
 						sai.sin_family = AF_INET;
 						sai.sin_port = 0;
-						if (!strcmp(host, bb_INET_default)) {
+						if (!strcmp(host, bb_str_default)) {
 							/* Default is special, meaning 0.0.0.0. */
 							sai.sin_addr.s_addr = INADDR_ANY;
 #if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS

@@ -125,7 +125,7 @@ int get_addr_1(inet_prefix * addr, char *name, int family)
 
 	memset(addr, 0, sizeof(*addr));
 
-	if (strcmp(name, bb_INET_default) == 0 ||
+	if (strcmp(name, bb_str_default) == 0 ||
 		strcmp(name, "all") == 0 || strcmp(name, "any") == 0) {
 		addr->family = family;
 		addr->bytelen = (family == AF_INET6 ? 16 : 4);
@@ -169,7 +169,7 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 
 	memset(dst, 0, sizeof(*dst));
 
-	if (strcmp(arg, bb_INET_default) == 0 || strcmp(arg, "any") == 0) {
+	if (strcmp(arg, bb_str_default) == 0 || strcmp(arg, "any") == 0) {
 		dst->family = family;
 		dst->bytelen = 0;
 		dst->bitlen = 0;

@@ -14,16 +14,12 @@
 #include <sys/socket.h>
 #include "platform.h"
 
-
-extern const char bb_INET_default[];    /* = "default" */
-
 /* hostfirst!=0 If we expect this to be a hostname,
    try hostname database first
  */
 extern int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst);
 
-
-/* numeric: & 0x8000: default instead of *,
+/* numeric: & 0x8000: "default" instead of "*",
  *          & 0x4000: host instead of net,
  *          & 0x0fff: don't resolve
  */
