@@ -256,7 +256,9 @@ static const HttpEnumString httpResponseNames[] = {
 
 
 static const char RFC1123FMT[] = "%a, %d %b %Y %H:%M:%S GMT";
-static const char Content_length[] = "Content-length:";
+
+
+#define STRNCASECMP(a, str) strncasecmp((a), (str), sizeof(str)-1)
 
 
 static int scan_ip(const char **ep, unsigned int *ip, unsigned char endc)
@@ -880,7 +882,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 	if (config->ContentLength != -1) {    /* file */
 		strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&config->last_mod));
 		len += sprintf(buf+len, "Last-Modified: %s\r\n%s %"OFF_FMT"\r\n",
-				timeStr, Content_length, (off_t) config->ContentLength);
+				timeStr, "Content-length:", (off_t) config->ContentLength);
 	}
 	strcat(buf, "\r\n");
 	len += 2;
@@ -962,20 +964,15 @@ static int sendCgi(const char *url,
 	int outFd;
 	int firstLine = 1;
 
-	do {
-		if (pipe(fromCgi) != 0) {
-			break;
-		}
-		if (pipe(toCgi) != 0) {
-			break;
-		}
+	if (pipe(fromCgi) != 0)
+		return 0;
+	if (pipe(toCgi) != 0)
+		return 0;
+	pid = fork();
+	if (pid < 0)
+		return 0;
 
-		pid = fork();
-		if (pid < 0) {
-			pid = 0;
-			break;
-		}
-
+	do {    
 		if (!pid) {
 			/* child process */
 			char *script;
@@ -1031,10 +1028,9 @@ static int sendCgi(const char *url,
 			if (script != NULL)
 				*script = '\0';         /* reduce /PATH_INFO */
 			 /* SCRIPT_FILENAME required by PHP in CGI mode */
-			if (realpath(purl + 1, realpath_buff))
-				setenv1("SCRIPT_FILENAME", realpath_buff);
-			else
-				*realpath_buff = '\0';
+			if (!realpath(purl + 1, realpath_buff))
+				goto error_execing_cgi;
+			setenv1("SCRIPT_FILENAME", realpath_buff);
 			/* set SCRIPT_NAME as full path: /cgi-bin/dirs/script.cgi */
 			setenv1("SCRIPT_NAME", purl);
 			setenv1("QUERY_STRING", config->query);
@@ -1045,9 +1041,8 @@ static int sendCgi(const char *url,
 #if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 			setenv_long("REMOTE_PORT", config->port);
 #endif
-			if (bodyLen) {
+			if (bodyLen)
 				setenv_long("CONTENT_LENGTH", bodyLen);
-			}
 			if (cookie)
 				setenv1("HTTP_COOKIE", cookie);
 			if (content_type)
@@ -1064,37 +1059,37 @@ static int sendCgi(const char *url,
 			/* set execve argp[0] without path */
 			argp[0] = strrchr(purl, '/') + 1;
 			/* but script argp[0] must have absolute path and chdiring to this */
-			if (*realpath_buff) {
-				script = strrchr(realpath_buff, '/');
-				if (script) {
-					*script = '\0';
-					if (chdir(realpath_buff) == 0) {
-						// now run the program.  If it fails,
-						// use _exit() so no destructors
-						// get called and make a mess.
+			script = strrchr(realpath_buff, '/');
+			if (!script)
+				goto error_execing_cgi;
+			*script = '\0';
+			if (chdir(realpath_buff) == 0) {
+				// now run the program.  If it fails,
+				// use _exit() so no destructors
+				// get called and make a mess.
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-						char *interpr = NULL;
-						char *suffix = strrchr(purl, '.');
+				char *interpr = NULL;
+				char *suffix = strrchr(purl, '.');
 
-						if (suffix) {
-							Htaccess * cur;
-							for (cur = config->script_i; cur; cur = cur->next)
-								if (strcmp(cur->before_colon + 1, suffix) == 0) {
-									interpr = cur->after_colon;
-									break;
-								}
+				if (suffix) {
+					Htaccess *cur;
+					for (cur = config->script_i; cur; cur = cur->next) {
+						if (strcmp(cur->before_colon + 1, suffix) == 0) {
+							interpr = cur->after_colon;
+							break;
 						}
-#endif
-						*script = '/';
-#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
-						if (interpr)
-							execv(interpr, argp);
-						else
-#endif
-							execv(realpath_buff, argp);
 					}
 				}
+#endif
+				*script = '/';
+#if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+				if (interpr)
+					execv(interpr, argp);
+				else
+#endif
+					execv(realpath_buff, argp);
 			}
+ error_execing_cgi:
 			/* send to stdout (even if we are not from inetd) */
 			config->accepted_socket = 1;
 			sendHeaders(HTTP_NOT_FOUND);
@@ -1103,7 +1098,7 @@ static int sendCgi(const char *url,
 
 	} while (0);
 
-	if (pid) {
+	if (pid > 0) {
 		/* parent process */
 		int status;
 		size_t post_readed_size = 0, post_readed_idx = 0;
@@ -1425,7 +1420,7 @@ static void handleIncoming(void)
 	int ip_allowed;
 #if ENABLE_FEATURE_HTTPD_CGI
 	const char *prequest = request_GET;
-	long length = 0;
+	unsigned long length = 0;
 	char *cookie = 0;
 	char *content_type = 0;
 #endif
@@ -1452,11 +1447,11 @@ static void handleIncoming(void)
 
 		purl = strpbrk(buf, " \t");
 		if (purl == NULL) {
-BAD_REQUEST:
+ BAD_REQUEST:
 			sendHeaders(HTTP_BAD_REQUEST);
 			break;
 		}
-		*purl = 0;
+		*purl = '\0';
 #if ENABLE_FEATURE_HTTPD_CGI
 		if (strcasecmp(buf, prequest) != 0) {
 			prequest = "POST";
@@ -1487,29 +1482,35 @@ BAD_REQUEST:
 		/* extract url args if present */
 		test = strchr(url, '?');
 		if (test) {
-			*test++ = 0;
+			*test++ = '\0';
 			config->query = test;
 		}
 
 		test = decodeString(url, 0);
 		if (test == NULL)
 			goto BAD_REQUEST;
+		/* FIXME: bug? should be "url+1"? */
 		if (test == (buf+1)) {
 			sendHeaders(HTTP_NOT_FOUND);
 			break;
 		}
+
 		/* algorithm stolen from libbb bb_simplify_path(),
 			 but don't strdup and reducing trailing slash and protect out root */
 		purl = test = url;
-
 		do {
 			if (*purl == '/') {
-				if (*test == '/') {        /* skip duplicate (or initial) slash */
+				/* skip duplicate (or initial) slash */
+				if (*test == '/') {
 					continue;
-				} else if (*test == '.') {
-					if (test[1] == '/' || test[1] == 0) { /* skip extra '.' */
+				}
+				if (*test == '.') {
+					/* skip extra '.' */
+					if (test[1] == '/' || test[1] == 0) {
 						continue;
-					} else if ((test[1] == '.') && (test[2] == '/' || test[2] == 0)) {
+					} else
+					/* '..': be careful */
+					if (test[1] == '.' && (test[2] == '/' || test[2] == 0)) {
 						++test;
 						if (purl == url) {
 							/* protect out root */
@@ -1522,9 +1523,8 @@ BAD_REQUEST:
 			}
 			*++purl = *test;
 		} while (*++test);
-
-		*++purl = 0;        /* so keep last character */
-		test = purl;        /* end ptr */
+		*++purl = '\0';       /* so keep last character */
+		test = purl;          /* end ptr */
 
 		/* If URL is directory, adding '/' */
 		if (test[-1] != '/') {
@@ -1560,36 +1560,40 @@ BAD_REQUEST:
 
 #if ENABLE_FEATURE_HTTPD_CGI
 				/* try and do our best to parse more lines */
-				if ((strncasecmp(buf, Content_length, 15) == 0)) {
-					if (prequest != request_GET)
-						length = strtol(buf + 15, 0, 0); // extra read only for POST
-				} else if ((strncasecmp(buf, "Cookie:", 7) == 0)) {
-					for (test = buf + 7; isspace(*test); test++)
-						  ;
-					cookie = strdup(test);
-				} else if ((strncasecmp(buf, "Content-Type:", 13) == 0)) {
-					for (test = buf + 13; isspace(*test); test++)
-						  ;
-					content_type = strdup(test);
-				} else if ((strncasecmp(buf, "Referer:", 8) == 0)) {
-					for (test = buf + 8; isspace(*test); test++)
-						  ;
-					config->referer = strdup(test);
+				if ((STRNCASECMP(buf, "Content-length:") == 0)) {
+					/* extra read only for POST */
+					if (prequest != request_GET) {
+						test = buf + sizeof("Content-length:")-1;
+						if (!test[0]) goto bail_out;
+						errno = 0;
+						/* not using strtoul: it ignores leading munis! */
+						length = strtol(test, &test, 10);
+						/* length is "ulong", but we need to pass it to int later */
+						/* so we check for negative or too large values in one go: */
+						/* (long -> ulong conv will cause negatives to be seen as > INT_MAX) */
+						if (test[0] || errno || length > INT_MAX)
+							goto bail_out;
+					}
+				} else if ((STRNCASECMP(buf, "Cookie:") == 0)) {
+					cookie = strdup(skip_whitespace(buf + sizeof("Cookie:")-1));
+				} else if ((STRNCASECMP(buf, "Content-Type:") == 0)) {
+					content_type = strdup(skip_whitespace(buf + sizeof("Content-Type:")-1));
+				} else if ((STRNCASECMP(buf, "Referer:") == 0)) {
+					config->referer = strdup(skip_whitespace(buf + sizeof("Referer:")-1));
 				}
 #endif
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-				if (strncasecmp(buf, "Authorization:", 14) == 0) {
+				if (STRNCASECMP(buf, "Authorization:") == 0) {
 					/* We only allow Basic credentials.
 					 * It shows up as "Authorization: Basic <userid:password>" where
 					 * the userid:password is base64 encoded.
 					 */
-					for (test = buf + 14; isspace(*test); test++)
-						;
-					if (strncasecmp(test, "Basic", 5) != 0)
+					test = skip_whitespace(buf + sizeof("Authorization:")-1);
+					if (STRNCASECMP(test, "Basic") != 0)
 						continue;
-
-					test += 5;  /* decodeBase64() skiping space self */
+					test += sizeof("Basic")-1;
+					/* decodeBase64() skips whitespace itself */
 					decodeBase64(test);
 					credentials = checkPerm(url, test);
 				}
@@ -1627,10 +1631,6 @@ FORBIDDEN:		/* protect listing /cgi-bin */
 		test = url + 1;      /* skip first '/' */
 
 #if ENABLE_FEATURE_HTTPD_CGI
-		/* if strange Content-Length */
-		if (length < 0)
-			break;
-
 		if (strncmp(test, "cgi-bin", 7) == 0) {
 			if (test[7] == '/' && test[8] == 0)
 				goto FORBIDDEN;     // protect listing cgi-bin/
@@ -1653,6 +1653,8 @@ FORBIDDEN:		/* protect listing /cgi-bin */
 		}
 #endif
 	} while (0);
+
+ bail_out:
 
 	if (DEBUG)
 		fprintf(stderr, "closing socket\n\n");
