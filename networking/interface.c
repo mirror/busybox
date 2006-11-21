@@ -284,7 +284,7 @@ struct interface {
 };
 
 
-int interface_opt_a = 0;	/* show all interfaces          */
+int interface_opt_a;	/* show all interfaces          */
 
 static struct interface *int_list, *int_last;
 static int skfd = -1;	/* generic raw socket desc.     */

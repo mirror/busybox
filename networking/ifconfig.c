@@ -39,7 +39,7 @@
 #include "inet_common.h"
 #include "busybox.h"
 
-#ifdef CONFIG_FEATURE_IFCONFIG_SLIP
+#if ENABLE_FEATURE_IFCONFIG_SLIP
 # include <net/if_slip.h>
 #endif
 
@@ -62,7 +62,7 @@
 # define IFF_DYNAMIC     0x8000	/* dialup device with changing addresses */
 #endif
 
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 struct in6_ifreq {
 	struct in6_addr ifr6_addr;
 	uint32_t ifr6_prefixlen;
@@ -113,7 +113,7 @@ struct in6_ifreq {
 #define A_NETMASK        0x20	/* Set if netmask (check for multiple sets). */
 #define A_SET_AFTER      0x40	/* Set a flag at the end. */
 #define A_COLON_CHK      0x80	/* Is this needed?  See below. */
-#ifdef CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
+#if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
 #define A_HOSTNAME      0x100	/* Set if it is ip addr. */
 #define A_BROADCAST     0x200	/* Set if it is broadcast addr. */
 #else
@@ -170,7 +170,7 @@ struct arg1opt {
 
 struct options {
 	const char *name;
-#ifdef CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
+#if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
 	const unsigned int flags:6;
 	const unsigned int arg_flags:10;
 #else
@@ -189,7 +189,7 @@ static const struct arg1opt Arg1Opt[] = {
 	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
 	{"SIOCSIFNETMASK", SIOCSIFNETMASK, ifreq_offsetof(ifr_netmask)},
 	{"SIOCSIFBRDADDR", SIOCSIFBRDADDR, ifreq_offsetof(ifr_broadaddr)},
-#ifdef CONFIG_FEATURE_IFCONFIG_HW
+#if ENABLE_FEATURE_IFCONFIG_HW
 	{"SIOCSIFHWADDR",  SIOCSIFHWADDR,  ifreq_offsetof(ifr_hwaddr)},
 #endif
 	{"SIOCSIFDSTADDR", SIOCSIFDSTADDR, ifreq_offsetof(ifr_dstaddr)},
@@ -199,13 +199,13 @@ static const struct arg1opt Arg1Opt[] = {
 #ifdef SIOCSOUTFILL
 	{"SIOCSOUTFILL",   SIOCSOUTFILL,   ifreq_offsetof(ifr_data)},
 #endif
-#ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+#if ENABLE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.mem_start)},
 	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.base_addr)},
 	{"SIOCSIFMAP",     SIOCSIFMAP,     ifreq_offsetof(ifr_map.irq)},
 #endif
 	/* Last entry if for unmatched (possibly hostname) arg. */
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 	{"SIOCSIFADDR",    SIOCSIFADDR,    ifreq_offsetof(ifr_addr)}, /* IPv6 version ignores the offset */
 	{"SIOCDIFADDR",    SIOCDIFADDR,    ifreq_offsetof(ifr_addr)}, /* IPv6 version ignores the offset */
 #endif
@@ -219,7 +219,7 @@ static const struct options OptArray[] = {
 	{"dstaddr",     N_ARG,         ARG_DSTADDR,     0},
 	{"netmask",     N_ARG,         ARG_NETMASK,     0},
 	{"broadcast",   N_ARG | M_CLR, ARG_BROADCAST,   IFF_BROADCAST},
-#ifdef CONFIG_FEATURE_IFCONFIG_HW
+#if ENABLE_FEATURE_IFCONFIG_HW
 	{"hw",          N_ARG, ARG_HW,                  0},
 #endif
 	{"pointopoint", N_ARG | M_CLR, ARG_POINTOPOINT, IFF_POINTOPOINT},
@@ -229,12 +229,12 @@ static const struct options OptArray[] = {
 #ifdef SIOCSOUTFILL
 	{"outfill",     N_ARG,         ARG_OUTFILL,     0},
 #endif
-#ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+#if ENABLE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 	{"mem_start",   N_ARG,         ARG_MEM_START,   0},
 	{"io_addr",     N_ARG,         ARG_IO_ADDR,     0},
 	{"irq",         N_ARG,         ARG_IRQ,         0},
 #endif
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 	{"add",         N_ARG,         ARG_ADD_DEL,     0},
 	{"del",         N_ARG,         ARG_ADD_DEL,     0},
 #endif
@@ -253,11 +253,11 @@ static const struct options OptArray[] = {
  * A couple of prototypes.
  */
 
-#ifdef CONFIG_FEATURE_IFCONFIG_HW
-static int in_ether(char *bufp, struct sockaddr *sap);
+#if ENABLE_FEATURE_IFCONFIG_HW
+static int in_ether(const char *bufp, struct sockaddr *sap);
 #endif
 
-#ifdef CONFIG_FEATURE_IFCONFIG_STATUS
+#if ENABLE_FEATURE_IFCONFIG_STATUS
 extern int interface_opt_a;
 extern int display_interfaces(char *ifname);
 #endif
@@ -270,10 +270,10 @@ int ifconfig_main(int argc, char **argv)
 {
 	struct ifreq ifr;
 	struct sockaddr_in sai;
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 	struct sockaddr_in6 sai6;
 #endif
-#ifdef CONFIG_FEATURE_IFCONFIG_HW
+#if ENABLE_FEATURE_IFCONFIG_HW
 	struct sockaddr sa;
 #endif
 	const struct arg1opt *a1op;
@@ -281,7 +281,7 @@ int ifconfig_main(int argc, char **argv)
 	int sockfd;			/* socket fd we use to manipulate stuff with */
 	int goterr;
 	int selector;
-#ifdef CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
+#if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
 	unsigned int mask;
 	unsigned int did_flags;
 	unsigned int sai_hostname, sai_netmask;
@@ -294,7 +294,7 @@ int ifconfig_main(int argc, char **argv)
 
 	goterr = 0;
 	did_flags = 0;
-#ifdef CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
+#if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
 	sai_hostname = 0;
 	sai_netmask = 0;
 #endif
@@ -303,7 +303,7 @@ int ifconfig_main(int argc, char **argv)
 	++argv;
 	--argc;
 
-#ifdef CONFIG_FEATURE_IFCONFIG_STATUS
+#if ENABLE_FEATURE_IFCONFIG_STATUS
 	if ((argc > 0) && (((*argv)[0] == '-') && ((*argv)[1] == 'a') && !(*argv)[2])) {
 		interface_opt_a = 1;
 		--argc;
@@ -312,11 +312,10 @@ int ifconfig_main(int argc, char **argv)
 #endif
 
 	if (argc <= 1) {
-#ifdef CONFIG_FEATURE_IFCONFIG_STATUS
+#if ENABLE_FEATURE_IFCONFIG_STATUS
 		return display_interfaces(argc ? *argv : NULL);
 #else
-		bb_error_msg_and_die
-			("ifconfig was not compiled with interface status display support.");
+		bb_error_msg_and_die("no support for status display");
 #endif
 	}
 
@@ -336,7 +335,8 @@ int ifconfig_main(int argc, char **argv)
 		}
 		for (op = OptArray; op->name; op++) {	/* Find table entry. */
 			if (strcmp(p, op->name) == 0) {	/* If name matches... */
-				if ((mask &= op->flags)) {	/* set the mask and go. */
+				mask &= op->flags;
+				if (mask) {	/* set the mask and go. */
 					goto FOUND_ARG;
 				}
 				/* If we get here, there was a valid arg with an */
@@ -351,7 +351,7 @@ int ifconfig_main(int argc, char **argv)
 		mask = op->arg_flags;
 		goto HOSTNAME;
 
-	  FOUND_ARG:
+ FOUND_ARG:
 		if (mask & ARG_MASK) {
 			mask = op->arg_flags;
 			a1op = Arg1Opt + (op - OptArray);
@@ -366,19 +366,19 @@ int ifconfig_main(int argc, char **argv)
 					mask &= A_SET_AFTER;	/* just for broadcast */
 				}
 			} else {	/* got an arg so process it */
-			  HOSTNAME:
+ HOSTNAME:
 				did_flags |= (mask & (A_NETMASK|A_HOSTNAME));
 				if (mask & A_CAST_HOST_COPY) {
-#ifdef CONFIG_FEATURE_IFCONFIG_HW
+#if ENABLE_FEATURE_IFCONFIG_HW
 					if (mask & A_CAST_RESOLVE) {
 #endif
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 						char *prefix;
 						int prefix_len = 0;
 #endif
 
 						safe_strncpy(host, *argv, (sizeof host));
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 						prefix = strchr(host, '/');
 						if (prefix) {
 							if (safe_strtoi(prefix + 1, &prefix_len) ||
@@ -396,13 +396,13 @@ int ifconfig_main(int argc, char **argv)
 						if (!strcmp(host, bb_INET_default)) {
 							/* Default is special, meaning 0.0.0.0. */
 							sai.sin_addr.s_addr = INADDR_ANY;
-#ifdef CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
+#if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
 						} else if (((host[0] == '+') && !host[1]) && (mask & A_BROADCAST) &&
 								   (did_flags & (A_NETMASK|A_HOSTNAME)) == (A_NETMASK|A_HOSTNAME)) {
 							/* + is special, meaning broadcast is derived. */
 							sai.sin_addr.s_addr = (~sai_netmask) | (sai_hostname & sai_netmask);
 #endif
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 						} else if (inet_pton(AF_INET6, host, &sai6.sin6_addr) > 0) {
 							int sockfd6;
 							struct in6_ifreq ifr6;
@@ -430,15 +430,15 @@ int ifconfig_main(int argc, char **argv)
 #endif
 						} else if (inet_aton(host, &sai.sin_addr) == 0) {
 							/* It's not a dotted quad. */
-							struct hostent *hp;
-							if ((hp = gethostbyname(host)) == (struct hostent *)NULL) {
+							struct hostent *hp = gethostbyname(host);
+							if (!hp) {
 								++goterr;
 								continue;
 							}
 							memcpy((char *) &sai.sin_addr, (char *) hp->h_addr_list[0],
-							sizeof(struct in_addr));
+									sizeof(struct in_addr));
 						}
-#ifdef CONFIG_FEATURE_IFCONFIG_BROADCAST_PLUS
+#if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
 						if (mask & A_HOSTNAME) {
 							sai_hostname = sai.sin_addr.s_addr;
 						}
@@ -447,13 +447,13 @@ int ifconfig_main(int argc, char **argv)
 						}
 #endif
 						p = (char *) &sai;
-#ifdef CONFIG_FEATURE_IFCONFIG_HW
+#if ENABLE_FEATURE_IFCONFIG_HW
 					} else {	/* A_CAST_HOST_COPY_IN_ETHER */
 						/* This is the "hw" arg case. */
 						if (strcmp("ether", *argv) || (*++argv == NULL)) {
 							bb_show_usage();
 						}
-						safe_strncpy(host, *argv, (sizeof host));
+						safe_strncpy(host, *argv, sizeof(host));
 						if (in_ether(host, &sa)) {
 							bb_error_msg("invalid hw-addr %s", host);
 							++goterr;
@@ -462,13 +462,13 @@ int ifconfig_main(int argc, char **argv)
 						p = (char *) &sa;
 					}
 #endif
-					memcpy((((char *) (&ifr)) + a1op->ifr_offset),
+					memcpy( (((char *)&ifr) + a1op->ifr_offset),
 						   p, sizeof(struct sockaddr));
 				} else {
 					unsigned long i = strtoul(*argv, NULL, 0);
 
-					p = ((char *) (&ifr)) + a1op->ifr_offset;
-#ifdef CONFIG_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
+					p = ((char *)&ifr) + a1op->ifr_offset;
+#if ENABLE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 					if (mask & A_MAP_TYPE) {
 						if (ioctl(sockfd, SIOCGIFMAP, &ifr) < 0) {
 							++goterr;
@@ -499,7 +499,7 @@ int ifconfig_main(int argc, char **argv)
 				if (mask & A_COLON_CHK) {
 					/*
 					 * Don't do the set_flag() if the address is an alias with
-					 * a - at the end, since it's deleted already! - Roman
+					 * a '-' at the end, since it's deleted already! - Roman
 					 *
 					 * Should really use regex.h here, not sure though how well
 					 * it'll go with the cross-platform support etc.
@@ -540,7 +540,7 @@ int ifconfig_main(int argc, char **argv)
 				++goterr;
 			}
 		}
-	  LOOP:
+ LOOP:
 		continue;
 	}					/* end of while-loop */
 
@@ -548,9 +548,9 @@ int ifconfig_main(int argc, char **argv)
 	return goterr;
 }
 
-#ifdef CONFIG_FEATURE_IFCONFIG_HW
+#if ENABLE_FEATURE_IFCONFIG_HW
 /* Input an Ethernet address and convert to binary. */
-static int in_ether(char *bufp, struct sockaddr *sap)
+static int in_ether(const char *bufp, struct sockaddr *sap)
 {
 	char *ptr;
 	int i, j;
