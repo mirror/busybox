@@ -60,7 +60,7 @@
 #define  PATH_MAX         256
 #endif
 
-/* Not (yet) used, but tested to work correctly
+/* Tested to work correctly (IIRC :]) */
 #define MAXINT(T) (T)( \
 	((T)-1) > 0 \
 	? (T)-1 \
@@ -72,7 +72,6 @@
 	? (T)0 \
 	: ((T)1 << (sizeof(T)*8-1)) \
 	)
-*/
 
 /* Large file support */
 /* Note that CONFIG_LFS forces bbox to be built with all common ops

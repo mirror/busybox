@@ -4263,44 +4263,48 @@ static const char *moderror(int err)
 	}
 }
 
-int insmod_ng_main( int argc, char **argv)
+int insmod_ng_main(int argc, char **argv)
 {
-	int i;
-	int fd;
-	long int ret;
-	struct stat st;
-	unsigned long len;
+	long ret;
+	size_t len;
 	void *map;
-	char *filename, *options = xstrdup("");
+	char *filename, *options;
 
-	filename = argv[1];
-	if (!filename) {
+	filename = *++argv;
+	if (!filename)
 		bb_show_usage();
-		return -1;
-	}
 
 	/* Rest is options */
-	for (i = 2; i < argc; i++) {
-		options = xrealloc(options, strlen(options) + 2 + strlen(argv[i]) + 2);
+	options = xstrdup("");
+	while (*++argv) {
+		int optlen = strlen(options);
+		options = xrealloc(options, optlen + 2 + strlen(*argv) + 2);
 		/* Spaces handled by "" pairs, but no way of escaping quotes */
-		if (strchr(argv[i], ' ')) {
-			strcat(options, "\"");
-			strcat(options, argv[i]);
-			strcat(options, "\"");
-		} else {
-			strcat(options, argv[i]);
-		}
-		strcat(options, " ");
+		sprintf(options + optlen, (strchr(*argv,' ') ? "\"%s\" " : "%s "), *argv);
 	}
 
+#if 0
+	/* Any special reason why mmap? It isn't performace critical... */
+	int fd;
+	struct stat st;
+	unsigned long len;
 	fd = xopen(filename, O_RDONLY);
-
 	fstat(fd, &st);
 	len = st.st_size;
 	map = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (map == MAP_FAILED) {
 		bb_perror_msg_and_die("cannot mmap '%s'", filename);
 	}
+
+	/* map == NULL on Blackfin, probably on other MMU-less systems too. Workaround. */
+	if (map == NULL) {
+		map = xmalloc(len);
+		xread(fd, map, len);
+	}
+#else
+	len = MAXINT(ssize_t);
+	map = xmalloc_open_read_close(filename, &len);
+#endif
 
 	ret = syscall(__NR_init_module, map, len, options);
 	if (ret != 0) {
