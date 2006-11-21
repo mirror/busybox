@@ -3,10 +3,10 @@
  *
  * Licensed under GPL v2, see file LICENSE in this tarball for details.
  *
- * DHCP Relay for 'DHCPv4 Configuration of IPSec Tunnel Mode' support 
- * Copyright (C) 2002 Mario Strasser <mast@gmx.net>, 
+ * DHCP Relay for 'DHCPv4 Configuration of IPSec Tunnel Mode' support
+ * Copyright (C) 2002 Mario Strasser <mast@gmx.net>,
  *                   Zuercher Hochschule Winterthur,
- *                   Netbeat AG 
+ *                   Netbeat AG
  * Upstream has GPL v2 or later
  */
 
@@ -21,7 +21,7 @@
 
 
 /* This list holds information about clients. The xid_* functions manipulate this list. */
-struct xid_item {
+static struct xid_item {
 	u_int32_t xid;
 	struct sockaddr_in ip;
 	int client;
@@ -33,10 +33,10 @@ struct xid_item {
 static struct xid_item * xid_add(u_int32_t xid, struct sockaddr_in *ip, int client)
 {
 	struct xid_item *item;
- 
+
 	/* create new xid entry */
 	item = xmalloc(sizeof(struct xid_item));
- 
+
 	/* add xid entry */
 	item->ip = *ip;
 	item->xid = xid;
@@ -133,15 +133,16 @@ static void dhcprelay_signal_handler(int sig)
 static char ** get_client_devices(char *dev_list, int *client_number)
 {
 	char *s, *list, **client_dev;
-	int i, cn=1;
+	int i, cn;
 
 	/* copy list */
 	list = xstrdup(dev_list);
 	if (list == NULL) return NULL;
 
 	/* get number of items */
-	for (s = dev_list; *s; s++) if (*s == ',')
-		cn++;
+	for (s = dev_list, cn = 1; *s; s++)
+		if (*s == ',')
+			cn++;
 
 	client_dev = xzalloc(cn * sizeof(*client_dev));
 
@@ -166,16 +167,16 @@ static int init_sockets(char **client, int num_clients,
 {
 	int i;
 
-	// talk to real server on bootps
+	/* talk to real server on bootps */
 	fds[0] = listen_socket(htonl(INADDR_ANY), 67, server);
 	if (fds[0] < 0) return -1;
 	*max_socket = fds[0];
-	
-	// array starts at 1 since server is 0
+
+	/* array starts at 1 since server is 0 */
 	num_clients++;
 
 	for (i=1; i < num_clients; i++) {
-		// listen for clients on bootps
+		/* listen for clients on bootps */
 		fds[i] = listen_socket(htonl(INADDR_ANY), 67, client[i-1]);
 		if (fds[i] < 0) return -1;
 		if (fds[i] > *max_socket) *max_socket = fds[i];
@@ -274,7 +275,7 @@ static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **cli
 			if (FD_ISSET(fds[0], &rfds)) {
 				packlen = udhcp_get_packet(&dhcp_msg, fds[0]);
 				if (packlen > 0) {
-					pass_back(&dhcp_msg, packlen, fds); 
+					pass_back(&dhcp_msg, packlen, fds);
 				}
 			}
 			for (i = 1; i < num_sockets; i++) {
@@ -318,7 +319,7 @@ int dhcprelay_main(int argc, char **argv)
 	signal(SIGTERM, dhcprelay_signal_handler);
 	signal(SIGQUIT, dhcprelay_signal_handler);
 	signal(SIGINT, dhcprelay_signal_handler);
- 
+
 	num_sockets = init_sockets(clients, num_sockets, argv[2], fds, &max_socket);
 	if (num_sockets == -1)
 		bb_perror_msg_and_die("init_sockets() failed");
