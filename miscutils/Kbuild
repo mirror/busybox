@@ -25,5 +25,6 @@ lib-$(CONFIG_RUNLEVEL)    += runlevel.o
 lib-$(CONFIG_RX)          += rx.o
 lib-$(CONFIG_SETSID)      += setsid.o
 lib-$(CONFIG_STRINGS)     += strings.o
+lib-$(CONFIG_TASKSET)     += taskset.o
 lib-$(CONFIG_TIME)        += time.o
 lib-$(CONFIG_WATCHDOG)    += watchdog.o

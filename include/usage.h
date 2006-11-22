@@ -3001,6 +3001,23 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"$ zcat /tmp/tarball.tar.gz | tar -xf -\n" \
 	"$ tar -cf /tmp/tarball.tar /usr/local\n"
 
+#define taskset_trivial_usage \
+	        "[OPTIONS] [mask] [pid | command [arg]...]"
+#define taskset_full_usage \
+	        "Set or get CPU affinity.\n\n" \
+        "Options:\n" \
+        "\t-p\toperate on an existing PID"
+#define taskset_example_usage \
+	        "$ taskset 0x7 ./dgemm_test&\n" \
+        "$ taskset -p 0x1 $!\n" \
+        "pid 4790's current affinity mask: 7\n" \
+        "pid 4790's new affinity mask: 1\n" \
+        "$ taskset 0x7 /bin/sh -c './taskset -p 0x1 $$'\n" \
+        "pid 6671's current affinity mask: 1\n" \
+        "pid 6671's new affinity mask: 1\n" \
+        "$ taskset -p 1\n"
+        "pid 1's current affinity mask: 3\n"
+
 #define tee_trivial_usage \
 	"[OPTION]... [FILE]..."
 #define tee_full_usage \
