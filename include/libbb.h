@@ -244,6 +244,8 @@ typedef union {
 } sockaddr_inet;
 extern int dotted2sockaddr(const char *dotted, struct sockaddr* sp, int socklen);
 extern int create_and_bind_socket_ip4or6(const char *hostaddr, int port);
+extern int setsockopt_reuseaddr(int fd);
+extern int setsockopt_broadcast(int fd);
 
 
 extern char *xstrdup(const char *s);

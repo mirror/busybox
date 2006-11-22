@@ -103,7 +103,7 @@ static void telopt(byte c);
 static int subneg(byte c);
 
 /* Some globals */
-static int one = 1;
+static const int one = 1;
 
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
 static char *ttype;

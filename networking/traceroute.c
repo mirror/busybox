@@ -888,13 +888,14 @@ getaddr(u_int32_t *ap, const char *host)
 int
 traceroute_main(int argc, char *argv[])
 {
+	static const int on = 1;
+
 	int code, n;
 	unsigned char *outp;
 	u_int32_t *ap;
 	struct sockaddr_in *from = (struct sockaddr_in *)&wherefrom;
 	struct sockaddr_in *to = (struct sockaddr_in *)&whereto;
 	struct hostinfo *hi;
-	int on = 1;
 	int ttl, probe, i;
 	int seq = 0;
 	int tos = 0;

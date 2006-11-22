@@ -44,9 +44,7 @@ struct arpMsg {
 /* FIXME: match response against chaddr */
 int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 {
-
 	int	timeout = 2;
-	int	optval = 1;
 	int	s;			/* socket */
 	int	rv = 1;			/* return value */
 	struct sockaddr addr;		/* for interface name */
@@ -56,12 +54,13 @@ int arpping(uint32_t yiaddr, uint32_t ip, uint8_t *mac, char *interface)
 	time_t		prevTime;
 
 
-	if ((s = socket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP))) == -1) {
+	s = socket(PF_PACKET, SOCK_PACKET, htons(ETH_P_ARP));
+	if (s == -1) {
 		bb_perror_msg(bb_msg_can_not_create_raw_socket);
 		return -1;
 	}
 
-	if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) == -1) {
+	if (setsockopt_broadcast(s) == -1) {
 		bb_perror_msg("cannot setsocketopt on raw socket");
 		close(s);
 		return -1;

@@ -67,6 +67,16 @@ int xconnect_tcp_v4(struct sockaddr_in *s_addr)
 	return s;
 }
 
+static const int one = 1;
+int setsockopt_reuseaddr(int fd)
+{
+	return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+}
+int setsockopt_broadcast(int fd)
+{
+	return setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof(one));
+}
+
 int dotted2sockaddr(const char *dotted, struct sockaddr* sp, int socklen)
 {
 	union {
@@ -116,7 +126,6 @@ int xsocket_stream_ip4or6(sa_family_t *fp)
 
 int create_and_bind_socket_ip4or6(const char *hostaddr, int port)
 {
-	static const int on = 1;
 	int fd;
 	sockaddr_inet sa;
 
@@ -128,7 +137,7 @@ int create_and_bind_socket_ip4or6(const char *hostaddr, int port)
 		fd = xsocket(sa.sa.sa_family, SOCK_STREAM, 0);
 	} else 
 		fd = xsocket_stream_ip4or6(&sa.sa.sa_family);
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+	setsockopt_reuseaddr(fd);
 
 	/* if (port >= 0) { */
 #if ENABLE_FEATURE_IPV6

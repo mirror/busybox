@@ -356,9 +356,7 @@ static void ping(const char *host)
 #endif /*ICMP6_FILTER*/
 
 	/* enable broadcast pings */
-	sockopt = 1;
-	setsockopt(pingsock, SOL_SOCKET, SO_BROADCAST, (char *) &sockopt,
-			   sizeof(sockopt));
+	setsockopt_broadcast(pingsock);
 
 	/* set recv buf for broadcast pings */
 	sockopt = 48 * 1024;

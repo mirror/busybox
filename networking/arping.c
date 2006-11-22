@@ -354,7 +354,7 @@ int arping_main(int argc, char **argv)
 				bb_error_msg_and_die("bind");
 			}
 		} else if (!(cfg&dad)) {
-			int on = 1;
+			static const int on = 1;
 			socklen_t alen = sizeof(saddr);
 
 			saddr.sin_port = htons(1025);

@@ -93,7 +93,6 @@ int listen_socket(uint32_t ip, int port, char *inf)
 	struct ifreq interface;
 	int fd;
 	struct sockaddr_in addr;
-	int n = 1;
 
 	DEBUG("Opening listen socket on 0x%08x:%d %s", ip, port, inf);
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -107,17 +106,17 @@ int listen_socket(uint32_t ip, int port, char *inf)
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = ip;
 
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &n, sizeof(n)) == -1) {
+	if (setsockopt_reuseaddr(fd) == -1) {
 		close(fd);
 		return -1;
 	}
-	if (setsockopt(fd, SOL_SOCKET, SO_BROADCAST, (char *) &n, sizeof(n)) == -1) {
+	if (setsockopt_broadcast(fd) == -1) {
 		close(fd);
 		return -1;
 	}
 
 	strncpy(interface.ifr_name, inf, IFNAMSIZ);
-	if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE,(char *)&interface, sizeof(interface)) < 0) {
+	if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (char *)&interface, sizeof(interface)) < 0) {
 		close(fd);
 		return -1;
 	}

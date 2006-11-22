@@ -351,9 +351,7 @@ static void ping(const char *host)
 	memcpy(&pingaddr.sin_addr, hostent->h_addr, sizeof(pingaddr.sin_addr));
 
 	/* enable broadcast pings */
-	sockopt = 1;
-	setsockopt(pingsock, SOL_SOCKET, SO_BROADCAST, (char *) &sockopt,
-			   sizeof(sockopt));
+	setsockopt_broadcast(pingsock);
 
 	/* set recv buf for broadcast pings */
 	sockopt = 48 * 1024;

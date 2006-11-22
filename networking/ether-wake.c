@@ -175,8 +175,7 @@ int ether_wake_main(int argc, char *argv[])
 
 	/* This is necessary for broadcasts to work */
 	if (flags /*& 1 [OPT_BROADCAST]*/) {
-		int one = 1;
-		if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, (void *)&one, sizeof(one)) < 0)
+		if (setsockopt_broadcast(s) < 0)
 			bb_perror_msg("SO_BROADCAST");
 	}
 

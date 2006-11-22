@@ -802,7 +802,6 @@ static int openServer(void)
 {
 	struct sockaddr_in lsocket;
 	int fd;
-	int on = 1;
 
 	/* create the socket right now */
 	/* inet_addr() returns a value that is already in network order */
@@ -814,9 +813,13 @@ static int openServer(void)
 	/* tell the OS it's OK to reuse a previous address even though */
 	/* it may still be in a close down state.  Allows bind to succeed. */
 #ifdef SO_REUSEPORT
-	setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (void *)&on, sizeof(on));
+	{
+		static const int on = 1;
+		setsockopt(fd, SOL_SOCKET, SO_REUSEPORT,
+				(void *)&on, sizeof(on));
+	}
 #else
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on));
+	setsockopt_reuseaddr(fd);
 #endif
 	xbind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket));
 	xlisten(fd, 9);

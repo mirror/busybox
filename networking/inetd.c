@@ -419,7 +419,6 @@ static int bump_nofile (void)
 
 static void setup(servtab_t *sep)
 {
-	int on = 1;
 	int r;
 
 	sep->se_fd = socket(sep->se_family, sep->se_socktype, 0);
@@ -427,11 +426,8 @@ static void setup(servtab_t *sep)
 		bb_perror_msg("%s/%s: socket", sep->se_service, sep->se_proto);
 		return;
 	}
-#define turnon(fd, opt) \
-setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof(on))
-	if (turnon(sep->se_fd, SO_REUSEADDR) < 0)
+	if (setsockopt_reuseaddr(sep->se_fd) < 0)
 		bb_perror_msg("setsockopt(SO_REUSEADDR)");
-#undef turnon
 
 #ifdef CONFIG_FEATURE_INETD_RPC
 	if (isrpcservice(sep)) {

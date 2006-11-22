@@ -85,8 +85,7 @@ int nc_main(int argc, char **argv)
 	if (!cfd) {
 		sfd = xsocket(AF_INET, SOCK_STREAM, 0);
 		fcntl(sfd, F_SETFD, FD_CLOEXEC);
-		opt = 1;
-		setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+		setsockopt_reuseaddr(sfd);
 		address.sin_family = AF_INET;
 
 		// Set local port.

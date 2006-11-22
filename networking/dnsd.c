@@ -200,12 +200,9 @@ static int listen_socket(char *iface_addr, int listen_port)
 	struct sockaddr_in a;
 	char msg[100];
 	int s;
-	int yes = 1;
 	s = xsocket(PF_INET, SOCK_DGRAM, 0);
-#ifdef SO_REUSEADDR
-	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&yes, sizeof(yes)) < 0)
+	if (setsockopt_reuseaddr(s) < 0)
 		bb_perror_msg_and_die("setsockopt() failed");
-#endif
 	memset(&a, 0, sizeof(a));
 	a.sin_port = htons(listen_port);
 	a.sin_family = AF_INET;

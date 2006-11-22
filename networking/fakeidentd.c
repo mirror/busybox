@@ -77,17 +77,16 @@ static void inetbind(void)
 	int s, port;
 	struct sockaddr_in addr;
 	int len = sizeof(addr);
-	int one = 1;
 	struct servent *se;
 
-	if ((se = getservbyname("identd", "tcp")) == NULL)
-		port = IDENT_PORT;
-	else
+	se = getservbyname("identd", "tcp");
+	port = IDENT_PORT;
+	if (se)
 		port = se->s_port;
 
 	s = xsocket(AF_INET, SOCK_STREAM, 0);
 
-	setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	setsockopt_reuseaddr(s);
 
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_addr.s_addr = inet_addr(bind_ip_address);

@@ -173,7 +173,6 @@ int udhcp_kernel_packet(struct dhcpMessage *payload,
 		uint32_t source_ip, int source_port,
 		uint32_t dest_ip, int dest_port)
 {
-	int n = 1;
 	int fd, result;
 	struct sockaddr_in client;
 
@@ -181,7 +180,7 @@ int udhcp_kernel_packet(struct dhcpMessage *payload,
 	if (fd < 0)
 		return -1;
 
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &n, sizeof(n)) == -1) {
+	if (setsockopt_reuseaddr(fd) == -1) {
 		close(fd);
 		return -1;
 	}
