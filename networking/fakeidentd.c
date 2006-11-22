@@ -110,13 +110,13 @@ static void handlexitsigs(int signum)
 /* May succeed. If not, won't care. */
 static void writepid(uid_t nobody, uid_t nogrp)
 {
-	char buf[24];
+	char buf[sizeof(int)*3 + 2];
 	int fd = open(PIDFILE, O_WRONLY|O_CREAT|O_TRUNC, 0664);
 
 	if (fd < 0)
 		return;
 
-	snprintf(buf, 23, "%d\n", getpid());
+	sprintf(buf, "%d\n", getpid());
 	write(fd, buf, strlen(buf));
 	fchown(fd, nobody, nogrp);
 	close(fd);

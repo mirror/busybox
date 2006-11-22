@@ -226,6 +226,7 @@ extern int xopen3(const char *pathname, int flags, int mode);
 extern off_t xlseek(int fd, off_t offset, int whence);
 extern off_t fdlength(int fd);
 
+
 extern int xsocket(int domain, int type, int protocol);
 extern void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
 extern void xlisten(int s, int backlog);
@@ -233,6 +234,17 @@ extern void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen);
 extern int xconnect_tcp_v4(struct sockaddr_in *s_addr);
 extern struct hostent *xgethostbyname(const char *name);
 extern struct hostent *xgethostbyname2(const char *name, int af);
+extern int xsocket_stream_ip4or6(sa_family_t *fp);
+typedef union {
+	struct sockaddr sa;
+	struct sockaddr_in sin;
+#if ENABLE_FEATURE_IPV6
+	struct sockaddr_in6 sin6;
+#endif
+} sockaddr_inet;
+extern int dotted2sockaddr(const char *dotted, struct sockaddr* sp, int socklen);
+extern int create_and_bind_socket_ip4or6(const char *hostaddr, int port);
+
 
 extern char *xstrdup(const char *s);
 extern char *xstrndup(const char *s, int n);

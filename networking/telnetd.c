@@ -354,87 +354,10 @@ free_session(struct tsession *ts)
 	}
 }
 
-static int
-dotted2sockaddr(const char *dotted, struct sockaddr* sp, int socklen)
-{
-	union {
-		struct in_addr a4;
-#if ENABLE_FEATURE_IPV6
-		struct in6_addr a6;
-#endif
-	} a;
-
-#if ENABLE_FEATURE_IPV6
-	if (socklen >= sizeof(struct sockaddr_in6)
-	 && inet_pton(AF_INET6, dotted, &a) > 0
-	) {
-		((struct sockaddr_in6*)sp)->sin6_family = AF_INET6;
-		((struct sockaddr_in6*)sp)->sin6_addr = a.a6;
-	} else
-#endif
-	if (socklen >= sizeof(struct sockaddr_in)
-	 && inet_pton(AF_INET, dotted, &a) > 0
-	) {
-		((struct sockaddr_in*)sp)->sin_family = AF_INET;
-		((struct sockaddr_in*)sp)->sin_addr = a.a4;
-	} else
-		return 1;
-
-	return 0; /* success */
-}
-
-static int
-xsocket_stream_ip4or6(sa_family_t *fp)
-{
-	int fd = socket(AF_INET6, SOCK_STREAM, 0);
-	if (fp) *fp = AF_INET6;
-	if (fd < 0) {
-		fd = xsocket(AF_INET, SOCK_STREAM, 0);
-		if (fp) *fp = AF_INET;
-	}
-	return fd;
-}
-
-static int
-create_socket(const char *hostaddr, int port)
-{
-	static const int on = 1;
-	int fd;
-	union {
-		struct sockaddr sa;
-		struct sockaddr_in sin;
-#if ENABLE_FEATURE_IPV6
-		struct sockaddr_in6 sin6;
-#endif
-	} sa;
-
-	memset(&sa, 0, sizeof(sa));
-	if (hostaddr && dotted2sockaddr(hostaddr, &sa.sa, sizeof(sa)))
-		bb_show_usage();
-
-	if (!sa.sa.sa_family)
-		fd = xsocket_stream_ip4or6(&sa.sa.sa_family);
-	else /* user specified -b ADDR dictates family */
-		fd = xsocket(sa.sa.sa_family, SOCK_STREAM, 0);
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-
-#if ENABLE_FEATURE_IPV6
-	if (sa.sa.sa_family == AF_INET6)
-		sa.sin6.sin6_port = htons(port);
-#endif
-	if (sa.sa.sa_family == AF_INET)
-		sa.sin.sin_port = htons(port);
-
-	xbind(fd, &sa.sa, sizeof(sa));
-	xlisten(fd, 1);
-	return fd;
-}
-
 #else /* !FEATURE_TELNETD_STANDALONE */
 
 /* Never actually called */
 void free_session(struct tsession *ts);
-int create_socket(const char *hostaddr, int port);
 
 #endif
 
@@ -491,7 +414,8 @@ telnetd_main(int argc, char **argv)
 	if (IS_INETD) {
 		sessions = make_new_session(0, 1);
 	} else {
-		master_fd = create_socket(opt_bindaddr, portnbr);
+		master_fd = create_and_bind_socket_ip4or6(opt_bindaddr, portnbr);
+		xlisten(master_fd, 1);
 		if (!(opt & OPT_FOREGROUND))
 			xdaemon(0, 0);
 	}
