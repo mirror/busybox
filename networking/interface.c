@@ -55,7 +55,7 @@
 #define _PATH_PROCNET_DEV               "/proc/net/dev"
 #define _PATH_PROCNET_IFINET6           "/proc/net/if_inet6"
 
-#if HAVE_AFINET6
+#ifdef HAVE_AFINET6
 
 #ifndef _LINUX_IN6_H
 /*
@@ -70,7 +70,7 @@ struct in6_ifreq {
 
 #endif
 
-#endif							/* HAVE_AFINET6 */
+#endif /* HAVE_AFINET6 */
 
 /* Defines for glibc2.0 users. */
 #ifndef SIOCSIFTXQLEN
@@ -121,9 +121,9 @@ static char *INET_sprint(struct sockaddr *sap, int numeric)
 
 	if (INET_rresolve(buff, sizeof(buff), (struct sockaddr_in *) sap,
 					  numeric, 0xffffff00) != 0)
-		return (NULL);
+		return NULL;
 
-	return (buff);
+	return buff;
 }
 
 static struct aftype inet_aftype = {
@@ -135,7 +135,7 @@ static struct aftype inet_aftype = {
 	.fd =		-1
 };
 
-#if HAVE_AFINET6
+#ifdef HAVE_AFINET6
 
 /* Display an Internet socket address. */
 /* dirty! struct sockaddr usually doesn't suffer for inet6 addresses, fst. */
@@ -148,7 +148,7 @@ static char *INET6_sprint(struct sockaddr *sap, int numeric)
 	if (INET6_rresolve
 		(buff, sizeof(buff), (struct sockaddr_in6 *) sap, numeric) != 0)
 		return safe_strncpy(buff, "[UNKNOWN]", sizeof(buff));
-	return (buff);
+	return buff;
 }
 
 static struct aftype inet6_aftype = {
@@ -160,7 +160,7 @@ static struct aftype inet6_aftype = {
 	.fd =		-1
 };
 
-#endif							/* HAVE_AFINET6 */
+#endif /* HAVE_AFINET6 */
 
 /* Display an UNSPEC address. */
 static char *UNSPEC_print(unsigned char *ptr)
@@ -177,7 +177,7 @@ static char *UNSPEC_print(unsigned char *ptr)
 	}
 	/* Erase trailing "-".  Works as long as sizeof(struct sockaddr) != 0 */
 	*--pos = '\0';
-	return (buff);
+	return buff;
 }
 
 /* Display an UNSPEC socket address. */
@@ -187,7 +187,7 @@ static char *UNSPEC_sprint(struct sockaddr *sap, int numeric)
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
 		return safe_strncpy(buf, "[NONE SET]", sizeof(buf));
-	return (UNSPEC_print((unsigned char *)sap->sa_data));
+	return UNSPEC_print((unsigned char *)sap->sa_data);
 }
 
 static struct aftype unspec_aftype = {
@@ -198,7 +198,7 @@ static struct aftype unspec_aftype = {
 
 static struct aftype * const aftypes[] = {
 	&inet_aftype,
-#if HAVE_AFINET6
+#ifdef HAVE_AFINET6
 	&inet6_aftype,
 #endif
 	&unspec_aftype,
@@ -213,10 +213,10 @@ static struct aftype *get_afntype(int af)
 	afp = aftypes;
 	while (*afp != NULL) {
 		if ((*afp)->af == af)
-			return (*afp);
+			return *afp;
 		afp++;
 	}
-	return (NULL);
+	return NULL;
 }
 
 /* Check our protocol family table for this family and return its socket */
@@ -619,7 +619,7 @@ static int if_fetch(struct interface *ife)
 
 	strcpy(ifr.ifr_name, ifname);
 	if (ioctl(skfd, SIOCGIFFLAGS, &ifr) < 0)
-		return (-1);
+		return -1;
 	ife->flags = ifr.ifr_flags;
 
 	strcpy(ifr.ifr_name, ifname);
@@ -753,7 +753,7 @@ static char *pr_ether(unsigned char *ptr)
 			 (ptr[0] & 0377), (ptr[1] & 0377), (ptr[2] & 0377),
 			 (ptr[3] & 0377), (ptr[4] & 0377), (ptr[5] & 0377)
 		);
-	return (buff);
+	return buff;
 }
 
 static const struct hwtype ether_hwtype = {
@@ -815,10 +815,10 @@ static const struct hwtype *get_hwntype(int type)
 	hwp = hwtypes;
 	while (*hwp != NULL) {
 		if ((*hwp)->type == type)
-			return (*hwp);
+			return *hwp;
 		hwp++;
 	}
-	return (NULL);
+	return NULL;
 }
 
 /* return 1 if address is all zeros */
@@ -904,7 +904,7 @@ static void ife_print(struct interface *ptr)
 	int hf;
 	int can_compress = 0;
 
-#if HAVE_AFINET6
+#ifdef HAVE_AFINET6
 	FILE *f;
 	char addr6[40], devname[20];
 	struct sockaddr_in6 sap;
@@ -952,7 +952,7 @@ static void ife_print(struct interface *ptr)
 		printf(" Mask:%s\n", ap->sprint(&ptr->netmask, 1));
 	}
 
-#if HAVE_AFINET6
+#ifdef HAVE_AFINET6
 
 #define IPV6_ADDR_ANY           0x0000U
 
