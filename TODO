@@ -118,8 +118,6 @@ Rob Landley <rob@landley.net>:
 
 
 Bernhard Fischer <busybox@busybox.net> suggests to look at these:
-  Makefile stuff:
-    make -j is broken. klibc make infrastructure (vda?)
   New debug options:
     -Wlarger-than-127
     Cleanup any big users
@@ -132,6 +130,7 @@ Bernhard Fischer <busybox@busybox.net> suggests to look at these:
     make bb_common_bufsiz1 configurable, size wise.
     make pipesize configurable, size wise.
     Use bb_common_bufsiz1 throughout applets!
+  Add chrt applet. Please CC Bernhard if you suggest a patch.
 
 As yet unclaimed:
 
@@ -166,8 +165,6 @@ man
 ar
   Write support?
 ---
-crond
-  turn FEATURE_DEBUG_OPT into ENABLE_FEATURE_CROND_DEBUG_OPT
 
 Architectural issues:
 
