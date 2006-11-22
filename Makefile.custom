@@ -42,9 +42,10 @@ check test: busybox
 	bindir=$(objtree) srcdir=$(srctree)/testsuite SED="$(SED)" \
 	$(SHELL) $(srctree)/testsuite/runtest $(if $(KBUILD_VERBOSE:1=),-v)
 
-### checkhelp:
-### 	$(Q)$(srctree)/scripts/checkhelp.awk \
-### 		$(wildcard $(patsubst %,%/Config.in,$(SRC_DIRS) ./))
+.PHONY: checkhelp
+checkhelp:
+	$(Q)$(srctree)/scripts/checkhelp.awk \
+		$(patsubst %,$(srctree)/%,$(wildcard $(patsubst %,%/Config.in,$(busybox-dirs) ./)))
 
 .PHONY: sizes
 sizes: busybox_unstripped
