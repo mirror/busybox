@@ -117,7 +117,7 @@ config LOGIN_SCRIPTS
 	default n
 	help
 	  Enable this if you want login to execute $LOGIN_PRE_SUID_SCRIPT
-	  just prior to swithching from root to logged-in user.
+	  just prior to switching from root to logged-in user.
 
 config FEATURE_SECURETTY
 	bool "Support for /etc/securetty"
