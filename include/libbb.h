@@ -204,6 +204,7 @@ extern off_t bb_copyfd_size(int fd1, int fd2, off_t size);
 extern off_t bb_copyfd_eof(int fd1, int fd2);
 extern char bb_process_escape_sequence(const char **ptr);
 extern char *bb_get_last_path_component(char *path);
+extern int ndelay_on(int fd);
 
 
 extern DIR *xopendir(const char *path);

@@ -34,10 +34,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "libbb.h"
 #include "runit_lib.h"
 
-#ifndef O_NONBLOCK
-#define O_NONBLOCK O_NDELAY
-#endif
-
 /*** buffer.c ***/
 
 void buffer_init(buffer *s,int (*op)(int fd,char *buf,unsigned len),int fd,char *buf,unsigned len)
@@ -622,22 +618,6 @@ int lock_ex(int fd)
 int lock_exnb(int fd)
 {
 	return flock(fd,LOCK_EX | LOCK_NB);
-}
-
-
-/*** ndelay_off.c ***/
-
-int ndelay_off(int fd)
-{
-	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) & ~O_NONBLOCK);
-}
-
-
-/*** ndelay_on.c ***/
-
-int ndelay_on(int fd)
-{
-	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) | O_NONBLOCK);
 }
 
 

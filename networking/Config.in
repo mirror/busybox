@@ -586,13 +586,12 @@ config TELNETD
 	  with all that done, telnetd _should_ work....
 
 
-config FEATURE_TELNETD_INETD
-	bool "Support call from inetd only"
+config FEATURE_TELNETD_STANDALONE
+	bool "Support standalone telnetd (not inetd only)"
 	default n
 	depends on TELNETD
 	help
-	  Selecting this will make telnetd only callable from inetd,
-	  removing the standalone support.
+	  Selecting this will make telnetd able to run standalone.
 
 config TFTP
 	bool "tftp"

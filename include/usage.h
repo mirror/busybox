@@ -3034,22 +3034,24 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"computer over a network using the TELNET protocol."
 #endif
 
-#ifdef CONFIG_FEATURE_TELNETD_INETD
-#define telnetd_trivial_usage \
-	"(inetd mode) [OPTION]"
-#define telnetd_full_usage \
-	"Telnetd uses incoming TELNET connections via inetd.\n" \
-	"Options:\n" \
-	"\t-l LOGIN\texec LOGIN on connect (default /bin/sh)\n" \
-	"\t-f issue_file\tDisplay issue_file instead of /etc/issue"
-#else
+#ifdef CONFIG_FEATURE_TELNETD_STANDALONE
 #define telnetd_trivial_usage \
 	"[OPTION]"
 #define telnetd_full_usage \
 	"Telnetd listens for incoming TELNET connections on PORT.\n" \
 	"Options:\n" \
-	"\t-p PORT\tlisten for connections on PORT (default 23)\n" \
-	"\t-l LOGIN\texec LOGIN on connect (default /bin/sh)\n" \
+	"\t-p PORT\t\tlisten for connections on PORT (default 23)\n" \
+	"\t-l LOGIN\texec LOGIN on connect\n" \
+	"\t-f issue_file\tDisplay issue_file instead of /etc/issue\n" \
+	"\t-F\t\tForeground mode\n" \
+	"\t-i\t\tInetd mode"
+#else
+#define telnetd_trivial_usage \
+	"[OPTION]"
+#define telnetd_full_usage \
+	"Telnetd uses incoming TELNET connections via inetd.\n" \
+	"Options:\n" \
+	"\t-l LOGIN\texec LOGIN on connect\n" \
 	"\t-f issue_file\tDisplay issue_file instead of /etc/issue"
 #endif
 

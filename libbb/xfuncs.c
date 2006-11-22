@@ -110,6 +110,18 @@ int xopen3(const char *pathname, int flags, int mode)
 	return ret;
 }
 
+/*
+int ndelay_off(int fd)
+{
+	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) & ~O_NONBLOCK);
+}
+*/
+// Turn on nonblocking I/O on a fd
+int ndelay_on(int fd)
+{
+	return fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0) | O_NONBLOCK);
+}
+
 // Die with an error message if we can't write the entire buffer.
 void xwrite(int fd, void *buf, size_t count)
 {
