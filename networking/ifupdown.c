@@ -125,6 +125,7 @@ static int count_netmask_bits(char *dotted_quad)
 	/* Found a netmask...  Check if it is dotted quad */
 	if (sscanf(dotted_quad, "%u.%u.%u.%u", &a, &b, &c, &d) != 4)
 		return -1;
+	// FIXME: will be confused by e.g. 255.0.255.0
 	result = count_bits(a);
 	result += count_bits(b);
 	result += count_bits(c);
@@ -133,32 +134,27 @@ static int count_netmask_bits(char *dotted_quad)
 }
 #endif
 
-static void addstr(char **buf, size_t *len, size_t *pos, const char *str, size_t str_length)
+static void addstr(char **bufp, const char *str, size_t str_length)
 {
-	if (*pos + str_length >= *len) {
-		char *newbuf;
-
-		newbuf = xrealloc(*buf, *len * 2 + str_length + 1);
-		*buf = newbuf;
-		*len = *len * 2 + str_length + 1;
-	}
-
-	while (str_length-- >= 1) {
-		(*buf)[(*pos)++] = *str;
-		str++;
-	}
-	(*buf)[*pos] = '\0';
+	/* xasprintf trick will be smaller, but we are often
+	 * called with str_length == 1 - don't want to have
+	 * THAT much of malloc/freeing! */
+	char *buf = *bufp;
+	int len = (buf ? strlen(buf) : 0);
+	str_length++;
+	buf = xrealloc(buf, len + str_length);
+	/* copies at most str_length-1 chars! */
+	safe_strncpy(buf + len, str, str_length);
+	*bufp = buf;
 }
 
 static int strncmpz(const char *l, const char *r, size_t llen)
 {
 	int i = strncmp(l, r, llen);
 
-	if (i == 0) {
+	if (i == 0)
 		return -r[llen];
-	} else {
-		return i;
-	}
+	return i;
 }
 
 static char *get_var(const char *id, size_t idlen, struct interface_defn_t *ifd)
@@ -168,31 +164,27 @@ static char *get_var(const char *id, size_t idlen, struct interface_defn_t *ifd)
 	if (strncmpz(id, "iface", idlen) == 0) {
 		char *result;
 		static char label_buf[20];
-		strncpy(label_buf, ifd->iface, 19);
-		label_buf[19]=0;
+		safe_strncpy(label_buf, ifd->iface, sizeof(label_buf));
 		result = strchr(label_buf, ':');
 		if (result) {
-			*result=0;
+			*result = '\0';
 		}
 		return label_buf;
-	} else if (strncmpz(id, "label", idlen) == 0) {
+	}
+	if (strncmpz(id, "label", idlen) == 0) {
 		return ifd->iface;
-	} else {
-		for (i = 0; i < ifd->n_options; i++) {
-			if (strncmpz(id, ifd->option[i].name, idlen) == 0) {
-				return ifd->option[i].value;
-			}
+	}
+	for (i = 0; i < ifd->n_options; i++) {
+		if (strncmpz(id, ifd->option[i].name, idlen) == 0) {
+			return ifd->option[i].value;
 		}
 	}
-
 	return NULL;
 }
 
 static char *parse(const char *command, struct interface_defn_t *ifd)
 {
-
 	char *result = NULL;
-	size_t pos = 0, len = 0;
 	size_t old_pos[MAX_OPT_DEPTH] = { 0 };
 	int okay[MAX_OPT_DEPTH] = { 1 };
 	int opt_depth = 1;
@@ -200,26 +192,26 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 	while (*command) {
 		switch (*command) {
 		default:
-			addstr(&result, &len, &pos, command, 1);
+			addstr(&result, command, 1);
 			command++;
 			break;
 		case '\\':
 			if (command[1]) {
-				addstr(&result, &len, &pos, command + 1, 1);
+				addstr(&result, command + 1, 1);
 				command += 2;
 			} else {
-				addstr(&result, &len, &pos, command, 1);
+				addstr(&result, command, 1);
 				command++;
 			}
 			break;
 		case '[':
 			if (command[1] == '[' && opt_depth < MAX_OPT_DEPTH) {
-				old_pos[opt_depth] = pos;
+				old_pos[opt_depth] = strlen(result);
 				okay[opt_depth] = 1;
 				opt_depth++;
 				command += 2;
 			} else {
-				addstr(&result, &len, &pos, "[", 1);
+				addstr(&result, "[", 1);
 				command++;
 			}
 			break;
@@ -227,12 +219,11 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 			if (command[1] == ']' && opt_depth > 1) {
 				opt_depth--;
 				if (!okay[opt_depth]) {
-					pos = old_pos[opt_depth];
-					result[pos] = '\0';
+					result[old_pos[opt_depth]] = '\0';
 				}
 				command += 2;
 			} else {
-				addstr(&result, &len, &pos, "]", 1);
+				addstr(&result, "]", 1);
 				command++;
 			}
 			break;
@@ -252,18 +243,17 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 				varvalue = get_var(command, nextpercent - command, ifd);
 
 				if (varvalue) {
-					addstr(&result, &len, &pos, varvalue, strlen(varvalue));
+					addstr(&result, varvalue, strlen(varvalue));
 				} else {
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 					/* Sigh...  Add a special case for 'ip' to convert from
 					 * dotted quad to bit count style netmasks.  */
 					if (strncmp(command, "bnmask", 6)==0) {
-						int res;
+						unsigned res;
 						varvalue = get_var("netmask", 7, ifd);
-						if (varvalue && (res=count_netmask_bits(varvalue)) > 0) {
-							char argument[255];
-							sprintf(argument, "%d", res);
-							addstr(&result, &len, &pos, argument, strlen(argument));
+						if (varvalue && (res = count_netmask_bits(varvalue)) > 0) {
+							const char *argument = utoa(res);
+							addstr(&result, argument, strlen(argument));
 							command = nextpercent + 1;
 							break;
 						}
@@ -567,7 +557,7 @@ static char *next_word(char **buf)
 	unsigned short length;
 	char *word;
 
-	if ((buf == NULL) || (*buf == NULL) || (**buf == '\0')) {
+	if (!buf || !*buf || !**buf) {
 		return NULL;
 	}
 
