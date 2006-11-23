@@ -54,7 +54,8 @@ static int mton(struct in_addr *mask)
 
 
 /* Fill dest with the text of option 'option'. */
-static void fill_options(char *dest, uint8_t *option, struct dhcp_option *type_p)
+static void fill_options(char *dest, uint8_t *option,
+			const struct dhcp_option *type_p)
 {
 	int type, optlen;
 	uint16_t val_u16;
@@ -152,7 +153,8 @@ static char **fill_envp(struct dhcpMessage *packet)
 
 
 	for (i = 0; dhcp_options[i].code; i++) {
-		if (!(temp = get_option(packet, dhcp_options[i].code)))
+		temp = get_option(packet, dhcp_options[i].code);
+		if (temp)
 			continue;
 		envp[j] = xmalloc(upper_length(temp[OPT_LEN - 2],
 			dhcp_options[i].flags & TYPE_MASK) + strlen(dhcp_options[i].name) + 2);

@@ -26,8 +26,8 @@ struct dhcp_option {
 	uint8_t code;
 };
 
-extern struct dhcp_option dhcp_options[];
-extern int option_lengths[];
+extern const struct dhcp_option dhcp_options[];
+extern const unsigned char option_lengths[];
 
 uint8_t *get_option(struct dhcpMessage *packet, int code);
 int end_option(uint8_t *optionptr);

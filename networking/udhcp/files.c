@@ -95,7 +95,8 @@ struct option_set *find_option(struct option_set *opt_list, char code)
 
 
 /* add an option to the opt_list */
-static void attach_option(struct option_set **opt_list, struct dhcp_option *option, char *buffer, int length)
+static void attach_option(struct option_set **opt_list,
+		const struct dhcp_option *option, char *buffer, int length)
 {
 	struct option_set *existing, *new, **curr;
 
@@ -135,7 +136,7 @@ static int read_opt(const char *const_line, void *arg)
 {
 	struct option_set **opt_list = arg;
 	char *opt, *val, *endptr;
-	struct dhcp_option *option;
+	const struct dhcp_option *option;
 	int retval = 0, length;
 	char buffer[8];
 	char *line;
@@ -144,16 +145,21 @@ static int read_opt(const char *const_line, void *arg)
 
 	/* Cheat, the only const line we'll actually get is "" */
 	line = (char *) const_line;
-	if (!(opt = strtok(line, " \t="))) return 0;
+	opt = strtok(line, " \t=");
+	if (!opt) return 0;
 
-	for (option = dhcp_options; option->code; option++)
+	option = dhcp_options;
+	while (1) {
+		if (!option->code)
+			return 0;
 		if (!strcasecmp(option->name, opt))
 			break;
-
-	if (!option->code) return 0;
+		 option++;
+	}
 
 	do {
-		if (!(val = strtok(NULL, ", \t"))) break;
+		val = strtok(NULL, ", \t");
+		if (!val) break;
 		length = option_lengths[option->flags & TYPE_MASK];
 		retval = 0;
 		opt = buffer; /* new meaning for variable opt */
