@@ -210,17 +210,18 @@ int wget_main(int argc, char **argv)
 		curfile = bb_get_last_path_component(fname_out);
 #endif
 	}
+	/* Impossible?
 	if ((opt & WGET_OPT_CONTINUE) && !fname_out)
-		bb_error_msg_and_die("cannot specify continue (-c) without a filename (-O)");
+		bb_error_msg_and_die("cannot specify continue (-c) without a filename (-O)"); */
 
 	/*
 	 * Determine where to start transfer.
 	 */
-	if (!strcmp(fname_out, "-")) {
+	if (fname_out[0] == '-' && !fname_out[1]) {
 		output_fd = 1;
-		opt |= WGET_OPT_QUIET;
 		opt &= ~WGET_OPT_CONTINUE;
-	} else if (opt & WGET_OPT_CONTINUE) {
+	}
+	if (opt & WGET_OPT_CONTINUE) {
 		output_fd = open(fname_out, O_WRONLY);
 		if (output_fd >= 0) {
 			beg_range = xlseek(output_fd, 0, SEEK_END);
@@ -235,7 +236,7 @@ int wget_main(int argc, char **argv)
 	bb_lookup_host(&s_in, server.host);
 	s_in.sin_port = server.port;
 	if (!(opt & WGET_OPT_QUIET)) {
-		printf("Connecting to %s[%s]:%d\n",
+		fprintf(stderr, "Connecting to %s[%s]:%d\n",
 				server.host, inet_ntoa(s_in.sin_addr), ntohs(server.port));
 	}
 
