@@ -417,12 +417,15 @@ static int static_up(struct interface_defn_t *ifd, execfn *exec)
 	result += execute("[[ ip route add default via %gateway% dev %iface% ]]", ifd, exec);
 	return ((result == 3) ? 3 : 0);
 #else
-	result = execute("ifconfig %iface% %address% netmask %netmask% "
-			"[[broadcast %broadcast%]] [[pointopoint %pointopoint%]] "
-			"[[media %media%]] [[mtu %mtu%]] [[hw %hwaddress%]] up",
-			ifd, exec);
-	result += execute("[[ route add default gw %gateway% %iface% ]]", ifd, exec);
-	return ((result == 2) ? 2 : 0);
+	/* ifconfig said to set iface up before it processes hw %hwaddress%,
+	 * which then of course fails. Thus we run two separate ifconfig */
+	result = execute("ifconfig %iface% [[hw %hwaddress%]] [[media %media%]] [[mtu %mtu%]] up",
+				ifd, exec);
+	result += execute("ifconfig %iface% %address% netmask %netmask% "
+				"[[broadcast %broadcast%]] [[pointopoint %pointopoint%]] ",
+				ifd, exec);
+ 	result += execute("[[ route add default gw %gateway% %iface% ]]", ifd, exec);
+	return ((result == 3) ? 3 : 0);
 #endif
 }
 
