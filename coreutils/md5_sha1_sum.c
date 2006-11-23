@@ -16,17 +16,14 @@ typedef enum { HASH_SHA1, HASH_MD5 } hash_algo_t;
 
 /* This might be useful elsewhere */
 static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
-				unsigned char hash_length)
+				unsigned hash_length)
 {
-	int x, len, max;
-	unsigned char *hex_value;
-
-	max = (hash_length * 2) + 2;
-	hex_value = xmalloc(max);
-	for (x = len = 0; x < hash_length; x++) {
-		len += snprintf((char*)(hex_value + len), max - len, "%02x", hash_value[x]);
+	int len = 0;
+	char *hex_value = xmalloc((hash_length * 2) + 2);
+	while (hash_length--) {
+		len += sprintf(hex_value + len, "%02x", *hash_value++);
 	}
-	return (hex_value);
+	return hex_value;
 }
 
 static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
@@ -41,11 +38,13 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 	void (*update)(const void*, size_t, void*);
 	void (*final)(void*, void*);
 
-	if (strcmp(filename, "-") == 0) {
-		src_fd = STDIN_FILENO;
-	} else if(0 > (src_fd = open(filename, O_RDONLY))) {
-		bb_perror_msg("%s", filename);
-		return NULL;
+	src_fd = STDIN_FILENO;
+	if (filename[0] != '-' || filename[1]) { /* not "-" */
+		src_fd = open(filename, O_RDONLY);
+		if (src_fd < 0) {
+			bb_perror_msg("%s", filename);
+			return NULL;
+		}
 	}
 
 	/* figure specific hash algorithims */
@@ -63,7 +62,7 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 		bb_error_msg_and_die("algorithm not supported");
 	}
 
-	while (0 < (count = read(src_fd, in_buf, 4096))) {
+	while (0 < (count = safe_read(src_fd, in_buf, 4096))) {
 		update(in_buf, count, &context);
 	}
 
@@ -85,7 +84,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 {
 	int return_value = EXIT_SUCCESS;
 	uint8_t *hash_value;
-	unsigned int flags;
+	unsigned flags;
 	hash_algo_t hash_algo = ENABLE_MD5SUM
 		? (ENABLE_SHA1SUM ? (**argv=='m' ? HASH_MD5 : HASH_SHA1) : HASH_MD5)
 		: HASH_SHA1;
@@ -108,7 +107,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 		argv[argc++] = "-";
 	}
 
-	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && flags & FLAG_CHECK) {
+	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && (flags & FLAG_CHECK)) {
 		FILE *pre_computed_stream;
 		int count_total = 0;
 		int count_failed = 0;
@@ -120,9 +119,8 @@ int md5_sha1_sum_main(int argc, char **argv)
 				("only one argument may be specified when using -c");
 		}
 
-		if (strcmp(file_ptr, "-") == 0) {
-			pre_computed_stream = stdin;
-		} else {
+		pre_computed_stream = stdin;
+		if (file_ptr[0] != '-' || file_ptr[1]) { /* not "-" */
 			pre_computed_stream = xfopen(file_ptr, "r");
 		}
 
@@ -131,6 +129,10 @@ int md5_sha1_sum_main(int argc, char **argv)
 
 			count_total++;
 			filename_ptr = strstr(line, "  ");
+			/* handle format for binary checksums */
+			if (filename_ptr == NULL) {
+				filename_ptr = strstr(line, " *");
+			}
 			if (filename_ptr == NULL) {
 				if (flags & FLAG_WARN) {
 					bb_error_msg("invalid format");
@@ -162,9 +164,11 @@ int md5_sha1_sum_main(int argc, char **argv)
 			bb_error_msg("WARNING: %d of %d computed checksums did NOT match",
 						 count_failed, count_total);
 		}
+		/*
 		if (fclose_if_not_stdin(pre_computed_stream) == EOF) {
 			bb_perror_msg_and_die("cannot close file %s", file_ptr);
 		}
+		*/
 	} else {
 		while (optind < argc) {
 			char *file_ptr = argv[optind++];
