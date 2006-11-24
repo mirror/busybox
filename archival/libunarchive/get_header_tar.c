@@ -72,7 +72,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	int parse_names;
 #else
-	enum { parse_names = 0 };
+	enum { parse_names = 1 };
 #endif
 
 	if (sizeof(tar) != 512)
