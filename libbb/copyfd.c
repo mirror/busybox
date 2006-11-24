@@ -46,8 +46,7 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 		} else if (rd < 0) {
 			bb_perror_msg(bb_msg_read_error);
 			break;
-		} else if (rd == 0) {
-			/* All done. */
+		} else { /* eof - all done. */
 			status = 0;
 			break;
 		}

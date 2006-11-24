@@ -59,7 +59,7 @@ struct TarHeader {		  /* byte offset */
 typedef struct TarHeader TarHeader;
 
 /*
-** writeTarFile(),  writeFileToTarball(), and writeTarHeader() are
+** writeTarFile(), writeFileToTarball(), and writeTarHeader() are
 ** the only functions that deal with the HardLinkInfo structure.
 ** Even these functions use the xxxHardLinkInfo() functions.
 */
@@ -397,7 +397,17 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		off_t readSize = 0;
 
 		/* write the file to the archive */
-		readSize = bb_copyfd_eof(inputFileFd, tbInfo->tarFd);
+		readSize = bb_copyfd_size(inputFileFd, tbInfo->tarFd, statbuf->st_size);
+		if (readSize != statbuf->st_size) {
+			/* Deadly. We record size into header first, */
+			/* and then write out file. If file shrinks in between, */
+			/* tar will be corrupted. So bail out. */
+			/* NB: GNU tar 1.16 warns and pads with zeroes */
+			/* or even seeks back and updates header */
+			bb_error_msg_and_die("short read from %s", fileName);
+		}
+		/* Check that file did not grow in between? */
+		/* if (safe_read(inputFileFd,1) == 1) warn but continue? */
 		close(inputFileFd);
 
 		/* Pad the file up to the tar block size */
