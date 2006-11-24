@@ -150,7 +150,9 @@ static HardLinkInfo *findHardLinkInfo(HardLinkInfo * hlInfo, struct stat *statbu
 
 /* Put an octal string into the specified buffer.
  * The number is zero padded and possibly null terminated.
- * Returns TRUE if successful. - DISABLED (no caller ever checked)  */
+ * Returns TRUE if successful. - DISABLED (no caller ever checked) */
+/* FIXME: we leave field untouched if value doesn't fit. */
+/* This is not good - what will happen at untar time?? */
 static void putOctal(char *cp, int len, long long value)
 {
 	int tempLength;
@@ -205,9 +207,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode & 07777);
 	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
 	putOctal(header.gid, sizeof(header.gid), statbuf->st_gid);
-	if (sizeof(header.size) != sizeof("00000000000"))
-		BUG_tar_header_size();
-	strcpy(header.size, "00000000000"); /* Regular file size is handled later */
+	memset(header.size, '0', sizeof(header.size)-1); /* Regular file size is handled later */
 	putOctal(header.mtime, sizeof(header.mtime), statbuf->st_mtime);
 	strcpy(header.magic, "ustar  ");
 
@@ -401,7 +401,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 			/* tar will be corrupted. So bail out. */
 			/* NB: GNU tar 1.16 warns and pads with zeroes */
 			/* or even seeks back and updates header */
-			bb_error_msg_and_die("short read from %s", fileName);
+			bb_error_msg_and_die("short read from %s, aborting", fileName);
 		}
 		/* Check that file did not grow in between? */
 		/* if (safe_read(inputFileFd,1) == 1) warn but continue? */
@@ -461,8 +461,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 			dup2(gzipDataPipe[0], 0);
 			close(gzipDataPipe[1]);
 
-			if (tbInfo.tarFd != 1)
-				dup2(tbInfo.tarFd, 1);
+			dup2(tbInfo.tarFd, 1);
 
 			close(gzipStatusPipe[0]);
 			fcntl(gzipStatusPipe[1], F_SETFD, FD_CLOEXEC);	/* close on exec shows success */
@@ -831,7 +830,7 @@ int tar_main(int argc, char **argv)
 			flags = O_RDONLY;
 		}
 
-		if ((tar_filename[0] == '-') && (tar_filename[1] == '\0')) {
+		if (tar_filename[0] == '-' && !tar_filename[1]) {
 			tar_handle->src_fd = fileno(tar_stream);
 			tar_handle->seek = seek_by_read;
 		} else {
@@ -860,23 +859,24 @@ int tar_main(int argc, char **argv)
 		writeTarFile(tar_handle->src_fd, verboseFlag, opt & TAR_OPT_DEREFERENCE,
 				tar_handle->accept,
 			tar_handle->reject, zipMode);
-	} else {
-		while (get_header_ptr(tar_handle) == EXIT_SUCCESS)
-			/* nothing */;
-
-		/* Check that every file that should have been extracted was */
-		while (tar_handle->accept) {
-			if (!find_list_entry(tar_handle->reject, tar_handle->accept->data)
-			 && !find_list_entry(tar_handle->passed, tar_handle->accept->data)
-			) {
-				bb_error_msg_and_die("%s: not found in archive",
-					tar_handle->accept->data);
-			}
-			tar_handle->accept = tar_handle->accept->link;
-		}
+		/* NB: writeTarFile() closes tar_handle->src_fd */
+		return EXIT_SUCCESS;
 	}
 
-	if (ENABLE_FEATURE_CLEAN_UP && tar_handle->src_fd != STDIN_FILENO)
+	while (get_header_ptr(tar_handle) == EXIT_SUCCESS)
+		/* nothing */;
+
+	/* Check that every file that should have been extracted was */
+	while (tar_handle->accept) {
+		if (!find_list_entry(tar_handle->reject, tar_handle->accept->data)
+		 && !find_list_entry(tar_handle->passed, tar_handle->accept->data)
+		) {
+			bb_error_msg_and_die("%s: not found in archive",
+				tar_handle->accept->data);
+		}
+		tar_handle->accept = tar_handle->accept->link;
+	}
+	if (ENABLE_FEATURE_CLEAN_UP /* && tar_handle->src_fd != STDIN_FILENO */)
 		close(tar_handle->src_fd);
 
 	return EXIT_SUCCESS;

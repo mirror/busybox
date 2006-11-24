@@ -35,6 +35,7 @@ void clear_username_cache(void)
 	clear_cache(&groupname);
 }
 
+#if 0 /* more generic, but we don't need that yet */
 /* Returns -N-1 if not found. */
 /* cp->cache[N] is allocated and must be filled in this case */
 static int get_cached(cache_t *cp, unsigned id)
@@ -48,25 +49,28 @@ static int get_cached(cache_t *cp, unsigned id)
 	cp->cache[i++].id = id;
 	return -i;
 }
+#endif
+
+typedef char* ug_func(char *name, long uid, int bufsize);
+static char* get_cached(cache_t *cp, unsigned id, ug_func* fp)
+{
+	int i;
+	for (i = 0; i < cp->size; i++)
+		if (cp->cache[i].id == id)
+			return cp->cache[i].name;
+	i = cp->size++;
+	cp->cache = xrealloc(cp->cache, cp->size * sizeof(*cp->cache));
+	cp->cache[i].id = id;
+	fp(cp->cache[i].name, id, sizeof(cp->cache[i].name));
+	return cp->cache[i].name;
+}
 const char* get_cached_username(uid_t uid)
 {
-	int i = get_cached(&username, uid);
-	if (i < 0) {
-		i = -i - 1;
-		bb_getpwuid(username.cache[i].name, uid,
-			sizeof(username.cache[i].name));
-	}
-	return username.cache[i].name;
+	return get_cached(&username, uid, bb_getpwuid);
 }
-const char* get_cached_groupname(uid_t uid)
+const char* get_cached_groupname(gid_t gid)
 {
-	int i = get_cached(&groupname, uid);
-	if (i < 0) {
-		i = -i - 1;
-		bb_getgrgid(groupname.cache[i].name, uid,
-			sizeof(groupname.cache[i].name));
-	}
-	return username.cache[i].name;
+	return get_cached(&groupname, gid, bb_getgrgid);
 }
 
 
