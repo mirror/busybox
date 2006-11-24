@@ -29,8 +29,8 @@ static off_t out_full, out_part, in_full, in_part;
 
 static void dd_output_status(int ATTRIBUTE_UNUSED cur_signal)
 {
-	fprintf(stderr, "%"OFF_FMT"+%"OFF_FMT" records in\n"
-			"%"OFF_FMT"+%"OFF_FMT" records out\n",
+	fprintf(stderr, "%"OFF_FMT"d+%"OFF_FMT"d records in\n"
+			"%"OFF_FMT"d+%"OFF_FMT"d records out\n",
 			in_full, in_part,
 			out_full, out_part);
 }

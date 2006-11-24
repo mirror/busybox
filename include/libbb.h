@@ -88,13 +88,14 @@
 #  define STRTOOFF strtol
 #  define SAFE_STRTOOFF safe_strtol
 #  define XSTRTOUOFF xstrtoul
-#  define OFF_FMT "ld"
+/* usage: printf("size: %"OFF_FMT"d (%"OFF_FMT"x)\n", sz, sz); */
+#  define OFF_FMT "l"
 # else
 /* "long" is too short, need "long long" */
 #  define STRTOOFF strtoll
 #  define SAFE_STRTOOFF safe_strtoll
 #  define XSTRTOUOFF xstrtoull
-#  define OFF_FMT "lld"
+#  define OFF_FMT "ll"
 # endif
 #else
 # if 0 /* #if UINT_MAX == 0xffffffff */
@@ -103,12 +104,12 @@
 #  define STRTOOFF strtol
 #  define SAFE_STRTOOFF safe_strtoi
 #  define XSTRTOUOFF xstrtou
-#  define OFF_FMT "d"
+#  define OFF_FMT ""
 # else
 #  define STRTOOFF strtol
 #  define SAFE_STRTOOFF safe_strtol
 #  define XSTRTOUOFF xstrtoul
-#  define OFF_FMT "ld"
+#  define OFF_FMT "l"
 # endif
 #endif
 /* scary. better ideas? (but do *test* them first!) */
@@ -703,7 +704,7 @@ extern const char bb_default_login_shell[];
 #define RB_POWER_OFF   0x4321fedc
 #endif
 
-// Make sure we call functions instead of macros.
+/* Make sure we call functions instead of macros.  */
 #undef isalnum
 #undef isalpha
 #undef isascii

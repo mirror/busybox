@@ -149,7 +149,7 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 	}
 
 	if (do_continue) {
-		sprintf(buf, "REST %"OFF_FMT, beg_range);
+		sprintf(buf, "REST %"OFF_FMT"d", beg_range);
 		if (ftpcmd(buf, NULL, control_stream, buf) != 350) {
 			do_continue = 0;
 		} else {

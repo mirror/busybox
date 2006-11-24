@@ -111,25 +111,6 @@ char get_header_tar(archive_handle_t *archive_handle)
 		bb_error_msg_and_die("invalid tar header checksum");
 	}
 
-#ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
-	if (longname) {
-		file_header->name = longname;
-		longname = NULL;
-	}
-	else if (linkname) {
-		file_header->name = linkname;
-		linkname = NULL;
-	} else
-#endif
-	{
-		file_header->name = xstrndup(tar.name, sizeof(tar.name));
-		if (tar.prefix[0]) {
-			char *temp = file_header->name;
-			file_header->name = concat_path_file(tar.prefix, temp);
-			free(temp);
-		}
-	}
-
 	/* getOctal trashes subsequent field, therefore we call it
 	 * on fields in reverse order */
 #define GET_OCTAL(a) getOctal((a), sizeof(a))
@@ -147,6 +128,24 @@ char get_header_tar(archive_handle_t *archive_handle)
 	/* Set bits 0-11 of the files mode */
 	file_header->mode = 07777 & GET_OCTAL(tar.mode);
 #undef GET_OCTAL
+
+#ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
+	if (longname) {
+		file_header->name = longname;
+		longname = NULL;
+	}
+	else if (linkname) {
+		file_header->name = linkname;
+		linkname = NULL;
+	} else
+#endif
+	{	/* we trash mode[0] here, it's ok */
+		tar.name[sizeof(tar.name)] = '\0';
+		if (tar.prefix[0])
+			file_header->name = concat_path_file(tar.prefix, tar.name);
+		else
+			file_header->name = xstrdup(tar.name);
+	}
 
 	/* Set bits 12-15 of the files mode */
 	switch (tar.typeflag) {
@@ -209,10 +208,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 	/* Strip trailing '/' in directories */
 	/* Must be done after mode is set as '/' is used to check if its a directory */
 	cp = last_char_is(file_header->name, '/');
-	if (cp) *cp = '\0';
 
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
 		archive_handle->action_header(archive_handle->file_header);
+		/* Note that we kill the '/' only after action_header() */
+		/* (like GNU tar 1.15.1: verbose mode outputs "dir/dir/") */
+		if (cp) *cp = '\0';
 		archive_handle->flags |= ARCHIVE_EXTRACT_QUIET;
 		archive_handle->action_data(archive_handle);
 		llist_add_to(&(archive_handle->passed), file_header->name);

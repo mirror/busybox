@@ -563,9 +563,9 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 	archive_handle->seek = seek_by_read;
 
 	/* do the decompression, and cleanup */
-	if (xread_char(archive_handle->src_fd) != 0x1f ||
-		xread_char(archive_handle->src_fd) != 0x9d)
-	{
+	if (xread_char(archive_handle->src_fd) != 0x1f
+	 || xread_char(archive_handle->src_fd) != 0x9d
+	) {
 		bb_error_msg_and_die("invalid magic");
 	}
 

@@ -574,7 +574,7 @@ static int list_single(struct dnode *dn)
 			column += printf("%7ld ", (long) dn->dstat.st_ino);
 			break;
 		case LIST_BLOCKS:
-			column += printf("%4"OFF_FMT" ", (off_t) dn->dstat.st_blocks >> 1);
+			column += printf("%4"OFF_FMT"d ", (off_t) dn->dstat.st_blocks >> 1);
 			break;
 		case LIST_MODEBITS:
 			column += printf("%-10s ", (char *) bb_mode_string(dn->dstat.st_mode));
@@ -604,7 +604,7 @@ static int list_single(struct dnode *dn)
 					column += printf("%9s ",
 						make_human_readable_str(dn->dstat.st_size, 1, 0));
 				} else {
-					column += printf("%9"OFF_FMT" ", (off_t) dn->dstat.st_size);
+					column += printf("%9"OFF_FMT"d ", (off_t) dn->dstat.st_size);
 				}
 			}
 			break;
