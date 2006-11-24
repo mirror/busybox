@@ -509,6 +509,12 @@ extern unsigned long get_ug_id(const char *s, long (*__bb_getxxnam)(const char *
 int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
 void reset_ino_dev_hashtable(void);
+#ifdef __GLIBC__
+/* At least glibc has horrendously large inline for this, so wrap it */
+extern unsigned long long bb_makedev(unsigned int major, unsigned int minor);
+#undef makedev
+#define makedev(a,b) bb_makedev(a,b)
+#endif
 
 
 #ifndef COMM_LEN

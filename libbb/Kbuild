@@ -4,31 +4,96 @@
 #
 # Licensed under the GPL v2, see the file LICENSE in this tarball.
 
-lib-y:= \
-	ask_confirmation.o change_identity.o chomp.o \
-	compare_string_array.o concat_path_file.o copy_file.o copyfd.o \
-	crc32.o create_icmp_socket.o create_icmp6_socket.o \
-	device_open.o dump.o error_msg.o error_msg_and_die.o \
-	find_pid_by_name.o find_root_device.o fgets_str.o \
-	full_write.o get_last_path_component.o get_line_from_file.o \
-	herror_msg.o herror_msg_and_die.o \
-	human_readable.o inet_common.o inode_hash.o isdirectory.o \
-	kernel_version.o last_char_is.o login.o \
-	make_directory.o md5.o mode_string.o mtab_file.o \
-	obscure.o parse_mode.o perror_msg.o \
-	perror_msg_and_die.o get_console.o \
-	process_escape_sequence.o procps.o \
-	recursive_action.o remove_file.o \
-	restricted_shell.o run_parts.o run_shell.o read.o safe_write.o \
-	safe_strncpy.o setup_environment.o sha1.o simplify_path.o \
-	trim.o u_signal_names.o vdprintf.o verror_msg.o \
-	vherror_msg.o vperror_msg.o wfopen.o xconnect.o xgetcwd.o \
-	xgethostbyname.o xgethostbyname2.o xreadlink.o \
-	fclose_nonstdin.o fflush_stdout_and_exit.o \
-	getopt32.o default_error_retval.o wfopen_input.o speed_table.o \
-	perror_nomsg_and_die.o perror_nomsg.o skip_whitespace.o bb_askpass.o \
-	warn_ignoring_args.o concat_subpath_file.o vfork_daemon_rexec.o \
-	bb_do_delay.o uuencode.o info_msg.o vinfo_msg.o execable.o
+lib-y:=
+
+lib-y += ask_confirmation.o
+lib-y += bb_askpass.o
+lib-y += bb_do_delay.o
+lib-y += bb_pwd.o
+lib-y += change_identity.o
+lib-y += chomp.o
+lib-y += compare_string_array.o
+lib-y += concat_path_file.o
+lib-y += concat_subpath_file.o
+lib-y += copy_file.o
+lib-y += copyfd.o
+lib-y += crc32.o
+lib-y += create_icmp6_socket.o
+lib-y += create_icmp_socket.o
+lib-y += default_error_retval.o
+lib-y += device_open.o
+lib-y += dump.o
+lib-y += error_msg.o
+lib-y += error_msg_and_die.o
+lib-y += execable.o
+lib-y += fclose_nonstdin.o
+lib-y += fflush_stdout_and_exit.o
+lib-y += fgets_str.o
+lib-y += find_pid_by_name.o
+lib-y += find_root_device.o
+lib-y += full_write.o
+lib-y += get_console.o
+lib-y += get_last_path_component.o
+lib-y += get_line_from_file.o
+lib-y += getopt32.o
+lib-y += herror_msg.o
+lib-y += herror_msg_and_die.o
+lib-y += human_readable.o
+lib-y += inet_common.o
+lib-y += info_msg.o
+lib-y += inode_hash.o
+lib-y += isdirectory.o
+lib-y += kernel_version.o
+lib-y += last_char_is.o
+lib-y += llist.o
+lib-y += login.o
+lib-y += make_directory.o
+lib-y += makedev.o
+lib-y += md5.o
+lib-y += messages.o
+lib-y += mode_string.o
+lib-y += mtab_file.o
+lib-y += obscure.o
+lib-y += parse_mode.o
+lib-y += perror_msg.o
+lib-y += perror_msg_and_die.o
+lib-y += perror_nomsg.o
+lib-y += perror_nomsg_and_die.o
+lib-y += process_escape_sequence.o
+lib-y += procps.o
+lib-y += read.o
+lib-y += recursive_action.o
+lib-y += remove_file.o
+lib-y += restricted_shell.o
+lib-y += run_parts.o
+lib-y += run_shell.o
+lib-y += safe_strncpy.o
+lib-y += safe_strtol.o
+lib-y += safe_write.o
+lib-y += setup_environment.o
+lib-y += sha1.o
+lib-y += simplify_path.o
+lib-y += skip_whitespace.o
+lib-y += speed_table.o
+lib-y += trim.o
+lib-y += u_signal_names.o
+lib-y += uuencode.o
+lib-y += vdprintf.o
+lib-y += verror_msg.o
+lib-y += vfork_daemon_rexec.o
+lib-y += vherror_msg.o
+lib-y += vinfo_msg.o
+lib-y += vperror_msg.o
+lib-y += warn_ignoring_args.o
+lib-y += wfopen.o
+lib-y += wfopen_input.o
+lib-y += xatol.o
+lib-y += xconnect.o
+lib-y += xfuncs.o
+lib-y += xgetcwd.o
+lib-y += xgethostbyname.o
+lib-y += xgethostbyname2.o
+lib-y += xreadlink.o
 
 # conditionally compiled objects:
 lib-$(CONFIG_FEATURE_MOUNT_LOOP) += loop.o
@@ -51,10 +116,3 @@ lib-$(CONFIG_AWK) += xregcomp.o
 lib-$(CONFIG_SED) += xregcomp.o
 lib-$(CONFIG_LESS) += xregcomp.o
 lib-$(CONFIG_DEVFSD) += xregcomp.o
-
-lib-y += messages.o
-lib-y += xfuncs.o
-lib-y += xatol.o
-lib-y += safe_strtol.o
-lib-y += bb_pwd.o
-lib-y += llist.o
