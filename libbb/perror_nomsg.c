@@ -7,8 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stddef.h>
-#include <libbb.h>
+#include "libbb.h"
 
 void bb_perror_nomsg(void)
 {

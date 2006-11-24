@@ -12,8 +12,7 @@
  * here to save a little space.
  */
 
-#include <stdio.h>
-#include <libbb.h>
+#include "libbb.h"
 
 int fclose_if_not_stdin(FILE *f)
 {
