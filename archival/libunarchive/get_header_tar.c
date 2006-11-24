@@ -14,9 +14,14 @@
 #include "libbb.h"
 #include "unarchive.h"
 
-#ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
-static char *longname = NULL;
-static char *linkname = NULL;
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+static char *longname;
+static char *linkname;
+#else
+enum {
+	longname = 0,
+	linkname = 0,
+};
 #endif
 
 /* NB: _DESTROYS_ str[len] character! */
@@ -64,6 +69,11 @@ char get_header_tar(archive_handle_t *archive_handle)
 	} tar;
 	char *cp;
 	int sum, i;
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+	int parse_names;
+#else
+	enum { parse_names = 0 };
+#endif
 
 	if (sizeof(tar) != 512)
 		BUG_tar_header_size();
@@ -93,7 +103,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	 * 0's are for the old tar format
 	 */
 	if (strncmp(tar.magic, "ustar", 5) != 0) {
-#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY
+#if ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
 		if (memcmp(tar.magic, "\0\0\0\0", 5) != 0)
 #endif
 			bb_error_msg_and_die("invalid tar magic");
@@ -111,6 +121,10 @@ char get_header_tar(archive_handle_t *archive_handle)
 		bb_error_msg_and_die("invalid tar header checksum");
 	}
 
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+	parse_names = (tar.typeflag != 'L' && tar.typeflag != 'K');
+#endif
+
 	/* getOctal trashes subsequent field, therefore we call it
 	 * on fields in reverse order */
 #define GET_OCTAL(a) getOctal((a), sizeof(a))
@@ -119,27 +133,24 @@ char get_header_tar(archive_handle_t *archive_handle)
 		unsigned major = GET_OCTAL(tar.devmajor);
 		file_header->device = makedev(major, minor);
 	}
+	file_header->link_name = NULL;
+	if (!linkname && parse_names && tar.linkname[0]) {
+		/* we trash magic[0] here, it's ok */
+		tar.linkname[sizeof(tar.linkname)] = '\0';
+		file_header->link_name = xstrdup(tar.linkname);
+		/* FIXME: what if we have non-link object with link_name? */
+		/* Will link_name be free()ed? */
+	}
 	file_header->mtime = GET_OCTAL(tar.mtime);
 	file_header->size = GET_OCTAL(tar.size);
 	file_header->gid = GET_OCTAL(tar.gid);
 	file_header->uid = GET_OCTAL(tar.uid);
-	file_header->link_name = !tar.linkname[0] ? NULL :
-			xstrndup(tar.linkname, sizeof(tar.linkname));
 	/* Set bits 0-11 of the files mode */
 	file_header->mode = 07777 & GET_OCTAL(tar.mode);
 #undef GET_OCTAL
 
-#ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
-	if (longname) {
-		file_header->name = longname;
-		longname = NULL;
-	}
-	else if (linkname) {
-		file_header->name = linkname;
-		linkname = NULL;
-	} else
-#endif
-	{	/* we trash mode[0] here, it's ok */
+	if (!longname && parse_names) {
+		/* we trash mode[0] here, it's ok */
 		tar.name[sizeof(tar.name)] = '\0';
 		if (tar.prefix[0])
 			file_header->name = concat_path_file(tar.prefix, tar.name);
@@ -148,6 +159,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	}
 
 	/* Set bits 12-15 of the files mode */
+	/* (typeflag was not trashed because chksum does not use getOctal) */
 	switch (tar.typeflag) {
 	/* busybox identifies hard links as being regular files with 0 size and a link name */
 	case '1':
@@ -157,7 +169,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 		/* Reserved for high performance files, treat as normal file */
 	case 0:
 	case '0':
-#ifdef CONFIG_FEATURE_TAR_OLDGNU_COMPATIBILITY
+#if ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
 		if (last_char_is(file_header->name, '/')) {
 			file_header->mode |= S_IFDIR;
 		} else
@@ -179,17 +191,19 @@ char get_header_tar(archive_handle_t *archive_handle)
 	case '6':
 		file_header->mode |= S_IFIFO;
 		break;
-#ifdef CONFIG_FEATURE_TAR_GNU_EXTENSIONS
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L':
+		/* paranoia: tar with several consecutive longnames */
+		free(longname);
 		longname = xzalloc(file_header->size + 1);
 		xread(archive_handle->src_fd, longname, file_header->size);
 		archive_handle->offset += file_header->size;
 		return get_header_tar(archive_handle);
 	case 'K':
+		free(linkname);
 		linkname = xzalloc(file_header->size + 1);
 		xread(archive_handle->src_fd, linkname, file_header->size);
 		archive_handle->offset += file_header->size;
-		file_header->name = linkname;
 		return get_header_tar(archive_handle);
 	case 'D':	/* GNU dump dir */
 	case 'M':	/* Continuation of multi volume archive */
@@ -204,6 +218,17 @@ char get_header_tar(archive_handle_t *archive_handle)
 	default:
 		bb_error_msg("unknown typeflag: 0x%x", tar.typeflag);
 	}
+
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+	if (longname) {
+		file_header->name = longname;
+		longname = NULL;
+	}
+	if (linkname) {
+		file_header->link_name = linkname;
+		linkname = NULL;
+	}
+#endif
 
 	/* Strip trailing '/' in directories */
 	/* Must be done after mode is set as '/' is used to check if its a directory */

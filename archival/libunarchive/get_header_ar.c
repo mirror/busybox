@@ -88,7 +88,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 #endif
 	} else {
 		/* short filenames */
-	       typed->name = xstrndup(ar.formatted.name, 16);
+		typed->name = xstrndup(ar.formatted.name, 16);
 	}
 
 	typed->name[strcspn(typed->name, " /")] = '\0';

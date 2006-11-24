@@ -74,6 +74,7 @@ char * xstrndup(const char *s, int n)
 	if (ENABLE_DEBUG && s == NULL)
 		bb_error_msg_and_die("xstrndup bug");
 
+	/* TODO: think about xstrndup("abc", 10000)!!! */
 	t = xmalloc(++n);
 
 	return safe_strncpy(t,s,n);
