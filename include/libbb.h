@@ -567,6 +567,7 @@ pid_t *find_pid_by_name(const char* procName);
 pid_t *pidlist_reverse(pid_t *pidList);
 void clear_username_cache(void);
 const char* get_cached_username(uid_t uid);
+const char* get_cached_groupname(gid_t gid);
 
 
 extern const char bb_uuenc_tbl_base64[];

@@ -11,32 +11,62 @@
 #include "libbb.h"
 
 
-typedef struct {
-	uid_t uid;
-	char username[12];
-} user_map_t;
+typedef struct unsigned_to_name_map_t {
+	unsigned id;
+	char name[12];
+} unsigned_to_name_map_t;
 
-static user_map_t *username_cache;
-static int username_cache_size;
+typedef struct cache_t {
+	unsigned_to_name_map_t *cache;
+	int size;
+} cache_t;
 
+static cache_t username, groupname;
+
+static void clear_cache(cache_t *cp)
+{
+	free(cp->cache);
+	cp->cache = NULL;
+	cp->size = 0;
+}
 void clear_username_cache(void)
 {
-	free(username_cache);
-	username_cache = NULL;
-	username_cache_size = 0;
+	clear_cache(&username);
+	clear_cache(&groupname);
 }
 
-const char* get_cached_username(uid_t uid)
+/* Returns -N-1 if not found. */
+/* cp->cache[N] is allocated and must be filled in this case */
+static int get_cached(cache_t *cp, unsigned id)
 {
 	int i;
-	for (i = 0; i < username_cache_size; i++)
-		if (username_cache[i].uid == uid)
-			return username_cache[i].username;
-	i = username_cache_size++;
-	username_cache = xrealloc(username_cache, username_cache_size * sizeof(*username_cache));
-	username_cache[i].uid = uid;
-	bb_getpwuid(username_cache[i].username, uid, sizeof(username_cache[i].username));
-	return username_cache[i].username;
+	for (i = 0; i < cp->size; i++)
+		if (cp->cache[i].id == id)
+			return i;
+	i = cp->size++;
+	cp->cache = xrealloc(cp->cache, cp->size * sizeof(*cp->cache));
+	cp->cache[i++].id = id;
+	return -i;
+}
+const char* get_cached_username(uid_t uid)
+{
+	int i = get_cached(&username, uid);
+	if (i < 0) {
+		i = -i - 1;
+		bb_getpwuid(username.cache[i].name, uid,
+			sizeof(username.cache[i].name));
+	}
+	return username.cache[i].name;
+}
+const char* get_cached_groupname(uid_t uid)
+{
+	int i = get_cached(&groupname, uid);
+	if (i < 0) {
+		i = -i - 1;
+		bb_getgrgid(groupname.cache[i].name, uid,
+			sizeof(groupname.cache[i].name));
+	}
+	return username.cache[i].name;
 }
 
 

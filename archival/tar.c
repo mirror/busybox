@@ -211,12 +211,9 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	putOctal(header.mtime, sizeof(header.mtime), statbuf->st_mtime);
 	strcpy(header.magic, "ustar  ");
 
-	/* Enter the user and group names (default to root if it fails) */
-//cache!!!
-	if (bb_getpwuid(header.uname, statbuf->st_uid, sizeof(header.uname)) == NULL)
-		strcpy(header.uname, "root");
-	if (bb_getgrgid(header.gname, statbuf->st_gid, sizeof(header.gname)) == NULL)
-		strcpy(header.gname, "root");
+	/* Enter the user and group names */
+	safe_strncpy(header.uname, get_cached_username(statbuf->st_uid), sizeof(header.uname));
+	safe_strncpy(header.gname, get_cached_groupname(statbuf->st_gid), sizeof(header.gname));
 
 	if (tbInfo->hlInfo) {
 		/* This is a hard link */
