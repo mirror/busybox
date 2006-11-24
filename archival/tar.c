@@ -276,13 +276,13 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	xwrite(tbInfo->tarFd, &header, sizeof(struct TarHeader));
 
 	/* Now do the verbose thing (or not) */
-
 	if (tbInfo->verboseFlag) {
 		FILE *vbFd = stdout;
 
 		if (tbInfo->tarFd == STDOUT_FILENO)	/* If the archive goes to stdout, verbose to stderr */
 			vbFd = stderr;
-
+		/* GNU "tar cvvf" prints "extended" listing a-la "ls -l" */
+		/* We don't have such excesses here: for us "v" == "vv" */
 		fprintf(vbFd, "%s\n", header.name);
 	}
 
@@ -549,9 +549,10 @@ static llist_t *append_file_list_to_list(llist_t *list)
 		cur = cur->link;
 		free(tmp);
 		while ((line = xmalloc_getline(src_stream)) != NULL) {
-			char *filename_ptr = last_char_is(line, '/');
-			if (filename_ptr > line)
-				*filename_ptr = '\0';
+			/* kill trailing '/' unless the string is just "/" */
+			char *cp = last_char_is(line, '/');
+			if (cp > line)
+				*cp = '\0';
 			llist_add_to(&newlist, line);
 		}
 		fclose(src_stream);
@@ -664,6 +665,7 @@ int tar_main(int argc, char **argv)
 	char *base_dir = NULL;
 	const char *tar_filename = "-";
 	unsigned opt;
+	int verboseFlag = 0;
 	llist_t *excludes = NULL;
 
 	/* Initialise default values */
@@ -674,6 +676,7 @@ int tar_main(int argc, char **argv)
 
 	/* Prepend '-' to the first argument if required */
 	opt_complementary = "--:" // first arg is options
+		"tt:vv:" // count -t,-v
 		"?:" // bail out with usage instead of error return
 		"X::T::" // cumulative lists
 		"\xfd::" // cumulative lists for --exclude
@@ -695,31 +698,20 @@ int tar_main(int argc, char **argv)
 		&tar_filename, // -f filename
 		USE_FEATURE_TAR_FROM(&(tar_handle->accept),) // T
 		USE_FEATURE_TAR_FROM(&(tar_handle->reject),) // X
-		USE_FEATURE_TAR_FROM(&excludes             ) // --exclude
+		USE_FEATURE_TAR_FROM(&excludes            ,) // --exclude
+		&verboseFlag, // combined count for -t and -v
+		&verboseFlag // combined count for -t and -v
 		);
 
-	if (opt & OPT_TEST) {
-		if (tar_handle->action_header == header_list
-		 || tar_handle->action_header == header_verbose_list
-		) {
-			tar_handle->action_header = header_verbose_list;
-		} else
-			tar_handle->action_header = header_list;
-	}
+	if (verboseFlag) tar_handle->action_header = header_verbose_list;
+	if (verboseFlag == 1) tar_handle->action_header = header_list;
+
 	if ((opt & OPT_EXTRACT) && tar_handle->action_data != data_extract_to_stdout)
 		tar_handle->action_data = data_extract_all;
 
 	if (opt & OPT_2STDOUT)
 		tar_handle->action_data = data_extract_to_stdout;
 
-	if (opt & OPT_VERBOSE) {
-		if (tar_handle->action_header == header_list
-		 || tar_handle->action_header == header_verbose_list
-		) {
-			tar_handle->action_header = header_verbose_list;
-		} else
-			tar_handle->action_header = header_list;
-	}
 	if (opt & OPT_KEEP_OLD)
 		tar_handle->flags &= ~ARCHIVE_EXTRACT_UNCONDITIONAL;
 
@@ -762,13 +754,14 @@ int tar_main(int argc, char **argv)
 	/* Setup an array of filenames to work with */
 	/* TODO: This is the same as in ar, separate function ? */
 	while (optind < argc) {
-		char *filename_ptr = last_char_is(argv[optind], '/');
-		if (filename_ptr > argv[optind])
-			*filename_ptr = '\0';
-
-		llist_add_to(&(tar_handle->accept), argv[optind]);
+		/* kill trailing '/' unless the string is just "/" */
+		char *cp = last_char_is(argv[optind], '/');
+		if (cp > argv[optind])
+			*cp = '\0';
+		llist_add_to(&tar_handle->accept, argv[optind]);
 		optind++;
 	}
+	tar_handle->accept = rev_llist(tar_handle->accept);
 
 	if (tar_handle->accept || tar_handle->reject)
 		tar_handle->filter = filter_accept_reject_list;
@@ -805,22 +798,14 @@ int tar_main(int argc, char **argv)
 
 	/* create an archive */
 	if (opt & OPT_CREATE) {
-		int verboseFlag = FALSE;
 		int zipMode = 0;
-
 		if (ENABLE_FEATURE_TAR_GZIP && get_header_ptr == get_header_tar_gz)
 			zipMode = 1;
 		if (ENABLE_FEATURE_TAR_BZIP2 && get_header_ptr == get_header_tar_bz2)
 			zipMode = 2;
-
-		if (tar_handle->action_header == header_list
-		 || tar_handle->action_header == header_verbose_list
-		) {
-			verboseFlag = TRUE;
-		}
 		writeTarFile(tar_handle->src_fd, verboseFlag, opt & OPT_DEREFERENCE,
 				tar_handle->accept,
-			tar_handle->reject, zipMode);
+				tar_handle->reject, zipMode);
 		/* NB: writeTarFile() closes tar_handle->src_fd */
 		return EXIT_SUCCESS;
 	}
