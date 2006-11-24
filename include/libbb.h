@@ -610,7 +610,6 @@ extern const char bb_msg_memory_exhausted[];
 extern const char bb_msg_invalid_date[];
 extern const char bb_msg_read_error[];
 extern const char bb_msg_write_error[];
-extern const char bb_msg_name_longer_than_foo[];
 extern const char bb_msg_unknown[];
 extern const char bb_msg_can_not_create_raw_socket[];
 extern const char bb_msg_perm_denied_are_you_root[];

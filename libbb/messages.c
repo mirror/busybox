@@ -19,7 +19,6 @@ const char bb_msg_memory_exhausted[] = "memory exhausted";
 const char bb_msg_invalid_date[] = "invalid date '%s'";
 const char bb_msg_write_error[] = "write error";
 const char bb_msg_read_error[] = "read error";
-const char bb_msg_name_longer_than_foo[] = "names longer than %d chars not supported";
 const char bb_msg_unknown[] = "(unknown)";
 const char bb_msg_can_not_create_raw_socket[] = "can't create raw socket";
 const char bb_msg_perm_denied_are_you_root[] = "permission denied. (are you root?)";

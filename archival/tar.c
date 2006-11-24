@@ -35,25 +35,26 @@
 #define TAR_BLOCK_SIZE		512
 
 /* POSIX tar Header Block, from POSIX 1003.1-1990  */
-#define NAME_SIZE			100
-struct TarHeader {		/* byte offset */
-	char name[NAME_SIZE];	/*   0-99 */
-	char mode[8];		/* 100-107 */
-	char uid[8];		/* 108-115 */
-	char gid[8];		/* 116-123 */
-	char size[12];		/* 124-135 */
-	char mtime[12];		/* 136-147 */
-	char chksum[8];		/* 148-155 */
-	char typeflag;		/* 156-156 */
-	char linkname[NAME_SIZE];	/* 157-256 */
-	char magic[6];		/* 257-262 */
-	char version[2];	/* 263-264 */
-	char uname[32];		/* 265-296 */
-	char gname[32];		/* 297-328 */
-	char devmajor[8];	/* 329-336 */
-	char devminor[8];	/* 337-344 */
-	char prefix[155];	/* 345-499 */
-	char padding[12];	/* 500-512 (pad to exactly the TAR_BLOCK_SIZE) */
+#define NAME_SIZE      100
+#define NAME_SIZE_STR "100"
+struct TarHeader {		  /* byte offset */
+	char name[NAME_SIZE];     /*   0-99 */
+	char mode[8];             /* 100-107 */
+	char uid[8];              /* 108-115 */
+	char gid[8];              /* 116-123 */
+	char size[12];            /* 124-135 */
+	char mtime[12];           /* 136-147 */
+	char chksum[8];           /* 148-155 */
+	char typeflag;            /* 156-156 */
+	char linkname[NAME_SIZE]; /* 157-256 */
+	char magic[6];            /* 257-262 */
+	char version[2];          /* 263-264 */
+	char uname[32];           /* 265-296 */
+	char gname[32];           /* 297-328 */
+	char devmajor[8];         /* 329-336 */
+	char devminor[8];         /* 337-344 */
+	char prefix[155];         /* 345-499 */
+	char padding[12];         /* 500-512 (pad to exactly the TAR_BLOCK_SIZE) */
 };
 typedef struct TarHeader TarHeader;
 
@@ -121,8 +122,8 @@ static void addHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr,
 
 static void freeHardLinkInfo(HardLinkInfo ** hlInfoHeadPtr)
 {
-	HardLinkInfo *hlInfo = NULL;
-	HardLinkInfo *hlInfoNext = NULL;
+	HardLinkInfo *hlInfo;
+	HardLinkInfo *hlInfoNext;
 
 	if (hlInfoHeadPtr) {
 		hlInfo = *hlInfoHeadPtr;
@@ -148,60 +149,70 @@ static HardLinkInfo *findHardLinkInfo(HardLinkInfo * hlInfo, struct stat *statbu
 }
 
 /* Put an octal string into the specified buffer.
- * The number is zero and space padded and possibly null padded.
- * Returns TRUE if successful.  */
-static int putOctal(char *cp, int len, long value)
+ * The number is zero padded and possibly null terminated.
+ * Returns TRUE if successful. - DISABLED (no caller ever checked)  */
+static void putOctal(char *cp, int len, long long value)
 {
 	int tempLength;
-	char tempBuffer[32];
+	/* long long for the sake of storing lengths of 4Gb+ files */
+	/* (we are bust anyway after 64Gb: it doesn't fit into the field) */
+	char tempBuffer[sizeof(long long)*3+1];
 	char *tempString = tempBuffer;
 
-	/* Create a string of the specified length with an initial space,
+	/* Create a string of the specified length with
 	 * leading zeroes and the octal number, and a trailing null.  */
-	sprintf(tempString, "%0*lo", len - 1, value);
+	tempLength = sprintf(tempBuffer, "%0*llo", len - 1, value);
 
-	/* If the string is too large, suppress the leading space.  */
-	tempLength = strlen(tempString) + 1;
-	if (tempLength > len) {
-		tempLength--;
-		tempString++;
+	/* If the string is too large, suppress leading 0's.  */
+	/* If that is not enough, drop trailing null.  */
+	tempLength -= len; /* easier to do checks */
+	while (tempLength >= 0) {
+		if (tempString[0] != '0') {
+			if (!tempLength) {
+				/* 1234 barely fits in 4 chars (w/o EOL '\0') */
+				break;
+			}
+			/* 12345 doesn't fit into 4 chars */
+			return /*FALSE*/;
+		}
+		tempLength--; /* still have leading '0', */
+		tempString++; /* can afford to drop it but retain EOL '\0' */
 	}
-
-	/* If the string is still too large, suppress the trailing null.  */
-	if (tempLength > len)
-		tempLength--;
-
-	/* If the string is still too large, fail.  */
-	if (tempLength > len)
-		return FALSE;
 
 	/* Copy the string to the field.  */
 	memcpy(cp, tempString, len);
-
-	return TRUE;
+	/*return TRUE;*/
 }
 
 /* Write out a tar header for the specified file/directory/whatever */
+void BUG_tar_header_size(void);
 static int writeTarHeader(struct TarBallInfo *tbInfo,
 		const char *header_name, const char *fileName, struct stat *statbuf)
 {
-	long chksum = 0;
 	struct TarHeader header;
-	const unsigned char *cp = (const unsigned char *) &header;
-	ssize_t size = sizeof(struct TarHeader);
+	const unsigned char *cp;
+	int chksum;
+	int size;
 
-	bzero(&header, size);
+	if (sizeof(header) != 512)
+		BUG_tar_header_size();
+
+	bzero(&header, sizeof(struct TarHeader));
 
 	safe_strncpy(header.name, header_name, sizeof(header.name));
 
-	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode);
+	/* POSIX says to mask mode with 07777. */
+	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode & 07777);
 	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
 	putOctal(header.gid, sizeof(header.gid), statbuf->st_gid);
-	putOctal(header.size, sizeof(header.size), 0);	/* Regular file size is handled later */
+	if (sizeof(header.size) != sizeof("00000000000"))
+		BUG_tar_header_size();
+	strcpy(header.size, "00000000000"); /* Regular file size is handled later */
 	putOctal(header.mtime, sizeof(header.mtime), statbuf->st_mtime);
 	strcpy(header.magic, "ustar  ");
 
 	/* Enter the user and group names (default to root if it fails) */
+//cache!!!
 	if (bb_getpwuid(header.uname, statbuf->st_uid, sizeof(header.uname)) == NULL)
 		strcpy(header.uname, "root");
 	if (bb_getgrgid(header.gname, statbuf->st_gid, sizeof(header.gname)) == NULL)
@@ -214,11 +225,18 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 				sizeof(header.linkname));
 	} else if (S_ISLNK(statbuf->st_mode)) {
 		char *lpath = xreadlink(fileName);
-
 		if (!lpath)		/* Already printed err msg inside xreadlink() */
 			return FALSE;
 		header.typeflag = SYMTYPE;
 		strncpy(header.linkname, lpath, sizeof(header.linkname));
+		/* If it is larger than 100 bytes, bail out */
+		if (header.linkname[sizeof(header.linkname)-1] /* at least 100? */
+		 && lpath[sizeof(header.linkname)] /* and 101th is also not zero */
+		) {
+			free(lpath);
+			bb_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
+			return FALSE;
+		}
 		free(lpath);
 	} else if (S_ISDIR(statbuf->st_mode)) {
 		header.typeflag = DIRTYPE;
@@ -252,9 +270,10 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	 * digits, followed by a null like the other fields... */
 	memset(header.chksum, ' ', sizeof(header.chksum));
 	cp = (const unsigned char *) &header;
-	while (size-- > 0)
-		chksum += *cp++;
-	putOctal(header.chksum, 7, chksum);
+	chksum = 0;
+	size = sizeof(struct TarHeader);
+	do { chksum += *cp++; } while (--size);
+	putOctal(header.chksum, sizeof(header.chksum)-1, chksum);
 
 	/* Now write the header out to disk */
 	xwrite(tbInfo->tarFd, &header, sizeof(struct TarHeader));
@@ -348,22 +367,21 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 	}
 
 	if (strlen(fileName) >= NAME_SIZE) {
-		bb_error_msg(bb_msg_name_longer_than_foo, NAME_SIZE);
+		bb_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
 		return TRUE;
 	}
 
 	if (header_name[0] == '\0')
 		return TRUE;
 
-	if (ENABLE_FEATURE_TAR_FROM &&
-			exclude_file(tbInfo->excludeList, header_name)) {
+	if (exclude_file(tbInfo->excludeList, header_name))
 		return SKIP;
-	}
 
 	/* Is this a regular file? */
-	if ((tbInfo->hlInfo == NULL) && (S_ISREG(statbuf->st_mode))) {
+	if (tbInfo->hlInfo == NULL && S_ISREG(statbuf->st_mode)) {
 		/* open the file we want to archive, and make sure all is well */
-		if ((inputFileFd = open(fileName, O_RDONLY)) < 0) {
+		inputFileFd = open(fileName, O_RDONLY);
+		if (inputFileFd < 0) {
 			bb_perror_msg("%s: cannot open", fileName);
 			return FALSE;
 		}
@@ -383,7 +401,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		close(inputFileFd);
 
 		/* Pad the file up to the tar block size */
-		readSize = (TAR_BLOCK_SIZE - readSize) & (TAR_BLOCK_SIZE-1);
+		/* (a few tricks here in the name of code size) */
+		readSize = (-(int)readSize) & (TAR_BLOCK_SIZE-1);
 		bzero(bb_common_bufsiz1, readSize);
 		xwrite(tbInfo->tarFd, bb_common_bufsiz1, readSize);
 	}
@@ -423,10 +442,10 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		signal(SIGPIPE, SIG_IGN);	/* we only want EPIPE on errors */
 
 # if __GNUC__
-			/* Avoid vfork clobbering */
-			(void) &include;
-			(void) &errorFlag;
-			(void) &zip_exec;
+		/* Avoid vfork clobbering */
+		(void) &include;
+		(void) &errorFlag;
+		(void) &zip_exec;
 # endif
 
 		gzipPid = vfork();
@@ -498,8 +517,8 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 	if (errorFlag)
 		bb_error_msg("error exit delayed from previous errors");
 
-	if (gzipPid && waitpid(gzipPid, NULL, 0)==-1)
-		bb_error_msg("cannot wait");
+	if (gzipPid && waitpid(gzipPid, NULL, 0) == -1)
+		bb_error_msg("waitpid failed");
 
 	return !errorFlag;
 }
@@ -634,7 +653,7 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 #define TAR_OPT_STR_NOPRESERVE            "\203\213"
 #define TAR_OPT_AFTER_NOPRESERVE          TAR_OPT_AFTER_COMPRESS + 2
 
-static const char tar_options[]="txC:f:Opvk" \
+static const char tar_options[] = "txC:f:Opvk" \
 	TAR_OPT_STR_CREATE \
 	TAR_OPT_STR_BZIP2 \
 	TAR_OPT_STR_LZMA \
@@ -645,38 +664,38 @@ static const char tar_options[]="txC:f:Opvk" \
 
 #ifdef CONFIG_FEATURE_TAR_LONG_OPTIONS
 static const struct option tar_long_options[] = {
-	{ "list",				0,	NULL,	't' },
-	{ "extract",			0,	NULL,	'x' },
-	{ "directory",			1,	NULL,	'C' },
-	{ "file",				1,	NULL,	'f' },
-	{ "to-stdout",			0,	NULL,	'O' },
-	{ "same-permissions",	0,	NULL,	'p' },
-	{ "verbose",			0,	NULL,	'v' },
-	{ "keep-old",			0,	NULL,	'k' },
-	{ "no-same-owner",		0,	NULL,	'\203' },
-	{ "no-same-permissions",0,	NULL,	'\213' },
+	{ "list",               0,  NULL,   't' },
+	{ "extract",            0,  NULL,   'x' },
+	{ "directory",          1,  NULL,   'C' },
+	{ "file",               1,  NULL,   'f' },
+	{ "to-stdout",          0,  NULL,   'O' },
+	{ "same-permissions",   0,  NULL,   'p' },
+	{ "verbose",            0,  NULL,   'v' },
+	{ "keep-old",           0,  NULL,   'k' },
+	{ "no-same-owner",      0,  NULL,   '\203' },
+	{ "no-same-permissions",0,  NULL,   '\213' },
 # ifdef CONFIG_FEATURE_TAR_CREATE
-	{ "create",				0,	NULL,	'c' },
-	{ "dereference",		0,	NULL,	'h' },
+	{ "create",             0,  NULL,   'c' },
+	{ "dereference",        0,  NULL,   'h' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_BZIP2
-	{ "bzip2",				0,	NULL,	'j' },
+	{ "bzip2",              0,  NULL,   'j' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_LZMA
-	{ "lzma",				0,	NULL,	'a' },
+	{ "lzma",               0,  NULL,   'a' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_FROM
-	{ "files-from",			1,	NULL,	'T' },
-	{ "exclude-from",		1,	NULL,	'X' },
-	{ "exclude",			1,	NULL,	'\n' },
+	{ "files-from",         1,  NULL,   'T' },
+	{ "exclude-from",       1,  NULL,   'X' },
+	{ "exclude",            1,  NULL,   '\n' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_GZIP
-	{ "gzip",				0,	NULL,	'z' },
+	{ "gzip",               0,  NULL,   'z' },
 # endif
 # ifdef CONFIG_FEATURE_TAR_COMPRESS
-	{ "compress",			0,	NULL,	'Z' },
+	{ "compress",           0,  NULL,   'Z' },
 # endif
-	{ 0,					0, 0, 0 }
+	{ 0,                    0, 0, 0 }
 };
 #else
 #define tar_long_options	0
@@ -712,22 +731,23 @@ int tar_main(int argc, char **argv)
 				);
 
 	if (opt & CTX_TEST) {
-		if ((tar_handle->action_header == header_list) ||
-			(tar_handle->action_header == header_verbose_list))
-		{
+		if (tar_handle->action_header == header_list
+		 || tar_handle->action_header == header_verbose_list
+		) {
 			tar_handle->action_header = header_verbose_list;
-		} else tar_handle->action_header = header_list;
+		} else
+			tar_handle->action_header = header_list;
 	}
-	if((opt & CTX_EXTRACT) && tar_handle->action_data != data_extract_to_stdout)
+	if ((opt & CTX_EXTRACT) && tar_handle->action_data != data_extract_to_stdout)
 		tar_handle->action_data = data_extract_all;
 
 	if (opt & TAR_OPT_2STDOUT)
 		tar_handle->action_data = data_extract_to_stdout;
 
 	if (opt & TAR_OPT_VERBOSE) {
-		if ((tar_handle->action_header == header_list) ||
-			(tar_handle->action_header == header_verbose_list))
-		{
+		if (tar_handle->action_header == header_list
+		 || tar_handle->action_header == header_verbose_list
+		) {
 			tar_handle->action_header = header_verbose_list;
 		} else
 			tar_handle->action_header = header_list;
@@ -782,7 +802,7 @@ int tar_main(int argc, char **argv)
 		optind++;
 	}
 
-	if ((tar_handle->accept) || (tar_handle->reject))
+	if (tar_handle->accept || tar_handle->reject)
 		tar_handle->filter = filter_accept_reject_list;
 
 	/* Open the tar file */
@@ -796,8 +816,9 @@ int tar_main(int argc, char **argv)
 				bb_error_msg_and_die("empty archive");
 
 			tar_stream = stdout;
-			flags = O_WRONLY | O_CREAT | O_EXCL;
-			unlink(tar_filename);
+			/* Mimicking GNU tar 1.15.1: */
+			flags = O_WRONLY|O_CREAT|O_TRUNC;
+		/* was doing unlink; open(O_WRONLY|O_CREAT|O_EXCL); why? */
 		} else {
 			tar_stream = stdin;
 			flags = O_RDONLY;
@@ -824,9 +845,9 @@ int tar_main(int argc, char **argv)
 		if (ENABLE_FEATURE_TAR_BZIP2 && get_header_ptr == get_header_tar_bz2)
 			zipMode = 2;
 
-		if ((tar_handle->action_header == header_list) ||
-				(tar_handle->action_header == header_verbose_list))
-		{
+		if (tar_handle->action_header == header_list
+		 || tar_handle->action_header == header_verbose_list
+		) {
 			verboseFlag = TRUE;
 		}
 		writeTarFile(tar_handle->src_fd, verboseFlag, opt & TAR_OPT_DEREFERENCE,
@@ -839,9 +860,10 @@ int tar_main(int argc, char **argv)
 		/* Check that every file that should have been extracted was */
 		while (tar_handle->accept) {
 			if (!find_list_entry(tar_handle->reject, tar_handle->accept->data)
-				&& !find_list_entry(tar_handle->passed, tar_handle->accept->data))
-			{
-				bb_error_msg_and_die("%s: not found in archive", tar_handle->accept->data);
+			 && !find_list_entry(tar_handle->passed, tar_handle->accept->data)
+			) {
+				bb_error_msg_and_die("%s: not found in archive",
+					tar_handle->accept->data);
 			}
 			tar_handle->accept = tar_handle->accept->link;
 		}
@@ -850,5 +872,5 @@ int tar_main(int argc, char **argv)
 	if (ENABLE_FEATURE_CLEAN_UP && tar_handle->src_fd != STDIN_FILENO)
 		close(tar_handle->src_fd);
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
