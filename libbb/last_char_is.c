@@ -15,11 +15,10 @@
  */
 char* last_char_is(const char *s, int c)
 {
-	char *sret;
 	if (s) {
-		sret = strrchr(s, c);
-		if (sret && !sret[1])
-			return sret;
+		s = strrchr(s, c);
+		if (s && !s[1])
+			return (char*)s;
 	}
 	return NULL;
 }
