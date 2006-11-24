@@ -2975,7 +2975,7 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
 	"-[" USE_FEATURE_TAR_CREATE("c") USE_FEATURE_TAR_GZIP("z") \
 	USE_FEATURE_TAR_BZIP2("j") USE_FEATURE_TAR_LZMA("a") \
 	USE_FEATURE_TAR_COMPRESS("Z") "xtvO] " \
-	USE_FEATURE_TAR_FROM("[-X FILE]") \
+	USE_FEATURE_TAR_FROM("[-X FILE] ") \
 	"[-f TARFILE] [-C DIR] [FILE(s)] ..."
 #define tar_full_usage \
 	"Create, extract, or list files from a tar file.\n\n" \

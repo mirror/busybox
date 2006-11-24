@@ -261,7 +261,7 @@ int chpst_main(int argc, char **argv)
 	if (applet_name[1] == 'o') softlimit(argc, argv);
 	if (applet_name[0] == 's') setuidgid(argc, argv);
 	if (applet_name[0] == 'e') envuidgid(argc, argv);
-        // otherwise we are.......... chpst
+	// otherwise we are chpst
 
 	{
 		char *m,*d,*o,*p,*f,*c,*r,*t,*n;

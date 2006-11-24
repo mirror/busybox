@@ -102,40 +102,38 @@ int safe_strtol(const char *arg, long* value)
 
 #  define strong_alias(name, aliasname) _strong_alias (name, aliasname)
 #  define _strong_alias(name, aliasname) \
-        __asm__(".global " __C_SYMBOL_PREFIX__ #aliasname "\n" \
-                ".set " __C_SYMBOL_PREFIX__ #aliasname "," __C_SYMBOL_PREFIX__ #name);
+	__asm__(".global " __C_SYMBOL_PREFIX__ #aliasname "\n" \
+	        ".set " __C_SYMBOL_PREFIX__ #aliasname "," __C_SYMBOL_PREFIX__ #name);
 
 #endif
 #endif
 
 int safe_strtoi(const char *arg, int* value)
 {
-	if (sizeof(long) == sizeof(int)) {
+	int error;
+	long lvalue;
+	if (sizeof(long) == sizeof(int))
 		return safe_strtol(arg, (long*)value);
-	} else {
-		int error;
-		long lvalue = *value;
-		error = safe_strtol(arg, &lvalue);
-		if (lvalue < INT_MIN || lvalue > INT_MAX)
-			return 1;
-		*value = (int) lvalue;
-		return error;
-	}
+	lvalue = *value;
+	error = safe_strtol(arg, &lvalue);
+	if (lvalue < INT_MIN || lvalue > INT_MAX)
+		return 1;
+	*value = (int) lvalue;
+	return error;
 }
 
 int safe_strtou(const char *arg, unsigned* value)
 {
-	if (sizeof(unsigned long) == sizeof(unsigned)) {
+	int error;
+	unsigned long lvalue;
+	if (sizeof(unsigned long) == sizeof(unsigned))
 		return safe_strtoul(arg, (unsigned long*)value);
-	} else {
-		int error;
-		unsigned long lvalue = *value;
-		error = safe_strtoul(arg, &lvalue);
-		if (lvalue > UINT_MAX)
-			return 1;
-		*value = (unsigned) lvalue;
-		return error;
-	}
+	lvalue = *value;
+	error = safe_strtoul(arg, &lvalue);
+	if (lvalue > UINT_MAX)
+		return 1;
+	*value = (unsigned) lvalue;
+	return error;
 }
 
 int BUG_safe_strtou32_unimplemented(void);

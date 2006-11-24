@@ -147,6 +147,40 @@ const char *opt_complementary
 
 Special characters:
 
+ "-"    A dash as the first char in a opt_complementary group forces
+        all arguments to be treated as options, even if they have
+        no leading dashes. Next char in this case can't be a digit (0-9),
+        use ':' or end of line. For example:
+
+        opt_complementary = "-:w-x:x-w";
+        getopt32(argc, argv, "wx");
+
+        Allows any arguments to be given without a dash (./program w x)
+        as well as with a dash (./program -x).
+
+ "--"   A double dash at the beginning of opt_complementary means the
+        argv[1] string should always be treated as options, even if it isn't
+        prefixed with a "-".  This is useful for special syntax in applets
+        such as "ar" and "tar":
+        tar xvf foo.tar
+
+ "-N"   A dash as the first char in a opt_complementary group followed
+        by a single digit (0-9) means that at least N non-option
+        arguments must be present on the command line
+
+ "=N"   An equal sign as the first char in a opt_complementary group followed
+        by a single digit (0-9) means that exactly N non-option
+        arguments must be present on the command line
+
+ "?N"   A "?" as the first char in a opt_complementary group followed
+        by a single digit (0-9) means that at most N arguments must be present
+        on the command line.
+
+ "V-"   An option with dash before colon or end-of-line results in
+        bb_show_usage being called if this option is encountered.
+        This is typically used to implement "print verbose usage message
+        and exit" option.
+
  "-"    A dash between two options causes the second of the two
         to be unset (and ignored) if it is given on the command line.
 
@@ -173,30 +207,6 @@ Special characters:
         if (opt & 4)
         	printf("Detected odd -x usage\n");
 
- "-"    A dash as the first char in a opt_complementary group forces
-        all arguments to be treated as options, even if they have
-        no leading dashes. Next char in this case can't be a digit (0-9),
-        use ':' or end of line. For example:
-
-        opt_complementary = "-:w-x:x-w";
-        getopt32(argc, argv, "wx");
-
-        Allows any arguments to be given without a dash (./program w x)
-        as well as with a dash (./program -x).
-
- "-N"   A dash as the first char in a opt_complementary group followed
-        by a single digit (0-9) means that at least N non-option
-        arguments must be present on the command line
-
- "=N"   An equal sign as the first char in a opt_complementary group followed
-        by a single digit (0-9) means that exactly N non-option
-        arguments must be present on the command line
-
- "V-"   An option with dash before colon or end-of-line results in
-        bb_show_usage being called if this option is encountered.
-        This is typically used to implement "print verbose usage message
-        and exit" option.
-
  "--"   A double dash between two options, or between an option and a group
         of options, means that they are mutually exclusive.  Unlike
         the "-" case above, an error will be forced if the options
@@ -221,10 +231,6 @@ Special characters:
         if BB_GETOPT_ERROR is detected, don't return, call bb_show_usage
         and exit instead. Next char after '?' can't be a digit.
 
- "?N"   A "?" as the first char in a opt_complementary group followed
-        by a single digit (0-9) means that at most N arguments must be present
-        on the command line.
-
  "::"   A double colon after a char in opt_complementary means that the
         option can occur multiple times. Each occurrence will be saved as
         a llist_t element instead of char*.
@@ -244,12 +250,6 @@ Special characters:
         $ grep -e user -e root /etc/passwd
         root:x:0:0:root:/root:/bin/bash
         user:x:500:500::/home/user:/bin/bash
-
- "--"   A double dash at the beginning of opt_complementary means the
-        argv[1] string should always be treated as options, even if it isn't
-        prefixed with a "-".  This is useful for special syntax in applets
-        such as "ar" and "tar":
-        tar xvf foo.tar
 
  "?"    An "?" between an option and a group of options means that
         at least one of them is required to occur if the first option

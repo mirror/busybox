@@ -292,9 +292,9 @@ config FEATURE_DEB_TAR_LZMA
 	depends on DPKG || DPKG_DEB
 	help
 	  This allows dpkg and dpkg-deb to extract deb's that are compressed
-          internally with lzma instead of gzip.
+	  internally with lzma instead of gzip.
 
 	  You only want this if you are creating your own custom debian
-          packages that use an internal control.tar.lzma or data.tar.lzma.
+	  packages that use an internal control.tar.lzma or data.tar.lzma.
 
 endmenu
