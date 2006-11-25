@@ -315,40 +315,7 @@ struct suffix_mult {
 	const char *suffix;
 	unsigned mult;
 };
-unsigned long long xstrtoull(const char *numstr, int base);
-unsigned long long xatoull(const char *numstr);
-unsigned long xstrtoul_range_sfx(const char *numstr, int base,
-		unsigned long lower,
-		unsigned long upper,
-		const struct suffix_mult *suffixes);
-unsigned long xstrtoul_range(const char *numstr, int base,
-		unsigned long lower,
-		unsigned long upper);
-unsigned long xstrtoul_sfx(const char *numstr, int base,
-		const struct suffix_mult *suffixes);
-unsigned long xstrtoul(const char *numstr, int base);
-unsigned long xatoul_range_sfx(const char *numstr,
-		unsigned long lower,
-		unsigned long upper,
-		const struct suffix_mult *suffixes);
-unsigned long xatoul_sfx(const char *numstr,
-		const struct suffix_mult *suffixes);
-unsigned long xatoul_range(const char *numstr,
-		unsigned long lower,
-		unsigned long upper);
-unsigned long xatoul(const char *numstr);
-long xstrtol_range_sfx(const char *numstr, int base,
-		long lower,
-		long upper,
-		const struct suffix_mult *suffixes);
-long xstrtol_range(const char *numstr, int base, long lower, long upper);
-long xatol_range_sfx(const char *numstr,
-		long lower,
-		long upper,
-		const struct suffix_mult *suffixes);
-long xatol_range(const char *numstr, long lower, long upper);
-long xatol_sfx(const char *numstr, const struct suffix_mult *suffixes);
-long xatol(const char *numstr);
+#include "xatonum.h"
 /* Specialized: */
 unsigned xatou_range(const char *numstr, unsigned lower, unsigned upper);
 unsigned xatou_sfx(const char *numstr, const struct suffix_mult *suffixes);
