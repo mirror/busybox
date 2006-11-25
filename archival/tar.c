@@ -150,40 +150,29 @@ static HardLinkInfo *findHardLinkInfo(HardLinkInfo * hlInfo, struct stat *statbu
 
 /* Put an octal string into the specified buffer.
  * The number is zero padded and possibly null terminated.
- * Returns TRUE if successful. - DISABLED (no caller ever checked) */
-/* FIXME: we leave field untouched if value doesn't fit. */
-/* This is not good - what will happen at untar time?? */
-static void putOctal(char *cp, int len, long long value)
+ * Stores low-order bits only if whole value does not fit.
+ * Returns FALSE if that happens.  */
+static int putOctal(char *cp, int len, off_t value)
 {
-	int tempLength;
-	/* long long for the sake of storing lengths of 4Gb+ files */
-	/* (we are bust anyway after 64Gb: it doesn't fit into the field) */
-	char tempBuffer[sizeof(long long)*3+1];
+	char tempBuffer[sizeof(off_t)*3+1];
 	char *tempString = tempBuffer;
+	int width;
 
-	/* Create a string of the specified length with
-	 * leading zeroes and the octal number, and a trailing null.  */
-	tempLength = sprintf(tempBuffer, "%0*llo", len - 1, value);
+	width = sprintf(tempBuffer, "%0*"OFF_FMT"o", len, value);
+	tempString += (width - len);
 
-	/* If the string is too large, suppress leading 0's.  */
-	/* If that is not enough, drop trailing null.  */
-	tempLength -= len; /* easier to do checks */
-	while (tempLength >= 0) {
-		if (tempString[0] != '0') {
-			if (!tempLength) {
-				/* 1234 barely fits in 4 chars (w/o EOL '\0') */
-				break;
-			}
-			/* 12345 doesn't fit into 4 chars */
-			return /*FALSE*/;
-		}
-		tempLength--; /* still have leading '0', */
-		tempString++; /* can afford to drop it but retain EOL '\0' */
-	}
+	/* If string has leading zeroes, we can drop one */
+	/* and field will have trailing '\0' */
+	/* (increases chances of compat with other tars) */
+	if (tempString[0] == '0')
+		tempString++;
 
-	/* Copy the string to the field.  */
+	/* Copy the string to the field */
 	memcpy(cp, tempString, len);
-	/*return TRUE;*/
+
+	/* If after shift we have zero - value did not overflow, */
+	/* return 1 (TRUE) then */
+	return (value >> (len*3)) == 0;
 }
 
 /* Write out a tar header for the specified file/directory/whatever */
@@ -203,12 +192,13 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 
 	safe_strncpy(header.name, header_name, sizeof(header.name));
 
+#define PUT_OCTAL(a, b) putOctal((a), sizeof(a), (b))
 	/* POSIX says to mask mode with 07777. */
-	putOctal(header.mode, sizeof(header.mode), statbuf->st_mode & 07777);
-	putOctal(header.uid, sizeof(header.uid), statbuf->st_uid);
-	putOctal(header.gid, sizeof(header.gid), statbuf->st_gid);
+	PUT_OCTAL(header.mode, statbuf->st_mode & 07777);
+	PUT_OCTAL(header.uid, statbuf->st_uid);
+	PUT_OCTAL(header.gid, statbuf->st_gid);
 	memset(header.size, '0', sizeof(header.size)-1); /* Regular file size is handled later */
-	putOctal(header.mtime, sizeof(header.mtime), statbuf->st_mtime);
+	PUT_OCTAL(header.mtime, statbuf->st_mtime);
 	strcpy(header.magic, "ustar  ");
 
 	/* Enter the user and group names */
@@ -240,25 +230,28 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		strncat(header.name, "/", sizeof(header.name));
 	} else if (S_ISCHR(statbuf->st_mode)) {
 		header.typeflag = CHRTYPE;
-		putOctal(header.devmajor, sizeof(header.devmajor),
-				 major(statbuf->st_rdev));
-		putOctal(header.devminor, sizeof(header.devminor),
-				 minor(statbuf->st_rdev));
+		PUT_OCTAL(header.devmajor, major(statbuf->st_rdev));
+		PUT_OCTAL(header.devminor, minor(statbuf->st_rdev));
 	} else if (S_ISBLK(statbuf->st_mode)) {
 		header.typeflag = BLKTYPE;
-		putOctal(header.devmajor, sizeof(header.devmajor),
-				 major(statbuf->st_rdev));
-		putOctal(header.devminor, sizeof(header.devminor),
-				 minor(statbuf->st_rdev));
+		PUT_OCTAL(header.devmajor, major(statbuf->st_rdev));
+		PUT_OCTAL(header.devminor, minor(statbuf->st_rdev));
 	} else if (S_ISFIFO(statbuf->st_mode)) {
 		header.typeflag = FIFOTYPE;
 	} else if (S_ISREG(statbuf->st_mode)) {
 		header.typeflag = REGTYPE;
-		putOctal(header.size, sizeof(header.size), statbuf->st_size);
+		if ((PUT_OCTAL(header.size, statbuf->st_size) == FALSE)
+		 && sizeof(statbuf->st_size) > 4
+		) {
+			bb_error_msg_and_die("cannot store file '%s' "
+				"of size %"OFF_FMT"d, aborting",
+				fileName, statbuf->st_size);
+		}
 	} else {
 		bb_error_msg("%s: unknown file type", fileName);
 		return FALSE;
 	}
+#undef PUT_OCTAL
 
 	/* Calculate and store the checksum (i.e., the sum of all of the bytes of
 	 * the header).  The checksum field must be filled with blanks for the
