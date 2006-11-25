@@ -169,6 +169,72 @@ static void putOctal(char *cp, int len, off_t value)
 	/* Copy the string to the field */
 	memcpy(cp, tempString, len);
 }
+#define PUT_OCTAL(a, b) putOctal((a), sizeof(a), (b))
+
+static void chksum_and_xwrite(int fd, struct TarHeader* hp)
+{
+	const unsigned char *cp;
+	int chksum, size;
+
+	strcpy(hp->magic, "ustar  ");
+
+	/* Calculate and store the checksum (i.e., the sum of all of the bytes of
+	 * the header).  The checksum field must be filled with blanks for the
+	 * calculation.  The checksum field is formatted differently from the
+	 * other fields: it has 6 digits, a null, then a space -- rather than
+	 * digits, followed by a null like the other fields... */
+	memset(hp->chksum, ' ', sizeof(hp->chksum));
+	cp = (const unsigned char *) hp;
+	chksum = 0;
+	size = sizeof(*hp);
+	do { chksum += *cp++; } while (--size);
+	putOctal(hp->chksum, sizeof(hp->chksum)-1, chksum);
+
+	/* Now write the header out to disk */
+	xwrite(fd, hp, sizeof(*hp));
+}
+
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+static void writeLongname(int fd, int type, const char *name, int dir)
+{
+	static const struct {
+		char mode[8];             /* 100-107 */
+		char uid[8];              /* 108-115 */
+		char gid[8];              /* 116-123 */
+		char size[12];            /* 124-135 */
+		char mtime[12];           /* 136-147 */
+	} prefilled = {
+		"0000000",
+		"0000000",
+		"0000000",
+		"00000000000",
+		"00000000000",
+	};
+	struct TarHeader header;
+	int size;
+
+	dir = !!dir; /* normalize: 0/1 */
+	size = strlen(name) + 1 + dir; /* GNU tar uses strlen+1 */
+	/* + dir: account for possible '/' */
+
+	bzero(&header, sizeof(header));
+	strcpy(header.name, "././@LongLink");
+	memcpy(header.mode, prefilled.mode, sizeof(prefilled));
+	PUT_OCTAL(header.size, size);
+	header.typeflag = type;
+	chksum_and_xwrite(fd, &header);
+
+	/* Write filename[/] and pad the block. */
+	/* dir=0: writes 'name<NUL>', pads */
+	/* dir=1: writes 'name', writes '/<NUL>', pads */
+	dir *= 2;
+	xwrite(fd, name, size - dir);
+	xwrite(fd, "/", dir);
+	size = (-size) & (TAR_BLOCK_SIZE-1);
+	bzero(&header, size);
+	xwrite(fd, &header, size);
+}
+#endif
 
 /* Write out a tar header for the specified file/directory/whatever */
 void BUG_tar_header_size(void);
@@ -176,25 +242,20 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		const char *header_name, const char *fileName, struct stat *statbuf)
 {
 	struct TarHeader header;
-	const unsigned char *cp;
-	int chksum;
-	int size;
 
 	if (sizeof(header) != 512)
 		BUG_tar_header_size();
 
 	bzero(&header, sizeof(struct TarHeader));
 
-	safe_strncpy(header.name, header_name, sizeof(header.name));
+	strncpy(header.name, header_name, sizeof(header.name));
 
-#define PUT_OCTAL(a, b) putOctal((a), sizeof(a), (b))
 	/* POSIX says to mask mode with 07777. */
 	PUT_OCTAL(header.mode, statbuf->st_mode & 07777);
 	PUT_OCTAL(header.uid, statbuf->st_uid);
 	PUT_OCTAL(header.gid, statbuf->st_gid);
 	memset(header.size, '0', sizeof(header.size)-1); /* Regular file size is handled later */
 	PUT_OCTAL(header.mtime, statbuf->st_mtime);
-	strcpy(header.magic, "ustar  ");
 
 	/* Enter the user and group names */
 	safe_strncpy(header.uname, get_cached_username(statbuf->st_uid), sizeof(header.uname));
@@ -205,24 +266,36 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		header.typeflag = LNKTYPE;
 		strncpy(header.linkname, tbInfo->hlInfo->name,
 				sizeof(header.linkname));
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+		/* Write out long linkname if needed */
+		if (header.linkname[sizeof(header.linkname)-1])
+			writeLongname(tbInfo->tarFd, GNULONGLINK,
+					tbInfo->hlInfo->name, 0);
+#endif
 	} else if (S_ISLNK(statbuf->st_mode)) {
 		char *lpath = xreadlink(fileName);
 		if (!lpath)		/* Already printed err msg inside xreadlink() */
 			return FALSE;
 		header.typeflag = SYMTYPE;
 		strncpy(header.linkname, lpath, sizeof(header.linkname));
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+		/* Write out long linkname if needed */
+		if (header.linkname[sizeof(header.linkname)-1])
+			writeLongname(tbInfo->tarFd, GNULONGLINK, lpath, 0);
+#else
 		/* If it is larger than 100 bytes, bail out */
-		if (header.linkname[sizeof(header.linkname)-1] /* at least 100? */
-		 && lpath[sizeof(header.linkname)] /* and 101th is also not zero */
-		) {
+		if (header.linkname[sizeof(header.linkname)-1]) {
 			free(lpath);
 			bb_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
 			return FALSE;
 		}
+#endif
 		free(lpath);
 	} else if (S_ISDIR(statbuf->st_mode)) {
 		header.typeflag = DIRTYPE;
-		strncat(header.name, "/", sizeof(header.name));
+		/* Append '/' only if there is a space for it */
+		if (!header.name[sizeof(header.name)-1])
+			header.name[strlen(header.name)] = '/';
 	} else if (S_ISCHR(statbuf->st_mode)) {
 		header.typeflag = CHRTYPE;
 		PUT_OCTAL(header.devmajor, major(statbuf->st_rdev));
@@ -247,22 +320,17 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 		bb_error_msg("%s: unknown file type", fileName);
 		return FALSE;
 	}
-#undef PUT_OCTAL
 
-	/* Calculate and store the checksum (i.e., the sum of all of the bytes of
-	 * the header).  The checksum field must be filled with blanks for the
-	 * calculation.  The checksum field is formatted differently from the
-	 * other fields: it has [6] digits, a null, then a space -- rather than
-	 * digits, followed by a null like the other fields... */
-	memset(header.chksum, ' ', sizeof(header.chksum));
-	cp = (const unsigned char *) &header;
-	chksum = 0;
-	size = sizeof(struct TarHeader);
-	do { chksum += *cp++; } while (--size);
-	putOctal(header.chksum, sizeof(header.chksum)-1, chksum);
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+	/* Write out long name if needed */
+	/* (we, like GNU tar, output long linkname *before* long name) */
+	if (header.name[sizeof(header.name)-1])
+		writeLongname(tbInfo->tarFd, GNULONGNAME,
+				header_name, S_ISDIR(statbuf->st_mode));
+#endif
 
 	/* Now write the header out to disk */
-	xwrite(tbInfo->tarFd, &header, sizeof(struct TarHeader));
+	chksum_and_xwrite(tbInfo->tarFd, &header);
 
 	/* Now do the verbose thing (or not) */
 	if (tbInfo->verboseFlag) {
@@ -272,7 +340,9 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 			vbFd = stderr;
 		/* GNU "tar cvvf" prints "extended" listing a-la "ls -l" */
 		/* We don't have such excesses here: for us "v" == "vv" */
-		fprintf(vbFd, "%s\n", header.name);
+		/* '/' is probably a GNUism */
+		fprintf(vbFd, "%s%s\n", header_name,
+				S_ISDIR(statbuf->st_mode) ? "/" : "");
 	}
 
 	return TRUE;
@@ -352,10 +422,12 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		header_name++;
 	}
 
+#if !ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	if (strlen(fileName) >= NAME_SIZE) {
 		bb_error_msg("names longer than "NAME_SIZE_STR" chars not supported");
 		return TRUE;
 	}
+#endif
 
 	if (header_name[0] == '\0')
 		return TRUE;
@@ -384,7 +456,8 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 
 		/* write the file to the archive */
 		readSize = bb_copyfd_size(inputFileFd, tbInfo->tarFd, statbuf->st_size);
-		if (readSize != statbuf->st_size) {
+		/* readSize < 0 means that error was already reported */
+		if (readSize != statbuf->st_size && readSize >= 0) {
 			/* Deadly. We record size into header first, */
 			/* and then write out file. If file shrinks in between, */
 			/* tar will be corrupted. So bail out. */
