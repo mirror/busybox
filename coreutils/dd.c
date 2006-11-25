@@ -44,6 +44,12 @@ static ssize_t full_write_or_warn(int fd, const void *buf, size_t len,
 	return n;
 }
 
+#if ENABLE_LFS
+#define XATOU_SFX xatoull_sfx
+#else
+#define XATOU_SFX xatoul_sfx
+#endif
+
 int dd_main(int argc, char **argv)
 {
 	enum {
@@ -79,13 +85,13 @@ int dd_main(int argc, char **argv)
 			obs = xatoul_range_sfx(arg+4, 0, ((size_t)-1L)/2, dd_suffixes);
 		else if (!strncmp("bs=", arg, 3))
 			ibs = obs = xatoul_range_sfx(arg+3, 0, ((size_t)-1L)/2, dd_suffixes);
-		// FIXME: make them capable of eating LARGE numbers
+		/* These can be large: */
 		else if (!strncmp("count=", arg, 6))
-			count = xatoul_sfx(arg+6, dd_suffixes);
+			count = XATOU_SFX(arg+6, dd_suffixes);
 		else if (!strncmp("seek=", arg, 5))
-			seek = xatoul_sfx(arg+5, dd_suffixes);
+			seek = XATOU_SFX(arg+5, dd_suffixes);
 		else if (!strncmp("skip=", arg, 5))
-			skip = xatoul_sfx(arg+5, dd_suffixes);
+			skip = XATOU_SFX(arg+5, dd_suffixes);
 
 		else if (!strncmp("if=", arg, 3))
 			infile = arg+3;
