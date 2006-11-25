@@ -317,17 +317,11 @@ struct suffix_mult {
 };
 #include "xatonum.h"
 /* Specialized: */
-unsigned xatou_range(const char *numstr, unsigned lower, unsigned upper);
-unsigned xatou_sfx(const char *numstr, const struct suffix_mult *suffixes);
-unsigned xatou(const char *numstr);
-int xatoi_range(const char *numstr, int lower, int upper);
-int xatoi(const char *numstr);
 /* Using xatoi() instead of naive atoi() is not always convenient -
  * in many places people want *non-negative* values, but store them
  * in signed int. Therefore we need this one:
  * dies if input is not in [0, INT_MAX] range. Also will reject '-0' etc */
 int xatoi_u(const char *numstr);
-uint32_t xatou32(const char *numstr);
 /* Useful for reading port numbers */
 uint16_t xatou16(const char *numstr);
 

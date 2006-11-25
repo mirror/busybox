@@ -92,3 +92,15 @@ DEFINE_EQUIV_STR_CONV(int, i, l, u, ul)
 #else
 DECLARE_STR_CONV(int, i, u)
 #endif
+
+/* Specialized */
+
+int BUG_xatou32_unimplemented(void);
+extern inline uint32_t xatou32(const char *numstr)
+{
+	if (UINT_MAX == 0xffffffff)
+		return xatou(numstr);
+	if (ULONG_MAX == 0xffffffff)
+		return xatoul(numstr);
+	return BUG_xatou32_unimplemented();
+}
