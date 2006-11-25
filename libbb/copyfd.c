@@ -25,37 +25,50 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 {
 	int status = -1;
 	off_t total = 0;
-	RESERVE_CONFIG_BUFFER(buffer,BUFSIZ);
+	RESERVE_CONFIG_BUFFER(buffer, BUFSIZ);
 
 	if (src_fd < 0) goto out;
-	while (!size || total < size) {
-		ssize_t wr, rd;
 
-		rd = safe_read(src_fd, buffer,
-				(!size || size - total > BUFSIZ) ? BUFSIZ : size - total);
+	if (!size) {
+		size = BUFSIZ;
+		status = 1; /* copy until eof */
+	}
 
-		if (rd > 0) {
-			/* A -1 dst_fd means we need to fake it... */
-			wr = (dst_fd < 0) ? rd : full_write(dst_fd, buffer, rd);
+	while (1) {
+		ssize_t rd;
+
+		rd = safe_read(src_fd, buffer, size > BUFSIZ ? BUFSIZ : size);
+
+		if (!rd) { /* eof - all done. */
+			status = 0;
+			break;
+		}
+		if (rd < 0) {
+			bb_perror_msg(bb_msg_read_error);
+			break;
+		}
+		/* dst_fd == -1 is a fake, else... */
+		if (dst_fd >= 0) {
+			ssize_t wr = full_write(dst_fd, buffer, rd);
 			if (wr < rd) {
 				bb_perror_msg(bb_msg_write_error);
 				break;
 			}
-			total += wr;
-			if (total == size) status = 0;
-		} else if (rd < 0) {
-			bb_perror_msg(bb_msg_read_error);
-			break;
-		} else { /* eof - all done. */
-			status = 0;
-			break;
+		}
+		total += rd;
+		if (status < 0) {
+			size -= rd;
+			if (!size) {
+				status = 0;
+				break;
+			}
 		}
 	}
 
 out:
 	RELEASE_CONFIG_BUFFER(buffer);
 
-	return status ? status : total;
+	return status ? -1 : total;
 }
 
 

@@ -124,7 +124,7 @@ int ndelay_on(int fd)
 }
 
 // Die with an error message if we can't write the entire buffer.
-void xwrite(int fd, void *buf, size_t count)
+void xwrite(int fd, const void *buf, size_t count)
 {
 	if (count) {
 		ssize_t size = full_write(fd, buf, count);
@@ -146,7 +146,7 @@ off_t xlseek(int fd, off_t offset, int whence)
 void die_if_ferror(FILE *fp, const char *fn)
 {
 	if (ferror(fp)) {
-		bb_error_msg_and_die("%s", fn);
+		bb_error_msg_and_die("%s: I/O error", fn);
 	}
 }
 

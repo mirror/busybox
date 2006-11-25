@@ -271,7 +271,7 @@ extern void *xmalloc_open_read_close(const char *filename, size_t *sizep);
 
 extern ssize_t safe_write(int fd, const void *buf, size_t count);
 extern ssize_t full_write(int fd, const void *buf, size_t count);
-extern void xwrite(int fd, void *buf, size_t count);
+extern void xwrite(int fd, const void *buf, size_t count);
 
 /* Reads and prints to stdout till eof, then closes FILE. Exits on error: */
 extern void xprint_and_close_file(FILE *file);
