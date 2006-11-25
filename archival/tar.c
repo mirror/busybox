@@ -150,9 +150,8 @@ static HardLinkInfo *findHardLinkInfo(HardLinkInfo * hlInfo, struct stat *statbu
 
 /* Put an octal string into the specified buffer.
  * The number is zero padded and possibly null terminated.
- * Stores low-order bits only if whole value does not fit.
- * Returns FALSE if that happens.  */
-static int putOctal(char *cp, int len, off_t value)
+ * Stores low-order bits only if whole value does not fit. */
+static void putOctal(char *cp, int len, off_t value)
 {
 	char tempBuffer[sizeof(off_t)*3+1];
 	char *tempString = tempBuffer;
@@ -169,10 +168,6 @@ static int putOctal(char *cp, int len, off_t value)
 
 	/* Copy the string to the field */
 	memcpy(cp, tempString, len);
-
-	/* If after shift we have zero - value did not overflow, */
-	/* return 1 (TRUE) then */
-	return (value >> (len*3)) == 0;
 }
 
 /* Write out a tar header for the specified file/directory/whatever */
@@ -239,14 +234,15 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	} else if (S_ISFIFO(statbuf->st_mode)) {
 		header.typeflag = FIFOTYPE;
 	} else if (S_ISREG(statbuf->st_mode)) {
-		header.typeflag = REGTYPE;
-		if ((PUT_OCTAL(header.size, statbuf->st_size) == FALSE)
-		 && sizeof(statbuf->st_size) > 4
+		if (sizeof(statbuf->st_size) > 4
+		 && statbuf->st_size > (off_t)0777777777777LL
 		) {
 			bb_error_msg_and_die("cannot store file '%s' "
 				"of size %"OFF_FMT"d, aborting",
 				fileName, statbuf->st_size);
 		}
+		header.typeflag = REGTYPE;
+		PUT_OCTAL(header.size, statbuf->st_size);
 	} else {
 		bb_error_msg("%s: unknown file type", fileName);
 		return FALSE;

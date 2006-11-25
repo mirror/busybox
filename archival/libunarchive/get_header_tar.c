@@ -152,9 +152,11 @@ char get_header_tar(archive_handle_t *archive_handle)
 	if (!longname && parse_names) {
 		/* we trash mode[0] here, it's ok */
 		tar.name[sizeof(tar.name)] = '\0';
-		if (tar.prefix[0])
+		if (tar.prefix[0]) {
+			/* and padding[0] */
+			tar.prefix[sizeof(tar.prefix)] = '\0';
 			file_header->name = concat_path_file(tar.prefix, tar.name);
-		else
+		} else
 			file_header->name = xstrdup(tar.name);
 	}
 
