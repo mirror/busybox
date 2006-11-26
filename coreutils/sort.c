@@ -70,8 +70,7 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 			for (i = 1; i < key->range[2*j] + j; i++) {
 				/* Skip leading blanks or first separator */
 				if (str[end]) {
-					if (!key_separator && isspace(str[end]))
-/* TODO: remove "&& isspace(str[end])" */
+					if (!key_separator)
 						while (isspace(str[end])) end++;
 				}
 				/* Skip body of key */
@@ -158,7 +157,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 	struct sort_key *key;
 
 	for (key = key_list; !retval && key; key = key->next_key) {
-		flags = (key->flags) ? key->flags : global_flags;
+		flags = key->flags ? key->flags : global_flags;
 		/* Chop out and modify key chunks, handling -dfib */
 		x = get_key(*(char **)xarg, key, flags);
 		y = get_key(*(char **)yarg, key, flags);
@@ -181,7 +180,8 @@ static int compare_keys(const void *xarg, const void *yarg)
 #if ENABLE_FEATURE_SORT_BIG
 		case FLAG_g: {
 			char *xx, *yy;
-			double dx = strtod(x, &xx), dy = strtod(y, &yy);
+			double dx = strtod(x, &xx);
+			double dy = strtod(y, &yy);
 			/* not numbers < NaN < -infinity < numbers < +infinity) */
 			if (x == xx)
 				retval = (y == yy ? 0 : -1);
@@ -217,26 +217,27 @@ static int compare_keys(const void *xarg, const void *yarg)
 			else if (!yy)
 				retval = 1;
 			else
-				retval = (dx==thyme.tm_mon) ? 0 : dx-thyme.tm_mon;
+				retval = (dx == thyme.tm_mon) ? 0 : dx - thyme.tm_mon;
 			break;
 		}
 		/* Full floating point version of -n */
 		case FLAG_n: {
-			double dx = atof(x), dy  =atof(y);
+			double dx = atof(x);
+			double dy = atof(y);
 			retval = (dx > dy) ? 1 : ((dx < dy) ? -1 : 0);
 			break;
 		}
-		}
+		} /* switch */
 		/* Free key copies. */
 		if (x != *(char **)xarg) free(x);
 		if (y != *(char **)yarg) free(y);
-		if (retval) break;
+		/* if (retval) break; - done by for() anyway */
 #else
 		/* Integer version of -n for tiny systems */
 		case FLAG_n:
 			retval = atoi(x) - atoi(y);
 			break;
-		}
+		} /* switch */
 #endif
 	}
 	/* Perform fallback sort if necessary */
