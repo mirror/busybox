@@ -768,7 +768,7 @@ int tar_main(int argc, char **argv)
 	if (verboseFlag) tar_handle->action_header = header_verbose_list;
 	if (verboseFlag == 1) tar_handle->action_header = header_list;
 
-	if ((opt & OPT_EXTRACT) && tar_handle->action_data != data_extract_to_stdout)
+	if (opt & OPT_EXTRACT)
 		tar_handle->action_data = data_extract_all;
 
 	if (opt & OPT_2STDOUT)

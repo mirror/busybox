@@ -40,11 +40,12 @@ static unsigned long long getOctal(char *str, int len)
 		bb_error_msg_and_die("corrupted octal value in tar header");
 	return v;
 }
+#define GET_OCTAL(a) getOctal((a), sizeof(a))
 
 void BUG_tar_header_size(void);
 char get_header_tar(archive_handle_t *archive_handle)
 {
-	static int end = 0;
+	static int end;
 
 	file_header_t *file_header = archive_handle->file_header;
 	struct {
@@ -69,17 +70,16 @@ char get_header_tar(archive_handle_t *archive_handle)
 	} tar;
 	char *cp;
 	int sum, i;
-#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	int parse_names;
-#else
-	enum { parse_names = 1 };
-#endif
 
 	if (sizeof(tar) != 512)
 		BUG_tar_header_size();
+ again:
 
 	/* Align header */
 	data_align(archive_handle, 512);
+
+ again_after_align:
 
 	xread(archive_handle->src_fd, &tar, 512);
 	archive_handle->offset += 512;
@@ -121,13 +121,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 		bb_error_msg_and_die("invalid tar header checksum");
 	}
 
-#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
-	parse_names = (tar.typeflag != 'L' && tar.typeflag != 'K');
-#endif
+	/* 0 is reserved for high perf file, treat as normal file */
+	if (!tar.typeflag) tar.typeflag = '0';
+	parse_names = (tar.typeflag >= '0' && tar.typeflag <= '7');
 
 	/* getOctal trashes subsequent field, therefore we call it
 	 * on fields in reverse order */
-#define GET_OCTAL(a) getOctal((a), sizeof(a))
 	if (tar.devmajor[0]) {
 		unsigned minor = GET_OCTAL(tar.devminor);
 		unsigned major = GET_OCTAL(tar.devmajor);
@@ -147,8 +146,8 @@ char get_header_tar(archive_handle_t *archive_handle)
 	file_header->uid = GET_OCTAL(tar.uid);
 	/* Set bits 0-11 of the files mode */
 	file_header->mode = 07777 & GET_OCTAL(tar.mode);
-#undef GET_OCTAL
 
+	file_header->name = NULL;
 	if (!longname && parse_names) {
 		/* we trash mode[0] here, it's ok */
 		tar.name[sizeof(tar.name)] = '\0';
@@ -158,6 +157,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 			file_header->name = concat_path_file(tar.prefix, tar.name);
 		} else
 			file_header->name = xstrdup(tar.name);
+		/* FIXME: add check for /../ attacks */
 	}
 
 	/* Set bits 12-15 of the files mode */
@@ -168,8 +168,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 		file_header->mode |= S_IFREG;
 		break;
 	case '7':
-		/* Reserved for high performance files, treat as normal file */
-	case 0:
+	/* case 0: */
 	case '0':
 #if ENABLE_FEATURE_TAR_OLDGNU_COMPATIBILITY
 		if (last_char_is(file_header->name, '/')) {
@@ -195,18 +194,24 @@ char get_header_tar(archive_handle_t *archive_handle)
 		break;
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
 	case 'L':
-		/* paranoia: tar with several consecutive longnames */
+		/* free: paranoia: tar with several consecutive longnames */
 		free(longname);
+		/* For paranoia reasons we allocate extra NUL char */
 		longname = xzalloc(file_header->size + 1);
+		/* We read ASCIZ string, including NUL */
 		xread(archive_handle->src_fd, longname, file_header->size);
 		archive_handle->offset += file_header->size;
-		return get_header_tar(archive_handle);
+		/* return get_header_tar(archive_handle); */
+		/* gcc 4.1.1 didn't optimize it into jump */
+		/* so we will do it ourself, this also saves stack */
+		goto again;
 	case 'K':
 		free(linkname);
 		linkname = xzalloc(file_header->size + 1);
 		xread(archive_handle->src_fd, linkname, file_header->size);
 		archive_handle->offset += file_header->size;
-		return get_header_tar(archive_handle);
+		/* return get_header_tar(archive_handle); */
+		goto again;
 	case 'D':	/* GNU dump dir */
 	case 'M':	/* Continuation of multi volume archive */
 	case 'N':	/* Old GNU for names > 100 characters */
@@ -214,11 +219,19 @@ char get_header_tar(archive_handle_t *archive_handle)
 	case 'V':	/* Volume header */
 #endif
 	case 'g':	/* pax global header */
-	case 'x':	/* pax extended header */
-		bb_error_msg("ignoring extension type %c", tar.typeflag);
-		break;
+	case 'x': {	/* pax extended header */
+		off_t sz;
+		bb_error_msg("warning: skipping header '%c'", tar.typeflag);
+		sz = (file_header->size + 511) & ~(off_t)511;
+		archive_handle->offset += sz;
+		sz >>= 9; /* sz /= 512 but w/o contortions for signed div */
+		while (sz--)
+			xread(archive_handle->src_fd, &tar, 512);
+		/* return get_header_tar(archive_handle); */
+		goto again_after_align;
+	}
 	default:
-		bb_error_msg("unknown typeflag: 0x%x", tar.typeflag);
+		bb_error_msg_and_die("unknown typeflag: 0x%x", tar.typeflag);
 	}
 
 #if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
@@ -246,10 +259,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 		llist_add_to(&(archive_handle->passed), file_header->name);
 	} else {
 		data_skip(archive_handle);
+		free(file_header->name);
 	}
 	archive_handle->offset += file_header->size;
 
 	free(file_header->link_name);
+	/* Do not free(file_header->name)! */
 
 	return EXIT_SUCCESS;
 }
