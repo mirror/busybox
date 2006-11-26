@@ -851,7 +851,7 @@ int tar_main(int argc, char **argv)
 			tar_handle->src_fd = fileno(tar_stream);
 			tar_handle->seek = seek_by_read;
 		} else {
-			tar_handle->src_fd = xopen3(tar_filename, flags, 0666);
+			tar_handle->src_fd = xopen(tar_filename, flags);
 		}
 	}
 

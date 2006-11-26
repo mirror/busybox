@@ -73,7 +73,7 @@ static void make_device(char *path, int delete)
 
 			line++;
 			/* find end of this line */
-			for(end=pos; end-conf<len && *end!='\n'; end++)
+			for (end=pos; end-conf<len && *end!='\n'; end++)
 				;
 
 			/* Three fields: regex, uid:gid, mode */
@@ -111,7 +111,7 @@ static void make_device(char *path, int delete)
 					char *s, *s2;
 
 					/* Find : */
-					for(s=pos; s<end2 && *s!=':'; s++)
+					for (s=pos; s<end2 && *s!=':'; s++)
 						;
 					if (s == end2) break;
 

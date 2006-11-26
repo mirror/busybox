@@ -148,19 +148,19 @@ static unsigned processorstart(struct logdir *ld)
 		if (fd_move(0, fd) == -1)
 			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
 		ld->fnsave[26] = 't';
-		fd = xopen3(ld->fnsave, O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT, 0644);
+		fd = xopen(ld->fnsave, O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT);
 		if (fd_move(1, fd) == -1)
 			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
 		fd = open_read("state");
 		if (fd == -1) {
 			if (errno != ENOENT)
 				bb_perror_msg_and_die(FATAL"cannot %s processor %s", "open state for", ld->name);
-			close(xopen3("state", O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT, 0644));
+			close(xopen("state", O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT));
 			fd = xopen("state", O_RDONLY|O_NDELAY);
 		}
 		if (fd_move(4, fd) == -1)
 			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
-		fd = xopen3("newstate", O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT, 0644);
+		fd = xopen("newstate", O_WRONLY|O_NDELAY|O_TRUNC|O_CREAT);
 		if (fd_move(5, fd) == -1)
 			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
 

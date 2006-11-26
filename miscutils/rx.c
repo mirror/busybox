@@ -263,7 +263,7 @@ int rx_main(int argc, char **argv)
 
 	fn = argv[1];
 	ttyfd = xopen(CURRENT_TTY, O_RDWR);
-	filefd = xopen3(fn, O_RDWR|O_CREAT|O_TRUNC, 0666);
+	filefd = xopen(fn, O_RDWR|O_CREAT|O_TRUNC);
 
 	if (tcgetattr(ttyfd, &tty) < 0)
 			bb_perror_msg_and_die("tcgetattr");

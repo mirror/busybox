@@ -156,6 +156,7 @@ int crontab_main(int ac, char **av)
 		break;
 	case EDIT:
 		{
+/* FIXME: messy code here! we have file copying helpers for this! */
 			FILE *fi;
 			int fd;
 			int n;
@@ -163,11 +164,12 @@ int crontab_main(int ac, char **av)
 
 			snprintf(tmp, sizeof(tmp), TMPDIR "/crontab.%d", getpid());
 			fd = xopen3(tmp, O_RDWR|O_CREAT|O_TRUNC|O_EXCL, 0600);
+/* race, use fchown */
 			chown(tmp, getuid(), getgid());
 			fi = fopen(pas->pw_name, "r");
 			if (fi) {
 				while ((n = fread(buf, 1, sizeof(buf), fi)) > 0)
-					write(fd, buf, n);
+					full_write(fd, buf, n);
 			}
 			EditFile(caller, tmp);
 			remove(tmp);
@@ -178,6 +180,7 @@ int crontab_main(int ac, char **av)
 		/* fall through */
 	case REPLACE:
 		{
+/* same here */
 			char path[1024];
 			int fd;
 			int n;
@@ -186,7 +189,7 @@ int crontab_main(int ac, char **av)
 			fd = open(path, O_CREAT|O_TRUNC|O_APPEND|O_WRONLY, 0600);
 			if (fd >= 0) {
 				while ((n = read(repFd, buf, sizeof(buf))) > 0) {
-					write(fd, buf, n);
+					full_write(fd, buf, n);
 				}
 				close(fd);
 				rename(path, pas->pw_name);

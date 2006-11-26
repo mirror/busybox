@@ -138,7 +138,7 @@ int dd_main(int argc, char **argv)
 		if (!seek && (flags & trunc_flag))
 			oflag |= O_TRUNC;
 
-		ofd = xopen3(outfile, oflag, 0666);
+		ofd = xopen(outfile, oflag);
 
 		if (seek && (flags & trunc_flag)) {
 			if (ftruncate(ofd, seek * obs) < 0) {

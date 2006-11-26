@@ -57,7 +57,7 @@ char * xstrdup(const char *s)
 	if (s == NULL)
 		return NULL;
 
-	t = strdup (s);
+	t = strdup(s);
 
 	if (t == NULL)
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
@@ -69,23 +69,33 @@ char * xstrdup(const char *s)
 // the (possibly truncated to length n) string into it.
 char * xstrndup(const char *s, int n)
 {
+	int m;
 	char *t;
 
 	if (ENABLE_DEBUG && s == NULL)
 		bb_error_msg_and_die("xstrndup bug");
 
-	/* TODO: think about xstrndup("abc", 10000)!!! */
-	t = xmalloc(++n);
+	/* We can just xmalloc(n+1) and strncpy into it, */
+	/* but think about xstrndup("abc", 10000) wastage! */
+	m = n;
+	t = (char*) s;
+	while (m) {
+		if (!*t) break;
+		m--; t++;
+	}
+	n = n - m;
+	t = xmalloc(n + 1);
+	t[n] = '\0';
 
-	return safe_strncpy(t,s,n);
+	return memcpy(t,s,n);
 }
 
 // Die if we can't open a file and return a FILE * to it.
 // Notice we haven't got xfread(), This is for use with fscanf() and friends.
 FILE *xfopen(const char *path, const char *mode)
 {
-	FILE *fp;
-	if ((fp = fopen(path, mode)) == NULL)
+	FILE *fp = fopen(path, mode);
+	if (fp == NULL)
 		bb_perror_msg_and_die("%s", path);
 	return fp;
 }
@@ -93,8 +103,8 @@ FILE *xfopen(const char *path, const char *mode)
 // Die if we can't open an existing file and return an fd.
 int xopen(const char *pathname, int flags)
 {
-	if (ENABLE_DEBUG && (flags & O_CREAT))
-		bb_error_msg_and_die("xopen() with O_CREAT");
+	//if (ENABLE_DEBUG && (flags & O_CREAT))
+	//	bb_error_msg_and_die("xopen() with O_CREAT");
 
 	return xopen3(pathname, flags, 0666);
 }
@@ -142,7 +152,7 @@ off_t xlseek(int fd, off_t offset, int whence)
 	return off;
 }
 
-// Die with supplied error message if this FILE * has ferror set.
+// Die with supplied filename if this FILE * has ferror set.
 void die_if_ferror(FILE *fp, const char *fn)
 {
 	if (ferror(fp)) {
@@ -214,7 +224,6 @@ void xsetenv(const char *key, const char *value)
 		bb_error_msg_and_die(bb_msg_memory_exhausted);
 }
 
-
 // Converts unsigned long long value into compact 4-char
 // representation. Examples: "1234", "1.2k", " 27M", "123T"
 // Fifth char is always '\0'
@@ -256,7 +265,6 @@ void smart_ulltoa5(unsigned long long ul, char buf[5])
 	}
 	buf[4] = '\0';
 }
-
 
 // Convert unsigned integer to ascii, writing into supplied buffer.  A
 // truncated result is always null terminated (unless buflen is 0), and

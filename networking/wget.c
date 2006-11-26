@@ -452,8 +452,8 @@ int wget_main(int argc, char **argv)
 
 	/* Do it before progressmeter (want to have nice error message) */
 	if (output_fd < 0)
-		output_fd = xopen3(fname_out,
-			O_WRONLY|O_CREAT|O_EXCL|O_TRUNC, 0666);
+		output_fd = xopen(fname_out,
+			O_WRONLY|O_CREAT|O_EXCL|O_TRUNC);
 
 	if (!(opt & WGET_OPT_QUIET))
 		progressmeter(-1);
