@@ -65,7 +65,6 @@ lib-y += read.o
 lib-y += recursive_action.o
 lib-y += remove_file.o
 lib-y += restricted_shell.o
-lib-y += run_parts.o
 lib-y += run_shell.o
 lib-y += safe_strncpy.o
 lib-y += safe_strtol.o
