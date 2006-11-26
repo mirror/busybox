@@ -157,7 +157,6 @@ char get_header_tar(archive_handle_t *archive_handle)
 			file_header->name = concat_path_file(tar.prefix, tar.name);
 		} else
 			file_header->name = xstrdup(tar.name);
-		/* FIXME: add check for /../ attacks */
 	}
 
 	/* Set bits 12-15 of the files mode */
@@ -244,6 +243,12 @@ char get_header_tar(archive_handle_t *archive_handle)
 		linkname = NULL;
 	}
 #endif
+	if (!strncmp(file_header->name, "/../"+1, 3)
+	 || strstr(file_header->name, "/../")
+	) {
+		bb_error_msg_and_die("name with '..' encountered: '%s'",
+				file_header->name);
+	}
 
 	/* Strip trailing '/' in directories */
 	/* Must be done after mode is set as '/' is used to check if its a directory */
