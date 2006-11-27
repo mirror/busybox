@@ -139,7 +139,7 @@ errcode_t ext2fs_create_icount2(ext2_filsys fs, int flags, unsigned int size,
 
 errout:
 	ext2fs_free_icount(icount);
-	return(retval);
+	return retval;
 }
 
 errcode_t ext2fs_create_icount(ext2_filsys fs, int flags,

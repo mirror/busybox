@@ -1254,7 +1254,7 @@ static int get_uid_gid (int flag, const char *string)
 
 	if(ENABLE_DEVFSD_VERBOSE)
 		msg_logger(LOG_ERR,"unknown %s: %s, defaulting to %cid=0",  msg, string, msg[0]);
-	return (0);
+	return 0;
 }/*  End Function get_uid_gid  */
 
 static mode_t get_mode (const char *string)
@@ -1321,7 +1321,7 @@ static const char *get_variable (const char *variable, void *info)
 	if( i >= 0 && i <= 3)
 	{
 		debug_msg_logger(LOG_INFO, "%s: i=%d %s", __FUNCTION__, i ,field_names[i+7]);
-		return(field_names[i+7]);
+		return field_names[i+7];
 	}
 
 	if(i == 4 )
@@ -1417,17 +1417,15 @@ static int mksymlink (const char *oldpath, const char *newpath)
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	if ( !make_dir_tree (newpath) )
-		return (-1);
+		return -1;
 
-	if (symlink (oldpath, newpath) != 0)
-    {
-		if (errno != EEXIST)
-		{
+	if (symlink (oldpath, newpath) != 0) {
+		if (errno != EEXIST) {
 			debug_msg_logger(LOG_ERR, "%s: %s to %s: %m", __FUNCTION__, oldpath, newpath);
-			return (-1);
+			return -1;
 		}
 	}
-    return (0);
+	return 0;
 }   /*  End Function mksymlink  */
 
 
@@ -1444,7 +1442,7 @@ static int make_dir_tree (const char *path)
 		debug_msg_logger(LOG_ERR, "%s: %s: %m",__FUNCTION__, path);
 		return (FALSE);
 	}
-	return(TRUE);
+	return TRUE;
 } /*  End Function make_dir_tree  */
 
 static int expand_expression(char *output, unsigned int outsize,

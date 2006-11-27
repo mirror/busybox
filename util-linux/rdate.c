@@ -55,7 +55,7 @@ static time_t askremotedate(const char *host)
 	 * Subtract the RFC 868 time  to get Linux epoch
 	 */
 
-	return(ntohl(nett) - RFC_868_BIAS);
+	return ntohl(nett) - RFC_868_BIAS;
 }
 
 int rdate_main(int argc, char **argv)

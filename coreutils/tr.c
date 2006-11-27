@@ -249,5 +249,5 @@ int tr_main(int argc, char **argv)
 			outvec[(GCC4_IS_STUPID)output[i]] = TRUE;
 	}
 	convert();
-	return (0);
+	return 0;
 }

@@ -706,7 +706,7 @@ int main(int argc, char **argv)
 	dev = blkid_get_dev(cache, argv[1], BLKID_DEV_NORMAL);
 	if (!dev) {
 		printf("%s: %s has an unsupported type\n", argv[0], argv[1]);
-		return (1);
+		return 1;
 	}
 	printf("%s is type %s\n", argv[1], dev->bid_type ?
 		dev->bid_type : "(null)");
@@ -716,6 +716,6 @@ int main(int argc, char **argv)
 		printf("\tuuid is %s\n", dev->bid_uuid);
 
 	blkid_free_dev(dev);
-	return (0);
+	return 0;
 }
 #endif

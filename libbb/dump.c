@@ -322,7 +322,7 @@ static int next(char **argv)
 
 	if (argv) {
 		_argv = argv;
-		return (1);
+		return 1;
 	}
 	for (;;) {
 		if (*_argv) {
@@ -335,7 +335,7 @@ static int next(char **argv)
 			statok = done = 1;
 		} else {
 			if (done++)
-				return (0);
+				return 0;
 			statok = 0;
 		}
 		if (bb_dump_skip)
@@ -343,7 +343,7 @@ static int next(char **argv)
 		if (*_argv)
 			++_argv;
 		if (!bb_dump_skip)
-			return (1);
+			return 1;
 	}
 	/* NOTREACHED */
 }

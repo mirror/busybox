@@ -57,8 +57,8 @@ int rmmod_main(int argc, char **argv)
 
 		while (nmod != pnmod) {
 			if (syscall(__NR_delete_module, NULL, flags) != 0) {
-				if (errno==EFAULT)
-					return(ret);
+				if (errno == EFAULT)
+					return ret;
 				bb_perror_msg_and_die("rmmod");
 			}
 			pnmod = nmod;
@@ -92,5 +92,5 @@ int rmmod_main(int argc, char **argv)
 		}
 	}
 
-	return(ret);
+	return ret;
 }

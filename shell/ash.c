@@ -2129,10 +2129,10 @@ unalias(const char *name)
 		INTOFF;
 		*app = freealias(*app);
 		INTON;
-		return (0);
+		return 0;
 	}
 
-	return (1);
+	return 1;
 }
 
 static void
@@ -2181,7 +2181,7 @@ aliascmd(int argc, char **argv)
 			for (ap = atab[i]; ap; ap = ap->next) {
 				printalias(ap);
 			}
-		return (0);
+		return 0;
 	}
 	while ((n = *++argv) != NULL) {
 		if ((v = strchr(n+1, '=')) == NULL) { /* n+1: funny ksh stuff */
@@ -2207,7 +2207,7 @@ unaliascmd(int argc, char **argv)
 	while ((i = nextopt("a")) != '\0') {
 		if (i == 'a') {
 			rmaliases();
-			return (0);
+			return 0;
 		}
 	}
 	for (i = 0; *argptr; argptr++) {
@@ -13420,7 +13420,8 @@ static int arith_apply(operator op, v_n_t *numstack, v_n_t **numstackptr)
 	/* protect geting var value, is number now */
 	numptr_m1->var = NULL;
 	return 0;
-err: return(-1);
+ err:
+	return -1;
 }
 
 /* longest must first */

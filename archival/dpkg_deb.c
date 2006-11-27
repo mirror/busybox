@@ -90,7 +90,7 @@ int dpkg_deb_main(int argc, char **argv)
 	unpack_ar_archive(ar_archive);
 
 	/* Cleanup */
-	close (ar_archive->src_fd);
+	close(ar_archive->src_fd);
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

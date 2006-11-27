@@ -134,7 +134,7 @@ int lsmod_main(int argc, char **argv)
 	free(module_names);
 #endif
 
-	return( 0);
+	return 0;
 }
 
 #else /* CONFIG_FEATURE_QUERY_MODULE_INTERFACE */

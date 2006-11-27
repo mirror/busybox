@@ -30,7 +30,7 @@ char get_header_ar(archive_handle_t *archive_handle)
 	/* dont use xread as we want to handle the error ourself */
 	if (read(archive_handle->src_fd, ar.raw, 60) != 60) {
 		/* End Of File */
-		return(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	/* ar header starts on an even byte (2 byte aligned)
@@ -108,5 +108,5 @@ char get_header_ar(archive_handle_t *archive_handle)
 	/* Set the file pointer to the correct spot, we may have been reading a compressed file */
 	lseek(archive_handle->src_fd, archive_handle->offset, SEEK_SET);
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

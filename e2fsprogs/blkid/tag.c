@@ -416,7 +416,7 @@ int main(int argc, char **argv)
 		printf("Device %s: (%s, %s) %s\n", blkid_dev_devname(dev),
 		       search_type, search_value ? search_value : "NULL",
 		       found ? "FOUND" : "NOT FOUND");
-		return(!found);
+		return !found;
 	}
 	printf("Device %s...\n", blkid_dev_devname(dev));
 
@@ -427,6 +427,6 @@ int main(int argc, char **argv)
 	blkid_tag_iterate_end(iter);
 
 	blkid_put_cache(cache);
-	return (0);
+	return 0;
 }
 #endif

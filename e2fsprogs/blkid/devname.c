@@ -363,6 +363,6 @@ int main(int argc, char **argv)
 		printf("%s: error probing devices\n", argv[0]);
 
 	blkid_put_cache(cache);
-	return (0);
+	return 0;
 }
 #endif

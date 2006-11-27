@@ -1225,7 +1225,7 @@ static int checkjobs(struct pipe* fg_pipe)
 					if (i==fg_pipe->num_progs-1)
 						rcode=WEXITSTATUS(status);
 					(fg_pipe->num_progs)--;
-					return(rcode);
+					return rcode;
 				}
 			}
 		}
@@ -2768,7 +2768,7 @@ int hush_main(int argc, char **argv)
 #endif
 
 final_return:
-	return(opt?opt:last_return_code);
+	return opt ? opt : last_return_code;
 }
 
 static char *insert_var_value(char *inp)

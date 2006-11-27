@@ -1180,7 +1180,8 @@ static int get_next_history(void)
 
 	if (ch < n_history) {
 		get_previous_history(); /* save the current history line */
-		return (cur_history = ch+1);
+		cur_history = ch + 1;
+		return cur_history;
 	} else {
 		beep();
 		return 0;

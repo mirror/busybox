@@ -19,5 +19,5 @@ int sync_main(int argc, char **argv)
 
 	sync();
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

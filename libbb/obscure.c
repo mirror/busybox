@@ -97,7 +97,7 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 
 	/* size */
 	if (!new_p || (length = strlen(new_p)) < CONFIG_PASSWORD_MINLEN)
-		return("too short");
+		return "too short";
 
 	/* no username as-is, as sub-string, reversed, capitalized, doubled */
 	if (string_checker(new_p, pw->pw_name)) {

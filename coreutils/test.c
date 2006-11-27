@@ -520,17 +520,17 @@ static int test_eaccess(char *path, int mode)
 	unsigned int euid = geteuid();
 
 	if (stat(path, &st) < 0)
-		return (-1);
+		return -1;
 
 	if (euid == 0) {
 		/* Root can read or write any file. */
 		if (mode != X_OK)
-			return (0);
+			return 0;
 
 		/* Root can execute any file that has any one of the execute
 		   bits set. */
 		if (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
-			return (0);
+			return 0;
 	}
 
 	if (st.st_uid == euid)  /* owner */
@@ -539,9 +539,9 @@ static int test_eaccess(char *path, int mode)
 		mode <<= 3;
 
 	if (st.st_mode & mode)
-		return (0);
+		return 0;
 
-	return (-1);
+	return -1;
 }
 
 static void initialize_group_array(void)
@@ -560,7 +560,7 @@ static int is_a_group_member(gid_t gid)
 
 	/* Short-circuit if possible, maybe saving a call to getgroups(). */
 	if (gid == getgid() || gid == getegid())
-		return (1);
+		return 1;
 
 	if (ngroups == 0)
 		initialize_group_array();
@@ -568,9 +568,9 @@ static int is_a_group_member(gid_t gid)
 	/* Search through the list looking for GID. */
 	for (i = 0; i < ngroups; i++)
 		if (gid == group_array[i])
-			return (1);
+			return 1;
 
-	return (0);
+	return 0;
 }
 
 

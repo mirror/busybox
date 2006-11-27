@@ -43,7 +43,7 @@ static unsigned int copy_lines(FILE *src_stream, FILE *dest_stream, const unsign
 
 		i++;
 	}
-	return(i);
+	return i;
 }
 
 /* If patch_level is -1 it will remove all directory names
@@ -67,13 +67,13 @@ static char *extract_filename(char *line, int patch_level)
 		filename_start_ptr = temp + 1;
 	}
 
-	return(xstrdup(filename_start_ptr));
+	return xstrdup(filename_start_ptr);
 }
 
 static int file_doesnt_exist(const char *filename)
 {
 	struct stat statbuf;
-	return(stat(filename, &statbuf));
+	return stat(filename, &statbuf);
 }
 
 int patch_main(int argc, char **argv)
@@ -269,5 +269,5 @@ int patch_main(int argc, char **argv)
 	 * 1 = Some hunks failed
 	 * 2 = More serious problems
 	 */
-	return(ret);
+	return ret;
 }

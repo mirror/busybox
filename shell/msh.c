@@ -1007,13 +1007,13 @@ static int newfile(char *s)
 		if (f < 0) {
 			prs(s);
 			err(": cannot open");
-			return (1);
+			return 1;
 		}
 	} else
 		f = 0;
 
 	next(remap(f));
-	return (0);
+	return 0;
 }
 
 
@@ -1162,7 +1162,7 @@ static int newenv(int f)
 
 	if (f) {
 		quitenv();
-		return (1);
+		return 1;
 	}
 
 	ep = (struct env *) space(sizeof(*ep));
@@ -1175,7 +1175,7 @@ static int newenv(int f)
 	e.oenv = ep;
 	e.errpt = errpt;
 
-	return (0);
+	return 0;
 }
 
 static void quitenv(void)
@@ -1202,8 +1202,8 @@ static int anys(char *s1, char *s2)
 {
 	while (*s1)
 		if (any(*s1++, s2))
-			return (1);
-	return (0);
+			return 1;
+	return 0;
 }
 
 /*
@@ -1213,8 +1213,8 @@ static int any(int c, char *s)
 {
 	while (*s)
 		if (*s++ == c)
-			return (1);
-	return (0);
+			return 1;
+	return 0;
 }
 
 static char *putn(int n)
@@ -1396,12 +1396,12 @@ static int isassign(char *s)
 	DBGPRINTF7(("ISASSIGN: enter, s=%s\n", s));
 
 	if (!isalpha((int) *s) && *s != '_')
-		return (0);
+		return 0;
 	for (; *s != '='; s++)
 		if (*s == 0 || (!isalnum(*s) && *s != '_'))
-			return (0);
+			return 0;
 
-	return (1);
+	return 1;
 }
 
 static int assign(char *s, int cf)
@@ -1412,15 +1412,15 @@ static int assign(char *s, int cf)
 	DBGPRINTF7(("ASSIGN: enter, s=%s, cf=%d\n", s, cf));
 
 	if (!isalpha(*s) && *s != '_')
-		return (0);
+		return 0;
 	for (cp = s; *cp != '='; cp++)
 		if (*cp == 0 || (!isalnum(*cp) && *cp != '_'))
-			return (0);
+			return 0;
 	vp = lookup(s);
 	nameval(vp, ++cp, cf == COPYV ? (char *) NULL : s);
 	if (cf != COPYV)
 		vp->status &= ~GETCELL;
-	return (1);
+	return 1;
 }
 
 static int checkname(char *cp)
@@ -1428,11 +1428,11 @@ static int checkname(char *cp)
 	DBGPRINTF7(("CHECKNAME: enter, cp=%s\n", cp));
 
 	if (!isalpha(*cp++) && *(cp - 1) != '_')
-		return (0);
+		return 0;
 	while (*cp)
 		if (!isalnum(*cp++) && *(cp - 1) != '_')
-			return (0);
-	return (1);
+			return 0;
+	return 1;
 }
 
 static void putvlist(int f, int out)
@@ -1454,7 +1454,7 @@ static int eqname(char *n1, char *n2)
 {
 	for (; *n1 != '=' && *n1 != 0; n1++)
 		if (*n2++ != *n1)
-			return (0);
+			return 0;
 	return (*n2 == 0 || *n2 == '=');
 }
 
@@ -1483,31 +1483,31 @@ static int gmatch(char *s, char *p)
 	int sc, pc;
 
 	if (s == NULL || p == NULL)
-		return (0);
+		return 0;
 	while ((pc = *p++ & CMASK) != '\0') {
 		sc = *s++ & QMASK;
 		switch (pc) {
 		case '[':
 			if ((p = cclass(p, sc)) == NULL)
-				return (0);
+				return 0;
 			break;
 
 		case '?':
 			if (sc == 0)
-				return (0);
+				return 0;
 			break;
 
 		case '*':
 			s--;
 			do {
 				if (*p == '\0' || gmatch(s, p))
-					return (1);
+					return 1;
 			} while (*s++ != '\0');
-			return (0);
+			return 0;
 
 		default:
 			if (sc != (pc & ~QUOTE))
-				return (0);
+				return 0;
 		}
 	}
 	return (*s == 0);
@@ -1805,7 +1805,7 @@ static int synio(int cf)
 
 	if ((c = yylex(cf)) != '<' && c != '>') {
 		peeksym = c;
-		return (0);
+		return 0;
 	}
 
 	i = yylval.i;
@@ -1817,7 +1817,7 @@ static int synio(int cf)
 		markhere(yylval.cp, iop);
 
 	DBGPRINTF7(("SYNIO: returning 1\n"));
-	return (1);
+	return 1;
 }
 
 static void musthave(int c, int cf)
@@ -2166,7 +2166,7 @@ static int rlookup(char *n)
 		}
 
 	DBGPRINTF7(("RLOOKUP: NO match, returning 0\n"));
-	return (0);					/* Not a shell multiline */
+	return 0;					/* Not a shell multiline */
 }
 
 static struct op *newtp(void)
@@ -2428,7 +2428,7 @@ static int collect(int c, int c1)
 
 	DBGPRINTF8(("COLLECT: return 0, line is %s\n", line));
 
-	return (0);
+	return 0;
 }
 
 /* "multiline commands" helper func */
@@ -2510,7 +2510,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 
 	if (t == NULL) {
 		DBGPRINTF4(("EXECUTE: enter, t==null, returning.\n"));
-		return (0);
+		return 0;
 	}
 
 	DBGPRINTF(("EXECUTE: t=%p, t->type=%d (%s), t->words is %s\n", t,
@@ -2787,7 +2787,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 
 		if (newpid == -1) {
 			DBGPRINTF(("FORKEXEC: ERROR, cannot vfork()!\n"));
-			return (-1);
+			return -1;
 		}
 
 
@@ -2804,7 +2804,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 
 /* moved up
 			if (i == -1)
-				return(rv);
+				return rv;
 */
 
 			if (pin != NULL)
@@ -2839,7 +2839,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 		err("piping to/from shell builtins not yet done");
 		if (forked)
 			_exit(-1);
-		return (-1);
+		return -1;
 	}
 #endif
 
@@ -2858,7 +2858,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 			err(": cannot redirect shell command");
 			if (forked)
 				_exit(-1);
-			return (-1);
+			return -1;
 		}
 		while (*iopp)
 			if (iosetup(*iopp++, pin != NULL, pout != NULL)) {
@@ -2919,23 +2919,23 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 		iop->io_unit = iop->io_flag & (IOREAD | IOHERE) ? 0 : 1;
 
 	if (pipein && iop->io_unit == 0)
-		return (0);
+		return 0;
 
 	if (pipeout && iop->io_unit == 1)
-		return (0);
+		return 0;
 
 	msg = iop->io_flag & (IOREAD | IOHERE) ? "open" : "create";
 	if ((iop->io_flag & IOHERE) == 0) {
 		cp = iop->io_name;
 		if ((cp = evalstr(cp, DOSUB | DOTRIM)) == NULL)
-			return (1);
+			return 1;
 	}
 
 	if (iop->io_flag & IODUP) {
 		if (cp[1] || (!isdigit(*cp) && *cp != '-')) {
 			prs(cp);
 			err(": illegal >& argument");
-			return (1);
+			return 1;
 		}
 		if (*cp == '-')
 			iop->io_flag = IOCLOSE;
@@ -2967,20 +2967,20 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 
 	case IOCLOSE:
 		close(iop->io_unit);
-		return (0);
+		return 0;
 	}
 	if (u < 0) {
 		prs(cp);
 		prs(": cannot ");
 		warn(msg);
-		return (1);
+		return 1;
 	} else {
 		if (u != iop->io_unit) {
 			dup2(u, iop->io_unit);
 			close(u);
 		}
 	}
-	return (0);
+	return 0;
 }
 
 static void echo(char **wp)
@@ -3281,7 +3281,7 @@ static int dohelp(struct op *t)
 
 static int dolabel(struct op *t)
 {
-	return (0);
+	return 0;
 }
 
 static int dochdir(struct op *t)
@@ -3293,10 +3293,10 @@ static int dochdir(struct op *t)
 	else if (chdir(cp) < 0)
 		er = ": bad directory";
 	else
-		return (0);
+		return 0;
 	prs(cp != NULL ? cp : "cd");
 	err(er);
-	return (1);
+	return 1;
 }
 
 static int doshift(struct op *t)
@@ -3306,13 +3306,13 @@ static int doshift(struct op *t)
 	n = t->words[1] ? getn(t->words[1]) : 1;
 	if (dolc < n) {
 		err("nothing to shift");
-		return (1);
+		return 1;
 	}
 	dolv[n] = dolv[0];
 	dolv += n;
 	dolc -= n;
 	setval(lookup("#"), putn(dolc));
-	return (0);
+	return 0;
 }
 
 /*
@@ -3330,7 +3330,7 @@ static int dologin(struct op *t)
 	prs(t->words[0]);
 	prs(": ");
 	err(cp);
-	return (1);
+	return 1;
 }
 
 static int doumask(struct op *t)
@@ -3349,7 +3349,7 @@ static int doumask(struct op *t)
 			n = n * 8 + (*cp - '0');
 		umask(n);
 	}
-	return (0);
+	return 0;
 }
 
 static int doexec(struct op *t)
@@ -3361,14 +3361,14 @@ static int doexec(struct op *t)
 	t->ioact = NULL;
 	for (i = 0; (t->words[i] = t->words[i + 1]) != NULL; i++);
 	if (i == 0)
-		return (1);
+		return 1;
 	execflg = 1;
 	ofail = failpt;
 	if (setjmp(failpt = ex) == 0)
 		execute(t, NOPIPE, NOPIPE, FEXEC);
 	failpt = ofail;
 	execflg = 0;
-	return (1);
+	return 1;
 }
 
 static int dodot(struct op *t)
@@ -3382,7 +3382,7 @@ static int dodot(struct op *t)
 
 	if ((cp = t->words[1]) == NULL) {
 		DBGPRINTF(("DODOT: bad args, ret 0\n"));
-		return (0);
+		return 0;
 	} else {
 		DBGPRINTF(("DODOT: cp is %s\n", cp));
 	}
@@ -3420,7 +3420,7 @@ static int dodot(struct op *t)
 	prs(cp);
 	err(": not found");
 
-	return (-1);
+	return -1;
 }
 
 static int dowait(struct op *t)
@@ -3431,11 +3431,11 @@ static int dowait(struct op *t)
 	if ((cp = t->words[1]) != NULL) {
 		i = getn(cp);
 		if (i == 0)
-			return (0);
+			return 0;
 	} else
 		i = -1;
 	setstatus(waitfor(i, 1));
-	return (0);
+	return 0;
 }
 
 static int doread(struct op *t)
@@ -3446,7 +3446,7 @@ static int doread(struct op *t)
 
 	if (t->words[1] == NULL) {
 		err("Usage: read name ...");
-		return (1);
+		return 1;
 	}
 	for (wp = t->words + 1; *wp; wp++) {
 		for (cp = e.linep; !nl && cp < elinep - 1; cp++)
@@ -3479,7 +3479,7 @@ static int dotrap(struct op *t)
 				prs(trap[i]);
 				prs("\n");
 			}
-		return (0);
+		return 0;
 	}
 	resetsig = isdigit(*t->words[1]);
 	for (i = resetsig ? 1 : 2; t->words[i] != NULL; ++i) {
@@ -3502,7 +3502,7 @@ static int dotrap(struct op *t)
 				setsig(n, SIG_DFL);
 		}
 	}
-	return (0);
+	return 0;
 }
 
 static int getsig(char *s)
@@ -3571,7 +3571,7 @@ static int brkcontin(char *cp, int val)
 	} while (--nl);
 	if (nl) {
 		err("bad break/continue level");
-		return (1);
+		return 1;
 	}
 	isbreak = val;
 	longjmp(bc->brkpt, 1);
@@ -3590,19 +3590,19 @@ static int doexit(struct op *t)
 
 	leave();
 	/* NOTREACHED */
-	return (0);
+	return 0;
 }
 
 static int doexport(struct op *t)
 {
 	rdexp(t->words + 1, export, EXPORT);
-	return (0);
+	return 0;
 }
 
 static int doreadonly(struct op *t)
 {
 	rdexp(t->words + 1, ronly, RONLY);
-	return (0);
+	return 0;
 }
 
 static void rdexp(char **wp, void (*f) (struct var *), int key)
@@ -3643,7 +3643,7 @@ static int doset(struct op *t)
 	if ((cp = t->words[1]) == NULL) {
 		for (vp = vlist; vp; vp = vp->next)
 			varput(vp->name, 1);
-		return (0);
+		return 0;
 	}
 	if (*cp == '-') {
 		/* bad: t->words++; */
@@ -3674,7 +3674,7 @@ static int doset(struct op *t)
 		setval(lookup("#"), putn(dolc));
 		setarea((char *) (dolv - 1), 0);
 	}
-	return (0);
+	return 0;
 }
 
 static void varput(char *s, int out)
@@ -3818,7 +3818,7 @@ static int expand(char *cp, struct wdblock **wbp, int f)
 	gflg = 0;
 
 	if (cp == NULL)
-		return (0);
+		return 0;
 
 	if (!anys("$`'\"", cp) &&
 		!anys(ifs->value, cp) && ((f & DOGLOB) == 0 || !anys("[*?", cp))) {
@@ -3826,7 +3826,7 @@ static int expand(char *cp, struct wdblock **wbp, int f)
 		if (f & DOTRIM)
 			unquote(cp);
 		*wbp = addword(cp, *wbp);
-		return (1);
+		return 1;
 	}
 	if (newenv(setjmp(errpt = ev)) == 0) {
 		PUSHIO(aword, cp, strchar);
@@ -3866,7 +3866,7 @@ static char *blank(int f)
 	switch (c = subgetc('"', foundequals)) {
 	case 0:
 		if (sp == e.linep)
-			return (0);
+			return 0;
 		*e.linep++ = 0;
 		return (sp);
 
@@ -3930,7 +3930,7 @@ static int subgetc(char ec, int quoted)
 	if (!INSUB() && ec != '\'') {
 		if (c == '`') {
 			if (grave(quoted) == 0)
-				return (0);
+				return 0;
 			e.iop->task = XGRAVE;
 			goto again;
 		}
@@ -4001,7 +4001,7 @@ static int dollar(int quoted)
 			/* should check dollar */
 			e.linep = s;
 			PUSHIO(awordlist, dolv + 1, dolchar);
-			return (0);
+			return 0;
 		} else {				/* trap the nasty ${=} */
 			s[0] = '1';
 			s[1] = 0;
@@ -4042,7 +4042,7 @@ static int dollar(int quoted)
 	}
 	e.linep = s;
 	PUSHIO(aword, dolp, quoted ? qstrchar : strchar);
-	return (0);
+	return 0;
 }
 
 /*
@@ -4072,7 +4072,7 @@ static int grave(int quoted)
 	for (cp = e.iop->argp->aword; *cp != '`'; cp++)
 		if (*cp == 0) {
 			err("no closing `");
-			return (0);
+			return 0;
 		}
 
 	/* string copy with dollar expansion */
@@ -4119,7 +4119,7 @@ static int grave(int quoted)
 					break;
 				default:
 					err("unclosed ${\n");
-					return (0);
+					return 0;
 				}
 				if (operator) {
 					src++;
@@ -4129,7 +4129,7 @@ static int grave(int quoted)
 					alt_value[alt_index] = 0;
 					if (*src != '}') {
 						err("unclosed ${\n");
-						return (0);
+						return 0;
 					}
 				}
 				src++;
@@ -4164,7 +4164,7 @@ static int grave(int quoted)
 						alt_value : vp->value;
 				else if (operator == '?') {
 					err(alt_value);
-					return (0);
+					return 0;
 				} else if (alt_index && (operator != '+')) {
 					value = alt_value;
 					if (operator == '=')
@@ -4186,7 +4186,7 @@ static int grave(int quoted)
 	*dest = '\0';
 
 	if (openpipe(pf) < 0)
-		return (0);
+		return 0;
 
 	while ((i = vfork()) == -1 && errno == EAGAIN);
 
@@ -4195,7 +4195,7 @@ static int grave(int quoted)
 	if (i < 0) {
 		closepipe(pf);
 		err((char *) bb_msg_memory_exhausted);
-		return (0);
+		return 0;
 	}
 	if (i != 0) {
 		waitpid(i, NULL, 0);
@@ -4204,7 +4204,7 @@ static int grave(int quoted)
 		PUSHIO(afile, remap(pf[0]),
 			   (int (*)(struct ioarg *)) ((quoted) ? qgravechar :
 										  gravechar));
-		return (1);
+		return 1;
 	}
 	/* allow trapped signals */
 	/* XXX - Maybe this signal stuff should go as well? */
@@ -4379,8 +4379,8 @@ static int anyspcl(struct wdblock *wb)
 	wd = wb->w_words;
 	for (i = 0; i < wb->w_nword; i++)
 		if (anys(spcl, *wd++))
-			return (1);
-	return (0);
+			return 1;
+	return 0;
 }
 
 static int xstrcmp(char *p1, char *p2)
@@ -4634,14 +4634,14 @@ static int readc(void)
 
 	if (e.iop >= iostack) {
 		RCPRINTF(("READC: return 0, e.iop %p\n", e.iop));
-		return (0);
+		return 0;
 	}
 
 	DBGPRINTF(("READC: leave()...\n"));
 	leave();
 
 	/* NOTREACHED */
-	return (0);
+	return 0;
 }
 
 static void ioecho(char c)
@@ -4737,7 +4737,7 @@ static int nlchar(struct ioarg *ap)
 	int c;
 
 	if (ap->aword == NULL)
-		return (0);
+		return 0;
 	if ((c = *ap->aword++) == 0) {
 		ap->aword = NULL;
 		return ('\n');
@@ -4755,7 +4755,7 @@ static int wdchar(struct ioarg *ap)
 	char **wl;
 
 	if ((wl = ap->awordlist) == NULL)
-		return (0);
+		return 0;
 	if (*wl != NULL) {
 		if ((c = *(*wl)++) != 0)
 			return (c & 0177);
@@ -4776,9 +4776,9 @@ static int dolchar(struct ioarg *ap)
 
 	if ((wp = *ap->awordlist++) != NULL) {
 		PUSHIO(aword, wp, *ap->awordlist == NULL ? strchar : xxchar);
-		return (-1);
+		return -1;
 	}
-	return (0);
+	return 0;
 }
 
 static int xxchar(struct ioarg *ap)
@@ -4786,7 +4786,7 @@ static int xxchar(struct ioarg *ap)
 	int c;
 
 	if (ap->aword == NULL)
-		return (0);
+		return 0;
 	if ((c = *ap->aword++) == '\0') {
 		ap->aword = NULL;
 		return (' ');
@@ -4802,7 +4802,7 @@ static int strchar(struct ioarg *ap)
 	int c;
 
 	if (ap->aword == NULL || (c = *ap->aword++) == 0)
-		return (0);
+		return 0;
 	return (c);
 }
 
@@ -4814,7 +4814,7 @@ static int qstrchar(struct ioarg *ap)
 	int c;
 
 	if (ap->aword == NULL || (c = *ap->aword++) == 0)
-		return (0);
+		return 0;
 	return (c | QUOTE);
 }
 
@@ -5143,13 +5143,13 @@ static int herein(char *hname, int xdoll)
 	(void) &tf;
 #endif
 	if (hname == NULL)
-		return (-1);
+		return -1;
 
 	DBGPRINTF7(("HEREIN: hname is %s, xdoll=%d\n", hname, xdoll));
 
 	hf = open(hname, 0);
 	if (hf < 0)
-		return (-1);
+		return -1;
 
 	if (xdoll) {
 		char c;
@@ -5158,7 +5158,7 @@ static int herein(char *hname, int xdoll)
 
 		tf = mkstemp(tname);
 		if (tf < 0)
-			return (-1);
+			return -1;
 		if (newenv(setjmp(errpt = ev)) == 0) {
 			PUSHIO(afile, hf, herechar);
 			setbase(e.iop);

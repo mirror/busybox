@@ -38,7 +38,7 @@
 #include "uuidP.h"
 #include <string.h>
 
-#define UUCMP(u1,u2) if (u1 != u2) return((u1 < u2) ? -1 : 1);
+#define UUCMP(u1,u2) if (u1 != u2) return (u1 < u2) ? -1 : 1;
 
 int uuid_compare(const uuid_t uu1, const uuid_t uu2)
 {

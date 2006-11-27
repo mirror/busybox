@@ -123,7 +123,7 @@ static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current
 		bytebuffer_offset++;
 		*current += 8;
 	}
-	return(bitbuffer);
+	return bitbuffer;
 }
 
 /*

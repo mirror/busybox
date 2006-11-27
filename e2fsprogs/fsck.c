@@ -549,7 +549,7 @@ static char *find_fsck(char *type)
 	free(s);
   }
   free(p);
-  return(s);
+  return s;
 }
 
 static int progress_active(void)

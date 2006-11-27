@@ -13,9 +13,7 @@
  */
 char filter_accept_list(archive_handle_t *archive_handle)
 {
-	if (find_list_entry(archive_handle->accept, archive_handle->file_header->name)) {
-		return(EXIT_SUCCESS);
-	} else {
-		return(EXIT_FAILURE);
-	}
+	if (find_list_entry(archive_handle->accept, archive_handle->file_header->name))
+		return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }

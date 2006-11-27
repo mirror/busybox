@@ -92,7 +92,7 @@ int install_main(int argc, char **argv)
 				}
 			} while (old_argv_ptr);
 		}
-		return(ret);
+		return ret;
 	}
 
 	{
@@ -127,5 +127,5 @@ int install_main(int argc, char **argv)
 		if(ENABLE_FEATURE_CLEAN_UP && isdir) free(dest);
 	}
 
-	return(ret);
+	return ret;
 }

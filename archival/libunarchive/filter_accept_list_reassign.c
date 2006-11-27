@@ -30,19 +30,19 @@ char filter_accept_list_reassign(archive_handle_t *archive_handle)
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
 		if (strcmp(name_ptr, ".gz") == 0) {
 			archive_handle->action_data_subarchive = get_header_tar_gz;
-			return(EXIT_SUCCESS);
+			return EXIT_SUCCESS;
 		}
 #endif
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
 		if (strcmp(name_ptr, ".bz2") == 0) {
 			archive_handle->action_data_subarchive = get_header_tar_bz2;
-			return(EXIT_SUCCESS);
+			return EXIT_SUCCESS;
 		}
 #endif
 		if (ENABLE_FEATURE_DEB_TAR_LZMA && !strcmp(name_ptr, ".lzma")) {
 			archive_handle->action_data_subarchive = get_header_tar_lzma;
-			return(EXIT_SUCCESS);
+			return EXIT_SUCCESS;
 		}
 	}
-	return(EXIT_FAILURE);
+	return EXIT_FAILURE;
 }

@@ -183,7 +183,7 @@ static int readhash(FILE * f)
 			for (i = 0; (t = getc(f)) != '\n'; i++) {
 				if (t == EOF) {
 					if (i == 0)
-						return (0);
+						return 0;
 					break;
 				}
 				sum = sum * 127 + t;
@@ -191,7 +191,7 @@ static int readhash(FILE * f)
 			for (i = 0; (t = getc(f)) != '\n'; i++) {
 				if (t == EOF) {
 					if (i == 0)
-						return (0);
+						return 0;
 					break;
 				}
 				sum = sum * 127 + t;
@@ -216,7 +216,7 @@ static int readhash(FILE * f)
 				continue;
 			case EOF:
 				if (i == 0)
-					return (0);
+					return 0;
 				/* FALLTHROUGH */
 			case '\n':
 				break;
@@ -244,19 +244,19 @@ static int files_differ(FILE * f1, FILE * f2, int flags)
 
 	if ((flags & (D_EMPTY1 | D_EMPTY2)) || stb1.st_size != stb2.st_size ||
 		(stb1.st_mode & S_IFMT) != (stb2.st_mode & S_IFMT))
-		return (1);
+		return 1;
 	while (1) {
 		i = fread(buf1, 1, sizeof(buf1), f1);
 		j = fread(buf2, 1, sizeof(buf2), f2);
 		if (i != j)
-			return (1);
+			return 1;
 		if (i == 0 && j == 0) {
 			if (ferror(f1) || ferror(f2))
-				return (1);
-			return (0);
+				return 1;
+			return 0;
 		}
 		if (memcmp(buf1, buf2, i) != 0)
-			return (1);
+			return 1;
 	}
 }
 
@@ -333,7 +333,7 @@ static int isqrt(int n)
 	int y, x = 1;
 
 	if (n == 0)
-		return (0);
+		return 0;
 
 	do {
 		y = x;
@@ -610,7 +610,7 @@ static int fetch(long *f, int a, int b, FILE * lb, int ch)
 	int i, j, c, lastc, col, nc;
 
 	if (a > b)
-		return (0);
+		return 0;
 	for (i = a; i <= b; i++) {
 		fseek(lb, f[i - 1], SEEK_SET);
 		nc = f[i] - f[i - 1];
@@ -623,7 +623,7 @@ static int fetch(long *f, int a, int b, FILE * lb, int ch)
 		for (j = 0, lastc = '\0'; j < nc; j++, lastc = c) {
 			if ((c = getc(lb)) == EOF) {
 				puts("\n\\ No newline at end of file");
-				return (0);
+				return 0;
 			}
 			if (c == '\t' && (cmd_flags & FLAG_t)) {
 				do {
@@ -635,7 +635,7 @@ static int fetch(long *f, int a, int b, FILE * lb, int ch)
 			}
 		}
 	}
-	return (0);
+	return 0;
 }
 
 static int asciifile(FILE * f)
@@ -646,18 +646,18 @@ static int asciifile(FILE * f)
 #endif
 
 	if ((cmd_flags & FLAG_a) || f == NULL)
-		return (1);
+		return 1;
 
 #if ENABLE_FEATURE_DIFF_BINARY
 	rewind(f);
 	cnt = fread(buf, 1, sizeof(buf), f);
 	for (i = 0; i < cnt; i++) {
 		if (!isprint(buf[i]) && !isspace(buf[i])) {
-			return (0);
+			return 0;
 		}
 	}
 #endif
-	return (1);
+	return 1;
 }
 
 /* dump accumulated "unified" diff changes */

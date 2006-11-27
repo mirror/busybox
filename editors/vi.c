@@ -343,7 +343,7 @@ int vi_main(int argc, char **argv)
 	}
 	//-----------------------------------------------------------
 
-	return (0);
+	return 0;
 }
 
 static void edit_file(Byte * fn)
@@ -530,7 +530,7 @@ static Byte *get_one_address(Byte * p, int *addr)	// get colon addr, if present
 		// unrecognised address- assume -1
 		*addr = -1;
 	}
-	return (p);
+	return p;
 }
 
 static Byte *get_address(Byte *p, int *b, int *e)	// get two colon addrs, if present
@@ -558,7 +558,7 @@ static Byte *get_address(Byte *p, int *b, int *e)	// get two colon addrs, if pre
 ga0:
 	while (isblnk(*p))
 		p++;				// skip over trailing spaces
-	return (p);
+	return p;
 }
 
 #ifdef CONFIG_FEATURE_VI_SETOPTS
@@ -1166,14 +1166,14 @@ static Byte *begin_line(Byte * p) // return pointer to first char cur line
 {
 	while (p > text && p[-1] != '\n')
 		p--;			// go to cur line B-o-l
-	return (p);
+	return p;
 }
 
 static Byte *end_line(Byte * p) // return pointer to NL of cur line line
 {
 	while (p < end - 1 && *p != '\n')
 		p++;			// go to cur line E-o-l
-	return (p);
+	return p;
 }
 
 static inline Byte *dollar_line(Byte * p) // return pointer to just before NL line
@@ -1183,7 +1183,7 @@ static inline Byte *dollar_line(Byte * p) // return pointer to just before NL li
 	// Try to stay off of the Newline
 	if (*p == '\n' && (p - begin_line(p)) > 0)
 		p--;
-	return (p);
+	return p;
 }
 
 static Byte *prev_line(Byte * p) // return pointer first char prev line
@@ -1192,7 +1192,7 @@ static Byte *prev_line(Byte * p) // return pointer first char prev line
 	if (p[-1] == '\n' && p > text)
 		p--;			// step to prev line
 	p = begin_line(p);	// goto begining of prev line
-	return (p);
+	return p;
 }
 
 static Byte *next_line(Byte * p) // return pointer first char next line
@@ -1200,7 +1200,7 @@ static Byte *next_line(Byte * p) // return pointer first char next line
 	p = end_line(p);
 	if (*p == '\n' && p < end - 1)
 		p++;			// step to next line
-	return (p);
+	return p;
 }
 
 //----- Text Information Routines ------------------------------
@@ -1214,7 +1214,7 @@ static Byte *end_screen(void)
 	for (cnt = 0; cnt < rows - 2; cnt++)
 		q = next_line(q);
 	q = end_line(q);
-	return (q);
+	return q;
 }
 
 static int count_lines(Byte * start, Byte * stop) // count line from start to stop
@@ -1243,7 +1243,7 @@ static Byte *find_line(int li)	// find begining of line #li
 	for (q = text; li > 1; li--) {
 		q = next_line(q);
 	}
-	return (q);
+	return q;
 }
 
 //----- Dot Movement Routines ----------------------------------
@@ -1285,7 +1285,7 @@ static Byte *move_to_col(Byte * p, int l)
 			co++;		// display as ^X, use 2 columns
 		}
 	} while (++co <= l && p++ < end);
-	return (p);
+	return p;
 }
 
 static void dot_next(void)
@@ -1344,7 +1344,7 @@ static Byte *bound_dot(Byte * p) // make sure  text[0] <= P < "end"
 		p = text;
 		indicate_error('2');
 	}
-	return (p);
+	return p;
 }
 
 //----- Helper Utility Routines --------------------------------
@@ -1489,7 +1489,7 @@ static Byte *char_search(Byte * p, Byte * pat, int dir, int range)	// search for
 	} else {
 		p = p - i;
 	}
-	return (p);
+	return p;
 #endif							/*REGEX_SEARCH */
 }
 #endif							/* CONFIG_FEATURE_VI_SEARCH */
@@ -1540,7 +1540,7 @@ static Byte *char_insert(Byte * p, Byte c) // insert the char c at 'p'
 		}
 #endif							/* CONFIG_FEATURE_VI_SETOPTS */
 	}
-	return (p);
+	return p;
 }
 
 static Byte *stupid_insert(Byte * p, Byte c) // stupidly insert the char c at 'p'
@@ -1551,7 +1551,7 @@ static Byte *stupid_insert(Byte * p, Byte c) // stupidly insert the char c at 'p
 		file_modified++;	// has the file been modified
 		p++;
 	}
-	return (p);
+	return p;
 }
 
 static Byte find_range(Byte ** start, Byte ** stop, Byte c)
@@ -1659,7 +1659,7 @@ static Byte *skip_thing(Byte * p, int linecnt, int dir, int type)
 			break;
 		p += dir;		// move to next char
 	}
-	return (p);
+	return p;
 }
 
 // find matching char of pair  ()  []  {}
@@ -1705,7 +1705,7 @@ static Byte *find_pair(Byte * p, Byte c)
 	}
 	if (level != 0)
 		q = NULL;		// indicate no match
-	return (q);
+	return q;
 }
 
 #ifdef CONFIG_FEATURE_VI_SETOPTS
@@ -1748,7 +1748,7 @@ static Byte *text_hole_make(Byte * p, int size)	// at "p", make a 'size' byte ho
 	end = end + size;	// adjust the new END
 	file_modified++;	// has the file been modified
   thm0:
-	return (p);
+	return p;
 }
 
 //  close a hole in text[]
@@ -1805,7 +1805,7 @@ static Byte *yank_delete(Byte * start, Byte * stop, int dist, int yf)
 		// we cannot cross NL boundaries
 		p = start;
 		if (*p == '\n')
-			return (p);
+			return p;
 		// dont go past a NewLine
 		for (; p + 1 <= stop; p++) {
 			if (p[1] == '\n') {
@@ -1821,7 +1821,7 @@ static Byte *yank_delete(Byte * start, Byte * stop, int dist, int yf)
 	if (yf == YANKDEL) {
 		p = text_hole_delete(start, stop);
 	}					// delete lines
-	return (p);
+	return p;
 }
 
 static void show_help(void)
@@ -1932,7 +1932,7 @@ static Byte *string_insert(Byte * p, Byte * s) // insert the string at 'p'
 #ifdef CONFIG_FEATURE_VI_YANKMARK
 	psb("Put %d lines (%d chars) from [%c]", cnt, i, what_reg());
 #endif							/* CONFIG_FEATURE_VI_YANKMARK */
-	return (p);
+	return p;
 }
 #endif							/* CONFIG_FEATURE_VI_YANKMARK || CONFIG_FEATURE_VI_COLON || CONFIG_FEATURE_VI_CRASHME */
 
@@ -1954,7 +1954,7 @@ static Byte *text_yank(Byte * p, Byte * q, int dest)	// copy text into a registe
 	memset(t, '\0', cnt + 1);	// clear new text[]
 	strncpy((char *) t, (char *) p, cnt);	// copy text[] into bufer
 	reg[dest] = t;
-	return (p);
+	return p;
 }
 
 static Byte what_reg(void)
@@ -2004,7 +2004,7 @@ static inline Byte *swap_context(Byte * p) // goto new context for '' command ma
 		context_start = prev_line(prev_line(prev_line(p)));
 		context_end = next_line(next_line(next_line(p)));
 	}
-	return (p);
+	return p;
 }
 #endif							/* CONFIG_FEATURE_VI_YANKMARK */
 
@@ -2306,7 +2306,7 @@ static int file_size(const Byte * fn) // what is the byte size of "fn"
 	int cnt, sr;
 
 	if (fn == 0 || strlen((char *)fn) <= 0)
-		return (-1);
+		return -1;
 	cnt = -1;
 	sr = stat((char *) fn, &st_buf);	// see if file exists
 	if (sr >= 0) {
@@ -2391,7 +2391,7 @@ static int file_write(Byte * fn, Byte * first, Byte * last)
 	// FIXIT- use the correct umask()
 	fd = open((char *) fn, (O_WRONLY | O_CREAT | O_TRUNC), 0664);
 	if (fd < 0)
-		return (-1);
+		return -1;
 	cnt = last - first + 1;
 	charcnt = write(fd, first, cnt);
 	if (charcnt == cnt) {

@@ -85,7 +85,7 @@ static int run_parts(char **args, const unsigned char test_mode)
 
 	if (entries == -1) {
 		if (test_mode & 2) {
-			return(2);
+			return 2;
 		}
 		bb_perror_msg_and_die("cannot open '%s'", arg0);
 	}

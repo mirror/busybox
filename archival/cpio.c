@@ -82,5 +82,5 @@ int cpio_main(int argc, char **argv)
 
 	while (get_header_cpio(archive_handle) == EXIT_SUCCESS);
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

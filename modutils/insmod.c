@@ -3632,9 +3632,9 @@ static int obj_gpl_license(struct obj_file *f, const char **license)
 					*license = value+1;
 				for (i = 0; i < sizeof(gpl_licenses)/sizeof(gpl_licenses[0]); ++i) {
 					if (strcmp(value+1, gpl_licenses[i]) == 0)
-						return(0);
+						return 0;
 				}
-				return(2);
+				return 2;
 			}
 			if (strchr(ptr, '\0'))
 				ptr = strchr(ptr, '\0') + 1;
@@ -3642,7 +3642,7 @@ static int obj_gpl_license(struct obj_file *f, const char **license)
 				ptr = endptr;
 		}
 	}
-	return(1);
+	return 1;
 }
 
 #define TAINT_FILENAME                  "/proc/sys/kernel/tainted"
@@ -4227,12 +4227,11 @@ out:
 	if(fp)
 		fclose(fp);
 	free(tmp1);
-	if(!tmp1) {
+	if(!tmp1)
 		free(m_name);
-	}
 	free(m_filename);
 #endif
-	return(exit_status);
+	return exit_status;
 }
 
 

@@ -11,9 +11,7 @@
 /* Accept any non-null name, its not really a filter at all */
 char filter_accept_all(archive_handle_t *archive_handle)
 {
-	if (archive_handle->file_header->name) {
-		return(EXIT_SUCCESS);
-	} else {
-		return(EXIT_FAILURE);
-	}
+	if (archive_handle->file_header->name)
+		return EXIT_SUCCESS;
+	return EXIT_FAILURE;
 }

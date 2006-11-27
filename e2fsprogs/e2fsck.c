@@ -739,7 +739,7 @@ static struct dir_info *e2fsck_dir_info_iter(e2fsck_t ctx, int *control)
 	if (*control >= ctx->dir_info_count)
 		return 0;
 
-	return(ctx->dir_info + (*control)++);
+	return ctx->dir_info + (*control)++;
 }
 
 /*
@@ -870,7 +870,7 @@ static struct dx_dir_info *e2fsck_dx_dir_info_iter(e2fsck_t ctx, int *control)
 	if (*control >= ctx->dx_dir_info_count)
 		return 0;
 
-	return(ctx->dx_dir_info + (*control)++);
+	return ctx->dx_dir_info + (*control)++;
 }
 
 #endif /* ENABLE_HTREE */
@@ -1055,7 +1055,7 @@ static errcode_t ea_refcount_create(int size, ext2_refcount_t *ret)
 
 errout:
 	ea_refcount_free(refcount);
-	return(retval);
+	return retval;
 }
 
 /*
@@ -4929,7 +4929,7 @@ static int search_dirent_proc(ext2_ino_t dir, int entry,
 	p->dir = dir;
 	sd->count--;
 
-	return(sd->count ? 0 : DIRENT_ABORT);
+	return sd->count ? 0 : DIRENT_ABORT;
 }
 
 

@@ -100,7 +100,7 @@ static FILE *ftp_login(ftp_host_info_t *server)
 
 	ftpcmd("TYPE I", NULL, control_stream, buf);
 
-	return(control_stream);
+	return control_stream;
 }
 
 #if !ENABLE_FTPGET
@@ -187,7 +187,7 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 	}
 	ftpcmd("QUIT", NULL, control_stream, buf);
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
 #endif
 
@@ -252,7 +252,7 @@ int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 	}
 	ftpcmd("QUIT", NULL, control_stream, buf);
 
-	return(EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }
 #endif
 
@@ -338,5 +338,5 @@ int ftpgetput_main(int argc, char **argv)
 	/*  Connect/Setup/Configure the FTP session */
 	control_stream = ftp_login(server);
 
-	return(ftp_action(server, control_stream, argv[optind + 1], argv[optind + 2]));
+	return ftp_action(server, control_stream, argv[optind + 1], argv[optind + 2]);
 }

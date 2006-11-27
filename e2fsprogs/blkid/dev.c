@@ -209,6 +209,6 @@ int main(int argc, char **argv)
 
 
 	blkid_put_cache(cache);
-	return (0);
+	return 0;
 }
 #endif
