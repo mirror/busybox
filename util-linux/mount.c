@@ -61,7 +61,7 @@ struct {
 
 	USE_FEATURE_MOUNT_FSTAB(
 		{"defaults", 0},
-		{"quiet", 0},
+		/* {"quiet", 0}, - do not filter out, vfat wants to see it */
 		{"noauto", MOUNT_NOAUTO},
 		{"swap", MOUNT_SWAP},
 		USE_DESKTOP({"user",  MOUNT_USERS},)
