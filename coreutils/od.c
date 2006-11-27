@@ -21,7 +21,7 @@
 #include "busybox.h"
 #include "dump.h"
 
-#define isdecdigit(c) (isdigit)(c)
+#define isdecdigit(c) isdigit(c)
 #define ishexdigit(c) (isxdigit)(c)
 
 static void

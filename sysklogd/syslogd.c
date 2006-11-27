@@ -468,7 +468,7 @@ static int serveConnection(char *tmpbuf, int n_read)
 				/* Parse the magic priority number. */
 				num_lt++;
 				pri = 0;
-				while (isdigit(*(++p))) {
+				while (isdigit(*++p)) {
 					pri = 10 * pri + (*p - '0');
 				}
 				if (pri & ~(LOG_FACMASK | LOG_PRIMASK)) {

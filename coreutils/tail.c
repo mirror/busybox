@@ -93,7 +93,7 @@ static const char header_fmt[] = "\n==> %s <==\n";
 int tail_main(int argc, char **argv)
 {
 	long count = 10;
-	unsigned int sleep_period = 1;
+	unsigned sleep_period = 1;
 	int from_top = 0;
 	int follow = 0;
 	int header_threshhold = 1;
@@ -110,10 +110,9 @@ int tail_main(int argc, char **argv)
 
 #if !ENABLE_DEBUG_YANK_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
 	/* Allow legacy syntax of an initial numeric option without -n. */
-	if (argc >=2 && ((argv[1][0] == '+') || ((argv[1][0] == '-')
-			/* && (isdigit)(argv[1][1]) */
-			&& (((unsigned int)(argv[1][1] - '0')) <= 9))))
-	{
+	if (argc >= 2 && (argv[1][0] == '+' || argv[1][0] == '-')
+	 && isdigit(argv[1][1])
+	) {
 		optind = 2;
 		optarg = argv[1];
 		goto GET_COUNT;

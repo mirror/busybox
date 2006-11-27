@@ -666,7 +666,6 @@ extern const char bb_default_login_shell[];
 #undef isascii
 #undef isblank
 #undef iscntrl
-#undef isdigit
 #undef isgraph
 #undef islower
 #undef isprint
@@ -674,6 +673,11 @@ extern const char bb_default_login_shell[];
 #undef isspace
 #undef isupper
 #undef isxdigit
+
+/* This one is more efficient - we save ~400 bytes */
+#undef isdigit
+#define isdigit(a) ((unsigned)((a) - '0') <= 9)
+
 
 #ifdef DMALLOC
 #include <dmalloc.h>
