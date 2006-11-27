@@ -507,7 +507,7 @@ static int builtin_export(struct child_prog *child)
 	char *name = child->argv[1];
 
 	if (name == NULL) {
-		return (builtin_env(child));
+		return builtin_env(child);
 	}
 
 	name = strdup(name);
@@ -730,7 +730,7 @@ static int builtin_source(struct child_prog *child)
 	status = parse_file_outer(input);
 	mark_closed(fileno(input));
 	fclose(input);
-	return (status);
+	return status;
 }
 
 static int builtin_umask(struct child_prog *child)

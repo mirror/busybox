@@ -156,5 +156,5 @@ char get_header_cpio(archive_handle_t *archive_handle)
 
 	free(file_header->link_name);
 
-	return (EXIT_SUCCESS);
+	return EXIT_SUCCESS;
 }

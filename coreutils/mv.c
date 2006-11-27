@@ -127,5 +127,5 @@ RET_0:
 		}
 	} while (*++argv != last);
 
-	return (status);
+	return status;
 }

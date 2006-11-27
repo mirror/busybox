@@ -103,7 +103,7 @@ errcode_t ext2fs_write_dir_block2(ext2_filsys fs, blk_t block,
 		if ((dirent->rec_len < 8) ||
 		    (dirent->rec_len % 4)) {
 			ext2fs_free_mem(&buf);
-			return (EXT2_ET_DIR_CORRUPTED);
+			return EXT2_ET_DIR_CORRUPTED;
 		}
 		p += dirent->rec_len;
 		if (do_swap) {

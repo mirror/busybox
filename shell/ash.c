@@ -2160,8 +2160,8 @@ lookupalias(const char *name, int check)
 	struct alias *ap = *__lookupalias(name);
 
 	if (check && ap && (ap->flag & ALIASINUSE))
-		return (NULL);
-	return (ap);
+		return NULL;
+	return ap;
 }
 
 /*
@@ -2196,7 +2196,7 @@ aliascmd(int argc, char **argv)
 		}
 	}
 
-	return (ret);
+	return ret;
 }
 
 static int
@@ -2217,7 +2217,7 @@ unaliascmd(int argc, char **argv)
 		}
 	}
 
-	return (i);
+	return i;
 }
 
 static struct alias *
@@ -4831,10 +4831,10 @@ done:
 	startloc = expdest - (char *)stackblock();
 	strtodest(home, SQSYNTAX, quotes);
 	recordregion(startloc, expdest - (char *)stackblock(), 0);
-	return (p);
+	return p;
 lose:
 	*p = c;
-	return (startp);
+	return startp;
 }
 
 
@@ -9969,7 +9969,7 @@ out:
 	else
 	    TRACE(("reread token %s %s\n", tokname(t), t == TWORD ? wordtext : ""));
 #endif
-	return (t);
+	return t;
 }
 
 
@@ -12531,7 +12531,7 @@ dash_arith(const char *s)
 	}
 	INTON;
 
-	return (result);
+	return result;
 }
 
 
@@ -12555,7 +12555,7 @@ letcmd(int argc, char **argv)
 		i = dash_arith(*ap);
 	}
 
-	return (!i);
+	return !i;
 }
 #endif /* CONFIG_ASH_MATH_SUPPORT */
 

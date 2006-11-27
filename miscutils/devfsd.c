@@ -391,45 +391,35 @@ static void safe_memcpy( char *dest, const char *src, int len)
 
 static unsigned int scan_dev_name_common(const char *d, unsigned int n, int addendum, char *ptr)
 {
-	if( d[n - 4]=='d' && d[n - 3]=='i' && d[n - 2]=='s' && d[n - 1]=='c')
-		return (2 + addendum);
-	else if( d[n - 2]=='c' && d[n - 1]=='d')
-		return (3 + addendum);
-	else if(ptr[0]=='p' && ptr[1]=='a' && ptr[2]=='r' && ptr[3]=='t')
-		return (4 + addendum);
-	else if( ptr[n - 2]=='m' && ptr[n - 1]=='t')
-		return (5 + addendum);
-	else
-		return 0;
+	if(d[n - 4]=='d' && d[n - 3]=='i' && d[n - 2]=='s' && d[n - 1]=='c')
+		return 2 + addendum;
+	if(d[n - 2]=='c' && d[n - 1]=='d')
+		return 3 + addendum;
+	if(ptr[0]=='p' && ptr[1]=='a' && ptr[2]=='r' && ptr[3]=='t')
+		return 4 + addendum;
+	if(ptr[n - 2]=='m' && ptr[n - 1]=='t')
+		return 5 + addendum;
+	return 0;
 }
 
 static unsigned int scan_dev_name(const char *d, unsigned int n, char *ptr)
 {
-	if(d[0]=='s' && d[1]=='c' && d[2]=='s' && d[3]=='i' && d[4]=='/')
-	{
+	if(d[0]=='s' && d[1]=='c' && d[2]=='s' && d[3]=='i' && d[4]=='/') {
 		if( d[n - 7]=='g' && d[n - 6]=='e' && d[n - 5]=='n' &&
 			d[n - 4]=='e' && d[n - 3]=='r' && d[n - 2]=='i' &&
 			d[n - 1]=='c' )
 			return 1;
 		return scan_dev_name_common(d, n, 0, ptr);
 	}
-	else if(d[0]=='i' && d[1]=='d' && d[2]=='e' && d[3]=='/' &&
+	if(d[0]=='i' && d[1]=='d' && d[2]=='e' && d[3]=='/' &&
 			d[4]=='h' && d[5]=='o' && d[6]=='s' && d[7]=='t')
-	{
 		return scan_dev_name_common(d, n, 4, ptr);
-	}
-	else if(d[0]=='s' && d[1]=='b' && d[2]=='p' && d[3]=='/')
-	{
+	if(d[0]=='s' && d[1]=='b' && d[2]=='p' && d[3]=='/')
 		return 10;
-	}
-	else if(d[0]=='v' && d[1]=='c' && d[2]=='c' && d[3]=='/')
-	{
+	if(d[0]=='v' && d[1]=='c' && d[2]=='c' && d[3]=='/')
 		return 11;
-	}
-	else if(d[0]=='p' && d[1]=='t' && d[2]=='y' && d[3]=='/')
-	{
+	if(d[0]=='p' && d[1]=='t' && d[2]=='y' && d[3]=='/')
 		return 12;
-	}
 	return 0;
 }
 
@@ -787,7 +777,7 @@ static int do_servicing (int fd, unsigned long event_mask)
 
 		caught_signal = FALSE;
 		caught_sighup = FALSE;
-		return (c_sighup);
+		return c_sighup;
 	}
 	msg_logger_and_die(LOG_ERR, "read error on control file");
 }   /*  End Function do_servicing  */
@@ -1132,7 +1122,7 @@ static int copy_inode (const char *destpath, const struct stat *dest_stat,
 		{
 			if (( source_len = readlink (sourcepath, source_link, STRING_LENGTH - 1) ) < 0 ||
 				( dest_len   = readlink (destpath  , dest_link  , STRING_LENGTH - 1) ) < 0 )
-				return (FALSE);
+				return FALSE;
 			source_link[source_len]	= '\0';
 			dest_link[dest_len]	= '\0';
 			if ( (source_len != dest_len) || (strcmp (source_link, dest_link) != 0) )
@@ -1140,11 +1130,11 @@ static int copy_inode (const char *destpath, const struct stat *dest_stat,
 				unlink (destpath);
 				symlink (source_link, destpath);
 			}
-			return (TRUE);
+			return TRUE;
 		}   /*  Else not a symlink  */
 		chmod (destpath, new_mode & ~S_IFMT);
 		chown (destpath, source_stat->st_uid, source_stat->st_gid);
-		return (TRUE);
+		return TRUE;
 	}
 	/*  Different types: unlink and create  */
 	unlink (destpath);
@@ -1165,7 +1155,7 @@ static int copy_inode (const char *destpath, const struct stat *dest_stat,
 				break;
 			symlink_val[val] = '\0';
 			if (symlink (symlink_val, destpath) == 0)
-				return (TRUE);
+				return TRUE;
 			break;
 		case S_IFREG:
 			if ( ( fd = open (destpath, O_RDONLY | O_CREAT, new_mode & ~S_IFMT) ) < 0 )
@@ -1185,10 +1175,10 @@ static int copy_inode (const char *destpath, const struct stat *dest_stat,
 				break;
 do_chown:
 			if (chown (destpath, source_stat->st_uid, source_stat->st_gid) == 0)
-				return (TRUE);
+				return TRUE;
 		/*break;*/
 	}
-	return (FALSE);
+	return FALSE;
 }   /*  End Function copy_inode  */
 
 static void free_config (void)
@@ -1242,13 +1232,13 @@ static int get_uid_gid (int flag, const char *string)
 		msg_logger_and_die(LOG_ERR,"%s: flag != UID && flag != GID", __FUNCTION__);
 
 	if ( isdigit (string[0]) || ( (string[0] == '-') && isdigit (string[1]) ) )
-		return atoi (string);
+		return atoi(string);
 
 	if ( flag == UID && ( pw_ent  = getpwnam (string) ) != NULL )
-		return (pw_ent->pw_uid);
+		return pw_ent->pw_uid;
 
 	if ( flag == GID && ( grp_ent = getgrnam (string) ) != NULL )
-		return (grp_ent->gr_gid);
+		return grp_ent->gr_gid;
 	else if(ENABLE_DEVFSD_VERBOSE)
 		msg="group";
 
@@ -1269,7 +1259,7 @@ static mode_t get_mode (const char *string)
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	if ( isdigit (string[0]) )
-		return strtoul (string, NULL, 8);
+		return strtoul(string, NULL, 8);
 	if (strlen (string) != 9)
 		msg_logger_and_die(LOG_ERR, "bad mode: %s", string);
 
@@ -1282,7 +1272,7 @@ static mode_t get_mode (const char *string)
 		i=i/2;
 		string++;
 	}
-	return (mode);
+	return mode;
 }   /*  End Function get_mode  */
 
 static void signal_handler (int sig)
@@ -1317,7 +1307,7 @@ static const char *get_variable (const char *variable, void *info)
 	i=index_in_str_array(field_names, variable);
 
 	if ( i > 6 || i < 0 || (i > 1 && gv_info == NULL))
-			return (NULL);
+			return NULL;
 	if( i >= 0 && i <= 3)
 	{
 		debug_msg_logger(LOG_INFO, "%s: i=%d %s", __FUNCTION__, i ,field_names[i+7]);
@@ -1333,7 +1323,7 @@ static const char *get_variable (const char *variable, void *info)
 
 	debug_msg_logger(LOG_INFO, "%s: %s", __FUNCTION__, sbuf);
 
-	return (sbuf);
+	return sbuf;
 }   /*  End Function get_variable  */
 
 static void service(struct stat statbuf, char *path)
@@ -1440,7 +1430,7 @@ static int make_dir_tree (const char *path)
 	if (bb_make_directory( dirname((char *)path), -1, FILEUTILS_RECUR )==-1)
 	{
 		debug_msg_logger(LOG_ERR, "%s: %s: %m",__FUNCTION__, path);
-		return (FALSE);
+		return FALSE;
 	}
 	return TRUE;
 } /*  End Function make_dir_tree  */
@@ -1471,9 +1461,9 @@ static int expand_expression(char *output, unsigned int outsize,
 	debug_msg_logger(LOG_INFO, __FUNCTION__);
 
 	if ( !st_expr_expand (temp, STRING_LENGTH, input, get_variable_func, info) )
-		return (FALSE);
+		return FALSE;
 	expand_regexp (output, outsize, temp, devname, ex, numexp);
-	return (TRUE);
+	return TRUE;
 }   /*  End Function expand_expression  */
 
 static void expand_regexp (char *output, size_t outsize, const char *input,
@@ -1627,9 +1617,9 @@ const char *get_old_name (const char *devname, unsigned int namelen,
 		if (strncmp (devname, trans->match, len) == 0)
 		{
 			if (trans->format == NULL)
-				return (devname + len);
+				return devname + len;
 			sprintf (buffer, trans->format, devname + len);
-			return (buffer);
+			return buffer;
 		}
 	}
 
@@ -1689,7 +1679,7 @@ const char *get_old_name (const char *devname, unsigned int namelen,
 	if(ENABLE_DEBUG && compat_name!=NULL)
 		msg_logger(LOG_INFO, "%s: compat_name  %s", __FUNCTION__, compat_name);
 
-	return (compat_name);
+	return compat_name;
 }   /*  End Function get_old_name  */
 
 static char get_old_ide_name (unsigned int major, unsigned int minor)
@@ -1724,7 +1714,7 @@ static char get_old_ide_name (unsigned int major, unsigned int minor)
 
 	if (minor > 63)
 		++letter;
-	return (letter);
+	return letter;
 }   /*  End Function get_old_ide_name  */
 
 static char *write_old_sd_name (char *buffer,
@@ -1745,7 +1735,7 @@ static char *write_old_sd_name (char *buffer,
 	if (major == 8)
 	{
 		sprintf (buffer, "sd%c%s", 'a' + (minor >> 4), part);
-		return (buffer);
+		return buffer;
 	}
 	if ( (major > 64) && (major < 72) )
 	{
@@ -1754,9 +1744,9 @@ static char *write_old_sd_name (char *buffer,
 			sprintf (buffer, "sd%c%s", 'a' + disc_index, part);
 		else
 			sprintf (buffer, "sd%c%c%s", 'a' + (disc_index / 26) - 1, 'a' + disc_index % 26,part);
-		return (buffer);
+		return buffer;
 	}
-	return (NULL);
+	return NULL;
 }   /*  End Function write_old_sd_name  */
 
 
@@ -1799,7 +1789,7 @@ int st_expr_expand (char *output, unsigned int length, const char *input,
 				/*  Variable expansion  */
 				input = expand_variable (buffer, length, &out_pos, ++input, get_variable_func, info);
 				if (input == NULL)
-					return (FALSE);
+					return FALSE;
 				break;
 			case '~':
 				/*  Home directory expansion  */
@@ -1810,7 +1800,7 @@ int st_expr_expand (char *output, unsigned int length, const char *input,
 					if ( ( env = getenv ("HOME") ) == NULL )
 					{
 						msg_logger(LOG_INFO, bb_msg_variable_not_found, "HOME");
-						return (FALSE);
+						return FALSE;
 					}
 					len = strlen (env);
 					if (len + out_pos >= length)
@@ -1830,7 +1820,7 @@ int st_expr_expand (char *output, unsigned int length, const char *input,
 				if ( ( pwent = getpwnam (tmp) ) == NULL )
 				{
 					msg_logger(LOG_INFO, "no pwent for: %s", tmp);
-					return (FALSE);
+					return FALSE;
 				}
 				len = strlen (pwent->pw_dir);
 				if (len + out_pos >= length)
@@ -1847,16 +1837,16 @@ int st_expr_expand (char *output, unsigned int length, const char *input,
 				if (ch == '\0')
 				{
 					memcpy (output, buffer, out_pos);
-					return (TRUE);
+					return TRUE;
 				}
 				break;
 			/* esac */
 		}
 	}
-	return (FALSE);
+	return FALSE;
 st_expr_expand_out:
 	msg_logger(LOG_INFO, bb_msg_small_buffer);
-	return (FALSE);
+	return FALSE;
 }   /*  End Function st_expr_expand  */
 
 
@@ -1899,7 +1889,7 @@ static const char *expand_variable (char *buffer, unsigned int length,
 
 		memcpy (buffer + *out_pos, tmp, len + 1);
 		out_pos += len;
-		return (input);
+		return input;
 	}
 	/*  Ordinary variable expansion, possibly in braces  */
 	if (ch != '{')
@@ -1916,7 +1906,7 @@ static const char *expand_variable (char *buffer, unsigned int length,
 		if ( ( env = get_variable_v2 (tmp, func, info) ) == NULL )
 		{
 			msg_logger(LOG_INFO, bb_msg_variable_not_found, tmp);
-			return (NULL);
+			return NULL;
 		}
 		len = strlen (env);
 		if (len + *out_pos >= length)
@@ -1924,7 +1914,7 @@ static const char *expand_variable (char *buffer, unsigned int length,
 
 		memcpy (buffer + *out_pos, env, len + 1);
 		*out_pos += len;
-		return (input);
+		return input;
 	}
 	/*  Variable in braces: check for ':' tricks  */
 	ch = *++input;
@@ -1940,13 +1930,13 @@ static const char *expand_variable (char *buffer, unsigned int length,
 		safe_memcpy (tmp, input, len);
 		ptr = expand_variable (buffer, length, out_pos, tmp, func, info );
 		if (ptr == NULL)
-			return (NULL);
-		return (input + len);
+			return NULL;
+		return input + len;
 	}
 	if (ch != ':' || ptr[1] != '-' )
 	{
 		msg_logger(LOG_INFO, "illegal char in var name");
-		return (NULL);
+		return NULL;
 	}
 	/*  It's that handy "${var:-word}" expression. Check if var is defined  */
 	len = ptr - input;
@@ -1971,7 +1961,7 @@ static const char *expand_variable (char *buffer, unsigned int length,
 				break;
 			case '\0':
 				msg_logger(LOG_INFO,"\"}\" not found in: %s", input);
-				return (NULL);
+				return NULL;
 			default:
 				break;
 		}
@@ -1989,7 +1979,7 @@ static const char *expand_variable (char *buffer, unsigned int length,
 
 		memcpy (buffer + *out_pos, env, len + 1);
 		*out_pos += len;
-		return (input);
+		return input;
 	}
 	/*  Environment variable was not found, so process word. Advance input
 	pointer to start of word in "${var:-word}"  */
@@ -2001,17 +1991,17 @@ static const char *expand_variable (char *buffer, unsigned int length,
 	safe_memcpy (tmp, input, len);
 	input = ptr;
 	if ( !st_expr_expand (tmp, STRING_LENGTH, tmp, func, info ) )
-		return (NULL);
+		return NULL;
 	len = strlen (tmp);
 	if (len + *out_pos >= length)
 		goto expand_variable_out;
 
 	memcpy (buffer + *out_pos, tmp, len + 1);
 	*out_pos += len;
-	return (input);
+	return input;
 expand_variable_out:
 	msg_logger(LOG_INFO, bb_msg_small_buffer);
-	return (NULL);
+	return NULL;
 }   /*  End Function expand_variable  */
 
 
@@ -2034,9 +2024,9 @@ static const char *get_variable_v2 (const char *variable,
 	{
 		value = (*func) (variable, info);
 		if (value != NULL)
-			return (value);
+			return value;
 	}
-	return getenv (variable);
+	return getenv(variable);
 }   /*  End Function get_variable  */
 
 /* END OF CODE */

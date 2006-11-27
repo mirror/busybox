@@ -74,7 +74,7 @@ int bb_dump_size(FS * fs)
 		}
 		cur_size += bcnt * fu->reps;
 	}
-	return (cur_size);
+	return cur_size;
 }
 
 static void rewrite(FS * fs)
@@ -374,17 +374,17 @@ static unsigned char *get(void)
 		 */
 		if (!bb_dump_length || (ateof && !next((char **) NULL))) {
 			if (need == bb_dump_blocksize) {
-				return ((unsigned char *) NULL);
+				return NULL;
 			}
 			if (bb_dump_vflag != ALL && !memcmp(curp, savp, nread)) {
 				if (bb_dump_vflag != DUP) {
-					printf("*\n");
+					puts("*");
 				}
-				return ((unsigned char *) NULL);
+				return NULL;
 			}
 			memset((char *) curp + nread, 0, need);
 			eaddress = address + nread;
-			return (curp);
+			return curp;
 		}
 		n = fread((char *) curp + nread, sizeof(unsigned char),
 				  bb_dump_length == -1 ? need : MIN(bb_dump_length, need), stdin);
@@ -405,10 +405,10 @@ static unsigned char *get(void)
 				if (bb_dump_vflag == DUP || bb_dump_vflag == FIRST) {
 					bb_dump_vflag = WAIT;
 				}
-				return (curp);
+				return curp;
 			}
 			if (bb_dump_vflag == WAIT) {
-				printf("*\n");
+				puts("*");
 			}
 			bb_dump_vflag = DUP;
 			address = savaddress += bb_dump_blocksize;
@@ -665,7 +665,7 @@ int bb_dump_dump(char **argv)
 	next(argv);
 	display();
 
-	return (exitval);
+	return exitval;
 }
 
 void bb_dump_add(const char *fmt)

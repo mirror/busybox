@@ -175,7 +175,7 @@ Modified IPv6-aware C code:
        (void) fprintf(stderr,
           "getaddrinfo: %s for host %s service %s\n",
           gai_strerror(error), hostname, servicename);
-       return (-1);
+       return -1;
     }
     /* Try all returned addresses until one works */
     for (aip = res; aip != NULL; aip = aip->ai_next) {
@@ -187,7 +187,7 @@ Modified IPv6-aware C code:
        if (sock == -1) {
           perror("socket");
           freeaddrinfo(res);
-          return (-1);
+          return -1;
        }
 
        /* Connect to the host. */

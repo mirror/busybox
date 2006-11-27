@@ -1233,7 +1233,7 @@ static int count_lines(Byte * start, Byte * stop) // count line from start to st
 		if (*q == '\n')
 			cnt++;
 	}
-	return (cnt);
+	return cnt;
 }
 
 static Byte *find_line(int li)	// find begining of line #li
@@ -1373,7 +1373,7 @@ static Byte *new_screen(int ro, int co)
 	for (li = 1; li < ro - 1; li++) {
 		screen[(li * co) + 0] = '~';
 	}
-	return (screen);
+	return screen;
 }
 
 static Byte *new_text(int size)
@@ -1384,7 +1384,7 @@ static Byte *new_text(int size)
 	text = (Byte *) xmalloc(size + 8);
 	memset(text, '\0', size);	// clear new text[]
 	//text += 4;		// leave some room for "oops"
-	return (text);
+	return text;
 }
 
 #ifdef CONFIG_FEATURE_VI_SEARCH
@@ -1398,7 +1398,7 @@ static int mycmp(Byte * s1, Byte * s2, int len)
 		i = strncasecmp((char *) s1, (char *) s2, len);
 	}
 #endif							/* CONFIG_FEATURE_VI_SETOPTS */
-	return (i);
+	return i;
 }
 
 static Byte *char_search(Byte * p, Byte * pat, int dir, int range)	// search for pattern starting at p
@@ -1414,7 +1414,7 @@ static Byte *char_search(Byte * p, Byte * pat, int dir, int range)	// search for
 			stop = next_line(p);	// range is to next line
 		for (start = p; start < stop; start++) {
 			if (mycmp(start, pat, len) == 0) {
-				return (start);
+				return start;
 			}
 		}
 	} else if (dir == BACK) {
@@ -1423,12 +1423,12 @@ static Byte *char_search(Byte * p, Byte * pat, int dir, int range)	// search for
 			stop = prev_line(p);	// range is to prev line
 		for (start = p - len; start >= stop; start--) {
 			if (mycmp(start, pat, len) == 0) {
-				return (start);
+				return start;
 			}
 		}
 	}
 	// pattern not found
-	return (NULL);
+	return NULL;
 #else							/*REGEX_SEARCH */
 	char *q;
 	struct re_pattern_buffer preg;
@@ -1608,7 +1608,7 @@ static Byte find_range(Byte ** start, Byte ** stop, Byte c)
 		*stop = p;
 	}
 	dot = save_dot;
-	return (c);
+	return c;
 }
 
 static int st_test(Byte * p, int type, int dir, Byte * tested)
@@ -1642,7 +1642,7 @@ static int st_test(Byte * p, int type, int dir, Byte * tested)
 		test = ((isalnum(c)) || c == '_');
 	}
 	*tested = c;
-	return (test);
+	return test;
 }
 
 static Byte *skip_thing(Byte * p, int linecnt, int dir, int type)
@@ -1784,7 +1784,7 @@ static Byte *text_hole_delete(Byte * p, Byte * q) // delete "p" thru "q", inclus
 		dest = end = text;	// keep pointers valid
 	file_modified++;	// has the file been modified
   thd0:
-	return (dest);
+	return dest;
 }
 
 // copy text into register, then delete text.
@@ -1968,7 +1968,7 @@ static Byte what_reg(void)
 		c = 'D';
 	if (YDreg == 27)
 		c = 'U';
-	return (c);
+	return c;
 }
 
 static void check_context(Byte cmd)
@@ -2086,7 +2086,7 @@ static int mysleep(int hund)	// sleep for 'h' 1/100 seconds
 	tv.tv_sec = 0;
 	tv.tv_usec = hund * 10000;
 	select(1, &rfds, NULL, NULL, &tv);
-	return (FD_ISSET(0, &rfds));
+	return FD_ISSET(0, &rfds);
 }
 
 #define readbuffer bb_common_bufsiz1
@@ -2214,7 +2214,7 @@ static Byte readit(void)	// read (maybe cursor) key from stdin
 	readed_for_parse -= n;
 	memmove(readbuffer, readbuffer + n, BUFSIZ - n);
 	(void) alarm(3);	// we are done waiting for input, turn alarm ON
-	return (c);
+	return c;
 }
 
 //----- IO Routines --------------------------------------------
@@ -2258,7 +2258,7 @@ static Byte get_one_char(void)
 #else							/* CONFIG_FEATURE_VI_DOT_CMD */
 	c = readit();		// get the users input
 #endif							/* CONFIG_FEATURE_VI_DOT_CMD */
-	return (c);			// return the char, where ever it came from
+	return c;			// return the char, where ever it came from
 }
 
 static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
@@ -2297,7 +2297,7 @@ static Byte *get_input_line(Byte * prompt) // get input line- use "status line"
 	refresh(FALSE);
 	free(obufp);
 	obufp = (Byte *) xstrdup((char *) buf);
-	return (obufp);
+	return obufp;
 }
 
 static int file_size(const Byte * fn) // what is the byte size of "fn"
@@ -2312,7 +2312,7 @@ static int file_size(const Byte * fn) // what is the byte size of "fn"
 	if (sr >= 0) {
 		cnt = (int) st_buf.st_size;
 	}
-	return (cnt);
+	return cnt;
 }
 
 static int file_insert(Byte * fn, Byte * p, int size)
@@ -2376,7 +2376,7 @@ static int file_insert(Byte * fn, Byte * p, int size)
 	if (cnt >= size)
 		file_modified++;
   fi0:
-	return (cnt);
+	return cnt;
 }
 
 static int file_write(Byte * fn, Byte * first, Byte * last)
@@ -2385,7 +2385,7 @@ static int file_write(Byte * fn, Byte * first, Byte * last)
 
 	if (fn == 0) {
 		psbs("No current filename");
-		return (-2);
+		return -2;
 	}
 	charcnt = 0;
 	// FIXIT- use the correct umask()
@@ -2401,7 +2401,7 @@ static int file_write(Byte * fn, Byte * first, Byte * last)
 		charcnt = 0;
 	}
 	close(fd);
-	return (charcnt);
+	return charcnt;
 }
 
 //----- Terminal Drawing ---------------------------------------

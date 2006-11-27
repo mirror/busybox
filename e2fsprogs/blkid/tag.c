@@ -257,7 +257,7 @@ blkid_tag_iterate blkid_tag_iterate_begin(blkid_dev dev)
 	iter->magic = TAG_ITERATE_MAGIC;
 	iter->dev = dev;
 	iter->p	= dev->bid_tags.next;
-	return (iter);
+	return iter;
 }
 
 /*

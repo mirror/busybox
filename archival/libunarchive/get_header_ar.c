@@ -68,12 +68,12 @@ char get_header_ar(archive_handle_t *archive_handle)
 			archive_handle->offset += ar_long_name_size;
 			/* This ar entries data section only contained filenames for other records
 			 * they are stored in the static ar_long_names for future reference */
-			return (get_header_ar(archive_handle)); /* Return next header */
+			return get_header_ar(archive_handle); /* Return next header */
 		} else if (ar.formatted.name[1] == ' ') {
 			/* This is the index of symbols in the file for compilers */
 			data_skip(archive_handle);
 			archive_handle->offset += typed->size;
-			return (get_header_ar(archive_handle)); /* Return next header */
+			return get_header_ar(archive_handle); /* Return next header */
 		} else {
 			/* The number after the '/' indicates the offset in the ar data section
 			(saved in variable long_name) that conatains the real filename */

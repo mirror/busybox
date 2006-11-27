@@ -1260,7 +1260,7 @@ int gzip_main(int argc, char **argv)
 		}
 	}
 
-	return (exit_code);
+	return exit_code;
 }
 
 /* trees.c -- output deflated data using Huffman coding

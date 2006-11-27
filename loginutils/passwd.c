@@ -261,16 +261,16 @@ static int create_backup(const char *backup, FILE * fp)
 static int i64c(int i)
 {
 	if (i <= 0)
-		return ('.');
+		return '.';
 	if (i == 1)
-		return ('/');
+		return '/';
 	if (i >= 2 && i < 12)
 		return ('0' - 2 + i);
 	if (i >= 12 && i < 38)
 		return ('A' - 12 + i);
 	if (i >= 38 && i < 63)
 		return ('a' - 38 + i);
-	return ('z');
+	return 'z';
 }
 
 static char *crypt_make_salt(void)

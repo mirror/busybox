@@ -117,7 +117,7 @@ blkid_dev_iterate blkid_dev_iterate_begin(blkid_cache cache)
 	iter->magic = DEV_ITERATE_MAGIC;
 	iter->cache = cache;
 	iter->p	= cache->bic_devs.next;
-	return (iter);
+	return iter;
 }
 
 /*

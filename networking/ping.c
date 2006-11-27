@@ -65,7 +65,7 @@ static int in_cksum(unsigned short *buf, int sz)
 	sum = (sum >> 16) + (sum & 0xFFFF);
 	sum += (sum >> 16);
 	ans = ~sum;
-	return (ans);
+	return ans;
 }
 
 #ifndef CONFIG_FEATURE_FANCY_PING

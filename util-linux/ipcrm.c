@@ -71,7 +71,7 @@ static int remove_ids(type_id type, int argc, char **argv)
 		argv++;
 	}
 
-	return (nb_errors);
+	return nb_errors;
 }
 #endif /* #ifndef CONFIG_IPCRM_DROP_LEGACY */
 

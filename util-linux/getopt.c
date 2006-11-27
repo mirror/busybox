@@ -317,10 +317,10 @@ int getopt_main(int argc, char *argv[])
 		s=xmalloc(strlen(argv[1])+1);
 		strcpy(s,argv[1]+strspn(argv[1],"-+"));
 		argv[1]=argv[0];
-		return (generate_output(argv+1,argc-1,s,long_options));
+		return generate_output(argv+1,argc-1,s,long_options);
 	}
 
-	while ((opt=getopt_long(argc,argv,shortopts,longopts,NULL)) != EOF)
+	while ((opt = getopt_long(argc,argv,shortopts,longopts,NULL)) != EOF)
 		switch (opt) {
 		case 'a':
 			alternative=1;

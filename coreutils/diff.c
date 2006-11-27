@@ -342,7 +342,7 @@ static int isqrt(int n)
 		x /= 2;
 	} while ((x - y) > 1 || (x - y) < -1);
 
-	return (x);
+	return x;
 }
 
 static int newcand(int x, int y, int pred)
@@ -357,7 +357,7 @@ static int newcand(int x, int y, int pred)
 	q->x = x;
 	q->y = y;
 	q->pred = pred;
-	return (clen++);
+	return clen++;
 }
 
 
@@ -366,7 +366,7 @@ static int search(int *c, int k, int y)
 	int i, j, l, t;
 
 	if (clist[c[k]].y < y)	/* quick look for typical case */
-		return (k + 1);
+		return k + 1;
 	i = 0;
 	j = k + 1;
 	while (1) {
@@ -379,9 +379,9 @@ static int search(int *c, int k, int y)
 		else if (t < y)
 			i = l;
 		else
-			return (l);
+			return l;
 	}
-	return (l + 1);
+	return l + 1;
 }
 
 
@@ -428,7 +428,7 @@ static int stone(int *a, int n, int *b, int *c)
 			}
 		} while ((y = b[++j]) > 0 && numtries < bound);
 	}
-	return (k);
+	return k;
 }
 
 static void unravel(int p)
@@ -461,7 +461,7 @@ static int skipline(FILE * f)
 
 	for (i = 1; (c = getc(f)) != '\n' && c != EOF; i++)
 		continue;
-	return (i);
+	return i;
 }
 
 
@@ -977,7 +977,7 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 		free(file1);
 	if (file2 != ofile2)
 		free(file2);
-	return (rval);
+	return rval;
 }
 
 #if ENABLE_FEATURE_DIFF_DIR

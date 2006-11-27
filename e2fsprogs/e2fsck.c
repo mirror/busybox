@@ -1422,7 +1422,7 @@ static int journal_bmap(journal_t *journal, blk_t block, unsigned long *phys)
 	retval= ext2fs_bmap(inode->i_ctx->fs, inode->i_ino,
 			    &inode->i_ext2, NULL, 0, block, &pblk);
 	*phys = pblk;
-	return (retval);
+	return retval;
 #endif
 }
 

@@ -112,7 +112,7 @@ int ext2fs_super_and_bgd_loc(ext2_filsys fs,
 		*ret_new_desc_blk = new_desc_blk;
 	if (ret_meta_bg)
 		*ret_meta_bg = meta_bg;
-	return (numblocks);
+	return numblocks;
 }
 
 

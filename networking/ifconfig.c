@@ -543,6 +543,6 @@ static int in_ether(const char *bufp, struct sockaddr *sap)
 		*ptr++ = val;
 	} while (++i < ETH_ALEN);
 
-	return (int) (*bufp);	/* Error if we don't end at end of string. */
+	return *bufp; /* Error if we don't end at end of string. */
 }
 #endif

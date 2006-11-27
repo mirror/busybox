@@ -380,7 +380,7 @@ static time_t parse_time(char *str)
 	struct	tm	ts;
 
 	if (strcmp(str, "now") == 0) {
-		return (time(0));
+		return time(0);
 	}
 	memset(&ts, 0, sizeof(ts));
 #ifdef HAVE_STRPTIME
@@ -398,7 +398,7 @@ static time_t parse_time(char *str)
 	if (ts.tm_mday == 0) {
 		bb_error_msg_and_die("Cannot parse date/time specifier: %s", str);
 	}
-	return (mktime(&ts));
+	return mktime(&ts);
 }
 
 static void parse_tune2fs_options(int argc, char **argv)

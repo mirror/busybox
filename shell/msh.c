@@ -1022,31 +1022,31 @@ struct op *scantree(struct op *head)
 	struct op *dotnode;
 
 	if (head == NULL)
-		return (NULL);
+		return NULL;
 
 	if (head->left != NULL) {
 		dotnode = scantree(head->left);
 		if (dotnode)
-			return (dotnode);
+			return dotnode;
 	}
 
 	if (head->right != NULL) {
 		dotnode = scantree(head->right);
 		if (dotnode)
-			return (dotnode);
+			return dotnode;
 	}
 
 	if (head->words == NULL)
-		return (NULL);
+		return NULL;
 
 	DBGPRINTF5(("SCANTREE: checking node %p\n", head));
 
 	if ((head->type != TDOT) && (strcmp(".", head->words[0]) == 0)) {
 		DBGPRINTF5(("SCANTREE: dot found in node %p\n", head));
-		return (head);
+		return head;
 	}
 
-	return (NULL);
+	return NULL;
 }
 
 
@@ -1219,7 +1219,7 @@ static int any(int c, char *s)
 
 static char *putn(int n)
 {
-	return (itoa(n));
+	return itoa(n);
 }
 
 static void next(int f)
@@ -1248,7 +1248,7 @@ static char *space(int n)
 
 	if ((cp = getcell(n)) == 0)
 		err("out of string space");
-	return (cp);
+	return cp;
 }
 
 static char *strsave(char *s, int a)
@@ -1258,9 +1258,9 @@ static char *strsave(char *s, int a)
 	if ((cp = space(strlen(s) + 1)) != NULL) {
 		setarea((char *) cp, a);
 		for (xp = cp; (*xp++ = *s++) != '\0';);
-		return (cp);
+		return cp;
 	}
-	return ("");
+	return "";
 }
 
 /*
@@ -1306,16 +1306,16 @@ static struct var *lookup(char *n)
 			c = c * 10 + *n - '0';
 		dummy.status = RONLY;
 		dummy.value = c <= dolc ? dolv[c] : null;
-		return (&dummy);
+		return &dummy;
 	}
 	for (vp = vlist; vp; vp = vp->next)
 		if (eqname(vp->name, n))
-			return (vp);
+			return vp;
 	cp = findeq(n);
 	vp = (struct var *) space(sizeof(*vp));
 	if (vp == 0 || (vp->name = space((int) (cp - n) + 2)) == 0) {
 		dummy.name = dummy.value = "";
-		return (&dummy);
+		return &dummy;
 	}
 	for (cp = vp->name; (*cp = *n++) && *cp != '='; cp++);
 	if (*cp == 0)
@@ -1327,7 +1327,7 @@ static struct var *lookup(char *n)
 	vp->next = vlist;
 	vp->status = GETCELL;
 	vlist = vp;
-	return (vp);
+	return vp;
 }
 
 /*
@@ -1455,14 +1455,14 @@ static int eqname(char *n1, char *n2)
 	for (; *n1 != '=' && *n1 != 0; n1++)
 		if (*n2++ != *n1)
 			return 0;
-	return (*n2 == 0 || *n2 == '=');
+	return *n2 == 0 || *n2 == '=';
 }
 
 static char *findeq(char *cp)
 {
 	while (*cp != '\0' && *cp != '=')
 		cp++;
-	return (cp);
+	return cp;
 }
 
 /* -------- gmatch.c -------- */
@@ -1510,7 +1510,7 @@ static int gmatch(char *s, char *p)
 				return 0;
 		}
 	}
-	return (*s == 0);
+	return *s == 0;
 }
 
 static char *cclass(char *p, int sub)
@@ -1522,7 +1522,7 @@ static char *cclass(char *p, int sub)
 	found = not;
 	do {
 		if (*p == '\0')
-			return ((char *) NULL);
+			return NULL;
 		c = *p & CMASK;
 		if (p[1] == '-' && p[2] != ']') {
 			d = p[2] & CMASK;
@@ -1532,7 +1532,7 @@ static char *cclass(char *p, int sub)
 		if (c == sub || (c <= sub && sub <= d))
 			found = !not;
 	} while (*++p != ']');
-	return (found ? p + 1 : (char *) NULL);
+	return found ? p + 1 : NULL;
 }
 
 
@@ -1596,7 +1596,7 @@ char *getcell(unsigned nbytes)
 	i = nregio >= GROWBY ? nregio : GROWBY;
 	p = (struct region *) sbrk(i * REGSIZE);
 	if (p == (struct region *) -1)
-		return ((char *) NULL);
+		return NULL;
 	p--;
 	if (p != areatop) {
 		puts("not contig");
@@ -1608,7 +1608,7 @@ char *getcell(unsigned nbytes)
 	q->next = areabot;
 	q->area = BUSY;
 	areatop = q;
-  found:
+ found:
 	/*
 	 * we found a FREE area big enough, pointed to by 'p', and up to 'q'
 	 */
@@ -1626,7 +1626,7 @@ char *getcell(unsigned nbytes)
 		p->next = areanxt;
 	}
 	p->area = areanum;
-	return ((char *) (p + 1));
+	return (char *) (p + 1);
 }
 
 static void freecell(char *cp)
@@ -1732,7 +1732,7 @@ static struct op *pipeline(int cf)
 	}
 
 	DBGPRINTF7(("PIPELINE: returning t=%p\n", t));
-	return (t);
+	return t;
 }
 
 static struct op *andor(void)
@@ -1760,7 +1760,7 @@ static struct op *andor(void)
 	}
 
 	DBGPRINTF7(("ANDOR: returning t=%p\n", t));
-	return (t);
+	return t;
 }
 
 static struct op *c_list(void)
@@ -1780,7 +1780,7 @@ static struct op *c_list(void)
 			   || (multiline && c == '\n')) {
 
 			if ((p = andor()) == NULL)
-				return (t);
+				return t;
 
 			if ((peeksym = yylex(0)) == '&')
 				p = block(TASYNC, p, NOBLOCK, NOWORDS);
@@ -1792,7 +1792,7 @@ static struct op *c_list(void)
 	}
 	/* IF */
 	DBGPRINTF7(("C_LIST: returning t=%p\n", t));
-	return (t);
+	return t;
 }
 
 static int synio(int cf)
@@ -1852,7 +1852,7 @@ static struct op *simple(void)
 			break;
 
 		default:
-			return (t);
+			return t;
 		}
 	}
 }
@@ -1867,7 +1867,7 @@ static struct op *nested(int type, int mark)
 	t = c_list();
 	musthave(mark, 0);
 	multiline--;
-	return (block(type, t, NOBLOCK, NOWORDS));
+	return block(type, t, NOBLOCK, NOWORDS);
 }
 
 static struct op *command(int cf)
@@ -1894,7 +1894,7 @@ static struct op *command(int cf)
 		peeksym = c;
 		if ((t = simple()) == NULL) {
 			if (iolist == NULL)
-				return ((struct op *) NULL);
+				return NULL;
 			t = newtp();
 			t->type = TCOM;
 		}
@@ -1980,7 +1980,7 @@ static struct op *command(int cf)
 
 	DBGPRINTF(("COMMAND: returning %p\n", t));
 
-	return (t);
+	return t;
 }
 
 static struct op *dowholefile(int type, int mark)
@@ -1994,7 +1994,7 @@ static struct op *dowholefile(int type, int mark)
 	multiline--;
 	t = block(type, t, NOBLOCK, NOWORDS);
 	DBGPRINTF(("DOWHOLEFILE: return t=%p\n", t));
-	return (t);
+	return t;
 }
 
 static struct op *dogroup(int onlydone)
@@ -2004,12 +2004,12 @@ static struct op *dogroup(int onlydone)
 
 	c = yylex(CONTIN);
 	if (c == DONE && onlydone)
-		return ((struct op *) NULL);
+		return NULL;
 	if (c != DO)
 		SYNTAXERR;
 	mylist = c_list();
 	musthave(DONE, 0);
-	return (mylist);
+	return mylist;
 }
 
 static struct op *thenpart(void)
@@ -2019,7 +2019,7 @@ static struct op *thenpart(void)
 
 	if ((c = yylex(0)) != THEN) {
 		peeksym = c;
-		return ((struct op *) NULL);
+		return NULL;
 	}
 	t = newtp();
 	t->type = 0;
@@ -2027,7 +2027,7 @@ static struct op *thenpart(void)
 	if (t->left == NULL)
 		SYNTAXERR;
 	t->right = elsepart();
-	return (t);
+	return t;
 }
 
 static struct op *elsepart(void)
@@ -2039,18 +2039,18 @@ static struct op *elsepart(void)
 	case ELSE:
 		if ((t = c_list()) == NULL)
 			SYNTAXERR;
-		return (t);
+		return t;
 
 	case ELIF:
 		t = newtp();
 		t->type = TELIF;
 		t->left = c_list();
 		t->right = thenpart();
-		return (t);
+		return t;
 
 	default:
 		peeksym = c;
-		return ((struct op *) NULL);
+		return NULL;
 	}
 }
 
@@ -2065,7 +2065,7 @@ static struct op *caselist(void)
 	}
 
 	DBGPRINTF(("CASELIST, returning t=%p\n", t));
-	return (t);
+	return t;
 }
 
 static struct op *casepart(void)
@@ -2084,7 +2084,7 @@ static struct op *casepart(void)
 
 	DBGPRINTF7(("CASEPART: made newtp(TPAT, t=%p)\n", t));
 
-	return (t);
+	return t;
 }
 
 static char **pattern(void)
@@ -2100,7 +2100,7 @@ static char **pattern(void)
 	peeksym = c;
 	word(NOWORD);
 
-	return (copyw());
+	return copyw();
 }
 
 static char **wordlist(void)
@@ -2109,14 +2109,14 @@ static char **wordlist(void)
 
 	if ((c = yylex(0)) != IN) {
 		peeksym = c;
-		return ((char **) NULL);
+		return NULL;
 	}
 	startl = 0;
 	while ((c = yylex(0)) == WORD)
 		word(yylval.cp);
 	word(NOWORD);
 	peeksym = c;
-	return (copyw());
+	return copyw();
 }
 
 /*
@@ -2127,11 +2127,11 @@ static struct op *list(struct op *t1, struct op *t2)
 	DBGPRINTF7(("LIST: enter, t1=%p, t2=%p\n", t1, t2));
 
 	if (t1 == NULL)
-		return (t2);
+		return t2;
 	if (t2 == NULL)
-		return (t1);
+		return t1;
 
-	return (block(TLIST, t1, t2, NOWORDS));
+	return block(TLIST, t1, t2, NOWORDS);
 }
 
 static struct op *block(int type, struct op *t1, struct op *t2, char **wp)
@@ -2149,7 +2149,7 @@ static struct op *block(int type, struct op *t1, struct op *t2, char **wp)
 	DBGPRINTF7(("BLOCK: inserted %p between %p and %p\n", t, t1,
 				t2));
 
-	return (t);
+	return t;
 }
 
 /* See if given string is a shell multiline (FOR, IF, etc) */
@@ -2162,7 +2162,7 @@ static int rlookup(char *n)
 	for (rp = restab; rp->r_name; rp++)
 		if (strcmp(rp->r_name, n) == 0) {
 			DBGPRINTF7(("RLOOKUP: match, returning %d\n", rp->r_val));
-			return (rp->r_val);	/* Return numeric code for shell multiline */
+			return rp->r_val;	/* Return numeric code for shell multiline */
 		}
 
 	DBGPRINTF7(("RLOOKUP: NO match, returning 0\n"));
@@ -2183,7 +2183,7 @@ static struct op *newtp(void)
 
 	DBGPRINTF3(("NEWTP: allocated %p\n", t));
 
-	return (t);
+	return t;
 }
 
 static struct op *namelist(struct op *t)
@@ -2204,14 +2204,14 @@ static struct op *namelist(struct op *t)
 			t->ioact = t->left->ioact;
 			t->left->ioact = NULL;
 		}
-		return (t);
+		return t;
 	}
 
 	word(NOWORD);
 	t->words = copyw();
 
 
-	return (t);
+	return t;
 }
 
 static char **copyw(void)
@@ -2220,7 +2220,7 @@ static char **copyw(void)
 
 	wd = getwords(wdlist);
 	wdlist = 0;
-	return (wd);
+	return wd;
 }
 
 static void word(char *cp)
@@ -2234,7 +2234,7 @@ static struct ioword **copyio(void)
 
 	iop = (struct ioword **) getwords(iolist);
 	iolist = 0;
-	return (iop);
+	return iop;
 }
 
 static struct ioword *io(int u, int f, char *cp)
@@ -2246,7 +2246,7 @@ static struct ioword *io(int u, int f, char *cp)
 	iop->io_flag = f;
 	iop->io_name = cp;
 	iolist = addword((char *) iop, iolist);
-	return (iop);
+	return iop;
 }
 
 static void zzerr(void)
@@ -2274,7 +2274,7 @@ static int yylex(int cf)
 		peeksym = 0;
 		if (c == '\n')
 			startl = 1;
-		return (c);
+		return c;
 	}
 
 
@@ -2311,14 +2311,14 @@ static int yylex(int cf)
 
 	case 0:
 		DBGPRINTF5(("YYLEX: return 0, c=%d\n", c));
-		return (c);
+		return c;
 
 	case '$':
 		DBGPRINTF9(("YYLEX: found $\n"));
 		*e.linep++ = c;
 		if ((c = my_getc(0)) == '{') {
 			if ((c = collect(c, '}')) != '\0')
-				return (c);
+				return c;
 			goto pack;
 		}
 		break;
@@ -2327,7 +2327,7 @@ static int yylex(int cf)
 	case '\'':
 	case '"':
 		if ((c = collect(c, c)) != '\0')
-			return (c);
+			return c;
 		goto pack;
 
 	case '|':
@@ -2336,17 +2336,17 @@ static int yylex(int cf)
 		startl = 1;
 		/* If more chars process them, else return NULL char */
 		if ((c1 = dual(c)) != '\0')
-			return (c1);
+			return c1;
 		else
-			return (c);
+			return c;
 
 	case '^':
 		startl = 1;
-		return ('|');
+		return '|';
 	case '>':
 	case '<':
 		diag(c);
-		return (c);
+		return c;
 
 	case '\n':
 		nlseen++;
@@ -2363,12 +2363,12 @@ static int yylex(int cf)
 			if (cf & CONTIN)
 				goto loop;
 		}
-		return (c);
+		return c;
 
 	case '(':
 	case ')':
 		startl = 1;
-		return (c);
+		return c;
 	}
 
 	unget(c);
@@ -2390,11 +2390,11 @@ static int yylex(int cf)
 
 	if (atstart && (c = rlookup(line)) != 0) {
 		startl = 1;
-		return (c);
+		return c;
 	}
 
 	yylval.cp = strsave(line, areanum);
-	return (WORD);
+	return WORD;
 }
 
 
@@ -2412,7 +2412,7 @@ static int collect(int c, int c1)
 			s[1] = 0;
 			prs("no closing ");
 			yyerror(s);
-			return (YYERRCODE);
+			return YYERRCODE;
 		}
 		if (interactive && c == '\n' && e.iop <= iostack) {
 #ifdef CONFIG_FEATURE_COMMAND_EDITING
@@ -2448,7 +2448,7 @@ static int dual(int c)
 	if (c == 0)
 		unget(*--cp);			/* String is not a shell multiline, put peek char back */
 
-	return (c);					/* String is multiline, return numeric multiline (restab) code */
+	return c;					/* String is multiline, return numeric multiline (restab) code */
 }
 
 static void diag(int ec)
@@ -2481,7 +2481,7 @@ static char *tree(unsigned size)
 		fail();
 		/* NOTREACHED */
 	}
-	return (t);
+	return t;
 }
 
 /* VARARGS1 */
@@ -2701,7 +2701,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 	}
 
 	DBGPRINTF(("EXECUTE: returning from t=%p, rv=%d\n", t, rv));
-	return (rv);
+	return rv;
 }
 
 static int
@@ -2759,7 +2759,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 		if (cp == NULL && t->ioact == NULL) {
 			while ((cp = *owp++) != NULL && assign(cp, COPYV));
 			DBGPRINTF(("FORKEXEC: returning setstatus()\n"));
-			return (setstatus(0));
+			return setstatus(0);
 		} else if (cp != NULL) {
 			shcom = inbuilt(cp);
 		}
@@ -2864,7 +2864,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 			if (iosetup(*iopp++, pin != NULL, pout != NULL)) {
 				if (forked)
 					_exit(rv);
-				return (rv);
+				return rv;
 			}
 	}
 
@@ -2873,7 +2873,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 		if (forked)
 			_exit(i);
 		DBGPRINTF(("FORKEXEC: returning i=%d\n", i));
-		return (i);
+		return i;
 	}
 
 	/* should use FIOCEXCL */
@@ -3005,7 +3005,7 @@ static struct op **find1case(struct op *t, char *w)
 
 	if (t == NULL) {
 		DBGPRINTF3(("FIND1CASE: enter, t==NULL, returning.\n"));
-		return ((struct op **) NULL);
+		return NULL;
 	}
 
 	DBGPRINTF3(("FIND1CASE: enter, t->type=%d (%s)\n", t->type,
@@ -3014,7 +3014,7 @@ static struct op **find1case(struct op *t, char *w)
 	if (t->type == TLIST) {
 		if ((tp = find1case(t->left, w)) != NULL) {
 			DBGPRINTF3(("FIND1CASE: found one to the left, returning tp=%p\n", tp));
-			return (tp);
+			return tp;
 		}
 		t1 = t->right;			/* TPAT */
 	} else
@@ -3024,18 +3024,19 @@ static struct op **find1case(struct op *t, char *w)
 		if ((cp = evalstr(*wp++, DOSUB)) && gmatch(w, cp)) {
 			DBGPRINTF3(("FIND1CASE: returning &t1->left= %p.\n",
 						&t1->left));
-			return (&t1->left);
+			return &t1->left;
 		}
 
 	DBGPRINTF(("FIND1CASE: returning NULL\n"));
-	return ((struct op **) NULL);
+	return NULL;
 }
 
 static struct op *findcase(struct op *t, char *w)
 {
 	struct op **tp;
 
-	return ((tp = find1case(t, w)) != NULL ? *tp : (struct op *) NULL);
+	tp = find1case(t, w);
+	return tp != NULL ? *tp : NULL;
 }
 
 /*
@@ -3106,14 +3107,14 @@ static int waitfor(int lastpid, int canintr)
 			onintr(0);
 		}
 	}
-	return (rv);
+	return rv;
 }
 
 static int setstatus(int s)
 {
 	exstat = s;
 	setval(lookup("?"), putn(s));
-	return (s);
+	return s;
 }
 
 /*
@@ -3165,20 +3166,20 @@ static char *rexecve(char *c, char **v, char **envp)
 			*v = e.linep;
 			execve(DEFAULT_SHELL, v, envp);
 			*v = tp;
-			return ("no Shell");
+			return "no Shell";
 
 		case ENOMEM:
-			return ((char *) bb_msg_memory_exhausted);
+			return (char *) bb_msg_memory_exhausted;
 
 		case E2BIG:
-			return ("argument list too long");
+			return "argument list too long";
 
 		case EACCES:
 			eacces++;
 			break;
 		}
 	}
-	return (errno == ENOENT ? "not found" : "cannot execute");
+	return errno == ENOENT ? "not found" : "cannot execute";
 }
 
 /*
@@ -3228,7 +3229,7 @@ static int run(struct ioarg *argp, int (*f) (struct ioarg *))
 	outtree = otree;
 	freearea(areanum--);
 
-	return (rv);
+	return rv;
 }
 
 /* -------- do.c -------- */
@@ -3412,7 +3413,7 @@ static int dodot(struct op *t)
 
 			DBGPRINTF(("DODOT: returning exstat=%d\n", exstat));
 
-			return (exstat);
+			return exstat;
 		}
 
 	}							/* While */
@@ -3458,12 +3459,12 @@ static int doread(struct op *t)
 			break;
 		setval(lookup(*wp), e.linep);
 	}
-	return (nb <= 0);
+	return nb <= 0;
 }
 
 static int doeval(struct op *t)
 {
-	return (RUN(awordlist, t->words + 1, wdchar));
+	return RUN(awordlist, t->words + 1, wdchar);
 }
 
 static int dotrap(struct op *t)
@@ -3513,7 +3514,7 @@ static int getsig(char *s)
 		err("trap: bad signal number");
 		n = 0;
 	}
-	return (n);
+	return n;
 }
 
 static void setsig(int n, sighandler_t f)
@@ -3543,17 +3544,17 @@ static int getn(char *as)
 		prs(as);
 		err(": bad number");
 	}
-	return (n * m);
+	return n * m;
 }
 
 static int dobreak(struct op *t)
 {
-	return (brkcontin(t->words[1], 1));
+	return brkcontin(t->words[1], 1);
 }
 
 static int docontinue(struct op *t)
 {
-	return (brkcontin(t->words[1], 0));
+	return brkcontin(t->words[1], 0);
 }
 
 static int brkcontin(char *cp, int val)
@@ -3714,9 +3715,9 @@ static int (*inbuilt(char *s)) (struct op *) {
 
 	for (bp = builtincmds; bp->name != NULL; bp++)
 		if (strcmp(bp->name, s) == 0)
-			return (bp->builtinfunc);
+			return bp->builtinfunc;
 
-	return (NULL);
+	return NULL;
 }
 
 /* -------- eval.c -------- */
@@ -3766,7 +3767,7 @@ static char **eval(char **ap, int f)
 	} else
 		gflg = 1;
 
-	return (gflg ? (char **) NULL : wp);
+	return gflg ? (char **) NULL : wp;
 }
 
 /*
@@ -3784,7 +3785,7 @@ static char **makenv(int all, struct wdblock *wb)
 		if (all || vp->status & EXPORT)
 			wb = addword(vp->name, wb);
 	wb = addword((char *) 0, wb);
-	return (getwords(wb));
+	return getwords(wb);
 }
 
 static char *evalstr(char *cp, int f)
@@ -3801,7 +3802,7 @@ static char *evalstr(char *cp, int f)
 		DELETE(wb);
 	} else
 		cp = NULL;
-	return (cp);
+	return cp;
 }
 
 static int expand(char *cp, struct wdblock **wbp, int f)
@@ -3844,7 +3845,7 @@ static int expand(char *cp, struct wdblock **wbp, int f)
 		quitenv();
 	} else
 		gflg = 1;
-	return (gflg == 0);
+	return gflg == 0;
 }
 
 /*
@@ -3868,7 +3869,7 @@ static char *blank(int f)
 		if (sp == e.linep)
 			return 0;
 		*e.linep++ = 0;
-		return (sp);
+		return sp;
 
 	default:
 		if (f & DOBLANK && any(c, ifs->value))
@@ -3913,7 +3914,7 @@ static char *blank(int f)
 		*e.linep++ = c;
 	}
 	*e.linep++ = 0;
-	return (sp);
+	return sp;
 }
 
 /*
@@ -3939,7 +3940,7 @@ static int subgetc(char ec, int quoted)
 			goto again;
 		}
 	}
-	return (c);
+	return c;
 }
 
 /*
@@ -3979,7 +3980,7 @@ static int dollar(int quoted)
 		if (c != '}') {
 			err("unclosed ${");
 			gflg++;
-			return (c);
+			return c;
 		}
 	}
 	if (e.linep >= elinep) {
@@ -4235,7 +4236,7 @@ static char *unquote(char *as)
 	if ((s = as) != NULL)
 		while (*s)
 			*s++ &= ~QUOTE;
-	return (as);
+	return as;
 }
 
 /* -------- glob.c -------- */
@@ -4257,7 +4258,7 @@ static struct wdblock *glob(char *cp, struct wdblock *wb)
 	char *pp;
 
 	if (cp == 0)
-		return (wb);
+		return wb;
 	i = 0;
 	for (pp = cp; *pp; pp++)
 		if (any(*pp, spcl))
@@ -4288,11 +4289,11 @@ static struct wdblock *glob(char *cp, struct wdblock *wb)
 			for (i = 0; i < cl->w_nword; i++)
 				wb = addword(cl->w_words[i], wb);
 			DELETE(cl);
-			return (wb);
+			return wb;
 		}
 	}
 	wb = addword(unquote(cp), wb);
-	return (wb);
+	return wb;
 }
 
 static void globname(char *we, char *pp)
@@ -4368,7 +4369,7 @@ static char *generate(char *start1, char *end1, char *middle, char *end)
 	for (xp = middle; (*op++ = *xp++) != '\0';);
 	op--;
 	for (xp = end; (*op++ = *xp++) != '\0';);
-	return (p);
+	return p;
 }
 
 static int anyspcl(struct wdblock *wb)
@@ -4385,7 +4386,7 @@ static int anyspcl(struct wdblock *wb)
 
 static int xstrcmp(char *p1, char *p2)
 {
-	return (strcmp(*(char **) p1, *(char **) p2));
+	return strcmp(*(char **) p1, *(char **) p2);
 }
 
 /* -------- word.c -------- */
@@ -4397,7 +4398,7 @@ static struct wdblock *newword(int nw)
 	wb = (struct wdblock *) space(sizeof(*wb) + nw * sizeof(char *));
 	wb->w_bsize = nw;
 	wb->w_nword = 0;
-	return (wb);
+	return wb;
 }
 
 static struct wdblock *addword(char *wd, struct wdblock *wb)
@@ -4416,7 +4417,7 @@ static struct wdblock *addword(char *wd, struct wdblock *wb)
 		wb = wb2;
 	}
 	wb->w_words[wb->w_nword++] = wd;
-	return (wb);
+	return wb;
 }
 
 static
@@ -4426,15 +4427,15 @@ char **getwords(struct wdblock *wb)
 	int nb;
 
 	if (wb == NULL)
-		return ((char **) NULL);
+		return NULL;
 	if (wb->w_nword == 0) {
 		DELETE(wb);
-		return ((char **) NULL);
+		return NULL;
 	}
 	wd = (char **) space(nb = sizeof(*wd) * wb->w_nword);
 	memcpy((char *) wd, (char *) wb->w_words, nb);
 	DELETE(wb);					/* perhaps should done by caller */
-	return (wd);
+	return wd;
 }
 
 static int (*func) (char *, char *);
@@ -4563,18 +4564,18 @@ static int my_getc(int ec)
 		while ((c = readc()) != '\n' && c);
 		err("input line too long");
 		gflg++;
-		return (c);
+		return c;
 	}
 	c = readc();
 	if ((ec != '\'') && (ec != '`') && (e.iop->task != XGRAVE)) {
 		if (c == '\\') {
 			c = readc();
 			if (c == '\n' && ec != '\"')
-				return (my_getc(ec));
+				return my_getc(ec);
 			c |= QUOTE;
 		}
 	}
-	return (c);
+	return c;
 }
 
 static void unget(int c)
@@ -4598,7 +4599,7 @@ static int readc(void)
 		RCPRINTF(("READC: e.iop %p, peekc 0x%x\n", e.iop, e.iop->peekc));
 		if ((c = e.iop->peekc) != '\0') {
 			e.iop->peekc = 0;
-			return (c);
+			return c;
 		} else {
 			if (e.iop->prev != 0) {
 				if ((c = (*e.iop->iofn) (e.iop->argp, e.iop)) != '\0') {
@@ -4722,7 +4723,7 @@ static struct io *setbase(struct io *ip)
 
 	xp = e.iobase;
 	e.iobase = ip;
-	return (xp);
+	return xp;
 }
 
 /*
@@ -4740,9 +4741,9 @@ static int nlchar(struct ioarg *ap)
 		return 0;
 	if ((c = *ap->aword++) == 0) {
 		ap->aword = NULL;
-		return ('\n');
+		return '\n';
 	}
-	return (c);
+	return c;
 }
 
 /*
@@ -4758,12 +4759,12 @@ static int wdchar(struct ioarg *ap)
 		return 0;
 	if (*wl != NULL) {
 		if ((c = *(*wl)++) != 0)
-			return (c & 0177);
+			return c & 0177;
 		ap->awordlist++;
-		return (' ');
+		return ' ';
 	}
 	ap->awordlist = NULL;
-	return ('\n');
+	return '\n';
 }
 
 /*
@@ -4789,9 +4790,9 @@ static int xxchar(struct ioarg *ap)
 		return 0;
 	if ((c = *ap->aword++) == '\0') {
 		ap->aword = NULL;
-		return (' ');
+		return ' ';
 	}
-	return (c);
+	return c;
 }
 
 /*
@@ -4803,7 +4804,7 @@ static int strchar(struct ioarg *ap)
 
 	if (ap->aword == NULL || (c = *ap->aword++) == 0)
 		return 0;
-	return (c);
+	return c;
 }
 
 /*
@@ -4815,7 +4816,7 @@ static int qstrchar(struct ioarg *ap)
 
 	if (ap->aword == NULL || (c = *ap->aword++) == 0)
 		return 0;
-	return (c | QUOTE);
+	return c | QUOTE;
 }
 
 /*
@@ -4859,13 +4860,13 @@ static int filechar(struct ioarg *ap)
 		}
 		c = mycommand[position];
 		position++;
-		return (c);
+		return c;
 	} else
 #endif
 
 	{
 		i = safe_read(ap->afile, &c, sizeof(c));
-		return (i == sizeof(c) ? (c & 0x7f) : (closef(ap->afile), 0));
+		return i == sizeof(c) ? (c & 0x7f) : (closef(ap->afile), 0);
 	}
 }
 
@@ -4881,7 +4882,7 @@ static int herechar(struct ioarg *ap)
 		close(ap->afile);
 		c = 0;
 	}
-	return (c);
+	return c;
 
 }
 
@@ -4895,7 +4896,7 @@ static int gravechar(struct ioarg *ap, struct io *iop)
 
 	if ((c = qgravechar(ap, iop) & ~QUOTE) == '\n')
 		c = ' ';
-	return (c);
+	return c;
 }
 
 static int qgravechar(struct ioarg *ap, struct io *iop)
@@ -4907,7 +4908,7 @@ static int qgravechar(struct ioarg *ap, struct io *iop)
 	if (iop->xchar) {
 		if (iop->nlcount) {
 			iop->nlcount--;
-			return ('\n' | QUOTE);
+			return '\n' | QUOTE;
 		}
 		c = iop->xchar;
 		iop->xchar = 0;
@@ -4917,11 +4918,11 @@ static int qgravechar(struct ioarg *ap, struct io *iop)
 			iop->nlcount++;
 		iop->xchar = c;
 		if (c == 0)
-			return (c);
+			return c;
 		iop->nlcount--;
 		c = '\n';
 	}
-	return (c != 0 ? c | QUOTE : 0);
+	return c != 0 ? c | QUOTE : 0;
 }
 
 /*
@@ -4937,7 +4938,7 @@ static int linechar(struct ioarg *ap)
 			ap->afile = -1;		/* illegal value */
 		}
 	}
-	return (c);
+	return c;
 }
 
 static void prs(const char *s)
@@ -4996,7 +4997,7 @@ static int remap(int fd)
 			err("too many files open in shell");
 	}
 
-	return (fd);
+	return fd;
 }
 
 static int openpipe(int *pv)
@@ -5005,7 +5006,7 @@ static int openpipe(int *pv)
 
 	if ((i = pipe(pv)) < 0)
 		err("can't create pipe - try again");
-	return (i);
+	return i;
 }
 
 static void closepipe(int *pv)
@@ -5172,9 +5173,9 @@ static int herein(char *hname, int xdoll)
 		close(tf);
 		tf = open(tname, 0);
 		unlink(tname);
-		return (tf);
+		return tf;
 	} else
-		return (hf);
+		return hf;
 }
 
 static void scraphere(void)

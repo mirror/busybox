@@ -47,7 +47,7 @@ long bb_xgetgrnam(const char *name)
 	if (mygroup==NULL)
 		bb_error_msg_and_die("unknown group name: %s", name);
 
-	return (mygroup->gr_gid);
+	return mygroup->gr_gid;
 }
 
 /* returns a uid given a username */

@@ -102,7 +102,7 @@ errout:
 	if (!cache) {
 		blkid_put_cache(c);
 	}
-	return (ret);
+	return ret;
 }
 
 #ifdef TEST_PROGRAM

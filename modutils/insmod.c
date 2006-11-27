@@ -805,7 +805,7 @@ static int check_module_name_match(const char *filename, struct stat *statbuf,
 	char *fullname = (char *) userdata;
 
 	if (fullname[0] == '\0')
-		return (FALSE);
+		return FALSE;
 	else {
 		char *tmp, *tmp1 = xstrdup(filename);
 		tmp = bb_get_last_path_component(tmp1);
@@ -813,11 +813,11 @@ static int check_module_name_match(const char *filename, struct stat *statbuf,
 			free(tmp1);
 			/* Stop searching if we find a match */
 			m_filename = xstrdup(filename);
-			return (FALSE);
+			return FALSE;
 		}
 		free(tmp1);
 	}
-	return (TRUE);
+	return TRUE;
 }
 
 
