@@ -12,85 +12,71 @@
 
 #include "busybox.h"
 
-/* where to start and stop deletion */
-typedef struct {
-	size_t start;
-	size_t stop;
-} Bounds;
-
-/* An interesting side-effect of boundary()'s
- * implementation is that the first user (typically root)
- * cannot be removed.  Let's call it a feature. */
-static inline Bounds boundary(const char *buffer, const char *login)
-{
-	char needle[256];
-	char *start;
-	char *stop;
-	Bounds b;
-
-	snprintf(needle, 256, "\n%s:", login);
-	needle[255] = 0;
-	start = strstr(buffer, needle);
-	if (!start) {
-		b.start = 0;
-		b.stop = 0;
-		return b;
-	}
-	start++;
-
-	stop = strchr(start, '\n');
-	b.start = start - buffer;
-	b.stop = stop - buffer;
-	return b;
-}
-
-/* grep -v ^login (except it only deletes the first match) */
-/* ...in fact, I think I'm going to simplify this later */
 static void del_line_matching(const char *login, const char *filename)
 {
-	char *buffer;
+	char *line;
 	FILE *passwd;
-	Bounds b;
-	struct stat statbuf;
+	int len = strlen(login);
+	int found = 0;
+	llist_t *plist = NULL;
+	
+	passwd = fopen_or_warn(filename, "r");
+	if (!passwd) return;
 
-
-	if ((passwd = fopen_or_warn(filename, "r"))) {
-		// Remove pointless const.
-		xstat((char *)filename, &statbuf);
-		buffer = (char *) xmalloc(statbuf.st_size * sizeof(char));
-		fread(buffer, statbuf.st_size, sizeof(char), passwd);
-		fclose(passwd);
-		/* find the user to remove */
-		b = boundary(buffer, login);
-		if (b.stop != 0) {
-			/* write the file w/o the user */
-			if ((passwd = fopen_or_warn(filename, "w"))) {
-				fwrite(buffer, (b.start - 1), sizeof(char), passwd);
-				fwrite(&buffer[b.stop], (statbuf.st_size - b.stop), sizeof(char), passwd);
-				fclose(passwd);
-			}
+	while ((line = xmalloc_fgets(passwd))) {
+		if (!strncmp(line, login, len)
+		 && line[len] == ':'
+		) {
+			found++;
+			free(line);
 		} else {
-			bb_error_msg("can't find '%s' in '%s'", login, filename);
+			llist_add_to_end(&plist, line);
 		}
-		free(buffer);
+	}
+
+	if (!found) {
+		bb_error_msg("can't find '%s' in '%s'", login, filename);
+		if (!ENABLE_FEATURE_CLEAN_UP) return;
+		goto clean_up;
+	}
+
+	if (ENABLE_FEATURE_CLEAN_UP)
+		fclose(passwd);
+
+	passwd = fopen_or_warn(filename, "w");
+	if (passwd) {
+		if (ENABLE_FEATURE_CLEAN_UP) {
+ clean_up:
+			while ((line = llist_pop(&plist))) {
+				if (found) fputs(line, passwd);
+				free(line);
+			}
+			fclose(passwd);
+		} else {
+			/* found != 0 here, no need to check */
+			while ((line = llist_pop(&plist)))
+				fputs(line, passwd);
+		}
 	}
 }
 
 int deluser_main(int argc, char **argv)
 {
-	if (argc != 2) {
+	if (argc != 2)
 		bb_show_usage();
-	} else {
-		if (ENABLE_DELUSER && applet_name[3] == 'u') {
-			del_line_matching(argv[1], bb_path_passwd_file);
-			if (ENABLE_FEATURE_SHADOWPASSWDS)
-				del_line_matching(argv[1], bb_path_shadow_file);
-		}
-		del_line_matching(argv[1], bb_path_group_file);
+
+	if (ENABLE_DELUSER
+	 && (!ENABLE_DELGROUP || applet_name[3] == 'u')
+	) {
+		del_line_matching(argv[1], bb_path_passwd_file);
 		if (ENABLE_FEATURE_SHADOWPASSWDS)
-			del_line_matching(argv[1], bb_path_gshadow_file);
+			del_line_matching(argv[1], bb_path_shadow_file);
 	}
-	return (EXIT_SUCCESS);
+	del_line_matching(argv[1], bb_path_group_file);
+	if (ENABLE_FEATURE_SHADOWPASSWDS)
+		del_line_matching(argv[1], bb_path_gshadow_file);
+
+	return EXIT_SUCCESS;
 }
 
 /* $Id: deluser.c,v 1.4 2003/07/14 20:20:45 andersen Exp $ */
