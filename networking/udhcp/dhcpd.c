@@ -68,11 +68,13 @@ int udhcpd_main(int argc, char *argv[])
 	timeout_end = time(0) + server_config.auto_time;
 	while (1) { /* loop until universe collapses */
 
-		if (server_socket < 0)
-			if ((server_socket = listen_socket(INADDR_ANY, SERVER_PORT, server_config.interface)) < 0) {
+		if (server_socket < 0) {
+			server_socket = listen_socket(INADDR_ANY, SERVER_PORT, server_config.interface);
+			if (server_socket < 0) {
 				bb_perror_msg("FATAL: cannot create server socket");
 				return 2;
 			}
+		}
 
 		max_sock = udhcp_sp_fd_set(&rfds, server_socket);
 		if (server_config.auto_time) {

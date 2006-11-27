@@ -33,25 +33,8 @@ static int fd = -1;
 #define LISTEN_RAW 2
 static int listen_mode;
 
-struct client_config_t client_config = {
-	/* Default options. */
-	.abort_if_no_lease = 0,
-	.foreground = 0,
-	.quit_after_lease = 0,
-	.release_on_quit = 0,
-	.background_if_no_lease = 0,
-	.interface = "eth0",
-	.pidfile = NULL,
-	.script = DEFAULT_SCRIPT,
-	.clientid = NULL,
-	.vendorclass = NULL,
-	.hostname = NULL,
-	.fqdn = NULL,
-	.ifindex = 0,
-	.retries = 3,
-	.timeout = 3,
-	.arp = "\0\0\0\0\0\0",		/* appease gcc-3.0 */
-};
+struct client_config_t client_config;
+
 
 /* just a little helper */
 static void change_mode(int new_mode)
@@ -126,139 +109,137 @@ static void client_background(void)
 }
 
 
+static uint8_t* alloc_dhcp_option(int code, const char *str, int extra)
+{
+	uint8_t *storage;
+	int len = strlen(str);
+	if (len > 255) len = 255;
+	storage = xzalloc(len + extra + OPT_DATA);
+	storage[OPT_CODE] = code;
+	storage[OPT_LEN] = len + extra;
+	memcpy(storage + extra + OPT_DATA, str, len);
+	return storage;
+}
+
+
 int udhcpc_main(int argc, char *argv[])
 {
 	uint8_t *temp, *message;
+	char *str_c, *str_V, *str_h, *str_F, *str_r, *str_T, *str_t;
 	unsigned long t1 = 0, t2 = 0, xid = 0;
 	unsigned long start = 0, lease = 0;
-	fd_set rfds;
-	int retval;
-	struct timeval tv;
-	int c, len;
-	struct dhcpMessage packet;
-	struct in_addr temp_addr;
 	long now;
+	unsigned opt;
 	int max_fd;
 	int sig;
+	int retval;
+	int len;
 	int no_clientid = 0;
+	fd_set rfds;
+	struct timeval tv;
+	struct dhcpMessage packet;
+	struct in_addr temp_addr;
 
+	enum {
+		OPT_c = 1 << 0,
+		OPT_C = 1 << 1,
+		OPT_V = 1 << 2,
+		OPT_f = 1 << 3,
+		OPT_b = 1 << 4,
+		OPT_H = 1 << 5,
+		OPT_h = 1 << 6,
+		OPT_F = 1 << 7,
+		OPT_i = 1 << 8,
+		OPT_n = 1 << 9,
+		OPT_p = 1 << 10,
+		OPT_q = 1 << 11,
+		OPT_R = 1 << 12,
+		OPT_r = 1 << 13,
+		OPT_s = 1 << 14,
+		OPT_T = 1 << 15,
+		OPT_t = 1 << 16,
+		OPT_v = 1 << 17,
+	};
 	static const struct option arg_options[] = {
-		{"clientid",	required_argument,	0, 'c'},
-		{"clientid-none", no_argument,		0, 'C'},
-		{"vendorclass",	required_argument,	0, 'V'},
-		{"foreground",	no_argument,		0, 'f'},
-		{"background",	no_argument,		0, 'b'},
-		{"hostname",	required_argument,	0, 'H'},
-		{"hostname",	required_argument,	0, 'h'},
-		{"fqdn",	required_argument,	0, 'F'},
-		{"interface",	required_argument,	0, 'i'},
-		{"now",		no_argument,		0, 'n'},
-		{"pidfile",	required_argument,	0, 'p'},
-		{"quit",	no_argument,		0, 'q'},
-		{"release",	no_argument,		0, 'R'},
-		{"request",	required_argument,	0, 'r'},
-		{"script",	required_argument,	0, 's'},
-		{"timeout",	required_argument,	0, 'T'},
-		{"version",	no_argument,		0, 'v'},
-		{"retries",	required_argument,	0, 't'},
-		{0, 0, 0, 0}
+		{ "clientid",   required_argument,      0, 'c' },
+		{ "clientid-none", no_argument,         0, 'C' },
+		{ "vendorclass", required_argument,     0, 'V' },
+		{ "foreground", no_argument,            0, 'f' },
+		{ "background", no_argument,            0, 'b' },
+		{ "hostname",   required_argument,      0, 'H' },
+		{ "hostname",   required_argument,      0, 'h' },
+		{ "fqdn",       required_argument,      0, 'F' },
+		{ "interface",  required_argument,      0, 'i' },
+		{ "now",        no_argument,            0, 'n' },
+		{ "pidfile",    required_argument,      0, 'p' },
+		{ "quit",       no_argument,            0, 'q' },
+		{ "release",    no_argument,            0, 'R' },
+		{ "request",    required_argument,      0, 'r' },
+		{ "script",     required_argument,      0, 's' },
+		{ "timeout",    required_argument,      0, 'T' },
+		{ "version",    no_argument,            0, 'v' },
+		{ "retries",    required_argument,      0, 't' },
+		{ 0, 0, 0, 0 }
 	};
 
-	/* get options */
-	while (1) {
-		int option_index = 0;
-		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:v", arg_options, &option_index);
-		if (c == -1) break;
+	/* Default options. */
+	client_config.interface = "eth0";
+	client_config.script = DEFAULT_SCRIPT;
+	client_config.retries = 3;
+	client_config.timeout = 3;
 
-		switch (c) {
-		case 'c':
-			if (no_clientid) bb_show_usage();
-			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			free(client_config.clientid);
-			client_config.clientid = xmalloc(len + 2);
-			client_config.clientid[OPT_CODE] = DHCP_CLIENT_ID;
-			client_config.clientid[OPT_LEN] = len;
-			client_config.clientid[OPT_DATA] = '\0';
-			strncpy((char*)client_config.clientid + OPT_DATA, optarg, len);
-			break;
-		case 'C':
-			if (client_config.clientid) bb_show_usage();
-			no_clientid = 1;
-			break;
-		case 'V':
-			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			free(client_config.vendorclass);
-			client_config.vendorclass = xmalloc(len + 2);
-			client_config.vendorclass[OPT_CODE] = DHCP_VENDOR;
-			client_config.vendorclass[OPT_LEN] = len;
-			strncpy((char*)client_config.vendorclass + OPT_DATA, optarg, len);
-			break;
-		case 'f':
-			client_config.foreground = 1;
-			break;
-		case 'b':
-			client_config.background_if_no_lease = 1;
-			break;
-		case 'h':
-		case 'H':
-			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			free(client_config.hostname);
-			client_config.hostname = xmalloc(len + 2);
-			client_config.hostname[OPT_CODE] = DHCP_HOST_NAME;
-			client_config.hostname[OPT_LEN] = len;
-			strncpy((char*)client_config.hostname + 2, optarg, len);
-			break;
-		case 'F':
-			len = strlen(optarg) > 255 ? 255 : strlen(optarg);
-			free(client_config.fqdn);
-			client_config.fqdn = xmalloc(len + 5);
-			client_config.fqdn[OPT_CODE] = DHCP_FQDN;
-			client_config.fqdn[OPT_LEN] = len + 3;
-			/* Flags: 0000NEOS
-			S: 1 => Client requests Server to update A RR in DNS as well as PTR
-			O: 1 => Server indicates to client that DNS has been updated regardless
-			E: 1 => Name data is DNS format, i.e. <4>host<6>domain<4>com<0> not "host.domain.com"
-			N: 1 => Client requests Server to not update DNS
-			*/
-			client_config.fqdn[OPT_LEN + 1] = 0x1;
-			client_config.fqdn[OPT_LEN + 2] = 0;
-			client_config.fqdn[OPT_LEN + 3] = 0;
-			strncpy((char*)client_config.fqdn + 5, optarg, len);
-			break;
-		case 'i':
-			client_config.interface =  optarg;
-			break;
-		case 'n':
-			client_config.abort_if_no_lease = 1;
-			break;
-		case 'p':
-			client_config.pidfile = optarg;
-			break;
-		case 'q':
-			client_config.quit_after_lease = 1;
-			break;
-		case 'R':
-			client_config.release_on_quit = 1;
-			break;
-		case 'r':
-			requested_ip = inet_addr(optarg);
-			break;
-		case 's':
-			client_config.script = optarg;
-			break;
-		case 'T':
-			client_config.timeout = xatoi_u(optarg);
-			break;
-		case 't':
-			client_config.retries = xatoi_u(optarg);
-			break;
-		case 'v':
-			printf("version %s\n\n", BB_VER);
-			return 0;
-			break;
-		default:
-			bb_show_usage();
-		}
+	/* Parse command line */
+	opt_complementary = "?:c--C:C--c" // mutually exclusive
+	                    ":hH:Hh"; // -h and -H are the same
+	applet_long_options = arg_options;
+	opt = getopt32(argc, argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:v",
+		&str_c, &str_V, &str_h, &str_h, &str_F,
+		&client_config.interface, &client_config.pidfile, &str_r,
+		&client_config.script, &str_T, &str_t
+		);
+
+	if (opt & OPT_c)
+		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, str_c, 0);
+	if (opt & OPT_C)
+		no_clientid = 1;
+	if (opt & OPT_V)
+		client_config.vendorclass = alloc_dhcp_option(DHCP_VENDOR, str_V, 0);
+	if (opt & OPT_f)
+		client_config.foreground = 1;
+	if (opt & OPT_b)
+		client_config.background_if_no_lease = 1;
+	if (opt & OPT_h)
+		client_config.hostname = alloc_dhcp_option(DHCP_HOST_NAME, str_h, 0);
+	if (opt & OPT_F) {
+		client_config.fqdn = alloc_dhcp_option(DHCP_FQDN, str_F, 3);
+		/* Flags: 0000NEOS
+		S: 1 => Client requests Server to update A RR in DNS as well as PTR
+		O: 1 => Server indicates to client that DNS has been updated regardless
+		E: 1 => Name data is DNS format, i.e. <4>host<6>domain<4>com<0> not "host.domain.com"
+		N: 1 => Client requests Server to not update DNS
+		*/
+		client_config.fqdn[OPT_DATA + 0] = 0x1;
+		/* client_config.fqdn[OPT_DATA + 1] = 0; - redundant */
+		/* client_config.fqdn[OPT_DATA + 2] = 0; - redundant */
+	}
+	// if (opt & OPT_i) client_config.interface = ...
+	if (opt & OPT_n)
+		client_config.abort_if_no_lease = 1;
+	// if (opt & OPT_p) client_config.pidfile = ...
+	if (opt & OPT_q)
+		client_config.quit_after_lease = 1;
+	if (opt & OPT_R)
+		client_config.release_on_quit = 1;
+	if (opt & OPT_r)
+		requested_ip = inet_addr(str_r);
+	// if (opt & OPT_s) client_config.script = ...
+	if (opt & OPT_T)
+		client_config.timeout = xatoi_u(str_T);
+	if (opt & OPT_t)
+		client_config.retries = xatoi_u(str_t);
+	if (opt & OPT_v) {
+		printf("version %s\n\n", BB_VER);
+		return 0;
 	}
 
 	/* Start the log, sanitize fd's, and write a pid file */
@@ -270,22 +251,13 @@ int udhcpc_main(int argc, char *argv[])
 
 	/* if not set, and not suppressed, setup the default client ID */
 	if (!client_config.clientid && !no_clientid) {
-		client_config.clientid = xmalloc(6 + 3);
-		client_config.clientid[OPT_CODE] = DHCP_CLIENT_ID;
-		client_config.clientid[OPT_LEN] = 7;
+		client_config.clientid = alloc_dhcp_option(DHCP_CLIENT_ID, "", 7);
 		client_config.clientid[OPT_DATA] = 1;
-		memcpy(client_config.clientid + 3, client_config.arp, 6);
+		memcpy(client_config.clientid + OPT_DATA+1, client_config.arp, 6);
 	}
 
-	if (!client_config.vendorclass) {
-		client_config.vendorclass = xmalloc(sizeof("udhcp "BB_VER) + 2);
-		client_config.vendorclass[OPT_CODE] = DHCP_VENDOR;
-		client_config.vendorclass[OPT_LEN] = sizeof("udhcp "BB_VER) - 1;
-		client_config.vendorclass[OPT_DATA] = 1;
-		memcpy(&client_config.vendorclass[OPT_DATA],
-			"udhcp "BB_VER, sizeof("udhcp "BB_VER) - 1);
-	}
-
+	if (!client_config.vendorclass)
+		client_config.vendorclass = alloc_dhcp_option(DHCP_VENDOR, "udhcp "BB_VER, 0);
 
 	/* setup the signal pipe */
 	udhcp_sp_setup();
@@ -295,7 +267,6 @@ int udhcpc_main(int argc, char *argv[])
 	change_mode(LISTEN_RAW);
 
 	for (;;) {
-
 		tv.tv_sec = timeout - uptime();
 		tv.tv_usec = 0;
 

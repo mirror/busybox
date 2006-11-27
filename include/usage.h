@@ -1,4 +1,13 @@
 /* vi: set sw=4 ts=4: */
+/*
+ * This file suffers from chronically incorrect tabification
+ * of messages. Before editing this file:
+ * 1. Switch you editor to 8-space tab mode.
+ * 2. Do not use \t in messages, use real tab character.
+ * 3. Start each source line with message as follows:
+ *    |<7 spaces>"text with tabs"
+ */
+
 #ifndef __BB_USAGE_H__
 #define __BB_USAGE_H__
 
