@@ -42,7 +42,7 @@ static int do_ioctl_get_ifindex(char *dev)
 	struct ifreq ifr;
 	int fd;
 
-	strcpy(ifr.ifr_name, dev);
+	strncpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 	if (ioctl(fd, SIOCGIFINDEX, &ifr)) {
 		bb_perror_msg("ioctl");
@@ -57,7 +57,7 @@ static int do_ioctl_get_iftype(char *dev)
 	struct ifreq ifr;
 	int fd;
 
-	strcpy(ifr.ifr_name, dev);
+	strncpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 	if (ioctl(fd, SIOCGIFHWADDR, &ifr)) {
 		bb_perror_msg("ioctl");
@@ -91,7 +91,7 @@ static int do_get_ioctl(char *basedev, struct ip_tunnel_parm *p)
 	int fd;
 	int err;
 
-	strcpy(ifr.ifr_name, basedev);
+	strncpy(ifr.ifr_name, basedev, sizeof(ifr.ifr_name));
 	ifr.ifr_ifru.ifru_data = (void*)p;
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
 	err = ioctl(fd, SIOCGETTUNNEL, &ifr);
@@ -109,9 +109,9 @@ static int do_add_ioctl(int cmd, char *basedev, struct ip_tunnel_parm *p)
 	int err;
 
 	if (cmd == SIOCCHGTUNNEL && p->name[0]) {
-		strcpy(ifr.ifr_name, p->name);
+		strncpy(ifr.ifr_name, p->name, sizeof(ifr.ifr_name));
 	} else {
-		strcpy(ifr.ifr_name, basedev);
+		strncpy(ifr.ifr_name, basedev, sizeof(ifr.ifr_name));
 	}
 	ifr.ifr_ifru.ifru_data = (void*)p;
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);
@@ -130,9 +130,9 @@ static int do_del_ioctl(char *basedev, struct ip_tunnel_parm *p)
 	int err;
 
 	if (p->name[0]) {
-		strcpy(ifr.ifr_name, p->name);
+		strncpy(ifr.ifr_name, p->name, sizeof(ifr.ifr_name));
 	} else {
-		strcpy(ifr.ifr_name, basedev);
+		strncpy(ifr.ifr_name, basedev, sizeof(ifr.ifr_name));
 	}
 	ifr.ifr_ifru.ifru_data = (void*)p;
 	fd = xsocket(AF_INET, SOCK_DGRAM, 0);

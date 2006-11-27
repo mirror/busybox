@@ -145,7 +145,7 @@ int ether_wake_main(int argc, char *argv[])
 	{
 		struct ifreq if_hwaddr;
 
-		strcpy(if_hwaddr.ifr_name, ifname);
+		strncpy(if_hwaddr.ifr_name, ifname, sizeof(if_hwaddr.ifr_name));
 		if (ioctl(s, SIOCGIFHWADDR, &if_hwaddr) < 0)
 			bb_perror_msg_and_die("SIOCGIFHWADDR on %s failed", ifname);
 

@@ -422,7 +422,7 @@ static void INET6_setroute(int action, char **args)
 	if (devname) {
 		struct ifreq ifr;
 		memset(&ifr, 0, sizeof(ifr));
-		strcpy(ifr.ifr_name, devname);
+		strncpy(ifr.ifr_name, devname, sizeof(ifr.ifr_name));
 
 		if (ioctl(skfd, SIOGIFINDEX, &ifr) < 0) {
 			bb_perror_msg_and_die("SIOGIFINDEX");

@@ -51,7 +51,7 @@ int read_interface(char *interface, int *ifindex, uint32_t *addr, uint8_t *arp)
 	}
 
 	ifr.ifr_addr.sa_family = AF_INET;
-	strcpy(ifr.ifr_name, interface);
+	strncpy(ifr.ifr_name, interface, sizeof(ifr.ifr_name));
 	if (addr) {
 		if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) {
 			bb_perror_msg("SIOCGIFADDR failed, is the interface up and configured?");

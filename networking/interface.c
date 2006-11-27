@@ -617,12 +617,12 @@ static int if_fetch(struct interface *ife)
 	int fd;
 	char *ifname = ife->name;
 
-	strcpy(ifr.ifr_name, ifname);
+	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 	if (ioctl(skfd, SIOCGIFFLAGS, &ifr) < 0)
 		return -1;
 	ife->flags = ifr.ifr_flags;
 
-	strcpy(ifr.ifr_name, ifname);
+	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 	if (ioctl(skfd, SIOCGIFHWADDR, &ifr) < 0)
 		memset(ife->hwaddr, 0, 32);
 	else
@@ -630,20 +630,20 @@ static int if_fetch(struct interface *ife)
 
 	ife->type = ifr.ifr_hwaddr.sa_family;
 
-	strcpy(ifr.ifr_name, ifname);
+	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 	if (ioctl(skfd, SIOCGIFMETRIC, &ifr) < 0)
 		ife->metric = 0;
 	else
 		ife->metric = ifr.ifr_metric;
 
-	strcpy(ifr.ifr_name, ifname);
+	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 	if (ioctl(skfd, SIOCGIFMTU, &ifr) < 0)
 		ife->mtu = 0;
 	else
 		ife->mtu = ifr.ifr_mtu;
 
 #ifdef SIOCGIFMAP
-	strcpy(ifr.ifr_name, ifname);
+	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 	if (ioctl(skfd, SIOCGIFMAP, &ifr) == 0)
 		ife->map = ifr.ifr_map;
 	else
@@ -651,7 +651,7 @@ static int if_fetch(struct interface *ife)
 		memset(&ife->map, 0, sizeof(struct ifmap));
 
 #ifdef HAVE_TXQUEUELEN
-	strcpy(ifr.ifr_name, ifname);
+	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 	if (ioctl(skfd, SIOCGIFTXQLEN, &ifr) < 0)
 		ife->tx_queue_len = -1;	/* unknown value */
 	else
@@ -663,24 +663,24 @@ static int if_fetch(struct interface *ife)
 	/* IPv4 address? */
 	fd = get_socket_for_af(AF_INET);
 	if (fd >= 0) {
-		strcpy(ifr.ifr_name, ifname);
+		strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 		ifr.ifr_addr.sa_family = AF_INET;
 		if (ioctl(fd, SIOCGIFADDR, &ifr) == 0) {
 			ife->has_ip = 1;
 			ife->addr = ifr.ifr_addr;
-			strcpy(ifr.ifr_name, ifname);
+			strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 			if (ioctl(fd, SIOCGIFDSTADDR, &ifr) < 0)
 				memset(&ife->dstaddr, 0, sizeof(struct sockaddr));
 			else
 				ife->dstaddr = ifr.ifr_dstaddr;
 
-			strcpy(ifr.ifr_name, ifname);
+			strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 			if (ioctl(fd, SIOCGIFBRDADDR, &ifr) < 0)
 				memset(&ife->broadaddr, 0, sizeof(struct sockaddr));
 			else
 				ife->broadaddr = ifr.ifr_broadaddr;
 
-			strcpy(ifr.ifr_name, ifname);
+			strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 			if (ioctl(fd, SIOCGIFNETMASK, &ifr) < 0)
 				memset(&ife->netmask, 0, sizeof(struct sockaddr));
 			else
