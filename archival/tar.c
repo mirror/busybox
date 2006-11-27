@@ -704,7 +704,6 @@ static const struct option tar_long_options[] = {
 # if ENABLE_FEATURE_TAR_FROM
 	{ "files-from",         1,  NULL,   'T' },
 	{ "exclude-from",       1,  NULL,   'X' },
-	{ "exclude",            1,  NULL,   0xfd },
 # endif
 # if ENABLE_FEATURE_TAR_GZIP
 	{ "gzip",               0,  NULL,   'z' },
@@ -712,8 +711,14 @@ static const struct option tar_long_options[] = {
 # if ENABLE_FEATURE_TAR_COMPRESS
 	{ "compress",           0,  NULL,   'Z' },
 # endif
-	{ "no-same-owner",      0,  NULL,   0xfe },
-	{ "no-same-permissions",0,  NULL,   0xff },
+	{ "no-same-owner",      0,  NULL,   0xfd },
+	{ "no-same-permissions",0,  NULL,   0xfe },
+	/* --exclude takes next bit position in option mask, */
+	/* therefore we have to either put it _after_ --no-same-perm */
+	/* or add OPT[BIT]_EXCLUDE before OPT[BIT]_NOPRESERVE_OWN */
+# if ENABLE_FEATURE_TAR_FROM
+	{ "exclude",            1,  NULL,   0xff },
+# endif
 	{ 0,                    0, 0, 0 }
 };
 #else
@@ -741,7 +746,7 @@ int tar_main(int argc, char **argv)
 		"tt:vv:" // count -t,-v
 		"?:" // bail out with usage instead of error return
 		"X::T::" // cumulative lists
-		"\xfd::" // cumulative lists for --exclude
+		"\xff::" // cumulative lists for --exclude
 		USE_FEATURE_TAR_CREATE("c:") "t:x:" // at least one of these is reqd
 		USE_FEATURE_TAR_CREATE("c--tx:t--cx:x--ct") // mutually exclusive
 		SKIP_FEATURE_TAR_CREATE("t--x:x--t"); // mutually exclusive
