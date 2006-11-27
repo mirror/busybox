@@ -27,10 +27,7 @@ static unsigned long o_lock_all;
 
 static void release_vt(int signo)
 {
-	if (!o_lock_all)
-		ioctl(vfd, VT_RELDISP, 1);
-	else
-		ioctl(vfd, VT_RELDISP, 0);
+	ioctl(vfd, VT_RELDISP, !o_lock_all);
 }
 
 static void acquire_vt(int signo)
@@ -50,16 +47,17 @@ int vlock_main(int argc, char **argv)
 	struct sigaction sa;
 	struct vt_mode vtm;
 	struct termios term;
+	uid_t uid = getuid();
+
+	pw = getpwuid(uid);
+	if (pw == NULL)
+		bb_error_msg_and_die("unknown uid %d", uid);
 
 	if (argc > 2) {
 		bb_show_usage();
 	}
 
 	o_lock_all = getopt32(argc, argv, "a");
-
-	if((pw = getpwuid(getuid())) == NULL) {
-		bb_error_msg_and_die("unknown uid %d", getuid());
-	}
 
 	vfd = xopen(CURRENT_TTY, O_RDWR);
 
