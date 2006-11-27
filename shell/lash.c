@@ -380,7 +380,7 @@ static int builtin_export(struct child_prog *child)
 		setlocale(LC_CTYPE, getenv("LC_CTYPE"));
 #endif
 
-	return (res);
+	return res;
 }
 
 /* built-in 'read VAR' handler */
@@ -414,7 +414,7 @@ static int builtin_read(struct child_prog *child)
 	else
 		fgets(string, sizeof(string), stdin);
 
-	return (res);
+	return res;
 }
 
 /* Built-in '.' handler (read-in and execute commands from file) */
@@ -433,7 +433,7 @@ static int builtin_source(struct child_prog *child)
 	status = busy_loop(input);
 	fclose(input);
 	llist_pop(&close_me_list);
-	return (status);
+	return status;
 }
 
 /* built-in 'unset VAR' handler */

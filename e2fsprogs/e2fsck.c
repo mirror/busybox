@@ -12520,7 +12520,7 @@ cleanup:
 	if (io)
 		io_channel_close(io);
 	ext2fs_free_mem(&buf);
-	return (ret_sb);
+	return ret_sb;
 }
 
 

@@ -4804,9 +4804,9 @@ exptilde(char *startp, char *p, int flag)
 	while ((c = *++p) != '\0') {
 		switch(c) {
 		case CTLESC:
-			return (startp);
+			return startp;
 		case CTLQUOTEMARK:
-			return (startp);
+			return startp;
 		case ':':
 			if (flag & EXP_VARTILDE)
 				goto done;

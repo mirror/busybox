@@ -34,7 +34,7 @@
 /* Forward declaration */
 struct interface_defn_t;
 
-typedef int (execfn)(char *command);
+typedef int execfn(char *command);
 
 struct method_t
 {
@@ -111,17 +111,17 @@ static char *startup_PATH;
 
 #ifdef CONFIG_FEATURE_IFUPDOWN_IP
 
-static unsigned int count_bits(unsigned int a)
+static unsigned count_bits(unsigned a)
 {
-	unsigned int result;
+	unsigned result;
 	result = (a & 0x55) + ((a >> 1) & 0x55);
 	result = (result & 0x33) + ((result >> 2) & 0x33);
-	return ((result & 0x0F) + ((result >> 4) & 0x0F));
+	return (result & 0x0F) + ((result >> 4) & 0x0F);
 }
 
 static int count_netmask_bits(char *dotted_quad)
 {
-	unsigned int result, a, b, c, d;
+	unsigned result, a, b, c, d;
 	/* Found a netmask...  Check if it is dotted quad */
 	if (sscanf(dotted_quad, "%u.%u.%u.%u", &a, &b, &c, &d) != 4)
 		return -1;
