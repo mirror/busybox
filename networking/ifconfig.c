@@ -279,7 +279,6 @@ int ifconfig_main(int argc, char **argv)
 	const struct arg1opt *a1op;
 	const struct options *op;
 	int sockfd;			/* socket fd we use to manipulate stuff with */
-	int goterr;
 	int selector;
 #if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
 	unsigned int mask;
@@ -293,7 +292,6 @@ int ifconfig_main(int argc, char **argv)
 	/*char host[128];*/
 	const char *host = NULL; /* make gcc happy */
 
-	goterr = 0;
 	did_flags = 0;
 #if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
 	sai_hostname = 0;
@@ -305,7 +303,7 @@ int ifconfig_main(int argc, char **argv)
 	--argc;
 
 #if ENABLE_FEATURE_IFCONFIG_STATUS
-	if ((argc > 0) && (((*argv)[0] == '-') && ((*argv)[1] == 'a') && !(*argv)[2])) {
+	if (argc > 0 && (argv[0][0] == '-' && argv[0][1] == 'a' && !argv[0][2])) {
 		interface_opt_a = 1;
 		--argc;
 		++argv;
@@ -337,13 +335,11 @@ int ifconfig_main(int argc, char **argv)
 		for (op = OptArray; op->name; op++) {	/* Find table entry. */
 			if (strcmp(p, op->name) == 0) {	/* If name matches... */
 				mask &= op->flags;
-				if (mask) {	/* set the mask and go. */
+				if (mask)	/* set the mask and go. */
 					goto FOUND_ARG;
-				}
 				/* If we get here, there was a valid arg with an */
 				/* invalid '-' prefix. */
-				++goterr;
-				goto LOOP;
+				bb_error_msg_and_die("bad: '%s'", p-1);
 			}
 		}
 
@@ -356,16 +352,13 @@ int ifconfig_main(int argc, char **argv)
 		if (mask & ARG_MASK) {
 			mask = op->arg_flags;
 			a1op = Arg1Opt + (op - OptArray);
-			if (mask & A_NETMASK & did_flags) {
+			if (mask & A_NETMASK & did_flags)
 				bb_show_usage();
-			}
 			if (*++argv == NULL) {
-				if (mask & A_ARG_REQ) {
+				if (mask & A_ARG_REQ)
 					bb_show_usage();
-				} else {
-					--argv;
-					mask &= A_SET_AFTER;	/* just for broadcast */
-				}
+				--argv;
+				mask &= A_SET_AFTER;	/* just for broadcast */
 			} else {	/* got an arg so process it */
  HOSTNAME:
 				did_flags |= (mask & (A_NETMASK|A_HOSTNAME));
@@ -382,121 +375,95 @@ int ifconfig_main(int argc, char **argv)
 #if ENABLE_FEATURE_IPV6
 						prefix = strchr(host, '/');
 						if (prefix) {
-							if (safe_strtoi(prefix + 1, &prefix_len) ||
-								(prefix_len < 0) || (prefix_len > 128))
-							{
-								++goterr;
-								goto LOOP;
-							}
-							*prefix = 0;
+							prefix_len = xatou_range(prefix + 1, 0, 128);
+							*prefix = '\0';
 						}
 #endif
-
 						sai.sin_family = AF_INET;
 						sai.sin_port = 0;
 						if (!strcmp(host, bb_str_default)) {
 							/* Default is special, meaning 0.0.0.0. */
 							sai.sin_addr.s_addr = INADDR_ANY;
+						}
 #if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
-						} else if (((host[0] == '+') && !host[1]) && (mask & A_BROADCAST) &&
-								   (did_flags & (A_NETMASK|A_HOSTNAME)) == (A_NETMASK|A_HOSTNAME)) {
+						else if ((host[0] == '+' && !host[1]) && (mask & A_BROADCAST)
+						 && (did_flags & (A_NETMASK|A_HOSTNAME)) == (A_NETMASK|A_HOSTNAME)
+						) {
 							/* + is special, meaning broadcast is derived. */
 							sai.sin_addr.s_addr = (~sai_netmask) | (sai_hostname & sai_netmask);
+						}
 #endif
 #if ENABLE_FEATURE_IPV6
-						} else if (inet_pton(AF_INET6, host, &sai6.sin6_addr) > 0) {
+						else if (inet_pton(AF_INET6, host, &sai6.sin6_addr) > 0) {
 							int sockfd6;
 							struct in6_ifreq ifr6;
 
 							memcpy((char *) &ifr6.ifr6_addr,
-								   (char *) &sai6.sin6_addr,
-								   sizeof(struct in6_addr));
+									(char *) &sai6.sin6_addr,
+									sizeof(struct in6_addr));
 
 							/* Create a channel to the NET kernel. */
-							if ((sockfd6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-								bb_perror_msg_and_die("socket6");
-							}
-							if (ioctl(sockfd6, SIOGIFINDEX, &ifr) < 0) {
-								perror("SIOGIFINDEX");
-								++goterr;
-								continue;
-							}
+							sockfd6 = xsocket(AF_INET6, SOCK_DGRAM, 0);
+							if (ioctl(sockfd6, SIOGIFINDEX, &ifr) < 0)
+								bb_perror_msg_and_die("SIOGIFINDEX");
 							ifr6.ifr6_ifindex = ifr.ifr_ifindex;
 							ifr6.ifr6_prefixlen = prefix_len;
-							if (ioctl(sockfd6, a1op->selector, &ifr6) < 0) {
-								perror(a1op->name);
-								++goterr;
-							}
+							if (ioctl(sockfd6, a1op->selector, &ifr6) < 0)
+								bb_perror_msg_and_die(a1op->name);
 							continue;
+						}
 #endif
-						} else if (inet_aton(host, &sai.sin_addr) == 0) {
+						else if (inet_aton(host, &sai.sin_addr) == 0) {
 							/* It's not a dotted quad. */
-							struct hostent *hp = gethostbyname(host);
-							if (!hp) {
-								++goterr;
-								continue;
-							}
+							struct hostent *hp = xgethostbyname(host);
 							memcpy((char *) &sai.sin_addr, (char *) hp->h_addr_list[0],
 									sizeof(struct in_addr));
 						}
 #if ENABLE_FEATURE_IFCONFIG_BROADCAST_PLUS
-						if (mask & A_HOSTNAME) {
+						if (mask & A_HOSTNAME)
 							sai_hostname = sai.sin_addr.s_addr;
-						}
-						if (mask & A_NETMASK) {
+						if (mask & A_NETMASK)
 							sai_netmask = sai.sin_addr.s_addr;
-						}
 #endif
 						p = (char *) &sai;
 #if ENABLE_FEATURE_IFCONFIG_HW
 					} else {	/* A_CAST_HOST_COPY_IN_ETHER */
 						/* This is the "hw" arg case. */
-						if (strcmp("ether", *argv) || (*++argv == NULL)) {
+						if (strcmp("ether", *argv) || !*++argv)
 							bb_show_usage();
-						}
 						/*safe_strncpy(host, *argv, sizeof(host));*/
 						host = *argv;
-						if (in_ether(host, &sa)) {
-							bb_error_msg("invalid hw-addr %s", host);
-							++goterr;
-							continue;
-						}
+						if (in_ether(host, &sa))
+							bb_error_msg_and_die("invalid hw-addr %s", host);
 						p = (char *) &sa;
 					}
 #endif
 					memcpy( (((char *)&ifr) + a1op->ifr_offset),
 						   p, sizeof(struct sockaddr));
 				} else {
+					/* FIXME: error check?? */
 					unsigned long i = strtoul(*argv, NULL, 0);
-
 					p = ((char *)&ifr) + a1op->ifr_offset;
 #if ENABLE_FEATURE_IFCONFIG_MEMSTART_IOADDR_IRQ
 					if (mask & A_MAP_TYPE) {
-						if (ioctl(sockfd, SIOCGIFMAP, &ifr) < 0) {
-							++goterr;
-							continue;
-						}
-						if ((mask & A_MAP_UCHAR) == A_MAP_UCHAR) {
+						if (ioctl(sockfd, SIOCGIFMAP, &ifr) < 0)
+							bb_perror_msg_and_die("SIOCGIFMAP");
+						if ((mask & A_MAP_UCHAR) == A_MAP_UCHAR)
 							*((unsigned char *) p) = i;
-						} else if (mask & A_MAP_USHORT) {
+						else if (mask & A_MAP_USHORT)
 							*((unsigned short *) p) = i;
-						} else {
+						else
 							*((unsigned long *) p) = i;
-						}
 					} else
 #endif
-					if (mask & A_CAST_CHAR_PTR) {
+					if (mask & A_CAST_CHAR_PTR)
 						*((caddr_t *) p) = (caddr_t) i;
-					} else {	/* A_CAST_INT */
+					else	/* A_CAST_INT */
 						*((int *) p) = i;
-					}
 				}
 
-				if (ioctl(sockfd, a1op->selector, &ifr) < 0) {
-					perror(a1op->name);
-					++goterr;
-					continue;
-				}
+				if (ioctl(sockfd, a1op->selector, &ifr) < 0)
+					bb_perror_msg_and_die(a1op->name);
 #ifdef QUESTIONABLE_ALIAS_CASE
 				if (mask & A_COLON_CHK) {
 					/*
@@ -508,46 +475,33 @@ int ifconfig_main(int argc, char **argv)
 					 */
 					char *ptr;
 					short int found_colon = 0;
-
-					for (ptr = ifr.ifr_name; *ptr; ptr++) {
-						if (*ptr == ':') {
+					for (ptr = ifr.ifr_name; *ptr; ptr++)
+						if (*ptr == ':')
 							found_colon++;
-						}
-					}
-
-					if (found_colon && *(ptr - 1) == '-') {
+					if (found_colon && ptr[-1] == '-')
 						continue;
-					}
 				}
 #endif
 			}
-			if (!(mask & A_SET_AFTER)) {
+			if (!(mask & A_SET_AFTER))
 				continue;
-			}
 			mask = N_SET;
 		}
 
-		if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0) {
-			perror("SIOCGIFFLAGS");
-			++goterr;
-		} else {
-			selector = op->selector;
-			if (mask & SET_MASK) {
-				ifr.ifr_flags |= selector;
-			} else {
-				ifr.ifr_flags &= ~selector;
-			}
-			if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) < 0) {
-				perror("SIOCSIFFLAGS");
-				++goterr;
-			}
-		}
- LOOP:
-		continue;
-	}					/* end of while-loop */
+		if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0)
+			bb_perror_msg_and_die("SIOCGIFFLAGS");
+		selector = op->selector;
+		if (mask & SET_MASK)
+			ifr.ifr_flags |= selector;
+		else
+			ifr.ifr_flags &= ~selector;
+		if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) < 0)
+			bb_perror_msg_and_die("SIOCSIFFLAGS");
+	} /* while() */
 
-	if (ENABLE_FEATURE_CLEAN_UP) close(sockfd);
-	return goterr;
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(sockfd);
+	return 0;
 }
 
 #if ENABLE_FEATURE_IFCONFIG_HW
