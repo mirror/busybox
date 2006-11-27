@@ -124,7 +124,8 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 	fd_data = xconnect_ftpdata(server, buf);
 
 	if (ftpcmd("SIZE ", server_path, control_stream, buf) == 213) {
-		if (SAFE_STRTOOFF(buf + 4, &filesize))
+		filesize = BB_STRTOOFF(buf + 4, NULL, 10);
+		if (errno || filesize < 0)
 			bb_error_msg_and_die("SIZE error: %s", buf + 4);
 	} else {
 		filesize = -1;

@@ -64,7 +64,8 @@ static int read_str(const char *line, void *arg)
 
 static int read_u32(const char *line, void *arg)
 {
-	return safe_strtou32(line, (uint32_t*)arg) == 0;
+	*((uint32_t*)arg) = bb_strtou32(line, NULL, 10);
+	return errno == 0;
 }
 
 
@@ -101,7 +102,8 @@ static void attach_option(struct option_set **opt_list,
 	struct option_set *existing, *new, **curr;
 
 	/* add it to an existing option */
-	if ((existing = find_option(*opt_list, option->code))) {
+	existing = find_option(*opt_list, option->code);
+	if (existing) {
 		DEBUG("Attaching option %s to existing member of list", option->name);
 		if (option->flags & OPTION_LIST) {
 			if (existing->data[OPT_LEN] + length <= 255) {

@@ -85,30 +85,31 @@
 /* CONFIG_LFS is on */
 # if ULONG_MAX > 0xffffffff
 /* "long" is long enough on this system */
-#  define STRTOOFF strtol
-#  define SAFE_STRTOOFF safe_strtol
-#  define XSTRTOUOFF xstrtoul
+#  define XSTRTOOFF xstrtoul
+/* usage: sz = BB_STRTOOFF(s, NULL, 10); if (errno || sz < 0) die(); */
+#  define BB_STRTOOFF bb_strtoul
+#  define STRTOOFF strtoul
 /* usage: printf("size: %"OFF_FMT"d (%"OFF_FMT"x)\n", sz, sz); */
 #  define OFF_FMT "l"
 # else
 /* "long" is too short, need "long long" */
-#  define STRTOOFF strtoll
-#  define SAFE_STRTOOFF safe_strtoll
-#  define XSTRTOUOFF xstrtoull
+#  define XSTRTOOFF xstrtoull
+#  define BB_STRTOOFF bb_strtoull
+#  define STRTOOFF strtoull
 #  define OFF_FMT "ll"
 # endif
 #else
 # if 0 /* #if UINT_MAX == 0xffffffff */
 /* Doesn't work. off_t is a long. gcc will throw warnings on printf("%d", off_t)
  * even if long==int on this arch. Crap... */
+#  define XSTRTOOFF xstrtou
+#  define BB_STRTOOFF bb_strtoi
 #  define STRTOOFF strtol
-#  define SAFE_STRTOOFF safe_strtoi
-#  define XSTRTOUOFF xstrtou
 #  define OFF_FMT ""
 # else
+#  define XSTRTOOFF xstrtoul
+#  define BB_STRTOOFF bb_strtol
 #  define STRTOOFF strtol
-#  define SAFE_STRTOOFF safe_strtol
-#  define XSTRTOUOFF xstrtoul
 #  define OFF_FMT "l"
 # endif
 #endif
@@ -298,18 +299,6 @@ extern void utoa_to_buf(unsigned n, char *buf, unsigned buflen);
 extern char *utoa(unsigned n);
 extern void itoa_to_buf(int n, char *buf, unsigned buflen);
 extern char *itoa(int n);
-
-// FIXME: the prototype doesn't match libc strtoXX -> confusion
-// FIXME: alot of unchecked strtoXXX are still in tree
-// FIXME: atoi_or_else(str, N)?
-extern int safe_strtoi(const char *arg, int* value);
-extern int safe_strtou(const char *arg, unsigned* value);
-extern int safe_strtod(const char *arg, double* value);
-extern int safe_strtol(const char *arg, long* value);
-extern int safe_strtoll(const char *arg, long long* value);
-extern int safe_strtoul(const char *arg, unsigned long* value);
-extern int safe_strtoull(const char *arg, unsigned long long* value);
-extern int safe_strtou32(const char *arg, uint32_t* value);
 
 struct suffix_mult {
 	const char *suffix;

@@ -44,38 +44,55 @@ static int print_formatted(char *format, int argc, char **argv);
 static void print_direc(char *start, size_t length,
 			int field_width, int precision, char *argument);
 
-typedef int (*converter)(char *arg, void *result);
+typedef void (*converter)(char *arg, void *result);
 
 static void multiconvert(char *arg, void *result, converter convert)
 {
 	char s[16];
 	if (*arg == '"' || *arg == '\'') {
-		sprintf(s, "%d", (unsigned)arg[1]);
+		sprintf(s, "%d", (unsigned char)arg[1]);
 		arg = s;
 	}
-	if (convert(arg, result))
+	convert(arg, result);
+	if (errno) /* Huh, looks strange... bug? */
 		fputs(arg, stderr);
+}
+
+static void conv_strtoul(char *arg, void *result)
+{
+	*(unsigned long*)result = bb_strtoul(arg, NULL, 10);
+}
+static void conv_strtol(char *arg, void *result)
+{
+	*(long*)result = bb_strtol(arg, NULL, 10);
+}
+static void conv_strtod(char *arg, void *result)
+{
+	char *end;
+	/* Well, this one allows leading whitespace... so what */
+	/* What I like much less is that "-" is accepted too! :( */
+	*(double*)result = strtod(arg, &end);
+	if (end[0]) errno = ERANGE;
 }
 
 static unsigned long my_xstrtoul(char *arg)
 {
 	unsigned long result;
-
-	multiconvert(arg, &result, (converter)safe_strtoul);
+	multiconvert(arg, &result, conv_strtoul);
 	return result;
 }
 
 static long my_xstrtol(char *arg)
 {
 	long result;
-	multiconvert(arg, &result, (converter)safe_strtol);
+	multiconvert(arg, &result, conv_strtol);
 	return result;
 }
 
 static double my_xstrtod(char *arg)
 {
 	double result;
-	multiconvert(arg, &result, (converter)safe_strtod);
+	multiconvert(arg, &result, conv_strtod);
 	return result;
 }
 

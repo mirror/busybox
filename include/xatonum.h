@@ -104,3 +104,54 @@ extern inline uint32_t xatou32(const char *numstr)
 		return xatoul(numstr);
 	return BUG_xatou32_unimplemented();
 }
+
+/* Non-aborting kind of convertors */
+
+unsigned long long bb_strtoull(const char *arg, char **endp, int base);
+long long bb_strtoll(const char *arg, char **endp, int base);
+
+#if ULONG_MAX == ULLONG_MAX
+extern inline
+unsigned long bb_strtoul(const char *arg, char **endp, int base)
+{ return bb_strtoull(arg, endp, base); }
+extern inline
+unsigned long bb_strtol(const char *arg, char **endp, int base)
+{ return bb_strtoll(arg, endp, base); }
+#else
+unsigned long bb_strtoul(const char *arg, char **endp, int base);
+long bb_strtol(const char *arg, char **endp, int base);
+#endif
+
+#if UINT_MAX == ULLONG_MAX
+extern inline
+unsigned long bb_strtou(const char *arg, char **endp, int base)
+{ return bb_strtoull(arg, endp, base); }
+extern inline
+unsigned long bb_strtoi(const char *arg, char **endp, int base)
+{ return bb_strtoll(arg, endp, base); }
+#elif UINT_MAX == ULONG_MAX
+extern inline
+unsigned long bb_strtou(const char *arg, char **endp, int base)
+{ return bb_strtoul(arg, endp, base); }
+extern inline
+unsigned long bb_strtoi(const char *arg, char **endp, int base)
+{ return bb_strtol(arg, endp, base); }
+#else
+unsigned long bb_strtou(const char *arg, char **endp, int base);
+long bb_strtoi(const char *arg, char **endp, int base);
+#endif
+
+int BUG_bb_strtou32_unimplemented(void);
+extern inline
+uint32_t bb_strtou32(const char *arg, char **endp, int base)
+{
+	if (sizeof(uint32_t) == sizeof(unsigned))
+		return bb_strtou(arg, endp, base);
+	if (sizeof(uint32_t) == sizeof(unsigned long))
+		return bb_strtoul(arg, endp, base);
+	return BUG_bb_strtou32_unimplemented();
+}
+
+/* Floating point */
+
+/* double bb_strtod(const char *arg, char **endp); */

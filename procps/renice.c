@@ -87,7 +87,8 @@ int renice_main(int argc, char **argv)
 			}
 			who = p->pw_uid;
 		} else {
-			if (safe_strtou(arg, &who)) {
+			who = bb_strtou(arg, NULL, 10);
+			if (errno) {
 				bb_error_msg("bad value: %s", arg);
 				goto HAD_ERROR;
 			}

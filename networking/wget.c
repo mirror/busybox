@@ -335,7 +335,8 @@ int wget_main(int argc, char **argv)
 			 */
 			while ((s = gethdr(buf, sizeof(buf), sfp, &n)) != NULL) {
 				if (strcasecmp(buf, "content-length") == 0) {
-					if (SAFE_STRTOOFF(s, &content_len) || content_len < 0) {
+					content_len = BB_STRTOOFF(s, NULL, 10);
+					if (errno || content_len < 0) {
 						bb_error_msg_and_die("content-length %s is garbage", s);
 					}
 					got_clen = 1;
@@ -402,7 +403,8 @@ int wget_main(int argc, char **argv)
 		 * Querying file size
 		 */
 		if (ftpcmd("SIZE ", target.path, sfp, buf) == 213) {
-			if (SAFE_STRTOOFF(buf+4, &content_len) || content_len < 0) {
+			content_len = BB_STRTOOFF(buf+4, NULL, 10);
+			if (errno || content_len < 0) {
 				bb_error_msg_and_die("SIZE value is garbage");
 			}
 			got_clen = 1;
@@ -437,7 +439,7 @@ int wget_main(int argc, char **argv)
 		}
 
 		if (ftpcmd("RETR ", target.path, sfp, buf) > 150)
-			bb_error_msg_and_die("bad response to %s: %s", "RETR", buf);
+			bb_error_msg_and_die("bad response to RETR: %s", buf);
 	}
 
 
@@ -446,7 +448,7 @@ int wget_main(int argc, char **argv)
 	 */
 	if (chunked) {
 		fgets(buf, sizeof(buf), dfp);
-		content_len = STRTOOFF(buf, (char **) NULL, 16);
+		content_len = STRTOOFF(buf, NULL, 16);
 		/* FIXME: error check?? */
 	}
 
@@ -480,7 +482,7 @@ int wget_main(int argc, char **argv)
 		if (chunked) {
 			safe_fgets(buf, sizeof(buf), dfp); /* This is a newline */
 			safe_fgets(buf, sizeof(buf), dfp);
-			content_len = STRTOOFF(buf, (char **) NULL, 16);
+			content_len = STRTOOFF(buf, NULL, 16);
 			/* FIXME: error check? */
 			if (content_len == 0) {
 				chunked = 0; /* all done! */

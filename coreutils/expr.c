@@ -49,6 +49,8 @@ typedef long arith_t;
 #define STRTOL(s, e, b) strtol(s, e, b)
 #endif
 
+/* TODO: use bb_strtol[l]? It's easier to check for errors... */
+
 /* A value is.... */
 struct valinfo {
 	TYPE type;			/* Which kind. */

@@ -147,8 +147,8 @@ static FILE *dbf;
 static int bcode(const char *s)
 {
 	int r;
-	unsigned value;
-	if (safe_strtou((char *)s, &value)) {
+	unsigned value = bb_strtou(s, NULL, 10);
+	if (errno) {
 		return -1;
 	}
 	r = tty_value_to_baud(value);

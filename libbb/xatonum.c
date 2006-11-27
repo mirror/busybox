@@ -19,15 +19,6 @@
 #define XSTR_TYPE_MIN LLONG_MIN
 #define XSTR_STRTOU strtoull
 #include "xatonum_template.c"
-#undef type
-#undef xstrtou
-#undef xstrto
-#undef xatou
-#undef xato
-#undef XSTR_UTYPE_MAX
-#undef XSTR_TYPE_MAX
-#undef XSTR_TYPE_MIN
-#undef XSTR_STRTOU
 
 #if ULONG_MAX != ULLONG_MAX
 #define type long
@@ -40,15 +31,6 @@
 #define XSTR_TYPE_MIN LONG_MIN
 #define XSTR_STRTOU strtoul
 #include "xatonum_template.c"
-#undef type
-#undef xstrtou
-#undef xstrto
-#undef xatou
-#undef xato
-#undef XSTR_UTYPE_MAX
-#undef XSTR_TYPE_MAX
-#undef XSTR_TYPE_MIN
-#undef XSTR_STRTOU
 #endif
 
 #if UINT_MAX != ULONG_MAX
@@ -72,15 +54,6 @@ extern inline unsigned bb_strtoui(const char *str, char **end, int b)
 /* libc has no strtoui, so we need to create/use our own */
 #define XSTR_STRTOU bb_strtoui
 #include "xatonum_template.c"
-#undef type
-#undef xstrtou
-#undef xstrto
-#undef xatou
-#undef xato
-#undef XSTR_UTYPE_MAX
-#undef XSTR_TYPE_MAX
-#undef XSTR_TYPE_MIN
-#undef XSTR_STRTOU
 #endif
 
 /* A few special cases */
@@ -88,11 +61,6 @@ extern inline unsigned bb_strtoui(const char *str, char **end, int b)
 int xatoi_u(const char *numstr)
 {
 	return xatou_range(numstr, 0, INT_MAX);
-}
-
-uint32_t xatou32(const char *numstr)
-{
-	return xatoul_range(numstr, 0, 0xffffffff);
 }
 
 uint16_t xatou16(const char *numstr)

@@ -119,7 +119,8 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 			free_procps_scan(sp);
 			return NULL;
 		}
-		if (safe_strtou(entry->d_name, &pid))
+		pid = bb_strtou(entry->d_name, NULL, 10);
+		if (errno)
 			continue;
 
 		/* After this point we have to break, not continue

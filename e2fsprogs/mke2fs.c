@@ -673,7 +673,7 @@ static void show_stats(ext2_filsys fs)
 static int set_os(struct ext2_super_block *sb, char *os)
 {
 	if (isdigit (*os)) {
-		sb->s_creator_os = atoi (os);
+		sb->s_creator_os = atoi(os);
 		return 1;
 	}
 
@@ -790,7 +790,7 @@ static __u32 ok_features[3] = {
 
 static int PRS(int argc, char *argv[])
 {
-	int		b, c;
+	int		c;
 	int		size;
 	char *		tmp;
 	int		blocksize = 0;
@@ -848,54 +848,32 @@ static int PRS(int argc, char *argv[])
 		    "b:cE:f:g:i:jl:m:no:qr:R:s:tvI:J:ST:FL:M:N:O:V")) != EOF) {
 		switch (c) {
 		case 'b':
-			if (safe_strtoi(optarg, &blocksize))
-				goto BLOCKSIZE_ERROR;
-			b = (blocksize > 0) ? blocksize : -blocksize;
-			if (b < EXT2_MIN_BLOCK_SIZE ||
-			    b > EXT2_MAX_BLOCK_SIZE) {
-BLOCKSIZE_ERROR:
-				bb_error_msg_and_die("invalid block size - %s", optarg);
-			}
+			blocksize = xatou_range(optarg, EXT2_MIN_BLOCK_SIZE, EXT2_MAX_BLOCK_SIZE);
 			mke2fs_warning_msg((blocksize > 4096),
 				"blocksize %d not usable on most systems",
 				blocksize);
-			if (blocksize > 0)
-				param.s_log_block_size =
-					int_log2(blocksize >>
-						 EXT2_MIN_BLOCK_LOG_SIZE);
+			param.s_log_block_size =
+				int_log2(blocksize >> EXT2_MIN_BLOCK_LOG_SIZE);
 			break;
 		case 'c':	/* Check for bad blocks */
 		case 't':	/* deprecated */
 			cflag++;
 			break;
 		case 'f':
-			if (safe_strtoi(optarg, &size) || size < EXT2_MIN_BLOCK_SIZE || size > EXT2_MAX_BLOCK_SIZE ){
-				bb_error_msg_and_die("invalid fragment size - %s", optarg);
-			}
+			size = xatou_range(optarg, EXT2_MIN_BLOCK_SIZE, EXT2_MAX_BLOCK_SIZE);
 			param.s_log_frag_size =
 				int_log2(size >> EXT2_MIN_BLOCK_LOG_SIZE);
 			mke2fs_warning_msg(1, "fragments not supported. Ignoring -f option");
 			break;
 		case 'g':
-			{
-			    int foo;
-			    if (safe_strtoi(optarg, &foo)) {
-				bb_error_msg_and_die("Illegal number for blocks per group");
-			    }
-			    param.s_blocks_per_group = foo;
-			}
+			param.s_blocks_per_group = xatou32(optarg);
 			if ((param.s_blocks_per_group % 8) != 0) {
 				bb_error_msg_and_die("blocks per group must be multiple of 8");
 			}
 			break;
 		case 'i':
-			if (safe_strtoi(optarg, &inode_ratio)
-				|| inode_ratio < EXT2_MIN_BLOCK_SIZE
-				|| inode_ratio > EXT2_MAX_BLOCK_SIZE * 1024) {
-				bb_error_msg_and_die("invalid inode ratio %s (min %d/max %d)",
-					optarg, EXT2_MIN_BLOCK_SIZE,
-					EXT2_MAX_BLOCK_SIZE);
-				}
+			/* Huh? is "* 1024" correct? */
+			inode_ratio = xatou_range(optarg, EXT2_MIN_BLOCK_SIZE, EXT2_MAX_BLOCK_SIZE * 1024);
 			break;
 		case 'J':
 			parse_journal_opts(&journal_device, &journal_flags, &journal_size, optarg);
@@ -910,9 +888,7 @@ BLOCKSIZE_ERROR:
 			bad_blocks_filename = optarg;
 			break;
 		case 'm':
-			if (safe_strtoi(optarg, &reserved_ratio) || reserved_ratio > 50 ) {
-				bb_error_msg_and_die("invalid reserved blocks percent - %s", optarg);
-			}
+			reserved_ratio = xatou_range(optarg, 0, 50);
 			break;
 		case 'n':
 			noaction++;
@@ -921,7 +897,7 @@ BLOCKSIZE_ERROR:
 			creator_os = optarg;
 			break;
 		case 'r':
-			param.s_rev_level = atoi(optarg);
+			param.s_rev_level = xatoi_u(optarg);
 			if (param.s_rev_level == EXT2_GOOD_OLD_REV) {
 				param.s_feature_incompat = 0;
 				param.s_feature_compat = 0;
@@ -929,7 +905,7 @@ BLOCKSIZE_ERROR:
 			}
 			break;
 		case 's':	/* deprecated */
-			if (atoi(optarg))
+			if (xatou(optarg))
 				param.s_feature_ro_compat |=
 					EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER;
 			else
@@ -938,13 +914,11 @@ BLOCKSIZE_ERROR:
 			break;
 #ifdef EXT2_DYNAMIC_REV
 		case 'I':
-			if (safe_strtoi(optarg, &inode_size)) {
-				bb_error_msg_and_die("invalid inode size - %s", optarg);
-			}
+			inode_size = xatoi_u(optarg);
 			break;
 #endif
 		case 'N':
-			num_inodes = atoi(optarg);
+			num_inodes = xatoi_u(optarg);
 			break;
 		case 'v':
 			quiet = 0;

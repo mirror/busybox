@@ -173,3 +173,13 @@ type xato()(const char *numstr)
 {
 	return xstrto(_range_sfx)(numstr, 10, XSTR_TYPE_MIN, XSTR_TYPE_MAX, NULL);
 }
+
+#undef type
+#undef xstrtou
+#undef xstrto
+#undef xatou
+#undef xato
+#undef XSTR_UTYPE_MAX
+#undef XSTR_TYPE_MAX
+#undef XSTR_TYPE_MIN
+#undef XSTR_STRTOU
