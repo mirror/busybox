@@ -34,28 +34,29 @@ static void del_line_matching(const char *login, const char *filename)
 		}
 	}
 
-	if (!found) {
-		bb_error_msg("can't find '%s' in '%s'", login, filename);
-		if (!ENABLE_FEATURE_CLEAN_UP) return;
-		goto clean_up;
-	}
-
-	if (ENABLE_FEATURE_CLEAN_UP)
+	if (!ENABLE_FEATURE_CLEAN_UP) {
+		if (!found) {
+			bb_error_msg("can't find '%s' in '%s'", login, filename);
+			return;
+		}
+		passwd = fopen_or_warn(filename, "w");
+		if (passwd)
+			while ((line = llist_pop(&plist)))
+				fputs(line, passwd);
+	} else {
+		if (!found) {
+			bb_error_msg("can't find '%s' in '%s'", login, filename);
+			goto clean_up;
+		}
 		fclose(passwd);
-
-	passwd = fopen_or_warn(filename, "w");
-	if (passwd) {
-		if (ENABLE_FEATURE_CLEAN_UP) {
+		passwd = fopen_or_warn(filename, "w");
+		if (passwd) {
  clean_up:
 			while ((line = llist_pop(&plist))) {
 				if (found) fputs(line, passwd);
 				free(line);
 			}
 			fclose(passwd);
-		} else {
-			/* found != 0 here, no need to check */
-			while ((line = llist_pop(&plist)))
-				fputs(line, passwd);
 		}
 	}
 }
