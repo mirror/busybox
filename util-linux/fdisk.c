@@ -379,19 +379,19 @@ STATIC_OSF void xbsd_print_disklabel(int);
 #define SGI_XVM         0x0d
 #define SGI_ENTIRE_DISK SGI_VOLUME
 #if defined(CONFIG_FEATURE_SGI_LABEL) || defined(CONFIG_FEATURE_SUN_LABEL)
-static unsigned short
-__swap16(unsigned short x)
+static uint16_t
+__swap16(uint16_t x)
 {
-	return (((uint16_t)(x) & 0xFF) << 8) | (((uint16_t)(x) & 0xFF00) >> 8);
+	return (x << 8) | (x >> 8);
 }
 
 static uint32_t
 __swap32(uint32_t x)
 {
-	return (((x & 0xFF) << 24) |
-		((x & 0xFF00) << 8) |
-		((x & 0xFF0000) >> 8) |
-		((x & 0xFF000000) >> 24));
+	return (x << 24) |
+	       ((x & 0xFF00) << 8) |
+	       ((x & 0xFF0000) >> 8) |
+	       (x >> 24);
 }
 #endif
 

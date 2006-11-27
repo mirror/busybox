@@ -84,10 +84,8 @@ typedef struct {
 #define SGI_INFO_MAGIC          0x00072959
 #define SGI_INFO_MAGIC_SWAPPED  0x59290700
 
-#define SGI_SSWAP16(x) (sgi_other_endian ? __swap16(x) \
-				 : (uint16_t)(x))
-#define SGI_SSWAP32(x) (sgi_other_endian ? __swap32(x) \
-				 : (uint32_t)(x))
+#define SGI_SSWAP16(x) (sgi_other_endian ? __swap16(x) : (uint16_t)(x))
+#define SGI_SSWAP32(x) (sgi_other_endian ? __swap32(x) : (uint32_t)(x))
 
 #define sgilabel ((sgi_partition *)MBRbuffer)
 #define sgiparam (sgilabel->devparam)

@@ -327,8 +327,8 @@ _INLINE_ __u16 blkid_swab16(__u16 val)
 
 _INLINE_ __u64 blkid_swab64(__u64 val)
 {
-	return (blkid_swab32(val >> 32) |
-		(((__u64) blkid_swab32(val & 0xFFFFFFFFUL)) << 32));
+	return blkid_swab32(val >> 32) |
+	       ( ((__u64)blkid_swab32((__u32)val)) << 32 );
 }
 #endif
 
@@ -341,14 +341,14 @@ _INLINE_  __u16 blkid_swab16(__u16 val)
 
 _INLINE_ __u32 blkid_swab32(__u32 val)
 {
-	return ((val>>24) | ((val>>8)&0xFF00) |
-		((val<<8)&0xFF0000) | (val<<24));
+	return (val>>24) | ((val>>8) & 0xFF00) |
+		((val<<8) & 0xFF0000) | (val<<24);
 }
 
 _INLINE_ __u64 blkid_swab64(__u64 val)
 {
-	return (blkid_swab32(val >> 32) |
-		(((__u64) blkid_swab32(val & 0xFFFFFFFFUL)) << 32));
+	return blkid_swab32(val >> 32) |
+	       ( ((__u64)blkid_swab32((__u32)val)) << 32 );
 }
 #endif
 
