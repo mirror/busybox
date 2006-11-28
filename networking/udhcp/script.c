@@ -151,10 +151,9 @@ static char **fill_envp(struct dhcpMessage *packet)
 	envp[j] = xmalloc(sizeof("ip=255.255.255.255"));
 	sprintip(envp[j++], "ip=", (uint8_t *) &packet->yiaddr);
 
-
 	for (i = 0; dhcp_options[i].code; i++) {
 		temp = get_option(packet, dhcp_options[i].code);
-		if (temp)
+		if (!temp)
 			continue;
 		envp[j] = xmalloc(upper_length(temp[OPT_LEN - 2],
 			dhcp_options[i].flags & TYPE_MASK) + strlen(dhcp_options[i].name) + 2);
@@ -205,7 +204,6 @@ void udhcp_run_script(struct dhcpMessage *packet, const char *name)
 		return;
 	} else if (pid == 0) {
 		/* close fd's? */
-
 		/* exec script */
 		execle(client_config.script, client_config.script,
 		       name, NULL, envp);
