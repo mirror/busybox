@@ -49,6 +49,7 @@ static unsigned long long handle_errors(unsigned long long v, char **endp, char 
 
 unsigned long long bb_strtoull(const char *arg, char **endp, int base)
 {
+	unsigned long long v;
 	char *endptr;
 
 	/* strtoul("  -4200000000") returns 94967296, errno 0 (!) */
@@ -57,35 +58,42 @@ unsigned long long bb_strtoull(const char *arg, char **endp, int base)
 
 	/* not 100% correct for lib func, but convenient for the caller */
 	errno = 0;
-	return handle_errors(strtoull(arg, &endptr, base), endp, endptr);
+	v = strtoull(arg, &endptr, base);
+	return handle_errors(v, endp, endptr);
 }
 
 long long bb_strtoll(const char *arg, char **endp, int base)
 {
+	unsigned long long v;
 	char *endptr;
 
 	if (arg[0] != '-' && !isalnum(arg[0])) return ret_ERANGE();
 	errno = 0;
-	return handle_errors(strtoll(arg, &endptr, base), endp, endptr);
+	v = strtoll(arg, &endptr, base);
+	return handle_errors(v, endp, endptr);
 }
 
 #if ULONG_MAX != ULLONG_MAX
 unsigned long bb_strtoul(const char *arg, char **endp, int base)
 {
+	unsigned long v;
 	char *endptr;
 
 	if (!isalnum(arg[0])) return ret_ERANGE();
 	errno = 0;
-	return handle_errors(strtoul(arg, &endptr, base), endp, endptr);
+	v = strtoul(arg, &endptr, base);
+	return handle_errors(v, endp, endptr);
 }
 
 long bb_strtol(const char *arg, char **endp, int base)
 {
+	long v;
 	char *endptr;
 
 	if (arg[0] != '-' && !isalnum(arg[0])) return ret_ERANGE();
 	errno = 0;
-	return handle_errors(strtol(arg, &endptr, base), endp, endptr);
+	v = strtol(arg, &endptr, base);
+	return handle_errors(v, endp, endptr);
 }
 #endif
 
