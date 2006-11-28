@@ -18,29 +18,55 @@
 /* Written by Jim Meyering.  */
 
 /* Busyboxed by Denis Vlasenko
-** Based on od.c from coreutils-5.2.1
-** Top bloat sources:
-** get_lcm               111
-** print_ascii           145
-** format_address_std    159
-** check_and_close       160
-** open_next_file        170
-** write_block           368
-** decode_format_string 1169
-** od_main              2623
-** TODO: get rid of getopt()
+
+Based on od.c from coreutils-5.2.1
+Top bloat sources:
+
+00000073 t parse_old_offset
+0000007b t get_lcm
+00000090 r long_options
+00000092 t print_named_ascii
+000000bf t print_ascii
+00000168 t write_block
+00000366 t decode_format_string
+00000a71 T od_main
+
+Tested for compat with coreutils 6.3
+using this script. Minor differences fixed.
+
+#!/bin/sh
+echo STD
+time /path/to/coreutils/od \
+...params... \
+>std
+echo Exit code $?
+echo BBOX
+time ./busybox od \
+...params... \
+>bbox
+echo Exit code $?
+diff -u -a std bbox >bbox.diff || { echo Different!; sleep 1; }
+
 */
+
 
 #include "busybox.h"
 #include <getopt.h>
 
 #define assert(a) ((void)0)
-#define ISPRINT(c) ((c)>=' ')
+
+/* Check for 0x7f is a coreutils 6.3 addition */
+#define ISPRINT(c) (((c)>=' ') && (c) != 0x7f)
 
 typedef long double longdouble_t;
 typedef unsigned long long ulonglong_t;
-#define xstrtoumax_sfx xstrtoul_sfx
-#define xstrtoumax_range_sfx xstrtoul_range_sfx
+typedef long long llong;
+
+#if ENABLE_LFS
+# define xstrtooff_sfx xstrtoull_sfx
+#else
+# define xstrtooff_sfx xstrtoul_sfx
+#endif
 
 /* The default number of input bytes per output line.  */
 #define DEFAULT_BYTES_PER_BLOCK 16
@@ -67,7 +93,6 @@ enum size_spec {
 	INT,
 	LONG,
 	LONG_LONG,
-	/* FIXME: add INTMAX support, too */
 	FLOAT_SINGLE,
 	FLOAT_DOUBLE,
 	FLOAT_LONG_DOUBLE,
@@ -105,16 +130,16 @@ struct tspec {
    10	unsigned decimal
    8	unsigned hexadecimal  */
 
-static const unsigned char bytes_to_oct_digits[] =
+static const uint8_t bytes_to_oct_digits[] =
 {0, 3, 6, 8, 11, 14, 16, 19, 22, 25, 27, 30, 32, 35, 38, 41, 43};
 
-static const unsigned char bytes_to_signed_dec_digits[] =
+static const uint8_t bytes_to_signed_dec_digits[] =
 {1, 4, 6, 8, 11, 13, 16, 18, 20, 23, 25, 28, 30, 33, 35, 37, 40};
 
-static const unsigned char bytes_to_unsigned_dec_digits[] =
+static const uint8_t bytes_to_unsigned_dec_digits[] =
 {0, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25, 27, 29, 32, 34, 37, 39};
 
-static const unsigned char bytes_to_hex_digits[] =
+static const uint8_t bytes_to_hex_digits[] =
 {0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32};
 
 /* Convert enum size_spec to the size of the named type.  */
@@ -137,57 +162,32 @@ struct dummy {
 		[sizeof width_bytes / sizeof width_bytes[0] == N_SIZE_SPECS ? 1 : -1];
 };
 
-/* Names for some non-printing characters.  */
-static const char charname[33][4] = {
-	"nul", "soh", "stx", "etx", "eot", "enq", "ack", "bel",
-	"bs", "ht", "nl", "vt", "ff", "cr", "so", "si",
-	"dle", "dc1", "dc2", "dc3", "dc4", "nak", "syn", "etb",
-	"can", "em", "sub", "esc", "fs", "gs", "rs", "us",
-	"sp"
-};
-
-/* Address base (8, 10 or 16).  */
-static int address_base;
-
-/* The number of octal digits required to represent the largest
-	 address value.  */
-#define MAX_ADDRESS_LENGTH \
-	((sizeof(uintmax_t) * CHAR_BIT + CHAR_BIT - 1) / 3)
-
-/* Width of a normal address.  */
-static int address_pad_len;
-
 static size_t string_min;
 static int flag_dump_strings;
-
-/* Non-zero if we should recognize the older non-option arguments
-   that specified at most one file and optional arguments specifying
-   offset and pseudo-start address.  */
-static int traditional;
 
 /* Non-zero if an old-style 'pseudo-address' was specified.  */
 static int flag_pseudo_start;
 
 /* The difference between the old-style pseudo starting address and
    the number of bytes to skip.  */
-static uintmax_t pseudo_offset;
+static off_t pseudo_offset;
 
 /* Function that accepts an address and an optional following char,
    and prints the address and char to stdout.  */
-static void (*format_address) (uintmax_t, char);
+static void (*format_address) (off_t, char);
 
 /* The number of input bytes to skip before formatting and writing.  */
-static uintmax_t n_bytes_to_skip; // = 0;
+static off_t n_bytes_to_skip; // = 0;
 
 /* When zero, MAX_BYTES_TO_FORMAT and END_OFFSET are ignored, and all
    input is formatted.  */
 static int limit_bytes_to_format; // = 0;
 
 /* The maximum number of bytes that will be formatted.  */
-static uintmax_t max_bytes_to_format;
+static off_t max_bytes_to_format;
 
 /* The offset of the first byte after the last byte to be formatted.  */
-static uintmax_t end_offset;
+static off_t end_offset;
 
 /* When nonzero and two or more consecutive blocks are equal, format
    only the first block and output an asterisk alone on the following
@@ -195,10 +195,8 @@ static uintmax_t end_offset;
 static int abbreviate_duplicate_blocks = 1;
 
 /* An array of specs describing how to format each input block.  */
-static struct tspec *spec;
-
-/* The number of format specs.  */
 static size_t n_specs;
+static struct tspec *spec;
 
 /* The number of input bytes formatted per output line.  It must be
    a multiple of the least common multiple of the sizes associated with
@@ -215,25 +213,36 @@ static char const *const *file_list;
 
 /* Initializer for file_list if no file-arguments
    were specified on the command line.  */
-static char const *const default_file_list[] = {"-", NULL};
+static char const *const default_file_list[] = { "-", NULL };
 
 /* The input stream associated with the current file.  */
 static FILE *in_stream;
 
-/* If nonzero, at least one of the files we read was standard input.  */
-static int have_read_stdin;
+static int ioerror;
 
 #define MAX_INTEGRAL_TYPE_SIZE sizeof(ulonglong_t)
-static unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1];
+static unsigned char integral_type_size[MAX_INTEGRAL_TYPE_SIZE + 1] = {
+	[sizeof(char)] = CHAR,
+#if USHRT_MAX != UCHAR_MAX
+	[sizeof(short)] = SHORT,
+#endif
+#if UINT_MAX != USHRT_MAX
+	[sizeof(int)] = INT,
+#endif
+#if ULONG_MAX != UINT_MAX
+	[sizeof(long)] = LONG,
+#endif
+#if ULLONG_MAX != ULONG_MAX
+	[sizeof(ulonglong_t)] = LONG_LONG,
+#endif
+};
 
 #define MAX_FP_TYPE_SIZE sizeof(longdouble_t)
-static unsigned char fp_type_size[MAX_FP_TYPE_SIZE + 1];
-
-
-/* For long options that have no equivalent short option, use a
-   non-character as a pseudo short option, starting with CHAR_MAX + 1.  */
-enum {
-	TRADITIONAL_OPTION = CHAR_MAX + 1
+static unsigned char fp_type_size[MAX_FP_TYPE_SIZE + 1] = {
+	/* gcc seems to allow repeated indexes. Last one stays */
+	[sizeof(longdouble_t)] = FLOAT_LONG_DOUBLE,
+	[sizeof(double)] = FLOAT_DOUBLE,
+	[sizeof(float)] = FLOAT_SINGLE,
 };
 
 
@@ -261,12 +270,8 @@ lcm(unsigned u, unsigned v) {
 static void
 print_s_char(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes; i > 0; i--) {
-		int tmp = (unsigned) *(unsigned char *) block;
-		if (tmp > SCHAR_MAX)
-			tmp -= SCHAR_MAX - SCHAR_MIN + 1;
-		assert(tmp <= SCHAR_MAX);
+	while (n_bytes--) {
+		int tmp = *(signed char *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(unsigned char);
 	}
@@ -275,8 +280,7 @@ print_s_char(size_t n_bytes, const char *block, const char *fmt_string)
 static void
 print_char(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes; i > 0; i--) {
+	while (n_bytes--) {
 		unsigned tmp = *(unsigned char *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(unsigned char);
@@ -286,12 +290,9 @@ print_char(size_t n_bytes, const char *block, const char *fmt_string)
 static void
 print_s_short(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes / sizeof(unsigned short); i > 0; i--) {
-		int tmp = (unsigned) *(unsigned short *) block;
-		if (tmp > SHRT_MAX)
-			tmp -= SHRT_MAX - SHRT_MIN + 1;
-		assert(tmp <= SHRT_MAX);
+	n_bytes /= sizeof(signed short);
+	while (n_bytes--) {
+		int tmp = *(signed short *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(unsigned short);
 	}
@@ -300,8 +301,8 @@ print_s_short(size_t n_bytes, const char *block, const char *fmt_string)
 static void
 print_short(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes / sizeof(unsigned short); i > 0; i--) {
+	n_bytes /= sizeof(unsigned short);
+	while (n_bytes--) {
 		unsigned tmp = *(unsigned short *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(unsigned short);
@@ -311,41 +312,49 @@ print_short(size_t n_bytes, const char *block, const char *fmt_string)
 static void
 print_int(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes / sizeof(unsigned); i > 0; i--) {
+	n_bytes /= sizeof(unsigned);
+	while (n_bytes--) {
 		unsigned tmp = *(unsigned *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(unsigned);
 	}
 }
 
+#if UINT_MAX == ULONG_MAX
+# define print_long print_int
+#else
 static void
 print_long(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes / sizeof(unsigned long); i > 0; i--) {
+	n_bytes /= sizeof(unsigned long);
+	while (n_bytes--) {
 		unsigned long tmp = *(unsigned long *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(unsigned long);
 	}
 }
+#endif
 
+#if ULONG_MAX == ULLONG_MAX
+# define print_long_long print_long
+#else
 static void
 print_long_long(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes / sizeof(ulonglong_t); i > 0; i--) {
+	n_bytes /= sizeof(ulonglong_t);
+	while (n_bytes--) {
 		ulonglong_t tmp = *(ulonglong_t *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(ulonglong_t);
 	}
 }
+#endif
 
 static void
 print_float(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes / sizeof(float); i > 0; i--) {
+	n_bytes /= sizeof(float);
+	while (n_bytes--) {
 		float tmp = *(float *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(float);
@@ -355,8 +364,8 @@ print_float(size_t n_bytes, const char *block, const char *fmt_string)
 static void
 print_double(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes / sizeof(double); i > 0; i--) {
+	n_bytes /= sizeof(double);
+	while (n_bytes--) {
 		double tmp = *(double *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(double);
@@ -366,50 +375,55 @@ print_double(size_t n_bytes, const char *block, const char *fmt_string)
 static void
 print_long_double(size_t n_bytes, const char *block, const char *fmt_string)
 {
-	size_t i;
-	for (i = n_bytes / sizeof(longdouble_t); i > 0; i--) {
+	n_bytes /= sizeof(longdouble_t);
+	while (n_bytes--) {
 		longdouble_t tmp = *(longdouble_t *) block;
 		printf(fmt_string, tmp);
 		block += sizeof(longdouble_t);
 	}
 }
 
-static void
-dump_hexl_mode_trailer(size_t n_bytes, const char *block)
-{
-	size_t i;
-	fputs("  >", stdout);
-	for (i = n_bytes; i > 0; i--) {
-		unsigned c = *(unsigned char *) block;
-		unsigned c2 = (ISPRINT(c) ? c : '.');
-		putchar(c2);
-		block += sizeof(unsigned char);
-	}
-	putchar('<');
-}
+/* print_[named]_ascii are optimized for speed.
+ * Remember, someday you may want to pump gigabytes thru this thing.
+ * Saving a dozen of .text bytes here is counter-productive */
 
 static void
 print_named_ascii(size_t n_bytes, const char *block,
 		const char *unused_fmt_string ATTRIBUTE_UNUSED)
 {
-	size_t i;
-	for (i = n_bytes; i > 0; i--) {
-		unsigned c = *(unsigned char *) block;
-		unsigned masked_c = (0x7f & c);
-		const char *s;
-		char buf[5];
+	/* Names for some non-printing characters.  */
+	static const char charname[33][3] = {
+		"nul", "soh", "stx", "etx", "eot", "enq", "ack", "bel",
+		" bs", " ht", " nl", " vt", " ff", " cr", " so", " si",
+		"dle", "dc1", "dc2", "dc3", "dc4", "nak", "syn", "etb",
+		"can", " em", "sub", "esc", " fs", " gs", " rs", " us",
+		" sp"
+	};
+	// buf[N] pos:  01234 56789
+	char buf[12] = "   x\0 0xx\0";
+	// actually "   x\0 xxx\0", but I want to share the string with below.
+	// [12] because we take three 32bit stack slots anyway, and
+	// gcc is too dumb to initialize with constant stores,
+	// it copies initializer from rodata. Oh well.
 
-		if (masked_c == 127)
-			s = "del";
-		else if (masked_c <= 040)
-			s = charname[masked_c];
-		else {
-			sprintf(buf, "  %c", masked_c);
-			s = buf;
+	while (n_bytes--) {
+		unsigned masked_c = *(unsigned char *) block++;
+
+		masked_c &= 0x7f;
+		if (masked_c == 0x7f) {
+			fputs(" del", stdout);
+			continue;
 		}
-
-		printf(" %3s", s);
-		block += sizeof(unsigned char);
+		if (masked_c > ' ') {
+			buf[3] = masked_c;
+			fputs(buf, stdout);
+			continue;
+		}
+		/* Why? Because printf(" %3.3s") is much slower... */
+		buf[6] = charname[masked_c][0];
+		buf[7] = charname[masked_c][1];
+		buf[8] = charname[masked_c][2];
+		fputs(buf+5, stdout);
 	}
 }
 
@@ -417,53 +431,113 @@ static void
 print_ascii(size_t n_bytes, const char *block,
 		const char *unused_fmt_string ATTRIBUTE_UNUSED)
 {
-	size_t i;
-	for (i = n_bytes; i > 0; i--) {
-		unsigned c = *(unsigned char *) block;
-		const char *s;
-		char buf[5];
+	// buf[N] pos:  01234 56789
+	char buf[12] = "   x\0 0xx\0";
 
+	while (n_bytes--) {
+		const char *s;
+		unsigned c = *(unsigned char *) block++;
+
+		if (ISPRINT(c)) {
+			buf[3] = c;
+			fputs(buf, stdout);
+			continue;
+		}
 		switch (c) {
 		case '\0':
-			s = " \\0";
+			s = "  \\0";
 			break;
 		case '\007':
-			s = " \\a";
+			s = "  \\a";
 			break;
 		case '\b':
-			s = " \\b";
+			s = "  \\b";
 			break;
 		case '\f':
-			s = " \\f";
+			s = "  \\f";
 			break;
 		case '\n':
-			s = " \\n";
+			s = "  \\n";
 			break;
 		case '\r':
-			s = " \\r";
+			s = "  \\r";
 			break;
 		case '\t':
-			s = " \\t";
+			s = "  \\t";
 			break;
 		case '\v':
-			s = " \\v";
+			s = "  \\v";
 			break;
-		default:
-			sprintf(buf, (ISPRINT(c) ? "  %c" : "%03o"), c);
-			s = (const char *) buf;
+		case '\x7f':
+			s = " 177";
+			break;
+		default: /* c is never larger than 040 */
+			buf[7] = (c >> 3) + '0';
+			buf[8] = (c & 7) + '0';
+			s = buf + 5;
 		}
+		fputs(s, stdout);
+	}
+}
 
-		printf(" %3s", s);
-		block += sizeof(unsigned char);
+/* Given a list of one or more input filenames FILE_LIST, set the global
+   file pointer IN_STREAM and the global string INPUT_FILENAME to the
+   first one that can be successfully opened. Modify FILE_LIST to
+   reference the next filename in the list.  A file name of "-" is
+   interpreted as standard input.  If any file open fails, give an error
+   message and return nonzero.  */
+
+static void
+open_next_file(void)
+{
+	while(1) {
+		input_filename = *file_list;
+		if (!input_filename)
+			return;
+		file_list++;
+		in_stream = fopen_or_warn_stdin(input_filename);
+		if (in_stream) {
+			if (in_stream == stdin)
+				input_filename = bb_msg_standard_input;
+			break;
+		}
+		ioerror = 1;
+	}
+
+	if (limit_bytes_to_format && !flag_dump_strings)
+		setbuf(in_stream, NULL);
+}
+
+/* Test whether there have been errors on in_stream, and close it if
+   it is not standard input.  Return nonzero if there has been an error
+   on in_stream or stdout; return zero otherwise.  This function will
+   report more than one error only if both a read and a write error
+   have occurred.  IN_ERRNO, if nonzero, is the error number
+   corresponding to the most recent action for IN_STREAM.  */
+
+static void
+check_and_close(void)
+{
+	if (in_stream) {
+		if (ferror(in_stream))	{
+			bb_error_msg("%s: read error", input_filename);
+			ioerror = 1;
+		}
+		fclose_if_not_stdin(in_stream);
+		in_stream = NULL;
+	}
+
+	if (ferror(stdout)) {
+		bb_error_msg("write error");
+		ioerror = 1;
 	}
 }
 
 /* If S points to a single valid modern od format string, put
    a description of that format in *TSPEC, make *NEXT point at the
    character following the just-decoded format (if *NEXT is non-NULL),
-   and return zero.  If S is not valid, don't modify *NEXT or *TSPEC,
-   give a diagnostic, and return nonzero.  For example, if S were
-   "d4afL" *NEXT would be set to "afL" and *TSPEC would be
+   and return zero.  For example, if S were "d4afL"
+   *NEXT would be set to "afL" and *TSPEC would be
 	{
 		fmt = SIGNED_DECIMAL;
 		size = INT or LONG; (whichever integral_type_size[4] resolves to)
@@ -471,22 +545,22 @@ print_ascii(size_t n_bytes, const char *block,
   		fmt_string = "%011d%c";
 	}
    S_ORIG is solely for reporting errors.  It should be the full format
-   string argument.
-   */
+   string argument. */
 
-static int
+static void
 decode_one_format(const char *s_orig, const char *s, const char **next,
 					   struct tspec *tspec)
 {
 	enum size_spec size_spec;
-	unsigned long size;
+	unsigned size;
 	enum output_format fmt;
-	const char *pre_fmt_string;
+	const char *p;
 	char *end;
-	char *fmt_string;
+	char *fmt_string = NULL;
 	void (*print_function) (size_t, const char *, const char *);
 	unsigned c;
 	unsigned field_width = 0;
+	int pos;
 
 	assert(tspec != NULL);
 
@@ -494,40 +568,33 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 	case 'd':
 	case 'o':
 	case 'u':
-	case 'x':
-		c = *s;
-		++s;
-		switch (*s) {
-		case 'C':
-			++s;
-			size = sizeof(char);
-			break;
-		case 'S':
-			++s;
-			size = sizeof(short);
-			break;
-		case 'I':
-			++s;
-			size = sizeof(int);
-			break;
-		case 'L':
-			++s;
-			size = sizeof(long);
-			break;
-		default:
+	case 'x': {
+		static const char CSIL[] = "CSIL";
+
+		c = *s++;
+		p = strchr(CSIL, *s);
+		if (!p) {
 			size = sizeof(int);
 			if (isdigit(s[0])) {
-				size = strtoul(s, &end, 0);
-				if (end[0] || MAX_INTEGRAL_TYPE_SIZE < size
+				size = bb_strtou(s, &end, 0);
+				if (errno == ERANGE
+				 || MAX_INTEGRAL_TYPE_SIZE < size
 				 || integral_type_size[size] == NO_SIZE
 				) {
-					bb_error_msg("invalid type string '%s'; "
-						"%lu-byte integral type is not spported", s_orig, size);
-					return 1;
+					bb_error_msg_and_die("invalid type string '%s'; "
+						"%u-byte %s type is not supported",
+						s_orig, size, "integral");
 				}
 				s = end;
 			}
-			break;
+		} else {
+			static const uint8_t CSIL_sizeof[] = {
+				sizeof(char),
+				sizeof(short),
+				sizeof(int),
+				sizeof(long),
+			};
+			size = CSIL_sizeof[p - CSIL];
 		}
 
 #define ISPEC_TO_FORMAT(Spec, Min_format, Long_format, Max_format) \
@@ -535,40 +602,40 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 	: ((Spec) == LONG ? (Long_format) : (Min_format)))
 
 #define FMT_BYTES_ALLOCATED 9
-		fmt_string = xmalloc(FMT_BYTES_ALLOCATED);
-
 		size_spec = integral_type_size[size];
 
-		switch (c) {
-		case 'd':
-			fmt = SIGNED_DECIMAL;
-			sprintf(fmt_string, " %%%u%s",
-			   (field_width = bytes_to_signed_dec_digits[size]),
-			   ISPEC_TO_FORMAT(size_spec, "d", "ld", PRIdMAX));
-			break;
-		case 'o':
-			fmt = OCTAL;
-			sprintf(fmt_string, " %%0%u%s",
-			   (field_width = bytes_to_oct_digits[size]),
-			   ISPEC_TO_FORMAT(size_spec, "o", "lo", PRIoMAX));
-			break;
-		case 'u':
-			fmt = UNSIGNED_DECIMAL;
-			sprintf(fmt_string, " %%%u%s",
-			   (field_width = bytes_to_unsigned_dec_digits[size]),
-			   ISPEC_TO_FORMAT(size_spec, "u", "lu", PRIuMAX));
-			break;
-		case 'x':
-			fmt = HEXADECIMAL;
-			sprintf(fmt_string, " %%0%u%s",
-			   (field_width = bytes_to_hex_digits[size]),
-			   ISPEC_TO_FORMAT(size_spec, "x", "lx", PRIxMAX));
-			break;
-		default:
-			abort();
-		}
+		{
+			static const char doux[] = "doux";
+			static const char doux_fmt_letter[][4] = {
+				"lld", "llo", "llu", "llx"
+			};
+			static const enum output_format doux_fmt[] = {
+				SIGNED_DECIMAL,
+				OCTAL,
+				UNSIGNED_DECIMAL,
+				HEXADECIMAL,
+			};
+			static const uint8_t *const doux_bytes_to_XXX[] = {
+				bytes_to_signed_dec_digits,
+				bytes_to_oct_digits,
+				bytes_to_unsigned_dec_digits,
+				bytes_to_hex_digits,
+			};
+			static const char doux_fmtstring[][sizeof(" %%0%u%s")] = {
+				" %%%u%s",
+				" %%0%u%s",
+				" %%%u%s",
+				" %%0%u%s",
+			};
 
-		assert(strlen(fmt_string) < FMT_BYTES_ALLOCATED);
+			pos = strchr(doux, c) - doux;
+			fmt = doux_fmt[pos];
+			field_width = doux_bytes_to_XXX[pos][size];
+			p = doux_fmt_letter[pos] + 2;
+			if (size_spec == LONG) p--;
+			if (size_spec == LONG_LONG) p -= 2;
+			fmt_string = xasprintf(doux_fmtstring[pos], field_width, p);
+		}
 
 		switch (size_spec) {
 		case CHAR:
@@ -587,80 +654,69 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 		case LONG:
 			print_function = print_long;
 			break;
-		case LONG_LONG:
+		default: /* case LONG_LONG: */
 			print_function = print_long_long;
 			break;
-		default:
-			abort();
 		}
 		break;
+	}
 
-	case 'f':
+	case 'f': {
+		static const char FDL[] = "FDL";
+
 		fmt = FLOATING_POINT;
 		++s;
-		switch (*s) {
-		case 'F':
-			++s;
-			size = sizeof(float);
-			break;
-		case 'D':
-			++s;
-			size = sizeof(double);
-			break;
-		case 'L':
-			++s;
-			size = sizeof(longdouble_t);
-			break;
-		default:
+		p = strchr(FDL, *s);
+		if (!p) {
 			size = sizeof(double);
 			if (isdigit(s[0])) {
-				size = strtoul(s, &end, 0);
-				if (end[0] || size > MAX_FP_TYPE_SIZE
+				size = bb_strtou(s, &end, 0);
+				if (errno == ERANGE || size > MAX_FP_TYPE_SIZE
 				 || fp_type_size[size] == NO_SIZE
 				) {
-					bb_error_msg("invalid type string '%s'; "
-						"%lu-byte floating point type is not supported", s_orig, size);
-					return 1;
+					bb_error_msg_and_die("invalid type string '%s'; "
+						"%u-byte %s type is not supported",
+						s_orig, size, "floating point");
 				}
 				s = end;
 			}
-			break;
+		} else {
+			static const uint8_t FDL_sizeof[] = {
+				sizeof(float),
+				sizeof(double),
+				sizeof(longdouble_t),
+			};
+
+			size = FDL_sizeof[p - FDL];
 		}
+
 		size_spec = fp_type_size[size];
 
 		switch (size_spec) {
 		case FLOAT_SINGLE:
 			print_function = print_float;
+			field_width = FLT_DIG + 8;
 			/* Don't use %#e; not all systems support it.  */
-			pre_fmt_string = " %%%d.%de";
-			fmt_string = xmalloc(strlen(pre_fmt_string));
-			sprintf(fmt_string, pre_fmt_string,
-				(field_width = FLT_DIG + 8), FLT_DIG);
+			fmt_string = xasprintf(" %%%d.%de", field_width, FLT_DIG);
 			break;
 		case FLOAT_DOUBLE:
 			print_function = print_double;
-			pre_fmt_string = " %%%d.%de";
-			fmt_string = xmalloc(strlen(pre_fmt_string));
-			sprintf(fmt_string, pre_fmt_string,
-				(field_width = DBL_DIG + 8), DBL_DIG);
+			field_width = DBL_DIG + 8;
+			fmt_string = xasprintf(" %%%d.%de", field_width, DBL_DIG);
 			break;
-		case FLOAT_LONG_DOUBLE:
+		default: /* case FLOAT_LONG_DOUBLE: */
 			print_function = print_long_double;
-			pre_fmt_string = " %%%d.%dLe";
-			fmt_string = xmalloc(strlen(pre_fmt_string));
-			sprintf(fmt_string, pre_fmt_string,
-				(field_width = LDBL_DIG + 8), LDBL_DIG);
+			field_width = LDBL_DIG + 8;
+			fmt_string = xasprintf(" %%%d.%dLe", field_width, LDBL_DIG);
 			break;
-		default:
-			abort();
 		}
 		break;
+	}
 
 	case 'a':
 		++s;
 		fmt = NAMED_CHARACTER;
 		size_spec = CHAR;
-		fmt_string = NULL;
 		print_function = print_named_ascii;
 		field_width = 3;
 		break;
@@ -668,13 +724,12 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 		++s;
 		fmt = CHARACTER;
 		size_spec = CHAR;
-		fmt_string = NULL;
 		print_function = print_ascii;
 		field_width = 3;
 		break;
 	default:
-		bb_error_msg("invalid character '%c' in type string '%s'", *s, s_orig);
-		return 1;
+		bb_error_msg_and_die("invalid character '%c' "
+				"in type string '%s'", *s, s_orig);
 	}
 
 	tspec->size = size_spec;
@@ -689,96 +744,22 @@ decode_one_format(const char *s_orig, const char *s, const char **next,
 
 	if (next != NULL)
 		*next = s;
-
-	return 0;
-}
-
-/* Given a list of one or more input filenames FILE_LIST, set the global
-   file pointer IN_STREAM and the global string INPUT_FILENAME to the
-   first one that can be successfully opened. Modify FILE_LIST to
-   reference the next filename in the list.  A file name of "-" is
-   interpreted as standard input.  If any file open fails, give an error
-   message and return nonzero.  */
-
-static int
-open_next_file(void)
-{
-	int err = 0;
-
-	do {
-		input_filename = *file_list;
-		if (input_filename == NULL)
-			return err;
-		++file_list;
-
-		if (input_filename[0] == '-' && !input_filename[1]) {
-				input_filename = "standard input";
-				in_stream = stdin;
-				have_read_stdin = 1;
-		} else {
-			in_stream = fopen(input_filename, "r");
-			if (in_stream == NULL) {
-				bb_perror_msg("%s", input_filename);
-				err = 1;
-			}
-		}
-	} while (in_stream == NULL);
-
-	if (limit_bytes_to_format && !flag_dump_strings)
-		setbuf(in_stream, NULL);
-
-	return err;
-}
-
-/* Test whether there have been errors on in_stream, and close it if
-   it is not standard input.  Return nonzero if there has been an error
-   on in_stream or stdout; return zero otherwise.  This function will
-   report more than one error only if both a read and a write error
-   have occurred.  IN_ERRNO, if nonzero, is the error number
-   corresponding to the most recent action for IN_STREAM.  */
-
-static int
-check_and_close(int in_errno)
-{
-	int err = 0;
-
-	if (in_stream != NULL) {
-		if (ferror(in_stream))	{
-			bb_error_msg("%s: read error", input_filename);
-			if (in_stream != stdin)
-				fclose(in_stream);
-			err = 1;
-		} else if (in_stream != stdin && fclose(in_stream) == EOF) {
-			bb_perror_msg("%s", input_filename);
-			err = 1;
-		}
-		in_stream = NULL;
-	}
-
-	if (ferror(stdout)) {
-		bb_error_msg("write error");
-		err = 1;
-	}
-
-	return err;
 }
 
 /* Decode the modern od format string S.  Append the decoded
    representation to the global array SPEC, reallocating SPEC if
    necessary.  Return zero if S is valid, nonzero otherwise.  */
 
-static int
+static void
 decode_format_string(const char *s)
 {
 	const char *s_orig = s;
-	assert(s != NULL);
 
 	while (*s != '\0') {
 		struct tspec tspec;
 		const char *next;
 
-		if (decode_one_format(s_orig, s, &next, &tspec))
-			return 1;
+		decode_one_format(s_orig, s, &next, &tspec);
 
 		assert(s != next);
 		s = next;
@@ -786,8 +767,6 @@ decode_format_string(const char *s)
 		spec = xrealloc(spec, n_specs * sizeof(*spec));
 		memcpy(&spec[n_specs-1], &tspec, sizeof *spec);
 	}
-
-	return 0;
 }
 
 /* Given a list of one or more input filenames FILE_LIST, set the global
@@ -797,16 +776,13 @@ decode_format_string(const char *s)
    nonzero.  When possible, use seek rather than read operations to
    advance IN_STREAM.  */
 
-static int
-skip(uintmax_t n_skip)
+static void
+skip(off_t n_skip)
 {
-	int err = 0;
-	int in_errno = 0;
-
 	if (n_skip == 0)
-		return 0;
+		return;
 
-	while (in_stream != NULL) { /* EOF */
+	while (in_stream) { /* !EOF */
 		struct stat file_stats;
 
 		/* First try seeking.  For large offsets, this extra work is
@@ -819,87 +795,71 @@ skip(uintmax_t n_skip)
 			  Try to do that by getting file's size using fstat.
 			  But that will work only for regular files.  */
 
-		if (fstat(fileno(in_stream), &file_stats) == 0) {
 			/* The st_size field is valid only for regular files
 			   (and for symbolic links, which cannot occur here).
 			   If the number of bytes left to skip is at least
 			   as large as the size of the current file, we can
 			   decrement n_skip and go on to the next file.  */
-
-			if (S_ISREG(file_stats.st_mode) && 0 <= file_stats.st_size) {
-				if ((uintmax_t) file_stats.st_size <= n_skip)
-					n_skip -= file_stats.st_size;
-				else {
-					if (fseeko(in_stream, n_skip, SEEK_CUR) != 0) {
-						in_errno = errno;
-						err = 1;
-					}
-					n_skip = 0;
-				}
+		if (fstat(fileno(in_stream), &file_stats) == 0
+		 && S_ISREG(file_stats.st_mode) && file_stats.st_size >= 0
+		) {
+			if (file_stats.st_size < n_skip) {
+				n_skip -= file_stats.st_size;
+				/* take check&close / open_next route */
 			} else {
-
-				/* If it's not a regular file with nonnegative size,
-				   position the file pointer by reading.  */
-				char buf[BUFSIZ];
-				size_t n_bytes_read, n_bytes_to_read = BUFSIZ;
-
-				while (0 < n_skip) {
-					if (n_skip < n_bytes_to_read)
-						n_bytes_to_read = n_skip;
-					n_bytes_read = fread(buf, 1, n_bytes_to_read, in_stream);
-					n_skip -= n_bytes_read;
-					if (n_bytes_read != n_bytes_to_read) {
-			    			in_errno = errno;
-			    			err = 1;
-			    			n_skip = 0;
-			    			break;
-					}
-				}
+				if (fseeko(in_stream, n_skip, SEEK_CUR) != 0)
+					ioerror = 1;
+				return;
 			}
-			if (n_skip == 0)
-				break;
-		} else {  /* cannot fstat() file */
-			bb_perror_msg("%s", input_filename);
-			err = 1;
-		}
+		} else {
+			/* If it's not a regular file with nonnegative size,
+			   position the file pointer by reading.  */
+			char buf[BUFSIZ];
+			size_t n_bytes_read, n_bytes_to_read = BUFSIZ;
 
-		err |= check_and_close(in_errno);
-		err |= open_next_file();
+			while (n_skip > 0) {
+				if (n_skip < n_bytes_to_read)
+					n_bytes_to_read = n_skip;
+				n_bytes_read = fread(buf, 1, n_bytes_to_read, in_stream);
+				n_skip -= n_bytes_read;
+				if (n_bytes_read != n_bytes_to_read)
+		    			break; /* EOF on this file or error */
+			}
+		}
+		if (n_skip == 0)
+			return;
+
+		check_and_close();
+		open_next_file();
 	}
 
-	if (n_skip != 0)
+	if (n_skip)
 		bb_error_msg_and_die("cannot skip past end of combined input");
-	return err;
 }
 
+
+typedef void FN_format_address(off_t address, char c);
+
 static void
-format_address_none(uintmax_t address ATTRIBUTE_UNUSED, char c ATTRIBUTE_UNUSED)
+format_address_none(off_t address ATTRIBUTE_UNUSED, char c ATTRIBUTE_UNUSED)
 {
 }
 
+static int address_pad_len;
+static char address_fmt[] = "%0*"OFF_FMT"xc";
+/* Corresponds to 'x' above */
+#define address_base_char address_fmt[sizeof(address_fmt)-3]
+
 static void
-format_address_std(uintmax_t address, char c)
+format_address_std(off_t address, char c)
 {
-	char buf[MAX_ADDRESS_LENGTH + 2];
-	char *p = buf + sizeof(buf)-1;
-	char const *pbound;
-
-	*p = '\0';
-	*--p = c;
-	pbound = p - address_pad_len;
-
-	do {
-		*--p = "0123456789abcdef"[address % address_base];
-		address /= address_base;
-	} while (address);
-
-	while (pbound < p)
-		*--p = '0';
-	fputs(p, stdout);
+	/* Corresponds to 'c' */
+	address_fmt[sizeof(address_fmt)-2] = c;
+	printf(address_fmt, address_pad_len, address);
 }
 
 static void
-format_address_paren(uintmax_t address, char c)
+format_address_paren(off_t address, char c)
 {
 	putchar('(');
 	format_address_std(address, ')');
@@ -907,10 +867,23 @@ format_address_paren(uintmax_t address, char c)
 }
 
 static void
-format_address_label(uintmax_t address, char c)
+format_address_label(off_t address, char c)
 {
 	format_address_std(address, ' ');
 	format_address_paren(address + pseudo_offset, c);
+}
+
+
+static void
+dump_hexl_mode_trailer(size_t n_bytes, const char *block)
+{
+	fputs("  >", stdout);
+	while (n_bytes--) {
+		unsigned c = *(unsigned char *) block++;
+		c = (ISPRINT(c) ? c : '.');
+		putchar(c);
+	}
+	putchar('<');
 }
 
 /* Write N_BYTES bytes from CURR_BLOCK to standard output once for each
@@ -925,11 +898,12 @@ format_address_label(uintmax_t address, char c)
    only when it has not been padded to length BYTES_PER_BLOCK.  */
 
 static void
-write_block(uintmax_t current_offset, size_t n_bytes,
+write_block(off_t current_offset, size_t n_bytes,
 		const char *prev_block, const char *curr_block)
 {
-	static int first = 1;
-	static int prev_pair_equal = 0;
+	static char first = 1;
+	static char prev_pair_equal = 0;
+	size_t i;
 
 	if (abbreviate_duplicate_blocks
 	 && !first
@@ -944,8 +918,7 @@ write_block(uintmax_t current_offset, size_t n_bytes,
 			prev_pair_equal = 1;
 		}
 	} else {
-		size_t i;
-
+		first = 0;
 		prev_pair_equal = 0;
 		for (i = 0; i < n_specs; i++) {
 			if (i == 0)
@@ -964,63 +937,17 @@ write_block(uintmax_t current_offset, size_t n_bytes,
 			putchar('\n');
 		}
 	}
-	first = 0;
 }
 
-/* Read a single byte into *C from the concatenation of the input files
-   named in the global array FILE_LIST.  On the first call to this
-   function, the global variable IN_STREAM is expected to be an open
-   stream associated with the input file INPUT_FILENAME.  If IN_STREAM
-   is at end-of-file, close it and update the global variables IN_STREAM
-   and INPUT_FILENAME so they correspond to the next file in the list.
-   Then try to read a byte from the newly opened file.  Repeat if
-   necessary until EOF is reached for the last file in FILE_LIST, then
-   set *C to EOF and return.  Subsequent calls do likewise.  The return
-   value is nonzero if any errors occured, zero otherwise.  */
-
-static int
-read_char(int *c)
-{
-	int err = 0;
-
-	*c = EOF;
-
-	while (in_stream != NULL) { /* EOF.  */
-		*c = fgetc(in_stream);
-		if (*c != EOF)
-			break;
-		err |= check_and_close(errno);
-		err |= open_next_file();
-	}
-
-	return err;
-}
-
-/* Read N bytes into BLOCK from the concatenation of the input files
-   named in the global array FILE_LIST.  On the first call to this
-   function, the global variable IN_STREAM is expected to be an open
-   stream associated with the input file INPUT_FILENAME.  If all N
-   bytes cannot be read from IN_STREAM, close IN_STREAM and update
-   the global variables IN_STREAM and INPUT_FILENAME.  Then try to
-   read the remaining bytes from the newly opened file.  Repeat if
-   necessary until EOF is reached for the last file in FILE_LIST.
-   On subsequent calls, don't modify BLOCK and return zero.  Set
-   *N_BYTES_IN_BUFFER to the number of bytes read.  If an error occurs,
-   it will be detected through ferror when the stream is about to be
-   closed.  If there is an error, give a message but continue reading
-   as usual and return nonzero.  Otherwise return zero.  */
-
-static int
+static void
 read_block(size_t n, char *block, size_t *n_bytes_in_buffer)
 {
-	int err = 0;
-
 	assert(0 < n && n <= bytes_per_block);
 
 	*n_bytes_in_buffer = 0;
 
 	if (n == 0)
-		return 0;
+		return;
 
 	while (in_stream != NULL) { /* EOF.  */
 		size_t n_needed;
@@ -1031,11 +958,10 @@ read_block(size_t n, char *block, size_t *n_bytes_in_buffer)
 		*n_bytes_in_buffer += n_read;
 		if (n_read == n_needed)
 			break;
-		err |= check_and_close(errno);
-		err |= open_next_file();
+		/* error check is done in check_and_close */
+		check_and_close();
+		open_next_file();
 	}
-
-	return err;
 }
 
 /* Return the least common multiple of the sizes associated
@@ -1056,37 +982,34 @@ get_lcm(void)
    leading '+' return nonzero and set *OFFSET to the offset it denotes.  */
 
 static int
-parse_old_offset(const char *s, uintmax_t *offset)
+parse_old_offset(const char *s, off_t *offset)
 {
 	static const struct suffix_mult Bb[] = {
 		{ "B", 1024 },
 		{ "b", 512 },
 		{ NULL, 0 }
 	};
-
+	char *p;
 	int radix;
 
-	if (*s == '\0')
-		return 0;
-
 	/* Skip over any leading '+'. */
-	if (s[0] == '+')
-		++s;
+	if (s[0] == '+') ++s;
 
 	/* Determine the radix we'll use to interpret S.  If there is a '.',
-		 it's decimal, otherwise, if the string begins with '0X'or '0x',
-		 it's hexadecimal, else octal.  */
-	if (strchr(s, '.') != NULL)
+	 * it's decimal, otherwise, if the string begins with '0X'or '0x',
+	 * it's hexadecimal, else octal.  */
+	p = strchr(s, '.');
+	radix = 8;
+	if (p) {
+		p[0] = '\0'; /* cheating */
 		radix = 10;
-	else {
-		if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
-			radix = 16;
-		else
-			radix = 8;
-	}
+	} else if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+		radix = 16;
 
-	*offset = xstrtoumax_sfx(s, radix, Bb);
-	return 1;
+	*offset = xstrtooff_sfx(s, radix, Bb);
+	if (p) p[0] = '.';
+
+	return (*offset >= 0);
 }
 
 /* Read a chunk of size BYTES_PER_BLOCK from the input files, write the
@@ -1101,13 +1024,12 @@ parse_old_offset(const char *s, uintmax_t *offset)
    check_and_close, and if any was nonzero, return nonzero.
    Otherwise, return zero.  */
 
-static int
+static void
 dump(void)
 {
 	char *block[2];
-	uintmax_t current_offset;
+	off_t current_offset;
 	int idx;
-	int err;
 	size_t n_bytes_read;
 
 	block[0] = xmalloc(2*bytes_per_block);
@@ -1116,7 +1038,6 @@ dump(void)
 	current_offset = n_bytes_to_skip;
 
 	idx = 0;
-	err = 0;
 	if (limit_bytes_to_format) {
 		while (1) {
 			size_t n_needed;
@@ -1125,8 +1046,8 @@ dump(void)
 				break;
 			}
 			n_needed = MIN(end_offset - current_offset,
-				(uintmax_t) bytes_per_block);
-			err |= read_block(n_needed, block[idx], &n_bytes_read);
+				(off_t) bytes_per_block);
+			read_block(n_needed, block[idx], &n_bytes_read);
 			if (n_bytes_read < bytes_per_block)
 				break;
 			assert(n_bytes_read == bytes_per_block);
@@ -1137,7 +1058,7 @@ dump(void)
 		}
 	} else {
 		while (1) {
-			err |= read_block(bytes_per_block, block[idx], &n_bytes_read);
+			read_block(bytes_per_block, block[idx], &n_bytes_read);
 			if (n_bytes_read < bytes_per_block)
 				break;
 			assert(n_bytes_read == bytes_per_block);
@@ -1167,12 +1088,48 @@ dump(void)
 	format_address(current_offset, '\n');
 
 	if (limit_bytes_to_format && current_offset >= end_offset)
-		err |= check_and_close(0);
+		check_and_close();
 
 	free(block[0]);
-
-	return err;
 }
+
+/* Read a single byte into *C from the concatenation of the input files
+   named in the global array FILE_LIST.  On the first call to this
+   function, the global variable IN_STREAM is expected to be an open
+   stream associated with the input file INPUT_FILENAME.  If IN_STREAM
+   is at end-of-file, close it and update the global variables IN_STREAM
+   and INPUT_FILENAME so they correspond to the next file in the list.
+   Then try to read a byte from the newly opened file.  Repeat if
+   necessary until EOF is reached for the last file in FILE_LIST, then
+   set *C to EOF and return.  Subsequent calls do likewise.  The return
+   value is nonzero if any errors occured, zero otherwise.  */
+
+static void
+read_char(int *c)
+{
+	while (in_stream) { /* !EOF */
+		*c = fgetc(in_stream);
+		if (*c != EOF)
+			return;
+		check_and_close();
+		open_next_file();
+	}
+	*c = EOF;
+}
+
+/* Read N bytes into BLOCK from the concatenation of the input files
+   named in the global array FILE_LIST.  On the first call to this
+   function, the global variable IN_STREAM is expected to be an open
+   stream associated with the input file INPUT_FILENAME.  If all N
+   bytes cannot be read from IN_STREAM, close IN_STREAM and update
+   the global variables IN_STREAM and INPUT_FILENAME.  Then try to
+   read the remaining bytes from the newly opened file.  Repeat if
+   necessary until EOF is reached for the last file in FILE_LIST.
+   On subsequent calls, don't modify BLOCK and return zero.  Set
+   *N_BYTES_IN_BUFFER to the number of bytes read.  If an error occurs,
+   it will be detected through ferror when the stream is about to be
+   closed.  If there is an error, give a message but continue reading
+   as usual and return nonzero.  Otherwise return zero.  */
 
 /* STRINGS mode.  Find each "string constant" in the input.
    A string constant is a run of at least 'string_min' ASCII
@@ -1181,98 +1138,58 @@ dump(void)
    traditional version of od.  Return nonzero if an error
    occurs.  Otherwise, return zero.  */
 
-static int
+static void
 dump_strings(void)
 {
 	size_t bufsize = MAX(100, string_min);
 	char *buf = xmalloc(bufsize);
-	uintmax_t address = n_bytes_to_skip;
-	int err;
+	off_t address = n_bytes_to_skip;
 
-	err = 0;
 	while (1) {
 		size_t i;
 		int c;
 
 		/* See if the next 'string_min' chars are all printing chars.  */
-	tryline:
-
-		if (limit_bytes_to_format
-		 && (end_offset < string_min || end_offset - string_min <= address)
-		) {
+ tryline:
+		if (limit_bytes_to_format && (end_offset - string_min <= address))
 			break;
-		}
-
-		for (i = 0; i < string_min; i++) {
-			err |= read_char(&c);
-			address++;
-			if (c < 0) {
-				free(buf);
-				return err;
-			}
-			if (!ISPRINT(c))
-				/* Found a non-printing.  Try again starting with next char.  */
-				goto tryline;
-			buf[i] = c;
-		}
-
-		/* We found a run of 'string_min' printable characters.
-			 Now see if it is terminated with a null byte.  */
+		i = 0;
 		while (!limit_bytes_to_format || address < end_offset) {
 			if (i == bufsize) {
-				bufsize *= 2;
-				buf = xrealloc(buf, bufsize * sizeof(*buf));
+				bufsize += bufsize/8;
+				buf = xrealloc(buf, bufsize);
 			}
-			err |= read_char(&c);
-			address++;
-			if (c < 0) {
+			read_char(&c);
+			if (c < 0) { /* EOF */
 				free(buf);
-				return err;
+				return;
 			}
-			if (c == '\0')
-				break;		/* It is; print this string.  */
+			address++;
+			if (!c)
+				break;
 			if (!ISPRINT(c))
 				goto tryline;	/* It isn't; give up on this string.  */
 			buf[i++] = c;		/* String continues; store it all.  */
 		}
 
+		if (i < string_min)		/* Too short! */
+			goto tryline;
+
 		/* If we get here, the string is all printable and null-terminated,
-			 so print it.  It is all in 'buf' and 'i' is its length.  */
+		 * so print it.  It is all in 'buf' and 'i' is its length.  */
 		buf[i] = 0;
 		format_address(address - i - 1, ' ');
 
 		for (i = 0; (c = buf[i]); i++) {
 			switch (c) {
-			case '\007':
-				fputs("\\a", stdout);
-				break;
-
-			case '\b':
-				fputs("\\b", stdout);
-				break;
-
-			case '\f':
-				fputs("\\f", stdout);
-				break;
-
-			case '\n':
-				fputs("\\n", stdout);
-				break;
-
-			case '\r':
-				fputs("\\r", stdout);
-				break;
-
-			case '\t':
-				fputs("\\t", stdout);
-				break;
-
-			case '\v':
-				fputs("\\v", stdout);
-				break;
-
-			default:
-				putc(c, stdout);
+			case '\007': fputs("\\a", stdout); break;
+			case '\b': fputs("\\b", stdout); break;
+			case '\f': fputs("\\f", stdout); break;
+			case '\n': fputs("\\n", stdout); break;
+			case '\r': fputs("\\r", stdout); break;
+			case '\t': fputs("\\t", stdout); break;
+			case '\v': fputs("\\v", stdout); break;
+			default: putc(c, stdout);
 			}
 		}
 		putchar('\n');
@@ -1280,11 +1197,9 @@ dump_strings(void)
 
 	/* We reach this point only if we search through
 	   (max_bytes_to_format - string_min) bytes before reaching EOF.  */
-
 	free(buf);
 
-	err |= check_and_close(0);
-	return err;
+	check_and_close();
 }
 
 int
@@ -1296,227 +1211,181 @@ od_main(int argc, char **argv)
 		{ "m", 1024*1024 },
 		{ NULL, 0 }
 	};
-	static const struct option long_options[] = {
-		{ "skip-bytes", required_argument, NULL, 'j' },
-		{ "address-radix", required_argument, NULL, 'A' },
-		{ "read-bytes", required_argument, NULL, 'N' },
-		{ "format", required_argument, NULL, 't' },
-		{ "output-duplicates", no_argument, NULL, 'v' },
-		{ "strings", optional_argument, NULL, 's' },
-		{ "traditional", no_argument, NULL, TRADITIONAL_OPTION },
-		{ "width", optional_argument, NULL, 'w' },
-		{ NULL, 0, NULL, 0 }
-	};
-
-	int c;
-	int n_files;
+	unsigned opt;
 	int l_c_m;
-	size_t desired_width = 0; // only for gcc
-	int width_specified = 0;
-	int n_failed_decodes = 0;
-	int err;
-
 	/* The old-style 'pseudo starting address' to be printed in parentheses
 	   after any true address.  */
-	uintmax_t pseudo_start = 0; // only for gcc
-
-	err = 0;
-
-	integral_type_size[sizeof(char)] = CHAR;
-	integral_type_size[sizeof(short)] = SHORT;
-	integral_type_size[sizeof(int)] = INT;
-	integral_type_size[sizeof(long)] = LONG;
-	/* If 'long' and 'long long' have the same size, it's fine
-	   to overwrite the entry for 'long' with this one.  */
-	integral_type_size[sizeof(ulonglong_t)] = LONG_LONG;
-
-	fp_type_size[sizeof(float)] = FLOAT_SINGLE;
-	/* The array entry for 'double' is filled in after that for longdouble_t
-	   so that if 'long double' is the same type or if long double isn't
-	   supported FLOAT_LONG_DOUBLE will never be used.  */
-	fp_type_size[sizeof(longdouble_t)] = FLOAT_LONG_DOUBLE;
-	fp_type_size[sizeof(double)] = FLOAT_DOUBLE;
+	off_t pseudo_start = 0; // only for gcc
+	enum {
+		OPT_A = 1 << 0,
+		OPT_N = 1 << 1,
+		OPT_a = 1 << 2,
+		OPT_b = 1 << 3,
+		OPT_c = 1 << 4,
+		OPT_d = 1 << 5,
+		OPT_f = 1 << 6,
+		OPT_h = 1 << 7,
+		OPT_i = 1 << 8,
+		OPT_j = 1 << 9,
+		OPT_l = 1 << 10,
+		OPT_o = 1 << 11,
+		OPT_t = 1 << 12,
+		OPT_v = 1 << 13,
+		OPT_x = 1 << 14,
+		OPT_s = 1 << 15,
+		OPT_S = 1 << 16,
+		OPT_w = 1 << 17,
+		OPT_traditional = 1 << 18,
+	};
+	static const struct option long_options[] = {
+		{ "skip-bytes",    required_argument, NULL, 'j' },
+		{ "address-radix", required_argument, NULL, 'A' },
+		{ "read-bytes",    required_argument, NULL, 'N' },
+		{ "format",        required_argument, NULL, 't' },
+		{ "output-duplicates", no_argument,   NULL, 'v' },
+		{ "strings",       optional_argument, NULL, 'S' },
+		{ "width",         optional_argument, NULL, 'w' },
+		{ "traditional",   no_argument,       NULL, 0xff },
+		{ NULL, 0, NULL, 0 }
+	};
+	char *str_A, *str_N, *str_j, *str_S;
+	char *str_w = NULL;
+	llist_t *lst_t = NULL;
 
 	spec = NULL;
-
 	format_address = format_address_std;
-	address_base = 8;
+	address_base_char = 'o';
 	address_pad_len = 7;
 	flag_dump_strings = 0;
 
-	while ((c = getopt_long(argc, argv, "A:N:abcdfhij:lot:vxs:w:", long_options, NULL)) != -1)	{
-		switch (c) {
-		case 0:
-			break;
-		case 'A':
-			switch (optarg[0]) {
-			case 'd':
-				format_address = format_address_std;
-				address_base = 10;
-				address_pad_len = 7;
-				break;
-			case 'o':
-				format_address = format_address_std;
-				address_base = 8;
-				address_pad_len = 7;
-				break;
-			case 'x':
-				format_address = format_address_std;
-				address_base = 16;
-				address_pad_len = 6;
-				break;
-			case 'n':
-				format_address = format_address_none;
-				address_pad_len = 0;
-				break;
-			default:
-				bb_error_msg_and_die("bad output address radix '%c' "
-					"(must be [doxn])", optarg[0]);
-				break;
-			}
-			break;
-
-		case 'j':
-			n_bytes_to_skip = xstrtoumax_sfx(optarg, 0, bkm);
-			break;
-		case 'N':
-			limit_bytes_to_format = 1;
-
-			max_bytes_to_format = xstrtoumax_sfx(optarg, 0, bkm);
-			break;
-		case 's':
-			if (optarg == NULL)
-				string_min = 3;
-			else {
-				string_min = xstrtoumax_range_sfx(optarg, 0, 0, SIZE_MAX, bkm);
-			}
-			flag_dump_strings = 1;
-			break;
-		case 't':
-			if (decode_format_string(optarg))
-				++n_failed_decodes;
-			break;
-		case 'v':
-			abbreviate_duplicate_blocks = 0;
-			break;
-		case TRADITIONAL_OPTION:
-			traditional = 1;
-			break;
-
-			/* The next several cases map the traditional format
-			   specification options to the corresponding modern format
-			   specs.  GNU od accepts any combination of old- and
-			   new-style options.  Format specification options accumulate.  */
-
-#define CASE_OLD_ARG(old_char,new_string) \
-		case old_char: \
-			if (decode_format_string(new_string)) \
-				++n_failed_decodes; \
-			break
-
-		CASE_OLD_ARG('a', "a");
-		CASE_OLD_ARG('b', "oC");
-		CASE_OLD_ARG('c', "c");
-		CASE_OLD_ARG('d', "u2");
-		CASE_OLD_ARG('f', "fF");
-		CASE_OLD_ARG('h', "x2");
-		CASE_OLD_ARG('i', "d2");
-		CASE_OLD_ARG('l', "d4");
-		CASE_OLD_ARG('o', "o2");
-		CASE_OLD_ARG('x', "x2");
-
-		/* FIXME: POSIX 1003.1-2001 with XSI requires this:
-		CASE_OLD_ARG('s', "d2");
-		   for the traditional syntax, but this conflicts with case
-		   's' above. */
-
-#undef CASE_OLD_ARG
-
-		case 'w':
-			width_specified = 1;
-			desired_width = 32;
-			if (optarg)
-				desired_width = xatoul_range(optarg, 0, SIZE_MAX);
-			break;
-		default:
-			bb_show_usage();
-			break;
-		}
+	/* Parse command line */
+	opt_complementary = "t::"; // list
+	applet_long_options = long_options;
+	opt = getopt32(argc, argv, "A:N:abcdfhij:lot:vxsS:"
+		"w::", // -w with optional param
+		// -S was -s and also had optional parameter
+		// but in coreutils 6.3 it was renamed and now has
+		// _mandatory_ parameter
+		&str_A, &str_N, &str_j, &lst_t, &str_S, &str_w);
+	argc -= optind;
+	argv += optind;
+	if (opt & OPT_A) {
+		static const char doxn[] = "doxn";
+		static FN_format_address *const doxn_format_address[] = {
+			format_address_std,
+			format_address_std,
+			format_address_std,
+			format_address_none,
+		};
+		static const char doxn_address_base_char[] = { 'u', 'o', 'x', 'x' };
+		static const uint8_t doxn_address_pad_len[] = { 7, 7, 6, 0 };
+		char *p;
+		int pos;
+		p = strchr(doxn, str_A[0]);
+		if (!p)
+			bb_error_msg_and_die("bad output address radix "
+				"'%c' (must be [doxn])", str_A[0]);
+		pos = p - doxn;
+		format_address = doxn_format_address[pos];
+		address_base_char = doxn_address_base_char[pos];
+		address_pad_len = doxn_address_pad_len[pos];
 	}
-
-	if (n_failed_decodes > 0)
-		exit(EXIT_FAILURE);
+	if (opt & OPT_N) {
+		limit_bytes_to_format = 1;
+		max_bytes_to_format = xstrtooff_sfx(str_N, 0, bkm);
+	}
+	if (opt & OPT_a) decode_format_string("a");
+	if (opt & OPT_b) decode_format_string("oC");
+	if (opt & OPT_c) decode_format_string("c");
+	if (opt & OPT_d) decode_format_string("u2");
+	if (opt & OPT_f) decode_format_string("fF");
+	if (opt & OPT_h) decode_format_string("x2");
+	if (opt & OPT_i) decode_format_string("d2");
+	if (opt & OPT_j) n_bytes_to_skip = xstrtooff_sfx(str_j, 0, bkm);
+	if (opt & OPT_l) decode_format_string("d4");
+	if (opt & OPT_o) decode_format_string("o2");
+	//if (opt & OPT_t)...
+	lst_t = rev_llist(lst_t);
+	while (lst_t) {
+		decode_format_string(lst_t->data);
+		lst_t = lst_t->link;
+	}
+	if (opt & OPT_v) abbreviate_duplicate_blocks = 0;
+	if (opt & OPT_x) decode_format_string("x2");
+	if (opt & OPT_s) decode_format_string("d2");
+	if (opt & OPT_S) {
+		string_min = 3;
+		string_min = xstrtou_sfx(str_S, 0, bkm);
+		flag_dump_strings = 1;
+	}
+	//if (opt & OPT_w)...
+	//if (opt & OPT_traditional)...
 
 	if (flag_dump_strings && n_specs > 0)
 		bb_error_msg_and_die("no type may be specified when dumping strings");
 
-	n_files = argc - optind;
-
 	/* If the --traditional option is used, there may be from
-		 0 to 3 remaining command line arguments;  handle each case
-		 separately.
-				od [file] [[+]offset[.][b] [[+]label[.][b]]]
-		 The offset and pseudo_start have the same syntax.
+	 * 0 to 3 remaining command line arguments;  handle each case
+	 * separately.
+	 * 	od [file] [[+]offset[.][b] [[+]label[.][b]]]
+	 * The offset and pseudo_start have the same syntax.
+	 *
+	 * FIXME: POSIX 1003.1-2001 with XSI requires support for the
+	 * traditional syntax even if --traditional is not given.  */
 
-		 FIXME: POSIX 1003.1-2001 with XSI requires support for the
-		 traditional syntax even if --traditional is not given.  */
+	if (opt & OPT_traditional) {
+		off_t o1, o2;
 
-	if (traditional) {
-		uintmax_t offset;
-
-		if (n_files == 1) {
-			if (parse_old_offset(argv[optind], &offset)) {
-				n_bytes_to_skip = offset;
-				--n_files;
+		if (argc == 1) {
+			if (parse_old_offset(argv[0], &o1)) {
+				n_bytes_to_skip = o1;
+				--argc;
 				++argv;
 			}
-		} else if (n_files == 2) {
-			uintmax_t o1, o2;
-
-			if (parse_old_offset(argv[optind], &o1)
-			&& parse_old_offset(argv[optind + 1], &o2)
+		} else if (argc == 2) {
+			if (parse_old_offset(argv[0], &o1)
+			 && parse_old_offset(argv[1], &o2)
 			) {
 				n_bytes_to_skip = o1;
 				flag_pseudo_start = 1;
 				pseudo_start = o2;
 				argv += 2;
-				n_files -= 2;
-			} else if (parse_old_offset(argv[optind + 1], &o2)) {
+				argc -= 2;
+			} else if (parse_old_offset(argv[1], &o2)) {
 				n_bytes_to_skip = o2;
-				--n_files;
-				argv[optind + 1] = argv[optind];
+				--argc;
+				argv[1] = argv[0];
 				++argv;
 			} else {
 				bb_error_msg_and_die("invalid second operand "
-					"in compatibility mode '%s'", argv[optind + 1]);
+					"in compatibility mode '%s'", argv[1]);
 			}
-		} else if (n_files == 3) {
-			uintmax_t o1, o2;
-			if (parse_old_offset(argv[optind + 1], &o1)
-			&& parse_old_offset(argv[optind + 2], &o2)
+		} else if (argc == 3) {
+			if (parse_old_offset(argv[1], &o1)
+			 && parse_old_offset(argv[2], &o2)
 			) {
 				n_bytes_to_skip = o1;
 				flag_pseudo_start = 1;
 				pseudo_start = o2;
-				argv[optind + 2] = argv[optind];
+				argv[2] = argv[0];
 				argv += 2;
-				n_files -= 2;
+				argc -= 2;
 			} else {
 				bb_error_msg_and_die("in compatibility mode "
 					"the last two arguments must be offsets");
 			}
-		} else if (n_files > 3)	{
+		} else if (argc > 3)	{
 			bb_error_msg_and_die("compatibility mode supports "
 				"at most three arguments");
 		}
 
 		if (flag_pseudo_start) {
+			format_address = format_address_label;
 			if (format_address == format_address_none) {
-				address_base = 8;
+				address_base_char = 'o';
 				address_pad_len = 7;
 				format_address = format_address_paren;
-			} else
-				format_address = format_address_label;
+			}
 		}
 	}
 
@@ -1527,53 +1396,45 @@ od_main(int argc, char **argv)
 	}
 
 	if (n_specs == 0) {
-		if (decode_format_string("o2"))	{
-			/* This happens on Cray systems that don't have a 2-byte
-			   integral type.  */
-			exit(EXIT_FAILURE);
-		}
+		decode_format_string("o2");
 		n_specs = 1;
 	}
 
-	if (n_files > 0) {
+	/* If no files were listed on the command line,
+	   set the global pointer FILE_LIST so that it
+	   references the null-terminated list of one name: "-".  */
+	file_list = default_file_list;
+	if (argc > 0) {
 		/* Set the global pointer FILE_LIST so that it
 		   references the first file-argument on the command-line.  */
-		file_list = (char const *const *) &argv[optind];
-	} else {
-		/* No files were listed on the command line.
-		   Set the global pointer FILE_LIST so that it
-		   references the null-terminated list of one name: "-".  */
-		file_list = default_file_list;
+		file_list = (char const *const *) argv;
 	}
 
 	/* open the first input file */
-	err |= open_next_file();
-	if (in_stream == NULL)
-		goto cleanup;
-
+	open_next_file();
 	/* skip over any unwanted header bytes */
-	err |= skip(n_bytes_to_skip);
-	if (in_stream == NULL)
-		goto cleanup;
+	skip(n_bytes_to_skip);
+	if (!in_stream)
+		return 1;
 
 	pseudo_offset = (flag_pseudo_start ? pseudo_start - n_bytes_to_skip : 0);
 
 	/* Compute output block length.  */
 	l_c_m = get_lcm();
 
-	if (width_specified) {
-		if (desired_width != 0 && desired_width % l_c_m == 0)
-			bytes_per_block = desired_width;
-		else {
-			bb_error_msg("warning: invalid width %lu; using %d instead",
-					(unsigned long) desired_width, l_c_m);
+	if (opt & OPT_w) { /* -w: width */
+		bytes_per_block = 32;
+		if (str_w)
+			bytes_per_block = xatou(str_w);
+		if (!bytes_per_block || bytes_per_block % l_c_m != 0) {
+			bb_error_msg("warning: invalid width %u; using %d instead",
+					bytes_per_block, l_c_m);
 			bytes_per_block = l_c_m;
 		}
 	} else {
+		bytes_per_block = l_c_m;
 		if (l_c_m < DEFAULT_BYTES_PER_BLOCK)
-			bytes_per_block = l_c_m * (DEFAULT_BYTES_PER_BLOCK / l_c_m);
-		else
-			bytes_per_block = l_c_m;
+			bytes_per_block *= DEFAULT_BYTES_PER_BLOCK / l_c_m;
 	}
 
 #ifdef DEBUG
@@ -1583,12 +1444,13 @@ od_main(int argc, char **argv)
 	}
 #endif
 
-	err |= (flag_dump_strings ? dump_strings() : dump());
+	if (flag_dump_strings)
+		dump_strings();
+	else
+		dump();
 
-cleanup:
+	if (fclose(stdin) == EOF)
+		bb_perror_msg_and_die(bb_msg_standard_input);
 
-	if (have_read_stdin && fclose(stdin) == EOF)
-		bb_perror_msg_and_die("standard input");
-
-	exit(err == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+	return (ioerror != 0); /* err != 0 - return 1 (failure) */
 }

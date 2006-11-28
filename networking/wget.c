@@ -139,7 +139,7 @@ int wget_main(int argc, char **argv)
 		{ "passive-ftp",      no_argument, NULL, 0xff },
 		{ "header",           required_argument, NULL, 0xfe },
 		{ 0, 0, 0, 0 }
-};
+	};
 	applet_long_options = wget_long_options;
 #endif
 	opt_complementary = "-1" USE_FEATURE_WGET_LONG_OPTIONS(":\xfe::");

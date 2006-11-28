@@ -671,7 +671,7 @@ static char *encodeString(const char *string)
  *
  * $Parameters:
  *      (char *) string . . . The first string to decode.
- *      (int)    flag   . . . 1 if require decode '+' as ' ' for CGI
+ *      (int)    flag   . . . 1 if need to decode '+' as ' ' for CGI
  *
  * $Return: (char *)  . . . . A pointer to the decoded string (same as input).
  *
@@ -685,14 +685,18 @@ static char *decodeString(char *orig, int flag_plus_to_space)
 	char *ptr = string;
 
 	while (*ptr) {
-		if (*ptr == '+' && flag_plus_to_space) { *string++ = ' '; ptr++; }
-		else if (*ptr != '%') *string++ = *ptr++;
-		else {
+		if (*ptr == '+' && flag_plus_to_space) {
+			*string++ = ' ';
+			ptr++;
+		} else if (*ptr != '%') {
+			*string++ = *ptr++;
+		} else {
 			unsigned int value1, value2;
 
 			ptr++;
-			if (sscanf(ptr, "%1X", &value1) != 1 ||
-						    sscanf(ptr+1, "%1X", &value2) != 1) {
+			if (sscanf(ptr, "%1X", &value1) != 1
+			 || sscanf(ptr+1, "%1X", &value2) != 1
+			) {
 				if (!flag_plus_to_space)
 					return NULL;
 				*string++ = '%';
