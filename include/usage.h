@@ -337,7 +337,7 @@
        "Compares FILE1 vs stdin if FILE2 is not specified.\n\n" \
        "Options:\n" \
        "	-l	Write the byte numbers (decimal) and values (octal)\n" \
-       "		  for all differing bytes\n" \
+       "		for all differing bytes\n" \
        "	-s	quiet mode - do not print"
 
 #define comm_trivial_usage \
@@ -379,13 +379,13 @@
 #define cpio_full_usage \
        "Extract or list files from a cpio archive\n" \
        "Main operation mode:\n" \
-       "	d		make leading directories\n" \
-       "	i		extract\n" \
-       "	m		preserve mtime\n" \
-       "	t		list\n" \
-       "	v		verbose\n" \
-       "	u		unconditional overwrite\n" \
-       "	F		input from file"
+       "	d	make leading directories\n" \
+       "	i	extract\n" \
+       "	m	preserve mtime\n" \
+       "	t	list\n" \
+       "	v	verbose\n" \
+       "	u	unconditional overwrite\n" \
+       "	F	input from file"
 
 #define crond_trivial_usage \
        "-d[#] -c <crondir> -f -b"
@@ -416,12 +416,12 @@
 #define cut_full_usage \
        "Prints selected fields from each input FILE to standard output.\n\n" \
        "Options:\n" \
-       "	-b LIST		Output only bytes from LIST\n" \
-       "	-c LIST		Output only characters from LIST\n" \
-       "	-d CHAR		Use CHAR instead of tab as the field delimiter\n" \
-       "	-s		Output only the lines containing delimiter\n" \
-       "	-f N		Print only these fields\n" \
-       "	-n		Ignored"
+       "	-b LIST	Output only bytes from LIST\n" \
+       "	-c LIST	Output only characters from LIST\n" \
+       "	-d CHAR	Use CHAR instead of tab as the field delimiter\n" \
+       "	-s	Output only the lines containing delimiter\n" \
+       "	-f N	Print only these fields\n" \
+       "	-n	Ignored"
 #define cut_example_usage \
        "$ echo \"Hello world\" | cut -f 1 -d ' '\n" \
        "Hello\n" \
@@ -481,16 +481,17 @@ USE_FEATURE_DATE_ISOFMT( \
        "	if=FILE		read from FILE instead of stdin\n" \
        "	of=FILE		write to FILE instead of stdout\n" \
        "	bs=N		read and write N bytes at a time\n" \
-	USE_FEATURE_DD_IBS_OBS("	ibs=N		read N bytes at a time\n") \
-	USE_FEATURE_DD_IBS_OBS("	obs=N		write N bytes at a time\n") \
+	USE_FEATURE_DD_IBS_OBS( \
+       "	ibs=N		read N bytes at a time\n") \
+	USE_FEATURE_DD_IBS_OBS( \
+       "	obs=N		write N bytes at a time\n") \
        "	count=N		copy only N input blocks\n" \
        "	skip=N		skip N input blocks\n" \
        "	seek=N		skip N output blocks\n" \
 	USE_FEATURE_DD_IBS_OBS( \
-		"	conv=notrunc	don't truncate output file\n" \
-		"	conv=noerror	continue after read errors\n" \
-		"	conv=sync	pad blocks with zeros\n" \
-	) \
+       "	conv=notrunc	don't truncate output file\n" \
+       "	conv=noerror	continue after read errors\n" \
+       "	conv=sync	pad blocks with zeros\n") \
        "\n" \
        "Numbers may be suffixed by c (x1), w (x2), b (x512), kD (x1000), k (x1024),\n" \
        "MD (x1000000), M (x1048576), GD (x1000000000) or G (x1073741824)"
@@ -534,10 +535,9 @@ USE_FEATURE_DATE_ISOFMT( \
        "Print the filesystem space used and space available.\n\n" \
        "Options:\n" \
 	USE_FEATURE_HUMAN_READABLE( \
-		"\n	-h	print sizes in human readable format (e.g., 1K 243M 2G )\n" \
-		"	-m	print sizes in megabytes\n" \
-		"	-k	print sizes in kilobytes(default)" \
-	) \
+       "\n	-h	print sizes in human readable format (e.g., 1K 243M 2G )\n" \
+       "	-m	print sizes in megabytes\n" \
+       "	-k	print sizes in kilobytes(default)") \
 	SKIP_FEATURE_HUMAN_READABLE("\n	-k	ignored")
 #define df_example_usage \
        "$ df\n" \
@@ -663,8 +663,8 @@ USE_FEATURE_DATE_ISOFMT( \
        "	-s	display only a total for each argument\n" \
        "	-x	skip directories on different filesystems\n" \
 	USE_FEATURE_HUMAN_READABLE( \
-		"	-h	print sizes in human readable format (e.g., 1K 243M 2G )\n" \
-		"	-m	print sizes in megabytes\n" \
+       "	-h	print sizes in human readable format (e.g., 1K 243M 2G )\n" \
+       "	-m	print sizes in megabytes\n" \
 	) \
        "	-k	print sizes in kilobytes" \
 	USE_FEATURE_DU_DEFAULT_BLOCKSIZE_1K("(default)")
@@ -724,7 +724,7 @@ USE_FEATURE_DATE_ISOFMT( \
 	USE_FEATURE_FANCY_ECHO( \
 		"Options:\n" \
 		"	-n	suppress trailing newline\n" \
-		"	-e	interpret backslash-escaped characters (i.e., \	=tab)\n" \
+		"	-e	interpret backslash-escaped characters (i.e., \\t=tab)\n" \
 		"	-E	disable interpretation of backslash-escaped characters" \
 	)
 #define echo_example_usage \
@@ -1275,7 +1275,7 @@ USE_FEATURE_DATE_ISOFMT( \
        "	-a	de/configure all interfaces automatically\n" \
        "	-i FILE	use FILE for interface definitions\n" \
        "	-n	print out what would happen, but don't do it\n" \
-       "			(note that this option doesn't disable mappings)\n" \
+       "		(note that this option doesn't disable mappings)\n" \
        "	-v	print out what would happen before doing it\n" \
        "	-m	don't run any mappings\n" \
        "	-f	force de/configuration"
@@ -1860,14 +1860,14 @@ USE_FEATURE_MDEV_CONFIG( \
        "  hd[a-z][0-9]* 0:3 660\n\n" \
        "That's device name (with regex match), uid:gid, and permissions.\n\n" \
 	USE_FEATURE_MDEV_EXEC( \
-		"Optionally, that can be followed (on the same line) by a special character\n" \
-		"and a command line to run after creating/before deleting the corresponding\n" \
-		"device(s).  The environment variable $MDEV indicates the active device node\n" \
-		"(which is useful if it's a regex match).  For example:\n\n" \
-		"  hdc root:cdrom 660  *ln -s $MDEV cdrom\n\n" \
-		"The special characters are @ (run after creating), $ (run before deleting),\n" \
-		"and * (run both after creating and before deleting).  The commands run in\n" \
-		"the /dev directory, and use system() which calls /bin/sh.\n\n" \
+       "Optionally, that can be followed (on the same line) by a special character\n" \
+       "and a command line to run after creating/before deleting the corresponding\n" \
+       "device(s).  The environment variable $MDEV indicates the active device node\n" \
+       "(which is useful if it's a regex match).  For example:\n\n" \
+       "  hdc root:cdrom 660  *ln -s $MDEV cdrom\n\n" \
+       "The special characters are @ (run after creating), $ (run before deleting),\n" \
+       "and * (run both after creating and before deleting).  The commands run in\n" \
+       "the /dev directory, and use system() which calls /bin/sh.\n\n" \
 	) \
        "Config file parsing stops on the first matching line.  If no config\n"\
        "entry is matched, devices are created with default 0:0 660.  (Make\n"\
@@ -1966,7 +1966,8 @@ USE_FEATURE_MDEV_CONFIG( \
        "Options:\n" \
        "	-c		Check for read-ability\n" \
        "	-v0		Make version 0 swap [max 128 Megs]\n" \
-       "	-v1		Make version 1 swap [big!] (default for kernels >\n			2.1.117)\n" \
+       "	-v1		Make version 1 swap [big!] (default for kernels >\n" \
+       "			2.1.117)\n" \
        "	block-count	Number of block to use (default is entire partition)"
 
 #define mktemp_trivial_usage \
@@ -3046,12 +3047,12 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
        "Telnet is used to establish interactive communication with another\n" \
        "computer over a network using the TELNET protocol.\n\n" \
        "Options:\n" \
-       "	-a		Attempt an automatic login with the USER variable\n" \
-       "	-l USER		Attempt an automatic login with the USER argument\n" \
-       "	HOST		The official name, alias or the IP address of the\n" \
-       "			remote host.\n" \
-       "	PORT		The remote port number to connect to.  If it is not\n" \
-       "			specified, the default telnet (23) port is used."
+       "	-a	Attempt an automatic login with the USER variable\n" \
+       "	-l USER	Attempt an automatic login with the USER argument\n" \
+       "	HOST	The official name, alias or the IP address of the\n" \
+       "		remote host.\n" \
+       "	PORT	The remote port number to connect to.  If it is not\n" \
+       "		specified, the default telnet (23) port is used."
 #else
 #define telnet_trivial_usage \
        "HOST [PORT]"
@@ -3173,15 +3174,15 @@ USE_FEATURE_START_STOP_DAEMON_FANCY( \
        "	-v	Verbose output\n" \
        "	-m max_ttl	Set the max time-to-live (max number of hops)\n" \
        "	-p port#	Set the base UDP port number used in probes\n" \
-       "		(default is 33434)\n" \
+       "			(default is 33434)\n" \
        "	-q nqueries	Set the number of probes per 'ttl' to nqueries\n" \
-       "		(default is 3)\n" \
+       "			(default is 3)\n" \
        "	-s src_addr	Use the following IP address as the source address\n" \
-       "	-t tos	Set the type-of-service in probe packets to the following value\n" \
-       "		(default 0)\n" \
-       "	-w wait	Set the time (in seconds) to wait for a response to a probe\n" \
-       "		(default 3 sec)\n" \
-       "	-g	Specify a loose source route gateway (8 maximum)"
+       "	-t tos		Set the type-of-service in probe packets to the following value\n" \
+       "			(default 0)\n" \
+       "	-w wait		Set the time (in seconds) to wait for a response to a probe\n" \
+       "			(default 3 sec)\n" \
+       "	-g		Specify a loose source route gateway (8 maximum)"
 
 
 #define true_trivial_usage \
