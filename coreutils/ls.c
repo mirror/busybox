@@ -648,10 +648,12 @@ static int list_single(struct dnode *dn)
 #endif
 		case LIST_FILENAME:
 			errno = 0;
+#if ENABLE_FEATURE_LS_COLOR
 			if (show_color && !lstat(dn->fullname, &info)) {
 				printf("\033[%d;%dm", bgcolor(info.st_mode),
 						fgcolor(info.st_mode));
 			}
+#endif
 			column += printf("%s", dn->name);
 			if (show_color) {
 				printf("\033[0m");
@@ -667,11 +669,13 @@ static int list_single(struct dnode *dn)
 					append = append_char(info.st_mode);
 				}
 #endif
+#if ENABLE_FEATURE_LS_COLOR
 				if (show_color) {
 					errno = 0;
 					printf("\033[%d;%dm", bgcolor(info.st_mode),
 						   fgcolor(info.st_mode));
 				}
+#endif
 				column += printf("%s", lpath) + 4;
 				if (show_color) {
 					printf("\033[0m");

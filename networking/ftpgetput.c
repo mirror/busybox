@@ -264,15 +264,13 @@ int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 
 #if ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS
 static const struct option ftpgetput_long_options[] = {
-	{"continue", 1, NULL, 'c'},
-	{"verbose", 0, NULL, 'v'},
-	{"username", 1, NULL, 'u'},
-	{"password", 1, NULL, 'p'},
-	{"port", 1, NULL, 'P'},
-	{0, 0, 0, 0}
+	{ "continue", 1, NULL, 'c' },
+	{ "verbose", 0, NULL, 'v' },
+	{ "username", 1, NULL, 'u' },
+	{ "password", 1, NULL, 'p' },
+	{ "port", 1, NULL, 'P' },
+	{ 0, 0, 0, 0 }
 };
-#else
-#define ftpgetput_long_options 0
 #endif
 
 int ftpgetput_main(int argc, char **argv)
@@ -307,9 +305,9 @@ int ftpgetput_main(int argc, char **argv)
 	/*
 	 * Decipher the command line
 	 */
-	if (ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS)
-		applet_long_options = ftpgetput_long_options;
-
+#if ENABLE_FEATURE_FTPGETPUT_LONG_OPTIONS
+	applet_long_options = ftpgetput_long_options;
+#endif
 	opt = getopt32(argc, argv, "cvu:p:P:", &server->user, &server->password, &port);
 
 	/* Process the non-option command line arguments */

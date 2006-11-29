@@ -721,8 +721,6 @@ static const struct option tar_long_options[] = {
 # endif
 	{ 0,                    0, 0, 0 }
 };
-#else
-#define tar_long_options	0
 #endif
 
 int tar_main(int argc, char **argv)
@@ -750,8 +748,9 @@ int tar_main(int argc, char **argv)
 		USE_FEATURE_TAR_CREATE("c:") "t:x:" // at least one of these is reqd
 		USE_FEATURE_TAR_CREATE("c--tx:t--cx:x--ct") // mutually exclusive
 		SKIP_FEATURE_TAR_CREATE("t--x:x--t"); // mutually exclusive
-	if (ENABLE_FEATURE_TAR_LONG_OPTIONS)
-		applet_long_options = tar_long_options;
+#if ENABLE_FEATURE_TAR_LONG_OPTIONS
+	applet_long_options = tar_long_options;
+#endif
 	opt = getopt32(argc, argv,
 		"txC:f:Opvk"
 		USE_FEATURE_TAR_CREATE(  "ch"  )

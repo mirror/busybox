@@ -64,19 +64,18 @@ int get_prefix(unsigned long netmask);
 
 #if ENABLE_FEATURE_IPCALC_LONG_OPTIONS
 	static const struct option long_options[] = {
-		{"netmask",		no_argument, NULL, 'm'},
-		{"broadcast",	no_argument, NULL, 'b'},
-		{"network",		no_argument, NULL, 'n'},
-#ifdef CONFIG_FEATURE_IPCALC_FANCY
-		{"prefix",		no_argument, NULL, 'p'},
-		{"hostname",	no_argument, NULL, 'h'},
-		{"silent",		no_argument, NULL, 's'},
-#endif
-		{NULL, 0, NULL, 0}
+		{ "netmask",     no_argument, NULL, 'm' },
+		{ "broadcast",   no_argument, NULL, 'b' },
+		{ "network",     no_argument, NULL, 'n' },
+# if ENABLE_FEATURE_IPCALC_FANCY
+		{ "prefix",      no_argument, NULL, 'p' },
+		{ "hostname",	 no_argument, NULL, 'h' },
+		{ "silent",      no_argument, NULL, 's' },
+# endif
+		{ NULL, 0, NULL, 0 }
 	};
-#else
-#define long_options 0
 #endif
+
 int ipcalc_main(int argc, char **argv)
 {
 	unsigned opt;
@@ -85,9 +84,9 @@ int ipcalc_main(int argc, char **argv)
 	struct in_addr a;
 	char *ipstr;
 
-	if (ENABLE_FEATURE_IPCALC_LONG_OPTIONS)
-		applet_long_options = long_options;
-
+#if ENABLE_FEATURE_IPCALC_LONG_OPTIONS
+	applet_long_options = long_options;
+#endif
 	opt = getopt32(argc, argv, "mbn" USE_FEATURE_IPCALC_FANCY("phs"));
 	argc -= optind;
 	argv += optind;

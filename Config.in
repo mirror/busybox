@@ -112,13 +112,11 @@ config LOCALE_SUPPORT
 	  busybox to support locale settings.
 
 config GETOPT_LONG
-	bool
+	bool "Enable support for --long-options"
 	default y
-#	bool "Enable support for --long-options"
-#	default n
-#	help
-#	  Enable this if you want busybox applets to use the gnu --long-option
-#	  style, in addition to single character -a -b -c style options.
+	help
+	  Enable this if you want busybox applets to use the gnu --long-option
+	  style, in addition to single character -a -b -c style options.
 
 config FEATURE_DEVPTS
 	bool "Use the devpts filesystem for Unix98 PTYs"

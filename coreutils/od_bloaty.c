@@ -858,6 +858,8 @@ format_address_std(off_t address, char c)
 	printf(address_fmt, address_pad_len, address);
 }
 
+#if ENABLE_GETOPT_LONG
+/* only used with --traditional */
 static void
 format_address_paren(off_t address, char c)
 {
@@ -872,7 +874,7 @@ format_address_label(off_t address, char c)
 	format_address_std(address, ' ');
 	format_address_paren(address + pseudo_offset, c);
 }
-
+#endif
 
 static void
 dump_hexl_mode_trailer(size_t n_bytes, const char *block)
@@ -978,6 +980,7 @@ get_lcm(void)
 	return l_c_m;
 }
 
+#if ENABLE_GETOPT_LONG
 /* If S is a valid traditional offset specification with an optional
    leading '+' return nonzero and set *OFFSET to the offset it denotes.  */
 
@@ -1011,6 +1014,7 @@ parse_old_offset(const char *s, off_t *offset)
 
 	return (*offset >= 0);
 }
+#endif
 
 /* Read a chunk of size BYTES_PER_BLOCK from the input files, write the
    formatted block to standard output, and repeat until the specified
@@ -1235,8 +1239,9 @@ od_main(int argc, char **argv)
 		OPT_s = 1 << 15,
 		OPT_S = 1 << 16,
 		OPT_w = 1 << 17,
-		OPT_traditional = 1 << 18,
+		OPT_traditional = (1 << 18) * ENABLE_GETOPT_LONG,
 	};
+#if ENABLE_GETOPT_LONG
 	static const struct option long_options[] = {
 		{ "skip-bytes",    required_argument, NULL, 'j' },
 		{ "address-radix", required_argument, NULL, 'A' },
@@ -1248,6 +1253,7 @@ od_main(int argc, char **argv)
 		{ "traditional",   no_argument,       NULL, 0xff },
 		{ NULL, 0, NULL, 0 }
 	};
+#endif
 	char *str_A, *str_N, *str_j, *str_S;
 	char *str_w = NULL;
 	llist_t *lst_t = NULL;
@@ -1260,7 +1266,9 @@ od_main(int argc, char **argv)
 
 	/* Parse command line */
 	opt_complementary = "t::"; // list
+#if ENABLE_GETOPT_LONG
 	applet_long_options = long_options;
+#endif
 	opt = getopt32(argc, argv, "A:N:abcdfhij:lot:vxsS:"
 		"w::", // -w with optional param
 		// -S was -s and also had optional parameter
@@ -1333,6 +1341,7 @@ od_main(int argc, char **argv)
 	 * FIXME: POSIX 1003.1-2001 with XSI requires support for the
 	 * traditional syntax even if --traditional is not given.  */
 
+#if ENABLE_GETOPT_LONG
 	if (opt & OPT_traditional) {
 		off_t o1, o2;
 
@@ -1388,6 +1397,7 @@ od_main(int argc, char **argv)
 			}
 		}
 	}
+#endif
 
 	if (limit_bytes_to_format) {
 		end_offset = n_bytes_to_skip + max_bytes_to_format;

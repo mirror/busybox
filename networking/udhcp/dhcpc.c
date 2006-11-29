@@ -160,6 +160,7 @@ int udhcpc_main(int argc, char *argv[])
 		OPT_t = 1 << 16,
 		OPT_v = 1 << 17,
 	};
+#if ENABLE_GETOPT_LONG
 	static const struct option arg_options[] = {
 		{ "clientid",   required_argument,      0, 'c' },
 		{ "clientid-none", no_argument,         0, 'C' },
@@ -181,7 +182,7 @@ int udhcpc_main(int argc, char *argv[])
 		{ "retries",    required_argument,      0, 't' },
 		{ 0, 0, 0, 0 }
 	};
-
+#endif
 	/* Default options. */
 	client_config.interface = "eth0";
 	client_config.script = DEFAULT_SCRIPT;
@@ -191,7 +192,9 @@ int udhcpc_main(int argc, char *argv[])
 	/* Parse command line */
 	opt_complementary = "?:c--C:C--c" // mutually exclusive
 	                    ":hH:Hh"; // -h and -H are the same
+#if ENABLE_GETOPT_LONG
 	applet_long_options = arg_options;
+#endif
 	opt = getopt32(argc, argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:v",
 		&str_c, &str_V, &str_h, &str_h, &str_F,
 		&client_config.interface, &client_config.pidfile, &str_r,

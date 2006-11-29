@@ -333,7 +333,9 @@ extern unsigned uidgid_get(struct bb_uidgid_t*, const char* /*, unsigned*/);
 
 enum { BB_GETOPT_ERROR = 0x80000000 };
 extern const char *opt_complementary;
+#if ENABLE_GETOPT_LONG
 extern const struct option *applet_long_options;
+#endif
 extern uint32_t option_mask32;
 extern uint32_t getopt32(int argc, char **argv, const char *applet_opts, ...);
 
@@ -369,7 +371,7 @@ extern void bb_herror_msg_and_die(const char *s, ...) __attribute__ ((noreturn, 
 extern void bb_perror_nomsg_and_die(void) ATTRIBUTE_NORETURN;
 extern void bb_perror_nomsg(void);
 extern void bb_info_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
-/* These two are used internally -- you shouldn't need to use them */
+/* These are used internally -- you shouldn't need to use them */
 extern void bb_verror_msg(const char *s, va_list p, const char *strerr);
 extern void bb_vperror_msg(const char *s, va_list p);
 extern void bb_vinfo_msg(const char *s, va_list p);
