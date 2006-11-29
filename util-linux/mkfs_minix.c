@@ -505,8 +505,8 @@ static void setup_tables(void)
 {
 	unsigned long inodes;
 	unsigned norm_firstzone;
-	uint16_t sb_zmaps;
-	int i;
+	unsigned sb_zmaps;
+	unsigned i;
 
 	memset(super_block_buffer, 0, BLOCK_SIZE);
 	memset(boot_block_buffer, 0, 512);
