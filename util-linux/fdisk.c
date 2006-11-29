@@ -11,6 +11,12 @@
 #include "busybox.h"
 #define _(x) x
 
+/* Looks like someone forgot to add this to config system */
+#ifndef ENABLE_FEATURE_FDISK_BLKSIZE
+# define ENABLE_FEATURE_FDISK_BLKSIZE 0
+# define USE_FEATURE_FDISK_BLKSIZE(a)
+#endif
+
 #define DEFAULT_SECTOR_SIZE     512
 #define MAX_SECTOR_SIZE 2048
 #define SECTOR_SIZE     512     /* still used in osf/sgi/sun code */
@@ -48,9 +54,9 @@ struct systypes {
 	const char *name;
 };
 
-static uint sector_size = DEFAULT_SECTOR_SIZE;
-static uint user_set_sector_size;
-static uint sector_offset = 1;
+static unsigned sector_size = DEFAULT_SECTOR_SIZE;
+static unsigned user_set_sector_size;
+static unsigned sector_offset = 1;
 
 /*
  * Raw disk label. For DOS-type partition tables the MBR,
@@ -62,11 +68,11 @@ static char MBRbuffer[MAX_SECTOR_SIZE];
 # define MBRbuffer bb_common_bufsiz1
 #endif
 
-#ifdef CONFIG_FEATURE_OSF_LABEL
+#if ENABLE_FEATURE_OSF_LABEL
 static int possibly_osf_label;
 #endif
 
-static uint heads, sectors, cylinders;
+static unsigned heads, sectors, cylinders;
 static void update_units(void);
 
 
@@ -132,7 +138,7 @@ enum label_type {
 };
 #define LABEL_IS_DOS	(label_dos == current_label_type)
 
-#ifdef CONFIG_FEATURE_SUN_LABEL
+#if ENABLE_FEATURE_SUN_LABEL
 #define LABEL_IS_SUN	(label_sun == current_label_type)
 #define STATIC_SUN static
 #else
@@ -140,7 +146,7 @@ enum label_type {
 #define STATIC_SUN extern
 #endif
 
-#ifdef CONFIG_FEATURE_SGI_LABEL
+#if ENABLE_FEATURE_SGI_LABEL
 #define LABEL_IS_SGI	(label_sgi == current_label_type)
 #define STATIC_SGI static
 #else
@@ -148,7 +154,7 @@ enum label_type {
 #define STATIC_SGI extern
 #endif
 
-#ifdef CONFIG_FEATURE_AIX_LABEL
+#if ENABLE_FEATURE_AIX_LABEL
 #define LABEL_IS_AIX	(label_aix == current_label_type)
 #define STATIC_AIX static
 #else
@@ -156,7 +162,7 @@ enum label_type {
 #define STATIC_AIX extern
 #endif
 
-#ifdef CONFIG_FEATURE_OSF_LABEL
+#if ENABLE_FEATURE_OSF_LABEL
 #define LABEL_IS_OSF	(label_osf == current_label_type)
 #define STATIC_OSF static
 #else
@@ -171,15 +177,15 @@ static enum label_type current_label_type;
 static const char *disk_device;
 static int fd;                  /* the disk */
 static int partitions = 4;      /* maximum partition + 1 */
-static uint display_in_cyl_units = 1;
-static uint units_per_sector = 1;
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+static int display_in_cyl_units = 1;
+static unsigned units_per_sector = 1;
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void change_units(void);
 static void reread_partition_table(int leave);
 static void delete_partition(int i);
 static int get_partition(int warn, int max);
 static void list_types(const struct systypes *sys);
-static uint read_int(uint low, uint dflt, uint high, uint base, char *mesg);
+static unsigned read_int(unsigned low, unsigned dflt, unsigned high, unsigned base, char *mesg);
 #endif
 static const char *partition_type(unsigned char type);
 static void fdisk_fatal(enum failure why) ATTRIBUTE_NORETURN;
@@ -228,7 +234,7 @@ static int32_t get_nr_sects(const struct partition *p);
 static struct pte {
 	struct partition *part_table;   /* points into sectorbuffer */
 	struct partition *ext_pointer;  /* points into sectorbuffer */
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 	char changed;           /* boolean */
 #endif
 	off_t offset;            /* disk sector number */
@@ -236,7 +242,7 @@ static struct pte {
 } ptes[MAXIMUM_PARTS];
 
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 set_all_unchanged(void)
 {
@@ -246,14 +252,14 @@ set_all_unchanged(void)
 		ptes[i].changed = 0;
 }
 
-static void
+extern inline void
 set_changed(int i)
 {
 	ptes[i].changed = 1;
 }
 #endif /* CONFIG_FEATURE_FDISK_WRITABLE */
 
-static inline struct partition *
+extern inline struct partition *
 get_part_table(int i)
 {
 	return ptes[i].part_table;
@@ -271,11 +277,17 @@ str_units(int n)
 static int
 valid_part_table_flag(const char *mbuffer)
 {
-	const unsigned char *b = (const unsigned char *)mbuffer;
-	return (b[510] == 0x55 && b[511] == 0xaa);
+	return (mbuffer[510] == 0x55 && (uint8_t)mbuffer[511] == 0xaa);
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
+extern inline void
+write_part_table_flag(char *b)
+{
+	b[510] = 0x55;
+	b[511] = 0xaa;
+}
+
 static char line_buffer[LINE_LENGTH];
 static char *line_ptr;
 
@@ -396,7 +408,7 @@ __swap32(uint32_t x)
 #endif
 
 STATIC_SGI const struct systypes sgi_sys_types[];
-STATIC_SGI unsigned int sgi_get_num_sectors(int i);
+STATIC_SGI unsigned sgi_get_num_sectors(int i);
 STATIC_SGI int sgi_get_sysid(int i);
 STATIC_SGI void sgi_delete_partition(int i);
 STATIC_SGI void sgi_change_sysid(int i, int sys);
@@ -483,7 +495,7 @@ static const struct systypes i386_sys_types[] = {
 	{ "\xfd" "Linux raid autodetect" },/* New (2.2.x) raid partition with
 						autodetect using persistent
 						superblock */
-#ifdef CONFIG_WEIRD_PARTITION_TYPES
+#if 0 /* ENABLE_WEIRD_PARTITION_TYPES */
 	{ "\x02" "XENIX root" },
 	{ "\x03" "XENIX usr" },
 	{ "\x08" "AIX" },              /* AIX boot (AIX -- PS/2 port) or SplitDrive */
@@ -536,44 +548,28 @@ static const struct systypes i386_sys_types[] = {
 };
 
 
-/* A valid partition table sector ends in 0x55 0xaa */
-static unsigned int
-part_table_flag(const char *b)
-{
-	return ((uint) b[510]) + (((uint) b[511]) << 8);
-}
-
-
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
-static void
-write_part_table_flag(char *b)
-{
-	b[510] = 0x55;
-	b[511] = 0xaa;
-}
-
+#if ENABLE_FEATURE_FDISK_WRITABLE
 /* start_sect and nr_sects are stored little endian on all machines */
 /* moreover, they are not aligned correctly */
 static void
-store4_little_endian(unsigned char *cp, unsigned int val)
+store4_little_endian(unsigned char *cp, unsigned val)
 {
-	cp[0] = (val & 0xff);
-	cp[1] = ((val >> 8) & 0xff);
-	cp[2] = ((val >> 16) & 0xff);
-	cp[3] = ((val >> 24) & 0xff);
+	cp[0] = val;
+	cp[1] = val >> 8;
+	cp[2] = val >> 16;
+	cp[3] = val >> 24;
 }
 #endif /* CONFIG_FEATURE_FDISK_WRITABLE */
 
-static unsigned int
+static unsigned
 read4_little_endian(const unsigned char *cp)
 {
-	return (uint)(cp[0]) + ((uint)(cp[1]) << 8)
-		+ ((uint)(cp[2]) << 16) + ((uint)(cp[3]) << 24);
+	return cp[0] + (cp[1] << 8) + (cp[2] << 16) + (cp[3] << 24);
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
-set_start_sect(struct partition *p, unsigned int start_sect)
+set_start_sect(struct partition *p, unsigned start_sect)
 {
 	store4_little_endian(p->start4, start_sect);
 }
@@ -585,7 +581,7 @@ get_start_sect(const struct partition *p)
 	return read4_little_endian(p->start4);
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 set_nr_sects(struct partition *p, int32_t nr_sects)
 {
@@ -606,16 +602,16 @@ static int type_open = O_RDWR;
 static int ext_index;               /* the prime extended partition */
 static int listing;                    /* no aborts for fdisk -l */
 static int dos_compatible_flag = ~0;
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static int dos_changed;
 static int nowarn;            /* no warnings for fdisk -l/-s */
 #endif
 
 
 
-static uint user_cylinders, user_heads, user_sectors;
-static uint pt_heads, pt_sectors;
-static uint kern_heads, kern_sectors;
+static unsigned user_cylinders, user_heads, user_sectors;
+static unsigned pt_heads, pt_sectors;
+static unsigned kern_heads, kern_sectors;
 
 static off_t extended_offset;            /* offset of link pointers */
 
@@ -664,7 +660,7 @@ seek_sector(off_t secno)
 		fdisk_fatal(unable_to_seek);
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 write_sector(off_t secno, char *buf)
 {
@@ -683,19 +679,19 @@ read_pte(struct pte *pe, off_t offset)
 	seek_sector(offset);
 	if (read(fd, pe->sectorbuffer, sector_size) != sector_size)
 		fdisk_fatal(unable_to_read);
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 	pe->changed = 0;
 #endif
 	pe->part_table = pe->ext_pointer = NULL;
 }
 
-static unsigned int
+static unsigned
 get_partition_start(const struct pte *pe)
 {
 	return pe->offset + get_start_sect(pe->part_table);
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 /*
  * Avoid warning about DOS partitions when no DOS partition was changed.
  * Here a heuristic "is probably dos partition".
@@ -732,7 +728,7 @@ menu(void)
 		puts(_("\tu\tchange display/entry units"));
 		puts(_("\tv\tverify the partition table"));
 		puts(_("\tw\twrite table to disk and exit"));
-#ifdef CONFIG_FEATURE_FDISK_ADVANCED
+#if ENABLE_FEATURE_FDISK_ADVANCED
 		puts(_("\tx\textra functionality (experts only)"));
 #endif
 	} else
@@ -778,7 +774,7 @@ menu(void)
 		puts(_("\tu\tchange display/entry units"));
 		puts(_("\tv\tverify the partition table"));
 		puts(_("\tw\twrite table to disk and exit"));
-#ifdef CONFIG_FEATURE_FDISK_ADVANCED
+#if ENABLE_FEATURE_FDISK_ADVANCED
 		puts(_("\tx\textra functionality (experts only)"));
 #endif
 	}
@@ -786,7 +782,7 @@ menu(void)
 #endif /* CONFIG_FEATURE_FDISK_WRITABLE */
 
 
-#ifdef CONFIG_FEATURE_FDISK_ADVANCED
+#if ENABLE_FEATURE_FDISK_ADVANCED
 static void
 xmenu(void)
 {
@@ -846,7 +842,7 @@ xmenu(void)
 		puts(_("\td\tprint the raw data in the partition table"));
 		puts(_("\te\tlist extended partitions"));          /* !sun */
 		puts(_("\tf\tfix partition order"));               /* !sun, !aix, !sgi */
-#ifdef CONFIG_FEATURE_SGI_LABEL
+#if ENABLE_FEATURE_SGI_LABEL
 		puts(_("\tg\tcreate an IRIX (SGI) partition table"));/* sgi */
 #endif
 		puts(_("\th\tchange number of heads"));
@@ -861,7 +857,7 @@ xmenu(void)
 }
 #endif /* ADVANCED mode */
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static const struct systypes *
 get_sys_types(void)
 {
@@ -887,7 +883,7 @@ static const char *partition_type(unsigned char type)
 }
 
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static int
 get_sysid(int i)
 {
@@ -898,7 +894,7 @@ get_sysid(int i)
 
 void list_types(const struct systypes *sys)
 {
-	uint last[4], done = 0, next = 0, size;
+	unsigned last[4], done = 0, next = 0, size;
 	int i;
 
 	for (i = 0; sys[i].name; i++);
@@ -938,7 +934,7 @@ clear_partition(struct partition *p)
 	memset(p, 0, sizeof(struct partition));
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 set_partition(int i, int doext, off_t start, off_t stop, int sysid)
 {
@@ -996,7 +992,7 @@ warn_geometry(void)
 		return 0;
 
 	printf("%s%s.\n"
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 		"You can do this from the extra functions menu.\n"
 #endif
 		, prev ? _(" and ") : " ", m);
@@ -1014,7 +1010,7 @@ static void update_units(void)
 		units_per_sector = 1;   /* in sectors */
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 warn_cylinders(void)
 {
@@ -1055,7 +1051,7 @@ read_extended(int ext)
 			   this program uses arrays of size MAXIMUM_PARTS.
 			   Do not try to 'improve' this test. */
 			struct pte *pre = &ptes[partitions-1];
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 			printf(_("Warning: deleting partitions after %d\n"),
 				partitions);
 			pre->changed = 1;
@@ -1106,7 +1102,7 @@ read_extended(int ext)
 		partitions++;
 	}
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 	/* remove empty links */
  remove:
 	for (i = 4; i < partitions; i++) {
@@ -1122,7 +1118,7 @@ read_extended(int ext)
 #endif
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 create_doslabel(void)
 {
@@ -1135,7 +1131,7 @@ create_doslabel(void)
 
 	current_label_type = label_dos;
 
-#ifdef CONFIG_FEATURE_OSF_LABEL
+#if ENABLE_FEATURE_OSF_LABEL
 	possibly_osf_label = 0;
 #endif
 	partitions = 4;
@@ -1216,7 +1212,7 @@ get_geometry(void)
 
 	get_sectorsize();
 	sec_fac = sector_size / 512;
-#ifdef CONFIG_FEATURE_SUN_LABEL
+#if ENABLE_FEATURE_SUN_LABEL
 	guess_device_type();
 #endif
 	heads = cylinders = sectors = 0;
@@ -1273,19 +1269,19 @@ get_boot(enum action what)
 		pe->ext_pointer = NULL;
 		pe->offset = 0;
 		pe->sectorbuffer = MBRbuffer;
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 		pe->changed = (what == create_empty_dos);
 #endif
 	}
 
-#ifdef CONFIG_FEATURE_SUN_LABEL
+#if ENABLE_FEATURE_SUN_LABEL
 	if (what == create_empty_sun && check_sun_label())
 		return 0;
 #endif
 
 	memset(MBRbuffer, 0, 512);
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 	if (what == create_empty_dos)
 		goto got_dos_table;             /* skip reading disk */
 
@@ -1315,22 +1311,22 @@ get_boot(enum action what)
 
 	update_units();
 
-#ifdef CONFIG_FEATURE_SUN_LABEL
+#if ENABLE_FEATURE_SUN_LABEL
 	if (check_sun_label())
 		return 0;
 #endif
 
-#ifdef CONFIG_FEATURE_SGI_LABEL
+#if ENABLE_FEATURE_SGI_LABEL
 	if (check_sgi_label())
 		return 0;
 #endif
 
-#ifdef CONFIG_FEATURE_AIX_LABEL
+#if ENABLE_FEATURE_AIX_LABEL
 	if (check_aix_label())
 		return 0;
 #endif
 
-#ifdef CONFIG_FEATURE_OSF_LABEL
+#if ENABLE_FEATURE_OSF_LABEL
 	if (check_osf_label()) {
 		possibly_osf_label = 1;
 		if (!valid_part_table_flag(MBRbuffer)) {
@@ -1342,7 +1338,7 @@ get_boot(enum action what)
 	}
 #endif
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
  got_dos_table:
 #endif
 
@@ -1356,7 +1352,7 @@ get_boot(enum action what)
 				  "partition table, nor Sun, SGI or OSF "
 				  "disklabel\n"));
 #ifdef __sparc__
-#ifdef CONFIG_FEATURE_SUN_LABEL
+#if ENABLE_FEATURE_SUN_LABEL
 			create_sunlabel();
 #endif
 #else
@@ -1366,7 +1362,7 @@ get_boot(enum action what)
 		case try_only:
 			return -1;
 		case create_empty_dos:
-#ifdef CONFIG_FEATURE_SUN_LABEL
+#if ENABLE_FEATURE_SUN_LABEL
 		case create_empty_sun:
 #endif
 			break;
@@ -1376,7 +1372,7 @@ get_boot(enum action what)
 #endif /* CONFIG_FEATURE_FDISK_WRITABLE */
 	}
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 	warn_cylinders();
 #endif
 	warn_geometry();
@@ -1397,10 +1393,12 @@ get_boot(enum action what)
 		struct pte *pe = &ptes[i];
 
 		if (!valid_part_table_flag(pe->sectorbuffer)) {
-			printf(_("Warning: invalid flag 0x%04x of partition "
+			printf(_("Warning: invalid flag 0x%02x,0x%02x of partition "
 				"table %d will be corrected by w(rite)\n"),
-				part_table_flag(pe->sectorbuffer), i + 1);
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+				pe->sectorbuffer[510],
+				pe->sectorbuffer[511],
+				i + 1);
+#if ENABLE_FEATURE_FDISK_WRITABLE
 			pe->changed = 1;
 #endif
 		}
@@ -1409,7 +1407,7 @@ get_boot(enum action what)
 	return 0;
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 /*
  * Print the message MESG, then read an integer between LOW and HIGH (inclusive).
  * If the user hits Enter, DFLT is returned.
@@ -1417,10 +1415,10 @@ get_boot(enum action what)
  *
  * There is no default if DFLT is not between LOW and HIGH.
  */
-static uint
-read_int(uint low, uint dflt, uint high, uint base, char *mesg)
+static unsigned
+read_int(unsigned low, unsigned dflt, unsigned high, unsigned base, char *mesg)
 {
-	uint i;
+	unsigned i;
 	int default_ok = 1;
 	const char *fmt = "%s (%u-%u, default %u): ";
 
@@ -1775,7 +1773,7 @@ change_sysid(void)
  * Lubkin Oct.  1991). */
 
 static void
-long2chs(ulong ls, uint *c, uint *h, uint *s)
+long2chs(ulong ls, unsigned *c, unsigned *h, unsigned *s)
 {
 	int spc = heads * sectors;
 
@@ -1788,10 +1786,10 @@ long2chs(ulong ls, uint *c, uint *h, uint *s)
 static void
 check_consistency(const struct partition *p, int partition)
 {
-	uint pbc, pbh, pbs;          /* physical beginning c, h, s */
-	uint pec, peh, pes;          /* physical ending c, h, s */
-	uint lbc, lbh, lbs;          /* logical beginning c, h, s */
-	uint lec, leh, les;          /* logical ending c, h, s */
+	unsigned pbc, pbh, pbs;          /* physical beginning c, h, s */
+	unsigned pec, peh, pes;          /* physical ending c, h, s */
+	unsigned lbc, lbh, lbs;          /* logical beginning c, h, s */
+	unsigned lec, leh, les;          /* logical ending c, h, s */
 
 	if (!heads || !sectors || (partition >= 4))
 		return;         /* do not check extended partitions */
@@ -1892,7 +1890,7 @@ wrong_p_order(int *prev)
 	return 0;
 }
 
-#ifdef CONFIG_FEATURE_FDISK_ADVANCED
+#if ENABLE_FEATURE_FDISK_ADVANCED
 /*
  * Fix the chain of logicals.
  * extended_offset is unchanged, the set of sectors used is unchanged
@@ -2037,7 +2035,7 @@ list_table(int xtra)
 		const struct pte *pe = &ptes[i];
 		off_t psects;
 		off_t pblocks;
-		unsigned int podd;
+		unsigned podd;
 
 		p = pe->part_table;
 		if (!p || is_cleared_partition(p))
@@ -2077,7 +2075,7 @@ list_table(int xtra)
 	}
 }
 
-#ifdef CONFIG_FEATURE_FDISK_ADVANCED
+#if ENABLE_FEATURE_FDISK_ADVANCED
 static void
 x_list_table(int extend)
 {
@@ -2106,7 +2104,7 @@ x_list_table(int extend)
 }
 #endif
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 fill_bounds(off_t *first, off_t *last)
 {
@@ -2127,7 +2125,7 @@ fill_bounds(off_t *first, off_t *last)
 }
 
 static void
-check(int n, uint h, uint s, uint c, off_t start)
+check(int n, unsigned h, unsigned s, unsigned c, off_t start)
 {
 	off_t total, real_s, real_c;
 
@@ -2154,7 +2152,7 @@ static void
 verify(void)
 {
 	int i, j;
-	uint total = 1;
+	unsigned total = 1;
 	off_t first[partitions], last[partitions];
 	struct partition *p;
 
@@ -2522,7 +2520,7 @@ reread_partition_table(int leave)
 }
 #endif /* CONFIG_FEATURE_FDISK_WRITABLE */
 
-#ifdef CONFIG_FEATURE_FDISK_ADVANCED
+#if ENABLE_FEATURE_FDISK_ADVANCED
 #define MAX_PER_LINE    16
 static void
 print_buffer(char *pbuffer)
@@ -2625,7 +2623,7 @@ xselect(void)
 				fix_partition_table_order();
 			break;
 		case 'g':
-#ifdef CONFIG_FEATURE_SGI_LABEL
+#if ENABLE_FEATURE_SGI_LABEL
 			create_sgilabel();
 #endif
 			break;
@@ -2736,7 +2734,7 @@ try(const char *device, int user_specified)
 			if (LABEL_IS_AIX) {
 				return;
 			}
-#ifdef CONFIG_FEATURE_OSF_LABEL
+#if ENABLE_FEATURE_OSF_LABEL
 			if (btrydev(device) < 0)
 #endif
 				printf(_("Disk %s doesn't contain a valid "
@@ -2745,7 +2743,7 @@ try(const char *device, int user_specified)
 		} else {
 			close(fd);
 			list_table(0);
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 			if (!LABEL_IS_SUN && partitions > 4){
 				delete_partition(ext_index);
 			}
@@ -2783,12 +2781,12 @@ tryprocpt(void)
 		sprintf(devname, "/dev/%s", ptname);
 		try(devname, 0);
 	}
-#ifdef CONFIG_FEATURE_CLEAN_UP
+#if ENABLE_FEATURE_CLEAN_UP
 	fclose(procpt);
 #endif
 }
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 static void
 unknown_command(int c)
 {
@@ -2798,82 +2796,67 @@ unknown_command(int c)
 
 int fdisk_main(int argc, char **argv)
 {
+	char *str_b, *str_C, *str_H, *str_S;
+	unsigned opt;
 	int c;
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
-	int optl = 0;
-#endif
-#ifdef CONFIG_FEATURE_FDISK_BLKSIZE
-	int opts = 0;
-#endif
 	/*
-	 * Calls:
 	 *  fdisk -v
 	 *  fdisk -l [-b sectorsize] [-u] device ...
 	 *  fdisk -s [partition] ...
 	 *  fdisk [-b sectorsize] [-u] device
 	 *
 	 * Options -C, -H, -S set the geometry.
-	 *
 	 */
-	while ((c = getopt(argc, argv, "b:C:H:lS:u"
-#ifdef CONFIG_FEATURE_FDISK_BLKSIZE
-					"s"
-#endif
-					)) != -1) {
-		switch (c) {
-		case 'b':
-			/* Ugly: this sector size is really per device,
-			   so cannot be combined with multiple disks,
-			   and te same goes for the C/H/S options.
-			*/
-			sector_size = xatoi_u(optarg);
-			if (sector_size != 512 && sector_size != 1024 &&
-				sector_size != 2048)
-				bb_show_usage();
-			sector_offset = 2;
-			user_set_sector_size = 1;
-			break;
-		case 'C':
-			user_cylinders = xatoi_u(optarg);
-			break;
-		case 'H':
-			user_heads = xatoi_u(optarg);
-			if (user_heads <= 0 || user_heads >= 256)
-				user_heads = 0;
-			break;
-		case 'S':
-			user_sectors = xatoi_u(optarg);
-			if (user_sectors <= 0 || user_sectors >= 64)
-				user_sectors = 0;
-			break;
-		case 'l':
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
-			optl = 1;
-#endif
-			break;
-#ifdef CONFIG_FEATURE_FDISK_BLKSIZE
-		case 's':
-			opts = 1;
-			break;
-#endif
-		case 'u':
-			display_in_cyl_units = 0;
-			break;
-		default:
+	enum {
+		OPT_b = 1 << 0,
+		OPT_C = 1 << 1,
+		OPT_H = 1 << 2,
+		OPT_l = 1 << 3,
+		OPT_S = 1 << 4,
+		OPT_u = 1 << 5,
+		OPT_s = (1 << 6) * ENABLE_FEATURE_FDISK_BLKSIZE,
+	};
+	opt = getopt32(argc, argv, "b:C:H:lS:u" USE_FEATURE_FDISK_BLKSIZE("s"),
+				&str_b, &str_C, &str_H, &str_S);
+	argc -= optind;
+	argv += optind;
+	if (opt & OPT_b) { // -b
+		/* Ugly: this sector size is really per device,
+		   so cannot be combined with multiple disks,
+		   and the same goes for the C/H/S options.
+		*/
+		sector_size = xatoi_u(str_b);
+		if (sector_size != 512 && sector_size != 1024 &&
+			sector_size != 2048)
 			bb_show_usage();
-		}
+		sector_offset = 2;
+		user_set_sector_size = 1;
 	}
+	if (opt & OPT_C) user_cylinders = xatoi_u(str_C); // -C
+	if (opt & OPT_H) { // -H
+		user_heads = xatoi_u(str_H);
+		if (user_heads <= 0 || user_heads >= 256)
+			user_heads = 0;
+	}
+	//if (opt & OPT_l) // -l
+	if (opt & OPT_S) { // -S
+		user_sectors = xatoi_u(str_S);
+		if (user_sectors <= 0 || user_sectors >= 64)
+			user_sectors = 0;
+	}
+	if (opt & OPT_u) display_in_cyl_units = 0; // -u
+	//if (opt & OPT_s) // -s
 
-	if (user_set_sector_size && argc-optind != 1)
+	if (user_set_sector_size && argc != 1)
 		printf(_("Warning: the -b (set sector size) option should"
 			 " be used with one specified device\n"));
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
-	if (optl) {
+#if ENABLE_FEATURE_FDISK_WRITABLE
+	if (opt & OPT_l) {
 		nowarn = 1;
 #endif
 		type_open = O_RDONLY;
-		if (argc > optind) {
+		if (argc > 0) {
 			int k;
 #if __GNUC__
 			/* avoid gcc warning:
@@ -2881,7 +2864,7 @@ int fdisk_main(int argc, char **argv)
 			(void)&k;
 #endif
 			listing = 1;
-			for (k = optind; k < argc; k++)
+			for (k = 0; k < argc; k++)
 				try(argv[k], 1);
 		} else {
 			/* we no longer have default device names */
@@ -2889,30 +2872,30 @@ int fdisk_main(int argc, char **argv)
 			tryprocpt();
 		}
 		return 0;
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
+#if ENABLE_FEATURE_FDISK_WRITABLE
 	}
 #endif
 
-#ifdef CONFIG_FEATURE_FDISK_BLKSIZE
-	if (opts) {
+#if ENABLE_FEATURE_FDISK_BLKSIZE
+	if (opt & OPT_s) {
 		long size;
 		int j;
 
 		nowarn = 1;
 		type_open = O_RDONLY;
 
-		opts = argc - optind;
-		if (opts <= 0)
+		if (argc <= 0)
 			bb_show_usage();
 
-		for (j = optind; j < argc; j++) {
+		for (j = 0; j < argc; j++) {
 			disk_device = argv[j];
-			if ((fd = open(disk_device, type_open)) < 0)
+			fd = open(disk_device, type_open);
+			if (fd < 0)
 				fdisk_fatal(unable_to_open);
 			if (ioctl(fd, BLKGETSIZE, &size))
 				fdisk_fatal(ioctl_error);
 			close(fd);
-			if (opts == 1)
+			if (argc == 1)
 				printf("%ld\n", size/2);
 			else
 				printf("%s: %ld\n", argv[j], size/2);
@@ -2921,12 +2904,11 @@ int fdisk_main(int argc, char **argv)
 	}
 #endif
 
-#ifdef CONFIG_FEATURE_FDISK_WRITABLE
-	if (argc-optind == 1)
-		disk_device = argv[optind];
-	else
+#if ENABLE_FEATURE_FDISK_WRITABLE
+	if (argc != 1)
 		bb_show_usage();
 
+	disk_device = argv[0];
 	get_boot(fdisk);
 
 	if (LABEL_IS_OSF) {
@@ -2964,13 +2946,11 @@ int fdisk_main(int argc, char **argv)
 					printf(_("Boot file unchanged\n"));
 				else
 					sgi_set_bootfile(line_ptr);
-			} else
-#ifdef CONFIG_FEATURE_OSF_LABEL
+			}
+#if ENABLE_FEATURE_OSF_LABEL
+			else
 				bsd_select();
 #endif
-
-/* BUG!? Think what will happen if !CONFIG_FEATURE_OSF_LABEL !!! */
-
 			break;
 		case 'c':
 			if (LABEL_IS_DOS)
@@ -3025,7 +3005,7 @@ int fdisk_main(int argc, char **argv)
 			puts("");
 			return 0;
 		case 's':
-#ifdef CONFIG_FEATURE_SUN_LABEL
+#if ENABLE_FEATURE_SUN_LABEL
 			create_sunlabel();
 #endif
 			break;
@@ -3041,7 +3021,7 @@ int fdisk_main(int argc, char **argv)
 		case 'w':
 			write_table();          /* does not return */
 			break;
-#ifdef CONFIG_FEATURE_FDISK_ADVANCED
+#if ENABLE_FEATURE_FDISK_ADVANCED
 		case 'x':
 			if (LABEL_IS_SGI) {
 				printf(_("\n\tSorry, no experts menu for SGI "
