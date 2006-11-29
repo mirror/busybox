@@ -671,43 +671,47 @@ static char *encodeString(const char *string)
  *
  * $Parameters:
  *      (char *) string . . . The first string to decode.
- *      (int)    flag   . . . 1 if need to decode '+' as ' ' for CGI
+ *      (int)    option_d . . 1 if called for httpd -d
  *
  * $Return: (char *)  . . . . A pointer to the decoded string (same as input).
  *
  * $Errors: None
  *
  ****************************************************************************/
-static char *decodeString(char *orig, int flag_plus_to_space)
+static char *decodeString(char *orig, int option_d)
 {
 	/* note that decoded string is always shorter than original */
 	char *string = orig;
 	char *ptr = string;
+	char c;
 
-	while (*ptr) {
-		if (*ptr == '+' && flag_plus_to_space) {
+	while ((c = *ptr++) != '\0') {
+		unsigned value1, value2;
+
+		if (option_d && c == '+') {
 			*string++ = ' ';
-			ptr++;
-		} else if (*ptr != '%') {
-			*string++ = *ptr++;
-		} else {
-			unsigned int value1, value2;
-
-			ptr++;
-			if (sscanf(ptr, "%1X", &value1) != 1
-			 || sscanf(ptr+1, "%1X", &value2) != 1
-			) {
-				if (!flag_plus_to_space)
-					return NULL;
-				*string++ = '%';
-			} else {
-				value1 = value1 * 16 + value2;
-				if (value1 == '/' || value1 == 0)
-					return orig+1;
-				*string++ = value1;
-				ptr += 2;
-			}
+			continue;
 		}
+		if (c != '%') {
+			*string++ = c;
+			continue;
+		}
+		if (sscanf(ptr, "%1X", &value1) != 1
+		 || sscanf(ptr+1, "%1X", &value2) != 1
+		) {
+			if (!option_d)
+				return NULL;
+			*string++ = '%';
+			continue;
+		}
+		value1 = value1 * 16 + value2;
+		if (!option_d && (value1 == '/' || value1 == '\0')) {
+			/* caller takes it as indication of invalid 
+			 * (dangerous wrt exploits) chars */
+			return orig + 1;
+		}
+		*string++ = value1;
+		ptr += 2;
 	}
 	*string = '\0';
 	return orig;
@@ -1510,8 +1514,8 @@ static void handleIncoming(void)
 		test = decodeString(url, 0);
 		if (test == NULL)
 			goto BAD_REQUEST;
-		/* FIXME: bug? should be "url+1"? */
-		if (test == (buf+1)) {
+		if (test == url+1) {
+			/* '/' or NUL is encoded */
 			sendHeaders(HTTP_NOT_FOUND);
 			break;
 		}
@@ -1909,12 +1913,12 @@ int httpd_main(int argc, char *argv[])
 		char *e;
 		// FIXME: what the default group should be?
 		ugid.gid = -1;
-		ugid.uid = strtoul(s_ugid, &e, 0);
+		ugid.uid = bb_strtoul(s_ugid, &e, 0);
 		if (*e == ':') {
 			e++;
-			ugid.gid = strtoul(e, &e, 0);
+			ugid.gid = bb_strtoul(e, NULL, 0);
 		}
-		if (*e != '\0') {
+		if (errno) {
 			/* not integer */
 			if (!uidgid_get(&ugid, s_ugid))
 				bb_error_msg_and_die("unrecognized user[:group] "
@@ -1942,9 +1946,7 @@ int httpd_main(int argc, char *argv[])
 #if ENABLE_FEATURE_HTTPD_CGI
 	{
 		char *p = getenv("PATH");
-		if (p) {
-			p = xstrdup(p);
-		}
+		p = xstrdup(p); /* if gets NULL, returns NULL */
 		clearenv();
 		if (p)
 			setenv1("PATH", p);
