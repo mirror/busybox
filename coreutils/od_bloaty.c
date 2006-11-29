@@ -845,17 +845,18 @@ format_address_none(off_t address ATTRIBUTE_UNUSED, char c ATTRIBUTE_UNUSED)
 {
 }
 
-static int address_pad_len;
-static char address_fmt[] = "%0*"OFF_FMT"xc";
+static char address_fmt[] = "%0n"OFF_FMT"xc";
 /* Corresponds to 'x' above */
 #define address_base_char address_fmt[sizeof(address_fmt)-3]
+/* Corresponds to 'n' above */
+#define address_pad_len_char address_fmt[2]
 
 static void
 format_address_std(off_t address, char c)
 {
 	/* Corresponds to 'c' */
 	address_fmt[sizeof(address_fmt)-2] = c;
-	printf(address_fmt, address_pad_len, address);
+	printf(address_fmt, address);
 }
 
 #if ENABLE_GETOPT_LONG
@@ -865,6 +866,7 @@ format_address_paren(off_t address, char c)
 {
 	putchar('(');
 	format_address_std(address, ')');
+	/* BUG in coreutils 5.2.1! must be "if (c) putchar(c);" */
 	putchar(c);
 }
 
@@ -926,7 +928,7 @@ write_block(off_t current_offset, size_t n_bytes,
 			if (i == 0)
 				format_address(current_offset, '\0');
 			else
-				printf("%*s", address_pad_len, "");
+				printf("%*s", address_pad_len_char - '0', "");
 			(*spec[i].print_function) (n_bytes, curr_block, spec[i].fmt_string);
 			if (spec[i].hexl_mode_trailer) {
 				/* space-pad out to full line width, then dump the trailer */
@@ -1261,7 +1263,7 @@ od_main(int argc, char **argv)
 	spec = NULL;
 	format_address = format_address_std;
 	address_base_char = 'o';
-	address_pad_len = 7;
+	address_pad_len_char = '7';
 	flag_dump_strings = 0;
 
 	/* Parse command line */
@@ -1279,14 +1281,12 @@ od_main(int argc, char **argv)
 	argv += optind;
 	if (opt & OPT_A) {
 		static const char doxn[] = "doxn";
-		static FN_format_address *const doxn_format_address[] = {
-			format_address_std,
-			format_address_std,
-			format_address_std,
-			format_address_none,
+		static const char doxn_address_base_char[] = {
+			'u', 'o', 'x', /* '?' fourth one is not important */
 		};
-		static const char doxn_address_base_char[] = { 'u', 'o', 'x', 'x' };
-		static const uint8_t doxn_address_pad_len[] = { 7, 7, 6, 0 };
+		static const uint8_t doxn_address_pad_len_char[] = {
+			'7', '7', '6', /* '?' */
+		};
 		char *p;
 		int pos;
 		p = strchr(doxn, str_A[0]);
@@ -1294,9 +1294,9 @@ od_main(int argc, char **argv)
 			bb_error_msg_and_die("bad output address radix "
 				"'%c' (must be [doxn])", str_A[0]);
 		pos = p - doxn;
-		format_address = doxn_format_address[pos];
+		if (pos == 3) format_address = format_address_none;
 		address_base_char = doxn_address_base_char[pos];
-		address_pad_len = doxn_address_pad_len[pos];
+		address_pad_len_char = doxn_address_pad_len_char[pos];
 	}
 	if (opt & OPT_N) {
 		limit_bytes_to_format = 1;
@@ -1389,12 +1389,12 @@ od_main(int argc, char **argv)
 		}
 
 		if (flag_pseudo_start) {
-			format_address = format_address_label;
 			if (format_address == format_address_none) {
 				address_base_char = 'o';
-				address_pad_len = 7;
+				address_pad_len_char = '7';
 				format_address = format_address_paren;
-			}
+			} else
+				format_address = format_address_label;
 		}
 	}
 #endif
