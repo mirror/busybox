@@ -330,13 +330,16 @@ read_maybe_empty(const char *mesg)
 static int
 read_hex(const struct systypes *sys)
 {
+	unsigned long v;
 	while (1) {
 		read_nonempty(_("Hex code (type L to list codes): "));
-		if (*line_ptr == 'l' || *line_ptr == 'L')
+		if (*line_ptr == 'l' || *line_ptr == 'L') {
 			list_types(sys);
-		else if (isxdigit(*line_ptr)) {
-			return strtoul(line_ptr, NULL, 16);
+			continue;
 		}
+		v = bb_strtoul(line_ptr, NULL, 16);
+		if (errno || v > 0xff) continue;
+		return v;
 	}
 }
 #endif /* CONFIG_FEATURE_FDISK_WRITABLE */

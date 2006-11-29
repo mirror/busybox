@@ -166,13 +166,15 @@ struct minix_dir_entry {
 
 #define UPPER(size,n) (((size)+((n)-1))/(n))
 #define INODE_SIZE (sizeof(struct minix_inode))
-#ifdef CONFIG_FEATURE_MINIX2
-#define INODE_SIZE2 (sizeof(struct minix2_inode))
-#define INODE_BLOCKS UPPER(INODES, (version2 ? MINIX2_INODES_PER_BLOCK \
+
+#if ENABLE_FEATURE_MINIX2
+# define INODE_SIZE2 (sizeof(struct minix2_inode))
+# define INODE_BLOCKS UPPER(INODES, (version2 ? MINIX2_INODES_PER_BLOCK \
 				    : MINIX_INODES_PER_BLOCK))
 #else
-#define INODE_BLOCKS UPPER(INODES, (MINIX_INODES_PER_BLOCK))
+# define INODE_BLOCKS UPPER(INODES, (MINIX_INODES_PER_BLOCK))
 #endif
+
 #define INODE_BUFFER_SIZE (INODE_BLOCKS * BLOCK_SIZE)
 
 #define BITS_PER_BLOCK (BLOCK_SIZE<<3)
@@ -180,33 +182,37 @@ struct minix_dir_entry {
 static char *device_name;
 static int DEV = -1;
 static uint32_t BLOCKS;
-static int check;
 static int badblocks;
-static int namelen = 30;		/* default (changed to 30, per Linus's
-
-								   suggestion, Sun Nov 21 08:05:07 1993) */
+/* default (changed to 30, per Linus's suggestion, Sun Nov 21 08:05:07 1993) */
+static int namelen = 30;
 static int dirsize = 32;
 static int magic = MINIX_SUPER_MAGIC2;
+#if ENABLE_FEATURE_MINIX2
 static int version2;
+#else
+enum { version2 = 0 };
+#endif
 
 static char root_block[BLOCK_SIZE];
 
 static char *inode_buffer;
 
 #define Inode (((struct minix_inode *) inode_buffer)-1)
-#ifdef CONFIG_FEATURE_MINIX2
+#if ENABLE_FEATURE_MINIX2
 #define Inode2 (((struct minix2_inode *) inode_buffer)-1)
 #endif
 static char super_block_buffer[BLOCK_SIZE];
 static char boot_block_buffer[512];
 
 #define Super (*(struct minix_super_block *)super_block_buffer)
+
 #define INODES (Super.s_ninodes)
-#ifdef CONFIG_FEATURE_MINIX2
-#define ZONES (version2 ? Super.s_zones : Super.s_nzones)
+#if ENABLE_FEATURE_MINIX2
+# define ZONES (version2 ? Super.s_zones : Super.s_nzones)
 #else
-#define ZONES (Super.s_nzones)
+# define ZONES (Super.s_nzones)
 #endif
+
 #define IMAPS (Super.s_imap_blocks)
 #define ZMAPS (Super.s_zmap_blocks)
 #define FIRSTZONE (Super.s_firstdatazone)
@@ -222,7 +228,7 @@ static unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
 static int used_good_blocks;
 static unsigned long req_nr_inodes;
 
-static int bit(char * a,unsigned int i)
+static int bit(char* a, unsigned i)
 {
 	  return (a[i >> 3] & (1<<(i & 7))) != 0;
 }
@@ -235,33 +241,11 @@ static int bit(char * a,unsigned int i)
 #define mark_zone(x) (setbit(zone_map,(x)-FIRSTZONE+1))
 #define unmark_zone(x) (clrbit(zone_map,(x)-FIRSTZONE+1))
 
-/*
- * Check to make certain that our new filesystem won't be created on
- * an already mounted partition.  Code adapted from mke2fs, Copyright
- * (C) 1994 Theodore Ts'o.  Also licensed under GPL.
- */
-static void check_mount(void)
-{
-	FILE *f;
-	struct mntent *mnt;
-
-	if ((f = setmntent(MOUNTED, "r")) == NULL)
-		return;
-	while ((mnt = getmntent(f)) != NULL)
-		if (strcmp(device_name, mnt->mnt_fsname) == 0)
-			break;
-	endmntent(f);
-	if (!mnt)
-		return;
-
-	bb_error_msg_and_die("%s is mounted; will not make a filesystem here!", device_name);
-}
-
 static long valid_offset(int fd, int offset)
 {
 	char ch;
 
-	if (lseek(fd, offset, 0) < 0)
+	if (lseek(fd, offset, SEEK_SET) < 0)
 		return 0;
 	if (read(fd, &ch, 1) < 1)
 		return 0;
@@ -275,6 +259,7 @@ static int count_blocks(int fd)
 	low = 0;
 	for (high = 1; valid_offset(fd, high); high *= 2)
 		low = high;
+
 	while (low < high - 1) {
 		const int mid = (low + high) / 2;
 
@@ -309,29 +294,34 @@ static void write_tables(void)
 	Super.s_state |= MINIX_VALID_FS;
 	Super.s_state &= ~MINIX_ERROR_FS;
 
-	if (lseek(DEV, 0, SEEK_SET))
-		bb_error_msg_and_die("seek to boot block failed in write_tables");
-	if (512 != write(DEV, boot_block_buffer, 512))
-		bb_error_msg_and_die("cannot clear boot sector");
-	if (BLOCK_SIZE != lseek(DEV, BLOCK_SIZE, SEEK_SET))
-		bb_error_msg_and_die("seek failed in write_tables");
-	if (BLOCK_SIZE != write(DEV, super_block_buffer, BLOCK_SIZE))
-		bb_error_msg_and_die("cannot write super-block");
-	if (IMAPS * BLOCK_SIZE != write(DEV, inode_map, IMAPS * BLOCK_SIZE))
-		bb_error_msg_and_die("cannot write inode map");
-	if (ZMAPS * BLOCK_SIZE != write(DEV, zone_map, ZMAPS * BLOCK_SIZE))
-		bb_error_msg_and_die("cannot write zone map");
-	if (INODE_BUFFER_SIZE != write(DEV, inode_buffer, INODE_BUFFER_SIZE))
-		bb_error_msg_and_die("cannot write inodes");
+	msg_eol = "seek to 0 failed";
+	xlseek(DEV, 0, SEEK_SET);
 
+	msg_eol = "cannot clear boot sector";
+	xwrite(DEV, boot_block_buffer, 512);
+
+	msg_eol = "seek to BLOCK_SIZE failed";
+	xlseek(DEV, BLOCK_SIZE, SEEK_SET);
+
+	msg_eol = "cannot write superblock";
+	xwrite(DEV, super_block_buffer, BLOCK_SIZE);
+
+	msg_eol = "cannot write inode map";
+	xwrite(DEV, inode_map, IMAPS * BLOCK_SIZE);
+
+	msg_eol = "cannot write zone map";
+	xwrite(DEV, zone_map, ZMAPS * BLOCK_SIZE);
+
+	msg_eol = "cannot write inodes";
+	xwrite(DEV, inode_buffer, INODE_BUFFER_SIZE);
+
+	msg_eol = "\n";
 }
 
 static void write_block(int blk, char *buffer)
 {
-	if (blk * BLOCK_SIZE != lseek(DEV, blk * BLOCK_SIZE, SEEK_SET))
-		bb_error_msg_and_die("seek failed in write_block");
-	if (BLOCK_SIZE != write(DEV, buffer, BLOCK_SIZE))
-		bb_error_msg_and_die("write failed in write_block");
+	xlseek(DEV, blk * BLOCK_SIZE, SEEK_SET);
+	xwrite(DEV, buffer, BLOCK_SIZE);
 }
 
 static int get_free_block(void)
@@ -385,6 +375,8 @@ static void make_bad_inode(void)
 		return;
 	mark_inode(MINIX_BAD_INO);
 	inode->i_nlinks = 1;
+	/* BTW, setting this makes all images different */
+	/* it's harder to check for bugs then - diff isn't helpful :(... */
 	inode->i_time = time(NULL);
 	inode->i_mode = S_IFREG + 0000;
 	inode->i_size = badblocks * BLOCK_SIZE;
@@ -421,7 +413,7 @@ static void make_bad_inode(void)
 		write_block(dind, (char *) dind_block);
 }
 
-#ifdef CONFIG_FEATURE_MINIX2
+#if ENABLE_FEATURE_MINIX2
 static void make_bad_inode2(void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_BAD_INO];
@@ -494,7 +486,7 @@ static void make_root_inode(void)
 	write_block(inode->i_zone[0], root_block);
 }
 
-#ifdef CONFIG_FEATURE_MINIX2
+#if ENABLE_FEATURE_MINIX2
 static void make_root_inode2(void)
 {
 	struct minix2_inode *inode = &Inode2[MINIX_ROOT_INO];
@@ -528,11 +520,9 @@ static void setup_tables(void)
 	MAGIC = magic;
 	ZONESIZE = 0;
 	MAXSIZE = version2 ? 0x7fffffff : (7 + 512 + 512 * 512) * 1024;
-#ifdef CONFIG_FEATURE_MINIX2
 	if (version2) {
 		Super.s_zones =  BLOCKS;
 	} else
-#endif
 		Super.s_nzones = BLOCKS;
 
 /* some magic nrs: 1 inode / 3 blocks */
@@ -541,12 +531,10 @@ static void setup_tables(void)
 	else
 		inodes = req_nr_inodes;
 	/* Round up inode count to fill block size */
-#ifdef CONFIG_FEATURE_MINIX2
 	if (version2)
 		inodes = ((inodes + MINIX2_INODES_PER_BLOCK - 1) &
 				  ~(MINIX2_INODES_PER_BLOCK - 1));
 	else
-#endif
 		inodes = ((inodes + MINIX_INODES_PER_BLOCK - 1) &
 				  ~(MINIX_INODES_PER_BLOCK - 1));
 	if (inodes > 65535)
@@ -594,16 +582,14 @@ static void setup_tables(void)
  * Perform a test of a block; return the number of
  * blocks readable/writable.
  */
-static long do_check(char *buffer, int try, unsigned int current_block)
+static long do_check(char *buffer, int try, unsigned current_block)
 {
 	long got;
 
 	/* Seek to the correct loc. */
-	if (lseek(DEV, current_block * BLOCK_SIZE, SEEK_SET) !=
-		current_block * BLOCK_SIZE) {
-		bb_error_msg_and_die("seek failed during testing of blocks");
-	}
-
+	msg_eol = "seek failed during testing of blocks";
+	xlseek(DEV, current_block * BLOCK_SIZE, SEEK_SET);
+	msg_eol = "\n";
 
 	/* Try the read */
 	got = read(DEV, buffer, try * BLOCK_SIZE);
@@ -616,7 +602,7 @@ static long do_check(char *buffer, int try, unsigned int current_block)
 	return got;
 }
 
-static unsigned int currently_testing;
+static unsigned currently_testing;
 
 static void alarm_intr(int alnum)
 {
@@ -639,9 +625,9 @@ static void check_blocks(void)
 	signal(SIGALRM, alarm_intr);
 	alarm(5);
 	while (currently_testing < ZONES) {
-		if (lseek(DEV, currently_testing * BLOCK_SIZE, SEEK_SET) !=
-			currently_testing * BLOCK_SIZE)
-			bb_error_msg_and_die("seek failed in check_blocks");
+		msg_eol = "seek failed in check_blocks";
+		xlseek(DEV, currently_testing * BLOCK_SIZE, SEEK_SET);
+		msg_eol = "\n";
 		try = TEST_BUFFER_BLOCKS;
 		if (currently_testing + try > ZONES)
 			try = ZONES - currently_testing;
@@ -655,10 +641,7 @@ static void check_blocks(void)
 		badblocks++;
 		currently_testing++;
 	}
-	if (badblocks > 1)
-		printf("%d bad blocks\n", badblocks);
-	else if (badblocks == 1)
-		printf("one bad block\n");
+	printf("%d bad block(s)\n", badblocks);
 }
 
 static void get_list_blocks(char *filename)
@@ -672,130 +655,66 @@ static void get_list_blocks(char *filename)
 		mark_zone(blockno);
 		badblocks++;
 	}
-	if (badblocks > 1)
-		printf("%d bad blocks\n", badblocks);
-	else if (badblocks == 1)
-		printf("one bad block\n");
+	printf("%d bad block(s)\n", badblocks);
 }
 
 int mkfs_minix_main(int argc, char **argv)
 {
-	int i=1;
+	unsigned opt;
 	char *tmp;
 	struct stat statbuf;
+	char *str_i, *str_n;
 	char *listfile = NULL;
-	int stopIt=FALSE;
 
 	if (INODE_SIZE * MINIX_INODES_PER_BLOCK != BLOCK_SIZE)
 		bb_error_msg_and_die("bad inode size");
-#ifdef CONFIG_FEATURE_MINIX2
+#if ENABLE_FEATURE_MINIX2
 	if (INODE_SIZE2 * MINIX2_INODES_PER_BLOCK != BLOCK_SIZE)
 		bb_error_msg_and_die("bad inode size");
 #endif
 
-	/* Parse options */
-	argv++;
-	while (--argc >= 0 && *argv && **argv) {
-		if (**argv == '-') {
-			stopIt=FALSE;
-			while (i > 0 && *++(*argv) && stopIt==FALSE) {
-				switch (**argv) {
-					case 'c':
-						check = 1;
-						break;
-					case 'i':
-						{
-							char *cp=NULL;
-							if (*(*argv+1) != 0) {
-								cp = ++(*argv);
-							} else {
-								if (--argc == 0) {
-									goto goodbye;
-								}
-								cp = *(++argv);
-							}
-							req_nr_inodes = strtoul(cp, &tmp, 0);
-							if (*tmp)
-								bb_show_usage();
-							stopIt=TRUE;
-							break;
-						}
-					case 'l':
-						if (--argc == 0) {
-							goto goodbye;
-						}
-						listfile = *(++argv);
-						break;
-					case 'n':
-						{
-							char *cp=NULL;
-
-							if (*(*argv+1) != 0) {
-								cp = ++(*argv);
-							} else {
-								if (--argc == 0) {
-									goto goodbye;
-								}
-								cp = *(++argv);
-							}
-							i = strtoul(cp, &tmp, 0);
-							if (*tmp)
-								bb_show_usage();
-							if (i == 14)
-								magic = MINIX_SUPER_MAGIC;
-							else if (i == 30)
-								magic = MINIX_SUPER_MAGIC2;
-							else
-								bb_show_usage();
-							namelen = i;
-							dirsize = i + 2;
-							stopIt=TRUE;
-							break;
-						}
-					case 'v':
-#ifdef CONFIG_FEATURE_MINIX2
-						version2 = 1;
+	opt = getopt32(argc, argv, "ci:l:n:v", &str_i, &listfile, &str_n);
+	argv += optind;
+	//if (opt & 1) -c
+	if (opt & 2) req_nr_inodes = xatoul(str_i); // -i
+	//if (opt & 4) -l
+	if (opt & 8) { // -n
+		namelen = xatoi_u(str_n);
+		if (namelen == 14) magic = MINIX_SUPER_MAGIC;
+		else if (namelen == 30) magic = MINIX_SUPER_MAGIC2;
+		else bb_show_usage();
+		dirsize = namelen + 2;
+	}
+	if (opt & 0x10) { // -v
+#if ENABLE_FEATURE_MINIX2
+		version2 = 1;
 #else
-						bb_error_msg("%s: not compiled with minix v2 support",
-								device_name);
-						exit(-1);
+		bb_error_msg_and_die("%s: not compiled with minix v2 support",
+			device_name);
 #endif
-						break;
-					case '-':
-					case 'h':
-					default:
-goodbye:
-						bb_show_usage();
-				}
-			}
-		} else {
-			if (device_name == NULL)
-				device_name = *argv;
-			else if (BLOCKS == 0)
-				BLOCKS = strtol(*argv, &tmp, 0);
-			else {
-				goto goodbye;
-			}
-		}
-		argv++;
 	}
 
-	if (device_name && !BLOCKS)
-		BLOCKS = get_size(device_name) / 1024;
-	if (!device_name || BLOCKS < 10) {
+	device_name = *argv++;
+	if (!device_name)
 		bb_show_usage();
-	}
-#ifdef CONFIG_FEATURE_MINIX2
+	if (*argv) {
+		BLOCKS = xatou32(*argv);
+		if (BLOCKS < 10)
+			bb_show_usage();
+	} else
+		BLOCKS = get_size(device_name) / 1024;
+
 	if (version2) {
+		magic = MINIX2_SUPER_MAGIC2;
 		if (namelen == 14)
 			magic = MINIX2_SUPER_MAGIC;
-		else
-			magic = MINIX2_SUPER_MAGIC2;
-	} else
-#endif
-	if (BLOCKS > 65535)
+	} else if (BLOCKS > 65535)
 		BLOCKS = 65535;
-	check_mount();				/* is it already mounted? */
+
+	if (find_mount_point(device_name, NULL))
+		bb_error_msg_and_die("%s is mounted; refusing to make "
+			"a filesystem", device_name);
+
 	tmp = root_block;
 	*(short *) tmp = 1;
 	strcpy(tmp + 2, ".");
@@ -805,30 +724,31 @@ goodbye:
 	tmp += dirsize;
 	*(short *) tmp = 2;
 	strcpy(tmp + 2, ".badblocks");
+
 	DEV = xopen(device_name, O_RDWR);
 	if (fstat(DEV, &statbuf) < 0)
 		bb_error_msg_and_die("cannot stat %s", device_name);
 	if (!S_ISBLK(statbuf.st_mode))
-		check = 0;
+		opt &= ~1; // clear -c (check)
 	else if (statbuf.st_rdev == 0x0300 || statbuf.st_rdev == 0x0340)
 		bb_error_msg_and_die("will not try to make filesystem on '%s'", device_name);
+
 	setup_tables();
-	if (check)
+
+	if (opt & 1) // -c ?
 		check_blocks();
 	else if (listfile)
 		get_list_blocks(listfile);
-#ifdef CONFIG_FEATURE_MINIX2
+
 	if (version2) {
 		make_root_inode2();
 		make_bad_inode2();
-	} else
-#endif
-	{
+	} else {
 		make_root_inode();
 		make_bad_inode();
 	}
+
 	mark_good_blocks();
 	write_tables();
 	return 0;
-
 }

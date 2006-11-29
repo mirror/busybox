@@ -39,19 +39,16 @@ typedef enum type_id {
 
 static int remove_ids(type_id type, int argc, char **argv)
 {
-	int id;
+	unsigned long id;
 	int ret = 0;		/* silence gcc */
-	char *end;
 	int nb_errors = 0;
 	union semun arg;
 
 	arg.val = 0;
 
 	while (argc) {
-
-		id = strtoul(argv[0], &end, 10);
-
-		if (*end != 0) {
+		id = bb_strtoul(argv[0], NULL, 10);
+		if (errno || id > INT_MAX) {
 			bb_error_msg("invalid id: %s", argv[0]);
 			nb_errors++;
 		} else {
@@ -91,11 +88,13 @@ int ipcrm_main(int argc, char **argv)
 		type_id what = 0; /* silence gcc */
 		char w;
 
-		if ((((w=argv[1][0]) == 'm' && argv[1][1] == 's' && argv[1][2] == 'g')
-				|| (argv[1][0] == 's'
-					&& ((w=argv[1][1]) == 'h' || w == 'e')
-					&& argv[1][2] == 'm'))
-			&& argv[1][3] == '\0')	{
+		w=argv[1][0];
+		if ( ((w == 'm' && argv[1][1] == 's' && argv[1][2] == 'g')
+		       || (argv[1][0] == 's'
+		           && ((w=argv[1][1]) == 'h' || w == 'e')
+		           && argv[1][2] == 'm')
+		     ) && argv[1][3] == '\0'
+		) {
 
 			if (argc < 3)
 				bb_show_usage();
@@ -140,7 +139,7 @@ int ipcrm_main(int argc, char **argv)
 
 		if (iskey) {
 			/* keys are in hex or decimal */
-			key_t key = strtoul(optarg, NULL, 0);
+			key_t key = xstrtoul(optarg, 0);
 
 			if (key == IPC_PRIVATE) {
 				error++;
@@ -176,7 +175,7 @@ int ipcrm_main(int argc, char **argv)
 			}
 		} else {
 			/* ids are in decimal */
-			id = strtoul(optarg, NULL, 10);
+			id = xatoul(optarg);
 		}
 
 		result = ((c == 'q') ? msgctl(id, IPC_RMID, NULL) :

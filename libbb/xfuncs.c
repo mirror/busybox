@@ -147,8 +147,11 @@ void xwrite(int fd, const void *buf, size_t count)
 off_t xlseek(int fd, off_t offset, int whence)
 {
 	off_t off = lseek(fd, offset, whence);
-	if (off == (off_t)-1)
+	if (off == (off_t)-1) {
+		if (whence == SEEK_SET)
+			bb_perror_msg_and_die("lseek(%"OFF_FMT"u)", offset);
 		bb_perror_msg_and_die("lseek");
+	}
 	return off;
 }
 
