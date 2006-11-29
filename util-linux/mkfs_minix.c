@@ -503,8 +503,10 @@ static void make_root_inode2(void)
 
 static void setup_tables(void)
 {
-	int i;
 	unsigned long inodes;
+	unsigned norm_firstzone;
+	uint16_t sb_zmaps;
+	int i;
 
 	memset(super_block_buffer, 0, BLOCK_SIZE);
 	memset(boot_block_buffer, 0, 512);
@@ -539,19 +541,21 @@ static void setup_tables(void)
 	 * dd if=/dev/zero of=test.fs count=10 bs=1024
 	 * mkfs.minix -i 200 test.fs
 	 */
-	/* This code is not insane: NORM_FIRSTZONE is not a constant, */
-	/* it uses previous value of SB_ZMAPS inside */
+	/* This code is not insane: NORM_FIRSTZONE is not a constant,
+	 * it is calculated from SB_INODES, SB_IMAPS and SB_ZMAPS */
 	i = 999;
 	SB_ZMAPS = 0;
 	do {
-		uint16_t t = div_roundup(total_blocks - NORM_FIRSTZONE + 1, BITS_PER_BLOCK);
-		if (SB_ZMAPS == t) goto got_it;
-		SB_ZMAPS = t;
+		norm_firstzone = NORM_FIRSTZONE;
+		sb_zmaps = div_roundup(total_blocks - norm_firstzone + 1, BITS_PER_BLOCK);
+		if (SB_ZMAPS == sb_zmaps) goto got_it;
+		SB_ZMAPS = sb_zmaps;
+		/* new SB_ZMAPS, need to recalc NORM_FIRSTZONE */
 	} while (--i);
 	bb_error_msg_and_die("incompatible size/inode count, try different -i N");
  got_it:
 
-	SB_FIRSTZONE = NORM_FIRSTZONE;
+	SB_FIRSTZONE = norm_firstzone;
 	inode_map = xmalloc(SB_IMAPS * BLOCK_SIZE);
 	zone_map = xmalloc(SB_ZMAPS * BLOCK_SIZE);
 	memset(inode_map, 0xff, SB_IMAPS * BLOCK_SIZE);
@@ -563,7 +567,7 @@ static void setup_tables(void)
 	inode_buffer = xzalloc(INODE_BUFFER_SIZE);
 	printf("%ld inodes\n", (long)SB_INODES);
 	printf("%ld blocks\n", (long)SB_ZONES);
-	printf("Firstdatazone=%ld (%ld)\n", (long)SB_FIRSTZONE, (long)NORM_FIRSTZONE);
+	printf("Firstdatazone=%ld (%ld)\n", (long)SB_FIRSTZONE, (long)norm_firstzone);
 	printf("Zonesize=%d\n", BLOCK_SIZE << SB_ZONE_SIZE);
 	printf("Maxsize=%ld\n", (long)SB_MAXSIZE);
 }
