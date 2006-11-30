@@ -735,7 +735,7 @@ xbsd_write_bootstrap(void)
 	memset(d, 0, sizeof(struct xbsd_disklabel));
 
 	snprintf(path, sizeof(path), "%s/boot%s", bootdir, dkbasename);
-	if (!xbsd_get_bootstrap (path, &disklabelbuffer[xbsd_dlabel.d_secsize],
+	if (!xbsd_get_bootstrap(path, &disklabelbuffer[xbsd_dlabel.d_secsize],
 			  (int) xbsd_dlabel.d_bbsize - xbsd_dlabel.d_secsize))
 		return;
 
@@ -969,7 +969,7 @@ xbsd_writelabel (struct partition *p, struct xbsd_disklabel *d)
 		d, sizeof(struct xbsd_disklabel));
 
 #if defined (__alpha__) && BSD_LABELSECTOR == 0
-	alpha_bootblock_checksum (disklabelbuffer);
+	alpha_bootblock_checksum(disklabelbuffer);
 	if (lseek(fd, 0, SEEK_SET) == -1)
 		fdisk_fatal(unable_to_seek);
 	if (BSD_BBSIZE != write(fd, disklabelbuffer, BSD_BBSIZE))

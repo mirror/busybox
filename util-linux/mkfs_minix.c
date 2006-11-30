@@ -613,7 +613,8 @@ static void alarm_intr(int alnum)
 static void check_blocks(void)
 {
 	int try, got;
-	static char buffer[BLOCK_SIZE * TEST_BUFFER_BLOCKS];
+	/* buffer[] was the biggest static in entire bbox */
+	char *buffer = xmalloc(BLOCK_SIZE * TEST_BUFFER_BLOCKS);
 
 	currently_testing = 0;
 	signal(SIGALRM, alarm_intr);
@@ -635,6 +636,7 @@ static void check_blocks(void)
 		badblocks++;
 		currently_testing++;
 	}
+	free(buffer);
 	printf("%d bad block(s)\n", badblocks);
 }
 
