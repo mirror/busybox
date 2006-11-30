@@ -115,7 +115,7 @@ static const char mconf_readme[] = N_(
 "-----------------------------\n"
 "Menuconfig supports the use of alternate configuration files for\n"
 "those who, for various reasons, find it necessary to switch\n"
-"between different kernel configurations.\n"
+"between different busybox configurations.\n"
 "\n"
 "At the end of the main menu you will find two options.  One is\n"
 "for saving the current configuration to a file of your choosing.\n"
@@ -1070,7 +1070,7 @@ int main(int ac, char **av)
 	do {
 		cprint_init();
 		cprint("--yesno");
-		cprint(_("Do you wish to save your new kernel configuration?"));
+		cprint(_("Do you wish to save your new busybox configuration?"));
 		cprint("5");
 		cprint("60");
 		stat = exec_conf();
@@ -1079,18 +1079,18 @@ int main(int ac, char **av)
 	if (stat == 0) {
 		if (conf_write(NULL)) {
 			fprintf(stderr, _("\n\n"
-				"Error during writing of the kernel configuration.\n"
-				"Your kernel configuration changes were NOT saved."
+				"Error during writing of the busybox configuration.\n"
+				"Your busybox configuration changes were NOT saved."
 				"\n\n"));
 			return 1;
 		}
 		printf(_("\n\n"
-			"*** End of Linux kernel configuration.\n"
+			"*** End of busybox configuration.\n"
 			"*** Execute 'make' to build the kernel or try 'make help'."
 			"\n\n"));
 	} else {
 		fprintf(stderr, _("\n\n"
-			"Your kernel configuration changes were NOT saved."
+			"Your busybox configuration changes were NOT saved."
 			"\n\n"));
 	}
 

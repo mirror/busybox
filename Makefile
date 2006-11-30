@@ -898,7 +898,7 @@ else # CONFIG_MODULES
 
 modules modules_install: FORCE
 	@echo
-	@echo "The present kernel configuration has modules disabled."
+	@echo "The present busybox configuration has modules disabled."
 	@echo "Type 'make config' and enable loadable module support."
 	@echo "Then build a kernel with module support enabled."
 	@echo
