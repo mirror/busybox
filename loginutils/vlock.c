@@ -114,5 +114,5 @@ int vlock_main(int argc, char **argv)
 		puts("Password incorrect");
 	} while (1);
 	restore_terminal();
-	return 0;
+	fflush_stdout_and_exit(0);
 }
