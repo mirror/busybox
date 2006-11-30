@@ -252,7 +252,7 @@ int passwd_main(int argc, char **argv)
 		OPT_delete = 0x8, /* -d - delete password */
 		OPT_lud = 0xe,
 		STATE_ALGO_md5 = 0x10,
-		STATE_ALGO_des = 0x20,
+		/*STATE_ALGO_des = 0x20, not yet needed */
 	};
 	unsigned opt;
 	char *opt_a = "";
@@ -269,10 +269,10 @@ int passwd_main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (strcasecmp(opt_a, "des") == 0) /* -a */
-		opt |= STATE_ALGO_des;
-	else
+	if (strcasecmp(opt_a, "des") != 0) /* -a */
 		opt |= STATE_ALGO_md5;
+	//else
+	//	opt |= STATE_ALGO_des;
 	myuid = getuid();
 	if ((opt & OPT_lud) && (!argc || myuid))
 		bb_show_usage();
