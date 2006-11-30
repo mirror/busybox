@@ -7,14 +7,6 @@
  * The "ed" built-in command (much simplified)
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <time.h>
-#include <ctype.h>
-#include <sys/param.h>
 #include "busybox.h"
 
 #define	USERSIZE	1024	/* max line length typed in by user */
@@ -88,8 +80,7 @@ static void doCommands(void)
 	char *endbuf, *newname, buf[USERSIZE];
 	int len, num1, num2, have1, have2;
 
-	while (TRUE)
-	{
+	while (TRUE) {
 		printf(": ");
 		fflush(stdout);
 
@@ -103,15 +94,12 @@ static void doCommands(void)
 
 		endbuf = &buf[len - 1];
 
-		if (*endbuf != '\n')
-		{
+		if (*endbuf != '\n') {
 			bb_error_msg("command line too long");
 
-			do
-			{
+			do {
 				len = fgetc(stdin);
-			}
-			while ((len != EOF) && (len != '\n'));
+			} while ((len != EOF) && (len != '\n'));
 
 			continue;
 		}
@@ -129,8 +117,7 @@ static void doCommands(void)
 		have1 = FALSE;
 		have2 = FALSE;
 
-		if ((curNum == 0) && (lastNum > 0))
-		{
+		if ((curNum == 0) && (lastNum > 0)) {
 			curNum = 1;
 			curLine = lines.next;
 		}
@@ -141,8 +128,7 @@ static void doCommands(void)
 		while (isblank(*cp))
 			cp++;
 
-		if (*cp == ',')
-		{
+		if (*cp == ',') {
 			cp++;
 
 			if (!getNum(&cp, &have2, &num2))
@@ -164,8 +150,7 @@ static void doCommands(void)
 		if (!have2)
 			num2 = num1;
 
-		switch (*cp++)
-		{
+		switch (*cp++) {
 			case 'a':
 				addLines(num1 + 1);
 				break;
@@ -180,8 +165,7 @@ static void doCommands(void)
 				break;
 
 			case 'f':
-				if (*cp && !isblank(*cp))
-				{
+				if (*cp && !isblank(*cp)) {
 					bb_error_msg("bad file command");
 					break;
 				}
@@ -189,20 +173,17 @@ static void doCommands(void)
 				while (isblank(*cp))
 					cp++;
 
-				if (*cp == '\0')
-				{
+				if (*cp == '\0') {
 					if (fileName)
 						printf("\"%s\"\n", fileName);
 					else
 						printf("No file name\n");
-
 					break;
 				}
 
 				newname = strdup(cp);
 
-				if (newname == NULL)
-				{
+				if (newname == NULL) {
 					bb_error_msg("no memory for file name");
 					break;
 				}
@@ -221,8 +202,7 @@ static void doCommands(void)
 				while (isblank(*cp))
 					cp++;
 
-				if ((*cp < 'a') || (*cp > 'a') || cp[1])
-				{
+				if ((*cp < 'a') || (*cp > 'a') || cp[1]) {
 					bb_error_msg("bad mark name");
 					break;
 				}
@@ -242,8 +222,7 @@ static void doCommands(void)
 				while (isblank(*cp))
 					cp++;
 
-				if (have1 || *cp)
-				{
+				if (have1 || *cp) {
 					bb_error_msg("bad quit command");
 					break;
 				}
@@ -267,8 +246,7 @@ static void doCommands(void)
 				break;
 
 			case 'r':
-				if (*cp && !isblank(*cp))
-				{
+				if (*cp && !isblank(*cp)) {
 					bb_error_msg("bad read command");
 					break;
 				}
@@ -276,8 +254,7 @@ static void doCommands(void)
 				while (isblank(*cp))
 					cp++;
 
-				if (*cp == '\0')
-				{
+				if (*cp == '\0') {
 					bb_error_msg("no file name");
 					break;
 				}
@@ -298,8 +275,7 @@ static void doCommands(void)
 				break;
 
 			case 'w':
-				if (*cp && !isblank(*cp))
-				{
+				if (*cp && !isblank(*cp)) {
 					bb_error_msg("bad write command");
 					break;
 				}
@@ -315,8 +291,7 @@ static void doCommands(void)
 				if (*cp == '\0')
 					cp = fileName;
 
-				if (cp == NULL)
-				{
+				if (cp == NULL) {
 					bb_error_msg("no file name specified");
 					break;
 				}
@@ -325,8 +300,7 @@ static void doCommands(void)
 				break;
 
 			case 'z':
-				switch (*cp)
-				{
+				switch (*cp) {
 				case '-':
 					printLines(curNum-21, curNum, FALSE);
 					break;
@@ -340,8 +314,7 @@ static void doCommands(void)
 				break;
 
 			case '.':
-				if (have1)
-				{
+				if (have1) {
 					bb_error_msg("no arguments allowed");
 					break;
 				}
@@ -360,8 +333,7 @@ static void doCommands(void)
 				break;
 
 			case '\0':
-				if (have1)
-				{
+				if (have1) {
 					printLines(num2, num2, FALSE);
 					break;
 				}
@@ -386,14 +358,12 @@ static void doCommands(void)
 static void subCommand(const char * cmd, int num1, int num2)
 {
 	char *cp, *oldStr, *newStr, buf[USERSIZE];
-	int	delim, oldLen, newLen, deltaLen, offset;
+	int delim, oldLen, newLen, deltaLen, offset;
 	LINE *lp, *nlp;
 	int globalFlag, printFlag, didSub, needPrint;
 
-	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
-	{
+	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2)) {
 		bb_error_msg("bad line range for substitute");
-
 		return;
 	}
 
@@ -408,10 +378,8 @@ static void subCommand(const char * cmd, int num1, int num2)
 	strcpy(buf, cmd);
 	cp = buf;
 
-	if (isblank(*cp) || (*cp == '\0'))
-	{
+	if (isblank(*cp) || (*cp == '\0')) {
 		bb_error_msg("bad delimiter for substitute");
-
 		return;
 	}
 
@@ -420,10 +388,8 @@ static void subCommand(const char * cmd, int num1, int num2)
 
 	cp = strchr(cp, delim);
 
-	if (cp == NULL)
-	{
+	if (cp == NULL) {
 		bb_error_msg("missing 2nd delimiter for substitute");
-
 		return;
 	}
 
@@ -437,8 +403,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 	else
 		cp = "";
 
-	while (*cp) switch (*cp++)
-	{
+	while (*cp) switch (*cp++) {
 		case 'g':
 			globalFlag = TRUE;
 			break;
@@ -449,16 +414,12 @@ static void subCommand(const char * cmd, int num1, int num2)
 
 		default:
 			bb_error_msg("unknown option for substitute");
-
 			return;
 	}
 
-	if (*oldStr == '\0')
-	{
-		if (searchString[0] == '\0')
-		{
+	if (*oldStr == '\0') {
+		if (searchString[0] == '\0') {
 			bb_error_msg("no previous search string");
-
 			return;
 		}
 
@@ -479,14 +440,11 @@ static void subCommand(const char * cmd, int num1, int num2)
 	offset = 0;
 	nlp = NULL;
 
-	while (num1 <= num2)
-	{
+	while (num1 <= num2) {
 		offset = findString(lp, oldStr, oldLen, offset);
 
-		if (offset < 0)
-		{
-			if (needPrint)
-			{
+		if (offset < 0) {
+			if (needPrint) {
 				printLines(num1, num1, FALSE);
 				needPrint = FALSE;
 			}
@@ -506,12 +464,10 @@ static void subCommand(const char * cmd, int num1, int num2)
 		 * If the replacement string is the same size or shorter
 		 * than the old string, then the substitution is easy.
 		 */
-		if (deltaLen <= 0)
-		{
+		if (deltaLen <= 0) {
 			memcpy(&lp->data[offset], newStr, newLen);
 
-			if (deltaLen)
-			{
+			if (deltaLen) {
 				memcpy(&lp->data[offset + newLen],
 					&lp->data[offset + oldLen],
 					lp->len - offset - oldLen);
@@ -524,8 +480,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 			if (globalFlag)
 				continue;
 
-			if (needPrint)
-			{
+			if (needPrint) {
 				printLines(num1, num1, FALSE);
 				needPrint = FALSE;
 			}
@@ -543,10 +498,8 @@ static void subCommand(const char * cmd, int num1, int num2)
 		 */
 		nlp = (LINE *) malloc(sizeof(LINE) + lp->len + deltaLen);
 
-		if (nlp == NULL)
-		{
+		if (nlp == NULL) {
 			bb_error_msg("cannot get memory for line");
-
 			return;
 		}
 
@@ -576,8 +529,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 		if (globalFlag)
 			continue;
 
-		if (needPrint)
-		{
+		if (needPrint) {
 			printLines(num1, num1, FALSE);
 			needPrint = FALSE;
 		}
@@ -603,8 +555,7 @@ static int findString( const LINE * lp, const char * str, int len, int offset)
 	cp = &lp->data[offset];
 	left = lp->len - offset;
 
-	while (left >= len)
-	{
+	while (left >= len) {
 		ncp = memchr(cp, *str, left);
 
 		if (ncp == NULL)
@@ -636,11 +587,10 @@ static int findString( const LINE * lp, const char * str, int len, int offset)
  */
 static void addLines(int num)
 {
-	int	len;
-	char	buf[USERSIZE + 1];
+	int len;
+	char buf[USERSIZE + 1];
 
-	while (fgets(buf, sizeof(buf), stdin))
-	{
+	while (fgets(buf, sizeof(buf), stdin)) {
 		if ((buf[0] == '.') && (buf[1] == '\n') && (buf[2] == '\0'))
 			return;
 
@@ -649,16 +599,11 @@ static void addLines(int num)
 		if (len == 0)
 			return;
 
-		if (buf[len - 1] != '\n')
-		{
+		if (buf[len - 1] != '\n') {
 			bb_error_msg("line too long");
-
-			do
-			{
+			do {
 				len = fgetc(stdin);
-			}
-			while ((len != EOF) && (len != '\n'));
-
+			} while ((len != EOF) && (len != '\n'));
 			return;
 		}
 
@@ -687,13 +632,11 @@ static int getNum(const char **retcp, int *retHaveNum, int *retNum)
 	value = 0;
 	sign = 1;
 
-	while (TRUE)
-	{
+	while (TRUE) {
 		while (isblank(*cp))
 			cp++;
 
-		switch (*cp)
-		{
+		switch (*cp) {
 			case '.':
 				haveNum = TRUE;
 				num = curNum;
@@ -709,10 +652,8 @@ static int getNum(const char **retcp, int *retHaveNum, int *retNum)
 			case '\'':
 				cp++;
 
-				if ((*cp < 'a') || (*cp > 'z'))
-				{
+				if ((*cp < 'a') || (*cp > 'z')) {
 					bb_error_msg("bad mark name");
-
 					return FALSE;
 				}
 
@@ -724,8 +665,7 @@ static int getNum(const char **retcp, int *retHaveNum, int *retNum)
 				strcpy(str, ++cp);
 				endStr = strchr(str, '/');
 
-				if (endStr)
-				{
+				if (endStr) {
 					*endStr++ = '\0';
 					cp += (endStr - str);
 				}
@@ -741,12 +681,10 @@ static int getNum(const char **retcp, int *retHaveNum, int *retNum)
 				break;
 
 			default:
-				if (!isdigit(*cp))
-				{
+				if (!isdigit(*cp)) {
 					*retcp = cp;
 					*retHaveNum = haveNum;
 					*retNum = value;
-
 					return TRUE;
 				}
 
@@ -764,8 +702,7 @@ static int getNum(const char **retcp, int *retHaveNum, int *retNum)
 		while (isblank(*cp))
 			cp++;
 
-		switch (*cp)
-		{
+		switch (*cp) {
 			case '-':
 				sign = -1;
 				cp++;
@@ -780,7 +717,6 @@ static int getNum(const char **retcp, int *retHaveNum, int *retNum)
 				*retcp = cp;
 				*retHaveNum = haveNum;
 				*retNum = value;
-
 				return TRUE;
 		}
 	}
@@ -792,15 +728,13 @@ static int getNum(const char **retcp, int *retHaveNum, int *retNum)
  */
 static int initEdit(void)
 {
-	int	i;
+	int i;
 
 	bufSize = INITBUF_SIZE;
 	bufBase = malloc(bufSize);
 
-	if (bufBase == NULL)
-	{
+	if (bufBase == NULL) {
 		bb_error_msg("no memory for buffer");
-
 		return FALSE;
 	}
 
@@ -859,23 +793,19 @@ static void termEdit(void)
  */
 static int readLines(const char * file, int num)
 {
-	int	fd, cc;
+	int fd, cc;
 	int len, lineCount, charCount;
 	char *cp;
 
-	if ((num < 1) || (num > lastNum + 1))
-	{
+	if ((num < 1) || (num > lastNum + 1)) {
 		bb_error_msg("bad line for read");
-
 		return FALSE;
 	}
 
 	fd = open(file, 0);
 
-	if (fd < 0)
-	{
+	if (fd < 0) {
 		perror(file);
-
 		return FALSE;
 	}
 
@@ -888,18 +818,14 @@ static int readLines(const char * file, int num)
 	printf("\"%s\", ", file);
 	fflush(stdout);
 
-	do
-	{
+	do {
 		cp = memchr(bufPtr, '\n', bufUsed);
 
-		if (cp)
-		{
+		if (cp) {
 			len = (cp - bufPtr) + 1;
 
-			if (!insertLine(num, bufPtr, len))
-			{
+			if (!insertLine(num, bufPtr, len)) {
 				close(fd);
-
 				return FALSE;
 			}
 
@@ -912,22 +838,18 @@ static int readLines(const char * file, int num)
 			continue;
 		}
 
-		if (bufPtr != bufBase)
-		{
+		if (bufPtr != bufBase) {
 			memcpy(bufBase, bufPtr, bufUsed);
 			bufPtr = bufBase + bufUsed;
 		}
 
-		if (bufUsed >= bufSize)
-		{
+		if (bufUsed >= bufSize) {
 			len = (bufSize * 3) / 2;
 			cp = realloc(bufBase, len);
 
-			if (cp == NULL)
-			{
+			if (cp == NULL) {
 				bb_error_msg("no memory for buffer");
 				close(fd);
-
 				return FALSE;
 			}
 
@@ -940,23 +862,17 @@ static int readLines(const char * file, int num)
 		bufUsed += cc;
 		bufPtr = bufBase;
 
-	}
-	while (cc > 0);
+	} while (cc > 0);
 
-	if (cc < 0)
-	{
+	if (cc < 0) {
 		perror(file);
 		close(fd);
-
 		return FALSE;
 	}
 
-	if (bufUsed)
-	{
-		if (!insertLine(num, bufPtr, bufUsed))
-		{
+	if (bufUsed) {
+		if (!insertLine(num, bufPtr, bufUsed)) {
 			close(fd);
-
 			return -1;
 		}
 
@@ -980,12 +896,10 @@ static int readLines(const char * file, int num)
 static int writeLines(const char * file, int num1, int num2)
 {
 	LINE *lp;
-	int	fd, lineCount, charCount;
+	int fd, lineCount, charCount;
 
-	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
-	{
+	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2)) {
 		bb_error_msg("bad line range for write");
-
 		return FALSE;
 	}
 
@@ -996,7 +910,6 @@ static int writeLines(const char * file, int num1, int num2)
 
 	if (fd < 0) {
 		perror(file);
-
 		return FALSE;
 	}
 
@@ -1005,20 +918,15 @@ static int writeLines(const char * file, int num1, int num2)
 
 	lp = findLine(num1);
 
-	if (lp == NULL)
-	{
+	if (lp == NULL) {
 		close(fd);
-
 		return FALSE;
 	}
 
-	while (num1++ <= num2)
-	{
-		if (write(fd, lp->data, lp->len) != lp->len)
-		{
+	while (num1++ <= num2) {
+		if (write(fd, lp->data, lp->len) != lp->len) {
 			perror(file);
 			close(fd);
-
 			return FALSE;
 		}
 
@@ -1027,15 +935,12 @@ static int writeLines(const char * file, int num1, int num2)
 		lp = lp->next;
 	}
 
-	if (close(fd) < 0)
-	{
+	if (close(fd) < 0) {
 		perror(file);
-
 		return FALSE;
 	}
 
 	printf("%d lines, %d chars\n", lineCount, charCount);
-
 	return TRUE;
 }
 
@@ -1052,10 +957,8 @@ static int printLines(int num1, int num2, int expandFlag)
 	const char *cp;
 	int ch, count;
 
-	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
-	{
+	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2)) {
 		bb_error_msg("bad line range for print");
-
 		return FALSE;
 	}
 
@@ -1064,10 +967,8 @@ static int printLines(int num1, int num2, int expandFlag)
 	if (lp == NULL)
 		return FALSE;
 
-	while (num1 <= num2)
-	{
-		if (!expandFlag)
-		{
+	while (num1 <= num2) {
+		if (!expandFlag) {
 			write(1, lp->data, lp->len);
 			setCurNum(num1++);
 			lp = lp->next;
@@ -1085,24 +986,20 @@ static int printLines(int num1, int num2, int expandFlag)
 		if ((count > 0) && (cp[count - 1] == '\n'))
 			count--;
 
-		while (count-- > 0)
-		{
+		while (count-- > 0) {
 			ch = *cp++;
 
-			if (ch & 0x80)
-			{
+			if (ch & 0x80) {
 				fputs("M-", stdout);
 				ch &= 0x7f;
 			}
 
-			if (ch < ' ')
-			{
+			if (ch < ' ') {
 				fputc('^', stdout);
 				ch += '@';
 			}
 
-			if (ch == 0x7f)
-			{
+			if (ch == 0x7f) {
 				fputc('^', stdout);
 				ch = '?';
 			}
@@ -1131,19 +1028,15 @@ static int insertLine(int num, const char * data, int len)
 {
 	LINE *newLp, *lp;
 
-	if ((num < 1) || (num > lastNum + 1))
-	{
+	if ((num < 1) || (num > lastNum + 1)) {
 		bb_error_msg("inserting at bad line number");
-
 		return FALSE;
 	}
 
-	newLp = (LINE *) malloc(sizeof(LINE) + len - 1);
+	newLp = malloc(sizeof(LINE) + len - 1);
 
-	if (newLp == NULL)
-	{
+	if (newLp == NULL) {
 		bb_error_msg("failed to allocate memory for line");
-
 		return FALSE;
 	}
 
@@ -1152,14 +1045,11 @@ static int insertLine(int num, const char * data, int len)
 
 	if (num > lastNum)
 		lp = &lines;
-	else
-	{
+	else {
 		lp = findLine(num);
 
-		if (lp == NULL)
-		{
+		if (lp == NULL) {
 			free((char *) newLp);
-
 			return FALSE;
 		}
 	}
@@ -1171,7 +1061,6 @@ static int insertLine(int num, const char * data, int len)
 
 	lastNum++;
 	dirty = TRUE;
-
 	return setCurNum(num);
 }
 
@@ -1184,10 +1073,8 @@ static int deleteLines(int num1, int num2)
 	LINE *lp, *nlp, *plp;
 	int count;
 
-	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
-	{
+	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2)) {
 		bb_error_msg("bad line numbers for delete");
-
 		return FALSE;
 	}
 
@@ -1196,8 +1083,7 @@ static int deleteLines(int num1, int num2)
 	if (lp == NULL)
 		return FALSE;
 
-	if ((curNum >= num1) && (curNum <= num2))
-	{
+	if ((curNum >= num1) && (curNum <= num2)) {
 		if (num2 < lastNum)
 			setCurNum(num2 + 1);
 		else if (num1 > 1)
@@ -1213,8 +1099,7 @@ static int deleteLines(int num1, int num2)
 
 	lastNum -= count;
 
-	while (count-- > 0)
-	{
+	while (count-- > 0) {
 		nlp = lp->next;
 		plp = lp->prev;
 		plp->next = nlp;
@@ -1244,19 +1129,14 @@ static int searchLines(const char *str, int num1, int num2)
 	const LINE *lp;
 	int len;
 
-	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2))
-	{
+	if ((num1 < 1) || (num2 > lastNum) || (num1 > num2)) {
 		bb_error_msg("bad line numbers for search");
-
 		return 0;
 	}
 
-	if (*str == '\0')
-	{
-		if (searchString[0] == '\0')
-		{
+	if (*str == '\0') {
+		if (searchString[0] == '\0') {
 			bb_error_msg("no previous search string");
-
 			return 0;
 		}
 
@@ -1273,8 +1153,7 @@ static int searchLines(const char *str, int num1, int num2)
 	if (lp == NULL)
 		return 0;
 
-	while (num1 <= num2)
-	{
+	while (num1 <= num2) {
 		if (findString(lp, str, len, 0) >= 0)
 			return num1;
 
@@ -1283,7 +1162,6 @@ static int searchLines(const char *str, int num1, int num2)
 	}
 
 	bb_error_msg("cannot find string \"%s\"", str);
-
 	return 0;
 }
 
@@ -1296,15 +1174,12 @@ static LINE *findLine(int num)
 	LINE *lp;
 	int lnum;
 
-	if ((num < 1) || (num > lastNum))
-	{
+	if ((num < 1) || (num > lastNum)) {
 		bb_error_msg("line number %d does not exist", num);
-
 		return NULL;
 	}
 
-	if (curNum <= 0)
-	{
+	if (curNum <= 0) {
 		curNum = 1;
 		curLine = lines.next;
 	}
@@ -1315,29 +1190,24 @@ static LINE *findLine(int num)
 	lp = curLine;
 	lnum = curNum;
 
-	if (num < (curNum / 2))
-	{
+	if (num < (curNum / 2)) {
 		lp = lines.next;
 		lnum = 1;
 	}
-	else if (num > ((curNum + lastNum) / 2))
-	{
+	else if (num > ((curNum + lastNum) / 2)) {
 		lp = lines.prev;
 		lnum = lastNum;
 	}
 
-	while (lnum < num)
-	{
+	while (lnum < num) {
 		lp = lp->next;
 		lnum++;
 	}
 
-	while (lnum > num)
-	{
+	while (lnum > num) {
 		lp = lp->prev;
 		lnum--;
 	}
-
 	return lp;
 }
 
@@ -1357,6 +1227,5 @@ static int setCurNum(int num)
 
 	curNum = num;
 	curLine = lp;
-
 	return TRUE;
 }
