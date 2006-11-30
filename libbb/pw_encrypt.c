@@ -8,7 +8,6 @@
  */
 
 #include "libbb.h"
-#include <string.h>
 #include <crypt.h>
 
 char *pw_encrypt(const char *clear, const char *salt)

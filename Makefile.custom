@@ -63,6 +63,10 @@ baseline: busybox_unstripped
 objsizes: busybox_unstripped
 	$(srctree)/scripts/objsizes
 
+.PHONY: bigdata
+bigdata: busybox_unstripped
+	nm --size-sort busybox_unstripped | grep -vi ' [tr] ' | tail -20
+
 # Documentation Targets
 .PHONY: doc
 doc: docs/busybox.pod docs/BusyBox.txt docs/BusyBox.1 docs/BusyBox.html

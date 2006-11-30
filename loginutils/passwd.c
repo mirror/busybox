@@ -5,6 +5,7 @@
 
 #include "busybox.h"
 #include <syslog.h>
+#include <sys/times.h> /* times() */
 
 
 static void nuke_str(char *str)
@@ -19,28 +20,35 @@ static int i64c(int i)
 		return '.';
 	if (i == 1)
 		return '/';
-	if (i >= 2 && i < 12)
+	if (i < 12)
 		return ('0' - 2 + i);
-	if (i >= 12 && i < 38)
+	if (i < 38)
 		return ('A' - 12 + i);
-	if (i >= 38 && i < 63)
-		return ('a' - 38 + i);
-	return 'z';
+	return ('a' - 38 + i);
 }
 
 
-static char *crypt_make_salt(void)
+static void crypt_make_salt(char *p, int cnt)
 {
-	time_t now;
-	static unsigned long x;
-	static char result[3];
+#if !defined(__GLIBC__)
+	struct tms t;
+#define TIMES times(&t)
+#else
+/* glibc allows for times(NULL) a-la time() */
+#define TIMES times(NULL)
+#endif
+	unsigned long x = x; /* it's pointless to initialize it anyway :) */
 
-	time(&now);
-	x += now + getpid() + clock();
-	result[0] = i64c(((x >> 18) ^ (x >> 6)) & 077);
-	result[1] = i64c(((x >> 12) ^ x) & 077);
-	result[2] = '\0';
-	return result;
+	x += getpid();
+	do {
+	/* clock() and times() variability is different between systems */
+	/* hopefully at least one is good enough */
+		x += time(NULL) + clock() + TIMES;
+		*p++ = i64c(((x >> 18) ^ (x >> 6)) & 0x3f);
+		*p++ = i64c(((x >> 12) ^ x) & 0x3f);
+		usleep(100); /* or else time() etc won't change */
+	} while (--cnt);
+	*p = '\0';
 }
 
 
@@ -88,14 +96,12 @@ static char* new_password(const struct passwd *pw, const char *old_crypted,
 		goto err_ret;
 	}
 
-	memset(salt, 0, sizeof(salt));
-	if (algo == 1) { /* MD5 */
+	/*memset(salt, 0, sizeof(salt)); - why?*/
+	crypt_make_salt(salt, 1); /* des */
+	if (algo) { /* MD5 */
 		strcpy(salt, "$1$");
-		strcat(salt, crypt_make_salt());
-		strcat(salt, crypt_make_salt());
-		strcat(salt, crypt_make_salt());
+		crypt_make_salt(salt + 3, 4);
 	}
-	strcat(salt, crypt_make_salt());
 	ret = xstrdup(pw_encrypt(newp, salt)); /* returns ptr to static */
 	/* whee, success! */
 
