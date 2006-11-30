@@ -9,11 +9,9 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "libbb.h"
 
-/* get_line_from_file() - This function reads an entire line from a text file,
+/* This function reads an entire line from a text file,
  * up to a newline or NUL byte.  It returns a malloc'ed char * which must be
  * stored and free'ed  by the caller.  If end is null '\n' isn't considered
  * end of line.  If end isn't null, length of the chunk read is stored in it. */
@@ -37,10 +35,12 @@ char *bb_get_chunk_from_file(FILE * file, int *end)
 	if (end)
 		*end = idx;
 	if (linebuf) {
-		if (ferror(file)) {
-			free(linebuf);
-			return NULL;
-		}
+		// huh, is fgets discards prior data on error like this?
+		// I don't think so....
+		//if (ferror(file)) {
+		//	free(linebuf);
+		//	return NULL;
+		//}
 		linebuf = xrealloc(linebuf, idx+1);
 		linebuf[idx] = 0;
 	}

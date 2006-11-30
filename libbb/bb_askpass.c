@@ -60,7 +60,7 @@ char *bb_askpass(int timeout, const char * prompt)
 		   (read did not overwrite it) */
 		do {
 			if (passwd[i] == '\r' || passwd[i] == '\n')
-				passwd[i] = 0;
+				passwd[i] = '\0';
 		} while (passwd[i++]);
 	}
 

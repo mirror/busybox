@@ -157,14 +157,14 @@ static const char *obscure_msg(const char *old_p, const char *new_p, const struc
 	return NULL;
 }
 
-int obscure(const char *old, const char *newval, const struct passwd *pwdp)
+int obscure(const char *old, const char *newval, const struct passwd *pw)
 {
 	const char *msg;
 
-	if ((msg = obscure_msg(old, newval, pwdp))) {
-		printf("Bad password: %s.\n", msg);
-		/* If user is root warn only */
-		return getuid() ? 1 : 0;
+	msg = obscure_msg(old, newval, pw);
+	if (msg) {
+		printf("Bad password: %s\n", msg);
+		return 1;
 	}
 	return 0;
 }
