@@ -12,6 +12,35 @@
 #include <assert.h>
 #include "libbb.h"
 
+ /*
+  * if bufsize is > 0 char *buffer cannot be set to NULL.
+  *                   If idname is not NULL it is written on the static
+  *                   allocated buffer (and a pointer to it is returned).
+  *                   if idname is NULL, id as string is written to the static
+  *                   allocated buffer and NULL is returned.
+  * if bufsize is = 0 char *buffer can be set to NULL.
+  *                   If idname exists a pointer to it is returned,
+  *                   else NULL is returned.
+  * if bufsize is < 0 char *buffer can be set to NULL.
+  *                   If idname exists a pointer to it is returned,
+  *                   else an error message is printed and the program exits.
+  */
+
+/* internal function for bb_getpwuid and bb_getgrgid */
+static char * bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix)
+{
+	if (bufsize > 0 ) {
+		assert(buffer!=NULL);
+		if(idname) {
+			return safe_strncpy(buffer, idname, bufsize);
+		}
+		snprintf(buffer, bufsize, "%ld", id);
+	} else if (bufsize < 0 && !idname) {
+		bb_error_msg_and_die("unknown %cid %ld", prefix, id);
+	}
+	return idname;
+}
+
   /* Hacked by Tito Ragusa (c) 2004 <farmatito@tiscali.it> to make it more
   * flexible :
   *
@@ -84,49 +113,18 @@ char * bb_getpwuid(char *name, long uid, int bufsize)
 {
 	struct passwd *myuser = getpwuid(uid);
 
-	return  bb_getug(name, (myuser) ?
-			myuser->pw_name : (char *)myuser , uid, bufsize, 'u');
-}
-
- /*
-  * if bufsize is > 0 char *buffer cannot be set to NULL.
-  *                   If idname is not NULL it is written on the static
-  *                   allocated buffer (and a pointer to it is returned).
-  *                   if idname is NULL, id as string is written to the static
-  *                   allocated buffer and NULL is returned.
-  * if bufsize is = 0 char *buffer can be set to NULL.
-  *                   If idname exists a pointer to it is returned,
-  *                   else NULL is returned.
-  * if bufsize is < 0 char *buffer can be set to NULL.
-  *                   If idname exists a pointer to it is returned,
-  *                   else an error message is printed and the program exits.
-  */
-
-/* internal function for bb_getpwuid and bb_getgrgid */
-char * bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix)
-{
-	if(bufsize > 0 ) {
-		assert(buffer!=NULL);
-		if(idname) {
-			return safe_strncpy(buffer, idname, bufsize);
-		}
-		snprintf(buffer, bufsize, "%ld", id);
-	} else if(bufsize < 0 && !idname) {
-		bb_error_msg_and_die("unknown %cid %ld", prefix, id);
-	}
-	return idname;
+	return bb_getug(name, myuser ? myuser->pw_name : (char *)myuser,
+				uid, bufsize, 'u');
 }
 
 unsigned long get_ug_id(const char *s,
 		long (*__bb_getxxnam)(const char *))
 {
 	unsigned long r;
-	char *p;
 
-	r = strtoul(s, &p, 10);
-	if (*p || (s == p)) {
+	r = bb_strtoul(s, NULL, 10);
+	if (errno)
 		r = __bb_getxxnam(s);
-	}
 
 	return r;
 }

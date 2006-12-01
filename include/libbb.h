@@ -320,7 +320,7 @@ uint16_t xatou16(const char *numstr);
  * increases target size and is often not needed on embedded systems.  */
 extern long bb_xgetpwnam(const char *name);
 extern long bb_xgetgrnam(const char *name);
-extern char *bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);
+/*extern char *bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);*/
 extern char *bb_getpwuid(char *name, long uid, int bufsize);
 extern char *bb_getgrgid(char *group, long gid, int bufsize);
 /* from chpst */
