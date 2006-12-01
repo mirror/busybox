@@ -203,6 +203,14 @@ config FEATURE_SUID_CONFIG_QUIET
 	  /etc/busybox.conf should be readable by the user needing the SUID, check
 	  this option to avoid users to be notified about missing permissions.
 
+config FEATURE_HAVE_RPC
+	bool "RPC support"
+	default y
+	help
+	  Select this if you have rpc support.
+	  This automatically turns off all configuration options that rely
+	  on RPC.
+
 config SELINUX
 	bool "Support NSA Security Enhanced Linux"
 	default n

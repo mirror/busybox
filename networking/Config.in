@@ -324,9 +324,9 @@ config FEATURE_INETD_RPC
 	bool "Support RPC services"
 	default n
 	depends on INETD
+	depends on FEATURE_HAVE_RPC
 	help
-	  Suuport Sun-RPC based services
-
+	  Support Sun-RPC based services
 
 config IP
 	bool "ip"

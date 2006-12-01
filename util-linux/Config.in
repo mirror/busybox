@@ -369,6 +369,7 @@ config FEATURE_MOUNT_NFS
 	bool "Support mounting NFS file systems"
 	default n
 	depends on MOUNT
+	depends on FEATURE_HAVE_RPC
 	select FEATURE_SYSLOG
 	help
 	  Enable mounting of NFS file systems.
