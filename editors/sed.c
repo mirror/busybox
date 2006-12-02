@@ -81,6 +81,7 @@ typedef struct sed_cmd_s {
 	unsigned int invert:1;          /* the '!' after the address */
 	unsigned int in_match:1;        /* Next line also included in match? */
 	unsigned int sub_p:1;           /* (s) print option */
+
 	int last_char;                  /* Last line written by (sw) had no '\n' */
 
 	/* GENERAL FIELDS */
@@ -715,12 +716,9 @@ static void add_input_file(FILE *file)
 static char *get_next_line(int *last_char)
 {
 	char *temp = NULL;
-	int len;
+	int len, lc;
 
-	/* will be returned if last line in the file
-	 * doesn't end with either '\n' or '\0' */
-	*last_char = 0x100;
-
+	lc = 0;
 	flush_append();
 	while (bbg.current_input_file < bbg.input_file_count) {
 		temp = bb_get_chunk_from_file(
@@ -730,18 +728,27 @@ static char *get_next_line(int *last_char)
 			char c = temp[len-1];
 			if (c == '\n' || c == '\0') {
 				temp[len-1] = '\0';
-				*last_char = (unsigned char)c;
+				lc |= (unsigned char)c;
+				break;
 			}
+			/* will be returned if last line in the file
+			 * doesn't end with either '\n' or '\0' */
+			lc |= 0x100;
 			break;
 		}
 		/* Close this file and advance to next one */
 		fclose(bbg.input_file_list[bbg.current_input_file++]);
+		/* "this is the first line from new input file" */
+		lc |= 0x200;
 	}
+	*last_char = lc;
 	return temp;
 }
 
 /* Output line of text. */
 /* Note:
+ * The tricks with 0x200 and last_puts_char are there to emulate gnu sed.
+ * Without them, we had this:
  * echo -n thingy >z1
  * echo -n again >z2
  * >znull
@@ -750,13 +757,26 @@ static char *get_next_line(int *last_char)
  * 00000000  74 68 7a 6e 67 79 0a 61  67 61 7a 6e              |thzngy.agazn|
  * bbox:
  * 00000000  74 68 7a 6e 67 79 61 67  61 7a 6e                 |thzngyagazn|
- * I am not sure that bbox is wrong here...
  */
 
 static int puts_maybe_newline(char *s, FILE *file, int prev_last_char, int last_char)
 {
+	static char last_puts_char;
+
+	/* Is this a first line from new file
+	 * and old file didn't end with '\n'? */
+	if ((last_char & 0x200) && last_puts_char != '\n') {
+		fputc('\n', file);
+		last_puts_char = '\n';
+	}
 	fputs(s, file);
-	if (last_char < 0x100) fputc(last_char, file);
+	/* 'x': we don't care what is it, but we know it isn't '\n' */
+	if (s[0]) last_puts_char = 'x';
+	if (!(last_char & 0x100)) { /* had trailing '\n' or '\0'? */
+		last_char &= 0xff;
+		fputc(last_char, file);
+		last_puts_char = last_char;
+	}
 
 	if (ferror(file)) {
 		xfunc_error_retval = 4;  /* It's what gnu sed exits with... */
@@ -1047,7 +1067,7 @@ restart:
 					strcat(pattern_space, "\n");
 					if (bbg.hold_space)
 						strcat(pattern_space, bbg.hold_space);
-					last_char = 0x100;
+					last_char = '\n';
 
 					break;
 				}
@@ -1079,7 +1099,7 @@ restart:
 				{
 					char *tmp = pattern_space;
 					pattern_space = bbg.hold_space ? : xzalloc(1);
-					last_char = 0x100;
+					last_char = '\n';
 					bbg.hold_space = tmp;
 					break;
 				}
