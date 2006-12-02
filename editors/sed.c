@@ -80,8 +80,8 @@ typedef struct sed_cmd_s {
 	/* Bitfields (gcc won't group them if we don't) */
 	unsigned int invert:1;          /* the '!' after the address */
 	unsigned int in_match:1;        /* Next line also included in match? */
-	unsigned int no_newline:1;      /* Last line written by (sw) had no '\n' */
 	unsigned int sub_p:1;           /* (s) print option */
+	int last_char;                  /* Last line written by (sw) had no '\n' */
 
 	/* GENERAL FIELDS */
 	char cmd;               /* The command char: abcdDgGhHilnNpPqrstwxy:={} */
@@ -712,56 +712,73 @@ static void add_input_file(FILE *file)
 /* Get next line of input from bbg.input_file_list, flushing append buffer and
  * noting if we ran out of files without a newline on the last line we read.
  */
-static char *get_next_line(int *no_newline)
+static char *get_next_line(int *last_char)
 {
 	char *temp = NULL;
 	int len;
 
+	/* will be returned if last line in the file
+	 * doesn't end with either '\n' or '\0' */
+	*last_char = 0x100;
+
 	flush_append();
 	while (bbg.current_input_file < bbg.input_file_count) {
-		temp = bb_get_chunk_from_file(bbg.input_file_list[bbg.current_input_file],&len);
+		temp = bb_get_chunk_from_file(
+			bbg.input_file_list[bbg.current_input_file], &len);
 		if (temp) {
-			*no_newline = !(len && temp[len-1] == '\n');
-			if (!*no_newline) temp[len-1] = 0;
+			/* len > 0 here, it's ok to do temp[len-1] */
+			char c = temp[len-1];
+			if (c == '\n' || c == '\0') {
+				temp[len-1] = '\0';
+				*last_char = (unsigned char)c;
+			}
 			break;
-		// Close this file and advance to next one
-		} else
-			fclose(bbg.input_file_list[bbg.current_input_file++]);
+		}
+		/* Close this file and advance to next one */
+		fclose(bbg.input_file_list[bbg.current_input_file++]);
 	}
-
 	return temp;
 }
 
-/* Output line of text.  missing_newline means the last line output did not
-   end with a newline.  no_newline means this line does not end with a
-   newline. */
+/* Output line of text. */
+/* Note:
+ * echo -n thingy >z1
+ * echo -n again >z2
+ * >znull
+ * sed "s/i/z/" z1 z2 znull | hexdump -vC output:
+ * gnu sed 4.1.5:
+ * 00000000  74 68 7a 6e 67 79 0a 61  67 61 7a 6e              |thzngy.agazn|
+ * bbox:
+ * 00000000  74 68 7a 6e 67 79 61 67  61 7a 6e                 |thzngyagazn|
+ * I am not sure that bbox is wrong here...
+ */
 
-static int puts_maybe_newline(char *s, FILE *file, int missing_newline, int no_newline)
+static int puts_maybe_newline(char *s, FILE *file, int prev_last_char, int last_char)
 {
-	if (missing_newline) fputc('\n',file);
-	fputs(s,file);
-	if (!no_newline) fputc('\n',file);
+	fputs(s, file);
+	if (last_char < 0x100) fputc(last_char, file);
 
 	if (ferror(file)) {
 		xfunc_error_retval = 4;  /* It's what gnu sed exits with... */
 		bb_error_msg_and_die(bb_msg_write_error);
 	}
 
-	return no_newline;
+	return last_char;
 }
 
-#define sed_puts(s,n) missing_newline=puts_maybe_newline(s,bbg.nonstdout,missing_newline,n)
+#define sed_puts(s, n) \
+	(prev_last_char = puts_maybe_newline(s, bbg.nonstdout, prev_last_char, n))
 
 /* Process all the lines in all the files */
 
 static void process_files(void)
 {
 	char *pattern_space, *next_line;
-	int linenum = 0, missing_newline = 0;
-	int no_newline,next_no_newline = 0;
+	int linenum = 0, prev_last_char = 0;
+	int last_char, next_last_char = 0;
 
 	/* Prime the pump */
-	next_line = get_next_line(&next_no_newline);
+	next_line = get_next_line(&next_last_char);
 
 	/* go through every line in each file */
 	for (;;) {
@@ -771,11 +788,11 @@ static void process_files(void)
 		/* Advance to next line.  Stop if out of lines. */
 		pattern_space = next_line;
 		if (!pattern_space) break;
-		no_newline = next_no_newline;
+		last_char = next_last_char;
 
 		/* Read one line in advance so we can act on the last line,
 		 * the '$' address */
-		next_line = get_next_line(&next_no_newline);
+		next_line = get_next_line(&next_last_char);
 		linenum++;
 restart:
 		/* for every line, go through all the commands */
@@ -858,7 +875,7 @@ restart:
 
 				/* Write the current pattern space to output */
 				case 'p':
-					sed_puts(pattern_space,no_newline);
+					sed_puts(pattern_space, last_char);
 					break;
 				/* Delete up through first newline */
 				case 'D':
@@ -878,25 +895,24 @@ restart:
 
 				/* Substitute with regex */
 				case 's':
-					if (do_subst_command(sed_cmd, &pattern_space)) {
-						substituted |= 1;
+					if (!do_subst_command(sed_cmd, &pattern_space))
+						break;
+					substituted |= 1;
 
-						/* handle p option */
-						if (sed_cmd->sub_p)
-							sed_puts(pattern_space,no_newline);
-						/* handle w option */
-						if (sed_cmd->file)
-							sed_cmd->no_newline = puts_maybe_newline(pattern_space, sed_cmd->file, sed_cmd->no_newline, no_newline);
-
-					}
+					/* handle p option */
+					if (sed_cmd->sub_p)
+						sed_puts(pattern_space, last_char);
+					/* handle w option */
+					if (sed_cmd->file)
+						sed_cmd->last_char = puts_maybe_newline(
+							pattern_space, sed_cmd->file,
+							sed_cmd->last_char, last_char);
 					break;
 
 				/* Append line to linked list to be printed later */
 				case 'a':
-				{
 					append(sed_cmd->string);
 					break;
-				}
 
 				/* Insert text before this line */
 				case 'i':
@@ -930,18 +946,20 @@ restart:
 
 				/* Write pattern space to file. */
 				case 'w':
-					sed_cmd->no_newline = puts_maybe_newline(pattern_space,sed_cmd->file, sed_cmd->no_newline,no_newline);
+					sed_cmd->last_char = puts_maybe_newline(
+						pattern_space,sed_cmd->file,
+						sed_cmd->last_char, last_char);
 					break;
 
 				/* Read next line from input */
 				case 'n':
 					if (!bbg.be_quiet)
-						sed_puts(pattern_space,no_newline);
+						sed_puts(pattern_space, last_char);
 					if (next_line) {
 						free(pattern_space);
 						pattern_space = next_line;
-						no_newline = next_no_newline;
-						next_line = get_next_line(&next_no_newline);
+						last_char = next_last_char;
+						next_line = get_next_line(&next_last_char);
 						linenum++;
 						break;
 					}
@@ -970,8 +988,8 @@ restart:
 						pattern_space = realloc(pattern_space, len + strlen(next_line) + 2);
 						pattern_space[len] = '\n';
 						strcpy(pattern_space + len+1, next_line);
-						no_newline = next_no_newline;
-						next_line = get_next_line(&next_no_newline);
+						last_char = next_last_char;
+						next_line = get_next_line(&next_last_char);
 						linenum++;
 					}
 					break;
@@ -1029,7 +1047,7 @@ restart:
 					strcat(pattern_space, "\n");
 					if (bbg.hold_space)
 						strcat(pattern_space, bbg.hold_space);
-					no_newline = 0;
+					last_char = 0x100;
 
 					break;
 				}
@@ -1061,7 +1079,7 @@ restart:
 				{
 					char *tmp = pattern_space;
 					pattern_space = bbg.hold_space ? : xzalloc(1);
-					no_newline = 0;
+					last_char = 0x100;
 					bbg.hold_space = tmp;
 					break;
 				}
@@ -1075,7 +1093,7 @@ restart:
 discard_commands:
 		/* we will print the line unless we were told to be quiet ('-n')
 		   or if the line was suppressed (ala 'd'elete) */
-		if (!bbg.be_quiet) sed_puts(pattern_space,no_newline);
+		if (!bbg.be_quiet) sed_puts(pattern_space, last_char);
 
 		/* Delete and such jump here. */
 discard_line:
