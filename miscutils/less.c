@@ -44,14 +44,18 @@
 #define REAL_KEY_LEFT 'D'
 #define REAL_PAGE_UP '5'
 #define REAL_PAGE_DOWN '6'
+#define REAL_KEY_HOME '7'
+#define REAL_KEY_END '8'
 
 /* These are the special codes assigned by this program to the special keys */
-#define PAGE_UP 20
-#define PAGE_DOWN 21
-#define KEY_UP 22
-#define KEY_DOWN 23
-#define KEY_RIGHT 24
-#define KEY_LEFT 25
+#define KEY_UP 20
+#define KEY_DOWN 21
+#define KEY_RIGHT 22
+#define KEY_LEFT 23
+#define PAGE_UP 24
+#define PAGE_DOWN 25
+#define KEY_HOME 26
+#define KEY_END 27
 
 /* The escape codes for highlighted and normal text */
 #define HIGHLIGHT "\033[7m"
@@ -73,7 +77,6 @@ static int current_file = 1;
 static int line_pos;
 static int num_flines;
 static int num_files = 1;
-static int past_eof;
 
 /* Command line options */
 static unsigned flags;
@@ -82,10 +85,11 @@ static unsigned flags;
 #define FLAG_m (1<<2)
 #define FLAG_N (1<<3)
 #define FLAG_TILDE (1<<4)
-
-/* This is needed so that program behaviour changes when input comes from
-   stdin */
-static int inp_stdin;
+/* hijack command line options variable for internal state vars */
+#define LESS_STATE_INP_STDIN (1<<5)
+#define LESS_STATE_PAST_EOF  (1<<6)
+#define LESS_STATE_MATCH_BACKWARDS (1<<7)
+/* INP_STDIN is used to change behaviour when input comes from stdin */
 
 #ifdef CONFIG_FEATURE_LESS_MARKS
 static int mark_lines[15][2];
@@ -97,7 +101,6 @@ static int match_found;
 static int *match_lines;
 static int match_pos;
 static int num_matches;
-static int match_backwards;
 static regex_t old_pattern;
 #endif
 
@@ -114,12 +117,6 @@ static void set_tty_cooked(void)
 	tcsetattr(fileno(inp), TCSANOW, &term_orig);
 }
 
-/* Set terminal input to raw mode  (taken from vi.c) */
-static void set_tty_raw(void)
-{
-	tcsetattr(fileno(inp), TCSANOW, &term_vi);
-}
-
 /* Exit the program gracefully */
 static void tless_exit(int code)
 {
@@ -129,7 +126,7 @@ static void tless_exit(int code)
 		 only termios.h? */
 
 	putchar('\n');
-	exit(code);
+	fflush_stdout_and_exit(code);
 }
 
 /* Grab a character from input without requiring the return key. If the
@@ -138,28 +135,23 @@ static void tless_exit(int code)
 static int tless_getch(void)
 {
 	int input;
-
-	set_tty_raw();
+	/* Set terminal input to raw mode  (taken from vi.c) */
+	tcsetattr(fileno(inp), TCSANOW, &term_vi);
 
 	input = getc(inp);
 	/* Detect escape sequences (i.e. arrow keys) and handle
 	   them accordingly */
 
 	if (input == '\033' && getc(inp) == '[') {
+		unsigned int i;
 		input = getc(inp);
 		set_tty_cooked();
-		if (input == REAL_KEY_UP)
-			return KEY_UP;
-		else if (input == REAL_KEY_DOWN)
-			return KEY_DOWN;
-		else if (input == REAL_KEY_RIGHT)
-			return KEY_RIGHT;
-		else if (input == REAL_KEY_LEFT)
-			return KEY_LEFT;
-		else if (input == REAL_PAGE_UP)
-			return PAGE_UP;
-		else if (input == REAL_PAGE_DOWN)
-			return PAGE_DOWN;
+
+		i = input - REAL_KEY_UP;
+		if (i < 4)
+			return 20 + i;
+		else if ((i = input - REAL_PAGE_UP) < 4)
+			return 24 + i;
 	}
 	/* The input is a normal ASCII value */
 	else {
@@ -200,7 +192,7 @@ static void data_readlines(void)
 	char current_line[256];
 	FILE *fp;
 
-	fp = (inp_stdin) ? stdin : xfopen(filename, "r");
+	fp = (flags & LESS_STATE_INP_STDIN) ? stdin : xfopen(filename, "r");
 	flines = NULL;
 	for (i = 0; (feof(fp)==0) && (i <= MAXLINES); i++) {
 		strcpy(current_line, "");
@@ -215,12 +207,12 @@ static void data_readlines(void)
 	/* Reset variables for a new file */
 
 	line_pos = 0;
-	past_eof = 0;
+	flags &= ~LESS_STATE_PAST_EOF;
 
 	fclose(fp);
 
 	if (inp == NULL)
-		inp = (inp_stdin) ? xfopen(CURRENT_TTY, "r") : stdin;
+		inp = (flags & LESS_STATE_INP_STDIN) ? xfopen(CURRENT_TTY, "r") : stdin;
 
 	if (flags & FLAG_N)
 		add_linenumbers();
@@ -240,7 +232,7 @@ static void m_status_print(void)
 {
 	int percentage;
 
-	if (!past_eof) {
+	if (!(flags & LESS_STATE_PAST_EOF)) {
 		if (!line_pos) {
 			if (num_files > 1)
 				printf("%s%s %s%i%s%i%s%i-%i/%i ", HIGHLIGHT,
@@ -372,7 +364,7 @@ static void buffer_down(int nlines)
 {
 	int i;
 
-	if (!past_eof) {
+	if (!(flags & LESS_STATE_PAST_EOF)) {
 		if (line_pos + (height - 3) + nlines < num_flines) {
 			line_pos += nlines;
 			for (i = 0; i < (height - 1); i++) {
@@ -403,7 +395,7 @@ static void buffer_up(int nlines)
 	int i;
 	int tilde_line;
 
-	if (!past_eof) {
+	if (!(flags & LESS_STATE_PAST_EOF)) {
 		if (line_pos - nlines >= 0) {
 			line_pos -= nlines;
 			for (i = 0; i < (height - 1); i++) {
@@ -431,7 +423,7 @@ static void buffer_up(int nlines)
 		/* Going backwards nlines lines has taken us to a point where
 		   nothing is past the EOF, so we revert to normal. */
 		if (line_pos < num_flines - height + 3) {
-			past_eof = 0;
+			flags &= ~LESS_STATE_PAST_EOF;
 			buffer_up(nlines);
 		}
 		else {
@@ -453,7 +445,7 @@ static void buffer_up(int nlines)
 static void buffer_line(int linenum)
 {
 	int i;
-	past_eof = 0;
+	flags &= ~LESS_STATE_PAST_EOF;
 
 	if (linenum < 0 || linenum > num_flines) {
 		clear_line();
@@ -477,7 +469,7 @@ static void buffer_line(int linenum)
 		}
 		line_pos = linenum;
 		/* Set past_eof so buffer_down and buffer_up act differently */
-		past_eof = 1;
+		flags |= LESS_STATE_PAST_EOF;
 		buffer_print();
 	}
 }
@@ -513,7 +505,7 @@ static void examine_file(void)
 	current_file = num_files + 1;
 	num_files++;
 
-	inp_stdin = 0;
+	flags &= ~LESS_STATE_INP_STDIN;
 	reinitialise();
 }
 
@@ -666,13 +658,14 @@ static void regex_process(void)
 	regex_t pattern;
 	/* Get the uncompiled regular expression from the user */
 	clear_line();
-	putchar((match_backwards) ? '?' : '/');
+	putchar((flags & LESS_STATE_MATCH_BACKWARDS) ? '?' : '/');
 	uncomp_regex[0] = 0;
 	fgets(uncomp_regex, sizeof(uncomp_regex), inp);
 
 	if (strlen(uncomp_regex) == 1) {
 		if (num_matches)
-			goto_match(match_backwards ? match_pos - 1 : match_pos + 1);
+			goto_match((flags & LESS_STATE_MATCH_BACKWARDS)
+						? match_pos - 1 : match_pos + 1);
 		else
 			buffer_print();
 		return;
@@ -710,7 +703,7 @@ static void regex_process(void)
 
 	num_matches = j;
 	if ((match_lines[0] != -1) && (num_flines > height - 2)) {
-		if (match_backwards) {
+		if (flags & LESS_STATE_MATCH_BACKWARDS) {
 			for (i = 0; i < num_matches; i++) {
 				if (match_lines[i] > line_pos) {
 					match_pos = i - 1;
@@ -776,11 +769,11 @@ static void number_process(int first_digit)
 			goto_match(match_pos + num);
 			break;
 		case '/':
-			match_backwards = 0;
+			flags &= ~LESS_STATE_MATCH_BACKWARDS;
 			regex_process();
 			break;
 		case '?':
-			match_backwards = 1;
+			flags |= LESS_STATE_MATCH_BACKWARDS;
 			regex_process();
 			break;
 #endif
@@ -878,7 +871,7 @@ static void save_input_to_file(void)
 		buffer_print();
 	}
 	else
-		printf("%sNo log file%s", HIGHLIGHT, NORMAL);
+		printf("%s%s%s", HIGHLIGHT, "No log file", NORMAL);
 }
 
 #ifdef CONFIG_FEATURE_LESS_MARKS
@@ -1029,10 +1022,10 @@ static void keypress_process(int keypress)
 			buffer_up((height - 1) / 2);
 			buffer_print();
 			break;
-		case 'g': case 'p': case '<': case '%':
+		case KEY_HOME: case 'g': case 'p': case '<': case '%':
 			buffer_line(0);
 			break;
-		case 'G': case '>':
+		case KEY_END: case 'G': case '>':
 			buffer_line(num_flines - height + 2);
 			break;
 		case 'q': case 'Q':
@@ -1055,7 +1048,7 @@ static void keypress_process(int keypress)
 			full_repaint();
 			break;
 		case 's':
-			if (inp_stdin)
+			if (flags & LESS_STATE_INP_STDIN)
 				save_input_to_file();
 			break;
 		case 'E':
@@ -1069,7 +1062,7 @@ static void keypress_process(int keypress)
 #endif
 #ifdef CONFIG_FEATURE_LESS_REGEXP
 		case '/':
-			match_backwards = 0;
+			flags &= ~LESS_STATE_MATCH_BACKWARDS;
 			regex_process();
 			break;
 		case 'n':
@@ -1079,7 +1072,7 @@ static void keypress_process(int keypress)
 			goto_match(match_pos - 1);
 			break;
 		case '?':
-			match_backwards = 1;
+			flags |= LESS_STATE_MATCH_BACKWARDS;
 			regex_process();
 			break;
 #endif
@@ -1124,14 +1117,14 @@ int less_main(int argc, char **argv) {
 
 	if (!num_files) {
 		if (ttyname(STDIN_FILENO) == NULL)
-			inp_stdin = 1;
+			flags |= LESS_STATE_INP_STDIN;
 		else {
 			bb_error_msg("missing filename");
 			bb_show_usage();
 		}
 	}
 
-	strcpy(filename, (inp_stdin) ? bb_msg_standard_input : files[0]);
+	strcpy(filename, (flags & LESS_STATE_INP_STDIN) ? bb_msg_standard_input : files[0]);
 	get_terminal_width_height(0, &width, &height);
 	data_readlines();
 	tcgetattr(fileno(inp), &term_orig);
