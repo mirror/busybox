@@ -10,18 +10,18 @@
 #include "libbb.h"
 
 static const struct signal_name {
-	char name[5];
 	int number;
+	char name[5];
 } signals[] = {
 	// SUSv3 says kill must support these, and specifies the numerical values,
 	// http://www.opengroup.org/onlinepubs/009695399/utilities/kill.html
-	{"0", 0}, {"HUP", 1}, {"INT", 2}, {"QUIT", 3}, {"ABRT", 6}, {"KILL", 9},
-	{"ALRM", 14}, {"TERM", 15},
+	{0, "0"}, {1, "HUP"}, {2, "INT"}, {3, "QUIT"}, {6, "ABRT"}, {9, "KILL"},
+	{14, "ALRM"}, {15, "TERM"},
 	// And Posix adds the following:
-	{"ILL", SIGILL}, {"TRAP", SIGTRAP}, {"FPE", SIGFPE}, {"USR1", SIGUSR1},
-	{"SEGV", SIGSEGV}, {"USR2", SIGUSR2}, {"PIPE", SIGPIPE}, {"CHLD", SIGCHLD},
-	{"CONT", SIGCONT}, {"STOP", SIGSTOP}, {"TSTP", SIGTSTP}, {"TTIN", SIGTTIN},
-	{"TTOU", SIGTTOU}
+	{SIGILL, "ILL"}, {SIGTRAP, "TRAP"}, {SIGFPE, "FPE"}, {SIGUSR1, "USR1"},
+	{SIGSEGV, "SEGV"}, {SIGUSR2, "USR2"}, {SIGPIPE, "PIPE"}, {SIGCHLD, "CHLD"},
+	{SIGCONT, "CONT"}, {SIGSTOP, "STOP"}, {SIGTSTP, "TSTP"}, {SIGTTIN, "TTIN"},
+	{SIGTTOU, "TTOU"}
 };
 
 // Convert signal name to number.
@@ -31,8 +31,8 @@ int get_signum(const char *name)
 	int i;
 
 	i = atoi(name);
-	if(i) return i;
-	for(i=0; i < sizeof(signals) / sizeof(struct signal_name); i++)
+	if (i) return i;
+	for (i = 0; i < sizeof(signals) / sizeof(struct signal_name); i++)
 		if (!strcasecmp(signals[i].name, name) ||
 			(!strncasecmp(signals[i].name, "SIG", 3)
 				 && !strcasecmp(signals[i].name+3, signals[i].name)))
