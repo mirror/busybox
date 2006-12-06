@@ -122,7 +122,6 @@ SYN_CPPFLAGS := $(subst $(brace_close),\$(brace_close),$(SYN_CPPFLAGS))
 #SYN_CPPFLAGS := [$(patsubst %,'%'$(comma),$(SYN_CPPFLAGS))'']
 
 %.syn: %.c
-	$(warning fla='$(SYN_CPPFLAGS)')
 	synopsis -p C -l Comments.SSDFilter,Comments.Previous -Wp,preprocess=True,cppflags="'$(SYN_CPPFLAGS)'" -o $@ $<
 
 .PHONY: html
