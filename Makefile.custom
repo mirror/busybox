@@ -107,11 +107,11 @@ docs/busybox.net/BusyBox.html: docs/busybox.pod
 # documentation, cross-reference
 # Modern distributions already ship synopsis packages (e.g. debian)
 # If you have an old distribution go to http://synopsis.fresco.org/
-syn_tgt := $(wildcard $(patsubst %,%/*.c,$(SRC_DIRS)))
-syn     := $(patsubst %.c, %.syn, $(syn_tgt))
+syn_tgt = $(wildcard $(patsubst %,%/*.c,$(busybox-alldirs)))
+syn     = $(patsubst %.c, %.syn, $(syn_tgt))
 
 %.syn: %.c
-	synopsis -p C -l Comments.SSDFilter,Comments.Previous $(INCS) -Wp,verbose,debug,preprocess,cppflags="'$(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) $(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) $(APPLETS_DEFINE) $(BUSYBOX_DEFINE)'" -o $@ $<
+	synopsis --verbose --debug -p C -l Comments.SSDFilter,Comments.Previous $(INCS) -Wp,verbose=True,debug=True,preprocess=True,cppflags="'$(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) $(PROG_CFLAGS) $(PROG_LDFLAGS) $(CFLAGS_COMBINE) $(APPLETS_DEFINE) $(BUSYBOX_DEFINE)'" -o $@ $<
 
 .PHONY: html
 html: $(syn)
