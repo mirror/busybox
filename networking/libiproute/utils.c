@@ -255,7 +255,7 @@ void duparg(char *key, char *arg)
 
 void duparg2(char *key, char *arg)
 {
-	bb_error_msg("either \"%s\" is duplicate, or \"%s\" is a garbage", key, arg);
+	bb_error_msg("either \"%s\" is duplicate, or \"%s\" is garbage", key, arg);
 	exit(-1);
 }
 
