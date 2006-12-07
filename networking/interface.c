@@ -343,8 +343,10 @@ static void sockets_close(void)
 	}
 }
 #endif
-
+#if 0
 /* like strcmp(), but knows about numbers */
+except that the freshly added calls to xatoul() brf on ethernet aliases with
+uClibc with e.g.: ife->name='lo'  name='eth0:1'
 static int nstrcmp(const char *a, const char *b)
 {
 	const char *a_ptr = a;
@@ -367,13 +369,14 @@ static int nstrcmp(const char *a, const char *b)
 	}
 	return *a - *b;
 }
+#endif
 
 static struct interface *add_interface(char *name)
 {
 	struct interface *ife, **nextp, *new;
 
 	for (ife = int_last; ife; ife = ife->prev) {
-		int n = nstrcmp(ife->name, name);
+		int n = /*n*/strcmp(ife->name, name);
 
 		if (n == 0)
 			return ife;
