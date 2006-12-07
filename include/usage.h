@@ -1976,8 +1976,8 @@ USE_FEATURE_MDEV_CONFIG( \
        "Creates a temporary file with its name based on TEMPLATE.\n" \
        "TEMPLATE is any name with six 'Xs' (i.e., /tmp/temp.XXXXXX).\n\n" \
        "Options:\n" \
-       "	-d		Make a directory instead of a file\n" \
-       "	-q		Fail silently if an error occurs"
+       "	-d	Make a directory instead of a file\n" \
+       "	-q	Fail silently if an error occurs"
 #define mktemp_example_usage \
        "$ mktemp /tmp/temp.XXXXXX\n" \
        "/tmp/temp.mWiLjM\n" \
@@ -2114,9 +2114,9 @@ USE_FEATURE_MDEV_CONFIG( \
 #define mountpoint_full_usage \
        "mountpoint checks if the directory is a mountpoint\n\n" \
        "Options:\n"  \
-       "	-q:		Be more quiet\n" \
-       "	-d:		Print major/minor device number of the filesystem\n" \
-       "	-x:		Print major/minor device number of the blockdevice"
+       "	-q	Be more quiet\n" \
+       "	-d	Print major/minor device number of the filesystem\n" \
+       "	-x	Print major/minor device number of the blockdevice"
 #define mountpoint_example_usage \
        "$ mountpoint /proc\n" \
        "/proc is not a mountpoint\n" \
