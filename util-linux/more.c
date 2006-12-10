@@ -17,11 +17,11 @@
 #include "busybox.h"
 
 
-#ifdef CONFIG_FEATURE_USE_TERMIOS
+#if ENABLE_FEATURE_USE_TERMIOS
 static int cin_fileno;
 #include <termios.h>
-#define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
-#define getTermSettings(fd,argp) tcgetattr(fd, argp);
+#define setTermSettings(fd, argp) tcsetattr(fd, TCSANOW, argp)
+#define getTermSettings(fd, argp) tcgetattr(fd, argp);
 
 static struct termios initial_settings, new_settings;
 
@@ -35,7 +35,7 @@ static void gotsig(int sig)
 	putchar('\n');
 	exit(EXIT_FAILURE);
 }
-#endif /* CONFIG_FEATURE_USE_TERMIOS */
+#endif /* FEATURE_USE_TERMIOS */
 
 
 int more_main(int argc, char **argv)
@@ -52,14 +52,14 @@ int more_main(int argc, char **argv)
 	argc--;
 	argv++;
 
-
-	/* not use inputing from terminal if usage: more > outfile */
-	if(isatty(STDOUT_FILENO)) {
+	cin = stdin;
+	/* use input from terminal unless we do "more >outfile" */
+	if (isatty(STDOUT_FILENO)) {
 		cin = fopen(CURRENT_TTY, "r");
 		if (!cin)
 			cin = xfopen(CONSOLE_DEV, "r");
 		please_display_more_prompt = 2;
-#ifdef CONFIG_FEATURE_USE_TERMIOS
+#if ENABLE_FEATURE_USE_TERMIOS
 		cin_fileno = fileno(cin);
 		getTermSettings(cin_fileno, &initial_settings);
 		new_settings = initial_settings;
@@ -69,21 +69,19 @@ int more_main(int argc, char **argv)
 		new_settings.c_cc[VTIME] = 0;
 		setTermSettings(cin_fileno, &new_settings);
 		atexit(set_tty_to_initial_mode);
-		(void) signal(SIGINT, gotsig);
-		(void) signal(SIGQUIT, gotsig);
-		(void) signal(SIGTERM, gotsig);
+		signal(SIGINT, gotsig);
+		signal(SIGQUIT, gotsig);
+		signal(SIGTERM, gotsig);
 #endif
-	} else {
-		cin = stdin;
 	}
 
 	do {
-		if (argc == 0) {
-			file = stdin;
-		} else
+		file = stdin;
+		if (argc != 0) {
 			file = fopen_or_warn(*argv, "r");
-		if(file==0)
-			goto loop;
+			if (!file)
+				goto loop;
+		}
 
 		st.st_size = 0;
 		fstat(fileno(file), &st);
@@ -96,7 +94,7 @@ int more_main(int argc, char **argv)
 		if (terminal_width > 0)
 			terminal_width -= 1;
 
-		len=0;
+		len = 0;
 		lines = 0;
 		page_height = terminal_height;
 		while ((c = getc(file)) != EOF) {
@@ -104,17 +102,10 @@ int more_main(int argc, char **argv)
 			if ((please_display_more_prompt & 3) == 3) {
 				len = printf("--More-- ");
 				if (file != stdin && st.st_size > 0) {
-#if _FILE_OFFSET_BITS == 64
-					len += printf("(%d%% of %lld bytes)",
-						   (int) (100 * ((double) ftell(file) /
-						   (double) st.st_size)), (long long)st.st_size);
-#else
-					len += printf("(%d%% of %ld bytes)",
-						   (int) (100 * ((double) ftell(file) /
-						   (double) st.st_size)), (long)st.st_size);
-#endif
+					len += printf("(%d%% of %"OFF_FMT"d bytes)",
+						(int) (ftello(file)*100 / st.st_size),
+						st.st_size);
 				}
-
 				fflush(stdout);
 
 				/*
@@ -122,15 +113,12 @@ int more_main(int argc, char **argv)
 				 * to get input from the user.
 				 */
 				input = getc(cin);
-#ifndef CONFIG_FEATURE_USE_TERMIOS
+#if !ENABLE_FEATURE_USE_TERMIOS
 				printf("\033[A"); /* up cursor */
 #endif
 				/* Erase the "More" message */
-				putc('\r', stdout);
-				while (--len >= 0)
-					putc(' ', stdout);
-				putc('\r', stdout);
-				len=0;
+				printf("\r%*s\r", len, "");
+				len = 0;
 				lines = 0;
 				page_height = terminal_height;
 				please_display_more_prompt &= ~1;
@@ -162,15 +150,15 @@ int more_main(int argc, char **argv)
 					rem  = len - (quot * terminal_width);
 					if (quot) {
 						if (rem)
-							page_height-=quot;
+							page_height -= quot;
 						else
-							page_height-=(quot-1);
+							page_height -= (quot - 1);
 					}
 				}
 				if (++lines >= page_height) {
 					please_display_more_prompt |= 1;
 				}
-				len=0;
+				len = 0;
 			}
 			/*
 			 * If we just read a newline from the file being 'mored' and any
@@ -181,9 +169,9 @@ int more_main(int argc, char **argv)
 		}
 		fclose(file);
 		fflush(stdout);
-loop:
+ loop:
 		argv++;
 	} while (--argc > 0);
-  end:
+ end:
 	return 0;
 }
