@@ -16,7 +16,6 @@
 #include <time.h>
 
 typedef unsigned long long ullong;
-typedef unsigned long ulong;
 
 enum { proc_file_size = 4096 };
 

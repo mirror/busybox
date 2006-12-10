@@ -7,6 +7,7 @@
  */
 
 /* We do not include libbb.h - #define makedev() is there! */
+#include <features.h>
 #include <sys/sysmacros.h>
 
 #ifdef __GLIBC__

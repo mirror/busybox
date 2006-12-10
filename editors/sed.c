@@ -796,15 +796,15 @@ static void process_files(void)
 	char *pattern_space, *next_line;
 	int linenum = 0, prev_last_char = 0;
 	int last_char, next_last_char = 0;
+	sed_cmd_t *sed_cmd;
+	int substituted;
 
 	/* Prime the pump */
 	next_line = get_next_line(&next_last_char);
 
 	/* go through every line in each file */
 again:
-
-	sed_cmd_t *sed_cmd;
-	int substituted = 0;
+	substituted = 0;
 
 	/* Advance to next line.  Stop if out of lines. */
 	pattern_space = next_line;
