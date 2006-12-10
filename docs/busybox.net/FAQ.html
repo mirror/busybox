@@ -82,7 +82,8 @@ have additions to this FAQ document, we would love to add them,
     to determine which applet to run, as shown above.
 </p>
 <p>
-    BusyBox also has a feature called the "standalone shell", where the busybox
+    BusyBox also has a feature called the 
+    <a name="standalone_shell">"standalone shell"</a>, where the busybox
     shell runs any built-in applets before checking the command path.  This
     feature is also enabled by "make allyesconfig", and to try it out run
     the command line "PATH= ./busybox ash".  This will blank your command path
@@ -96,7 +97,15 @@ have additions to this FAQ document, we would love to add them,
     (So if you set it to /proc/self/exe, and happen to be able to chroot into
     your rootfs, you must mount /proc beforehand.)
 </p>
-
+<p>
+    A typical indication that you set CONFIG_BUSYBOX_EXEC_PATH to proc but
+    forgot to mount proc is:
+<pre>
+$ /bin/echo $PATH
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11
+$ echo $PATH
+/bin/sh: echo: not found
+</pre>
 <hr />
 <p>
 <h2><a name="configure">How do I configure busybox?</a></h2>
