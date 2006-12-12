@@ -93,6 +93,10 @@ int recursive_action(const char *fileName,
 
 	dir = opendir(fileName);
 	if (!dir) {
+		/* findutils-4.1.20 reports this */
+		/* (i.e. it doesn't silently return with exit code 1) */
+		/* To trigger: "find -exec rm -rf {} \;" */
+		bb_perror_msg("%s", fileName);
 		return FALSE;
 	}
 	status = TRUE;
