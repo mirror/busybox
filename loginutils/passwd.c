@@ -34,10 +34,15 @@ static void crypt_make_salt(char *p, int cnt)
 
 	x += getpid() + time(NULL) + clock();
 	do {
-		/* x = (x*1664525 + 1013904223) mod 2^32 generator is lame
+		/* x = (x*1664525 + 1013904223) % 2^32 generator is lame
 		 * (low-order bit is not "random", etc...),
 		 * but for our purposes it is good enough */
 		x = x*1664525 + 1013904223;
+		/* BTW, Park and Miller's "minimal standard generator" is
+		 * x = x*16807 % ((2^31)-1)
+		 * It has no problem with visibly alternating lowest bit
+		 * but is also weak in cryptographic sense + needs div,
+		 * which needs more code (and slower) on many CPUs */
 		*p++ = i64c(x >> 16);
 		*p++ = i64c(x >> 22);
 	} while (--cnt);
