@@ -217,7 +217,7 @@ static void writeLongname(int fd, int type, const char *name, int dir)
 	size = strlen(name) + 1 + dir; /* GNU tar uses strlen+1 */
 	/* + dir: account for possible '/' */
 
-	bzero(&header, sizeof(header));
+	memset(&header, 0, sizeof(header));
 	strcpy(header.name, "././@LongLink");
 	memcpy(header.mode, prefilled.mode, sizeof(prefilled));
 	PUT_OCTAL(header.size, size);
@@ -231,7 +231,7 @@ static void writeLongname(int fd, int type, const char *name, int dir)
 	xwrite(fd, name, size - dir);
 	xwrite(fd, "/", dir);
 	size = (-size) & (TAR_BLOCK_SIZE-1);
-	bzero(&header, size);
+	memset(&header, 0, size);
 	xwrite(fd, &header, size);
 }
 #endif
@@ -246,7 +246,7 @@ static int writeTarHeader(struct TarBallInfo *tbInfo,
 	if (sizeof(header) != 512)
 		BUG_tar_header_size();
 
-	bzero(&header, sizeof(struct TarHeader));
+	memset(&header, 0, sizeof(struct TarHeader));
 
 	strncpy(header.name, header_name, sizeof(header.name));
 
@@ -472,7 +472,7 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 		/* Pad the file up to the tar block size */
 		/* (a few tricks here in the name of code size) */
 		readSize = (-(int)readSize) & (TAR_BLOCK_SIZE-1);
-		bzero(bb_common_bufsiz1, readSize);
+		memset(bb_common_bufsiz1, 0, readSize);
 		xwrite(tbInfo->tarFd, bb_common_bufsiz1, readSize);
 	}
 
@@ -567,7 +567,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		include = include->link;
 	}
 	/* Write two empty blocks to the end of the archive */
-	bzero(bb_common_bufsiz1, 2*TAR_BLOCK_SIZE);
+	memset(bb_common_bufsiz1, 0, 2*TAR_BLOCK_SIZE);
 	xwrite(tbInfo.tarFd, bb_common_bufsiz1, 2*TAR_BLOCK_SIZE);
 
 	/* To be pedantically correct, we would check if the tarball
