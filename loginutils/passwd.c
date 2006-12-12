@@ -5,7 +5,6 @@
 
 #include "busybox.h"
 #include <syslog.h>
-#include <sys/times.h> /* times() */
 
 
 static void nuke_str(char *str)
@@ -16,7 +15,8 @@ static void nuke_str(char *str)
 
 static int i64c(int i)
 {
-	if (i <= 0)
+	i &= 0x3f;
+	if (i == 0)
 		return '.';
 	if (i == 1)
 		return '/';
@@ -30,23 +30,16 @@ static int i64c(int i)
 
 static void crypt_make_salt(char *p, int cnt)
 {
-#if !defined(__GLIBC__)
-	struct tms t;
-#define TIMES times(&t)
-#else
-/* glibc allows for times(NULL) a-la time() */
-#define TIMES times(NULL)
-#endif
-	unsigned long x = x; /* it's pointless to initialize it anyway :) */
+	unsigned x = x; /* it's pointless to initialize it anyway :) */
 
-	x += getpid();
+	x += getpid() + time(NULL) + clock();
 	do {
-	/* clock() and times() variability is different between systems */
-	/* hopefully at least one is good enough */
-		x += time(NULL) + clock() + TIMES;
-		*p++ = i64c(((x >> 18) ^ (x >> 6)) & 0x3f);
-		*p++ = i64c(((x >> 12) ^ x) & 0x3f);
-		usleep(100); /* or else time() etc won't change */
+		/* x = (x*1664525 + 1013904223) mod 2^32 generator is lame
+		 * (low-order bit is not "random", etc...),
+		 * but for our purposes it is good enough */
+		x = x*1664525 + 1013904223;
+		*p++ = i64c(x >> 16);
+		*p++ = i64c(x >> 22);
 	} while (--cnt);
 	*p = '\0';
 }
