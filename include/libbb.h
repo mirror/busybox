@@ -85,7 +85,7 @@
 /* CONFIG_LFS is on */
 # if ULONG_MAX > 0xffffffff
 /* "long" is long enough on this system */
-#  define XSTRTOOFF xstrtoul
+#  define XATOOFF(a) xatoul_range(a, 0, LONG_MAX)
 /* usage: sz = BB_STRTOOFF(s, NULL, 10); if (errno || sz < 0) die(); */
 #  define BB_STRTOOFF bb_strtoul
 #  define STRTOOFF strtoul
@@ -93,22 +93,23 @@
 #  define OFF_FMT "l"
 # else
 /* "long" is too short, need "long long" */
-#  define XSTRTOOFF xstrtoull
+#  define XATOOFF(a) xatoull_range(a, 0, LLONG_MAX)
 #  define BB_STRTOOFF bb_strtoull
 #  define STRTOOFF strtoull
 #  define OFF_FMT "ll"
 # endif
 #else
-# if 0 /* #if UINT_MAX == 0xffffffff */
-/* Doesn't work. off_t is a long. gcc will throw warnings on printf("%d", off_t)
- * even if long==int on this arch. Crap... */
-#  define XSTRTOOFF xstrtou
-#  define BB_STRTOOFF bb_strtoi
+/* CONFIG_LFS is off */
+# if UINT_MAX == 0xffffffff
+/* While sizeof(off_t) == sizeof(int), off_t is typedef'ed to long anyway.
+ * gcc will throw warnings on printf("%d", off_t). Crap... */
+#  define XATOOFF(a) xatoi_u(a)
+#  define BB_STRTOOFF bb_strtou
 #  define STRTOOFF strtol
-#  define OFF_FMT ""
+#  define OFF_FMT "l"
 # else
-#  define XSTRTOOFF xstrtoul
-#  define BB_STRTOOFF bb_strtol
+#  define XATOOFF(a) xatoul_range(a, 0, LONG_MAX)
+#  define BB_STRTOOFF bb_strtoul
 #  define STRTOOFF strtol
 #  define OFF_FMT "l"
 # endif

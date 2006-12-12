@@ -69,6 +69,7 @@ USE_FEATURE_FIND_NEWER( ACTS(newer, time_t newer_mtime;))
 USE_FEATURE_FIND_INUM(  ACTS(inum,  ino_t inode_num;))
 USE_FEATURE_FIND_EXEC(  ACTS(exec,  char **exec_argv; int *subst_count; int exec_argc;))
 USE_DESKTOP(            ACTS(paren, action ***subexpr;))
+USE_DESKTOP(            ACTS(size,  off_t size;))
 USE_DESKTOP(            ACTS(prune))
 
 static action ***actions;
@@ -225,6 +226,7 @@ ACTF(paren)
 {
 	return exec_actions(ap->subexpr, fileName, statbuf);
 }
+
 /*
  * -prune: if -depth is not given, return true and do not descend
  * current dir; if -depth is given, return false with no effect.
@@ -234,6 +236,11 @@ ACTF(paren)
 ACTF(prune)
 {
 	return SKIP;
+}
+
+ACTF(size)
+{
+	return statbuf->st_size == ap->size;
 }
 #endif
 
@@ -486,6 +493,13 @@ action*** parse_params(char **argv)
 		}
 		else if (strcmp(arg, "-prune") == 0) {
 			(void) ALLOC_ACTION(prune);
+		}
+		else if (strcmp(arg, "-size") == 0) {
+			action_size *ap;
+			if (!*++argv)
+				bb_error_msg_and_die(bb_msg_requires_arg, arg);
+			ap = ALLOC_ACTION(size);
+			ap->size = XATOOFF(arg1);
 		}
 #endif
 		else

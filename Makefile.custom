@@ -42,6 +42,22 @@ check test: busybox
 	bindir=$(objtree) srcdir=$(srctree)/testsuite SED="$(SED)" \
 	$(SHELL) $(srctree)/testsuite/runtest $(if $(KBUILD_VERBOSE:1=),-v)
 
+.PHONY: release
+release: distclean
+	cd ..; \
+	rm -r -f busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION); \
+	cp -a busybox busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION) && \
+	find busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)/ -type d \
+		-name .svn \
+		-print \
+		-exec rm -r -f {} \; && \
+	find busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)/ -type f \
+		-name .\#* \
+		-print \
+		-exec rm -f {} \; && \
+	tar -czf busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION).tar.gz \
+		busybox-$(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)/;
+
 .PHONY: checkhelp
 checkhelp:
 	$(Q)$(srctree)/scripts/checkhelp.awk \

@@ -866,24 +866,33 @@ USE_FEATURE_DATE_ISOFMT( \
        "\nEXPRESSION may consist of:\n" \
        "	-follow		Dereference symbolic links\n" \
        "	-name PATTERN	File name (leading directories removed) matches PATTERN\n" \
-       "	-print		Print (default and assumed)\n" \
+       "	-print		Print (default and assumed)" \
 	USE_FEATURE_FIND_PRINT0( \
-       "	-print0		Delimit output with null characters rather than\n			newlines" \
-) USE_FEATURE_FIND_TYPE( \
+       "\n	-print0		Delimit output with null characters rather than" \
+       "\n			newlines" \
+	) USE_FEATURE_FIND_TYPE( \
        "\n	-type X		Filetype matches X (where X is one of: f,d,l,b,c,...)" \
-) USE_FEATURE_FIND_PERM( \
-       "\n	-perm PERMS	Permissions match any of (+NNN); all of (-NNN);\n			or exactly (NNN)" \
-) USE_FEATURE_FIND_MTIME( \
-       "\n	-mtime DAYS	Modified time is greater than (+N); less than (-N);\n			or exactly (N) days" \
-) USE_FEATURE_FIND_MMIN( \
-       "\n	-mmin MINS	Modified time is greater than (+N); less than (-N);\n			or exactly (N) minutes" \
-) USE_FEATURE_FIND_NEWER( \
+	) USE_FEATURE_FIND_PERM( \
+       "\n	-perm PERMS	Permissions match any of (+NNN); all of (-NNN);" \
+       "\n			or exactly (NNN)" \
+	) USE_FEATURE_FIND_MTIME( \
+       "\n	-mtime DAYS	Modified time is greater than (+N); less than (-N);" \
+       "\n			or exactly (N) days" \
+	) USE_FEATURE_FIND_MMIN( \
+       "\n	-mmin MINS	Modified time is greater than (+N); less than (-N);" \
+       "\n			or exactly (N) minutes" \
+	) USE_FEATURE_FIND_NEWER( \
        "\n	-newer FILE	Modified time is more recent than FILE's" \
-) USE_FEATURE_FIND_INUM( \
+	) USE_FEATURE_FIND_INUM( \
        "\n	-inum N		File has inode number N" \
-) USE_FEATURE_FIND_EXEC( \
+	) USE_FEATURE_FIND_EXEC( \
        "\n	-exec CMD	Execute CMD with all instances of {} replaced by the" \
-       "\n			files matching EXPRESSION")
+       "\n			files matching EXPRESSION" \
+	) USE_DESKTOP( \
+       "\n	-size N		File size is N" \
+       "\n	-prune		Stop traversing current subtree" \
+       "\n	(expr)		Group" \
+	)
 
 #define find_example_usage \
        "$ find / -name passwd\n" \
