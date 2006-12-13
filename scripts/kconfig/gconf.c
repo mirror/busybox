@@ -84,7 +84,7 @@ const char *dbg_print_stype(int val)
 {
 	static char buf[256];
 
-	bzero(buf, 256);
+	memset(buf, 0, 256);
 
 	if (val == S_UNKNOWN)
 		strcpy(buf, "unknown");
@@ -112,7 +112,7 @@ const char *dbg_print_flags(int val)
 {
 	static char buf[256];
 
-	bzero(buf, 256);
+	memset(buf, 0, 256);
 
 	if (val & SYMBOL_YES)
 		strcat(buf, "yes/");
@@ -155,7 +155,7 @@ const char *dbg_print_ptype(int val)
 {
 	static char buf[256];
 
-	bzero(buf, 256);
+	memset(buf, 0, 256);
 
 	if (val == P_UNKNOWN)
 		strcpy(buf, "unknown");
@@ -1188,7 +1188,7 @@ static gchar **fill_row(struct menu *menu)
 
 	for (i = COL_OPTION; i <= COL_COLOR; i++)
 		g_free(row[i]);
-	bzero(row, sizeof(row));
+	memset(row, 0, sizeof(row));
 
 	row[COL_OPTION] =
 	    g_strdup_printf("%s %s", menu_get_prompt(menu),
