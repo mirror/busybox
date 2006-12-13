@@ -67,11 +67,13 @@ static unsigned long cmd_flags;
 #define FLAG_U	(1<<12)
 #define	FLAG_w	(1<<13)
 
+/* XXX: FIXME: the following variables should be static, but gcc currently
+ * creates a much bigger object if we do this.  */
 int context, status;
 char *start, *label[2];
 struct stat stb1, stb2;
 char **dl;
-int dl_count = 0;
+static int dl_count = 0;
 
 struct cand {
 	int x;
@@ -1030,7 +1032,8 @@ static int dir_strcmp(const void *p1, const void *p2)
 /* This function adds a filename to dl, the directory listing. */
 
 static int add_to_dirlist(const char *filename,
-		struct stat ATTRIBUTE_UNUSED * sb, void *userdata, int depth)
+		struct stat ATTRIBUTE_UNUSED * sb, void *userdata,
+		int depth ATTRIBUTE_UNUSED)
 {
 	dl_count++;
 	dl = xrealloc(dl, dl_count * sizeof(char *));
