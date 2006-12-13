@@ -567,13 +567,13 @@ busybox-all  := $(core-y) $(libs-y)
 # May be overridden by arch/$(ARCH)/Makefile
 quiet_cmd_busybox__ ?= LINK    $@
 ifdef CONFIG_STATIC
-      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) \
+      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) $(LDFLAGS) \
       -static \
       -o $@ \
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
       -Wl,--start-group $(busybox-all) -Wl,--end-group
 else
-      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) -o $@ \
+      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) -o $@ $(LDFLAGS) \
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
       -Wl,--start-group $(busybox-all) -Wl,--end-group
 endif

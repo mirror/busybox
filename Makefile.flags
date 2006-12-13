@@ -20,3 +20,9 @@ CFLAGS += \
 	-funsigned-char -fno-builtin-strlen -finline-limit=0 -static-libgcc \
 	-Os -falign-functions=1 -falign-jumps=1 -falign-loops=1 \
 	-fomit-frame-pointer -ffunction-sections -fdata-sections
+
+ifeq ($(CONFIG_DEBUG),y)
+CFLAGS += -g
+LDFLAGS += -g
+endif
+
