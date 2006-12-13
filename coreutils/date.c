@@ -32,10 +32,16 @@
 #define DATE_OPT_TIMESPEC	0x20
 #define DATE_OPT_HINT		0x40
 
+static void xputenv(char *s)
+{
+	if (putenv(s) != 0)
+		bb_error_msg_and_die(bb_msg_memory_exhausted);
+}
+
 static void maybe_set_utc(int opt)
 {
-	if ((opt & DATE_OPT_UTC) && putenv("TZ=UTC0") != 0)
-		bb_error_msg_and_die(bb_msg_memory_exhausted);
+	if (opt & DATE_OPT_UTC)
+		xputenv("TZ=UTC0");
 }
 
 int date_main(int argc, char **argv)
@@ -53,9 +59,9 @@ int date_main(int argc, char **argv)
 	opt_complementary = "?:d--s:s--d"
 		USE_FEATURE_DATE_ISOFMT(":R--I:I--R");
 	opt = getopt32(argc, argv, "Rs:ud:r:"
-					USE_FEATURE_DATE_ISOFMT("I::D:"),
-					&date_str, &date_str, &filename
-					USE_FEATURE_DATE_ISOFMT(, &isofmt_arg, &hintfmt_arg));
+			USE_FEATURE_DATE_ISOFMT("I::D:"),
+			&date_str, &date_str, &filename
+			USE_FEATURE_DATE_ISOFMT(, &isofmt_arg, &hintfmt_arg));
 	maybe_set_utc(opt);
 
 	if (ENABLE_FEATURE_DATE_ISOFMT && (opt & DATE_OPT_TIMESPEC)) {
@@ -205,6 +211,8 @@ format_utc:
 				date_fmt[i] = (opt & DATE_OPT_UTC) ? 'Z' : 'z';
 			}
 		} else if (opt & DATE_OPT_RFC2822) {
+			/* Undo busybox.c for date -R */
+			setlocale(LC_TIME, "C");
 			strcpy(date_fmt, "%a, %d %b %Y %H:%M:%S ");
 			i = 22;
 			goto format_utc;
