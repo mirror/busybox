@@ -1105,10 +1105,12 @@ static void diffdir(char *p1, char *p2)
 
 	/* Check for trailing slashes. */
 
-	if (p1[strlen(p1) - 1] == '/')
-		p1[strlen(p1) - 1] = '\0';
-	if (p2[strlen(p2) - 1] == '/')
-		p2[strlen(p2) - 1] = '\0';
+	dp1 = last_char_is(p1, '/');
+	if (dp1 != NULL)
+		*dp1 = '\0';
+	dp2 = last_char_is(p2, '/');
+	if (dp2 != NULL)
+		*dp2 = '\0';
 
 	/* Get directory listings for p1 and p2. */
 
