@@ -2,6 +2,41 @@
 
 
 <ul>
+  <li><b>14 December, 2006 -- BusyBox 1.3.0 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.3.0.tar.bz2>BusyBox 1.3.0</a>.</p>
+
+    <p>This release has CONFIG_DESKTOP option which enables features
+    needed for busybox usage on desktop machine. For example, find, chmod
+    and chown get several less frequently used options, od is significantly
+    bigger but matches GNU coreutils, etc. Intended to eventually make
+    busybox a viable alternative for "standard" utilities for slightly
+    adventurous desktop users.
+    <p>Changes since previous release:
+    <ul>
+    <li>find: taking many more of standard options
+    <li>ps: POSIX-compliant -o implemented
+    <li>cp: added -s, -l
+    <li>grep: added -r, fixed -h
+    <li>watch: make it exec child like standard one does (was totally
+        incompatible)
+    <li>tar: fix limitations which were preventing bbox tar usage 
+        on a big directories: long names and linknames, pax headers
+        (Linux kernel tarballs have that). Fixed a number of obscure bugs.
+        Raised max file limit (now 64Gb). Security fixes (/../ attacks).
+    <li>httpd: added -i (inetd), -f (foreground), support for
+        directory indexer CGI (example is included), bugfixes.
+    <li>telnetd: fixed/improved IPv6 support, inetd+standalone support,
+        other fixes. Useful IPv6 stuff factored out into libbb.
+    <li>runit/*: new applets adapted from http://smarden.sunsite.dk/runit/
+        (these are my personal favorite small-and-beautiful toys)
+    <li>minor bugfixes to: login, dd, mount, umount, chmod, chown, ln, udhcp,
+        fdisk, ifconfig, sort, tee, mkswap, wget, insmod.
+    </ul>
+    <p>Note that GnuPG key used to sign this release is different.
+    1.2.2.1 is also signed post-factum now. Sorry for the mess.
+    </p>
+  </li>
+
   <li><b>29 October, 2006 -- BusyBox 1.2.2.1 (fix)</b>
     <p><a href=http://busybox.net/downloads/busybox-1.2.2.1.tar.bz2>BusyBox 1.2.2.1</a>.</p>
 
