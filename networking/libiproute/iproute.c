@@ -353,6 +353,14 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 				invarg(*argv, "protocol");
 			req.r.rtm_protocol = prot;
 			proto_ok =1;
+#if ENABLE_FEATURE_IP_RULE
+		} else if (matches(*argv, "table") == 0) {
+			uint32_t tid;
+			NEXT_ARG();
+			if (rtnl_rttable_a2n(&tid, *argv))
+				invarg(*argv, "table");
+			req.r.rtm_table = tid;
+#endif
 		} else if (strcmp(*argv, "dev") == 0 ||
 			   strcmp(*argv, "oif") == 0) {
 			NEXT_ARG();
@@ -540,9 +548,13 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 				NEXT_ARG();
 				if (matches(*argv, "cache") == 0) {
 					filter.tb = -1;
+#if 0 && ENABLE_FEATURE_IP_RULE
+				
+#else
 				} else if (matches(*argv, "main") != 0) {
 					invarg(*argv, "table");
 				}
+#endif
 			} else if (matches(*argv, "cache") == 0) {
 				filter.tb = -1;
 			} else {
