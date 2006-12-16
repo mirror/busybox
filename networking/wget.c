@@ -363,7 +363,7 @@ int wget_main(int argc, char **argv)
 					}
 				}
 			}
-		} while(status >= 300);
+		} while (status >= 300);
 
 		dfp = sfp;
 
@@ -509,7 +509,7 @@ int wget_main(int argc, char **argv)
 
 static void parse_url(char *src_url, struct host_info *h)
 {
-	char *url, *p, *cp, *sp, *up, *pp;
+	char *url, *p, *sp;
 
 	/* h->allocated = */ url = xstrdup(src_url);
 
@@ -542,8 +542,8 @@ static void parse_url(char *src_url, struct host_info *h)
 	if (!sp) {
 		h->path = "";
 	} else if (*sp == '/') {
-		*sp++ = '\0';
-		h->path = sp;
+		*sp = '\0';
+		h->path = sp + 1;
 	} else { // '#' or '?'
 		// http://busybox.net?login=john@doe is a valid URL
 		// memmove converts to:
@@ -554,35 +554,35 @@ static void parse_url(char *src_url, struct host_info *h)
 		h->path = sp;
 	}
 
-	up = strrchr(h->host, '@');
-	if (up != NULL) {
+	sp = strrchr(h->host, '@');
+	h->user = NULL;
+	if (sp != NULL) {
 		h->user = h->host;
-		*up++ = '\0';
-		h->host = up;
-	} else
-		h->user = NULL;
+		*sp = '\0';
+		h->host = sp + 1;
+	}
 
-	pp = h->host;
+	sp = h->host;
 
 #if ENABLE_FEATURE_WGET_IP6_LITERAL
-	if (h->host[0] == '[') {
+	if (sp[0] == '[') {
 		char *ep;
 
-		ep = h->host + 1;
+		ep = sp + 1;
 		while (*ep == ':' || isxdigit(*ep))
 			ep++;
 		if (*ep == ']') {
 			h->host++;
 			*ep = '\0';
-			pp = ep + 1;
+			sp = ep + 1;
 		}
 	}
 #endif
 
-	cp = strchr(pp, ':');
-	if (cp != NULL) {
-		*cp++ = '\0';
-		h->port = htons(xatou16(cp));
+	p = strchr(sp, ':');
+	if (p != NULL) {
+		*p = '\0';
+		h->port = htons(xatou16(p + 1));
 	}
 }
 
