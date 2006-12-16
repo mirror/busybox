@@ -195,7 +195,7 @@ typedef unsigned long long int  uintmax_t;
  * out of the tree, so stop saying it should be. */
 #define fdprintf dprintf
 
-/* Don't use lchown with glibc older then 2.1.x ... uC-libc lacks it */
+/* Don't use lchown with glibc older than 2.1.x ... uC-libc lacks it */
 #if (defined __GLIBC__ && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 1) || \
     defined __UC_LIBC__
 # define lchown chown

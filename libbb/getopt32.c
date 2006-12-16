@@ -447,7 +447,6 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 	}
 	va_end (p);
 
-#if ENABLE_AR || ENABLE_TAR
 	if (spec_flgs & FIRST_ARGV_IS_OPT) {
 		if (argv[1] && argv[1][0] != '-' && argv[1][0] != '\0') {
 			argv[1] = xasprintf("-%s", argv[1]);
@@ -455,7 +454,6 @@ getopt32(int argc, char **argv, const char *applet_opts, ...)
 				spec_flgs |= FREE_FIRST_ARGV_IS_OPT;
 		}
 	}
-#endif
 	/* Note: just "getopt() <= 0" will not work good for
 	 * "fake" short options, like this one:
 	 * wget $'-\203' "Test: test" http://kernel.org/

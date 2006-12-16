@@ -24,7 +24,7 @@ unsigned type xstrtou(_range_sfx)(const char *numstr, int base,
 	/* Disallow '-' and any leading whitespace.  Speed isn't critical here
 	 * since we're parsing commandline args.  So make sure we get the
 	 * actual isspace function rather than a lnumstrer macro implementaion. */
-	if ((*numstr == '-') || (isspace)(*numstr))
+	if (*numstr == '-' || *numstr == '+' || (isspace)(*numstr))
 		goto inval;
 
 	/* Since this is a lib function, we're not allowed to reset errno to 0.
@@ -36,7 +36,7 @@ unsigned type xstrtou(_range_sfx)(const char *numstr, int base,
 	/* Do the initial validity check.  Note: The standards do not
 	 * guarantee that errno is set if no digits were found.  So we
 	 * must test for this explicitly. */
-	if (errno || (numstr == e))
+	if (errno || numstr == e)
 		goto inval; /* error / no digits / illegal trailing chars */
 
 	errno = old_errno;	/* Ok.  So restore errno. */
@@ -127,7 +127,7 @@ type xstrto(_range_sfx)(const char *numstr, int base,
 	type r;
 	const char *p = numstr;
 
-	if ((p[0] == '-') && (p[1] != '+')) {
+	if (p[0] == '-') {
 		++p;
 		++u;	/* two's complement */
 	}

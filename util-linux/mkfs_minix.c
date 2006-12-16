@@ -183,7 +183,7 @@ static int used_good_blocks;
 static unsigned short good_blocks_table[MAX_GOOD_BLOCKS];
 static unsigned long req_nr_inodes;
 
-extern inline unsigned div_roundup(unsigned size, unsigned n)
+static ATTRIBUTE_ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 {
 	return (size + n-1) / n;
 }

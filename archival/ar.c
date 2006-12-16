@@ -87,7 +87,7 @@ int ar_main(int argc, char **argv)
 	}
 	archive_handle->offset += 7;
 
-	while (get_header_ar(archive_handle) == EXIT_SUCCESS);
+	while (get_header_ar(archive_handle) == EXIT_SUCCESS) /* repeat */;
 
 	return EXIT_SUCCESS;
 }

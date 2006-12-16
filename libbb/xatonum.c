@@ -34,7 +34,8 @@
 #endif
 
 #if UINT_MAX != ULONG_MAX
-extern inline unsigned bb_strtoui(const char *str, char **end, int b)
+static ATTRIBUTE_ALWAYS_INLINE
+unsigned bb_strtoui(const char *str, char **end, int b)
 {
 	unsigned long v = strtoul(str, end, b);
 	if (v > UINT_MAX) {
