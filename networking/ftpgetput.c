@@ -132,7 +132,7 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 		do_continue = 0;
 	}
 
-	if ((local_path[0] == '-') && (local_path[1] == '\0')) {
+	if (LONE_DASH(local_path)) {
 		fd_local = STDOUT_FILENO;
 		do_continue = 0;
 	}
@@ -212,9 +212,8 @@ int ftp_send(ftp_host_info_t *server, FILE *control_stream,
 	fd_data = xconnect_ftpdata(server, buf);
 
 	/* get the local file */
-	if ((local_path[0] == '-') && (local_path[1] == '\0')) {
-		fd_local = STDIN_FILENO;
-	} else {
+	fd_local = STDIN_FILENO;
+	if (NOT_LONE_DASH(local_path)) {
 		fd_local = xopen(local_path, O_RDONLY);
 		fstat(fd_local, &sbuf);
 

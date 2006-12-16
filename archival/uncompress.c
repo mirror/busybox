@@ -25,7 +25,7 @@ int uncompress_main(int argc, char **argv)
 		int src_fd;
 		int dst_fd;
 
-		if (strcmp(compressed_file, "-") == 0) {
+		if (LONE_DASH(compressed_file)) {
 			src_fd = STDIN_FILENO;
 			flags |= GUNZIP_TO_STDOUT;
 		} else {

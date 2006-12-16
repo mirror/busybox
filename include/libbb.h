@@ -255,6 +255,14 @@ extern char *xstrdup(const char *s);
 extern char *xstrndup(const char *s, int n);
 extern char *safe_strncpy(char *dst, const char *src, size_t size);
 extern char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
+// gcc-4.1.1 still isn't good enough at optimizing it
+// (+200 bytes compared to macro)
+//static ATTRIBUTE_ALWAYS_INLINE
+//int LONE_DASH(const char *s) { return s[0] == '-' && !s[1]; }
+//static ATTRIBUTE_ALWAYS_INLINE
+//int NOT_LONE_DASH(const char *s) { return s[0] != '-' || s[1]; }
+#define LONE_DASH(s) ((s)[0] == '-' && !(s)[1])
+#define NOT_LONE_DASH(s) ((s)[0] != '-' || (s)[1])
 
 /* dmalloc will redefine these to it's own implementation. It is safe
  * to have the prototypes here unconditionally.  */

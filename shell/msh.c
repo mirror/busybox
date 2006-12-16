@@ -1001,7 +1001,7 @@ static int newfile(char *s)
 
 	DBGPRINTF7(("NEWFILE: opening %s\n", s));
 
-	if (strcmp(s, "-") != 0) {
+	if (NOT_LONE_DASH(s)) {
 		DBGPRINTF(("NEWFILE: s is %s\n", s));
 		f = open(s, 0);
 		if (f < 0) {

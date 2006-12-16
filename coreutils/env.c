@@ -58,7 +58,7 @@ int env_main(int argc, char** argv)
 	opt = getopt32(argc, argv, "+iu:", &unset_env);
 
 	argv += optind;
-	if (*argv && (argv[0][0] == '-') && !argv[0][1]) {
+	if (*argv && LONE_DASH(argv[0])) {
 		opt |= 1;
 		++argv;
 	}

@@ -166,7 +166,7 @@ int uudecode_main(int argc, char **argv)
 			}
 			outname++;
 		}
-		if (strcmp(outname, "-") == 0) {
+		if (LONE_DASH(outname)) {
 			dst_stream = stdout;
 		} else {
 			dst_stream = xfopen(outname, "w");

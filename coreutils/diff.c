@@ -904,19 +904,19 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 
 	if (S_ISDIR(stb1.st_mode) != S_ISDIR(stb2.st_mode))
 		return (S_ISDIR(stb1.st_mode) ? D_MISMATCH1 : D_MISMATCH2);
-	if (strcmp(file1, "-") == 0 && strcmp(file2, "-") == 0)
+	if (LONE_DASH(file1) && LONE_DASH(file2))
 		goto closem;
 
 	f1 = stdin;
 	if (flags & D_EMPTY1)
 		f1 = xfopen(bb_dev_null, "r");
-	else if (file1[0] != '-' || file1[1]) /* not "-" */
+	else if (NOT_LONE_DASH(file1))
 		f1 = xfopen(file1, "r");
 
 	f2 = stdin;
 	if (flags & D_EMPTY2)
 		f2 = xfopen(bb_dev_null, "r");
-	else if (file2[0] != '-' || file2[1]) /* not "-" */
+	else if (NOT_LONE_DASH(file2))
 		f2 = xfopen(file2, "r");
 
 	i = files_differ(f1, f2, flags);
@@ -1212,12 +1212,12 @@ int diff_main(int argc, char **argv)
 		bb_error_msg("missing filename");
 		bb_show_usage();
 	}
-	if (argv[0][0] == '-' && !argv[0][1]) { /* "-" */
+	if (LONE_DASH(argv[0])) {
 		fstat(STDIN_FILENO, &stb1);
 		gotstdin = 1;
 	} else
 		xstat(argv[0], &stb1);
-	if (argv[1][0] == '-' && !argv[1][1]) { /* "-" */
+	if (LONE_DASH(argv[1])) {
 		fstat(STDIN_FILENO, &stb2);
 		gotstdin = 1;
 	} else

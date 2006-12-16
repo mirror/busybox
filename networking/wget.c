@@ -217,7 +217,7 @@ int wget_main(int argc, char **argv)
 	/*
 	 * Determine where to start transfer.
 	 */
-	if (fname_out[0] == '-' && !fname_out[1]) {
+	if (LONE_DASH(fname_out)) {
 		output_fd = 1;
 		opt &= ~WGET_OPT_CONTINUE;
 	}

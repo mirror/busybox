@@ -2315,7 +2315,7 @@ cdcmd(int argc, char **argv)
 	dest = *argptr;
 	if (!dest)
 		dest = bltinlookup(homestr);
-	else if (dest[0] == '-' && dest[1] == '\0') {
+	else if (LONE_DASH(dest)) {
 		dest = bltinlookup("OLDPWD");
 		flags |= CD_PRINT;
 	}
@@ -8889,7 +8889,7 @@ options(int cmdline)
 		argptr++;
 		if ((c = *p++) == '-') {
 			val = 1;
-			if (p[0] == '\0' || (p[0] == '-' && p[1] == '\0')) {
+			if (p[0] == '\0' || LONE_DASH(p)) {
 				if (!cmdline) {
 					/* "-" means turn off -x and -v */
 					if (p[0] == '\0')
@@ -9114,7 +9114,7 @@ atend:
 			goto out;
 		}
 		optnext++;
-		if (p[0] == '-' && p[1] == '\0')        /* check for "--" */
+		if (LONE_DASH(p))        /* check for "--" */
 			goto atend;
 	}
 
@@ -9232,7 +9232,7 @@ nextopt(const char *optstring)
 		if (p == NULL || *p != '-' || *++p == '\0')
 			return '\0';
 		argptr++;
-		if (p[0] == '-' && p[1] == '\0')        /* check for "--" */
+		if (LONE_DASH(p))        /* check for "--" */
 			return '\0';
 	}
 	c = *p++;
@@ -9825,7 +9825,7 @@ void fixredir(union node *n, const char *text, int err)
 
 	if (is_digit(text[0]) && text[1] == '\0')
 		n->ndup.dupfd = digit_val(text[0]);
-	else if (text[0] == '-' && text[1] == '\0')
+	else if (LONE_DASH(text))
 		n->ndup.dupfd = -1;
 	else {
 
@@ -11650,7 +11650,7 @@ trapcmd(int argc, char **argv)
 			sh_error("%s: bad trap", *ap);
 		INTOFF;
 		if (action) {
-			if (action[0] == '-' && action[1] == '\0')
+			if (LONE_DASH(action))
 				action = NULL;
 			else
 				action = savestr(action);
@@ -12257,7 +12257,7 @@ static void mklocal(char *name)
 
 	INTOFF;
 	lvp = ckmalloc(sizeof (struct localvar));
-	if (name[0] == '-' && name[1] == '\0') {
+	if (LONE_DASH(name)) {
 		char *p;
 		p = ckmalloc(sizeof(optlist));
 		lvp->text = memcpy(p, optlist, sizeof(optlist));

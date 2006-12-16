@@ -18,9 +18,6 @@
 /* 1 if any of the files read were the standard input */
 static int have_read_stdin;
 
-/* make a little more readable and avoid using strcmp for just 2 bytes */
-#define IS_STDIN(s) (s[0] == '-' && s[1] == '\0')
-
 /* Calculate and print the rotated checksum and the size in 1K blocks
    of file FILE, or of the standard input if FILE is "-".
    If PRINT_NAME is >1, print FILE next to the checksum and size.
@@ -34,7 +31,7 @@ static int bsd_sum_file(const char *file, int print_name)
 	int ch;                    /* Each character read. */
 	int ret = 0;
 
-	if (IS_STDIN(file)) {
+	if (LONE_DASH(file)) {
 		fp = stdin;
 		have_read_stdin++;
 	} else {
@@ -84,7 +81,7 @@ static int sysv_sum_file(const char *file, int print_name)
 	/* The sum of all the input bytes, modulo (UINT_MAX + 1).  */
 	unsigned int s = 0;
 
-	if (IS_STDIN(file)) {
+	if (LONE_DASH(file)) {
 		fd = 0;
 		have_read_stdin = 1;
 	} else {
@@ -103,7 +100,7 @@ static int sysv_sum_file(const char *file, int print_name)
 release_and_ret:
 			bb_perror_msg(file);
 			RELEASE_CONFIG_BUFFER(buf);
-			if (!IS_STDIN(file))
+			if (NOT_LONE_DASH(file))
 				close(fd);
 			return 0;
 		}
@@ -113,7 +110,7 @@ release_and_ret:
 			s += buf[bytes_read];
 	}
 
-	if (!IS_STDIN(file) && close(fd) == -1)
+	if (NOT_LONE_DASH(file) && close(fd) == -1)
 		goto release_and_ret;
 	else
 		RELEASE_CONFIG_BUFFER(buf);

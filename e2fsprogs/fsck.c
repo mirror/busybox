@@ -1249,8 +1249,8 @@ static void PRS(int argc, char *argv[])
 						progress_fd = 0;
 					else
 						goto next_arg;
-				} else if ((i+1) < argc &&
-					   !strncmp(argv[i+1], "-", 1) == 0) {
+				} else if ((i+1) < argc
+				 && argv[i+1][0] != '-') {
 					progress_fd = string_to_int(argv[i]);
 					if (progress_fd < 0)
 						progress_fd = 0;

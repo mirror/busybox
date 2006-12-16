@@ -58,7 +58,7 @@ int gunzip_main(int argc, char **argv)
 
 		optind++;
 
-		if (old_path == NULL || strcmp(old_path, "-") == 0) {
+		if (old_path == NULL || LONE_DASH(old_path)) {
 			src_fd = STDIN_FILENO;
 			opt |= GUNZIP_OPT_STDOUT;
 			USE_DESKTOP(opt &= ~GUNZIP_OPT_VERBOSE;)

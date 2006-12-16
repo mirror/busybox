@@ -851,7 +851,7 @@ int tar_main(int argc, char **argv)
 			flags = O_RDONLY;
 		}
 
-		if (tar_filename[0] == '-' && !tar_filename[1]) {
+		if (LONE_DASH(tar_filename)) {
 			tar_handle->src_fd = fileno(tar_stream);
 			tar_handle->seek = seek_by_read;
 		} else {

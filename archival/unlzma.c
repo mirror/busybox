@@ -26,7 +26,7 @@ int unlzma_main(int argc, char **argv)
 
 	/* Set input filename and number */
 	filename = argv[optind];
-	if (filename && (filename[0] != '-') && (filename[1] != '\0')) {
+	if (filename && NOT_LONE_DASH(filename)) {
 		/* Open input file */
 		src_fd = xopen(filename, O_RDONLY);
 	} else {

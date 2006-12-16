@@ -681,7 +681,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 				if (strcmp(*argv, "+") == 0) {
 					brd_len = -1;
 				}
-				else if (strcmp(*argv, "-") == 0) {
+				else if (LONE_DASH(*argv)) {
 					brd_len = -2;
 				} else {
 					get_addr(&addr, *argv, req.ifa.ifa_family);

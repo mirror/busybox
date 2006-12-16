@@ -22,7 +22,7 @@ FILE *fopen_or_warn_stdin(const char *filename)
 
 	if (filename != bb_msg_standard_input
 	 && filename[0]
-	 && (filename[0] != '-' || filename[1])
+	 && NOT_LONE_DASH(filename)
 	) {
 		fp = fopen_or_warn(filename, "r");
 	}

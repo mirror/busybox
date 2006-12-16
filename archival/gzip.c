@@ -1201,7 +1201,7 @@ int gzip_main(int argc, char **argv)
 			char *path = NULL;
 
 			clear_bufs();
-			if (strcmp(argv[i], "-") == 0) {
+			if (LONE_DASH(argv[i])) {
 				time_stamp = 0;
 				inFileNum = STDIN_FILENO;
 				outFileNum = STDOUT_FILENO;

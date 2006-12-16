@@ -310,7 +310,7 @@ int sort_main(int argc, char **argv)
 	/* Open input files and read data */
 	for (i = argv[optind] ? optind : optind-1; argv[i]; i++) {
 		fp = stdin;
-		if (i >= optind && (argv[i][0] != '-' || argv[i][1]))
+		if (i >= optind && NOT_LONE_DASH(argv[i]))
 			fp = xfopen(argv[i], "r");
 		for (;;) {
 			line = GET_LINE(fp);

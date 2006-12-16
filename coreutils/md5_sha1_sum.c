@@ -39,7 +39,7 @@ static uint8_t *hash_file(const char *filename, hash_algo_t hash_algo)
 	void (*final)(void*, void*);
 
 	src_fd = STDIN_FILENO;
-	if (filename[0] != '-' || filename[1]) { /* not "-" */
+	if (NOT_LONE_DASH(filename)) {
 		src_fd = open(filename, O_RDONLY);
 		if (src_fd < 0) {
 			bb_perror_msg("%s", filename);
@@ -120,7 +120,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 		}
 
 		pre_computed_stream = stdin;
-		if (file_ptr[0] != '-' || file_ptr[1]) { /* not "-" */
+		if (NOT_LONE_DASH(file_ptr)) {
 			pre_computed_stream = xfopen(file_ptr, "r");
 		}
 

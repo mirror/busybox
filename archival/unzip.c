@@ -187,11 +187,10 @@ int unzip_main(int argc, char **argv)
 	}
 
 	/* Open input file */
-	if (strcmp("-", src_fn) == 0) {
+	if (LONE_DASH(src_fn)) {
 		src_fd = STDIN_FILENO;
 		/* Cannot use prompt mode since zip data is arriving on STDIN */
 		overwrite = (overwrite == o_prompt) ? o_never : overwrite;
-
 	} else {
 		static const char *const extn[] = {"", ".zip", ".ZIP"};
 		int orig_src_fn_len = strlen(src_fn);

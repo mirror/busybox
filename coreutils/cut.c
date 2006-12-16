@@ -168,6 +168,8 @@ int cut_main(int argc, char **argv)
 
 	opt_complementary = "b--bcf:c--bcf:f--bcf";
 	getopt32(argc, argv, optstring, &sopt, &sopt, &sopt, &ltok);
+//	argc -= optind;
+	argv += optind;
 	if (!(option_mask32 & (CUT_OPT_BYTE_FLGS | CUT_OPT_CHAR_FLGS | CUT_OPT_FIELDS_FLGS)))
 		bb_error_msg_and_die("expected a list of bytes, characters, or fields");
 	if (option_mask32 & BB_GETOPT_ERROR)
@@ -262,22 +264,21 @@ int cut_main(int argc, char **argv)
 		qsort(cut_lists, nlists, sizeof(struct cut_list), cmpfunc);
 	}
 
-	/* argv[(optind)..(argc-1)] should be names of file to process. If no
+	/* argv[0..argc-1] should be names of file to process. If no
 	 * files were specified or '-' was specified, take input from stdin.
 	 * Otherwise, we process all the files specified. */
-	if (argv[optind] == NULL
-		|| (argv[optind][0] == '-' && argv[optind][1] == '\0')) {
+	if (argv[0] == NULL || LONE_DASH(argv[0])) {
 		cut_file(stdin);
 	} else {
 		FILE *file;
 
-		for (; optind < argc; optind++) {
-			file = fopen_or_warn(argv[optind], "r");
+		do {
+			file = fopen_or_warn(argv[0], "r");
 			if (file) {
 				cut_file(file);
 				fclose(file);
 			}
-		}
+		} while (*++argv);
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(cut_lists);

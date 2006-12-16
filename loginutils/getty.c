@@ -239,7 +239,7 @@ static void open_tty(char *tty, struct termios *tp, int local)
 
 	/* Set up new standard input, unless we are given an already opened port. */
 
-	if (strcmp(tty, "-")) {
+	if (NOT_LONE_DASH(tty)) {
 		struct stat st;
 		int fd;
 

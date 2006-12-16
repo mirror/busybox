@@ -14,25 +14,29 @@ int su_main(int argc, char **argv)
 	char *opt_shell = 0;
 	char *opt_command = 0;
 	char *opt_username = "root";
-	char **opt_args = 0;
 	struct passwd *pw;
 	uid_t cur_uid = getuid();
 	const char *tty;
 	char *old_user;
 
 	flags = getopt32(argc, argv, "mplc:s:", &opt_command, &opt_shell);
+	argc -= optind;
+	argv -= optind;
 #define SU_OPT_mp (3)
 #define SU_OPT_l (4)
 
-	if (optind < argc  && argv[optind][0] == '-' && argv[optind][1] == 0) {
+	if (argc && LONE_DASH(argv[0])) {
 		flags |= SU_OPT_l;
-		++optind;
+		argc--;
+		argv++;
 	}
 
 	/* get user if specified */
-	if (optind < argc) opt_username = argv [optind++];
-
-	if (optind < argc) opt_args = argv + optind;
+	if (argc) {
+		opt_username = argv[0];
+//		argc--;
+		argv++;
+	}
 
 	if (ENABLE_SU_SYSLOG) {
 		/* The utmp entry (via getlogin) is probably the best way to identify
@@ -84,7 +88,7 @@ int su_main(int argc, char **argv)
 	USE_SELINUX(set_current_security_context(NULL);)
 
 	/* Never returns */
-	run_shell(opt_shell, flags & SU_OPT_l, opt_command, (const char**)opt_args);
+	run_shell(opt_shell, flags & SU_OPT_l, opt_command, (const char**)argv);
 
 	return EXIT_FAILURE;
 }

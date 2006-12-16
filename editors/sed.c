@@ -1235,9 +1235,7 @@ int sed_main(int argc, char **argv)
 			struct stat statbuf;
 			int nonstdoutfd;
 
-			if (argv[i][0] == '-' && !argv[i][1]
-			 && !(opt & OPT_in_place)
-			) {
+			if (LONE_DASH(argv[i]) && !(opt & OPT_in_place)) {
 				add_input_file(stdin);
 				process_files();
 				continue;

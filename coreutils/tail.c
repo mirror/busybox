@@ -176,8 +176,8 @@ int tail_main(int argc, char **argv)
 	}
 
 	do {
-		if ((argv[i][0] == '-') && !argv[i][1]) {
-		DO_STDIN:
+		if (LONE_DASH(argv[i])) {
+ DO_STDIN:
 			fds[nfiles] = STDIN_FILENO;
 		} else if ((fds[nfiles] = open(argv[i], O_RDONLY)) < 0) {
 			bb_perror_msg("%s", argv[i]);

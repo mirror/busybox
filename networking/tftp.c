@@ -530,7 +530,7 @@ int tftp_main(int argc, char **argv)
 	if ((localfile == NULL && remotefile == NULL) || (argv[optind] == NULL))
 		bb_show_usage();
 
-	if (localfile == NULL || strcmp(localfile, "-") == 0) {
+	if (localfile == NULL || LONE_DASH(localfile)) {
 		fd = (cmd == tftp_cmd_get) ? STDOUT_FILENO : STDIN_FILENO;
 	} else {
 		fd = open(localfile, flags, 0644); /* fail below */

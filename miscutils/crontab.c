@@ -51,7 +51,7 @@ int crontab_main(int ac, char **av)
 
 	i = 1;
 	if (ac > 1) {
-		if (av[1][0] == '-' && av[1][1] == 0) {
+		if (LONE_DASH(av[1])) {
 			option = REPLACE;
 			++i;
 		} else if (av[1][0] != '-') {
