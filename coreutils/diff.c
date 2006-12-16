@@ -50,8 +50,6 @@
 #define D_SKIPPED2	(1<<8)
 
 /* Command line options */
-static unsigned long cmd_flags;
-
 #define FLAG_a	(1<<0)
 #define FLAG_b	(1<<1)
 #define FLAG_d  (1<<2)
@@ -68,12 +66,12 @@ static unsigned long cmd_flags;
 #define	FLAG_w	(1<<13)
 
 /* XXX: FIXME: the following variables should be static, but gcc currently
- * creates a much bigger object if we do this.  */
+ * creates a much bigger object if we do this. [which version of gcc? --vda] */
 int context, status;
 char *start, *label[2];
 struct stat stb1, stb2;
 char **dl;
-static int dl_count = 0;
+static int dl_count;
 
 struct cand {
 	int x;
@@ -116,12 +114,14 @@ static struct context_vec *context_vec_start;
 static struct context_vec *context_vec_end;
 static struct context_vec *context_vec_ptr;
 
+
 static void print_only(const char *path, size_t dirlen, const char *entry)
 {
 	if (dirlen > 1)
 		dirlen--;
 	printf("Only in %.*s: %s\n", (int) dirlen, path, entry);
 }
+
 
 static void print_status(int val, char *path1, char *path2, char *entry)
 {
@@ -140,20 +140,20 @@ static void print_status(int val, char *path1, char *path2, char *entry)
 		printf("Binary files %s and %s differ\n", _path1, _path2);
 		break;
 	case D_DIFFER:
-		if (cmd_flags & FLAG_q)
+		if (option_mask32 & FLAG_q)
 			printf("Files %s and %s differ\n", _path1, _path2);
 		break;
 	case D_SAME:
-		if (cmd_flags & FLAG_s)
+		if (option_mask32 & FLAG_s)
 			printf("Files %s and %s are identical\n", _path1, _path2);
 		break;
 	case D_MISMATCH1:
-		printf("File %s is a directory while file %s is a regular file\n",
-			   _path1, _path2);
+		printf("File %s is a %s while file %s is a %s\n",
+			   _path1, "directory", _path2, "regular file");
 		break;
 	case D_MISMATCH2:
-		printf("File %s is a regular file while file %s is a directory\n",
-			   _path1, _path2);
+		printf("File %s is a %s while file %s is a %s\n",
+			   _path1, "regular file", _path2, "directory");
 		break;
 	case D_SKIPPED1:
 		printf("File %s is not a regular file or directory and was skipped\n",
@@ -170,6 +170,7 @@ static void print_status(int val, char *path1, char *path2, char *entry)
 	}
 }
 
+
 /*
  * Hash function taken from Robert Sedgewick, Algorithms in C, 3d ed., p 578.
  */
@@ -180,7 +181,7 @@ static int readhash(FILE * f)
 
 	sum = 1;
 	space = 0;
-	if (!(cmd_flags & FLAG_b) && !(cmd_flags & FLAG_w)) {
+	if (!(option_mask32 & FLAG_b) && !(option_mask32 & FLAG_w)) {
 		if (FLAG_i)
 			for (i = 0; (t = getc(f)) != '\n'; i++) {
 				if (t == EOF) {
@@ -209,7 +210,7 @@ static int readhash(FILE * f)
 				space++;
 				continue;
 			default:
-				if (space && !(cmd_flags & FLAG_w)) {
+				if (space && !(option_mask32 & FLAG_w)) {
 					i++;
 					space = 0;
 				}
@@ -234,22 +235,20 @@ static int readhash(FILE * f)
 }
 
 
-
 /*
  * Check to see if the given files differ.
  * Returns 0 if they are the same, 1 if different, and -1 on error.
  */
 static int files_differ(FILE * f1, FILE * f2, int flags)
 {
-	char buf1[BUFSIZ], buf2[BUFSIZ];
 	size_t i, j;
 
 	if ((flags & (D_EMPTY1 | D_EMPTY2)) || stb1.st_size != stb2.st_size ||
 		(stb1.st_mode & S_IFMT) != (stb2.st_mode & S_IFMT))
 		return 1;
 	while (1) {
-		i = fread(buf1, 1, sizeof(buf1), f1);
-		j = fread(buf2, 1, sizeof(buf2), f2);
+		i = fread(bb_common_bufsiz1,            1, BUFSIZ/2, f1);
+		j = fread(bb_common_bufsiz1 + BUFSIZ/2, 1, BUFSIZ/2, f2);
 		if (i != j)
 			return 1;
 		if (i == 0 && j == 0) {
@@ -257,10 +256,12 @@ static int files_differ(FILE * f1, FILE * f2, int flags)
 				return 1;
 			return 0;
 		}
-		if (memcmp(buf1, buf2, i) != 0)
+		if (memcmp(bb_common_bufsiz1,
+		           bb_common_bufsiz1 + BUFSIZ/2, i) != 0)
 			return 1;
 	}
 }
+
 
 static void prepare(int i, FILE * fd, off_t filesize)
 {
@@ -286,6 +287,7 @@ static void prepare(int i, FILE * fd, off_t filesize)
 	file[i] = p;
 }
 
+
 static void prune(void)
 {
 	int i, j;
@@ -302,6 +304,7 @@ static void prune(void)
 			sfile[j][i].serial = i;
 	}
 }
+
 
 static void equiv(struct line *a, int n, struct line *b, int m, int *c)
 {
@@ -330,6 +333,7 @@ static void equiv(struct line *a, int n, struct line *b, int m, int *c)
 	c[j] = -1;
 }
 
+
 static int isqrt(int n)
 {
 	int y, x = 1;
@@ -346,6 +350,7 @@ static int isqrt(int n)
 
 	return x;
 }
+
 
 static int newcand(int x, int y, int pred)
 {
@@ -395,7 +400,7 @@ static int stone(int *a, int n, int *b, int *c)
 
 #if ENABLE_FEATURE_DIFF_MINIMAL
 	const unsigned int bound =
-		(cmd_flags & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
+		(option_mask32 & FLAG_d) ? UINT_MAX : MAX(256, isqrt(n));
 #else
 	const unsigned int bound = MAX(256, isqrt(n));
 #endif
@@ -433,6 +438,7 @@ static int stone(int *a, int n, int *b, int *c)
 	return k;
 }
 
+
 static void unravel(int p)
 {
 	struct cand *q;
@@ -456,6 +462,7 @@ static void unsort(struct line *f, int l, int *b)
 		b[i] = a[i];
 	free(a);
 }
+
 
 static int skipline(FILE * f)
 {
@@ -493,8 +500,8 @@ static void check(FILE * f1, FILE * f2)
 			ixnew[j] = ctnew += skipline(f2);
 			j++;
 		}
-		if ((cmd_flags & FLAG_b) || (cmd_flags & FLAG_w)
-			|| (cmd_flags & FLAG_i)) {
+		if ((option_mask32 & FLAG_b) || (option_mask32 & FLAG_w)
+			|| (option_mask32 & FLAG_i)) {
 			while (1) {
 				c = getc(f1);
 				d = getc(f2);
@@ -502,13 +509,13 @@ static void check(FILE * f1, FILE * f2)
 				 * GNU diff ignores a missing newline
 				 * in one file if bflag || wflag.
 				 */
-				if (((cmd_flags & FLAG_b) || (cmd_flags & FLAG_w)) &&
+				if (((option_mask32 & FLAG_b) || (option_mask32 & FLAG_w)) &&
 					((c == EOF && d == '\n') || (c == '\n' && d == EOF))) {
 					break;
 				}
 				ctold++;
 				ctnew++;
-				if ((cmd_flags & FLAG_b) && isspace(c) && isspace(d)) {
+				if ((option_mask32 & FLAG_b) && isspace(c) && isspace(d)) {
 					do {
 						if (c == '\n')
 							break;
@@ -519,7 +526,7 @@ static void check(FILE * f1, FILE * f2)
 							break;
 						ctnew++;
 					} while (isspace(d = getc(f2)));
-				} else if (cmd_flags & FLAG_w) {
+				} else if (option_mask32 & FLAG_w) {
 					while (isspace(c) && c != '\n') {
 						c = getc(f1);
 						ctold++;
@@ -565,6 +572,7 @@ static void check(FILE * f1, FILE * f2)
 		ixnew[j] = ctnew += skipline(f2);
 }
 
+
 /* shellsort CACM #201 */
 static void sort(struct line *a, int n)
 {
@@ -607,6 +615,7 @@ static void uni_range(int a, int b)
 		printf("%d,0", b);
 }
 
+
 static int fetch(long *f, int a, int b, FILE * lb, int ch)
 {
 	int i, j, c, lastc, col, nc;
@@ -618,7 +627,7 @@ static int fetch(long *f, int a, int b, FILE * lb, int ch)
 		nc = f[i] - f[i - 1];
 		if (ch != '\0') {
 			putchar(ch);
-			if (cmd_flags & FLAG_T)
+			if (option_mask32 & FLAG_T)
 				putchar('\t');
 		}
 		col = 0;
@@ -627,7 +636,7 @@ static int fetch(long *f, int a, int b, FILE * lb, int ch)
 				puts("\n\\ No newline at end of file");
 				return 0;
 			}
-			if (c == '\t' && (cmd_flags & FLAG_t)) {
+			if (c == '\t' && (option_mask32 & FLAG_t)) {
 				do {
 					putchar(' ');
 				} while (++col & 7);
@@ -640,27 +649,29 @@ static int fetch(long *f, int a, int b, FILE * lb, int ch)
 	return 0;
 }
 
+
 static int asciifile(FILE * f)
 {
 #if ENABLE_FEATURE_DIFF_BINARY
-	unsigned char buf[BUFSIZ];
 	int i, cnt;
 #endif
 
-	if ((cmd_flags & FLAG_a) || f == NULL)
+	if ((option_mask32 & FLAG_a) || f == NULL)
 		return 1;
 
 #if ENABLE_FEATURE_DIFF_BINARY
 	rewind(f);
-	cnt = fread(buf, 1, sizeof(buf), f);
+	cnt = fread(bb_common_bufsiz1, 1, BUFSIZ, f);
 	for (i = 0; i < cnt; i++) {
-		if (!isprint(buf[i]) && !isspace(buf[i])) {
+		if (!isprint(bb_common_bufsiz1[i])
+		 && !isspace(bb_common_bufsiz1[i])) {
 			return 0;
 		}
 	}
 #endif
 	return 1;
 }
+
 
 /* dump accumulated "unified" diff changes */
 static void dump_unified_vec(FILE * f1, FILE * f2)
@@ -735,10 +746,9 @@ static void print_header(const char *file1, const char *file2)
 }
 
 
-
 /*
  * Indicate that there is a difference between lines a and b of the from file
- * to get to lines c to d of the to file.  If a is greater then b then there
+ * to get to lines c to d of the to file.  If a is greater than b then there
  * are no lines in the from file involved and this means that there were
  * lines appended (beginning at b).  If c is greater than d then there are
  * lines missing from the to file.
@@ -748,10 +758,10 @@ static void change(char *file1, FILE * f1, char *file2, FILE * f2, int a,
 {
 	static size_t max_context = 64;
 
-	if (a > b && c > d)
+	if ((a > b && c > d) || (option_mask32 & FLAG_q)) {
+		anychange = 1;
 		return;
-	if (cmd_flags & FLAG_q)
-		return;
+	}
 
 	/*
 	 * Allocate change records as needed.
@@ -771,7 +781,6 @@ static void change(char *file1, FILE * f1, char *file2, FILE * f2, int a,
 		 * Print the context/unidiff header first time through.
 		 */
 		print_header(file1, file2);
-		anychange = 1;
 	} else if (a > context_vec_ptr->b + (2 * context) + 1 &&
 			   c > context_vec_ptr->d + (2 * context) + 1) {
 		/*
@@ -785,14 +794,12 @@ static void change(char *file1, FILE * f1, char *file2, FILE * f2, int a,
 	context_vec_ptr->b = b;
 	context_vec_ptr->c = c;
 	context_vec_ptr->d = d;
-	return;
-
+	anychange = 1;
 }
 
 
 static void output(char *file1, FILE * f1, char *file2, FILE * f2)
 {
-
 	/* Note that j0 and j1 can't be used as they are defined in math.h.
 	 * This also allows the rather amusing variable 'j00'... */
 	int m, i0, i1, j00, j01;
@@ -816,7 +823,7 @@ static void output(char *file1, FILE * f1, char *file2, FILE * f2)
 	if (m == 0) {
 		change(file1, f1, file2, f2, 1, 0, 1, len[1]);
 	}
-	if (anychange != 0) {
+	if (anychange != 0 && !(option_mask32 & FLAG_q)) {
 		dump_unified_vec(f1, f2);
 	}
 }
@@ -883,7 +890,6 @@ static void output(char *file1, FILE * f1, char *file2, FILE * f2)
  *      3*(number of k-candidates installed),  typically about
  *      6n words for files of length n.
  */
-
 static int diffreg(char *ofile1, char *ofile2, int flags)
 {
 	char *file1 = ofile1;
@@ -901,25 +907,20 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 	if (strcmp(file1, "-") == 0 && strcmp(file2, "-") == 0)
 		goto closem;
 
+	f1 = stdin;
 	if (flags & D_EMPTY1)
 		f1 = xfopen(bb_dev_null, "r");
-	else {
-		if (strcmp(file1, "-") == 0)
-			f1 = stdin;
-		else
-			f1 = xfopen(file1, "r");
-	}
+	else if (file1[0] != '-' || file1[1]) /* not "-" */
+		f1 = xfopen(file1, "r");
 
+	f2 = stdin;
 	if (flags & D_EMPTY2)
 		f2 = xfopen(bb_dev_null, "r");
-	else {
-		if (strcmp(file2, "-") == 0)
-			f2 = stdin;
-		else
-			f2 = xfopen(file2, "r");
-	}
+	else if (file2[0] != '-' || file2[1]) /* not "-" */
+		f2 = xfopen(file2, "r");
 
-	if ((i = files_differ(f1, f2, flags)) == 0)
+	i = files_differ(f1, f2, flags);
+	if (i == 0)
 		goto closem;
 	else if (i != 1) {	/* 1 == ok */
 		/* error */
@@ -965,7 +966,7 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 	check(f1, f2);
 	output(file1, f1, file2, f2);
 
-  closem:
+ closem:
 	if (anychange) {
 		status |= 1;
 		if (rval == D_SAME)
@@ -982,10 +983,10 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 	return rval;
 }
 
+
 #if ENABLE_FEATURE_DIFF_DIR
 static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 {
-
 	int flags = D_HEADER;
 	int val;
 
@@ -1023,14 +1024,15 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 }
 #endif
 
+
 #if ENABLE_FEATURE_DIFF_DIR
 static int dir_strcmp(const void *p1, const void *p2)
 {
 	return strcmp(*(char *const *) p1, *(char *const *) p2);
 }
 
-/* This function adds a filename to dl, the directory listing. */
 
+/* This function adds a filename to dl, the directory listing. */
 static int add_to_dirlist(const char *filename,
 		struct stat ATTRIBUTE_UNUSED * sb, void *userdata,
 		int depth ATTRIBUTE_UNUSED)
@@ -1038,7 +1040,7 @@ static int add_to_dirlist(const char *filename,
 	dl_count++;
 	dl = xrealloc(dl, dl_count * sizeof(char *));
 	dl[dl_count - 1] = xstrdup(filename);
-	if (cmd_flags & FLAG_r) {
+	if (option_mask32 & FLAG_r) {
 		int *pp = (int *) userdata;
 		int path_len = *pp + 1;
 
@@ -1047,10 +1049,10 @@ static int add_to_dirlist(const char *filename,
 	return TRUE;
 }
 
+
 /* This returns a sorted directory listing. */
 static char **get_dir(char *path)
 {
-
 	int i;
 	char **retval;
 
@@ -1068,7 +1070,7 @@ static char **get_dir(char *path)
 	dl_count = 0;
 
 	/* Now fill dl with a listing. */
-	if (cmd_flags & FLAG_r)
+	if (option_mask32 & FLAG_r)
 		recursive_action(path, TRUE, TRUE, FALSE, add_to_dirlist, NULL,
 						 userdata, 0);
 	else {
@@ -1095,9 +1097,9 @@ static char **get_dir(char *path)
 	return retval;
 }
 
+
 static void diffdir(char *p1, char *p2)
 {
-
 	char **dirlist1, **dirlist2;
 	char *dp1, *dp2;
 	int dirlist1_count, dirlist2_count;
@@ -1144,13 +1146,13 @@ static void diffdir(char *p1, char *p2)
 			dirlist1++;
 			dirlist2++;
 		} else if (pos < 0) {
-			if (cmd_flags & FLAG_N)
+			if (option_mask32 & FLAG_N)
 				do_diff(p1, dp1, p2, NULL);
 			else
 				print_only(p1, strlen(p1) + 1, dp1);
 			dirlist1++;
 		} else {
-			if (cmd_flags & FLAG_N)
+			if (option_mask32 & FLAG_N)
 				do_diff(p1, NULL, p2, dp2);
 			else
 				print_only(p2, strlen(p2) + 1, dp2);
@@ -1161,7 +1163,6 @@ static void diffdir(char *p1, char *p2)
 #endif
 
 
-
 int diff_main(int argc, char **argv)
 {
 	int gotstdin = 0;
@@ -1170,10 +1171,11 @@ int diff_main(int argc, char **argv)
 	llist_t *L_arg = NULL;
 
 	opt_complementary = "L::";
-	cmd_flags = getopt32(argc, argv, "abdiL:NqrsS:tTU:wu",
+	getopt32(argc, argv, "abdiL:NqrsS:tTU:wu"
+			"p" /* ignored (for compatibility) */,
 			&L_arg, &start, &U_opt);
 
-	if (cmd_flags & FLAG_L) {
+	if (option_mask32 & FLAG_L) {
 		while (L_arg) {
 			if (label[0] == NULL)
 				label[0] = L_arg->data;
@@ -1196,8 +1198,8 @@ int diff_main(int argc, char **argv)
 	}
 
 	context = 3;		/* This is the default number of lines of context. */
-	if (cmd_flags & FLAG_U) {
-		context = xatoul_range(U_opt, 1, INT_MAX);
+	if (option_mask32 & FLAG_U) {
+		context = xatou_range(U_opt, 1, INT_MAX);
 	}
 	argc -= optind;
 	argv += optind;
@@ -1210,12 +1212,12 @@ int diff_main(int argc, char **argv)
 		bb_error_msg("missing filename");
 		bb_show_usage();
 	}
-	if (strcmp(argv[0], "-") == 0) {
+	if (argv[0][0] == '-' && !argv[0][1]) { /* "-" */
 		fstat(STDIN_FILENO, &stb1);
 		gotstdin = 1;
 	} else
 		xstat(argv[0], &stb1);
-	if (strcmp(argv[1], "-") == 0) {
+	if (argv[1][0] == '-' && !argv[1][1]) { /* "-" */
 		fstat(STDIN_FILENO, &stb2);
 		gotstdin = 1;
 	} else
@@ -1239,5 +1241,5 @@ int diff_main(int argc, char **argv)
 		}
 		print_status(diffreg(argv[0], argv[1], 0), argv[0], argv[1], NULL);
 	}
-	exit(status);
+	return status;
 }

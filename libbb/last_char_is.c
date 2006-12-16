@@ -9,15 +9,15 @@
 
 #include "libbb.h"
 
-/* Find out if the last character of a string matches the one given Don't
- * underrun the buffer if the string length is 0.  Also avoids a possible
- * space-hogging inline of strlen() per usage.
+/* Find out if the last character of a string matches the one given.
+ * Don't underrun the buffer if the string length is 0.
  */
 char* last_char_is(const char *s, int c)
 {
-	if (s) {
-		s = strrchr(s, c);
-		if (s && !s[1])
+	if (s && *s) {
+		size_t sz = strlen(s) - 1;
+		s += sz;
+		if ( (unsigned char)*s == c)
 			return (char*)s;
 	}
 	return NULL;
