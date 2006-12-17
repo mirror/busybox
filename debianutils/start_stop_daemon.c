@@ -26,7 +26,7 @@ struct pid_list {
 	pid_t pid;
 };
 
-static struct pid_list *found = NULL;
+static struct pid_list *found;
 
 static inline void push(pid_t pid)
 {
@@ -42,13 +42,16 @@ static int pid_is_exec(pid_t pid, const char *name)
 {
 	char buf[sizeof("/proc//exe") + sizeof(int)*3];
 	char *execbuf;
+	int sz;
 	int equal;
 
 	sprintf(buf, "/proc/%d/exe", pid);
-	execbuf = xstrdup(name);
-	readlink(buf, execbuf, strlen(name)+1);
+	sz = strlen(name) + 1;
+	execbuf = xzalloc(sz);
+	readlink(buf, execbuf, sz);
 
-	equal = ! strcmp(execbuf, name);
+	/* if readlink fails, execbuf still contains "" */
+	equal = !strcmp(execbuf, name);
 	if (ENABLE_FEATURE_CLEAN_UP)
 		free(execbuf);
 	return equal;
@@ -59,7 +62,7 @@ static int pid_is_user(int pid, int uid)
 	struct stat sb;
 	char buf[sizeof("/proc/") + sizeof(int)*3];
 
-	sprintf(buf, "/proc/%d", pid);
+	sprintf(buf, "/proc/%u", pid);
 	if (stat(buf, &sb) != 0)
 		return 0;
 	return (sb.st_uid == uid);
@@ -67,25 +70,24 @@ static int pid_is_user(int pid, int uid)
 
 static int pid_is_cmd(pid_t pid, const char *name)
 {
-	char buf[sizeof("/proc//stat") + sizeof(int)*3];
-	FILE *f;
-	int c;
+	char fname[sizeof("/proc//stat") + sizeof(int)*3];
+	char *buf;
+	int r = 0;
 
-	sprintf(buf, "/proc/%d/stat", pid);
-	f = fopen(buf, "r");
-	if (!f)
-		return 0;
-	while ((c = getc(f)) != EOF && c != '(')
-		;
-	if (c != '(') {
-		fclose(f);
-		return 0;
+	sprintf(fname, "/proc/%u/stat", pid);
+	buf = xmalloc_open_read_close(fname, NULL);
+	if (buf) {
+		char *p = strchr(buf, '(');
+		if (p) {
+			char *pe = strrchr(++p, ')');
+			if (pe) {
+				*pe = '\0';
+				r = !strcmp(p, name);
+			}
+		}
+		free(buf);
 	}
-	/* this hopefully handles command names containing ')' */
-	while ((c = getc(f)) != EOF && c == *name)
-		name++;
-	fclose(f);
-	return (c == ')' && *name == '\0');
+	return r;
 }
 
 
@@ -111,7 +113,7 @@ static void do_pidfile(void)
 
 	f = fopen(pidfile, "r");
 	if (f) {
-		if (fscanf(f, "%d", &pid) == 1)
+		if (fscanf(f, "%u", &pid) == 1)
 			check(pid);
 		fclose(f);
 	} else if (errno != ENOENT)
@@ -133,7 +135,8 @@ static void do_procinit(void)
 
 	foundany = 0;
 	while ((entry = readdir(procdir)) != NULL) {
-		if (sscanf(entry->d_name, "%d", &pid) != 1)
+		pid = bb_strtou(entry->d_name, NULL, 10);
+		if (errno)
 			continue;
 		foundany++;
 		check(pid);
@@ -269,8 +272,11 @@ int start_stop_daemon_main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (userspec && sscanf(userspec, "%d", &user_id) != 1)
-		user_id = bb_xgetpwnam(userspec);
+	if (userspec) {
+		user_id = bb_strtou(userspec, NULL, 10);
+		if (errno)
+			user_id = bb_xgetpwnam(userspec);
+	}
 
 	if (opt & SSD_CTX_STOP) {
 		int i = do_stop();
@@ -301,7 +307,8 @@ int start_stop_daemon_main(int argc, char **argv)
 		fclose(pidf);
 	}
 	if (chuid) {
-		if (sscanf(chuid, "%d", &user_id) != 1)
+		user_id = bb_strtou(chuid, NULL, 10);
+		if (errno)
 			user_id = bb_xgetpwnam(chuid);
 		xsetuid(user_id);
 	}
