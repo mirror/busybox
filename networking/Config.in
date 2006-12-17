@@ -72,15 +72,15 @@ config HTTPD
 config FEATURE_HTTPD_RELOAD_CONFIG_SIGHUP
 	bool "Support reloading the global config file using hup signal"
 	default n
-	depends on HTTPD && FEATURE_HTTPD_WITHOUT_INETD
+	depends on HTTPD
 	help
 	  This option enables processing of SIGHUP to reload cached
 	  configuration settings.
 
 config FEATURE_HTTPD_SETUID
-	bool "Enable support -u <user> option"
+	bool "Enable -u <user> option"
 	default n
-	depends on HTTPD && FEATURE_HTTPD_WITHOUT_INETD
+	depends on HTTPD
 	help
 	  This option allows the server to run as a specific user
 	  rather than defaulting to the user that starts the server.
