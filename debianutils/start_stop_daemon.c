@@ -194,7 +194,7 @@ static int do_stop(void)
 }
 
 #if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
-static const struct option ssd_long_options[] = {
+static const struct option long_options[] = {
 	{ "stop",               0,      NULL,   'K' },
 	{ "start",              0,      NULL,   'S' },
 	{ "background",         0,      NULL,   'b' },
@@ -219,16 +219,16 @@ static const struct option ssd_long_options[] = {
 };
 #endif
 
-#define SSD_CTX_STOP            0x1
-#define SSD_CTX_START           0x2
-#define SSD_OPT_BACKGROUND      0x4
-#define SSD_OPT_QUIET           0x8
-#define SSD_OPT_MAKEPID         0x10
-#if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
-#define SSD_OPT_OKNODO          0x20
-#define SSD_OPT_VERBOSE         0x40
-#define SSD_OPT_NICELEVEL       0x80
-#endif
+enum {
+	CTX_STOP       = 0x1,
+	CTX_START      = 0x2,
+	OPT_BACKGROUND = 0x4,
+	OPT_QUIET      = 0x8,
+	OPT_MAKEPID    = 0x10,
+	OPT_OKNODO     = 0x20 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY,
+	OPT_VERBOSE    = 0x40 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY,
+	OPT_NICELEVEL  = 0x80 * ENABLE_FEATURE_START_STOP_DAEMON_FANCY,
+};
 
 int start_stop_daemon_main(int argc, char **argv)
 {
@@ -241,7 +241,7 @@ int start_stop_daemon_main(int argc, char **argv)
 	char *opt_N;
 #endif
 #if ENABLE_FEATURE_START_STOP_DAEMON_LONG_OPTIONS
-	applet_long_options = ssd_long_options;
+	applet_long_options = long_options;
 #endif
 
 	/* Check required one context option was given */
@@ -254,8 +254,7 @@ int start_stop_daemon_main(int argc, char **argv)
 //		USE_FEATURE_START_STOP_DAEMON_FANCY(,&retry_arg)
 		,&startas, &cmdname, &signame, &userspec, &chuid, &execname, &pidfile);
 
-	quiet = (opt & SSD_OPT_QUIET)
-			USE_FEATURE_START_STOP_DAEMON_FANCY(&& !(opt & SSD_OPT_VERBOSE));
+	quiet = (opt & OPT_QUIET) && !(opt & OPT_VERBOSE);
 
 	if (signame) {
 		signal_nr = get_signum(signame);
@@ -278,11 +277,9 @@ int start_stop_daemon_main(int argc, char **argv)
 			user_id = bb_xgetpwnam(userspec);
 	}
 
-	if (opt & SSD_CTX_STOP) {
+	if (opt & CTX_STOP) {
 		int i = do_stop();
-		return
-			USE_FEATURE_START_STOP_DAEMON_FANCY((opt & SSD_OPT_OKNODO)
-				? 0 :) !!(i<=0);
+		return (opt & OPT_OKNODO) ? 0 : (i<=0);
 	}
 
 	do_procinit();
@@ -290,15 +287,14 @@ int start_stop_daemon_main(int argc, char **argv)
 	if (found) {
 		if (!quiet)
 			printf("%s already running\n%d\n", execname, found->pid);
-		USE_FEATURE_START_STOP_DAEMON_FANCY(return !(opt & SSD_OPT_OKNODO);)
-		SKIP_FEATURE_START_STOP_DAEMON_FANCY(return EXIT_FAILURE;)
+		return !(opt & OPT_OKNODO);
 	}
 	*--argv = startas;
-	if (opt & SSD_OPT_BACKGROUND) {
+	if (opt & OPT_BACKGROUND) {
 		xdaemon(0, 0);
 		setsid();
 	}
-	if (opt & SSD_OPT_MAKEPID) {
+	if (opt & OPT_MAKEPID) {
 		/* user wants _us_ to make the pidfile */
 		FILE *pidf = xfopen(pidfile, "w");
 
@@ -313,7 +309,7 @@ int start_stop_daemon_main(int argc, char **argv)
 		xsetuid(user_id);
 	}
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY
-	if (opt & SSD_OPT_NICELEVEL) {
+	if (opt & OPT_NICELEVEL) {
 		/* Set process priority */
 		int prio = getpriority(PRIO_PROCESS, 0) + xatoi_range(opt_N, INT_MIN/2, INT_MAX/2);
 		if (setpriority(PRIO_PROCESS, 0, prio) < 0) {
