@@ -866,8 +866,7 @@ format_address_paren(off_t address, char c)
 {
 	putchar('(');
 	format_address_std(address, ')');
-	/* BUG in coreutils 5.2.1! must be "if (c) putchar(c);" */
-	putchar(c);
+	if (c) putchar(c);
 }
 
 static void
