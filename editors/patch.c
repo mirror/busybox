@@ -214,6 +214,7 @@ int patch_main(int argc, char **argv)
 							bb_error_msg("hunk #%d FAILED at %d", hunk_count, hunk_offset_start);
 							hunk_error++;
 							free(patch_line);
+							patch_line = NULL;
 							break;
 						}
 						free(src_line);
