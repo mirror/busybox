@@ -15,9 +15,8 @@
  *
  *  Issues
  *   - Non-interactive
- *   - Patches must apply cleanly or the hunk will fail.
+ *   - Patches must apply cleanly or patch (not just one hunk) will fail.
  *   - Reject file isnt saved
- *   -
  */
 
 #include <getopt.h>
@@ -214,6 +213,8 @@ int patch_main(int argc, char **argv)
 							bb_error_msg("hunk #%d FAILED at %d", hunk_count, hunk_offset_start);
 							hunk_error++;
 							free(patch_line);
+							/* Probably need to find next hunk, etc... */
+							/* but for now we just bail out */
 							patch_line = NULL;
 							break;
 						}
