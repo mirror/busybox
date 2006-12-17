@@ -504,7 +504,6 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		volatile int vfork_exec_errno = 0;
 		char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
 
-
 		if (pipe(gzipDataPipe) < 0 || pipe(gzipStatusPipe) < 0)
 			bb_perror_msg_and_die("pipe");
 
@@ -585,10 +584,15 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 	if (errorFlag)
 		bb_error_msg("error exit delayed from previous errors");
 
-	if (gzipPid && waitpid(gzipPid, NULL, 0) == -1)
-		bb_error_msg("waitpid failed");
-
-	return !errorFlag;
+	if (gzipPid) {
+		int status;
+		if (waitpid(gzipPid, &status, 0) == -1)
+			bb_perror_msg("waitpid");
+		else if (!WIFEXITED(status) || WEXITSTATUS(status))
+			/* gzip was killed or has exited with nonzero! */
+			errorFlag = TRUE;
+	}
+	return errorFlag;
 }
 #else
 int writeTarFile(const int tar_fd, const int verboseFlag,
@@ -648,6 +652,29 @@ static char get_header_tar_Z(archive_handle_t *archive_handle)
 }
 #else
 #define get_header_tar_Z	0
+#endif
+
+#ifdef CHECK_FOR_CHILD_EXITCODE
+/* Looks like it isn't needed - tar detects malformed (truncated)
+ * archive if e.g. bunzip2 fails */
+static int child_error;
+
+static void handle_SIGCHLD(int status)
+{
+	/* Actually, 'status' is a signo. We reuse it for other needs */
+
+	/* Wait for any child without blocking */
+	if (waitpid(-1, &status, WNOHANG) < 0)
+		/* wait failed?! I'm confused... */
+		return;
+
+	if (WIFEXITED(status) && WEXITSTATUS(status)==0)
+		/* child exited with 0 */
+		return;
+	/* Cannot happen? 
+	if(!WIFSIGNALED(status) && !WIFEXITED(status)) return; */
+	child_error = 1;
+}
 #endif
 
 enum {
@@ -862,6 +889,11 @@ int tar_main(int argc, char **argv)
 	if (base_dir)
 		xchdir(base_dir);
 
+#ifdef CHECK_FOR_CHILD_EXITCODE
+	/* We need to know whether child (gzip/bzip/etc) exits abnormally */
+	signal(SIGCHLD, handle_SIGCHLD);
+#endif
+
 	/* create an archive */
 	if (opt & OPT_CREATE) {
 		int zipMode = 0;
@@ -869,11 +901,10 @@ int tar_main(int argc, char **argv)
 			zipMode = 1;
 		if (ENABLE_FEATURE_TAR_BZIP2 && get_header_ptr == get_header_tar_bz2)
 			zipMode = 2;
-		writeTarFile(tar_handle->src_fd, verboseFlag, opt & OPT_DEREFERENCE,
+		/* NB: writeTarFile() closes tar_handle->src_fd */
+		return writeTarFile(tar_handle->src_fd, verboseFlag, opt & OPT_DEREFERENCE,
 				tar_handle->accept,
 				tar_handle->reject, zipMode);
-		/* NB: writeTarFile() closes tar_handle->src_fd */
-		return EXIT_SUCCESS;
 	}
 
 	while (get_header_ptr(tar_handle) == EXIT_SUCCESS)
