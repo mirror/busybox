@@ -144,7 +144,10 @@ static int tftp(const int cmd, const struct hostent *host,
 
 	/* Can't use RESERVE_CONFIG_BUFFER here since the allocation
 	 * size varies meaning BUFFERS_GO_ON_STACK would fail */
-	char *buf=xmalloc(tftp_bufsize += 4);
+	/* We must keep the transmit and receive buffers seperate */
+	/* In case we rcv a garbage pkt and we need to rexmit the last pkt */
+	char *xbuf = xmalloc(tftp_bufsize += 4);
+	char *rbuf = xmalloc(tftp_bufsize);
 
 	if ((socketfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
 		/* need to unlink the localfile, so don't use xsocket here. */
@@ -172,7 +175,7 @@ static int tftp(const int cmd, const struct hostent *host,
 
 	while (1) {
 
-		cp = buf;
+		cp = xbuf;
 
 		/* first create the opcode part */
 		*((unsigned short *) cp) = htons(opcode);
@@ -184,18 +187,18 @@ static int tftp(const int cmd, const struct hostent *host,
 		{
 			int too_long = 0;
 
-			/* see if the filename fits into buf
+			/* see if the filename fits into xbuf
 			 * and fill in packet.  */
 			len = strlen(remotefile) + 1;
 
-			if ((cp + len) >= &buf[tftp_bufsize - 1]) {
+			if ((cp + len) >= &xbuf[tftp_bufsize - 1]) {
 				too_long = 1;
 			} else {
 				safe_strncpy(cp, remotefile, len);
 				cp += len;
 			}
 
-			if (too_long || ((&buf[tftp_bufsize - 1] - cp) < MODE_OCTET_LEN)) {
+			if (too_long || ((&xbuf[tftp_bufsize - 1] - cp) < MODE_OCTET_LEN)) {
 				bb_error_msg("remote filename too long");
 				break;
 			}
@@ -210,7 +213,7 @@ static int tftp(const int cmd, const struct hostent *host,
 
 			if (len != TFTP_BLOCKSIZE_DEFAULT) {
 
-				if ((&buf[tftp_bufsize - 1] - cp) < 15) {
+				if ((&xbuf[tftp_bufsize - 1] - cp) < 15) {
 					bb_error_msg("remote filename too long");
 					break;
 				}
@@ -259,15 +262,15 @@ static int tftp(const int cmd, const struct hostent *host,
 		timeout = TFTP_NUM_RETRIES;	/* re-initialize */
 		do {
 
-			len = cp - buf;
+			len = cp - xbuf;
 
 #if ENABLE_DEBUG_TFTP
 			fprintf(stderr, "sending %u bytes\n", len);
-			for (cp = buf; cp < &buf[len]; cp++)
+			for (cp = xbuf; cp < &xbuf[len]; cp++)
 				fprintf(stderr, "%02x ", (unsigned char) *cp);
 			fprintf(stderr, "\n");
 #endif
-			if (sendto(socketfd, buf, len, 0,
+			if (sendto(socketfd, xbuf, len, 0,
 					   (struct sockaddr *) &sa, sizeof(sa)) < 0) {
 				bb_perror_msg("send");
 				len = -1;
@@ -292,7 +295,7 @@ static int tftp(const int cmd, const struct hostent *host,
 
 			switch (select(socketfd + 1, &rfds, NULL, NULL, &tv)) {
 			case 1:
-				len = recvfrom(socketfd, buf, tftp_bufsize, 0,
+				len = recvfrom(socketfd, rbuf, tftp_bufsize, 0,
 							   (struct sockaddr *) &from, &fromlen);
 
 				if (len < 0) {
@@ -334,8 +337,8 @@ static int tftp(const int cmd, const struct hostent *host,
 
 		/* process received packet */
 
-		opcode = ntohs(*((unsigned short *) buf));
-		tmp = ntohs(*((unsigned short *) &buf[2]));
+		opcode = ntohs(*((unsigned short *) rbuf));
+		tmp = ntohs(*((unsigned short *) &rbuf[2]));
 
 #if ENABLE_DEBUG_TFTP
 		fprintf(stderr, "received %d bytes: %04x %04x\n", len, opcode, tmp);
@@ -344,9 +347,9 @@ static int tftp(const int cmd, const struct hostent *host,
 		if (opcode == TFTP_ERROR) {
 			const char *msg = NULL;
 
-			if (buf[4] != '\0') {
-				msg = &buf[4];
-				buf[tftp_bufsize - 1] = '\0';
+			if (rbuf[4] != '\0') {
+				msg = &rbuf[4];
+				rbuf[tftp_bufsize - 1] = '\0';
 			} else if (tmp < (sizeof(tftp_bb_error_msg)
 							  / sizeof(char *))) {
 
@@ -370,7 +373,7 @@ static int tftp(const int cmd, const struct hostent *host,
 
 				char *res;
 
-				res = tftp_option_get(&buf[2], len - 2, OPTION_BLOCKSIZE);
+				res = tftp_option_get(&rbuf[2], len - 2, OPTION_BLOCKSIZE);
 
 				if (res) {
 					int blksize = xatoi_u(res);
@@ -408,7 +411,7 @@ static int tftp(const int cmd, const struct hostent *host,
 
 			if (tmp == block_nr) {
 
-				len = full_write(localfd, &buf[4], len - 4);
+				len = full_write(localfd, &rbuf[4], len - 4);
 
 				if (len < 0) {
 					bb_perror_msg(bb_msg_write_error);
@@ -450,7 +453,8 @@ static int tftp(const int cmd, const struct hostent *host,
 
 #if ENABLE_FEATURE_CLEAN_UP
 	close(socketfd);
-	free(buf);
+	free(xbuf);
+	free(rbuf);
 #endif
 
 	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
