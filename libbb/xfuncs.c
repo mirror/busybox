@@ -411,6 +411,37 @@ char *xasprintf(const char *format, ...)
 	return string_ptr;
 }
 
+#ifdef __dietlibc__
+int dprintf(int fd, const char *format, ...)
+{
+	va_list p;
+	int r;
+	char *string_ptr;
+
+#if 1
+	// GNU extension
+	va_start(p, format);
+	r = vasprintf(&string_ptr, format, p);
+	va_end(p);
+#else
+	// Bloat for systems that haven't got the GNU extension.
+	va_start(p, format);
+	r = vsnprintf(NULL, 0, format, p);
+	va_end(p);
+	string_ptr = xmalloc(r+1);
+	va_start(p, format);
+	r = vsnprintf(string_ptr, r+1, format, p);
+	va_end(p);
+#endif
+
+	if (r >= 0) {
+		full_write(fd, string_ptr, r);
+		free(string_ptr);
+	}
+	return r;
+}
+#endif
+
 // Die with an error message if we can't copy an entire FILE * to stdout, then
 // close that file.
 void xprint_and_close_file(FILE *file)

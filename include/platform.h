@@ -194,6 +194,9 @@ typedef unsigned long long int  uintmax_t;
  * libbb.  This would require a platform.c.  It's not going to be cleaned
  * out of the tree, so stop saying it should be. */
 #define fdprintf dprintf
+#ifdef __dietlibc__
+int dprintf(int fd, const char *format, ...);
+#endif
 
 /* Don't use lchown with glibc older than 2.1.x ... uC-libc lacks it */
 #if (defined __GLIBC__ && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 1) || \

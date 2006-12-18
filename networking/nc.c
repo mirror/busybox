@@ -104,7 +104,7 @@ int nc_main(int argc, char **argv)
 
 			if (!lport) {
 				socklen_t len = sizeof(address);
-				getsockname(sfd, &address, &len);
+				getsockname(sfd, (struct sockaddr *) &address, &len);
 				fdprintf(2, "%d\n", SWAP_BE16(address.sin_port));
 			}
  repeatyness:
