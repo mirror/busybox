@@ -216,18 +216,16 @@ static void format_process(const procps_status_t *ps)
 		// POSIX: Any field need not be meaningful in all
 		// implementations. In such a case a hyphen ( '-' )
 		// should be output in place of the field value.
-		if (!*p) {
-			*p++ = '-';
-			*p = '\0';
+		if (!p[0]) {
+			p[0] = '-';
+			p[1] = '\0';
 		}
 		len = strlen(p);
 		p += len;
 		len = out[i].width - len + 1;
 		if (++i == out_cnt) /* do not pad last field */
 			break;
-		while (len--)
-			*p++ = ' ';
-		*p = '\0';
+		p += sprintf(p, "%*s", len, "");
 	}
 	printf("%.*s\n", terminal_width, buffer);
 }
