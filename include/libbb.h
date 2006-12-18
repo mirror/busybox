@@ -159,7 +159,7 @@
 #endif
 
 
-#if (__GLIBC__ < 2)
+#if defined(__GLIBC__) && __GLIBC__ < 2
 int vdprintf(int d, const char *format, va_list ap);
 #endif
 // This is declared here rather than #including <libgen.h> in order to avoid

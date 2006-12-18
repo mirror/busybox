@@ -11,12 +11,11 @@
  */
 
 #include "libbb.h"
-#include <string.h>
 
 #include "rt_names.h"
 #include "utils.h"
 
-#if __GLIBC__ >=2 && __GLIBC_MINOR__ >= 1
+#if defined(__GLIBC__) && __GLIBC__ >=2 && __GLIBC_MINOR__ >= 1
 #include <net/ethernet.h>
 #else
 #include <linux/if_ether.h>

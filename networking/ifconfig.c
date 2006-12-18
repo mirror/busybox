@@ -29,7 +29,7 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
-#if __GLIBC__ >=2 && __GLIBC_MINOR__ >= 1
+#if defined(__GLIBC__) && __GLIBC__ >=2 && __GLIBC_MINOR__ >= 1
 #include <netpacket/packet.h>
 #include <net/ethernet.h>
 #else

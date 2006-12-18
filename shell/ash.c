@@ -12567,10 +12567,8 @@ letcmd(int argc, char **argv)
 
 #undef rflag
 
-#ifdef __GLIBC__
-#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 1
+#if defined(__GLIBC__) && __GLIBC__ == 2 && __GLIBC_MINOR__ < 1
 typedef enum __rlimit_resource rlim_t;
-#endif
 #endif
 
 

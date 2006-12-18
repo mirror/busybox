@@ -1215,7 +1215,7 @@ int gzip_main(int argc, char **argv)
 					path = xasprintf("%s.gz", argv[i]);
 
 					/* Open output file */
-#if (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 1) && defined O_NOFOLLOW
+#if defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1 && defined(O_NOFOLLOW)
 					outFileNum =
 						open(path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW);
 #else

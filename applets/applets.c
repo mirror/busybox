@@ -13,8 +13,6 @@
  */
 
 #include "busybox.h"
-#include <unistd.h>
-#include <string.h>
 #include <assert.h>
 
 /* Apparently uclibc defines __GLIBC__ (compat trick?). Oh well. */
@@ -22,7 +20,9 @@
 #warning Static linking against glibc produces buggy executables
 #warning (glibc does not cope well with ld --gc-sections).
 #warning See sources.redhat.com/bugzilla/show_bug.cgi?id=3400
-#warning Note that glibc is utterly unsuitable for static linking anyway.
+#warning Note that glibc is unsuitable for static linking anyway.
+#warning If you still want to do it, remove -Wl,--gc-sections
+#warning from top-level Makefile and remove this warning.
 #endif
 
 #if ENABLE_SHOW_USAGE && !ENABLE_FEATURE_COMPRESS_USAGE

@@ -13,7 +13,7 @@
 
 
 
-#if (__GLIBC__ < 2)
+#if defined(__GLIBC__) && __GLIBC__ < 2
 int vdprintf(int d, const char *format, va_list ap)
 {
 	char buf[BUF_SIZE];
