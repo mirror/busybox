@@ -5851,7 +5851,7 @@ _rmescapes(char *str, int flag)
 		}
 		q = r;
 		if (len > 0) {
-			q = mempcpy(q, str, len);
+			q = memcpy(q, str, len) + len;
 		}
 	}
 	inquotes = (flag & RMESCAPE_QUOTED) ^ RMESCAPE_QUOTED;
@@ -8433,7 +8433,7 @@ char *
 stnputs(const char *s, size_t n, char *p)
 {
 	p = makestrspace(n, p);
-	p = mempcpy(p, s, n);
+	p = memcpy(p, s, n) + n;
 	return p;
 }
 
@@ -8517,7 +8517,7 @@ single_quote(const char *s) {
 		q = p = makestrspace(len + 3, p);
 
 		*q++ = '\'';
-		q = mempcpy(q, s, len);
+		q = memcpy(q, s, len) + len;
 		*q++ = '\'';
 		s += len;
 
@@ -8530,7 +8530,7 @@ single_quote(const char *s) {
 		q = p = makestrspace(len + 3, p);
 
 		*q++ = '"';
-		q = mempcpy(q, s, len);
+		q = memcpy(q, s, len) + len;
 		*q++ = '"';
 		s += len;
 
@@ -8754,11 +8754,12 @@ copynodelist(struct nodelist *lp)
 
 
 static char *
-nodesavestr(char   *s)
+nodesavestr(char *s)
 {
-	char   *rtn = funcstring;
+	char *rtn = funcstring;
 
-	funcstring = stpcpy(funcstring, s) + 1;
+	strcpy(funcstring, s);
+	funcstring += strlen(s) + 1;
 	return rtn;
 }
 
@@ -12013,10 +12014,11 @@ setvar(const char *name, const char *val, int flags)
 		vallen = strlen(val);
 	}
 	INTOFF;
-	p = mempcpy(nameeq = ckmalloc(namelen + vallen + 2), name, namelen);
+	nameeq = ckmalloc(namelen + vallen + 2)
+	p = memcpy(nameeq, name, namelen) + namelen;
 	if (val) {
 		*p++ = '=';
-		p = mempcpy(p, val, vallen);
+		p = memcpy(p, val, vallen) + vallen;
 	}
 	*p = '\0';
 	setvareq(nameeq, flags | VNOSAVE);

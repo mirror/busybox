@@ -193,9 +193,18 @@ typedef unsigned long long int  uintmax_t;
 /* Platforms that haven't got dprintf need to implement fdprintf() in
  * libbb.  This would require a platform.c.  It's not going to be cleaned
  * out of the tree, so stop saying it should be. */
+#if !defined(__dietlibc__)
+/* Needed for: glibc */
+/* Not needed for: dietlibc */
+/* Others: ?? (add as needed) */
 #define fdprintf dprintf
-#ifdef __dietlibc__
-int dprintf(int fd, const char *format, ...);
+#endif
+
+#if defined(__dietlibc__)
+static ATTRIBUTE_ALWAYS_INLINE char* strchrnul(const char *s, char c) {
+	while (*s && *s != c) ++s;
+	return (char*)s;
+}
 #endif
 
 /* Don't use lchown with glibc older than 2.1.x ... uC-libc lacks it */

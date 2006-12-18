@@ -411,8 +411,8 @@ char *xasprintf(const char *format, ...)
 	return string_ptr;
 }
 
-#ifdef __dietlibc__
-int dprintf(int fd, const char *format, ...)
+#if 0 /* If we will ever meet a libc which hasn't [f]dprintf... */
+int fdprintf(int fd, const char *format, ...)
 {
 	va_list p;
 	int r;
