@@ -40,20 +40,12 @@ int raw_socket(int ifindex)
 	struct sockaddr_ll sock;
 
 	DEBUG("Opening raw socket on ifindex %d", ifindex);
-	fd = socket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
-	if (fd < 0) {
-		bb_perror_msg("socket");
-		return -1;
-	}
+	fd = xsocket(PF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
 
 	sock.sll_family = AF_PACKET;
 	sock.sll_protocol = htons(ETH_P_IP);
 	sock.sll_ifindex = ifindex;
-	if (bind(fd, (struct sockaddr *) &sock, sizeof(sock)) < 0) {
-		bb_perror_msg("bind");
-		close(fd);
-		return -1;
-	}
+	xbind(fd, (struct sockaddr *) &sock, sizeof(sock));
 
 	return fd;
 }

@@ -70,10 +70,6 @@ int udhcpd_main(int argc, char *argv[])
 
 		if (server_socket < 0) {
 			server_socket = listen_socket(INADDR_ANY, SERVER_PORT, server_config.interface);
-			if (server_socket < 0) {
-				bb_perror_msg("FATAL: cannot create server socket");
-				return 2;
-			}
 		}
 
 		max_sock = udhcp_sp_fd_set(&rfds, server_socket);

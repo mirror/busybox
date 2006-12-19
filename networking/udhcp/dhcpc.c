@@ -278,10 +278,6 @@ int udhcpc_main(int argc, char *argv[])
 				fd = listen_socket(INADDR_ANY, CLIENT_PORT, client_config.interface);
 			else
 				fd = raw_socket(client_config.ifindex);
-			if (fd < 0) {
-				bb_perror_msg("FATAL: cannot listen on socket");
-				return 0;
-			}
 		}
 		max_fd = udhcp_sp_fd_set(&rfds, fd);
 

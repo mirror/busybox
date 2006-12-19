@@ -199,21 +199,21 @@ static int listen_socket(char *iface_addr, int listen_port)
 {
 	struct sockaddr_in a;
 	char msg[100];
-	int s;
-	s = xsocket(PF_INET, SOCK_DGRAM, 0);
-	if (setsockopt_reuseaddr(s) < 0)
+	int sck;
+	sck = xsocket(PF_INET, SOCK_DGRAM, 0);
+	if (setsockopt_reuseaddr(sck) < 0)
 		bb_perror_msg_and_die("setsockopt() failed");
 	memset(&a, 0, sizeof(a));
 	a.sin_port = htons(listen_port);
 	a.sin_family = AF_INET;
 	if (!inet_aton(iface_addr, &a.sin_addr))
 		bb_perror_msg_and_die("bad iface address");
-	xbind(s, (struct sockaddr *)&a, sizeof(a));
-	xlisten(s, 50);
+	xbind(sck, (struct sockaddr *)&a, sizeof(a));
+	xlisten(sck, 50);
 	sprintf(msg, "accepting UDP packets on addr:port %s:%d\n",
 		iface_addr, (int)listen_port);
 	log_message(LOG_FILE, msg);
-	return s;
+	return sck;
 }
 
 /*
@@ -412,8 +412,6 @@ int dnsd_main(int argc, char **argv)
 #endif
 
 	udps = listen_socket(listen_interface, port);
-	if (udps < 0)
-		exit(1);
 
 	while (1) {
 		fd_set fdset;

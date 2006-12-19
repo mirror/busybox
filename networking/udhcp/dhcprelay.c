@@ -169,7 +169,6 @@ static int init_sockets(char **client, int num_clients,
 
 	/* talk to real server on bootps */
 	fds[0] = listen_socket(htonl(INADDR_ANY), 67, server);
-	if (fds[0] < 0) return -1;
 	*max_socket = fds[0];
 
 	/* array starts at 1 since server is 0 */
@@ -178,7 +177,6 @@ static int init_sockets(char **client, int num_clients,
 	for (i=1; i < num_clients; i++) {
 		/* listen for clients on bootps */
 		fds[i] = listen_socket(htonl(INADDR_ANY), 67, client[i-1]);
-		if (fds[i] < 0) return -1;
 		if (fds[i] > *max_socket) *max_socket = fds[i];
 	}
 
@@ -321,8 +319,6 @@ int dhcprelay_main(int argc, char **argv)
 	signal(SIGINT, dhcprelay_signal_handler);
 
 	num_sockets = init_sockets(clients, num_sockets, argv[2], fds, &max_socket);
-	if (num_sockets == -1)
-		bb_perror_msg_and_die("init_sockets() failed");
 
 	if (read_interface(argv[2], NULL, &gw_ip, NULL) == -1)
 		return 1;
