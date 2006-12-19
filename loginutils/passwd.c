@@ -77,7 +77,8 @@ static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 	if (!newp)
 		goto err_ret;
 	newp = xstrdup(newp); /* we are going to bb_askpass() again, so save it */
-	if (obscure(orig, newp, pw) && myuid)
+	if (ENABLE_FEATURE_PASSWD_WEAK_CHECK
+	 && obscure(orig, newp, pw) && myuid)
 		goto err_ret; /* non-root is not allowed to have weak passwd */
 
 	cp = bb_askpass(0, "Retype password:");

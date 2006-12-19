@@ -142,6 +142,13 @@ config PASSWD
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
+config FEATURE_PASSWD_WEAK_CHECK
+	bool "Check new passwords for weakness"
+	default y
+	depends on PASSWD
+	help
+	  With this option passwd will refuse new passwords which are "weak".
+
 config SU
 	bool "su"
 	default n
