@@ -291,9 +291,11 @@ static int execute(const char *command, struct interface_defn_t *ifd, execfn *ex
 
 	out = parse(command, ifd);
 	if (!out) {
+		/* parse error? */
 		return 0;
 	}
-	ret = (*exec)(out);
+	/* out == "": parsed ok but not all needed variables known, skip */
+	ret = out[0] ? (*exec)(out) : 1;
 
 	free(out);
 	if (ret != 1) {
@@ -903,15 +905,13 @@ static int doit(char *str)
 	if (option_mask32 & (OPT_no_act|OPT_verbose)) {
 		puts(str);
 	}
-	/* FIXME: is it true that we can reach this place with str = ""? */
-	/* how? in execute() parse() may return "", then we do (*exec)(""); */
-	/* Please add a comment... */
 	if (!(option_mask32 & OPT_no_act)) {
 		pid_t child;
 		int status;
 
 		fflush(NULL);
-		switch (child = fork()) {
+		child = fork();
+		switch (child) {
 		case -1: /* failure */
 			return 0;
 		case 0: /* child */
@@ -939,10 +939,8 @@ static int execute_all(struct interface_defn_t *ifd, const char *opt)
 	}
 
 	buf = xasprintf("run-parts /etc/network/if-%s.d", opt);
-	if (doit(buf) != 1) {
-		return 0;
-	}
-	return 1;
+	/* heh, we don't bother free'ing it */
+	return doit(buf);
 }
 
 static int check(char *str)
