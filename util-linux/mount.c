@@ -439,7 +439,7 @@ struct ppathcnf {
 	short pc_name_max;
 	short pc_path_max;
 	short pc_pipe_buf;
-	u_char pc_vdisable;
+	uint8_t pc_vdisable;
 	char pc_xxx;
 	short pc_mask[2];
 };

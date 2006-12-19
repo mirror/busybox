@@ -253,7 +253,7 @@ static void xbsd_change_fstype(void);
 static int xbsd_get_part_index(int max);
 static int xbsd_check_new_partition(int *i);
 static void xbsd_list_types(void);
-static u_short xbsd_dkcksum(struct xbsd_disklabel *lp);
+static uint16_t xbsd_dkcksum(struct xbsd_disklabel *lp);
 static int xbsd_initlabel(struct partition *p, struct xbsd_disklabel *d);
 static int xbsd_readlabel(struct partition *p, struct xbsd_disklabel *d);
 static int xbsd_writelabel(struct partition *p, struct xbsd_disklabel *d);
@@ -650,37 +650,38 @@ xbsd_edit_disklabel(void)
 	d = &xbsd_dlabel;
 
 #if defined (__alpha__) || defined (__ia64__)
-	d->d_secsize    = (u_long) edit_int((u_long) d->d_secsize     ,_("bytes/sector"));
-	d->d_nsectors   = (u_long) edit_int((u_long) d->d_nsectors    ,_("sectors/track"));
-	d->d_ntracks    = (u_long) edit_int((u_long) d->d_ntracks     ,_("tracks/cylinder"));
-	d->d_ncylinders = (u_long) edit_int((u_long) d->d_ncylinders  ,_("cylinders"));
+	d->d_secsize    = edit_int(d->d_secsize     ,_("bytes/sector"));
+	d->d_nsectors   = edit_int(d->d_nsectors    ,_("sectors/track"));
+	d->d_ntracks    = edit_int(d->d_ntracks     ,_("tracks/cylinder"));
+	d->d_ncylinders = edit_int(d->d_ncylinders  ,_("cylinders"));
 #endif
 
-  /* d->d_secpercyl can be != d->d_nsectors * d->d_ntracks */
+	/* d->d_secpercyl can be != d->d_nsectors * d->d_ntracks */
 	while (1) {
-		d->d_secpercyl = (u_long) edit_int((u_long) d->d_nsectors * d->d_ntracks,
+		d->d_secpercyl = edit_int(d->d_nsectors * d->d_ntracks,
 				_("sectors/cylinder"));
 		if (d->d_secpercyl <= d->d_nsectors * d->d_ntracks)
 			break;
 
 		printf(_("Must be <= sectors/track * tracks/cylinder (default).\n"));
 	}
-	d->d_rpm        = (u_short) edit_int((u_short) d->d_rpm       ,_("rpm"));
-	d->d_interleave = (u_short) edit_int((u_short) d->d_interleave,_("interleave"));
-	d->d_trackskew  = (u_short) edit_int((u_short) d->d_trackskew ,_("trackskew"));
-	d->d_cylskew    = (u_short) edit_int((u_short) d->d_cylskew   ,_("cylinderskew"));
-	d->d_headswitch = (u_long) edit_int((u_long) d->d_headswitch  ,_("headswitch"));
-	d->d_trkseek    = (u_long) edit_int((u_long) d->d_trkseek     ,_("track-to-track seek"));
+	d->d_rpm        = edit_int(d->d_rpm       ,_("rpm"));
+	d->d_interleave = edit_int(d->d_interleave,_("interleave"));
+	d->d_trackskew  = edit_int(d->d_trackskew ,_("trackskew"));
+	d->d_cylskew    = edit_int(d->d_cylskew   ,_("cylinderskew"));
+	d->d_headswitch = edit_int(d->d_headswitch,_("headswitch"));
+	d->d_trkseek    = edit_int(d->d_trkseek   ,_("track-to-track seek"));
 
 	d->d_secperunit = d->d_secpercyl * d->d_ncylinders;
 }
 
 static int
-xbsd_get_bootstrap (char *path, void *ptr, int size)
+xbsd_get_bootstrap(char *path, void *ptr, int size)
 {
 	int fdb;
 
-	if ((fdb = open (path, O_RDONLY)) < 0) {
+	fdb = open(path, O_RDONLY);
+	if (fdb < 0) {
 		perror(path);
 		return 0;
 	}
@@ -736,7 +737,7 @@ xbsd_write_bootstrap(void)
 
 	snprintf(path, sizeof(path), "%s/boot%s", bootdir, dkbasename);
 	if (!xbsd_get_bootstrap(path, &disklabelbuffer[xbsd_dlabel.d_secsize],
-			  (int) xbsd_dlabel.d_bbsize - xbsd_dlabel.d_secsize))
+			(int) xbsd_dlabel.d_bbsize - xbsd_dlabel.d_secsize))
 		return;
 
 	e = d + sizeof(struct xbsd_disklabel);
@@ -748,9 +749,9 @@ xbsd_write_bootstrap(void)
 
 	memmove(d, &dl, sizeof(struct xbsd_disklabel));
 
-#if defined (__powerpc__) || defined (__hppa__)
+#if defined(__powerpc__) || defined(__hppa__)
 	sector = 0;
-#elif defined (__alpha__)
+#elif defined(__alpha__)
 	sector = 0;
 	alpha_bootblock_checksum(disklabelbuffer);
 #else
@@ -762,11 +763,11 @@ xbsd_write_bootstrap(void)
 	if (BSD_BBSIZE != write(fd, disklabelbuffer, BSD_BBSIZE))
 		fdisk_fatal(unable_to_write);
 
-#if defined (__alpha__)
+#if defined(__alpha__)
 	printf(_("Bootstrap installed on %s.\n"), disk_device);
 #else
 	printf(_("Bootstrap installed on %s.\n"),
-		partname (disk_device, xbsd_part_index+1, 0));
+		partname(disk_device, xbsd_part_index+1, 0));
 #endif
 
 	sync_disks();
@@ -812,7 +813,7 @@ xbsd_check_new_partition(int *i)
 		}
 	}
 
-	*i = xbsd_get_part_index (BSD_MAXPARTITIONS);
+	*i = xbsd_get_part_index(BSD_MAXPARTITIONS);
 
 	if (*i >= xbsd_dlabel.d_npartitions)
 		xbsd_dlabel.d_npartitions = (*i) + 1;
@@ -831,14 +832,14 @@ xbsd_list_types(void)
 	list_types(xbsd_fstypes);
 }
 
-static u_short
+static uint16_t
 xbsd_dkcksum(struct xbsd_disklabel *lp)
 {
-	u_short *start, *end;
-	u_short sum = 0;
+	uint16_t *start, *end;
+	uint16_t sum = 0;
 
-	start = (u_short *) lp;
-	end = (u_short *) &lp->d_partitions[lp->d_npartitions];
+	start = (uint16_t *) lp;
+	end = (uint16_t *) &lp->d_partitions[lp->d_npartitions];
 	while (start < end)
 		sum ^= *start++;
 	return sum;

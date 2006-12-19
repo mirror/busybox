@@ -81,14 +81,14 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	struct unipair *up;
 	int ct = 0, maxct;
 	int glyph;
-	u_short unicode;
+	uint16_t unicode;
 
 	maxct = tailsz;				/* more than enough */
 	up = (struct unipair *) xmalloc(maxct * sizeof(struct unipair));
 
 	for (glyph = 0; glyph < fontsize; glyph++) {
 		while (tailsz >= 2) {
-			unicode = (((u_short) inbuf[1]) << 8) + inbuf[0];
+			unicode = (((uint16_t) inbuf[1]) << 8) + inbuf[0];
 			tailsz -= 2;
 			inbuf += 2;
 			if (unicode == PSF_SEPARATOR)

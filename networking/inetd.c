@@ -985,7 +985,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 			} else
 #endif
 			{
-				u_short port = htons(atoi(sep->se_service));
+				uint16_t port = htons(atoi(sep->se_service));
 				// FIXME: atoi_or_else(str, 0) would be handy here
 				if (!port) {
 					 /*XXX*/ strncpy(protoname, sep->se_proto, sizeof(protoname));
@@ -1037,8 +1037,8 @@ static void config(int sig ATTRIBUTE_UNUSED)
 					register_rpc(sep);
 			} else
 #endif
-				{
-				u_short port = htons(atoi(sep->se_service));
+			{
+				uint16_t port = htons(atoi(sep->se_service));
 
 				if (!port) {
 					 /*XXX*/ strncpy(protoname, sep->se_proto, sizeof(protoname));

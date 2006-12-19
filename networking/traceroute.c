@@ -316,8 +316,8 @@ static int pmtu;                       /* Path MTU Discovery (RFC1191) */
 
 static char *hostname;
 
-static u_short ident;
-static u_short port = 32768 + 666;     /* start udp dest port # for probe packets */
+static uint16_t ident;
+static uint16_t port = 32768 + 666;     /* start udp dest port # for probe packets */
 
 static int waittime = 5;               /* time to wait for response (in seconds) */
 static int nflag;                      /* print addresses numerically */
@@ -539,12 +539,12 @@ wait_for_reply(int sock, struct sockaddr_in *fromp, const struct timeval *tp)
 /*
  * Checksum routine for Internet Protocol family headers (C Version)
  */
-static u_short
-in_cksum(u_short *addr, int len)
+static uint16_t
+in_cksum(uint16_t *addr, int len)
 {
 	int nleft = len;
-	u_short *w = addr;
-	u_short answer;
+	uint16_t *w = addr;
+	uint16_t answer;
 	int sum = 0;
 
 	/*
@@ -589,7 +589,7 @@ send_probe(int seq, int ttl, struct timeval *tp)
 	 */
 	if (doipcksum) {
 		outip->ip_sum =
-		    in_cksum((u_short *)outip, sizeof(*outip) + optlen);
+		    in_cksum((uint16_t *)outip, sizeof(*outip) + optlen);
 		if (outip->ip_sum == 0)
 			outip->ip_sum = 0xffff;
 	}
@@ -610,7 +610,7 @@ send_probe(int seq, int ttl, struct timeval *tp)
 	if (useicmp) {
 		/* Always calculate checksum for icmp packets */
 		outicmp->icmp_cksum = 0;
-		outicmp->icmp_cksum = in_cksum((u_short *)outicmp,
+		outicmp->icmp_cksum = in_cksum((uint16_t *)outicmp,
 		    packlen - (sizeof(*outip) + optlen));
 		if (outicmp->icmp_cksum == 0)
 			outicmp->icmp_cksum = 0xffff;
@@ -628,7 +628,7 @@ send_probe(int seq, int ttl, struct timeval *tp)
 		ui->ui_pr = oui->ui_pr;
 		ui->ui_len = outudp->len;
 		outudp->check = 0;
-		outudp->check = in_cksum((u_short *)ui, packlen);
+		outudp->check = in_cksum((uint16_t *)ui, packlen);
 		if (outudp->check == 0)
 			outudp->check = 0xffff;
 		*outip = tip;
@@ -637,11 +637,11 @@ send_probe(int seq, int ttl, struct timeval *tp)
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	/* XXX undocumented debugging hack */
 	if (verbose > 1) {
-		const u_short *sp;
+		const uint16_t *sp;
 		int nshorts, i;
 
-		sp = (u_short *)outip;
-		nshorts = (u_int)packlen / sizeof(u_short);
+		sp = (uint16_t *)outip;
+		nshorts = (u_int)packlen / sizeof(uint16_t);
 		i = 0;
 		printf("[ %d bytes", packlen);
 		while (--nshorts >= 0) {
@@ -906,7 +906,7 @@ traceroute_main(int argc, char *argv[])
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 	int lsrr = 0;
 #endif
-	u_short off = 0;
+	uint16_t off = 0;
 	struct IFADDRLIST *al;
 	char *device = NULL;
 	int max_ttl = 30;
@@ -1137,17 +1137,15 @@ traceroute_main(int argc, char *argv[])
 		outicmp = (struct icmp *)outp;
 		outicmp->icmp_type = ICMP_ECHO;
 		outicmp->icmp_id = htons(ident);
-
 		outdata = (struct outdata *)(outp + 8); /* XXX magic number */
 	} else
 #endif
-	       {
+	{
 		outip->ip_p = IPPROTO_UDP;
 
 		outudp = (struct udphdr *)outp;
 		outudp->source = htons(ident);
-		outudp->len =
-		    htons((u_short)(packlen - (sizeof(*outip) + optlen)));
+		outudp->len = htons((uint16_t)(packlen - (sizeof(*outip) + optlen)));
 		outdata = (struct outdata *)(outudp + 1);
 	}
 

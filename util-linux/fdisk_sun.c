@@ -2,8 +2,8 @@
 
 #define SUN_LABEL_MAGIC          0xDABE
 #define SUN_LABEL_MAGIC_SWAPPED  0xBEDA
-#define SUN_SSWAP16(x) (sun_other_endian ? __swap16(x) : (uint16_t)(x))
-#define SUN_SSWAP32(x) (sun_other_endian ? __swap32(x) : (uint32_t)(x))
+#define SUN_SSWAP16(x) (sun_other_endian ? fdisk_swap16(x) : (uint16_t)(x))
+#define SUN_SSWAP32(x) (sun_other_endian ? fdisk_swap32(x) : (uint32_t)(x))
 
 /* Copied from linux/major.h */
 #define FLOPPY_MAJOR    2

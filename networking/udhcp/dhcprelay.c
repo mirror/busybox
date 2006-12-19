@@ -103,7 +103,7 @@ static void xid_del(u_int32_t xid)
  */
 static int get_dhcp_packet_type(struct dhcpMessage *p)
 {
-	u_char *op;
+	uint8_t *op;
 
 	/* it must be either a BOOTREQUEST or a BOOTREPLY */
 	if (p->op != BOOTREQUEST && p->op != BOOTREPLY)
