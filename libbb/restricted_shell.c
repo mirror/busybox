@@ -28,30 +28,19 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <syslog.h>
-#include <ctype.h>
 #include "libbb.h"
-
-
 
 /* Return 1 if SHELL is a restricted shell (one not returned by
    getusershell), else 0, meaning it is a standard shell.  */
-
-int restricted_shell ( const char *shell )
+int restricted_shell(const char *shell)
 {
 	char *line;
 
-	setusershell ( );
-	while (( line = getusershell ( ))) {
-		if (( *line != '#' ) && ( strcmp ( line, shell ) == 0 ))
-			break;
+	setusershell();
+	while ((line = getusershell())) {
+		if (*line != '#' && strcmp(line, shell) == 0)
+			return 0;
 	}
-	endusershell ( );
-	return line ? 0 : 1;
+	endusershell();
+	return 1;
 }
-

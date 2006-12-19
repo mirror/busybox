@@ -155,11 +155,14 @@ config SU
 	  work properly.
 
 config SU_SYSLOG
-	bool "Support for syslog in su"
+	bool "Enable su to write to syslog"
 	default y
 	depends on SU
-	help
-	  Enables support for syslog in su.
+
+config FEATURE_SU_CHECKS_SHELLS
+	bool "Enable su to check user's shell to be listed in /etc/shells"
+	depends on SU
+	default y
 
 config SULOGIN
 	bool "sulogin"

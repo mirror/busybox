@@ -10,7 +10,7 @@
 
 int su_main(int argc, char **argv)
 {
-	unsigned long flags;
+	unsigned flags;
 	char *opt_shell = 0;
 	char *opt_command = 0;
 	char *opt_username = "root";
@@ -49,19 +49,23 @@ int su_main(int argc, char **argv)
 	}
 
 	pw = getpwnam(opt_username);
-	if (!pw) bb_error_msg_and_die("unknown id: %s", opt_username);
+	if (!pw)	
+		bb_error_msg_and_die("unknown id: %s", opt_username);
 
 	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
 	   is a username that is retrieved via NIS (YP), but that doesn't have
 	   a default shell listed.  */
-	if (!pw->pw_shell || !pw->pw_shell[0]) pw->pw_shell = (char *)DEFAULT_SHELL;
+	if (!pw->pw_shell || !pw->pw_shell[0])
+		pw->pw_shell = (char *)DEFAULT_SHELL;
 
 	if ((cur_uid == 0) || correct_password(pw)) {
 		if (ENABLE_SU_SYSLOG)
-			syslog(LOG_NOTICE, "+ %s %s:%s", tty, old_user, opt_username);
+			syslog(LOG_NOTICE, "%c %s %s:%s",
+				'+', tty, old_user, opt_username);
 	} else {
 		if (ENABLE_SU_SYSLOG)
-			syslog(LOG_NOTICE, "- %s %s:%s", tty, old_user, opt_username);
+			syslog(LOG_NOTICE, "%c %s %s:%s",
+				'-', tty, old_user, opt_username);
 		bb_error_msg_and_die("incorrect password");
 	}
 
@@ -70,8 +74,10 @@ int su_main(int argc, char **argv)
 		free(old_user);
 	}
 
-	if (!opt_shell && (flags & SU_OPT_mp)) opt_shell = getenv("SHELL");
+	if (!opt_shell && (flags & SU_OPT_mp))
+		opt_shell = getenv("SHELL");
 
+#if ENABLE_FEATURE_SU_CHECKS_SHELLS
 	if (opt_shell && cur_uid && restricted_shell(pw->pw_shell)) {
 		/* The user being su'd to has a nonstandard shell, and so is
 		   probably a uucp account or has restricted access.  Don't
@@ -80,8 +86,9 @@ int su_main(int argc, char **argv)
 		bb_error_msg("using restricted shell");
 		opt_shell = 0;
 	}
-
-	if (!opt_shell) opt_shell = pw->pw_shell;
+#endif
+	if (!opt_shell)
+		opt_shell = pw->pw_shell;
 
 	change_identity(pw);
 	setup_environment(opt_shell, flags & SU_OPT_l, !(flags & SU_OPT_mp), pw);

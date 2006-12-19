@@ -12014,7 +12014,7 @@ setvar(const char *name, const char *val, int flags)
 		vallen = strlen(val);
 	}
 	INTOFF;
-	nameeq = ckmalloc(namelen + vallen + 2)
+	nameeq = ckmalloc(namelen + vallen + 2);
 	p = memcpy(nameeq, name, namelen) + namelen;
 	if (val) {
 		*p++ = '=';
