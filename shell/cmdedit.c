@@ -989,16 +989,17 @@ static void showfiles(void)
 		for(nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
 			str_add_chr[0] = add_char_to_match[n];
 			acol = str_add_chr[0] ? column_width - 1 : column_width;
-			printf("%s%s", matches[n], str_add_chr);
-			l = strlen(matches[n]);
-			while (l < acol) {
-				putchar(' ');
-				l++;
-			}
+			printf("%s%s%-*s", matches[n], str_add_chr,
+					acol - strlen(matches[n]), "");
 		}
 		str_add_chr[0] = add_char_to_match[n];
 		printf("%s%s\n", matches[n], str_add_chr);
 	}
+}
+
+static int match_compare(const void *a, const void *b)
+{
+	return strcmp(*(char**)a, *(char**)b);
 }
 
 static void input_tab(int *lastWasTab)
@@ -1016,7 +1017,6 @@ static void input_tab(int *lastWasTab)
 		return;
 	}
 	if (! *lastWasTab) {
-
 		char *tmp, *tmp1;
 		int len_found;
 		char matchBuf[BUFSIZ];
@@ -1046,38 +1046,27 @@ static void input_tab(int *lastWasTab)
 		/* Try to match any executable in our path and everything
 		 * in the current working directory that matches.  */
 			exe_n_cwd_tab_completion(matchBuf, find_type);
-		/* Remove duplicate found and sort */
+		/* Sort, then remove any duplicates found */
 		if (matches) {
-			int i, n;
-			/* strcmp is int(*f)(const char*, const char*) */
-			/* qsort wants int(*f)(const void*, const void*) */
-			/* We cheat here :) */
-			qsort(matches, num_matches, sizeof(char*), (void*)strcmp);
-			i = 0;
-			while (i < num_matches - 1) {
-				n = i + 1;
-				if (matches[i] && matches[n]) {
-					while (n < num_matches
-					 && !strcmp(matches[i], matches[n])) {
-						free(matches[n]);
-						matches[n] = 0;
-						n++;
+			int i, n = 0;
+			qsort(matches, num_matches, sizeof(char*), match_compare);
+			for (i = 0; i < num_matches - 1; ++i) {
+				if (matches[i] && matches[i+1]) {
+					if (strcmp(matches[i], matches[i+1]) == 0) {
+						free(matches[i]);
+						matches[i] = 0;
+					} else {
+						add_char_to_match[n] = add_char_to_match[i];
+						matches[n++] = matches[i];
 					}
 				}
-				i = n;
 			}
-			n = 0;
-			for(i = 0; i < num_matches; i++)
-				if (matches[i]) {
-					matches[n] = matches[i];
-					add_char_to_match[n] = add_char_to_match[i];
-					n++;
-				}
+			add_char_to_match[n] = add_char_to_match[num_matches-1];
+			matches[n++] = matches[num_matches-1];
 			num_matches = n;
 		}
 		/* Did we find exactly one match? */
 		if (!matches || num_matches > 1) {
-
 			beep();
 			if (!matches)
 				return;         /* not found */
