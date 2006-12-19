@@ -660,7 +660,9 @@ static void colon(Byte * buf)
 			dot = find_line(b);	// what line is #b
 			dot_skip_over_ws();
 		}
-	} else if (strncmp((char *) cmd, "!", 1) == 0) {	// run a cmd
+	}
+#if ENABLE_FEATURE_ALLOW_EXEC
+	else if (strncmp((char *) cmd, "!", 1) == 0) {	// run a cmd
 		// :!ls   run the <cmd>
 		(void) alarm(0);		// wait for input- no alarms
 		place_cursor(rows - 1, 0, FALSE);	// go to Status line
@@ -670,7 +672,9 @@ static void colon(Byte * buf)
 		rawmode();
 		Hit_Return();			// let user see results
 		(void) alarm(3);		// done waiting for input
-	} else if (strncmp((char *) cmd, "=", i) == 0) {	// where is the address
+	}
+#endif
+	else if (strncmp((char *) cmd, "=", i) == 0) {	// where is the address
 		if (b < 0) {	// no addr given- use defaults
 			b = e = count_lines(text, dot);
 		}

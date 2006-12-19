@@ -2378,7 +2378,8 @@ re_cont:
 
 			  case F_sy:
 				fflush(NULL);
-				R.d = (L.s && *L.s) ? (system(L.s) >> 8) : 0;
+				R.d = (ENABLE_FEATURE_ALLOW_EXEC && L.s && *L.s)
+						? (system(L.s) >> 8) : 0;
 				break;
 
 			  case F_ff:
