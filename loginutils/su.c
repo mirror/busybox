@@ -8,6 +8,9 @@
 #include "busybox.h"
 #include <syslog.h>
 
+#define SU_OPT_mp (3)
+#define SU_OPT_l (4)
+
 int su_main(int argc, char **argv)
 {
 	unsigned flags;
@@ -22,8 +25,6 @@ int su_main(int argc, char **argv)
 	flags = getopt32(argc, argv, "mplc:s:", &opt_command, &opt_shell);
 	argc -= optind;
 	argv -= optind;
-#define SU_OPT_mp (3)
-#define SU_OPT_l (4)
 
 	if (argc && LONE_DASH(argv[0])) {
 		flags |= SU_OPT_l;
@@ -38,7 +39,7 @@ int su_main(int argc, char **argv)
 		argv++;
 	}
 
-	if (ENABLE_SU_SYSLOG) {
+	if (ENABLE_FEATURE_SU_SYSLOG) {
 		/* The utmp entry (via getlogin) is probably the best way to identify
 		the user, especially if someone su's from a su-shell.
 		But getlogin can fail -- usually due to lack of utmp entry.
@@ -49,7 +50,7 @@ int su_main(int argc, char **argv)
 	}
 
 	pw = getpwnam(opt_username);
-	if (!pw)	
+	if (!pw)
 		bb_error_msg_and_die("unknown id: %s", opt_username);
 
 	/* Make sure pw->pw_shell is non-NULL.  It may be NULL when NEW_USER
@@ -59,17 +60,17 @@ int su_main(int argc, char **argv)
 		pw->pw_shell = (char *)DEFAULT_SHELL;
 
 	if ((cur_uid == 0) || correct_password(pw)) {
-		if (ENABLE_SU_SYSLOG)
+		if (ENABLE_FEATURE_SU_SYSLOG)
 			syslog(LOG_NOTICE, "%c %s %s:%s",
 				'+', tty, old_user, opt_username);
 	} else {
-		if (ENABLE_SU_SYSLOG)
+		if (ENABLE_FEATURE_SU_SYSLOG)
 			syslog(LOG_NOTICE, "%c %s %s:%s",
 				'-', tty, old_user, opt_username);
 		bb_error_msg_and_die("incorrect password");
 	}
 
-	if (ENABLE_FEATURE_CLEAN_UP && ENABLE_SU_SYSLOG) {
+	if (ENABLE_FEATURE_CLEAN_UP && ENABLE_FEATURE_SU_SYSLOG) {
 		closelog();
 		free(old_user);
 	}

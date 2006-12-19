@@ -161,7 +161,7 @@ config SU
 	  Note that Busybox binary must be setuid root for this applet to
 	  work properly.
 
-config SU_SYSLOG
+config FEATURE_SU_SYSLOG
 	bool "Enable su to write to syslog"
 	default y
 	depends on SU
