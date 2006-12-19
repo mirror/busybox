@@ -103,7 +103,7 @@ enum {
 #define FORCE (option_mask32 & OPT_force)
 #define NO_MAPPINGS (option_mask32 & OPT_no_mappings)
 
-static char **__myenviron;
+static char **my_environ;
 
 static char *startup_PATH;
 
@@ -187,7 +187,7 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 	size_t old_pos[MAX_OPT_DEPTH] = { 0 };
 	int okay[MAX_OPT_DEPTH] = { 1 };
 	int opt_depth = 1;
-	char *result = xstrdup("");
+	char *result = NULL;
 
 	while (*command) {
 		switch (*command) {
@@ -206,7 +206,7 @@ static char *parse(const char *command, struct interface_defn_t *ifd)
 			break;
 		case '[':
 			if (command[1] == '[' && opt_depth < MAX_OPT_DEPTH) {
-				old_pos[opt_depth] = strlen(result);
+				old_pos[opt_depth] = result ? strlen(result) : 0;
 				okay[opt_depth] = 1;
 				opt_depth++;
 				command += 2;
@@ -290,7 +290,7 @@ static int execute(const char *command, struct interface_defn_t *ifd, execfn *ex
 	int ret;
 
 	out = parse(command, ifd);
-	if (!out || !out[0]) {
+	if (!out) {
 		return 0;
 	}
 	ret = (*exec)(out);
@@ -871,15 +871,15 @@ static void set_environ(struct interface_defn_t *iface, const char *mode)
 	const int n_env_entries = iface->n_options + 5;
 	char **ppch;
 
-	if (__myenviron != NULL) {
-		for (ppch = __myenviron; *ppch; ppch++) {
+	if (my_environ != NULL) {
+		for (ppch = my_environ; *ppch; ppch++) {
 			free(*ppch);
 			*ppch = NULL;
 		}
-		free(__myenviron);
+		free(my_environ);
 	}
-	__myenviron = xzalloc(sizeof(char *) * (n_env_entries + 1 /* for final NULL */ ));
-	environend = __myenviron;
+	my_environ = xzalloc(sizeof(char *) * (n_env_entries + 1 /* for final NULL */ ));
+	environend = my_environ;
 
 	for (i = 0; i < iface->n_options; i++) {
 		if (strcmp(iface->option[i].name, "up") == 0
@@ -903,6 +903,9 @@ static int doit(char *str)
 	if (option_mask32 & (OPT_no_act|OPT_verbose)) {
 		puts(str);
 	}
+	/* FIXME: is it true that we can reach this place with str = ""? */
+	/* how? in execute() parse() may return "", then we do (*exec)(""); */
+	/* Please add a comment... */
 	if (!(option_mask32 & OPT_no_act)) {
 		pid_t child;
 		int status;
@@ -912,7 +915,7 @@ static int doit(char *str)
 		case -1: /* failure */
 			return 0;
 		case 0: /* child */
-			execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, __myenviron);
+			execle(DEFAULT_SHELL, DEFAULT_SHELL, "-c", str, NULL, my_environ);
 			exit(127);
 		}
 		waitpid(child, &status, 0);
@@ -1206,7 +1209,7 @@ int ifupdown_main(int argc, char **argv)
 				okay = 1;
 				currif->iface = iface;
 
-				debug_noise("\nZ Configuring interface %s (%s)\n", liface, currif->address_family->name);
+				debug_noise("\nConfiguring interface %s (%s)\n", liface, currif->address_family->name);
 
 				/* Call the cmds function pointer, does either iface_up() or iface_down() */
 				cmds_ret = cmds(currif);

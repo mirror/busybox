@@ -573,7 +573,8 @@ ifdef CONFIG_STATIC
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
       -Wl,--start-group $(busybox-all) -Wl,--end-group
 else
-      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) -o $@ $(LDFLAGS) \
+      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) $(LDFLAGS) \
+      -o $@ \
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
       -Wl,--start-group $(busybox-all) -Wl,--end-group
 endif
