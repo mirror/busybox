@@ -1370,7 +1370,7 @@ static Byte *new_screen(int ro, int co)
 
 	free(screen);
 	screensize = ro * co + 8;
-	screen = (Byte *) xmalloc(screensize);
+	screen = xmalloc(screensize);
 	// initialize the new screen. assume this will be a empty file.
 	screen_erase();
 	//   non-existent text[] lines start with a tilde (~).
@@ -1385,7 +1385,7 @@ static Byte *new_text(int size)
 	if (size < 10240)
 		size = 10240;	// have a minimum size for new files
 	free(text);
-	text = (Byte *) xmalloc(size + 8);
+	text = xmalloc(size + 8);
 	memset(text, '\0', size);	// clear new text[]
 	//text += 4;		// leave some room for "oops"
 	return text;
@@ -1901,7 +1901,7 @@ static void start_new_cmd_q(Byte c)
 	// release old cmd
 	free(last_modifying_cmd);
 	// get buffer for new cmd
-	last_modifying_cmd = (Byte *) xmalloc(BUFSIZ);
+	last_modifying_cmd = xmalloc(BUFSIZ);
 	memset(last_modifying_cmd, '\0', BUFSIZ);	// clear new cmd queue
 	// if there is a current cmd count put it in the buffer first
 	if (cmdcnt > 0)
@@ -1954,7 +1954,7 @@ static Byte *text_yank(Byte * p, Byte * q, int dest)	// copy text into a registe
 	cnt = q - p + 1;
 	t = reg[dest];
 	free(t);		//  if already a yank register, free it
-	t = (Byte *) xmalloc(cnt + 1);	// get a new register
+	t = xmalloc(cnt + 1);	// get a new register
 	memset(t, '\0', cnt + 1);	// clear new text[]
 	strncpy((char *) t, (char *) p, cnt);	// copy text[] into bufer
 	reg[dest] = t;

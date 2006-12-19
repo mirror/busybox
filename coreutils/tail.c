@@ -152,7 +152,7 @@ int tail_main(int argc, char **argv)
 	}
 
 	/* open all the files */
-	fds = (int *)xmalloc(sizeof(int) * (argc - optind + 1));
+	fds = xmalloc(sizeof(int) * (argc - optind + 1));
 
 	argv += optind;
 	nfiles = i = 0;

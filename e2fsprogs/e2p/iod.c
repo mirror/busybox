@@ -29,7 +29,7 @@ int iterate_on_dir (const char * dir_name,
 	int	max_len, len;
 
 	max_len = PATH_MAX + sizeof(struct dirent);
-	de = (struct dirent *)xmalloc(max_len+1);
+	de = xmalloc(max_len+1);
 	memset(de, 0, max_len+1);
 
 	dir = opendir (dir_name);

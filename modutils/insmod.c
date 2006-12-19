@@ -1131,7 +1131,7 @@ arch_apply_relocation(struct obj_file *f,
 				/* We cannot relocate this one now because we don't know the value
 				   of the carry we need to add.  Save the information, and let LO16
 				   do the actual relocation.  */
-				n = (struct mips_hi16 *) xmalloc(sizeof *n);
+				n = xmalloc(sizeof *n);
 				n->addr = loc;
 				n->value = v;
 				n->next = ifile->mips_hi16_list;

@@ -158,7 +158,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	if ((ent == NULL) && (np == NULL)) {
 		safe_strncpy(name, inet_ntoa(s_in->sin_addr), len);
 	}
-	pn = (struct addr *) xmalloc(sizeof(struct addr));
+	pn = xmalloc(sizeof(struct addr));
 	pn->addr = *s_in;
 	pn->next = INET_nn;
 	pn->host = host;

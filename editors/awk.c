@@ -781,7 +781,7 @@ static var *nvalloc(int n)
 
 	if (! cb) {
 		size = (n <= MINNVBLOCK) ? MINNVBLOCK : n;
-		cb = (nvblock *)xmalloc(sizeof(nvblock) + size * sizeof(var));
+		cb = xmalloc(sizeof(nvblock) + size * sizeof(var));
 		cb->size = size;
 		cb->pos = cb->nv;
 		cb->prev = pb;
@@ -2463,7 +2463,7 @@ re_cont:
 		  case XC( OC_CONCAT ):
 		  case XC( OC_COMMA ):
 			opn = strlen(L.s) + strlen(R.s) + 2;
-			X.s = (char *)xmalloc(opn);
+			X.s = xmalloc(opn);
 			strcpy(X.s, L.s);
 			if ((opinfo & OPCLSMASK) == OC_COMMA) {
 				L.s = getvar_s(V[SUBSEP]);
@@ -2702,7 +2702,7 @@ keep_going:
 		/* one byte is reserved for some trick in next_token */
 		if (fseek(F, 0, SEEK_END) == 0) {
 			flen = ftell(F);
-			s = (char *)xmalloc(flen+4);
+			s = xmalloc(flen+4);
 			fseek(F, 0, SEEK_SET);
 			i = 1 + fread(s+1, 1, flen, F);
 		} else {

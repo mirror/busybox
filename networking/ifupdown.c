@@ -1048,7 +1048,7 @@ static char *run_mapping(char *physical, struct mapping_defn_t * map)
 		/* If the mapping script exited successfully, try to
 		 * grab a line of output and use that as the name of the
 		 * logical interface. */
-		char *new_logical = (char *)xmalloc(MAX_INTERFACE_LENGTH);
+		char *new_logical = xmalloc(MAX_INTERFACE_LENGTH);
 
 		if (fgets(new_logical, MAX_INTERFACE_LENGTH, out)) {
 			/* If we are able to read a line of output from the script,
@@ -1138,7 +1138,6 @@ int ifupdown_main(int argc, char **argv)
 	} else {
 		llist_add_to_end(&target_list, argv[optind]);
 	}
-
 
 	/* Update the interfaces */
 	while (target_list) {
@@ -1255,8 +1254,7 @@ int ifupdown_main(int argc, char **argv)
 		state_fp = xfopen("/var/run/ifstate", "w");
 		while (state_list) {
 			if (state_list->data) {
-				fputs(state_list->data, state_fp);
-				fputc('\n', state_fp);
+				fprintf(state_fp, "%s\n", state_list->data);
 			}
 			state_list = state_list->link;
 		}

@@ -358,8 +358,8 @@ static unsigned char *get(void)
 
 	if (!curp) {
 		address = (off_t)0; /*DBU:[dave@cray.com] initialize,initialize..*/
-		curp = (unsigned char *) xmalloc(bb_dump_blocksize);
-		savp = (unsigned char *) xmalloc(bb_dump_blocksize);
+		curp = xmalloc(bb_dump_blocksize);
+		savp = xmalloc(bb_dump_blocksize);
 	} else {
 		tmpp = curp;
 		curp = savp;

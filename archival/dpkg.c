@@ -442,7 +442,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 		field2 = strtok_r(line2, "|", &line_ptr2);
 		if ((edge_type == EDGE_DEPENDS || edge_type == EDGE_PRE_DEPENDS) &&
 		    (strcmp(field, field2) != 0)) {
-			or_edge = (edge_t *)xmalloc(sizeof(edge_t));
+			or_edge = xmalloc(sizeof(edge_t));
 			or_edge->type = edge_type + 1;
 		} else {
 			or_edge = NULL;
@@ -456,7 +456,7 @@ static void add_split_dependencies(common_node_t *parent_node, const char *whole
 		}
 
 		do {
-			edge = (edge_t *) xmalloc(sizeof(edge_t));
+			edge = xmalloc(sizeof(edge_t));
 			edge->type = edge_type;
 
 			/* Skip any extra leading spaces */
@@ -1708,7 +1708,7 @@ int dpkg_main(int argc, char **argv)
 				/* If no previous entry was found initialise a new entry */
 				if ((status_hashtable[status_num] == NULL) ||
 					(status_hashtable[status_num]->status == 0)) {
-					status_node = (status_node_t *) xmalloc(sizeof(status_node_t));
+					status_node = xmalloc(sizeof(status_node_t));
 					status_node->package = deb_file[deb_count]->package;
 					/* reinstreq isnt changed to "ok" until the package control info
 					 * is written to the status file*/

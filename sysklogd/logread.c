@@ -117,7 +117,7 @@ int logread_main(int argc, char **argv)
 		log_len = buf->tail - i;
 		if (log_len < 0)
 			log_len += buf->size;
-		buf_data = (char *)xmalloc(log_len);
+		buf_data = xmalloc(log_len);
 
 		if (buf->tail < i) {
 			memcpy(buf_data, buf->data+i, buf->size-i);

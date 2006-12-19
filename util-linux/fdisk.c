@@ -680,7 +680,7 @@ static void
 read_pte(struct pte *pe, off_t offset)
 {
 	pe->offset = offset;
-	pe->sectorbuffer = (char *) xmalloc(sector_size);
+	pe->sectorbuffer = xmalloc(sector_size);
 	seek_sector(offset);
 	if (read(fd, pe->sectorbuffer, sector_size) != sector_size)
 		fdisk_fatal(unable_to_read);

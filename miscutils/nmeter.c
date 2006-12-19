@@ -104,7 +104,7 @@ static const char* get_file(proc_file *pf)
 		// but allows us to allocate only once (at first sample)
 		// per proc file, and reuse buffer for each sample
 		if (!pf->file)
-			pf->file = (char*)xmalloc(proc_file_size);
+			pf->file = xmalloc(proc_file_size);
 		readfile_z(pf->file, proc_file_size, pf->name);
 	}
 	return pf->file;

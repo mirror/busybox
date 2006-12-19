@@ -382,7 +382,7 @@ out:
 	/* compile the match string into a regex */
 	if (*match != '\0') {
 		/* If match is empty, we use last regex used at runtime */
-		sed_cmd->sub_match = (regex_t *) xmalloc(sizeof(regex_t));
+		sed_cmd->sub_match = xmalloc(sizeof(regex_t));
 		xregcomp(sed_cmd->sub_match, match, cflags);
 	}
 	free(match);

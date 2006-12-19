@@ -84,7 +84,7 @@ do_loadtable(int fd, unsigned char *inbuf, int tailsz, int fontsize)
 	uint16_t unicode;
 
 	maxct = tailsz;				/* more than enough */
-	up = (struct unipair *) xmalloc(maxct * sizeof(struct unipair));
+	up = xmalloc(maxct * sizeof(struct unipair));
 
 	for (glyph = 0; glyph < fontsize; glyph++) {
 		while (tailsz >= 2) {
