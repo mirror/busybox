@@ -13,7 +13,7 @@
 
 /* This function reads an entire line from a text file, up to a newline 
  * or NUL byte, inclusive.  It returns a malloc'ed char * which must be
- * stored and free'ed  by the caller.  If end is null '\n' isn't considered
+ * stored and free'ed by the caller.  If end is null '\n' isn't considered
  * end of line.  If end isn't null, length of the chunk read is stored in it. */
 
 char *bb_get_chunk_from_file(FILE * file, int *end)
@@ -62,7 +62,7 @@ char *xmalloc_getline(FILE * file)
 	char *c = bb_get_chunk_from_file(file, &i);
 
 	if (i && c[--i] == '\n')
-		c[i] = 0;
+		c[i] = '\0';
 
 	return c;
 }
