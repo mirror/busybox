@@ -40,15 +40,14 @@ int correct_password(const struct passwd *pw)
 	char *unencrypted, *encrypted, *correct;
 
 #ifdef CONFIG_FEATURE_SHADOWPASSWDS
-	if (!strcmp(pw->pw_passwd, "x") || !strcmp(pw->pw_passwd, "*")) {
+	if (LONE_CHAR(pw->pw_passwd, 'x') || LONE_CHAR(pw->pw_passwd, '*')) {
 		struct spwd *sp = getspnam(pw->pw_name);
 
 		if (!sp)
 			bb_error_msg_and_die("no valid shadow password");
 
 		correct = sp->sp_pwdp;
-	}
-	else
+	} else
 #endif
 		correct = pw->pw_passwd;
 

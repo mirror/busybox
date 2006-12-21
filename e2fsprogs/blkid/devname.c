@@ -189,7 +189,7 @@ static void lvm_probe_all(blkid_cache cache)
 		struct dirent	*lv_iter;
 
 		vg_name = vg_iter->d_name;
-		if (!strcmp(vg_name, ".") || !strcmp(vg_name, ".."))
+		if (LONE_CHAR(vg_name, '.') || !strcmp(vg_name, ".."))
 			continue;
 		vdirname = xmalloc(vg_len + strlen(vg_name) + 8);
 		sprintf(vdirname, "%s/%s/LVs", VG_DIR, vg_name);
@@ -203,7 +203,7 @@ static void lvm_probe_all(blkid_cache cache)
 			char		*lv_name, *lvm_device;
 
 			lv_name = lv_iter->d_name;
-			if (!strcmp(lv_name, ".") || !strcmp(lv_name, ".."))
+			if (LONE_CHAR(lv_name, '.') || !strcmp(lv_name, ".."))
 				continue;
 
 			lvm_device = xmalloc(vg_len + strlen(vg_name) +

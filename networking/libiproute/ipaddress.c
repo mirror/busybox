@@ -678,7 +678,7 @@ static int ipaddr_modify(int cmd, int argc, char **argv)
 				if (brd_len) {
 					duparg("broadcast", *argv);
 				}
-				if (strcmp(*argv, "+") == 0) {
+				if (LONE_CHAR(*argv, '+')) {
 					brd_len = -1;
 				}
 				else if (LONE_DASH(*argv)) {

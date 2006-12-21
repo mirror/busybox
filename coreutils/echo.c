@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include "busybox.h"
 
-int bb_echo(int ATTRIBUTE_UNUSED argc, char **argv)
+int bb_echo(char **argv)
 {
 #ifndef CONFIG_FEATURE_FANCY_ECHO
 #define eflag '\\'
@@ -114,7 +114,7 @@ just_echo:
 
 int echo_main(int argc, char** argv)
 {
-	(void)bb_echo(argc, argv);
+	(void)bb_echo(argv);
 	fflush_stdout_and_exit(EXIT_SUCCESS);
 }
 

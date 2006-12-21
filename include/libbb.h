@@ -263,6 +263,8 @@ extern char *xasprintf(const char *format, ...) __attribute__ ((format (printf, 
 //int NOT_LONE_DASH(const char *s) { return s[0] != '-' || s[1]; }
 #define LONE_DASH(s) ((s)[0] == '-' && !(s)[1])
 #define NOT_LONE_DASH(s) ((s)[0] != '-' || (s)[1])
+#define LONE_CHAR(s,c) ((s)[0] == (c) && !(s)[1])
+#define NOT_LONE_CHAR(s,c) ((s)[0] != (c) || (s)[1])
 
 /* dmalloc will redefine these to it's own implementation. It is safe
  * to have the prototypes here unconditionally.  */
@@ -386,7 +388,9 @@ extern void bb_vperror_msg(const char *s, va_list p);
 extern void bb_vinfo_msg(const char *s, va_list p);
 
 
-extern int bb_echo(int argc, char** argv);
+/* applets which are useful from another applets */
+extern int bb_cat(char** argv);
+extern int bb_echo(char** argv);
 extern int bb_test(int argc, char** argv);
 
 #ifndef BUILD_INDIVIDUAL

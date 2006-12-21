@@ -175,14 +175,16 @@ int bb_test(int argc, char **argv)
 {
 	int res;
 
-	if (strcmp(argv[0], "[") == 0) {
-		if (strcmp(argv[--argc], "]")) {
+	if (LONE_CHAR(argv[0], '[')) {
+		--argc;
+		if (NOT_LONE_CHAR(argv[argc], ']')) {
 			bb_error_msg("missing ]");
 			return 2;
 		}
 		argv[argc] = NULL;
 	} else if (strcmp(argv[0], "[[") == 0) {
-		if (strcmp(argv[--argc], "]]")) {
+		--argc;
+		if (strcmp(argv[argc], "]]")) {
 			bb_error_msg("missing ]]");
 			return 2;
 		}
@@ -578,6 +580,6 @@ static int is_a_group_member(gid_t gid)
 
 int test_main(int argc, char **argv)
 {
-	exit(bb_test(argc, argv));
+	return bb_test(argc, argv);
 }
 

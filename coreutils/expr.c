@@ -136,7 +136,7 @@ static int null(VALUE * v)
 	if (v->type == integer)
 		return v->u.i == 0;
 	else				/* string: */
-		return v->u.s[0] == '\0' || strcmp(v->u.s, "0") == 0;
+		return v->u.s[0] == '\0' || LONE_CHAR(v->u.s, '0');
 }
 
 /* Coerce V to a string value (can't fail).  */

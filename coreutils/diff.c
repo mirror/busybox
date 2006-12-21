@@ -1079,7 +1079,7 @@ static char **get_dir(char *path)
 
 		dp = warn_opendir(path);
 		while ((ep = readdir(dp))) {
-			if ((!strcmp(ep->d_name, "..")) || (!strcmp(ep->d_name, ".")))
+			if (!strcmp(ep->d_name, "..") || LONE_CHAR(ep->d_name, '.'))
 				continue;
 			add_to_dirlist(ep->d_name, NULL, NULL, 0);
 		}

@@ -1047,8 +1047,9 @@ int init_main(int argc, char **argv)
 	}
 
 	/* Check if we are supposed to be in single user mode */
-	if (argc > 1 && (!strcmp(argv[1], "single") ||
-					 !strcmp(argv[1], "-s") || !strcmp(argv[1], "1"))) {
+	if (argc > 1
+	 && (!strcmp(argv[1], "single") || !strcmp(argv[1], "-s") || LONE_CHAR(argv[1], '1'))
+	) {
 		/* Start a shell on console */
 		new_init_action(RESPAWN, bb_default_login_shell, "");
 	} else {

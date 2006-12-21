@@ -44,7 +44,7 @@ int last_main(int argc, char **argv)
 			bb_perror_msg_and_die("short read");
 		}
 
-		if (strncmp(ut.ut_line, "~", 1) == 0) {
+		if (ut.ut_line[0] == '~') {
 			if (strncmp(ut.ut_user, "shutdown", 8) == 0)
 				ut.ut_type = SHUTDOWN_TIME;
 			else if (strncmp(ut.ut_user, "reboot", 6) == 0)

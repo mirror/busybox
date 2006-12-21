@@ -11,19 +11,11 @@
 /* http://www.opengroup.org/onlinepubs/007904975/utilities/cat.html */
 
 #include "busybox.h"
-#include <unistd.h>
 
-int cat_main(int argc, char **argv)
+int bb_cat(char **argv)
 {
 	FILE *f;
 	int retval = EXIT_SUCCESS;
-
-	getopt32(argc, argv, "u");
-
-	argv += optind;
-	if (!*argv) {
-		*--argv = "-";
-	}
 
 	do {
 		f = fopen_or_warn_stdin(*argv);
@@ -38,4 +30,16 @@ int cat_main(int argc, char **argv)
 	} while (*++argv);
 
 	return retval;
+}
+
+int cat_main(int argc, char **argv)
+{
+	getopt32(argc, argv, "u");
+
+	argv += optind;
+	if (!*argv) {
+		*--argv = "-";
+	}
+
+	return bb_cat(argv);
 }

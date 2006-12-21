@@ -759,7 +759,7 @@ static servtab_t *getconfigent(void)
 	while (nsep != NULL) {
 		nsep->se_checked = 1;
 		if (nsep->se_family == AF_INET) {
-			if (!strcmp(nsep->se_hostaddr, "*"))
+			if (LONE_CHAR(nsep->se_hostaddr, '*'))
 				nsep->se_ctrladdr_in.sin_addr.s_addr = INADDR_ANY;
 			else if (!inet_aton(nsep->se_hostaddr, &nsep->se_ctrladdr_in.sin_addr)) {
 				struct hostent *hp;

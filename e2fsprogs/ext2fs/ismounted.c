@@ -144,7 +144,7 @@ static errcode_t check_mntent_file(const char *mtab_file, const char *file,
 	 * read/write, since if the root is mounted read/only, the
 	 * contents of /etc/mtab may not be accurate.
 	 */
-	if (!strcmp(mnt->mnt_dir, "/")) {
+	if (LONE_CHAR(mnt->mnt_dir, '/')) {
 is_root:
 #define TEST_FILE "/.ismount-test-file"
 		*mount_flags |= EXT2_MF_ISROOT;

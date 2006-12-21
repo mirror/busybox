@@ -1080,7 +1080,7 @@ static int check_all(void)
 	 */
 	if (!parallel_root) {
 		for (fs = filesys_info; fs; fs = fs->next) {
-			if (!strcmp(fs->mountpt, "/"))
+			if (LONE_CHAR(fs->mountpt, '/'))
 				break;
 		}
 		if (fs) {
@@ -1099,7 +1099,7 @@ static int check_all(void)
 	 */
 	if (skip_root)
 		for (fs = filesys_info; fs; fs = fs->next)
-			if (!strcmp(fs->mountpt, "/"))
+			if (LONE_CHAR(fs->mountpt, '/'))
 				fs->flags |= FLAG_DONE;
 
 	while (not_done_yet) {
