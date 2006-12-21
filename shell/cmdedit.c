@@ -78,7 +78,7 @@ static int cur_history;
 #endif
 
 //#include <termios.h>
-#define setTermSettings(fd,argp) tcsetattr(fd,TCSANOW,argp)
+#define setTermSettings(fd,argp) tcsetattr(fd, TCSANOW, argp)
 #define getTermSettings(fd,argp) tcgetattr(fd, argp);
 
 /* Current termio and the previous termio before starting sh */
@@ -136,7 +136,7 @@ static void win_changed(int nsig)
 {
 	static sighandler_t previous_SIGWINCH_handler;  /* for reset */
 
-	/*   emulate      || signal call */
+	/* emulate || signal call */
 	if (nsig == -SIGWINCH || nsig == SIGWINCH) {
 		int width = 0;
 		get_terminal_width_height(0, &width, NULL);
@@ -155,12 +155,12 @@ static void win_changed(int nsig)
 
 static void cmdedit_reset_term(void)
 {
-	if ((handlers_sets & SET_RESET_TERM) != 0) {
+	if (handlers_sets & SET_RESET_TERM) {
 /* sparc and other have broken termios support: use old termio handling. */
 		setTermSettings(STDIN_FILENO, (void *) &initial_settings);
 		handlers_sets &= ~SET_RESET_TERM;
 	}
-	if ((handlers_sets & SET_WCHG_HANDLERS) != 0) {
+	if (handlers_sets & SET_WCHG_HANDLERS) {
 		/* reset SIGWINCH handler to previous (default) */
 		win_changed(0);
 		handlers_sets &= ~SET_WCHG_HANDLERS;
@@ -172,8 +172,7 @@ static void cmdedit_reset_term(void)
 /* special for recount position for scroll and remove terminal margin effect */
 static void cmdedit_set_out_char(int next_char)
 {
-
-	int c = (int)((unsigned char) command_ps[cursor]);
+	int c = (unsigned char)command_ps[cursor];
 
 	if (c == 0)
 		c = ' ';        /* destroy end char? */
@@ -188,7 +187,10 @@ static void cmdedit_set_out_char(int next_char)
 		printf("\033[7m%c\033[0m", c);
 	} else
 #endif
-		if (initial_settings.c_lflag & ECHO) putchar(c);
+	{
+		if (initial_settings.c_lflag & ECHO)
+			putchar(c);
+	}
 	if (++cmdedit_x >= cmdedit_termw) {
 		/* terminal is scrolled down */
 		cmdedit_y++;
@@ -221,7 +223,7 @@ static void goto_new_line(void)
 
 static void out1str(const char *s)
 {
-	if ( s )
+	if (s)
 		fputs(s, stdout);
 }
 
@@ -255,7 +257,7 @@ static void input_backward(int num)
 		count_y = 1 + num / cmdedit_termw;
 		printf("\033[%dA", count_y);
 		cmdedit_y -= count_y;
-		/*  require  forward  after  uping   */
+		/* require forward after uping */
 		cmdedit_x = cmdedit_termw * count_y - num;
 		printf("\033[%dC", cmdedit_x);  /* set term cursor   */
 	}
@@ -281,20 +283,20 @@ static void parse_prompt(const char *prmt_ptr)
 {
 	int prmt_len = 0;
 	size_t cur_prmt_len = 0;
-	char  flg_not_length = '[';
+	char flg_not_length = '[';
 	char *prmt_mem_ptr = xzalloc(1);
 	char *pwd_buf = xgetcwd(0);
-	char  buf2[PATH_MAX + 1];
-	char  buf[2];
-	char  c;
+	char buf2[PATH_MAX + 1];
+	char buf[2];
+	char c;
 	char *pbuf;
 
 	if (!pwd_buf) {
-		pwd_buf=(char *)bb_msg_unknown;
+		pwd_buf = (char *)bb_msg_unknown;
 	}
 
 	while (*prmt_ptr) {
-		pbuf    = buf;
+		pbuf = buf;
 		pbuf[1] = 0;
 		c = *prmt_ptr++;
 		if (c == '\\') {
@@ -302,85 +304,85 @@ static void parse_prompt(const char *prmt_ptr)
 			int l;
 
 			c = bb_process_escape_sequence(&prmt_ptr);
-			if (prmt_ptr==cp) {
-			  if (*cp == 0)
-				break;
-			  c = *prmt_ptr++;
-			  switch (c) {
+			if (prmt_ptr == cp) {
+				if (*cp == 0)
+					break;
+				c = *prmt_ptr++;
+				switch (c) {
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-			  case 'u':
-				pbuf = user_buf;
-				break;
+				case 'u':
+					pbuf = user_buf;
+					break;
 #endif
-			  case 'h':
-				pbuf = hostname_buf;
-				if (pbuf == 0) {
-					pbuf = xzalloc(256);
-					if (gethostname(pbuf, 255) < 0) {
-						strcpy(pbuf, "?");
-					} else {
-						char *s = strchr(pbuf, '.');
-
-						if (s)
-							*s = 0;
+				case 'h':
+					pbuf = hostname_buf;
+					if (pbuf == 0) {
+						pbuf = xzalloc(256);
+						if (gethostname(pbuf, 255) < 0) {
+							strcpy(pbuf, "?");
+						} else {
+							char *s = strchr(pbuf, '.');
+							if (s)
+								*s = 0;
+						}
+						hostname_buf = pbuf;
 					}
-					hostname_buf = pbuf;
-				}
-				break;
-			  case '$':
-				c = my_euid == 0 ? '#' : '$';
-				break;
+					break;
+				case '$':
+					c = (my_euid == 0 ? '#' : '$');
+					break;
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-			  case 'w':
-				pbuf = pwd_buf;
-				l = strlen(home_pwd_buf);
-				if (home_pwd_buf[0] != 0 &&
-				    strncmp(home_pwd_buf, pbuf, l) == 0 &&
-				    (pbuf[l]=='/' || pbuf[l]=='\0') &&
-				    strlen(pwd_buf+l)<PATH_MAX) {
-					pbuf = buf2;
-					*pbuf = '~';
-					strcpy(pbuf+1, pwd_buf+l);
-				}
-				break;
+				case 'w':
+					pbuf = pwd_buf;
+					l = strlen(home_pwd_buf);
+					if (home_pwd_buf[0] != 0
+					 && strncmp(home_pwd_buf, pbuf, l) == 0
+					 && (pbuf[l]=='/' || pbuf[l]=='\0')
+					 && strlen(pwd_buf+l)<PATH_MAX
+					) {
+						pbuf = buf2;
+						*pbuf = '~';
+						strcpy(pbuf+1, pwd_buf+l);
+					}
+					break;
 #endif
-			  case 'W':
-				pbuf = pwd_buf;
-				cp = strrchr(pbuf,'/');
-				if ( (cp != NULL) && (cp != pbuf) )
-					pbuf += (cp-pbuf)+1;
-				break;
-			  case '!':
-				snprintf(pbuf = buf2, sizeof(buf2), "%d", num_ok_lines);
-				break;
-			  case 'e': case 'E':     /* \e \E = \033 */
-				c = '\033';
-				break;
-			  case 'x': case 'X':
-				for (l = 0; l < 3;) {
-					int h;
-					buf2[l++] = *prmt_ptr;
+				case 'W':
+					pbuf = pwd_buf;
+					cp = strrchr(pbuf,'/');
+					if (cp != NULL && cp != pbuf)
+						pbuf += (cp-pbuf) + 1;
+					break;
+				case '!':
+					snprintf(pbuf = buf2, sizeof(buf2), "%d", num_ok_lines);
+					break;
+				case 'e': case 'E':     /* \e \E = \033 */
+					c = '\033';
+					break;
+				case 'x': case 'X':
+					for (l = 0; l < 3;) {
+						int h;
+						buf2[l++] = *prmt_ptr;
+						buf2[l] = 0;
+						h = strtol(buf2, &pbuf, 16);
+						if (h > UCHAR_MAX || (pbuf - buf2) < l) {
+							l--;
+							break;
+						}
+						prmt_ptr++;
+					}
 					buf2[l] = 0;
-					h = strtol(buf2, &pbuf, 16);
-					if (h > UCHAR_MAX || (pbuf - buf2) < l) {
-						l--;
-						break;
+					c = (char)strtol(buf2, 0, 16);
+					if (c == 0)
+						c = '?';
+					pbuf = buf;
+					break;
+				case '[': case ']':
+					if (c == flg_not_length) {
+						flg_not_length = flg_not_length == '[' ? ']' : '[';
+						continue;
 					}
-					prmt_ptr++;
+					break;
 				}
-				buf2[l] = 0;
-				c = (char)strtol(buf2, 0, 16);
-				if (c==0)
-					c = '?';
-				pbuf = buf;
-				break;
-			  case '[': case ']':
-				if (c == flg_not_length) {
-					flg_not_length = flg_not_length == '[' ? ']' : '[';
-					continue;
-				}
-				break;
-			  }
 			}
 		}
 		if (pbuf == buf)
@@ -460,7 +462,7 @@ static void put(void)
 	strncpy(command_ps + cursor, delbuf, j);
 	len += j;
 	input_end();                    /* rewrite new line */
-	input_backward(cursor-ocursor-j+1); /* at end of new text */
+	input_backward(cursor - ocursor - j + 1); /* at end of new text */
 }
 #endif
 
@@ -504,13 +506,13 @@ static void cmdedit_setwidth(int w, int redraw_flg)
 static void cmdedit_init(void)
 {
 	cmdedit_prmt_len = 0;
-	if ((handlers_sets & SET_WCHG_HANDLERS) == 0) {
+	if (!(handlers_sets & SET_WCHG_HANDLERS)) {
 		/* emulate usage handler to set handler and call yours work */
 		win_changed(-SIGWINCH);
 		handlers_sets |= SET_WCHG_HANDLERS;
 	}
 
-	if ((handlers_sets & SET_ATEXIT) == 0) {
+	if (!(handlers_sets & SET_ATEXIT)) {
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
 		struct passwd *entry;
 
@@ -553,10 +555,13 @@ static void add_match(char *matched)
 /*
 static int is_execute(const struct stat *st)
 {
-	if ((!my_euid && (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))) ||
-		(my_uid == st->st_uid && (st->st_mode & S_IXUSR)) ||
-		(my_gid == st->st_gid && (st->st_mode & S_IXGRP)) ||
-		(st->st_mode & S_IXOTH)) return TRUE;
+	if ((!my_euid && (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+	 || (my_uid == st->st_uid && (st->st_mode & S_IXUSR))
+	 || (my_gid == st->st_gid && (st->st_mode & S_IXGRP))
+	 || (st->st_mode & S_IXOTH)
+	) {
+		return TRUE;
+	}
 	return FALSE;
 }
 */
@@ -629,26 +634,25 @@ static int path_parse(char ***p, int flags)
 {
 	int npth;
 	const char *tmp;
-	const char *pth;
+	const char *pth = cmdedit_path_lookup;
 
 	/* if not setenv PATH variable, to search cur dir "." */
-	if (flags != FIND_EXE_ONLY || (pth = cmdedit_path_lookup) == 0 ||
-		/* PATH=<empty> or PATH=:<empty> */
-		*pth == 0 || (*pth == ':' && *(pth + 1) == 0)) {
+	if (flags != FIND_EXE_ONLY)
 		return 1;
-	}
+	/* PATH=<empty> or PATH=:<empty> */
+	if (!pth || !pth[0] || LONE_CHAR(pth, ':'))
+		return 1;
 
 	tmp = pth;
 	npth = 0;
 
-	for (;;) {
+	while (1) {
 		npth++;                 /* count words is + 1 count ':' */
 		tmp = strchr(tmp, ':');
-		if (tmp) {
-			if (*++tmp == 0)
-				break;  /* :<empty> */
-		} else
+		if (!tmp)
 			break;
+		if (*++tmp == 0)
+			break;  /* :<empty> */
 	}
 
 	*p = xmalloc(npth * sizeof(char *));
@@ -657,14 +661,13 @@ static int path_parse(char ***p, int flags)
 	(*p)[0] = xstrdup(tmp);
 	npth = 1;                       /* count words is + 1 count ':' */
 
-	for (;;) {
+	while (1) {
 		tmp = strchr(tmp, ':');
-		if (tmp) {
-			(*p)[0][(tmp - pth)] = 0;       /* ':' -> '\0' */
-			if (*++tmp == 0)
-				break;                  /* :<empty> */
-		} else
+		if (!tmp)
 			break;
+		(*p)[0][(tmp - pth)] = 0;       /* ':' -> '\0' */
+		if (*++tmp == 0)
+			break;                  /* :<empty> */
 		(*p)[npth++] = &(*p)[0][(tmp - pth)];   /* p[next]=p[0][&'\0'+1] */
 	}
 
@@ -728,28 +731,28 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 			continue;
 
 		while ((next = readdir(dir)) != NULL) {
+			int len1;
 			char *str_found = next->d_name;
 
-			/* matched ? */
+			/* matched? */
 			if (strncmp(str_found, pfind, strlen(pfind)))
 				continue;
 			/* not see .name without .match */
 			if (*str_found == '.' && *pfind == 0) {
-				if (*paths[i] == '/' && paths[i][1] == 0
-					&& str_found[1] == 0) str_found = "";   /* only "/" */
-				else
+				if (NOT_LONE_CHAR(paths[i], '/') || str_found[1])
 					continue;
+				str_found = ""; /* only "/" */
 			}
 			found = concat_path_file(paths[i], str_found);
 			/* hmm, remover in progress? */
 			if (stat(found, &st) < 0)
 				goto cont;
-			/* find with dirs ? */
+			/* find with dirs? */
 			if (paths[i] != dirbuf)
 				strcpy(found, next->d_name);    /* only name */
 
-			int len1 = strlen(found);
-			found = xrealloc(found, len1+2);
+			len1 = strlen(found);
+			found = xrealloc(found, len1 + 2);
 			found[len1] = '\0';
 			found[len1+1] = '\0';
 
@@ -766,7 +769,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 			/* Add it to the list */
 			add_match(found);
 			continue;
-cont:
+ cont:
 			free(found);
 		}
 		closedir(dir);
@@ -778,7 +781,7 @@ cont:
 }
 
 
-#define QUOT    (UCHAR_MAX+1)
+#define QUOT (UCHAR_MAX+1)
 
 #define collapse_pos(is, in) { \
 	memmove(int_buf+(is), int_buf+(in), (BUFSIZ+1-(is)-(in))*sizeof(int)); \
@@ -794,7 +797,7 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 
 	/* set to integer dimension characters and own positions */
 	for (i = 0;; i++) {
-		int_buf[i] = (int) ((unsigned char) matchBuf[i]);
+		int_buf[i] = (unsigned char)matchBuf[i];
 		if (int_buf[i] == 0) {
 			pos_buf[i] = -1;        /* indicator end line */
 			break;
@@ -835,7 +838,7 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 			int_buf[i] |= QUOT;
 	}
 
-	/* skip commands with arguments if line have commands delimiters */
+	/* skip commands with arguments if line has commands delimiters */
 	/* ';' ';;' '&' '|' '&&' '||' but `>&' `<&' `>|' */
 	for (i = 0; int_buf[i]; i++) {
 		c = int_buf[i];
@@ -906,16 +909,17 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 	for (i = 0; int_buf[i]; i++)
 		if (int_buf[i] == ' ' || int_buf[i] == '<' || int_buf[i] == '>') {
 			if (int_buf[i] == ' ' && command_mode == FIND_EXE_ONLY
-				&& matchBuf[pos_buf[0]]=='c'
-				&& matchBuf[pos_buf[1]]=='d' )
+			 && matchBuf[pos_buf[0]]=='c'
+			 && matchBuf[pos_buf[1]]=='d'
+			) {
 				command_mode = FIND_DIR_ONLY;
-			else {
+			} else {
 				command_mode = FIND_FILE_ONLY;
 				break;
 			}
 		}
-	/* "strlen" */
-	for (i = 0; int_buf[i]; i++);
+	for (i = 0; int_buf[i]; i++)
+		/* "strlen" */;
 	/* find last word */
 	for (--i; i >= 0; i--) {
 		c = int_buf[i];
@@ -925,11 +929,12 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 		}
 	}
 	/* skip first not quoted '\'' or '"' */
-	for (i = 0; int_buf[i] == '\'' || int_buf[i] == '"'; i++);
+	for (i = 0; int_buf[i] == '\'' || int_buf[i] == '"'; i++)
+		/*skip*/;
 	/* collapse quote or unquote // or /~ */
-	while ((int_buf[i] & ~QUOT) == '/' &&
-			((int_buf[i + 1] & ~QUOT) == '/'
-			 || (int_buf[i + 1] & ~QUOT) == '~')) {
+	while ((int_buf[i] & ~QUOT) == '/'
+	 && ((int_buf[i+1] & ~QUOT) == '/' || (int_buf[i+1] & ~QUOT) == '~')
+	) {
 		i++;
 	}
 
@@ -978,9 +983,9 @@ static void showfiles(void)
 		int n = row;
 		int nc;
 
-		for(nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
+		for (nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
 			printf("%s%-*s", matches[n],
-					column_width - strlen(matches[n]), "");
+				column_width - strlen(matches[n]), "");
 		}
 		printf("%s\n", matches[n]);
 	}
@@ -1003,7 +1008,7 @@ static void input_tab(int *lastWasTab)
 		}
 		return;
 	}
-	if (! *lastWasTab) {
+	if (!*lastWasTab) {
 		char *tmp, *tmp1;
 		int len_found;
 		char matchBuf[BUFSIZ];
@@ -1143,21 +1148,21 @@ static int get_next_history(void)
 }
 
 #if ENABLE_FEATURE_COMMAND_SAVEHISTORY
-void load_history ( const char *fromfile )
+void load_history(const char *fromfile)
 {
 	FILE *fp;
 	int hi;
 
 	/* cleanup old */
 
-	for(hi = n_history; hi > 0; ) {
+	for (hi = n_history; hi > 0;) {
 		hi--;
-		free ( history [hi] );
+		free(history[hi]);
 	}
 
-	if (( fp = fopen ( fromfile, "r" ))) {
-
-		for ( hi = 0; hi < MAX_HISTORY; ) {
+	fp = fopen(fromfile, "r");
+	if (fp) {
+		for (hi = 0; hi < MAX_HISTORY;) {
 			char * hl = xmalloc_getline(fp);
 			int l;
 
@@ -1170,24 +1175,24 @@ void load_history ( const char *fromfile )
 				free(hl);
 				continue;
 			}
-			history [hi++] = hl;
+			history[hi++] = hl;
 		}
-		fclose ( fp );
+		fclose(fp);
 	}
 	cur_history = n_history = hi;
 }
 
-void save_history ( const char *tofile )
+void save_history (const char *tofile)
 {
-	FILE *fp = fopen ( tofile, "w" );
+	FILE *fp = fopen(tofile, "w");
 
-	if ( fp ) {
+	if (fp) {
 		int i;
 
-		for ( i = 0; i < n_history; i++ ) {
-			fprintf(fp, "%s\n", history [i]);
+		for (i = 0; i < n_history; i++) {
+			fprintf(fp, "%s\n", history[i]);
 		}
-		fclose ( fp );
+		fclose(fp);
 	}
 }
 #endif
@@ -1239,13 +1244,11 @@ static void
 vi_word_motion(char *command, int eat)
 {
 	if (isalnum(command[cursor]) || command[cursor] == '_') {
-		while (cursor < len &&
-		    (isalnum(command[cursor+1]) ||
-				command[cursor+1] == '_'))
+		while (cursor < len
+		 && (isalnum(command[cursor+1]) || command[cursor+1] == '_'))
 			input_forward();
 	} else if (ispunct(command[cursor])) {
-		while (cursor < len &&
-		    (ispunct(command[cursor+1])))
+		while (cursor < len && ispunct(command[cursor+1]))
 			input_forward();
 	}
 
@@ -1278,13 +1281,13 @@ vi_end_motion(char *command)
 	if (cursor >= len-1)
 		return;
 	if (isalnum(command[cursor]) || command[cursor] == '_') {
-		while (cursor < len-1 &&
-		    (isalnum(command[cursor+1]) ||
-				command[cursor+1] == '_'))
+		while (cursor < len-1
+		 && (isalnum(command[cursor+1]) || command[cursor+1] == '_')
+		) {
 			input_forward();
+		}
 	} else if (ispunct(command[cursor])) {
-		while (cursor < len-1 &&
-		    (ispunct(command[cursor+1])))
+		while (cursor < len-1 && ispunct(command[cursor+1]))
 			input_forward();
 	}
 }
@@ -1309,13 +1312,13 @@ vi_back_motion(char *command)
 	if (cursor <= 0)
 		return;
 	if (isalnum(command[cursor]) || command[cursor] == '_') {
-		while (cursor > 0 &&
-		    (isalnum(command[cursor-1]) ||
-				command[cursor-1] == '_'))
+		while (cursor > 0
+		 && (isalnum(command[cursor-1]) || command[cursor-1] == '_')
+		) {
 			input_backward(1);
+		}
 	} else if (ispunct(command[cursor])) {
-		while (cursor > 0 &&
-		    (ispunct(command[cursor-1])))
+		while (cursor > 0 && ispunct(command[cursor-1]))
 			input_backward(1);
 	}
 }
@@ -1341,7 +1344,6 @@ vi_back_motion(char *command)
 
 int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 {
-
 	int break_out = 0;
 	int lastWasTab = FALSE;
 	unsigned char c;
@@ -1364,9 +1366,9 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	new_settings.c_cc[VMIN] = 1;
 	new_settings.c_cc[VTIME] = 0;
 	/* Turn off CTRL-C, so we can trap it */
-#       ifndef _POSIX_VDISABLE
-#               define _POSIX_VDISABLE '\0'
-#       endif
+#	ifndef _POSIX_VDISABLE
+#       	define _POSIX_VDISABLE '\0'
+#	endif
 	new_settings.c_cc[VINTR] = _POSIX_VDISABLE;
 	command[0] = 0;
 
@@ -1379,7 +1381,6 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	parse_prompt(prompt);
 
 	while (1) {
-
 		fflush(stdout);                 /* buffered out to fast */
 
 		if (safe_read(0, &c, 1) < 1)
@@ -1393,8 +1394,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 		if (vi_cmdmode)
 			ic |= vbit;
 #endif
-		switch (ic)
-		{
+		switch (ic) {
 		case '\n':
 		case '\r':
 		vi_case( case '\n'|vbit: )
@@ -1433,8 +1433,8 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			/* Control-d -- Delete one character, or exit
 			 * if the len=0 and no chars to delete */
 			if (len == 0) {
-					errno = 0;
-prepare_to_die:
+				errno = 0;
+ prepare_to_die:
 #if !ENABLE_ASH
 				printf("exit");
 				goto_new_line();
@@ -1472,7 +1472,7 @@ prepare_to_die:
 			break;
 		case CNTRL('K'):
 			/* Control-k -- clear to end of line */
-			*(command + cursor) = 0;
+			command[cursor] = 0;
 			len = cursor;
 			printf("\033[J");
 			break;
@@ -1480,7 +1480,7 @@ prepare_to_die:
 		vi_case( case CNTRL('L')|vbit: )
 			/* Control-l -- clear screen */
 			printf("\033[H");
-			redraw(0, len-cursor);
+			redraw(0, len - cursor);
 			break;
 #if MAX_HISTORY > 0
 		case CNTRL('N'):
@@ -1570,65 +1570,64 @@ prepare_to_die:
 		case 'c'|vbit:
 			vi_cmdmode = 0;
 			/* fall through */
-		case 'd'|vbit:
-			{
-				int nc, sc;
-				sc = cursor;
-				prevc = ic;
-				if (safe_read(0, &c, 1) < 1)
-					goto prepare_to_die;
-				if (c == (prevc & 0xff)) {
-					/* "cc", "dd" */
-					input_backward(cursor);
-					goto clear_to_eol;
-					break;
-				}
+		case 'd'|vbit: {
+			int nc, sc;
+			sc = cursor;
+			prevc = ic;
+			if (safe_read(0, &c, 1) < 1)
+				goto prepare_to_die;
+			if (c == (prevc & 0xff)) {
+				/* "cc", "dd" */
+				input_backward(cursor);
+				goto clear_to_eol;
+				break;
+			}
+			switch (c) {
+			case 'w':
+			case 'W':
+			case 'e':
+			case 'E':
 				switch (c) {
-				case 'w':
-				case 'W':
-				case 'e':
-				case 'E':
-					switch (c) {
-					case 'w':   /* "dw", "cw" */
-						vi_word_motion(command, vi_cmdmode);
-						break;
-					case 'W':   /* 'dW', 'cW' */
-						vi_Word_motion(command, vi_cmdmode);
-						break;
-					case 'e':   /* 'de', 'ce' */
-						vi_end_motion(command);
-						input_forward();
-						break;
-					case 'E':   /* 'dE', 'cE' */
-						vi_End_motion(command);
-						input_forward();
-						break;
-					}
-					nc = cursor;
-					input_backward(cursor - sc);
-					while (nc-- > cursor)
-						input_delete(1);
+				case 'w':   /* "dw", "cw" */
+					vi_word_motion(command, vi_cmdmode);
 					break;
-				case 'b':  /* "db", "cb" */
-				case 'B':  /* implemented as B */
-					if (c == 'b')
-						vi_back_motion(command);
-					else
-						vi_Back_motion(command);
-					while (sc-- > cursor)
-						input_delete(1);
+				case 'W':   /* 'dW', 'cW' */
+					vi_Word_motion(command, vi_cmdmode);
 					break;
-				case ' ':  /* "d ", "c " */
-					input_delete(1);
+				case 'e':   /* 'de', 'ce' */
+					vi_end_motion(command);
+					input_forward();
 					break;
-				case '$':  /* "d$", "c$" */
-				clear_to_eol:
-					while (cursor < len)
-						input_delete(1);
+				case 'E':   /* 'dE', 'cE' */
+					vi_End_motion(command);
+					input_forward();
 					break;
 				}
+				nc = cursor;
+				input_backward(cursor - sc);
+				while (nc-- > cursor)
+					input_delete(1);
+				break;
+			case 'b':  /* "db", "cb" */
+			case 'B':  /* implemented as B */
+				if (c == 'b')
+					vi_back_motion(command);
+				else
+					vi_Back_motion(command);
+				while (sc-- > cursor)
+					input_delete(1);
+				break;
+			case ' ':  /* "d ", "c " */
+				input_delete(1);
+				break;
+			case '$':  /* "d$", "c$" */
+			clear_to_eol:
+				while (cursor < len)
+					input_delete(1);
+				break;
 			}
 			break;
+		}
 		case 'p'|vbit:
 			input_forward();
 			/* fallthrough */
@@ -1794,7 +1793,7 @@ rewrite_line:
 #if MAX_HISTORY > 0
 	/* Handle command history log */
 	/* cleanup may be saved current command line */
-	if (len> 0) {                                      /* no put empty line */
+	if (len > 0) {                                      /* no put empty line */
 		int i = n_history;
 
 		free(history[MAX_HISTORY]);
@@ -1802,7 +1801,7 @@ rewrite_line:
 			/* After max history, remove the oldest command */
 		if (i >= MAX_HISTORY) {
 			free(history[0]);
-			for(i = 0; i < (MAX_HISTORY-1); i++)
+			for(i = 0; i < MAX_HISTORY-1; i++)
 				history[i] = history[i+1];
 		}
 		history[i++] = xstrdup(command);
@@ -1849,9 +1848,9 @@ int main(int argc, char **argv)
 	char buff[BUFSIZ];
 	char *prompt =
 #if ENABLE_FEATURE_SH_FANCY_PROMPT
-		"\\[\\033[32;1m\\]\\u@\\[\\x1b[33;1m\\]\\h:\
-\\[\\033[34;1m\\]\\w\\[\\033[35;1m\\] \
-\\!\\[\\e[36;1m\\]\\$ \\[\\E[0m\\]";
+		"\\[\\033[32;1m\\]\\u@\\[\\x1b[33;1m\\]\\h:"
+		"\\[\\033[34;1m\\]\\w\\[\\033[35;1m\\] "
+		"\\!\\[\\e[36;1m\\]\\$ \\[\\E[0m\\]";
 #else
 		"% ";
 #endif
@@ -1862,12 +1861,10 @@ int main(int argc, char **argv)
 	while (1) {
 		int l;
 		l = cmdedit_read_input(prompt, buff);
-		if (l > 0 && buff[l-1] == '\n') {
-			buff[l-1] = 0;
-			printf("*** cmdedit_read_input() returned line =%s=\n", buff);
-		} else {
+		if (l <= 0 || buff[l-1] != '\n')
 			break;
-		}
+		buff[l-1] = 0;
+		printf("*** cmdedit_read_input() returned line =%s=\n", buff);
 	}
 	printf("*** cmdedit_read_input() detect ^D\n");
 	return 0;
