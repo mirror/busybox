@@ -191,11 +191,10 @@ static void print_hilite(const char *str)
 
 static void data_readlines(void)
 {
-	unsigned i;
-	unsigned n = 1;
+	unsigned i, pos;
+	unsigned lineno = 1;
 	int w = width;
-	/* "remained unused space" in a line (0 if line fills entire width) */
-	int rem, last_rem = 1; /* "not 0" */
+	char terminated, last_terminated = 1;
 	char *current_line, *p;
 	FILE *fp;
 
@@ -210,41 +209,47 @@ static void data_readlines(void)
 
 	flines = NULL;
 	if (option_mask32 & FLAG_N) {
-		w -= 6;
+		w -= 8;
 	}
 	for (i = 0; !feof(fp) && i <= MAXLINES; i++) {
 		flines = xrealloc(flines, (i+1) * sizeof(char *));
 		current_line = xmalloc(w);
  again:
 		p = current_line;
-		rem = w - 1;
-		do {
+		pos = 0;
+		terminated = 0;
+		while (1) {
 			int c = getc(fp);
+			if (c == '\t') pos += (pos^7) & 7;
+			pos++;
+			if (pos >= w) { ungetc(c, fp); break; }
 			if (c == EOF) break;
-			if (c == '\n') break;
+			if (c == '\n') { terminated = 1; break; }
 			/* NUL is substituted by '\n'! */
 			if (c == '\0') c = '\n';
 			*p++ = c;
-		} while (--rem);
+		}
 		*p = '\0';
 		if (fp != stdin)
 			die_if_ferror(fp, filename);
 
 		/* Corner case: linewrap with only "" wrapping to next line */
 		/* Looks ugly on screen, so we do not store this empty line */
-		if (!last_rem && !current_line[0]) {
-			last_rem = 1; /* "not 0" */
-			n++;
+		if (!last_terminated && !current_line[0]) {
+			last_terminated = 1;
+			lineno++;
 			goto again;
 		}
 
-		last_rem = rem;
+		last_terminated = terminated;
 		if (option_mask32 & FLAG_N) {
-			flines[i] = xasprintf((n <= 99999) ? "%5u %s" : "%05u %s",
-						n % 100000, current_line);
+			/* Width of 7 preserves tab spacing in the text */
+			flines[i] = xasprintf(
+				(lineno <= 9999999) ? "%7u %s" : "%07u %s",
+				lineno % 10000000, current_line);
 			free(current_line);
-			if (rem)
-				n++;
+			if (terminated)
+				lineno++;
 		} else {
 			flines[i] = xrealloc(current_line, strlen(current_line)+1);
 		}
@@ -339,12 +344,12 @@ static void status_print(void)
 }
 
 static char controls[] =
-	/**/"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+	/* NUL: never encountered; TAB: not converted */
+	/**/"\x01\x02\x03\x04\x05\x06\x07\x08"  "\x0a\x0b\x0c\x0d\x0e\x0f"
 	"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"
 	"\x7f\x9b"; /* DEL and infamous Meta-ESC :( */
 static char ctrlconv[] =
-	/* Note that on input NUL is converted to '\n' ('\x0a') */
-	/* Therefore we subst '\n' with '@', not 'J' */
+	/* '\n': it's a former NUL - subst with '@', not 'J' */
 	"\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x40\x4b\x4c\x4d\x4e\x4f"
 	"\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f";
 
@@ -402,10 +407,10 @@ static void print_found(const char *line)
 	}
 
 	if (!growline) {
-		printf("%s"CLEAR_2_EOL"\n", str);
+		printf(CLEAR_2_EOL"%s\n", str);
 		return;
 	}
-	printf("%s%s"CLEAR_2_EOL"\n", growline, str);
+	printf(CLEAR_2_EOL"%s%s\n", growline, str);
 	free(growline);
 }
 
@@ -415,6 +420,7 @@ static void print_ascii(const char *str)
 	char *p;
 	size_t n;
 
+	printf(CLEAR_2_EOL);
 	while (*str) {
 		n = strcspn(str, controls);
 		if (n) {
@@ -438,7 +444,7 @@ static void print_ascii(const char *str)
 		*p = '\0';
 		print_hilite(buf);
 	}
-	printf("%s"CLEAR_2_EOL"\n", str);
+	puts(str);
 }
 
 /* Print the buffer */
@@ -578,7 +584,7 @@ static void change_file(int direction)
 		reinitialise();
 	} else {
 		clear_line();
-		print_hilite((direction > 0) ? "No next file" : "No previous file");
+		print_hilite(direction > 0 ? "No next file" : "No previous file");
 	}
 }
 
@@ -644,19 +650,18 @@ static void colon_process(void)
 static int normalize_match_pos(int match)
 {
 	match_pos = match;
+	if (match >= num_matches)
+		match_pos = num_matches - 1;
 	if (match < 0)
 		return (match_pos = 0);
-	if (match >= num_matches)
-{
-		match_pos = num_matches - 1;
-}
 	return match_pos;
 }
 
 #if ENABLE_FEATURE_LESS_REGEXP
 static void goto_match(int match)
 {
-	buffer_line(match_lines[normalize_match_pos(match)]);
+	if (num_matches)
+		buffer_line(match_lines[normalize_match_pos(match)]);
 }
 
 static void regex_process(void)
@@ -1063,6 +1068,7 @@ static void keypress_process(int keypress)
 			regex_process();
 			break;
 		case 'n':
+//printf("HERE 3\n");sleep(1);
 			goto_match(match_pos + 1);
 			break;
 		case 'N':
