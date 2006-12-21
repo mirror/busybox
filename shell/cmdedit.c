@@ -539,20 +539,18 @@ static void cmdedit_init(void)
 
 static char **matches;
 static int num_matches;
-static char *add_char_to_match;
 
-static void add_match(char *matched, int add_char)
+static void add_match(char *matched)
 {
 	int nm = num_matches;
 	int nm1 = nm + 1;
 
 	matches = xrealloc(matches, nm1 * sizeof(char *));
-	add_char_to_match = xrealloc(add_char_to_match, nm1);
 	matches[nm] = matched;
-	add_char_to_match[nm] = (char)add_char;
 	num_matches++;
 }
 
+/*
 static int is_execute(const struct stat *st)
 {
 	if ((!my_euid && (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))) ||
@@ -561,6 +559,7 @@ static int is_execute(const struct stat *st)
 		(st->st_mode & S_IXOTH)) return TRUE;
 	return FALSE;
 }
+*/
 
 #if ENABLE_FEATURE_COMMAND_USERNAME_COMPLETION
 
@@ -605,7 +604,7 @@ static void username_tab_completion(char *ud, char *with_shash_flg)
 		while ((entry = getpwent()) != NULL) {
 			/* Null usernames should result in all users as possible completions. */
 			if ( /*!userlen || */ !strncmp(ud, entry->pw_name, userlen)) {
-				add_match(xasprintf("~%s", entry->pw_name), '/');
+				add_match(xasprintf("~%s/", entry->pw_name));
 			}
 		}
 
@@ -672,7 +671,7 @@ static int path_parse(char ***p, int flags)
 	return npth;
 }
 
-static char *add_quote_for_spec_chars(char *found, int add)
+static char *add_quote_for_spec_chars(char *found)
 {
 	int l = 0;
 	char *s = xmalloc((strlen(found) + 1) * 2);
@@ -682,8 +681,6 @@ static char *add_quote_for_spec_chars(char *found, int add)
 			s[l++] = '\\';
 		s[l++] = *found++;
 	}
-	if (add)
-		s[l++] = (char)add;
 	s[l] = 0;
 	return s;
 }
@@ -732,7 +729,6 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 
 		while ((next = readdir(dir)) != NULL) {
 			char *str_found = next->d_name;
-			int add_chr = 0;
 
 			/* matched ? */
 			if (strncmp(str_found, pfind, strlen(pfind)))
@@ -751,23 +747,24 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 			/* find with dirs ? */
 			if (paths[i] != dirbuf)
 				strcpy(found, next->d_name);    /* only name */
+
+			int len1 = strlen(found);
+			found = xrealloc(found, len1+2);
+			found[len1] = '\0';
+			found[len1+1] = '\0';
+
 			if (S_ISDIR(st.st_mode)) {
 				/* name is directory      */
-				char *e = found + strlen(found) - 1;
-
-				add_chr = '/';
-				if (*e == '/')
-					*e = '\0';
+				if (found[len1-1] != '/') {
+					found[len1] = '/';
+				}
 			} else {
 				/* not put found file if search only dirs for cd */
 				if (type == FIND_DIR_ONLY)
 					goto cont;
-				if (type == FIND_FILE_ONLY ||
-					(type == FIND_EXE_ONLY && is_execute(&st)))
-					add_chr = ' ';
 			}
 			/* Add it to the list */
-			add_match(found, add_chr);
+			add_match(found);
 			continue;
 cont:
 			free(found);
@@ -959,14 +956,11 @@ static void showfiles(void)
 	int column_width = 0;
 	int nfiles = num_matches;
 	int nrows = nfiles;
-	char str_add_chr[2];
 	int l;
 
 	/* find the longest file name-  use that as the column width */
 	for (row = 0; row < nrows; row++) {
 		l = strlen(matches[row]);
-		if (add_char_to_match[row])
-			l++;
 		if (column_width < l)
 			column_width = l;
 	}
@@ -980,20 +974,15 @@ static void showfiles(void)
 	} else {
 		ncols = 1;
 	}
-	str_add_chr[1] = 0;
 	for (row = 0; row < nrows; row++) {
 		int n = row;
 		int nc;
-		int acol;
 
 		for(nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
-			str_add_chr[0] = add_char_to_match[n];
-			acol = str_add_chr[0] ? column_width - 1 : column_width;
-			printf("%s%s%-*s", matches[n], str_add_chr,
-					acol - strlen(matches[n]), "");
+			printf("%s%-*s", matches[n],
+					column_width - strlen(matches[n]), "");
 		}
-		str_add_chr[0] = add_char_to_match[n];
-		printf("%s%s\n", matches[n], str_add_chr);
+		printf("%s\n", matches[n]);
 	}
 }
 
@@ -1011,8 +1000,6 @@ static void input_tab(int *lastWasTab)
 				free(matches[--num_matches]);
 			free(matches);
 			matches = (char **) NULL;
-			free(add_char_to_match);
-			add_char_to_match = NULL;
 		}
 		return;
 	}
@@ -1056,12 +1043,10 @@ static void input_tab(int *lastWasTab)
 						free(matches[i]);
 						matches[i] = 0;
 					} else {
-						add_char_to_match[n] = add_char_to_match[i];
 						matches[n++] = matches[i];
 					}
 				}
 			}
-			add_char_to_match[n] = add_char_to_match[num_matches-1];
 			matches[n++] = matches[num_matches-1];
 			num_matches = n;
 		}
@@ -1082,12 +1067,18 @@ static void input_tab(int *lastWasTab)
 				free(tmp1);
 				return;
 			}
-			tmp = add_quote_for_spec_chars(tmp1, 0);
+			tmp = add_quote_for_spec_chars(tmp1);
 			free(tmp1);
 		} else {                        /* one match */
-			tmp = add_quote_for_spec_chars(matches[0], add_char_to_match[0]);
+			tmp = add_quote_for_spec_chars(matches[0]);
 			/* for next completion current found */
 			*lastWasTab = FALSE;
+
+			len_found = strlen(tmp);
+			if (tmp[len_found-1] != '/') {
+				tmp[len_found] = ' ';
+				tmp[len_found+1] = '\0';
+			}
 		}
 		len_found = strlen(tmp);
 		/* have space to placed match? */
