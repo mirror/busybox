@@ -148,7 +148,7 @@ static int tless_getch(void)
 	return input;
 }
 
-static char* tless_gets(void)
+static char* tless_gets(int sz)
 {
 	int c;
 	int i = 0;
@@ -164,11 +164,12 @@ static char* tless_gets(void)
 		}
 		if (c < ' ')
 			continue;
+		if (i >= width - sz - 1)
+			continue; /* len limit */
 		putchar(c);
 		result[i++] = c;
 		result = xrealloc(result, i+1);
 		result[i] = '\0';
-		if (i >= width-1) return result; 
 	}
 }
 
@@ -187,6 +188,12 @@ static void clear_line(void)
 static void print_hilite(const char *str)
 {
 	printf(HIGHLIGHT"%s"NORMAL, str);
+}
+
+static void print_statusline(const char *str)
+{
+	clear_line();
+	printf(HIGHLIGHT"%.*s"NORMAL, width-1, str);
 }
 
 static void data_readlines(void)
@@ -277,6 +284,7 @@ static void m_status_print(void)
 {
 	int percentage;
 
+	clear_line();
 	printf(HIGHLIGHT"%s", filename);
 	if (num_files > 1)
 		printf(" (file %i of %i)", current_file, num_files);
@@ -293,22 +301,6 @@ static void m_status_print(void)
 	printf("%i%% "NORMAL, percentage);
 }
 
-#if 0
-/* Print a status line if -m was specified */
-static void medium_status_print(void)
-{
-	int percentage;
-
-	percentage = calc_percent();
-	if (!line_pos)
-		printf(HIGHLIGHT"%s %i%% "NORMAL, filename, percentage);
-	else if (line_pos >= num_flines - height + 2)
-		print_hilite("(END)");
-	else
-		printf(HIGHLIGHT"%i%% "NORMAL, percentage);
-}
-#endif
-
 #endif
 
 /* Print the status line */
@@ -322,12 +314,10 @@ static void status_print(void)
 		m_status_print();
 		return;
 	}
-	//if (option_mask32 & FLAG_m) {
-	//	medium_status_print();
-	//	return;
-	//}
 	/* No flags set */
 #endif
+
+	clear_line();
 	if (line_pos && line_pos < num_flines - height + 2) {
 		putchar(':');
 		return;
@@ -458,7 +448,6 @@ static void buffer_print(void)
 			print_found(buffer[i]);
 		else
 			print_ascii(buffer[i]);
-	fputs(CLEAR_2_EOL, stdout); /* clears status line */
 	status_print();
 }
 
@@ -557,10 +546,9 @@ static void reinitialise(void)
 
 static void examine_file(void)
 {
-	clear_line();
-	printf("Examine: ");
+	print_statusline("Examine: ");
 	free(filename);
-	filename = tless_gets();
+	filename = tless_gets(sizeof("Examine: ")-1);
 	/* files start by = argv. why we assume that argv is infinitely long??
 	files[num_files] = filename;
 	current_file = num_files + 1;
@@ -583,8 +571,7 @@ static void change_file(int direction)
 		filename = xstrdup(files[current_file - 1]);
 		reinitialise();
 	} else {
-		clear_line();
-		print_hilite(direction > 0 ? "No next file" : "No previous file");
+		print_statusline(direction > 0 ? "No next file" : "No previous file");
 	}
 }
 
@@ -613,8 +600,7 @@ static void colon_process(void)
 	int keypress;
 
 	/* Clear the current line and print a prompt */
-	clear_line();
-	printf(" :");
+	print_statusline(" :");
 
 	keypress = tless_getch();
 	switch (keypress) {
@@ -626,7 +612,6 @@ static void colon_process(void)
 			break;
 #if ENABLE_FEATURE_LESS_FLAGS
 		case 'f':
-			clear_line();
 			m_status_print();
 			break;
 #endif
@@ -681,7 +666,7 @@ static void regex_process(void)
 	/* Get the uncompiled regular expression from the user */
 	clear_line();
 	putchar((option_mask32 & LESS_STATE_MATCH_BACKWARDS) ? '?' : '/');
-	uncomp_regex = tless_gets();
+	uncomp_regex = tless_gets(1);
 	if (/*!uncomp_regex ||*/ !uncomp_regex[0]) {
 		free(uncomp_regex);
 		buffer_print();
@@ -692,8 +677,7 @@ static void regex_process(void)
 	err = regcomp_or_errmsg(&pattern, uncomp_regex, 0);
 	free(uncomp_regex);
 	if (err) {
-		clear_line();
-		fputs(err, stdout);
+		print_statusline(err);
 		free(err);
 		return;
 	}
@@ -862,14 +846,13 @@ static void save_input_to_file(void)
 	int i;
 	FILE *fp;
 
-	clear_line();
-	printf("Log file: ");
-	current_line = tless_gets();
+	print_statusline("Log file: ");
+	current_line = tless_gets(sizeof("Log file: ")-1);
 	if (strlen(current_line) > 0) {
 		fp = fopen(current_line, "w");
 		free(current_line);
 		if (!fp) {
-			print_hilite("Error opening log file");
+			print_statusline("Error opening log file");
 			return;
 		}
 		for (i = 0; i < num_flines; i++)
@@ -879,7 +862,7 @@ static void save_input_to_file(void)
 		return;
 	}
 	free(current_line);
-	print_hilite("No log file");
+	print_statusline("No log file");
 }
 
 #if ENABLE_FEATURE_LESS_MARKS
@@ -887,8 +870,7 @@ static void add_mark(void)
 {
 	int letter;
 
-	clear_line();
-	printf("Mark: ");
+	print_statusline("Mark: ");
 	letter = tless_getch();
 
 	if (isalpha(letter)) {
@@ -901,8 +883,7 @@ static void add_mark(void)
 		mark_lines[num_marks][1] = line_pos;
 		num_marks++;
 	} else {
-		clear_line();
-		print_hilite("Invalid mark letter");
+		print_statusline("Invalid mark letter");
 	}
 }
 
@@ -911,8 +892,7 @@ static void goto_mark(void)
 	int letter;
 	int i;
 
-	clear_line();
-	printf("Go to mark: ");
+	print_statusline("Go to mark: ");
 	letter = tless_getch();
 	clear_line();
 
@@ -923,9 +903,9 @@ static void goto_mark(void)
 				break;
 			}
 		if (num_marks == 14 && letter != mark_lines[14][0])
-			print_hilite("Mark not set");
+			print_statusline("Mark not set");
 	} else
-		print_hilite("Invalid mark letter");
+		print_statusline("Invalid mark letter");
 }
 #endif
 
@@ -953,10 +933,8 @@ static void match_right_bracket(char bracket)
 	int bracket_line = -1;
 	int i;
 
-	clear_line();
-
 	if (strchr(flines[line_pos], bracket) == NULL) {
-		print_hilite("No bracket in top line");
+		print_statusline("No bracket in top line");
 		return;
 	}
 	for (i = line_pos + 1; i < num_flines; i++) {
@@ -966,7 +944,7 @@ static void match_right_bracket(char bracket)
 		}
 	}
 	if (bracket_line == -1)
-	print_hilite("No matching bracket found");
+		print_statusline("No matching bracket found");
 	buffer_line(bracket_line - height + 2);
 }
 
@@ -975,13 +953,8 @@ static void match_left_bracket(char bracket)
 	int bracket_line = -1;
 	int i;
 
-	clear_line();
-
 	if (strchr(flines[line_pos + height - 2], bracket) == NULL) {
-		print_hilite("No bracket in bottom line");
-		/* ?? */
-		/*printf("%s", flines[line_pos + height]);*/
-		/*sleep(4);*/
+		print_statusline("No bracket in bottom line");
 		return;
 	}
 
@@ -992,7 +965,7 @@ static void match_left_bracket(char bracket)
 		}
 	}
 	if (bracket_line == -1)
-		print_hilite("No matching bracket found");
+		print_statusline("No matching bracket found");
 	buffer_line(bracket_line);
 }
 
@@ -1058,7 +1031,6 @@ static void keypress_process(int keypress)
 			break;
 #if ENABLE_FEATURE_LESS_FLAGS
 		case '=':
-			clear_line();
 			m_status_print();
 			break;
 #endif
