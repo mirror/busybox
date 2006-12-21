@@ -8,30 +8,20 @@
  */
 
 /*
- *      This program needs a lot of development, so consider it in a beta stage
- *      at best.
+ * TODO:
+ * - Add more regular expression support - search modifiers, certain matches, etc.
+ * - Add more complex bracket searching - currently, nested brackets are
+ * not considered.
+ * - Add support for "F" as an input. This causes less to act in
+ * a similar way to tail -f.
+ * - Allow horizontal scrolling.
  *
- *      TODO:
- *      - Add more regular expression support - search modifiers, certain matches, etc.
- *      - Add more complex bracket searching - currently, nested brackets are
- *      not considered.
- *      - Add support for "F" as an input. This causes less to act in
- *      a similar way to tail -f.
- *      - Check for binary files, and prompt the user if a binary file
- *      is detected.
- *      - Allow horizontal scrolling. Currently, lines simply continue onto
- *      the next line, per the terminal's discretion
- *
- *      Notes:
- *      - filename is an array and not a pointer because that avoids all sorts
- *      of complications involving the fact that something that is pointed to
- *      will be changed if the pointer is changed.
- *      - the inp file pointer is used so that keyboard input works after
- *      redirected input has been read from stdin
-*/
+ * Notes:
+ * - the inp file pointer is used so that keyboard input works after
+ * redirected input has been read from stdin
+ */
 
 #include "busybox.h"
-
 #if ENABLE_FEATURE_LESS_REGEXP
 #include "xregex.h"
 #endif
@@ -70,12 +60,13 @@ static int height;
 static int width;
 static char **files;
 static char *filename;
-static char **buffer;
+static const char **buffer;
 static char **flines;
 static int current_file = 1;
 static int line_pos;
 static int num_flines;
 static int num_files = 1;
+static const char *empty_line_marker = "~";
 
 /* Command line options */
 #define FLAG_E 1
@@ -84,7 +75,6 @@ static int num_files = 1;
 #define FLAG_N (1<<3)
 #define FLAG_TILDE (1<<4)
 /* hijack command line options variable for internal state vars */
-#define LESS_STATE_PAST_EOF  (1<<5)
 #define LESS_STATE_MATCH_BACKWARDS (1<<6)
 
 #if ENABLE_FEATURE_LESS_MARKS
@@ -93,11 +83,11 @@ static int num_marks;
 #endif
 
 #if ENABLE_FEATURE_LESS_REGEXP
-static int match_found;
 static int *match_lines;
 static int match_pos;
 static int num_matches;
-static regex_t old_pattern;
+static regex_t pattern;
+static int pattern_valid;
 #endif
 
 /* Needed termios structures */
@@ -174,52 +164,57 @@ static void data_readlines(void)
 	unsigned i;
 	unsigned n = 1;
 	int w = width;
-	char *last_nl = (char*)1; /* "not NULL" */
-	char *current_line;
+	/* "remained unused space" in a line (0 if line fills entire width) */
+	int rem, last_rem = 1; /* "not 0" */
+	char *current_line, *p;
 	FILE *fp;
 
 	fp = filename ? xfopen(filename, "r") : stdin;
 	flines = NULL;
 	if (option_mask32 & FLAG_N) {
 		w -= 6;
-		if (w < 1) w = 1; /* paranoia */
 	}
 	for (i = 0; !feof(fp) && i <= MAXLINES; i++) {
 		flines = xrealloc(flines, (i+1) * sizeof(char *));
-
 		current_line = xmalloc(w);
  again:
-		current_line[0] = '\0';
-		fgets(current_line, w, fp);
+		p = current_line;
+		rem = w - 1;
+		do {
+			int c = getc(fp);
+			if (c == EOF) break;
+			if (c == '\n') break;
+			/* NUL is substituted by '\n'! */
+			if (c == '\0') c = '\n';
+			*p++ = c;
+		} while (--rem);
+		*p = '\0';
 		if (fp != stdin)
 			die_if_ferror(fp, filename);
 
-		/* Corner case: linewrap with only '\n' wrapping */
-		/* Looks ugly on screen, so we handle it specially */
-		if (!last_nl && current_line[0] == '\n') {
-			last_nl = (char*)1; /* "not NULL" */
+		/* Corner case: linewrap with only "" wrapping to next line */
+		/* Looks ugly on screen, so we do not store this empty line */
+		if (!last_rem && !current_line[0]) {
+			last_rem = 1; /* "not 0" */
 			n++;
 			goto again;
 		}
-		last_nl = last_char_is(current_line, '\n');
-		if (last_nl)
-			*last_nl = '\0';
+		last_rem = rem;
 		if (option_mask32 & FLAG_N) {
 			flines[i] = xasprintf((n <= 99999) ? "%5u %s" : "%05u %s",
 						n % 100000, current_line);
 			free(current_line);
-			if (last_nl)
+			if (rem)
 				n++;
 		} else {
 			flines[i] = xrealloc(current_line, strlen(current_line)+1);
 		}
 	}
-	num_flines = i - 2;
+	num_flines = i - 1; /* buggie: 'num_flines' must be 'max_fline' */
 
 	/* Reset variables for a new file */
 
 	line_pos = 0;
-	option_mask32 &= ~LESS_STATE_PAST_EOF;
 
 	fclose(fp);
 }
@@ -238,36 +233,28 @@ static void m_status_print(void)
 {
 	int percentage;
 
-	if (!(option_mask32 & LESS_STATE_PAST_EOF)) {
-		if (!line_pos) {
-			if (num_files > 1) {
-				printf("%s%s %s%i%s%i%s%i-%i/%i ", HIGHLIGHT,
-					filename, "(file ", current_file, " of ", num_files, ") lines ",
-					line_pos + 1, line_pos + height - 1, num_flines + 1);
-			} else {
-				printf("%s%s lines %i-%i/%i ", HIGHLIGHT,
-					filename, line_pos + 1, line_pos + height - 1,
-					num_flines + 1);
-			}
-		} else {
-			printf("%s %s lines %i-%i/%i ", HIGHLIGHT, filename,
+	if (!line_pos) {
+		if (num_files > 1) {
+			printf("%s%s %s%i%s%i%s%i-%i/%i ", HIGHLIGHT,
+				filename, "(file ", current_file, " of ", num_files, ") lines ",
 				line_pos + 1, line_pos + height - 1, num_flines + 1);
-		}
-
-		if (line_pos == num_flines - height + 2) {
-			printf("(END) %s", NORMAL);
-			if ((num_files > 1) && (current_file != num_files))
-				printf("%s- Next: %s%s", HIGHLIGHT, files[current_file], NORMAL);
 		} else {
-			percentage = calc_percent();
-			printf("%i%% %s", percentage, NORMAL);
+			printf("%s%s lines %i-%i/%i ", HIGHLIGHT,
+				filename, line_pos + 1, line_pos + height - 1,
+				num_flines + 1);
 		}
 	} else {
-		printf("%s%s lines %i-%i/%i (END) ", HIGHLIGHT, filename,
-				line_pos + 1, num_flines + 1, num_flines + 1);
+		printf("%s %s lines %i-%i/%i ", HIGHLIGHT, filename,
+			line_pos + 1, line_pos + height - 1, num_flines + 1);
+	}
+
+	if (line_pos >= num_flines - height + 2) {
+		printf("(END) %s", NORMAL);
 		if ((num_files > 1) && (current_file != num_files))
-			printf("- Next: %s", files[current_file]);
-		printf("%s", NORMAL);
+			printf("%s- Next: %s%s", HIGHLIGHT, files[current_file], NORMAL);
+	} else {
+		percentage = calc_percent();
+		printf("%i%% %s", percentage, NORMAL);
 	}
 }
 
@@ -315,22 +302,123 @@ static void status_print(void)
 #endif
 }
 
+static char controls[] =
+	/**/"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
+	"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f"
+	"\x7f\x9b"; /* DEL and infamous Meta-ESC :( */
+static char ctrlconv[] =
+	/* Note that on input NUL is converted to '\n' ('\x0a') */
+	/* Therefore we subst '\n' with '@', not 'J' */
+	"\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x40\x4b\x4c\x4d\x4e\x4f"
+	"\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f";
+
+static void print_found(const char *line)
+{
+	int match_status;
+	int eflags;
+	char *growline;
+	regmatch_t match_structs;
+
+	char buf[width];
+	const char *str = line;
+	char *p = buf;
+	size_t n;
+
+	while (*str) {
+		n = strcspn(str, controls);
+		if (n) {
+			if (!str[n]) break;
+			memcpy(p, str, n);
+			p += n;
+			str += n;
+		}
+		n = strspn(str, controls);
+		memset(p, '.', n);
+		p += n;
+		str += n;
+		/*
+		do {
+			if (*str == '\x7f') { *p++ = '?'; str++; }
+			else if (*str == '\x9b') { *p++ = '{'; str++; }
+			else *p++ = ctrlconv[(unsigned char)*str++];
+		} while (--n);
+		*/
+	}
+	strcpy(p, str);
+
+	/* buf[] holds quarantined version of str */
+
+	/* Each part of the line that matches has the HIGHLIGHT
+	   and NORMAL escape sequences placed around it.
+	   NB: we regex against line, but insert text
+	   from quarantined copy (buf[]) */
+	str = buf;
+	growline = NULL;
+	eflags = 0;
+	goto start;
+
+	while (match_status == 0) {
+		char *new = xasprintf("%s" "%.*s" "%s" "%.*s" "%s",
+				growline ? : "",
+				match_structs.rm_so, str,
+				HIGHLIGHT,
+				match_structs.rm_eo - match_structs.rm_so,
+						str + match_structs.rm_so,
+				NORMAL);
+		free(growline); growline = new;
+		str += match_structs.rm_eo;
+		line += match_structs.rm_eo;
+		eflags = REG_NOTBOL;
+ start:
+		/* Most of the time doesn't find the regex, optimize for that */
+		match_status = regexec(&pattern, line, 1, &match_structs, eflags);
+	}
+
+	if (!growline) {
+		puts(str);
+		return;
+	}
+	printf("%s%s\n", growline, str);
+	free(growline);
+}
+
+static void print_ascii(const char *str)
+{
+	char buf[width];
+	char *p;
+	size_t n;
+
+	while (*str) {
+		n = strcspn(str, controls);
+		if (n) {
+			if (!str[n]) break;
+			printf("%.*s", n, str);
+			str += n;
+		}
+		n = strspn(str, controls);
+		p = buf;
+		do {
+			if (*str == '\x7f') { *p++ = '?'; str++; }
+			else if (*str == '\x9b') { *p++ = '{'; str++; }
+			else *p++ = ctrlconv[(unsigned char)*str++];
+		} while (--n);
+		*p = '\0';
+		printf("%s%s%s", HIGHLIGHT, buf, NORMAL);
+	}
+	puts(str);
+}
+
 /* Print the buffer */
 static void buffer_print(void)
 {
 	int i;
 
 	printf("%s", CLEAR);
-	if (num_flines >= height - 2) {
-		for (i = 0; i < height - 1; i++)
-			printf("%.*s\n", width, buffer[i]);
-	} else {
-		for (i = 1; i < (height - 1 - num_flines); i++)
-			putchar('\n');
-		for (i = 0; i < height - 1; i++)
-			printf("%.*s\n", width, buffer[i]);
-	}
-
+	for (i = 0; i < height - 1; i++)
+		if (pattern_valid)
+			print_found(buffer[i]);
+		else
+			print_ascii(buffer[i]);
 	status_print();
 }
 
@@ -339,20 +427,20 @@ static void buffer_init(void)
 {
 	int i;
 
-	if (buffer == NULL) {
+	if (!buffer) {
 		/* malloc the number of lines needed for the buffer */
 		buffer = xmalloc(height * sizeof(char *));
 	}
 
 	/* Fill the buffer until the end of the file or the
 	   end of the buffer is reached */
-	for (i = 0; (i < (height - 1)) && (i <= num_flines); i++) {
+	for (i = 0; i < height - 1 && i <= num_flines; i++) {
 		buffer[i] = flines[i];
 	}
 
 	/* If the buffer still isn't full, fill it with blank lines */
-	for (; i < (height - 1); i++) {
-		buffer[i] = "";
+	for (; i < height - 1; i++) {
+		buffer[i] = empty_line_marker;
 	}
 }
 
@@ -361,72 +449,38 @@ static void buffer_down(int nlines)
 {
 	int i;
 
-	if (!(option_mask32 & LESS_STATE_PAST_EOF)) {
-		if (line_pos + (height - 3) + nlines < num_flines) {
-			line_pos += nlines;
+	if (line_pos + (height - 3) + nlines < num_flines) {
+		line_pos += nlines;
+		for (i = 0; i < (height - 1); i++) {
+			buffer[i] = flines[line_pos + i];
+		}
+	} else {
+		/* As the number of lines requested was too large, we just move
+		to the end of the file */
+		while (line_pos + (height - 3) + 1 < num_flines) {
+			line_pos += 1;
 			for (i = 0; i < (height - 1); i++) {
 				buffer[i] = flines[line_pos + i];
 			}
-		} else {
-			/* As the number of lines requested was too large, we just move
-			to the end of the file */
-			while (line_pos + (height - 3) + 1 < num_flines) {
-				line_pos += 1;
-				for (i = 0; i < (height - 1); i++) {
-					buffer[i] = flines[line_pos + i];
-				}
-			}
 		}
-
-		/* We exit if the -E flag has been set */
-		if ((option_mask32 & FLAG_E) && (line_pos + (height - 2) == num_flines))
-			tless_exit(0);
 	}
+
+	/* We exit if the -E flag has been set */
+	if ((option_mask32 & FLAG_E) && (line_pos + (height - 2) == num_flines))
+		tless_exit(0);
 }
 
 static void buffer_up(int nlines)
 {
 	int i;
-	int tilde_line;
 
-	if (!(option_mask32 & LESS_STATE_PAST_EOF)) {
-		if (line_pos - nlines >= 0) {
-			line_pos -= nlines;
-			for (i = 0; i < (height - 1); i++) {
-				buffer[i] = flines[line_pos + i];
-			}
+	line_pos -= nlines;
+	if (line_pos < 0) line_pos = 0;
+	for (i = 0; i < height - 1; i++) {
+		if (line_pos + i <= num_flines) {
+			buffer[i] = flines[line_pos + i];
 		} else {
-		/* As the requested number of lines to move was too large, we
-		   move one line up at a time until we can't. */
-			while (line_pos != 0) {
-				line_pos -= 1;
-				for (i = 0; i < (height - 1); i++) {
-					buffer[i] = flines[line_pos + i];
-				}
-			}
-		}
-	}
-	else {
-		/* Work out where the tildes start */
-		tilde_line = num_flines - line_pos + 3;
-
-		line_pos -= nlines;
-		/* Going backwards nlines lines has taken us to a point where
-		   nothing is past the EOF, so we revert to normal. */
-		if (line_pos < num_flines - height + 3) {
-			option_mask32 &= ~LESS_STATE_PAST_EOF;
-			buffer_up(nlines);
-		} else {
-			/* We only move part of the buffer, as the rest
-			is past the EOF */
-			for (i = 0; i < (height - 1); i++) {
-				if (i < tilde_line - nlines + 1) {
-					buffer[i] = flines[line_pos + i];
-				} else {
-					if (line_pos >= num_flines - height + 2)
-						buffer[i] = "~";
-				}
-			}
+			buffer[i] = empty_line_marker;
 		}
 	}
 }
@@ -434,28 +488,19 @@ static void buffer_up(int nlines)
 static void buffer_line(int linenum)
 {
 	int i;
-	option_mask32 &= ~LESS_STATE_PAST_EOF;
 
 	if (linenum < 0 || linenum > num_flines) {
 		clear_line();
 		printf("%s%s%i%s", HIGHLIGHT, "Cannot seek to line number ", linenum + 1, NORMAL);
-	}
-	else if (linenum < (num_flines - height - 2)) {
-		for (i = 0; i < (height - 1); i++) {
-			buffer[i] = flines[linenum + i];
-		}
-		line_pos = linenum;
-		buffer_print();
 	} else {
-		for (i = 0; i < (height - 1); i++) {
-			if (linenum + i < num_flines + 2)
+		for (i = 0; i < height - 1; i++) {
+			if (linenum + i <= num_flines)
 				buffer[i] = flines[linenum + i];
-			else
-				buffer[i] = (option_mask32 & FLAG_TILDE) ? "" : "~";
+			else {
+				buffer[i] = empty_line_marker;
+			}
 		}
 		line_pos = linenum;
-		/* Set past_eof so buffer_down and buffer_up act differently */
-		option_mask32 |= LESS_STATE_PAST_EOF;
 		buffer_print();
 	}
 }
@@ -563,76 +608,37 @@ static void colon_process(void)
 	}
 }
 
-#if ENABLE_FEATURE_LESS_REGEXP
-/* The below two regular expression handler functions NEED development. */
-
-/* Get a regular expression from the user, and then go through the current
-   file line by line, running a processing regex function on each one. */
-
-static char *process_regex_on_line(char *line, regex_t *pattern, int action)
+static int normalize_match_pos(int match)
 {
-/* UNTESTED. LOOKED BUGGY AND LEAKY AS HELL. */
-/* FIXED. NEED TESTING. */
-	/* 'line' should be either returned or free()ed */
-
-	/* This function takes the regex and applies it to the line.
-	   Each part of the line that matches has the HIGHLIGHT
-	   and NORMAL escape sequences placed around it by
-	   insert_highlights if action = 1, or has the escape sequences
-	   removed if action = 0, and then the line is returned. */
-	int match_status;
-	char *line2 = line;
-	char *growline = xstrdup("");
-	char *ng;
-	regmatch_t match_structs;
-
-	match_found = 0;
-	match_status = regexec(pattern, line2, 1, &match_structs, 0);
-
-	while (match_status == 0) {
-		match_found = 1;
-		if (action) {
-			ng = xasprintf("%s%.*s%s%.*s%s", growline,
-				match_structs.rm_so, line2, HIGHLIGHT,
-				match_structs.rm_eo - match_structs.rm_so,
-				line2 + match_structs.rm_so, NORMAL);
-		} else {
-			ng = xasprintf("%s%.*s%.*s", growline,
-				match_structs.rm_so - 4, line2,
-				match_structs.rm_eo - match_structs.rm_so,
-				line2 + match_structs.rm_so);
-		}
-		free(growline); growline = ng;
-		line2 += match_structs.rm_eo;
-		match_status = regexec(pattern, line2, 1, &match_structs, REG_NOTBOL);
-	}
-
-	if (match_found) {
-		ng = xasprintf("%s%s", growline, line2);
-		free(line);
-	} else {
-		ng = line;
-	}
-	free(growline);
-	return ng;
+	match_pos = match;
+	if (match < 0)
+		return (match_pos = 0);
+	if (match >= num_matches)
+{
+		match_pos = num_matches - 1;
+}
+	return match_pos;
 }
 
+#if ENABLE_FEATURE_LESS_REGEXP
 static void goto_match(int match)
 {
-	/* This goes to a specific match - all line positions of matches are
-	   stored within the match_lines[] array. */
-	if ((match < num_matches) && (match >= 0)) {
-		buffer_line(match_lines[match]);
-		match_pos = match;
-	}
+	buffer_line(match_lines[normalize_match_pos(match)]);
 }
 
 static void regex_process(void)
 {
 	char *uncomp_regex;
-	int i;
-	int j = 0;
-	regex_t pattern;
+
+	/* Reset variables */
+	match_lines = xrealloc(match_lines, sizeof(int));
+	match_lines[0] = -1;
+	match_pos = 0;
+	num_matches = 0;
+	if (pattern_valid) {
+		regfree(&pattern);
+		pattern_valid = 0;
+	}
 
 	/* Get the uncompiled regular expression from the user */
 	clear_line();
@@ -640,56 +646,33 @@ static void regex_process(void)
 	uncomp_regex = xmalloc_getline(inp);
 	if (!uncomp_regex || !uncomp_regex[0]) {
 		free(uncomp_regex);
-		if (num_matches)
-			goto_match((option_mask32 & LESS_STATE_MATCH_BACKWARDS)
-						? match_pos - 1 : match_pos + 1);
-		else
-			buffer_print();
+		buffer_print();
 		return;
 	}
 
 	/* Compile the regex and check for errors */
 	xregcomp(&pattern, uncomp_regex, 0);
 	free(uncomp_regex);
+	pattern_valid = 1;
 
-	if (num_matches) {
-		/* Get rid of all the highlights we added previously */
-		for (i = 0; i <= num_flines; i++) {
-			flines[i] = process_regex_on_line(flines[i], &old_pattern, 0);
-		}
-	}
-	old_pattern = pattern;
-
-	/* Reset variables */
-	match_lines = xrealloc(match_lines, sizeof(int));
-	match_lines[0] = -1;
-	match_pos = 0;
-	num_matches = 0;
-	match_found = 0;
-	/* Run the regex on each line of the current file here */
-	for (i = 0; i <= num_flines; i++) {
-		flines[i] = process_regex_on_line(flines[i], &pattern, 1);
-		if (match_found) {
-			match_lines = xrealloc(match_lines, (j + 1) * sizeof(int));
-			match_lines[j] = i;
-			j++;
+	/* Run the regex on each line of the current file */
+	for (match_pos = 0; match_pos <= num_flines; match_pos++) {
+		if (regexec(&pattern, flines[match_pos], 0, NULL, 0) == 0) {
+			match_lines = xrealloc(match_lines, (num_matches+1) * sizeof(int));
+			match_lines[num_matches++] = match_pos;
 		}
 	}
 
-	num_matches = j;
-	if ((match_lines[0] != -1) && (num_flines > height - 2)) {
-		if (option_mask32 & LESS_STATE_MATCH_BACKWARDS) {
-			for (i = 0; i < num_matches; i++) {
-				if (match_lines[i] > line_pos) {
-					match_pos = i - 1;
-					buffer_line(match_lines[match_pos]);
-					break;
-				}
-			}
-		} else
-			buffer_line(match_lines[0]);
-	} else
-		buffer_init();
+	if (num_matches == 0 || num_flines <= height - 2) {
+		buffer_print();
+		return;
+	}
+	for (match_pos = 0; match_pos < num_matches; match_pos++) {
+		if (match_lines[match_pos] > line_pos)
+			break;
+	}
+	if (option_mask32 & LESS_STATE_MATCH_BACKWARDS) match_pos--;
+	buffer_line(match_lines[normalize_match_pos(match_pos)]);
 }
 #endif
 
@@ -1111,11 +1094,16 @@ int less_main(int argc, char **argv)
 	inp = xfopen(CURRENT_TTY, "r");
 
 	get_terminal_width_height(fileno(inp), &width, &height);
+	if (width < 10 || height < 3)
+		bb_error_msg_and_die("too narrow here");
+
+	if (option_mask32 & FLAG_TILDE) empty_line_marker = "";
+
 	data_readlines();
 
+	tcgetattr(fileno(inp), &term_orig);
 	signal(SIGTERM, sig_catcher);
 	signal(SIGINT, sig_catcher);
-	tcgetattr(fileno(inp), &term_orig);
 
 	term_vi = term_orig;
 	term_vi.c_lflag &= (~ICANON & ~ECHO);

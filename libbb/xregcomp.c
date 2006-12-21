@@ -8,16 +8,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
 #include "libbb.h"
 #include "xregex.h"
 
-
-
 void xregcomp(regex_t *preg, const char *regex, int cflags)
 {
-	int ret;
-	if ((ret = regcomp(preg, regex, cflags)) != 0) {
+	int ret = regcomp(preg, regex, cflags);
+	if (ret) {
 		int errmsgsz = regerror(ret, preg, NULL, 0);
 		char *errmsg = xmalloc(errmsgsz);
 		regerror(ret, preg, errmsg, errmsgsz);
