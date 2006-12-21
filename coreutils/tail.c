@@ -122,15 +122,15 @@ int tail_main(int argc, char **argv)
 				/* FALLS THROUGH */
 			case 'n':
 #if !ENABLE_DEBUG_YANK_SUSv2 || ENABLE_FEATURE_FANCY_TAIL
-			GET_COUNT:
+ GET_COUNT:
 #endif
+				from_top = 0;
+				if (*optarg == '+') {
+					++optarg;
+					from_top = 1;
+				}
 				count = xatol_sfx(optarg, tail_suffixes);
 				/* Note: Leading whitespace is an error trapped above. */
-				if (*optarg == '+') {
-					from_top = 1;
-				} else {
-					from_top = 0;
-				}
 				if (count < 0) {
 					count = -count;
 				}
@@ -150,20 +150,18 @@ int tail_main(int argc, char **argv)
 				bb_show_usage();
 		}
 	}
+	argc -= optind;
+	argv += optind;
 
 	/* open all the files */
-	fds = xmalloc(sizeof(int) * (argc - optind + 1));
-
-	argv += optind;
+	fds = xmalloc(sizeof(int) * (argc + 1));
 	nfiles = i = 0;
-
-	if ((argc -= optind) == 0) {
+	if (argc == 0) {
 		struct stat statbuf;
 
 		if (!fstat(STDIN_FILENO, &statbuf) && S_ISFIFO(statbuf.st_mode)) {
 			follow = 0;
 		}
-		/* --argv; */
 		*argv = (char *) bb_msg_standard_input;
 		goto DO_STDIN;
 	}
