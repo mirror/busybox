@@ -263,73 +263,70 @@ static void m_status_print(void)
 {
 	int percentage;
 
-	if (!line_pos) {
-		if (num_files > 1) {
-			printf(HIGHLIGHT"%s (file %i of %i) lines %i-%i/%i ",
-				filename, current_file, num_files,
-				line_pos + 1, line_pos + height - 1, num_flines + 1);
-		} else {
-			printf(HIGHLIGHT"%s lines %i-%i/%i ",
-				filename, line_pos + 1, line_pos + height - 1,
-				num_flines + 1);
-		}
-	} else {
-		printf(HIGHLIGHT" %s lines %i-%i/%i ", filename,
-			line_pos + 1, line_pos + height - 1, num_flines + 1);
-	}
-
+	printf(HIGHLIGHT"%s", filename);
+	if (num_files > 1)
+		printf(" (file %i of %i)", current_file, num_files);
+	printf(" lines %i-%i/%i ",
+			line_pos + 1, line_pos + height - 1,
+			num_flines + 1);
 	if (line_pos >= num_flines - height + 2) {
 		printf("(END) "NORMAL);
 		if (num_files > 1 && current_file != num_files)
-			printf(HIGHLIGHT"- Next: %s"NORMAL, files[current_file]);
-	} else {
-		percentage = calc_percent();
-		printf("%i%% "NORMAL, percentage);
+			printf(HIGHLIGHT"- Next: %s "NORMAL, files[current_file]);
+		return;
 	}
+	percentage = calc_percent();
+	printf("%i%% "NORMAL, percentage);
 }
 
+#if 0
 /* Print a status line if -m was specified */
 static void medium_status_print(void)
 {
 	int percentage;
-	percentage = calc_percent();
 
+	percentage = calc_percent();
 	if (!line_pos)
-		printf(HIGHLIGHT"%s %i%%"NORMAL, filename, percentage);
-	else if (line_pos == num_flines - height + 2)
-		print_hilite("(END)");
+		printf(HIGHLIGHT"%s %i%% "NORMAL, filename, percentage);
+	else if (line_pos >= num_flines - height + 2)
+		print_hilite("(END) ");
 	else
-		printf(HIGHLIGHT"%i%%"NORMAL, percentage);
+		printf(HIGHLIGHT"%i%% "NORMAL, percentage);
 }
+#endif
+
 #endif
 
 /* Print the status line */
 static void status_print(void)
 {
+	const char *p;
+
 	/* Change the status if flags have been set */
 #if ENABLE_FEATURE_LESS_FLAGS
-	if (option_mask32 & FLAG_M)
+	if (option_mask32 & (FLAG_M|FLAG_m)) {
 		m_status_print();
-	else if (option_mask32 & FLAG_m)
-		medium_status_print();
-	/* No flags set */
-	else {
-#endif
-		if (!line_pos) {
-			print_hilite(filename);
-			if (num_files > 1)
-				printf(HIGHLIGHT"(file %i of %i)"NORMAL,
-					current_file, num_files);
-		} else if (line_pos == num_flines - height + 2) {
-			print_hilite("(END) ");
-			if (num_files > 1 && current_file != num_files)
-				printf(HIGHLIGHT"- Next: %s"NORMAL, files[current_file]);
-		} else {
-			putchar(':');
-		}
-#if ENABLE_FEATURE_LESS_FLAGS
+		return;
 	}
+	//if (option_mask32 & FLAG_m) {
+	//	medium_status_print();
+	//	return;
+	//}
+	/* No flags set */
 #endif
+	if (line_pos && line_pos < num_flines - height + 2) {
+		putchar(':');
+		return;
+	}
+	p = "(END) ";
+	if (!line_pos)
+		p = filename;
+	if (num_files > 1) {
+		printf(HIGHLIGHT"%s (file %i of %i) "NORMAL,
+				p, current_file, num_files);
+		return;
+	}
+	print_hilite(p);
 }
 
 static char controls[] =
@@ -554,7 +551,7 @@ static void examine_file(void)
 	current_file = num_files + 1;
 	num_files++; */
 	files[0] = filename;
-	current_file = 1;
+	num_files = current_file = 1;
 	reinitialise();
 }
 
