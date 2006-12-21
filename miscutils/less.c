@@ -199,7 +199,15 @@ static void data_readlines(void)
 	char *current_line, *p;
 	FILE *fp;
 
-	fp = filename ? xfopen(filename, "r") : stdin;
+	if (filename)
+		fp = xfopen(filename, "r");
+	else {
+		/* "less" with no arguments in argv[] */
+		fp = stdin;
+		/* For status line only */
+		filename = xstrdup(bb_msg_standard_input);
+	}
+
 	flines = NULL;
 	if (option_mask32 & FLAG_N) {
 		w -= 6;
@@ -229,6 +237,7 @@ static void data_readlines(void)
 			n++;
 			goto again;
 		}
+
 		last_rem = rem;
 		if (option_mask32 & FLAG_N) {
 			flines[i] = xasprintf((n <= 99999) ? "%5u %s" : "%05u %s",
@@ -270,9 +279,9 @@ static void m_status_print(void)
 			line_pos + 1, line_pos + height - 1,
 			num_flines + 1);
 	if (line_pos >= num_flines - height + 2) {
-		printf("(END) "NORMAL);
+		printf("(END)"NORMAL);
 		if (num_files > 1 && current_file != num_files)
-			printf(HIGHLIGHT"- Next: %s "NORMAL, files[current_file]);
+			printf(HIGHLIGHT" - next: %s "NORMAL, files[current_file]);
 		return;
 	}
 	percentage = calc_percent();
@@ -289,7 +298,7 @@ static void medium_status_print(void)
 	if (!line_pos)
 		printf(HIGHLIGHT"%s %i%% "NORMAL, filename, percentage);
 	else if (line_pos >= num_flines - height + 2)
-		print_hilite("(END) ");
+		print_hilite("(END)");
 	else
 		printf(HIGHLIGHT"%i%% "NORMAL, percentage);
 }
@@ -318,7 +327,7 @@ static void status_print(void)
 		putchar(':');
 		return;
 	}
-	p = "(END) ";
+	p = "(END)";
 	if (!line_pos)
 		p = filename;
 	if (num_files > 1) {
