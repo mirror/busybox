@@ -11,13 +11,22 @@
 #include "libbb.h"
 #include "xregex.h"
 
-void xregcomp(regex_t *preg, const char *regex, int cflags)
+char* regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags)
 {
 	int ret = regcomp(preg, regex, cflags);
 	if (ret) {
 		int errmsgsz = regerror(ret, preg, NULL, 0);
 		char *errmsg = xmalloc(errmsgsz);
 		regerror(ret, preg, errmsg, errmsgsz);
+		return errmsg;
+	}
+	return NULL;
+}
+
+void xregcomp(regex_t *preg, const char *regex, int cflags)
+{
+	char *errmsg = regcomp_or_errmsg(preg, regex, cflags);
+	if (errmsg) {
 		bb_error_msg_and_die("xregcomp: %s", errmsg);
 	}
 }

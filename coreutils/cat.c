@@ -14,8 +14,11 @@
 
 int bb_cat(char **argv)
 {
+	static char *const argv_dash[] = { "-", NULL };
 	FILE *f;
 	int retval = EXIT_SUCCESS;
+
+	if (!*argv) argv = (char**) &argv_dash;
 
 	do {
 		f = fopen_or_warn_stdin(*argv);
@@ -35,11 +38,6 @@ int bb_cat(char **argv)
 int cat_main(int argc, char **argv)
 {
 	getopt32(argc, argv, "u");
-
 	argv += optind;
-	if (!*argv) {
-		*--argv = "-";
-	}
-
 	return bb_cat(argv);
 }

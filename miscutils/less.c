@@ -50,9 +50,10 @@
 /* The escape codes for highlighted and normal text */
 #define HIGHLIGHT "\033[7m"
 #define NORMAL "\033[0m"
-
 /* The escape code to clear the screen */
 #define CLEAR "\033[H\033[J"
+/* The escape code to clear to end of line */
+#define CLEAR_2_EOL "\033[K"
 
 #define MAXLINES CONFIG_FEATURE_LESS_MAXLINES
 
@@ -121,9 +122,9 @@ static void tless_exit(int code)
 static int tless_getch(void)
 {
 	int input;
-	/* Set terminal input to raw mode  (taken from vi.c) */
+	/* Set terminal input to raw mode (taken from vi.c) */
 	tcsetattr(fileno(inp), TCSANOW, &term_vi);
-
+ again:
 	input = getc(inp);
 	/* Detect escape sequences (i.e. arrow keys) and handle
 	   them accordingly */
@@ -136,27 +137,56 @@ static int tless_getch(void)
 		i = input - REAL_KEY_UP;
 		if (i < 4)
 			return 20 + i;
-		else if ((i = input - REAL_PAGE_UP) < 4)
+		i = input - REAL_PAGE_UP;
+		if (i < 4)
 			return 24 + i;
-		else
-			return 0; /* ?? */
+		return 0; /* ?? */
 	}
-	/* The input is a normal ASCII value */
+	/* Reject almost all control chars */
+	if (input < ' ' && input != 0x0d && input != 8) goto again;
 	set_tty_cooked();
 	return input;
 }
 
+static char* tless_gets(void)
+{
+	int c;
+	int i = 0;
+	char *result = xzalloc(1);
+	while (1) {
+		c = tless_getch();
+		if (c == 0x0d)
+			return result;
+		if (c == 0x7f) c = 8;
+		if (c == 8 && i) {
+			printf("\x8 \x8");
+			i--;
+		}
+		if (c < ' ')
+			continue;
+		putchar(c);
+		result[i++] = c;
+		result = xrealloc(result, i+1);
+		result[i] = '\0';
+		if (i >= width-1) return result; 
+	}
+}
+
 /* Move the cursor to a position (x,y), where (0,0) is the
    top-left corner of the console */
-static void move_cursor(int x, int y)
+static void move_cursor(int line, int row)
 {
-	printf("\033[%i;%iH", x, y);
+	printf("\033[%u;%uH", line, row);
 }
 
 static void clear_line(void)
 {
-	move_cursor(height, 0);
-	printf("\033[K");
+	printf("\033[%u;0H" CLEAR_2_EOL, height);
+}
+
+static void print_hilite(const char *str)
+{
+	printf(HIGHLIGHT"%s"NORMAL, str);
 }
 
 static void data_readlines(void)
@@ -235,26 +265,26 @@ static void m_status_print(void)
 
 	if (!line_pos) {
 		if (num_files > 1) {
-			printf("%s%s %s%i%s%i%s%i-%i/%i ", HIGHLIGHT,
-				filename, "(file ", current_file, " of ", num_files, ") lines ",
+			printf(HIGHLIGHT"%s (file %i of %i) lines %i-%i/%i ",
+				filename, current_file, num_files,
 				line_pos + 1, line_pos + height - 1, num_flines + 1);
 		} else {
-			printf("%s%s lines %i-%i/%i ", HIGHLIGHT,
+			printf(HIGHLIGHT"%s lines %i-%i/%i ",
 				filename, line_pos + 1, line_pos + height - 1,
 				num_flines + 1);
 		}
 	} else {
-		printf("%s %s lines %i-%i/%i ", HIGHLIGHT, filename,
+		printf(HIGHLIGHT" %s lines %i-%i/%i ", filename,
 			line_pos + 1, line_pos + height - 1, num_flines + 1);
 	}
 
 	if (line_pos >= num_flines - height + 2) {
-		printf("(END) %s", NORMAL);
-		if ((num_files > 1) && (current_file != num_files))
-			printf("%s- Next: %s%s", HIGHLIGHT, files[current_file], NORMAL);
+		printf("(END) "NORMAL);
+		if (num_files > 1 && current_file != num_files)
+			printf(HIGHLIGHT"- Next: %s"NORMAL, files[current_file]);
 	} else {
 		percentage = calc_percent();
-		printf("%i%% %s", percentage, NORMAL);
+		printf("%i%% "NORMAL, percentage);
 	}
 }
 
@@ -265,11 +295,11 @@ static void medium_status_print(void)
 	percentage = calc_percent();
 
 	if (!line_pos)
-		printf("%s%s %i%%%s", HIGHLIGHT, filename, percentage, NORMAL);
+		printf(HIGHLIGHT"%s %i%%"NORMAL, filename, percentage);
 	else if (line_pos == num_flines - height + 2)
-		printf("%s(END)%s", HIGHLIGHT, NORMAL);
+		print_hilite("(END)");
 	else
-		printf("%s%i%%%s", HIGHLIGHT, percentage, NORMAL);
+		printf(HIGHLIGHT"%i%%"NORMAL, percentage);
 }
 #endif
 
@@ -286,14 +316,14 @@ static void status_print(void)
 	else {
 #endif
 		if (!line_pos) {
-			printf("%s%s %s", HIGHLIGHT, filename, NORMAL);
+			print_hilite(filename);
 			if (num_files > 1)
-				printf("%s%s%i%s%i%s%s", HIGHLIGHT, "(file ",
-					current_file, " of ", num_files, ")", NORMAL);
+				printf(HIGHLIGHT"(file %i of %i)"NORMAL,
+					current_file, num_files);
 		} else if (line_pos == num_flines - height + 2) {
-			printf("%s%s %s", HIGHLIGHT, "(END)", NORMAL);
-			if ((num_files > 1) && (current_file != num_files))
-				printf("%s%s%s%s", HIGHLIGHT, "- Next: ", files[current_file], NORMAL);
+			print_hilite("(END) ");
+			if (num_files > 1 && current_file != num_files)
+				printf(HIGHLIGHT"- Next: %s"NORMAL, files[current_file]);
 		} else {
 			putchar(':');
 		}
@@ -336,13 +366,6 @@ static void print_found(const char *line)
 		memset(p, '.', n);
 		p += n;
 		str += n;
-		/*
-		do {
-			if (*str == '\x7f') { *p++ = '?'; str++; }
-			else if (*str == '\x9b') { *p++ = '{'; str++; }
-			else *p++ = ctrlconv[(unsigned char)*str++];
-		} while (--n);
-		*/
 	}
 	strcpy(p, str);
 
@@ -358,13 +381,11 @@ static void print_found(const char *line)
 	goto start;
 
 	while (match_status == 0) {
-		char *new = xasprintf("%s" "%.*s" "%s" "%.*s" "%s",
+		char *new = xasprintf("%s%.*s"HIGHLIGHT"%.*s"NORMAL,
 				growline ? : "",
 				match_structs.rm_so, str,
-				HIGHLIGHT,
 				match_structs.rm_eo - match_structs.rm_so,
-						str + match_structs.rm_so,
-				NORMAL);
+						str + match_structs.rm_so);
 		free(growline); growline = new;
 		str += match_structs.rm_eo;
 		line += match_structs.rm_eo;
@@ -375,10 +396,10 @@ static void print_found(const char *line)
 	}
 
 	if (!growline) {
-		puts(str);
+		printf("%s"CLEAR_2_EOL"\n", str);
 		return;
 	}
-	printf("%s%s\n", growline, str);
+	printf("%s%s"CLEAR_2_EOL"\n", growline, str);
 	free(growline);
 }
 
@@ -398,14 +419,20 @@ static void print_ascii(const char *str)
 		n = strspn(str, controls);
 		p = buf;
 		do {
-			if (*str == '\x7f') { *p++ = '?'; str++; }
-			else if (*str == '\x9b') { *p++ = '{'; str++; }
-			else *p++ = ctrlconv[(unsigned char)*str++];
+			if (*str == 0x7f)
+				*p++ = '?';
+			else if (*str == 0x9b)
+			/* VT100's CSI, aka Meta-ESC. Who's inventor? */
+			/* I want to know who committed this sin */
+				*p++ = '{';
+			else
+				*p++ = ctrlconv[(unsigned char)*str];
+			str++;
 		} while (--n);
 		*p = '\0';
-		printf("%s%s%s", HIGHLIGHT, buf, NORMAL);
+		print_hilite(buf);
 	}
-	puts(str);
+	printf("%s"CLEAR_2_EOL"\n", str);
 }
 
 /* Print the buffer */
@@ -413,12 +440,13 @@ static void buffer_print(void)
 {
 	int i;
 
-	printf("%s", CLEAR);
+	move_cursor(0, 0);
 	for (i = 0; i < height - 1; i++)
 		if (pattern_valid)
 			print_found(buffer[i]);
 		else
 			print_ascii(buffer[i]);
+	fputs(CLEAR_2_EOL, stdout); /* clears status line */
 	status_print();
 }
 
@@ -426,11 +454,6 @@ static void buffer_print(void)
 static void buffer_init(void)
 {
 	int i;
-
-	if (!buffer) {
-		/* malloc the number of lines needed for the buffer */
-		buffer = xmalloc(height * sizeof(char *));
-	}
 
 	/* Fill the buffer until the end of the file or the
 	   end of the buffer is reached */
@@ -491,18 +514,19 @@ static void buffer_line(int linenum)
 
 	if (linenum < 0 || linenum > num_flines) {
 		clear_line();
-		printf("%s%s%i%s", HIGHLIGHT, "Cannot seek to line number ", linenum + 1, NORMAL);
-	} else {
-		for (i = 0; i < height - 1; i++) {
-			if (linenum + i <= num_flines)
-				buffer[i] = flines[linenum + i];
-			else {
-				buffer[i] = empty_line_marker;
-			}
-		}
-		line_pos = linenum;
-		buffer_print();
+		printf(HIGHLIGHT"%s%u"NORMAL, "Cannot seek to line ", linenum + 1);
+		return;
 	}
+
+	for (i = 0; i < height - 1; i++) {
+		if (linenum + i <= num_flines)
+			buffer[i] = flines[linenum + i];
+		else {
+			buffer[i] = empty_line_marker;
+		}
+	}
+	line_pos = linenum;
+	buffer_print();
 }
 
 /* Reinitialise everything for a new file - free the memory and start over */
@@ -524,10 +548,13 @@ static void examine_file(void)
 	clear_line();
 	printf("Examine: ");
 	free(filename);
-	filename = xmalloc_getline(inp);
+	filename = tless_gets();
+	/* files start by = argv. why we assume that argv is infinitely long??
 	files[num_files] = filename;
 	current_file = num_files + 1;
-	num_files++;
+	num_files++; */
+	files[0] = filename;
+	current_file = 1;
 	reinitialise();
 }
 
@@ -545,7 +572,7 @@ static void change_file(int direction)
 		reinitialise();
 	} else {
 		clear_line();
-		printf("%s%s%s", HIGHLIGHT, (direction > 0) ? "No next file" : "No previous file", NORMAL);
+		print_hilite((direction > 0) ? "No next file" : "No previous file");
 	}
 }
 
@@ -628,7 +655,7 @@ static void goto_match(int match)
 
 static void regex_process(void)
 {
-	char *uncomp_regex;
+	char *uncomp_regex, *err;
 
 	/* Reset variables */
 	match_lines = xrealloc(match_lines, sizeof(int));
@@ -643,16 +670,22 @@ static void regex_process(void)
 	/* Get the uncompiled regular expression from the user */
 	clear_line();
 	putchar((option_mask32 & LESS_STATE_MATCH_BACKWARDS) ? '?' : '/');
-	uncomp_regex = xmalloc_getline(inp);
-	if (!uncomp_regex || !uncomp_regex[0]) {
+	uncomp_regex = tless_gets();
+	if (/*!uncomp_regex ||*/ !uncomp_regex[0]) {
 		free(uncomp_regex);
 		buffer_print();
 		return;
 	}
 
 	/* Compile the regex and check for errors */
-	xregcomp(&pattern, uncomp_regex, 0);
+	err = regcomp_or_errmsg(&pattern, uncomp_regex, 0);
 	free(uncomp_regex);
+	if (err) {
+		clear_line();
+		fputs(err, stdout);
+		free(err);
+		return;
+	}
 	pattern_valid = 1;
 
 	/* Run the regex on each line of the current file */
@@ -799,7 +832,7 @@ static void show_flag_status(void)
 	}
 
 	clear_line();
-	printf("%s%s%i%s", HIGHLIGHT, "The status of the flag is: ", flag_val != 0, NORMAL);
+	printf(HIGHLIGHT"%s%u"NORMAL, "The status of the flag is: ", flag_val != 0);
 }
 #endif
 
@@ -820,12 +853,12 @@ static void save_input_to_file(void)
 
 	clear_line();
 	printf("Log file: ");
-	current_line = xmalloc_getline(inp);
+	current_line = tless_gets();
 	if (strlen(current_line) > 0) {
 		fp = fopen(current_line, "w");
 		free(current_line);
 		if (!fp) {
-			printf("%s%s%s", HIGHLIGHT, "Error opening log file", NORMAL);
+			print_hilite("Error opening log file");
 			return;
 		}
 		for (i = 0; i < num_flines; i++)
@@ -835,7 +868,7 @@ static void save_input_to_file(void)
 		return;
 	}
 	free(current_line);
-	printf("%s%s%s", HIGHLIGHT, "No log file", NORMAL);
+	print_hilite("No log file");
 }
 
 #if ENABLE_FEATURE_LESS_MARKS
@@ -858,7 +891,7 @@ static void add_mark(void)
 		num_marks++;
 	} else {
 		clear_line();
-		printf("%s%s%s", HIGHLIGHT, "Invalid mark letter", NORMAL);
+		print_hilite("Invalid mark letter");
 	}
 }
 
@@ -878,10 +911,10 @@ static void goto_mark(void)
 				buffer_line(mark_lines[i][1]);
 				break;
 			}
-		if ((num_marks == 14) && (letter != mark_lines[14][0]))
-			printf("%s%s%s", HIGHLIGHT, "Mark not set", NORMAL);
+		if (num_marks == 14 && letter != mark_lines[14][0])
+			print_hilite("Mark not set");
 	} else
-		printf("%s%s%s", HIGHLIGHT, "Invalid mark letter", NORMAL);
+		print_hilite("Invalid mark letter");
 }
 #endif
 
@@ -911,21 +944,19 @@ static void match_right_bracket(char bracket)
 
 	clear_line();
 
-	if (strchr(flines[line_pos], bracket) == NULL)
-		printf("%s%s%s", HIGHLIGHT, "No bracket in top line", NORMAL);
-	else {
-		for (i = line_pos + 1; i < num_flines; i++) {
-			if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
-				bracket_line = i;
-				break;
-			}
-		}
-
-		if (bracket_line == -1)
-			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
-
-		buffer_line(bracket_line - height + 2);
+	if (strchr(flines[line_pos], bracket) == NULL) {
+		print_hilite("No bracket in top line");
+		return;
 	}
+	for (i = line_pos + 1; i < num_flines; i++) {
+		if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
+			bracket_line = i;
+			break;
+		}
+	}
+	if (bracket_line == -1)
+	print_hilite("No matching bracket found");
+	buffer_line(bracket_line - height + 2);
 }
 
 static void match_left_bracket(char bracket)
@@ -936,22 +967,22 @@ static void match_left_bracket(char bracket)
 	clear_line();
 
 	if (strchr(flines[line_pos + height - 2], bracket) == NULL) {
-		printf("%s%s%s", HIGHLIGHT, "No bracket in bottom line", NORMAL);
-		printf("%s", flines[line_pos + height]);
-		sleep(4);
-	} else {
-		for (i = line_pos + height - 2; i >= 0; i--) {
-			if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
-				bracket_line = i;
-				break;
-			}
-		}
-
-		if (bracket_line == -1)
-			printf("%s%s%s", HIGHLIGHT, "No matching bracket found", NORMAL);
-
-		buffer_line(bracket_line);
+		print_hilite("No bracket in bottom line");
+		/* ?? */
+		/*printf("%s", flines[line_pos + height]);*/
+		/*sleep(4);*/
+		return;
 	}
+
+	for (i = line_pos + height - 2; i >= 0; i--) {
+		if (strchr(flines[i], opp_bracket(bracket)) != NULL) {
+			bracket_line = i;
+			break;
+		}
+	}
+	if (bracket_line == -1)
+		print_hilite("No matching bracket found");
+	buffer_line(bracket_line);
 }
 
 #endif  /* FEATURE_LESS_BRACKETS */
@@ -959,7 +990,7 @@ static void match_left_bracket(char bracket)
 static void keypress_process(int keypress)
 {
 	switch (keypress) {
-		case KEY_DOWN: case 'e': case 'j': case '\015':
+		case KEY_DOWN: case 'e': case 'j': case 0x0d:
 			buffer_down(1);
 			buffer_print();
 			break;
@@ -1080,37 +1111,42 @@ int less_main(int argc, char **argv)
 	files = argv;
 	num_files = argc;
 
+	/* Another popular pager, most, detects when stdout
+	 * is not a tty and turns into cat. This makes sense. */
+	if (!isatty(STDOUT_FILENO))
+		return bb_cat(argv);
+
 	if (!num_files) {
 		if (isatty(STDIN_FILENO)) {
-			/* Just "less"? No file and no redirection? */
+			/* Just "less"? No args and no redirection? */
 			bb_error_msg("missing filename");
 			bb_show_usage();
 		}
 	} else
 		filename = xstrdup(files[0]);
 
-	/* FIXME: another popular pager, most, detects when stdout
-	 * is not a tty and turns into cat */
 	inp = xfopen(CURRENT_TTY, "r");
 
 	get_terminal_width_height(fileno(inp), &width, &height);
 	if (width < 10 || height < 3)
 		bb_error_msg_and_die("too narrow here");
 
-	if (option_mask32 & FLAG_TILDE) empty_line_marker = "";
+	buffer = xmalloc(height * sizeof(char *));
+	if (option_mask32 & FLAG_TILDE)
+		empty_line_marker = "";
 
 	data_readlines();
 
 	tcgetattr(fileno(inp), &term_orig);
 	signal(SIGTERM, sig_catcher);
 	signal(SIGINT, sig_catcher);
-
 	term_vi = term_orig;
 	term_vi.c_lflag &= (~ICANON & ~ECHO);
 	term_vi.c_iflag &= (~IXON & ~ICRNL);
 	term_vi.c_oflag &= (~ONLCR);
 	term_vi.c_cc[VMIN] = 1;
 	term_vi.c_cc[VTIME] = 0;
+
 	buffer_init();
 	buffer_print();
 

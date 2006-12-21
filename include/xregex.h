@@ -12,6 +12,7 @@
 #define __BB_REGEX__
 
 #include <regex.h>
-extern void xregcomp(regex_t *preg, const char *regex, int cflags);
+char* regcomp_or_errmsg(regex_t *preg, const char *regex, int cflags);
+void xregcomp(regex_t *preg, const char *regex, int cflags);
 
 #endif
