@@ -65,11 +65,12 @@ static const char *const long_format =
 	"\tSocket messages sent: %s\n"
 	"\tSocket messages received: %r\n"
 	"\tSignals delivered: %k\n"
-	"\tPage size (bytes): %Z\n" "\tExit status: %x";
+	"\tPage size (bytes): %Z\n"
+	"\tExit status: %x";
 
 
-  /* Wait for and fill in data on child process PID.
-     Return 0 on error, 1 if ok.  */
+/* Wait for and fill in data on child process PID.
+   Return 0 on error, 1 if ok.  */
 
 /* pid_t is short on BSDI, so don't try to promote it.  */
 static int resuse_end(pid_t pid, resource_t * resp)
@@ -110,8 +111,7 @@ static void fprintargv(FILE * fp, char *const *argv, const char *filler)
 		fputs(filler, fp);
 		fputs(*av, fp);
 	}
-	if (ferror(fp))
-		bb_error_msg_and_die(bb_msg_write_error);
+	die_if_ferror(fp, "output");
 }
 
 /* Return the number of kilobytes corresponding to a number of pages PAGES.
@@ -381,13 +381,11 @@ static void summarize(FILE * fp, const char *fmt, char **command,
 			putc(*fmt++, fp);
 		}
 
-		if (ferror(fp))
-			bb_error_msg_and_die(bb_msg_write_error);
+		die_if_ferror(fp, "output");
 	}
 	putc('\n', fp);
 
-	if (ferror(fp))
-		bb_error_msg_and_die(bb_msg_write_error);
+	die_if_ferror(fp, "output");
 }
 
 /* Run command CMD and return statistics on it.
@@ -423,18 +421,16 @@ static void run_command(char *const *cmd, resource_t * resp)
 
 int time_main(int argc, char **argv)
 {
-	int gotone;
 	resource_t res;
 	const char *output_format = default_format;
+	char c;
 
-	argc--;
-	argv++;
+	goto next;
 	/* Parse any options  -- don't use getopt() here so we don't
 	 * consume the args of our client application... */
-	while (argc > 0 && **argv == '-') {
-		gotone = 0;
-		while (gotone == 0 && *++(*argv)) {
-			switch (**argv) {
+	while (argc > 0 && argv[0][0] == '-') {
+		while ((c = *++*argv)) {
+			switch (c) {
 			case 'v':
 				output_format = long_format;
 				break;
@@ -444,24 +440,22 @@ int time_main(int argc, char **argv)
 			default:
 				bb_show_usage();
 			}
-			argc--;
-			argv++;
-			gotone = 1;
 		}
+ next:
+		argv++;
+		argc--;
+		if (!argc)
+			bb_show_usage();
 	}
-
-	if (argv == NULL || *argv == NULL)
-		bb_show_usage();
 
 	run_command(argv, &res);
 	summarize(stderr, output_format, argv, &res);
-	fflush(stderr);
 
 	if (WIFSTOPPED(res.waitstatus))
-		exit(WSTOPSIG(res.waitstatus));
-	else if (WIFSIGNALED(res.waitstatus))
-		exit(WTERMSIG(res.waitstatus));
-	else if (WIFEXITED(res.waitstatus))
-		exit(WEXITSTATUS(res.waitstatus));
+		return WSTOPSIG(res.waitstatus);
+	if (WIFSIGNALED(res.waitstatus))
+		return WTERMSIG(res.waitstatus);
+	if (WIFEXITED(res.waitstatus))
+		return WEXITSTATUS(res.waitstatus);
 	return 0;
 }
