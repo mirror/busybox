@@ -45,7 +45,7 @@ int fold_main(int argc, char **argv)
 	int i;
 	int errs = 0;
 
-	if(!ENABLE_DEBUG_YANK_SUSv2) {
+	if (ENABLE_INCLUDE_SUSv2) {
 		/* Turn any numeric options into -w options.  */
 		for (i = 1; i < argc; i++) {
 			char const *a = argv[i];

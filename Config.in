@@ -397,14 +397,14 @@ config EFENCE
 
 endchoice
 
-config DEBUG_YANK_SUSv2
-	bool "Disable obsolete features removed before SUSv3?"
+config INCLUDE_SUSv2
+	bool "Enable obsolete features removed before SUSv3?"
 	default y
 	help
-	  This option will disable backwards compatibility with SuSv2,
+	  This option will enable backwards compatibility with SuSv2,
 	  specifically, old-style numeric options ('command -1 <file>')
-	  will not be supported in head, tail, and fold.  (Note: should
-	  yank from renice too.)
+	  will be supported in head, tail, and fold.  (Note: should
+	  affect renice too.)
 
 endmenu
 

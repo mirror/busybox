@@ -47,7 +47,7 @@ int head_main(int argc, char **argv)
 	int c;
 	int retval = EXIT_SUCCESS;
 
-#if !ENABLE_DEBUG_YANK_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
+#if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
 	/* Allow legacy syntax of an initial numeric option without -n. */
 	if (argc > 1 && argv[1][0] == '-'
 	 && isdigit(argv[1][1])
@@ -75,8 +75,8 @@ int head_main(int argc, char **argv)
 #endif
 		case 'n':
 			p = optarg;
-#if !ENABLE_DEBUG_YANK_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
-		GET_COUNT:
+#if ENABLE_INCLUDE_SUSv2 || ENABLE_FEATURE_FANCY_HEAD
+ GET_COUNT:
 #endif
 
 #if !ENABLE_FEATURE_FANCY_HEAD

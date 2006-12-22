@@ -47,7 +47,7 @@ CONFIG_LFS=y
 # CONFIG_NO_DEBUG_LIB is not set
 # CONFIG_DMALLOC is not set
 # CONFIG_EFENCE is not set
-CONFIG_DEBUG_YANK_SUSv2=y
+CONFIG_INCLUDE_SUSv2=y
 
 #
 # Installation Options
