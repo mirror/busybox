@@ -275,7 +275,7 @@ int huft_build(unsigned int *b, const unsigned int n,
 				ws[htl+1] = w + j;	/* set bits decoded in stack */
 
 				/* allocate and link in new table */
-				q = (huft_t *) xzalloc((z + 1) * sizeof(huft_t));
+				q = xzalloc((z + 1) * sizeof(huft_t));
 				*t = q + 1;	/* link to list for huft_free() */
 				t = &(q->v.t);
 				u[htl] = ++q;	/* table starts after link */

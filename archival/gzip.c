@@ -92,7 +92,7 @@ typedef unsigned long ulg;
 
 #  define DECLARE(type, array, size)  static type * array
 #  define ALLOC(type, array, size) { \
-      array = (type*)xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type)); \
+      array = xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type)); \
    }
 #  define FREE(array) {free(array), array=NULL;}
 

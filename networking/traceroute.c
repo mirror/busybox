@@ -1118,7 +1118,7 @@ traceroute_main(int argc, char *argv[])
 	xsetgid(getgid());
 	xsetuid(getuid());
 
-	outip = (struct ip *)xzalloc(packlen);
+	outip = xzalloc(packlen);
 
 	outip->ip_v = IPVERSION;
 	if (tos_str)
@@ -1133,7 +1133,6 @@ traceroute_main(int argc, char *argv[])
 #if ENABLE_FEATURE_TRACEROUTE_USE_ICMP
 	if (useicmp) {
 		outip->ip_p = IPPROTO_ICMP;
-
 		outicmp = (struct icmp *)outp;
 		outicmp->icmp_type = ICMP_ECHO;
 		outicmp->icmp_id = htons(ident);
@@ -1142,7 +1141,6 @@ traceroute_main(int argc, char *argv[])
 #endif
 	{
 		outip->ip_p = IPPROTO_UDP;
-
 		outudp = (struct udphdr *)outp;
 		outudp->source = htons(ident);
 		outudp->len = htons((uint16_t)(packlen - (sizeof(*outip) + optlen)));

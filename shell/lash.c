@@ -1377,7 +1377,7 @@ static int busy_loop(FILE * input)
 			}
 			else {
 				free(command);
-				command = (char *) xzalloc(BUFSIZ);
+				command = xzalloc(BUFSIZ);
 				next_command = NULL;
 			}
 		} else {

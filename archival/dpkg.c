@@ -582,7 +582,7 @@ static unsigned fill_package_struct(char *control_buffer)
 		"Conflicts", "Suggests", "Recommends", "Enhances", 0
 	};
 
-	common_node_t *new_node = (common_node_t *) xzalloc(sizeof(common_node_t));
+	common_node_t *new_node = xzalloc(sizeof(common_node_t));
 	char *field_name;
 	char *field_value;
 	int field_start = 0;
@@ -981,7 +981,7 @@ static int check_deps(deb_file_t **deb_file, int deb_start, int dep_max_count)
 					package_hashtable[package_num]->edge[j]->operator);
 				if (package_hashtable[conflicts_package_num] == NULL) {
 					/* create a new package */
-					common_node_t *new_node = (common_node_t *) xzalloc(sizeof(common_node_t));
+					common_node_t *new_node = xzalloc(sizeof(common_node_t));
 					new_node->name = package_hashtable[package_num]->edge[j]->name;
 					new_node->version = package_hashtable[package_num]->edge[j]->version;
 					package_hashtable[conflicts_package_num] = new_node;

@@ -469,9 +469,9 @@ static xhash *hash_init(void)
 {
 	xhash *newhash;
 
-	newhash = (xhash *)xzalloc(sizeof(xhash));
+	newhash = xzalloc(sizeof(xhash));
 	newhash->csize = FIRST_PRIME;
-	newhash->items = (hash_item **)xzalloc(newhash->csize * sizeof(hash_item *));
+	newhash->items = xzalloc(newhash->csize * sizeof(hash_item *));
 
 	return newhash;
 }
@@ -500,7 +500,7 @@ static void hash_rebuild(xhash *hash)
 		return;
 
 	newsize = PRIMES[hash->nprime++];
-	newitems = (hash_item **)xzalloc(newsize * sizeof(hash_item *));
+	newitems = xzalloc(newsize * sizeof(hash_item *));
 
 	for (i=0; i<hash->csize; i++) {
 		hi = hash->items[i];
@@ -988,7 +988,7 @@ static node *new_node(uint32_t info)
 {
 	node *n;
 
-	n = (node *)xzalloc(sizeof(node));
+	n = xzalloc(sizeof(node));
 	n->info = info;
 	n->lineno = lineno;
 	return n;
@@ -1098,8 +1098,7 @@ static node *parse_expr(uint32_t iexp)
 					break;
 
 				  case TC_REGEXP:
-					mk_re_node(t.string, cn,
-									(regex_t *)xzalloc(sizeof(regex_t)*2));
+					mk_re_node(t.string, cn, xzalloc(sizeof(regex_t)*2));
 					break;
 
 				  case TC_FUNCTION:
@@ -1585,7 +1584,7 @@ static void hashwalk_init(var *v, xhash *array)
 		free(v->x.walker);
 
 	v->type |= VF_WALK;
-	w = v->x.walker = (char **)xzalloc(2 + 2*sizeof(char *) + array->glen);
+	w = v->x.walker = xzalloc(2 + 2*sizeof(char *) + array->glen);
 	*w = *(w+1) = (char *)(w + 2);
 	for (i=0; i<array->csize; i++) {
 		hi = array->items[i];
