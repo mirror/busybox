@@ -12,11 +12,7 @@
 
 #include "busybox.h"
 
-#ifdef CONFIG_INSTALL_NO_USR
-# define DEFAULT_SCRIPT  "/share/udhcpc/default.script"
-#else
-# define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
-#endif
+#define DEFAULT_SCRIPT  "/usr/share/udhcpc/default.script"
 
 #define COMBINED_BINARY
 
