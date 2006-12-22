@@ -77,7 +77,6 @@ static int n_history;
 static int cur_history;
 #endif
 
-//#include <termios.h>
 #define setTermSettings(fd,argp) tcsetattr(fd, TCSANOW, argp)
 #define getTermSettings(fd,argp) tcgetattr(fd, argp);
 

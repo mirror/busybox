@@ -5,17 +5,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include "libbb.h"
 #include "unarchive.h"
 
 /*
- *	Reassign the subarchive metadata parser based on the filename extension
- *  e.g. if its a .tar.gz modify archive_handle->sub_archive to process a .tar.gz
- *       or if its a .tar.bz2 make archive_handle->sub_archive handle that
+ * Reassign the subarchive metadata parser based on the filename extension
+ * e.g. if its a .tar.gz modify archive_handle->sub_archive to process a .tar.gz
+ * or if its a .tar.bz2 make archive_handle->sub_archive handle that
  */
 char filter_accept_list_reassign(archive_handle_t *archive_handle)
 {

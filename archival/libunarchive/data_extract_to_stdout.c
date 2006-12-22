@@ -4,7 +4,6 @@
  */
 
 #include "unarchive.h"
-//#include <unistd.h>
 
 void data_extract_to_stdout(archive_handle_t *archive_handle)
 {

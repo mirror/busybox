@@ -87,11 +87,6 @@ int cal_main(int argc, char **argv)
 	char day_headings[28];	/* 28 for julian, 21 for nonjulian */
 	char buf[40];
 
-// Done in busybox.c, ok to remove?
-//#ifdef CONFIG_LOCALE_SUPPORT
-//	setlocale(LC_TIME, "");
-//#endif
-
 	flags = getopt32(argc, argv, "jy");
 
 	julian = flags & 1;
