@@ -96,7 +96,8 @@ char get_header_ar(archive_handle_t *archive_handle)
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
 		archive_handle->action_header(typed);
 		if (archive_handle->sub_archive) {
-			while (archive_handle->action_data_subarchive(archive_handle->sub_archive) == EXIT_SUCCESS);
+			while (archive_handle->action_data_subarchive(archive_handle->sub_archive) == EXIT_SUCCESS)
+				/* repeat */;
 		} else {
 			archive_handle->action_data(archive_handle);
 		}

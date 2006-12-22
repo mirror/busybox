@@ -452,26 +452,28 @@ static int writeFileToTarball(const char *fileName, struct stat *statbuf,
 
 	/* If it was a regular file, write out the body */
 	if (inputFileFd >= 0) {
-		off_t readSize = 0;
+		size_t readSize;
+		/* Wwrite the file to the archive. */
+		/* We record size into header first, */
+		/* and then write out file. If file shrinks in between, */
+		/* tar will be corrupted. So we don't allow for that. */
+		/* NB: GNU tar 1.16 warns and pads with zeroes */
+		/* or even seeks back and updates header */
+		bb_copyfd_exact_size(inputFileFd, tbInfo->tarFd, statbuf->st_size);
+		////off_t readSize;
+		////readSize = bb_copyfd_size(inputFileFd, tbInfo->tarFd, statbuf->st_size);
+		////if (readSize != statbuf->st_size && readSize >= 0) {
+		////	bb_error_msg_and_die("short read from %s, aborting", fileName);
+		////}
 
-		/* write the file to the archive */
-		readSize = bb_copyfd_size(inputFileFd, tbInfo->tarFd, statbuf->st_size);
-		/* readSize < 0 means that error was already reported */
-		if (readSize != statbuf->st_size && readSize >= 0) {
-			/* Deadly. We record size into header first, */
-			/* and then write out file. If file shrinks in between, */
-			/* tar will be corrupted. So bail out. */
-			/* NB: GNU tar 1.16 warns and pads with zeroes */
-			/* or even seeks back and updates header */
-			bb_error_msg_and_die("short read from %s, aborting", fileName);
-		}
 		/* Check that file did not grow in between? */
-		/* if (safe_read(inputFileFd,1) == 1) warn but continue? */
+		/* if (safe_read(inputFileFd, 1) == 1) warn but continue? */
+
 		close(inputFileFd);
 
 		/* Pad the file up to the tar block size */
 		/* (a few tricks here in the name of code size) */
-		readSize = (-(int)readSize) & (TAR_BLOCK_SIZE-1);
+		readSize = (-(int)statbuf->st_size) & (TAR_BLOCK_SIZE-1);
 		memset(bb_common_bufsiz1, 0, readSize);
 		xwrite(tbInfo->tarFd, bb_common_bufsiz1, readSize);
 	}

@@ -24,7 +24,7 @@ typedef struct file_headers_s {
 } file_header_t;
 
 typedef struct archive_handle_s {
-	/* define if the header and data component should processed */
+	/* define if the header and data component should be processed */
 	char (*filter)(struct archive_handle_s *);
 	llist_t *accept;
 	/* List of files that have been rejected */

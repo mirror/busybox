@@ -25,9 +25,8 @@ int bb_cat(char **argv)
 		if (f) {
 			off_t r = bb_copyfd_eof(fileno(f), STDOUT_FILENO);
 			fclose_if_not_stdin(f);
-			if (r >= 0) {
+			if (r >= 0)
 				continue;
-			}
 		}
 		retval = EXIT_FAILURE;
 	} while (*++argv);

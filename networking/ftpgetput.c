@@ -22,8 +22,8 @@ typedef struct ftp_host_info_s {
 	struct sockaddr_in *s_in;
 } ftp_host_info_t;
 
-static char verbose_flag = 0;
-static char do_continue = 0;
+static char verbose_flag;
+static char do_continue;
 
 static int ftpcmd(const char *s1, const char *s2, FILE *stream, char *buf)
 {
@@ -112,7 +112,9 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 		const char *local_path, char *server_path)
 {
 	char buf[512];
-	off_t filesize = 0;
+/* I think 'filesize' usage here is bogus. Let's see... */
+	//off_t filesize = -1;
+#define filesize ((off_t)-1)
 	int fd_data;
 	int fd_local = -1;
 	off_t beg_range = 0;
@@ -124,11 +126,10 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 	fd_data = xconnect_ftpdata(server, buf);
 
 	if (ftpcmd("SIZE ", server_path, control_stream, buf) == 213) {
-		filesize = BB_STRTOOFF(buf + 4, NULL, 10);
-		if (errno || filesize < 0)
-			bb_error_msg_and_die("SIZE error: %s", buf + 4);
+		//filesize = BB_STRTOOFF(buf + 4, NULL, 10);
+		//if (errno || filesize < 0)
+		//	bb_error_msg_and_die("SIZE error: %s", buf + 4);
 	} else {
-		filesize = -1;
 		do_continue = 0;
 	}
 
@@ -154,7 +155,8 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 		if (ftpcmd(buf, NULL, control_stream, buf) != 350) {
 			do_continue = 0;
 		} else {
-			filesize -= beg_range;
+			//if (filesize != -1)
+			//	filesize -= beg_range;
 		}
 	}
 
@@ -173,11 +175,11 @@ int ftp_receive(ftp_host_info_t *server, FILE *control_stream,
 
 	/* Copy the file */
 	if (filesize != -1) {
-		if (-1 == bb_copyfd_size(fd_data, fd_local, filesize))
-			exit(EXIT_FAILURE);
+		if (bb_copyfd_size(fd_data, fd_local, filesize) == -1)
+			return EXIT_FAILURE;
 	} else {
-		if (-1 == bb_copyfd_eof(fd_data, fd_local))
-			exit(EXIT_FAILURE);
+		if (bb_copyfd_eof(fd_data, fd_local) == -1)
+			return EXIT_FAILURE;
 	}
 
 	/* close it all down */
@@ -277,14 +279,11 @@ int ftpgetput_main(int argc, char **argv)
 	/* content-length of the file */
 	unsigned opt;
 	char *port = "ftp";
-
 	/* socket to ftp server */
 	FILE *control_stream;
 	struct sockaddr_in s_in;
-
 	/* continue a prev transfer (-c) */
 	ftp_host_info_t *server;
-
 	int (*ftp_action)(ftp_host_info_t *, FILE *, const char *, char *) = NULL;
 
 	/* Check to see if the command is ftpget or ftput */

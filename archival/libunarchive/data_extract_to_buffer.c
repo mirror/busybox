@@ -10,9 +10,8 @@
 
 void data_extract_to_buffer(archive_handle_t *archive_handle)
 {
-	const unsigned int size = archive_handle->file_header->size;
+	unsigned int size = archive_handle->file_header->size;
 
 	archive_handle->buffer = xzalloc(size + 1);
-
 	xread(archive_handle->src_fd, archive_handle->buffer, size);
 }

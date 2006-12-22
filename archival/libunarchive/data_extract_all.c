@@ -67,10 +67,10 @@ void data_extract_all(archive_handle_t *archive_handle)
 			/* Regular file */
 			dst_fd = xopen3(file_header->name, O_WRONLY | O_CREAT | O_EXCL,
 							file_header->mode);
-			bb_copyfd_size(archive_handle->src_fd, dst_fd, file_header->size);
+			bb_copyfd_exact_size(archive_handle->src_fd, dst_fd, file_header->size);
 			close(dst_fd);
 			break;
-			}
+		}
 		case S_IFDIR:
 			res = mkdir(file_header->name, file_header->mode);
 			if ((errno != EISDIR) && (res == -1)

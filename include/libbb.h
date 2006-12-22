@@ -203,8 +203,13 @@ extern int recursive_action(const char *fileName, int recurse,
 extern int device_open(const char *device, int mode);
 extern int get_console_fd(void);
 extern char *find_block_device(char *path);
-extern off_t bb_copyfd_size(int fd1, int fd2, off_t size);
+/* bb_copyfd_XX print read/write errors and return -1 if they occur */
 extern off_t bb_copyfd_eof(int fd1, int fd2);
+extern off_t bb_copyfd_size(int fd1, int fd2, off_t size);
+extern void bb_copyfd_exact_size(int fd1, int fd2, off_t size);
+/* "short" copy can be detected by return value < size */
+/* this helper yells "short read!" if param is not -1 */
+extern void complain_copyfd_and_die(off_t sz) ATTRIBUTE_NORETURN;
 extern char bb_process_escape_sequence(const char **ptr);
 extern char *bb_get_last_path_component(char *path);
 extern int ndelay_on(int fd);

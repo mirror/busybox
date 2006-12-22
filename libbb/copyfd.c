@@ -39,7 +39,7 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 
 		rd = safe_read(src_fd, buffer, size > BUFSIZ ? BUFSIZ : size);
 
-		if (!rd) { /* eof - all done. */
+		if (!rd) { /* eof - all done */
 			status = 0;
 			break;
 		}
@@ -56,21 +56,30 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 			}
 		}
 		total += rd;
-		if (status < 0) {
+		if (status < 0) { /* if we aren't copying till EOF... */
 			size -= rd;
 			if (!size) {
-				status = 0;
+				/* 'size' bytes copied - all done */
+				status = 0; 
 				break;
 			}
 		}
 	}
-
-out:
+ out:
 	RELEASE_CONFIG_BUFFER(buffer);
-
 	return status ? -1 : total;
 }
 
+
+#if 0
+void complain_copyfd_and_die(off_t sz)
+{
+	if (sz != -1)
+		bb_error_msg_and_die("short read");
+	/* if sz == -1, bb_copyfd_XX already complained */
+	exit(xfunc_error_retval);
+}
+#endif
 
 off_t bb_copyfd_size(int fd1, int fd2, off_t size)
 {
@@ -78,6 +87,17 @@ off_t bb_copyfd_size(int fd1, int fd2, off_t size)
 		return bb_full_fd_action(fd1, fd2, size);
 	}
 	return 0;
+}
+
+void bb_copyfd_exact_size(int fd1, int fd2, off_t size)
+{
+	off_t sz = bb_copyfd_size(fd1, fd2, size);
+	if (sz == size)
+		return;
+	if (sz != -1)
+		bb_error_msg_and_die("short read");
+	/* if sz == -1, bb_copyfd_XX already complained */
+	exit(xfunc_error_retval);
 }
 
 off_t bb_copyfd_eof(int fd1, int fd2)

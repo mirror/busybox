@@ -251,7 +251,7 @@ char get_header_tar(archive_handle_t *archive_handle)
 	}
 
 	/* Strip trailing '/' in directories */
-	/* Must be done after mode is set as '/' is used to check if its a directory */
+	/* Must be done after mode is set as '/' is used to check if it's a directory */
 	cp = last_char_is(file_header->name, '/');
 
 	if (archive_handle->filter(archive_handle) == EXIT_SUCCESS) {
