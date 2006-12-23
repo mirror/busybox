@@ -24,7 +24,7 @@ int su_main(int argc, char **argv)
 
 	flags = getopt32(argc, argv, "mplc:s:", &opt_command, &opt_shell);
 	argc -= optind;
-	argv -= optind;
+	argv += optind;
 
 	if (argc && LONE_DASH(argv[0])) {
 		flags |= SU_OPT_l;
