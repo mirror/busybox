@@ -120,8 +120,7 @@ int nc_main(int argc, char **argv)
 			address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
 			address.sin_port = bb_lookup_port(argv[1], "tcp", 0);
 
-			if (connect(sfd, (struct sockaddr *) &address, sizeof(address)) < 0)
-				bb_perror_msg_and_die("connect");
+			xconnect(sfd, (struct sockaddr *) &address, sizeof(address));
 			cfd = sfd;
 		}
 	}
