@@ -197,9 +197,8 @@ ACTF(exec)
 	for (i = 0; i < ap->exec_argc; i++)
 		argv[i] = subst(ap->exec_argv[i], ap->subst_count[i], fileName);
 	argv[i] = NULL; /* terminate the list */
-	errno = 0;
 	rc = wait4pid(spawn(argv));
-	if (errno)
+	if (rc)
 		bb_perror_msg("%s", argv[0]);
 	for (i = 0; i < ap->exec_argc; i++)
 		free(argv[i]);

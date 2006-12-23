@@ -181,6 +181,7 @@ void xfflush_stdout(void)
 // -1 for failure.  Runs argv[0], searching path if that has no / in it.
 pid_t spawn(char **argv)
 {
+	/* Why static? */
 	static int failed;
 	pid_t pid;
 	void *app = ENABLE_FEATURE_SH_STANDALONE_SHELL ? find_applet_by_name(argv[0]) : 0;
@@ -196,10 +197,14 @@ pid_t spawn(char **argv)
 		// and then exit to unblock parent (but don't run atexit() stuff, which
 		// would screw up parent.)
 
-		failed = -1;
+		failed = errno;
 		_exit(0);
 	}
-	return failed ? failed : pid;
+	if (failed) {
+		errno = failed;
+		return -1;
+	}
+	return pid;
 }
 
 // Die with an error message if we can't spawn a child process.
