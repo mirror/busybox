@@ -15,7 +15,8 @@ static const struct signal_name {
 } signals[] = {
 	// SUSv3 says kill must support these, and specifies the numerical values,
 	// http://www.opengroup.org/onlinepubs/009695399/utilities/kill.html
-	{0, "0"}, {1, "HUP"}, {2, "INT"}, {3, "QUIT"}, {6, "ABRT"}, {9, "KILL"},
+	// TODO: "[SIG]EXIT" shouldn't work for kill, right?
+	{0, "EXIT"}, {1, "HUP"}, {2, "INT"}, {3, "QUIT"}, {6, "ABRT"}, {9, "KILL"},
 	{14, "ALRM"}, {15, "TERM"},
 	// And Posix adds the following:
 	{SIGILL, "ILL"}, {SIGTRAP, "TRAP"}, {SIGFPE, "FPE"}, {SIGUSR1, "USR1"},
@@ -30,13 +31,13 @@ int get_signum(const char *name)
 {
 	int i;
 
-	i = atoi(name);
-	if (i) return i;
+	i = bb_strtou(name, NULL, 10);
+	if (!errno) return i;
 	for (i = 0; i < sizeof(signals) / sizeof(struct signal_name); i++)
-		if (!strcasecmp(signals[i].name, name) ||
-			(!strncasecmp(signals[i].name, "SIG", 3)
-				 && !strcasecmp(signals[i].name+3, signals[i].name)))
-					return signals[i].number;
+		if (strcasecmp(name, signals[i].name) == 0
+		 || (strncasecmp(name, "SIG", 3) == 0
+		     && strcasecmp(&name[3], signals[i].name) == 0))
+				return signals[i].number;
 	return -1;
 }
 

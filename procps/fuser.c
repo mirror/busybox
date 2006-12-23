@@ -323,7 +323,8 @@ int fuser_main(int argc, char **argv)
 		optn = fuser_option(argv[i]);
 		if(optn) opt |= optn;
 		else if(argv[i][0] == '-') {
-			if(0>(killsig = get_signum(argv[i]+1)))
+			killsig = get_signum(argv[i]+1);
+			if(0 > killsig)
 				killsig = SIGTERM;
 		}
 		else {
