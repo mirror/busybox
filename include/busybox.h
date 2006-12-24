@@ -32,6 +32,7 @@ struct BB_applet {
 };
 
 /* From busybox.c and applet.c */
+extern int busybox_main(int argc, char **argv);
 extern const struct BB_applet applets[];
 extern const unsigned short NUM_APPLETS;
 
