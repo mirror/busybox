@@ -14,8 +14,8 @@ const char *applet_name ATTRIBUTE_EXTERNALLY_VISIBLE;
  *		this should be consistent w/ the enum, busybox.h::Location,
  *		or else...
  */
-static const char usr_bin [] ="/usr/bin";
-static const char usr_sbin[] ="/usr/sbin";
+static const char usr_bin [] = "/usr/bin";
+static const char usr_sbin[] = "/usr/sbin";
 
 static const char* const install_dir[] = {
 	&usr_bin [8], /* "", equivalent to "/" for concat_path_file() */
@@ -26,25 +26,25 @@ static const char* const install_dir[] = {
 };
 
 /* abstract link() */
-typedef int (*__link_f)(const char *, const char *);
+typedef int (*link_func)(const char *, const char *);
 
 /* create (sym)links for each applet */
 static void install_links(const char *busybox, int use_symbolic_links)
 {
-	__link_f Link = link;
-
+	link_func lf = link;
 	char *fpc;
 	int i;
 	int rc;
 
 	if (use_symbolic_links)
-		Link = symlink;
+		lf = symlink;
 
 	for (i = 0; applets[i].name != NULL; i++) {
 		fpc = concat_path_file(
-			install_dir[applets[i].location], applets[i].name);
-		rc = Link(busybox, fpc);
-		if (rc!=0 && errno!=EEXIST) {
+				install_dir[applets[i].location],
+				applets[i].name);
+		rc = lf(busybox, fpc);
+		if (rc != 0 && errno != EEXIST) {
 			bb_perror_msg("%s", fpc);
 		}
 		free(fpc);
@@ -59,10 +59,11 @@ int main(int argc, char **argv)
 {
 	const char *s;
 
-	applet_name=argv[0];
-	if (*applet_name == '-') applet_name++;
-	for (s = applet_name; *s ;)
-		if (*(s++) == '/') applet_name = s;
+	applet_name = argv[0];
+	if (*applet_name == '-')
+		applet_name++;
+	while ((s = strchr(applet_name, '/')))
+		applet_name = s + 1;
 
 	/* Set locale for everybody except 'init' */
 	if (ENABLE_LOCALE_SUPPORT && getpid() != 1)
@@ -81,44 +82,41 @@ int busybox_main(int argc, char **argv)
 	 */
 	if (ENABLE_FEATURE_INSTALLER && argc > 1 && !strcmp(argv[1], "--install")) {
 		int use_symbolic_links = 0;
-		int rc = 0;
 		char *busybox;
 
 		/* to use symlinks, or not to use symlinks... */
-		if (argc > 2) {
-			if ((strcmp(argv[2], "-s") == 0)) {
+		if (argc > 2)
+			if (strcmp(argv[2], "-s") == 0)
 				use_symbolic_links = 1;
-			}
-		}
 
 		/* link */
 // XXX: FIXME: this is broken. Why not just use argv[0] ?
 		busybox = xreadlink("/proc/self/exe");
-		if (busybox) {
-			install_links(busybox, use_symbolic_links);
+		if (!busybox)
+			return 1;
+		install_links(busybox, use_symbolic_links);
+		if (ENABLE_FEATURE_CLEAN_UP)
 			free(busybox);
-		} else {
-			rc = 1;
-		}
-		return rc;
+		return 0;
 	}
 
 	/* Deal with --help.  (Also print help when called with no arguments) */
 
-	if (argc==1 || !strcmp(argv[1],"--help") ) {
-		if (argc>2) {
+	if (argc == 1 || !strcmp(argv[1], "--help") ) {
+		if (argc > 2) {
 			applet_name = argv[2];
 			run_applet_by_name(applet_name, 2, argv);
 		} else {
 			const struct BB_applet *a;
 			int col, output_width;
 
+			output_width = 80 - sizeof("start-stop-daemon, ") - 8;
 			if (ENABLE_FEATURE_AUTOWIDTH) {
 				/* Obtain the terminal width.  */
 				get_terminal_width_height(0, &output_width, NULL);
 				/* leading tab and room to wrap */
 				output_width -= sizeof("start-stop-daemon, ") + 8;
-			} else output_width = 80 - sizeof("start-stop-daemon, ") - 8;
+			}
 
 			printf("%s\n"
 			       "Copyright (C) 1998-2006  Erik Andersen, Rob Landley, and others.\n"
@@ -130,19 +128,19 @@ int busybox_main(int argc, char **argv)
 			       "\tlink to busybox for each function they wish to use and BusyBox\n"
 			       "\twill act like whatever it was invoked as!\n"
 			       "\nCurrently defined functions:\n", bb_msg_full_version);
-
-			col=0;
+			col = 0;
 			for(a = applets; a->name;) {
-				col += printf("%s%s", (col ? ", " : "\t"), (a++)->name);
+				col += printf("%s%s", (col ? ", " : "\t"), a->name);
+				a++;
 				if (col > output_width && a->name) {
-					printf(",\n");
+					puts(",");
 					col = 0;
 				}
 			}
-			printf("\n\n");
-			exit(0);
+			puts("\n");
+			return 0;
 		}
-	} else run_applet_by_name(argv[1], argc-1, argv+1);
+	} else run_applet_by_name(argv[1], argc - 1, argv + 1);
 
 	bb_error_msg_and_die("applet not found");
 }

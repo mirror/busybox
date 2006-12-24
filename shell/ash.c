@@ -11893,17 +11893,11 @@ static int helpcmd(int argc, char **argv)
 		}
 	}
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
-	{
-		extern const struct BB_applet applets[];
-		extern const size_t NUM_APPLETS;
-
-		for (i = 0; i < NUM_APPLETS; i++) {
-
-			col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '), applets[i].name);
-			if (col > 60) {
-				out1fmt("\n");
-				col = 0;
-			}
+	for (i = 0; i < NUM_APPLETS; i++) {
+		col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '), applets[i].name);
+		if (col > 60) {
+			out1fmt("\n");
+			col = 0;
 		}
 	}
 #endif

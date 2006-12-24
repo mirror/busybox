@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-/* order matters:  used as index into "install_dir[]" in busybox.c */
+/* order matters: used as index into "install_dir[]" in busybox.c */
 enum Location {
 	_BB_DIR_ROOT = 0,
 	_BB_DIR_BIN,
@@ -31,8 +31,9 @@ struct BB_applet {
 	__extension__ enum SUIDRoot need_suid:4;
 };
 
-/* From busybox.c */
+/* From busybox.c and applet.c */
 extern const struct BB_applet applets[];
+extern const unsigned short NUM_APPLETS;
 
 /* Automagically pull in all the applet function prototypes and
  * applet usage strings.  These are all of the form:

@@ -3243,8 +3243,8 @@ static int dohelp(struct op *t)
 	int col;
 	const struct builtincmd *x;
 
-	printf("\nBuilt-in commands:\n");
-	printf("-------------------\n");
+	puts("\nBuilt-in commands:\n"
+	     "-------------------");
 
 	for (col = 0, x = builtincmds; x->builtinfunc != NULL; x++) {
 		if (!x->name)
@@ -3259,8 +3259,6 @@ static int dohelp(struct op *t)
 	{
 		int i;
 		const struct BB_applet *applet;
-		extern const struct BB_applet applets[];
-		extern const size_t NUM_APPLETS;
 
 		for (i = 0, applet = applets; i < NUM_APPLETS; applet++, i++) {
 			if (!applet->name)
@@ -3274,7 +3272,7 @@ static int dohelp(struct op *t)
 		}
 	}
 #endif
-	printf("\n\n");
+	puts("\n");
 	return EXIT_SUCCESS;
 }
 
