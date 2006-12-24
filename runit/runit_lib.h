@@ -274,12 +274,6 @@ extern int lock_un(int);
 extern int lock_exnb(int);
 
 
-/*** ndelay.h ***/
-
-extern int ndelay_on(int);
-extern int ndelay_off(int);
-
-
 /*** open.h ***/
 
 extern int open_read(const char *);
