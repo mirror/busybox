@@ -7,10 +7,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stdio.h>
-#include <fcntl.h>
 #include "libbb.h"
-
 
 /* try to open up the specified device */
 int device_open(const char *device, int mode)

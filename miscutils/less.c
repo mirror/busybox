@@ -555,8 +555,8 @@ static char* getch_nowait(void)
 }
 
 /* Grab a character from input without requiring the return key. If the
-   character is ASCII \033, get more characters and assign certain sequences
-   special return codes. Note that this function works best with raw input. */
+ * character is ASCII \033, get more characters and assign certain sequences
+ * special return codes. Note that this function works best with raw input. */
 static int less_getch(void)
 {
 	char *input;
@@ -632,8 +632,7 @@ static void examine_file(void)
 /* This function changes the file currently being paged. direction can be one of the following:
  * -1: go back one file
  *  0: go to the first file
- *  1: go forward one file
-*/
+ *  1: go forward one file */
 static void change_file(int direction)
 {
 	if (current_file != ((direction > 0) ? num_files : 1)) {
@@ -971,9 +970,7 @@ static void goto_mark(void)
 }
 #endif
 
-
 #if ENABLE_FEATURE_LESS_BRACKETS
-
 static char opp_bracket(char bracket)
 {
 	switch (bracket) {
@@ -1029,7 +1026,6 @@ static void match_left_bracket(char bracket)
 		print_statusline("No matching bracket found");
 	buffer_line(bracket_line);
 }
-
 #endif  /* FEATURE_LESS_BRACKETS */
 
 static void keypress_process(int keypress)
