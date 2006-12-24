@@ -12693,7 +12693,7 @@ readcmd(int argc, char **argv)
 		FD_ZERO (&set);
 		FD_SET (0, &set);
 
-		i = select (FD_SETSIZE, &set, NULL, NULL, &ts);
+		i = select(FD_SETSIZE, &set, NULL, NULL, &ts);
 		if (!i) {
 #if defined(CONFIG_ASH_READ_NCHARS)
 			if (nch_flag)
