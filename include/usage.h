@@ -984,8 +984,8 @@
 #define fuser_full_usage \
        "Options:\n" \
        "	-m	Show all processes on the same mounted fs\n" \
-       "	-k	Kill all processes that match.\n" \
-       "	-s	Don't print or kill anything.\n" \
+       "	-k	Kill all processes that match\n" \
+       "	-s	Don't print or kill anything\n" \
        "	-4	When using port/proto only search IPv4 space\n" \
        "	-6	When using port/proto only search IPv6 space\n" \
        "	-SIGNAL	When used with -k, this signal will be used to kill"
@@ -1429,7 +1429,7 @@
 "\n" \
 "Example /etc/inittab file:\n" \
 "\n" \
-"	# This is run first except when booting in single-user mode.\n" \
+"	# This is run first except when booting in single-user mode\n" \
 "	#\n" \
 "	::sysinit:/etc/init.d/rcS\n" \
 "	\n" \
@@ -1453,7 +1453,7 @@
 "	#::respawn:/sbin/getty -L ttyS0 9600 vt100\n" \
 "	#::respawn:/sbin/getty -L ttyS1 9600 vt100\n" \
 "	#\n" \
-"	# Example how to put a getty on a modem line.\n" \
+"	# Example how to put a getty on a modem line\n" \
 "	#::respawn:/sbin/getty 57600 ttyS2\n" \
 "	\n" \
 "	# Stuff to do when restarting the init process\n" \
@@ -1653,8 +1653,7 @@
        "	-m	Display a status line containing the percentage through the\n" \
        "		file\n" \
        "	-~	Suppress ~s displayed when input past the end of the file is\n" \
-       "		reached.\n" \
-       "	-h, -?	Display this help message"
+       "		reached"
 
 #define setarch_trivial_usage \
        "<personality> <program> [args ...]"
@@ -1673,7 +1672,7 @@
        "	-f	remove existing destination files\n" \
        "	-n	no dereference symlinks - treat like normal file\n" \
        "	-b	make a backup of the target (if exists) before link operation\n" \
-       "	-S suffix	use suffix instead of ~ when making backup files"
+       "	-S suf	use suffix instead of ~ when making backup files"
 #define ln_example_usage \
        "$ ln -s BusyBox /tmp/ls\n" \
        "$ ls -l /tmp/ls\n" \
@@ -1700,7 +1699,7 @@
        "\n\nOptions:\n" \
        "	-s	Log to stderr as well as the system log\n" \
        "	-t TAG	Log using the specified tag (defaults to user name)\n" \
-       "	-p PRIORITY	Enter the message with the specified priority\n" \
+       "	-p PRIO	Enter the message with the specified priority\n" \
        "		This may be numerical or a 'facility.level' pair"
 #define logger_example_usage \
        "$ logger \"hello\"\n"
@@ -1825,9 +1824,10 @@
 #define makedevs_full_usage \
        "Create a range of block or character special files\n\n" \
        "TYPEs include:\n" \
-       "	b:	Make a block (buffered) device.\n" \
-       "	c or u:	Make a character (un-buffered) device.\n" \
-       "	p:	Make a named pipe. MAJOR and MINOR are ignored for named pipes.\n\n" \
+       "	b:	Make a block (buffered) device\n" \
+       "	c or u:	Make a character (un-buffered) device\n" \
+       "	p:	Make a named pipe. MAJOR and MINOR are ignored for named pipes\n" \
+       "\n" \
        "FIRST specifies the number appended to NAME to create the first device.\n" \
        "LAST specifies the number of the last item that should be created\n" \
        "If 's' is the last argument, the base device is created as well.\n\n" \
@@ -2135,12 +2135,12 @@
        "	[no]dev:	Allow use of special device files / disallow them\n" \
        "	[no]exec:	Allow use of executable files / disallow them\n" \
        "	[no]suid:	Allow set-user-id-root programs / disallow them\n" \
-       "	[r]shared:	Convert [recursively] to a shared subtree.\n" \
-       "	[r]slave:	Convert [recursively] to a slave subtree.\n" \
+       "	[r]shared:	Convert [recursively] to a shared subtree\n" \
+       "	[r]slave:	Convert [recursively] to a slave subtree\n" \
        "	[r]private:	Convert [recursively] to a private subtree\n" \
-       "	[un]bindable:	Make mount point [un]able to be bind mounted.\n" \
+       "	[un]bindable:	Make mount point [un]able to be bind mounted\n" \
        "	bind:		Bind a directory to an additional location\n" \
-       "	move:		Relocate an existing mount point.\n" \
+       "	move:		Relocate an existing mount point\n" \
 	) \
        "	remount:	Re-mount a mounted filesystem, changing its flags\n" \
        "	ro/rw:		Mount for read-only / read-write\n" \
@@ -3122,7 +3122,7 @@
        "	-a	Attempt an automatic login with the USER variable\n" \
        "	-l USER	Attempt an automatic login with the USER argument\n" \
        "	HOST	The official name, alias or the IP address of the\n" \
-       "		remote host.\n" \
+       "		remote host\n" \
        "	PORT	The remote port number to connect to.  If it is not\n" \
        "		specified, the default telnet (23) port is used."
 #else
