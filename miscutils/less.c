@@ -11,14 +11,14 @@
  * TODO:
  * - Add more regular expression support - search modifiers, certain matches, etc.
  * - Add more complex bracket searching - currently, nested brackets are
- * not considered.
+ *   not considered.
  * - Add support for "F" as an input. This causes less to act in
- * a similar way to tail -f.
+ *   a similar way to tail -f.
  * - Allow horizontal scrolling.
  *
  * Notes:
  * - the inp file pointer is used so that keyboard input works after
- * redirected input has been read from stdin
+ *   redirected input has been read from stdin
  */
 
 #include "busybox.h"
@@ -130,7 +130,6 @@ static void less_exit(int code)
 	 * and restore it when we exit. Less does this with the
 	 * "ti" and "te" termcap commands; can this be done with
 	 * only termios.h? */
-
 	putchar('\n');
 	fflush_stdout_and_exit(code);
 }
@@ -158,12 +157,18 @@ static void print_statusline(const char *str)
 	printf(HIGHLIGHT"%.*s"NORMAL, width - 1, str);
 }
 
+#if ENABLE_FEATURE_LESS_REGEXP
+static void fill_match_lines(unsigned pos);
+#else
+#define fill_match_lines(pos) ((void)0)
+#endif
+
+
 static void read_lines(void)
 {
-	/* TODO: regexp match array should be updated too */
-
 #define readbuf bb_common_bufsiz1
 	char *current_line, *p;
+	unsigned old_max_fline = max_fline;
 	int w = width;
 	char last_terminated = terminated;
 
@@ -179,6 +184,8 @@ static void read_lines(void)
 			cp += 8;
 		strcpy(current_line, cp);
 		p += strlen(current_line);
+	} else {
+		linepos = 0;
 	}
 
 	while (1) {
@@ -188,9 +195,9 @@ static void read_lines(void)
 		while (1) {
 			char c;
 			if (readpos >= readeof) {
-ndelay_on(0);
+				ndelay_on(0);
 				eof_error = safe_read(0, readbuf, sizeof(readbuf));
-ndelay_off(0);
+				ndelay_off(0);
 				readpos = 0;
 				readeof = eof_error;
 				if (eof_error < 0) {
@@ -254,16 +261,16 @@ ndelay_off(0);
 		p = current_line;
 		linepos = 0;
 	}
+	fill_match_lines(old_max_fline);
 #undef readbuf
 }
 
 #if ENABLE_FEATURE_LESS_FLAGS
-
 /* Interestingly, writing calc_percent as a function saves around 32 bytes
  * on my build. */
 static int calc_percent(void)
 {
-	unsigned p = 100 * (cur_fline + max_displayed_line) / (max_fline + 1);
+	unsigned p = (100 * (cur_fline+max_displayed_line+1) + max_fline/2) / (max_fline+1);
 	return p <= 100 ? p : 100;
 }
 
@@ -288,7 +295,6 @@ static void m_status_print(void)
 	percentage = calc_percent();
 	printf("%i%%"NORMAL, percentage);
 }
-
 #endif
 
 /* Print the status line */
@@ -479,9 +485,12 @@ static void buffer_up(int nlines)
 
 static void buffer_line(int linenum)
 {
+	if (linenum < 0)
+		linenum = 0;
+	cur_fline = linenum;
+	read_lines();
 	if (linenum + max_displayed_line > max_fline)
 		linenum = max_fline - max_displayed_line + TILDES;
-	if (linenum < 0) linenum = 0;
 	cur_fline = linenum;
 	buffer_fill_and_print();
 }
@@ -523,15 +532,24 @@ static void reinitialize(void)
 	buffer_fill_and_print();
 }
 
-static char* getch_nowait(void)
+static void getch_nowait(char* input, int sz)
 {
-	static char input[16];
-	ssize_t sz;
+	ssize_t rd;
 	fd_set readfds;
  again:
 	fflush(stdout);
+
+	/* NB: select returns whenever read will not block. Therefore:
+	 * (a) with O_NONBLOCK'ed fds select will return immediately
+	 * (b) if eof is reached, select will also return
+	 *     because read will immediately return 0 bytes.
+	 * Even if select says that input is available, read CAN block
+	 * (switch fd into O_NONBLOCK'ed mode to avoid it)
+	 */
 	FD_ZERO(&readfds);
-	if (max_fline <= cur_fline + max_displayed_line && eof_error > 0) {
+	if (max_fline <= cur_fline + max_displayed_line
+	 && eof_error > 0 /* did NOT reach eof yet */
+	) {
 		/* We are interested in stdin */
 		FD_SET(0, &readfds);
 	}
@@ -541,17 +559,16 @@ static char* getch_nowait(void)
 
 	input[0] = '\0';
 	ndelay_on(kbd_fd);
-	sz = read(kbd_fd, input, sizeof(input));
+	rd = read(kbd_fd, input, sz);
 	ndelay_off(kbd_fd);
-	if (sz < 0) {
+	if (rd < 0) {
 		/* No keyboard input, but we have input on stdin! */
 		if (errno != EAGAIN) /* Huh?? */
-			return input;
+			return;
 		read_lines();
 		buffer_fill_and_print();
 		goto again;
 	}
-	return input;
 }
 
 /* Grab a character from input without requiring the return key. If the
@@ -559,10 +576,10 @@ static char* getch_nowait(void)
  * special return codes. Note that this function works best with raw input. */
 static int less_getch(void)
 {
-	char *input;
+	char input[16];
 	unsigned i;
  again:
-	input = getch_nowait();
+	getch_nowait(input, sizeof(input));
 	/* Detect escape sequences (i.e. arrow keys) and handle
 	 * them accordingly */
 
@@ -718,6 +735,24 @@ static void goto_match(int match)
 		buffer_line(match_lines[normalize_match_pos(match)]);
 }
 
+static void fill_match_lines(unsigned pos)
+{
+	if (!pattern_valid)
+		return;
+	/* Run the regex on each line of the current file */
+	while (pos <= max_fline) {
+		/* If this line matches */
+		if (regexec(&pattern, flines[pos], 0, NULL, 0) == 0
+		/* and we didn't match it last time */
+		 && !(num_matches && match_lines[num_matches-1] == pos)
+		) {
+			match_lines = xrealloc(match_lines, (num_matches+1) * sizeof(int));
+			match_lines[num_matches++] = pos;
+		}
+		pos++;
+	}
+}
+
 static void regex_process(void)
 {
 	char *uncomp_regex, *err;
@@ -751,24 +786,21 @@ static void regex_process(void)
 		return;
 	}
 	pattern_valid = 1;
+	match_pos = 0;
 
-	/* Run the regex on each line of the current file */
-	for (match_pos = 0; match_pos <= max_fline; match_pos++) {
-		if (regexec(&pattern, flines[match_pos], 0, NULL, 0) == 0) {
-			match_lines = xrealloc(match_lines, (num_matches+1) * sizeof(int));
-			match_lines[num_matches++] = match_pos;
-		}
-	}
+	fill_match_lines(0);
 
 	if (num_matches == 0 || max_fline <= max_displayed_line) {
 		buffer_print();
 		return;
 	}
-	for (match_pos = 0; match_pos < num_matches; match_pos++) {
+	while (match_pos < num_matches) {
 		if (match_lines[match_pos] > cur_fline)
 			break;
+		match_pos++;
 	}
-	if (option_mask32 & LESS_STATE_MATCH_BACKWARDS) match_pos--;
+	if (option_mask32 & LESS_STATE_MATCH_BACKWARDS)
+		match_pos--;
 	buffer_line(match_lines[normalize_match_pos(match_pos)]);
 }
 #endif
@@ -809,11 +841,9 @@ static void number_process(int first_digit)
 	switch (keypress) {
 	case KEY_DOWN: case 'z': case 'd': case 'e': case ' ': case '\015':
 		buffer_down(num);
-		buffer_print();
 		break;
 	case KEY_UP: case 'b': case 'w': case 'y': case 'u':
 		buffer_up(num);
-		buffer_print();
 		break;
 	case 'g': case '<': case 'G': case '>':
 		cur_fline = num + max_displayed_line;
@@ -898,12 +928,13 @@ static void show_flag_status(void)
 	}
 
 	clear_line();
-	printf(HIGHLIGHT"%s%u"NORMAL, "The status of the flag is: ", flag_val != 0);
+	printf(HIGHLIGHT"The status of the flag is: %u"NORMAL, flag_val != 0);
 }
 #endif
 
 static void save_input_to_file(void)
 {
+	const char *msg = "";
 	char *current_line;
 	int i;
 	FILE *fp;
@@ -912,19 +943,18 @@ static void save_input_to_file(void)
 	current_line = less_gets(sizeof("Log file: ")-1);
 	if (strlen(current_line) > 0) {
 		fp = fopen(current_line, "w");
-		free(current_line);
 		if (!fp) {
-			print_statusline("Error opening log file");
-			return;
+			msg = "Error opening log file";
+			goto ret;
 		}
-		for (i = 0; i < max_fline; i++)
+		for (i = 0; i <= max_fline; i++)
 			fprintf(fp, "%s\n", flines[i]);
 		fclose(fp);
-		buffer_print();
-		return;
+		msg = "Done";
 	}
+ ret:
+	print_statusline(msg);
 	free(current_line);
-	print_statusline("No log file");
 }
 
 #if ENABLE_FEATURE_LESS_MARKS
@@ -1033,27 +1063,21 @@ static void keypress_process(int keypress)
 	switch (keypress) {
 	case KEY_DOWN: case 'e': case 'j': case 0x0d:
 		buffer_down(1);
-		buffer_print();
 		break;
 	case KEY_UP: case 'y': case 'k':
 		buffer_up(1);
-		buffer_print();
 		break;
 	case PAGE_DOWN: case ' ': case 'z':
 		buffer_down(max_displayed_line + 1);
-		buffer_print();
 		break;
 	case PAGE_UP: case 'w': case 'b':
 		buffer_up(max_displayed_line + 1);
-		buffer_print();
 		break;
 	case 'd':
 		buffer_down((max_displayed_line + 1) / 2);
-		buffer_print();
 		break;
 	case 'u':
 		buffer_up((max_displayed_line + 1) / 2);
-		buffer_print();
 		break;
 	case KEY_HOME: case 'g': case 'p': case '<': case '%':
 		buffer_line(0);
