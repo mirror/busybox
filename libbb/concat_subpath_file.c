@@ -10,14 +10,14 @@
 /*
    This function make special for recursive actions with usage
    concat_path_file(path, filename)
-   and skiping "." and ".." directory entries
+   and skipping "." and ".." directory entries
 */
 
 #include "libbb.h"
 
 char *concat_subpath_file(const char *path, const char *f)
 {
-	if(f && *f == '.' && (!f[1] || (f[1] == '.' && !f[2])))
+	if (f && *f == '.' && (!f[1] || (f[1] == '.' && !f[2])))
 		return NULL;
 	return concat_path_file(path, f);
 }

@@ -174,7 +174,7 @@
        "	S	Write file contents synchronously\n" \
        "	t	Disable tail-merging of partial blocks with other files\n" \
        "	u	Allow file to be undeleted\n" \
-       " Options:\n" \
+       "Options:\n" \
        "	-R	Recursively list subdirectories\n" \
        "	-v	Set the file's version/generation number"
 
