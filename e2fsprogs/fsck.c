@@ -27,7 +27,6 @@
  */
 
 #include "busybox.h"
-/*#include "e2fs_lib.h"*/
 
 #define EXIT_OK          0
 #define EXIT_NONDESTRUCT 1
@@ -40,9 +39,6 @@
 #ifndef DEFAULT_FSTYPE
 #define DEFAULT_FSTYPE	"ext2"
 #endif
-
-#define MAX_DEVICES 32
-#define MAX_ARGS 32
 
 /*
  * Internal structure for mount tabel entries.
@@ -76,7 +72,7 @@ struct fsck_instance {
 	struct fsck_instance *next;
 };
 
-static const char * const ignored_types[] = {
+static const char *const ignored_types[] = {
 	"ignore",
 	"iso9660",
 	"nfs",
@@ -88,7 +84,8 @@ static const char * const ignored_types[] = {
 	NULL
 };
 
-static const char * const really_wanted[] = {
+#if 0
+static const char *const really_wanted[] = {
 	"minix",
 	"ext2",
 	"ext3",
@@ -98,16 +95,15 @@ static const char * const really_wanted[] = {
 	"xfs",
 	NULL
 };
+#endif
 
 #define BASE_MD "/dev/md"
 
-/*
- * Global variables for options
- */
+static volatile int cancel_requested;
+
 static char **devices;
 static char **args;
 static int num_devices, num_args;
-
 static int verbose;
 static int doall;
 static int noexecute;
@@ -121,13 +117,10 @@ static int progress_fd;
 static int force_all_parallel;
 static int num_running;
 static int max_running;
-static volatile int cancel_requested;
-static int kill_sent;
 static char *fstype;
-static struct fs_info *filesys_info, *filesys_last;
+static struct fs_info *filesys_info;
+static struct fs_info *filesys_last;
 static struct fsck_instance *instance_list;
-/*static char *fsck_path;*/
-/*static blkid_cache cache;*/
 
 #define FS_TYPE_FLAG_NORMAL 0
 #define FS_TYPE_FLAG_OPT    1
@@ -439,11 +432,10 @@ static void load_fs_info(const char *filename)
 	fclose(f);
 
 	if (old_fstab) {
-		fputs("\007\007\007"
-		"WARNING: Your /etc/fstab does not contain the fsck passno\n"
-		"       field.  I will kludge around things for you, but you\n"
-		"       should fix your /etc/fstab file as soon as you can.\n\n", stderr);
-
+		fputs("\007"
+"WARNING: Your /etc/fstab does not contain the fsck passno field.\n"
+"I will kludge around things for you, but you should fix\n"
+"your /etc/fstab file as soon as you can.\n\n", stderr);
 		for (fs = filesys_info; fs; fs = fs->next) {
 			fs->passno = 1;
 		}
@@ -455,10 +447,6 @@ static struct fs_info *lookup(char *filesys)
 {
 	struct fs_info *fs;
 
-	/* No filesys name given. */
-	if (filesys == NULL)
-		return NULL;
-
 	for (fs = filesys_info; fs; fs = fs->next) {
 		if (strcmp(filesys, fs->device) == 0
 		 || (fs->mountpt && strcmp(filesys, fs->mountpt) == 0)
@@ -468,29 +456,6 @@ static struct fs_info *lookup(char *filesys)
 
 	return fs;
 }
-
-#if 0
-/* Find fsck program for a given fs type. */
-static char *find_fsck(char *type)
-{
-	char *s;
-	const char *tpl;
-	char *p = xstrdup(fsck_path);
-	struct stat st;
-
-	/* Are we looking for a program or just a type? */
-	tpl = (strncmp(type, "fsck.", 5) ? "%s/fsck.%s" : "%s/%s");
-
-	for (s = strtok(p, ":"); s; s = strtok(NULL, ":")) {
-		s = xasprintf(tpl, s, type);
-		if (stat(s, &st) == 0)
-			break;
-		free(s);
-	}
-	free(p);
-	return s;
-}
-#endif
 
 static int progress_active(void)
 {
@@ -588,18 +553,21 @@ static int execute(const char *type, const char *device, const char *mntpt,
 /*
  * Send a signal to all outstanding fsck child processes
  */
-static int kill_all(int signum)
+static void kill_all_if_cancel_requested(void)
 {
+	static int kill_sent;
+
 	struct fsck_instance *inst;
-	int     n = 0;
+
+	if (!cancel_requested || kill_sent)
+		return;
 
 	for (inst = instance_list; inst; inst = inst->next) {
 		if (inst->flags & FLAG_DONE)
 			continue;
-		kill(inst->pid, signum);
-		n++;
+		kill(inst->pid, SIGTERM);
 	}
-	return n;
+	kill_sent = 1;
 }
 
 /*
@@ -637,14 +605,11 @@ static struct fsck_instance *wait_one(int flags)
 
 	do {
 		pid = waitpid(-1, &status, flags);
-		if (cancel_requested && !kill_sent) {
-			kill_all(SIGTERM);
-			kill_sent++;
-		}
-		if ((pid == 0) && (flags & WNOHANG))
+		kill_all_if_cancel_requested();
+		if (pid == 0 && (flags & WNOHANG))
 			return NULL;
 		if (pid < 0) {
-			if ((errno == EINTR) || (errno == EAGAIN))
+			if (errno == EINTR || errno == EAGAIN)
 				continue;
 			if (errno == ECHILD) {
 				bb_error_msg("wait: no more child process?!?");
@@ -704,7 +669,7 @@ static struct fsck_instance *wait_one(int flags)
 			break;
 		}
 	}
-ret_inst:
+ ret_inst:
 	if (prev)
 		prev->next = inst->next;
 	else
@@ -758,16 +723,16 @@ static void fsck_device(struct fs_info *fs, int interactive)
 
 	interpret_type(fs);
 
+	type = DEFAULT_FSTYPE;
 	if (strcmp(fs->type, "auto") != 0)
 		type = fs->type;
 	else if (fstype
-	 && strncmp(fstype, "no", 2)
-	 && strncmp(fstype, "opts=", 5) && strncmp(fstype, "loop", 4)
+	 && (fstype[0] != 'n' || fstype[1] != 'o') /* != "no" */
+	 && strncmp(fstype, "opts=", 5) != 0
+	 && strncmp(fstype, "loop", 4) != 0
 	 && !strchr(fstype, ',')
 	)
 		type = fstype;
-	else
-		type = DEFAULT_FSTYPE;
 
 	num_running++;
 	retval = execute(type, fs->device, fs->mountpt, interactive);
@@ -1078,17 +1043,14 @@ static int check_all(void)
 		} else
 			not_done_yet++;
 	}
-	if (cancel_requested && !kill_sent) {
-		kill_all(SIGTERM);
-		kill_sent++;
-	}
+	kill_all_if_cancel_requested();
 	status |= wait_many(FLAG_WAIT_ATLEAST_ONE);
 	return status;
 }
 
 static void signal_cancel(int sig ATTRIBUTE_UNUSED)
 {
-	cancel_requested++;
+	cancel_requested = 1;
 }
 
 static int string_to_int(const char *s)
@@ -1126,9 +1088,6 @@ static void parse_args(int argc, char *argv[])
 	for (i = 1; i < argc; i++) {
 		arg = argv[i];
 		if ((arg[0] == '/' && !opts_for_fsck) || strchr(arg, '=')) {
-			if (num_devices >= MAX_DEVICES) {
-				bb_error_msg_and_die("too many devices");
-			}
 #if 0
 			char *dev;
 			dev = blkid_get_devname(cache, arg, NULL);
@@ -1138,8 +1097,8 @@ static void parse_args(int argc, char *argv[])
 				 * /proc/partitions isn't found.
 				 */
 				if (access("/proc/partitions", R_OK) < 0) {
-					bb_perror_msg_and_die("cannot open /proc/partitions "
-							"(is /proc mounted?)");
+					bb_perror_msg_and_die(
+"cannot open /proc/partitions (is /proc mounted?)");
 				}
 				/*
 				 * Check to see if this is because
@@ -1147,10 +1106,10 @@ static void parse_args(int argc, char *argv[])
 				 */
 				if (geteuid())
 					bb_error_msg_and_die(
-		"must be root to scan for matching filesystems: %s\n", arg);
+"must be root to scan for matching filesystems: %s\n", arg);
 				else
 					bb_error_msg_and_die(
-		"cannot find matching filesystem: %s", arg);
+"cannot find matching filesystem: %s", arg);
 			}
 			devices = xrealloc(devices, (num_devices+1) * sizeof(devices[0]));
 			devices[num_devices++] = dev ? dev : xstrdup(arg);
@@ -1271,8 +1230,6 @@ int fsck_main(int argc, char *argv[])
 		fstab = "/etc/fstab";
 	load_fs_info(fstab);
 
-	/*fsck_path = e2fs_set_sbin_path();*/
-
 	if (num_devices == 1 || serialize)
 		interactive = 1;
 
@@ -1286,12 +1243,9 @@ int fsck_main(int argc, char *argv[])
 		return check_all();
 	}
 
-	for (i = 0 ; i < num_devices; i++) {
+	for (i = 0; i < num_devices; i++) {
 		if (cancel_requested) {
-			if (!kill_sent) {
-				kill_all(SIGTERM);
-				kill_sent++;
-			}
+			kill_all_if_cancel_requested();
 			break;
 		}
 		fs = lookup(devices[i]);

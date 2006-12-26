@@ -932,7 +932,7 @@
        "$ freeramdisk /dev/ram2\n"
 
 #define fsck_trivial_usage \
-       "[-ANPRTV] [ -C [ fd ] ] [-t fstype] [fs-options] [filesys ...]"
+       "[-ANPRTV] [ -C fd ] [-t fstype] [fs-options] [filesys ...]"
 #define fsck_full_usage \
        "Check and repair filesystems" \
        "\n\nOptions:\n" \
@@ -941,9 +941,9 @@
        "	-P	When using -A, check filesystems in parallel\n" \
        "	-R	When using -A, skip the root filesystem\n" \
        "	-T	Don't show title on startup\n" \
-       "	-V	Verbose mode\n" \
-       "	-C	Write status information to specified filedescriptor\n" \
-       "	-t	List of filesystem types to check"
+       "	-V	Verbose\n" \
+       "	-C n	Write status information to specified filedescriptor\n" \
+       "	-t type	List of filesystem types to check"
 
 #define fsck_minix_trivial_usage \
        "[-larvsmf] /dev/name"

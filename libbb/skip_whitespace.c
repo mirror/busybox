@@ -7,12 +7,19 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <ctype.h>
 #include "libbb.h"
 
 char *skip_whitespace(const char *s)
 {
+	/* NB: isspace('0') returns 0 */
 	while (isspace(*s)) ++s;
+
+	return (char *) s;
+}
+
+char *skip_non_whitespace(const char *s)
+{
+	while (*s && !isspace(*s)) ++s;
 
 	return (char *) s;
 }

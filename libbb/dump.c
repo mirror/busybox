@@ -724,7 +724,9 @@ void bb_dump_add(const char *fmt)
 
 		/* byte count */
 		if (isdigit(*p)) {
-			for (savep = p; isdigit(*p); ++p);
+// TODO: use bb_strtou
+			savep = p;
+			do p++; while(isdigit(*p));
 			if (!isspace(*p)) {
 				bb_error_msg_and_die("bad format {%s}", fmt);
 			}

@@ -190,6 +190,7 @@ extern int sysinfo(struct sysinfo* info);
 extern void chomp(char *s);
 extern void trim(char *s);
 extern char *skip_whitespace(const char *);
+extern char *skip_non_whitespace(const char *);
 
 extern const char *bb_mode_string(int mode);
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
