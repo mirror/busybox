@@ -257,11 +257,6 @@ static const struct options OptArray[] = {
 static int in_ether(const char *bufp, struct sockaddr *sap);
 #endif
 
-#if ENABLE_FEATURE_IFCONFIG_STATUS
-extern int interface_opt_a;
-extern int display_interfaces(char *ifname);
-#endif
-
 /*
  * Our main function.
  */

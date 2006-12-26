@@ -400,6 +400,15 @@ extern int bb_cat(char** argv);
 extern int bb_echo(char** argv);
 extern int bb_test(int argc, char** argv);
 
+
+/* Networking */
+int create_icmp_socket(void);
+int create_icmp6_socket(void);
+/* interface.c */
+extern int interface_opt_a;
+int display_interfaces(char *ifname);
+
+
 #ifndef BUILD_INDIVIDUAL
 extern struct BB_applet *find_applet_by_name(const char *name);
 extern void run_applet_by_name(const char *name, int argc, char **argv);
@@ -438,8 +447,6 @@ int exists_execable(const char *filename);
 USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out);
 int inflate(int in, int out);
 
-int create_icmp_socket(void);
-int create_icmp6_socket(void);
 
 unsigned short bb_lookup_port(const char *port, const char *protocol, unsigned short default_port);
 void bb_lookup_host(struct sockaddr_in *s_in, const char *host);
