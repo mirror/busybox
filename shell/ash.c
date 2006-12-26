@@ -1381,15 +1381,7 @@ static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_REGULAR       "wait", waitcmd },
 };
 
-#define NUMBUILTINS  (sizeof (builtincmd) / sizeof (struct builtincmd) )
-
-static const char *safe_applets[] = { 
-	"[", "test", "echo", "cat",
-	"ln", "cp", "touch", "mkdir", "rm",
-	"cut", "hexdump", "awk", "sort",
-	"find", "xargs", "ls", "dd",
-	"chown", "chmod"
-};
+#define NUMBUILTINS (sizeof(builtincmd) / sizeof(builtincmd[0]))
 
 
 struct cmdentry {
@@ -2042,7 +2034,30 @@ static void exitshell(void) ATTRIBUTE_NORETURN;
 
 static int is_safe_applet(char *name)
 {
-	int n = sizeof(safe_applets) / sizeof(char *);
+	/* It isn't a bug to have non-existent applet here... */
+	/* ...just a waste of space... */
+	static const char safe_applets[][8] = { 
+		"["
+		USE_AWK    (, "awk"    )
+		USE_CAT    (, "cat"    )
+		USE_CHMOD  (, "chmod"  )
+		USE_CHOWN  (, "chown"  )
+		USE_CP     (, "cp"     )
+		USE_CUT    (, "cut"    )
+		USE_DD     (, "dd"     )
+		USE_ECHO   (, "echo"   )
+		USE_FIND   (, "find"   )
+		USE_HEXDUMP(, "hexdump")
+		USE_LN     (, "ln"     )
+		USE_LS     (, "ls"     )
+		USE_MKDIR  (, "mkdir"  )
+		USE_RM     (, "rm"     )
+		USE_SORT   (, "sort"   )
+		USE_TEST   (, "test"   )
+		USE_TOUCH  (, "touch"  )
+		USE_XARGS  (, "xargs"  )
+	};
+	int n = sizeof(safe_applets) / sizeof(safe_applets[0]);
 	int i;
 	for (i = 0; i < n; i++)
 		if (strcmp(safe_applets[i], name) == 0)
@@ -3702,12 +3717,11 @@ shellexec(char **argv, const char *path, int idx)
 
 	clearredir(1);
 	envp = environment();
-	if (strchr(argv[0], '/') != NULL
-		|| is_safe_applet(argv[0])
+	if (strchr(argv[0], '/')
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
-		|| find_applet_by_name(argv[0])
+	 || find_applet_by_name(argv[0])
 #endif
-						) {
+	) {
 		tryexec(argv[0], argv, envp);
 		e = errno;
 	} else {
@@ -3750,7 +3764,10 @@ tryexec(char *cmd, char **argv, char **envp)
 	int argc = 0;
 	char **c;
 	
-	if(strchr(cmd, '/') == NULL && is_safe_applet(cmd) && (a = find_applet_by_name(cmd)) != NULL) {
+	if (strchr(cmd, '/') == NULL
+	 && (a = find_applet_by_name(cmd)) != NULL
+	 && is_safe_applet(cmd)
+	) {
 		c = argv;
 		while (*c != NULL) {
 			c++; argc++;
@@ -3759,7 +3776,7 @@ tryexec(char *cmd, char **argv, char **envp)
 		exit(a->main(argc, argv));
 	}
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
-	if(find_applet_by_name(cmd) != NULL) {
+	if (find_applet_by_name(cmd) != NULL) {
 		/* re-exec ourselves with the new arguments */
 		execve(CONFIG_BUSYBOX_EXEC_PATH,argv,envp);
 		/* If they called chroot or otherwise made the binary no longer
