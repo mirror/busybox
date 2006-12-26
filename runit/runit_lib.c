@@ -337,7 +337,7 @@ unsigned fmt_ulong(char *s,unsigned long u)
 	while (q > 9) { ++len; q /= 10; }
 	if (s) {
 		s += len;
-		do { *--s = '0' + (u % 10); u /= 10; } while(u); /* handles u == 0 */
+		do { *--s = '0' + (u % 10); u /= 10; } while (u); /* handles u == 0 */
 	}
 	return len;
 }

@@ -129,7 +129,7 @@ int busybox_main(int argc, char **argv)
 			       "\twill act like whatever it was invoked as!\n"
 			       "\nCurrently defined functions:\n", bb_msg_full_version);
 			col = 0;
-			for(a = applets; a->name;) {
+			for (a = applets; a->name;) {
 				col += printf("%s%s", (col ? ", " : "\t"), a->name);
 				a++;
 				if (col > output_width && a->name) {

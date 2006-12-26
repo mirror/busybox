@@ -43,7 +43,7 @@ static int get_prefix(unsigned long netmask)
 	int ret = 0;
 
 	netmask = htonl(netmask);
-	while(msk) {
+	while (msk) {
 		if (netmask & msk)
 			ret++;
 		msk >>= 1;

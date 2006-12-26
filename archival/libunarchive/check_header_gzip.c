@@ -43,13 +43,13 @@ void check_header_gzip(int src_fd)
 	/* Discard original name if any */
 	if (header.formatted.flags & 0x08) {
 		/* bit 3 set: original file name present */
-		while(xread_char(src_fd) != 0);
+		while (xread_char(src_fd) != 0);
 	}
 
 	/* Discard file comment if any */
 	if (header.formatted.flags & 0x10) {
 		/* bit 4 set: file comment present */
-		while(xread_char(src_fd) != 0);
+		while (xread_char(src_fd) != 0);
 	}
 
 	/* Read the header checksum */

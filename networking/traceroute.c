@@ -989,7 +989,7 @@ traceroute_main(int argc, char *argv[])
 	if (sourse_route_list) {
 		llist_t *l_sr;
 
-		for(l_sr = sourse_route_list; l_sr; ) {
+		for (l_sr = sourse_route_list; l_sr; ) {
 			if (lsrr >= NGATEWAYS)
 				bb_error_msg_and_die("no more than %d gateways", NGATEWAYS);
 			getaddr(gwlist + lsrr, l_sr->data);

@@ -594,7 +594,7 @@ static void collect_mem(mem_stat *s)
 	}
 
 	m_free += m_bufs + m_cached + m_slab;
-	switch(s->opt) {
+	switch (s->opt) {
 	case 'f':
 		scale(m_free << 10); break;
 	default:

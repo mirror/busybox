@@ -1799,7 +1799,7 @@ rewrite_line:
 			/* After max history, remove the oldest command */
 		if (i >= MAX_HISTORY) {
 			free(history[0]);
-			for(i = 0; i < MAX_HISTORY-1; i++)
+			for (i = 0; i < MAX_HISTORY-1; i++)
 				history[i] = history[i+1];
 		}
 		history[i++] = xstrdup(command);

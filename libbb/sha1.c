@@ -47,7 +47,7 @@
 	do { \
 		t = a; a = rotl32(a,5) + f(b,c,d) + e + k + w[i]; \
 		e = d; d = c; c = rotl32(b, 30); b = t; \
-	} while(0)
+	} while (0)
 
 static void sha1_compile(sha1_ctx_t *ctx)
 {

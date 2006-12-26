@@ -291,7 +291,7 @@ static void dfree(struct dnode **dnp, int nfiles)
 	free(dnp);			/* free the array holding the dnode pointers */
 }
 #else
-#define dfree(...) do {} while(0)
+#define dfree(...) do {} while (0)
 #endif
 
 static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
@@ -375,7 +375,7 @@ static void dnsort(struct dnode **dn, int size)
 	qsort(dn, size, sizeof(*dn), sortcmp);
 }
 #else
-#define dnsort(dn, size) do {} while(0)
+#define dnsort(dn, size) do {} while (0)
 #endif
 
 

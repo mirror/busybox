@@ -302,7 +302,7 @@ deleteconn:
 			conns[i].lasttime = time(NULL);
 		}
 	}
-	} /* end of while(1) */
+	} /* end of while (1) */
 
 	return 0;
 }

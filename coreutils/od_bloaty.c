@@ -490,7 +490,7 @@ print_ascii(size_t n_bytes, const char *block,
 static void
 open_next_file(void)
 {
-	while(1) {
+	while (1) {
 		input_filename = *file_list;
 		if (!input_filename)
 			return;

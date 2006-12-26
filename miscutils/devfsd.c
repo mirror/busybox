@@ -457,7 +457,7 @@ int devfsd_main (int argc, char **argv)
 	}
 
 	/* strip last / from mount point, so we don't need to check for it later */
-	while( argv[1][1]!='\0' && argv[1][strlen(argv[1])-1] == '/' )
+	while (argv[1][1]!='\0' && argv[1][strlen(argv[1])-1] == '/' )
 		argv[1][strlen(argv[1]) -1] = '\0';
 
 	mount_point = argv[1];
@@ -557,7 +557,7 @@ static void read_config_file (char *path, int optional, unsigned long *event_mas
 		if ( S_ISDIR (statbuf.st_mode) )
 		{
 			/* strip last / from dirname so we don't need to check for it later */
-			while( path  && path[1]!='\0' && path[strlen(path)-1] == '/')
+			while (path && path[1]!='\0' && path[strlen(path)-1] == '/')
 				path[strlen(path) -1] = '\0';
 
 			dir_operation(READ_CONFIG, path, 0, event_mask);
@@ -665,7 +665,7 @@ static void process_config_line (const char *line, unsigned long *event_mask)
 
 	i = index_in_str_array(options, what );
 
-	switch(i)
+	switch (i)
 	{
 		case 4:	/* "PERMISSIONS" */
 			new->action.what = AC_PERMISSIONS;
@@ -1052,7 +1052,7 @@ static void action_compat (const struct devfsd_notify_struct *info, unsigned int
 			if( i ==  9 )
 				snprintf (compat_buf, sizeof (compat_buf), fmt[i], host, bus, target, lun, ptr + 2);
 		/* esac */
-	} /* switch(action) */
+	} /* switch (action) */
 
 	if(compat_name == NULL )
 		return;
@@ -1073,7 +1073,7 @@ static void action_compat (const struct devfsd_notify_struct *info, unsigned int
 				debug_msg_logger(LOG_ERR, "unlink: %s: %m", compat_name);
 			break;
 		/*esac*/
-	} /* switch(action) */
+	} /* switch (action) */
 }   /*  End Function action_compat  */
 
 static void restore(char *spath, struct stat source_stat, int rootlen)
@@ -1265,7 +1265,7 @@ static mode_t get_mode (const char *string)
 
 	mode = 0;
 	i= S_IRUSR;
-	while(i>0)
+	while (i>0)
 	{
 		if(string[0]=='r'||string[0]=='w'||string[0]=='x')
 			mode+=i;
@@ -1381,7 +1381,7 @@ static void dir_operation(int type, const char * dir_name, int var, unsigned lon
 			debug_msg_logger(LOG_ERR, "%s: %s: %m", __FUNCTION__, path);
 			continue;
 		}
-		switch(type)
+		switch (type)
 		{
 			case SERVICE:
 				service(statbuf,path);
@@ -1710,7 +1710,7 @@ static char get_old_ide_name (unsigned int major, unsigned int minor)
 			c+=2;
 		}
 		i++;
-	} while(i<=IDE9_MAJOR);
+	} while (i<=IDE9_MAJOR);
 
 	if (minor > 63)
 		++letter;

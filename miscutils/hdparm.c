@@ -2043,10 +2043,10 @@ static void identify_from_stdin(void)
 
 	// Convert the newline-separated hex data into an identify block.
 
-	for (i = 0; i<256; i++)
-	{
+	for (i = 0; i<256; i++)  {
 		int j;
-		for(j=0;j<4;j++) sbuf[i] = (sbuf[i] <<4) + fromhex(*(b++));
+		for (j = 0; j < 4; j++)
+			sbuf[i] = (sbuf[i] <<4) + fromhex(*(b++));
 	}
 
 	// Parse the data.

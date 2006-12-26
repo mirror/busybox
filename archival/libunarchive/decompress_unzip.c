@@ -791,7 +791,7 @@ static int inflate_get_next_window(void)
 
 	gunzip_outbuf_count = 0;
 
-	while(1) {
+	while (1) {
 		int ret;
 
 		if (needAnotherBlock) {
@@ -859,7 +859,7 @@ inflate_unzip(int in, int out)
 	/* Allocate space for buffer */
 	bytebuffer = xmalloc(bytebuffer_max);
 
-	while(1) {
+	while (1) {
 		int ret = inflate_get_next_window();
 		nwrote = full_write(out, gunzip_window, gunzip_outbuf_count);
 		if (nwrote == -1) {

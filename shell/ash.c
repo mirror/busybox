@@ -2402,7 +2402,7 @@ static const char * updatepwd(const char *dir)
 	}
 	p = strtok(cdcomppath, "/");
 	while (p) {
-		switch(*p) {
+		switch (*p) {
 		case '.':
 			if (p[1] == '.' && p[2] == '\0') {
 				while (new > lim) {
@@ -4802,7 +4802,7 @@ exptilde(char *startp, char *p, int flag)
 	name = p + 1;
 
 	while ((c = *++p) != '\0') {
-		switch(c) {
+		switch (c) {
 		case CTLESC:
 			return startp;
 		case CTLQUOTEMARK:
@@ -10211,7 +10211,7 @@ readtoken1(int firstc, int syntax, char *eofmark, int striptabs)
 		CHECKEND();     /* set c to PEOF if at end of here document */
 		for (;;) {      /* until end of line or end of word */
 			CHECKSTRSPACE(4, out);  /* permit 4 calls to USTPUTC */
-			switch(SIT(c, syntax)) {
+			switch (SIT(c, syntax)) {
 			case CNL:       /* '\n' */
 				if (syntax == BASESYNTAX)
 					goto endword;   /* exit outer loop */
@@ -11282,7 +11282,7 @@ shtree(union node *n, int ind, char *pfx, FILE *fp)
 		return;
 
 	indent(ind, pfx, fp);
-	switch(n->type) {
+	switch (n->type) {
 	case NSEMI:
 		s = "; ";
 		goto binop;
@@ -12613,7 +12613,7 @@ readcmd(int argc, char **argv)
 	while ((i = nextopt("p:r")) != '\0')
 #endif
 	{
-		switch(i) {
+		switch (i) {
 		case 'p':
 			prompt = optionarg;
 			break;
@@ -13579,7 +13579,7 @@ static arith_t arith (const char *expr, int *perrcode)
 		 * a number, since it evaluates to one). Think about it.
 		 * It makes sense. */
 		if (lasttok != TOK_NUM) {
-			switch(op) {
+			switch (op) {
 				case TOK_ADD:
 				    op = TOK_UPLUS;
 				    break;

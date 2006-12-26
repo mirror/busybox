@@ -262,7 +262,7 @@ static unsigned rotate(struct logdir *ld)
 		return 0;
 	}
 	if (ld->ppid)
-		while(!processorstop(ld))
+		while (!processorstop(ld))
 			/* wait */;
 
 	while (fchdir(ld->fddir) == -1)

@@ -173,7 +173,7 @@ static void loop_forever(void)
 #if ENABLE_DEBUG_INIT
 #define messageD message
 #else
-#define messageD(...)  do {;} while(0);
+#define messageD(...)  do {} while (0)
 #endif
 static void message(int device, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
@@ -534,7 +534,7 @@ static pid_t run(const struct init_action *a)
 						"(pid %d, terminal %s)\n",
 					  cmdpath, getpid(), a->terminal);
 			full_write(1, press_enter, sizeof(press_enter) - 1);
-			while(read(0, &c, 1) == 1 && c != '\n')
+			while (read(0, &c, 1) == 1 && c != '\n')
 				;
 		}
 #endif
@@ -1021,7 +1021,7 @@ int init_main(int argc, char **argv)
 	{
 		const char * const *e;
 		/* Make sure environs is set to something sane */
-		for(e = environment; *e; e++)
+		for (e = environment; *e; e++)
 			putenv((char *) *e);
 	}
 

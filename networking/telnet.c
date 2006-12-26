@@ -320,7 +320,7 @@ static void putiac_subopt(byte c, char *str)
 	putiac(c);
 	putiac(0);
 
-	while(*str)
+	while (*str)
 		putiac(*str++);
 
 	putiac(IAC);
@@ -343,12 +343,12 @@ static void putiac_subopt_autologin(void)
 	putiac(TELQUAL_IS);
 	putiac(NEW_ENV_VAR);
 
-	while(*user)
+	while (*user)
 		putiac(*user++);
 
 	putiac(NEW_ENV_VALUE);
 
-	while(*autologin)
+	while (*autologin)
 		putiac(*autologin++);
 
 	putiac(IAC);

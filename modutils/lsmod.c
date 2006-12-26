@@ -82,7 +82,7 @@ int lsmod_main(int argc, char **argv)
 
 	module_names = deps = NULL;
 	bufsize = depsize = 0;
-	while(query_module(NULL, QM_MODULES, module_names, bufsize, &nmod)) {
+	while (query_module(NULL, QM_MODULES, module_names, bufsize, &nmod)) {
 		if (errno != ENOSPC) bb_perror_msg_and_die("QM_MODULES");
 		module_names = xmalloc(bufsize = nmod);
 	}

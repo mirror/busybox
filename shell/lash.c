@@ -789,7 +789,7 @@ static int expand_arguments(char *command)
 	src = command;
 	while((dst = strchr(src,'$')) != NULL){
 		var = NULL;
-		switch(*(dst+1)) {
+		switch (*(dst+1)) {
 			case '?':
 				var = itoa(last_return_code);
 				break;
@@ -1163,7 +1163,7 @@ static int pseudo_exec(struct child_prog *child)
 		char **argv_l = child->argv;
 		int argc_l;
 
-		for(argc_l=0; *argv_l; argv_l++, argc_l++);
+		for (argc_l=0; *argv_l; argv_l++, argc_l++);
 		optind = 1;
 		run_applet_by_name(child->argv[0], argc_l, child->argv);
 	}

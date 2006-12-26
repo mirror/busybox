@@ -2269,7 +2269,7 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 		return 1;  /* syntax error, groups and arglists don't mix */
 	}
 	initialize_context(&sub);
-	switch(ch) {
+	switch (ch) {
 		case '(': endch=')'; child->subshell=1; break;
 		case '{': endch='}'; break;
 		default: syntax();   /* really logic error */

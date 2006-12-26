@@ -813,7 +813,7 @@ static int opt_in_list(char *opt, char *optlist)
 	list = xstrdup(optlist);
 
 	s = strtok(list, ",");
-	while(s) {
+	while (s) {
 		if (strcmp(s, opt) == 0) {
 			free(list);
 			return 1;

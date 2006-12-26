@@ -2817,7 +2817,7 @@ static void refresh(int full_screen)
 				int nic = ce-cs+1;
 				char *out = (char*)sp+cs;
 
-				while(nic-- > 0) {
+				while (nic-- > 0) {
 					putchar(*out);
 					out++;
 				}

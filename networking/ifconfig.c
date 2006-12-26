@@ -497,7 +497,7 @@ int ifconfig_main(int argc, char **argv)
 			ifr.ifr_flags &= ~selector;
 		if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) < 0)
 			bb_perror_msg_and_die("SIOCSIFFLAGS");
-	} /* while() */
+	} /* while () */
 
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(sockfd);

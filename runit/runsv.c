@@ -155,7 +155,7 @@ static void update_status(struct svdir *s)
 		if (s->ctrl & C_PAUSE) p = add_str(p, ", paused");
 		if (s->ctrl & C_TERM) p = add_str(p, ", got TERM");
 		if (s->state != S_DOWN)
-			switch(s->want) {
+			switch (s->want) {
 			case W_DOWN:
 				p = add_str(p, ", want down");
 				break;
@@ -329,7 +329,7 @@ static void startservice(struct svdir *s)
 
 static int ctrl(struct svdir *s, char c)
 {
-	switch(c) {
+	switch (c) {
 	case 'd': /* down */
 		s->want = W_DOWN;
 		update_status(s);

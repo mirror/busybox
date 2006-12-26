@@ -112,7 +112,7 @@ int unzip_main(int argc, char **argv)
 	char key_buf[512];
 	struct stat stat_buf;
 
-	while((opt = getopt(argc, argv, "-d:lnopqx")) != -1) {
+	while ((opt = getopt(argc, argv, "-d:lnopqx")) != -1) {
 		switch (opt_range) {
 		case 0: /* Options */
 			switch (opt) {
@@ -192,7 +192,7 @@ int unzip_main(int argc, char **argv)
 	} else {
 		static const char *const extn[] = {"", ".zip", ".ZIP"};
 		int orig_src_fn_len = strlen(src_fn);
-		for(i = 0; (i < 3) && (src_fd == -1); i++) {
+		for (i = 0; (i < 3) && (src_fd == -1); i++) {
 			strcpy(src_fn + orig_src_fn_len, extn[i]);
 			src_fd = open(src_fn, O_RDONLY);
 		}

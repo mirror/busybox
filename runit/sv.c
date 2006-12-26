@@ -75,7 +75,7 @@ static int svstatus_get(void)
 	}
 	r = read(fd, svstatus, 20);
 	close(fd);
-	switch(r) {
+	switch (r) {
 	case 20: break;
 	case -1: warn_cannot("read supervise/status"); return -1;
 	default: warnx_cannot("read supervise/status: bad format"); return -1;
@@ -124,7 +124,7 @@ static unsigned svstatus_print(char *m)
 static int status(char *unused)
 {
 	r = svstatus_get();
-	switch(r) { case -1: case 0: return 0; }
+	switch (r) { case -1: case 0: return 0; }
 	r = svstatus_print(*service);
 	if (chdir("log") == -1) {
 		if (errno != ENOENT) {

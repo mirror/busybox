@@ -571,7 +571,7 @@ static void skip_spaces(char **s)
 {
 	char *p = *s;
 
-	while(*p == ' ' || *p == '\t' ||
+	while (*p == ' ' || *p == '\t' ||
 			(*p == '\\' && *(p+1) == '\n' && (++p, ++t.lineno))) {
 		p++;
 	}
@@ -938,7 +938,7 @@ static uint32_t next_token(uint32_t expected)
 					syntax_error(EMSG_UNEXP_TOKEN);
 
 				t.string = --p;
-				while(isalnum_(*(++p))) {
+				while (isalnum_(*(++p))) {
 					*(p-1) = *p;
 				}
 				*(p-1) = '\0';
@@ -1192,7 +1192,7 @@ static void chain_group(void)
 	} while (c & TC_NEWLINE);
 
 	if (c & TC_GRPSTART) {
-		while(next_token(TC_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
+		while (next_token(TC_GRPSEQ | TC_GRPTERM) != TC_GRPTERM) {
 			if (t.tclass & TC_NEWLINE) continue;
 			rollback_token();
 			chain_group();
@@ -1233,7 +1233,7 @@ static void chain_group(void)
 			case ST_FOR:
 				next_token(TC_SEQSTART);
 				n2 = parse_expr(TC_SEMICOL | TC_SEQTERM);
-				if (t.tclass & TC_SEQTERM) {				/* for-in */
+				if (t.tclass & TC_SEQTERM) {	/* for-in */
 					if ((n2->info & OPCLSMASK) != OC_IN)
 						syntax_error(EMSG_UNEXP_TOKEN);
 					n = chain_node(OC_WALKINIT | VV);
@@ -1242,7 +1242,7 @@ static void chain_group(void)
 					n = chain_loop(NULL);
 					n->info = OC_WALKNEXT | Vx;
 					n->l.n = n2->l.n;
-				} else {									/* for(;;) */
+				} else {			/* for (;;) */
 					n = chain_node(OC_EXEC | Vx);
 					n->l.n = n2;
 					n2 = parse_expr(TC_SEMICOL);
@@ -1279,7 +1279,6 @@ static void chain_group(void)
 			/* delete, next, nextfile, return, exit */
 			default:
 				chain_expr(t.info);
-
 		}
 	}
 }
@@ -1293,7 +1292,7 @@ static void parse_program(char *p)
 
 	pos = p;
 	t.lineno = 1;
-	while((tclass = next_token(TC_EOF | TC_OPSEQ | TC_GRPSTART |
+	while ((tclass = next_token(TC_EOF | TC_OPSEQ | TC_GRPSTART |
 				TC_OPTERM | TC_BEGIN | TC_END | TC_FUNCDECL)) != TC_EOF) {
 
 		if (tclass & TC_OPTERM)
@@ -1314,7 +1313,7 @@ static void parse_program(char *p)
 			f = newfunc(t.string);
 			f->body.first = NULL;
 			f->nargs = 0;
-			while(next_token(TC_VARIABLE | TC_SEQTERM) & TC_VARIABLE) {
+			while (next_token(TC_VARIABLE | TC_SEQTERM) & TC_VARIABLE) {
 				v = findvar(ahash, t.string);
 				v->x.aidx = (f->nargs)++;
 
@@ -1452,7 +1451,7 @@ static int awk_split(char *s, node *spl, char **slist)
 			n++;
 		}
 	} else if (c[0] == '\0') {		/* null split */
-		while(*s) {
+		while (*s) {
 			*(s1++) = *(s++);
 			*(s1++) = '\0';
 			n++;
@@ -1588,7 +1587,7 @@ static void hashwalk_init(var *v, xhash *array)
 	*w = *(w+1) = (char *)(w + 2);
 	for (i=0; i<array->csize; i++) {
 		hi = array->items[i];
-		while(hi) {
+		while (hi) {
 			strcpy(*w, hi->name);
 			nextword(w);
 			hi = hi->next;
@@ -2567,7 +2566,7 @@ static int awk_exit(int r)
 	/* waiting for children */
 	for (i=0; i<fdhash->csize; i++) {
 		hi = fdhash->items[i];
-		while(hi) {
+		while (hi) {
 			if (hi->data.rs.F && hi->data.rs.is_pipe)
 				pclose(hi->data.rs.F);
 			hi = hi->next;
@@ -2729,7 +2728,7 @@ keep_going:
 	/* fill in ARGV array */
 	setvar_i(V[ARGC], argc - optind + 1);
 	setari_u(V[ARGV], 0, "awk");
-	for(i=optind; i < argc; i++)
+	for (i = optind; i < argc; i++)
 		setari_u(V[ARGV], i+1-optind, argv[i]);
 
 	evaluate(beginseq.first, &tv);

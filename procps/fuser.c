@@ -319,7 +319,7 @@ int fuser_main(int argc, char **argv)
 		bb_show_usage();
 
 	fni = xmalloc(sizeof(int));
-	for(i=1;i<argc;i++) {
+	for (i=1;i<argc;i++) {
 		optn = fuser_option(argv[i]);
 		if(optn) opt |= optn;
 		else if(argv[i][0] == '-') {
@@ -335,7 +335,7 @@ int fuser_main(int argc, char **argv)
 	if(!fnic) return 1;
 
 	inodes = xmalloc(sizeof(inode_list));
-	for(i=0;i<fnic;i++) {
+	for (i=0;i<fnic;i++) {
 		if(fuser_parse_net_arg(argv[fni[i]], &proto, &port)) {
 			fuser_scan_proc_net(opt, proto, port, inodes);
 		}

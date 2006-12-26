@@ -30,7 +30,7 @@ extern char * _SL_;
 
 extern void incomplete_command(void) ATTRIBUTE_NORETURN;
 
-#define NEXT_ARG() do { argv++; if (--argc <= 0) incomplete_command(); } while(0)
+#define NEXT_ARG() do { argv++; if (--argc <= 0) incomplete_command(); } while (0)
 
 typedef struct
 {

@@ -835,7 +835,7 @@ static servtab_t *getconfigent(void)
 	sigaddset(&m, SIGHUP); \
 	sigaddset(&m, SIGALRM); \
 	sigprocmask(SIG_BLOCK, &m, NULL); \
-} while(0)
+} while (0)
 
 static servtab_t *enter(servtab_t *cp)
 {
@@ -1495,7 +1495,7 @@ do_exit1:
 			if (!sep->se_wait && sep->se_socktype == SOCK_STREAM)
 				close(ctrl);
 		} /* for (sep = servtab...) */
-	} /* for(;;) */
+	} /* for (;;) */
 }
 
 /*

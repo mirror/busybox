@@ -15,12 +15,8 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <unistd.h>
-#include <stdio.h>
-#include <fcntl.h>
 #include <paths.h>
 #include "libbb.h"
-
 
 #ifdef BB_NOMMU
 void vfork_daemon_rexec(int nochdir, int noclose,
@@ -43,9 +39,9 @@ void vfork_daemon_rexec(int nochdir, int noclose,
 			close(fd);
 	}
 
-	vfork_args = xcalloc(sizeof(char *), argc + 3);
+	vfork_args = xzalloc(sizeof(char *) * (argc + 3));
 	vfork_args[a++] = CONFIG_BUSYBOX_EXEC_PATH;
-	while(*argv) {
+	while (*argv) {
 		vfork_args[a++] = *argv;
 		argv++;
 	}

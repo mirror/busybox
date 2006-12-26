@@ -32,25 +32,25 @@
 #include "unarchive.h"
 
 /* Constants for Huffman coding */
-#define MAX_GROUPS			6
-#define GROUP_SIZE			50		/* 64 would have been more efficient */
-#define MAX_HUFCODE_BITS	20		/* Longest Huffman code allowed */
-#define MAX_SYMBOLS			258		/* 256 literals + RUNA + RUNB */
-#define SYMBOL_RUNA			0
-#define SYMBOL_RUNB			1
+#define MAX_GROUPS          6
+#define GROUP_SIZE          50      /* 64 would have been more efficient */
+#define MAX_HUFCODE_BITS    20      /* Longest Huffman code allowed */
+#define MAX_SYMBOLS         258     /* 256 literals + RUNA + RUNB */
+#define SYMBOL_RUNA         0
+#define SYMBOL_RUNB         1
 
 /* Status return values */
-#define RETVAL_OK						0
-#define RETVAL_LAST_BLOCK				(-1)
-#define RETVAL_NOT_BZIP_DATA			(-2)
-#define RETVAL_UNEXPECTED_INPUT_EOF		(-3)
-#define RETVAL_UNEXPECTED_OUTPUT_EOF	(-4)
-#define RETVAL_DATA_ERROR				(-5)
-#define RETVAL_OUT_OF_MEMORY			(-6)
-#define RETVAL_OBSOLETE_INPUT			(-7)
+#define RETVAL_OK                       0
+#define RETVAL_LAST_BLOCK               (-1)
+#define RETVAL_NOT_BZIP_DATA            (-2)
+#define RETVAL_UNEXPECTED_INPUT_EOF     (-3)
+#define RETVAL_UNEXPECTED_OUTPUT_EOF    (-4)
+#define RETVAL_DATA_ERROR               (-5)
+#define RETVAL_OUT_OF_MEMORY            (-6)
+#define RETVAL_OBSOLETE_INPUT           (-7)
 
 /* Other housekeeping constants */
-#define IOBUF_SIZE			4096
+#define IOBUF_SIZE          4096
 
 /* This is what we know about each Huffman coding group */
 struct group_data {
@@ -151,7 +151,7 @@ static int get_next_block(bunzip_data *bd)
 	/* Reset longjmp I/O error handling */
 
 	i=setjmp(bd->jmpbuf);
-	if(i) return i;
+	if (i) return i;
 
 	/* Read in header signature and CRC, then validate signature.
 	   (last block signature means CRC is for whole file, return now) */
@@ -166,8 +166,8 @@ static int get_next_block(bunzip_data *bd)
 	   some code for this in busybox 1.0.0-pre3, but nobody ever noticed that
 	   it didn't actually work. */
 
-	if(get_bits(bd,1)) return RETVAL_OBSOLETE_INPUT;
-	if((origPtr=get_bits(bd,24)) > dbufSize) return RETVAL_DATA_ERROR;
+	if (get_bits(bd,1)) return RETVAL_OBSOLETE_INPUT;
+	if ((origPtr=get_bits(bd,24)) > dbufSize) return RETVAL_DATA_ERROR;
 
 	/* mapping table: if some byte values are never used (encoding things
 	   like ascii text), the compression code removes the gaps to have fewer
@@ -180,7 +180,7 @@ static int get_next_block(bunzip_data *bd)
 	for (i=0;i<16;i++) {
 		if(t&(1<<(15-i))) {
 			k=get_bits(bd,16);
-			for(j=0;j<16;j++)
+			for (j=0;j<16;j++)
 				if(k&(1<<(15-j))) symToByte[symTotal++]=(16*i)+j;
 		}
 	}
@@ -196,17 +196,17 @@ static int get_next_block(bunzip_data *bd)
 	   start of the list.) */
 
 	if(!(nSelectors=get_bits(bd, 15))) return RETVAL_DATA_ERROR;
-	for(i=0; i<groupCount; i++) mtfSymbol[i] = i;
-	for(i=0; i<nSelectors; i++) {
+	for (i=0; i<groupCount; i++) mtfSymbol[i] = i;
+	for (i=0; i<nSelectors; i++) {
 
 		/* Get next value */
 
-		for(j=0;get_bits(bd,1);j++) if (j>=groupCount) return RETVAL_DATA_ERROR;
+		for (j=0;get_bits(bd,1);j++) if (j>=groupCount) return RETVAL_DATA_ERROR;
 
 		/* Decode MTF to get the next selector */
 
 		uc = mtfSymbol[j];
-		for(;j;j--) mtfSymbol[j] = mtfSymbol[j-1];
+		for (;j;j--) mtfSymbol[j] = mtfSymbol[j-1];
 		mtfSymbol[0]=selectors[i]=uc;
 	}
 
@@ -227,7 +227,7 @@ static int get_next_block(bunzip_data *bd)
 
 		t=get_bits(bd, 5)-1;
 		for (i = 0; i < symCount; i++) {
-			for(;;) {
+			for (;;) {
 				if (((unsigned)t) > (MAX_HUFCODE_BITS-1))
 					return RETVAL_DATA_ERROR;
 
@@ -254,7 +254,7 @@ static int get_next_block(bunzip_data *bd)
 		/* Find largest and smallest lengths in this group */
 
 		minLen=maxLen=length[0];
-		for(i = 1; i < symCount; i++) {
+		for (i = 1; i < symCount; i++) {
 			if(length[i] > maxLen) maxLen = length[i];
 			else if(length[i] < minLen) minLen = length[i];
 		}
@@ -284,9 +284,9 @@ static int get_next_block(bunzip_data *bd)
 		/* Calculate permute[].  Concurently, initialize temp[] and limit[]. */
 
 		pp=0;
-		for(i=minLen;i<=maxLen;i++) {
+		for (i=minLen;i<=maxLen;i++) {
 			temp[i]=limit[i]=0;
-			for(t=0;t<symCount;t++)
+			for (t=0;t<symCount;t++)
 				if(length[t]==i) hufGroup->permute[pp++] = t;
 		}
 
@@ -325,7 +325,7 @@ static int get_next_block(bunzip_data *bd)
 
 	/* Initialize symbol occurrence counters and symbol Move To Front table */
 
-	for(i=0;i<256;i++) {
+	for (i=0;i<256;i++) {
 		byteCount[i] = 0;
 		mtfSymbol[i]=(unsigned char)i;
 	}
@@ -333,7 +333,7 @@ static int get_next_block(bunzip_data *bd)
 	/* Loop through compressed symbols. */
 
 	runPos=dbufCount=selector=0;
-	for(;;) {
+	for (;;) {
 
 		/* fetch next Huffman coding group from list. */
 
@@ -372,7 +372,7 @@ got_huff_bits:
 		/* Figure how how many bits are in next symbol and unget extras */
 
 		i=hufGroup->minLen;
-		while(j>limit[i]) ++i;
+		while (j>limit[i]) ++i;
 		bd->inbufBitCount += (hufGroup->maxLen - i);
 
 		/* Huffman decode value to get nextSym (with bounds checking) */
@@ -421,7 +421,7 @@ got_huff_bits:
 
 			uc = symToByte[mtfSymbol[0]];
 			byteCount[uc] += t;
-			while(t--) dbuf[dbufCount++]=uc;
+			while (t--) dbuf[dbufCount++]=uc;
 		}
 
 		/* Is this the terminating symbol? */
@@ -473,7 +473,7 @@ end_of_huffman_loop:
 	/* Turn byteCount into cumulative occurrence counts of 0 to n-1. */
 
 	j=0;
-	for(i=0;i<256;i++) {
+	for (i=0;i<256;i++) {
 		k=j+byteCount[i];
 		byteCount[i] = j;
 		j=k;
@@ -535,7 +535,7 @@ static int read_bunzip(bunzip_data *bd, char *outbuf, int len)
 
 		/* Loop outputting bytes */
 
-		for(;;) {
+		for (;;) {
 
 			/* If the output buffer is full, snapshot state and return */
 
@@ -682,7 +682,7 @@ uncompressStream(int src_fd, int dst_fd)
 	outbuf=xmalloc(IOBUF_SIZE);
 	i=start_bunzip(&bd,src_fd,0,0);
 	if(!i) {
-		for(;;) {
+		for (;;) {
 			if((i=read_bunzip(bd,outbuf,IOBUF_SIZE)) <= 0) break;
 			if(i!=write(dst_fd,outbuf,i)) {
 				i=RETVAL_UNEXPECTED_OUTPUT_EOF;

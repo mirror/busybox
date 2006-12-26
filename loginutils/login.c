@@ -138,7 +138,7 @@ static int check_securetty(void)
 		return 1;
 	}
 	while (fgets(buf, sizeof(buf)-1, fp)) {
-		for(i = strlen(buf)-1; i>=0; --i) {
+		for (i = strlen(buf)-1; i>=0; --i) {
 			if (!isspace(buf[i]))
 				break;
 		}
