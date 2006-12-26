@@ -113,5 +113,6 @@ lib-$(CONFIG_EJECT) += find_mount_point.o
 
 lib-$(CONFIG_AWK) += xregcomp.o
 lib-$(CONFIG_SED) += xregcomp.o
-lib-$(CONFIG_LESS) += xregcomp.o
+lib-$(CONFIG_GREP) += xregcomp.o
+lib-$(CONFIG_MDEV) += xregcomp.o
 lib-$(CONFIG_DEVFSD) += xregcomp.o

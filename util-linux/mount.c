@@ -1708,10 +1708,13 @@ int mount_main(int argc, char **argv)
 
 			// Mount this thing.
 
+			// NFS mounts want this to be xrealloc-able
+			mtcur->mnt_opts = xstrdup(mtcur->mnt_opts);
 			if (singlemount(mtcur, 1)) {
 				/* Count number of failed mounts */
 				rc++;
 			}
+			free(mtcur->mnt_opts);
 		}
 	}
 	if (ENABLE_FEATURE_CLEAN_UP) endmntent(fstab);

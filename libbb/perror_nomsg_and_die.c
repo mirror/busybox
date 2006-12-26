@@ -7,11 +7,13 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <stddef.h>
-#include "libbb.h"
+/* gcc warns about a null format string, therefore we provide
+ * modified definition without "attribute (format)"
+ * instead of including libbb.h */
+//#include "libbb.h"
+extern void bb_perror_msg_and_die(const char *s, ...);
 
 void bb_perror_nomsg_and_die(void)
 {
-	/* Ignore the gcc warning about a null format string. */
-	bb_perror_msg_and_die(NULL);
+	bb_perror_msg_and_die(0);
 }

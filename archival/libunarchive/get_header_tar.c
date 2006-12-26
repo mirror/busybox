@@ -74,8 +74,10 @@ char get_header_tar(archive_handle_t *archive_handle)
 
 	if (sizeof(tar) != 512)
 		BUG_tar_header_size();
- again:
 
+#if ENABLE_FEATURE_TAR_GNU_EXTENSIONS
+ again:
+#endif
 	/* Align header */
 	data_align(archive_handle, 512);
 

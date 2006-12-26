@@ -120,7 +120,6 @@ struct sed_globals {
 } bbg;
 
 
-void sed_free_and_close_stuff(void);
 #if ENABLE_FEATURE_CLEAN_UP
 static void sed_free_and_close_stuff(void)
 {
@@ -156,6 +155,8 @@ static void sed_free_and_close_stuff(void)
 	while (bbg.current_input_file < bbg.input_file_count)
 		fclose(bbg.input_file_list[bbg.current_input_file++]);
 }
+#else
+void sed_free_and_close_stuff(void);
 #endif
 
 /* If something bad happens during -i operation, delete temp file */

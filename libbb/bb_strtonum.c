@@ -17,6 +17,7 @@
  * errno = ERANGE if value had alphanumeric terminating char ("1234abcg").
  * errno = ERANGE if value is out of range, missing, etc.
  * errno = ERANGE if value had minus sign for strtouXX (even "-0" is not ok )
+ *    return value is all-ones in this case.
  */
 
 static unsigned long long ret_ERANGE(void)
