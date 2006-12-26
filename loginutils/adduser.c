@@ -164,6 +164,11 @@ int adduser_main(int argc, char **argv)
 	const char *usegroup = NULL;
 	unsigned long flags;
 
+	/* got root? */
+	if (geteuid()) {
+		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
+	}
+
 	pw.pw_gecos = "Linux User,,,";
 	pw.pw_shell = (char *)DEFAULT_SHELL;
 	pw.pw_dir = NULL;
@@ -172,15 +177,10 @@ int adduser_main(int argc, char **argv)
 	opt_complementary = "-1:?1:?";
 	flags = getopt32(argc, argv, "h:g:s:G:DSH", &pw.pw_dir, &pw.pw_gecos, &pw.pw_shell, &usegroup);
 
-	/* got root? */
-	if(geteuid()) {
-		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
-	}
-
 	/* create string for $HOME if not specified already */
 	if (!pw.pw_dir) {
 		snprintf(bb_common_bufsiz1, BUFSIZ, "/home/%s", argv[optind]);
-		pw.pw_dir = &bb_common_bufsiz1[0];
+		pw.pw_dir = bb_common_bufsiz1;
 	}
 
 	/* create a passwd struct */

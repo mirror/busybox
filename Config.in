@@ -441,7 +441,7 @@ config INSTALL_APPLET_DONT
        prompt "not installed"
        depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE_SHELL
        help
-         Do not install applets links. Usefull when using the -install feature
+         Do not install applet links. Useful when using the -install feature
          or a standalone shell for rescue pruposes.
 
 endchoice
