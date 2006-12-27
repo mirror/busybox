@@ -1,0 +1,97 @@
+<!--#include file="header.html" -->
+
+<p>
+<h3>BusyBox is licensed under the GNU General Public License, version 2</h3>
+
+<p>BusyBox is licensed under <a href="http://www.gnu.org/licenses/gpl.html#SEC1">the
+GNU General Public License</a> version 2, which is often abbreviated as GPLv2.
+(This is the same license the Linux kernel is under, so you may be somewhat
+familiar with it by now.)</p>
+
+<p>A complete copy of the license text is included in the file LICENSE in
+the BusyBox source code.</p>
+
+<p><a href="/products.html">Anyone thinking of shipping BusyBox as part of a
+product</a> should be familiar with the licensing terms under which they are
+allowed to use and distribute BusyBox.  Read the full test of the GPL (either
+through the above link, or in the file LICENSE in the busybox tarball), and
+also read the <a href="http://www.gnu.org/licenses/gpl-faq.html">Frequently
+Asked Questions about the GPL</a>.</p>
+
+<p>Basically, if you distribute GPL software the license requires that you also
+distribute the source code to that GPL-licensed software.  So if you distribute
+BusyBox without making the source code to the version you distribute available,
+you violate the license terms, and thus infringe on the copyrights of BusyBox.
+(This requirement applies whether or not you modified BusyBox; either way the
+license terms still apply to you.)  Read the license text for the details.</p>
+
+<h3>A note on GPL versions</h3>
+
+<p>Version 2 of the GPL is the only version of the GPL which current versions
+of BusyBox may be distributed under.  New code added to the tree is licensed
+GPL version 2, and the project's license is GPL version 2.</p>
+
+<p>Older versions of BusyBox (versions 1.2.2 and earlier, up through about svn
+16112) included variants of the recommended "GPL version 2 or (at your option)
+later versions" boilerplate permission grant.  Ancient versions of BusyBox
+(before svn 49) did not specify any version at all, and section 9 of GPLv2
+(the most recent version at the time) says those old versions may be
+redistributed under any version of GPL (including the obsolete V1).  This was
+conceptually similar to a dual license, except that the different licenses were
+different versions of the GPL.</p>
+
+<p>However, BusyBox has apparently always contained chunks of code that were
+licensed under GPL version 2 only.  Examples include applets written by Linus
+Torvalds (util-linux/mkfs_minix.c and util_linux/mkswap.c) which stated they
+"may be redistributed as per the Linux copyright" (which Linus clarified in the
+2.4.0-pre8 release announcement in 2000 was GPLv2 only), and Linux kernel code
+copied into libbb/loop.c (after Linus's announcement).  There are probably
+more, because all we used to check was that the code was GPL, not which
+version.  (Before the GPLv3 draft proceedings in 2006, it was a purely
+theoretical issue that didn't come up much.)</p>
+
+<p>To summarize: every version of BusyBox may be distributed under the terms of
+GPL version 2.  New versions (after 1.2.2) may <b>only</b> be distributed under
+GPLv2, not under other versions of the GPL.  Older versions of BusyBox might
+(or might not) be distributable under other versions of the GPL.  If you
+want to use a GPL version other than 2, you should start with one of the old
+versions such as release 1.2.2 or SVN 16112, and do your own homework to
+identify and remove any code that can't be licensed under the GPL version you
+want to use.  New development is all GPLv2.</p>
+
+<h3>License enforcement</h3>
+
+<p>BusyBox's copyrights are enforced by the <a
+href="http://www.softwarefreedom.org">Software Freedom Law Center</a>
+(you can contact them at gpl@busybox.net), which
+"accepts primary responsibility for enforcement of US copyrights on the
+software... and coordinates international copyright enforcement efforts for
+such works as necessary."  If you distribute BusyBox in a way that doesn't
+comply with the terms of the license BusyBox is distributed under, expect to
+hear from these guys.  Their entire reason for existing is to do pro-bono
+legal work for free/open source software projects.  (We used to list people who
+violate the BusyBox license in <a href="/shame.html">The Hall of Shame</a>,
+but these days we find it much more effective to hand them over to the
+lawyers.)</p>
+
+<p>Our enforcement efforts are aimed at bringing people into compliance with
+the BusyBox license.  Open source software is under a different license from
+proprietary software, but if you violate that license you're still a software
+pirate and the law gives the vendor (us) some big sticks to play with.  We
+don't want monetary awards, injunctions, or to generate bad PR for a company,
+unless that's the only way to get somebody that repeatedly ignores us to comply
+with the license on our code.</p>
+
+<h3>A Good Example</h3>
+
+<p>These days, <a href="http://www.linksys.com/">Linksys</a> is
+doing a good job at complying with the GPL, they get to be an
+example of how to do things right.  Please take a moment and
+check out what they do with
+<a href="http://www.linksys.com/servlet/Satellite?c=L_Content_C1&childpagename=US%2FLayout&cid=1115416836002&pagename=Linksys%2FCommon%2FVisitorWrapper">
+distributing the firmware for their WRT54G Router.</a>
+Following their example would be a fine way to ensure that you
+have also fulfilled your licensing obligations.</p>
+
+<!--#include file="footer.html" -->
+

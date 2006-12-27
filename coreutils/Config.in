@@ -1,0 +1,782 @@
+#
+# For a description of the syntax of this configuration file,
+# see scripts/kbuild/config-language.txt.
+#
+
+menu "Coreutils"
+
+config BASENAME
+	bool "basename"
+	default n
+	help
+	  basename is used to strip the directory and suffix from filenames,
+	  leaving just the filename itself.  Enable this option if you wish
+	  to enable the 'basename' utility.
+
+config CAL
+	bool "cal"
+	default n
+	help
+	  cal is used to display a monthly calender.
+
+config CAT
+	bool "cat"
+	default n
+	help
+	  cat is used to concatenate files and print them to the standard
+	  output.  Enable this option if you wish to enable the 'cat' utility.
+
+config CATV
+	bool "catv"
+	default n
+	help
+	  Display nonprinting characters as escape sequences (like some
+	  implementations' cat -v option).
+
+config CHGRP
+	bool "chgrp"
+	default n
+	help
+	  chgrp is used to change the group ownership of files.
+
+config CHMOD
+	bool "chmod"
+	default n
+	help
+	  chmod is used to change the access permission of files.
+
+config CHOWN
+	bool "chown"
+	default n
+	help
+	  chown is used to change the user and/or group ownership
+	  of files.
+
+config CHROOT
+	bool "chroot"
+	default n
+	help
+	  chroot is used to change the root directory and run a command.
+	  The default command is `/bin/sh'.
+
+config CKSUM
+	bool "cksum"
+	default n
+	help
+	  cksum is used to calculate the CRC32 checksum of a file.
+
+config CMP
+	bool "cmp"
+	default n
+	help
+	  cmp is used to compare two files and returns the result
+	  to standard output.
+
+config COMM
+	bool "comm"
+	default n
+	help
+	  comm is used to compare two files line by line and return
+	  a three-column output.
+
+config CP
+	bool "cp"
+	default n
+	help
+	  cp is used to copy files and directories.
+
+config CUT
+	bool "cut"
+	default n
+	help
+	  cut is used to print selected parts of lines from
+	  each file to stdout.
+
+config DATE
+	bool "date"
+	default n
+	help
+	  date is used to set the system date or display the
+	  current time in the given format.
+
+config FEATURE_DATE_ISOFMT
+	bool "Enable ISO date format output (-I)"
+	default y
+	depends on DATE
+	help
+	  Enable option (-I) to output an ISO-8601 compliant
+	  date/time string.
+
+config DD
+	bool "dd"
+	default n
+	help
+	  dd copies a file (from standard input to standard output,
+	  by default) using specific input and output blocksizes,
+	  while optionally performing conversions on it.
+
+config FEATURE_DD_SIGNAL_HANDLING
+	bool "Enable DD signal handling for status reporting"
+	default y
+	depends on DD
+	help
+	  sending a SIGUSR1 signal to a running `dd' process makes it
+	  print to standard error the number of records read and written
+	  so far, then to resume copying.
+
+	  $ dd if=/dev/zero of=/dev/null& pid=$! $ kill -USR1 $pid; sleep 1; kill $pid
+	  10899206+0 records in 10899206+0 records out
+
+config FEATURE_DD_IBS_OBS
+	bool "Enable ibs, obs and conv options"
+	default n
+	depends on DD
+	help
+	  Enables support for writing a certain number of bytes in and out,
+	  at a time, and performing conversions on the data stream.
+
+config DF
+	bool "df"
+	default n
+	help
+	  df reports the amount of disk space used and available
+	  on filesystems.
+
+config DIFF
+	bool "diff"
+	default n
+	help
+	  diff compares two files or directories and outputs the
+	  differences between them in a form that can be given to
+	  the patch command.
+
+config FEATURE_DIFF_BINARY
+	bool "Enable checks for binary files"
+	default y
+	depends on DIFF
+	help
+	  This option enables support for checking for binary files
+	  before a comparison is carried out.
+
+config FEATURE_DIFF_DIR
+	bool "Enable directory support"
+	default y
+	depends on DIFF
+	help
+	  This option enables support for directory and subdirectory
+	  comparison.
+
+config FEATURE_DIFF_MINIMAL
+	bool "Enable -d option to find smaller sets of changes"
+	default n
+	depends on DIFF
+	help
+	  Enabling this option allows the use of -d to make diff
+	  try hard to find the smallest possible set of changes.
+
+config DIRNAME
+	bool "dirname"
+	default n
+	help
+	  dirname is used to strip a non-directory suffix from
+	  a file name.
+
+config DOS2UNIX
+	bool "dos2unix/unix2dos"
+	default n
+	help
+	  dos2unix is used to convert a text file from DOS format to
+	  UNIX format, and vice versa.
+
+config UNIX2DOS
+	bool
+	default y
+	depends on DOS2UNIX
+	help
+	  unix2dos is used to convert a text file from UNIX format to
+	  DOS format, and vice versa.
+
+config DU
+	bool "du (default blocksize of 512 bytes)"
+	default n
+	help
+	  du is used to report the amount of disk space used
+	  for specified files.
+
+config FEATURE_DU_DEFAULT_BLOCKSIZE_1K
+	bool "Use a default blocksize of 1024 bytes (1K)"
+	default y
+	depends on DU
+	help
+	  Use a blocksize of (1K) instead of the default 512b.
+
+config ECHO
+	bool "echo (basic SuSv3 version taking no options)"
+	default n
+	help
+	  echo is used to print a specified string to stdout.
+
+# this entry also appears in shell/Config.in, next to the echo builtin
+config FEATURE_FANCY_ECHO
+	bool "Enable echo options (-n and -e)"
+	default y
+	depends on ECHO
+	help
+	  This adds options (-n and -e) to echo.
+
+config ENV
+	bool "env"
+	default n
+	help
+	  env is used to set an environment variable and run
+	  a command; without options it displays the current
+	  environment.
+
+config FEATURE_ENV_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on ENV && GETOPT_LONG
+	help
+	  Support long options for the env applet.
+
+config EXPR
+	bool "expr"
+	default n
+	help
+	  expr is used to calculate numbers and print the result
+	  to standard output.
+
+config EXPR_MATH_SUPPORT_64
+	bool "Extend Posix numbers support to 64 bit"
+	default n
+	depends on EXPR
+	help
+	  Enable 64-bit math support in the expr applet.  This will make
+	  the applet slightly larger, but will allow computation with very
+	  large numbers.
+
+config FALSE
+	bool "false"
+	default n
+	help
+	  false returns an exit code of FALSE (1).
+
+config FOLD
+	bool "fold"
+	default n
+	help
+	  Wrap text to fit a specific width.
+
+config HEAD
+	bool "head"
+	default n
+	help
+	  head is used to print the first specified number of lines
+	  from files.
+
+config FEATURE_FANCY_HEAD
+	bool "Enable head options (-c, -q, and -v)"
+	default n
+	depends on HEAD
+	help
+	  This enables the head options (-c, -q, and -v).
+
+config HOSTID
+	bool "hostid"
+	default n
+	help
+	  hostid prints the numeric identifier (in hexadecimal) for
+	  the current host.
+
+config ID
+	bool "id"
+	default n
+	help
+	  id displays the current user and group ID names.
+
+config INSTALL
+	bool "install"
+	default n
+	help
+	  Copy files and set attributes.
+
+config FEATURE_INSTALL_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on INSTALL && GETOPT_LONG
+	help
+	  Support long options for the install applet.
+
+config LENGTH
+	bool "length"
+	default n
+	help
+	  length is used to print out the length of a specified string.
+
+config LN
+	bool "ln"
+	default n
+	help
+	  ln is used to create hard or soft links between files.
+
+config LOGNAME
+	bool "logname"
+	default n
+	help
+	  logname is used to print the current user's login name.
+
+config LS
+	bool "ls"
+	default n
+	help
+	  ls is used to list the contents of directories.
+
+config FEATURE_LS_FILETYPES
+	bool "Enable filetyping options (-p and -F)"
+	default y
+	depends on LS
+	help
+	  Enable the ls options (-p and -F).
+
+config FEATURE_LS_FOLLOWLINKS
+	bool "Enable symlinks dereferencing (-L)"
+	default y
+	depends on LS
+	help
+	  Enable the ls option (-L).
+
+config FEATURE_LS_RECURSIVE
+	bool "Enable recursion (-R)"
+	default y
+	depends on LS
+	help
+	  Enable the ls option (-R).
+
+config FEATURE_LS_SORTFILES
+	bool "Sort the file names"
+	default y
+	depends on LS
+	help
+	  Allow ls to sort file names alphabetically.
+
+config FEATURE_LS_TIMESTAMPS
+	bool "Show file timestamps"
+	default y
+	depends on LS
+	help
+	  Allow ls to display timestamps for files.
+
+config FEATURE_LS_USERNAME
+	bool "Show username/groupnames"
+	default y
+	depends on LS
+	help
+	  Allow ls to display username/groupname for files.
+
+config FEATURE_LS_COLOR
+	bool "Allow use of color to identify file types"
+	default y
+	depends on LS && GETOPT_LONG
+	help
+	  This enables the --color option to ls.
+
+config FEATURE_LS_COLOR_IS_DEFAULT
+	bool "Produce colored ls output by default"
+	default n
+	depends on FEATURE_LS_COLOR
+	help
+	  Saying yes here will turn coloring on by default,
+	  even if no "--color" option is given to the ls command.
+	  This is not recommended, since the colors are not
+	  configurable, and the output may not be legible on
+	  many output screens.
+
+config MD5SUM
+	bool "md5sum"
+	default n
+	help
+	  md5sum is used to print or check MD5 checksums.
+
+config MKDIR
+	bool "mkdir"
+	default n
+	help
+	  mkdir is used to create directories with the specified names.
+
+config FEATURE_MKDIR_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on MKDIR && GETOPT_LONG
+	help
+	  Support long options for the mkdir applet.
+
+config MKFIFO
+	bool "mkfifo"
+	default n
+	help
+	  mkfifo is used to create FIFOs (named pipes).
+	  The `mknod' program can also create FIFOs.
+
+config MKNOD
+	bool "mknod"
+	default n
+	help
+	  mknod is used to create FIFOs or block/character special
+	  files with the specified names.
+
+config MV
+	bool "mv"
+	default n
+	help
+	  mv is used to move or rename files or directories.
+
+config FEATURE_MV_LONG_OPTIONS
+	bool "Enable long options"
+	default n
+	depends on MV && GETOPT_LONG
+	help
+	  Support long options for the mv applet.
+
+config NICE
+	bool "nice"
+	default n
+	help
+	  nice runs a program with modified scheduling priority.
+
+config NOHUP
+	bool "nohup"
+	default n
+	help
+	  run a command immune to hangups, with output to a non-tty.
+
+config OD
+	bool "od"
+	default n
+	help
+	  od is used to dump binary files in octal and other formats.
+
+config PRINTENV
+	bool "printenv"
+	default n
+	help
+	  printenv is used to print all or part of environment.
+
+config PRINTF
+	bool "printf"
+	default n
+	help
+	  printf is used to format and print specified strings.
+	  It's similar to `echo' except it has more options.
+
+config PWD
+	bool "pwd"
+	default n
+	help
+	  pwd is used to print the current directory.
+
+config REALPATH
+	bool "realpath"
+	default n
+	help
+	  Return the canonicalized absolute pathname.
+	  This isn't provided by GNU shellutils, but where else does it belong.
+
+config RM
+	bool "rm"
+	default n
+	help
+	  rm is used to remove files or directories.
+
+config RMDIR
+	bool "rmdir"
+	default n
+	help
+	  rmdir is used to remove empty directories.
+
+config SEQ
+	bool "seq"
+	default n
+	help
+	  print a sequence of numbers
+
+config SHA1SUM
+	bool "sha1sum"
+	default n
+	help
+	  Compute and check SHA1 message digest
+
+config SLEEP
+	bool "sleep (single integer arg with no suffix)"
+	default n
+	help
+	  sleep is used to pause for a specified number of seconds,
+
+config FEATURE_FANCY_SLEEP
+	bool "Enable multiple integer args and optional time suffixes"
+	default n
+	depends on SLEEP
+	help
+	  Allow sleep to pause for specified minutes, hours, and days.
+
+config SORT
+	bool "sort"
+	default n
+	help
+	  sort is used to sort lines of text in specified files.
+
+config FEATURE_SORT_BIG
+	bool "full SuSv3 compliant sort (Support -ktcsbdfiozgM)"
+	default y
+	depends on SORT
+	help
+	  Without this, sort only supports  -r, -u, and an integer version
+	  of -n.  Selecting this adds sort keys, floating point support, and
+	  more.  This adds a little over 3k to a nonstatic build on x86.
+
+	  The SuSv3 sort standard is available at:
+	  http://www.opengroup.org/onlinepubs/007904975/utilities/sort.html
+
+config STAT
+	bool "stat"
+	default n
+	help
+	  display file or filesystem status.
+
+config FEATURE_STAT_FORMAT
+	bool "Enable custom formats (-c)"
+	default n
+	depends on STAT
+	help
+	  Without this, stat will not support the '-c format' option where
+	  users can pass a custom format string for output.  This adds about
+	  7k to a nonstatic build on amd64.
+
+config STTY
+	bool "stty"
+	default n
+	help
+	  stty is used to change and print terminal line settings.
+
+config SUM
+	bool "sum"
+	default n
+	help
+	  checksum and count the blocks in a file
+
+config SYNC
+	bool "sync"
+	default n
+	help
+	  sync is used to flush filesystem buffers.
+
+config TAIL
+	bool "tail"
+	default n
+	help
+	  tail is used to print the last specified number of lines
+	  from files.
+
+config FEATURE_FANCY_TAIL
+	bool "Enable extra tail options (-q, -s, and -v)"
+	default y
+	depends on TAIL
+	help
+	  The options (-q, -s, and -v) are provided by GNU tail, but
+	  are not specific in the SUSv3 standard.
+
+config TEE
+	bool "tee"
+	default n
+	help
+	  tee is used to read from standard input and write
+	  to standard output and files.
+
+config FEATURE_TEE_USE_BLOCK_IO
+	bool "Enable block i/o (larger/faster) instead of byte i/o."
+	default n
+	depends on TEE
+	help
+	  Enable this option for a faster tee, at expense of size.
+
+config TEST
+	bool "test"
+	default n
+	help
+	  test is used to check file types and compare values,
+	  returning an appropriate exit code.  The bash shell
+	  has test built in, ash can build it in optionally.
+
+config FEATURE_TEST_64
+	bool "Extend test to 64 bit"
+	default n
+	depends on TEST
+	help
+	  Enable 64-bit support in test.
+
+config TOUCH
+	bool "touch"
+	default n
+	help
+	  touch is used to create or change the access and/or
+	  modification timestamp of specified files.
+
+config TR
+	bool "tr"
+	default n
+	help
+	  tr is used to squeeze, and/or delete characters from standard
+	  input, writing to standard output.
+
+config FEATURE_TR_CLASSES
+	bool "Enable character classes (such as [:upper:])"
+	default n
+	depends on TR
+	help
+	  Enable character classes, enabling commands such as:
+	  tr [:upper:] [:lower:] to convert input into lowercase.
+
+config FEATURE_TR_EQUIV
+	bool "Enable equivalence classes"
+	default n
+	depends on TR
+	help
+	  Enable equivalence classes, which essentially add the enclosed
+	  character to the current set. For instance, tr [=a=] xyz would
+	  replace all instances of 'a' with 'xyz'. This option is mainly
+	  useful for cases when no other way of expressing a character
+	  is possible.
+
+config TRUE
+	bool "true"
+	default n
+	help
+	  true returns an exit code of TRUE (0).
+
+config TTY
+	bool "tty"
+	default n
+	help
+	  tty is used to print the name of the current terminal to
+	  standard output.
+
+config UNAME
+	bool "uname"
+	default n
+	help
+	  uname is used to print system information.
+
+config UNIQ
+	bool "uniq"
+	default n
+	help
+	  uniq is used to remove duplicate lines from a sorted file.
+
+config USLEEP
+	bool "usleep"
+	default n
+	help
+	  usleep is used to pause for a specified number of microseconds.
+
+config UUDECODE
+	bool "uudecode"
+	default n
+	help
+	  uudecode is used to decode a uuencoded file.
+
+config UUENCODE
+	bool "uuencode"
+	default n
+	help
+	  uuencode is used to uuencode a file.
+
+config WATCH
+	bool "watch"
+	default n
+	select DATE
+	help
+	  watch is used to execute a program periodically, showing
+	  output to the screen.
+
+config WC
+	bool "wc"
+	default n
+	help
+	  wc is used to print the number of bytes, words, and lines,
+	  in specified files.
+
+config FEATURE_WC_LARGE
+	bool "Support very large files in wc"
+	default n
+	depends on WC
+	help
+	  Use "unsigned long long" in wc for count variables
+
+config WHO
+	bool "who"
+	default n
+	select FEATURE_UTMP
+	help
+	  who is used to show who is logged on.
+
+config WHOAMI
+	bool "whoami"
+	default n
+	help
+	  whoami is used to print the username of the current
+	  user id (same as id -un).
+
+config YES
+	bool "yes"
+	default n
+	help
+	  yes is used to repeatedly output a specific string, or
+	  the default string `y'.
+
+comment "Common options for cp and mv"
+	depends on CP || MV
+
+config FEATURE_PRESERVE_HARDLINKS
+	bool "Preserve hard links"
+	default n
+	depends on CP || MV
+	help
+	  Allow cp and mv to preserve hard links.
+
+comment "Common options for ls, more and telnet"
+	depends on LS || MORE || TELNET
+
+config FEATURE_AUTOWIDTH
+	bool "Calculate terminal & column widths"
+	default y
+	depends on LS || MORE || TELNET
+	help
+	  This option allows utilities such as 'ls', 'more' and 'telnet'
+	  to determine the width of the screen, which can allow them to
+	  display additional text or avoid wrapping text onto the next line.
+	  If you leave this disabled, your utilities will be especially
+	  primitive and will be unable to determine the current screen width.
+
+comment "Common options for df, du, ls"
+	depends on DF || DU || LS
+
+config FEATURE_HUMAN_READABLE
+	bool "Support for human readable output (example 13k, 23M, 235G)"
+	default n
+	depends on DF || DU || LS
+	help
+	  Allow df, du, and ls to have human readable output.
+
+comment "Common options for md5sum, sha1sum"
+	depends on MD5SUM || SHA1SUM
+
+config FEATURE_MD5_SHA1_SUM_CHECK
+	bool "Enable -c, -s and -w options"
+	default n
+	depends on MD5SUM || SHA1SUM
+	help
+	  Enabling the -c options allows files to be checked
+	  against pre-calculated hash values.
+
+	  -s and -w are useful options when verifying checksums.
+
+endmenu

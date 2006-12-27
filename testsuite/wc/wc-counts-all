@@ -1,0 +1,1 @@
+test "`echo i\'m a little teapot | busybox wc`" = '      1       4      20'

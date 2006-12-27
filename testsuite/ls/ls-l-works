@@ -1,0 +1,4 @@
+[ -n "$d" ] || d=..
+LC_ALL=C ls -l "$d" > logfile.gnu
+busybox ls -l "$d" > logfile.bb
+diff -w logfile.gnu logfile.bb

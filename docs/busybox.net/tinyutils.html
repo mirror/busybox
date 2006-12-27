@@ -1,0 +1,86 @@
+<!--#include file="header.html" -->
+
+
+<h3>External Tiny Utilities</h3>
+
+This is a list of tiny utilities whose functionality is not provided by
+busybox.  If you have additional suggestions, please send an e-mail to our
+dev mailing list.
+
+<br><br>
+
+<table border=1>
+<tr>
+ <th>Feature</th>
+ <th>Utilities</th>
+</tr>
+
+<tr>
+ <td>SSH</td>
+ <td><a href="http://matt.ucc.asn.au/dropbear/">Dropbear</a> has both an ssh server and an ssh client that together come in around 100k.  It has no external
+dependencies (I.E. it does not depend on OpenSSL, using a built-in copy of
+LibTomCrypt instead).  It's actively maintained, with a quiet but responsive
+mailing list.</td>
+</tr>
+
+<tr>
+ <td>SMTP</td>
+ <td><a href="ftp://ftp.debian.org/debian/pool/main/s/ssmtp/">ssmtp</a> is an extremely simple Mail Transfer Agent.</td>
+</tr>
+
+<tr>
+  <td>ntp</td>
+  <td><a href="http://doolittle.icarus.com/ntpclient/">ntpclient</a> is a
+tiny ntp client.  BusyBox has rdate to set the date from a remote server, but
+if you want a daemon to repeatedly adjust the clock over time, try that.</td>
+</table>
+
+<p>In a gui environment, you'll probably want a web browser.
+<a href="http://www.konqueror.org/embedded/">Konqueror Embedded</a> requires QT
+(or QT Embedded), but not KDE.  The <a href="http://www.dillo.org/">Dillo</a>
+requires GTK+, but not Gnome.  Or you can try the <a href="http://links.twibright.com/">graphical
+version of links</a>.</p>
+
+<h3>SCRIPTING LANGUAGES</h3>
+<p>Although busybox has built-in support for shell scripts, plenty of other
+small scripting languages are available on the net.  A few examples:</p>
+<table border=1>
+<tr>
+<th><language></th>
+<th><description></th>
+</tr>
+<tr>
+<td> <a href=http://www.foo.be/docs/tpj/issues/vol5_3/tpj0503-0003.html>microperl</a> </td>
+<td> A small standalone perl interpreter that can be built from the perl source
+s via "make -f Makefile.micro".  If you really feel the need for perl on an embe
+dded system, this is where to start.
+</tr>
+<tr>
+
+<td><a href=http://www.lua.org/pil/>Lua</a></td>
+<td>If you just want a small embedded scripting language to write <em>new</en>
+code in, this Brazilian import is lightweight, fairly popular, and has
+a complete book about it online.</td>
+</tr>
+
+<tr>
+<td><a href= http://www.star.le.ac.uk/%7Etjg/rc/>rc</a></td>
+<td>The PLAN9 shell.  Not compatible with conventional bourne shell syntax,
+but fairly lightweight and small.</td>
+</tr>
+
+</tr>
+<tr>
+<td><a href=http://www.forth.org>forth</a></td>
+<td>A well known language for fast and small programs, decades old but still
+in use for everything from OpenBIOS to computer controlled engine timing.</td>
+</tr>
+</table>
+
+<p>For more information, you probably want to look at
+<a href=http://buildroot.uclibc.org>buildroot</a> and
+<a href=http://gentoo-wiki.com/TinyGentoo>TinyGentoo</a>, which
+build and use tiny utilities for all sorts of things.</p>
+
+<!--#include file="footer.html" -->
+

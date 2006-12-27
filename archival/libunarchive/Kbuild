@@ -1,0 +1,59 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
+#
+# Licensed under the GPL v2 or later, see the file LICENSE in this tarball.
+
+lib-y:= \
+\
+	data_skip.o \
+	data_extract_all.o \
+	data_extract_to_stdout.o \
+	data_extract_to_buffer.o \
+\
+	filter_accept_all.o \
+	filter_accept_list.o \
+	filter_accept_reject_list.o \
+\
+	header_skip.o \
+	header_list.o \
+	header_verbose_list.o \
+\
+	archive_xread_all_eof.o \
+\
+	seek_by_read.o \
+	seek_by_jump.o \
+\
+	data_align.o \
+	find_list_entry.o \
+	open_transformer.o \
+	init_handle.o
+
+GUNZIP_FILES:= check_header_gzip.o decompress_unzip.o
+DPKG_FILES:= \
+	get_header_ar.o \
+	unpack_ar_archive.o \
+	get_header_tar.o \
+	filter_accept_list_reassign.o
+
+lib-$(CONFIG_AR)			+= get_header_ar.o unpack_ar_archive.o
+lib-$(CONFIG_BUNZIP2)			+= decompress_bunzip2.o
+lib-$(CONFIG_UNLZMA)			+= decompress_unlzma.o
+lib-$(CONFIG_CPIO)			+= get_header_cpio.o
+lib-$(CONFIG_DPKG)			+= $(DPKG_FILES)
+lib-$(CONFIG_DPKG_DEB)			+= $(DPKG_FILES)
+lib-$(CONFIG_FEATURE_DEB_TAR_GZ)	+= $(GUNZIP_FILES) get_header_tar_gz.o
+lib-$(CONFIG_FEATURE_DEB_TAR_BZ2)	+= decompress_bunzip2.o get_header_tar_bz2.o
+lib-$(CONFIG_FEATURE_DEB_TAR_LZMA)	+= decompress_unlzma.o get_header_tar_lzma.o
+lib-$(CONFIG_GUNZIP)			+= $(GUNZIP_FILES)
+lib-$(CONFIG_FEATURE_GUNZIP_UNCOMPRESS)	+= decompress_uncompress.o
+lib-$(CONFIG_RPM2CPIO)			+= $(GUNZIP_FILES) get_header_cpio.o
+lib-$(CONFIG_RPM)			+= $(GUNZIP_FILES) get_header_cpio.o
+lib-$(CONFIG_TAR)			+= get_header_tar.o
+lib-$(CONFIG_FEATURE_TAR_BZIP2)		+= decompress_bunzip2.o get_header_tar_bz2.o
+lib-$(CONFIG_FEATURE_TAR_LZMA)		+= decompress_unlzma.o get_header_tar_lzma.o
+lib-$(CONFIG_FEATURE_TAR_GZIP)		+= $(GUNZIP_FILES) get_header_tar_gz.o
+lib-$(CONFIG_FEATURE_TAR_COMPRESS)	+= decompress_uncompress.o
+lib-$(CONFIG_UNCOMPRESS)		+= decompress_uncompress.o
+lib-$(CONFIG_UNZIP)			+= $(GUNZIP_FILES)
+lib-$(CONFIG_FEATURE_COMPRESS_USAGE)	+= decompress_bunzip2.o

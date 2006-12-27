@@ -1,0 +1,21 @@
+# Makefile for busybox
+#
+# Copyright (C) 1999-2005 by Erik Andersen <andersen@codepoet.org>
+#
+# Licensed under the GPL v2, see the file LICENSE in this tarball.
+
+obj-y:=
+obj-y	+= applets.o
+obj-y	+= busybox.o
+
+# Generated file needs additional love
+
+applets/applets.o: include/usage_compressed.h
+
+hostprogs-y += usage
+always := $(hostprogs-y)
+HOSTCFLAGS_usage.o = -I$(srctree)/include
+
+include/usage_compressed.h: $(srctree)/include/usage.h applets/usage
+	@echo '  GEN     include/usage_compressed.h'
+	@$(srctree)/applets/usage_compressed include/usage_compressed.h applets
