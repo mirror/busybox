@@ -85,7 +85,7 @@
 #ifdef CONFIG_ASH_JOB_CONTROL
 #define JOBS 1
 #else
-#undef JOBS
+#define JOBS 0
 #endif
 
 #if JOBS || defined(CONFIG_ASH_READ_NCHARS)
@@ -6647,7 +6647,7 @@ usage:
 }
 #endif /* JOBS */
 
-#if defined(JOBS) || DEBUG
+#if JOBS || DEBUG
 static int
 jobno(const struct job *jp)
 {

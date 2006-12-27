@@ -115,7 +115,7 @@ extern inline
 unsigned long bb_strtoul(const char *arg, char **endp, int base)
 { return bb_strtoull(arg, endp, base); }
 extern inline
-unsigned long bb_strtol(const char *arg, char **endp, int base)
+long bb_strtol(const char *arg, char **endp, int base)
 { return bb_strtoll(arg, endp, base); }
 #else
 unsigned long bb_strtoul(const char *arg, char **endp, int base);
@@ -124,21 +124,21 @@ long bb_strtol(const char *arg, char **endp, int base);
 
 #if UINT_MAX == ULLONG_MAX
 extern inline
-unsigned long bb_strtou(const char *arg, char **endp, int base)
+unsigned bb_strtou(const char *arg, char **endp, int base)
 { return bb_strtoull(arg, endp, base); }
 extern inline
-unsigned long bb_strtoi(const char *arg, char **endp, int base)
+int bb_strtoi(const char *arg, char **endp, int base)
 { return bb_strtoll(arg, endp, base); }
 #elif UINT_MAX == ULONG_MAX
 extern inline
-unsigned long bb_strtou(const char *arg, char **endp, int base)
+unsigned bb_strtou(const char *arg, char **endp, int base)
 { return bb_strtoul(arg, endp, base); }
 extern inline
-unsigned long bb_strtoi(const char *arg, char **endp, int base)
+int bb_strtoi(const char *arg, char **endp, int base)
 { return bb_strtol(arg, endp, base); }
 #else
-unsigned long bb_strtou(const char *arg, char **endp, int base);
-long bb_strtoi(const char *arg, char **endp, int base);
+unsigned bb_strtou(const char *arg, char **endp, int base);
+int bb_strtoi(const char *arg, char **endp, int base);
 #endif
 
 int BUG_bb_strtou32_unimplemented(void);

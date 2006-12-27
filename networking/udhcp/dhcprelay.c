@@ -259,7 +259,8 @@ static void dhcprelay_loop(int *fds, int num_sockets, int max_socket, char **cli
 {
 	struct dhcpMessage dhcp_msg;
 	fd_set rfds;
-	size_t packlen, addr_size;
+	size_t packlen;
+	socklen_t addr_size;
 	struct sockaddr_in client_addr;
 	struct timeval tv;
 	int i;

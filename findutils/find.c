@@ -81,6 +81,7 @@ static inline int one_char(const char* str, char c)
 }
 
 
+#if ENABLE_FEATURE_FIND_EXEC
 static int count_subst(const char *str)
 {
 	int count = 0;
@@ -108,6 +109,7 @@ static char* subst(const char *src, int count, const char* filename)
 	strcpy(dst, src);
 	return buf;
 }
+#endif
 
 
 static int exec_actions(action ***appp, const char *fileName, struct stat *statbuf)
@@ -562,8 +564,8 @@ int find_main(int argc, char **argv)
 			argp[0] = "-a";
 		}
 		argp++;
-	}
 #endif
+	}
 
 	actions = parse_params(&argv[firstopt]);
 

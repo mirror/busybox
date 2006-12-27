@@ -9,6 +9,7 @@
 
 char get_header_ar(archive_handle_t *archive_handle)
 {
+	int err;
 	file_header_t *typed = archive_handle->file_header;
 	union {
 		char raw[60];
@@ -45,15 +46,23 @@ char get_header_ar(archive_handle_t *archive_handle)
 	archive_handle->offset += 60;
 
 	/* align the headers based on the header magic */
-	if ((ar.formatted.magic[0] != '`') || (ar.formatted.magic[1] != '\n')) {
+	if (ar.formatted.magic[0] != '`' || ar.formatted.magic[1] != '\n')
 		bb_error_msg_and_die("invalid ar header");
-	}
 
-	typed->mode = xstrtoul(ar.formatted.mode, 8);
-	typed->mtime = xatou(ar.formatted.date);
-	typed->uid = xatou(ar.formatted.uid);
-	typed->gid = xatou(ar.formatted.gid);
-	typed->size = xatoul(ar.formatted.size);
+	/* FIXME: more thorough routine would be in order here */
+	/* (we have something like that in tar) */
+	/* but for now we are lax. This code works because */
+	/* on misformatted numbers bb_strtou returns all-ones */
+	typed->mode = err = bb_strtou(ar.formatted.mode, NULL, 8);
+	if (err == -1) bb_error_msg_and_die("invalid ar header");
+	typed->mtime = err = bb_strtou(ar.formatted.date, NULL, 10);
+	if (err == -1) bb_error_msg_and_die("invalid ar header");
+	typed->uid = err = bb_strtou(ar.formatted.uid, NULL, 10);
+	if (err == -1) bb_error_msg_and_die("invalid ar header");
+	typed->gid = err = bb_strtou(ar.formatted.gid, NULL, 10);
+	if (err == -1) bb_error_msg_and_die("invalid ar header");
+	typed->size = err = bb_strtou(ar.formatted.size, NULL, 10);
+	if (err == -1) bb_error_msg_and_die("invalid ar header");
 
 	/* long filenames have '/' as the first character */
 	if (ar.formatted.name[0] == '/') {
