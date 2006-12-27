@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# Tests for busybox applet itself.
+# Copyright 2005 by Rob Landley <rob@landley.net>
+# Licensed under GPL v2, see file LICENSE for details.
+
+. testing.sh
+
+HELPDUMP=`busybox`
+
+# We need to test under calling the binary under other names.
+
+
+testing "busybox --help busybox" "busybox --help busybox" "$HELPDUMP\n\n" "" ""
+
+ln -s `which busybox` busybox-suffix
+for i in busybox ./busybox-suffix
+do
+	# The gratuitous "\n"s are due to a shell idiosyncrasy:
+	# environment variables seem to strip trailing whitespace.
+
+	testing "" "$i" "$HELPDUMP\n\n" "" ""
+
+	testing "$i unknown" "$i unknown 2>&1" \
+		"unknown: applet not found\n" "" ""
+
+	testing "$i --help" "$i --help 2>&1" "$HELPDUMP\n\n" "" ""
+
+	optional CAT
+	testing "" "$i cat" "moo" "" "moo"
+	testing "$i --help cat" "$i --help cat 2>&1 | grep prints" \
+		"Concatenates FILE(s) and prints them to stdout.\n" "" ""
+	optional ""
+
+	testing "$i --help unknown" "$i --help unknown 2>&1" \
+		"unknown: applet not found\n" "" ""
+done
+rm busybox-suffix
+
+ln -s `which busybox` unknown
+
+testing "busybox as unknown name" "./unknown 2>&1" \
+	"unknown: applet not found\n" "" ""
+rm unknown
+
+exit $FAILCOUNT

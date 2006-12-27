@@ -1,0 +1,185 @@
+<!--#include file="header.html" -->
+
+
+<ul>
+  <li><b>14 December, 2006 -- BusyBox 1.3.0 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.3.0.tar.bz2>BusyBox 1.3.0</a>.</p>
+
+    <p>This release has CONFIG_DESKTOP option which enables features
+    needed for busybox usage on desktop machine. For example, find, chmod
+    and chown get several less frequently used options, od is significantly
+    bigger but matches GNU coreutils, etc. Intended to eventually make
+    busybox a viable alternative for "standard" utilities for slightly
+    adventurous desktop users.
+    <p>Changes since previous release:
+    <ul>
+    <li>find: taking many more of standard options
+    <li>ps: POSIX-compliant -o implemented
+    <li>cp: added -s, -l
+    <li>grep: added -r, fixed -h
+    <li>watch: make it exec child like standard one does (was totally
+        incompatible)
+    <li>tar: fix limitations which were preventing bbox tar usage 
+        on a big directories: long names and linknames, pax headers
+        (Linux kernel tarballs have that). Fixed a number of obscure bugs.
+        Raised max file limit (now 64Gb). Security fixes (/../ attacks).
+    <li>httpd: added -i (inetd), -f (foreground), support for
+        directory indexer CGI (example is included), bugfixes.
+    <li>telnetd: fixed/improved IPv6 support, inetd+standalone support,
+        other fixes. Useful IPv6 stuff factored out into libbb.
+    <li>runit/*: new applets adapted from http://smarden.sunsite.dk/runit/
+        (these are my personal favorite small-and-beautiful toys)
+    <li>minor bugfixes to: login, dd, mount, umount, chmod, chown, ln, udhcp,
+        fdisk, ifconfig, sort, tee, mkswap, wget, insmod.
+    </ul>
+    <p>Note that GnuPG key used to sign this release is different.
+    1.2.2.1 is also signed post-factum now. Sorry for the mess.
+    </p>
+  </li>
+
+  <li><b>29 October, 2006 -- BusyBox 1.2.2.1 (fix)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.2.2.1.tar.bz2>BusyBox 1.2.2.1</a>.</p>
+
+    <p>Added compile-time warning that static linking against glibc
+    produces buggy executables.
+  </li>
+
+  <li><b>24 October, 2006 -- BusyBox 1.2.2 (stable)</b>
+    <p>It's a bit overdue, but
+    <a href=http://busybox.net/downloads/busybox-1.2.2.tar.bz2>here is
+    BusyBox 1.2.2</a>.</p>
+
+    <p>This release has dozens of fixes backported from the ongoing development
+    branch.  There are a couple of bugfixes to sed, two fixes to documentation
+    generation (BusyBox.html shouldn't have USE() macros in it anymore), fix
+    umount to report the right errno on failure and to umount block devices by
+    name with newer kernels, fix mount to handle symlinks properly, make mdev
+    delete device nodes when called for hotplug remove, fix a segfault
+    in traceroute, a minor portability fix to md5sum option parsing, a build
+    fix for httpd with old gccs, an options parsing tweak to hdparm, make test
+    fail gracefully when getgroups() returns -1, fix a race condition in
+    modprobe when two instances run at once (hotplug does this), make "tar xf
+    foo.tar dir/dir" extract all subdirectories, make our getty initialize the
+    terminal more like mingetty, an selinux build fix, an endianness fix in
+    ping6, fix for zcip defending addresses, clean up some global variables in
+    gzip to save memory, fix sulogin -tNNN, a help text tweak, several warning
+    fixes and build fixes, fixup dnsd a bit, and a partridge in a pear tree.</p>
+
+    <p>As <a href=http://lwn.net/Articles/202106/>Linux Weekly News noted</a>,
+    this is my (Rob's) last release of BusyBox.  The new maintainer is Denis
+    Vlasenko, I'm off to do <a href=http://landley.net/code>other things</a>.
+    </p>
+  </li>
+
+  <li><b>29 September, 2006 -- New license email address.</b>
+    <p>The email address gpl@busybox.net is now the recommended way to contact
+    the Software Freedom Law Center to report BusyBox license violations.</p>
+
+  <li><b>31 July 2006 -- BusyBox 1.2.1 (stable)</b>
+    <p>Since nobody seems to have objected too loudly over the weekend, I
+    might as well point you all at
+    <a href="http://busybox.net/downloads/busybox-1.2.1.tar.bz2">Busybox
+    1.2.1</a>, a bugfix-only release with no new features.</p>
+
+    <p>It has three shell fixes (two to lash: going "var=value" without
+    saying "export" should now work, plus a missing null pointer check, and
+    one to ash when redirecting output to a file that fills up.)  Fix three
+    embarassing thinkos in the new dmesg command.  Two build tweaks
+    (dependencies for the compressed usage messages and running make in the
+    libbb subdirectory).  One fix to tar so it can extract git-generated
+    tarballs (rather than barfing on the pax extensions).  And a partridge
+    in a pear...  Ahem.</p>
+
+    <p>But wait, there's more!  A passwd changing fix so an empty
+    gecos field doesn't trigger a false objection that the new passwd contains
+    the gecos field.  Make all our setuid() and setgid() calls check the return
+    value in case somebody's using per-process resource limits that prevent
+    a user from having too many processes (and thus prevent a process from
+    switching away from root, in which case the process will now _die_ rather
+    than continue with root privileges).  A fix to adduser to make sure that
+    /etc/group gets updated.  And a fix to modprobe to look for modules.conf
+    in the right place on 2.6 kernels.</p>
+
+  <li><b>30 June 2006 -- BusyBox 1.2.0</b>
+    <p>The -devel branch has been stabilized and the result is
+    <a href="http://busybox.net/downloads/busybox-1.2.0.tar.bz2">Busybox
+    1.2.0</a>.  Lots of stuff changed, I need to work up a decent changelog
+    over the weekend.</p>
+
+    <p>I'm still experimenting with how long is best for the development
+    cycle, and since we've got some largeish projects queued up I'm going to
+    try a longer one.  Expect 1.3.0 in December.  (Expect 1.2.1 any time
+    we fix enough bugs. :)</p>
+
+    <p>Update: Here are <a href="http://busybox.net/downloads/busybox-1.2.0.fixes.patch">the first few bug fixes</a> that will go into 1.2.1.</p>
+
+  <li><b>17 May 2006 -- BusyBox 1.1.3 (stable)</b>
+    <p><a href="http://busybox.net/downloads/busybox-1.1.3.tar.bz2">BusyBox
+    1.1.3</a> is another bugfix release.  It makes passwd use salt, fixes a
+    memory freeing bug in ls, fixes "build all sources at once" mode, makes
+    mount -a not abort on the first failure, fixes msh so ctrl-c doesn't kill
+    background processes, makes patch work with patch hunks that don't have a
+    timestamp, make less's text search a lot more robust (the old one could
+    segfault), and fixes readlink -f when built against uClibc.</p>
+
+    <p>Expect 1.2.0 sometime next month, which won't be a bugfix release.</p>
+
+  <li><b>10 April 2006 -- BusyBox 1.1.2 (stable)</b>
+    <p>You can now download <a href="http://busybox.net/downloads/busybox-1.1.2.tar.bz2">BusyBox 1.1.2</a>, a bug fix release consisting of 11 patches
+    backported from the development branch: Some build fixes, several fixes
+    for mount and nfsmount, a fix for insmod on big endian systems, a fix for
+    find -xdev, and a fix for comm.  Check the file "changelog" in the tarball
+    for more info.</p>
+
+    <p>The next new development release (1.2.0) is slated for June.  A 1.1.3
+    will be released before then if more bug fixes crop up.  (The new plan is
+    to have a 1.x.0 new development release every 3 months, with 1.x.y stable
+    bugfix only releases based on that as appropriate.)</p>
+
+  <li><b>27 March 2006 -- Software Freedom Law Center representing BusyBox and uClibc</b>
+    <p>One issue Erik Andersen wanted to resolve when handing off BusyBox
+    maintainership to Rob Landley was license enforcement.  BusyBox and
+    uClibc's existing license enforcement efforts (pro-bono representation
+    by Erik's father's law firm, and the
+    <a href="http://www.busybox.net/shame.html">Hall of Shame</a>), haven't
+    scaled to match the popularity of the projects.  So we put our heads
+    together and did the obvious thing: ask Pamela Jones of
+    <a href="http://www.groklaw.net">Groklaw</a> for suggestions.  She
+    referred us to the fine folks at softwarefreedom.org.</p>
+
+    <p>As a result, we're pleased to announce that the
+    <a href="http://www.softwarefreedom.org">Software Freedom Law Center</a>
+    has agreed to represent BusyBox and uClibc.  We join a number of other
+    free and open source software projects (such as
+    <a href="http://lwn.net/Articles/141806/">X.org</a>,
+    <a href="http://lwn.net/Articles/135413/">Wine</a>, and
+    <a href="http://plone.org/foundation/newsitems/software-freedom-law-center-support/">Plone</a>
+    in being represented by a fairly cool bunch of lawyers, which is not a
+    phrase you get to use every day.</p>
+
+  <li><b>22 March 2006 -- BusyBox 1.1.1</b>
+    <p>The new maintainer is Rob Landley, and the new release is <a href="http://busybox.net/downloads/busybox-1.1.1.tar.bz2">BusyBox 1.1.1</a>.  Expect a "what's new" document in a few days.  (Also, Erik and I have have another announcement pending...)</p>
+    <p>Update: Rather than put out an endless stream of 1.1.1.x releases,
+    the various small fixes have been collected together into a
+    <a href="http://busybox.net/downloads/busybox-1.1.1.fixes.patch">patch</a>,
+    and new fixes will be appended to that as needed.  Expect 1.1.2 around
+    June.</p>
+  </li>
+  <li><b>11 January 2006 -- 1.1.0 is out</b>
+    <p>The new stable release is
+    <a href="http://www.busybox.net/downloads/busybox-1.1.0.tar.bz2">BusyBox
+    1.1.0</a>.  It has a number of improvements, including several new applets.
+    (It also has <a href="http://www.busybox.net/lists/busybox/2006-January/017733.html">a few rough spots</a>,
+    but we're trying out a "release early, release often" strategy to see how
+    that works.  Expect 1.1.1 sometime in March.)</p>
+
+    <li><b>Old News</b><p>
+    <a href="/oldnews.html">Click here to read older news</a>
+    </p>
+    </li>
+
+
+</ul>
+
+<!--#include file="footer.html" -->
+

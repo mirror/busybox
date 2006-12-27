@@ -1,0 +1,309 @@
+Busybox TODO
+
+Stuff that needs to be done.  This is organized by who plans to get around to
+doing it eventually, but that doesn't mean they "own" the item.  If you want to
+do one of these bounce an email off the person it's listed under to see if they
+have any suggestions how they plan to go about it, and to minimize conflicts
+between your work and theirs.  But otherwise, all of these are fair game.
+
+Rob Landley <rob@landley.net>:
+  Add BB_NOMMU to platform.h and migrate __uClinux__ tests to that.
+    #if defined __UCLIBC__ && !defined __ARCH_USE_MMU__
+  Add a libbb/platform.c
+    Implement fdprintf() for platforms that haven't got one.
+    Implement bb_realpath() that can handle NULL on non-glibc.
+    Cleanup bb_asprintf()
+
+  Migrate calloc() and bb_calloc() occurrences to bb_xzalloc().
+  Remove obsolete _() wrapper crud for internationalization we don't do.
+  Figure out where we need utf8 support, and add it.
+
+  sh
+    The command shell situation is a big mess.  We have three or four different
+    shells that don't really share any code, and the "standalone shell" doesn't
+    work all that well (especially not in a chroot environment), due to apps not
+    being reentrant.  I'm writing a new shell (bbsh) to unify the various
+    shells and configurably add the minimal set of bash features people
+    actually use.  The hardest part is it has to configure down as small as
+    lash while providing lash's features.  The rest is easy in comparison.
+  bzip2
+    Compression-side support.
+  init
+    General cleanup (should use ENABLE_FEATURE_INIT_SYSLOG and ENABLE_FEATURE_INIT_DEBUG).
+  depmod
+    busybox lacks a way to update module deps when running from firmware without the
+    use of the depmod.pl (perl is to bloated for most embedded setups) and or orig
+    modutils. The orig depmod is rather pointless to have to add to a firmware image
+    in when we already have a insmod/rmmod and friends.
+  Unify base64 handling.
+    There's base64 encoding and decoding going on in:
+      networking/wget.c:base64enc()
+      coreutils/uudecode.c:read_base64()
+      coreutils/uuencode.c:tbl_base64[]
+      networking/httpd.c:decodeBase64()
+    And probably elsewhere.  That needs to be unified into libbb functions.
+  Do a SUSv3 audit
+    Look at the full Single Unix Specification version 3 (available online at
+    "http://www.opengroup.org/onlinepubs/009695399/nfindex.html") and
+    figure out which of our apps are compliant, and what we're missing that
+    we might actually care about.
+
+    Even better would be some kind of automated compliance test harness that
+    exercises each command line option and the various corner cases.
+  Internationalization
+    How much internationalization should we do?
+
+    The low hanging fruit is UTF-8 character set support.  We should do this.
+    (Vodz pointed out the shell's cmdedit as needing work here.  What else?)
+
+    We also have lots of hardwired english text messages.  Consolidating this
+    into some kind of message table not only makes translation easier, but
+    also allows us to consolidate redundant (or close) strings.
+
+    We probably don't want to be bloated with locale support.  (Not unless we
+    can cleanly export it from our underlying C library without having to
+    concern ourselves with it directly.  Perhaps a few specific things like a
+    config option for "date" are low hanging fruit here?)
+
+    What level should things happen at?  How much do we care about
+    internationalizing the text console when X11 and xterms are so much better
+    at it?  (There's some infrastructure here we don't implement: The
+    "unicode_start" and "unicode_stop" shell scripts need "vt-is-UTF8" and a
+    --unicode option to loadkeys.  That implies a real loadkeys/dumpkeys
+    implementation to replace loadkmap/dumpkmap.  Plus messing with console font
+    loading.  Is it worth it, or do we just say "use X"?)
+
+  Individual compilation of applets.
+    It would be nice if busybox had the option to compile to individual applets,
+    for people who want an alternate implementation less bloated than the gnu
+    utils (or simply with less political baggage), but without it being one big
+    executable.
+
+    Turning libbb into a real dll is another possibility, especially if libbb
+    could export some of the other library interfaces we've already more or less
+    got the code for (like zlib).
+  buildroot - Make a "dogfood" option
+    Busybox 1.1 will be capable of replacing most gnu packages for real world
+    use, such as developing software or in a live CD.  It needs wider testing.
+
+    Busybox should now be able to replace bzip2, coreutils, e2fsprogs, file,
+    findutils, gawk, grep, inetutils, less, modutils, net-tools, patch, procps,
+    sed, shadow, sysklogd, sysvinit, tar, util-linux, and vim.  The resulting
+    system should be self-hosting (I.E. able to rebuild itself from source
+    code).  This means it would need (at least) binutils, gcc, and make, or
+    equivalents.
+
+    It would be a good "eating our own dogfood" test if buildroot had the option
+    of using a "make allyesconfig" busybox instead of the all of the above
+    packages.  Anything that's wrong with the resulting system, we can fix.  (It
+    would be nice to be able to upgrade busybox to be able to replace bash and
+    diffutils as well, but we're not there yet.)
+
+    One example of an existing system that does this already is Firmware Linux:
+      http://www.landley.net/code/firmware
+  initramfs
+    Busybox should have a sample initramfs build script.  This depends on
+    bbsh, mdev, and switch_root.
+  mkdep
+    Write a mkdep that doesn't segfault if there's a directory it doesn't
+    have permission to read, isn't based on manually editing the output of
+    lexx and yacc, doesn't make such a mess under include/config, etc.
+  Group globals into unions of structures.
+    Go through and turn all the global and static variables into structures,
+    and have all those structures be in a big union shared between processes,
+    so busybox uses less bss.  (This is a big win on nommu machines.)  See
+    sed.c and mdev.c for examples.
+  Go through bugs.busybox.net and close out all of that somehow.
+    This one's open to everybody, but I'll wind up doing it...
+
+
+Bernhard Fischer <busybox@busybox.net> suggests to look at these:
+  New debug options:
+    -Wlarger-than-127
+    Cleanup any big users
+    -Wunused-parameter
+    Facilitate applet PROTOTYPES to provide means for having applets that
+    do a) not take any arguments b) need only one of argc or argv c) need
+    both argc and argv. All of these three options should go for the most
+    feature complete denominator.
+  Collate BUFSIZ IOBUF_SIZE MY_BUF_SIZE PIPE_PROGRESS_SIZE BUFSIZE PIPESIZE
+    make bb_common_bufsiz1 configurable, size wise.
+    make pipesize configurable, size wise.
+    Use bb_common_bufsiz1 throughout applets!
+  Add chrt applet. Please CC Bernhard if you suggest a patch.
+
+As yet unclaimed:
+
+----
+find
+  doesn't understand (), lots of susv3 stuff.
+----
+diff
+  Make sure we handle empty files properly:
+    From the patch man page:
+
+    you can remove a file by sending out a context diff that compares
+    the file to be deleted with an empty file dated the Epoch.  The
+    file will be removed unless patch is conforming to POSIX and the
+    -E or --remove-empty-files option is not given.
+---
+patch
+  Should have simple fuzz factor support to apply patches at an offset which
+  shouldn't take up too much space.
+
+  And while we're at it, a new patch filename quoting format is apparently
+  coming soon:  http://marc.theaimsgroup.com/?l=git&m=112927316408690&w=2
+---
+man
+  It would be nice to have a man command.  Not one that handles troff or
+  anything, just one that can handle preformatted ascii man pages, possibly
+  compressed.  This could probably be a script in the extras directory that
+  calls cat/zcat/bzcat | less
+
+  (How doclifter might work into this is anybody's guess.)
+---
+ar
+  Write support?
+---
+
+Architectural issues:
+
+bb_close() with fsync()
+  We should have a bb_close() in place of normal close, with a CONFIG_ option
+  to not just check the return value of close() for an error, but fsync().
+  Close can't reliably report anything useful because if write() accepted the
+  data then it either went out to the network or it's in cache or a pipe
+  buffer.  Either way, there's no guarantee it'll make it to its final
+  destination before close() gets called, so there's no guarantee that any
+  error will be reported.
+
+  You need to call fsync() if you care about errors that occur after write(),
+  but that can have a big performance impact.  So make it a config option.
+---
+Unify archivers
+  Lots of archivers have the same general infrastructure.  The directory
+  traversal code should be factored out, and the guts of each archiver could
+  be some setup code and a series of callbacks for "add this file",
+  "add this directory", "add this symlink" and so on.
+
+  This could clean up tar and zip, and make it cheaper to add cpio and ar
+  write support, and possibly even cheaply add things like mkisofs or
+  mksquashfs someday, if they become relevant.
+---
+Text buffer support.
+  Several existing applets (sort, vi, less...) read
+  a whole file into memory and act on it.  There might be an opportunity
+  for shared code in there that could be moved into libbb...
+---
+Memory Allocation
+  We have a CONFIG_BUFFER mechanism that lets us select whether to do memory
+  allocation on the stack or the heap.  Unfortunately, we're not using it much.
+  We need to audit our memory allocations and turn a lot of malloc/free calls
+  into RESERVE_CONFIG_BUFFER/RELEASE_CONFIG_BUFFER.
+  For a start, see e.g. make EXTRA_CFLAGS=-Wlarger-than-64
+
+  And while we're at it, many of the CONFIG_FEATURE_CLEAN_UP #ifdefs will be
+  optimized out by the compiler in the stack allocation case (since there's no
+  free for an alloca()), and this means that various cleanup loops that just
+  call free might also be optimized out by the compiler if written right, so
+  we can yank those #ifdefs too, and generally clean up the code.
+---
+Switch CONFIG_SYMBOLS to ENABLE_SYMBOLS
+
+  In busybox 1.0 and earlier, configuration was done by CONFIG_SYMBOLS
+  that were either defined or undefined to indicate whether the symbol was
+  selected in the .config file.  They were used with #ifdefs, ala:
+
+    #ifdef CONFIG_SYMBOL
+      if (other_test) {
+        do_code();
+      }
+    #endif
+
+  In 1.1, we have new ENABLE_SYMBOLS which are always defined (as 0 or 1),
+  meaning you can still use them for preprocessor tests by replacing
+  "#ifdef CONFIG_SYMBOL" with "#if ENABLE_SYMBOL".  But more importantly, we
+  can use them as a true or false test in normal C code:
+
+    if (ENABLE_SYMBOL && other_test) {
+      do_code();
+    }
+
+  (Optimizing away if() statements that resolve to a constant value
+  is known as "dead code elimination", an optimization so old and simple that
+  Turbo Pascal for DOS did it twenty years ago.  Even modern mini-compilers
+  like the Tiny C Compiler (tcc) and the Small Device C Compiler (SDCC)
+  perform dead code elimination.)
+
+  Right now, busybox.h is #including both "config.h" (defining the
+  CONFIG_SYMBOLS) and "bb_config.h" (defining the ENABLE_SYMBOLS).  At some
+  point in the future, it would be nice to wean ourselves off of the
+  CONFIG versions.  (Among other things, some defective build environments
+  leak the Linux kernel's CONFIG_SYMBOLS into the system's standard #include
+  files.  We've experienced collisions before.)
+---
+FEATURE_CLEAN_UP
+  This is more an unresolved issue than a to-do item.  More thought is needed.
+
+  Normally we rely on exit() to free memory, close files, and unmap segments
+  for us.  This makes most calls to free(), close(), and unmap() optional in
+  busybox applets that don't intend to run for very long, and optional stuff
+  can be omitted to save size.
+
+  The idea was raised that we could simulate fork/exit with setjmp/longjmp
+  for _really_ brainless embedded systems, or speed up the standalone shell
+  by not forking.  Doing so would require a reliable FEATURE_CLEAN_UP.
+  Unfortunately, this isn't as easy as it sounds.
+
+  The problem is, lots of things exit(), sometimes unexpectedly (xmalloc())
+  and sometimes reliably (bb_perror_msg_and_die() or show_usage()).  This
+  jumps out of the normal flow control and bypasses any cleanup code we
+  put at the end of our applets.
+
+  It's possible to add hooks to libbb functions like xmalloc() and xopen()
+  to add their entries to a linked list, which could be traversed and
+  freed/closed automatically.  (This would need to be able to free just the
+  entries after a checkpoint to be usable for a forkless standalone shell.
+  You don't want to free the shell's own resources.)
+
+  Right now, FEATURE_CLEAN_UP is more or less a debugging aid, to make things
+  like valgrind happy.  It's also documentation of _what_ we're trusting
+  exit() to clean up for us.  But new infrastructure to auto-free stuff would
+  render the existing FEATURE_CLEAN_UP code redundant.
+
+  For right now, exit() handles it just fine.
+
+
+
+Minor stuff:
+  watchdog.c could autodetect the timer duration via:
+    if(!ioctl (fd, WDIOC_GETTIMEOUT, &tmo)) timer_duration = 1 + (tmo / 2);
+  Unfortunately, that needs linux/watchdog.h and that contains unfiltered
+  kernel types on some distros, which breaks the build.
+---
+  use bb_error_msg where appropriate: See
+  egrep "(printf.*\([[:space:]]*(stderr|2)|[^_]write.*\([[:space:]]*(stderr|2))"
+---
+  use bb_perror_msg where appropriate: See
+  egrep "[^_]perror"
+---
+  Remove superfluous fmt occurances: e.g.
+  fprintf(stderr, "%s: %s not found\n", "unalias", *argptr);
+  -> fprintf(stderr, "unalias: %s not found\n", *argptr);
+---
+  possible code duplication ingroup() and is_a_group_member()
+---
+  Move __get_hz() to a better place and (re)use it in route.c, ash.c, msh.c
+---
+
+
+Code cleanup:
+
+Replace deprecated functions.
+
+bzero() -> memset()
+---
+sigblock(), siggetmask(), sigsetmask(), sigmask() -> sigprocmask et al
+---
+vdprintf() -> similar sized functionality
+---

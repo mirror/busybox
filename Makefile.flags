@@ -1,0 +1,28 @@
+# ==========================================================================
+# Build system
+# ==========================================================================
+
+BB_VER = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
+
+# -std=gnu99 needed for [U]LLONG_MAX on some systems
+
+CPPFLAGS += \
+	-std=gnu99 \
+	-Iinclude -Ilibbb \
+	$(if $(KBUILD_SRC),-Iinclude2 -I$(srctree)/include) -I$(srctree)/libbb \
+	-include include/autoconf.h \
+	-D_GNU_SOURCE -DNDEBUG \
+	$(if $(CONFIG_LFS),-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64) \
+	-D"BB_VER=KBUILD_STR($(BB_VER))" -DBB_BT=AUTOCONF_TIMESTAMP
+
+CFLAGS += \
+	-Wall -Wstrict-prototypes -Wshadow -Werror -Wundef \
+	-funsigned-char -fno-builtin-strlen -finline-limit=0 -static-libgcc \
+	-Os -falign-functions=1 -falign-jumps=1 -falign-loops=1 \
+	-fomit-frame-pointer -ffunction-sections -fdata-sections
+
+ifeq ($(CONFIG_DEBUG),y)
+CFLAGS += -g
+LDFLAGS += -g
+endif
+

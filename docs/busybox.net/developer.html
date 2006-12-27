@@ -1,0 +1,69 @@
+<!--#include file="header.html" -->
+
+<h3>Morris Dancing</h3>
+
+<p>Subversion commit access requires an account on Morris.  The server
+behind busybox.net and uclibc.org.  If you want to be able to commit things to
+Subversion, first contribute some stuff to show you are serious, can handle
+some responsibility, and that your patches don't generally need a lot of
+cleanup.  Then, very nicely ask one of us (<a href="mailto:rob@landley.net">Rob
+Landley</a> for BusyBox, or <a href="mailto:andersen@codepoet.org">Erik
+Andersen</a> for uClibc) for an account.</p>
+
+<p>If you're approved for an account, you'll need to send an email from your
+preferred contact email address with the username you'd like to use when
+committing changes to SVN, and attach a public ssh key to access your account
+with.</p>
+
+<p>If you don't currently have an ssh version 2 DSA key at least 1024 bits
+long (the default), you can generate a key using the
+command <b>ssh-keygen -t dsa</b> and hitting enter at the prompts.  This
+will create the files <b>~/.ssh/id_dsa</b> and <b>~/.ssh/id_dsa.pub</b>
+You must then send the content of 'id_dsa.pub' to me so I can set up your
+account.  (The content of 'id_dsa' should of course be kept secret, anyone
+who has that can access any account that's installed your public key in
+its <b>.ssh/authorized_keys</b> file.)</p>
+
+<p>Note that if you would prefer to keep your communications with us
+private, you can encrypt your email using
+<a href="http://landley.net/pubkey.gpg">Rob's public key</a> or
+<a href="http://www.codepoet.org/andersen/erik/gpg.asc">Erik's public
+key</a>.</p>
+
+<p>Once you are setup with an account, you will need to use your account to
+checkout a copy of BusyBox from Subversion:</p>
+
+<p><b>svn checkout svn+ssh://username@busybox.net/svn/trunk/busybox</b></p>
+<p>or</p>
+<p><b>svn checkout svn+ssh://username@uclibc.org/svn/trunk/uclibc</b></p>
+
+<p>You must change <em>username</em> to your own username, or omit
+it if it's the same as your local username.</p>
+
+<p>You can then enter the newly checked out project directory, make changes,
+check your changes, diff your changes, revert your changes, and and commit your
+changes using commands such as:</p>
+
+<b><pre>
+svn diff
+svn status
+svn revert
+EDITOR=vi svn commit
+svn log -v -r PREV:HEAD
+svn help
+</pre></b>
+
+<p>For additional detail on how to use Subversion, please visit the
+<a href="http://subversion.tigris.org/">the Subversion website</a>.
+You might also want to read online or buy a copy of <a
+href="http://svnbook.red-bean.com/">the Subversion Book</a>...</p>
+
+<p>A morris account also gives you a personal web page
+(http://busybox.net/~username comes from ~/public_html on morris), and of
+course a shell prompt you can ssh into (as a regular user, root access is
+reserved for Erik and Rob).  But keep in mind an account on Morris is a
+priviledge, not a requirement.  Most contributors to busybox and uClibc
+haven't got one, and accounts are handed out to make the project maintainers'
+lives easier, not because "you deserve it".</p>
+
+<!--#include file="footer.html" -->

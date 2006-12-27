@@ -1,0 +1,4 @@
+[ -n "$d" ] || d=..
+LC_ALL=C ls -1s "$d" > logfile.gnu
+busybox ls -1s "$d" > logfile.bb
+cmp logfile.gnu logfile.bb
