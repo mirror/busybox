@@ -983,7 +983,7 @@ static void showfiles(void)
 
 		for (nc = 1; nc < ncols && n+nrows < nfiles; n += nrows, nc++) {
 			printf("%s%-*s", matches[n],
-				column_width - strlen(matches[n]), "");
+				(int)(column_width - strlen(matches[n])), "");
 		}
 		printf("%s\n", matches[n]);
 	}
