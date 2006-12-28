@@ -41,7 +41,6 @@ int sulogin_main(int argc, char **argv)
 	char *timeout_arg;
 	const char * const *p;
 	struct passwd *pwd;
-	struct spwd *spwd;
 	const char *shell;
 
 	logmode = LOGMODE_BOTH;
@@ -76,7 +75,7 @@ int sulogin_main(int argc, char **argv)
 	}
 
 	if (ENABLE_FEATURE_SHADOWPASSWDS) {
-		spwd = getspnam(pwd->pw_name);
+		struct spwd *spwd = getspnam(pwd->pw_name);
 		if (!spwd) {
 			goto auth_error;
 		}

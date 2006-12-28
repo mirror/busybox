@@ -89,19 +89,16 @@ int id_main(int argc, char **argv)
 
 #ifdef CONFIG_SELINUX
 	if (is_selinux_enabled()) {
-			security_context_t mysid;
-			char context[80];
-			int len = sizeof(context);
+		security_context_t mysid;
+		const char *context;
 
-			getcon(&mysid);
-			context[0] = '\0';
-			if (mysid) {
-				len = strlen(mysid)+1;
-				safe_strncpy(context, mysid, len);
-				freecon(mysid);
-			} else {
-				safe_strncpy(context, "unknown", 8);
-			}
+		context = "unknown";
+		getcon(&mysid);
+		if (mysid) {
+			context = alloca(strlen(mysid) + 1);
+			strcpy((char*)context, mysid);
+			freecon(mysid);
+		}
 		printf(" context=%s", context);
 	}
 #endif

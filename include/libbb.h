@@ -51,9 +51,7 @@
 
 #include "pwd_.h"
 #include "grp_.h"
-#if ENABLE_FEATURE_SHADOWPASSWDS
 #include "shadow_.h"
-#endif
 
 /* Try to pull in PATH_MAX */
 #include <limits.h>
