@@ -274,7 +274,7 @@ int start_stop_daemon_main(int argc, char **argv)
 	if (userspec) {
 		user_id = bb_strtou(userspec, NULL, 10);
 		if (errno)
-			user_id = bb_xgetpwnam(userspec);
+			user_id = xuname2uid(userspec);
 	}
 
 	if (opt & CTX_STOP) {
@@ -305,7 +305,7 @@ int start_stop_daemon_main(int argc, char **argv)
 	if (chuid) {
 		user_id = bb_strtou(chuid, NULL, 10);
 		if (errno)
-			user_id = bb_xgetpwnam(chuid);
+			user_id = xuname2uid(chuid);
 		xsetuid(user_id);
 	}
 #if ENABLE_FEATURE_START_STOP_DAEMON_FANCY

@@ -62,8 +62,8 @@ int id_main(int argc, char **argv)
 
 	if (argv[optind]) {
 		p = getpwnam(argv[optind]);
-		/* bb_xgetpwnam is needed because it exits on failure */
-		uid = bb_xgetpwnam(argv[optind]);
+		/* xuname2uid is needed because it exits on failure */
+		uid = xuname2uid(argv[optind]);
 		gid = p->pw_gid;
 		/* in this case PRINT_REAL is the same */
 	}

@@ -441,7 +441,7 @@ static void parse_tune2fs_options(int argc, char **argv)
 			case 'g':
 				resgid = bb_strtoul(optarg, NULL, 10);
 				if (errno)
-					resgid = bb_xgetgrnam(optarg);
+					resgid = xgroup2gid(optarg);
 				g_flag = 1;
 				open_flag = EXT2_FLAG_RW;
 				break;
@@ -535,7 +535,7 @@ static void parse_tune2fs_options(int argc, char **argv)
 			case 'u':
 				resuid = bb_strtoul(optarg, NULL, 10);
 				if (errno)
-					resuid = bb_xgetpwnam(optarg);
+					resuid = xuname2uid(optarg);
 				u_flag = 1;
 				open_flag = EXT2_FLAG_RW;
 				break;

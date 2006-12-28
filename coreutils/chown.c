@@ -54,32 +54,38 @@ static int fileAction(const char *fileName, struct stat *statbuf,
 
 int chown_main(int argc, char **argv)
 {
-	int retval = EXIT_SUCCESS;
 	char *groupName;
+	int retval = EXIT_SUCCESS;
 
 	opt_complementary = "-2";
 	getopt32(argc, argv, OPT_STR);
+	argv += optind;
 
 	if (OPT_NODEREF) chown_func = lchown;
 
-	argv += optind;
-
 	/* First, check if there is a group name here */
-	groupName = strchr(*argv, '.');
+	groupName = strchr(*argv, '.'); /* deprecated? */
 	if (!groupName) {
 		groupName = strchr(*argv, ':');
 	}
 
-	/* Check for the username and groupname */
-	if (groupName) {
-		*groupName++ = '\0';
-		gid = get_ug_id(groupName, bb_xgetgrnam);
+	/* First, try parsing "user[:[group]]" */
+        if (!groupName) { /* "user" */
+		uid = get_ug_id(*argv, xuname2uid);
+	} else if (groupName == *argv) { /* ":group" */
+		gid = get_ug_id(groupName + 1, xgroup2gid);
+	} else {
+    		struct bb_uidgid_t ugid;
+		if (!groupName[1]) /* "user:" */
+			*groupName = '\0';
+		if (!get_uidgid(&ugid, *argv, 1))
+			bb_error_msg_and_die("unknown user/group %s", *argv);
+		uid = ugid.uid;
+		gid = ugid.gid;
 	}
-	if (--groupName != *argv)
-		uid = get_ug_id(*argv, bb_xgetpwnam);
-	++argv;
 
 	/* Ok, ready to do the deed now */
+	argv++;
 	do {
 		if (!recursive_action(*argv,
 				OPT_RECURSE,	// recurse

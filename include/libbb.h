@@ -338,17 +338,20 @@ uint16_t xatou16(const char *numstr);
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which
  * increases target size and is often not needed on embedded systems.  */
-extern long bb_xgetpwnam(const char *name);
-extern long bb_xgetgrnam(const char *name);
-/*extern char *bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);*/
-extern char *bb_getpwuid(char *name, long uid, int bufsize);
-extern char *bb_getgrgid(char *group, long gid, int bufsize);
-/* from chpst */
+extern long xuname2uid(const char *name);
+extern long xgroup2gid(const char *name);
+/* wrapper: allows string to contain numeric uid or gid */
+extern unsigned long get_ug_id(const char *s, long (*xname2id)(const char *));
+/* from chpst. Does not die, returns 0 on failure */
 struct bb_uidgid_t {
         uid_t uid;
         gid_t gid;
 };
-extern unsigned uidgid_get(struct bb_uidgid_t*, const char* /*, unsigned*/);
+extern int get_uidgid(struct bb_uidgid_t*, const char*, int numeric_ok);
+/* what is this? */
+/*extern char *bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);*/
+extern char *bb_getpwuid(char *name, long uid, int bufsize);
+extern char *bb_getgrgid(char *group, long gid, int bufsize);
 
 
 enum { BB_GETOPT_ERROR = 0x80000000 };
@@ -484,7 +487,6 @@ extern void vfork_daemon_rexec(int nochdir, int noclose,
 		int argc, char **argv, char *foreground_opt);
 #endif
 extern int get_terminal_width_height(int fd, int *width, int *height);
-extern unsigned long get_ug_id(const char *s, long (*__bb_getxxnam)(const char *));
 
 int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);

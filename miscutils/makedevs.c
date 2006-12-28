@@ -127,8 +127,8 @@ int makedevs_main(int argc, char **argv)
 			continue;
 		}
 
-		gid = (*group) ? get_ug_id(group, bb_xgetgrnam) : getgid();
-		uid = (*user) ? get_ug_id(user, bb_xgetpwnam) : getuid();
+		gid = (*group) ? get_ug_id(group, xgroup2gid) : getgid();
+		uid = (*user) ? get_ug_id(user, xuname2uid) : getuid();
 		full_name = concat_path_file(rootdir, name);
 
 		if (type == 'd') {

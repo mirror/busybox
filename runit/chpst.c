@@ -59,7 +59,7 @@ static void suidgid(char *user)
 {
 	struct bb_uidgid_t ugid;
 
-	if (!uidgid_get(&ugid, user)) {
+	if (!get_uidgid(&ugid, user, 1)) {
 		bb_error_msg_and_die("unknown user/group: %s", user);
 	}
 	if (setgroups(1, &ugid.gid) == -1)
@@ -72,7 +72,7 @@ static void euidgid(char *user)
 {
 	struct bb_uidgid_t ugid;
 
-	if (!uidgid_get(&ugid, user)) {
+	if (!get_uidgid(&ugid, user, 1)) {
 		bb_error_msg_and_die("unknown user/group: %s", user);
 	}
 	xsetenv("GID", utoa(ugid.gid));

@@ -157,7 +157,7 @@ static int adduser(struct passwd *p, unsigned long flags)
  * gecos
  *
  * can be customized via command-line parameters.
- * ________________________________________________________________________ */
+ */
 int adduser_main(int argc, char **argv)
 {
 	struct passwd pw;
@@ -187,7 +187,7 @@ int adduser_main(int argc, char **argv)
 	pw.pw_name = argv[optind];
 	pw.pw_passwd = "x";
 	pw.pw_uid = 0;
-	pw.pw_gid = (usegroup) ? bb_xgetgrnam(usegroup) : 0; /* exits on failure */
+	pw.pw_gid = usegroup ? xgroup2gid(usegroup) : 0; /* exits on failure */
 
 	/* grand finale */
 	return adduser(&pw, flags);
