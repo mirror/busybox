@@ -2797,7 +2797,6 @@ int fdisk_main(int argc, char **argv)
 {
 	char *str_b, *str_C, *str_H, *str_S;
 	unsigned opt;
-	int c;
 	/*
 	 *  fdisk -v
 	 *  fdisk -l [-b sectorsize] [-u] device ...
@@ -2921,6 +2920,7 @@ int fdisk_main(int argc, char **argv)
 	}
 
 	while (1) {
+		int c;
 		putchar('\n');
 		c = tolower(read_nonempty(_("Command (m for help): ")));
 		switch (c) {

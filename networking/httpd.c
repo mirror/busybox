@@ -338,7 +338,9 @@ static int scan_ip_mask(const char *ipm, unsigned int *ip, unsigned int *mask)
 	return 0;
 }
 
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH \
+ || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES \
+ || ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 static void free_config_lines(Htaccess **pprev)
 {
 	Htaccess *prev = *pprev;
@@ -387,8 +389,11 @@ static void parse_conf(const char *path, int flag)
 {
 	FILE *f;
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
-	Htaccess *prev, *cur;
-#elif ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES
+	Htaccess *prev;
+#endif
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH \
+ || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES \
+ || ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	Htaccess *cur;
 #endif
 
@@ -410,7 +415,9 @@ static void parse_conf(const char *path, int flag)
 
 	config->flg_deny_all = 0;
 
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES || ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH \
+ || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES \
+ || ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 	/* retain previous auth and mime config only for subdir parse */
 	if (flag != SUBDIR_PARSE) {
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -559,7 +566,9 @@ static void parse_conf(const char *path, int flag)
 		}
 #endif
 
-#if ENABLE_FEATURE_HTTPD_BASIC_AUTH || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES || ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
+#if ENABLE_FEATURE_HTTPD_BASIC_AUTH \
+ || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES \
+ || ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 		/* storing current config line */
 		cur = calloc(1, sizeof(Htaccess) + strlen(p0));
 		if (cur) {
@@ -1305,8 +1314,9 @@ static int checkPermIP(void)
 
 	/* This could stand some work */
 	for (cur = config->ip_a_d; cur; cur = cur->next) {
-		if (DEBUG)
-			fprintf(stderr, "checkPermIP: '%s' ? ", config->rmt_ip_str);
+#if DEBUG
+		fprintf(stderr, "checkPermIP: '%s' ? ", config->rmt_ip_str);
+#endif
 		if (DEBUG)
 			fprintf(stderr, "'%u.%u.%u.%u/%u.%u.%u.%u'\n",
 				(unsigned char)(cur->ip >> 24),
@@ -1589,7 +1599,8 @@ static void handleIncoming(void)
 					/* extra read only for POST */
 					if (prequest != request_GET) {
 						test = buf + sizeof("Content-length:")-1;
-						if (!test[0]) goto bail_out;
+						if (!test[0])
+							goto bail_out;
 						errno = 0;
 						/* not using strtoul: it ignores leading munis! */
 						length = strtol(test, &test, 10);
@@ -1690,7 +1701,9 @@ static void handleIncoming(void)
 		config->ContentLength = -1;
 	} while (0);
 
+#if ENABLE_FEATURE_HTTPD_CGI
  bail_out:
+#endif
 
 	if (DEBUG)
 		fprintf(stderr, "closing socket\n\n");
@@ -1910,20 +1923,9 @@ int httpd_main(int argc, char *argv[])
 
 #if ENABLE_FEATURE_HTTPD_SETUID
 	if (opt & OPT_SETUID) {
-		char *e;
-		// FIXME: what the default group should be?
-		ugid.gid = -1;
-		ugid.uid = bb_strtoul(s_ugid, &e, 0);
-		if (*e == ':') {
-			e++;
-			ugid.gid = bb_strtoul(e, NULL, 0);
-		}
-		if (errno) {
-			/* not integer */
-			if (!uidgid_get(&ugid, s_ugid))
-				bb_error_msg_and_die("unrecognized user[:group] "
+		if (!get_uidgid(&ugid, s_ugid, 1))
+			bb_error_msg_and_die("unrecognized user[:group] "
 						"name '%s'", s_ugid);
-		}
 	}
 #endif
 

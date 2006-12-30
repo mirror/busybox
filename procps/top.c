@@ -50,12 +50,13 @@ struct save_hist {
 	unsigned long ticks;
 	unsigned pid;
 };
+#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 static struct save_hist *prev_hist;
 static int prev_hist_count;
 /* static int hist_iterations; */
 static unsigned total_pcpu;
 /* static unsigned long total_rss; */
-
+#endif
 
 #define OPT_BATCH_MODE (option_mask32 & 0x4)
 
@@ -485,7 +486,9 @@ int top_main(int argc, char **argv)
 			top[n].pid = p->pid;
 			top[n].ppid = p->ppid;
 			top[n].rss = p->rss;
+#if ENABLE_FEATURE_TOP_CPU_USAGE_PERCENTAGE
 			top[n].ticks = p->stime + p->utime;
+#endif
 			top[n].uid = p->uid;
 			strcpy(top[n].state, p->state);
 			strcpy(top[n].comm, p->comm);

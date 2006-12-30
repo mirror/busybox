@@ -109,6 +109,8 @@ static int match_pos; /* signed! */
 static unsigned num_matches;
 static regex_t pattern;
 static unsigned pattern_valid;
+#else
+enum { pattern_valid = 0 };
 #endif
 
 static struct termios term_orig, term_vi;
@@ -168,7 +170,7 @@ static void read_lines(void)
 {
 #define readbuf bb_common_bufsiz1
 	char *current_line, *p;
-	unsigned old_max_fline = max_fline;
+	USE_FEATURE_LESS_REGEXP(unsigned old_max_fline = max_fline;)
 	int w = width;
 	char last_terminated = terminated;
 
@@ -337,6 +339,7 @@ static char ctrlconv[] =
 	"\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x40\x4b\x4c\x4d\x4e\x4f"
 	"\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f";
 
+#if ENABLE_FEATURE_LESS_REGEXP
 static void print_found(const char *line)
 {
 	int match_status;
@@ -397,6 +400,9 @@ static void print_found(const char *line)
 	printf(CLEAR_2_EOL"%s%s\n", growline, str);
 	free(growline);
 }
+#else
+void print_found(const char *line);
+#endif
 
 static void print_ascii(const char *str)
 {
@@ -718,6 +724,7 @@ static void colon_process(void)
 	}
 }
 
+#if ENABLE_FEATURE_LESS_REGEXP
 static int normalize_match_pos(int match)
 {
 	match_pos = match;
@@ -728,7 +735,6 @@ static int normalize_match_pos(int match)
 	return match_pos;
 }
 
-#if ENABLE_FEATURE_LESS_REGEXP
 static void goto_match(int match)
 {
 	if (num_matches)

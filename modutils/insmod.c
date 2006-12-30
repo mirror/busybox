@@ -63,6 +63,7 @@
 #include <sys/utsname.h>
 
 #if !ENABLE_FEATURE_2_4_MODULES && !ENABLE_FEATURE_2_6_MODULES
+#undef ENABLE_FEATURE_2_4_MODULES
 #define ENABLE_FEATURE_2_4_MODULES 1
 #endif
 

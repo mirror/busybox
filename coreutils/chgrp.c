@@ -13,6 +13,9 @@
 
 #include "busybox.h"
 
+/* FIXME - move to .h */
+extern int chown_main(int argc, char **argv);
+
 int chgrp_main(int argc, char **argv)
 {
 	/* "chgrp [opts] abc file(s)" == "chown [opts] :abc file(s)" */

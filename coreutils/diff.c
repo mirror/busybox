@@ -71,7 +71,7 @@ int context, status;
 char *start, *label[2];
 struct stat stb1, stb2;
 char **dl;
-static int dl_count;
+USE_FEATURE_DIFF_DIR(static int dl_count;)
 
 struct cand {
 	int x;

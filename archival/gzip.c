@@ -1122,7 +1122,7 @@ static ulg deflate(void)
  * in the compressed file.
  */
 
-		/* configuration */
+/* configuration */
 
 typedef struct dirent dir_type;
 
@@ -1156,11 +1156,13 @@ int gzip_main(int argc, char **argv)
 	//if (opt & 0x400) // -9
 	//if (opt & 0x800) // -q
 	//if (opt & 0x1000) // -v
-	if (ENABLE_GUNZIP && (opt & 0x2000)) { // -d
+#if ENABLE_GUNZIP /* gunzip_main may not be visible... */
+	if (opt & 0x2000) { // -d
 		/* FIXME: getopt32 should not depend on optind */
 		optind = 1;
 		return gunzip_main(argc, argv);
 	}
+#endif
 
 	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
 	if (foreground) {

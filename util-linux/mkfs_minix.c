@@ -453,6 +453,8 @@ static void make_bad_inode2(void)
 	if (dind)
 		write_block(dind, (char *) dind_block);
 }
+#else
+void make_bad_inode2(void);
 #endif
 
 static void make_root_inode(void)
@@ -499,6 +501,8 @@ static void make_root_inode2(void)
 		inode->i_gid = GETGID;
 	write_block(inode->i_zone[0], root_block);
 }
+#else
+void make_root_inode2(void);
 #endif
 
 static void setup_tables(void)
