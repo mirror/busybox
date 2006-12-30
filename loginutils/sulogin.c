@@ -74,13 +74,15 @@ int sulogin_main(int argc, char **argv)
 		goto auth_error;
 	}
 
-	if (ENABLE_FEATURE_SHADOWPASSWDS) {
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	{
 		struct spwd *spwd = getspnam(pwd->pw_name);
 		if (!spwd) {
 			goto auth_error;
 		}
 		pwd->pw_passwd = spwd->sp_pwdp;
 	}
+#endif
 
 	while (1) {
 		/* cp points to a static buffer that is zeroed every time */

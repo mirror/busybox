@@ -39,25 +39,29 @@
 #include <unistd.h>
 #include <utime.h>
 
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 #include <selinux/selinux.h>
 #endif
 
-#ifdef CONFIG_LOCALE_SUPPORT
+#if ENABLE_LOCALE_SUPPORT
 #include <locale.h>
 #else
-#define setlocale(x,y)
+#define setlocale(x,y) ((void)0)
 #endif
 
 #include "pwd_.h"
 #include "grp_.h"
+/* ifdef it out, because it may include <shadow.h> */
+/* and we may not even _have_ <shadow.h>! */
+#if ENABLE_FEATURE_SHADOWPASSWDS
 #include "shadow_.h"
+#endif
 
 /* Try to pull in PATH_MAX */
 #include <limits.h>
 #include <sys/param.h>
 #ifndef PATH_MAX
-#define  PATH_MAX         256
+#define PATH_MAX 256
 #endif
 
 /* Tested to work correctly (IIRC :]) */
@@ -142,12 +146,12 @@
 #endif
 
 /* buffer allocation schemes */
-#ifdef CONFIG_FEATURE_BUFFERS_GO_ON_STACK
+#if ENABLE_FEATURE_BUFFERS_GO_ON_STACK
 #define RESERVE_CONFIG_BUFFER(buffer,len)           char buffer[len]
 #define RESERVE_CONFIG_UBUFFER(buffer,len) unsigned char buffer[len]
 #define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
 #else
-#ifdef CONFIG_FEATURE_BUFFERS_GO_IN_BSS
+#if ENABLE_FEATURE_BUFFERS_GO_IN_BSS
 #define RESERVE_CONFIG_BUFFER(buffer,len)  static          char buffer[len]
 #define RESERVE_CONFIG_UBUFFER(buffer,len) static unsigned char buffer[len]
 #define RELEASE_CONFIG_BUFFER(buffer)      ((void)0)
@@ -466,7 +470,7 @@ extern void bb_do_delay(int seconds);
 extern void change_identity(const struct passwd *pw);
 extern const char *change_identity_e2str(const struct passwd *pw);
 extern void run_shell(const char *shell, int loginshell, const char *command, const char **additional_args);
-#ifdef CONFIG_SELINUX
+#if ENABLE_SELINUX
 extern void renew_current_security_context(void);
 extern void set_current_security_context(security_context_t sid);
 #endif
@@ -636,7 +640,7 @@ extern const char bb_default_login_shell[];
 #define DEFAULT_SHELL_SHORT_NAME     (bb_default_login_shell+6)
 
 
-#ifdef CONFIG_FEATURE_DEVFS
+#if ENABLE_FEATURE_DEVFS
 # define CURRENT_VC "/dev/vc/0"
 # define VC_1 "/dev/vc/1"
 # define VC_2 "/dev/vc/2"
