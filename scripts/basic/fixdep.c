@@ -239,11 +239,11 @@ void parse_config_file(char *map, size_t len)
 		/* We have at least 5 chars: for() has
 		 * "p < end-4", not "p <= end-4"
 		 * therefore we don't need to check p <= end-5 here */
-		if (p[4] == '_') {
+		if (p[4] == '_')
 			if (!memcmp(p, "SKIP", 4)) goto conf5;
-		}
 		/* Ehhh, gcc is too stupid to just compare it as 32bit int */
-		if (!memcmp(p, "USE_", 4)) goto conf4;
+		if (p[0] == 'U')
+			if (!memcmp(p, "USE_", 4)) goto conf4;
 		continue;
 
 	conf4:	off = 4;

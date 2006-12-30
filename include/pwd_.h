@@ -21,52 +21,68 @@
  *	POSIX Standard: 9.2.2 User Database Access	<pwd.h>
  */
 
-#if !defined CONFIG_USE_BB_PWD_GRP
+#if !ENABLE_USE_BB_PWD_GRP
+
 #include <pwd.h>
 
 #else
 
 #ifndef	_PWD_H
-#define	_PWD_H	1
-
-#include <sys/types.h>
-#include <features.h>
-#include <stdio.h>
+#define	_PWD_H 1
 
 /* The passwd structure.  */
-struct passwd
-{
-    char *pw_name;		/* Username.  */
-    char *pw_passwd;		/* Password.  */
-    uid_t pw_uid;			/* User ID.  */
-    gid_t pw_gid;			/* Group ID.  */
-    char *pw_gecos;		/* Real name.  */
-    char *pw_dir;			/* Home directory.  */
-    char *pw_shell;		/* Shell program.  */
+struct passwd {
+	char *pw_name;          /* Username.  */
+	char *pw_passwd;        /* Password.  */
+	uid_t pw_uid;           /* User ID.  */
+	gid_t pw_gid;           /* Group ID.  */
+	char *pw_gecos;         /* Real name.  */
+	char *pw_dir;           /* Home directory.  */
+	char *pw_shell;         /* Shell program.  */
 };
 
 
+#define setpwent    bb_internal_setpwent
+#define endpwent    bb_internal_endpwent
+#define getpwent    bb_internal_getpwent
+#define fgetpwent   bb_internal_fgetpwent
+#define putpwent    bb_internal_putpwent
+#define getpwuid    bb_internal_getpwuid
+#define getpwnam    bb_internal_getpwnam
+#define getpwent_r  bb_internal_getpwent_r
+#define getpwuid_r  bb_internal_getpwuid_r
+#define getpwnam_r  bb_internal_getpwnam_r
+#define fgetpwent_r bb_internal_fgetpwent_r
+#define getpw       bb_internal_getpw
+
+
+/* All function names below should be remapped by #defines above
+ * in order to not collide with libc names.
+ * In theory it isn't necessary, but I saw weird interactions at link time.
+ * Let's play safe */
+
+
 /* Rewind the password-file stream.  */
-extern void setpwent (void);
+extern void setpwent(void);
 
 /* Close the password-file stream.  */
-extern void endpwent (void);
+extern void endpwent(void);
 
 /* Read an entry from the password-file stream, opening it if necessary.  */
-extern struct passwd *getpwent (void);
+extern struct passwd *getpwent(void);
 
 /* Read an entry from STREAM.  */
-extern struct passwd *fgetpwent (FILE *__stream);
+extern struct passwd *fgetpwent(FILE *__stream);
 
 /* Write the given entry onto the given stream.  */
-extern int putpwent (__const struct passwd *__restrict __p,
+extern int putpwent(__const struct passwd *__restrict __p,
 		     FILE *__restrict __f);
 
 /* Search for an entry with a matching user ID.  */
-extern struct passwd *getpwuid (uid_t __uid);
+extern struct passwd *getpwuid(uid_t __uid);
 
 /* Search for an entry with a matching username.  */
-extern struct passwd *getpwnam (__const char *__name);
+extern struct passwd *getpwnam(__const char *__name);
 
 /* Reentrant versions of some of the functions above.
 
@@ -76,24 +92,23 @@ extern struct passwd *getpwnam (__const char *__name);
    other reentrant functions so the chances are good this is what the
    POSIX people would choose.  */
 
-extern int getpwent_r (struct passwd *__restrict __resultbuf,
+extern int getpwent_r(struct passwd *__restrict __resultbuf,
 		       char *__restrict __buffer, size_t __buflen,
 		       struct passwd **__restrict __result);
 
-extern int getpwuid_r (uid_t __uid,
+extern int getpwuid_r(uid_t __uid,
 		       struct passwd *__restrict __resultbuf,
 		       char *__restrict __buffer, size_t __buflen,
 		       struct passwd **__restrict __result);
 
-extern int getpwnam_r (__const char *__restrict __name,
+extern int getpwnam_r(__const char *__restrict __name,
 		       struct passwd *__restrict __resultbuf,
 		       char *__restrict __buffer, size_t __buflen,
 		       struct passwd **__restrict __result);
-
 
 /* Read an entry from STREAM.  This function is not standardized and
    probably never will.  */
-extern int fgetpwent_r (FILE *__restrict __stream,
+extern int fgetpwent_r(FILE *__restrict __stream,
 			struct passwd *__restrict __resultbuf,
 			char *__restrict __buffer, size_t __buflen,
 			struct passwd **__restrict __result);
@@ -101,7 +116,7 @@ extern int fgetpwent_r (FILE *__restrict __stream,
 /* Re-construct the password-file line for the given uid
    in the given buffer.  This knows the format that the caller
    will expect, but this need not be the format of the password file.  */
-extern int getpw (uid_t __uid, char *__buffer);
+extern int getpw(uid_t __uid, char *__buffer);
 
 #endif /* pwd.h  */
 #endif

@@ -20,11 +20,13 @@
 /* Declaration of types and functions for shadow password suite */
 
 #if !ENABLE_USE_BB_SHADOW
+
 #include <shadow.h>
+
 #else
 
 #ifndef _SHADOW_H
-#define _SHADOW_H	1
+#define _SHADOW_H 1
 
 /* Paths to the user database files */
 #ifndef _PATH_SHADOW
@@ -43,6 +45,28 @@ struct spwd {
 	long int sp_expire;     /* Number of days since 1970-01-01 until account expires */
 	unsigned long int sp_flag;      /* Reserved */
 };
+
+
+#define setspent    bb_internal_setspent
+#define endspent    bb_internal_endspent
+#define getspent    bb_internal_getspent
+#define getspnam    bb_internal_getspnam
+#define sgetspent   bb_internal_sgetspent
+#define fgetspent   bb_internal_fgetspent
+#define putspent    bb_internal_putspent
+#define getspent_r  bb_internal_getspent_r
+#define getspnam_r  bb_internal_getspnam_r
+#define sgetspent_r bb_internal_sgetspent_r
+#define fgetspent_r bb_internal_fgetspent_r
+#define lckpwdf     bb_internal_lckpwdf
+#define ulckpwdf    bb_internal_ulckpwdf
+
+
+/* All function names below should be remapped by #defines above
+ * in order to not collide with libc names.
+ * In theory it isn't necessary, but I saw weird interactions at link time.
+ * Let's play safe */
+
 
 /* Open database for reading */
 extern void setspent(void);

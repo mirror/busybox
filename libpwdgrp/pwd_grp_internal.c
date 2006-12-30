@@ -22,7 +22,7 @@
 #error GETXXKEY_R_FUNC is not defined!
 #endif
 
-int GETXXKEY_R_FUNC(DO_GETXXKEY_R_KEYTYPE key,
+int GETXXKEY_R_FUNC(GETXXKEY_R_KEYTYPE key,
 				GETXXKEY_R_ENTTYPE *__restrict resultbuf,
 				char *__restrict buffer, size_t buflen,
 				GETXXKEY_R_ENTTYPE **__restrict result)
@@ -32,11 +32,11 @@ int GETXXKEY_R_FUNC(DO_GETXXKEY_R_KEYTYPE key,
 
 	*result = NULL;
 
-	stream = fopen(DO_GETXXKEY_R_PATHNAME, "r");
+	stream = fopen(GETXXKEY_R_PATHNAME, "r");
 	if (!stream)
 		return errno;
 	while (1) {
-		rv = __pgsreader(GETXXKEY_R_PARSER, resultbuf, buffer, buflen, stream);
+		rv = bb__pgsreader(GETXXKEY_R_PARSER, resultbuf, buffer, buflen, stream);
 		if (!rv) {
 			if (GETXXKEY_R_TEST(resultbuf)) { /* Found key? */
 				*result = resultbuf;
@@ -58,5 +58,5 @@ int GETXXKEY_R_FUNC(DO_GETXXKEY_R_KEYTYPE key,
 #undef GETXXKEY_R_PARSER
 #undef GETXXKEY_R_ENTTYPE
 #undef GETXXKEY_R_TEST
-#undef DO_GETXXKEY_R_KEYTYPE
-#undef DO_GETXXKEY_R_PATHNAME
+#undef GETXXKEY_R_KEYTYPE
+#undef GETXXKEY_R_PATHNAME
