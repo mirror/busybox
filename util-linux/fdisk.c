@@ -257,7 +257,7 @@ set_changed(int i)
 {
 	ptes[i].changed = 1;
 }
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 
 static ATTRIBUTE_ALWAYS_INLINE struct partition *
 get_part_table(int i)
@@ -344,7 +344,7 @@ read_hex(const struct systypes *sys)
 		return v;
 	}
 }
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 
 #include "fdisk_aix.c"
 
@@ -418,7 +418,9 @@ STATIC_SGI int sgi_get_sysid(int i);
 STATIC_SGI void sgi_delete_partition(int i);
 STATIC_SGI void sgi_change_sysid(int i, int sys);
 STATIC_SGI void sgi_list_table(int xtra);
+#if ENABLE_FEATURE_FDISK_ADVANCED
 STATIC_SGI void sgi_set_xcyl(void);
+#endif
 STATIC_SGI int verify_sgi(int verbose);
 STATIC_SGI void sgi_add_partition(int n, int sys);
 STATIC_SGI void sgi_set_swappartition(int i);
@@ -427,21 +429,21 @@ STATIC_SGI void sgi_set_bootfile(const char* aFile);
 STATIC_SGI void create_sgiinfo(void);
 STATIC_SGI void sgi_write_table(void);
 STATIC_SGI void sgi_set_bootpartition(int i);
-
 #include "fdisk_sgi.c"
 
 STATIC_SUN const struct systypes sun_sys_types[];
 STATIC_SUN void sun_delete_partition(int i);
 STATIC_SUN void sun_change_sysid(int i, int sys);
 STATIC_SUN void sun_list_table(int xtra);
-STATIC_SUN void sun_set_xcyl(void);
 STATIC_SUN void add_sun_partition(int n, int sys);
+#if ENABLE_FEATURE_FDISK_ADVANCED
 STATIC_SUN void sun_set_alt_cyl(void);
 STATIC_SUN void sun_set_ncyl(int cyl);
 STATIC_SUN void sun_set_xcyl(void);
 STATIC_SUN void sun_set_ilfact(void);
 STATIC_SUN void sun_set_rspeed(void);
 STATIC_SUN void sun_set_pcylcount(void);
+#endif
 STATIC_SUN void toggle_sunflags(int i, unsigned char mask);
 STATIC_SUN void verify_sun(void);
 STATIC_SUN void sun_write_table(void);
@@ -564,7 +566,7 @@ store4_little_endian(unsigned char *cp, unsigned val)
 	cp[2] = val >> 16;
 	cp[3] = val >> 24;
 }
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 
 static unsigned
 read4_little_endian(const unsigned char *cp)
@@ -784,7 +786,7 @@ menu(void)
 #endif
 	}
 }
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 
 
 #if ENABLE_FEATURE_FDISK_ADVANCED
@@ -873,7 +875,7 @@ get_sys_types(void)
 }
 #else
 #define get_sys_types() i386_sys_types
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 
 static const char *partition_type(unsigned char type)
 {
@@ -921,7 +923,7 @@ void list_types(const struct systypes *sys)
 	} while (done < last[0]);
 	putchar('\n');
 }
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 
 static int
 is_cleared_partition(const struct partition *p)
@@ -1149,7 +1151,7 @@ create_doslabel(void)
 	set_changed(0);
 	get_boot(create_empty_dos);
 }
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 
 static void
 get_sectorsize(void)
@@ -1348,7 +1350,7 @@ get_boot(enum action what)
 #endif
 
 	if (!valid_part_table_flag(MBRbuffer)) {
-#ifndef CONFIG_FEATURE_FDISK_WRITABLE
+#if !ENABLE_FEATURE_FDISK_WRITABLE
 		return -1;
 #else
 		switch (what) {
@@ -1374,7 +1376,7 @@ get_boot(enum action what)
 		default:
 			bb_error_msg_and_die(_("internal error"));
 		}
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 	}
 
 #if ENABLE_FEATURE_FDISK_WRITABLE
@@ -1769,7 +1771,7 @@ change_sysid(void)
 		}
 	}
 }
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 
 
 /* check_consistency() and linear2chs() added Sat Mar 6 12:28:16 1993,
@@ -2517,7 +2519,7 @@ reread_partition_table(int leave)
 		exit(i != 0);
 	}
 }
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 
 #if ENABLE_FEATURE_FDISK_ADVANCED
 #define MAX_PER_LINE    16
@@ -3035,5 +3037,5 @@ int fdisk_main(int argc, char **argv)
 		}
 	}
 	return 0;
-#endif /* CONFIG_FEATURE_FDISK_WRITABLE */
+#endif /* FEATURE_FDISK_WRITABLE */
 }

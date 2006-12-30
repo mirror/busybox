@@ -1,4 +1,4 @@
-#ifdef CONFIG_FEATURE_SGI_LABEL
+#if ENABLE_FEATURE_SGI_LABEL
 
 /*
  * Copyright (C) Andreas Neuper, Sep 1998.
@@ -751,7 +751,7 @@ sgi_add_partition(int n, int sys)
 	sgi_set_partition(n, first, last-first, sys);
 }
 
-#ifdef CONFIG_FEATURE_FDISK_ADVANCED
+#if ENABLE_FEATURE_FDISK_ADVANCED
 static void
 create_sgilabel(void)
 {
@@ -861,7 +861,7 @@ sgi_set_xcyl(void)
 {
 	/* do nothing in the beginning */
 }
-#endif /* CONFIG_FEATURE_FDISK_ADVANCED */
+#endif /* FEATURE_FDISK_ADVANCED */
 
 /* _____________________________________________________________
  */

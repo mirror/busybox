@@ -1,4 +1,4 @@
-#ifdef CONFIG_FEATURE_SUN_LABEL
+#if ENABLE_FEATURE_SUN_LABEL
 
 #define SUN_LABEL_MAGIC          0xDABE
 #define SUN_LABEL_MAGIC_SWAPPED  0xBEDA
@@ -663,7 +663,7 @@ sun_list_table(int xtra)
 	}
 }
 
-#ifdef CONFIG_FEATURE_FDISK_ADVANCED
+#if ENABLE_FEATURE_FDISK_ADVANCED
 
 static void
 sun_set_alt_cyl(void)
@@ -710,7 +710,7 @@ sun_set_pcylcount(void)
 		SUN_SSWAP16(read_int(0, SUN_SSWAP16(sunlabel->pcylcount), 65535, 0,
 				_("Number of physical cylinders")));
 }
-#endif /* CONFIG_FEATURE_FDISK_ADVANCED */
+#endif /* FEATURE_FDISK_ADVANCED */
 
 static void
 sun_write_table(void)

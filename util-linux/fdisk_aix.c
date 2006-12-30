@@ -1,4 +1,4 @@
-#ifdef CONFIG_FEATURE_AIX_LABEL
+#if ENABLE_FEATURE_AIX_LABEL
 /*
  * Copyright (C) Andreas Neuper, Sep 1998.
  *      This file may be redistributed under

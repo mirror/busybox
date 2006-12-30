@@ -3859,11 +3859,12 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 #if ENABLE_FEATURE_INSMOD_LOAD_MAP
 static void print_load_map(struct obj_file *f)
 {
-	struct obj_symbol *sym;
-	struct obj_symbol **all, **p;
 	struct obj_section *sec;
+#if ENABLE_FEATURE_INSMOD_LOAD_MAP_FULL
+	struct obj_symbol **all, **p;
 	int i, nsyms, *loaded;
-
+	struct obj_symbol *sym;
+#endif
 	/* Report on the section layout.  */
 
 	printf("Sections:       Size      %-*s  Align\n",
