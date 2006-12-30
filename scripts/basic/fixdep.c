@@ -231,10 +231,10 @@ void parse_config_file(char *map, size_t len)
 	int off;
 
 	for (; p < end; p++) {
-		if (!memcmp(p, "CONFIG_", 7)) goto conf7;
-		if (!memcmp(p, "ENABLE_", 7)) goto conf7;
-		if (!memcmp(p, "USE_", 4)) goto conf4;
-		if (!memcmp(p, "SKIP_", 5)) goto conf5;
+		if (p<end-7 && !memcmp(p, "CONFIG_", 7)) goto conf7;
+		if (p<end-7 && !memcmp(p, "ENABLE_", 7)) goto conf7;
+		if (p<end-4 && !memcmp(p, "USE_", 4)) goto conf4;
+		if (p<end-5 && !memcmp(p, "SKIP_", 5)) goto conf5;
 		continue;
 	conf4:	off = 4; goto conf;
 	conf5:	off = 5; goto conf;
@@ -303,7 +303,7 @@ void parse_dep_file(void *map, size_t len)
 	char *p;
 	char s[PATH_MAX];
 
-	p = strchr(m, ':');
+	p = memchr(m, ':', len);
 	if (!p) {
 		fprintf(stderr, "fixdep: parse error\n");
 		exit(1);
