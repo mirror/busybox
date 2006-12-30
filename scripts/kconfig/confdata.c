@@ -412,7 +412,7 @@ int conf_write(const char *name)
 			       " * Linux kernel version: %s\n"
 			       " */\n"
 			       "%s"
-			       "#define AUTOCONF_INCLUDED\n",
+			       "\n",
 			       sym_get_string_value(sym),
 			       buf);
 	}
