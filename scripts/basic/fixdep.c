@@ -225,31 +225,36 @@ void use_config(char *m, int slen)
 void parse_config_file(char *map, size_t len)
 {
 	/* modified for bbox */
-	char *end = map + len;
+	char *end_4 = map + len - 4; /* 4 == length of "USE_" */
+	char *end_7 = map + len - 7;
 	char *p = map;
 	char *q;
 	int off;
 
-	for (; p < end; p++) {
-		if (p<end-7 && !memcmp(p, "CONFIG_", 7)) goto conf7;
-		if (p<end-7 && !memcmp(p, "ENABLE_", 7)) goto conf7;
-		if (p<end-4 && !memcmp(p, "USE_", 4)) goto conf4;
-		if (p<end-5 && !memcmp(p, "SKIP_", 5)) goto conf5;
-		continue;
-	conf4:	off = 4; goto conf;
-	conf5:	off = 5; goto conf;
-	conf7:	off = 7;
-	conf:
-		if (p > map + len - off)
-			continue;
-		for (q = p + off; q < map + len; q++) {
-			if (!(isalnum(*q) || *q == '_'))
-				goto found;
+	for (; p < end_4; p++) {
+		if (p < end_7 && p[6] == '_') {
+			if (!memcmp(p, "CONFIG", 6)) goto conf7;
+			if (!memcmp(p, "ENABLE", 6)) goto conf7;
 		}
+		/* We have at least 5 chars: for() has
+		 * "p < end-4", not "p <= end-4"
+		 * therefore we don't need to check p <= end-5 here */
+		if (p[4] == '_') {
+			if (!memcmp(p, "SKIP", 4)) goto conf5;
+		}
+		/* Ehhh, gcc is too stupid to just compare it as 32bit int */
+		if (!memcmp(p, "USE_", 4)) goto conf4;
 		continue;
 
-	found:
-		use_config(p+off, q-p-off);
+	conf4:	off = 4;
+	conf5:	off = 5;
+	conf7:	off = 7;
+		p += off;
+		for (q = p; q < end_4+4; q++) {
+			if (!(isalnum(*q) || *q == '_'))
+				break;
+		}
+		use_config(p, q-p);
 	}
 }
 
