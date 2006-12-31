@@ -15,8 +15,6 @@
    filler or even bulk.
  */
 
-//#include <asm/types.h>
-
 #define TC_PRIO_BESTEFFORT		0
 #define TC_PRIO_FILLER			1
 #define TC_PRIO_BULK			2

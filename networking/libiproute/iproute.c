@@ -57,6 +57,28 @@ static int flush_update(void)
 	return 0;
 }
 
+static int get_hz(void)
+{
+	static int hz_internal;
+	FILE *fp;
+
+	if (hz_internal)
+		return hz_internal;
+
+	fp = fopen("/proc/net/psched", "r");
+	if (fp) {
+		unsigned nom, denom;
+
+		if (fscanf(fp, "%*08x%*08x%08x%08x", &nom, &denom) == 2)
+			if (nom == 1000000)
+				hz_internal = denom;
+		fclose(fp);
+	}
+	if (!hz_internal)
+		hz_internal = sysconf(_SC_CLK_TCK);
+	return hz_internal;
+}
+
 static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		struct nlmsghdr *n, void *arg)
 {

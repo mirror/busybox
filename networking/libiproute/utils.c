@@ -294,26 +294,6 @@ int inet_addr_match(inet_prefix * a, inet_prefix * b, int bits)
 	return 0;
 }
 
-int __iproute2_hz_internal;
-
-int __get_hz(void)
-{
-	int hz = 0;
-	FILE *fp = fopen("/proc/net/psched", "r");
-
-	if (fp) {
-		unsigned nom, denom;
-
-		if (fscanf(fp, "%*08x%*08x%08x%08x", &nom, &denom) == 2)
-			if (nom == 1000000)
-				hz = denom;
-		fclose(fp);
-	}
-	if (hz)
-		return hz;
-	return sysconf(_SC_CLK_TCK);
-}
-
 const char *rt_addr_n2a(int af, int ATTRIBUTE_UNUSED len,
 		void *addr, char *buf, int buflen)
 {

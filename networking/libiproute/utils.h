@@ -3,8 +3,6 @@
 #define __UTILS_H__ 1
 
 #include "libbb.h"
-//#include <asm/types.h>
-//#include <resolv.h>
 
 #include "libnetlink.h"
 #include "ll_map.h"
@@ -89,15 +87,5 @@ int dnet_pton(int af, const char *src, void *addr);
 
 const char *ipx_ntop(int af, const void *addr, char *str, size_t len);
 int ipx_pton(int af, const char *src, void *addr);
-
-extern int __iproute2_hz_internal;
-extern int __get_hz(void);
-
-static inline int get_hz(void)
-{
-	if (__iproute2_hz_internal == 0)
-		__iproute2_hz_internal = __get_hz();
-	return __iproute2_hz_internal;
-}
 
 #endif /* __UTILS_H__ */
