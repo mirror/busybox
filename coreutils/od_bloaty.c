@@ -1436,7 +1436,7 @@ od_main(int argc, char **argv)
 		if (str_w)
 			bytes_per_block = xatou(str_w);
 		if (!bytes_per_block || bytes_per_block % l_c_m != 0) {
-			bb_error_msg("warning: invalid width %u; using %d instead",
+			bb_error_msg("warning: invalid width %zu; using %d instead",
 					bytes_per_block, l_c_m);
 			bytes_per_block = l_c_m;
 		}
