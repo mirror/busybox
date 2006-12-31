@@ -799,12 +799,14 @@ export CPPFLAGS_busybox.lds += -P -C -U$(ARCH)
 #bbox# 	@ln -fsn asm-$(ARCH) $@
 
 # 	Split autoconf.h into include/linux/config/*
+quiet_cmd_gen_bbconfigopts = GEN     include/bbconfigopts.h
+      cmd_gen_bbconfigopts = $(srctree)/scripts/mkconfigs > include/bbconfigopts.h
+quiet_cmd_split_autoconf   = SPLIT   include/autoconf.h -> include/config/*
+      cmd_split_autoconf   = scripts/basic/split-include include/autoconf.h include/config
 #bbox# piggybacked generation of few .h files
 include/config/MARKER: scripts/basic/split-include include/autoconf.h
-	@echo '  SPLIT   include/autoconf.h -> include/config/*'
-	@scripts/basic/split-include include/autoconf.h include/config
-	@echo '  GEN     include/bbconfigopts.h'
-	@$(srctree)/scripts/mkconfigs >include/bbconfigopts.h
+	$(call cmd,split_autoconf)
+	$(call cmd,gen_bbconfigopts)
 	@touch $@
 
 # Generate some files
