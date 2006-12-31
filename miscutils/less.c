@@ -415,7 +415,7 @@ static void print_ascii(const char *str)
 		n = strcspn(str, controls);
 		if (n) {
 			if (!str[n]) break;
-			printf("%.*s", n, str);
+			printf("%.*s", (int) n, str);
 			str += n;
 		}
 		n = strspn(str, controls);

@@ -117,8 +117,9 @@ static void ping(const char *host)
 		struct sockaddr_in from;
 		socklen_t fromlen = sizeof(from);
 
-		if ((c = recvfrom(pingsock, packet, sizeof(packet), 0,
-						  (struct sockaddr *) &from, &fromlen)) < 0) {
+		c = recvfrom(pingsock, packet, sizeof(packet), 0,
+				(struct sockaddr *) &from, &fromlen);
+		if (c < 0) {
 			if (errno == EINTR)
 				continue;
 			bb_perror_msg("recvfrom");

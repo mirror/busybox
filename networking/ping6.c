@@ -104,10 +104,11 @@ static void ping(const char *host)
 	/* listen for replies */
 	while (1) {
 		struct sockaddr_in6 from;
-		size_t fromlen = sizeof(from);
+		socklen_t fromlen = sizeof(from);
 
-		if ((c = recvfrom(pingsock, packet, sizeof(packet), 0,
-						  (struct sockaddr *) &from, &fromlen)) < 0) {
+		c = recvfrom(pingsock, packet, sizeof(packet), 0,
+				(struct sockaddr *) &from, &fromlen);
+		if (c < 0) {
 			if (errno == EINTR)
 				continue;
 			bb_perror_msg("recvfrom");
