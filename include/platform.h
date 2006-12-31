@@ -133,12 +133,12 @@ typedef int socklen_t;
 #endif
 
 /* ---- Compiler dependent settings ------------------------- */
-#ifndef __GNUC__
-#if defined __INTEL_COMPILER
-__extension__ typedef __signed__ long long __s64;
-__extension__ typedef unsigned long long __u64;
-#endif /* __INTEL_COMPILER */
-#endif /* ifndef __GNUC__ */
+//#ifndef __GNUC__
+//#if defined __INTEL_COMPILER
+//__extension__ typedef __signed__ long long __s64;
+//__extension__ typedef unsigned long long __u64;
+//#endif /* __INTEL_COMPILER */
+//#endif /* ifndef __GNUC__ */
 
 #if (defined __digital__ && defined __unix__)
 # undef HAVE_MNTENT_H

@@ -3,8 +3,8 @@
 #define __UTILS_H__ 1
 
 #include "libbb.h"
-#include <asm/types.h>
-#include <resolv.h>
+//#include <asm/types.h>
+//#include <resolv.h>
 
 #include "libnetlink.h"
 #include "ll_map.h"
@@ -34,10 +34,10 @@ extern void incomplete_command(void) ATTRIBUTE_NORETURN;
 
 typedef struct
 {
-	__u8 family;
-	__u8 bytelen;
-	__s16 bitlen;
-	__u32 data[4];
+	uint8_t family;
+	uint8_t bytelen;
+	int16_t bitlen;
+	uint32_t data[4];
 } inet_prefix;
 
 #define DN_MAXADDL 20
@@ -58,7 +58,7 @@ struct ipx_addr {
 	uint8_t  ipx_node[IPX_NODE_LEN];
 };
 
-extern __u32 get_addr32(char *name);
+extern uint32_t get_addr32(char *name);
 extern int get_addr_1(inet_prefix *dst, char *arg, int family);
 extern int get_prefix_1(inet_prefix *dst, char *arg, int family);
 extern int get_addr(inet_prefix *dst, char *arg, int family);
@@ -69,11 +69,11 @@ extern int get_unsigned(unsigned *val, char *arg, int base);
 #define get_byte get_u8
 #define get_ushort get_u16
 #define get_short get_s16
-extern int get_u32(__u32 *val, char *arg, int base);
-extern int get_u16(__u16 *val, char *arg, int base);
-extern int get_s16(__s16 *val, char *arg, int base);
-extern int get_u8(__u8 *val, char *arg, int base);
-extern int get_s8(__s8 *val, char *arg, int base);
+extern int get_u32(uint32_t *val, char *arg, int base);
+extern int get_u16(uint16_t *val, char *arg, int base);
+extern int get_s16(int16_t *val, char *arg, int base);
+extern int get_u8(uint8_t *val, char *arg, int base);
+extern int get_s8(int8_t *val, char *arg, int base);
 
 extern const char *format_host(int af, int len, void *addr, char *buf, int buflen);
 extern const char *rt_addr_n2a(int af, int len, void *addr, char *buf, int buflen);
@@ -93,7 +93,7 @@ int ipx_pton(int af, const char *src, void *addr);
 extern int __iproute2_hz_internal;
 extern int __get_hz(void);
 
-static __inline__ int get_hz(void)
+static inline int get_hz(void)
 {
 	if (__iproute2_hz_internal == 0)
 		__iproute2_hz_internal = __get_hz();

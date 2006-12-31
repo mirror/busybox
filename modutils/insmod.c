@@ -3765,12 +3765,8 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 
 	if (realpath(filename, real)) {
 		absolute_filename = xstrdup(real);
-	}
-	else {
-		int save_errno = errno;
-		bb_error_msg("cannot get realpath for %s", filename);
-		errno = save_errno;
-		perror("");
+	} else {
+		bb_perror_msg("cannot get realpath for %s", filename);
 		absolute_filename = xstrdup(filename);
 	}
 
@@ -3783,7 +3779,8 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 	 */
 	use_ksymtab = obj_find_section(f, "__ksymtab") || flag_noexport;
 
-	if ((sec = obj_find_section(f, ".this"))) {
+	sec = obj_find_section(f, ".this");
+	if (sec) {
 		/* tag the module header with the object name, last modified
 		 * timestamp and module version.  worst case for module version
 		 * is 0xffffff, decimal 16777215.  putting all three fields in
@@ -3834,8 +3831,8 @@ add_ksymoops_symbols(struct obj_file *f, const char *filename,
 	/* tag the desired sections if size is non-zero */
 
 	for (i = 0; i < sizeof(section_names)/sizeof(section_names[0]); ++i) {
-		if ((sec = obj_find_section(f, section_names[i])) &&
-				sec->header.sh_size) {
+		sec = obj_find_section(f, section_names[i]);
+		if (sec && sec->header.sh_size) {
 			l = sizeof(symprefix)+		/* "__insmod_" */
 				lm_name+		/* module name */
 				2+			/* "_S" */

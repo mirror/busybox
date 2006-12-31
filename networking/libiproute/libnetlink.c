@@ -319,7 +319,7 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 	}
 }
 
-int addattr32(struct nlmsghdr *n, int maxlen, int type, __u32 data)
+int addattr32(struct nlmsghdr *n, int maxlen, int type, uint32_t data)
 {
 	int len = RTA_LENGTH(4);
 	struct rtattr *rta;
@@ -348,7 +348,7 @@ int addattr_l(struct nlmsghdr *n, int maxlen, int type, void *data, int alen)
 	return 0;
 }
 
-int rta_addattr32(struct rtattr *rta, int maxlen, int type, __u32 data)
+int rta_addattr32(struct rtattr *rta, int maxlen, int type, uint32_t data)
 {
 	int len = RTA_LENGTH(4);
 	struct rtattr *subrta;

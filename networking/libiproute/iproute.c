@@ -15,12 +15,6 @@
 
 #include "libbb.h"
 
-#include <sys/socket.h>
-
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-
 #include "rt_names.h"
 #include "utils.h"
 #include "ip_common.h"
@@ -248,7 +242,7 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 				    abuf, sizeof(abuf)));
 	}
 	if (tb[RTA_PRIORITY]) {
-		fprintf(fp, " metric %d ", *(__u32*)RTA_DATA(tb[RTA_PRIORITY]));
+		fprintf(fp, " metric %d ", *(uint32_t*)RTA_DATA(tb[RTA_PRIORITY]));
 	}
 	if (r->rtm_family == AF_INET6) {
 		struct rta_cacheinfo *ci = NULL;
@@ -405,7 +399,8 @@ static int iproute_modify(int cmd, unsigned flags, int argc, char **argv)
 		ll_init_map(&rth);
 
 		if (d) {
-			if ((idx = ll_name_to_index(d)) == 0) {
+			idx = ll_name_to_index(d);
+			if (idx == 0) {
 				bb_error_msg("cannot find device \"%s\"", d);
 				return -1;
 			}

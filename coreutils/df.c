@@ -93,7 +93,7 @@ int df_main(int argc, char **argv)
 			mount_entry = find_mount_point(mount_point, bb_path_mtab_file);
 			if (!mount_entry) {
 				bb_error_msg("%s: can't find mount point", mount_point);
-			SET_ERROR:
+ SET_ERROR:
 				status = EXIT_FAILURE;
 				continue;
 			}

@@ -616,7 +616,7 @@ int ipaddr_list_or_flush(int argc, char **argv, int flush)
 static int default_scope(inet_prefix *lcl)
 {
 	if (lcl->family == AF_INET) {
-		if (lcl->bytelen >= 1 && *(__u8*)&lcl->data == 127)
+		if (lcl->bytelen >= 1 && *(uint8_t*)&lcl->data == 127)
 			return RT_SCOPE_HOST;
 	}
 	return 0;

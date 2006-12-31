@@ -462,17 +462,13 @@ static const char flagchars[] =		/* Must agree with flagvals[]. */
 #endif
 ;
 
-static
-#ifndef CONFIG_FEATURE_IPV6
-__inline
-#endif
-void set_flags(char *flagstr, int flags)
+static void set_flags(char *flagstr, int flags)
 {
 	int i;
 
 	*flagstr++ = 'U';
 
-	for (i=0 ; (*flagstr = flagchars[i]) != 0 ; i++) {
+	for (i = 0; (*flagstr = flagchars[i]) != 0; i++) {
 		if (flags & flagvals[i]) {
 			++flagstr;
 		}
@@ -480,7 +476,6 @@ void set_flags(char *flagstr, int flags)
 }
 
 /* also used in netstat */
-void displayroutes(int noresolve, int netstatfmt);
 void displayroutes(int noresolve, int netstatfmt)
 {
 	char devname[64], flags[16], sdest[16], sgw[16];
@@ -492,9 +487,8 @@ void displayroutes(int noresolve, int netstatfmt)
 	FILE *fp = xfopen("/proc/net/route", "r");
 
 	printf("Kernel IP routing table\n"
-			  "Destination     Gateway         Genmask"
-			  "         Flags %s Iface\n",
-			  netstatfmt ? "  MSS Window  irtt" : "Metric Ref    Use");
+	       "Destination     Gateway         Genmask         Flags %s Iface\n",
+			netstatfmt ? "  MSS Window  irtt" : "Metric Ref    Use");
 
 	if (fscanf(fp, "%*[^\n]\n") < 0) { /* Skip the first line. */
 		goto ERROR;		   /* Empty or missing line, or read error. */
@@ -508,7 +502,7 @@ void displayroutes(int noresolve, int netstatfmt)
 			if ((r < 0) && feof(fp)) { /* EOF with no (nonspace) chars read. */
 				break;
 			}
-		ERROR:
+ ERROR:
 			bb_error_msg_and_die("fscanf");
 		}
 
@@ -574,7 +568,7 @@ static void INET6_displayroutes(int noresolve)
 			if ((r < 0) && feof(fp)) { /* EOF with no (nonspace) chars read. */
 				break;
 			}
-		ERROR:
+ ERROR:
 			bb_error_msg_and_die("fscanf");
 		}
 

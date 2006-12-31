@@ -47,7 +47,7 @@ int get_unsigned(unsigned *val, char *arg, int base)
 	return 0;
 }
 
-int get_u32(__u32 * val, char *arg, int base)
+int get_u32(uint32_t * val, char *arg, int base)
 {
 	unsigned long res;
 	char *ptr;
@@ -61,7 +61,7 @@ int get_u32(__u32 * val, char *arg, int base)
 	return 0;
 }
 
-int get_u16(__u16 * val, char *arg, int base)
+int get_u16(uint16_t * val, char *arg, int base)
 {
 	unsigned long res;
 	char *ptr;
@@ -75,7 +75,7 @@ int get_u16(__u16 * val, char *arg, int base)
 	return 0;
 }
 
-int get_u8(__u8 * val, char *arg, int base)
+int get_u8(uint8_t * val, char *arg, int base)
 {
 	unsigned long res;
 	char *ptr;
@@ -89,7 +89,7 @@ int get_u8(__u8 * val, char *arg, int base)
 	return 0;
 }
 
-int get_s16(__s16 * val, char *arg, int base)
+int get_s16(int16_t * val, char *arg, int base)
 {
 	long res;
 	char *ptr;
@@ -103,7 +103,7 @@ int get_s16(__s16 * val, char *arg, int base)
 	return 0;
 }
 
-int get_s8(__s8 * val, char *arg, int base)
+int get_s8(int8_t * val, char *arg, int base)
 {
 	long res;
 	char *ptr;
@@ -225,7 +225,7 @@ int get_prefix(inet_prefix * dst, char *arg, int family)
 	return 0;
 }
 
-__u32 get_addr32(char *name)
+uint32_t get_addr32(char *name)
 {
 	inet_prefix addr;
 
@@ -268,8 +268,8 @@ int matches(char *cmd, char *pattern)
 
 int inet_addr_match(inet_prefix * a, inet_prefix * b, int bits)
 {
-	__u32 *a1 = a->data;
-	__u32 *a2 = b->data;
+	uint32_t *a1 = a->data;
+	uint32_t *a2 = b->data;
 	int words = bits >> 0x05;
 
 	bits &= 0x1f;
@@ -279,8 +279,8 @@ int inet_addr_match(inet_prefix * a, inet_prefix * b, int bits)
 			return -1;
 
 	if (bits) {
-		__u32 w1, w2;
-		__u32 mask;
+		uint32_t w1, w2;
+		uint32_t mask;
 
 		w1 = a1[words];
 		w2 = a2[words];

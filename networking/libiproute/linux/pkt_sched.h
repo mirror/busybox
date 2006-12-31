@@ -15,7 +15,7 @@
    filler or even bulk.
  */
 
-#include <asm/types.h>
+//#include <asm/types.h>
 
 #define TC_PRIO_BESTEFFORT		0
 #define TC_PRIO_FILLER			1
@@ -32,15 +32,15 @@
 
 struct tc_stats
 {
-	__u64	bytes;			/* NUmber of enqueues bytes */
-	__u32	packets;		/* Number of enqueued packets	*/
-	__u32	drops;			/* Packets dropped because of lack of resources */
-	__u32	overlimits;		/* Number of throttle events when this
+	uint64_t	bytes;		/* Nnmber of enqueued bytes */
+	uint32_t	packets;	/* Number of enqueued packets */
+	uint32_t	drops;		/* Packets dropped because of lack of resources */
+	uint32_t	overlimits;	/* Number of throttle events when this
 					 * flow goes out of allocated bandwidth */
-	__u32	bps;			/* Current flow byte rate */
-	__u32	pps;			/* Current flow packet rate */
-	__u32	qlen;
-	__u32	backlog;
+	uint32_t	bps;		/* Current flow byte rate */
+	uint32_t	pps;		/* Current flow packet rate */
+	uint32_t	qlen;
+	uint32_t	backlog;
 #ifdef __KERNEL__
 	spinlock_t *lock;
 #endif
@@ -86,14 +86,14 @@ struct tc_ratespec
 	unsigned short	feature;
 	short		addend;
 	unsigned short	mpu;
-	__u32		rate;
+	uint32_t	rate;
 };
 
 /* FIFO section */
 
 struct tc_fifo_qopt
 {
-	__u32	limit;	/* Queue length: bytes for bfifo, packets for pfifo */
+	uint32_t	limit;	/* Queue length: bytes for bfifo, packets for pfifo */
 };
 
 /* PRIO section */
@@ -103,7 +103,7 @@ struct tc_fifo_qopt
 struct tc_prio_qopt
 {
 	int	bands;			/* Number of bands */
-	__u8	priomap[TC_PRIO_MAX+1];	/* Map: logical priority -> PRIO band */
+	uint8_t	priomap[TC_PRIO_MAX+1];	/* Map: logical priority -> PRIO band */
 };
 
 /* CSZ section */
@@ -113,7 +113,7 @@ struct tc_csz_qopt
 	int		flows;		/* Maximal number of guaranteed flows */
 	unsigned char	R_log;		/* Fixed point position for round number */
 	unsigned char	delta_log;	/* Log of maximal managed time interval */
-	__u8		priomap[TC_PRIO_MAX+1];	/* Map: logical priority -> CSZ band */
+	uint8_t		priomap[TC_PRIO_MAX+1];	/* Map: logical priority -> CSZ band */
 };
 
 struct tc_csz_copt
@@ -121,9 +121,9 @@ struct tc_csz_copt
 	struct tc_ratespec slice;
 	struct tc_ratespec rate;
 	struct tc_ratespec peakrate;
-	__u32		limit;
-	__u32		buffer;
-	__u32		mtu;
+	uint32_t limit;
+	uint32_t buffer;
+	uint32_t mtu;
 };
 
 enum
@@ -140,9 +140,9 @@ struct tc_tbf_qopt
 {
 	struct tc_ratespec rate;
 	struct tc_ratespec peakrate;
-	__u32		limit;
-	__u32		buffer;
-	__u32		mtu;
+	uint32_t limit;
+	uint32_t buffer;
+	uint32_t mtu;
 };
 
 enum
@@ -164,7 +164,7 @@ struct tc_sfq_qopt
 {
 	unsigned	quantum;	/* Bytes per round allocated to flow */
 	int		perturb_period;	/* Period of hash perturbation */
-	__u32		limit;		/* Maximal packets in queue */
+	uint32_t	limit;		/* Maximal packets in queue */
 	unsigned	divisor;	/* Hash divisor  */
 	unsigned	flows;		/* Maximal number of flows  */
 };
@@ -189,9 +189,9 @@ enum
 
 struct tc_red_qopt
 {
-	__u32		limit;		/* HARD maximal queue length (bytes)	*/
-	__u32		qth_min;	/* Min average length threshold (bytes) */
-	__u32		qth_max;	/* Max average length threshold (bytes) */
+	uint32_t	limit;		/* HARD maximal queue length (bytes)	*/
+	uint32_t	qth_min;	/* Min average length threshold (bytes) */
+	uint32_t	qth_max;	/* Max average length threshold (bytes) */
 	unsigned char   Wlog;		/* log(W)		*/
 	unsigned char   Plog;		/* log(P_max/(qth_max-qth_min))	*/
 	unsigned char   Scell_log;	/* cell size for idle damping */
@@ -201,10 +201,10 @@ struct tc_red_qopt
 
 struct tc_red_xstats
 {
-	__u32           early;          /* Early drops */
-	__u32           pdrop;          /* Drops due to queue limits */
-	__u32           other;          /* Drops due to drop() calls */
-	__u32           marked;         /* Marked packets */
+	uint32_t        early;          /* Early drops */
+	uint32_t        pdrop;          /* Drops due to queue limits */
+	uint32_t        other;          /* Drops due to drop() calls */
+	uint32_t        marked;         /* Marked packets */
 };
 
 /* GRED section */
@@ -222,33 +222,30 @@ enum
 #define TCA_SET_OFF TCA_GRED_PARMS
 struct tc_gred_qopt
 {
-       __u32           limit;          /* HARD maximal queue length (bytes)
-*/
-       __u32           qth_min;        /* Min average length threshold (bytes)
-*/
-       __u32           qth_max;        /* Max average length threshold (bytes)
-*/
-       __u32           DP;             /* upto 2^32 DPs */
-       __u32           backlog;
-       __u32           qave;
-       __u32           forced;
-       __u32           early;
-       __u32           other;
-       __u32           pdrop;
+       uint32_t        limit;   /* HARD maximal queue length (bytes) */
+       uint32_t        qth_min; /* Min average length threshold (bytes) */
+       uint32_t        qth_max; /* Max average length threshold (bytes) */
+       uint32_t        DP;      /* upto 2^32 DPs */
+       uint32_t        backlog;
+       uint32_t        qave;
+       uint32_t        forced;
+       uint32_t        early;
+       uint32_t        other;
+       uint32_t        pdrop;
 
-       unsigned char   Wlog;           /* log(W)               */
+       unsigned char   Wlog;           /* log(W) */
        unsigned char   Plog;           /* log(P_max/(qth_max-qth_min)) */
        unsigned char   Scell_log;      /* cell size for idle damping */
-       __u8            prio;		/* prio of this VQ */
-       __u32	packets;
-       __u32	bytesin;
+       uint8_t         prio;           /* prio of this VQ */
+       uint32_t	packets;
+       uint32_t	bytesin;
 };
 /* gred setup */
 struct tc_gred_sopt
 {
-       __u32           DPs;
-       __u32           def_DP;
-       __u8            grio;
+       uint32_t        DPs;
+       uint32_t        def_DP;
+       uint8_t         grio;
 };
 
 /* HTB section */
@@ -257,30 +254,30 @@ struct tc_gred_sopt
 
 struct tc_htb_opt
 {
-	struct tc_ratespec	rate;
-	struct tc_ratespec	ceil;
-	__u32	buffer;
-	__u32	cbuffer;
-	__u32	quantum;	/* out only */
-	__u32	level;		/* out only */
-	__u8	prio;
-	__u8	injectd;	/* inject class distance */
-	__u8	pad[2];
+	struct tc_ratespec rate;
+	struct tc_ratespec ceil;
+	uint32_t buffer;
+	uint32_t cbuffer;
+	uint32_t quantum;	/* out only */
+	uint32_t level;		/* out only */
+	uint8_t  prio;
+	uint8_t  injectd;	/* inject class distance */
+	uint8_t  pad[2];
 };
 struct tc_htb_glob
 {
-	__u32 rate2quantum;	/* bps->quantum divisor */
-	__u32 defcls;		/* default class number */
-	__u32 use_dcache;	/* use dequeue cache ? */
-	__u32 debug;		/* debug flags */
+	uint32_t rate2quantum;	/* bps->quantum divisor */
+	uint32_t defcls;		/* default class number */
+	uint32_t use_dcache;	/* use dequeue cache ? */
+	uint32_t debug;		/* debug flags */
 
 
 	/* stats */
-	__u32 deq_rate;	/* dequeue rate */
-	__u32 utilz;	/* dequeue utilization */
-	__u32 trials;	/* deq_prio trials per dequeue */
-	__u32 dcache_hits;
-	__u32 direct_pkts; /* count of non shapped packets */
+	uint32_t deq_rate;	/* dequeue rate */
+	uint32_t utilz;	/* dequeue utilization */
+	uint32_t trials;	/* deq_prio trials per dequeue */
+	uint32_t dcache_hits;
+	uint32_t direct_pkts; /* count of non shapped packets */
 };
 enum
 {
@@ -292,12 +289,12 @@ enum
 };
 struct tc_htb_xstats
 {
-	__u32 lends;
-	__u32 borrows;
-	__u32 giants;	/* too big packets (rate will not be accurate) */
-	__u32 injects;	/* how many times leaf used injected bw */
-	__u32 tokens;
-	__u32 ctokens;
+	uint32_t lends;
+	uint32_t borrows;
+	uint32_t giants;	/* too big packets (rate will not be accurate) */
+	uint32_t injects;	/* how many times leaf used injected bw */
+	uint32_t tokens;
+	uint32_t ctokens;
 };
 
 /* CBQ section */
@@ -320,10 +317,10 @@ struct tc_cbq_lssopt
 #define TCF_CBQ_LSS_MINIDLE	8
 #define TCF_CBQ_LSS_OFFTIME	0x10
 #define TCF_CBQ_LSS_AVPKT	0x20
-	__u32		maxidle;
-	__u32		minidle;
-	__u32		offtime;
-	__u32		avpkt;
+	uint32_t	maxidle;
+	uint32_t	minidle;
+	uint32_t	offtime;
+	uint32_t	avpkt;
 };
 
 struct tc_cbq_wrropt
@@ -332,8 +329,8 @@ struct tc_cbq_wrropt
 	unsigned char	priority;
 	unsigned char	cpriority;
 	unsigned char	__reserved;
-	__u32		allot;
-	__u32		weight;
+	uint32_t	allot;
+	uint32_t	weight;
 };
 
 struct tc_cbq_ovl
@@ -345,7 +342,7 @@ struct tc_cbq_ovl
 #define	TC_CBQ_OVL_DROP		3
 #define	TC_CBQ_OVL_RCLASSIC	4
 	unsigned char	priority2;
-	__u32		penalty;
+	uint32_t	penalty;
 };
 
 struct tc_cbq_police
@@ -357,17 +354,17 @@ struct tc_cbq_police
 
 struct tc_cbq_fopt
 {
-	__u32		split;
-	__u32		defmap;
-	__u32		defchange;
+	uint32_t	split;
+	uint32_t	defmap;
+	uint32_t	defchange;
 };
 
 struct tc_cbq_xstats
 {
-	__u32		borrows;
-	__u32		overactions;
-	__s32		avgidle;
-	__s32		undertime;
+	uint32_t	borrows;
+	uint32_t	overactions;
+	int32_t		avgidle;
+	int32_t		undertime;
 };
 
 enum

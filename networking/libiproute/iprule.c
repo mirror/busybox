@@ -119,7 +119,7 @@ static int print_rule(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		fprintf(fp, "tos %s ", rtnl_dsfield_n2a(r->rtm_tos, b1, sizeof(b1)));
 	}
 	if (tb[RTA_PROTOINFO]) {
-		fprintf(fp, "fwmark %#x ", *(__u32*)RTA_DATA(tb[RTA_PROTOINFO]));
+		fprintf(fp, "fwmark %#x ", *(uint32_t*)RTA_DATA(tb[RTA_PROTOINFO]));
 	}
 
 	if (tb[RTA_IIF]) {
@@ -130,8 +130,8 @@ static int print_rule(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 		fprintf(fp, "lookup %s ", rtnl_rttable_n2a(r->rtm_table, b1, sizeof(b1)));
 
 	if (tb[RTA_FLOW]) {
-		__u32 to = *(__u32*)RTA_DATA(tb[RTA_FLOW]);
-		__u32 from = to>>16;
+		uint32_t to = *(uint32_t*)RTA_DATA(tb[RTA_FLOW]);
+		uint32_t from = to>>16;
 		to &= 0xFFFF;
 		if (from) {
 			fprintf(fp, "realms %s/",
@@ -230,25 +230,25 @@ int iprule_modify(int cmd, int argc, char **argv)
 		} else if (matches(*argv, "preference") == 0 ||
 			   matches(*argv, "order") == 0 ||
 			   matches(*argv, "priority") == 0) {
-			__u32 pref;
+			uint32_t pref;
 			NEXT_ARG();
 			if (get_u32(&pref, *argv, 0))
 				invarg("preference value", *argv);
 			addattr32(&req.n, sizeof(req), RTA_PRIORITY, pref);
 		} else if (strcmp(*argv, "tos") == 0) {
-			__u32 tos;
+			uint32_t tos;
 			NEXT_ARG();
 			if (rtnl_dsfield_a2n(&tos, *argv))
 				invarg("TOS value", *argv);
 			req.r.rtm_tos = tos;
 		} else if (strcmp(*argv, "fwmark") == 0) {
-			__u32 fwmark;
+			uint32_t fwmark;
 			NEXT_ARG();
 			if (get_u32(&fwmark, *argv, 0))
 				invarg("fwmark value", *argv);
 			addattr32(&req.n, sizeof(req), RTA_PROTOINFO, fwmark);
 		} else if (matches(*argv, "realms") == 0) {
-			__u32 realm;
+			uint32_t realm;
 			NEXT_ARG();
 			if (get_rt_realms(&realm, *argv))
 				invarg("realms", *argv);

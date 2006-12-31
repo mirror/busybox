@@ -88,9 +88,9 @@ int rtnl_rtntype_a2n(int *id, char *arg)
 	return 0;
 }
 
-int get_rt_realms(__u32 *realms, char *arg)
+int get_rt_realms(uint32_t *realms, char *arg)
 {
-	__u32 realm = 0;
+	uint32_t realm = 0;
 	char *p = strchr(arg, '/');
 
 	*realms = 0;
