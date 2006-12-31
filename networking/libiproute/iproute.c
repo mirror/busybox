@@ -57,9 +57,9 @@ static int flush_update(void)
 	return 0;
 }
 
-static int get_hz(void)
+static unsigned get_hz(void)
 {
-	static int hz_internal;
+	static unsigned hz_internal;
 	FILE *fp;
 
 	if (hz_internal)
@@ -272,15 +272,11 @@ static int print_route(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 			ci = RTA_DATA(tb[RTA_CACHEINFO]);
 		}
 		if ((r->rtm_flags & RTM_F_CLONED) || (ci && ci->rta_expires)) {
-			static int hz;
-			if (!hz) {
-				hz = get_hz();
-			}
 			if (r->rtm_flags & RTM_F_CLONED) {
 				fprintf(fp, "%s    cache ", _SL_);
 			}
 			if (ci->rta_expires) {
-				fprintf(fp, " expires %dsec", ci->rta_expires/hz);
+				fprintf(fp, " expires %dsec", ci->rta_expires / get_hz());
 			}
 			if (ci->rta_error != 0) {
 				fprintf(fp, " error %d", ci->rta_error);
