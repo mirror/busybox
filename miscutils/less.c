@@ -212,13 +212,13 @@ static void read_lines(void)
 				}
 			}
 			c = readbuf[readpos];
-			/* backspace? [need this for manpage display] */
-			if (c == '\x8' && linepos) {
+			/* backspace? [needed for manpages] */
+			/* <tab><bs> is (a) insane and */
+			/* (b) harder to do correctly, so we refuse to do it */
+			if (c == '\x8' && linepos && p[-1] != '\t') {
 				readpos++; /* eat it */
-				/* We do not consider the case of <tab><bs> */
-				/* Anyone who has that is pure evil :) */
 				linepos--;
-				*p-- = '\0';
+				*--p = '\0';
 				continue;
 			}
 			if (c == '\t')
