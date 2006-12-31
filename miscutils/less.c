@@ -212,11 +212,21 @@ static void read_lines(void)
 				}
 			}
 			c = readbuf[readpos];
+			/* backspace? [need this for manpage display] */
+			if (c == '\x8' && linepos) {
+				readpos++; /* eat it */
+				/* We do not consider the case of <tab><bs> */
+				/* Anyone who has that is pure evil :) */
+				linepos--;
+				*p-- = '\0';
+				continue;
+			}
 			if (c == '\t')
 				linepos += (linepos^7) & 7;
 			linepos++;
 			if (linepos >= w)
 				break;
+			/* ok, we will eat this char */
 			readpos++;
 			if (c == '\n') { terminated = 1; break; }
 			/* NUL is substituted by '\n'! */
@@ -1175,6 +1185,9 @@ int less_main(int argc, char **argv)
 {
 	int keypress;
 
+	/* TODO: -x: do not interpret backspace, -xx: tab also */
+	/* -xxx: newline also */
+	/* -w N: assume width N (-xxx -w 32: hex viewer of sorts) */
 	getopt32(argc, argv, "EMmN~");
 	argc -= optind;
 	argv += optind;
