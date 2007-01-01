@@ -848,20 +848,16 @@ static uint32_t next_token(uint32_t expected)
 	int l;
 
 	if (t.rollback) {
-
 		t.rollback = FALSE;
 
 	} else if (concat_inserted) {
-
 		concat_inserted = FALSE;
 		t.tclass = save_tclass;
 		t.info = save_info;
 
 	} else {
-
 		p = pos;
-
-	readnext:
+ readnext:
 		skip_spaces(&p);
 		lineno = t.lineno;
 		if (*p == '#')
@@ -939,7 +935,7 @@ static uint32_t next_token(uint32_t expected)
 				/* it's a name (var/array/function),
 				 * otherwise it's something wrong
 				 */
-				if (! isalnum_(*p))
+				if (!isalnum_(*p))
 					syntax_error(EMSG_UNEXP_TOKEN);
 
 				t.string = --p;
@@ -949,7 +945,7 @@ static uint32_t next_token(uint32_t expected)
 				*(p-1) = '\0';
 				tc = TC_VARIABLE;
 				/* also consume whitespace between functionname and bracket */
-				if (! (expected & TC_VARIABLE)) skip_spaces(&p);
+				if (!(expected & TC_VARIABLE)) skip_spaces(&p);
 				if (*p == '(') {
 					tc = TC_FUNCTION;
 				} else {
@@ -1395,14 +1391,14 @@ static regex_t *as_regex(node *op, regex_t *preg)
 /* gradually increasing buffer */
 static void qrealloc(char **b, int n, int *size)
 {
-	if (! *b || n >= *size)
+	if (!*b || n >= *size)
 		*b = xrealloc(*b, *size = n + (n>>1) + 80);
 }
 
 /* resize field storage space */
 static void fsrealloc(int size)
 {
-	static int maxfields = 0;
+	static int maxfields; /* = 0;*/
 	int i;
 
 	if (size >= maxfields) {
@@ -1416,8 +1412,8 @@ static void fsrealloc(int size)
 	}
 
 	if (size < nfields) {
-		for (i=size; i<nfields; i++) {
-			clrvar(Fields+i);
+		for (i = size; i < nfields; i++) {
+			clrvar(Fields + i);
 		}
 	}
 	nfields = size;
@@ -1457,8 +1453,8 @@ static int awk_split(char *s, node *spl, char **slist)
 		}
 	} else if (c[0] == '\0') {		/* null split */
 		while (*s) {
-			*(s1++) = *(s++);
-			*(s1++) = '\0';
+			*s1++ = *s++;
+			*s1++ = '\0';
 			n++;
 		}
 	} else if (c[0] != ' ') {		/* single-character split */
@@ -1468,17 +1464,17 @@ static int awk_split(char *s, node *spl, char **slist)
 		}
 		if (*s1) n++;
 		while ((s1 = strpbrk(s1, c))) {
-			*(s1++) = '\0';
+			*s1++ = '\0';
 			n++;
 		}
 	} else {				/* space split */
 		while (*s) {
 			s = skip_whitespace(s);
-			if (! *s) break;
+			if (!*s) break;
 			n++;
 			while (*s && !isspace(*s))
-				*(s1++) = *(s++);
-			*(s1++) = '\0';
+				*s1++ = *s++;
+			*s1++ = '\0';
 		}
 	}
 	return n;
@@ -1517,7 +1513,7 @@ static void handle_special(var *v)
 	char *b, *sep, *s;
 	int sl, l, len, i, bsize;
 
-	if (! (v->type & VF_SPECIAL))
+	if (!(v->type & VF_SPECIAL))
 		return;
 
 	if (v == V[NF]) {
@@ -1540,7 +1536,8 @@ static void handle_special(var *v)
 			memcpy(b+len, s, l);
 			len += l;
 		}
-		if (b) b[len] = '\0';
+		if (b)
+			b[len] = '\0';
 		setvar_p(V[F0], b);
 		is_f0_split = TRUE;
 
@@ -1556,7 +1553,7 @@ static void handle_special(var *v)
 	} else if (v == V[IGNORECASE]) {
 		icase = istrue(v);
 
-	} else {						/* $n */
+	} else {				/* $n */
 		n = getvar_i(V[NF]);
 		setvar_i(V[NF], n > v-Fields ? n : v-Fields+1);
 		/* right here v is invalid. Just to note... */
@@ -1781,7 +1778,6 @@ static char *awk_printf(node *n)
 
 		/* if there was an error while sprintf, return value is negative */
 		if (i < j) i = j;
-
 	}
 
 	b = xrealloc(b, i + 1);
@@ -1965,7 +1961,7 @@ static var *exec_builtin(node *op, var *res)
 
 	case B_up:
 		to_xxx = toupper;
-lo_cont:
+ lo_cont:
 		s1 = s = xstrdup(as[0]);
 		while (*s1) {
 			*s1 = (*to_xxx)(*s1);
@@ -2053,6 +2049,7 @@ static var *evaluate(node *op, var *res)
 	static var *fnargs = NULL;
 	static unsigned seed = 1;
 	static regex_t sreg;
+
 	node *op1;
 	var *v1;
 	union {
@@ -2072,7 +2069,7 @@ static var *evaluate(node *op, var *res)
 		uint32_t info;
 	} X;
 
-	if (! op)
+	if (!op)
 		return setvar_s(res, NULL);
 
 	v1 = nvalloc(2);
@@ -2224,9 +2221,8 @@ static var *evaluate(node *op, var *res)
 
 		case XC( OC_FNARG ):
 			L.v = &fnargs[op->l.i];
-
-v_cont:
-			res = (op->r.n) ? findvar(iamarray(L.v), R.s) : L.v;
+ v_cont:
+			res = op->r.n ? findvar(iamarray(L.v), R.s) : L.v;
 			break;
 
 		case XC( OC_IN ):
@@ -2240,7 +2236,7 @@ v_cont:
 
 		case XC( OC_MATCH ):
 			op1 = op->r.n;
-re_cont:
+ re_cont:
 			X.re = as_regex(op1, &sreg);
 			R.i = regexec(X.re, L.s, 0, NULL, 0);
 			if (X.re == &sreg) regfree(X.re);
