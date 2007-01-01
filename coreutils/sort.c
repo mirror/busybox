@@ -14,38 +14,44 @@
 
 #include "busybox.h"
 
-static int global_flags;
-
 /*
 	sort [-m][-o output][-bdfinru][-t char][-k keydef]... [file...]
 	sort -c [-bdfinru][-t char][-k keydef][file]
 */
 
 /* These are sort types */
-#define FLAG_n			1		/* Numeric sort */
-#define FLAG_g			2		/* Sort using strtod() */
-#define FLAG_M			4		/* Sort date */
+static const char OPT_STR[] = "ngMucszbrdfimS:T:o:k:t:";
+enum {
+	FLAG_n  = 1,            /* Numeric sort */
+	FLAG_g  = 2,            /* Sort using strtod() */
+	FLAG_M  = 4,            /* Sort date */
 /* ucsz apply to root level only, not keys.  b at root level implies bb */
-#define FLAG_u			8		/* Unique */
-#define FLAG_c			16		/* Check: no output, exit(!ordered) */
-#define FLAG_s			32		/* Stable sort, no ascii fallback at end */
-#define FLAG_z			64		/* Input is null terminated, not \n */
+	FLAG_u  = 8,            /* Unique */
+	FLAG_c  = 0x10,         /* Check: no output, exit(!ordered) */
+	FLAG_s  = 0x20,         /* Stable sort, no ascii fallback at end */
+	FLAG_z  = 0x40,         /* Input is null terminated, not \n */
 /* These can be applied to search keys, the previous four can't */
-#define FLAG_b			128		/* Ignore leading blanks */
-#define FLAG_r			256		/* Reverse */
-#define FLAG_d			512		/* Ignore !(isalnum()|isspace()) */
-#define FLAG_f			1024	/* Force uppercase */
-#define FLAG_i			2048	/* Ignore !isprint() */
-#define FLAG_bb			32768	/* Ignore trailing blanks  */
-
+	FLAG_b  = 0x80,         /* Ignore leading blanks */
+	FLAG_r  = 0x100,        /* Reverse */
+	FLAG_d  = 0x200,        /* Ignore !(isalnum()|isspace()) */
+	FLAG_f  = 0x400,        /* Force uppercase */
+	FLAG_i  = 0x800,        /* Ignore !isprint() */
+	FLAG_m  = 0x1000,       /* ignored: merge already sorted files; do not sort */
+	FLAG_S  = 0x2000,       /* ignored: -S, --buffer-size=SIZE */
+	FLAG_T  = 0x4000,       /* ignored: -T, --temporary-directory=DIR */
+	FLAG_o  = 0x8000,
+	FLAG_k  = 0x10000,
+	FLAG_t  = 0x20000,
+	FLAG_bb = 0x80000000,   /* Ignore trailing blanks  */
+};
 
 #if ENABLE_FEATURE_SORT_BIG
 static char key_separator;
 
 static struct sort_key {
 	struct sort_key *next_key;	/* linked list */
-	unsigned short range[4];	/* start word, start char, end word, end char */
-	int flags;
+	unsigned range[4];	/* start word, start char, end word, end char */
+	unsigned flags;
 } *key_list;
 
 static char *get_key(char *str, struct sort_key *key, int flags)
@@ -59,7 +65,7 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 		return str;
 	}
 
-	/* Find start of key on first pass, end on second pass*/
+	/* Find start of key on first pass, end on second pass */
 	len = strlen(str);
 	for (j = 0; j < 2; j++) {
 		if (!key->range[2*j])
@@ -68,19 +74,25 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 		else {
 			end = 0;
 			for (i = 1; i < key->range[2*j] + j; i++) {
-				/* Skip leading blanks or first separator */
-				if (str[end]) {
-					if (!key_separator)
-						while (isspace(str[end])) end++;
-				}
-				/* Skip body of key */
-				for (; str[end]; end++) {
-					if (key_separator) {
+				if (key_separator) {
+					/* Skip first separator */
+					while (str[end] == key_separator)
+						end++;
+					/* Skip body of key */
+					while (str[end]) {
 						if (str[end] == key_separator)
 							break;
-					} else {
+						end++;
+					}
+				} else {
+					/* Skip leading blanks */
+					while (isspace(str[end]))
+						end++;
+					/* Skip body of key */
+					while (str[end]) {
 						if (isspace(str[end]))
 							break;
+						end++;
 					}
 				}
 			}
@@ -140,7 +152,7 @@ static struct sort_key *add_key(void)
 }
 
 #define GET_LINE(fp) \
-	((global_flags & FLAG_z) \
+	((option_mask32 & FLAG_z) \
 	? bb_get_chunk_from_file(fp, NULL) \
 	: xmalloc_getline(fp))
 #else
@@ -150,14 +162,14 @@ static struct sort_key *add_key(void)
 /* Iterate through keys list and perform comparisons */
 static int compare_keys(const void *xarg, const void *yarg)
 {
-	int flags = global_flags, retval = 0;
+	int flags = option_mask32, retval = 0;
 	char *x, *y;
 
 #if ENABLE_FEATURE_SORT_BIG
 	struct sort_key *key;
 
 	for (key = key_list; !retval && key; key = key->next_key) {
-		flags = key->flags ? key->flags : global_flags;
+		flags = key->flags ? key->flags : option_mask32;
 		/* Chop out and modify key chunks, handling -dfib */
 		x = get_key(*(char **)xarg, key, flags);
 		y = get_key(*(char **)yarg, key, flags);
@@ -175,7 +187,11 @@ static int compare_keys(const void *xarg, const void *yarg)
 			break;
 		/* Ascii sort */
 		case 0:
+#if ENABLE_LOCALE_SUPPORT
+			retval = strcoll(x, y);
+#else
 			retval = strcmp(x, y);
+#endif
 			break;
 #if ENABLE_FEATURE_SORT_BIG
 		case FLAG_g: {
@@ -239,74 +255,97 @@ static int compare_keys(const void *xarg, const void *yarg)
 			break;
 		} /* switch */
 #endif
-	}
+	} /* for */
+
 	/* Perform fallback sort if necessary */
-	if (!retval && !(global_flags & FLAG_s))
+	if (!retval && !(option_mask32 & FLAG_s))
 		retval = strcmp(*(char **)xarg, *(char **)yarg);
 
 	if (flags & FLAG_r) return -retval;
 	return retval;
 }
 
+static unsigned str2u(char **str)
+{
+	unsigned long lu;
+	if (!isdigit((*str)[0]))
+		bb_error_msg_and_die("bad field specification");
+	lu = strtoul(*str, str, 10);
+	if ((sizeof(long) > sizeof(int) && lu > INT_MAX) || !lu)
+		bb_error_msg_and_die("bad field specification");
+	return lu;
+}
+
 int sort_main(int argc, char **argv)
 {
-	FILE *fp, *outfile = NULL;
-	int linecount = 0, i, flag;
-	char *line, **lines = NULL, *optlist = "ngMucszbrdfimS:T:o:k:t:";
-	int c;
+	FILE *fp, *outfile = stdout;
+	char *line, **lines = NULL;
+	char *str_ignored, *str_o, *str_k, *str_t;
+	int i, flag;
+	int linecount = 0;
 
 	xfunc_error_retval = 2;
-	/* Parse command line options */
-	while ((c = getopt(argc, argv, optlist)) > 0) {
-		line = strchr(optlist, c);
-		if (!line) bb_show_usage();
-		switch (*line) {
-#if ENABLE_FEATURE_SORT_BIG
-		case 'o':
-			if (outfile) bb_error_msg_and_die("too many -o");
-			outfile = xfopen(optarg, "w");
-			break;
-		case 't':
-			if (key_separator || optarg[1])
-				bb_error_msg_and_die("too many -t");
-			key_separator = *optarg;
-			break;
-		/* parse sort key */
-		case 'k': {
-			struct sort_key *key = add_key();
-			char *temp, *temp2;
 
-			temp = optarg;
-			for (i = 0; *temp;) {
-				/* Start of range */
-				key->range[2*i] = (unsigned short)strtol(temp, &temp, 10);
-				if (*temp == '.')
-					key->range[(2*i)+1] = (unsigned short)strtol(temp+1, &temp, 10);
-				for (; *temp; temp++) {
-					if (*temp == ',' && !i++) {
-						temp++;
-						break;
-					} /* no else needed: fall through to syntax error
-						 because comma isn't in optlist */
-					temp2 = strchr(optlist, *temp);
-					flag = (1 << (temp2 - optlist));
-					if (!temp2 || (flag > FLAG_M && flag < FLAG_b))
-						bb_error_msg_and_die("unknown key option");
-					/* b after ',' means strip _trailing_ space */
-					if (i && flag == FLAG_b) flag = FLAG_bb;
-					key->flags |= flag;
-				}
+	/* Parse command line options */
+	/* -o and -t can be given at most once */
+	opt_complementary = "?:o--o:t--t";
+	getopt32(argc, argv, OPT_STR, &str_ignored, &str_ignored, &str_o, &str_k, &str_t);
+#if ENABLE_FEATURE_SORT_BIG
+	if (option_mask32 & FLAG_o) outfile = xfopen(str_o, "w");
+	if (option_mask32 & FLAG_t) {
+		if (!str_t[0] || str_t[1])
+			bb_error_msg_and_die("bad -t parameter");
+		key_separator = str_t[0];
+	}
+	/* parse sort key */
+	if (option_mask32 & FLAG_k) {
+		enum {
+			FLAG_allowed_for_k =
+				FLAG_n | /* Numeric sort */
+				FLAG_g | /* Sort using strtod() */
+				FLAG_M | /* Sort date */
+				FLAG_b | /* Ignore leading blanks */
+				FLAG_r | /* Reverse */
+				FLAG_d | /* Ignore !(isalnum()|isspace()) */
+				FLAG_f | /* Force uppercase */
+				FLAG_i | /* Ignore !isprint() */
+			0
+		};
+		struct sort_key *key = add_key();
+		const char *temp2;
+
+		i = 0; /* i==0 before comma, 1 after (-k3,6) */
+		while (*str_k) {
+			/* Start of range */
+			/* Cannot use bb_strtou - suffix can be a letter */
+			key->range[2*i] = str2u(&str_k);
+			if (*str_k == '.') {
+				str_k++;
+				key->range[2*i+1] = str2u(&str_k);
 			}
-			break;
-		}
-#endif
-		default:
-			global_flags |= (1 << (line - optlist));
-			/* global b strips leading and trailing spaces */
-			if (global_flags & FLAG_b) global_flags |= FLAG_bb;
-			break;
+			while (*str_k) {
+				if (*str_k == ',' && !i++) {
+					str_k++;
+					break;
+				} /* no else needed: fall through to syntax error
+					 because comma isn't in OPT_STR */
+				temp2 = strchr(OPT_STR, *str_k);
+				if (!temp2)
+					bb_error_msg_and_die("unknown key option");
+				flag = 1 << (temp2 - OPT_STR);
+				if (flag & ~FLAG_allowed_for_k)
+					bb_error_msg_and_die("unknown sort type");
+				/* b after ',' means strip _trailing_ space */
+				if (i && flag == FLAG_b) flag = FLAG_bb;
+				key->flags |= flag;
+				str_k++;
+			}
 		}
 	}
+#endif
+	/* global b strips leading and trailing spaces */
+	if (option_mask32 & FLAG_b) option_mask32 |= FLAG_bb;
+
 	/* Open input files and read data */
 	for (i = argv[optind] ? optind : optind-1; argv[i]; i++) {
 		fp = stdin;
@@ -326,8 +365,8 @@ int sort_main(int argc, char **argv)
 	if (!key_list)
 		add_key()->range[0] = 1;
 	/* handle -c */
-	if (global_flags & FLAG_c) {
-		int j = (global_flags & FLAG_u) ? -1 : 0;
+	if (option_mask32 & FLAG_c) {
+		int j = (option_mask32 & FLAG_u) ? -1 : 0;
 		for (i = 1; i < linecount; i++)
 			if (compare_keys(&lines[i-1], &lines[i]) > j) {
 				fprintf(stderr, "Check line %d\n", i);
@@ -339,8 +378,12 @@ int sort_main(int argc, char **argv)
 	/* Perform the actual sort */
 	qsort(lines, linecount, sizeof(char *), compare_keys);
 	/* handle -u */
-	if (global_flags & FLAG_u) {
-		for (flag = 0, i = 1; i < linecount; i++) {
+	if (option_mask32 & FLAG_u) {
+		flag = 0;
+		/* coreutils 6.3 drop lines for which only key is the same */
+		/* -- disabling last-resort compare... */
+		option_mask32 |= FLAG_s;
+		for (i = 1; i < linecount; i++) {
 			if (!compare_keys(&lines[flag], &lines[i]))
 				free(lines[i]);
 			else
@@ -349,7 +392,6 @@ int sort_main(int argc, char **argv)
 		if (linecount) linecount = flag+1;
 	}
 	/* Print it */
-	if (!outfile) outfile = stdout;
 	for (i = 0; i < linecount; i++)
 		fprintf(outfile, "%s\n", lines[i]);
 

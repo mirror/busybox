@@ -158,12 +158,17 @@ static const char stty_dec  [] = "dec";
 
 /* Each mode */
 struct mode_info {
-	const char *name;       /* Name given on command line            */
-	char type;              /* Which structure element to change     */
-	char flags;             /* Setting and display options           */
-	unsigned short mask;    /* Other bits to turn off for this mode */
-	unsigned long bits;     /* Bits to set for this mode             */
+	const char *name;       /* Name given on command line           */
+	char type;              /* Which structure element to change    */
+	char flags;             /* Setting and display options          */
+	/* were using short here, but ppc32 was unhappy: */
+	tcflag_t mask;          /* Other bits to turn off for this mode */
+	tcflag_t bits;          /* Bits to set for this mode            */
 };
+
+/* We can optimize it further by using name[8] instead of char *name */
+/* but beware of "if (info->name == evenp)" checks! */
+/* Need to replace them with "if (info == &mode_info[EVENP_INDX])" */
 
 #define MI_ENTRY(N,T,F,B,M) { N, T, F, M, B }
 
@@ -319,9 +324,9 @@ enum {
 
 /* Control character settings */
 struct control_info {
-	const char *name;                       /* Name given on command line */
+	const char *name;               /* Name given on command line */
 	unsigned char saneval;          /* Value to set for 'stty sane' */
-	unsigned char offset;                           /* Offset in c_cc */
+	unsigned char offset;           /* Offset in c_cc */
 };
 
 /* Control characters */
@@ -968,9 +973,9 @@ static void set_mode(const struct mode_info *info, int reversed,
 
 	if (bitsp) {
 		if (reversed)
-			*bitsp = *bitsp & ~((unsigned long)info->mask) & ~info->bits;
+			*bitsp = *bitsp & ~info->mask & ~info->bits;
 		else
-			*bitsp = (*bitsp & ~((unsigned long)info->mask)) | info->bits;
+			*bitsp = (*bitsp & ~info->mask) | info->bits;
 		return;
 	}
 

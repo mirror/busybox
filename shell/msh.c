@@ -4860,9 +4860,12 @@ static int qstrchar(struct ioarg *ap)
 {
 	int c;
 
-	if (ap->aword == NULL) || (c = *ap->aword++) == 0)
+	if (ap->aword == NULL)
 		return 0;
-	return c | QUOTE;
+	c = *ap->aword++;
+	if (c)
+		c |= QUOTE;
+	return c;
 }
 
 /*
