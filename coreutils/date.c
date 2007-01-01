@@ -212,7 +212,8 @@ format_utc:
 			}
 		} else if (opt & DATE_OPT_RFC2822) {
 			/* Undo busybox.c for date -R */
-			setlocale(LC_TIME, "C");
+			if (ENABLE_LOCALE_SUPPORT)
+				setlocale(LC_TIME, "C");
 			strcpy(date_fmt, "%a, %d %b %Y %H:%M:%S ");
 			i = 22;
 			goto format_utc;
