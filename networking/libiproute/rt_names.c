@@ -228,7 +228,7 @@ int rtnl_rtrealm_a2n(uint32_t *id, char *arg)
 #if ENABLE_FEATURE_IP_RULE
 const char* rtnl_rtrealm_n2a(int id, char *buf, int len)
 {
-	if (id<0 || id>=256) {
+	if (id < 0 || id >= 256) {
 		snprintf(buf, len, "%d", id);
 		return buf;
 	}
@@ -257,7 +257,7 @@ static void rtnl_rtdsfield_initialize(void)
 
 const char * rtnl_dsfield_n2a(int id, char *buf, int len)
 {
-	if (id<0 || id>=256) {
+	if (id < 0 || id >= 256) {
 		snprintf(buf, len, "%d", id);
 		return buf;
 	}
