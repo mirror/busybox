@@ -35,7 +35,8 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 		char *opt = argv[1];
 
 		if (strcmp(opt,"--") == 0) {
-			argc--; argv++;
+			argc--;
+			argv++;
 			break;
 		}
 
@@ -69,7 +70,8 @@ void ip_parse_common_args(int *argcp, char ***argvp)
 		} else {
 			bb_show_usage();
 		}
-		argc--;	argv++;
+		argc--;
+		argv++;
 	}
 	_SL_ = oneline ? "\\" : "\n" ;
 	*argcp = argc;

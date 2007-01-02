@@ -163,7 +163,7 @@ int tail_main(int argc, char **argv)
 		 * starting file position may not be the beginning of the file.
 		 * Beware of backing up too far.  See example in wc.c.
 		 */
-		if (!(count|from_top) && lseek(fds[i], 0, SEEK_END) >= 0) {
+		if (!(count | from_top) && lseek(fds[i], 0, SEEK_END) >= 0) {
 			continue;
 		}
 

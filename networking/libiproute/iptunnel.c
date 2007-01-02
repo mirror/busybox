@@ -409,46 +409,46 @@ static void print_tunnel(struct ip_tunnel_parm *p)
 	if (p->iph.tos) {
 		SPRINT_BUF(b1);
 		printf(" tos");
-		if (p->iph.tos&1)
+		if (p->iph.tos & 1)
 			printf(" inherit");
-		if (p->iph.tos&~1)
-			printf("%c%s ", p->iph.tos&1 ? '/' : ' ',
-			       rtnl_dsfield_n2a(p->iph.tos&~1, b1, sizeof(b1)));
+		if (p->iph.tos & ~1)
+			printf("%c%s ", p->iph.tos & 1 ? '/' : ' ',
+			       rtnl_dsfield_n2a(p->iph.tos & ~1, b1, sizeof(b1)));
 	}
-	if (!(p->iph.frag_off&htons(IP_DF)))
+	if (!(p->iph.frag_off & htons(IP_DF)))
 		printf(" nopmtudisc");
 
-	if ((p->i_flags&GRE_KEY) && (p->o_flags&GRE_KEY) && p->o_key == p->i_key)
+	if ((p->i_flags & GRE_KEY) && (p->o_flags & GRE_KEY) && p->o_key == p->i_key)
 		printf(" key %s", s3);
-	else if ((p->i_flags|p->o_flags)&GRE_KEY) {
-		if (p->i_flags&GRE_KEY)
+	else if ((p->i_flags | p->o_flags) & GRE_KEY) {
+		if (p->i_flags & GRE_KEY)
 			printf(" ikey %s ", s3);
-		if (p->o_flags&GRE_KEY)
+		if (p->o_flags & GRE_KEY)
 			printf(" okey %s ", s4);
 	}
 
-	if (p->i_flags&GRE_SEQ)
+	if (p->i_flags & GRE_SEQ)
 		printf("%s  Drop packets out of sequence.\n", _SL_);
-	if (p->i_flags&GRE_CSUM)
+	if (p->i_flags & GRE_CSUM)
 		printf("%s  Checksum in received packet is required.", _SL_);
-	if (p->o_flags&GRE_SEQ)
+	if (p->o_flags & GRE_SEQ)
 		printf("%s  Sequence packets on output.", _SL_);
-	if (p->o_flags&GRE_CSUM)
+	if (p->o_flags & GRE_CSUM)
 		printf("%s  Checksum output packets.", _SL_);
 }
 
 static int do_tunnels_list(struct ip_tunnel_parm *p)
 {
 	char name[IFNAMSIZ];
-	unsigned long  rx_bytes, rx_packets, rx_errs, rx_drops,
-	rx_fifo, rx_frame,
-	tx_bytes, tx_packets, tx_errs, tx_drops,
-	tx_fifo, tx_colls, tx_carrier, rx_multi;
+	unsigned long rx_bytes, rx_packets, rx_errs, rx_drops,
+		rx_fifo, rx_frame,
+		tx_bytes, tx_packets, tx_errs, tx_drops,
+		tx_fifo, tx_colls, tx_carrier, rx_multi;
 	int type;
 	struct ip_tunnel_parm p1;
-
 	char buf[512];
 	FILE *fp = fopen("/proc/net/dev", "r");
+
 	if (fp == NULL) {
 		perror("fopen");
 		return -1;
@@ -459,8 +459,10 @@ static int do_tunnels_list(struct ip_tunnel_parm *p)
 
 	while (fgets(buf, sizeof(buf), fp) != NULL) {
 		char *ptr;
-		buf[sizeof(buf) - 1] = 0;
-		if ((ptr = strchr(buf, ':')) == NULL ||
+
+		/*buf[sizeof(buf) - 1] = 0; - fgets is safe anyway */
+		ptr = strchr(buf, ':');
+		if (ptr == NULL ||
 		    (*ptr++ = 0, sscanf(buf, "%s", name) != 1)) {
 			bb_error_msg("wrong format of /proc/net/dev. Sorry");
 			return -1;
@@ -541,6 +543,5 @@ int do_iptunnel(int argc, char **argv)
 	} else
 		return do_show(0, NULL);
 
-	bb_error_msg("command \"%s\" is unknown", *argv);
-	exit(-1);
+	bb_error_msg_and_die("command \"%s\" is unknown", *argv);
 }
