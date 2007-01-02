@@ -265,6 +265,7 @@ static int compare_keys(const void *xarg, const void *yarg)
 	return retval;
 }
 
+#if ENABLE_FEATURE_SORT_BIG
 static unsigned str2u(char **str)
 {
 	unsigned long lu;
@@ -275,6 +276,7 @@ static unsigned str2u(char **str)
 		bb_error_msg_and_die("bad field specification");
 	return lu;
 }
+#endif
 
 int sort_main(int argc, char **argv)
 {
