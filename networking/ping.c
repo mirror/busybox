@@ -218,9 +218,10 @@ static void sendping(int junk)
 	pkt->icmp_type = ICMP_ECHO;
 	pkt->icmp_code = 0;
 	pkt->icmp_cksum = 0;
-	pkt->icmp_seq = htons(ntransmitted++);
+	pkt->icmp_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp_id = myid;
 	CLR(ntohs(pkt->icmp_seq) % MAX_DUP_CHK);
+	ntransmitted++;
 
 	gettimeofday((struct timeval *) &pkt->icmp_dun, NULL);
 	pkt->icmp_cksum = in_cksum((unsigned short *) pkt, sizeof(packet));

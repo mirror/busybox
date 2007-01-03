@@ -206,9 +206,10 @@ static void sendping(int junk)
 	pkt->icmp6_type = ICMP6_ECHO_REQUEST;
 	pkt->icmp6_code = 0;
 	pkt->icmp6_cksum = 0;
-	pkt->icmp6_seq = htons(ntransmitted++);
+	pkt->icmp6_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp6_id = myid;
 	CLR(pkt->icmp6_seq % MAX_DUP_CHK);
+	ntransmitted++;
 
 	gettimeofday((struct timeval *) &pkt->icmp6_data8[4], NULL);
 
