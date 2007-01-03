@@ -32,9 +32,6 @@
 #define ZIP_CDS_END_MAGIC		SWAP_LE32(0x06054b50)
 #define ZIP_DD_MAGIC			SWAP_LE32(0x08074b50)
 
-extern unsigned int gunzip_crc;
-extern unsigned int gunzip_bytes_out;
-
 typedef union {
 	unsigned char raw[26];
 	struct {

@@ -64,6 +64,11 @@ typedef struct archive_handle_s {
 
 } archive_handle_t;
 
+
+extern uint32_t gunzip_crc;
+extern off_t gunzip_bytes_out;
+
+
 extern archive_handle_t *init_handle(void);
 
 extern char filter_accept_all(archive_handle_t *archive_handle);
