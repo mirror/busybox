@@ -13,8 +13,7 @@
 
 #include "busybox.h"
 
-static uid_t uid = -1;
-static gid_t gid = -1;
+static struct bb_uidgid_t ugid = { -1, -1 };
 
 static int (*chown_func)(const char *, uid_t, gid_t) = chown;
 
@@ -38,12 +37,14 @@ static int fileAction(const char *fileName, struct stat *statbuf,
 	// if (depth ... && S_ISLNK(statbuf->st_mode)) ....
 
 	if (!chown_func(fileName,
-				(uid == (uid_t)-1) ? statbuf->st_uid : uid,
-				(gid == (gid_t)-1) ? statbuf->st_gid : gid)) {
+			(ugid.uid == (uid_t)-1) ? statbuf->st_uid : ugid.uid,
+			(ugid.gid == (gid_t)-1) ? statbuf->st_gid : ugid.gid)
+	) {
 		if (OPT_VERBOSE
-		 || (OPT_CHANGED && (statbuf->st_uid != uid || statbuf->st_gid != gid))
+		 || (OPT_CHANGED && (statbuf->st_uid != ugid.uid || statbuf->st_gid != ugid.gid))
 		) {
-			printf("changed ownership of '%s' to %u:%u\n", fileName, uid, gid);
+			printf("changed ownership of '%s' to %u:%u\n",
+					fileName, ugid.uid, ugid.gid);
 		}
 		return TRUE;
 	}
@@ -65,23 +66,21 @@ int chown_main(int argc, char **argv)
 
 	/* First, check if there is a group name here */
 	groupName = strchr(*argv, '.'); /* deprecated? */
-	if (!groupName) {
+	if (!groupName)
 		groupName = strchr(*argv, ':');
-	}
+	else
+		*groupName = ':'; /* replace '.' with ':' */
 
 	/* First, try parsing "user[:[group]]" */
         if (!groupName) { /* "user" */
-		uid = get_ug_id(*argv, xuname2uid);
+		ugid.uid = get_ug_id(*argv, xuname2uid);
 	} else if (groupName == *argv) { /* ":group" */
-		gid = get_ug_id(groupName + 1, xgroup2gid);
+		ugid.gid = get_ug_id(groupName + 1, xgroup2gid);
 	} else {
-    		struct bb_uidgid_t ugid;
 		if (!groupName[1]) /* "user:" */
 			*groupName = '\0';
 		if (!get_uidgid(&ugid, *argv, 1))
 			bb_error_msg_and_die("unknown user/group %s", *argv);
-		uid = ugid.uid;
-		gid = ugid.gid;
 	}
 
 	/* Ok, ready to do the deed now */
