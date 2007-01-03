@@ -4,7 +4,7 @@
 #include "../include/autoconf.h"
 #include "../include/busybox.h"
 
-static const char usage_messages[] =
+static const char usage_messages[] = ""
 #define MAKE_USAGE
 #include "usage.h"
 #include "applets.h"
