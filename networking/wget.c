@@ -272,8 +272,15 @@ int wget_main(int argc, char **argv)
 				fprintf(sfp, "GET /%s HTTP/1.1\r\n", target.path);
 			}
 
-			fprintf(sfp, "Host: %s\r\nUser-Agent: %s\r\n", target.host,
-			        user_agent);
+			{
+				const char *portstr = "";
+				if (target.port != 80)
+					portstr = xasprintf(":%d", target.port);
+				fprintf(sfp, "Host: %s%s\r\nUser-Agent: %s\r\n",
+					target.host, portstr, user_agent);
+				if (ENABLE_FEATURE_CLEAN_UP && target.port != 80)
+					free((char*)portstr);
+			}
 
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 			if (target.user) {
