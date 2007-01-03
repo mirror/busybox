@@ -122,7 +122,11 @@ struct minix2_inode {
 	uint32_t i_zone[10];
 };
 
+/* Believe it or not, but mount.h has this one */
+#undef BLOCK_SIZE
 enum {
+	BLOCK_SIZE = 1024,
+
 	MINIX_ROOT_INO = 1,
 	MINIX_LINK_MAX = 250,
 	MINIX2_LINK_MAX = 65530,
@@ -190,7 +194,7 @@ enum { ROOT_INO = 1 };
 
 #define BITS_PER_BLOCK (BLOCK_SIZE<<3)
 
-static char *program_version = "1.2 - 11/11/96";
+#define PROGRAM_VERSION "1.2 - 11/11/96"
 static char *device_name;
 static int IN;
 static smallint repair, automatic, verbose, list, show, warn_mode, force;
@@ -335,7 +339,8 @@ static int ask(const char *string, int def)
 	printf(def ? "%s (y/n)? " : "%s (n/y)? ", string);
 	for (;;) {
 		fflush(stdout);
-		if ((c = getchar()) == EOF) {
+		c = getchar();
+		if (c == EOF) {
 			if (!def)
 				errors_uncorrected = 1;
 			return def;
@@ -371,7 +376,8 @@ static void check_mount(void)
 	int cont;
 	int fd;
 
-	if ((f = setmntent(MOUNTED, "r")) == NULL)
+	f = setmntent(MOUNTED, "r");
+	if (f == NULL)
 		return;
 	while ((mnt = getmntent(f)) != NULL)
 		if (strcmp(device_name, mnt->mnt_fsname) == 0)
@@ -388,8 +394,7 @@ static void check_mount(void)
 	fd = open(MOUNTED, O_RDWR);
 	if (fd < 0 && errno == EROFS)
 		return;
-	else
-		close(fd);
+	close(fd);
 
 	printf("%s is mounted. ", device_name);
 	cont = 0;
@@ -585,16 +590,14 @@ static void write_super_block(void)
 	 * are uncorrected errors.  The filesystem valid flag is
 	 * unconditionally set if we get this far.
 	 */
-	Super.s_state |= MINIX_VALID_FS;
-	if (errors_uncorrected)
-		Super.s_state |= MINIX_ERROR_FS;
-	else
+	Super.s_state |= MINIX_VALID_FS | MINIX_ERROR_FS;
+	if (!errors_uncorrected)
 		Super.s_state &= ~MINIX_ERROR_FS;
 
 	if (BLOCK_SIZE != lseek(IN, BLOCK_SIZE, SEEK_SET))
 		die("seek failed in write_super_block");
 	if (BLOCK_SIZE != write(IN, super_block_buffer, BLOCK_SIZE))
-		die("unable to write super-block");
+		die("cannot write super-block");
 }
 
 static void write_tables(void)
@@ -602,11 +605,11 @@ static void write_tables(void)
 	write_super_block();
 
 	if (IMAPS * BLOCK_SIZE != write(IN, inode_map, IMAPS * BLOCK_SIZE))
-		die("unable to write inode map");
+		die("cannot write inode map");
 	if (ZMAPS * BLOCK_SIZE != write(IN, zone_map, ZMAPS * BLOCK_SIZE))
-		die("unable to write zone map");
+		die("cannot write zone map");
 	if (INODE_BUFFER_SIZE != write(IN, inode_buffer, INODE_BUFFER_SIZE))
-		die("unable to write inodes");
+		die("cannot write inodes");
 }
 
 static void get_dirsize(void)
@@ -637,7 +640,7 @@ static void read_superblock(void)
 	if (BLOCK_SIZE != lseek(IN, BLOCK_SIZE, SEEK_SET))
 		die("seek failed");
 	if (BLOCK_SIZE != read(IN, super_block_buffer, BLOCK_SIZE))
-		die("unable to read super block");
+		die("cannot read super block");
 	/* already initialized to:
 	namelen = 14;
 	dirsize = 16;
@@ -673,11 +676,11 @@ static void read_tables(void)
 	inode_count = xmalloc(INODES + 1);
 	zone_count = xmalloc(ZONES);
 	if (IMAPS * BLOCK_SIZE != read(IN, inode_map, IMAPS * BLOCK_SIZE))
-		die("unable to read inode map");
+		die("cannot read inode map");
 	if (ZMAPS * BLOCK_SIZE != read(IN, zone_map, ZMAPS * BLOCK_SIZE))
-		die("unable to read zone map");
+		die("cannot read zone map");
 	if (INODE_BUFFER_SIZE != read(IN, inode_buffer, INODE_BUFFER_SIZE))
-		die("unable to read inodes");
+		die("cannot read inodes");
 	if (NORM_FIRSTZONE != FIRSTZONE) {
 		printf("warning: firstzone!=norm_firstzone\n");
 		errors_uncorrected = 1;
@@ -1024,18 +1027,16 @@ static void check_file(struct minix_inode *dir, unsigned int offset)
 	inode = get_inode(ino);
 	pop_filename();
 	if (!offset) {
-		if (!inode || strcmp(".", name)) {
-			printf("%s: bad directory: '.' isn't first\n", current_name);
-			errors_uncorrected = 1;
-		} else
+		if (inode && LONE_CHAR(name, '.'))
 			return;
+		printf("%s: bad directory: '.' isn't first\n", current_name);
+		errors_uncorrected = 1;
 	}
 	if (offset == dirsize) {
-		if (!inode || strcmp("..", name)) {
-			printf("%s: bad directory: '..' isn't second\n", current_name);
-			errors_uncorrected = 1;
-		} else
+		if (inode && strcmp("..", name) == 0)
 			return;
+		printf("%s: bad directory: '..' isn't second\n", current_name);
+		errors_uncorrected = 1;
 	}
 	if (!inode)
 		return;
@@ -1077,18 +1078,16 @@ static void check_file2(struct minix2_inode *dir, unsigned int offset)
 	inode = get_inode2(ino);
 	pop_filename();
 	if (!offset) {
-		if (!inode || strcmp(".", name)) {
-			printf("%s: bad directory: '.' isn't first\n", current_name);
-			errors_uncorrected = 1;
-		} else
+		if (inode && LONE_CHAR(name, '.'))
 			return;
+		printf("%s: bad directory: '.' isn't first\n", current_name);
+		errors_uncorrected = 1;
 	}
 	if (offset == dirsize) {
-		if (!inode || strcmp("..", name)) {
-			printf("%s: bad directory: '..' isn't second\n", current_name);
-			errors_uncorrected = 1;
-		} else
+		if (inode && strcmp("..", name) == 0)
 			return;
+		printf("%s: bad directory: '..' isn't second\n", current_name);
+		errors_uncorrected = 1;
 	}
 	if (!inode)
 		return;
@@ -1141,7 +1140,7 @@ static void recursive_check2(unsigned int ino)
 
 static int bad_zone(int i)
 {
-	char buffer[1024];
+	char buffer[BLOCK_SIZE];
 
 	if (BLOCK_SIZE * i != lseek(IN, BLOCK_SIZE * i, SEEK_SET))
 		die("seek failed in bad_zone");
@@ -1276,6 +1275,8 @@ int fsck_minix_main(int argc, char **argv)
 	struct termios tmp;
 	int retcode = 0;
 
+	xfunc_exitcode = 8;
+
 	alloc_current_name();
 #ifdef CONFIG_FEATURE_CLEAN_UP
 	/* Don't bother to free memory.  Exit does
@@ -1289,15 +1290,14 @@ int fsck_minix_main(int argc, char **argv)
 	if (INODE_SIZE2 * MINIX2_INODES_PER_BLOCK != BLOCK_SIZE)
 		die("bad v2 inode size");
 #endif
-	while (argc-- > 1) {
+	while (--argc != 0) {
 		argv++;
 		if (argv[0][0] != '-') {
 			if (device_name)
 				bb_show_usage();
-			else
-				device_name = argv[0];
-		} else
-			while (*++argv[0])
+			device_name = argv[0];
+		} else {
+			while (*++argv[0]) {
 				switch (argv[0][0]) {
 				case 'l':
 					list = 1;
@@ -1325,9 +1325,12 @@ int fsck_minix_main(int argc, char **argv)
 				default:
 					bb_show_usage();
 				}
+			}
+		}
 	}
 	if (!device_name)
 		bb_show_usage();
+
 	check_mount();				/* trying to check a mounted filesystem? */
 	if (repair && !automatic) {
 		if (!isatty(0) || !isatty(1))
@@ -1335,10 +1338,9 @@ int fsck_minix_main(int argc, char **argv)
 	}
 	IN = open(device_name, repair ? O_RDWR : O_RDONLY);
 	if (IN < 0) {
-		printf("unable to open device '%s'\n", device_name);
-		leave(8);
+		bb_error_msg_and_die("cannot open device '%s'", device_name);
 	}
-	sync(); /* paranoia? */
+	/*sync(); paranoia? */
 	read_superblock();
 
 	/*
@@ -1347,13 +1349,14 @@ int fsck_minix_main(int argc, char **argv)
 	 * flags and whether or not the -f switch was specified on the
 	 * command line.
 	 */
-	printf("%s, %s\n", applet_name, program_version);
+	printf("%s, "PROGRAM_VERSION"\n", applet_name);
+
 	if (!(Super.s_state & MINIX_ERROR_FS)
 	 && (Super.s_state & MINIX_VALID_FS) && !force
 	) {
 		if (repair)
 			printf("%s is clean, check is skipped\n", device_name);
-		return retcode;
+		return 0;
 	} else if (force)
 		printf("Forcing filesystem check on %s\n", device_name);
 	else if (repair)
