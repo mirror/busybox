@@ -272,12 +272,9 @@ static struct partition *xbsd_part;
 static int xbsd_part_index;
 #endif
 
-#if defined(__alpha__)
 /* We access this through a uint64_t * when checksumming */
-static char disklabelbuffer[BSD_BBSIZE] ATTRIBUTE_ALIGNED(8);
-#else
-static char disklabelbuffer[BSD_BBSIZE];
-#endif
+/* hopefully xmalloc gives us required alignment */
+static char *disklabelbuffer; /*[BSD_BBSIZE]*/
 
 static struct xbsd_disklabel xbsd_dlabel;
 
@@ -299,7 +296,7 @@ check_osf_label(void)
 }
 
 static int
-btrydev(const char * dev)
+bsd_trydev(const char * dev)
 {
 	if (xbsd_readlabel(NULL, &xbsd_dlabel) == 0)
 		return -1;
@@ -309,7 +306,7 @@ btrydev(const char * dev)
 }
 
 static void
-bmenu(void)
+bsd_menu(void)
 {
 	puts(_("Command action"));
 	puts(_("\td\tdelete a BSD partition"));
@@ -431,7 +428,7 @@ bsd_select(void)
 			break;
 #endif
 		default:
-			bmenu();
+			bsd_menu();
 			break;
 		}
 	}
@@ -920,6 +917,9 @@ static int
 xbsd_readlabel(struct partition *p, struct xbsd_disklabel *d)
 {
 	int t, sector;
+
+	if (!disklabelbuffer)
+		disklabelbuffer = xmalloc(BSD_BBSIZE);
 
 	/* p is used only to get the starting sector */
 #if !defined(__alpha__)

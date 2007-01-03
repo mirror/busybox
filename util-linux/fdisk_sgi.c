@@ -808,42 +808,43 @@ create_sgilabel(void)
 	}
 
 	memset(MBRbuffer, 0, sizeof(MBRbuffer));
+	/* fields with '//' are already zeroed out by memset above */
+
 	sgilabel->magic = SGI_SSWAP32(SGI_LABEL_MAGIC);
-	sgilabel->boot_part = SGI_SSWAP16(0);
+	//sgilabel->boot_part = SGI_SSWAP16(0);
 	sgilabel->swap_part = SGI_SSWAP16(1);
 
-	/* sizeof(sgilabel->boot_file) = 16 > 6 */
-	memset(sgilabel->boot_file, 0, 16);
-	strcpy((char*)sgilabel->boot_file, "/unix");
+	//memset(sgilabel->boot_file, 0, 16);
+	strcpy((char*)sgilabel->boot_file, "/unix"); /* sizeof(sgilabel->boot_file) == 16 > 6 */
 
-	sgilabel->devparam.skew                     = (0);
-	sgilabel->devparam.gap1                     = (0);
-	sgilabel->devparam.gap2                     = (0);
-	sgilabel->devparam.sparecyl                 = (0);
+	//sgilabel->devparam.skew                     = (0);
+	//sgilabel->devparam.gap1                     = (0);
+	//sgilabel->devparam.gap2                     = (0);
+	//sgilabel->devparam.sparecyl                 = (0);
 	sgilabel->devparam.pcylcount                = SGI_SSWAP16(geometry.cylinders);
-	sgilabel->devparam.head_vol0                = SGI_SSWAP16(0);
+	//sgilabel->devparam.head_vol0                = SGI_SSWAP16(0);
+	/* tracks/cylinder (heads) */
 	sgilabel->devparam.ntrks                    = SGI_SSWAP16(geometry.heads);
-						/* tracks/cylinder (heads) */
-	sgilabel->devparam.cmd_tag_queue_depth      = (0);
-	sgilabel->devparam.unused0                  = (0);
-	sgilabel->devparam.unused1                  = SGI_SSWAP16(0);
+	//sgilabel->devparam.cmd_tag_queue_depth      = (0);
+	//sgilabel->devparam.unused0                  = (0);
+	//sgilabel->devparam.unused1                  = SGI_SSWAP16(0);
+	/* sectors/track */
 	sgilabel->devparam.nsect                    = SGI_SSWAP16(geometry.sectors);
-						/* sectors/track */
 	sgilabel->devparam.bytes                    = SGI_SSWAP16(512);
 	sgilabel->devparam.ilfact                   = SGI_SSWAP16(1);
 	sgilabel->devparam.flags                    = SGI_SSWAP32(TRACK_FWD|
 							IGNORE_ERRORS|RESEEK);
-	sgilabel->devparam.datarate                 = SGI_SSWAP32(0);
+	//sgilabel->devparam.datarate                 = SGI_SSWAP32(0);
 	sgilabel->devparam.retries_on_error         = SGI_SSWAP32(1);
-	sgilabel->devparam.ms_per_word              = SGI_SSWAP32(0);
-	sgilabel->devparam.xylogics_gap1            = SGI_SSWAP16(0);
-	sgilabel->devparam.xylogics_syncdelay       = SGI_SSWAP16(0);
-	sgilabel->devparam.xylogics_readdelay       = SGI_SSWAP16(0);
-	sgilabel->devparam.xylogics_gap2            = SGI_SSWAP16(0);
-	sgilabel->devparam.xylogics_readgate        = SGI_SSWAP16(0);
-	sgilabel->devparam.xylogics_writecont       = SGI_SSWAP16(0);
-	memset( &(sgilabel->directory), 0, sizeof(struct volume_directory)*15 );
-	memset( &(sgilabel->partitions), 0, sizeof(struct sgi_partinfo)*16 );
+	//sgilabel->devparam.ms_per_word              = SGI_SSWAP32(0);
+	//sgilabel->devparam.xylogics_gap1            = SGI_SSWAP16(0);
+	//sgilabel->devparam.xylogics_syncdelay       = SGI_SSWAP16(0);
+	//sgilabel->devparam.xylogics_readdelay       = SGI_SSWAP16(0);
+	//sgilabel->devparam.xylogics_gap2            = SGI_SSWAP16(0);
+	//sgilabel->devparam.xylogics_readgate        = SGI_SSWAP16(0);
+	//sgilabel->devparam.xylogics_writecont       = SGI_SSWAP16(0);
+	//memset( &(sgilabel->directory), 0, sizeof(struct volume_directory)*15 );
+	//memset( &(sgilabel->partitions), 0, sizeof(struct sgi_partinfo)*16 );
 	current_label_type = label_sgi;
 	partitions = 16;
 	sgi_volumes = 15;

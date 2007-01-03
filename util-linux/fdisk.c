@@ -2715,7 +2715,7 @@ is_ide_cdrom_or_tape(const char *device)
 
 
 static void
-try(const char *device, int user_specified)
+trydev(const char *device, int user_specified)
 {
 	int gb;
 
@@ -2736,7 +2736,7 @@ try(const char *device, int user_specified)
 				return;
 			}
 #if ENABLE_FEATURE_OSF_LABEL
-			if (btrydev(device) < 0)
+			if (bsd_trydev(device) < 0)
 #endif
 				printf(_("Disk %s doesn't contain a valid "
 					"partition table\n"), device);
@@ -2780,7 +2780,7 @@ tryprocpt(void)
 		if (isdigit(s[-1]))
 			continue;
 		sprintf(devname, "/dev/%s", ptname);
-		try(devname, 0);
+		trydev(devname, 0);
 	}
 #if ENABLE_FEATURE_CLEAN_UP
 	fclose(procpt);
@@ -2865,7 +2865,7 @@ int fdisk_main(int argc, char **argv)
 #endif
 			listing = 1;
 			for (k = 0; k < argc; k++)
-				try(argv[k], 1);
+				trydev(argv[k], 1);
 		} else {
 			/* we no longer have default device names */
 			/* but, we can use /proc/partitions instead */
