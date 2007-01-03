@@ -194,18 +194,12 @@ static void recursive_check(unsigned ino);
 static void recursive_check2(unsigned ino);
 #endif
 
-static void leave(int) ATTRIBUTE_NORETURN;
-static void leave(int status)
+static void die(const char *str) ATTRIBUTE_NORETURN;
+static void die(const char *str)
 {
 	if (termios_set)
 		tcsetattr(0, TCSANOW, &termios);
-	exit(status);
-}
-
-static void die(const char *str)
-{
-	bb_error_msg("%s", str);
-	leave(8);
+	bb_error_msg_and_die("%s", str);
 }
 
 /* File-name data */
