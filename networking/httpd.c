@@ -91,9 +91,7 @@
  *
 */
 
-
 #include "busybox.h"
-
 
 static const char httpdVersion[] = "busybox httpd/1.35 6-Oct-2004";
 static const char default_path_httpd_conf[] = "/etc";
@@ -1065,7 +1063,7 @@ static int sendCgi(const char *url,
 		 * It should not be decoded in any fashion. This variable
 		 * should always be set when there is query information,
 		 * regardless of command line decoding. */
-		/* (Older versions of bbox seemed to do some decoding) */
+		/* (Older versions of bbox seem to do some decoding) */
 		setenv1("QUERY_STRING", config->query);
 		setenv1("SERVER_SOFTWARE", httpdVersion);
 		putenv("SERVER_PROTOCOL=HTTP/1.0");
@@ -1097,7 +1095,7 @@ static int sendCgi(const char *url,
 			goto error_execing_cgi;
 		*script = '\0';
 		if (chdir(realpath_buff) == 0) {
-			// now run the program.  If it fails,
+			// Now run the program.  If it fails,
 			// use _exit() so no destructors
 			// get called and make a mess.
 #if ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
@@ -1210,21 +1208,22 @@ static int sendCgi(const char *url,
 #endif
 
 			/* There is something to read */
-			count = safe_read(inFd, rbuf, PIPESIZE);
+			/* NB: was safe_read. If it *has to be* safe_read, */
+			/* please explain why in this comment... */
+			count = full_read(inFd, rbuf, PIPESIZE);
 			if (count == 0)
 				break;  /* closed */
 			if (count > 0) {
 				if (firstLine) {
+					/* full_read (above) avoids
+					 * "chopped up into small chunks" syndrome here */
 					rbuf[count] = 0;
 					/* check to see if the user script added headers */
 					if (strncmp(rbuf, "HTTP/1.0 200 OK\r\n", 4) != 0) {
+						/* there is no "HTTP", do it ourself */
 						full_write(s, "HTTP/1.0 200 OK\r\n", 17);
-					}
-					/* Sometimes CGI is writing to pipe in small chunks
-					 * and we don't see Content-type (because the read
-					 * is too short) and we emit bogus "text/plain"!
-					 * Is it a bug or CGI *has to* write it in one piece? */
-					if (strstr(rbuf, "ontent-") == 0) {
+					} /* hmm, maybe 'else if'? */
+					if (!strstr(rbuf, "ontent-")) {
 						full_write(s, "Content-type: text/plain\r\n\r\n", 28);
 					}
 					firstLine = 0;
