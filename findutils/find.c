@@ -551,14 +551,15 @@ int find_main(int argc, char **argv)
 				for (i = 1; i < firstopt; i++) {
 					/* not xstat(): shouldn't bomb out on
 					 * "find not_exist exist -xdev" */
-					if (stat(argv[i], &stbuf)) stbuf.st_dev = -1L;
+					if (stat(argv[i], &stbuf))
+						stbuf.st_dev = -1L;
 					xdev_dev[i-1] = stbuf.st_dev;
 				}
 			}
 			argp[0] = "-a";
 		}
-		argp++;
 #endif
+		argp++;
 	}
 
 	actions = parse_params(&argv[firstopt]);
