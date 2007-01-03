@@ -174,7 +174,7 @@ static char *zone_map;
 static unsigned char *inode_count;
 static unsigned char *zone_count;
 
-static int bit(char *a, unsigned int i)
+static int bit(char *a, unsigned i)
 {
 	  return (a[i >> 3] & (1<<(i & 7))) != 0;
 }
@@ -189,9 +189,9 @@ static int bit(char *a, unsigned int i)
 #define unmark_zone(x) (clrbit(zone_map,(x)-FIRSTZONE+1),changed=1)
 
 
-static void recursive_check(unsigned int ino);
+static void recursive_check(unsigned ino);
 #if ENABLE_FEATURE_MINIX2
-static void recursive_check2(unsigned int ino);
+static void recursive_check2(unsigned ino);
 #endif
 
 static void leave(int) ATTRIBUTE_NORETURN;
@@ -381,7 +381,7 @@ static int check_zone_nr(uint16_t *nr, smallint *corrected)
 /*
  * read-block reads block nr into the buffer at addr.
  */
-static void read_block(unsigned int nr, char *addr)
+static void read_block(unsigned nr, char *addr)
 {
 	if (!nr) {
 		memset(addr, 0, BLOCK_SIZE);
@@ -403,7 +403,7 @@ static void read_block(unsigned int nr, char *addr)
 /*
  * write_block writes block nr to disk.
  */
-static void write_block(unsigned int nr, char *addr)
+static void write_block(unsigned nr, char *addr)
 {
 	if (!nr)
 		return;
@@ -427,7 +427,7 @@ static void write_block(unsigned int nr, char *addr)
  * It sets 'changed' if the inode has needed changing, and re-writes
  * any indirect blocks with errors.
  */
-static int map_block(struct minix1_inode *inode, unsigned int blknr)
+static int map_block(struct minix1_inode *inode, unsigned blknr)
 {
 	uint16_t ind[BLOCK_SIZE >> 1];
 	uint16_t dind[BLOCK_SIZE >> 1];
@@ -463,7 +463,7 @@ static int map_block(struct minix1_inode *inode, unsigned int blknr)
 }
 
 #if ENABLE_FEATURE_MINIX2
-static int map_block2(struct minix2_inode *inode, unsigned int blknr)
+static int map_block2(struct minix2_inode *inode, unsigned blknr)
 {
 	uint32_t ind[BLOCK_SIZE >> 2];
 	uint32_t dind[BLOCK_SIZE >> 2];
@@ -643,7 +643,7 @@ static void read_tables(void)
 	}
 }
 
-static struct minix1_inode *get_inode(unsigned int nr)
+static struct minix1_inode *get_inode(unsigned nr)
 {
 	struct minix1_inode *inode;
 
@@ -653,7 +653,7 @@ static struct minix1_inode *get_inode(unsigned int nr)
 	inode = Inode1 + nr;
 	if (!inode_count[nr]) {
 		if (!inode_in_use(nr)) {
-			printf("Inode1 %d is marked as 'unused', but it is used "
+			printf("Inode %d is marked as 'unused', but it is used "
 					"for file '%s'\n", nr, current_name);
 			if (repair) {
 				if (ask("Mark as 'in use'", 1))
@@ -689,7 +689,7 @@ static struct minix1_inode *get_inode(unsigned int nr)
 }
 
 #if ENABLE_FEATURE_MINIX2
-static struct minix2_inode *get_inode2(unsigned int nr)
+static struct minix2_inode *get_inode2(unsigned nr)
 {
 	struct minix2_inode *inode;
 
@@ -699,7 +699,7 @@ static struct minix2_inode *get_inode2(unsigned int nr)
 	inode = Inode2 + nr;
 	if (!inode_count[nr]) {
 		if (!inode_in_use(nr)) {
-			printf("Inode1 %d is marked as 'unused', but it is used "
+			printf("Inode %d is marked as 'unused', but it is used "
 					"for file '%s'\n", nr, current_name);
 			if (repair) {
 				if (ask("Mark as 'in use'", 1))
@@ -905,7 +905,7 @@ static void add_zone_tind2(uint32_t *znr, smallint *corrected)
 }
 #endif
 
-static void check_zones(unsigned int i)
+static void check_zones(unsigned i)
 {
 	struct minix1_inode *inode;
 
@@ -923,7 +923,7 @@ static void check_zones(unsigned int i)
 }
 
 #if ENABLE_FEATURE_MINIX2
-static void check_zones2(unsigned int i)
+static void check_zones2(unsigned i)
 {
 	struct minix2_inode *inode;
 
@@ -943,7 +943,7 @@ static void check_zones2(unsigned int i)
 }
 #endif
 
-static void check_file(struct minix1_inode *dir, unsigned int offset)
+static void check_file(struct minix1_inode *dir, unsigned offset)
 {
 	static char blk[BLOCK_SIZE];
 	struct minix1_inode *inode;
@@ -994,7 +994,7 @@ static void check_file(struct minix1_inode *dir, unsigned int offset)
 }
 
 #if ENABLE_FEATURE_MINIX2
-static void check_file2(struct minix2_inode *dir, unsigned int offset)
+static void check_file2(struct minix2_inode *dir, unsigned offset)
 {
 	static char blk[BLOCK_SIZE];
 	struct minix2_inode *inode;
@@ -1045,10 +1045,10 @@ static void check_file2(struct minix2_inode *dir, unsigned int offset)
 }
 #endif
 
-static void recursive_check(unsigned int ino)
+static void recursive_check(unsigned ino)
 {
 	struct minix1_inode *dir;
-	unsigned int offset;
+	unsigned offset;
 
 	dir = Inode1 + ino;
 	if (!S_ISDIR(dir->i_mode))
@@ -1062,10 +1062,10 @@ static void recursive_check(unsigned int ino)
 }
 
 #if ENABLE_FEATURE_MINIX2
-static void recursive_check2(unsigned int ino)
+static void recursive_check2(unsigned ino)
 {
 	struct minix2_inode *dir;
-	unsigned int offset;
+	unsigned offset;
 
 	dir = Inode2 + ino;
 	if (!S_ISDIR(dir->i_mode))
@@ -1094,7 +1094,7 @@ static void check_counts(void)
 
 	for (i = 1; i <= INODES; i++) {
 		if (warn_mode && Inode1[i].i_mode && !inode_in_use(i)) {
-			printf("Inode1 %d has non-zero mode. ", i);
+			printf("Inode %d has non-zero mode. ", i);
 			if (ask("Clear", 1)) {
 				Inode1[i].i_mode = 0;
 				changed = 1;
@@ -1109,12 +1109,12 @@ static void check_counts(void)
 			continue;
 		}
 		if (!inode_in_use(i)) {
-			printf("Inode1 %d is used, but marked as 'unused' in the bitmap. ", i);
+			printf("Inode %d is used, but marked as 'unused' in the bitmap. ", i);
 			if (ask("Set", 1))
 				mark_inode(i);
 		}
 		if (Inode1[i].i_nlinks != inode_count[i]) {
-			printf("Inode1 %d (mode=%07o), i_nlinks=%d, counted=%d. ",
+			printf("Inode %d (mode=%07o), i_nlinks=%d, counted=%d. ",
 				   i, Inode1[i].i_mode, Inode1[i].i_nlinks, inode_count[i]);
 			if (ask("Set i_nlinks to count", 1)) {
 				Inode1[i].i_nlinks = inode_count[i];
@@ -1145,7 +1145,7 @@ static void check_counts2(void)
 
 	for (i = 1; i <= INODES; i++) {
 		if (warn_mode && Inode2[i].i_mode && !inode_in_use(i)) {
-			printf("Inode1 %d has non-zero mode. ", i);
+			printf("Inode %d has non-zero mode. ", i);
 			if (ask("Clear", 1)) {
 				Inode2[i].i_mode = 0;
 				changed = 1;
@@ -1160,7 +1160,7 @@ static void check_counts2(void)
 			continue;
 		}
 		if (!inode_in_use(i)) {
-			printf("Inode1 %d is used, but marked as 'unused' in the bitmap. ", i);
+			printf("Inode %d is used, but marked as 'unused' in the bitmap. ", i);
 			if (ask("Set", 1))
 				mark_inode(i);
 		}

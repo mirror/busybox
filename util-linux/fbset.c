@@ -61,7 +61,7 @@ enum {
 #endif
 };
 
-static unsigned int g_options = 0;
+static unsigned g_options;
 
 /* Stuff stolen from the kernel's fb.h */
 #define FB_ACTIVATE_ALL 64
