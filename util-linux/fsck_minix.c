@@ -176,7 +176,7 @@ static unsigned char *zone_count;
 
 static int bit(char *a, unsigned i)
 {
-	  return (a[i >> 3] & (1<<(i & 7))) != 0;
+	return (a[i >> 3] & (1<<(i & 7))) != 0;
 }
 
 #define inode_in_use(x) (bit(inode_map,(x)))
