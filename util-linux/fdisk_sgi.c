@@ -869,7 +869,7 @@ sgi_set_xcyl(void)
 static sgiinfo *
 fill_sgiinfo(void)
 {
-	sgiinfo *info = calloc(1, sizeof(sgiinfo));
+	sgiinfo *info = xzalloc(sizeof(sgiinfo));
 
 	info->magic = SGI_SSWAP32(SGI_INFO_MAGIC);
 	info->b1 = SGI_SSWAP32(-1);

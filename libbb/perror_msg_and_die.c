@@ -20,7 +20,5 @@ void bb_perror_msg_and_die(const char *s, ...)
 	va_start(p, s);
 	bb_vperror_msg(s, p);
 	va_end(p);
-	if (die_sleep)
-		sleep(die_sleep);
-	exit(xfunc_error_retval);
+	sleep_and_die();
 }

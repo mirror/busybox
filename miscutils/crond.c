@@ -542,7 +542,7 @@ static void SynchronizeFile(const char *fileName)
 			struct stat sbuf;
 
 			if (fstat(fileno(fi), &sbuf) == 0 && sbuf.st_uid == DaemonUid) {
-				CronFile *file = calloc(1, sizeof(CronFile));
+				CronFile *file = xzalloc(sizeof(CronFile));
 				CronLine **pline;
 
 				file->cf_User = strdup(fileName);
@@ -586,7 +586,7 @@ static void SynchronizeFile(const char *fileName)
 
 					FixDayDow(&line);
 
-					*pline = calloc(1, sizeof(CronLine));
+					*pline = xzalloc(sizeof(CronLine));
 					**pline = line;
 
 					/* copy command */

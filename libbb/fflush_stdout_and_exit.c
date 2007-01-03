@@ -15,10 +15,7 @@
 
 void fflush_stdout_and_exit(int retval)
 {
-	if (fflush(stdout)) {
-		retval = xfunc_error_retval;
-	}
-	if (die_sleep)
-		sleep(die_sleep);
+	if (fflush(stdout))
+		sleep_and_die();
 	exit(retval);
 }

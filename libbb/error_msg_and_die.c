@@ -15,6 +15,13 @@
 
 int die_sleep;
 
+void sleep_and_die(void)
+{
+	if (die_sleep)
+		sleep(die_sleep);
+	exit(xfunc_error_retval);
+}
+
 void bb_error_msg_and_die(const char *s, ...)
 {
 	va_list p;
@@ -22,7 +29,5 @@ void bb_error_msg_and_die(const char *s, ...)
 	va_start(p, s);
 	bb_verror_msg(s, p, NULL);
 	va_end(p);
-	if (die_sleep)
-		sleep(die_sleep);
-	exit(xfunc_error_retval);
+	sleep_and_die();
 }

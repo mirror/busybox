@@ -397,6 +397,7 @@ extern const char *msg_eol;
 extern int logmode;
 extern int die_sleep;
 extern int xfunc_error_retval;
+extern void sleep_and_die(void) ATTRIBUTE_NORETURN;
 extern void bb_show_usage(void) ATTRIBUTE_NORETURN ATTRIBUTE_EXTERNALLY_VISIBLE;
 extern void bb_error_msg(const char *s, ...) __attribute__ ((format (printf, 1, 2)));
 extern void bb_error_msg_and_die(const char *s, ...) __attribute__ ((noreturn, format (printf, 1, 2)));

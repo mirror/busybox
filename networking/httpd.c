@@ -499,7 +499,7 @@ static void parse_conf(const char *path, int flag)
 			 continue;
 		if (*p0 == 'A' || *p0 == 'D') {
 			/* storing current config IP line */
-			pip = calloc(1, sizeof(Htaccess_IP));
+			pip = xzalloc(sizeof(Htaccess_IP));
 			if (pip) {
 				if (scan_ip_mask(c, &(pip->ip), &(pip->mask))) {
 					/* syntax IP{/mask} error detected, protect all */
@@ -570,7 +570,7 @@ static void parse_conf(const char *path, int flag)
  || ENABLE_FEATURE_HTTPD_CONFIG_WITH_MIME_TYPES \
  || ENABLE_FEATURE_HTTPD_CONFIG_WITH_SCRIPT_INTERPR
 		/* storing current config line */
-		cur = calloc(1, sizeof(Htaccess) + strlen(p0));
+		cur = xzalloc(sizeof(Htaccess) + strlen(p0));
 		if (cur) {
 			cf = strcpy(cur->before_colon, p0);
 			c = strchr(cf, ':');
