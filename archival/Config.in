@@ -131,7 +131,7 @@ config RPM
 	bool "rpm"
 	default n
 	help
-	  Mini RPM applet - queries and extracts
+	  Mini RPM applet - queries and extracts RPM packages.
 
 config TAR
 	bool "tar"
