@@ -10,8 +10,6 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <limits.h>
-#include <stdlib.h>
 #include "busybox.h"
 
 int realpath_main(int argc, char **argv)

@@ -4,15 +4,12 @@
  *  Returns a NULL on failure...
  */
 
-#include <stdio.h>
+#include "libbb.h"
 
 /*
  * NOTE: This function returns a malloced char* that you will have to free
  * yourself. You have been warned.
  */
-
-#include <unistd.h>
-#include "libbb.h"
 
 char *xreadlink(const char *path)
 {
@@ -35,4 +32,17 @@ char *xreadlink(const char *path)
 	buf[readsize] = '\0';
 
 	return buf;
+}
+
+char *xmalloc_realpath(const char *path)
+{
+#ifdef __GLIBC__
+	/* glibc provides a non-standard extension */
+	return realpath(path, NULL);
+#else
+	char buf[PATH_MAX+1];
+
+	/* on error returns NULL (xstrdup(NULL) ==NULL) */
+	return xstrdup(realpath(path, buf));
+#endif
 }

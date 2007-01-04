@@ -3021,7 +3021,8 @@
        "\n	-R HOST[:PORT]	Log to IP or hostname on PORT (default PORT=514/UDP)" \
        "\n	-L	Log locally and via network logging (default is network only)") \
 	USE_FEATURE_IPC_SYSLOG( \
-       "\n	-C [size(KiB)]	Log to a circular buffer (read the buffer using logread)")
+       "\n	-C[size(KiB)]	Log to a circular buffer (read the buffer using logread)")
+	/* NB: -Csize shouldn't have space (because size is optional) */
 #define syslogd_example_usage \
        "$ syslogd -R masterlog:514\n" \
        "$ syslogd -R 192.168.1.1:601\n"

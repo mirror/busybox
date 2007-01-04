@@ -22,18 +22,13 @@
 #include <sys/syslog.h>
 #include <sys/uio.h>
 
+#define DEBUG 0
+
 /* Path to the unix socket */
-static char dev_log_name[MAXPATHLEN];
+static char *dev_log_name;
 
 /* Path for the file where all log messages are written */
 static const char *logFilePath = "/var/log/messages";
-
-#if ENABLE_FEATURE_ROTATE_LOGFILE
-/* max size of message file before being rotated */
-static int logFileSize = 200 * 1024;
-/* number of rotated message files */
-static int logFileRotate = 1;
-#endif
 
 /* interval between marks in seconds */
 static int markInterval = 20 * 60;
@@ -43,6 +38,13 @@ static int logLevel = 8;
 
 /* localhost's name */
 static char localHostName[64];
+
+#if ENABLE_FEATURE_ROTATE_LOGFILE
+/* max size of message file before being rotated */
+static int logFileSize = 200 * 1024;
+/* number of rotated message files */
+static int logFileRotate = 1;
+#endif
 
 #if ENABLE_FEATURE_REMOTE_LOG
 #include <netinet/in.h>
@@ -142,6 +144,9 @@ static void ipcsyslog_cleanup(void)
 
 static void ipcsyslog_init(void)
 {
+	if (DEBUG)
+		printf("shmget(%lx, %d,...)\n", KEY_ID, shm_size);
+
 	shmid = shmget(KEY_ID, shm_size, IPC_CREAT | 1023);
 	if (shmid == -1) {
 		bb_perror_msg_and_die("shmget");
@@ -236,6 +241,8 @@ static void log_to_shmem(const char *msg, int len)
 	if (semop(s_semid, SMwup, 1) == -1) {
 		bb_perror_msg_and_die("SMwup");
 	}
+	if (DEBUG)
+		printf("head:%d tail:%d\n", shbuf->head, shbuf->tail);
 }
 #else
 void ipcsyslog_cleanup(void);
@@ -450,10 +457,12 @@ static void do_syslogd(void)
 	signal(SIGALRM, do_mark);
 	alarm(markInterval);
 
+	dev_log_name = xmalloc_realpath(_PATH_LOG);
+	if (!dev_log_name)
+		dev_log_name = _PATH_LOG;
+
 	/* Unlink old /dev/log (or object it points to) */
-	if (realpath(_PATH_LOG, dev_log_name) != NULL) {
-		unlink(dev_log_name);
-	}
+	unlink(dev_log_name);
 
 	memset(&sunx, 0, sizeof(sunx));
 	sunx.sun_family = AF_UNIX;
@@ -520,6 +529,7 @@ int syslogd_main(int argc, char **argv)
 	char *p;
 
 	/* do normal option parsing */
+	opt_complementary = "=0"; /* no non-option params */
 	getopt32(argc, argv, OPTION_STR, OPTION_PARAM);
 	if (option_mask32 & OPT_mark) // -m
 		markInterval = xatou_range(opt_m, 0, INT_MAX/60) * 60;
