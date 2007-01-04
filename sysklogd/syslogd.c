@@ -29,6 +29,7 @@ static char *dev_log_name;
 
 /* Path for the file where all log messages are written */
 static const char *logFilePath = "/var/log/messages";
+static int logFD = -1;
 
 /* interval between marks in seconds */
 static int markInterval = 20 * 60;
@@ -41,9 +42,11 @@ static char localHostName[64];
 
 #if ENABLE_FEATURE_ROTATE_LOGFILE
 /* max size of message file before being rotated */
-static int logFileSize = 200 * 1024;
+static unsigned logFileSize = 200 * 1024;
 /* number of rotated message files */
-static int logFileRotate = 1;
+static unsigned logFileRotate = 1;
+static unsigned curFileSize;
+static smallint isRegular;
 #endif
 
 #if ENABLE_FEATURE_REMOTE_LOG
@@ -256,7 +259,10 @@ void log_to_shmem(const char *msg);
 /* Print a message to the log file. */
 static void log_locally(char *msg)
 {
-	int fd, len = strlen(msg);
+	static time_t last;
+
+	struct flock fl;
+	int len = strlen(msg);
 
 #if ENABLE_FEATURE_IPC_SYSLOG
 	if ((option_mask32 & OPT_circularlog) && shbuf) {
@@ -264,62 +270,69 @@ static void log_locally(char *msg)
 		return;
 	}
 #endif
-
- again:
-	fd = device_open(logFilePath, O_WRONLY | O_CREAT
+	if (logFD >= 0) {
+		time_t cur;
+		time(&cur);
+		if (last != cur) {
+			last = cur; /* reopen log file every second */
+			close(logFD);
+			goto reopen;
+		}
+	} else {
+		struct stat statf;
+ reopen:
+		logFD = device_open(logFilePath, O_WRONLY | O_CREAT
 					| O_NOCTTY | O_APPEND | O_NONBLOCK);
-	if (fd >= 0) {
-		struct flock fl;
+		if (logFD < 0) {
+			/* cannot open logfile? - print to /dev/console then */
+			int fd = device_open(_PATH_CONSOLE, O_WRONLY | O_NOCTTY | O_NONBLOCK);
+			if (fd < 0)
+				fd = 2; /* then stderr, dammit */
+			full_write(fd, msg, len);
+			if (fd != 2)
+				close(fd);
+			return;
+		}
+#if ENABLE_FEATURE_ROTATE_LOGFILE
+		isRegular = (fstat(logFD, &statf) == 0 && (statf.st_mode & S_IFREG));
+		/* bug (mostly harmless): can wrap around if file > 4gb */
+		curFileSize = statf.st_size;
+#endif
+	}
 
-		fl.l_whence = SEEK_SET;
-		fl.l_start = 0;
-		fl.l_len = 1;
-		fl.l_type = F_WRLCK;
-		fcntl(fd, F_SETLKW, &fl);
+	fl.l_whence = SEEK_SET;
+	fl.l_start = 0;
+	fl.l_len = 1;
+	fl.l_type = F_WRLCK;
+	fcntl(logFD, F_SETLKW, &fl);
 
 #if ENABLE_FEATURE_ROTATE_LOGFILE
-		if (logFileSize) {
-			struct stat statf;
-			int r = fstat(fd, &statf);
-			if (!r && (statf.st_mode & S_IFREG)
-			 && (lseek(fd, 0, SEEK_END) > logFileSize)
-			) {
-				if (logFileRotate) { /* always 0..99 */
-					int i = strlen(logFilePath) + 3 + 1;
-					char oldFile[i];
-					char newFile[i];
-					i = logFileRotate - 1;
-					/* rename: f.8 -> f.9; f.7 -> f.8; ... */
-					while (1) {
-						sprintf(newFile, "%s.%d", logFilePath, i);
-						if (i == 0) break;
-						sprintf(oldFile, "%s.%d", logFilePath, --i);
-						rename(oldFile, newFile);
-					}
-					/* newFile == "f.0" now */
-					rename(logFilePath, newFile);
-					fl.l_type = F_UNLCK;
-					fcntl(fd, F_SETLKW, &fl);
-					close(fd);
-					goto again;
-				}
-				ftruncate(fd, 0);
+	if (logFileSize && isRegular && curFileSize > logFileSize) {
+		if (logFileRotate) { /* always 0..99 */
+			int i = strlen(logFilePath) + 3 + 1;
+			char oldFile[i];
+			char newFile[i];
+			i = logFileRotate - 1;
+			/* rename: f.8 -> f.9; f.7 -> f.8; ... */
+			while (1) {
+				sprintf(newFile, "%s.%d", logFilePath, i);
+				if (i == 0) break;
+				sprintf(oldFile, "%s.%d", logFilePath, --i);
+				rename(oldFile, newFile);
 			}
+			/* newFile == "f.0" now */
+			rename(logFilePath, newFile);
+			fl.l_type = F_UNLCK;
+			fcntl(logFD, F_SETLKW, &fl);
+			close(logFD);
+			goto reopen;
 		}
-#endif
-		full_write(fd, msg, len);
-		fl.l_type = F_UNLCK;
-		fcntl(fd, F_SETLKW, &fl);
-		close(fd);
-	} else {
-		/* cannot open logfile? - print to /dev/console then */
-		fd = device_open(_PATH_CONSOLE, O_WRONLY | O_NOCTTY | O_NONBLOCK);
-		if (fd < 0)
-			fd = 2; /* then stderr, dammit */
-		full_write(fd, msg, len);
-		if (fd != 2)
-			close(fd);
+		ftruncate(logFD, 0);
 	}
+#endif
+	curFileSize += full_write(logFD, msg, len);
+	fl.l_type = F_UNLCK;
+	fcntl(logFD, F_SETLKW, &fl);
 }
 
 static void parse_fac_prio_20(int pri, char *res20)
