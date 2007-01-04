@@ -8,13 +8,6 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
 
 #if !defined CONFIG_SYSLOGD
 
@@ -93,49 +86,40 @@ int logger_main(int argc, char **argv)
 	char *opt_p, *opt_t;
 	int pri = LOG_USER | LOG_NOTICE;
 	int option = 0;
-	int c, i;
-	char buf[1024], name[128];
+	char name[80];
 
 	/* Fill out the name string early (may be overwritten later) */
 	bb_getpwuid(name, geteuid(), sizeof(name));
 
 	/* Parse any options */
 	opt = getopt32(argc, argv, "p:st:", &opt_p, &opt_t);
+	argc -= optind;
+	argv += optind;
 	if (opt & 0x1) pri = pencode(opt_p); // -p
 	if (opt & 0x2) option |= LOG_PERROR; // -s
 	if (opt & 0x4) safe_strncpy(name, opt_t, sizeof(name)); // -t
 
 	openlog(name, option, 0);
-	if (optind == argc) {
-		do {
-			/* read from stdin */
-			i = 0;
-			while ((c = getc(stdin)) != EOF && c != '\n' &&
-					i < (sizeof(buf)-1)) {
-				buf[i++] = c;
+	if (!argc) {
+		while (fgets(bb_common_bufsiz1, BUFSIZ, stdin)) {
+			if (bb_common_bufsiz1[0]
+			 && NOT_LONE_CHAR(bb_common_bufsiz1, '\n')
+			) {
+				/* Neither "" nor "\n" */
+				syslog(pri, "%s", bb_common_bufsiz1);
 			}
-			if (i > 0) {
-				buf[i++] = '\0';
-				syslog(pri, "%s", buf);
-			}
-		} while (c != EOF);
+		}
 	} else {
 		char *message = NULL;
-		int len = argc - optind; /* for the space between the args
-					    and  '\0' */
-		opt = len;
-		argv += optind;
-		for (i = 0; i < opt; i++) {
-			len += strlen(*argv);
+		int len = 1; /* for NUL */
+		int pos = 0;
+		do {
+			len += strlen(*argv) + 1;
 			message = xrealloc(message, len);
-			if(!i)
-				message[0] = '\0';
-			else
-				strcat(message, " ");
-			strcat(message, *argv);
-			argv++;
-		}
-		syslog(pri, "%s", message);
+			sprintf(message + pos, " %s", *argv),
+			pos = len;
+		} while (*++argv);
+		syslog(pri, "%s", message + 1); /* skip leading " " */
 	}
 
 	closelog();

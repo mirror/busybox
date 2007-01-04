@@ -56,13 +56,23 @@ static int remoteFD = -1;
 static struct sockaddr_in remoteAddr;
 #endif
 
+/* We are using bb_common_bufsiz1 for buffering: */
+enum { MAX_READ = (BUFSIZ/6) & ~0xf };
+/* We recv into this... (size: MAX_READ ~== BUFSIZ/6) */
+#define RECVBUF  bb_common_bufsiz1
+/* ...then copy here, escaping control chars */
+/* (can grow x2 + 1 max ~== BUFSIZ/3) */
+#define PARSEBUF (bb_common_bufsiz1 + MAX_READ)
+/* ...then sprintf into this, adding timestamp (15 chars),
+ * host (64), fac.prio (20) to the message */
+/* (growth by: 15 + 64 + 20 + delims = ~110) */
+#define PRINTBUF (bb_common_bufsiz1 + 3*MAX_READ + 0x10)
+/* totals: BUFSIZ/6 + BUFSIZ/3 + BUFSIZ/3 = BUFSIZ - BUFSIZ/6
+ * -- we have BUFSIZ/6 extra at the ent of PRINTBUF
+ * which covers needed ~110 extra bytes (and much more) */
 
-/* NB: we may need 2x this amount on stack... */
-enum { MAX_READ = 1024 };
 
-
-/* options */
-/* Correct regardless of combination of CONFIG_xxx */
+/* Options */
 enum {
 	OPTBIT_mark = 0, // -m
 	OPTBIT_nofork, // -n
@@ -175,11 +185,12 @@ static void ipcsyslog_init(void)
 	}
 }
 
-/* write message to buffer */
+/* Write message to shared mem buffer */
 static void log_to_shmem(const char *msg, int len)
 {
-	static /*const*/ struct sembuf SMwup[1] = { {1, -1, IPC_NOWAIT} };
-	static /*const*/ struct sembuf SMwdn[3] = { {0, 0}, {1, 0}, {1, +1} };
+	/* Why libc insists on these being rw? */
+	static struct sembuf SMwup[1] = { {1, -1, IPC_NOWAIT} };
+	static struct sembuf SMwdn[3] = { {0, 0}, {1, 0}, {1, +1} };
 
 	int old_tail, new_tail;
 	char *c;
@@ -362,9 +373,9 @@ static void parse_fac_prio_20(int pri, char *res20)
 	}
 }
 
-/* len parameter is used only for "is there a timestamp?" check
+/* len parameter is used only for "is there a timestamp?" check.
  * NB: some callers cheat and supply 0 when they know
- * that there is no timestamp, short-cutting the test */
+ * that there is no timestamp, short-cutting the test. */
 static void timestamp_and_log(int pri, char *msg, int len)
 {
 	time_t now;
@@ -385,31 +396,29 @@ static void timestamp_and_log(int pri, char *msg, int len)
 	if (!ENABLE_FEATURE_REMOTE_LOG || (option_mask32 & OPT_locallog)) {
 		if (LOG_PRI(pri) < logLevel) {
 			if (option_mask32 & OPT_small)
-				msg = xasprintf("%s %s\n", timestamp, msg);
+				sprintf(PRINTBUF, "%s %s\n", timestamp, msg);
 			else {
 				char res[20];
 				parse_fac_prio_20(pri, res);
-				msg = xasprintf("%s %s %s %s\n", timestamp, localHostName, res, msg);
+				sprintf(PRINTBUF, "%s %s %s %s\n", timestamp, localHostName, res, msg);
 			}
-			log_locally(msg);
-			free(msg);
+			log_locally(PRINTBUF);
 		}
 	}
 }
 
 static void split_escape_and_log(char *tmpbuf, int len)
 {
-	char line[len * 2 + 1]; /* gcc' cheap alloca */
 	char *p = tmpbuf;
 
 	tmpbuf += len;
 	while (p < tmpbuf) {
 		char c;
-		char *q = line;
+		char *q = PARSEBUF;
 		int pri = (LOG_USER | LOG_NOTICE);
 
 		if (*p == '<') {
-			/* Parse the magic priority number. */
+			/* Parse the magic priority number */
 			pri = bb_strtou(p + 1, &p, 10);
 			if (*p == '>') p++;
 			if (pri & ~(LOG_FACMASK | LOG_PRIMASK)) {
@@ -427,8 +436,8 @@ static void split_escape_and_log(char *tmpbuf, int len)
 			*q++ = c;
 		}
 		*q = '\0';
-		/* now log it */
-		timestamp_and_log(pri, line, q - line);
+		/* Now log it */
+		timestamp_and_log(pri, PARSEBUF, q - PARSEBUF);
 	}
 }
 
@@ -509,11 +518,10 @@ static void do_syslogd(void)
 
 		if (FD_ISSET(sock_fd, &fds)) {
 			int i;
-#define tmpbuf bb_common_bufsiz1
-			i = recv(sock_fd, tmpbuf, MAX_READ, 0);
+			i = recv(sock_fd, RECVBUF, MAX_READ - 1, 0);
 			if (i <= 0)
 				bb_perror_msg_and_die("UNIX socket error");
-			/* TODO: maybe supress duplicates? */
+			/* TODO: maybe suppress duplicates? */
 #if ENABLE_FEATURE_REMOTE_LOG
 			/* We are not modifying log messages in any way before send */
 			/* Remote site cannot trust _us_ anyway and need to do validation again */
@@ -523,15 +531,14 @@ static void do_syslogd(void)
 				}
 				if (-1 != remoteFD) {
 					/* send message to remote logger, ignore possible error */
-					sendto(remoteFD, tmpbuf, i, MSG_DONTWAIT,
+					sendto(remoteFD, RECVBUF, i, MSG_DONTWAIT,
 						(struct sockaddr *) &remoteAddr,
 						sizeof(remoteAddr));
 				}
 			}
 #endif
-			tmpbuf[i] = '\0';
-			split_escape_and_log(tmpbuf, i);
-#undef tmpbuf
+			RECVBUF[i] = '\0';
+			split_escape_and_log(RECVBUF, i);
 		} /* FD_ISSET() */
 	} /* for */
 }
