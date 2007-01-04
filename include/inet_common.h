@@ -5,13 +5,8 @@
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- * Version:     $Id: inet_common.h,v 1.4 2004/03/10 07:42:37 mjn3 Exp $
- *
  */
 
-#include <features.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include "platform.h"
 
 /* hostfirst!=0 If we expect this to be a hostname,
