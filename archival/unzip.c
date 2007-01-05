@@ -76,16 +76,16 @@ static int unzip_extract(zip_header_t *zip_header, int src_fd, int dst_fd)
 			bb_copyfd_exact_size(src_fd, dst_fd, size);
 	} else {
 		/* Method 8 - inflate */
-		inflate_init(zip_header->formatted.cmpsize);
-		inflate_unzip(src_fd, dst_fd);
-		inflate_cleanup();
+		inflate_unzip_result res;
+		/* err = */ inflate_unzip(&res, zip_header->formatted.cmpsize, src_fd, dst_fd);
+// we should check for -1 error return
 		/* Validate decompression - crc */
-		if (zip_header->formatted.crc32 != (gunzip_crc ^ 0xffffffffL)) {
+		if (zip_header->formatted.crc32 != (res.crc ^ 0xffffffffL)) {
 			bb_error_msg("invalid compressed data--%s error", "crc");
 			return 1;
 		}
 		/* Validate decompression - size */
-		if (zip_header->formatted.ucmpsize != gunzip_bytes_out) {
+		if (zip_header->formatted.ucmpsize != res.bytes_out) {
 			bb_error_msg("invalid compressed data--%s error", "length");
 			return 1;
 		}

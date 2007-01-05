@@ -45,9 +45,8 @@ typedef struct huft_s {
 	} v;
 } huft_t;
 
-/* Globally-visible data */
-off_t gunzip_bytes_out;	/* number of output bytes */
-uint32_t gunzip_crc;
+static off_t gunzip_bytes_out;	/* number of output bytes */
+static uint32_t gunzip_crc;
 
 static int gunzip_src_fd;
 static unsigned gunzip_outbuf_count;	/* bytes in output buffer */
@@ -165,8 +164,7 @@ static int huft_free(huft_t * t)
  * t:	result: starting table
  * m:	maximum lookup bits, returns actual
  */
-static
-int huft_build(unsigned *b, const unsigned n,
+static int huft_build(unsigned *b, const unsigned n,
 			   const unsigned s, const unsigned short *d,
 			   const unsigned char *e, huft_t ** t, unsigned *m)
 {
@@ -408,7 +406,6 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned my_bl, c
 				return 1; // We have a block to read
 			}
 		} else {		/* it's an EOB or a length */
-
 			/* exit if end of block */
 			if (e == 15) {
 				break;
@@ -595,11 +592,11 @@ static int inflate_block(int *e)
 		inflate_stored(n, b_stored, k_stored, 1); // Setup inflate_stored
 		return -1;
 	}
-	case 1:			/* Inflate fixed
-						   * decompress an inflated type 1 (fixed Huffman codes) block.  We should
-						   * either replace this with a custom decoder, or at least precompute the
-						   * Huffman tables.
-						 */
+	case 1:
+	/* Inflate fixed
+	 * decompress an inflated type 1 (fixed Huffman codes) block.  We should
+	 * either replace this with a custom decoder, or at least precompute the
+	 * Huffman tables. */
 	{
 		int i;			/* temporary variable */
 		huft_t *tl;		/* literal/length code table */
@@ -854,25 +851,10 @@ static int inflate_get_next_window(void)
 	/* Doesnt get here */
 }
 
-/* Initialize bytebuffer, be careful not to overfill the buffer */
-/* Called from archival/unzip.c */
-void inflate_init(unsigned bufsize)
-{
-	/* Set the bytebuffer size, default is same as gunzip_wsize */
-	bytebuffer_max = bufsize + 8;
-	bytebuffer_offset = 4;
-	bytebuffer_size = 0;
-}
-
-/* Called from archival/unzip.c */
-void inflate_cleanup(void)
-{
-	free(bytebuffer);
-}
 
 /* Called from inflate_gunzip() and archival/unzip.c */
-USE_DESKTOP(long long) int
-inflate_unzip(int in, int out)
+static USE_DESKTOP(long long) int
+inflate_unzip_internal(int in, int out)
 {
 	USE_DESKTOP(long long total = 0;)
 	ssize_t nwrote;
@@ -922,14 +904,35 @@ inflate_unzip(int in, int out)
 	return USE_DESKTOP(total) + 0;
 }
 
+
+USE_DESKTOP(long long) int
+inflate_unzip(inflate_unzip_result *res, unsigned bufsize, int in, int out)
+{
+	USE_DESKTOP(long long) int n;
+
+	bytebuffer_max = bufsize + 8;
+	bytebuffer_offset = 4;
+	bytebuffer_size = 0;
+
+	n = inflate_unzip_internal(in, out);
+
+	res->crc = gunzip_crc;
+	res->bytes_out = gunzip_bytes_out;
+	free(bytebuffer);
+	return n;
+}
+
+
 USE_DESKTOP(long long) int
 inflate_gunzip(int in, int out)
 {
 	uint32_t stored_crc = 0;
 	unsigned count;
-	USE_DESKTOP(long long total = )inflate_unzip(in, out);
+	USE_DESKTOP(long long) int n;
 
-	USE_DESKTOP(if (total < 0) return total;)
+	n = inflate_unzip_internal(in, out);
+
+	if (n < 0) goto ret;
 
 	/* top up the input buffer with the rest of the trailer */
 	count = bytebuffer_size - bytebuffer_offset;
@@ -946,7 +949,8 @@ inflate_gunzip(int in, int out)
 	/* Validate decompression - crc */
 	if (stored_crc != (~gunzip_crc)) {
 		bb_error_msg("crc error");
-		return -1;
+		n = -1;
+		goto ret;
 	}
 
 	/* Validate decompression - size */
@@ -955,8 +959,9 @@ inflate_gunzip(int in, int out)
 		(bytebuffer[bytebuffer_offset+2] << 16) | (bytebuffer[bytebuffer_offset+3] << 24))
 	) {
 		bb_error_msg("incorrect length");
-		return -1;
+		n = -1;
 	}
-
-	return USE_DESKTOP(total) + 0;
+ ret:
+	free(bytebuffer);
+	return n;
 }
