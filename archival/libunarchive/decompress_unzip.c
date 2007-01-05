@@ -116,7 +116,9 @@ static unsigned fill_bitbuffer(unsigned bitbuffer, unsigned *current, const unsi
 			/* Leave the first 4 bytes empty so we can always unwind the bitbuffer
 			 * to the front of the bytebuffer, leave 4 bytes free at end of tail
 			 * so we can easily top up buffer in check_trailer_gzip() */
-			if (1 > (bytebuffer_size = safe_read(gunzip_src_fd, &bytebuffer[4], bytebuffer_max - 8)))
+			bytebuffer_size = safe_read(gunzip_src_fd, &bytebuffer[4], bytebuffer_max - 8);
+			if (1 > bytebuffer_size)
+//shouldn't we propagate error?
 				bb_error_msg_and_die("unexpected end of file");
 			bytebuffer_size += 4;
 			bytebuffer_offset = 4;
@@ -193,7 +195,7 @@ int huft_build(unsigned *b, const unsigned n,
 	eob_len = n > 256 ? b[256] : BMAX;
 
 	/* Generate counts for each bit length */
-	memset((void *)c, 0, sizeof(c));
+	memset(c, 0, sizeof(c));
 	p = b;
 	i = n;
 	do {
@@ -215,11 +217,13 @@ int huft_build(unsigned *b, const unsigned n,
 
 	/* Adjust last length count to fill out codes, if needed */
 	for (y = 1 << j; j < i; j++, y <<= 1) {
-		if ((y -= c[j]) < 0) {
+		y -= c[j];
+		if (y < 0) {
 			return 2; /* bad input: more codes than bits */
 		}
 	}
-	if ((y -= c[i]) < 0) {
+	y -= c[i];
+	if (y < 0) {
 		return 2;
 	}
 	c[i] += y;
@@ -229,14 +233,16 @@ int huft_build(unsigned *b, const unsigned n,
 	p = c + 1;
 	xp = x + 2;
 	while (--i) { /* note that i == g from above */
-		*xp++ = (j += *p++);
+		j += *p++;
+		*xp++ = j;
 	}
 
 	/* Make a table of values in order of bit lengths */
 	p = b;
 	i = 0;
 	do {
-		if ((j = *p++) != 0) {
+		j = *p++;
+		if (j != 0) {
 			v[x[j]++] = i;
 		}
 	} while (++i < n);
@@ -260,13 +266,17 @@ int huft_build(unsigned *b, const unsigned n,
 				w = ws[++htl];
 
 				/* compute minimum size table less than or equal to *m bits */
-				z = (z = g - w) > *m ? *m : z; /* upper limit on table size */
-				if ((f = 1 << (j = k - w)) > a + 1) { /* try a k-w bit table */
+				z = g - w;
+				z = z > *m ? *m : z; /* upper limit on table size */
+				j = k - w;
+				f = 1 << j;
+				if (f > a + 1) { /* try a k-w bit table */
 					/* too few codes for k-w bit table */
 					f -= a + 1; /* deduct codes from patterns left */
 					xp = c + k;
 					while (++j < z) { /* try smaller tables up to z bits */
-						if ((f <<= 1) <= *++xp) {
+						f <<= 1;
+						if (f <= *++xp) {
 							break; /* enough codes to use up j bits */
 						}
 						f -= *xp; /* else deduct codes from patterns */
@@ -338,6 +348,8 @@ int huft_build(unsigned *b, const unsigned n,
  * tl, td: literal/length and distance decoder tables
  * bl, bd: number of bits decoded by tl[] and td[]
  */
+/* called with setup==1 once from inflate_block */
+/* called once with setup==0 from inflate_get_next_window */
 static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned my_bl, const unsigned my_bd, int setup)
 {
 	static unsigned e;	/* table entry flag/number of extra bits */
@@ -371,7 +383,9 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned my_bl, c
 
 	while (1) {			/* do until end of block */
 		b = fill_bitbuffer(b, &k, bl);
-		if ((e = (t = tl + ((unsigned) b & ml))->e) > 16)
+		t = tl + ((unsigned) b & ml);
+		e = t->e;
+		if (e > 16)
 			do {
 				if (e == 99) {
 					bb_error_msg_and_die("inflate_codes error 1");
@@ -380,8 +394,9 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned my_bl, c
 				k -= t->b;
 				e -= 16;
 				b = fill_bitbuffer(b, &k, e);
-			} while ((e =
-					  (t = t->v.t + ((unsigned) b & mask_bits[e]))->e) > 16);
+				t = t->v.t + ((unsigned) b & mask_bits[e]);
+				e = t->e;
+			} while (e > 16);
 		b >>= t->b;
 		k -= t->b;
 		if (e == 16) {	/* then it's a literal */
@@ -407,7 +422,9 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned my_bl, c
 
 			/* decode distance of block to copy */
 			b = fill_bitbuffer(b, &k, bd);
-			if ((e = (t = td + ((unsigned) b & md))->e) > 16)
+			t = td + ((unsigned) b & md);
+			e = t->e;
+			if (e > 16)
 				do {
 					if (e == 99)
 						bb_error_msg_and_die("inflate_codes error 2");
@@ -415,9 +432,9 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned my_bl, c
 					k -= t->b;
 					e -= 16;
 					b = fill_bitbuffer(b, &k, e);
-				} while ((e =
-						  (t =
-						   t->v.t + ((unsigned) b & mask_bits[e]))->e) > 16);
+					t = t->v.t + ((unsigned) b & mask_bits[e]);
+					e = t->e;
+				} while (e > 16);
 			b >>= t->b;
 			k -= t->b;
 			b = fill_bitbuffer(b, &k, e);
@@ -426,26 +443,30 @@ static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned my_bl, c
 			k -= e;
 
 			/* do the copy */
-do_copy:		do {
-				n -= (e =
-					  (e =
-					   gunzip_wsize - ((d &= gunzip_wsize - 1) > w ? d : w)) > n ? n : e);
-			   /* copy to new buffer to prevent possible overwrite */
+ do_copy:
+			do {
+				/* Was: n -= (e = (e = gunzip_wsize - ((d &= gunzip_wsize - 1) > w ? d : w)) > n ? n : e); */
+				/* Who wrote THAT?? rewritten as: */
+				d &= gunzip_wsize - 1;
+				e = gunzip_wsize - (d > w ? d : w);
+				if (e > n) e = n;
+				n -= e;
+
+				/* copy to new buffer to prevent possible overwrite */
 				if (w - d >= e) {	/* (this test assumes unsigned comparison) */
 					memcpy(gunzip_window + w, gunzip_window + d, e);
 					w += e;
 					d += e;
 				} else {
-				   /* do it slow to avoid memcpy() overlap */
-				   /* !NOMEMCPY */
+					/* do it slow to avoid memcpy() overlap */
+					/* !NOMEMCPY */
 					do {
 						gunzip_window[w++] = gunzip_window[d++];
 					} while (--e);
 				}
 				if (w == gunzip_wsize) {
 					gunzip_outbuf_count = (w);
-					if (n) resumeCopy = 1;
-					else resumeCopy = 0;
+					resumeCopy = (n != 0);
 					//flush_gunzip_window();
 					w = 0;
 					return 1;
@@ -469,9 +490,12 @@ do_copy:		do {
 	return 0;
 }
 
+/* called once (setup==1) from inflate_block */
+/* and once (setup==0) from inflate_get_next_window */
 static int inflate_stored(int my_n, int my_b_stored, int my_k_stored, int setup)
 {
 	static unsigned n, b_stored, k_stored, w;
+
 	if (setup) {
 		n = my_n;
 		b_stored = my_b_stored;
@@ -509,7 +533,8 @@ static int inflate_stored(int my_n, int my_b_stored, int my_k_stored, int setup)
  *
  * GLOBAL VARIABLES: bb, kk,
  */
- // Return values: -1 = inflate_stored, -2 = inflate_codes
+/* Return values: -1 = inflate_stored, -2 = inflate_codes */
+/* One callsite in inflate_get_next_window */
 static int inflate_block(int *e)
 {
 	unsigned t;			/* block type */
@@ -597,7 +622,8 @@ static int inflate_block(int *e)
 			l[i] = 8;
 		}
 		bl = 7;
-		if ((i = huft_build(l, 288, 257, cplens, cplext, &tl, &bl)) != 0) {
+		i = huft_build(l, 288, 257, cplens, cplext, &tl, &bl);
+		if (i != 0) {
 			return i;
 		}
 
@@ -606,7 +632,8 @@ static int inflate_block(int *e)
 			l[i] = 5;
 		}
 		bd = 5;
-		if ((i = huft_build(l, 30, 0, cpdist, cpdext, &td, &bd)) > 1) {
+		i = huft_build(l, 30, 0, cpdist, cpdext, &td, &bd);
+		if (i > 1) {
 			huft_free(tl);
 			return i;
 		}
@@ -745,19 +772,21 @@ static int inflate_block(int *e)
 		/* build the decoding tables for literal/length and distance codes */
 		bl = lbits;
 
-		if ((i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl)) != 0) {
+		i = huft_build(ll, nl, 257, cplens, cplext, &tl, &bl);
+		if (i != 0) {
 			if (i == 1) {
 				bb_error_msg_and_die("incomplete literal tree");
-				huft_free(tl);
+				/* huft_free(tl); */
 			}
 			return i;	/* incomplete code set */
 		}
 
 		bd = dbits;
-		if ((i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd)) != 0) {
+		i = huft_build(ll + nl, nd, 0, cpdist, cpdext, &td, &bd);
+		if (i != 0) {
 			if (i == 1) {
 				bb_error_msg_and_die("incomplete distance tree");
-				huft_free(td);
+				/* huft_free(td); */
 			}
 			huft_free(tl);
 			return i;	/* incomplete code set */
@@ -776,6 +805,7 @@ static int inflate_block(int *e)
 	}
 }
 
+/* Two callsites, both in inflate_get_next_window */
 static void calculate_gunzip_crc(void)
 {
 	int n;
@@ -785,6 +815,7 @@ static void calculate_gunzip_crc(void)
 	gunzip_bytes_out += gunzip_outbuf_count;
 }
 
+/* One callsite in inflate_unzip */
 static int inflate_get_next_window(void)
 {
 	static int method = -1; // Method == -1 for stored, -2 for codes
@@ -823,7 +854,8 @@ static int inflate_get_next_window(void)
 	/* Doesnt get here */
 }
 
-/* Initialise bytebuffer, be careful not to overfill the buffer */
+/* Initialize bytebuffer, be careful not to overfill the buffer */
+/* Called from archival/unzip.c */
 void inflate_init(unsigned bufsize)
 {
 	/* Set the bytebuffer size, default is same as gunzip_wsize */
@@ -832,11 +864,13 @@ void inflate_init(unsigned bufsize)
 	bytebuffer_size = 0;
 }
 
+/* Called from archival/unzip.c */
 void inflate_cleanup(void)
 {
 	free(bytebuffer);
 }
 
+/* Called from inflate_gunzip() and archival/unzip.c */
 USE_DESKTOP(long long) int
 inflate_unzip(int in, int out)
 {
@@ -864,7 +898,7 @@ inflate_unzip(int in, int out)
 	while (1) {
 		int ret = inflate_get_next_window();
 		nwrote = full_write(out, gunzip_window, gunzip_outbuf_count);
-		if (nwrote == -1) {
+		if (nwrote != gunzip_outbuf_count) {
 			bb_perror_msg("write");
 			return -1;
 		}
@@ -901,6 +935,7 @@ inflate_gunzip(int in, int out)
 	count = bytebuffer_size - bytebuffer_offset;
 	if (count < 8) {
 		xread(in, &bytebuffer[bytebuffer_size], 8 - count);
+//shouldn't we propagate error?
 		bytebuffer_size += 8 - count;
 	}
 	for (count = 0; count != 4; count++) {
@@ -917,7 +952,8 @@ inflate_gunzip(int in, int out)
 	/* Validate decompression - size */
 	if (gunzip_bytes_out !=
 		(bytebuffer[bytebuffer_offset] | (bytebuffer[bytebuffer_offset+1] << 8) |
-		(bytebuffer[bytebuffer_offset+2] << 16) | (bytebuffer[bytebuffer_offset+3] << 24))) {
+		(bytebuffer[bytebuffer_offset+2] << 16) | (bytebuffer[bytebuffer_offset+3] << 24))
+	) {
 		bb_error_msg("incorrect length");
 		return -1;
 	}

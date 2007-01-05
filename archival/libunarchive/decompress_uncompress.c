@@ -64,12 +64,6 @@
 #undef	MAXSEG_64K
 #define MAXCODE(n)	(1L << (n))
 
-/* Block compress mode -C compatible with 2.0 */
-static int block_mode = BLOCK_MODE;
-
-/* user settable max # bits/code */
-static int maxbits = BITS;
-
 #define	htabof(i)				htab[i]
 #define	codetabof(i)			codetab[i]
 #define	tab_prefixof(i)			codetabof(i)
@@ -109,25 +103,38 @@ uncompress(int fd_in, int fd_out)
 	RESERVE_CONFIG_UBUFFER(outbuf, OBUFSIZ + 2048);
 	unsigned char htab[HSIZE];
 	unsigned short codetab[HSIZE];
+
+	/* Hmm, these were statics - why?! */
+	/* user settable max # bits/code */
+	int maxbits; /* = BITS; */
+	/* block compress mode -C compatible with 2.0 */
+	int block_mode; /* = BLOCK_MODE; */
+
 	memset(inbuf, 0, IBUFSIZ + 64);
 	memset(outbuf, 0, OBUFSIZ + 2048);
 
 	insize = 0;
 
-	inbuf[0] = xread_char(fd_in);
+	/* xread isn't good here, we have to return - caller may want
+	 * to do some cleanup (e.g. delete incomplete unpacked file etc) */
+	if (full_read(fd_in, inbuf, 1) != 1) {
+		bb_error_msg("short read");
+		return -1;
+	}
 
 	maxbits = inbuf[0] & BIT_MASK;
 	block_mode = inbuf[0] & BLOCK_MODE;
 	maxmaxcode = MAXCODE(maxbits);
 
 	if (maxbits > BITS) {
-		bb_error_msg("compressed with %d bits, can only handle %d bits", maxbits,
-				  BITS);
+		bb_error_msg("compressed with %d bits, can only handle "
+				"%d bits", maxbits, BITS);
 		return -1;
 	}
 
-	maxcode = MAXCODE(n_bits = INIT_BITS) - 1;
-	bitmask = (1 << n_bits) - 1;
+	n_bits = INIT_BITS;
+	maxcode = MAXCODE(INIT_BITS) - 1;
+	bitmask = (1 << INIT_BITS) - 1;
 	oldcode = -1;
 	finchar = 0;
 	outpos = 0;
@@ -143,13 +150,14 @@ uncompress(int fd_in, int fd_out)
 	}
 
 	do {
-	  resetbuf:;
+ resetbuf:
 		{
 			int i;
 			int e;
 			int o;
 
-			e = insize - (o = (posbits >> 3));
+			o = posbits >> 3;
+			e = insize - o;
 
 			for (i = 0; i < e; ++i)
 				inbuf[i] = inbuf[i + o];
@@ -160,6 +168,7 @@ uncompress(int fd_in, int fd_out)
 
 		if (insize < (int) (IBUFSIZ + 64) - IBUFSIZ) {
 			rsize = safe_read(fd_in, inbuf + insize, IBUFSIZ);
+//error check??
 			insize += rsize;
 		}
 
@@ -184,8 +193,8 @@ uncompress(int fd_in, int fd_out)
 			{
 				unsigned char *p = &inbuf[posbits >> 3];
 
-				code =	((((long) (p[0])) | ((long) (p[1]) << 8) |
-				          ((long) (p[2]) << 16)) >> (posbits & 0x7)) & bitmask;
+				code = ((((long) (p[0])) | ((long) (p[1]) << 8) |
+				         ((long) (p[2]) << 16)) >> (posbits & 0x7)) & bitmask;
 			}
 			posbits += n_bits;
 
@@ -204,8 +213,9 @@ uncompress(int fd_in, int fd_out)
 					((posbits - 1) +
 					 ((n_bits << 3) -
 					  (posbits - 1 + (n_bits << 3)) % (n_bits << 3)));
-				maxcode = MAXCODE(n_bits = INIT_BITS) - 1;
-				bitmask = (1 << n_bits) - 1;
+				n_bits = INIT_BITS;
+				maxcode = MAXCODE(INIT_BITS) - 1;
+				bitmask = (1 << INIT_BITS) - 1;
 				goto resetbuf;
 			}
 
@@ -238,13 +248,15 @@ uncompress(int fd_in, int fd_out)
 				code = tab_prefixof(code);
 			}
 
-			*--stackp = (unsigned char) (finchar = tab_suffixof(code));
+			finchar = tab_suffixof(code);
+			*--stackp = (unsigned char) finchar;
 
 			/* And put them out in forward order */
 			{
 				int i;
 
-				if (outpos + (i = (de_stack - stackp)) >= OBUFSIZ) {
+				i = de_stack - stackp;
+				if (outpos + i >= OBUFSIZ) {
 					do {
 						if (i > OBUFSIZ - outpos) {
 							i = OBUFSIZ - outpos;
@@ -256,12 +268,14 @@ uncompress(int fd_in, int fd_out)
 						}
 
 						if (outpos >= OBUFSIZ) {
-							write(fd_out, outbuf, outpos);
+							full_write(fd_out, outbuf, outpos);
+//error check??
 							USE_DESKTOP(total_written += outpos;)
 							outpos = 0;
 						}
 						stackp += i;
-					} while ((i = (de_stack - stackp)) > 0);
+						i = de_stack - stackp;
+					} while (i > 0);
 				} else {
 					memcpy(outbuf + outpos, stackp, i);
 					outpos += i;
@@ -269,7 +283,8 @@ uncompress(int fd_in, int fd_out)
 			}
 
 			/* Generate the new entry. */
-			if ((code = free_ent) < maxmaxcode) {
+			code = free_ent;
+			if (code < maxmaxcode) {
 				tab_prefixof(code) = (unsigned short) oldcode;
 				tab_suffixof(code) = (unsigned char) finchar;
 				free_ent = code + 1;
@@ -282,7 +297,8 @@ uncompress(int fd_in, int fd_out)
 	} while (rsize > 0);
 
 	if (outpos > 0) {
-		write(fd_out, outbuf, outpos);
+		full_write(fd_out, outbuf, outpos);
+//error check??
 		USE_DESKTOP(total_written += outpos;)
 	}
 
