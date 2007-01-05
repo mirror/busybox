@@ -22,16 +22,22 @@
 typedef struct {
 	int fd;
 	uint8_t *ptr;
-//	uint8_t *buffer;
+
+/* Was keeping rc on stack in unlzma and separately allocating buffer,
+ * but with "buffer 'attached to' allocated rc" code is smaller: */
+	/* uint8_t *buffer; */
+#define RC_BUFFER ((uint8_t*)(rc+1))
+
 	uint8_t *buffer_end;
-	int buffer_size;
+
+/* Had provisions for variable buffer, but we don't need it here */
+	/* int buffer_size; */
+#define RC_BUFFER_SIZE 0x10000
+
 	uint32_t code;
 	uint32_t range;
 	uint32_t bound;
 } rc_t;
-
-//#define RC_BUFFER ((uint8_t*)(void*)(rc+1))
-#define RC_BUFFER ((uint8_t*)(rc+1))
 
 #define RC_TOP_BITS 24
 #define RC_MOVE_BITS 5
@@ -41,24 +47,24 @@ typedef struct {
 /* Called twice: once at startup and once in rc_normalize() */
 static void rc_read(rc_t * rc)
 {
-	rc->buffer_size = read(rc->fd, RC_BUFFER, rc->buffer_size);
-	if (rc->buffer_size <= 0)
+	int buffer_size = safe_read(rc->fd, RC_BUFFER, RC_BUFFER_SIZE);
+	if (buffer_size <= 0)
 		bb_error_msg_and_die("unexpected EOF");
 	rc->ptr = RC_BUFFER;
-	rc->buffer_end = RC_BUFFER + rc->buffer_size;
+	rc->buffer_end = RC_BUFFER + buffer_size;
 }
 
 /* Called once */
-static rc_t* rc_init(int fd, int buffer_size)
+static rc_t* rc_init(int fd) /*, int buffer_size) */
 {
 	int i;
 	rc_t* rc;
 
-	rc = xmalloc(sizeof(rc_t) + buffer_size);
+	rc = xmalloc(sizeof(rc_t) + RC_BUFFER_SIZE);
 
 	rc->fd = fd;
-	rc->buffer_size = buffer_size;
-	rc->buffer_end = RC_BUFFER + rc->buffer_size;
+	/* rc->buffer_size = buffer_size; */
+	rc->buffer_end = RC_BUFFER + RC_BUFFER_SIZE;
 	rc->ptr = rc->buffer_end;
 
 	rc->code = 0;
@@ -168,7 +174,7 @@ typedef struct {
 } __attribute__ ((packed)) lzma_header_t;
 
 
-/* #defines will make compiler to compute/optimize each one with each usage.
+/* #defines will force compiler to compute/optimize each one with each usage.
  * Have heart and use enum instead. */
 enum {
 	LZMA_BASE_SIZE = 1846,
@@ -244,8 +250,7 @@ unlzma(int src_fd, int dst_fd)
 	int state = 0;
 	uint32_t rep0 = 1, rep1 = 1, rep2 = 1, rep3 = 1;
 
-	if (read(src_fd, &header, sizeof(header)) != sizeof(header))
-		bb_error_msg_and_die("can't read header");
+	xread(src_fd, &header, sizeof(header));
 
 	if (header.pos >= (9 * 5 * 5))
 		bb_error_msg_and_die("bad header");
@@ -270,7 +275,7 @@ unlzma(int src_fd, int dst_fd)
 	for (i = 0; i < num_probs; i++)
 		p[i] = (1 << RC_MODEL_TOTAL_BITS) >> 1;
 
-	rc = rc_init(src_fd, 0x10000);
+	rc = rc_init(src_fd); /*, RC_BUFFER_SIZE); */
 
 	while (global_pos + buffer_pos < header.dst_size) {
 		int pos_state = (buffer_pos + global_pos) & pos_state_mask;
@@ -316,8 +321,8 @@ unlzma(int src_fd, int dst_fd)
 			if (buffer_pos == header.dict_size) {
 				buffer_pos = 0;
 				global_pos += header.dict_size;
-				// FIXME: error check
-				write(dst_fd, buffer, header.dict_size);
+				if (full_write(dst_fd, buffer, header.dict_size) != header.dict_size)
+					goto bad;
 				USE_DESKTOP(total_written += header.dict_size;)
 			}
 			if (state < 4)
@@ -358,8 +363,8 @@ unlzma(int src_fd, int dst_fd)
 						if (buffer_pos == header.dict_size) {
 							buffer_pos = 0;
 							global_pos += header.dict_size;
-							// FIXME: error check
-							write(dst_fd, buffer, header.dict_size);
+							if (full_write(dst_fd, buffer, header.dict_size) != header.dict_size)
+								goto bad;
 							USE_DESKTOP(total_written += header.dict_size;)
 						}
 						continue;
@@ -471,8 +476,8 @@ unlzma(int src_fd, int dst_fd)
 				if (buffer_pos == header.dict_size) {
 					buffer_pos = 0;
 					global_pos += header.dict_size;
-					// FIXME: error check
-					write(dst_fd, buffer, header.dict_size);
+					if (full_write(dst_fd, buffer, header.dict_size) != header.dict_size)
+						goto bad;
 					USE_DESKTOP(total_written += header.dict_size;)
 				}
 				len--;
@@ -480,9 +485,13 @@ unlzma(int src_fd, int dst_fd)
 		}
 	}
 
-	// FIXME: error check
-	write(dst_fd, buffer, buffer_pos);
-	USE_DESKTOP(total_written += buffer_pos;)
+
+	if (full_write(dst_fd, buffer, buffer_pos) != buffer_pos) {
+ bad:
+		rc_free(rc);
+		return -1;
+	}
 	rc_free(rc);
+	USE_DESKTOP(total_written += buffer_pos;)
 	return USE_DESKTOP(total_written) + 0;
 }
