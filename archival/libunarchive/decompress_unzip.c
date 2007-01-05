@@ -50,7 +50,7 @@ off_t gunzip_bytes_out;	/* number of output bytes */
 uint32_t gunzip_crc;
 
 static int gunzip_src_fd;
-static unsigned int gunzip_outbuf_count;	/* bytes in output buffer */
+static unsigned gunzip_outbuf_count;	/* bytes in output buffer */
 
 /* gunzip_window size--must be a power of two, and
  *  at least 32K for zip's deflate method */
@@ -64,14 +64,14 @@ static uint32_t *gunzip_crc_table;
 #define N_MAX 288	/* maximum number of codes in any set */
 
 /* bitbuffer */
-static unsigned int gunzip_bb;	/* bit buffer */
+static unsigned gunzip_bb;	/* bit buffer */
 static unsigned char gunzip_bk;	/* bits in bit buffer */
 
 /* These control the size of the bytebuffer */
-static unsigned int bytebuffer_max = 0x8000;
+static unsigned bytebuffer_max = 0x8000;
 static unsigned char *bytebuffer = NULL;
-static unsigned int bytebuffer_offset = 0;
-static unsigned int bytebuffer_size = 0;
+static unsigned bytebuffer_offset = 0;
+static unsigned bytebuffer_size = 0;
 
 static const unsigned short mask_bits[] = {
 	0x0000, 0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
@@ -109,7 +109,7 @@ static const unsigned char border[] = {
 	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
 };
 
-static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current, const unsigned int required)
+static unsigned fill_bitbuffer(unsigned bitbuffer, unsigned *current, const unsigned required)
 {
 	while (*current < required) {
 		if (bytebuffer_offset >= bytebuffer_size) {
@@ -121,7 +121,7 @@ static unsigned int fill_bitbuffer(unsigned int bitbuffer, unsigned int *current
 			bytebuffer_size += 4;
 			bytebuffer_offset = 4;
 		}
-		bitbuffer |= ((unsigned int) bytebuffer[bytebuffer_offset]) << *current;
+		bitbuffer |= ((unsigned) bytebuffer[bytebuffer_offset]) << *current;
 		bytebuffer_offset++;
 		*current += 8;
 	}
@@ -164,9 +164,9 @@ static int huft_free(huft_t * t)
  * m:	maximum lookup bits, returns actual
  */
 static
-int huft_build(unsigned int *b, const unsigned int n,
-			   const unsigned int s, const unsigned short *d,
-			   const unsigned char *e, huft_t ** t, unsigned int *m)
+int huft_build(unsigned *b, const unsigned n,
+			   const unsigned s, const unsigned short *d,
+			   const unsigned char *e, huft_t ** t, unsigned *m)
 {
 	unsigned a;				/* counter for codes of length k */
 	unsigned c[BMAX + 1];	/* bit length count table */
@@ -338,17 +338,17 @@ int huft_build(unsigned int *b, const unsigned int n,
  * tl, td: literal/length and distance decoder tables
  * bl, bd: number of bits decoded by tl[] and td[]
  */
-static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned int my_bl, const unsigned int my_bd, int setup)
+static int inflate_codes(huft_t * my_tl, huft_t * my_td, const unsigned my_bl, const unsigned my_bd, int setup)
 {
-	static unsigned int e;	/* table entry flag/number of extra bits */
-	static unsigned int n, d;	/* length and index for copy */
-	static unsigned int w;	/* current gunzip_window position */
+	static unsigned e;	/* table entry flag/number of extra bits */
+	static unsigned n, d;	/* length and index for copy */
+	static unsigned w;	/* current gunzip_window position */
 	static huft_t *t;			/* pointer to table entry */
-	static unsigned int ml, md;	/* masks for bl and bd bits */
-	static unsigned int b;	/* bit buffer */
-	static unsigned int k;			/* number of bits in bit buffer */
+	static unsigned ml, md;	/* masks for bl and bd bits */
+	static unsigned b;	/* bit buffer */
+	static unsigned k;			/* number of bits in bit buffer */
 	static huft_t *tl, *td;
-	static unsigned int bl, bd;
+	static unsigned bl, bd;
 	static int resumeCopy = 0;
 
 	if (setup) { // 1st time we are called, copy in variables
@@ -471,7 +471,7 @@ do_copy:		do {
 
 static int inflate_stored(int my_n, int my_b_stored, int my_k_stored, int setup)
 {
-	static unsigned int n, b_stored, k_stored, w;
+	static unsigned n, b_stored, k_stored, w;
 	if (setup) {
 		n = my_n;
 		b_stored = my_b_stored;
@@ -513,8 +513,8 @@ static int inflate_stored(int my_n, int my_b_stored, int my_k_stored, int setup)
 static int inflate_block(int *e)
 {
 	unsigned t;			/* block type */
-	unsigned int b;	/* bit buffer */
-	unsigned int k;	/* number of bits in bit buffer */
+	unsigned b;	/* bit buffer */
+	unsigned k;	/* number of bits in bit buffer */
 
 	/* make local bit buffer */
 
@@ -541,9 +541,9 @@ static int inflate_block(int *e)
 	switch (t) {
 	case 0:			/* Inflate stored */
 	{
-		unsigned int n;	/* number of bytes in block */
-		unsigned int b_stored;	/* bit buffer */
-		unsigned int k_stored;	/* number of bits in bit buffer */
+		unsigned n;	/* number of bytes in block */
+		unsigned b_stored;	/* bit buffer */
+		unsigned k_stored;	/* number of bits in bit buffer */
 
 		/* make local copies of globals */
 		b_stored = gunzip_bb;	/* initialize bit buffer */
@@ -579,9 +579,9 @@ static int inflate_block(int *e)
 		int i;			/* temporary variable */
 		huft_t *tl;		/* literal/length code table */
 		huft_t *td;		/* distance code table */
-		unsigned int bl;			/* lookup bits for tl */
-		unsigned int bd;			/* lookup bits for td */
-		unsigned int l[288];	/* length list for huft_build */
+		unsigned bl;			/* lookup bits for tl */
+		unsigned bd;			/* lookup bits for td */
+		unsigned l[288];	/* length list for huft_build */
 
 		/* set up literal table */
 		for (i = 0; i < 144; i++) {
@@ -625,20 +625,20 @@ static int inflate_block(int *e)
 
 		huft_t *tl;		/* literal/length code table */
 		huft_t *td;		/* distance code table */
-		unsigned int i;			/* temporary variables */
-		unsigned int j;
-		unsigned int l;		/* last length */
-		unsigned int m;		/* mask for bit lengths table */
-		unsigned int n;		/* number of lengths to get */
-		unsigned int bl;			/* lookup bits for tl */
-		unsigned int bd;			/* lookup bits for td */
-		unsigned int nb;	/* number of bit length codes */
-		unsigned int nl;	/* number of literal/length codes */
-		unsigned int nd;	/* number of distance codes */
+		unsigned i;			/* temporary variables */
+		unsigned j;
+		unsigned l;		/* last length */
+		unsigned m;		/* mask for bit lengths table */
+		unsigned n;		/* number of lengths to get */
+		unsigned bl;			/* lookup bits for tl */
+		unsigned bd;			/* lookup bits for td */
+		unsigned nb;	/* number of bit length codes */
+		unsigned nl;	/* number of literal/length codes */
+		unsigned nd;	/* number of distance codes */
 
-		unsigned int ll[286 + 30];	/* literal/length and distance code lengths */
-		unsigned int b_dynamic;	/* bit buffer */
-		unsigned int k_dynamic;	/* number of bits in bit buffer */
+		unsigned ll[286 + 30];	/* literal/length and distance code lengths */
+		unsigned b_dynamic;	/* bit buffer */
+		unsigned k_dynamic;	/* number of bits in bit buffer */
 
 		/* make local bit buffer */
 		b_dynamic = gunzip_bb;
@@ -646,17 +646,17 @@ static int inflate_block(int *e)
 
 		/* read in table lengths */
 		b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 5);
-		nl = 257 + ((unsigned int) b_dynamic & 0x1f);	/* number of literal/length codes */
+		nl = 257 + ((unsigned) b_dynamic & 0x1f);	/* number of literal/length codes */
 
 		b_dynamic >>= 5;
 		k_dynamic -= 5;
 		b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 5);
-		nd = 1 + ((unsigned int) b_dynamic & 0x1f);	/* number of distance codes */
+		nd = 1 + ((unsigned) b_dynamic & 0x1f);	/* number of distance codes */
 
 		b_dynamic >>= 5;
 		k_dynamic -= 5;
 		b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 4);
-		nb = 4 + ((unsigned int) b_dynamic & 0xf);	/* number of bit length codes */
+		nb = 4 + ((unsigned) b_dynamic & 0xf);	/* number of bit length codes */
 
 		b_dynamic >>= 4;
 		k_dynamic -= 4;
@@ -667,7 +667,7 @@ static int inflate_block(int *e)
 		/* read in bit-length-code lengths */
 		for (j = 0; j < nb; j++) {
 			b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 3);
-			ll[border[j]] = (unsigned int) b_dynamic & 7;
+			ll[border[j]] = (unsigned) b_dynamic & 7;
 			b_dynamic >>= 3;
 			k_dynamic -= 3;
 		}
@@ -689,9 +689,9 @@ static int inflate_block(int *e)
 		n = nl + nd;
 		m = mask_bits[bl];
 		i = l = 0;
-		while ((unsigned int) i < n) {
-			b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, (unsigned int)bl);
-			j = (td = tl + ((unsigned int) b_dynamic & m))->b;
+		while ((unsigned) i < n) {
+			b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, (unsigned)bl);
+			j = (td = tl + ((unsigned) b_dynamic & m))->b;
 			b_dynamic >>= j;
 			k_dynamic -= j;
 			j = td->v.n;
@@ -699,10 +699,10 @@ static int inflate_block(int *e)
 				ll[i++] = l = j;	/* save last length in l */
 			} else if (j == 16) {	/* repeat last length 3 to 6 times */
 				b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 2);
-				j = 3 + ((unsigned int) b_dynamic & 3);
+				j = 3 + ((unsigned) b_dynamic & 3);
 				b_dynamic >>= 2;
 				k_dynamic -= 2;
-				if ((unsigned int) i + j > n) {
+				if ((unsigned) i + j > n) {
 					return 1;
 				}
 				while (j--) {
@@ -710,10 +710,10 @@ static int inflate_block(int *e)
 				}
 			} else if (j == 17) {	/* 3 to 10 zero length codes */
 				b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 3);
-				j = 3 + ((unsigned int) b_dynamic & 7);
+				j = 3 + ((unsigned) b_dynamic & 7);
 				b_dynamic >>= 3;
 				k_dynamic -= 3;
-				if ((unsigned int) i + j > n) {
+				if ((unsigned) i + j > n) {
 					return 1;
 				}
 				while (j--) {
@@ -722,10 +722,10 @@ static int inflate_block(int *e)
 				l = 0;
 			} else {	/* j == 18: 11 to 138 zero length codes */
 				b_dynamic = fill_bitbuffer(b_dynamic, &k_dynamic, 7);
-				j = 11 + ((unsigned int) b_dynamic & 0x7f);
+				j = 11 + ((unsigned) b_dynamic & 0x7f);
 				b_dynamic >>= 7;
 				k_dynamic -= 7;
-				if ((unsigned int) i + j > n) {
+				if ((unsigned) i + j > n) {
 					return 1;
 				}
 				while (j--) {
@@ -824,7 +824,7 @@ static int inflate_get_next_window(void)
 }
 
 /* Initialise bytebuffer, be careful not to overfill the buffer */
-void inflate_init(unsigned int bufsize)
+void inflate_init(unsigned bufsize)
 {
 	/* Set the bytebuffer size, default is same as gunzip_wsize */
 	bytebuffer_max = bufsize + 8;
@@ -892,7 +892,7 @@ USE_DESKTOP(long long) int
 inflate_gunzip(int in, int out)
 {
 	uint32_t stored_crc = 0;
-	unsigned int count;
+	unsigned count;
 	USE_DESKTOP(long long total = )inflate_unzip(in, out);
 
 	USE_DESKTOP(if (total < 0) return total;)
