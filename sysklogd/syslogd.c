@@ -58,16 +58,16 @@ static struct sockaddr_in remoteAddr;
 
 /* We are using bb_common_bufsiz1 for buffering: */
 enum { MAX_READ = (BUFSIZ/6) & ~0xf };
-/* We recv into this... (size: MAX_READ ~== BUFSIZ/6) */
+/* We recv into RECVBUF... (size: MAX_READ ~== BUFSIZ/6) */
 #define RECVBUF  bb_common_bufsiz1
-/* ...then copy here, escaping control chars */
-/* (can grow x2 + 1 max ~== BUFSIZ/3) */
+/* ...then copy to PARSEBUF, escaping control chars */
+/* (can grow x2 max ~== BUFSIZ/3) */
 #define PARSEBUF (bb_common_bufsiz1 + MAX_READ)
-/* ...then sprintf into this, adding timestamp (15 chars),
+/* ...then sprintf into PRINTBUF, adding timestamp (15 chars),
  * host (64), fac.prio (20) to the message */
 /* (growth by: 15 + 64 + 20 + delims = ~110) */
-#define PRINTBUF (bb_common_bufsiz1 + 3*MAX_READ + 0x10)
-/* totals: BUFSIZ/6 + BUFSIZ/3 + BUFSIZ/3 = BUFSIZ - BUFSIZ/6
+#define PRINTBUF (bb_common_bufsiz1 + 3*MAX_READ)
+/* totals: BUFSIZ == BUFSIZ/6 + BUFSIZ/3 + (BUFSIZ/3+BUFSIZ/6)
  * -- we have BUFSIZ/6 extra at the ent of PRINTBUF
  * which covers needed ~110 extra bytes (and much more) */
 
@@ -467,7 +467,7 @@ static void do_syslogd(void)
 	int sock_fd;
 	fd_set fds;
 
-	/* Set up signal handlers. */
+	/* Set up signal handlers */
 	signal(SIGINT, quit_signal);
 	signal(SIGTERM, quit_signal);
 	signal(SIGQUIT, quit_signal);
@@ -510,7 +510,7 @@ static void do_syslogd(void)
 
 		if (select(sock_fd + 1, &fds, NULL, NULL, NULL) < 0) {
 			if (errno == EINTR) {
-				/* alarm may have happened. */
+				/* alarm may have happened */
 				continue;
 			}
 			bb_perror_msg_and_die("select");
@@ -604,6 +604,5 @@ int syslogd_main(int argc, char **argv)
 	}
 	umask(0);
 	do_syslogd();
-
-	return EXIT_SUCCESS;
+	/* return EXIT_SUCCESS; */
 }
