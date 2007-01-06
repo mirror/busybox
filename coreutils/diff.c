@@ -907,13 +907,12 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 	if (LONE_DASH(file1) && LONE_DASH(file2))
 		goto closem;
 
-	f1 = stdin;
+	f1 = f2 = stdin;
 	if (flags & D_EMPTY1)
 		f1 = xfopen(bb_dev_null, "r");
 	else if (NOT_LONE_DASH(file1))
 		f1 = xfopen(file1, "r");
 
-	f2 = stdin;
 	if (flags & D_EMPTY2)
 		f2 = xfopen(bb_dev_null, "r");
 	else if (NOT_LONE_DASH(file2))
@@ -1166,8 +1165,8 @@ static void diffdir(char *p1, char *p2)
 int diff_main(int argc, char **argv)
 {
 	int gotstdin = 0;
-
 	char *U_opt;
+	char *f1, *f2;
 	llist_t *L_arg = NULL;
 
 	opt_complementary = "L::";
@@ -1212,34 +1211,37 @@ int diff_main(int argc, char **argv)
 		bb_error_msg("missing filename");
 		bb_show_usage();
 	}
-	if (LONE_DASH(argv[0])) {
+
+	f1 = argv[0];
+	f2 = argv[1];
+	if (LONE_DASH(f1)) {
 		fstat(STDIN_FILENO, &stb1);
 		gotstdin = 1;
 	} else
-		xstat(argv[0], &stb1);
-	if (LONE_DASH(argv[1])) {
+		xstat(f1, &stb1);
+	if (LONE_DASH(f2)) {
 		fstat(STDIN_FILENO, &stb2);
 		gotstdin = 1;
 	} else
-		xstat(argv[1], &stb2);
+		xstat(f2, &stb2);
 	if (gotstdin && (S_ISDIR(stb1.st_mode) || S_ISDIR(stb2.st_mode)))
 		bb_error_msg_and_die("can't compare - to a directory");
 	if (S_ISDIR(stb1.st_mode) && S_ISDIR(stb2.st_mode)) {
 #if ENABLE_FEATURE_DIFF_DIR
-		diffdir(argv[0], argv[1]);
+		diffdir(f1, f2);
 #else
 		bb_error_msg_and_die("directory comparison not supported");
 #endif
 	} else {
 		if (S_ISDIR(stb1.st_mode)) {
-			argv[0] = concat_path_file(argv[0], argv[1]);
-			xstat(argv[0], &stb1);
+			f1 = concat_path_file(f1, f2);
+			xstat(f1, &stb1);
 		}
 		if (S_ISDIR(stb2.st_mode)) {
-			argv[1] = concat_path_file(argv[1], argv[0]);
+			f2 = concat_path_file(f2, f1);
 			xstat(argv[1], &stb2);
 		}
-		print_status(diffreg(argv[0], argv[1], 0), argv[0], argv[1], NULL);
+		print_status(diffreg(f1, f2, 0), f1, f2, NULL);
 	}
 	return status;
 }
