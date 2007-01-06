@@ -100,12 +100,7 @@ typedef unsigned long ulg;
 #define tab_prefix prev	/* hash link (see deflate.c) */
 #define head (prev+WSIZE)	/* hash head (see deflate.c) */
 
-static long bytes_in;	/* number of input bytes */
-
-#define isize bytes_in
-/* for compatibility with old zip sources (to be cleaned) */
-
-typedef int file_t;		/* Do not use stdio */
+static long isize;	/* number of input bytes */
 
 #define NO_FILE  (-1)	/* in memory compression */
 
@@ -193,7 +188,7 @@ static int ct_tally(int dist, int lc);
 static ulg flush_block(char *buf, ulg stored_len, int eof);
 
 		/* from bits.c */
-static void bi_init(file_t zipfile);
+static void bi_init(int zipfile);
 static void send_bits(int value, int length);
 static unsigned bi_reverse(unsigned value, int length);
 static void bi_windup(void);
@@ -311,7 +306,7 @@ static void clear_bufs(void)
 #ifdef DEBUG
 	insize = 0;
 #endif
-	bytes_in = 0L;
+	isize = 0L;
 }
 
 /* ===========================================================================
@@ -409,7 +404,7 @@ static uint32_t updcrc(uch * s, unsigned n)
  * Local data used by the "bit string" routines.
  */
 
-static file_t zfile;	/* output gzip file */
+static int zfile;	/* output gzip file */
 
 static unsigned short bi_buf;
 
@@ -433,7 +428,7 @@ ulg bits_sent;			/* bit length of the compressed data */
 /* ===========================================================================
  * Initialize the bit string routines.
  */
-static void bi_init(file_t zipfile)
+static void bi_init(int zipfile)
 {
 	zfile = zipfile;
 	bi_buf = 0;
@@ -2379,7 +2374,6 @@ static void set_file_type(void)
 
 
 static uint32_t crc;			/* crc on uncompressed file data */
-static long header_bytes;	/* number of bytes in gzip header */
 
 static void put_long(ulg n)
 {
@@ -2427,14 +2421,11 @@ static int zip(int in, int out)
 	put_byte((uch) deflate_flags);	/* extra flags */
 	put_byte(OS_CODE);	/* OS identifier */
 
-	header_bytes = (long) outcnt;
-
 	(void) deflate();
 
 	/* Write the crc and uncompressed size */
 	put_long(crc);
 	put_long(isize);
-	header_bytes += 2 * sizeof(long);
 
 	flush_outbuf();
 	return OK;
