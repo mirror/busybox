@@ -186,7 +186,7 @@ setmod_text[] = N_(
 	"This feature depends on another which has been configured as a module.\n"
 	"As a result, this feature will be built as a module."),
 nohelp_text[] = N_(
-	"There is no help available for this kernel option.\n"),
+	"There is no help available for this option.\n"),
 load_config_text[] = N_(
 	"Enter the name of the configuration file you wish to load.  "
 	"Accept the name shown to restore the configuration you "
@@ -1053,7 +1053,7 @@ int main(int ac, char **av)
 
 	sym = sym_lookup("KERNELVERSION", 0);
 	sym_calc_value(sym);
-	sprintf(menu_backtitle, _("Linux Kernel v%s Configuration"),
+	sprintf(menu_backtitle, _("BusyBox %s Configuration"),
 		sym_get_string_value(sym));
 
 	mode = getenv("MENUCONFIG_MODE");
@@ -1086,7 +1086,7 @@ int main(int ac, char **av)
 		}
 		printf(_("\n\n"
 			"*** End of busybox configuration.\n"
-			"*** Execute 'make' to build the kernel or try 'make help'."
+			"*** Execute 'make' to build busybox or try 'make help'."
 			"\n\n"));
 	} else {
 		fprintf(stderr, _("\n\n"
