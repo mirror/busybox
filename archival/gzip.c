@@ -23,10 +23,35 @@ gzip: bogus: No such file or directory
 aa:      85.1% -- replaced with aa.gz
 */
 
-#define SMALL_MEM
 
 //#include <dirent.h>
 #include "busybox.h"
+
+
+/* ===========================================================================
+ */
+//#define DEBUG 1
+/* Diagnostic functions */
+#ifdef DEBUG
+#  define Assert(cond,msg) {if(!(cond)) bb_error_msg(msg);}
+#  define Trace(x) fprintf x
+#  define Tracev(x) {if (verbose) fprintf x ;}
+#  define Tracevv(x) {if (verbose > 1) fprintf x ;}
+#  define Tracec(c,x) {if (verbose && (c)) fprintf x ;}
+#  define Tracecv(c,x) {if (verbose > 1 && (c)) fprintf x ;}
+#else
+#  define Assert(cond,msg)
+#  define Trace(x)
+#  define Tracev(x)
+#  define Tracevv(x)
+#  define Tracec(c,x)
+#  define Tracecv(c,x)
+#endif
+
+
+/* ===========================================================================
+ */
+#define SMALL_MEM
 
 /* Compression methods (see algorithm.doc) */
 /* Only STORED and DEFLATED are supported by this BusyBox module */
@@ -121,36 +146,170 @@ aa:      85.1% -- replaced with aa.gz
 #endif
 
 
+/* ===========================================================================
+ * Compile with MEDIUM_MEM to reduce the memory requirements or
+ * with SMALL_MEM to use as little memory as possible. Use BIG_MEM if the
+ * entire input file can be held in memory (not possible on 16 bit systems).
+ * Warning: defining these symbols affects HASH_BITS (see below) and thus
+ * affects the compression ratio. The compressed output
+ * is still correct, and might even be smaller in some cases.
+ */
+
+#ifdef SMALL_MEM
+#   define HASH_BITS  13	/* Number of bits used to hash strings */
+#endif
+#ifdef MEDIUM_MEM
+#   define HASH_BITS  14
+#endif
+#ifndef HASH_BITS
+#   define HASH_BITS  15
+   /* For portability to 16 bit machines, do not use values above 15. */
+#endif
+
+/* To save space (see unlzw.c), we overlay prev+head with tab_prefix and
+ * window with tab_suffix. Check that we can do this:
+ */
+#if (WSIZE<<1) > (1<<BITS)
+#  error cannot overlay window with tab_suffix and prev with tab_prefix0
+#endif
+#if HASH_BITS > BITS-1
+#  error cannot overlay head with tab_prefix1
+#endif
+#define HASH_SIZE (unsigned)(1<<HASH_BITS)
+#define HASH_MASK (HASH_SIZE-1)
+#define WMASK     (WSIZE-1)
+/* HASH_SIZE and WSIZE must be powers of two */
+#ifndef TOO_FAR
+#  define TOO_FAR 4096
+#endif
+/* Matches of length 3 are discarded if their distance exceeds TOO_FAR */
+
+
+/* ===========================================================================
+ */
+typedef unsigned char uch;
+typedef unsigned short ush;
+typedef unsigned long ulg;
+
+
+/* ===========================================================================
+ * Local data used by the "longest match" routines.
+ */
+typedef ush Pos;
+typedef unsigned IPos;
+
+/* A Pos is an index in the character window. We use short instead of int to
+ * save space in the various tables. IPos is used only for parameter passing.
+ */
+
 #define DECLARE(type, array, size)\
 	static type * array
 #define ALLOC(type, array, size) { \
 	array = xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type)); \
 }
+
 #define FREE(array) { \
 	free(array); \
 	array = NULL; \
 }
 
-/* Diagnostic functions */
+/* DECLARE(uch, window, 2L*WSIZE); */
+/* Sliding window. Input bytes are read into the second half of the window,
+ * and move to the first half later to keep a dictionary of at least WSIZE
+ * bytes. With this organization, matches are limited to a distance of
+ * WSIZE-MAX_MATCH bytes, but this ensures that IO is always
+ * performed with a length multiple of the block size. Also, it limits
+ * the window size to 64K, which is quite useful on MSDOS.
+ * To do: limit the window size to WSIZE+BSZ if SMALL_MEM (the code would
+ * be less efficient).
+ */
+
+/* DECLARE(Pos, prev, WSIZE); */
+/* Link to older string with same hash index. To limit the size of this
+ * array to 64K, this link is maintained only for the last 32K strings.
+ * An index in this array is thus a window index modulo 32K.
+ */
+
+/* DECLARE(Pos, head, 1<<HASH_BITS); */
+/* Heads of the hash chains or 0. */
+
+static long block_start;
+
+/* window position at the beginning of the current output block. Gets
+ * negative when the window is moved backwards.
+ */
+
+static unsigned ins_h;	/* hash index of string to be inserted */
+
+#define H_SHIFT  ((HASH_BITS+MIN_MATCH-1)/MIN_MATCH)
+/* Number of bits by which ins_h and del_h must be shifted at each
+ * input step. It must be such that after MIN_MATCH steps, the oldest
+ * byte no longer takes part in the hash key, that is:
+ * H_SHIFT * MIN_MATCH >= HASH_BITS
+ */
+
+static unsigned int prev_length;
+
+/* Length of the best match at previous step. Matches not greater than this
+ * are discarded. This is used in the lazy match evaluation.
+ */
+
+static unsigned strstart;	/* start of string to insert */
+static unsigned match_start;	/* start of matching string */
+static int eofile;		/* flag set at end of input file */
+static unsigned lookahead;	/* number of valid bytes ahead in window */
+
+enum {
+	WINDOW_SIZE = 2 * WSIZE,
+/* window size, 2*WSIZE except for MMAP or BIG_MEM, where it is the
+ * input file length plus MIN_LOOKAHEAD.
+ */
+
+	max_chain_length = 4096,
+/* To speed up deflation, hash chains are never searched beyond this length.
+ * A higher limit improves compression ratio but degrades the speed.
+ */
+
+	max_lazy_match = 258,
+/* Attempt to find a better match only when the current match is strictly
+ * smaller than this value. This mechanism is used only for compression
+ * levels >= 4.
+ */
+
+	max_insert_length = max_lazy_match,
+/* Insert new strings in the hash table only if the match length
+ * is not greater than this length. This saves time but degrades compression.
+ * max_insert_length is used only for compression levels <= 3.
+ */
+
+	good_match = 32,
+/* Use a faster search when the previous match is longer than this */
+
+/* Values for max_lazy_match, good_match and max_chain_length, depending on
+ * the desired pack level (0..9). The values given below have been tuned to
+ * exclude worst case performance for pathological files. Better values may be
+ * found for specific files.
+ */
+
+	nice_match = 258	/* Stop searching when current match exceeds this */
+/* Note: the deflate() code requires max_lazy >= MIN_MATCH and max_chain >= 4
+ * For deflate_fast() (levels <= 3) good is ignored and lazy has a different
+ * meaning.
+ */
+};
+
+
+/* ===========================================================================
+ *  Prototypes for local functions.
+ */
+static void fill_window(void);
+
+static int longest_match(IPos cur_match);
+
 #ifdef DEBUG
-#  define Assert(cond,msg) {if(!(cond)) bb_error_msg(msg);}
-#  define Trace(x) fprintf x
-#  define Tracev(x) {if (verbose) fprintf x ;}
-#  define Tracevv(x) {if (verbose > 1) fprintf x ;}
-#  define Tracec(c,x) {if (verbose && (c)) fprintf x ;}
-#  define Tracecv(c,x) {if (verbose > 1 && (c)) fprintf x ;}
-#else
-#  define Assert(cond,msg)
-#  define Trace(x)
-#  define Tracev(x)
-#  define Tracevv(x)
-#  define Tracec(c,x)
-#  define Tracecv(c,x)
+static void check_match(IPos start, IPos match, int length);
 #endif
 
-typedef unsigned char uch;
-typedef unsigned short ush;
-typedef unsigned long ulg;
 
 
 /* from zip.c: */
@@ -182,7 +341,6 @@ static void copy_block(char *buf, unsigned len, int header);
  * For compression, input is done in window[]. For decompression, output
  * is done in window except for unlzw.
  */
-
 
 #define tab_suffix window
 #define tab_prefix prev	/* hash link (see deflate.c) */
@@ -310,16 +468,10 @@ static void clear_bufs(void)
 static uint32_t crc;	/* shift register contents */
 static uint32_t updcrc(uch * s, unsigned n)
 {
-	uint32_t c;		/* temporary variable */
-
-	if (s == NULL) {
-		c = ~0;
-	} else {
-		c = crc;
-		while (n) {
-			c = crc_32_tab[(uch)(c ^ *s++)] ^ (c >> 8);
-			n--;
-		}
+	uint32_t c = crc;
+	while (n) {
+		c = crc_32_tab[(uch)(c ^ *s++)] ^ (c >> 8);
+		n--;
 	}
 	crc = c;
 	return c;
@@ -387,6 +539,7 @@ static void send_bits(int value, int length)
 	}
 }
 
+
 /* ===========================================================================
  * Reverse the first len bits of a code, using straightforward code (a faster
  * method would use a table)
@@ -402,6 +555,7 @@ static unsigned bi_reverse(unsigned code, int len)
 	} while (--len > 0);
 	return res >> 1;
 }
+
 
 /* ===========================================================================
  * Write out any remaining bits in an incomplete byte.
@@ -419,6 +573,7 @@ static void bi_windup(void)
 	bits_sent = (bits_sent + 7) & ~7;
 #endif
 }
+
 
 /* ===========================================================================
  * Copy a stored block to the zip file, storing first the length and its
@@ -443,164 +598,6 @@ static void copy_block(char *buf, unsigned len, int header)
 	}
 }
 
-/* ===========================================================================
- * Configuration parameters
- */
-
-/* Compile with MEDIUM_MEM to reduce the memory requirements or
- * with SMALL_MEM to use as little memory as possible. Use BIG_MEM if the
- * entire input file can be held in memory (not possible on 16 bit systems).
- * Warning: defining these symbols affects HASH_BITS (see below) and thus
- * affects the compression ratio. The compressed output
- * is still correct, and might even be smaller in some cases.
- */
-
-#ifdef SMALL_MEM
-#   define HASH_BITS  13	/* Number of bits used to hash strings */
-#endif
-#ifdef MEDIUM_MEM
-#   define HASH_BITS  14
-#endif
-#ifndef HASH_BITS
-#   define HASH_BITS  15
-   /* For portability to 16 bit machines, do not use values above 15. */
-#endif
-
-/* To save space (see unlzw.c), we overlay prev+head with tab_prefix and
- * window with tab_suffix. Check that we can do this:
- */
-#if (WSIZE<<1) > (1<<BITS)
-#  error cannot overlay window with tab_suffix and prev with tab_prefix0
-#endif
-#if HASH_BITS > BITS-1
-#  error cannot overlay head with tab_prefix1
-#endif
-#define HASH_SIZE (unsigned)(1<<HASH_BITS)
-#define HASH_MASK (HASH_SIZE-1)
-#define WMASK     (WSIZE-1)
-/* HASH_SIZE and WSIZE must be powers of two */
-#define NIL 0
-/* Tail of hash chains */
-#define FAST 4
-#define SLOW 2
-/* speed options for the general purpose bit flag */
-#ifndef TOO_FAR
-#  define TOO_FAR 4096
-#endif
-/* Matches of length 3 are discarded if their distance exceeds TOO_FAR */
-/* ===========================================================================
- * Local data used by the "longest match" routines.
- */
-typedef ush Pos;
-typedef unsigned IPos;
-
-/* A Pos is an index in the character window. We use short instead of int to
- * save space in the various tables. IPos is used only for parameter passing.
- */
-
-/* DECLARE(uch, window, 2L*WSIZE); */
-/* Sliding window. Input bytes are read into the second half of the window,
- * and move to the first half later to keep a dictionary of at least WSIZE
- * bytes. With this organization, matches are limited to a distance of
- * WSIZE-MAX_MATCH bytes, but this ensures that IO is always
- * performed with a length multiple of the block size. Also, it limits
- * the window size to 64K, which is quite useful on MSDOS.
- * To do: limit the window size to WSIZE+BSZ if SMALL_MEM (the code would
- * be less efficient).
- */
-
-/* DECLARE(Pos, prev, WSIZE); */
-/* Link to older string with same hash index. To limit the size of this
- * array to 64K, this link is maintained only for the last 32K strings.
- * An index in this array is thus a window index modulo 32K.
- */
-
-/* DECLARE(Pos, head, 1<<HASH_BITS); */
-/* Heads of the hash chains or NIL. */
-
-static const ulg window_size = (ulg) 2 * WSIZE;
-
-/* window size, 2*WSIZE except for MMAP or BIG_MEM, where it is the
- * input file length plus MIN_LOOKAHEAD.
- */
-
-static long block_start;
-
-/* window position at the beginning of the current output block. Gets
- * negative when the window is moved backwards.
- */
-
-static unsigned ins_h;	/* hash index of string to be inserted */
-
-#define H_SHIFT  ((HASH_BITS+MIN_MATCH-1)/MIN_MATCH)
-/* Number of bits by which ins_h and del_h must be shifted at each
- * input step. It must be such that after MIN_MATCH steps, the oldest
- * byte no longer takes part in the hash key, that is:
- * H_SHIFT * MIN_MATCH >= HASH_BITS
- */
-
-static unsigned int prev_length;
-
-/* Length of the best match at previous step. Matches not greater than this
- * are discarded. This is used in the lazy match evaluation.
- */
-
-static unsigned strstart;	/* start of string to insert */
-static unsigned match_start;	/* start of matching string */
-static int eofile;		/* flag set at end of input file */
-static unsigned lookahead;	/* number of valid bytes ahead in window */
-
-enum {
-	max_chain_length = 4096,
-
-/* To speed up deflation, hash chains are never searched beyond this length.
- * A higher limit improves compression ratio but degrades the speed.
- */
-
-	max_lazy_match = 258,
-
-/* Attempt to find a better match only when the current match is strictly
- * smaller than this value. This mechanism is used only for compression
- * levels >= 4.
- */
-	max_insert_length = max_lazy_match,
-/* Insert new strings in the hash table only if the match length
- * is not greater than this length. This saves time but degrades compression.
- * max_insert_length is used only for compression levels <= 3.
- */
-
-	good_match = 32,
-
-/* Use a faster search when the previous match is longer than this */
-
-
-/* Values for max_lazy_match, good_match and max_chain_length, depending on
- * the desired pack level (0..9). The values given below have been tuned to
- * exclude worst case performance for pathological files. Better values may be
- * found for specific files.
- */
-
-	nice_match = 258	/* Stop searching when current match exceeds this */
-
-/* Note: the deflate() code requires max_lazy >= MIN_MATCH and max_chain >= 4
- * For deflate_fast() (levels <= 3) good is ignored and lazy has a different
- * meaning.
- */
-};
-
-#define EQUAL 0
-/* result of memcmp for equal strings */
-
-/* ===========================================================================
- *  Prototypes for local functions.
- */
-static void fill_window(void);
-
-static int longest_match(IPos cur_match);
-
-#ifdef DEBUG
-static void check_match(IPos start, IPos match, int length);
-#endif
 
 /* ===========================================================================
  * Update a hash value with the given input byte
@@ -634,7 +631,8 @@ static void lm_init(ush * flags)
 	memset(head, 0, HASH_SIZE * sizeof(*head));
 	/* prev will be initialized on the fly */
 
-	*flags |= SLOW;
+	/*speed options for the general purpose bit flag */
+	*flags |= 2;	/* FAST 4, SLOW 2 */
 	/* ??? reduce max_chain_length for binary files */
 
 	strstart = 0;
@@ -702,7 +700,7 @@ static int longest_match(IPos cur_match)
 	if (prev_length >= good_match) {
 		chain_length >>= 2;
 	}
-	Assert(strstart <= window_size - MIN_LOOKAHEAD, "insufficient lookahead");
+	Assert(strstart <= WINDOW_SIZE - MIN_LOOKAHEAD, "insufficient lookahead");
 
 	do {
 		Assert(cur_match < strstart, "no future");
@@ -750,6 +748,7 @@ static int longest_match(IPos cur_match)
 	return best_len;
 }
 
+
 #ifdef DEBUG
 /* ===========================================================================
  * Check that the match at match_start is indeed a match.
@@ -757,7 +756,7 @@ static int longest_match(IPos cur_match)
 static void check_match(IPos start, IPos match, int length)
 {
 	/* check that the match is indeed a match */
-	if (memcmp(window + match, window + start, length) != EQUAL) {
+	if (memcmp(window + match, window + start, length) != 0) {
 		bb_error_msg(" start %d, match %d, length %d", start, match, length);
 		bb_error_msg("invalid match");
 	}
@@ -769,8 +768,9 @@ static void check_match(IPos start, IPos match, int length)
 	}
 }
 #else
-#  define check_match(start, match, length)
+#  define check_match(start, match, length) ((void)0)
 #endif
+
 
 /* ===========================================================================
  * Fill the window when the lookahead becomes insufficient.
@@ -783,7 +783,7 @@ static void check_match(IPos start, IPos match, int length)
 static void fill_window(void)
 {
 	unsigned n, m;
-	unsigned more =	window_size - lookahead - strstart;
+	unsigned more =	WINDOW_SIZE - lookahead - strstart;
 	/* Amount of free space at the end of the window. */
 
 	/* If the window is almost full and there is insufficient lookahead,
@@ -798,21 +798,21 @@ static void fill_window(void)
 		/* By the IN assertion, the window is not empty so we can't confuse
 		 * more == 0 with more == 64K on a 16 bit machine.
 		 */
-		Assert(window_size == (ulg) 2 * WSIZE, "no sliding with BIG_MEM");
+		Assert(WINDOW_SIZE == 2 * WSIZE, "no sliding with BIG_MEM");
 
 		memcpy(window, window + WSIZE, WSIZE);
 		match_start -= WSIZE;
 		strstart -= WSIZE;	/* we now have strstart >= MAX_DIST: */
 
-		block_start -= (long) WSIZE;
+		block_start -= WSIZE;
 
 		for (n = 0; n < HASH_SIZE; n++) {
 			m = head[n];
-			head[n] = (Pos) (m >= WSIZE ? m - WSIZE : NIL);
+			head[n] = (Pos) (m >= WSIZE ? m - WSIZE : 0);
 		}
 		for (n = 0; n < WSIZE; n++) {
 			m = prev[n];
-			prev[n] = (Pos) (m >= WSIZE ? m - WSIZE : NIL);
+			prev[n] = (Pos) (m >= WSIZE ? m - WSIZE : 0);
 			/* If n is not on any hash chain, prev[n] is garbage but
 			 * its value will never be used.
 			 */
@@ -830,15 +830,20 @@ static void fill_window(void)
 	}
 }
 
+
 /* ===========================================================================
  * Flush the current block, with given end-of-file flag.
  * IN assertion: strstart is set to the end of the current match.
  */
 #define FLUSH_BLOCK(eof) \
-	flush_block(block_start >= 0L \
-		? (char*)&window[(unsigned)block_start] \
-		: (char*)NULL, \
-	(long)strstart - block_start, (eof))
+	flush_block( \
+		block_start >= 0L \
+			? (char*)&window[(unsigned)block_start] \
+			: (char*)NULL, \
+		(long)strstart - block_start, \
+		(eof) \
+	)
+
 
 /* ===========================================================================
  * Same as above, but achieves better compression. We use a lazy
@@ -915,8 +920,10 @@ static ulg deflate(void)
 			match_available = 0;
 			match_length = MIN_MATCH - 1;
 			strstart++;
-			if (flush)
-				FLUSH_BLOCK(0), block_start = strstart;
+			if (flush) {
+				FLUSH_BLOCK(0);
+				block_start = strstart;
+			}
 		} else if (match_available) {
 			/* If there was no match at the previous position, output a
 			 * single literal. If there was a match but the current match
@@ -924,7 +931,8 @@ static ulg deflate(void)
 			 */
 			Tracevv((stderr, "%c", window[strstart - 1]));
 			if (ct_tally(0, window[strstart - 1])) {
-				FLUSH_BLOCK(0), block_start = strstart;
+				FLUSH_BLOCK(0);
+				block_start = strstart;
 			}
 			strstart++;
 			lookahead--;
@@ -2246,7 +2254,7 @@ static int zip(int in, int out)
 	ct_init(&attr, &method);
 	lm_init(&deflate_flags);
 
-	put_8bit((uch) deflate_flags);	/* extra flags */
+	put_8bit(deflate_flags);	/* extra flags */
 	put_8bit(3);	/* OS identifier = 3 (Unix) */
 
 	deflate();
