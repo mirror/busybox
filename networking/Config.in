@@ -12,6 +12,12 @@ config FEATURE_IPV6
 	  Enable IPv6 support in busybox.
 	  This adds IPv6 support in the networking applets.
 
+config ARP
+	bool "arp"
+	default n
+	help
+	  Manipulate the system ARP cache
+
 config ARPING
 	bool "arping"
 	default n

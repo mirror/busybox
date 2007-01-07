@@ -121,6 +121,38 @@
 /* scary. better ideas? (but do *test* them first!) */
 #define OFF_T_MAX  ((off_t)~((off_t)1 << (sizeof(off_t)*8-1)))
 
+/* This structure defines protocol families and their handlers. */
+struct aftype {
+	char *name;
+	char *title;
+	int af;
+	int alen;
+	char *(*print) (unsigned char *);
+	char *(*sprint) (struct sockaddr *, int numeric);
+	int (*input) (int type, char *bufp, struct sockaddr *);
+	void (*herror) (char *text);
+	int (*rprint) (int options);
+	int (*rinput) (int typ, int ext, char **argv);
+
+	/* may modify src */
+	int (*getmask) (char *src, struct sockaddr * mask, char *name);
+
+	int fd;
+	char *flag_file;
+};
+
+/* This structure defines hardware protocols and their handlers. */
+struct hwtype {
+	char *name;
+	char *title;
+	int type;
+	int alen;
+	char *(*print) (unsigned char *);
+	int (*input) (char *, struct sockaddr *);
+	int (*activate) (int fd);
+	int suppress_null_addr;
+};
+
 /* Some useful definitions */
 #undef FALSE
 #define FALSE   ((int) 0)
@@ -426,8 +458,13 @@ extern int bb_test(int argc, char** argv);
 int create_icmp_socket(void);
 int create_icmp6_socket(void);
 /* interface.c */
+struct aftype;
+struct hwtype;
 extern int interface_opt_a;
 int display_interfaces(char *ifname);
+struct aftype *get_aftype(const char *name);
+const struct hwtype *get_hwtype(const char *name);
+const struct hwtype *get_hwntype(int type);
 
 
 #ifndef BUILD_INDIVIDUAL

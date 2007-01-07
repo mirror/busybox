@@ -55,6 +55,26 @@
        "	-x	Extract\n" \
        "	-v	Verbosely list files processed"
 
+#define arp_trivial_usage \
+       "\n" \
+       "[-vn]	[-H type] [-i if] -a [hostname]\n" \
+       "[-v]		  [-i if] -d hostname [pub]\n" \
+       "[-v]	[-H type] [-i if] -s hostname hw_addr [temp]\n" \
+       "[-v] 	[-H type] [-i if] -s hostname hw_addr [netmask nm] pub\n" \
+       "[-v]	[-H type] [-i if] -Ds hostname ifa [netmask nm] pub\n"
+#define arp_full_usage \
+       "Manipulate the system ARP cache" \
+       "\n\nOptions:" \
+       "\n	-a		Display (all) hosts" \
+       "\n	-s		Set a new ARP entry" \
+       "\n	-d		Delete a specified entry" \
+       "\n	-v		Verbose" \
+       "\n	-n		Don't resolve names" \
+       "\n	-i if		Specify network interface (e.g. eth0)" \
+       "\n	-D		Read <hwaddr> from given device" \
+       "\n	-A, -p		Specify protocol family" \
+       "\n	-H hwtype	Specify hardware address type"
+
 #define arping_trivial_usage \
        "[-fqbDUA] [-c count] [-w timeout] [-i device] [-s sender] target"
 #define arping_full_usage \

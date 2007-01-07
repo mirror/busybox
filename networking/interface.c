@@ -91,26 +91,6 @@ struct in6_ifreq {
 #define IFF_DYNAMIC     0x8000	/* dialup device with changing addresses */
 #endif
 
-/* This structure defines protocol families and their handlers. */
-struct aftype {
-	const char *name;
-	const char *title;
-	int af;
-	int alen;
-	char *(*print) (unsigned char *);
-	char *(*sprint) (struct sockaddr *, int numeric);
-	int (*input) (int type, char *bufp, struct sockaddr *);
-	void (*herror) (char *text);
-	int (*rprint) (int options);
-	int (*rinput) (int typ, int ext, char **argv);
-
-	/* may modify src */
-	int (*getmask) (char *src, struct sockaddr * mask, char *name);
-
-	int fd;
-	char *flag_file;
-};
-
 /* Display an Internet socket address. */
 static char *INET_sprint(struct sockaddr *sap, int numeric)
 {
@@ -126,12 +106,66 @@ static char *INET_sprint(struct sockaddr *sap, int numeric)
 	return buff;
 }
 
+static int INET_getsock(char *bufp, struct sockaddr *sap)
+{
+	char *sp = bufp, *bp;
+	unsigned int i;
+	unsigned val;
+	struct sockaddr_in *sock_in;
+
+	sock_in = (struct sockaddr_in *) sap;
+	sock_in->sin_family = AF_INET;
+	sock_in->sin_port = 0;
+	
+	val = 0;
+	bp = (char *) &val;
+	for (i = 0; i < sizeof(sock_in->sin_addr.s_addr); i++) {
+		*sp = toupper(*sp);
+
+		if ((unsigned)(*sp - 'A') <= 5)
+			bp[i] |= (int) (*sp - ('A' - 10));
+		else if (isdigit(*sp))
+			bp[i] |= (int) (*sp - '0');
+		else
+			return -1;
+
+		bp[i] <<= 4;
+		sp++;
+		*sp = toupper(*sp);
+
+		if ((unsigned)(*sp - 'A') <= 5)
+			bp[i] |= (int) (*sp - ('A' - 10));
+		else if (isdigit(*sp))
+			bp[i] |= (int) (*sp - '0');
+		else
+			return -1;
+
+		sp++;
+	}
+	sock_in->sin_addr.s_addr = htonl(val);
+
+	return (sp - bufp);
+}
+
+static int INET_input(int type, char *bufp, struct sockaddr *sap)
+{
+	switch (type) {
+	case 1:
+		return (INET_getsock(bufp, sap));
+	case 256:
+		return (INET_resolve(bufp, (struct sockaddr_in *) sap, 1));
+	default:
+		return (INET_resolve(bufp, (struct sockaddr_in *) sap, 0));
+	}
+}
+
 static struct aftype inet_aftype = {
 	.name =		"inet",
 	.title =	"DARPA Internet",
 	.af =		AF_INET,
 	.alen =		4,
 	.sprint =	INET_sprint,
+	.input =	INET_input,
 	.fd =		-1
 };
 
@@ -151,12 +185,37 @@ static char *INET6_sprint(struct sockaddr *sap, int numeric)
 	return buff;
 }
 
+static int INET6_getsock(char *bufp, struct sockaddr *sap)
+{
+	struct sockaddr_in6 *sin6;
+
+	sin6 = (struct sockaddr_in6 *) sap;
+	sin6->sin6_family = AF_INET6;
+	sin6->sin6_port = 0;
+
+	if (inet_pton(AF_INET6, bufp, sin6->sin6_addr.s6_addr) <= 0)
+		return -1;
+
+	return 16;			/* ?;) */
+}
+
+static int INET6_input(int type, char *bufp, struct sockaddr *sap)
+{
+	switch (type) {
+	case 1:
+		return (INET6_getsock(bufp, sap));
+	default:
+		return (INET6_resolve(bufp, (struct sockaddr_in6 *) sap));
+	}
+}
+
 static struct aftype inet6_aftype = {
 	.name =		"inet6",
 	.title =	"IPv6",
 	.af =		AF_INET6,
 	.alen =		sizeof(struct in6_addr),
 	.sprint =	INET6_sprint,
+	.input =	INET6_input,
 	.fd =		-1
 };
 
@@ -204,6 +263,20 @@ static struct aftype * const aftypes[] = {
 	&unspec_aftype,
 	NULL
 };
+
+/* Check our protocol family table for this family. */
+struct aftype *get_aftype(const char *name)
+{
+	struct aftype * const *afp;
+
+	afp = aftypes;
+	while (*afp != NULL) {
+		if (!strcmp((*afp)->name, name))
+			return (*afp);
+		afp++;
+	}
+	return NULL;
+}
 
 /* Check our protocol family table for this family. */
 static struct aftype *get_afntype(int af)
@@ -714,18 +787,6 @@ static int do_if_fetch(struct interface *ife)
 	return 0;
 }
 
-/* This structure defines hardware protocols and their handlers. */
-struct hwtype {
-	const char * const name;
-	const char *title;
-	int type;
-	int alen;
-	char *(*print) (unsigned char *);
-	int (*input) (char *, struct sockaddr *);
-	int (*activate) (int fd);
-	int suppress_null_addr;
-};
-
 static const struct hwtype unspec_hwtype = {
 	.name =		"unspec",
 	.title =	"UNSPEC",
@@ -759,13 +820,68 @@ static char *pr_ether(unsigned char *ptr)
 	return buff;
 }
 
-static const struct hwtype ether_hwtype = {
+static int in_ether(char *bufp, struct sockaddr *sap);
+
+static struct hwtype ether_hwtype = {
 	.name =		"ether",
 	.title =	"Ethernet",
 	.type =		ARPHRD_ETHER,
 	.alen =		ETH_ALEN,
-	.print =	pr_ether
+	.print =	pr_ether,
+	.input =	in_ether
 };
+
+static unsigned hexchar2int(char c)
+{
+	if (isdigit(c))
+		return c - '0';
+	c &= ~0x20; /* a -> A */
+	if ((unsigned)(c - 'A') <= 5)
+		return c - ('A' - 10);
+	return ~0U;
+}
+
+/* Input an Ethernet address and convert to binary. */
+static int in_ether(char *bufp, struct sockaddr *sap)
+{
+	unsigned char *ptr;
+	char c, *orig;
+	int i;
+	unsigned val;
+
+	sap->sa_family = ether_hwtype.type;
+	ptr = sap->sa_data;
+
+	i = 0;
+	orig = bufp;
+	while ((*bufp != '\0') && (i < ETH_ALEN)) {
+		val = hexchar2int(*bufp++) * 0x10;
+		if (val > 0xff) {
+			errno = EINVAL;
+			return -1;
+		}
+		c = *bufp;
+		if (c == ':' || c == 0)
+			val >>= 4;
+		else {
+			val |= hexchar2int(c);
+			if (val > 0xff) {
+				errno = EINVAL;
+				return -1;
+			}
+		}
+		if (c != 0)
+			bufp++;
+		*ptr++ = (unsigned char) val;
+		i++;
+
+		/* We might get a semicolon here - not required. */
+		if (*bufp == ':') {
+			bufp++;
+		}
+	}
+	return 0;
+}
 
 #include <net/if_arp.h>
 
@@ -811,7 +927,21 @@ static const char * const if_port_text[] = {
 #endif
 
 /* Check our hardware type table for this type. */
-static const struct hwtype *get_hwntype(int type)
+const struct hwtype *get_hwtype(const char *name)
+{
+	const struct hwtype * const *hwp;
+
+	hwp = hwtypes;
+	while (*hwp != NULL) {
+		if (!strcmp((*hwp)->name, name))
+			return (*hwp);
+		hwp++;
+	}
+	return NULL;
+}
+
+/* Check our hardware type table for this type. */
+const struct hwtype *get_hwntype(int type)
 {
 	const struct hwtype * const *hwp;
 
