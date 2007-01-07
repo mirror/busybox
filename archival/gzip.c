@@ -61,8 +61,6 @@ aa:      85.1% -- replaced with aa.gz
 #  endif
 #endif
 
-#define NO_FILE  (-1)	/* in memory compression */
-
 #define	PACK_MAGIC     "\037\036"	/* Magic header for packed files */
 #define	GZIP_MAGIC     "\037\213"	/* Magic header for gzip files, 1F 8B */
 #define	OLD_GZIP_MAGIC "\037\236"	/* Magic header for gzip 0.5 = freeze 1.x */
@@ -161,27 +159,25 @@ typedef unsigned short ush;
 typedef unsigned long ulg;
 
 
-	/* from zip.c: */
+/* from zip.c: */
 static int zip(int in, int out);
 static unsigned file_read(void *buf, unsigned size);
 
-		/* from deflate.c */
+/* from deflate.c */
 static void lm_init(ush * flags);
 static ulg deflate(void);
 
-		/* from trees.c */
+/* from trees.c */
 static void ct_init(ush * attr, int *methodp);
 static int ct_tally(int dist, int lc);
 static ulg flush_block(char *buf, ulg stored_len, int eof);
 
-		/* from bits.c */
+/* from bits.c */
 static void bi_init(int zipfile);
 static void send_bits(int value, int length);
 static unsigned bi_reverse(unsigned value, int length);
 static void bi_windup(void);
 static void copy_block(char *buf, unsigned len, int header);
-
-static void flush_outbuf(void);
 
 /* global buffers */
 
@@ -250,6 +246,20 @@ static ulg bits_sent;			/* bit length of the compressed data */
 
 
 /* ===========================================================================
+ * Write the output buffer outbuf[0..outcnt-1] and update bytes_out.
+ * (used for the compressed data only)
+ */
+static void flush_outbuf(void)
+{
+	if (outcnt == 0)
+		return;
+
+	xwrite(ofd, (char *) outbuf, outcnt);
+	outcnt = 0;
+}
+
+
+/* ===========================================================================
  */
 /* put_8bit is used for the compressed output */
 #define put_8bit(c) \
@@ -284,6 +294,7 @@ static void put_32bit(ulg n)
 	outbuf[outcnt++] = (c); \
 }
 
+
 /* ===========================================================================
  * Clear input and output buffers
  */
@@ -296,28 +307,51 @@ static void clear_bufs(void)
 	isize = 0L;
 }
 
+
 /* ===========================================================================
  * Run a set of bytes through the crc shift register.  If s is a NULL
  * pointer, then initialize the crc shift register contents instead.
  * Return the current crc in either case.
  */
+static uint32_t crc = ~0;	/* shift register contents */
 static uint32_t updcrc(uch * s, unsigned n)
 {
-	static uint32_t crc = ~0;	/* shift register contents */
 	uint32_t c;		/* temporary variable */
 
 	if (s == NULL) {
 		c = ~0;
 	} else {
 		c = crc;
-		if (n)
-			do {
-				c = crc_32_tab[((int) c ^ (*s++)) & 0xff] ^ (c >> 8);
-			} while (--n);
+		while (n) {
+			c = crc_32_tab[(uch)(c ^ *s++)] ^ (c >> 8);
+			n--;
+		}
 	}
 	crc = c;
 	return c;
 }
+
+
+/* ===========================================================================
+ * Read a new buffer from the current input file, perform end-of-line
+ * translation, and update the crc and input file size.
+ * IN assertion: size >= 2 (for end-of-line translation)
+ */
+static unsigned file_read(void *buf, unsigned size)
+{
+	unsigned len;
+
+	Assert(insize == 0, "inbuf not empty");
+
+	len = safe_read(ifd, buf, size);
+	if (len == (unsigned)(-1) || len == 0)
+		return len;
+
+	updcrc(buf, len);
+	isize += len;
+	return len;
+}
+
 
 /* ===========================================================================
  * Initialize the bit string routines.
@@ -331,6 +365,7 @@ static void bi_init(int zipfile)
 	bits_sent = 0L;
 #endif
 }
+
 
 /* ===========================================================================
  * Send a value on a given number of bits.
@@ -413,16 +448,6 @@ static void copy_block(char *buf, unsigned len, int header)
 		put_8bit(*buf++);
 	}
 }
-
-/*      void lm_init (int pack_level, ush *flags)
- *          Initialize the "longest match" routines for a new file
- *
- *      ulg deflate (void)
- *          Processes a new input file and return its compressed length. Sets
- *          the compressed length, crc, deflate flags and internal file
- *          attributes.
- */
-
 
 /* ===========================================================================
  * Configuration parameters
@@ -517,7 +542,7 @@ static unsigned ins_h;	/* hash index of string to be inserted */
 /* Number of bits by which ins_h and del_h must be shifted at each
  * input step. It must be such that after MIN_MATCH steps, the oldest
  * byte no longer takes part in the hash key, that is:
- *   H_SHIFT * MIN_MATCH >= HASH_BITS
+ * H_SHIFT * MIN_MATCH >= HASH_BITS
  */
 
 static unsigned int prev_length;
@@ -664,8 +689,7 @@ static int longest_match(IPos cur_match)
 	uch *match;	/* matched string */
 	int len;	/* length of current match */
 	int best_len = prev_length;	/* best match length so far */
-	IPos limit =
-		strstart > (IPos) MAX_DIST ? strstart - (IPos) MAX_DIST : NIL;
+	IPos limit = strstart > (IPos) MAX_DIST ? strstart - (IPos) MAX_DIST : 0;
 	/* Stop when cur_match becomes <= limit. To simplify the code,
 	 * we prevent matches with the string of window index 0.
 	 */
@@ -739,8 +763,7 @@ static int longest_match(IPos cur_match)
 static void check_match(IPos start, IPos match, int length)
 {
 	/* check that the match is indeed a match */
-	if (memcmp((char *) window + match,
-			   (char *) window + start, length) != EQUAL) {
+	if (memcmp(window + match, window + start, length) != EQUAL) {
 		bb_error_msg(" start %d, match %d, length %d", start, match, length);
 		bb_error_msg("invalid match");
 	}
@@ -766,14 +789,13 @@ static void check_match(IPos start, IPos match, int length)
 static void fill_window(void)
 {
 	unsigned n, m;
-	unsigned more =
-		(unsigned) (window_size - (ulg) lookahead - (ulg) strstart);
+	unsigned more =	window_size - lookahead - strstart;
 	/* Amount of free space at the end of the window. */
 
 	/* If the window is almost full and there is insufficient lookahead,
 	 * move the upper half to the lower one to make room in the upper half.
 	 */
-	if (more == (unsigned) EOF) {
+	if (more == (unsigned) -1) {
 		/* Very unlikely, but possible on 16 bit machine if strstart == 0
 		 * and lookahead == 1 (input done one byte at time)
 		 */
@@ -784,7 +806,7 @@ static void fill_window(void)
 		 */
 		Assert(window_size == (ulg) 2 * WSIZE, "no sliding with BIG_MEM");
 
-		memcpy((char *) window, (char *) window + WSIZE, (unsigned) WSIZE);
+		memcpy(window, window + WSIZE, WSIZE);
 		match_start -= WSIZE;
 		strstart -= WSIZE;	/* we now have strstart >= MAX_DIST: */
 
@@ -819,13 +841,19 @@ static void fill_window(void)
  * IN assertion: strstart is set to the end of the current match.
  */
 #define FLUSH_BLOCK(eof) \
-   flush_block(block_start >= 0L ? (char*)&window[(unsigned)block_start] : \
-		(char*)NULL, (long)strstart - block_start, (eof))
+	flush_block(block_start >= 0L \
+		? (char*)&window[(unsigned)block_start] \
+		: (char*)NULL, \
+	(long)strstart - block_start, (eof))
 
 /* ===========================================================================
  * Same as above, but achieves better compression. We use a lazy
  * evaluation for matches: a match is finally adopted only if there is
  * no better match at the next window position.
+ *
+ * Processes a new input file and return its compressed length. Sets
+ * the compressed length, crc, deflate flags and internal file
+ * attributes.
  */
 static ulg deflate(void)
 {
@@ -929,6 +957,7 @@ static ulg deflate(void)
 
 	return FLUSH_BLOCK(1);	/* eof */
 }
+
 
 /* ======================================================================== */
 static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
@@ -2181,8 +2210,6 @@ static void set_file_type(void)
 	}
 }
 
-static uint32_t crc;			/* crc on uncompressed file data */
-
 /* ===========================================================================
  * Deflate in to out.
  * IN assertions: the input and output buffers are cleared.
@@ -2209,7 +2236,7 @@ static int zip(int in, int out)
 	put_32bit(time_stamp);
 
 	/* Write deflated file to zip file */
-	crc = 0;
+	crc = ~0;
 
 	bi_init(out);
 	ct_init(&attr, &method);
@@ -2218,46 +2245,12 @@ static int zip(int in, int out)
 	put_8bit((uch) deflate_flags);	/* extra flags */
 	put_8bit(3);	/* OS identifier = 3 (Unix) */
 
-	(void) deflate();
+	deflate();
 
 	/* Write the crc and uncompressed size */
-	put_32bit(crc);
+	put_32bit(~crc);
 	put_32bit(isize);
 
 	flush_outbuf();
 	return 0;
 }
-
-/* ===========================================================================
- * Read a new buffer from the current input file, perform end-of-line
- * translation, and update the crc and input file size.
- * IN assertion: size >= 2 (for end-of-line translation)
- */
-static unsigned file_read(void *buf, unsigned size)
-{
-	unsigned len;
-
-	Assert(insize == 0, "inbuf not empty");
-
-	len = read(ifd, buf, size);
-	if (len == (unsigned)(-1) || len == 0)
-		return len;
-
-	crc = ~updcrc((uch *) buf, len);
-	isize += len;
-	return len;
-}
-
-/* ===========================================================================
- * Write the output buffer outbuf[0..outcnt-1] and update bytes_out.
- * (used for the compressed data only)
- */
-static void flush_outbuf(void)
-{
-	if (outcnt == 0)
-		return;
-
-	xwrite(ofd, (char *) outbuf, outcnt);
-	outcnt = 0;
-}
-
