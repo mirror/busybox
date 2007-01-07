@@ -898,8 +898,8 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 {
 	char *file1 = ofile1;
 	char *file2 = ofile2;
-	FILE *f1;
-	FILE *f2;
+	FILE *f1 = stdin;
+	FILE *f2 = stdin;
 	int rval = D_SAME;
 	int i;
 
@@ -911,7 +911,6 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 	if (LONE_DASH(file1) && LONE_DASH(file2))
 		goto closem;
 
-	f1 = f2 = stdin;
 	if (flags & D_EMPTY1)
 		f1 = xfopen(bb_dev_null, "r");
 	else if (NOT_LONE_DASH(file1))
