@@ -61,12 +61,6 @@ aa:      85.1% -- replaced with aa.gz
 #  endif
 #endif
 
-#define	PACK_MAGIC     "\037\036"	/* Magic header for packed files */
-#define	GZIP_MAGIC     "\037\213"	/* Magic header for gzip files, 1F 8B */
-#define	OLD_GZIP_MAGIC "\037\236"	/* Magic header for gzip 0.5 = freeze 1.x */
-#define	LZH_MAGIC      "\037\240"	/* Magic header for SCO LZH Compress files */
-#define PKZIP_MAGIC    "\120\113\003\004"	/* Magic header for pkzip files */
-
 /* gzip flag byte */
 #define ASCII_FLAG   0x01	/* bit 0 set: file probably ascii text */
 #define CONTINUATION 0x02	/* bit 1 set: continuation of multi-part gzip file */
@@ -142,9 +136,9 @@ aa:      85.1% -- replaced with aa.gz
 #  define Assert(cond,msg) {if(!(cond)) bb_error_msg(msg);}
 #  define Trace(x) fprintf x
 #  define Tracev(x) {if (verbose) fprintf x ;}
-#  define Tracevv(x) {if (verbose>1) fprintf x ;}
+#  define Tracevv(x) {if (verbose > 1) fprintf x ;}
 #  define Tracec(c,x) {if (verbose && (c)) fprintf x ;}
-#  define Tracecv(c,x) {if (verbose>1 && (c)) fprintf x ;}
+#  define Tracecv(c,x) {if (verbose > 1 && (c)) fprintf x ;}
 #else
 #  define Assert(cond,msg)
 #  define Trace(x)
@@ -313,7 +307,7 @@ static void clear_bufs(void)
  * pointer, then initialize the crc shift register contents instead.
  * Return the current crc in either case.
  */
-static uint32_t crc = ~0;	/* shift register contents */
+static uint32_t crc;	/* shift register contents */
 static uint32_t updcrc(uch * s, unsigned n)
 {
 	uint32_t c;		/* temporary variable */
@@ -1414,23 +1408,25 @@ static void set_file_type(void);
 
 
 #ifndef DEBUG
+/* Send a code of the given tree. c and tree must not have side effects */
 #  define send_code(c, tree) send_bits(tree[c].Code, tree[c].Len)
-   /* Send a code of the given tree. c and tree must not have side effects */
-
 #else							/* DEBUG */
 #  define send_code(c, tree) \
-     { if (verbose>1) bb_error_msg("\ncd %3d ",(c)); \
-       send_bits(tree[c].Code, tree[c].Len); }
+{ \
+	if (verbose > 1) bb_error_msg("\ncd %3d ",(c)); \
+        send_bits(tree[c].Code, tree[c].Len); \
+}
 #endif
 
 #define d_code(dist) \
-   ((dist) < 256 ? dist_code[dist] : dist_code[256+((dist)>>7)])
+	((dist) < 256 ? dist_code[dist] : dist_code[256 + ((dist)>>7)])
 /* Mapping from a distance to a distance code. dist is the distance - 1 and
  * must not have side effects. dist_code[256] and dist_code[257] are never
  * used.
  */
 
 /* the arguments must not have side effects */
+
 
 /* ===========================================================================
  * Allocate the match buffer, initialize the various tables and save the
@@ -1513,12 +1509,13 @@ static void ct_init(ush * attr, int *methodp)
 	init_block();
 }
 
+
 /* ===========================================================================
  * Initialize a new block.
  */
 static void init_block(void)
 {
-	int n;				/* iterates over tree elements */
+	int n; /* iterates over tree elements */
 
 	/* Initialize the trees. */
 	for (n = 0; n < L_CODES; n++)
@@ -1535,28 +1532,22 @@ static void init_block(void)
 	flag_bit = 1;
 }
 
-#define SMALLEST 1
-/* Index within the heap array of least frequent node in the Huffman tree */
-
 
 /* ===========================================================================
  * Remove the smallest element from the heap and recreate the heap with
  * one less element. Updates heap and heap_len.
  */
+
+#define SMALLEST 1
+/* Index within the heap array of least frequent node in the Huffman tree */
+
 #define pqremove(tree, top) \
-{\
-    top = heap[SMALLEST]; \
-    heap[SMALLEST] = heap[heap_len--]; \
-    pqdownheap(tree, SMALLEST); \
+{ \
+	top = heap[SMALLEST]; \
+	heap[SMALLEST] = heap[heap_len--]; \
+	pqdownheap(tree, SMALLEST); \
 }
 
-/* ===========================================================================
- * Compares to subtrees, using the tree depth as tie breaker when
- * the subtrees have equal frequency. This minimizes the worst case length.
- */
-#define smaller(tree, n, m) \
-   (tree[n].Freq < tree[m].Freq || \
-   (tree[n].Freq == tree[m].Freq && depth[n] <= depth[m]))
 
 /* ===========================================================================
  * Restore the heap property by moving down the tree starting at node k,
@@ -1564,6 +1555,14 @@ static void init_block(void)
  * when the heap property is re-established (each father smaller than its
  * two sons).
  */
+
+/* Compares to subtrees, using the tree depth as tie breaker when
+ * the subtrees have equal frequency. This minimizes the worst case length.
+ */
+#define smaller(tree, n, m) \
+	(tree[n].Freq < tree[m].Freq \
+	|| (tree[n].Freq == tree[m].Freq && depth[n] <= depth[m]))
+
 static void pqdownheap(ct_data * tree, int k)
 {
 	int v = heap[k];
@@ -1587,6 +1586,7 @@ static void pqdownheap(ct_data * tree, int k)
 	}
 	heap[k] = v;
 }
+
 
 /* ===========================================================================
  * Compute the optimal bit lengths for a tree and update the total bit length
@@ -1624,8 +1624,10 @@ static void gen_bitlen(tree_desc * desc)
 	for (h = heap_max + 1; h < HEAP_SIZE; h++) {
 		n = heap[h];
 		bits = tree[tree[n].Dad].Len + 1;
-		if (bits > max_length)
-			bits = max_length, overflow++;
+		if (bits > max_length) {
+			bits = max_length;
+			overflow++;
+		}
 		tree[n].Len = (ush) bits;
 		/* We overwrite tree[n].Dad which is no longer needed */
 
@@ -2151,7 +2153,7 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 	unsigned code;		/* the code to send */
 	int extra;			/* number of extra bits to send */
 
-	if (last_lit != 0)
+	if (last_lit != 0) {
 		do {
 			if ((lx & 7) == 0)
 				flag = flag_buf[fx++];
@@ -2182,6 +2184,7 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 			}			/* literal or match pair ? */
 			flag >>= 1;
 		} while (lx < last_lit);
+	}
 
 	send_code(END_BLOCK, ltree);
 }
@@ -2204,7 +2207,7 @@ static void set_file_type(void)
 		ascii_freq += dyn_ltree[n++].Freq;
 	while (n < LITERALS)
 		bin_freq += dyn_ltree[n++].Freq;
-	*file_type = bin_freq > (ascii_freq >> 2) ? BINARY : ASCII;
+	*file_type = (bin_freq > (ascii_freq >> 2)) ? BINARY : ASCII;
 	if (*file_type == BINARY && translate_eol) {
 		bb_error_msg("-l used on binary file");
 	}
@@ -2228,8 +2231,9 @@ static int zip(int in, int out)
 	/* Write the header to the gzip file. See algorithm.doc for the format */
 
 	method = DEFLATED;
-	put_header_byte(GZIP_MAGIC[0]);	/* magic header */
-	put_header_byte(GZIP_MAGIC[1]);
+	put_header_byte(0x1f);	/* magic header for gzip files, 1F 8B */
+	put_header_byte(0x8b);
+
 	put_header_byte(DEFLATED);	/* compression method */
 
 	put_header_byte(my_flags);	/* general flags */
