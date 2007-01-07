@@ -1476,7 +1476,7 @@ static void ct_init(ush * attr, int *methodp)
 	for (code = 0; code < 16; code++) {
 		base_dist[code] = dist;
 		for (n = 0; n < (1 << extra_dbits[code]); n++) {
-			dist_code[dist++] = (uch) code;
+			dist_code[dist++] = code;
 		}
 	}
 	Assert(dist == 256, "ct_init: dist != 256");
@@ -1492,15 +1492,24 @@ static void ct_init(ush * attr, int *methodp)
 	/* Construct the codes of the static literal tree */
 	for (bits = 0; bits <= MAX_BITS; bits++)
 		bl_count[bits] = 0;
+
 	n = 0;
-	while (n <= 143)
-		static_ltree[n++].Len = 8, bl_count[8]++;
-	while (n <= 255)
-		static_ltree[n++].Len = 9, bl_count[9]++;
-	while (n <= 279)
-		static_ltree[n++].Len = 7, bl_count[7]++;
-	while (n <= 287)
-		static_ltree[n++].Len = 8, bl_count[8]++;
+	while (n <= 143) {
+		static_ltree[n++].Len = 8;
+		bl_count[8]++;
+	}
+	while (n <= 255) {
+		static_ltree[n++].Len = 9;
+		bl_count[9]++;
+	}
+	while (n <= 279) {
+		static_ltree[n++].Len = 7;
+		bl_count[7]++;
+	}
+	while (n <= 287) {
+		static_ltree[n++].Len = 8;
+		bl_count[8]++;
+	}
 	/* Codes 286 and 287 do not exist, but we must include them in the
 	 * tree construction to get a canonical Huffman tree (longest code
 	 * all ones)
@@ -1684,10 +1693,8 @@ static void gen_bitlen(tree_desc * desc)
 			if (m > max_code)
 				continue;
 			if (tree[m].Len != (unsigned) bits) {
-				Trace((stderr, "code %d bits %d->%d\n", m, tree[m].Len,
-					   bits));
-				opt_len +=
-					((long) bits - (long) tree[m].Len) * (long) tree[m].Freq;
+				Trace((stderr, "code %d bits %d->%d\n", m, tree[m].Len, bits));
+				opt_len += ((long) bits - (long) tree[m].Len) * (long) tree[m].Freq;
 				tree[m].Len = (ush) bits;
 			}
 			n--;
@@ -1846,8 +1853,10 @@ static void scan_tree(ct_data * tree, int max_code)
 	int max_count = 7;	/* max repeat count */
 	int min_count = 4;	/* min repeat count */
 
-	if (nextlen == 0)
-		max_count = 138, min_count = 3;
+	if (nextlen == 0) {
+		max_count = 138;
+		min_count = 3;
+	}
 	tree[max_code + 1].Len = (ush) 0xffff;	/* guard */
 
 	for (n = 0; n <= max_code; n++) {
@@ -1869,11 +1878,14 @@ static void scan_tree(ct_data * tree, int max_code)
 		count = 0;
 		prevlen = curlen;
 		if (nextlen == 0) {
-			max_count = 138, min_count = 3;
+			max_count = 138;
+			min_count = 3;
 		} else if (curlen == nextlen) {
-			max_count = 6, min_count = 3;
+			max_count = 6;
+			min_count = 3;
 		} else {
-			max_count = 7, min_count = 4;
+			max_count = 7;
+			min_count = 4;
 		}
 	}
 }
@@ -1904,8 +1916,7 @@ static void send_tree(ct_data * tree, int max_code)
 		} else if (count < min_count) {
 			do {
 				send_code(curlen, bl_tree);
-			} while (--count != 0);
-
+			} while (--count);
 		} else if (curlen != 0) {
 			if (curlen != prevlen) {
 				send_code(curlen, bl_tree);
@@ -1914,11 +1925,9 @@ static void send_tree(ct_data * tree, int max_code)
 			Assert(count >= 3 && count <= 6, " 3_6?");
 			send_code(REP_3_6, bl_tree);
 			send_bits(count - 3, 2);
-
 		} else if (count <= 10) {
 			send_code(REPZ_3_10, bl_tree);
 			send_bits(count - 3, 3);
-
 		} else {
 			send_code(REPZ_11_138, bl_tree);
 			send_bits(count - 11, 7);
@@ -1926,11 +1935,14 @@ static void send_tree(ct_data * tree, int max_code)
 		count = 0;
 		prevlen = curlen;
 		if (nextlen == 0) {
-			max_count = 138, min_count = 3;
+			max_count = 138;
+			min_count = 3;
 		} else if (curlen == nextlen) {
-			max_count = 6, min_count = 3;
+			max_count = 6;
+			min_count = 3;
 		} else {
-			max_count = 7, min_count = 4;
+			max_count = 7;
+			min_count = 4;
 		}
 	}
 }
@@ -2046,7 +2058,7 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
 	 */
 	if (stored_len <= opt_lenb && eof && compressed_len == 0L && seekable()) {
 		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
-		if (buf == (char *) 0)
+		if (buf == NULL)
 			bb_error_msg("block vanished");
 
 		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
@@ -2104,14 +2116,15 @@ static int ct_tally(int dist, int lc)
 	} else {
 		/* Here, lc is the match length - MIN_MATCH */
 		dist--;			/* dist = match distance - 1 */
-		Assert((ush) dist < (ush) MAX_DIST &&
-			   (ush) lc <= (ush) (MAX_MATCH - MIN_MATCH) &&
-			   (ush) d_code(dist) < (ush) D_CODES, "ct_tally: bad match");
+		Assert((ush) dist < (ush) MAX_DIST
+		 && (ush) lc <= (ush) (MAX_MATCH - MIN_MATCH)
+		 && (ush) d_code(dist) < (ush) D_CODES, "ct_tally: bad match"
+		);
 
 		dyn_ltree[length_code[lc] + LITERALS + 1].Freq++;
 		dyn_dtree[d_code(dist)].Freq++;
 
-		d_buf[last_dist++] = (ush) dist;
+		d_buf[last_dist++] = dist;
 		flags |= flag_bit;
 	}
 	flag_bit <<= 1;
@@ -2124,13 +2137,12 @@ static int ct_tally(int dist, int lc)
 	/* Try to guess if it is profitable to stop the current block here */
 	if ((last_lit & 0xfff) == 0) {
 		/* Compute an upper bound for the compressed length */
-		ulg out_length = (ulg) last_lit * 8L;
+		ulg out_length = last_lit * 8L;
 		ulg in_length = (ulg) strstart - block_start;
 		int dcode;
 
 		for (dcode = 0; dcode < D_CODES; dcode++) {
-			out_length +=
-				(ulg) dyn_dtree[dcode].Freq * (5L + extra_dbits[dcode]);
+			out_length += dyn_dtree[dcode].Freq * (5L + extra_dbits[dcode]);
 		}
 		out_length >>= 3;
 		Trace((stderr,
