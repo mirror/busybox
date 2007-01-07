@@ -25,44 +25,14 @@ aa:      85.1% -- replaced with aa.gz
 
 #define SMALL_MEM
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <utime.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <time.h>
+//#include <dirent.h>
 #include "busybox.h"
-
-typedef unsigned char uch;
-typedef unsigned short ush;
-typedef unsigned long ulg;
-
-/* Return codes from gzip */
-#define OK      0
-#define ERROR   1
-#define WARNING 2
 
 /* Compression methods (see algorithm.doc) */
 /* Only STORED and DEFLATED are supported by this BusyBox module */
 #define STORED      0
 /* methods 4 to 7 reserved */
 #define DEFLATED    8
-
-/* To save memory for 16 bit systems, some arrays are overlaid between
- * the various modules:
- * deflate:  prev+head   window      d_buf  l_buf  outbuf
- * unlzw:    tab_prefix  tab_suffix  stack  inbuf  outbuf
- * For compression, input is done in window[]. For decompression, output
- * is done in window except for unlzw.
- */
 
 #ifndef	INBUFSIZ
 #  ifdef SMALL_MEM
@@ -71,6 +41,7 @@ typedef unsigned long ulg;
 #    define INBUFSIZ  0x8000	/* input buffer size */
 #  endif
 #endif
+
 #define INBUF_EXTRA  64	/* required by unlzw() */
 
 #ifndef	OUTBUFSIZ
@@ -90,20 +61,7 @@ typedef unsigned long ulg;
 #  endif
 #endif
 
-#  define DECLARE(type, array, size)  static type * array
-#  define ALLOC(type, array, size) { \
-      array = xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type)); \
-   }
-#  define FREE(array) {free(array), array=NULL;}
-
-#define tab_suffix window
-#define tab_prefix prev	/* hash link (see deflate.c) */
-#define head (prev+WSIZE)	/* hash head (see deflate.c) */
-
-static long isize;	/* number of input bytes */
-
 #define NO_FILE  (-1)	/* in memory compression */
-
 
 #define	PACK_MAGIC     "\037\036"	/* Magic header for packed files */
 #define	GZIP_MAGIC     "\037\213"	/* Magic header for gzip files, 1F 8B */
@@ -142,36 +100,65 @@ static long isize;	/* number of input bytes */
  * distances are limited to MAX_DIST instead of WSIZE.
  */
 
-/* put_byte is used for the compressed output */
-#define put_byte(c) {outbuf[outcnt++]=(uch)(c); if (outcnt==OUTBUFSIZ)\
-   flush_outbuf();}
+#ifndef MAX_PATH_LEN
+#  define MAX_PATH_LEN   1024	/* max pathname length */
+#endif
 
 #define seekable()    0	/* force sequential output */
 #define translate_eol 0	/* no option -a yet */
 
+#ifndef BITS
+#  define BITS 16
+#endif
+#define INIT_BITS 9		/* Initial number of bits per code */
+
+#define BIT_MASK    0x1f	/* Mask for 'number of compression bits' */
+/* Mask 0x20 is reserved to mean a fourth header byte, and 0x40 is free.
+ * It's a pity that old uncompress does not check bit 0x20. That makes
+ * extension of the format actually undesirable because old compress
+ * would just crash on the new format instead of giving a meaningful
+ * error message. It does check the number of bits, but it's more
+ * helpful to say "unsupported format, get a new version" than
+ * "can only handle 16 bits".
+ */
+
+#ifdef MAX_EXT_CHARS
+#  define MAX_SUFFIX  MAX_EXT_CHARS
+#else
+#  define MAX_SUFFIX  30
+#endif
+
+
+#define DECLARE(type, array, size)\
+	static type * array
+#define ALLOC(type, array, size) { \
+	array = xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type)); \
+}
+#define FREE(array) { \
+	free(array); \
+	array = NULL; \
+}
+
 /* Diagnostic functions */
 #ifdef DEBUG
-#  define Assert(cond,msg) {if(!(cond)) bb_error_msg(msg);}
-#  define Trace(x) fprintf x
-#  define Tracev(x) {if (verbose) fprintf x ;}
-#  define Tracevv(x) {if (verbose>1) fprintf x ;}
-#  define Tracec(c,x) {if (verbose && (c)) fprintf x ;}
-#  define Tracecv(c,x) {if (verbose>1 && (c)) fprintf x ;}
+# define Assert(cond,msg) {if(!(cond)) bb_error_msg(msg);}
+# define Trace(x) fprintf x
+# define Tracev(x) {if (verbose) fprintf x ;}
+# define Tracevv(x) {if (verbose>1) fprintf x ;}
+# define Tracec(c,x) {if (verbose && (c)) fprintf x ;}
+# define Tracecv(c,x) {if (verbose>1 && (c)) fprintf x ;}
 #else
-#  define Assert(cond,msg)
-#  define Trace(x)
-#  define Tracev(x)
-#  define Tracevv(x)
-#  define Tracec(c,x)
-#  define Tracecv(c,x)
+# define Assert(cond,msg)
+# define Trace(x)
+# define Tracev(x)
+# define Tracevv(x)
+# define Tracec(c,x)
+# define Tracecv(c,x)
 #endif
 
-#define WARN(msg) {if (!quiet) fprintf msg ; \
-		   if (exit_code == OK) exit_code = WARNING;}
-
-#ifndef MAX_PATH_LEN
-#  define MAX_PATH_LEN   1024	/* max pathname length */
-#endif
+typedef unsigned char uch;
+typedef unsigned short ush;
+typedef unsigned long ulg;
 
 
 	/* from zip.c: */
@@ -195,66 +182,22 @@ static void bi_windup(void);
 static void copy_block(char *buf, unsigned len, int header);
 static int (*read_buf) (char *buf, unsigned size);
 
-	/* from util.c: */
 static void flush_outbuf(void);
 
-/* lzw.h -- define the lzw functions.
- * Copyright (C) 1992-1993 Jean-loup Gailly.
- * This is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, see the file COPYING.
- */
+/* global buffers */
 
-#ifndef BITS
-#  define BITS 16
-#endif
-#define INIT_BITS 9		/* Initial number of bits per code */
-
-#define BIT_MASK    0x1f	/* Mask for 'number of compression bits' */
-/* Mask 0x20 is reserved to mean a fourth header byte, and 0x40 is free.
- * It's a pity that old uncompress does not check bit 0x20. That makes
- * extension of the format actually undesirable because old compress
- * would just crash on the new format instead of giving a meaningful
- * error message. It does check the number of bits, but it's more
- * helpful to say "unsupported format, get a new version" than
- * "can only handle 16 bits".
- */
-
-/* tailor.h -- target dependent definitions
- * Copyright (C) 1992-1993 Jean-loup Gailly.
- * This is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, see the file COPYING.
- */
-
-/* The target dependent definitions should be defined here only.
- * The target dependent functions should be defined in tailor.c.
+/* To save memory for 16 bit systems, some arrays are overlaid between
+ * the various modules:
+ * deflate:  prev+head   window      d_buf  l_buf  outbuf
+ * unlzw:    tab_prefix  tab_suffix  stack  inbuf  outbuf
+ * For compression, input is done in window[]. For decompression, output
+ * is done in window except for unlzw.
  */
 
 
-	/* Common defaults */
-
-#ifndef OS_CODE
-#  define OS_CODE  0x03	/* assume Unix */
-#endif
-
-#ifndef PATH_SEP
-#  define PATH_SEP '/'
-#endif
-
-#ifndef OPTIONS_VAR
-#  define OPTIONS_VAR "GZIP"
-#endif
-
-#ifndef Z_SUFFIX
-#  define Z_SUFFIX ".gz"
-#endif
-
-#ifdef MAX_EXT_CHARS
-#  define MAX_SUFFIX  MAX_EXT_CHARS
-#else
-#  define MAX_SUFFIX  30
-#endif
-
-		/* global buffers */
+#define tab_suffix window
+#define tab_prefix prev	/* hash link (see deflate.c) */
+#define head (prev+WSIZE) /* hash head (see deflate.c) */
 
 DECLARE(uch, inbuf, INBUFSIZ + INBUF_EXTRA);
 DECLARE(uch, outbuf, OUTBUFSIZ + OUTBUF_EXTRA);
@@ -262,10 +205,12 @@ DECLARE(ush, d_buf, DIST_BUFSIZE);
 DECLARE(uch, window, 2L * WSIZE);
 DECLARE(ush, tab_prefix, 1L << BITS);
 
-static int foreground;	/* set if program run in foreground */
+static long isize;		/* number of input bytes */
+
+static int foreground;		/* set if program run in foreground */
 static int method = DEFLATED;	/* compression method */
-static int exit_code = OK;	/* program exit code */
-static long time_stamp;	/* original time stamp (modification time) */
+static int exit_code;		/* program exit code */
+static long time_stamp;		/* original time stamp (modification time) */
 static char z_suffix[MAX_SUFFIX + 1];	/* default suffix (can be set with --suffix) */
 
 static int ifd;			/* input file descriptor */
@@ -277,24 +222,67 @@ static unsigned outcnt;	/* bytes in output buffer */
 
 static uint32_t *crc_32_tab;
 
+
+/* ===========================================================================
+ * Local data used by the "bit string" routines.
+ */
+
+static int zfile;	/* output gzip file */
+
+static unsigned short bi_buf;
+
+/* Output buffer. bits are inserted starting at the bottom (least significant
+ * bits).
+ */
+
+#undef BUF_SIZE
+#define BUF_SIZE (8 * sizeof(bi_buf))
+/* Number of bits used within bi_buf. (bi_buf might be implemented on
+ * more than 16 bits on some systems.)
+ */
+
+static int bi_valid;
+
+/* Current input function. Set to mem_read for in-memory compression */
+
+#ifdef DEBUG
+static ulg bits_sent;			/* bit length of the compressed data */
+#endif
+
+
+/* ===========================================================================
+ */
+/* put_8bit is used for the compressed output */
+#define put_8bit(c) \
+{ \
+	outbuf[outcnt++] = (c); \
+	if (outcnt == OUTBUFSIZ) flush_outbuf(); \
+}
+
 /* Output a 16 bit value, lsb first */
-static void put_short(ush w)
+static void put_16bit(ush w)
 {
 	if (outcnt < OUTBUFSIZ - 2) {
-		outbuf[outcnt++] = (uch) ((w) & 0xff);
-		outbuf[outcnt++] = (uch) ((ush) (w) >> 8);
+		outbuf[outcnt++] = w;
+		outbuf[outcnt++] = w >> 8;
 	} else {
-		put_byte((uch) ((w) & 0xff));
-		put_byte((uch) ((ush) (w) >> 8));
+		put_8bit(w);
+		put_8bit(w >> 8);
 	}
 }
 
-/* ========================================================================
- * Signal and error handler.
- */
-static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
+static void put_32bit(ulg n)
 {
-	exit(ERROR);
+	put_16bit(n);
+	put_16bit(n >> 16);
+}
+
+/* put_header_byte is used for the compressed output
+ * - for the initial 4 bytes that can't overflow the buffer.
+ */
+#define put_header_byte(c) \
+{ \
+	outbuf[outcnt++] = (c); \
 }
 
 /* ===========================================================================
@@ -318,7 +306,8 @@ static void write_buf(int fd, void *buf, unsigned cnt)
 	unsigned n;
 
 	while ((n = write(fd, buf, cnt)) != cnt) {
-		if (n == (unsigned) (-1)) bb_error_msg_and_die(bb_msg_write_error);
+		if (n == (unsigned) (-1))
+			bb_error_msg_and_die(bb_msg_write_error);
 		cnt -= n;
 		buf = (void *) ((char *) buf + n);
 	}
@@ -401,31 +390,6 @@ static uint32_t updcrc(uch * s, unsigned n)
  */
 
 /* ===========================================================================
- * Local data used by the "bit string" routines.
- */
-
-static int zfile;	/* output gzip file */
-
-static unsigned short bi_buf;
-
-/* Output buffer. bits are inserted starting at the bottom (least significant
- * bits).
- */
-
-#define Buf_size (8 * 2*sizeof(char))
-/* Number of bits used within bi_buf. (bi_buf might be implemented on
- * more than 16 bits on some systems.)
- */
-
-static int bi_valid;
-
-/* Current input function. Set to mem_read for in-memory compression */
-
-#ifdef DEBUG
-ulg bits_sent;			/* bit length of the compressed data */
-#endif
-
-/* ===========================================================================
  * Initialize the bit string routines.
  */
 static void bi_init(int zipfile)
@@ -460,11 +424,11 @@ static void send_bits(int value, int length)
 	 * (16 - bi_valid) bits from value, leaving (width - (16-bi_valid))
 	 * unused bits in value.
 	 */
-	if (bi_valid > (int) Buf_size - length) {
+	if (bi_valid > (int) BUF_SIZE - length) {
 		bi_buf |= (value << bi_valid);
-		put_short(bi_buf);
-		bi_buf = (ush) value >> (Buf_size - bi_valid);
-		bi_valid += length - Buf_size;
+		put_16bit(bi_buf);
+		bi_buf = (ush) value >> (BUF_SIZE - bi_valid);
+		bi_valid += length - BUF_SIZE;
 	} else {
 		bi_buf |= value << bi_valid;
 		bi_valid += length;
@@ -493,9 +457,9 @@ static unsigned bi_reverse(unsigned code, int len)
 static void bi_windup(void)
 {
 	if (bi_valid > 8) {
-		put_short(bi_buf);
+		put_16bit(bi_buf);
 	} else if (bi_valid > 0) {
-		put_byte(bi_buf);
+		put_8bit(bi_buf);
 	}
 	bi_buf = 0;
 	bi_valid = 0;
@@ -513,8 +477,8 @@ static void copy_block(char *buf, unsigned len, int header)
 	bi_windup();		/* align on byte boundary */
 
 	if (header) {
-		put_short((ush) len);
-		put_short((ush) ~ len);
+		put_16bit((ush) len);
+		put_16bit((ush) ~ len);
 #ifdef DEBUG
 		bits_sent += 2 * 16;
 #endif
@@ -523,7 +487,7 @@ static void copy_block(char *buf, unsigned len, int header)
 	bits_sent += (ulg) len << 3;
 #endif
 	while (len--) {
-		put_byte(*buf++);
+		put_8bit(*buf++);
 	}
 }
 
@@ -1039,8 +1003,7 @@ static ulg deflate(void)
 
 			check_match(strstart - 1, prev_match, prev_length);
 
-			flush =
-				ct_tally(strstart - 1 - prev_match, prev_length - MIN_MATCH);
+			flush = ct_tally(strstart - 1 - prev_match, prev_length - MIN_MATCH);
 
 			/* Insert in hash table all strings up to the end of the match.
 			 * strstart-1 and strstart are already inserted.
@@ -1122,6 +1085,11 @@ static ulg deflate(void)
 typedef struct dirent dir_type;
 
 /* ======================================================================== */
+static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
+{
+	exit(1);
+}
+
 int gzip_main(int argc, char **argv)
 {
 	enum {
@@ -1174,7 +1142,7 @@ int gzip_main(int argc, char **argv)
 	}
 #endif
 
-	strncpy(z_suffix, Z_SUFFIX, sizeof(z_suffix) - 1);
+	strncpy(z_suffix, ".gz", sizeof(z_suffix) - 1);
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	ALLOC(uch, inbuf, INBUFSIZ + INBUF_EXTRA);
@@ -1244,7 +1212,7 @@ int gzip_main(int argc, char **argv)
 				close(outFileNum);
 
 				/* Delete the original file */
-				if (result == OK)
+				if (result == 0)
 					delFileName = argv[i];
 				else
 					delFileName = path;
@@ -2375,17 +2343,6 @@ static void set_file_type(void)
 
 static uint32_t crc;			/* crc on uncompressed file data */
 
-static void put_long(ulg n)
-{
-	put_short((n) & 0xffff);
-	put_short(((ulg) (n)) >> 16);
-}
-
-/* put_header_byte is used for the compressed output
- * - for the initial 4 bytes that can't overflow the buffer.
- */
-#define put_header_byte(c) {outbuf[outcnt++]=(uch)(c);}
-
 /* ===========================================================================
  * Deflate in to out.
  * IN assertions: the input and output buffers are cleared.
@@ -2409,7 +2366,7 @@ static int zip(int in, int out)
 	put_header_byte(DEFLATED);	/* compression method */
 
 	put_header_byte(my_flags);	/* general flags */
-	put_long(time_stamp);
+	put_32bit(time_stamp);
 
 	/* Write deflated file to zip file */
 	crc = updcrc(0, 0);
@@ -2418,17 +2375,17 @@ static int zip(int in, int out)
 	ct_init(&attr, &method);
 	lm_init(&deflate_flags);
 
-	put_byte((uch) deflate_flags);	/* extra flags */
-	put_byte(OS_CODE);	/* OS identifier */
+	put_8bit((uch) deflate_flags);	/* extra flags */
+	put_8bit(3);	/* OS identifier = 3 (Unix) */
 
 	(void) deflate();
 
 	/* Write the crc and uncompressed size */
-	put_long(crc);
-	put_long(isize);
+	put_32bit(crc);
+	put_32bit(isize);
 
 	flush_outbuf();
-	return OK;
+	return 0;
 }
 
 
