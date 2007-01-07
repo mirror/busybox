@@ -616,9 +616,11 @@ static void copy_block(char *buf, unsigned len, int header)
  *    (except for the last MIN_MATCH-1 bytes of the input file).
  */
 #define INSERT_STRING(s, match_head) \
-   (UPDATE_HASH(ins_h, window[(s) + MIN_MATCH-1]), \
-    prev[(s) & WMASK] = match_head = head[ins_h], \
-    head[ins_h] = (s))
+{ \
+	UPDATE_HASH(ins_h, window[(s) + MIN_MATCH-1]); \
+	prev[(s) & WMASK] = match_head = head[ins_h]; \
+	head[ins_h] = (s); \
+}
 
 /* ===========================================================================
  * Initialize the "longest match" routines for a new file
@@ -898,9 +900,7 @@ static ulg deflate(void)
 		 * match is not better, output the previous match:
 		 */
 		if (prev_length >= MIN_MATCH && match_length <= prev_length) {
-
 			check_match(strstart - 1, prev_match, prev_length);
-
 			flush = ct_tally(strstart - 1 - prev_match, prev_length - MIN_MATCH);
 
 			/* Insert in hash table all strings up to the end of the match.
