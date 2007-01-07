@@ -311,11 +311,6 @@ static void check_match(IPos start, IPos match, int length);
 #endif
 
 
-
-/* from zip.c: */
-static int zip(int in, int out);
-static unsigned file_read(void *buf, unsigned size);
-
 /* from deflate.c */
 static void lm_init(ush * flags);
 static ulg deflate(void);
@@ -605,22 +600,8 @@ static void copy_block(char *buf, unsigned len, int header)
  *    input characters, so that a running hash key can be computed from the
  *    previous key instead of complete recalculation each time.
  */
-#define UPDATE_HASH(h,c) (h = (((h)<<H_SHIFT) ^ (c)) & HASH_MASK)
+#define UPDATE_HASH(h, c) (h = (((h)<<H_SHIFT) ^ (c)) & HASH_MASK)
 
-/* ===========================================================================
- * Insert string s in the dictionary and set match_head to the previous head
- * of the hash chain (the most recent string with same hash key). Return
- * the previous length of the hash chain.
- * IN  assertion: all calls to to INSERT_STRING are made with consecutive
- *    input characters and the first MIN_MATCH bytes of s are valid
- *    (except for the last MIN_MATCH-1 bytes of the input file).
- */
-#define INSERT_STRING(s, match_head) \
-{ \
-	UPDATE_HASH(ins_h, window[(s) + MIN_MATCH-1]); \
-	prev[(s) & WMASK] = match_head = head[ins_h]; \
-	head[ins_h] = (s); \
-}
 
 /* ===========================================================================
  * Initialize the "longest match" routines for a new file
@@ -834,9 +815,17 @@ static void fill_window(void)
 
 
 /* ===========================================================================
- * Flush the current block, with given end-of-file flag.
- * IN assertion: strstart is set to the end of the current match.
+ * Same as above, but achieves better compression. We use a lazy
+ * evaluation for matches: a match is finally adopted only if there is
+ * no better match at the next window position.
+ *
+ * Processes a new input file and return its compressed length. Sets
+ * the compressed length, crc, deflate flags and internal file
+ * attributes.
  */
+
+/* Flush the current block, with given end-of-file flag.
+ * IN assertion: strstart is set to the end of the current match. */
 #define FLUSH_BLOCK(eof) \
 	flush_block( \
 		block_start >= 0L \
@@ -846,16 +835,19 @@ static void fill_window(void)
 		(eof) \
 	)
 
+/* Insert string s in the dictionary and set match_head to the previous head
+ * of the hash chain (the most recent string with same hash key). Return
+ * the previous length of the hash chain.
+ * IN  assertion: all calls to to INSERT_STRING are made with consecutive
+ *    input characters and the first MIN_MATCH bytes of s are valid
+ *    (except for the last MIN_MATCH-1 bytes of the input file). */
+#define INSERT_STRING(s, match_head) \
+{ \
+	UPDATE_HASH(ins_h, window[(s) + MIN_MATCH-1]); \
+	prev[(s) & WMASK] = match_head = head[ins_h]; \
+	head[ins_h] = (s); \
+}
 
-/* ===========================================================================
- * Same as above, but achieves better compression. We use a lazy
- * evaluation for matches: a match is finally adopted only if there is
- * no better match at the next window position.
- *
- * Processes a new input file and return its compressed length. Sets
- * the compressed length, crc, deflate flags and internal file
- * attributes.
- */
 static ulg deflate(void)
 {
 	IPos hash_head;		/* head of hash chain */
@@ -959,152 +951,6 @@ static ulg deflate(void)
 
 	return FLUSH_BLOCK(1);	/* eof */
 }
-
-
-/* ======================================================================== */
-static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
-{
-	exit(1);
-}
-
-int gzip_main(int argc, char **argv)
-{
-	enum {
-		OPT_tostdout = 0x1,
-		OPT_force = 0x2,
-	};
-
-	unsigned opt;
-	int result;
-	int inFileNum;
-	int outFileNum;
-	struct stat statBuf;
-	char *delFileName;
-
-	opt = getopt32(argc, argv, "cf123456789qv" USE_GUNZIP("d"));
-	//if (opt & 0x1) // -c
-	//if (opt & 0x2) // -f
-	/* Ignore 1-9 (compression level) options */
-	//if (opt & 0x4) // -1
-	//if (opt & 0x8) // -2
-	//if (opt & 0x10) // -3
-	//if (opt & 0x20) // -4
-	//if (opt & 0x40) // -5
-	//if (opt & 0x80) // -6
-	//if (opt & 0x100) // -7
-	//if (opt & 0x200) // -8
-	//if (opt & 0x400) // -9
-	//if (opt & 0x800) // -q
-	//if (opt & 0x1000) // -v
-#if ENABLE_GUNZIP /* gunzip_main may not be visible... */
-	if (opt & 0x2000) { // -d
-		/* FIXME: getopt32 should not depend on optind */
-		optind = 1;
-		return gunzip_main(argc, argv);
-	}
-#endif
-
-	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
-	if (foreground) {
-		(void) signal(SIGINT, abort_gzip);
-	}
-#ifdef SIGTERM
-	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGTERM, abort_gzip);
-	}
-#endif
-#ifdef SIGHUP
-	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
-		(void) signal(SIGHUP, abort_gzip);
-	}
-#endif
-
-	strncpy(z_suffix, ".gz", sizeof(z_suffix) - 1);
-
-	/* Allocate all global buffers (for DYN_ALLOC option) */
-	ALLOC(uch, inbuf, INBUFSIZ + INBUF_EXTRA);
-	ALLOC(uch, outbuf, OUTBUFSIZ + OUTBUF_EXTRA);
-	ALLOC(ush, d_buf, DIST_BUFSIZE);
-	ALLOC(uch, window, 2L * WSIZE);
-	ALLOC(ush, tab_prefix, 1L << BITS);
-
-	/* Initialise the CRC32 table */
-	crc_32_tab = crc32_filltable(0);
-
-	clear_bufs();
-
-	if (optind == argc) {
-		time_stamp = 0;
-		zip(STDIN_FILENO, STDOUT_FILENO);
-	} else {
-		int i;
-
-		for (i = optind; i < argc; i++) {
-			char *path = NULL;
-
-			clear_bufs();
-			if (LONE_DASH(argv[i])) {
-				time_stamp = 0;
-				inFileNum = STDIN_FILENO;
-				outFileNum = STDOUT_FILENO;
-			} else {
-				inFileNum = xopen(argv[i], O_RDONLY);
-				if (fstat(inFileNum, &statBuf) < 0)
-					bb_perror_msg_and_die("%s", argv[i]);
-				time_stamp = statBuf.st_ctime;
-
-				if (!(opt & OPT_tostdout)) {
-					path = xasprintf("%s.gz", argv[i]);
-
-					/* Open output file */
-#if defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1 && defined(O_NOFOLLOW)
-					outFileNum =
-						open(path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW);
-#else
-					outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL);
-#endif
-					if (outFileNum < 0) {
-						bb_perror_msg("%s", path);
-						free(path);
-						continue;
-					}
-
-					/* Set permissions on the file */
-					fchmod(outFileNum, statBuf.st_mode);
-				} else
-					outFileNum = STDOUT_FILENO;
-			}
-
-			if (path == NULL && isatty(outFileNum) && !(opt & OPT_force)) {
-				bb_error_msg
-					("compressed data not written to a terminal. Use -f to force compression.");
-				free(path);
-				continue;
-			}
-
-			result = zip(inFileNum, outFileNum);
-
-			if (path != NULL) {
-				close(inFileNum);
-				close(outFileNum);
-
-				/* Delete the original file */
-				if (result == 0)
-					delFileName = argv[i];
-				else
-					delFileName = path;
-
-				if (unlink(delFileName) < 0)
-					bb_perror_msg("%s", delFileName);
-			}
-
-			free(path);
-		}
-	}
-
-	return exit_code;
-}
-
 /* trees.c -- output deflated data using Huffman coding
  * Copyright (C) 1992-1993 Jean-loup Gailly
  * This is free software; you can redistribute it and/or modify it under the
@@ -2109,7 +1955,7 @@ static ulg flush_block(char *buf, ulg stored_len, int eof)
  */
 static int ct_tally(int dist, int lc)
 {
-	l_buf[last_lit++] = (uch) lc;
+	l_buf[last_lit++] = lc;
 	if (dist == 0) {
 		/* lc is the unmatched char */
 		dyn_ltree[lc].Freq++;
@@ -2277,4 +2123,148 @@ static int zip(int in, int out)
 
 	flush_outbuf();
 	return 0;
+}
+
+
+/* ======================================================================== */
+static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
+{
+	exit(1);
+}
+
+int gzip_main(int argc, char **argv)
+{
+	enum {
+		OPT_tostdout = 0x1,
+		OPT_force = 0x2,
+	};
+
+	unsigned opt;
+	int result;
+	int inFileNum;
+	int outFileNum;
+	int i;
+	struct stat statBuf;
+	char *delFileName;
+
+	opt = getopt32(argc, argv, "cf123456789qv" USE_GUNZIP("d"));
+	//if (opt & 0x1) // -c
+	//if (opt & 0x2) // -f
+	/* Ignore 1-9 (compression level) options */
+	//if (opt & 0x4) // -1
+	//if (opt & 0x8) // -2
+	//if (opt & 0x10) // -3
+	//if (opt & 0x20) // -4
+	//if (opt & 0x40) // -5
+	//if (opt & 0x80) // -6
+	//if (opt & 0x100) // -7
+	//if (opt & 0x200) // -8
+	//if (opt & 0x400) // -9
+	//if (opt & 0x800) // -q
+	//if (opt & 0x1000) // -v
+#if ENABLE_GUNZIP /* gunzip_main may not be visible... */
+	if (opt & 0x2000) { // -d
+		/* FIXME: getopt32 should not depend on optind */
+		optind = 1;
+		return gunzip_main(argc, argv);
+	}
+#endif
+
+	foreground = signal(SIGINT, SIG_IGN) != SIG_IGN;
+	if (foreground) {
+		signal(SIGINT, abort_gzip);
+	}
+#ifdef SIGTERM
+	if (signal(SIGTERM, SIG_IGN) != SIG_IGN) {
+		signal(SIGTERM, abort_gzip);
+	}
+#endif
+#ifdef SIGHUP
+	if (signal(SIGHUP, SIG_IGN) != SIG_IGN) {
+		signal(SIGHUP, abort_gzip);
+	}
+#endif
+
+	strncpy(z_suffix, ".gz", sizeof(z_suffix) - 1);
+
+	/* Allocate all global buffers (for DYN_ALLOC option) */
+	ALLOC(uch, inbuf, INBUFSIZ + INBUF_EXTRA);
+	ALLOC(uch, outbuf, OUTBUFSIZ + OUTBUF_EXTRA);
+	ALLOC(ush, d_buf, DIST_BUFSIZE);
+	ALLOC(uch, window, 2L * WSIZE);
+	ALLOC(ush, tab_prefix, 1L << BITS);
+
+	/* Initialise the CRC32 table */
+	crc_32_tab = crc32_filltable(0);
+
+	clear_bufs();
+
+	if (optind == argc) {
+		time_stamp = 0;
+		zip(STDIN_FILENO, STDOUT_FILENO);
+		return exit_code;
+	}
+
+	for (i = optind; i < argc; i++) {
+		char *path = NULL;
+
+		clear_bufs();
+		if (LONE_DASH(argv[i])) {
+			time_stamp = 0;
+			inFileNum = STDIN_FILENO;
+			outFileNum = STDOUT_FILENO;
+		} else {
+			inFileNum = xopen(argv[i], O_RDONLY);
+			if (fstat(inFileNum, &statBuf) < 0)
+				bb_perror_msg_and_die("%s", argv[i]);
+			time_stamp = statBuf.st_ctime;
+
+			if (!(opt & OPT_tostdout)) {
+				path = xasprintf("%s.gz", argv[i]);
+
+				/* Open output file */
+#if defined(__GLIBC__) && __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1 && defined(O_NOFOLLOW)
+				outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL | O_NOFOLLOW);
+#else
+				outFileNum = open(path, O_RDWR | O_CREAT | O_EXCL);
+#endif
+				if (outFileNum < 0) {
+					bb_perror_msg("%s", path);
+					free(path);
+					continue;
+				}
+
+				/* Set permissions on the file */
+				fchmod(outFileNum, statBuf.st_mode);
+			} else
+				outFileNum = STDOUT_FILENO;
+		}
+
+		if (path == NULL && isatty(outFileNum) && !(opt & OPT_force)) {
+			bb_error_msg("compressed data not written "
+				"to a terminal. Use -f to force compression.");
+			free(path);
+			continue;
+		}
+
+		result = zip(inFileNum, outFileNum);
+
+		if (path != NULL) {
+			close(inFileNum);
+			close(outFileNum);
+
+			/* Delete the original file */
+			if (result == 0)
+				delFileName = argv[i];
+			else
+				delFileName = path;
+
+			if (unlink(delFileName) < 0)
+				bb_perror_msg("%s", delFileName);
+		}
+
+		free(path);
+	}
+
+	return exit_code;
 }
