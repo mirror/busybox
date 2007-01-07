@@ -141,19 +141,19 @@ aa:      85.1% -- replaced with aa.gz
 
 /* Diagnostic functions */
 #ifdef DEBUG
-# define Assert(cond,msg) {if(!(cond)) bb_error_msg(msg);}
-# define Trace(x) fprintf x
-# define Tracev(x) {if (verbose) fprintf x ;}
-# define Tracevv(x) {if (verbose>1) fprintf x ;}
-# define Tracec(c,x) {if (verbose && (c)) fprintf x ;}
-# define Tracecv(c,x) {if (verbose>1 && (c)) fprintf x ;}
+#  define Assert(cond,msg) {if(!(cond)) bb_error_msg(msg);}
+#  define Trace(x) fprintf x
+#  define Tracev(x) {if (verbose) fprintf x ;}
+#  define Tracevv(x) {if (verbose>1) fprintf x ;}
+#  define Tracec(c,x) {if (verbose && (c)) fprintf x ;}
+#  define Tracecv(c,x) {if (verbose>1 && (c)) fprintf x ;}
 #else
-# define Assert(cond,msg)
-# define Trace(x)
-# define Tracev(x)
-# define Tracevv(x)
-# define Tracec(c,x)
-# define Tracecv(c,x)
+#  define Assert(cond,msg)
+#  define Trace(x)
+#  define Tracev(x)
+#  define Tracevv(x)
+#  define Tracec(c,x)
+#  define Tracecv(c,x)
 #endif
 
 typedef unsigned char uch;
@@ -163,7 +163,7 @@ typedef unsigned long ulg;
 
 	/* from zip.c: */
 static int zip(int in, int out);
-static int file_read(char *buf, unsigned size);
+static unsigned file_read(void *buf, unsigned size);
 
 		/* from deflate.c */
 static void lm_init(ush * flags);
@@ -180,7 +180,6 @@ static void send_bits(int value, int length);
 static unsigned bi_reverse(unsigned value, int length);
 static void bi_windup(void);
 static void copy_block(char *buf, unsigned len, int header);
-static int (*read_buf) (char *buf, unsigned size);
 
 static void flush_outbuf(void);
 
@@ -298,22 +297,6 @@ static void clear_bufs(void)
 }
 
 /* ===========================================================================
- * Does the same as write(), but also handles partial pipe writes and checks
- * for error return.
- */
-static void write_buf(int fd, void *buf, unsigned cnt)
-{
-	unsigned n;
-
-	while ((n = write(fd, buf, cnt)) != cnt) {
-		if (n == (unsigned) (-1))
-			bb_error_msg_and_die(bb_msg_write_error);
-		cnt -= n;
-		buf = (void *) ((char *) buf + n);
-	}
-}
-
-/* ===========================================================================
  * Run a set of bytes through the crc shift register.  If s is a NULL
  * pointer, then initialize the crc shift register contents instead.
  * Return the current crc in either case.
@@ -333,61 +316,8 @@ static uint32_t updcrc(uch * s, unsigned n)
 			} while (--n);
 	}
 	crc = c;
-	return ~c;
+	return c;
 }
-
-/* bits.c -- output variable-length bit strings
- * Copyright (C) 1992-1993 Jean-loup Gailly
- * This is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, see the file COPYING.
- */
-
-
-/*
- *  PURPOSE
- *
- *      Output variable-length bit strings. Compression can be done
- *      to a file or to memory. (The latter is not supported in this version.)
- *
- *  DISCUSSION
- *
- *      The PKZIP "deflate" file format interprets compressed file data
- *      as a sequence of bits.  Multi-bit strings in the file may cross
- *      byte boundaries without restriction.
- *
- *      The first bit of each byte is the low-order bit.
- *
- *      The routines in this file allow a variable-length bit value to
- *      be output right-to-left (useful for literal values). For
- *      left-to-right output (useful for code strings from the tree routines),
- *      the bits must have been reversed first with bi_reverse().
- *
- *      For in-memory compression, the compressed bit stream goes directly
- *      into the requested output buffer. The input data is read in blocks
- *      by the mem_read() function. The buffer is limited to 64K on 16 bit
- *      machines.
- *
- *  INTERFACE
- *
- *      void bi_init (FILE *zipfile)
- *          Initialize the bit string routines.
- *
- *      void send_bits (int value, int length)
- *          Write out a bit string, taking the source bits right to
- *          left.
- *
- *      int bi_reverse (int value, int length)
- *          Reverse the bits of a bit string, taking the source bits left to
- *          right and emitting them right to left.
- *
- *      void bi_windup (void)
- *          Write out any remaining bits in an incomplete byte.
- *
- *      void copy_block(char *buf, unsigned len, int header)
- *          Copy a stored block to the zip file, storing first the length and
- *          its one's complement if requested.
- *
- */
 
 /* ===========================================================================
  * Initialize the bit string routines.
@@ -400,13 +330,6 @@ static void bi_init(int zipfile)
 #ifdef DEBUG
 	bits_sent = 0L;
 #endif
-
-	/* Set the defaults for file compression. They are set by memcompress
-	 * for in-memory compression.
-	 */
-	if (zfile != NO_FILE) {
-		read_buf = file_read;
-	}
 }
 
 /* ===========================================================================
@@ -418,7 +341,7 @@ static void send_bits(int value, int length)
 #ifdef DEBUG
 	Tracev((stderr, " l %2d v %4x ", length, value));
 	Assert(length > 0 && length <= 15, "invalid length");
-	bits_sent += (ulg) length;
+	bits_sent += length;
 #endif
 	/* If not enough room in bi_buf, use (valid) bits from bi_buf and
 	 * (16 - bi_valid) bits from value, leaving (width - (16-bi_valid))
@@ -477,8 +400,8 @@ static void copy_block(char *buf, unsigned len, int header)
 	bi_windup();		/* align on byte boundary */
 
 	if (header) {
-		put_16bit((ush) len);
-		put_16bit((ush) ~ len);
+		put_16bit(len);
+		put_16bit(~len);
 #ifdef DEBUG
 		bits_sent += 2 * 16;
 #endif
@@ -491,61 +414,7 @@ static void copy_block(char *buf, unsigned len, int header)
 	}
 }
 
-/* deflate.c -- compress data using the deflation algorithm
- * Copyright (C) 1992-1993 Jean-loup Gailly
- * This is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, see the file COPYING.
- */
-
-/*
- *  PURPOSE
- *
- *      Identify new text as repetitions of old text within a fixed-
- *      length sliding window trailing behind the new text.
- *
- *  DISCUSSION
- *
- *      The "deflation" process depends on being able to identify portions
- *      of the input text which are identical to earlier input (within a
- *      sliding window trailing behind the input currently being processed).
- *
- *      The most straightforward technique turns out to be the fastest for
- *      most input files: try all possible matches and select the longest.
- *      The key feature of this algorithm is that insertions into the string
- *      dictionary are very simple and thus fast, and deletions are avoided
- *      completely. Insertions are performed at each input character, whereas
- *      string matches are performed only when the previous match ends. So it
- *      is preferable to spend more time in matches to allow very fast string
- *      insertions and avoid deletions. The matching algorithm for small
- *      strings is inspired from that of Rabin & Karp. A brute force approach
- *      is used to find longer strings when a small match has been found.
- *      A similar algorithm is used in comic (by Jan-Mark Wams) and freeze
- *      (by Leonid Broukhis).
- *         A previous version of this file used a more sophisticated algorithm
- *      (by Fiala and Greene) which is guaranteed to run in linear amortized
- *      time, but has a larger average cost, uses more memory and is patented.
- *      However the F&G algorithm may be faster for some highly redundant
- *      files if the parameter max_chain_length (described below) is too large.
- *
- *  ACKNOWLEDGMENTS
- *
- *      The idea of lazy evaluation of matches is due to Jan-Mark Wams, and
- *      I found it in 'freeze' written by Leonid Broukhis.
- *      Thanks to many info-zippers for bug reports and testing.
- *
- *  REFERENCES
- *
- *      APPNOTE.TXT documentation file in PKZIP 1.93a distribution.
- *
- *      A description of the Rabin and Karp algorithm is given in the book
- *         "Algorithms" by R. Sedgewick, Addison-Wesley, p252.
- *
- *      Fiala,E.R., and Greene,D.H.
- *         Data Compression with Finite Windows, Comm.ACM, 32,4 (1989) 490-595
- *
- *  INTERFACE
- *
- *      void lm_init (int pack_level, ush *flags)
+/*      void lm_init (int pack_level, ush *flags)
  *          Initialize the "longest match" routines for a new file
  *
  *      ulg deflate (void)
@@ -752,11 +621,12 @@ static void lm_init(ush * flags)
 	strstart = 0;
 	block_start = 0L;
 
-	lookahead = read_buf((char *) window,
-						 sizeof(int) <= 2 ? (unsigned) WSIZE : 2 * WSIZE);
+	lookahead = file_read(window,
+			sizeof(int) <= 2 ? (unsigned) WSIZE : 2 * WSIZE);
 
-	if (lookahead == 0 || lookahead == (unsigned) EOF) {
-		eofile = 1, lookahead = 0;
+	if (lookahead == 0 || lookahead == (unsigned) -1) {
+		eofile = 1;
+		lookahead = 0;
 		return;
 	}
 	eofile = 0;
@@ -935,8 +805,8 @@ static void fill_window(void)
 	}
 	/* At this point, more >= 2 */
 	if (!eofile) {
-		n = read_buf((char *) window + strstart + lookahead, more);
-		if (n == 0 || n == (unsigned) EOF) {
+		n = file_read(window + strstart + lookahead, more);
+		if (n == 0 || n == (unsigned) -1) {
 			eofile = 1;
 		} else {
 			lookahead += n;
@@ -977,8 +847,9 @@ static ulg deflate(void)
 		prev_length = match_length, prev_match = match_start;
 		match_length = MIN_MATCH - 1;
 
-		if (hash_head != NIL && prev_length < max_lazy_match &&
-			strstart - hash_head <= MAX_DIST) {
+		if (hash_head != 0 && prev_length < max_lazy_match
+		 && strstart - hash_head <= MAX_DIST
+		) {
 			/* To simplify the code, we prevent matches with the string
 			 * of window index 0 (in particular we have to avoid a match
 			 * of the string with itself at the start of the input file).
@@ -1024,7 +895,6 @@ static ulg deflate(void)
 			strstart++;
 			if (flush)
 				FLUSH_BLOCK(0), block_start = strstart;
-
 		} else if (match_available) {
 			/* If there was no match at the previous position, output a
 			 * single literal. If there was a match but the current match
@@ -1059,30 +929,6 @@ static ulg deflate(void)
 
 	return FLUSH_BLOCK(1);	/* eof */
 }
-
-/* gzip (GNU zip) -- compress files with zip algorithm and 'compress' interface
- * Copyright (C) 1992-1993 Jean-loup Gailly
- * The unzip code was written and put in the public domain by Mark Adler.
- * Portions of the lzw code are derived from the public domain 'compress'
- * written by Spencer Thomas, Joe Orost, James Woods, Jim McKie, Steve Davies,
- * Ken Turkowski, Dave Mack and Peter Jannesen.
- *
- * See the license_msg below and the file COPYING for the software license.
- * See the file algorithm.doc for the compression algorithms and file formats.
- */
-
-/* Compress files with zip algorithm and 'compress' interface.
- * See usage() and help() functions below for all options.
- * Outputs:
- *        file.gz:   compressed file with same mode, owner, and utimes
- *     or stdout with -c option or if stdin used as input.
- * If the output file name had to be truncated, the original name is kept
- * in the compressed file.
- */
-
-/* configuration */
-
-typedef struct dirent dir_type;
 
 /* ======================================================================== */
 static void abort_gzip(int ATTRIBUTE_UNUSED ignored)
@@ -1268,12 +1114,12 @@ int gzip_main(int argc, char **argv)
  *
  *  INTERFACE
  *
- *      void ct_init (ush *attr, int *methodp)
+ *      void ct_init(ush *attr, int *methodp)
  *          Allocate the match buffer, initialize the various tables and save
  *          the location of the internal file attribute (ascii/binary) and
  *          method (DEFLATE/STORE)
  *
- *      void ct_tally (int dist, int lc);
+ *      void ct_tally(int dist, int lc);
  *          Save the match info and tally the frequency counts.
  *
  *      long flush_block (char *buf, ulg stored_len, int eof)
@@ -1433,17 +1279,17 @@ typedef struct tree_desc {
 	int max_code;		/* largest code with non zero frequency */
 } tree_desc;
 
-static tree_desc l_desc =
-	{ dyn_ltree, static_ltree, extra_lbits, LITERALS + 1, L_CODES,
-	MAX_BITS, 0
+static tree_desc l_desc = {
+	dyn_ltree, static_ltree, extra_lbits,
+	LITERALS + 1, L_CODES, MAX_BITS, 0
 };
 
-static tree_desc d_desc =
-	{ dyn_dtree, static_dtree, extra_dbits, 0, D_CODES, MAX_BITS, 0 };
+static tree_desc d_desc = {
+	dyn_dtree, static_dtree, extra_dbits, 0, D_CODES, MAX_BITS, 0
+};
 
-static tree_desc bl_desc =
-	{ bl_tree, (ct_data *) 0, extra_blbits, 0, BL_CODES, MAX_BL_BITS,
-	0
+static tree_desc bl_desc = {
+	bl_tree, NULL, extra_blbits, 0, BL_CODES, MAX_BL_BITS,	0
 };
 
 
@@ -1451,8 +1297,9 @@ static ush bl_count[MAX_BITS + 1];
 
 /* number of codes at each bit length for an optimal tree */
 
-static const uch bl_order[BL_CODES]
-= { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
+static const uch bl_order[BL_CODES] = {
+	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
+};
 
 /* The lengths of the bit length codes are sent in order of decreasing
  * probability, to avoid transmitting the lengths for unused bit length codes.
@@ -2334,13 +2181,6 @@ static void set_file_type(void)
 	}
 }
 
-/* zip.c -- compress files to the gzip or pkzip format
- * Copyright (C) 1992-1993 Jean-loup Gailly
- * This is free software; you can redistribute it and/or modify it under the
- * terms of the GNU General Public License, see the file COPYING.
- */
-
-
 static uint32_t crc;			/* crc on uncompressed file data */
 
 /* ===========================================================================
@@ -2369,7 +2209,7 @@ static int zip(int in, int out)
 	put_32bit(time_stamp);
 
 	/* Write deflated file to zip file */
-	crc = updcrc(0, 0);
+	crc = 0;
 
 	bi_init(out);
 	ct_init(&attr, &method);
@@ -2388,25 +2228,24 @@ static int zip(int in, int out)
 	return 0;
 }
 
-
 /* ===========================================================================
  * Read a new buffer from the current input file, perform end-of-line
  * translation, and update the crc and input file size.
  * IN assertion: size >= 2 (for end-of-line translation)
  */
-static int file_read(char *buf, unsigned size)
+static unsigned file_read(void *buf, unsigned size)
 {
 	unsigned len;
 
 	Assert(insize == 0, "inbuf not empty");
 
 	len = read(ifd, buf, size);
-	if (len == (unsigned) (-1) || len == 0)
-		return (int) len;
+	if (len == (unsigned)(-1) || len == 0)
+		return len;
 
-	crc = updcrc((uch *) buf, len);
-	isize += (ulg) len;
-	return (int) len;
+	crc = ~updcrc((uch *) buf, len);
+	isize += len;
+	return len;
 }
 
 /* ===========================================================================
@@ -2418,6 +2257,7 @@ static void flush_outbuf(void)
 	if (outcnt == 0)
 		return;
 
-	write_buf(ofd, (char *) outbuf, outcnt);
+	xwrite(ofd, (char *) outbuf, outcnt);
 	outcnt = 0;
 }
+
