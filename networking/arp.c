@@ -87,27 +87,24 @@ static int arp_del(char **args)
 	req.arp_flags = ATF_PERM;
 	args++;
 	while (*args != NULL) {
-		if (option_mask32 & ARP_OPT_v)
-			bb_error_msg("args=%s", *args);
-
 		switch (index_in_str_array(options, *args)) {
-		case 0: // "pub"
+		case 0: /* "pub" */
 			flags |= 1;
 			args++;
 			break;
-		case 1: // "priv"
+		case 1: /* "priv" */
 			flags |= 2;
 			args++;
 			break;
-		case 2: // "temp"
+		case 2: /* "temp" */
 			req.arp_flags &= ~ATF_PERM;
 			args++;
 			break;
-		case 3: // "trail"
+		case 3: /* "trail" */
 			req.arp_flags |= ATF_USETRAILERS;
 			args++;
 			break;
-		case 4: // "dontpub"
+		case 4: /* "dontpub" */
 #ifdef HAVE_ATF_DONTPUB
 			req.arp_flags |= ATF_DONTPUB;
 #else
@@ -115,7 +112,7 @@ static int arp_del(char **args)
 #endif
 			args++;
 			break;
-		case 5: // "auto"
+		case 5: /* "auto" */
 #ifdef HAVE_ATF_MAGIC
 			req.arp_flags |= ATF_MAGIC;
 #else
@@ -123,20 +120,19 @@ static int arp_del(char **args)
 #endif
 			args++;
 			break;
-		case 6: // "dev"
+		case 6: /* "dev" */
 			if (*++args == NULL)
 				bb_show_usage();
 			device = *args;
 			args++;
 			break;
-		case 7: // "netmask"
+		case 7: /* "netmask" */
 			if (*++args == NULL)
 				bb_show_usage();
 			if (strcmp(*args, "255.255.255.255") != 0) {
 				safe_strncpy(host, *args, 128);
 				if (ap->input(0, host, &sa) < 0) {
-					bb_herror_msg("%s", host);
-					return -1;
+					bb_herror_msg_and_die("%s", host);
 				}
 				memcpy(&req.arp_netmask, &sa, sizeof(struct sockaddr));
 				req.arp_flags |= ATF_NETMASK;
@@ -187,8 +183,8 @@ static int arp_del(char **args)
 }
 
 /* Get the hardware address to a specified interface name */
-static void
-arp_getdevhw(char *ifname, struct sockaddr *sa, const struct hwtype *hwt)
+static void arp_getdevhw(char *ifname, struct sockaddr *sa,
+						 const struct hwtype *hwt)
 {
 	struct ifreq ifr;
 	const struct hwtype *xhw;
@@ -221,7 +217,7 @@ static int arp_set(char **args)
 	struct arpreq req;
 	struct sockaddr sa;
 	int flags;
-	
+
 	memset(&req, 0, sizeof(req));
 
 	safe_strncpy(host, *args++, 128);
@@ -247,23 +243,23 @@ static int arp_set(char **args)
 	flags = ATF_PERM | ATF_COM;
 	while (*args != NULL) {
 		switch (index_in_str_array(options, *args)) {
-		case 0: // "pub"
+		case 0: /* "pub" */
 			flags |= ATF_PUBL;
 			args++;
 			break;
-		case 1: // "priv"
+		case 1: /* "priv" */
 			flags &= ~ATF_PUBL;
 			args++;
 			break;
-		case 2: // "temp"
+		case 2: /* "temp" */
 			flags &= ~ATF_PERM;
 			args++;
 			break;
-		case 3: // "trail"
+		case 3: /* "trail" */
 			flags |= ATF_USETRAILERS;
 			args++;
 			break;
-		case 4: // "dontpub"
+		case 4: /* "dontpub" */
 #ifdef HAVE_ATF_DONTPUB
 			flags |= ATF_DONTPUB;
 #else
@@ -271,7 +267,7 @@ static int arp_set(char **args)
 #endif
 			args++;
 			break;
-		case 5: // "auto"
+		case 5: /* "auto" */
 #ifdef HAVE_ATF_MAGIC
 			flags |= ATF_MAGIC;
 #else
@@ -279,13 +275,13 @@ static int arp_set(char **args)
 #endif
 			args++;
 			break;
-		case 6: // "dev"
+		case 6: /* "dev" */
 			if (*++args == NULL)
 				bb_show_usage();
 			device = *args;
 			args++;
 			break;
-		case 7: // "netmask"
+		case 7: /* "netmask" */
 			if (*++args == NULL)
 				bb_show_usage();
 			if (strcmp(*args, "255.255.255.255") != 0) {
@@ -376,7 +372,8 @@ static int arp_show(char *name)
 	int type, flags;
 	FILE *fp;
 	char *hostname;
-	int num, entries = 0, shown = 0;
+	int num;
+	unsigned entries = 0, shown = 0;
 
 	host[0] = '\0';
 
