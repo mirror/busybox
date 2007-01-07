@@ -93,6 +93,11 @@
 
 #include "busybox.h"
 
+/* amount of buffering in a pipe */
+#ifndef PIPE_BUF
+# define PIPE_BUF 4096
+#endif
+
 static const char httpdVersion[] = "busybox httpd/1.35 6-Oct-2004";
 static const char default_path_httpd_conf[] = "/etc";
 static const char httpd_conf[] = "httpd.conf";
@@ -106,10 +111,7 @@ static const char home[] = "./";
 //       is checked rigorously
 
 //#define DEBUG 1
-
-#ifndef DEBUG
-# define DEBUG 0
-#endif
+#define DEBUG 0
 
 #define MAX_MEMORY_BUFF 8192    /* IO buffer */
 
@@ -885,8 +887,8 @@ static int sendHeaders(HttpResponseNum responseNum)
 	/* emit the current date */
 	strftime(timeStr, sizeof(timeStr), RFC1123FMT, gmtime(&timer));
 	len = sprintf(buf,
-		"HTTP/1.0 %d %s\r\nContent-type: %s\r\n"
-		"Date: %s\r\nConnection: close\r\n",
+			"HTTP/1.0 %d %s\r\nContent-type: %s\r\n"
+			"Date: %s\r\nConnection: close\r\n",
 			responseNum, responseString, mime_type, timeStr);
 
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
@@ -986,7 +988,7 @@ static int sendCgi(const char *url,
 	int outFd;
 	int firstLine = 1;
 	int status;
-	size_t post_readed_size, post_readed_idx;
+	size_t post_read_size, post_read_idx;
 
 	if (pipe(fromCgi) != 0)
 		return 0;
@@ -1000,7 +1002,7 @@ static int sendCgi(const char *url,
 	if (!pid) {
 		/* child process */
 		char *script;
-		char *purl = strdup(url);
+		char *purl = xstrdup(url);
 		char realpath_buff[MAXPATHLEN];
 
 		if (purl == NULL)
@@ -1129,8 +1131,8 @@ static int sendCgi(const char *url,
 
 	/* parent process */
 
-	post_readed_size = 0;
-	post_readed_idx = 0;
+	post_read_size = 0;
+	post_read_idx = 0; /* for gcc */
 	inFd = fromCgi[0];
 	outFd = toCgi[1];
 	close(fromCgi[1]);
@@ -1147,95 +1149,108 @@ static int sendCgi(const char *url,
 		FD_ZERO(&readSet);
 		FD_ZERO(&writeSet);
 		FD_SET(inFd, &readSet);
-		if (bodyLen > 0 || post_readed_size > 0) {
+		if (bodyLen > 0 || post_read_size > 0) {
 			FD_SET(outFd, &writeSet);
 			nfound = outFd > inFd ? outFd : inFd;
-			if (post_readed_size == 0) {
+			if (post_read_size == 0) {
 				FD_SET(config->accepted_socket, &readSet);
 				if (nfound < config->accepted_socket)
 					nfound = config->accepted_socket;
 			}
 			/* Now wait on the set of sockets! */
-			nfound = select(nfound + 1, &readSet, &writeSet, 0, NULL);
+			nfound = select(nfound + 1, &readSet, &writeSet, NULL, NULL);
 		} else {
 			if (!bodyLen) {
-				close(outFd);
+				close(outFd); /* no more POST data to CGI */
 				bodyLen = -1;
 			}
-			nfound = select(inFd + 1, &readSet, 0, 0, NULL);
+			nfound = select(inFd + 1, &readSet, NULL, NULL, NULL);
 		}
 
 		if (nfound <= 0) {
-			if (waitpid(pid, &status, WNOHANG) > 0) {
-				close(inFd);
-				if (DEBUG && WIFEXITED(status))
-					bb_error_msg("piped has exited with status=%d", WEXITSTATUS(status));
-				if (DEBUG && WIFSIGNALED(status))
-					bb_error_msg("piped has exited with signal=%d", WTERMSIG(status));
-				break;
-			}
-		} else if (post_readed_size > 0 && FD_ISSET(outFd, &writeSet)) {
-			count = full_write(outFd, wbuf + post_readed_idx, post_readed_size);
+			if (waitpid(pid, &status, WNOHANG) <= 0)
+				/* Weird. CGI didn't exit and no fd's
+				 *  are ready, yet select returned?! */
+				continue;
+			close(inFd);
+			if (DEBUG && WIFEXITED(status))
+				bb_error_msg("piped has exited with status=%d", WEXITSTATUS(status));
+			if (DEBUG && WIFSIGNALED(status))
+				bb_error_msg("piped has exited with signal=%d", WTERMSIG(status));
+			break;
+		}
+
+		if (post_read_size > 0 && FD_ISSET(outFd, &writeSet)) {
+			/* Have data from peer and can write to CGI */
+		// huh? why full_write? what if we will block?
+		// (imagine that CGI does not read its stdin...)
+			count = full_write(outFd, wbuf + post_read_idx, post_read_size);
 			if (count > 0) {
-				post_readed_size -= count;
-				post_readed_idx += count;
-				if (post_readed_size == 0)
-					post_readed_idx = 0;
+				post_read_idx += count;
+				post_read_size -= count;
 			} else {
-				post_readed_size = post_readed_idx = bodyLen = 0; /* broken pipe to CGI */
+				post_read_size = bodyLen = 0; /* broken pipe to CGI */
 			}
-		} else if (bodyLen > 0 && post_readed_size == 0 && FD_ISSET(config->accepted_socket, &readSet)) {
+		} else if (bodyLen > 0 && post_read_size == 0
+		 && FD_ISSET(config->accepted_socket, &readSet)
+		) {
+			/* We expect data, prev data portion is eaten by CGI
+			 * and there *is* data to read from the peer
+			 * (POST data?) */
 			count = bodyLen > (int)sizeof(wbuf) ? (int)sizeof(wbuf) : bodyLen;
 			count = safe_read(config->accepted_socket, wbuf, count);
 			if (count > 0) {
-				post_readed_size += count;
+				post_read_size = count;
+				post_read_idx = 0;
 				bodyLen -= count;
 			} else {
 				bodyLen = 0;    /* closed */
 			}
 		}
+
 		if (FD_ISSET(inFd, &readSet)) {
+			/* There is something to read from CGI */
 			int s = config->accepted_socket;
 			char *rbuf = config->buf;
-
-#ifndef PIPE_BUF
-# define PIPESIZE 4096          /* amount of buffering in a pipe */
-#else
-# define PIPESIZE PIPE_BUF
-#endif
+#define PIPESIZE PIPE_BUF
 #if PIPESIZE >= MAX_MEMORY_BUFF
 # error "PIPESIZE >= MAX_MEMORY_BUFF"
 #endif
-
-			/* There is something to read */
 			/* NB: was safe_read. If it *has to be* safe_read, */
 			/* please explain why in this comment... */
 			count = full_read(inFd, rbuf, PIPESIZE);
 			if (count == 0)
 				break;  /* closed */
-			if (count > 0) {
-				if (firstLine) {
-					/* full_read (above) avoids
-					 * "chopped up into small chunks" syndrome here */
-					rbuf[count] = 0;
-					/* check to see if the user script added headers */
-					if (strncmp(rbuf, "HTTP/1.0 200 OK\r\n", 4) != 0) {
-						/* there is no "HTTP", do it ourself */
-						full_write(s, "HTTP/1.0 200 OK\r\n", 17);
-					} /* hmm, maybe 'else if'? */
-					if (!strstr(rbuf, "ontent-")) {
-						full_write(s, "Content-type: text/plain\r\n\r\n", 28);
-					}
-					firstLine = 0;
-				}
-				if (full_write(s, rbuf, count) != count)
-					break;
+			if (count < 0)
+				continue; /* huh, error, why continue?? */
 
-				if (DEBUG)
-					fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
+			if (firstLine) {
+				/* full_read (above) avoids
+				 * "chopped up into small chunks" syndrome here */
+				rbuf[count] = '\0';
+				/* check to see if the user script added headers */
+#define HTTP_200 "HTTP/1.0 200 OK\r\n\r\n"
+				if (memcmp(rbuf, HTTP_200, 4) != 0) {
+					/* there is no "HTTP", do it ourself */
+					full_write(s, HTTP_200, sizeof(HTTP_200)-1);
+				}
+#undef HTTP_200
+				/* Example of valid GCI without "Content-type:"
+				 * echo -en "HTTP/1.0 302 Found\r\n"
+				 * echo -en "Location: http://www.busybox.net\r\n"
+				 * echo -en "\r\n"
+				 */
+				//if (!strstr(rbuf, "ontent-")) {
+				//	full_write(s, "Content-type: text/plain\r\n\r\n", 28);
+				//}
+				firstLine = 0;
 			}
-		}
-	}
+			if (full_write(s, rbuf, count) != count)
+				break;
+			if (DEBUG)
+				fprintf(stderr, "cgi read %d bytes: '%.*s'\n", count, count, rbuf);
+		} /* if (FD_ISSET(inFd)) */
+	} /* while (1) */
 	return 0;
 }
 #endif          /* FEATURE_HTTPD_CGI */
