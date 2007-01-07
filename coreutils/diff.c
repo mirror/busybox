@@ -67,8 +67,12 @@
 
 /* XXX: FIXME: the following variables should be static, but gcc currently
  * creates a much bigger object if we do this. [which version of gcc? --vda] */
-int context, status;
-char *start, *label[2];
+/* This is the default number of lines of context. */
+int context = 3;
+int status;
+char *start;
+const char *label1;
+const char *label2;
 struct stat stb1, stb2;
 char **dl;
 USE_FEATURE_DIFF_DIR(static int dl_count;)
@@ -276,7 +280,8 @@ static void prepare(int i, FILE * fd, off_t filesize)
 		sz = 100;
 
 	p = xmalloc((sz + 3) * sizeof(struct line));
-	for (j = 0; (h = readhash(fd));) {
+	j = 0;
+	while ((h = readhash(fd))) {
 		if (j == sz) {
 			sz = sz * 3 / 2;
 			p = xrealloc(p, (sz + 3) * sizeof(struct line));
@@ -735,14 +740,14 @@ static void dump_unified_vec(FILE * f1, FILE * f2)
 
 static void print_header(const char *file1, const char *file2)
 {
-	if (label[0] != NULL)
-		printf("%s %s\n", "---", label[0]);
+	if (label1)
+		printf("--- %s\n", label1);
 	else
-		printf("%s %s\t%s", "---", file1, ctime(&stb1.st_mtime));
-	if (label[1] != NULL)
-		printf("%s %s\n", "+++", label[1]);
+		printf("--- %s\t%s", file1, ctime(&stb1.st_mtime));
+	if (label2)
+		printf("+++ %s\n", label2);
 	else
-		printf("%s %s\t%s", "+++", file2, ctime(&stb2.st_mtime));
+		printf("+++ %s\t%s", file2, ctime(&stb2.st_mtime));
 }
 
 
@@ -771,8 +776,7 @@ static void change(char *file1, FILE * f1, char *file2, FILE * f2, int a,
 
 		max_context <<= 1;
 		context_vec_start = xrealloc(context_vec_start,
-									 max_context *
-									 sizeof(struct context_vec));
+				max_context * sizeof(struct context_vec));
 		context_vec_end = context_vec_start + max_context;
 		context_vec_ptr = context_vec_start + offset;
 	}
@@ -894,8 +898,8 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 {
 	char *file1 = ofile1;
 	char *file2 = ofile2;
-	FILE *f1 = NULL;
-	FILE *f2 = NULL;
+	FILE *f1;
+	FILE *f2;
 	int rval = D_SAME;
 	int i;
 
@@ -912,11 +916,17 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 		f1 = xfopen(bb_dev_null, "r");
 	else if (NOT_LONE_DASH(file1))
 		f1 = xfopen(file1, "r");
-
 	if (flags & D_EMPTY2)
 		f2 = xfopen(bb_dev_null, "r");
 	else if (NOT_LONE_DASH(file2))
 		f2 = xfopen(file2, "r");
+
+/* We can't diff non-seekable stream - we use rewind(), fseek().
+ * This can be fixed (volunteers?).
+ * Meanwhile we should check it here by stat'ing input fds,
+ * but I am lazy and check that in main() instead.
+ * Check in main won't catch "diffing fifos buried in subdirectories"
+ * failure scenario - not very likely in real life... */
 
 	i = files_differ(f1, f2, flags);
 	if (i == 0)
@@ -1169,48 +1179,32 @@ int diff_main(int argc, char **argv)
 	char *f1, *f2;
 	llist_t *L_arg = NULL;
 
-	opt_complementary = "L::";
+	/* exactly 2 params; collect multiple -L <label> */
+	opt_complementary = "=2:L::";
 	getopt32(argc, argv, "abdiL:NqrsS:tTU:wu"
 			"p" /* ignored (for compatibility) */,
 			&L_arg, &start, &U_opt);
-
-	if (option_mask32 & FLAG_L) {
-		while (L_arg) {
-			if (label[0] == NULL)
-				label[0] = L_arg->data;
-			else if (label[1] == NULL)
-				label[1] = L_arg->data;
-			else
-				bb_show_usage();
-
-			L_arg = L_arg->link;
-		}
-
-		/* If both label[0] and label[1] were set, they need to be swapped. */
-		if (label[0] && label[1]) {
-			char *tmp;
-
-			tmp = label[1];
-			label[1] = label[0];
-			label[0] = tmp;
-		}
-	}
-
-	context = 3;		/* This is the default number of lines of context. */
-	if (option_mask32 & FLAG_U) {
-		context = xatou_range(U_opt, 1, INT_MAX);
-	}
-	argc -= optind;
+	/*argc -= optind;*/
 	argv += optind;
+	while (L_arg) {
+		if (label1 && label2)
+			bb_show_usage();
+		if (!label1)
+			label1 = L_arg->data;
+		else { /* then label2 is NULL */
+			label2 = label1;
+			label1 = L_arg->data;
+		}
+		/* we leak L_arg here... */
+		L_arg = L_arg->link;
+	}
+	if (option_mask32 & FLAG_U)
+		context = xatou_range(U_opt, 1, INT_MAX);
 
 	/*
 	 * Do sanity checks, fill in stb1 and stb2 and call the appropriate
 	 * driver routine.  Both drivers use the contents of stb1 and stb2.
 	 */
-	if (argc < 2) {
-		bb_error_msg("missing filename");
-		bb_show_usage();
-	}
 
 	f1 = argv[0];
 	f2 = argv[1];
@@ -1239,8 +1233,12 @@ int diff_main(int argc, char **argv)
 		}
 		if (S_ISDIR(stb2.st_mode)) {
 			f2 = concat_path_file(f2, f1);
-			xstat(argv[1], &stb2);
+			xstat(f2, &stb2);
 		}
+/* We can't diff e.g. stdin supplied by a pipe - we use rewind(), fseek().
+ * This can be fixed (volunteers?) */
+		if (!S_ISREG(stb1.st_mode) || !S_ISREG(stb2.st_mode))
+			bb_error_msg_and_die("can't diff non-seekable stream");
 		print_status(diffreg(f1, f2, 0), f1, f2, NULL);
 	}
 	return status;

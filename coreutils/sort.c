@@ -75,14 +75,10 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 			end = 0;
 			for (i = 1; i < key->range[2*j] + j; i++) {
 				if (key_separator) {
-					/* Skip first separator */
-					while (str[end] == key_separator)
-						end++;
-					/* Skip body of key */
+					/* Skip body of key and separator */
 					while (str[end]) {
-						if (str[end] == key_separator)
+						if (str[end++] == key_separator)
 							break;
-						end++;
 					}
 				} else {
 					/* Skip leading blanks */
@@ -99,9 +95,6 @@ static char *get_key(char *str, struct sort_key *key, int flags)
 		}
 		if (!j) start = end;
 	}
-	/* Key with explicit separator starts after separator */
-	if (key_separator && str[start] == key_separator)
-		start++;
 	/* Strip leading whitespace if necessary */
 //XXX: skip_whitespace()
 	if (flags & FLAG_b)

@@ -66,18 +66,38 @@ testing "sort key range with multiple options" "sort -k2,3rn input" \
 egg	1	2	papyrus
 " "$data" ""
 
+testing "sort with non-default leading delim 1" "sort -n -k2 -t/ input" "\
+/a/2
+/b/1
+" "\
+/a/2
+/b/1
+" ""
+
+testing "sort with non-default leading delim 2" "sort -n -k3 -t/ input" "\
+/b/1
+/a/2
+" "\
+/b/1
+/a/2
+" ""
+
+testing "sort with non-default leading delim 3" "sort -n -k3 -t/ input" "\
+//a/2
+//b/1
+" "\
+//a/2
+//b/1
+" ""
+
+testing "sort -u should consider field only when discarding" "sort -u -k2 input" "\
+a c
+" "\
+a c
+b c
+" ""
+
 testing "sort key doesn't strip leading blanks, disables fallback global sort" \
 "sort -n -k2 -t ' '" " a \n 1 \n 2 \n" "" " 2 \n 1 \n a \n"
-
-testing "sort key edge case with -t" "sort -n -k4 -t/" \
-"/usr/lib/finish-install.d/1
-/usr/lib/finish-install.d/4
-/usr/lib/prebaseconfig.d/2
-/usr/lib/prebaseconfig.d/6
-" "" "/usr/lib/finish-install.d/1
-/usr/lib/prebaseconfig.d/2
-/usr/lib/finish-install.d/4
-/usr/lib/prebaseconfig.d/6
-"
 
 exit $FAILCOUNT
