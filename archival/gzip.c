@@ -16,6 +16,22 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
+/* big objects in bss:
+ * 00000020 b bl_count
+ * 00000074 b base_length
+ * 00000078 b base_dist
+ * 00000078 b static_dtree
+ * 0000009c b bl_tree
+ * 000000f4 b dyn_dtree
+ * 00000100 b length_code
+ * 00000200 b dist_code
+ * 0000023d b depth
+ * 00000400 b flag_buf
+ * 00000480 b static_ltree
+ * 000008f4 b dyn_ltree
+ * 000008f4 b heap
+ */
+
 /* TODO: full support for -v for DESKTOP
 /usr/bin/gzip -v a bogus aa
 a:       85.1% -- replaced with a.gz
@@ -329,7 +345,7 @@ static int foreground;		/* set if program run in foreground */
 static int method = DEFLATED;	/* compression method */
 static int exit_code;		/* program exit code */
 static long time_stamp;		/* original time stamp (modification time) */
-static char z_suffix[MAX_SUFFIX + 1];	/* default suffix (can be set with --suffix) */
+////static char z_suffix[MAX_SUFFIX + 1];	/* default suffix (can be set with --suffix) */
 
 static int ifd;			/* input file descriptor */
 static int ofd;			/* output file descriptor */
@@ -1046,7 +1062,7 @@ static int base_dist[D_CODES];
 
 /* DECLARE(ush, d_buf, DIST_BUFSIZE); buffer for distances */
 
-static uch flag_buf[(LIT_BUFSIZE / 8)];
+static uch flag_buf[LIT_BUFSIZE / 8];
 
 /* flag_buf is a bit array distinguishing literals from lengths in
  * l_buf, thus indicating the presence or absence of a distance.
@@ -1130,6 +1146,7 @@ static void init_block(void)
  * Allocate the match buffer, initialize the various tables and save the
  * location of the internal file attribute (ascii/binary) and method
  * (DEFLATE/STORE).
+ * One callsite in zip()
  */
 static void ct_init(ush * attr, int *methodp)
 {
@@ -1143,8 +1160,10 @@ static void ct_init(ush * attr, int *methodp)
 	file_method = methodp;
 	compressed_len = 0L;
 
+#ifdef NOT_NEEDED
 	if (static_dtree[0].Len != 0)
 		return;			/* ct_init already called */
+#endif
 
 	/* Initialize the mapping length (0..255) -> length code (0..28) */
 	length = 0;
@@ -1174,14 +1193,15 @@ static void ct_init(ush * attr, int *methodp)
 	for (; code < D_CODES; code++) {
 		base_dist[code] = dist << 7;
 		for (n = 0; n < (1 << (extra_dbits[code] - 7)); n++) {
-			dist_code[256 + dist++] = (uch) code;
+			dist_code[256 + dist++] = code;
 		}
 	}
 	Assert(dist == 256, "ct_init: 256+dist != 512");
 
 	/* Construct the codes of the static literal tree */
+	/* already zeroed - it's in bss
 	for (bits = 0; bits <= MAX_BITS; bits++)
-		bl_count[bits] = 0;
+		bl_count[bits] = 0; */
 
 	n = 0;
 	while (n <= 143) {
@@ -1478,7 +1498,7 @@ static void build_tree(tree_desc * desc)
 
 		/* Create a new node father of n and m */
 		tree[node].Freq = tree[n].Freq + tree[m].Freq;
-		depth[node] = (uch) (MAX(depth[n], depth[m]) + 1);
+		depth[node] = MAX(depth[n], depth[m]) + 1;
 		tree[n].Dad = tree[m].Dad = (ush) node;
 #ifdef DUMP_BL_TREE
 		if (tree == bl_tree) {
@@ -1524,14 +1544,15 @@ static void scan_tree(ct_data * tree, int max_code)
 		max_count = 138;
 		min_count = 3;
 	}
-	tree[max_code + 1].Len = (ush) 0xffff;	/* guard */
+	tree[max_code + 1].Len = 0xffff; /* guard */
 
 	for (n = 0; n <= max_code; n++) {
 		curlen = nextlen;
 		nextlen = tree[n + 1].Len;
-		if (++count < max_count && curlen == nextlen) {
+		if (++count < max_count && curlen == nextlen)
 			continue;
-		} else if (count < min_count) {
+
+		if (count < min_count) {
 			bl_tree[curlen].Freq += count;
 		} else if (curlen != 0) {
 			if (curlen != prevlen)
@@ -1544,15 +1565,15 @@ static void scan_tree(ct_data * tree, int max_code)
 		}
 		count = 0;
 		prevlen = curlen;
+
+		max_count = 7;
+		min_count = 4;
 		if (nextlen == 0) {
 			max_count = 138;
 			min_count = 3;
 		} else if (curlen == nextlen) {
 			max_count = 6;
 			min_count = 3;
-		} else {
-			max_count = 7;
-			min_count = 4;
 		}
 	}
 }
@@ -2152,7 +2173,7 @@ int gzip_main(int argc, char **argv)
 	}
 #endif
 
-	strncpy(z_suffix, ".gz", sizeof(z_suffix) - 1);
+////	strncpy(z_suffix, ".gz", sizeof(z_suffix) - 1);
 
 	/* Allocate all global buffers (for DYN_ALLOC option) */
 	ALLOC(uch, inbuf, INBUFSIZ + INBUF_EXTRA);
