@@ -67,6 +67,7 @@ aa:      85.1% -- replaced with aa.gz
 #  endif
 #endif
 
+//remove??
 #define INBUF_EXTRA  64	/* required by unlzw() */
 
 #ifndef	OUTBUFSIZ
@@ -76,6 +77,7 @@ aa:      85.1% -- replaced with aa.gz
 #    define OUTBUFSIZ  16384	/* output buffer size */
 #  endif
 #endif
+//remove??
 #define OUTBUF_EXTRA 2048	/* required by unlzw() */
 
 #ifndef DIST_BUFSIZE
@@ -166,15 +168,6 @@ aa:      85.1% -- replaced with aa.gz
    /* For portability to 16 bit machines, do not use values above 15. */
 #endif
 
-/* To save space (see unlzw.c), we overlay prev+head with tab_prefix and
- * window with tab_suffix. Check that we can do this:
- */
-#if (WSIZE<<1) > (1<<BITS)
-#  error cannot overlay window with tab_suffix and prev with tab_prefix0
-#endif
-#if HASH_BITS > BITS-1
-#  error cannot overlay head with tab_prefix1
-#endif
 #define HASH_SIZE (unsigned)(1<<HASH_BITS)
 #define HASH_MASK (HASH_SIZE-1)
 #define WMASK     (WSIZE-1)
@@ -212,26 +205,6 @@ typedef unsigned IPos;
 	free(array); \
 	array = NULL; \
 }
-
-/* DECLARE(uch, window, 2L*WSIZE); */
-/* Sliding window. Input bytes are read into the second half of the window,
- * and move to the first half later to keep a dictionary of at least WSIZE
- * bytes. With this organization, matches are limited to a distance of
- * WSIZE-MAX_MATCH bytes, but this ensures that IO is always
- * performed with a length multiple of the block size. Also, it limits
- * the window size to 64K, which is quite useful on MSDOS.
- * To do: limit the window size to WSIZE+BSZ if SMALL_MEM (the code would
- * be less efficient).
- */
-
-/* DECLARE(Pos, prev, WSIZE); */
-/* Link to older string with same hash index. To limit the size of this
- * array to 64K, this link is maintained only for the last 32K strings.
- * An index in this array is thus a window index modulo 32K.
- */
-
-/* DECLARE(Pos, head, 1<<HASH_BITS); */
-/* Heads of the hash chains or 0. */
 
 static long block_start;
 
@@ -300,7 +273,6 @@ enum {
 
 
 /* ===========================================================================
- *  Prototypes for local functions.
  */
 static void fill_window(void);
 
@@ -311,21 +283,9 @@ static void check_match(IPos start, IPos match, int length);
 #endif
 
 
-/* from deflate.c */
-static void lm_init(ush * flags);
-static ulg deflate(void);
-
 /* from trees.c */
-static void ct_init(ush * attr, int *methodp);
 static int ct_tally(int dist, int lc);
 static ulg flush_block(char *buf, ulg stored_len, int eof);
-
-/* from bits.c */
-static void bi_init(int zipfile);
-static void send_bits(int value, int length);
-static unsigned bi_reverse(unsigned value, int length);
-static void bi_windup(void);
-static void copy_block(char *buf, unsigned len, int header);
 
 /* global buffers */
 
@@ -333,19 +293,49 @@ static void copy_block(char *buf, unsigned len, int header);
  * the various modules:
  * deflate:  prev+head   window      d_buf  l_buf  outbuf
  * unlzw:    tab_prefix  tab_suffix  stack  inbuf  outbuf
+//remove unlzw??
  * For compression, input is done in window[]. For decompression, output
  * is done in window except for unlzw.
  */
+/* To save space (see unlzw.c), we overlay prev+head with tab_prefix and
+ * window with tab_suffix. Check that we can do this:
+ */
+#if (WSIZE<<1) > (1<<BITS)
+#  error cannot overlay window with tab_suffix and prev with tab_prefix0
+#endif
+#if HASH_BITS > BITS-1
+#  error cannot overlay head with tab_prefix1
+#endif
 
-#define tab_suffix window
-#define tab_prefix prev	/* hash link (see deflate.c) */
+//#define tab_suffix window
+//#define tab_prefix prev	/* hash link (see deflate.c) */
 #define head (prev+WSIZE) /* hash head (see deflate.c) */
 
-DECLARE(uch, inbuf, INBUFSIZ + INBUF_EXTRA);
+/* DECLARE(uch, window, 2L*WSIZE); */
+/* Sliding window. Input bytes are read into the second half of the window,
+ * and move to the first half later to keep a dictionary of at least WSIZE
+ * bytes. With this organization, matches are limited to a distance of
+ * WSIZE-MAX_MATCH bytes, but this ensures that IO is always
+ * performed with a length multiple of the block size. Also, it limits
+ * the window size to 64K, which is quite useful on MSDOS.
+ * To do: limit the window size to WSIZE+BSZ if SMALL_MEM (the code would
+ * be less efficient).
+ */
+
+/* DECLARE(Pos, prev, WSIZE); */
+/* Link to older string with same hash index. To limit the size of this
+ * array to 64K, this link is maintained only for the last 32K strings.
+ * An index in this array is thus a window index modulo 32K.
+ */
+
+/* DECLARE(Pos, head, 1<<HASH_BITS); */
+/* Heads of the hash chains or 0. */
+
+DECLARE(uch, inbuf, INBUFSIZ + INBUF_EXTRA); //remove + XX_EXTRA (unlzw)??
 DECLARE(uch, outbuf, OUTBUFSIZ + OUTBUF_EXTRA);
 DECLARE(ush, d_buf, DIST_BUFSIZE);
 DECLARE(uch, window, 2L * WSIZE);
-DECLARE(ush, tab_prefix, 1L << BITS);
+DECLARE(ush, prev, 1L << BITS);
 
 static long isize;		/* number of input bytes */
 
@@ -544,11 +534,12 @@ static unsigned bi_reverse(unsigned code, int len)
 {
 	unsigned res = 0;
 
-	do {
+	while (1) {
 		res |= code & 1;
-		code >>= 1, res <<= 1;
-	} while (--len > 0);
-	return res >> 1;
+		if (--len <= 0) return res;
+		code >>= 1;
+		res <<= 1;
+	}
 }
 
 
@@ -957,14 +948,11 @@ static ulg deflate(void)
  * terms of the GNU General Public License, see the file COPYING.
  */
 
-/*
- *  PURPOSE
- *
+/*  PURPOSE
  *      Encode various sets of source values using variable-length
  *      binary code trees.
  *
  *  DISCUSSION
- *
  *      The PKZIP "deflation" process uses several Huffman trees. The more
  *      common source values are represented by shorter bit sequences.
  *
@@ -976,7 +964,6 @@ static ulg deflate(void)
  *      (APPNOTE.TXT) distributed as part of PKWARE's PKZIP program.
  *
  *  REFERENCES
- *
  *      Lynch, Thomas J.
  *          Data Compression:  Techniques and Applications, pp. 53-55.
  *          Lifetime Learning Publications, 1985.  ISBN 0-534-03418-7.
@@ -990,7 +977,6 @@ static ulg deflate(void)
  *          Addison-Wesley, 1983. ISBN 0-201-06672-6.
  *
  *  INTERFACE
- *
  *      void ct_init(ush *attr, int *methodp)
  *          Allocate the match buffer, initialize the various tables and save
  *          the location of the internal file attribute (ascii/binary) and
@@ -1003,7 +989,6 @@ static ulg deflate(void)
  *          Determine the best encoding for the current block: dynamic trees,
  *          static trees or store, and output the encoded block to the zip
  *          file. Returns the total compressed length for the file so far.
- *
  */
 
 /* ===========================================================================
@@ -1037,20 +1022,20 @@ static ulg deflate(void)
 typedef uch extra_bits_t;
 
 /* extra bits for each length code */
-static const extra_bits_t extra_lbits[LENGTH_CODES]
-	= { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
+static const extra_bits_t extra_lbits[LENGTH_CODES]= { 
+	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
 	4, 4, 5, 5, 5, 5, 0
 };
 
 /* extra bits for each distance code */
-static const extra_bits_t extra_dbits[D_CODES]
-	= { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
+static const extra_bits_t extra_dbits[D_CODES] = { 
+	0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
 	10, 10, 11, 11, 12, 12, 13, 13
 };
 
 /* extra bits for each bit length code */
-static const extra_bits_t extra_blbits[BL_CODES]
-= { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7 };
+static const extra_bits_t extra_blbits[BL_CODES] = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7 };
 
 #define STORED_BLOCK 0
 #define STATIC_TREES 1
@@ -1245,11 +1230,8 @@ static ush *file_type;	/* pointer to UNKNOWN, BINARY or ASCII */
 static int *file_method;	/* pointer to DEFLATE or STORE */
 
 /* ===========================================================================
- * Local (static) routines in this file.
  */
-
 static void init_block(void);
-static void pqdownheap(ct_data * tree, int k);
 static void gen_bitlen(tree_desc * desc);
 static void gen_codes(ct_data * tree, int max_code);
 static void build_tree(tree_desc * desc);
@@ -1263,16 +1245,16 @@ static void set_file_type(void);
 
 #ifndef DEBUG
 /* Send a code of the given tree. c and tree must not have side effects */
-#  define send_code(c, tree) send_bits(tree[c].Code, tree[c].Len)
-#else							/* DEBUG */
-#  define send_code(c, tree) \
+#  define SEND_CODE(c, tree) send_bits(tree[c].Code, tree[c].Len)
+#else
+#  define SEND_CODE(c, tree) \
 { \
 	if (verbose > 1) bb_error_msg("\ncd %3d ",(c)); \
         send_bits(tree[c].Code, tree[c].Len); \
 }
 #endif
 
-#define d_code(dist) \
+#define D_CODE(dist) \
 	((dist) < 256 ? dist_code[dist] : dist_code[256 + ((dist)>>7)])
 /* Mapping from a distance to a distance code. dist is the distance - 1 and
  * must not have side effects. dist_code[256] and dist_code[257] are never
@@ -1397,22 +1379,6 @@ static void init_block(void)
 
 
 /* ===========================================================================
- * Remove the smallest element from the heap and recreate the heap with
- * one less element. Updates heap and heap_len.
- */
-
-#define SMALLEST 1
-/* Index within the heap array of least frequent node in the Huffman tree */
-
-#define pqremove(tree, top) \
-{ \
-	top = heap[SMALLEST]; \
-	heap[SMALLEST] = heap[heap_len--]; \
-	pqdownheap(tree, SMALLEST); \
-}
-
-
-/* ===========================================================================
  * Restore the heap property by moving down the tree starting at node k,
  * exchanging a node with the smallest of its two sons if necessary, stopping
  * when the heap property is re-established (each father smaller than its
@@ -1420,9 +1386,8 @@ static void init_block(void)
  */
 
 /* Compares to subtrees, using the tree depth as tie breaker when
- * the subtrees have equal frequency. This minimizes the worst case length.
- */
-#define smaller(tree, n, m) \
+ * the subtrees have equal frequency. This minimizes the worst case length. */
+#define SMALLER(tree, n, m) \
 	(tree[n].Freq < tree[m].Freq \
 	|| (tree[n].Freq == tree[m].Freq && depth[n] <= depth[m]))
 
@@ -1433,11 +1398,11 @@ static void pqdownheap(ct_data * tree, int k)
 
 	while (j <= heap_len) {
 		/* Set j to the smallest of the two sons: */
-		if (j < heap_len && smaller(tree, heap[j + 1], heap[j]))
+		if (j < heap_len && SMALLER(tree, heap[j + 1], heap[j]))
 			j++;
 
 		/* Exit if v is smaller than both sons */
-		if (smaller(tree, v, heap[j]))
+		if (SMALLER(tree, v, heap[j]))
 			break;
 
 		/* Exchange v with the smallest son */
@@ -1599,6 +1564,20 @@ static void gen_codes(ct_data * tree, int max_code)
  *     and corresponding code. The length opt_len is updated; static_len is
  *     also updated if stree is not null. The field max_code is set.
  */
+
+/* Remove the smallest element from the heap and recreate the heap with
+ * one less element. Updates heap and heap_len. */
+
+#define SMALLEST 1
+/* Index within the heap array of least frequent node in the Huffman tree */
+
+#define PQREMOVE(tree, top) \
+{ \
+	top = heap[SMALLEST]; \
+	heap[SMALLEST] = heap[heap_len--]; \
+	pqdownheap(tree, SMALLEST); \
+}
+
 static void build_tree(tree_desc * desc)
 {
 	ct_data *tree = desc->dyn_tree;
@@ -1650,7 +1629,7 @@ static void build_tree(tree_desc * desc)
 	 * frequent nodes.
 	 */
 	do {
-		pqremove(tree, n);	/* n = node of least frequency */
+		PQREMOVE(tree, n);	/* n = node of least frequency */
 		m = heap[SMALLEST];	/* m = node of next least frequency */
 
 		heap[--heap_max] = n;	/* keep the nodes sorted by frequency */
@@ -1761,21 +1740,21 @@ static void send_tree(ct_data * tree, int max_code)
 			continue;
 		} else if (count < min_count) {
 			do {
-				send_code(curlen, bl_tree);
+				SEND_CODE(curlen, bl_tree);
 			} while (--count);
 		} else if (curlen != 0) {
 			if (curlen != prevlen) {
-				send_code(curlen, bl_tree);
+				SEND_CODE(curlen, bl_tree);
 				count--;
 			}
 			Assert(count >= 3 && count <= 6, " 3_6?");
-			send_code(REP_3_6, bl_tree);
+			SEND_CODE(REP_3_6, bl_tree);
 			send_bits(count - 3, 2);
 		} else if (count <= 10) {
-			send_code(REPZ_3_10, bl_tree);
+			SEND_CODE(REPZ_3_10, bl_tree);
 			send_bits(count - 3, 3);
 		} else {
-			send_code(REPZ_11_138, bl_tree);
+			SEND_CODE(REPZ_11_138, bl_tree);
 			send_bits(count - 11, 7);
 		}
 		count = 0;
@@ -1964,11 +1943,11 @@ static int ct_tally(int dist, int lc)
 		dist--;			/* dist = match distance - 1 */
 		Assert((ush) dist < (ush) MAX_DIST
 		 && (ush) lc <= (ush) (MAX_MATCH - MIN_MATCH)
-		 && (ush) d_code(dist) < (ush) D_CODES, "ct_tally: bad match"
+		 && (ush) D_CODE(dist) < (ush) D_CODES, "ct_tally: bad match"
 		);
 
 		dyn_ltree[length_code[lc] + LITERALS + 1].Freq++;
-		dyn_dtree[d_code(dist)].Freq++;
+		dyn_dtree[D_CODE(dist)].Freq++;
 
 		d_buf[last_dist++] = dist;
 		flags |= flag_bit;
@@ -2025,12 +2004,12 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 				flag = flag_buf[fx++];
 			lc = l_buf[lx++];
 			if ((flag & 1) == 0) {
-				send_code(lc, ltree);	/* send a literal byte */
+				SEND_CODE(lc, ltree);	/* send a literal byte */
 				Tracecv(isgraph(lc), (stderr, " '%c' ", lc));
 			} else {
 				/* Here, lc is the match length - MIN_MATCH */
 				code = length_code[lc];
-				send_code(code + LITERALS + 1, ltree);	/* send the length code */
+				SEND_CODE(code + LITERALS + 1, ltree);	/* send the length code */
 				extra = extra_lbits[code];
 				if (extra != 0) {
 					lc -= base_length[code];
@@ -2038,10 +2017,10 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 				}
 				dist = d_buf[dx++];
 				/* Here, dist is the match distance - 1 */
-				code = d_code(dist);
+				code = D_CODE(dist);
 				Assert(code < D_CODES, "bad d_code");
 
-				send_code(code, dtree);	/* send the distance code */
+				SEND_CODE(code, dtree);	/* send the distance code */
 				extra = extra_dbits[code];
 				if (extra != 0) {
 					dist -= base_dist[code];
@@ -2052,7 +2031,7 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 		} while (lx < last_lit);
 	}
 
-	send_code(END_BLOCK, ltree);
+	SEND_CODE(END_BLOCK, ltree);
 }
 
 /* ===========================================================================
@@ -2192,7 +2171,7 @@ int gzip_main(int argc, char **argv)
 	ALLOC(uch, outbuf, OUTBUFSIZ + OUTBUF_EXTRA);
 	ALLOC(ush, d_buf, DIST_BUFSIZE);
 	ALLOC(uch, window, 2L * WSIZE);
-	ALLOC(ush, tab_prefix, 1L << BITS);
+	ALLOC(ush, prev, 1L << BITS);
 
 	/* Initialise the CRC32 table */
 	crc_32_tab = crc32_filltable(0);
