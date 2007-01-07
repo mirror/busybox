@@ -408,7 +408,7 @@ static int arp_show(char *name)
 				continue;
 
 			/* if the user specified device differs, skip it */
-			if (device && strcmp(dev, device) != 0)
+			if (device[0])
 				continue;
 
 			shown++;
@@ -432,7 +432,7 @@ static int arp_show(char *name)
 			   entries, entries - shown, shown);
 
 	if (!shown) {
-		if (hw_set || host[0] || device)
+		if (hw_set || host[0] || device[0])
 			printf("No match found in %d entries\n", entries);
 	}
 
