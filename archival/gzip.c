@@ -201,7 +201,8 @@ typedef unsigned IPos;
 	array = xzalloc((size_t)(((size)+1L)/2) * 2*sizeof(type)); \
 }
 
-#define FREE(array) { \
+#define FREE(array) \
+{ \
 	free(array); \
 	array = NULL; \
 }
@@ -271,21 +272,6 @@ enum {
  */
 };
 
-
-/* ===========================================================================
- */
-static void fill_window(void);
-
-static int longest_match(IPos cur_match);
-
-#ifdef DEBUG
-static void check_match(IPos start, IPos match, int length);
-#endif
-
-
-/* from trees.c */
-static int ct_tally(int dist, int lc);
-static ulg flush_block(char *buf, ulg stored_len, int eof);
 
 /* global buffers */
 
@@ -586,6 +572,65 @@ static void copy_block(char *buf, unsigned len, int header)
 
 
 /* ===========================================================================
+ * Fill the window when the lookahead becomes insufficient.
+ * Updates strstart and lookahead, and sets eofile if end of input file.
+ * IN assertion: lookahead < MIN_LOOKAHEAD && strstart + lookahead > 0
+ * OUT assertions: at least one byte has been read, or eofile is set;
+ *    file reads are performed for at least two bytes (required for the
+ *    translate_eol option).
+ */
+static void fill_window(void)
+{
+	unsigned n, m;
+	unsigned more =	WINDOW_SIZE - lookahead - strstart;
+	/* Amount of free space at the end of the window. */
+
+	/* If the window is almost full and there is insufficient lookahead,
+	 * move the upper half to the lower one to make room in the upper half.
+	 */
+	if (more == (unsigned) -1) {
+		/* Very unlikely, but possible on 16 bit machine if strstart == 0
+		 * and lookahead == 1 (input done one byte at time)
+		 */
+		more--;
+	} else if (strstart >= WSIZE + MAX_DIST) {
+		/* By the IN assertion, the window is not empty so we can't confuse
+		 * more == 0 with more == 64K on a 16 bit machine.
+		 */
+		Assert(WINDOW_SIZE == 2 * WSIZE, "no sliding with BIG_MEM");
+
+		memcpy(window, window + WSIZE, WSIZE);
+		match_start -= WSIZE;
+		strstart -= WSIZE;	/* we now have strstart >= MAX_DIST: */
+
+		block_start -= WSIZE;
+
+		for (n = 0; n < HASH_SIZE; n++) {
+			m = head[n];
+			head[n] = (Pos) (m >= WSIZE ? m - WSIZE : 0);
+		}
+		for (n = 0; n < WSIZE; n++) {
+			m = prev[n];
+			prev[n] = (Pos) (m >= WSIZE ? m - WSIZE : 0);
+			/* If n is not on any hash chain, prev[n] is garbage but
+			 * its value will never be used.
+			 */
+		}
+		more += WSIZE;
+	}
+	/* At this point, more >= 2 */
+	if (!eofile) {
+		n = file_read(window + strstart + lookahead, more);
+		if (n == 0 || n == (unsigned) -1) {
+			eofile = 1;
+		} else {
+			lookahead += n;
+		}
+	}
+}
+
+
+/* ===========================================================================
  * Update a hash value with the given input byte
  * IN  assertion: all calls to to UPDATE_HASH are made with consecutive
  *    input characters, so that a running hash key can be computed from the
@@ -746,202 +791,6 @@ static void check_match(IPos start, IPos match, int length)
 #endif
 
 
-/* ===========================================================================
- * Fill the window when the lookahead becomes insufficient.
- * Updates strstart and lookahead, and sets eofile if end of input file.
- * IN assertion: lookahead < MIN_LOOKAHEAD && strstart + lookahead > 0
- * OUT assertions: at least one byte has been read, or eofile is set;
- *    file reads are performed for at least two bytes (required for the
- *    translate_eol option).
- */
-static void fill_window(void)
-{
-	unsigned n, m;
-	unsigned more =	WINDOW_SIZE - lookahead - strstart;
-	/* Amount of free space at the end of the window. */
-
-	/* If the window is almost full and there is insufficient lookahead,
-	 * move the upper half to the lower one to make room in the upper half.
-	 */
-	if (more == (unsigned) -1) {
-		/* Very unlikely, but possible on 16 bit machine if strstart == 0
-		 * and lookahead == 1 (input done one byte at time)
-		 */
-		more--;
-	} else if (strstart >= WSIZE + MAX_DIST) {
-		/* By the IN assertion, the window is not empty so we can't confuse
-		 * more == 0 with more == 64K on a 16 bit machine.
-		 */
-		Assert(WINDOW_SIZE == 2 * WSIZE, "no sliding with BIG_MEM");
-
-		memcpy(window, window + WSIZE, WSIZE);
-		match_start -= WSIZE;
-		strstart -= WSIZE;	/* we now have strstart >= MAX_DIST: */
-
-		block_start -= WSIZE;
-
-		for (n = 0; n < HASH_SIZE; n++) {
-			m = head[n];
-			head[n] = (Pos) (m >= WSIZE ? m - WSIZE : 0);
-		}
-		for (n = 0; n < WSIZE; n++) {
-			m = prev[n];
-			prev[n] = (Pos) (m >= WSIZE ? m - WSIZE : 0);
-			/* If n is not on any hash chain, prev[n] is garbage but
-			 * its value will never be used.
-			 */
-		}
-		more += WSIZE;
-	}
-	/* At this point, more >= 2 */
-	if (!eofile) {
-		n = file_read(window + strstart + lookahead, more);
-		if (n == 0 || n == (unsigned) -1) {
-			eofile = 1;
-		} else {
-			lookahead += n;
-		}
-	}
-}
-
-
-/* ===========================================================================
- * Same as above, but achieves better compression. We use a lazy
- * evaluation for matches: a match is finally adopted only if there is
- * no better match at the next window position.
- *
- * Processes a new input file and return its compressed length. Sets
- * the compressed length, crc, deflate flags and internal file
- * attributes.
- */
-
-/* Flush the current block, with given end-of-file flag.
- * IN assertion: strstart is set to the end of the current match. */
-#define FLUSH_BLOCK(eof) \
-	flush_block( \
-		block_start >= 0L \
-			? (char*)&window[(unsigned)block_start] \
-			: (char*)NULL, \
-		(long)strstart - block_start, \
-		(eof) \
-	)
-
-/* Insert string s in the dictionary and set match_head to the previous head
- * of the hash chain (the most recent string with same hash key). Return
- * the previous length of the hash chain.
- * IN  assertion: all calls to to INSERT_STRING are made with consecutive
- *    input characters and the first MIN_MATCH bytes of s are valid
- *    (except for the last MIN_MATCH-1 bytes of the input file). */
-#define INSERT_STRING(s, match_head) \
-{ \
-	UPDATE_HASH(ins_h, window[(s) + MIN_MATCH-1]); \
-	prev[(s) & WMASK] = match_head = head[ins_h]; \
-	head[ins_h] = (s); \
-}
-
-static ulg deflate(void)
-{
-	IPos hash_head;		/* head of hash chain */
-	IPos prev_match;	/* previous match */
-	int flush;			/* set if current block must be flushed */
-	int match_available = 0;	/* set if previous match exists */
-	unsigned match_length = MIN_MATCH - 1;	/* length of best match */
-
-	/* Process the input block. */
-	while (lookahead != 0) {
-		/* Insert the string window[strstart .. strstart+2] in the
-		 * dictionary, and set hash_head to the head of the hash chain:
-		 */
-		INSERT_STRING(strstart, hash_head);
-
-		/* Find the longest match, discarding those <= prev_length.
-		 */
-		prev_length = match_length, prev_match = match_start;
-		match_length = MIN_MATCH - 1;
-
-		if (hash_head != 0 && prev_length < max_lazy_match
-		 && strstart - hash_head <= MAX_DIST
-		) {
-			/* To simplify the code, we prevent matches with the string
-			 * of window index 0 (in particular we have to avoid a match
-			 * of the string with itself at the start of the input file).
-			 */
-			match_length = longest_match(hash_head);
-			/* longest_match() sets match_start */
-			if (match_length > lookahead)
-				match_length = lookahead;
-
-			/* Ignore a length 3 match if it is too distant: */
-			if (match_length == MIN_MATCH && strstart - match_start > TOO_FAR) {
-				/* If prev_match is also MIN_MATCH, match_start is garbage
-				 * but we will ignore the current match anyway.
-				 */
-				match_length--;
-			}
-		}
-		/* If there was a match at the previous step and the current
-		 * match is not better, output the previous match:
-		 */
-		if (prev_length >= MIN_MATCH && match_length <= prev_length) {
-			check_match(strstart - 1, prev_match, prev_length);
-			flush = ct_tally(strstart - 1 - prev_match, prev_length - MIN_MATCH);
-
-			/* Insert in hash table all strings up to the end of the match.
-			 * strstart-1 and strstart are already inserted.
-			 */
-			lookahead -= prev_length - 1;
-			prev_length -= 2;
-			do {
-				strstart++;
-				INSERT_STRING(strstart, hash_head);
-				/* strstart never exceeds WSIZE-MAX_MATCH, so there are
-				 * always MIN_MATCH bytes ahead. If lookahead < MIN_MATCH
-				 * these bytes are garbage, but it does not matter since the
-				 * next lookahead bytes will always be emitted as literals.
-				 */
-			} while (--prev_length != 0);
-			match_available = 0;
-			match_length = MIN_MATCH - 1;
-			strstart++;
-			if (flush) {
-				FLUSH_BLOCK(0);
-				block_start = strstart;
-			}
-		} else if (match_available) {
-			/* If there was no match at the previous position, output a
-			 * single literal. If there was a match but the current match
-			 * is longer, truncate the previous match to a single literal.
-			 */
-			Tracevv((stderr, "%c", window[strstart - 1]));
-			if (ct_tally(0, window[strstart - 1])) {
-				FLUSH_BLOCK(0);
-				block_start = strstart;
-			}
-			strstart++;
-			lookahead--;
-		} else {
-			/* There is no previous match to compare with, wait for
-			 * the next step to decide.
-			 */
-			match_available = 1;
-			strstart++;
-			lookahead--;
-		}
-		Assert(strstart <= isize && lookahead <= isize, "a bit too far");
-
-		/* Make sure that we always have enough lookahead, except
-		 * at the end of the input file. We need MAX_MATCH bytes
-		 * for the next match, plus MIN_MATCH bytes to insert the
-		 * string following the next match.
-		 */
-		while (lookahead < MIN_LOOKAHEAD && !eofile)
-			fill_window();
-	}
-	if (match_available)
-		ct_tally(0, window[strstart - 1]);
-
-	return FLUSH_BLOCK(1);	/* eof */
-}
 /* trees.c -- output deflated data using Huffman coding
  * Copyright (C) 1992-1993 Jean-loup Gailly
  * This is free software; you can redistribute it and/or modify it under the
@@ -989,10 +838,6 @@ static ulg deflate(void)
  *          Determine the best encoding for the current block: dynamic trees,
  *          static trees or store, and output the encoded block to the zip
  *          file. Returns the total compressed length for the file so far.
- */
-
-/* ===========================================================================
- * Constants
  */
 
 #define MAX_BITS 15
@@ -1087,9 +932,7 @@ static const extra_bits_t extra_blbits[BL_CODES] = {
 /* repeat a zero length 11-138 times  (7 bits of repeat count) */
 
 /* ===========================================================================
- * Local data
- */
-
+*/
 /* Data structure describing a single value and its code string. */
 typedef struct ct_data {
 	union {
@@ -1231,8 +1074,6 @@ static int *file_method;	/* pointer to DEFLATE or STORE */
 
 /* ===========================================================================
  */
-static void init_block(void);
-static void gen_bitlen(tree_desc * desc);
 static void gen_codes(ct_data * tree, int max_code);
 static void build_tree(tree_desc * desc);
 static void scan_tree(ct_data * tree, int max_code);
@@ -1240,7 +1081,6 @@ static void send_tree(ct_data * tree, int max_code);
 static int build_bl_tree(void);
 static void send_all_trees(int lcodes, int dcodes, int blcodes);
 static void compress_block(ct_data * ltree, ct_data * dtree);
-static void set_file_type(void);
 
 
 #ifndef DEBUG
@@ -1259,9 +1099,31 @@ static void set_file_type(void);
 /* Mapping from a distance to a distance code. dist is the distance - 1 and
  * must not have side effects. dist_code[256] and dist_code[257] are never
  * used.
+ * The arguments must not have side effects.
  */
 
-/* the arguments must not have side effects */
+
+/* ===========================================================================
+ * Initialize a new block.
+ */
+static void init_block(void)
+{
+	int n; /* iterates over tree elements */
+
+	/* Initialize the trees. */
+	for (n = 0; n < L_CODES; n++)
+		dyn_ltree[n].Freq = 0;
+	for (n = 0; n < D_CODES; n++)
+		dyn_dtree[n].Freq = 0;
+	for (n = 0; n < BL_CODES; n++)
+		bl_tree[n].Freq = 0;
+
+	dyn_ltree[END_BLOCK].Freq = 1;
+	opt_len = static_len = 0L;
+	last_lit = last_dist = last_flags = 0;
+	flags = 0;
+	flag_bit = 1;
+}
 
 
 /* ===========================================================================
@@ -1289,7 +1151,7 @@ static void ct_init(ush * attr, int *methodp)
 	for (code = 0; code < LENGTH_CODES - 1; code++) {
 		base_length[code] = length;
 		for (n = 0; n < (1 << extra_lbits[code]); n++) {
-			length_code[length++] = (uch) code;
+			length_code[length++] = code;
 		}
 	}
 	Assert(length == 256, "ct_init: length != 256");
@@ -1297,7 +1159,7 @@ static void ct_init(ush * attr, int *methodp)
 	 * in two different ways: code 284 + 5 bits or code 285, so we
 	 * overwrite length_code[255] to use the best encoding:
 	 */
-	length_code[length - 1] = (uch) code;
+	length_code[length - 1] = code;
 
 	/* Initialize the mapping dist (0..32K) -> dist code (0..29) */
 	dist = 0;
@@ -1352,29 +1214,6 @@ static void ct_init(ush * attr, int *methodp)
 
 	/* Initialize the first block of the first file: */
 	init_block();
-}
-
-
-/* ===========================================================================
- * Initialize a new block.
- */
-static void init_block(void)
-{
-	int n; /* iterates over tree elements */
-
-	/* Initialize the trees. */
-	for (n = 0; n < L_CODES; n++)
-		dyn_ltree[n].Freq = 0;
-	for (n = 0; n < D_CODES; n++)
-		dyn_dtree[n].Freq = 0;
-	for (n = 0; n < BL_CODES; n++)
-		bl_tree[n].Freq = 0;
-
-	dyn_ltree[END_BLOCK].Freq = 1;
-	opt_len = static_len = 0L;
-	last_lit = last_dist = last_flags = 0;
-	flags = 0;
-	flag_bit = 1;
 }
 
 
@@ -1470,7 +1309,7 @@ static void gen_bitlen(tree_desc * desc)
 		opt_len += (ulg) f *(bits + xbits);
 
 		if (stree)
-			static_len += (ulg) f *(stree[n].Len + xbits);
+			static_len += (ulg) f * (stree[n].Len + xbits);
 	}
 	if (overflow == 0)
 		return;
@@ -1512,6 +1351,7 @@ static void gen_bitlen(tree_desc * desc)
 		}
 	}
 }
+
 
 /* ===========================================================================
  * Generate the codes for a given tree and bit counts (which need not be
@@ -1555,6 +1395,7 @@ static void gen_codes(ct_data * tree, int max_code)
 				next_code[len] - 1));
 	}
 }
+
 
 /* ===========================================================================
  * Construct one Huffman tree and assigns the code bit strings and lengths.
@@ -1662,6 +1503,7 @@ static void build_tree(tree_desc * desc)
 	gen_codes((ct_data *) tree, max_code);
 }
 
+
 /* ===========================================================================
  * Scan a literal or distance tree to determine the frequencies of the codes
  * in the bit length tree. Updates opt_len to take into account the repeat
@@ -1714,6 +1556,7 @@ static void scan_tree(ct_data * tree, int max_code)
 		}
 	}
 }
+
 
 /* ===========================================================================
  * Send a literal or distance tree in compressed form, using the codes in
@@ -1772,6 +1615,7 @@ static void send_tree(ct_data * tree, int max_code)
 	}
 }
 
+
 /* ===========================================================================
  * Construct the Huffman tree for the bit lengths and return the index in
  * bl_order of the last bit length code to send.
@@ -1805,6 +1649,7 @@ static int build_bl_tree(void)
 	return max_blindex;
 }
 
+
 /* ===========================================================================
  * Send the header for a block using dynamic Huffman trees: the counts, the
  * lengths of the bit length codes, the literal tree and the distance tree.
@@ -1834,99 +1679,31 @@ static void send_all_trees(int lcodes, int dcodes, int blcodes)
 	Tracev((stderr, "\ndist tree: sent %ld", bits_sent));
 }
 
+
 /* ===========================================================================
- * Determine the best encoding for the current block: dynamic trees, static
- * trees or store, and output the encoded block to the zip file. This function
- * returns the total compressed length for the file so far.
+ * Set the file type to ASCII or BINARY, using a crude approximation:
+ * binary if more than 20% of the bytes are <= 6 or >= 128, ascii otherwise.
+ * IN assertion: the fields freq of dyn_ltree are set and the total of all
+ * frequencies does not exceed 64K (to fit in an int on 16 bit machines).
  */
-static ulg flush_block(char *buf, ulg stored_len, int eof)
+static void set_file_type(void)
 {
-	ulg opt_lenb, static_lenb;	/* opt_len and static_len in bytes */
-	int max_blindex;	/* index of last bit length code of non zero freq */
+	int n = 0;
+	unsigned ascii_freq = 0;
+	unsigned bin_freq = 0;
 
-	flag_buf[last_flags] = flags;	/* Save the flags for the last 8 items */
-
-	/* Check if the file is ascii or binary */
-	if (*file_type == (ush) UNKNOWN)
-		set_file_type();
-
-	/* Construct the literal and distance trees */
-	build_tree((tree_desc *) (&l_desc));
-	Tracev((stderr, "\nlit data: dyn %ld, stat %ld", opt_len, static_len));
-
-	build_tree((tree_desc *) (&d_desc));
-	Tracev((stderr, "\ndist data: dyn %ld, stat %ld", opt_len, static_len));
-	/* At this point, opt_len and static_len are the total bit lengths of
-	 * the compressed block data, excluding the tree representations.
-	 */
-
-	/* Build the bit length tree for the above two trees, and get the index
-	 * in bl_order of the last bit length code to send.
-	 */
-	max_blindex = build_bl_tree();
-
-	/* Determine the best encoding. Compute first the block length in bytes */
-	opt_lenb = (opt_len + 3 + 7) >> 3;
-	static_lenb = (static_len + 3 + 7) >> 3;
-
-	Trace((stderr,
-		   "\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u dist %u ",
-		   opt_lenb, opt_len, static_lenb, static_len, stored_len,
-		   last_lit, last_dist));
-
-	if (static_lenb <= opt_lenb)
-		opt_lenb = static_lenb;
-
-	/* If compression failed and this is the first and last block,
-	 * and if the zip file can be seeked (to rewrite the local header),
-	 * the whole file is transformed into a stored file:
-	 */
-	if (stored_len <= opt_lenb && eof && compressed_len == 0L && seekable()) {
-		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
-		if (buf == NULL)
-			bb_error_msg("block vanished");
-
-		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
-		compressed_len = stored_len << 3;
-		*file_method = STORED;
-
-	} else if (stored_len + 4 <= opt_lenb && buf != (char *) 0) {
-		/* 4: two words for the lengths */
-		/* The test buf != NULL is only necessary if LIT_BUFSIZE > WSIZE.
-		 * Otherwise we can't have processed more than WSIZE input bytes since
-		 * the last block flush, because compression would have been
-		 * successful. If LIT_BUFSIZE <= WSIZE, it is never too late to
-		 * transform a block into a stored block.
-		 */
-		send_bits((STORED_BLOCK << 1) + eof, 3);	/* send block type */
-		compressed_len = (compressed_len + 3 + 7) & ~7L;
-		compressed_len += (stored_len + 4) << 3;
-
-		copy_block(buf, (unsigned) stored_len, 1);	/* with header */
-
-	} else if (static_lenb == opt_lenb) {
-		send_bits((STATIC_TREES << 1) + eof, 3);
-		compress_block((ct_data *) static_ltree, (ct_data *) static_dtree);
-		compressed_len += 3 + static_len;
-	} else {
-		send_bits((DYN_TREES << 1) + eof, 3);
-		send_all_trees(l_desc.max_code + 1, d_desc.max_code + 1,
-					   max_blindex + 1);
-		compress_block((ct_data *) dyn_ltree, (ct_data *) dyn_dtree);
-		compressed_len += 3 + opt_len;
+	while (n < 7)
+		bin_freq += dyn_ltree[n++].Freq;
+	while (n < 128)
+		ascii_freq += dyn_ltree[n++].Freq;
+	while (n < LITERALS)
+		bin_freq += dyn_ltree[n++].Freq;
+	*file_type = (bin_freq > (ascii_freq >> 2)) ? BINARY : ASCII;
+	if (*file_type == BINARY && translate_eol) {
+		bb_error_msg("-l used on binary file");
 	}
-	Assert(compressed_len == bits_sent, "bad compressed size");
-	init_block();
-
-	if (eof) {
-		bi_windup();
-		compressed_len += 7;	/* align on byte boundary */
-	}
-	Tracev((stderr, "\ncomprlen %lu(%lu) ", compressed_len >> 3,
-			compressed_len - 7 * eof));
-
-	return compressed_len >> 3;
 }
+
 
 /* ===========================================================================
  * Save the match info and tally the frequency counts. Return true if
@@ -2034,29 +1811,240 @@ static void compress_block(ct_data * ltree, ct_data * dtree)
 	SEND_CODE(END_BLOCK, ltree);
 }
 
-/* ===========================================================================
- * Set the file type to ASCII or BINARY, using a crude approximation:
- * binary if more than 20% of the bytes are <= 6 or >= 128, ascii otherwise.
- * IN assertion: the fields freq of dyn_ltree are set and the total of all
- * frequencies does not exceed 64K (to fit in an int on 16 bit machines).
- */
-static void set_file_type(void)
-{
-	int n = 0;
-	unsigned ascii_freq = 0;
-	unsigned bin_freq = 0;
 
-	while (n < 7)
-		bin_freq += dyn_ltree[n++].Freq;
-	while (n < 128)
-		ascii_freq += dyn_ltree[n++].Freq;
-	while (n < LITERALS)
-		bin_freq += dyn_ltree[n++].Freq;
-	*file_type = (bin_freq > (ascii_freq >> 2)) ? BINARY : ASCII;
-	if (*file_type == BINARY && translate_eol) {
-		bb_error_msg("-l used on binary file");
+/* ===========================================================================
+ * Determine the best encoding for the current block: dynamic trees, static
+ * trees or store, and output the encoded block to the zip file. This function
+ * returns the total compressed length for the file so far.
+ */
+static ulg flush_block(char *buf, ulg stored_len, int eof)
+{
+	ulg opt_lenb, static_lenb;	/* opt_len and static_len in bytes */
+	int max_blindex;	/* index of last bit length code of non zero freq */
+
+	flag_buf[last_flags] = flags;	/* Save the flags for the last 8 items */
+
+	/* Check if the file is ascii or binary */
+	if (*file_type == (ush) UNKNOWN)
+		set_file_type();
+
+	/* Construct the literal and distance trees */
+	build_tree((tree_desc *) (&l_desc));
+	Tracev((stderr, "\nlit data: dyn %ld, stat %ld", opt_len, static_len));
+
+	build_tree((tree_desc *) (&d_desc));
+	Tracev((stderr, "\ndist data: dyn %ld, stat %ld", opt_len, static_len));
+	/* At this point, opt_len and static_len are the total bit lengths of
+	 * the compressed block data, excluding the tree representations.
+	 */
+
+	/* Build the bit length tree for the above two trees, and get the index
+	 * in bl_order of the last bit length code to send.
+	 */
+	max_blindex = build_bl_tree();
+
+	/* Determine the best encoding. Compute first the block length in bytes */
+	opt_lenb = (opt_len + 3 + 7) >> 3;
+	static_lenb = (static_len + 3 + 7) >> 3;
+
+	Trace((stderr,
+		   "\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u dist %u ",
+		   opt_lenb, opt_len, static_lenb, static_len, stored_len,
+		   last_lit, last_dist));
+
+	if (static_lenb <= opt_lenb)
+		opt_lenb = static_lenb;
+
+	/* If compression failed and this is the first and last block,
+	 * and if the zip file can be seeked (to rewrite the local header),
+	 * the whole file is transformed into a stored file:
+	 */
+	if (stored_len <= opt_lenb && eof && compressed_len == 0L && seekable()) {
+		/* Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there: */
+		if (buf == NULL)
+			bb_error_msg("block vanished");
+
+		copy_block(buf, (unsigned) stored_len, 0);	/* without header */
+		compressed_len = stored_len << 3;
+		*file_method = STORED;
+
+	} else if (stored_len + 4 <= opt_lenb && buf != (char *) 0) {
+		/* 4: two words for the lengths */
+		/* The test buf != NULL is only necessary if LIT_BUFSIZE > WSIZE.
+		 * Otherwise we can't have processed more than WSIZE input bytes since
+		 * the last block flush, because compression would have been
+		 * successful. If LIT_BUFSIZE <= WSIZE, it is never too late to
+		 * transform a block into a stored block.
+		 */
+		send_bits((STORED_BLOCK << 1) + eof, 3);	/* send block type */
+		compressed_len = (compressed_len + 3 + 7) & ~7L;
+		compressed_len += (stored_len + 4) << 3;
+
+		copy_block(buf, (unsigned) stored_len, 1);	/* with header */
+
+	} else if (static_lenb == opt_lenb) {
+		send_bits((STATIC_TREES << 1) + eof, 3);
+		compress_block((ct_data *) static_ltree, (ct_data *) static_dtree);
+		compressed_len += 3 + static_len;
+	} else {
+		send_bits((DYN_TREES << 1) + eof, 3);
+		send_all_trees(l_desc.max_code + 1, d_desc.max_code + 1,
+					   max_blindex + 1);
+		compress_block((ct_data *) dyn_ltree, (ct_data *) dyn_dtree);
+		compressed_len += 3 + opt_len;
 	}
+	Assert(compressed_len == bits_sent, "bad compressed size");
+	init_block();
+
+	if (eof) {
+		bi_windup();
+		compressed_len += 7;	/* align on byte boundary */
+	}
+	Tracev((stderr, "\ncomprlen %lu(%lu) ", compressed_len >> 3,
+			compressed_len - 7 * eof));
+
+	return compressed_len >> 3;
 }
+
+
+/* ===========================================================================
+ * Same as above, but achieves better compression. We use a lazy
+ * evaluation for matches: a match is finally adopted only if there is
+ * no better match at the next window position.
+ *
+ * Processes a new input file and return its compressed length. Sets
+ * the compressed length, crc, deflate flags and internal file
+ * attributes.
+ */
+
+/* Flush the current block, with given end-of-file flag.
+ * IN assertion: strstart is set to the end of the current match. */
+#define FLUSH_BLOCK(eof) \
+	flush_block( \
+		block_start >= 0L \
+			? (char*)&window[(unsigned)block_start] \
+			: (char*)NULL, \
+		(long)strstart - block_start, \
+		(eof) \
+	)
+
+/* Insert string s in the dictionary and set match_head to the previous head
+ * of the hash chain (the most recent string with same hash key). Return
+ * the previous length of the hash chain.
+ * IN  assertion: all calls to to INSERT_STRING are made with consecutive
+ *    input characters and the first MIN_MATCH bytes of s are valid
+ *    (except for the last MIN_MATCH-1 bytes of the input file). */
+#define INSERT_STRING(s, match_head) \
+{ \
+	UPDATE_HASH(ins_h, window[(s) + MIN_MATCH-1]); \
+	prev[(s) & WMASK] = match_head = head[ins_h]; \
+	head[ins_h] = (s); \
+}
+
+static ulg deflate(void)
+{
+	IPos hash_head;		/* head of hash chain */
+	IPos prev_match;	/* previous match */
+	int flush;			/* set if current block must be flushed */
+	int match_available = 0;	/* set if previous match exists */
+	unsigned match_length = MIN_MATCH - 1;	/* length of best match */
+
+	/* Process the input block. */
+	while (lookahead != 0) {
+		/* Insert the string window[strstart .. strstart+2] in the
+		 * dictionary, and set hash_head to the head of the hash chain:
+		 */
+		INSERT_STRING(strstart, hash_head);
+
+		/* Find the longest match, discarding those <= prev_length.
+		 */
+		prev_length = match_length, prev_match = match_start;
+		match_length = MIN_MATCH - 1;
+
+		if (hash_head != 0 && prev_length < max_lazy_match
+		 && strstart - hash_head <= MAX_DIST
+		) {
+			/* To simplify the code, we prevent matches with the string
+			 * of window index 0 (in particular we have to avoid a match
+			 * of the string with itself at the start of the input file).
+			 */
+			match_length = longest_match(hash_head);
+			/* longest_match() sets match_start */
+			if (match_length > lookahead)
+				match_length = lookahead;
+
+			/* Ignore a length 3 match if it is too distant: */
+			if (match_length == MIN_MATCH && strstart - match_start > TOO_FAR) {
+				/* If prev_match is also MIN_MATCH, match_start is garbage
+				 * but we will ignore the current match anyway.
+				 */
+				match_length--;
+			}
+		}
+		/* If there was a match at the previous step and the current
+		 * match is not better, output the previous match:
+		 */
+		if (prev_length >= MIN_MATCH && match_length <= prev_length) {
+			check_match(strstart - 1, prev_match, prev_length);
+			flush = ct_tally(strstart - 1 - prev_match, prev_length - MIN_MATCH);
+
+			/* Insert in hash table all strings up to the end of the match.
+			 * strstart-1 and strstart are already inserted.
+			 */
+			lookahead -= prev_length - 1;
+			prev_length -= 2;
+			do {
+				strstart++;
+				INSERT_STRING(strstart, hash_head);
+				/* strstart never exceeds WSIZE-MAX_MATCH, so there are
+				 * always MIN_MATCH bytes ahead. If lookahead < MIN_MATCH
+				 * these bytes are garbage, but it does not matter since the
+				 * next lookahead bytes will always be emitted as literals.
+				 */
+			} while (--prev_length != 0);
+			match_available = 0;
+			match_length = MIN_MATCH - 1;
+			strstart++;
+			if (flush) {
+				FLUSH_BLOCK(0);
+				block_start = strstart;
+			}
+		} else if (match_available) {
+			/* If there was no match at the previous position, output a
+			 * single literal. If there was a match but the current match
+			 * is longer, truncate the previous match to a single literal.
+			 */
+			Tracevv((stderr, "%c", window[strstart - 1]));
+			if (ct_tally(0, window[strstart - 1])) {
+				FLUSH_BLOCK(0);
+				block_start = strstart;
+			}
+			strstart++;
+			lookahead--;
+		} else {
+			/* There is no previous match to compare with, wait for
+			 * the next step to decide.
+			 */
+			match_available = 1;
+			strstart++;
+			lookahead--;
+		}
+		Assert(strstart <= isize && lookahead <= isize, "a bit too far");
+
+		/* Make sure that we always have enough lookahead, except
+		 * at the end of the input file. We need MAX_MATCH bytes
+		 * for the next match, plus MIN_MATCH bytes to insert the
+		 * string following the next match.
+		 */
+		while (lookahead < MIN_LOOKAHEAD && !eofile)
+			fill_window();
+	}
+	if (match_available)
+		ct_tally(0, window[strstart - 1]);
+
+	return FLUSH_BLOCK(1);	/* eof */
+}
+
 
 /* ===========================================================================
  * Deflate in to out.
