@@ -67,6 +67,7 @@
 
 /* XXX: FIXME: the following variables should be static, but gcc currently
  * creates a much bigger object if we do this. [which version of gcc? --vda] */
+/* 4.x, IIRC also 3.x --bernhard */
 /* This is the default number of lines of context. */
 int context = 3;
 int status;
@@ -75,7 +76,7 @@ const char *label1;
 const char *label2;
 struct stat stb1, stb2;
 char **dl;
-USE_FEATURE_DIFF_DIR(static int dl_count;)
+USE_FEATURE_DIFF_DIR(int dl_count;)
 
 struct cand {
 	int x;
@@ -108,7 +109,7 @@ static int clen;
 static int len[2];
 static int pref, suff;	/* length of prefix and suffix */
 static int slen[2];
-static int anychange;
+static smallint anychange;
 static long *ixnew;		/* will be overlaid on file[1] */
 static long *ixold;		/* will be overlaid on klist */
 static struct cand *clist;	/* merely a free storage pot for candidates */
@@ -129,9 +130,9 @@ static void print_only(const char *path, size_t dirlen, const char *entry)
 
 static void print_status(int val, char *path1, char *path2, char *entry)
 {
-	const char *const _entry = entry ? entry : "";
-	char *_path1 = entry ? concat_path_file(path1, _entry) : path1;
-	char *_path2 = entry ? concat_path_file(path2, _entry) : path2;
+	const char * const _entry = entry ? entry : "";
+	char * const _path1 = entry ? concat_path_file(path1, _entry) : path1;
+	char * const _path2 = entry ? concat_path_file(path2, _entry) : path2;
 
 	switch (val) {
 	case D_ONLY:
@@ -173,8 +174,10 @@ static void print_status(int val, char *path1, char *path2, char *entry)
 		free(_path2);
 	}
 }
-
-
+static void fiddle_sum(int *sum, int t)
+{
+	*sum = (int)(*sum * 127 + t);
+}
 /*
  * Hash function taken from Robert Sedgewick, Algorithms in C, 3d ed., p 578.
  */
@@ -186,23 +189,14 @@ static int readhash(FILE * f)
 	sum = 1;
 	space = 0;
 	if (!(option_mask32 & FLAG_b) && !(option_mask32 & FLAG_w)) {
-		if (FLAG_i)
-			for (i = 0; (t = getc(f)) != '\n'; i++) {
-				if (t == EOF) {
-					if (i == 0)
-						return 0;
-					break;
-				}
-				sum = sum * 127 + t;
-		} else
-			for (i = 0; (t = getc(f)) != '\n'; i++) {
-				if (t == EOF) {
-					if (i == 0)
-						return 0;
-					break;
-				}
-				sum = sum * 127 + t;
+		for (i = 0; (t = getc(f)) != '\n'; i++) {
+			if (t == EOF) {
+				if (i == 0)
+					return 0;
+				break;
 			}
+			fiddle_sum(&sum, t);
+		}
 	} else {
 		for (i = 0;;) {
 			switch (t = getc(f)) {
@@ -218,7 +212,7 @@ static int readhash(FILE * f)
 					i++;
 					space = 0;
 				}
-				sum = sum * 127 + t;
+				fiddle_sum(&sum, t);
 				i++;
 				continue;
 			case EOF:
@@ -298,10 +292,12 @@ static void prune(void)
 	int i, j;
 
 	for (pref = 0; pref < len[0] && pref < len[1] &&
-		 file[0][pref + 1].value == file[1][pref + 1].value; pref++);
+		 file[0][pref + 1].value == file[1][pref + 1].value; pref++)
+		 ;
 	for (suff = 0; suff < len[0] - pref && suff < len[1] - pref &&
 		 file[0][len[0] - suff].value == file[1][len[1] - suff].value;
-		 suff++);
+		 suff++)
+		 ;
 	for (j = 0; j < 2; j++) {
 		sfile[j] = file[j] + pref;
 		slen[j] = len[j] - pref - suff;
@@ -621,12 +617,12 @@ static void uni_range(int a, int b)
 }
 
 
-static int fetch(long *f, int a, int b, FILE * lb, int ch)
+static void fetch(long *f, int a, int b, FILE * lb, int ch)
 {
 	int i, j, c, lastc, col, nc;
 
 	if (a > b)
-		return 0;
+		return;
 	for (i = a; i <= b; i++) {
 		fseek(lb, f[i - 1], SEEK_SET);
 		nc = f[i] - f[i - 1];
@@ -638,8 +634,8 @@ static int fetch(long *f, int a, int b, FILE * lb, int ch)
 		col = 0;
 		for (j = 0, lastc = '\0'; j < nc; j++, lastc = c) {
 			if ((c = getc(lb)) == EOF) {
-				puts("\n\\ No newline at end of file");
-				return 0;
+				printf("\n\\ No newline at end of file\n");
+				return;
 			}
 			if (c == '\t' && (option_mask32 & FLAG_t)) {
 				do {
@@ -651,7 +647,7 @@ static int fetch(long *f, int a, int b, FILE * lb, int ch)
 			}
 		}
 	}
-	return 0;
+	return;
 }
 
 
@@ -695,12 +691,11 @@ static void dump_unified_vec(FILE * f1, FILE * f2)
 	lowc = MAX(1, cvp->c - context);
 	upd = MIN(len[1], context_vec_ptr->d + context);
 
-	fputs("@@ -", stdout);
+	printf("@@ -");
 	uni_range(lowa, upb);
-	fputs(" +", stdout);
+	printf(" +");
 	uni_range(lowc, upd);
-	fputs(" @@", stdout);
-	putchar('\n');
+	printf(" @@\n");
 
 	/*
 	 * Output changes in "unified" diff format--the old and new lines
@@ -894,13 +889,12 @@ static void output(char *file1, FILE * f1, char *file2, FILE * f2)
  *      3*(number of k-candidates installed),  typically about
  *      6n words for files of length n.
  */
-static int diffreg(char *ofile1, char *ofile2, int flags)
+static unsigned diffreg(char * ofile1, char * ofile2, int flags)
 {
 	char *file1 = ofile1;
 	char *file2 = ofile2;
-	FILE *f1 = stdin;
-	FILE *f2 = stdin;
-	int rval = D_SAME;
+	FILE *f1 = stdin, *f2 = stdin;
+	unsigned rval;
 	int i;
 
 	anychange = 0;
@@ -908,6 +902,9 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 
 	if (S_ISDIR(stb1.st_mode) != S_ISDIR(stb2.st_mode))
 		return (S_ISDIR(stb1.st_mode) ? D_MISMATCH1 : D_MISMATCH2);
+
+	rval = D_SAME;
+
 	if (LONE_DASH(file1) && LONE_DASH(file2))
 		goto closem;
 
@@ -980,10 +977,8 @@ static int diffreg(char *ofile1, char *ofile2, int flags)
 		if (rval == D_SAME)
 			rval = D_DIFFER;
 	}
-	if (f1 != NULL)
-		fclose(f1);
-	if (f2 != NULL)
-		fclose(f2);
+	fclose_if_not_stdin(f1);
+	fclose_if_not_stdin(f2);
 	if (file1 != ofile1)
 		free(file1);
 	if (file2 != ofile2)
@@ -998,19 +993,23 @@ static void do_diff(char *dir1, char *path1, char *dir2, char *path2)
 	int flags = D_HEADER;
 	int val;
 
-	char *fullpath1 = xasprintf("%s/%s", dir1, path1);
-	char *fullpath2 = xasprintf("%s/%s", dir2, path2);
+	char *fullpath1 = concat_path_file(dir1, path1);
+	char *fullpath2 = concat_path_file(dir2, path2);
 
 	if (stat(fullpath1, &stb1) != 0) {
 		flags |= D_EMPTY1;
 		memset(&stb1, 0, sizeof(stb1));
-		fullpath1 = xasprintf("%s/%s", dir1, path2);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(fullpath1);
+		fullpath1 = concat_path_file(dir1, path2);
 	}
 	if (stat(fullpath2, &stb2) != 0) {
 		flags |= D_EMPTY2;
 		memset(&stb2, 0, sizeof(stb2));
 		stb2.st_mode = stb1.st_mode;
-		fullpath2 = xasprintf("%s/%s", dir2, path1);
+		if (ENABLE_FEATURE_CLEAN_UP)
+			free(fullpath2);
+		fullpath2 = concat_path_file(dir2, path1);
 	}
 
 	if (stb1.st_mode == 0)
@@ -1173,7 +1172,7 @@ static void diffdir(char *p1, char *p2)
 
 int diff_main(int argc, char **argv)
 {
-	int gotstdin = 0;
+	smallint gotstdin = 0;
 	char *U_opt;
 	char *f1, *f2;
 	llist_t *L_arg = NULL;
@@ -1234,6 +1233,7 @@ int diff_main(int argc, char **argv)
 			f2 = concat_path_file(f2, f1);
 			xstat(f2, &stb2);
 		}
+/* XXX: FIXME: */
 /* We can't diff e.g. stdin supplied by a pipe - we use rewind(), fseek().
  * This can be fixed (volunteers?) */
 		if (!S_ISREG(stb1.st_mode) || !S_ISREG(stb2.st_mode))
