@@ -408,7 +408,7 @@ static int arp_show(char *name)
 				continue;
 
 			/* if the user specified device differs, skip it */
-			if (device[0])
+			if (device[0] && strcmp(dev, device) != 0)
 				continue;
 
 			shown++;
