@@ -596,7 +596,7 @@
        "	-L	Use LABEL instead of the filename in the unified header\n" \
        "	-N	Treat absent files as empty\n" \
        "	-q	Output only whether files differ\n" \
-       "	-r	Recursively compare any subdirectories\n" \
+       "	-r	Recursively compare subdirectories\n" \
        "	-S	Start with FILE when comparing directories\n" \
        "	-T	Make tabs line up by prefixing a tab when necessary\n" \
        "	-s	Report when two files are the same\n" \
@@ -1347,7 +1347,7 @@
 #define inetd_full_usage \
        "Listen for network connections and launch programs" \
        "\n\nOptions:\n" \
-       "	-f	Run as a foreground progress\n" \
+       "	-f	Run as foreground progress\n" \
        "	-q	Sets the size of the socket listen queue to\n" \
        "		the specified value. Default is 128"
 
@@ -1648,7 +1648,7 @@
        "Kernel logger" \
        "\n\nOptions:\n" \
        "	-c n	Sets the default log level of console messages to n\n" \
-       "	-n	Run as a foreground process"
+       "	-n	Run as foreground process"
 
 #define length_trivial_usage \
        "STRING"
@@ -2029,7 +2029,7 @@
 #define mkswap_trivial_usage \
        "[-c] [-v0|-v1] device [block-count]"
 #define mkswap_full_usage \
-       "Prepare a disk partition to be used as a swap partition" \
+       "Prepare a disk partition to be used as swap partition" \
        "\n\nOptions:\n" \
        "	-c		Check for read-ability\n" \
        "	-v0		Make version 0 swap [max 128 Megs]\n" \
@@ -3030,7 +3030,7 @@
        "Note that this version of syslogd ignores /etc/syslog.conf." \
        "\n\nOptions:" \
        "\n	-m MIN		Minutes between MARK lines (default=20, 0=off)" \
-       "\n	-n		Run as a foreground process" \
+       "\n	-n		Run as foreground process" \
        "\n	-O FILE		Use an alternate log file (default=/var/log/messages)" \
        "\n	-l n		Sets the local log level of messages to n" \
        "\n	-S		Make logging output smaller" \
