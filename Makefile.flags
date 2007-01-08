@@ -23,6 +23,9 @@ CFLAGS += \
 
 ifeq ($(CONFIG_DEBUG),y)
 CFLAGS += -g
-LDFLAGS += -g
 endif
 
+ifeq ($(CONFIG_STATIC),y)
+LDFLAGS += -static
+endif
+LDFLAGS += -nostdlib

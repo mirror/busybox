@@ -273,8 +273,8 @@ MAKEFLAGS += -rR
 # Make variables (CC, etc...)
 
 AS		= $(CROSS_COMPILE)as
-LD		= $(CROSS_COMPILE)gcc -nostdlib
 CC		= $(CROSS_COMPILE)gcc
+LD		= $(CROSS_COMPILE)ld
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -529,7 +529,6 @@ libs-y1		:= $(patsubst %/, %/lib.a, $(libs-y))
 libs-y2		:= $(patsubst %/, %/built-in.o, $(libs-y))
 libs-y		:= $(libs-y1) $(libs-y2)
 
-
 # Build busybox
 # ---------------------------------------------------------------------------
 # busybox is build from the objects selected by $(busybox-init) and
@@ -562,18 +561,10 @@ busybox-all  := $(core-y) $(libs-y)
 # Rule to link busybox - also used during CONFIG_KALLSYMS
 # May be overridden by arch/$(ARCH)/Makefile
 quiet_cmd_busybox__ ?= LINK    $@
-ifdef CONFIG_STATIC
-      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) $(LDFLAGS) \
-      -static \
+      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) $(patsubst %,-Wl$(comma)%,$(LDFLAGS)) \
       -o $@ \
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
       -Wl,--start-group $(busybox-all) -Wl,--end-group
-else
-      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) $(LDFLAGS) \
-      -o $@ \
-      -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
-      -Wl,--start-group $(busybox-all) -Wl,--end-group
-endif
 
 # Generate System.map
 quiet_cmd_sysmap = SYSMAP 
