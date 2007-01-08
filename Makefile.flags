@@ -28,4 +28,4 @@ endif
 ifeq ($(CONFIG_STATIC),y)
 LDFLAGS += -static
 endif
-LDFLAGS += -nostdlib
+#LDFLAGS += -nostdlib
