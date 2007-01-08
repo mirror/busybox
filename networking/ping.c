@@ -12,23 +12,11 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/file.h>
-#include <sys/times.h>
-#include <signal.h>
-
-#include <netinet/in.h>
-#include <netinet/ip.h>
+//#include <netinet/in.h>
+//#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
+//#include <arpa/inet.h>
+//#include <netdb.h>
 #include "busybox.h"
 
 enum {
@@ -120,9 +108,8 @@ static void ping(const char *host)
 		c = recvfrom(pingsock, packet, sizeof(packet), 0,
 				(struct sockaddr *) &from, &fromlen);
 		if (c < 0) {
-			if (errno == EINTR)
-				continue;
-			bb_perror_msg("recvfrom");
+			if (errno != EINTR)
+				bb_perror_msg("recvfrom");
 			continue;
 		}
 		if (c >= 76) {			/* ip + icmp */
@@ -135,7 +122,6 @@ static void ping(const char *host)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP) close(pingsock);
 	printf("%s is alive!\n", hostname);
-	return;
 }
 
 int ping_main(int argc, char **argv)
@@ -231,7 +217,7 @@ static void sendping(int junk)
 
 	if (i < 0)
 		bb_perror_msg_and_die("sendto");
-	else if ((size_t)i != sizeof(packet))
+	if ((size_t)i != sizeof(packet))
 		bb_error_msg_and_die("ping wrote %d chars; %d expected", i,
 			   (int)sizeof(packet));
 
@@ -328,7 +314,8 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 	} else
 		if (icmppkt->icmp_type != ICMP_ECHO)
 			bb_error_msg("warning: got ICMP %d (%s)",
-					icmppkt->icmp_type, icmp_type_name(icmppkt->icmp_type));
+					icmppkt->icmp_type,
+					icmp_type_name(icmppkt->icmp_type));
 	fflush(stdout);
 }
 
@@ -380,11 +367,11 @@ static void ping(const char *host)
 		socklen_t fromlen = (socklen_t) sizeof(from);
 		int c;
 
-		if ((c = recvfrom(pingsock, packet, sizeof(packet), 0,
-						  (struct sockaddr *) &from, &fromlen)) < 0) {
-			if (errno == EINTR)
-				continue;
-			bb_perror_msg("recvfrom");
+		c = recvfrom(pingsock, packet, sizeof(packet), 0,
+				(struct sockaddr *) &from, &fromlen);
+		if (c < 0) {
+			if (errno != EINTR)
+				bb_perror_msg("recvfrom");
 			continue;
 		}
 		unpack(packet, c, &from);

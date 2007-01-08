@@ -22,26 +22,20 @@
  * The code was modified by Bart Visscher <magick@linux-fan.com>
  */
 
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/file.h>
-#include <sys/times.h>
-#include <signal.h>
-
-#include <netinet/in.h>
-#include <netinet/ip6.h>
+//#include <netinet/in.h>
+//#include <netinet/ip6.h>
 #include <netinet/icmp6.h>
-#include <arpa/inet.h>
+//#include <arpa/inet.h>
 #include <net/if.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stddef.h>				/* offsetof */
+//#include <netdb.h>
 #include "busybox.h"
+
+/* I see RENUMBERED constants in bits/in.h - !!?
+ * What a fuck is going on with libc? Is it a glibc joke? */
+#ifdef IPV6_2292HOPLIMIT
+#undef IPV6_HOPLIMIT
+#define IPV6_HOPLIMIT IPV6_2292HOPLIMIT
+#endif
 
 enum {
 	DEFDATALEN = 56,
@@ -94,7 +88,7 @@ static void ping(const char *host)
 	c = sendto(pingsock, packet, DEFDATALEN + sizeof (struct icmp6_hdr), 0,
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in6));
 
-	if (c < 0 || c != sizeof(packet)) {
+	if (c < 0) {
 		if (ENABLE_FEATURE_CLEAN_UP) close(pingsock);
 		bb_perror_msg_and_die("sendto");
 	}
@@ -109,9 +103,8 @@ static void ping(const char *host)
 		c = recvfrom(pingsock, packet, sizeof(packet), 0,
 				(struct sockaddr *) &from, &fromlen);
 		if (c < 0) {
-			if (errno == EINTR)
-				continue;
-			bb_perror_msg("recvfrom");
+			if (errno != EINTR)
+				bb_perror_msg("recvfrom");
 			continue;
 		}
 		if (c >= 8) {			/* icmp6_hdr */
@@ -122,7 +115,6 @@ static void ping(const char *host)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP) close(pingsock);
 	printf("%s is alive!\n", h->h_name);
-	return;
 }
 
 int ping6_main(int argc, char **argv)
@@ -218,7 +210,7 @@ static void sendping(int junk)
 
 	if (i < 0)
 		bb_perror_msg_and_die("sendto");
-	else if ((size_t)i != sizeof(packet))
+	if ((size_t)i != sizeof(packet))
 		bb_error_msg_and_die("ping wrote %d chars; %d expected", i,
 			   (int)sizeof(packet));
 
@@ -246,16 +238,16 @@ static void sendping(int junk)
 static char *icmp6_type_name(int id)
 {
 	switch (id) {
-	case ICMP6_DST_UNREACH:				return "Destination Unreachable";
-	case ICMP6_PACKET_TOO_BIG:			return "Packet too big";
-	case ICMP6_TIME_EXCEEDED:			return "Time Exceeded";
-	case ICMP6_PARAM_PROB:				return "Parameter Problem";
-	case ICMP6_ECHO_REPLY:				return "Echo Reply";
-	case ICMP6_ECHO_REQUEST:			return "Echo Request";
-	case MLD_LISTENER_QUERY:			return "Listener Query";
-	case MLD_LISTENER_REPORT:			return "Listener Report";
-	case MLD_LISTENER_REDUCTION:		return "Listener Reduction";
-	default:							return "unknown ICMP type";
+	case ICMP6_DST_UNREACH:         return "Destination Unreachable";
+	case ICMP6_PACKET_TOO_BIG:      return "Packet too big";
+	case ICMP6_TIME_EXCEEDED:       return "Time Exceeded";
+	case ICMP6_PARAM_PROB:          return "Parameter Problem";
+	case ICMP6_ECHO_REPLY:          return "Echo Reply";
+	case ICMP6_ECHO_REQUEST:        return "Echo Request";
+	case MLD_LISTENER_QUERY:        return "Listener Query";
+	case MLD_LISTENER_REPORT:       return "Listener Report";
+	case MLD_LISTENER_REDUCTION:	return "Listener Reduction";
+	default:                        return "unknown ICMP type";
 	}
 }
 
@@ -309,7 +301,7 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 		printf("%d bytes from %s: icmp6_seq=%u", sz,
 			   inet_ntop(AF_INET6, &pingaddr.sin6_addr,
 						 buf, sizeof(buf)),
-			   icmppkt->icmp6_seq);
+			   ntohs(icmppkt->icmp6_seq));
 		printf(" ttl=%d time=%lu.%lu ms", hoplimit,
 			   triptime / 10, triptime % 10);
 		if (dupflag)
@@ -361,14 +353,16 @@ static void ping(const char *host)
 	setsockopt_broadcast(pingsock);
 
 	/* set recv buf for broadcast pings */
-	sockopt = 48 * 1024;
+	sockopt = 48 * 1024; /* explain why 48k? */
 	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, (char *) &sockopt,
 			   sizeof(sockopt));
 
+	sockopt = 2; /* iputils-ss020927 does this */
 	sockopt = offsetof(struct icmp6_hdr, icmp6_cksum);
 	setsockopt(pingsock, SOL_RAW, IPV6_CHECKSUM, (char *) &sockopt,
 			   sizeof(sockopt));
 
+	/* request ttl info to be returned in ancillary data */
 	sockopt = 1;
 	setsockopt(pingsock, SOL_IPV6, IPV6_HOPLIMIT, (char *) &sockopt,
 			   sizeof(sockopt));
@@ -377,10 +371,10 @@ static void ping(const char *host)
 		pingaddr.sin6_scope_id = if_index;
 
 	printf("PING %s (%s): %d data bytes\n",
-		   hostent->h_name,
-		   inet_ntop(AF_INET6, &pingaddr.sin6_addr,
+			hostent->h_name,
+			inet_ntop(AF_INET6, &pingaddr.sin6_addr,
 			buf, sizeof(buf)),
-		   datalen);
+			datalen);
 
 	signal(SIGINT, pingstats);
 
@@ -397,21 +391,23 @@ static void ping(const char *host)
 	iov.iov_len = sizeof(packet);
 	while (1) {
 		int c;
-		struct cmsghdr *cmsgptr = NULL;
+		struct cmsghdr *mp;
 		int hoplimit = -1;
 		msg.msg_controllen = sizeof(control_buf);
 
-		if ((c = recvmsg(pingsock, &msg, 0)) < 0) {
-			if (errno == EINTR)
-				continue;
-			bb_perror_msg("recvfrom");
+		c = recvmsg(pingsock, &msg, 0);
+		if (c < 0) {
+			if (errno != EINTR)
+				bb_perror_msg("recvfrom");
 			continue;
 		}
-		for (cmsgptr = CMSG_FIRSTHDR(&msg); cmsgptr != NULL;
-			 cmsgptr = CMSG_NXTHDR(&msg, cmsgptr)) {
-			if (cmsgptr->cmsg_level == SOL_IPV6 &&
-				cmsgptr->cmsg_type == IPV6_HOPLIMIT ) {
-				hoplimit = *(int*)CMSG_DATA(cmsgptr);
+		for (mp = CMSG_FIRSTHDR(&msg); mp; mp = CMSG_NXTHDR(&msg, mp)) {
+			if (mp->cmsg_level == SOL_IPV6
+			 && mp->cmsg_type == IPV6_HOPLIMIT
+			 /* don't check len - we trust the kernel: */
+			 /* && mp->cmsg_len >= CMSG_LEN(sizeof(int)) */
+			) {
+				hoplimit = *(int*)CMSG_DATA(mp);
 			}
 		}
 		unpack(packet, c, &from, hoplimit);
