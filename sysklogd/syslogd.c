@@ -290,7 +290,9 @@ static void log_locally(char *msg)
 			goto reopen;
 		}
 	} else {
+#if ENABLE_FEATURE_ROTATE_LOGFILE
 		struct stat statf;
+#endif
  reopen:
 		logFD = device_open(logFilePath, O_WRONLY | O_CREAT
 					| O_NOCTTY | O_APPEND | O_NONBLOCK);
@@ -340,8 +342,9 @@ static void log_locally(char *msg)
 		}
 		ftruncate(logFD, 0);
 	}
+	curFileSize +=
 #endif
-	curFileSize += full_write(logFD, msg, len);
+	                full_write(logFD, msg, len);
 	fl.l_type = F_UNLCK;
 	fcntl(logFD, F_SETLKW, &fl);
 }
