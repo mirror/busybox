@@ -574,10 +574,9 @@ int syslogd_main(int argc, char **argv)
 			*p++ = '\0';
 			port = xatou16(p);
 		}
-		remoteAddr.sin_family = AF_INET;
 		/* FIXME: looks ip4-specific. need to do better */
-		remoteAddr.sin_addr = *(struct in_addr *) *(xgethostbyname(opt_R)->h_addr_list);
-		remoteAddr.sin_port = htons(port);
+		bb_lookup_host(&remoteAddr, opt_R);
+		remoteAddr.sin_port = bb_lookup_port(port, "udp", port);
 	}
 	//if (option_mask32 & OPT_locallog) // -L
 #endif
