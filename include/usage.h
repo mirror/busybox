@@ -1347,9 +1347,9 @@
 #define inetd_full_usage \
        "Listen for network connections and launch programs" \
        "\n\nOptions:\n" \
-       "	-f	Run as foreground progress\n" \
-       "	-q	Sets the size of the socket listen queue to\n" \
-       "		the specified value. Default is 128"
+       "	-f	Run in foreground\n" \
+       "	-q N	Set the size of the socket listen queue to N\n" \
+       "		(default: 128)"
 
 #define init_trivial_usage \
        ""
