@@ -63,50 +63,56 @@ static int pencode(char *s)
 	char *save;
 	int lev, fac = LOG_USER;
 
-	for (save = s; *s && *s != '.'; ++s);
+	for (save = s; *s && *s != '.'; ++s)
+		;
 	if (*s) {
 		*s = '\0';
 		fac = decode(save, facilitynames);
 		if (fac < 0)
-			bb_error_msg_and_die("unknown facility name: %s", save);
+			bb_error_msg_and_die("unknown %s name: %s", "facility", save);
 		*s++ = '.';
 	} else {
 		s = save;
 	}
 	lev = decode(s, prioritynames);
 	if (lev < 0)
-		bb_error_msg_and_die("unknown priority name: %s", save);
+		bb_error_msg_and_die("unknown %s name: %s", "priority", save);
 	return ((lev & LOG_PRIMASK) | (fac & LOG_FACMASK));
 }
 
 
 int logger_main(int argc, char **argv)
 {
-	unsigned opt;
 	char *opt_p, *opt_t;
-	int pri = LOG_USER | LOG_NOTICE;
-	int option = 0;
-	char name[80];
+	int i = 0;
+	RESERVE_CONFIG_BUFFER(name, 80);
 
 	/* Fill out the name string early (may be overwritten later) */
 	bb_getpwuid(name, geteuid(), sizeof(name));
 
 	/* Parse any options */
-	opt = getopt32(argc, argv, "p:st:", &opt_p, &opt_t);
+	getopt32(argc, argv, "p:st:", &opt_p, &opt_t);
+
+	if (option_mask32 & 0x2) /* -s */
+		i |= LOG_PERROR;
+	if (option_mask32 & 0x4) /* -t */
+		safe_strncpy(name, opt_t, sizeof(name));
+	openlog(name, i, 0);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		RELEASE_CONFIG_BUFFER(name);
+	i = LOG_USER | LOG_NOTICE;
+	if (option_mask32 & 0x1) /* -p */
+		i = pencode(opt_p);
+
 	argc -= optind;
 	argv += optind;
-	if (opt & 0x1) pri = pencode(opt_p); // -p
-	if (opt & 0x2) option |= LOG_PERROR; // -s
-	if (opt & 0x4) safe_strncpy(name, opt_t, sizeof(name)); // -t
-
-	openlog(name, option, 0);
 	if (!argc) {
 		while (fgets(bb_common_bufsiz1, BUFSIZ, stdin)) {
 			if (bb_common_bufsiz1[0]
 			 && NOT_LONE_CHAR(bb_common_bufsiz1, '\n')
 			) {
 				/* Neither "" nor "\n" */
-				syslog(pri, "%s", bb_common_bufsiz1);
+				syslog(i, "%s", bb_common_bufsiz1);
 			}
 		}
 	} else {
@@ -119,7 +125,7 @@ int logger_main(int argc, char **argv)
 			sprintf(message + pos, " %s", *argv),
 			pos = len;
 		} while (*++argv);
-		syslog(pri, "%s", message + 1); /* skip leading " " */
+		syslog(i, "%s", message + 1); /* skip leading " " */
 	}
 
 	closelog();
