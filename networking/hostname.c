@@ -18,29 +18,27 @@
 static void do_sethostname(char *s, int isfile)
 {
 	FILE *f;
-	char buf[256];
 
 	if (!s)
 		return;
 	if (!isfile) {
 		if (sethostname(s, strlen(s)) < 0) {
 			if (errno == EPERM)
-				bb_error_msg_and_die("you must be root to change the hostname");
+				bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 			else
 				bb_perror_msg_and_die("sethostname");
 		}
 	} else {
 		f = xfopen(s, "r");
-		while (fgets(buf, sizeof(buf), f) != NULL) {
-			if (buf[0] =='#') {
+		while (fgets(bb_common_bufsiz1, sizeof(bb_common_bufsiz1), f) != NULL) {
+			if (bb_common_bufsiz1[0] == '#') {
 				continue;
 			}
-			chomp(buf);
-			do_sethostname(buf, 0);
+			chomp(bb_common_bufsiz1);
+			do_sethostname(bb_common_bufsiz1, 0);
 		}
-#ifdef CONFIG_FEATURE_CLEAN_UP
-		fclose(f);
-#endif
+		if (ENABLE_FEATURE_CLEAN_UP)
+			fclose(f);
 	}
 }
 
@@ -55,31 +53,31 @@ int hostname_main(int argc, char **argv)
 	};
 
 	char buf[256];
-	unsigned opt;
 	char *hostname_str = NULL;
 
 	if (argc < 1)
 		bb_show_usage();
 
-	opt = getopt32(argc, argv, "dfisF:", &hostname_str);
+	getopt32(argc, argv, "dfisF:", &hostname_str);
 
 	/* Output in desired format */
-	if (opt & OPT_dfis) {
+	if (option_mask32 & OPT_dfis) {
 		struct hostent *hp;
 		char *p;
 		gethostname(buf, sizeof(buf));
 		hp = xgethostbyname(buf);
 		p = strchr(hp->h_name, '.');
-		if (opt & OPT_f) {
+		if (option_mask32 & OPT_f) {
 			puts(hp->h_name);
-		} else if (opt & OPT_s) {
+		} else if (option_mask32 & OPT_s) {
 			if (p != NULL) {
 				*p = 0;
 			}
 			puts(hp->h_name);
-		} else if (opt & OPT_d) {
-			if (p) puts(p + 1);
-		} else if (opt & OPT_i) {
+		} else if (option_mask32 & OPT_d) {
+			if (p)
+				puts(p + 1);
+		} else if (option_mask32 & OPT_i) {
 			while (hp->h_addr_list[0]) {
 				printf("%s ", inet_ntoa(*(struct in_addr *) (*hp->h_addr_list++)));
 			}
