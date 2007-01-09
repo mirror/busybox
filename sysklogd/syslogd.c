@@ -290,9 +290,6 @@ static void log_locally(char *msg)
 			goto reopen;
 		}
 	} else {
-#if ENABLE_FEATURE_ROTATE_LOGFILE
-		struct stat statf;
-#endif
  reopen:
 		logFD = device_open(logFilePath, O_WRONLY | O_CREAT
 					| O_NOCTTY | O_APPEND | O_NONBLOCK);
@@ -307,9 +304,13 @@ static void log_locally(char *msg)
 			return;
 		}
 #if ENABLE_FEATURE_ROTATE_LOGFILE
+		{
+		struct stat statf;
+
 		isRegular = (fstat(logFD, &statf) == 0 && (statf.st_mode & S_IFREG));
 		/* bug (mostly harmless): can wrap around if file > 4gb */
 		curFileSize = statf.st_size;
+		}
 #endif
 	}
 
@@ -381,12 +382,12 @@ static void parse_fac_prio_20(int pri, char *res20)
  * that there is no timestamp, short-cutting the test. */
 static void timestamp_and_log(int pri, char *msg, int len)
 {
-	time_t now;
 	char *timestamp;
 
 	if (len < 16 || msg[3] != ' ' || msg[6] != ' '
 	 || msg[9] != ':' || msg[12] != ':' || msg[15] != ' '
 	) {
+		time_t now;
 		time(&now);
 		timestamp = ctime(&now) + 4;
 	} else {
@@ -494,9 +495,7 @@ static void do_syslogd(void)
 	strncpy(sunx.sun_path, dev_log_name, sizeof(sunx.sun_path));
 	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
 	addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
-	if (bind(sock_fd, (struct sockaddr *) &sunx, addrLength) < 0) {
-		bb_perror_msg_and_die("cannot connect to socket %s", dev_log_name);
-	}
+	xbind(sock_fd, (struct sockaddr *) &sunx, addrLength);
 
 	if (chmod(dev_log_name, 0666) < 0) {
 		bb_perror_msg_and_die("cannot set permission on %s", dev_log_name);
