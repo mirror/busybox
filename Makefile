@@ -561,7 +561,7 @@ busybox-all  := $(core-y) $(libs-y)
 # Rule to link busybox - also used during CONFIG_KALLSYMS
 # May be overridden by arch/$(ARCH)/Makefile
 quiet_cmd_busybox__ ?= LINK    $@
-      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) $(patsubst %,-Wl$(comma)%,$(LDFLAGS)) \
+      cmd_busybox__ ?= $(srctree)/scripts/trylink $(CC) $(LDFLAGS) \
       -o $@ \
       -Wl,--warn-common -Wl,--sort-common -Wl,--gc-sections \
       -Wl,--start-group $(busybox-all) -Wl,--end-group
