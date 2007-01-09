@@ -37,20 +37,18 @@ static void klogd_signal(int sig ATTRIBUTE_UNUSED)
 int klogd_main(int argc, char **argv)
 {
 	RESERVE_CONFIG_BUFFER(log_buffer, KLOGD_LOGBUF_SIZE);
-	int console_log_level = console_log_level; /* for gcc */
-	int priority = LOG_INFO;
-	int i, n, lastc;
+	int i = i; /* silence gcc */
 	char *start;
 
 	/* do normal option parsing */
-	n = getopt32(argc, argv, "c:n", &start);
+	getopt32(argc, argv, "c:n", &start);
 
-	if (n & OPT_LEVEL) {
+	if (option_mask32 & OPT_LEVEL) {
 		/* Valid levels are between 1 and 8 */
-		console_log_level = xatoul_range(start, 1, 8);
+		i = xatoul_range(start, 1, 8);
 	}
 
-	if (!(n & OPT_FOREGROUND)) {
+	if (!(option_mask32 & OPT_FOREGROUND)) {
 #ifdef BB_NOMMU
 		vfork_daemon_rexec(0, 1, argc, argv, "-n");
 #else
@@ -70,12 +68,16 @@ int klogd_main(int argc, char **argv)
 	klogctl(1, NULL, 0);
 
 	/* Set level of kernel console messaging.. */
-	if (n & OPT_LEVEL)
-		klogctl(8, NULL, console_log_level);
+	if (option_mask32 & OPT_LEVEL)
+		klogctl(8, NULL, i);
 
 	syslog(LOG_NOTICE, "klogd started: %s", BB_BANNER);
 
 	while (1) {
+		int n;
+		int priority;
+		char lastc;
+
 		/* Use kernel syscalls */
 		memset(log_buffer, '\0', KLOGD_LOGBUF_SIZE);
 		/* It will be null-terminted */
@@ -91,6 +93,7 @@ int klogd_main(int argc, char **argv)
 		/* klogctl buffer parsing modelled after code in dmesg.c */
 		start = &log_buffer[0];
 		lastc = '\0';
+		priority = LOG_INFO;
 		for (i = 0; i < n; i++) {
 			if (lastc == '\0' && log_buffer[i] == '<') {
 				i++;
