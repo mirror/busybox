@@ -262,8 +262,6 @@ static void log_to_shmem(const char *msg, int len)
 void ipcsyslog_cleanup(void);
 void ipcsyslog_init(void);
 void log_to_shmem(const char *msg);
-
-
 #endif /* FEATURE_IPC_SYSLOG */
 
 
@@ -271,7 +269,6 @@ void log_to_shmem(const char *msg);
 static void log_locally(char *msg)
 {
 	static time_t last;
-
 	struct flock fl;
 	int len = strlen(msg);
 
@@ -447,8 +444,8 @@ static void split_escape_and_log(char *tmpbuf, int len)
 
 static void quit_signal(int sig)
 {
-	timestamp_and_log(LOG_SYSLOG | LOG_INFO, "System log daemon exiting", 0);
-	puts("System log daemon exiting");
+	timestamp_and_log(LOG_SYSLOG | LOG_INFO, "syslogd exiting", 0);
+	puts("syslogd exiting");
 	unlink(dev_log_name);
 	if (ENABLE_FEATURE_IPC_SYSLOG)
 		ipcsyslog_cleanup();
