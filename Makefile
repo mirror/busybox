@@ -274,7 +274,7 @@ MAKEFLAGS += -rR
 
 AS		= $(CROSS_COMPILE)as
 CC		= $(CROSS_COMPILE)gcc
-LD		= $(CROSS_COMPILE)ld
+LD		= $(CC) -nostdlib
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
