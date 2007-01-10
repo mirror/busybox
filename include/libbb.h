@@ -298,12 +298,29 @@ extern int setsockopt_reuseaddr(int fd);
 extern int setsockopt_broadcast(int fd);
 /* Create server TCP socket bound to bindaddr:port. bindaddr can be NULL,
  * numeric IP ("N.N.N.N") or numeric IPv6 address,
- * and can have ":PORT" suffix. If no suffix trere, second argument is used */
+ * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
+ * If there is no suffix, port argument is used */
 extern int create_and_bind_stream_or_die(const char *bindaddr, int port);
 /* Create client TCP socket connected to peer:port. Peer cannot be NULL.
  * Peer can be numeric IP ("N.N.N.N"), numeric IPv6 address or hostname,
- * and can have ":PORT" suffix. If no suffix trere, second argument is used */
-extern int create_and_connect_stream_or_die(const char *peer, int def_port);
+ * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
+ * If there is no suffix, port argument is used */
+extern int create_and_connect_stream_or_die(const char *peer, int port);
+typedef struct len_and_sockaddr {
+	int len;
+	union {
+		struct sockaddr sa;
+		struct sockaddr_in sin;
+#if ENABLE_FEATURE_IPV6
+		struct sockaddr_in6 sin6;
+#endif
+	};
+} len_and_sockaddr;
+/* Return malloc'ed len_and_sockaddr with socket address of host:port
+ * Currently will return IPv4 or IPv6 sockaddrs only
+ * (depending on host), but in theory nothing prevents e.g.
+ * UNIX socket address being returned, IPX sockaddr etc... */
+extern len_and_sockaddr* host2sockaddr(const char *host, int port);
 
 
 extern char *xstrdup(const char *s);

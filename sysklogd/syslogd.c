@@ -53,7 +53,7 @@ static smallint isRegular;
 #include <netinet/in.h>
 /* udp socket for logging to remote host */
 static int remoteFD = -1;
-static struct sockaddr_in remoteAddr;
+static len_and_sockaddr* remoteAddr;
 #endif
 
 /* We are using bb_common_bufsiz1 for buffering: */
@@ -464,7 +464,7 @@ static void do_syslogd(void) ATTRIBUTE_NORETURN;
 static void do_syslogd(void)
 {
 	struct sockaddr_un sunx;
-	socklen_t addrLength;
+	socklen_t addr_len;
 	int sock_fd;
 	fd_set fds;
 
@@ -491,8 +491,8 @@ static void do_syslogd(void)
 	sunx.sun_family = AF_UNIX;
 	strncpy(sunx.sun_path, dev_log_name, sizeof(sunx.sun_path));
 	sock_fd = xsocket(AF_UNIX, SOCK_DGRAM, 0);
-	addrLength = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
-	xbind(sock_fd, (struct sockaddr *) &sunx, addrLength);
+	addr_len = sizeof(sunx.sun_family) + strlen(sunx.sun_path);
+	xbind(sock_fd, (struct sockaddr *) &sunx, addr_len);
 
 	if (chmod(dev_log_name, 0666) < 0) {
 		bb_perror_msg_and_die("cannot set permission on %s", dev_log_name);
@@ -524,15 +524,14 @@ static void do_syslogd(void)
 #if ENABLE_FEATURE_REMOTE_LOG
 			/* We are not modifying log messages in any way before send */
 			/* Remote site cannot trust _us_ anyway and need to do validation again */
-			if (option_mask32 & OPT_remotelog) {
+			if (remoteAddr) {
 				if (-1 == remoteFD) {
-					remoteFD = socket(AF_INET, SOCK_DGRAM, 0);
+					remoteFD = socket(remoteAddr->sa.sa_family, SOCK_DGRAM, 0);
 				}
 				if (-1 != remoteFD) {
 					/* send message to remote logger, ignore possible error */
 					sendto(remoteFD, RECVBUF, i, MSG_DONTWAIT,
-						(struct sockaddr *) &remoteAddr,
-						sizeof(remoteAddr));
+						&remoteAddr->sa, remoteAddr->len);
 				}
 			}
 #endif
@@ -565,15 +564,7 @@ int syslogd_main(int argc, char **argv)
 #endif
 #if ENABLE_FEATURE_REMOTE_LOG
 	if (option_mask32 & OPT_remotelog) { // -R
-		int port = 514;
-		p = strchr(opt_R, ':');
-		if (p) {
-			*p++ = '\0';
-			port = xatou16(p);
-		}
-		/* FIXME: looks ip4-specific. need to do better */
-		bb_lookup_host(&remoteAddr, opt_R);
-		remoteAddr.sin_port = bb_lookup_port(port, "udp", port);
+		remoteAddr = host2sockaddr(opt_R, 514);
 	}
 	//if (option_mask32 & OPT_locallog) // -L
 #endif

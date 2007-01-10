@@ -83,25 +83,13 @@ int xconnect_tcp_v4(struct sockaddr_in *s_addr)
 /* "New" networking API */
 
 
-/* So far we do not expose struct and helpers to libbb */
-typedef struct len_and_sockaddr {
-	int len;
-	union {
-		struct sockaddr sa;
-		struct sockaddr_in sin;
-#if ENABLE_FEATURE_IPV6
-		struct sockaddr_in6 sin6;
-#endif
-	};
-} len_and_sockaddr;
 //extern int xsocket_stream_ip4or6(sa_family_t *fp);
-//extern len_and_sockaddr* host2sockaddr(const char *host, int def_port);
 //extern len_and_sockaddr* dotted2sockaddr(const char *dotted, int def_port);
 
 /* peer: "1.2.3.4[:port]", "www.google.com[:port]"
- * def_port: if neither of above specifies port #
+ * port: if neither of above specifies port #
  */
-static len_and_sockaddr* str2sockaddr(const char *host, int def_port, int ai_flags)
+static len_and_sockaddr* str2sockaddr(const char *host, int port, int ai_flags)
 {
 	int rc;
 	len_and_sockaddr *r; // = NULL;
@@ -126,12 +114,13 @@ static len_and_sockaddr* str2sockaddr(const char *host, int def_port, int ai_fla
 		}
 	}
 	if (cp) {
-		host = safe_strncpy(alloca(cp - host + 1), host, cp - host);
+		int sz = cp - host + 1;
+		host = safe_strncpy(alloca(sz), host, sz);
 		if (ENABLE_FEATURE_IPV6 && *cp != ':')
 			cp++; /* skip ']' */
 		cp++; /* skip ':' */
 	} else {
-		utoa_to_buf(def_port, service, sizeof(service));
+		utoa_to_buf(port, service, sizeof(service));
 		cp = service;
 	}
 
@@ -154,14 +143,14 @@ static len_and_sockaddr* str2sockaddr(const char *host, int def_port, int ai_fla
 	return r;
 }
 
-static len_and_sockaddr* host2sockaddr(const char *host, int def_port)
+len_and_sockaddr* host2sockaddr(const char *host, int port)
 {
-	return str2sockaddr(host, def_port, 0);
+	return str2sockaddr(host, port, 0);
 }
 
-static len_and_sockaddr* dotted2sockaddr(const char *host, int def_port)
+static len_and_sockaddr* dotted2sockaddr(const char *host, int port)
 {
-	return str2sockaddr(host, def_port, NI_NUMERICHOST);
+	return str2sockaddr(host, port, NI_NUMERICHOST);
 }
 
 static int xsocket_stream_ip4or6(len_and_sockaddr *lsa)
@@ -185,7 +174,7 @@ int create_and_bind_stream_or_die(const char *bindaddr, int port)
 	int fd;
 	len_and_sockaddr *lsa;
 
-	if (bindaddr) {
+	if (bindaddr && bindaddr[0]) {
 		lsa = dotted2sockaddr(bindaddr, port);
 		/* currently NULL check is in str2sockaddr */
 		//if (!lsa)
