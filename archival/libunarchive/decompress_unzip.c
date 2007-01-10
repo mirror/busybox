@@ -98,6 +98,8 @@ typedef struct state_t {
 	huft_t *inflate_codes_td;
 	unsigned inflate_codes_bl;
 	unsigned inflate_codes_bd;
+	unsigned inflate_codes_nn; /* length and index for copy */
+	unsigned inflate_codes_dd;
 	smallint resume_copy;
 
 	/* private data of inflate_get_next_window() */
@@ -132,6 +134,8 @@ typedef struct state_t {
 #define inflate_codes_td    (S()inflate_codes_td   )
 #define inflate_codes_bl    (S()inflate_codes_bl   )
 #define inflate_codes_bd    (S()inflate_codes_bd   )
+#define inflate_codes_nn    (S()inflate_codes_nn   )
+#define inflate_codes_dd    (S()inflate_codes_dd   )
 #define resume_copy         (S()resume_copy        )
 #define method              (S()method             )
 #define need_another_block  (S()need_another_block )
@@ -460,6 +464,8 @@ static int huft_build(unsigned *b, const unsigned n,
 #define td inflate_codes_td
 #define bl inflate_codes_bl
 #define bd inflate_codes_bd
+#define nn inflate_codes_nn
+#define dd inflate_codes_dd
 static void inflate_codes_setup(STATE_PARAM huft_t * my_tl, huft_t * my_td, const unsigned my_bl, const unsigned my_bd)
 {
 	tl = my_tl;
@@ -510,10 +516,6 @@ static int inflate_codes(STATE_PARAM_ONLY)
 				return 1; // We have a block to read
 			}
 		} else {		/* it's an EOB or a length */
-			/* length and index for copy */
-			unsigned n = n; /* for gcc */
-			unsigned d = d; /* for gcc */
-
 			/* exit if end of block */
 			if (e == 15) {
 				break;
@@ -521,7 +523,7 @@ static int inflate_codes(STATE_PARAM_ONLY)
 
 			/* get length of block to copy */
 			bb = fill_bitbuffer(PASS_STATE bb, &k, e);
-			n = t->v.n + ((unsigned) bb & mask_bits[e]);
+			nn = t->v.n + ((unsigned) bb & mask_bits[e]);
 			bb >>= e;
 			k -= e;
 
@@ -544,40 +546,40 @@ static int inflate_codes(STATE_PARAM_ONLY)
 			bb >>= t->b;
 			k -= t->b;
 			bb = fill_bitbuffer(PASS_STATE bb, &k, e);
-			d = w - t->v.n - ((unsigned) bb & mask_bits[e]);
+			dd = w - t->v.n - ((unsigned) bb & mask_bits[e]);
 			bb >>= e;
 			k -= e;
 
 			/* do the copy */
  do_copy:
 			do {
-				/* Was: n -= (e = (e = GUNZIP_WSIZE - ((d &= GUNZIP_WSIZE - 1) > w ? d : w)) > n ? n : e); */
+				/* Was: nn -= (e = (e = GUNZIP_WSIZE - ((dd &= GUNZIP_WSIZE - 1) > w ? dd : w)) > nn ? nn : e); */
 				/* Who wrote THAT?? rewritten as: */
-				d &= GUNZIP_WSIZE - 1;
-				e = GUNZIP_WSIZE - (d > w ? d : w);
-				if (e > n) e = n;
-				n -= e;
+				dd &= GUNZIP_WSIZE - 1;
+				e = GUNZIP_WSIZE - (dd > w ? dd : w);
+				if (e > nn) e = nn;
+				nn -= e;
 
 				/* copy to new buffer to prevent possible overwrite */
-				if (w - d >= e) {	/* (this test assumes unsigned comparison) */
-					memcpy(gunzip_window + w, gunzip_window + d, e);
+				if (w - dd >= e) {	/* (this test assumes unsigned comparison) */
+					memcpy(gunzip_window + w, gunzip_window + dd, e);
 					w += e;
-					d += e;
+					dd += e;
 				} else {
 					/* do it slow to avoid memcpy() overlap */
 					/* !NOMEMCPY */
 					do {
-						gunzip_window[w++] = gunzip_window[d++];
+						gunzip_window[w++] = gunzip_window[dd++];
 					} while (--e);
 				}
 				if (w == GUNZIP_WSIZE) {
 					gunzip_outbuf_count = w;
-					resume_copy = (n != 0);
+					resume_copy = (nn != 0);
 					//flush_gunzip_window();
 					w = 0;
 					return 1;
 				}
-			} while (n);
+			} while (nn);
 			resume_copy = 0;
 		}
 	}
