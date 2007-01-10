@@ -606,6 +606,8 @@ static int inflate_codes(STATE_PARAM_ONLY)
 #undef td
 #undef bl
 #undef bd
+#undef nn
+#undef dd
 
 
 /* called once from inflate_block */
