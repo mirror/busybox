@@ -293,18 +293,17 @@ extern void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen);
 extern int xconnect_tcp_v4(struct sockaddr_in *s_addr);
 extern struct hostent *xgethostbyname(const char *name);
 extern struct hostent *xgethostbyname2(const char *name, int af);
-extern int xsocket_stream_ip4or6(sa_family_t *fp);
-typedef union {
-	struct sockaddr sa;
-	struct sockaddr_in sin;
-#if ENABLE_FEATURE_IPV6
-	struct sockaddr_in6 sin6;
-#endif
-} sockaddr_inet;
-extern int dotted2sockaddr(const char *dotted, struct sockaddr* sp, int socklen);
-extern int create_and_bind_socket_ip4or6(const char *hostaddr, int port);
+
 extern int setsockopt_reuseaddr(int fd);
 extern int setsockopt_broadcast(int fd);
+/* Create server TCP socket bound to bindaddr:port. bindaddr can be NULL,
+ * numeric IP ("N.N.N.N") or numeric IPv6 address,
+ * and can have ":PORT" suffix. If no suffix trere, second argument is used */
+extern int create_and_bind_stream_or_die(const char *bindaddr, int port);
+/* Create client TCP socket connected to peer:port. Peer cannot be NULL.
+ * Peer can be numeric IP ("N.N.N.N"), numeric IPv6 address or hostname,
+ * and can have ":PORT" suffix. If no suffix trere, second argument is used */
+extern int create_and_connect_stream_or_die(const char *peer, int def_port);
 
 
 extern char *xstrdup(const char *s);
@@ -506,7 +505,7 @@ USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out);
 int inflate(int in, int out);
 
 
-unsigned short bb_lookup_port(const char *port, const char *protocol, unsigned short default_port);
+unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port);
 void bb_lookup_host(struct sockaddr_in *s_in, const char *host);
 
 int bb_make_directory(char *path, long mode, int flags);

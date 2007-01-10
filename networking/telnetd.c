@@ -414,7 +414,7 @@ telnetd_main(int argc, char **argv)
 	if (IS_INETD) {
 		sessions = make_new_session(0, 1);
 	} else {
-		master_fd = create_and_bind_socket_ip4or6(opt_bindaddr, portnbr);
+		master_fd = create_and_bind_stream_or_die(opt_bindaddr, portnbr);
 		xlisten(master_fd, 1);
 		if (!(opt & OPT_FOREGROUND))
 			xdaemon(0, 0);

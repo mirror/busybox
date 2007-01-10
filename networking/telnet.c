@@ -22,15 +22,7 @@
  */
 
 #include <termios.h>
-#include <unistd.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <signal.h>
 #include <arpa/telnet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include "busybox.h"
 
@@ -593,8 +585,9 @@ static void cookmode(void)
 
 int telnet_main(int argc, char** argv)
 {
+	char *host;
+	int port;
 	int len;
-	struct sockaddr_in s_in;
 #ifdef USE_POLL
 	struct pollfd ufds[2];
 #else
@@ -610,11 +603,10 @@ int telnet_main(int argc, char** argv)
 	ttype = getenv("TERM");
 #endif
 
-	memset(&G, 0, sizeof G);
+	/* memset(&G, 0, sizeof G); - already is */
 
 	if (tcgetattr(0, &G.termios_def) >= 0) {
 		G.do_termios = 1;
-
 		G.termios_raw = G.termios_def;
 		cfmakeraw(&G.termios_raw);
 	}
@@ -627,19 +619,18 @@ int telnet_main(int argc, char** argv)
 		autologin = getenv("USER");
 
 	if (optind < argc) {
-		bb_lookup_host(&s_in, argv[optind++]);
-		s_in.sin_port = bb_lookup_port((optind < argc) ? argv[optind++] :
+		host = argv[optind++];
+		port = bb_lookup_port((optind < argc) ? argv[optind++] :
 				"telnet", "tcp", 23);
 		if (optind < argc)
 			bb_show_usage();
 	} else
 		bb_show_usage();
 #else
-	bb_lookup_host(&s_in, argv[1]);
-	s_in.sin_port = bb_lookup_port((argc == 3) ? argv[2] : "telnet", "tcp", 23);
+	host = argv[1];
+	port = bb_lookup_port((argc > 2) ? argv[2] : "telnet", "tcp", 23);
 #endif
-
-	G.netfd = xconnect_tcp_v4(&s_in);
+	G.netfd = create_and_connect_stream_or_die(host, port);
 
 	setsockopt(G.netfd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);
 
@@ -655,8 +646,7 @@ int telnet_main(int argc, char** argv)
 	maxfd = G.netfd + 1;
 #endif
 
-	while (1)
-	{
+	while (1) {
 #ifndef USE_POLL
 		fd_set rfds = readfds;
 
@@ -700,8 +690,7 @@ int telnet_main(int argc, char** argv)
 			{
 				len = read(G.netfd, G.buf, DATABUFSIZE);
 
-				if (len <= 0)
-				{
+				if (len <= 0) {
 					WriteCS(1, "Connection closed by foreign host.\r\n");
 					doexit(1);
 				}
