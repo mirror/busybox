@@ -3717,7 +3717,7 @@ shellexec(char **argv, const char *path, int idx)
 
 	clearredir(1);
 	envp = environment();
-	if (strchr(argv[0], '/')
+	if (strchr(argv[0], '/') || is_safe_applet(argv[0])
 #ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
 	 || find_applet_by_name(argv[0])
 #endif
