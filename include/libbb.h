@@ -293,19 +293,10 @@ extern void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen);
 extern int xconnect_tcp_v4(struct sockaddr_in *s_addr);
 extern struct hostent *xgethostbyname(const char *name);
 extern struct hostent *xgethostbyname2(const char *name, int af);
-
 extern int setsockopt_reuseaddr(int fd);
 extern int setsockopt_broadcast(int fd);
-/* Create server TCP socket bound to bindaddr:port. bindaddr can be NULL,
- * numeric IP ("N.N.N.N") or numeric IPv6 address,
- * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
- * If there is no suffix, port argument is used */
-extern int create_and_bind_stream_or_die(const char *bindaddr, int port);
-/* Create client TCP socket connected to peer:port. Peer cannot be NULL.
- * Peer can be numeric IP ("N.N.N.N"), numeric IPv6 address or hostname,
- * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
- * If there is no suffix, port argument is used */
-extern int create_and_connect_stream_or_die(const char *peer, int port);
+
+/* "new" (ipv4+ipv6) API */
 typedef struct len_and_sockaddr {
 	int len;
 	union {
@@ -316,11 +307,29 @@ typedef struct len_and_sockaddr {
 #endif
 	};
 } len_and_sockaddr;
+/* Create server TCP socket bound to bindaddr:port. bindaddr can be NULL,
+ * numeric IP ("N.N.N.N") or numeric IPv6 address,
+ * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
+ * If there is no suffix, port argument is used */
+extern int create_and_bind_stream_or_die(const char *bindaddr, int port);
+/* Create client TCP socket connected to peer:port. Peer cannot be NULL.
+ * Peer can be numeric IP ("N.N.N.N"), numeric IPv6 address or hostname,
+ * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
+ * If there is no suffix, port argument is used */
+extern int create_and_connect_stream_or_die(const char *peer, int port);
+/* Connect to peer identified by lsa */
+extern int xconnect_stream(const len_and_sockaddr *lsa);
 /* Return malloc'ed len_and_sockaddr with socket address of host:port
  * Currently will return IPv4 or IPv6 sockaddrs only
  * (depending on host), but in theory nothing prevents e.g.
  * UNIX socket address being returned, IPX sockaddr etc... */
 extern len_and_sockaddr* host2sockaddr(const char *host, int port);
+/* assign sin[6]_port member if the socket is of corresponding type,
+ * otherwise noop. Useful for ftp.
+ * NB: does NOT do htons() internally, just direct assignment. */
+extern void set_port(len_and_sockaddr *lsa, unsigned port);
+char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
+char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
 
 
 extern char *xstrdup(const char *s);

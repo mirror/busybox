@@ -8,21 +8,15 @@
  * Licensed under GPL v2 or later, see file License for details.
 */
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
+//#include <sys/socket.h>
+//#include <netinet/in.h>
+//#include <netdb.h>
+//#include <signal.h>
 
 #include "busybox.h"
 
 
-static const int RFC_868_BIAS = 2208988800UL;
+enum { RFC_868_BIAS = 2208988800UL };
 
 static void socket_timeout(int sig)
 {
@@ -31,18 +25,14 @@ static void socket_timeout(int sig)
 
 static time_t askremotedate(const char *host)
 {
-	unsigned long nett;
-	struct sockaddr_in s_in;
+	uint32_t nett;
 	int fd;
-
-	bb_lookup_host(&s_in, host);
-	s_in.sin_port = bb_lookup_port("time", "tcp", 37);
 
 	/* Add a timeout for dead or inaccessible servers */
 	alarm(10);
 	signal(SIGALRM, socket_timeout);
 
-	fd = xconnect_tcp_v4(&s_in);
+	fd = create_and_connect_stream_or_die(host, bb_lookup_port("time", "tcp", 37));
 
 	if (safe_read(fd, (void *)&nett, 4) != 4)    /* read time from server */
 		bb_error_msg_and_die("%s did not send the complete time", host);
@@ -50,9 +40,9 @@ static time_t askremotedate(const char *host)
 
 	/* convert from network byte order to local byte order.
 	 * RFC 868 time is the number of seconds
-	 *  since 00:00 (midnight) 1 January 1900 GMT
-	 *  the RFC 868 time 2,208,988,800 corresponds to 00:00  1 Jan 1970 GMT
-	 * Subtract the RFC 868 time  to get Linux epoch
+	 * since 00:00 (midnight) 1 January 1900 GMT
+	 * the RFC 868 time 2,208,988,800 corresponds to 00:00  1 Jan 1970 GMT
+	 * Subtract the RFC 868 time to get Linux epoch
 	 */
 
 	return ntohl(nett) - RFC_868_BIAS;

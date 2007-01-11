@@ -19,7 +19,7 @@
 typedef struct ftp_host_info_s {
 	char *user;
 	char *password;
-	struct sockaddr_in *s_in;
+	struct len_and_sockaddr *lsa;
 } ftp_host_info_t;
 
 static char verbose_flag;
@@ -88,8 +88,8 @@ static int xconnect_ftpdata(ftp_host_info_t *server, char *buf)
 	*buf_ptr = '\0';
 	port_num += xatoul_range(buf_ptr + 1, 0, 255) * 256;
 
-	server->s_in->sin_port = htons(port_num);
-	return xconnect_tcp_v4(server->s_in);
+	set_port(server->lsa, htons(port_num));
+	return xconnect_stream(server->lsa);
 }
 
 static FILE *ftp_login(ftp_host_info_t *server)
@@ -98,9 +98,9 @@ static FILE *ftp_login(ftp_host_info_t *server)
 	char buf[512];
 
 	/* Connect to the command socket */
-	control_stream = fdopen(xconnect_tcp_v4(server->s_in), "r+");
+	control_stream = fdopen(xconnect_stream(server->lsa), "r+");
 	if (control_stream == NULL) {
-		/* Extremely unlikely */
+		/* fdopen failed - extremely unlikely */
 		bb_perror_nomsg_and_die();
 	}
 
@@ -304,7 +304,6 @@ int ftpgetput_main(int argc, char **argv)
 	const char *port = "ftp";
 	/* socket to ftp server */
 	FILE *control_stream;
-	struct sockaddr_in s_in;
 	/* continue previous transfer (-c) */
 	ftp_host_info_t *server;
 
@@ -347,12 +346,10 @@ int ftpgetput_main(int argc, char **argv)
 	/* We want to do exactly _one_ DNS lookup, since some
 	 * sites (i.e. ftp.us.debian.org) use round-robin DNS
 	 * and we want to connect to only one IP... */
-	server->s_in = &s_in;
-	bb_lookup_host(&s_in, argv[0]);
-	s_in.sin_port = bb_lookup_port(port, "tcp", 21);
+	server->lsa = host2sockaddr(argv[0], bb_lookup_port(port, "tcp", 21));
 	if (verbose_flag) {
-		printf("Connecting to %s[%s]:%d\n",
-			argv[0], inet_ntoa(s_in.sin_addr), ntohs(s_in.sin_port));
+		printf("Connecting to %s [%s]\n", argv[0],
+			xmalloc_sockaddr2dotted(&server->lsa->sa, server->lsa->len));
 	}
 
 	/*  Connect/Setup/Configure the FTP session */
