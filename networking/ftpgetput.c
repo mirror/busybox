@@ -320,7 +320,7 @@ int ftpgetput_main(int argc, char **argv)
 #endif
 
 	/* Set default values */
-	server = xmalloc(*server);
+	server = xmalloc(sizeof(*server));
 	server->user = "anonymous";
 	server->password = "busybox@";
 
