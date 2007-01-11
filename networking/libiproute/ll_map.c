@@ -169,7 +169,7 @@ int ll_name_to_index(char *name)
 			 * to the reader... Jean II */
 			return ifr.ifr_ifindex;
 	}
-	
+
 	return 0;
 }
 

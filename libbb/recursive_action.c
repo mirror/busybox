@@ -33,7 +33,7 @@ static int true_action(const char *fileName, struct stat *statbuf, void* userDat
  *
  * if !depthFirst, dirAction return value of 0 (FALSE) or 2 (SKIP)
  * prevents recursion into that directory, instead
- * recursive_action() returns 0 (if FALSE) or 1 (if SKIP). 
+ * recursive_action() returns 0 (if FALSE) or 1 (if SKIP).
  *
  * followLinks=0/1 differs mainly in handling of links to dirs.
  * 0: lstat(statbuf). Calls fileAction on link name even if points to dir.

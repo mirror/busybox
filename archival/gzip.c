@@ -792,13 +792,13 @@ static void check_match(IPos start, IPos match, int length)
 typedef uch extra_bits_t;
 
 /* extra bits for each length code */
-static const extra_bits_t extra_lbits[LENGTH_CODES]= { 
+static const extra_bits_t extra_lbits[LENGTH_CODES]= {
 	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4,
 	4, 4, 5, 5, 5, 5, 0
 };
 
 /* extra bits for each distance code */
-static const extra_bits_t extra_dbits[D_CODES] = { 
+static const extra_bits_t extra_dbits[D_CODES] = {
 	0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
 	10, 10, 11, 11, 12, 12, 13, 13
 };

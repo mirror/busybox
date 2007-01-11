@@ -673,7 +673,7 @@ static void handle_SIGCHLD(int status)
 	if (WIFEXITED(status) && WEXITSTATUS(status)==0)
 		/* child exited with 0 */
 		return;
-	/* Cannot happen? 
+	/* Cannot happen?
 	if(!WIFSIGNALED(status) && !WIFEXITED(status)) return; */
 	child_error = 1;
 }

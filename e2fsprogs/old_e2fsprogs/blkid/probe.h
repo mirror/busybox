@@ -238,7 +238,7 @@ struct ocfs_volume_header {
 
 struct ocfs_volume_label {
 	unsigned char	disk_lock[48];
-	char		label[64];	
+	char		label[64];
 	unsigned char	label_len[2];
 	unsigned char  vol_id[16];
 	unsigned char  vol_id_len[2];

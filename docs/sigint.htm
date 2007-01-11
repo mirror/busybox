@@ -40,7 +40,7 @@ scripts using <code>Control-C</code>. Or have interactive applications
 that don't behave right when sending SIGINT. Examples are emacs'es
 that die on Control-g or shellscript statements that sometimes are
 executed and sometimes not, apparently not determined by the user's
-intention. 
+intention.
 
 
 </td></tr><tr><th valign=top align=left>Required knowledge: </th>
@@ -101,7 +101,7 @@ just exit.
 
 <p>Now imagine the user hits C-c while a shellscript is executing its
 first program. The following programs receive SIGINT: program1 and
-also the shell executing the script. program1 exits. 
+also the shell executing the script. program1 exits.
 
 <p>But what should the shell do? If we say that it is only the
 innermost's programs business to react on SIGINT, the shell will do
@@ -351,7 +351,7 @@ that do not properly communicate the required information up to the
 calling program.
 
 <p>Unless a program messes with signal handling, the system does this
-automatically. 
+automatically.
 
 <p>There are programs that want to exit on SIGINT, but they don't let
 the system do the automatic exit, because they want to do some
@@ -425,7 +425,7 @@ Notes:
 special numeric value. People often assume this since the manuals for
 shells often list some return value for exactly this. But this is just
 a convention for your shell script. It does not work from one UNIX API
-program to another. 
+program to another.
 
 <P>All that happens is that the shell sets the "$?" variable to a
 special numeric value for the convenience of your script, because your
@@ -571,7 +571,7 @@ comments the scripts echo.
 <tr valign=top align=left>
 <td>IUE</td>
 <td>The shell executing a script exits immediately if it receives
-SIGINT.</td> 
+SIGINT.</td>
 <td>4.4BSD ash (ash), NetBSD, FreeBSD prior to 3.0/22.8</td>
 <td>The editor session is lost and subsequent commands are not
 executed.</td>
@@ -605,7 +605,7 @@ will further commands from the script be executed. </td>
 signal (either it had the default handler for SIGINT or it killed
 itself).  </td>
 <td>bash (Linux /bin/sh), most commercial /bin/sh, FreeBSD /bin/sh
-from 3.0/2.2.8.</td> 
+from 3.0/2.2.8.</td>
 <td>The editor continues as normal and subsequent commands are
 executed. </td>
 <td>The editor continues as normal and subsequent commands are
@@ -615,7 +615,7 @@ child exits, but only if the child exited with signal status. If
 the child did a normal exit (even if it received SIGINT, but catches
 it), the script will continue. </td>
 <td>The child must be implemented right, or the user will not be able
-to break shell scripts reliably.</td> 
+to break shell scripts reliably.</td>
 </tr>
 
 </table>

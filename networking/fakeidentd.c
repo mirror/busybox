@@ -240,68 +240,68 @@ int fakeidentd_main(int argc, char **argv)
 
 	/* main loop where we process all events and never exit */
 	while (1) {
-	fd_set rfds = G.readfds;
-	struct timeval tv = { 15, 0 };
-	int i;
-	int tim = time(NULL);
+		fd_set rfds = G.readfds;
+		struct timeval tv = { 15, 0 };
+		int i;
+		int tim = time(NULL);
 
-	select(G.conncnt + FCS, &rfds, NULL, NULL, G.conncnt? &tv: NULL);
+		select(G.conncnt + FCS, &rfds, NULL, NULL, G.conncnt? &tv: NULL);
 
-	for (i = G.conncnt - 1; i >= 0; i--) {
-		int s = i + FCS;
+		for (i = G.conncnt - 1; i >= 0; i--) {
+			int s = i + FCS;
 
-		if (FD_ISSET(s, &rfds)) {
-			char *buf = conns[i].buf;
-			unsigned int len = conns[i].len;
-			unsigned int l;
+			if (FD_ISSET(s, &rfds)) {
+				char *buf = conns[i].buf;
+				unsigned int len = conns[i].len;
+				unsigned int l;
 
-			if ((l = read(s, buf + len, sizeof(conns[0].buf) - len)) > 0) {
-				if (checkInput(buf, len, l)) {
-					reply(s, buf);
-					goto deleteconn;
-				} else if (len + l >= sizeof(conns[0].buf)) {
-					replyError(s, "X-INVALID-REQUEST");
-					goto deleteconn;
+				if ((l = read(s, buf + len, sizeof(conns[0].buf) - len)) > 0) {
+					if (checkInput(buf, len, l)) {
+						reply(s, buf);
+						goto deleteconn;
+					} else if (len + l >= sizeof(conns[0].buf)) {
+						replyError(s, "X-INVALID-REQUEST");
+						goto deleteconn;
+					} else {
+						conns[i].len += l;
+					}
 				} else {
-					conns[i].len += l;
+					goto deleteconn;
 				}
-			} else {
-				goto deleteconn;
-			}
 
-			conns[i].lasttime = tim;
-			continue;
+				conns[i].lasttime = tim;
+				continue;
 
 deleteconn:
-			deleteConn(s);
-		} else {
-			/* implement as time_after() in linux kernel sources ... */
-			if (conns[i].lasttime + MAXIDLETIME <= tim) {
-				replyError(s, "X-TIMEOUT");
 				deleteConn(s);
+			} else {
+				/* implement as time_after() in linux kernel sources ... */
+				if (conns[i].lasttime + MAXIDLETIME <= tim) {
+					replyError(s, "X-TIMEOUT");
+					deleteConn(s);
+				}
 			}
 		}
-	}
 
-	if (FD_ISSET(0, &rfds)) {
-		int s = accept(0, NULL, 0);
+		if (FD_ISSET(0, &rfds)) {
+			int s = accept(0, NULL, 0);
 
-		if (s < 0) {
-			if (errno != EINTR) /* EINTR */
-				bb_perror_msg("accept");
-		} else {
-			if (G.conncnt == MAXCONNS)
-				i = closeOldest();
-			else
-				i = G.conncnt++;
+			if (s < 0) {
+				if (errno != EINTR) /* EINTR */
+					bb_perror_msg("accept");
+			} else {
+				if (G.conncnt == MAXCONNS)
+					i = closeOldest();
+				else
+					i = G.conncnt++;
 
-			movefd(s, i + FCS); /* move if not already there */
-			FD_SET(i + FCS, &G.readfds);
+				movefd(s, i + FCS); /* move if not already there */
+				FD_SET(i + FCS, &G.readfds);
 
-			conns[i].len = 0;
-			conns[i].lasttime = time(NULL);
+				conns[i].len = 0;
+				conns[i].lasttime = time(NULL);
+			}
 		}
-	}
 	} /* end of while (1) */
 
 	return 0;

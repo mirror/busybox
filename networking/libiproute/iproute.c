@@ -562,7 +562,7 @@ static int iproute_list_or_flush(int argc, char **argv, int flush)
 				if (matches(*argv, "cache") == 0) {
 					filter.tb = -1;
 #if 0 && ENABLE_FEATURE_IP_RULE
-				
+
 #else
 				} else if (matches(*argv, "main") != 0) {
 					invarg(*argv, "table");

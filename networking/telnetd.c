@@ -286,7 +286,7 @@ make_new_session(
 		ts->shell_pid = pid;
 		return ts;
 	}
-	
+
 	/* child */
 
 	/* open the child's side of the tty. */

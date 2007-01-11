@@ -71,7 +71,7 @@ static const struct systypes sun_sys_types[] = {
 	{ "\x83" "Linux native" }, /* LINUX_NATIVE */
 	{ "\x8e" "Linux LVM"    }, /* 0x8e         */
 /* New (2.2.x) raid partition with autodetect using persistent superblock */
-	{ "\xfd" "Linux raid autodetect" }, /* 0xfd         */  
+	{ "\xfd" "Linux raid autodetect" }, /* 0xfd         */
 	{ NULL }
 };
 
@@ -167,7 +167,7 @@ sun_autoconfigure_scsi(void)
 
 	if (ioctl(fd, SCSI_IOCTL_GET_IDLUN, &id))
 		return NULL;
-	
+
 	sprintf(buffer,
 		"Host: scsi%d Channel: %02d Id: %02d Lun: %02d\n",
 		/* This is very wrong (works only if you have one HBA),
@@ -651,14 +651,14 @@ sun_list_table(int xtra)
 			uint32_t start = SUN_SSWAP32(sunlabel->partitions[i].start_cylinder) * heads * sectors;
 			uint32_t len = SUN_SSWAP32(sunlabel->partitions[i].num_sectors);
 			printf("%s %c%c %9ld %9ld %9ld%c  %2x  %s\n",
-				partname(disk_device, i+1, w),			/* device */            
-				(sunlabel->infos[i].flags & 0x01) ? 'u' : ' ',  /* flags */             
-				(sunlabel->infos[i].flags & 0x10) ? 'r' : ' ',  			
-				(long) scround(start),                          /* start */             
-				(long) scround(start+len),                      /* end */               
-				(long) len / 2, len & 1 ? '+' : ' ',            /* odd flag on end */   
-				sunlabel->infos[i].id,                          /* type id */           
-				partition_type(sunlabel->infos[i].id));         /* type name */         
+				partname(disk_device, i+1, w),			/* device */
+				(sunlabel->infos[i].flags & 0x01) ? 'u' : ' ',  /* flags */
+				(sunlabel->infos[i].flags & 0x10) ? 'r' : ' ',
+				(long) scround(start),                          /* start */
+				(long) scround(start+len),                      /* end */
+				(long) len / 2, len & 1 ? '+' : ' ',            /* odd flag on end */
+				sunlabel->infos[i].id,                          /* type id */
+				partition_type(sunlabel->infos[i].id));         /* type name */
 		}
 	}
 }

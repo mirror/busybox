@@ -116,7 +116,7 @@ static int INET_getsock(char *bufp, struct sockaddr *sap)
 	sock_in = (struct sockaddr_in *) sap;
 	sock_in->sin_family = AF_INET;
 	sock_in->sin_port = 0;
-	
+
 	val = 0;
 	bp = (char *) &val;
 	for (i = 0; i < sizeof(sock_in->sin_addr.s_addr); i++) {

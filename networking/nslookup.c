@@ -23,7 +23,7 @@
  * $ nslookup yahoo.com
  * Server:         128.193.0.10
  * Address:        128.193.0.10#53
- * 
+ *
  * Non-authoritative answer:
  * Name:   yahoo.com
  * Address: 216.109.112.135
@@ -33,11 +33,11 @@
  * $ nslookup 204.152.191.37
  * Server:         128.193.4.20
  * Address:        128.193.4.20#53
- * 
+ *
  * Non-authoritative answer:
  * 37.191.152.204.in-addr.arpa     canonical name = 37.32-27.191.152.204.in-addr.arpa.
  * 37.32-27.191.152.204.in-addr.arpa       name = zeus-pub2.kernel.org.
- * 
+ *
  * Authoritative answers can be found from:
  * 32-27.191.152.204.in-addr.arpa  nameserver = ns1.kernel.org.
  * 32-27.191.152.204.in-addr.arpa  nameserver = ns2.kernel.org.

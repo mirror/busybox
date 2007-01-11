@@ -141,7 +141,7 @@ static unsigned processorstart(struct logdir *ld)
 		sig_unblock(sig_term);
 		sig_unblock(sig_alarm);
 		sig_unblock(sig_hangup);
-		
+
 		if (verbose)
 			bb_error_msg(INFO"processing: %s/%s", ld->name, ld->fnsave);
 		fd = xopen(ld->fnsave, O_RDONLY|O_NDELAY);
@@ -549,12 +549,12 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 	coe(ld->fdcur);
 	while (fchmod(ld->fdcur, 0644) == -1)
 		pause2cannot("set mode of current", ld->name);
-	
+
 	if (verbose) {
 		if (i == 0) bb_error_msg(INFO"append: %s/current", ld->name);
 		else bb_error_msg(INFO"new: %s/current", ld->name);
 	}
-	
+
 	while (fchdir(fdwdir) == -1)
 		pause1cannot("change to initial working directory");
 	return 1;
@@ -569,7 +569,7 @@ static void logdirs_reopen(void)
 	tmaxflag = 0;
 	taia_now(&now);
 	for (l = 0; l < dirn; ++l) {
-		logdir_close(&dir[l]);    
+		logdir_close(&dir[l]);
 		if (logdir_open(&dir[l], fndir[l])) ok = 1;
 	}
 	if (!ok) fatalx("no functional log directories");

@@ -84,7 +84,7 @@ int buffer_feed(buffer *s)
 int buffer_bget(buffer *s,char *buf,unsigned len)
 {
 	int r;
- 
+
 	if (s->p > 0) return getthis(s,buf,len);
 	if (s->n <= len) return oneread(s->op,s->fd,buf,s->n);
 	r = buffer_feed(s); if (r <= 0) return r;
@@ -94,7 +94,7 @@ int buffer_bget(buffer *s,char *buf,unsigned len)
 int buffer_get(buffer *s,char *buf,unsigned len)
 {
 	int r;
- 
+
 	if (s->p > 0) return getthis(s,buf,len);
 	if (s->n <= len) return oneread(s->op,s->fd,buf,len);
 	r = buffer_feed(s); if (r <= 0) return r;
@@ -135,7 +135,7 @@ static int allwrite(int (*op)(int fd,char *buf,unsigned len),int fd,const char *
 int buffer_flush(buffer *s)
 {
 	int p;
- 
+
 	p = s->p;
 	if (!p) return 0;
 	s->p = 0;
@@ -145,7 +145,7 @@ int buffer_flush(buffer *s)
 int buffer_putalign(buffer *s,const char *buf,unsigned len)
 {
 	unsigned n;
- 
+
 	while (len > (n = s->n - s->p)) {
 		memcpy(s->x + s->p,buf,n);
 		s->p += n;
@@ -162,7 +162,7 @@ int buffer_putalign(buffer *s,const char *buf,unsigned len)
 int buffer_put(buffer *s,const char *buf,unsigned len)
 {
 	unsigned n;
- 
+
 	n = s->n;
 	if (len > n - s->p) {
 		if (buffer_flush(s) == -1) return -1;
@@ -487,7 +487,7 @@ void taia_sub(struct taia *t,const struct taia *u,const struct taia *v)
 {
 	unsigned long unano = u->nano;
 	unsigned long uatto = u->atto;
-	
+
 	t->sec.x = u->sec.x - v->sec.x;
 	t->nano = unano - v->nano;
 	t->atto = uatto - v->atto;

@@ -715,7 +715,7 @@ static char *decodeString(char *orig, int option_d)
 		}
 		value1 = value1 * 16 + value2;
 		if (!option_d && (value1 == '/' || value1 == '\0')) {
-			/* caller takes it as indication of invalid 
+			/* caller takes it as indication of invalid
 			 * (dangerous wrt exploits) chars */
 			return orig + 1;
 		}
@@ -998,7 +998,7 @@ static int sendCgi(const char *url,
 	pid = fork();
 	if (pid < 0)
 		return 0;
-	
+
 	if (!pid) {
 		/* child process */
 		char *script;

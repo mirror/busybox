@@ -19,7 +19,7 @@ static void del_line_matching(const char *login, const char *filename)
 	int len = strlen(login);
 	int found = 0;
 	llist_t *plist = NULL;
-	
+
 	passwd = fopen_or_warn(filename, "r");
 	if (!passwd) return;
 

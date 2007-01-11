@@ -36,7 +36,7 @@ static void fatal2_cannot(char *m1, char *m2)
 static void warn3x(char *m1, char *m2, char *m3)
 {
 	bb_error_msg("%s: warning: %s%s%s", svdir, m1, m2, m3);
-} 
+}
 static void warn2_cannot(char *m1, char *m2)
 {
 	warn3x("cannot ", m1, m2);
@@ -44,7 +44,7 @@ static void warn2_cannot(char *m1, char *m2)
 static void warnx(char *m1)
 {
 	warn3x(m1, "", "");
-} 
+}
 
 static void s_term(int sig_no)
 {
@@ -208,7 +208,7 @@ int runsvdir_main(int argc, char **argv)
 		}
 	}
 	curdir = open_read(".");
-	if (curdir == -1) 
+	if (curdir == -1)
 		fatal2_cannot("open current directory", "");
 	coe(curdir);
 
@@ -241,7 +241,7 @@ int runsvdir_main(int argc, char **argv)
 			/* wait at least a second */
 			taia_uint(&deadline, 1);
 			taia_add(&stampcheck, &now, &deadline);
-			
+
 			if (stat(svdir, &s) != -1) {
 				if (check || s.st_mtime != mtime
 				 || s.st_ino != ino || s.st_dev != dev

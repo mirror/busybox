@@ -2036,7 +2036,7 @@ static int is_safe_applet(char *name)
 {
 	/* It isn't a bug to have non-existent applet here... */
 	/* ...just a waste of space... */
-	static const char safe_applets[][8] = { 
+	static const char safe_applets[][8] = {
 		"["
 		USE_AWK    (, "awk"    )
 		USE_CAT    (, "cat"    )
@@ -3763,7 +3763,7 @@ tryexec(char *cmd, char **argv, char **envp)
 	struct BB_applet *a;
 	int argc = 0;
 	char **c;
-	
+
 	if (strchr(cmd, '/') == NULL
 	 && (a = find_applet_by_name(cmd)) != NULL
 	 && is_safe_applet(cmd)

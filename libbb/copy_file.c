@@ -144,7 +144,7 @@ int copy_file(const char *source, const char *dest, int flags)
 
 	} else if (S_ISREG(source_stat.st_mode)
 	// Huh? DEREF uses stat, which never returns links IIRC...
-	 || (FLAGS_DEREF && S_ISLNK(source_stat.st_mode)) 
+	 || (FLAGS_DEREF && S_ISLNK(source_stat.st_mode))
 	) {
 		int src_fd;
 		int dst_fd;

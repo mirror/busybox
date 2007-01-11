@@ -230,7 +230,7 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 		char *p,*q;
 		q = (char *)&(qs[1]);
 		p = &(d->name[1]);
-		fprintf(stderr, "\n%s: %d/%d p:%s q:%s %d", 
+		fprintf(stderr, "\n%s: %d/%d p:%s q:%s %d",
 			__FUNCTION__, strlen(p), (int)(d->name[0]), p, q, strlen(q));
 #endif
 		if (type == REQ_A) { /* search by host name */
@@ -247,7 +247,7 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 #endif
 					return 0;
 			}
-		} else 
+		} else
 		if (type == REQ_PTR) { /* search by IP-address */
 			if (!strncmp((char*)&d->rip[1], (char*)&qs[1], strlen(d->rip)-1)) {
 				strcpy((char *)as, d->name);

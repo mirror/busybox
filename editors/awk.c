@@ -1930,11 +1930,11 @@ static var *exec_builtin(node *op, var *res)
 		s[n] = '\0';
 		setvar_p(res, s);
 		break;
-		
+
 	case B_an:
 		setvar_i(res, (long)getvar_i(av[0]) & (long)getvar_i(av[1]));
 		break;
-		
+
 	case B_co:
 		setvar_i(res, ~(long)getvar_i(av[0]));
 		break;

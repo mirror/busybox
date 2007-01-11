@@ -4,7 +4,7 @@
  *
  * Based in part on code from sash, Copyright (c) 1999 by David I. Bell
  * Permission has been granted to redistribute this code under the GPL.
- * 
+ *
  * Licensed under the GPL version 2, see the file LICENSE in this tarball.
  */
 #ifndef	__LIBBUSYBOX_H__

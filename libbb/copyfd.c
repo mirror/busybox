@@ -60,7 +60,7 @@ static off_t bb_full_fd_action(int src_fd, int dst_fd, off_t size)
 			size -= rd;
 			if (!size) {
 				/* 'size' bytes copied - all done */
-				status = 0; 
+				status = 0;
 				break;
 			}
 		}

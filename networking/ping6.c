@@ -420,7 +420,7 @@ int ping6_main(int argc, char **argv)
 	datalen = DEFDATALEN; /* initialized here rather than in global scope to work around gcc bug */
 
 	/* exactly one argument needed, -v and -q don't mix */
-	opt_complementary = "=1:q--v:v--q"; 
+	opt_complementary = "=1:q--v:v--q";
 	getopt32(argc, argv, OPT_STRING, &opt_c, &opt_s, &opt_I);
 	if (option_mask32 & 4) pingcount = xatoul(opt_c); // -c
 	if (option_mask32 & 8) datalen = xatou16(opt_s); // -s

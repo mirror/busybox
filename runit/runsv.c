@@ -300,7 +300,7 @@ static void startservice(struct svdir *s)
 					fatal_cannot("setup filedescriptor for ./log/run");
 				close(logpipe[1]);
 				if (chdir("./log") == -1)
-					fatal_cannot("change directory to ./log");        
+					fatal_cannot("change directory to ./log");
 			} else {
 				if (fd_copy(1, logpipe[1]) == -1)
 					fatal_cannot("setup filedescriptor for ./run");
@@ -405,7 +405,7 @@ int runsv_main(int argc, char **argv)
 	coe(selfpipe[1]);
 	ndelay_on(selfpipe[0]);
 	ndelay_on(selfpipe[1]);
-	
+
 	sig_block(sig_child);
 	sig_catch(sig_child, s_child);
 	sig_block(sig_term);
@@ -544,7 +544,7 @@ int runsv_main(int argc, char **argv)
 		for (;;) {
 			int child;
 			int wstat;
-			
+
 			child = wait_nohang(&wstat);
 			if (!child) break;
 			if ((child == -1) && (errno != EINTR)) break;

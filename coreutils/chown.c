@@ -93,7 +93,7 @@ int chown_main(int argc, char **argv)
 				fileAction,     // file action
 				fileAction,     // dir action
 				NULL,           // user data
-				0)              // depth 
+				0)              // depth
 		) {
 			retval = EXIT_FAILURE;
 		}

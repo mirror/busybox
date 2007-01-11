@@ -152,5 +152,5 @@ $(host-cshlib): %: $(host-cshobjs) FORCE
 	$(call if_changed,host-cshlib)
 
 targets += $(host-csingle)  $(host-cmulti) $(host-cobjs)\
-	   $(host-cxxmulti) $(host-cxxobjs) $(host-cshlib) $(host-cshobjs) 
+	   $(host-cxxmulti) $(host-cxxobjs) $(host-cshlib) $(host-cshobjs)
 

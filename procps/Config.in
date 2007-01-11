@@ -42,7 +42,7 @@ config KILLALL5
 	bool "killall5"
 	default n
 	depends on KILL
-	
+
 config PIDOF
 	bool "pidof"
 	default n

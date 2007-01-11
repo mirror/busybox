@@ -290,7 +290,7 @@ int chpst_main(int argc, char **argv)
 	}
 	argv += optind;
 	if (!argv || !*argv) bb_show_usage();
-	
+
 	if (OPT_pgrp) setsid();
 	if (env_dir) edir(env_dir);
 	if (root) {

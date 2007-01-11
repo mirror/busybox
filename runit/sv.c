@@ -88,7 +88,7 @@ static unsigned svstatus_print(char *m)
 	int pid;
 	int normallyup = 0;
 	struct stat s;
- 
+
 	if (stat("down", &s) == -1) {
 		if (errno != ENOENT) {
 			bb_perror_msg(WARN"cannot stat %s/down", *service);

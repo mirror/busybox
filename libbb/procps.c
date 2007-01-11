@@ -141,7 +141,7 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 			sp->uid = sb.st_uid;
 			sp->gid = sb.st_gid;
 		}
-	
+
 		if (flags & PSSCAN_STAT) {
 			char *cp;
 			/* see proc(5) for some details on this */

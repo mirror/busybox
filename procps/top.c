@@ -271,7 +271,7 @@ static unsigned long display_generic(int scr_width)
 		used, mfree, shared, buffers, cached);
 
 	printf(OPT_BATCH_MODE ? "%s\n" : "\e[H\e[J%s\n", scrbuf);
-    
+
 	snprintf(scrbuf, scr_width, "Load average: %s", buf);
 	printf("%s\n", scrbuf);
 
