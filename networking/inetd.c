@@ -23,7 +23,7 @@
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
@@ -36,8 +36,7 @@
  * SUCH DAMAGE.
  */
 
-/*
- * Inetd - Internet super-server
+/* Inetd - Internet super-server
  *
  * This program invokes all internet services as needed.
  * connection-oriented services are invoked each time a
@@ -50,14 +49,14 @@
  * arrives; a process is created and passed a pending message
  * on file descriptor 0.  Datagram servers may either connect
  * to their peer, freeing up the original socket for inetd
- * to receive further messages on, or ``take over the socket'',
+ * to receive further messages on, or "take over the socket",
  * processing all arriving datagrams and, eventually, timing
- * out.  The first type of server is said to be ``multi-threaded'';
- * the second type of server ``single-threaded''.
+ * out.  The first type of server is said to be "multi-threaded";
+ * the second type of server "single-threaded".
  *
  * Inetd uses a configuration file which is read at startup
  * and, possibly, at some later time in response to a hangup signal.
- * The configuration file is ``free format'' with fields given in the
+ * The configuration file is "free format" with fields given in the
  * order shown below.  Continuation lines for an entry must begin with
  * a space or tab.  All fields must be present in each entry.
  *
@@ -105,8 +104,37 @@
  * Comment lines are indicated by a `#' in column 1.
  */
 
-/*
- * Here's the scoop concerning the user[.:]group feature:
+/* inetd rules for passing file descriptors to children
+ * (http://www.freebsd.org/cgi/man.cgi?query=inetd):
+ *
+ * The wait/nowait entry specifies whether the server that is invoked by
+ * inetd will take over the socket associated with the service access point,
+ * and thus whether inetd should wait for the server to exit before listen-
+ * ing for new service requests.  Datagram servers must use "wait", as
+ * they are always invoked with the original datagram socket bound to the
+ * specified service address.  These servers must read at least one datagram
+ * from the socket before exiting.  If a datagram server connects to its
+ * peer, freeing the socket so inetd can receive further messages on the
+ * socket, it is said to be a "multi-threaded" server; it should read one
+ * datagram from the socket and create a new socket connected to the peer.
+ * It should fork, and the parent should then exit to allow inetd to check
+ * for new service requests to spawn new servers.  Datagram servers which
+ * process all incoming datagrams on a socket and eventually time out are
+ * said to be "single-threaded".  The comsat(8), (biff(1)) and talkd(8)
+ * utilities are both examples of the latter type of datagram server.  The
+ * tftpd(8) utility is an example of a multi-threaded datagram server.
+ *
+ * Servers using stream sockets generally are multi-threaded and use the
+ * "nowait" entry. Connection requests for these services are accepted by
+ * inetd, and the server is given only the newly-accepted socket connected
+ * to a client of the service.  Most stream-based services operate in this
+ * manner.  Stream-based servers that use "wait" are started with the lis-
+ * tening service socket, and must accept at least one connection request
+ * before exiting.  Such a server would normally accept and process incoming
+ * connection requests until a timeout.
+ */
+
+/* Here's the scoop concerning the user[.:]group feature:
  *
  * 1) set-group-option off.
  *
@@ -125,7 +153,6 @@
  *      b) other:       setgid(specified group)
  *                      initgroups(name, specified group)
  *                      setuid()
- *
  */
 
 #include "busybox.h"
@@ -161,7 +188,7 @@
 #endif
 
 /* Reserve some descriptors, 3 stdio + at least: 1 log, 1 conf. file */
-#define FD_MARGIN       (8)
+#define FD_MARGIN       8
 static rlim_t rlim_ofile_cur = OPEN_MAX;
 static struct rlimit rlim_ofile;
 
