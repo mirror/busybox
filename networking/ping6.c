@@ -22,12 +22,8 @@
  * The code was modified by Bart Visscher <magick@linux-fan.com>
  */
 
-//#include <netinet/in.h>
-//#include <netinet/ip6.h>
 #include <netinet/icmp6.h>
-//#include <arpa/inet.h>
 #include <net/if.h>
-//#include <netdb.h>
 #include "busybox.h"
 
 /* I see RENUMBERED constants in bits/in.h - !!?

@@ -22,8 +22,8 @@ typedef struct ftp_host_info_s {
 	struct len_and_sockaddr *lsa;
 } ftp_host_info_t;
 
-static char verbose_flag;
-static char do_continue;
+static smallint verbose_flag;
+static smallint do_continue;
 
 static void ftp_die(const char *msg, const char *remote) ATTRIBUTE_NORETURN;
 static void ftp_die(const char *msg, const char *remote)
@@ -41,7 +41,7 @@ static int ftpcmd(const char *s1, const char *s2, FILE *stream, char *buf)
 {
 	unsigned n;
 	if (verbose_flag) {
-		bb_error_msg("cmd %s%s", s1, s2);
+		bb_error_msg("cmd %s %s", s1, s2);
 	}
 
 	if (s1) {
@@ -320,10 +320,9 @@ int ftpgetput_main(int argc, char **argv)
 #endif
 
 	/* Set default values */
-	server = xmalloc(sizeof(ftp_host_info_t));
+	server = xmalloc(*server);
 	server->user = "anonymous";
 	server->password = "busybox@";
-	verbose_flag = 0;
 
 	/*
 	 * Decipher the command line

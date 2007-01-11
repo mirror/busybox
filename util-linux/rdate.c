@@ -8,13 +8,7 @@
  * Licensed under GPL v2 or later, see file License for details.
 */
 
-//#include <sys/socket.h>
-//#include <netinet/in.h>
-//#include <netdb.h>
-//#include <signal.h>
-
 #include "busybox.h"
-
 
 enum { RFC_868_BIAS = 2208988800UL };
 

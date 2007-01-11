@@ -12,11 +12,7 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
 
-//#include <netinet/in.h>
-//#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
-//#include <arpa/inet.h>
-//#include <netdb.h>
 #include "busybox.h"
 
 enum {
