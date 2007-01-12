@@ -637,17 +637,382 @@ static int find_param(const char *name)
 	return 0;
 }
 
+static int recover_mode(const char *arg, struct termios *mode)
+{
+	int i, n;
+	unsigned int chr;
+	unsigned long iflag, oflag, cflag, lflag;
 
-static int recover_mode(const char *arg, struct termios *mode);
-static void set_mode(const struct mode_info *info,
-				int reversed, struct termios *mode);
-static void display_all(const struct termios *mode);
-static void display_changed(const struct termios *mode);
-static void display_recoverable(const struct termios *mode);
-static void display_speed(const struct termios *mode, int fancy);
-static void sane_mode(struct termios *mode);
+	/* Scan into temporaries since it is too much trouble to figure out
+	   the right format for 'tcflag_t' */
+	if (sscanf(arg, "%lx:%lx:%lx:%lx%n",
+			   &iflag, &oflag, &cflag, &lflag, &n) != 4)
+		return 0;
+	mode->c_iflag = iflag;
+	mode->c_oflag = oflag;
+	mode->c_cflag = cflag;
+	mode->c_lflag = lflag;
+	arg += n;
+	for (i = 0; i < NCCS; ++i) {
+		if (sscanf(arg, ":%x%n", &chr, &n) != 1)
+			return 0;
+		mode->c_cc[i] = chr;
+		arg += n;
+	}
+
+	/* Fail if there are too many fields */
+	if (*arg != '\0')
+		return 0;
+
+	return 1;
+}
+
+static void display_recoverable(const struct termios *mode)
+{
+	int i;
+	printf("%lx:%lx:%lx:%lx",
+		   (unsigned long) mode->c_iflag, (unsigned long) mode->c_oflag,
+		   (unsigned long) mode->c_cflag, (unsigned long) mode->c_lflag);
+	for (i = 0; i < NCCS; ++i)
+		printf(":%x", (unsigned int) mode->c_cc[i]);
+	putchar('\n');
+}
+
+static void display_speed(const struct termios *mode, int fancy)
+{
+	                     //01234567 8 9
+	const char *fmt_str = "%lu %lu\n\0ispeed %lu baud; ospeed %lu baud;";
+	unsigned long ispeed, ospeed;
+
+	ospeed = ispeed = cfgetispeed(mode);
+	if (ispeed == 0 || ispeed == (ospeed = cfgetospeed(mode))) {
+		ispeed = ospeed;                /* in case ispeed was 0 */
+	                 //0123 4 5 6 7 8 9
+		fmt_str = "%lu\n\0\0\0\0\0speed %lu baud;";
+	}
+	if (fancy) fmt_str += 9;
+	wrapf(fmt_str, tty_baud_to_value(ispeed), tty_baud_to_value(ospeed));
+}
+
+static void display_all(const struct termios *mode)
+{
+	int i;
+	tcflag_t *bitsp;
+	unsigned long mask;
+	int prev_type = control;
+
+	display_speed(mode, 1);
+	display_window_size(1);
+#ifdef HAVE_C_LINE
+	wrapf("line = %d;\n", mode->c_line);
+#else
+	wrapf("\n");
+#endif
+
+	for (i = 0; control_info[i].name != stty_min; ++i) {
+		/* If swtch is the same as susp, don't print both */
+#if VSWTCH == VSUSP
+		if (control_info[i].name == stty_swtch)
+			continue;
+#endif
+		/* If eof uses the same slot as min, only print whichever applies */
+#if VEOF == VMIN
+		if ((mode->c_lflag & ICANON) == 0
+			&& (control_info[i].name == stty_eof
+				|| control_info[i].name == stty_eol)) continue;
+#endif
+		wrapf("%s = %s;", control_info[i].name,
+			  visible(mode->c_cc[control_info[i].offset]));
+	}
+#if VEOF == VMIN
+	if ((mode->c_lflag & ICANON) == 0)
+#endif
+		wrapf("min = %d; time = %d;", mode->c_cc[VMIN], mode->c_cc[VTIME]);
+	if (current_col) wrapf("\n");
+
+	for (i = 0; i < NUM_mode_info; ++i) {
+		if (mode_info[i].flags & OMIT)
+			continue;
+		if (mode_info[i].type != prev_type) {
+			wrapf("\n");
+			prev_type = mode_info[i].type;
+		}
+
+		bitsp = mode_type_flag(mode_info[i].type, mode);
+		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
+		if ((*bitsp & mask) == mode_info[i].bits)
+			wrapf("%s", mode_info[i].name);
+		else if (mode_info[i].flags & REV)
+			wrapf("-%s", mode_info[i].name);
+	}
+	if (current_col) wrapf("\n");
+}
+
+static void sane_mode(struct termios *mode)
+{
+	int i;
+	tcflag_t *bitsp;
+
+	for (i = 0; i < NUM_control_info; ++i) {
+#if VMIN == VEOF
+		if (control_info[i].name == stty_min)
+			break;
+#endif
+		mode->c_cc[control_info[i].offset] = control_info[i].saneval;
+	}
+
+	for (i = 0; i < NUM_mode_info; ++i) {
+		if (mode_info[i].flags & SANE_SET) {
+			bitsp = mode_type_flag(mode_info[i].type, mode);
+			*bitsp = (*bitsp & ~((unsigned long)mode_info[i].mask))
+				| mode_info[i].bits;
+		} else if (mode_info[i].flags & SANE_UNSET) {
+			bitsp = mode_type_flag(mode_info[i].type, mode);
+			*bitsp = *bitsp & ~((unsigned long)mode_info[i].mask)
+				& ~mode_info[i].bits;
+		}
+	}
+}
+
+/* Save set_mode from #ifdef forest plague */
+#ifndef ONLCR
+#define ONLCR 0
+#endif
+#ifndef OCRNL
+#define OCRNL 0
+#endif
+#ifndef ONLRET
+#define ONLRET 0
+#endif
+#ifndef XCASE
+#define XCASE 0
+#endif
+#ifndef IXANY
+#define IXANY 0
+#endif
+#ifndef TABDLY
+#define TABDLY 0
+#endif
+#ifndef OXTABS
+#define OXTABS 0
+#endif
+#ifndef IUCLC
+#define IUCLC 0
+#endif
+#ifndef OLCUC
+#define OLCUC 0
+#endif
+#ifndef ECHOCTL
+#define ECHOCTL 0
+#endif
+#ifndef ECHOKE
+#define ECHOKE 0
+#endif
+
+static void set_mode(const struct mode_info *info, int reversed,
+					struct termios *mode)
+{
+	tcflag_t *bitsp;
+
+	bitsp = mode_type_flag(info->type, mode);
+
+	if (bitsp) {
+		if (reversed)
+			*bitsp = *bitsp & ~info->mask & ~info->bits;
+		else
+			*bitsp = (*bitsp & ~info->mask) | info->bits;
+		return;
+	}
+
+	/* Combination mode */
+	if (info->name == evenp || info->name == parity) {
+		if (reversed)
+			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
+		else
+			mode->c_cflag =	(mode->c_cflag & ~PARODD & ~CSIZE) | PARENB | CS7;
+	} else if (info->name == stty_oddp) {
+		if (reversed)
+			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
+		else
+			mode->c_cflag =	(mode->c_cflag & ~CSIZE) | CS7 | PARODD | PARENB;
+	} else if (info->name == stty_nl) {
+		if (reversed) {
+			mode->c_iflag = (mode->c_iflag | ICRNL) & ~INLCR & ~IGNCR;
+			mode->c_oflag = (mode->c_oflag | ONLCR)	& ~OCRNL & ~ONLRET;
+		} else {
+			mode->c_iflag = mode->c_iflag & ~ICRNL;
+			if (ONLCR) mode->c_oflag = mode->c_oflag & ~ONLCR;
+		}
+	} else if (info->name == stty_ek) {
+		mode->c_cc[VERASE] = CERASE;
+		mode->c_cc[VKILL] = CKILL;
+	} else if (info->name == stty_sane) {
+		sane_mode(mode);
+	}
+	else if (info->name == cbreak) {
+		if (reversed)
+			mode->c_lflag |= ICANON;
+		else
+			mode->c_lflag &= ~ICANON;
+	} else if (info->name == stty_pass8) {
+		if (reversed) {
+			mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
+			mode->c_iflag |= ISTRIP;
+		} else {
+			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
+			mode->c_iflag &= ~ISTRIP;
+		}
+	} else if (info->name == litout) {
+		if (reversed) {
+			mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
+			mode->c_iflag |= ISTRIP;
+			mode->c_oflag |= OPOST;
+		} else {
+			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
+			mode->c_iflag &= ~ISTRIP;
+			mode->c_oflag &= ~OPOST;
+		}
+	} else if (info->name == raw || info->name == cooked) {
+		if ((info->name[0] == 'r' && reversed)
+			|| (info->name[0] == 'c' && !reversed)) {
+			/* Cooked mode */
+			mode->c_iflag |= BRKINT | IGNPAR | ISTRIP | ICRNL | IXON;
+			mode->c_oflag |= OPOST;
+			mode->c_lflag |= ISIG | ICANON;
+#if VMIN == VEOF
+			mode->c_cc[VEOF] = CEOF;
+#endif
+#if VTIME == VEOL
+			mode->c_cc[VEOL] = CEOL;
+#endif
+		} else {
+			/* Raw mode */
+			mode->c_iflag = 0;
+			mode->c_oflag &= ~OPOST;
+			mode->c_lflag &= ~(ISIG | ICANON | XCASE);
+			mode->c_cc[VMIN] = 1;
+			mode->c_cc[VTIME] = 0;
+		}
+	}
+	else if (IXANY && info->name == decctlq) {
+		if (reversed)
+			mode->c_iflag |= IXANY;
+		else
+			mode->c_iflag &= ~IXANY;
+	}
+	else if (TABDLY && info->name == stty_tabs) {
+		if (reversed)
+			mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB3;
+		else
+			mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB0;
+	}
+	else if (OXTABS && info->name == stty_tabs) {
+		if (reversed)
+			mode->c_oflag |= OXTABS;
+		else
+			mode->c_oflag &= ~OXTABS;
+	}
+	else if (XCASE && IUCLC && OLCUC
+	&& (info->name == stty_lcase || info->name == stty_LCASE)) {
+		if (reversed) {
+			mode->c_lflag &= ~XCASE;
+			mode->c_iflag &= ~IUCLC;
+			mode->c_oflag &= ~OLCUC;
+		} else {
+			mode->c_lflag |= XCASE;
+			mode->c_iflag |= IUCLC;
+			mode->c_oflag |= OLCUC;
+		}
+	}
+	else if (info->name == stty_crt) {
+		mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
+	}
+	else if (info->name == stty_dec) {
+		mode->c_cc[VINTR] = 3; /* ^C */
+		mode->c_cc[VERASE] = 127; /* DEL */
+		mode->c_cc[VKILL] = 21; /* ^U */
+		mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
+		if (IXANY) mode->c_iflag &= ~IXANY;
+	}
+}
+
+static void display_changed(const struct termios *mode)
+{
+	int i;
+	tcflag_t *bitsp;
+	unsigned long mask;
+	int prev_type = control;
+
+	display_speed(mode, 1);
+#ifdef HAVE_C_LINE
+	wrapf("line = %d;\n", mode->c_line);
+#else
+	wrapf("\n");
+#endif
+
+	for (i = 0; control_info[i].name != stty_min; ++i) {
+		if (mode->c_cc[control_info[i].offset] == control_info[i].saneval)
+			continue;
+		/* If swtch is the same as susp, don't print both */
+#if VSWTCH == VSUSP
+		if (control_info[i].name == stty_swtch)
+			continue;
+#endif
+		/* If eof uses the same slot as min, only print whichever applies */
+#if VEOF == VMIN
+		if ((mode->c_lflag & ICANON) == 0
+			&& (control_info[i].name == stty_eof
+				|| control_info[i].name == stty_eol)) continue;
+#endif
+		wrapf("%s = %s;", control_info[i].name,
+			  visible(mode->c_cc[control_info[i].offset]));
+	}
+	if ((mode->c_lflag & ICANON) == 0) {
+		wrapf("min = %d; time = %d;", (int) mode->c_cc[VMIN],
+			  (int) mode->c_cc[VTIME]);
+	}
+	if (current_col) wrapf("\n");
+
+	for (i = 0; i < NUM_mode_info; ++i) {
+		if (mode_info[i].flags & OMIT)
+			continue;
+		if (mode_info[i].type != prev_type) {
+			if (current_col) wrapf("\n");
+			prev_type = mode_info[i].type;
+		}
+
+		bitsp = mode_type_flag(mode_info[i].type, mode);
+		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
+		if ((*bitsp & mask) == mode_info[i].bits) {
+			if (mode_info[i].flags & SANE_UNSET) {
+				wrapf("%s", mode_info[i].name);
+			}
+		} else if ((mode_info[i].flags & (SANE_SET | REV)) == (SANE_SET | REV)) {
+			wrapf("-%s", mode_info[i].name);
+		}
+	}
+	if (current_col) wrapf("\n");
+}
+
 static void set_control_char_or_die(const struct control_info *info,
-				const char *arg, struct termios *mode);
+			const char *arg, struct termios *mode)
+{
+	unsigned char value;
+
+	if (info->name == stty_min || info->name == stty_time)
+		value = xatoul_range_sfx(arg, 0, 0xff, stty_suffixes);
+	else if (arg[0] == '\0' || arg[1] == '\0')
+		value = arg[0];
+	else if (streq(arg, "^-") || streq(arg, "undef"))
+		value = _POSIX_VDISABLE;
+	else if (arg[0] == '^') { /* Ignore any trailing junk (^Cjunk) */
+		value = arg[1] & 0x1f; /* Non-letters get weird results */
+		if (arg[1] == '?')
+			value = 127;
+	} else
+		value = xatoul_range_sfx(arg, 0, 0xff, stty_suffixes);
+	mode->c_cc[info->offset] = value;
+}
 
 int stty_main(int argc, char **argv)
 {
@@ -927,381 +1292,4 @@ end_option:
 	}
 
 	return EXIT_SUCCESS;
-}
-
-/* Save set_mode from #ifdef forest plague */
-#ifndef ONLCR
-#define ONLCR 0
-#endif
-#ifndef OCRNL
-#define OCRNL 0
-#endif
-#ifndef ONLRET
-#define ONLRET 0
-#endif
-#ifndef XCASE
-#define XCASE 0
-#endif
-#ifndef IXANY
-#define IXANY 0
-#endif
-#ifndef TABDLY
-#define TABDLY 0
-#endif
-#ifndef OXTABS
-#define OXTABS 0
-#endif
-#ifndef IUCLC
-#define IUCLC 0
-#endif
-#ifndef OLCUC
-#define OLCUC 0
-#endif
-#ifndef ECHOCTL
-#define ECHOCTL 0
-#endif
-#ifndef ECHOKE
-#define ECHOKE 0
-#endif
-
-static void set_mode(const struct mode_info *info, int reversed,
-					struct termios *mode)
-{
-	tcflag_t *bitsp;
-
-	bitsp = mode_type_flag(info->type, mode);
-
-	if (bitsp) {
-		if (reversed)
-			*bitsp = *bitsp & ~info->mask & ~info->bits;
-		else
-			*bitsp = (*bitsp & ~info->mask) | info->bits;
-		return;
-	}
-
-	/* Combination mode */
-	if (info->name == evenp || info->name == parity) {
-		if (reversed)
-			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
-		else
-			mode->c_cflag =	(mode->c_cflag & ~PARODD & ~CSIZE) | PARENB | CS7;
-	} else if (info->name == stty_oddp) {
-		if (reversed)
-			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
-		else
-			mode->c_cflag =	(mode->c_cflag & ~CSIZE) | CS7 | PARODD | PARENB;
-	} else if (info->name == stty_nl) {
-		if (reversed) {
-			mode->c_iflag = (mode->c_iflag | ICRNL) & ~INLCR & ~IGNCR;
-			mode->c_oflag = (mode->c_oflag | ONLCR)	& ~OCRNL & ~ONLRET;
-		} else {
-			mode->c_iflag = mode->c_iflag & ~ICRNL;
-			if (ONLCR) mode->c_oflag = mode->c_oflag & ~ONLCR;
-		}
-	} else if (info->name == stty_ek) {
-		mode->c_cc[VERASE] = CERASE;
-		mode->c_cc[VKILL] = CKILL;
-	} else if (info->name == stty_sane) {
-		sane_mode(mode);
-	}
-	else if (info->name == cbreak) {
-		if (reversed)
-			mode->c_lflag |= ICANON;
-		else
-			mode->c_lflag &= ~ICANON;
-	} else if (info->name == stty_pass8) {
-		if (reversed) {
-			mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
-			mode->c_iflag |= ISTRIP;
-		} else {
-			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
-			mode->c_iflag &= ~ISTRIP;
-		}
-	} else if (info->name == litout) {
-		if (reversed) {
-			mode->c_cflag = (mode->c_cflag & ~CSIZE) | CS7 | PARENB;
-			mode->c_iflag |= ISTRIP;
-			mode->c_oflag |= OPOST;
-		} else {
-			mode->c_cflag = (mode->c_cflag & ~PARENB & ~CSIZE) | CS8;
-			mode->c_iflag &= ~ISTRIP;
-			mode->c_oflag &= ~OPOST;
-		}
-	} else if (info->name == raw || info->name == cooked) {
-		if ((info->name[0] == 'r' && reversed)
-			|| (info->name[0] == 'c' && !reversed)) {
-			/* Cooked mode */
-			mode->c_iflag |= BRKINT | IGNPAR | ISTRIP | ICRNL | IXON;
-			mode->c_oflag |= OPOST;
-			mode->c_lflag |= ISIG | ICANON;
-#if VMIN == VEOF
-			mode->c_cc[VEOF] = CEOF;
-#endif
-#if VTIME == VEOL
-			mode->c_cc[VEOL] = CEOL;
-#endif
-		} else {
-			/* Raw mode */
-			mode->c_iflag = 0;
-			mode->c_oflag &= ~OPOST;
-			mode->c_lflag &= ~(ISIG | ICANON | XCASE);
-			mode->c_cc[VMIN] = 1;
-			mode->c_cc[VTIME] = 0;
-		}
-	}
-	else if (IXANY && info->name == decctlq) {
-		if (reversed)
-			mode->c_iflag |= IXANY;
-		else
-			mode->c_iflag &= ~IXANY;
-	}
-	else if (TABDLY && info->name == stty_tabs) {
-		if (reversed)
-			mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB3;
-		else
-			mode->c_oflag = (mode->c_oflag & ~TABDLY) | TAB0;
-	}
-	else if (OXTABS && info->name == stty_tabs) {
-		if (reversed)
-			mode->c_oflag |= OXTABS;
-		else
-			mode->c_oflag &= ~OXTABS;
-	}
-	else if (XCASE && IUCLC && OLCUC
-	&& (info->name == stty_lcase || info->name == stty_LCASE)) {
-		if (reversed) {
-			mode->c_lflag &= ~XCASE;
-			mode->c_iflag &= ~IUCLC;
-			mode->c_oflag &= ~OLCUC;
-		} else {
-			mode->c_lflag |= XCASE;
-			mode->c_iflag |= IUCLC;
-			mode->c_oflag |= OLCUC;
-		}
-	}
-	else if (info->name == stty_crt) {
-		mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
-	}
-	else if (info->name == stty_dec) {
-		mode->c_cc[VINTR] = 3; /* ^C */
-		mode->c_cc[VERASE] = 127; /* DEL */
-		mode->c_cc[VKILL] = 21; /* ^U */
-		mode->c_lflag |= ECHOE | ECHOCTL | ECHOKE;
-		if (IXANY) mode->c_iflag &= ~IXANY;
-	}
-}
-
-static void set_control_char_or_die(const struct control_info *info,
-			const char *arg, struct termios *mode)
-{
-	unsigned char value;
-
-	if (info->name == stty_min || info->name == stty_time)
-		value = xatoul_range_sfx(arg, 0, 0xff, stty_suffixes);
-	else if (arg[0] == '\0' || arg[1] == '\0')
-		value = arg[0];
-	else if (streq(arg, "^-") || streq(arg, "undef"))
-		value = _POSIX_VDISABLE;
-	else if (arg[0] == '^') { /* Ignore any trailing junk (^Cjunk) */
-		value = arg[1] & 0x1f; /* Non-letters get weird results */
-		if (arg[1] == '?')
-			value = 127;
-	} else
-		value = xatoul_range_sfx(arg, 0, 0xff, stty_suffixes);
-	mode->c_cc[info->offset] = value;
-}
-
-static void display_changed(const struct termios *mode)
-{
-	int i;
-	tcflag_t *bitsp;
-	unsigned long mask;
-	int prev_type = control;
-
-	display_speed(mode, 1);
-#ifdef HAVE_C_LINE
-	wrapf("line = %d;\n", mode->c_line);
-#else
-	wrapf("\n");
-#endif
-
-	for (i = 0; control_info[i].name != stty_min; ++i) {
-		if (mode->c_cc[control_info[i].offset] == control_info[i].saneval)
-			continue;
-		/* If swtch is the same as susp, don't print both */
-#if VSWTCH == VSUSP
-		if (control_info[i].name == stty_swtch)
-			continue;
-#endif
-		/* If eof uses the same slot as min, only print whichever applies */
-#if VEOF == VMIN
-		if ((mode->c_lflag & ICANON) == 0
-			&& (control_info[i].name == stty_eof
-				|| control_info[i].name == stty_eol)) continue;
-#endif
-		wrapf("%s = %s;", control_info[i].name,
-			  visible(mode->c_cc[control_info[i].offset]));
-	}
-	if ((mode->c_lflag & ICANON) == 0) {
-		wrapf("min = %d; time = %d;", (int) mode->c_cc[VMIN],
-			  (int) mode->c_cc[VTIME]);
-	}
-	if (current_col) wrapf("\n");
-
-	for (i = 0; i < NUM_mode_info; ++i) {
-		if (mode_info[i].flags & OMIT)
-			continue;
-		if (mode_info[i].type != prev_type) {
-			if (current_col) wrapf("\n");
-			prev_type = mode_info[i].type;
-		}
-
-		bitsp = mode_type_flag(mode_info[i].type, mode);
-		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
-		if ((*bitsp & mask) == mode_info[i].bits) {
-			if (mode_info[i].flags & SANE_UNSET) {
-				wrapf("%s", mode_info[i].name);
-			}
-		} else if ((mode_info[i].flags & (SANE_SET | REV)) == (SANE_SET | REV)) {
-			wrapf("-%s", mode_info[i].name);
-		}
-	}
-	if (current_col) wrapf("\n");
-}
-
-static void display_all(const struct termios *mode)
-{
-	int i;
-	tcflag_t *bitsp;
-	unsigned long mask;
-	int prev_type = control;
-
-	display_speed(mode, 1);
-	display_window_size(1);
-#ifdef HAVE_C_LINE
-	wrapf("line = %d;\n", mode->c_line);
-#else
-	wrapf("\n");
-#endif
-
-	for (i = 0; control_info[i].name != stty_min; ++i) {
-		/* If swtch is the same as susp, don't print both */
-#if VSWTCH == VSUSP
-		if (control_info[i].name == stty_swtch)
-			continue;
-#endif
-		/* If eof uses the same slot as min, only print whichever applies */
-#if VEOF == VMIN
-		if ((mode->c_lflag & ICANON) == 0
-			&& (control_info[i].name == stty_eof
-				|| control_info[i].name == stty_eol)) continue;
-#endif
-		wrapf("%s = %s;", control_info[i].name,
-			  visible(mode->c_cc[control_info[i].offset]));
-	}
-#if VEOF == VMIN
-	if ((mode->c_lflag & ICANON) == 0)
-#endif
-		wrapf("min = %d; time = %d;", mode->c_cc[VMIN], mode->c_cc[VTIME]);
-	if (current_col) wrapf("\n");
-
-	for (i = 0; i < NUM_mode_info; ++i) {
-		if (mode_info[i].flags & OMIT)
-			continue;
-		if (mode_info[i].type != prev_type) {
-			wrapf("\n");
-			prev_type = mode_info[i].type;
-		}
-
-		bitsp = mode_type_flag(mode_info[i].type, mode);
-		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
-		if ((*bitsp & mask) == mode_info[i].bits)
-			wrapf("%s", mode_info[i].name);
-		else if (mode_info[i].flags & REV)
-			wrapf("-%s", mode_info[i].name);
-	}
-	if (current_col) wrapf("\n");
-}
-
-static void display_speed(const struct termios *mode, int fancy)
-{
-	                     //01234567 8 9
-	const char *fmt_str = "%lu %lu\n\0ispeed %lu baud; ospeed %lu baud;";
-	unsigned long ispeed, ospeed;
-
-	ospeed = ispeed = cfgetispeed(mode);
-	if (ispeed == 0 || ispeed == (ospeed = cfgetospeed(mode))) {
-		ispeed = ospeed;                /* in case ispeed was 0 */
-	                 //0123 4 5 6 7 8 9
-		fmt_str = "%lu\n\0\0\0\0\0speed %lu baud;";
-	}
-	if (fancy) fmt_str += 9;
-	wrapf(fmt_str, tty_baud_to_value(ispeed), tty_baud_to_value(ospeed));
-}
-
-static void display_recoverable(const struct termios *mode)
-{
-	int i;
-	printf("%lx:%lx:%lx:%lx",
-		   (unsigned long) mode->c_iflag, (unsigned long) mode->c_oflag,
-		   (unsigned long) mode->c_cflag, (unsigned long) mode->c_lflag);
-	for (i = 0; i < NCCS; ++i)
-		printf(":%x", (unsigned int) mode->c_cc[i]);
-	putchar('\n');
-}
-
-static int recover_mode(const char *arg, struct termios *mode)
-{
-	int i, n;
-	unsigned int chr;
-	unsigned long iflag, oflag, cflag, lflag;
-
-	/* Scan into temporaries since it is too much trouble to figure out
-	   the right format for 'tcflag_t' */
-	if (sscanf(arg, "%lx:%lx:%lx:%lx%n",
-			   &iflag, &oflag, &cflag, &lflag, &n) != 4)
-		return 0;
-	mode->c_iflag = iflag;
-	mode->c_oflag = oflag;
-	mode->c_cflag = cflag;
-	mode->c_lflag = lflag;
-	arg += n;
-	for (i = 0; i < NCCS; ++i) {
-		if (sscanf(arg, ":%x%n", &chr, &n) != 1)
-			return 0;
-		mode->c_cc[i] = chr;
-		arg += n;
-	}
-
-	/* Fail if there are too many fields */
-	if (*arg != '\0')
-		return 0;
-
-	return 1;
-}
-
-static void sane_mode(struct termios *mode)
-{
-	int i;
-	tcflag_t *bitsp;
-
-	for (i = 0; i < NUM_control_info; ++i) {
-#if VMIN == VEOF
-		if (control_info[i].name == stty_min)
-			break;
-#endif
-		mode->c_cc[control_info[i].offset] = control_info[i].saneval;
-	}
-
-	for (i = 0; i < NUM_mode_info; ++i) {
-		if (mode_info[i].flags & SANE_SET) {
-			bitsp = mode_type_flag(mode_info[i].type, mode);
-			*bitsp = (*bitsp & ~((unsigned long)mode_info[i].mask))
-				| mode_info[i].bits;
-		} else if (mode_info[i].flags & SANE_UNSET) {
-			bitsp = mode_type_flag(mode_info[i].type, mode);
-			*bitsp = *bitsp & ~((unsigned long)mode_info[i].mask)
-				& ~mode_info[i].bits;
-		}
-	}
 }
