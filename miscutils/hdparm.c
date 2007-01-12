@@ -2025,28 +2025,28 @@ static void process_dev(char *devname)
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
 static int fromhex(unsigned char c)
 {
-	if (c >= 'a' && c <= 'f')
-		return 10 + (c - 'a');
-	if (c >= '0' && c <= '9')
+	if (isdigit(c))
 		return (c - '0');
+	if (c >= 'a' && c <= 'f')
+		return (c - ('a' - 10));
 	bb_error_msg_and_die("bad char: '%c' 0x%02x", c, c);
 }
 
 static void identify_from_stdin(void)
 {
 	uint16_t sbuf[256];
-	unsigned char  buf[1280], *b = (unsigned char *)buf;
-	int i, count = read(0, buf, 1280);
+	unsigned char buf[1280];
+	unsigned char *b = (unsigned char *)buf;
+	int i;
 
-	if (count != 1280)
-		bb_error_msg_and_die("read(%d bytes) failed (rc=%d)", 1280, count);
+	xread(0, buf, 1280);
 
 	// Convert the newline-separated hex data into an identify block.
 
 	for (i = 0; i<256; i++)  {
 		int j;
 		for (j = 0; j < 4; j++)
-			sbuf[i] = (sbuf[i] <<4) + fromhex(*(b++));
+			sbuf[i] = (sbuf[i] << 4) + fromhex(*(b++));
 	}
 
 	// Parse the data.

@@ -18,11 +18,9 @@ typedef enum { HASH_SHA1, HASH_MD5 } hash_algo_t;
 static unsigned char *hash_bin_to_hex(unsigned char *hash_value,
 				unsigned hash_length)
 {
-	int len = 0;
-	char *hex_value = xmalloc((hash_length * 2) + 2);
-	while (hash_length--) {
-		len += sprintf(hex_value + len, "%02x", *hash_value++);
-	}
+	/* xzalloc zero-terminates */
+	char *hex_value = xzalloc((hash_length * 2) + 1);
+	bin2hex(hex_value, (char*)hash_value, hash_length);
 	return hex_value;
 }
 

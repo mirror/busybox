@@ -31,7 +31,7 @@ const char *ll_addr_n2a(unsigned char *addr, int alen, int type, char *buf, int 
 	l = 0;
 	for (i=0; i<alen; i++) {
 		if (i==0) {
-			snprintf(buf+l, blen, "%02x", addr[i]);
+			snprintf(buf+l, blen, ":%02x"+1, addr[i]);
 			blen -= 2;
 			l += 2;
 		} else {

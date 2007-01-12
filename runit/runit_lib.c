@@ -294,16 +294,11 @@ unsigned fmt_ptime(char *s, struct taia *ta) {
 }
 
 unsigned fmt_taia(char *s, struct taia *t) {
-	static char hex[16] = "0123456789abcdef";
 	static char pack[TAIA_PACK];
-	int i;
 
 	taia_pack(pack, t);
-	s[0] = '@';
-	for (i = 0; i < 12; ++i) {
-		s[i*2+1] = hex[(pack[i] >> 4) &15];
-		s[i*2+2] = hex[pack[i] &15];
-	}
+	*s++ = '@';
+	bin2hex(s, pack, 12);
 	return 25;
 }
 

@@ -28,6 +28,7 @@ const char bb_msg_standard_input[] = "standard input";
 const char bb_msg_standard_output[] = "standard output";
 
 const char bb_str_default[] = "default";
+const char bb_hexdigits_upcase[] = "0123456789ABCDEF";
 
 const char bb_path_passwd_file[] = "/etc/passwd";
 const char bb_path_shadow_file[] = "/etc/shadow";

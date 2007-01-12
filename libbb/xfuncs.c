@@ -333,6 +333,19 @@ char *itoa(int n)
 	return local_buf;
 }
 
+// Emit a string of hex representation of bytes
+char *bin2hex(char *p, const char *cp, int count)
+{
+	while (count) {
+		unsigned char c = *cp++;
+		/* put lowercase hex digits */
+		*p++ = 0x10 | bb_hexdigits_upcase[c >> 4];
+		*p++ = 0x10 | bb_hexdigits_upcase[c & 0xf];
+		count--;
+	}
+	return p;
+}
+
 // Die with an error message if we can't set gid.  (Because resource limits may
 // limit this user to a given number of processes, and if that fills up the
 // setgid() will fail and we'll _still_be_root_, which is bad.)

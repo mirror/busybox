@@ -391,11 +391,13 @@ extern FILE *fopen_or_warn(const char *filename, const char *mode);
 extern FILE *fopen_or_warn_stdin(const char *filename);
 
 
-extern void smart_ulltoa5(unsigned long long ul, char buf[5]);
 extern void utoa_to_buf(unsigned n, char *buf, unsigned buflen);
 extern char *utoa(unsigned n);
 extern void itoa_to_buf(int n, char *buf, unsigned buflen);
 extern char *itoa(int n);
+extern void smart_ulltoa5(unsigned long long ul, char buf[5]);
+/* Put a string of hex bytes (ala "1b"), return advanced pointer */
+extern char *bin2hex(char *buf, const char *cp, int count);
 
 struct suffix_mult {
 	const char *suffix;
@@ -693,6 +695,8 @@ extern const char bb_msg_standard_input[];
 extern const char bb_msg_standard_output[];
 
 extern const char bb_str_default[];
+/* NB: (bb_hexdigits_upcase[i] | 0x10) -> lowercase hex digit */
+extern const char bb_hexdigits_upcase[];
 
 extern const char bb_path_mtab_file[];
 extern const char bb_path_nologin_file[];
