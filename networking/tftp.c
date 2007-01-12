@@ -240,9 +240,7 @@ static int tftp(
 			}
 		}
 
-
 		/* send packet */
-
 
 		timeout = TFTP_NUM_RETRIES;	/* re-initialize */
 		do {
@@ -260,13 +258,12 @@ static int tftp(
 				break;
 			}
 
-
 			if (finished && (opcode == TFTP_ACK)) {
 				break;
 			}
 
 			/* receive packet */
-
+ recv_again:
 			tv.tv_sec = TFTP_TIMEOUT;
 			tv.tv_usec = 0;
 
@@ -288,25 +285,16 @@ static int tftp(
 					bb_perror_msg("recvfrom");
 					break;
 				}
-				timeout = 0;
-				if (from->sa_family == peer_lsa->sa.sa_family) {
 #if ENABLE_FEATURE_IPV6
-					if (from->sa_family == AF_INET6
-					 && ((struct sockaddr_in6*)from)->sin6_port == port
-					)
-						break;
+				if (from->sa_family == AF_INET6)
+					if (((struct sockaddr_in6*)from)->sin6_port != port)
+						goto recv_again;
 #endif
-					/* Non-internet sockets are ok */
-					if (from->sa_family != AF_INET)
-						break;
-					if (((struct sockaddr_in*)from)->sin_port == port)
-						break;
-				}
-				/* family doesn't match, or
-				 * it is INET[v6] and port doesn't match -
-				 * fall-through for bad packets!
-				 * (discard the packet - treat as timeout) */
-				timeout = TFTP_NUM_RETRIES;
+				if (from->sa_family == AF_INET)
+					if (((struct sockaddr_in*)from)->sin_port != port)
+						goto recv_again;
+				timeout = 0;
+				break;
 			case 0:
 				bb_error_msg("timeout");
 				timeout--;
@@ -436,11 +424,11 @@ static int tftp(
 		}
 	}
 
-#if ENABLE_FEATURE_CLEAN_UP
-	close(socketfd);
-	free(xbuf);
-	free(rbuf);
-#endif
+	if (ENABLE_FEATURE_CLEAN_UP) {
+		close(socketfd);
+		free(xbuf);
+		free(rbuf);
+	}
 
 	return finished ? EXIT_SUCCESS : EXIT_FAILURE;
 }

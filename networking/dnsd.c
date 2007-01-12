@@ -19,15 +19,15 @@
 
 #include "busybox.h"
 
-static char *fileconf = "/etc/dnsd.conf";
+static const char *fileconf = "/etc/dnsd.conf";
 #define LOCK_FILE       "/var/run/dnsd.lock"
-#define LOG_FILE        "/var/log/dnsd.log"
 
-// Must matct getopt32 call
+// Must match getopt32 call
 #define OPT_daemon  (option_mask32 & 0x10)
 #define OPT_verbose (option_mask32 & 0x20)
 
 //#define DEBUG 1
+#define DEBUG 0
 
 enum {
 	MAX_HOST_LEN = 16,      // longest host name allowed is 15
@@ -76,8 +76,6 @@ struct dns_entry {		// element of known name, ip address and reversed ip address
 };
 
 static struct dns_entry *dnsentry = NULL;
-// FIXME! unused! :(
-static int daemonmode;
 static uint32_t ttl = DEFAULT_TTL;
 
 /*
@@ -106,21 +104,6 @@ static void undot(uint8_t * rip)
 			s = 0;
 		} else s++;
 	}
-}
-
-/*
- * Append message to log file
- */
-static void log_message(char *filename, char *message)
-{
-	FILE *logfile;
-	if (!daemonmode)
-		return;
-	logfile = fopen(filename, "a");
-	if (!logfile)
-		return;
-	fprintf(logfile, "%s\n", message);
-	fclose(logfile);
 }
 
 /*
@@ -189,31 +172,6 @@ static void dnsentryinit(void)
 		prev = m;
 	}
 	fclose(fp);
-}
-
-
-/*
- * Set up UDP socket
- */
-static int listen_socket(char *iface_addr, int listen_port)
-{
-	struct sockaddr_in a;
-	char msg[100];
-	int sck;
-	sck = xsocket(PF_INET, SOCK_DGRAM, 0);
-	if (setsockopt_reuseaddr(sck) < 0)
-		bb_perror_msg_and_die("setsockopt() failed");
-	memset(&a, 0, sizeof(a));
-	a.sin_port = htons(listen_port);
-	a.sin_family = AF_INET;
-	if (!inet_aton(iface_addr, &a.sin_addr))
-		bb_perror_msg_and_die("bad iface address");
-	xbind(sck, (struct sockaddr *)&a, sizeof(a));
-	xlisten(sck, 50);
-	sprintf(msg, "accepting UDP packets on addr:port %s:%d\n",
-		iface_addr, (int)listen_port);
-	log_message(LOG_FILE, msg);
-	return sck;
 }
 
 /*
@@ -309,7 +267,7 @@ static int process_packet(uint8_t * buf)
 		goto empty_packet;
 
 	// We have a standard query
-	log_message(LOG_FILE, (char *)from);
+	bb_info_msg("%s", (char *)from);
 	lookup_result = table_lookup(type, answstr, (uint8_t*)from);
 	if (lookup_result != 0) {
 		outr.flags = 3 | 0x0400;	//name do not exist and auth
@@ -363,27 +321,26 @@ static int process_packet(uint8_t * buf)
 static void interrupt(int x)
 {
 	unlink(LOCK_FILE);
-	write(2, "interrupt exiting\n", 18);
+	bb_error_msg("interrupt, exiting\n");
 	exit(2);
 }
 
 int dnsd_main(int argc, char **argv)
 {
+	char *listen_interface = NULL;
+	char *sttl, *sport;
+	len_and_sockaddr *lsa;
 	int udps;
 	uint16_t port = 53;
 	uint8_t buf[MAX_PACK_LEN];
-	char *listen_interface = "0.0.0.0";
-	char *sttl, *sport;
 
 	getopt32(argc, argv, "i:c:t:p:dv", &listen_interface, &fileconf, &sttl, &sport);
 	//if (option_mask32 & 0x1) // -i
 	//if (option_mask32 & 0x2) // -c
 	if (option_mask32 & 0x4) // -t
-		if (!(ttl = atol(sttl)))
-			bb_show_usage();
+		ttl = xatou_range(sttl, 1, 0xffffffff);
 	if (option_mask32 & 0x8) // -p
-		if (!(port = atol(sport)))
-			bb_show_usage();
+		port = xatou_range(sttl, 1, 0xffff);
 
 	if (OPT_verbose) {
 		bb_info_msg("listen_interface: %s", listen_interface);
@@ -391,13 +348,16 @@ int dnsd_main(int argc, char **argv)
 		bb_info_msg("fileconf: %s", fileconf);
 	}
 
-	if (OPT_daemon)
+	if (OPT_daemon) {
+//FIXME: NOMMU will NOT set LOGMODE_SYSLOG!
 #ifdef BB_NOMMU
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(1, 0, argc, argv, "-d");
 #else
 		xdaemon(1, 0);
 #endif
+		logmode = LOGMODE_SYSLOG;
+	}
 
 	dnsentryinit();
 
@@ -411,7 +371,12 @@ int dnsd_main(int argc, char **argv)
 	signal(SIGURG, SIG_IGN);
 #endif
 
-	udps = listen_socket(listen_interface, port);
+	lsa = host2sockaddr(listen_interface, port);
+	udps = xsocket(lsa->sa.sa_family, SOCK_DGRAM, 0);
+	xbind(udps, &lsa->sa, lsa->len);
+	// xlisten(udps, 50); - ?!! DGRAM sockets are never listened on I think?
+	bb_info_msg("Accepting UDP packets on %s",
+			xmalloc_sockaddr2dotted(&lsa->sa, lsa->len));
 
 	while (1) {
 		fd_set fdset;
@@ -420,6 +385,8 @@ int dnsd_main(int argc, char **argv)
 		FD_ZERO(&fdset);
 		FD_SET(udps, &fdset);
 		// Block until a message arrives
+// FIXME: Fantastic. select'ing on just one fd??
+// Why no just block on it doing recvfrom() ?
 		r = select(udps + 1, &fdset, NULL, NULL, NULL);
 		if (r < 0)
 			bb_perror_msg_and_die("select error");
@@ -428,27 +395,26 @@ int dnsd_main(int argc, char **argv)
 
 		/* Can this test ever be false? - yes */
 		if (FD_ISSET(udps, &fdset)) {
-			struct sockaddr_in from;
-			int fromlen = sizeof(from);
-			r = recvfrom(udps, buf, sizeof(buf), 0,
-				     (struct sockaddr *)&from,
-				     (void *)&fromlen);
+			socklen_t fromlen = lsa->len;
+// FIXME: need to get *DEST* address (to which of our addresses
+// this query was directed), and reply from the same address.
+// Or else we can exhibit usual UDP ugliness:
+// [ip1.multihomed.ip2] <=  query to ip1  <= peer
+// [ip1.multihomed.ip2] => reply from ip2 => peer (confused)
+			r = recvfrom(udps, buf, sizeof(buf), 0, &lsa->sa, &fromlen);
 			if (OPT_verbose)
-				fprintf(stderr, "\n--- Got UDP  ");
-			log_message(LOG_FILE, "\n--- Got UDP  ");
+				bb_info_msg("Got UDP packet");
 
 			if (r < 12 || r > 512) {
 				bb_error_msg("invalid packet size");
 				continue;
 			}
-			if (r > 0) {
-				r = process_packet(buf);
-				if (r > 0)
-					sendto(udps, buf,
-					       r, 0, (struct sockaddr *)&from,
-					       fromlen);
-			}
-		} // end if
-	} // end while
-	return 0;
+			if (r <= 0)
+				continue;
+			r = process_packet(buf);
+			if (r <= 0)
+				continue;
+			sendto(udps, buf, r, 0, &lsa->sa, fromlen);
+		}
+	}
 }

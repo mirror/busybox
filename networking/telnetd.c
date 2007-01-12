@@ -36,12 +36,6 @@
 
 #define BUFSIZE 4000
 
-#if ENABLE_FEATURE_IPV6
-typedef struct sockaddr_in6 sockaddr_type;
-#else
-typedef struct sockaddr_in sockaddr_type;
-#endif
-
 #if ENABLE_LOGIN
 static const char *loginpath = "/bin/login";
 #else
@@ -462,13 +456,10 @@ telnetd_main(int argc, char **argv)
 #if ENABLE_FEATURE_TELNETD_STANDALONE
 	/* First check for and accept new sessions. */
 	if (!IS_INETD && FD_ISSET(master_fd, &rdfdset)) {
-		sockaddr_type sa;
 		int fd;
-		socklen_t salen;
 		struct tsession *new_ts;
 
-		salen = sizeof(sa);
-		fd = accept(master_fd, (struct sockaddr *)&sa, &salen);
+		fd = accept(master_fd, NULL, 0);
 		if (fd < 0)
 			goto again;
 		/* Create a new session and link it into our active list */
