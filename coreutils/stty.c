@@ -1188,6 +1188,7 @@ end_option:
 			mp = find_mode(arg+1);
 			if (mp) {
 				set_mode(mp, 1 /* reversed */, &mode);
+				require_set_attr = 1;
 			}
 			/* It is an option - already parsed. Skip it */
 			continue;
@@ -1196,6 +1197,7 @@ end_option:
 		mp = find_mode(arg);
 		if (mp) {
 			set_mode(mp, 0 /* non-reversed */, &mode);
+			require_set_attr = 1;
 			continue;
 		}
 
@@ -1203,6 +1205,7 @@ end_option:
 		if (cp) {
 			++k;
 			set_control_char_or_die(cp, argnext, &mode);
+			require_set_attr = 1;
 			continue;
 		}
 
