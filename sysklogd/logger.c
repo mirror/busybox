@@ -83,26 +83,24 @@ static int pencode(char *s)
 
 int logger_main(int argc, char **argv)
 {
-	char *opt_p, *opt_t;
+	char *str_p, *str_t;
 	int i = 0;
-	RESERVE_CONFIG_BUFFER(name, 80);
+	char name[80];
 
 	/* Fill out the name string early (may be overwritten later) */
 	bb_getpwuid(name, geteuid(), sizeof(name));
+	str_t = name;
 
 	/* Parse any options */
-	getopt32(argc, argv, "p:st:", &opt_p, &opt_t);
+	getopt32(argc, argv, "p:st:", &str_p, &str_t);
 
 	if (option_mask32 & 0x2) /* -s */
 		i |= LOG_PERROR;
-	if (option_mask32 & 0x4) /* -t */
-		safe_strncpy(name, opt_t, sizeof(name));
-	openlog(name, i, 0);
-	if (ENABLE_FEATURE_CLEAN_UP)
-		RELEASE_CONFIG_BUFFER(name);
+	//if (option_mask32 & 0x4) /* -t */
+	openlog(str_t, i, 0);
 	i = LOG_USER | LOG_NOTICE;
 	if (option_mask32 & 0x1) /* -p */
-		i = pencode(opt_p);
+		i = pencode(str_p);
 
 	argc -= optind;
 	argv += optind;
