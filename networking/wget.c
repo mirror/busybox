@@ -432,7 +432,7 @@ int wget_main(int argc, char **argv)
 		s = strrchr(buf, ',');
 		if (!s) goto pasv_error;
 		port += xatou_range(s+1, 0, 255) * 256;
-		set_port(lsa, htons(port));
+		set_nport(lsa, htons(port));
 		dfp = open_socket(lsa);
 
 		if (beg_range) {

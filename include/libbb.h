@@ -307,6 +307,9 @@ typedef struct len_and_sockaddr {
 #endif
 	};
 } len_and_sockaddr;
+/* Create stream socket, and allocated suitable lsa
+ * (lsa of correct size and lsa->sa.sa_family (AF_INET/AF_INET6)) */
+int xsocket_stream(len_and_sockaddr **lsap);
 /* Create server TCP socket bound to bindaddr:port. bindaddr can be NULL,
  * numeric IP ("N.N.N.N") or numeric IPv6 address,
  * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
@@ -324,12 +327,14 @@ extern int xconnect_stream(const len_and_sockaddr *lsa);
  * (depending on host), but in theory nothing prevents e.g.
  * UNIX socket address being returned, IPX sockaddr etc... */
 extern len_and_sockaddr* host2sockaddr(const char *host, int port);
-/* assign sin[6]_port member if the socket is of corresponding type,
+/* Assign sin[6]_port member if the socket is of corresponding type,
  * otherwise noop. Useful for ftp.
  * NB: does NOT do htons() internally, just direct assignment. */
-extern void set_port(len_and_sockaddr *lsa, unsigned port);
-char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
-char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
+extern void set_nport(len_and_sockaddr *lsa, unsigned port);
+/* Retrieve sin[6]_port or return -1 for non-inet lsa's */
+extern int get_nport(len_and_sockaddr *lsa);
+extern char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
+extern char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
 
 
 extern char *xstrdup(const char *s);

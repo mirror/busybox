@@ -32,7 +32,7 @@ void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)
 	}
 }
 
-/* Return network byte ordered port number for a service.
+/* Return port number for a service.
  * If "port" is a number use it as the port.
  * If "port" is a name it is looked up in /etc/services, if it isnt found return
  * default_port */
@@ -81,7 +81,21 @@ int xconnect_tcp_v4(struct sockaddr_in *s_addr)
 /* "New" networking API */
 
 
-void set_port(len_and_sockaddr *lsa, unsigned port)
+int get_nport(len_and_sockaddr *lsa)
+{
+#if ENABLE_FEATURE_IPV6
+	if (lsa->sa.sa_family == AF_INET6) {
+		return lsa->sin6.sin6_port;
+	}
+#endif
+	if (lsa->sa.sa_family == AF_INET) {
+		return lsa->sin.sin_port;
+	}
+	return -1;
+	/* What? UNIX socket? IPX?? :) */
+}
+
+void set_nport(len_and_sockaddr *lsa, unsigned port)
 {
 #if ENABLE_FEATURE_IPV6
 	if (lsa->sa.sa_family == AF_INET6) {
@@ -146,7 +160,7 @@ static len_and_sockaddr* str2sockaddr(const char *host, int port, int ai_flags)
 	r = xmalloc(offsetof(len_and_sockaddr, sa) + result->ai_addrlen);
 	r->len = result->ai_addrlen;
 	memcpy(&r->sa, result->ai_addr, result->ai_addrlen);
-	set_port(r, htons(port));
+	set_nport(r, htons(port));
 	freeaddrinfo(result);
 	return r;
 }
@@ -161,19 +175,27 @@ static len_and_sockaddr* dotted2sockaddr(const char *host, int port)
 	return str2sockaddr(host, port, NI_NUMERICHOST);
 }
 
-static int xsocket_stream(len_and_sockaddr *lsa)
+int xsocket_stream(len_and_sockaddr **lsap)
 {
+	len_and_sockaddr *lsa;
 	int fd;
+	int len = sizeof(struct sockaddr_in);
+	int family = AF_INET;
+
 #if ENABLE_FEATURE_IPV6
 	fd = socket(AF_INET6, SOCK_STREAM, 0);
-	lsa->sa.sa_family = AF_INET6;
-	lsa->len = sizeof(struct sockaddr_in6);
-	if (fd >= 0)
-		return fd;
+	if (fd >= 0) {
+		len = sizeof(struct sockaddr_in6);
+		family = AF_INET6;
+	} else
 #endif
-	fd = xsocket(AF_INET, SOCK_STREAM, 0);
-	lsa->sa.sa_family = AF_INET;
-	lsa->len = sizeof(struct sockaddr_in);
+	{
+		fd = xsocket(AF_INET, SOCK_STREAM, 0);
+	}
+	lsa = xzalloc(offsetof(len_and_sockaddr, sa) + len);
+	lsa->len = len;
+	lsa->sa.sa_family = family;
+	*lsap = lsa;
 	return fd;
 }
 
@@ -190,11 +212,7 @@ int create_and_bind_stream_or_die(const char *bindaddr, int port)
 		/* user specified bind addr dictates family */
 		fd = xsocket(lsa->sa.sa_family, SOCK_STREAM, 0);
 	} else {
-		lsa = xzalloc(offsetof(len_and_sockaddr, sa) +
-			USE_FEATURE_IPV6(sizeof(struct sockaddr_in6))
-			SKIP_FEATURE_IPV6(sizeof(struct sockaddr_in))
-		);
-		fd = xsocket_stream(lsa);
+		fd = xsocket_stream(&lsa);
 	}
 	setsockopt_reuseaddr(fd);
 	xbind(fd, &lsa->sa, lsa->len);

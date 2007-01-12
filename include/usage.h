@@ -2249,7 +2249,7 @@
        "\n	-e	Exec rest of command line after connect" \
        "\n	-i SECS	Delay interval for lines sent" \
        "\n	-w SECS	Timeout for connect" \
-       "\n	-f file	Use file (ala /dev/ttyS0) instead of network" \
+       "\n	-f FILE	Use file (ala /dev/ttyS0) instead of network" \
 	) \
 	USE_NC_SERVER( \
        "\n	-l	Listen mode, for inbound connects" \

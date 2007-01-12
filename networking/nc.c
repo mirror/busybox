@@ -9,6 +9,10 @@
 
 #include "busybox.h"
 
+/* Lots of small differences in features
+ * when compared to "standard" nc
+ */
+
 static void timeout(int signum)
 {
 	bb_error_msg_and_die("timed out");
@@ -16,7 +20,8 @@ static void timeout(int signum)
 
 int nc_main(int argc, char **argv)
 {
-	int sfd = 0;
+	/* sfd sits _here_ only because of "repeat" option (-l -l). */
+	int sfd = sfd; /* for gcc */
 	int cfd = 0;
 	SKIP_NC_SERVER(const) unsigned do_listen = 0;
 	SKIP_NC_SERVER(const) unsigned lport = 0;
@@ -24,11 +29,9 @@ int nc_main(int argc, char **argv)
 	SKIP_NC_EXTRA (const) unsigned delay = 0;
 	SKIP_NC_EXTRA (const int execparam = 0;)
 	USE_NC_EXTRA  (char **execparam = NULL;)
-	struct sockaddr_in address;
+	len_and_sockaddr *lsa;
 	fd_set readfds, testfds;
 	int opt; /* must be signed (getopt returns -1) */
-
-	memset(&address, 0, sizeof(address));
 
 	if (ENABLE_NC_SERVER || ENABLE_NC_EXTRA) {
 		/* getopt32 is _almost_ usable:
@@ -39,7 +42,6 @@ int nc_main(int argc, char **argv)
 			if (ENABLE_NC_SERVER && opt=='l')      USE_NC_SERVER(do_listen++);
 			else if (ENABLE_NC_SERVER && opt=='p') {
 				USE_NC_SERVER(lport = bb_lookup_port(optarg, "tcp", 0));
-				USE_NC_SERVER(lport = htons(lport));
 			}
 			else if (ENABLE_NC_EXTRA  && opt=='w') USE_NC_EXTRA( wsecs = xatou(optarg));
 			else if (ENABLE_NC_EXTRA  && opt=='i') USE_NC_EXTRA( delay = xatou(optarg));
@@ -71,9 +73,11 @@ int nc_main(int argc, char **argv)
 		// -l and -f don't mix
 		if (do_listen && cfd) bb_show_usage();
 		// Listen or file modes need zero arguments, client mode needs 2
-		opt = ((do_listen || cfd) ? 0 : 2);
-		if (argc != opt)
-			bb_show_usage();
+		if (do_listen || cfd) {
+			if (argc) bb_show_usage();
+		} else {
+			if (!argc || argc > 2) bb_show_usage();
+		}
 	} else {
 		if (argc != 3) bb_show_usage();
 		argc--;
@@ -86,46 +90,37 @@ int nc_main(int argc, char **argv)
 	}
 
 	if (!cfd) {
-		sfd = xsocket(AF_INET, SOCK_STREAM, 0);
-		fcntl(sfd, F_SETFD, FD_CLOEXEC);
-		setsockopt_reuseaddr(sfd);
-		address.sin_family = AF_INET;
-
-		// Set local port.
-
-		if (lport != 0) {
-			address.sin_port = lport;
-			xbind(sfd, (struct sockaddr *) &address, sizeof(address));
-		}
-
 		if (do_listen) {
-			socklen_t addrlen = sizeof(address);
+			socklen_t addrlen;
 
-			xlisten(sfd, do_listen);
-
-			// If we didn't specify a port number, query and print it to stderr.
-
+			/* create_and_bind_stream_or_die(NULL, lport)
+			 * would've work wonderfully, but we need
+			 * to know lsa */
+			sfd = xsocket_stream(&lsa);
+			if (lport)
+				set_nport(lsa, htons(lport));
+			setsockopt_reuseaddr(sfd);
+			xbind(sfd, &lsa->sa, lsa->len);
+			xlisten(sfd, do_listen); /* can be > 1 */
+			/* If we didn't specify a port number,
+			 * query and print it after listen() */
 			if (!lport) {
-				socklen_t len = sizeof(address);
-				getsockname(sfd, (struct sockaddr *) &address, &len);
-				fdprintf(2, "%d\n", SWAP_BE16(address.sin_port));
+				addrlen = lsa->len;
+				getsockname(sfd, &lsa->sa, &addrlen);
+				lport = get_nport(lsa);
+				fdprintf(2, "%d\n", ntohs(lport));
 			}
- repeatyness:
-			cfd = accept(sfd, (struct sockaddr *) &address, &addrlen);
+			fcntl(sfd, F_SETFD, FD_CLOEXEC);
+ accept_again:
+			addrlen = lsa->len;
+			cfd = accept(sfd, NULL, 0); /* &lsa->sa, &addrlen); */
 			if (cfd < 0)
 				bb_perror_msg_and_die("accept");
-
-			if (!execparam) close(sfd);
+			if (!execparam)
+				close(sfd);
 		} else {
-			struct hostent *hostinfo;
-			hostinfo = xgethostbyname(argv[0]);
-
-			address.sin_addr = *(struct in_addr *) *hostinfo->h_addr_list;
-			address.sin_port = bb_lookup_port(argv[1], "tcp", 0);
-			address.sin_port = htons(address.sin_port);
-
-			xconnect(sfd, (struct sockaddr *) &address, sizeof(address));
-			cfd = sfd;
+			cfd = create_and_connect_stream_or_die(argv[0],
+				argv[1] ? bb_lookup_port(argv[1], "tcp", 0) : 0);
 		}
 	}
 
@@ -136,17 +131,10 @@ int nc_main(int argc, char **argv)
 
 	/* -e given? */
 	if (execparam) {
-		if (cfd) {
-			signal(SIGCHLD, SIG_IGN);
-			dup2(cfd, 0);
-			close(cfd);
-		}
-		dup2(0, 1);
-		dup2(0, 2);
-
+		signal(SIGCHLD, SIG_IGN);
 		// With more than one -l, repeatedly act as server.
-
 		if (do_listen > 1 && vfork()) {
+			/* parent */
 			// This is a bit weird as cleanup goes, since we wind up with no
 			// stdin/stdout/stderr.  But it's small and shouldn't hurt anything.
 			// We check for cfd == 0 above.
@@ -154,9 +142,15 @@ int nc_main(int argc, char **argv)
 			close(0);
 			close(1);
 			close(2);
-
-			goto repeatyness;
+			goto accept_again;
 		}
+		/* child (or main thread if no multiple -l) */
+		if (cfd) {
+			dup2(cfd, 0);
+			close(cfd);
+		}
+		dup2(0, 1);
+		dup2(0, 2);
 		USE_NC_EXTRA(execvp(execparam[0], execparam);)
 		/* Don't print stuff or it will go over the wire.... */
 		_exit(127);
@@ -184,7 +178,8 @@ int nc_main(int argc, char **argv)
 							sizeof(bb_common_bufsiz1));
 
 				if (fd == cfd) {
-					if (nread<1) exit(0);
+					if (nread < 1)
+						exit(0);
 					ofd = STDOUT_FILENO;
 				} else {
 					if (nread<1) {
