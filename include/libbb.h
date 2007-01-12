@@ -531,6 +531,7 @@ USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out);
 int inflate(int in, int out);
 
 
+/* NB: returns port in host byte order */
 unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port);
 void bb_lookup_host(struct sockaddr_in *s_in, const char *host);
 

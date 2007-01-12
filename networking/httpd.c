@@ -142,7 +142,7 @@ typedef struct {
 
 	unsigned int rmt_ip;
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
-	char rmt_ip_str[16];     /* for set env REMOTE_ADDR */
+	char *rmt_ip_str;        /* for set env REMOTE_ADDR */
 #endif
 	unsigned port;           /* server initial port and for
 						      set env REMOTE_PORT */
@@ -817,30 +817,11 @@ static void decodeBase64(char *Data)
  ****************************************************************************/
 static int openServer(void)
 {
-	struct sockaddr_in lsocket;
 	int fd;
 
 	/* create the socket right now */
-	/* inet_addr() returns a value that is already in network order */
-	memset(&lsocket, 0, sizeof(lsocket));
-	lsocket.sin_family = AF_INET;
-	lsocket.sin_addr.s_addr = INADDR_ANY;
-	lsocket.sin_port = htons(config->port);
-	fd = xsocket(AF_INET, SOCK_STREAM, 0);
-	/* tell the OS it's OK to reuse a previous address even though */
-	/* it may still be in a close down state.  Allows bind to succeed. */
-#ifdef SO_REUSEPORT
-	{
-		static const int on = 1;
-		setsockopt(fd, SOL_SOCKET, SO_REUSEPORT,
-				(void *)&on, sizeof(on));
-	}
-#else
-	setsockopt_reuseaddr(fd);
-#endif
-	xbind(fd, (struct sockaddr *)&lsocket, sizeof(lsocket));
+	fd = create_and_bind_stream_or_die(NULL, config->port);
 	xlisten(fd, 9);
-	signal(SIGCHLD, SIG_IGN);   /* prevent zombie (defunct) processes */
 	return fd;
 }
 
@@ -1070,7 +1051,19 @@ static int sendCgi(const char *url,
 		setenv1("SERVER_SOFTWARE", httpdVersion);
 		putenv("SERVER_PROTOCOL=HTTP/1.0");
 		putenv("GATEWAY_INTERFACE=CGI/1.1");
-		setenv1("REMOTE_ADDR", config->rmt_ip_str);
+		/* Having _separate_ variables for IP and port defeats
+		 * the purpose of having socket abstraction. Which "port"
+		 * are you using on Unix domain socket?
+		 * IOW - REMOTE_PEER="1.2.3.4:56" makes much more sense.
+		 * Oh well... */
+		{
+			char *p = config->rmt_ip_str ? : "";
+			char *cp = strrchr(p, ':');
+			if (ENABLE_FEATURE_IPV6 && cp && strchr(cp, ']'))
+				cp = NULL;
+			if (cp) *cp = '\0'; /* delete :PORT */
+			setenv1("REMOTE_ADDR", p);
+		}
 #if ENABLE_FEATURE_HTTPD_SET_REMOTE_PORT_TO_ENV
 		setenv_long("REMOTE_PORT", config->port);
 #endif
@@ -1330,17 +1323,17 @@ static int checkPermIP(void)
 	for (cur = config->ip_a_d; cur; cur = cur->next) {
 #if DEBUG
 		fprintf(stderr, "checkPermIP: '%s' ? ", config->rmt_ip_str);
+		fprintf(stderr, "'%u.%u.%u.%u/%u.%u.%u.%u'\n",
+			(unsigned char)(cur->ip >> 24),
+			(unsigned char)(cur->ip >> 16),
+			(unsigned char)(cur->ip >> 8),
+			(unsigned char)(cur->ip),
+			(unsigned char)(cur->mask >> 24),
+			(unsigned char)(cur->mask >> 16),
+			(unsigned char)(cur->mask >> 8),
+			(unsigned char)(cur->mask)
+		);
 #endif
-		if (DEBUG)
-			fprintf(stderr, "'%u.%u.%u.%u/%u.%u.%u.%u'\n",
-				(unsigned char)(cur->ip >> 24),
-				(unsigned char)(cur->ip >> 16),
-				(unsigned char)(cur->ip >> 8),
-				                cur->ip & 0xff,
-				(unsigned char)(cur->mask >> 24),
-				(unsigned char)(cur->mask >> 16),
-				(unsigned char)(cur->mask >> 8),
-				                cur->mask & 0xff);
 		if ((config->rmt_ip & cur->mask) == cur->ip)
 			return cur->allow_deny == 'A';   /* Allow/Deny */
 	}
@@ -1765,6 +1758,8 @@ static void handleIncoming(void)
  ****************************************************************************/
 static int miniHttpd(int server)
 {
+	static const int on = 1;
+
 	fd_set readfd, portfd;
 
 	FD_ZERO(&portfd);
@@ -1772,9 +1767,13 @@ static int miniHttpd(int server)
 
 	/* copy the ports we are watching to the readfd set */
 	while (1) {
-		int on, s;
-		socklen_t fromAddrLen;
-		struct sockaddr_in fromAddr;
+		int s;
+		union {
+			struct sockaddr sa;
+			struct sockaddr_in sin;
+			USE_FEATURE_IPV6(struct sockaddr_in6 sin6;)
+		} fromAddr;
+		socklen_t fromAddrLen = sizeof(fromAddr);
 
 		/* Now wait INDEFINITELY on the set of sockets! */
 		readfd = portfd;
@@ -1782,27 +1781,31 @@ static int miniHttpd(int server)
 			continue;
 		if (!FD_ISSET(server, &readfd))
 			continue;
-		fromAddrLen = sizeof(fromAddr);
-		s = accept(server, (struct sockaddr *)&fromAddr, &fromAddrLen);
+		s = accept(server, &fromAddr.sa, &fromAddrLen);
 		if (s < 0)
 			continue;
 		config->accepted_socket = s;
-		config->rmt_ip = ntohl(fromAddr.sin_addr.s_addr);
+		config->rmt_ip = 0;
+		config->port = 0;
 #if ENABLE_FEATURE_HTTPD_CGI || DEBUG
-		sprintf(config->rmt_ip_str, "%u.%u.%u.%u",
-				(unsigned char)(config->rmt_ip >> 24),
-				(unsigned char)(config->rmt_ip >> 16),
-				(unsigned char)(config->rmt_ip >> 8),
-				config->rmt_ip & 0xff);
-		config->port = ntohs(fromAddr.sin_port);
+		free(config->rmt_ip_str);
+		config->rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddrLen);
 #if DEBUG
-		bb_error_msg("connection from IP=%s, port %u",
-				config->rmt_ip_str, config->port);
+		bb_error_msg("connection from '%s'", config->rmt_ip_str);
 #endif
 #endif /* FEATURE_HTTPD_CGI */
+		if (fromAddr.sa.sa_family == AF_INET) {
+			config->rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
+			config->port = ntohs(fromAddr.sin.sin_port);
+		}
+#if ENABLE_FEATURE_IPV6
+		if (fromAddr.sa.sa_family == AF_INET6) {
+			//config->rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
+			config->port = ntohs(fromAddr.sin6.sin6_port);
+		}
+#endif
 
 		/* set the KEEPALIVE option to cull dead connections */
-		on = 1;
 		setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&on, sizeof(on));
 
 		if (DEBUG || fork() == 0) {
@@ -1823,19 +1826,30 @@ static int miniHttpd(int server)
 /* from inetd */
 static int miniHttpd_inetd(void)
 {
-	struct sockaddr_in fromAddrLen;
-	socklen_t sinlen = sizeof(struct sockaddr_in);
+	union {
+		struct sockaddr sa;
+		struct sockaddr_in sin;
+		USE_FEATURE_IPV6(struct sockaddr_in6 sin6;)
+	} fromAddr;
+	socklen_t fromAddrLen = sizeof(fromAddr);
 
-	getpeername(0, (struct sockaddr *)&fromAddrLen, &sinlen);
-	config->rmt_ip = ntohl(fromAddrLen.sin_addr.s_addr);
-#if ENABLE_FEATURE_HTTPD_CGI
-	sprintf(config->rmt_ip_str, "%u.%u.%u.%u",
-				(unsigned char)(config->rmt_ip >> 24),
-				(unsigned char)(config->rmt_ip >> 16),
-				(unsigned char)(config->rmt_ip >> 8),
-				                config->rmt_ip & 0xff);
+	getpeername(0, &fromAddr.sa, &fromAddrLen);
+	config->rmt_ip = 0;
+	config->port = 0;
+#if ENABLE_FEATURE_HTTPD_CGI || DEBUG
+	free(config->rmt_ip_str);
+	config->rmt_ip_str = xmalloc_sockaddr2dotted(&fromAddr.sa, fromAddrLen);
 #endif
-	config->port = ntohs(fromAddrLen.sin_port);
+	if (fromAddr.sa.sa_family == AF_INET) {
+		config->rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
+		config->port = ntohs(fromAddr.sin.sin_port);
+	}
+#if ENABLE_FEATURE_IPV6
+	if (fromAddr.sa.sa_family == AF_INET6) {
+		//config->rmt_ip = ntohl(fromAddr.sin.sin_addr.s_addr);
+		config->port = ntohs(fromAddr.sin6.sin6_port);
+	}
+#endif
 	handleIncoming();
 	return 0;
 }
@@ -1945,6 +1959,7 @@ int httpd_main(int argc, char *argv[])
 
 	xchdir(home_httpd);
 	if (!(opt & OPT_INETD)) {
+		signal(SIGCHLD, SIG_IGN);
 		config->server_socket = openServer();
 #if ENABLE_FEATURE_HTTPD_SETUID
 		/* drop privileges */

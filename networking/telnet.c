@@ -617,19 +617,17 @@ int telnet_main(int argc, char** argv)
 #ifdef CONFIG_FEATURE_TELNET_AUTOLOGIN
 	if (1 & getopt32(argc, argv, "al:", &autologin))
 		autologin = getenv("USER");
-
-	if (optind < argc) {
-		host = argv[optind++];
-		port = bb_lookup_port((optind < argc) ? argv[optind++] :
-				"telnet", "tcp", 23);
-		if (optind < argc)
-			bb_show_usage();
-	} else
-		bb_show_usage();
+	argv += optind;
 #else
-	host = argv[1];
-	port = bb_lookup_port((argc > 2) ? argv[2] : "telnet", "tcp", 23);
+	argv++;
 #endif
+	if (!*argv)
+		bb_show_usage();
+	host = *argv++;
+	port = bb_lookup_port(*argv ? *argv++ : "telnet", "tcp", 23);
+	if (*argv) /* extra params?? */
+		bb_show_usage();
+
 	G.netfd = create_and_connect_stream_or_die(host, port);
 
 	setsockopt(G.netfd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);

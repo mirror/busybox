@@ -38,7 +38,7 @@ void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)
  * default_port */
 unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port)
 {
-	unsigned port_nr = htons(default_port);
+	unsigned port_nr = default_port;
 	if (port) {
 		int old_errno;
 
@@ -49,13 +49,11 @@ unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default
 		if (errno || port_nr > 65535) {
 			struct servent *tserv = getservbyname(port, protocol);
 			if (tserv)
-				port_nr = tserv->s_port;
-		} else {
-			port_nr = htons(port_nr);
+				port_nr = ntohs(tserv->s_port);
 		}
 		errno = old_errno;
 	}
-	return port_nr;
+	return (uint16_t)port_nr;
 }
 
 
@@ -148,7 +146,7 @@ static len_and_sockaddr* str2sockaddr(const char *host, int port, int ai_flags)
 	r = xmalloc(offsetof(len_and_sockaddr, sa) + result->ai_addrlen);
 	r->len = result->ai_addrlen;
 	memcpy(&r->sa, result->ai_addr, result->ai_addrlen);
-	set_port(r, port);
+	set_port(r, htons(port));
 	freeaddrinfo(result);
 	return r;
 }
@@ -237,6 +235,7 @@ static char* sockaddr2str(const struct sockaddr *sa, socklen_t salen, int flags)
 			flags | NI_NUMERICSERV /* do not resolve port# */
 	);
 	if (rc) return NULL;
+// We probably need to use [%s]:%s for IPv6...
 	return xasprintf("%s:%s", host, serv);
 }
 

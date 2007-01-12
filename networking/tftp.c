@@ -132,7 +132,7 @@ static int tftp(
 #endif
 		const len_and_sockaddr *peer_lsa,
 		const char *remotefile, const int localfd,
-		const unsigned port, int tftp_bufsize)
+		unsigned port, int tftp_bufsize)
 {
 	struct timeval tv;
 	fd_set rfds;
@@ -153,6 +153,8 @@ static int tftp(
 	/* In case we rcv a garbage pkt and we need to rexmit the last pkt */
 	char *xbuf = xmalloc(tftp_bufsize += 4);
 	char *rbuf = xmalloc(tftp_bufsize);
+
+	port = htons(port);
 
 	socketfd = xsocket(peer_lsa->sa.sa_family, SOCK_DGRAM, 0);
 

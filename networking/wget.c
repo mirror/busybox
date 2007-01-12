@@ -24,7 +24,7 @@ struct host_info {
 };
 
 static void parse_url(char *url, struct host_info *h);
-static FILE *open_socket(struct sockaddr_in *s_in);
+static FILE *open_socket(len_and_sockaddr *lsa);
 static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
 static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
 
@@ -90,7 +90,7 @@ int wget_main(int argc, char **argv)
 {
 	char buf[512];
 	struct host_info server, target;
-	struct sockaddr_in s_in;
+	len_and_sockaddr *lsa;
 	int n, status;
 	int port;
 	int try = 5;
@@ -189,7 +189,7 @@ int wget_main(int argc, char **argv)
 	if (!fname_out) {
 		// Dirty hack. Needed because bb_get_last_path_component
 		// will destroy trailing / by storing '\0' in last byte!
-		if (*target.path && target.path[strlen(target.path)-1] != '/') {
+		if (!last_char_is(target.path, '/')) {
 			fname_out =
 #if ENABLE_FEATURE_WGET_STATUSBAR
 				curfile =
@@ -233,11 +233,11 @@ int wget_main(int argc, char **argv)
 	/* We want to do exactly _one_ DNS lookup, since some
 	 * sites (i.e. ftp.us.debian.org) use round-robin DNS
 	 * and we want to connect to only one IP... */
-	bb_lookup_host(&s_in, server.host);
-	s_in.sin_port = server.port;
+	lsa = host2sockaddr(server.host, server.port);
 	if (!(opt & WGET_OPT_QUIET)) {
-		fprintf(stderr, "Connecting to %s[%s]:%d\n",
-				server.host, inet_ntoa(s_in.sin_addr), ntohs(server.port));
+		fprintf(stderr, "Connecting to %s [%s]\n", server.host,
+				xmalloc_sockaddr2dotted(&lsa->sa, lsa->len));
+		/* We leak xmalloc_sockaddr2dotted result */
 	}
 
 	if (use_proxy || !target.is_ftp) {
@@ -254,26 +254,29 @@ int wget_main(int argc, char **argv)
 			 * Open socket to http server
 			 */
 			if (sfp) fclose(sfp);
-			sfp = open_socket(&s_in);
+			sfp = open_socket(lsa);
 
 			/*
 			 * Send HTTP request.
 			 */
 			if (use_proxy) {
-				const char *format = "GET %stp://%s:%d/%s HTTP/1.1\r\n";
-#if ENABLE_FEATURE_WGET_IP6_LITERAL
-				if (strchr(target.host, ':'))
-					format = "GET %stp://[%s]:%d/%s HTTP/1.1\r\n";
-#endif
-				fprintf(sfp, format,
+//				const char *format = "GET %stp://%s:%d/%s HTTP/1.1\r\n";
+//#if ENABLE_FEATURE_WGET_IP6_LITERAL
+//				if (strchr(target.host, ':'))
+//					format = "GET %stp://[%s]:%d/%s HTTP/1.1\r\n";
+//#endif
+//				fprintf(sfp, format,
+//					target.is_ftp ? "f" : "ht", target.host,
+//					ntohs(target.port), target.path);
+				fprintf(sfp, "GET %stp://%s/%s HTTP/1.1\r\n",
 					target.is_ftp ? "f" : "ht", target.host,
-					ntohs(target.port), target.path);
+					target.path);
 			} else {
 				fprintf(sfp, "GET /%s HTTP/1.1\r\n", target.path);
 			}
 
-			fprintf(sfp, "Host: %s:%u\r\nUser-Agent: %s\r\n",
-				target.host, target.port, user_agent);
+			fprintf(sfp, "Host: %s\r\nUser-Agent: %s\r\n",
+				target.host, user_agent);
 
 #if ENABLE_FEATURE_WGET_AUTHENTICATION
 			if (target.user) {
@@ -357,8 +360,8 @@ int wget_main(int argc, char **argv)
 							server.host = target.host;
 							server.port = target.port;
 						}
-						bb_lookup_host(&s_in, server.host);
-						s_in.sin_port = server.port;
+						free(lsa);
+						lsa = host2sockaddr(server.host, server.port);
 						break;
 					}
 				}
@@ -375,7 +378,7 @@ int wget_main(int argc, char **argv)
 		if (!target.user)
 			target.user = xstrdup("anonymous:busybox@");
 
-		sfp = open_socket(&s_in);
+		sfp = open_socket(lsa);
 		if (ftpcmd(NULL, NULL, sfp, buf) != 220)
 			bb_error_msg_and_die("%s", buf+4);
 
@@ -429,8 +432,8 @@ int wget_main(int argc, char **argv)
 		s = strrchr(buf, ',');
 		if (!s) goto pasv_error;
 		port += xatou_range(s+1, 0, 255) * 256;
-		s_in.sin_port = htons(port);
-		dfp = open_socket(&s_in);
+		set_port(lsa, htons(port));
+		dfp = open_socket(lsa);
 
 		if (beg_range) {
 			sprintf(buf, "REST %"OFF_FMT"d", beg_range);
@@ -564,36 +567,37 @@ static void parse_url(char *src_url, struct host_info *h)
 
 	sp = h->host;
 
-#if ENABLE_FEATURE_WGET_IP6_LITERAL
-	if (sp[0] == '[') {
-		char *ep;
-
-		ep = sp + 1;
-		while (*ep == ':' || isxdigit(*ep))
-			ep++;
-		if (*ep == ']') {
-			h->host++;
-			*ep = '\0';
-			sp = ep + 1;
-		}
-	}
-#endif
-
-	p = strchr(sp, ':');
-	if (p != NULL) {
-		*p = '\0';
-		h->port = htons(xatou16(p + 1));
-	}
+//host2sockaddr does this itself
+//#if ENABLE_FEATURE_WGET_IP6_LITERAL
+//	if (sp[0] == '[') {
+//		char *ep;
+//
+//		ep = sp + 1;
+//		while (*ep == ':' || isxdigit(*ep))
+//			ep++;
+//		if (*ep == ']') {
+//			h->host++;
+//			*ep = '\0';
+//			sp = ep + 1;
+//		}
+//	}
+//#endif
+//
+//	p = strchr(sp, ':');
+//	if (p != NULL) {
+//		*p = '\0';
+//		h->port = htons(xatou16(p + 1));
+//	}
 }
 
 
-static FILE *open_socket(struct sockaddr_in *s_in)
+static FILE *open_socket(len_and_sockaddr *lsa)
 {
 	FILE *fp;
 
 	/* glibc 2.4 seems to try seeking on it - ??! */
 	/* hopefully it understands what ESPIPE means... */
-	fp = fdopen(xconnect_tcp_v4(s_in), "r+");
+	fp = fdopen(xconnect_stream(lsa), "r+");
 	if (fp == NULL)
 		bb_perror_msg_and_die("fdopen");
 
