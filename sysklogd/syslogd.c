@@ -201,7 +201,7 @@ static void log_to_shmem(const char *msg, int len)
 
 	/* Circular Buffer Algorithm:
 	 * --------------------------
-         * tail == position where to store next syslog message.
+	 * tail == position where to store next syslog message.
 	 * head == position of next message to retrieve ("print").
 	 * if head == tail, there is no "unprinted" messages left.
 	 * head is typically advanced by separate "reader" program,

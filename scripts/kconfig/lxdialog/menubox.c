@@ -179,8 +179,8 @@ static void do_scroll(WINDOW *win, int *scroll, int n)
  * Display a menu for choosing among a number of options
  */
 int dialog_menu(const char *title, const char *prompt, int height, int width,
-                int menu_height, const char *current, int item_no,
-                const char *const *items)
+		int menu_height, const char *current, int item_no,
+		const char *const *items)
 {
 	int i, j, x, y, box_x, box_y;
 	int key = 0, button = 0, scroll = 0, choice = 0;

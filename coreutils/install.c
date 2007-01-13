@@ -86,7 +86,7 @@ int install_main(int argc, char **argv)
 						break;
 					}
 				}
-        			if ((flags & (OPT_OWNER|OPT_GROUP))
+				if ((flags & (OPT_OWNER|OPT_GROUP))
 				 && lchown(*argv, uid, gid) == -1
 				) {
 					bb_perror_msg("cannot change ownership of %s", *argv);

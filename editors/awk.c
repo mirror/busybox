@@ -2648,7 +2648,7 @@ int awk_main(int argc, char **argv)
 	char *vnames = (char *)vNames; /* cheat */
 	char *vvalues = (char *)vValues;
 
-        /* Undo busybox.c, or else strtod may eat ','! This breaks parsing:
+	/* Undo busybox.c, or else strtod may eat ','! This breaks parsing:
 	 * $1,$2 == '$1,' '$2', NOT '$1' ',' '$2' */
 	if (ENABLE_LOCALE_SUPPORT)
 		setlocale(LC_NUMERIC, "C");

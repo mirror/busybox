@@ -1008,7 +1008,7 @@ static void compress_block(ct_data * ltree, ct_data * dtree);
 #  define SEND_CODE(c, tree) \
 { \
 	if (verbose > 1) bb_error_msg("\ncd %3d ",(c)); \
-        send_bits(tree[c].Code, tree[c].Len); \
+	send_bits(tree[c].Code, tree[c].Len); \
 }
 #endif
 

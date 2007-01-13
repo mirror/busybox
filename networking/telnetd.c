@@ -335,7 +335,7 @@ free_session(struct tsession *ts)
 	free(ts);
 
 	/* scan all sessions and find new maxfd */
-        ts = sessions;
+	ts = sessions;
 	maxfd = 0;
 	while (ts) {
 		if (maxfd < ts->ptyfd)

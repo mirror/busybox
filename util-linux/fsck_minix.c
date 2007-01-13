@@ -155,7 +155,7 @@ static char super_block_buffer[BLOCK_SIZE];
 /* gcc likes this more (code is smaller) than macro variant */
 static ATTRIBUTE_ALWAYS_INLINE unsigned div_roundup(unsigned size, unsigned n)
 {
-        return (size + n-1) / n;
+	return (size + n-1) / n;
 }
 
 #if ENABLE_FEATURE_MINIX2

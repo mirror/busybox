@@ -423,8 +423,8 @@ extern long xgroup2gid(const char *name);
 extern unsigned long get_ug_id(const char *s, long (*xname2id)(const char *));
 /* from chpst. Does not die, returns 0 on failure */
 struct bb_uidgid_t {
-        uid_t uid;
-        gid_t gid;
+	uid_t uid;
+	gid_t gid;
 };
 extern int get_uidgid(struct bb_uidgid_t*, const char*, int numeric_ok);
 /* what is this? */

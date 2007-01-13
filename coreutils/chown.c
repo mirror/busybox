@@ -72,7 +72,7 @@ int chown_main(int argc, char **argv)
 		*groupName = ':'; /* replace '.' with ':' */
 
 	/* First, try parsing "user[:[group]]" */
-        if (!groupName) { /* "user" */
+	if (!groupName) { /* "user" */
 		ugid.uid = get_ug_id(*argv, xuname2uid);
 	} else if (groupName == *argv) { /* ":group" */
 		ugid.gid = get_ug_id(groupName + 1, xgroup2gid);

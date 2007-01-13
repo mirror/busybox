@@ -103,7 +103,7 @@ char get_header_cpio(archive_handle_t *archive_handle)
 		/* Always round up */
 		printf("%d blocks\n", (int) (archive_handle->offset % 512 ?
 		                             archive_handle->offset / 512 + 1 :
-                                             archive_handle->offset / 512
+		                             archive_handle->offset / 512
 		                            ));
 		if (saved_hardlinks) { /* Bummer - we still have unresolved hardlinks */
 			hardlinks_t *tmp = saved_hardlinks;

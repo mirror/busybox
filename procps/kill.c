@@ -94,7 +94,7 @@ do_it_now:
 		pid = getpid();
 		sid = getsid(pid);
 		/* Now kill all processes except our session */
-        	while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_SID))) {
+		while ((p = procps_scan(p, PSSCAN_PID|PSSCAN_SID))) {
 			if (p->sid != sid && p->pid != pid && p->pid != 1)
 				kill(p->pid, signo);
 		}
