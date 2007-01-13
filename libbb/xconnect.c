@@ -48,6 +48,7 @@ unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default
 		port_nr = bb_strtou(port, NULL, 10);
 		if (errno || port_nr > 65535) {
 			struct servent *tserv = getservbyname(port, protocol);
+			port_nr = default_port;
 			if (tserv)
 				port_nr = ntohs(tserv->s_port);
 		}
@@ -213,6 +214,7 @@ int create_and_bind_stream_or_die(const char *bindaddr, int port)
 		fd = xsocket(lsa->sa.sa_family, SOCK_STREAM, 0);
 	} else {
 		fd = xsocket_stream(&lsa);
+		set_nport(lsa, htons(port));
 	}
 	setsockopt_reuseaddr(fd);
 	xbind(fd, &lsa->sa, lsa->len);
