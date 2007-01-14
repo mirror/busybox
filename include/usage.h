@@ -826,22 +826,16 @@
        "\\( and \\) or null; if \\( and \\) are not used, they return the number\n" \
        "of characters matched or 0."
 
-#if 0 /* bloaty */
 #define fakeidentd_trivial_usage \
-       "[-b ip] [STRING]"
+       "[-fiw] [-b ADDR] [STRING]"
 #define fakeidentd_full_usage \
-       "Return a set string to auth requests" \
-       "\n\nOptions:\n" \
-       "	-b	Bind to ip address\n" \
-       "	STRING	The ident answer string (default is nobody)"
-#else /* inetd-only */
-#define fakeidentd_trivial_usage \
-       "[username]"
-#define fakeidentd_full_usage \
-       "Return a (faked) ident response.\n" \
-       "This applet is meant to run from inetd.\n" \
-       "Optional argument is the username to return (default is 'nobody')."
-#endif
+       "Provide fake ident (auth) service" \
+       "\n\nOptions:" \
+       "\n	-f	Run in foreground" \
+       "\n	-i	Inetd mode" \
+       "\n	-w	Inetd 'wait' mode" \
+       "\n	-b ADDR	Bind to specified address" \
+       "\n	STRING	Ident answer string (default is 'nobody')"
 
 #define false_trivial_usage \
        ""

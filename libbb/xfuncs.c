@@ -509,6 +509,30 @@ void xdaemon(int nochdir, int noclose)
 }
 #endif
 
+void bb_sanitize_stdio(int daemonize)
+{
+	int fd;
+	/* Mega-paranoid */
+	fd = xopen(bb_dev_null, O_RDWR);
+	while (fd < 2)
+		fd = dup(fd); /* have 0,1,2 open at least to /dev/null */
+	if (daemonize) {
+		pid_t pid = fork();
+		if (pid < 0) /* wtf? */
+			bb_perror_msg_and_die("fork");
+		if (pid) /* parent */
+			exit(0);
+    		/* child */
+		setsid();
+		/* if daemonizing, make sure we detach from stdio */
+		dup2(fd, 0);
+		dup2(fd, 1);
+		dup2(fd, 2);
+	}
+	while (fd > 2)
+		close(fd--); /* close everything after fd#2 */
+}
+
 // Die with an error message if we can't open a new socket.
 int xsocket(int domain, int type, int protocol)
 {

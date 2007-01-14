@@ -1289,31 +1289,28 @@ inetd_main(int argc, char *argv[])
 	if (CONFIG == NULL)
 		bb_error_msg_and_die("non-root must specify a config file");
 
-	if (!(opt & 2)) {
 #ifdef BB_NOMMU
+	if (!(opt & 2)) {
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(0, 0, argc, argv, "-f");
-#else
-		xdaemon(0, 0);
-#endif
-	} else {
-		setsid();
 	}
+	bb_sanitize_stdio(0);
+#else
+	bb_sanitize_stdio(!(opt & 2));
+#endif
 	logmode = LOGMODE_SYSLOG;
 
 	if (uid == 0) {
-		gid_t gid = getgid();
-
 		/* If run by hand, ensure groups vector gets trashed */
+		gid_t gid = getgid();
 		setgroups(1, &gid);
 	}
 
 	{
 		FILE *fp = fopen(_PATH_INETDPID, "w");
-
 		if (fp != NULL) {
 			fprintf(fp, "%u\n", getpid());
-			(void) fclose(fp);
+			fclose(fp);
 		}
 	}
 
