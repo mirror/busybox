@@ -1470,7 +1470,7 @@ inetd_main(int argc, char *argv[])
 					(*sep->se_bi->bi_fn)(ctrl, sep);
 				} else
 #endif
-					{
+				{
 					pwd = getpwnam(sep->se_user);
 					if (pwd == NULL) {
 						bb_error_msg("getpwnam: %s: no such user", sep->se_user);

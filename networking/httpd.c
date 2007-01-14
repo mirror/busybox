@@ -846,7 +846,7 @@ static int sendHeaders(HttpResponseNum responseNum)
 	const char *responseString = "";
 	const char *infoString = 0;
 	const char *mime_type;
-	unsigned int i;
+	unsigned i;
 	time_t timer = time(0);
 	char timeStr[80];
 	int len;
@@ -901,7 +901,9 @@ static int sendHeaders(HttpResponseNum responseNum)
 	}
 	if (DEBUG)
 		fprintf(stderr, "headers: '%s'\n", buf);
-	return full_write(config->accepted_socket, buf, len);
+	i = config->accepted_socket;
+	if (i == 0) i++; /* write to fd# 1 in inetd mode */
+	return full_write(i, buf, len);
 }
 
 /****************************************************************************
@@ -1302,7 +1304,9 @@ static int sendFile(const char *url)
 		sendHeaders(HTTP_OK);
 		/* TODO: sendfile() */
 		while ((count = full_read(f, buf, MAX_MEMORY_BUFF)) > 0) {
-			if (full_write(config->accepted_socket, buf, count) != count)
+			int fd = config->accepted_socket;
+			if (fd == 0) fd++; /* write to fd# 1 in inetd mode */
+			if (full_write(fd, buf, count) != count)
 				break;
 		}
 		close(f);
@@ -1321,8 +1325,10 @@ static int checkPermIP(void)
 
 	/* This could stand some work */
 	for (cur = config->ip_a_d; cur; cur = cur->next) {
-#if DEBUG
+#if ENABLE_FEATURE_HTTPD_CGI && DEBUG
 		fprintf(stderr, "checkPermIP: '%s' ? ", config->rmt_ip_str);
+#endif
+#if DEBUG
 		fprintf(stderr, "'%u.%u.%u.%u/%u.%u.%u.%u'\n",
 			(unsigned char)(cur->ip >> 24),
 			(unsigned char)(cur->ip >> 16),
