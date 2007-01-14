@@ -13,14 +13,6 @@
 
 enum { TIMEOUT = 20 };
 
-/* Why use alarm(TIMEOUT-1)?
- * isrv's internal select() will run with timeout=TIMEOUT.
- * If nothing happens during TIMEOUT-1 seconds (no accept/read),
- * then ALL sessions timed out by now. Instead of closing them one-by-one
- * (isrv calls do_timeout for each 'stale' session),
- * SIGALRM triggered by alarm(TIMEOUT-1) will kill us, terminating them all.
- */
-
 typedef struct identd_buf_t {
 	int pos;
 	int fd_flag;
@@ -33,8 +25,6 @@ static int new_peer(isrv_state_t *state, int fd)
 {
 	int peer;
 	identd_buf_t *buf = xzalloc(sizeof(*buf));
-
-	alarm(TIMEOUT - 1);
 
 	peer = isrv_register_peer(state, buf);
 	if (peer < 0)
@@ -53,11 +43,9 @@ static int do_rd(int fd, void **paramp)
 	char *cur, *p;
 	int sz;
 
-	alarm(TIMEOUT - 1);
-
 	cur = buf->buf + buf->pos;
 
-	fcntl(fd, F_SETFL, buf->fd_flag | O_NONBLOCK);
+	fcntl(fd, F_SETFL, buf->fd_flag);
 	sz = safe_read(fd, cur, sizeof(buf->buf) - buf->pos);
 
 	if (sz < 0) {
@@ -95,6 +83,8 @@ static void inetd_mode(void)
 	identd_buf_t *buf = xzalloc(sizeof(*buf));
 	/* We do NOT want nonblocking I/O here! */
 	buf->fd_flag = fcntl(0, F_GETFL, 0);
+	do
+		alarm(TIMEOUT);
 	while (do_rd(0, (void*)&buf) == 0) /* repeat */;
 }
 
@@ -139,6 +129,7 @@ int fakeidentd_main(int argc, char **argv)
 		xlisten(fd, 5);
 	}
 
-	isrv_run(fd, new_peer, do_rd, NULL, do_timeout, TIMEOUT, 1);
+	isrv_run(fd, new_peer, do_rd, /*do_wr:*/ NULL, do_timeout,
+			TIMEOUT, (opt & OPT_inetdwait) ? TIMEOUT : 0);
 	return 0;
 }

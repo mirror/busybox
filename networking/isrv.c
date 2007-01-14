@@ -21,6 +21,8 @@
 
 /* Helpers */
 
+/* Even if _POSIX_MONOTONIC_CLOCK is defined, this
+ * may require librt */
 #if 0 /*def _POSIX_MONOTONIC_CLOCK*/
 static time_t monotonic_time(void)
 {
@@ -194,7 +196,8 @@ static void handle_accept(isrv_state_t *state, int fd)
 	if (newfd < 0) {
 		if (errno == EAGAIN) return;
 		/* Most probably someone gave us wrong fd type
-		 * (for example, non-socket) */
+		 * (for example, non-socket). Don't want
+		 * to loop forever. */
 		bb_perror_msg_and_die("accept");
 	}
 
@@ -210,6 +213,7 @@ static void handle_fd_set(isrv_state_t *state, fd_set *fds, int (*h)(int, void *
 	enum { LONG_CNT = sizeof(fd_set) / sizeof(long) };
 	int fds_pos;
 	int fd, peer;
+	/* need to know value at _the beginning_ of this routine */
 	int fd_cnt = FD_COUNT;
 
 	if (LONG_CNT * sizeof(long) != sizeof(fd_set))
@@ -235,10 +239,15 @@ static void handle_fd_set(isrv_state_t *state, fd_set *fds, int (*h)(int, void *
 		}
 		break; /* all words are zero */
  found_fd:
-		if (fd >= fd_cnt) /* paranoia */
+		if (fd >= fd_cnt) { /* paranoia */
+			DPRINTF("handle_fd_set: fd > fd_cnt?? (%d > %d)",
+					fd, fd_cnt);
 			break;
+		}
 		DPRINTF("handle_fd_set: fd %d is active", fd);
 		peer = FD2PEER[fd];
+		if (peer < 0)
+			continue; /* peer is already gone */
 		if (peer == 0) {
 			handle_accept(state, fd);
 			continue;
@@ -259,9 +268,9 @@ static void handle_timeout(isrv_state_t *state, int (*do_timeout)(void **))
 	peer = PEER_COUNT-1;
 	/* peer 0 is not checked */
 	while (peer > 0) {
-		DPRINTF("peer %d: time diff %d", peer, (int)(CURTIME - TIMEO_TBL[peer]));
-
-		if ((CURTIME - TIMEO_TBL[peer]) > TIMEOUT) {
+		DPRINTF("peer %d: time diff %d", peer,
+				(int)(CURTIME - TIMEO_TBL[peer]));
+		if ((CURTIME - TIMEO_TBL[peer]) >= TIMEOUT) {
 			DPRINTF("peer %d: do_timeout()", peer);
 			n = do_timeout(&PARAM_TBL[peer]);
 			if (n)
@@ -279,7 +288,7 @@ void isrv_run(
 	int (*do_wr)(int fd, void **),
 	int (*do_timeout)(void **),
 	int timeout,
-	int exit_if_no_clients)
+	int linger_timeout)
 {
 	isrv_state_t *state = xzalloc(sizeof(*state));
 	state->new_peer = new_peer;
@@ -300,6 +309,8 @@ void isrv_run(
 		int n;
 
 		tv.tv_sec = timeout;
+		if (PEER_COUNT <= 1)
+			tv.tv_sec = linger_timeout;
 		tv.tv_usec = 0;
 		rd = state->rd;
 		if (WR_COUNT) {
@@ -307,8 +318,9 @@ void isrv_run(
 			wrp = &wr;
 		}
 
-		DPRINTF("run: select(FD_COUNT:%d,timeout:%d)...", FD_COUNT, timeout);
-		n = select(FD_COUNT, &rd, wrp, NULL, timeout ? &tv : NULL);
+		DPRINTF("run: select(FD_COUNT:%d,timeout:%d)...",
+				FD_COUNT, (int)tv.tv_sec);
+		n = select(FD_COUNT, &rd, wrp, NULL, tv.tv_sec ? &tv : NULL);
 		DPRINTF("run: ...select:%d", n);
 
 		if (n < 0) {
@@ -317,7 +329,7 @@ void isrv_run(
 			continue;
 		}
 
-		if (exit_if_no_clients && n == 0 && PEER_COUNT <= 1)
+		if (n == 0 && linger_timeout && PEER_COUNT <= 1)
 			break;
 
 		if (timeout) {
@@ -334,4 +346,5 @@ void isrv_run(
 		}
 	}
 	DPRINTF("run: bailout");
+	/* NB: accept socket is not closed. Caller is to decide what to do */
 }
