@@ -1,3 +1,13 @@
+/* vi: set sw=4 ts=4: */
+/*
+ * Generic non-forking server infrastructure.
+ * Intended to make writing telnetd-type servers easier.
+ *
+ * Copyright (C) 2007 Denis Vlasenko
+ *
+ * Licensed under GPL version 2, see file LICENSE in this tarball for details.
+ */
+
 /* opaque structure */
 struct isrv_state_t;
 typedef struct isrv_state_t isrv_state_t;
