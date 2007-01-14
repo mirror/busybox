@@ -1292,9 +1292,9 @@ inetd_main(int argc, char *argv[])
 		/* reexec for vfork() do continue parent */
 		vfork_daemon_rexec(0, 0, argc, argv, "-f");
 	}
-	bb_sanitize_stdio(0);
+	bb_sanitize_server_stdio(0);
 #else
-	bb_sanitize_stdio(!(opt & 2));
+	bb_sanitize_server_stdio(!(opt & 2));
 #endif
 	openlog(applet_name, LOG_PID | LOG_NOWAIT, LOG_DAEMON);
 	logmode = LOGMODE_SYSLOG;

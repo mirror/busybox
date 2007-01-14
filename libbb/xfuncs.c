@@ -509,7 +509,7 @@ void xdaemon(int nochdir, int noclose)
 }
 #endif
 
-void bb_sanitize_stdio(int daemonize)
+void bb_sanitize_server_stdio(int daemonize)
 {
 	int fd;
 	/* Mega-paranoid */

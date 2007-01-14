@@ -65,6 +65,7 @@ static int do_rd(int fd, void **paramp)
 		goto ok;
 	/* Terminate session. If we are in server mode, then
 	 * fd is still in nonblocking mode - we never block here */
+	if (fd == 0) fd++; /* inetd mode? then write to fd 1 */
 	fdprintf(fd, "%s : USERID : UNIX : %s\r\n", buf->buf, bogouser);
  term:
 	free(buf);
@@ -97,7 +98,7 @@ int fakeidentd_main(int argc, char **argv)
 		OPT_foreground = 0x1,
 		OPT_inetd      = 0x2,
 		OPT_inetdwait  = 0x4,
-		OPT_nodeamon   = 0x7,
+		OPT_fiw        = 0x7,
 		OPT_bindaddr   = 0x8,
 	};
 
@@ -109,9 +110,14 @@ int fakeidentd_main(int argc, char **argv)
 	if (optind < argc)
 		bogouser = argv[optind];
 
-	/* Daemonize if no -f or -i or -w */
-	bb_sanitize_stdio(!(opt & OPT_nodeamon));
-	if (!(opt & OPT_nodeamon)) {
+	/* Daemonize if no -f and no -i and no -w */
+	bb_sanitize_server_stdio(!(opt & OPT_fiw));
+	/* Where to log in inetd modes? "Classic" inetd
+	 * probably has its stderr /dev/null'ed (we need log to syslog?),
+	 * but daemontools-like utilities usually expect that children
+	 * log to stderr. I like daemontools more. Go their way.
+	 * (Or maybe we need yet another option "log to syslog") */
+	if (!(opt & OPT_fiw) /* || (opt & OPT_syslog) */) {
 		openlog(applet_name, 0, LOG_DAEMON);
 		logmode = LOGMODE_SYSLOG;
 	}
@@ -124,9 +130,8 @@ int fakeidentd_main(int argc, char **argv)
 	/* Ignore closed connections when writing */
 	signal(SIGPIPE, SIG_IGN);
 
-	if (opt & OPT_inetdwait) {
-		fd = 0;
-	} else {
+	fd = 0;
+	if (!(opt & OPT_inetdwait)) {
 		fd = create_and_bind_stream_or_die(bind_address,
 				bb_lookup_port("identd", "tcp", 113));
 		xlisten(fd, 5);

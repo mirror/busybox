@@ -279,7 +279,7 @@ extern void xsetgid(gid_t gid);
 extern void xsetuid(uid_t uid);
 extern void xdaemon(int nochdir, int noclose);
 /* More clever/thorough xdaemon */
-extern void bb_sanitize_stdio(int daemonize);
+extern void bb_sanitize_server_stdio(int daemonize);
 extern void xchdir(const char *path);
 extern void xsetenv(const char *key, const char *value);
 extern int xopen(const char *pathname, int flags);
