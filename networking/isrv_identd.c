@@ -83,11 +83,12 @@ static int do_timeout(void **paramp)
 static void inetd_mode(void)
 {
 	identd_buf_t *buf = xzalloc(sizeof(*buf));
+	/* buf->pos = 0; - xzalloc did it */
 	/* We do NOT want nonblocking I/O here! */
-	buf->fd_flag = fcntl(0, F_GETFL, 0);
+	/* buf->fd_flag = 0; - xzalloc did it */
 	do
 		alarm(TIMEOUT);
-	while (do_rd(0, (void*)&buf) == 0) /* repeat */;
+	while (do_rd(0, (void*)&buf) == 0);
 }
 
 int fakeidentd_main(int argc, char **argv)
