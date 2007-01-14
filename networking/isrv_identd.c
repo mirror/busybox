@@ -41,11 +41,13 @@ static int do_rd(int fd, void **paramp)
 {
 	identd_buf_t *buf = *paramp;
 	char *cur, *p;
+	int retval = 0; /* session is ok (so far) */
 	int sz;
 
 	cur = buf->buf + buf->pos;
 
-	fcntl(fd, F_SETFL, buf->fd_flag);
+	if (buf->fd_flag & O_NONBLOCK)
+		fcntl(fd, F_SETFL, buf->fd_flag);
 	sz = safe_read(fd, cur, sizeof(buf->buf) - buf->pos);
 
 	if (sz < 0) {
@@ -59,18 +61,18 @@ static int do_rd(int fd, void **paramp)
 	p = strpbrk(cur, "\r\n");
 	if (p)
 		*p = '\0';
-	if (p || !sz || buf->pos == sizeof(buf->buf)) {
-		/* fd is still in nonblocking mode - we never block here */
-		fdprintf(fd, "%s : USERID : UNIX : %s\r\n", buf->buf, bogouser);
-		goto term;
-	}
- ok:
-	fcntl(fd, F_SETFL, buf->fd_flag & ~O_NONBLOCK);
-	return 0;
+	if (!p && sz && buf->pos <= sizeof(buf->buf))
+		goto ok;
+	/* Terminate session. If we are in server mode, then
+	 * fd is still in nonblocking mode - we never block here */
+	fdprintf(fd, "%s : USERID : UNIX : %s\r\n", buf->buf, bogouser);
  term:
-	fcntl(fd, F_SETFL, buf->fd_flag & ~O_NONBLOCK);
 	free(buf);
-	return 1;
+	retval = 1; /* terminate */
+ ok:
+	if (buf->fd_flag & O_NONBLOCK)
+		fcntl(fd, F_SETFL, buf->fd_flag & ~O_NONBLOCK);
+	return retval;
 }
 
 static int do_timeout(void **paramp)
