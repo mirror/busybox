@@ -159,15 +159,15 @@
 #include <syslog.h>
 #include <sys/un.h>
 
-//#define CONFIG_FEATURE_INETD_RPC
-//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
-//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
-//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
-//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
-//#define CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
-//#define CONFIG_FEATURE_IPV6
+//#define ENABLE_FEATURE_INETD_RPC 1
+//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO 1
+//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD 1
+//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME 1
+//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME 1
+//#define ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN 1
+//#define ENABLE_FEATURE_IPV6 1
 
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 #include <rpc/rpc.h>
 #include <rpc/pmap_clnt.h>
 #endif
@@ -194,17 +194,17 @@ static struct rlimit rlim_ofile;
 
 
 /* Check unsupporting builtin */
-#if defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
-		defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD || \
-		defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME || \
-		defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME || \
-		defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
+	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD || \
+	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME || \
+	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME || \
+	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 # define INETD_FEATURE_ENABLED
 #endif
 
-#if defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
-		defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD || \
-		defined CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
+	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD || \
+	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 # define INETD_SETPROCTITLE
 #endif
 
@@ -214,7 +214,7 @@ typedef struct servtab {
 	int se_socktype;                      /* type of socket to use */
 	int se_family;                        /* address family */
 	char *se_proto;                       /* protocol used */
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 	int se_rpcprog;                       /* rpc program number */
 	int se_rpcversl;                      /* rpc program lowest version */
 	int se_rpcversh;                      /* rpc program highest version */
@@ -236,7 +236,7 @@ typedef struct servtab {
 	union {
 		struct sockaddr se_un_ctrladdr;
 		struct sockaddr_in se_un_ctrladdr_in;
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 		struct sockaddr_in6 se_un_ctrladdr_in6;
 #endif
 		struct sockaddr_un se_un_ctrladdr_un;
@@ -264,53 +264,53 @@ struct builtin {
 };
 
 		/* Echo received data */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 static void echo_stream(int, servtab_t *);
 static void echo_dg(int, servtab_t *);
 #endif
 		/* Internet /dev/null */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 static void discard_stream(int, servtab_t *);
 static void discard_dg(int, servtab_t *);
 #endif
 		/* Return 32 bit time since 1900 */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME
 static void machtime_stream(int, servtab_t *);
 static void machtime_dg(int, servtab_t *);
 #endif
 		/* Return human-readable time */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 static void daytime_stream(int, servtab_t *);
 static void daytime_dg(int, servtab_t *);
 #endif
 		/* Familiar character generator */
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 static void chargen_stream(int, servtab_t *);
 static void chargen_dg(int, servtab_t *);
 #endif
 
 static const struct builtin builtins[] = {
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 	/* Echo received data */
 	{"echo", SOCK_STREAM, 1, 0, echo_stream,},
 	{"echo", SOCK_DGRAM, 0, 0, echo_dg,},
 #endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 	/* Internet /dev/null */
 	{"discard", SOCK_STREAM, 1, 0, discard_stream,},
 	{"discard", SOCK_DGRAM, 0, 0, discard_dg,},
 #endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME
 	/* Return 32 bit time since 1900 */
 	{"time", SOCK_STREAM, 0, 0, machtime_stream,},
 	{"time", SOCK_DGRAM, 0, 0, machtime_dg,},
 #endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 	/* Return human-readable time */
 	{"daytime", SOCK_STREAM, 0, 0, daytime_stream,},
 	{"daytime", SOCK_DGRAM, 0, 0, daytime_dg,},
 #endif
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 	/* Familiar character generator */
 	{"chargen", SOCK_STREAM, 1, 0, chargen_stream,},
 	{"chargen", SOCK_DGRAM, 0, 0, chargen_dg,},
@@ -364,7 +364,7 @@ static void endconfig(void)
 	defhost = 0;
 }
 
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 static void register_rpc(servtab_t *sep)
 {
 	int n;
@@ -401,7 +401,7 @@ static void unregister_rpc(servtab_t *sep)
 			bb_error_msg("pmap_unset(%u, %u)", sep->se_rpcprog, n);
 	}
 }
-#endif /* CONFIG_FEATURE_INETD_RPC */
+#endif /* FEATURE_INETD_RPC */
 
 static void freeconfig(servtab_t *cp)
 {
@@ -417,13 +417,13 @@ static void freeconfig(servtab_t *cp)
 		free(cp->se_argv[i]);
 }
 
-static int bump_nofile (void)
+static int bump_nofile(void)
 {
 #define FD_CHUNK        32
 
 	struct rlimit rl;
 
-	if (getrlimit (RLIMIT_NOFILE, &rl) < 0) {
+	if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
 		bb_perror_msg("getrlimit");
 		return -1;
 	}
@@ -456,7 +456,7 @@ static void setup(servtab_t *sep)
 	if (setsockopt_reuseaddr(sep->se_fd) < 0)
 		bb_perror_msg("setsockopt(SO_REUSEADDR)");
 
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 	if (isrpcservice(sep)) {
 		struct passwd *pwd;
 
@@ -577,7 +577,7 @@ static servtab_t *dupconfig(servtab_t *sep)
 	newtab->se_socktype = sep->se_socktype;
 	newtab->se_family = sep->se_family;
 	newtab->se_proto = xstrdup(sep->se_proto);
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 	newtab->se_rpcprog = sep->se_rpcprog;
 	newtab->se_rpcversl = sep->se_rpcversl;
 	newtab->se_rpcversh = sep->se_rpcversh;
@@ -669,13 +669,13 @@ static servtab_t *getconfigent(void)
 	} else {
 		sep->se_family = AF_INET;
 		if (sep->se_proto[strlen(sep->se_proto) - 1] == '6')
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 			sep->se_family = AF_INET6;
 #else
 			bb_error_msg("%s: IPV6 not supported", sep->se_proto);
 #endif
 		if (strncmp(sep->se_proto, "rpc/", 4) == 0) {
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 			char *p, *ccp;
 			long l;
 
@@ -872,7 +872,7 @@ static servtab_t *enter(servtab_t *cp)
 	sep = new_servtab();
 	*sep = *cp;
 	sep->se_fd = -1;
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 	sep->se_rpcprog = -1;
 #endif
 	Block_Using_Signals(omask);
@@ -906,7 +906,7 @@ static int matchconf(servtab_t *old, servtab_t *new)
 					sizeof(new->se_ctrladdr_in.sin_addr)) != 0)
 		return 0;
 
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 	if (old->se_family == AF_INET6 && new->se_family == AF_INET6 &&
 			memcmp(&old->se_ctrladdr_in6.sin6_addr,
 					&new->se_ctrladdr_in6.sin6_addr,
@@ -961,7 +961,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 				SWAP(char *, sep->se_argv[i], cp->se_argv[i]);
 #undef SWAP
 
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 			if (isrpcservice(sep))
 				unregister_rpc(sep);
 			sep->se_rpcversl = cp->se_rpcversl;
@@ -992,7 +992,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 			/* se_ctrladdr_in was set in getconfigent */
 			sep->se_ctrladdr_size = sizeof sep->se_ctrladdr_in;
 
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 			if (isrpcservice(sep)) {
 				struct rpcent *rp;
 				// FIXME: atoi_or_else(str, 0) would be handy here
@@ -1039,13 +1039,13 @@ static void config(int sig ATTRIBUTE_UNUSED)
 					setup(sep);
 			}
 			break;
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 		case AF_INET6:
 			sep->se_ctrladdr_in6.sin6_family = AF_INET6;
 			/* se_ctrladdr_in was set in getconfigent */
 			sep->se_ctrladdr_size = sizeof sep->se_ctrladdr_in6;
 
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 			if (isrpcservice(sep)) {
 				struct rpcent *rp;
 
@@ -1092,7 +1092,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 					setup(sep);
 			}
 			break;
-#endif /* CONFIG_FEATURE_IPV6 */
+#endif /* FEATURE_IPV6 */
 		}
 	serv_unknown:
 		if (cp->se_next != NULL) {
@@ -1122,7 +1122,7 @@ static void config(int sig ATTRIBUTE_UNUSED)
 			nsock--;
 			(void) close(sep->se_fd);
 		}
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 		if (isrpcservice(sep))
 			unregister_rpc(sep);
 #endif
@@ -1171,11 +1171,11 @@ static void retry(int sig ATTRIBUTE_UNUSED)
 			switch (sep->se_family) {
 			case AF_UNIX:
 			case AF_INET:
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 			case AF_INET6:
 #endif
 				setup(sep);
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 				if (sep->se_fd != -1 && isrpcservice(sep))
 					register_rpc(sep);
 #endif
@@ -1199,10 +1199,10 @@ static void goaway(int sig ATTRIBUTE_UNUSED)
 			(void) unlink(sep->se_service);
 			break;
 		case AF_INET:
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 		case AF_INET6:
 #endif
-#ifdef CONFIG_FEATURE_INETD_RPC
+#if ENABLE_FEATURE_INETD_RPC
 			if (sep->se_wait == 1 && isrpcservice(sep))
 				unregister_rpc(sep);   /* XXX signal race */
 #endif
@@ -1526,9 +1526,9 @@ do_exit1:
  */
 #define BUFSIZE 4096
 
-#if defined(CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO) || \
-		defined(CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN) || \
-		defined(CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME)
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO || \
+	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN || \
+	ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 static int dg_badinput(struct sockaddr_in *dg_sin)
 {
 	if (ntohs(dg_sin->sin_port) < IPPORT_RESERVED)
@@ -1540,7 +1540,7 @@ static int dg_badinput(struct sockaddr_in *dg_sin)
 }
 #endif
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_ECHO
 /* Echo service -- echo data back */
 /* ARGSUSED */
 static void
@@ -1578,9 +1578,9 @@ echo_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 		return;
 	(void) sendto(s, buffer, i, 0, &sa, sizeof(sa));
 }
-#endif  /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_ECHO */
+#endif  /* FEATURE_INETD_SUPPORT_BUILTIN_ECHO */
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD
 /* Discard service -- ignore data */
 /* ARGSUSED */
 static void
@@ -1605,10 +1605,10 @@ discard_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 
 	(void) read(s, buffer, sizeof(buffer));
 }
-#endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DISCARD */
+#endif /* FEATURE_INETD_SUPPORT_BUILTIN_DISCARD */
 
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN
 #define LINESIZ 72
 static char ring[128];
 static char *endring;
@@ -1695,10 +1695,10 @@ chargen_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	text[LINESIZ + 1] = '\n';
 	(void) sendto(s, text, sizeof(text), 0, &sa, sizeof(sa));
 }
-#endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN */
+#endif /* FEATURE_INETD_SUPPORT_BUILTIN_CHARGEN */
 
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_TIME
 /*
  * Return a machine readable date and time, in the form of the
  * number of seconds since midnight, Jan 1, 1900.  Since gettimeofday
@@ -1749,19 +1749,20 @@ machtime_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	result = machtime();
 	(void) sendto(s, (char *) &result, sizeof(result), 0, &sa, sizeof(sa));
 }
-#endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_TIME */
+#endif /* FEATURE_INETD_SUPPORT_BUILTIN_TIME */
 
 
-#ifdef CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
+#if ENABLE_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME
 /* Return human-readable time of day */
 /* ARGSUSED */
 static void daytime_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
-	char buffer[256];
+	char buffer[32];
 	time_t t;
 
 	t = time(NULL);
 
+// fdprintf instead?
 	(void) sprintf(buffer, "%.24s\r\n", ctime(&t));
 	(void) write(s, buffer, strlen(buffer));
 }
@@ -1787,4 +1788,4 @@ daytime_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 	(void) sprintf(buffer, "%.24s\r\n", ctime(&t));
 	(void) sendto(s, buffer, strlen(buffer), 0, &sa, sizeof(sa));
 }
-#endif /* CONFIG_FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME */
+#endif /* FEATURE_INETD_SUPPORT_BUILTIN_DAYTIME */
