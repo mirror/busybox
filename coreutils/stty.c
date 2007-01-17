@@ -484,21 +484,13 @@ static void wrapf(const char *message, ...)
 		current_col = 0;
 }
 
-#ifdef TIOCGWINSZ
-
-static int get_win_size(int fd, struct winsize *win)
+static void set_window_size(const int rows, const int cols)
 {
-	return ioctl(fd, TIOCGWINSZ, (char *) win);
-}
+	struct winsize win = { 0, 0, 0, 0};
 
-static void set_window_size(int rows, int cols)
-{
-	struct winsize win;
-
-	if (get_win_size(STDIN_FILENO, &win)) {
+	if (ioctl(STDIN_FILENO, TIOCGWINSZ, &win)) {
 		if (errno != EINVAL) {
-			perror_on_device("%s");
-			return;
+			goto bail;
 		}
 		memset(&win, 0, sizeof(win));
 	}
@@ -508,75 +500,24 @@ static void set_window_size(int rows, int cols)
 	if (cols >= 0)
 		win.ws_col = cols;
 
-# ifdef TIOCSSIZE
-	/* Alexander Dupuy <dupuy@cs.columbia.edu> wrote:
-	   The following code deals with a bug in the SunOS 4.x (and 3.x?) kernel.
-	   This comment from sys/ttold.h describes Sun's twisted logic - a better
-	   test would have been (ts_lines > 64k || ts_cols > 64k || ts_cols == 0).
-	   At any rate, the problem is gone in Solaris 2.x */
-
-	if (win.ws_row == 0 || win.ws_col == 0) {
-		struct ttysize ttysz;
-
-		ttysz.ts_lines = win.ws_row;
-		ttysz.ts_cols = win.ws_col;
-
-		win.ws_row = win.ws_col = 1;
-
-		if ((ioctl(STDIN_FILENO, TIOCSWINSZ, (char *) &win) != 0)
-		|| (ioctl(STDIN_FILENO, TIOCSSIZE, (char *) &ttysz) != 0)) {
-			perror_on_device("%s");
-		}
-		return;
-	}
-# endif
-
 	if (ioctl(STDIN_FILENO, TIOCSWINSZ, (char *) &win))
+bail:
 		perror_on_device("%s");
 }
 
-static void display_window_size(int fancy)
+static void display_window_size(const int fancy)
 {
 	const char *fmt_str = "%s\0%s: no size information for this device";
-	struct winsize win;
+	unsigned width, height;
 
-	if (get_win_size(STDIN_FILENO, &win)) {
+	if (get_terminal_width_height(STDIN_FILENO, &width, &height)) {
 		if ((errno != EINVAL) || ((fmt_str += 2), !fancy)) {
 			perror_on_device(fmt_str);
 		}
 	} else {
 		wrapf(fancy ? "rows %d; columns %d;" : "%d %d\n",
-				win.ws_row, win.ws_col);
+				height, width);
 	}
-}
-
-#else /* !TIOCGWINSZ */
-
-static inline void display_window_size(int fancy) {}
-
-#endif /* !TIOCGWINSZ */
-
-static int screen_columns_or_die(void)
-{
-	const char *s;
-
-#ifdef TIOCGWINSZ
-	struct winsize win;
-
-	/* With Solaris 2.[123], this ioctl fails and errno is set to
-	   EINVAL for telnet (but not rlogin) sessions.
-	   On ISC 3.0, it fails for the console and the serial port
-	   (but it works for ptys).
-	   It can also fail on any system when stdout isn't a tty.
-	   In case of any failure, just use the default */
-	if (get_win_size(STDOUT_FILENO, &win) == 0 && win.ws_col > 0)
-		return win.ws_col;
-#endif
-
-	s = getenv("COLUMNS");
-	if (s)
-		return xatoi_u(s);
-	return 80;
 }
 
 static const struct suffix_mult stty_suffixes[] = {
@@ -1183,7 +1124,7 @@ invalid_argument:
 		perror_on_device_and_die("%s");
 
 	if (option_mask32 & (STTY_verbose_output | STTY_recoverable_output | STTY_noargs)) {
-		max_col = screen_columns_or_die();
+		get_terminal_width_height(STDOUT_FILENO, &max_col, NULL);
 		output_func(&mode);
 		return EXIT_SUCCESS;
 	}
