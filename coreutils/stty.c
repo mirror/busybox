@@ -158,12 +158,12 @@ static const char stty_dec  [] = "dec";
 
 /* Each mode */
 struct mode_info {
-	const char *name;       /* Name given on command line           */
-	char type;              /* Which structure element to change    */
-	char flags;             /* Setting and display options          */
+	const char * const name;      /* Name given on command line           */
+	const unsigned char type;     /* Which structure element to change    */
+	const unsigned char flags;    /* Setting and display options          */
 	/* were using short here, but ppc32 was unhappy: */
-	tcflag_t mask;          /* Other bits to turn off for this mode */
-	tcflag_t bits;          /* Bits to set for this mode            */
+	const tcflag_t mask;          /* Other bits to turn off for this mode */
+	const tcflag_t bits;          /* Bits to set for this mode            */
 };
 
 /* We can optimize it further by using name[8] instead of char *name */
@@ -324,9 +324,9 @@ enum {
 
 /* Control character settings */
 struct control_info {
-	const char *name;               /* Name given on command line */
-	unsigned char saneval;          /* Value to set for 'stty sane' */
-	unsigned char offset;           /* Offset in c_cc */
+	const char * const name;               /* Name given on command line */
+	const unsigned char saneval;          /* Value to set for 'stty sane' */
+	const unsigned char offset;           /* Offset in c_cc */
 };
 
 /* Control characters */
@@ -967,10 +967,9 @@ static void display_changed(const struct termios *mode)
 		wrapf("%s = %s;", control_info[i].name,
 			  visible(mode->c_cc[control_info[i].offset]));
 	}
-	if ((mode->c_lflag & ICANON) == 0) {
-		wrapf("min = %d; time = %d;", (int) mode->c_cc[VMIN],
-			  (int) mode->c_cc[VTIME]);
-	}
+	if ((mode->c_lflag & ICANON) == 0)
+		wrapf("min = %d; time = %d;", mode->c_cc[VMIN], mode->c_cc[VTIME]);
+
 	if (current_col) wrapf("\n");
 
 	for (i = 0; i < NUM_mode_info; ++i) {
