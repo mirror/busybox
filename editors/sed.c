@@ -576,28 +576,33 @@ static void do_subst_w_backrefs(char *line, char *replace)
 	/* go through the replacement string */
 	for (i = 0; replace[i]; i++) {
 		/* if we find a backreference (\1, \2, etc.) print the backref'ed * text */
-		if (replace[i] == '\\' && replace[i+1] >= '0' && replace[i+1] <= '9') {
-			int backref = replace[++i]-'0';
-
-			/* print out the text held in bbg.regmatch[backref] */
-			if (bbg.regmatch[backref].rm_so != -1) {
-				j = bbg.regmatch[backref].rm_so;
-				while (j < bbg.regmatch[backref].rm_eo)
-					pipe_putc(line[j++]);
+		if (replace[i] == '\\') {
+			unsigned backref = replace[++i] - '0';
+			if (backref <= 9) {
+				/* print out the text held in bbg.regmatch[backref] */
+				if (bbg.regmatch[backref].rm_so != -1) {
+					j = bbg.regmatch[backref].rm_so;
+					while (j < bbg.regmatch[backref].rm_eo)
+						pipe_putc(line[j++]);
+				}
+				continue;
 			}
+			/* I _think_ it is impossible to get '\' to be
+			 * the last char in replace string. Thus we dont check
+			 * for replace[i] == NUL. (counterexample anyone?) */
+			/* if we find a backslash escaped character, print the character */
+			pipe_putc(replace[i]);
+			continue;
 		}
-
-		/* if we find a backslash escaped character, print the character */
-		else if (replace[i] == '\\') pipe_putc(replace[++i]);
-
 		/* if we find an unescaped '&' print out the whole matched text. */
-		else if (replace[i] == '&') {
+		if (replace[i] == '&') {
 			j = bbg.regmatch[0].rm_so;
 			while (j < bbg.regmatch[0].rm_eo)
 				pipe_putc(line[j++]);
+			continue;
 		}
 		/* Otherwise just output the character. */
-		else pipe_putc(replace[i]);
+		pipe_putc(replace[i]);
 	}
 }
 
@@ -722,6 +727,9 @@ static char *get_next_line(int *last_char)
 	lc = 0;
 	flush_append();
 	while (bbg.current_input_file < bbg.input_file_count) {
+		/* Read line up to a newline or NUL byte, inclusive,
+		 * return malloc'ed char[]. length of the chunk read
+		 * is stored in len. NULL if EOF/error */
 		temp = bb_get_chunk_from_file(
 			bbg.input_file_list[bbg.current_input_file], &len);
 		if (temp) {
@@ -753,7 +761,8 @@ static char *get_next_line(int *last_char)
  * echo -n thingy >z1
  * echo -n again >z2
  * >znull
- * sed "s/i/z/" z1 z2 znull | hexdump -vC output:
+ * sed "s/i/z/" z1 z2 znull | hexdump -vC
+ * output:
  * gnu sed 4.1.5:
  * 00000000  74 68 7a 6e 67 79 0a 61  67 61 7a 6e              |thzngy.agazn|
  * bbox:
@@ -771,8 +780,9 @@ static int puts_maybe_newline(char *s, FILE *file, int prev_last_char, int last_
 		last_puts_char = '\n';
 	}
 	fputs(s, file);
-	/* 'x': we don't care what is it, but we know it isn't '\n' */
-	if (s[0]) last_puts_char = 'x';
+	/* why 'x'? - just something which is not '\n' */
+	if (s[0])
+		last_puts_char = 'x';
 	if (!(last_char & 0x100)) { /* had trailing '\n' or '\0'? */
 		last_char &= 0xff;
 		fputc(last_char, file);
