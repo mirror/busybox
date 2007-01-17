@@ -463,10 +463,10 @@ static void wrapf(const char *message, ...)
 	int buflen;
 
 	va_start(args, message);
-	vsnprintf(buf, sizeof(buf), message, args);
+	buflen = vsnprintf(buf, sizeof(buf), message, args);
 	va_end(args);
-	buflen = strlen(buf);
-	if (!buflen) return;
+	/* buflen = strlen(buf); cheaper not to pull in strlen */
+	if (!buflen /*|| buflen >= sizeof(buf)*/) return;
 
 	if (current_col > 0) {
 		current_col++;
