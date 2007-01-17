@@ -29,10 +29,10 @@ static char menu_backtitle[128];
 static const char mconf_readme[] = N_(
 "Overview\n"
 "--------\n"
-"Some kernel features may be built directly into the kernel.\n"
-"Some may be made into loadable runtime modules.  Some features\n"
+"Some features may be built directly into busybox.\n"
+"Some may be made into standalone applets.  Some features\n"
 "may be completely removed altogether.  There are also certain\n"
-"kernel parameters which are not really features, but must be\n"
+"parameters which are not really features, but must be\n"
 "entered in as decimal or hexadecimal numbers or possibly text.\n"
 "\n"
 "Menu items beginning with [*], <M> or [ ] represent features\n"
@@ -148,7 +148,7 @@ static const char mconf_readme[] = N_(
 "\n"
 "Optional personality available\n"
 "------------------------------\n"
-"If you prefer to have all of the kernel options listed in a single\n"
+"If you prefer to have all of the busybox options listed in a single\n"
 "menu, rather than the default multimenu hierarchy, run the menuconfig\n"
 "with MENUCONFIG_MODE environment variable set to single_menu. Example:\n"
 "\n"
@@ -193,11 +193,11 @@ load_config_text[] = N_(
 	"last retrieved.  Leave blank to abort."),
 load_config_help[] = N_(
 	"\n"
-	"For various reasons, one may wish to keep several different kernel\n"
+	"For various reasons, one may wish to keep several different busybox\n"
 	"configurations available on a single machine.\n"
 	"\n"
-	"If you have saved a previous configuration in a file other than the\n"
-	"kernel's default, entering the name of the file here will allow you\n"
+	"If you have saved a previous configuration in a file other than \n"
+	"busybox's default, entering the name of the file here will allow you\n"
 	"to modify that configuration.\n"
 	"\n"
 	"If you are uncertain, then you have probably never used alternate\n"
@@ -207,7 +207,7 @@ save_config_text[] = N_(
 	"as an alternate.  Leave blank to abort."),
 save_config_help[] = N_(
 	"\n"
-	"For various reasons, one may wish to keep different kernel\n"
+	"For various reasons, one may wish to keep different busybox\n"
 	"configurations available on a single machine.\n"
 	"\n"
 	"Entering a file name here will allow you to later retrieve, modify\n"

@@ -27,7 +27,7 @@ const char conf_defname[] = "scripts/defconfig";
 const char *conf_confnames[] = {
 	".config",
 	"/lib/modules/$UNAME_RELEASE/.config",
-	"/etc/kernel-config",
+	"/etc/busybox-config",
 	"/boot/config-$UNAME_RELEASE",
 	conf_defname,
 	NULL,
@@ -385,7 +385,7 @@ int conf_write(const char *name)
 
 	fprintf(out, _("#\n"
 		       "# Automatically generated make config: don't edit\n"
-		       "# Linux kernel version: %s\n"
+		       "# Busybox version: %s\n"
 		       "%s%s"
 		       "#\n"),
 		     sym_get_string_value(sym),
@@ -409,7 +409,7 @@ int conf_write(const char *name)
 		}
 		fprintf(out_h, "/*\n"
 			       " * Automatically generated C config: don't edit\n"
-			       " * Linux kernel version: %s\n"
+			       " * Busybox version: %s\n"
 			       " */\n"
 			       "%s"
 			       "\n",

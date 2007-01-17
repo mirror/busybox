@@ -556,10 +556,10 @@ int main(int ac, char **av)
 	case ask_silent:
 		if (stat(".config", &tmpstat)) {
 			printf(_("***\n"
-				"*** You have not yet configured your kernel!\n"
+				"*** You have not yet configured busybox!\n"
 				"***\n"
 				"*** Please run some configurator (e.g. \"make oldconfig\" or\n"
-				"*** \"make menuconfig\" or \"make xconfig\").\n"
+				"*** \"make menuconfig\" or \"make defconfig\").\n"
 				"***\n"));
 			exit(1);
 		}

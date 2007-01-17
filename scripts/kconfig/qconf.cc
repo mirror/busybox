@@ -1317,7 +1317,7 @@ void ConfigMainWindow::showIntro(void)
 void ConfigMainWindow::showAbout(void)
 {
 	static char str[] = "qconf is Copyright (C) 2002 Roman Zippel <zippel@linux-m68k.org>.\n\n"
-		"Bug reports and feature request can also be entered at http://bugzilla.kernel.org/\n";
+		"Bug reports and feature request can also be entered at http://bugs.busybox.net/\n";
 
 	QMessageBox::information(this, "qconf", str);
 }
