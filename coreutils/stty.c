@@ -450,9 +450,6 @@ static void perror_on_device(const char *fmt)
 	bb_perror_msg(fmt, device_name);
 }
 
-/* No, inline won't be as efficient (gcc 3.4.3) */
-#define streq(a,b) (!strcmp((a),(b)))
-
 /* Print format string MESSAGE and optional args.
    Wrap to next line first if it won't fit.
    Print a space first unless MESSAGE will start a new line */
@@ -531,7 +528,7 @@ static const struct mode_info *find_mode(const char *name)
 {
 	int i;
 	for (i = 0; i < NUM_mode_info; ++i)
-		if (streq(name, mode_info[i].name))
+		if (!strcmp(name, mode_info[i].name))
 			return &mode_info[i];
 	return 0;
 }
@@ -540,7 +537,7 @@ static const struct control_info *find_control(const char *name)
 {
 	int i;
 	for (i = 0; i < NUM_control_info; ++i)
-		if (streq(name, control_info[i].name))
+		if (!strcmp(name, control_info[i].name))
 			return &control_info[i];
 	return 0;
 }
@@ -558,21 +555,6 @@ enum {
 
 static int find_param(const char * const name)
 {
-#if 0
-#ifdef HAVE_C_LINE
-	if (streq(name, "line")) return param_line;
-#endif
-#ifdef TIOCGWINSZ
-	if (streq(name, "rows")) return param_rows;
-	if (streq(name, "cols")) return param_cols;
-	if (streq(name, "columns")) return param_cols;
-	if (streq(name, "size")) return param_size;
-#endif
-	if (streq(name, "speed")) return param_speed;
-	if (streq(name, "ispeed")) return param_ispeed;
-	if (streq(name, "ospeed")) return param_ospeed;
-	return 0;
-#else
 	const char * const params[] = {
 		"line",
 		"rows",
@@ -590,7 +572,6 @@ static int find_param(const char * const name)
 			i |= 0x80;
 	}
 	return i;
-#endif
 }
 
 static int recover_mode(const char *arg, struct termios *mode)
@@ -909,7 +890,7 @@ static void set_control_char_or_die(const struct control_info *info,
 		value = xatoul_range_sfx(arg, 0, 0xff, stty_suffixes);
 	else if (arg[0] == '\0' || arg[1] == '\0')
 		value = arg[0];
-	else if (streq(arg, "^-") || streq(arg, "undef"))
+	else if (!strcmp(arg, "^-") || !strcmp(arg, "undef"))
 		value = _POSIX_VDISABLE;
 	else if (arg[0] == '^') { /* Ignore any trailing junk (^Cjunk) */
 		value = arg[1] & 0x1f; /* Non-letters get weird results */
