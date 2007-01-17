@@ -615,8 +615,9 @@ enum {
 	param_ospeed = 7 | 0x80,
 };
 
-static int find_param(const char *name)
+static int find_param(const char * const name)
 {
+#if 0
 #ifdef HAVE_C_LINE
 	if (streq(name, "line")) return param_line;
 #endif
@@ -630,6 +631,25 @@ static int find_param(const char *name)
 	if (streq(name, "ispeed")) return param_ispeed;
 	if (streq(name, "ospeed")) return param_ospeed;
 	return 0;
+#else
+	const char * const params[] = {
+		"line",
+		"rows",
+		"cols",
+		"columns",
+		"size",
+		"speed",
+		"ispeed",
+		"ospeed",
+		NULL
+	};
+	int i = index_in_str_array(params, name);
+	if (i) {
+		if (!(i == 4 || i == 5))
+			i |= 0x80;
+	}
+	return i;
+#endif
 }
 
 static int recover_mode(const char *arg, struct termios *mode)
