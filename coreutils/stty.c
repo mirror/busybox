@@ -425,17 +425,12 @@ static tcflag_t *mode_type_flag(unsigned type, const struct termios *mode)
 	return NULL;
 }
 
-static speed_t string_to_baud_or_die(const char *arg)
-{
-	return tty_value_to_baud(xatou(arg));
-}
-
-static void set_speed_or_die(enum speed_setting type, const char *arg,
-					struct termios *mode)
+static void set_speed_or_die(enum speed_setting type, const char * const arg,
+					struct termios * const mode)
 {
 	speed_t baud;
 
-	baud = string_to_baud_or_die(arg);
+	baud = tty_value_to_baud(xatou(arg));
 
 	if (type != output_speed) {     /* either input or both */
 		cfsetispeed(mode, baud);
@@ -1130,7 +1125,7 @@ end_option:
 			break;
 		default:
 			if (recover_mode(arg, &mode) == 1) break;
-			if (string_to_baud_or_die(arg) != (speed_t) -1) break;
+			if (tty_value_to_baud(xatou(arg)) != (speed_t) -1) break;
 invalid_argument:
 			bb_error_msg_and_die("invalid argument '%s'", arg);
 		}
@@ -1244,7 +1239,7 @@ invalid_argument:
 		default:
 			if (recover_mode(arg, &mode) == 1)
 				option_mask32 |= STTY_require_set_attr;
-			else /* true: if (string_to_baud_or_die(arg) != (speed_t) -1) */ {
+			else /* true: if (tty_value_to_baud(xatou(arg)) != (speed_t) -1) */{
 				set_speed_or_die(both_speeds, arg, &mode);
 				option_mask32 |= (STTY_require_set_attr | STTY_speed_was_set);
 			} /* else - impossible (caught in the first pass):
