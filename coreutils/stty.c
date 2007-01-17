@@ -623,7 +623,8 @@ static int recover_mode(const char *arg, struct termios *mode)
 	return 1;
 }
 
-static void display_recoverable(const struct termios *mode)
+static void display_recoverable(const struct termios *mode,
+								const int ATTRIBUTE_UNUSED dummy)
 {
 	int i;
 	printf("%lx:%lx:%lx:%lx",
@@ -650,7 +651,7 @@ static void display_speed(const struct termios *mode, int fancy)
 	wrapf(fmt_str, tty_baud_to_value(ispeed), tty_baud_to_value(ospeed));
 }
 
-static void display_all(const struct termios *mode)
+static void do_display(const struct termios *mode, const int all)
 {
 	int i;
 	tcflag_t *bitsp;
@@ -658,7 +659,8 @@ static void display_all(const struct termios *mode)
 	int prev_type = control;
 
 	display_speed(mode, 1);
-	display_window_size(1);
+	if (all)
+		display_window_size(1);
 #ifdef HAVE_C_LINE
 	wrapf("line = %d;\n", mode->c_line);
 #else
@@ -690,16 +692,22 @@ static void display_all(const struct termios *mode)
 		if (mode_info[i].flags & OMIT)
 			continue;
 		if (mode_info[i].type != prev_type) {
-			wrapf("\n");
+			/* wrapf("\n"); */
+			if (current_col) wrapf("\n");
 			prev_type = mode_info[i].type;
 		}
 
 		bitsp = mode_type_flag(mode_info[i].type, mode);
 		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
-		if ((*bitsp & mask) == mode_info[i].bits)
-			wrapf("%s", mode_info[i].name);
-		else if (mode_info[i].flags & REV)
-			wrapf("-%s", mode_info[i].name);
+		if ((*bitsp & mask) == mode_info[i].bits) {
+			if (all || (mode_info[i].flags & SANE_UNSET))
+				wrapf("%s", mode_info[i].name);
+		} else {
+			if ((all && mode_info[i].flags & REV) ||
+				 (!all &&
+				  (mode_info[i].flags & (SANE_SET | REV)) == (SANE_SET | REV)))
+				wrapf("-%s", mode_info[i].name);
+		}
 	}
 	if (current_col) wrapf("\n");
 }
@@ -892,63 +900,6 @@ static void set_mode(const struct mode_info *info, int reversed,
 	}
 }
 
-static void display_changed(const struct termios *mode)
-{
-	int i;
-	tcflag_t *bitsp;
-	unsigned long mask;
-	int prev_type = control;
-
-	display_speed(mode, 1);
-#ifdef HAVE_C_LINE
-	wrapf("line = %d;\n", mode->c_line);
-#else
-	wrapf("\n");
-#endif
-
-	for (i = 0; control_info[i].name != stty_min; ++i) {
-		if (mode->c_cc[control_info[i].offset] == control_info[i].saneval)
-			continue;
-		/* If swtch is the same as susp, don't print both */
-#if VSWTCH == VSUSP
-		if (control_info[i].name == stty_swtch)
-			continue;
-#endif
-		/* If eof uses the same slot as min, only print whichever applies */
-#if VEOF == VMIN
-		if ((mode->c_lflag & ICANON) == 0
-			&& (control_info[i].name == stty_eof
-				|| control_info[i].name == stty_eol)) continue;
-#endif
-		wrapf("%s = %s;", control_info[i].name,
-			  visible(mode->c_cc[control_info[i].offset]));
-	}
-	if ((mode->c_lflag & ICANON) == 0)
-		wrapf("min = %d; time = %d;", mode->c_cc[VMIN], mode->c_cc[VTIME]);
-
-	if (current_col) wrapf("\n");
-
-	for (i = 0; i < NUM_mode_info; ++i) {
-		if (mode_info[i].flags & OMIT)
-			continue;
-		if (mode_info[i].type != prev_type) {
-			if (current_col) wrapf("\n");
-			prev_type = mode_info[i].type;
-		}
-
-		bitsp = mode_type_flag(mode_info[i].type, mode);
-		mask = mode_info[i].mask ? mode_info[i].mask : mode_info[i].bits;
-		if ((*bitsp & mask) == mode_info[i].bits) {
-			if (mode_info[i].flags & SANE_UNSET) {
-				wrapf("%s", mode_info[i].name);
-			}
-		} else if ((mode_info[i].flags & (SANE_SET | REV)) == (SANE_SET | REV)) {
-			wrapf("-%s", mode_info[i].name);
-		}
-	}
-	if (current_col) wrapf("\n");
-}
-
 static void set_control_char_or_die(const struct control_info *info,
 			const char *arg, struct termios *mode)
 {
@@ -977,11 +928,12 @@ static void set_control_char_or_die(const struct control_info *info,
 int stty_main(int argc, char **argv)
 {
 	struct termios mode;
-	void (*output_func)(const struct termios *);
+	void (*output_func)(const struct termios *, const int);
 	const char *file_name = NULL;
 	int k;
+	int display_all = 0;
 	option_mask32 = STTY_noargs;
-	output_func = display_changed;
+	output_func = do_display;
 
 	/* First pass: only parse/verify command line params */
 	k = 0;
@@ -1007,7 +959,8 @@ int stty_main(int argc, char **argv)
 				switch (arg[i]) {
 				case 'a':
 					option_mask32 |= STTY_verbose_output;
-					output_func = display_all;
+					output_func = do_display;
+					display_all = 1;
 					break;
 				case 'g':
 					option_mask32 |= STTY_recoverable_output;
@@ -1125,7 +1078,7 @@ invalid_argument:
 
 	if (option_mask32 & (STTY_verbose_output | STTY_recoverable_output | STTY_noargs)) {
 		get_terminal_width_height(STDOUT_FILENO, &max_col, NULL);
-		output_func(&mode);
+		output_func(&mode, display_all);
 		return EXIT_SUCCESS;
 	}
 
