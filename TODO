@@ -164,7 +164,11 @@ man
 ---
 ar
   Write support?
----
+----
+stty / catv
+  stty's visible() function and catv's guts are identical. Merge them into
+  an appropriate libbb function.
+----
 
 Architectural issues:
 
