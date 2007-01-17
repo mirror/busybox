@@ -1014,24 +1014,19 @@ static void set_control_char_or_die(const struct control_info *info,
 	mode->c_cc[info->offset] = value;
 }
 
+#define STTY_require_set_attr	(1<<0)
+#define STTY_speed_was_set		(1<<1)
+#define STTY_verbose_output		(1<<2)
+#define STTY_recoverable_output	(1<<3)
+#define STTY_noargs				(1<<4)
 int stty_main(int argc, char **argv)
 {
 	struct termios mode;
 	void (*output_func)(const struct termios *);
 	const char *file_name = NULL;
-	int require_set_attr;
-	int speed_was_set;
-	int verbose_output;
-	int recoverable_output;
-	int noargs;
 	int k;
-
+	option_mask32 = STTY_noargs;
 	output_func = display_changed;
-	noargs = 1;
-	speed_was_set = 0;
-	require_set_attr = 0;
-	verbose_output = 0;
-	recoverable_output = 0;
 
 	/* First pass: only parse/verify command line params */
 	k = 0;
@@ -1047,8 +1042,8 @@ int stty_main(int argc, char **argv)
 			mp = find_mode(arg+1);
 			if (mp) {
 				if (!(mp->flags & REV))
-					bb_error_msg_and_die("invalid argument '%s'", arg);
-				noargs = 0;
+					goto invalid_argument;
+				option_mask32 &= ~STTY_noargs;
 				continue;
 			}
 			/* It is an option - parse it */
@@ -1056,11 +1051,11 @@ int stty_main(int argc, char **argv)
 			while (arg[++i]) {
 				switch (arg[i]) {
 				case 'a':
-					verbose_output = 1;
+					option_mask32 |= STTY_verbose_output;
 					output_func = display_all;
 					break;
 				case 'g':
-					recoverable_output = 1;
+					option_mask32 |= STTY_recoverable_output;
 					output_func = display_recoverable;
 					break;
 				case 'F':
@@ -1078,7 +1073,7 @@ int stty_main(int argc, char **argv)
 					}
 					goto end_option;
 				default:
-					bb_error_msg_and_die("invalid argument '%s'", arg);
+					goto invalid_argument;
 				}
 			}
 end_option:
@@ -1087,7 +1082,7 @@ end_option:
 
 		mp = find_mode(arg);
 		if (mp) {
-			noargs = 0;
+			option_mask32 &= ~STTY_noargs;
 			continue;
 		}
 
@@ -1097,7 +1092,7 @@ end_option:
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			/* called for the side effect of xfunc death only */
 			set_control_char_or_die(cp, argnext, &mode);
-			noargs = 0;
+			option_mask32 &= ~STTY_noargs;
 			++k;
 			continue;
 		}
@@ -1137,16 +1132,19 @@ end_option:
 		default:
 			if (recover_mode(arg, &mode) == 1) break;
 			if (string_to_baud_or_die(arg) != (speed_t) -1) break;
+invalid_argument:
 			bb_error_msg_and_die("invalid argument '%s'", arg);
 		}
-		noargs = 0;
+		option_mask32 &= ~STTY_noargs;
 	}
 
 	/* Specifying both -a and -g is an error */
-	if (verbose_output && recoverable_output)
+	if ((option_mask32 & (STTY_verbose_output | STTY_recoverable_output)) ==
+		(STTY_verbose_output | STTY_recoverable_output))
 		bb_error_msg_and_die("verbose and stty-readable output styles are mutually exclusive");
 	/* Specifying -a or -g with non-options is an error */
-	if (!noargs && (verbose_output || recoverable_output))
+	if (!(option_mask32 & STTY_noargs) &&
+		(option_mask32 & (STTY_verbose_output | STTY_recoverable_output)))
 		bb_error_msg_and_die("modes may not be set when specifying an output style");
 
 	/* Now it is safe to start doing things */
@@ -1159,7 +1157,8 @@ end_option:
 			close(fd);
 		}
 		fdflags = fcntl(STDIN_FILENO, F_GETFL);
-		if (fdflags == -1 || fcntl(STDIN_FILENO, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
+		if (fdflags < 0 ||
+			fcntl(STDIN_FILENO, F_SETFL, fdflags & ~O_NONBLOCK) < 0)
 			perror_on_device_and_die("%s: cannot reset non-blocking mode");
 	}
 
@@ -1169,7 +1168,7 @@ end_option:
 	if (tcgetattr(STDIN_FILENO, &mode))
 		perror_on_device_and_die("%s");
 
-	if (verbose_output || recoverable_output || noargs) {
+	if (option_mask32 & (STTY_verbose_output | STTY_recoverable_output | STTY_noargs)) {
 		max_col = screen_columns_or_die();
 		output_func(&mode);
 		return EXIT_SUCCESS;
@@ -1188,7 +1187,7 @@ end_option:
 			mp = find_mode(arg+1);
 			if (mp) {
 				set_mode(mp, 1 /* reversed */, &mode);
-				require_set_attr = 1;
+				option_mask32 |= STTY_require_set_attr;
 			}
 			/* It is an option - already parsed. Skip it */
 			continue;
@@ -1197,7 +1196,7 @@ end_option:
 		mp = find_mode(arg);
 		if (mp) {
 			set_mode(mp, 0 /* non-reversed */, &mode);
-			require_set_attr = 1;
+			option_mask32 |= STTY_require_set_attr;
 			continue;
 		}
 
@@ -1205,7 +1204,7 @@ end_option:
 		if (cp) {
 			++k;
 			set_control_char_or_die(cp, argnext, &mode);
-			require_set_attr = 1;
+			option_mask32 |= STTY_require_set_attr;
 			continue;
 		}
 
@@ -1218,7 +1217,7 @@ end_option:
 #ifdef HAVE_C_LINE
 		case param_line:
 			mode.c_line = xatoul_sfx(argnext, stty_suffixes);
-			require_set_attr = 1;
+			option_mask32 |= STTY_require_set_attr;
 			break;
 #endif
 #ifdef TIOCGWINSZ
@@ -1237,27 +1236,24 @@ end_option:
 			break;
 		case param_ispeed:
 			set_speed_or_die(input_speed, argnext, &mode);
-			speed_was_set = 1;
-			require_set_attr = 1;
+			option_mask32 |= (STTY_require_set_attr | STTY_speed_was_set);
 			break;
 		case param_ospeed:
 			set_speed_or_die(output_speed, argnext, &mode);
-			speed_was_set = 1;
-			require_set_attr = 1;
+			option_mask32 |= (STTY_require_set_attr | STTY_speed_was_set);
 			break;
 		default:
 			if (recover_mode(arg, &mode) == 1)
-				require_set_attr = 1;
+				option_mask32 |= STTY_require_set_attr;
 			else /* true: if (string_to_baud_or_die(arg) != (speed_t) -1) */ {
 				set_speed_or_die(both_speeds, arg, &mode);
-				speed_was_set = 1;
-				require_set_attr = 1;
+				option_mask32 |= (STTY_require_set_attr | STTY_speed_was_set);
 			} /* else - impossible (caught in the first pass):
 				bb_error_msg_and_die("invalid argument '%s'", arg); */
 		}
 	}
 
-	if (require_set_attr) {
+	if (option_mask32 & STTY_require_set_attr) {
 		struct termios new_mode;
 
 		if (tcsetattr(STDIN_FILENO, TCSADRAIN, &mode))
@@ -1288,7 +1284,8 @@ end_option:
 			   error for a true failure to set the baud rate */
 
 			new_mode.c_cflag &= (~CIBAUD);
-			if (speed_was_set || memcmp(&mode, &new_mode, sizeof(mode)) != 0)
+			if (option_mask32 & STTY_speed_was_set ||
+				memcmp(&mode, &new_mode, sizeof(mode)) != 0)
 #endif
 				perror_on_device_and_die("%s: cannot perform all requested operations");
 		}
