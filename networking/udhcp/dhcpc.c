@@ -23,7 +23,7 @@ static int state;
  * which holds IPv4 address, and the struct is passed by value (!!)
  */
 static unsigned long requested_ip; /* = 0 */
-static unsigned long server_addr;
+static uint32_t server_addr;
 static unsigned long timeout;
 static int packet_num; /* = 0 */
 static int fd = -1;
@@ -413,7 +413,8 @@ int udhcpc_main(int argc, char *argv[])
 				if (*message == DHCPOFFER) {
 					temp = get_option(&packet, DHCP_SERVER_ID);
 					if (temp) {
-						server_addr = *(uint32_t*)temp;
+						/* can be misaligned, thus memcpy */
+						memcpy(&server_addr, temp, 4);
 						xid = packet.xid;
 						requested_ip = packet.yiaddr;
 
@@ -436,7 +437,9 @@ int udhcpc_main(int argc, char *argv[])
 						bb_error_msg("no lease time with ACK, using 1 hour lease");
 						lease = 60 * 60;
 					} else {
-						lease = ntohl(*(uint32_t*)temp);
+						/* can be misaligned, thus memcpy */
+						memcpy(&lease, temp, 4);
+						lease = ntohl(lease);
 					}
 
 					/* enter bound state */
