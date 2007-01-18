@@ -11938,7 +11938,11 @@ exitshell(void)
 	TRACE(("pid %d, exitshell(%d)\n", getpid(), status));
 	if (setjmp(loc.loc)) {
 		if (exception == EXEXIT)
-			_exit(exitstatus);
+/* dash bug: it just does _exit(exitstatus) here
+ * but we have to do setjobctl(0) first!
+ * (bug is still not fixed in dash-0.5.3 - if you run dash
+ * under Midnight Commander, on exit MC is backgrounded) */
+			status = exitstatus;
 		goto out;
 	}
 	handler = &loc;
@@ -11947,16 +11951,16 @@ exitshell(void)
 		evalstring(p, 0);
 	}
 	flushall();
-	setjobctl(0);
 #ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
 	if (iflag && rootshell) {
 		const char *hp = lookupvar("HISTFILE");
 
-		if(hp != NULL )
-			save_history ( hp );
+		if (hp != NULL)
+			save_history(hp);
 	}
 #endif
 out:
+	setjobctl(0);
 	_exit(status);
 	/* NOTREACHED */
 }
