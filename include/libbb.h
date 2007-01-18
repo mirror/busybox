@@ -223,17 +223,6 @@ struct sysinfo {
 extern int sysinfo(struct sysinfo* info);
 
 
-/* Size-saving "small" ints (arch-dependent) */
-#if defined(i386) || defined(__x86_64__) || defined(__mips__) || defined(__cris__)
-/* add other arches which benefit from this... */
-typedef signed char smallint;
-typedef unsigned char smalluint;
-#else
-/* for arches where byte accesses generate larger code: */
-typedef int smallint;
-typedef unsigned smalluint;
-#endif
-
 
 extern void chomp(char *s);
 extern void trim(char *s);

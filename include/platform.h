@@ -172,6 +172,17 @@ typedef unsigned long long int  uintmax_t;
 #endif
 #endif
 
+/* Size-saving "small" ints (arch-dependent) */
+#if defined(i386) || defined(__x86_64__) || defined(__mips__) || defined(__cris__)
+/* add other arches which benefit from this... */
+typedef signed char smallint;
+typedef unsigned char smalluint;
+#else
+/* for arches where byte accesses generate larger code: */
+typedef int smallint;
+typedef unsigned smalluint;
+#endif
+
 /* uclibc does not implement daemon() for no-mmu systems.
  * For 0.9.29 and svn, __ARCH_USE_MMU__ indicates no-mmu reliably.
  * For earlier versions there is no reliable way to check if we are building
