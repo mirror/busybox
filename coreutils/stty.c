@@ -462,8 +462,9 @@ static void wrapf(const char *message, ...)
 	va_start(args, message);
 	buflen = vsnprintf(buf, sizeof(buf), message, args);
 	va_end(args);
-	/* buflen = strlen(buf); cheaper not to pull in strlen */
-	if (!buflen /*|| buflen >= sizeof(buf)*/) return;
+	/* We seem to be called only with suitable lengths, but check if
+	   somebody failed to adhere to this assumption just to be sure.  */
+	if (!buflen || buflen >= sizeof(buf)) return;
 
 	if (current_col > 0) {
 		current_col++;
