@@ -901,19 +901,21 @@ static void set_control_char_or_die(const struct control_info *info,
 	mode->c_cc[info->offset] = value;
 }
 
-#define STTY_require_set_attr	(1<<0)
-#define STTY_speed_was_set		(1<<1)
-#define STTY_verbose_output		(1<<2)
-#define STTY_recoverable_output	(1<<3)
-#define STTY_noargs				(1<<4)
+#define STTY_require_set_attr   (1<<0)
+#define STTY_speed_was_set      (1<<1)
+#define STTY_verbose_output     (1<<2)
+#define STTY_recoverable_output (1<<3)
+#define STTY_noargs             (1<<4)
 int stty_main(int argc, char **argv)
 {
 	struct termios mode;
 	void (*output_func)(const struct termios *, const int);
 	const char *file_name = NULL;
-	int k;
 	int display_all = 0;
-	option_mask32 = STTY_noargs;
+	int stty_state;
+	int k;
+
+	stty_state = STTY_noargs;
 	output_func = do_display;
 
 	/* First pass: only parse/verify command line params */
@@ -931,7 +933,7 @@ int stty_main(int argc, char **argv)
 			if (mp) {
 				if (!(mp->flags & REV))
 					goto invalid_argument;
-				option_mask32 &= ~STTY_noargs;
+				stty_state &= ~STTY_noargs;
 				continue;
 			}
 			/* It is an option - parse it */
@@ -939,12 +941,12 @@ int stty_main(int argc, char **argv)
 			while (arg[++i]) {
 				switch (arg[i]) {
 				case 'a':
-					option_mask32 |= STTY_verbose_output;
+					stty_state |= STTY_verbose_output;
 					output_func = do_display;
 					display_all = 1;
 					break;
 				case 'g':
-					option_mask32 |= STTY_recoverable_output;
+					stty_state |= STTY_recoverable_output;
 					output_func = display_recoverable;
 					break;
 				case 'F':
@@ -971,7 +973,7 @@ end_option:
 
 		mp = find_mode(arg);
 		if (mp) {
-			option_mask32 &= ~STTY_noargs;
+			stty_state &= ~STTY_noargs;
 			continue;
 		}
 
@@ -981,7 +983,7 @@ end_option:
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			/* called for the side effect of xfunc death only */
 			set_control_char_or_die(cp, argnext, &mode);
-			option_mask32 &= ~STTY_noargs;
+			stty_state &= ~STTY_noargs;
 			++k;
 			continue;
 		}
@@ -1024,16 +1026,16 @@ end_option:
 invalid_argument:
 			bb_error_msg_and_die("invalid argument '%s'", arg);
 		}
-		option_mask32 &= ~STTY_noargs;
+		stty_state &= ~STTY_noargs;
 	}
 
 	/* Specifying both -a and -g is an error */
-	if ((option_mask32 & (STTY_verbose_output | STTY_recoverable_output)) ==
+	if ((stty_state & (STTY_verbose_output | STTY_recoverable_output)) ==
 		(STTY_verbose_output | STTY_recoverable_output))
 		bb_error_msg_and_die("verbose and stty-readable output styles are mutually exclusive");
 	/* Specifying -a or -g with non-options is an error */
-	if (!(option_mask32 & STTY_noargs) &&
-		(option_mask32 & (STTY_verbose_output | STTY_recoverable_output)))
+	if (!(stty_state & STTY_noargs) &&
+		(stty_state & (STTY_verbose_output | STTY_recoverable_output)))
 		bb_error_msg_and_die("modes may not be set when specifying an output style");
 
 	/* Now it is safe to start doing things */
@@ -1057,7 +1059,7 @@ invalid_argument:
 	if (tcgetattr(STDIN_FILENO, &mode))
 		perror_on_device_and_die("%s");
 
-	if (option_mask32 & (STTY_verbose_output | STTY_recoverable_output | STTY_noargs)) {
+	if (stty_state & (STTY_verbose_output | STTY_recoverable_output | STTY_noargs)) {
 		get_terminal_width_height(STDOUT_FILENO, &max_col, NULL);
 		output_func(&mode, display_all);
 		return EXIT_SUCCESS;
@@ -1076,7 +1078,7 @@ invalid_argument:
 			mp = find_mode(arg+1);
 			if (mp) {
 				set_mode(mp, 1 /* reversed */, &mode);
-				option_mask32 |= STTY_require_set_attr;
+				stty_state |= STTY_require_set_attr;
 			}
 			/* It is an option - already parsed. Skip it */
 			continue;
@@ -1085,7 +1087,7 @@ invalid_argument:
 		mp = find_mode(arg);
 		if (mp) {
 			set_mode(mp, 0 /* non-reversed */, &mode);
-			option_mask32 |= STTY_require_set_attr;
+			stty_state |= STTY_require_set_attr;
 			continue;
 		}
 
@@ -1093,7 +1095,7 @@ invalid_argument:
 		if (cp) {
 			++k;
 			set_control_char_or_die(cp, argnext, &mode);
-			option_mask32 |= STTY_require_set_attr;
+			stty_state |= STTY_require_set_attr;
 			continue;
 		}
 
@@ -1106,7 +1108,7 @@ invalid_argument:
 #ifdef HAVE_C_LINE
 		case param_line:
 			mode.c_line = xatoul_sfx(argnext, stty_suffixes);
-			option_mask32 |= STTY_require_set_attr;
+			stty_state |= STTY_require_set_attr;
 			break;
 #endif
 #ifdef TIOCGWINSZ
@@ -1125,24 +1127,24 @@ invalid_argument:
 			break;
 		case param_ispeed:
 			set_speed_or_die(input_speed, argnext, &mode);
-			option_mask32 |= (STTY_require_set_attr | STTY_speed_was_set);
+			stty_state |= (STTY_require_set_attr | STTY_speed_was_set);
 			break;
 		case param_ospeed:
 			set_speed_or_die(output_speed, argnext, &mode);
-			option_mask32 |= (STTY_require_set_attr | STTY_speed_was_set);
+			stty_state |= (STTY_require_set_attr | STTY_speed_was_set);
 			break;
 		default:
 			if (recover_mode(arg, &mode) == 1)
-				option_mask32 |= STTY_require_set_attr;
+				stty_state |= STTY_require_set_attr;
 			else /* true: if (tty_value_to_baud(xatou(arg)) != (speed_t) -1) */{
 				set_speed_or_die(both_speeds, arg, &mode);
-				option_mask32 |= (STTY_require_set_attr | STTY_speed_was_set);
+				stty_state |= (STTY_require_set_attr | STTY_speed_was_set);
 			} /* else - impossible (caught in the first pass):
 				bb_error_msg_and_die("invalid argument '%s'", arg); */
 		}
 	}
 
-	if (option_mask32 & STTY_require_set_attr) {
+	if (stty_state & STTY_require_set_attr) {
 		struct termios new_mode;
 
 		if (tcsetattr(STDIN_FILENO, TCSADRAIN, &mode))
@@ -1173,8 +1175,8 @@ invalid_argument:
 			   error for a true failure to set the baud rate */
 
 			new_mode.c_cflag &= (~CIBAUD);
-			if (option_mask32 & STTY_speed_was_set ||
-				memcmp(&mode, &new_mode, sizeof(mode)) != 0)
+			if ((stty_state & STTY_speed_was_set)
+			 || memcmp(&mode, &new_mode, sizeof(mode)) != 0)
 #endif
 				perror_on_device_and_die("%s: cannot perform all requested operations");
 		}
