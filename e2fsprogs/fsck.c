@@ -395,9 +395,7 @@ static void interpret_type(struct fs_info *fs)
 #endif
 #define interpret_type(fs) ((void)0)
 
-/*
- * Load the filesystem database from /etc/fstab
- */
+/* Load the filesystem database from /etc/fstab */
 static void load_fs_info(const char *filename)
 {
 	FILE *f;
@@ -471,86 +469,6 @@ static int progress_active(void)
 }
 
 /*
- * Execute a particular fsck program, and link it into the list of
- * child processes we are waiting for.
- */
-static int execute(const char *type, const char *device, const char *mntpt,
-		int interactive)
-{
-	char *argv[num_args + 4]; /* see count below: */
-	int argc;
-	int i;
-	struct fsck_instance *inst, *p;
-	pid_t pid;
-
-	inst = xzalloc(sizeof(*inst));
-
-	argv[0] = xasprintf("fsck.%s", type); /* 1 */
-	for (i = 0; i < num_args; i++)
-		argv[i+1] = args[i]; /* num_args */
-	argc = num_args + 1;
-
-	if (progress && !progress_active()) {
-		if (strcmp(type, "ext2") == 0
-		 || strcmp(type, "ext3") == 0
-		) {
-			argv[argc++] = xasprintf("-C%d", progress_fd); /* 1 */
-			inst->flags |= FLAG_PROGRESS;
-		}
-	}
-
-	argv[argc++] = xstrdup(device); /* 1 */
-	argv[argc] = 0; /* 1 */
-
-	if (verbose || noexecute) {
-		printf("[%s (%d) -- %s]", argv[0], num_running,
-					mntpt ? mntpt : device);
-		for (i = 0; i < argc; i++)
-			printf(" %s", argv[i]);
-		puts("");
-	}
-
-	/* Fork and execute the correct program. */
-	if (noexecute)
-		pid = -1;
-	else if ((pid = fork()) < 0) {
-		bb_perror_msg("fork");
-		return errno;
-	}
-	if (pid == 0) {
-		/* Child */
-		if (!interactive)
-			close(0);
-		execvp(argv[0], argv);
-		bb_perror_msg_and_die("%s", argv[0]);
-	}
-
-	for (i = num_args+1; i < argc; i++)
-		free(argv[i]);
-
-	inst->pid = pid;
-	inst->prog = argv[0];
-	inst->type = xstrdup(type);
-	inst->device = xstrdup(device);
-	inst->base_device = base_device(device);
-	inst->start_time = time(0);
-	inst->next = NULL;
-
-	/*
-	 * Find the end of the list, so we add the instance on at the end.
-	 */
-	if (!instance_list) {
-		instance_list = inst;
-		return 0;
-	}
-	p = instance_list;
-	while (p->next)
-		p = p->next;
-	p->next = inst;
-	return 0;
-}
-
-/*
  * Send a signal to all outstanding fsck child processes
  */
 static void kill_all_if_cancel_requested(void)
@@ -586,7 +504,7 @@ static struct fsck_instance *wait_one(int flags)
 
 	if (noexecute) {
 		inst = instance_list;
-		prev = 0;
+		prev = NULL;
 #ifdef RANDOM_DEBUG
 		while (inst->next && (random() & 1)) {
 			prev = inst;
@@ -615,14 +533,16 @@ static struct fsck_instance *wait_one(int flags)
 				bb_error_msg("wait: no more child process?!?");
 				return NULL;
 			}
-			perror("wait");
+			bb_perror_msg("wait");
 			continue;
 		}
-		for (prev = 0, inst = instance_list;
-		     inst;
-		     prev = inst, inst = inst->next) {
+		prev = NULL;
+		inst = instance_list;
+		while (inst) {
 			if (inst->pid == pid)
 				break;
+			prev = inst;
+			inst = inst->next;
 		}
 	} while (!inst);
 
@@ -648,22 +568,21 @@ static struct fsck_instance *wait_one(int flags)
 		for (inst2 = instance_list; inst2; inst2 = inst2->next) {
 			if (inst2->flags & FLAG_DONE)
 				continue;
-			if (strcmp(inst2->type, "ext2") &&
-			    strcmp(inst2->type, "ext3"))
+			if (strcmp(inst2->type, "ext2") != 0
+			 && strcmp(inst2->type, "ext3") != 0
+			) {
 				continue;
-			/*
+			}
+			/* ext[23], we will send USR1
+			 * (request to start displaying progress bar)
+			 *
 			 * If we've just started the fsck, wait a tiny
 			 * bit before sending the kill, to give it
 			 * time to set up the signal handler
 			 */
-			if (inst2->start_time < time(0)+2) {
-				if (fork() == 0) {
-					sleep(1);
-					kill(inst2->pid, SIGUSR1);
-					exit(0);
-				}
-			} else
-				kill(inst2->pid, SIGUSR1);
+			if (inst2->start_time >= time(NULL) - 1)
+				sleep(1);
+			kill(inst2->pid, SIGUSR1);
 			inst2->flags |= FLAG_PROGRESS;
 			break;
 		}
@@ -706,6 +625,86 @@ static int wait_many(int flags)
 }
 
 /*
+ * Execute a particular fsck program, and link it into the list of
+ * child processes we are waiting for.
+ */
+static int execute(const char *type, const char *device, const char *mntpt,
+		int interactive)
+{
+	char *argv[num_args + 4]; /* see count below: */
+	int argc;
+	int i;
+	struct fsck_instance *inst, *p;
+	pid_t pid;
+
+	inst = xzalloc(sizeof(*inst));
+
+	argv[0] = xasprintf("fsck.%s", type); /* 1 */
+	for (i = 0; i < num_args; i++)
+		argv[i+1] = args[i]; /* num_args */
+	argc = num_args + 1;
+
+	if (progress && !progress_active()) {
+		if (strcmp(type, "ext2") == 0
+		 || strcmp(type, "ext3") == 0
+		) {
+			argv[argc++] = xasprintf("-C%d", progress_fd); /* 1 */
+			inst->flags |= FLAG_PROGRESS;
+		}
+	}
+
+	argv[argc++] = xstrdup(device); /* 1 */
+	argv[argc] = NULL; /* 1 */
+
+	if (verbose || noexecute) {
+		printf("[%s (%d) -- %s]", argv[0], num_running,
+					mntpt ? mntpt : device);
+		for (i = 0; i < argc; i++)
+			printf(" %s", argv[i]);
+		puts("");
+	}
+
+	/* Fork and execute the correct program. */
+	pid = -1;
+	if (!noexecute) {
+		pid = fork(); /* TODO: NOMMU friendly way (vfork)? */
+		if (pid < 0)
+			bb_perror_msg_and_die("fork");
+		if (pid == 0) {
+			/* Child */
+			if (!interactive)
+				close(0);
+			execvp(argv[0], argv);
+			bb_perror_msg_and_die("%s", argv[0]);
+		}
+	}
+
+	for (i = num_args+1; i < argc; i++)
+		free(argv[i]);
+
+	inst->pid = pid;
+	inst->prog = argv[0];
+	inst->type = xstrdup(type);
+	inst->device = xstrdup(device);
+	inst->base_device = base_device(device);
+	inst->start_time = time(NULL);
+	inst->next = NULL;
+
+	/*
+	 * Find the end of the list, so we add the instance on at the end.
+	 */
+	if (!instance_list) {
+		instance_list = inst;
+		return 0;
+	}
+	p = instance_list;
+	while (p->next)
+		p = p->next;
+	p->next = inst;
+	return 0;
+}
+
+/*
  * Run the fsck program on a particular device
  *
  * If the type is specified using -t, and it isn't prefixed with "no"
@@ -740,63 +739,6 @@ static void fsck_device(struct fs_info *fs, int interactive)
 						retval, type, fs->device);
 		num_running--;
 	}
-}
-
-/*
- * Deal with the fsck -t argument.
- */
-static void compile_fs_type(char *fs_type)
-{
-	char *cp, *list, *s;
-	int num = 2;
-	int negate;
-
-	if (fs_type) {
-		cp = fs_type;
-		while ((cp = strchr(cp, ','))) {
-			num++;
-			cp++;
-		}
-	}
-
-	fs_type_list = xzalloc(num * sizeof(fs_type_list[0]));
-	fs_type_flag = xzalloc(num * sizeof(fs_type_flag[0]));
-	fs_type_negated = -1;
-
-	if (!fs_type)
-		return;
-
-	list = xstrdup(fs_type);
-	num = 0;
-	s = strtok(list, ",");
-	while (s) {
-		negate = 0;
-		if (s[0] == 'n' && s[1] == 'o') { /* "no.." */
-			s += 2;
-			negate = 1;
-		} else if (s[0] == '!') {
-			s++;
-			negate = 1;
-		}
-		if (strcmp(s, "loop") == 0)
-			/* loop is really short-hand for opts=loop */
-			goto loop_special_case;
-		if (strncmp(s, "opts=", 5) == 0) {
-			s += 5;
- loop_special_case:
-			fs_type_flag[num] = negate ? FS_TYPE_FLAG_NEGOPT : FS_TYPE_FLAG_OPT;
-		} else {
-			if (fs_type_negated == -1)
-				fs_type_negated = negate;
-			if (fs_type_negated != negate)
-				bb_error_msg_and_die(
-"Either all or none of the filesystem types passed to -t must be prefixed\n"
-"with 'no' or '!'.");
-		}
-		fs_type_list[num++] = xstrdup(s);
-		s = strtok(NULL, ",");
-	}
-	free(list);
 }
 
 /*
@@ -922,7 +864,7 @@ static int device_already_active(char *device)
 	 * already active if there are any fsck instances running.
 	 */
 	if (!base)
-		return (instance_list != 0);
+		return (instance_list != NULL);
 
 	for (inst = instance_list; inst; inst = inst->next) {
 		if (!inst->base_device || !strcmp(base, inst->base_device)) {
@@ -1047,9 +989,70 @@ static int check_all(void)
 	return status;
 }
 
-static void signal_cancel(int sig ATTRIBUTE_UNUSED)
+/*
+ * Deal with the fsck -t argument.
+ * Huh, for mount "-t novfat,nfs" means "neither vfat nor nfs"!
+ * Why here we require "-t novfat,nonfs" ??
+ */
+static void compile_fs_type(char *fs_type)
 {
-	cancel_requested = 1;
+	char *s;
+	int num = 2;
+	smallint negate;
+
+	if (fs_type) {
+		s = fs_type;
+		while ((s = strchr(s, ','))) {
+			num++;
+			s++;
+		}
+	}
+
+	fs_type_list = xzalloc(num * sizeof(fs_type_list[0]));
+	fs_type_flag = xzalloc(num * sizeof(fs_type_flag[0]));
+	fs_type_negated = -1; /* not yet known is it negated or not */
+
+	if (!fs_type)
+		return;
+
+//	list = xstrdup(fs_type);
+	num = 0;
+//	s = strtok(list, ",");
+	s = fs_type;
+	while (1) {
+		char *comma;
+
+		negate = 0;
+		if (s[0] == 'n' && s[1] == 'o') { /* "no.." */
+			s += 2;
+			negate = 1;
+		} else if (s[0] == '!') {
+			s++;
+			negate = 1;
+		}
+		if (strcmp(s, "loop") == 0)
+			/* loop is really short-hand for opts=loop */
+			goto loop_special_case;
+		if (strncmp(s, "opts=", 5) == 0) {
+			s += 5;
+ loop_special_case:
+			fs_type_flag[num] = negate ? FS_TYPE_FLAG_NEGOPT : FS_TYPE_FLAG_OPT;
+		} else {
+			if (fs_type_negated == -1)
+				fs_type_negated = negate;
+			if (fs_type_negated != negate)
+				bb_error_msg_and_die(
+"either all or none of the filesystem types passed to -t must be prefixed "
+"with 'no' or '!'");
+		}
+		comma = strchr(s, ',');
+		fs_type_list[num++] = comma ? xstrndup(s, comma-s) : xstrdup(s);
+		if (!comma)
+			break;
+		s = comma + 1;
+//		s = strtok(NULL, ",");
+	}
+//	free(list);
 }
 
 static void parse_args(int argc, char *argv[])
@@ -1059,23 +1062,17 @@ static void parse_args(int argc, char *argv[])
 	char *options = NULL;
 	int optpos = 0;
 	int opts_for_fsck = 0;
-	struct sigaction sa;
 
-	/*
-	 * Set up signal action
-	 */
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = signal_cancel;
-	sigaction(SIGINT, &sa, 0);
-	sigaction(SIGTERM, &sa, 0);
-
+/* in bss
 	num_devices = 0;
 	num_args = 0;
-	instance_list = 0;
+	instance_list = NULL;
+*/
 
 /* TODO: getopt32 */
 	for (i = 1; i < argc; i++) {
 		arg = argv[i];
+		/* "/dev/blk" or "/path" or "UUID=xxx" or "LABEL=xxx" */
 		if ((arg[0] == '/' && !opts_for_fsck) || strchr(arg, '=')) {
 #if 0
 			char *dev;
@@ -1095,7 +1092,7 @@ static void parse_args(int argc, char *argv[])
 				 */
 				if (geteuid())
 					bb_error_msg_and_die(
-"must be root to scan for matching filesystems: %s\n", arg);
+"must be root to scan for matching filesystems: %s", arg);
 				else
 					bb_error_msg_and_die(
 "cannot find matching filesystem: %s", arg);
@@ -1103,6 +1100,8 @@ static void parse_args(int argc, char *argv[])
 			devices = xrealloc(devices, (num_devices+1) * sizeof(devices[0]));
 			devices[num_devices++] = dev ? dev : xstrdup(arg);
 #endif
+// FIXME: must check that arg is a blkdev, or resolve
+// "/path", "UUID=xxx" or "LABEL=xxx" into block device name
 			devices = xrealloc(devices, (num_devices+1) * sizeof(devices[0]));
 			devices[num_devices++] = xstrdup(arg);
 			continue;
@@ -1197,12 +1196,26 @@ static void parse_args(int argc, char *argv[])
 		max_running = xatoi(tmp);
 }
 
+static void signal_cancel(int sig ATTRIBUTE_UNUSED)
+{
+	cancel_requested = 1;
+}
+
 int fsck_main(int argc, char *argv[])
 {
 	int i, status = 0;
 	int interactive = 0;
 	const char *fstab;
 	struct fs_info *fs;
+	struct sigaction sa;
+
+	/*
+	 * Set up signal action
+	 */
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = signal_cancel;
+	sigaction(SIGINT, &sa, 0);
+	sigaction(SIGTERM, &sa, 0);
 
 	setbuf(stdout, NULL);
 	/*setvbuf(stdout, NULL, _IONBF, BUFSIZ);*/
@@ -1214,6 +1227,8 @@ int fsck_main(int argc, char *argv[])
 	if (!notitle)
 		puts("fsck (busybox "BB_VER", "BB_BT")");
 
+	/* Even plain "fsck /dev/hda1" needs fstab to get fs type,
+	 * so we are scanning it anyway */
 	fstab = getenv("FSTAB_FILE");
 	if (!fstab)
 		fstab = "/etc/fstab";
