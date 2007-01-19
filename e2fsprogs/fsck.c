@@ -45,6 +45,7 @@
  */
 
 struct fs_info {
+	struct fs_info *next;
 	char	*device;
 	char	*mountpt;
 	char	*type;
@@ -52,7 +53,6 @@ struct fs_info {
 	int	freq;
 	int	passno;
 	int	flags;
-	struct fs_info *next;
 };
 
 #define FLAG_DONE 1
@@ -61,6 +61,7 @@ struct fs_info {
  * Structure to allow exit codes to be stored
  */
 struct fsck_instance {
+	struct fsck_instance *next;
 	int	pid;
 	int	flags;
 	int	exit_status;
@@ -69,7 +70,6 @@ struct fsck_instance {
 	char	*type;
 	char	*device;
 	char	*base_device; /* /dev/hda for /dev/hdaN etc */
-	struct fsck_instance *next;
 };
 
 static const char *const ignored_types[] = {
@@ -104,6 +104,14 @@ static char **args;
 static int num_devices;
 static int num_args;
 static int verbose;
+
+#define FS_TYPE_FLAG_NORMAL 0
+#define FS_TYPE_FLAG_OPT    1
+#define FS_TYPE_FLAG_NEGOPT 2
+static char **fs_type_list;
+static uint8_t *fs_type_flag;
+static smallint fs_type_negated;
+
 static volatile smallint cancel_requested;
 static smallint doall;
 static smallint noexecute;
@@ -121,13 +129,6 @@ static char *fstype;
 static struct fs_info *filesys_info;
 static struct fs_info *filesys_last;
 static struct fsck_instance *instance_list;
-
-#define FS_TYPE_FLAG_NORMAL 0
-#define FS_TYPE_FLAG_OPT    1
-#define FS_TYPE_FLAG_NEGOPT 2
-static char **fs_type_list;
-static uint8_t *fs_type_flag;
-static int fs_type_negated;
 
 /*
  * Return the "base device" given a particular device; this is used to
@@ -742,39 +743,90 @@ static void fsck_device(struct fs_info *fs, int interactive)
 }
 
 /*
+ * Returns TRUE if a partition on the same disk is already being
+ * checked.
+ */
+static int device_already_active(char *device)
+{
+	struct fsck_instance *inst;
+	char *base;
+
+	if (force_all_parallel)
+		return 0;
+
+#ifdef BASE_MD
+	/* Don't check a soft raid disk with any other disk */
+	if (instance_list
+	 && (!strncmp(instance_list->device, BASE_MD, sizeof(BASE_MD)-1)
+	     || !strncmp(device, BASE_MD, sizeof(BASE_MD)-1))
+	) {
+		return 1;
+	}
+#endif
+
+	base = base_device(device);
+	/*
+	 * If we don't know the base device, assume that the device is
+	 * already active if there are any fsck instances running.
+	 */
+	if (!base)
+		return (instance_list != NULL);
+
+	for (inst = instance_list; inst; inst = inst->next) {
+		if (!inst->base_device || !strcmp(base, inst->base_device)) {
+			free(base);
+			return 1;
+		}
+	}
+
+	free(base);
+	return 0;
+}
+
+/*
  * This function returns true if a particular option appears in a
  * comma-delimited options list
  */
 static int opt_in_list(char *opt, char *optlist)
 {
-	char    *list, *s;
+	char *s;
+	int len;
 
 	if (!optlist)
 		return 0;
-	list = xstrdup(optlist);
 
-	s = strtok(list, ",");
-	while (s) {
-		if (strcmp(s, opt) == 0) {
-			free(list);
-			return 1;
-		}
-		s = strtok(NULL, ",");
+	len = strlen(opt);
+	s = optlist - 1;
+	while (1) {
+		s = strstr(s + 1, opt);
+		if (!s)
+			return 0;
+		/* neither "opt.." nor "xxx,opt.."? */
+		if (s != optlist && s[-1] != ',')
+			continue;
+		/* neither "..opt" nor "..opt,xxx"? */
+		if (s[len] != '\0' && s[len] != ',')
+			continue;
+		return 1;
 	}
-	free(list);
-	return 0;
 }
 
 /* See if the filesystem matches the criteria given by the -t option */
 static int fs_match(struct fs_info *fs)
 {
-	int n, ret = 0, checked_type = 0;
+	int n, ret, checked_type;
 	char *cp;
 
 	if (!fs_type_list)
 		return 1;
 
-	for (n = 0; (cp = fs_type_list[n]); n++) {
+	ret = 0;
+	checked_type = 0;
+	n = 0;
+	while (1) {
+		cp = fs_type_list[n];
+		if (!cp)
+			break;
 		switch (fs_type_flag[n]) {
 		case FS_TYPE_FLAG_NORMAL:
 			checked_type++;
@@ -790,6 +842,7 @@ static int fs_match(struct fs_info *fs)
 				return 0;
 			break;
 		}
+		n++;
 	}
 	if (checked_type == 0)
 		return 1;
@@ -836,55 +889,14 @@ static int ignore(struct fs_info *fs)
 	return 0;
 }
 
-/*
- * Returns TRUE if a partition on the same disk is already being
- * checked.
- */
-static int device_already_active(char *device)
-{
-	struct fsck_instance *inst;
-	char *base;
-
-	if (force_all_parallel)
-		return 0;
-
-#ifdef BASE_MD
-	/* Don't check a soft raid disk with any other disk */
-	if (instance_list
-	 && (!strncmp(instance_list->device, BASE_MD, sizeof(BASE_MD)-1)
-	     || !strncmp(device, BASE_MD, sizeof(BASE_MD)-1))
-	) {
-		return 1;
-	}
-#endif
-
-	base = base_device(device);
-	/*
-	 * If we don't know the base device, assume that the device is
-	 * already active if there are any fsck instances running.
-	 */
-	if (!base)
-		return (instance_list != NULL);
-
-	for (inst = instance_list; inst; inst = inst->next) {
-		if (!inst->base_device || !strcmp(base, inst->base_device)) {
-			free(base);
-			return 1;
-		}
-	}
-
-	free(base);
-	return 0;
-}
-
 /* Check all file systems, using the /etc/fstab table. */
 static int check_all(void)
 {
-	struct fs_info *fs = NULL;
+	struct fs_info *fs;
 	int status = EXIT_OK;
-	int not_done_yet = 1;
-	int passno = 1;
-	int pass_done;
+	smallint not_done_yet;
+	smallint pass_done;
+	int passno;
 
 	if (verbose)
 		puts("Checking all filesystems");
@@ -926,6 +938,8 @@ static int check_all(void)
 			if (LONE_CHAR(fs->mountpt, '/'))
 				fs->flags |= FLAG_DONE;
 
+	not_done_yet = 1;
+	passno = 1;
 	while (not_done_yet) {
 		not_done_yet = 0;
 		pass_done = 1;
@@ -941,7 +955,7 @@ static int check_all(void)
 			 * do it yet.
 			 */
 			if (fs->passno > passno) {
-				not_done_yet++;
+				not_done_yet = 1;
 				continue;
 			}
 			/*
@@ -982,7 +996,7 @@ static int check_all(void)
 				puts("----------------------------------");
 			passno++;
 		} else
-			not_done_yet++;
+			not_done_yet = 1;
 	}
 	kill_all_if_cancel_requested();
 	status |= wait_many(FLAG_WAIT_ATLEAST_ONE);
@@ -1015,9 +1029,7 @@ static void compile_fs_type(char *fs_type)
 	if (!fs_type)
 		return;
 
-//	list = xstrdup(fs_type);
 	num = 0;
-//	s = strtok(list, ",");
 	s = fs_type;
 	while (1) {
 		char *comma;
@@ -1030,6 +1042,7 @@ static void compile_fs_type(char *fs_type)
 			s++;
 			negate = 1;
 		}
+
 		if (strcmp(s, "loop") == 0)
 			/* loop is really short-hand for opts=loop */
 			goto loop_special_case;
@@ -1050,9 +1063,7 @@ static void compile_fs_type(char *fs_type)
 		if (!comma)
 			break;
 		s = comma + 1;
-//		s = strtok(NULL, ",");
 	}
-//	free(list);
 }
 
 static void parse_args(int argc, char *argv[])
