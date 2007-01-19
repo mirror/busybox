@@ -99,22 +99,22 @@ static const char *const really_wanted[] = {
 
 #define BASE_MD "/dev/md"
 
-static volatile int cancel_requested;
-
 static char **devices;
 static char **args;
-static int num_devices, num_args;
+static int num_devices;
+static int num_args;
 static int verbose;
-static int doall;
-static int noexecute;
-static int serialize;
-static int skip_root;
-static int like_mount;
-static int notitle;
-static int parallel_root;
-static int progress;
+static volatile smallint cancel_requested;
+static smallint doall;
+static smallint noexecute;
+static smallint serialize;
+static smallint skip_root;
+/* static smallint like_mount; */
+static smallint notitle;
+static smallint parallel_root;
+static smallint force_all_parallel;
+static smallint progress;
 static int progress_fd;
-static int force_all_parallel;
 static int num_running;
 static int max_running;
 static char *fstype;
@@ -419,7 +419,7 @@ static void load_fs_info(const char *filename)
 		lineno++;
 		if (r < 0) {
 			bb_error_msg("WARNING: bad format "
-				"on line %d of %s\n", lineno, filename);
+				"on line %d of %s", lineno, filename);
 			continue;
 		}
 		if (!fs)
@@ -555,7 +555,7 @@ static int execute(const char *type, const char *device, const char *mntpt,
  */
 static void kill_all_if_cancel_requested(void)
 {
-	static int kill_sent;
+	static smallint kill_sent;
 
 	struct fsck_instance *inst;
 
@@ -644,8 +644,7 @@ static struct fsck_instance *wait_one(int flags)
 		status = EXIT_ERROR;
 	}
 	inst->exit_status = status;
-	if (progress && (inst->flags & FLAG_PROGRESS) &&
-	    !progress_active()) {
+	if (progress && (inst->flags & FLAG_PROGRESS) && !progress_active()) {
 		for (inst2 = instance_list; inst2; inst2 = inst2->next) {
 			if (inst2->flags & FLAG_DONE)
 				continue;
@@ -978,7 +977,7 @@ static int check_all(void)
 	}
 	/*
 	 * This is for the bone-headed user who enters the root
-	 * filesystem twice.  Skip root will skep all root entries.
+	 * filesystem twice.  Skip root will skip all root entries.
 	 */
 	if (skip_root)
 		for (fs = filesys_info; fs; fs = fs->next)
@@ -1053,16 +1052,6 @@ static void signal_cancel(int sig ATTRIBUTE_UNUSED)
 	cancel_requested = 1;
 }
 
-static int string_to_int(const char *s)
-{
-	int n;
-
-	if (!s) bb_show_usage();
-	n = bb_strtou(s, NULL, 0);
-	if (errno || n < 0) bb_show_usage();
-	return n;
-}
-
 static void parse_args(int argc, char *argv[])
 {
 	int i, j;
@@ -1133,37 +1122,37 @@ static void parse_args(int argc, char *argv[])
 			}
 			switch (arg[j]) {
 			case 'A':
-				doall++;
+				doall = 1;
 				break;
 			case 'C':
-				progress++;
+				progress = 1;
 				if (arg[++j]) { /* -Cn */
-					progress_fd = string_to_int(&arg[j]);
+					progress_fd = xatoi_u(&arg[j]);
 					goto next_arg;
 				}
 				/* -C n */
-				progress_fd = string_to_int(argv[++i]);
+				progress_fd = xatoi_u(argv[++i]);
 				goto next_arg;
 			case 'V':
 				verbose++;
 				break;
 			case 'N':
-				noexecute++;
+				noexecute = 1;
 				break;
 			case 'R':
-				skip_root++;
+				skip_root = 1;
 				break;
 			case 'T':
-				notitle++;
+				notitle = 1;
 				break;
-			case 'M':
-				like_mount++;
-				break;
+/*			case 'M':
+				like_mount = 1;
+				break; */
 			case 'P':
-				parallel_root++;
+				parallel_root = 1;
 				break;
 			case 's':
-				serialize++;
+				serialize = 1;
 				break;
 			case 't':
 				if (fstype)
@@ -1202,7 +1191,7 @@ static void parse_args(int argc, char *argv[])
 		}
 	}
 	if (getenv("FSCK_FORCE_ALL_PARALLEL"))
-		force_all_parallel++;
+		force_all_parallel = 1;
 	tmp = getenv("FSCK_MAX_INST");
 	if (tmp)
 		max_running = xatoi(tmp);
@@ -1238,8 +1227,8 @@ int fsck_main(int argc, char *argv[])
 		return check_all();
 
 	if (num_devices == 0) {
-		serialize++;
-		interactive++;
+		serialize = 1;
+		interactive = 1;
 		return check_all();
 	}
 
