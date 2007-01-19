@@ -175,12 +175,13 @@ static void parse_escapes(char *dest, char *string, int len, char from, char to)
 	while (i < len) {
 		if (string[i] == '\\') {
 			if (!to || string[i+1] == from) {
-				*(dest++) = to ? to : string[i+1];
+				*dest++ = to ? to : string[i+1];
 				i += 2;
 				continue;
-			} else *(dest++) = string[i++];
+			}
+			*dest++ = string[i++];
 		}
-		*(dest++) = string[i++];
+		*dest++ = string[i++];
 	}
 	*dest = 0;
 }

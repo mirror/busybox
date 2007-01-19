@@ -56,7 +56,7 @@ static int read_str(const char *line, void *arg)
 	char **dest = arg;
 
 	free(*dest);
-	*dest = strdup(line);
+	*dest = xstrdup(line);
 
 	return 1;
 }

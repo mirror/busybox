@@ -142,7 +142,7 @@ try_again:
 	}
 	close(ffd);
 	if (!rc) {
-		if (!*device) *device = strdup(dev);
+		if (!*device) *device = xstrdup(dev);
 		return mode==O_RDONLY ? 1 : 0;
 	}
 	return rc;
