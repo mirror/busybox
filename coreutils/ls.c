@@ -537,6 +537,12 @@ static struct dnode **list_dir(const char *path)
 }
 
 
+#if ENABLE_FEATURE_LS_TIMESTAMPS
+/* Do time() just once. Saves one syscall per file for "ls -l" */
+/* Initialized in main() */
+static time_t current_time_t;
+#endif
+
 static int list_single(struct dnode *dn)
 {
 	int i, column = 0;
@@ -611,7 +617,8 @@ static int list_single(struct dnode *dn)
 			break;
 		case LIST_DATE_TIME:
 			if ((all_fmt & LIST_FULLTIME) == 0) {
-				age = time(NULL) - ttime;
+				/* current_time_t ~== time(NULL) */
+				age = current_time_t - ttime;
 				printf("%6.6s ", filetime + 4);
 				if (age < 3600L * 24 * 365 / 2 && age > -15 * 60) {
 					/* hh:mm if less than 6 months old */
@@ -784,6 +791,12 @@ int ls_main(int argc, char **argv)
 	USE_FEATURE_AUTOWIDTH(char *tabstops_str = NULL;)
 	USE_FEATURE_AUTOWIDTH(char *terminal_width_str = NULL;)
 	USE_FEATURE_LS_COLOR(char *color_opt;)
+
+	setvbuf(stdout, bb_common_bufsiz1, _IOFBF, BUFSIZ);
+
+#if ENABLE_FEATURE_LS_TIMESTAMPS
+	time(&current_time_t);
+#endif
 
 	all_fmt = LIST_SHORT |
 		(ENABLE_FEATURE_LS_SORTFILES * (SORT_NAME | SORT_FORWARD));
