@@ -291,7 +291,7 @@ static void dfree(struct dnode **dnp, int nfiles)
 	free(dnp);			/* free the array holding the dnode pointers */
 }
 #else
-#define dfree(...) do {} while (0)
+#define dfree(...) ((void)0)
 #endif
 
 static struct dnode **splitdnarray(struct dnode **dn, int nfiles, int which)
@@ -375,7 +375,7 @@ static void dnsort(struct dnode **dn, int size)
 	qsort(dn, size, sizeof(*dn), sortcmp);
 }
 #else
-#define dnsort(dn, size) do {} while (0)
+#define dnsort(dn, size) ((void)0)
 #endif
 
 
@@ -541,9 +541,6 @@ static int list_single(struct dnode *dn)
 {
 	int i, column = 0;
 
-#if ENABLE_FEATURE_LS_USERNAME
-	char scratch[16];
-#endif
 #if ENABLE_FEATURE_LS_TIMESTAMPS
 	char *filetime;
 	time_t ttime, age;
@@ -584,10 +581,9 @@ static int list_single(struct dnode *dn)
 			break;
 		case LIST_ID_NAME:
 #if ENABLE_FEATURE_LS_USERNAME
-			bb_getpwuid(scratch, dn->dstat.st_uid, sizeof(scratch));
-			printf("%-8.8s ", scratch);
-			bb_getgrgid(scratch, dn->dstat.st_gid, sizeof(scratch));
-			printf("%-8.8s", scratch);
+			printf("%-8.8s %-8.8s",
+				get_cached_username(dn->dstat.st_uid),
+				get_cached_groupname(dn->dstat.st_gid));
 			column += 17;
 			break;
 #endif

@@ -223,7 +223,6 @@ struct sysinfo {
 extern int sysinfo(struct sysinfo* info);
 
 
-
 extern void chomp(char *s);
 extern void trim(char *s);
 extern char *skip_whitespace(const char *);
@@ -410,20 +409,26 @@ uint16_t xatou16(const char *numstr);
 /* These parse entries in /etc/passwd and /etc/group.  This is desirable
  * for BusyBox since we want to avoid using the glibc NSS stuff, which
  * increases target size and is often not needed on embedded systems.  */
-extern long xuname2uid(const char *name);
-extern long xgroup2gid(const char *name);
+long xuname2uid(const char *name);
+long xgroup2gid(const char *name);
 /* wrapper: allows string to contain numeric uid or gid */
-extern unsigned long get_ug_id(const char *s, long (*xname2id)(const char *));
+unsigned long get_ug_id(const char *s, long (*xname2id)(const char *));
 /* from chpst. Does not die, returns 0 on failure */
 struct bb_uidgid_t {
 	uid_t uid;
 	gid_t gid;
 };
-extern int get_uidgid(struct bb_uidgid_t*, const char*, int numeric_ok);
+int get_uidgid(struct bb_uidgid_t*, const char*, int numeric_ok);
 /* what is this? */
 /*extern char *bb_getug(char *buffer, char *idname, long id, int bufsize, char prefix);*/
-extern char *bb_getpwuid(char *name, long uid, int bufsize);
-extern char *bb_getgrgid(char *group, long gid, int bufsize);
+char *bb_getpwuid(char *name, long uid, int bufsize);
+char *bb_getgrgid(char *group, long gid, int bufsize);
+/* versions which cache results (useful for ps, ls etc) */
+const char* get_cached_username(uid_t uid);
+const char* get_cached_groupname(gid_t gid);
+void clear_username_cache(void);
+/* internally usernames are saved in fixed-sized char[] buffers */
+enum { USERNAME_MAX_SIZE = 16 - sizeof(int) };
 
 
 enum { BB_GETOPT_ERROR = 0x80000000 };
@@ -626,9 +631,6 @@ void free_procps_scan(procps_status_t* sp);
 procps_status_t* procps_scan(procps_status_t* sp, int flags);
 pid_t *find_pid_by_name(const char* procName);
 pid_t *pidlist_reverse(pid_t *pidList);
-void clear_username_cache(void);
-const char* get_cached_username(uid_t uid);
-const char* get_cached_groupname(gid_t gid);
 
 
 extern const char bb_uuenc_tbl_base64[];

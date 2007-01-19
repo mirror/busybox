@@ -13,7 +13,7 @@
 
 typedef struct unsigned_to_name_map_t {
 	unsigned id;
-	char name[12];
+	char name[USERNAME_MAX_SIZE];
 } unsigned_to_name_map_t;
 
 typedef struct cache_t {
@@ -137,7 +137,7 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 		if (flags & PSSCAN_UIDGID) {
 			if (stat(filename, &sb))
 				break;
-			/* Need comment - is this effective or read UID/GID? */
+			/* Need comment - is this effective or real UID/GID? */
 			sp->uid = sb.st_uid;
 			sp->gid = sb.st_gid;
 		}
@@ -209,7 +209,7 @@ procps_status_t* procps_scan(procps_status_t* sp, int flags)
 				if ((unsigned char)(buf[n]) < ' ')
 					buf[n] = ' ';
 			} while (n);
-			sp->cmd = strdup(buf);
+			sp->cmd = xstrdup(buf);
 		}
 		break;
 	}
