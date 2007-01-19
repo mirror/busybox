@@ -509,7 +509,7 @@ void xdaemon(int nochdir, int noclose)
 }
 #endif
 
-void bb_sanitize_server_stdio(int daemonize)
+void bb_sanitize_stdio_maybe_daemonize(int daemonize)
 {
 	int fd;
 	/* Mega-paranoid */
@@ -523,14 +523,22 @@ void bb_sanitize_server_stdio(int daemonize)
 		if (pid) /* parent */
 			exit(0);
     		/* child */
-		setsid();
 		/* if daemonizing, make sure we detach from stdio */
+		setsid();
 		dup2(fd, 0);
 		dup2(fd, 1);
 		dup2(fd, 2);
 	}
 	while (fd > 2)
 		close(fd--); /* close everything after fd#2 */
+}
+void bb_sanitize_stdio(void)
+{
+	bb_sanitize_stdio_maybe_daemonize(0);
+}
+void bb_daemonize(void)
+{
+	bb_sanitize_stdio_maybe_daemonize(1);
 }
 
 // Die with an error message if we can't open a new socket.

@@ -35,8 +35,8 @@ void vfork_daemon_rexec(int nochdir, int noclose,
 		dup2(fd, STDIN_FILENO);
 		dup2(fd, STDOUT_FILENO);
 		dup2(fd, STDERR_FILENO);
-		if (fd > 2)
-			close(fd);
+		while (fd > 2)
+			close(fd--);
 	}
 
 	vfork_args = xzalloc(sizeof(char *) * (argc + 3));

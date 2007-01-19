@@ -1,3 +1,5 @@
+/* NB: this file is to be removed soon. See isrv_identd.c */
+
 /* vi: set sw=4 ts=4: */
 /*
  * A fake identd server

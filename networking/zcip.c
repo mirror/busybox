@@ -221,7 +221,8 @@ int zcip_main(int argc, char *argv[])
 	}
 	if (opts & 4) { // -r n.n.n.n
 		if (inet_aton(r_opt, &ip) == 0
-		|| (ntohl(ip.s_addr) & IN_CLASSB_NET) != LINKLOCAL_ADDR) {
+		 || (ntohl(ip.s_addr) & IN_CLASSB_NET) != LINKLOCAL_ADDR
+		) {
 			bb_error_msg_and_die("invalid link address");
 		}
 	}
@@ -270,7 +271,7 @@ int zcip_main(int argc, char *argv[])
 	// daemonize now; don't delay system startup
 	if (!FOREGROUND) {
 		setsid();
-		xdaemon(0, 0);
+		bb_daemonize();
 		bb_info_msg("start, interface %s", intf);
 	}
 

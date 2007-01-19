@@ -15,9 +15,6 @@
  */
 
 #include "busybox.h"
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
 
 int setsid_main(int argc, char *argv[])
 {
@@ -25,7 +22,7 @@ int setsid_main(int argc, char *argv[])
 		bb_show_usage();
 
 	if (getpgrp() == getpid()) {
-		switch (fork()){
+		switch (fork()) {
 		case -1:
 			bb_perror_msg_and_die("fork");
 		case 0:
@@ -33,8 +30,8 @@ int setsid_main(int argc, char *argv[])
 		default:	/* parent */
 			exit(0);
 		}
-		/* child falls through */
 	}
+	/* child */
 
 	setsid();  /* no error possible */
 

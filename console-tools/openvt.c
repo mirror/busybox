@@ -17,7 +17,6 @@ int openvt_main(int argc, char **argv)
 	int fd;
 	char vtname[sizeof(VC_FORMAT) + 2];
 
-
 	if (argc < 3) {
 		bb_show_usage();
 	}
@@ -25,18 +24,16 @@ int openvt_main(int argc, char **argv)
 	sprintf(vtname, VC_FORMAT, (int)xatoul_range(argv[1], 1, 63));
 
 	if (fork() == 0) {
-		/* leave current vt */
-		if (setsid() < 0) {
-			bb_perror_msg_and_die("setsid");
-		}
-		close(0);			/* so that new vt becomes stdin */
-
+		/* child */
+		/* leave current vt (controlling tty) */
+		setsid();
 		/* and grab new one */
 		fd = xopen(vtname, O_RDWR);
-
-		/* Reassign stdout and sterr */
+		/* Reassign stdin, stdout and sterr */
+		dup2(fd, STDIN_FILENO);
 		dup2(fd, STDOUT_FILENO);
 		dup2(fd, STDERR_FILENO);
+		while (fd > 2) close(fd--);
 
 		execvp(argv[2], &argv[2]);
 		_exit(1);

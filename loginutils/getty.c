@@ -211,7 +211,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 		bb_show_usage();
 
 	/* we loosen up a bit and accept both "baudrate tty" and "tty baudrate" */
-	if ('0' <= argv[0][0] && argv[0][0] <= '9') {
+	if (isdigit(argv[0][0])) {
 		/* a number first, assume it's a speed (BSD style) */
 		parse_speeds(op, argv[0]);       /* baud rate(s) */
 		op->tty = argv[1]; /* tty name */
@@ -255,10 +255,8 @@ static void open_tty(char *tty, struct termios *tp, int local)
 
 		debug("open(2)\n");
 		fd = xopen(tty, O_RDWR | O_NONBLOCK);
-		if (fd) {
-			xdup2(fd, 0, tty);
-			close(fd);
-		}
+		xdup2(fd, 0, tty);
+		while (fd > 2) close(fd--);
 	} else {
 		/*
 		 * Standard input should already be connected to an open port. Make
@@ -327,8 +325,10 @@ static void open_tty(char *tty, struct termios *tp, int local)
 		}
 	}
 #else
-	chown(tty, 0, 0);        /* root, sys */
-	chmod(tty, 0622);        /* crw--w--w- */
+	if (NOT_LONE_DASH(tty)) {
+		chown(tty, 0, 0);        /* 0:0 */
+		chmod(tty, 0622);        /* crw--w--w- */
+	}
 #endif
 	if (chdir_to_root)
 		xchdir("/");
@@ -736,22 +736,14 @@ int getty_main(int argc, char **argv)
 	/* Already too late because of theoretical
 	 * possibility of getty --help somehow triggered
 	 * inadvertently before we reach this. Oh well. */
-	close(0);
-	close(1);
-	close(2);
 	logmode = LOGMODE_NONE;
-#ifdef __linux__
 	setsid();
-#endif
-	/* Was "/dev/console". Why should we spam *system console*
-	 * if there is a problem with getty on /dev/ttyS15?... */
 	nullfd = xopen(bb_dev_null, O_RDWR);
-	if (nullfd) {
-		dup2(nullfd, 0);
-		close(nullfd);
-	}
-	dup2(0, 1);
-	dup2(0, 2);
+	/* dup2(nullfd, 0); - no, because of possible "getty - 9600" */
+	/* open_tty() will take care of fd# 0 anyway */
+	dup2(nullfd, 1);
+	dup2(nullfd, 2);
+	while (nullfd > 2) close(nullfd--);
 	/* We want special flavor of error_msg_and_die */
 	die_sleep = 10;
 	msg_eol = "\r\n";

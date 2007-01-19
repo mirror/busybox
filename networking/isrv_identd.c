@@ -111,7 +111,7 @@ int fakeidentd_main(int argc, char **argv)
 		bogouser = argv[optind];
 
 	/* Daemonize if no -f and no -i and no -w */
-	bb_sanitize_server_stdio(!(opt & OPT_fiw));
+	bb_sanitize_stdio_maybe_daemonize(!(opt & OPT_fiw));
 	/* Where to log in inetd modes? "Classic" inetd
 	 * probably has its stderr /dev/null'ed (we need log to syslog?),
 	 * but daemontools-like utilities usually expect that children
