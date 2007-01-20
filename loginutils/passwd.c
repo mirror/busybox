@@ -275,7 +275,8 @@ int passwd_main(int argc, char **argv)
 	}
 
 	filename = bb_path_passwd_file;
-	if (ENABLE_FEATURE_SHADOWPASSWDS) {
+#if ENABLE_FEATURE_SHADOWPASSWDS
+	{
 		struct spwd *sp = getspnam(name);
 		if (!sp) {
 			/* LOGMODE_BOTH */
@@ -287,6 +288,7 @@ int passwd_main(int argc, char **argv)
 			pw->pw_passwd = sp->sp_pwdp;
 		}
 	}
+#endif
 
 	/* Decide what the new password will be */
 	newp = NULL;

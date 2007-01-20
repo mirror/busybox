@@ -52,7 +52,9 @@
 
 extern int __parsepwent(void *pw, char *line);
 extern int __parsegrent(void *gr, char *line);
+#if ENABLE_USE_BB_SHADOW
 extern int __parsespent(void *sp, char *line);
+#endif
 
 extern int __pgsreader(int (*__parserfunc)(void *d, char *line), void *data,
 		char *__restrict line_buff, size_t buflen, FILE *f);
@@ -103,6 +105,7 @@ int fgetgrent_r(FILE *__restrict stream, struct group *__restrict resultbuf,
 	return rv;
 }
 
+#if ENABLE_USE_BB_SHADOW
 int fgetspent_r(FILE *__restrict stream, struct spwd *__restrict resultbuf,
 				char *__restrict buffer, size_t buflen,
 				struct spwd **__restrict result)
@@ -117,6 +120,7 @@ int fgetspent_r(FILE *__restrict stream, struct spwd *__restrict resultbuf,
 
 	return rv;
 }
+#endif
 
 /**********************************************************************/
 /* For the various fget??ent funcs, return NULL on failure and a
@@ -144,6 +148,7 @@ struct group *fgetgrent(FILE *stream)
 	return result;
 }
 
+#if ENABLE_USE_BB_SHADOW
 extern int fgetspent_r(FILE *__restrict stream, struct spwd *__restrict resultbuf,
 				char *__restrict buffer, size_t buflen,
 				struct spwd **__restrict result);
@@ -184,6 +189,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
  DONE:
 	return rv;
 }
+#endif
 
 /**********************************************************************/
 
@@ -207,6 +213,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 #define DO_GETXXKEY_R_PATHNAME  _PATH_GROUP
 #include "pwd_grp_internal.c"
 
+#if ENABLE_USE_BB_SHADOW
 #define GETXXKEY_R_FUNC			getspnam_R
 #define GETXXKEY_R_PARSER		__parsespent
 #define GETXXKEY_R_ENTTYPE		struct spwd
@@ -214,6 +221,7 @@ int sgetspent_r(const char *string, struct spwd *result_buf,
 #define DO_GETXXKEY_R_KEYTYPE	const char *__restrict
 #define DO_GETXXKEY_R_PATHNAME  _PATH_SHADOW
 #include "pwd_grp_internal.c"
+#endif
 
 #define GETXXKEY_R_FUNC			getpwuid_R
 #define GETXXKEY_R_PARSER		__parsepwent
@@ -253,6 +261,7 @@ struct group *getgrgid(gid_t gid)
 	return result;
 }
 
+#if 0 //ENABLE_USE_BB_SHADOW
 /* This function is non-standard and is currently not built.  It seems
  * to have been created as a reentrant version of the non-standard
  * functions getspuid.  Why getspuid was added, I do not know. */
@@ -286,6 +295,7 @@ struct spwd *getspuid(uid_t uid)
 	getspuid_r(uid, &resultbuf, buffer, sizeof(buffer), &result);
 	return result;
 }
+#endif
 
 struct passwd *getpwnam(const char *name)
 {
@@ -307,6 +317,7 @@ struct group *getgrnam(const char *name)
 	return result;
 }
 
+#if ENABLE_USE_BB_SHADOW
 struct spwd *getspnam(const char *name)
 {
 	static char buffer[PWD_BUFFER_SIZE];
@@ -316,6 +327,7 @@ struct spwd *getspnam(const char *name)
 	getspnam_r(name, &resultbuf, buffer, sizeof(buffer), &result);
 	return result;
 }
+#endif
 
 int getpw(uid_t uid, char *buf)
 {
@@ -444,6 +456,7 @@ int getgrent_r(struct group *__restrict resultbuf,
 	return rv;
 }
 
+#if ENABLE_USE_BB_SHADOW
 static FILE *spf /*= NULL*/;
 void setspent(void)
 {
@@ -488,6 +501,7 @@ int getspent_r(struct spwd *resultbuf, char *buffer,
 	UNLOCK;
 	return rv;
 }
+#endif
 
 struct passwd *getpwent(void)
 {
@@ -509,6 +523,7 @@ struct group *getgrent(void)
 	return result;
 }
 
+#if ENABLE_USE_BB_SHADOW
 struct spwd *getspent(void)
 {
 	static char line_buff[PWD_BUFFER_SIZE];
@@ -528,6 +543,7 @@ struct spwd *sgetspent(const char *string)
 	sgetspent_r(string, &spwd, line_buff, sizeof(line_buff), &result);
 	return result;
 }
+#endif
 
 int initgroups(const char *user, gid_t gid)
 {
@@ -643,6 +659,7 @@ int putgrent(const struct group *__restrict p, FILE *__restrict f)
 	return rv;
 }
 
+#if ENABLE_USE_BB_SHADOW
 static const unsigned char _sp_off[] = {
 	offsetof(struct spwd, sp_lstchg),	/* 2 - not a char ptr */
 	offsetof(struct spwd, sp_min),		/* 3 - not a char ptr */
@@ -688,6 +705,7 @@ int putspent(const struct spwd *p, FILE *stream)
 DO_UNLOCK:
 	return rv;
 }
+#endif
 
 /**********************************************************************/
 /* Internal uClibc functions.					 */
@@ -846,6 +864,7 @@ int __parsegrent(void *data, char *line)
 
 /**********************************************************************/
 
+#if ENABLE_USE_BB_SHADOW
 static const unsigned char sp_off[] = {
 	offsetof(struct spwd, sp_namp),		/* 0 */
 	offsetof(struct spwd, sp_pwdp),		/* 1 */
@@ -900,6 +919,7 @@ int __parsespent(void *data, char * line)
 
 	return EINVAL;
 }
+#endif
 
 /**********************************************************************/
 

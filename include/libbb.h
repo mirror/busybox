@@ -46,11 +46,13 @@
 #ifdef CONFIG_LOCALE_SUPPORT
 #include <locale.h>
 #else
-#define setlocale(x,y)
+#define setlocale(x,y) ((void)0)
 #endif
 
 #include "pwd_.h"
 #include "grp_.h"
+/* ifdef it out, because it may include <shadow.h> */
+/* and we may not even _have_ <shadow.h>! */
 #if ENABLE_FEATURE_SHADOWPASSWDS
 #include "shadow_.h"
 #endif
@@ -59,7 +61,7 @@
 #include <limits.h>
 #include <sys/param.h>
 #ifndef PATH_MAX
-#define  PATH_MAX         256
+#define PATH_MAX 256
 #endif
 
 /* Tested to work correctly (IIRC :]) */

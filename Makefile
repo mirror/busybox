@@ -1,8 +1,8 @@
 VERSION = 1
 PATCHLEVEL = 3
-SUBLEVEL = 1
+SUBLEVEL = 2
 EXTRAVERSION =
-NAME = Christmas Tree
+NAME = Unnamed
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
