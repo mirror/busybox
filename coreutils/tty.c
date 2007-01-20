@@ -18,12 +18,12 @@
 int tty_main(int argc, char **argv)
 {
 	const char *s;
-	int silent;		/* Note: No longer relevant in SUSv3. */
+	USE_INCLUDE_SUSv2(int silent;)	/* Note: No longer relevant in SUSv3. */
 	int retval;
 
 	xfunc_error_retval = 2;	/* SUSv3 requires > 1 for error. */
 
-	silent = getopt32(argc, argv, "s");
+	USE_INCLUDE_SUSv2(silent = getopt32(argc, argv, "s");)
 
 	/* gnu tty outputs a warning that it is ignoring all args. */
 	bb_warn_ignoring_args(argc - optind);
@@ -36,10 +36,8 @@ int tty_main(int argc, char **argv)
 		s = "not a tty";
 		retval = 1;
 	}
-
-	if (!silent) {
-		puts(s);
-	}
+	USE_INCLUDE_SUSv2(if (!silent) puts(s);)
+	SKIP_INCLUDE_SUSv2(puts(s);)
 
 	fflush_stdout_and_exit(retval);
 }
