@@ -184,23 +184,24 @@ static int table_lookup(uint16_t type, uint8_t * as, uint8_t * qs)
 	struct dns_entry *d=dnsentry;
 
 	do {
-#ifdef DEBUG
+#if DEBUG
 		char *p,*q;
 		q = (char *)&(qs[1]);
 		p = &(d->name[1]);
 		fprintf(stderr, "\n%s: %d/%d p:%s q:%s %d",
-			__FUNCTION__, strlen(p), (int)(d->name[0]), p, q, strlen(q));
+			__FUNCTION__, (int)strlen(p), (int)(d->name[0]),
+			p, q, (int)strlen(q));
 #endif
 		if (type == REQ_A) { /* search by host name */
 			for (i = 1; i <= (int)(d->name[0]); i++)
 				if (tolower(qs[i]) != d->name[i])
 					break;
 			if (i > (int)(d->name[0])) {
-#ifdef DEBUG
+#if DEBUG
 				fprintf(stderr, " OK");
 #endif
 				strcpy((char *)as, d->ip);
-#ifdef DEBUG
+#if DEBUG
 				fprintf(stderr, " as:%s\n", as);
 #endif
 					return 0;
