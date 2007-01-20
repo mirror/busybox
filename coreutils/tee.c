@@ -20,23 +20,23 @@ int tee_main(int argc, char **argv)
 	FILE **fp;
 	char **names;
 	char **np;
-	int flags;
-	int retval = EXIT_SUCCESS;
+	char retval;
 #if ENABLE_FEATURE_TEE_USE_BLOCK_IO
 	ssize_t c;
 # define buf bb_common_bufsiz1
 #else
 	int c;
 #endif
-	flags = getopt32(argc, argv, "ia");	/* 'a' must be 2nd */
+	retval = getopt32(argc, argv, "ia");	/* 'a' must be 2nd */
 	argc -= optind;
 	argv += optind;
 
-	mode += (flags & 2);	/* Since 'a' is the 2nd option... */
+	mode += (retval & 2);	/* Since 'a' is the 2nd option... */
 
-	if (flags & 1) {
+	if (retval & 1) {
 		signal(SIGINT, SIG_IGN); /* TODO - switch to sigaction. */
 	}
+	retval = EXIT_SUCCESS;
 	/* gnu tee ignores SIGPIPE in case one of the output files is a pipe
 	 * that doesn't consume all its input.  Good idea... */
 	signal(SIGPIPE, SIG_IGN);	/* TODO - switch to sigaction. */
