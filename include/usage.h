@@ -3286,8 +3286,9 @@
        ""
 #define tty_full_usage \
        "Print the file name of the terminal connected to standard input" \
+	USE_INCLUDE_SUSv2( \
        "\n\nOptions:\n" \
-       "	-s	Print nothing, only return an exit status"
+       "	-s	Print nothing, only return an exit status")
 #define tty_example_usage \
        "$ tty\n" \
        "/dev/tty2\n"
