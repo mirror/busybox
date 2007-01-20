@@ -570,7 +570,7 @@ extern void vfork_daemon(int nochdir, int noclose);
 extern void vfork_daemon_rexec(int nochdir, int noclose,
 		int argc, char **argv, char *foreground_opt);
 #endif
-extern int get_terminal_width_height(int fd, int *width, int *height);
+extern int get_terminal_width_height(const int fd, int *width, int *height);
 
 int is_in_ino_dev_hashtable(const struct stat *statbuf, char **name);
 void add_to_ino_dev_hashtable(const struct stat *statbuf, const char *name);
