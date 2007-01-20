@@ -81,8 +81,8 @@ int wc_main(int argc, char **argv)
 	unsigned u;
 	int num_files = 0;
 	int c;
-	char status = EXIT_SUCCESS;
-	char in_word;
+	smallint status = EXIT_SUCCESS;
+	smallint in_word;
 	unsigned print_type;
 
 	print_type = getopt32(argc, argv, "lwcL");
