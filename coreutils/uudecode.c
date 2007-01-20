@@ -14,7 +14,7 @@
 
 #include "busybox.h"
 
-static int read_stduu(FILE *src_stream, FILE *dst_stream)
+static void read_stduu(FILE *src_stream, FILE *dst_stream)
 {
 	char *line;
 
@@ -23,7 +23,7 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 		char *line_ptr = line;
 
 		if (strcmp(line, "end") == 0) {
-			return EXIT_SUCCESS;
+			return;
 		}
 		length = ((*line_ptr - 0x20) & 0x3f)* 4 / 3;
 
@@ -66,11 +66,11 @@ static int read_stduu(FILE *src_stream, FILE *dst_stream)
 	bb_error_msg_and_die("short file");
 }
 
-static int read_base64(FILE *src_stream, FILE *dst_stream)
+static void read_base64(FILE *src_stream, FILE *dst_stream)
 {
 	static const char base64_table[] =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n";
-	char term_count = 0;
+	int term_count = 0;
 
 	while (1) {
 		char translated[4];
@@ -101,7 +101,7 @@ static int read_base64(FILE *src_stream, FILE *dst_stream)
 			else if (*table_ptr == '\n') {
 				/* Check for terminating line */
 				if (term_count == 5) {
-					return EXIT_SUCCESS;
+					return;
 				}
 				term_count = 1;
 				continue;
@@ -141,11 +141,10 @@ int uudecode_main(int argc, char **argv)
 
 	/* Search for the start of the encoding */
 	while ((line = xmalloc_getline(src_stream)) != NULL) {
-		int (*decode_fn_ptr)(FILE * src, FILE * dst);
+		void (*decode_fn_ptr)(FILE * src, FILE * dst);
 		char *line_ptr;
 		FILE *dst_stream;
 		int mode;
-		int ret;
 
 		if (strncmp(line, "begin-base64 ", 13) == 0) {
 			line_ptr = line + 13;
@@ -173,9 +172,9 @@ int uudecode_main(int argc, char **argv)
 			chmod(outname, mode & (S_IRWXU | S_IRWXG | S_IRWXO));
 		}
 		free(line);
-		ret = decode_fn_ptr(src_stream, dst_stream);
+		decode_fn_ptr(src_stream, dst_stream);
 		fclose_if_not_stdin(src_stream);
-		return ret;
+		return EXIT_SUCCESS;
 	}
 	bb_error_msg_and_die("no 'begin' line");
 }
