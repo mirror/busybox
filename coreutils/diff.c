@@ -109,7 +109,7 @@ static int clen;
 static int len[2];
 static int pref, suff;	/* length of prefix and suffix */
 static int slen[2];
-static smallint anychange;
+static bool anychange;
 static long *ixnew;		/* will be overlaid on file[1] */
 static long *ixold;		/* will be overlaid on klist */
 static struct cand *clist;	/* merely a free storage pot for candidates */
@@ -1172,7 +1172,7 @@ static void diffdir(char *p1, char *p2)
 
 int diff_main(int argc, char **argv)
 {
-	smallint gotstdin = 0;
+	bool gotstdin = 0;
 	char *U_opt;
 	char *f1, *f2;
 	llist_t *L_arg = NULL;
