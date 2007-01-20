@@ -183,6 +183,16 @@ typedef int smallint;
 typedef unsigned smalluint;
 #endif
 
+/* ISO C Standard:  7.16  Boolean type and values  <stdbool.h> */
+#if (defined __digital__ && defined __unix__)
+/* old system without (proper) C99 support */
+#define bool smalluint
+#else
+/* modern system, so use it */
+#include <stdbool.h>
+#endif
+
+
 /* uclibc does not implement daemon() for no-mmu systems.
  * For 0.9.29 and svn, __ARCH_USE_MMU__ indicates no-mmu reliably.
  * For earlier versions there is no reliable way to check if we are building
