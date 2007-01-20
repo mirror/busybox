@@ -22,6 +22,8 @@
 #include "busybox.h"
 
 
+#if ENABLE_FEATURE_TFTP_GET || ENABLE_FEATURE_TFTP_PUT
+
 #define TFTP_BLOCKSIZE_DEFAULT 512	/* according to RFC 1350, don't change */
 #define TFTP_TIMEOUT 5	/* seconds */
 #define TFTP_NUM_RETRIES 5 /* number of retries */
@@ -56,8 +58,8 @@ static const char *const tftp_bb_error_msg[] = {
 #else
 #define USE_GETPUT(a) a
 /* masks coming from getpot32 */
-#define CMD_GET(cmd) (cmd & 1)
-#define CMD_PUT(cmd) (cmd & 2)
+#define CMD_GET(cmd) ((cmd) & 1)
+#define CMD_PUT(cmd) ((cmd) & 2)
 #endif
 /* NB: in the code below
  * CMD_GET(cmd) and CMD_GET(cmd) are mutually exclusive
@@ -508,3 +510,5 @@ int tftp_main(int argc, char **argv)
 	}
 	return result;
 }
+
+#endif /* ENABLE_FEATURE_TFTP_GET || ENABLE_FEATURE_TFTP_PUT */

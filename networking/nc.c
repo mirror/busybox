@@ -23,8 +23,8 @@ int nc_main(int argc, char **argv)
 	/* sfd sits _here_ only because of "repeat" option (-l -l). */
 	int sfd = sfd; /* for gcc */
 	int cfd = 0;
+	unsigned lport = 0;
 	SKIP_NC_SERVER(const) unsigned do_listen = 0;
-	SKIP_NC_SERVER(const) unsigned lport = 0;
 	SKIP_NC_EXTRA (const) unsigned wsecs = 0;
 	SKIP_NC_EXTRA (const) unsigned delay = 0;
 	SKIP_NC_EXTRA (const int execparam = 0;)
