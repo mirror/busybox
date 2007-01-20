@@ -66,7 +66,7 @@ int tail_main(int argc, char **argv)
 {
 	unsigned count = 10;
 	unsigned sleep_period = 1;
-	int from_top = 0;
+	bool from_top = 0;
 	int header_threshhold = 1;
 	const char *str_c, *str_n, *str_s;
 
