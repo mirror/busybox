@@ -2,6 +2,47 @@
 
 
 <ul>
+  <li><b>20 January, 2007 -- BusyBox 1.4.0 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.4.0.tar.bz2>BusyBox 1.4.0</a>.</p>
+
+    <p>Since this is a x.x.0 release, it probably is a bit less "stable"
+    than usual.</p>
+    <p>Changes since previous release:
+    <ul>
+    <li>e2fsprogs are mostly removed from busybox. Some smaller parts remain,
+    the rest of it sits disabled in e2fsprogs/old_e2fsprogs/*, because
+    it's too bloated. Really. I'm afraid it's about the only way we can
+    ever get e2fsprogs cleaned up.
+    <li>less: many improvements. Now can display binary files
+    (although I expect it to have trouble with displays where 8bit chars
+    don't have 1-to-1 char/glyph relationship). Regexp search is not buggy
+    anymore. Less does not read entire input up-front. Reads input
+    as it appears (yay!). Works rather nice as man pager. I recommend it
+    for general use now.
+    <li>IPv6: generic support is in place, many networking applets are
+    upgraded to be IPv6 capable. Probably some work remains, but it is
+    already much better than what we had previously.
+    <li>arp: new applet (thanks to Eric Spakman).
+    <li>fakeidentd: non-forking standalone server part was taking ~90%
+    of the applet. Factored it out (in fact, rewrote it).
+    <li>syslogd: mostly rewritten.
+    <li>decompress_unzip, gzip: sanitized a bit.
+    <li>sed: better hadling of NULs
+    <li>httpd: stop adding our own "Content-type:" to CGI output
+    <li>chown: user.grp works again.
+    <li>minor bugfixes to: passwd, date, tftp, start_stop_daemon, tar,
+    ps, ifupdown, time, su, stty, awk, ping[6], sort,...
+    </ul>
+    </p>
+  </li>
+
+  <li><b>20 January, 2007 -- BusyBox 1.3.2 (stable)</b>
+    <p><a href=http://busybox.net/downloads/busybox-1.3.1.tar.bz2>BusyBox 1.3.1</a>.</p>
+
+    <p>This release includes only one trivial fix accumulated since 1.3.1
+    </p>
+  </li>
+
   <li><b>27 December, 2006 -- BusyBox 1.3.1 (stable)</b>
     <p><a href=http://busybox.net/downloads/busybox-1.3.1.tar.bz2>BusyBox 1.3.1</a>.
     (<a href=http://busybox.net/downloads/fixes-1.3.1/>patches</a>)</p>
