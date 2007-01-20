@@ -29,10 +29,8 @@
 int touch_main(int argc, char **argv)
 {
 	int fd;
-	int flags;
 	int status = EXIT_SUCCESS;
-
-	flags = getopt32(argc, argv, "c");
+	bool flags = (getopt32(argc, argv, "c") & 1);
 
 	argv += optind;
 
@@ -43,7 +41,7 @@ int touch_main(int argc, char **argv)
 	do {
 		if (utime(*argv, NULL)) {
 			if (errno == ENOENT) {	/* no such file*/
-				if (flags & 1) {	/* Creation is disabled, so ignore. */
+				if (flags) {	/* Creation is disabled, so ignore. */
 					continue;
 				}
 				/* Try to create the file. */
