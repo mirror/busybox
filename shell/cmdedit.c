@@ -119,14 +119,6 @@ static struct termios initial_settings, new_settings;
 
 static
 volatile unsigned cmdedit_termw = 80;        /* actual terminal width */
-static
-volatile int handlers_sets = 0; /* Set next bits: */
-enum {
-	SET_ATEXIT = 1,         /* when atexit() has been called
-				   and get euid,uid,gid to fast compare */
-	SET_WCHG_HANDLERS = 2,  /* winchg signal handler */
-	SET_RESET_TERM = 4,     /* if the terminal needs to be reset upon exit */
-};
 
 
 static int cmdedit_x;           /* real x terminal position */
@@ -146,10 +138,6 @@ static int num_ok_lines = 1;
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
 static char *user_buf = "";
 static char *home_pwd_buf = "";
-#endif
-
-#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR || ENABLE_FEATURE_COMMAND_TAB_COMPLETION
-static int my_euid;
 #endif
 
 #if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
@@ -339,7 +327,6 @@ static void input_backspace(void)
 	}
 }
 
-
 /* Move forward one character */
 static void input_forward(void)
 {
@@ -347,10 +334,21 @@ static void input_forward(void)
 		cmdedit_set_out_char(command_ps[cursor + 1]);
 }
 
+
 #if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
 
 static char **matches;
-static int num_matches;
+static unsigned num_matches;
+
+static void free_tab_completion_data(void)
+{
+	if (matches) {
+		while (num_matches)
+			free(matches[--num_matches]);
+		free(matches);
+		matches = NULL;
+	}
+}
 
 static void add_match(char *matched)
 {
@@ -363,7 +361,6 @@ static void add_match(char *matched)
 }
 
 #if ENABLE_FEATURE_COMMAND_USERNAME_COMPLETION
-
 static void username_tab_completion(char *ud, char *with_shash_flg)
 {
 	struct passwd *entry;
@@ -504,7 +501,6 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 	}
 
 	for (i = 0; i < npaths; i++) {
-
 		dir = opendir(paths[i]);
 		if (!dir)                       /* Don't print an error */
 			continue;
@@ -559,7 +555,6 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 	}
 }
 
-
 #define QUOT (UCHAR_MAX+1)
 
 #define collapse_pos(is, in) { \
@@ -580,8 +575,8 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 		if (int_buf[i] == 0) {
 			pos_buf[i] = -1;        /* indicator end line */
 			break;
-		} else
-			pos_buf[i] = i;
+		}
+		pos_buf[i] = i;
 	}
 
 	/* mask \+symbol and convert '\t' to ' ' */
@@ -731,9 +726,9 @@ static int find_match(char *matchBuf, int *len_with_quotes)
 }
 
 /*
-   display by column original ideas from ls applet,
-   very optimize by my :)
-*/
+ * display by column (original idea from ls applet,
+ * very optimized by me :)
+ */
 static void showfiles(void)
 {
 	int ncols, row;
@@ -770,11 +765,6 @@ static void showfiles(void)
 	}
 }
 
-static int match_compare(const void *a, const void *b)
-{
-	return strcmp(*(char**)a, *(char**)b);
-}
-
 static char *add_quote_for_spec_chars(char *found)
 {
 	int l = 0;
@@ -789,18 +779,14 @@ static char *add_quote_for_spec_chars(char *found)
 	return s;
 }
 
+static int match_compare(const void *a, const void *b)
+{
+	return strcmp(*(char**)a, *(char**)b);
+}
+
+/* Do TAB completion */
 static void input_tab(int *lastWasTab)
 {
-	/* Do TAB completion */
-	if (lastWasTab == 0) {          /* free all memory */
-		if (matches) {
-			while (num_matches > 0)
-				free(matches[--num_matches]);
-			free(matches);
-			matches = (char **) NULL;
-		}
-		return;
-	}
 	if (!*lastWasTab) {
 		char *tmp, *tmp1;
 		int len_found;
@@ -813,12 +799,12 @@ static void input_tab(int *lastWasTab)
 		/* Make a local copy of the string -- up
 		 * to the position of the cursor */
 		tmp = strncpy(matchBuf, command_ps, cursor);
-		tmp[cursor] = 0;
+		tmp[cursor] = '\0';
 
 		find_type = find_match(matchBuf, &recalc_pos);
 
 		/* Free up any memory already allocated */
-		input_tab(0);
+		free_tab_completion_data();
 
 #if ENABLE_FEATURE_COMMAND_USERNAME_COMPLETION
 		/* If the word starts with `~' and there is no slash in the word,
@@ -829,24 +815,24 @@ static void input_tab(int *lastWasTab)
 		if (!matches)
 #endif
 		/* Try to match any executable in our path and everything
-		 * in the current working directory that matches.  */
+		 * in the current working directory */
 			exe_n_cwd_tab_completion(matchBuf, find_type);
 		/* Sort, then remove any duplicates found */
 		if (matches) {
 			int i, n = 0;
 			qsort(matches, num_matches, sizeof(char*), match_compare);
 			for (i = 0; i < num_matches - 1; ++i) {
-				if (matches[i] && matches[i+1]) {
+				if (matches[i] && matches[i+1]) { /* paranoia */
 					if (strcmp(matches[i], matches[i+1]) == 0) {
 						free(matches[i]);
-						matches[i] = 0;
+						matches[i] = NULL; /* paranoia */
 					} else {
 						matches[n++] = matches[i];
 					}
 				}
 			}
-			matches[n++] = matches[num_matches-1];
-			num_matches = n;
+			matches[n] = matches[i];
+			num_matches = n + 1;
 		}
 		/* Did we find exactly one match? */
 		if (!matches || num_matches > 1) {
@@ -858,10 +844,10 @@ static void input_tab(int *lastWasTab)
 			for (tmp = tmp1; *tmp; tmp++)
 				for (len_found = 1; len_found < num_matches; len_found++)
 					if (matches[len_found][(tmp - tmp1)] != *tmp) {
-						*tmp = 0;
+						*tmp = '\0';
 						break;
 					}
-			if (*tmp1 == 0) {        /* have unique */
+			if (*tmp1 == '\0') {        /* have unique */
 				free(tmp1);
 				return;
 			}
@@ -881,7 +867,6 @@ static void input_tab(int *lastWasTab)
 		len_found = strlen(tmp);
 		/* have space to placed match? */
 		if ((len_found - strlen(matchBuf) + len) < BUFSIZ) {
-
 			/* before word for match   */
 			command_ps[cursor - recalc_pos] = 0;
 			/* save   tail line        */
@@ -914,6 +899,7 @@ static void input_tab(int *lastWasTab)
 		}
 	}
 }
+
 #endif  /* FEATURE_COMMAND_TAB_COMPLETION */
 
 
@@ -927,7 +913,7 @@ static int cur_history;
 
 static void get_previous_history(void)
 {
-	if (command_ps[0] != 0 || history[cur_history] == 0) {
+	if (command_ps[0] != '\0' || history[cur_history] == NULL) {
 		free(history[cur_history]);
 		history[cur_history] = xstrdup(command_ps);
 	}
@@ -1126,81 +1112,6 @@ enum { vi_mode = 0 };
  * cmdedit_read_input and its helpers
  */
 
-#define setTermSettings(fd, argp) tcsetattr(fd, TCSANOW, argp)
-#define getTermSettings(fd, argp) tcgetattr(fd, argp);
-
-static sighandler_t previous_SIGWINCH_handler;
-
-static void cmdedit_reset_term(void)
-{
-	if (handlers_sets & SET_RESET_TERM) {
-		setTermSettings(STDIN_FILENO, (void *) &initial_settings);
-		handlers_sets &= ~SET_RESET_TERM;
-	}
-	if (handlers_sets & SET_WCHG_HANDLERS) {
-		/* restore SIGWINCH handler */
-		signal(SIGWINCH, previous_SIGWINCH_handler);
-		handlers_sets &= ~SET_WCHG_HANDLERS;
-	}
-	fflush(stdout);
-}
-
-static void cmdedit_setwidth(unsigned w, int redraw_flg)
-{
-	cmdedit_termw = w;
-	if (redraw_flg) {
-		/* new y for current cursor */
-		int new_y = (cursor + cmdedit_prmt_len) / w;
-		/* redraw */
-		redraw((new_y >= cmdedit_y ? new_y : cmdedit_y), len - cursor);
-		fflush(stdout);
-	}
-}
-
-static void win_changed(int nsig)
-{
-	int width;
-	get_terminal_width_height(0, &width, NULL);
-	cmdedit_setwidth(width, nsig /* - just a yes/no flag */);
-	if (nsig == SIGWINCH)
-		signal(SIGWINCH, win_changed); /* rearm ourself */
-}
-
-static void cmdedit_init(void)
-{
-	cmdedit_prmt_len = 0;
-	if (!(handlers_sets & SET_WCHG_HANDLERS)) {
-		previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
-		win_changed(0); /* do initial resizing */
-		handlers_sets |= SET_WCHG_HANDLERS;
-	}
-
-	if (!(handlers_sets & SET_ATEXIT)) {
-#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-		struct passwd *entry;
-
-		my_euid = geteuid();
-		entry = getpwuid(my_euid);
-		if (entry) {
-			user_buf = xstrdup(entry->pw_name);
-			home_pwd_buf = xstrdup(entry->pw_dir);
-		}
-#endif
-
-#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
-
-#if !ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-		my_euid = geteuid();
-#endif
-		my_uid = getuid();
-		my_gid = getgid();
-#endif  /* FEATURE_COMMAND_TAB_COMPLETION */
-		handlers_sets |= SET_ATEXIT;
-// Crap. We should be able to do it without atexit.
-		atexit(cmdedit_reset_term);     /* be sure to do this only once */
-	}
-}
-
 #if !ENABLE_FEATURE_SH_FANCY_PROMPT
 static void parse_prompt(const char *prmt_ptr)
 {
@@ -1259,7 +1170,7 @@ static void parse_prompt(const char *prmt_ptr)
 					}
 					break;
 				case '$':
-					c = (my_euid == 0 ? '#' : '$');
+					c = (geteuid() == 0 ? '#' : '$');
 					break;
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
 				case 'w':
@@ -1283,7 +1194,8 @@ static void parse_prompt(const char *prmt_ptr)
 						pbuf += (cp-pbuf) + 1;
 					break;
 				case '!':
-					snprintf(pbuf = buf2, sizeof(buf2), "%d", num_ok_lines);
+					pbuf = buf2;
+					snprintf(buf2, sizeof(buf2), "%d", num_ok_lines);
 					break;
 				case 'e': case 'E':     /* \e \E = \033 */
 					c = '\033';
@@ -1330,11 +1242,71 @@ static void parse_prompt(const char *prmt_ptr)
 }
 #endif
 
+#define setTermSettings(fd, argp) tcsetattr(fd, TCSANOW, argp)
+#define getTermSettings(fd, argp) tcgetattr(fd, argp);
+
+static sighandler_t previous_SIGWINCH_handler;
+
+static void cmdedit_reset_term(void)
+{
+	setTermSettings(STDIN_FILENO, (void *) &initial_settings);
+	/* restore SIGWINCH handler */
+	signal(SIGWINCH, previous_SIGWINCH_handler);
+	fflush(stdout);
+}
+
+static void cmdedit_setwidth(unsigned w, int redraw_flg)
+{
+	cmdedit_termw = w;
+	if (redraw_flg) {
+		/* new y for current cursor */
+		int new_y = (cursor + cmdedit_prmt_len) / w;
+		/* redraw */
+		redraw((new_y >= cmdedit_y ? new_y : cmdedit_y), len - cursor);
+		fflush(stdout);
+	}
+}
+
+static void win_changed(int nsig)
+{
+	int width;
+	get_terminal_width_height(0, &width, NULL);
+	cmdedit_setwidth(width, nsig /* - just a yes/no flag */);
+	if (nsig == SIGWINCH)
+		signal(SIGWINCH, win_changed); /* rearm ourself */
+}
+
+static void cmdedit_init(void)
+{
+	cmdedit_prmt_len = 0;
+	previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
+	win_changed(0); /* do initial resizing */
+
+#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+	{
+		struct passwd *entry;
+
+		entry = getpwuid(geteuid());
+		if (entry) {
+			user_buf = xstrdup(entry->pw_name);
+			home_pwd_buf = xstrdup(entry->pw_dir);
+		}
+	}
+#endif
+
+#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
+	my_uid = getuid();
+	my_gid = getgid();
+#endif
+// Crap. We should be able to do it without atexit.
+	atexit(cmdedit_reset_term);     /* be sure to do this only once */
+}
+
 /*
- * the emacs and vi modes share much of the code in the big
- * command loop.  commands entered when in vi's command mode (aka
+ * The emacs and vi modes share much of the code in the big
+ * command loop.  Commands entered when in vi's command mode (aka
  * "escape mode") get an extra bit added to distinguish them --
- * this keeps them from being self-inserted.  this clutters the
+ * this keeps them from being self-inserted.  This clutters the
  * big switch a bit, but keeps all the code in one place.
  */
 
@@ -1379,7 +1351,6 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 #endif
 	new_settings.c_cc[VINTR] = _POSIX_VDISABLE;
 	setTermSettings(0, (void *) &new_settings);
-	handlers_sets |= SET_RESET_TERM;
 
 	/* Now initialize things */
 	cmdedit_init();
@@ -1387,11 +1358,12 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	parse_prompt(prompt);
 
 	while (1) {
-		fflush(stdout);                 /* buffered out to fast */
+		fflush(stdout);
 
-		if (safe_read(0, &c, 1) < 1)
+		if (safe_read(0, &c, 1) < 1) {
 			/* if we can't read input then exit */
 			goto prepare_to_die;
+		}
 
 		ic = c;
 
@@ -1789,23 +1761,22 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			lastWasTab = FALSE;
 	}
 
-	setTermSettings(0, (void *) &initial_settings);
-	handlers_sets &= ~SET_RESET_TERM;
-
 #if MAX_HISTORY > 0
 	/* Handle command history log */
 	/* cleanup may be saved current command line */
-	if (len > 0) {                                      /* no put empty line */
+	if (len > 0) {
 		int i = n_history;
 
 		free(history[MAX_HISTORY]);
-		history[MAX_HISTORY] = 0;
+		history[MAX_HISTORY] = NULL;
 		/* After max history, remove the oldest command */
 		if (i >= MAX_HISTORY) {
 			free(history[0]);
 			for (i = 0; i < MAX_HISTORY-1; i++)
 				history[i] = history[i+1];
 		}
+// Maybe "if (!i || strcmp(history[i-1], command) != 0) ..."
+// (i.e. do not save dups?)
 		history[i++] = xstrdup(command);
 		cur_history = i;
 		n_history = i;
@@ -1822,12 +1793,13 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 	}
 
 #if ENABLE_FEATURE_CLEAN_UP && ENABLE_FEATURE_COMMAND_TAB_COMPLETION
-	input_tab(0);
+	free_tab_completion_data();
 #endif
 
 #if ENABLE_FEATURE_SH_FANCY_PROMPT
 	free(cmdedit_prompt);
 #endif
+	/* restore initial_settings and SIGWINCH handler */
 	cmdedit_reset_term();
 	return len;
 }
