@@ -6528,6 +6528,10 @@ setjobctl(int on)
 		int ofd;
 		ofd = fd = open(_PATH_TTY, O_RDWR);
 		if (fd < 0) {
+	/* BTW, bash will try to open(ttyname(0)) if open("/dev/tty") fails.
+	 * That sometimes helps to acquire controlling tty.
+	 * Obviously, a workaround for bugs when someone
+	 * failed to provide a controlling tty to bash! :) */
 			fd += 3;
 			while (!isatty(fd) && --fd >= 0)
 				;

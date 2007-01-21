@@ -389,6 +389,7 @@ static pid_t run(const struct init_action *a)
 #include CUSTOMIZED_BANNER
 #endif
 		"\nPlease press Enter to activate this console. ";
+	char *prog;
 
 	/* Block sigchild while forking.  */
 	sigemptyset(&nmask);
@@ -560,7 +561,10 @@ static pid_t run(const struct init_action *a)
 
 		/* Now run it.  The new program will take over this PID,
 		 * so nothing further in init.c should be run. */
-		execv(cmdpath, cmd);
+		prog = cmdpath;
+		if (ENABLE_FEATURE_EXEC_PREFER_APPLETS && find_applet_by_name(prog))
+			prog = CONFIG_BUSYBOX_EXEC_PATH;
+		execvp(prog, cmd);
 
 		/* We're still here?  Some error happened. */
 		message(LOG | CONSOLE, "Bummer, cannot run '%s': %m", cmdpath);
@@ -678,6 +682,7 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 {
 	struct init_action *a, *tmp;
 	sigset_t unblock_signals;
+	char *prog;
 
 	for (a = init_action_list; a; a = tmp) {
 		tmp = a->next;
@@ -713,7 +718,10 @@ static void exec_signal(int sig ATTRIBUTE_UNUSED)
 			dup(0);
 
 			messageD(CONSOLE | LOG, "Trying to re-exec %s", a->command);
-			execl(a->command, a->command, NULL);
+			prog = a->command;
+			if (ENABLE_FEATURE_EXEC_PREFER_APPLETS && find_applet_by_name(prog))
+				prog = CONFIG_BUSYBOX_EXEC_PATH;
+			execlp(prog, a->command, NULL);
 
 			message(CONSOLE | LOG, "exec of '%s' failed: %m",
 					a->command);
@@ -852,13 +860,13 @@ static void parse_inittab(void)
 		/* No inittab file -- set up some default behavior */
 #endif
 		/* Reboot on Ctrl-Alt-Del */
-		new_init_action(CTRLALTDEL, "/sbin/reboot", "");
+		new_init_action(CTRLALTDEL, "reboot", "");
 		/* Umount all filesystems on halt/reboot */
-		new_init_action(SHUTDOWN, "/bin/umount -a -r", "");
+		new_init_action(SHUTDOWN, "umount -a -r", "");
 		/* Swapoff on halt/reboot */
-		if(ENABLE_SWAPONOFF) new_init_action(SHUTDOWN, "/sbin/swapoff -a", "");
+		if(ENABLE_SWAPONOFF) new_init_action(SHUTDOWN, "swapoff -a", "");
 		/* Prepare to restart init when a HUP is received */
-		new_init_action(RESTART, "/sbin/init", "");
+		new_init_action(RESTART, "init", "");
 		/* Askfirst shell on tty1-4 */
 		new_init_action(ASKFIRST, bb_default_login_shell, "");
 		new_init_action(ASKFIRST, bb_default_login_shell, VC_2);
@@ -1039,9 +1047,9 @@ int init_main(int argc, char **argv)
 		{
 			message(CONSOLE,"Low memory: forcing swapon.");
 			/* swapon -a requires /proc typically */
-			new_init_action(SYSINIT, "/bin/mount -t proc proc /proc", "");
+			new_init_action(SYSINIT, "mount -t proc proc /proc", "");
 			/* Try to turn on swap */
-			new_init_action(SYSINIT, "/sbin/swapon -a", "");
+			new_init_action(SYSINIT, "swapon -a", "");
 			run_actions(SYSINIT);   /* wait and removing */
 		}
 	}
@@ -1068,7 +1076,10 @@ int init_main(int argc, char **argv)
 
 		putenv("SELINUX_INIT=YES");
 		if (selinux_init_load_policy(&enforce) == 0) {
-			execv(argv[0], argv);
+			char *prog = argv[0];
+			if (ENABLE_FEATURE_EXEC_PREFER_APPLETS && find_applet_by_name(prog))
+				prog = CONFIG_BUSYBOX_EXEC_PATH;
+			execvp(prog, argv);
 		} else if (enforce > 0) {
 			/* SELinux in enforcing mode but load_policy failed */
 			/* At this point, we probably can't open /dev/console, so log() won't work */

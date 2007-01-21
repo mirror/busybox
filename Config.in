@@ -231,6 +231,14 @@ config SELINUX
 
 	  Most people will leave this set to 'N'.
 
+config FEATURE_EXEC_PREFER_APPLETS
+	bool "exec prefers applets"
+	default n
+	help
+	  This is an experimental option which directs applets about to
+	  call 'exec' to try and find an applicable busybox applet before
+	  searching the executable path for a binary or symlink to execute.
+
 config BUSYBOX_EXEC_PATH
 	string "Path to BusyBox executable"
 	default "/proc/self/exe"
@@ -439,7 +447,7 @@ config INSTALL_APPLET_HARDLINKS
 config INSTALL_APPLET_DONT
        bool
        prompt "not installed"
-       depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE_SHELL
+       depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE_SHELL || FEATURE_EXEC_PREFER_APPLETS
        help
          Do not install applet links. Useful when using the -install feature
          or a standalone shell for rescue pruposes.
