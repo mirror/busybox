@@ -247,6 +247,14 @@ config FEATURE_COMMAND_EDITING
 	help
 	  Enable command editing in shell.
 
+config FEATURE_EDITING_FANCY_KEYS
+	bool "Additional editing keys"
+	default n
+	depends on FEATURE_COMMAND_EDITING
+	help
+	  Enable additonal editing keys (Ctrl-E, Ctrl-U etc).
+	  Arrow keys, Home/End/Delete and Ctrl-W work even without this option.
+
 config FEATURE_COMMAND_EDITING_VI
 	bool "vi-style line editing commands"
 	default n

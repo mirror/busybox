@@ -24,54 +24,9 @@
 
    Small bugs (simple effect):
    - not true viewing if terminal size (x*y symbols) less
-     size (prompt + editor`s line + 2 symbols)
+     size (prompt + editor's line + 2 symbols)
    - not true viewing if length prompt less terminal width
  */
-
-/*
-CONFIG_FEATURE_COMMAND_EDITING=y
-# CONFIG_FEATURE_COMMAND_EDITING_VI is not set
-CONFIG_FEATURE_COMMAND_HISTORY=15
-# CONFIG_FEATURE_COMMAND_SAVEHISTORY is not set
-# CONFIG_FEATURE_COMMAND_TAB_COMPLETION is not set
-# CONFIG_FEATURE_COMMAND_USERNAME_COMPLETION is not set
-# CONFIG_FEATURE_SH_FANCY_PROMPT is not set
-Sizes with the above:
-# size cmdedit.o
-   text    data     bss     dec     hex filename
-   2374       4     228    2606     a2e cmdedit.o
-# nm --size-sort cmdedit.o
-00000004 b cmdedit_prmt_len
-00000004 b cmdedit_prompt
-00000004 d cmdedit_termw
-00000004 b cmdedit_x
-00000004 b cmdedit_y
-00000004 b command_ps
-00000004 b cur_history
-00000004 b cursor
-00000004 b handlers_sets
-00000004 b len
-00000004 b n_history
-00000004 b previous_SIGWINCH_handler
-00000009 t beep
-00000017 t goto_new_line
-0000001a t input_end
-0000001b t input_backspace
-0000001e t input_forward
-00000027 t get_next_history
-00000036 t put_prompt
-00000039 t redraw
-0000003c b initial_settings
-0000003c b new_settings
-00000040 b history
-00000047 t input_delete
-0000004d t get_previous_history
-00000059 t cmdedit_reset_term
-0000006c t cmdedit_set_out_char
-00000087 t input_backward
-000000a1 t win_changed
-0000053c T cmdedit_read_input
-*/
 
 #include <sys/ioctl.h>
 #include "busybox.h"
@@ -969,7 +924,7 @@ void load_history(const char *fromfile)
 	cur_history = n_history = hi;
 }
 
-void save_history (const char *tofile)
+void save_history(const char *tofile)
 {
 	FILE *fp = fopen(tofile, "w");
 
@@ -1381,6 +1336,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			goto_new_line();
 			break_out = 1;
 			break;
+#if ENABLE_FEATURE_EDITING_FANCY_KEYS
 		case CTRL('A'):
 		vi_case('0'|vbit:)
 			/* Control-a -- Beginning of line */
@@ -1393,6 +1349,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			/* Control-b -- Move back one character */
 			input_backward(1);
 			break;
+#endif
 		case CTRL('C'):
 		vi_case(CTRL('C')|vbit:)
 			/* Control-c -- stop gathering input */
@@ -1425,10 +1382,11 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 				break_out = len = -1;
 				break;
 #endif
-			} else {
-				input_delete(0);
 			}
+			input_delete(0);
 			break;
+
+#if ENABLE_FEATURE_EDITING_FANCY_KEYS
 		case CTRL('E'):
 		vi_case('$'|vbit:)
 			/* Control-e -- End of line */
@@ -1440,16 +1398,21 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			/* Control-f -- Move forward one character */
 			input_forward();
 			break;
+#endif
+
 		case '\b':
 		case '\x7f': /* DEL */
 			/* Control-h and DEL */
 			input_backspace();
 			break;
+
 		case '\t':
 #if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
 			input_tab(&lastWasTab);
 #endif
 			break;
+
+#if ENABLE_FEATURE_EDITING_FANCY_KEYS
 		case CTRL('K'):
 			/* Control-k -- clear to end of line */
 			command[cursor] = 0;
@@ -1462,6 +1425,8 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			printf("\033[H");
 			redraw(0, len - cursor);
 			break;
+#endif
+
 #if MAX_HISTORY > 0
 		case CTRL('N'):
 		vi_case(CTRL('N')|vbit:)
@@ -1482,6 +1447,8 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 			}
 			break;
 #endif
+
+#if ENABLE_FEATURE_EDITING_FANCY_KEYS
 		case CTRL('U'):
 		vi_case(CTRL('U')|vbit:)
 			/* Control-U -- Clear line before cursor */
@@ -1490,14 +1457,16 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 				redraw(cmdedit_y, len -= cursor);
 			}
 			break;
+#endif
 		case CTRL('W'):
 		vi_case(CTRL('W')|vbit:)
 			/* Control-W -- Remove the last word */
 			while (cursor > 0 && isspace(command[cursor-1]))
 				input_backspace();
-			while (cursor > 0 &&!isspace(command[cursor-1]))
+			while (cursor > 0 && !isspace(command[cursor-1]))
 				input_backspace();
 			break;
+
 #if ENABLE_FEATURE_COMMAND_EDITING_VI
 		case 'i'|vbit:
 			vi_cmdmode = 0;
@@ -1655,6 +1624,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 				if (dummy != '~')
 					c = '\0';
 			}
+
 			switch (c) {
 #if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
 			case '\t':                      /* Alt-Tab */
@@ -1705,7 +1675,7 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 				input_end();
 				break;
 			default:
-				c = 0;
+				c = '\0';
 				beep();
 			}
 			break;
@@ -1722,36 +1692,33 @@ int cmdedit_read_input(char *prompt, char command[BUFSIZ])
 				}
 			} else
 #endif
-			{
+
 #if ENABLE_FEATURE_COMMAND_EDITING_VI
-				if (vi_cmdmode)  /* don't self-insert */
-					break;
+			if (vi_cmdmode)  /* Don't self-insert */
+				break;
 #endif
-				if (!Isprint(c)) /* Skip non-printable characters */
-					break;
-			}
+			if (!Isprint(c)) /* Skip non-printable characters */
+				break;
 
 			if (len >= (BUFSIZ - 2))        /* Need to leave space for enter */
 				break;
 
 			len++;
-
 			if (cursor == (len - 1)) {      /* Append if at the end of the line */
-				*(command + cursor) = c;
-				*(command + cursor + 1) = 0;
+				command[cursor] = c;
+				command[cursor+1] = '\0';
 				cmdedit_set_out_char(' ');
 			} else {                        /* Insert otherwise */
 				int sc = cursor;
 
 				memmove(command + sc + 1, command + sc, len - sc);
-				*(command + sc) = c;
+				command[sc] = c;
 				sc++;
 				/* rewrite from cursor */
 				input_end();
 				/* to prev x pos + 1 */
 				input_backward(cursor - sc);
 			}
-
 			break;
 		}
 		if (break_out)                  /* Enter is the command terminator, no more input. */
