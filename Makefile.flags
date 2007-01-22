@@ -16,10 +16,16 @@ CPPFLAGS += \
 	-D"BB_VER=KBUILD_STR($(BB_VER))" -DBB_BT=AUTOCONF_TIMESTAMP
 
 CFLAGS += \
-	-Wall -Wstrict-prototypes -Wshadow -Werror -Wundef \
+	-Wall -Wshadow -Wno-error -Wundef \
+	-Wold-style-definition \
+	-Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
 	-funsigned-char -fno-builtin-strlen -finline-limit=0 -static-libgcc \
 	-Os -falign-functions=1 -falign-jumps=1 -falign-loops=1 \
 	-fomit-frame-pointer -ffunction-sections -fdata-sections
+# FIXME: These warnings are at least partially to be concerned about and should
+# be fixed..
+#CFLAGS+=-Wconversion
+
 
 ifeq ($(CONFIG_DEBUG),y)
 CFLAGS += -g
