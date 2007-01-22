@@ -38,9 +38,9 @@
 
 #ifdef TEST
 
-#define ENABLE_FEATURE_COMMAND_EDITING 0
-#define ENABLE_FEATURE_COMMAND_TAB_COMPLETION 0
-#define ENABLE_FEATURE_COMMAND_USERNAME_COMPLETION 0
+#define ENABLE_FEATURE_EDITING 0
+#define ENABLE_FEATURE_TAB_COMPLETION 0
+#define ENABLE_FEATURE_USERNAME_COMPLETION 0
 #define ENABLE_FEATURE_NONPRINTABLE_INVERSE_PUT 0
 #define ENABLE_FEATURE_CLEAN_UP 0
 
@@ -48,7 +48,7 @@
 
 
 /* Entire file (except TESTing part) sits inside this #if */
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 
 #if ENABLE_LOCALE_SUPPORT
 #define Isprint(c) isprint(c)
@@ -57,7 +57,7 @@
 #endif
 
 #define ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR \
-(ENABLE_FEATURE_COMMAND_USERNAME_COMPLETION || ENABLE_FEATURE_SH_FANCY_PROMPT)
+(ENABLE_FEATURE_USERNAME_COMPLETION || ENABLE_FEATURE_EDITING_FANCY_PROMPT)
 
 
 static line_input_t *state;
@@ -75,7 +75,7 @@ static unsigned command_len;
 static char *command_ps;
 static const char *cmdedit_prompt;
 
-#if ENABLE_FEATURE_SH_FANCY_PROMPT
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
 static char *hostname_buf;
 static int num_ok_lines = 1;
 #endif
@@ -85,7 +85,7 @@ static char *user_buf = "";
 static char *home_pwd_buf = "";
 #endif
 
-#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
+#if ENABLE_FEATURE_TAB_COMPLETION
 static int my_uid;
 static int my_gid;
 #endif
@@ -208,7 +208,7 @@ static void redraw(int y, int back_cursor)
 	input_backward(back_cursor);
 }
 
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 #define DELBUFSIZ 128
 static char *delbuf;  /* a (malloced) place to store deleted characters */
 static char *delp;
@@ -224,7 +224,7 @@ static void input_delete(int save)
 	if (j == command_len)
 		return;
 
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 	if (save) {
 		if (newdelflag) {
 			if (!delbuf)
@@ -245,7 +245,7 @@ static void input_delete(int save)
 	input_backward(cursor - j);     /* back to old pos cursor */
 }
 
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 static void put(void)
 {
 	int ocursor;
@@ -280,7 +280,7 @@ static void input_forward(void)
 }
 
 
-#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
+#if ENABLE_FEATURE_TAB_COMPLETION
 
 static char **matches;
 static unsigned num_matches;
@@ -305,7 +305,7 @@ static void add_match(char *matched)
 	num_matches++;
 }
 
-#if ENABLE_FEATURE_COMMAND_USERNAME_COMPLETION
+#if ENABLE_FEATURE_USERNAME_COMPLETION
 static void username_tab_completion(char *ud, char *with_shash_flg)
 {
 	struct passwd *entry;
@@ -431,7 +431,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 	} else {
 		/* dirbuf = ".../.../.../" */
 		safe_strncpy(dirbuf, command, (pfind - command) + 2);
-#if ENABLE_FEATURE_COMMAND_USERNAME_COMPLETION
+#if ENABLE_FEATURE_USERNAME_COMPLETION
 		if (dirbuf[0] == '~')   /* ~/... or ~user/... */
 			username_tab_completion(dirbuf, dirbuf);
 #endif
@@ -749,7 +749,7 @@ static void input_tab(int *lastWasTab)
 		/* Free up any memory already allocated */
 		free_tab_completion_data();
 
-#if ENABLE_FEATURE_COMMAND_USERNAME_COMPLETION
+#if ENABLE_FEATURE_USERNAME_COMPLETION
 		/* If the word starts with `~' and there is no slash in the word,
 		 * then try completing this word as a username. */
 		if (state->flags & USERNAME_COMPLETION)
@@ -874,7 +874,7 @@ static int get_next_history(void)
 	return 0;
 }
 
-#if ENABLE_FEATURE_COMMAND_SAVEHISTORY
+#if ENABLE_FEATURE_EDITING_SAVEHISTORY
 /* state->flags is already checked to be nonzero */
 void load_history(const char *fromfile)
 {
@@ -952,7 +952,7 @@ static void remember_in_history(const char *str)
 	state->cnt_history = i;
 	if (state->flags & SAVE_HISTORY)
 		save_history(state->hist_file);
-	USE_FEATURE_SH_FANCY_PROMPT(num_ok_lines++;)
+	USE_FEATURE_EDITING_FANCY_PROMPT(num_ok_lines++;)
 }
 
 #else /* MAX_HISTORY == 0 */
@@ -977,7 +977,7 @@ static void remember_in_history(const char *str)
  * vi mode implemented 2005 by Paul Fox <pgf@foxharp.boston.ma.us>
  */
 
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 static void
 vi_Word_motion(char *command, int eat)
 {
@@ -1076,7 +1076,7 @@ vi_back_motion(char *command)
  * read_line_input and its helpers
  */
 
-#if !ENABLE_FEATURE_SH_FANCY_PROMPT
+#if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
 static void parse_prompt(const char *prmt_ptr)
 {
 	cmdedit_prompt = prmt_ptr;
@@ -1246,7 +1246,7 @@ static void win_changed(int nsig)
 
 /* leave out the "vi-mode"-only case labels if vi editing isn't
  * configured. */
-#define vi_case(caselabel) USE_FEATURE_COMMAND_EDITING(case caselabel)
+#define vi_case(caselabel) USE_FEATURE_EDITING(case caselabel)
 
 /* convert uppercase ascii to equivalent control char, for readability */
 #undef CTRL
@@ -1260,7 +1260,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 	unsigned int ic;
 	unsigned char c;
 	smallint break_out = 0;
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 	smallint vi_cmdmode = 0;
 	smalluint prevc;
 #endif
@@ -1309,7 +1309,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 		}
 	}
 #endif
-#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
+#if ENABLE_FEATURE_TAB_COMPLETION
 	my_uid = getuid();
 	my_gid = getgid();
 #endif
@@ -1326,7 +1326,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 
 		ic = c;
 
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 		newdelflag = 1;
 		if (vi_cmdmode)
 			ic |= vbit;
@@ -1453,7 +1453,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 				input_backspace();
 			break;
 
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 		case 'i'|vbit:
 			vi_cmdmode = 0;
 			break;
@@ -1584,7 +1584,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 
 		case '\x1b': /* ESC */
 
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 			if (state->flags & VI_MODE) {
 				/* ESC: insert mode --> command mode */
 				vi_cmdmode = 1;
@@ -1612,7 +1612,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 			}
 
 			switch (c) {
-#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
+#if ENABLE_FEATURE_TAB_COMPLETION
 			case '\t':                      /* Alt-Tab */
 				input_tab(&lastWasTab);
 				break;
@@ -1679,7 +1679,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 			} else
 #endif
 
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 			if (vi_cmdmode)  /* Don't self-insert */
 				break;
 #endif
@@ -1722,11 +1722,11 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 		command[command_len] = '\0';
 	}
 
-#if ENABLE_FEATURE_CLEAN_UP && ENABLE_FEATURE_COMMAND_TAB_COMPLETION
+#if ENABLE_FEATURE_CLEAN_UP && ENABLE_FEATURE_TAB_COMPLETION
 	free_tab_completion_data();
 #endif
 
-#if ENABLE_FEATURE_SH_FANCY_PROMPT
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
 	free((char*)cmdedit_prompt);
 #endif
 	/* restore initial_settings */
@@ -1772,7 +1772,7 @@ int main(int argc, char **argv)
 {
 	char buff[BUFSIZ];
 	char *prompt =
-#if ENABLE_FEATURE_SH_FANCY_PROMPT
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
 		"\\[\\033[32;1m\\]\\u@\\[\\x1b[33;1m\\]\\h:"
 		"\\[\\033[34;1m\\]\\w\\[\\033[35;1m\\] "
 		"\\!\\[\\e[36;1m\\]\\$ \\[\\E[0m\\]";

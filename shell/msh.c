@@ -58,7 +58,7 @@ int mshdbg_rc = 0;
 #endif							/* MSHDEBUG */
 
 
-#ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
 # define DEFAULT_ROOT_PROMPT "\\u:\\w> "
 # define DEFAULT_USER_PROMPT "\\u:\\w$ "
 #else
@@ -776,7 +776,7 @@ void print_tree(struct op *head)
 #endif							/* MSHDEBUG */
 
 
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 static char *current_prompt;
 #endif
 
@@ -786,7 +786,7 @@ static char *current_prompt;
  */
 
 
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 static line_input_t *line_input_state;
 #endif
 
@@ -798,7 +798,7 @@ int msh_main(int argc, char **argv)
 	char *name, **ap;
 	int (*iof) (struct ioarg *);
 
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL);
 #endif
 
@@ -847,7 +847,7 @@ int msh_main(int argc, char **argv)
 #endif
 
 	prompt = lookup("PS1");
-#ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
 	if (prompt->value == null)
 #endif
 		setval(prompt, DEFAULT_USER_PROMPT);
@@ -856,7 +856,7 @@ int msh_main(int argc, char **argv)
 		prompt->status &= ~EXPORT;
 	}
 	cprompt = lookup("PS2");
-#ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
 	if (cprompt->value == null)
 #endif
 		setval(cprompt, "> ");
@@ -929,7 +929,7 @@ int msh_main(int argc, char **argv)
 		PUSHIO(afile, 0, iof);
 		if (isatty(0) && isatty(1) && !cflag) {
 			interactive++;
-#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
 #ifdef MSHDEBUG
 			printf("\n\n%s Built-in shell (msh with debug)\n", BB_BANNER);
 #else
@@ -971,7 +971,7 @@ int msh_main(int argc, char **argv)
 
 	for (;;) {
 		if (interactive && e.iop <= iostack) {
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 			current_prompt = prompt->value;
 #else
 			prs(prompt->value);
@@ -2378,7 +2378,7 @@ static int yylex(int cf)
 		startl = 1;
 		if (multiline || cf & CONTIN) {
 			if (interactive && e.iop <= iostack) {
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 				current_prompt = cprompt->value;
 #else
 				prs(cprompt->value);
@@ -2439,7 +2439,7 @@ static int collect(int c, int c1)
 			return YYERRCODE;
 		}
 		if (interactive && c == '\n' && e.iop <= iostack) {
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 			current_prompt = cprompt->value;
 #else
 			prs(cprompt->value);
@@ -3289,7 +3289,7 @@ static int dohelp(struct op *t)
 			col = 0;
 		}
 	}
-#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	{
 		int i;
 		const struct BB_applet *applet;
@@ -4673,7 +4673,7 @@ static int readc(void)
 					return e.iop->prev = 0;
 				}
 				if (interactive && e.iop == iostack + 1) {
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 					current_prompt = prompt->value;
 #else
 					prs(prompt->value);
@@ -4905,7 +4905,7 @@ static int filechar(struct ioarg *ap)
 		ap->afpos++;
 		return *bp->bufp++ & 0177;
 	}
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 	if (interactive && isatty(ap->afile)) {
 		static char mycommand[BUFSIZ];
 		static int position = 0, size = 0;
@@ -5156,7 +5156,7 @@ static void readhere(char **name, char *s, int ec)
 		e.iobase = e.iop;
 		for (;;) {
 			if (interactive && e.iop <= iostack) {
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 				current_prompt = cprompt->value;
 #else
 				prs(cprompt->value);

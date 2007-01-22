@@ -365,7 +365,7 @@ static int builtin_export(struct child_prog *child)
 	res = putenv(v);
 	if (res)
 		bb_perror_msg("export");
-#ifdef CONFIG_FEATURE_SH_FANCY_PROMPT
+#ifdef CONFIG_FEATURE_EDITING_FANCY_PROMPT
 	if (strncmp(v, "PS1=", 4)==0)
 		PS1 = getenv("PS1");
 #endif
@@ -613,7 +613,7 @@ static inline void restore_redirects(int squirrel[])
 
 static inline void cmdedit_set_initial_prompt(void)
 {
-#ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
+#if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
 	PS1 = NULL;
 #else
 	PS1 = getenv("PS1");
@@ -624,7 +624,7 @@ static inline void cmdedit_set_initial_prompt(void)
 
 static inline void setup_prompt_string(char **prompt_str)
 {
-#ifndef CONFIG_FEATURE_SH_FANCY_PROMPT
+#if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
 	/* Set up the prompt */
 	if (shell_context == 0) {
 		free(PS1);
@@ -639,7 +639,7 @@ static inline void setup_prompt_string(char **prompt_str)
 #endif
 }
 
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 static line_input_t *line_input_state;
 #endif
 
@@ -661,7 +661,7 @@ static int get_command(FILE * source, char *command)
 	if (source == stdin) {
 		setup_prompt_string(&prompt_str);
 
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 		/*
 		** enable command line editing only while a command line
 		** is actually being read; otherwise, we'll end up bequeathing
@@ -1507,7 +1507,7 @@ int lash_main(int argc_l, char **argv_l)
 	argc = argc_l;
 	argv = argv_l;
 
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL);
 #endif
 
@@ -1572,7 +1572,7 @@ int lash_main(int argc_l, char **argv_l)
 
 	if (ENABLE_FEATURE_CLEAN_UP) atexit(free_memory);
 
-	if (ENABLE_FEATURE_COMMAND_EDITING) cmdedit_set_initial_prompt();
+	if (ENABLE_FEATURE_EDITING) cmdedit_set_initial_prompt();
 	else PS1 = NULL;
 
 	return (busy_loop(input));

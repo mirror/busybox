@@ -46,6 +46,7 @@ lib-y += inode_hash.o
 lib-y += isdirectory.o
 lib-y += kernel_version.o
 lib-y += last_char_is.o
+lib-y += lineedit.o
 lib-y += llist.o
 lib-y += login.o
 lib-y += make_directory.o

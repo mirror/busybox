@@ -26,4 +26,63 @@ config MD5_SIZE_VS_SPEED
 	  2                   3.0                5088
 	  3 (smallest)        5.1                4912
 
+config FEATURE_EDITING
+	bool "Command line editing"
+	default n
+	help
+	  Enable command editing (mainly for shell).
+
+config FEATURE_EDITING_FANCY_KEYS
+	bool "Additional editing keys"
+	default n
+	depends on FEATURE_EDITING
+	help
+	  Enable additonal editing keys (Ctrl-E, Ctrl-U etc).
+	  Arrow keys, Home/End/Delete and Ctrl-W work even without this option.
+
+config FEATURE_EDITING_VI
+	bool "vi-style line editing commands"
+	default n
+	depends on FEATURE_EDITING
+	help
+	  Enable vi-style line editing.  In shells, this mode can be
+	  turned on and off with "set -o vi" and "set +o vi".
+
+config FEATURE_EDITING_HISTORY
+	int "History size"
+	range 0 99999
+	default 15
+	depends on FEATURE_EDITING
+	help
+	  Specify command history size.
+
+config FEATURE_EDITING_SAVEHISTORY
+	bool "History saving"
+	default n
+	depends on ASH && FEATURE_EDITING
+	help
+	  Enable history saving in ash shell.
+
+config FEATURE_TAB_COMPLETION
+	bool "Tab completion"
+	default n
+	depends on FEATURE_EDITING
+	help
+	  Enable tab completion.
+
+config FEATURE_USERNAME_COMPLETION
+	bool "Username completion"
+	default n
+	depends on FEATURE_TAB_COMPLETION
+	help
+	  Enable username completion.
+
+config FEATURE_EDITING_FANCY_PROMPT
+	bool "Fancy shell prompts"
+	default n
+	depends on FEATURE_EDITING
+	help
+	  Setting this option allows for prompts to use things like \w and
+	  \$ and escape codes.
+
 endmenu

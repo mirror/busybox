@@ -1528,7 +1528,7 @@ static struct var varinit[] = {
 	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_ALL\0", change_lc_all },
 	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE\0", change_lc_ctype },
 #endif
-#if ENABLE_FEATURE_COMMAND_SAVEHISTORY
+#if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE\0", NULL },
 #endif
 };
@@ -1654,7 +1654,7 @@ static void initvar(void)
 	/*
 	 * PS1 depends on uid
 	 */
-#if defined(CONFIG_FEATURE_COMMAND_EDITING) && defined(CONFIG_FEATURE_SH_FANCY_PROMPT)
+#if ENABLE_FEATURE_EDITING && ENABLE_FEATURE_EDITING_FANCY_PROMPT
 	vps1.text = "PS1=\\w \\$ ";
 #else
 	if (!geteuid())
@@ -6040,7 +6040,7 @@ static char * pfgets(char *line, int len)
 }
 
 
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 static line_input_t *line_input_state;
 //static SKIP_ASH_EXPAND_PRMT(const) char *cmdedit_prompt;
 static const char *cmdedit_prompt;
@@ -6060,7 +6060,7 @@ static void putprompt(const char *s)
 }
 #endif
 
-#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#if ENABLE_FEATURE_EDITING_VI
 #define setvimode(on) do { \
 	if (on) line_input_state->flags |= VI_MODE; \
 	else line_input_state->flags &= ~VI_MODE; \
@@ -6077,11 +6077,11 @@ static int preadfd(void)
 	parsenextc = buf;
 
 retry:
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 	if (!iflag || parsefile->fd)
 		nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	else {
-#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
+#if ENABLE_FEATURE_TAB_COMPLETION
 		line_input_state->path_lookup = pathval();
 #endif
 		nr = read_line_input(cmdedit_prompt, buf, BUFSIZ, line_input_state);
@@ -7916,7 +7916,7 @@ ash_main(int argc, char **argv)
 	monitor(4, etext, profile_buf, sizeof profile_buf, 50);
 #endif
 
-#if ENABLE_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_EDITING
 	line_input_state = new_line_input_t(FOR_SHELL | WITH_PATH_LOOKUP);
 #endif
 	state = 0;
@@ -7960,7 +7960,7 @@ ash_main(int argc, char **argv)
 	init();
 	setstackmark(&smark);
 	procargs(argc, argv);
-#if ENABLE_FEATURE_COMMAND_SAVEHISTORY
+#if ENABLE_FEATURE_EDITING_SAVEHISTORY
 	if (iflag) {
 		const char *hp = lookupvar("HISTFILE");
 
@@ -8001,7 +8001,7 @@ state3:
 		evalstring(minusc, 0);
 
 	if (sflag || minusc == NULL) {
-#if ENABLE_FEATURE_COMMAND_SAVEHISTORY
+#if ENABLE_FEATURE_EDITING_SAVEHISTORY
 		if ( iflag ) {
 			const char *hp = lookupvar("HISTFILE");
 
