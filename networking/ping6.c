@@ -1,6 +1,5 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping6.c,v 1.6 2004/03/15 08:28:48 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
@@ -67,7 +66,7 @@ static void ping(const char *host)
 
 	pingsock = create_icmp6_socket();
 
-	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
+	memset(&pingaddr, 0, sizeof(pingaddr));
 
 	pingaddr.sin6_family = AF_INET6;
 	h = xgethostbyname2(host, AF_INET6);
@@ -196,7 +195,7 @@ static void sendping(int junk)
 	pkt->icmp6_cksum = 0;
 	pkt->icmp6_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp6_id = myid;
-	CLR(pkt->icmp6_seq % MAX_DUP_CHK);
+	CLR((uint16_t)ntransmitted % MAX_DUP_CHK);
 	ntransmitted++;
 
 	gettimeofday((struct timeval *) &pkt->icmp6_data8[4], NULL);
@@ -220,7 +219,7 @@ static void sendping(int junk)
 	}
 }
 
-/* RFC3542 changed some definitions from RFC2292 for no good reason, whee !
+/* RFC3542 changed some definitions from RFC2292 for no good reason, whee!
  * the newer 3542 uses a MLD_ prefix where as 2292 uses ICMP6_ prefix */
 #ifndef MLD_LISTENER_QUERY
 # define MLD_LISTENER_QUERY ICMP6_MEMBERSHIP_QUERY
@@ -234,16 +233,16 @@ static void sendping(int junk)
 static char *icmp6_type_name(int id)
 {
 	switch (id) {
-	case ICMP6_DST_UNREACH:         return "Destination Unreachable";
-	case ICMP6_PACKET_TOO_BIG:      return "Packet too big";
-	case ICMP6_TIME_EXCEEDED:       return "Time Exceeded";
-	case ICMP6_PARAM_PROB:          return "Parameter Problem";
-	case ICMP6_ECHO_REPLY:          return "Echo Reply";
-	case ICMP6_ECHO_REQUEST:        return "Echo Request";
-	case MLD_LISTENER_QUERY:        return "Listener Query";
-	case MLD_LISTENER_REPORT:       return "Listener Report";
-	case MLD_LISTENER_REDUCTION:	return "Listener Reduction";
-	default:                        return "unknown ICMP type";
+	case ICMP6_DST_UNREACH:      return "Destination Unreachable";
+	case ICMP6_PACKET_TOO_BIG:   return "Packet too big";
+	case ICMP6_TIME_EXCEEDED:    return "Time Exceeded";
+	case ICMP6_PARAM_PROB:       return "Parameter Problem";
+	case ICMP6_ECHO_REPLY:       return "Echo Reply";
+	case ICMP6_ECHO_REQUEST:     return "Echo Request";
+	case MLD_LISTENER_QUERY:     return "Listener Query";
+	case MLD_LISTENER_REPORT:    return "Listener Report";
+	case MLD_LISTENER_REDUCTION: return "Listener Reduction";
+	default:                     return "unknown ICMP type";
 	}
 }
 
@@ -266,6 +265,7 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 		return;				/* not our ping */
 
 	if (icmppkt->icmp6_type == ICMP6_ECHO_REPLY) {
+		uint16_t recv_seq = ntohs(icmppkt->icmp6_seq);
 		++nreceived;
 		tp = (struct timeval *) &icmppkt->icmp6_data8[4];
 
@@ -282,12 +282,12 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 		if (triptime > tmax)
 			tmax = triptime;
 
-		if (TST(icmppkt->icmp6_seq % MAX_DUP_CHK)) {
+		if (TST(recv_seq % MAX_DUP_CHK)) {
 			++nrepeats;
 			--nreceived;
 			dupflag = 1;
 		} else {
-			SET(icmppkt->icmp6_seq % MAX_DUP_CHK);
+			SET(recv_seq % MAX_DUP_CHK);
 			dupflag = 0;
 		}
 
@@ -297,16 +297,19 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 		printf("%d bytes from %s: icmp6_seq=%u", sz,
 			   inet_ntop(AF_INET6, &pingaddr.sin6_addr,
 						 buf, sizeof(buf)),
-			   ntohs(icmppkt->icmp6_seq));
+			   recv_seq);
 		printf(" ttl=%d time=%lu.%lu ms", hoplimit,
 			   triptime / 10, triptime % 10);
 		if (dupflag)
 			printf(" (DUP!)");
 		puts("");
-	} else
+	} else {
 		if (icmppkt->icmp6_type != ICMP6_ECHO_REQUEST)
 			bb_error_msg("warning: got ICMP %d (%s)",
-					icmppkt->icmp6_type, icmp6_type_name(icmppkt->icmp6_type));
+					icmppkt->icmp6_type,
+					icmp6_type_name(icmppkt->icmp6_type));
+	}
+	fflush(stdout);
 }
 
 static void ping(const char *host)
@@ -321,7 +324,7 @@ static void ping(const char *host)
 
 	pingsock = create_icmp6_socket();
 
-	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
+	memset(&pingaddr, 0, sizeof(pingaddr));
 
 	pingaddr.sin6_family = AF_INET6;
 	hostent = xgethostbyname2(host, AF_INET6);
@@ -431,7 +434,7 @@ int ping6_main(int argc, char **argv)
 				"%s: invalid interface name", opt_I);
 	}
 
-	myid = (int16_t)getpid();
+	myid = (int16_t) getpid();
 	ping(argv[optind]);
 	return EXIT_SUCCESS;
 }

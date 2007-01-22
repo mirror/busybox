@@ -1707,7 +1707,7 @@ chargen_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
  * some seventy years Bell Labs was asleep.
  */
 
-static u_int machtime(void)
+static unsigned machtime(void)
 {
 	struct timeval tv;
 
@@ -1715,14 +1715,14 @@ static u_int machtime(void)
 		fprintf(stderr, "Unable to get time of day\n");
 		return 0L;
 	}
-	return htonl((u_int) tv.tv_sec + 2208988800UL);
+	return htonl((unsigned) tv.tv_sec + 2208988800UL);
 }
 
 /* ARGSUSED */
 static void
 machtime_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
-	u_int result;
+	unsigned result;
 
 	result = machtime();
 	(void) write(s, (char *) &result, sizeof(result));
@@ -1732,7 +1732,7 @@ machtime_stream(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 static void
 machtime_dg(int s, servtab_t *sep ATTRIBUTE_UNUSED)
 {
-	u_int result;
+	unsigned result;
 	/* struct sockaddr_storage ss; */
 	struct sockaddr sa;
 	struct sockaddr_in *dg_sin;

@@ -171,7 +171,7 @@ static void input_backward(unsigned num)
 	if (cmdedit_x >= num) {
 		cmdedit_x -= num;
 		if (num <= 4) {
-			do putchar('\b'); while (--num);
+			printf("\b\b\b\b" + (4-num));
 			return;
 		}
 		printf("\033[%uD", num);
@@ -183,7 +183,7 @@ static void input_backward(unsigned num)
 	count_y = 1 + (num / cmdedit_termw);
 	cmdedit_y -= count_y;
 	cmdedit_x = cmdedit_termw * count_y - num;
-	/* go to 1st col; go up; go to correct column */
+	/* go to 1st column; go up; go to correct column */
 	printf("\r" "\033[%dA" "\033[%dC", count_y, cmdedit_x);
 }
 

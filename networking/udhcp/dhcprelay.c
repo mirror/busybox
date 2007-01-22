@@ -22,7 +22,7 @@
 
 /* This list holds information about clients. The xid_* functions manipulate this list. */
 static struct xid_item {
-	u_int32_t xid;
+	uint32_t xid;
 	struct sockaddr_in ip;
 	int client;
 	time_t timestamp;
@@ -30,7 +30,7 @@ static struct xid_item {
 } dhcprelay_xid_list = {0, {0}, 0, 0, NULL};
 
 
-static struct xid_item * xid_add(u_int32_t xid, struct sockaddr_in *ip, int client)
+static struct xid_item * xid_add(uint32_t xid, struct sockaddr_in *ip, int client)
 {
 	struct xid_item *item;
 
@@ -67,7 +67,7 @@ static void xid_expire(void)
 	}
 }
 
-static struct xid_item * xid_find(u_int32_t xid)
+static struct xid_item * xid_find(uint32_t xid)
 {
 	struct xid_item *item = dhcprelay_xid_list.next;
 	while (item != NULL) {
@@ -79,7 +79,7 @@ static struct xid_item * xid_find(u_int32_t xid)
 	return NULL;
 }
 
-static void xid_del(u_int32_t xid)
+static void xid_del(uint32_t xid)
 {
 	struct xid_item *item = dhcprelay_xid_list.next;
 	struct xid_item *last = &dhcprelay_xid_list;

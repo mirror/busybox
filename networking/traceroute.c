@@ -268,7 +268,7 @@ struct  udpiphdr {
 struct hostinfo {
 	char *name;
 	int n;
-	u_int32_t *addrs;
+	uint32_t *addrs;
 };
 
 /* Data section of the probe packet */
@@ -279,7 +279,7 @@ struct outdata {
 };
 
 struct IFADDRLIST {
-	u_int32_t addr;
+	uint32_t addr;
 	char device[sizeof(struct ifreq)];
 };
 
@@ -299,9 +299,9 @@ static struct icmp *outicmp;           /* last output (icmp) packet */
 
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 /* Maximum number of gateways (include room for one noop) */
-#define NGATEWAYS ((int)((MAX_IPOPTLEN - IPOPT_MINOFF - 1) / sizeof(u_int32_t)))
+#define NGATEWAYS ((int)((MAX_IPOPTLEN - IPOPT_MINOFF - 1) / sizeof(uint32_t)))
 /* loose source route gateway list (including room for final destination) */
-static u_int32_t gwlist[NGATEWAYS + 1];
+static uint32_t gwlist[NGATEWAYS + 1];
 #endif
 
 static int s;                          /* receive (icmp) socket file descriptor */
@@ -429,7 +429,7 @@ ifaddrlist(struct IFADDRLIST **ipaddrp)
 
 
 static void
-setsin(struct sockaddr_in *addr_sin, u_int32_t addr)
+setsin(struct sockaddr_in *addr_sin, uint32_t addr)
 {
 	memset(addr_sin, 0, sizeof(*addr_sin));
 #ifdef HAVE_SOCKADDR_SA_LEN
@@ -448,8 +448,8 @@ findsaddr(const struct sockaddr_in *to, struct sockaddr_in *from)
 {
 	int i, n;
 	FILE *f;
-	u_int32_t mask;
-	u_int32_t dest, tmask;
+	uint32_t mask;
+	uint32_t dest, tmask;
 	struct IFADDRLIST *al;
 	char buf[256], tdevice[256], device[256];
 
@@ -641,7 +641,7 @@ send_probe(int seq, int ttl, struct timeval *tp)
 		int nshorts, i;
 
 		sp = (uint16_t *)outip;
-		nshorts = (u_int)packlen / sizeof(uint16_t);
+		nshorts = (unsigned)packlen / sizeof(uint16_t);
 		i = 0;
 		printf("[ %d bytes", packlen);
 		while (--nshorts >= 0) {
@@ -776,7 +776,7 @@ packet_ok(unsigned char *buf, int cc, struct sockaddr_in *from, int seq)
 #if ENABLE_FEATURE_TRACEROUTE_VERBOSE
 	if (verbose) {
 		int i;
-		u_int32_t *lp = (u_int32_t *)&icp->icmp_ip;
+		uint32_t *lp = (uint32_t *)&icp->icmp_ip;
 
 		printf("\n%d bytes from %s to "
 		       "%s: icmp type %d (%s) code %d\n",
@@ -838,7 +838,7 @@ gethostinfo(const char *host)
 	struct hostent *hp;
 	struct hostinfo *hi;
 	char **p;
-	u_int32_t addr, *ap;
+	uint32_t addr, *ap;
 
 	hi = xzalloc(sizeof(*hi));
 	addr = inet_addr(host);
@@ -874,7 +874,7 @@ freehostinfo(struct hostinfo *hi)
 
 #if ENABLE_FEATURE_TRACEROUTE_SOURCE_ROUTE
 static void
-getaddr(u_int32_t *ap, const char *host)
+getaddr(uint32_t *ap, const char *host)
 {
 	struct hostinfo *hi;
 
@@ -892,7 +892,7 @@ traceroute_main(int argc, char *argv[])
 
 	int code, n;
 	unsigned char *outp;
-	u_int32_t *ap;
+	uint32_t *ap;
 	struct sockaddr_in *from = (struct sockaddr_in *)&wherefrom;
 	struct sockaddr_in *to = (struct sockaddr_in *)&whereto;
 	struct hostinfo *hi;
@@ -915,7 +915,7 @@ traceroute_main(int argc, char *argv[])
 	int nprobes = 3;
 	char *nprobes_str = NULL;
 	char *waittime_str = NULL;
-	u_int pausemsecs = 0;
+	unsigned pausemsecs = 0;
 	char *pausemsecs_str = NULL;
 	int first_ttl = 1;
 	char *first_ttl_str = NULL;
@@ -1211,7 +1211,7 @@ traceroute_main(int argc, char *argv[])
 	(void)fflush(stderr);
 
 	for (ttl = first_ttl; ttl <= max_ttl; ++ttl) {
-		u_int32_t lastaddr = 0;
+		uint32_t lastaddr = 0;
 		int gotlastaddr = 0;
 		int got_there = 0;
 		int unreachable = 0;

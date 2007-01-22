@@ -1,13 +1,15 @@
 /* vi: set sw=4 ts=4: */
 /*
- * $Id: ping.c,v 1.56 2004/03/15 08:28:48 andersen Exp $
  * Mini ping implementation for busybox
  *
  * Copyright (C) 1999 by Randolph Chung <tausq@debian.org>
  *
  * Adapted from the ping in netkit-base 0.10:
  * Copyright (c) 1989 The Regents of the University of California.
- * Derived from software contributed to Berkeley by Mike Muuss.
+ * All rights reserved.
+ *
+ * This code is derived from software contributed to Berkeley by
+ * Mike Muuss.
  *
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
  */
@@ -74,7 +76,7 @@ static void ping(const char *host)
 
 	pingsock = create_icmp_socket();
 
-	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
+	memset(&pingaddr, 0, sizeof(pingaddr));
 
 	pingaddr.sin_family = AF_INET;
 	h = xgethostbyname(host);
@@ -202,7 +204,7 @@ static void sendping(int junk)
 	pkt->icmp_cksum = 0;
 	pkt->icmp_seq = htons(ntransmitted); /* don't ++ here, it can be a macro */
 	pkt->icmp_id = myid;
-	CLR(ntohs(pkt->icmp_seq) % MAX_DUP_CHK);
+	CLR((uint16_t)ntransmitted % MAX_DUP_CHK);
 	ntransmitted++;
 
 	gettimeofday((struct timeval *) &pkt->icmp_dun, NULL);
@@ -230,20 +232,20 @@ static void sendping(int junk)
 static char *icmp_type_name(int id)
 {
 	switch (id) {
-	case ICMP_ECHOREPLY:		return "Echo Reply";
-	case ICMP_DEST_UNREACH:		return "Destination Unreachable";
-	case ICMP_SOURCE_QUENCH:	return "Source Quench";
-	case ICMP_REDIRECT:			return "Redirect (change route)";
-	case ICMP_ECHO:				return "Echo Request";
-	case ICMP_TIME_EXCEEDED:	return "Time Exceeded";
-	case ICMP_PARAMETERPROB:	return "Parameter Problem";
-	case ICMP_TIMESTAMP:		return "Timestamp Request";
-	case ICMP_TIMESTAMPREPLY:	return "Timestamp Reply";
-	case ICMP_INFO_REQUEST:		return "Information Request";
-	case ICMP_INFO_REPLY:		return "Information Reply";
-	case ICMP_ADDRESS:			return "Address Mask Request";
-	case ICMP_ADDRESSREPLY:		return "Address Mask Reply";
-	default:					return "unknown ICMP type";
+	case ICMP_ECHOREPLY:      return "Echo Reply";
+	case ICMP_DEST_UNREACH:   return "Destination Unreachable";
+	case ICMP_SOURCE_QUENCH:  return "Source Quench";
+	case ICMP_REDIRECT:       return "Redirect (change route)";
+	case ICMP_ECHO:           return "Echo Request";
+	case ICMP_TIME_EXCEEDED:  return "Time Exceeded";
+	case ICMP_PARAMETERPROB:  return "Parameter Problem";
+	case ICMP_TIMESTAMP:      return "Timestamp Request";
+	case ICMP_TIMESTAMPREPLY: return "Timestamp Reply";
+	case ICMP_INFO_REQUEST:   return "Information Request";
+	case ICMP_INFO_REPLY:     return "Information Reply";
+	case ICMP_ADDRESS:        return "Address Mask Request";
+	case ICMP_ADDRESSREPLY:   return "Address Mask Reply";
+	default:                  return "unknown ICMP type";
 	}
 }
 
@@ -270,7 +272,7 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 		return;				/* not our ping */
 
 	if (icmppkt->icmp_type == ICMP_ECHOREPLY) {
-		u_int16_t recv_seq = ntohs(icmppkt->icmp_seq);
+		uint16_t recv_seq = ntohs(icmppkt->icmp_seq);
 		++nreceived;
 		tp = (struct timeval *) icmppkt->icmp_data;
 
@@ -307,11 +309,12 @@ static void unpack(char *buf, int sz, struct sockaddr_in *from)
 		if (dupflag)
 			printf(" (DUP!)");
 		puts("");
-	} else
+	} else {
 		if (icmppkt->icmp_type != ICMP_ECHO)
 			bb_error_msg("warning: got ICMP %d (%s)",
 					icmppkt->icmp_type,
 					icmp_type_name(icmppkt->icmp_type));
+	}
 	fflush(stdout);
 }
 
@@ -326,7 +329,7 @@ static void ping(const char *host)
 		xbind(pingsock, (struct sockaddr*)&sourceaddr, sizeof(sourceaddr));
 	}
 
-	memset(&pingaddr, 0, sizeof(struct sockaddr_in));
+	memset(&pingaddr, 0, sizeof(pingaddr));
 
 	pingaddr.sin_family = AF_INET;
 	hostent = xgethostbyname(host);
@@ -339,7 +342,7 @@ static void ping(const char *host)
 	setsockopt_broadcast(pingsock);
 
 	/* set recv buf for broadcast pings */
-	sockopt = 48 * 1024;
+	sockopt = 48 * 1024; /* explain why 48k? */
 	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, (char *) &sockopt,
 			   sizeof(sockopt));
 
