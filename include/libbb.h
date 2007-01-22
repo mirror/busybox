@@ -228,7 +228,7 @@ extern void trim(char *s);
 extern char *skip_whitespace(const char *);
 extern char *skip_non_whitespace(const char *);
 
-extern const char *bb_mode_string(int mode);
+extern const char *bb_mode_string(mode_t mode);
 extern int is_directory(const char *name, int followLinks, struct stat *statBuf);
 extern int remove_file(const char *path, int flags);
 extern int copy_file(const char *source, const char *dest, int flags);
