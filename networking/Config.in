@@ -12,6 +12,14 @@ config FEATURE_IPV6
 	  Enable IPv6 support in busybox.
 	  This adds IPv6 support in the networking applets.
 
+config VERBOSE_RESOLUTION_ERRORS
+	bool "Verbose resolution errors"
+	default n
+	help
+	  Enable if you are not satisfied with simplistic
+	  "can't resolve 'hostname.com'" and want to know more.
+	  This may increase size of your executable a bit.
+
 config ARP
 	bool "arp"
 	default n

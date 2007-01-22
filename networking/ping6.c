@@ -48,8 +48,6 @@ static void ping(const char *host);
 
 /* simple version */
 
-//static struct hostent *h;
-
 static void noresp(int ign)
 {
 	printf("No response from %s\n", h->h_name);
@@ -58,7 +56,7 @@ static void noresp(int ign)
 
 static void ping(const char *host)
 {
-	len_and_sockaddr *lsa;//
+	len_and_sockaddr *lsa;
 	struct sockaddr_in6 pingaddr;
 	struct icmp6_hdr *pkt;
 	int pingsock, c;
@@ -67,10 +65,6 @@ static void ping(const char *host)
 
 	pingsock = create_icmp6_socket();
 
-	//memset(&pingaddr, 0, sizeof(pingaddr));
-	//pingaddr.sin6_family = AF_INET6;
-	//h = xgethostbyname2(host, AF_INET6);
-	//memcpy(&pingaddr.sin6_addr, h->h_addr, sizeof(pingaddr.sin6_addr));
 	lsa = host_and_af2sockaddr(host, 0, AF_INET6);
 	pingaddr = lsa->sin6;
 
@@ -144,8 +138,7 @@ static int myid;
 static unsigned long tmin = ULONG_MAX, tmax, tsum;
 static char rcvd_tbl[MAX_DUP_CHK / 8];
 
-//static struct hostent *hostent;
-char *hostname;
+static char *hostname;
 
 static void sendping(int);
 static void pingstats(int);
@@ -318,7 +311,7 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 extern int BUG_bad_offsetof_icmp6_cksum(void);
 static void ping(const char *host)
 {
-	len_and_sockaddr *lsa;//
+	len_and_sockaddr *lsa;
 	char packet[datalen + MAXIPLEN + MAXICMPLEN];
 	char buf[INET6_ADDRSTRLEN];
 	int sockopt;
@@ -329,12 +322,6 @@ static void ping(const char *host)
 
 	pingsock = create_icmp6_socket();
 
-	//memset(&pingaddr, 0, sizeof(pingaddr));
-	//pingaddr.sin6_family = AF_INET6;
-	//hostent = xgethostbyname2(host, AF_INET6);
-	//if (hostent->h_addrtype != AF_INET6)
-	//	bb_error_msg_and_die("unknown address type; only AF_INET6 is currently supported");
-	//memcpy(&pingaddr.sin6_addr, hostent->h_addr, sizeof(pingaddr.sin6_addr));
 	lsa = host_and_af2sockaddr(host, 0, AF_INET6);
 	hostname = xmalloc_sockaddr2host_noport(&lsa->sa, lsa->len);
 	pingaddr = lsa->sin6;

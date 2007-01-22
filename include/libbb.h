@@ -336,12 +336,10 @@ char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t sale
 char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
 char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen);
 // "old" (ipv4 only) API
-//void bb_lookup_host(struct sockaddr_in *s_in, const char *host);
-//int xconnect_tcp_v4(struct sockaddr_in *s_addr);
 // users: traceroute.c hostname.c ifconfig.c ping.c
 struct hostent *xgethostbyname(const char *name);
-//// ping6 is the only user - convert to new API
-//struct hostent *xgethostbyname2(const char *name, int af);
+//TODO: eliminate gethostbyname2 in arping (the only remaining place),
+//use host_and_af2sockaddr instead.
 
 
 extern char *xstrdup(const char *s);

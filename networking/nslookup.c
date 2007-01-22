@@ -47,57 +47,8 @@
  * ns3.kernel.org  internet address = 204.152.191.36
  */
 
-/*static int sockaddr_to_dotted(struct sockaddr *saddr, char *buf, int buflen)
-{
-	if (buflen <= 0) return -1;
-	buf[0] = '\0';
-	if (saddr->sa_family == AF_INET) {
-		inet_ntop(AF_INET, &((struct sockaddr_in*)saddr)->sin_addr, buf, buflen);
-		return 0;
-	}
-	if (saddr->sa_family == AF_INET6) {
-		inet_ntop(AF_INET6, &((struct sockaddr_in6*)saddr)->sin6_addr, buf, buflen);
-		return 0;
-	}
-	return -1;
-}
-*/
-
 static int print_host(const char *hostname, const char *header)
 {
-#if 0
-	char str[128];	/* IPv6 address will fit, hostnames hopefully too */
-	struct addrinfo *result = NULL;
-	int rc;
-	struct addrinfo hint;
-
-	memset(&hint, 0 , sizeof(hint));
-	/* hint.ai_family = AF_UNSPEC; - zero anyway */
-	/* Needed. Or else we will get each address thrice (or more)
-	 * for each possible socket type (tcp,udp,raw...): */
-	hint.ai_socktype = SOCK_STREAM;
-	// hint.ai_flags = AI_CANONNAME;
-	rc = getaddrinfo(hostname, NULL /*service*/, &hint, &result);
-
-	if (!rc) {
-		struct addrinfo *cur = result;
-		// printf("%s\n", cur->ai_canonname); ?
-		while (cur) {
-			sockaddr_to_dotted(cur->ai_addr, str, sizeof(str));
-			printf("%s  %s\nAddress: %s", header, hostname, str);
-			str[0] = ' ';
-			if (getnameinfo(cur->ai_addr, cur->ai_addrlen, str+1, sizeof(str)-1, NULL, 0, NI_NAMEREQD))
-				str[0] = '\0';
-			puts(str);
-			cur = cur->ai_next;
-		}
-	} else {
-		bb_error_msg("getaddrinfo('%s') failed: %s", hostname, gai_strerror(rc));
-	}
-	freeaddrinfo(result);
-	return (rc != 0);
-
-#else
 	/* We can't use host2sockaddr() - we want to get ALL addresses,
 	 * not just one */
 
@@ -136,7 +87,7 @@ static int print_host(const char *hostname, const char *header)
 		}
 	} else {
 #if ENABLE_VERBOSE_RESOLUTION_ERRORS
-		bb_error_msg("getaddrinfo('%s') failed: %s", hostname, gai_strerror(rc));
+		bb_error_msg("can't resolve '%s': %s", hostname, gai_strerror(rc));
 #else
 		bb_error_msg("can't resolve '%s'", hostname);
 #endif
@@ -144,9 +95,7 @@ static int print_host(const char *hostname, const char *header)
 	if (ENABLE_FEATURE_CLEAN_UP)
 		freeaddrinfo(result);
 	return (rc != 0);
-#endif
 }
-
 
 /* lookup the default nameserver and display it */
 static void server_print(void)
@@ -167,7 +116,6 @@ static void server_print(void)
 	puts("");
 }
 
-
 /* alter the global _res nameserver structure to use
    an explicit dns server instead of what is in /etc/resolv.h */
 static void set_default_dns(char *server)
@@ -179,7 +127,6 @@ static void set_default_dns(char *server)
 		_res.nsaddr_list[0].sin_addr = server_in_addr;
 	}
 }
-
 
 int nslookup_main(int argc, char **argv)
 {
