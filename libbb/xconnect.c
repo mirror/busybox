@@ -245,25 +245,36 @@ int xconnect_stream(const len_and_sockaddr *lsa)
 	return fd;
 }
 
+/* We hijack this constant to mean something else */
+/* It doesn't hurt because we will add this bit anyway */
+#define IGNORE_PORT NI_NUMERICSERV
 static char* sockaddr2str(const struct sockaddr *sa, socklen_t salen, int flags)
 {
 	char host[128];
 	char serv[16];
 	int rc = getnameinfo(sa, salen,
 			host, sizeof(host),
+	/* can do ((flags & IGNORE_PORT) ? NULL : serv) but why bother? */
 			serv, sizeof(serv),
 			/* do not resolve port# into service _name_ */
 			flags | NI_NUMERICSERV
 	);
 	if (rc)
 		return NULL;
+	if (flags & IGNORE_PORT)
+		return xstrdup(host);
 #if ENABLE_FEATURE_IPV6
-	if (sa->sa_family == AF_INET6)
-		return xasprintf("[%s]:%s", host, serv);
+	if (sa->sa_family == AF_INET6) {
+		if (strchr(host, ':')) /* heh, it's not a resolved hostname */
+			return xasprintf("[%s]:%s", host, serv);
+		/*return xasprintf("%s:%s", host, serv);*/
+		/* - fall through instead */
+	}
 #endif
 	/* For now we don't support anything else, so it has to be INET */
 	/*if (sa->sa_family == AF_INET)*/
 		return xasprintf("%s:%s", host, serv);
+	/*return xstrdup(host);*/
 }
 
 char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen)
@@ -271,7 +282,16 @@ char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen)
 	return sockaddr2str(sa, salen, 0);
 }
 
+char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t salen)
+{
+	return sockaddr2str(sa, salen, NI_NAMEREQD | IGNORE_PORT);
+}
 char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen)
 {
 	return sockaddr2str(sa, salen, NI_NUMERICHOST);
+}
+
+char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen)
+{
+	return sockaddr2str(sa, salen, NI_NUMERICHOST | IGNORE_PORT);
 }

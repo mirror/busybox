@@ -278,12 +278,12 @@ extern off_t xlseek(int fd, off_t offset, int whence);
 extern off_t fdlength(int fd);
 
 
-extern int xsocket(int domain, int type, int protocol);
-extern void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
-extern void xlisten(int s, int backlog);
-extern void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen);
-extern int setsockopt_reuseaddr(int fd);
-extern int setsockopt_broadcast(int fd);
+int xsocket(int domain, int type, int protocol);
+void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
+void xlisten(int s, int backlog);
+void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen);
+int setsockopt_reuseaddr(int fd);
+int setsockopt_broadcast(int fd);
 /* NB: returns port in host byte order */
 unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port);
 typedef struct len_and_sockaddr {
@@ -303,34 +303,39 @@ int xsocket_stream(len_and_sockaddr **lsap);
  * numeric IP ("N.N.N.N") or numeric IPv6 address,
  * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
  * If there is no suffix, port argument is used */
-extern int create_and_bind_stream_or_die(const char *bindaddr, int port);
+int create_and_bind_stream_or_die(const char *bindaddr, int port);
 /* Create client TCP socket connected to peer:port. Peer cannot be NULL.
  * Peer can be numeric IP ("N.N.N.N"), numeric IPv6 address or hostname,
  * and can have ":PORT" suffix (for IPv6 use "[X:X:...:X]:PORT").
  * If there is no suffix, port argument is used */
-extern int create_and_connect_stream_or_die(const char *peer, int port);
+int create_and_connect_stream_or_die(const char *peer, int port);
 /* Connect to peer identified by lsa */
-extern int xconnect_stream(const len_and_sockaddr *lsa);
+int xconnect_stream(const len_and_sockaddr *lsa);
 /* Return malloc'ed len_and_sockaddr with socket address of host:port
  * Currently will return IPv4 or IPv6 sockaddrs only
  * (depending on host), but in theory nothing prevents e.g.
  * UNIX socket address being returned, IPX sockaddr etc... */
-extern len_and_sockaddr* host2sockaddr(const char *host, int port);
+len_and_sockaddr* host2sockaddr(const char *host, int port);
 /* Assign sin[6]_port member if the socket is of corresponding type,
  * otherwise no-op. Useful for ftp.
  * NB: does NOT do htons() internally, just direct assignment. */
-extern void set_nport(len_and_sockaddr *lsa, unsigned port);
+void set_nport(len_and_sockaddr *lsa, unsigned port);
 /* Retrieve sin[6]_port or return -1 for non-INET[6] lsa's */
-extern int get_nport(len_and_sockaddr *lsa);
-extern char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
-extern char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
+int get_nport(len_and_sockaddr *lsa);
+/* Reverse DNS */
+char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
+/* This one deosn't fall back to dotted IP and do not append :PORTNUM */
+char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t salen);
+/* inet_[ap]ton on steroids */
+char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
+char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen);
 // "old" (ipv4 only) API
 //void bb_lookup_host(struct sockaddr_in *s_in, const char *host);
-//extern int xconnect_tcp_v4(struct sockaddr_in *s_addr);
+//int xconnect_tcp_v4(struct sockaddr_in *s_addr);
 // users: traceroute.c hostname.c ifconfig.c ping.c
-extern struct hostent *xgethostbyname(const char *name);
+struct hostent *xgethostbyname(const char *name);
 // ping6 is the only user - convert to new API
-extern struct hostent *xgethostbyname2(const char *name, int af);
+struct hostent *xgethostbyname2(const char *name, int af);
 
 
 extern char *xstrdup(const char *s);
