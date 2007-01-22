@@ -255,9 +255,9 @@ static void put(void)
 		return;
 	ocursor = cursor;
 	/* open hole and then fill it */
-	memmove(command_ps + cursor + j, command_ps + cursor, len - cursor + 1);
+	memmove(command_ps + cursor + j, command_ps + cursor, command_len - cursor + 1);
 	strncpy(command_ps + cursor, delbuf, j);
-	len += j;
+	command_len += j;
 	input_end();                    /* rewrite new line */
 	input_backward(cursor - ocursor - j + 1); /* at end of new text */
 }
@@ -365,8 +365,8 @@ enum {
 static int path_parse(char ***p, int flags)
 {
 	int npth;
-	const char *tmp;
 	const char *pth;
+	char *tmp;
 	char **res;
 
 	/* if not setenv PATH variable, to search cur dir "." */
@@ -381,7 +381,7 @@ static int path_parse(char ***p, int flags)
 	if (!pth || !pth[0] || LONE_CHAR(pth, ':'))
 		return 1;
 
-	tmp = pth;
+	tmp = (char*)pth;
 	npth = 1; /* path component count */
 	while (1) {
 		tmp = strchr(tmp, ':');
@@ -393,8 +393,7 @@ static int path_parse(char ***p, int flags)
 	}
 
 	res = xmalloc(npth * sizeof(char*));
-	res[0] = xstrdup(pth);
-	tmp = pth;
+	res[0] = tmp = xstrdup(pth);
 	npth = 1;
 	while (1) {
 		tmp = strchr(tmp, ':');
@@ -810,7 +809,7 @@ static void input_tab(int *lastWasTab)
 		}
 		len_found = strlen(tmp);
 		/* have space to placed match? */
-		if ((len_found - strlen(matchBuf) + len) < BUFSIZ) {
+		if ((len_found - strlen(matchBuf) + command_len) < BUFSIZ) {
 			/* before word for match   */
 			command_ps[cursor - recalc_pos] = 0;
 			/* save   tail line        */
@@ -824,9 +823,9 @@ static void input_tab(int *lastWasTab)
 			/* new pos                         */
 			recalc_pos = cursor + len_found;
 			/* new len                         */
-			len = strlen(command_ps);
+			command_len = strlen(command_ps);
 			/* write out the matched command   */
-			redraw(cmdedit_y, len - recalc_pos);
+			redraw(cmdedit_y, command_len - recalc_pos);
 		}
 		free(tmp);
 	} else {
@@ -839,7 +838,7 @@ static void input_tab(int *lastWasTab)
 			/* Go to the next line */
 			goto_new_line();
 			showfiles();
-			redraw(0, len - sav_cursor);
+			redraw(0, command_len - sav_cursor);
 		}
 	}
 }
@@ -982,9 +981,9 @@ static void remember_in_history(const char *str)
 static void
 vi_Word_motion(char *command, int eat)
 {
-	while (cursor < len && !isspace(command[cursor]))
+	while (cursor < command_len && !isspace(command[cursor]))
 		input_forward();
-	if (eat) while (cursor < len && isspace(command[cursor]))
+	if (eat) while (cursor < command_len && isspace(command[cursor]))
 		input_forward();
 }
 
@@ -992,19 +991,19 @@ static void
 vi_word_motion(char *command, int eat)
 {
 	if (isalnum(command[cursor]) || command[cursor] == '_') {
-		while (cursor < len
+		while (cursor < command_len
 		 && (isalnum(command[cursor+1]) || command[cursor+1] == '_'))
 			input_forward();
 	} else if (ispunct(command[cursor])) {
-		while (cursor < len && ispunct(command[cursor+1]))
+		while (cursor < command_len && ispunct(command[cursor+1]))
 			input_forward();
 	}
 
-	if (cursor < len)
+	if (cursor < command_len)
 		input_forward();
 
-	if (eat && cursor < len && isspace(command[cursor]))
-		while (cursor < len && isspace(command[cursor]))
+	if (eat && cursor < command_len && isspace(command[cursor]))
+		while (cursor < command_len && isspace(command[cursor]))
 			input_forward();
 }
 
@@ -1012,30 +1011,30 @@ static void
 vi_End_motion(char *command)
 {
 	input_forward();
-	while (cursor < len && isspace(command[cursor]))
+	while (cursor < command_len && isspace(command[cursor]))
 		input_forward();
-	while (cursor < len-1 && !isspace(command[cursor+1]))
+	while (cursor < command_len-1 && !isspace(command[cursor+1]))
 		input_forward();
 }
 
 static void
 vi_end_motion(char *command)
 {
-	if (cursor >= len-1)
+	if (cursor >= command_len-1)
 		return;
 	input_forward();
-	while (cursor < len-1 && isspace(command[cursor]))
+	while (cursor < command_len-1 && isspace(command[cursor]))
 		input_forward();
-	if (cursor >= len-1)
+	if (cursor >= command_len-1)
 		return;
 	if (isalnum(command[cursor]) || command[cursor] == '_') {
-		while (cursor < len-1
+		while (cursor < command_len-1
 		 && (isalnum(command[cursor+1]) || command[cursor+1] == '_')
 		) {
 			input_forward();
 		}
 	} else if (ispunct(command[cursor])) {
-		while (cursor < len-1 && ispunct(command[cursor+1]))
+		while (cursor < command_len-1 && ispunct(command[cursor+1]))
 			input_forward();
 	}
 }
