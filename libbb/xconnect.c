@@ -60,7 +60,7 @@ unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default
 
 /* "Old" networking API - only IPv4 */
 
-
+/*
 void bb_lookup_host(struct sockaddr_in *s_in, const char *host)
 {
 	struct hostent *he;
@@ -71,13 +71,14 @@ void bb_lookup_host(struct sockaddr_in *s_in, const char *host)
 	memcpy(&(s_in->sin_addr), he->h_addr_list[0], he->h_length);
 }
 
+
 int xconnect_tcp_v4(struct sockaddr_in *s_addr)
 {
 	int s = xsocket(AF_INET, SOCK_STREAM, 0);
 	xconnect(s, (struct sockaddr*) s_addr, sizeof(*s_addr));
 	return s;
 }
-
+*/
 
 /* "New" networking API */
 
@@ -92,8 +93,8 @@ int get_nport(len_and_sockaddr *lsa)
 	if (lsa->sa.sa_family == AF_INET) {
 		return lsa->sin.sin_port;
 	}
-	return -1;
 	/* What? UNIX socket? IPX?? :) */
+	return -1;
 }
 
 void set_nport(len_and_sockaddr *lsa, unsigned port)
@@ -111,7 +112,7 @@ void set_nport(len_and_sockaddr *lsa, unsigned port)
 	/* What? UNIX socket? IPX?? :) */
 }
 
-/* peer: "1.2.3.4[:port]", "www.google.com[:port]"
+/* host: "1.2.3.4[:port]", "www.google.com[:port]"
  * port: if neither of above specifies port #
  */
 static len_and_sockaddr* str2sockaddr(const char *host, int port, int ai_flags)
@@ -252,11 +253,18 @@ static char* sockaddr2str(const struct sockaddr *sa, socklen_t salen, int flags)
 	int rc = getnameinfo(sa, salen,
 			host, sizeof(host),
 			serv, sizeof(serv),
-			flags | NI_NUMERICSERV /* do not resolve port# */
+			/* do not resolve port# into service _name_ */
+			flags | NI_NUMERICSERV
 	);
-	if (rc) return NULL;
-// We probably need to use [%s]:%s for IPv6...
-	return xasprintf("%s:%s", host, serv);
+	if (rc)
+		return NULL;
+#if ENABLE_FEATURE_IPV6
+	if (sa->sa_family == AF_INET6)
+		return xasprintf("[%s]:%s", host, serv);
+#endif
+	/* For now we don't support anything else, so it has to be INET */
+	/*if (sa->sa_family == AF_INET)*/
+		return xasprintf("%s:%s", host, serv);
 }
 
 char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen)

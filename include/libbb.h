@@ -282,13 +282,10 @@ extern int xsocket(int domain, int type, int protocol);
 extern void xbind(int sockfd, struct sockaddr *my_addr, socklen_t addrlen);
 extern void xlisten(int s, int backlog);
 extern void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen);
-extern int xconnect_tcp_v4(struct sockaddr_in *s_addr);
-extern struct hostent *xgethostbyname(const char *name);
-extern struct hostent *xgethostbyname2(const char *name, int af);
 extern int setsockopt_reuseaddr(int fd);
 extern int setsockopt_broadcast(int fd);
-
-/* "new" (ipv4+ipv6) API */
+/* NB: returns port in host byte order */
+unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port);
 typedef struct len_and_sockaddr {
 	int len;
 	union {
@@ -320,13 +317,20 @@ extern int xconnect_stream(const len_and_sockaddr *lsa);
  * UNIX socket address being returned, IPX sockaddr etc... */
 extern len_and_sockaddr* host2sockaddr(const char *host, int port);
 /* Assign sin[6]_port member if the socket is of corresponding type,
- * otherwise noop. Useful for ftp.
+ * otherwise no-op. Useful for ftp.
  * NB: does NOT do htons() internally, just direct assignment. */
 extern void set_nport(len_and_sockaddr *lsa, unsigned port);
-/* Retrieve sin[6]_port or return -1 for non-inet lsa's */
+/* Retrieve sin[6]_port or return -1 for non-INET[6] lsa's */
 extern int get_nport(len_and_sockaddr *lsa);
 extern char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
 extern char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
+// "old" (ipv4 only) API
+//void bb_lookup_host(struct sockaddr_in *s_in, const char *host);
+//extern int xconnect_tcp_v4(struct sockaddr_in *s_addr);
+// users: traceroute.c hostname.c ifconfig.c ping.c
+extern struct hostent *xgethostbyname(const char *name);
+// ping6 is the only user - convert to new API
+extern struct hostent *xgethostbyname2(const char *name, int af);
 
 
 extern char *xstrdup(const char *s);
@@ -535,10 +539,6 @@ int exists_execable(const char *filename);
 USE_DESKTOP(long long) int uncompress(int fd_in, int fd_out);
 int inflate(int in, int out);
 
-
-/* NB: returns port in host byte order */
-unsigned bb_lookup_port(const char *port, const char *protocol, unsigned default_port);
-void bb_lookup_host(struct sockaddr_in *s_in, const char *host);
 
 int bb_make_directory(char *path, long mode, int flags);
 

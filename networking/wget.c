@@ -235,9 +235,9 @@ int wget_main(int argc, char **argv)
 	 * and we want to connect to only one IP... */
 	lsa = host2sockaddr(server.host, server.port);
 	if (!(opt & WGET_OPT_QUIET)) {
-		fprintf(stderr, "Connecting to %s [%s]\n", server.host,
+		fprintf(stderr, "Connecting to %s (%s)\n", server.host,
 				xmalloc_sockaddr2dotted(&lsa->sa, lsa->len));
-		/* We leak xmalloc_sockaddr2dotted result */
+		/* We leak result of xmalloc_sockaddr2dotted */
 	}
 
 	if (use_proxy || !target.is_ftp) {

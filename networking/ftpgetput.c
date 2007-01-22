@@ -347,7 +347,7 @@ int ftpgetput_main(int argc, char **argv)
 	 * and we want to connect to only one IP... */
 	server->lsa = host2sockaddr(argv[0], bb_lookup_port(port, "tcp", 21));
 	if (verbose_flag) {
-		printf("Connecting to %s [%s]\n", argv[0],
+		printf("Connecting to %s (%s)\n", argv[0],
 			xmalloc_sockaddr2dotted(&server->lsa->sa, server->lsa->len));
 	}
 
