@@ -1386,14 +1386,16 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 	// Treat fstype "auto" as unspecified.
 
-	if (mp->mnt_type && !strcmp(mp->mnt_type,"auto")) mp->mnt_type = 0;
+	if (mp->mnt_type && strcmp(mp->mnt_type,"auto") == 0)
+		mp->mnt_type = 0;
 
 	// Might this be an CIFS filesystem?
 
-	if (ENABLE_FEATURE_MOUNT_CIFS &&
-		(!mp->mnt_type || !strcmp(mp->mnt_type,"cifs")) &&
-		(mp->mnt_fsname[0]==mp->mnt_fsname[1] && (mp->mnt_fsname[0]=='/' || mp->mnt_fsname[0]=='\\')))
-	{
+	if (ENABLE_FEATURE_MOUNT_CIFS
+	 && (!mp->mnt_type || strcmp(mp->mnt_type,"cifs") == 0)
+	 && (mp->mnt_fsname[0]=='/' || mp->mnt_fsname[0]=='\\')
+	 && mp->mnt_fsname[0]==mp->mnt_fsname[1]
+	) {
 		struct hostent *he;
 		char ip[32], *s;
 
@@ -1407,7 +1409,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 		s = strrchr(mp->mnt_fsname, '\\');
 		if (s == mp->mnt_fsname+1) goto report_error;
-		*s = 0;
+		*s = '\0';
 		he = gethostbyname(mp->mnt_fsname+2);
 		*s = '\\';
 		if (!he) goto report_error;
@@ -1434,10 +1436,10 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 	// Might this be an NFS filesystem?
 
-	if (ENABLE_FEATURE_MOUNT_NFS &&
-		(!mp->mnt_type || !strcmp(mp->mnt_type,"nfs")) &&
-		strchr(mp->mnt_fsname, ':') != NULL)
-	{
+	if (ENABLE_FEATURE_MOUNT_NFS
+	 && (!mp->mnt_type || !strcmp(mp->mnt_type,"nfs"))
+	 && strchr(mp->mnt_fsname, ':') != NULL
+	) {
 		rc = nfsmount(mp, vfsflags, filteropts);
 		goto report_error;
 	}
@@ -1445,8 +1447,9 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 	// Look at the file.  (Not found isn't a failure for remount, or for
 	// a synthetic filesystem like proc or sysfs.)
 
-	if (!lstat(mp->mnt_fsname, &st) && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE)))
-	{
+	if (!lstat(mp->mnt_fsname, &st)
+	 && !(vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE))
+	) {
 		// Do we need to allocate a loopback device for it?
 
 		if (ENABLE_FEATURE_MOUNT_LOOP && S_ISREG(st.st_mode)) {
@@ -1474,10 +1477,9 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 
 	if (mp->mnt_type || (vfsflags & (MS_REMOUNT | MS_BIND | MS_MOVE)))
 		rc = mount_it_now(mp, vfsflags, filteropts);
-
-	// Loop through filesystem types until mount succeeds or we run out
-
 	else {
+		// Loop through filesystem types until mount succeeds
+		// or we run out
 
 		/* Initialize list of block backed filesystems.  This has to be
 		 * done here so that during "mount -a", mounts after /proc shows up
@@ -1612,9 +1614,9 @@ int mount_main(int argc, char **argv)
 
 	// If we have a shared subtree flag, don't worry about fstab or mtab.
 
-	if (ENABLE_FEATURE_MOUNT_FLAGS &&
-			(i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE)))
-	{
+	if (ENABLE_FEATURE_MOUNT_FLAGS
+	 && (i & (MS_SHARED | MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
+	) {
 		rc = mount("", argv[0], "", i, "");
 		if (rc) bb_perror_msg_and_die("%s", argv[0]);
 		goto clean_up;

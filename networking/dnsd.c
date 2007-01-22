@@ -110,7 +110,7 @@ static void undot(uint8_t * rip)
  * Read one line of hostname/IP from file
  * Returns 0 for each valid entry read, -1 at EOF
  * Assumes all host names are lower case only
- * Hostnames with more than one label is not handled correctly.
+ * Hostnames with more than one label are not handled correctly.
  * Presently the dot is copied into name without
  * converting to a length/string substring for that label.
  */
@@ -118,32 +118,37 @@ static void undot(uint8_t * rip)
 static int getfileentry(FILE * fp, struct dns_entry *s)
 {
 	unsigned int a,b,c,d;
-	char *r, *name;
+	char *line, *r, *name;
 
  restart:
-	r = xmalloc_fgets(fp);
+	line = r = xmalloc_fgets(fp);
 	if (!r)
 		return -1;
 	while (*r == ' ' || *r == '\t') {
 		r++;
-		if (!*r || *r == '#' || *r == '\n')
+		if (!*r || *r == '#' || *r == '\n') {
+			free(line);
 			goto restart; /* skipping empty/blank and commented lines  */
+		}
 	}
 	name = r;
 	while (*r != ' ' && *r != '\t')
 		r++;
-	*r++ = 0;
-	if (sscanf(r, "%u.%u.%u.%u", &a, &b, &c, &d) != 4)
+	*r++ = '\0';
+	if (sscanf(r, "%u.%u.%u.%u", &a, &b, &c, &d) != 4) {
+		free(line);
 		goto restart; /* skipping wrong lines */
+	}
 
 	sprintf(s->ip, "%u.%u.%u.%u", a, b, c, d);
 	sprintf(s->rip, ".%u.%u.%u.%u", d, c, b, a);
 	undot((uint8_t*)s->rip);
-	convname(s->name,(uint8_t*)name);
+	convname(s->name, (uint8_t*)name);
 
 	if (OPT_verbose)
 		fprintf(stderr, "\tname:%s, ip:%s\n", &(s->name[1]),s->ip);
 
+	free(line);
 	return 0;
 }
 
@@ -154,14 +159,13 @@ static void dnsentryinit(void)
 {
 	FILE *fp;
 	struct dns_entry *m, *prev;
-	prev = dnsentry = NULL;
 
+	prev = dnsentry = NULL;
 	fp = xfopen(fileconf, "r");
 
 	while (1) {
-		m = xmalloc(sizeof(struct dns_entry));
-
-		m->next = NULL;
+		m = xzalloc(sizeof(*m));
+		/*m->next = NULL;*/
 		if (getfileentry(fp, m))
 			break;
 
