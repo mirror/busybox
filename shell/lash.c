@@ -23,8 +23,6 @@
 
 #include "busybox.h"
 #include <getopt.h>
-#include "cmdedit.h"
-
 #include <glob.h>
 #define expand_t	glob_t
 
@@ -641,6 +639,10 @@ static inline void setup_prompt_string(char **prompt_str)
 #endif
 }
 
+#if ENABLE_FEATURE_COMMAND_EDITING
+static line_input_t *line_input_state;
+#endif
+
 static int get_command(FILE * source, char *command)
 {
 	char *prompt_str;
@@ -659,14 +661,14 @@ static int get_command(FILE * source, char *command)
 	if (source == stdin) {
 		setup_prompt_string(&prompt_str);
 
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 		/*
 		** enable command line editing only while a command line
 		** is actually being read; otherwise, we'll end up bequeathing
 		** atexit() handlers and other unwanted stuff to our
 		** child processes (rob@sysgo.de)
 		*/
-		cmdedit_read_input(prompt_str, command);
+		read_line_input(prompt_str, command, BUFSIZ, line_input_state);
 		return 0;
 #else
 		fputs(prompt_str, stdout);
@@ -1504,6 +1506,10 @@ int lash_main(int argc_l, char **argv_l)
 	FILE *input = stdin;
 	argc = argc_l;
 	argv = argv_l;
+
+#if ENABLE_FEATURE_COMMAND_EDITING
+	line_input_state = new_line_input_t(FOR_SHELL);
+#endif
 
 	/* These variables need re-initializing when recursing */
 	last_jobid = 0;

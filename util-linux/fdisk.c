@@ -202,7 +202,7 @@ static int get_boot(enum action what);
 			})
 
 
-#define LINE_LENGTH     800
+#define LINE_LENGTH     80
 #define pt_offset(b, n) ((struct partition *)((b) + 0x1be + \
 				(n) * sizeof(struct partition)))
 #define sector(s)       ((s) & 0x3f)
@@ -291,16 +291,20 @@ write_part_table_flag(char *b)
 static char line_buffer[LINE_LENGTH];
 static char *line_ptr;
 
-/* read line; return 0 or first char */
+/* read line; return 0 or first printable char */
 static int
-read_line(void)
+read_line(const char *prompt)
 {
-	fflush(stdout);         /* requested by niles@scyld.com */
+	int sz;
+
+	sz = read_line_input(prompt, line_buffer, LINE_LENGTH, NULL);
+	if (sz <= 0)
+		exit(0); /* Ctrl-D or Ctrl-C */
+
+	if (line_buffer[sz-1] == '\n')
+		line_buffer[--sz] = '\0';
+
 	line_ptr = line_buffer;
-	if (!fgets(line_buffer, LINE_LENGTH, stdin)) {
-		/* error or eof */
-		bb_error_msg_and_die("\ngot EOF, exiting");
-	}
 	while (*line_ptr && !isgraph(*line_ptr))
 		line_ptr++;
 	return *line_ptr;
@@ -309,22 +313,19 @@ read_line(void)
 static char
 read_nonempty(const char *mesg)
 {
-	do {
-		fputs(mesg, stdout);
-	} while (!read_line());
+	while (!read_line(mesg)) /* repeat */;
 	return *line_ptr;
 }
 
 static char
 read_maybe_empty(const char *mesg)
 {
-	fputs(mesg, stdout);
-	if (!read_line()) {
+	if (!read_line(mesg)) {
 		line_ptr = line_buffer;
-		*line_ptr = '\n';
-		line_ptr[1] = 0;
+		line_ptr[0] = '\n';
+		line_ptr[1] = '\0';
 	}
-	return *line_ptr;
+	return line_ptr[0];
 }
 
 static int
@@ -469,9 +470,9 @@ static const struct systypes i386_sys_types[] = {
 	{ "\x16" "Hidden FAT16" },
 	{ "\x17" "Hidden HPFS/NTFS" },
 	{ "\x1b" "Hidden Win95 FAT32" },
-	{ "\x1c" "Hidden Win95 FAT32 (LBA)" },
-	{ "\x1e" "Hidden Win95 FAT16 (LBA)" },
-	{ "\x3c" "PartitionMagic recovery" },
+	{ "\x1c" "Hidden W95 FAT32 (LBA)" },
+	{ "\x1e" "Hidden W95 FAT16 (LBA)" },
+	{ "\x3c" "Part.Magic recovery" },
 	{ "\x41" "PPC PReP Boot" },
 	{ "\x42" "SFS" },
 	{ "\x63" "GNU HURD or SysV" }, /* GNU HURD or Mach or Sys V/386 (such as ISC UNIX) */
@@ -485,7 +486,7 @@ static const struct systypes i386_sys_types[] = {
 	{ "\x87" "NTFS volume set" },
 	{ "\x8e" "Linux LVM" },
 	{ "\x9f" "BSD/OS" },           /* BSDI */
-	{ "\xa0" "IBM Thinkpad hibernation" },
+	{ "\xa0" "Thinkpad hibernation" },
 	{ "\xa5" "FreeBSD" },          /* various BSD flavours */
 	{ "\xa6" "OpenBSD" },
 	{ "\xa8" "Darwin UFS" },
@@ -718,71 +719,61 @@ is_dos_partition(int t)
 static void
 menu(void)
 {
+	puts(_("Command Action"));
 	if (LABEL_IS_SUN) {
-		puts(_("Command action"));
-		puts(_("\ta\ttoggle a read only flag"));           /* sun */
-		puts(_("\tb\tedit bsd disklabel"));
-		puts(_("\tc\ttoggle the mountable flag"));         /* sun */
-		puts(_("\td\tdelete a partition"));
-		puts(_("\tl\tlist known partition types"));
-		puts(_("\tm\tprint this menu"));
-		puts(_("\tn\tadd a new partition"));
-		puts(_("\to\tcreate a new empty DOS partition table"));
-		puts(_("\tp\tprint the partition table"));
-		puts(_("\tq\tquit without saving changes"));
-		puts(_("\ts\tcreate a new empty Sun disklabel"));  /* sun */
-		puts(_("\tt\tchange a partition's system id"));
-		puts(_("\tu\tchange display/entry units"));
-		puts(_("\tv\tverify the partition table"));
-		puts(_("\tw\twrite table to disk and exit"));
+		puts(_("a\ttoggle a read only flag"));           /* sun */
+		puts(_("b\tedit bsd disklabel"));
+		puts(_("c\ttoggle the mountable flag"));         /* sun */
+		puts(_("d\tdelete a partition"));
+		puts(_("l\tlist known partition types"));
+		puts(_("n\tadd a new partition"));
+		puts(_("o\tcreate a new empty DOS partition table"));
+		puts(_("p\tprint the partition table"));
+		puts(_("q\tquit without saving changes"));
+		puts(_("s\tcreate a new empty Sun disklabel"));  /* sun */
+		puts(_("t\tchange a partition's system id"));
+		puts(_("u\tchange display/entry units"));
+		puts(_("v\tverify the partition table"));
+		puts(_("w\twrite table to disk and exit"));
 #if ENABLE_FEATURE_FDISK_ADVANCED
-		puts(_("\tx\textra functionality (experts only)"));
+		puts(_("x\textra functionality (experts only)"));
 #endif
-	} else
-	if (LABEL_IS_SGI) {
-		puts(_("Command action"));
-		puts(_("\ta\tselect bootable partition"));    /* sgi flavour */
-		puts(_("\tb\tedit bootfile entry"));          /* sgi */
-		puts(_("\tc\tselect sgi swap partition"));    /* sgi flavour */
-		puts(_("\td\tdelete a partition"));
-		puts(_("\tl\tlist known partition types"));
-		puts(_("\tm\tprint this menu"));
-		puts(_("\tn\tadd a new partition"));
-		puts(_("\to\tcreate a new empty DOS partition table"));
-		puts(_("\tp\tprint the partition table"));
-		puts(_("\tq\tquit without saving changes"));
-		puts(_("\ts\tcreate a new empty Sun disklabel"));  /* sun */
-		puts(_("\tt\tchange a partition's system id"));
-		puts(_("\tu\tchange display/entry units"));
-		puts(_("\tv\tverify the partition table"));
-		puts(_("\tw\twrite table to disk and exit"));
-	} else
-	if (LABEL_IS_AIX) {
-		puts(_("Command action"));
-		puts(_("\tm\tprint this menu"));
-		puts(_("\to\tcreate a new empty DOS partition table"));
-		puts(_("\tq\tquit without saving changes"));
-		puts(_("\ts\tcreate a new empty Sun disklabel"));  /* sun */
-	} else
-	{
-		puts(_("Command action"));
-		puts(_("\ta\ttoggle a bootable flag"));
-		puts(_("\tb\tedit bsd disklabel"));
-		puts(_("\tc\ttoggle the dos compatibility flag"));
-		puts(_("\td\tdelete a partition"));
-		puts(_("\tl\tlist known partition types"));
-		puts(_("\tm\tprint this menu"));
-		puts(_("\tn\tadd a new partition"));
-		puts(_("\to\tcreate a new empty DOS partition table"));
-		puts(_("\tp\tprint the partition table"));
-		puts(_("\tq\tquit without saving changes"));
-		puts(_("\ts\tcreate a new empty Sun disklabel"));  /* sun */
-		puts(_("\tt\tchange a partition's system id"));
-		puts(_("\tu\tchange display/entry units"));
-		puts(_("\tv\tverify the partition table"));
-		puts(_("\tw\twrite table to disk and exit"));
+	} else if (LABEL_IS_SGI) {
+		puts(_("a\tselect bootable partition"));    /* sgi flavour */
+		puts(_("b\tedit bootfile entry"));          /* sgi */
+		puts(_("c\tselect sgi swap partition"));    /* sgi flavour */
+		puts(_("d\tdelete a partition"));
+		puts(_("l\tlist known partition types"));
+		puts(_("n\tadd a new partition"));
+		puts(_("o\tcreate a new empty DOS partition table"));
+		puts(_("p\tprint the partition table"));
+		puts(_("q\tquit without saving changes"));
+		puts(_("s\tcreate a new empty Sun disklabel"));  /* sun */
+		puts(_("t\tchange a partition's system id"));
+		puts(_("u\tchange display/entry units"));
+		puts(_("v\tverify the partition table"));
+		puts(_("w\twrite table to disk and exit"));
+	} else if (LABEL_IS_AIX) {
+		puts(_("o\tcreate a new empty DOS partition table"));
+		puts(_("q\tquit without saving changes"));
+		puts(_("s\tcreate a new empty Sun disklabel"));  /* sun */
+	} else {
+		puts(_("a\ttoggle a bootable flag"));
+		puts(_("b\tedit bsd disklabel"));
+		puts(_("c\ttoggle the dos compatibility flag"));
+		puts(_("d\tdelete a partition"));
+		puts(_("l\tlist known partition types"));
+		puts(_("n\tadd a new partition"));
+		puts(_("o\tcreate a new empty DOS partition table"));
+		puts(_("p\tprint the partition table"));
+		puts(_("q\tquit without saving changes"));
+		puts(_("s\tcreate a new empty Sun disklabel"));  /* sun */
+		puts(_("t\tchange a partition's system id"));
+		puts(_("u\tchange display/entry units"));
+		puts(_("v\tverify the partition table"));
+		puts(_("w\twrite table to disk and exit"));
 #if ENABLE_FEATURE_FDISK_ADVANCED
-		puts(_("\tx\textra functionality (experts only)"));
+		puts(_("x\textra functionality (experts only)"));
 #endif
 	}
 }
@@ -793,73 +784,64 @@ menu(void)
 static void
 xmenu(void)
 {
+	puts(_("Command Action"));
 	if (LABEL_IS_SUN) {
-		puts(_("Command action"));
-		puts(_("\ta\tchange number of alternate cylinders"));      /*sun*/
-		puts(_("\tc\tchange number of cylinders"));
-		puts(_("\td\tprint the raw data in the partition table"));
-		puts(_("\te\tchange number of extra sectors per cylinder"));/*sun*/
-		puts(_("\th\tchange number of heads"));
-		puts(_("\ti\tchange interleave factor"));                  /*sun*/
-		puts(_("\to\tchange rotation speed (rpm)"));               /*sun*/
-		puts(_("\tm\tprint this menu"));
-		puts(_("\tp\tprint the partition table"));
-		puts(_("\tq\tquit without saving changes"));
-		puts(_("\tr\treturn to main menu"));
-		puts(_("\ts\tchange number of sectors/track"));
-		puts(_("\tv\tverify the partition table"));
-		puts(_("\tw\twrite table to disk and exit"));
-		puts(_("\ty\tchange number of physical cylinders"));       /*sun*/
-	}  else
-	if (LABEL_IS_SGI) {
-		puts(_("Command action"));
-		puts(_("\tb\tmove beginning of data in a partition")); /* !sun */
-		puts(_("\tc\tchange number of cylinders"));
-		puts(_("\td\tprint the raw data in the partition table"));
-		puts(_("\te\tlist extended partitions"));          /* !sun */
-		puts(_("\tg\tcreate an IRIX (SGI) partition table"));/* sgi */
-		puts(_("\th\tchange number of heads"));
-		puts(_("\tm\tprint this menu"));
-		puts(_("\tp\tprint the partition table"));
-		puts(_("\tq\tquit without saving changes"));
-		puts(_("\tr\treturn to main menu"));
-		puts(_("\ts\tchange number of sectors/track"));
-		puts(_("\tv\tverify the partition table"));
-		puts(_("\tw\twrite table to disk and exit"));
-	} else
-	if (LABEL_IS_AIX) {
-		puts(_("Command action"));
-		puts(_("\tb\tmove beginning of data in a partition")); /* !sun */
-		puts(_("\tc\tchange number of cylinders"));
-		puts(_("\td\tprint the raw data in the partition table"));
-		puts(_("\te\tlist extended partitions"));          /* !sun */
-		puts(_("\tg\tcreate an IRIX (SGI) partition table"));/* sgi */
-		puts(_("\th\tchange number of heads"));
-		puts(_("\tm\tprint this menu"));
-		puts(_("\tp\tprint the partition table"));
-		puts(_("\tq\tquit without saving changes"));
-		puts(_("\tr\treturn to main menu"));
-		puts(_("\ts\tchange number of sectors/track"));
-		puts(_("\tv\tverify the partition table"));
-		puts(_("\tw\twrite table to disk and exit"));
-	}  else {
-		puts(_("Command action"));
-		puts(_("\tb\tmove beginning of data in a partition")); /* !sun */
-		puts(_("\tc\tchange number of cylinders"));
-		puts(_("\td\tprint the raw data in the partition table"));
-		puts(_("\te\tlist extended partitions"));          /* !sun */
-		puts(_("\tf\tfix partition order"));               /* !sun, !aix, !sgi */
+		puts(_("a\tchange number of alternate cylinders"));      /*sun*/
+		puts(_("c\tchange number of cylinders"));
+		puts(_("d\tprint the raw data in the partition table"));
+		puts(_("e\tchange number of extra sectors per cylinder"));/*sun*/
+		puts(_("h\tchange number of heads"));
+		puts(_("i\tchange interleave factor"));                  /*sun*/
+		puts(_("o\tchange rotation speed (rpm)"));               /*sun*/
+		puts(_("p\tprint the partition table"));
+		puts(_("q\tquit without saving changes"));
+		puts(_("r\treturn to main menu"));
+		puts(_("s\tchange number of sectors/track"));
+		puts(_("v\tverify the partition table"));
+		puts(_("w\twrite table to disk and exit"));
+		puts(_("y\tchange number of physical cylinders"));       /*sun*/
+	} else if (LABEL_IS_SGI) {
+		puts(_("b\tmove beginning of data in a partition")); /* !sun */
+		puts(_("c\tchange number of cylinders"));
+		puts(_("d\tprint the raw data in the partition table"));
+		puts(_("e\tlist extended partitions"));          /* !sun */
+		puts(_("g\tcreate an IRIX (SGI) partition table"));/* sgi */
+		puts(_("h\tchange number of heads"));
+		puts(_("p\tprint the partition table"));
+		puts(_("q\tquit without saving changes"));
+		puts(_("r\treturn to main menu"));
+		puts(_("s\tchange number of sectors/track"));
+		puts(_("v\tverify the partition table"));
+		puts(_("w\twrite table to disk and exit"));
+	} else if (LABEL_IS_AIX) {
+		puts(_("b\tmove beginning of data in a partition")); /* !sun */
+		puts(_("c\tchange number of cylinders"));
+		puts(_("d\tprint the raw data in the partition table"));
+		puts(_("e\tlist extended partitions"));          /* !sun */
+		puts(_("g\tcreate an IRIX (SGI) partition table"));/* sgi */
+		puts(_("h\tchange number of heads"));
+		puts(_("p\tprint the partition table"));
+		puts(_("q\tquit without saving changes"));
+		puts(_("r\treturn to main menu"));
+		puts(_("s\tchange number of sectors/track"));
+		puts(_("v\tverify the partition table"));
+		puts(_("w\twrite table to disk and exit"));
+	} else {
+		puts(_("b\tmove beginning of data in a partition")); /* !sun */
+		puts(_("c\tchange number of cylinders"));
+		puts(_("d\tprint the raw data in the partition table"));
+		puts(_("e\tlist extended partitions"));          /* !sun */
+		puts(_("f\tfix partition order"));               /* !sun, !aix, !sgi */
 #if ENABLE_FEATURE_SGI_LABEL
-		puts(_("\tg\tcreate an IRIX (SGI) partition table"));/* sgi */
+		puts(_("g\tcreate an IRIX (SGI) partition table"));/* sgi */
 #endif
-		puts(_("\th\tchange number of heads"));
-		puts(_("\tm\tprint this menu"));
-		puts(_("\tp\tprint the partition table"));
-		puts(_("\tq\tquit without saving changes"));
-		puts(_("\tr\treturn to main menu"));
-		puts(_("\ts\tchange number of sectors/track"));
-		puts(_("\tv\tverify the partition table"));
-		puts(_("\tw\twrite table to disk and exit"));
+		puts(_("h\tchange number of heads"));
+		puts(_("p\tprint the partition table"));
+		puts(_("q\tquit without saving changes"));
+		puts(_("r\treturn to main menu"));
+		puts(_("s\tchange number of sectors/track"));
+		puts(_("v\tverify the partition table"));
+		puts(_("w\twrite table to disk and exit"));
 	}
 }
 #endif /* ADVANCED mode */
@@ -883,7 +865,7 @@ static const char *partition_type(unsigned char type)
 	const struct systypes *types = get_sys_types();
 
 	for (i = 0; types[i].name; i++)
-		if ((unsigned char )types[i].name[0] == type)
+		if ((unsigned char)types[i].name[0] == type)
 			return types[i].name + 1;
 
 	return _("Unknown");
@@ -899,24 +881,29 @@ get_sysid(int i)
 				ptes[i].part_table->sys_ind);
 }
 
-void list_types(const struct systypes *sys)
+static void list_types(const struct systypes *sys)
 {
-	unsigned last[4], done = 0, next = 0, size;
+	enum { COLS = 3 };
+
+	unsigned last[COLS];
+	unsigned done, next, size;
 	int i;
 
-	for (i = 0; sys[i].name; i++);
-	size = i;
+	for (size = 0; sys[size].name; size++) /* */;
 
-	for (i = 3; i >= 0; i--)
-		last[3 - i] = done += (size + i - done) / (i + 1);
-	i = done = 0;
+	done = 0;
+	for (i = COLS-1; i >= 0; i--) {
+		done += (size + i - done) / (i + 1);
+		last[COLS-1 - i] = done;
+	}
 
+	i = done = next = 0;
 	do {
-		printf("%c%2x  %-15.15s", i ? ' ' : '\n',
+		printf("%c%2x %-22.22s", i ? ' ' : '\n',
 			(unsigned char)sys[next].name[0],
-			partition_type((unsigned char)sys[next].name[0]));
+			sys[next].name + 1);
 		next = last[i++] + done;
-		if (i > 3 || next >= last[i]) {
+		if (i >= COLS || next >= last[i]) {
 			i = 0;
 			next = ++done;
 		}
@@ -2415,10 +2402,12 @@ new_partition(void)
 				 "an extended partition first\n"));
 	} else {
 		char c, line[LINE_LENGTH];
-		snprintf(line, sizeof(line), "%s\n   %s\n   p   primary "
-						"partition (1-4)\n",
-			 "Command action", (extended_offset ?
-			 "l   logical (5 or over)" : "e   extended"));
+		snprintf(line, sizeof(line),
+			"Command action\n"
+			"   %s\n"
+			"   p   primary partition (1-4)\n",
+			(extended_offset ?
+			"l   logical (5 or over)" : "e   extended"));
 		while (1) {
 			c = read_nonempty(line);
 			if (c == 'p' || c == 'P') {

@@ -17,7 +17,6 @@
 #include <setjmp.h>
 #include <sys/times.h>
 
-#include "cmdedit.h"
 
 /*#define MSHDEBUG 1*/
 
@@ -777,7 +776,7 @@ void print_tree(struct op *head)
 #endif							/* MSHDEBUG */
 
 
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 static char *current_prompt;
 #endif
 
@@ -787,6 +786,10 @@ static char *current_prompt;
  */
 
 
+#if ENABLE_FEATURE_COMMAND_EDITING
+static line_input_t *line_input_state;
+#endif
+
 int msh_main(int argc, char **argv)
 {
 	int f;
@@ -794,6 +797,10 @@ int msh_main(int argc, char **argv)
 	int cflag;
 	char *name, **ap;
 	int (*iof) (struct ioarg *);
+
+#if ENABLE_FEATURE_COMMAND_EDITING
+	line_input_state = new_line_input_t(FOR_SHELL);
+#endif
 
 	DBGPRINTF(("MSH_MAIN: argc %d, environ %p\n", argc, environ));
 
@@ -964,7 +971,7 @@ int msh_main(int argc, char **argv)
 
 	for (;;) {
 		if (interactive && e.iop <= iostack) {
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 			current_prompt = prompt->value;
 #else
 			prs(prompt->value);
@@ -2371,7 +2378,7 @@ static int yylex(int cf)
 		startl = 1;
 		if (multiline || cf & CONTIN) {
 			if (interactive && e.iop <= iostack) {
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 				current_prompt = cprompt->value;
 #else
 				prs(cprompt->value);
@@ -2432,7 +2439,7 @@ static int collect(int c, int c1)
 			return YYERRCODE;
 		}
 		if (interactive && c == '\n' && e.iop <= iostack) {
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 			current_prompt = cprompt->value;
 #else
 			prs(cprompt->value);
@@ -4666,7 +4673,7 @@ static int readc(void)
 					return e.iop->prev = 0;
 				}
 				if (interactive && e.iop == iostack + 1) {
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 					current_prompt = prompt->value;
 #else
 					prs(prompt->value);
@@ -4898,13 +4905,13 @@ static int filechar(struct ioarg *ap)
 		ap->afpos++;
 		return *bp->bufp++ & 0177;
 	}
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 	if (interactive && isatty(ap->afile)) {
 		static char mycommand[BUFSIZ];
 		static int position = 0, size = 0;
 
 		while (size == 0 || position >= size) {
-			cmdedit_read_input(current_prompt, mycommand);
+			read_line_input(current_prompt, mycommand, BUFSIZ, line_input_state);
 			size = strlen(mycommand);
 			position = 0;
 		}
@@ -4913,7 +4920,6 @@ static int filechar(struct ioarg *ap)
 		return c;
 	} else
 #endif
-
 	{
 		i = safe_read(ap->afile, &c, sizeof(c));
 		return i == sizeof(c) ? (c & 0x7f) : (closef(ap->afile), 0);
@@ -5150,7 +5156,7 @@ static void readhere(char **name, char *s, int ec)
 		e.iobase = e.iop;
 		for (;;) {
 			if (interactive && e.iop <= iostack) {
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 				current_prompt = cprompt->value;
 #else
 				prs(cprompt->value);

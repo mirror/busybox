@@ -98,7 +98,6 @@
 /* #include <dmalloc.h> */
 /* #define DEBUG_SHELL */
 
-#include "cmdedit.h"
 
 #define SPECIAL_VAR_SYMBOL 03
 #define FLAG_EXIT_FROM_LOOP 1
@@ -883,20 +882,24 @@ static void setup_prompt_string(int promptmode, char **prompt_str)
 	debug_printf("result %s\n",*prompt_str);
 }
 
+#if ENABLE_FEATURE_COMMAND_EDITING
+static line_input_t *line_input_state;
+#endif
+
 static void get_user_input(struct in_str *i)
 {
 	char *prompt_str;
 	static char the_command[BUFSIZ];
 
 	setup_prompt_string(i->promptmode, &prompt_str);
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 	/*
 	 ** enable command line editing only while a command line
 	 ** is actually being read; otherwise, we'll end up bequeathing
 	 ** atexit() handlers and other unwanted stuff to our
 	 ** child processes (rob@sysgo.de)
 	 */
-	cmdedit_read_input(prompt_str, the_command);
+	read_line_input(prompt_str, the_command, BUFSIZ, line_input_state);
 #else
 	fputs(prompt_str, stdout);
 	fflush(stdout);
@@ -2646,6 +2649,10 @@ int hush_main(int argc, char **argv)
 	int opt;
 	FILE *input;
 	char **e = environ;
+
+#ifdef CONFIG_FEATURE_COMMAND_EDITING
+	line_input_state = new_line_input_t(FOR_SHELL);
+#endif
 
 	/* XXX what should these be while sourcing /etc/profile? */
 	global_argc = argc;

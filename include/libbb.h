@@ -583,6 +583,42 @@ extern unsigned long long bb_makedev(unsigned int major, unsigned int minor);
 #endif
 
 
+#if ENABLE_FEATURE_COMMAND_EDITING
+/* It's NOT just ENABLEd or disabled. It's a number: */
+#ifdef CONFIG_FEATURE_COMMAND_HISTORY
+#define MAX_HISTORY (CONFIG_FEATURE_COMMAND_HISTORY + 0)
+#else
+#define MAX_HISTORY 0
+#endif
+struct line_input_t {
+	int flags;
+	const char *path_lookup;
+#if MAX_HISTORY
+	int cnt_history;
+	int cur_history;
+	USE_FEATURE_COMMAND_SAVEHISTORY(const char *hist_file;)
+	char *history[MAX_HISTORY + 1];
+#endif
+};
+enum {
+	DO_HISTORY = 1 * (MAX_HISTORY > 0),
+	SAVE_HISTORY = 2 * (MAX_HISTORY > 0) * ENABLE_FEATURE_COMMAND_SAVEHISTORY,
+	TAB_COMPLETION = 4 * ENABLE_FEATURE_COMMAND_TAB_COMPLETION,
+	USERNAME_COMPLETION = 8 * ENABLE_FEATURE_COMMAND_USERNAME_COMPLETION,
+	VI_MODE = 0x10 * ENABLE_FEATURE_COMMAND_EDITING_VI,
+	WITH_PATH_LOOKUP = 0x20,
+	FOR_SHELL = DO_HISTORY | SAVE_HISTORY | TAB_COMPLETION | USERNAME_COMPLETION,
+};
+typedef struct line_input_t line_input_t;
+line_input_t *new_line_input_t(int flags);
+int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *state);
+#else
+int read_line_input(const char* prompt, char* command, int maxsize);
+#define read_line_input(prompt, command, maxsize, state) \
+	read_line_input(prompt, command, maxsize)
+#endif
+
+
 #ifndef COMM_LEN
 #ifdef TASK_COMM_LEN
 enum { COMM_LEN = TASK_COMM_LEN };

@@ -92,7 +92,6 @@
 #include <termios.h>
 #endif
 
-#include "cmdedit.h"
 
 #ifdef __GLIBC__
 /* glibc sucks */
@@ -1238,7 +1237,7 @@ static int fgcmd(int, char **);
 static int getoptscmd(int, char **);
 #endif
 static int hashcmd(int, char **);
-#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
 static int helpcmd(int argc, char **argv);
 #endif
 #if JOBS
@@ -1347,7 +1346,7 @@ static const struct builtincmd builtincmd[] = {
 	{ BUILTIN_REGULAR       "getopts", getoptscmd },
 #endif
 	{ BUILTIN_NOSPEC        "hash", hashcmd },
-#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
 	{ BUILTIN_NOSPEC        "help", helpcmd },
 #endif
 #if JOBS
@@ -1529,7 +1528,7 @@ static struct var varinit[] = {
 	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_ALL\0", change_lc_all },
 	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "LC_CTYPE\0", change_lc_ctype },
 #endif
-#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
+#if ENABLE_FEATURE_COMMAND_SAVEHISTORY
 	{0, VSTRFIXED | VTEXTFIXED | VUNSET, "HISTFILE\0", NULL },
 #endif
 };
@@ -1932,10 +1931,6 @@ struct shparam {
 #if DEBUG
 #define nolog optlist[14]
 #define debug optlist[15]
-#endif
-
-#ifndef CONFIG_FEATURE_COMMAND_EDITING_VI
-#define setvimode(on) viflag = 0   /* forcibly keep the option off */
 #endif
 
 /*      options.c */
@@ -3718,7 +3713,7 @@ shellexec(char **argv, const char *path, int idx)
 	clearredir(1);
 	envp = environment();
 	if (strchr(argv[0], '/') || is_safe_applet(argv[0])
-#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	 || find_applet_by_name(argv[0])
 #endif
 	) {
@@ -3775,7 +3770,7 @@ tryexec(char *cmd, char **argv, char **envp)
 		applet_name = cmd;
 		exit(a->main(argc, argv));
 	}
-#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	if (find_applet_by_name(cmd) != NULL) {
 		/* re-exec ourselves with the new arguments */
 		execve(CONFIG_BUSYBOX_EXEC_PATH,argv,envp);
@@ -3949,7 +3944,7 @@ find_command(char *name, struct cmdentry *entry, int act, const char *path)
 		return;
 	}
 
-#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	if (find_applet_by_name(name)) {
 		entry->cmdtype = CMDNORMAL;
 		entry->u.index = -1;
@@ -6045,21 +6040,18 @@ static char * pfgets(char *line, int len)
 }
 
 
-
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
-#ifdef CONFIG_ASH_EXPAND_PRMT
-static char *cmdedit_prompt;
-#else
+#if ENABLE_FEATURE_COMMAND_EDITING
+static line_input_t *line_input_state;
+//static SKIP_ASH_EXPAND_PRMT(const) char *cmdedit_prompt;
 static const char *cmdedit_prompt;
-#endif
 static void putprompt(const char *s)
 {
-#ifdef CONFIG_ASH_EXPAND_PRMT
-	free(cmdedit_prompt);
-	cmdedit_prompt = xstrdup(s);
-#else
+	if (ENABLE_ASH_EXPAND_PRMT) {
+		free((char*)cmdedit_prompt);
+		cmdedit_prompt = xstrdup(s);
+		return;
+	}
 	cmdedit_prompt = s;
-#endif
 }
 #else
 static void putprompt(const char *s)
@@ -6068,6 +6060,16 @@ static void putprompt(const char *s)
 }
 #endif
 
+#if ENABLE_FEATURE_COMMAND_EDITING_VI
+#define setvimode(on) do { \
+	if (on) line_input_state->flags |= VI_MODE; \
+	else line_input_state->flags &= ~VI_MODE; \
+} while (0)
+#else
+#define setvimode(on) viflag = 0   /* forcibly keep the option off */
+#endif
+
+
 static int preadfd(void)
 {
 	int nr;
@@ -6075,25 +6077,25 @@ static int preadfd(void)
 	parsenextc = buf;
 
 retry:
-#ifdef CONFIG_FEATURE_COMMAND_EDITING
+#if ENABLE_FEATURE_COMMAND_EDITING
 	if (!iflag || parsefile->fd)
 		nr = safe_read(parsefile->fd, buf, BUFSIZ - 1);
 	else {
-#ifdef CONFIG_FEATURE_COMMAND_TAB_COMPLETION
-		cmdedit_path_lookup = pathval();
+#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
+		line_input_state->path_lookup = pathval();
 #endif
-		nr = cmdedit_read_input((char *) cmdedit_prompt, buf);
-		if(nr == 0) {
-			/* Ctrl+C presend */
-			if(trap[SIGINT]) {
+		nr = read_line_input(cmdedit_prompt, buf, BUFSIZ, line_input_state);
+		if (nr == 0) {
+			/* Ctrl+C pressed */
+			if (trap[SIGINT]) {
 				buf[0] = '\n';
-				buf[1] = 0;
+				buf[1] = '\0';
 				raise(SIGINT);
 				return 1;
 			}
 			goto retry;
 		}
-		if(nr < 0 && errno == 0) {
+		if (nr < 0 && errno == 0) {
 			/* Ctrl+D presend */
 			nr = 0;
 		}
@@ -7913,6 +7915,10 @@ ash_main(int argc, char **argv)
 #if PROFILE
 	monitor(4, etext, profile_buf, sizeof profile_buf, 50);
 #endif
+
+#if ENABLE_FEATURE_COMMAND_EDITING
+	line_input_state = new_line_input_t(FOR_SHELL | WITH_PATH_LOOKUP);
+#endif
 	state = 0;
 	if (setjmp(jmploc.loc)) {
 		int e;
@@ -7954,11 +7960,11 @@ ash_main(int argc, char **argv)
 	init();
 	setstackmark(&smark);
 	procargs(argc, argv);
-#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
-	if ( iflag ) {
+#if ENABLE_FEATURE_COMMAND_SAVEHISTORY
+	if (iflag) {
 		const char *hp = lookupvar("HISTFILE");
 
-		if(hp == NULL ) {
+		if (hp == NULL) {
 			hp = lookupvar("HOME");
 			if(hp != NULL) {
 				char *defhp = concat_path_file(hp, ".ash_history");
@@ -7995,15 +8001,15 @@ state3:
 		evalstring(minusc, 0);
 
 	if (sflag || minusc == NULL) {
-#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
-	    if ( iflag ) {
-		const char *hp = lookupvar("HISTFILE");
+#if ENABLE_FEATURE_COMMAND_SAVEHISTORY
+		if ( iflag ) {
+			const char *hp = lookupvar("HISTFILE");
 
-		if(hp != NULL )
-			load_history ( hp );
-	    }
+			if (hp != NULL)
+				line_input_state->hist_file = hp;
+		}
 #endif
-state4: /* XXX ??? - why isn't this before the "if" statement */
+ state4: /* XXX ??? - why isn't this before the "if" statement */
 		cmdloop(1);
 	}
 #if PROFILE
@@ -11880,7 +11886,7 @@ setinteractive(int on)
 	setsignal(SIGINT);
 	setsignal(SIGQUIT);
 	setsignal(SIGTERM);
-#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
 		if(is_interactive > 1) {
 			/* Looks like they want an interactive shell */
 			static int do_banner;
@@ -11897,7 +11903,7 @@ setinteractive(int on)
 }
 
 
-#ifndef CONFIG_FEATURE_SH_EXTRA_QUIET
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
 /*** List the available builtins ***/
 
 static int helpcmd(int argc, char **argv)
@@ -11913,7 +11919,7 @@ static int helpcmd(int argc, char **argv)
 			col = 0;
 		}
 	}
-#ifdef CONFIG_FEATURE_SH_STANDALONE_SHELL
+#if ENABLE_FEATURE_SH_STANDALONE_SHELL
 	for (i = 0; i < NUM_APPLETS; i++) {
 		col += out1fmt("%c%s", ((col == 0) ? '\t' : ' '), applets[i].name);
 		if (col > 60) {
@@ -11945,7 +11951,7 @@ exitshell(void)
 /* dash bug: it just does _exit(exitstatus) here
  * but we have to do setjobctl(0) first!
  * (bug is still not fixed in dash-0.5.3 - if you run dash
- * under Midnight Commander, on exit MC is backgrounded) */
+ * under Midnight Commander, on exit from dash MC is backgrounded) */
 			status = exitstatus;
 		goto out;
 	}
@@ -11955,14 +11961,6 @@ exitshell(void)
 		evalstring(p, 0);
 	}
 	flushall();
-#ifdef CONFIG_FEATURE_COMMAND_SAVEHISTORY
-	if (iflag && rootshell) {
-		const char *hp = lookupvar("HISTFILE");
-
-		if (hp != NULL)
-			save_history(hp);
-	}
-#endif
 out:
 	setjobctl(0);
 	_exit(status);
@@ -13491,7 +13489,7 @@ static const char op_tokens[] = {
 #define endexpression &op_tokens[sizeof(op_tokens)-7]
 
 
-static arith_t arith (const char *expr, int *perrcode)
+static arith_t arith(const char *expr, int *perrcode)
 {
     char arithval; /* Current character under analysis */
     operator lasttok, op;

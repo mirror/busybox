@@ -308,22 +308,21 @@ bsd_trydev(const char * dev)
 static void
 bsd_menu(void)
 {
-	puts(_("Command action"));
-	puts(_("\td\tdelete a BSD partition"));
-	puts(_("\te\tedit drive data"));
-	puts(_("\ti\tinstall bootstrap"));
-	puts(_("\tl\tlist known filesystem types"));
-	puts(_("\tm\tprint this menu"));
-	puts(_("\tn\tadd a new BSD partition"));
-	puts(_("\tp\tprint BSD partition table"));
-	puts(_("\tq\tquit without saving changes"));
-	puts(_("\tr\treturn to main menu"));
-	puts(_("\ts\tshow complete disklabel"));
-	puts(_("\tt\tchange a partition's filesystem id"));
-	puts(_("\tu\tchange units (cylinders/sectors)"));
-	puts(_("\tw\twrite disklabel to disk"));
+	puts(_("Command Action"));
+	puts(_("d\tdelete a BSD partition"));
+	puts(_("e\tedit drive data"));
+	puts(_("i\tinstall bootstrap"));
+	puts(_("l\tlist known filesystem types"));
+	puts(_("n\tadd a new BSD partition"));
+	puts(_("p\tprint BSD partition table"));
+	puts(_("q\tquit without saving changes"));
+	puts(_("r\treturn to main menu"));
+	puts(_("s\tshow complete disklabel"));
+	puts(_("t\tchange a partition's filesystem id"));
+	puts(_("u\tchange units (cylinders/sectors)"));
+	puts(_("w\twrite disklabel to disk"));
 #if !defined(__alpha__)
-	puts(_("\tx\tlink BSD partition to non-BSD partition"));
+	puts(_("x\tlink BSD partition to non-BSD partition"));
 #endif
 }
 
@@ -633,13 +632,15 @@ xbsd_create_disklabel(void)
 static int
 edit_int(int def, char *mesg)
 {
+	mesg = xasprintf("%s (%d): ", mesg, def);
 	do {
-		fputs(mesg, stdout);
-		printf(" (%d): ", def);
-		if (!read_line())
-			return def;
+		if (!read_line(mesg))
+			goto ret;
 	} while (!isdigit(*line_ptr));
-	return atoi(line_ptr);
+	def = atoi(line_ptr);
+ ret:
+	free(mesg);
+	return def;
 }
 
 static void
@@ -718,10 +719,9 @@ xbsd_write_bootstrap(void)
 	else
 		dkbasename = "wd";
 
-	printf(_("Bootstrap: %sboot -> boot%s (%s): "),
+	snprintf(path, sizeof(path), "Bootstrap: %sboot -> boot%s (%s): ",
 		dkbasename, dkbasename, dkbasename);
-	if (read_line()) {
-		line_ptr[strlen(line_ptr)-1] = '\0';
+	if (read_line(path)) {
 		dkbasename = line_ptr;
 	}
 	snprintf(path, sizeof(path), "%s/%sboot", bootdir, dkbasename);
