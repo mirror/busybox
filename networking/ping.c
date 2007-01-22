@@ -97,7 +97,7 @@ static void ping(const char *host)
 	}
 
 	signal(SIGALRM, noresp);
-	alarm(5);					/* give the host 5000ms to respond */
+	alarm(5); /* give the host 5000ms to respond */
 	/* listen for replies */
 	while (1) {
 		struct sockaddr_in from;
@@ -118,7 +118,8 @@ static void ping(const char *host)
 				break;
 		}
 	}
-	if (ENABLE_FEATURE_CLEAN_UP) close(pingsock);
+	if (ENABLE_FEATURE_CLEAN_UP)
+		close(pingsock);
 	printf("%s is alive!\n", hostname);
 }
 

@@ -114,7 +114,10 @@ void set_nport(len_and_sockaddr *lsa, unsigned port)
 /* host: "1.2.3.4[:port]", "www.google.com[:port]"
  * port: if neither of above specifies port #
  */
-static len_and_sockaddr* str2sockaddr(const char *host, int port, int ai_flags)
+static len_and_sockaddr* str2sockaddr(
+		const char *host, int port,
+USE_FEATURE_IPV6(sa_family_t af,)
+		int ai_flags)
 {
 	int rc;
 	len_and_sockaddr *r; // = NULL;
@@ -147,9 +150,10 @@ static len_and_sockaddr* str2sockaddr(const char *host, int port, int ai_flags)
 	}
 
 	memset(&hint, 0 , sizeof(hint));
-	/* hint.ai_family = AF_UNSPEC; - zero anyway */
 #if !ENABLE_FEATURE_IPV6
 	hint.ai_family = AF_INET; /* do not try to find IPv6 */
+#else
+	hint.ai_family = af;
 #endif
 	/* Needed. Or else we will get each address thrice (or more)
 	 * for each possible socket type (tcp,udp,raw...): */
@@ -165,15 +169,25 @@ static len_and_sockaddr* str2sockaddr(const char *host, int port, int ai_flags)
 	freeaddrinfo(result);
 	return r;
 }
+#if !ENABLE_FEATURE_IPV6
+#define str2sockaddr(host, port, af, ai_flags) str2sockaddr(host, port, ai_flags)
+#endif
+
+#if ENABLE_FEATURE_IPV6
+len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af)
+{
+	return str2sockaddr(host, port, af, 0);
+}
+#endif
 
 len_and_sockaddr* host2sockaddr(const char *host, int port)
 {
-	return str2sockaddr(host, port, 0);
+	return str2sockaddr(host, port, AF_UNSPEC, 0);
 }
 
 static len_and_sockaddr* dotted2sockaddr(const char *host, int port)
 {
-	return str2sockaddr(host, port, NI_NUMERICHOST);
+	return str2sockaddr(host, port, AF_UNSPEC, NI_NUMERICHOST);
 }
 
 int xsocket_stream(len_and_sockaddr **lsap)
@@ -280,6 +294,11 @@ static char* sockaddr2str(const struct sockaddr *sa, socklen_t salen, int flags)
 char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen)
 {
 	return sockaddr2str(sa, salen, 0);
+}
+
+char* xmalloc_sockaddr2host_noport(const struct sockaddr *sa, socklen_t salen)
+{
+	return sockaddr2str(sa, salen, IGNORE_PORT);
 }
 
 char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t salen)

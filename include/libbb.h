@@ -316,15 +316,21 @@ int xconnect_stream(const len_and_sockaddr *lsa);
  * (depending on host), but in theory nothing prevents e.g.
  * UNIX socket address being returned, IPX sockaddr etc... */
 len_and_sockaddr* host2sockaddr(const char *host, int port);
+#if ENABLE_FEATURE_IPV6
+/* Same, useful if you want to force family (e.g. IPv6) */
+len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af);
+#endif
 /* Assign sin[6]_port member if the socket is of corresponding type,
  * otherwise no-op. Useful for ftp.
  * NB: does NOT do htons() internally, just direct assignment. */
 void set_nport(len_and_sockaddr *lsa, unsigned port);
 /* Retrieve sin[6]_port or return -1 for non-INET[6] lsa's */
 int get_nport(len_and_sockaddr *lsa);
-/* Reverse DNS */
+/* Reverse DNS. Returns NULL on failure. */
 char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen);
-/* This one deosn't fall back to dotted IP and do not append :PORTNUM */
+/* This one doesn't append :PORTNUM */
+char* xmalloc_sockaddr2host_noport(const struct sockaddr *sa, socklen_t salen);
+/* This one also doesn't fall back to dotted IP (returns NULL) */
 char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t salen);
 /* inet_[ap]ton on steroids */
 char* xmalloc_sockaddr2dotted(const struct sockaddr *sa, socklen_t salen);
@@ -334,8 +340,8 @@ char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen)
 //int xconnect_tcp_v4(struct sockaddr_in *s_addr);
 // users: traceroute.c hostname.c ifconfig.c ping.c
 struct hostent *xgethostbyname(const char *name);
-// ping6 is the only user - convert to new API
-struct hostent *xgethostbyname2(const char *name, int af);
+//// ping6 is the only user - convert to new API
+//struct hostent *xgethostbyname2(const char *name, int af);
 
 
 extern char *xstrdup(const char *s);

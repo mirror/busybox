@@ -92,7 +92,6 @@ lib-y += xconnect.o
 lib-y += xfuncs.o
 lib-y += xgetcwd.o
 lib-y += xgethostbyname.o
-lib-y += xgethostbyname2.o
 lib-y += xreadlink.o
 
 # conditionally compiled objects:
