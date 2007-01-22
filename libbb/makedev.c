@@ -13,6 +13,9 @@
 #ifdef __GLIBC__
 /* At least glibc has horrendously large inline for this, so wrap it */
 /* uclibc people please check - do we need "&& !__UCLIBC__" above? */
+
+/* suppress gcc "no previous prototype" warning */
+unsigned long long bb_makedev(unsigned int major, unsigned int minor);
 unsigned long long bb_makedev(unsigned int major, unsigned int minor)
 {
 	return makedev(major, minor);

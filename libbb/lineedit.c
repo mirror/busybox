@@ -876,7 +876,7 @@ static int get_next_history(void)
 
 #if ENABLE_FEATURE_EDITING_SAVEHISTORY
 /* state->flags is already checked to be nonzero */
-void load_history(const char *fromfile)
+static void load_history(const char *fromfile)
 {
 	FILE *fp;
 	int hi;
@@ -910,7 +910,7 @@ void load_history(const char *fromfile)
 }
 
 /* state->flags is already checked to be nonzero */
-void save_history(const char *tofile)
+static void save_history(const char *tofile)
 {
 	FILE *fp;
 

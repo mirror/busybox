@@ -299,7 +299,7 @@ static int find_type(char *type)
 }
 #endif
 
-action*** parse_params(char **argv)
+static action*** parse_params(char **argv)
 {
 	action*** appp;
 	int cur_group = 0;

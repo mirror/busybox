@@ -13,6 +13,8 @@
 //#include "libbb.h"
 extern void bb_perror_msg(const char *s, ...);
 
+/* suppress gcc "no previous prototype" warning */
+void bb_perror_nomsg(void);
 void bb_perror_nomsg(void)
 {
 	bb_perror_msg(0);

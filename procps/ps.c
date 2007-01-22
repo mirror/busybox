@@ -13,17 +13,17 @@
 
 /* Print value to buf, max size+1 chars (including trailing '\0') */
 
-void func_user(char *buf, int size, const procps_status_t *ps)
+static void func_user(char *buf, int size, const procps_status_t *ps)
 {
 	safe_strncpy(buf, get_cached_username(ps->uid), size+1);
 }
 
-void func_comm(char *buf, int size, const procps_status_t *ps)
+static void func_comm(char *buf, int size, const procps_status_t *ps)
 {
 	safe_strncpy(buf, ps->comm, size+1);
 }
 
-void func_args(char *buf, int size, const procps_status_t *ps)
+static void func_args(char *buf, int size, const procps_status_t *ps)
 {
 	buf[0] = '\0';
 	if (ps->cmd)
@@ -32,22 +32,22 @@ void func_args(char *buf, int size, const procps_status_t *ps)
 		snprintf(buf, size+1, "[%.*s]", size-2, ps->comm);
 }
 
-void func_pid(char *buf, int size, const procps_status_t *ps)
+static void func_pid(char *buf, int size, const procps_status_t *ps)
 {
 	snprintf(buf, size+1, "%*u", size, ps->pid);
 }
 
-void func_ppid(char *buf, int size, const procps_status_t *ps)
+static void func_ppid(char *buf, int size, const procps_status_t *ps)
 {
 	snprintf(buf, size+1, "%*u", size, ps->ppid);
 }
 
-void func_pgid(char *buf, int size, const procps_status_t *ps)
+static void func_pgid(char *buf, int size, const procps_status_t *ps)
 {
 	snprintf(buf, size+1, "%*u", size, ps->pgid);
 }
 
-void func_rss(char *buf, int size, const procps_status_t *ps)
+static void func_rss(char *buf, int size, const procps_status_t *ps)
 {
 	char buf5[5];
 	smart_ulltoa5( ((unsigned long long)ps->rss) << 10, buf5);
