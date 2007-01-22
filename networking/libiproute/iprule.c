@@ -24,6 +24,7 @@
 
 #include "rt_names.h"
 #include "utils.h"
+#include "ip_common.h"
 /*
 static void usage(void) __attribute__((noreturn));
 
@@ -158,7 +159,7 @@ static int print_rule(struct sockaddr_nl *who ATTRIBUTE_UNUSED,
 	return 0;
 }
 
-int iprule_list(int argc, char **argv)
+static int iprule_list(int argc, char **argv)
 {
 	struct rtnl_handle rth;
 	int af = preferred_family;
@@ -188,7 +189,7 @@ int iprule_list(int argc, char **argv)
 }
 
 
-int iprule_modify(int cmd, int argc, char **argv)
+static int iprule_modify(int cmd, int argc, char **argv)
 {
 	int table_ok = 0;
 	struct rtnl_handle rth;
