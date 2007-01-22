@@ -1097,6 +1097,8 @@ static void parse_prompt(const char *prmt_ptr)
 	char c;
 	char *pbuf;
 
+	cmdedit_prmt_len = 0;
+
 	if (!pwd_buf) {
 		pwd_buf = (char *)bb_msg_unknown;
 	}
@@ -1212,14 +1214,6 @@ static void parse_prompt(const char *prmt_ptr)
 
 static sighandler_t previous_SIGWINCH_handler;
 
-static void cmdedit_reset_term(void)
-{
-	setTermSettings(STDIN_FILENO, (void *) &initial_settings);
-	/* restore SIGWINCH handler */
-	signal(SIGWINCH, previous_SIGWINCH_handler);
-	fflush(stdout);
-}
-
 static void cmdedit_setwidth(unsigned w, int redraw_flg)
 {
 	cmdedit_termw = w;
@@ -1239,32 +1233,6 @@ static void win_changed(int nsig)
 	cmdedit_setwidth(width, nsig /* - just a yes/no flag */);
 	if (nsig == SIGWINCH)
 		signal(SIGWINCH, win_changed); /* rearm ourself */
-}
-
-static void cmdedit_init(void)
-{
-	cmdedit_prmt_len = 0;
-	previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
-	win_changed(0); /* do initial resizing */
-
-#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-	{
-		struct passwd *entry;
-
-		entry = getpwuid(geteuid());
-		if (entry) {
-			user_buf = xstrdup(entry->pw_name);
-			home_pwd_buf = xstrdup(entry->pw_dir);
-		}
-	}
-#endif
-
-#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
-	my_uid = getuid();
-	my_gid = getgid();
-#endif
-// Crap. We should be able to do it without atexit.
-	atexit(cmdedit_reset_term);     /* be sure to do this only once */
 }
 
 /*
@@ -1329,7 +1297,23 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 	setTermSettings(0, (void *) &new_settings);
 
 	/* Now initialize things */
-	cmdedit_init();
+	previous_SIGWINCH_handler = signal(SIGWINCH, win_changed);
+	win_changed(0); /* do initial resizing */
+#if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
+	{
+		struct passwd *entry;
+
+		entry = getpwuid(geteuid());
+		if (entry) {
+			user_buf = xstrdup(entry->pw_name);
+			home_pwd_buf = xstrdup(entry->pw_dir);
+		}
+	}
+#endif
+#if ENABLE_FEATURE_COMMAND_TAB_COMPLETION
+	my_uid = getuid();
+	my_gid = getgid();
+#endif
 	/* Print out the command prompt */
 	parse_prompt(prompt);
 
@@ -1746,8 +1730,11 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 #if ENABLE_FEATURE_SH_FANCY_PROMPT
 	free((char*)cmdedit_prompt);
 #endif
-	/* restore initial_settings and SIGWINCH handler */
-	cmdedit_reset_term();
+	/* restore initial_settings */
+	setTermSettings(STDIN_FILENO, (void *) &initial_settings);
+	/* restore SIGWINCH handler */
+	signal(SIGWINCH, previous_SIGWINCH_handler);
+	fflush(stdout);
 	return command_len;
 }
 
