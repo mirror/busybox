@@ -343,8 +343,7 @@ static void ping(const char *host)
 
 	/* set recv buf for broadcast pings */
 	sockopt = 48 * 1024; /* explain why 48k? */
-	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, (char *) &sockopt,
-			   sizeof(sockopt));
+	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
 
 	printf("PING %s (%s)",
 			hostent->h_name,

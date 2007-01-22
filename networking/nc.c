@@ -43,10 +43,10 @@ int nc_main(int argc, char **argv)
 			else if (ENABLE_NC_SERVER && opt=='p') {
 				USE_NC_SERVER(lport = bb_lookup_port(optarg, "tcp", 0));
 			}
-			else if (ENABLE_NC_EXTRA  && opt=='w') USE_NC_EXTRA( wsecs = xatou(optarg));
-			else if (ENABLE_NC_EXTRA  && opt=='i') USE_NC_EXTRA( delay = xatou(optarg));
-			else if (ENABLE_NC_EXTRA  && opt=='f') USE_NC_EXTRA( cfd = xopen(optarg, O_RDWR));
-			else if (ENABLE_NC_EXTRA  && opt=='e' && optind<=argc) {
+			else if (ENABLE_NC_EXTRA && opt=='w') USE_NC_EXTRA( wsecs = xatou(optarg));
+			else if (ENABLE_NC_EXTRA && opt=='i') USE_NC_EXTRA( delay = xatou(optarg));
+			else if (ENABLE_NC_EXTRA && opt=='f') USE_NC_EXTRA( cfd = xopen(optarg, O_RDWR));
+			else if (ENABLE_NC_EXTRA && opt=='e' && optind<=argc) {
 				/* We cannot just 'break'. We should let getopt finish.
 				** Or else we won't be able to find where
 				** 'host' and 'port' params are
@@ -91,8 +91,6 @@ int nc_main(int argc, char **argv)
 
 	if (!cfd) {
 		if (do_listen) {
-			socklen_t addrlen;
-
 			/* create_and_bind_stream_or_die(NULL, lport)
 			 * would've work wonderfully, but we need
 			 * to know lsa */
@@ -105,15 +103,14 @@ int nc_main(int argc, char **argv)
 			/* If we didn't specify a port number,
 			 * query and print it after listen() */
 			if (!lport) {
-				addrlen = lsa->len;
+				socklen_t addrlen = lsa->len;
 				getsockname(sfd, &lsa->sa, &addrlen);
 				lport = get_nport(lsa);
 				fdprintf(2, "%d\n", ntohs(lport));
 			}
 			fcntl(sfd, F_SETFD, FD_CLOEXEC);
  accept_again:
-			addrlen = lsa->len;
-			cfd = accept(sfd, NULL, 0); /* &lsa->sa, &addrlen); */
+			cfd = accept(sfd, NULL, 0);
 			if (cfd < 0)
 				bb_perror_msg_and_die("accept");
 			if (!execparam)

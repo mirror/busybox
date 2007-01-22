@@ -1764,8 +1764,6 @@ static void handleIncoming(void)
  ****************************************************************************/
 static int miniHttpd(int server)
 {
-	static const int on = 1;
-
 	fd_set readfd, portfd;
 
 	FD_ZERO(&portfd);
@@ -1812,7 +1810,7 @@ static int miniHttpd(int server)
 #endif
 
 		/* set the KEEPALIVE option to cull dead connections */
-		setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&on, sizeof(on));
+		setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 
 		if (DEBUG || fork() == 0) {
 			/* child */

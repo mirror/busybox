@@ -1254,8 +1254,6 @@ static void win_changed(int nsig)
 
 int read_line_input(const char* prompt, char* command, int maxsize, line_input_t *st)
 {
-	static const int null_flags;
-
 	int lastWasTab = FALSE;
 	unsigned int ic;
 	unsigned char c;
@@ -1270,7 +1268,7 @@ int read_line_input(const char* prompt, char* command, int maxsize, line_input_t
 		maxsize = BUFSIZ;
 
 	/* With null flags, no other fields are ever used */
-	state = st ? st : (line_input_t*) &null_flags;
+	state = st ? st : (line_input_t*) &const_int_0;
 	if (state->flags & SAVE_HISTORY)
 		load_history(state->hist_file);
 

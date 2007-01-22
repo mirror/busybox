@@ -486,6 +486,9 @@ extern void bb_vinfo_msg(const char *s, va_list p);
 extern int bb_cat(char** argv);
 extern int bb_echo(char** argv);
 extern int bb_test(int argc, char** argv);
+#if ENABLE_ROUTE
+extern void bb_displayroutes(int noresolve, int netstatfmt);
+#endif
 
 
 /* Networking */
@@ -739,6 +742,9 @@ extern const char bb_path_securetty_file[];
 extern const char bb_path_motd_file[];
 extern const char bb_path_wtmp_file[];
 extern const char bb_dev_null[];
+
+extern const int const_int_0;
+extern const int const_int_1;
 
 #ifndef BUFSIZ
 #define BUFSIZ 4096

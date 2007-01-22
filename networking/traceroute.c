@@ -207,7 +207,6 @@
 //#undef CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 //#define CONFIG_FEATURE_TRACEROUTE_USE_ICMP
 
-#include "inet_common.h"
 
 #include <net/if.h>
 #include <arpa/inet.h>
@@ -217,6 +216,7 @@
 #include <netinet/ip_icmp.h>
 
 #include "busybox.h"
+#include "inet_common.h"
 
 
 /*
@@ -803,7 +803,8 @@ inetname(struct sockaddr_in *from)
 	char name[257];
 
 	if (!nflag && from->sin_addr.s_addr != INADDR_ANY) {
-		if (INET_rresolve(name, sizeof(name), from, 0x4000, 0xffffffff) >= 0)
+		if (INET_rresolve(name, sizeof(name), from, 0x4000,
+						0xffffffff) >= 0)
 			n = name;
 	}
 	ina = inet_ntoa(from->sin_addr);
@@ -842,7 +843,7 @@ gethostinfo(const char *host)
 
 	hi = xzalloc(sizeof(*hi));
 	addr = inet_addr(host);
-	if ((int32_t)addr != -1) {
+	if (addr != 0xffffffff) {
 		hi->name = xstrdup(host);
 		hi->n = 1;
 		hi->addrs = xzalloc(sizeof(hi->addrs[0]));
@@ -888,8 +889,6 @@ getaddr(uint32_t *ap, const char *host)
 int
 traceroute_main(int argc, char *argv[])
 {
-	static const int on = 1;
-
 	int code, n;
 	unsigned char *outp;
 	uint32_t *ap;
@@ -1043,19 +1042,19 @@ traceroute_main(int argc, char *argv[])
 
 	/* Insure the socket fds won't be 0, 1 or 2 */
 	do n = xopen(bb_dev_null, O_RDONLY); while (n < 2);
-	if (n > 2)
-		close(n);
+	while (n > 2)
+		close(n--);
 
 	s = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
 #if TRACEROUTE_SO_DEBUG
 	if (op & USAGE_OP_DEBUG)
-		(void)setsockopt(s, SOL_SOCKET, SO_DEBUG, (char *)&on,
-		    sizeof(on));
+		setsockopt(s, SOL_SOCKET, SO_DEBUG,
+				&const_int_1, sizeof(const_int_1));
 #endif
 	if (op & USAGE_OP_BYPASS_ROUTE)
-		(void)setsockopt(s, SOL_SOCKET, SO_DONTROUTE, (char *)&on,
-		    sizeof(on));
+		setsockopt(s, SOL_SOCKET, SO_DONTROUTE,
+				&const_int_1, sizeof(const_int_1));
 
 	sndsock = xsocket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 
@@ -1087,32 +1086,31 @@ traceroute_main(int argc, char *argv[])
 #endif /* CONFIG_FEATURE_TRACEROUTE_SOURCE_ROUTE */
 
 #ifdef SO_SNDBUF
-	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, (char *)&packlen,
-	    sizeof(packlen)) < 0) {
+	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, &packlen, sizeof(packlen)) < 0) {
 		bb_perror_msg_and_die("SO_SNDBUF");
 	}
 #endif
 #ifdef IP_HDRINCL
-	if (setsockopt(sndsock, IPPROTO_IP, IP_HDRINCL, (char *)&on,
-	    sizeof(on)) < 0 && errno != ENOPROTOOPT) {
+	if (setsockopt(sndsock, IPPROTO_IP, IP_HDRINCL, &const_int_1, sizeof(const_int_1)) < 0
+	 && errno != ENOPROTOOPT
+	) {
 		bb_perror_msg_and_die("IP_HDRINCL");
 	}
 #else
 #ifdef IP_TOS
-	if (tos_str && setsockopt(sndsock, IPPROTO_IP, IP_TOS,
-	    (char *)&tos, sizeof(tos)) < 0) {
+	if (tos_str && setsockopt(sndsock, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)) < 0) {
 		bb_perror_msg_and_die("setsockopt tos %d", tos);
 	}
 #endif
 #endif
 #if TRACEROUTE_SO_DEBUG
 	if (op & USAGE_OP_DEBUG)
-		(void)setsockopt(sndsock, SOL_SOCKET, SO_DEBUG, (char *)&on,
-		    sizeof(on));
+		setsockopt(sndsock, SOL_SOCKET, SO_DEBUG,
+				&const_int_1, sizeof(const_int_1));
 #endif
 	if (op & USAGE_OP_BYPASS_ROUTE)
-		(void)setsockopt(sndsock, SOL_SOCKET, SO_DONTROUTE, (char *)&on,
-		    sizeof(on));
+		setsockopt(sndsock, SOL_SOCKET, SO_DONTROUTE,
+				&const_int_1, sizeof(const_int_1));
 
 	/* Revert to non-privileged user after opening sockets */
 	xsetgid(getgid());

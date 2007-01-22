@@ -95,8 +95,6 @@ static void telopt(byte c);
 static int subneg(byte c);
 
 /* Some globals */
-static const int one = 1;
-
 #ifdef CONFIG_FEATURE_TELNET_TTYPE
 static char *ttype;
 #endif
@@ -630,7 +628,7 @@ int telnet_main(int argc, char** argv)
 
 	G.netfd = create_and_connect_stream_or_die(host, port);
 
-	setsockopt(G.netfd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);
+	setsockopt(G.netfd, SOL_SOCKET, SO_KEEPALIVE, &const_int_1, sizeof(const_int_1));
 
 	signal(SIGINT, fgotsig);
 

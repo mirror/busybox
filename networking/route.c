@@ -63,14 +63,14 @@
 #endif
 
 /* The RTACTION entries must agree with tbl_verb[] below! */
-#define RTACTION_ADD		1
-#define RTACTION_DEL		2
+#define RTACTION_ADD 1
+#define RTACTION_DEL 2
 
 /* For the various tbl_*[] arrays, the 1st byte is the offset to
  * the next entry and the 2nd byte is return value. */
 
-#define NET_FLAG			1
-#define HOST_FLAG			2
+#define NET_FLAG  1
+#define HOST_FLAG 2
 
 /* We remap '-' to '#' to avoid problems with getopt. */
 static const char tbl_hash_net_host[] =
@@ -79,22 +79,22 @@ static const char tbl_hash_net_host[] =
 	"\007\002#host"				/* Since last, we can save a byte. */
 ;
 
-#define KW_TAKES_ARG		020
-#define KW_SETS_FLAG		040
+#define KW_TAKES_ARG            020
+#define KW_SETS_FLAG            040
 
-#define KW_IPVx_METRIC		020
-#define KW_IPVx_NETMASK		021
-#define KW_IPVx_GATEWAY		022
-#define KW_IPVx_MSS			023
-#define KW_IPVx_WINDOW		024
-#define KW_IPVx_IRTT		025
-#define KW_IPVx_DEVICE		026
+#define KW_IPVx_METRIC          020
+#define KW_IPVx_NETMASK         021
+#define KW_IPVx_GATEWAY         022
+#define KW_IPVx_MSS             023
+#define KW_IPVx_WINDOW          024
+#define KW_IPVx_IRTT            025
+#define KW_IPVx_DEVICE          026
 
-#define KW_IPVx_FLAG_ONLY	040
-#define KW_IPVx_REJECT		040
-#define KW_IPVx_MOD			041
-#define KW_IPVx_DYN			042
-#define KW_IPVx_REINSTATE	043
+#define KW_IPVx_FLAG_ONLY       040
+#define KW_IPVx_REJECT          040
+#define KW_IPVx_MOD             041
+#define KW_IPVx_DYN             042
+#define KW_IPVx_REINSTATE       043
 
 static const char tbl_ipvx[] =
 	/* 020 is the "takes an arg" bit */
@@ -167,7 +167,7 @@ static void INET_setroute(int action, char **args)
 	}
 
 	/* Clean out the RTREQ structure. */
-	memset((char *) &rt, 0, sizeof(struct rtentry));
+	memset(&rt, 0, sizeof(rt));
 
 	{
 		const char *target = *args++;
@@ -334,7 +334,7 @@ static void INET_setroute(int action, char **args)
 	if (ENABLE_FEATURE_CLEAN_UP) close(skfd);
 }
 
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 
 static void INET6_setroute(int action, char **args)
 {
@@ -363,7 +363,7 @@ static void INET6_setroute(int action, char **args)
 		}
 
 	/* Clean out the RTREQ structure. */
-	memset((char *) &rt, 0, sizeof(struct in6_rtmsg));
+	memset(&rt, 0, sizeof(rt));
 
 	memcpy(&rt.rtmsg_dst, sa6.sin6_addr.s6_addr, sizeof(struct in6_addr));
 
@@ -445,7 +445,7 @@ static const unsigned int flagvals[] = { /* Must agree with flagchars[]. */
 	RTF_REINSTATE,
 	RTF_DYNAMIC,
 	RTF_MODIFIED,
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 	RTF_DEFAULT,
 	RTF_ADDRCONF,
 	RTF_CACHE
@@ -457,7 +457,7 @@ static const unsigned int flagvals[] = { /* Must agree with flagchars[]. */
 
 static const char flagchars[] =		/* Must agree with flagvals[]. */
 	"GHRDM"
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 	"DAC"
 #endif
 ;
@@ -476,7 +476,7 @@ static void set_flags(char *flagstr, int flags)
 }
 
 /* also used in netstat */
-void displayroutes(int noresolve, int netstatfmt)
+void bb_displayroutes(int noresolve, int netstatfmt)
 {
 	char devname[64], flags[16], sdest[16], sgw[16];
 	unsigned long int d, g, m;
@@ -537,7 +537,7 @@ void displayroutes(int noresolve, int netstatfmt)
 	}
 }
 
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 
 static void INET6_displayroutes(int noresolve)
 {
@@ -589,7 +589,7 @@ static void INET6_displayroutes(int noresolve)
 					goto ERROR;
 				}
 				addr6x[i++] = *p++;
-				if (!((i+1)%5)) {
+				if (!((i+1) % 5)) {
 					addr6x[i++] = ':';
 				}
 			} while (i < 40+28+7);
@@ -626,10 +626,10 @@ static void INET6_displayroutes(int noresolve)
 
 #endif
 
-#define ROUTE_OPT_A			0x01
-#define ROUTE_OPT_n			0x02
-#define ROUTE_OPT_e			0x04
-#define ROUTE_OPT_INET6		0x08 /* Not an actual option. See below. */
+#define ROUTE_OPT_A     0x01
+#define ROUTE_OPT_n     0x02
+#define ROUTE_OPT_e     0x04
+#define ROUTE_OPT_INET6 0x08 /* Not an actual option. See below. */
 
 /* 1st byte is offset to next entry offset.  2nd byte is return value. */
 static const char tbl_verb[] =	/* 2nd byte matches RTACTION_* code */
@@ -649,15 +649,15 @@ int route_main(int argc, char **argv)
 	/* First, remap '-net' and '-host' to avoid getopt problems. */
 	p = argv;
 	while (*++p) {
-		if ((strcmp(*p, "-net") == 0) || (strcmp(*p, "-host") == 0)) {
+		if (strcmp(*p, "-net") == 0 || strcmp(*p, "-host") == 0) {
 			p[0][0] = '#';
 		}
 	}
 
 	opt = getopt32(argc, argv, "A:ne", &family);
 
-	if ((opt & ROUTE_OPT_A) && strcmp(family, "inet")) {
-#ifdef CONFIG_FEATURE_IPV6
+	if ((opt & ROUTE_OPT_A) && strcmp(family, "inet") != 0) {
+#if ENABLE_FEATURE_IPV6
 		if (strcmp(family, "inet6") == 0) {
 			opt |= ROUTE_OPT_INET6;	/* Set flag for ipv6. */
 		} else
@@ -670,12 +670,12 @@ int route_main(int argc, char **argv)
 	/* No more args means display the routing table. */
 	if (!*argv) {
 		int noresolve = (opt & ROUTE_OPT_n) ? 0x0fff : 0;
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 		if (opt & ROUTE_OPT_INET6)
 			INET6_displayroutes(noresolve);
 		else
 #endif
-			displayroutes(noresolve, opt & ROUTE_OPT_e);
+			bb_displayroutes(noresolve, opt & ROUTE_OPT_e);
 
 		fflush_stdout_and_exit(EXIT_SUCCESS);
 	}
@@ -686,7 +686,7 @@ int route_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
-#ifdef CONFIG_FEATURE_IPV6
+#if ENABLE_FEATURE_IPV6
 	if (opt & ROUTE_OPT_INET6)
 		INET6_setroute(what, argv);
 	else

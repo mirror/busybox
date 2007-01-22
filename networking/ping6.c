@@ -77,8 +77,7 @@ static void ping(const char *host)
 	pkt->icmp6_type = ICMP6_ECHO_REQUEST;
 
 	sockopt = offsetof(struct icmp6_hdr, icmp6_cksum);
-	setsockopt(pingsock, SOL_RAW, IPV6_CHECKSUM, (char *) &sockopt,
-			   sizeof(sockopt));
+	setsockopt(pingsock, SOL_RAW, IPV6_CHECKSUM, &sockopt, sizeof(sockopt));
 
 	c = sendto(pingsock, packet, DEFDATALEN + sizeof (struct icmp6_hdr), 0,
 			   (struct sockaddr *) &pingaddr, sizeof(struct sockaddr_in6));
@@ -312,6 +311,7 @@ static void unpack(char *packet, int sz, struct sockaddr_in6 *from, int hoplimit
 	fflush(stdout);
 }
 
+extern int BUG_bad_offsetof_icmp6_cksum(void);
 static void ping(const char *host)
 {
 	char packet[datalen + MAXIPLEN + MAXICMPLEN];
@@ -353,18 +353,15 @@ static void ping(const char *host)
 
 	/* set recv buf for broadcast pings */
 	sockopt = 48 * 1024; /* explain why 48k? */
-	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, (char *) &sockopt,
-			   sizeof(sockopt));
+	setsockopt(pingsock, SOL_SOCKET, SO_RCVBUF, &sockopt, sizeof(sockopt));
 
-	sockopt = 2; /* iputils-ss020927 does this */
 	sockopt = offsetof(struct icmp6_hdr, icmp6_cksum);
-	setsockopt(pingsock, SOL_RAW, IPV6_CHECKSUM, (char *) &sockopt,
-			   sizeof(sockopt));
+	if (offsetof(struct icmp6_hdr, icmp6_cksum) != 2)
+		BUG_bad_offsetof_icmp6_cksum();
+	setsockopt(pingsock, SOL_RAW, IPV6_CHECKSUM, &sockopt, sizeof(sockopt));
 
 	/* request ttl info to be returned in ancillary data */
-	sockopt = 1;
-	setsockopt(pingsock, SOL_IPV6, IPV6_HOPLIMIT, (char *) &sockopt,
-			   sizeof(sockopt));
+	setsockopt(pingsock, SOL_IPV6, IPV6_HOPLIMIT, &const_int_1, sizeof(const_int_1));
 
 	if (if_index)
 		pingaddr.sin6_scope_id = if_index;

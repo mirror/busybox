@@ -9,14 +9,13 @@
 #include <netinet/in.h>
 #include "libbb.h"
 
-static const int one = 1;
 int setsockopt_reuseaddr(int fd)
 {
-	return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &const_int_1, sizeof(const_int_1));
 }
 int setsockopt_broadcast(int fd)
 {
-	return setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof(one));
+	return setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &const_int_1, sizeof(const_int_1));
 }
 
 void xconnect(int s, const struct sockaddr *s_addr, socklen_t addrlen)

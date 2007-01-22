@@ -33,19 +33,23 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 	/* If we expect this to be a hostname, try hostname database first */
 #ifdef DEBUG
 	if (hostfirst) {
-		bb_error_msg("gethostbyname (%s)", name);
+		bb_error_msg("gethostbyname(%s)", name);
 	}
 #endif
-	if (hostfirst && (hp = gethostbyname(name)) != (struct hostent *) NULL) {
-		memcpy((char *) &s_in->sin_addr, (char *) hp->h_addr_list[0],
-			   sizeof(struct in_addr));
-		return 0;
+	if (hostfirst) {
+		hp = gethostbyname(name);
+		if (hp != NULL) {
+			memcpy(&s_in->sin_addr, hp->h_addr_list[0],
+				sizeof(struct in_addr));
+			return 0;
+		}
 	}
 	/* Try the NETWORKS database to see if this is a known network. */
 #ifdef DEBUG
-	bb_error_msg("getnetbyname (%s)", name);
+	bb_error_msg("getnetbyname(%s)", name);
 #endif
-	if ((np = getnetbyname(name)) != (struct netent *) NULL) {
+	np = getnetbyname(name);
+	if (np != NULL) {
 		s_in->sin_addr.s_addr = htonl(np->n_net);
 		return 1;
 	}
@@ -59,14 +63,13 @@ int INET_resolve(const char *name, struct sockaddr_in *s_in, int hostfirst)
 #endif
 
 #ifdef DEBUG
-	bb_error_msg("gethostbyname (%s)", name);
+	bb_error_msg("gethostbyname(%s)", name);
 #endif
-	if ((hp = gethostbyname(name)) == (struct hostent *) NULL) {
+	hp = gethostbyname(name);
+	if (hp == NULL) {
 		return -1;
 	}
-	memcpy((char *) &s_in->sin_addr, (char *) hp->h_addr_list[0],
-		   sizeof(struct in_addr));
-
+	memcpy(&s_in->sin_addr, hp->h_addr_list[0], sizeof(struct in_addr));
 	return 0;
 }
 
@@ -78,7 +81,7 @@ struct addr {
 	struct addr *next;
 };
 
-static struct addr *INET_nn = NULL;	/* addr-to-name cache           */
+static struct addr *INET_nn = NULL;	/* addr-to-name cache */
 
 /* numeric: & 0x8000: default instead of *,
  *          & 0x4000: host instead of net,
@@ -90,7 +93,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	struct hostent *ent;
 	struct netent *np;
 	struct addr *pn;
-	unsigned long ad, host_ad;
+	uint32_t ad, host_ad;
 	int host = 0;
 
 	/* Grmpf. -FvK */
@@ -102,9 +105,9 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 		errno = EAFNOSUPPORT;
 		return -1;
 	}
-	ad = (unsigned long) s_in->sin_addr.s_addr;
+	ad = s_in->sin_addr.s_addr;
 #ifdef DEBUG
-	bb_error_msg("rresolve: %08lx, mask %08x, num %08x", ad, netmask, numeric);
+	bb_error_msg("rresolve: %08x, mask %08x, num %08x", (unsigned)ad, netmask, numeric);
 #endif
 	if (ad == INADDR_ANY) {
 		if ((numeric & 0x0FFF) == 0) {
@@ -127,8 +130,8 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 		if (pn->addr.sin_addr.s_addr == ad && pn->host == host) {
 			safe_strncpy(name, pn->name, len);
 #ifdef DEBUG
-			bb_error_msg("rresolve: found %s %08lx in cache",
-					  (host ? "host" : "net"), ad);
+			bb_error_msg("rresolve: found %s %08x in cache",
+					  (host ? "host" : "net"), (unsigned)ad);
 #endif
 			return 0;
 		}
@@ -140,7 +143,7 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	ent = NULL;
 	if (host) {
 #ifdef DEBUG
-		bb_error_msg("gethostbyaddr (%08lx)", ad);
+		bb_error_msg("gethostbyaddr (%08x)", (unsigned)ad);
 #endif
 		ent = gethostbyaddr((char *) &ad, 4, AF_INET);
 		if (ent != NULL) {
@@ -148,14 +151,14 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 		}
 	} else {
 #ifdef DEBUG
-		bb_error_msg("getnetbyaddr (%08lx)", host_ad);
+		bb_error_msg("getnetbyaddr (%08x)", (unsigned)host_ad);
 #endif
 		np = getnetbyaddr(host_ad, AF_INET);
 		if (np != NULL) {
 			safe_strncpy(name, np->n_name, len);
 		}
 	}
-	if ((ent == NULL) && (np == NULL)) {
+	if (!ent && !np) {
 		safe_strncpy(name, inet_ntoa(s_in->sin_addr), len);
 	}
 	pn = xmalloc(sizeof(struct addr));
@@ -164,7 +167,6 @@ int INET_rresolve(char *name, size_t len, struct sockaddr_in *s_in,
 	pn->host = host;
 	pn->name = xstrdup(name);
 	INET_nn = pn;
-
 	return 0;
 }
 
@@ -183,9 +185,7 @@ int INET6_resolve(const char *name, struct sockaddr_in6 *sin6)
 		return -1;
 	}
 	memcpy(sin6, ai->ai_addr, sizeof(struct sockaddr_in6));
-
 	freeaddrinfo(ai);
-
 	return 0;
 }
 
@@ -224,7 +224,8 @@ int INET6_rresolve(char *name, size_t len, struct sockaddr_in6 *sin6,
 		return 0;
 	}
 
-	s = getnameinfo((struct sockaddr *) sin6, sizeof(struct sockaddr_in6), name, len, NULL, 0, 0);
+	s = getnameinfo((struct sockaddr *) sin6, sizeof(struct sockaddr_in6),
+				name, len, NULL, 0, 0);
 	if (s) {
 		bb_error_msg("getnameinfo failed");
 		return -1;

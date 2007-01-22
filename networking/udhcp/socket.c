@@ -112,7 +112,7 @@ int listen_socket(uint32_t ip, int port, char *inf)
 	}
 
 	strncpy(interface.ifr_name, inf, IFNAMSIZ);
-	if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (char *)&interface, sizeof(interface)) < 0) {
+	if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, &interface, sizeof(interface)) < 0) {
 		close(fd);
 		return -1;
 	}

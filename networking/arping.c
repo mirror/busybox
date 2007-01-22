@@ -335,13 +335,12 @@ int arping_main(int argc, char **argv)
 			saddr.sin_addr = src;
 			xbind(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
 		} else if (!(cfg & dad)) {
-			static const int on = 1;
 			socklen_t alen = sizeof(saddr);
 
 			saddr.sin_port = htons(1025);
 			saddr.sin_addr = dst;
 
-			if (setsockopt(probe_fd, SOL_SOCKET, SO_DONTROUTE, (char *) &on, sizeof(on)) == -1)
+			if (setsockopt(probe_fd, SOL_SOCKET, SO_DONTROUTE, &const_int_1, sizeof(const_int_1)) == -1)
 				bb_perror_msg("warning: setsockopt(SO_DONTROUTE)");
 			xconnect(probe_fd, (struct sockaddr *) &saddr, sizeof(saddr));
 			if (getsockname(probe_fd, (struct sockaddr *) &saddr, &alen) == -1) {
