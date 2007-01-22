@@ -146,4 +146,3 @@ int nslookup_main(int argc, char **argv)
 	return print_host(argv[1], "Name:  ");
 }
 
-/* $Id: nslookup.c,v 1.33 2004/10/13 07:25:01 andersen Exp $ */

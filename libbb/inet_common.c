@@ -5,7 +5,6 @@
  *
  * Heavily modified by Manuel Novoa III       Mar 12, 2001
  *
- * Version:     $Id: inet_common.c,v 1.8 2004/03/10 07:42:38 mjn3 Exp $
  *
  */
 

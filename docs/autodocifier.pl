@@ -301,4 +301,3 @@ John BEPPU <b@ax9.org>
 
 =cut
 
-# $Id: autodocifier.pl,v 1.26 2004/04/06 15:26:25 andersen Exp $
