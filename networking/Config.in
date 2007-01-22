@@ -697,13 +697,6 @@ config FEATURE_WGET_AUTHENTICATION
 	help
 	  Support authenticated HTTP transfers.
 
-config FEATURE_WGET_IP6_LITERAL
-	bool "Enable IPv6 literal addresses"
-	default y
-	depends on WGET && FEATURE_IPV6
-	help
-	  Support IPv6 address literal notation in URLs.
-
 config FEATURE_WGET_LONG_OPTIONS
 	bool "Enable long options"
 	default n

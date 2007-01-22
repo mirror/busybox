@@ -260,14 +260,6 @@ int wget_main(int argc, char **argv)
 			 * Send HTTP request.
 			 */
 			if (use_proxy) {
-//				const char *format = "GET %stp://%s:%d/%s HTTP/1.1\r\n";
-//#if ENABLE_FEATURE_WGET_IP6_LITERAL
-//				if (strchr(target.host, ':'))
-//					format = "GET %stp://[%s]:%d/%s HTTP/1.1\r\n";
-//#endif
-//				fprintf(sfp, format,
-//					target.is_ftp ? "f" : "ht", target.host,
-//					ntohs(target.port), target.path);
 				fprintf(sfp, "GET %stp://%s/%s HTTP/1.1\r\n",
 					target.is_ftp ? "f" : "ht", target.host,
 					target.path);
@@ -566,28 +558,6 @@ static void parse_url(char *src_url, struct host_info *h)
 	}
 
 	sp = h->host;
-
-//host2sockaddr does this itself
-//#if ENABLE_FEATURE_WGET_IP6_LITERAL
-//	if (sp[0] == '[') {
-//		char *ep;
-//
-//		ep = sp + 1;
-//		while (*ep == ':' || isxdigit(*ep))
-//			ep++;
-//		if (*ep == ']') {
-//			h->host++;
-//			*ep = '\0';
-//			sp = ep + 1;
-//		}
-//	}
-//#endif
-//
-//	p = strchr(sp, ':');
-//	if (p != NULL) {
-//		*p = '\0';
-//		h->port = htons(xatou16(p + 1));
-//	}
 }
 
 
