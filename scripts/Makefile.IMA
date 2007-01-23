@@ -1,0 +1,130 @@
+# This is completely unsupported.
+# Fix COMBINED_COMPILE upstream (in the Kbuild) and propagate
+# the changes back
+srctree		:= $(if $(KBUILD_SRC),$(KBUILD_SRC),$(CURDIR))
+objtree		:= $(CURDIR)
+src		:= $(srctree)
+obj		:= $(objtree)
+
+default: busybox
+include .config
+ifdef CONFIG_FEATURE_COMPRESS_USAGE
+usage_stuff = include/usage_compressed.h
+endif
+
+# pull in the config stuff
+lib-all-y := applets/applets.o applets/busybox.o
+lib-y:=
+include procps/Kbuild
+lib-all-y += $(patsubst %,procps/%,$(sort $(lib-y)))
+lib-y:=
+include networking/Kbuild
+lib-all-y += $(patsubst %,networking/%,$(sort $(lib-y)))
+lib-y:=
+include networking/udhcp/Kbuild
+lib-all-y += $(patsubst %,networking/udhcp/%,$(sort $(lib-y)))
+lib-y:=
+include networking/libiproute/Kbuild
+lib-all-y += $(patsubst %,networking/libiproute/%,$(sort $(lib-y)))
+lib-y:=
+include loginutils/Kbuild
+lib-all-y += $(patsubst %,loginutils/%,$(sort $(lib-y)))
+lib-y:=
+include archival/Kbuild
+lib-all-y += $(patsubst %,archival/%,$(sort $(lib-y)))
+lib-y:=
+include archival/libunarchive/Kbuild
+lib-all-y += $(patsubst %,archival/libunarchive/%,$(sort $(lib-y)))
+lib-y:=
+include applets/Kbuild
+lib-all-y += $(patsubst %,applets/%,$(sort $(lib-y)))
+lib-y:=
+include e2fsprogs/Kbuild
+lib-all-y += $(patsubst %,e2fsprogs/%,$(sort $(lib-y)))
+lib-y:=
+#include e2fsprogs/old_e2fsprogs/Kbuild
+#lib-all-y += $(patsubst %,e2fsprogs/old_e2fsprogs/%,$(sort $(lib-y)))
+#lib-y:=
+#include e2fsprogs/old_e2fsprogs/ext2fs/Kbuild
+#lib-all-y += $(patsubst %,e2fsprogs/old_e2fsprogs/ext2fs/%,$(sort $(lib-y)))
+#lib-y:=
+#include e2fsprogs/old_e2fsprogs/blkid/Kbuild
+#lib-all-y += $(patsubst %,e2fsprogs/old_e2fsprogs/blkid/%,$(sort $(lib-y)))
+#lib-y:=
+#include e2fsprogs/old_e2fsprogs/uuid/Kbuild
+#lib-all-y += $(patsubst %,e2fsprogs/old_e2fsprogs/uuid/%,$(sort $(lib-y)))
+#lib-y:=
+#include e2fsprogs/old_e2fsprogs/e2p/Kbuild
+#lib-all-y += $(patsubst %,e2fsprogs/old_e2fsprogs/e2p/%,$(sort $(lib-y)))
+#lib-y:=
+include debianutils/Kbuild
+lib-all-y += $(patsubst %,debianutils/%,$(sort $(lib-y)))
+lib-y:=
+include runit/Kbuild
+lib-all-y += $(patsubst %,runit/%,$(sort $(lib-y)))
+lib-y:=
+include modutils/Kbuild
+lib-all-y += $(patsubst %,modutils/%,$(sort $(lib-y)))
+lib-y:=
+include miscutils/Kbuild
+lib-all-y += $(patsubst %,miscutils/%,$(sort $(lib-y)))
+lib-y:=
+include coreutils/libcoreutils/Kbuild
+lib-all-y += $(patsubst %,coreutils/libcoreutils/%,$(sort $(lib-y)))
+lib-y:=
+include coreutils/Kbuild
+lib-all-y += $(patsubst %,coreutils/%,$(sort $(lib-y)))
+lib-y:=
+include sysklogd/Kbuild
+lib-all-y += $(patsubst %,sysklogd/%,$(sort $(lib-y)))
+lib-y:=
+include shell/Kbuild
+lib-all-y += $(patsubst %,shell/%,$(sort $(lib-y)))
+lib-y:=
+include console-tools/Kbuild
+lib-all-y += $(patsubst %,console-tools/%,$(sort $(lib-y)))
+lib-y:=
+include findutils/Kbuild
+lib-all-y += $(patsubst %,findutils/%,$(sort $(lib-y)))
+lib-y:=
+include util-linux/Kbuild
+lib-all-y += $(patsubst %,util-linux/%,$(sort $(lib-y)))
+lib-y:=
+include init/Kbuild
+lib-all-y += $(patsubst %,init/%,$(sort $(lib-y)))
+lib-y:=
+include libpwdgrp/Kbuild
+lib-all-y += $(patsubst %,libpwdgrp/%,$(sort $(lib-y)))
+lib-y:=
+include editors/Kbuild
+lib-all-y += $(patsubst %,editors/%,$(sort $(lib-y)))
+lib-y:=
+include scripts/Kbuild
+lib-all-y += $(patsubst %,scripts/%,$(sort $(lib-y)))
+lib-y:=
+include libbb/Kbuild
+lib-all-y += $(patsubst %,libbb/%,$(sort $(lib-y)))
+lib-y:=
+
+ifndef BB_VER
+BB_VER:=""
+endif
+include Makefile.flags
+CPPFLAGS+= -D"KBUILD_STR(s)=\#s" #-Q
+
+HOSTCC = gcc
+CC = gcc
+
+busybox: $(usage_stuff)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(CFLAGS_EXTRA) --combine -fwhole-program \
+		-funit-at-a-time -Wno-error  \
+		-o $(@)_unstripped $(lib-all-y:.o=.c) \
+		-Wl,--start-group -lcrypt -lm -Wl,--end-group
+	cp $(@)_unstripped $@
+	-strip -s -R .note -R .comment -R .version $@
+
+applets/usage:
+	$(HOSTCC) -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer      -I$(srctree)/include -o applets/usage applets/usage.c
+include/usage_compressed.h: $(srctree)/include/usage.h applets/usage
+	$(srctree)/applets/usage_compressed include/usage_compressed.h applets
+
