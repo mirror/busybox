@@ -2,4 +2,4 @@
 # Build system
 # ==========================================================================
 
-CFLAGS += -march=i386 -mpreferred-stack-boundary=2
+CFLAGS += $(call cc-option,-march=i386 -mpreferred-stack-boundary=2,)

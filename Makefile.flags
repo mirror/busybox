@@ -6,8 +6,8 @@ BB_VER = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 
 # -std=gnu99 needed for [U]LLONG_MAX on some systems
 
+CPPFLAGS += $(call cc-option,-std=gnu99,)
 CPPFLAGS += \
-	-std=gnu99 \
 	-Iinclude -Ilibbb \
 	$(if $(KBUILD_SRC),-Iinclude2 -I$(srctree)/include) -I$(srctree)/libbb \
 	-include include/autoconf.h \
@@ -15,20 +15,19 @@ CPPFLAGS += \
 	$(if $(CONFIG_LFS),-D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64) \
 	-D"BB_VER=KBUILD_STR($(BB_VER))" -DBB_BT=AUTOCONF_TIMESTAMP
 
-CFLAGS += \
-	-Wall -Wshadow -Wno-error -Wundef \
-	-Wold-style-definition \
-	-Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations \
-	-funsigned-char -fno-builtin-strlen -finline-limit=0 -static-libgcc \
-	-Os -falign-functions=1 -falign-jumps=1 -falign-loops=1 \
-	-fomit-frame-pointer -ffunction-sections -fdata-sections
+# flag checks are grouped together to speed the checks up a bit..
+CFLAGS += $(call cc-option,-Wall -Wshadow,)
+CFLAGS += $(call cc-option,-Wundef -Wold-style-definition -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations,)
+CFLAGS += $(call cc-option,-Os -fno-builtin-strlen -finline-limit=0 -fomit-frame-pointer -ffunction-sections -fdata-sections,)
+CFLAGS += $(call cc-option,-static-libgcc -funsigned-char,)
+CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-loops=1,)
+
 # FIXME: These warnings are at least partially to be concerned about and should
 # be fixed..
-#CFLAGS+=-Wconversion
-
+#CFLAGS+=$(call cc-option,-Wconversion,)
 
 ifeq ($(CONFIG_DEBUG),y)
-CFLAGS += -g
+CFLAGS += $(call cc-option,-g)
 endif
 
 ifeq ($(CONFIG_STATIC),y)
