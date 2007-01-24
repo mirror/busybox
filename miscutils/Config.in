@@ -250,11 +250,11 @@ config MAKEDEVS
 	  'leaf' is traditionally what busybox follows, it allows multiple
 	  devices of a particluar type to be created per command.
 	  e.g. /dev/hda[0-9]
-          Device properties are passed as command line arguments.
+	  Device properties are passed as command line arguments.
 	  .
 	  'table' reads device properties from a file or stdin, allowing
 	  a batch of unrelated devices to be made with one command.
-          User/group names are allowed as an alternative to uid/gid.
+	  User/group names are allowed as an alternative to uid/gid.
 
 choice
 	prompt "Choose makedevs behaviour"
@@ -262,7 +262,7 @@ choice
 	default FEATURE_MAKEDEVS_TABLE
 
 config FEATURE_MAKEDEVS_LEAF
-        bool "leaf"
+	bool "leaf"
 
 config FEATURE_MAKEDEVS_TABLE
 	bool "table"
@@ -297,10 +297,10 @@ config RAIDAUTORUN
 	  search and start RAID arrays.
 
 config READAHEAD
-        bool "readahead"
+	bool "readahead"
 	default n
 	help
- 	  Preload the files listed on the command line into RAM cache so that
+	  Preload the files listed on the command line into RAM cache so that
 	  subsequent reads on these files will not block on disk I/O.
 
 	  This applet just calls the readahead(2) system call on each file.
@@ -313,19 +313,19 @@ config READAHEAD
 	  run this applet as a background job.
 
 config RUNLEVEL
-        bool "runlevel"
+	bool "runlevel"
 	default n
 	help
- 	  find the current and previous system runlevel.
+	  find the current and previous system runlevel.
 
 	  This applet uses utmp but does not rely on busybox supporing
 	  utmp on purpose. It is used by e.g. emdebian via /etc/init.d/rc.
 
 config RX
-        bool "rx"
+	bool "rx"
 	default n
 	help
- 	  Receive files using the Xmodem protocol.
+	  Receive files using the Xmodem protocol.
 
 config STRINGS
 	bool "strings"

@@ -426,31 +426,31 @@ config INSTALL_NO_USR
 	  that you really want this behaviour.
 
 choice
-       prompt "Applets links"
-       default INSTALL_APPLET_SYMLINKS
-       help
-         Choose how you install applets links.
+	prompt "Applets links"
+	default INSTALL_APPLET_SYMLINKS
+	help
+	  Choose how you install applets links.
 
 config INSTALL_APPLET_SYMLINKS
-       bool "as soft-links"
-       help
-         Install applets as soft-links to the busybox binary. This needs some
-         free inodes on the filesystem, but might help with filesystem
-         generators that can't cope with hard-links.
+	bool "as soft-links"
+	help
+	  Install applets as soft-links to the busybox binary. This needs some
+	  free inodes on the filesystem, but might help with filesystem
+	  generators that can't cope with hard-links.
 
 config INSTALL_APPLET_HARDLINKS
-       bool "as hard-links"
-       help
-         Install applets as hard-links to the busybox binary. This might count
-         on a filesystem with few inodes.
+	bool "as hard-links"
+	help
+	  Install applets as hard-links to the busybox binary. This might count
+	  on a filesystem with few inodes.
 
 config INSTALL_APPLET_DONT
-       bool
-       prompt "not installed"
-       depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE_SHELL || FEATURE_EXEC_PREFER_APPLETS
-       help
-         Do not install applet links. Useful when using the -install feature
-         or a standalone shell for rescue pruposes.
+	bool
+	prompt "not installed"
+	depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE_SHELL || FEATURE_EXEC_PREFER_APPLETS
+	help
+	  Do not install applet links. Useful when using the -install feature
+	  or a standalone shell for rescue pruposes.
 
 endchoice
 

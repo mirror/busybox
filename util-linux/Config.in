@@ -127,7 +127,7 @@ config FEATURE_SGI_LABEL
 config FEATURE_SUN_LABEL
 	bool "Support SUN disklabels"
 	default n
- 	depends on FDISK && FEATURE_FDISK_WRITABLE
+	depends on FDISK && FEATURE_FDISK_WRITABLE
 	help
 	  Enabling this option allows you to create or change SUN disklabels.
 	  Most people can safely leave this option disabled.
@@ -181,7 +181,7 @@ config MKFS_MINIX
 	  this utility will do the job for you.
 
 comment "Minix filesystem support"
-    depends on FSCK_MINIX || MKFS_MINIX
+	depends on FSCK_MINIX || MKFS_MINIX
 
 config FEATURE_MINIX2
 	bool "Support Minix fs v2 (fsck_minix/mkfs_minix)"
@@ -495,7 +495,7 @@ config FEATURE_MOUNT_LOOP
 	  The umount command will also free that loopback device.
 
 	  You can still use the 'losetup' utility (to manually associate files
-          with loop devices) if you need to do something advanced, such as
+	  with loop devices) if you need to do something advanced, such as
 	  specify an offset or cryptographic options to the loopback device.
 	  (If you don't want umount to free the loop device, use "umount -D".)
 
