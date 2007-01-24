@@ -81,13 +81,14 @@ char * xstrndup(const char *s, int n)
 	t = (char*) s;
 	while (m) {
 		if (!*t) break;
-		m--; t++;
+		m--;
+		t++;
 	}
-	n = n - m;
+	n -= m;
 	t = xmalloc(n + 1);
 	t[n] = '\0';
 
-	return memcpy(t,s,n);
+	return memcpy(t, s, n);
 }
 
 // Die if we can't open a file and return a FILE * to it.

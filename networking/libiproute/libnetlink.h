@@ -2,6 +2,9 @@
 #ifndef __LIBNETLINK_H__
 #define __LIBNETLINK_H__ 1
 
+#include <linux/types.h>
+/* We need linux/types.h because older kernels use __u32 etc
+ * in linux/[rt]netlink.h. 2.6.19 seems to be ok, though */
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
@@ -37,6 +40,4 @@ extern int rta_addattr_l(struct rtattr *rta, int maxlen, int type, void *data, i
 
 extern int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len);
 
-
 #endif /* __LIBNETLINK_H__ */
-

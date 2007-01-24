@@ -569,7 +569,7 @@ int syslogd_main(int argc, char **argv)
 	//if (option_mask32 & OPT_locallog) // -L
 #endif
 #if ENABLE_FEATURE_IPC_SYSLOG
-	if ((option_mask32 & OPT_circularlog) && opt_C) // -C
+	if (opt_C) // -Cn
 		shm_size = xatoul_range(opt_C, 4, INT_MAX/1024) * 1024;
 #endif
 
@@ -588,7 +588,7 @@ int syslogd_main(int argc, char **argv)
 #ifdef BB_NOMMU
 		vfork_daemon_rexec(0, 1, argc, argv, "-n");
 #else
-		xdaemon(0, 1);
+		bb_daemonize();
 #endif
 	}
 	umask(0);
