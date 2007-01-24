@@ -445,8 +445,7 @@ config INSTALL_APPLET_HARDLINKS
 	  on a filesystem with few inodes.
 
 config INSTALL_APPLET_DONT
-	bool
-	prompt "not installed"
+	bool "not installed"
 	depends on FEATURE_INSTALLER || FEATURE_SH_STANDALONE_SHELL || FEATURE_EXEC_PREFER_APPLETS
 	help
 	  Do not install applet links. Useful when using the -install feature
