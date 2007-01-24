@@ -42,13 +42,13 @@ enum {
 	PINGINTERVAL = 1		/* second */
 };
 
-static const char *hostname;
-
 static void ping(const char *host);
 
 #ifndef CONFIG_FEATURE_FANCY_PING6
 
 /* simple version */
+
+static const char *hostname;
 
 static void noresp(int ign)
 {
