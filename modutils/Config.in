@@ -91,9 +91,9 @@ config MODPROBE
 	  module options from the configuration file. See option below.
 
 config FEATURE_MODPROBE_MULTIPLE_OPTIONS
-	bool "Multiple options parsing" if NITPICK
+	bool "Multiple options parsing"
 	default y
-	depends on MODPROBE
+	depends on MODPROBE && NITPICK
 	help
 	  Allow modprobe to understand more than one option to pass to
 	  modules.
@@ -107,9 +107,9 @@ config FEATURE_MODPROBE_MULTIPLE_OPTIONS
 	  on storage capacity.
 
 config FEATURE_MODPROBE_FANCY_ALIAS
-	bool "Fancy alias parsing" if NITPICK
+	bool "Fancy alias parsing"
 	default y
-	depends on MODPROBE && FEATURE_2_6_MODULES
+	depends on MODPROBE && FEATURE_2_6_MODULES && NITPICK
 	help
 	  Say 'y' here to enable parsing of aliases with underscore/dash
 	  mismatch between module name and file name, along with bus-specific
