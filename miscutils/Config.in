@@ -258,7 +258,7 @@ config MAKEDEVS
 
 choice
 	prompt "Choose makedevs behaviour"
-	depends MAKEDEVS
+	depends on MAKEDEVS
 	default FEATURE_MAKEDEVS_TABLE
 
 config FEATURE_MAKEDEVS_LEAF
