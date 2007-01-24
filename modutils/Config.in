@@ -91,8 +91,7 @@ config MODPROBE
 	  module options from the configuration file. See option below.
 
 config FEATURE_MODPROBE_MULTIPLE_OPTIONS
-	bool
-	prompt "Multiple options parsing" if NITPICK
+	bool "Multiple options parsing" if NITPICK
 	default y
 	depends on MODPROBE
 	help
@@ -108,8 +107,7 @@ config FEATURE_MODPROBE_MULTIPLE_OPTIONS
 	  on storage capacity.
 
 config FEATURE_MODPROBE_FANCY_ALIAS
-	bool
-	prompt "Fancy alias parsing" if NITPICK
+	bool "Fancy alias parsing" if NITPICK
 	default y
 	depends on MODPROBE && FEATURE_2_6_MODULES
 	help
