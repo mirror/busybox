@@ -296,10 +296,12 @@ char* xmalloc_sockaddr2host(const struct sockaddr *sa, socklen_t salen)
 	return sockaddr2str(sa, salen, 0);
 }
 
+/* Unused
 char* xmalloc_sockaddr2host_noport(const struct sockaddr *sa, socklen_t salen)
 {
 	return sockaddr2str(sa, salen, IGNORE_PORT);
 }
+*/
 
 char* xmalloc_sockaddr2hostonly_noport(const struct sockaddr *sa, socklen_t salen)
 {

@@ -501,27 +501,19 @@ config PING
 	  ping uses the ICMP protocol's mandatory ECHO_REQUEST datagram to
 	  elicit an ICMP ECHO_RESPONSE from a host or gateway.
 
+config PING6
+	bool "ping6"
+	default n
+	depends on FEATURE_IPV6 && PING
+	help
+	  This will give you a ping that can talk IPv6.
+
 config FEATURE_FANCY_PING
 	bool "Enable fancy ping output"
 	default y
 	depends on PING
 	help
 	  Make the output from the ping applet include statistics, and at the
-	  same time provide full support for ICMP packets.
-
-config PING6
-	bool "ping6"
-	default n
-	depends on FEATURE_IPV6
-	help
-	  This will give you a ping that can talk IPv6.
-
-config FEATURE_FANCY_PING6
-	bool "Enable fancy ping6 output"
-	default y
-	depends on PING6
-	help
-	  Make the output from the ping6 applet include statistics, and at the
 	  same time provide full support for ICMP packets.
 
 config ROUTE

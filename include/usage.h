@@ -2401,6 +2401,10 @@
        "host"
 #define ping_full_usage \
        "Send ICMP ECHO_REQUEST packets to network hosts"
+#define ping6_trivial_usage \
+       "host"
+#define ping6_full_usage \
+       "Send ICMP ECHO_REQUEST packets to network hosts"
 #else
 #define ping_trivial_usage \
        "[OPTION]... host"
@@ -2412,22 +2416,6 @@
        "	-I IP	Use IP as source address\n" \
        "	-q	Quiet mode, only displays output at start\n" \
        "		and when finished"
-#endif
-#define ping_example_usage \
-       "$ ping localhost\n" \
-       "PING slag (127.0.0.1): 56 data bytes\n" \
-       "64 bytes from 127.0.0.1: icmp_seq=0 ttl=255 time=20.1 ms\n" \
-       "\n" \
-       "--- debian ping statistics ---\n" \
-       "1 packets transmitted, 1 packets received, 0% packet loss\n" \
-       "round-trip min/avg/max = 20.1/20.1/20.1 ms\n"
-
-#ifndef CONFIG_FEATURE_FANCY_PING6
-#define ping6_trivial_usage \
-       "host"
-#define ping6_full_usage \
-       "Send ICMP ECHO_REQUEST packets to network hosts"
-#else
 #define ping6_trivial_usage \
        "[OPTION]... host"
 #define ping6_full_usage \
@@ -2438,6 +2426,14 @@
        "	-q	Quiet mode, only displays output at start\n" \
        "		and when finished"
 #endif
+#define ping_example_usage \
+       "$ ping localhost\n" \
+       "PING slag (127.0.0.1): 56 data bytes\n" \
+       "64 bytes from 127.0.0.1: icmp_seq=0 ttl=255 time=20.1 ms\n" \
+       "\n" \
+       "--- debian ping statistics ---\n" \
+       "1 packets transmitted, 1 packets received, 0% packet loss\n" \
+       "round-trip min/avg/max = 20.1/20.1/20.1 ms\n"
 #define ping6_example_usage \
        "$ ping6 ip6-localhost\n" \
        "PING ip6-localhost (::1): 56 data bytes\n" \
