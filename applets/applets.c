@@ -320,7 +320,7 @@ static void parse_config_file(void)
 }
 
 #else
-#define parse_config_file()
+#define parse_config_file() ((void)0)
 #endif /* CONFIG_FEATURE_SUID_CONFIG */
 
 #ifdef CONFIG_FEATURE_SUID
@@ -340,20 +340,26 @@ static void check_suid(struct BB_applet *applet)
 		if (sct) {
 			mode_t m = sct->m_mode;
 
-			if (sct->m_uid == ruid)       /* same uid */
+			if (sct->m_uid == ruid)
+				/* same uid */
 				m >>= 6;
-			else if ((sct->m_gid == rgid) || ingroup(ruid, sct->m_gid))  /* same group / in group */
+			else if ((sct->m_gid == rgid) || ingroup(ruid, sct->m_gid))
+				/* same group / in group */
 				m >>= 3;
 
 			if (!(m & S_IXOTH))           /* is x bit not set ? */
 				bb_error_msg_and_die("you have no permission to run this applet!");
 
-			if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {     /* *both* have to be set for sgid */
-				xsetgid(sct->m_gid);
-			} else xsetgid(rgid);                /* no sgid -> drop */
-
-			if (sct->m_mode & S_ISUID) xsetuid(sct->m_uid);
-			else xsetuid(ruid);                  /* no suid -> drop */
+			if (sct->m_gid != 0) {
+				/* _both_ have to be set for sgid */
+				if ((sct->m_mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {
+					xsetgid(sct->m_gid);
+				} else xsetgid(rgid); /* no sgid -> drop */
+			}
+			if (sct->m_uid != 0) {
+				if (sct->m_mode & S_ISUID) xsetuid(sct->m_uid);
+				else xsetuid(ruid); /* no suid -> drop */
+			}
 		} else {
 			/* default: drop all privileges */
 			xsetgid(rgid);

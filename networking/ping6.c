@@ -42,6 +42,8 @@ enum {
 	PINGINTERVAL = 1		/* second */
 };
 
+static const char *hostname;
+
 static void ping(const char *host);
 
 #ifndef CONFIG_FEATURE_FANCY_PING6
@@ -50,7 +52,7 @@ static void ping(const char *host);
 
 static void noresp(int ign)
 {
-	printf("No response from %s\n", h->h_name);
+	printf("No response from %s\n", hostname);
 	exit(EXIT_FAILURE);
 }
 
@@ -62,6 +64,8 @@ static void ping(const char *host)
 	int pingsock, c;
 	int sockopt;
 	char packet[DEFDATALEN + MAXIPLEN + MAXICMPLEN];
+
+	hostname = host;
 
 	pingsock = create_icmp6_socket();
 
@@ -105,7 +109,7 @@ static void ping(const char *host)
 	}
 	if (ENABLE_FEATURE_CLEAN_UP)
 		close(pingsock);
-	printf("%s is alive!\n", h->h_name);
+	printf("%s is alive!\n", hostname);
 }
 
 int ping6_main(int argc, char **argv)

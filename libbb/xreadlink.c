@@ -36,7 +36,7 @@ char *xreadlink(const char *path)
 
 char *xmalloc_realpath(const char *path)
 {
-#ifdef __GLIBC__
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
 	/* glibc provides a non-standard extension */
 	return realpath(path, NULL);
 #else
