@@ -249,7 +249,7 @@ static union {
 	struct sockaddr sa;
 	struct sockaddr_in sin;
 #if ENABLE_PING6
-	struct sockaddr_in sin6;
+	struct sockaddr_in6 sin6;
 #endif
 } pingaddr;
 static struct sockaddr_in sourceaddr;
@@ -274,7 +274,7 @@ static const char *dotted;
 
 /**************************************************************************/
 
-static void pingstats(void)
+static void pingstats(int junk ATTRIBUTE_UNUSED)
 {
 	int status;
 
@@ -286,7 +286,7 @@ static void pingstats(void)
 	if (nrepeats)
 		printf("%lu duplicates, ", nrepeats);
 	if (ntransmitted)
-		ntransmitted = (ntransmitted - nreceived) * 100 / ntransmitted);
+		ntransmitted = (ntransmitted - nreceived) * 100 / ntransmitted;
 	printf("%lu%% packet loss\n", ntransmitted);
 	if (nreceived)
 		printf("round-trip min/avg/max = %lu.%lu/%lu.%lu/%lu.%lu ms\n",
@@ -613,7 +613,6 @@ extern int BUG_bad_offsetof_icmp6_cksum(void);
 static void ping6(len_and_sockaddr *lsa)
 {
 	char packet[datalen + MAXIPLEN + MAXICMPLEN];
-	char buf[INET6_ADDRSTRLEN];
 	int sockopt;
 	struct msghdr msg;
 	struct sockaddr_in6 from;
@@ -657,7 +656,7 @@ static void ping6(len_and_sockaddr *lsa)
 	setsockopt(pingsock, SOL_IPV6, IPV6_HOPLIMIT, &const_int_1, sizeof(const_int_1));
 
 	if (if_index)
-		pingaddr.sin6_scope_id = if_index;
+		pingaddr.sin6.sin6_scope_id = if_index;
 
 	printf("PING %s (%s): %d data bytes\n", hostname, dotted, datalen);
 
@@ -725,7 +724,7 @@ static int parse_nipquad(const char *str, struct sockaddr_in* addr)
 
 int ping_main(int argc, char **argv)
 {
-	const char *hostname;
+	len_and_sockaddr *lsa;
 	char *opt_c, *opt_s, *opt_I;
 	USE_PING6(sa_family_t af = AF_UNSPEC;)
 
@@ -753,14 +752,14 @@ int ping_main(int argc, char **argv)
 #else
 	lsa = host_and_af2sockaddr(hostname, 0, AF_INET);
 #endif
-	dotted = xmalloc_sockaddr2dotted_noport(lsa->sa, lsa->len);
+	dotted = xmalloc_sockaddr2dotted_noport(&lsa->sa, lsa->len);
 #if ENABLE_PING6
 	if (lsa->sa.sa_family == AF_INET6)
 		ping6(lsa);
 	else
 #endif
 		ping(lsa);
-	pingstats();
+	pingstats(0);
 	return EXIT_SUCCESS;
 }
 #endif /* FEATURE_FANCY_PING */
