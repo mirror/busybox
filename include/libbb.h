@@ -338,8 +338,6 @@ char* xmalloc_sockaddr2dotted_noport(const struct sockaddr *sa, socklen_t salen)
 // "old" (ipv4 only) API
 // users: traceroute.c hostname.c ifconfig.c ping.c
 struct hostent *xgethostbyname(const char *name);
-//TODO: eliminate gethostbyname2 in arping (the only remaining place),
-//use host_and_af2sockaddr instead.
 
 
 extern char *xstrdup(const char *s);
