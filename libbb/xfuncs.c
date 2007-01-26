@@ -343,8 +343,8 @@ char *bin2hex(char *p, const char *cp, int count)
 	while (count) {
 		unsigned char c = *cp++;
 		/* put lowercase hex digits */
-		*p++ = 0x10 | bb_hexdigits_upcase[c >> 4];
-		*p++ = 0x10 | bb_hexdigits_upcase[c & 0xf];
+		*p++ = 0x20 | bb_hexdigits_upcase[c >> 4];
+		*p++ = 0x20 | bb_hexdigits_upcase[c & 0xf];
 		count--;
 	}
 	return p;
