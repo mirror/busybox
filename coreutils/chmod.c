@@ -31,7 +31,7 @@
  * symbolic links encountered during recursive directory traversals.
  */
 
-static int fileAction(const char *fileName, struct stat *statbuf, void* junk, int depth)
+static int fileAction(const char *fileName, struct stat *statbuf, void* param, int depth)
 {
 	mode_t newmode;
 
@@ -46,8 +46,8 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk, in
 	}
 	newmode = statbuf->st_mode;
 
-	if (!bb_parse_mode((char *)junk, &newmode))
-		bb_error_msg_and_die("invalid mode: %s", (char *)junk);
+	if (!bb_parse_mode((char *)param, &newmode))
+		bb_error_msg_and_die("invalid mode: %s", (char *)param);
 
 	if (chmod(fileName, newmode) == 0) {
 		if (OPT_VERBOSE

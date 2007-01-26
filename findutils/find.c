@@ -45,8 +45,8 @@
  * (no output)
  */
 
-#include "busybox.h"
 #include <fnmatch.h>
+#include "busybox.h"
 
 USE_FEATURE_FIND_XDEV(static dev_t *xdev_dev;)
 USE_FEATURE_FIND_XDEV(static int xdev_count;)
@@ -62,9 +62,9 @@ typedef struct {
                         ACTS(name,  char *pattern;)
 USE_FEATURE_FIND_PRINT0(ACTS(print0))
 USE_FEATURE_FIND_TYPE(  ACTS(type,  int type_mask;))
-USE_FEATURE_FIND_PERM(  ACTS(perm,  char perm_char; int perm_mask;))
-USE_FEATURE_FIND_MTIME( ACTS(mtime, char mtime_char; int mtime_days;))
-USE_FEATURE_FIND_MMIN(  ACTS(mmin,  char mmin_char; int mmin_mins;))
+USE_FEATURE_FIND_PERM(  ACTS(perm,  char perm_char; mode_t perm_mask;))
+USE_FEATURE_FIND_MTIME( ACTS(mtime, char mtime_char; unsigned mtime_days;))
+USE_FEATURE_FIND_MMIN(  ACTS(mmin,  char mmin_char; unsigned mmin_mins;))
 USE_FEATURE_FIND_NEWER( ACTS(newer, time_t newer_mtime;))
 USE_FEATURE_FIND_INUM(  ACTS(inum,  ino_t inode_num;))
 USE_FEATURE_FIND_EXEC(  ACTS(exec,  char **exec_argv; int *subst_count; int exec_argc;))
@@ -147,20 +147,27 @@ ACTF(type)
 #if ENABLE_FEATURE_FIND_PERM
 ACTF(perm)
 {
-	return !((isdigit(ap->perm_char) && (statbuf->st_mode & 07777) == ap->perm_mask)
-	        || (ap->perm_char == '-' && (statbuf->st_mode & ap->perm_mask) == ap->perm_mask)
-	        || (ap->perm_char == '+' && (statbuf->st_mode & ap->perm_mask) != 0));
+	/* -perm +mode: at least one of perm_mask bits are set */
+	if (ap->perm_char == '+')
+		return (statbuf->st_mode & ap->perm_mask) != 0;
+	/* -perm -mode: all of perm_mask are set */
+	if (ap->perm_char == '-')
+		return (statbuf->st_mode & ap->perm_mask) == ap->perm_mask;
+	/* -perm mode: file mode must match perm_mask */
+	return (statbuf->st_mode & 07777) == ap->perm_mask;
 }
 #endif
 #if ENABLE_FEATURE_FIND_MTIME
 ACTF(mtime)
 {
 	time_t file_age = time(NULL) - statbuf->st_mtime;
-	time_t mtime_secs = ap->mtime_days * 24 * 60 * 60;
-	return !((isdigit(ap->mtime_char) && file_age >= mtime_secs
-	                                  && file_age < mtime_secs + 24 * 60 * 60)
-	        || (ap->mtime_char == '+' && file_age >= mtime_secs + 24 * 60 * 60)
-	        || (ap->mtime_char == '-' && file_age < mtime_secs));
+	time_t mtime_secs = ap->mtime_days * 24*60*60;
+	if (ap->mtime_char == '+')
+		return file_age >= mtime_secs + 24*60*60;
+	if (ap->mtime_char == '-')
+		return file_age < mtime_secs;
+	/* just numeric mtime */
+	return file_age >= mtime_secs && file_age < (mtime_secs + 24*60*60);
 }
 #endif
 #if ENABLE_FEATURE_FIND_MMIN
@@ -168,22 +175,24 @@ ACTF(mmin)
 {
 	time_t file_age = time(NULL) - statbuf->st_mtime;
 	time_t mmin_secs = ap->mmin_mins * 60;
-	return !((isdigit(ap->mmin_char) && file_age >= mmin_secs
-	                                 && file_age < mmin_secs + 60)
-	        || (ap->mmin_char == '+' && file_age >= mmin_secs + 60)
-	        || (ap->mmin_char == '-' && file_age < mmin_secs));
+	if (ap->mmin_char == '+')
+		return file_age >= mmin_secs + 60;
+	if (ap->mmin_char == '-')
+		return file_age < mmin_secs;
+	/* just numeric mmin */
+	return file_age >= mmin_secs && file_age < (mmin_secs + 60);
 }
 #endif
 #if ENABLE_FEATURE_FIND_NEWER
 ACTF(newer)
 {
-	return (ap->newer_mtime >= statbuf->st_mtime);
+	return (ap->newer_mtime < statbuf->st_mtime);
 }
 #endif
 #if ENABLE_FEATURE_FIND_INUM
 ACTF(inum)
 {
-	return (statbuf->st_ino != ap->inode_num);
+	return (statbuf->st_ino == ap->inode_num);
 }
 #endif
 #if ENABLE_FEATURE_FIND_EXEC
@@ -299,6 +308,13 @@ static int find_type(char *type)
 }
 #endif
 
+static const char* plus_minus_num(const char* str)
+{
+	if (*str == '-' || *str == '+')
+		str++;
+	return str;
+}
+
 static action*** parse_params(char **argv)
 {
 	action*** appp;
@@ -391,10 +407,11 @@ static action*** parse_params(char **argv)
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(perm);
-			ap->perm_mask = xstrtol_range(arg1, 8, 0, 07777);
 			ap->perm_char = arg1[0];
-			if (ap->perm_char == '-')
-				ap->perm_mask = -ap->perm_mask;
+			arg1 = plus_minus_num(arg1);
+			ap->perm_mask = 0;
+			if (!bb_parse_mode(arg1, &ap->perm_mask))
+				bb_error_msg_and_die("invalid mode: %s", arg1);
 		}
 #endif
 #if ENABLE_FEATURE_FIND_MTIME
@@ -403,10 +420,8 @@ static action*** parse_params(char **argv)
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(mtime);
-			ap->mtime_days = xatol(arg1);
 			ap->mtime_char = arg1[0];
-			if (ap->mtime_char == '-')
-				ap->mtime_days = -ap->mtime_days;
+			ap->mtime_days = xatoul(plus_minus_num(arg1));
 		}
 #endif
 #if ENABLE_FEATURE_FIND_MMIN
@@ -415,10 +430,8 @@ static action*** parse_params(char **argv)
 			if (!*++argv)
 				bb_error_msg_and_die(bb_msg_requires_arg, arg);
 			ap = ALLOC_ACTION(mmin);
-			ap->mmin_mins = xatol(arg1);
 			ap->mmin_char = arg1[0];
-			if (ap->mmin_char == '-')
-				ap->mmin_mins = -ap->mmin_mins;
+			ap->mmin_mins = xatoul(plus_minus_num(arg1));
 		}
 #endif
 #if ENABLE_FEATURE_FIND_NEWER
