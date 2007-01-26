@@ -299,6 +299,7 @@ config RAIDAUTORUN
 config READAHEAD
 	bool "readahead"
 	default n
+	depends on LFS
 	help
 	  Preload the files listed on the command line into RAM cache so that
 	  subsequent reads on these files will not block on disk I/O.
