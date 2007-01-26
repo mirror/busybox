@@ -321,7 +321,7 @@ len_and_sockaddr* host2sockaddr(const char *host, int port);
 len_and_sockaddr* host_and_af2sockaddr(const char *host, int port, sa_family_t af);
 #else
 /* [we evaluate af: think about "host_and_af2sockaddr(..., af++)"] */
-#define host_and_af2sockaddr(host, port, af) ((af), host2sockaddr((host), (port)))
+#define host_and_af2sockaddr(host, port, af) ((void)(af), host2sockaddr((host), (port)))
 #endif
 /* Assign sin[6]_port member if the socket is of corresponding type,
  * otherwise no-op. Useful for ftp.
