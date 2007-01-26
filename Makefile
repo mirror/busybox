@@ -299,9 +299,9 @@ AFLAGS_KERNEL	=
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
 # Needed to be compatible with the O= option
-CFLAGS		:=
-CPPFLAGS	:=
-AFLAGS		:=
+CFLAGS		:= $(CFLAGS)
+CPPFLAGS	:= $(CPPFLAGS)
+AFLAGS		:= $(AFLAGS)
 
 # Read KERNELRELEASE from .kernelrelease (if it exists)
 KERNELRELEASE = $(shell cat .kernelrelease 2> /dev/null)
