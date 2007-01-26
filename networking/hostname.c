@@ -48,7 +48,7 @@ int hostname_main(int argc, char **argv)
 		OPT_f = 0x2,
 		OPT_i = 0x4,
 		OPT_s = 0x8,
-		OPT_F = 0x8,
+		OPT_F = 0x10,
 		OPT_dfis = 0xf,
 	};
 
