@@ -107,46 +107,46 @@ extern int fifo_make(const char *,int);
 
 /*** fmt.h ***/
 
-#define FMT_ULONG 40 /* enough space to hold 2^128 - 1 in decimal, plus \0 */
-#define FMT_LEN ((char *) 0) /* convenient abbreviation */
+//#define FMT_ULONG 40 /* enough space to hold 2^128 - 1 in decimal, plus \0 */
+//#define FMT_LEN ((char *) 0) /* convenient abbreviation */
 
-extern unsigned fmt_uint(char *,unsigned);
-extern unsigned fmt_uint0(char *,unsigned,unsigned);
-extern unsigned fmt_xint(char *,unsigned);
-extern unsigned fmt_nbbint(char *,unsigned,unsigned,unsigned,unsigned);
-extern unsigned fmt_ushort(char *,unsigned short);
-extern unsigned fmt_xshort(char *,unsigned short);
-extern unsigned fmt_nbbshort(char *,unsigned,unsigned,unsigned,unsigned short);
-extern unsigned fmt_ulong(char *,unsigned long);
-extern unsigned fmt_xlong(char *,unsigned long);
-extern unsigned fmt_nbblong(char *,unsigned,unsigned,unsigned,unsigned long);
+//extern unsigned fmt_uint(char *,unsigned);
+//extern unsigned fmt_uint0(char *,unsigned,unsigned);
+//extern unsigned fmt_xint(char *,unsigned);
+//extern unsigned fmt_nbbint(char *,unsigned,unsigned,unsigned,unsigned);
+//extern unsigned fmt_ushort(char *,unsigned short);
+//extern unsigned fmt_xshort(char *,unsigned short);
+//extern unsigned fmt_nbbshort(char *,unsigned,unsigned,unsigned,unsigned short);
+//extern unsigned fmt_ulong(char *,unsigned long);
+//extern unsigned fmt_xlong(char *,unsigned long);
+//extern unsigned fmt_nbblong(char *,unsigned,unsigned,unsigned,unsigned long);
 
-extern unsigned fmt_plusminus(char *,int);
-extern unsigned fmt_minus(char *,int);
-extern unsigned fmt_0x(char *,int);
+//extern unsigned fmt_plusminus(char *,int);
+//extern unsigned fmt_minus(char *,int);
+//extern unsigned fmt_0x(char *,int);
 
-extern unsigned fmt_str(char *,const char *);
-extern unsigned fmt_strn(char *,const char *,unsigned);
+//extern unsigned fmt_str(char *,const char *);
+//extern unsigned fmt_strn(char *,const char *,unsigned);
 
 
 /*** tai.h ***/
 
 struct tai {
 	uint64_t x;
-} ;
+};
 
 #define tai_unix(t,u) ((void) ((t)->x = 4611686018427387914ULL + (uint64_t) (u)))
 
-extern void tai_now(struct tai *);
+//extern void tai_now(struct tai *);
 
-#define tai_approx(t) ((double) ((t)->x))
+//#define tai_approx(t) ((double) ((t)->x))
 
-extern void tai_add(struct tai *,const struct tai *,const struct tai *);
-extern void tai_sub(struct tai *,const struct tai *,const struct tai *);
-#define tai_less(t,u) ((t)->x < (u)->x)
+//extern void tai_add(struct tai *,const struct tai *,const struct tai *);
+//extern void tai_sub(struct tai *,const struct tai *,const struct tai *);
+//#define tai_less(t,u) ((t)->x < (u)->x)
 
 #define TAI_PACK 8
-extern void tai_pack(char *,const struct tai *);
+//extern void tai_pack(char *,const struct tai *);
 extern void tai_unpack(const char *,struct tai *);
 
 extern void tai_uint(struct tai *,unsigned);
@@ -158,14 +158,14 @@ struct taia {
 	struct tai sec;
 	unsigned long nano; /* 0...999999999 */
 	unsigned long atto; /* 0...999999999 */
-} ;
+};
 
-extern void taia_tai(const struct taia *,struct tai *);
+//extern void taia_tai(const struct taia *,struct tai *);
 
 extern void taia_now(struct taia *);
 
-extern double taia_approx(const struct taia *);
-extern double taia_frac(const struct taia *);
+//extern double taia_approx(const struct taia *);
+//extern double taia_frac(const struct taia *);
 
 extern void taia_add(struct taia *,const struct taia *,const struct taia *);
 extern void taia_addsec(struct taia *,const struct taia *,int);
@@ -175,10 +175,10 @@ extern int taia_less(const struct taia *,const struct taia *);
 
 #define TAIA_PACK 16
 extern void taia_pack(char *,const struct taia *);
-extern void taia_unpack(const char *,struct taia *);
+//extern void taia_unpack(const char *,struct taia *);
 
-#define TAIA_FMTFRAC 19
-extern unsigned taia_fmtfrac(char *,const struct taia *);
+//#define TAIA_FMTFRAC 19
+//extern unsigned taia_fmtfrac(char *,const struct taia *);
 
 extern void taia_uint(struct taia *,unsigned);
 
@@ -187,10 +187,13 @@ extern void taia_uint(struct taia *,unsigned);
 
 #define FMT_PTIME 30
 
-extern unsigned fmt_ptime(char *, struct taia *);
-extern unsigned fmt_taia(char *, struct taia *);
+/* NUL terminated */
+extern void fmt_ptime30nul(char *, struct taia *);
+/* NOT terminated! */
+extern unsigned fmt_taia25(char *, struct taia *);
 
 
+#ifdef UNUSED
 /*** gen_alloc.h ***/
 
 #define GEN_ALLOC_typedef(ta,type,field,len,a) \
@@ -233,7 +236,6 @@ int ta_append(ta *x,const type *i) \
 
 
 /*** stralloc.h ***/
-#if 0
 GEN_ALLOC_typedef(stralloc,char,s,len,a)
 
 extern int stralloc_ready(stralloc *,unsigned);
@@ -314,6 +316,7 @@ extern int readclose(int,stralloc *,unsigned);
 
 /*** scan.h ***/
 
+#if 0
 extern unsigned scan_uint(const char *,unsigned *);
 extern unsigned scan_xint(const char *,unsigned *);
 extern unsigned scan_nbbint(const char *,unsigned,unsigned,unsigned,unsigned *);
@@ -337,6 +340,7 @@ extern unsigned scan_memcmp(const char *,const char *,unsigned);
 
 extern unsigned scan_long(const char *,long *);
 extern unsigned scan_8long(const char *,unsigned long *);
+#endif
 
 
 /*** seek.h ***/
@@ -345,30 +349,27 @@ typedef unsigned long seek_pos;
 
 extern seek_pos seek_cur(int);
 
-extern int seek_set(int,seek_pos);
+//extern int seek_set(int,seek_pos);
 extern int seek_end(int);
 
 extern int seek_trunc(int,seek_pos);
 
-#define seek_begin(fd) (seek_set((fd),(seek_pos) 0))
+//#define seek_begin(fd) (seek_set((fd),(seek_pos) 0))
 
 
 /*** sig.h ***/
 
-extern int sig_alarm;
-extern int sig_child;
-extern int sig_cont;
-extern int sig_hangup;
-extern int sig_int;
-extern int sig_pipe;
-extern int sig_term;
-
-extern void (*sig_defaulthandler)(int);
-extern void (*sig_ignorehandler)(int);
+//extern int sig_alarm;
+//extern int sig_child;
+//extern int sig_cont;
+//extern int sig_hangup;
+//extern int sig_int;
+//extern int sig_pipe;
+//extern int sig_term;
 
 extern void sig_catch(int,void (*)(int));
-#define sig_ignore(s) (sig_catch((s),sig_ignorehandler))
-#define sig_uncatch(s) (sig_catch((s),sig_defaulthandler))
+#define sig_ignore(s) (sig_catch((s),SIG_IGN))
+#define sig_uncatch(s) (sig_catch((s),SIG_DFL))
 
 extern void sig_block(int);
 extern void sig_unblock(int);

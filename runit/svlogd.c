@@ -100,11 +100,13 @@ static void warnx(char *m0, char *m1)
 }
 static void pause_nomem(void)
 {
-	bb_error_msg(PAUSE"out of memory"); sleep(3);
+	bb_error_msg(PAUSE"out of memory");
+	sleep(3);
 }
 static void pause1cannot(char *m0)
 {
-	bb_perror_msg(PAUSE"cannot %s", m0); sleep(3);
+	bb_perror_msg(PAUSE"cannot %s", m0);
+	sleep(3);
 }
 static void pause2cannot(char *m0, char *m1)
 {
@@ -115,7 +117,8 @@ static void pause2cannot(char *m0, char *m1)
 static char* wstrdup(const char *str)
 {
 	char *s;
-	while (!(s = strdup(str))) pause_nomem();
+	while (!(s = strdup(str)))
+		pause_nomem();
 	return s;
 }
 
@@ -135,12 +138,12 @@ static unsigned processorstart(struct logdir *ld)
 		int fd;
 
 		/* child */
-		sig_uncatch(sig_term);
-		sig_uncatch(sig_alarm);
-		sig_uncatch(sig_hangup);
-		sig_unblock(sig_term);
-		sig_unblock(sig_alarm);
-		sig_unblock(sig_hangup);
+		sig_uncatch(SIGTERM);
+		sig_uncatch(SIGALRM);
+		sig_uncatch(SIGHUP);
+		sig_unblock(SIGTERM);
+		sig_unblock(SIGALRM);
+		sig_unblock(SIGHUP);
 
 		if (verbose)
 			bb_error_msg(INFO"processing: %s/%s", ld->name, ld->fnsave);
@@ -164,6 +167,7 @@ static unsigned processorstart(struct logdir *ld)
 		if (fd_move(5, fd) == -1)
 			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
 
+// getenv("SHELL")?
 		prog[0] = "sh";
 		prog[1] = "-c";
 		prog[2] = ld->processor;
@@ -180,10 +184,10 @@ static unsigned processorstop(struct logdir *ld)
 	char f[28];
 
 	if (ld->ppid) {
-		sig_unblock(sig_hangup);
+		sig_unblock(SIGHUP);
 		while (wait_pid(&wstat, ld->ppid) == -1)
 			pause2cannot("wait for processor", ld->name);
-		sig_block(sig_hangup);
+		sig_block(SIGHUP);
 		ld->ppid = 0;
 	}
 	if (ld->fddir == -1) return 1;
@@ -212,7 +216,8 @@ static unsigned processorstop(struct logdir *ld)
 		bb_error_msg(WARNING"cannot unlink: %s/%s", ld->name, ld->fnsave);
 	while (rename("newstate", "state") == -1)
 		pause2cannot("rename state", ld->name);
-	if (verbose) bb_error_msg(INFO"processed: %s/%s", ld->name, f);
+	if (verbose)
+		bb_error_msg(INFO"processed: %s/%s", ld->name, f);
 	while (fchdir(fdwdir) == -1)
 		pause1cannot("change to initial working directory");
 	return 1;
@@ -242,11 +247,13 @@ static void rmoldest(struct logdir *ld)
 			errno = 0;
 		}
 	}
-	if (errno) warn2("cannot read directory", ld->name);
+	if (errno)
+		warn2("cannot read directory", ld->name);
 	closedir(d);
 
 	if (ld->nmax && (n > ld->nmax)) {
-		if (verbose) bb_error_msg(INFO"delete: %s/%s", ld->name, oldest);
+		if (verbose)
+			bb_error_msg(INFO"delete: %s/%s", ld->name, oldest);
 		if ((*oldest == '@') && (unlink(oldest) == -1))
 			warn2("cannot unlink oldest logfile", ld->name);
 	}
@@ -276,9 +283,10 @@ static unsigned rotate(struct logdir *ld)
 	ld->fnsave[27] = '\0';
 	do {
 		taia_now(&now);
-		fmt_taia(ld->fnsave, &now);
+		fmt_taia25(ld->fnsave, &now);
 		errno = 0;
-	} while ((stat(ld->fnsave, &st) != -1) || (errno != ENOENT));
+		stat(ld->fnsave, &st);
+	} while (errno != ENOENT);
 
 	if (ld->tmax && taia_less(&ld->trotate, &now)) {
 		taia_uint(&ld->trotate, ld->tmax);
@@ -523,9 +531,10 @@ static unsigned logdir_open(struct logdir *ld, const char *fn)
 			ld->fnsave[27] = '\0';
 			do {
 				taia_now(&now);
-				fmt_taia(ld->fnsave, &now);
+				fmt_taia25(ld->fnsave, &now);
 				errno = 0;
-			} while ((stat(ld->fnsave, &st) != -1) || (errno != ENOENT));
+				stat(ld->fnsave, &st);
+			} while (errno != ENOENT);
 			while (rename("current", ld->fnsave) == -1)
 				pause2cannot("rename current", ld->name);
 			rmoldest(ld);
@@ -608,15 +617,15 @@ static int buffer_pread(int fd, char *s, unsigned len)
 
 	while (1) {
 		/* Comment? */
-		sig_unblock(sig_term);
-		sig_unblock(sig_child);
-		sig_unblock(sig_alarm);
-		sig_unblock(sig_hangup);
+		sig_unblock(SIGTERM);
+		sig_unblock(SIGCHLD);
+		sig_unblock(SIGALRM);
+		sig_unblock(SIGHUP);
 		iopause(&in, 1, &trotate, &now);
-		sig_block(sig_term);
-		sig_block(sig_child);
-		sig_block(sig_alarm);
-		sig_block(sig_hangup);
+		sig_block(SIGTERM);
+		sig_block(SIGCHLD);
+		sig_block(SIGALRM);
+		sig_block(SIGHUP);
 		i = safe_read(fd, s, len);
 		if (i >= 0) break;
 		if (errno != EAGAIN) {
@@ -764,14 +773,14 @@ int svlogd_main(int argc, char **argv)
 	in.events = IOPAUSE_READ;
 	ndelay_on(in.fd);
 
-	sig_block(sig_term);
-	sig_block(sig_child);
-	sig_block(sig_alarm);
-	sig_block(sig_hangup);
-	sig_catch(sig_term, sig_term_handler);
-	sig_catch(sig_child, sig_child_handler);
-	sig_catch(sig_alarm, sig_alarm_handler);
-	sig_catch(sig_hangup, sig_hangup_handler);
+	sig_block(SIGTERM);
+	sig_block(SIGCHLD);
+	sig_block(SIGALRM);
+	sig_block(SIGHUP);
+	sig_catch(SIGTERM, sig_term_handler);
+	sig_catch(SIGCHLD, sig_child_handler);
+	sig_catch(SIGALRM, sig_alarm_handler);
+	sig_catch(SIGHUP, sig_hangup_handler);
 
 	logdirs_reopen();
 
@@ -788,10 +797,10 @@ int svlogd_main(int argc, char **argv)
 			taia_now(&now);
 			switch (timestamp) {
 			case 1:
-				fmt_taia(stamp, &now);
+				fmt_taia25(stamp, &now);
 				break;
 			default: /* case 2: */
-				fmt_ptime(stamp, &now);
+				fmt_ptime30nul(stamp, &now);
 				break;
 			}
 			memcpy(line, stamp, 25);

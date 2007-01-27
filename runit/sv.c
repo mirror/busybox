@@ -326,28 +326,38 @@ int sv_main(int argc, char **argv)
 		service++;
 	}
 
-	if (*cbk)
+	if (*cbk) {
 		for (;;) {
+//TODO: tdiff resolution is way too high. seconds will be enough
 			taia_sub(&tdiff, &tnow, &tstart);
 			service = servicex; want_exit = 1;
 			for (i = 0; i < services; ++i, ++service) {
-				if (!*service) continue;
+				if (!*service)
+					continue;
 				if ((**service != '/') && (**service != '.')) {
-					if ((chdir(varservice) == -1) || (chdir(*service) == -1)) {
-						fail("cannot change to service directory");
-						*service = 0;
-					}
-				} else if (chdir(*service) == -1) {
-					fail("cannot change to service directory");
-					*service = 0;
+					if (chdir(varservice) == -1)
+						goto chdir_failed;
 				}
-				if (*service) { if (cbk(acts) != 0) *service = 0; else want_exit = 0; }
-				if (*service && taia_approx(&tdiff) > waitsec) {
+				if (chdir(*service) == -1) {
+ chdir_failed:
+					fail("cannot change to service directory");
+					goto nullify_service;
+				}
+				if (cbk(acts) != 0)
+					goto nullify_service;
+				want_exit = 0;
+				//if (taia_approx(&tdiff) > waitsec)
+				if (tdiff.sec.x >= waitsec) {
 					kll ? printf(KILL) : printf(TIMEOUT);
-					if (svstatus_get() > 0) { svstatus_print(*service); ++rc; }
+					if (svstatus_get() > 0) {
+						svstatus_print(*service);
+						++rc;
+					}
 					puts(""); /* will also flush the output */
-					if (kll) control("k");
-					*service = 0;
+					if (kll)
+						control("k");
+ nullify_service:
+					*service = NULL;
 				}
 				if (fchdir(curdir) == -1)
 					fatal_cannot("change to original directory");
@@ -356,5 +366,6 @@ int sv_main(int argc, char **argv)
 			usleep(420000);
 			taia_now(&tnow);
 		}
+	}
 	return rc > 99 ? 99 : rc;
 }

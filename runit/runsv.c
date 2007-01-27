@@ -307,10 +307,10 @@ static void startservice(struct svdir *s)
 				close(logpipe[0]);
 			}
 		}
-		sig_uncatch(sig_child);
-		sig_unblock(sig_child);
-		sig_uncatch(sig_term);
-		sig_unblock(sig_term);
+		sig_uncatch(SIGCHLD);
+		sig_unblock(SIGCHLD);
+		sig_uncatch(SIGTERM);
+		sig_unblock(SIGTERM);
 		execve(*run, run, environ);
 		if (s->islog)
 			fatal2_cannot("start log/", *run);
@@ -406,10 +406,10 @@ int runsv_main(int argc, char **argv)
 	ndelay_on(selfpipe[0]);
 	ndelay_on(selfpipe[1]);
 
-	sig_block(sig_child);
-	sig_catch(sig_child, s_child);
-	sig_block(sig_term);
-	sig_catch(sig_term, s_term);
+	sig_block(SIGCHLD);
+	sig_catch(SIGCHLD, s_child);
+	sig_block(SIGTERM);
+	sig_catch(SIGTERM, s_term);
 
 	xchdir(dir);
 	svd[0].pid = 0;
@@ -533,11 +533,11 @@ int runsv_main(int argc, char **argv)
 		taia_uint(&deadline, 3600);
 		taia_add(&deadline, &now, &deadline);
 
-		sig_unblock(sig_term);
-		sig_unblock(sig_child);
+		sig_unblock(SIGTERM);
+		sig_unblock(SIGCHLD);
 		iopause(x, 2+haslog, &deadline, &now);
-		sig_block(sig_term);
-		sig_block(sig_child);
+		sig_block(SIGTERM);
+		sig_block(SIGCHLD);
 
 		while (read(selfpipe[0], &ch, 1) == 1)
 			;

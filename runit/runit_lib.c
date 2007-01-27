@@ -54,7 +54,8 @@ static int oneread(int (*op)(int fd,char *buf,unsigned len),int fd,char *buf,uns
 
 	for (;;) {
 		r = op(fd,buf,len);
-		if (r == -1) if (errno == EINTR) continue;
+		if (r == -1 && errno == EINTR)
+			continue;
 		return r;
 	}
 }
@@ -72,12 +73,15 @@ int buffer_feed(buffer *s)
 {
 	int r;
 
-	if (s->p) return s->p;
+	if (s->p)
+		return s->p;
 	r = oneread(s->op,s->fd,s->x,s->n);
-	if (r <= 0) return r;
+	if (r <= 0)
+		return r;
 	s->p = r;
 	s->n -= r;
-	if (s->n > 0) memmove(s->x + s->n,s->x,r);
+	if (s->n > 0)
+		memmove(s->x + s->n,s->x,r);
 	return r;
 }
 
@@ -85,9 +89,13 @@ int buffer_bget(buffer *s,char *buf,unsigned len)
 {
 	int r;
 
-	if (s->p > 0) return getthis(s,buf,len);
-	if (s->n <= len) return oneread(s->op,s->fd,buf,s->n);
-	r = buffer_feed(s); if (r <= 0) return r;
+	if (s->p > 0)
+		return getthis(s,buf,len);
+	if (s->n <= len)
+		return oneread(s->op,s->fd,buf,s->n);
+	r = buffer_feed(s);
+	if (r <= 0)
+		return r;
 	return getthis(s,buf,len);
 }
 
@@ -95,9 +103,13 @@ int buffer_get(buffer *s,char *buf,unsigned len)
 {
 	int r;
 
-	if (s->p > 0) return getthis(s,buf,len);
-	if (s->n <= len) return oneread(s->op,s->fd,buf,len);
-	r = buffer_feed(s); if (r <= 0) return r;
+	if (s->p > 0)
+		return getthis(s,buf,len);
+	if (s->n <= len)
+		return oneread(s->op,s->fd,buf,len);
+	r = buffer_feed(s);
+	if (r <= 0)
+		return r;
 	return getthis(s,buf,len);
 }
 
@@ -122,10 +134,11 @@ static int allwrite(int (*op)(int fd,char *buf,unsigned len),int fd,const char *
 	while (len) {
 		w = op(fd,(char*)buf,len);
 		if (w == -1) {
-			if (errno == EINTR) continue;
+			if (errno == EINTR)
+				continue;
 			return -1; /* note that some data may have been written */
 		}
-		if (w == 0) ; /* luser's fault */
+		/* if (w == 0) ;  luser's fault */
 		buf += w;
 		len -= w;
 	}
@@ -183,7 +196,8 @@ int buffer_put(buffer *s,const char *buf,unsigned len)
 
 int buffer_putflush(buffer *s,const char *buf,unsigned len)
 {
-	if (buffer_flush(s) == -1) return -1;
+	if (buffer_flush(s) == -1)
+		return -1;
 	return allwrite(s->op,s->fd,buf,len);
 }
 
@@ -229,10 +243,10 @@ unsigned byte_chr(char *s,unsigned n,int c)
 	ch = c;
 	t = s;
 	for (;;) {
-		if (!n) break; if (*t == ch) break; ++t; --n;
-		if (!n) break; if (*t == ch) break; ++t; --n;
-		if (!n) break; if (*t == ch) break; ++t; --n;
-		if (!n) break; if (*t == ch) break; ++t; --n;
+		if (!n) break;
+		if (*t == ch) break;
+		++t;
+		--n;
 	}
 	return t - s;
 }
@@ -250,10 +264,13 @@ int coe(int fd)
 
 int fd_copy(int to,int from)
 {
-	if (to == from) return 0;
-	if (fcntl(from,F_GETFL,0) == -1) return -1;
+	if (to == from)
+		return 0;
+	if (fcntl(from,F_GETFL,0) == -1)
+		return -1;
 	close(to);
-	if (fcntl(from,F_DUPFD,to) == -1) return -1;
+	if (fcntl(from,F_DUPFD,to) == -1)
+		return -1;
 	return 0;
 }
 
@@ -262,8 +279,10 @@ int fd_copy(int to,int from)
 
 int fd_move(int to,int from)
 {
-	if (to == from) return 0;
-	if (fd_copy(to,from) == -1) return -1;
+	if (to == from)
+		return 0;
+	if (fd_copy(to,from) == -1)
+		return -1;
 	close(from);
 	return 0;
 }
@@ -271,29 +290,47 @@ int fd_move(int to,int from)
 
 /*** fifo.c ***/
 
-int fifo_make(const char *fn,int mode) { return mkfifo(fn,mode); }
+int fifo_make(const char *fn,int mode)
+{
+	return mkfifo(fn,mode);
+}
 
 
 /*** fmt_ptime.c ***/
 
-unsigned fmt_ptime(char *s, struct taia *ta) {
+void fmt_ptime30nul(char *s, struct taia *ta) {
 	struct tm *t;
 	unsigned long u;
 
-	if (ta->sec.x < 4611686018427387914ULL) return 0; /* impossible? */
+	if (ta->sec.x < 4611686018427387914ULL)
+		return; /* impossible? */
 	u = ta->sec.x -4611686018427387914ULL;
-	if (!(t = gmtime((time_t*)&u))) return 0;
-	fmt_ulong(s, 1900 + t->tm_year);
-	s[4] = '-'; fmt_uint0(&s[5], t->tm_mon+1, 2);
-	s[7] = '-'; fmt_uint0(&s[8], t->tm_mday, 2);
-	s[10] = '_'; fmt_uint0(&s[11], t->tm_hour, 2);
-	s[13] = ':'; fmt_uint0(&s[14], t->tm_min, 2);
-	s[16] = ':'; fmt_uint0(&s[17], t->tm_sec, 2);
-	s[19] = '.'; fmt_uint0(&s[20], ta->nano, 9);
-	return 25;
+	t = gmtime((time_t*)&u);
+	if (!t)
+		return; /* huh? */
+	//fmt_ulong(s, 1900 + t->tm_year);
+	//s[4] = '-'; fmt_uint0(&s[5], t->tm_mon+1, 2);
+	//s[7] = '-'; fmt_uint0(&s[8], t->tm_mday, 2);
+	//s[10] = '_'; fmt_uint0(&s[11], t->tm_hour, 2);
+	//s[13] = ':'; fmt_uint0(&s[14], t->tm_min, 2);
+	//s[16] = ':'; fmt_uint0(&s[17], t->tm_sec, 2);
+	//s[19] = '.'; fmt_uint0(&s[20], ta->nano, 9);
+	sprintf(s, "%04u-%02u-%02u_%02u:%02u:%02u.%09u",
+		(unsigned)(1900 + t->tm_year),
+		(unsigned)(t->tm_mon+1),
+		(unsigned)(t->tm_mday),
+		(unsigned)(t->tm_hour),
+		(unsigned)(t->tm_min),
+		(unsigned)(t->tm_sec),
+		(unsigned)(ta->nano)
+	);
+	/* 4+1 + 2+1 + 2+1 + 2+1 + 2+1 + 2+1 + 9 = */
+	/* 5   + 3   + 3   + 3   + 3   + 3   + 9 = */
+	/* 20 (up to '.' inclusive) + 9 (not including '\0') */
+	return;
 }
 
-unsigned fmt_taia(char *s, struct taia *t) {
+unsigned fmt_taia25(char *s, struct taia *t) {
 	static char pack[TAIA_PACK];
 
 	taia_pack(pack, t);
@@ -303,6 +340,7 @@ unsigned fmt_taia(char *s, struct taia *t) {
 }
 
 
+#ifdef UNUSED
 /*** fmt_uint.c ***/
 
 unsigned fmt_uint(char *s,unsigned u)
@@ -316,13 +354,20 @@ unsigned fmt_uint(char *s,unsigned u)
 unsigned fmt_uint0(char *s,unsigned u,unsigned n)
 {
 	unsigned len;
-	len = fmt_uint(FMT_LEN,u);
-	while (len < n) { if (s) *s++ = '0'; ++len; }
-	if (s) fmt_uint(s,u);
+	len = fmt_uint(FMT_LEN, u);
+	while (len < n) {
+		if (s)
+			*s++ = '0';
+		++len;
+	}
+	if (s)
+		fmt_uint(s, u);
 	return len;
 }
+#endif
 
 
+#ifdef UNUSED
 /*** fmt_ulong.c ***/
 
 unsigned fmt_ulong(char *s,unsigned long u)
@@ -336,18 +381,22 @@ unsigned fmt_ulong(char *s,unsigned long u)
 	}
 	return len;
 }
+#endif
 
 
+#ifdef UNUSED
 /*** tai_now.c ***/
 
 void tai_now(struct tai *t)
 {
-	tai_unix(t,time((time_t *) 0));
+	tai_unix(t, time(NULL));
 }
+#endif
 
 
 /*** tai_pack.c ***/
 
+static /* as it isn't used anywhere else */
 void tai_pack(char *s,const struct tai *t)
 {
 	uint64_t x;
@@ -364,12 +413,14 @@ void tai_pack(char *s,const struct tai *t)
 }
 
 
+#ifdef UNUSED
 /*** tai_sub.c ***/
 
-void tai_sub(struct tai *t,const struct tai *u,const struct tai *v)
+void tai_sub(struct tai *t, const struct tai *u, const struct tai *v)
 {
 	t->x = u->x - v->x;
 }
+#endif
 
 
 /*** tai_unpack.c ***/
@@ -410,19 +461,27 @@ void taia_add(struct taia *t,const struct taia *u,const struct taia *v)
 }
 
 
-/*** taia_approx.c ***/
-
-double taia_approx(const struct taia *t)
-{
-	return tai_approx(&t->sec) + taia_frac(t);
-}
-
-
+#ifdef UNUSED
 /*** taia_frac.c ***/
 
 double taia_frac(const struct taia *t)
 {
 	return (t->atto * 0.000000001 + t->nano) * 0.000000001;
+}
+
+
+/*** taia_approx.c ***/
+
+double taia_approx(const struct taia *t)
+{
+	return t->sec->x + taia_frac(t);
+}
+#endif
+
+static
+uint64_t taia2millisec(const struct taia *t)
+{
+	return (t->sec.x * 1000) + (t->nano / 1000000);
 }
 
 
@@ -445,8 +504,8 @@ int taia_less(const struct taia *t,const struct taia *u)
 void taia_now(struct taia *t)
 {
 	struct timeval now;
-	gettimeofday(&now,(struct timezone *) 0);
-	tai_unix(&t->sec,now.tv_sec);
+	gettimeofday(&now, NULL);
+	tai_unix(&t->sec, now.tv_sec);
 	t->nano = 1000 * now.tv_usec + 500;
 	t->atto = 0;
 }
@@ -454,11 +513,11 @@ void taia_now(struct taia *t)
 
 /*** taia_pack.c ***/
 
-void taia_pack(char *s,const struct taia *t)
+void taia_pack(char *s, const struct taia *t)
 {
 	unsigned long x;
 
-	tai_pack(s,&t->sec);
+	tai_pack(s, &t->sec);
 	s += 8;
 
 	x = t->atto;
@@ -575,25 +634,25 @@ GEN_ALLOC_append(stralloc,char,s,len,a,i,n,x,30,stralloc_readyplus,stralloc_appe
 
 void iopause(iopause_fd *x,unsigned len,struct taia *deadline,struct taia *stamp)
 {
-	struct taia t;
 	int millisecs;
-	double d;
 	int i;
 
 	if (taia_less(deadline,stamp))
 		millisecs = 0;
 	else {
+		uint64_t m;
+		struct taia t;
 		t = *stamp;
-		taia_sub(&t,deadline,&t);
-		d = taia_approx(&t);
-		if (d > 1000.0) d = 1000.0;
-		millisecs = d * 1000.0 + 20.0;
+		taia_sub(&t, deadline, &t);
+		millisecs = m = taia2millisec(&t);
+		if (m > 1000) millisecs = 1000;
+		millisecs += 20;
 	}
 
-	for (i = 0;i < len;++i)
+	for (i = 0; i < len; ++i)
 		x[i].revents = 0;
 
-	poll(x,len,millisecs);
+	poll(x, len, millisecs);
 	/* XXX: some kernels apparently need x[0] even if len is 0 */
 	/* XXX: how to handle EAGAIN? are kernels really this dumb? */
 	/* XXX: how to handle EINVAL? when exactly can this happen? */
@@ -867,26 +926,28 @@ unsigned scan_ulong(const char *s,unsigned long *u)
 }
 
 
+#ifdef UNUSED
 /*** seek_set.c ***/
 
 int seek_set(int fd,seek_pos pos)
 {
 	if (lseek(fd,(off_t) pos,SEEK_SET) == -1) return -1; return 0;
 }
+#endif
 
 
 /*** sig.c ***/
 
-int sig_alarm = SIGALRM;
-int sig_child = SIGCHLD;
-int sig_cont = SIGCONT;
-int sig_hangup = SIGHUP;
-int sig_int = SIGINT;
-int sig_pipe = SIGPIPE;
-int sig_term = SIGTERM;
+//int sig_alarm = SIGALRM;
+//int sig_child = SIGCHLD;
+//int sig_cont = SIGCONT;
+//int sig_hangup = SIGHUP;
+//int sig_int = SIGINT;
+//int sig_pipe = SIGPIPE;
+//int sig_term = SIGTERM;
 
-void (*sig_defaulthandler)(int) = SIG_DFL;
-void (*sig_ignorehandler)(int) = SIG_IGN;
+//void (*sig_defaulthandler)(int) = SIG_DFL;
+//void (*sig_ignorehandler)(int) = SIG_IGN;
 
 
 /*** sig_block.c ***/
@@ -947,10 +1008,9 @@ unsigned str_chr(const char *s,int c)
 	ch = c;
 	t = s;
 	for (;;) {
-		if (!*t) break; if (*t == ch) break; ++t;
-		if (!*t) break; if (*t == ch) break; ++t;
-		if (!*t) break; if (*t == ch) break; ++t;
-		if (!*t) break; if (*t == ch) break; ++t;
+		if (!*t) break;
+		if (*t == ch) break;
+		++t;
 	}
 	return t - s;
 }
@@ -960,7 +1020,7 @@ unsigned str_chr(const char *s,int c)
 
 int wait_nohang(int *wstat)
 {
-	return waitpid(-1,wstat,WNOHANG);
+	return waitpid(-1, wstat, WNOHANG);
 }
 
 
@@ -971,7 +1031,7 @@ int wait_pid(int *wstat, int pid)
 	int r;
 
 	do
-		r = waitpid(pid,wstat,0);
+		r = waitpid(pid, wstat, 0);
 	while ((r == -1) && (errno == EINTR));
 	return r;
 }

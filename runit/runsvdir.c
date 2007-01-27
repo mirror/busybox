@@ -70,8 +70,8 @@ static void runsv(int no, char *name)
 		prog[0] = "runsv";
 		prog[1] = name;
 		prog[2] = 0;
-		sig_uncatch(sig_hangup);
-		sig_uncatch(sig_term);
+		sig_uncatch(SIGHUP);
+		sig_uncatch(SIGTERM);
 		if (pgrp) setsid();
 		execvp(prog[0], prog);
 		//pathexec_run(*prog, prog, (char* const*)environ);
@@ -197,8 +197,8 @@ int runsvdir_main(int argc, char **argv)
 		if (!argv || !*argv) usage();
 	}
 
-	sig_catch(sig_term, s_term);
-	sig_catch(sig_hangup, s_hangup);
+	sig_catch(SIGTERM, s_term);
+	sig_catch(SIGHUP, s_hangup);
 	svdir = *argv++;
 	if (argv && *argv) {
 		rplog = *argv;
@@ -276,12 +276,12 @@ int runsvdir_main(int argc, char **argv)
 		taia_uint(&deadline, check ? 1 : 5);
 		taia_add(&deadline, &now, &deadline);
 
-		sig_block(sig_child);
+		sig_block(SIGCHLD);
 		if (rplog)
 			iopause(io, 1, &deadline, &now);
 		else
 			iopause(0, 0, &deadline, &now);
-		sig_unblock(sig_child);
+		sig_unblock(SIGCHLD);
 
 		if (rplog && (io[0].revents | IOPAUSE_READ))
 			while (read(logpipe[0], &ch, 1) > 0)
