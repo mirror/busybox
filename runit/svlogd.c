@@ -55,7 +55,7 @@ static const char *replace = "";
 static char repl;
 
 static struct logdir {
-	////char *btmp;
+////	char *btmp;
 	/* pattern list to match, in "aa\0bb\0\cc\0\0" form */
 	char *inst;
 	char *processor;
@@ -732,6 +732,7 @@ int svlogd_main(int argc, char **argv)
 	int i;
 	unsigned opt;
 	unsigned timestamp = 0;
+	void* (*memRchr)(const void *, int, size_t) = memchr;
 
 #define line bb_common_bufsiz1
 
@@ -748,10 +749,10 @@ int svlogd_main(int argc, char **argv)
 		if (linemax == 0) linemax = BUFSIZ-26;
 		if (linemax < 256) linemax = 256;
 	}
-	if (opt & 8) { // -b
-		////buflen = xatoi_u(b);
-		////if (buflen == 0) buflen = 1024;
-	}
+////	if (opt & 8) { // -b
+////		buflen = xatoi_u(b);
+////		if (buflen == 0) buflen = 1024;
+////	}
 	//if (opt & 0x10) timestamp++; // -t
 	//if (opt & 0x20) verbose++; // -v
 	//if (timestamp > 2) timestamp = 2;
@@ -789,7 +790,13 @@ int svlogd_main(int argc, char **argv)
 
 	logdirs_reopen();
 
-	/* Each iteration processes one line */
+	/* Without timestamps, we don't have to print each line
+	 * separately, so we can look for _last_ newline, not first,
+	 * thus batching writes */
+	if (!timestamp)
+		memRchr = memrchr;
+
+	/* Each iteration processes one line or more lines */
 	while (1) {
 		char stamp[FMT_PTIME];
 		char *lineptr;
@@ -817,15 +824,17 @@ int svlogd_main(int argc, char **argv)
 		/* (possibly has some unprocessed data from prev loop) */
 
 		/* Refill the buffer if needed */
-		np = memchr(lineptr, '\n', stdin_cnt);
-		i = linemax - stdin_cnt; /* avail. bytes at tail */
-		if (i >= 128 && !exitasap && !np) {
-			int sz = buffer_pread(0, lineptr + stdin_cnt, i);
-			if (sz <= 0) /* EOF or error on stdin */
-				exitasap = 1;
-			else {
-				np = memchr(lineptr + stdin_cnt, '\n', sz);
-				stdin_cnt += sz;
+		np = memRchr(lineptr, '\n', stdin_cnt);
+		if (!np && !exitasap) {
+			i = linemax - stdin_cnt; /* avail. bytes at tail */
+			if (i >= 128) {
+				i = buffer_pread(0, lineptr + stdin_cnt, i);
+				if (i <= 0) /* EOF or error on stdin */
+					exitasap = 1;
+				else {
+					np = memRchr(lineptr + stdin_cnt, '\n', i);
+					stdin_cnt += i;
+				}
 			}
 		}
 		if (stdin_cnt <= 0 && exitasap)
@@ -874,8 +883,9 @@ int svlogd_main(int argc, char **argv)
 				stdin_cnt = 1;
 			} else {
 				linelen = stdin_cnt;
-				np = memchr(lineptr, '\n', stdin_cnt);
-				if (np) linelen = np - lineptr + 1;
+				np = memRchr(lineptr, '\n', stdin_cnt);
+				if (np)
+					linelen = np - lineptr + 1;
 				ch = lineptr[linelen-1];
 			}
 			/* linelen == no of chars incl. '\n' (or == stdin_cnt) */
@@ -893,7 +903,7 @@ int svlogd_main(int argc, char **argv)
 			lineptr += linelen;
 			/* If we see another '\n', we don't need to read
 			 * next piece of input: can print what we have */
-			np = memchr(lineptr, '\n', stdin_cnt);
+			np = memRchr(lineptr, '\n', stdin_cnt);
 			if (np)
 				goto print_to_nl;
 			/* Move unprocessed data to the front of line */
@@ -907,5 +917,5 @@ int svlogd_main(int argc, char **argv)
 				/* repeat */;
 		logdir_close(&dir[i]);
 	}
-	_exit(0);
+	return 0;
 }
