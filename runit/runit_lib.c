@@ -34,207 +34,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "libbb.h"
 #include "runit_lib.h"
 
-#if 0
-/*** buffer.c ***/
-
-void buffer_init(buffer *s,int (*op)(int fd,char *buf,unsigned len),int fd,char *buf,unsigned len)
-{
-	s->x = buf;
-	s->fd = fd;
-	s->op = op;
-	s->p = 0;
-	s->n = len;
-}
-
-
-/*** buffer_get.c ***/
-
-static int oneread(int (*op)(int fd,char *buf,unsigned len),int fd,char *buf,unsigned len)
-{
-	int r;
-
-	for (;;) {
-		r = op(fd,buf,len);
-		if (r == -1 && errno == EINTR)
-			continue;
-		return r;
-	}
-}
-
-static int getthis(buffer *s,char *buf,unsigned len)
-{
-	if (len > s->p) len = s->p;
-	s->p -= len;
-	memcpy(buf,s->x + s->n,len);
-	s->n += len;
-	return len;
-}
-
-int buffer_feed(buffer *s)
-{
-	int r;
-
-	if (s->p)
-		return s->p;
-	r = oneread(s->op,s->fd,s->x,s->n);
-	if (r <= 0)
-		return r;
-	s->p = r;
-	s->n -= r;
-	if (s->n > 0)
-		memmove(s->x + s->n,s->x,r);
-	return r;
-}
-
-int buffer_bget(buffer *s,char *buf,unsigned len)
-{
-	int r;
-
-	if (s->p > 0)
-		return getthis(s,buf,len);
-	if (s->n <= len)
-		return oneread(s->op,s->fd,buf,s->n);
-	r = buffer_feed(s);
-	if (r <= 0)
-		return r;
-	return getthis(s,buf,len);
-}
-
-int buffer_get(buffer *s,char *buf,unsigned len)
-{
-	int r;
-
-	if (s->p > 0)
-		return getthis(s,buf,len);
-	if (s->n <= len)
-		return oneread(s->op,s->fd,buf,len);
-	r = buffer_feed(s);
-	if (r <= 0)
-		return r;
-	return getthis(s,buf,len);
-}
-
-char *buffer_peek(buffer *s)
-{
-	return s->x + s->n;
-}
-
-void buffer_seek(buffer *s,unsigned len)
-{
-	s->n += len;
-	s->p -= len;
-}
-
-
-/*** buffer_put.c ***/
-
-static int allwrite(int (*op)(int fd,char *buf,unsigned len),int fd,const char *buf,unsigned len)
-{
-	int w;
-
-	while (len) {
-		w = op(fd,(char*)buf,len);
-		if (w == -1) {
-			if (errno == EINTR)
-				continue;
-			return -1; /* note that some data may have been written */
-		}
-		/* if (w == 0) ;  luser's fault */
-		buf += w;
-		len -= w;
-	}
-	return 0;
-}
-
-int buffer_flush(buffer *s)
-{
-	int p;
-
-	p = s->p;
-	if (!p) return 0;
-	s->p = 0;
-	return allwrite(s->op,s->fd,s->x,p);
-}
-
-int buffer_putalign(buffer *s,const char *buf,unsigned len)
-{
-	unsigned n;
-
-	while (len > (n = s->n - s->p)) {
-		memcpy(s->x + s->p,buf,n);
-		s->p += n;
-		buf += n;
-		len -= n;
-		if (buffer_flush(s) == -1) return -1;
-	}
-	/* now len <= s->n - s->p */
-	memcpy(s->x + s->p,buf,len);
-	s->p += len;
-	return 0;
-}
-
-int buffer_put(buffer *s,const char *buf,unsigned len)
-{
-	unsigned n;
-
-	n = s->n;
-	if (len > n - s->p) {
-		if (buffer_flush(s) == -1) return -1;
-		/* now s->p == 0 */
-		if (n < BUFFER_OUTSIZE) n = BUFFER_OUTSIZE;
-		while (len > s->n) {
-			if (n > len) n = len;
-			if (allwrite(s->op,s->fd,buf,n) == -1) return -1;
-			buf += n;
-			len -= n;
-		}
-	}
-	/* now len <= s->n - s->p */
-	memcpy(s->x + s->p,buf,len);
-	s->p += len;
-	return 0;
-}
-
-int buffer_putflush(buffer *s,const char *buf,unsigned len)
-{
-	if (buffer_flush(s) == -1)
-		return -1;
-	return allwrite(s->op,s->fd,buf,len);
-}
-
-int buffer_putsalign(buffer *s,const char *buf)
-{
-	return buffer_putalign(s,buf,strlen(buf));
-}
-
-int buffer_puts(buffer *s,const char *buf)
-{
-	return buffer_put(s,buf,strlen(buf));
-}
-
-int buffer_putsflush(buffer *s,const char *buf)
-{
-	return buffer_putflush(s,buf,strlen(buf));
-}
-
-
-/*** buffer_read.c ***/
-
-int buffer_unixread(int fd,char *buf,unsigned len)
-{
-	return read(fd,buf,len);
-}
-
-
-/*** buffer_write.c ***/
-
-int buffer_unixwrite(int fd,char *buf,unsigned len)
-{
-	return write(fd,buf,len);
-}
-#endif
-
-
 /*** byte_chr.c ***/
 
 unsigned byte_chr(char *s,unsigned n,int c)
@@ -290,16 +89,6 @@ int fd_move(int to,int from)
 }
 
 
-#if 0
-/*** fifo.c ***/
-
-int fifo_make(const char *fn,int mode)
-{
-	return mkfifo(fn, mode);
-}
-#endif
-
-
 /*** fmt_ptime.c ***/
 
 void fmt_ptime30nul(char *s, struct taia *ta) {
@@ -342,60 +131,6 @@ unsigned fmt_taia25(char *s, struct taia *t) {
 	bin2hex(s, pack, 12);
 	return 25;
 }
-
-
-#ifdef UNUSED
-/*** fmt_uint.c ***/
-
-unsigned fmt_uint(char *s,unsigned u)
-{
-	return fmt_ulong(s,u);
-}
-
-
-/*** fmt_uint0.c ***/
-
-unsigned fmt_uint0(char *s,unsigned u,unsigned n)
-{
-	unsigned len;
-	len = fmt_uint(FMT_LEN, u);
-	while (len < n) {
-		if (s)
-			*s++ = '0';
-		++len;
-	}
-	if (s)
-		fmt_uint(s, u);
-	return len;
-}
-#endif
-
-
-#ifdef UNUSED
-/*** fmt_ulong.c ***/
-
-unsigned fmt_ulong(char *s,unsigned long u)
-{
-	unsigned len; unsigned long q;
-	len = 1; q = u;
-	while (q > 9) { ++len; q /= 10; }
-	if (s) {
-		s += len;
-		do { *--s = '0' + (u % 10); u /= 10; } while (u); /* handles u == 0 */
-	}
-	return len;
-}
-#endif
-
-
-#ifdef UNUSED
-/*** tai_now.c ***/
-
-void tai_now(struct tai *t)
-{
-	tai_unix(t, time(NULL));
-}
-#endif
 
 
 /*** tai_pack.c ***/
@@ -447,8 +182,6 @@ void tai_unpack(const char *s,struct tai *t)
 
 /*** taia_add.c ***/
 
-/* XXX: breaks tai encapsulation */
-
 void taia_add(struct taia *t,const struct taia *u,const struct taia *v)
 {
 	t->sec.x = u->sec.x + v->sec.x;
@@ -465,33 +198,7 @@ void taia_add(struct taia *t,const struct taia *u,const struct taia *v)
 }
 
 
-#ifdef UNUSED
-/*** taia_frac.c ***/
-
-double taia_frac(const struct taia *t)
-{
-	return (t->atto * 0.000000001 + t->nano) * 0.000000001;
-}
-
-
-/*** taia_approx.c ***/
-
-double taia_approx(const struct taia *t)
-{
-	return t->sec->x + taia_frac(t);
-}
-#endif
-
-static
-uint64_t taia2millisec(const struct taia *t)
-{
-	return (t->sec.x * 1000) + (t->nano / 1000000);
-}
-
-
 /*** taia_less.c ***/
-
-/* XXX: breaks tai encapsulation */
 
 int taia_less(const struct taia *t, const struct taia *u)
 {
@@ -539,8 +246,6 @@ void taia_pack(char *s, const struct taia *t)
 
 /*** taia_sub.c ***/
 
-/* XXX: breaks tai encapsulation */
-
 void taia_sub(struct taia *t, const struct taia *u, const struct taia *v)
 {
 	unsigned long unano = u->nano;
@@ -572,69 +277,14 @@ void taia_uint(struct taia *t, unsigned s)
 }
 
 
-/*** stralloc_cat.c ***/
-#if 0
-
-int stralloc_cat(stralloc *sato,const stralloc *safrom)
-{
-	return stralloc_catb(sato,safrom->s,safrom->len);
-}
-
-
-/*** stralloc_catb.c ***/
-
-int stralloc_catb(stralloc *sa,const char *s,unsigned n)
-{
-	if (!sa->s) return stralloc_copyb(sa,s,n);
-	if (!stralloc_readyplus(sa,n + 1)) return 0;
-	memcpy(sa->s + sa->len,s,n);
-	sa->len += n;
-	sa->s[sa->len] = 'Z'; /* ``offensive programming'' */
-	return 1;
-}
-
-
-/*** stralloc_cats.c ***/
-
-int stralloc_cats(stralloc *sa,const char *s)
-{
-	return stralloc_catb(sa,s,strlen(s));
-}
-
-
-/*** stralloc_eady.c ***/
-
-GEN_ALLOC_ready(stralloc,char,s,len,a,i,n,x,30,stralloc_ready)
-GEN_ALLOC_readyplus(stralloc,char,s,len,a,i,n,x,30,stralloc_readyplus)
-
-
-/*** stralloc_opyb.c ***/
-
-int stralloc_copyb(stralloc *sa,const char *s,unsigned n)
-{
-	if (!stralloc_ready(sa,n + 1)) return 0;
-	memcpy(sa->s,s,n);
-	sa->len = n;
-	sa->s[n] = 'Z'; /* ``offensive programming'' */
-	return 1;
-}
-
-
-/*** stralloc_opys.c ***/
-
-int stralloc_copys(stralloc *sa,const char *s)
-{
-	return stralloc_copyb(sa,s,strlen(s));
-}
-
-
-/*** stralloc_pend.c ***/
-
-GEN_ALLOC_append(stralloc,char,s,len,a,i,n,x,30,stralloc_readyplus,stralloc_append)
-
-#endif /* stralloc */
-
 /*** iopause.c ***/
+
+static
+uint64_t taia2millisec(const struct taia *t)
+{
+	return (t->sec.x * 1000) + (t->nano / 1000000);
+}
+
 
 void iopause(iopause_fd *x,unsigned len,struct taia *deadline,struct taia *stamp)
 {
@@ -711,130 +361,6 @@ int open_write(const char *fn)
 }
 
 
-/*** openreadclose.c ***/
-#if 0
-int openreadclose(const char *fn,stralloc *sa,unsigned bufsize)
-{
-	int fd;
-	fd = open_read(fn);
-	if (fd == -1) {
-		if (errno == ENOENT) return 0;
-		return -1;
-	}
-	if (readclose(fd,sa,bufsize) == -1) return -1;
-	return 1;
-}
-#endif
-
-
-/*** pathexec_env.c ***/
-#if 0
-static stralloc plus;
-static stralloc tmp;
-
-int pathexec_env(const char *s,const char *t)
-{
-	if (!s) return 1;
-	if (!stralloc_copys(&tmp,s)) return 0;
-	if (t) {
-		if (!stralloc_cats(&tmp,"=")) return 0;
-		if (!stralloc_cats(&tmp,t)) return 0;
-	}
-	if (!stralloc_0(&tmp)) return 0;
-	return stralloc_cat(&plus,&tmp);
-}
-
-void pathexec(char **argv)
-{
-	char **e;
-	unsigned elen;
-	unsigned i;
-	unsigned j;
-	unsigned split;
-	unsigned t;
-
-	if (!stralloc_cats(&plus,"")) return;
-
-	elen = 0;
-	for (i = 0;environ[i];++i)
-		++elen;
-	for (i = 0;i < plus.len;++i)
-		if (!plus.s[i])
-			++elen;
-
-	e = malloc((elen + 1) * sizeof(char *));
-	if (!e) return;
-
-	elen = 0;
-	for (i = 0;environ[i];++i)
-		e[elen++] = environ[i];
-
-	j = 0;
-	for (i = 0;i < plus.len;++i)
-		if (!plus.s[i]) {
-			split = str_chr(plus.s + j,'=');
-			for (t = 0;t < elen;++t)
-				if (memcmp(plus.s + j,e[t],split) == 0)
-					if (e[t][split] == '=') {
-						--elen;
-						e[t] = e[elen];
-						break;
-					}
-			if (plus.s[j + split])
-				e[elen++] = plus.s + j;
-			j = i + 1;
-		}
-	e[elen] = 0;
-
-	pathexec_run(*argv,argv,e);
-	free(e);
-}
-#endif
-
-/*** pathexec_run.c ***/
-#if 0
-static stralloc tmp;
-
-void pathexec_run(const char *file,char *const *argv,char *const *envp)
-{
-	const char *path;
-	unsigned split;
-	int savederrno;
-
-	if (file[str_chr(file,'/')]) {
-		execve(file,argv,envp);
-		return;
-	}
-
-	path = getenv("PATH");
-	if (!path) path = "/bin:/usr/bin";
-
-	savederrno = 0;
-	for (;;) {
-		split = str_chr(path,':');
-		if (!stralloc_copyb(&tmp,path,split)) return;
-		if (!split)
-			if (!stralloc_cats(&tmp,".")) return;
-		if (!stralloc_cats(&tmp,"/"))  return;
-		if (!stralloc_cats(&tmp,file)) return;
-		if (!stralloc_0(&tmp)) return;
-
-		execve(tmp.s,argv,envp);
-		if (errno != ENOENT) {
-			savederrno = errno;
-			if ((errno != EACCES) && (errno != EPERM) && (errno != EISDIR)) return;
-		}
-
-		if (!path[split]) {
-			if (savederrno) errno = savederrno;
-			return;
-		}
-		path += split;
-		path += 1;
-	}
-}
-#endif
-
 /*** pmatch.c ***/
 
 unsigned pmatch(const char *p, const char *s, unsigned len) {
@@ -878,62 +404,6 @@ unsigned pmatch(const char *p, const char *s, unsigned len) {
 }
 
 
-#if 0
-/*** prot.c ***/
-
-int prot_gid(int gid)
-{
-	gid_t x = gid;
-	if (setgroups(1,&x) == -1) return -1;
-	return setgid(gid); /* _should_ be redundant, but on some systems it isn't */
-}
-
-int prot_uid(int uid)
-{
-	return setuid(uid);
-}
-#endif
-
-
-/*** readclose.c ***/
-#if 0
-int readclose_append(int fd,stralloc *sa,unsigned bufsize)
-{
-	int r;
-	for (;;) {
-		if (!stralloc_readyplus(sa,bufsize)) { close(fd); return -1; }
-		r = read(fd,sa->s + sa->len,bufsize);
-		if (r == -1) if (errno == EINTR) continue;
-		if (r <= 0) { close(fd); return r; }
-		sa->len += r;
-	}
-}
-
-int readclose(int fd,stralloc *sa,unsigned bufsize)
-{
-	if (!stralloc_copys(sa,"")) { close(fd); return -1; }
-	return readclose_append(fd,sa,bufsize);
-}
-#endif
-
-#if 0
-/*** scan_ulong.c ***/
-
-unsigned scan_ulong(const char *s,unsigned long *u)
-{
-	unsigned pos = 0;
-	unsigned long result = 0;
-	unsigned long c;
-	while ((c = (unsigned long) (unsigned char) (s[pos] - '0')) < 10) {
-		result = result * 10 + c;
-		++pos;
-	}
-	*u = result;
-	return pos;
-}
-#endif
-
-
 #ifdef UNUSED
 /*** seek_set.c ***/
 
@@ -942,20 +412,6 @@ int seek_set(int fd,seek_pos pos)
 	if (lseek(fd,(off_t) pos,SEEK_SET) == -1) return -1; return 0;
 }
 #endif
-
-
-/*** sig.c ***/
-
-//int sig_alarm = SIGALRM;
-//int sig_child = SIGCHLD;
-//int sig_cont = SIGCONT;
-//int sig_hangup = SIGHUP;
-//int sig_int = SIGINT;
-//int sig_pipe = SIGPIPE;
-//int sig_term = SIGTERM;
-
-//void (*sig_defaulthandler)(int) = SIG_DFL;
-//void (*sig_ignorehandler)(int) = SIG_IGN;
 
 
 /*** sig_block.c ***/
