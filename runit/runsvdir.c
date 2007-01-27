@@ -69,7 +69,7 @@ static void runsv(int no, char *name)
 
 		prog[0] = "runsv";
 		prog[1] = name;
-		prog[2] = 0;
+		prog[2] = NULL;
 		sig_uncatch(SIGHUP);
 		sig_uncatch(SIGTERM);
 		if (pgrp) setsid();

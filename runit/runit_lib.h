@@ -27,6 +27,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*** buffer.h ***/
 
+#if 0
 typedef struct buffer {
 	char *x;
 	unsigned p;
@@ -35,17 +36,17 @@ typedef struct buffer {
 	int (*op)(int fd,char *buf,unsigned len);
 } buffer;
 
-#define BUFFER_INIT(op,fd,buf,len) { (buf), 0, (len), (fd), (op) }
-#define BUFFER_INSIZE 8192
+//#define BUFFER_INIT(op,fd,buf,len) { (buf), 0, (len), (fd), (op) }
+//#define BUFFER_INSIZE 8192
 #define BUFFER_OUTSIZE 8192
 
 extern void buffer_init(buffer *,int (*)(int fd,char *buf,unsigned len),int,char *,unsigned);
 
 extern int buffer_flush(buffer *);
-extern int buffer_put(buffer *,const char *,unsigned);
+//extern int buffer_put(buffer *,const char *,unsigned);
 extern int buffer_putalign(buffer *,const char *,unsigned);
 extern int buffer_putflush(buffer *,const char *,unsigned);
-extern int buffer_puts(buffer *,const char *);
+//extern int buffer_puts(buffer *,const char *);
 extern int buffer_putsalign(buffer *,const char *);
 extern int buffer_putsflush(buffer *,const char *);
 
@@ -77,6 +78,7 @@ extern int buffer_unixread(int,char *,unsigned);
 /* Actually, int buffer_unixwrite(int,const char *,unsigned),
 	 but that 'const' will produce warnings... oh well */
 extern int buffer_unixwrite(int,char *,unsigned);
+#endif
 
 
 /*** byte.h ***/
@@ -102,7 +104,7 @@ extern int fd_move(int,int);
 
 /*** fifo.h ***/
 
-extern int fifo_make(const char *,int);
+//extern int fifo_make(const char *,int);
 
 
 /*** fmt.h ***/
@@ -292,9 +294,9 @@ extern int openreadclose(const char *,stralloc *,unsigned);
 
 /*** pathexec.h ***/
 
-extern void pathexec_run(const char *,char *const *,char *const *);
-extern int pathexec_env(const char *,const char *);
-extern void pathexec(char **);
+//extern void pathexec_run(const char *,char *const *,char *const *);
+//extern int pathexec_env(const char *,const char *);
+//extern void pathexec(char **);
 
 
 /*** pmatch.h ***/
@@ -304,8 +306,8 @@ extern unsigned pmatch(const char *, const char *, unsigned);
 
 /*** prot.h ***/
 
-extern int prot_gid(int);
-extern int prot_uid(int);
+//extern int prot_gid(int);
+//extern int prot_uid(int);
 
 
 /*** readclose.h ***/
@@ -345,14 +347,14 @@ extern unsigned scan_8long(const char *,unsigned long *);
 
 /*** seek.h ***/
 
-typedef unsigned long seek_pos;
+//typedef unsigned long seek_pos;
 
-extern seek_pos seek_cur(int);
+//extern seek_pos seek_cur(int);
 
 //extern int seek_set(int,seek_pos);
-extern int seek_end(int);
+//extern int seek_end(int);
 
-extern int seek_trunc(int,seek_pos);
+//extern int seek_trunc(int,seek_pos);
 
 //#define seek_begin(fd) (seek_set((fd),(seek_pos) 0))
 
@@ -368,8 +370,8 @@ extern int seek_trunc(int,seek_pos);
 //extern int sig_term;
 
 extern void sig_catch(int,void (*)(int));
-#define sig_ignore(s) (sig_catch((s),SIG_IGN))
-#define sig_uncatch(s) (sig_catch((s),SIG_DFL))
+#define sig_ignore(s) (sig_catch((s), SIG_IGN))
+#define sig_uncatch(s) (sig_catch((s), SIG_DFL))
 
 extern void sig_block(int);
 extern void sig_unblock(int);
@@ -383,8 +385,8 @@ extern void sig_dfl(int);
 
 extern unsigned str_chr(const char *,int);  /* never returns NULL */
 
-#define str_diff(s,t) strcmp((s),(t))
-#define str_equal(s,t) (!strcmp((s),(t)))
+#define str_diff(s,t) strcmp((s), (t))
+#define str_equal(s,t) (!strcmp((s), (t)))
 
 
 /*** wait.h ***/

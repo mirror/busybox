@@ -486,25 +486,25 @@ int runsv_main(int argc, char **argv)
 		coe(svd[1].fdlock);
 	}
 
-	fifo_make("log/supervise/control"+4, 0600);
+	mkfifo("log/supervise/control"+4, 0600);
 	svd[0].fdcontrol = xopen("log/supervise/control"+4, O_RDONLY|O_NDELAY);
 	coe(svd[0].fdcontrol);
 	svd[0].fdcontrolwrite = xopen("log/supervise/control"+4, O_WRONLY|O_NDELAY);
 	coe(svd[0].fdcontrolwrite);
 	update_status(&svd[0]);
 	if (haslog) {
-		fifo_make("log/supervise/control", 0600);
+		mkfifo("log/supervise/control", 0600);
 		svd[1].fdcontrol = xopen("log/supervise/control", O_RDONLY|O_NDELAY);
 		coe(svd[1].fdcontrol);
 		svd[1].fdcontrolwrite = xopen("log/supervise/control", O_WRONLY|O_NDELAY);
 		coe(svd[1].fdcontrolwrite);
 		update_status(&svd[1]);
 	}
-	fifo_make("log/supervise/ok"+4, 0600);
+	mkfifo("log/supervise/ok"+4, 0600);
 	fd = xopen("log/supervise/ok"+4, O_RDONLY|O_NDELAY);
 	coe(fd);
 	if (haslog) {
-		fifo_make("log/supervise/ok", 0600);
+		mkfifo("log/supervise/ok", 0600);
 		fd = xopen("log/supervise/ok", O_RDONLY|O_NDELAY);
 		coe(fd);
 	}

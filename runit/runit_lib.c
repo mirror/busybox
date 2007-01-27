@@ -34,6 +34,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "libbb.h"
 #include "runit_lib.h"
 
+#if 0
 /*** buffer.c ***/
 
 void buffer_init(buffer *s,int (*op)(int fd,char *buf,unsigned len),int fd,char *buf,unsigned len)
@@ -231,6 +232,7 @@ int buffer_unixwrite(int fd,char *buf,unsigned len)
 {
 	return write(fd,buf,len);
 }
+#endif
 
 
 /*** byte_chr.c ***/
@@ -288,12 +290,14 @@ int fd_move(int to,int from)
 }
 
 
+#if 0
 /*** fifo.c ***/
 
 int fifo_make(const char *fn,int mode)
 {
-	return mkfifo(fn,mode);
+	return mkfifo(fn, mode);
 }
+#endif
 
 
 /*** fmt_ptime.c ***/
@@ -489,7 +493,7 @@ uint64_t taia2millisec(const struct taia *t)
 
 /* XXX: breaks tai encapsulation */
 
-int taia_less(const struct taia *t,const struct taia *u)
+int taia_less(const struct taia *t, const struct taia *u)
 {
 	if (t->sec.x < u->sec.x) return 1;
 	if (t->sec.x > u->sec.x) return 0;
@@ -537,7 +541,7 @@ void taia_pack(char *s, const struct taia *t)
 
 /* XXX: breaks tai encapsulation */
 
-void taia_sub(struct taia *t,const struct taia *u,const struct taia *v)
+void taia_sub(struct taia *t, const struct taia *u, const struct taia *v)
 {
 	unsigned long unano = u->nano;
 	unsigned long uatto = u->atto;
@@ -560,7 +564,7 @@ void taia_sub(struct taia *t,const struct taia *u,const struct taia *v)
 
 /* XXX: breaks tai encapsulation */
 
-void taia_uint(struct taia *t,unsigned s)
+void taia_uint(struct taia *t, unsigned s)
 {
 	t->sec.x = s;
 	t->nano = 0;
@@ -874,6 +878,7 @@ unsigned pmatch(const char *p, const char *s, unsigned len) {
 }
 
 
+#if 0
 /*** prot.c ***/
 
 int prot_gid(int gid)
@@ -887,6 +892,7 @@ int prot_uid(int uid)
 {
 	return setuid(uid);
 }
+#endif
 
 
 /*** readclose.c ***/
@@ -910,6 +916,7 @@ int readclose(int fd,stralloc *sa,unsigned bufsize)
 }
 #endif
 
+#if 0
 /*** scan_ulong.c ***/
 
 unsigned scan_ulong(const char *s,unsigned long *u)
@@ -924,6 +931,7 @@ unsigned scan_ulong(const char *s,unsigned long *u)
 	*u = result;
 	return pos;
 }
+#endif
 
 
 #ifdef UNUSED
@@ -956,23 +964,23 @@ void sig_block(int sig)
 {
 	sigset_t ss;
 	sigemptyset(&ss);
-	sigaddset(&ss,sig);
-	sigprocmask(SIG_BLOCK,&ss,(sigset_t *) 0);
+	sigaddset(&ss, sig);
+	sigprocmask(SIG_BLOCK, &ss, NULL);
 }
 
 void sig_unblock(int sig)
 {
 	sigset_t ss;
 	sigemptyset(&ss);
-	sigaddset(&ss,sig);
-	sigprocmask(SIG_UNBLOCK,&ss,(sigset_t *) 0);
+	sigaddset(&ss, sig);
+	sigprocmask(SIG_UNBLOCK, &ss, NULL);
 }
 
 void sig_blocknone(void)
 {
 	sigset_t ss;
 	sigemptyset(&ss);
-	sigprocmask(SIG_SETMASK,&ss,(sigset_t *) 0);
+	sigprocmask(SIG_SETMASK, &ss, NULL);
 }
 
 
@@ -984,7 +992,7 @@ void sig_catch(int sig,void (*f)(int))
 	sa.sa_handler = f;
 	sa.sa_flags = 0;
 	sigemptyset(&sa.sa_mask);
-	sigaction(sig,&sa,(struct sigaction *) 0);
+	sigaction(sig,&sa, NULL);
 }
 
 
