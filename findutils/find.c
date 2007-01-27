@@ -59,7 +59,7 @@ typedef struct {
 #define ACTS(name, arg...) typedef struct { action a; arg; } action_##name;
 #define ACTF(name)         static int func_##name(const char *fileName, struct stat *statbuf, action_##name* ap)
                         ACTS(print)
-                        ACTS(name,  char *pattern;)
+                        ACTS(name,  const char *pattern;)
 USE_FEATURE_FIND_PRINT0(ACTS(print0))
 USE_FEATURE_FIND_TYPE(  ACTS(type,  int type_mask;))
 USE_FEATURE_FIND_PERM(  ACTS(perm,  char perm_char; mode_t perm_mask;))
@@ -273,7 +273,7 @@ static int fileAction(const char *fileName, struct stat *statbuf, void* junk, in
 
 
 #if ENABLE_FEATURE_FIND_TYPE
-static int find_type(char *type)
+static int find_type(const char *type)
 {
 	int mask = 0;
 
@@ -349,8 +349,8 @@ static action*** parse_params(char **argv)
 // We implement: (), -a, -o
 
 	while (*argv) {
-		char *arg = argv[0];
-		char *arg1 = argv[1];
+		const char *arg = argv[0];
+		const char *arg1 = argv[1];
 	/* --- Operators --- */
 		if (strcmp(arg, "-a") == 0
 		    USE_DESKTOP(|| strcmp(arg, "-and") == 0)

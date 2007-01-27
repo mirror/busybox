@@ -259,7 +259,7 @@ extern DIR *warn_opendir(const char *path);
 char *xgetcwd(char *cwd);
 char *xreadlink(const char *path);
 char *xmalloc_realpath(const char *path);
-extern void xstat(char *filename, struct stat *buf);
+extern void xstat(const char *filename, struct stat *buf);
 extern pid_t spawn(char **argv);
 extern pid_t xspawn(char **argv);
 extern int wait4pid(int pid);
