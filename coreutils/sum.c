@@ -15,22 +15,21 @@
 
 #include "busybox.h"
 
-enum { sysv_sum, bsd_sum };
+enum { SUM_BSD, PRINT_NAME, SUM_SYSV };
 
 /* BSD: calculate and print the rotated checksum and the size in 1K blocks
    The checksum varies depending on sizeof (int). */
 /* SYSV: calculate and print the checksum and the size in 512-byte blocks */
 /* Return 1 if successful.  */
-static int sum_file(const char *file, int type, int print_name)
+static unsigned sum_file(const char *file, const unsigned type)
 {
 #define buf bb_common_bufsiz1
-	int r, fd;
 	uintmax_t total_bytes = 0;
+	int fd = 0, r;
 
 	/* The sum of all the input bytes, modulo (UINT_MAX + 1).  */
 	unsigned s = 0;
 
-	fd = 0;
 	if (NOT_LONE_DASH(file)) {
 		fd = open(file, O_RDONLY);
 		if (fd == -1)
@@ -51,7 +50,7 @@ static int sum_file(const char *file, int type, int print_name)
 		}
 
 		total_bytes += bytes_read;
-		if (type == sysv_sum) {
+		if (type >= SUM_SYSV) {
 			do s += buf[--bytes_read]; while (bytes_read);
 		} else {
 			r = 0;
@@ -63,8 +62,9 @@ static int sum_file(const char *file, int type, int print_name)
 		}
 	}
 
-	if (!print_name) file = "";
-	if (type == sysv_sum) {
+	if (type < PRINT_NAME)
+		file = "";
+	if (type >= SUM_SYSV) {
 		r = (s & 0xffff) + ((s & 0xffffffff) >> 16);
 		s = (r & 0xffff) + (r >> 16);
 		printf("%d %ju %s\n", s, (total_bytes+511)/512, file);
@@ -76,19 +76,24 @@ static int sum_file(const char *file, int type, int print_name)
 
 int sum_main(int argc, char **argv)
 {
-	int n;
-	int type = bsd_sum;
+	unsigned n;
+	unsigned type = SUM_BSD;
 
 	n = getopt32(argc, argv, "sr");
-	if (n & 1) type = sysv_sum;
+	if (n & 1) type = SUM_SYSV;
 	/* give the bsd priority over sysv func */
-	if (n & 2) type = bsd_sum;
+	if (n & 2) type = SUM_BSD;
 
-	if (argc == optind)
-		n = sum_file("-", type, 0);
-	else
+	if (argc == optind) {
+		/* Do not print the name */
+		n = sum_file("-", type);
+	} else {
+		/* Need to print the name if either
+		   - more than one file given
+		   - doing sysv */
+		type += argc - 1 > optind || type == SUM_SYSV;
 		for (n = 1; optind < argc; optind++)
-			n &= sum_file(argv[optind], type, 1);
-
+			n &= sum_file(argv[optind], type);
+	}
 	return !n;
 }
