@@ -286,12 +286,12 @@ uint64_t taia2millisec(const struct taia *t)
 }
 
 
-void iopause(iopause_fd *x,unsigned len,struct taia *deadline,struct taia *stamp)
+void iopause(iopause_fd *x, unsigned len, struct taia *deadline, struct taia *stamp)
 {
 	int millisecs;
 	int i;
 
-	if (taia_less(deadline,stamp))
+	if (taia_less(deadline, stamp))
 		millisecs = 0;
 	else {
 		uint64_t m;

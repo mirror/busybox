@@ -35,7 +35,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static unsigned verbose;
 static int linemax = 1000;
-static int buflen = 1024;
+////static int buflen = 1024;
 static int linelen;
 
 static char **fndir;
@@ -49,13 +49,13 @@ static unsigned rotateasap;
 static unsigned reopenasap;
 static unsigned linecomplete = 1;
 static unsigned tmaxflag;
-static iopause_fd in;
+static iopause_fd input;
 
 static const char *replace = "";
 static char repl;
 
 static struct logdir {
-	char *btmp;
+	////char *btmp;
 	/* pattern list to match, in "aa\0bb\0\cc\0\0" form */
 	char *inst;
 	char *processor;
@@ -373,7 +373,8 @@ static int buffer_pwrite(int n, char *s, unsigned len)
 				}
 			}
 		}
-		if (errno) pause2cannot("write to current", ld->name);
+		if (errno)
+			pause2cannot("write to current", ld->name);
 	}
 
 	ld->size += i;
@@ -621,7 +622,7 @@ static int buffer_pread(int fd, char *s, unsigned len)
 		sig_unblock(SIGCHLD);
 		sig_unblock(SIGALRM);
 		sig_unblock(SIGHUP);
-		iopause(&in, 1, &trotate, &now);
+		iopause(&input, 1, &trotate, &now);
 		sig_block(SIGTERM);
 		sig_block(SIGCHLD);
 		sig_block(SIGALRM);
@@ -732,6 +733,8 @@ int svlogd_main(int argc, char **argv)
 	unsigned opt;
 	unsigned timestamp = 0;
 
+#define line bb_common_bufsiz1
+
 	opt_complementary = "tt:vv";
 	opt = getopt32(argc, argv, "r:R:l:b:tv",
 			&r, &replace, &l, &b, &timestamp, &verbose);
@@ -741,38 +744,40 @@ int svlogd_main(int argc, char **argv)
 	}
 	if (opt & 2) if (!repl) repl = '_'; // -R
 	if (opt & 4) { // -l
-		linemax = xatou_range(l, 0, 1000);
-		if (linemax == 0) linemax = 1000;
+		linemax = xatou_range(l, 0, BUFSIZ-26);
+		if (linemax == 0) linemax = BUFSIZ-26;
 		if (linemax < 256) linemax = 256;
 	}
 	if (opt & 8) { // -b
-		buflen = xatoi_u(b);
-		if (buflen == 0) buflen = 1024;
+		////buflen = xatoi_u(b);
+		////if (buflen == 0) buflen = 1024;
 	}
 	//if (opt & 0x10) timestamp++; // -t
 	//if (opt & 0x20) verbose++; // -v
-	if (timestamp > 2) timestamp = 2;
+	//if (timestamp > 2) timestamp = 2;
 	argv += optind;
 	argc -= optind;
 
 	dirn = argc;
 	if (dirn <= 0) usage();
-	if (buflen <= linemax) usage();
+	////if (buflen <= linemax) usage();
 	fdwdir = xopen(".", O_RDONLY|O_NDELAY);
 	coe(fdwdir);
 	dir = xmalloc(dirn * sizeof(struct logdir));
 	for (i = 0; i < dirn; ++i) {
 		dir[i].fddir = -1;
 		dir[i].fdcur = -1;
-		dir[i].btmp = xmalloc(buflen);
+		////dir[i].btmp = xmalloc(buflen);
 		dir[i].ppid = 0;
 	}
-	line = xmalloc(linemax + (timestamp ? 26 : 0));
+	/* line = xmalloc(linemax + (timestamp ? 26 : 0)); */
 	fndir = argv;
-	in.fd = 0;
-	in.events = IOPAUSE_READ;
-	ndelay_on(in.fd);
-
+	input.fd = 0;
+	input.events = IOPAUSE_READ;
+	/* I be damned. Linux 2.6.18: this somehow affects
+	 * OTHER processes! Konsole starts to redraw itself much slower!
+	 * This persists even after svlogd exits */
+	ndelay_on(input.fd);
 	sig_block(SIGTERM);
 	sig_block(SIGCHLD);
 	sig_block(SIGALRM);
@@ -786,14 +791,16 @@ int svlogd_main(int argc, char **argv)
 
 	/* Each iteration processes one line */
 	while (1) {
-		int printlen;
-		char *lineptr = line;
+		char stamp[FMT_PTIME];
+		char *lineptr;
+		char *printptr;
 		char *np;
+		int printlen;
 		char ch;
 
+		lineptr = line;
 		/* Prepare timestamp if needed */
 		if (timestamp) {
-			char stamp[FMT_PTIME];
 			taia_now(&now);
 			switch (timestamp) {
 			case 1:
@@ -803,8 +810,6 @@ int svlogd_main(int argc, char **argv)
 				fmt_ptime30nul(stamp, &now);
 				break;
 			}
-			memcpy(line, stamp, 25);
-			line[25] = ' ';
 			lineptr += 26;
 		}
 
@@ -819,8 +824,8 @@ int svlogd_main(int argc, char **argv)
 			if (sz <= 0) /* EOF or error on stdin */
 				exitasap = 1;
 			else {
+				np = memchr(lineptr + stdin_cnt, '\n', sz);
 				stdin_cnt += sz;
-				np = memchr(lineptr, '\n', stdin_cnt);
 			}
 		}
 		if (stdin_cnt <= 0 && exitasap)
@@ -828,21 +833,33 @@ int svlogd_main(int argc, char **argv)
 
 		/* Search for '\n' (in fact, np already holds the result) */
 		linelen = stdin_cnt;
-		if (np) linelen = np - lineptr + 1;
+		if (np) {
+ print_to_nl:		/* NB: starting from here lineptr may point
+			 * farther out into line[] */
+			linelen = np - lineptr + 1;
+		}
 		/* linelen == no of chars incl. '\n' (or == stdin_cnt) */
 		ch = lineptr[linelen-1];
 
-		printlen = linelen + (timestamp ? 26 : 0);
-		/* write out line[0..printlen-1] to each log destination */
+		/* write out lineptr[0..linelen-1] to each log destination */
+		/* (or lineptr[-26..linelen-1] if timestamping) */
+		printlen = linelen;
+		printptr = lineptr;
+		if (timestamp) {
+			printlen += 26;
+			printptr -= 26;
+			memcpy(printptr, stamp, 25);
+			printptr[25] = ' ';
+		}
 		for (i = 0; i < dirn; ++i) {
 			struct logdir *ld = &dir[i];
 			if (ld->fddir == -1) continue;
 			if (ld->inst)
 				logmatch(ld);
 			if (ld->matcherr == 'e')
-				full_write(2, line, printlen);
+				full_write(2, printptr, printlen);
 			if (ld->match != '+') continue;
-			buffer_pwrite(i, line, printlen);
+			buffer_pwrite(i, printptr, printlen);
 		}
 
 		/* If we didn't see '\n' (long input line), */
@@ -851,9 +868,9 @@ int svlogd_main(int argc, char **argv)
 			/* lineptr is emptied now, safe to use as buffer */
 			stdin_cnt = exitasap ? -1 : buffer_pread(0, lineptr, linemax);
 			if (stdin_cnt <= 0) { /* EOF or error on stdin */
+				exitasap = 1;
 				lineptr[0] = ch = '\n';
 				linelen = 1;
-				exitasap = 1;
 				stdin_cnt = 1;
 			} else {
 				linelen = stdin_cnt;
@@ -871,10 +888,17 @@ int svlogd_main(int argc, char **argv)
 			}
 		}
 
-		/* Move unprocessed data to the front of line */
 		stdin_cnt -= linelen;
-		if (stdin_cnt > 0) /* TODO: slow if buffer is big */
-			memmove(lineptr, &lineptr[linelen], stdin_cnt);
+		if (stdin_cnt > 0) {
+			lineptr += linelen;
+			/* If we see another '\n', we don't need to read
+			 * next piece of input: can print what we have */
+			np = memchr(lineptr, '\n', stdin_cnt);
+			if (np)
+				goto print_to_nl;
+			/* Move unprocessed data to the front of line */
+			memmove((timestamp ? line+26 : line), lineptr, stdin_cnt);
+		}
 	}
 
 	for (i = 0; i < dirn; ++i) {
