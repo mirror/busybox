@@ -38,9 +38,9 @@ ifneq ($(strip $(DO_INSTALL_LIBS)),n)
 	done
 endif
 
-check test: busybox
+check test: busybox busybox.links
 	bindir=$(objtree) srcdir=$(srctree)/testsuite SED="$(SED)" \
-	$(SHELL) $(srctree)/testsuite/runtest $(if $(KBUILD_VERBOSE:1=),-v)
+	$(SHELL) $(srctree)/testsuite/runtest $(if $(KBUILD_VERBOSE:0=),-v)
 
 .PHONY: release
 release: distclean
