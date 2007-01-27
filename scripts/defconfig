@@ -45,7 +45,7 @@ CONFIG_LFS=y
 # Debugging Options
 #
 # CONFIG_DEBUG is not set
-# CONFIG_DEBUG_PESSIMIZE is not set
+# CONFIG_WERROR is not set
 # CONFIG_NO_DEBUG_LIB is not set
 # CONFIG_DMALLOC is not set
 # CONFIG_EFENCE is not set

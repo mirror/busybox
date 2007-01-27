@@ -17,10 +17,15 @@ CPPFLAGS += \
 
 # flag checks are grouped together to speed the checks up a bit..
 CFLAGS += $(call cc-option,-Wall -Wshadow,)
+ifeq ($(CONFIG_WERROR),y)
+CFLAGS += $(call cc-option,-Werror,)
+endif
 CFLAGS += $(call cc-option,-Wundef -Wold-style-definition -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations,)
 CFLAGS += $(call cc-option,-Os -fno-builtin-strlen -finline-limit=0 -fomit-frame-pointer -ffunction-sections -fdata-sections,)
-CFLAGS += $(call cc-option,-static-libgcc -funsigned-char,)
-CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-loops=1,)
+# -fno-guess-branch-probability: prohibit pseudo-random guessing
+# of branch probabilities (hopefully makes bloatcheck more stable)
+CFLAGS += $(call cc-option,-funsigned-char -fno-guess-branch-probability -static-libgcc,)
+CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-labels=1 -falign-loops=1,)
 
 # FIXME: These warnings are at least partially to be concerned about and should
 # be fixed..
