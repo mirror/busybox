@@ -14,16 +14,18 @@
 
 int nohup_main(int argc, char **argv)
 {
-	int temp, nullfd;
-	char *nohupout, *home = NULL;
+	int nullfd;
+	const char *nohupout;
+	char *home = NULL;
 
 	xfunc_error_retval = 127;
 
-	if (argc<2) bb_show_usage();
+	if (argc < 2) bb_show_usage();
 
 	nullfd = xopen(bb_dev_null, O_WRONLY|O_APPEND);
 	/* If stdin is a tty, detach from it. */
-	if (isatty(STDIN_FILENO)) dup2(nullfd, STDIN_FILENO);
+	if (isatty(STDIN_FILENO))
+		dup2(nullfd, STDIN_FILENO);
 
 	nohupout = "nohup.out";
 	/* Redirect stdout to nohup.out, either in "." or in "$HOME". */
@@ -38,16 +40,20 @@ int nohup_main(int argc, char **argv)
 		}
 	} else dup2(nullfd, STDOUT_FILENO);
 
-	/* If we have a tty on strderr, announce filename and redirect to stdout.
+	/* If we have a tty on stderr, announce filename and redirect to stdout.
 	 * Else redirect to /dev/null.
 	 */
-	temp = isatty(STDERR_FILENO);
-	if (temp) bb_error_msg("appending to %s", nohupout);
-	dup2(temp ? STDOUT_FILENO : nullfd, STDERR_FILENO);
-	close(nullfd);
-	signal (SIGHUP, SIG_IGN);
+	if (isatty(STDERR_FILENO)) {
+		bb_error_msg("appending to %s", nohupout);
+		dup2(STDOUT_FILENO, STDERR_FILENO);
+	} else dup2(nullfd, STDERR_FILENO);
 
-	execvp(argv[1],argv+1);
-	if (00 && ENABLE_FEATURE_CLEAN_UP && home) free(nohupout);
+	if (nullfd > 2)
+		close(nullfd);
+	signal(SIGHUP, SIG_IGN);
+
+	execvp(argv[1], argv+1);
+	if (ENABLE_FEATURE_CLEAN_UP && home)
+		free((char*)nohupout);
 	bb_perror_msg_and_die("%s", argv[1]);
 }

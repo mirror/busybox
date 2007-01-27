@@ -1040,10 +1040,8 @@ traceroute_main(int argc, char *argv[])
 		bb_show_usage();
 	}
 
-	/* Insure the socket fds won't be 0, 1 or 2 */
-	do n = xopen(bb_dev_null, O_RDONLY); while (n < 2);
-	while (n > 2)
-		close(n--);
+	/* Ensure the socket fds won't be 0, 1 or 2 */
+	bb_sanitize_stdio();
 
 	s = xsocket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 

@@ -264,7 +264,7 @@ static void open_tty(char *tty, struct termios *tp, int local)
 		 */
 
 		if ((fcntl(0, F_GETFL, 0) & O_RDWR) != O_RDWR)
-			bb_error_msg_and_die("%s: not open for read/write", tty);
+			bb_error_msg_and_die("stdin is not open for read/write");
 	}
 
 	/* Replace current standard output/error fd's with new ones */
@@ -314,7 +314,8 @@ static void open_tty(char *tty, struct termios *tp, int local)
 			strcpy(vcsa, "vcsa");
 			strcpy(vcsa + 4, tty + 3);
 
-			id = (gr = getgrnam("sys")) ? gr->gr_gid : 0;
+			gr = getgrnam("sys");
+			id = gr ? gr->gr_gid : 0;
 			chown(vcs, 0, id);
 			chmod(vcs, 0600);
 			chown(vcsa, 0, id);
@@ -628,8 +629,8 @@ static void termios_final(struct options *op, struct termios *tp, struct chardat
 		tp->c_cflag |= CS7;
 		break;
 	}
-	/* Account for upper case without lower case. */
 
+	/* Account for upper case without lower case. */
 #ifdef HANDLE_ALLCAPS
 	if (cp->capslock) {
 		tp->c_iflag |= IUCLC;

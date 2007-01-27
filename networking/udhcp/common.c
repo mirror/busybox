@@ -22,20 +22,6 @@ long uptime(void)
 	return info.uptime;
 }
 
-/*
- * This function makes sure our first socket calls
- * aren't going to fd 1 (printf badness...) and are
- * not later closed by daemon()
- */
-static inline void sanitize_fds(void)
-{
-	int fd = xopen(bb_dev_null, O_RDWR);
-	while (fd < 3)
-		fd = dup(fd);
-	close(fd);
-}
-
-
 void udhcp_background(const char *pidfile)
 {
 #ifdef __uClinux__
@@ -57,7 +43,7 @@ void udhcp_start_log_and_pid(const char *pidfile)
 	int pid_fd;
 
 	/* Make sure our syslog fd isn't overwritten */
-	sanitize_fds();
+	bb_sanitize_stdio();
 
 	/* do some other misc startup stuff while we are here to save bytes */
 	pid_fd = pidfile_acquire(pidfile);

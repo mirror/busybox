@@ -518,7 +518,7 @@ void bb_sanitize_stdio_maybe_daemonize(int daemonize)
 	int fd;
 	/* Mega-paranoid */
 	fd = xopen(bb_dev_null, O_RDWR);
-	while (fd < 2)
+	while ((unsigned)fd < 2)
 		fd = dup(fd); /* have 0,1,2 open at least to /dev/null */
 	if (daemonize) {
 		pid_t pid = fork();
