@@ -223,8 +223,6 @@ static inline void get_dest_addr(const char *hostid, struct ether_addr *eaddr)
 #if !defined(__UCLIBC__)
 	} else if (ether_hostton(hostid, eaddr) == 0) {
 		bb_debug_msg("Station address for hostname %s is %s\n\n", hostid, ether_ntoa(eaddr));
-#else
-# warning Need to implement ether_hostton() for uClibc
 #endif
 	} else
 		bb_show_usage();
