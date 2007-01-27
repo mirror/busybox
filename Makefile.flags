@@ -5,8 +5,8 @@
 BB_VER = $(VERSION).$(PATCHLEVEL).$(SUBLEVEL)$(EXTRAVERSION)
 
 # -std=gnu99 needed for [U]LLONG_MAX on some systems
-
 CPPFLAGS += $(call cc-option,-std=gnu99,)
+
 CPPFLAGS += \
 	-Iinclude -Ilibbb \
 	$(if $(KBUILD_SRC),-Iinclude2 -I$(srctree)/include) -I$(srctree)/libbb \
@@ -20,11 +20,21 @@ CFLAGS += $(call cc-option,-Wall -Wshadow,)
 ifeq ($(CONFIG_WERROR),y)
 CFLAGS += $(call cc-option,-Werror,)
 endif
-CFLAGS += $(call cc-option,-Wundef -Wold-style-definition -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations,)
+CFLAGS += $(call cc-option,-Wundef -Wold-style-definition -Wstrict-prototypes,)
+# If you want to add "-Wmissing-prototypes -Wmissing-declarations" above
+# (or anything else for that matter) make sure that it is still possible
+# to build bbox without warnings. Current offender: find.c:alloc_action().
+# Looks more like gcc bug: gcc will warn on it with or without prototype.
+# But still, warning-free compile is a must, or else we will drown
+# in warnings pretty soon.
+ifneq ($(CONFIG_WERROR),y)
+CFLAGS += $(call cc-option,-Wmissing-prototypes -Wmissing-declarations,)
+endif
 CFLAGS += $(call cc-option,-Os -fno-builtin-strlen -finline-limit=0 -fomit-frame-pointer -ffunction-sections -fdata-sections,)
 # -fno-guess-branch-probability: prohibit pseudo-random guessing
-# of branch probabilities (hopefully makes bloatcheck more stable)
-CFLAGS += $(call cc-option,-funsigned-char -fno-guess-branch-probability -static-libgcc,)
+# of branch probabilities (hopefully makes bloatcheck more stable):
+CFLAGS += $(call cc-option,-fno-guess-branch-probability,)
+CFLAGS += $(call cc-option,-funsigned-char -static-libgcc,)
 CFLAGS += $(call cc-option,-falign-functions=1 -falign-jumps=1 -falign-labels=1 -falign-loops=1,)
 
 # FIXME: These warnings are at least partially to be concerned about and should
