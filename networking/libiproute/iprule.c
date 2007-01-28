@@ -306,7 +306,7 @@ static int iprule_modify(int cmd, int argc, char **argv)
 
 int do_iprule(int argc, char **argv)
 {
-	const char * const ip_rule_commands[] =
+	static const char * const ip_rule_commands[] =
 		{"add", "delete", "list", "show", 0};
 	int cmd = 2; /* list */
 
