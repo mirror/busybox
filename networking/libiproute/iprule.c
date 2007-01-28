@@ -13,6 +13,7 @@
  * Changes:
  *
  * Rani Assaf <rani@magic.metawire.com> 980929:	resolve addresses
+ * initially integrated into busybox by Bernhard Fischer
  */
 
 #include "libbb.h"
@@ -168,7 +169,8 @@ static int iprule_list(int argc, char **argv)
 		af = AF_INET;
 
 	if (argc > 0) {
-		bb_error_msg("\"rule show\" needs no arguments");
+		//bb_error_msg("\"rule show\" needs no arguments");
+		bb_warn_ignoring_args(argc);
 		return -1;
 	}
 
@@ -256,7 +258,7 @@ static int iprule_modify(int cmd, int argc, char **argv)
 			addattr32(&req.n, sizeof(req), RTA_FLOW, realm);
 		} else if (matches(*argv, "table") == 0 ||
 			   strcmp(*argv, "lookup") == 0) {
-			unsigned int tid;
+			uint32_t tid;
 			NEXT_ARG();
 			if (rtnl_rttable_a2n(&tid, *argv))
 				invarg("table ID", *argv);
@@ -304,16 +306,16 @@ static int iprule_modify(int cmd, int argc, char **argv)
 
 int do_iprule(int argc, char **argv)
 {
-	static const char * const ip_rule_commands[] =
+	const char * const ip_rule_commands[] =
 		{"add", "delete", "list", "show", 0};
-	int command_num = 2;
-	int cmd;
+	int cmd = 2; /* list */
 
 	if (argc < 1)
 		return iprule_list(0, NULL);
 	if (*argv)
-		command_num = index_in_substr_array(ip_rule_commands, *argv);
-	switch (command_num) {
+		cmd = index_in_substr_array(ip_rule_commands, *argv);
+
+	switch (cmd) {
 		case 0: /* add */
 			cmd = RTM_NEWRULE;
 			break;
