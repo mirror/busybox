@@ -535,7 +535,9 @@ static void parse_url(char *src_url, struct host_info *h)
 	p = strchr(h->host, '?'); if (!sp || (p && sp > p)) sp = p;
 	p = strchr(h->host, '#'); if (!sp || (p && sp > p)) sp = p;
 	if (!sp) {
-		h->path = "";
+		/* gcc 4.1.1 bug: h->path = "" puts "" in rodata! */
+		static char nullstr[] = "";
+		h->path = nullstr;
 	} else if (*sp == '/') {
 		*sp = '\0';
 		h->path = sp + 1;
