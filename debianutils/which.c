@@ -21,6 +21,10 @@ int which_main(int argc, char **argv)
 		bb_show_usage();
 	}
 
+	if (!getenv("PATH")) {
+		setenv("PATH", "/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin", 1);
+	}
+
 	while (--argc > 0) {
 		argv++;
 		if (strchr(*argv, '/')) {
