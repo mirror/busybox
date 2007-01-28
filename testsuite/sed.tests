@@ -146,6 +146,11 @@ testing "sed match EOF" "sed -e '"'$p'"'" "hello\nthere\nthere" "" \
 	"hello\nthere"
 testing "sed match EOF two files" "sed -e '"'$p'"' input -" \
 	"one\ntwo\nthree\nfour\nfour" "one\ntwo" "three\nfour"
+# sed match EOF inline: gnu sed 4.1.5 outputs this:
+#00000000  6f 6e 65 0a 6f 6f 6b 0a  6f 6f 6b 0a 74 77 6f 0a  |one.ook.ook.two.|
+#00000010  0a 74 68 72 65 65 0a 6f  6f 6b 0a 6f 6f 6b 0a 66  |.three.ook.ook.f|
+#00000020  6f 75 72                                          |our|
+# which looks buggy to me.
 echo -ne "three\nfour" > input2
 testing "sed match EOF inline" \
 	"sed -e '"'$i ook'"' -i input input2 && cat input input2" \

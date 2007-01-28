@@ -82,7 +82,7 @@ typedef struct sed_cmd_s {
 	unsigned int in_match:1;        /* Next line also included in match? */
 	unsigned int sub_p:1;           /* (s) print option */
 
-	int last_char;                  /* Last line written by (sw) had no '\n' */
+//	int sw_last_char;                  /* Last line written by (sw) had no '\n' */
 
 	/* GENERAL FIELDS */
 	char cmd;               /* The command char: abcdDgGhHilnNpPqrstwxy:={} */
@@ -717,6 +717,11 @@ static void add_input_file(FILE *file)
 	bbg.input_file_list[bbg.input_file_count++] = file;
 }
 
+enum {
+	MASK_NO_EOL_CHAR = 0x100,
+	//MASK_FIRST_LINE = 0x200,
+};
+
 /* Get next line of input from bbg.input_file_list, flushing append buffer and
  * noting if we ran out of files without a newline on the last line we read.
  */
@@ -743,13 +748,13 @@ static char *get_next_line(int *last_char)
 			}
 			/* will be returned if last line in the file
 			 * doesn't end with either '\n' or '\0' */
-			lc |= 0x100;
+			lc |= MASK_NO_EOL_CHAR;
 			break;
 		}
 		/* Close this file and advance to next one */
 		fclose(bbg.input_file_list[bbg.current_input_file++]);
 		/* "this is the first line from new input file" */
-		lc |= 0x200;
+		//lc |= MASK_FIRST_LINE;
 	}
 	*last_char = lc;
 	return temp;
@@ -757,7 +762,7 @@ static char *get_next_line(int *last_char)
 
 /* Output line of text. */
 /* Note:
- * The tricks with 0x200 and last_puts_char are there to emulate gnu sed.
+ * The tricks with MASK_FIRST_LINE and last_puts_char are there to emulate gnu sed.
  * Without them, we had this:
  * echo -n thingy >z1
  * echo -n again >z2
@@ -769,14 +774,14 @@ static char *get_next_line(int *last_char)
  * bbox:
  * 00000000  74 68 7a 6e 67 79 61 67  61 7a 6e                 |thzngyagazn|
  */
-
-static int puts_maybe_newline(char *s, FILE *file, int prev_last_char, int last_char)
+static void puts_maybe_newline(char *s, FILE *file, int last_char)
 {
-	static char last_puts_char;
+	static char last_puts_char = '\n';
 
 	/* Is this a first line from new file
-	 * and old file didn't end with '\n'? */
-	if ((last_char & 0x200) && last_puts_char != '\n') {
+	 * and old file didn't end with '\n' or '\0'? */
+//	if ((last_char & MASK_FIRST_LINE) && last_puts_char != '\n') {
+	if (last_puts_char != '\n' && last_puts_char != '\0') {
 		fputc('\n', file);
 		last_puts_char = '\n';
 	}
@@ -784,7 +789,7 @@ static int puts_maybe_newline(char *s, FILE *file, int prev_last_char, int last_
 	/* why 'x'? - just something which is not '\n' */
 	if (s[0])
 		last_puts_char = 'x';
-	if (!(last_char & 0x100)) { /* had trailing '\n' or '\0'? */
+	if (!(last_char & MASK_NO_EOL_CHAR)) { /* had trailing '\n' or '\0'? */
 		last_char &= 0xff;
 		fputc(last_char, file);
 		last_puts_char = last_char;
@@ -795,18 +800,18 @@ static int puts_maybe_newline(char *s, FILE *file, int prev_last_char, int last_
 		bb_error_msg_and_die(bb_msg_write_error);
 	}
 
-	return last_char;
+	/* Seems to be unused */
+	/*return last_char;*/
 }
 
-#define sed_puts(s, n) \
-	(prev_last_char = puts_maybe_newline(s, bbg.nonstdout, prev_last_char, n))
+#define sed_puts(s, n) (puts_maybe_newline(s, bbg.nonstdout, n))
 
 /* Process all the lines in all the files */
 
 static void process_files(void)
 {
 	char *pattern_space, *next_line;
-	int linenum = 0, prev_last_char = 0;
+	int linenum = 0;
 	int last_char, next_last_char = 0;
 	sed_cmd_t *sed_cmd;
 	int substituted;
@@ -873,10 +878,13 @@ restart:
 
 		/* Skip blocks of commands we didn't match. */
 		if (sed_cmd->cmd == '{') {
-			if (sed_cmd->invert ? matched : !matched)
-				while (sed_cmd && sed_cmd->cmd != '}')
+			if (sed_cmd->invert ? matched : !matched) {
+				while (sed_cmd->cmd != '}') {
 					sed_cmd = sed_cmd->next;
-			if (!sed_cmd) bb_error_msg_and_die("unterminated {");
+					if (!sed_cmd)
+						bb_error_msg_and_die("unterminated {");
+				}
+			}
 			continue;
 		}
 
@@ -902,7 +910,8 @@ restart:
 
 				if (tmp) {
 					*tmp = '\0';
-					sed_puts(pattern_space, 1);
+					/* TODO: explain why '\n' below */
+					sed_puts(pattern_space, '\n');
 					*tmp = '\n';
 					break;
 				}
@@ -911,7 +920,11 @@ restart:
 
 			/* Write the current pattern space to output */
 			case 'p':
-				sed_puts(pattern_space, last_char);
+				/* NB: we print this _before_ the last line
+				 * (of current file) is printed. Even if
+				 * that line is nonterminated, we print
+				 * '\n' here (gnu sed does the same) */
+				sed_puts(pattern_space, (last_char & 0x200) | '\n');
 				break;
 			/* Delete up through first newline */
 			case 'D':
@@ -940,9 +953,9 @@ restart:
 					sed_puts(pattern_space, last_char);
 				/* handle w option */
 				if (sed_cmd->file)
-					sed_cmd->last_char = puts_maybe_newline(
+					/*sed_cmd->sw_last_char =*/ puts_maybe_newline(
 						pattern_space, sed_cmd->file,
-						sed_cmd->last_char, last_char);
+						last_char);
 				break;
 
 			/* Append line to linked list to be printed later */
@@ -952,14 +965,14 @@ restart:
 
 			/* Insert text before this line */
 			case 'i':
-				sed_puts(sed_cmd->string, 1);
+				sed_puts(sed_cmd->string, '\n');
 				break;
 
 			/* Cut and paste text (replace) */
 			case 'c':
 				/* Only triggers on last line of a matching range. */
 				if (!sed_cmd->in_match)
-					sed_puts(sed_cmd->string, 0);
+					sed_puts(sed_cmd->string, MASK_NO_EOL_CHAR);
 				goto discard_line;
 
 			/* Read file, append contents to output */
@@ -982,9 +995,9 @@ restart:
 
 			/* Write pattern space to file. */
 			case 'w':
-				sed_cmd->last_char = puts_maybe_newline(
+				/*sed_cmd->sw_last_char =*/ puts_maybe_newline(
 					pattern_space, sed_cmd->file,
-					sed_cmd->last_char, last_char);
+					last_char);
 				break;
 
 			/* Read next line from input */
@@ -1123,13 +1136,14 @@ restart:
 	/*
 	 * exit point from sedding...
 	 */
-discard_commands:
+ discard_commands:
 	/* we will print the line unless we were told to be quiet ('-n')
 	   or if the line was suppressed (ala 'd'elete) */
-	if (!bbg.be_quiet) sed_puts(pattern_space, last_char);
+	if (!bbg.be_quiet)
+		sed_puts(pattern_space, last_char);
 
 	/* Delete and such jump here. */
-discard_line:
+ discard_line:
 	flush_append();
 	free(pattern_space);
 
