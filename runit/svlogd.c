@@ -796,7 +796,7 @@ int svlogd_main(int argc, char **argv)
 	if (!timestamp)
 		memRchr = memrchr;
 
-	/* Each iteration processes one line or more lines */
+	/* Each iteration processes one or more lines */
 	while (1) {
 		char stamp[FMT_PTIME];
 		char *lineptr;
