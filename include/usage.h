@@ -1575,7 +1575,7 @@
 #define iplink_trivial_usage \
        "{ set DEVICE { up | down | arp { on | off } | show [ DEVICE ] }"
 #define iplink_full_usage \
-       "iplink set DEVICE { up | down | arp { on | off } |\n" \
+       "iplink set DEVICE { up | down | arp | multicast { on | off } |\n" \
        "			dynamic { on | off } |\n" \
        "			mtu MTU }\n" \
        "iplink show [ DEVICE ]"
