@@ -14,7 +14,8 @@
 #endif
 
 extern int preferred_family;
-extern char * _SL_;
+//FIXME! Appears in two .h files!
+extern const char * _SL_;
 
 extern void ip_parse_common_args(int *argcp, char ***argvp);
 extern int print_neigh(struct sockaddr_nl *who, struct nlmsghdr *n, void *arg);

@@ -469,21 +469,15 @@ static int rtnl_rtcache_request(struct rtnl_handle *rth, int family)
 
 static int iproute_flush_cache(void)
 {
-#define ROUTE_FLUSH_PATH "/proc/sys/net/ipv4/route/flush"
-
-	int len;
-	int flush_fd = open (ROUTE_FLUSH_PATH, O_WRONLY);
-	char *buffer = "-1";
-
+	static const char fn[] = "/proc/sys/net/ipv4/route/flush";
+	int flush_fd = open(fn, O_WRONLY);
 	if (flush_fd < 0) {
-		fprintf(stderr, "Cannot open \"%s\"\n", ROUTE_FLUSH_PATH);
+		bb_perror_msg("cannot open '%s'", fn);
 		return -1;
 	}
 
-	len = strlen (buffer);
-
-	if ((write (flush_fd, (void *)buffer, len)) < len) {
-		fprintf(stderr, "Cannot flush routing cache\n");
+	if (write(flush_fd, "-1", 2) < 2) {
+		bb_perror_msg("cannot flush routing cache");
 		return -1;
 	}
 	close(flush_fd);

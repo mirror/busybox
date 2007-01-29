@@ -20,7 +20,7 @@ typedef unsigned long long ullong;
 enum { proc_file_size = 4096 };
 
 typedef struct proc_file {
-	char *name;
+	const char *name;
 	int gen;
 	char *file;
 } proc_file;
@@ -38,7 +38,7 @@ static struct timeval tv;
 static int delta = 1000000;
 static int deltanz = 1000000;
 static int need_seconds = 0;
-static char *final_str = "\n";
+static const char *final_str = "\n";
 
 // We depend on this being a char[], not char* - we take sizeof() of it
 #define outbuf bb_common_bufsiz1

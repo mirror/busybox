@@ -25,7 +25,7 @@
 /* take from linux/sockios.h */
 #define SIOCSIFNAME	0x8923		/* set interface name */
 
-static int on_off(char *msg)
+static int on_off(const char *msg)
 {
 	bb_error_msg("error: argument of \"%s\" must be \"on\" or \"off\"", msg);
 	return -1;

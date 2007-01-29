@@ -24,7 +24,7 @@
 
 int preferred_family = AF_UNSPEC;
 int oneline = 0;
-char * _SL_ = NULL;
+const char * _SL_ = NULL;
 
 void ip_parse_common_args(int *argcp, char ***argvp)
 {

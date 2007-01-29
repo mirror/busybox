@@ -369,7 +369,7 @@ static void sendping6(int junk ATTRIBUTE_UNUSED)
 }
 #endif
 
-static char *icmp_type_name(int id)
+static const char *icmp_type_name(int id)
 {
 	switch (id) {
 	case ICMP_ECHOREPLY:      return "Echo Reply";
@@ -400,7 +400,7 @@ static char *icmp_type_name(int id)
 #ifndef MLD_LISTENER_REDUCTION
 # define MLD_LISTENER_REDUCTION ICMP6_MEMBERSHIP_REDUCTION
 #endif
-static char *icmp6_type_name(int id)
+static const char *icmp6_type_name(int id)
 {
 	switch (id) {
 	case ICMP6_DST_UNREACH:      return "Destination Unreachable";
@@ -761,7 +761,7 @@ int ping_main(int argc, char **argv)
 #if ENABLE_PING6
 int ping6_main(int argc, char **argv)
 {
-	argv[0] = "-6";
+	argv[0] = (char*)"-6";
 	return ping_main(argc + 1, argv - 1);
 }
 #endif

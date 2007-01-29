@@ -36,22 +36,19 @@ struct interface_defn_t;
 
 typedef int execfn(char *command);
 
-struct method_t
-{
-	char *name;
+struct method_t {
+	const char *name;
 	int (*up)(struct interface_defn_t *ifd, execfn *e);
 	int (*down)(struct interface_defn_t *ifd, execfn *e);
 };
 
-struct address_family_t
-{
-	char *name;
+struct address_family_t {
+	const char *name;
 	int n_methods;
 	const struct method_t *method;
 };
 
-struct mapping_defn_t
-{
+struct mapping_defn_t {
 	struct mapping_defn_t *next;
 
 	int max_matches;
@@ -65,14 +62,12 @@ struct mapping_defn_t
 	char **mapping;
 };
 
-struct variable_t
-{
+struct variable_t {
 	char *name;
 	char *value;
 };
 
-struct interface_defn_t
-{
+struct interface_defn_t {
 	const struct address_family_t *address_family;
 	const struct method_t *method;
 
@@ -82,8 +77,7 @@ struct interface_defn_t
 	struct variable_t *option;
 };
 
-struct interfaces_file_t
-{
+struct interfaces_file_t {
 	llist_t *autointerfaces;
 	llist_t *ifaces;
 	struct mapping_defn_t *mappings;
@@ -105,7 +99,7 @@ enum {
 
 static char **my_environ;
 
-static char *startup_PATH;
+static const char *startup_PATH;
 
 #if ENABLE_FEATURE_IFUPDOWN_IPV4 || ENABLE_FEATURE_IFUPDOWN_IPV6
 

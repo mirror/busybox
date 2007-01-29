@@ -7,7 +7,7 @@
 #include <sys/mtio.h>
 
 struct mt_opcodes {
-	char *name;
+	const char *name;
 	short value;
 };
 

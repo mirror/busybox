@@ -14,7 +14,8 @@ extern int show_details;
 extern int show_raw;
 extern int resolve_hosts;
 extern int oneline;
-extern char * _SL_;
+//FIXME! Appears in two .h files!
+extern const char * _SL_;
 
 #ifndef IPPROTO_ESP
 #define IPPROTO_ESP	50

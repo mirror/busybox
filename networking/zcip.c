@@ -130,10 +130,10 @@ static void arp(int fd, struct sockaddr *saddr, int op,
 /**
  * Run a script.
  */
-static int run(char *script, char *arg, char *intf, struct in_addr *ip)
+static int run(const char *script, const char *arg, const char *intf, struct in_addr *ip)
 {
 	int pid, status;
-	char *why;
+	const char *why;
 
 	if(1) { //always true: if (script != NULL)
 		VDBG("%s run %s %s\n", intf, script, arg);
@@ -207,7 +207,7 @@ static	int state = PROBE;
 int zcip_main(int argc, char *argv[])
 {
 	struct ether_addr eth_addr;
-	char *why;
+	const char *why;
 	int fd;
 
 	// parse commandline: prog [options] ifname script
