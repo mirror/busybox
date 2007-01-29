@@ -67,8 +67,8 @@ static char **args;
 static VALUE *docolon(VALUE * sv, VALUE * pv);
 static VALUE *eval(void);
 static VALUE *int_value(arith_t i);
-static VALUE *str_value(char *s);
-static int nextarg(char *str);
+static VALUE *str_value(const char *s);
+static int nextarg(const char *str);
 static int null(VALUE * v);
 static int toarith(VALUE * v);
 static void freev(VALUE * v);
@@ -110,7 +110,7 @@ static VALUE *int_value(arith_t i)
 
 /* Return a VALUE for S.  */
 
-static VALUE *str_value(char *s)
+static VALUE *str_value(const char *s)
 {
 	VALUE *v;
 
@@ -172,7 +172,7 @@ static int toarith(VALUE * v)
 /* Return nonzero if the next token matches STR exactly.
    STR must not be NULL.  */
 
-static int nextarg(char *str)
+static int nextarg(const char *str)
 {
 	if (*args == NULL)
 		return 0;

@@ -106,7 +106,7 @@ static char *get_trimmed_slice(char *s, char *e)
 }
 
 
-#define parse_error(x)  { err=x; goto pe_label; }
+#define parse_error(x)  do { errmsg = x; goto pe_label; } while(0)
 
 /* Don't depend on the tools to combine strings. */
 static const char config_file[] = CONFIG_FILE;
@@ -130,7 +130,7 @@ static void parse_config_file(void)
 	struct BB_suid_config *sct;
 	struct BB_applet *applet;
 	FILE *f;
-	char *err;
+	const char *errmsg;
 	char *s;
 	char *e;
 	int i, lc, section;
@@ -307,7 +307,7 @@ static void parse_config_file(void)
 
  pe_label:
 	fprintf(stderr, "Parse error in %s, line %d: %s\n",
-			config_file, lc, err);
+			config_file, lc, errmsg);
 
 	fclose(f);
 	/* Release any allocated memory before returning. */

@@ -42,11 +42,11 @@
 
 static int print_formatted(char *format, int argc, char **argv);
 static void print_direc(char *start, size_t length,
-			int field_width, int precision, char *argument);
+		int field_width, int precision, const char *argument);
 
-typedef void (*converter)(char *arg, void *result);
+typedef void (*converter)(const char *arg, void *result);
 
-static void multiconvert(char *arg, void *result, converter convert)
+static void multiconvert(const char *arg, void *result, converter convert)
 {
 	char s[16];
 	if (*arg == '"' || *arg == '\'') {
@@ -58,15 +58,15 @@ static void multiconvert(char *arg, void *result, converter convert)
 		fputs(arg, stderr);
 }
 
-static void conv_strtoul(char *arg, void *result)
+static void conv_strtoul(const char *arg, void *result)
 {
 	*(unsigned long*)result = bb_strtoul(arg, NULL, 10);
 }
-static void conv_strtol(char *arg, void *result)
+static void conv_strtol(const char *arg, void *result)
 {
 	*(long*)result = bb_strtol(arg, NULL, 10);
 }
-static void conv_strtod(char *arg, void *result)
+static void conv_strtod(const char *arg, void *result)
 {
 	char *end;
 	/* Well, this one allows leading whitespace... so what */
@@ -75,21 +75,21 @@ static void conv_strtod(char *arg, void *result)
 	if (end[0]) errno = ERANGE;
 }
 
-static unsigned long my_xstrtoul(char *arg)
+static unsigned long my_xstrtoul(const char *arg)
 {
 	unsigned long result;
 	multiconvert(arg, &result, conv_strtoul);
 	return result;
 }
 
-static long my_xstrtol(char *arg)
+static long my_xstrtol(const char *arg)
 {
 	long result;
 	multiconvert(arg, &result, conv_strtol);
 	return result;
 }
 
-static double my_xstrtod(char *arg)
+static double my_xstrtod(const char *arg)
 {
 	double result;
 	multiconvert(arg, &result, conv_strtod);
@@ -239,7 +239,7 @@ static int print_formatted(char *format, int argc, char **argv)
 
 static void
 print_direc(char *start, size_t length, int field_width, int precision,
-			char *argument)
+		const char *argument)
 {
 	char *p;		/* Null-terminated copy of % directive. */
 

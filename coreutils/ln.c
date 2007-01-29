@@ -26,7 +26,7 @@ int ln_main(int argc, char **argv)
 	char *last;
 	char *src_name;
 	char *src;
-	char *suffix = "~";
+	char *suffix = (char*)"~";
 	struct stat statbuf;
 	int (*link_func)(const char *, const char *);
 

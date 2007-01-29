@@ -22,7 +22,7 @@ int yes_main(int argc, char **argv)
 	const char *fmt;
 	char **first_arg;
 
-	*argv = "y";
+	*argv = (char*)"y";
 	if (argc != 1) {
 		++argv;
 	}

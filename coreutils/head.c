@@ -92,7 +92,7 @@ int head_main(int argc, char **argv)
 
 	argv += optind;
 	if (!*argv) {
-		*--argv = "-";
+		*--argv = (char*)"-";
 	}
 
 	fmt = header_fmt_str + 1;

@@ -41,7 +41,7 @@ static void xputenv(char *s)
 static void maybe_set_utc(int opt)
 {
 	if (opt & DATE_OPT_UTC)
-		xputenv("TZ=UTC0");
+		xputenv((char*)"TZ=UTC0");
 }
 
 int date_main(int argc, char **argv)
@@ -218,7 +218,7 @@ format_utc:
 			i = 22;
 			goto format_utc;
 		} else /* default case */
-			date_fmt = "%a %b %e %H:%M:%S %Z %Y";
+			date_fmt = (char*)"%a %b %e %H:%M:%S %Z %Y";
 	}
 
 	if (*date_fmt == '\0') {
@@ -228,7 +228,7 @@ format_utc:
 		/* Handle special conversions */
 
 		if (strncmp(date_fmt, "%f", 2) == 0) {
-			date_fmt = "%Y.%m.%d-%H:%M:%S";
+			date_fmt = (char*)"%Y.%m.%d-%H:%M:%S";
 		}
 
 		/* Generate output string */

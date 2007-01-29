@@ -222,7 +222,7 @@ int du_main(int argc, char **argv)
 	/* go through remaining args (if any) */
 	argv += optind;
 	if (optind >= argc) {
-		*--argv = ".";
+		*--argv = (char*)".";
 		if (slink_depth == 1) {
 			slink_depth = 0;
 		}

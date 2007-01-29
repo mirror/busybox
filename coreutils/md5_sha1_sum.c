@@ -102,7 +102,7 @@ int md5_sha1_sum_main(int argc, char **argv)
 	}
 
 	if (argc == optind) {
-		argv[argc++] = "-";
+		argv[argc++] = (char*)"-";
 	}
 
 	if (ENABLE_FEATURE_MD5_SHA1_SUM_CHECK && (flags & FLAG_CHECK)) {

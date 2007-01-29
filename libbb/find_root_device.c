@@ -9,7 +9,7 @@
 
 #include "libbb.h"
 
-char *find_block_device(char *path)
+char *find_block_device(const char *path)
 {
 	DIR *dir;
 	struct dirent *entry;

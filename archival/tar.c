@@ -504,7 +504,7 @@ static int writeTarFile(const int tar_fd, const int verboseFlag,
 		int gzipDataPipe[2] = { -1, -1 };
 		int gzipStatusPipe[2] = { -1, -1 };
 		volatile int vfork_exec_errno = 0;
-		char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
+		const char *zip_exec = (gzip == 1) ? "gzip" : "bzip2";
 
 		if (pipe(gzipDataPipe) < 0 || pipe(gzipStatusPipe) < 0)
 			bb_perror_msg_and_die("pipe");

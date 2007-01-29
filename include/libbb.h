@@ -239,7 +239,7 @@ extern int recursive_action(const char *fileName, int recurse,
 	void* userData, int depth);
 extern int device_open(const char *device, int mode);
 extern int get_console_fd(void);
-extern char *find_block_device(char *path);
+extern char *find_block_device(const char *path);
 /* bb_copyfd_XX print read/write errors and return -1 if they occur */
 extern off_t bb_copyfd_eof(int fd1, int fd2);
 extern off_t bb_copyfd_size(int fd1, int fd2, off_t size);

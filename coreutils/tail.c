@@ -91,7 +91,7 @@ int tail_main(int argc, char **argv)
 	if (argc >= 2 && (argv[1][0] == '+' || argv[1][0] == '-')
 	 && isdigit(argv[1][1])
 	) {
-		argv[0] = "-n";
+		argv[0] = (char*)"-n";
 		argv--;
 		argc++;
 	}

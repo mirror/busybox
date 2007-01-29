@@ -14,7 +14,7 @@
 
 int bb_cat(char **argv)
 {
-	static char *const argv_dash[] = { "-", NULL };
+	static const char *const argv_dash[] = { "-", NULL };
 	FILE *f;
 	int retval = EXIT_SUCCESS;
 

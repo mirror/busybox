@@ -401,7 +401,7 @@ static void subCommand(const char * cmd, int num1, int num2)
 	if (cp)
 		*cp++ = '\0';
 	else
-		cp = "";
+		cp = (char*)"";
 
 	while (*cp) switch (*cp++) {
 		case 'g':
