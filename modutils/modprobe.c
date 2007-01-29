@@ -37,9 +37,9 @@ struct dep_t {	/* one-way list of dependency rules */
 
 struct mod_list_t {	/* two-way list of modules to process */
 	/* a module description */
-	char *  m_name;
-	char *  m_path;
-	struct mod_opt_t *  m_options;
+	const char * m_name;
+	char * m_path;
+	struct mod_opt_t * m_options;
 
 	struct mod_list_t * m_prev;
 	struct mod_list_t * m_next;
@@ -577,7 +577,7 @@ done:
 	return ret;
 }
 
-static int mod_process(struct mod_list_t *list, int do_insert)
+static int mod_process(const struct mod_list_t *list, int do_insert)
 {
 	int rc = 0;
 	char **argv = NULL;
@@ -603,16 +603,16 @@ static int mod_process(struct mod_list_t *list, int do_insert)
 		argv = xmalloc(6 * sizeof(char*));
 		if (do_insert) {
 			if (already_loaded(list->m_name) != 1) {
-				argv[argc++] = "insmod";
+				argv[argc++] = (char*)"insmod";
 				if (ENABLE_FEATURE_2_4_MODULES) {
 					if (do_syslog)
-						argv[argc++] = "-s";
+						argv[argc++] = (char*)"-s";
 					if (autoclean)
-						argv[argc++] = "-k";
+						argv[argc++] = (char*)"-k";
 					if (quiet)
-						argv[argc++] = "-q";
+						argv[argc++] = (char*)"-q";
 					else if (verbose) /* verbose and quiet are mutually exclusive */
-						argv[argc++] = "-v";
+						argv[argc++] = (char*)"-v";
 				}
 				argv[argc++] = list->m_path;
 				if (ENABLE_FEATURE_CLEAN_UP)
@@ -629,10 +629,10 @@ static int mod_process(struct mod_list_t *list, int do_insert)
 		} else {
 			/* modutils uses short name for removal */
 			if (already_loaded(list->m_name) != 0) {
-				argv[argc++] = "rmmod";
+				argv[argc++] = (char*)"rmmod";
 				if (do_syslog)
-					argv[argc++] = "-s";
-				argv[argc++] = list->m_name;
+					argv[argc++] = (char*)"-s";
+				argv[argc++] = (char*)list->m_name;
 				if (ENABLE_FEATURE_CLEAN_UP)
 					argc_malloc = argc;
 			}
@@ -810,13 +810,14 @@ static void check_dep(char *mod, struct mod_list_t **head, struct mod_list_t **t
 
 static int mod_insert(char *mod, int argc, char **argv)
 {
-	struct mod_list_t *tail = 0;
-	struct mod_list_t *head = 0;
+	struct mod_list_t *tail = NULL;
+	struct mod_list_t *head = NULL;
 	int rc;
 
 	// get dep list for module mod
 	check_dep(mod, &head, &tail);
 
+	rc = 1;
 	if (head && tail) {
 		if (argc) {
 			int i;
@@ -826,7 +827,8 @@ static int mod_insert(char *mod, int argc, char **argv)
 		}
 
 		// process tail ---> head
-		if ((rc = mod_process(tail, 1)) != 0) {
+		rc = mod_process(tail, 1);
+		if (rc) {
 			/*
 			 * In case of using udev, multiple instances of modprobe can be
 			 * spawned to load the same module (think of two same usb devices,
@@ -837,31 +839,26 @@ static int mod_insert(char *mod, int argc, char **argv)
 				rc = 0;
 		}
 	}
-	else
-		rc = 1;
-
 	return rc;
 }
 
 static int mod_remove(char *mod)
 {
 	int rc;
-	static struct mod_list_t rm_a_dummy = { "-a", NULL, NULL, NULL, NULL };
+	static const struct mod_list_t rm_a_dummy = { "-a", NULL, NULL, NULL, NULL };
 
-	struct mod_list_t *head = 0;
-	struct mod_list_t *tail = 0;
+	struct mod_list_t *head = NULL;
+	struct mod_list_t *tail = NULL;
 
 	if (mod)
 		check_dep(mod, &head, &tail);
 	else  // autoclean
-		head = tail = &rm_a_dummy;
+		head = tail = (struct mod_list_t*) &rm_a_dummy;
 
+	rc = 1;
 	if (head && tail)
 		rc = mod_process(head, 0);  // process head ---> tail
-	else
-		rc = 1;
 	return rc;
-
 }
 
 int modprobe_main(int argc, char** argv)

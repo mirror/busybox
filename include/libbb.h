@@ -123,8 +123,8 @@
 
 /* This structure defines protocol families and their handlers. */
 struct aftype {
-	char *name;
-	char *title;
+	const char *name;
+	const char *title;
 	int af;
 	int alen;
 	char *(*print) (unsigned char *);
@@ -143,8 +143,8 @@ struct aftype {
 
 /* This structure defines hardware protocols and their handlers. */
 struct hwtype {
-	char *name;
-	char *title;
+	const char *name;
+	const char *title;
 	int type;
 	int alen;
 	char *(*print) (unsigned char *);

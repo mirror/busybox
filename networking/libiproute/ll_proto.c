@@ -24,7 +24,7 @@
 #define __PF(f,n) { ETH_P_##f, #n },
 static struct {
 	int id;
-	char *name;
+	const char *name;
 } llproto_names[] = {
 __PF(LOOP,loop)
 __PF(PUP,pup)

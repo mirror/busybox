@@ -7,33 +7,33 @@
 #include "runit_lib.h"
 
 static char *action;
-static char *acts;
-static char *varservice = "/var/service/";
+static const char *acts;
+static const char *varservice = "/var/service/";
 static char **service;
 static char **servicex;
 static unsigned services;
-static unsigned rc = 0;
-static unsigned verbose = 0;
+static unsigned rc;
+static unsigned verbose;
 static unsigned long waitsec = 7;
-static unsigned kll = 0;
+static unsigned kll;
 static struct taia tstart, tnow, tdiff;
 static struct tai tstatus;
 
-static int (*act)(char*) = 0;
-static int (*cbk)(char*) = 0;
+static int (*act)(const char*);
+static int (*cbk)(const char*);
 
 static int curdir, fd, r;
 static char svstatus[20];
 
 #define usage() bb_show_usage()
 
-static void fatal_cannot(char *m1)
+static void fatal_cannot(const char *m1)
 {
 	bb_perror_msg("fatal: cannot %s", m1);
 	_exit(151);
 }
 
-static void out(char *p, char *m1)
+static void out(const char *p, const char *m1)
 {
 	printf("%s%s: %s", p, *service, m1);
 	if (errno) {
@@ -51,15 +51,16 @@ static void out(char *p, char *m1)
 #define TIMEOUT "timeout: "
 #define KILL    "kill: "
 
-static void fail(char *m1) { ++rc; out(FAIL, m1); }
-static void failx(char *m1) { errno = 0; fail(m1); }
-static void warn_cannot(char *m1) { ++rc; out("warning: cannot ", m1); }
-static void warnx_cannot(char *m1) { errno = 0; warn_cannot(m1); }
-static void ok(char *m1) { errno = 0; out(OK, m1); }
+static void fail(const char *m1) { ++rc; out(FAIL, m1); }
+static void failx(const char *m1) { errno = 0; fail(m1); }
+static void warn_cannot(const char *m1) { ++rc; out("warning: cannot ", m1); }
+static void warnx_cannot(const char *m1) { errno = 0; warn_cannot(m1); }
+static void ok(const char *m1) { errno = 0; out(OK, m1); }
 
 static int svstatus_get(void)
 {
-	if ((fd = open_write("supervise/ok")) == -1) {
+	fd = open_write("supervise/ok");
+	if (fd == -1) {
 		if (errno == ENODEV) {
 			*acts == 'x' ? ok("runsv not running")
 			             : failx("runsv not running");
@@ -69,7 +70,8 @@ static int svstatus_get(void)
 		return -1;
 	}
 	close(fd);
-	if ((fd = open_read("supervise/status")) == -1) {
+	fd = open_read("supervise/status");
+	if (fd == -1) {
 		warn_cannot("open supervise/status");
 		return -1;
 	}
@@ -83,7 +85,7 @@ static int svstatus_get(void)
 	return 1;
 }
 
-static unsigned svstatus_print(char *m)
+static unsigned svstatus_print(const char *m)
 {
 	int pid;
 	int normallyup = 0;
@@ -121,7 +123,7 @@ static unsigned svstatus_print(char *m)
 	return pid ? 1 : 2;
 }
 
-static int status(char *unused)
+static int status(const char *unused)
 {
 	r = svstatus_get();
 	switch (r) { case -1: case 0: return 0; }
@@ -156,8 +158,8 @@ static int checkscript(void)
 		return 0;
 	}
 	if (!pid) {
-		prog[0] = "./check";
-		prog[1] = 0;
+		prog[0] = (char*)"./check";
+		prog[1] = NULL;
 		close(1);
 		execve("check", prog, environ);
 		bb_perror_msg(WARN"cannot run %s/check", *service);
@@ -171,7 +173,7 @@ static int checkscript(void)
 	return !wait_exitcode(w);
 }
 
-static int check(char *a)
+static int check(const char *a)
 {
 	unsigned pid;
 
@@ -200,15 +202,18 @@ static int check(char *a)
 		if ((!pid && tstart.sec.x > tstatus.x) || (pid && svstatus[17] != 'd'))
 			return 0;
 	}
-	printf(OK); svstatus_print(*service); puts(""); /* will also flush the output */
+	printf(OK);
+	svstatus_print(*service);
+	puts(""); /* will also flush the output */
 	return 1;
 }
 
-static int control(char *a)
+static int control(const char *a)
 {
 	if (svstatus_get() <= 0) return -1;
 	if (svstatus[17] == *a) return 0;
-	if ((fd = open_write("supervise/control")) == -1) {
+	fd = open_write("supervise/control");
+	if (fd == -1) {
 		if (errno != ENODEV)
 			warn_cannot("open supervise/control");
 		else
@@ -245,15 +250,20 @@ int sv_main(int argc, char **argv)
 	if (opt & 4) usage();
 	if (!(action = *argv++)) usage();
 	--argc;
-	service = argv; services = argc;
+	service = argv;
+	services = argc;
 	if (!*service) usage();
 
-	taia_now(&tnow); tstart = tnow;
-	if ((curdir = open_read(".")) == -1)
+	taia_now(&tnow);
+	tstart = tnow;
+	curdir = open_read(".");
+	if (curdir == -1)
 		fatal_cannot("open current directory");
 
-	act = &control; acts = "s";
-	if (verbose) cbk = &check;
+	act = &control;
+	acts = "s";
+	if (verbose)
+		cbk = &check;
 	switch (*action) {
 	case 'x': case 'e':
 		acts = "x"; break;
@@ -289,7 +299,9 @@ int sv_main(int argc, char **argv)
 			cbk = &check;
 			break;
 		}
-		act = &status; cbk = 0; break;
+		act = &status;
+		cbk = NULL;
+		break;
 	case 'r':
 		if (!str_diff(action, "restart")) {
 			acts = "tcu";

@@ -13,11 +13,10 @@
 
 #include <stdlib.h>
 #include <string.h>
-
 #include "rt_names.h"
 #include "utils.h"
 
-char *rtnl_rtntype_n2a(int id, char *buf, int len)
+const char *rtnl_rtntype_n2a(int id, char *buf, int len)
 {
 	switch (id) {
 	case RTN_UNSPEC:

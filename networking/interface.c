@@ -31,18 +31,9 @@
  *			(default AF was wrong)
  */
 
-#include "inet_common.h"
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
 #include <net/if.h>
 #include <net/if_arp.h>
+#include "inet_common.h"
 #include "busybox.h"
 
 #ifdef CONFIG_FEATURE_IPV6
@@ -178,8 +169,7 @@ static char *INET6_sprint(struct sockaddr *sap, int numeric)
 
 	if (sap->sa_family == 0xFFFF || sap->sa_family == 0)
 		return safe_strncpy(buff, "[NONE SET]", sizeof(buff));
-	if (INET6_rresolve
-		(buff, sizeof(buff), (struct sockaddr_in6 *) sap, numeric) != 0)
+	if (INET6_rresolve(buff, sizeof(buff), (struct sockaddr_in6 *) sap, numeric))
 		return safe_strncpy(buff, "[UNKNOWN]", sizeof(buff));
 	return buff;
 }
@@ -771,7 +761,7 @@ static int if_fetch(struct interface *ife)
 static int do_if_fetch(struct interface *ife)
 {
 	if (if_fetch(ife) < 0) {
-		char *errmsg;
+		const char *errmsg;
 
 		if (errno == ENODEV) {
 			/* Give better error message for this case. */
