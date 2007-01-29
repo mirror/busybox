@@ -28,6 +28,7 @@
 #include <net/if.h>
 #include <netinet/ip_icmp.h>
 #include "busybox.h"
+
 #if ENABLE_PING6
 #include <netinet/icmp6.h>
 /* I see RENUMBERED constants in bits/in.h - !!?
@@ -85,7 +86,7 @@ static void noresp(int ign ATTRIBUTE_UNUSED)
 	exit(EXIT_FAILURE);
 }
 
-static void ping(len_and_sockaddr *lsa)
+static void ping4(len_and_sockaddr *lsa)
 {
 	struct sockaddr_in pingaddr;
 	struct icmp *pkt;
@@ -222,7 +223,7 @@ int ping_main(int argc, char **argv)
 		ping6(lsa);
 	else
 #endif
-		ping(lsa);
+		ping4(lsa);
 	printf("%s is alive!\n", hostname);
 	return EXIT_SUCCESS;
 }
@@ -300,7 +301,25 @@ static void pingstats(int junk ATTRIBUTE_UNUSED)
 	exit(status);
 }
 
-static void sendping(int junk ATTRIBUTE_UNUSED)
+static void sendping_tail(void (*sp)(int), int sz, int sizeof_packet)
+{
+	if (sz < 0)
+		bb_perror_msg_and_die("sendto");
+	if (sz != sizeof_packet)
+		bb_error_msg_and_die("ping wrote %d chars; %d expected", sz,
+			sizeof_packet);
+
+	signal(SIGALRM, sp);
+	if (pingcount == 0 || ntransmitted < pingcount) {	/* schedule next in 1s */
+		alarm(PINGINTERVAL);
+	} else { /* done, wait for the last ping to come back */
+		/* todo, don't necessarily need to wait so long... */
+		signal(SIGALRM, pingstats);
+		alarm(MAXWAIT);
+	}
+}
+
+static void sendping4(int junk ATTRIBUTE_UNUSED)
 {
 	struct icmp *pkt;
 	int i;
@@ -322,20 +341,7 @@ static void sendping(int junk ATTRIBUTE_UNUSED)
 	i = sendto(pingsock, packet, sizeof(packet), 0,
 			&pingaddr.sa, sizeof(pingaddr.sin));
 
-	if (i < 0)
-		bb_perror_msg_and_die("sendto");
-	if ((size_t)i != sizeof(packet))
-		bb_error_msg_and_die("ping wrote %d chars; %d expected", i,
-			   (int)sizeof(packet));
-
-	signal(SIGALRM, sendping);
-	if (pingcount == 0 || ntransmitted < pingcount) {	/* schedule next in 1s */
-		alarm(PINGINTERVAL);
-	} else { /* done, wait for the last ping to come back */
-		/* todo, don't necessarily need to wait so long... */
-		signal(SIGALRM, pingstats);
-		alarm(MAXWAIT);
-	}
+	sendping_tail(sendping4, i, sizeof(packet));
 }
 #if ENABLE_PING6
 static void sendping6(int junk ATTRIBUTE_UNUSED)
@@ -359,20 +365,7 @@ static void sendping6(int junk ATTRIBUTE_UNUSED)
 	i = sendto(pingsock, packet, sizeof(packet), 0,
 			&pingaddr.sa, sizeof(pingaddr.sin6));
 
-	if (i < 0)
-		bb_perror_msg_and_die("sendto");
-	if ((size_t)i != sizeof(packet))
-		bb_error_msg_and_die("ping wrote %d chars; %d expected", i,
-			   (int)sizeof(packet));
-
-	signal(SIGALRM, sendping6);
-	if (pingcount == 0 || ntransmitted < pingcount) {	/* schedule next in 1s */
-		alarm(PINGINTERVAL);
-	} else { /* done, wait for the last ping to come back */
-		/* todo, don't necessarily need to wait so long... */
-		signal(SIGALRM, pingstats);
-		alarm(MAXWAIT);
-	}
+	sendping_tail(sendping6, i, sizeof(packet));
 }
 #endif
 
@@ -424,7 +417,7 @@ static char *icmp6_type_name(int id)
 }
 #endif
 
-static void unpack(char *buf, int sz, struct sockaddr_in *from)
+static void unpack4(char *buf, int sz, struct sockaddr_in *from)
 {
 	struct icmp *icmppkt;
 	struct iphdr *iphdr;
@@ -560,7 +553,7 @@ static void unpack6(char *packet, int sz, struct sockaddr_in6 *from, int hoplimi
 }
 #endif
 
-static void ping(len_and_sockaddr *lsa)
+static void ping4(len_and_sockaddr *lsa)
 {
 	char packet[datalen + MAXIPLEN + MAXICMPLEN];
 	int sockopt;
@@ -588,7 +581,7 @@ static void ping(len_and_sockaddr *lsa)
 	signal(SIGINT, pingstats);
 
 	/* start the ping's going ... */
-	sendping(0);
+	sendping4(0);
 
 	/* listen for replies */
 	while (1) {
@@ -603,7 +596,7 @@ static void ping(len_and_sockaddr *lsa)
 				bb_perror_msg("recvfrom");
 			continue;
 		}
-		unpack(packet, c, &from);
+		unpack4(packet, c, &from);
 		if (pingcount > 0 && nreceived >= pingcount)
 			break;
 	}
@@ -730,7 +723,7 @@ int ping_main(int argc, char **argv)
 
 	datalen = DEFDATALEN; /* initialized here rather than in global scope to work around gcc bug */
 
-	/* exactly one argument needed, -v and -q don't mix. So do 4, 6 */
+	/* exactly one argument needed, -v and -q don't mix */
 	opt_complementary = "=1:q--v:v--q";
 	getopt32(argc, argv, OPT_STRING, &opt_c, &opt_s, &opt_I);
 	if (option_mask32 & OPT_c) pingcount = xatoul(opt_c); // -c
@@ -758,7 +751,7 @@ int ping_main(int argc, char **argv)
 		ping6(lsa);
 	else
 #endif
-		ping(lsa);
+		ping4(lsa);
 	pingstats(0);
 	return EXIT_SUCCESS;
 }
