@@ -724,6 +724,7 @@ static void add_input_file(FILE *file)
  */
 enum {
 	NO_EOL_CHAR = 1,
+	LAST_IS_NUL = 2,
 };
 static char *get_next_line(char *gets_char)
 {
@@ -737,17 +738,24 @@ static char *get_next_line(char *gets_char)
 	 * doesn't end with either '\n' or '\0' */
 	gc = NO_EOL_CHAR;
 	while (bbg.current_input_file < bbg.input_file_count) {
+		FILE *fp = bbg.input_file_list[bbg.current_input_file];
 		/* Read line up to a newline or NUL byte, inclusive,
 		 * return malloc'ed char[]. length of the chunk read
 		 * is stored in len. NULL if EOF/error */
-		temp = bb_get_chunk_from_file(
-			bbg.input_file_list[bbg.current_input_file], &len);
+		temp = bb_get_chunk_from_file(fp, &len);
 		if (temp) {
 			/* len > 0 here, it's ok to do temp[len-1] */
 			char c = temp[len-1];
 			if (c == '\n' || c == '\0') {
 				temp[len-1] = '\0';
 				gc = c;
+				if (c == '\0') {
+					int ch = fgetc(fp);
+					if (ch != EOF)
+						ungetc(ch, fp);
+					else
+						gc = LAST_IS_NUL;
+				}
 			}
 			/* else we put NO_EOL_CHAR into *gets_char */
 			break;
@@ -761,7 +769,8 @@ static char *get_next_line(char *gets_char)
 		 * (note: *no* newline after "b bang"!) */
 		}
 		/* Close this file and advance to next one */
-		fclose(bbg.input_file_list[bbg.current_input_file++]);
+		fclose(fp);
+		bbg.current_input_file++;
 	}
 	*gets_char = gc;
 	return temp;
@@ -785,20 +794,29 @@ static void puts_maybe_newline(char *s, FILE *file, char *last_puts_char, char l
 {
 	char lpc = *last_puts_char;
 
-	/* Is this a first line from new file
-	 * and old file didn't end with '\n' or '\0'? */
+	/* Need to insert a '\n' between two files because first file's
+	 * last line wasn't terminated? */
 	if (lpc != '\n' && lpc != '\0') {
 		fputc('\n', file);
 		lpc = '\n';
 	}
 	fputs(s, file);
+
 	/* 'x' - just something which is not '\n', '\0' or NO_EOL_CHAR */
 	if (s[0])
 		lpc = 'x';
-	if (last_gets_char != NO_EOL_CHAR) { /* had trailing '\n' or '\0'? */
+
+	/* had trailing '\0' and it was last char of file? */
+	if (last_gets_char == LAST_IS_NUL) {
+		fputc('\0', file);
+		lpc = 'x'; /* */
+	} else
+	/* had trailing '\n' or '\0'? */
+	if (last_gets_char != NO_EOL_CHAR) {
 		fputc(last_gets_char, file);
 		lpc = last_gets_char;
 	}
+
 	if (ferror(file)) {
 		xfunc_error_retval = 4;  /* It's what gnu sed exits with... */
 		bb_error_msg_and_die(bb_msg_write_error);
