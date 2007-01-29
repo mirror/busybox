@@ -42,26 +42,26 @@ static char *dir;
 
 #define usage() bb_show_usage()
 
-static void fatal2_cannot(char *m1, char *m2)
+static void fatal2_cannot(const char *m1, const char *m2)
 {
 	bb_perror_msg_and_die("%s: fatal: cannot %s%s", dir, m1, m2);
 	/* was exiting 111 */
 }
-static void fatal_cannot(char *m)
+static void fatal_cannot(const char *m)
 {
 	fatal2_cannot(m, "");
 	/* was exiting 111 */
 }
-static void fatal2x_cannot(char *m1, char *m2)
+static void fatal2x_cannot(const char *m1, const char *m2)
 {
 	bb_error_msg_and_die("%s: fatal: cannot %s%s", dir, m1, m2);
 	/* was exiting 111 */
 }
-static void warn_cannot(char *m)
+static void warn_cannot(const char *m)
 {
 	bb_perror_msg("%s: warning: cannot %s", dir, m);
 }
-static void warnx_cannot(char *m)
+static void warnx_cannot(const char *m)
 {
 	bb_error_msg("%s: warning: cannot %s", dir, m);
 }
@@ -280,12 +280,12 @@ static void startservice(struct svdir *s)
 	char *run[2];
 
 	if (s->state == S_FINISH)
-		run[0] = "./finish";
+		run[0] = (char*)"./finish";
 	else {
-		run[0] = "./run";
+		run[0] = (char*)"./run";
 		custom(s, 'u');
 	}
-	run[1] = 0;
+	run[1] = NULL;
 
 	if (s->pid != 0) stopservice(s); /* should never happen */
 	while ((p = fork()) == -1) {

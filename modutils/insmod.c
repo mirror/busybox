@@ -2540,7 +2540,7 @@ new_process_module_arguments(struct obj_file *f, int argc, char **argv)
 					} else {
 						/* last string */
 						str = q;
-						q = "";
+						q = (char*)"";
 					}
 				}
 

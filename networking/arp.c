@@ -46,7 +46,7 @@ static const struct aftype *ap; /* current address family       */
 static const struct hwtype *hw; /* current hardware type        */
 static int sockfd;              /* active socket descriptor     */
 static smallint hw_set;         /* flag if hw-type was set (-H) */
-static char *device = "";       /* current device               */
+static const char *device = ""; /* current device               */
 
 static const char *const options[] = {
 	"pub",
@@ -317,7 +317,7 @@ static int arp_set(char **args)
 
 /* Print the contents of an ARP request block. */
 static void
-arp_disp(char *name, char *ip, int type, int arp_flags,
+arp_disp(const char *name, char *ip, int type, int arp_flags,
 		 char *hwa, char *mask, char *dev)
 {
 	const struct hwtype *xhw;
@@ -371,7 +371,7 @@ static int arp_show(char *name)
 	char dev[100];
 	int type, flags;
 	FILE *fp;
-	char *hostname;
+	const char *hostname;
 	int num;
 	unsigned entries = 0, shown = 0;
 

@@ -497,7 +497,7 @@ static action*** parse_params(char **argv)
 			}
 			ap = ALLOC_ACTION(paren);
 			ap->subexpr = parse_params(argv + 1);
-			*endarg = ")"; /* restore NULLed parameter */
+			*endarg = (char*) ")"; /* restore NULLed parameter */
 			argv = endarg;
 		}
 		else if (strcmp(arg, "-prune") == 0) {
@@ -537,7 +537,7 @@ int find_main(int argc, char **argv)
 #endif
 	}
 	if (firstopt == 1) {
-		argv[0] = ".";
+		argv[0] = (char*)".";
 		argv--;
 		firstopt++;
 	}
@@ -553,7 +553,7 @@ int find_main(int argc, char **argv)
 	while ((arg = argp[0])) {
 		if (strcmp(arg, "-follow") == 0) {
 			dereference = TRUE;
-			argp[0] = "-a";
+			argp[0] = (char*)"-a";
 		}
 #if ENABLE_FEATURE_FIND_XDEV
 		else if (strcmp(arg, "-xdev") == 0) {
@@ -569,7 +569,7 @@ int find_main(int argc, char **argv)
 					xdev_dev[i-1] = stbuf.st_dev;
 				}
 			}
-			argp[0] = "-a";
+			argp[0] = (char*)"-a";
 		}
 #endif
 		argp++;

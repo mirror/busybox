@@ -81,8 +81,8 @@ static int num_ok_lines = 1;
 #endif
 
 #if ENABLE_FEATURE_GETUSERNAME_AND_HOMEDIR
-static char *user_buf = "";
-static char *home_pwd_buf = "";
+static char *user_buf = (char*)"";
+static char *home_pwd_buf = (char*)"";
 #endif
 
 #if ENABLE_FEATURE_TAB_COMPLETION
@@ -422,7 +422,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 	char *pfind = strrchr(command, '/');
 
 	npaths = 1;
-	path1[0] = ".";
+	path1[0] = (char*)".";
 
 	if (pfind == NULL) {
 		/* no dir, if flags==EXE_ONLY - get paths, else "." */
@@ -447,7 +447,7 @@ static void exe_n_cwd_tab_completion(char *command, int type)
 
 		while ((next = readdir(dir)) != NULL) {
 			int len1;
-			char *str_found = next->d_name;
+			const char *str_found = next->d_name;
 
 			/* matched? */
 			if (strncmp(str_found, pfind, strlen(pfind)))

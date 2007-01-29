@@ -25,7 +25,7 @@
 #define DEBUG 0
 
 /* Path to the unix socket */
-static char *dev_log_name;
+static const char *dev_log_name;
 
 /* Path for the file where all log messages are written */
 static const char *logFilePath = "/var/log/messages";
@@ -444,7 +444,7 @@ static void split_escape_and_log(char *tmpbuf, int len)
 
 static void quit_signal(int sig)
 {
-	timestamp_and_log(LOG_SYSLOG | LOG_INFO, "syslogd exiting", 0);
+	timestamp_and_log(LOG_SYSLOG | LOG_INFO, (char*)"syslogd exiting", 0);
 	puts("syslogd exiting");
 	unlink(dev_log_name);
 	if (ENABLE_FEATURE_IPC_SYSLOG)
@@ -455,7 +455,7 @@ static void quit_signal(int sig)
 static void do_mark(int sig)
 {
 	if (markInterval) {
-		timestamp_and_log(LOG_SYSLOG | LOG_INFO, "-- MARK --", 0);
+		timestamp_and_log(LOG_SYSLOG | LOG_INFO, (char*)"-- MARK --", 0);
 		alarm(markInterval);
 	}
 }
@@ -501,7 +501,8 @@ static void do_syslogd(void)
 		ipcsyslog_init();
 	}
 
-	timestamp_and_log(LOG_SYSLOG | LOG_INFO, "syslogd started: BusyBox v" BB_VER, 0);
+	timestamp_and_log(LOG_SYSLOG | LOG_INFO,
+			(char*)"syslogd started: BusyBox v" BB_VER, 0);
 
 	for (;;) {
 		FD_ZERO(&fds);

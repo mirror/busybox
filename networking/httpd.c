@@ -653,17 +653,16 @@ static char *encodeString(const char *string)
 	/* take the simple route and encode everything */
 	/* could possibly scan once to get length.     */
 	int len = strlen(string);
-	char *out = malloc(len * 6 + 1);
+	char *out = xmalloc(len * 6 + 1);
 	char *p = out;
 	char ch;
 
-	if (!out) return "";
 	while ((ch = *string++)) {
 		// very simple check for what to encode
 		if (isalnum(ch)) *p++ = ch;
 		else p += sprintf(p, "&#%d;", (unsigned char) ch);
 	}
-	*p = 0;
+	*p = '\0';
 	return out;
 }
 #endif          /* FEATURE_HTTPD_ENCODE_URL_STR */
@@ -1051,15 +1050,15 @@ static int sendCgi(const char *url,
 		/* (Older versions of bbox seem to do some decoding) */
 		setenv1("QUERY_STRING", config->query);
 		setenv1("SERVER_SOFTWARE", httpdVersion);
-		putenv("SERVER_PROTOCOL=HTTP/1.0");
-		putenv("GATEWAY_INTERFACE=CGI/1.1");
+		putenv((char*)"SERVER_PROTOCOL=HTTP/1.0");
+		putenv((char*)"GATEWAY_INTERFACE=CGI/1.1");
 		/* Having _separate_ variables for IP and port defeats
 		 * the purpose of having socket abstraction. Which "port"
 		 * are you using on Unix domain socket?
 		 * IOW - REMOTE_PEER="1.2.3.4:56" makes much more sense.
 		 * Oh well... */
 		{
-			char *p = config->rmt_ip_str ? : "";
+			char *p = config->rmt_ip_str ? : (char*)"";
 			char *cp = strrchr(p, ':');
 			if (ENABLE_FEATURE_IPV6 && cp && strchr(cp, ']'))
 				cp = NULL;
@@ -1078,7 +1077,7 @@ static int sendCgi(const char *url,
 #if ENABLE_FEATURE_HTTPD_BASIC_AUTH
 		if (config->remoteuser) {
 			setenv1("REMOTE_USER", config->remoteuser);
-			putenv("AUTH_TYPE=Basic");
+			putenv((char*)"AUTH_TYPE=Basic");
 		}
 #endif
 		if (config->referer)

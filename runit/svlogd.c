@@ -75,7 +75,7 @@ static struct logdir {
 	char match;
 	char matcherr;
 } *dir;
-static unsigned dirn = 0;
+static unsigned dirn;
 
 #define FATAL "fatal: "
 #define WARNING "warning: "
@@ -83,18 +83,18 @@ static unsigned dirn = 0;
 #define INFO "info: "
 
 #define usage() bb_show_usage()
-static void fatalx(char *m0)
+static void fatalx(const char *m0)
 {
 	bb_error_msg_and_die(FATAL"%s", m0);
 }
-static void warn(char *m0) {
+static void warn(const char *m0) {
 	bb_perror_msg(WARNING"%s", m0);
 }
-static void warn2(char *m0, char *m1)
+static void warn2(const char *m0, const char *m1)
 {
 	bb_perror_msg(WARNING"%s: %s", m0, m1);
 }
-static void warnx(char *m0, char *m1)
+static void warnx(const char *m0, const char *m1)
 {
 	bb_error_msg(WARNING"%s: %s", m0, m1);
 }
@@ -103,12 +103,12 @@ static void pause_nomem(void)
 	bb_error_msg(PAUSE"out of memory");
 	sleep(3);
 }
-static void pause1cannot(char *m0)
+static void pause1cannot(const char *m0)
 {
 	bb_perror_msg(PAUSE"cannot %s", m0);
 	sleep(3);
 }
-static void pause2cannot(char *m0, char *m1)
+static void pause2cannot(const char *m0, const char *m1)
 {
 	bb_perror_msg(PAUSE"cannot %s %s", m0, m1);
 	sleep(3);
@@ -168,8 +168,8 @@ static unsigned processorstart(struct logdir *ld)
 			bb_perror_msg_and_die(FATAL"cannot %s processor %s", "move filedescriptor for", ld->name);
 
 // getenv("SHELL")?
-		prog[0] = "sh";
-		prog[1] = "-c";
+		prog[0] = (char*)"sh";
+		prog[1] = (char*)"-c";
 		prog[2] = ld->processor;
 		prog[3] = '\0';
 		execve("/bin/sh", prog, environ);

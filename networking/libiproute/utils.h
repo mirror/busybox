@@ -75,9 +75,9 @@ extern int get_s8(int8_t *val, char *arg, int base);
 extern const char *format_host(int af, int len, void *addr, char *buf, int buflen);
 extern const char *rt_addr_n2a(int af, int len, void *addr, char *buf, int buflen);
 
-void invarg(const char * const, const char * const) ATTRIBUTE_NORETURN;
-void duparg(char *, char *) ATTRIBUTE_NORETURN;
-void duparg2(char *, char *) ATTRIBUTE_NORETURN;
+void invarg(const char *, const char *) ATTRIBUTE_NORETURN;
+void duparg(const char *, const char *) ATTRIBUTE_NORETURN;
+void duparg2(const char *, const char *) ATTRIBUTE_NORETURN;
 int matches(const char *arg, const char *pattern);
 extern int inet_addr_match(inet_prefix *a, inet_prefix *b, int bits);
 

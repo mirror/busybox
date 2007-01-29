@@ -842,7 +842,7 @@ static struct interfaces_file_t *read_interfaces(const char *filename)
 	return defn;
 }
 
-static char *setlocalenv(char *format, const char *name, const char *value)
+static char *setlocalenv(const char *format, const char *name, const char *value)
 {
 	char *result;
 	char *here;

@@ -85,7 +85,7 @@ static char *do_ioctl_get_ifname(int idx)
 
 
 
-static int do_get_ioctl(char *basedev, struct ip_tunnel_parm *p)
+static int do_get_ioctl(const char *basedev, struct ip_tunnel_parm *p)
 {
 	struct ifreq ifr;
 	int fd;
@@ -102,7 +102,7 @@ static int do_get_ioctl(char *basedev, struct ip_tunnel_parm *p)
 	return err;
 }
 
-static int do_add_ioctl(int cmd, char *basedev, struct ip_tunnel_parm *p)
+static int do_add_ioctl(int cmd, const char *basedev, struct ip_tunnel_parm *p)
 {
 	struct ifreq ifr;
 	int fd;
@@ -123,7 +123,7 @@ static int do_add_ioctl(int cmd, char *basedev, struct ip_tunnel_parm *p)
 	return err;
 }
 
-static int do_del_ioctl(char *basedev, struct ip_tunnel_parm *p)
+static int do_del_ioctl(const char *basedev, struct ip_tunnel_parm *p)
 {
 	struct ifreq ifr;
 	int fd;

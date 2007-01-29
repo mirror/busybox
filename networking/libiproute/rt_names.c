@@ -13,7 +13,7 @@
 #include "libbb.h"
 #include "rt_names.h"
 
-static void rtnl_tab_initialize(char *file, const char **tab, int size)
+static void rtnl_tab_initialize(const char *file, const char **tab, int size)
 {
 	char buf[512];
 	FILE *fp;
@@ -30,10 +30,11 @@ static void rtnl_tab_initialize(char *file, const char **tab, int size)
 			p++;
 		if (*p == '#' || *p == '\n' || *p == 0)
 			continue;
-		if (sscanf(p, "0x%x %s\n", &id, namebuf) != 2 &&
-		    sscanf(p, "0x%x %s #", &id, namebuf) != 2 &&
-		    sscanf(p, "%d %s\n", &id, namebuf) != 2 &&
-		    sscanf(p, "%d %s #", &id, namebuf) != 2) {
+		if (sscanf(p, "0x%x %s\n", &id, namebuf) != 2
+		 && sscanf(p, "0x%x %s #", &id, namebuf) != 2
+		 && sscanf(p, "%d %s\n", &id, namebuf) != 2
+		 && sscanf(p, "%d %s #", &id, namebuf) != 2
+		) {
 			bb_error_msg("database %s is corrupted at %s",
 				file, p);
 			return;

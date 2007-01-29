@@ -28,20 +28,20 @@ static int exitsoon;
 static int pgrp;
 
 #define usage() bb_show_usage()
-static void fatal2_cannot(char *m1, char *m2)
+static void fatal2_cannot(const char *m1, const char *m2)
 {
 	bb_perror_msg_and_die("%s: fatal: cannot %s%s", svdir, m1, m2);
 	/* was exiting 100 */
 }
-static void warn3x(char *m1, char *m2, char *m3)
+static void warn3x(const char *m1, const char *m2, const char *m3)
 {
 	bb_error_msg("%s: warning: %s%s%s", svdir, m1, m2, m3);
 }
-static void warn2_cannot(char *m1, char *m2)
+static void warn2_cannot(const char *m1, const char *m2)
 {
 	warn3x("cannot ", m1, m2);
 }
-static void warnx(char *m1)
+static void warnx(const char *m1)
 {
 	warn3x(m1, "", "");
 }
@@ -55,7 +55,7 @@ static void s_hangup(int sig_no)
 	exitsoon = 2;
 }
 
-static void runsv(int no, char *name)
+static void runsv(int no, const char *name)
 {
 	int pid = fork();
 
@@ -67,8 +67,8 @@ static void runsv(int no, char *name)
 		/* child */
 		char *prog[3];
 
-		prog[0] = "runsv";
-		prog[1] = name;
+		prog[0] = (char*)"runsv";
+		prog[1] = (char*)name;
 		prog[2] = NULL;
 		sig_uncatch(SIGHUP);
 		sig_uncatch(SIGTERM);

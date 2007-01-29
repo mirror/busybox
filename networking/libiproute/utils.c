@@ -178,7 +178,7 @@ int get_prefix_1(inet_prefix * dst, char *arg, int family)
 
 	slash = strchr(arg, '/');
 	if (slash)
-		*slash = 0;
+		*slash = '\0';
 	err = get_addr_1(dst, arg, family);
 	if (err == 0) {
 		switch (dst->family) {
@@ -237,26 +237,22 @@ uint32_t get_addr32(char *name)
 
 void incomplete_command(void)
 {
-	bb_error_msg("command line is not complete, try option \"help\"");
-	exit(-1);
+	bb_error_msg_and_die("command line is not complete, try option \"help\"");
 }
 
-void invarg(const char * const arg, const char * const opt)
+void invarg(const char *arg, const char *opt)
 {
-	bb_error_msg(bb_msg_invalid_arg, arg, opt);
-	exit(-1);
+	bb_error_msg_and_die(bb_msg_invalid_arg, arg, opt);
 }
 
-void duparg(char *key, char *arg)
+void duparg(const char *key, const char *arg)
 {
-	bb_error_msg("duplicate \"%s\": \"%s\" is the second value", key, arg);
-	exit(-1);
+	bb_error_msg_and_die("duplicate \"%s\": \"%s\" is the second value", key, arg);
 }
 
-void duparg2(char *key, char *arg)
+void duparg2(const char *key, const char *arg)
 {
-	bb_error_msg("either \"%s\" is duplicate, or \"%s\" is garbage", key, arg);
-	exit(-1);
+	bb_error_msg_and_die("either \"%s\" is duplicate, or \"%s\" is garbage", key, arg);
 }
 
 int matches(const char *cmd, const char *pattern)
