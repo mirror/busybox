@@ -235,9 +235,9 @@ static int index_of_next_unescaped_regexp_delim(int delimiter, const char *str)
 /*
  *  Returns the index of the third delimiter
  */
-static int parse_regex_delim(char *cmdstr, char **match, char **replace)
+static int parse_regex_delim(const char *cmdstr, char **match, char **replace)
 {
-	char *cmdstr_ptr = cmdstr;
+	const char *cmdstr_ptr = cmdstr;
 	char delimiter;
 	int idx = 0;
 
@@ -291,26 +291,30 @@ static int get_address(const char *my_str, int *linenum, regex_t ** regex)
 }
 
 /* Grab a filename.  Whitespace at start is skipped, then goes to EOL. */
-static int parse_file_cmd(sed_cmd_t *sed_cmd, char *filecmdstr, char **retval)
+static int parse_file_cmd(sed_cmd_t *sed_cmd, const char *filecmdstr, char **retval)
 {
 	int start = 0, idx, hack = 0;
 
 	/* Skip whitespace, then grab filename to end of line */
-	while (isspace(filecmdstr[start])) start++;
+	while (isspace(filecmdstr[start]))
+		start++;
 	idx = start;
-	while (filecmdstr[idx] && filecmdstr[idx] != '\n') idx++;
+	while (filecmdstr[idx] && filecmdstr[idx] != '\n')
+		idx++;
 
 	/* If lines glued together, put backslash back. */
-	if (filecmdstr[idx] == '\n') hack = 1;
+	if (filecmdstr[idx] == '\n')
+		hack = 1;
 	if (idx == start)
 		bb_error_msg_and_die("empty filename");
 	*retval = xstrndup(filecmdstr+start, idx-start+hack+1);
-	if (hack) (*retval)[idx] = '\\';
+	if (hack)
+		(*retval)[idx] = '\\';
 
 	return idx;
 }
 
-static int parse_subst_cmd(sed_cmd_t *sed_cmd, char *substr)
+static int parse_subst_cmd(sed_cmd_t *sed_cmd, const char *substr)
 {
 	int cflags = bbg.regex_type;
 	char *match;
@@ -337,9 +341,9 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, char *substr)
 		if (isdigit(substr[idx])) {
 			if (match[0] != '^') {
 				/* Match 0 treated as all, multiple matches we take the last one. */
-				char *pos = substr + idx;
-				/* FIXME: error check? */
-				sed_cmd->which_match = (unsigned short)strtol(substr+idx, &pos, 10);
+				const char *pos = substr + idx;
+/* FIXME: error check? */
+				sed_cmd->which_match = (unsigned short)strtol(substr+idx, (char**) &pos, 10);
 				idx = pos - substr;
 			}
 			continue;
@@ -361,7 +365,6 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, char *substr)
 		{
 			char *temp;
 			idx += parse_file_cmd(sed_cmd, substr+idx, &temp);
-
 			break;
 		}
 		/* Ignore case (gnu exension) */
@@ -395,7 +398,7 @@ out:
 /*
  *  Process the commands arguments
  */
-static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
+static const char *parse_cmd_args(sed_cmd_t *sed_cmd, const char *cmdstr)
 {
 	/* handle (s)ubstitution command */
 	if (sed_cmd->cmd == 's')
