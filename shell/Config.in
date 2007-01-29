@@ -107,7 +107,7 @@ config ASH_BUILTIN_ECHO
 	select ECHO
 	depends on ASH
 	help
-	  Enable support for echo, built in to ash.
+	  Enable support for echo, builtin to ash.
 
 config ASH_BUILTIN_TEST
 	bool "Builtin version of 'test'"
@@ -115,7 +115,7 @@ config ASH_BUILTIN_TEST
 	select TEST
 	depends on ASH
 	help
-	  Enable support for test, built in to ash.
+	  Enable support for test, builtin to ash.
 
 config ASH_CMDCMD
 	bool "'command' command to override shell builtins"
