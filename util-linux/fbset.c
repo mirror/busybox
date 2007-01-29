@@ -314,8 +314,8 @@ int fbset_main(int argc, char **argv)
 {
 	struct fb_var_screeninfo var, varset;
 	int fh, i;
-	char *fbdev = DEFAULTFBDEV;
-	char *modefile = DEFAULTFBMODE;
+	const char *fbdev = DEFAULTFBDEV;
+	const char *modefile = DEFAULTFBMODE;
 	char *thisarg, *mode = NULL;
 
 	memset(&varset, 0xFF, sizeof(varset));

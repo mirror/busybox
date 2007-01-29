@@ -43,8 +43,7 @@ typedef struct
 #define AF_DECnet 12
 #endif
 
-struct dn_naddr
-{
+struct dn_naddr {
 	unsigned short          a_len;
 	unsigned char a_addr[DN_MAXADDL];
 };
@@ -79,7 +78,7 @@ extern const char *rt_addr_n2a(int af, int len, void *addr, char *buf, int bufle
 void invarg(const char * const, const char * const) ATTRIBUTE_NORETURN;
 void duparg(char *, char *) ATTRIBUTE_NORETURN;
 void duparg2(char *, char *) ATTRIBUTE_NORETURN;
-int matches(char *arg, char *pattern);
+int matches(const char *arg, const char *pattern);
 extern int inet_addr_match(inet_prefix *a, inet_prefix *b, int bits);
 
 const char *dnet_ntop(int af, const void *addr, char *str, size_t len);

@@ -327,7 +327,7 @@ static int timingout;
 static struct servent *sp;
 static uid_t uid;
 
-static char *CONFIG = _PATH_INETDCONF;
+static const char *CONFIG = _PATH_INETDCONF;
 
 static FILE *fconfig;
 static char line[1024];

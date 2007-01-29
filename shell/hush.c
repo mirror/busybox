@@ -308,7 +308,8 @@ static char *indenter(int i)
 #endif
 #define final_printf debug_printf
 
-static void __syntax(char *file, int line) {
+static void __syntax(const char *file, int line)
+{
 	bb_error_msg("syntax error %s:%d", file, line);
 }
 // NB: was __FILE__, but that produces full path sometimess, so...

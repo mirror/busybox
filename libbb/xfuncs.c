@@ -184,7 +184,7 @@ pid_t spawn(char **argv)
 	/* Why static? */
 	static int failed;
 	pid_t pid;
-	char *prog;
+	const char *prog;
 
 	// Be nice to nommu machines.
 	failed = 0;
@@ -240,7 +240,7 @@ void xsetenv(const char *key, const char *value)
 // Fifth char is always '\0'
 void smart_ulltoa5(unsigned long long ul, char buf[5])
 {
-	char *fmt;
+	const char *fmt;
 	char c;
 	unsigned v,idx = 0;
 	ul *= 10;

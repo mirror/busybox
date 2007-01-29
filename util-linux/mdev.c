@@ -141,7 +141,8 @@ static void make_device(char *path, int delete)
 				}
 				if (ENABLE_FEATURE_MDEV_EXEC && field == 3) {
 					// Command to run
-					char *s = "@$*", *s2;
+					const char *s = "@$*";
+					const char *s2;
 					s2 = strchr(s, *pos++);
 					if (!s2) {
 						// Force error

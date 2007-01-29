@@ -322,7 +322,7 @@ static void putiac_subopt(byte c, char *str)
 static void putiac_subopt_autologin(void)
 {
 	int len = strlen(autologin) + 6;	// (2 + 1 + 1 + strlen + 2)
-	char *user = "USER";
+	const char *user = "USER";
 
 	if (G.iaclen + len > IACBUFSIZE)
 		iacflush();

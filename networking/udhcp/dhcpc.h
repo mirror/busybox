@@ -20,9 +20,9 @@ struct client_config_t {
 	char release_on_quit;           /* perform release on quit */
 	char abort_if_no_lease;         /* Abort if no lease */
 	char background_if_no_lease;    /* Fork to background if no lease */
-	char *interface;                /* The name of the interface to use */
+	const char *interface;                /* The name of the interface to use */
 	char *pidfile;                  /* Optionally store the process ID */
-	char *script;                   /* User script to run at dhcp events */
+	const char *script;                   /* User script to run at dhcp events */
 	uint8_t *clientid;              /* Optional client id to use */
 	uint8_t *vendorclass;           /* Optional vendor class-id to use */
 	uint8_t *hostname;              /* Optional hostname to use */

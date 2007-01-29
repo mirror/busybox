@@ -463,9 +463,7 @@ static void on_off(unsigned int value);
 
 static void print_flag_on_off(unsigned long get_arg, const char *s, unsigned long arg)
 {
-
-	if (get_arg)
-	{
+	if (get_arg) {
 		printf(" setting %s to %ld", s, arg);
 		on_off(arg);
 	}
@@ -476,8 +474,7 @@ static void bb_ioctl_on_off(int fd, int request, void *argp, const char *string,
 {
 	if (ioctl(fd, request, &argp) != 0)
 		bb_perror_msg(" %s", string);
-	else
-	{
+	else {
 		printf(" %s\t= %2ld", str, (unsigned long) argp);
 		on_off((unsigned long) argp);
 	}
@@ -486,16 +483,15 @@ static void bb_ioctl_on_off(int fd, int request, void *argp, const char *string,
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
 static void print_ascii(uint16_t *p, uint8_t length);
 
-static void xprint_ascii(uint16_t *val ,int i, char * string, int n)
+static void xprint_ascii(uint16_t *val ,int i, const char *string, int n)
 {
-	if (val[i])
-	{
-		printf("\t%-20s",string);
+	if (val[i]) {
+		printf("\t%-20s", string);
 		print_ascii(&val[i], n);
 	}
 }
 #endif
-/* end of  busybox specific stuff */
+/* end of busybox specific stuff */
 
 #ifdef CONFIG_FEATURE_HDPARM_GET_IDENTITY
 static uint8_t mode_loop(uint16_t mode_sup, uint16_t mode_sel, int cc, uint8_t *have_mode)
@@ -1587,7 +1583,7 @@ static void interpret_xfermode(unsigned int xfermode)
 }
 #endif /* HDIO_DRIVE_CMD */
 
-static void print_flag(unsigned long flag, char *s, unsigned long value)
+static void print_flag(unsigned long flag, const char *s, unsigned long value)
 {
 	if (flag)
 		printf(" setting %s to %ld\n", s, value);

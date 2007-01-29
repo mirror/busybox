@@ -416,7 +416,7 @@ int xargs_main(int argc, char **argv)
 	argv += optind;
 	if (!argc) {
 		/* default behavior is to echo all the filenames */
-		*argv = "echo";
+		*argv = (char*)"echo";
 		argc++;
 	}
 

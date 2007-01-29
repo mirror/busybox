@@ -8,8 +8,6 @@
  */
 
 #include "busybox.h"
-#include <unistd.h>
-#include <stdlib.h>
 
 #ifdef USE_TTY_GROUP
 #define S_IWGRP_OR_S_IWOTH	S_IWGRP
@@ -20,24 +18,24 @@
 int mesg_main(int argc, char *argv[])
 {
 	struct stat sb;
-	char *tty;
+	const char *tty;
 	char c = 0;
 
-	if ((--argc == 0)
-		|| ((argc == 1) && (((c = **++argv) == 'y') || (c == 'n')))) {
-		if ((tty = ttyname(STDERR_FILENO)) == NULL) {
+	if (--argc == 0
+	 || (argc == 1 && ((c = **++argv) == 'y' || c == 'n'))
+	) {
+		tty = ttyname(STDERR_FILENO);
+		if (tty == NULL) {
 			tty = "ttyname";
 		} else if (stat(tty, &sb) == 0) {
+			mode_t m;
 			if (argc == 0) {
-				puts(((sb.st_mode & (S_IWGRP | S_IWOTH)) ==
-					  0) ? "is n" : "is y");
+				puts((sb.st_mode & (S_IWGRP|S_IWOTH)) ? "is y" : "is n");
 				return EXIT_SUCCESS;
 			}
-			if (chmod
-				(tty,
-				 (c ==
-				  'y') ? sb.st_mode | (S_IWGRP_OR_S_IWOTH) : sb.
-				 st_mode & ~(S_IWGRP | S_IWOTH)) == 0) {
+			m = (c == 'y') ? sb.st_mode | S_IWGRP_OR_S_IWOTH
+			               : sb.st_mode & ~(S_IWGRP|S_IWOTH);
+			if (chmod(tty, m) == 0) {
 				return EXIT_SUCCESS;
 			}
 		}

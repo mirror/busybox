@@ -19,7 +19,7 @@ int dpkg_deb_main(int argc, char **argv)
 	archive_handle_t *tar_archive;
 	llist_t *control_tar_llist = NULL;
 	unsigned opt;
-	char *extract_dir = NULL;
+	const char *extract_dir = NULL;
 	short argcount = 1;
 
 	/* Setup the tar archive handle */
@@ -31,13 +31,13 @@ int dpkg_deb_main(int argc, char **argv)
 	ar_archive->filter = filter_accept_list_reassign;
 
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
-	llist_add_to(&(ar_archive->accept), "data.tar.gz");
-	llist_add_to(&control_tar_llist, "control.tar.gz");
+	llist_add_to(&(ar_archive->accept), (char*)"data.tar.gz");
+	llist_add_to(&control_tar_llist, (char*)"control.tar.gz");
 #endif
 
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
-	llist_add_to(&(ar_archive->accept), "data.tar.bz2");
-	llist_add_to(&control_tar_llist, "control.tar.bz2");
+	llist_add_to(&(ar_archive->accept), (char*)"data.tar.bz2");
+	llist_add_to(&control_tar_llist, (char*)"control.tar.bz2");
 #endif
 
 	opt_complementary = "?c--efXx:e--cfXx:f--ceXx:X--cefx:x--cefX";
@@ -60,7 +60,7 @@ int dpkg_deb_main(int argc, char **argv)
 		 * it should accept a second argument which specifies a
 		 * specific field to print */
 		ar_archive->accept = control_tar_llist;
-		llist_add_to(&(tar_archive->accept), "./control");
+		llist_add_to(&(tar_archive->accept), (char*)"./control");
 		tar_archive->filter = filter_accept_list;
 		tar_archive->action_data = data_extract_to_stdout;
 	}

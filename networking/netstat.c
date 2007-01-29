@@ -68,9 +68,10 @@ typedef enum {
 #define SO_WAITDATA  (1<<17)	/* wait data to read            */
 #define SO_NOSPACE   (1<<18)	/* no space to write            */
 
-static char *get_sname(int port, const char *proto, int num)
+static const char *get_sname(int port, const char *proto, int num)
 {
-	char *str = itoa(ntohs(port));
+	/* hummm, we return static buffer here!! */
+	const char *str = itoa(ntohs(port));
 	if (!num) {
 		struct servent *se = getservbyport(port, proto);
 		if (se)
@@ -82,9 +83,9 @@ static char *get_sname(int port, const char *proto, int num)
 	return str;
 }
 
-static void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int port, char *proto, int numeric)
+static void snprint_ip_port(char *ip_port, int size, struct sockaddr *addr, int port, const char *proto, int numeric)
 {
-	char *port_name;
+	const char *port_name;
 
 #if ENABLE_FEATURE_IPV6
 	if (addr->sa_family == AF_INET6) {
@@ -178,7 +179,8 @@ static void tcp_do_one(int lnr, const char *line)
 static void udp_do_one(int lnr, const char *line)
 {
 	char local_addr[64], rem_addr[64];
-	char *state_str, more[512];
+	const char *state_str;
+	char more[512];
 	int num, local_port, rem_port, d, state, timer_run, uid, timeout;
 #if ENABLE_FEATURE_IPV6
 	struct sockaddr_in6 localaddr, remaddr;
@@ -356,7 +358,7 @@ static void unix_do_one(int nr, const char *line)
 {
 	static int has = 0;
 	char path[PATH_MAX], ss_flags[32];
-	char *ss_proto, *ss_state, *ss_type;
+	const char *ss_proto, *ss_state, *ss_type;
 	int num, state, type, inode;
 	void *d;
 	unsigned long refcnt, proto, unix_flags;

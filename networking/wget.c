@@ -26,7 +26,7 @@ struct host_info {
 static void parse_url(char *url, struct host_info *h);
 static FILE *open_socket(len_and_sockaddr *lsa);
 static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc);
-static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf);
+static int ftpcmd(const char *s1, const char *s2, FILE *fp, char *buf);
 
 /* Globals (can be accessed from signal handlers */
 static off_t content_len;        /* Content-length of the file */
@@ -37,7 +37,7 @@ static off_t transferred;        /* Number of bytes transferred so far */
 static int chunked;                     /* chunked transfer encoding */
 #if ENABLE_FEATURE_WGET_STATUSBAR
 static void progressmeter(int flag);
-static char *curfile;                   /* Name of current file being transferred */
+static const char *curfile;             /* Name of current file being transferred */
 static struct timeval start;            /* Time a transfer started */
 enum {
 	STALLTIME = 5                   /* Seconds when xfer considered "stalled" */
@@ -190,18 +190,18 @@ int wget_main(int argc, char **argv)
 		// Dirty hack. Needed because bb_get_last_path_component
 		// will destroy trailing / by storing '\0' in last byte!
 		if (!last_char_is(target.path, '/')) {
-			fname_out =
+			fname_out = bb_get_last_path_component(target.path);
 #if ENABLE_FEATURE_WGET_STATUSBAR
-				curfile =
+			curfile = fname_out;
 #endif
-				bb_get_last_path_component(target.path);
 		}
 		if (!fname_out || !fname_out[0]) {
-			fname_out =
+			/* bb_get_last_path_component writes
+			 * to last '/' only. We don't have one here... */
+			fname_out = (char*)"index.html";
 #if ENABLE_FEATURE_WGET_STATUSBAR
-				curfile =
+			curfile = fname_out;
 #endif
-				"index.html";
 		}
 		if (dir_prefix != NULL)
 			fname_out = concat_path_file(dir_prefix, fname_out);
@@ -624,7 +624,7 @@ static char *gethdr(char *buf, size_t bufsiz, FILE *fp, int *istrunc)
 	return hdrval;
 }
 
-static int ftpcmd(char *s1, char *s2, FILE *fp, char *buf)
+static int ftpcmd(const char *s1, const char *s2, FILE *fp, char *buf)
 {
 	int result;
 	if (s1) {

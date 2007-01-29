@@ -17,8 +17,8 @@
 #include <getopt.h>
 
 typedef struct ftp_host_info_s {
-	char *user;
-	char *password;
+	const char *user;
+	const char *password;
 	struct len_and_sockaddr *lsa;
 } ftp_host_info_t;
 

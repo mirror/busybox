@@ -291,7 +291,7 @@ static void rewrite(FS * fs)
 	}
 }
 
-static void do_skip(char *fname, int statok)
+static void do_skip(const char *fname, int statok)
 {
 	struct stat sbuf;
 

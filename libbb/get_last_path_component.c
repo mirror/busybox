@@ -26,7 +26,7 @@ char *bb_get_last_path_component(char *path)
 	if (*first == '/') {
 		last = first;
 	}
-	last[1] = 0;
+	last[1] = '\0';
 
 	return first;
 }

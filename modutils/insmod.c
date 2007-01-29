@@ -1782,7 +1782,7 @@ static int arch_single_init(ElfW(RelM) *rel, struct arch_single_entry *single,
 
 #if defined(USE_GOT_ENTRIES) || defined(USE_PLT_ENTRIES)
 
-static struct obj_section *arch_xsect_init(struct obj_file *f, char *name,
+static struct obj_section *arch_xsect_init(struct obj_file *f, const char *name,
 					   int offset, int size)
 {
 	struct obj_section *myrelsec = obj_find_section(f, name);

@@ -240,7 +240,7 @@ static int recv_pack(unsigned char *buf, int len, struct sockaddr_ll *FROM)
 
 int arping_main(int argc, char **argv)
 {
-	char *device = "eth0";
+	const char *device = "eth0";
 	int ifindex;
 	char *source = NULL;
 	char *target;

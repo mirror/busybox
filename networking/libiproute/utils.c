@@ -259,7 +259,7 @@ void duparg2(char *key, char *arg)
 	exit(-1);
 }
 
-int matches(char *cmd, char *pattern)
+int matches(const char *cmd, const char *pattern)
 {
 	int len = strlen(cmd);
 

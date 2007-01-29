@@ -280,9 +280,9 @@ static void onintr(int s);		/* SIGINT handler */
 
 static int newenv(int f);
 static void quitenv(void);
-static void err(char *s);
-static int anys(char *s1, char *s2);
-static int any(int c, char *s);
+static void err(const char *s);
+static int anys(const char *s1, const char *s2);
+static int any(int c, const char *s);
 static void next(int f);
 static void setdash(void);
 static void onecommand(void);
@@ -295,7 +295,7 @@ static int gmatch(char *s, char *p);
  */
 static void leave(void);		/* abort shell (or fail in subshell) */
 static void fail(void);			/* fail but return to process next command */
-static void warn(char *s);
+static void warn(const char *s);
 static void sig(int i);			/* default signal handler */
 
 
@@ -1135,7 +1135,7 @@ static void leave(void)
 	/* NOTREACHED */
 }
 
-static void warn(char *s)
+static void warn(const char *s)
 {
 	if (*s) {
 		prs(s);
@@ -1146,7 +1146,7 @@ static void warn(char *s)
 		leave();
 }
 
-static void err(char *s)
+static void err(const char *s)
 {
 	warn(s);
 	if (flag['n'])
@@ -1202,23 +1202,23 @@ static void quitenv(void)
 }
 
 /*
- * Is any character from s1 in s2?
+ * Is character c in s?
  */
-static int anys(char *s1, char *s2)
+static int any(int c, const char *s)
 {
-	while (*s1)
-		if (any(*s1++, s2))
+	while (*s)
+		if (*s++ == c)
 			return 1;
 	return 0;
 }
 
 /*
- * Is character c in s?
+ * Is any character from s1 in s2?
  */
-static int any(int c, char *s)
+static int anys(const char *s1, const char *s2)
 {
-	while (*s)
-		if (*s++ == c)
+	while (*s1)
+		if (any(*s1++, s2))
 			return 1;
 	return 0;
 }

@@ -168,7 +168,7 @@ static void cleanup_outname(void)
 
 /* strdup, replacing "\n" with '\n', and "\delimiter" with 'delimiter' */
 
-static void parse_escapes(char *dest, char *string, int len, char from, char to)
+static void parse_escapes(char *dest, const char *string, int len, char from, char to)
 {
 	int i = 0;
 
@@ -186,7 +186,7 @@ static void parse_escapes(char *dest, char *string, int len, char from, char to)
 	*dest = 0;
 }
 
-static char *copy_parsing_escapes(char *string, int len)
+static char *copy_parsing_escapes(const char *string, int len)
 {
 	char *dest = xmalloc(len + 1);
 
@@ -201,7 +201,7 @@ static char *copy_parsing_escapes(char *string, int len)
  * expression delimiter (typically a forward * slash ('/')) not preceded by
  * a backslash ('\').  A negative delimiter disables square bracket checking.
  */
-static int index_of_next_unescaped_regexp_delim(int delimiter, char *str)
+static int index_of_next_unescaped_regexp_delim(int delimiter, const char *str)
 {
 	int bracket = -1;
 	int escaped = 0;
@@ -262,12 +262,12 @@ static int parse_regex_delim(char *cmdstr, char **match, char **replace)
 /*
  * returns the index in the string just past where the address ends.
  */
-static int get_address(char *my_str, int *linenum, regex_t ** regex)
+static int get_address(const char *my_str, int *linenum, regex_t ** regex)
 {
-	char *pos = my_str;
+	const char *pos = my_str;
 
 	if (isdigit(*my_str)) {
-		*linenum = strtol(my_str, &pos, 10);
+		*linenum = strtol(my_str, (char**)&pos, 10);
 		/* endstr shouldnt ever equal NULL */
 	} else if (*my_str == '$') {
 		*linenum = -1;
@@ -314,7 +314,7 @@ static int parse_subst_cmd(sed_cmd_t *sed_cmd, char *substr)
 {
 	int cflags = bbg.regex_type;
 	char *match;
-	int idx = 0;
+	int idx;
 
 	/*
 	 * A substitution command should look something like this:
@@ -469,16 +469,16 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 
 /* Parse address+command sets, skipping comment lines. */
 
-static void add_cmd(char *cmdstr)
+static void add_cmd(const char *cmdstr)
 {
 	sed_cmd_t *sed_cmd;
 	int temp;
 
 	/* Append this line to any unfinished line from last time. */
 	if (bbg.add_cmd_line) {
-		cmdstr = xasprintf("%s\n%s", bbg.add_cmd_line, cmdstr);
+		char *tp = xasprintf("%s\n%s", bbg.add_cmd_line, cmdstr);
 		free(bbg.add_cmd_line);
-		bbg.add_cmd_line = cmdstr;
+		bbg.add_cmd_line = tp;
 	}
 
 	/* If this line ends with backslash, request next line. */

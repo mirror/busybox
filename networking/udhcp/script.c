@@ -35,7 +35,7 @@ static inline int upper_length(int length, int opt_index)
 }
 
 
-static int sprintip(char *dest, char *pre, uint8_t *ip)
+static int sprintip(char *dest, const char *pre, const uint8_t *ip)
 {
 	return sprintf(dest, "%s%d.%d.%d.%d", pre, ip[0], ip[1], ip[2], ip[3]);
 }

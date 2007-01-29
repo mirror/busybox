@@ -296,7 +296,7 @@ static void INET_setroute(int action, char **args)
 
 #ifdef RTF_REJECT
 	if ((rt.rt_flags & RTF_REJECT) && !rt.rt_dev) {
-		rt.rt_dev = "lo";
+		rt.rt_dev = (char*)"lo";
 	}
 #endif
 

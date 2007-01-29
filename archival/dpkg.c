@@ -1417,10 +1417,10 @@ static void init_archive_deb_control(archive_handle_t *ar_handle)
 
 	/* We don't care about data.tar.* or debian-binary, just control.tar.* */
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
-	llist_add_to(&(ar_handle->accept), "control.tar.gz");
+	llist_add_to(&(ar_handle->accept), (char*)"control.tar.gz");
 #endif
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
-	llist_add_to(&(ar_handle->accept), "control.tar.bz2");
+	llist_add_to(&(ar_handle->accept), (char*)"control.tar.bz2");
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
@@ -1439,10 +1439,10 @@ static void init_archive_deb_data(archive_handle_t *ar_handle)
 
 	/* We don't care about control.tar.* or debian-binary, just data.tar.* */
 #ifdef CONFIG_FEATURE_DEB_TAR_GZ
-	llist_add_to(&(ar_handle->accept), "data.tar.gz");
+	llist_add_to(&(ar_handle->accept), (char*)"data.tar.gz");
 #endif
 #ifdef CONFIG_FEATURE_DEB_TAR_BZ2
-	llist_add_to(&(ar_handle->accept), "data.tar.bz2");
+	llist_add_to(&(ar_handle->accept), (char*)"data.tar.bz2");
 #endif
 
 	/* Assign the tar handle as a subarchive of the ar handle */
@@ -1525,7 +1525,7 @@ static void unpack_package(deb_file_t *deb_file)
 	archive_handle = init_archive_deb_ar(deb_file->filename);
 	init_archive_deb_data(archive_handle);
 	archive_handle->sub_archive->action_data = data_extract_all_prefix;
-	archive_handle->sub_archive->buffer = "/";
+	archive_handle->sub_archive->buffer = (char*)"/"; /* huh? */
 	archive_handle->sub_archive->flags |= ARCHIVE_EXTRACT_UNCONDITIONAL;
 	unpack_ar_archive(archive_handle);
 
@@ -1629,7 +1629,7 @@ int dpkg_main(int argc, char **argv)
 			llist_t *control_list = NULL;
 
 			/* Extract the control file */
-			llist_add_to(&control_list, "./control");
+			llist_add_to(&control_list, (char*)"./control");
 			archive_handle = init_archive_deb_ar(argv[0]);
 			init_archive_deb_control(archive_handle);
 			deb_file[deb_count]->control_file = deb_extract_control_file_to_buffer(archive_handle, control_list);
