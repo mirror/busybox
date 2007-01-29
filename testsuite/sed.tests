@@ -139,6 +139,10 @@ testing "sed selective matches noinsert newline" \
 testing "sed clusternewline" \
 	"sed -e '/one/a 111' -e '/two/i 222' -e p input -" \
 	"one\none\n111\n222\ntwo\ntwo" "one" "two"
+testing "sed subst+write" \
+	"sed -e 's/i/z/' -e 'woutputw' input -; echo -n X; cat outputw" \
+	"thzngy\nagaznXthzngy\nagazn" "thingy" "again"
+rm outputw
 
 # Test end-of-file matching behavior
 
