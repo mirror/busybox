@@ -422,8 +422,10 @@ static char *parse_cmd_args(sed_cmd_t *sed_cmd, char *cmdstr)
 		if (sed_cmd->end_line || sed_cmd->end_match)
 			bb_error_msg_and_die("command only uses one address");
 		cmdstr += parse_file_cmd(sed_cmd, cmdstr, &sed_cmd->string);
-		if (sed_cmd->cmd == 'w')
+		if (sed_cmd->cmd == 'w') {
 			sed_cmd->sw_file = xfopen(sed_cmd->string, "w");
+			sed_cmd->sw_last_char = '\n';
+		}
 	/* handle branch commands */
 	} else if (strchr(":btT", sed_cmd->cmd)) {
 		int length;
@@ -726,7 +728,8 @@ enum {
 static char *get_next_line(char *gets_char)
 {
 	char *temp = NULL;
-	int len, gc;
+	int len;
+	char gc;
 
 	flush_append();
 
@@ -744,9 +747,11 @@ static char *get_next_line(char *gets_char)
 			char c = temp[len-1];
 			if (c == '\n' || c == '\0') {
 				temp[len-1] = '\0';
-				gc = (unsigned char)c;
-				break;
+				gc = c;
 			}
+			/* else we put NO_EOL_CHAR into *gets_char */
+			break;
+
 		/* NB: I had the idea of peeking next file(s) and returning
 		 * NO_EOL_CHAR only if it is the *last* non-empty
 		 * input file. But there is a case where this won't work:
@@ -754,8 +759,6 @@ static char *get_next_line(char *gets_char)
 		 * file2: "c no\nd no"
 		 * sed -ne 's/woo/bang/p' input1 input2 => "a bang\nb bang"
 		 * (note: *no* newline after "b bang"!) */
-
-			break;
 		}
 		/* Close this file and advance to next one */
 		fclose(bbg.input_file_list[bbg.current_input_file++]);
