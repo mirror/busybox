@@ -152,8 +152,8 @@ int ipcrm_main(int argc, char **argv)
 				  (c == 'm') ? shmget(key, 0, 0) : semget(key, 0, 0));
 
 			if (id < 0) {
-				char *errmsg;
-				const char * const what = "key";
+				const char *errmsg;
+				const char *const what = "key";
 
 				error++;
 				switch (errno) {
@@ -183,8 +183,8 @@ int ipcrm_main(int argc, char **argv)
 				  semctl(id, 0, IPC_RMID, arg));
 
 		if (result) {
-			char *errmsg;
-			const char * const what = iskey ? "key" : "id";
+			const char *errmsg;
+			const char *const what = iskey ? "key" : "id";
 
 			error++;
 			switch (errno) {

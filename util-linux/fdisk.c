@@ -185,7 +185,7 @@ static void reread_partition_table(int leave);
 static void delete_partition(int i);
 static int get_partition(int warn, int max);
 static void list_types(const struct systypes *sys);
-static unsigned read_int(unsigned low, unsigned dflt, unsigned high, unsigned base, char *mesg);
+static unsigned read_int(unsigned low, unsigned dflt, unsigned high, unsigned base, const char *mesg);
 #endif
 static const char *partition_type(unsigned char type);
 static void fdisk_fatal(enum failure why) ATTRIBUTE_NORETURN;
@@ -1410,7 +1410,7 @@ get_boot(enum action what)
  * There is no default if DFLT is not between LOW and HIGH.
  */
 static unsigned
-read_int(unsigned low, unsigned dflt, unsigned high, unsigned base, char *mesg)
+read_int(unsigned low, unsigned dflt, unsigned high, unsigned base, const char *mesg)
 {
 	unsigned i;
 	int default_ok = 1;

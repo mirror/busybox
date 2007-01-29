@@ -33,7 +33,7 @@
 #include <time.h>
 #if ENABLE_FEATURE_WTMP
 extern void updwtmp(const char *filename, const struct utmp *ut);
-static void update_utmp(char *line);
+static void update_utmp(const char *line);
 #endif
 #endif  /* LOGIN_PROCESS */
 
@@ -85,10 +85,10 @@ static void update_utmp(char *line);
 struct options {
 	int flags;                      /* toggle switches, see below */
 	unsigned timeout;               /* time-out period */
-	char *login;                    /* login program */
-	char *tty;                      /* name of tty */
-	char *initstring;               /* modem init string */
-	char *issue;                    /* alternative issue file */
+	const char *login;                    /* login program */
+	const char *tty;                      /* name of tty */
+	const char *initstring;               /* modem init string */
+	const char *issue;                    /* alternative issue file */
 	int numspeed;                   /* number of baud rates to try */
 	int speeds[MAX_SPEED];          /* baud rates to be tried */
 };
@@ -187,7 +187,7 @@ static void parse_args(int argc, char **argv, struct options *op)
 		const char *p = op->initstring;
 		char *q;
 
-		q = op->initstring = xstrdup(op->initstring);
+		op->initstring = q = xstrdup(op->initstring);
 		/* copy optarg into op->initstring decoding \ddd
 		   octal codes into chars */
 		while (*p) {
@@ -233,7 +233,7 @@ static void xdup2(int srcfd, int dstfd, const char *tty)
 }
 
 /* open_tty - set up tty as standard { input, output, error } */
-static void open_tty(char *tty, struct termios *tp, int local)
+static void open_tty(const char *tty, struct termios *tp, int local)
 {
 	int chdir_to_root = 0;
 
@@ -655,7 +655,7 @@ static void termios_final(struct options *op, struct termios *tp, struct chardat
 #ifdef SYSV_STYLE
 #if ENABLE_FEATURE_UTMP
 /* update_utmp - update our utmp entry */
-static void update_utmp(char *line)
+static void update_utmp(const char *line)
 {
 	struct utmp ut;
 	struct utmp *utp;

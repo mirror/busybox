@@ -630,7 +630,7 @@ xbsd_create_disklabel(void)
 }
 
 static int
-edit_int(int def, char *mesg)
+edit_int(int def, const char *mesg)
 {
 	mesg = xasprintf("%s (%d): ", mesg, def);
 	do {
@@ -639,7 +639,7 @@ edit_int(int def, char *mesg)
 	} while (!isdigit(*line_ptr));
 	def = atoi(line_ptr);
  ret:
-	free(mesg);
+	free((char*)mesg);
 	return def;
 }
 
@@ -707,9 +707,9 @@ sync_disks(void)
 static void
 xbsd_write_bootstrap(void)
 {
-	char *bootdir = BSD_LINUX_BOOTDIR;
 	char path[MAXPATHLEN];
-	char *dkbasename;
+	const char *bootdir = BSD_LINUX_BOOTDIR;
+	const char *dkbasename;
 	struct xbsd_disklabel dl;
 	char *d, *p, *e;
 	int sector;

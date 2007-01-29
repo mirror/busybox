@@ -290,8 +290,7 @@ static void EditFile(const char *user, const char *file)
 		/*
 		 * CHILD - change user and run editor
 		 */
-		char *ptr;
-		char visual[1024];
+		const char *ptr;
 
 		if (ChangeUser(user, 1) < 0)
 			exit(0);
@@ -299,10 +298,9 @@ static void EditFile(const char *user, const char *file)
 		if (ptr == NULL || strlen(ptr) > 256)
 			ptr = PATH_VI;
 
-		snprintf(visual, sizeof(visual), "%s %s", ptr, file);
-		execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", visual, NULL);
-		perror("exec");
-		exit(0);
+		ptr = xasprintf("%s %s", ptr, file);
+		execl(DEFAULT_SHELL, DEFAULT_SHELL, "-c", ptr, NULL);
+		bb_perror_msg_and_die("exec");
 	}
 	if (pid < 0) {
 		/*

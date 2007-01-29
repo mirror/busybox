@@ -53,7 +53,7 @@ static void crypt_make_salt(char *p, int cnt)
 static char* new_password(const struct passwd *pw, uid_t myuid, int algo)
 {
 	char salt[sizeof("$N$XXXXXXXX")]; /* "$N$XXXXXXXX" or "XX" */
-	char *orig = "";
+	char *orig = (char*)"";
 	char *newp = NULL;
 	char *cipher = NULL;
 	char *cp = NULL;
@@ -241,7 +241,7 @@ int passwd_main(int argc, char **argv)
 		/*STATE_ALGO_des = 0x20, not needed yet */
 	};
 	unsigned opt;
-	char *opt_a = "";
+	const char *opt_a = "";
 	const char *filename;
 	char *myname;
 	char *name;

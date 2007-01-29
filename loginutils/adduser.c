@@ -169,7 +169,7 @@ int adduser_main(int argc, char **argv)
 		bb_error_msg_and_die(bb_msg_perm_denied_are_you_root);
 	}
 
-	pw.pw_gecos = "Linux User,,,";
+	pw.pw_gecos = (char *)"Linux User,,,";
 	pw.pw_shell = (char *)DEFAULT_SHELL;
 	pw.pw_dir = NULL;
 
@@ -185,7 +185,7 @@ int adduser_main(int argc, char **argv)
 
 	/* create a passwd struct */
 	pw.pw_name = argv[optind];
-	pw.pw_passwd = "x";
+	pw.pw_passwd = (char *)"x";
 	pw.pw_uid = 0;
 	pw.pw_gid = usegroup ? xgroup2gid(usegroup) : 0; /* exits on failure */
 

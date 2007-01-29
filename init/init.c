@@ -326,27 +326,26 @@ static void console_init(void)
 			/* Force the TERM setting to vt102 for serial console --
 			 * if TERM is set to linux (the default) */
 			if (s == NULL || strcmp(s, "linux") == 0)
-				putenv("TERM=vt102");
+				putenv((char*)"TERM=vt102");
 #if !ENABLE_SYSLOGD
 			log_console = console;
 #endif
 		} else {
 			if (s == NULL)
-				putenv("TERM=linux");
+				putenv((char*)"TERM=linux");
 		}
 		close(fd);
 	}
 	messageD(LOG, "console=%s", console);
 }
 
-static void fixup_argv(int argc, char **argv, char *new_argv0)
+static void fixup_argv(int argc, char **argv, const char *new_argv0)
 {
 	int len;
 
 	/* Fix up argv[0] to be certain we claim to be init */
 	len = strlen(argv[0]);
-	memset(argv[0], 0, len);
-	safe_strncpy(argv[0], new_argv0, len + 1);
+	strncpy(argv[0], new_argv0, len);
 
 	/* Wipe argv[1]-argv[N] so they don't clutter the ps listing */
 	len = 1;
@@ -381,7 +380,8 @@ static pid_t run(const struct init_action *a)
 {
 	int i;
 	pid_t pid;
-	char *s, *tmpCmd, *cmd[INIT_BUFFS_SIZE], *cmdpath;
+	char *s, *tmpCmd, *cmdpath;
+	char *cmd[INIT_BUFFS_SIZE];
 	char buf[INIT_BUFFS_SIZE + 6];	/* INIT_BUFFS_SIZE+strlen("exec ")+1 */
 	sigset_t nmask, omask;
 	static const char press_enter[] =
@@ -389,7 +389,7 @@ static pid_t run(const struct init_action *a)
 #include CUSTOMIZED_BANNER
 #endif
 		"\nPlease press Enter to activate this console. ";
-	char *prog;
+	const char *prog;
 
 	/* Block sigchild while forking.  */
 	sigemptyset(&nmask);
@@ -472,7 +472,7 @@ static pid_t run(const struct init_action *a)
 		/* See if any special /bin/sh requiring characters are present */
 		if (strpbrk(a->command, "~`!$^&*()=|\\{}[];\"'<>?") != NULL) {
 			cmd[0] = (char *)DEFAULT_SHELL;
-			cmd[1] = "-c";
+			cmd[1] = (char*)"-c";
 			cmd[2] = strcat(strcpy(buf, "exec "), a->command);
 			cmd[3] = NULL;
 		} else {

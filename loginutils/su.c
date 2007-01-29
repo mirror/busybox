@@ -14,9 +14,9 @@
 int su_main(int argc, char **argv)
 {
 	unsigned flags;
-	char *opt_shell = 0;
-	char *opt_command = 0;
-	char *opt_username = "root";
+	char *opt_shell = NULL;
+	char *opt_command = NULL;
+	const char *opt_username = "root";
 	struct passwd *pw;
 	uid_t cur_uid = getuid();
 	const char *tty;

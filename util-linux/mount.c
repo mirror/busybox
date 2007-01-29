@@ -64,7 +64,7 @@ enum {
  * flags */
 
 struct {
-	char *name;
+	const char *name;
 	long flags;
 } static mount_options[] = {
 	// MS_FLAGS set a bit.  ~MS_FLAGS disable that bit.  0 flags are NOPs.
@@ -122,7 +122,7 @@ struct {
 #define VECTOR_SIZE(v) (sizeof(v) / sizeof((v)[0]))
 
 /* Append mount options to string */
-static void append_mount_options(char **oldopts, char *newopts)
+static void append_mount_options(char **oldopts, const char *newopts)
 {
 	if (*oldopts && **oldopts) {
 		/* do not insert options which are already there */
@@ -303,7 +303,7 @@ static int mount_it_now(struct mntent *mp, int vfsflags, char *filteropts)
 		fsname = 0;
 		if (!mp->mnt_type || !*mp->mnt_type) { /* bind mount */
 			mp->mnt_fsname = fsname = bb_simplify_path(mp->mnt_fsname);
-			mp->mnt_type = "bind";
+			mp->mnt_type = (char*)"bind";
 		}
 		mp->mnt_freq = mp->mnt_passno = 0;
 
@@ -1342,7 +1342,7 @@ prepare_kernel_data:
 
 do_mount: /* perform actual mount */
 
-	mp->mnt_type = "nfs";
+	mp->mnt_type = (char*)"nfs";
 	retval = mount_it_now(mp, vfsflags, (char*)&data);
 	goto ret;
 
@@ -1428,7 +1428,7 @@ static int singlemount(struct mntent *mp, int ignore_busy)
 		// lock is required
 		vfsflags |= MS_MANDLOCK;
 
-		mp->mnt_type = "cifs";
+		mp->mnt_type = (char*)"cifs";
 		rc = mount_it_now(mp, vfsflags, filteropts);
 		if (ENABLE_FEATURE_CLEAN_UP) free(mp->mnt_fsname);
 		goto report_error;
