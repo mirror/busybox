@@ -64,6 +64,7 @@
 /* Each sed command turns into one of these structures. */
 typedef struct sed_cmd_s {
 	/* Ordered by alignment requirements: currently 36 bytes on x86 */
+	struct sed_cmd_s *next; /* Next command (linked list, NULL terminated) */
 
 	/* address storage */
 	regex_t *beg_match;     /* sed -e '/match/cmd' */
@@ -75,18 +76,17 @@ typedef struct sed_cmd_s {
 	FILE *sw_file;          /* File (sw) command writes to, -1 for none. */
 	char *string;           /* Data string for (saicytb) commands. */
 
-	unsigned short which_match;     /* (s) Which match to replace (0 for all) */
+	unsigned short which_match; /* (s) Which match to replace (0 for all) */
 
 	/* Bitfields (gcc won't group them if we don't) */
-	unsigned int invert:1;          /* the '!' after the address */
-	unsigned int in_match:1;        /* Next line also included in match? */
-	unsigned int sub_p:1;           /* (s) print option */
+	unsigned invert:1;      /* the '!' after the address */
+	unsigned in_match:1;    /* Next line also included in match? */
+	unsigned sub_p:1;       /* (s) print option */
 
-	char sw_last_char;                  /* Last line written by (sw) had no '\n' */
+	char sw_last_char;      /* Last line written by (sw) had no '\n' */
 
 	/* GENERAL FIELDS */
 	char cmd;               /* The command char: abcdDgGhHilnNpPqrstwxy:={} */
-	struct sed_cmd_s *next; /* Next command (linked list, NULL terminated) */
 } sed_cmd_t;
 
 static const char semicolon_whitespace[] = "; \n\r\t\v";
