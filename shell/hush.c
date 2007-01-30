@@ -221,7 +221,7 @@ static int last_return_code;
 extern char **environ; /* This is in <unistd.h>, but protected with __USE_GNU */
 
 /* "globals" within this file */
-static char *ifs;
+static const char *ifs;
 static unsigned char map[256];
 static int fake_mode;
 static int interactive;
@@ -231,8 +231,8 @@ static struct pipe *job_list;
 static unsigned last_bg_pid;
 static int last_jobid;
 static unsigned shell_terminal;
-static char *PS1;
-static char *PS2;
+static const char *PS1;
+static const char *PS2;
 static struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
 static struct variables *top_vars = &shell_ver;
 
@@ -466,8 +466,9 @@ static int builtin_cd(struct child_prog *child)
 static int builtin_env(struct child_prog *dummy ATTRIBUTE_UNUSED)
 {
 	char **e = environ;
-	if (e == NULL) return EXIT_FAILURE;
-	for (*e) {
+	if (e == NULL)
+		return EXIT_FAILURE;
+	while (*e) {
 		puts(*e++);
 	}
 	return EXIT_SUCCESS;
@@ -857,23 +858,27 @@ static void cmdedit_set_initial_prompt(void)
 #endif
 }
 
-static void setup_prompt_string(int promptmode, char **prompt_str)
+static const char* setup_prompt_string(int promptmode)
 {
-	debug_printf("setup_prompt_string %d ",promptmode);
+	const char *prompt_str;
+	debug_printf("setup_prompt_string %d ", promptmode);
 #if !ENABLE_FEATURE_EDITING_FANCY_PROMPT
 	/* Set up the prompt */
 	if (promptmode == 1) {
-		free(PS1);
-		PS1 = xmalloc(strlen(cwd)+4);
-		sprintf(PS1, "%s %s", cwd, (geteuid() != 0) ? "$ " : "# ");
-		*prompt_str = PS1;
+		char *ns;
+		free((char*)PS1);
+		ns = xmalloc(strlen(cwd)+4);
+		sprintf(ns, "%s %s", cwd, (geteuid() != 0) ? "$ " : "# ");
+		prompt_str = ns;
+		PS1 = ns;
 	} else {
-		*prompt_str = PS2;
+		prompt_str = PS2;
 	}
 #else
-	*prompt_str = (promptmode == 1) ? PS1 : PS2;
+	prompt_str = (promptmode == 1) ? PS1 : PS2;
 #endif
-	debug_printf("result %s\n", *prompt_str);
+	debug_printf("result %s\n", prompt_str);
+	return prompt_str;
 }
 
 #if ENABLE_FEATURE_EDITING
@@ -882,10 +887,10 @@ static line_input_t *line_input_state;
 
 static void get_user_input(struct in_str *i)
 {
-	char *prompt_str;
+	const char *prompt_str;
 	static char the_command[BUFSIZ];
 
-	setup_prompt_string(i->promptmode, &prompt_str);
+	prompt_str = setup_prompt_string(i->promptmode);
 #if ENABLE_FEATURE_EDITING
 	/*
 	 ** enable command line editing only while a command line
@@ -1979,7 +1984,7 @@ static void initialize_context(struct p_context *ctx)
 static int reserved_word(o_string *dest, struct p_context *ctx)
 {
 	struct reserved_combo {
-		char *literal;
+		const char *literal;
 		int code;
 		long flag;
 	};
@@ -1988,7 +1993,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 	 * to turn the compound list into a command.
 	 * FLAG_START means the word must start a new compound list.
 	 */
-	static struct reserved_combo reserved_list[] = {
+	static const struct reserved_combo reserved_list[] = {
 		{ "if",    RES_IF,    FLAG_THEN | FLAG_START },
 		{ "then",  RES_THEN,  FLAG_ELIF | FLAG_ELSE | FLAG_FI },
 		{ "elif",  RES_ELIF,  FLAG_THEN },
@@ -2001,8 +2006,9 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 		{ "do",    RES_DO,    FLAG_DONE },
 		{ "done",  RES_DONE,  FLAG_END  }
 	};
-	struct reserved_combo *r;
-#define NRES sizeof(reserved_list)/sizeof(struct reserved_combo)
+	const struct reserved_combo *r;
+#define NRES sizeof(reserved_list)/sizeof(reserved_list[0])
+
 	for (r = reserved_list;	r < reserved_list+NRES; r++) {
 		if (strcmp(dest->data, r->literal) == 0) {
 			debug_printf("found reserved word %s, code %d\n",r->literal,r->code);
@@ -2314,7 +2320,7 @@ static const char *lookup_param(const char *src)
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input)
 {
 	int i, advance=0;
-	char sep[]=" ";
+	char sep[] = " ";
 	int ch = input->peek(input);  /* first character after the $ */
 	debug_printf("handle_dollar: ch=%c\n",ch);
 	if (isalpha(ch)) {
@@ -2570,17 +2576,17 @@ static void update_ifs_map(void)
 {
 	/* char *ifs and char map[256] are both globals. */
 	ifs = getenv("IFS");
-	if (ifs == NULL) ifs=" \t\n";
+	if (ifs == NULL) ifs = " \t\n";
 	/* Precompute a list of 'flow through' behavior so it can be treated
 	 * quickly up front.  Computation is necessary because of IFS.
 	 * Special case handling of IFS == " \t\n" is not implemented.
 	 * The map[] array only really needs two bits each, and on most machines
 	 * that would be faster because of the reduced L1 cache footprint.
 	 */
-	memset(map,0,sizeof(map)); /* most characters flow through always */
-	mapset("\\$'\"`", 3);      /* never flow through */
-	mapset("<>;&|(){}#", 1);   /* flow through if quoted */
-	mapset(ifs, 2);            /* also flow through if quoted */
+	memset(map, 0, sizeof(map)); /* most characters flow through always */
+	mapset("\\$'\"`", 3);        /* never flow through */
+	mapset("<>;&|(){}#", 1);     /* flow through if quoted */
+	mapset(ifs, 2);              /* also flow through if quoted */
 }
 
 /* most recursion does not come through here, the exception is
