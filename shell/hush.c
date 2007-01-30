@@ -79,21 +79,11 @@
  */
 
 #include "busybox.h"
-#include <ctype.h>     /* isalpha, isdigit */
-#include <unistd.h>    /* getpid */
-#include <stdlib.h>    /* getenv, atoi */
-#include <string.h>    /* strchr */
-#include <stdio.h>     /* popen etc. */
 #include <glob.h>      /* glob, of course */
-#include <stdarg.h>    /* va_list */
-#include <errno.h>
-#include <fcntl.h>
 #include <getopt.h>    /* should be pretty obvious */
 
-#include <sys/stat.h>  /* ulimit */
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <signal.h>
+//#include <sys/wait.h>
+//#include <signal.h>
 
 /* #include <dmalloc.h> */
 /* #define DEBUG_SHELL */
@@ -168,46 +158,46 @@ struct p_context {
 	struct pipe *pipe;
 	struct redir_struct *pending_redirect;
 	reserved_style w;
-	int old_flag;				/* for figuring out valid reserved words */
+	int old_flag;               /* for figuring out valid reserved words */
 	struct p_context *stack;
-	int type;			/* define type of parser : ";$" common or special symbol */
+	int type;           /* define type of parser : ";$" common or special symbol */
 	/* How about quoting status? */
 };
 
 struct redir_struct {
-	redir_type type;			/* type of redirection */
-	int fd;						/* file descriptor being redirected */
-	int dup;					/* -1, or file descriptor being duplicated */
-	struct redir_struct *next;	/* pointer to the next redirect in the list */
-	glob_t word;				/* *word.gl_pathv is the filename */
+	redir_type type;            /* type of redirection */
+	int fd;                     /* file descriptor being redirected */
+	int dup;                    /* -1, or file descriptor being duplicated */
+	struct redir_struct *next;  /* pointer to the next redirect in the list */
+	glob_t word;                /* *word.gl_pathv is the filename */
 };
 
 struct child_prog {
-	pid_t pid;					/* 0 if exited */
-	char **argv;				/* program name and arguments */
-	struct pipe *group;			/* if non-NULL, first in group or subshell */
-	int subshell;				/* flag, non-zero if group must be forked */
-	struct redir_struct *redirects;	/* I/O redirections */
-	glob_t glob_result;			/* result of parameter globbing */
-	int is_stopped;				/* is the program currently running? */
-	struct pipe *family;		/* pointer back to the child's parent pipe */
-	int sp;				/* number of SPECIAL_VAR_SYMBOL */
+	pid_t pid;                  /* 0 if exited */
+	char **argv;                /* program name and arguments */
+	struct pipe *group;         /* if non-NULL, first in group or subshell */
+	int subshell;               /* flag, non-zero if group must be forked */
+	struct redir_struct *redirects; /* I/O redirections */
+	glob_t glob_result;         /* result of parameter globbing */
+	int is_stopped;             /* is the program currently running? */
+	struct pipe *family;        /* pointer back to the child's parent pipe */
+	int sp;                     /* number of SPECIAL_VAR_SYMBOL */
 	int type;
 };
 
 struct pipe {
-	int jobid;					/* job number */
-	int num_progs;				/* total number of programs in job */
-	int running_progs;			/* number of programs running */
-	char *text;					/* name of job */
-	char *cmdbuf;				/* buffer various argv's point into */
-	pid_t pgrp;					/* process group ID for the job */
-	struct child_prog *progs;	/* array of commands in pipe */
-	struct pipe *next;			/* to track background commands */
-	int stopped_progs;			/* number of programs alive, but stopped */
-	int job_context;			/* bitmask defining current context */
-	pipe_style followup;		/* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
-	reserved_style r_mode;		/* supports if, for, while, until */
+	int jobid;                  /* job number */
+	int num_progs;              /* total number of programs in job */
+	int running_progs;          /* number of programs running */
+	char *text;                 /* name of job */
+	char *cmdbuf;               /* buffer various argv's point into */
+	pid_t pgrp;                 /* process group ID for the job */
+	struct child_prog *progs;   /* array of commands in pipe */
+	struct pipe *next;          /* to track background commands */
+	int stopped_progs;          /* number of programs alive, but stopped */
+	int job_context;            /* bitmask defining current context */
+	pipe_style followup;        /* PIPE_BG, PIPE_SEQ, PIPE_OR, PIPE_AND */
+	reserved_style r_mode;      /* supports if, for, while, until */
 };
 
 struct close_me {
@@ -238,9 +228,9 @@ static int interactive;
 static struct close_me *close_me_head;
 static const char *cwd;
 static struct pipe *job_list;
-static unsigned int last_bg_pid;
+static unsigned last_bg_pid;
 static int last_jobid;
-static unsigned int shell_terminal;
+static unsigned shell_terminal;
 static char *PS1;
 static char *PS2;
 static struct variables shell_ver = { "HUSH_VERSION", "0.01", 1, 1, 0 };
@@ -301,11 +291,11 @@ static void debug_printf(const char *format, ...)
 /* broken, of course, but OK for testing */
 static char *indenter(int i)
 {
-	static char blanks[]="                                    ";
+	static char blanks[] = "                                    ";
 	return &blanks[sizeof(blanks)-i-1];
 }
 #else
-#define debug_printf(...) do {;} while(0);
+#define debug_printf(...) do {;} while (0);
 #endif
 #define final_printf debug_printf
 
@@ -340,7 +330,7 @@ static int b_check_space(o_string *o, int len);
 static int b_addchr(o_string *o, int ch);
 static void b_reset(o_string *o);
 static int b_addqchr(o_string *o, int ch, int quote);
-static int b_adduint(o_string *o, unsigned int i);
+static int b_adduint(o_string *o, unsigned i);
 /*  in_str manipulations: */
 static int static_get(struct in_str *i);
 static int static_peek(struct in_str *i);
@@ -404,35 +394,35 @@ static int set_local_var(const char *s, int flg_export);
  * For example, 'unset foo | whatever' will parse and run, but foo will
  * still be set at the end. */
 static const struct built_in_command bltins[] = {
-	{"bg", "Resume a job in the background", builtin_fg_bg},
-	{"break", "Exit for, while or until loop", builtin_not_written},
-	{"cd", "Change working directory", builtin_cd},
-	{"continue", "Continue for, while or until loop", builtin_not_written},
-	{"env", "Print all environment variables", builtin_env},
-	{"eval", "Construct and run shell command", builtin_eval},
-	{"exec", "Exec command, replacing this shell with the exec'd process",
-		builtin_exec},
-	{"exit", "Exit from shell()", builtin_exit},
-	{"export", "Set environment variable", builtin_export},
-	{"fg", "Bring job into the foreground", builtin_fg_bg},
-	{"jobs", "Lists the active jobs", builtin_jobs},
-	{"pwd", "Print current directory", builtin_pwd},
-	{"read", "Input environment variable", builtin_read},
-	{"return", "Return from a function", builtin_not_written},
-	{"set", "Set/unset shell local variables", builtin_set},
-	{"shift", "Shift positional parameters", builtin_shift},
-	{"trap", "Trap signals", builtin_not_written},
-	{"ulimit","Controls resource limits", builtin_not_written},
-	{"umask","Sets file creation mask", builtin_umask},
-	{"unset", "Unset environment variable", builtin_unset},
-	{".", "Source-in and run commands in a file", builtin_source},
-	{"help", "List shell built-in commands", builtin_help},
-	{NULL, NULL, NULL}
+	{ "bg", "Resume a job in the background", builtin_fg_bg },
+	{ "break", "Exit for, while or until loop", builtin_not_written },
+	{ "cd", "Change working directory", builtin_cd },
+	{ "continue", "Continue for, while or until loop", builtin_not_written },
+	{ "env", "Print all environment variables", builtin_env },
+	{ "eval", "Construct and run shell command", builtin_eval },
+	{ "exec", "Exec command, replacing this shell with the exec'd process",
+		builtin_exec },
+	{ "exit", "Exit from shell()", builtin_exit },
+	{ "export", "Set environment variable", builtin_export },
+	{ "fg", "Bring job into the foreground", builtin_fg_bg },
+	{ "jobs", "Lists the active jobs", builtin_jobs },
+	{ "pwd", "Print current directory", builtin_pwd },
+	{ "read", "Input environment variable", builtin_read },
+	{ "return", "Return from a function", builtin_not_written },
+	{ "set", "Set/unset shell local variables", builtin_set },
+	{ "shift", "Shift positional parameters", builtin_shift },
+	{ "trap", "Trap signals", builtin_not_written },
+	{ "ulimit","Controls resource limits", builtin_not_written },
+	{ "umask","Sets file creation mask", builtin_umask },
+	{ "unset", "Unset environment variable", builtin_unset },
+	{ ".", "Source-in and run commands in a file", builtin_source },
+	{ "help", "List shell built-in commands", builtin_help },
+	{ NULL, NULL, NULL }
 };
 
 static const char *set_cwd(void)
 {
-	if(cwd==bb_msg_unknown)
+	if (cwd == bb_msg_unknown)
 		cwd = NULL;     /* xgetcwd(arg) called free(arg) */
 	cwd = xgetcwd((char *)cwd);
 	if (!cwd)
@@ -477,8 +467,8 @@ static int builtin_env(struct child_prog *dummy ATTRIBUTE_UNUSED)
 {
 	char **e = environ;
 	if (e == NULL) return EXIT_FAILURE;
-	for (; *e; e++) {
-		puts(*e);
+	for (*e) {
+		puts(*e++);
 	}
 	return EXIT_SUCCESS;
 }
@@ -513,7 +503,7 @@ static int builtin_export(struct child_prog *child)
 
 	name = strdup(name);
 
-	if(name) {
+	if (name) {
 		const char *value = strchr(name, '=');
 
 		if (!value) {
@@ -525,7 +515,7 @@ static int builtin_export(struct child_prog *child)
 				size_t ln = strlen(name);
 
 				tmp = realloc(name, ln+strlen(value)+2);
-				if(tmp==NULL)
+				if (tmp == NULL)
 					res = -1;
 				else {
 					sprintf(tmp+ln, "=%s", value);
@@ -538,9 +528,9 @@ static int builtin_export(struct child_prog *child)
 			}
 		}
 	}
-	if (res<0)
+	if (res < 0)
 		bb_perror_msg("export");
-	else if(res==0)
+	else if (res == 0)
 		res = set_local_var(name, 1);
 	else
 		res = 0;
@@ -552,7 +542,7 @@ static int builtin_export(struct child_prog *child)
 static int builtin_fg_bg(struct child_prog *child)
 {
 	int i, jobnum;
-	struct pipe *pi=NULL;
+	struct pipe *pi = NULL;
 
 	if (!interactive)
 		return EXIT_FAILURE;
@@ -612,7 +602,7 @@ static int builtin_help(struct child_prog *dummy ATTRIBUTE_UNUSED)
 	printf("\nBuilt-in commands:\n");
 	printf("-------------------\n");
 	for (x = bltins; x->cmd; x++) {
-		if (x->descr==NULL)
+		if (x->descr == NULL)
 			continue;
 		printf("%s\t%s\n", x->cmd, x->descr);
 	}
@@ -624,7 +614,7 @@ static int builtin_help(struct child_prog *dummy ATTRIBUTE_UNUSED)
 static int builtin_jobs(struct child_prog *child ATTRIBUTE_UNUSED)
 {
 	struct pipe *job;
-	char *status_string;
+	const char *status_string;
 
 	for (job = job_list; job; job = job->next) {
 		if (job->running_progs == job->stopped_progs)
@@ -652,14 +642,14 @@ static int builtin_read(struct child_prog *child)
 
 	if (child->argv[1]) {
 		char string[BUFSIZ];
-		char *var = 0;
+		char *var = NULL;
 
-		string[0] = 0;  /* In case stdin has only EOF */
+		string[0] = '\0';  /* In case stdin has only EOF */
 		/* read string */
 		fgets(string, sizeof(string), stdin);
 		chomp(string);
-		var = malloc(strlen(child->argv[1])+strlen(string)+2);
-		if(var) {
+		var = malloc(strlen(child->argv[1]) + strlen(string) + 2);
+		if (var) {
 			sprintf(var, "%s=%s", child->argv[1], string);
 			res = set_local_var(var, 0);
 		} else
@@ -668,10 +658,9 @@ static int builtin_read(struct child_prog *child)
 			bb_perror_msg("read");
 		free(var);      /* So not move up to avoid breaking errno */
 		return res;
-	} else {
-		do res=getchar(); while(res!='\n' && res!=EOF);
-		return 0;
 	}
+	do res = getchar(); while (res != '\n' && res != EOF);
+	return 0;
 }
 
 /* built-in 'set VAR=value' handler */
@@ -681,23 +670,23 @@ static int builtin_set(struct child_prog *child)
 	struct variables *e;
 
 	if (temp == NULL)
-		for(e = top_vars; e; e=e->next)
+		for (e = top_vars; e; e = e->next)
 			printf("%s=%s\n", e->name, e->value);
 	else
 		set_local_var(temp, 0);
 
-		return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }
 
 
 /* Built-in 'shift' handler */
 static int builtin_shift(struct child_prog *child)
 {
-	int n=1;
+	int n = 1;
 	if (child->argv[1]) {
-		n=atoi(child->argv[1]);
+		n = atoi(child->argv[1]);
 	}
-	if (n>=0 && n<global_argc) {
+	if (n >= 0 && n < global_argc) {
 		/* XXX This probably breaks $0 */
 		global_argc -= n;
 		global_argv += n;
@@ -740,12 +729,13 @@ static int builtin_umask(struct child_prog *child)
 	const char *arg = child->argv[1];
 	char *end;
 	if (arg) {
-		new_umask=strtoul(arg, &end, 8);
-		if (*end!='\0' || end == arg) {
+		new_umask = strtoul(arg, &end, 8);
+		if (*end != '\0' || end == arg) {
 			return EXIT_FAILURE;
 		}
 	} else {
-		printf("%.3o\n", (unsigned int) (new_umask=umask(0)));
+		new_umask = umask(0);
+		printf("%.3o\n", (unsigned) new_umask);
 	}
 	umask(new_umask);
 	return EXIT_SUCCESS;
@@ -761,7 +751,7 @@ static int builtin_unset(struct child_prog *child)
 
 static int builtin_not_written(struct child_prog *child)
 {
-	printf("builtin_%s not written\n",child->argv[0]);
+	printf("builtin_%s not written\n", child->argv[0]);
 	return EXIT_FAILURE;
 }
 
@@ -784,7 +774,8 @@ static int b_check_space(o_string *o, int len)
 static int b_addchr(o_string *o, int ch)
 {
 	debug_printf("b_addchr: %c %d %p\n", ch, o->length, o);
-	if (b_check_space(o, 1)) return B_NOSPAC;
+	if (b_check_space(o, 1))
+		return B_NOSPAC;
 	o->data[o->length] = ch;
 	o->length++;
 	o->data[o->length] = '\0';
@@ -795,7 +786,8 @@ static void b_reset(o_string *o)
 {
 	o->length = 0;
 	o->nonnull = 0;
-	if (o->data != NULL) *o->data = '\0';
+	if (o->data != NULL)
+		*o->data = '\0';
 }
 
 static void b_free(o_string *o)
@@ -814,17 +806,17 @@ static int b_addqchr(o_string *o, int ch, int quote)
 	if (quote && strchr("*?[\\",ch)) {
 		int rc;
 		rc = b_addchr(o, '\\');
-		if (rc) return rc;
+		if (rc)
+			return rc;
 	}
 	return b_addchr(o, ch);
 }
 
 /* belongs in utility.c */
-static char *simple_itoa(unsigned int i)
+static char *simple_itoa(unsigned i)
 {
-	/* 21 digits plus null terminator, good for 64-bit or smaller ints */
-	static char local[22];
-	char *p = &local[21];
+	static char local[sizeof(int)*3 + 2];
+	char *p = &local[sizeof(int)*3 + 2 - 1];
 	*p-- = '\0';
 	do {
 		*p-- = '0' + i % 10;
@@ -833,19 +825,19 @@ static char *simple_itoa(unsigned int i)
 	return p + 1;
 }
 
-static int b_adduint(o_string *o, unsigned int i)
+static int b_adduint(o_string *o, unsigned i)
 {
 	int r;
 	char *p = simple_itoa(i);
 	/* no escape checking necessary */
-	do r=b_addchr(o, *p++); while (r==0 && *p);
+	do r = b_addchr(o, *p++); while (r==0 && *p);
 	return r;
 }
 
 static int static_get(struct in_str *i)
 {
-	int ch=*i->p++;
-	if (ch=='\0') return EOF;
+	int ch = *i->p++;
+	if (ch == '\0') return EOF;
 	return ch;
 }
 
@@ -860,7 +852,7 @@ static void cmdedit_set_initial_prompt(void)
 	PS1 = NULL;
 #else
 	PS1 = getenv("PS1");
-	if(PS1==0)
+	if (PS1 == NULL)
 		PS1 = "\\w \\$ ";
 #endif
 }
@@ -872,16 +864,16 @@ static void setup_prompt_string(int promptmode, char **prompt_str)
 	/* Set up the prompt */
 	if (promptmode == 1) {
 		free(PS1);
-		PS1=xmalloc(strlen(cwd)+4);
-		sprintf(PS1, "%s %s", cwd, ( geteuid() != 0 ) ?  "$ ":"# ");
+		PS1 = xmalloc(strlen(cwd)+4);
+		sprintf(PS1, "%s %s", cwd, (geteuid() != 0) ? "$ " : "# ");
 		*prompt_str = PS1;
 	} else {
 		*prompt_str = PS2;
 	}
 #else
-	*prompt_str = (promptmode==1)? PS1 : PS2;
+	*prompt_str = (promptmode == 1) ? PS1 : PS2;
 #endif
-	debug_printf("result %s\n",*prompt_str);
+	debug_printf("result %s\n", *prompt_str);
 }
 
 #if ENABLE_FEATURE_EDITING
@@ -905,8 +897,8 @@ static void get_user_input(struct in_str *i)
 #else
 	fputs(prompt_str, stdout);
 	fflush(stdout);
-	the_command[0]=fgetc(i->file);
-	the_command[1]='\0';
+	the_command[0] = fgetc(i->file);
+	the_command[1] = '\0';
 #endif
 	fflush(stdout);
 	i->p = the_command;
@@ -921,18 +913,18 @@ static int file_get(struct in_str *i)
 	ch = 0;
 	/* If there is data waiting, eat it up */
 	if (i->p && *i->p) {
-		ch=*i->p++;
+		ch = *i->p++;
 	} else {
 		/* need to double check i->file because we might be doing something
 		 * more complicated by now, like sourcing or substituting. */
 		if (i->__promptme && interactive && i->file == stdin) {
-			while(! i->p || (interactive && strlen(i->p)==0) ) {
+			while (!i->p || !(interactive && strlen(i->p))) {
 				get_user_input(i);
 			}
-			i->promptmode=2;
+			i->promptmode = 2;
 			i->__promptme = 0;
 			if (i->p && *i->p) {
-				ch=*i->p++;
+				ch = *i->p++;
 			}
 		} else {
 			ch = fgetc(i->file);
@@ -940,7 +932,8 @@ static int file_get(struct in_str *i)
 
 		debug_printf("b_getch: got a %d\n", ch);
 	}
-	if (ch == '\n') i->__promptme=1;
+	if (ch == '\n')
+		i->__promptme = 1;
 	return ch;
 }
 
@@ -964,8 +957,8 @@ static void setup_file_in_str(struct in_str *i, FILE *f)
 {
 	i->peek = file_peek;
 	i->get = file_get;
-	i->__promptme=1;
-	i->promptmode=1;
+	i->__promptme = 1;
+	i->promptmode = 1;
 	i->file = f;
 	i->p = NULL;
 }
@@ -1000,7 +993,7 @@ static void mark_closed(int fd)
 static void close_all(void)
 {
 	struct close_me *c;
-	for (c=close_me_head; c; c=c->next) {
+	for (c = close_me_head; c; c = c->next) {
 		close(c->fd);
 	}
 	close_me_head = NULL;
@@ -1013,13 +1006,13 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 	int openfd, mode;
 	struct redir_struct *redir;
 
-	for (redir=prog->redirects; redir; redir=redir->next) {
+	for (redir = prog->redirects; redir; redir = redir->next) {
 		if (redir->dup == -1 && redir->word.gl_pathv == NULL) {
 			/* something went wrong in the parse.  Pretend it didn't happen */
 			continue;
 		}
 		if (redir->dup == -1) {
-			mode=redir_table[redir->type].mode;
+			mode = redir_table[redir->type].mode;
 			openfd = open(redir->word.gl_pathv[0], mode, 0666);
 			if (openfd < 0) {
 			/* this could get lost if stderr has been redirected, but
@@ -1050,7 +1043,7 @@ static int setup_redirects(struct child_prog *prog, int squirrel[])
 static void restore_redirects(int squirrel[])
 {
 	int i, fd;
-	for (i=0; i<3; i++) {
+	for (i = 0; i < 3; i++) {
 		fd = squirrel[i];
 		if (fd != -1) {
 			/* No error checking.  I sure wouldn't know what
@@ -1071,13 +1064,15 @@ static void pseudo_exec(struct child_prog *child)
 	char *p;
 	const struct built_in_command *x;
 	if (child->argv) {
-		for (i=0; is_assignment(child->argv[i]); i++) {
-			debug_printf("pid %d environment modification: %s\n",getpid(),child->argv[i]);
+		for (i = 0; is_assignment(child->argv[i]); i++) {
+			debug_printf("pid %d environment modification: %s\n",
+					getpid(), child->argv[i]);
 			p = insert_var_value(child->argv[i]);
 			putenv(strdup(p));
-			if (p != child->argv[i]) free(p);
+			if (p != child->argv[i])
+				free(p);
 		}
-		child->argv+=i;  /* XXX this hack isn't so horrible, since we are about
+		child->argv += i;  /* XXX this hack isn't so horrible, since we are about
 		                        to exit, and therefore don't need to keep data
 		                        structures consistent for free() use. */
 		/* If a variable is assigned in a forest, and nobody listens,
@@ -1118,19 +1113,20 @@ static void pseudo_exec(struct child_prog *child)
 			char *name = child->argv[0];
 
 			/* Count argc for use in a second... */
-			for(argc_l=0;*argv_l!=NULL; argv_l++, argc_l++);
+			for (argc_l = 0; *argv_l; argv_l++, argc_l++)
+				/**/;
 			optind = 1;
 			debug_printf("running applet %s\n", name);
 			run_applet_by_name(name, argc_l, child->argv);
 		}
 #endif
-		debug_printf("exec of %s\n",child->argv[0]);
-		execvp(child->argv[0],child->argv);
-		bb_perror_msg("cannot exec: %s",child->argv[0]);
+		debug_printf("exec of %s\n", child->argv[0]);
+		execvp(child->argv[0], child->argv);
+		bb_perror_msg("cannot exec: %s", child->argv[0]);
 		_exit(1);
 	} else if (child->group) {
 		debug_printf("runtime nesting to group\n");
-		interactive=0;    /* crucial!!!! */
+		interactive = 0;    /* crucial!!!! */
 		rcode = run_list_real(child->group);
 		/* OK to leak memory by not calling free_pipe_list,
 		 * since this process is about to exit */
@@ -1156,7 +1152,8 @@ static void insert_bg_job(struct pipe *pi)
 	if (!job_list) {
 		thejob = job_list = xmalloc(sizeof(*thejob));
 	} else {
-		for (thejob = job_list; thejob->next; thejob = thejob->next) /* nothing */;
+		for (thejob = job_list; thejob->next; thejob = thejob->next)
+			/* nothing */;
 		thejob->next = xmalloc(sizeof(*thejob));
 		thejob = thejob->next;
 	}
@@ -1170,11 +1167,11 @@ static void insert_bg_job(struct pipe *pi)
 
 	//if (pi->progs[0] && pi->progs[0].argv && pi->progs[0].argv[0])
 	{
-		char *bar=thejob->text;
-		char **foo=pi->progs[0].argv;
-		while(foo && *foo) {
-			bar += sprintf(bar, "%s ", *foo++);
-		}
+		char *bar = thejob->text;
+		char **foo = pi->progs[0].argv;
+		if (foo)
+			while (*foo)
+				bar += sprintf(bar, "%s ", *foo++);
 	}
 
 	/* we don't wait for background thejobs to return -- append it
@@ -1218,18 +1215,18 @@ static int checkjobs(struct pipe* fg_pipe)
 	pid_t childpid;
 
 	attributes = WUNTRACED;
-	if (fg_pipe==NULL) {
+	if (fg_pipe == NULL) {
 		attributes |= WNOHANG;
 	}
 
 	while ((childpid = waitpid(-1, &status, attributes)) > 0) {
 		if (fg_pipe) {
 			int i, rcode = 0;
-			for (i=0; i < fg_pipe->num_progs; i++) {
+			for (i = 0; i < fg_pipe->num_progs; i++) {
 				if (fg_pipe->progs[i].pid == childpid) {
-					if (i==fg_pipe->num_progs-1)
-						rcode=WEXITSTATUS(status);
-					(fg_pipe->num_progs)--;
+					if (i == fg_pipe->num_progs-1)
+						rcode = WEXITSTATUS(status);
+					fg_pipe->num_progs--;
 					return rcode;
 				}
 			}
@@ -1244,8 +1241,9 @@ static int checkjobs(struct pipe* fg_pipe)
 				break;
 		}
 
-		if(pi==NULL) {
-			debug_printf("checkjobs: pid %d was not in our list!\n", childpid);
+		if (pi == NULL) {
+			debug_printf("checkjobs: pid %d was not in our list!\n",
+					childpid);
 			continue;
 		}
 
@@ -1255,7 +1253,8 @@ static int checkjobs(struct pipe* fg_pipe)
 			pi->progs[prognum].pid = 0;
 
 			if (!pi->running_progs) {
-				printf(JOB_STATUS_FORMAT, pi->jobid, "Done", pi->text);
+				printf(JOB_STATUS_FORMAT, pi->jobid,
+							"Done", pi->text);
 				remove_bg_job(pi);
 			}
 		} else {
@@ -1306,9 +1305,9 @@ static int run_pipe_real(struct pipe *pi)
 	 * Builtins within pipes have to fork anyway, and are handled in
 	 * pseudo_exec.  "echo foo | read bar" doesn't work on bash, either.
 	 */
-	child = & (pi->progs[0]);
+	child = &(pi->progs[0]);
 	if (pi->num_progs == 1 && child->group && child->subshell == 0) {
-		int squirrel[] = {-1, -1, -1};
+		int squirrel[] = { -1, -1, -1 };
 		int rcode;
 		debug_printf("non-subshell grouping\n");
 		setup_redirects(child, squirrel);
@@ -1318,31 +1317,32 @@ static int run_pipe_real(struct pipe *pi)
 		restore_redirects(squirrel);
 		return rcode;
 	} else if (pi->num_progs == 1 && pi->progs[0].argv != NULL) {
-		for (i=0; is_assignment(child->argv[i]); i++) { /* nothing */ }
-		if (i!=0 && child->argv[i]==NULL) {
+		for (i = 0; is_assignment(child->argv[i]); i++)
+			/* nothing */;
+		if (i != 0 && child->argv[i] == NULL) {
 			/* assignments, but no command: set the local environment */
-			for (i=0; child->argv[i]!=NULL; i++) {
-
+			for (i = 0; child->argv[i] != NULL; i++) {
 				/* Ok, this case is tricky.  We have to decide if this is a
 				 * local variable, or an already exported variable.  If it is
 				 * already exported, we have to export the new value.  If it is
 				 * not exported, we need only set this as a local variable.
 				 * This junk is all to decide whether or not to export this
 				 * variable. */
-				int export_me=0;
+				int export_me = 0;
 				char *name, *value;
 				name = xstrdup(child->argv[i]);
 				debug_printf("Local environment set: %s\n", name);
 				value = strchr(name, '=');
 				if (value)
-					*value=0;
-				if ( get_local_var(name)) {
-					export_me=1;
+					*value = 0;
+				if (get_local_var(name)) {
+					export_me = 1;
 				}
 				free(name);
 				p = insert_var_value(child->argv[i]);
 				set_local_var(p, export_me);
-				if (p != child->argv[i]) free(p);
+				if (p != child->argv[i])
+					free(p);
 			}
 			return EXIT_SUCCESS;   /* don't worry about errors in set_local_var() yet */
 		}
@@ -1355,7 +1355,7 @@ static int run_pipe_real(struct pipe *pi)
 			}
 		}
 		if (child->sp) {
-			char * str = NULL;
+			char *str = NULL;
 
 			str = make_string((child->argv + i));
 			parse_string_outer(str, FLAG_EXIT_FROM_LOOP | FLAG_REPARSING);
@@ -1364,9 +1364,9 @@ static int run_pipe_real(struct pipe *pi)
 		}
 		for (x = bltins; x->cmd; x++) {
 			if (strcmp(child->argv[i], x->cmd) == 0 ) {
-				int squirrel[] = {-1, -1, -1};
+				int squirrel[] = { -1, -1, -1 };
 				int rcode;
-				if (x->function == builtin_exec && child->argv[i+1]==NULL) {
+				if (x->function == builtin_exec && child->argv[i+1] == NULL) {
 					debug_printf("magic exec\n");
 					setup_redirects(child,NULL);
 					return EXIT_SUCCESS;
@@ -1377,9 +1377,9 @@ static int run_pipe_real(struct pipe *pi)
 				 * Is it really safe for inline use?  Experimentally,
 				 * things seem to work with glibc. */
 				setup_redirects(child, squirrel);
-				child->argv+=i;  /* XXX horrible hack */
+				child->argv += i;  /* XXX horrible hack */
 				rcode = x->function(child);
-				child->argv-=i;  /* XXX restore hack so free() can work right */
+				child->argv -= i;  /* XXX restore hack so free() can work right */
 				restore_redirects(squirrel);
 				return rcode;
 			}
@@ -1387,24 +1387,25 @@ static int run_pipe_real(struct pipe *pi)
 	}
 
 	for (i = 0; i < pi->num_progs; i++) {
-		child = & (pi->progs[i]);
+		child = &(pi->progs[i]);
 
 		/* pipes are inserted between pairs of commands */
 		if ((i + 1) < pi->num_progs) {
-			if (pipe(pipefds)<0) bb_perror_msg_and_die("pipe");
+			if (pipe(pipefds) < 0)
+				bb_perror_msg_and_die("pipe");
 			nextout = pipefds[1];
 		} else {
-			nextout=1;
+			nextout = 1;
 			pipefds[0] = -1;
 		}
 
 		/* XXX test for failed fork()? */
 #if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
-		if (!(child->pid = fork()))
+		child->pid = fork();
 #else
-		if (!(child->pid = vfork()))
+		child->pid = vfork();
 #endif
-		{
+		if (!child->pid) {
 			/* Set the handling for job control signals back to the default.  */
 			signal(SIGINT, SIG_DFL);
 			signal(SIGQUIT, SIG_DFL);
@@ -1446,7 +1447,6 @@ static int run_pipe_real(struct pipe *pi)
 			pseudo_exec(child);
 		}
 
-
 		/* put our child in the process group whose leader is the
 		   first process in this pipe */
 		if (pi->pgrp < 0) {
@@ -1476,81 +1476,87 @@ static int run_list_real(struct pipe *pi)
 	struct pipe *rpipe;
 	int flag_rep = 0;
 	int save_num_progs;
-	int rcode=0, flag_skip=1;
+	int rcode = 0, flag_skip = 1;
 	int flag_restore = 0;
-	int if_code=0, next_if_code=0;  /* need double-buffer to handle elif */
-	reserved_style rmode, skip_more_in_this_rmode=RES_XXXX;
+	int if_code = 0, next_if_code = 0;  /* need double-buffer to handle elif */
+	reserved_style rmode, skip_more_in_this_rmode = RES_XXXX;
 	/* check syntax for "for" */
 	for (rpipe = pi; rpipe; rpipe = rpipe->next) {
-		if ((rpipe->r_mode == RES_IN ||
-		    rpipe->r_mode == RES_FOR) &&
-		    (rpipe->next == NULL)) {
-				syntax();
-				return 1;
+		if ((rpipe->r_mode == RES_IN || rpipe->r_mode == RES_FOR)
+		 && (rpipe->next == NULL)
+		) {
+			syntax();
+			return 1;
 		}
-		if ((rpipe->r_mode == RES_IN &&
-			(rpipe->next->r_mode == RES_IN &&
-			rpipe->next->progs->argv != NULL))||
-			(rpipe->r_mode == RES_FOR &&
-			rpipe->next->r_mode != RES_IN)) {
-				syntax();
-				return 1;
+		if ((rpipe->r_mode == RES_IN &&	rpipe->next->r_mode == RES_IN && rpipe->next->progs->argv != NULL)
+		 || (rpipe->r_mode == RES_FOR && rpipe->next->r_mode != RES_IN)
+		) {
+			syntax();
+			return 1;
 		}
 	}
 	for (; pi; pi = (flag_restore != 0) ? rpipe : pi->next) {
-		if (pi->r_mode == RES_WHILE || pi->r_mode == RES_UNTIL ||
-			pi->r_mode == RES_FOR) {
-				flag_restore = 0;
-				if (!rpipe) {
-					flag_rep = 0;
-					rpipe = pi;
-				}
+		if (pi->r_mode == RES_WHILE || pi->r_mode == RES_UNTIL
+		 || pi->r_mode == RES_FOR
+		) {
+			flag_restore = 0;
+			if (!rpipe) {
+				flag_rep = 0;
+				rpipe = pi;
+			}
 		}
 		rmode = pi->r_mode;
-		debug_printf("rmode=%d  if_code=%d  next_if_code=%d skip_more=%d\n", rmode, if_code, next_if_code, skip_more_in_this_rmode);
+		debug_printf("rmode=%d  if_code=%d  next_if_code=%d skip_more=%d\n",
+				rmode, if_code, next_if_code, skip_more_in_this_rmode);
 		if (rmode == skip_more_in_this_rmode && flag_skip) {
-			if (pi->followup == PIPE_SEQ) flag_skip=0;
+			if (pi->followup == PIPE_SEQ)
+				flag_skip = 0;
 			continue;
 		}
 		flag_skip = 1;
 		skip_more_in_this_rmode = RES_XXXX;
-		if (rmode == RES_THEN || rmode == RES_ELSE) if_code = next_if_code;
-		if (rmode == RES_THEN &&  if_code) continue;
-		if (rmode == RES_ELSE && !if_code) continue;
-		if (rmode == RES_ELIF && !if_code) break;
+		if (rmode == RES_THEN || rmode == RES_ELSE)
+			if_code = next_if_code;
+		if (rmode == RES_THEN &&  if_code)
+			continue;
+		if (rmode == RES_ELSE && !if_code)
+			continue;
+		if (rmode == RES_ELIF && !if_code)
+			break;
 		if (rmode == RES_FOR && pi->num_progs) {
 			if (!list) {
 				/* if no variable values after "in" we skip "for" */
-				if (!pi->next->progs->argv) continue;
+				if (!pi->next->progs->argv)
+					continue;
 				/* create list of variable values */
 				list = make_list_in(pi->next->progs->argv,
-					pi->progs->argv[0]);
+						pi->progs->argv[0]);
 				save_list = list;
 				save_name = pi->progs->argv[0];
 				pi->progs->argv[0] = NULL;
 				flag_rep = 1;
 			}
-			if (!(*list)) {
+			if (!*list) {
 				free(pi->progs->argv[0]);
 				free(save_list);
 				list = NULL;
 				flag_rep = 0;
 				pi->progs->argv[0] = save_name;
-				pi->progs->glob_result.gl_pathv[0] =
-					pi->progs->argv[0];
+				pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 				continue;
 			} else {
 				/* insert new value from list for variable */
 				if (pi->progs->argv[0])
 					free(pi->progs->argv[0]);
 				pi->progs->argv[0] = *list++;
-				pi->progs->glob_result.gl_pathv[0] =
-					pi->progs->argv[0];
+				pi->progs->glob_result.gl_pathv[0] = pi->progs->argv[0];
 			}
 		}
-		if (rmode == RES_IN) continue;
+		if (rmode == RES_IN)
+			continue;
 		if (rmode == RES_DO) {
-			if (!flag_rep) continue;
+			if (!flag_rep)
+				continue;
 		}
 		if ((rmode == RES_DONE)) {
 			if (flag_rep) {
@@ -1559,14 +1565,15 @@ static int run_list_real(struct pipe *pi)
 				rpipe = NULL;
 			}
 		}
-		if (pi->num_progs == 0) continue;
+		if (pi->num_progs == 0)
+			continue;
 		save_num_progs = pi->num_progs; /* save number of programs */
 		rcode = run_pipe_real(pi);
 		debug_printf("run_pipe_real returned %d\n",rcode);
-		if (rcode!=-1) {
+		if (rcode != -1) {
 			/* We only ran a builtin: rcode was set by the return value
 			 * of run_pipe_real(), and we don't need to wait for anything. */
-		} else if (pi->followup==PIPE_BG) {
+		} else if (pi->followup == PIPE_BG) {
 			/* XXX check bash's behavior with nontrivial pipes */
 			/* XXX compute jobid */
 			/* XXX what does bash do with attempts to background builtins? */
@@ -1586,17 +1593,19 @@ static int run_list_real(struct pipe *pi)
 			}
 			debug_printf("checkjobs returned %d\n",rcode);
 		}
-		last_return_code=rcode;
+		last_return_code = rcode;
 		pi->num_progs = save_num_progs; /* restore number of programs */
 		if ( rmode == RES_IF || rmode == RES_ELIF )
-			next_if_code=rcode;  /* can be overwritten a number of times */
+			next_if_code = rcode;  /* can be overwritten a number of times */
 		if (rmode == RES_WHILE)
 			flag_rep = !last_return_code;
 		if (rmode == RES_UNTIL)
 			flag_rep = last_return_code;
-		if ( (rcode==EXIT_SUCCESS && pi->followup==PIPE_OR) ||
-		     (rcode!=EXIT_SUCCESS && pi->followup==PIPE_AND) )
-			skip_more_in_this_rmode=rmode;
+		if ((rcode == EXIT_SUCCESS && pi->followup == PIPE_OR)
+		 || (rcode != EXIT_SUCCESS && pi->followup == PIPE_AND)
+		) {
+			skip_more_in_this_rmode = rmode;
+		}
 		checkjobs(NULL);
 	}
 	return rcode;
@@ -1608,28 +1617,28 @@ static int free_pipe(struct pipe *pi, int indent)
 	char **p;
 	struct child_prog *child;
 	struct redir_struct *r, *rnext;
-	int a, i, ret_code=0;
+	int a, i, ret_code = 0;
 
 	if (pi->stopped_progs > 0)
 		return ret_code;
-	final_printf("%s run pipe: (pid %d)\n",indenter(indent),getpid());
-	for (i=0; i<pi->num_progs; i++) {
+	final_printf("%s run pipe: (pid %d)\n", indenter(indent), getpid());
+	for (i = 0; i < pi->num_progs; i++) {
 		child = &pi->progs[i];
-		final_printf("%s  command %d:\n",indenter(indent),i);
+		final_printf("%s  command %d:\n", indenter(indent), i);
 		if (child->argv) {
-			for (a=0,p=child->argv; *p; a++,p++) {
-				final_printf("%s   argv[%d] = %s\n",indenter(indent),a,*p);
+			for (a = 0, p = child->argv; *p; a++, p++) {
+				final_printf("%s   argv[%d] = %s\n", indenter(indent), a, *p);
 			}
 			globfree(&child->glob_result);
-			child->argv=NULL;
+			child->argv = NULL;
 		} else if (child->group) {
-			final_printf("%s   begin group (subshell:%d)\n",indenter(indent), child->subshell);
-			ret_code = free_pipe_list(child->group,indent+3);
-			final_printf("%s   end group\n",indenter(indent));
+			final_printf("%s   begin group (subshell:%d)\n", indenter(indent), child->subshell);
+			ret_code = free_pipe_list(child->group, indent+3);
+			final_printf("%s   end group\n", indenter(indent));
 		} else {
-			final_printf("%s   (nil)\n",indenter(indent));
+			final_printf("%s   (nil)\n", indenter(indent));
 		}
-		for (r=child->redirects; r; r=rnext) {
+		for (r = child->redirects; r; r = rnext) {
 			final_printf("%s   redirect %d%s", indenter(indent), r->fd, redir_table[r->type].descrip);
 			if (r->dup == -1) {
 				/* guard against the case >$FOO, where foo is unset or blank */
@@ -1640,26 +1649,26 @@ static int free_pipe(struct pipe *pi, int indent)
 			} else {
 				final_printf("&%d\n", r->dup);
 			}
-			rnext=r->next;
+			rnext = r->next;
 			free(r);
 		}
-		child->redirects=NULL;
+		child->redirects = NULL;
 	}
 	free(pi->progs);   /* children are an array, they get freed all at once */
-	pi->progs=NULL;
+	pi->progs = NULL;
 	return ret_code;
 }
 
 static int free_pipe_list(struct pipe *head, int indent)
 {
-	int rcode=0;   /* if list has no members */
+	int rcode = 0;   /* if list has no members */
 	struct pipe *pi, *next;
-	for (pi=head; pi; pi=next) {
+	for (pi = head; pi; pi = next) {
 		final_printf("%s pipe reserved mode %d\n", indenter(indent), pi->r_mode);
 		rcode = free_pipe(pi, indent);
 		final_printf("%s pipe followup code %d\n", indenter(indent), pi->followup);
-		next=pi->next;
-		pi->next=NULL;
+		next = pi->next;
+		pi->next = NULL;
 		free(pi);
 	}
 	return rcode;
@@ -1668,8 +1677,8 @@ static int free_pipe_list(struct pipe *head, int indent)
 /* Select which version we will use */
 static int run_list(struct pipe *pi)
 {
-	int rcode=0;
-	if (fake_mode==0) {
+	int rcode = 0;
+	if (fake_mode == 0) {
 		rcode = run_list_real(pi);
 	}
 	/* free_pipe_list has the side effect of clearing memory
@@ -1688,31 +1697,31 @@ static int run_list(struct pipe *pi)
  */
 static int globhack(const char *src, int flags, glob_t *pglob)
 {
-	int cnt=0, pathc;
+	int cnt = 0, pathc;
 	const char *s;
 	char *dest;
-	for (cnt=1, s=src; s && *s; s++) {
+	for (cnt = 1, s = src; s && *s; s++) {
 		if (*s == '\\') s++;
 		cnt++;
 	}
 	dest = malloc(cnt);
 	if (!dest) return GLOB_NOSPACE;
 	if (!(flags & GLOB_APPEND)) {
-		pglob->gl_pathv=NULL;
-		pglob->gl_pathc=0;
-		pglob->gl_offs=0;
-		pglob->gl_offs=0;
+		pglob->gl_pathv = NULL;
+		pglob->gl_pathc = 0;
+		pglob->gl_offs = 0;
+		pglob->gl_offs = 0;
 	}
 	pathc = ++pglob->gl_pathc;
 	pglob->gl_pathv = realloc(pglob->gl_pathv, (pathc+1)*sizeof(*pglob->gl_pathv));
 	if (pglob->gl_pathv == NULL) return GLOB_NOSPACE;
-	pglob->gl_pathv[pathc-1]=dest;
-	pglob->gl_pathv[pathc]=NULL;
-	for (s=src; s && *s; s++, dest++) {
+	pglob->gl_pathv[pathc-1] = dest;
+	pglob->gl_pathv[pathc] = NULL;
+	for (s = src; s && *s; s++, dest++) {
 		if (*s == '\\') s++;
 		*dest = *s;
 	}
-	*dest='\0';
+	*dest = '\0';
 	return 0;
 }
 
@@ -1721,7 +1730,7 @@ static int glob_needed(const char *s)
 {
 	for (; *s; s++) {
 		if (*s == '\\') s++;
-		if (strchr("*[?",*s)) return 1;
+		if (strchr("*[?", *s)) return 1;
 	}
 	return 0;
 }
@@ -1736,26 +1745,26 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 		if (dest->nonnull) {
 			/* bash man page calls this an "explicit" null */
 			gr = globhack(dest->data, flags, pglob);
-			debug_printf("globhack returned %d\n",gr);
+			debug_printf("globhack returned %d\n", gr);
 		} else {
 			return 0;
 		}
 	} else if (glob_needed(dest->data)) {
 		gr = glob(dest->data, flags, NULL, pglob);
-		debug_printf("glob returned %d\n",gr);
+		debug_printf("glob returned %d\n", gr);
 		if (gr == GLOB_NOMATCH) {
 			/* quote removal, or more accurately, backslash removal */
 			gr = globhack(dest->data, flags, pglob);
-			debug_printf("globhack returned %d\n",gr);
+			debug_printf("globhack returned %d\n", gr);
 		}
 	} else {
 		gr = globhack(dest->data, flags, pglob);
-		debug_printf("globhack returned %d\n",gr);
+		debug_printf("globhack returned %d\n", gr);
 	}
 	if (gr == GLOB_NOSPACE)
 		bb_error_msg_and_die("out of memory during glob");
 	if (gr != 0) { /* GLOB_ABORTED ? */
-		bb_error_msg("glob(3) error %d",gr);
+		bb_error_msg("glob(3) error %d", gr);
 	}
 	/* globprint(glob_target); */
 	return gr;
@@ -1768,8 +1777,8 @@ static const char *get_local_var(const char *s)
 
 	if (!s)
 		return NULL;
-	for (cur = top_vars; cur; cur=cur->next)
-		if(strcmp(cur->name, s)==0)
+	for (cur = top_vars; cur; cur = cur->next)
+		if (strcmp(cur->name, s) == 0)
 			return cur->value;
 	return NULL;
 }
@@ -1781,39 +1790,39 @@ static const char *get_local_var(const char *s)
 static int set_local_var(const char *s, int flg_export)
 {
 	char *name, *value;
-	int result=0;
+	int result = 0;
 	struct variables *cur;
 
-	name=strdup(s);
+	name = strdup(s);
 
 	/* Assume when we enter this function that we are already in
 	 * NAME=VALUE format.  So the first order of business is to
 	 * split 's' on the '=' into 'name' and 'value' */
 	value = strchr(name, '=');
-	if (value==0 && ++value==0) {
+	if (value == 0 && ++value == 0) {
 		free(name);
 		return -1;
 	}
 	*value++ = 0;
 
-	for(cur = top_vars; cur; cur = cur->next) {
-		if(strcmp(cur->name, name)==0)
+	for (cur = top_vars; cur; cur = cur->next) {
+		if (strcmp(cur->name, name) == 0)
 			break;
 	}
 
-	if(cur) {
-		if(strcmp(cur->value, value)==0) {
-			if(flg_export>0 && cur->flg_export==0)
+	if (cur) {
+		if (strcmp(cur->value, value) == 0) {
+			if (flg_export>0 && cur->flg_export == 0)
 				cur->flg_export = flg_export;
 			else
 				result++;
 		} else {
-			if(cur->flg_read_only) {
+			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
 				result = -1;
 			} else {
-				if(flg_export>0 || cur->flg_export>1)
-					cur->flg_export=1;
+				if (flg_export > 0 || cur->flg_export>1)
+					cur->flg_export = 1;
 				free((char*)cur->value);
 
 				cur->value = strdup(value);
@@ -1821,11 +1830,11 @@ static int set_local_var(const char *s, int flg_export)
 		}
 	} else {
 		cur = malloc(sizeof(struct variables));
-		if(!cur) {
+		if (!cur) {
 			result = -1;
 		} else {
 			cur->name = strdup(name);
-			if(cur->name == 0) {
+			if (cur->name) {
 				free(cur);
 				result = -1;
 			} else {
@@ -1834,18 +1843,19 @@ static int set_local_var(const char *s, int flg_export)
 				cur->next = 0;
 				cur->flg_export = flg_export;
 				cur->flg_read_only = 0;
-				while(bottom->next) bottom=bottom->next;
+				while (bottom->next)
+					bottom = bottom->next;
 				bottom->next = cur;
 			}
 		}
 	}
 
-	if(result==0 && cur->flg_export==1) {
+	if (result == 0 && cur->flg_export == 1) {
 		*(value-1) = '=';
 		result = putenv(name);
 	} else {
 		free(name);
-		if(result>0)            /* equivalent to previous set */
+		if (result > 0)            /* equivalent to previous set */
 			result = 0;
 	}
 	return result;
@@ -1856,24 +1866,23 @@ static void unset_local_var(const char *name)
 	struct variables *cur;
 
 	if (name) {
-		for (cur = top_vars; cur; cur=cur->next) {
-			if(strcmp(cur->name, name)==0)
+		for (cur = top_vars; cur; cur = cur->next) {
+			if (strcmp(cur->name, name) == 0)
 				break;
 		}
-		if(cur!=0) {
+		if (cur != 0) {
 			struct variables *next = top_vars;
-			if(cur->flg_read_only) {
+			if (cur->flg_read_only) {
 				bb_error_msg("%s: readonly variable", name);
 				return;
-			} else {
-				if(cur->flg_export)
-					unsetenv(cur->name);
-				free((char*)cur->name);
-				free((char*)cur->value);
-				while (next->next != cur)
-					next = next->next;
-				next->next = cur->next;
 			}
+			if (cur->flg_export)
+				unsetenv(cur->name);
+			free((char*)cur->name);
+			free((char*)cur->value);
+			while (next->next != cur)
+				next = next->next;
+			next->next = cur->next;
 			free(cur);
 		}
 	}
@@ -1881,10 +1890,12 @@ static void unset_local_var(const char *name)
 
 static int is_assignment(const char *s)
 {
-	if (s==NULL || !isalpha(*s)) return 0;
-	++s;
-	while(isalnum(*s) || *s=='_') ++s;
-	return *s=='=';
+	if (!s || !isalpha(*s))
+		return 0;
+	s++;
+	while (isalnum(*s) || *s == '_')
+		s++;
+	return *s == '=';
 }
 
 /* the src parameter allows us to peek forward to a possible &n syntax
@@ -1894,26 +1905,26 @@ static int is_assignment(const char *s)
 static int setup_redirect(struct p_context *ctx, int fd, redir_type style,
 	struct in_str *input)
 {
-	struct child_prog *child=ctx->child;
+	struct child_prog *child = ctx->child;
 	struct redir_struct *redir = child->redirects;
-	struct redir_struct *last_redir=NULL;
+	struct redir_struct *last_redir = NULL;
 
 	/* Create a new redir_struct and drop it onto the end of the linked list */
-	while(redir) {
-		last_redir=redir;
-		redir=redir->next;
+	while (redir) {
+		last_redir = redir;
+		redir = redir->next;
 	}
 	redir = xmalloc(sizeof(struct redir_struct));
-	redir->next=NULL;
-	redir->word.gl_pathv=NULL;
+	redir->next = NULL;
+	redir->word.gl_pathv = NULL;
 	if (last_redir) {
-		last_redir->next=redir;
+		last_redir->next = redir;
 	} else {
-		child->redirects=redir;
+		child->redirects = redir;
 	}
 
-	redir->type=style;
-	redir->fd= (fd==-1) ? redir_table[style].default_fd : fd ;
+	redir->type = style;
+	redir->fd = (fd == -1) ? redir_table[style].default_fd : fd;
 
 	debug_printf("Redirect type %d%s\n", redir->fd, redir_table[style].descrip);
 
@@ -1949,14 +1960,14 @@ static struct pipe *new_pipe(void) {
 
 static void initialize_context(struct p_context *ctx)
 {
-	ctx->pipe=NULL;
-	ctx->pending_redirect=NULL;
-	ctx->child=NULL;
-	ctx->list_head=new_pipe();
-	ctx->pipe=ctx->list_head;
-	ctx->w=RES_NONE;
-	ctx->stack=NULL;
-	ctx->old_flag=0;
+	ctx->pipe = NULL;
+	ctx->pending_redirect = NULL;
+	ctx->child = NULL;
+	ctx->list_head = new_pipe();
+	ctx->pipe = ctx->list_head;
+	ctx->w = RES_NONE;
+	ctx->stack = NULL;
+	ctx->old_flag = 0;
 	done_command(ctx);   /* creates the memory for working child */
 }
 
@@ -1991,9 +2002,8 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 		{ "done",  RES_DONE,  FLAG_END  }
 	};
 	struct reserved_combo *r;
-	for (r=reserved_list;
 #define NRES sizeof(reserved_list)/sizeof(struct reserved_combo)
-		r<reserved_list+NRES; r++) {
+	for (r = reserved_list;	r < reserved_list+NRES; r++) {
 		if (strcmp(dest->data, r->literal) == 0) {
 			debug_printf("found reserved word %s, code %d\n",r->literal,r->code);
 			if (r->flag & FLAG_START) {
@@ -2180,7 +2190,7 @@ static int redirect_opt_num(o_string *o)
 	int num;
 
 	if (o->length==0) return -1;
-	for(num=0; num<o->length; num++) {
+	for (num=0; num<o->length; num++) {
 		if (!isdigit(*(o->data+num))) {
 			return -1;
 		}
@@ -2310,7 +2320,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 	if (isalpha(ch)) {
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ctx->child->sp++;
-		while(ch=b_peek(input),isalnum(ch) || ch=='_') {
+		while (ch=b_peek(input),isalnum(ch) || ch=='_') {
 			b_getch(input);
 			b_addchr(dest,ch);
 		}
@@ -2343,7 +2353,7 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			ctx->child->sp++;
 			b_getch(input);
 			/* XXX maybe someone will try to escape the '}' */
-			while(ch=b_getch(input),ch!=EOF && ch!='}') {
+			while (ch=b_getch(input),ch!=EOF && ch!='}') {
 				b_addchr(dest,ch);
 			}
 			if (ch != '}') {
@@ -2427,7 +2437,12 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			if (m!=2) switch (ch) {
 		case '#':
 			if (dest->length == 0 && !dest->quote) {
-				while(ch=b_peek(input),ch!=EOF && ch!='\n') { b_getch(input); }
+				while (1) {
+					ch = b_peek(input);
+					if (ch == EOF || ch == '\n')
+						break;
+					b_getch(input);
+				}
 			} else {
 				b_addqchr(dest, ch, dest->quote);
 			}
@@ -2445,10 +2460,13 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case '\'':
 			dest->nonnull = 1;
-			while(ch=b_getch(input),ch!=EOF && ch!='\'') {
+			while (1) {
+				ch = b_getch(input);
+				if (ch == EOF || ch == '\'')
+					break;
 				b_addchr(dest,ch);
 			}
-			if (ch==EOF) {
+			if (ch == EOF) {
 				syntax();
 				return 1;
 			}
@@ -2766,7 +2784,7 @@ int hush_main(int argc, char **argv)
 		free((char*)cwd);
 	{
 		struct variables *cur, *tmp;
-		for(cur = top_vars; cur; cur = tmp) {
+		for (cur = top_vars; cur; cur = tmp) {
 			tmp = cur->next;
 			if (!cur->flg_read_only) {
 				free(cur->name);
