@@ -583,7 +583,8 @@ static int builtin_fg_bg(struct child_prog *child)
 	for (i = 0; i < pi->num_progs; i++)
 		pi->progs[i].is_stopped = 0;
 
-	if ( (i=kill(- pi->pgrp, SIGCONT)) < 0) {
+	i = kill(- pi->pgrp, SIGCONT);
+	if (i < 0) {
 		if (i == ESRCH) {
 			remove_bg_job(pi);
 		} else {
@@ -831,7 +832,7 @@ static int b_adduint(o_string *o, unsigned i)
 	int r;
 	char *p = simple_itoa(i);
 	/* no escape checking necessary */
-	do r = b_addchr(o, *p++); while (r==0 && *p);
+	do r = b_addchr(o, *p++); while (r == 0 && *p);
 	return r;
 }
 
@@ -972,8 +973,8 @@ static void setup_string_in_str(struct in_str *i, const char *s)
 {
 	i->peek = static_peek;
 	i->get = static_get;
-	i->__promptme=1;
-	i->promptmode=1;
+	i->__promptme = 1;
+	i->promptmode = 1;
 	i->p = s;
 }
 
@@ -1114,7 +1115,7 @@ static void pseudo_exec(struct child_prog *child)
 #if ENABLE_FEATURE_SH_STANDALONE_SHELL
 		{
 			int argc_l;
-			char** argv_l=child->argv;
+			char** argv_l = child->argv;
 			char *name = child->argv[0];
 
 			/* Count argc for use in a second... */
@@ -1430,7 +1431,7 @@ static int run_pipe_real(struct pipe *pi)
 				dup2(nextout, 1);
 				close(nextout);
 			}
-			if (pipefds[0]!=-1) {
+			if (pipefds[0] != -1) {
 				close(pipefds[0]);  /* opposite end of our output pipe */
 			}
 
@@ -1438,7 +1439,7 @@ static int run_pipe_real(struct pipe *pi)
 			 * and the pipe fd is available for dup'ing. */
 			setup_redirects(child,NULL);
 
-			if (interactive && pi->followup!=PIPE_BG) {
+			if (interactive && pi->followup != PIPE_BG) {
 				/* If we (the child) win the race, put ourselves in the process
 				 * group whose leader is the first process in this pipe. */
 				if (pi->pgrp < 0) {
@@ -1789,9 +1790,9 @@ static const char *get_local_var(const char *s)
 }
 
 /* This is used to set local shell variables
-   flg_export==0 if only local (not exporting) variable
-   flg_export==1 if "new" exporting environ
-   flg_export>1  if current startup environ (not call putenv()) */
+   flg_export == 0 if only local (not exporting) variable
+   flg_export == 1 if "new" exporting environ
+   flg_export > 1  if current startup environ (not call putenv()) */
 static int set_local_var(const char *s, int flg_export)
 {
 	char *name, *value;
@@ -1817,7 +1818,7 @@ static int set_local_var(const char *s, int flg_export)
 
 	if (cur) {
 		if (strcmp(cur->value, value) == 0) {
-			if (flg_export>0 && cur->flg_export == 0)
+			if (flg_export > 0 && cur->flg_export == 0)
 				cur->flg_export = flg_export;
 			else
 				result++;
@@ -1826,7 +1827,7 @@ static int set_local_var(const char *s, int flg_export)
 				bb_error_msg("%s: readonly variable", name);
 				result = -1;
 			} else {
-				if (flg_export > 0 || cur->flg_export>1)
+				if (flg_export > 0 || cur->flg_export > 1)
 					cur->flg_export = 1;
 				free((char*)cur->value);
 
@@ -2024,14 +2025,14 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
 				}
 				*new = *ctx;   /* physical copy */
 				initialize_context(ctx);
-				ctx->stack=new;
-			} else if ( ctx->w == RES_NONE || ! (ctx->old_flag & (1<<r->code))) {
+				ctx->stack = new;
+			} else if (ctx->w == RES_NONE || !(ctx->old_flag & (1 << r->code))) {
 				syntax();
 				ctx->w = RES_SNTX;
 				b_reset(dest);
 				return 1;
 			}
-			ctx->w=r->code;
+			ctx->w = r->code;
 			ctx->old_flag = r->flag;
 			if (ctx->old_flag & FLAG_END) {
 				struct p_context *old;
@@ -2054,7 +2055,7 @@ static int reserved_word(o_string *dest, struct p_context *ctx)
  * Syntax or xglob errors return 1. */
 static int done_word(o_string *dest, struct p_context *ctx)
 {
-	struct child_prog *child=ctx->child;
+	struct child_prog *child = ctx->child;
 	glob_t *glob_target;
 	int gr, flags = 0;
 
@@ -2072,7 +2073,8 @@ static int done_word(o_string *dest, struct p_context *ctx)
 		}
 		if (!child->argv && (ctx->type & FLAG_PARSE_SEMICOLON)) {
 			debug_printf("checking %s for reserved-ness\n",dest->data);
-			if (reserved_word(dest,ctx)) return ctx->w==RES_SNTX;
+			if (reserved_word(dest,ctx))
+				return (ctx->w == RES_SNTX);
 		}
 		glob_target = &child->glob_result;
 		if (child->argv) flags |= GLOB_APPEND;
@@ -2082,7 +2084,7 @@ static int done_word(o_string *dest, struct p_context *ctx)
 
 	b_reset(dest);
 	if (ctx->pending_redirect) {
-		ctx->pending_redirect=NULL;
+		ctx->pending_redirect = NULL;
 		if (glob_target->gl_pathc != 1) {
 			bb_error_msg("ambiguous redirect");
 			return 1;
@@ -2106,8 +2108,8 @@ static int done_command(struct p_context *ctx)
 	 * Only real trickiness here is that the uncommitted
 	 * child structure, to which ctx->child points, is not
 	 * counted in pi->num_progs. */
-	struct pipe *pi=ctx->pipe;
-	struct child_prog *prog=ctx->child;
+	struct pipe *pi = ctx->pipe;
+	struct child_prog *prog = ctx->child;
 
 	if (prog && prog->group == NULL
 	         && prog->argv == NULL
@@ -2144,7 +2146,7 @@ static int done_pipe(struct p_context *ctx, pipe_style type)
 	debug_printf("done_pipe, type %d\n", type);
 	ctx->pipe->followup = type;
 	ctx->pipe->r_mode = ctx->w;
-	new_p=new_pipe();
+	new_p = new_pipe();
 	ctx->pipe->next = new_p;
 	ctx->pipe = new_p;
 	ctx->child = NULL;
@@ -2158,19 +2160,19 @@ static int done_pipe(struct p_context *ctx, pipe_style type)
  */
 static int redirect_dup_num(struct in_str *input)
 {
-	int ch, d=0, ok=0;
+	int ch, d = 0, ok = 0;
 	ch = b_peek(input);
 	if (ch != '&') return -1;
 
 	b_getch(input);  /* get the & */
-	ch=b_peek(input);
+	ch = b_peek(input);
 	if (ch == '-') {
 		b_getch(input);
 		return -3;  /* "-" represents "close me" */
 	}
 	while (isdigit(ch)) {
 		d = d*10+(ch-'0');
-		ok=1;
+		ok = 1;
 		b_getch(input);
 		ch = b_peek(input);
 	}
@@ -2195,14 +2197,15 @@ static int redirect_opt_num(o_string *o)
 {
 	int num;
 
-	if (o->length==0) return -1;
-	for (num=0; num<o->length; num++) {
-		if (!isdigit(*(o->data+num))) {
+	if (o->length == 0)
+		return -1;
+	for (num = 0; num < o->length; num++) {
+		if (!isdigit(*(o->data + num))) {
 			return -1;
 		}
 	}
 	/* reuse num (and save an int) */
-	num=atoi(o->data);
+	num = atoi(o->data);
 	b_reset(o);
 	return num;
 }
@@ -2211,15 +2214,15 @@ static FILE *generate_stream_from_list(struct pipe *head)
 {
 	FILE *pf;
 	int pid, channel[2];
-	if (pipe(channel)<0) bb_perror_msg_and_die("pipe");
+	if (pipe(channel) < 0) bb_perror_msg_and_die("pipe");
 #if !defined(__UCLIBC__) || defined(__ARCH_HAS_MMU__)
-	pid=fork();
+	pid = fork();
 #else
-	pid=vfork();
+	pid = vfork();
 #endif
-	if (pid<0) {
+	if (pid < 0) {
 		bb_perror_msg_and_die("fork");
-	} else if (pid==0) {
+	} else if (pid == 0) {
 		close(channel[0]);
 		if (channel[1] != 1) {
 			dup2(channel[1],1);
@@ -2239,7 +2242,7 @@ static FILE *generate_stream_from_list(struct pipe *head)
 static int process_command_subs(o_string *dest, struct p_context *ctx, struct in_str *input, int subst_end)
 {
 	int retcode;
-	o_string result=NULL_O_STRING;
+	o_string result = NULL_O_STRING;
 	struct p_context inner;
 	FILE *p;
 	struct in_str pipe_str;
@@ -2252,8 +2255,8 @@ static int process_command_subs(o_string *dest, struct p_context *ctx, struct in
 	done_pipe(&inner, PIPE_SEQ);
 	b_free(&result);
 
-	p=generate_stream_from_list(inner.list_head);
-	if (p==NULL) return 1;
+	p = generate_stream_from_list(inner.list_head);
+	if (p == NULL) return 1;
 	mark_open(fileno(p));
 	setup_file_in_str(&pipe_str, p);
 
@@ -2262,7 +2265,8 @@ static int process_command_subs(o_string *dest, struct p_context *ctx, struct in
 	/* XXX In case of a syntax error, should we try to kill the child?
 	 * That would be tough to do right, so just read until EOF. */
 	if (retcode == 1) {
-		while (b_getch(&pipe_str)!=EOF) { /* discard */ };
+		while (b_getch(&pipe_str) != EOF)
+			/* discard */;
 	}
 
 	debug_printf("done reading from pipe, pclose()ing\n");
@@ -2272,7 +2276,7 @@ static int process_command_subs(o_string *dest, struct p_context *ctx, struct in
 	 * at the same time.  That would be a lot of work, and contrary
 	 * to the KISS philosophy of this program. */
 	mark_closed(fileno(p));
-	retcode=pclose(p);
+	retcode = pclose(p);
 	free_pipe_list(inner.list_head,0);
 	debug_printf("pclosed, retcode=%d\n",retcode);
 	/* XXX this process fails to trim a single trailing newline */
@@ -2282,7 +2286,7 @@ static int process_command_subs(o_string *dest, struct p_context *ctx, struct in
 static int parse_group(o_string *dest, struct p_context *ctx,
 	struct in_str *input, int ch)
 {
-	int rcode, endch=0;
+	int rcode, endch = 0;
 	struct p_context sub;
 	struct child_prog *child = ctx->child;
 	if (child->argv) {
@@ -2291,11 +2295,17 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 	}
 	initialize_context(&sub);
 	switch (ch) {
-		case '(': endch=')'; child->subshell=1; break;
-		case '{': endch='}'; break;
-		default: syntax();   /* really logic error */
+	case '(':
+		endch = ')';
+		child->subshell = 1;
+		break;
+	case '{':
+		endch = '}';
+		break;
+	default:
+		syntax();   /* really logic error */
 	}
-	rcode=parse_stream(dest,&sub,input,endch);
+	rcode = parse_stream(dest,&sub,input,endch);
 	done_word(dest,&sub); /* finish off the final word in the subcontext */
 	done_pipe(&sub, PIPE_SEQ);  /* and the final command there, too */
 	child->group = sub.list_head;
@@ -2319,21 +2329,21 @@ static const char *lookup_param(const char *src)
 /* return code: 0 for OK, 1 for syntax error */
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input)
 {
-	int i, advance=0;
+	int i, advance = 0;
 	char sep[] = " ";
 	int ch = input->peek(input);  /* first character after the $ */
 	debug_printf("handle_dollar: ch=%c\n",ch);
 	if (isalpha(ch)) {
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 		ctx->child->sp++;
-		while (ch=b_peek(input),isalnum(ch) || ch=='_') {
+		while (ch = b_peek(input),isalnum(ch) || ch == '_') {
 			b_getch(input);
 			b_addchr(dest,ch);
 		}
 		b_addchr(dest, SPECIAL_VAR_SYMBOL);
 	} else if (isdigit(ch)) {
 		i = ch-'0';  /* XXX is $0 special? */
-		if (i<global_argc) {
+		if (i < global_argc) {
 			parse_string(dest, ctx, global_argv[i]); /* recursion */
 		}
 		advance = 1;
@@ -2359,7 +2369,10 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			ctx->child->sp++;
 			b_getch(input);
 			/* XXX maybe someone will try to escape the '}' */
-			while (ch=b_getch(input),ch!=EOF && ch!='}') {
+			while (1) {
+				ch = b_getch(input);
+				if (ch == EOF || ch == '}')
+					break;
 				b_addchr(dest,ch);
 			}
 			if (ch != '}') {
@@ -2373,10 +2386,11 @@ static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *i
 			process_command_subs(dest, ctx, input, ')');
 			break;
 		case '*':
-			sep[0]=ifs[0];
-			for (i=1; i<global_argc; i++) {
+			sep[0] = ifs[0];
+			for (i = 1; i < global_argc; i++) {
 				parse_string(dest, ctx, global_argv[i]);
-				if (i+1 < global_argc) parse_string(dest, ctx, sep);
+				if (i+1 < global_argc)
+					parse_string(dest, ctx, sep);
 			}
 			break;
 		case '@':
@@ -2419,28 +2433,31 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 	 * found.  When recursing, quote state is passed in via dest->quote. */
 
 	debug_printf("parse_stream, end_trigger=%d\n",end_trigger);
-	while ((ch=b_getch(input))!=EOF) {
+	while ((ch = b_getch(input)) != EOF) {
 		m = map[ch];
 		next = (ch == '\n') ? 0 : b_peek(input);
 		debug_printf("parse_stream: ch=%c (%d) m=%d quote=%d\n",
-			ch,ch,m,dest->quote);
-		if (m==0 || ((m==1 || m==2) && dest->quote)) {
+						ch, ch, m, dest->quote);
+		if (m == 0 || ((m == 1 || m == 2) && dest->quote)) {
 			b_addqchr(dest, ch, dest->quote);
-		} else {
-			if (m==2) {  /* unquoted IFS */
-				if (done_word(dest, ctx)) {
-					return 1;
-				}
-				/* If we aren't performing a substitution, treat a newline as a
-				 * command separator.  */
-				if (end_trigger != '\0' && ch=='\n')
-					done_pipe(ctx,PIPE_SEQ);
+			continue;
+		}
+		if (m == 2) {  /* unquoted IFS */
+			if (done_word(dest, ctx)) {
+				return 1;
 			}
-			if (ch == end_trigger && !dest->quote && ctx->w==RES_NONE) {
-				debug_printf("leaving parse_stream (triggered)\n");
-				return 0;
-			}
-			if (m!=2) switch (ch) {
+			/* If we aren't performing a substitution, treat a newline as a
+			 * command separator.  */
+			if (end_trigger != '\0' && ch == '\n')
+				done_pipe(ctx,PIPE_SEQ);
+		}
+		if (ch == end_trigger && !dest->quote && ctx->w == RES_NONE) {
+			debug_printf("leaving parse_stream (triggered)\n");
+			return 0;
+		}
+		if (m == 2)
+			continue;
+		switch (ch) {
 		case '#':
 			if (dest->length == 0 && !dest->quote) {
 				while (1) {
@@ -2462,7 +2479,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			b_addqchr(dest, b_getch(input), dest->quote);
 			break;
 		case '$':
-			if (handle_dollar(dest, ctx, input)!=0) return 1;
+			if (handle_dollar(dest, ctx, input) != 0) return 1;
 			break;
 		case '\'':
 			dest->nonnull = 1;
@@ -2487,9 +2504,9 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 		case '>':
 			redir_fd = redirect_opt_num(dest);
 			done_word(dest, ctx);
-			redir_style=REDIRECT_OVERWRITE;
+			redir_style = REDIRECT_OVERWRITE;
 			if (next == '>') {
-				redir_style=REDIRECT_APPEND;
+				redir_style = REDIRECT_APPEND;
 				b_getch(input);
 			} else if (next == '(') {
 				syntax();   /* until we support >(list) Process Substitution */
@@ -2500,12 +2517,12 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 		case '<':
 			redir_fd = redirect_opt_num(dest);
 			done_word(dest, ctx);
-			redir_style=REDIRECT_INPUT;
+			redir_style = REDIRECT_INPUT;
 			if (next == '<') {
-				redir_style=REDIRECT_HEREIS;
+				redir_style = REDIRECT_HEREIS;
 				b_getch(input);
 			} else if (next == '>') {
-				redir_style=REDIRECT_IO;
+				redir_style = REDIRECT_IO;
 				b_getch(input);
 			} else if (next == '(') {
 				syntax();   /* until we support <(list) Process Substitution */
@@ -2519,7 +2536,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case '&':
 			done_word(dest, ctx);
-			if (next=='&') {
+			if (next == '&') {
 				b_getch(input);
 				done_pipe(ctx,PIPE_AND);
 			} else {
@@ -2528,7 +2545,7 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case '|':
 			done_word(dest, ctx);
-			if (next=='|') {
+			if (next == '|') {
 				b_getch(input);
 				done_pipe(ctx,PIPE_OR);
 			} else {
@@ -2540,17 +2557,16 @@ int parse_stream(o_string *dest, struct p_context *ctx,
 			break;
 		case '(':
 		case '{':
-			if (parse_group(dest, ctx, input, ch)!=0) return 1;
+			if (parse_group(dest, ctx, input, ch) != 0)
+				return 1;
 			break;
 		case ')':
 		case '}':
 			syntax();   /* Proper use of this character caught by end_trigger */
 			return 1;
-			break;
 		default:
 			syntax();   /* this is really an internal logic error */
 			return 1;
-			}
 		}
 	}
 	/* complain if quote?  No, maybe we just finished a command substitution
@@ -2595,14 +2611,14 @@ int parse_stream_outer(struct in_str *inp, int flag)
 {
 
 	struct p_context ctx;
-	o_string temp=NULL_O_STRING;
+	o_string temp = NULL_O_STRING;
 	int rcode;
 	do {
 		ctx.type = flag;
 		initialize_context(&ctx);
 		update_ifs_map();
 		if (!(flag & FLAG_PARSE_SEMICOLON) || (flag & FLAG_REPARSING)) mapset(";$&|", 0);
-		inp->promptmode=1;
+		inp->promptmode = 1;
 		rcode = parse_stream(&temp, &ctx, inp, '\n');
 		if (rcode != 1 && ctx.old_flag != 0) {
 			syntax();
@@ -2710,8 +2726,7 @@ int hush_main(int argc, char **argv)
 			set_local_var(*e, 2);   /* without call putenv() */
 	}
 
-	last_return_code=EXIT_SUCCESS;
-
+	last_return_code = EXIT_SUCCESS;
 
 	if (argv[0] && argv[0][0] == '-') {
 		debug_printf("\nsourcing /etc/profile\n");
@@ -2722,7 +2737,7 @@ int hush_main(int argc, char **argv)
 			fclose(input);
 		}
 	}
-	input=stdin;
+	input = stdin;
 
 	while ((opt = getopt(argc, argv, "c:xif")) > 0) {
 		switch (opt) {
@@ -2757,8 +2772,9 @@ int hush_main(int argc, char **argv)
 	 *    standard input is a terminal
 	 *    standard output is a terminal
 	 *    Refer to Posix.2, the description of the `sh' utility. */
-	if (argv[optind]==NULL && input==stdin &&
-			isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)) {
+	if (argv[optind] == NULL && input == stdin
+	 && isatty(STDIN_FILENO) && isatty(STDOUT_FILENO)
+	) {
 		interactive++;
 	}
 
@@ -2773,8 +2789,8 @@ int hush_main(int argc, char **argv)
 		setup_job_control();
 	}
 
-	if (argv[optind]==NULL) {
-		opt=parse_file_outer(stdin);
+	if (argv[optind] == NULL) {
+		opt = parse_file_outer(stdin);
 		goto final_return;
 	}
 
@@ -2885,7 +2901,7 @@ static char **make_list_in(char **inp, char *name)
 }
 
 /* Make new string for parser */
-static char * make_string(char ** inp)
+static char* make_string(char ** inp)
 {
 	char *p;
 	char *str = NULL;
