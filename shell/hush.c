@@ -216,8 +216,8 @@ struct close_me {
 };
 
 struct variables {
-	char *name;
-	char *value;
+	const char *name;
+	const char *value;
 	int flg_export;
 	int flg_read_only;
 	struct variables *next;
@@ -284,7 +284,8 @@ struct built_in_command {
 };
 
 /* belongs in busybox.h */
-static int max(int a, int b) {
+static int max(int a, int b)
+{
 	return (a>b)?a:b;
 }
 
@@ -376,7 +377,7 @@ static int redirect_dup_num(struct in_str *input);
 static int redirect_opt_num(o_string *o);
 static int process_command_subs(o_string *dest, struct p_context *ctx, struct in_str *input, int subst_end);
 static int parse_group(o_string *dest, struct p_context *ctx, struct in_str *input, int ch);
-static char *lookup_param(char *src);
+static const char *lookup_param(const char *src);
 static char *make_string(char **inp);
 static int handle_dollar(o_string *dest, struct p_context *ctx, struct in_str *input);
 static int parse_string(o_string *dest, struct p_context *ctx, const char *src);
@@ -392,7 +393,7 @@ static void remove_bg_job(struct pipe *pi);
 /*     local variable support */
 static char **make_list_in(char **inp, char *name);
 static char *insert_var_value(char *inp);
-static char *get_local_var(const char *var);
+static const char *get_local_var(const char *var);
 static void  unset_local_var(const char *name);
 static int set_local_var(const char *s, int flg_export);
 
@@ -513,7 +514,7 @@ static int builtin_export(struct child_prog *child)
 	name = strdup(name);
 
 	if(name) {
-		char *value = strchr(name, '=');
+		const char *value = strchr(name, '=');
 
 		if (!value) {
 			char *tmp;
@@ -1761,7 +1762,7 @@ static int xglob(o_string *dest, int flags, glob_t *pglob)
 }
 
 /* This is used to get/check local shell variables */
-static char *get_local_var(const char *s)
+static const char *get_local_var(const char *s)
 {
 	struct variables *cur;
 
@@ -1803,7 +1804,7 @@ static int set_local_var(const char *s, int flg_export)
 	if(cur) {
 		if(strcmp(cur->value, value)==0) {
 			if(flg_export>0 && cur->flg_export==0)
-				cur->flg_export=flg_export;
+				cur->flg_export = flg_export;
 			else
 				result++;
 		} else {
@@ -1813,7 +1814,7 @@ static int set_local_var(const char *s, int flg_export)
 			} else {
 				if(flg_export>0 || cur->flg_export>1)
 					cur->flg_export=1;
-				free(cur->value);
+				free((char*)cur->value);
 
 				cur->value = strdup(value);
 			}
@@ -1867,8 +1868,8 @@ static void unset_local_var(const char *name)
 			} else {
 				if(cur->flg_export)
 					unsetenv(cur->name);
-				free(cur->name);
-				free(cur->value);
+				free((char*)cur->name);
+				free((char*)cur->value);
 				while (next->next != cur)
 					next = next->next;
 				next->next = cur->next;
@@ -2288,9 +2289,9 @@ static int parse_group(o_string *dest, struct p_context *ctx,
 
 /* basically useful version until someone wants to get fancier,
  * see the bash man page under "Parameter Expansion" */
-static char *lookup_param(char *src)
+static const char *lookup_param(const char *src)
 {
-	char *p=NULL;
+	const char *p = NULL;
 	if (src) {
 		p = getenv(src);
 		if (!p)
@@ -2785,7 +2786,8 @@ static char *insert_var_value(char *inp)
 	int res_str_len = 0;
 	int len;
 	int done = 0;
-	char *p, *p1, *res_str = NULL;
+	char *p, *res_str = NULL;
+	const char *p1;
 
 	while ((p = strchr(inp, SPECIAL_VAR_SYMBOL))) {
 		if (p != inp) {
@@ -2797,7 +2799,8 @@ static char *insert_var_value(char *inp)
 		inp = ++p;
 		p = strchr(inp, SPECIAL_VAR_SYMBOL);
 		*p = '\0';
-		if ((p1 = lookup_param(inp))) {
+		p1 = lookup_param(inp);
+		if (p1) {
 			len = res_str_len + strlen(p1);
 			res_str = xrealloc(res_str, (1 + len));
 			strcpy((res_str + res_str_len), p1);
