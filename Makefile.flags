@@ -16,10 +16,7 @@ CPPFLAGS += \
 	-D"BB_VER=KBUILD_STR($(BB_VER))" -DBB_BT=AUTOCONF_TIMESTAMP
 
 # flag checks are grouped together to speed the checks up a bit..
-CFLAGS += $(call cc-option,-Wall -Wshadow,)
-ifeq ($(CONFIG_WERROR),y)
-CFLAGS += $(call cc-option,-Werror,)
-endif
+CFLAGS += $(call cc-option,-Wall -Wshadow -Wwrite-strings,)
 CFLAGS += $(call cc-option,-Wundef -Wstrict-prototypes,)
 # If you want to add "-Wmissing-prototypes -Wmissing-declarations" above
 # (or anything else for that matter) make sure that it is still possible
@@ -28,6 +25,9 @@ CFLAGS += $(call cc-option,-Wundef -Wstrict-prototypes,)
 # But still, warning-free compile is a must, or else we will drown
 # in warnings pretty soon.
 
+ifeq ($(CONFIG_WERROR),y)
+CFLAGS += $(call cc-option,-Werror,)
+endif
 # gcc 3.x emits bogus "old style proto" warning on find.c:alloc_action()
 CFLAGS += $(call cc-ifversion, -ge, 0400, -Wold-style-definition)
 
