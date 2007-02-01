@@ -17,6 +17,8 @@
 #include <sys/times.h>
 #include "busybox.h"
 
+extern char **environ;
+
 
 /*#define MSHDEBUG 1*/
 
@@ -181,10 +183,7 @@ static const char *const T_CMD_NAMES[] = {
 
 /* PROTOTYPES */
 static int newfile(char *s);
-static char *findeq(char *cp);
 static char *cclass(char *p, int sub);
-static void initarea(void);
-extern int msh_main(int argc, char **argv);
 
 
 struct brkcon {
@@ -254,6 +253,13 @@ static int yynerrs;				/* yacc */
 static char line[LINELIM];
 static char *elinep;
 
+#if ENABLE_FEATURE_EDITING
+static char *current_prompt;
+static line_input_t *line_input_state;
+#endif
+
+static int areanum;				/* current allocation area */
+
 
 /*
  * other functions
@@ -262,12 +268,9 @@ typedef int (*builtin_func_ptr)(struct op *);
 static builtin_func_ptr inbuilt(char *s);
 
 static char *rexecve(char *c, char **v, char **envp);
-static char *space(int n);
-static char *strsave(char *s, int a);
 static char *evalstr(char *cp, int f);
 static char *putn(int n);
 static char *unquote(char *as);
-static struct var *lookup(char *n);
 static int rlookup(char *n);
 static struct wdblock *glob(char *cp, struct wdblock *wb);
 static int my_getc(int ec);
@@ -291,16 +294,6 @@ static void runtrap(int i);
 static int gmatch(char *s, char *p);
 
 
-/*
- * error handling
- */
-static void leave(void);		/* abort shell (or fail in subshell) */
-static void fail(void);			/* fail but return to process next command */
-static void warn(const char *s);
-static void sig(int i);			/* default signal handler */
-
-
-
 /* -------- area stuff -------- */
 
 #define	REGSIZE	  sizeof(struct region)
@@ -318,7 +311,6 @@ struct region {
 };
 
 
-
 /* -------- grammar stuff -------- */
 typedef union {
 	char *cp;
@@ -327,32 +319,32 @@ typedef union {
 	struct op *o;
 } YYSTYPE;
 
-#define	WORD	256
-#define	LOGAND	257
-#define	LOGOR	258
-#define	BREAK	259
-#define	IF		260
-#define	THEN	261
-#define	ELSE	262
-#define	ELIF	263
-#define	FI		264
-#define	CASE	265
-#define	ESAC	266
-#define	FOR		267
-#define	WHILE	268
-#define	UNTIL	269
-#define	DO		270
-#define	DONE	271
-#define	IN		272
+#define WORD    256
+#define LOGAND  257
+#define LOGOR   258
+#define BREAK   259
+#define IF      260
+#define THEN    261
+#define ELSE    262
+#define ELIF    263
+#define FI      264
+#define CASE    265
+#define ESAC    266
+#define FOR     267
+#define WHILE   268
+#define UNTIL   269
+#define DO      270
+#define DONE    271
+#define IN      272
 /* Added for "." file expansion */
-#define	DOT		273
+#define DOT     273
 
 #define	YYERRCODE 300
 
 /* flags to yylex */
-#define	CONTIN	01				/* skip new lines to complete command */
+#define	CONTIN 01     /* skip new lines to complete command */
 
-#define	SYNTAXERR	zzerr()
+#define	SYNTAXERR zzerr()
 
 static struct op *pipeline(int cf);
 static struct op *andor(void);
@@ -400,16 +392,6 @@ struct var {
 #define	GETCELL	04				/* name & value space was got with getcell */
 
 static int yyparse(void);
-static struct var *lookup(char *n);
-static void setval(struct var *vp, char *val);
-static void nameval(struct var *vp, char *val, char *name);
-static void export(struct var *vp);
-static void ronly(struct var *vp);
-static int isassign(char *s);
-static int checkname(char *cp);
-static int assign(char *s, int cf);
-static void putvlist(int f, int out);
-static int eqname(char *n1, char *n2);
 
 static int execute(struct op *t, int *pin, int *pout, int act);
 
@@ -518,23 +500,6 @@ struct wdblock {
 static struct wdblock *addword(char *wd, struct wdblock *wb);
 static struct wdblock *newword(int nw);
 static char **getwords(struct wdblock *wb);
-
-/* -------- area.h -------- */
-
-/*
- * storage allocation
- */
-static char *getcell(unsigned nbytes);
-static void garbage(void);
-static void setarea(char *cp, int a);
-static int getarea(char *cp);
-static void freearea(int a);
-static void freecell(char *cp);
-static int areanum;				/* current allocation area */
-
-#define	NEW(type)   (type *)getcell(sizeof(type))
-#define	DELETE(obj)	freecell((char *)obj)
-
 
 /* -------- misc stuff -------- */
 
@@ -674,9 +639,8 @@ static const struct builtincmd builtincmds[] = {
 static struct op *scantree(struct op *);
 static struct op *dowholefile(int, int);
 
-/* Globals */
-extern char **environ;			/* environment pointer */
 
+/* Globals */
 static char **dolv;
 static int dolc;
 static int exstat;
@@ -773,218 +737,456 @@ void print_tree(struct op *head)
 #endif							/* MSHDEBUG */
 
 
-#if ENABLE_FEATURE_EDITING
-static char *current_prompt;
-#endif
+/* fail but return to process next command */
+static void fail(void)
+{
+	longjmp(failpt, 1);
+	/* NOTREACHED */
+}
 
-/* -------- sh.c -------- */
+/* abort shell (or fail in subshell) */
+static void leave(void) ATTRIBUTE_NORETURN;
+static void leave(void)
+{
+	DBGPRINTF(("LEAVE: leave called!\n"));
+
+	if (execflg)
+		fail();
+	scraphere();
+	freehere(1);
+	runtrap(0);
+	_exit(exstat);
+	/* NOTREACHED */
+}
+
+static void warn(const char *s)
+{
+	if (*s) {
+		prs(s);
+		exstat = -1;
+	}
+	prs("\n");
+	if (flag['e'])
+		leave();
+}
+
+static void err(const char *s)
+{
+	warn(s);
+	if (flag['n'])
+		return;
+	if (!interactive)
+		leave();
+	if (e.errpt)
+		longjmp(e.errpt, 1);
+	closeall();
+	e.iop = e.iobase = iostack;
+}
+
+/* -------- area.c -------- */
+
 /*
- * shell
+ * All memory between (char *)areabot and (char *)(areatop+1) is
+ * exclusively administered by the area management routines.
+ * It is assumed that sbrk() and brk() manipulate the high end.
  */
 
+#define sbrk(X) ({ \
+	void * __q = (void *)-1; \
+	if (brkaddr + (int)(X) < brktop) { \
+		__q = brkaddr; \
+		brkaddr += (int)(X); \
+	} \
+	__q; \
+})
 
-#if ENABLE_FEATURE_EDITING
-static line_input_t *line_input_state;
-#endif
-
-int msh_main(int argc, char **argv)
+static void initarea(void)
 {
-	int f;
-	char *s;
-	int cflag;
-	char *name, **ap;
-	int (*iof) (struct ioarg *);
+	brkaddr = xmalloc(AREASIZE);
+	brktop = brkaddr + AREASIZE;
 
-#if ENABLE_FEATURE_EDITING
-	line_input_state = new_line_input_t(FOR_SHELL);
-#endif
+	while ((long) sbrk(0) & ALIGN)
+		sbrk(1);
+	areabot = (struct region *) sbrk(REGSIZE);
 
-	DBGPRINTF(("MSH_MAIN: argc %d, environ %p\n", argc, environ));
-
-	initarea();
-	ap = environ;
-	if (ap != NULL) {
-		while (*ap)
-			assign(*ap++, !COPYV);
-		for (ap = environ; *ap;)
-			export(lookup(*ap++));
-	}
-	closeall();
-	areanum = 1;
-
-	shell = lookup("SHELL");
-	if (shell->value == null)
-		setval(shell, (char *)DEFAULT_SHELL);
-	export(shell);
-
-	homedir = lookup("HOME");
-	if (homedir->value == null)
-		setval(homedir, "/");
-	export(homedir);
-
-	setval(lookup("$"), putn(getpid()));
-
-	path = lookup("PATH");
-	if (path->value == null) {
-		if (geteuid() == 0)
-			setval(path, "/sbin:/bin:/usr/sbin:/usr/bin");
-		else
-			setval(path, "/bin:/usr/bin");
-	}
-	export(path);
-
-	ifs = lookup("IFS");
-	if (ifs->value == null)
-		setval(ifs, " \t\n");
-
-#ifdef MSHDEBUG
-	mshdbg_var = lookup("MSHDEBUG");
-	if (mshdbg_var->value == null)
-		setval(mshdbg_var, "0");
-#endif
-
-	prompt = lookup("PS1");
-#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	if (prompt->value == null)
-#endif
-		setval(prompt, DEFAULT_USER_PROMPT);
-	if (geteuid() == 0) {
-		setval(prompt, DEFAULT_ROOT_PROMPT);
-		prompt->status &= ~EXPORT;
-	}
-	cprompt = lookup("PS2");
-#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
-	if (cprompt->value == null)
-#endif
-		setval(cprompt, "> ");
-
-	iof = filechar;
-	cflag = 0;
-	name = *argv++;
-	if (--argc >= 1) {
-		if (argv[0][0] == '-' && argv[0][1] != '\0') {
-			for (s = argv[0] + 1; *s; s++)
-				switch (*s) {
-				case 'c':
-					prompt->status &= ~EXPORT;
-					cprompt->status &= ~EXPORT;
-					setval(prompt, "");
-					setval(cprompt, "");
-					cflag = 1;
-					if (--argc > 0)
-						PUSHIO(aword, *++argv, iof = nlchar);
-					break;
-
-				case 'q':
-					qflag = SIG_DFL;
-					break;
-
-				case 's':
-					/* standard input */
-					break;
-
-				case 't':
-					prompt->status &= ~EXPORT;
-					setval(prompt, "");
-					iof = linechar;
-					break;
-
-				case 'i':
-					interactive++;
-				default:
-					if (*s >= 'a' && *s <= 'z')
-						flag[(int) *s]++;
-				}
-		} else {
-			argv--;
-			argc++;
-		}
-
-		if (iof == filechar && --argc > 0) {
-			setval(prompt, "");
-			setval(cprompt, "");
-			prompt->status &= ~EXPORT;
-			cprompt->status &= ~EXPORT;
-
-/* Shell is non-interactive, activate printf-based debug */
-#ifdef MSHDEBUG
-			mshdbg = (int) (((char) (mshdbg_var->value[0])) - '0');
-			if (mshdbg < 0)
-				mshdbg = 0;
-#endif
-			DBGPRINTF(("MSH_MAIN: calling newfile()\n"));
-
-			name = *++argv;
-			if (newfile(name))
-				exit(1);		/* Exit on error */
-		}
-	}
-
-	setdash();
-
-	/* This won't be true if PUSHIO has been called, say from newfile() above */
-	if (e.iop < iostack) {
-		PUSHIO(afile, 0, iof);
-		if (isatty(0) && isatty(1) && !cflag) {
-			interactive++;
-#if !ENABLE_FEATURE_SH_EXTRA_QUIET
-#ifdef MSHDEBUG
-			printf("\n\n%s Built-in shell (msh with debug)\n", BB_BANNER);
-#else
-			printf("\n\n%s Built-in shell (msh)\n", BB_BANNER);
-#endif
-			printf("Enter 'help' for a list of built-in commands.\n\n");
-#endif
-		}
-	}
-
-	signal(SIGQUIT, qflag);
-	if (name && name[0] == '-') {
-		interactive++;
-		f = open(".profile", 0);
-		if (f >= 0)
-			next(remap(f));
-		f = open("/etc/profile", 0);
-		if (f >= 0)
-			next(remap(f));
-	}
-	if (interactive)
-		signal(SIGTERM, sig);
-
-	if (signal(SIGINT, SIG_IGN) != SIG_IGN)
-		signal(SIGINT, onintr);
-	dolv = argv;
-	dolc = argc;
-	dolv[0] = name;
-	if (dolc > 1) {
-		for (ap = ++argv; --argc > 0;) {
-			*ap = *argv++;
-			if (assign(*ap, !COPYV)) {
-				dolc--;			/* keyword */
-			} else {
-				ap++;
-			}
-		}
-	}
-	setval(lookup("#"), putn((--dolc < 0) ? (dolc = 0) : dolc));
-
-	DBGPRINTF(("MSH_MAIN: begin FOR loop, interactive %d, e.iop %p, iostack %p\n", interactive, e.iop, iostack));
-
-	for (;;) {
-		if (interactive && e.iop <= iostack) {
-#if ENABLE_FEATURE_EDITING
-			current_prompt = prompt->value;
-#else
-			prs(prompt->value);
-#endif
-		}
-		onecommand();
-		/* Ensure that getenv("PATH") stays current */
-		setenv("PATH", path->value, 1);
-	}
-
-	DBGPRINTF(("MSH_MAIN: returning.\n"));
+	areabot->next = areabot;
+	areabot->area = BUSY;
+	areatop = areabot;
+	areanxt = areabot;
 }
+
+static char *getcell(unsigned nbytes)
+{
+	int nregio;
+	struct region *p, *q;
+	int i;
+
+	if (nbytes == 0) {
+		puts("getcell(0)");
+		abort();
+	}
+	/* silly and defeats the algorithm */
+	/*
+	 * round upwards and add administration area
+	 */
+	nregio = (nbytes + (REGSIZE - 1)) / REGSIZE + 1;
+	p = areanxt;
+	for (;;) {
+		if (p->area > areanum) {
+			/*
+			 * merge free cells
+			 */
+			while ((q = p->next)->area > areanum && q != areanxt)
+				p->next = q->next;
+			/*
+			 * exit loop if cell big enough
+			 */
+			if (q >= p + nregio)
+				goto found;
+		}
+		p = p->next;
+		if (p == areanxt)
+			break;
+	}
+	i = nregio >= GROWBY ? nregio : GROWBY;
+	p = (struct region *) sbrk(i * REGSIZE);
+	if (p == (struct region *) -1)
+		return NULL;
+	p--;
+	if (p != areatop) {
+		puts("not contig");
+		abort();				/* allocated areas are contiguous */
+	}
+	q = p + i;
+	p->next = q;
+	p->area = FREE;
+	q->next = areabot;
+	q->area = BUSY;
+	areatop = q;
+ found:
+	/*
+	 * we found a FREE area big enough, pointed to by 'p', and up to 'q'
+	 */
+	areanxt = p + nregio;
+	if (areanxt < q) {
+		/*
+		 * split into requested area and rest
+		 */
+		if (areanxt + 1 > q) {
+			puts("OOM");
+			abort();			/* insufficient space left for admin */
+		}
+		areanxt->next = q;
+		areanxt->area = FREE;
+		p->next = areanxt;
+	}
+	p->area = areanum;
+	return (char *) (p + 1);
+}
+
+static void freecell(char *cp)
+{
+	struct region *p;
+
+	p = (struct region *) cp;
+	if (p != NULL) {
+		p--;
+		if (p < areanxt)
+			areanxt = p;
+		p->area = FREE;
+	}
+}
+#define	DELETE(obj) freecell((char *)obj)
+
+static void freearea(int a)
+{
+	struct region *p, *top;
+
+	top = areatop;
+	for (p = areabot; p != top; p = p->next)
+		if (p->area >= a)
+			p->area = FREE;
+}
+
+static void setarea(char *cp, int a)
+{
+	struct region *p;
+
+	p = (struct region *) cp;
+	if (p != NULL)
+		(p - 1)->area = a;
+}
+
+static int getarea(char *cp)
+{
+	return ((struct region *) cp - 1)->area;
+}
+
+static void garbage(void)
+{
+	struct region *p, *q, *top;
+
+	top = areatop;
+	for (p = areabot; p != top; p = p->next) {
+		if (p->area > areanum) {
+			while ((q = p->next)->area > areanum)
+				p->next = q->next;
+			areanxt = p;
+		}
+	}
+#ifdef SHRINKBY
+	if (areatop >= q + SHRINKBY && q->area > areanum) {
+		brk((char *) (q + 1));
+		q->next = areabot;
+		q->area = BUSY;
+		areatop = q;
+	}
+#endif
+}
+
+static char *space(int n)
+{
+	char *cp;
+
+	cp = getcell(n);
+	if (cp == '\0')
+		err("out of string space");
+	return cp;
+}
+
+static char *strsave(const char *s, int a)
+{
+	char *cp;
+
+	cp = space(strlen(s) + 1);
+	if (cp != NULL) {
+		setarea(cp, a);
+		strcpy(cp, s);
+		return cp;
+	}
+	return "";
+}
+
+/* -------- var.c -------- */
+
+static int eqname(const char *n1, const char *n2)
+{
+	for (; *n1 != '=' && *n1 != '\0'; n1++)
+		if (*n2++ != *n1)
+			return 0;
+	return *n2 == '\0' || *n2 == '=';
+}
+
+static char *findeq(const char *cp)
+{
+	while (*cp != '\0' && *cp != '=')
+		cp++;
+	return cp;
+}
+
+/*
+ * Find the given name in the dictionary
+ * and return its value.  If the name was
+ * not previously there, enter it now and
+ * return a null value.
+ */
+static struct var *lookup(const char *n)
+{
+	struct var *vp;
+	char *cp;
+	int c;
+	static struct var dummy;
+
+	if (isdigit(*n)) {
+		dummy.name = n;
+		for (c = 0; isdigit(*n) && c < 1000; n++)
+			c = c * 10 + *n - '0';
+		dummy.status = RONLY;
+		dummy.value = (c <= dolc ? dolv[c] : null);
+		return &dummy;
+	}
+	for (vp = vlist; vp; vp = vp->next)
+		if (eqname(vp->name, n))
+			return vp;
+	cp = findeq(n);
+	vp = (struct var *) space(sizeof(*vp));
+	if (vp == 0 || (vp->name = space((int) (cp - n) + 2)) == 0) {
+		dummy.name = dummy.value = "";
+		return &dummy;
+	}
+	for (cp = vp->name; (*cp = *n++) && *cp != '='; cp++);
+	if (*cp == '\0')
+		*cp = '=';
+	*++cp = '\0';
+	setarea((char *) vp, 0);
+	setarea((char *) vp->name, 0);
+	vp->value = null;
+	vp->next = vlist;
+	vp->status = GETCELL;
+	vlist = vp;
+	return vp;
+}
+
+/*
+ * if name is not NULL, it must be
+ * a prefix of the space `val',
+ * and end with `='.
+ * this is all so that exporting
+ * values is reasonably painless.
+ */
+static void nameval(struct var *vp, const char *val, const char *name)
+{
+	const char *cp;
+	char *xp;
+	int fl;
+
+	if (vp->status & RONLY) {
+		xp = vp->name;
+		while (*xp && *xp != '=')
+			putc(*xp++, stderr);
+		err(" is read-only");
+		return;
+	}
+	fl = 0;
+	if (name == NULL) {
+		xp = space(strlen(vp->name) + strlen(val) + 2);
+		if (xp == NULL)
+			return;
+		/* make string: name=value */
+		setarea(xp, 0);
+		name = xp;
+		cp = vp->name;
+		while ((*xp = *cp++) != '\0' && *xp != '=')
+			xp++;
+		*xp++ = '=';
+		strcpy(xp, val);
+		val = xp;
+		fl = GETCELL;
+	}
+	if (vp->status & GETCELL)
+		freecell(vp->name);		/* form new string `name=value' */
+	vp->name = name;
+	vp->value = val;
+	vp->status |= fl;
+}
+
+/*
+ * give variable at `vp' the value `val'.
+ */
+static void setval(struct var *vp, const char *val)
+{
+	nameval(vp, val, NULL);
+}
+
+static void export(struct var *vp)
+{
+	vp->status |= EXPORT;
+}
+
+static void ronly(struct var *vp)
+{
+	if (isalpha(vp->name[0]) || vp->name[0] == '_')	/* not an internal symbol */
+		vp->status |= RONLY;
+}
+
+static int isassign(const char *s)
+{
+	unsigned char c;
+	DBGPRINTF7(("ISASSIGN: enter, s=%s\n", s));
+
+	/* no isalpha() - we shouldn't use locale */
+	c = *s;
+	if (c != '_'
+	 && (unsigned)((c|0x20) - 'a') > 25 /* not letter */
+	) {
+		return 0;
+	}
+	while (1) {
+		c = *++s;
+		if (c == '\0')
+			return 0;
+		if (c == '=')
+			return 1;
+		c |= 0x20; /* lowercase letters, doesn't affect numbers */
+		if (c != '_'
+		 && (unsigned)(c - '0') > 9  /* not number */
+		 && (unsigned)(c - 'a') > 25 /* not letter */
+		) {
+			return 0;
+		}
+	}
+}
+
+static int assign(const char *s, int cf)
+{
+	char *cp;
+	struct var *vp;
+
+	DBGPRINTF7(("ASSIGN: enter, s=%s, cf=%d\n", s, cf));
+
+	if (!isalpha(*s) && *s != '_')
+		return 0;
+	for (cp = s; *cp != '='; cp++)
+		if (*cp == '\0' || (!isalnum(*cp) && *cp != '_'))
+			return 0;
+	vp = lookup(s);
+	nameval(vp, ++cp, cf == COPYV ? NULL : s);
+	if (cf != COPYV)
+		vp->status &= ~GETCELL;
+	return 1;
+}
+
+static int checkname(char *cp)
+{
+	DBGPRINTF7(("CHECKNAME: enter, cp=%s\n", cp));
+
+	if (!isalpha(*cp++) && *(cp - 1) != '_')
+		return 0;
+	while (*cp)
+		if (!isalnum(*cp++) && *(cp - 1) != '_')
+			return 0;
+	return 1;
+}
+
+static void putvlist(int f, int out)
+{
+	struct var *vp;
+
+	for (vp = vlist; vp; vp = vp->next)
+		if (vp->status & f && (isalpha(*vp->name) || *vp->name == '_')) {
+			if (vp->status & EXPORT)
+				write(out, "export ", 7);
+			if (vp->status & RONLY)
+				write(out, "readonly ", 9);
+			write(out, vp->name, (int) (findeq(vp->name) - vp->name));
+			write(out, "\n", 1);
+		}
+}
+
+
+/*
+ * trap handling
+ */
+static void sig(int i)
+{
+	trapset = i;
+	signal(i, sig);
+}
+
+static void runtrap(int i)
+{
+	char *trapstr;
+
+	trapstr = trap[i];
+	if (trapstr == NULL)
+		return;
+
+	if (i == 0)
+		trap[i] = NULL;
+
+	RUN(aword, trapstr, nlchar);
+}
+
 
 static void setdash(void)
 {
@@ -1083,7 +1285,6 @@ static void onecommand(void)
 	setjmp(failpt);		/* Bruce Evans' fix */
 	failpt = m1;
 	if (setjmp(failpt) || yyparse() || intr) {
-
 		DBGPRINTF(("ONECOMMAND: this is not good.\n"));
 
 		while (e.oenv)
@@ -1117,49 +1318,6 @@ static void onecommand(void)
 		trapset = 0;
 		runtrap(i);
 	}
-}
-
-static void fail(void)
-{
-	longjmp(failpt, 1);
-	/* NOTREACHED */
-}
-
-static void leave(void)
-{
-	DBGPRINTF(("LEAVE: leave called!\n"));
-
-	if (execflg)
-		fail();
-	scraphere();
-	freehere(1);
-	runtrap(0);
-	_exit(exstat);
-	/* NOTREACHED */
-}
-
-static void warn(const char *s)
-{
-	if (*s) {
-		prs(s);
-		exstat = -1;
-	}
-	prs("\n");
-	if (flag['e'])
-		leave();
-}
-
-static void err(const char *s)
-{
-	warn(s);
-	if (flag['n'])
-		return;
-	if (!interactive)
-		leave();
-	if (e.errpt)
-		longjmp(e.errpt, 1);
-	closeall();
-	e.iop = e.iobase = iostack;
 }
 
 static int newenv(int f)
@@ -1251,232 +1409,6 @@ static void onintr(int s)					/* ANSI C requires a parameter */
 	}
 }
 
-static char *space(int n)
-{
-	char *cp;
-
-	cp = getcell(n);
-	if (cp == '\0')
-		err("out of string space");
-	return cp;
-}
-
-static char *strsave(char *s, int a)
-{
-	char *cp;
-
-	cp = space(strlen(s) + 1);
-	if (cp != NULL) {
-		setarea(cp, a);
-		strcpy(cp, s);
-		return cp;
-	}
-	return "";
-}
-
-/*
- * trap handling
- */
-static void sig(int i)
-{
-	trapset = i;
-	signal(i, sig);
-}
-
-static void runtrap(int i)
-{
-	char *trapstr;
-
-	trapstr = trap[i];
-	if (trapstr == NULL)
-		return;
-
-	if (i == 0)
-		trap[i] = NULL;
-
-	RUN(aword, trapstr, nlchar);
-}
-
-/* -------- var.c -------- */
-
-/*
- * Find the given name in the dictionary
- * and return its value.  If the name was
- * not previously there, enter it now and
- * return a null value.
- */
-static struct var *lookup(char *n)
-{
-	struct var *vp;
-	char *cp;
-	int c;
-	static struct var dummy;
-
-	if (isdigit(*n)) {
-		dummy.name = n;
-		for (c = 0; isdigit(*n) && c < 1000; n++)
-			c = c * 10 + *n - '0';
-		dummy.status = RONLY;
-		dummy.value = c <= dolc ? dolv[c] : null;
-		return &dummy;
-	}
-	for (vp = vlist; vp; vp = vp->next)
-		if (eqname(vp->name, n))
-			return vp;
-	cp = findeq(n);
-	vp = (struct var *) space(sizeof(*vp));
-	if (vp == 0 || (vp->name = space((int) (cp - n) + 2)) == 0) {
-		dummy.name = dummy.value = "";
-		return &dummy;
-	}
-	for (cp = vp->name; (*cp = *n++) && *cp != '='; cp++);
-	if (*cp == 0)
-		*cp = '=';
-	*++cp = '\0';
-	setarea((char *) vp, 0);
-	setarea((char *) vp->name, 0);
-	vp->value = null;
-	vp->next = vlist;
-	vp->status = GETCELL;
-	vlist = vp;
-	return vp;
-}
-
-/*
- * give variable at `vp' the value `val'.
- */
-static void setval(struct var *vp, char *val)
-{
-	nameval(vp, val, (char *) NULL);
-}
-
-/*
- * if name is not NULL, it must be
- * a prefix of the space `val',
- * and end with `='.
- * this is all so that exporting
- * values is reasonably painless.
- */
-static void nameval(struct var *vp, char *val, char *name)
-{
-	char *cp, *xp;
-	char *nv;
-	int fl;
-
-	if (vp->status & RONLY) {
-		for (xp = vp->name; *xp && *xp != '=';)
-			putc(*xp++, stderr);
-		err(" is read-only");
-		return;
-	}
-	fl = 0;
-	if (name == NULL) {
-		xp = space(strlen(vp->name) + strlen(val) + 2);
-		if (xp == NULL)
-			return;
-		/* make string:  name=value */
-		setarea((char *) xp, 0);
-		name = xp;
-		for (cp = vp->name; (*xp = *cp++) && *xp != '='; xp++);
-		if (*xp++ == '\0')
-			xp[-1] = '=';
-		nv = xp;
-		for (cp = val; (*xp++ = *cp++) != '\0';);
-		val = nv;
-		fl = GETCELL;
-	}
-	if (vp->status & GETCELL)
-		freecell(vp->name);		/* form new string `name=value' */
-	vp->name = name;
-	vp->value = val;
-	vp->status |= fl;
-}
-
-static void export(struct var *vp)
-{
-	vp->status |= EXPORT;
-}
-
-static void ronly(struct var *vp)
-{
-	if (isalpha(vp->name[0]) || vp->name[0] == '_')	/* not an internal symbol */
-		vp->status |= RONLY;
-}
-
-static int isassign(char *s)
-{
-	DBGPRINTF7(("ISASSIGN: enter, s=%s\n", s));
-
-	if (!isalpha((int) *s) && *s != '_')
-		return 0;
-	for (; *s != '='; s++)
-		if (*s == '\0' || (!isalnum(*s) && *s != '_'))
-			return 0;
-
-	return 1;
-}
-
-static int assign(char *s, int cf)
-{
-	char *cp;
-	struct var *vp;
-
-	DBGPRINTF7(("ASSIGN: enter, s=%s, cf=%d\n", s, cf));
-
-	if (!isalpha(*s) && *s != '_')
-		return 0;
-	for (cp = s; *cp != '='; cp++)
-		if (*cp == '\0' || (!isalnum(*cp) && *cp != '_'))
-			return 0;
-	vp = lookup(s);
-	nameval(vp, ++cp, cf == COPYV ? (char *) NULL : s);
-	if (cf != COPYV)
-		vp->status &= ~GETCELL;
-	return 1;
-}
-
-static int checkname(char *cp)
-{
-	DBGPRINTF7(("CHECKNAME: enter, cp=%s\n", cp));
-
-	if (!isalpha(*cp++) && *(cp - 1) != '_')
-		return 0;
-	while (*cp)
-		if (!isalnum(*cp++) && *(cp - 1) != '_')
-			return 0;
-	return 1;
-}
-
-static void putvlist(int f, int out)
-{
-	struct var *vp;
-
-	for (vp = vlist; vp; vp = vp->next)
-		if (vp->status & f && (isalpha(*vp->name) || *vp->name == '_')) {
-			if (vp->status & EXPORT)
-				write(out, "export ", 7);
-			if (vp->status & RONLY)
-				write(out, "readonly ", 9);
-			write(out, vp->name, (int) (findeq(vp->name) - vp->name));
-			write(out, "\n", 1);
-		}
-}
-
-static int eqname(char *n1, char *n2)
-{
-	for (; *n1 != '=' && *n1 != '\0'; n1++)
-		if (*n2++ != *n1)
-			return 0;
-	return *n2 == '\0' || *n2 == '=';
-}
-
-static char *findeq(char *cp)
-{
-	while (*cp != '\0' && *cp != '=')
-		cp++;
-	return cp;
-}
-
 /* -------- gmatch.c -------- */
 /*
  * int gmatch(string, pattern)
@@ -1549,165 +1481,6 @@ static char *cclass(char *p, int sub)
 	return found ? p + 1 : NULL;
 }
 
-
-/* -------- area.c -------- */
-
-/*
- * All memory between (char *)areabot and (char *)(areatop+1) is
- * exclusively administered by the area management routines.
- * It is assumed that sbrk() and brk() manipulate the high end.
- */
-
-#define sbrk(X) ({ \
-	void * __q = (void *)-1; \
-	if (brkaddr + (int)(X) < brktop) { \
-		__q = brkaddr; \
-		brkaddr += (int)(X); \
-	} \
-	__q; \
-})
-
-static void initarea(void)
-{
-	brkaddr = xmalloc(AREASIZE);
-	brktop = brkaddr + AREASIZE;
-
-	while ((long) sbrk(0) & ALIGN)
-		sbrk(1);
-	areabot = (struct region *) sbrk(REGSIZE);
-
-	areabot->next = areabot;
-	areabot->area = BUSY;
-	areatop = areabot;
-	areanxt = areabot;
-}
-
-char *getcell(unsigned nbytes)
-{
-	int nregio;
-	struct region *p, *q;
-	int i;
-
-	if (nbytes == 0) {
-		puts("getcell(0)");
-		abort();
-	}
-	/* silly and defeats the algorithm */
-	/*
-	 * round upwards and add administration area
-	 */
-	nregio = (nbytes + (REGSIZE - 1)) / REGSIZE + 1;
-	for (p = areanxt;;) {
-		if (p->area > areanum) {
-			/*
-			 * merge free cells
-			 */
-			while ((q = p->next)->area > areanum && q != areanxt)
-				p->next = q->next;
-			/*
-			 * exit loop if cell big enough
-			 */
-			if (q >= p + nregio)
-				goto found;
-		}
-		p = p->next;
-		if (p == areanxt)
-			break;
-	}
-	i = nregio >= GROWBY ? nregio : GROWBY;
-	p = (struct region *) sbrk(i * REGSIZE);
-	if (p == (struct region *) -1)
-		return NULL;
-	p--;
-	if (p != areatop) {
-		puts("not contig");
-		abort();				/* allocated areas are contiguous */
-	}
-	q = p + i;
-	p->next = q;
-	p->area = FREE;
-	q->next = areabot;
-	q->area = BUSY;
-	areatop = q;
- found:
-	/*
-	 * we found a FREE area big enough, pointed to by 'p', and up to 'q'
-	 */
-	areanxt = p + nregio;
-	if (areanxt < q) {
-		/*
-		 * split into requested area and rest
-		 */
-		if (areanxt + 1 > q) {
-			puts("OOM");
-			abort();			/* insufficient space left for admin */
-		}
-		areanxt->next = q;
-		areanxt->area = FREE;
-		p->next = areanxt;
-	}
-	p->area = areanum;
-	return (char *) (p + 1);
-}
-
-static void freecell(char *cp)
-{
-	struct region *p;
-
-	p = (struct region *) cp;
-	if (p != NULL) {
-		p--;
-		if (p < areanxt)
-			areanxt = p;
-		p->area = FREE;
-	}
-}
-
-static void freearea(int a)
-{
-	struct region *p, *top;
-
-	top = areatop;
-	for (p = areabot; p != top; p = p->next)
-		if (p->area >= a)
-			p->area = FREE;
-}
-
-static void setarea(char *cp, int a)
-{
-	struct region *p;
-
-	p = (struct region *) cp;
-	if (p != NULL)
-		(p - 1)->area = a;
-}
-
-int getarea(char *cp)
-{
-	return ((struct region *) cp - 1)->area;
-}
-
-static void garbage(void)
-{
-	struct region *p, *q, *top;
-
-	top = areatop;
-	for (p = areabot; p != top; p = p->next) {
-		if (p->area > areanum) {
-			while ((q = p->next)->area > areanum)
-				p->next = q->next;
-			areanxt = p;
-		}
-	}
-#ifdef SHRINKBY
-	if (areatop >= q + SHRINKBY && q->area > areanum) {
-		brk((char *) (q + 1));
-		q->next = areabot;
-		q->area = BUSY;
-		areatop = q;
-	}
-#endif
-}
 
 /* -------- csyn.c -------- */
 /*
@@ -2591,9 +2364,7 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 		break;
 
 	case TCOM:
-		{
-			rv = forkexec(t, pin, pout, act, wp);
-		}
+		rv = forkexec(t, pin, pout, act, wp);
 		break;
 
 	case TPIPE:
@@ -2846,8 +2617,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 			return -1;
 		}
 
-		if (newpid > 0) {		/* Parent */
-
+		if (newpid > 0) {  /* Parent */
 			/* Restore values */
 			pin = hpin;
 			pout = hpout;
@@ -2856,12 +2626,10 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 			intr = hintr;
 			brklist = hbrklist;
 			execflg = hexecflg;
-
 /* moved up
 			if (i == -1)
 				return rv;
 */
-
 			if (pin != NULL)
 				closepipe(pin);
 
@@ -3566,12 +3334,12 @@ static int dotrap(struct op *t)
 			} else
 				setsig(n, SIG_IGN);
 		} else {
-			if (interactive)
+			if (interactive) {
 				if (n == SIGINT)
 					setsig(n, onintr);
 				else
 					setsig(n, n == SIGQUIT ? SIG_IGN : SIG_DFL);
-			else
+			} else
 				setsig(n, SIG_DFL);
 		}
 	}
@@ -5308,6 +5076,211 @@ static void freehere(int area)
 				hl->h_next = h->h_next;
 		} else
 			hl = h;
+}
+
+
+/* -------- sh.c -------- */
+/*
+ * shell
+ */
+
+int msh_main(int argc, char **argv)
+{
+	int f;
+	char *s;
+	int cflag;
+	char *name, **ap;
+	int (*iof) (struct ioarg *);
+
+#if ENABLE_FEATURE_EDITING
+	line_input_state = new_line_input_t(FOR_SHELL);
+#endif
+
+	DBGPRINTF(("MSH_MAIN: argc %d, environ %p\n", argc, environ));
+
+	initarea();
+	ap = environ;
+	if (ap != NULL) {
+		while (*ap)
+			assign(*ap++, !COPYV);
+		for (ap = environ; *ap;)
+			export(lookup(*ap++));
+	}
+	closeall();
+	areanum = 1;
+
+	shell = lookup("SHELL");
+	if (shell->value == null)
+		setval(shell, (char *)DEFAULT_SHELL);
+	export(shell);
+
+	homedir = lookup("HOME");
+	if (homedir->value == null)
+		setval(homedir, "/");
+	export(homedir);
+
+	setval(lookup("$"), putn(getpid()));
+
+	path = lookup("PATH");
+	if (path->value == null) {
+		if (geteuid() == 0)
+			setval(path, "/sbin:/bin:/usr/sbin:/usr/bin");
+		else
+			setval(path, "/bin:/usr/bin");
+	}
+	export(path);
+
+	ifs = lookup("IFS");
+	if (ifs->value == null)
+		setval(ifs, " \t\n");
+
+#ifdef MSHDEBUG
+	mshdbg_var = lookup("MSHDEBUG");
+	if (mshdbg_var->value == null)
+		setval(mshdbg_var, "0");
+#endif
+
+	prompt = lookup("PS1");
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
+	if (prompt->value == null)
+#endif
+		setval(prompt, DEFAULT_USER_PROMPT);
+	if (geteuid() == 0) {
+		setval(prompt, DEFAULT_ROOT_PROMPT);
+		prompt->status &= ~EXPORT;
+	}
+	cprompt = lookup("PS2");
+#if ENABLE_FEATURE_EDITING_FANCY_PROMPT
+	if (cprompt->value == null)
+#endif
+		setval(cprompt, "> ");
+
+	iof = filechar;
+	cflag = 0;
+	name = *argv++;
+	if (--argc >= 1) {
+		if (argv[0][0] == '-' && argv[0][1] != '\0') {
+			for (s = argv[0] + 1; *s; s++)
+				switch (*s) {
+				case 'c':
+					prompt->status &= ~EXPORT;
+					cprompt->status &= ~EXPORT;
+					setval(prompt, "");
+					setval(cprompt, "");
+					cflag = 1;
+					if (--argc > 0)
+						PUSHIO(aword, *++argv, iof = nlchar);
+					break;
+
+				case 'q':
+					qflag = SIG_DFL;
+					break;
+
+				case 's':
+					/* standard input */
+					break;
+
+				case 't':
+					prompt->status &= ~EXPORT;
+					setval(prompt, "");
+					iof = linechar;
+					break;
+
+				case 'i':
+					interactive++;
+				default:
+					if (*s >= 'a' && *s <= 'z')
+						flag[(int) *s]++;
+				}
+		} else {
+			argv--;
+			argc++;
+		}
+
+		if (iof == filechar && --argc > 0) {
+			setval(prompt, "");
+			setval(cprompt, "");
+			prompt->status &= ~EXPORT;
+			cprompt->status &= ~EXPORT;
+
+/* Shell is non-interactive, activate printf-based debug */
+#ifdef MSHDEBUG
+			mshdbg = (int) (((char) (mshdbg_var->value[0])) - '0');
+			if (mshdbg < 0)
+				mshdbg = 0;
+#endif
+			DBGPRINTF(("MSH_MAIN: calling newfile()\n"));
+
+			name = *++argv;
+			if (newfile(name))
+				exit(1);		/* Exit on error */
+		}
+	}
+
+	setdash();
+
+	/* This won't be true if PUSHIO has been called, say from newfile() above */
+	if (e.iop < iostack) {
+		PUSHIO(afile, 0, iof);
+		if (isatty(0) && isatty(1) && !cflag) {
+			interactive++;
+#if !ENABLE_FEATURE_SH_EXTRA_QUIET
+#ifdef MSHDEBUG
+			printf("\n\n%s Built-in shell (msh with debug)\n", BB_BANNER);
+#else
+			printf("\n\n%s Built-in shell (msh)\n", BB_BANNER);
+#endif
+			printf("Enter 'help' for a list of built-in commands.\n\n");
+#endif
+		}
+	}
+
+	signal(SIGQUIT, qflag);
+	if (name && name[0] == '-') {
+		interactive++;
+		f = open(".profile", 0);
+		if (f >= 0)
+			next(remap(f));
+		f = open("/etc/profile", 0);
+		if (f >= 0)
+			next(remap(f));
+	}
+	if (interactive)
+		signal(SIGTERM, sig);
+
+	if (signal(SIGINT, SIG_IGN) != SIG_IGN)
+		signal(SIGINT, onintr);
+	dolv = argv;
+	dolc = argc;
+	dolv[0] = name;
+	if (dolc > 1) {
+		for (ap = ++argv; --argc > 0;) {
+			*ap = *argv++;
+			if (assign(*ap, !COPYV)) {
+				dolc--;			/* keyword */
+			} else {
+				ap++;
+			}
+		}
+	}
+	setval(lookup("#"), putn((--dolc < 0) ? (dolc = 0) : dolc));
+
+	DBGPRINTF(("MSH_MAIN: begin FOR loop, interactive %d, e.iop %p, iostack %p\n", interactive, e.iop, iostack));
+
+	for (;;) {
+		if (interactive && e.iop <= iostack) {
+#if ENABLE_FEATURE_EDITING
+			current_prompt = prompt->value;
+#else
+			prs(prompt->value);
+#endif
+		}
+		onecommand();
+		/* Ensure that getenv("PATH") stays current */
+		setenv("PATH", path->value, 1);
+	}
+
+	DBGPRINTF(("MSH_MAIN: returning.\n"));
 }
 
 
