@@ -284,7 +284,6 @@ static void onintr(int s);		/* SIGINT handler */
 
 static int newenv(int f);
 static void quitenv(void);
-static void err(const char *s);
 static int anys(const char *s1, const char *s2);
 static int any(int c, const char *s);
 static void next(int f);
@@ -344,8 +343,6 @@ typedef union {
 /* flags to yylex */
 #define	CONTIN 01     /* skip new lines to complete command */
 
-#define	SYNTAXERR zzerr()
-
 static struct op *pipeline(int cf);
 static struct op *andor(void);
 static struct op *c_list(void);
@@ -369,8 +366,6 @@ static char **copyw(void);
 static void word(char *cp);
 static struct ioword **copyio(void);
 static struct ioword *io(int u, int f, char *cp);
-static void zzerr(void);
-static void yyerror(char *s);
 static int yylex(int cf);
 static int collect(int c, int c1);
 static int dual(int c);
@@ -461,17 +456,10 @@ static int herein(char *hname, int xdoll);
 static int run(struct ioarg *argp, int (*f) (struct ioarg *));
 
 
-/*
- * IO functions
- */
 static int eofc(void);
 static int readc(void);
 static void unget(int c);
 static void ioecho(char c);
-static void prs(const char *s);
-static void prn(unsigned u);
-static void closef(int i);
-static void closeall(void);
 
 
 /*
@@ -734,10 +722,40 @@ void print_tree(struct op *head)
 	if (head->right)
 		print_tree(head->right);
 }
-#endif							/* MSHDEBUG */
+#endif /* MSHDEBUG */
+
+
+/*
+ * IO functions
+ */
+static void prs(const char *s)
+{
+	if (*s)
+		write(2, s, strlen(s));
+}
+
+static void prn(unsigned u)
+{
+	prs(itoa(u));
+}
+
+static void closef(int i)
+{
+	if (i > 2)
+		close(i);
+}
+
+static void closeall(void)
+{
+	int u;
+
+	for (u = NUFILE; u < NOFILE;)
+		close(u++);
+}
 
 
 /* fail but return to process next command */
+static void fail(void) ATTRIBUTE_NORETURN;
 static void fail(void)
 {
 	longjmp(failpt, 1);
@@ -782,6 +800,7 @@ static void err(const char *s)
 	closeall();
 	e.iop = e.iobase = iostack;
 }
+
 
 /* -------- area.c -------- */
 
@@ -966,6 +985,7 @@ static char *strsave(const char *s, int a)
 	}
 	return "";
 }
+
 
 /* -------- var.c -------- */
 
@@ -1487,6 +1507,24 @@ static char *cclass(char *p, int sub)
  * shell: syntax (C version)
  */
 
+static void yyerror(const char *s) ATTRIBUTE_NORETURN;
+static void yyerror(const char *s)
+{
+	yynerrs++;
+	if (interactive && e.iop <= iostack) {
+		multiline = 0;
+		while (eofc() == 0 && yylex(0) != '\n');
+	}
+	err(s);
+	fail();
+}
+
+static void zzerr(void) ATTRIBUTE_NORETURN;
+static void zzerr(void)
+{
+	yyerror("syntax error");
+}
+
 int yyparse(void)
 {
 	DBGPRINTF7(("YYPARSE: enter...\n"));
@@ -1515,7 +1553,7 @@ static struct op *pipeline(int cf)
 			p = command(CONTIN);
 			if (p == NULL) {
 				DBGPRINTF8(("PIPELINE: error!\n"));
-				SYNTAXERR;
+				zzerr();
 			}
 
 			if (t->type != TPAREN && t->type != TCOM) {
@@ -1548,7 +1586,7 @@ static struct op *andor(void)
 			p = pipeline(CONTIN);
 			if (p == NULL) {
 				DBGPRINTF8(("ANDOR: error!\n"));
-				SYNTAXERR;
+				zzerr();
 			}
 
 			t = block(c == LOGAND ? TAND : TOR, t, p, NOWORDS);
@@ -1627,7 +1665,7 @@ static void musthave(int c, int cf)
 	peeksym = yylex(cf);
 	if (peeksym != c) {
 		DBGPRINTF7(("MUSTHAVE: error!\n"));
-		SYNTAXERR;
+		zzerr();
 	}
 
 	peeksym = 0;
@@ -1811,7 +1849,7 @@ static struct op *dogroup(int onlydone)
 	if (c == DONE && onlydone)
 		return NULL;
 	if (c != DO)
-		SYNTAXERR;
+		zzerr();
 	mylist = c_list();
 	musthave(DONE, 0);
 	return mylist;
@@ -1831,7 +1869,7 @@ static struct op *thenpart(void)
 	t->type = 0;
 	t->left = c_list();
 	if (t->left == NULL)
-		SYNTAXERR;
+		zzerr();
 	t->right = elsepart();
 	return t;
 }
@@ -1845,7 +1883,7 @@ static struct op *elsepart(void)
 	case ELSE:
 		t = c_list();
 		if (t == NULL)
-			SYNTAXERR;
+			zzerr();
 		return t;
 
 	case ELIF:
@@ -2056,22 +2094,6 @@ static struct ioword *io(int u, int f, char *cp)
 	iop->io_name = cp;
 	iolist = addword((char *) iop, iolist);
 	return iop;
-}
-
-static void zzerr(void)
-{
-	yyerror("syntax error");
-}
-
-static void yyerror(char *s)
-{
-	yynerrs++;
-	if (interactive && e.iop <= iostack) {
-		multiline = 0;
-		while (eofc() == 0 && yylex(0) != '\n');
-	}
-	err(s);
-	fail();
 }
 
 static int yylex(int cf)
@@ -4802,32 +4824,6 @@ static int linechar(struct ioarg *ap)
 	}
 	return c;
 }
-
-static void prs(const char *s)
-{
-	if (*s)
-		write(2, s, strlen(s));
-}
-
-static void prn(unsigned u)
-{
-	prs(itoa(u));
-}
-
-static void closef(int i)
-{
-	if (i > 2)
-		close(i);
-}
-
-static void closeall(void)
-{
-	int u;
-
-	for (u = NUFILE; u < NOFILE;)
-		close(u++);
-}
-
 
 /*
  * remap fd into Shell's fd space
