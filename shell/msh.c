@@ -105,6 +105,27 @@ typedef void xint;				/* base type of jmp_buf, for not broken compilers */
 #define	NOWORDS	((char **)NULL)
 #define	NOPIPE	((int *)NULL)
 
+
+/*
+ * redirection
+ */
+struct ioword {
+	short io_unit;				/* unit affected */
+	short io_flag;				/* action (below) */
+	char *io_name;				/* file name */
+};
+
+#define	IOREAD	 1				/* < */
+#define	IOHERE	 2				/* << (here file) */
+#define	IOWRITE	 4				/* > */
+#define	IOCAT	 8				/* >> */
+#define	IOXHERE	 16				/* ${}, ` in << */
+#define	IODUP	 32				/* >&digit */
+#define	IOCLOSE	 64				/* >&- */
+
+#define	IODEFAULT (-1)			/* token for default IO unit */
+
+
 /*
  * Description of a command or an operation on commands.
  * Might eventually use a union.
@@ -183,7 +204,6 @@ static const char *const T_CMD_NAMES[] = {
 
 /* PROTOTYPES */
 static int newfile(char *s);
-static char *cclass(char *p, int sub);
 
 
 struct brkcon {
@@ -191,39 +211,6 @@ struct brkcon {
 	struct brkcon *nextlev;
 };
 
-
-/*
- * redirection
- */
-struct ioword {
-	short io_unit;				/* unit affected */
-	short io_flag;				/* action (below) */
-	char *io_name;				/* file name */
-};
-
-#define	IOREAD	 1				/* < */
-#define	IOHERE	 2				/* << (here file) */
-#define	IOWRITE	 4				/* > */
-#define	IOCAT	 8				/* >> */
-#define	IOXHERE	 16				/* ${}, ` in << */
-#define	IODUP	 32				/* >&digit */
-#define	IOCLOSE	 64				/* >&- */
-
-#define	IODEFAULT (-1)			/* token for default IO unit */
-
-
-
-/*
- * parsing & execution environment
- */
-static struct env {
-	char *linep;
-	struct io *iobase;
-	struct io *iop;
-	xint *errpt;				/* void * */
-	int iofd;
-	struct env *oenv;
-} e;
 
 /*
  * flags:
@@ -264,10 +251,7 @@ static int areanum;				/* current allocation area */
 /*
  * other functions
  */
-typedef int (*builtin_func_ptr)(struct op *);
-static builtin_func_ptr inbuilt(char *s);
-
-static char *rexecve(char *c, char **v, char **envp);
+static const char *rexecve(char *c, char **v, char **envp);
 static char *evalstr(char *cp, int f);
 static char *putn(int n);
 static char *unquote(char *as);
@@ -284,13 +268,10 @@ static void onintr(int s);		/* SIGINT handler */
 
 static int newenv(int f);
 static void quitenv(void);
-static int anys(const char *s1, const char *s2);
-static int any(int c, const char *s);
 static void next(int f);
 static void setdash(void);
 static void onecommand(void);
 static void runtrap(int i);
-static int gmatch(char *s, char *p);
 
 
 /* -------- area stuff -------- */
@@ -391,41 +372,40 @@ static int yyparse(void);
 static int execute(struct op *t, int *pin, int *pout, int act);
 
 
+#define AFID_NOBUF	(~0)
+#define AFID_ID		0
+
+
 /* -------- io.h -------- */
 /* io buffer */
 struct iobuf {
-	unsigned id;				/* buffer id */
-	char buf[512];				/* buffer */
-	char *bufp;					/* pointer into buffer */
-	char *ebufp;				/* pointer to end of buffer */
+	unsigned id;            /* buffer id */
+	char buf[512];          /* buffer */
+	char *bufp;             /* pointer into buffer */
+	char *ebufp;            /* pointer to end of buffer */
 };
 
 /* possible arguments to an IO function */
 struct ioarg {
-	char *aword;
+	const char *aword;
 	char **awordlist;
-	int afile;					/* file descriptor */
-	unsigned afid;				/* buffer id */
-	long afpos;					/* file position */
-	struct iobuf *afbuf;		/* buffer for this file */
+	int afile;              /* file descriptor */
+	unsigned afid;          /* buffer id */
+	long afpos;             /* file position */
+	struct iobuf *afbuf;    /* buffer for this file */
 };
-
-//static struct ioarg ioargstack[NPUSH];
-#define AFID_NOBUF	(~0)
-#define AFID_ID		0
 
 /* an input generator's state */
 struct io {
 	int (*iofn) (struct ioarg *, struct io *);
 	struct ioarg *argp;
 	int peekc;
-	char prev;					/* previous character read by readc() */
-	char nlcount;				/* for `'s */
-	char xchar;					/* for `'s */
-	char task;					/* reason for pushed IO */
+	char prev;              /* previous character read by readc() */
+	char nlcount;           /* for `'s */
+	char xchar;             /* for `'s */
+	char task;              /* reason for pushed IO */
 };
 
-//static struct io iostack[NPUSH];
 #define	XOTHER	0				/* none of the below */
 #define	XDOLL	1				/* expanding ${} */
 #define	XGRAVE	2				/* expanding `'s */
@@ -433,6 +413,29 @@ struct io {
 
 /* in substitution */
 #define	INSUB()	(e.iop->task == XGRAVE || e.iop->task == XDOLL)
+
+static struct ioarg temparg = { 0, 0, 0, AFID_NOBUF, 0 };	/* temporary for PUSHIO */
+static struct ioarg ioargstack[NPUSH];
+static struct io iostack[NPUSH];
+static struct iobuf sharedbuf = { AFID_NOBUF };
+static struct iobuf mainbuf = { AFID_NOBUF };
+static unsigned bufid = AFID_ID;	/* buffer id counter */
+
+#define	PUSHIO(what,arg,gen) ((temparg.what = (arg)), pushio(&temparg,(gen)))
+#define	RUN(what,arg,gen) ((temparg.what = (arg)), run(&temparg,(gen)))
+
+
+/*
+ * parsing & execution environment
+ */
+static struct env {
+	char *linep;
+	struct io *iobase;
+	struct io *iop;
+	xint *errpt;				/* void * */
+	int iofd;
+	struct env *oenv;
+} e;
 
 
 /*
@@ -471,9 +474,6 @@ static int openpipe(int *pv);
 static void closepipe(int *pv);
 static struct io *setbase(struct io *ip);
 
-#define	PUSHIO(what,arg,gen) ((temparg.what = (arg)),pushio(&temparg,(gen)))
-#define	RUN(what,arg,gen) ((temparg.what = (arg)), run(&temparg,(gen)))
-
 /* -------- word.h -------- */
 
 #define	NSTART	16				/* default number of words to allow for initially */
@@ -493,9 +493,6 @@ static char **getwords(struct wdblock *wb);
 
 static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp);
 static int iosetup(struct ioword *iop, int pipein, int pipeout);
-static void echo(char **wp);
-static struct op **find1case(struct op *t, char *w);
-static struct op *findcase(struct op *t, char *w);
 static void brkset(struct brkcon *bc);
 static int dolabel(struct op *t);
 static int dohelp(struct op *t);
@@ -523,7 +520,7 @@ static void badid(char *s);
 static int doset(struct op *t);
 static void varput(char *s, int out);
 static int dotimes(struct op *t);
-static int expand(char *cp, struct wdblock **wbp, int f);
+static int expand(const char *cp, struct wdblock **wbp, int f);
 static char *blank(int f);
 static int dollar(int quoted);
 static int grave(int quoted);
@@ -533,9 +530,6 @@ static int anyspcl(struct wdblock *wb);
 static int xstrcmp(char *p1, char *p2);
 static void glob0(char *a0, unsigned a1, int a2,
 				  int (*a3) (char *, char *));
-static void glob1(char *base, char *lim);
-static void glob2(char *i, char *j);
-static void glob3(char *i, char *j, char *k);
 static void readhere(char **name, char *s, int ec);
 static void pushio(struct ioarg *argp, int (*f) (struct ioarg *));
 static int xxchar(struct ioarg *ap);
@@ -661,7 +655,7 @@ static struct var *ifs;			/* field separators */
 static int areanum;				/* current allocation area */
 static int intr;
 static int inparse;
-static char *null = "";
+static char *null = (char*)"";
 static int heedint = 1;
 static void (*qflag) (int) = SIG_IGN;
 static int startl;
@@ -671,12 +665,6 @@ static int iounit = IODEFAULT;
 static YYSTYPE yylval;
 static char *elinep = line + sizeof(line) - 5;
 
-static struct ioarg temparg = { 0, 0, 0, AFID_NOBUF, 0 };	/* temporary for PUSHIO */
-static struct ioarg ioargstack[NPUSH];
-static struct io iostack[NPUSH];
-static struct iobuf sharedbuf = { AFID_NOBUF };
-static struct iobuf mainbuf = { AFID_NOBUF };
-static unsigned bufid = AFID_ID;	/* buffer id counter */
 
 static struct here *inhere;     /* list of hear docs while parsing */
 static struct here *acthere;    /* list of active here documents */
@@ -737,6 +725,19 @@ static void prs(const char *s)
 static void prn(unsigned u)
 {
 	prs(itoa(u));
+}
+
+static void echo(char **wp)
+{
+	int i;
+
+	prs("+");
+	for (i = 0; wp[i]; i++) {
+		if (i)
+			prs(" ");
+		prs(wp[i]);
+	}
+	prs("\n");
 }
 
 static void closef(int i)
@@ -968,7 +969,7 @@ static char *space(int n)
 	char *cp;
 
 	cp = getcell(n);
-	if (cp == '\0')
+	if (cp == NULL)
 		err("out of string space");
 	return cp;
 }
@@ -978,12 +979,13 @@ static char *strsave(const char *s, int a)
 	char *cp;
 
 	cp = space(strlen(s) + 1);
-	if (cp != NULL) {
-		setarea(cp, a);
-		strcpy(cp, s);
-		return cp;
+	if (cp == NULL) {
+// FIXME: I highly doubt this is good.
+		return (char*)"";
 	}
-	return "";
+	setarea(cp, a);
+	strcpy(cp, s);
+	return cp;
 }
 
 
@@ -997,7 +999,7 @@ static int eqname(const char *n1, const char *n2)
 	return *n2 == '\0' || *n2 == '=';
 }
 
-static char *findeq(const char *cp)
+static const char *findeq(const char *cp)
 {
 	while (*cp != '\0' && *cp != '=')
 		cp++;
@@ -1012,32 +1014,39 @@ static char *findeq(const char *cp)
  */
 static struct var *lookup(const char *n)
 {
-	struct var *vp;
-	char *cp;
-	int c;
+// FIXME: dirty hack
 	static struct var dummy;
 
+	struct var *vp;
+	const char *cp;
+	char *xp;
+	int c;
+
 	if (isdigit(*n)) {
-		dummy.name = n;
+		dummy.name = (char*)n;
 		for (c = 0; isdigit(*n) && c < 1000; n++)
 			c = c * 10 + *n - '0';
 		dummy.status = RONLY;
 		dummy.value = (c <= dolc ? dolv[c] : null);
 		return &dummy;
 	}
+
 	for (vp = vlist; vp; vp = vp->next)
 		if (eqname(vp->name, n))
 			return vp;
+
 	cp = findeq(n);
 	vp = (struct var *) space(sizeof(*vp));
 	if (vp == 0 || (vp->name = space((int) (cp - n) + 2)) == 0) {
-		dummy.name = dummy.value = "";
+		dummy.name = dummy.value = (char*)"";
 		return &dummy;
 	}
-	for (cp = vp->name; (*cp = *n++) && *cp != '='; cp++);
-	if (*cp == '\0')
-		*cp = '=';
-	*++cp = '\0';
+
+	xp = vp->name;
+	while ((*xp = *n++) != '\0' && *xp != '=')
+		xp++;
+	*xp++ = '=';
+	*xp = '\0';
 	setarea((char *) vp, 0);
 	setarea((char *) vp->name, 0);
 	vp->value = null;
@@ -1085,8 +1094,8 @@ static void nameval(struct var *vp, const char *val, const char *name)
 	}
 	if (vp->status & GETCELL)
 		freecell(vp->name);		/* form new string `name=value' */
-	vp->name = name;
-	vp->value = val;
+	vp->name = (char*)name;
+	vp->value = (char*)val;
 	vp->status |= fl;
 }
 
@@ -1139,7 +1148,7 @@ static int isassign(const char *s)
 
 static int assign(const char *s, int cf)
 {
-	char *cp;
+	const char *cp;
 	struct var *vp;
 
 	DBGPRINTF7(("ASSIGN: enter, s=%s, cf=%d\n", s, cf));
@@ -1172,7 +1181,7 @@ static void putvlist(int f, int out)
 {
 	struct var *vp;
 
-	for (vp = vlist; vp; vp = vp->next)
+	for (vp = vlist; vp; vp = vp->next) {
 		if (vp->status & f && (isalpha(*vp->name) || *vp->name == '_')) {
 			if (vp->status & EXPORT)
 				write(out, "export ", 7);
@@ -1181,6 +1190,7 @@ static void putvlist(int f, int out)
 			write(out, vp->name, (int) (findeq(vp->name) - vp->name));
 			write(out, "\n", 1);
 		}
+	}
 }
 
 
@@ -1429,6 +1439,7 @@ static void onintr(int s)					/* ANSI C requires a parameter */
 	}
 }
 
+
 /* -------- gmatch.c -------- */
 /*
  * int gmatch(string, pattern)
@@ -1442,12 +1453,36 @@ static void onintr(int s)					/* ANSI C requires a parameter */
 #define	QMASK	(CMASK&~QUOTE)
 #define	NOT	'!'					/* might use ^ */
 
-static int gmatch(char *s, char *p)
+static const char *cclass(const char *p, int sub)
+{
+	int c, d, not, found;
+
+	not = (*p == NOT);
+	if (not != 0)
+		p++;
+	found = not;
+	do {
+		if (*p == '\0')
+			return NULL;
+		c = *p & CMASK;
+		if (p[1] == '-' && p[2] != ']') {
+			d = p[2] & CMASK;
+			p++;
+		} else
+			d = c;
+		if (c == sub || (c <= sub && sub <= d))
+			found = !not;
+	} while (*++p != ']');
+	return found ? p + 1 : NULL;
+}
+
+static int gmatch(const char *s, const char *p)
 {
 	int sc, pc;
 
 	if (s == NULL || p == NULL)
 		return 0;
+
 	while ((pc = *p++ & CMASK) != '\0') {
 		sc = *s++ & QMASK;
 		switch (pc) {
@@ -1476,29 +1511,6 @@ static int gmatch(char *s, char *p)
 		}
 	}
 	return *s == '\0';
-}
-
-static char *cclass(char *p, int sub)
-{
-	int c, d, not, found;
-
-	not = (*p == NOT);
-	if (not != 0)
-		p++;
-	found = not;
-	do {
-		if (*p == '\0')
-			return NULL;
-		c = *p & CMASK;
-		if (p[1] == '-' && p[2] != ']') {
-			d = p[2] & CMASK;
-			p++;
-		} else
-			d = c;
-		if (c == sub || (c <= sub && sub <= d))
-			found = !not;
-	} while (*++p != ']');
-	return found ? p + 1 : NULL;
 }
 
 
@@ -2323,21 +2335,68 @@ static char *tree(unsigned size)
 	return t;
 }
 
+
 /* VARARGS1 */
 /* ARGSUSED */
 
 /* -------- exec.c -------- */
 
+static struct op **find1case(struct op *t, const char *w)
+{
+	struct op *t1;
+	struct op **tp;
+	char **wp;
+	char *cp;
+
+	if (t == NULL) {
+		DBGPRINTF3(("FIND1CASE: enter, t==NULL, returning.\n"));
+		return NULL;
+	}
+
+	DBGPRINTF3(("FIND1CASE: enter, t->type=%d (%s)\n", t->type,
+				T_CMD_NAMES[t->type]));
+
+	if (t->type == TLIST) {
+		tp = find1case(t->left, w);
+		if (tp != NULL) {
+			DBGPRINTF3(("FIND1CASE: found one to the left, returning tp=%p\n", tp));
+			return tp;
+		}
+		t1 = t->right;			/* TPAT */
+	} else
+		t1 = t;
+
+	for (wp = t1->words; *wp;) {
+		cp = evalstr(*wp++, DOSUB);
+		if (cp && gmatch(w, cp)) {
+			DBGPRINTF3(("FIND1CASE: returning &t1->left= %p.\n",
+						&t1->left));
+			return &t1->left;
+		}
+	}
+
+	DBGPRINTF(("FIND1CASE: returning NULL\n"));
+	return NULL;
+}
+
+static struct op *findcase(struct op *t, const char *w)
+{
+	struct op **tp;
+
+	tp = find1case(t, w);
+	return tp != NULL ? *tp : NULL;
+}
+
 /*
  * execute tree
  */
-
 
 static int execute(struct op *t, int *pin, int *pout, int act)
 {
 	struct op *t1;
 	volatile int i, rv, a;
-	char *cp, **wp, **wp2;
+	const char *cp;
+	char **wp, **wp2;
 	struct var *vp;
 	struct op *outtree_save;
 	struct brkcon bc;
@@ -2551,14 +2610,25 @@ static int execute(struct op *t, int *pin, int *pout, int act)
 	return rv;
 }
 
-static int
-forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
+typedef int (*builtin_func_ptr)(struct op *);
+
+static builtin_func_ptr inbuilt(const char *s) {
+	const struct builtincmd *bp;
+
+	for (bp = builtincmds; bp->name != NULL; bp++)
+		if (strcmp(bp->name, s) == 0)
+			return bp->builtinfunc;
+
+	return NULL;
+}
+
+static int forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 {
 	pid_t newpid;
 	int i, rv;
 	builtin_func_ptr shcom = NULL;
 	int f;
-	char *cp = NULL;
+	const char *cp = NULL;
 	struct ioword **iopp;
 	int resetsig;
 	char **owp;
@@ -2592,7 +2662,7 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 	resetsig = 0;
 	rv = -1;					/* system-detected error */
 	if (t->type == TCOM) {
-		while ((cp = *wp++) != NULL);
+		while (*wp++ != NULL);
 		cp = *wp;
 
 		/* strip all initial assignments */
@@ -2755,7 +2825,8 @@ forkexec(struct op *t, int *pin, int *pout, int act, char **wp)
 static int iosetup(struct ioword *iop, int pipein, int pipeout)
 {
 	int u = -1;
-	char *cp = NULL, *msg;
+	char *cp = NULL;
+	const char *msg;
 
 	DBGPRINTF(("IOSETUP: iop %p, pipein %i, pipeout %i\n", iop,
 			   pipein, pipeout));
@@ -2795,7 +2866,7 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 	case IOHERE:
 	case IOHERE | IOXHERE:
 		u = herein(iop->io_name, iop->io_flag & IOXHERE);
-		cp = "here file";
+		cp = (char*)"here file";
 		break;
 
 	case IOWRITE | IOCAT:
@@ -2827,64 +2898,6 @@ static int iosetup(struct ioword *iop, int pipein, int pipeout)
 		close(u);
 	}
 	return 0;
-}
-
-static void echo(char **wp)
-{
-	int i;
-
-	prs("+");
-	for (i = 0; wp[i]; i++) {
-		if (i)
-			prs(" ");
-		prs(wp[i]);
-	}
-	prs("\n");
-}
-
-static struct op **find1case(struct op *t, char *w)
-{
-	struct op *t1;
-	struct op **tp;
-	char **wp, *cp;
-
-	if (t == NULL) {
-		DBGPRINTF3(("FIND1CASE: enter, t==NULL, returning.\n"));
-		return NULL;
-	}
-
-	DBGPRINTF3(("FIND1CASE: enter, t->type=%d (%s)\n", t->type,
-				T_CMD_NAMES[t->type]));
-
-	if (t->type == TLIST) {
-		tp = find1case(t->left, w);
-		if (tp != NULL) {
-			DBGPRINTF3(("FIND1CASE: found one to the left, returning tp=%p\n", tp));
-			return tp;
-		}
-		t1 = t->right;			/* TPAT */
-	} else
-		t1 = t;
-
-	for (wp = t1->words; *wp;) {
-		cp = evalstr(*wp++, DOSUB);
-		if (cp && gmatch(w, cp)) {
-			DBGPRINTF3(("FIND1CASE: returning &t1->left= %p.\n",
-						&t1->left));
-			return &t1->left;
-		}
-	}
-
-	DBGPRINTF(("FIND1CASE: returning NULL\n"));
-	return NULL;
-}
-
-static struct op *findcase(struct op *t, char *w)
-{
-	struct op **tp;
-
-	tp = find1case(t, w);
-	return tp != NULL ? *tp : NULL;
 }
 
 /*
@@ -2971,10 +2984,11 @@ static int setstatus(int s)
  * If getenv("PATH") were kept up-to-date,
  * execvp might be used.
  */
-static char *rexecve(char *c, char **v, char **envp)
+static const char *rexecve(char *c, char **v, char **envp)
 {
 	int i;
-	char *sp, *tp;
+	const char *sp;
+	char *tp;
 	int eacces = 0, asis = 0;
 	char *name = c;
 
@@ -2991,7 +3005,7 @@ static char *rexecve(char *c, char **v, char **envp)
 	DBGPRINTF(("REXECVE: c=%p, v=%p, envp=%p\n", c, v, envp));
 
 	sp = any('/', c) ? "" : path->value;
-	asis = *sp == '\0';
+	asis = (*sp == '\0');
 	while (asis || *sp != '\0') {
 		asis = 0;
 		tp = e.linep;
@@ -3138,7 +3152,7 @@ static int dolabel(struct op *t)
 
 static int dochdir(struct op *t)
 {
-	char *cp, *er;
+	const char *cp, *er;
 
 	cp = t->words[1];
 	if (cp == NULL) {
@@ -3175,7 +3189,7 @@ static int doshift(struct op *t)
  */
 static int dologin(struct op *t)
 {
-	char *cp;
+	const char *cp;
 
 	if (interactive) {
 		signal(SIGINT, SIG_DFL);
@@ -3232,7 +3246,8 @@ static int doexec(struct op *t)
 static int dodot(struct op *t)
 {
 	int i;
-	char *sp, *tp;
+	const char *sp;
+	char *tp;
 	char *cp;
 	int maltmp;
 
@@ -3578,16 +3593,6 @@ static int dotimes(struct op *t)
 }
 
 
-static builtin_func_ptr inbuilt(char *s) {
-	const struct builtincmd *bp;
-
-	for (bp = builtincmds; bp->name != NULL; bp++)
-		if (strcmp(bp->name, s) == 0)
-			return bp->builtinfunc;
-
-	return NULL;
-}
-
 /* -------- eval.c -------- */
 
 /*
@@ -3639,6 +3644,7 @@ static char **eval(char **ap, int f)
 	return gflg ? (char **) NULL : wp;
 }
 
+
 /*
  * Make the exported environment from the exported
  * names in the dictionary. Keyword assignments
@@ -3657,26 +3663,10 @@ static char **makenv(int all, struct wdblock *wb)
 	return getwords(wb);
 }
 
-static char *evalstr(char *cp, int f)
-{
-	struct wdblock *wb;
-
-	DBGPRINTF6(("EVALSTR: enter, cp=%p, f=%d\n", cp, f));
-
-	wb = NULL;
-	if (expand(cp, &wb, f)) {
-		if (wb == NULL || wb->w_nword == 0
-			|| (cp = wb->w_words[0]) == NULL)
-			cp = "";
-		DELETE(wb);
-	} else
-		cp = NULL;
-	return cp;
-}
-
-static int expand(char *cp, struct wdblock **wbp, int f)
+static int expand(const char *cp, struct wdblock **wbp, int f)
 {
 	jmp_buf ev;
+	char *xp;
 
 #if __GNUC__
 	/* Avoid longjmp clobbering */
@@ -3690,33 +3680,57 @@ static int expand(char *cp, struct wdblock **wbp, int f)
 	if (cp == NULL)
 		return 0;
 
-	if (!anys("$`'\"", cp) &&
-		!anys(ifs->value, cp) && ((f & DOGLOB) == 0 || !anys("[*?", cp))) {
-		cp = strsave(cp, areanum);
+	if (!anys("$`'\"", cp) && !anys(ifs->value, cp)
+	 && ((f & DOGLOB) == 0 || !anys("[*?", cp))
+	) {
+		xp = strsave(cp, areanum);
 		if (f & DOTRIM)
-			unquote(cp);
-		*wbp = addword(cp, *wbp);
+			unquote(xp);
+		*wbp = addword(xp, *wbp);
 		return 1;
 	}
 	errpt = ev;
 	if (newenv(setjmp(errpt)) == 0) {
 		PUSHIO(aword, cp, strchar);
 		e.iobase = e.iop;
-		while ((cp = blank(f)) && gflg == 0) {
-			e.linep = cp;
-			cp = strsave(cp, areanum);
+		while ((xp = blank(f)) && gflg == 0) {
+			e.linep = xp;
+			xp = strsave(xp, areanum);
 			if ((f & DOGLOB) == 0) {
 				if (f & DOTRIM)
-					unquote(cp);
-				*wbp = addword(cp, *wbp);
+					unquote(xp);
+				*wbp = addword(xp, *wbp);
 			} else
-				*wbp = glob(cp, *wbp);
+				*wbp = glob(xp, *wbp);
 		}
 		quitenv();
 	} else
 		gflg = 1;
 	return gflg == 0;
 }
+
+static char *evalstr(char *cp, int f)
+{
+	struct wdblock *wb;
+
+	DBGPRINTF6(("EVALSTR: enter, cp=%p, f=%d\n", cp, f));
+
+	wb = NULL;
+	if (expand(cp, &wb, f)) {
+		if (wb == NULL || wb->w_nword == 0
+		 || (cp = wb->w_words[0]) == NULL
+		) {
+// TODO: I suspect that 
+// char *evalstr(char *cp, int f)  is actually
+// const char *evalstr(const char *cp, int f)!
+			cp = (char*)"";
+		}
+		DELETE(wb);
+	} else
+		cp = NULL;
+	return cp;
+}
+
 
 /*
  * Blank interpretation and quoting
@@ -3927,12 +3941,12 @@ static int dollar(int quoted)
 
 static int grave(int quoted)
 {
-	char *cp;
+	const char *cp;
 	int i;
 	int j;
 	int pf[2];
 	static char child_cmd[LINELIM];
-	char *src;
+	const char *src;
 	char *dest;
 	int count;
 	int ignore;
@@ -3945,11 +3959,12 @@ static int grave(int quoted)
 	(void) &cp;
 #endif
 
-	for (cp = e.iop->argp->aword; *cp != '`'; cp++)
+	for (cp = e.iop->argp->aword; *cp != '`'; cp++) {
 		if (*cp == 0) {
 			err("no closing `");
 			return 0;
 		}
+	}
 
 	/* string copy with dollar expansion */
 	src = e.iop->argp->aword;
@@ -4078,8 +4093,7 @@ static int grave(int quoted)
 		e.iop->argp->aword = ++cp;
 		close(pf[1]);
 		PUSHIO(afile, remap(pf[0]),
-			   (int (*)(struct ioarg *)) ((quoted) ? qgravechar :
-										  gravechar));
+			(int (*)(struct ioarg *)) ((quoted) ? qgravechar : gravechar));
 		return 1;
 	}
 	/* allow trapped signals */
@@ -4092,9 +4106,9 @@ static int grave(int quoted)
 	closepipe(pf);
 
 	argument_list[0] = (char *) DEFAULT_SHELL;
-	argument_list[1] = "-c";
+	argument_list[1] = (char *) "-c";
 	argument_list[2] = child_cmd;
-	argument_list[3] = 0;
+	argument_list[3] = NULL;
 
 	cp = rexecve(argument_list[0], argument_list, makenv(1, wb));
 	prs(argument_list[0]);
@@ -4263,6 +4277,7 @@ static int xstrcmp(char *p1, char *p2)
 	return strcmp(*(char **) p1, *(char **) p2);
 }
 
+
 /* -------- word.c -------- */
 
 static struct wdblock *newword(int nw)
@@ -4316,11 +4331,37 @@ char **getwords(struct wdblock *wb)
 static int (*func) (char *, char *);
 static int globv;
 
-static void glob0(char *a0, unsigned a1, int a2, int (*a3) (char *, char *))
+static void glob3(char *i, char *j, char *k)
 {
-	func = a3;
-	globv = a2;
-	glob1(a0, a0 + a1 * a2);
+	char *index1, *index2, *index3;
+	int c;
+	int m;
+
+	m = globv;
+	index1 = i;
+	index2 = j;
+	index3 = k;
+	do {
+		c = *index1;
+		*index1++ = *index3;
+		*index3++ = *index2;
+		*index2++ = c;
+	} while (--m);
+}
+
+static void glob2(char *i, char *j)
+{
+	char *index1, *index2, c;
+	int m;
+
+	m = globv;
+	index1 = i;
+	index2 = j;
+	do {
+		c = *index1;
+		*index1++ = *index2;
+		*index2++ = c;
+	} while (--m);
 }
 
 static void glob1(char *base, char *lim)
@@ -4397,38 +4438,13 @@ static void glob1(char *base, char *lim)
 	}
 }
 
-static void glob2(char *i, char *j)
+static void glob0(char *a0, unsigned a1, int a2, int (*a3) (char *, char *))
 {
-	char *index1, *index2, c;
-	int m;
-
-	m = globv;
-	index1 = i;
-	index2 = j;
-	do {
-		c = *index1;
-		*index1++ = *index2;
-		*index2++ = c;
-	} while (--m);
+	func = a3;
+	globv = a2;
+	glob1(a0, a0 + a1 * a2);
 }
 
-static void glob3(char *i, char *j, char *k)
-{
-	char *index1, *index2, *index3;
-	int c;
-	int m;
-
-	m = globv;
-	index1 = i;
-	index2 = j;
-	index3 = k;
-	do {
-		c = *index1;
-		*index1++ = *index3;
-		*index3++ = *index2;
-		*index2++ = c;
-	} while (--m);
-}
 
 /* -------- io.c -------- */
 
@@ -4874,6 +4890,7 @@ static void closepipe(int *pv)
 		close(*pv);
 	}
 }
+
 
 /* -------- here.c -------- */
 
