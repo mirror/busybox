@@ -839,7 +839,7 @@ static int in_ether(char *bufp, struct sockaddr *sap)
 	unsigned val;
 
 	sap->sa_family = ether_hwtype.type;
-	ptr = sap->sa_data;
+	ptr = (unsigned char*) sap->sa_data;
 
 	i = 0;
 	orig = bufp;
