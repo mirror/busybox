@@ -394,6 +394,7 @@ config FEATURE_IP_SHORT_FORMS
 	  ip link   -> iplink
 	  ip route  -> iproute
 	  ip tunnel -> iptunnel
+	  ip rule   -> iprule
 
 	  Say N unless you desparately need the short form of the ip
 	  object commands.
