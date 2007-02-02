@@ -128,6 +128,7 @@ static void attach_option(struct option_set **opt_list,
 			existing->data = xrealloc(existing->data,
 					existing->data[OPT_LEN] + length + 3);
 			if ((option->flags & TYPE_MASK) == OPTION_STRING) {
+				/* ' ' can bring us to 256 - bad */
 				if (existing->data[OPT_LEN] + length >= 255)
 					return;
 				/* add space separator between STRING options in a list */
